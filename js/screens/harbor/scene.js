@@ -150,7 +150,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   // the flicker detector: a jump of the sign's live level between frames (the boot flicker, a blackout, the power back, a sky dim), a
   // lightning flash → the spiders are scared; title.js pokes the taps, the race, the tired tube (scene.poke)
-  let lastSignLv = -1, pokeLog = [];
+  let lastSignLv = -1, pokeLog = [], partyPools = [];   // (WIN3: the window party's pools on the cobbles this frame — CSS px, for the e2e)
   function pokeDress(ev) { if (!dress || !dress.scare) return 0; const x = ev.x != null ? ev.x : ev.letter != null ? LETTER_X[Math.max(0, Math.min(3, ev.letter | 0))] : null; const n = dress.scare({ kind: ev.kind || 'poke', x, k: ev.k }); pokeLog.push({ t: +nowT.toFixed(1), kind: ev.kind, x, n }); if (pokeLog.length > 12) pokeLog.shift(); return n; }
   function dressTick(t) {
     const fw = clock.force.has('sign-web'), fd = clock.force.has('sign-dotd');
@@ -889,7 +889,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function forcedMoment() {
     const f = clock.force;
     if (f.has('window')) return qp.get('moment') || null;
-    for (const id of f) if (id.startsWith('window-')) return id.slice(7);
+    for (const id of f) if (id.startsWith('window-') && id !== 'window-party') return id.slice(7);   // (WIN3: the window party is the life's own state, not a moment)
     return null;
   }
   // PART 7a: the speakeasy's bake inputs — this week's GHOST AD (the same for everyone: core/harbor-speakeasy.js), the month (the ivy)
@@ -1462,7 +1462,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (RR && RR.dark) { if (!raidPole) { raidPole = true; speak.pole({ on: false }); } } else if (raidPole) { raidPole = false; speak.pole({ on: true }); }
     { const bd = wTr && wTr.bulbDead; speak.bulb(bd ? bd.i : null, bd ? bd.k : 1); }
     if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
-      tw: TW, hush: hushPreview(), flash: lightningFlash(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+      tw: TW, hush: hushPreview(), flash: lightningFlash(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, raidS: RP ? nowRS - (RP.t0 - 5) : null, seed: L ? L.seed || 1924 : 1924,
+        // (WIN3 — THE PARTY IN THE WINDOWS: the peak's clock (seconds since it began / until it ends), the beat, the forced flag)
+        partyPhase: PT.name, partyPeakS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (hr - pl.peak) * 3600; })(), partyEndS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (pl.calm - hr) * 3600; })(),
+        partyForce: clock.force.has('window-party'), beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0 } : null, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+    // WIN3 — THE WINDOW PARTY's COLOUR ON THE COBBLES: each room's light pooled on the promenade in front of its window (a flat ellipse,
+    // 'lighter', in the room's colour — the foreground takes the party's colour)
+    partyPools = [];
+    if (fadeIn > 0 && !off.has('no-speakeasy') && L.speakeasy && speak.partySpill) { const sp = speak.partySpill(); if (sp.length) { c.save(); c.globalCompositeOperation = 'lighter'; const sz = L.speakeasy.z0 - 1.3;
+      for (const q of sp) { const [px, py] = project(cam, L.speakeasy.x0 + q.u, 0, sz), rx = 2.8 * cam.F / sz; partyPools.push({ id: q.id, x: +px.toFixed(1), y: +py.toFixed(1), r: +rx.toFixed(1), col: q.col, k: +q.k.toFixed(2) }); const g = c.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},${(0.45 * q.k * (lit > 0 ? lit : 0)).toFixed(3)})`); g.addColorStop(0.5, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},${(0.16 * q.k).toFixed(3)})`); g.addColorStop(1, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},0)`);
+        c.save(); c.translate(px, py); c.scale(1, 0.3); c.fillStyle = g; c.fillRect(-rx, -rx, rx * 2, rx * 2); c.restore(); }
+      c.restore(); } }
     // 9a — THE SPEAKEASY IN THE RAIN: the glass wet (a sheen, beads, rivulets), the hush sign's cyan on the wet pavement
     if (WXS && (LK.rain > 0.03 || WXS.drip > 0.05 || WXS.wet > 0.05) && fadeIn > 0 && !off.has('no-speakeasy')) { const hs = speak.hush(); wetGround.glass(c, { wins: speak.windows(), rain: LK.rain || 0, drip: WXS.drip, wet: WXS.wet, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, fade: fadeIn, hush: hs && hs.lit && hs.rect ? { rect: hs.rect, k: litK(DK, 'lamps') * 0.7 + 0.3 } : null }); }
     { const bd = speak.beds(); snd.speakeasy(RR && bd ? { ...bd, club: (bd.club || 0) * RR.club } : bd); }   // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them; 8b2: the raid hushes it, it creeps back — louder on a party night)
@@ -2346,7 +2356,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
+    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),

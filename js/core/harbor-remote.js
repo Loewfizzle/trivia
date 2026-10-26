@@ -281,7 +281,9 @@ export const EVENTS = [
   // ---- PART 7b — THE WINDOWS: &force=window&moment=<id> (the links; hidden: the panel can't type a moment) + one row per moment
   // (&force=window-<id>), grouped by rarity — the catalogue's own list (core/harbor-moments.js#MOMENTS), so a new moment is a new row
   { id: 'window', label: 'WINDOW MOMENT', cat: 'windows', group: 'ROUTINES', ready: false, hint: 'with &moment=<id>' },
-  { id: 'smoke', label: 'SMOKE IN THE TV ROOM', cat: 'windows', group: 'THE TV ROOM', kw: 'cigarette haze blue', night: true, hint: 'a cigarette lit on the couch — the wisps + the haze in the TV’s flickering light (with the TV on: 10 pm → 3 am)' },
+  // WIN3 — THE PARTY IN THE WINDOWS (&force=window-party): the peak's window party from the start, the rooms up one by one
+  { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', cat: 'windows', group: 'PARTY NIGHTS', kw: 'dance blinds neon crowd jump wands party', night: true, hint: 'the party’s peak in the windows: the blinds go up one room at a time (~every 10 s), each room a dance party in its own neon colour — silhouettes jumping on the beat, a few glow wands, the colour spilling onto the cobbles; the boss’s TV room never joins; a raid cuts it' },
+  { id: 'smoke', label: 'A HAZE IN THE TV ROOM', cat: 'windows', group: 'THE TV ROOM', kw: 'smoke cigarette haze blue boss', night: true, hint: 'a faint haze in the boss’s dark room catching the screen’s blue (the TV on: 10 pm → 3 am) — nobody is ever seen' },
   ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', sec: m.rarity === 'legendary' ? 'legendary' : undefined, group: m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
   { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', sec: 'tools', group: 'DEBUG PIECES', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
 ];
@@ -379,7 +381,8 @@ export function momentHour(m) {
 }
 export function playlistOf(kind) {
   let items;
-  if (kind === 'windows') items = MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), len: Math.round(m.len + 3.7), night: m.light === 'night' || m.id === 'lights-out', hol: m.holiday || null, hour: momentHour(m) }));
+  if (kind === 'windows') items = [...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), len: Math.round(m.len + 3.7), night: m.light === 'night' || m.id === 'lights-out', hol: m.holiday || null, hour: momentHour(m) })),
+    { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', len: 90, night: true, hol: null, hour: PARTY_HOUR }];   // (WIN3: the rooms up one by one over ~60 s, then the dancing)
   else {
     const holOf = e => (e.group === 'HALLOWEEN' || e.group === 'ON THE WATER' ? 'halloween' : e.group === 'DAY OF THE DEAD' ? 'dotd' : null);
     const rows = PANEL_EVENTS.filter(e => !e.id.startsWith('no-') && (kind === 'holidays' ? e.cat === 'holidays' : kind === 'wildlife' ? e.cat === 'wildlife' : kind === 'workers' ? e.cat === 'workers' : false));
@@ -390,7 +393,9 @@ export function playlistOf(kind) {
 /** WIN3 — a WINDOW ROW's own wall time (the owner: the panel's window rows did nothing — a day moment by day, or a night moment while a
  *  chosen time held the clock by day): a `window-<id>` force id → that moment's own hour on the day (momentHour: a routine's `at`, else
  *  the middle of its hours; the small hours on the next day), or null for anything else. forceOn() jumps JUST ME's clock to it. */
+export const PARTY_HOUR = 22.5;   // (WIN3: the window party's row + PLAY ALL item play at the peak)
 export function momentWhen(id, day) {
+  if (id === 'window-party') return itemWhen({ hour: PARTY_HOUR, night: true }, day);
   const m = typeof id === 'string' && id.startsWith('window-') ? MOMENTS.find(x => x.id === id.slice(7)) : null;
   return m ? itemWhen({ hour: momentHour(m), night: m.light === 'night' }, day) : null;
 }

@@ -293,7 +293,16 @@ export function roomState(id, h, routines = {}) {
  */
 const TV_STEP = 0.35;
 const h01 = (n, salt) => { let x = Math.imul((n | 0) ^ 0x9e3779b9, 0x85ebca6b) ^ salt; x = Math.imul(x ^ (x >>> 13), 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
-export function tvLight(t, seed = 7) {
+export function tvLight(t, seed = 7, o = {}) {
+  // WIN3 — THE BOSS's TV, seen from the street (the owner): on top of the cuts, LONG STEADY DIM STRETCHES (a quiet scene: ~1 slot in 5 holds
+  // 7–12 s at a low level with only the fine flicker) and, LATE (o.late: ~1 am on), a CHANNEL-FLIPPING BURST now and then (a few seconds
+  // of cuts every 0.12 s, each its own level + tint) — never a steady pulse
+  { const slot = Math.floor(t / 40), q0 = slot * 40 + 6 + h01(slot, seed + 11) * 14, qLen = 7 + 5 * h01(slot, seed + 12);
+    if (h01(slot, seed + 10) < 0.2 && t >= q0 && t < q0 + qLen) { const u = (t - q0) / qLen, fade = Math.min(1, u * 14, (1 - u) * 14); const lv = 0.22 + 0.06 * h01(slot, seed + 14), fl = 0.012 * Math.sin(t * 31) + 0.008 * Math.sin(t * 57.3);
+      return { k: Math.max(0.12, lv + fl), tint: h01(slot, seed + 15), warm: 0, cut: t - q0, dim: 1, quiet: fade }; } }
+  if (o.late) { const slot = Math.floor(t / 180), b0 = slot * 180 + 15 + h01(slot, seed + 21) * 120, bLen = 2.6 + 1.6 * h01(slot, seed + 22);
+    if (h01(slot, seed + 20) < 0.55 && t >= b0 && t < b0 + bLen) { const n = Math.floor((t - b0) / 0.12), el = t - b0 - n * 0.12;
+      return { k: Math.max(0.12, Math.min(1.2, 0.3 + 0.9 * h01(n, seed + 23 + slot) + (el < 0.03 ? 0.25 : 0))), tint: h01(n, seed + 24), warm: h01(n, seed + 25) < 0.2 ? 1 : 0, cut: el, dim: 0, burst: 1 }; } }
   const b = Math.floor(t / TV_STEP);
   let c = b;
   for (let i = 0; i < 10; i++, c--) if (h01(c, seed) < 0.45) break;     // (the last cut; a scene lasts ≤ 3.5 s)
@@ -304,10 +313,89 @@ export function tvLight(t, seed = 7) {
   const flash = el < 0.1 && h01(c, seed + 4) < 0.35 ? 0.32 : 0;      // (a bright cut now and then)
   return { k: Math.max(0.12, Math.min(1.2, lv + drift + fl + flash)), tint, warm, cut: el, dim };
 }
+/** WIN3 — a SHADOW across the ceiling's glow now and then (someone shifting, getting up for a snack — only ever a shadow): every ~2–3 min
+ *  a soft dark shape crosses the back wall over ~2.6 s → { u (0..1 across, the direction in dir), a (0..1) } | null */
+export function tvShadow(t, seed = 7) {
+  const slot = Math.floor(t / 140), s0 = slot * 140 + 8 + h01(slot, seed + 31) * 110, len = 2.4 + 0.8 * h01(slot, seed + 32);
+  if (h01(slot, seed + 30) < 0.22 || t < s0 || t >= s0 + len) return null;
+  const u = (t - s0) / len;
+  return { u, a: Math.sin(Math.PI * u), dir: h01(slot, seed + 33) < 0.5 ? -1 : 1 };
+}
+/** WIN3 — the holiday film's tint on the boss's screen (a faint shift of the blue): Halloween a sickly orange-green, Christmas red + green
+ *  → { col: [r,g,b], w (the mix weight) } | null */
+export function tvHolidayTint(holId) {
+  if (holId === 'halloween') return { col: [150, 190, 70], w: 0.22 };
+  if (holId === 'christmas') return { col: [235, 90, 80], w: 0.2 };
+  return null;
+}
+
+// ------------------------------------------------------------------ WIN3 — THE QUIET NIGHTS (the boss's glow the only light on)
+const dowOfKey = key => { const [y, m, d] = key.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
+/** THE QUIET NIGHTS (the owner: "some nights it's the only one on" — variety, never stale): ~1 night in 6, mostly Sun–Wed (a few Thursdays),
+ *  never Friday / Saturday (the party nights) nor a party night by ctx.party. key = the EVENING's date (the night runs into the next day) */
+export function quietNight(key, ctx = {}) {
+  if (ctx.party) return false;
+  const dow = dowOfKey(key);
+  if (dow === 5 || dow === 6) return false;
+  const r = rngFrom(hashString(`quiet|${ctx.seed || 1924}|${key}`))();
+  return r < (dow === 4 ? 0.12 : 0.25);
+}
+/** the rooms that go to bed on a quiet night (the apartment's TV never does; the shop is dark at night anyway) */
+export const BED_ROOMS = Object.freeze(['back', 'jazz', 'bar', 'edge2', 'edge3']);
+/** the BEDTIMES of a quiet night: each room's lamp-off, seconds after MIDNIGHT, one by one every ~7–15 min from ~00:20 in a seeded order
+ *  (every phone the same) → { back, jazz, bar, edge2, edge3 } — the last one out by ~01:35 */
+export function bedtimes(key, ctx = {}) {
+  const r = rngFrom(hashString(`bed|${ctx.seed || 1924}|${key}`)), order = [...BED_ROOMS];
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  let t = 20 * 60 + r() * 10 * 60; const out = {};
+  for (const id of order) { out[id] = Math.round(t); t += 7 * 60 + r() * 8 * 60; }
+  return out;
+}
+/** a room's level on a quiet night at s seconds after midnight (negative = before it): 1 until its bedtime, then the lamp CLICKS off (a
+ *  stutter: off, a flash back, off for good) → 0 — until 3 am, when the TV clicks off too and the night goes on as every night */
+export function bedLevel(bed, id, s) {
+  const b = bed ? bed[id] : null;
+  if (b == null || s < b || s >= TV_END * 3600) return 1;   // (the beds end at 3 am with the TV's click-off: the night goes on as every night — SP3's never-fully-dark floor)
+  const e = s - b;
+  return e < 0.12 ? 0.3 : e < 0.2 ? 0.85 : e < 0.3 ? 0.12 : 0;
+}
 
 /** THE LATE TVs across the skyline (screens/harbor/lights.js): their level at hour h (local 0–24) — on from ~10 pm, full by 10:20,
  *  fading out ~2:40 → 3 am; the same hours as the speakeasy's own TV upstairs */
 export function lateTvK(h) {
   const x = h < 12 ? h + 24 : h, e = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
   return e(22, 22.33, x) * (1 - e(26.67, 27, x));
+}
+
+// ------------------------------------------------------------------ WIN3 — THE PARTY IN THE WINDOWS (PURE)
+// The owner (Oct 26): on PARTY NIGHTS, during the party's PEAK, the blinds go up in every window ONE ROOM AT A TIME (~every 10 s, the
+// whole building within ~60 s, a seeded order each night), every room ONE BIG DANCE PARTY in its OWN neon colour (never two alike),
+// winding down the same way at the end; the boss's TV room never joins; the edge windows join with their party cycle.
+const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+export const PARTY_ROOMS = Object.freeze(['bar', 'jazz', 'back', 'edge2', 'edge3']);
+export const PARTY_COLS = Object.freeze([[255, 46, 151], [46, 230, 255], [179, 107, 255], [255, 196, 50], [125, 255, 106], [255, 90, 60]]);   // magenta · cyan · violet · amber · green · coral
+/** tonight's window party (seeded on the evening's date — every phone the same): the rooms' ORDER + the second each goes up (0 → ~50)
+ *  + each room's OWN colour → { order, at: { id: s }, col: { id: [r,g,b] } } */
+export function windowParty(key, ctx = {}) {
+  const r = rngFrom(hashString(`wparty|${ctx.seed || 1924}|${key}`)), order = [...PARTY_ROOMS], cols = [...PARTY_COLS];
+  for (const a of [order, cols]) for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  const at = {}, col = {}; let t = 1 + r() * 3;
+  order.forEach((id, i) => { at[id] = Math.round(t); col[id] = cols[i]; t += 8 + r() * 5; });
+  return { order, at, col };
+}
+/** THE WIND-DOWN's length (s) before the peak's end; a room's level at `s` seconds since the peak began and `left` seconds before its end:
+ *  the blinds up over 1.6 s at its turn, down in the same order over the last ~60 s (each over 1.2 s) → 0..1 */
+export const PARTY_DOWN = 60;
+export function partyRoomK(P, id, s, left) {
+  const i = P.order.indexOf(id); if (i < 0 || P.at[id] == null) return 0;
+  const up = clamp01((s - P.at[id]) / 1.6), downAt = PARTY_DOWN - i * (PARTY_DOWN / P.order.length);
+  const down = left == null ? 0 : clamp01((downAt - left) / 1.2);
+  return up * (1 - down);
+}
+/** the window party's shape tonight at the peak: P = windowParty(key); s / left as above → { on, k: { id: 0..1 }, cut } */
+export function windowPartyAt(P, s, left, raidS = null) {
+  const k = {}; let on = false;
+  const cut = raidS != null && raidS >= 0;
+  for (const id of P.order) { k[id] = cut ? 0 : partyRoomK(P, id, s, left); if (k[id] > 0.01) on = true; }
+  return { on, k, cut };
 }

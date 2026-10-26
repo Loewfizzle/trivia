@@ -60,8 +60,9 @@ test('the panel DELAY: NOW / 3 S / 5 S, 3 by default; the server takes whole sec
 });
 
 test('WIN — PLAY ALL: a playlist per catalogue — every window moment once (the day ones first, then the night ones), each its full length; the holidays on their night; the off-switches never in it', () => {
-  const w = playlistOf('windows');
+  const wAll = playlistOf('windows'), w = wAll.filter(i => i.id !== 'window-party');
   assert.deepEqual(w.map(i => i.id).sort(), MOMENTS.map(m => `window-${m.id}`).sort(), 'every moment once');
+  { const party = wAll.find(i => i.id === 'window-party'); assert.ok(party && party.night && party.hour === 22.5 && party.len >= 60, 'WIN3: the window party in the loop, at the peak'); }
   const firstNight = w.findIndex(i => i.night); assert.ok(firstNight > 0 && w.slice(firstNight).every(i => i.night) && w.slice(0, firstNight).every(i => !i.night), 'day first, then night');
   for (const i of w) { const m = MOMENTS.find(x => `window-${x.id}` === i.id); assert.ok(i.len >= m.len + 3 && i.len <= m.len + 5, `${i.id}: its full length + the loop's gap`); assert.equal(i.hol, m.holiday || null); }
   for (const kind of ['holidays', 'wildlife', 'workers']) { const l = playlistOf(kind); assert.ok(l.length >= 5, `${kind}: ${l.length} rows`); assert.ok(l.every(i => !i.id.startsWith('no-') && i.len > 0 && eventDef(i.id)), `${kind}: real rows, never an off-switch`); }
@@ -75,6 +76,7 @@ test('WIN — PLAY ALL: a playlist per catalogue — every window moment once (t
 test('WIN2 — PLAY ALL ON ITS OWN CLOCK: every window moment gets an hour inside its own allowed hours (a routine at its `at`), the TV room at night, the wake in the morning, the shop by day; the small hours land on the next day', () => {
   const MOMENT = Object.fromEntries(MOMENTS.map(m => [m.id, m]));
   for (const it of playlistOf('windows')) {
+    if (it.id === 'window-party') continue;   // (WIN3: not a moment — its own hour, the peak)
     const m = MOMENT[it.id.slice(7)], h = it.hour;
     assert.ok(h >= 0 && h < 24, `${it.id}: an hour (${h})`);
     if (m.at != null) assert.ok(Math.abs(h - m.at) < 0.5, `${it.id}: at its routine's time`);
@@ -97,5 +99,6 @@ test('WIN3 — A WINDOW ROW JUMPS THE CLOCK: momentWhen gives every window-<id> 
     if (h < 6) assert.ok(w.startsWith('2026-10-27'), `${m.id}: the small hours land on the next day`);
   }
   assert.equal(momentWhen('window-cash', '2026-10-26'), '2026-10-27T00:30'); assert.equal(momentWhen('window-wake', '2026-10-26'), '2026-10-26T07:15');
+  assert.equal(momentWhen('window-party', '2026-10-26'), '2026-10-26T22:30', 'the window party at the peak');
   assert.equal(momentWhen('smoke', '2026-10-26'), null); assert.equal(momentWhen('raid', '2026-10-26'), null); assert.equal(momentWhen('window-nope', '2026-10-26'), null);
 });

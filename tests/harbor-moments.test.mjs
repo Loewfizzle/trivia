@@ -2,7 +2,7 @@
 // js/core/harbor-moments.js). Run: node --test tests/harbor-moments.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { MOMENTS, MOMENT, STARTERS, RARITIES, WINDOW_IDS, TANGO_PATH, MAX_AT_ONCE, hourPlan, dayPlan, fixedPlan, momentsAt, routineAt, legendNights, roomState, tvLight, lateTvK, inHours, partyAt, darkAt, windowsOf, dayKey, edgeMoods, EDGE_MOODS, redMoodNight, eyesNights, eyesPlaysOn } from '../js/core/harbor-moments.js';
+import { windowParty, windowPartyAt, partyRoomK, PARTY_ROOMS, PARTY_COLS, PARTY_DOWN, tvShadow, tvHolidayTint, quietNight, bedtimes, bedLevel, BED_ROOMS, MOMENTS, MOMENT, STARTERS, RARITIES, WINDOW_IDS, TANGO_PATH, MAX_AT_ONCE, hourPlan, dayPlan, fixedPlan, momentsAt, routineAt, legendNights, roomState, tvLight, lateTvK, inHours, partyAt, darkAt, windowsOf, dayKey, edgeMoods, EDGE_MOODS, redMoodNight, eyesNights, eyesPlaysOn } from '../js/core/harbor-moments.js';
 import { legendNight } from '../js/core/harbor-legend.js';
 import { ROOMS, roomLight } from '../js/core/harbor-speakeasy.js';
 import { EVENTS, PANEL_EVENTS, CATS } from '../js/core/harbor-remote.js';
@@ -220,4 +220,61 @@ test("WIN2 — THE EYES IN THE HAZE: two weekend nights a month, three plays eac
   // the day's fixed plan carries them in one window; a play straddling midnight shows on both days' clocks
   const key = Object.keys(eyesNights(2026, 10))[0];
   if (key) { const fp = fixedPlan(key).filter(e => e.id === 'eyes'); assert.ok(fp.length >= 1 && fp.every(e => e.win !== 'all' && e.len === 150), `${key}: on the fixed plan in one window`); }
+});
+
+test("WIN3 — THE BOSS's TV: the flicker IRREGULAR, never periodic (the cut intervals spread, no one interval dominating), LONG STEADY DIM STRETCHES, a CHANNEL-FLIPPING BURST only late; a rare shadow across the ceiling; the holiday film's tint", () => {
+  const cuts = (o, T = 600) => { const ts = []; let prev = tvLight(0, 11, o).k; for (let t = 1 / 60; t < T; t += 1 / 60) { const k = tvLight(t, 11, o).k; if (Math.abs(k - prev) > 0.22) ts.push(t); prev = k; } return ts; };
+  const early = cuts({}), iv = early.slice(1).map((t, i) => t - early[i]).filter(d => d > 0.05);
+  const mean = iv.reduce((a, b) => a + b, 0) / iv.length, sd = Math.sqrt(iv.reduce((a, b) => a + (b - mean) ** 2, 0) / iv.length);
+  const hist = new Map(); for (const d of iv) { const q = Math.round(d / 0.35); hist.set(q, (hist.get(q) || 0) + 1); }
+  const top = Math.max(...hist.values()) / iv.length;
+  assert.ok(early.length > 150 && sd / mean > 0.5 && top < 0.45, `irregular: ${early.length} cuts in 10 min, the intervals' spread ${(sd / mean).toFixed(2)} of the mean, the commonest interval ${(top * 100).toFixed(0)} %`);
+  // a long steady dim stretch: ≥ 6 s with no jump and a low level
+  let run = 0, best = 0, lowRun = false; { let prev = tvLight(0, 11).k; for (let t = 1 / 60; t < 600; t += 1 / 60) { const v = tvLight(t, 11); if (Math.abs(v.k - prev) < 0.05 && v.quiet) run += 1 / 60; else { if (run > best) { best = run; lowRun = v.k < 0.4 || lowRun; } run = 0; } prev = v.k; } }
+  assert.ok(best >= 6, `a steady dim stretch of ${best.toFixed(1)} s`);
+  // the burst: ≥ 12 cuts inside 2 s somewhere in 10 min — only late
+  const burstIn = ts => ts.some((t, i) => ts[i + 12] != null && ts[i + 12] - t < 2);
+  assert.ok(burstIn(cuts({ late: true })), 'a channel-flipping burst late');
+  assert.ok(!burstIn(early), 'no burst early in the evening');
+  // the shadow: a few crossings an hour, each a smooth 0 → 1 → 0, never more than one at a time
+  let crossings = 0, on = false, maxA = 0; for (let t = 0; t < 3600; t += 0.1) { const sh = tvShadow(t, 11); if (sh) { maxA = Math.max(maxA, sh.a); assert.ok(sh.u >= 0 && sh.u < 1 && sh.a >= 0 && sh.a <= 1); if (!on) crossings++; on = true; } else on = false; }
+  assert.ok(crossings >= 8 && crossings <= 24 && maxA > 0.95, `${crossings} shadows an hour`);
+  assert.deepEqual(tvHolidayTint('halloween').col.length, 3); assert.equal(tvHolidayTint(null), null); assert.ok(tvHolidayTint('christmas').w < 0.3);
+});
+
+test("WIN3 — THE QUIET NIGHTS: ~1 in 6 over a year, mostly Sun–Wed, never Friday / Saturday nor a party night; the bedtimes one by one after midnight (~00:20 → ~01:35, a seeded order, every phone the same); the lamp CLICKS off", () => {
+  let n = 0, early = 0, days = 0; const seen = new Set();
+  for (let d = new Date(Date.UTC(2026, 0, 1)); d.getUTCFullYear() === 2026; d.setUTCDate(d.getUTCDate() + 1)) {
+    const key = dayKey(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()), dow = d.getUTCDay(); days++;
+    if (quietNight(key, {})) { n++; assert.ok(dow !== 5 && dow !== 6, `${key}: never Friday / Saturday`); if (dow <= 3) early++; seen.add(dow); }
+    assert.equal(quietNight(key, { party: true }), false, 'never a party night');
+  }
+  assert.ok(n / days > 1 / 9 && n / days < 1 / 4, `${n} quiet nights in ${days} days (1 in ${(days / n).toFixed(1)})`);
+  assert.ok(early / n >= 0.75 && seen.has(4), `${(100 * early / n).toFixed(0)} % on Sun–Wed, a few Thursdays`);
+  const b = bedtimes('2026-10-27'), b2 = bedtimes('2026-10-28'), ts = Object.values(b);
+  assert.deepEqual(Object.keys(b).sort(), [...BED_ROOMS].sort());
+  assert.ok(Math.min(...ts) >= 20 * 60 && Math.max(...ts) <= 96 * 60, `all between 00:20 and 01:36 (${ts.map(v => (v / 60).toFixed(0)).join(' ')})`);
+  const sorted = [...ts].sort((p, q) => p - q); for (let i = 1; i < sorted.length; i++) assert.ok(sorted[i] - sorted[i - 1] >= 7 * 60, 'one by one, ≥ 7 min apart');
+  assert.deepEqual(bedtimes('2026-10-27'), b, 'the same for everyone'); assert.notDeepEqual(Object.entries(b2).sort((p, q) => p[1] - q[1]).map(e => e[0]), Object.entries(b).sort((p, q) => p[1] - q[1]).map(e => e[0]).concat(['x']), 'another night differs');
+  assert.equal(bedLevel(b, 'bar', -3600), 1); assert.equal(bedLevel(b, 'bar', b.bar - 1), 1); assert.ok(bedLevel(b, 'bar', b.bar + 0.05) < 0.5 && bedLevel(b, 'bar', b.bar + 0.15) > 0.5 && bedLevel(b, 'bar', b.bar + 1) === 0, 'a click: off, a flash back, off');
+  assert.equal(bedLevel(b, 'apartment', 7200), 1, 'the apartment never goes to bed');
+  assert.equal(bedLevel(b, 'bar', 3 * 3600 + 1), 1, 'the beds end at 3 am with the TV (never fully dark after)');
+});
+
+test('WIN3 — THE PARTY IN THE WINDOWS: a seeded order a night (every phone the same, another night differs), one room at a time ~every 8–13 s — all up within ~60 s — each its own colour (never two alike), the TV room never; down in the same order over the last minute; a raid cuts it dead', () => {
+  const P = windowParty('2026-10-24'), Q = windowParty('2026-10-31');
+  assert.deepEqual([...P.order].sort(), [...PARTY_ROOMS].sort()); assert.ok(!P.order.includes('apartment'), 'the boss never joins');
+  assert.deepEqual(windowParty('2026-10-24'), P, 'the same for everyone'); assert.notDeepEqual(Q.order, P.order);
+  const ats = P.order.map(id => P.at[id]); for (let i = 1; i < ats.length; i++) assert.ok(ats[i] - ats[i - 1] >= 8 && ats[i] - ats[i - 1] <= 13, `one by one: ${ats.join(' ')}`);
+  assert.ok(ats[0] <= 4 && ats[ats.length - 1] <= 60, `the whole building within ~60 s (${ats.join(' ')})`);
+  assert.equal(new Set(P.order.map(id => P.col[id].join())).size, P.order.length, 'never two rooms alike'); for (const id of P.order) assert.ok(PARTY_COLS.some(c => c.join() === P.col[id].join()));
+  // the shape through the peak: nothing before, the first room up by 6 s, all up by 62 s, held, then down first-up-first over the last minute, all off at the end
+  assert.equal(windowPartyAt(P, -5, 3000).on, false);
+  const k6 = windowPartyAt(P, ats[0] + 2, 3000).k; assert.ok(k6[P.order[0]] === 1 && k6[P.order[1]] === 0, 'the first room up alone at first');
+  const kAll = windowPartyAt(P, 62, 3000).k; assert.ok(P.order.every(id => kAll[id] === 1), 'all up by 62 s');
+  const kDown = windowPartyAt(P, 3000, PARTY_DOWN - 2).k; assert.ok(kDown[P.order[0]] < 0.2 && kDown[P.order[4]] === 1, 'the first up is the first down');
+  assert.equal(windowPartyAt(P, 3000, 0).on, false, 'all off at the peak\'s end');
+  for (let i = 1; i < 300; i++) { const a = windowPartyAt(P, i * 0.2, 3000).k, b = windowPartyAt(P, (i + 1) * 0.2, 3000).k; for (const id of P.order) assert.ok(b[id] >= a[id] - 1e-9, 'monotonic on the way up'); }
+  const cut = windowPartyAt(P, 200, 3000, 0.5); assert.ok(cut.cut && !cut.on && P.order.every(id => cut.k[id] === 0), 'a raid cuts it dead');
+  assert.equal(partyRoomK(P, 'apartment', 500, 3000), 0);
 });

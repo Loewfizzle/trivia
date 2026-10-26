@@ -347,7 +347,7 @@ export function createSpeakeasy() {
     const k = clamp01(f.k) * fade; lastK = k; lastT = f.t || 0; lastGame = f.game || null;
     // (7b: the life's frame first — a window it draws whole this frame (the TV, the night lamp, a routine) is 0 in the lit canvas)
     const fr = life.frame(f);
-    const levels = wins.map(w => (fr.full.has(w.id) ? 0 : Math.round(levelOf(w, f) * 8) / 8));
+    const levels = wins.map(w => (fr.full.has(w.id) ? 0 : Math.round(levelOf(w, f) * (fr.bed && fr.bed[w.id] != null ? fr.bed[w.id] : 1) * 8) / 8));   // (WIN3: a room gone to bed on a quiet night)
     if (k > 0.004) {
       const late = Math.round(lateOf(f.hour) * 4) / 4, key = levels.join(',') + '|' + late + '|' + dpr;
       if (key !== litKey || !litCv) { paintLit(levels, late); litKey = key; }
@@ -501,6 +501,8 @@ export function createSpeakeasy() {
     power(k) { if (k !== undefined) power = clamp01(+k); return power; },
     /** 8b1: a dead marquee bulb — bulb(i, k): bulb i at level k (0 dead … 1 fixed); bulb(null) all lit; bulb() → { i, k, n } */
     bulb(i, k = 0) { if (i !== undefined) { const ni = i == null ? -1 : i | 0, nk = Math.round(clamp01(k) * 8) / 8; dead = { i: ni, k: ni < 0 ? 1 : nk }; } return { ...dead, n: marqueeBulbs().length }; },
+    /** WIN3 — the window party's colour on the cobbles: [{ id, u, col, k }] (life.partySpill over the facade's windows) */
+    partySpill: () => (life && life.partySpill ? life.partySpill(wins) : []),
     /** the barber pole: { on: false } dark + still (7b's raid), { on: true } back to its lamp + its turn */
     pole(o = {}) { if ('on' in o) poleOff = !o.on; },
     roomDraw(id, fn) { if (fn) drawers.set(id, fn); else drawers.delete(id); },

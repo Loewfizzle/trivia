@@ -2138,6 +2138,11 @@ G('windows', async () => {
     ok(swing > 14 && jumps >= 3, `THE TV ROOM FLICKERS: its light swings ${swing.toFixed(0)} over 6 s with ${jumps} hard jumps (${lv.map(v => v.toFixed(0)).join(' ')})`);
     const c = await area(Q.page, r, 0.3, 0.7, 0.3, 0.7);
     ok(c[2] > c[0] + 12 && c[2] > c[1], `THE ROOM IS BLUE (rgb ${c.map(v => v.toFixed(0)).join(',')})`);
+    // WIN3 — THE BOSS's ROOM (the owner: you never saw the person — the mystery is the point): NO FIGURE in the apartment over 3 s of frames;
+    // the light comes from BELOW THE SILL — the pane's upper band (the ceiling + the back wall's top) brighter than the band at the sill
+    { const fr = await ev(Q.page, winTrace(3)), inApt = fr.reduce((n, f) => n + ((f.figs || []).filter(g => g.w === 'apartment').length), 0);
+      const up = lum(await area(Q.page, r, 0.35, 0.95, 0.05, 0.3)), low = lum(await area(Q.page, r, 0.35, 0.95, 0.85, 1)), tv = await ev(Q.page, 'window.__district.harbor().speakeasy.life.tv');
+      ok(fr.length >= 12 && inApt === 0 && up > low + 10 && tv && tv.k > 0 && !tv.off, `THE BOSS's ROOM: nobody in it over ${fr.length} frames (${inApt} figures), the glow thrown UP from below the sill (the upper band ${up.toFixed(0)} vs the sill's ${low.toFixed(0)}), the set's light ${tv && tv.k}`); }
     // the set is not drawn: the pane's brightest 5 × 5 cell is never a bright rectangle in the UPPER half (where the old set stood)
     const grid = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x0 = Math.round(${r.x} * k), y0 = Math.round(${r.y} * k), w = Math.round(${r.w} * k), h = Math.round(${r.h} * k), d = cv.getContext('2d').getImageData(x0, y0, w, h).data, out = [];
       for (let j = 0; j < 5; j++) { const row = []; for (let i = 0; i < 5; i++) { let s = 0, n = 0; for (let y = Math.floor(j * h / 5); y < Math.floor((j + 1) * h / 5); y++) for (let x = Math.floor(i * w / 5); x < Math.floor((i + 1) * w / 5); x++) { const q = (y * w + x) * 4; s += 0.2126 * d[q] + 0.7152 * d[q + 1] + 0.0722 * d[q + 2]; n++; } row.push(s / n); } out.push(row); } res(out); }))`);
@@ -2156,6 +2161,14 @@ G('windows', async () => {
     for (let i = 0; i < 5; i++) { a.push(await area(Q.page, r, 0.3, 0.9, 0.1, 0.45)); await sleep(400); }
     const ls = a.map(lum), moved = Math.max(...ls) - Math.min(...ls);
     okT(moved > 1.5, `THE BILLS MOVE: the table's light changes as he counts (${ls.map(v => v.toFixed(1)).join(' → ')}) — ${JSON.stringify(L0.on)}`);
+    // WIN3 — THE CLOSE-UP ONLY, FROM THE FIRST FRAME (the owner: the table-wide opening read like a poker table): the big figure is there
+    // at el < 1.5 s of the next loop; NATURAL HANDS on a rhythm — the flicks counted, a lick, the square-up, the band, the brick set aside
+    await waitFor(Q.page, "(() => { const e = window.__district.harbor().speakeasy.life.on.find(o => o.id === 'cash'); return e && e.el < 1.2; })()", 'the next loop', 32000);
+    const first = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res({ figs: window.__district.harbor().speakeasy.life.figs, cash: window.__district.harbor().speakeasy.life.cash })))`);
+    const big0 = (first.figs || []).find(g => g.w === 'back' && g.s >= 1.6);
+    const phases = new Set(); let flicks0 = first.cash ? first.cash.flicks : 0, flicksN = flicks0;
+    const tEnd = Date.now() + 20000; while (Date.now() < tEnd) { const cs = await ev(Q.page, 'window.__district.harbor().speakeasy.life.cash'); if (cs) { phases.add(cs.phase); flicksN = Math.max(flicksN, cs.flicks); } await sleep(120); }
+    ok(!!big0 && flicksN - flicks0 >= 20 && ['count', 'lick', 'square', 'band', 'aside'].every(ph => phases.has(ph)), `THE CLOSE-UP FROM THE FIRST FRAME (s ${big0 && big0.s} at el ${first.cash && first.cash.el}), the hands on a rhythm: ${flicksN - flicks0} bills flicked in 20 s, the phases ${[...phases].join(' → ')}`);
     await Q.ctx.close(); }
   // ================================================================ WIN2 — THE WINDOWS READ AS-IS (judged unzoomed at 402)
   // ---- THE TOAST's WALK-IN: the two friends come up through the room's depth (their depth falling from ~0.78 toward 0.14 over the first
@@ -2169,12 +2182,75 @@ G('windows', async () => {
     let jump = 0; for (let i = 1; i < ds.length; i++) jump = Math.max(jump, Math.abs(ds[i] - ds[i - 1]));
     ok(ds.length > 60 && ds[0] > 0.6 && ds[ds.length - 1] < 0.3 && jump < 0.06, `THE TOAST WALKS IN: the friends' depth ${ds[0] && ds[0].toFixed(2)} → ${ds.length && ds[ds.length - 1].toFixed(2)} over 3 s, the biggest step ${jump.toFixed(3)} (never a cut)`);
     await Q.ctx.close(); }
-  // ---- THE TV ROOM, OPTION B: the viewers face the window — LIT figures (skin, real colours in the screen's blue) in the apartment, not silhouettes
-  { const Q = await open({ slot: 'w2-tv', qs: `when=2026-10-22T23:10${GR}&force=smoke`, view: [402, 874] });
+  // ---- WIN3 — THE BOSS's ROOM LATE (~1 am): the flicker IRREGULAR in the light's own trace (jumps at uneven gaps, never a pulse), the
+  // late mode on (the channel flipping comes in bursts); the room still blue, still nobody
+  { const Q = await open({ slot: 'w3-late', qs: `when=2026-10-23T01:12${GR}&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
-    const figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`), v = (figs || []).filter(g => g.w === 'apartment');
-    const r = (await wins(Q.page)).apartment, face = await area(Q.page, r, 0.3, 0.7, 0.35, 0.6), floor = await area(Q.page, r, 0.3, 0.7, 0.85, 0.98);
-    ok(v.length >= 1 && v.every(g => !g.sil) && lum(face) > lum(floor) + 8, `THE TV ROOM (B): ${v.length} viewer(s) facing the window, LIT by the screen (the faces' band ${lum(face).toFixed(0)} vs the ceiling line ${lum(floor).toFixed(0)}; rgb ${face.map(x => x.toFixed(0)).join(',')})`);
+    const ks = []; const t0 = Date.now();
+    while (Date.now() - t0 < 9000) { const tv = await ev(Q.page, 'window.__district.harbor().speakeasy.life.tv'); if (tv) ks.push(tv.k); await sleep(60); }
+    const iv = []; { let last = -1; ks.forEach((v, i) => { if (i && Math.abs(v - ks[i - 1]) > 0.2) { if (last >= 0) iv.push(i - last); last = i; } }); }
+    const jumps = iv.length + 1, mean = iv.reduce((p, q) => p + q, 0) / Math.max(1, iv.length), sd = Math.sqrt(iv.reduce((p, q) => p + (q - mean) ** 2, 0) / Math.max(1, iv.length));
+    const late = await ev(Q.page, 'window.__district.harbor().speakeasy.life.tv.late'), figs = await ev(Q.page, winTrace(1.5));
+    ok(ks.length > 100 && jumps >= 8 && sd / mean > 0.4 && late && figs.every(f => !(f.figs || []).some(g => g.w === 'apartment')), `THE FLICKER IS IRREGULAR (1 am): ${jumps} jumps in 9 s, the gaps' spread ${(sd / mean).toFixed(2)} of their mean (never periodic), the late mode ${late}, still nobody`);
+    await Q.ctx.close(); }
+  // ---- WIN3 — A QUIET NIGHT (Oct 21 2026 is one): by 1:30 am every other room has gone to bed — the bar, the jazz club, the back room and
+  // both edge windows dark — and the boss's blue glow is the ONLY light on the building; a normal night keeps its life around it
+  { const Q = await open({ slot: 'w3-quiet', qs: `when=2026-10-22T01:30${GR}&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page); await sleep(1200);
+    const L = await ev(Q.page, 'window.__district.harbor().speakeasy.life'), W = await wins(Q.page);
+    const lums = {}; for (const id of ['bar', 'jazz', 'back', 'edge2', 'edge3', 'apartment']) if (W[id]) lums[id] = lum(await area(Q.page, W[id], 0.15, 0.85, 0.15, 0.85));
+    const others = ['bar', 'jazz', 'back', 'edge2', 'edge3'].filter(id => lums[id] != null);
+    ok(L.quiet && L.bed && others.every(id => L.bed[id] === 0) && others.every(id => lums[id] < 30) && lums.apartment > Math.max(...others.map(id => lums[id])) + 15 && L.states.apartment === 'tv',
+      `A QUIET NIGHT at 1:30: quiet ${L.quiet}, the beds ${JSON.stringify(L.bed)}, the panes ${Object.entries(lums).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(' · ')} — the TV the only light on`);
+    await Q.ctx.close();
+    const N = await open({ slot: 'w3-norm', qs: `when=2026-10-23T01:30${GR}&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(N.page); await lit(N.page);
+    const L2 = await ev(N.page, 'window.__district.harbor().speakeasy.life');
+    ok(!L2.quiet && Object.values(L2.bed || {}).every(v => v === 1), `A NORMAL NIGHT at 1:30: quiet ${L2.quiet}, every room awake (${JSON.stringify(L2.bed)})`);
+    await N.ctx.close(); }
+  // ---- WIN3 — THE RAID CUTS THE TV: a forced raid — the set snaps off as the siren starts (life.raidS ≥ 0 → tvOff), and stays off
+  { const Q = await open({ slot: 'w3-raid', qs: `when=2026-10-22T23:30${GR}&force=raid,no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const before = await ev(Q.page, 'window.__district.harbor().speakeasy.life.tv');
+    const cut = await waitFor(Q.page, '(() => { const L = window.__district.harbor().speakeasy.life; return L.raidS != null && L.raidS >= 0 && L.tvOff; })()', 'the TV cut by the siren', 20000).then(() => true).catch(() => false);
+    const after = await ev(Q.page, 'window.__district.harbor().speakeasy.life');
+    ok(cut && after.tvOff && after.tv && after.tv.off === 'raid', `THE RAID CUTS THE TV: on before (${before && before.k}), off as the siren starts (raidS ${after.raidS}, ${after.tv && after.tv.off})`);
+    await Q.ctx.close(); }
+  // ---- WIN3 — THE PARTY IN THE WINDOWS (forced): the rooms go up ONE AT A TIME (~every 8–13 s, a seeded order), each in its OWN colour
+  // (never two alike), dark silhouettes jumping on the beat in the full rooms, the colour POOLED on the cobbles; the boss's room never joins
+  { const Q = await open({ slot: 'w3-party', qs: `when=2026-10-24T23:00${GR}&force=window-party,no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const P0 = await ev(Q.page, 'window.__district.harbor().speakeasy.life.party');
+    const ups = []; const t0 = Date.now(); let lastN = -1;
+    while (Date.now() - t0 < 60000) { const P = await ev(Q.page, 'window.__district.harbor().speakeasy.life.party'); const n = P ? Object.values(P.k).filter(v => v > 0.99).length : 0; if (n !== lastN) { ups.push({ s: P ? P.s : null, n }); lastN = n; } if (n >= 5) break; await sleep(200); }
+    const P1 = await ev(Q.page, 'window.__district.harbor().speakeasy.life.party'), W = await wins(Q.page);
+    const steps = ups.filter((u, i) => i && u.n === ups[i - 1].n + 1), gaps = steps.slice(1).map((u, i) => u.s - steps[i].s);
+    ok(P0 && P0.forced && P0.k.apartment == null && steps.length >= 4 && gaps.every(g => g >= 6 && g <= 15), `THE ROOMS GO UP ONE AT A TIME: ${ups.map(u => `${u.n}@${u.s}s`).join(' → ')} (the gaps ${gaps.map(g => g.toFixed(0)).join(' / ')} s), the TV room never (${P1 && P1.order.join(', ')})`);
+    const cols = P1 ? Object.values(P1.col).map(c => c.join()) : [], panes = {};
+    for (const id of ['bar', 'jazz', 'back']) panes[id] = await area(Q.page, W[id], 0.2, 0.8, 0.2, 0.8);
+    const tinted = id => { const c = panes[id], col = P1.col[id], dom = col.indexOf(Math.max(...col)); return c[dom] >= Math.max(...c) - 2 && Math.max(...c) - Math.min(...c) > 25; };
+    ok(new Set(cols).size === cols.length && ['bar', 'jazz', 'back'].every(tinted), `EACH ROOM ITS OWN COLOUR: ${P1 ? Object.entries(P1.col).map(([k, v]) => `${k} ${v.join(',')}`).join(' · ') : 'no party'} — the panes read ${Object.entries(panes).map(([k, v]) => `${k} rgb ${v.map(x => x.toFixed(0)).join(',')}`).join(' · ')}`);
+    const fr = await ev(Q.page, winTrace(2.5)), dancers = fr.map(f => (f.figs || []).filter(g => ['bar', 'jazz', 'back'].includes(g.w) && g.sil));
+    const ys = dancers.map(d => d.length ? d.reduce((a, g) => a + g.y, 0) / d.length : null).filter(v => v != null), bob = ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
+    ok(dancers.length > 10 && dancers.every(d => d.length >= 6) && bob > 0.02, `THE CROWD: ${dancers[0] && dancers[0].length} silhouettes a frame across the full rooms, jumping (the mean waist moves ${bob.toFixed(3)} over 2.5 s)`);
+    // (the pools: the cobbles are warm — the proof is the SHIFT from the surround toward the room's colour at the pool's centre; the back
+    // room's window stands over the bar's, so their pools stack: one read per distinct spot, against the colour of the room nearest the ground)
+    const pools = await ev(Q.page, 'window.__district.harbor().partyPools'), reads = [], seen = [];
+    for (const q of pools) { if (seen.some(x => Math.abs(x - q.x) < 12)) continue; seen.push(q.x);
+      const c = await area(Q.page, { x: q.x - 8, y: q.y - 3, w: 16, h: 6 }, 0, 1, 0, 1), o = await area(Q.page, { x: q.x + q.r * 1.6, y: q.y - 3, w: 16, h: 6 }, 0, 1, 0, 1);
+      const d = c.map((v, i) => v - o[i]), dom = q.col.indexOf(Math.max(...q.col)), dim = q.col.indexOf(Math.min(...q.col));
+      reads.push({ id: q.id, ok: d[dom] > 6 && d[dom] >= d[dim] + 4, c, d }); }
+    ok(reads.length >= 2 && reads.every(r => r.ok), `THE COLOUR ON THE COBBLES: ${pools.length} pools (${reads.length} spots) in front of the windows — ${reads.map(r => `${r.id} rgb ${r.c.map(v => v.toFixed(0)).join(',')} (shift ${r.d.map(v => (v > 0 ? '+' : '') + v.toFixed(0)).join(',')} vs the cobbles beside it)`).join(' · ')} — each shifted toward its room's colour`);
+    await Q.ctx.close(); }
+  // ---- WIN3 — A RAID CUTS THE WINDOW PARTY: the lights snap off, the dancers scatter, the blinds drop (a 1.6-s tail), dead for the night
+  { const Q = await open({ slot: 'w3-pcut', qs: `when=2026-10-24T23:00${GR}&force=window-party,no-people,no-wildlife&panel=1`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    const on = await waitFor(Q.page, '(() => { const P = window.__district.harbor().speakeasy.life.party; return !!(P && P.on && !P.cut && Object.values(P.k).filter(v => v > 0.99).length >= 2); })()', 'the party on (two rooms up)', 30000).then(() => true).catch(() => false);
+    await waitFor(Q.page, '!!window.__district.remote()', 'the panel', 10000);
+    await ev(Q.page, "window.__district.remote().setMine({ force: ['window-party', 'raid', 'no-people', 'no-wildlife'] })");   // (the raid called in while the party is up: its siren ~2 s on)
+    const cut = await waitFor(Q.page, '(() => { const P = window.__district.harbor().speakeasy.life.party; return !!(P && P.cut); })()', 'the cut', 20000).then(() => true).catch(() => false);
+    const dead = await waitFor(Q.page, '(() => { const L = window.__district.harbor().speakeasy.life; return !L.party && L.raidS >= 0; })()', 'dead after the tail', 6000).then(() => true).catch(() => false);
+    ok(on && cut && dead, `A RAID CUTS THE PARTY: on (${on}), cut as the siren starts (${cut}), gone after the blinds drop (${dead})`);
     await Q.ctx.close(); }
   // ---- THE EDGE WINDOWS' MOODS: light + shadow only (no figures in them), a seeded mood each — never the same two — and the two panes
   // really differ in colour; the next night's moods differ from tonight's
@@ -2904,7 +2980,7 @@ G('panelrows', async () => {
   const inHours = (m, h) => { if (!m) return true; if (m.at != null) return Math.abs(h - m.at - 0.25) < 0.15; if (!m.hours) return true; const [a, b] = m.hours; return b >= a ? h >= a && h < b : h >= a || h < b; };
   let fired = 0;
   for (const row of rows) {
-    const id = row.id.startsWith('window-') ? row.id.slice(7) : null, m = id ? M0.MOMENT[id] : null;
+    const id = row.id.startsWith('window-') && row.id !== 'window-party' ? row.id.slice(7) : null, m = id ? M0.MOMENT[id] : null;
     await ev(Q.page, 'window.__district.remote().setMine({})'); await sleep(400);
     await ev(Q.page, 'window.__district.remote().open()'); await sleep(500);
     await ev(Q.page, "window.__district.remote().openCats('*')"); await sleep(250);
@@ -2912,7 +2988,7 @@ G('panelrows', async () => {
     if (at) await tapAt(Q.page, at.x, at.y);
     await sleep(250);
     await ev(Q.page, 'window.__district.remote().close()');
-    const want = id ? `(() => { const L = window.__district.harbor().speakeasy.life; return L.forced === '${id}' && L.on.some(o => o.id === '${id}'); })()` : `window.__district.harbor().flags.force.includes('${row.id}')`;
+    const want = id ? `(() => { const L = window.__district.harbor().speakeasy.life; return L.forced === '${id}' && L.on.some(o => o.id === '${id}'); })()` : row.id === 'window-party' ? `(() => { const P = window.__district.harbor().speakeasy.life.party; return !!(P && P.on && P.forced); })()` : `window.__district.harbor().flags.force.includes('${row.id}')`;
     const went = at ? await waitFor(Q.page, want, row.label, 6000).then(() => true).catch(() => false) : false;
     const st = await ev(Q.page, `(() => { const H = window.__district.harbor(), L = H.speakeasy.life, me = JSON.parse(sessionStorage.getItem('nd:hr-me') || '{}').state || {}; return { h: +L.h.toFixed(2), on: L.on.map(o => o.id + '@' + o.win), when: me.when || null, pill: (document.querySelector('.hr-pill') || {}).textContent || '' }; })()`);
     const winOk = !m || st.on.some(o => o.startsWith(id + '@') && (m.windows === 'all' || m.windows.includes(o.split('@')[1])));

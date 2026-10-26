@@ -14,7 +14,7 @@
 // they're a little slow) — for balancing only
 export const SECONDS = {
   core: 27, flags: 7, skyline: 12, water: 27, harbor: 8, speakeasy: 45, promenade: 30,
-  neon: 95, dock: 15, sky: 27, party: 66, music: 161, sounds: 51, windows: 45,
+  neon: 95, dock: 15, sky: 27, party: 66, music: 161, sounds: 51, windows: 165,   // (WIN3: the windows grew — the late flicker's read, the quiet night, the raid's cut, the party's stagger)
   panel: 55, perf: 79,
   people: 70,          // (8P: measured on the laptop — refine from the first cloud run)
   life: 90,            // (FP3b: real doors + the dance circle — a circle forming ~40 s after the page opens)
@@ -34,7 +34,9 @@ export const CI_JOBS = {
   audio: ['music', 'flags', 'harbor', 'dock', 'tape'],   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life'],
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'panel', 'perf'],   // (PEO: promenade moved here from street — motion took its room)
-  street: ['speakeasy', 'windows', 'sounds', 'people', 'motion'],   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room)
+  street: ['speakeasy', 'sounds', 'people', 'motion'],   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room; WIN3: windows → its own job)
+  // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
+  windows: ['windows'],
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
   wild: ['wildlife', 'workers', 'legends', 'weather'],
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
