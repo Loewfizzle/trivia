@@ -107,3 +107,27 @@ test('THE LIGHTNING\'s safety: capped brightness, ≤ 2 flickers inside 0.6 s, s
   assert.ok(LIGHTNING.MIN_GAP >= 4 && LIGHTNING.GAP[0] >= LIGHTNING.MIN_GAP, 'never more than one strike in a few seconds');
   assert.ok(thunderDelay(1.2) >= 3 && thunderDelay(5.4) <= 16 && thunderDelay(3) > thunderDelay(1.5), 'the thunder after the flash, later from further');
 });
+
+test('THE PEOPLE in the weather: fewer in rain, almost nobody in a storm, someone sheltering under the awning', async () => {
+  const { mixNow, KINDS, MOOD } = await import('../js/core/harbor-people.js');
+  const dry = mixNow({ h: 13, dow: 3 }), wet = mixNow({ h: 13, dow: 3, rain: 0.5 }), storm = mixNow({ h: 13, dow: 3, rain: 0.95 });
+  assert.ok(wet.n < dry.n * 0.8 && storm.n < dry.n * 0.35, `the promenade empties: ${dry.n.toFixed(1)} → ${wet.n.toFixed(1)} → ${storm.n.toFixed(1)}`);
+  assert.ok(wet.mix.shelter > 0 && !dry.mix.shelter && typeof KINDS.shelter === 'function', 'someone shelters under the awning in the rain');
+  assert.ok(!wet.mix.lunch && !wet.mix.water, 'no lunch on the bench, nobody at the rail in the rain');
+  assert.ok(MOOD.fogSlow > 0 && MOOD.fogSlow < 0.3, 'fog slows them a little');
+});
+
+test('THE WET PROMENADE: puddles seeded in the low spots, the same for everyone, never on the inlay / a lamp / a tree', async () => {
+  const { puddlesOf } = await import('../js/screens/harbor/wetground.js');
+  const cam = { F: 600, VPX: 201, VPY: 540, CAMH: 13.5, hw: z => 201 * z / 600 };
+  const L = { cam, seed: 1924, lamps: [{ x: -2, z: 38 }, { x: 8, z: 50 }], trees: [{ x: 10, z: 39, grate: true }], medallion: { x: 3, z: 45 }, bench: { x: -1, z: 49 }, speakeasy: { x0: -40, x1: -12, z0: 44, side: { x: -12, z: 60 } } };
+  const a = puddlesOf(L, 1924), b = puddlesOf(L, 1924);
+  assert.deepEqual(a, b, 'seeded');
+  assert.ok(a.length >= 5 && a.length <= 9, `${a.length} puddles`);
+  for (const p of a) {
+    assert.ok(Math.hypot(p.x - 3, p.z - 45) > 3.4, 'off the inlay');
+    for (const l of L.lamps) assert.ok(Math.hypot(p.x - l.x, p.z - l.z) > 1, 'not under a lamp');
+    assert.ok(p.thr > 0.1 && p.thr < 0.95, 'its own depth: they dry one by one');
+  }
+  assert.ok(new Set(a.map(p => Math.round(p.thr * 10))).size >= 3, 'different depths');
+});

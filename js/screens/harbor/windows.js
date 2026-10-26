@@ -284,7 +284,7 @@ export function createWindowLife() {
     return { key: dayKey(d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()), dow: d.getUTCDay(), month: d.getUTCMonth() + 1, sec: (((lms / 1000) % 86400) + 86400) % 86400, lms };
   }
   function block(key, hour, ctx) {
-    const k = `${key}|${hour}|${ctx.dow}|${ctx.dark.map(v => v.toFixed(2)).join(',')}`;
+    const k = `${key}|${hour}|${ctx.dow}|${ctx.dark.map(v => v.toFixed(2)).join(',')}|${ctx.wx || ''}`;
     let b = blocks.get(k);
     if (!b) { b = hourPlan(key, hour, ctx); blocks.set(k, b); if (blocks.size > 8) blocks.delete(blocks.keys().next().value); }
     return b;
@@ -302,7 +302,7 @@ export function createWindowLife() {
       darkKey = loc.key;
       try { const st = sunTimes(ms, L.tz, L.lat, L.lon), hr = t => ((((t + (L.off || 0) * 60000) / 3.6e6) % 24) + 24) % 24; dark = st.rise && st.set ? [hr(st.set) + 0.35, hr(st.rise) - 0.35] : [19, 7]; } catch { dark = [19, 7]; }
     }
-    const ctx = { dow: loc.dow, month: loc.month, dark: dark || [19, 7] };
+    const ctx = { dow: loc.dow, month: loc.month, dark: dark || [19, 7], wx: L.wx || null };   // (9a: the weather gate — 'hot' | 'rain' | null)
     if (rKey !== loc.key) { rKey = loc.key; routines = {}; for (const m of ['wake', 'shop-open', 'bartender', 'lights-out']) routines[m] = routineAt(m, loc.key); }
     let on;
     const forced = L.moment && MOMENT[L.moment] ? L.moment : null;
@@ -698,6 +698,31 @@ export function createWindowLife() {
 
   // ---------------------------------------------------------------- THE MOMENTS' PAINTERS (PAINT[id](E, el, len, inst))
   const PAINT = {
+    // 9a — A FAN ON A HOT DAY: a little desk fan on the sill (its round cage, the stand, the blades a soft blur turning), the curtain's hem
+    // stirring in its breeze; the room's own light behind it (a silhouette at night, a dark shape on the daylit glass)
+    fan(E, el, len) {
+      const { c, G, k, t, mo } = E, p = el / len, a = sm(0, 0.06, p) * (1 - sm(0.94, 1, p));
+      if (a <= 0.01) return;
+      const r = Math.min(G.cw * 0.2, G.ch * 0.22), x = G.g0 + G.cw * 0.7, base = G.h0 + 0.02, cy = base + r * 1.75;   // (y runs UP here: h0 the sill)
+      const body = k > 0.4 ? 'rgb(18,14,18)' : 'rgb(44,46,52)', rim = k > 0.4 ? 'rgba(255,214,150,0.5)' : 'rgba(220,226,236,0.7)';
+      c.save(); c.globalAlpha = a;
+      // the curtain's hem stirring (a soft pale fold at the window's left edge, swaying in the fan's breeze)
+      const sw = mo ? Math.sin(t * 3.1) * 0.05 + Math.sin(t * 7.3) * 0.02 : 0;
+      c.fillStyle = k > 0.4 ? 'rgba(255,220,170,0.18)' : 'rgba(236,230,214,0.5)'; c.beginPath(); c.moveTo(G.g0, G.h1); c.lineTo(G.g0 + G.cw * 0.16, G.h1); c.quadraticCurveTo(G.g0 + G.cw * (0.2 + sw), G.h0 + G.ch * 0.5, G.g0 + G.cw * (0.14 + sw * 1.6), G.h0 + G.ch * 0.08); c.lineTo(G.g0, G.h0 + G.ch * 0.08); c.closePath(); c.fill();
+      // the stand + the base
+      c.fillStyle = body; c.fillRect(x - r * 0.08, base, r * 0.16, cy - base - r * 0.6); c.fillRect(x - r * 0.55, base, r * 1.1, r * 0.18);
+      // the blades: a soft disc of blur + three faint blades turning
+      c.fillStyle = k > 0.4 ? 'rgba(30,24,28,0.55)' : 'rgba(70,74,84,0.45)'; c.beginPath(); c.arc(x, cy, r * 0.92, 0, Math.PI * 2); c.fill();
+      const ang = mo ? t * 19 : 0.4; c.fillStyle = body;
+      for (let i = 0; i < 3; i++) { const a0 = ang + i * 2.094; c.beginPath(); c.ellipse(x + Math.cos(a0) * r * 0.45, cy + Math.sin(a0) * r * 0.45, r * 0.42, r * 0.16, a0, 0, Math.PI * 2); c.globalAlpha = a * 0.5; c.fill(); }
+      c.globalAlpha = a;
+      // the cage: its rim catching the light + the hub
+      c.strokeStyle = rim; c.lineWidth = Math.max(0.02, r * 0.07); c.beginPath(); c.arc(x, cy, r, 0, Math.PI * 2); c.stroke();
+      c.strokeStyle = k > 0.4 ? 'rgba(255,214,150,0.2)' : 'rgba(220,226,236,0.3)'; c.lineWidth = Math.max(0.01, r * 0.03);
+      c.beginPath(); for (let i = 0; i < 6; i++) { const a0 = i * Math.PI / 3; c.moveTo(x, cy); c.lineTo(x + Math.cos(a0) * r, cy + Math.sin(a0) * r); } c.stroke();
+      c.fillStyle = body; c.beginPath(); c.arc(x, cy, r * 0.2, 0, Math.PI * 2); c.fill();
+      c.restore(); c.globalAlpha = 1;
+    },
     wake(E, el, len) {
       const { c, G, k, t, mo } = E, p = el / len, day = 1 - k;
       // the room: the lamp room at night (the morning before the sun), the dark glass by day

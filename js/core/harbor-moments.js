@@ -36,6 +36,8 @@ export const MOMENTS = Object.freeze([
   { id: 'toast', label: 'A TOAST AT THE BAR', rarity: 'common', windows: ['bar'], hours: [19, 2.5], light: 'night', len: 7, cooldown: 24, party: 1.6, kind: 'arms up, glasses glinting, the clink' },
   { id: 'sax', label: 'THE SAX SOLO', rarity: 'uncommon', windows: ['jazz'], hours: [20, 2], light: 'night', len: 15, cooldown: 200, party: 1.5, kind: 'the sax player’s shadow swaying hard on the blind' },
   { id: 'cat', label: 'THE CAT ON THE SILL', rarity: 'uncommon', windows: ['apartment', 'edge3', 'edge2'], hours: null, len: 26, cooldown: 240, kind: 'the cat: up onto the sill, settles, tail flicking, down again' },
+  // 9a — THE WEATHER ON THE GLASS (the plan's wx gate): a DESK FAN turning on the sill on hot afternoons (the real temperature ≥ HOT_C)
+  { id: 'fan', label: 'A FAN ON A HOT DAY', rarity: 'common', windows: ['apartment'], hours: [11.5, 21], len: 55, cooldown: 300, wx: ['hot'], starter: false, kind: 'a desk fan on the sill, its blades a blur, the curtain stirring' },
   { id: 'peek', label: 'A PEEK AT THE STREET', rarity: 'rare', windows: ['apartment', 'jazz'], hours: [7.5, 2], len: 6.5, cooldown: 1800, kind: 'a silhouette behind the curtain, looking left and right' },
   { id: 'tango', label: 'THE TANGO (LEGENDARY)', rarity: 'legendary', windows: 'all', hours: [20.5, 23.75], light: 'night', len: 30, plays: 3, nights: 4, kind: 'a top hat + a flapper dress tango past every window in turn' },
   // ---- THE HIDDEN MIRROR DOOR (the barbershop's back wall — not one of the starter ten: the speakeasy's own secret)

@@ -85,7 +85,7 @@ export const MIX = Object.freeze([
   { id: 'night', from: 24, to: 26, n: [1.3, 1.9], mix: { lone: 2, couple: 1, straggler: 0.6, water: 0.5 } },
 ]);
 /** party nights: the guests' weight × this, the count × partyN; rain (0..1): the count × (1 − rainCut × rain), the gaits × (1 + rainFast) */
-export const MOOD = Object.freeze({ party: 3.2, partyN: 3.3, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2 });
+export const MOOD = Object.freeze({ party: 3.2, partyN: 3.3, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2, stormCut: 0.4, fogSlow: 0.18 });
 
 /** the period at local hour h (0..24, a weekend shifts the evening on by MOOD.lateShift) */
 function periodAt(h, weekend = false) {
@@ -95,14 +95,17 @@ function periodAt(h, weekend = false) {
 }
 /** how many people on average now + the kinds' weights (PURE). ctx: { h, dow, party, rain, budget } */
 export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1 } = {}) {
+  // (9a: a STORM — the heaviest rain — almost empties the promenade: on top of the rain's cut)
+  const storm = Math.max(0, Math.min(1, (rain - 0.75) / 0.2));
   const weekend = dow === 0 || dow === 6 || (dow === 5 && h >= 17), p = periodAt(h, weekend);
   let n = p.n[weekend ? 1 : 0] * (party ? MOOD.partyN : 1);
   n *= 1 - MOOD.rainCut * Math.max(0, Math.min(1, rain));
+  n *= 1 - MOOD.stormCut * storm;
   n *= Math.max(0, Math.min(1, budget));
   const mix = { ...p.mix };
   // (POLISH 4: party nights — more people out ENJOYING it: couples, the water, the bench; the guests themselves come by THE LINE)
   if (party) { mix.couple = (mix.couple || 1) * 1.6; mix.meet = (mix.meet || 0) + 1.2; mix.water = (mix.water || 0) + 0.8; }
-  if (rain > 0.3) { delete mix.lunch; delete mix.water; delete mix.stargazer; if (mix.jogger) mix.jogger *= 0.3; }
+  if (rain > 0.3) { delete mix.lunch; delete mix.water; delete mix.stargazer; if (mix.jogger) mix.jogger *= 0.3; if (mix.bench) mix.bench *= 0.15; mix.shelter = 1.6; }
   return { id: p.id, n: Math.min(FOLK.cap, n), mix, weekend, party: !!party };
 }
 
@@ -295,6 +298,8 @@ export const KINDS = {
   newsboy: (r, M) => ({ look: 'newsboy', gait: 'kid', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.inlay, 3, 1.2) }, { pose: 'wave', dur: 5 + r() * 6 }, { exit: 'any' }] }),
   couple: (r, M) => ({ look: 'couple', gait: 'stroll', pair: true, goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, ...(r() < 0.85 ? [{ at: r() < 0.5 || !M.exits ? jitter(r, M.nodes.inlay, 2.5, 1.2) : floor(r, M) }, { pose: 'chat', dur: 30 + r() * 60 }] : []), { exit: r() < 0.25 ? 'cross' : 'any' }] }),
   lunch: (r, M) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: 60 + r() * 150, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
+  // 9a — SHELTERING under the awning in the rain: in from either side, a minute or two at the shop window facing out, then on
+  shelter: (r, M) => ({ look: r() < 0.5 ? 'lady' : 'walker', gait: 'walk', shelter: true, goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.shopWin, 0.9, 0.1) }, { pose: 'wait', dur: 40 + r() * 70, face: 0 }, { exit: 'any' }] }),
   window: (r, M) => ({ look: r() < 0.6 ? 'lady' : 'walker', gait: 'stroll', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.shopWin, 0.6, 0.15) }, { pose: 'shop', dur: 8 + r() * 14 }, { exit: 'any' }] }),
   customer: (r) => ({ look: 'walker', gait: 'walk', hours: [9, 17.8], goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { door: 'shop' }] }),
   cart: (r, M) => ({ look: r() < 0.5 ? 'lady' : 'walker', gait: 'stroll', need: 'cart', goals: [{ from: anySide(r) }, { at: M.nodes.cart }, { pose: 'cart', dur: 10 + r() * 14, face: 1 }, { exit: 'any' }] }),
@@ -347,7 +352,7 @@ export const doorOpenK = (lg, t) => (t < lg.tOpen || t > lg.tClose + DOOR.close 
  */
 export function planVisit(spec, t, M, ctx = {}) {
   const F = FOLK, r = ctx.r || Math.random, legs = [], rain = ctx.rain || 0;
-  const v = F.speed[spec.gait] * (1 + MOOD.rainFast * rain) * (0.88 + r() * 0.24);
+  const v = F.speed[spec.gait] * (1 + MOOD.rainFast * rain) * (1 - MOOD.fogSlow * Math.max(0, Math.min(1, ctx.fog || 0))) * (0.88 + r() * 0.24);
   let cur = ctx.start ? { ...ctx.start } : null, now = t;
   // (FP3b: a goal inside a closed inlay — the dance circle — moves to just outside it, toward where they came from)
   const ev = M.circles.find(c => c.id === 'event');
@@ -662,7 +667,7 @@ function blockVisits(phase, k, M, ctx = {}) {
   // evening, leavers later; on party nights the guests go in by THE LINE (lineNight) and only the leavers come out here)
   if (phase === 0) for (const e of streamOf(k, t0, ctx, party)) {
     if (!spaced(e.t)) continue;
-    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, r: rngFrom(e.seed) });
+    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, fog: ctx.fog || 0, r: rngFrom(e.seed) });
     if (!vis || vis.t1 > t1 - 1) continue;
     const members = membersOf(e.spec, rngFrom(e.seed + 1)), n = heads(members);
     if (load(vis.t0, vis.t1) + n > cap) continue;
@@ -677,7 +682,7 @@ function blockVisits(phase, k, M, ctx = {}) {
     const start = t0 + 2 + r() * (B * 0.75);
     // (FP3b: each visit on its own seed — one that would still be out while the dance circle closes the compass is planned again
     // round it: ctx.closed(t0, t1) + ctx.Mev)
-    const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [] };
+    const vseed = Math.floor(r() * 2147483647), vctx = { rain: ctx.rain || 0, fog: ctx.fog || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(start) : true, buses: ctx.buses ? ctx.buses(start, start + 300) : [] };
     if (!spaced(start)) continue;
     // (8b2: a sitter takes a FREE seat — this block's own sitters + the other phase's: ctx.seats — the seat order seeded with the visit)
     const order = spec.sit ? (r() < 0.5 ? [0, 2, 1] : [2, 0, 1]) : null, plan = Mx => (spec.sit ? planSeated(spec, start, Mx, vctx, vseed, taken, order) : planVisit(spec, start, Mx, { ...vctx, r: rngFrom(vseed) }));
@@ -703,7 +708,7 @@ function busRiders(bus, M, ctx = {}) {
     // (FP3b: each steps DOWN out of the open door onto the road by the kerb — no fade)
     const t = bus.tA + BUS.offAt + i * BUS.offGap, dx = bus.x(bus.tA) + bus.len / 2 - 0.9, lg = doorLeg(bus.id, 'out', dx, t - 1.2, FOLK.speed.walk, bus.z, { bus: true });
     const spec = { look: r() < 0.5 ? 'commuter' : r() < 0.5 ? 'lady' : 'walker', gait: 'walk', goals: [{ from: 'bus' }, { at: { x: dx + 0.7, z: FOLK.curbZ - 0.3 } }, ...(r() < 0.3 ? [{ door: 'shop' }] : [{ exit: r() < 0.25 ? 'cross' : 'any' }])] };
-    const vis = planVisit(spec, lg.t1, M, { r, rain: ctx.rain || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(lg.t1) : true, start: { x: lg.x1, z: lg.z1 } });
+    const vis = planVisit(spec, lg.t1, M, { r, rain: ctx.rain || 0, fog: ctx.fog || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(lg.t1) : true, start: { x: lg.x1, z: lg.z1 } });
     if (!vis) continue;
     vis.legs.unshift(lg); vis.t0 = lg.t0;
     const members = membersOf(spec, r);

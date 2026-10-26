@@ -62,9 +62,9 @@ export function createPeople() {
     M = folkMap(L, { event, line: lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
   }
   const lookFor = (mem, env) => {
-    const key = `${mem.vid}|${mem.m.seed}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
+    const key = `${mem.vid}|${mem.m.seed}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${env.wind > 10 ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
     let lk = looks.get(key);
-    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, role: mem.m.role, sit });
+    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, wind: env.wind, role: mem.m.role, sit });
       // (POLISH 5 — the line prototype: the COAT in the player's colour — a long coat, the colour a touch deep so it reads as cloth)
       if (mem.coat) { lk = { ...lk, coat: 'long', dress: lk.woman ? 'day' : null, cols: { ...lk.cols, coat: mem.coat.map(v => Math.round(v * 0.82)), dress: mem.coat.map(v => Math.round(v * 0.82)) } }; }
       looks.set(key, lk); if (looks.size > 160) looks.delete(looks.keys().next().value); }
@@ -78,7 +78,7 @@ export function createPeople() {
     if (!L) return;
     ensureMap(!!f.event);
     const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
@@ -99,7 +99,7 @@ export function createPeople() {
   const gaits = new Map();
   let movingNow = false;
   function gait(members, f) {
-    const seen = new Set(), env = { season: f.season, rain: f.rain || 0 };
+    const seen = new Set(), env = { season: f.season, rain: f.rain || 0, wind: f.wind || 0 };
     for (const m of members) {
       const key = m.vid + '|' + m.m.role, st = m.s, g = gaits.get(key), walking = st.pose === 'walk' && st.v > 0.05;
       const sl = strideLen(lookFor(m, env), st.v);
@@ -221,7 +221,9 @@ export function createPeople() {
       if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { collars.set(mem.vid, drawDog(c, cam, { ...st, dist: st.dist * 1.6, lunge }, look, E, pass === 'roof' ? roofY() : 0)); if (lunge > 0.2) taut.add(mem.vid); continue; }
       // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
       const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
-      const box = drawFolk(c, cam, { s: { ...st, link }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 });
+      // (9a — FOG: the far ones fade into it — walking away they melt, walking in they come out of it)
+      const fogA = (env.fog || 0) > 0.3 && pass !== 'roof' ? 1 - 0.8 * Math.min(1, ((env.fog || 0) - 0.3) / 0.6) * Math.max(0, Math.min(1, (st.z - 41) / 16)) : 1;
+      const box = drawFolk(c, cam, { s: { ...st, link, a: (st.a == null ? 1 : st.a) * fogA }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 });
       if (box && mem.pin) pins.push([box.x + box.w / 2, box.y - box.h * 0.16, mem.pin, box.h]);
       // (8b2 — THE RAID: the officer's flashlight hand on screen, for the beam raid.js draws from it)
       if (box && mem.kind === 'officer' && st.pose === 'flash') { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near], e = J.elbows[J.near]; officerAt = { hand: [fx + h[0] * H, fy - h[1] * H], dir: [h[0] - e[0], -(h[1] - e[1])], H, t: env.t || 0 }; }

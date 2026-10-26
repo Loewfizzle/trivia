@@ -103,7 +103,11 @@ export function lookOf(name, seed, o = {}) {
   // navy, bottle green, burgundy, slate, dove grey, a cream mac; grey / navy trousers)
   if (o.sit) { L.cols.coat = pick(r, SIT_COATS); L.cols.legs = pick(r, SIT_LEGS); if (L.coat === 'none') L.coat = 'short'; if (L.woman) L.cols.dress = pick(r, SIT_COATS); }
   L.h = kid ? 0.72 : name === 'doorman' ? 1.1 : (L.woman ? 0.95 : 1.02) * (0.95 + r() * 0.08);
-  L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.8 ? pick(r, [[30, 30, 36], [120, 40, 44], [44, 60, 96], [70, 64, 56]]) : null;
+  // (9a: mostly BLACK umbrellas, a few colours — readable as shapes; without one, some hold a NEWSPAPER over the head; in a strong wind a
+  // hand goes to the hat)
+  L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.74 ? pick(r, [[28, 28, 34], [28, 28, 34], [30, 30, 36], [26, 24, 30], [150, 36, 42], [44, 62, 110], [190, 150, 54], [80, 50, 96]]) : null;
+  L.paper = (o.rain || 0) > 0.3 && !L.umbrella && !L.jog && !kid && r() < 0.65;
+  L.holdHat = (o.wind || 0) > 10 && !!L.hat && !L.umbrella && !L.paper && r() < 0.6;
   L.dog = pick(r, DOGS); L.dogSize = 0.75 + r() * 0.5;
   L.stride = 0.94 + r() * 0.12;   // (PEO: a little longer or shorter in the step, per person)
   return L;
@@ -312,6 +316,10 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'push' || pose === 'catch') { const kk = pose === 'push' ? uP : 1 - uP, k = smooth(kk), Hb = 2.1 * (L.h || 1); shJ.forEach(q => { q.a += 0.03 * k; }); head.a += 0.03 * k;
     for (let i = 0; i < 2; i++) { const y = LADDER.hR + (1.55 - LADDER.hR) * k + (i === near ? 0 : -0.12); reach(i, railAhead(y, kk) / Hb, y / Hb); } }
   if (pose === 'haul') { const c8 = Math.cos((mo ? sN : 0) / LADDER.pull * Math.PI), Hb = 2.1 * (L.h || 1); for (let i = 0; i < 2; i++) { const y = 1.7 + (i === near ? 0.32 : -0.32) * c8; reach(i, (LADDER.push - 0.06) / Hb, y / Hb, 0.08); } }
+  // 9a — THE RAIN + THE WIND on the body: a NEWSPAPER held over the head (both hands up at its corners, a little bob with the step) ·
+  // A HAND ON THE HAT in a strong wind (the near hand up to the brim)
+  if (L.paper && (pose === 'walk' || pose === 'wait' || pose === 'look' || pose === 'shop')) { const bob = walking ? 0.008 * Math.sin(p * Math.PI * 4) : 0; reach(near, 0.07, 1.02 + bob, 0.12); reach(1 - near, -0.05, 1.01 + bob, 0.12); }
+  else if (L.holdHat && (pose === 'walk' || pose === 'wait')) reach(near, 0.04, 0.97, 0.1);
   if (pose === 'upend' || pose === 'lay') { const k = smooth(pose === 'upend' ? uP : 1 - uP); arm(near, 2.62 + (1.25 - 2.62) * k, 2.6 + (0.35 - 2.6) * k, 0.14); arm(1 - near, 0.1 + 1.5 * k, 0.12 + 0.28 * k, 0.1); }
   if (pose === 'spread' || pose === 'fold') { arm(near, 1.95, 0.35); arm(1 - near, 1.85, 0.4); }
   // 8b2 — 'unload': both hands in over a truck's bed EMPTY, then out WITH the load — up onto the shoulder for a shoulder load (gear.js
@@ -552,6 +560,13 @@ function body(c, J, L, X, Y, H, lit, env) {
   } else if (J.pose !== 'wands' && L.carry && !J.noCarry && GEAR[L.carry]) GEAR[L.carry](c, { hand, J, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
   else if (J.pose !== 'wands' && L.carry && !['point', 'wave', 'toast', 'dance', 'garden', 'clap'].includes(J.pose)) carry(c, L.carry, hand, H, f, d);
   if (J.pose === 'toast') { const [gx, gy] = hand; c.fillStyle = 'rgba(236,226,190,0.9)'; c.beginPath(); c.moveTo(gx - H * 0.03, gy - H * 0.05); c.lineTo(gx + H * 0.03, gy - H * 0.05); c.lineTo(gx, gy - H * 0.015); c.closePath(); c.fill(); c.fillRect(gx - 0.25, gy - H * 0.015, 0.5, H * 0.03); }
+  if (L.paper && J.pose !== 'sit' && J.pose !== 'wands') {
+    // the newspaper tented over the head between the two hands (newsprint, a fold down its middle, a few lines of print)
+    const a = [X(J.hands[0][0]), Y(J.hands[0][1])], b = [X(J.hands[1][0]), Y(J.hands[1][1])], xl = Math.min(a[0], b[0]) - H * 0.07, xr = Math.max(a[0], b[0]) + H * 0.07, yb = Math.min(a[1], b[1]) + H * 0.01, mid = (xl + xr) / 2, pk = yb - H * 0.055;
+    c.fillStyle = f([214, 210, 196]); c.beginPath(); c.moveTo(xl, yb); c.lineTo(mid, pk); c.lineTo(xr, yb + H * 0.012); c.lineTo(mid, pk + H * 0.03); c.closePath(); c.fill();
+    c.strokeStyle = f([150, 146, 136]); c.lineWidth = Math.max(0.3, H * 0.008); c.beginPath(); c.moveTo(mid, pk); c.lineTo(mid, pk + H * 0.03); c.stroke();
+    if (H > 24) { c.strokeStyle = f([120, 116, 110]); c.lineWidth = Math.max(0.25, H * 0.004); c.beginPath(); for (let i = 1; i < 4; i++) { const u = i / 4; c.moveTo(xl + (mid - xl) * 0.25, yb - (yb - pk) * u * 0.8 + H * 0.004); c.lineTo(mid - H * 0.01, pk + (yb - pk) * (1 - u) * 0.3 + H * 0.01 * u); } c.stroke(); }
+  }
   if (L.umbrella && J.pose !== 'sit') { const [ux, uy] = hand; c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(ux, Y(1.18)); c.stroke(); c.fillStyle = f(L.umbrella); c.beginPath(); c.ellipse(ux, Y(1.18), H * 0.3, H * 0.12, 0, Math.PI, 0); c.fill(); }
 }
 // the brim's line on the head (in head radii above its centre) per hat — the band under it is in shade

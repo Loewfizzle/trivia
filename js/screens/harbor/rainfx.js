@@ -181,6 +181,8 @@ export function createHarborRain() {
       }
       c.restore();
     },
+    /** the light a point catches (the grid: [r, g, b, k] | null) — the puddles mirror it */
+    lightAt: (x, y) => lightAt(x, y),
     debug: () => ({ drops: drops.length, rings: rings.length, splashes: splashes.length, lit: grid ? (() => { let n = 0; for (let i = 3; i < grid.length; i += 4) if (grid[i] > 0.02) n++; return n; })() : 0 }),
     destroy() { for (const x of [tile, mask, veil]) if (x) x.width = 0; drops = []; rings = []; splashes = []; grid = null; },
   };

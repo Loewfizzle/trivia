@@ -56,7 +56,7 @@ import { lampThresholds, warmUp, lampMoment } from '../../core/harbor-lamps.js';
 import { createPeople } from './people.js';
 import { createWildlife } from './wildlife.js';
 import { seasonOf, seasonPhase, signalAt, streetWet } from '../../core/harbor-promenade.js';
-import { cityWeather, createWeatherState, stepWeather, wetFrom, weatherLine } from '../../core/harbor-weather.js';
+import { cityWeather, createWeatherState, stepWeather, wetFrom, dripFrom, weatherLine } from '../../core/harbor-weather.js';
 import { drawForeground, makeVignette } from './foreground.js';
 import { drawGrid } from './grid.js';
 import { createSkyFx } from './skyfx.js';
@@ -78,6 +78,7 @@ import { createClouds } from './clouds.js';
 import { createHarborRain, rainSlant } from './rainfx.js';
 import { createLightning } from './lightning.js';
 import { createWaterFog } from './waterfog.js';
+import { createWetGround } from './wetground.js';
 import { safeCtx, starvedCount, blurWorks } from '../../ui/canvas-safe.js';
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip } from '../../ui/debug-strip.js';
@@ -326,6 +327,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const zap = createLightning({ onStrike: ev => { if (S.onFlash) S.onFlash(ev); } });
   const lightningFlash = () => zap.flash();
   const waterFog = createWaterFog();      // (9a: the fog lying on the harbor)
+  const wetGround = createWetGround();    // (9a: the wet promenade — the puddles, the lamps' wet reflections, the rings, the awning's drips)
   let frost = { resize: NOOP, pane: NOOP, debug: () => ({}), destroy: NOOP };
   // (POLISH 5: the live weather is read at once — the answer this device kept — so the FIRST bake already has it; the ask starts now)
   const liveWeather = liveWx, lastWet = lastWetAt, liveKp = liveKpNow;
@@ -475,6 +477,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     strings.layout(L);
     roadLight.layout(L);
     leaves.layout(L);
+    wetGround.layout(L, W, H, dpr);
     speak.layout(L, { dpr });
     centre.layout(L, { dpr: Math.min(2, dpr) });
     people.layout(L);
@@ -579,7 +582,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function weatherTick(dt) {
     const w = wxNow(), key = w ? `${w.kind}|${w.at}|${w.k == null ? '' : w.k}|${w.rain}|${w.wind}|${w.fog}` : 'none';
     if (key !== wxTargetKey || !wxTarget) { wxTargetKey = key; wxTarget = cityWeather(w); if (shownAt < 0) WXS = null; }   // (before the reveal: the first look already has it — never a ramp after)
-    if (!WXS) WXS = createWeatherState(wxTarget, { wet: clock.preview ? 0 : wetFrom(lastWet(), clock.now()) });
+    // (a load after real rain starts WET + dripping — the live answer's wetAt; a preview's &rained=<min> the same: the street drying)
+    if (!WXS) { const wa = clock.wx && clock.wx.wetAt != null ? clock.wx.wetAt : clock.preview ? null : lastWet(); WXS = createWeatherState(wxTarget, { wet: wetFrom(wa, clock.now()), drip: dripFrom(wa, clock.now()) }); }
     stepWeather(WXS, wxTarget, (dt / 1000) * Math.min(60, clock.speed || 1), { forced: !!clock.wx });
     LK.rain = WXS.rain; LK.fog = WXS.fog; LK.storm = WXS.lightning ? 1 : 0; LK.wind = WXS.wind;
     // THE STORM SKY on the clouds (clouds.js#set: grey, dark, a lower base) — the deck heavier + darker with the rain, a storm's base
@@ -691,7 +695,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // Oct 25 — NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold): the hold on every vehicle's start, now; the planners
   // read it through peopleFrame's legend; the street under the dock (roadLight) + the raid read it here
   const trafficHoldNow = () => { const h = trafficHold(legendForPeople()); return h ? { t0: h[0], t1: h[1], on: inHold(h, clock.now() / 1000) } : null; };
-  const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(),
+  const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(),
     forceWork: workForced(), forceWorkAt: workForceAt(), noWork: clock.force.has('no-work'), dusk: duskFor, hot: hotDay,
     forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
@@ -709,7 +713,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function peopleEnv(lit, fadeIn) {
     const h = LK.local ? LK.local.h + LK.local.mi / 60 : 12;
     people.line(clock.force.has('line') ? Number(qp.get('n') || 6) : lobbyLine);
-    return { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), power: LB ? legendPow(W * 0.5, 'near', 209) : 1, t: performance.now() / 1000, mo: S.motion, season: L.season, rain: LK.rain || 0, fade: fadeIn, tier, party: PT.on > 0.3, snd: S.motion ? snd : null,
+    return { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), power: LB ? legendPow(W * 0.5, 'near', 209) : 1, t: performance.now() / 1000, mo: S.motion, season: L.season, rain: LK.rain || 0, fog: LK.fog || 0, wind: WXS ? WXS.gust : LK.wind || 0, fade: fadeIn, tier, party: PT.on > 0.3, snd: S.motion ? snd : null,
       // (FP3b — the dance circle's beat: the party's song clock + its punch + palette; null off a party → wands.js keeps a steady 120 bpm)
       beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette } : null,
       // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
@@ -1252,6 +1256,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the stop lights' lamps: lit at every hour, a glow after dark (FP: side-on, the glow spilling along the road; the cycle: signalAt) —
     // right after their bake, so the people + the front row stand in front of them
     if (fadeIn > 0) drawSignalLamps(c, L, sigSt, sigO);
+    // 9a — THE WET PROMENADE (after real rain: the puddles drying patch by patch, the lamps' wet streaks, rings while it rains, the drips)
+    if (WXS && (WXS.wet > 0.02 || WXS.drip > 0.02 || clock.force.has('wet-street')) && fadeIn > 0 && !off.has('no-wet')) wetGround.draw(c, { wet: clock.force.has('wet-street') ? 1 : WXS.wet, drip: WXS.drip, rain: LK.rain || 0, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), night: litK(DK, 'lamps') * (lit > 0 ? lit : 0) * (LB ? legendPow(W * 0.5, 'near', 209) : 1), levels: LLF.levels, lightAt: rain.lightAt, lightKey: neon.rev, t, dt, motion: S.motion, tier, fade: fadeIn });
     AUD.signals = sigO.fade * sigO.lk; AUD.lampsPost = LLF.levels.length ? Math.max(...LLF.levels) * LLF.ramp : 0;
     // PART 7a — THE SPEAKEASY's live layer: its rooms lit (from dusk, by the hour), their glow on the brick, the shop's lamp, the
     // sconce, the basement's amber (day + night), the ghost ad's lamps, the barber pole (turning while the shop is open)
@@ -1266,7 +1272,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (RR && RR.dark) { if (!raidPole) { raidPole = true; speak.pole({ on: false }); } } else if (raidPole) { raidPole = false; speak.pole({ on: true }); }
     { const bd = wTr && wTr.bulbDead; speak.bulb(bd ? bd.i : null, bd ? bd.k : 1); }
     if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
-      tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment() }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+      tw: TW, hush: hushPreview(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+    // 9a — THE SPEAKEASY IN THE RAIN: the glass wet (a sheen, beads, rivulets), the hush sign's cyan on the wet pavement
+    if (WXS && (LK.rain > 0.03 || WXS.drip > 0.05 || WXS.wet > 0.05) && fadeIn > 0 && !off.has('no-speakeasy')) { const hs = speak.hush(); wetGround.glass(c, { wins: speak.windows(), rain: LK.rain || 0, drip: WXS.drip, wet: WXS.wet, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, fade: fadeIn, hush: hs && hs.lit && hs.rect ? { rect: hs.rect, k: litK(DK, 'lamps') * 0.7 + 0.3 } : null }); }
     { const bd = speak.beds(); snd.speakeasy(RR && bd ? { ...bd, club: (bd.club || 0) * RR.club } : bd); }   // (7b: the club's murmur through the wall, the TV upstairs — sounds.js keeps them; 8b2: the raid hushes it, it creeps back — louder on a party night)
     // 8b2 — THE RAID on the facade: the wash up the side wall, the shades down, the officer's flashlight sweeping the windows
     raidFrame = { R: RR, spotAt: null };
@@ -2094,7 +2102,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
-      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
+      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3) },
@@ -2113,7 +2121,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       baker.destroy(); litBaker.destroy(); wild.destroy(); for (const d of Object.values(dark.g)) d.cv.width = d.cv.height = 0; sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
-      fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
+      fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); wetGround.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
       if (roStrip) { roStrip.remove(); roStrip = null; }
       if (llStrip) { llStrip.remove(); llStrip = null; }
       for (const c of [skyCv, skyPrev, pxCv, vignette, glow, coolGlow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }

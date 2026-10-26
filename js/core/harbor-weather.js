@@ -86,9 +86,9 @@ export function wetFrom(wetAt, now) {
 export const dripFrom = (wetAt, now) => (wetAt == null ? 0 : clamp01(1 - Math.max(0, (now - wetAt) / 60000) / WX.dripMin));
 
 /** the live state (what's drawn now): created at the first answer — joined mid-way (a load in the rain shows the rain at once) */
-export function createWeatherState(target = cityWeather(null), { wet = 0 } = {}) {
+export function createWeatherState(target = cityWeather(null), { wet = 0, drip = 0 } = {}) {
   return { state: target.state, k: target.k, rain: target.rain, fog: target.fog, wind: target.wind, gust: target.gust, dir: target.dir, ice: target.ice,
-    lightning: target.lightning, wet: Math.max(wet, target.rain > 0 ? 1 : 0), drip: target.rain > 0 ? 1 : 0, since: 0, target };
+    lightning: target.lightning, wet: Math.max(wet, target.rain > 0 ? 1 : 0), drip: Math.max(drip, target.rain > 0 ? 1 : 0), since: 0, target };
 }
 
 /**
