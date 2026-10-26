@@ -161,6 +161,19 @@ export function momentsAt(entries, sec) {
   for (const e of entries) if (e.t0 <= sec && sec < e.t0 + e.len) on.push({ ...e, el: sec - e.t0, p: (sec - e.t0) / e.len });
   return on;
 }
+/** SP3 — ONE STAR WINDOW AT A TIME (the owner): of the moments on now, the routines (a room's own life) + ONE star — the one that started
+ *  first (the eye always knows where to look); the rest wait their turn off the stage. PURE: on → the filtered list */
+export function starOnly(on) {
+  let star = null;
+  for (const e of on) if (MOMENT[e.id] && MOMENT[e.id].rarity !== 'routine' && (!star || e.t0 < star.t0 || (e.t0 === star.t0 && e.id < star.id))) star = e;
+  return on.filter(e => (MOMENT[e.id] && MOMENT[e.id].rarity === 'routine') || e === star);
+}
+/** SP3 — THE STAGING (the owner: "too small — you can't make anything out"): how close each moment plays to the glass — a zoom about the
+ *  pane's foot, so a close moment is a BOLD silhouette cropped by the frame (~60–70 % of the pane's height: head + shoulders the shape),
+ *  a 'room' moment full-body a little deeper in a simplified room. 1 = as drawn. */
+export const STAGE = Object.freeze({ peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
+/** the rooms' own steady figures (the jazz room's player, the TV couch, the bar's afternoon) — a step closer too */
+export const STAGE_ROOM = 1.22;
 /** the next start after `sec` (the readout + the e2e): { id, win, in: seconds } or null */
 function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); return e ? { id: e.id, win: e.win, in: Math.round(e.t0 - sec) } : null; }
 
@@ -169,16 +182,20 @@ function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); return e 
  * What a room is doing at hour h (local, 0–24) — the routines move them (routines: { wake, shop-open, bartender, lights-out } →
  * their starts today, seconds; their ends = start + len). NEVER FULLY DARK: from the bar's close at 3 am until the upstairs wakes
  * there is always the apartment's night lamp (and the bar's last light + the sweeping until 4).
- *   apartment  'day' (after the wake, until dusk) · 'lamp' (dusk → lights out) · 'tv' (lights out → 3 am) · 'nightlamp' (3 am → the wake)
+ *   apartment  'day' (after the wake, until dusk) · 'lamp' (dusk → lights out) · 'tv' (lights out → 3 am) · 'tvoff' (3 am: the TV's last
+ *              flicker, TV_OFF s) · 'dark' (→ the wake: SP3 — the owner: the TV switches off and the room goes DARK until morning)
  *   bar        'closed' (4 am → the bartender) · 'open' (the bartender → 3 am: by day the half-drawn shade, at night the full bar) · 'last' (3 → 4 am)
  *   shop       'closed' · 'open' (the opening's end → 6 pm)
  */
 const BAR_LAST = [3, 4], SHOP_CLOSE = 18, TV_END = 3;
+/** SP3: the TV's switch-off at TV_END (s): a last flicker + the picture shrinking away */
+export const TV_OFF = 3.2;
 export function roomState(id, h, routines = {}) {
   const s = h * 3600, start = k => (routines[k] == null ? MOMENT[k].at * 3600 : routines[k]), end = k => start(k) + MOMENT[k].len;
   if (id === 'apartment') {
     if (h < TV_END || s >= start('lights-out')) return 'tv';
-    return s < end('wake') ? 'nightlamp' : 'lamp';
+    if (s - TV_END * 3600 < TV_OFF) return 'tvoff';
+    return s < end('wake') ? 'dark' : 'lamp';
   }
   if (id === 'bar') {
     if (h >= BAR_LAST[0] && h < BAR_LAST[1]) return 'last';

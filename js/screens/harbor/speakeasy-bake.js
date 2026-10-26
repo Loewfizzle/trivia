@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR: THE SPEAKEASY — THE BAKE (the walls, the date stone, the windows, the ground floor, the gilt, the wall-washers, the ivy + the steps that paint them) (FP3b: split out of speakeasy.js, FREV A1's split by responsibility; speakeasy.js
 // re-exports everything, so its importers are unchanged).
 import { project } from '../../core/harbor-layout.js';
-import { SPEAK_V, ROOMS, roomLight } from '../../core/harbor-speakeasy.js';
+import { SPEAK_V, SPEAK_WIN, SPEAK_PIERS, ROOMS, roomLight } from '../../core/harbor-speakeasy.js';
 import { rngFrom } from '../../core/rng.js';
 import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
@@ -74,10 +74,10 @@ export function paintStructure(x, M, o) {
 
 /** THE FRONT (u 0 … 11.2): piers + spandrels + the crest over the structure */
 export function paintFrontDeco(x, M, P) {
-  const { hi, lo, trim } = P, win = [[1.0, 2.9], [4.2, 6.1], [7.4, 9.3]], rows = V.rows, rs = rngFrom(83);
+  const { hi, lo, trim } = P, win = SPEAK_WIN, rows = V.rows, rs = rngFrom(83), LT = V.lintel ?? 0.26;
   const sd = M.sd;
   // the Deco PIERS between the bays (brick, brought forward: a lit edge toward the light, a shade edge away; terracotta capitals)
-  for (const [a, b] of [[-0.4, 1.0], [2.9, 4.2], [6.1, 7.4], [9.3, 11.2]]) {
+  for (const [a, b] of SPEAK_PIERS) {
     const lit = mix(M.brick, [255, 230, 200], 0.18 * (M.day + M.gold)), dk = shade(M.brick, -0.22);
     R(x, a, V.belt, a + 0.06, V.cornice[0], sd >= 0 ? dk : lit, 0.8);
     R(x, b - 0.06, V.belt, b, V.cornice[0], sd >= 0 ? lit : dk, 0.8);
@@ -107,9 +107,9 @@ export function paintFrontDeco(x, M, P) {
     chevrons(x, (a + b) / 2 + 0.5, b - 0.1, s0 + 0.16, s1 - 0.16, hi, lo, 0.3);
     for (const [r0, r1] of rows) {
       // the soldier course over the opening (vertical bricks: their joints)
-      R(x, a - 0.06, r1 + GLASS_IN * 0, b + 0.06, r1 + 0.26, shade(M.brick, -0.08));
-      x.fillStyle = rgb(shade(M.brick, -0.32)); for (let u = a - 0.06; u < b + 0.06; u += 0.13) x.fillRect(u, r1, 0.025, 0.26);
-      R(x, a - 0.06, r1 + 0.24, b + 0.06, r1 + 0.27, shade(M.brick, -0.3));
+      R(x, a - 0.06, r1 + GLASS_IN * 0, b + 0.06, r1 + LT, shade(M.brick, -0.08));
+      x.fillStyle = rgb(shade(M.brick, -0.32)); for (let u = a - 0.06; u < b + 0.06; u += 0.13) x.fillRect(u, r1, 0.025, LT);
+      R(x, a - 0.06, r1 + LT - 0.02, b + 0.06, r1 + LT + 0.01, shade(M.brick, -0.3));
       // the sill: a terracotta slab, its lit top, its shadow on the brick under it
       R(x, a - 0.16, r0 - 0.16, b + 0.16, r0, trim); stoneTex(x, a - 0.16, r0 - 0.16, b + 0.16, r0, trim, rs); R(x, a - 0.16, r0 - 0.03, b + 0.16, r0, hi);
       // (FP3b: the sill's shadow — a crisp line under its drip, a soft fall below — + the soot it sheds down the brick)
@@ -379,7 +379,7 @@ export const GILT = Object.freeze({ size: 0.44, top: 0.55, R: 10, span: 0.84, ke
  *  outline anywhere (the cone's edges + its foot fade per pixel); dimmer. The pier's own bricks re-laid in their LIT colour (the same
  *  tile seed: the courses line up), so the brick's texture shows through the light. washCone(): the light at (du across from the
  *  pier's middle, d down from the lamp) — PURE, tested. piers: the front's brick piers [u0, u1] (the edge one is off screen) */
-export const WASH = Object.freeze({ piers: [[2.9, 4.2], [6.1, 7.4], [9.3, 11.2]], lampV: 9.13, brick: [196, 112, 74], a: 0.6, drop: 1.75, w0: 0.1, spread: 0.42, hot: 0.3 });
+export const WASH = Object.freeze({ piers: SPEAK_PIERS.slice(1).map(p => [...p]), lampV: 9.13, brick: [196, 112, 74], a: 0.6, drop: 1.75, w0: 0.1, spread: 0.42, hot: 0.3 });
 export function washCone(du, d) {
   const W = WASH;
   if (d <= 0 || d >= W.drop) return 0;

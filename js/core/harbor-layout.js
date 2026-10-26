@@ -9,7 +9,7 @@
 // topped, the landmarks stay the tallest), which frees the sky for the sun's arch (the owner's call, Oct 20 2026).
 // A wide screen (desktop, a phone sideways) gets its own camera: a panorama, never a stretched phone.
 import { rngFrom, hashString } from './rng.js';
-import { SPEAK_V } from './harbor-speakeasy.js';
+import { SPEAK_V, SPEAK_WIN } from './harbor-speakeasy.js';
 import { promenadeLayout } from './harbor-promenade.js';
 
 /** the mockup's reference phone and camera */
@@ -407,7 +407,7 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
     // (8P — the shop window WIDENED a little, 4.22 → 4.6 units, for THE HUSH WORD SIGN's 14 pt letters on a 390 phone: the door + the
     // pole stepped out to make room; core/harbor-hush.js)
     shop: { win: [3.3, 7.9, 0.78, 3.12], door: [2.14, 3.06, 3.12], pole: { u: 8.42, v0: 1.15, v1: 3.2 }, basement: [4.3, 7.1, 0.1, 0.47], sconce: { u: 9.8, v: 3.05 } },
-    windows: [[1.0, 2.9], [4.2, 6.1], [7.4, 9.3]], rows: SPEAK_V.rows.map(r => [...r]), top: SPEAK_V.crest };
+    windows: SPEAK_WIN.map(w => [...w]), rows: SPEAK_V.rows.map(r => [...r]), top: SPEAK_V.crest };
   // ---- the pier + the Ferris wheel, the breakwater + the lighthouse + the keeper's cottage (right, in open water).
   // THE WHEEL STANDS ON ITS PIER OVER WATER (the owner's review, Oct 21 2026): the speakeasy hides the harbor left of its
   // roof's back corner, so the wheel stands right of it — its A-frame legs ≥ 12 pt clear of the speakeasy — and nearer than

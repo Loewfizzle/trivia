@@ -91,11 +91,12 @@ test('7b — THE ROUTINES: fixed in the day (a few seeded minutes), every day, t
     }
   }
   const r = { wake: 7 * 3600 + 120, 'shop-open': 9 * 3600 + 60, bartender: 16 * 3600 + 200, 'lights-out': 22 * 3600 + 300 };
-  assert.equal(roomState('apartment', 6.5, r), 'nightlamp');
+  assert.equal(roomState('apartment', 6.5, r), 'dark', 'SP3: dark until the wake (the owner)');
   assert.equal(roomState('apartment', 12, r), 'lamp');
   assert.equal(roomState('apartment', 23, r), 'tv');
   assert.equal(roomState('apartment', 1.5, r), 'tv');
-  assert.equal(roomState('apartment', 3.5, r), 'nightlamp');
+  assert.equal(roomState('apartment', 3 + 1 / 3600, r), 'tvoff', '3:00:01: the TV switching off');
+  assert.equal(roomState('apartment', 3.5, r), 'dark', 'SP3: 3:30 — the TV room dark');
   assert.equal(roomState('bar', 12, r), 'closed');
   assert.equal(roomState('bar', 16.5, r), 'open');
   assert.equal(roomState('bar', 2.5, r), 'open');
@@ -111,7 +112,7 @@ test('7b — NEVER FULLY DARK: at every minute of the night at least one speakea
   for (let m = 0; m < 24 * 60; m += 5) {
     const h = m / 60;
     if (!darkAt(h, OCT.dark)) continue;
-    const lit = ROOMS.some(rm => roomLight(rm.id, h) > 0.05 && !(rm.id === 'apartment')) || ['tv', 'nightlamp'].includes(roomState('apartment', h, r)) || roomState('apartment', h, r) === 'lamp' || roomState('bar', h, r) === 'last';
+    const lit = ROOMS.some(rm => roomLight(rm.id, h) > 0.05 && !(rm.id === 'apartment')) || ['tv', 'tvoff'].includes(roomState('apartment', h, r)) || roomState('apartment', h, r) === 'lamp' || roomState('bar', h, r) === 'last';
     assert.ok(lit, `${Math.floor(h)}:${String(m % 60).padStart(2, '0')} — a light in the speakeasy`);
   }
 });
@@ -173,4 +174,13 @@ test('7b — THE PREVIEW PANEL: a WINDOWS category, a row per moment (&force=win
   }
   assert.ok(EVENTS.some(e => e.id === 'window' && e.ready === false), 'the link id, hidden');
   assert.ok(partyAt(5, 21) && partyAt(6, 1) && !partyAt(4, 21) && !partyAt(5, 12));
+});
+
+test('SP3 — ONE STAR WINDOW AT A TIME: of the moments on now, the routines + the one that started first; the staging zooms close moments to the glass', async () => {
+  const { starOnly, STAGE, STAGE_ROOM } = await import('../js/core/harbor-moments.js');
+  const on = [{ id: 'dance', win: 'jazz', t0: 100 }, { id: 'toast', win: 'bar', t0: 90 }, { id: 'bartender', win: 'bar', t0: 50 }, { id: 'peek', win: 'apartment', t0: 95 }];
+  const kept = starOnly(on).map(e => e.id).sort();
+  assert.deepEqual(kept, ['bartender', 'toast'], 'the routine + the first-started star only');
+  assert.deepEqual(starOnly([]), []);
+  assert.ok(STAGE.peek > 1.4 && STAGE.toast > 1.3 && STAGE.dance >= 1.1 && STAGE_ROOM > 1, 'close moments bold at the glass, room moments a little deeper');
 });

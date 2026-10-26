@@ -12,7 +12,8 @@
 //   THE MOMENTS  PAINT[id](env, el, len, inst) — one painter per catalogue entry (wake, shop-open, bartender, lights-out, dance,
 //                toast, sax, cat, peek, tango, mirror) + the taps (a curtain twitches, a head peeks out, the cat leaps off)
 // ADD A MOMENT: an entry in core/harbor-moments.js#MOMENTS + PAINT[id] here (+ a sound through env.play if it has one).
-import { hourPlan, momentsAt, roomState, routineAt, tvLight, dayKey, MOMENT, TANGO_PATH } from '../../core/harbor-moments.js';
+import { hourPlan, momentsAt, roomState, routineAt, tvLight, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM } from '../../core/harbor-moments.js';
+const TV_END_S = 3 * 3600;
 import { sunTimes } from '../../core/sky.js';
 import { rngFrom } from '../../core/rng.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -46,10 +47,11 @@ export function paintRoom(x, w, o = {}) {
   if (w.lit === 'bar') paintBar(x, G, 1, o.dim || 0);
   else if (w.lit === 'shade') {
     // THE JAZZ ROOM behind an amber shade (three quarters down: the room's lamp behind it the one light) — the sax player is live
-    warm('rgb(232,150,80)', 'rgb(120,56,34)');
+    // (SP3 — the owner: "way too orange": each room its own soft warm white — the jazz room HONEY behind its shade)
+    warm('rgb(236,198,146)', 'rgb(128,92,66)');
     const sv = h0 + ch * 0.26;
     const g = x.createRadialGradient(G.cx, h0 + ch * 0.62, 0, G.cx, h0 + ch * 0.62, ch * 0.75);
-    g.addColorStop(0, 'rgb(255,214,140)'); g.addColorStop(0.55, 'rgb(246,168,84)'); g.addColorStop(1, 'rgb(214,124,58)');
+    g.addColorStop(0, 'rgb(255,238,204)'); g.addColorStop(0.55, 'rgb(244,206,150)'); g.addColorStop(1, 'rgb(212,162,108)');
     x.fillStyle = g; x.fillRect(g0, sv, cw, h1 - sv);
     R(x, g0, sv, g1, sv + 0.05, 'rgba(110,60,30,0.8)');
   } else if (w.lit === 'lamp') paintLampRoom(x, G, 1);
@@ -57,7 +59,7 @@ export function paintRoom(x, w, o = {}) {
     // THE BACK ROOM: dark, ONE green-shaded lamp low over a round table (its pool of light), the heads round it
     R(x, g0, h0, g1, h1, 'rgb(58,32,22)');
     const tx = G.cx, ty = h0 + ch * 0.22;
-    const pg = x.createRadialGradient(tx, ty + 0.18, 0, tx, ty + 0.18, 0.95); pg.addColorStop(0, 'rgba(255,214,140,0.95)'); pg.addColorStop(0.45, 'rgba(206,134,72,0.5)'); pg.addColorStop(1, 'rgba(58,32,22,0)'); x.fillStyle = pg; x.fillRect(g0, h0, cw, ch);
+    const pg = x.createRadialGradient(tx, ty + 0.18, 0, tx, ty + 0.18, 0.95); pg.addColorStop(0, 'rgba(255,234,198,0.95)'); pg.addColorStop(0.45, 'rgba(204,156,112,0.5)'); pg.addColorStop(1, 'rgba(58,32,22,0)'); x.fillStyle = pg; x.fillRect(g0, h0, cw, ch);
     x.fillStyle = 'rgba(255,214,140,0.12)'; x.beginPath(); x.moveTo(tx - 0.16, ty + 0.78); x.lineTo(tx + 0.16, ty + 0.78); x.lineTo(tx + 0.6, ty + 0.04); x.lineTo(tx - 0.6, ty + 0.04); x.fill();
     const sil = 'rgb(22,12,10)';
     for (const [dx, sc, hat] of [[-0.56, 1, true], [0.58, 0.96, false]]) {
@@ -75,8 +77,8 @@ export function paintRoom(x, w, o = {}) {
     R(x, tx - 0.24, ty + 0.76, tx + 0.24, ty + 0.79, 'rgb(255,232,170)');
   } else {
     // an EDGE window (ambient only): curtains drawn, glowing with the room's light, a brighter gap between them, two soft folds
-    warm('rgb(240,150,80)', 'rgb(170,80,44)');
-    R(x, g0 + cw * 0.46, h0, g0 + cw * 0.56, h1, 'rgb(255,214,150)');
+    warm('rgb(242,218,178)', 'rgb(158,118,86)');      // (SP3: CREAM curtains)
+    R(x, g0 + cw * 0.46, h0, g0 + cw * 0.56, h1, 'rgb(255,240,212)');
     x.fillStyle = 'rgba(120,40,24,0.28)'; for (const f of [0.22, 0.76]) x.fillRect(g0 + cw * f, h0, 0.05, ch);
     if (w.id === 'edge2') { x.fillStyle = 'rgba(30,20,14,0.9)'; for (let i = 0; i < 6; i++) { x.beginPath(); x.ellipse(g0 + 0.32 + i * 0.12, h0 + 0.2 + (i % 3) * 0.1, 0.13, 0.08, 0.4 * (i - 3), 0, TAU); x.fill(); } R(x, g0 + 0.28, h0, g0 + 0.95, h0 + 0.16, 'rgb(30,18,14)'); }
   }
@@ -129,10 +131,11 @@ function paintBar(x, G, lit = 1, dim = 0) {
  *  tied back at the edges (lamp: the lamp's light 0..1 — the lights-out click takes it down) */
 function paintLampRoom(x, G, lamp = 1) {
   const { g0, g1, h0, h1, cw, ch } = G;
-  const c0 = mixc([40, 26, 30], [226, 160, 100], lamp), c1 = mixc([22, 14, 20], [150, 84, 50], lamp);
+  // (SP3: the apartment's lamp a faint ROSE — not one flat orange)
+  const c0 = mixc([40, 26, 30], [232, 180, 168], lamp), c1 = mixc([22, 14, 20], [146, 98, 96], lamp);
   const g = x.createLinearGradient(0, h1, 0, h0); g.addColorStop(0, rgb(c0)); g.addColorStop(1, rgb(c1)); x.fillStyle = g; x.fillRect(g0, h0, cw, ch);
   const lx = g0 + cw * 0.3, ly = h0 + ch * 0.72;
-  if (lamp > 0.02) { const lg = x.createRadialGradient(lx, ly, 0, lx, ly, 1.0); lg.addColorStop(0, `rgba(255,236,190,${(0.75 * lamp).toFixed(3)})`); lg.addColorStop(0.4, `rgba(255,200,130,${(0.32 * lamp).toFixed(3)})`); lg.addColorStop(1, 'rgba(255,190,120,0)'); x.fillStyle = lg; x.fillRect(g0, h0, cw, ch); }
+  if (lamp > 0.02) { const lg = x.createRadialGradient(lx, ly, 0, lx, ly, 1.0); lg.addColorStop(0, `rgba(255,236,190,${(0.75 * lamp).toFixed(3)})`); lg.addColorStop(0.4, `rgba(255,204,186,${(0.32 * lamp).toFixed(3)})`); lg.addColorStop(1, 'rgba(255,190,120,0)'); x.fillStyle = lg; x.fillRect(g0, h0, cw, ch); }
   R(x, lx - 0.012, h0, lx + 0.012, ly - 0.08, 'rgb(64,38,26)');
   x.fillStyle = rgb(mixc([60, 46, 40], [255, 236, 180], lamp)); x.beginPath(); x.moveTo(lx - 0.2, ly - 0.08); x.lineTo(lx + 0.2, ly - 0.08); x.lineTo(lx + 0.12, ly + 0.08); x.lineTo(lx - 0.12, ly + 0.08); x.fill();
   x.fillStyle = rgb(mixc([40, 30, 28], [200, 130, 70], lamp)); for (let u = -0.18; u <= 0.18; u += 0.06) x.fillRect(lx + u - 0.008, ly - 0.14, 0.016, 0.06);
@@ -315,13 +318,13 @@ export function createWindowLife() {
     } else {
       forcedId = null;
       const hr = Math.floor(h), prev = hr ? block(loc.key, hr - 1, ctx) : block(localNow(ms - 86400e3, L.off).key, 23, { ...ctx, dow: (loc.dow + 6) % 7 }).map(e => ({ ...e, t0: e.t0 - 86400 }));
-      on = momentsAt([...prev, ...block(loc.key, hr, ctx)], loc.sec);
+      on = starOnly(momentsAt([...prev, ...block(loc.key, hr, ctx)], loc.sec));   // (SP3: one star window at a time)
       // (Reduced motion: no moving moments — the rooms keep their states: the TV's light steady, the night lamp, the shop's barber still)
       if (f.motion === false) on = [];
     }
     const states = { apartment: roomState('apartment', h, routines), bar: roomState('bar', h, routines), shop: roomState('shop', h, routines) };
     const full = new Set();
-    if (states.apartment === 'tv' || states.apartment === 'nightlamp') full.add('apartment');
+    if (states.apartment === 'tv' || states.apartment === 'tvoff') full.add('apartment');
     if (states.bar === 'last') full.add('bar');
     for (const e of on) if (['wake', 'lights-out'].includes(e.id)) full.add('apartment'); else if (e.id === 'bartender') full.add('bar');
     const cur = block(loc.key, Math.floor(h), ctx), nx = cur.find(e => e.t0 > loc.sec);
@@ -355,12 +358,16 @@ export function createWindowLife() {
       if (!list.length && !tap && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp')) continue;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
       const E = { c, G, w, k, kl, day, t, mo, T, glints, f, env, frameC, after: [] };
+      // (SP3 — THE STAGING: a zoom about the pane's foot — close moments bold at the glass, cropped by the frame; core#STAGE)
+      const zoomed = (z, fn) => { if (z === 1) return fn(); c.save(); c.translate(G.cx, G.h0); c.scale(z, z); c.translate(-G.cx, -G.h0); const r = fn(); c.restore(); return r; };
       // the room's own state (POLISH 5: single panes — nothing is laid back over the glass after)
-      if (w.id === 'apartment') apartmentState(E, fr.states.apartment, list);
-      if (w.id === 'bar') barState(E, fr.states.bar, list);
-      if (w.id === 'jazz' && kl > 0.01) saxPlayer(E, list.find(e => e.id === 'sax'));
+      if (w.id === 'apartment') zoomed(STAGE_ROOM, () => apartmentState(E, fr.states.apartment, list));
+      if (w.id === 'bar') zoomed(STAGE_ROOM, () => barState(E, fr.states.bar, list));
+      if (w.id === 'jazz' && kl > 0.01) { const solo = list.find(e => e.id === 'sax'); zoomed(solo ? STAGE.sax : STAGE_ROOM, () => saxPlayer(E, solo)); }
+      // (SP3 — the windows that aren't the star keep SLOW SIMPLE LIFE: now and then someone passes deep in the room, a soft shadow)
+      if (!list.length && kl > 0.05 && mo && w.id !== 'apartment') passing(E);
       // the moments in this window
-      for (const e of list) { const p = PAINT[e.id]; if (p) p(E, e.el, e.len, e); }
+      for (const e of list) { const p = PAINT[e.id]; if (p) zoomed(STAGE[e.id] || 1, () => p(E, e.el, e.len, e)); }
       if (tap) tapPaint(E, tap);
       c.restore();
       for (const fn of E.after) fn();
@@ -372,13 +379,26 @@ export function createWindowLife() {
     spills(c, env, fr, t);
   }
 
+  // ---------------------------------------------------------------- SLOW LIFE (SP3)
+  /** someone passing deep in a lit room: a soft dark shape gliding across the back wall, ~8 s every 50–110 s (seeded per window) */
+  function passing(E) {
+    const { c, G, t, kl, w } = E, seed = [...w.id].reduce((a, ch) => a + ch.charCodeAt(0), 0), per = 50 + (seed % 60), ph = (seed * 7.3) % per, cyc = (t + ph) % per, len = 8;
+    if (cyc > len) return;
+    const u = cyc / len, dir = Math.floor((t + ph) / per) % 2 ? 1 : -1, x = G.cx + dir * (u - 0.5) * (G.cw + 1.2), y = G.h0 + G.ch * 0.08, s = 1.15;
+    const a = 0.26 * kl * Math.sin(Math.PI * u);
+    c.save(); c.globalAlpha = a;
+    figure(c, { x, y, s, lean: -dir * 0.04, tilt: 0, face: dir, arms: [[0.06 + 0.06 * Math.sin(t * 3), 0.1], [0.06 - 0.06 * Math.sin(t * 3), 0.1]], col: 'rgb(40,20,14)', hat: seed % 2 ? 'fedora' : null, hair: seed % 2 ? null : 'bob' });
+    c.restore();
+  }
+
   // ---------------------------------------------------------------- THE ROOMS' STATES
   function apartmentState(E, st, list) {
     const { k } = E;
     const routine = list.find(e => e.id === 'wake' || e.id === 'lights-out');
     if (routine) return false;                      // (the routine's painter draws the whole room)
     if (st === 'tv') { if (k > 0.01) { tvRoom(E, 1, true); return true; } return false; }
-    if (st === 'nightlamp') { if (k > 0.01) { nightLamp(E, 0); return true; } return false; }
+    // (SP3 — the owner's 3 am bug: the TV room went ORANGE; now the TV gives a last flicker, the picture shrinks away, the room DARK)
+    if (st === 'tvoff') { const el = (last.sec - TV_END_S + 86400) % 86400, on = el < 0.35 ? 1 : el < 0.5 ? 0.25 : el < 0.8 ? 0.95 : Math.max(0, 1 - (el - 0.8) / (TV_OFF - 0.8)) ** 1.6; if (k > 0.01 && on > 0.01) { tvRoom(E, on, el < 0.8); return true; } return false; }
     return false;
   }
   function barState(E, st, list) {

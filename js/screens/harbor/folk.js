@@ -143,7 +143,11 @@ const FAR_SH = new Set(['ladderA', 'ladderB']);
  *  ± 6 % per person (L.stride). Before: 0.35 at every speed — a stroll took a brisk walk's step (74 a minute), the brisk shuffled at 138. */
 export const STEP = (L, v) => { const vv = v > 0.3 ? v : L.jog ? 3.1 : 1.3; return Math.max(0.28, Math.min(0.62, 0.338 * Math.sqrt(vv) * (L.stride || 1) / Math.sqrt(L.h || 1))); };
 /** one stride (two steps) in world units at speed v — folk.js's phase + people.js's per-frame integration share it */
-export const strideLen = (L, v) => 2 * STEP(L, v) * 2.1 * (L.h || 1);
+/** SP3 (the owner): every person on the promenade ~9 % bigger against the doors, the bench, the lamps + the cart — the drawn body
+ *  (2.1 units = 1.75 m before) × FOLK_SCALE; their stride + their reach scale with it */
+export const FOLK_SCALE = 1.09;
+export const BODY_H = 2.1 * FOLK_SCALE;
+export const strideLen = (L, v) => 2 * STEP(L, v) * BODY_H * (L.h || 1);
 const headingOf = st => (st.hd != null ? st.hd : st.dir === 1 ? 0 : st.dir === -1 ? Math.PI : st.dir === 2 ? Math.PI / 2 : -Math.PI / 2);
 
 /**
@@ -163,7 +167,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const vS = back ? LADDER.vUp : st.v, S = st.run ? STEP({ ...L, jog: true }, vS) : STEP(L, vS), SL = strideLen(st.run ? { ...L, jog: true } : L, vS);   // (PEO: the step at this speed)
   const walking = (pose === 'walk' && st.v > 0.05) || back, sync = walking && !back && st.x != null && (cr0 === 'ladderA' || cr0 === 'ladderB');
   const Ss = 0.338 * Math.sqrt(vS > 0.3 ? vS : 1.3);   // (the carriers' COMMON stride — not either man's own: they must stay in step)
-  const p = !walking ? 0 : back ? wrap(-(st.since || 0) * LADDER.vUp / SL) : sync ? wrap((cx < 0 ? -1 : 1) * (st.x - (cr0 === 'ladderB' ? LADDER.gap : 0)) / (2 * Ss * 2.1)) : wrap(st.dist / SL);
+  const p = !walking ? 0 : back ? wrap(-(st.since || 0) * LADDER.vUp / SL) : sync ? wrap((cx < 0 ? -1 : 1) * (st.x - (cr0 === 'ladderB' ? LADDER.gap : 0)) / (2 * Ss * BODY_H)) : wrap(st.dist / SL);
   const breath = mo ? 0.004 * Math.sin(t * 1.7 + L.h * 37) : 0;
   const sg = [-1, 1], A = G.stance * S;
   // 8b2 — THE WORKERS MOVE RIGHT: a LIFT with the knees ('pick' — down empty, up with it; 'set' — down with it, up empty; 'raise' — a
@@ -310,12 +314,12 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // over hand a little apart along the rail, instead of a fixed overhead angle that missed the rails by up to ~3 px)
   const reach = (i, ta, ty, out = 0.1) => { const s0 = shJ[i], dx = ta - s0.a, dy = ty - s0.y, d = Math.min(Math.hypot(dx, dy), (upA + foreA) * 0.999), ph = Math.atan2(dx, -dy);
     const be = Math.acos(clamp01((upA * upA + d * d - foreA * foreA) / (2 * upA * d))), ga = Math.acos(clamp01((foreA * foreA + d * d - upA * upA) / (2 * foreA * d))); arm(i, ph - be, be + ga, out); };
-  if ((walking && cr0 === 'walkup') || back) { const Hb = 2.1 * (L.h || 1), sw = walking ? 0.03 * Math.sin(p * Math.PI * 2) : 0; for (let i = 0; i < 2; i++) reach(i, HANDS.up / Hb + (i ? sw : -sw), LADDER.hR / Hb + (i ? -sw : sw) * 0.6); }
+  if ((walking && cr0 === 'walkup') || back) { const Hb = BODY_H * (L.h || 1), sw = walking ? 0.03 * Math.sin(p * Math.PI * 2) : 0; for (let i = 0; i < 2; i++) reach(i, HANDS.up / Hb + (i ? sw : -sw), LADDER.hR / Hb + (i ? -sw : sw) * 0.6); }
   // (9a — POLISH 5's known issue: the push upright / the catch / the haul kept FIXED arm angles; now the hands REACH the rails as the
   // ladder turns (core/harbor-crew.js#railAhead — the same eased turn the ladder makes) and the rope as he hauls, hand over hand)
-  if (pose === 'push' || pose === 'catch') { const kk = pose === 'push' ? uP : 1 - uP, k = smooth(kk), Hb = 2.1 * (L.h || 1); shJ.forEach(q => { q.a += 0.03 * k; }); head.a += 0.03 * k;
+  if (pose === 'push' || pose === 'catch') { const kk = pose === 'push' ? uP : 1 - uP, k = smooth(kk), Hb = BODY_H * (L.h || 1); shJ.forEach(q => { q.a += 0.03 * k; }); head.a += 0.03 * k;
     for (let i = 0; i < 2; i++) { const y = LADDER.hR + (1.55 - LADDER.hR) * k + (i === near ? 0 : -0.12); reach(i, railAhead(y, kk) / Hb, y / Hb); } }
-  if (pose === 'haul') { const c8 = Math.cos((mo ? sN : 0) / LADDER.pull * Math.PI), Hb = 2.1 * (L.h || 1); for (let i = 0; i < 2; i++) { const y = 1.7 + (i === near ? 0.32 : -0.32) * c8; reach(i, (LADDER.push - 0.06) / Hb, y / Hb, 0.08); } }
+  if (pose === 'haul') { const c8 = Math.cos((mo ? sN : 0) / LADDER.pull * Math.PI), Hb = BODY_H * (L.h || 1); for (let i = 0; i < 2; i++) { const y = 1.7 + (i === near ? 0.32 : -0.32) * c8; reach(i, (LADDER.push - 0.06) / Hb, y / Hb, 0.08); } }
   // 9a — THE RAIN + THE WIND on the body: a NEWSPAPER held over the head (both hands up at its corners, a little bob with the step) ·
   // A HAND ON THE HAT in a strong wind (the near hand up to the brim)
   if (L.paper && (pose === 'walk' || pose === 'wait' || pose === 'look' || pose === 'shop')) { const bob = walking ? 0.008 * Math.sin(p * Math.PI * 4) : 0; reach(near, 0.07, 1.02 + bob, 0.12); reach(1 - near, -0.05, 1.01 + bob, 0.12); }
@@ -382,7 +386,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
 
 /** the rig on the screen for a state: { J, fx, fy (its ground point), H (its height in pt) } — drawFolk, the leash, the tests */
 export function rigOf(cam, st, L, t = 0, mo = true, yUp = 0) {
-  const [fx, fy] = project(cam, st.x, yUp, st.z), H = 2.1 * L.h * cam.F / st.z, ch = cam.CAMH == null ? 13 : cam.CAMH, kD = [(ch - yUp) / st.z, 2.1 * L.h / st.z];
+  const [fx, fy] = project(cam, st.x, yUp, st.z), H = BODY_H * L.h * cam.F / st.z, ch = cam.CAMH == null ? 13 : cam.CAMH, kD = [(ch - yUp) / st.z, BODY_H * L.h / st.z];
   let J = jointsOf(st, L, t, mo, kD);
   // 8b2 — NO SNAPPING BETWEEN POSES (the owner): the first BLEND s of every leg eases out of the one before (its last frame: a walk at the
   // same distance, a pose as it ended) — sitting down, standing up, a reach, a lift, setting off; every figure, workers or not
@@ -427,7 +431,7 @@ export function drawFolk(c, cam, it, env) {
   c.save(); c.globalAlpha = a * (c.globalAlpha || 1);
   if (env.clip) env.clip(c);
   // ---- the shadows: a soft contact shadow; by day the sun's cast shadow along the ground
-  const sh = env.shadow ? env.shadow(2.1 * L.h) : null;
+  const sh = env.shadow ? env.shadow(BODY_H * L.h) : null;
   if (sh && st.pose !== 'sit') {
     const [tx, ty] = project(cam, st.x + sh.dx, yUp, st.z + sh.dz), w = H * 0.09;
     c.fillStyle = `rgba(28,22,44,${(sh.a * 0.85).toFixed(3)})`; c.beginPath(); c.moveTo(fx - w, fy); c.lineTo(fx + w, fy); c.lineTo(tx + w * 0.55, ty); c.lineTo(tx - w * 0.55, ty); c.closePath(); c.fill();
@@ -681,7 +685,7 @@ function carry(c, what, [hx, hy], H, f, d) {
 export function drawDog(c, cam, st, L, env, yUp = 0) {
   // (FP3b: the dog foreshortened by its heading — side-on crossing the screen, shorter on a diagonal, never a flat profile toward us)
   const hc = st.hd != null ? Math.cos(st.hd) : st.dir === -1 ? -1 : 1, fs = Math.max(0.42, Math.abs(hc));
-  const [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 0.62 * L.dogSize * s, d = hc < 0 ? -1 : 1, X = u => fx + u * H * d * fs, Y = v => fy - v * H;
+  const [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 0.62 * FOLK_SCALE * L.dogSize * s, d = hc < 0 ? -1 : 1, X = u => fx + u * H * d * fs, Y = v => fy - v * H;
   if (fx + H < 0 || fx - H > cam.W) return [fx, fy];
   const lampK = clamp01(env.dark || 0), dark = Math.max(lampK, clamp01((env.T && env.T.night) || 0)), lt = env.lightAt ? env.lightAt(st.x, st.z) : null;
   let col = L.dog; if (dark > 0.01) { col = mix(col, [18, 16, 28], 0.74 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); col = col.map((v, i) => Math.min(255, v + lt[i] * q * 0.17 * lampK)); } }

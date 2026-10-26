@@ -26,7 +26,11 @@ const R = (...k) => rngFrom(hashString(k.join('|')));
 // ------------------------------------------------------------------ THE SIZES (world units; 1 ≈ 0.85 m) — the phone cheats
 /** each animal's size in world units WITH the phone's cheat (the true size × k): at ~13 pt a unit on the promenade a true pigeon is
  *  ~5 pt, a squirrel ~4 — they read only by motion + silhouette, so every small one is drawn bigger (the owner's squirrel note: ~1.5×) */
-export const SIZE = Object.freeze({
+/** SP3 (the owner): the animals scale with the promenade's people (+9 %, screens/harbor/folk.js#FOLK_SCALE) — a dog on a lead, the cat
+ *  by the door keep their size next to them */
+export const WILD_SCALE = 1.09;
+const grow = o => Object.freeze(Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Object.freeze(Object.fromEntries(Object.entries(v).map(([q, n]) => [q, q === 'k' ? n : +(n * WILD_SCALE).toFixed(4)])))])));
+export const SIZE = grow({
   pigeon: { len: 0.7, k: 1.85 },         // (0.32 m true → ~9–10 pt on the floor, ~8 on the blade's top: they read as a flock in motion)
   gull: { len: 1.05, span: 2.3, k: 1.55 },
   owl: { h: 1.05, k: 1.6 },              // (the snowy owl: ~10–13 pt on its perch)
