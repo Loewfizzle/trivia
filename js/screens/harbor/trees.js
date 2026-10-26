@@ -352,6 +352,16 @@ export function drawTree(x, cam, t, T, ctx = {}) {
   }
 }
 
+/** SP3 — THE CROWN IN THE WIND: a tree's crown on screen as its leaf clusters' discs (screen pt) + its base + its crown's foot / top —
+ *  the scene clips a live, gently SHEARED copy of the baked crown to them (scene.js#swayTrees). No clusters (winter) → null. */
+export function crownDiscs(cam, t, ctx = {}) {
+  const plan = planOf(t, ctx), s = cam.F / t.z, [bx, by] = project(cam, t.x, 0, t.z);
+  if (!plan.clusters.length) return null;
+  const discs = plan.clusters.map(cl => [bx + cl.u * s, by - cl.v * s, cl.r * s * 1.18]);
+  const x0 = Math.min(...discs.map(d => d[0] - d[2])), x1 = Math.max(...discs.map(d => d[0] + d[2])), y0 = Math.min(...discs.map(d => d[1] - d[2])), y1 = Math.max(...discs.map(d => d[1] + d[2]));
+  return { discs, foot: by - t.trunk * s * 0.6, top: y0, box: { x: x0 - 3, y: y0 - 3, w: x1 - x0 + 6, h: y1 - y0 + 6 } };
+}
+
 /** a tree's cast shadow on the cobbles (baked with the ground, by day: along the real sun — T.sunDir, T.sunEl; none under an
  *  overcast deck, T.ovc ≥ 0.5, or at night). The same sun as every other shadow on the stage (stage.js#sunShadow: the camera looks
  *  north across the harbor — a morning sun on the left throws shadows right, and away from us), long at a low sun, short at a high

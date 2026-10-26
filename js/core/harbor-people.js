@@ -352,7 +352,9 @@ export const doorOpenK = (lg, t) => (t < lg.tOpen || t > lg.tClose + DOOR.close 
  */
 export function planVisit(spec, t, M, ctx = {}) {
   const F = FOLK, r = ctx.r || Math.random, legs = [], rain = ctx.rain || 0;
-  const v = F.speed[spec.gait] * (1 + MOOD.rainFast * rain) * (1 - MOOD.fogSlow * Math.max(0, Math.min(1, ctx.fog || 0))) * (0.88 + r() * 0.24);
+  // (SP3 — HEAVY RAIN: a share of the few still out RUN for it — the jog's gait + its run cycle; drawn only past the heavy line)
+  const dash = rain > 0.8 && (spec.gait === 'walk' || spec.gait === 'brisk' || spec.gait === 'stroll') && r() < 0.65 * Math.min(1, (rain - 0.8) / 0.08);
+  const v = dash ? F.speed.jog * (0.8 + r() * 0.15) : F.speed[spec.gait] * (1 + MOOD.rainFast * rain) * (1 - MOOD.fogSlow * Math.max(0, Math.min(1, ctx.fog || 0))) * (0.88 + r() * 0.24);
   let cur = ctx.start ? { ...ctx.start } : null, now = t;
   // (FP3b: a goal inside a closed inlay — the dance circle — moves to just outside it, toward where they came from)
   const ev = M.circles.find(c => c.id === 'event');
@@ -425,6 +427,7 @@ export function planVisit(spec, t, M, ctx = {}) {
       walkTo(exitPt(side));
     }
   }
+  if (dash) for (let i = 0; i < legs.length; i++) if (legs[i].k === 'walk') legs[i] = { ...legs[i], run: true };
   return legs.length ? { legs, t0: t, t1: now, end: cur, v } : null;
 }
 

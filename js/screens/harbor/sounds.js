@@ -127,8 +127,8 @@ export function createCitySounds() {
     // music (bm.k), felt more than heard
     { const W9 = weather || {}, r = clamp(W9.rain || 0, 0, 1), on = !bm.hold && unlockedAt ? bm.k : 0, mo = W9.month || 0, h = W9.hour == null ? 12 : W9.hour;
       const drizzle = W9.state === 'drizzle' || W9.state === 'freezing';
-      wxBed = { drizzle: (drizzle ? smooth(0.02, 0.2, r) : smooth(0.02, 0.2, r) * (1 - smooth(0.3, 0.55, r))) * 0.9, pavement: smooth(0.22, 0.75, r), awning: smooth(0.12, 0.6, r) * 0.75,
-        water: smooth(0.3, 0.9, r) * 0.6, drip: clamp(W9.drip || 0, 0, 1) * (1 - smooth(0.04, 0.25, r)) * 0.8, wind: smooth(8, 14, W9.gust || 0) * (1 - 0.5 * smooth(0.3, 0.8, r)),
+      wxBed = { drizzle: (drizzle ? smooth(0.02, 0.2, r) : smooth(0.02, 0.2, r) * (1 - smooth(0.3, 0.55, r))) * 0.9, pavement: smooth(0.22, 0.75, r) * (1 + 0.45 * smooth(0.62, 0.9, r)), awning: smooth(0.12, 0.6, r) * 0.75 * (1 + 0.5 * smooth(0.62, 0.9, r)),
+        water: smooth(0.3, 0.9, r) * 0.6 * (1 + 0.4 * smooth(0.62, 0.9, r)), drip: clamp(W9.drip || 0, 0, 1) * (1 - smooth(0.04, 0.25, r)) * 0.8, wind: smooth(8, 14, W9.gust || 0) * (1 - 0.5 * smooth(0.3, 0.8, r)),
         crickets: (W9.night || 0) > 0.55 && (W9.temp == null ? false : W9.temp >= 16) && mo >= 6 && mo <= 9 && r < 0.05 ? 0.8 * smooth(0.55, 0.85, W9.night) : 0,
         birds: mo >= 4 && mo <= 8 && r < 0.1 && (W9.fog || 0) < 0.6 ? 0.8 * smooth(5.2, 6.2, h) * (1 - smooth(8.6, 9.8, h)) : 0 };
       keep('rain-drizzle', wxBed.drizzle * on, 0.05, { ramp: 3, linger: 30, fadeIn: 4 });

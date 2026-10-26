@@ -62,7 +62,8 @@ import { drawGrid } from './grid.js';
 import { createSkyFx } from './skyfx.js';
 import { createCitySounds } from './sounds.js';
 import { createRoadLight } from './roadlight.js';
-import { createLeaves } from './trees.js';
+import { createLeaves, crownDiscs } from './trees.js';
+import { pieceCtx } from '../../core/harbor-light.js';
 import { createWaterfront } from './waterfront.js';
 import { createSkyBeams } from './skybeams.js';
 import { createStrings } from './strings.js';   // (the roof's café-light canopy — SP2)
@@ -75,7 +76,7 @@ import { folkMap } from '../../core/harbor-people.js';
 import { drawSheets, sheetArt, bladeArt, drawBlade } from './workers.js';
 import { createDayFx } from './dayfx.js';
 import { createClouds } from './clouds.js';
-import { createHarborRain, rainSlant } from './rainfx.js';
+import { createHarborRain, rainSlant, rainLook } from './rainfx.js';
 import { createLightning } from './lightning.js';
 import { createWaterFog } from './waterfog.js';
 import { createWetGround } from './wetground.js';
@@ -94,7 +95,7 @@ import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
 import { hornsBetween } from '../../core/harbor-boats.js';
 import { createDirector } from '../../core/harbor-director.js';
 import { createLoadLog, keyDiff } from '../../core/harbor-loadlog.js';
-import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled } from '../district/live-weather.js';
+import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk } from '../district/live-weather.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
@@ -348,7 +349,18 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }).catch(e => { extrasIn = true; console.warn('harbor extras', e); reportError(e, 'harbor extras'); });
   }, 0);
   if (!clock.preview) startWeather();
-  const wxNow = () => clock.wx || (clock.preview ? null : liveWeather());
+  // SP3 — THE WEATHER'S SOURCE IS DECIDED ONCE, BEFORE THE REVEAL (the owner's load log: the city flipped from the live clouds to the
+  // seeded fallback 0.48 s after it showed — the saved answer went stale under it): live / cached / seeded at the reveal; after it the
+  // last answer is HELD (up to 3 h) until a new one arrives — a new answer that differs blends slowly (stepWeather), never a fall-back
+  let wxHeld = null, wxRevealed = false;
+  const wxNow = () => {
+    if (clock.wx) return clock.wx;
+    if (clock.preview) return null;
+    const lw = liveWeather();
+    if (lw) { wxHeld = lw; return lw; }
+    return wxRevealed && wxHeld && Date.now() - wxHeld.at < 3 * 3600e3 ? wxHeld : null;
+  };
+  const wxSourceNow = () => { if (clock.wx) return 'forced'; if (clock.preview) return 'preview (seeded)'; const s = weatherSource(), lw = liveWeather(); if (lw) return `${s.src} · ${s.age} min old`; if (wxHeld && wxRevealed) return `held (${s.src || 'the last answer'} ${Math.round((Date.now() - wxHeld.at) / 60000)} min old — a new ask on the way)`; return s.src ? `seeded (the ${s.src} answer is stale: ${s.age} min old)` : 'seeded (no answer yet)'; };
   // CITY 2.0 MUSIC (core/city.js): the music follows THIS clock — the scene's own, so the preview panel's time jumps + speeds move it too —
   // the weather it shows (the sun's place) and the flags it runs on (&mood=)
   // (8b1 — THE BEAT, the owner: the panel's PARTY and every forced SHOW drive the MUSIC MOOD too — a party show plays a party song, so
@@ -572,13 +584,63 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function rainLights() {
     const out = [], night = 1 - clamp01((LK.w.day || 0) + 0.5 * (LK.w.golden || 0));
     if (night < 0.15) return out;
-    const r = S.logoRect, lk = litK(DK, 'logo') * (S.logo || 0);
+    const r = S.logoRect, lk = clamp01((signLive() - 0.12) / 0.88);   // (the blackout's ghost of a sign (≤ 0.1) lights no rain)
     if (r && lk > 0.02) { const n = parseInt((S.signCol || '#ff4fb4').slice(1), 16), col = [n >> 16, (n >> 8) & 255, n & 255]; for (let i = 0; i < 4; i++) out.push({ x: r.x + r.w * (0.14 + 0.24 * i), y: r.y + r.h * 0.55, r: r.h * 1.05, ry: 1.25, col, k: lk * 1.1 }); }
     const nk = litK(DK, 'neon');
-    if (nk > 0.02) for (const sg of neon.signLights()) if (sg.on) out.push({ x: sg.x + sg.w / 2, y: sg.y + sg.h / 2, r: Math.max(sg.w, sg.h) * 0.85, ry: 1.1, col: sg.col, k: nk });
+    if (nk > 0.02) neon.signLights().forEach((sg, i) => { const k = sg.on ? nk * legendPow(sg.x + sg.w / 2, 'city', 400 + i) : 0; if (k > 0.02) out.push({ x: sg.x + sg.w / 2, y: sg.y + sg.h / 2, r: Math.max(sg.w, sg.h) * 0.85, ry: 1.1, col: sg.col, k }); });   // (SP3: the blackout darkens their light on the rain too)
+    AUD.rainSigns = +out.reduce((a, o) => a + o.k, 0).toFixed(3);   // (SP3: the light the signs + the NEON logo lend the rain — the blackout audit)
     const lv = lampLevels || [];
     if (L && L.lamps) L.lamps.forEach((l, i) => { const k = (lv[i] == null ? 1 : lv[i]) * litK(DK, 'lamps'); if (k > 0.02) for (const h of l.heads || []) if (h.x != null) out.push({ x: h.x, y: h.y, r: 46, ry: 1.3, col: [255, 208, 146], k: k * 0.9 }); });
     return out;
+  }
+  // SP3 — 9a's review: THE TREE CROWNS SWAY in the real wind + its gusts (cheap: the BAKED crown copied live from its own layer, clipped
+  // to its clusters + gently SHEARED — the trunk's foot still, the top moving most; per-tree phase, a gust rolling through from upwind;
+  // none in calm air; clear of the blade + any lamp standing in front of the crown)
+  let swayKey = '', swayGeo = [], swayDbg = { n: 0, amp: 0, why: '' };
+  function swayTrees(c, name, t, xf, fadeIn) {
+    if (!S.motion || !WXS || !L || !L.trees || clock.force.has('no-sway')) return;
+    const wind = WXS.wind || 0, gust = Math.max(wind, WXS.gust || 0), A0 = smooth(3.5, 14, wind), G0 = smooth(7, 20, gust);
+    if (A0 < 0.02 && G0 < 0.02) { swayDbg.why = 'calm'; return; }
+    const g = baker.group(name); if (!g || !g.ready || fadeIn <= 0 || xf < 1 || !g.show) { swayDbg.why = 'layer'; return; }
+    const key = `${L.season}|${L.seasonPhase}|${camSig}|${W}x${H}`;
+    if (key !== swayKey) {
+      swayKey = key; swayGeo = [];
+      const cx = pieceCtx(L), br = speak.bladeRect ? speak.bladeRect() : null;
+      swayGeo = L.trees.map((tr, i) => {
+        const d = crownDiscs(L.cam, tr, { ...cx, i }); if (!d) return null;
+        // (what stands IN FRONT of the crown in its layer stays put: the blade, a lamp's post + head)
+        const holes = []; if (br && tr.z > L.speakeasy.side.z - 1) holes.push(br);
+        for (const l of L.lamps || []) if (l.z < tr.z) { const [px, py] = project(L.cam, l.x, 0, l.z), hs = (l.heads || []).filter(h => h.x != null); const xs = [px, ...hs.map(h => h.x)], ys = hs.map(h => h.y); holes.push({ x: Math.min(...xs) - 7, y: (ys.length ? Math.min(...ys) : py - 60) - 8, w: Math.max(...xs) - Math.min(...xs) + 14, h: py - (ys.length ? Math.min(...ys) : py - 60) + 8 }); }
+        return { ...d, i, layer: tr.z < L.speakeasy.z0 ? 'front' : 'stage', x: tr.x, holes };
+      }).filter(Boolean);
+    }
+    const dirX = -Math.sin(((WXS.dir ?? 250) * Math.PI) / 180);
+    for (const s of swayGeo) {
+      if (s.layer !== name) continue;
+      const Hc = s.foot - s.top; if (Hc < 8) continue;
+      // the sway (pt at the crown's top): a slow rock + a faster flutter, a lean downwind, a gust rolling through from upwind
+      const ph = s.i * 2.1 + s.x * 0.07, gp = Math.max(0, Math.sin(t * 0.42 - s.x * 0.03 * dirX + s.i)) ** 4;
+      const amp = Hc * ((0.006 + 0.012 * A0) * (Math.sin(t * 2.1 + ph) * 0.75 + Math.sin(t * 3.7 + ph * 1.7) * 0.25) + 0.008 * A0 * dirX + 0.016 * G0 * gp * dirX);
+      swayDbg = { n: swayGeo.length, amp: +amp.toFixed(2), why: 'on' };
+      if (Math.abs(amp) < 0.05) continue;
+      const k = amp / Hc, b = s.box, sy = g.show.h / g.cur.height, sxk = g.cur.width / W;
+      c.save();
+      if (s.holes.length) { c.beginPath(); c.rect(b.x - 4, b.y - 4, b.w + 8, b.h + 8); for (const r of s.holes) c.rect(r.x, r.y, r.w, r.h); c.clip('evenodd'); }
+      c.transform(1, 0, -k, 1, k * s.foot, 0);
+      c.beginPath(); for (const [x, y, r] of s.discs) { c.moveTo(x + r, y); c.arc(x, y, r, 0, Math.PI * 2); } c.clip();
+      c.globalAlpha = fadeIn;
+      c.drawImage(g.cur, Math.max(0, b.x * sxk), Math.max(0, (b.y - g.show.y0) / sy), b.w * sxk, b.h / sy, b.x, b.y, b.w, b.h);
+      c.restore();
+    }
+  }
+  // SP3 — HEAVY RAIN's biggest read: the skyline GREYED behind a rain haze (the far rows melt into it, the near rows a little; the
+  // harbor + the promenade stay clear) — a gradient over the layer's band, its weight k at full heavy rain
+  function rainHaze(c, name, k, fadeIn) {
+    const hv = (LK.rain || 0) > 0.5 ? rainLook(LK.rain).heavy : 0, g = hv > 0.02 && fadeIn > 0 ? baker.group(name) : null;
+    if (!g || !g.show) return;
+    const day = clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0)), col = day > 0.5 ? '170,178,192' : '92,88,122', y0 = g.show.y0, y1 = Math.min(H, g.show.y0 + g.show.h), a = k * hv * fadeIn * (day > 0.5 ? 1 : 0.85);   // (at night the haze is the city's glow in the rain — lighter than the dark, never a black veil)
+    const gr = c.createLinearGradient(0, y0, 0, y1); gr.addColorStop(0, `rgba(${col},0)`); gr.addColorStop(0.3, `rgba(${col},${(0.8 * a).toFixed(3)})`); gr.addColorStop(1, `rgba(${col},${a.toFixed(3)})`);
+    c.fillStyle = gr; c.fillRect(0, y0, W, y1 - y0);
   }
   let lampLevels = null;
   function weatherTick(dt) {
@@ -1145,7 +1207,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const sunNow = sun.debug(), rk = off.has('no-rays') ? 0 : rayStrength(LK, sunNow);
     sun.halo(c, fs); drawRays(c, L, sunNow, rk * fadeIn, t, 'behind', S.motion, tier); sky.low(c, fs);
     wfx.fogLayer(c, fs, 1, t);
+    // SP3 — HEAVY RAIN's biggest read: the far skyline GREYED behind a rain haze (the far rows melt into it; the near rows stay clearer)
+    rainHaze(c, 'far', 0.62, fadeIn);
     { const dkN = deadCity && darkOf('near'); if (dkN && fadeIn > 0) { const g = baker.group('near'); c.globalAlpha = fadeIn; c.drawImage(dkN.cv, 0, g.show.y0, W, g.show.h); c.globalAlpha = 1; } else pair('near', 'nearLit', deadCity ? 0 : winK, lx, xf, fadeIn); }
+    rainHaze(c, 'near', 0.34, fadeIn);       // (SP3: heavy rain greys the skyline — the far rows most)
     eventsTick(now, nightK);
     // (7b: the LATE TVs across the skyline — ~10 pm → ~3 am, eased in + out over 20 min — core/harbor-moments.js#lateTvK)
     lights.lateTv(LK.local ? lateTvK(LK.local.h + LK.local.mi / 60) * nightK : 0);
@@ -1169,7 +1234,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const wantParty = PT.on > 0.5;          // (NEON PASS 4: the wheel wears the party's colours all party night)
       if (wantParty !== wheelParty && !clock.force.has('wheel-scheme')) { wheelParty = wantParty; wheel.scheme(wantParty ? 'party' : 'city'); }
       // (NEON PASS 4: Rosie in her party bulbs all party night — boats.set is a no-op while unchanged)
-      if (!clock.force.has('rosie-lights')) boats.set({ rosie: wantParty ? 'party' : 'city' }); }
+      // (SP3 — ROSIE ON THE MOVE: on a party night her deck strings CHASE in the party colours — two bands a beat when the music's grid is
+      // trusted (hbeat.bpm), a lively 6 a second without it; quantized so set() changes only when the tempo does)
+      if (!clock.force.has('rosie-lights')) { const rate = hbeat.bpm && hbeat.locked > 0.5 ? Math.round(hbeat.bpm / 60 * 2 * 4) / 4 : 6; boats.set({ rosie: wantParty ? 'party' : 'city', chase: wantParty ? { rate, k: 0.85, span: 6 } : null }); } }
     // the far shore's storefronts (before the quay's lamps + the water: the harbor reflects them)
     const pQuay = LB ? legendPow(W * 0.5, 'harbor', 304) : 1;
     if (!off.has('no-waterfront')) waterfront.draw(c, T, fadeIn * litK(DK, 'lamps') * (lit > 0 ? lit : 0) * pQuay, fadeIn, t, S.motion, off.has('no-water') ? null : water);
@@ -1252,6 +1319,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (wTr && fadeIn > 0) workBoard(c, wTr);
     if (wlOn) wild.draw(c, 'bill', wlEnv);           // (8b1: the birds on the roof billboard's top edge + its catwalk railing)
     layer('stage');
+    swayTrees(c, 'stage', t, xf, fadeIn);            // (SP3: the crowns in the wind)
     // 8P — THE LAMPS' LIFE: one by one at dusk with a warm-up stutter, a rare flicker / a rarer short outage (core/harbor-lamps.js); a
     // lamp that is off takes its baked pool back down
     const LLF = lampLife(t); lampLevels = LLF.levels;
@@ -1307,6 +1375,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // on the floor, behind the front row (the framing maple + the near lamps stand in front of the beam)
     if (legends && legends.active() && fadeIn > 0 && !off.has('no-legends')) legends.near(c, fs, { ...(pplEnv || peopleEnv(lit, fadeIn)), waterLight: (x, y, col, k, r) => water.light(x, y, col, k, r) });
     layer('front');
+    swayTrees(c, 'front', t, xf, fadeIn);
     // (POLISH 4 — THE BLACKOUT on the promenade's BAKED night light: the lamps' pools, the trees' uplights, the hidden lamp's glow, the
     // spill on the cobbles are part of the stage's bake — a multiply veil from the back road down takes them out with the power, the
     // moonlit promenade left; the speakeasy's own lights go by its power hook)
@@ -1362,7 +1431,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const tq = qp.get('temp'), tc = tq != null && tq !== '' && Number.isFinite(+tq) ? +tq : LK.temp;
       const cold = clock.force.has('freeze') ? 1 : tc == null ? 0 : smooth(1, -6, tc);
       const sc = S.signCol ? (n => [n >> 16, (n >> 8) & 255, n & 255])(parseInt(S.signCol.slice(1), 16)) : [255, 95, 180];
-      glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: litK(DK, 'logo') * (S.logo || 0), signCol: sc, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
+      AUD.signWx = (LK.rain || 0) > 0.02 || WXS.ice > 0.01 ? signLive() : 0;   // (SP3: the beads' light on the NEON tubes — the blackout audit)
+      glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: signLive(), signCol: sc, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
     }
     // (9a: City 1.0's full-screen frost pane is off in the Harbor — the cold shows on the buttons' glass (glasswx.js); the frost of a
     // snowy night across the screen is 9b's)
@@ -1442,11 +1512,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const wl = weatherLine(WXS);
     if (clock.wx) return [`wx FORCED ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`, `${out} · forced`, wl];
     if (clock.preview) return ['wx a preview clock — no live weather', `${out} · seeded`, wl];
-    const lw = liveWeather();
-    if (!lw) return ['wx seeded (no live answer yet / stale)', `${out} · seeded`, wl];
+    const lw = wxNow();
+    if (!lw) return [`wx ${wxSourceNow()}`, `${out} · seeded`, wl];
     const hm = ms => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
     const L = lw.layers, vis = lw.vis != null ? (lw.vis >= 1000 ? `${(lw.vis / 1000).toFixed(1)} km` : `${lw.vis} m`) : '?';
-    return [`wx ${lw.src || 'open-meteo'} · ${lw.lat},${lw.lon} · slot ${lw.t ? hm(lw.t) : '?'} · ${Math.round((Date.now() - (lw.t || lw.at)) / 60000)} min old · WMO ${lw.code != null ? lw.code : '?'} · cc ${pct(lw.cloud)}${L ? ` (lo ${pct(L.lo)} mid ${pct(L.mid)} hi ${pct(L.hi)})` : ''} · vis ${vis}`, `${out} · live`, wl];
+    return [`wx ${lw.src || 'open-meteo'} · ${lw.lat},${lw.lon} · slot ${lw.t ? hm(lw.t) : '?'} · ${Math.round((Date.now() - (lw.t || lw.at)) / 60000)} min old · WMO ${lw.code != null ? lw.code : '?'} · cc ${pct(lw.cloud)}${L ? ` (lo ${pct(L.lo)} mid ${pct(L.mid)} hi ${pct(L.hi)})` : ''} · vis ${vis}`, `${out} · ${wxSourceNow()}`, wl];
   }
   const sessLine = (name, o, now) => `${name} ${o.n ? (100 * o.slow / o.n).toFixed(1) : '0.0'}% slow · ${o.slow} of ${o.n} in ${Math.round((now - (o.t0 || now)) / 1000)} s · run ${o.maxRun} · max ${Math.round(o.max)} ms`;
 
@@ -1583,6 +1653,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     c.save(); c.globalAlpha = (0.3 + 0.25 * litK(DK, 'logo')) * haloK; c.drawImage(haloSp.cv, haloSp.x, haloSp.y, haloSp.w, haloSp.h); c.restore();
   }
   let haloK = 1;
+  // (SP3: the NEON sign's LIVE light — its sun plan × the boot / the catch × every dim on it (the TR-3B's blackout, a sky message): what the
+  // rain lit by the sign + the beads on its tubes borrow; never the tube's colour without its level)
+  const signLive = () => litK(DK, 'logo') * (S.logo || 0) * signDim.now().logo;
   function haloSprite(nr, wr) {
     // the logo's own box from its inset rect (title.js#logoRect: 7 % / 18 % in) → the SVG viewBox (logo.js: pad 26, +4 / +8)
     const w0 = nr.w / 0.86, h0 = nr.h / 0.64, x0 = nr.x - w0 * 0.07, y0 = nr.y - h0 * 0.18, k = w0 / (LOGO_W + 52);
@@ -1929,7 +2002,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     shownAt = now; revealWhy = ready && fonts && wx && sky ? 'ready' : 'late';
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
     const waits = [!ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds'].filter(Boolean);
-    LOADLOG.reveal(revealWhy, `t${tier} dpr ${dpr} · ${Math.round(W)}×${Math.round(H)} · wx ${LK.wxKind || 'seeded'}${waits.length ? ` · still waiting for ${waits.join(', ')}` : ''}`, now);
+    wxRevealed = true; wxHeld = wxNow() || wxHeld;
+    { const a = weatherAsk(); if (a) LOADLOG.add('note', `wx asked: ${a.status ? `HTTP ${a.status}` : `failed (${a.err})`} in ${a.ms} ms`); }
+    LOADLOG.reveal(revealWhy, `t${tier} dpr ${dpr} · ${Math.round(W)}×${Math.round(H)} · wx ${LK.wxKind || 'seeded'} (${wxSourceNow()})${waits.length ? ` · still waiting for ${waits.join(', ')}` : ''}`, now);
     if (S.onReveal) { try { S.onReveal({ why: revealWhy, ms: Math.round(now - t0) }); } catch { /* the title's */ } }
   }
   // POLISH 5 — THE FONTS (the owner's jumping load): the title's fonts come from Google's stylesheet, loaded late (a preload swapped
@@ -2034,6 +2109,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** the moon on screen ({ x, y, r } or null) — the title's tagline shade (NEON PASS 2) */
     moonAt: () => (moonNow ? { ...moonNow } : null),
     neonMoments: () => sun.moments(clock.now(), clock.tz, LK.lat, LK.lon),
+    // (SP3 — 9a's review: the NEON logo follows the SAME darkness as the city on a dark storm afternoon — the skyline's neon level while a
+    // storm / heavy rain darkens the day; 0 otherwise (title.js#neonNow powers the sign up like dusk, back to daylight glass as it clears))
+    stormLit: () => (stormDark() > 0.2 ? litK(DK, 'neon') : 0),
     signCount: () => neon.count(),            // the neon plan's items: the signs, the billboards, each building's outline
     now: () => clock.now(),
     /** THE PREVIEW PANEL (City 2.0): the preview flags swapped live — params { key: value } or null (the page's own); o: { at, srv } */
@@ -2116,7 +2194,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
-      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
+      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3) },

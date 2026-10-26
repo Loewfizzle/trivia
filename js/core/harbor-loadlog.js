@@ -75,7 +75,7 @@ export function createLoadLog(t0, { now = () => performance.now(), win = LOAD_LO
       const rv = rows.find(r => r.kind === 'reveal');
       const v = api.visible().length;
       if (!rv) return `LOAD … ${((now() - t0) / 1000).toFixed(1)} s (dark)`;
-      return `LOAD ${rv.why} ${(Math.round(shownAt - t0) / 1000).toFixed(2)} s · ${v ? `${v} change${v > 1 ? 's' : ''} after` : 'still after'}${api.open() ? '' : ' (done)'}`;
+      return `LOAD ${rv.why} ${(Math.round(shownAt - t0) / 1000).toFixed(2)} s · ${v ? `${v} change${v > 1 ? 's' : ''} after the reveal` : 'still after the reveal'}${api.open() ? '' : ' (done)'}`;   // (SP3: the count = post-reveal rows the eye sees only — visibleRow)
     },
   };
   return api;

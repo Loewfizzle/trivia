@@ -319,6 +319,9 @@ export function createBalloons() {
     for (const b of list) b.burns = burnSchedule(b.seed, b.climb, dur - b.launch);
     // (the festival's heights by depth, evenly spread: the near ones lower, the far ones higher — never a row)
     if (fest) [...list].sort((a, b) => a.near - b.near).forEach((b, k) => { b.band = clamp01(0.04 + 0.86 * k / (n - 1) + (R0() - 0.5) * 0.08); });
+    // (SP3 — 9a's review: at 402 the six overlapped at times. Now they drift TOGETHER on the one wind (festival.x: a shared speed — their
+    // spacing across the sky holds the whole flight) and x-neighbours alternate HIGH / LOW, so no two sit in the same patch of sky)
+    if (fest) { const ALT = [0, 3, 1, 4, 2, 5]; [...list].sort((a, b) => a.x0 - b.x0).forEach((b, k) => { b.band = clamp01(0.06 + 0.84 * ALT[k % ALT.length] / 5 + (R0() - 0.5) * 0.04); }); }
     list.sort((a, b) => a.near - b.near);                 // far first
     cur = { at: o.at, list, dir: o.windSign || 1, dur, festival: fest, box, fast: o.fast ? FAST : 1, fadeAt: o.fade ? performance.now() : null };
   }
@@ -353,8 +356,10 @@ export function createBalloons() {
         // THE DRIFT: the crossing spread over the WHOLE flight (barely moving at a glance) — a single balloon drifts in from the upwind
         // edge and out the other side as its flight ends; a festival balloon from its launch spot out on the wind
         const exitX = cur.dir > 0 ? W + A.w * 0.55 : -A.w * 0.55, enterX = cur.dir > 0 ? -A.w * 0.55 : W + A.w * 0.55;
-        const x0 = b.x0 == null ? enterX : b.x0 * W, d0 = b.climb * 0.5, u = (eL - d0) / Math.max(60, cur.dur - b.launch - d0);
-        const x = x0 + (exitX - x0) * (b.x0 == null ? clamp01(eL / cur.dur) : driftAt(u));
+        const x0 = b.x0 == null ? enterX : b.x0 * W;
+        // (the festival: one shared drift — every balloon carried at the same speed from 40 s in, so the furthest upwind one is off the
+        // far edge as the flight ends)
+        const vF = (W * 1.02 + 70) / Math.max(600, cur.dur - 60), x = b.x0 == null ? x0 + (exitX - x0) * clamp01(eL / cur.dur) : x0 + cur.dir * vF * Math.max(0, e - 40);
         if ((cur.dir > 0 && x - A.w / 2 > W) || (cur.dir < 0 && x + A.w / 2 < 0)) { gone++; continue; }
         // its own height: the far ones high, the near ones lower; a slow rise + fall over ~7–12 min, a little bob
         // (its floor: the skyline under it — the highest roof across its width, the basket may tuck a little behind — eased, so it
@@ -375,6 +380,7 @@ export function createBalloons() {
         }
         const alpha = fadeIn * fadeOut * (0.75 + 0.25 * b.near);
         c.globalAlpha = alpha; c.drawImage(A.cv, x - A.w / 2, y, A.w, A.h); c.globalAlpha = 1;
+        b.box = [x - A.w / 2, y + A.oy * 0, A.w, A.h];
         // THE BURNER: RARE + irregular (seeded: burnSchedule) — one short burn of a few pulses every 45–120 s, every few s while it climbs
         if (b.bi > 0 && eL < b.burns[b.bi - 1][0]) b.bi = 0;     // (a jump back: from the top)
         while (b.bi < b.burns.length - 1 && b.burns[b.bi][0] + b.burns[b.bi][1] < eL) b.bi++;
@@ -401,7 +407,7 @@ export function createBalloons() {
     },
     /** the burner's sound follows the burns you SEE: { id (a counter: a new burn), pan } */
     burn: () => ({ id: burnId, pan: burnPan }),
-    debug: () => (cur ? { n: cur.list.length, at: cur.at, dir: cur.dir, dur: cur.dur, fast: cur.fast, festival: cur.festival, kinds: cur.list.map(b => b.kind), order: [...cur.list].sort((p, q) => p.launch - q.launch).map(b => b.kind), launches: cur.list.map(b => (b.climb ? +b.launch.toFixed(1) : null)), burns: burnId } : null),
+    debug: () => (cur ? { n: cur.list.length, at: cur.at, dir: cur.dir, dur: cur.dur, fast: cur.fast, festival: cur.festival, kinds: cur.list.map(b => b.kind), order: [...cur.list].sort((p, q) => p.launch - q.launch).map(b => b.kind), launches: cur.list.map(b => (b.climb ? +b.launch.toFixed(1) : null)), burns: burnId, boxes: cur.list.map(b => (b.box ? b.box.map(v => Math.round(v)) : null)) } : null),
     destroy: stop,
   };
 }

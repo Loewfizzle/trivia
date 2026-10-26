@@ -168,12 +168,16 @@ export function boatRoutes(L, { taxi = false } = {}) {
 }
 
 // ------------------------------------------------------------------ 8b1 — THE HARBOR'S TIMETABLE (plan.md "THE HARBOR" under the workers)
-/** ROSIE's day (local hours): she lies at her landing between runs; out at 10, 2 and 6 (the excursions, back ~1 h 40 later / the
- *  sunset run back by 6:50) and the DINNER CRUISE at 7 pm, lit up, back ~9:40; at the landing overnight. Her horn as she casts off. */
-export const ROSIE_TABLE = Object.freeze([{ dep: 10, ret: 11.67, horn: 'day' }, { dep: 14, ret: 15.67, horn: 'day' }, { dep: 18, ret: 18.82, horn: 'day' }, { dep: 19, ret: 21.67, horn: 'dinner' }]);
+/** ROSIE ON THE MOVE (SP3 — the owner, Oct 26, replacing 8b1's long stays): OFF SCREEN most of the time; EVERY HOUR ON THE HOUR
+ *  through her service day (7 am → 11 pm, none in the small hours) she comes in — from off screen ~4 min before, gliding in bow-first
+ *  + turning to her pier (her 3D swing) — DOCKS AT :00 (the ship's bell), boards for ~3 min, casts off (her horn; the 7 pm one = the
+ *  DINNER CRUISE's long blast) and steams away, gone off screen by ~:06. In motion the whole visit. */
+export const ROSIE_SERVICE = Object.freeze({ first: 7, last: 23, stretch: 1.6, dwell: 180, out: 200, dinner: 19 });
+/** her departures as a table (the hours she casts off at :03 — one horn each) */
+export const ROSIE_TABLE = Object.freeze(Array.from({ length: ROSIE_SERVICE.last - ROSIE_SERVICE.first + 1 }, (_, i) => { const h = ROSIE_SERVICE.first + i; return { dock: h, dep: h + ROSIE_SERVICE.dwell / 3600, horn: h === ROSIE_SERVICE.dinner ? 'dinner' : 'day' }; }));
 /** the fishing tug: out at dawn (FISH.out — a fixed early hour, its bow lantern lit while it's dark), back in the late afternoon */
 export const FISH = Object.freeze({ out: 6.15, back: 16.5, move: 170 });
-const ROSIE_OUT = 110, ROSIE_IN = 154;
+const ROSIE_IN = 154;
 const dayStartOf = (ms, off) => { const lt = ms / 1000 + off * 60, d = Math.floor(lt / 86400); return (d * 86400 - off * 60) * 1000; };
 const withHd = (st, hd, z) => ({ ...st, hd, z, face: Math.cos(hd) });
 /** a timetabled boat at ms (PURE: off = the local minutes from UTC) → the same shape as boatAt; + horn: the departure it is leaving on */
@@ -182,13 +186,16 @@ export function tableAt(r, ms, off = 0) {
   const move = (xa, xb, t0, d, ease, face, extra = {}) => withHd({ x: xa + (xb - xa) * EASE[ease](clamp01((ms - t0) / (d * 1000))), on: true, moving: true, seg: 'move', run: Math.floor(t0 / 1000), ...extra }, hdOf(face), r.z);
   const hold = (x, hd = 0) => withHd({ x, on: true, moving: false, seg: 'hold', run: 0 }, hd, r.z);
   if (r.table === 'rosie') {
+    const RS = ROSIE_SERVICE, ARR = ROSIE_IN * RS.stretch * 1000;
     for (const e of ROSIE_TABLE) {
-      const dep = d0 + e.dep * H, ret = d0 + e.ret * H;
-      if (ms >= dep && ms < dep + ROSIE_OUT * 1000) return move(inLane, outLane, dep, ROSIE_OUT, 'in', 1, { cruise: e.horn });
-      if (ms >= dep + ROSIE_OUT * 1000 && ms < ret - ROSIE_IN * 1000) return withHd({ x: outLane, on: false, moving: false, seg: 'away', next: Math.floor(ret / 1000), cruise: e.horn }, PI, r.z);
-      if (ms >= ret - ROSIE_IN * 1000 && ms < ret) { const t0 = ret - ROSIE_IN * 1000, a = arriveAt(r.arrive, (ms - t0) / 1000); return withHd({ x: a.x, on: true, moving: true, seg: 'move', run: Math.floor(t0 / 1000), phase: a.phase, cruise: e.horn, ...(a.astern ? { astern: true } : null) }, a.hd, a.z); }
+      const dock = d0 + e.dock * H, dep = dock + RS.dwell * 1000, gone = dep + RS.out * 1000;
+      if (ms >= dock - ARR && ms < dock) { const t0 = dock - ARR, a = arriveAt(r.arrive, (ms - t0) / 1000 / RS.stretch); return withHd({ x: a.x, on: true, moving: true, seg: 'move', run: Math.floor(t0 / 1000), phase: a.phase, cruise: e.horn, ...(a.astern ? { astern: true } : null) }, a.hd, a.z); }
+      if (ms >= dock && ms < dep) return { ...hold(inLane), boarding: true, cruise: e.horn };
+      if (ms >= dep && ms < gone) return move(inLane, outLane, dep, RS.out, 'in', 1, { cruise: e.horn });
     }
-    return hold(inLane);
+    // (off screen between her visits + overnight: the next arrival's time for the readout)
+    const nx = ROSIE_TABLE.map(e => d0 + e.dock * H - ARR).find(t0 => t0 > ms) ?? d0 + 24 * H + ROSIE_TABLE[0].dock * H - ARR;
+    return withHd({ x: outLane, on: false, moving: false, seg: 'away', next: Math.floor(nx / 1000) }, PI, r.z);
   }
   // THE FISHING TUG: at dawn it backs out of its mooring (bow toward the pier) into open water, swings there and heads out bow-first
   // to the right; back (bow-first, heading left) in the late afternoon; its bow lantern on while it moves
@@ -203,10 +210,11 @@ export function tableAt(r, ms, off = 0) {
   if (ms >= back - D * 1000 && ms < back) return move(outLane, inLane, back - D * 1000, D, 'out', -1, { lantern: true });
   return { ...hold(inLane, PI), moored: true };
 }
-/** the timetable's moments between a and b (ms, PURE): [{ t, kind: 'rosie-day' | 'rosie-dinner' }] — the horn as she casts off */
+/** the timetable's moments between a and b (ms, PURE): [{ t, kind: 'rosie-day' | 'rosie-dinner' }] — the horn as she casts off (the
+ *  ship's bell rings her in at :00 — scene.js#harborClock) */
 export function hornsBetween(a, b, off = 0) {
   const out = [];
-  for (const d0 of new Set([dayStartOf(a, off), dayStartOf(b, off)])) for (const e of ROSIE_TABLE) { const t = d0 + e.dep * 3600e3 + 1500; if (t > a && t <= b) out.push({ t, kind: `rosie-${e.horn}` }); }
+  for (const d0 of new Set([dayStartOf(a, off), dayStartOf(b, off)])) for (const e of ROSIE_TABLE) { const t = d0 + e.dep * 3600e3 + 1500; if (t > a && t <= b) out.push({ t, kind: `rosie-${e.horn}` }); }   // (SP3: as she casts off at :03)
   return out;
 }
 

@@ -37,19 +37,28 @@ test('8b1 — THE TR-3B: people stop + stare up as the city goes dark, a few hur
   assert.ok(mid.filter(x => ['watch', 'point'].includes(x.s.pose)).length >= 1, 'some stare');
 });
 
-test('8b1 — THE HARBOR\'S TIMETABLE: Rosie at her landing between runs, out at 10 / 2 / 6 + the 7 pm dinner cruise, a horn each; the fishing tug out at dawn (its lantern), back late afternoon', () => {
+test('SP3 — ROSIE ON THE MOVE: every hour 7 am → 11 pm she comes in, docks AT :00, boards ~3 min, steams off by ~:06 (off screen between + overnight), a horn as she casts off (7 pm = the dinner cruise); the fishing tug out at dawn (its lantern), back late afternoon', () => {
   const { cam, L } = setup(), R = boatRoutes(L), rosie = R.find(r => r.id === 'rosie'), fish = R.find(r => r.id === 'fish'), ms = h => local(2026, 10, 26, h) * 1000, o = { off: OFF };
-  assert.equal(boatAt(rosie, ms(9), undefined, o).seg, 'hold', '9 am: at her landing');
-  const out = boatAt(rosie, ms(10 + 50 / 3600), undefined, o);
-  assert.ok(out.on && out.moving && out.x > rosie.lane[0], '10:00:50: casting off, steaming out');
-  assert.equal(boatAt(rosie, ms(11), undefined, o).seg, 'away', '11 am: out on her cruise');
-  // 11:40 — home: bow-first in from the right (11:40:12 → ~11:41:10), the turn in view (→ ~11:42:12), astern the last half length (→ 11:42:46)
-  const ret = ms(11.67), back = s => boatAt(rosie, ret - s * 1000, undefined, o);
-  assert.ok(back(130).on && !back(130).astern && Math.abs(back(130).hd - Math.PI) < 1e-9, '11:40:36: coming home bow-first, heading left');
-  assert.equal(back(70).phase, 'turn', '11:41:36: swinging round right of her berth');
-  assert.ok(back(20).astern && back(20).x > rosie.lane[0], '11:42:26: easing astern into her landing');
-  assert.ok(Math.abs(Math.cos(back(0.5).hd) - 1) < 0.01, '11:42:46: bow-out at her landing');
-  assert.equal(boatAt(rosie, ret + 1000, undefined, o).seg, 'hold');
+  const at = (h, s = 0) => boatAt(rosie, ms(h) + s * 1000, undefined, o);
+  assert.equal(at(3).seg, 'away', '3 am: no service — off screen');
+  assert.equal(at(9, -10 * 60).seg, 'away', '8:50: off screen between visits');
+  // the arrival: ~4 min before the hour, bow-first from the right, the swing, the last half length astern — docked at :00
+  assert.ok(at(9, -230).on && !at(9, -230).astern && Math.abs(at(9, -230).hd - Math.PI) < 1e-9, '8:56:10: coming in bow-first, heading left');
+  assert.equal(at(9, -120).phase, 'turn', '8:58: swinging round right of her pier');
+  assert.ok(at(9, -25).astern && at(9, -25).x > rosie.lane[0], '8:59:35: easing astern into her landing');
+  assert.ok(at(9, 30).boarding && at(9, 30).seg === 'hold' && Math.abs(Math.cos(at(9, 30).hd) - 1) < 0.01, '9:00:30: docked bow-out, boarding');
+  const out = at(9, 200);
+  assert.ok(out.on && out.moving && out.x > rosie.lane[0], '9:03:20: cast off, steaming out');
+  assert.equal(at(9, 7 * 60).seg, 'away', '9:07: gone off screen');
+  let held = 0; for (let s = -600; s < 3000; s += 10) if (at(14, s).seg === 'hold') held += 10;
+  assert.ok(held >= 170 && held <= 190, `docked ~3 min an hour, in motion the rest of her visit (${held} s)`);
+  assert.equal(at(12, 60).seg, 'hold', '12:01: at her pier (the noon whistle off her stacks)');
+  assert.equal(at(23, 60).seg, 'hold', '11:01 pm: the last visit');
+  assert.equal(at(23, 15 * 60).seg, 'away', '11:15 pm: done for the night');
+  const horns = hornsBetween(ms(0), ms(24), OFF);
+  assert.equal(horns.length, ROSIE_TABLE.length, 'a horn for each departure');
+  assert.equal(ROSIE_TABLE.length, 17, 'seventeen visits: 7 am → 11 pm');
+  assert.equal(horns.filter(h => h.kind === 'rosie-dinner').length, 1, 'the dinner cruise\'s own blast');
   // the fishing tug's dawn: it swings from its mooring (bow toward the pier, heading left) to head out right, its bow toward us mid-swing
   const fo = ms(6.15), fishAt = s => boatAt(fish, fo + s * 1000, undefined, o);
   assert.ok(Math.abs(boatAt(fish, fo - 5000, undefined, o).hd - Math.PI) < 1e-9, 'moored bow toward the pier');
@@ -57,12 +66,6 @@ test('8b1 — THE HARBOR\'S TIMETABLE: Rosie at her landing between runs, out at
   assert.ok(Math.sin(fishAt(102).hd) < -0.9 && fishAt(102).lantern, 'dawn: mid-swing, its bow toward us, the lantern lit');
   assert.ok(Math.abs(Math.cos(fishAt(140).hd) - 1) < 1e-9 && fishAt(140).x > fishAt(126).x, 'then out bow-first to the right');
   assert.ok(Math.abs(boatAt(fish, ms(16.48), undefined, o).hd - Math.PI) < 1e-9, 'home bow-first, heading left');
-  assert.equal(boatAt(rosie, ms(12.5), undefined, o).seg, 'hold', 'lunchtime: at her landing (the noon whistle off her stacks)');
-  assert.equal(boatAt(rosie, ms(20), undefined, o).seg, 'away', '8 pm: the dinner cruise');
-  assert.equal(boatAt(rosie, ms(23), undefined, o).seg, 'hold', '11 pm: home');
-  const horns = hornsBetween(ms(0), ms(24), OFF);
-  assert.equal(horns.length, ROSIE_TABLE.length, 'a horn for each departure');
-  assert.equal(horns.filter(h => h.kind === 'rosie-dinner').length, 1, 'the dinner cruise\'s own blast');
   const dawn = boatAt(fish, ms(6.165), undefined, o);
   assert.ok(dawn.on && dawn.moving && dawn.lantern, 'dawn: the fishing tug heading out, its bow lantern lit');
   assert.equal(boatAt(fish, ms(12), undefined, o).seg, 'away', 'midday: out fishing');

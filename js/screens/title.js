@@ -697,7 +697,7 @@ export function createTitle() {
   // signs go first, then the logo falters and dies letter by letter. The sun's computed place only — never the weather.
   // The dock: icons dark through the ramp, lit from the catch until the last letter dies; HOST brightens at the catch and softens
   // (no flicker) when the last letter dies.
-  let neonPlanV = null, neonKey = '', neonT = 0, neonStage = null, neonFromPlan = false, neonSounds = 0;
+  let neonPlanV = null, neonKey = '', neonT = 0, neonStage = null, neonFromPlan = false, neonSounds = 0, stormOn = false;   // (stormOn — SP3: the sign lit by a dark storm afternoon)
   // CITY 2.0 — THE HUM (NEON PASS 3, the owner's ears): no hum looping all night — the power-on brings it up and it FADES OUT
   // smoothly over the 10 s after the sign is fully on (ambience.js#neonHumFade); the same after a tapped letter re-ignites. The
   // files are warmed once audio unlocks (checked on every neon update); a hidden page / the goodbye cut a hum still fading.
@@ -748,6 +748,9 @@ export function createTitle() {
     }
     const st = neonState(neonPlanV, scene.now());
     neonFromPlan = !!st;
+    // (City 2.0, SP3: a DARK STORM AFTERNOON lights the sign with the city — the skyline's neon on the shared darkness (core/harbor-dark.js);
+    // a little hysteresis so a passing squall can't flick it; back to the plan (daylight glass) as the storm clears)
+    if (scene.stormLit && !(st && st.caught)) { const k = scene.stormLit(); stormOn = stormOn ? k > 0.35 : k > 0.55; if (stormOn) return { ...NEON_LIT, storm: true }; } else stormOn = false;
     // (8a — the first tap in the evening warm-up window caught the sign early: lit for good — tonight's plan only)
     if (st && st.stage === 'ramp' && earlyCatch != null && Math.abs(earlyCatch - neonPlanV.catchAt) < 30 * 60000) return { ...st, stage: 'lit', letters: [true, true, true, true], fade: 1, caught: true };
     return st || NEON_DAY;
@@ -1085,7 +1088,7 @@ export function createTitle() {
   }
   // CITY 2.0, 9a — THE GLASS the weather lands on (harbor/glasswx.js): JOIN + HOST's discs, the dock's pill, ☰ + ♪ — at rest
   function glassShapes() {
-    const out = [], add = (el, id, kind, group) => { if (!el) return; const r = restRect(el); if (r.width > 4 && r.height > 4) out.push({ id, kind, group, x: r.left, y: r.top, w: r.width, h: r.height }); };
+    const out = [], add = (el, id, kind, group) => { if (!el) return; const r = restRect(el); if (r.width > 4 && r.height > 4) out.push({ id, kind, group, el, x: r.left, y: r.top, w: r.width, h: r.height }); };
     const root = els.root;
     if (root) { add(root.querySelector('.nd-joinring .nd-hdisc'), 'join', 'circle', 'dock'); add(root.querySelector('.nd-hostbtn .nd-hdisc'), 'host', 'circle', 'dock'); add(root.querySelector('.nd-bar-glass'), 'pill', 'pill', 'dock'); }
     add(document.querySelector('.menu-btn'), 'menu', 'circle', 'corner'); add(document.querySelector('.music-btn'), 'music', 'circle', 'corner');
@@ -1250,7 +1253,8 @@ export function createTitle() {
   const IDLE_MS = 10000;
   let idleTimer = 0, swallowed = false, mouseAt = null;
   // (local test runs don't fade on their own unless they ask with &idle=1 — a slow test step must not hide the buttons)
-  const autoIdle = !(useEmulator && !/[?&]idle(?![a-z])/.test(location.search));
+  // (SP3: &idle=0 keeps the dock + the corner buttons up for a look review — the glass's weather shot at length)
+  const autoIdle = !(useEmulator && !/[?&]idle(?![a-z])/.test(location.search)) && !/[?&]idle=0(?![0-9])/.test(location.search);
   function armIdle() { clearTimeout(idleTimer); if (!destroyed && autoIdle) idleTimer = setTimeout(goIdle, IDLE_MS); }
   function goIdle() {
     if (destroyed || !tl || !tl.done) return;

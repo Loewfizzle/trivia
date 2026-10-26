@@ -15,13 +15,19 @@ const CSS = `
   padding: 3px 0; color: #fff; font: inherit; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
 .dbg-s.dbg-fold .dbg-b { display: none; }
+/* SP3 (the owner: the open LOAD log covered the fps + AUDIO strips): the readout + AUDIO never shrink; the LOAD log goes LAST and gives
+   way — its body clipped from the top, the newest lines kept */
+.dbg-s { flex-shrink: 0; }
+.dbg-s[data-id='load'] { flex-shrink: 1; display: flex; flex-direction: column; }
+.dbg-s[data-id='load'] .dbg-b { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
+.dbg-s[data-id='load'] .dbg-b > div { flex-shrink: 0; }
 .dbg-s .dbg-bad { color: #ffb0b0; }
 .dbg-s .dbg-ok { color: #9ff0c8; }
 .dbg-s .dbg-ev { color: #d6dbe6; }
 `;
 
 let col = null, st = null, count = 0;
-const ORDER = { readout: 0, load: 1, audio: 2 };   // (POLISH 5: the LOAD LOG's strip — screens/harbor/scene.js#loadStrip)
+const ORDER = { readout: 0, audio: 1, load: 2 };   // (SP3: the LOAD log last — it gives way to the others)   // (POLISH 5: the LOAD LOG's strip — screens/harbor/scene.js#loadStrip)
 
 /**
  * a strip in the shared column. id: 'readout' | 'audio' (its fold is remembered by id).

@@ -2288,8 +2288,22 @@ G('weather', async () => {
       await waitFor(Q.page, `${W}.glass.beads > 8`, 'beads on the sign', 12000).catch(() => {});
       const g = await ev(Q.page, `${W}.glass`), lit = await ev(Q.page, `${W}.rainFx.lit`);
       ok(g.beads > 8 && g.layers.includes('sign') && lit > 50, `THE SIGN IN THE RAIN: ${g.beads} beads on the tubes (layers ${g.layers.join(',')}), the rain lit by ${lit} light cells`);
-      const clear = await ev(Q.page, `(() => { const out = []; for (const cv of document.querySelectorAll('canvas.nd-wxc')) { const r = cv.getBoundingClientRect(); const x = cv.getContext('2d'); for (const sel of ['.nd-joinring .nd-host-label', '.nd-hostbtn .nd-host-label', '.nd-tab-games .nd-tab-ic', '.music-btn svg', '.menu-btn svg']) { const el = document.querySelector(sel); if (!el) continue; const e = el.getBoundingClientRect(), cx = e.left + e.width / 2, cy = e.top + e.height / 2; if (cx < r.left || cx > r.right || cy < r.top || cy > r.bottom) continue; const k = cv.width / r.width, d = x.getImageData(Math.round((cx - r.left) * k), Math.round((cy - r.top) * k), 1, 1).data; out.push([sel, d[3]]); } } return out; })()`);
-      ok(clear.length >= 3 && clear.every(([, a]) => a === 0), `THE GLASS UI KEEPS ITS LABELS CLEAR: nothing drawn over ${clear.map(([s2, a]) => `${s2.split(' ')[0]} (${a})`).join(', ')}`);
+      // SP3 — REAL WATER on the dock + the corner buttons: the drops land, grow, streak + drip; each canvas INSIDE its button, UNDER its
+      // label / icon (the labels draw on top: the corner ones at z −1 in the button's own stacking context, the dock's inside the disc /
+      // the pill's glass, below the labels)
+      await waitFor(Q.page, `(() => { const w = ${W}.glass.water || {}; return Object.values(w).reduce((a, v) => a + v.drops, 0) > 8; })()`, 'water on the glass', 15000).catch(() => {});
+      await waitFor(Q.page, `(() => { const w = ${W}.glass.water || {}; return Object.values(w).some(v => v.streaking || v.trails); })()`, 'a streak', 20000).catch(() => {});
+      const gw = await ev(Q.page, `${W}.glass`);
+      const tot = Object.values(gw.water || {}).reduce((a, v) => a + v.drops, 0), streak = Object.values(gw.water || {}).some(v => v.streaking || v.trails);
+      ok(tot > 8 && streak && ['join', 'host', 'pill', 'menu', 'music'].every(id => gw.glassLayers.includes(id)), `REAL WATER ON THE GLASS: ${tot} drops on ${gw.glassLayers.join(', ')} — ${streak ? 'a drop streaking down' : 'NO streak'} (${JSON.stringify(gw.water)})`);
+      const under = await ev(Q.page, `(() => [...document.querySelectorAll('canvas.nd-wxg')].map(cv => { const p = cv.parentElement, corner = p.matches('.menu-btn, .music-btn'); return [p.className.split(' ')[0], corner ? cv.style.zIndex === '-1' && getComputedStyle(p).zIndex !== 'auto' : p.matches('.nd-hdisc, .nd-bar-glass')]; }))()`);
+      ok(under.length >= 5 && under.every(([, u]) => u), `THE LABELS DRAW ON TOP: every glass canvas sits inside its button, under its label / icon (${under.map(([c, u]) => `${c}${u ? '' : ' OVER'}`).join(', ')})`);
+      // THE BUTTONS' RAIN FADES WITH THEM (the owner's iPhone: two rings of dots stayed in the corners at rest): at rest every glass canvas
+      // is as invisible as its button (it inherits the button's opacity — nothing of a hidden button's weather remains)
+      await ev(Q.page, 'window.__district.idle && window.__district.idle()');
+      await sleep(2300);
+      const vis = await ev(Q.page, `[...document.querySelectorAll('canvas.nd-wxg')].map(cv => { let o = 1; for (let e = cv; e; e = e.parentElement) o *= +getComputedStyle(e).opacity; return +o.toFixed(3); })`);
+      ok(vis.length >= 5 && vis.every(o => o < 0.02), `THE GLASS's WEATHER HIDES WITH ITS BUTTON at rest: the canvases' opacity ${vis.join(', ')}`);
       if (SHOTS) await Q.page.screenshot({ path: `${OUT}weather-rain-night-402x874.png` });
     }
     if (id === 'storm') {
@@ -2300,14 +2314,14 @@ G('weather', async () => {
       ok(mx <= 0.43 && gaps.every(g2 => g2 >= 4400), `THE LIGHTNING IS CAPPED: the brightest flash ${mx.toFixed(2)} (<= 0.42), ${st.length} strikes ${gaps.length ? `${Math.round(Math.min(...gaps))} ms+ apart` : ''}`);
       if (SHOTS) await Q.page.screenshot({ path: `${OUT}weather-storm-night-402x874.png` });
     }
-    if (id === 'freezing-rain') { const g = await ev(Q.page, `${W}.glass`); ok(g.ice > 0.3 && g.frost > 0.2 && g.layers.includes('dock'), `FREEZING RAIN: the glaze on the tubes (${g.ice}), the frost on the glass (${g.frost}), layers ${g.layers.join(',')}`); }
+    if (id === 'freezing-rain') { const g = await ev(Q.page, `${W}.glass`); ok(g.ice > 0.3 && g.frost > 0.2 && g.glassLayers.includes('pill'), `FREEZING RAIN: the glaze on the tubes (${g.ice}), the frost on the glass (${g.frost}), layers ${g.layers.join(',')} + ${g.glassLayers.join(',')}`); }
     await Q.ctx.close();
   }
   // ---- REDUCED MOTION (the app's setting): no lightning flash, no weather on the glass UI
   { const Q = await open({ slot: 'wx-rm', qs: `when=2026-10-22T22:30${GR}&force=storm`, view: [402, 874], init: { fn: () => { try { const k = 'na:settings', s = JSON.parse(localStorage.getItem(k) || '{}'); s.reducedFx = true; localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, arg: null } });
     await harborUp(Q.page);
-    const tr = await ev(Q.page, `new Promise(res => { let mx = 0; const n0 = ${W}.zap.strikes, t0 = performance.now(); (function lp() { mx = Math.max(mx, ${W}.zap.flash); if (performance.now() - t0 < 9000) setTimeout(lp, 50); else res({ mx, n: ${W}.zap.strikes - n0, layers: ${W}.glass.layers }); })(); })`);
-    ok(tr.mx === 0 && !tr.layers.includes('dock') && !tr.layers.some(l => l.startsWith('c-')), `REDUCED MOTION: no flash (${tr.mx}) through ${tr.n} strikes (the thunder still rumbles), no weather on the glass UI (${tr.layers.join(',') || 'none'})`);
+    const tr = await ev(Q.page, `new Promise(res => { let mx = 0; const n0 = ${W}.zap.strikes, t0 = performance.now(); (function lp() { mx = Math.max(mx, ${W}.zap.flash); if (performance.now() - t0 < 9000) setTimeout(lp, 50); else res({ mx, n: ${W}.zap.strikes - n0, water: ${W}.glass.water }); })(); })`);
+    ok(tr.mx === 0 && Object.keys(tr.water || {}).length === 0, `REDUCED MOTION: no flash (${tr.mx}) through ${tr.n} strikes (the thunder still rumbles), the glass only a few STILL beads (no water moving: ${JSON.stringify(tr.water)})`);
     await Q.ctx.close(); }
   // ---- THE WET STREET DRYING: 12 min after the rain stopped (&rained=12) — still wet, drying; the puddles still there
   { const Q = await open({ slot: 'wx-dry', qs: `when=2026-10-22T22:30${GR}&wx=clear&rained=12`, view: [402, 874] });
@@ -2620,6 +2634,18 @@ G('legends', async () => {
       ok(hd && hd.on && hd.t1 - hd.t0 > 35 && entered.length === 0 && !(rd.pass && rd.pass.center / 1000 > hd.t0), `NO TRAFFIC DURING THE LEGENDARIES: the hold on (${hd && (hd.t1 - hd.t0).toFixed(1)} s), nothing entered under it (${tr.cars.length} cars, ${tr.buses.length} buses, ${tr.trucks.length} trucks on screen — all from before), the street's pass ${rd.pass ? 'from before' : 'none'}`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-402x874.png` });
     await Q.ctx.close(); }
+  // ---- SP3 — THE RAIN ON THE SIGN FOLLOWS ITS POWER (the owner's iPhone: the TR-3B in the rain left the beads glowing pink + the streaks
+  // pink): under the blackout the beads' light + the rain's light from the signs are dark; a normal rainy night lights both (the control)
+  for (const [slot, qs, dark] of [['lg2r', `${NIGHT}&force=tr3b,rain&lgs=15`, true], ['lg2c', `${NIGHT}&force=rain`, false]]) {
+    const Q = await open({ slot, qs, view: [402, 874] });
+    await harborUp(Q.page);
+    if (dark) await waitFor(Q.page, `(() => { const k = ${P}.legend.dark(); return k.far && k.near; })()`, 'the dark city', 25000).catch(() => {});
+    else await waitFor(Q.page, `${P}.lightAudit().signWx > 0.3`, 'the sign lit in the rain', 15000).catch(() => {});
+    await sleep(800);
+    const au = await ev(Q.page, `${P}.lightAudit()`);
+    ok(dark ? au.signWx < 0.15 && au.rainSigns < 0.05 : au.signWx > 0.3 && au.rainSigns > 0.3, `THE SIGN's WEATHER LIGHT ${dark ? 'DIES IN THE BLACKOUT' : 'on a normal rainy night (the control)'}: the beads' light ${au.signWx}, the signs' light on the rain ${au.rainSigns}`);
+    await Q.ctx.close();
+  }
   // ---- 8b2: THE BLACKOUT WINS OVER THE PARTY (the owner forced the TR-3B with PARTY ON: the show stayed lit) — the show off while dead
   { const Q = await open({ slot: 'lg2p', qs: `${NIGHT}&force=tr3b,party&lgs=15`, view: [402, 874] });
     await harborUp(Q.page);

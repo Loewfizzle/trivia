@@ -11,6 +11,15 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 export const RAIN_CAP = [150, 280, 440];
+/** SP3 — DRIZZLE vs RAIN vs HEAVY, clearly apart at a glance (the owner: RAIN as it is = the anchor; drizzle clearly LESS, heavy clearly
+ *  MORE): the share of RAIN_CAP drawn (rain 0.55 → 0.74 as before; drizzle ~⅙ of it; heavy ~3×) + each streak's speed / length / width /
+ *  brightness (× 1 at rain) */
+export function rainLook(rain) {
+  const r = Math.max(0, rain || 0), sm = (a, b, v) => { const u = Math.min(1, Math.max(0, (v - a) / (b - a))); return u * u * (3 - 2 * u); };
+  const n = r <= 0.3 ? 0.03 + 0.3 * r : r <= 0.55 ? 0.12 + (0.74 - 0.12) * sm(0.3, 0.55, r) : 0.74 + (2.2 - 0.74) * sm(0.55, 0.9, r);
+  const dz = 1 - sm(0.28, 0.5, r), hv = sm(0.62, 0.9, r);
+  return { n, v: 1 - 0.42 * dz + 0.3 * hv, len: 1 - 0.55 * dz + 0.6 * hv, w: 1 - 0.28 * dz + 0.15 * hv, a: 1 - 0.38 * dz + 0.28 * hv, heavy: hv, drizzle: dz };
+}
 /** the depths: share, speed (pt/s), length (pt), width, alpha, landing (null / water / ground) */
 export const RAIN_DEPTH = [
   { k: 0.46, v: [520, 640], len: [8, 13], w: 0.75, a: 0.34, land: null },
@@ -98,13 +107,13 @@ export function createHarborRain() {
     veils(c, s) {
       if (!(s.rain > 0.02)) return;
       if (!veil) bakeVeil();
-      const img = veilAt(s.motion ? s.t : 0), k = s.slant * 0.6, n = 3 + Math.round(s.rain * 4);
+      const img = veilAt(s.motion ? s.t : 0), k = s.slant * 0.6, hv = rainLook(s.rain).heavy, n = 3 + Math.round(s.rain * 4) + Math.round(hv * 3);
       const T = c.getTransform(), top0 = s.top == null ? HZ * 0.18 : s.top;
       for (let i = 0; i < n; i++) {
         const cx = ((i * 0.37 + 0.11) % 1) * W * 1.25 - W * 0.12 + Math.sin(s.t * 0.025 + i) * 24;
         const w = W * (0.14 + ((i * 0.53) % 1) * 0.16), top = top0 + HZ * ((i * 0.29) % 1) * 0.08, h = HZ * 0.95 - top;
         c.setTransform(T.a, 0, k * T.a, T.d, T.e - k * T.a * top, T.f);
-        c.globalAlpha = (0.22 + 0.5 * s.rain) * (0.5 + 0.5 * s.day) * (s.dim == null ? 1 : s.dim);
+        c.globalAlpha = Math.min(1, (0.22 + 0.5 * s.rain) * (1 + 0.6 * hv)) * (0.5 + 0.5 * s.day) * (s.dim == null ? 1 : s.dim);
         c.drawImage(img, cx - w / 2, top, w, h);
       }
       c.setTransform(T); c.globalAlpha = 1;
@@ -112,7 +121,7 @@ export function createHarborRain() {
     /** over everything (s: { rain 0..1, slant, day 0..1, dt (ms), tier, motion, flash 0..1, water: { y0, y1 }, ground: { y0 } }) */
     drops(c, s) {
       const sec = Math.min(0.1, (s.dt || 16) / 1000), tier = s.tier == null ? 2 : s.tier;
-      const want = s.rain > 0.004 ? Math.round(RAIN_CAP[tier] * Math.min(1, 0.05 + s.rain * 1.25) * (s.motion ? 1 : 0.4)) : 0;
+      const RL = rainLook(s.rain), want = s.rain > 0.004 ? Math.round(RAIN_CAP[tier] * RL.n * (s.motion ? 1 : 0.4)) : 0;
       if (!want && !drops.length && !rings.length && !splashes.length) return;
       while (drops.length < want) { const r = Math.random(); const p = spawn(r < RAIN_DEPTH[0].k ? 0 : r < RAIN_DEPTH[0].k + RAIN_DEPTH[1].k ? 1 : 2, want - drops.length > 40); landOf(p, s); drops.push(p); }
       if (drops.length > want) drops.length = want;
@@ -124,26 +133,28 @@ export function createHarborRain() {
       const base = day > 0.5 ? [206, 212, 224] : [172, 186, 222];
       for (const p of drops) {
         if (s.motion) {
-          p.y += p.v * sec;
+          p.y += p.v * RL.v * sec;
           if (p.y >= p.land) {
-            if (p.d === 1 && rings.length < 14 + 30 * s.rain * (tier + 1) / 3) rings.push({ x: p.x - k * p.y, y: p.y, t: 0, r: 2.5 + Math.random() * 3.5 + 2 * s.rain });
-            else if (p.d === 2 && splashes.length < 10 + 22 * s.rain * (tier + 1) / 3) splashes.push({ x: p.x - k * p.y, y: p.y, t: 0, s: 0.8 + Math.random() * 0.6 });
+            if (p.d === 1 && rings.length < (14 + 30 * s.rain * (tier + 1) / 3) * (1 + 1.5 * RL.heavy)) rings.push({ x: p.x - k * p.y, y: p.y, t: 0, r: 2.5 + Math.random() * 3.5 + 2 * s.rain });
+            else if (p.d === 2 && splashes.length < (10 + 22 * s.rain * (tier + 1) / 3) * (1 + 1.8 * RL.heavy)) splashes.push({ x: p.x - k * p.y, y: p.y, t: 0, s: (0.8 + Math.random() * 0.6) * (1 + 0.5 * RL.heavy) });
             Object.assign(p, spawn(p.d, false)); landOf(p, s); continue;
           }
           if (p.y - p.len > H) { Object.assign(p, spawn(p.d, false)); landOf(p, s); continue; }
         }
-        const b = RAIN_DEPTH[p.d], hx = p.x - k * p.y, hy = p.y, tx = hx + k * p.len, ty = hy - p.len;
+        const b = RAIN_DEPTH[p.d], ln = p.len * RL.len, hx = p.x - k * p.y, hy = p.y, tx = hx + k * ln, ty = hy - ln;
         if (hx < -40 || hx > W + 40) continue;
         // its light: the cell it falls through (a tube's colour near the tubes, the lamp's amber under a globe), a strike over all
         const L = night > 0.15 ? lightAt(hx, hy) : null;
-        let col = base, a = b.a * (day > 0.5 ? 0.85 : 0.75);
+        let col = base, a = b.a * (day > 0.5 ? 0.85 : 0.75) * RL.a;
+        // (HEAVY: SHEETS of rain sweeping across in waves with the wind — bands of denser, brighter streaks travelling over the screen)
+        if (RL.heavy > 0.02) { const u = Math.sin(((hx - (s.t || 0) * 70 * (k >= 0 ? -1 : 1)) / W) * Math.PI * 2.6 + hy * 0.002); a *= 1 + RL.heavy * (0.75 * Math.max(0, u) ** 2 - 0.25); }
         if (L) { const m = Math.min(1, L[3] * 0.9) * night; col = [base[0] + (L[0] - base[0]) * m, base[1] + (L[1] - base[1]) * m, base[2] + (L[2] - base[2]) * m]; a *= 1 + 1.6 * m; }
         if (flash > 0) { a = Math.min(1, a * (1 + 1.8 * flash)); col = [col[0] + (235 - col[0]) * flash, col[1] + (240 - col[1]) * flash, col[2] + (255 - col[2]) * flash]; }
         const cq = [q(col[0]), q(col[1]), q(col[2])], aq = Math.round(Math.min(1, a) * 10) / 10, key = ((((cq[0] >> 5) * 9 + (cq[1] >> 5)) * 9 + (cq[2] >> 5)) * 11 + Math.round(aq * 10)) * 3 + p.d;   // (a number: no string per drop)
         // the tail (fainter) + the head
         const mx = (hx + tx) / 2, my = (hy + ty) / 2;
-        add(key * 2, cq, aq * 0.45, b.w, tx, ty, mx, my);
-        add(key * 2 + 1, cq, aq, b.w, mx, my, hx, hy);
+        add(key * 2, cq, aq * 0.45, b.w * RL.w, tx, ty, mx, my);
+        add(key * 2 + 1, cq, aq, b.w * RL.w, mx, my, hx, hy);
       }
       c.save(); c.lineCap = 'round';
       c.globalCompositeOperation = day > 0.5 ? 'source-over' : 'lighter';
