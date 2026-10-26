@@ -184,8 +184,8 @@ export function createRemote({ scene, api = apiCall }) {
     if (label.textContent !== txt) label.textContent = txt;
     xb.hidden = on !== 'me';
     bar.classList.toggle('hr-under', !!document.querySelector('.nd-corner .tag'));
-    // (the &debug=1 readout sits top left too: the pill steps under it)
-    bar.classList.toggle('hr-low', !!(on === 'me' ? mine.state.debug : on === 'all' ? live.state.debug : /[?&]debug=1/.test(location.search)));
+    // (WIN2: the debug strips sit BELOW the pill's row now (ui/debug-strip.js) — the pill never steps under them)
+    bar.classList.remove('hr-low');
   }
 
   // ---------------------------------------------------------------- THE COUNTDOWN (C2): a 3-2-1 chip under the pill, then it starts
@@ -235,9 +235,13 @@ export function createRemote({ scene, api = apiCall }) {
     if (!play) return;
     clearTimeout(play.timer);
     play.i = ((i % play.items.length) + play.items.length) % play.items.length;
-    const it = play.items[play.i], s = { force: [it.id] }, u = { t: it.night ? 'night' : 'afternoon' };
-    if (it.hol) s.hol = it.hol;
-    retime({ state: s, ui: u });
+    // (WIN2 — the owner: "run by day, the night moments played in a daytime room": before EACH item the city's clock jumps to the item's
+    // OWN hour on today's date — the TV room ~23:00, the cash count late, the wake ~7:00, the shop by day — or its holiday's date; the
+    // light, the rooms + the sky follow through the city's crossfade; the chip shows the time)
+    const it = play.items[play.i], s = { force: [it.id] }, u = { custom: null };
+    const day = it.hol ? R.holidayDay(it.hol, today()) : ymd(today());
+    s.when = R.itemWhen(it, day); if (it.hol) s.hol = it.hol;
+    u.custom = s.when; u.t = null;
     mode = 'me'; ss.set(MODE_KEY, 'me'); pend = null; restart.clear();
     mine.state = R.cleanRemote(s).state; mine.ui = u; mine.at = serverNow(); saveMine(); apply();
     play.t0 = performance.now(); play.left = it.len * 1000; play.paused = false;
@@ -269,7 +273,7 @@ export function createRemote({ scene, api = apiCall }) {
     }
     const it = play.items[play.i];
     paEl.querySelector('.hr-pa-n').textContent = `${play.i + 1} / ${play.items.length}`;
-    paEl.querySelector('.hr-pa-l').textContent = it.label;
+    paEl.querySelector('.hr-pa-l').textContent = `${it.label} · ${play.items[play.i].hour != null ? R.itemWhen(it, '2000-01-01').slice(11) : ''}`;
     paEl.querySelector('.hr-pa-pp').textContent = play.paused ? '▶' : '❚❚';
     paEl.querySelector('.hr-pa-pp').setAttribute('aria-label', play.paused ? 'Resume' : 'Pause');
     paEl.classList.toggle('is-paused', play.paused);
@@ -773,7 +777,7 @@ export function createRemote({ scene, api = apiCall }) {
     search(q) { query = String(q || ''); render(); },
     delay(v) { if (v != null && R.DELAYS.includes(v)) { delay = v; ls.set(DELAY_KEY, v); render(); } return delay; },
     /** WIN — PLAY ALL (tests + the owner's console): start a catalogue's loop, skip, stop; playing() → { kind, i, id, n, paused } | null */
-    playAll, playSkip: () => { if (play) playStep(play.i + 1); }, playStop: () => stopPlay(true), playing: () => (play ? { kind: play.kind, i: play.i, id: play.items[play.i].id, n: play.items.length, paused: play.paused } : null),
+    playAll, playSkip: () => { if (play) playStep(play.i + 1); }, playStop: () => stopPlay(true), playing: () => (play ? { kind: play.kind, i: play.i, id: play.items[play.i].id, n: play.items.length, paused: play.paused, when: mine.state.when || null, hour: play.items[play.i].hour } : null),
     /** (shots) a countdown chip on show, as if the sheet had just closed */
     previewCountdown(m = 'me', s = 3, what = 'AURORA · DUSK') { countdown(m, serverNow() + s * 1000 + 400, what); setTimeout(() => { if (cd && cd.what === what) clearInterval(cd.iv); }, 450); },
     debug: () => ({ mode, admin, mine: mine.state, pend: pend && pend.state, queued: dirtyMe(), live, liveNext, delay, query, recent: recent.slice(), countdown: cd && { mode: cd.mode, at: cd.at, n: cd.n, what: cd.what }, open: [...openSecs], effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),

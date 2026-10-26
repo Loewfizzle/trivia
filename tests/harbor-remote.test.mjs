@@ -2,7 +2,7 @@
 // (The registry's own checks + the areas: tests/harbor.test.mjs; the sheet itself: e2e-harbor.mjs ONLY=panel.)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { EVENTS, PANEL_EVENTS, CATS, SECTIONS, AREA_SECTION, sectionOf, toSection, blockOf, normQ, matchQuery, eventText, DELAYS, DEFAULT_DELAY, cleanDelay, checkRegistry, cleanRemote, PLAY_ALL, playlistOf, eventDef, WEATHER, WEATHER_GROUPS } from '../js/core/harbor-remote.js';
+import { momentHour, itemWhen, EVENTS, PANEL_EVENTS, CATS, SECTIONS, AREA_SECTION, sectionOf, toSection, blockOf, normQ, matchQuery, eventText, DELAYS, DEFAULT_DELAY, cleanDelay, checkRegistry, cleanRemote, PLAY_ALL, playlistOf, eventDef, WEATHER, WEATHER_GROUPS } from '../js/core/harbor-remote.js';
 import { MOMENTS } from '../js/core/harbor-moments.js';
 
 test('the panel: eleven sections in the owner\'s order (WIN: SPEAKEASY of its own); every area + every row lands in one; nothing dropped', () => {
@@ -70,4 +70,21 @@ test('WIN — PLAY ALL: a playlist per catalogue — every window moment once (t
   assert.deepEqual(playlistOf('nope'), []);
   // the weather's groups: every row in one, the groups in the owner's order
   assert.deepEqual(WEATHER_GROUPS, ['THE SKY', 'RAIN', 'STORM', 'FOG', 'COLD']); for (const x of WEATHER) assert.ok(WEATHER_GROUPS.includes(x.group), x.id);
+});
+
+test('WIN2 — PLAY ALL ON ITS OWN CLOCK: every window moment gets an hour inside its own allowed hours (a routine at its `at`), the TV room at night, the wake in the morning, the shop by day; the small hours land on the next day', () => {
+  const MOMENT = Object.fromEntries(MOMENTS.map(m => [m.id, m]));
+  for (const it of playlistOf('windows')) {
+    const m = MOMENT[it.id.slice(7)], h = it.hour;
+    assert.ok(h >= 0 && h < 24, `${it.id}: an hour (${h})`);
+    if (m.at != null) assert.ok(Math.abs(h - m.at) < 0.5, `${it.id}: at its routine's time`);
+    else if (m.hours) { const [a, b] = m.hours, inside = b >= a ? h >= a && h < b : h >= a || h < b; assert.ok(inside, `${it.id}: ${h} inside ${a}–${b}`); }
+    assert.ok(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/.test(itemWhen(it, '2026-10-24')), `${it.id}: a wall time`);
+  }
+  assert.ok(momentHour(MOMENT['lights-out']) >= 20 || momentHour(MOMENT['lights-out']) < 3, 'the TV room at night');
+  assert.ok(momentHour(MOMENT.wake) >= 5.5 && momentHour(MOMENT.wake) <= 9, 'the wake in the morning');
+  assert.ok(momentHour(MOMENT.cash) >= 23 || momentHour(MOMENT.cash) < 5, 'the cash count late');
+  assert.equal(itemWhen({ hour: 1.5 }, '2026-10-24'), '2026-10-25T01:30', 'the small hours land on the next day');
+  assert.equal(itemWhen({ hour: 23 }, '2026-10-31'), '2026-10-31T23:00');
+  for (const kind of ['holidays', 'wildlife', 'workers']) for (const it of playlistOf(kind)) assert.ok(it.hour != null && (it.night ? it.hour >= 19 : it.hour < 19), `${kind}/${it.id}: its own hour`);
 });

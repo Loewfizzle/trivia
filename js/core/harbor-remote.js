@@ -370,15 +370,28 @@ export const PLAY_ALL = Object.freeze([
   { kind: 'workers', sec: 'people', label: 'PLAY ALL WORKERS', hint: 'every worker’s show in turn, 60 s each' },
 ]);
 /** the playlist of a catalogue → [{ id (the force id), label, len (s), night, hol }] — the day rows first, then the night rows */
+/** WIN2 — a window moment's OWN hour (decimal, 0–24): a routine's `at`; else the middle of its hours (wrapping past midnight — an hour
+ *  under 6 belongs to the next day's small hours); a moment with no hours plays at 20:30 at night, 14:00 by day */
+export function momentHour(m) {
+  if (m.at != null) return m.at + 0.25;
+  if (m.hours) { const [a, b] = m.hours, span = (b >= a ? b - a : b + 24 - a); return ((a + span / 2) % 24 + 24) % 24; }
+  return m.light === 'night' ? 20.5 : 14;
+}
 export function playlistOf(kind) {
   let items;
-  if (kind === 'windows') items = MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), len: Math.round(m.len + 3.7), night: m.light === 'night' || m.id === 'lights-out', hol: m.holiday || null }));
+  if (kind === 'windows') items = MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), len: Math.round(m.len + 3.7), night: m.light === 'night' || m.id === 'lights-out', hol: m.holiday || null, hour: momentHour(m) }));
   else {
     const holOf = e => (e.group === 'HALLOWEEN' || e.group === 'ON THE WATER' ? 'halloween' : e.group === 'DAY OF THE DEAD' ? 'dotd' : null);
     const rows = PANEL_EVENTS.filter(e => !e.id.startsWith('no-') && (kind === 'holidays' ? e.cat === 'holidays' : kind === 'wildlife' ? e.cat === 'wildlife' : kind === 'workers' ? e.cat === 'workers' : false));
-    items = rows.map(e => ({ id: e.id, label: e.label, len: kind === 'workers' ? 60 : 45, night: !!e.night, hol: kind === 'holidays' ? holOf(e) : null }));
+    items = rows.map(e => ({ id: e.id, label: e.label, len: kind === 'workers' ? 60 : 45, night: !!e.night, hol: kind === 'holidays' ? holOf(e) : null, hour: e.night ? 22.5 : 14 }));
   }
   return [...items.filter(i => !i.night), ...items.filter(i => i.night)];
+}
+/** an item's wall time on a day ('YYYY-MM-DD') → 'YYYY-MM-DDTHH:MM' (an hour under 6 lands on the NEXT day — the small hours) */
+export function itemWhen(item, day) {
+  const h = item.hour == null ? (item.night ? 22.5 : 14) : item.hour, [y, m, d] = day.split('-').map(Number);
+  const t = new Date(Date.UTC(y, m - 1, d + (h < 6 ? 1 : 0))), hh = Math.floor(h), mm = Math.round((h - hh) * 60) % 60;
+  return `${t.getUTCFullYear()}-${String(t.getUTCMonth() + 1).padStart(2, '0')}-${String(t.getUTCDate()).padStart(2, '0')}T${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
 }
 
 /** how long EVERYONE's remote lasts (minutes) */

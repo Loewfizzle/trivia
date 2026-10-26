@@ -55,11 +55,10 @@
 .hr-x > span { position: relative; }
 .hr-x[hidden] { display: none; }
 .hr-pill:active::before { transform: scale(0.95); }
-.hr-bar.hr-low { top: calc(var(--safe-t) + 88px); }      /* (under the &debug=1 readout: NEON PASS 5 gave it a fifth line) */
+/* (WIN2: .hr-low is gone — the &debug=1 strips sit under the pill's row, never over it: ui/debug-strip.js) */
 /* (a dev slot's TEST SLOT tag sits beside the ☰ top left — 7a §0: under it the pill would touch the sign, so it moves to the
    top right instead, beside the music button) */
 .hr-bar.hr-under { top: calc(var(--safe-t) + 6px); left: auto; right: calc(var(--safe-r) + 14px + var(--cb, 36px)); max-width: calc(100vw - 230px); }
-.hr-bar.hr-low.hr-under { top: calc(var(--safe-t) + 122px); }
 .hr-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
 .hr-pill[data-on='me'] .hr-dot { background: #7dff9c; box-shadow: 0 0 8px #7dff9c; }
 .hr-pill[data-on='all'] .hr-dot { background: #ff7ccb; box-shadow: 0 0 8px #ff7ccb; }

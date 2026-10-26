@@ -6,11 +6,16 @@
 import { debugFold, setDebugFold } from './debug-tools.js';
 
 const CSS = `
-.dbg-col { position: fixed; z-index: 2147483000; left: calc(var(--safe-l, 0px) + 8px); right: calc(var(--safe-r, 0px) + 56px);
-  top: calc(var(--safe-t, env(safe-area-inset-top, 0px)) + 10px + var(--cb, 36px) + 8px); max-width: 460px; max-height: calc(40vh - 56px - var(--safe-t, env(safe-area-inset-top, 0px))); max-height: calc(40svh - 56px - var(--safe-t, env(safe-area-inset-top, 0px)));
+.dbg-col { position: fixed; z-index: 39; left: calc(var(--safe-l, 0px) + 8px); right: calc(var(--safe-r, 0px) + 56px);
+  top: calc(var(--safe-t, env(safe-area-inset-top, 0px)) + 6px + 44px + 10px); max-width: 460px; max-height: calc(40vh - 56px - var(--safe-t, env(safe-area-inset-top, 0px))); max-height: calc(40svh - 56px - var(--safe-t, env(safe-area-inset-top, 0px)));
   display: flex; flex-direction: column; gap: 4px; pointer-events: none; overflow: hidden; }
 /* SP4 (the owner: the readouts drew on top of the open PREVIEW PANEL): hidden while its sheet is open (remote.js toggles the class) */
 body.hr-sheet-open .dbg-col { visibility: hidden; }
+/* WIN2 (the owner, frustrated: the strips covered the TEST pill): the column starts UNDER the pill's + the corner buttons' 44-pt row
+   (z-index under the pill's 40); every strip starts FOLDED on every load; one tap on the READOUT's title hides every other strip (and
+   folds it); the open LOAD log is capped + scrolls inside itself, its FIRST lines on top */
+.dbg-col.dbg-min .dbg-s:not([data-id='readout']) { display: none; }
+.dbg-s[data-id='load']:not(.dbg-fold) .dbg-b { max-height: min(26vh, 220px); overflow-y: auto; -webkit-overflow-scrolling: touch; justify-content: flex-start; pointer-events: auto; }
 .dbg-s { align-self: flex-start; max-width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.72); color: #c9f7de; border-radius: 7px; padding: 2px 7px 3px; min-height: 0;
   font: 600 9px/12px ui-monospace, "JetBrains Mono", monospace; white-space: pre-wrap; word-break: break-all; overflow: hidden; }
 .dbg-s .dbg-h { pointer-events: auto; display: block; width: 100%; text-align: left; background: none; border: 0; margin: 0;
@@ -45,9 +50,12 @@ export function createDebugStrip(id) {
   const head = document.createElement('div'); head.className = 'dbg-h'; head.setAttribute('role', 'button'); head.tabIndex = 0;
   const body = document.createElement('div'); body.className = 'dbg-b';
   box.append(head, body); col.append(box);
-  let fold = debugFold(id), down = null, lastHead = '', lastBody = '', last = null;
+  let fold = true, down = null, lastHead = '', lastBody = '', last = null;   // (WIN2: FOLDED on every load — never remembered open)
   box.classList.toggle('dbg-fold', fold);
-  const flip = () => { fold = !fold; box.classList.toggle('dbg-fold', fold); setDebugFold(id, fold); if (last) api.set(last, true); };
+  const flip = () => {
+    // (the readout's title cycles: folded → OPEN → every other strip HIDDEN (one tap hides them all) → folded again, all shown)
+    if (id === 'readout') { const min = col.classList.contains('dbg-min'); if (min) { col.classList.remove('dbg-min'); fold = true; } else if (fold) fold = false; else { col.classList.add('dbg-min'); fold = true; } box.classList.toggle('dbg-fold', fold); if (last) api.set(last, true); return; }
+    fold = !fold; box.classList.toggle('dbg-fold', fold); setDebugFold(id, fold); if (last) api.set(last, true); };
   head.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; e.stopPropagation(); });
   head.addEventListener('pointerup', e => { e.stopPropagation(); if (!down) return; const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null; if (moved <= 6) flip(); });
   head.addEventListener('pointercancel', () => { down = null; });
