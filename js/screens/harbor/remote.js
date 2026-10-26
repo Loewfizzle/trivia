@@ -104,6 +104,7 @@ export function createRemote({ scene, api = apiCall }) {
   const restart = new Set();       // events already on that a RECENT tap fires again (they start over)
   let draft = { state: {}, ui: {} }, mins = R.DEFAULT_MINS, delay = loadDelay(), query = '', recent = loadRecent();
   let cd = null;                   // the countdown: { mode, at (server ms), what, n, iv }
+  let play = null, paEl = null;    // WIN — PLAY ALL: { kind, items, i, paused, timer, t0, left (ms), before (the JUST ME state to restore) }
   const openSecs = loadOpen();
   const saveMine = () => ss.set(ME_KEY, R.isEmpty(mine.state) ? null : { state: mine.state, ui: mine.ui });
 
@@ -219,6 +220,62 @@ export function createRemote({ scene, api = apiCall }) {
   }
   const goFlash = m => paintCd(m);
 
+  // ---------------------------------------------------------------- WIN — PLAY ALL: the sequencer (this phone, at once)
+  // (the owner: one button that cycles through EVERY window moment in turn, each its full length, in its own window, a small chip saying
+  // which one + n / N — tap it to skip, pause, ✕ to stop — looping until stopped, the right time of day for each without a reload;
+  // reusable for the holiday moments, the wildlife, the workers: core/harbor-remote.js#PLAY_ALL / playlistOf)
+  function playAll(kind) {
+    const items = R.playlistOf(kind); if (!items.length) return;
+    if (play) stopPlay(false);
+    play = { kind, items, i: -1, paused: false, timer: 0, t0: 0, left: 0, before: clone(mine.state) };
+    if (sheet) close();
+    playStep(0);
+  }
+  function playStep(i) {
+    if (!play) return;
+    clearTimeout(play.timer);
+    play.i = ((i % play.items.length) + play.items.length) % play.items.length;
+    const it = play.items[play.i], s = { force: [it.id] }, u = { t: it.night ? 'night' : 'afternoon' };
+    if (it.hol) s.hol = it.hol;
+    retime({ state: s, ui: u });
+    mode = 'me'; ss.set(MODE_KEY, 'me'); pend = null; restart.clear();
+    mine.state = R.cleanRemote(s).state; mine.ui = u; mine.at = serverNow(); saveMine(); apply();
+    play.t0 = performance.now(); play.left = it.len * 1000; play.paused = false;
+    play.timer = setTimeout(() => playStep(play.i + 1), play.left);
+    paintPlay(); if (sheet) render();
+  }
+  function playPause() {
+    if (!play) return;
+    if (play.paused) { play.t0 = performance.now(); play.timer = setTimeout(() => playStep(play.i + 1), play.left); play.paused = false; }
+    else { clearTimeout(play.timer); play.left = Math.max(1000, play.left - (performance.now() - play.t0)); play.paused = true; }
+    paintPlay();
+  }
+  function stopPlay(restore = true) {
+    if (!play) return;
+    clearTimeout(play.timer);
+    const before = play.before; play = null; paintPlay();
+    if (restore) { mine.state = R.cleanRemote(before).state; mine.ui = {}; mine.at = serverNow(); saveMine(); apply(); if (sheet) render(); }
+  }
+  function paintPlay() {
+    if (!bar) return;
+    if (!play) { if (paEl) { paEl.remove(); paEl = null; } bar.classList.remove('hr-playing'); paintChip(); return; }
+    bar.classList.add('hr-playing');
+    if (!paEl) {
+      paEl = h('div.hr-pa', { role: 'status' },
+        h('button.hr-pa-b.hr-pa-skip', { type: 'button', 'aria-label': 'Skip to the next', title: 'skip', onclick: () => playStep(play.i + 1) }, h('b.hr-pa-n'), h('span.hr-pa-l')),
+        h('button.hr-pa-b.hr-pa-pp', { type: 'button', 'aria-label': 'Pause', onclick: playPause }),
+        h('button.hr-pa-b.hr-pa-x', { type: 'button', 'aria-label': 'Stop', onclick: () => stopPlay(true) }, '×'));
+      bar.append(paEl);
+    }
+    const it = play.items[play.i];
+    paEl.querySelector('.hr-pa-n').textContent = `${play.i + 1} / ${play.items.length}`;
+    paEl.querySelector('.hr-pa-l').textContent = it.label;
+    paEl.querySelector('.hr-pa-pp').textContent = play.paused ? '▶' : '❚❚';
+    paEl.querySelector('.hr-pa-pp').setAttribute('aria-label', play.paused ? 'Resume' : 'Pause');
+    paEl.classList.toggle('is-paused', play.paused);
+    paintChip();
+  }
+
   // ---------------------------------------------------------------- editing: JUST ME queues (pend), EVERYONE drafts (draft)
   const ensurePend = () => pend || (pend = { state: clone(mine.state), ui: clone(mine.ui) });
   const cur = () => (mode === 'me' ? ensurePend() : draft);
@@ -325,6 +382,7 @@ export function createRemote({ scene, api = apiCall }) {
   /** CLEAR ALL — at once, no countdown (nothing to watch start): JUST ME back to the real city; EVERYONE: cityClear */
   async function clearAll() {
     autoSetting();
+    if (play) stopPlay(false);
     if (mode === 'me') {
       if (cd && cd.mode === 'me') stopCd();
       pend = null; restart.clear(); mine.state = {}; mine.ui = {}; mine.at = serverNow(); saveMine(); apply(); render();
@@ -451,7 +509,9 @@ export function createRemote({ scene, api = apiCall }) {
       sec: 'weather', last: false, label: 'THE WEATHER', q: 'weather sky',
       n: () => R.WEATHER.length,
       on: st => [st.wx ? R.WEATHER.find(w => w.id === st.wx).label : null],
-      kids: st => [opts(btn('REAL', !st.wx, () => edit(s => { delete s.wx; delete s.wxk; }), { q: 'real live weather clear it' }), ...R.WEATHER.map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }), { q: `${w.label} ${w.id} weather` }))),
+      kids: st => [h('div.hr-row', btn('REAL — THE LIVE WEATHER', !st.wx, () => edit(s => { delete s.wx; delete s.wxk; }), { cls: 'hr-wide', q: 'real live weather clear it' })),
+        // (WIN: the rows in groups — the sky's cover, rain, storm, fog, cold)
+        ...R.WEATHER_GROUPS.flatMap(g => [h('div.hr-gl', g), opts(...R.WEATHER.filter(w => w.group === g).map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }), { q: `${w.label} ${w.id} weather ${g}` })))]),
         // (9a: the INTENSITY of the forced state — AUTO = its own)
         opts(btn('AUTO', !st.wxk, () => edit(s => { delete s.wxk; }), { q: 'weather intensity auto' }), ...R.WX_INTENSITY.map(w => btn(w.label, st.wxk === w.id, () => edit(s => { s.wxk = w.id; }), { q: `${w.label} intensity weather rain` })))],
     },
@@ -538,6 +598,11 @@ export function createRemote({ scene, api = apiCall }) {
     // (what's on, short: an event + its text / scheme / game, like the status line)
     const on = [...own.flatMap(([, o]) => o.on(st, ui)), ...onEvs.map(e => onLabel(e, st))].filter(Boolean);
     const body = [];
+    // (WIN: PLAY ALL at the top of its section — this phone, at once; EVERYONE can't sequence)
+    const pa = R.PLAY_ALL.find(x => x.sec === sec.id);
+    if (pa) { const on = !!(play && play.kind === pa.kind);
+      body.push(block('playall', 'PLAY ALL', `${pa.label} loop every ${pa.kind}`, [h('p.hr-note', pa.hint),
+        grid(btn(on ? `■ STOP — ${pa.label}` : `▶ ${pa.label}`, on, () => (on ? stopPlay(true) : playAll(pa.kind)), { cls: 'hr-wide', title: 'this phone only · at once', q: `${pa.label} play all loop every`, disabled: mode === 'all' || null }))], { play: pa.kind })); }
     if (evs.some(e => e.night)) body.push(h('p.hr-note.hr-legend', '☾ = night only: by day it jumps to tonight'));
     const ownBlock = ([id, o]) => block(id, o.label, o.q, o.kids(st, ui));
     for (const ob of own.filter(([, o]) => !o.last)) body.push(ownBlock(ob));
@@ -707,12 +772,15 @@ export function createRemote({ scene, api = apiCall }) {
     /** (tests + shots) the search box's text; the delay (0 / 3 / 5 s, remembered) */
     search(q) { query = String(q || ''); render(); },
     delay(v) { if (v != null && R.DELAYS.includes(v)) { delay = v; ls.set(DELAY_KEY, v); render(); } return delay; },
+    /** WIN — PLAY ALL (tests + the owner's console): start a catalogue's loop, skip, stop; playing() → { kind, i, id, n, paused } | null */
+    playAll, playSkip: () => { if (play) playStep(play.i + 1); }, playStop: () => stopPlay(true), playing: () => (play ? { kind: play.kind, i: play.i, id: play.items[play.i].id, n: play.items.length, paused: play.paused } : null),
     /** (shots) a countdown chip on show, as if the sheet had just closed */
     previewCountdown(m = 'me', s = 3, what = 'AURORA · DUSK') { countdown(m, serverNow() + s * 1000 + 400, what); setTimeout(() => { if (cd && cd.what === what) clearInterval(cd.iv); }, 450); },
     debug: () => ({ mode, admin, mine: mine.state, pend: pend && pend.state, queued: dirtyMe(), live, liveNext, delay, query, recent: recent.slice(), countdown: cd && { mode: cd.mode, at: cd.at, n: cd.n, what: cd.what }, open: [...openSecs], effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
     destroy() {
       destroyed = true; clearInterval(tick); clearInterval(musicT); clearTimeout(typeT); clearTimeout(nextT); clearTimeout(goT);
       if (cd) clearInterval(cd.iv);
+      if (play) clearTimeout(play.timer);
       if (unsub) { try { unsub(); } catch { /* fine */ } }
       if (bar) bar.remove();
       if (sheet) sheet.remove();

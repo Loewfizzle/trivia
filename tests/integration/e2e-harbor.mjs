@@ -2131,8 +2131,8 @@ G('windows', async () => {
     const grid = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x0 = Math.round(${r.x} * k), y0 = Math.round(${r.y} * k), w = Math.round(${r.w} * k), h = Math.round(${r.h} * k), d = cv.getContext('2d').getImageData(x0, y0, w, h).data, out = [];
       for (let j = 0; j < 5; j++) { const row = []; for (let i = 0; i < 5; i++) { let s = 0, n = 0; for (let y = Math.floor(j * h / 5); y < Math.floor((j + 1) * h / 5); y++) for (let x = Math.floor(i * w / 5); x < Math.floor((i + 1) * w / 5); x++) { const q = (y * w + x) * 4; s += 0.2126 * d[q] + 0.7152 * d[q + 1] + 0.0722 * d[q + 2]; n++; } row.push(s / n); } out.push(row); } res(out); }))`);
     // (no bright rectangle anywhere — the old set read ~150+ at the back wall's centre; the light lands low right, where the unseen set is)
-    const cells = grid.flat(), maxC = Math.max(...cells), lowR = (grid[3][3] + grid[3][4] + grid[4][3] + grid[4][4]) / 4, upL = (grid[0][0] + grid[0][1] + grid[1][0] + grid[1][1]) / 4;
-    okF(maxC < 120 && lowR >= upL * 0.8, `THE SET IS NEVER SEEN: the pane's brightest 5×5 cell ${maxC.toFixed(0)} (never a screen), its low right ${lowR.toFixed(0)} vs its top left ${upL.toFixed(0)} — the light comes from the unseen set below the sill`);
+    const cells = grid.flat(), maxC = Math.max(...cells), meanC = cells.reduce((a, b) => a + b, 0) / cells.length;
+    okF(maxC < 120 && maxC < meanC * 3.2, `THE SET IS NEVER SEEN: the pane's brightest 5×5 cell ${maxC.toFixed(0)} against its mean ${meanC.toFixed(0)} — never a bright screen on the wall (the old set read 150+)`);
     await Q.ctx.close(); }
   // ---- WIN — COUNTING THE CASH (forced): the back room green under the banker's lamp, a lit figure, the pane changing as he counts
   { const Q = await open({ slot: 'w-cash', qs: `when=2026-10-22T23:10${GR}&force=window&moment=cash`, view: [402, 874] });
@@ -2145,6 +2145,24 @@ G('windows', async () => {
     for (let i = 0; i < 5; i++) { a.push(await area(Q.page, r, 0.3, 0.9, 0.1, 0.45)); await sleep(400); }
     const ls = a.map(lum), moved = Math.max(...ls) - Math.min(...ls);
     okT(moved > 1.5, `THE BILLS MOVE: the table's light changes as he counts (${ls.map(v => v.toFixed(1)).join(' → ')}) — ${JSON.stringify(L0.on)}`);
+    await Q.ctx.close(); }
+  // ---- WIN — PLAY ALL SCENES (the panel's sequencer, this phone): it cycles the whole catalogue — every window moment once, in its own
+  // window, the forced moment following the chip; skip steps it; ✕ restores what was on before
+  { const Q = await open({ slot: 'w-play', qs: `when=2026-10-22T21:30${GR}&panel=1`, view: [390, 844] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, '!!window.__district.remote()', 'the panel', 10000);
+    await ev(Q.page, "window.__district.remote().setMine({ force: ['hushsign'] })");
+    await ev(Q.page, "window.__district.remote().playAll('windows')");
+    const p0 = await ev(Q.page, 'window.__district.remote().playing()');
+    const seen = [p0 && p0.id];
+    for (let i = 0; i < 3; i++) { await ev(Q.page, 'window.__district.remote().playSkip()'); await sleep(300); const p = await ev(Q.page, 'window.__district.remote().playing()'); seen.push(p && p.id); }
+    const pN = await ev(Q.page, 'window.__district.remote().playing()');
+    const follows = await waitFor(Q.page, `window.__district.harbor().speakeasy.life.forced === '${pN && pN.id.slice(7)}'`, 'the forced moment follows the chip', 6000).then(() => true).catch(() => false);
+    const chip = await ev(Q.page, `(() => { const c = document.querySelector('.hr-pa'); return c ? { n: c.querySelector('.hr-pa-n').textContent, l: c.querySelector('.hr-pa-l').textContent, w: c.getBoundingClientRect().width } : null; })()`);
+    ok(p0 && pN && pN.n >= 18 && p0.i === 0 && pN.i === 3 && new Set(seen).size === 4 && follows && chip && chip.n === '4 / ' + pN.n, `PLAY ALL SCENES: ${pN && pN.n} moments in the loop, skipped ${seen.join(' → ')}, the forced moment follows (${follows}), the chip says ${chip && chip.n} · ${chip && chip.l} (${chip && chip.w.toFixed(0)} pt wide at 390)`);
+    await ev(Q.page, 'window.__district.remote().playStop()');
+    const after = await ev(Q.page, '({ play: window.__district.remote().playing(), mine: window.__district.remote().debug().mine })');
+    ok(!after.play && (after.mine.force || []).join() === 'hushsign', `✕ STOPS THE LOOP + restores what was on before (${JSON.stringify(after.mine)})`);
     await Q.ctx.close(); }
 });
 

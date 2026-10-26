@@ -93,6 +93,32 @@
 .hr-cd.is-pop .hr-cd-n { animation: hr-pop 0.35s var(--ease, ease) both; }
 @keyframes hr-pop { from { transform: scale(1.4); opacity: 0.5; } }
 
+/* WIN — PLAY ALL: the chip beside the pill while a catalogue plays — n / N + the row playing (tap = skip), ❚❚ / ▶, ✕ */
+.hr-bar.hr-playing .hr-lbl, .hr-bar.hr-playing .hr-x { display: none; }
+.hr-pa {
+  --hr-c: #7dff9c;
+  flex: 0 1 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  height: 44px;
+  margin-left: 2px;
+  border-radius: 999px;
+  background: rgba(10, 11, 30, 0.74);
+  border: 1px solid var(--hr-c);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--hr-c) 35%, transparent);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+}
+.hr-pa.is-paused { --hr-c: #ffd25a; }
+.hr-pa-b { height: 44px; min-width: 36px; padding: 0 6px; display: flex; align-items: center; gap: 8px; min-width: 0; background: none; border: 0; color: #fff; font: 700 12px/1 var(--font-mono); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.hr-pa-skip { flex: 0 1 auto; padding-left: 5px; }
+.hr-pa-n { flex: none; min-width: 34px; height: 26px; padding: 0 6px; border-radius: 999px; background: var(--hr-c); color: #071a0d; font: 800 11px/26px var(--font-num); text-align: center; }
+.hr-pa-l { min-width: 56px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font: 700 10.5px/1.2 var(--font-mono); letter-spacing: 0.12em; }   /* (at least a word of the name, even beside a TEST SLOT tag at 390) */
+.hr-pa-pp { flex: none; font-size: 11px; }
+.hr-pa-x { flex: none; font: 600 20px/1 var(--font-ui); padding-right: 12px; }
+.hr-pa-b:active { opacity: 0.7; }
+
 /* ==================== the sheet — FULL SCREEN ==================== */
 .hr-modal { z-index: 80; background: rgba(2, 3, 10, 0.5); align-items: stretch; }
 .modal.hr-modal > .sheet.hr-sheet {

@@ -75,9 +75,12 @@ export const catOf = id => { const e = EV[id]; return e && CAT_IDS.has(e.cat) ? 
  *  CATS above stay the registry's AREAS (an event's `cat`: what part of the city it belongs to — the tests + the links know them);
  *  each area lands in one section (AREA_SECTION) and an event may move on its own with `sec` (the legendaries, the birds in the sky,
  *  the people on the promenade). Inside a section the rows sit in blocks: the panel's own controls + one block per event `group`. */
+// (WIN — the owner: "the panel is cluttered again": a SPEAKEASY section of its own — windows / signs / door; the rarely used debug +
+// compare rows in TOOLS at the bottom; PLAY ALL rows at the top of their section; the weather's rows in groups — rain / storm / fog / cold)
 export const SECTIONS = [
   { id: 'sky', label: 'SKY' },
   { id: 'legendary', label: 'LEGENDARY' },
+  { id: 'speakeasy', label: 'SPEAKEASY' },
   // (11a-1: THE HOLIDAYS — the date jump + every holiday moment on demand)
   { id: 'holidays', label: 'HOLIDAYS' },
   { id: 'people', label: 'PEOPLE + WORKERS' },
@@ -92,7 +95,7 @@ const SEC_IDS = new Set(SECTIONS.map(s => s.id));
 /** each area's section (the panel's own blocks use the same ids: time, holidays, weather, party, lights = PULSE, music, sounds, tools) */
 export const AREA_SECTION = {
   time: 'time', holidays: 'holidays', weather: 'weather', sky: 'sky', lights: 'lightsmusic', signs: 'lightsmusic', party: 'lightsmusic',
-  speakeasy: 'lightsmusic', music: 'lightsmusic', harbor: 'harbor', promenade: 'harbor', windows: 'people', workers: 'people',
+  speakeasy: 'speakeasy', music: 'lightsmusic', harbor: 'harbor', promenade: 'harbor', windows: 'speakeasy', workers: 'people',
   wildlife: 'wildlife', sounds: 'tools', tools: 'tools',
 };
 /** an event's section (an unknown id → TOOLS, never lost) */
@@ -192,8 +195,8 @@ export const EVENTS = [
   // (DT1 — THE LIGHTS + SIGNS PASS: the power-up itself is TIME = POWER-UP / POWER-DOWN at SPEED 20)
   { id: 'flood-front', label: 'WATERFRONT FLOODLIGHTS', cat: 'lights', group: 'THE WATERFRONT', night: true, hint: 'the front row’s low warm uplight — compare on / off' },
   { id: 'lamps-on', label: 'BILLBOARD LAMPS ON', cat: 'signs', group: 'THE BILLBOARD', hint: 'its 4 gooseneck lamps held on (by day too)' },
-  { id: 'lamps-off', label: 'BILLBOARD LAMPS OFF', cat: 'signs', group: 'THE BILLBOARD', night: true, hint: 'the night without them — compare' },
-  { id: 'no-halo', label: 'SIGN HALO OFF', cat: 'signs', group: 'THE NEON SIGN', hint: 'the tagline + NEON’s dark halo off — compare (the moon behind it)' },
+  { id: 'lamps-off', label: 'BILLBOARD LAMPS OFF', cat: 'signs', sec: 'tools', group: 'COMPARE — OFF SWITCHES', night: true, hint: 'the night without them — compare' },
+  { id: 'no-halo', label: 'SIGN HALO OFF', cat: 'signs', sec: 'tools', group: 'COMPARE — OFF SWITCHES', hint: 'the tagline + NEON’s dark halo off — compare (the moon behind it)' },
   { id: 'wheel-scheme', label: 'WHEEL SCHEME', cat: 'harbor', group: 'THE PIER + BOATS', inputs: ['scheme'] },
   { id: 'beam-green', label: 'GREEN BEAM', cat: 'harbor', group: 'THE PIER + BOATS', night: true },
   { id: 'rosie-lights', label: 'ROSIE’S LIGHTS', cat: 'harbor', group: 'THE PIER + BOATS', inputs: ['scheme'] },
@@ -205,19 +208,19 @@ export const EVENTS = [
   { id: 'season-summer', label: 'SUMMER', cat: 'promenade', group: 'THE SEASON', hint: 'full green trees, geraniums' },
   { id: 'season-autumn', label: 'AUTUMN', cat: 'promenade', group: 'THE SEASON', hint: 'the maples red / orange / gold, leaves falling, mums' },
   { id: 'season-winter', label: 'WINTER', cat: 'promenade', group: 'THE SEASON', hint: 'bare branches, evergreen boughs (snow comes with Part 9)' },
-  { id: 'no-implied-road', label: 'IMPLIED ROAD OFF', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the curb + the passing cars’ light gone — compare' },
+  { id: 'no-implied-road', label: 'IMPLIED ROAD OFF', cat: 'promenade', sec: 'tools', group: 'COMPARE — OFF SWITCHES', hint: 'the curb + the passing cars’ light gone — compare' },
   { id: 'road-pass', label: 'A CAR PASSING', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'a car every ~13 s: headlights at night, a shadow by day, its sound — seen on the street while the dock rests' },
   { id: 'wet-street', label: 'WET STREET', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the street under the dock after rain: puddles, the lamps’ reflections (Part 9’s hook)' },
   // (PF: the centrepiece spot's EVENT RIG at work — a placeholder obelisk on the brick inlay, lit from below by its floor spots at night)
-  { id: 'centrepiece-test', label: 'CENTREPIECE TEST', cat: 'promenade', group: 'THE CENTREPIECE', hint: 'a test obelisk on the brick inlay, lit by its floor spots after dark (the holidays’ pieces stand here)' },
-  { id: 'strings-party', label: 'CAFÉ LIGHTS · PARTY', cat: 'speakeasy', group: 'SPEAKEASY', night: true, hint: 'the speakeasy roof’s café-light canopy in party mode' },
+  { id: 'centrepiece-test', label: 'CENTREPIECE TEST', cat: 'promenade', sec: 'tools', group: 'DEBUG PIECES', hint: 'a test obelisk on the brick inlay, lit by its floor spots after dark (the holidays’ pieces stand here)' },
+  { id: 'strings-party', label: 'CAFÉ LIGHTS · PARTY', cat: 'speakeasy', group: 'THE SIGNS + LIGHTS', night: true, hint: 'the speakeasy roof’s café-light canopy in party mode' },
   // (8P: THE PEOPLE — the lobby line at the door (&n= guests, 6 by default; Lobby 2.0 fills it), a bus every minute, everyone off to compare)
-  { id: 'line', sec: 'people', label: 'THE LOBBY LINE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'guests lined up at the speakeasy’s door (6; &n=<guests>) — Lobby 2.0 fills it with the room' },
+  { id: 'line', sec: 'speakeasy', label: 'THE LOBBY LINE', cat: 'promenade', group: 'THE DOOR', hint: 'guests lined up at the speakeasy’s door (6; &n=<guests>) — Lobby 2.0 fills it with the room' },
   { id: 'bus', sec: 'people', label: 'A BUS EVERY MINUTE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the 1920s bus arriving, stopping at the curb, riders on + off, pulling away on green' },
   { id: 'dance', sec: 'people', label: 'THE DANCE CIRCLE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the glow-wand dancers on the compass inlay — a circle every 5 minutes (best with PARTY ON)' },
-  { id: 'doors', sec: 'people', label: 'THE DOORS', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
-  { id: 'no-dance', sec: 'people', label: 'NO DANCE CIRCLE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'a party night without the glow-wand circle — compare (its cost)' },
-  { id: 'no-people', sec: 'people', label: 'NO PEOPLE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the promenade + the roof empty — compare' },
+  { id: 'doors', sec: 'speakeasy', label: 'THE DOORS', cat: 'promenade', group: 'THE DOOR', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
+  { id: 'no-dance', sec: 'tools', label: 'NO DANCE CIRCLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without the glow-wand circle — compare (its cost)' },
+  { id: 'no-people', sec: 'tools', label: 'NO PEOPLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'the promenade + the roof empty — compare' },
   // PART 8b1 — THE WORKERS' SCHEDULE: each one on a loop (its own clock: a few minutes, the long shows joined mid-way); NO WORKERS: compare
   { id: 'work-sweeper', label: 'THE STREET SWEEPER', cat: 'workers', group: 'MORNING', hint: '~5:30 Mon–Sat: a white wing with his can cart, slow passes, a wet streak drying on the cobbles' },
   { id: 'work-milk', label: 'THE MILK TRUCK', cat: 'workers', group: 'MORNING', hint: '6:00 sharp: the milkman leaves his bottles on the barbershop step (they wait there till the barber, 8:30)' },
@@ -248,7 +251,7 @@ export const EVENTS = [
   { id: 'work-bootleg', label: 'THE BOOTLEGGERS', cat: 'workers', group: 'NIGHT', hint: '~11 pm, a few nights a month: a truck without lamps, crates down the cellar hatch, a lookout' },
   { id: 'work-delivery', label: 'THE BIG DELIVERY', cat: 'workers', group: 'NIGHT', hint: 'Saturdays ~6:30 pm: the bootleggers’ big load before the party night' },
   { id: 'work-staff', label: 'THE BAR STAFF LOCK UP', cat: 'workers', group: 'NIGHT', hint: '~2 am: out of the side door, the last one locks it' },
-  { id: 'no-work', label: 'NO WORKERS', cat: 'workers', group: 'COMPARE', hint: 'every worker stays home — compare (their cost)' },
+  { id: 'no-work', label: 'NO WORKERS', cat: 'workers', sec: 'tools', group: 'COMPARE — OFF SWITCHES', hint: 'every worker stays home — compare (their cost)' },
   // PART 8b1 — THE HARBOR'S TIMETABLE, heard (every 30 s while on)
   { id: 'ships-bell', label: 'THE SHIP’S BELL', cat: 'harbor', group: 'THE TIMETABLE', hint: 'the hourly bell (one ring, under the music) — every 30 s' },
   { id: 'steam-whistle', label: 'THE NOON WHISTLE', cat: 'harbor', group: 'THE TIMETABLE', hint: 'the noon steam whistle off Rosie’s stacks (a white plume, the music dipped) — every 30 s' },
@@ -266,11 +269,11 @@ export const EVENTS = [
   { id: 'coyote', label: 'THE COYOTE', cat: 'wildlife', group: 'ON THE GROUND', night: true, hint: 'across the empty promenade, a stop under the lamp, the eye-flash — every 70 s (a howl every third)' },
   { id: 'fireflies', label: 'FIREFLIES', cat: 'wildlife', group: 'ON THE GROUND', night: true, hint: 'summer nights round the trees + the bench' },
   { id: 'fish', label: 'FISH JUMPING', cat: 'wildlife', group: 'ON THE WATER', hint: 'a fish jumps in the near water every 45 s — the ripple rings' },
-  { id: 'no-wildlife', label: 'NO WILDLIFE', cat: 'wildlife', group: 'ON THE GROUND', hint: 'every animal off — compare (the speed A/B)' },
+  { id: 'no-wildlife', label: 'NO WILDLIFE', cat: 'wildlife', sec: 'tools', group: 'COMPARE — OFF SWITCHES', hint: 'every animal off — compare (the speed A/B)' },
   // (8P: THE HUSH WORD SIGN in the barbershop window — JAZZ by default, &hush=<word> another; Lobby 2.0 lights the real word)
   // (8b2 — THE RAID: the patrol cars every 2½ minutes; RAID + PARTY = a party night's — the club comes back louder)
   { id: 'raid', label: 'THE RAID', cat: 'speakeasy', sec: 'legendary', group: 'ON THE STREET', kw: 'police cops patrol cars flashlight', night: true, hint: 'black-and-white patrol cars, red + blue on the walls — every light in the speakeasy cuts out, an officer sweeps the windows with his flashlight (every 2½ min)' },
-  { id: 'hushsign', label: 'HUSH WORD SIGN', cat: 'speakeasy', group: 'SPEAKEASY', kw: 'password door plate', hint: 'the lobby’s password in ice-cyan neon on the door’s plate — the brick pier by the blade (JAZZ; &hush=<word>)' },
+  { id: 'hushsign', label: 'HUSH WORD SIGN', cat: 'speakeasy', group: 'THE SIGNS + LIGHTS', kw: 'password door plate', hint: 'the lobby’s password in ice-cyan neon on the door’s plate — the brick pier by the blade (JAZZ; &hush=<word>)' },
   // ---- THE FIRST-TAP SURGE (PART 7a §0 — the layout agent builds it: the NEON sign's surge at the first tap). Registered so the
   // URL flag + city2/live accept it; ready: false keeps the row hidden until its effect reads the Harbor clock's force Set
   // (harbor().flags.force / the scene's clock — a title-level regex on location.search can't be switched from the panel). Rename
@@ -280,7 +283,7 @@ export const EVENTS = [
   { id: 'window', label: 'WINDOW MOMENT', cat: 'windows', group: 'ROUTINES', ready: false, hint: 'with &moment=<id>' },
   { id: 'smoke', label: 'SMOKE IN THE TV ROOM', cat: 'windows', group: 'THE TV ROOM', kw: 'cigarette haze blue', night: true, hint: 'a cigarette lit on the couch — the wisps + the haze in the TV’s flickering light (with the TV on: 10 pm → 3 am)' },
   ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', sec: m.rarity === 'legendary' ? 'legendary' : undefined, group: m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
-  { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', group: 'THE NEON SIGN', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
+  { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', sec: 'tools', group: 'DEBUG PIECES', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
 ];
 export const EVENT_GROUPS = [...new Set(EVENTS.map(e => e.group))];
 /** the rows the panel shows (not the ones a later part still has to build) */
@@ -324,15 +327,19 @@ export const WX_INTENSITY = [{ id: 'light', label: 'LIGHT' }, { id: 'medium', la
 export const PULSE = { min: Math.round(PULSE_MIN * 100), max: Math.round(PULSE_MAX * 100), step: Math.round(PULSE_STEP * 100), def: Math.round(PULSE_DEFAULT * 100) };
 /** CITY 2.0 MUSIC: the moods the panel can force (the same ids as audio/mood.js#MOODS; AUTO = no `mood` key) */
 export const MUSIC_MOODS = [{ id: 'morning', label: 'MORNING' }, { id: 'day', label: 'DAY' }, { id: 'evening', label: 'EVENING' }, { id: 'late', label: 'LATE NIGHT' }, { id: 'party', label: 'PARTY' }];
+// (WIN: each row in a GROUP the panel shows as a labelled run — the sky's cover, rain, storm, fog, cold)
 export const WEATHER = [
-  { id: 'clear', label: 'CLEAR' }, { id: 'clouds', label: 'CLOUDS' }, { id: 'cirrus', label: 'HIGH CIRRUS' }, { id: 'veil', label: 'HAZY VEIL' },
-  { id: 'overcast', label: 'OVERCAST' },
-  // (9a — THE WEATHER: one row per state — each also a link flag: &force=drizzle|rain|heavy-rain|storm|fog|mist|windy|freezing-rain)
-  { id: 'drizzle', label: 'DRIZZLE' }, { id: 'rain', label: 'RAIN' }, { id: 'heavy', label: 'HEAVY RAIN' }, { id: 'storm', label: 'STORM' },
-  { id: 'freezing', label: 'FREEZING RAIN' }, { id: 'windy', label: 'WINDY' }, { id: 'snow', label: 'SNOW' }, { id: 'fog', label: 'FOG' },
+  { id: 'clear', label: 'CLEAR', group: 'THE SKY' }, { id: 'clouds', label: 'CLOUDS', group: 'THE SKY' }, { id: 'cirrus', label: 'HIGH CIRRUS', group: 'THE SKY' }, { id: 'veil', label: 'HAZY VEIL', group: 'THE SKY' },
+  { id: 'overcast', label: 'OVERCAST', group: 'THE SKY' },
   // (FP3a — the weather by layers: a 600 m MIST (no banks), a low STRATUS deck, a HIGH OVERCAST = a bright veil, never grey)
-  { id: 'mist', label: 'MIST' }, { id: 'stratus', label: 'LOW STRATUS' }, { id: 'highovercast', label: 'HIGH OVERCAST' },
+  { id: 'stratus', label: 'LOW STRATUS', group: 'THE SKY' }, { id: 'highovercast', label: 'HIGH OVERCAST', group: 'THE SKY' },
+  // (9a — THE WEATHER: one row per state — each also a link flag: &force=drizzle|rain|heavy-rain|storm|fog|mist|windy|freezing-rain)
+  { id: 'drizzle', label: 'DRIZZLE', group: 'RAIN' }, { id: 'rain', label: 'RAIN', group: 'RAIN' }, { id: 'heavy', label: 'HEAVY RAIN', group: 'RAIN' },
+  { id: 'storm', label: 'STORM', group: 'STORM' }, { id: 'windy', label: 'WINDY', group: 'STORM' },
+  { id: 'fog', label: 'FOG', group: 'FOG' }, { id: 'mist', label: 'MIST', group: 'FOG' },
+  { id: 'freezing', label: 'FREEZING RAIN', group: 'COLD' }, { id: 'snow', label: 'SNOW', group: 'COLD' },
 ];
+export const WEATHER_GROUPS = [...new Set(WEATHER.map(w => w.group))];
 const lastMonday = (y, m) => { const d = new Date(Date.UTC(y, m, 0)); return d.getUTCDate() - ((d.getUTCDay() + 6) % 7); };
 /** the holiday looks (core/sky.js#holidayOf + the holiday sky's own days, core/harbor-sky.js#SKY_HOLIDAYS) and their date */
 export const HOLIDAYS = [
@@ -353,6 +360,27 @@ export const HOLIDAYS = [
   { id: 'christmas', label: 'CHRISTMAS', date: () => ({ m: 12, d: 25 }) },
   { id: 'nye', label: 'NEW YEAR’S EVE', date: () => ({ m: 12, d: 31 }) },
 ];
+/** WIN — PLAY ALL (the owner): ONE button per catalogue that plays every row in turn, each its full length, in its own window / spot,
+ *  looping until stopped — a sequencer in the panel (remote.js#playAll) on THIS phone (JUST ME): the day rows by day, the night rows
+ *  tonight (the clock jumps once per half), a holiday row on its holiday's night. The same idea for every catalogue below. */
+export const PLAY_ALL = Object.freeze([
+  { kind: 'windows', sec: 'speakeasy', label: 'PLAY ALL SCENES', hint: 'every window moment in turn, each its full length, in its own window — the day ones by day, the night ones tonight; a chip beside the pill says which (tap it to skip, ❚❚ to pause, ✕ to stop); looping until stopped' },
+  { kind: 'holidays', sec: 'holidays', label: 'PLAY ALL HOLIDAY MOMENTS', hint: 'every holiday piece in turn on its holiday’s night, 45 s each' },
+  { kind: 'wildlife', sec: 'wildlife', label: 'PLAY ALL ANIMALS', hint: 'every animal + behaviour in turn, 45 s each' },
+  { kind: 'workers', sec: 'people', label: 'PLAY ALL WORKERS', hint: 'every worker’s show in turn, 60 s each' },
+]);
+/** the playlist of a catalogue → [{ id (the force id), label, len (s), night, hol }] — the day rows first, then the night rows */
+export function playlistOf(kind) {
+  let items;
+  if (kind === 'windows') items = MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), len: Math.round(m.len + 3.7), night: m.light === 'night' || m.id === 'lights-out', hol: m.holiday || null }));
+  else {
+    const holOf = e => (e.group === 'HALLOWEEN' || e.group === 'ON THE WATER' ? 'halloween' : e.group === 'DAY OF THE DEAD' ? 'dotd' : null);
+    const rows = PANEL_EVENTS.filter(e => !e.id.startsWith('no-') && (kind === 'holidays' ? e.cat === 'holidays' : kind === 'wildlife' ? e.cat === 'wildlife' : kind === 'workers' ? e.cat === 'workers' : false));
+    items = rows.map(e => ({ id: e.id, label: e.label, len: kind === 'workers' ? 60 : 45, night: !!e.night, hol: kind === 'holidays' ? holOf(e) : null }));
+  }
+  return [...items.filter(i => !i.night), ...items.filter(i => i.night)];
+}
+
 /** how long EVERYONE's remote lasts (minutes) */
 export const DURATIONS = [15, 30, 60, 120];
 export const DEFAULT_MINS = 30;
