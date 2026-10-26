@@ -843,3 +843,42 @@ body.reduced-fx .nd-box.is-filled { animation: none; }
 .nd-sign.is-fade .ndl.on .ndl-light { opacity: var(--rf, 1); transition: opacity 2s linear; }
 .nd-sign.is-catch .nd-logo .ndl-glow2 { opacity: 1; transition: opacity 0.25s ease; }
 .nd-sign.is-catch .nd-logo .ndl-glow1 { opacity: 1; }
+
+/* ---- CITY 2.0, SP3: SPEAKEASY IN WHITE NEON (ui/word-neon.js) — each character carries its tube letter; the text itself invisible
+   (layout, the screen reader, the halo's measure, the race + the punch writers unchanged). The glass is milky phosphor white by day (it
+   reads unlit), dim glass before the power-on; lit: a soft white glow, the body, a white-hot core — calmer than NEON ---- */
+.nd-word.nd-wn, .nd-word.nd-wn * { text-shadow: none !important; }
+.nd-word.nd-wn .nd-word-g, .nd-word.nd-wn .nd-word-p, .nd-word.nd-wn .nd-word-r { color: transparent !important; -webkit-text-fill-color: transparent; }
+.nd-wn .wn-c { position: relative; display: inline-block; font-style: normal; }
+.nd-wn .wn-l { position: absolute; left: 0; top: 50%; width: calc(100% - 0.66em); height: auto; transform: translateY(-50%); overflow: visible; pointer-events: none; }
+.nd-wn .wn-edge { stroke: rgba(14, 12, 26, 0); }
+.nd-wn .wn-glass { stroke: rgba(226, 228, 244, 0.2); }
+.nd-wn .wn-light { opacity: 0; transition: opacity 0.8s ease; }
+.nd-sign.is-steady:not(.is-day) .nd-wn .wn-light { opacity: 1; }
+.nd-wn .wn-glow { stroke: #ece4ff; opacity: 0.62; }
+.nd-wn .wn-body { stroke: #fbf5f6; }
+.nd-wn .wn-core { stroke: #ffffff; }
+.nd-wn .wn-hi { stroke: #ffffff; opacity: 0.32; }
+.nd-wn .wn-cap { fill: #6c6878; }
+.nd-wn .wn-clip { fill: #1a1824; opacity: 0.8; }
+/* by day: unlit milky-white phosphor glass + a dark edge — the word reads on the bright sky */
+.nd-sign.is-day .nd-wn .wn-edge { stroke: rgba(20, 22, 40, 0.3); }
+.nd-sign.is-day .nd-wn .wn-glass { stroke: rgba(246, 246, 252, 0.95); }
+.nd-sign.is-day .nd-wn .wn-hi { opacity: 0.9; }
+.nd-sign.is-day .nd-wn .wn-cap { fill: #6a6878; }
+.nd-sign.is-day .nd-word.nd-wn { color: transparent; }
+/* the race (pink from the NEON logo, white on party nights) + the beat punch (white): the light alone */
+.nd-wn .nd-word-r .wn-bw { stroke: var(--pc); opacity: 0.85; } .nd-wn .nd-word-r .wn-bn { stroke: var(--pcb); } .nd-wn .nd-word-r .wn-bc { stroke: #fff; }
+.nd.is-party .nd-wn .nd-word-r .wn-bw, .nd-wn .nd-word-p .wn-bw { stroke: var(--pwd); }
+.nd.is-party .nd-wn .nd-word-r .wn-bn, .nd-wn .nd-word-p .wn-bn { stroke: var(--pwb); }
+.nd-wn .nd-word-p .wn-bc { stroke: #fff; }
+/* the side rules + their diamonds: thin tubes, a diamond bent in each (lit at night, milky glass by day, dim glass before the power-on) */
+.nd-word.nd-wn::before, .nd-word.nd-wn::after { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 5H46.5M51 5L55 1L59 5L55 9Z' stroke='%23e2e4f4' stroke-opacity='.2' stroke-width='1.6'/%3E%3C/g%3E%3C/svg%3E") center / contain no-repeat; }
+.nd-sign.is-steady .nd-word.nd-wn::before, .nd-sign.is-steady .nd-word.nd-wn::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10'%3E%3Cdefs%3E%3Cfilter id='b' x='-20%25' y='-200%25' width='140%25' height='500%25'%3E%3CfeGaussianBlur stdDeviation='0.9'/%3E%3C/filter%3E%3C/defs%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 5H46.5M51 5L55 1L59 5L55 9Z' stroke='%23e9e2ff' stroke-opacity='.55' stroke-width='2.6' filter='url(%23b)'/%3E%3Cpath d='M1.5 5H46.5M51 5L55 1L59 5L55 9Z' stroke='%23fbf5f6' stroke-width='1.25'/%3E%3Cpath d='M1.5 5H46.5M51 5L55 1L59 5L55 9Z' stroke='%23fff' stroke-width='.5'/%3E%3C/g%3E%3Ccircle cx='1.5' cy='5' r='.6' fill='%232c2a38'/%3E%3Ccircle cx='46.5' cy='5' r='.6' fill='%232c2a38'/%3E%3C/svg%3E"); }
+.nd-sign.is-day .nd-word.nd-wn::before, .nd-sign.is-day .nd-word.nd-wn::after { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 10'%3E%3Cg fill='none' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M1.5 5H46.5M51 5L55 1L59 5L55 9Z' stroke='%2314162a' stroke-opacity='.3' stroke-width='2.3'/%3E%3Cpath d='M1.5 5H46.5M51 5L55 1L59 5L55 9Z' stroke='%23f6f6fc' stroke-opacity='.95' stroke-width='1.6'/%3E%3Cpath d='M1.5 4.6H46.5M51.3 4.6L55 .9' stroke='%23fff' stroke-width='.35'/%3E%3C/g%3E%3Ccircle cx='1.5' cy='5' r='.6' fill='%236a6878'/%3E%3Ccircle cx='46.5' cy='5' r='.6' fill='%236a6878'/%3E%3C/svg%3E"); }
+.nd.is-party .nd-sign.is-steady .nd-word.nd-wn::before, .nd.is-party .nd-sign.is-steady .nd-word.nd-wn::after { filter: none; }
+/* SP3 — CRISP NEON (City 2.0's premium logo): the near glow a step under the tube — its edge reads against it like the skyline's tubes
+   (the city's own recipe: the near glow at half the body's light), the white-hot core wider + the glass highlight crisper (ui/logo.js) */
+.nd-logo .ndp .ndl-glow1 { opacity: 0.6; }
+.is-warm .nd-logo .ndp .ndl-glow1, .nd-logo.is-lit .ndp .ndl-glow1 { opacity: 0.72; }
+.nd-logo .ndp .ndl.is-tired .ndl-glow1, .is-warm .nd-logo .ndp .ndl.is-tired .ndl-glow1 { opacity: 0.55; }

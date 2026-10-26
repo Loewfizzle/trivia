@@ -56,8 +56,16 @@ export function drawLit(x, tubes, col, o) {
   x.shadowColor = rgba(col, 0.95 * a); x.shadowBlur = glow * 0.75 * dpr;
   x.strokeStyle = rgba(col, 0.5 * a); x.lineWidth = w * 1.5; x.stroke();
   x.shadowBlur = 0; x.shadowColor = 'rgba(0,0,0,0)';
-  // the body: the gas glowing in the glass, segment by segment — brighter where the light is hotter
   const body = mix(col, WHITE, 0.18 * (1 - soft)), dim = col.map(v => v * 0.72);
+  // (SP3 — CRISP NEON, o.whole: a SMALL sign's tube (the hush word, ~1 pt) drawn as ONE continuous body + ONE core per tube — segment by
+  // segment, the joints' anti-aliased seams beaded its core into dots at that size; the uneven light can't be seen there anyway)
+  if (o.whole) {
+    x.beginPath(); for (const t of tubes) path(x, t); x.strokeStyle = rgba(body, a); x.lineWidth = w; x.stroke();
+    x.beginPath(); for (const t of tubes) path(x, t); x.strokeStyle = rgba(mix(col, WHITE, 0.86), a); x.lineWidth = Math.max(0.3, w * core); x.stroke();
+    x.beginPath(); for (const t of tubes) path(x, t, -w * 0.22, -w * 0.26); x.strokeStyle = rgba(WHITE, 0.4 * a); x.lineWidth = Math.max(0.25, w * 0.16); x.stroke();
+    x.restore(); return;
+  }
+  // the body: the gas glowing in the glass, segment by segment — brighter where the light is hotter
   x.lineCap = 'round';
   for (const t of tubes) {
     for (let i = 1; i < t.pts.length; i++) {

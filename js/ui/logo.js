@@ -58,9 +58,9 @@ export function logoSvg({ id = 'nd', pad = 26, lit = false, blur = 1, clips = tr
     <path class="ndl-glow1" d="${L.d}" stroke="${PINK.glow}" stroke-width="${TUBE + 4}" filter="url(#${id}-b1)"/>
     <path class="ndl-body" d="${L.d}" stroke="${PINK.body}" stroke-width="${TUBE}"/>
     ${P ? P.dim : ''}
-    <path class="ndl-core" d="${L.d}" stroke="${PINK.core}" stroke-width="${TUBE * 0.34}"/>
+    <path class="ndl-core" d="${L.d}" stroke="${PINK.core}" stroke-width="${TUBE * (premium ? 0.4 : 0.34)}"/>
     ${P ? P.hot : ''}
-    <path class="ndl-hi" d="${L.d}" stroke="#ffffff" stroke-width="0.8" transform="translate(${P ? P.hi : '-1.4 -1.4'})" opacity="0.35"/>
+    <path class="ndl-hi" d="${L.d}" stroke="#ffffff" stroke-width="${premium ? 1 : 0.8}" transform="translate(${P ? P.hi : '-1.4 -1.4'})" opacity="0.35"/>
   </g>
   ${P ? P.glint : ''}
 </g>`;

@@ -12,6 +12,7 @@
 // the sign's colours (always lit); JOIN opens a glass panel with four hush-word boxes (paste, auto-join on the 4th letter, ?room=
 // pre-fills); REJOIN floats above the bar when a saved room couldn't be reached; YOU opens the membership card.
 // Test hook: window.__district.
+import { wordNeonChars, wordNeonDefs } from '../ui/word-neon.js';
 import { h, reducedMotion } from '../ui/dom.js';
 import { step } from '../core/ranks.js';
 import { avatar } from '../ui/components.js';
@@ -329,7 +330,9 @@ export function createTitle() {
     els.sign = h('div.nd-sign', { class: 'is-glass' },
       h('div.nd-bloom', { 'aria-hidden': 'true' }),   // PARTY NIGHTS: the logo's breath, behind the letters
       h('div.nd-logo-wrap', { html: logoSvg({ id: 'ndt', title: APP_NAME, premium: !!createHarbor }) + (createHarbor ? logoGlowSvg({ id: 'ndtg' }) + logoRaceSvg({ id: 'ndtr' }) : '') + (createHarbor && /[?&]force=[^&]*anchors/.test(location.search) ? anchorsSvg() : '') }),
-      h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'), createHarbor ? h('span.nd-word-p', { 'aria-hidden': 'true' }, 'SPEAKEASY') : null, createHarbor ? h('span.nd-word-r', { 'aria-hidden': 'true' }, ...[...'SPEAKEASY'].map(ch => h('i', ch))) : null)),
+      // (City 2.0, SP3: SPEAKEASY in WHITE NEON — each character carries its tube letter; the punch + the race layers the same: ui/word-neon.js)
+      createHarbor ? h('div.nd-word.nd-wn', { html: `<span class="nd-word-g">${wordNeonChars('SPEAKEASY')}<span class="nd-word-p" aria-hidden="true">${wordNeonChars('SPEAKEASY', 'blaze')}</span><span class="nd-word-r" aria-hidden="true">${wordNeonChars('SPEAKEASY', 'blaze', 'i')}</span></span>${wordNeonDefs()}` })
+        : h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'))),
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     els.actions = buildActions();
