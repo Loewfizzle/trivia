@@ -128,6 +128,8 @@ async function panelSection() {
   await tap(O.page, '.hr-pill');
   await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);
+  // SP4 (the owner: the readouts drew on top of the open panel): body.hr-sheet-open while the sheet is up — debug-strip.js hides the column
+  const openCls = await ev(O.page, "document.body.classList.contains('hr-sheet-open')");
   // C2 — THE PANEL REWORK: the sheet FULL SCREEN; NINE SECTIONS in the owner's order, collapsed by default; each preview sits in its
   // registry section (core/harbor-remote.js#sectionOf — no positions hard-coded here); JUST ME marked green
   // (the C2 helpers: close = the queue starts — after the delay; NOW (0) for the steps that aren't about the delay)
@@ -155,6 +157,7 @@ async function panelSection() {
     const held = await ev(O.page, 'window.__district.harbor().flags.q.pulse || null');
     const st = await ev(O.page, "document.querySelector('.hr-s[data-sec=\"lightsmusic\"] .hr-cat').textContent + ' | ' + document.querySelector('.hr-status').textContent");
     await closeSheet(O.page);
+    ok(openCls && !(await ev(O.page, "document.body.classList.contains('hr-sheet-open')")), `PANEL: the debug strips step aside while the sheet is open (body.hr-sheet-open ${openCls} → off when it closes)`);
     await waitFor(O.page, "window.__district.harbor().flags.q.pulse === '180'", 'the pulse flag', 3000).catch(() => {});
     await waitFor(O.page, 'window.__district.party().pulse === 1.8', 'the scene read the flag (a frame)', 3000).catch(() => {});   // (the scene reads it once a frame: the cloud's machine needed one)
     const live = await ev(O.page, `({ q: window.__district.harbor().flags.q.pulse, pulse: window.__district.party().pulse })`);
@@ -1135,15 +1138,17 @@ G('load', async () => {
   await ctx.close();
   // THE WEATHER AT LOAD — the real clock (no &when), /api/sky answered by the test: overcast, after `delay` ms; cached = the answer
   // already on this device (localStorage nd:wx, fresh). The owner's iPhone faded clear → overcast after the city showed, EVERY load.
-  const wxLoad = async (name, { delay, cached, intro }) => {
+  const wxLoad = async (name, { delay, cached, intro, justme }) => {
     const c2 = await (await launch()).createBrowserContext();
     const q = await c2.newPage();
     q.on('pageerror', e => { errors.push(`load-wx pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
     await q.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
     const ans = { ...wxNormalize({ weather_code: 3, cloud_cover: 100, cloud_cover_low: 95, cloud_cover_mid: 40, cloud_cover_high: 10, visibility: 20000, wind_speed_10m: 12, wind_direction_10m: 250, temperature_2m: 9 }, { lat: 42.96, lon: -85.67 }, Date.now()), kp: [] };
-    await q.evaluateOnNewDocument((cachedAns) => {
+    await q.evaluateOnNewDocument((cachedAns, jm) => {
       try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:lw:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); if (cachedAns) localStorage.setItem('nd:wx', JSON.stringify({ ...cachedAns, at: Date.now(), got: Date.now() })); else localStorage.removeItem('nd:wx'); } catch { /* fine */ }
-    }, cached ? ans : null);
+      // (SP4: a JUST ME state the panel kept for the tab — the owner's "plain Safari load" that read "none (seeded)")
+      try { if (jm) sessionStorage.setItem('nd:hr-me', JSON.stringify({ state: { when: jm }, ui: {} })); else sessionStorage.removeItem('nd:hr-me'); } catch { /* fine */ }
+    }, cached ? ans : null, justme || null);
     await q.setRequestInterception(true);
     q.on('request', r => { if (r.url().includes('/api/sky')) setTimeout(() => r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...ans, at: Date.now() }) }).catch(() => {}), delay); else r.continue().catch(() => {}); });
     await q.goto(`${BASE}/?emu&slot=lw${intro ? '&intro=1' : ''}&city=2`);
@@ -1160,6 +1165,16 @@ G('load', async () => {
     ok(/wx overcast/.test(r.rv.msg) && r.log.visible.length === 0, `LOAD WEATHER — answered in 1.2 s: the reveal waits for it, revealed overcast, 0 changes after (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
   { const r = await wxLoad('slow', { delay: 6000, cached: false });
     ok(r.wx === 'overcast' && r.log.visible.length === 0 && !/wx overcast/.test(r.rv.msg), `LOAD WEATHER — answered after 6 s (past the wait): revealed first, the weather then BLENDS slowly — 0 jumps (now ${r.wx}; seen after the reveal: ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'}; the reveal: ${r.rv.msg}; after: ${r.late.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'nothing re-baked'})`); }
+  // SP4 — THE WEATHER STILL FLIPPED TO "SEEDED": a JUST ME time jump kept for the tab (the panel's sessionStorage) used to land 0.4 s
+  // after the reveal and throw the live answer away for the seeded sky; now it is applied BEFORE the reveal and the clock it moves keeps
+  // the live weather (the readout says so), 0 changes after
+  { const r = await wxLoad('justme', { delay: 3000, cached: true, justme: '2026-10-31T21:30' });
+    const pr = r.log.rows.find(x => x.kind === 'panel');
+    const vis = r.log.visible, onlyHol = vis.every(x => x.kind === 'bake' && /^(neon|facade|neon, facade|facade, neon)$/.test((x.msg.match(/· ([a-z, ]+)$/) || [])[1] || ''));
+    ok(/wx overcast/.test(r.rv.msg) && /the panel moved the clock, the weather is live/.test(r.rv.msg) && pr && /before the reveal/.test(pr.msg) && !r.log.rows.some(x => /none \(seeded\)/.test(x.msg)) && onlyHol,
+      `LOAD WEATHER — a stored JUST ME time jump: applied before the reveal (${pr ? pr.msg : 'no panel row'}), the live overcast KEPT (${r.rv.msg}), never "none (seeded)", no sky / cloud / lit change after (${vis.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`);
+    // (the holiday night's own neon scheme + the ground's lazily loaded pieces still re-bake the neon + facade ~1 s after the reveal — SP4 Known issues)
+    okT(vis.length === 0, `LOAD WEATHER — a stored JUST ME jump into a holiday night: 0 changes after the reveal (${vis.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
   { const r = await wxLoad('intro', { delay: 300, cached: false, intro: true });
     ok(r.log.visible.length === 0, `LOAD — THE FULL POWER-ON (&intro=1: the screen's entrance, the fonts, the dock easing in): 0 changes after the reveal (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
 });
@@ -1897,6 +1912,30 @@ G('windows', async () => {
   const life = p => ev(p, 'window.__district.harbor().speakeasy.life');
   const wins = async p => Object.fromEntries((await ev(p, 'window.__district.harbor().speakeasy.windows()')).map(w => [w.id, w.rect]));
   const lit = p => waitFor(p, 'window.__district.harbor().speakeasy.k > 0.9 && !window.__district.harbor().pending', 'the rooms lit', 25000);
+  // SP4 (the owner: the upper panes rendered non-uniform — the middle ~110 device px, the right ~85, by day at 402): the PAINTED panes
+  // measured along a scanline through each upper row — by day the glass's blue runs, at night the lit rooms' bright runs — the fully
+  // visible panes (bar / jazz, back / apartment) within 2 % of each other, the two rows alike, at 402 / 390 / 430
+  for (const [when, mode] of [['2026-10-22T13:00', 'day'], ['2026-10-22T21:30', 'night']]) {
+    const Q = await open({ slot: `wu-${mode}`, qs: `when=${when}${GR}`, view: [402, 874] });
+    await harborUp(Q.page); if (mode === 'night') await lit(Q.page); else await sleep(1500);
+    const runsAt = () => ev(Q.page, `(() => { const hb = window.__district.harbor(), ws = hb.speakeasy.windows(), cv = document.querySelector('.nd-scene canvas'), x = cv.getContext('2d'), k = cv.width / cv.clientWidth, day = ${mode === 'day'};
+      const rows = [...new Set(ws.map(q => q.rect.y))].sort((a, b) => a - b);
+      return { W: hb.cam.W, rects: ws.map(q => ({ id: q.id, x: +q.rect.x.toFixed(2), y: +q.rect.y.toFixed(2), w: +q.rect.w.toFixed(2), h: +q.rect.h.toFixed(2) })), rows: rows.map(ry => { const r0 = ws.find(q => q.rect.y === ry).rect, y = Math.round((ry + r0.h * 0.5) * k), x1 = Math.round(Math.min(innerWidth, 140) * k), d = x.getImageData(0, y, x1, 1).data, runs = []; let cur = null;
+        for (let i = 0; i < x1; i++) { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], pane = day ? (b > r + 25 && b > 90) : (0.2126 * r + 0.7152 * g + 0.0722 * b > 70 && !(r > g + 30 && r > b + 30 && r < 160)); if (pane) { if (!cur) cur = { a: i, b: i }; else cur.b = i; } else if (cur) { if (cur.b - cur.a > 6 * k) runs.push(cur); cur = null; } }
+        if (cur && cur.b - cur.a > 6 * k) runs.push(cur);
+        return runs.map(q => ({ x: +(q.a / k).toFixed(1), w: +((q.b - q.a + 1) / k).toFixed(1) })).filter(q => q.x > 2); }) }; })()`);
+    // (at night the rooms' own content — a dark back room, the people, the TV — breaks a brightness run: the night measure is the rects
+    // the rooms are painted into (paintRoom(glassOf(w)) — the same for every window) + their gaps; by day the painted glass itself)
+    const judge = (o) => { if (mode === 'night') { const rs = o.rects.sort((p, q) => p.y - q.y || p.x - q.x), rows = [...new Set(rs.map(r => r.y))].map(y => rs.filter(r => r.y === y)); const ws = rs.map(r => r.w), hs = rs.map(r => r.h), mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rows.map(r => r.slice(1).map((q, i) => +(q.x - (r[i].x + r[i].w)).toFixed(1))).flat(); const gmn = Math.min(...gaps), gmx = Math.max(...gaps); return { ok: (mx - mn) / mx <= 0.02 && (gmx - gmn) / gmx <= 0.02 && (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs) <= 0.02, mn, mx, gaps, ws }; }
+      const rs = o.rows.map(r => r.slice(-2)); const ws = rs.flat().map(r => r.w); if (ws.length < 4) return { ok: false, why: `only ${ws.length} panes seen` }; const mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rs.map(r => r.length === 2 ? +(r[1].x - (r[0].x + r[0].w)).toFixed(1) : null); return { ok: (mx - mn) / mx <= 0.02, mn, mx, gaps, ws }; };
+    const seen = [];
+    for (const [w, h] of [[402, 874], [390, 844], [430, 932]]) {
+      if (w !== 402) { await Q.page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await waitFor(Q.page, `window.__district.harbor().cam.W === ${w}`, 'the re-layout', 8000).catch(() => {}); await sleep(1800); }
+      const o = await runsAt(); seen.push({ w: o.W, ...judge(o) });
+    }
+    ok(seen.every(s => s.ok), `THE UPPER PANES EQUAL ON SCREEN (${mode}): ${seen.map(s => `${s.w}: ${s.ok ? 'ok' : 'UNEVEN'} ${s.ws ? `${s.mn}–${s.mx} pt (gaps ${s.gaps.join('/')})` : s.why}`).join(' · ')}`);
+    await Q.ctx.close();
+  }
   // ---- an ordinary night (Thu 9:30 pm): the schedule runs — something on, or about to start, every ~10–30 s; the rooms' states
   { const Q = await open({ slot: 'w1', qs: `when=2026-10-22T21:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
@@ -2211,6 +2250,16 @@ G('people', async () => {
     const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('canvas.nd-hushc'); if (!cv) { res(0); return; } const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`);
     hushRed = red;
     ok(hs.text === 'SWING' && hs.lit === 1 && hs.overlay && red > 0.006 && hs.rows.join('/') === 'SWI/NG', `THE HUSH WORD SIGN at night with a lobby: ${hs.rows.join(' / ')} in ice-cyan neon tubes in the upstairs window (${(red * 100).toFixed(1)} % of its glass glowing, ${hs.capPt} pt)`);
+    // SP4 (the owner: the JAZZ letters rode over the pane's frame): the letters' box INSIDE the glass, the overlay canvas IS the glass
+    // (its CSS box = the glass rect mapped to the screen), at 402 / 390 / 430 — the window's live rect after each re-layout
+    const fits = [];
+    const fit = async (w, h) => { const o = await ev(Q.page, `(() => { const s = ${P}.speakeasy.hush(), cv = document.querySelector('canvas.nd-hushc'), r = cv && cv.getBoundingClientRect(); return { w: ${P}.cam.W, inside: s.inside, letters: s.letters, rect: s.rect, css: s.css, dom: r && { x: r.x, y: r.y, w: r.width, h: r.height } }; })()`);
+      const domOk = o.dom && o.css && Math.abs(o.dom.x - o.css.x) < 1.5 && Math.abs(o.dom.y - o.css.y) < 1.5 && Math.abs(o.dom.w - o.css.w) < 1.5 && Math.abs(o.dom.h - o.css.h) < 1.5;
+      const glassOk = o.rect && o.css && Math.abs(o.css.x - o.rect.x) <= 1.5 && Math.abs(o.css.y - o.rect.y) <= 1.5 && Math.abs(o.css.w - o.rect.w) <= 2.5 && Math.abs(o.css.h - o.rect.h) <= 2.5;
+      fits.push({ w: o.w, inside: o.inside, domOk, glassOk, letters: o.letters, rect: o.rect }); return o; };
+    await fit(402, 874);
+    for (const [w, h] of [[390, 844], [430, 932]]) { await Q.page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await waitFor(Q.page, `${P}.cam.W === ${w}`, 'the re-layout', 8000).catch(() => {}); await sleep(700); await fit(w, h); }
+    ok(fits.length === 3 && fits.every(f => f.inside && f.domOk && f.glassOk), `THE HUSH SIGN INSIDE ITS PANE at ${fits.map(f => f.w).join(' / ')}: ${fits.map(f => `${f.w}: letters ${f.inside ? 'inside' : 'OUTSIDE'} (${f.letters && `${f.letters.w.toFixed(1)}×${f.letters.h.toFixed(1)} in ${f.rect.w.toFixed(1)}×${f.rect.h.toFixed(1)}`}), overlay = the glass ${f.glassOk}, placed ${f.domOk}`).join(' · ')}`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'pp3', qs: `when=2026-10-22T22:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await settle(Q.page);
@@ -2287,6 +2336,8 @@ function motionReport(frames) {
 // drying street, the festival's line-up
 G('weather', async () => {
   const P = 'window.__district.harbor()', W = `${P}.weather`;
+  // (SP4 — the owner: the awning's drips fell at ONE rate whatever the rain) checked after the loop: drizzle an occasional drip, rain a
+  // steady line, heavy a running fringe (core/harbor-weather.js#dripRate)
   // ---- a CLEAR day: no rain, no fog, no lightning, nothing on the glass, no weather beds
   { const Q = await open({ slot: 'wx0', qs: `when=2026-10-22T13:00${GR}`, view: [402, 874] });
     await harborUp(Q.page); await sleep(1500);
@@ -2304,11 +2355,15 @@ G('weather', async () => {
     ['windy', w => w.state === 'windy' && w.wind > 10 && w.rain === 0],
     ['freezing-rain', w => w.state === 'freezing' && w.ice > 0.3 && w.rain > 0.2],
   ];
+  const dripCheck = () => { const d = dripRates; ok(d.drizzle > 0.5 && d.drizzle < 3 && d.rain > 8 && d.rain < 16 && d['heavy-rain'] >= 25 && d['heavy-rain'] > d.rain && d.rain > d.drizzle, `THE AWNING'S DRIPS BY THE RAIN: drizzle ${d.drizzle} · rain ${d.rain} · heavy ${d['heavy-rain']} drops a second (occasional → a steady line → a running fringe)`); };
+  const dripRates = {};
   for (const [id, test] of STATES) {
     const Q = await open({ slot: `wx-${id}`, qs: `when=2026-10-22T22:30${GR}&force=${id}`, view: [402, 874] });
     await harborUp(Q.page); await sleep(1200);
     const w = await ev(Q.page, W);
     ok(w && test(w), `THE WEATHER — ${id.toUpperCase()}: ${w && w.line} · drops ${w && w.rainFx.drops}`);
+    if (w && w.ground) dripRates[id] = w.ground.dripRate;
+    if (id === STATES[STATES.length - 1][0]) dripCheck();
     if (id === 'rain') {
       // the night rain catches the tubes' + the lamps' light; the beads on the NEON sign; the dock's glass beaded — never over a label
       await waitFor(Q.page, `${W}.glass.beads > 8`, 'beads on the sign', 12000).catch(() => {});

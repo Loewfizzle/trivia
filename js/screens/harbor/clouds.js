@@ -19,7 +19,7 @@
 // whole sky for rain, storms, snow; re-lit at once). Part 6b: the sky messages drift through the same sky (skywriting is drawn after).
 import { rngFrom } from '../../core/rng.js';
 import { ctx2d } from '../../ui/canvas-safe.js';
-import { cloudMix, cloudPlan, driftX, skyLight, cloudLit, sunOnClouds, haloOf } from '../../core/harbor-clouds.js';
+import { cloudMix, cloudPlan, driftX, driftSpeed, skyLight, cloudLit, sunOnClouds, haloOf } from '../../core/harbor-clouds.js';
 import { harborSky } from './tones.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -602,7 +602,7 @@ export function createClouds() {
     const wx = windX(LK), wind = LK.wind || 3;
     for (const d of arr) {
       // (the deck: a seamless tile, wrapping by its own width)
-      const x = d.kind === 'deck' ? (() => { const v = (1.2 + Math.max(0, wind) * 0.9) * wx * d.v * (motion ? tSec : 0); return ((v % d.w) + d.w) % d.w - d.w; })() : driftX(d, motion ? tSec : 0, wind, wx, W);
+      const x = d.kind === 'deck' ? (() => { const v = driftSpeed(wind) * wx * d.v * (motion ? tSec : 0); return ((v % d.w) + d.w) % d.w - d.w; })() : driftX(d, motion ? tSec : 0, wind, wx, W);
       d.xNow = x;
       if (!d.cv || (part === 'back' ? d.s >= 0.5 : part === 'front' ? d.s < 0.5 : false)) continue;
       const by = d.y + (extra.base || 0), ty = by - d.h;

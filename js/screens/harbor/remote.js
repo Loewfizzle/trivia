@@ -356,12 +356,14 @@ export function createRemote({ scene, api = apiCall }) {
     sheet = h('div.modal.hr-modal', { onclick: e => { if (e.target === sheet) close(); }, onkeydown: e => { if (e.key === 'Escape' && !(e.target.classList && e.target.classList.contains('hr-q'))) close(); } },
       h('div.sheet.hr-sheet', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Preview panel' }));
     document.body.append(sheet);
+    document.body.classList.add('hr-sheet-open');   // (SP4: the debug strips hide while the sheet is open — they covered its controls)
     render();
     musicT = setInterval(() => { paintMusic(); paintSounds(); }, 1000);
   }
   function close(o = {}) {
     if (!sheet) return;
     const s = sheet; sheet = null; musicEl = null; soundsEl = null; clearInterval(musicT); s.classList.add('out'); setTimeout(() => s.remove(), 260);
+    document.body.classList.remove('hr-sheet-open');
     if (mode === 'me') fire();
     else if (!o.sent && draftDirty()) toast('NOT SENT — THE EVERYONE DRAFT IS KEPT', 'warn');
     paintChip();

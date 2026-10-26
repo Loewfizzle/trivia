@@ -444,7 +444,8 @@ export function eclipseAt(ms) {
 export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
   const lp = localParts(ms, tz);
   // LIVE WEATHER (core/weather.js): the visitor's real area when /api/sky knew it — the sun, moon and stars from there too
-  const live = isFresh(wx, ms) || (wx && wx.forced) ? wx : null;
+  // (SP4: `keep` — the panel moved the clock; the answer is the real weather here, fresh by the REAL clock (scene.js#wxNow), kept)
+  const live = isFresh(wx, ms) || (wx && (wx.forced || wx.keep)) ? wx : null;
   const place = placeOf(tz, lp.off);
   const lat = live && live.lat != null ? live.lat : place.lat, lon = live && live.lon != null ? live.lon : place.lon;
   const south = lat < 0;
@@ -491,7 +492,8 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
     // weather (the old seeded "rainy evenings" are gone). A few fair-weather clouds drift by; Christmas keeps its snow.
     snow = xmas; rain = 0; storm = 0; fog = 0;
     cloud = 0.06 + (hash(`cloud:${ev.y}-${ev.m}-${ev.d}:${Math.floor(lp.h / 3)}`) % 100) / 100 * 0.3; cover = cloud;
-    wind = 2 + (hash(`wind:${ev.y}-${ev.m}-${ev.d}`) % 40) / 10; windDir = 250;
+    // (SP4 — the owner: the seeded fallback must be CALM + plausible — a light breeze, 1–3.4 m/s; it was 2–6)
+    wind = 1 + (hash(`wind:${ev.y}-${ev.m}-${ev.d}`) % 25) / 10; windDir = 250;
   }
   const clear = !rain && snow < 0.6 && cloud < 0.7 && fog < 0.4;
   // a deep freeze (real cold only: −4 °C / 25 °F starts it, full by −12 °C / 10 °F): frost, icicles, rime (district/frost.js)

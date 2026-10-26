@@ -32,8 +32,10 @@ export function mountAudioDiag() {
   let prevCtx = null, prevEl = null;
   /** the panel's one verdict on the music: { key, text, ok } — the header and the want row both print `text` */
   function audioStatus(d, E, should) {
+    // (SP4 — the owner: the panel said "sounding · el playing" with the music OFF. Music off MUTES the element (it keeps playing, silent,
+    // so a tap brings it back without a reload) — the status says exactly that, before any "sounding")
+    if (d.off) return { key: 'off', text: `${d.off} — silent (the element ${d.el ? (d.el.paused ? 'paused' : 'plays MUTED') : 'none'})`, ok: true };
     if (d.sounding) return { key: 'on', text: d.out === 'direct' ? 'sounding DIRECT' : 'sounding', ok: true };
-    if (d.off) return { key: 'off', text: `silent (${d.off})`, ok: true };
     if (!E.unlocked) return { key: 'locked', text: 'LOCKED (no tap yet)', ok: !should };
     if (d.needTap) return { key: 'tap', text: 'NEEDS TAP', ok: false };
     if (d.dead) return { key: 'dead', text: 'DEAD VOICE', ok: false };
@@ -70,7 +72,7 @@ export function mountAudioDiag() {
     const st = audioStatus(d, E, should);
     const okAll = st.ok;
     // (the title carries the clock: it changes every half second — the body only when something happened; folded: ONE short line)
-    const head = `AUDIO ▾ ${st.text} · ctx ${E.state} · el ${d.el ? (tp ? `TAPE ${tp.rate.toFixed(2)}×` : d.el.paused ? 'paused' : 'playing') : 'none'} · ${hhmmss(Date.now())}`;
+    const head = `AUDIO ▾ ${st.text} · ctx ${E.state} · el ${d.el ? (tp ? `TAPE ${tp.rate.toFixed(2)}×` : d.el.paused ? 'paused' : d.off ? 'playing muted' : 'playing') : 'none'} · ${hhmmss(Date.now())}`;
     const fold = `AUDIO ▸ ${st.text} · ctx ${E.state}`;
     const rows = [
       line(ctxOk ? 'dbg-ok' : 'dbg-bad', `ctx ${E.state}${E.frozen ? ' FROZEN' : ''} · t ${E.time.toFixed(2)} ${arrow(ctxMoves)} · rebuilds ${E.rebuilds}${E.why ? ` (${E.why})` : ''}${E.stuck ? ' · STUCK' : ''}${E.unlocked ? '' : ' · locked (no tap yet)'} · alive ${E.alive} (made ${E.made}, closed ${E.closed})${E.session ? ` · session ${E.session}` : ''}`),

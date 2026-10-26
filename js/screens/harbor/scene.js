@@ -392,14 +392,20 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // seeded fallback 0.48 s after it showed — the saved answer went stale under it): live / cached / seeded at the reveal; after it the
   // last answer is HELD (up to 3 h) until a new one arrives — a new answer that differs blends slowly (stepWeather), never a fall-back
   let wxHeld = null, wxRevealed = false;
+  // SP4 — THE WEATHER STILL FLIPPED TO "SEEDED" (the owner's load log, Oct 26 7:41 am — measured: not the ask; a stored JUST ME preview
+  // (the panel keeps it for the tab) applied 0.4 s AFTER the reveal moved the clock → clock.preview → the live answer thrown away for the
+  // seeded sky (7 clouds, a 2–6 m/s seeded wind: the "clouds racing"), then the jump's own re-bake 8 s later). Now: a clock the PANEL
+  // moves keeps the live weather (clock.keepLive: it is the real weather here, the panel only moves the time; a forced weather still wins),
+  // and a stored JUST ME state is applied BEFORE the reveal (tryReveal waits for it: one picture, decided once)
   const wxNow = () => {
     if (clock.wx) return clock.wx;
-    if (clock.preview) return null;
+    if (clock.preview && !clock.keepLive) return null;
     const lw = liveWeather();
-    if (lw) { wxHeld = lw; return lw; }
-    return wxRevealed && wxHeld && Date.now() - wxHeld.at < 3 * 3600e3 ? wxHeld : null;
+    if (lw) { wxHeld = lw; return clock.keepLive ? { ...lw, keep: true } : lw; }   // (keep: fresh by the real clock, whatever the panel's)
+    const held = wxRevealed && wxHeld && Date.now() - wxHeld.at < 3 * 3600e3 ? wxHeld : null;
+    return held && clock.keepLive ? { ...held, keep: true } : held;
   };
-  const wxSourceNow = () => { if (clock.wx) return 'forced'; if (clock.preview) return 'preview (seeded)'; const s = weatherSource(), lw = liveWeather(); if (lw) return `${s.src} · ${s.age} min old`; if (wxHeld && wxRevealed) return `held (${s.src || 'the last answer'} ${Math.round((Date.now() - wxHeld.at) / 60000)} min old — a new ask on the way)`; return s.src ? `seeded (the ${s.src} answer is stale: ${s.age} min old)` : 'seeded (no answer yet)'; };
+  const wxSourceNow = () => { if (clock.wx) return `forced ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`; if (clock.preview && !clock.keepLive) return 'preview (seeded)'; const s = weatherSource(), lw = liveWeather(); if (lw) return `${s.src} · ${s.age} min old${clock.keepLive ? ' · the panel moved the clock, the weather is live' : ''}`; if (wxHeld && wxRevealed) return `held (${s.src || 'the last answer'} ${Math.round((Date.now() - wxHeld.at) / 60000)} min old — a new ask on the way)`; return s.src ? `seeded (the ${s.src} answer is stale: ${s.age} min old)` : 'seeded (no answer yet)'; };
   // CITY 2.0 MUSIC (core/city.js): the music follows THIS clock — the scene's own, so the preview panel's time jumps + speeds move it too —
   // the weather it shows (the sun's place) and the flags it runs on (&mood=)
   // (8b1 — THE BEAT, the owner: the panel's PARTY and every forced SHOW drive the MUSIC MOOD too — a party show plays a party song, so
@@ -979,7 +985,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const env = smooth(0, 8000, now - bowForcedAt);
       return { day: forced.startsWith('day') ? env : 0, moon: forced === 'moon' ? env : 0, neon: forced === 'neon' ? env : 0, secondary: forced === 'day2', strength: 1, forced };
     }
-    const wet = lastRain(wxNow(), clock.preview ? null : lastWet());
+    const wet = lastRain(wxNow(), clock.preview && !clock.keepLive ? null : lastWet());
     if (wet == null) return BOW0;
     const env = bowEnvelope(now, wet);
     if (env <= 0) return { ...BOW0, wet };
@@ -1594,7 +1600,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const out = `→ ${LK.wxKind || 'seeded'} · opaque ${f2(LK.cloud)} veil ${f2(LK.veil)} fog ${f2(LK.fog)}`;
     const wl = weatherLine(WXS);
     if (clock.wx) return [`wx FORCED ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`, `${out} · forced`, wl];
-    if (clock.preview) return ['wx a preview clock — no live weather', `${out} · seeded`, wl];
+    if (clock.preview && !clock.keepLive) return [`wx a preview clock — no live weather (${remoteKey ? 'the panel: JUST ME / EVERYONE' : 'the link'})`, `${out} · seeded`, wl];
     const lw = wxNow();
     if (!lw) return [`wx ${wxSourceNow()}`, `${out} · seeded`, wl];
     const hm = ms => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
@@ -1800,12 +1806,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // starts at o.at (a late arrival lands mid-flight).
   const pageQ = new URLSearchParams(q);
   const pageClock = { now: clock.now, wx: clock.wx, speed: clock.speed, tz: clock.tz, preview: clock.preview, force: new Set(clock.force) };
-  let remoteKey = '';
+  let remoteKey = '', remoteApplied = false;
+  // (SP4: a JUST ME state the panel kept for this tab — sessionStorage, remote.js#ME_KEY — is applied before the reveal: the gate waits)
+  const remoteStored = (() => { try { return !!sessionStorage.getItem('nd:hr-me'); } catch { return false; } })();
   function applyRemote(params, o = {}) {
     const srv = o.srv || Date.now, at = o.at != null ? o.at : srv();
     const key = params ? JSON.stringify(params) + '|' + at : '';
+    remoteApplied = true;
     if (key === remoteKey) return false;
     remoteKey = key;
+    LOADLOG.add('panel', params ? `the preview panel's state applied (${Object.keys(params).join(', ')})${shownAt < 0 ? ' before the reveal' : ''}` : 'the preview panel cleared — the real city');
     const sp = new URLSearchParams(pageQ);
     if (params) { for (const k of REMOTE_KEYS) sp.delete(k); for (const [k, v] of Object.entries(params)) sp.set(k, v); }
     const before = new Set(clock.force), q0 = new URLSearchParams(qp), text0 = qp.get('text') + '|' + qp.get('style') + '|' + qp.get('tower');
@@ -1814,11 +1824,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     clock.tz = c.tz; clock.wx = c.wx; clock.speed = c.speed;
     if (params) {
       const timed = !!sp.get('when') || c.speed > 1;
-      // (the live weather stays unless the state sets the weather or moves the clock — like a preview link)
+      // (SP4 — the live weather stays unless the state sets the weather; a clock the panel moves KEEPS it (keepLive) — a preview LINK
+      // (&when= in the page's own URL) is still the seeded sky, so every test + review link stays deterministic)
       clock.preview = pageClock.preview || !!c.wx || timed;
+      clock.keepLive = timed && !pageClock.preview && !c.wx;
       if (timed) { const start = sp.get('when') ? c.now() : at, sp0 = c.speed; clock.now = () => start + (srv() - at) * sp0; }
       else clock.now = pageClock.now;
-    } else { clock.preview = pageClock.preview; clock.now = pageClock.now; }
+    } else { clock.preview = pageClock.preview; clock.now = pageClock.now; clock.keepLive = false; }
     for (const k of [...qp.keys()]) qp.delete(k);
     for (const [k, v] of sp) qp.append(k, v);
     GRID = sp.get('grid') === '1'; DEBUG = sp.get('debug') === '1';
@@ -1844,6 +1856,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.remote(clock.now() - (srv() - at) * (clock.speed || 1), [...[...before].filter(id => gone(id)), ...redo], [...[...f].filter(id => came(id)), ...redo]);
     if (legends) legends.remote(clock.now() - (srv() - at) * (clock.speed || 1), [...before].filter(id => gone(id)), [...f].filter(id => came(id)));
     lookAt = 0; skyKey = '';                                       // (the look follows at once: the clock, the weather)
+    // (SP4: the look + the holiday + the light rules refreshed NOW — a state applied before the reveal is in the first picture, and the
+    // gate below sees the lit re-bake it wants before letting the city in, not a crossfade after)
+    try { refreshLook(performance.now()); } catch (e) { console.warn('[harbor] remote look', e); }
     fastUntil = Math.max(fastUntil, performance.now() + 3000);
     return true;
   }
@@ -2069,12 +2084,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // clouds baked, and a tier step recorded during the load APPLIED HERE, while the city is still dark: nothing changes after)
   function tryReveal(now) {
     if (wantStep && tier > 0 && now - t0 < REVEAL_MAX) { const w = wantStep; wantStep = null; stepWhy.push(w); LOADLOG.add('tier', `${tier} → ${tier - 1} before the reveal (${w})`); stepTier(tier - 1); return; }
-    const ready = baker.bakes >= 1 && litBaker.bakes >= 1 && !baker.pending && !litBaker.pending && !wantBake && !wantBuild && !resizeT && now - lastResizeAt > 400;
+    const ready = baker.bakes >= 1 && litBaker.bakes >= 1 && !baker.pending && !litBaker.pending && !wantBake && !wantBuild && !resizeT && now - lastResizeAt > 400 && (!L || lightKey() === litBaker.key);   // (SP4: + no lit re-bake wanted)
     const fonts = fontsReady(now);
     const wx = clock.preview || clock.wx || weatherSettled() || now - t0 > WX_WAIT;
     const cs = clouds.stats(), sky = extrasIn && (cs.ready || clock.force.has('no-clouds'));
+    const panel = !remoteStored || remoteApplied || now - t0 > WX_WAIT + 1500;   // (SP4: a stored JUST ME state lands before the reveal)
     const late = now - t0 > REVEAL_MAX;
-    if (!(ready && fonts && wx && sky) && !late) return;
+    if (!(ready && fonts && wx && sky && panel) && !late) return;
     // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is
     // read now, and a changed look re-bakes once more, still dark)
     { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; return; } }
@@ -2082,9 +2098,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (POLISH 5: the title's rects measured NOW, once — a font swapped in, the intro's dock — and the city re-laid in the dark if they
     // moved: the title only reports them again after its power-on, which used to land AFTER the reveal: a re-layout + a crossfade)
     if (!late && L && S.measure) { const mv = rectsMoved(); if (mv) { LOADLOG.add('dock', `measured before the reveal: ${mv}`); layout('measured before the reveal'); return; } }
-    shownAt = now; revealWhy = ready && fonts && wx && sky ? 'ready' : 'late';
+    shownAt = now; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
-    const waits = [!ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds'].filter(Boolean);
+    const waits = [!ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds', !panel && "the panel's stored state"].filter(Boolean);
     wxRevealed = true; wxHeld = wxNow() || wxHeld;
     { const a = weatherAsk(); if (a) LOADLOG.add('note', `wx asked: ${a.status ? `HTTP ${a.status}` : `failed (${a.err})`} in ${a.ms} ms`); }
     LOADLOG.reveal(revealWhy, `t${tier} dpr ${dpr} · ${Math.round(W)}×${Math.round(H)} · wx ${LK.wxKind || 'seeded'} (${wxSourceNow()})${waits.length ? ` · still waiting for ${waits.join(', ')}` : ''}`, now);
@@ -2238,7 +2254,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze,
+    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),

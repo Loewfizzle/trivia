@@ -28,12 +28,24 @@ export function createHushSign() {
   // dpr on their own small overlay canvas over the window (the room + its dimming stay in the city's canvas under it), every sprite on
   // whole points (pixel-exact), the halo sized to the stroke)
   function layout(geo, o = {}) { G = geo; dpr = Math.min(3, (typeof window !== 'undefined' && window.devicePixelRatio) || o.dpr || 1); planKey = litKey = ''; }
+  // (SP4 — the owner: the JAZZ letters sat off the pane. The overlay is now THE GLASS: placed through the city context's CURRENT transform
+  // (its dpr, any squeeze or offset the speakeasy is drawn with) mapped to CSS px, and clipped to the pane — nothing ever paints on the frame)
   function overlay(c, box) {
     const host = c && c.canvas && c.canvas.parentElement;
     if (!host || typeof document === 'undefined') return null;
     if (!ov || !ov.cv.isConnected || ov.host !== host) { if (ov) ov.cv.remove(); const cv = document.createElement('canvas'); cv.className = 'nd-hushc'; cv.setAttribute('aria-hidden', 'true'); Object.assign(cv.style, { position: 'absolute', pointerEvents: 'none', left: '0px', top: '0px' }); host.append(cv); ov = { cv, host, ctx: null }; ovKey = ''; }
-    const k = `${box.x}|${box.y}|${box.w}|${box.h}|${dpr}`;
-    if (k !== ovKey) { ovKey = k; ov.cv.width = Math.ceil(box.w * dpr); ov.cv.height = Math.ceil(box.h * dpr); Object.assign(ov.cv.style, { left: `${box.x}px`, top: `${box.y}px`, width: `${box.w}px`, height: `${box.h}px` }); ov.ctx = ctx2d(ov.cv); ov.drawn = ''; }
+    const M = typeof c.getTransform === 'function' ? c.getTransform() : null, cw = c.canvas.clientWidth || 1, ratio = c.canvas.width / cw || 1;
+    const T = M ? { a: M.a, b: M.b, c: M.c, d: M.d, e: M.e, f: M.f } : { a: ratio, b: 0, c: 0, d: ratio, e: 0, f: 0 };
+    const P = (x, y) => [(T.a * x + T.c * y + T.e) / ratio, (T.b * x + T.d * y + T.f) / ratio];
+    const cs = [P(box.x, box.y), P(box.x + box.w, box.y), P(box.x, box.y + box.h), P(box.x + box.w, box.y + box.h)];
+    const x0 = Math.floor(Math.min(...cs.map(p => p[0]))), y0 = Math.floor(Math.min(...cs.map(p => p[1]))), x1 = Math.ceil(Math.max(...cs.map(p => p[0]))), y1 = Math.ceil(Math.max(...cs.map(p => p[1])));
+    const k = `${x0}|${y0}|${x1}|${y1}|${dpr}|${T.a.toFixed(4)}|${T.d.toFixed(4)}|${T.e.toFixed(1)}|${T.f.toFixed(1)}`;
+    if (k !== ovKey) {
+      ovKey = k; ov.cv.width = Math.max(1, (x1 - x0) * dpr); ov.cv.height = Math.max(1, (y1 - y0) * dpr);
+      Object.assign(ov.cv.style, { left: `${x0}px`, top: `${y0}px`, width: `${x1 - x0}px`, height: `${y1 - y0}px` });
+      ov.ctx = ctx2d(ov.cv); ov.drawn = ''; ov.css = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
+      ov.M = [T.a / ratio * dpr, T.b / ratio * dpr, T.c / ratio * dpr, T.d / ratio * dpr, (T.e / ratio - x0) * dpr, (T.f / ratio - y0) * dpr];
+    }
     return ov;
   }
   const dropOverlay = () => { if (ov) { ov.cv.remove(); ov = null; ovKey = ''; } };
@@ -76,20 +88,30 @@ export function createHushSign() {
     c.restore();
     // the letters: on the full-dpr overlay (redrawn only when a level moves — the strike, the fade), or in the city's canvas without one
     const lvs = L.map((s, i) => (s ? Math.min(1, strikeLevel(i, t - since) * out * fade) : 0));
-    const sp = L.filter(Boolean), box = sp.length ? (() => { const x0 = Math.min(...sp.map(s => s.x)), y0 = Math.min(...sp.map(s => s.y)), x1 = Math.max(...sp.map(s => s.x + s.w)), y1 = Math.max(...sp.map(s => s.y + s.h)); return { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; })() : null;
-    const O = box && f.overlay !== false ? overlay(c, box) : null;
+    // (SP4: the overlay IS the pane — the glass rect; the sprites' halos are clipped by its edges)
+    const O = rect && L.some(Boolean) && f.overlay !== false ? overlay(c, rect) : null;
     const draw1 = (x, s, lv) => { if (lv <= 0.004) return; x.globalAlpha = lv; x.drawImage(s.c, s.x, s.y, s.w, s.h); };
     if (O && O.ctx) {
       const key = `${litKey}|${lvs.map(v => Math.round(v * 64)).join(',')}`;
-      if (key !== O.drawn) { O.drawn = key; const x = O.ctx; x.setTransform(dpr, 0, 0, dpr, -box.x * dpr, -box.y * dpr); x.clearRect(box.x, box.y, box.w, box.h); L.forEach((s, i) => { if (s) draw1(x, s, lvs[i]); }); x.globalAlpha = 1; }
-    } else { c.save(); L.forEach((s, i) => { if (s) draw1(c, s, lvs[i]); }); c.restore(); }
+      if (key !== O.drawn) { O.drawn = key; const x = O.ctx; x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, O.cv.width, O.cv.height); x.setTransform(...O.M); L.forEach((s, i) => { if (s) draw1(x, s, lvs[i]); }); x.globalAlpha = 1; }
+    } else if (rect) { c.save(); c.beginPath(); c.rect(rect.x, rect.y, rect.w, rect.h); c.clip(); L.forEach((s, i) => { if (s) draw1(c, s, lvs[i]); }); c.restore(); }
+  }
+  /** SP4 — the proof: the letters' tubes (their stroke included) inside the glass rect (canvas pt) */
+  function lettersBox() {
+    if (!plan || !plan.screen) return null;
+    let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+    for (const t of plan.screen.letters) for (const q of t) for (const [px, py] of q.pts) { x0 = Math.min(x0, px); y0 = Math.min(y0, py); x1 = Math.max(x1, px); y1 = Math.max(y1, py); }
+    if (x0 > x1) return null;
+    const w = plan.screen.w / 2;
+    return { x: +(x0 - w).toFixed(2), y: +(y0 - w).toFixed(2), w: +(x1 - x0 + 2 * w).toFixed(2), h: +(y1 - y0 + 2 * w).toFixed(2) };
   }
   return {
     layout, draw,
     /** Lobby 2.0's hook: the room's hush word (null / '' = no lobby → no sign at all) */
     set(w) { word = w ? String(w) : null; },
     get: () => word,
-    debug: () => ({ overlay: !!(ov && ov.cv.isConnected), dpr, word, text: shown && shown.text, lit: hushState({ word }).text ? 1 : 0, rect, capPt: plan ? +(plan.cap * G.K).toFixed(2) : 0, rows: plan ? plan.rows.map(r => r.word) : [], since: +(lastT - since).toFixed(2) }),
+    debug: () => { const lb = lettersBox(), inside = !!(lb && rect && lb.x >= rect.x - 0.05 && lb.y >= rect.y - 0.05 && lb.x + lb.w <= rect.x + rect.w + 0.05 && lb.y + lb.h <= rect.y + rect.h + 0.05);
+      return { overlay: !!(ov && ov.cv.isConnected), dpr, word, text: shown && shown.text, lit: hushState({ word }).text ? 1 : 0, rect, letters: lb, inside, css: ov && ov.css ? ov.css : null, capPt: plan ? +(plan.cap * G.K).toFixed(2) : 0, rows: plan ? plan.rows.map(r => r.word) : [], since: +(lastT - since).toFixed(2) }; },
     destroy() { if (lit) for (const s of lit) free(s); lit = null; litKey = planKey = ''; dropOverlay(); },
   };
 }

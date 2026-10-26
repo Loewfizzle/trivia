@@ -82,6 +82,11 @@ export function wetFrom(wetAt, now) {
   const m = (now - wetAt) / 60000;
   return m <= 0 ? 1 : clamp01(1 - m / WX.dryMin);
 }
+/** SP4 — PURE: THE AWNING'S DRIPS per second across its front edge, by the rain's intensity (0..1) and, after it, the dying drip level:
+ *  drizzle (~0.2) an occasional drip, rain (~0.5) a steady line, heavy (1) a running fringe (+ the corners' sheets: dripSheet) */
+export const dripRate = (rain, drip) => (rain > 0.03 ? (rain < 0.3 ? 0.8 + 5 * rain : rain < 0.7 ? 7 + 24 * (rain - 0.3) : 17 + 60 * (rain - 0.7)) : 3 * clamp01(drip) * clamp01(drip));
+/** the sheet pouring off each corner of the awning: 0 below rain 0.6, 1 at heavy */
+export const dripSheet = rain => clamp01(((rain || 0) - 0.6) / 0.25);
 /** PURE: the drips after the rain (eaves, the awning, the tubes) — 1 as it stops, gone over WX.dripMin */
 export const dripFrom = (wetAt, now) => (wetAt == null ? 0 : clamp01(1 - Math.max(0, (now - wetAt) / 60000) / WX.dripMin));
 

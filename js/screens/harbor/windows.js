@@ -171,7 +171,7 @@ export function setRim(r) { RIM = r; }
  *  colours tinted by the lamp, MODELLED by it — a lit side, a shade side (a gradient over every shape, away from the lamp; from above:
  *  the shoulders + the hat lit, the waist in shade), the warm rim on the lamp's side — the face a simple lit shape. P.marks = the
  *  clothes' patterns as blocks of colour: 'braces' | 'pocket' (a pocket square) | 'bow' | 'pearls' | 'pinstripe' | 'collar' | 'sash'. */
-export function figure(c, P) { rimPass(c, P); body(c, P, 0); }
+export function figure(c, P) { castPass(c, P); rimPass(c, P); body(c, P, 0); }
 /** a palette in a room's light: each colour toward the lamp's tone, the whole a little under daylight (a lit room at night) */
 export function litPal(pal, lamp, k = 1) {
   const out = {}, L = lamp || [255, 222, 176], m = Math.min(1, 0.72 + 0.28 * k);
@@ -184,7 +184,58 @@ export function litPal(pal, lamp, k = 1) {
 }
 /** a GROUP that overlaps (the toast's three, the tango's couple): every rim first, then every body — one figure's rim never lands on
  *  another's dark shape */
-export function figures(c, list) { for (const P of list) if (P) rimPass(c, P); for (const P of list) if (P) body(c, P, 0); }
+export function figures(c, list) { for (const P of list) if (P) castPass(c, P); for (const P of list) if (P) rimPass(c, P); for (const P of list) if (P) body(c, P, 0); }
+/** SP4 — THE CAST SHADOW (the owner: lit people in 3D): a lit figure throws a soft shadow on the wall / the furniture behind it, away from
+ *  the lamp (two offset silhouettes, the farther fainter: a soft edge without a blur) */
+function castPass(c, P) {
+  if (!P.lit || !P.pal || P.sheet) return;
+  const s = P.s || 1, side = P.lit.side || 0, a = P.lit.cast == null ? 0.34 : P.lit.cast;
+  if (a <= 0.01) return;
+  const dx = side ? -side * 0.075 * s : 0.03 * s, dy = side ? -0.02 * s : -0.045 * s;
+  c.save();
+  body(c, { ...P, col: `rgba(16,8,14,${(a * 0.55).toFixed(3)})`, pal: null, lit: null, hold: null, glints: null, marks: null, bones: null, wraps: null, rim: null, shadePass: true, x: P.x + dx * 1.8, y: P.y + dy * 1.8 }, 0.012 * s);
+  body(c, { ...P, col: `rgba(16,8,14,${a.toFixed(3)})`, pal: null, lit: null, hold: null, glints: null, marks: null, bones: null, wraps: null, rim: null, shadePass: true, x: P.x + dx, y: P.y + dy }, 0);
+  c.restore();
+}
+/** SP4 — the VOLUME pass's fill for one form (the lamp decides): a gradient that models the form round — the lit side clear, a CORE
+ *  SHADOW three quarters of the way to the far side, the far edge lifted a little by the room's reflected light. FORM = { kind:
+ *  'torso' | 'head' | 'hair' | 'hat' | 'limb', … (the geometry in the figure's frame) }; lampSide −1 / 0 (above) / 1; far: the limb on
+ *  the far side of a ¾ turn (a touch darker all over) */
+const SH = '18,10,16';
+function volFill(c, F, k, lampSide, s) {
+  if (!F) return null;
+  const A = (a, lift = 0) => `rgba(${SH},${Math.min(1, Math.max(0, a + lift)).toFixed(3)})`;
+  const extra = F.far ? 0.12 : 0;
+  if (F.kind === 'head' || F.kind === 'hair' || F.kind === 'hat') {
+    // a sphere: lit from the lamp's side (or from above), the core shadow round the far rim, the rim itself lifted
+    const r = Math.max(F.rx, F.ry), lx = F.cx + (lampSide ? lampSide * F.rx * 0.45 : 0), ly = F.cy + (lampSide ? F.ry * 0.28 : F.ry * 0.5);
+    const g = c.createRadialGradient(lx, ly, r * 0.05, F.cx, F.cy, r * 1.25);
+    const d = F.kind === 'hair' ? 0.16 : F.kind === 'hat' ? 0.1 : 0;
+    g.addColorStop(0, A(0 + extra)); g.addColorStop(0.5, A(0.12 + d + extra)); g.addColorStop(0.8, A(0.52 + d + extra)); g.addColorStop(1, A(0.36 + d + extra));
+    return g;
+  }
+  if (F.kind === 'torso') {
+    if (lampSide) {
+      const g = c.createLinearGradient(lampSide > 0 ? F.x1 : F.x0, 0, lampSide > 0 ? F.x0 : F.x1, 0);
+      g.addColorStop(0, A(extra)); g.addColorStop(0.42, A(0.1 + extra)); g.addColorStop(0.78, A(0.5 + extra)); g.addColorStop(1, A(0.32 + extra));
+      return g;
+    }
+    const g = c.createLinearGradient(0, F.y1, 0, F.y0);   // (from above: the shoulders lit, the waist in shade, the hem lifted a touch)
+    g.addColorStop(0, A(0.02 + extra)); g.addColorStop(0.55, A(0.2 + extra)); g.addColorStop(0.9, A(0.42 + extra)); g.addColorStop(1, A(0.34 + extra));
+    return g;
+  }
+  if (F.kind === 'limb') {
+    // a cylinder: across its width, the lit edge the one that faces the lamp (or the upper edge, from above)
+    const dx = F.x1 - F.x0, dy = F.y1 - F.y0, L = Math.hypot(dx, dy) || 1; let nx = -dy / L, ny = dx / L;
+    const toward = lampSide ? nx * lampSide : ny;      // (does the normal point at the lamp?)
+    if (toward < 0) { nx = -nx; ny = -ny; }
+    const mx = (F.x0 + F.x1) / 2, my = (F.y0 + F.y1) / 2, w = F.w;
+    const g = c.createLinearGradient(mx + nx * w, my + ny * w, mx - nx * w, my - ny * w);
+    g.addColorStop(0, A(extra)); g.addColorStop(0.5, A(0.12 + extra)); g.addColorStop(0.82, A(0.48 + extra)); g.addColorStop(1, A(0.32 + extra));
+    return g;
+  }
+  return null;
+}
 function rimPass(c, P) {
   const rim = P.rim === undefined ? (P.pal && !P.lit ? null : RIM) : P.rim;
   if (rim && rim.a > 0.01) {
@@ -201,7 +252,10 @@ function body(c, P, inf) {
   const fill = k => (pal ? pal[k] || pal.body : col);
   // every shape: filled (+ stroked by the rim's width in the rim pass)
   c.lineJoin = 'round'; c.lineCap = 'round';
-  const F = k => { c.fillStyle = fill(k); c.fill(); if (inf) { c.strokeStyle = fill(k); c.lineWidth = inf * 2; c.stroke(); } };
+  // (SP4 — THE VOLUME PASS: the same shapes again, each filled with ITS form's light — setForm() names the form before each shape)
+  const vol = !!P.volPass, lampSide = P.lit ? (P.lit.side || 0) : 0, farSide = P.face ? -Math.sign(P.face) : 0;
+  let FORM = null; const setForm = o => { FORM = o; };
+  const F = k => { if (vol) { const g = volFill(c, FORM, k, lampSide, s); if (g) { c.fillStyle = g; c.fill(); } return; } c.fillStyle = fill(k); c.fill(); if (inf) { c.strokeStyle = fill(k); c.lineWidth = inf * 2; c.stroke(); } };
   const f = Math.max(-1, Math.min(1, P.face || 0)), af = Math.abs(f), sf = f < 0 ? -1 : 1;
   c.save(); c.translate(P.x, P.y);
   const woman = !!(P.dress || P.gown || P.hair === 'bob' || P.hair === 'bun' || P.hair === 'long');
@@ -210,6 +264,7 @@ function body(c, P, inf) {
   if (P.legs) {
     const L = P.legs, st = (P.step || 0) * 0.16 * s, lw = (woman ? 0.06 : 0.075) * s;
     for (const [dx, sx] of [[-0.075 * s, -st], [0.075 * s, st]]) {
+      setForm({ kind: 'limb', x0: dx, y0: 0.03 * s, x1: dx + sx, y1: -L + 0.04 * s, w: lw * 1.2, far: farSide && Math.sign(dx) === farSide });
       c.beginPath(); c.moveTo(dx - lw * 1.15, 0.03 * s); c.lineTo(dx + lw * 1.15, 0.03 * s); c.lineTo(dx + sx + lw * 0.72, -L + 0.04 * s); c.lineTo(dx + sx - lw * 0.72, -L + 0.04 * s); c.closePath(); F('legs');
       // the shoe: a low wedge pointing the way the figure faces
       const fx = f === 0 ? 0 : sf * 0.05 * s;
@@ -219,6 +274,7 @@ function body(c, P, inf) {
   // ---- the skirt: the flapper's from a dropped waist (its fringe), the gown to the floor
   if (P.dress || P.gown) {
     const fl = clamp01(P.skirt || 0), hw = (P.gown ? 0.26 + 0.12 * fl : 0.2 + 0.18 * fl) * s, hy = P.gown ? -(P.legs || 0.62 * s) + 0.03 * s : -(0.52 - 0.12 * fl) * s;
+    setForm({ kind: 'torso', x0: -hw, x1: hw, y0: hy, y1: 0.06 * s });
     c.beginPath(); c.moveTo(-wh, 0.06 * s); c.quadraticCurveTo(-wh - 0.02 * s, hy * 0.4, -hw, hy); c.lineTo(hw, hy); c.quadraticCurveTo(wh + 0.02 * s, hy * 0.4, wh, 0.06 * s); c.closePath(); F('body');
     if (P.dress) { c.beginPath(); for (let i = 0; i <= 10; i++) { const u = -hw + (2 * hw) * i / 10; c.lineTo(u, hy - (i % 2 ? 0.075 : 0.025) * s); } c.lineTo(hw, hy + 0.01 * s); c.lineTo(-hw, hy + 0.01 * s); c.closePath(); F('body'); }
   }
@@ -233,7 +289,7 @@ function body(c, P, inf) {
     c.bezierCurveTo(-hw2 - 0.02 * s + sw * 0.08 * s, foot * 0.5, -hw2 + sw * 0.05 * s, shY * 0.4, -sh * 1.05, shY - 0.04 * s);
     c.bezierCurveTo(-0.24 * s, shY + 0.08 * s, -0.2 * s, top + 0.02 * s, 0, top + 0.03 * s);
     F('body');
-    if (!inf && P.eyes !== false && !P.shadePass) { c.fillStyle = P.eyeCol || 'rgba(10,8,14,0.92)'; for (const ex of [-0.05, 0.05]) { c.beginPath(); c.ellipse(ex * s + f * 0.03 * s, shY + 0.21 * s, 0.024 * s, 0.036 * s, 0, 0, TAU); c.fill(); } }
+    if (!inf && P.eyes !== false && !P.shadePass && !P.volPass) { c.fillStyle = P.eyeCol || 'rgba(10,8,14,0.92)'; for (const ex of [-0.05, 0.05]) { c.beginPath(); c.ellipse(ex * s + f * 0.03 * s, shY + 0.21 * s, 0.024 * s, 0.036 * s, 0, 0, TAU); c.fill(); } }
     c.restore();
     return;
   }
@@ -241,6 +297,7 @@ function body(c, P, inf) {
   // ---- the torso: the waist up the flanks to the armpits, the deltoids' round caps, the trapezius sloping up to the neck
   {
     const ch = (woman ? 0.02 : 0.03) * s * f;      // (in profile the chest leads, the back follows)
+    setForm({ kind: 'torso', x0: -sh, x1: sh, y0: 0, y1: shY });
     c.beginPath();
     c.moveTo(-wh, 0);
     c.bezierCurveTo(-wh - 0.015 * s, 0.22 * s, -sh + 0.03 * s - (f < 0 ? ch : 0), shY - 0.26 * s, -sh + 0.01 * s, shY - 0.1 * s);
@@ -261,10 +318,12 @@ function body(c, P, inf) {
     }
   }
   // ---- the neck (tapered) + the head on it
+  setForm({ kind: 'limb', x0: 0, y0: shY + 0.06 * s, x1: f * 0.012 * s, y1: shY + 0.17 * s, w: 0.05 * s });
   c.beginPath(); c.moveTo(-0.048 * s, shY + 0.06 * s); c.lineTo(-0.042 * s + f * 0.012 * s, shY + 0.17 * s); c.lineTo(0.042 * s + f * 0.012 * s, shY + 0.17 * s); c.lineTo(0.048 * s, shY + 0.06 * s); c.closePath(); F('skin');
   c.save(); c.translate(f * 0.012 * s, shY + 0.13 * s); c.rotate(-(P.tilt || 0));
   const hx = f * 0.012 * s, hy = 0.15 * s, rx = (0.112 + 0.012 * af) * s, ry = 0.138 * s;
   // the skull + the jaw: an egg, the chin a little forward in profile; the nose + the brow in profile (grow in with |face|)
+  setForm({ kind: 'head', cx: hx - f * 0.008 * s, cy: hy + 0.01 * s, rx, ry });
   c.beginPath(); c.ellipse(hx - f * 0.008 * s, hy + 0.01 * s, rx, ry, 0, 0, TAU); F('skin');
   if (af > 0.05) {
     const nx = hx + f * rx * 0.86;
@@ -276,6 +335,7 @@ function body(c, P, inf) {
   }
   // the hair
   const hair = P.hair === undefined ? (!P.hat && !woman ? 'short' : null) : P.hair;
+  setForm({ kind: 'hair', cx: hx, cy: hy + 0.06 * s, rx: rx * 1.15, ry: ry * 1.1 });
   if (hair === 'bob') {
     // the 1920s bob: a sleek cap to the jaw, flicking forward at the cheek, the nape bare
     c.beginPath(); c.moveTo(hx - rx * 1.12, hy - 0.06 * s); c.bezierCurveTo(hx - rx * 1.22, hy + 0.12 * s, hx - rx * 0.7, hy + ry * 1.18, hx, hy + ry * 1.12); c.bezierCurveTo(hx + rx * 0.7, hy + ry * 1.18, hx + rx * 1.22, hy + 0.12 * s, hx + rx * 1.12, hy - 0.06 * s);
@@ -290,6 +350,7 @@ function body(c, P, inf) {
   }
   // the hat
   const hat = P.hat;
+  setForm({ kind: 'hat', cx: hx, cy: hy + 0.2 * s, rx: 0.24 * s, ry: 0.2 * s });
   if (hat === 'fedora') {
     // the brim (a shallow ellipse, dipping toward the face) + the pinched crown with its dent + the band
     c.save(); c.translate(hx, hy + 0.085 * s); c.rotate(-f * 0.08);
@@ -328,12 +389,13 @@ function body(c, P, inf) {
   for (let i = 0; i < 2; i++) {
     const side = i ? 1 : -1, [a, e] = arms[i] || [0.1, 0.1], sx = side * (sh - 0.055 * s), sy = shY - 0.045 * s;
     const ex = sx + side * Math.sin(a) * 0.32 * s, ey = sy - Math.cos(a) * 0.32 * s, fa = a + e, hx2 = ex + side * Math.sin(fa) * 0.29 * s, hy2 = ey - Math.cos(fa) * 0.29 * s;
-    const seg = (x0, y0, x1, y1, w0, w1) => { const dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d; c.beginPath(); c.moveTo(x0 + nx * w0, y0 + ny * w0); c.lineTo(x1 + nx * w1, y1 + ny * w1); c.arc(x1, y1, w1, Math.atan2(ny, nx), Math.atan2(ny, nx) + Math.PI, true); c.lineTo(x0 - nx * w0, y0 - ny * w0); c.arc(x0, y0, w0, Math.atan2(-ny, -nx), Math.atan2(-ny, -nx) + Math.PI, true); c.closePath(); F('arm'); };
+    const far = !!farSide && side === farSide;        // (a ¾ turn: this arm is on the far side — behind the body, a touch slimmer + darker)
+    const seg = (x0, y0, x1, y1, w0, w1) => { if (far) { w0 *= 0.86; w1 *= 0.86; } setForm({ kind: 'limb', x0, y0, x1, y1, w: w0, far }); const dx = x1 - x0, dy = y1 - y0, d = Math.hypot(dx, dy) || 1, nx = -dy / d, ny = dx / d; c.beginPath(); c.moveTo(x0 + nx * w0, y0 + ny * w0); c.lineTo(x1 + nx * w1, y1 + ny * w1); c.arc(x1, y1, w1, Math.atan2(ny, nx), Math.atan2(ny, nx) + Math.PI, true); c.lineTo(x0 - nx * w0, y0 - ny * w0); c.arc(x0, y0, w0, Math.atan2(-ny, -nx), Math.atan2(-ny, -nx) + Math.PI, true); c.closePath(); F('arm'); };
     const aw = (woman ? 0.042 : 0.054) * s;
     seg(sx, sy, ex, ey, aw * 1.08, aw * 0.86);
     seg(ex, ey, hx2, hy2, aw * 0.86, aw * 0.66);
     // the hand: a small mitten along the forearm's line (the fingers' mass + the thumb's nub)
-    { const dx = Math.sin(fa) * side, dy = -Math.cos(fa); c.beginPath(); c.ellipse(hx2 + dx * 0.035 * s, hy2 + dy * 0.035 * s, 0.05 * s, 0.036 * s, Math.atan2(dy, dx), 0, TAU); F('skin'); }
+    { const dx = Math.sin(fa) * side, dy = -Math.cos(fa); setForm({ kind: 'head', cx: hx2 + dx * 0.035 * s, cy: hy2 + dy * 0.035 * s, rx: 0.05 * s, ry: 0.036 * s, far }); c.beginPath(); c.ellipse(hx2 + dx * 0.035 * s, hy2 + dy * 0.035 * s, 0.05 * s, 0.036 * s, Math.atan2(dy, dx), 0, TAU); F('skin'); }
     if (P.bones && !inf) { c.strokeStyle = P.bones; c.lineWidth = 0.018 * s; c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.lineTo(hx2, hy2); c.stroke(); }
     const hold = P.hold && P.hold[i];
     if (hold && !inf) prop(c, hold, hx2, hy2, side, fa, s, fill('prop'), P);
@@ -361,14 +423,30 @@ function body(c, P, inf) {
       else if (m === 'sash') { c.fillStyle = mk; c.beginPath(); c.moveTo(-wh, 0.08 * s); c.lineTo(wh, 0.02 * s); c.lineTo(wh, 0.1 * s); c.lineTo(-wh, 0.16 * s); c.closePath(); c.fill(); }
     }
   }
-  // ---- SP4: THE SHADE SIDE — the lamp's modelling: every shape again, filled with one gradient away from the lamp (dark on the far side,
-  // nothing on the lit side; from above: the shoulders + the hat lit, the waist in shade). The same shapes, so nothing spills.
-  if (!inf && P.lit && pal && !P.sheet) {
-    const side = P.lit.side || 0, a = P.lit.a == null ? 0.5 : P.lit.a;
-    const g = side ? c.createLinearGradient(side * sh * 1.1, 0, -side * sh * 1.1, 0) : c.createLinearGradient(0, shY + 0.25 * s, 0, -0.35 * s);
-    g.addColorStop(0, 'rgba(20,10,14,0)'); g.addColorStop(0.45, `rgba(20,10,14,${(a * 0.35).toFixed(3)})`); g.addColorStop(1, `rgba(20,10,14,${a.toFixed(3)})`);
+  // ---- SP4: VOLUME FROM LIGHT (the owner: lit people in 3D, never flat cut-outs) — the same shapes again, each filled with ITS form's
+  // gradient (volFill: a lit side, a core shadow, the far edge lifted by reflected light); then the hair's sheen, the clothes' folds and
+  // the occlusion where the arms meet the body. The same shapes, so nothing spills.
+  if (!inf && P.lit && pal && !P.sheet && !P.volPass) {
+    const ls = P.lit.side || 0;
     c.restore();
-    body(c, { ...P, lit: null, pal: null, col: g, hold: null, glints: null, marks: null, bones: null, wraps: null, rim: null, shadePass: true }, 0);
+    body(c, { ...P, volPass: true, hold: null, glints: null, marks: null, bones: null, wraps: null, rim: null }, 0);
+    c.save(); c.translate(P.x, P.y); c.rotate(-(P.lean || 0));
+    // the folds: two soft creases from the armpit toward the waist on the shade side (+ a dress's vertical falls)
+    c.strokeStyle = `rgba(${SH},0.16)`; c.lineWidth = 0.018 * s; c.lineCap = 'round';
+    const fx = ls ? -ls : (f ? -Math.sign(f) : 1);
+    c.beginPath(); c.moveTo(fx * sh * 0.72, shY - 0.12 * s); c.quadraticCurveTo(fx * sh * 0.3, shY - 0.3 * s, fx * wh * 0.5, 0.08 * s);
+    c.moveTo(fx * sh * 0.5, shY - 0.2 * s); c.quadraticCurveTo(fx * sh * 0.18, shY - 0.36 * s, fx * wh * 0.15, 0.1 * s); c.stroke();
+    if (P.dress || P.gown) { const hy0 = P.gown ? -(P.legs || 0.62 * s) + 0.03 * s : -(0.52 - 0.12 * clamp01(P.skirt || 0)) * s; c.beginPath(); for (const u of [-0.11, 0.02, 0.13]) { c.moveTo(u * s, -0.02 * s); c.lineTo(u * s * 1.6, hy0 + 0.02 * s); } c.stroke(); }
+    // the occlusion where each arm leaves the shoulder (a small dark pool at the joint) + under the chin
+    c.fillStyle = `rgba(${SH},0.3)`;
+    for (const e of [-1, 1]) { c.beginPath(); c.ellipse(e * (sh - 0.06 * s), shY - 0.07 * s, 0.045 * s, 0.03 * s, 0, 0, TAU); c.fill(); }
+    c.beginPath(); c.ellipse(f * 0.012 * s, shY + 0.1 * s, 0.05 * s, 0.025 * s, 0, 0, TAU); c.fill();
+    // the hair's sheen: a soft pale highlight on the lit side of the crown (a hat: its crown's edge)
+    c.save(); c.translate(f * 0.012 * s, shY + 0.13 * s); c.rotate(-(P.tilt || 0));
+    const hxx = f * 0.012 * s, hyy = 0.15 * s, rxx = (0.112 + 0.012 * Math.abs(f)) * s, ryy = 0.138 * s;
+    if (hair || P.hat) { c.globalCompositeOperation = 'lighter'; c.fillStyle = 'rgba(255,240,220,0.14)'; c.beginPath(); c.ellipse(hxx + (ls || 0) * rxx * 0.35, hyy + ryy * (P.hat ? 0.55 : 0.42), rxx * 0.42, ryy * 0.14, (ls || 0) * 0.35, 0, TAU); c.fill(); c.globalCompositeOperation = 'source-over'; }
+    c.restore();
+    c.restore();
     return;
   }
   c.restore();

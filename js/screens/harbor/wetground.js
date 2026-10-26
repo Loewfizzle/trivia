@@ -8,6 +8,7 @@
 // The puddles + the streaks are BAKED into one canvas when the wetness / the lamps / the light move a step (wetKey); the rings + the drips
 // are live (a few strokes). Reduced motion: the still puddles only.
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { dripRate, dripSheet } from '../../core/harbor-weather.js';
 import { project } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -39,7 +40,7 @@ export function puddlesOf(L, seed = 1924) {
 }
 
 export function createWetGround() {
-  let L = null, pud = [], cv = null, key = '', W = 1, H = 1, dpr = 2, rings = [], drips = [], box = null;
+  let L = null, pud = [], cv = null, key = '', W = 1, H = 1, dpr = 2, rings = [], drips = [], box = null, lastRate = 0;
   function layout(Lay, w, h, d) { L = Lay; W = w; H = h; dpr = Math.min(2, d || 2); pud = Lay ? puddlesOf(Lay, Lay.seed || 1924) : []; key = ''; rings = []; drips = []; }
   /** each puddle on screen: its centre, its half-width, its half-height (flattened by the view) */
   const onScreen = p => { const cam = L.cam, [cx, cy] = project(cam, p.x, 0, p.z), sx = cam.F * p.rx / p.z, [, y2] = project(cam, p.x, 0, p.z - p.rz); return { cx, cy, rx: sx, ry: Math.max(1.2, Math.abs(y2 - cy)) }; };
@@ -139,13 +140,23 @@ export function createWetGround() {
       }
       // the drips off the awning's front edge (while it rains — then dying away with the drips)
       const aw = L.speakeasy && L.speakeasy.awning, s = L.speakeasy;
-      if (aw && o.drip > 0.02) {
-        const rate = sec * (o.rain > 0.05 ? 10 + 22 * o.rain : 6 * o.drip);
+      if (aw && (o.drip > 0.02 || o.rain > 0.03)) {
+        // (SP4 — the owner: the drips fell at ONE rate whatever the rain) drizzle: an occasional drip · rain: a steady line · heavy: a
+        // running fringe of drops + a SHEET pouring off each corner; after the rain the drips die away over minutes (o.drip)
+        const r = o.rain || 0, perSec = dripRate(r, o.drip);
+        lastRate = perSec;
+        const rate = sec * perSec * (o.tier === 0 ? 0.6 : 1), cap = r > 0.7 ? 70 : 40;
+        const at = u => { const [dx, dy] = project(L.cam, s.x0 + u, aw.y1 - 0.02, aw.z), [, gy] = project(L.cam, s.x0 + u, 0, aw.z - 0.4); return [dx, dy, gy]; };
         for (let n = rate + Math.random(); n >= 1; n--) {
-          const u = aw.u0 + Math.random() * (aw.u1 - aw.u0), [dx, dy] = project(L.cam, s.x0 + u, aw.y1 - 0.02, aw.z), [, gy] = project(L.cam, s.x0 + u, 0, aw.z - 0.4);
-          if (drips.length < 30) drips.push({ x: dx, y: dy, y1: gy, v: 0, hang: Math.random() * 0.35 });
+          const [dx, dy, gy] = at(aw.u0 + Math.random() * (aw.u1 - aw.u0));
+          if (drips.length < cap) drips.push({ x: dx, y: dy, y1: gy, v: 0, hang: r > 0.7 ? Math.random() * 0.08 : Math.random() * 0.35 });
         }
-      }
+        const sheet = dripSheet(r);
+        if (sheet > 0.01) for (const u of [aw.u0 + 0.03, aw.u1 - 0.03]) for (let n = sec * 16 * sheet + Math.random(); n >= 1; n--) {
+          const [dx, dy, gy] = at(u);
+          if (drips.length < cap + 24) drips.push({ x: dx + (Math.random() - 0.5) * 0.9, y: dy, y1: gy, v: 60 + Math.random() * 80, hang: 0, sheet: true });
+        }
+      } else lastRate = 0;
       if (!rings.length && !drips.length) return;
       c.save();
       const night = clamp01(o.night), col = o.day > 0.5 ? '232,238,246' : '200,206,240';
@@ -157,7 +168,7 @@ export function createWetGround() {
         if (d.hang > 0) { d.hang -= sec; c.globalAlpha = 0.55 * o.fade; c.fillRect(d.x - 0.6, d.y - 0.2, 1.2, 1.4); return true; }
         d.v += 900 * sec; d.y += d.v * sec;
         if (d.y >= d.y1) { if (rings.length < 40) rings.push({ x: d.x, y: d.y1, r: 1.6, t: 0 }); return false; }
-        c.globalAlpha = 0.7 * o.fade; c.fillRect(d.x - 0.5, d.y - 3, 1, 3.4);
+        c.globalAlpha = (d.sheet ? 0.6 : 0.7) * o.fade; c.fillRect(d.x - 0.5, d.y - (d.sheet ? 5.5 : 3), 1, d.sheet ? 6 : 3.4);
         return true;
       });
       c.restore();
@@ -197,7 +208,7 @@ export function createWetGround() {
       c.restore();
       void sec;
     },
-    debug: () => ({ puddles: pud.length, shown: pud.filter(p => p.thr < 1).length, rings: rings.length, drips: drips.length, baked: !!cv }),
+    debug: () => ({ puddles: pud.length, shown: pud.filter(p => p.thr < 1).length, rings: rings.length, drips: drips.length, dripRate: +lastRate.toFixed(2), baked: !!cv }),
     destroy() { if (cv) cv.width = 0; cv = null; },
   };
 }

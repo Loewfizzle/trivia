@@ -210,9 +210,13 @@ export function cloudPlan(box, M, seed = '') {
   return out;
 }
 
+/** SP4 — the clouds' SCREEN speed (pt/s for d.v = 1): the real wind at their height, slowed for the camera (they are kilometres off):
+ *  a cumulus takes MINUTES to cross a phone, never seconds (the owner's "clouds racing" on the seeded wind) — 1.0 pt/s at 1.6 m/s,
+ *  2.4 at 6, capped at 2.6 for a gale (a 402-pt phone: ≥ 2.5 min for the nearest, 10+ for the far cirrus) */
+export const driftSpeed = wind => Math.min(2.6, 0.5 + Math.max(0, wind || 0) * 0.32);
 /** a cloud's left edge now: it drifts with the real wind (nearer = faster), wrapping round the screen (each its own margin) */
 export function driftX(d, tSec, wind, windX, W) {
-  const span = W + d.w * 1.08, sp = (1.2 + Math.max(0, wind || 0) * 0.9) * windX * d.v;
+  const span = W + d.w * 1.08, sp = driftSpeed(wind) * windX * d.v;
   const x = d.x0 + d.w * 1.04 + sp * tSec;
   return ((x % span) + span) % span - d.w * 1.04;
 }

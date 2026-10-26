@@ -181,6 +181,15 @@ export function starOnly(on) {
 /** SP3 — THE STAGING (the owner: "too small — you can't make anything out"): how close each moment plays to the glass — a zoom about the
  *  pane's foot, so a close moment is a BOLD silhouette cropped by the frame (~60–70 % of the pane's height: head + shoulders the shape),
  *  a 'room' moment full-body a little deeper in a simplified room. 1 = as drawn. */
+/** SP4 — THE LOOK of the people in each window scene (the owner: "if it's lit in the room you should be able to SEE them"):
+ *  lit (real colours, the lamp's modelling, the rim) · shadow (ON the jazz room's shade — between the lamp and the window: backlit) ·
+ *  silhouette (a dark room / backlit by the TV) · ghost (the holiday's own glow). windows.js draws them so; tests/sp4.test.mjs keeps
+ *  every moment in the table. */
+export const WINDOW_LOOKS = Object.freeze({
+  wake: 'lit', 'shop-open': 'lit', bartender: 'lit', 'lights-out': 'silhouette', dance: 'shadow', toast: 'lit', sax: 'shadow', cat: 'silhouette',
+  fan: 'silhouette', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit',
+});
+export const LOOK_WHY = Object.freeze({ shadow: 'on the jazz room\'s shade (backlit)', silhouette: 'a dark room, or backlit by the TV', ghost: 'the holiday\'s own glow', lit: 'in a lit room' });
 export const STAGE = Object.freeze({ ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
 /** the rooms' own steady figures (the jazz room's player, the TV couch, the bar's afternoon) — a step closer too */
 export const STAGE_ROOM = 1.22;

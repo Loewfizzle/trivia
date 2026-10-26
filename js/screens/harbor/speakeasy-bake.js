@@ -529,7 +529,11 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       const r = rngFrom(23), curtains = [tri(T, [140, 40, 44], [150, 50, 44], [20, 10, 18]), tri(T, [70, 92, 58], [90, 80, 50], [12, 14, 16]), tri(T, [196, 168, 110], [200, 150, 100], [26, 22, 30])];
       ROOMS.forEach(rm => {
         const [a, b] = s.windows[rm.col], [r0, r1] = s.rows[rm.floor - 2];
-        const o = { blind: rm.clear ? 0.12 : 0.25 + r() * 0.45, curtain: rm.edge || rm.room === 'apartment' ? curtains[(rm.floor + rm.col) % 3] : null, plant: rm.id === 'edge2' };
+        // (SP4 — the owner: the panes rendered NON-UNIFORM by day — the apartment's + the edge windows' day curtains covered 0.2 units of
+        // glass each side and read as frame: the upper-right pane ~22 % narrower than its neighbour. No day curtains: every pane the
+        // same glass; the night rooms keep their own tied-back curtains inside the room's paint)
+        const o = { blind: rm.clear ? 0.12 : 0.25 + r() * 0.45, curtain: null, plant: rm.id === 'edge2' };
+        void curtains;
         paintWindow(x, M, a, b, r0, r1, o);
       });
       x.restore();

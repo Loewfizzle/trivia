@@ -12,7 +12,9 @@ import { flattenPath } from './tube-path.js';
  *  col: the tubes' neon. POLISH 5 (the owner, the JAZZ preview at night: pink-red on the warm amber room read soft + low-contrast):
  *  ICE-CYAN — the complement of the room's amber, the most contrast there is — with white-hot cores + TIGHT halos (hushsign.js), the
  *  strokes thicker and the letters BOLD BLOCKS that fill the glass (wider, tighter gaps, a slimmer margin) */
-export const HUSH = Object.freeze({ lw: 0.84, gap: 0.1, row: 0.13, tube: 0.17, margin: 0.05, col: [96, 232, 255] });
+// (SP4 — the owner: the JAZZ letters rode over the pane's frame: the block filled the glass edge to edge and the tubes' halos spilled onto
+// the frame — the margin now leaves room for the halo (the letters ~12 % smaller), and hushsign.js clips the overlay to the glass)
+export const HUSH = Object.freeze({ lw: 0.84, gap: 0.1, row: 0.13, tube: 0.17, margin: 0.2, col: [96, 232, 255] });
 
 /** the window's glass (wall units) for the window [a, b] × [r0, r1] — the same insets as the speakeasy's sash (speakeasy.js#paintWindow) */
 export const hushGlass = (a, b, r0, r1) => [a + 0.18, b - 0.05, r0 + 0.12, r1 - 0.06];
