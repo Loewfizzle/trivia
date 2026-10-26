@@ -7382,6 +7382,9 @@ warning; the owner's iPhone decides).
   the second spider's arrival night is a quiet one: the building goes to bed around the boss's glow with the spiders on the sign).
 - **The e2e on a loaded laptop**: the windows group's trace probes run at ~6 fps when the suite shares the machine (the boss's-room probe takes
   ≥ 12 frames; the cash's phases need the full 20 s); the cloud's 2-core runner is the reference.
+- **The cloud run** (40401060926, the `[harbor]` push — the pass's one run): `street`, `show`, `holiday`, `windows` (the new job), `audio`,
+  `wild` green; `city` 107/108 — SP3's known clock-dependent "LOAD WEATHER — answered after 6 s" flake, not this pass's code (the same
+  check in WIN2's two runs). Not re-run (the two-run rule); WIN2's two test fixes are proven by this run (`audio` + `street` green).
 - **The windows cloud job** grew by ~2 min (the late flicker's 9-s read, the quiet night's two pages, the raid's cut, the party's 60-s stagger +
   the raid staged after it): `street` is the heaviest job now (`panelrows` went to `holiday`).
 
