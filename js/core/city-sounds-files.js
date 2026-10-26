@@ -140,6 +140,9 @@ export const FILES = /*FILES*/{
     {"f": "heli-flyby-2.mp3", "v": "875a25e8", "d": 35.6, "lufs": -20.4, "peak": 9.25, "sw": [3.65, 20.9], "from": [0.0, 35.6], "src": "heli-flyby-2", "r": 16000},
     {"f": "heli-flyby.mp3", "v": "a9814031", "d": 43.0, "lufs": -20.4, "peak": 4.7, "sw": [1.55, 27.3], "from": [1.0, 44.0], "src": "heli-flyby", "r": 16000}
   ],
+  "hydrant-spray": [
+    {"f": "hydrant-spray.mp3", "v": "db67d2d4", "d": 40.0, "lufs": -24.4, "loop": 37.5, "xf": 2.5, "from": [1.0, 41.0], "src": "hydrant-spray"}
+  ],
   "jet-flyby": [
     {"f": "jets-formation.mp3", "v": "55b5e33c", "d": 23.0, "lufs": -20.4, "peak": 5.5, "sw": [1.5, 9.1], "from": [11.0, 34.0], "src": "jets-formation", "r": 16000}
   ],
@@ -166,6 +169,9 @@ export const FILES = /*FILES*/{
   ],
   "newspaper-rustle": [
     {"f": "newspaper-rustle.mp3", "v": "7beeccf9", "d": 0.778, "lufs": -20.2, "peak": 0.35, "sw": [0.15, 0.6], "from": [0.0, 0.78], "src": "newspaper-rustle"}
+  ],
+  "periscope-ping": [
+    {"f": "periscope-ping.mp3", "v": "991b4d4d", "d": 4.288, "lufs": -20.4, "peak": 0.15, "sw": [0.15, 1.95], "from": [0.0, 4.29], "src": "periscope-ping"}
   ],
   "pigeon-coo": [
     {"f": "pigeon-coo_1.mp3", "v": "6f9892a8", "d": 3.2, "lufs": -20.4, "peak": 2.45, "sw": [1.9, 2.9], "from": [0.4, 3.6], "src": "pigeon-coo"},

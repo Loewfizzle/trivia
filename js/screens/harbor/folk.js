@@ -10,7 +10,7 @@
 import { project } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
 import { GEAR, gearCart } from './gear.js';
-import { LADDER, liftSq, raiseK } from '../../core/harbor-crew.js';
+import { LADDER, HANDS, liftSq, raiseK } from '../../core/harbor-crew.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -71,7 +71,7 @@ export function lookOf(name, seed, o = {}) {
   if (name === 'lady') woman = true;
   if (name === 'couple') woman = role !== 'lead';
   if (name === 'worker' || name === 'jogger' || name === 'nightworker') woman = r() < 0.15;
-  if (name === 'newsboy') { kid = true; woman = false; }
+  if (name === 'newsboy' || name === 'kid') { kid = true; woman = false; }
   const L = { woman, kid, coat: cold ? 'long' : summer ? 'none' : r() < 0.6 ? 'long' : 'short', dress: woman ? 'day' : null, hat: null, carry: null, jog: false,
     cols: { coat: pick(r, COATS), legs: pick(r, TROUSERS), hat: pick(r, FELT),
       skin: pick(r, SKIN), hair: pick(r, HAIR), shirt: pick(r, SUMMER), dress: pick(r, DRESSES), scarf: cold && r() < 0.7 ? pick(r, SCARVES) : null } };
@@ -81,6 +81,8 @@ export function lookOf(name, seed, o = {}) {
   if (name === 'lady') L.carry = 'purse';
   if (name === 'worker' || name === 'nightworker') { L.hat = 'flatcap'; L.coat = 'short'; L.carry = 'pail'; L.cols.coat = pick(r, [[70, 84, 112], [112, 96, 74], [88, 88, 90]]); L.dress = null; L.woman = false; }
   if (name === 'jogger') { L.jog = true; L.coat = 'none'; L.dress = null; L.woman = false; L.hat = r() < 0.5 ? 'flatcap' : null; L.cols.shirt = pick(r, [[214, 210, 200], [120, 40, 44], [44, 60, 96], [90, 90, 96]]); L.cols.legs = pick(r, [[180, 170, 150], [60, 60, 66], [214, 210, 200]]); L.scarf = null; L.cols.scarf = null; }
+  // (POLISH 5 — the kid who runs through the hydrant's spray: summer things, no coat, a flat cap)
+  if (name === 'kid') { L.coat = 'none'; L.dress = null; L.hat = r() < 0.6 ? 'flatcap' : null; L.cols.shirt = pick(r, [[236, 232, 220], [120, 160, 210], [214, 120, 90]]); L.cols.legs = pick(r, [[110, 96, 80], [70, 80, 110]]); L.scarf = null; L.cols.scarf = null; L.carry = null; }
   if (name === 'newsboy') { L.hat = 'newsboy'; L.coat = 'short'; L.carry = 'papers'; L.cols.coat = pick(r, [[130, 108, 80], [100, 94, 86], [116, 92, 66]]); L.cols.legs = [116, 104, 86]; }
   if (name === 'guest' || (party && (name === 'couple' || name === 'stroll'))) {
     if (L.woman) { L.dress = party || r() < 0.4 ? 'flapper' : 'day'; L.cols.dress = pick(r, L.dress === 'flapper' ? FLAPPER : DRESSES); L.hat = L.dress === 'flapper' ? (r() < 0.5 ? 'band' : null) : 'cloche'; L.coat = cold && !party ? 'long' : 'none'; L.carry = 'purse'; }
@@ -299,7 +301,12 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // PUSHED upright (the arms from overhead out to the front) / caught coming down, the fly HAULED up its rope hand over hand (a pull a
   // LADDER.pull — the fly rises pull by pull with it); THE STEPLADDER swung down off the shoulder + stood up ('upend' / back: 'lay'),
   // spread / folded (both hands at its top)
-  if ((walking && cr0 === 'walkup') || back) for (let i = 0; i < 2; i++) arm(i, 2.75, 0.15, 0.1);
+  // (POLISH 5 — THE HANDS ON THE RAILS, the C2 known issue: the ladder's angle is built from where the hands are — core/harbor-crew.js#ladderAt:
+  // HANDS.up ahead, LADDER.hR up — so the arms now REACH that point (a two-bone IK in the body's own heights, this person's size), hand
+  // over hand a little apart along the rail, instead of a fixed overhead angle that missed the rails by up to ~3 px)
+  const reach = (i, ta, ty, out = 0.1) => { const s0 = shJ[i], dx = ta - s0.a, dy = ty - s0.y, d = Math.min(Math.hypot(dx, dy), (upA + foreA) * 0.999), ph = Math.atan2(dx, -dy);
+    const be = Math.acos(clamp01((upA * upA + d * d - foreA * foreA) / (2 * upA * d))), ga = Math.acos(clamp01((foreA * foreA + d * d - upA * upA) / (2 * foreA * d))); arm(i, ph - be, be + ga, out); };
+  if ((walking && cr0 === 'walkup') || back) { const Hb = 2.1 * (L.h || 1), sw = walking ? 0.03 * Math.sin(p * Math.PI * 2) : 0; for (let i = 0; i < 2; i++) reach(i, HANDS.up / Hb + (i ? sw : -sw), LADDER.hR / Hb + (i ? -sw : sw) * 0.6); }
   if (pose === 'push' || pose === 'catch') { const k = smooth(pose === 'push' ? uP : 1 - uP); for (let i = 0; i < 2; i++) arm(i, 2.75 - 0.95 * k + (i === near ? 0 : 0.06), 0.15 + 0.25 * k, 0.1); shJ.forEach(q => { q.a += 0.03 * k; }); head.a += 0.03 * k; }
   if (pose === 'haul') { const c8 = Math.cos((mo ? sN : 0) / LADDER.pull * Math.PI); arm(near, 2.0 + 0.55 * c8, 0.5, 0.08); arm(1 - near, 2.0 - 0.55 * c8, 0.5, 0.08); }
   if (pose === 'upend' || pose === 'lay') { const k = smooth(pose === 'upend' ? uP : 1 - uP); arm(near, 2.62 + (1.25 - 2.62) * k, 2.6 + (0.35 - 2.6) * k, 0.14); arm(1 - near, 0.1 + 1.5 * k, 0.12 + 0.28 * k, 0.1); }
@@ -664,13 +671,16 @@ export function drawDog(c, cam, st, L, env, yUp = 0) {
   const p = st.v > 0.05 ? (st.dist / 0.9) % 1 : 0, trot = st.v > 0.05 ? 1 : 0;
   // (8b1 wildlife — THE LUNGE at the pigeons, st.lunge 0..1: the body stretched + low, the front legs reaching, the head down + out)
   const lg = Math.max(0, Math.min(1, st.lunge || 0)), fwd = 0.3 * lg, low = 0.1 * lg;
+  // (POLISH 5 — THE SNIFF at the hydrant: the head down to it + a little forward, the tail going)
+  const sn = st.sniff && st.v < 0.05 ? Math.max(0, Math.min(1, (st.since || 0) / 0.5, (st.left == null ? 1 : st.left) / 0.5)) : 0, hdn = 0.34 * sn, hfw = 0.08 * sn;
   c.strokeStyle = rgb(col.map(v => v * 0.8)); c.lineWidth = Math.max(0.6, H * 0.09); c.lineCap = 'round';
   for (const [bx, ph] of [[-0.42, 0], [0.38, 0.5], [-0.32, 0.5], [0.28, 0]]) { const sw = trot * Math.sin((p + ph) * TAU) * 0.16, reach = bx > 0 ? fwd * 1.4 : -fwd * 0.3; c.beginPath(); c.moveTo(X(bx + (bx > 0 ? fwd : 0)), Y(0.42 - low)); c.lineTo(X(bx + sw + reach), Y(0.02)); c.stroke(); }
   c.fillStyle = rgb(col); c.beginPath(); c.ellipse(X(fwd * 0.5), Y(0.52 - low), H * (0.5 + fwd * 0.5), H * 0.17, 0, 0, TAU); c.fill();
-  c.beginPath(); c.ellipse(X(0.55 + fwd * 1.1), Y(0.72 - low * 2), H * 0.16, H * 0.14, 0, 0, TAU); c.fill();                      // the head
-  c.beginPath(); c.ellipse(X(0.7 + fwd * 1.15), Y(0.68 - low * 2), H * 0.1, H * 0.06, 0, 0, TAU); c.fill();                       // the muzzle
-  c.beginPath(); c.moveTo(X(0.5 + fwd * 1.1), Y(0.82 - low * 2)); c.lineTo(X(0.46 + fwd), Y(0.98 - low * 2.6)); c.lineTo(X(0.58 + fwd * 1.1), Y(0.84 - low * 2)); c.fill();   // an ear (flat back in the lunge)
-  const wag = env.mo !== false ? Math.sin((env.t || 0) * 11 + st.x) * 0.08 : 0;
+  if (sn > 0) { c.lineWidth = Math.max(0.6, H * 0.12); c.strokeStyle = rgb(col); c.beginPath(); c.moveTo(X(0.42), Y(0.6)); c.lineTo(X(0.55 + hfw), Y(0.72 - hdn)); c.stroke(); }   // (the neck down)
+  c.beginPath(); c.ellipse(X(0.55 + fwd * 1.1 + hfw), Y(0.72 - low * 2 - hdn), H * 0.16, H * 0.14, 0, 0, TAU); c.fill();                      // the head
+  c.beginPath(); c.ellipse(X(0.7 + fwd * 1.15 + hfw * 1.4), Y(0.68 - low * 2 - hdn * 1.15), H * 0.1, H * 0.06, -0.5 * sn, 0, TAU); c.fill();                       // the muzzle
+  c.beginPath(); c.moveTo(X(0.5 + fwd * 1.1 + hfw), Y(0.82 - low * 2 - hdn)); c.lineTo(X(0.46 + fwd + hfw), Y(0.98 - low * 2.6 - hdn)); c.lineTo(X(0.58 + fwd * 1.1 + hfw), Y(0.84 - low * 2 - hdn)); c.fill();   // an ear (flat back in the lunge)
+  const wag = env.mo !== false ? Math.sin((env.t || 0) * (11 + 7 * sn) + st.x) * (0.08 + 0.05 * sn) : 0;
   c.strokeStyle = rgb(col); c.lineWidth = Math.max(0.6, H * 0.07); c.beginPath(); c.moveTo(X(-0.48), Y(0.58)); c.quadraticCurveTo(X(-0.66), Y(0.78 + wag), X(-0.62), Y(0.92 + wag)); c.stroke();
   return [X(0.48 + fwd * 1.1), Y(0.62 - low * 2)];
 }

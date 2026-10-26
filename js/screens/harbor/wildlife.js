@@ -22,11 +22,11 @@ import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js'
 import { hourPlan } from '../../core/harbor-moments.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import {
-  localOf, wildSpots, spotPoint, offPoint, canSpot, pilingSpot, PIGEON, pigeonAt, groundLife, GULL, gullSlot, gullSlotLen, OWL, owlDay, owlAt,
+  localOf, wildSpots, spotPoint, offPoint, hydrantOf, pilingSpot, PIGEON, pigeonAt, groundLife, GULL, gullSlot, gullSlotLen, OWL, owlDay, owlAt,
   SQUIRREL, squirrelSlot, squirrelSlotLen, fishSlotLen, coyoteNight, coyotePath, pathAt, coyoteTracks, catEvening, catPath, catSpot,
   fireflyCount, fireflyAt, FIREFLY, heronMorning, heronForced, HERON, FISH, fishSlot,
 } from '../../core/harbor-wildlife.js';
-import { drawBird, drawOwl, drawHeron, drawQuad, drawTrashCan, drawPiling, drawJump, drawFirefly, fireflySprite } from './fauna.js';
+import { drawBird, drawOwl, drawHeron, drawQuad, drawHydrant, drawHydrantSpray, drawHydrantWet, drawPiling, drawJump, drawFirefly, fireflySprite } from './fauna.js';
 
 const TAU = Math.PI * 2, PI = Math.PI;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -37,16 +37,16 @@ const hash = (...k) => rngFrom(hashString(k.join('|')));
 export const WILD_FORCES = ['pigeons', 'pigeons-scatter', 'dog-pigeons', 'cat-out', 'cat-stalk', 'gulls-land', 'squirrel', 'snowy-owl', 'coyote', 'fireflies', 'heron', 'fish'];
 
 export function createWildlife() {
-  let L = null, spots = [], byId = new Map(), can = null, piling = null, maple = null, cache = new Map(), budgetK = 1;
+  let L = null, spots = [], byId = new Map(), hyd = null, piling = null, maple = null, cache = new Map(), budgetK = 1;
   let ctx = null, t = 0, frameT = 0, forceKey = '', lastT = null, people = [], force = new Set(), tier = 2, motion = true, season = 'autumn';
   let sunKey = '', sun = { rise: 7.2, set: 18.6 }, catWinKey = '', catWin = null;
   const pig = Array.from({ length: PIGEON.max }, (_, i) => ({ i, ov: null, now: null, flushes: 0, hold: 0 }));
   const gullOv = new Map(), lunges = new Map(), bolts = { coyote: null, squirrel: null };
   let catOv = null, catStalkDone = -1, sqHide = -1, sqId = null, lastFlutter = -1e9, nextCoo = 0, nextCall = 0, sounds = [];
-  let scareQ = [], ffSprite = null, now = { birds: [], gulls: [], owl: null, sq: null, coyote: null, cat: null, fish: [], heron: null, ff: [], can: null };
+  let scareQ = [], ffSprite = null, now = { birds: [], gulls: [], owl: null, sq: null, coyote: null, cat: null, fish: [], heron: null, ff: [], hyd: null };
 
   function layout(l) {
-    L = l; spots = wildSpots(L); byId = new Map(spots.map(s => [s.id, s])); can = canSpot(L); piling = pilingSpot(L);
+    L = l; spots = wildSpots(L); byId = new Map(spots.map(s => [s.id, s])); hyd = hydrantOf(L); piling = pilingSpot(L);
     maple = (L.trees || []).filter(tr => tr.kind === 'maple').sort((a, b) => b.x - a.x)[0] || null;
     cache.clear(); for (const b of pig) { b.ov = null; b.now = null; }
   }
@@ -95,7 +95,7 @@ export function createWildlife() {
     now.owl = owlNow();
     now.sq = squirrelNow();
     now.coyote = coyoteNow(f);
-    now.can = canNow(f);
+    now.hyd = hydNow(f);
     now.cat = catNow();
     now.fish = fishNow();
     now.heron = heronNow();
@@ -362,9 +362,10 @@ export function createWildlife() {
     out.tracks = (f.snow || 0) > 0.3 ? coyoteTracks(plan, t) : null;
     return out;
   }
-  function canNow(f) {
-    const held = f.canHeld ? f.canHeld(t) : null;   // (the trash collector carries it to the truck + back)
-    return { ...can, lid: 'on', held };
+  // POLISH 5 — THE FIRE HYDRANT (the can's old spot): its state from the workers' traces (a hot day's spray, the wet patch)
+  function hydNow(f) {
+    const tr = f.hydrant ? f.hydrant(t) : null;
+    return { ...hyd, spray: tr ? tr.spray : 0, wet: tr ? tr.wet : 0, open: tr ? Math.min(1, Math.max(0, tr.u + 3) / 3) * (tr.spray > 0 ? 1 : 0) : 0 };
   }
 
   // ---------------------------------------------------------------- THE SPEAKEASY CAT, OUTSIDE
@@ -524,7 +525,7 @@ export function createWildlife() {
       for (const b of pig) { const n = b.now; if (n && !n.hide && !n.air && (n.spot === 'blade' || (n.spot || '').startsWith('parapet') || (n.spot || '').startsWith('post'))) drawBird(c, cam, { ...n, kind: 'pigeon' }, E); }
       if (now.owl && now.owl.state === 'at' && !now.owl.spot.startsWith('bill')) drawOwl(c, cam, now.owl, E);
     } else if (pass === 'front') {
-      const cn = now.can; if (cn && !(cn.held && cn.held.hidden)) drawTrashCan(c, cam, cn.held ? { ...cn, ...cn.held } : cn, E);   // (8b1: hidden — on the collector's shoulder)
+      const hn = now.hyd; if (hn) { drawHydrantWet(c, cam, hn, E, hn); drawHydrant(c, cam, hn, E, hn); drawHydrantSpray(c, cam, hn, E, { ...hn, t: frameT, motion }); }
     } else if (pass === 'top') {
       if (season === 'winter' && maple) hollow(c, E);
       if (now.sq && now.sq.onTree) drawQuad(c, cam, { ...now.sq, kind: 'squirrel', pose: 'climb' }, E);
@@ -559,9 +560,9 @@ export function createWildlife() {
     startle() { scareQ.push({ all: true }); if (now.coyote) bolts.coyote = { t0: t, x: now.coyote.x, z: now.coyote.z, to: { x: L.cam.hw(now.coyote.z) + 3, z: now.coyote.z } }; if (now.sq && !now.sq.onTree) bolts.squirrel = { id: lastSq(), t0: t, x: now.sq.x, z: now.sq.z }; },
     /** people.js: how far a dog is into its lunge at the flock now (0..1) */
     dogLunge(vid) { const l = lunges.get(vid); if (!l || l.t0 < 0) return 0; const e = t - l.t0; return e < 0 || e > 1.6 ? 0 : e < 0.25 ? e / 0.25 : 1 - (e - 0.25) / 1.35; },
-    /** the trash can now (Group 1: its position + the lid, always on; canHeld comes in through frame) */
-    canState: () => (now.can ? { x: now.can.x, z: now.can.z, lid: now.can.lid } : null),
-    canSpot: () => can,
+    /** POLISH 5 — the fire hydrant now (its spot, the spray 0..1, the wet patch 0..1) */
+    hydrantState: () => (now.hyd ? { x: now.hyd.x, z: now.hyd.z, spray: now.hyd.spray, wet: now.hyd.wet } : null),
+    hydrantSpot: () => hyd,
     /** anything flying / climbing / running now (the scene keeps 60 fps) */
     busy: () => pig.some(b => b.now && b.now.air) || now.gulls.some(g => g.air) || !!(now.owl && now.owl.state === 'glide') || !!(now.sq && (now.sq.pose === 'trot' || now.sq.onTree)) || !!(now.coyote && now.coyote.moving) || now.fish.length > 0 || !!(now.heron && now.heron.pose === 'fly') || !!(now.cat && now.cat.moving),
     /** THE DIRECTOR: the share of the flock drawn (0..1) */
@@ -571,7 +572,7 @@ export function createWildlife() {
       gulls: now.gulls.map(g => ({ id: g.id, spot: g.spot, pose: g.pose, air: !!g.air })), owl: now.owl ? { state: now.owl.state, spot: now.owl.spot || null } : null,
       squirrel: now.sq ? { pose: now.sq.pose, onTree: !!now.sq.onTree, x: +now.sq.x.toFixed(2), z: +now.sq.z.toFixed(2) } : null,
       coyote: now.coyote ? { x: +now.coyote.x.toFixed(2), z: +now.coyote.z.toFixed(2), pose: now.coyote.pose, eyes: +(now.coyote.eyes || 0).toFixed(2) } : null,
-      can: now.can ? { lid: now.can.lid, x: +now.can.x.toFixed(2), z: +now.can.z.toFixed(2), held: !!now.can.held } : null,
+      hydrant: now.hyd ? { x: +now.hyd.x.toFixed(2), z: +now.hyd.z.toFixed(2), spray: +now.hyd.spray.toFixed(2), wet: +now.hyd.wet.toFixed(2) } : null,
       cat: now.cat ? { pose: now.cat.pose, x: +now.cat.x.toFixed(2), y: +now.cat.y.toFixed(2), z: +now.cat.z.toFixed(2) } : null,
       fish: now.fish.length, heron: now.heron ? { pose: now.heron.pose, strike: +(now.heron.strike || 0).toFixed(2) } : null, fireflies: now.ff.length,
       sun: { rise: +sun.rise.toFixed(2), set: +sun.set.toFixed(2) }, spots: spots.map(s => s.id), piling: piling ? { x: +piling.x.toFixed(2), z: piling.z } : null,

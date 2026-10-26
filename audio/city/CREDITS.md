@@ -309,6 +309,12 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Pole%20Position%20-%20The%20Aircraft%20Ambient%20Library/Helicopter%20-%20Military%20-%20FLY%20-%20By%20-%20Overhead%20-%20ORTF%20-%20MKH8040.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## hydrant-spray.wav  →  hydrant-spray
+
+- MD5 `4bbdad0fe7a76f016ea7bd9492130205`
+- hydrant-spray.wav
+- an open fire hydrant: the stream’s hiss + the splash on cobbles — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)
+
 ## jets-formation.wav  →  jet-flyby
 
 - MD5 `de51139e0abe0eaa8471a5e1c3f6a97c`
@@ -379,6 +385,12 @@ are kept anyway, with each source file's MD5.
 - "newspaper_opening_009" - SpillAudio - Paper, Sonniss GDC 2020 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/SpillAudio%20-%20Paper/newspaper_opening_009.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## periscope-ping.wav  →  periscope-ping
+
+- MD5 `69eff3a5fd2a4e4bf0293a435795d5da`
+- periscope-ping.wav
+- a submarine sonar ping with its underwater echo — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)
 
 ## pigeon-coo.wav  →  pigeon-coo
 

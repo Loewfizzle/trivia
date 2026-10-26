@@ -38,8 +38,8 @@ export const SLOTS = [
   S('shop-bell', '7', 'once', 0.06, 'the barbershop door’s bell (three jingles)', 'the barbershop’s customers in + out, the first one at the opening (8P: sounds.js#life)'),
   S('scissors-snip', '7', 'once', 0.08, 'a barber’s scissors: 2–4 snips (four takes; all transient — the files sit at ≈ −28 LUFS, so a higher gain: ≈ −49 into the bus)', 'the haircuts (8P: sounds.js#life — now and then while the barber works)'),
   S('broom-sweep', '7', 'loop', 0.07, 'a broom sweeping, through the bar’s glass (3 am)', 'the bar’s last light, 3 → 4 am (8P: sounds.js#life)'),
-  S('window-sash-up', '7', 'once', 0.05, 'a sash window pushed up (a juddering slide, a soft stop at `hit` s)', 'the upstairs wakes: the lower sash up for the watering (8P)'),
-  S('window-sash-down', '7', 'once', 0.05, 'a sash window let down (a short slide, the rail on the sill at `hit` s)', 'the upstairs wakes: the sash down again (8P)'),
+  S('window-sash-up', '7', 'once', 0.05, 'a sash window pushed up (a juddering slide, a soft stop at `hit` s)', '(unused since POLISH 5: the wake no longer waters the window box)'),
+  S('window-sash-down', '7', 'once', 0.05, 'a sash window let down (a short slide, the rail on the sill at `hit` s)', '(unused since POLISH 5)'),
   S('roller-blind', '7', 'once', 0.05, 'a roller blind going up', 'the upstairs wakes: the blind up (8P)'),
   // (FP3b — REAL DOORS: the speakeasy's unmarked side door swinging as someone walks through — empty until a recording is imported)
   S('street-door', '7', 'once', 0.08, 'a heavy 1920s street door of oak on iron hinges opening: the latch, a short creak', 'the speakeasy’s side door swinging open as someone walks through (FP3b: people.js#doorSounds; at night with bar-open’s burst)'),
@@ -61,6 +61,8 @@ export const SLOTS = [
   // more, measured: the lapping's splashy highs were most of its loudness) ≈ −9.8 dB in all: a harbor quay heard from the promenade,
   // not a beach; the city hum leads the bed now)
   S('water-lapping', '8', 'loop', 0.07, 'harbor water lapping at the quay, far + soft', 'always, quietly under the city hum', { lp: 1600 }),
+  // (POLISH 5: the hot-day hydrant — synthesized: scripts/build-synth-sfx.py)
+  S('hydrant-spray', '8', 'loop', 0.075, 'an open fire hydrant: the stream’s hiss + its splash on the cobbles (synthesized)', 'the hot-day hydrant while it sprays (sounds.js#tick: hydrant)'),
   S('city-hum-day', '8', 'loop', 0.11, 'a distant city hum by day', 'by day (crossfades with the night hum on the darkness)'),
   S('city-hum-night', '8', 'loop', 0.09, 'a distant city hum at night (calmer, never silent)', 'at night (crossfades with the day hum on the darkness)'),
   S('traffic-far', '8', 'loop', 0.08, 'light far-off traffic — EMPTY: both tries were MODERN traffic (8b1: the second a continuous wash — its cut is ready in the importer)'),
@@ -167,6 +169,9 @@ export const SLOTS = [
   S('ghost-ship-creak', 'legend', 'loop', 0.08, 'the ghost ship: creaking wood'),
   S('ghost-bell', 'legend', 'once', 0.12, 'the ghost ship’s ghostly bell'),
   S('monster-splash', 'legend', 'once', 0.16, 'the harbor monster’s big splash'),
+  // (POLISH 5 — the owner: ONE realistic sonar ping as the periscope breaks the surface; synthesized — scripts/build-synth-sfx.py; played
+  // DUCKED over the music (sounds.js#periscope: a brief dip so it cuts through, never a startle) by the periscope's legendary when it lands)
+  S('periscope-ping', 'legend', 'once', 0.15, 'a submarine sonar ping: a clean ~1.25 kHz ping + a long underwater echo (~3.6 s), mid-range (synthesized)', 'the periscope breaking the surface (the legendary egg, a later part): sounds.js#periscope'),
 ];
 
 const BY_ID = new Map(SLOTS.map(s => [s.id, s]));
@@ -338,10 +343,8 @@ export function sweepPan(el, take, w = 0.55, dir = -1) {
 export const MOMENT_CUES = Object.freeze({
   // the clink over the middle (patrons(): the glasses meet at p 0.33–0.44)
   toast: [{ slot: 'glasses-clink', p: 0.38, hit: true, gain: 0.9, pan: -0.5 }],
-  // the blind rolls up (p 0.02–0.16); the lower sash up for the watering (its stop as it tops out, p 0.62) and down again (on the
-  // sill at p 0.9)
-  wake: [{ slot: 'roller-blind', p: 0.02, gain: 0.8, pan: -0.58 }, { slot: 'window-sash-up', p: 0.62, hit: true, gain: 0.8, pan: -0.58 },
-    { slot: 'window-sash-down', p: 0.9, hit: true, gain: 0.7, pan: -0.58 }],
+  // the blind rolls up (p 0.02–0.16) (POLISH 5: the window box is gone — no watering, so no sash up + down)
+  wake: [{ slot: 'roller-blind', p: 0.02, gain: 0.8, pan: -0.58 }],
   // the leap up lands on the sill (p 0.07); the hop down lands behind it (p 0.98), softer
   cat: [{ slot: 'cat-meow', p: 0.01, gain: 0.7, pan: -0.6 }, { slot: 'cat-land', p: 0.07, hit: true, gain: 0.7, pan: -0.6 }, { slot: 'cat-land', p: 0.98, hit: true, gain: 0.45, pan: -0.6 }],
   // the bar heard while the mirror stands open (from p 0.06, its own fades), the door's thud as it shuts (p 0.95)

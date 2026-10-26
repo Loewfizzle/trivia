@@ -37,7 +37,9 @@ const localOf = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 
  * or null (no circle this slot). ctx: { off (minutes from UTC), seed, party(t) → bool, force (&force=dance) }.
  */
 export function danceSlot(j, ctx = {}) {
-  const F = ctx.force ? DANCE.force : null, S = F ? F.slot : DANCE.slot, t0 = j * S;
+  // (POLISH 5: a forced circle's slots count from ctx.forceAt — the moment it was fired — never joined mid-dance)
+  const F = ctx.force ? DANCE.force : null, S = F ? F.slot : DANCE.slot, base = F && ctx.forceAt != null ? ctx.forceAt : 0, t0 = base + j * S;
+  if (F && ctx.forceAt != null && j < 0) return null;
   const r = rngFrom(hashString(`dance|${ctx.seed || 1924}|${j}|${F ? 'f' : ''}`));
   if (!F) {
     const loc = localOf(t0 + S / 2, ctx.off), hh = loc.h < 3 ? loc.h + 24 : loc.h;
@@ -50,8 +52,8 @@ export function danceSlot(j, ctx = {}) {
 }
 /** the slots whose circle could touch [a, b] */
 export function danceSlotsNear(a, b, ctx = {}) {
-  const S = ctx.force ? DANCE.force.slot : DANCE.slot, out = [];
-  for (let j = Math.floor(a / S) - 1; j <= Math.floor(b / S); j++) out.push(j);
+  const S = ctx.force ? DANCE.force.slot : DANCE.slot, base = ctx.force && ctx.forceAt != null ? ctx.forceAt : 0, out = [];
+  for (let j = Math.floor((a - base) / S) - 1; j <= Math.floor((b - base) / S); j++) out.push(j);
   return out;
 }
 /** a dancer's spot (world x, z) round the inlay m — its own radius + angle, seeded by the circle (seed) so every phone agrees */

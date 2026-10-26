@@ -13,7 +13,7 @@
 // weights; a `force` loop for the preview), its painter in fauna.js (3-D points projected through the camera: the facing comes for
 // free), its live state + pass in wildlife.js, a row in core/harbor-remote.js (cat 'wildlife'), a check in the unit test.
 import { rngFrom, hashString } from './rng.js';
-import { xOfF, seasonOf, CAN, trashCanSpot } from './harbor-promenade.js';
+import { xOfF, seasonOf, HYDRANT, hydrantSpot } from './harbor-promenade.js';
 import { mixNow, FOLK } from './harbor-people.js';
 import { SPEAK_V } from './harbor-speakeasy.js';
 
@@ -41,10 +41,9 @@ export const SIZE = Object.freeze({
  *  (screens/harbor/speakeasy-blade.js#BLADE: out 0.22, bw 1.86, v1 11.0, set back w 0.42 along the side wall) — kept in step by hand */
 const CANOPY = { back: 1.2, top: 13.0, posts: [2.55, 9.75] };
 const BLADE = { w: 0.42, out: 0.22, bw: 1.86, v1: 11.0 };
-/** THE TRASH CAN's spot: the layout's (core/harbor-promenade.js#trashCanSpot — L.trashCan); its lid is always on (the trash
- *  collector carries it — screens/harbor/wildlife.js reads f.canHeld) */
-export { CAN };
-export const canSpot = L => L.trashCan || trashCanSpot(L.cam, L.lamps);
+/** POLISH 5 — THE FIRE HYDRANT's spot (the trash can's old one): the layout's (core/harbor-promenade.js#hydrantSpot — L.hydrant) */
+export { HYDRANT };
+export const hydrantOf = L => L.hydrant || hydrantSpot(L.cam, L.lamps);
 /** THE MOORING PILING (the heron's): a weathered three-timber dolphin out in the open water between the WALK / WAIT lantern and the
  *  right stop light (f 0.712, z 100 at 402 — clear of the lamps' globes, the lantern + the crabapple: the heron stands over the lamps'
  *  line against the bright water + Rosie's reflection); its top `top` over the water */

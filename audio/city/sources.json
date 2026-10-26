@@ -494,6 +494,18 @@
   ],
   "note": null
  },
+ "hydrant-spray": {
+  "file": "hydrant-spray.wav",
+  "md5": "4bbdad0fe7a76f016ea7bd9492130205",
+  "slots": [
+   "hydrant-spray"
+  ],
+  "credit": [
+   "hydrant-spray.wav",
+   "    an open fire hydrant: the stream’s hiss + the splash on cobbles — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)"
+  ],
+  "note": null
+ },
  "jets-formation": {
   "file": "jets-formation.wav",
   "md5": "de51139e0abe0eaa8471a5e1c3f6a97c",
@@ -609,6 +621,18 @@
    "  \"newspaper_opening_009\" - SpillAudio - Paper, Sonniss GDC 2020 bundle",
    "  Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/SpillAudio%20-%20Paper/newspaper_opening_009.wav",
    "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "periscope-ping": {
+  "file": "periscope-ping.wav",
+  "md5": "69eff3a5fd2a4e4bf0293a435795d5da",
+  "slots": [
+   "periscope-ping"
+  ],
+  "credit": [
+   "periscope-ping.wav",
+   "    a submarine sonar ping with its underwater echo — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)"
   ],
   "note": null
  },

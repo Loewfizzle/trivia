@@ -28,7 +28,7 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
   assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'bar-open', 'boat-putter', 'broom-sweep', 'bus-arrive', 'bus-door', 'bus-idle', 'bus-pull-away', 'car-1920s-pass',
     'cart-bell', 'cat-land', 'cat-meow', 'city-hum-day', 'city-hum-night', 'club-murmur-calm', 'club-murmur-party', 'coyote-howl', 'coyote-yip', 'crates-clink', 'crowd-clap',
     'crowd-whoop', 'dog-bark', 'door-heavy', 'door-heavy-close', 'door-knock', 'drone-swarm', 'footsteps-cobble', 'footsteps-heels', 'geese', 'glasses-clink',
-    'glow-wand-swish', 'gulls', 'helicopter', 'jet-flyby', 'jogger-trip', 'ladder-clank', 'laugh-distant', 'line-murmur', 'market-murmur', 'milk-bottles', 'newspaper-rustle',
+    'glow-wand-swish', 'gulls', 'helicopter', 'hydrant-spray', 'jet-flyby', 'jogger-trip', 'ladder-clank', 'laugh-distant', 'line-murmur', 'market-murmur', 'milk-bottles', 'newspaper-rustle', 'periscope-ping',
     'pigeon-coo', 'pigeon-flutter', 'police-car-1920s', 'police-whistle', 'power-failure', 'power-restore', 'prop-plane', 'roller-blind', 'rooftop-party', 'scissors-snip', 'ship-horn', 'ships-bell', 'shop-bell',
     'siren-1920s', 'squeegee', 'squirrel-chatter', 'steam-whistle', 'street-door', 'street-door-close', 'tr3b-crackle', 'tr3b-drone', 'tr3b-power-down', 'tr3b-presence', 'trash-can-lid',
     'trash-truck-arrive', 'trash-truck-depart', 'truck-delivery', 'tv-murmur', 'ufo-beam', 'ufo-hum', 'water-lapping', 'window-sash-down', 'window-sash-up']);

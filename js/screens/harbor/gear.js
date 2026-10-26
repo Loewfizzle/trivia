@@ -173,6 +173,13 @@ export const GEAR = {
     c.beginPath(); c.moveTo(x - ux * L2 * 0.3, y - uy * L2 * 0.3); c.lineTo(x + ux * L2, y + uy * L2); c.stroke();
     c.fillStyle = 'rgba(255,248,226,0.95)'; c.beginPath(); c.arc(x + ux * L2, y + uy * L2, Math.max(0.6, g.H * 0.016), 0, TAU); c.fill();
   },
+  // POLISH 5 — the hydrant man's big pentagon WRENCH: an iron bar in the hand, its head a dark jaw (turning the stem when he's down at it)
+  wrench(c, g) {
+    const [x, y] = g.hand, H = g.H, down = g.pose === 'pick', a = down ? (g.mo ? Math.sin(g.t * 3.4) * 0.5 : 0) - 0.2 : 0.35 * g.d, l = H * 0.17;
+    const ex = x + Math.sin(a) * l * g.d, ey = y + Math.cos(a) * l * (down ? -0.4 : 1);
+    c.strokeStyle = g.f([46, 46, 52]); c.lineWidth = Math.max(0.6, H * 0.018); c.lineCap = 'round'; c.beginPath(); c.moveTo(x, y); c.lineTo(ex, ey); c.stroke();
+    c.fillStyle = g.f([34, 34, 40]); c.beginPath(); c.arc(ex, ey, Math.max(0.6, H * 0.022), 0, Math.PI * 2); c.fill();
+  },
   baton(c, g) {
     const H = g.H;
     if (g.pose === 'twirl') { const [x, y] = g.hand, a = g.mo ? g.t * 9 : 0.6, l = H * 0.09; c.strokeStyle = g.f([30, 26, 24]); c.lineWidth = Math.max(0.6, H * 0.016); c.beginPath(); c.moveTo(x - Math.cos(a) * l, y - Math.sin(a) * l); c.lineTo(x + Math.cos(a) * l, y + Math.sin(a) * l); c.stroke(); return; }

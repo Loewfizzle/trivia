@@ -84,7 +84,7 @@ export function raidNear(t, ctx = {}) {
 /** the forced preview (&force=raid): one every RAID.forced s from `since` (the city clock, s) — a party feel on a party night */
 export function forcedRaid(t, since = 0, party = false) {
   const n = Math.floor((t - since) / RAID.forced);
-  return { key: `forced-${n}`, t0: since + n * RAID.forced + 6, party, why: 'forced' };
+  return { key: `forced-${n}`, t0: since + n * RAID.forced + 3, party, why: 'forced' };   // (POLISH 5: the siren at once, the convoy ~7 s in)
 }
 
 // ------------------------------------------------------------------ WHAT (the convoy simulated once)
@@ -110,6 +110,8 @@ export function raidPlan(raid, L) {
   const walkS = walkLen / O.v, offBase = O.out + walkS + walkS + O.back + 0.8;   // (+ his sweep: it fits the next green — below)
   // the speed a rolling car wants at x: cruise in, CRAWL from the speakeasy's corner past the crossing, then away
   const vWant = x => (x < slow0 ? RAID.v : x < past ? RAID.crawl : RAID.v + 0.4);
+  // (the time a crawling car needs to clear the crossing: it only enters with that much green left — out before the walkers' WALK)
+  const holdRed = raid.why === 'forced', clearS = (crossSpan[1] - crossSpan[0]) / RAID.crawl + 0.5;
   const simulate = t0 => {
     const cars = Array.from({ length: N }, (_, i) => ({ i, x: ln.xIn - i * spacing, vel: RAID.v, xs: [], stopper: i === N - 1, held: false, ts: t0 }));
     let tStop = null, tReady = null, tDepart = null, sweep = O.sweep[0], onCross = [];
@@ -121,6 +123,9 @@ export function raidPlan(raid, L) {
         if (c.stopper && tDepart != null && t >= tDepart) vT = RAID.v + 0.4;
         const ahead = cars[c.i - 1];
         if (ahead) { const d = ahead.x - c.x - len; vT = Math.min(vT, Math.sqrt(2 * RAID.brake * 0.7 * Math.max(0, d - 1.4))); }
+        // (POLISH 5 — a FORCED raid starts at once: its rolling cars keep to the light like the trucks — held at the line on red, away on
+        // the green — so the convoy needn't be timed to arrive on a green)
+        if (holdRed && !c.stopper && c.x + len / 2 < ln.line - 0.05) { const S = signalAt(t * 1000); if (S.road !== 'green' || S.left < clearS) { const rm = ln.line - len / 2 - 0.35 - c.x; vT = Math.min(vT, Math.sqrt(2 * RAID.brake * 0.7 * Math.max(0, rm))); } }
         let v = vT > c.vel ? Math.min(vT, c.vel + RAID.acc * dt) : Math.max(vT, c.vel - RAID.brake * 1.4 * dt);
         if (c.stopper && tDepart == null && v * dt > room) v = Math.max(0, room / dt);
         c.vel = Math.max(0, v); c.x += c.vel * dt; c.xs.push(c.x);
@@ -145,11 +150,14 @@ export function raidPlan(raid, L) {
   for (let s = 0; s <= 60; s += 1) {
     const sim = simulate(raid.t0 + s);
     if (!fallback) fallback = { sim, t0: raid.t0 + s };
-    if (!sim.onCross.every(t => signalAt(t * 1000).road === 'green')) continue;
+    if (!holdRed && !sim.onCross.every(t => signalAt(t * 1000).road === 'green')) continue;
+    if (holdRed && !sim.onCross.every(t => signalAt(t * 1000).walk !== 'walk')) continue;   // (held at the line: never on the crossing during WALK)
     // (scored: the wait + a little for each second it starts later — a preview from the panel shouldn't keep him waiting either)
-    const wait = (sim.tDepart != null && sim.tReady != null ? sim.tDepart - sim.tReady : 99) + 0.3 * s;
+    // (POLISH 5 — a FORCED raid starts at once: the earliest start whose rolling cars still cross on green wins — the officer's own
+    // wait at the end is the event's middle, not a delay before it)
+    const wait = (sim.tDepart != null && sim.tReady != null ? sim.tDepart - sim.tReady : 99) + (raid.why === 'forced' ? 3 : 0.3) * s;
     if (wait < bestWait - 0.2) { best = { sim, t0: raid.t0 + s }; bestWait = wait; }
-    if (wait < 2.5) break;
+    if (wait < 2.5 || holdRed) break;               // (forced: the first start that works)
   }
   if (!best) best = fallback;
   const { sim, t0 } = best, last = sim.cars[N - 1];

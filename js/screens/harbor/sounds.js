@@ -86,7 +86,7 @@ export function createCitySounds() {
     } else if (r) { for (const h of r.hs) h.stop(fade); runs.delete(slot); }
   }
 
-  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null } = {}) {
+  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null, hydrant = null } = {}) {
     if (dead) return;
     const t = performance.now();
     if (t - lastT < 250) return;
@@ -163,6 +163,8 @@ export function createCitySounds() {
     ducking();
     // ---- THE HARBOR: the water taxi's engine while it crosses; the foghorn in real fog
     keep('boat-putter', boats ? 1 : 0, 0, { ramp: 1.5, linger: 8 });
+    // POLISH 5 — THE HYDRANT on a hot day: its hiss + splash while it sprays (hydrant: { k 0..1, pan }), easing in + out with the stem
+    keep('hydrant-spray', hydrant ? hydrant.k : 0, hydrant ? hydrant.pan : -0.5, { ramp: 1.2, linger: 6, fadeIn: 1.2 });
     if (L && (L.fog || 0) > 0.45 && L.wxKind !== 'mist' && t > next.fog) { citySound('foghorn', { pan: 0.35, gain: rnd(0.8, 1) }); next.fog = t + rnd(40000, 80000); }
   }
 
@@ -343,6 +345,9 @@ export function createCitySounds() {
       if (h) ducks.push({ h, depth, pan: null, follow: false, env: el => (el < 0 ? 1 : el < 0.6 ? 1 - (1 - depth) * (el / 0.6) : el < hold ? depth : el < hold + release ? depth + (1 - depth) * ((el - hold) / release) : 1) });
       return h;
     },
+    /** POLISH 5 — THE PERISCOPE's SONAR PING (once per appearance, the legendary egg calls it as the periscope breaks the surface): over the
+     *  music with a brief dip so it cuts through (never a startle: its peak capped by the slot's gain), the echo heard out */
+    periscope({ pan = 0.2 } = {}) { return this.ducked('periscope-ping', { gain: 1, pan, depth: 0.5, hold: 1.6, release: 3.2 }); },
     /** 8P — THE BUS: bus('arrive' | 'idle' | 'door' | 'depart' | 'pan' | 'gone', { pan, gain, stopIn }) — see busEvent */
     bus: busEvent,
     /** 8P — ONE FOOTSTEP of the nearest walking figure: kind 'cobble' | 'heels', pan −1…1, gain 0..1 (its distance); very soft;

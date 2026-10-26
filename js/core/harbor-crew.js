@@ -25,7 +25,7 @@ const BLADE_AT = Object.freeze({ w: 0.42, outer: 0.22 + 1.86, v0: 2.75, v1: 11.0
 export function crewSpots(L, M) {
   const s = L.speakeasy, cw = L.crosswalk, F = FOLK;
   const globes = (L.lamps || []).filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x), fl = globes[0] || { x: -4.4, z: 36.6 };
-  const can = L.trashCan ? { x: L.trashCan.x, z: L.trashCan.z } : { x: fl.x + 0.95, z: fl.z + 0.3 };
+  const hyd = L.hydrant ? { x: L.hydrant.x, z: L.hydrant.z } : { x: fl.x + 0.95, z: fl.z + 0.3 };
   const bx = s.x1 + BLADE_AT.outer, bz = s.z0 + BLADE_AT.w;
   const rf = L.roof || {}, bk = rf.bulkhead || { x0: -8.7, x1: -6.9, z0: 51.4 }, bd = rf.board || { x0: -16.2, x1: -9.4, y0: 12.4, y1: 16.1, z: 55, deck: 10.5 };
   return {
@@ -34,7 +34,9 @@ export function crewSpots(L, M) {
     step: { x: M.nodes.shopDoor.x + 0.66, z: s.z0 - 0.3 }, stepStand: { x: M.nodes.shopDoor.x + 0.66, z: s.z0 - 1.0 },
     vendor: { x: L.cart ? L.cart.x : 7.85, z: L.cart ? L.cart.z : 38.4 }, newsboy: { x: (L.cart ? L.cart.x : 7.85) - 1.3, z: (L.cart ? L.cart.z : 38.4) + 0.5 },
     bundles: { x: (L.cart ? L.cart.x : 7.85) + 0.62, z: (L.cart ? L.cart.z : 38.4) - 0.12 }, stand: { x: (L.cart ? L.cart.x : 7.85) - 0.25, z: L.cart ? L.cart.z : 38.4 },
-    can, canStand: { x: can.x + 0.52, z: can.z + 0.26 },
+    // (POLISH 5: the fire hydrant where the can stood — the spray worker's stand beside it, on its right + a step back; the street's cans
+    // now wait off screen at the curb, right)
+    hydrant: hyd, hydStand: { x: hyd.x + 0.62, z: hyd.z + 0.34 },
     // the tall ladder against the BLADE's outer edge (its feet out on the promenade to the right, its top at the crest)
     ladder: { foot: { x: bx + 1.15, z: bz - 0.06 }, top: { x: bx + 0.04, y: BLADE_AT.v1 - 0.55, z: bz - 0.06 }, v0: BLADE_AT.v0, v1: BLADE_AT.v1 },
     holder: { x: bx + 1.75, z: bz - 0.75 },
@@ -191,14 +193,27 @@ PLAN.newsdrop = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
   return { visits: [c.out(w.id, 'newsdrop', 'worker')], marks: { bundles: drop } };
 });
 PLAN.trash = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
-  // the collector to the can beside the front-left lamppost: the lid off, the can up on his shoulder, to the truck's tail, tipped in
-  // over the side, carried back, set down, the lid on
-  const c = crewOf(M, P, r, 'walk', T.tA + 1.6).fromTruck(T).go(P.canStand);
-  // (8b2: the street's can hidden from the middle of his lift — the moment his hands have it — never two cans)
-  const lift = c.now; c.pose('pick', 1.6, { hd: PI + 0.46, carry: 'can' }).hold('can').tail(T).pose('tip', 2.8, { hd: PI / 2 }).fromTail(T).go(P.canStand);
-  const set = c.now + 0.9; c.pose('set', 1.8, { hd: PI + 0.46 }).hold(null).toTruck(T);
-  return { visits: [c.out(w.id, 'trash', 'trashman')], marks: { canHeld: [lift + 0.8, set] } };   // (both = the lift's / the set's middle)
+  // POLISH 5 (the hydrant took the can's spot): the collector off along the curb to the street's cans OFF SCREEN (right — the open side;
+  // left is the bench's corner + the building), back with a full can on his shoulder, to the truck's tail, tipped in over the side,
+  // carried back out, empty-handed back to his cab
+  const c = crewOf(M, P, r, 'walk', T.tA + 1.6).fromTruck(T).exit('right', FOLK.curbZ).wait(2.2).hold('can');
+  c.tail(T).pose('tip', 2.8, { hd: PI / 2 }).fromTail(T).exit('right', FOLK.curbZ).wait(1.6).hold(null).toTruck(T);
+  return { visits: [c.out(w.id, 'trash', 'trashman')], marks: {} };
 });
+/** POLISH 5 — THE HYDRANT ON A HOT DAY (the owner: ~85 °F+ / 29 °C+, the afternoon): a city worker in from the left with his hydrant wrench,
+ *  the cap off + the stem turned (the SPRAY: a sparkling arc onto the cobbles, its wet patch spreading), he stands back while it runs,
+ *  a kid runs through it, shut + capped, away; the patch dries over HYD.dry (core/harbor-crew.js#tracesAt → hydrant) */
+export const HYD = Object.freeze({ open: 3.2, spray: 150, close: 3.4, dry: 12 * 60, kidAt: 52 });
+PLAN.hydrant = (w, M, P, r) => {
+  const c = crewOf(M, P, r, 'walk', w.t0).edge('left', P.hydStand.z).hold('wrench').go(P.hydStand);
+  const t0 = c.now; c.pose('pick', HYD.open, { hd: PI + 0.5 });
+  const sprayOn = c.now; c.go({ x: P.hydrant.x - 1.45, z: P.hydStand.z + 0.75 }).pose('watch', HYD.spray - 2.5, { hd: -0.35 });   // (stepped back, left of it: clear of the arc)
+  c.go(P.hydStand); const sprayOff = c.now + HYD.close * 0.6; c.pose('pick', HYD.close, { hd: PI + 0.5 }).exit('left', P.hydStand.z);
+  // a kid in from the right, straight through the spray (a whoop + the splash), off to the left
+  const k = crewOf(M, P, r, 'kid', sprayOn + HYD.kidAt).edge('right', P.hydStand.z + 0.4).go({ x: P.hydrant.x + 2.4, z: P.hydStand.z + 0.4 })
+    .line([{ x: P.hydrant.x - 1.6, z: P.hydrant.z + 0.45 }]).exit('left', P.hydStand.z + 0.4);
+  return { visits: [c.out(w.id, 'hydrant', 'worker'), k.out(`${w.id}.kid`, 'hydrant-kid', 'kid', { gait: 'kid' })], marks: { spray: [sprayOn, sprayOff], t0 } };
+};
 PLAN.ice = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
   const c = crewOf(M, P, r, 'walk', T.tA + 1.5).fromTruck(T).tail(T).unload(2.2, 'ice').fromTail(T).door('side', 'in');
   c.inside(32 + r() * 12).hold(null).door('side', 'out').toTruck(T);
@@ -305,7 +320,7 @@ const onLadder = (foot, top, y) => { const f = Math.max(0, Math.min(1, y / Math.
 //   move (on two shoulders; x = the holder's x − hA) · set (lowered with the knees — folk.js's squat curve) · ground · lift (the top end
 //   hoisted overhead by the climber — the angle from his hands) · walk (walked up hand over hand: the angle from where his hands are) ·
 //   turn (pushed upright; tipped onto the blade; back) · ext (the fly hauled up / let down, pull by pull) · stand · … the reverse · pick · move
-const HANDS = Object.freeze({ up: 0.17, low: 0.48, hold: 0.55 });            // (the hands ahead of the body: overhead / in a squat / 'hold')
+export const HANDS = Object.freeze({ up: 0.17, low: 0.48, hold: 0.55 });            // (the hands ahead of the body: overhead / in a squat / 'hold')
 function ladderAt(ph, G) {
   const X = LADDER, thOf = (hy, hx) => Math.atan2(hy, Math.max(0.05, hx - G.px));
   return t => {
@@ -445,15 +460,15 @@ PLAN.lamp = (w, M, P, r) => {
   // a STEPLADDER (an A-frame) beside the lamp, its top just under the lamp's head: carried in on his shoulder, swung down + stood up,
   // spread; up, the work, down; folded, back up onto the shoulder, away
   const l = P.lamps[w.lamp % Math.max(1, P.lamps.length)] || { x: 0, z: 45, h: 4 }, y = Math.max(0.6, l.h - 2.3), S = STEPS;
-  // (on the lamp's right — unless the litter can by its post is there: then its left, the lampman on its far side facing in)
-  const sd = Math.abs(P.can.x - (l.x + 0.62)) < 1.4 && Math.abs(P.can.z - (l.z - 0.32)) < 1.4 ? -1 : 1, dir = -sd, hdF = sd > 0 ? PI : 0;
+  // (on the lamp's right — unless the hydrant by its post is there: then its left, the lampman on its far side facing in)
+  const sd = Math.abs(P.hydrant.x - (l.x + 0.62)) < 1.4 && Math.abs(P.hydrant.z - (l.z - 0.32)) < 1.4 ? -1 : 1, dir = -sd, hdF = sd > 0 ? PI : 0;
   const foot = { x: l.x + 0.62 * sd, z: l.z - 0.32 }, top = { x: foot.x, y: y + 0.15, z: foot.z }, Ht = top.y + 0.15, Ls = Math.hypot(S.d, Ht);
   const G = { x: foot.x, z: foot.z, Ls, dir, phm: Math.asin(Math.min(0.95, 1.55 / Ls)) }, ph = [], stand = { x: foot.x + 0.62 * sd, z: foot.z - 0.05 };
   // (the last stretch straight along the kerb toward the spot — the stepladder's feet leading, never swung round at the spot; on the left
   // side: round behind the can + the post first)
   const c = crewOf(M, P, r, 'walk', w.t0).edge('right', foot.z).hold('steps');
   if (sd > 0) c.go({ x: foot.x + 2.4, z: stand.z }).line([stand]);
-  else c.go({ x: P.can.x + 0.9, z: P.can.z + 1.1 }).line([{ x: stand.x - 1.6, z: P.can.z + 0.9 }, { x: stand.x - 1.6, z: stand.z }, stand]);
+  else c.go({ x: P.hydrant.x + 0.9, z: P.hydrant.z + 1.1 }).line([{ x: stand.x - 1.6, z: P.hydrant.z + 0.9 }, { x: stand.x - 1.6, z: stand.z }, stand]);
   const C = { x: stand.x, y: S.ys + S.ws / 2, z: stand.z - 0.2 };
   ph.push({ k: 'carry', t0: w.t0, t1: c.now });
   let t1 = c.now; c.pose('upend', S.upend, { hd: hdF }); ph.push({ k: 'upend', t0: t1, t1: c.now, C });
@@ -619,8 +634,18 @@ export function crewDay(key, day0, world, cache = new Map()) {
 }
 /** the repairman's TEST of a new bulb (s since the swap): a couple of quick flickers, then steady */
 export const FLICK = u => (u < 0 ? 0 : u < 0.25 ? 0.8 : u < 0.5 ? 0.1 : u < 0.8 ? 0.9 : u < 1.05 ? 0.25 : 1);
+/** POLISH 5 — the hydrant at t: spray 0..1 (the stem turned up over ~1.2 s, down over ~1 s), wet 0..1 (the patch: it spreads over the
+ *  first ~40 s of the spray, dries over HYD.dry after), u (s since it opened) — or null */
+export function hydrantTrace(mk, t) {
+  if (!mk || !mk.spray) return null;
+  const [a, b] = mk.spray;
+  if (t < a - 1 || t > b + HYD.dry) return null;
+  const spray = t < a ? 0 : t < a + 1.2 ? (t - a) / 1.2 : t < b ? 1 : t < b + 1 ? 1 - (t - b) : 0;
+  const grow = Math.min(1, Math.max(0, (Math.min(t, b) - a) / 40)), dry = t > b ? Math.max(0, 1 - (t - b) / HYD.dry) : 1;
+  return { spray, wet: grow * dry, u: t - a };
+}
 /** the TRACES at t (PURE given the cache): the milk on the step, the bundles waiting, the board's game swap, the blade's repaint, the
- *  bulb / lamp fixes, the can held, the doorman's watch, the wet streak → { milk, bundles, board, blade, bulbFixed, lampFixed, canHeld, … } */
+ *  bulb / lamp fixes, the hydrant's spray + its wet patch, the doorman's watch, the wet streak → { milk, bundles, board, blade, bulbFixed, lampFixed, hydrant, … } */
 export function tracesAt(t, world, cache = new Map()) {
   const ctx = world.ctx || {}, d = dayOf(t, ctx.off || 0);
   const today = crewDay(d.key, d.day0, world, cache), yday = crewDay(prevKey(d.key), d.day0 - 86400, world, cache);
@@ -644,5 +669,5 @@ export function tracesAt(t, world, cache = new Map()) {
   const lf = [[lampFault(yKey, y0, ctx), m.lamp && m.lamp.lampFix ? m.lamp.lampFix.t : d.day0 + 86400], [lampFault(d.key, d.day0, ctx), Infinity]].find(([o, fx]) => o && t >= o.from && t < fx);
   const bl = [[boardLampOut(yKey, y0, ctx), bp ? bp.fixAt : d.day0 + 86400], [boardLampOut(d.key, d.day0, ctx), Infinity]].find(([o, fx]) => o && t >= o.t && t < fx);
   return { bulbDead, lampFault: lf ? { lamp: lf[0].lamp, from: lf[0].from, period: lf[0].period } : null, boardLampDead: bl ? bl[0].lamp : ctx.force === 'billposter' && bp && t < bp.fixAt ? 1 : null,
-    milk: !!milk, bundles: !!bundles, board, blade, bladeDone: pt ? pt.t1 : null, monday: d.dow === 1, bulbFix: m.bulb && m.bulb.bulbFix ? m.bulb.bulbFix.t : null, lampFix: m.lamp && m.lamp.lampFix ? { t: m.lamp.lampFix.t, t0: m.lamp.lampFix.t0, t1: m.lamp.lampFix.t1 } : null, canHeld: m.trash && m.trash.canHeld && t >= m.trash.canHeld[0] && t < m.trash.canHeld[1], doorman: m.doorman ? m.doorman.doorman : (my.doorman ? my.doorman.doorman : null), whistle: [m.cop && m.cop.whistle, m.patrol && m.patrol.whistle].filter(Boolean), day: d };
+    milk: !!milk, bundles: !!bundles, board, blade, bladeDone: pt ? pt.t1 : null, monday: d.dow === 1, bulbFix: m.bulb && m.bulb.bulbFix ? m.bulb.bulbFix.t : null, lampFix: m.lamp && m.lamp.lampFix ? { t: m.lamp.lampFix.t, t0: m.lamp.lampFix.t0, t1: m.lamp.lampFix.t1 } : null, hydrant: hydrantTrace(m.hydrant, t), doorman: m.doorman ? m.doorman.doorman : (my.doorman ? my.doorman.doorman : null), whistle: [m.cop && m.cop.whistle, m.patrol && m.patrol.whistle].filter(Boolean), day: d };
 }

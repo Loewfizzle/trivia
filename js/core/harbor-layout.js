@@ -445,7 +445,7 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   const PR = promenadeLayout(cam, { seed, wide: cam.spread > 1.6, stopH, front: cam.wide, face });
   const signals = PR.signals;
   const prom = { z0: Z.prom[0], z1: Z.prom[1] };
-  const { lamps, trees, bench, planters, cart, medallion, crosswalk, edge, impliedRoad, zones, mailbox, trashCan } = PR;   // (8b1: trashCan — the trash collector's can)
+  const { lamps, trees, bench, planters, cart, medallion, crosswalk, edge, impliedRoad, zones, mailbox, hydrant } = PR;   // (POLISH 5: the fire hydrant — the can's old spot)
   // the rooftop (7a): the string lights' POSTS on the parapet (each pier) + their tall POLE at the back, the stair BULKHEAD, the
   // CHIMNEY; the deck between them is left open for 7b's parties + the seasonal garden (planters: where its beds go)
   const roofBack = Math.min(side.z, 56);
@@ -456,7 +456,7 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   // THE BILLBOARD on the roof (8a): its board in world units + the dunnage platform under the frame (core/harbor-neon.js: the spot)
   { const B = BILLBOARD, y0 = B.dun + B.open;
     roof.board = { x0: sx0 + B.u0, x1: sx0 + B.u1, y0, y1: y0 + B.h, z: roofBack - B.back, dun: B.dun, deck: speakeasy.h }; }
-  const L = { cam, seed, bands, landmarks, heroes, quay, water, pier, wheel, lighthouse, breakwater, cottage, boats, rail, road, signals, prom, lamps, trees, bench, planters, cart, speakeasy, roof, medallion, mailbox, trashCan, crosswalk, edge, impliedRoad, zones, towers, cuts: sky.cuts, gaps: sky.cuts.map(g => ({ sx: g.sx, w: g.w })), squeeze: (sqRef || sqLoc).s, knee: (sqRef || sqLoc).knee };
+  const L = { cam, seed, bands, landmarks, heroes, quay, water, pier, wheel, lighthouse, breakwater, cottage, boats, rail, road, signals, prom, lamps, trees, bench, planters, cart, speakeasy, roof, medallion, mailbox, hydrant, crosswalk, edge, impliedRoad, zones, towers, cuts: sky.cuts, gaps: sky.cuts.map(g => ({ sx: g.sx, w: g.w })), squeeze: (sqRef || sqLoc).s, knee: (sqRef || sqLoc).knee };
   L.door = doorRect(L);
   L.lanes = laneRects(L);
   return L;

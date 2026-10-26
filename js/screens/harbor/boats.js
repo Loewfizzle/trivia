@@ -257,9 +257,9 @@ export function createBoats() {
   const skipped = new Set();
   let offNow = null;                 // (8b1: the local minutes from UTC — Rosie + the fishing tug run on the DAY's timetable)
   // (&force=rosie-turn — perf + review: ROSIE's homecoming turn on a loop: her swing (58 → 120 s of the arrival) over and over)
-  let turnLoop = false;
+  let turnLoop = false, turnAt = 0;              // (POLISH 5: the loop counts from the moment it was fired — set({ turnAt }) — her swing from its start)
   const at = (r, ms, nightAt) => {
-    if (turnLoop && r.kind === 'rosie') return boatAt(r, cycleOf(r, ms).start + (58 + ((ms / 1000) % 62)) * 1000, nightAt);
+    if (turnLoop && r.kind === 'rosie') return boatAt(r, cycleOf(r, ms).start + (58 + ((((ms / 1000 - turnAt) % 62) + 62) % 62)) * 1000, nightAt);
     return boatAt(r, ms, nightAt, { off: offNow });
   };
   function tick(ms, nightAt, { quiet = false, off = null } = {}) {
@@ -579,6 +579,7 @@ export function createBoats() {
     set(o) {
       if (o && o.rosie && BULBS[o.rosie] && o.rosie !== rosieScheme) rosieScheme = o.rosie;
       if (o && 'chase' in o) chase = o.chase ? { rate: 8, k: 0.8, span: 6, ...o.chase } : null;
+      if (o && o.turnAt != null) turnAt = o.turnAt;
     },
     setTier(t) { tier = t; },
     hit(x, y) { for (const st of states) if (st.on) { const p = spr.get(st.r.id), s = p && p.recs.find(o => o.key && o.P); if (!s) continue; const [ax, ay] = project(cam, st.x, LEVEL, st.z), [x0, y0, x1, y1] = s.P.bounds; if (x >= ax + x0 - 4 && x <= ax + x1 + 4 && y >= ay + y0 - 4 && y <= ay + y1 + 4) return st.r.id; } return null; },

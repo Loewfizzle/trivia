@@ -181,7 +181,7 @@ test('8b2 — THE TALL LADDER is one object edge to edge: carried in + out level
   assert.ok(rb.props.some(p => p.kind === 'xladder') && rb.visits.filter(v => v.kind === 'repairman').length >= 2, 'two repairmen + the ladder');
 });
 
-test('8b2 — THE STEPLADDER from the lampman\'s shoulder (never out of the cobbles), clear of the litter can; the can never doubled', () => {
+test('8b2 — THE STEPLADDER from the lampman\'s shoulder (never out of the cobbles), clear of the hydrant (POLISH 5)', () => {
   const { L, M } = setup(), P = crewSpots(L, M), w0 = Date.UTC(2026, 9, 22, 18) / 1000 + 400;
   // (every forced slot of a day picks its lamp: the slots' lamps between them)
   const seen = new Set();
@@ -196,13 +196,45 @@ test('8b2 — THE STEPLADDER from the lampman\'s shoulder (never out of the cobb
     }
     const ft = res.props.find(p => p.kind === 'steps' && p.mark).foot; seen.add(ft.x.toFixed(1));
     assert.ok(worst < 0.12, `the stepladder moves, never jumps (${worst.toFixed(3)})`);
-    assert.ok(!(Math.abs(P.can.x - ft.x) < 0.7 && Math.abs(P.can.z - ft.z) < 0.7), 'never behind the litter can');
+    assert.ok(!(Math.abs(P.hydrant.x - ft.x) < 0.7 && Math.abs(P.hydrant.z - ft.z) < 0.7), 'never behind the hydrant');
   }
   assert.ok(seen.size >= 1, 'a stepladder planned');
-  // the litter can: hidden from the middle of the collector's lift (his hands on it) to the middle of his set
+  // POLISH 5 — THE TRASH ROUND without the promenade's can: the collector off screen left for the street's cans, back with one on his
+  // shoulder, tipped in at the tail, carried back out, back to his cab
   const key = '2026-10-26', tr = plan(key).find(x => x.kind === 'trash'), res = crewSpan(tr.t0, tr.t1, { L, M, ctx: { off: OFF } });
-  const v = res.visits.find(x => x.kind === 'trash'), pick = v.legs.find(l => l.pose === 'pick'), held = tracesAt;
-  const w = { L, M, ctx: { off: OFF } }, cache = new Map();
-  assert.equal(held(pick.t0 + 0.7, w, cache).canHeld, false, 'still standing as he squats');
-  assert.equal(held(pick.t0 + 0.85, w, cache).canHeld, true, 'in his hands from the lift\'s middle');
+  const v = res.visits.find(x => x.kind === 'trash'), tip = v.legs.find(l => l.pose === 'tip');
+  assert.ok(tip && tip.carry === 'can', 'the can tipped into the truck');
+  const xs = v.legs.flatMap(l => (l.pts || [{ x: l.x }]).map(p => p.x));
+  assert.ok(Math.max(...xs) > L.cam.hw(51.6) + 0.5, `off screen right for the cans (${Math.max(...xs).toFixed(1)})`);
+  assert.ok(!v.legs.some(l => l.pose === 'pick' || l.pose === 'set'), 'nothing picked up on the promenade');
+});
+test('POLISH 5 — THE HYDRANT on a hot afternoon only; the spray + the wet patch on the clock; a kid runs through it', () => {
+  const { L, M } = setup(), P = crewSpots(L, M);
+  const hotDays = [], key = '2026-7-14';
+  for (let d = 1; d <= 30; d++) { const k = `2026-7-${d}`, day0 = Date.UTC(2026, 6, d, 4) / 1000; if (workDay(k, { day0, hot: () => true }).some(w => w.kind === 'hydrant')) hotDays.push(d); }
+  assert.ok(hotDays.length >= 12 && hotDays.length <= 26, `most hot days (${hotDays.length} of 30)`);
+  assert.equal(workDay(key, { day0: Date.UTC(2026, 6, 14, 4) / 1000, hot: () => false }).filter(w => w.kind === 'hydrant').length, 0, 'never on a cool day');
+  const fw = forcedWork('hydrant', 1000, { forceAt: 997 })[0];
+  assert.ok(Math.abs(fw.t0 - 1000) < 0.01, 'a forced one starts at the fire (+ the lead)');
+  const res = crewSpan(fw.t0, fw.t1, { L, M, ctx: { off: OFF, force: 'hydrant', forceAt: 997 } });
+  const man = res.visits.find(x => x.kind === 'hydrant'), kid = res.visits.find(x => x.kind === 'hydrant-kid');
+  assert.ok(man && kid, 'the worker + the kid');
+  const w = { L, M, ctx: { off: OFF, force: 'hydrant', forceAt: 997 } }, cache = new Map();
+  const tr = u => tracesAt(fw.t0 + u, w, cache).hydrant;
+  assert.equal(tr(2), null, 'shut as he walks up');
+  const open = man.legs.find(l => l.pose === 'pick').t1;
+  assert.equal(tr(open - fw.t0 + 20).spray, 1, 'spraying');
+  assert.ok(tr(open - fw.t0 + 20).wet > 0.3 && tr(open - fw.t0 + 20).wet < 1, 'the patch spreading');
+  assert.ok(kid.t0 > open && kid.t0 < open + 150, 'the kid while it sprays');
+  assert.ok(Math.min(...kid.legs.flatMap(l => (l.pts || []).map(p => Math.abs(p.x - P.hydrant.x)))) < 2.5, 'through the spray');
+  const x0 = man.legs[0].pts ? man.legs[0].pts[0].x : man.legs[0].x;
+  assert.ok(x0 < -L.cam.hw(40), `he walks in from off screen (${x0.toFixed(1)})`);
+});
+test('POLISH 5 — EVERY FORCED WORKER STARTS AT THE MOMENT IT FIRES: its first visit FORCE.lead s after forceAt — never one already under way', () => {
+  for (const kind of [...Object.keys(SHOWS), ...Object.keys(REGULARS)]) for (const at of [1000.4, 1793000123.7]) {
+    const ws = forcedWork(kind, at + 1, { forceAt: at });
+    assert.equal(ws.length, 1, `${kind}: one visit right after the fire`);
+    assert.ok(Math.abs(ws[0].t0 - (at + 3)) < 1e-6, `${kind}: it starts 3 s after the fire (${(ws[0].t0 - at).toFixed(2)})`);
+    assert.ok(forcedWork(kind, at - 5, { forceAt: at }).length === 0, `${kind}: nothing before it`);
+  }
 });

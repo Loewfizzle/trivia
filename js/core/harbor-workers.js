@@ -60,7 +60,12 @@ export const SHOWS = Object.freeze({
   // the morning after a party night: the extra sweep (7:30) + a cleanup crew on the roof (9 am)
   sweep2: { days: [0, 6], win: [7.4, 7.7], len: 32 * 60, prio: 3, after: 'party' },
   crew: { days: [0, 6], win: [8.95, 9.2], len: 70 * 60, prio: 3, after: 'party' },
+  // POLISH 5 — HOT SUMMER AFTERNOONS (the real temperature ≥ HOT_C — ctx.hot(key), the live weather): a city worker opens THE HYDRANT,
+  // its spray arcs onto the cobbles for a couple of minutes (a kid runs through it), shut again; the wet patch dries (~2 hot days in 3)
+  hydrant: { days: EVERY, win: [13.6, 16.7], len: 3.6 * 60, prio: 2, hot: true, chance: 0.66 },
 });
+/** the hydrant's day: the real temperature at least this (°C: ~85 °F) */
+export const HOT_C = 29;
 /** windowed shows may slide this far past their window's end to dodge another show (s) */
 export const SLACK = 60 * 60;
 
@@ -151,6 +156,7 @@ export function workDay(key, ctx = {}) {
     if (S.after && !causes[S.after]) continue;
     if (S.rare && !bootlegNight(key, ctx)) continue;
     if (kind === 'newsdrop') continue;
+    if (S.hot && !(ctx.hot && ctx.hot(key) && rngFrom(hashString(`hot|${ctx.seed || 1924}|${key}`))() < S.chance)) continue;
     const u = r();
     const at = S.at != null ? S.at : S.win[0] + u * (S.win[1] - S.win[0]);
     want.push({ kind, S, t0: day0 + at * H, fixed: S.at != null });
@@ -197,14 +203,18 @@ export function workDay(key, ctx = {}) {
   return out.sort((a, b) => a.t0 - b.t0);
 }
 
-/** &force=work-<kind>: the preview — that worker every FORCE.slot seconds (starting FORCE.lead s in), any day, nothing else of theirs */
-export const FORCE = Object.freeze({ slot: 180, lead: 6, long: { washers: 900, painters: 1200, billposter: 2160, gardener: 600, crew: 600, doorman: 600, flowers: 600, newsboy: 600, evening: 600, sweeper: 600, sweep2: 600 } });
+/** &force=work-<kind>: the preview — that worker every FORCE.slot seconds (starting FORCE.lead s in), any day, nothing else of theirs.
+ *  POLISH 5 (the owner: the lamp repairman POPPED IN already up his ladder): the slots count from ctx.forceAt — the moment the flag was
+ *  switched on (the link's load, the panel's 3-2-1) — so every preview shows the whole visit: in from off screen with the props, the
+ *  job, away. Without forceAt (old callers) the clock's own grid. */
+export const FORCE = Object.freeze({ slot: 180, lead: 3, long: { washers: 900, painters: 1200, billposter: 2160, gardener: 600, crew: 600, doorman: 600, flowers: 600, newsboy: 600, evening: 600, sweeper: 600, sweep2: 600 } });
 export function forcedWork(kind, t, ctx = {}) {
   const S = SHOWS[kind] || REGULARS[kind]; if (!S) return [];
-  const slot = FORCE.long[kind] || FORCE.slot, k = Math.floor(t / slot), out = [];
+  const slot = FORCE.long[kind] || FORCE.slot, base = ctx.forceAt != null ? ctx.forceAt : 0, k = Math.floor((t - base) / slot), out = [];
   for (const j of [k - 1, k]) {
-    const t0 = j * slot + FORCE.lead, len = Math.min(slot - 20, kind in FORCE.long ? slot - 30 : S.len || 120);
-    const it = { id: `wf.${kind}.${j}`, kind, show: !!SHOWS[kind], t0, t1: t0 + len, seed: hashString(`wf|${kind}|${j}`), forced: true };
+    if (ctx.forceAt != null && j < 0) continue;                 // (nothing before the moment it fired)
+    const t0 = base + j * slot + FORCE.lead, len = Math.min(slot - 20, kind in FORCE.long ? slot - 30 : S.len || 120);
+    const it = { id: `wf.${kind}.${Math.round(base)}.${j}`, kind, show: !!SHOWS[kind], t0, t1: t0 + len, seed: hashString(`wf|${kind}|${j}`), forced: true };
     if (S.truck) it.truck = { ...S.truck };
     if (kind === 'bulb') it.bulb = 7;
     if (kind === 'lamp') it.lamp = 2;

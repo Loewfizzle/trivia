@@ -2748,7 +2748,7 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     const m = L.medallion, mx = sx(m), ring = cam.F * m.ring / m.z, bx = sx(L.bench);
     const crab = L.trees.find(t => t.kind === 'crab'), cx = sx(crab), crown = cam.F * crab.w / 2 / crab.z;
     // the spots (402: the inlay ~268 — the crossing's centre, the bench ~207, the crabapple ~181)
-    assert.ok(Math.abs(mx - 268 * f) < 6 * f && Math.abs(bx - 207 * f) < 6 * f && Math.abs(cx - 181 * f) < 6 * f, `${k}: inlay ${mx.toFixed(0)}, bench ${bx.toFixed(0)}, crab ${cx.toFixed(0)}`);
+    assert.ok(Math.abs(mx - 268 * f) < 6 * f && Math.abs(bx - 207 * f) < 6 * f && Math.abs(cx - 169 * f) < 6 * f, `${k}: inlay ${mx.toFixed(0)}, bench ${bx.toFixed(0)}, crab ${cx.toFixed(0)}`);   // (POLISH 5: the crabapple 181 → 169 pt — the cab clear of it)
     const [c0] = P(L.crosswalk.x0, 53), [c1] = P(L.crosswalk.x1, 53);
     // (the crossing's axis on screen: the crosswalk's middle, z 59 — the pieces stand by screen fraction)
     const ax = (P(L.crosswalk.x0, 59)[0] + P(L.crosswalk.x1, 59)[0]) / 2;
@@ -2761,7 +2761,9 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     const bw = cam.F * L.bench.w / 2 / L.bench.z;
     assert.ok(bx + bw < c0 && cx < bx, `${k}: the crabapple · the bench · the crossing, left to right`);
     const blade = bladeGeo(speakGeo({ ...L, cam })).rect;
-    assert.ok(cx - crown >= blade.x + blade.w - 1, `${k}: the crabapple's crown (${(cx - crown).toFixed(0)}) right of the blade (${(blade.x + blade.w).toFixed(0)})`);
+    // (POLISH 5: nudged left so the cab at its stop shows whole — the crown may tuck a little BEHIND the blade (drawn in front of it: the
+    // blade stays free) as long as most of the tree shows: ≥ 75 % of its crown right of the blade)
+    assert.ok(cx + crown - (blade.x + blade.w) >= 0.75 * 2 * crown, `${k}: the crabapple's crown (${(cx - crown).toFixed(0)}–${(cx + crown).toFixed(0)}) mostly right of the blade (${(blade.x + blade.w).toFixed(0)})`);
     assert.ok(cx + crown < tall[0] - cam.F * PROM_PIECE.tall.arm / 52.6 + 3 * f, `${k}: … and left of the flanking lamp's head`);
     // the door + the shop window clear of the inlay; nothing at the speakeasy's corner
     const d = L.door, [w1] = P(L.speakeasy.x0 + L.speakeasy.shop.win[1], L.speakeasy.z0);

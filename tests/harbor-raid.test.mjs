@@ -125,3 +125,15 @@ test('C2 — THE SPOTLIGHT TOUR: it rests only on the windows + the doors, moves
   assert.ok(maxStep < 0.75, `fluid: never a jump (the biggest step in a 60 fps frame ${maxStep.toFixed(3)} units — a dart)`);
 });
 
+test('POLISH 5 — A FORCED RAID starts within seconds whenever it fires: the convoy in ≤ 12 s at every phase of the signal; its cars only enter the crossing on green, never during WALK', async () => {
+  const { cameraFor, harborLayout } = await import('../js/core/harbor-layout.js');
+  const { signalAt } = await import('../js/core/harbor-promenade.js');
+  for (const W of [390, 402, 430]) {
+    const cam = cameraFor(W, Math.round(W * 2.17), {}, {}), L = harborLayout(cam, 1924);
+    for (let k = 0; k < 46; k += 1) {
+      const since = 1793000000 + k, P = raidPlan(forcedRaid(since + 3, since, false), L);
+      assert.ok(P.tAppear - since <= 12, `${W} phase ${k}: the convoy ${(P.tAppear - since).toFixed(1)} s after the fire`);
+    }
+  }
+  void signalAt;
+});

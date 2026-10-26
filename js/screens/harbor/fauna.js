@@ -396,72 +396,106 @@ export function drawQuad(c, cam, q, env) {
   c.restore();
 }
 
-// ------------------------------------------------------------------ THE TRASH CAN (the trash collector's)
-/** a small period GALVANIZED steel can with a domed lid + a handle (+ the corrugated ribs): can = { x, z, h, r, lid: 'on' | 'askew' |
- *  'off', lift (0..1 — carried by the collector: off the ground), tilt (radians — tipped as it's emptied), lidT (0..1 the lid's slide) } */
-export function drawTrashCan(c, cam, can, env) {
-  // C2 — THE CLASSIC 1920s CITY CAN (the owner: "it looks like a fire hydrant"): a ribbed galvanized cylinder — vertical corrugations,
-  // two raised hoops, a BRIGHT rolled rim, small drop handles flush under it (the old ear loops read as a hydrant's nozzles), a shallow
-  // lid + its bail handle, scraps of paper poking out under the lid; standing against the lamppost, held to it by an iron strap
-  const s = cam.F / can.z, lift = (can.lift || 0) * 0.5, [gx, gy] = project(cam, can.x, lift, can.z), H = can.h * s, Rr = can.r * s;
+// ------------------------------------------------------------------ THE FIRE HYDRANT (POLISH 5 — the trash can's old spot)
+/** a classic RED 1920s cast-iron fire hydrant (the owner, Oct 25: instantly readable at 402 — bold red, a domed bonnet, two side nozzles
+ *  + their caps, a chain, a crisp highlight): h = { x, z, h, r, post }; o = { spray (0..1: the cap off the right nozzle, the stream on),
+ *  open (the stem's turn: the operating nut a quarter round), t (s), motion } */
+export function drawHydrant(c, cam, h, env, o = {}) {
+  const s = cam.F / h.z, [gx, gy] = project(cam, h.x, 0, h.z), H = h.h * s, R = h.r * s;
+  const nk = clamp01(((env.T && env.T.night) || 0)) * 0.32;   // (at night it keeps some of its red: the lamp right beside it)
+  const col = (rgb3, k = 1) => mix(litCol(rgb3, env, h.x, h.z, 3.2 * k), [rgb3[0] * 0.62, rgb3[1] * 0.4, rgb3[2] * 0.4], nk), sun = sunOf(env), lit = sun.s > 0 ? 1 : -1;   // (3.2: the lamp beside it lights the red at night)   // (lit: the sun's side, +1 = right)
+  contact(c, cam, h.x, 0, h.z, h.r * 1.9, 0.42); cast(c, cam, h.x, 0, h.z, h.h, h.r * 1.2, env);
+  const red = [196, 28, 30], redD = col([112, 14, 20]), redM = col(red), redL = col([240, 92, 76]), hot = col([255, 196, 170]);
+  const iron = col([40, 34, 36]), brass = col([214, 168, 70]);
+  c.save(); c.translate(gx, gy);
+  // a body of revolution, lit across: the dark side, the colour, the lit side, the highlight stripe
+  const body = (x0, x1) => { const g = c.createLinearGradient(x0, 0, x1, 0), a = lit > 0 ? 0 : 1, b = 1 - a;
+    g.addColorStop(a, rgb(redD)); g.addColorStop(0.42, rgb(redM)); g.addColorStop(0.7 + 0.1 * (lit > 0 ? 0 : -1), rgb(mix(redM, redL, 0.6))); g.addColorStop(b, rgb(mix(redD, redM, 0.5))); return g; };
+  // the base flange (a wide low foot, bolts) on the cobbles
+  c.fillStyle = body(-R * 1.5, R * 1.5); c.beginPath(); c.ellipse(0, -R * 0.12, R * 1.5, R * 0.42, 0, 0, TAU); c.fill();
+  c.fillRect(-R * 1.5, -R * 0.42, R * 3, R * 0.3); c.beginPath(); c.ellipse(0, -R * 0.42, R * 1.5, R * 0.4, 0, PI, 0); c.fill();
+  c.fillStyle = rgb(mix(redD, [0, 0, 0], 0.3)); for (const u of [-1.05, -0.35, 0.35, 1.05]) { c.beginPath(); c.arc(u * R, -R * 0.36, Math.max(0.4, R * 0.1), 0, TAU); c.fill(); }
+  // the barrel (slightly tapering), a raised ring at the nozzle level
+  const top = -H * 0.72, nz = -H * 0.52;
+  c.fillStyle = body(-R, R); c.beginPath(); c.moveTo(-R * 1.04, -R * 0.42); c.lineTo(-R * 0.94, top); c.lineTo(R * 0.94, top); c.lineTo(R * 1.04, -R * 0.42); c.closePath(); c.fill();
+  c.fillStyle = body(-R * 1.12, R * 1.12); c.fillRect(-R * 1.12, nz - R * 0.62, R * 2.24, R * 1.24);
+  // the two side NOZZLES (short cylinders out either side) + their CAPS (a flat hex nut face), the right one OFF while it sprays
+  for (const d of [-1, 1]) {
+    const off = d > 0 && (o.spray || 0) > 0.02;
+    c.fillStyle = rgb(d === lit ? mix(redM, redL, 0.4) : redD); c.fillRect(d > 0 ? R * 1.0 : -R * 1.62, nz - R * 0.4, R * 0.62, R * 0.8);
+    if (!off) { c.fillStyle = rgb(d === lit ? redM : mix(redD, redM, 0.4)); c.beginPath(); c.ellipse(d * R * 1.66, nz, R * 0.22, R * 0.5, 0, 0, TAU); c.fill();
+      c.fillStyle = rgb(mix(redD, [0, 0, 0], 0.25)); c.beginPath(); c.ellipse(d * R * 1.72, nz, R * 0.08, R * 0.22, 0, 0, TAU); c.fill(); }
+    else { c.fillStyle = rgb(col([30, 24, 28])); c.beginPath(); c.ellipse(d * R * 1.6, nz, R * 0.14, R * 0.38, 0, 0, TAU); c.fill(); }   // (the open mouth)
+  }
+  // THE CHAIN from the left cap, looping down to the barrel (the right cap hangs from its own chain while off)
+  c.strokeStyle = rgb(mix(iron, [200, 200, 210], 0.25)); c.lineWidth = Math.max(0.45, R * 0.09); c.beginPath();
+  c.moveTo(-R * 1.6, nz + R * 0.3); c.quadraticCurveTo(-R * 1.2, nz + R * 1.5, -R * 0.55, nz + R * 0.55); c.stroke();
+  if ((o.spray || 0) > 0.02) { c.beginPath(); c.moveTo(R * 0.9, nz + R * 0.5); c.quadraticCurveTo(R * 1.25, nz + R * 1.8, R * 1.55, nz + R * 1.4); c.stroke();
+    c.fillStyle = rgb(redM); c.beginPath(); c.ellipse(R * 1.58, nz + R * 1.42, R * 0.22, R * 0.3, 0.5, 0, TAU); c.fill(); }
+  // THE DOMED BONNET + the pentagon operating nut on top (a quarter turn while it opens)
+  c.fillStyle = body(-R * 1.1, R * 1.1); c.fillRect(-R * 1.1, top - R * 0.26, R * 2.2, R * 0.3);
+  c.beginPath(); c.ellipse(0, top - R * 0.24, R * 1.02, R * 0.92, 0, PI, 0); c.fill();
+  c.save(); c.translate(0, top - R * 1.2); c.rotate((o.open || 0) * PI / 2.5);
+  c.fillStyle = rgb(mix(redD, iron, 0.4)); c.beginPath(); for (let i = 0; i < 5; i++) { const a = -PI / 2 + i * TAU / 5; c[i ? 'lineTo' : 'moveTo'](Math.cos(a) * R * 0.34, Math.sin(a) * R * 0.3); } c.closePath(); c.fill();
+  c.restore();
+  // the crisp HIGHLIGHT: a bright stripe down the lit side of the barrel + the bonnet's shine (by day; a lamp's warmth at night)
+  const day = clamp01(((env.T && env.T.day) || 0) + 0.7 * ((env.T && env.T.gold) || 0)), hk = 0.35 + 0.6 * day;
+  c.fillStyle = rgb(hot, hk); c.fillRect(lit * R * 0.5 - R * 0.09, top + R * 0.1, R * 0.18, (-R * 0.5) - top - R * 0.1);
+  c.beginPath(); c.ellipse(lit * R * 0.38, top - R * 0.62, R * 0.3, R * 0.16, -0.5 * lit, 0, TAU); c.fill();
+  // a brass ring at the bonnet's foot (it reads as a glint)
+  c.fillStyle = rgb(brass, 0.85); c.fillRect(-R * 1.1, top - R * 0.02, R * 2.2, Math.max(0.5, R * 0.1));
+  c.restore();
+}
+
+/** the hydrant's SPRAY (o.spray 0..1): a sparkling arc of water from its right nozzle onto the cobbles — a dense core stream, droplets
+ *  riding it (moving), the mist + the splash where it lands, sun glints by day / the lamp's by night; drawn over the hydrant */
+export function drawHydrantSpray(c, cam, h, env, o = {}) {
+  const k = clamp01(o.spray || 0); if (k <= 0.01) return;
+  const s = cam.F / h.z, R = h.r * s, H = h.h * s, [gx, gy] = project(cam, h.x, 0, h.z), t = o.t || 0, mo = o.motion !== false;
+  const x0 = gx + R * 1.72, y0 = gy - H * 0.52, reach = s * (2.5 + 0.4 * k), peak = s * 0.72 * k;
+  const pt = u => [x0 + reach * u * k, y0 - peak * 4 * u * (1 - u) + (gy - y0) * u * u];   // (a parabola to the ground)
+  const night = clamp01((env.T && env.T.night) || 0), day = 1 - night;
+  const water = mix([226, 240, 255], [170, 186, 210], night * 0.7);
+  c.save(); c.lineCap = 'round';
+  // the stream: a soft wide body, a bright core
+  // (a real open hydrant BLASTS: a thick white body widening as it flies, a bright core)
+  for (const [w, a] of [[R * 1.5, 0.16], [R * 0.85, 0.36], [R * 0.42, 0.7], [R * 0.2, 0.95]]) {
+    c.strokeStyle = rgb(water, a * k); c.lineWidth = Math.max(0.5, w); c.beginPath();
+    for (let i = 0; i <= 18; i++) { const [x, y] = pt(i / 18); c[i ? 'lineTo' : 'moveTo'](x, y); } c.stroke();
+  }
+  // droplets riding it + breaking off the arc (moving down the stream; a few scattered off its lower edge)
+  const n = 44;
+  for (let i = 0; i < n; i++) {
+    const ph = ((i * 0.618) % 1), u = mo ? (ph + t * 0.9) % 1 : ph, [x, y] = pt(u), sc = Math.sin(i * 12.9898) * 43758.5453 % 1;
+    const dx = (sc - 0.5) * R * 1.4 * u, dy = Math.abs(sc) * R * 1.2 * u * u, r = Math.max(0.45, R * (0.1 + 0.08 * Math.abs(sc)));
+    c.fillStyle = rgb(mix(water, [255, 255, 255], 0.5), (0.5 + 0.4 * day) * k); c.beginPath(); c.arc(x + dx, y + dy, r, 0, TAU); c.fill();
+  }
+  // the splash at the landing: a mist ellipse + bouncing drops
+  const [lx, ly] = pt(1), mw = R * 4.6;
+  const g = c.createRadialGradient(lx, ly - R * 0.4, 0, lx, ly - R * 0.4, mw); g.addColorStop(0, rgb(water, 0.55 * k)); g.addColorStop(1, rgb(water, 0));
+  c.fillStyle = g; c.beginPath(); c.ellipse(lx, ly - R * 0.4, mw, mw * 0.5, 0, 0, TAU); c.fill();
+  for (let i = 0; i < 16; i++) { const ph = (i * 0.37) % 1, u = mo ? (ph + t * 2.2) % 1 : ph, a = (i / 16 - 0.5) * 2.4, hgt = Math.sin(u * PI) * R * 3;
+    c.fillStyle = rgb(water, 0.6 * k * (1 - u)); c.beginPath(); c.arc(lx + Math.sin(a) * mw * 0.7 * u, ly - hgt, Math.max(0.4, R * 0.09), 0, TAU); c.fill(); }
+  // the GLINTS: by day the sun in a few drops (twinkling), at night the lamp's
+  c.globalCompositeOperation = 'lighter';
+  for (let i = 0; i < 6; i++) { const u = mo ? ((i / 6) + t * 0.9) % 1 : i / 6, [x, y] = pt(u), tw = mo ? 0.5 + 0.5 * Math.sin(t * 9 + i * 2.1) : 0.7;
+    c.fillStyle = night > 0.5 ? `rgba(255,214,150,${(0.5 * tw * k).toFixed(3)})` : `rgba(255,255,250,${(0.85 * tw * k).toFixed(3)})`;
+    c.beginPath(); c.arc(x, y, Math.max(0.6, R * 0.16), 0, TAU); c.fill(); }
+  c.restore();
+}
+
+/** the WET PATCH on the cobbles (o.wet 0..1: spreading while it sprays, drying over minutes after): a darker sheen of wet stone round the
+ *  landing + a bright reflection streak by day */
+export function drawHydrantWet(c, cam, h, env, o = {}) {
+  const k = clamp01(o.wet || 0); if (k <= 0.01) return;
+  const s = cam.F / h.z, [gx, gy] = project(cam, h.x + 2.7, 0, h.z + 0.05), w = s * (1.0 + 1.8 * k), hh = w * 0.24;
+  const night = clamp01((env.T && env.T.night) || 0);
   c.save();
-  const col = k => litCol(k, env, can.x, can.z, 1.6), sun = sunOf(env);
-  if (!can.lift) { contact(c, cam, can.x, 0, can.z, can.r * 1.25, 0.4); cast(c, cam, can.x, 0, can.z, can.h, can.r, env); }
-  // the strap to the post (behind the can's body: from its back, round the post) — only while it stands there
-  if (!can.lift && !can.tilt && can.post != null) {
-    const [px] = project(cam, can.post, 0, can.z), y = gy - H * 0.62, iron = col([44, 44, 50]);
-    c.strokeStyle = rgb(iron); c.lineWidth = Math.max(0.8, s * 0.06); c.beginPath(); c.moveTo(gx - Rr * 0.6, y); c.lineTo(px - s * 0.05, y - s * 0.02); c.stroke();
-    c.fillStyle = rgb(mix(iron, [200, 200, 210], 0.35)); c.fillRect(px - s * 0.12, y - s * 0.1, s * 0.24, s * 0.16);   // (the clamp round the post)
-  }
-  c.translate(gx, gy); if (can.tilt) c.rotate(can.tilt);
-  const steel = [178, 182, 184], hi = col(mix(steel, [255, 252, 240], 0.45 * sun.k + 0.12)), lo = col(mix(steel, [40, 40, 54], 0.5)), mid = col(steel);
-  const L0 = sun.s > 0 ? lo : hi, L1 = sun.s > 0 ? hi : lo;
-  const g = c.createLinearGradient(-Rr, 0, Rr, 0);
-  g.addColorStop(0, rgb(L0)); g.addColorStop(0.3, rgb(mix(L0, mid, 0.75))); g.addColorStop(0.58, rgb(mix(mid, L1, 0.45))); g.addColorStop(0.8, rgb(L1)); g.addColorStop(1, rgb(mix(L1, lo, 0.5)));
-  const ry = Rr * 0.3, top = -H * 0.94, taper = 0.93;
-  c.fillStyle = g; c.beginPath(); c.moveTo(-Rr * taper, 0); c.lineTo(-Rr, top); c.lineTo(Rr, top); c.lineTo(Rr * taper, 0); c.ellipse(0, 0, Rr * taper, ry * taper, 0, 0, PI); c.closePath(); c.fill();
-  // the corrugations: vertical ribs round the cylinder (bunched toward its edges — a lit edge + a dark groove each)
-  for (let i = -3; i <= 3; i++) {
-    const a = i * 0.36, x = Math.sin(a), w = Math.cos(a);
-    c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.15), 0.55 * w); c.lineWidth = Math.max(0.35, s * 0.02);
-    c.beginPath(); c.moveTo(x * Rr * taper + s * 0.01, -H * 0.06); c.lineTo(x * Rr + s * 0.01, top + H * 0.08); c.stroke();
-    c.strokeStyle = rgb(hi, 0.4 * w); c.lineWidth = Math.max(0.3, s * 0.014);
-    c.beginPath(); c.moveTo(x * Rr * taper - s * 0.02, -H * 0.06); c.lineTo(x * Rr - s * 0.02, top + H * 0.08); c.stroke();
-  }
-  // two raised hoops + the foot's hoop (a shadowed underside, a lit top edge)
-  for (const v of [0.3, 0.66, 0.04]) {
-    const rr = Rr * (taper + (1 - taper) * v);
-    c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.25), 0.85); c.lineWidth = Math.max(0.6, s * 0.05); c.beginPath(); c.ellipse(0, -H * v, rr, ry, 0, 0.04, PI - 0.04); c.stroke();
-    c.strokeStyle = rgb(hi, 0.75); c.lineWidth = Math.max(0.35, s * 0.02); c.beginPath(); c.ellipse(0, -H * v - s * 0.04, rr, ry, 0, 0.25, PI - 0.25); c.stroke();
-  }
-  // the drop handles: flat iron bars flush under the rim on either side
-  c.fillStyle = rgb(mix(lo, [0, 0, 0], 0.35));
-  for (const d of [-1, 1]) c.fillRect(d > 0 ? Rr * 0.62 : -Rr * 0.98, top + H * 0.1, Rr * 0.36, Math.max(0.6, s * 0.045));
-  // the opening (a dark mouth when the lid is off) + THE BRIGHT ROLLED RIM
-  if (can.lid !== 'on') { c.fillStyle = rgb(mix(lo, [0, 0, 0], 0.65)); c.beginPath(); c.ellipse(0, top, Rr, ry, 0, 0, TAU); c.fill(); }
-  c.strokeStyle = rgb(mix(hi, [255, 255, 255], 0.35)); c.lineWidth = Math.max(0.7, s * 0.05); c.beginPath(); c.ellipse(0, top, Rr * 1.02, ry, 0, 0, PI); c.stroke();
-  // scraps of paper under the lid (a full can — gone once it's been emptied: can.empty)
-  const scraps = () => {
-    if (can.empty) return;
-    const paper = col([236, 230, 212]), shadeP = col([196, 188, 168]);
-    // (crumpled sheets + a folded newspaper, out from under the lid's edges — their feet under it)
-    poly(c, [[-Rr * 1.12, top - ry * 0.1], [-Rr * 1.02, top - ry * 3.2], [-Rr * 0.62, top - ry * 2.4], [-Rr * 0.66, top + ry * 0.1]], rgb(paper));
-    poly(c, [[-Rr * 1.0, top - ry * 2.9], [-Rr * 0.8, top - ry * 3.5], [-Rr * 0.7, top - ry * 2.5]], rgb(shadeP));
-    poly(c, [[Rr * 0.62, top + ry * 0.1], [Rr * 0.86, top - ry * 3.6], [Rr * 1.22, top - ry * 2.2], [Rr * 1.12, top + ry * 0.1]], rgb(shadeP));
-    poly(c, [[Rr * 0.76, top - ry * 1.4], [Rr * 1.05, top - ry * 2.0], [Rr * 1.0, top - ry * 1.2]], rgb(mix(paper, [60, 60, 70], 0.35)));   // (a line of newsprint)
-  };
-  // the lid: on (a shallow dome, a bright edge, its bail handle) | askew / off (leaning against the can on the ground)
-  const lid = (x, y, rot, k = 1) => {
-    c.save(); c.translate(x, y); c.rotate(rot);
-    const lg = c.createLinearGradient(-Rr, 0, Rr, 0); lg.addColorStop(0, rgb(L0)); lg.addColorStop(0.7, rgb(L1)); lg.addColorStop(1, rgb(mix(L1, lo, 0.4)));
-    c.fillStyle = lg; c.beginPath(); c.ellipse(0, 0, Rr * 1.1 * k, ry * 1.08 * k, 0, 0, TAU); c.fill();
-    c.beginPath(); c.ellipse(0, -ry * 0.15, Rr * 0.92 * k, Rr * 0.26 * k, 0, PI, 0); c.fill();
-    c.strokeStyle = rgb(mix(hi, [255, 255, 255], 0.3), 0.9); c.lineWidth = Math.max(0.5, s * 0.03); c.beginPath(); c.ellipse(0, 0, Rr * 1.1 * k, ry * 1.08 * k, 0, PI * 0.02, PI * 0.98); c.stroke();
-    c.strokeStyle = rgb(mix(lo, [0, 0, 0], 0.35)); c.lineWidth = Math.max(0.6, s * 0.04); c.beginPath(); c.moveTo(-Rr * 0.3 * k, -Rr * 0.26 * k - ry * 0.15); c.lineTo(-Rr * 0.22 * k, -Rr * 0.42 * k - ry * 0.15); c.lineTo(Rr * 0.22 * k, -Rr * 0.42 * k - ry * 0.15); c.lineTo(Rr * 0.3 * k, -Rr * 0.26 * k - ry * 0.15); c.stroke();
-    c.restore();
-  };
-  if (can.lid === 'on') { scraps(); lid(0, top - ry * 0.35, -0.06); }
-  else lid(Rr * 1.55, -Rr * 0.95, 1.3);          // ('off' / 'askew': the lid leaning on the ground against the can — the same, no jump)
+  const g = c.createRadialGradient(gx, gy, 0, gx, gy, w); g.addColorStop(0, `rgba(14,16,30,${(0.55 * k).toFixed(3)})`); g.addColorStop(0.7, `rgba(14,16,30,${(0.34 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(14,16,30,0)');
+  c.fillStyle = g; c.beginPath(); c.ellipse(gx, gy, w, hh, 0, 0, TAU); c.fill();
+  c.globalCompositeOperation = 'lighter';
+  c.fillStyle = night > 0.5 ? `rgba(255,200,130,${(0.12 * k).toFixed(3)})` : `rgba(220,236,255,${(0.16 * k).toFixed(3)})`;
+  c.beginPath(); c.ellipse(gx - w * 0.15, gy - hh * 0.1, w * 0.5, hh * 0.28, 0, 0, TAU); c.fill();
   c.restore();
 }
 

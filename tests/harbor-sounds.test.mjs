@@ -208,8 +208,9 @@ test('8P — THE MOMENTS HEARD: each cue where its painter shows it; cues alread
   assert.deepEqual(momentCues('mirror', 4, 8.5).map(c => c.slot), ['door-heavy-close'], 'the bar\'s burst is past 4 s in');
   assert.deepEqual(momentCues('toast', 0, 7)[0], { slot: 'glasses-clink', in: 2.66, mark: 'hit', gain: 0.9, pan: -0.5 });
   assert.deepEqual(momentCues('dance', 0, 9), [], 'no sound');
-  assert.equal(momentCues('wake', 0.84 + 0.2, 42).length, 3, 'a cue 0.2 s late still plays (joined)');
-  assert.equal(momentCues('wake', 0.84 + 0.5, 42).length, 2, '… 0.5 s late: dropped');
+  // (POLISH 5: the wake's one cue now — the blind; the sash went with the window box)
+  assert.equal(momentCues('wake', 0.84 + 0.2, 42).length, 1, 'a cue 0.2 s late still plays (joined)');
+  assert.equal(momentCues('wake', 0.84 + 0.5, 42).length, 0, '… 0.5 s late: dropped');
   // the barbershop: the same cycle as windows.js#barberDay (a customer every 480 s from the opening's end − 40 s)
   const open = 9 * 3600 + 120, at = ph => open + 44 - 40 + ph;
   assert.deepEqual(barberAt(at(100), open), { n: 0, ph: 100, cutting: true });

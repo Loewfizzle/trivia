@@ -58,10 +58,10 @@ export function createPeople() {
   function frame(f) {
     if (!L) return;
     ensureMap(!!f.event);
-    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.noWork ? 1 : 0}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
+    const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}`; if (fk !== forced) { forced = fk; cache.clear(); }
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
-      forceWork: f.forceWork || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
+      forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
       raid: f.raid || null };
     const p0 = pnow();

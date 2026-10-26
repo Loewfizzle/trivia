@@ -70,7 +70,7 @@ export const PHONE = Object.freeze({
   // crossing's axis, a little further back (z 43.4 → 44.8) — inside both flanking lamps' pools. THE MAILBOX by the front curb, right.
   tall: [{ f: 0.559, z: 52.6 }, { f: 0.776, z: 52.6 }],
   maples: [{ f: 0.888, z: 38.2, big: true, v: 1 }],
-  crabs: [{ f: 0.45, z: 50.9, k: 1.45 }],    // (PF: 0.405 / z 52.9 / k 1.25 → its crown 153–209 pt at 402: right of the blade, left of the lamp's arm)
+  crabs: [{ f: 0.42, z: 50.9, k: 1.4 }],    // (POLISH 5: 0.45 / k 1.45 → 0.42 / 1.4 — the cab at its stop no longer half behind it at 402; PF: 0.405 / z 52.9 / k 1.25 → its crown 153–209 pt at 402: right of the blade, left of the lamp's arm)
   globes: [0.322, 0.962],                  // (the front edge's two corners: by the speakeasy's corner, by the right edge)
   medallion: { f: 0.6675, z: 44.8 },        // (PF: on the crossing's axis, between the flanking lamps — inside both their pools)
   bench: { f: 0.515, z: 47.8 },             // (PF: in front of the crabapple, a little right — its trunk + uplight show at the bench's left end; its right end by the left flanking lamp)
@@ -215,27 +215,28 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   };
   const mailbox = S.mailbox ? { x: X(S.mailbox.f, S.mailbox.z), z: S.mailbox.z } : null;   // (PF: props.js#drawMailbox)
   if (mailbox) zones.block.push({ x: mailbox.x, z: mailbox.z + 0.3, r: 0.6 });
-  // 8b1 wildlife — THE TRASH CAN (Group 1's trash collector empties it): just right of the front-left globe lamp
-  const trashCan = trashCanSpot(cam, lamps);
-  zones.block.push({ x: trashCan.x, z: trashCan.z, r: 0.7 });
-  return { lamps, trees, bench, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones, mailbox, trashCan };
+  // POLISH 5 — THE FIRE HYDRANT (the owner: replacing the trash can): just right of the front-left globe lamp
+  const hydrant = hydrantSpot(cam, lamps);
+  zones.block.push({ x: hydrant.x, z: hydrant.z, r: 0.6 });
+  return { lamps, trees, bench, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones, mailbox, hydrant };
 }
 
-/** 8b1 wildlife — THE TRASH CAN (the owner's pick, Oct 24): a small galvanized can with a lid just RIGHT of the front-left globe lamp
+/** 8b1 wildlife — (was THE TRASH CAN, the owner's pick, Oct 24): its spot just RIGHT of the front-left globe lamp
  *  (by the curb + the brick street — a city litter can by a lamppost is true to the period + right where the trash truck stops), fully
  *  above the dock at every phone size (its foot `pad` pt over the dock's top), clear of the lobby line (it forms LEFT of that lamp —
  *  core/harbor-people.js#linePlaces) + the walk to the door; nearer than anyone on the floor (z ≤ the people's zMin − 0.55). h / r: its
  *  height + radius (world units: ~0.8 m × 0.5 m) */
-// (C2 — the owner: "it looks like a fire hydrant": a size up (h 0.98 → 1.24, r 0.3 → 0.4), against the lamppost (dx 1.75 → 0.8 — strapped
-// to it: `post` is the post's x at the can's depth), the classic ribbed galvanized can — fauna.js#drawTrashCan)
-export const CAN = Object.freeze({ dx: 0.8, pad: 4, zMin: 37.2, zMax: 38.2, h: 1.24, r: 0.4 });
-export function trashCanSpot(cam, lamps) {
+// POLISH 5 — THE FIRE HYDRANT (the owner, Oct 25 — DECIDED: the can became a hydrant; the trash truck empties the street's cans off
+// screen at the curb): a classic red 1920s cast-iron hydrant where the can stood — by the front-left lamppost, fully above the dock,
+// clear of the lobby line + the walk to the door; h / r: its height (~0.8 m with the bonnet) + its barrel's radius (fauna.js#drawHydrant)
+export const HYDRANT = Object.freeze({ dx: 0.8, pad: 4, zMin: 37.2, zMax: 38.2, h: 1.0, r: 0.24 });
+export function hydrantSpot(cam, lamps) {
   const g = (lamps || []).filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0];
   const dockY = cam.dock && cam.dock.y && !cam.wide ? cam.dock.y : cam.H;
-  const zFoot = cam.F * cam.CAMH / Math.max(1, dockY - CAN.pad - cam.VPY);
-  const z = Math.max(CAN.zMin, Math.min(CAN.zMax, zFoot));
+  const zFoot = cam.F * cam.CAMH / Math.max(1, dockY - HYDRANT.pad - cam.VPY);
+  const z = Math.max(HYDRANT.zMin, Math.min(HYDRANT.zMax, zFoot));
   const gx = g ? g.x * z / g.z : xOfF(cam, 0.322, z);
-  return { x: gx + CAN.dx, z, h: CAN.h, r: CAN.r, post: g ? gx : null };
+  return { x: gx + HYDRANT.dx, z, h: HYDRANT.h, r: HYDRANT.r, post: g ? gx : null };
 }
 
 // ------------------------------------------------------------------ THE SEASON (the trees, the planters)

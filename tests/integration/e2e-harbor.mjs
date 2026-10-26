@@ -2298,9 +2298,9 @@ G('wildlife', async () => {
     const O = await open({ slot: 'wl1b', qs: `when=2026-10-22T12:00${GR}&force=pigeons,no-people,no-wildlife`, view: [402, 874] });
     await harborUp(O.page);
     const b = await band(O.page), diff = a.reduce((s, v, i) => s + (Math.abs(v - b[i]) > 30 ? 1 : 0), 0);
-    ok(diff > 3, `THE WILDLIFE is drawn: the promenade's band differs from &force=no-wildlife in ${diff} samples (the flock + the can)`);
-    const can = await ev(Q.page, `${W}.canState()`);
-    ok(can && can.lid === 'on', `THE TRASH CAN by the front-left lamp, its lid on at noon (${JSON.stringify(can)})`);
+    ok(diff > 3, `THE WILDLIFE is drawn: the promenade's band differs from &force=no-wildlife in ${diff} samples (the flock + the hydrant)`);
+    const hy = await ev(Q.page, `${W}.hydrantState()`);
+    ok(hy && hy.spray === 0, `THE FIRE HYDRANT by the front-left lamp, shut at noon in October (${JSON.stringify(hy)})`);
     await O.ctx.close(); await Q.ctx.close(); }
   // ---- THE SCATTER (&force=pigeons-scatter: a scare every 25 s): they burst up — in the air within the loop, then each lands on a
   // ledge or is away a while (never back on the same cobbles at once)
