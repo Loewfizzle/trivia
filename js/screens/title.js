@@ -652,7 +652,7 @@ export function createTitle() {
       document.body.style.setProperty('--dk-tint', `rgb(${sky.join(',')})`);   // (the corner buttons live on the body)
       st.setProperty('--dk-day', String(Math.round(day * 100) / 100));
     }
-    els.door.classList.toggle('is-rain', !!L.rain && !L.snow);
+    els.door.classList.toggle('is-rain', !!L.rain && !L.snow && !createHarbor);   // (City 2.0: the beads on the glass are harbor/glasswx.js's)
   }
   // LIVE WEATHER: snow settles on the sign's tubes while it snows (fades in over a minute, melts slowly after), drawn from the
   // tubes themselves (their top edges: the shape minus itself shifted down); the first snow of the winter starts gently
@@ -1082,6 +1082,14 @@ export function createTitle() {
     document.querySelectorAll('.menu-btn, .music-btn').forEach(add);
     return out;
   }
+  // CITY 2.0, 9a — THE GLASS the weather lands on (harbor/glasswx.js): JOIN + HOST's discs, the dock's pill, ☰ + ♪ — at rest
+  function glassShapes() {
+    const out = [], add = (el, id, kind, group) => { if (!el) return; const r = restRect(el); if (r.width > 4 && r.height > 4) out.push({ id, kind, group, x: r.left, y: r.top, w: r.width, h: r.height }); };
+    const root = els.root;
+    if (root) { add(root.querySelector('.nd-joinring .nd-hdisc'), 'join', 'circle', 'dock'); add(root.querySelector('.nd-hostbtn .nd-hdisc'), 'host', 'circle', 'dock'); add(root.querySelector('.nd-bar-glass'), 'pill', 'pill', 'dock'); }
+    add(document.querySelector('.menu-btn'), 'menu', 'circle', 'corner'); add(document.querySelector('.music-btn'), 'music', 'circle', 'corner');
+    return out;
+  }
   // the NEON letters, SPEAKEASY and the tagline, for the phone sun's arch (it passes behind the words, never the letters)
   function textRects() {
     const box = el => { if (!el) return null; const r = restRect(el); return r.width && r.height ? { x: r.left, y: r.top, w: r.width, h: r.height } : null; };
@@ -1095,7 +1103,7 @@ export function createTitle() {
   function trackLogo() {
     if (destroyed) return;
     if (document.visibilityState !== 'visible') { els.logoTimer = setTimeout(trackLogo, 5000); return; }
-    scene.set({ logoRect: logoRect(), clear: clearZones(), textRects: textRects() });
+    scene.set({ logoRect: logoRect(), clear: clearZones(), textRects: textRects(), ...(createHarbor ? { glass: glassShapes(), dockIdle: !!(els.root && els.root.classList.contains('is-idle')) } : {}) });
     sunGlass();
     // (City 2.0, NEON PASS 3: a drone show's formation fills the band under SPEAKEASY — the tagline steps aside while it flies)
     if (scene.holdTag) { const h = !!scene.holdTag(); if (h !== els.sign.classList.contains('nd-tag-hold')) els.sign.classList.toggle('nd-tag-hold', h); }
