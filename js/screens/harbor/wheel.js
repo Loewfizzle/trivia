@@ -52,7 +52,9 @@ export const WHEEL_SCHEMES = {
 WHEEL_SCHEMES.thanksgiving = { rim: [[255, 170, 70], [255, 214, 150], [255, 140, 50]], rings: [[255, 140, 50], [255, 214, 150], [255, 170, 70], [255, 226, 170]], hub: [255, 214, 150] };
 WHEEL_SCHEMES.easter = { rim: [[255, 190, 230], [190, 230, 255], [255, 246, 170]], rings: [[200, 255, 210], [255, 190, 230], [190, 230, 255], [255, 246, 170]], hub: [255, 255, 255] };
 
-const DAY_CARS = [[196, 44, 52], [236, 226, 204], [38, 128, 140], [226, 168, 40]];
+// (POLISH 5, the owner: the multicolour cars read toy-like — ALL ONE DEEP NAVY, matching Rosie's trim; a few pt on a phone: only colour,
+// shape + light read — no window band, no trim; at night each a dark shape with ONE warm glow)
+const CAR_NAVY = [32, 46, 90];
 
 function canvas(w, h) { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; }
 /**
@@ -99,7 +101,8 @@ export function createWheel() {
     const day = clamp01(T.day + 0.7 * T.gold), night = T.night;
     // painted steel: red by day (deeper in the shade), plum at golden hour, a near-black silhouette at night (a cool sky rim)
     // (at night the steel catches its own bulbs: a warm-lit plum, so the structure reads between the lights)
-    const paint = mix(mix([168, 40, 48], [150, 50, 66], T.gold / Math.max(0.01, T.day + T.gold)), [84, 50, 66], night);
+    // (POLISH 5: the frame stays RED — the landmark; cream would melt into the cream towers — deepened to a HERITAGE red, less candy)
+    const paint = mix(mix([138, 30, 38], [126, 38, 52], T.gold / Math.max(0.01, T.day + T.gold)), [84, 50, 66], night);
     const dark = shade(paint, -0.35), pale = mix(paint, [255, 236, 226], 0.28 * day);
     const S = P * 2;
     steel = steel || canvas(1, 1); steel.width = steel.height = Math.ceil(S * dpr);
@@ -135,26 +138,28 @@ export function createWheel() {
     x.fillStyle = rgb(dark); x.beginPath(); x.arc(0, 0, r * 0.085, 0, Math.PI * 2); x.fill();
     x.strokeStyle = rgb(paint); x.lineWidth = lw(0.012); x.stroke();
     x.fillStyle = rgb(pale); for (let i = 0; i < 8; i++) { const a = i * Math.PI / 4; x.beginPath(); x.arc(Math.cos(a) * r * 0.058, Math.sin(a) * r * 0.058, Math.max(0.25, r * 0.007), 0, Math.PI * 2); x.fill(); }
-    // the gondolas (4 paint colours by day; lit or dark windows at night)
+    // the gondolas (POLISH 5): one deep navy by day (the sun's edge on the cabin's left, the roof a shade darker); at night a dark
+    // shape with ONE warm glow (a small lit window + its light on the air) — light reads at a few pt, detail doesn't
     cars.forEach(cv => { cv.width = 0; });
     cars = [];
     const cw = 1.3 * u, ch = 1.55 * u, hang = 0.5 * u;
     for (let n = 0; n < 6; n++) {
-      const lit = n >= 4 ? 0 : 1, colIdx = n % 4;
-      const body = mix(DAY_CARS[colIdx], lit ? [70, 46, 40] : [24, 20, 34], night * 0.88), roofC = shade(body, -0.25), win = night > 0.3 ? (lit ? [255, 222, 160] : [16, 14, 24]) : mix([60, 80, 100], [150, 186, 210], day * 0.6);
+      const body = mix(mix(CAR_NAVY, shade(CAR_NAVY, 0.1), day * 0.4), [14, 14, 26], night * 0.82), roofC = shade(body, -0.28);
       const W = cw + 4, H = ch + hang + 4, cv = canvas(W * dpr, H * dpr), g = safeCtx(cv);
       g.setTransform(dpr, 0, 0, dpr, (W / 2) * dpr, 2 * dpr);
-      // the hanger (from the pivot at 0,0), the roof (a little dome + its rim), the cabin, the window band, the floor
+      // the hanger (from the pivot at 0,0), the roof (a little dome + its rim), the cabin
       g.strokeStyle = rgb(dark); g.lineWidth = Math.max(0.35, u * 0.08);
       g.beginPath(); g.moveTo(0, 0); g.lineTo(0, hang); g.stroke();
       g.fillStyle = rgb(roofC); g.beginPath(); g.ellipse(0, hang + ch * 0.1, cw * 0.56, ch * 0.16, 0, Math.PI, 0); g.fill();
       g.fillRect(-cw * 0.58, hang + ch * 0.08, cw * 1.16, ch * 0.08);
       g.fillStyle = rgb(body); g.beginPath(); g.roundRect(-cw / 2, hang + ch * 0.15, cw, ch * 0.8, [cw * 0.08, cw * 0.08, cw * 0.28, cw * 0.28]); g.fill();
-      g.fillStyle = rgb(win); g.fillRect(-cw * 0.4, hang + ch * 0.26, cw * 0.8, ch * 0.32);
-      if (night > 0.3 && lit) { const gg = g.createRadialGradient(0, hang + ch * 0.42, 0, 0, hang + ch * 0.42, cw * 1.05); gg.addColorStop(0, 'rgba(255,214,150,0.62)'); gg.addColorStop(0.5, 'rgba(255,190,110,0.22)'); gg.addColorStop(1, 'rgba(255,190,110,0)'); g.globalCompositeOperation = 'lighter'; g.fillStyle = gg; g.fillRect(-cw * 1.1, hang - ch * 0.1, cw * 2.2, ch * 1.2); g.globalCompositeOperation = 'source-over'; }
-      g.fillStyle = rgb(shade(body, -0.3)); g.fillRect(-cw * 0.4, hang + ch * 0.42, cw * 0.8, Math.max(0.3, ch * 0.04));      // the window's mullion
-      for (const s of [-1, 1]) g.fillRect(s * cw * 0.14 - 0.15, hang + ch * 0.26, 0.3, ch * 0.32);
-      if (day > 0.2) { g.fillStyle = `rgba(255,248,232,${0.35 * day})`; g.fillRect(-cw / 2 + 0.2, hang + ch * 0.17, Math.max(0.3, cw * 0.1), ch * 0.7); }
+      if (night > 0.3) {
+        const k = clamp01((night - 0.3) / 0.4), cy = hang + ch * 0.44;
+        const gg = g.createRadialGradient(0, cy, 0, 0, cy, cw * 1.0); gg.addColorStop(0, `rgba(255,206,136,${(0.55 * k).toFixed(3)})`); gg.addColorStop(0.45, `rgba(255,184,100,${(0.2 * k).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,184,100,0)');
+        g.globalCompositeOperation = 'lighter'; g.fillStyle = gg; g.fillRect(-cw * 1.1, hang - ch * 0.1, cw * 2.2, ch * 1.2); g.globalCompositeOperation = 'source-over';
+        g.fillStyle = `rgba(255,224,170,${(0.95 * k).toFixed(3)})`; g.beginPath(); g.roundRect(-cw * 0.26, cy - ch * 0.13, cw * 0.52, ch * 0.26, cw * 0.06); g.fill();
+      }
+      if (day > 0.2) { g.fillStyle = `rgba(214,226,255,${(0.3 * day).toFixed(3)})`; g.fillRect(-cw / 2 + 0.2, hang + ch * 0.17, Math.max(0.3, cw * 0.1), ch * 0.7); }
       cars.push(cv);
     }
     // the front A-frame (+ the axle): two lattice legs from the hub to the deck, a cross beam

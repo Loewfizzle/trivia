@@ -342,7 +342,9 @@ export function drawTree(x, cam, t, T, ctx = {}) {
   front.forEach((cl, k) => drawCluster(x, s, bx, by, cl, env, rig, leafPt, gr, k % B === B - 1 || k === front.length - 1));
   // a crabapple's fruit: little red apples with a glint
   if (plan.fruit.length) {
-    const fr = Math.max(0.6, 0.065 * s), col = lit(rig, FRUIT, 0.2, 0.4, 0.9, 0, t.trunk + t.h / 2, 0.5, 1);
+    const fr = Math.max(0.75, 0.072 * s), col = lit(rig, FRUIT, 0.2, 0.4, 0.9, 0, t.trunk + t.h / 2, 0.5, 1);
+    // (POLISH 5: a dark underside first — each bunch reads as round fruit on the leaves, not loose specks)
+    x.fillStyle = rgb(mix(col, [30, 6, 12], 0.55)); x.beginPath(); for (const f of plan.fruit) { const px = bx + f.u * s + fr * 0.2, py = by - f.v * s + fr * 0.25; x.moveTo(px + fr, py); x.arc(px, py, fr, 0, TAU); } x.fill();
     x.fillStyle = rgb(col); x.beginPath();
     for (const f of plan.fruit) { const px = bx + f.u * s, py = by - f.v * s; x.moveTo(px + fr, py); x.arc(px, py, fr, 0, TAU); }
     x.fill();

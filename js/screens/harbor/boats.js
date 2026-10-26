@@ -63,10 +63,12 @@ export function createBoats() {
     const day = clamp01(T.day + 0.8 * T.gold), night = T.night, gold = T.gold / Math.max(0.01, T.day + T.gold), sd = T.sunDir || 0;
     const lit = (c, k = 1) => mix(mix(c, shade(c, 0.12), day * 0.5), mix(c, [30, 26, 48], 0.86), night * k);
     const glass = night > 0.35 ? [255, 204, 128] : mix([70, 96, 126], [170, 196, 214], day * 0.5);
-    const white = lit([244, 240, 230]), red = lit([180, 34, 44]), dark = lit([30, 28, 36], 0.4);
+    const white = lit([244, 240, 230]), navy = lit([30, 44, 86]), dark = lit([30, 28, 36], 0.4);
     const common = { win: glass, shadow: [20, 16, 30, 0.28 + 0.2 * night], wire: [...dark, 0.6], none: null, dark, trim: lit([206, 170, 90]) };
     const P = {
-      rosie: { ...common, white, shadeW: shade(white, -0.18), edge: shade(white, 0.1), rail: shade(white, 0.15), red, redD: shade(red, -0.35), roof: shade(red, -0.1), stack: lit([22, 20, 26], 0.3), buoy: lit([236, 96, 40]), deck: lit([186, 166, 136]) },
+      // (POLISH 5 — TOO MUCH RED + WHITE, the owner: Rosie WHITE with DEEP NAVY trim — her boot stripe, the paddle box, the roof, the
+      // pennants — + BLACK stacks; the gold only where it is big enough to read: her name on the paddle box, the stacks' bands)
+      rosie: { ...common, white, shadeW: shade(white, -0.18), edge: shade(white, 0.1), rail: shade(white, 0.15), red: navy, redD: shade(navy, -0.35), roof: shade(navy, -0.1), stack: lit([16, 15, 19], 0.3), buoy: lit([236, 96, 40]), deck: lit([186, 166, 136]) },
       taxi: { ...common, yellow: lit([244, 196, 40]), white: lit([240, 238, 230]), black: lit([24, 22, 28], 0.3), teak: lit([170, 120, 70]), flag: lit([60, 120, 220]), win: night > 0.35 ? [255, 214, 150] : mix([60, 84, 110], [160, 190, 210], day * 0.5) },
       tug: { ...common, hull: lit([22, 20, 26], 0.3), band: lit([176, 36, 36]), cream: lit([236, 226, 200]), buff: lit([200, 160, 90]), deck: lit([120, 100, 80]), tyre: lit([14, 12, 16], 0.3), fender: shade(lit([22, 20, 26], 0.3), 0.1), win: night > 0.35 ? [255, 206, 130] : mix([60, 84, 110], [160, 190, 210], day * 0.5), winDim: night > 0.35 ? [120, 96, 70] : shade(lit([236, 226, 200]), -0.3) },
       fish: { ...common, hull: lit([226, 224, 216]), band: lit([44, 104, 74]), cream: lit([214, 196, 150]), buff: lit([44, 104, 74]), deck: lit([150, 130, 100]), tyre: lit([14, 12, 16], 0.3), fender: shade(lit([226, 224, 216]), 0.1), win: night > 0.35 ? [255, 206, 130] : mix([60, 84, 110], [160, 190, 210], day * 0.5), winDim: night > 0.35 ? [120, 96, 70] : shade(lit([214, 196, 150]), -0.3) },
@@ -75,7 +77,7 @@ export function createBoats() {
     // the sun on the faces: toward the light (we face south: −1 a morning sun on the left; the light from behind the city, +z);
     // at night a faint sky light from above. The colours as authored on a face turned to the camera.
     const sun = night > 0.6 ? [0, 0.9, 0.3] : (() => { const v = [sd * 0.85, 0.55, 0.4], l = Math.hypot(...v); return v.map(c => c / l); })();
-    look = { key, hb, day, night, gold, sd, pal: P, sun, shK: 0.05 + 0.13 * day, topK: 0.04 + 0.06 * day, wheel: { board: rgb(mix([168, 36, 46], [40, 16, 26], night)), boardD: rgb(mix([120, 24, 34], [28, 12, 20], night)), rim: rgb(mix([206, 170, 90], [70, 56, 40], night)), spoke: rgb(mix([60, 20, 26], [22, 12, 18], night)) } };
+    look = { key, hb, day, night, gold, sd, pal: P, sun, shK: 0.05 + 0.13 * day, topK: 0.04 + 0.06 * day, wheel: { board: rgb(mix([34, 50, 96], [16, 18, 34], night)), boardD: rgb(mix([22, 32, 64], [12, 12, 24], night)), rim: rgb(mix([206, 170, 90], [70, 56, 40], night)), spoke: rgb(mix([60, 20, 26], [22, 12, 18], night)) } };
     return look;
   }
 
