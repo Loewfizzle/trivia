@@ -509,7 +509,7 @@ export function createRemote({ scene, api = apiCall }) {
       sec: 'weather', last: false, label: 'THE WEATHER', q: 'weather sky',
       n: () => R.WEATHER.length,
       on: st => [st.wx ? R.WEATHER.find(w => w.id === st.wx).label : null],
-      kids: st => [h('div.hr-row', btn('REAL — THE LIVE WEATHER', !st.wx, () => edit(s => { delete s.wx; delete s.wxk; }), { cls: 'hr-wide', q: 'real live weather clear it' })),
+      kids: st => [h('div.hr-row', btn('REAL', !st.wx, () => edit(s => { delete s.wx; delete s.wxk; }), { cls: 'hr-wide', title: 'the live weather', q: 'real live weather clear it' })),
         // (WIN: the rows in groups — the sky's cover, rain, storm, fog, cold)
         ...R.WEATHER_GROUPS.flatMap(g => [h('div.hr-gl', g), opts(...R.WEATHER.filter(w => w.group === g).map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }), { q: `${w.label} ${w.id} weather ${g}` })))]),
         // (9a: the INTENSITY of the forced state — AUTO = its own)

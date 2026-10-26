@@ -7018,8 +7018,13 @@ means a moment never drops to the saver's 30 fps — the work per drawn frame is
 - The rooms' boxes are baked per lit level (as before): a room changes depth look only with its lamp (by design).
 - The `panel` e2e group (the sheet) didn't run locally (no emulators); the cloud run decides — see below.
 - The desktop panorama drops the front strip's dressing spots (its left edge cuts them) — by design.
-- **The cloud run**: the final push's `harbor` workflow (`gh run list --workflow harbor`); the two-run rule stands — a red job in code the
-  pass didn't touch that is a known flake stays here as a note, never a re-run to confirm.
+- **The cloud run** (40352969924, by hand — the docs push can't trigger the path filter): `street`, `show`, `holiday`, `audio`, `wild` green;
+  `city` 80/81 + two thrown errors: (1) SP3's known clock-dependent "LOAD WEATHER — answered after 6 s" (a lit crossfade when the overcast
+  lands in the runner's daylight — not this pass's code); (2) the panel group's "no chip REAL" — THIS PASS renamed the weather block's
+  REAL button to "REAL — THE LIVE WEATHER" and the sheet test taps it by label: the label is REAL again (the follow-up push); (3) the
+  `perf` group's "timeout: re-bake" at tier 2 — the runner's bake stayed pending for two 30-s waits; locally the group passes 8/8 (the
+  tier-2 re-bake included) — a slow-runner flake of the class the timing checks already warn on. The follow-up push is the pass's second
+  (and last) cloud run.
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
 - **PLAY ALL SCENES**: open the panel (the TEST pill), SPEAKEASY → ▶ PLAY ALL SCENES; the chip beside the pill: tap it to skip, ❚❚ to pause,
