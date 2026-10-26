@@ -134,7 +134,6 @@ export const EVENTS = [
   { id: 'helicopter', label: 'HELICOPTER', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   { id: 'jets', label: 'AIR SHOW (F-22s)', cat: 'sky', kw: 'fighter jets raptor formation', group: 'AIRCRAFT', oneShot: true, hint: 'a diamond of four stealth fighters: two straight formation flybys, smooth smoke trails by day — July 4th' },
   { id: 'flyby', label: 'SURPRISE FLYBY', cat: 'sky', kw: 'f-22 fighter jets raptor afterburner', group: 'AIRCRAFT', oneShot: true, hint: '2–4 F-22s straight across on afterburner — ~twice a month, golden hour → 11 pm' },
-  { id: 'barnstormer', label: 'BARNSTORMER', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a red 1920s biplane threading THROUGH the NEON letters + a loop (~3 days a week)' },
   { id: 'missing-man', label: 'MISSING MAN', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a finger-four, #3 pulls up + away — Memorial + Veterans Day' },
   { id: 'balloons', label: 'BALLOONS', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   { id: 'balloon-festival', label: 'BALLOON FESTIVAL', cat: 'sky', group: 'AIRCRAFT', oneShot: true },

@@ -548,6 +548,7 @@ export function createClouds() {
   // (POLISH 5 — THE LOAD: the plans made (the load log names each), the new set's fade (1.6 s; SLOW_MS once the city has shown —
   // the weather landing, a new block: a slow blend, never a pop) and whether the scene has settled the first set (settle()))
   let plans = 0, appearMs = 1600, shown = false;
+  let thinB = null, thinK = 0;                            // (POLISH 5: a sky message's box — the clouds over it thin to a quarter while it is up)
   const SLOW_MS = 6000;
   // (the readout: what the clouds cost a frame — the draw + the background jobs — and how often a cloud is re-lit)
   const perf = { ms: 0, jobMs: 0, n: 0, relit: 0, beamMs: 0, hitMs: 0, renders: 0, patches: 0 };
@@ -605,7 +606,11 @@ export function createClouds() {
       d.xNow = x;
       if (!d.cv || (part === 'back' ? d.s >= 0.5 : part === 'front' ? d.s < 0.5 : false)) continue;
       const by = d.y + (extra.base || 0), ty = by - d.h;
+      // (POLISH 5 — CLOUDS NEVER COVER A MESSAGE: a cloud over the message's letters thins out, white dots never sit on a white cloud)
+      const tb = thinB && thinK > 0 && part !== 'front' ? thinB : null, over = tb && x < tb.x + tb.w && x + d.w > tb.x && by - d.h < tb.y + tb.h && by > tb.y;
+      const thin = over ? 1 - 0.75 * thinK : 1;
       const draw = (cv, a) => {
+        a *= thin;
         if (a <= 0.004) return;
         c.globalAlpha = a;
         if (d.kind === 'deck') { for (const ox of [x, x + d.w]) if (ox < W && ox + d.w > 0) c.drawImage(cv, ox, -2 + (extra.base || 0) * 0.3, d.w, d.h); }
@@ -777,6 +782,8 @@ export function createClouds() {
       if (!box || (!b && !cur) || (b && cur && Math.abs(b.y0 - cur.y0) < 3 && Math.abs(b.y1 - cur.y1) < 3)) return;
       box = { ...box, avoid: b ? { y0: b.y0, y1: b.y1 } : null }; planKey = '';
     },
+    /** POLISH 5: thin the clouds over a box (a sky message) by k 0..1 (null: none) */
+    thin(b, k) { thinB = b; thinK = k; },
     /** Part 9: grey 0..1 (rain / snow skies), dark 0..1 (a storm), base (pt: a lower cloud base) — re-lit at once */
     set(o) { extra = { ...extra, ...o }; gKey = ''; },
     /** part: undefined = every cloud (the update + all of them); PART 6b's hook — 'back' (the update + the far half) then the sky

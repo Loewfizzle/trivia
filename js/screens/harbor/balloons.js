@@ -48,15 +48,24 @@ function alienPath(x, R) {
   x.bezierCurveTo(0.95 * R, 0.85 * R, 0.45 * R, 1.3 * R, 0.16 * R, 1.5 * R);
   x.closePath();
 }
-// the ₿ (drawn, never a font's glyph): a bold B + the two short bars through its top + bottom
+// THE ₿ (POLISH 5 — the owner: "it reads as a B with short stubs"): the real Bitcoin symbol, drawn (never a font's glyph) — a BOLD B
+// (its stem + two bowls, the lower a touch wider, the counters cut clean: one even-odd fill, crisp) with TWO VERTICAL STROKES that
+// clearly stand ABOVE and BELOW the letter, the whole mark at the logo's slight tilt, centred on the envelope
 function bitcoinMark(x, R, col) {
-  x.save(); x.fillStyle = col; x.strokeStyle = col;
-  const h = R * 1.0, w = R * 0.62, t = R * 0.15, cx = -w * 0.42, cy = -h * 0.42;
-  x.beginPath(); x.rect(cx, cy, t, h); x.fill();
-  x.lineWidth = t;
-  x.beginPath(); x.moveTo(cx, cy + t / 2); x.lineTo(cx + w * 0.55, cy + t / 2); x.arc(cx + w * 0.55, cy + h * 0.25, h * 0.25 - t / 2, -Math.PI / 2, Math.PI / 2); x.lineTo(cx, cy + h * 0.5); x.stroke();
-  x.beginPath(); x.moveTo(cx, cy + h * 0.5); x.lineTo(cx + w * 0.62, cy + h * 0.5); x.arc(cx + w * 0.62, cy + h * 0.75, h * 0.25 - t / 2, -Math.PI / 2, Math.PI / 2); x.lineTo(cx, cy + h - t / 2); x.stroke();
-  for (const bx of [cx + t * 1.3, cx + t * 2.9]) { x.fillRect(bx, cy - h * 0.12, t * 0.7, h * 0.14); x.fillRect(bx, cy + h - t * 0.1, t * 0.7, h * 0.13); }
+  const h = R * 1.02, t = h * 0.19, r = h * 0.25, wb = h * 0.3, x0 = -(wb + r) * 0.62, y0 = -h / 2;
+  x.save(); x.fillStyle = col; x.rotate(0.24);
+  x.beginPath();
+  // the outer B
+  x.moveTo(x0, y0); x.lineTo(x0 + wb, y0); x.arc(x0 + wb, y0 + r, r, -Math.PI / 2, Math.PI / 2);
+  x.lineTo(x0 + wb * 1.12, y0 + h / 2); x.arc(x0 + wb * 1.12, y0 + h * 0.75, r, -Math.PI / 2, Math.PI / 2); x.lineTo(x0, y0 + h); x.closePath();
+  // the two counters (cut out: even-odd)
+  const ri = r - t * 0.92;
+  x.moveTo(x0 + t, y0 + t * 0.92); x.lineTo(x0 + wb, y0 + t * 0.92); x.arc(x0 + wb, y0 + r, ri, -Math.PI / 2, Math.PI / 2); x.lineTo(x0 + t, y0 + r + ri); x.closePath();
+  x.moveTo(x0 + t, y0 + h / 2 + (r - ri)); x.lineTo(x0 + wb * 1.12, y0 + h / 2 + (r - ri)); x.arc(x0 + wb * 1.12, y0 + h * 0.75, ri, -Math.PI / 2, Math.PI / 2); x.lineTo(x0 + t, y0 + h - t * 0.92); x.closePath();
+  x.fill('evenodd');
+  // the two strokes through it, standing well clear above + below (the ₿'s mark of identity)
+  const bw = t * 0.72, ext = h * 0.2;
+  for (const bx of [x0 + wb * 0.28, x0 + wb * 0.92]) { x.fillRect(bx - bw / 2, y0 - ext, bw, ext + t); x.fillRect(bx - bw / 2, y0 + h - t, bw, ext + t); }
   x.restore();
 }
 /** one balloon's art in this light → { cv, glow, w, h, oy (the dome's centre from the top), mouth (y of the mouth) } — kind: 'stripes'
@@ -81,7 +90,7 @@ function balloonArt(R, scheme, light, dpr, kind = 'stripes') {
       if (!lit && x1 - x0 > 0.6) { const g = x.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, 'rgba(20,12,30,0.22)'); g.addColorStop(0.45, 'rgba(255,255,255,0.08)'); g.addColorStop(0.55, 'rgba(255,255,255,0.08)'); g.addColorStop(1, 'rgba(20,12,30,0.22)'); x.fillStyle = g; x.fillRect(x0, -1.12 * R, x1 - x0 + 0.3, 2.7 * R); }
     }
     // the specials' faces: the ₿ (orange by day on black; black on the lit orange at night), the alien's big glossy almond eyes
-    if (btc) bitcoinMark(x, R, lit ? 'rgb(20,14,8)' : 'rgb(247,147,26)');
+    if (btc) bitcoinMark(x, R, lit || light.day < 0.3 ? 'rgb(20,14,8)' : 'rgb(247,147,26)');   // (at night the day's layer carries no orange ₿: the lit one shows it black)
     if (alien && !lit) {
       for (const sg of [-1, 1]) {
         x.save(); x.translate(sg * 0.42 * R, 0.22 * R); x.rotate(sg * -0.5);
@@ -154,7 +163,11 @@ export function createBalloons() {
       list.push({ R, near, kind: spec[i] || 'stripes', scheme: BALLOON_SCHEMES[Math.floor(R0() * BALLOON_SCHEMES.length)], lane: box, band: o.festival ? (i === 0 ? 0.55 : (i * 0.37 + R0() * 0.15) % 1) : 0.3 + R0() * 0.4, x0: o.festival ? (i / n + R0() * 0.12) % 1 : R0(), drift: 0.7 + 0.6 * R0(), ph: R0() * TAU, burnEvery: 8 + R0() * 12, art: null, key: '' });
     }
     list.sort((a, b) => a.near - b.near);                 // far first
-    cur = { at: o.at, list, dir: o.windSign || 1, dur: o.dur || 12 * 60 };
+    // POLISH 5 — THE FESTIVAL LAUNCH (the owner): real balloons RISE from behind the buildings, one after another — inflated + stood up out of
+    // sight, then lifting slowly above the skyline, the burners flaring as they climb, then away on the wind; each its own launch moment
+    if (o.festival) { const ord = [...list].sort((p, q) => (p.kind === 'bitcoin' ? -2 : p.kind === 'alien' ? -1 : p.x0) - (q.kind === 'bitcoin' ? -2 : q.kind === 'alien' ? -1 : q.x0));   // (the ₿ first, the alien, then the rest)
+      ord.forEach((b, i) => { b.launch = 4 + i * 21 + R0() * 9; b.climb = 70 + R0() * 25; }); }
+    cur = { at: o.at, list, dir: o.windSign || 1, dur: o.dur || 12 * 60, festival: !!o.festival };
   }
   function stop() { if (cur) for (const b of cur.list) if (b.art) { b.art.cv.width = 0; b.art.glow.width = 0; } cur = null; }
 
@@ -171,21 +184,32 @@ export function createBalloons() {
       const L = s.L, dark = clamp01(L.w.night + L.w.late), day = clamp01(L.w.day + L.w.golden * 0.85 + L.w.dawn * 0.8) * (1 - dark * 0.9);
       const gold = clamp01((L.w.golden + L.w.dawn) * 1.3), side = L.south ? (L.sun.az < 180 ? 1 : -1) : (L.sun.az < 180 ? -1 : 1);
       const light = { day: Math.max(0.1, day), gold, side }, key = `${Math.round(light.day * 6)}${Math.round(gold * 6)}${side}`;
-      const fadeIn = clamp01(e / 6), fadeOut = clamp01((cur.dur - e) / 10);
+      const fadeIn = cur.festival ? 1 : clamp01(e / 6), fadeOut = clamp01((cur.dur - e) / 10);   // (a festival never fades in: it rises from behind the city)
       for (const b of cur.list) {
         if (!b.art || b.key !== key) { if (b.art) { b.art.cv.width = 0; b.art.glow.width = 0; } b.art = balloonArt(b.R, b.scheme, light, dpr, b.kind); b.key = key; }
         const A = b.art;
         // the drift across (the real wind's side), slower for the far ones; a slow rise and fall, a little bob
         // (it starts in view and drifts about half the screen over the event: a balloon is slow)
-        const span = W + A.w * 2, k = (cur.list.length > 1 ? 0.12 + b.x0 * 0.72 : 0.18 + b.x0 * 0.4) + e / cur.dur * b.drift * 0.5 * (0.55 + 0.45 * b.near);   // (never wrapped: it drifts off)
+        // (a festival balloon: its clock from its own launch; before it, still behind the city — nothing drawn)
+        const eL = b.launch != null ? e - b.launch : e;
+        if (eL < 0) continue;
+        const span = W + A.w * 2, k = (cur.list.length > 1 ? 0.12 + b.x0 * 0.72 : 0.18 + b.x0 * 0.4) + Math.max(0, eL - (b.climb || 0) * 0.5) / cur.dur * b.drift * 0.5 * (0.55 + 0.45 * b.near);   // (never wrapped: it drifts off; a climbing balloon barely drifts)
         const x = cur.dir > 0 ? -A.w + k * span : W + A.w - k * span;
         // (6b: its own height in the sky — the far ones high, the near ones lower; never below the crowns: the box's foot)
         const top = b.lane.y + 2, room = Math.max(0, b.lane.h - A.h - 4), band = clamp01(0.04 + b.band * 0.78 + 0.18 * b.near);
-        const y = top + room * clamp01(band + 0.06 * Math.sin(e * 0.012 + b.ph)) + (s.motion ? Math.sin(e * 0.6 + b.ph) * 0.8 : 0);
+        let y = top + room * clamp01(band + 0.06 * Math.sin(e * 0.012 + b.ph)) + (s.motion ? Math.sin(e * 0.6 + b.ph) * 0.8 : 0);
+        // THE RISE: from just under the roofline at its x (hidden behind the buildings: the sky draws first) up to its height, easing out
+        let climbing = 0;
+        if (b.climb && eL < b.climb) {
+          const sk = s.skyline, ix = Math.max(0, Math.min((sk ? sk.length : 1) - 1, Math.round(x / 4))), roof = sk && sk.length ? sk[ix] : top + room + A.h;
+          const y0 = roof + 2, u = clamp01(eL / b.climb), ez = 1 - Math.pow(1 - u, 2.2);
+          y = y0 + (y - y0) * ez; climbing = 1 - u;
+        }
         const alpha = fadeIn * fadeOut * (0.75 + 0.25 * b.near);
         c.globalAlpha = alpha; c.drawImage(A.cv, x - A.w / 2, y, A.w, A.h); c.globalAlpha = 1;
         // THE BURNER: a burn of a few pulses every 8–20 s; the flame, and at dusk the envelope lit from inside
-        const cyc = (e + b.ph * 3) % b.burnEvery, burn = s.motion ? (cyc < 2.4 ? Math.max(0, Math.sin(cyc * 7.5)) * 0.6 + 0.4 * (cyc < 2.2 ? 1 : 0) : 0) : 0;
+        // (climbing: the burners flare far more often — every ~3 s — as it lifts)
+        const every = climbing > 0.05 ? 3.2 : b.burnEvery, cyc = (e + b.ph * 3) % every, burn = s.motion ? (cyc < 2.4 ? Math.max(0, Math.sin(cyc * 7.5)) * 0.6 + 0.4 * (cyc < 2.2 ? 1 : 0) : 0) : 0;
         if (burn > 0.02) {
           const fx = x, fy = y + A.oy + A.burner, fl = b.R * (0.35 + 0.25 * burn) * (0.9 + 0.1 * Math.sin(e * 40));
           c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = alpha * burn;
@@ -197,11 +221,12 @@ export function createBalloons() {
           c.restore();
         }
         // THE ₿ AT NIGHT: lit from inside all the time (orange with a black ₿) — the burns only brighten it
-        if (b.kind === 'bitcoin' && dark > 0.3) { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = alpha * (dark - 0.3) * 0.9; c.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); c.restore(); }
+        // (POLISH 5: laid OVER the day's look, not added to it — added, the day's orange ₿ glowed through and the mark went orange-on-orange)
+        if (b.kind === 'bitcoin' && dark > 0.3) { c.save(); c.globalAlpha = alpha * Math.min(1, (dark - 0.3) / 0.5); c.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); c.globalCompositeOperation = 'lighter'; c.globalAlpha = alpha * (dark - 0.3) * 0.35; c.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); c.restore(); }
       }
       return true;
     },
-    debug: () => (cur ? { n: cur.list.length, at: cur.at, dir: cur.dir } : null),
+    debug: () => (cur ? { n: cur.list.length, at: cur.at, dir: cur.dir, festival: cur.festival, launches: cur.list.map(b => b.launch == null ? null : +b.launch.toFixed(1)) } : null),
     destroy: stop,
   };
 }

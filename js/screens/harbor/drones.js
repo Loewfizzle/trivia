@@ -33,7 +33,7 @@ export function createDrones() {
   const glow = col => {
     const q = col.map(v => Math.min(255, Math.round(v / 12) * 12)), k = q.join(',');
     let c = glows.get(k);
-    if (!c) { c = mk(32, 32); const x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.12, `rgba(${k},1)`); g.addColorStop(0.32, `rgba(${k},0.42)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 32, 32); if (glows.size > 48) glows.clear(); glows.set(k, c); }
+    if (!c) { c = mk(32, 32); const x = safeCtx(c), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.16, 'rgba(255,255,255,0.96)'); g.addColorStop(0.24, `rgba(${k},1)`); g.addColorStop(0.42, `rgba(${k},0.5)`); g.addColorStop(1, `rgba(${k},0)`); /* (POLISH 5: a firmer white-hot core — crisp lights) */ x.fillStyle = g; x.fillRect(0, 0, 32, 32); if (glows.size > 48) glows.clear(); glows.set(k, c); }
     return c;
   };
 
@@ -96,7 +96,7 @@ export function createDrones() {
       // (each drone's place across the box: the colour wave sweeps left to right through a morph)
       xns.push(pos.map(p => clamp01((p[0] - box.x) / Math.max(1, box.w))));
       // (a letter's drones glow wide enough that each cell's cluster merges into one solid pixel)
-      sizes.push(sh.kind === 'text' ? Math.max(3.3 * K, sc * 0.62) : 3.3 * K);   // (6b: wider — the dots merge into solid letters at the bigger sizes)
+      sizes.push(sh.kind === 'text' ? Math.max(3.6 * K, sc * 0.7) : 3.3 * K);   // (POLISH 5: a touch bigger — each letter one clear shape)   // (6b: wider — the dots merge into solid letters at the bigger sizes)
     }
     const glw = cols.map(arr => arr.map(cc => glow(cc)));
     cur = { at, n, home, sets, sizes, cols, glw, xns, idleG: glow(IDLE), on, tl, wave: o.wave !== false, calm: !!o.calm, seed: o.seed || 11, box, waterTop: o.waterTop, phase: Array.from({ length: n }, () => R() * TAU), lift: Array.from({ length: n }, (_, i) => 1.5 + (i / n) * 7 + R() * 0.8), land: Array.from({ length: n }, () => R() * 5), specs };

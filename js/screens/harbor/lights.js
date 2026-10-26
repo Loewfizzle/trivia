@@ -143,6 +143,18 @@ function drawLit(x, cam, it, look, meta, group, idx) {
     { const by = project(cam, b.x0, b.y0 || 0, b.z0)[1], hh = by - ty;
       for (let i = 0; i < 4; i++) { const f = 0.22 + 0.17 * i + 0.08 * (winHash(b.seed, 31, i, 0, 5) - 0.5); if (winHash(b.seed, 32, i, 0, 5) < 0.2) continue; x.fillStyle = rgba(i % 2 ? [214, 232, 255] : [255, 236, 210], 0.5 * look.night * depthK); x.fillRect(a + (c2 - a) * 0.06, ty + hh * f, (c2 - a) * 0.88, Math.max(0.6, s * 0.5)); } }
     x.fillRect(a, ty, lw, s * 10); x.fillRect(c2 - lw, ty, lw, s * 10);
+    // (POLISH 5 — the SLANTED CROWN's glass catching the city glow at night: a soft warm-violet reflection rising from its foot, a
+    // cool sheen along the slant, the two top floors under it lit)
+    const cr = b.crown;
+    if (cr && cr.t === 'slant') {
+      const yT = (b.y0 || 0) + b.h, [lx, ly] = project(cam, b.x0, yT + cr.h, b.z0), [rx, ry] = project(cam, b.x1, yT + cr.h * 0.25, b.z0), nk = look.night * depthK;
+      x.save(); x.beginPath(); x.moveTo(a, ty); x.lineTo(lx, ly); x.lineTo(rx, ry); x.lineTo(c2, ty); x.closePath(); x.clip();
+      const g = x.createLinearGradient(0, ly, 0, ty); g.addColorStop(0, rgba([140, 170, 236], 0.14 * nk)); g.addColorStop(1, rgba([226, 150, 214], 0.36 * nk));
+      x.fillStyle = g; x.fillRect(Math.min(a, lx), ly, c2 - a, ty - ly);
+      x.fillStyle = rgba([220, 240, 255], 0.22 * nk); x.beginPath(); x.moveTo(lx, ly); x.lineTo(rx, ry); x.lineTo(rx, ry + s * 1.4); x.lineTo(lx, ly + s * 1.4); x.closePath(); x.fill();
+      x.restore();
+      x.fillStyle = rgba([226, 240, 255], 0.62 * nk); for (const k of [1.2, 3.0]) x.fillRect(a + (c2 - a) * 0.08, ty + k * s, (c2 - a) * 0.84, Math.max(0.6, s * 0.55));
+    }
   }
 }
 // what the per-frame touches may use: only windows nothing nearer in the same group covers

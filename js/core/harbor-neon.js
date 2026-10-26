@@ -91,7 +91,7 @@ export const DEPTH = [
 export const HAZE = [118, 96, 172];
 /** an outline's strength from its depth (+ the landmark towers' bit of extra light) */
 export function depthStrength(o) {
-  const z = o.z ?? 240, i = DEPTH.findIndex(d => z < d.z), st = DEPTH[i < 0 ? DEPTH.length - 1 : i];
+  const z = o.zNeon ?? o.z ?? 240, i = DEPTH.findIndex(d => z < d.z), st = DEPTH[i < 0 ? DEPTH.length - 1 : i];
   // FP2 — NEON BY DEPTH (the owner: "near outlines a touch thicker / brighter, far ones finer / dimmer"): within its step a tube
   // eases from a touch bolder at the step's front (+6 % width, +3 % light) to a touch finer at its back (−6 %, −4 %) — so a
   // building standing in front of another of the same step (the near band before the word towers) still reads nearer. The
@@ -151,7 +151,11 @@ export function outlines(L, signRects = new Map()) {
     const lines = [], n = t.tiers.length, topT = t.tiers[n - 1];
     // (DT1 — the owner: the thin glass tower was the only building dark on every night: the glass towers get a FINE full outline
     // like the other far buildings — up both edges from the foot, over the roof; the cut keeps what stands in front)
-    if (modern) { const y1 = topT.y0 + topT.h, z = topT.z0 - 0.05, t0 = t.tiers[0]; lines.push({ pts: fillet([[t0.x0, t0.y0, z], [topT.x0, y1, z], [topT.x1, y1, z], [t0.x1, t0.y0, z]], FILLET * 0.4), role: roles[0], part: 'contour' }); }
+    // (POLISH 5 — the owner: the SLANTED-TOP glass tower's crown was dark at night: its tube runs up both vertical edges and ALONG THE
+    // SLANTED ROOF EDGE itself — its high left corner to its low right one — a crisp ice tube, like its neighbours)
+    if (modern) { const y1 = topT.y0 + topT.h, z = topT.z0 - 0.05, t0 = t.tiers[0], sl = topT.crown && topT.crown.t === 'slant' ? topT.crown.h : 0;
+      const roof = sl ? [[topT.x0, y1 + sl, z], [topT.x1, y1 + sl * 0.25, z]] : [[topT.x0, y1, z], [topT.x1, y1, z]];
+      lines.push({ pts: fillet([[t0.x0, t0.y0, z], ...roof, [t0.x1, t0.y0, z]], FILLET * (sl ? 0.25 : 0.4)), role: roles[0], part: 'contour' }); }
     else {
       // THE CONTOUR (NEON PASS 2, the owner's zoomed review): ONE tube a side bent like a sign shop would — up the shaft from its
       // FOOT (the cut ends it cleanly at the roofs in front: neon.js), stepping in only at the MAIN setbacks (a setback narrower than
@@ -208,6 +212,8 @@ export function outlines(L, signRects = new Map()) {
       }
     }
     const tit = { id: t.id, group: t.z0 >= 300 ? 'far' : 'near', strength: hero ? 'hero' : word ? 'word' : modern ? 'far' : pano ? 'pano' : 'mid', roles, z: t.z0, lines, rank: t.rank };
+    // (POLISH 5: the slanted glass tower's tube at the FAR step's weight — crisp, like the towers beside it — not the deep band's thread)
+    if (modern && topT.crown && topT.crown.t === 'slant') tit.zNeon = Math.min(t.z0, 330);
     add(tit);
     // (FP2: a panorama tower may re-pair too — its tubes' place in its pair: 0 main, 1 accent)
     if (pano && !ROLES[t.id]) { for (const ln of lines) ln.slot = ln.role === roles[0] ? 0 : 1; rec.set(t.id, { b: t.tiers[0], band: 'pano', fam: PANO, pair: roles, lines, item: tit }); }

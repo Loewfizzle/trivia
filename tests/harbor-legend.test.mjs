@@ -1,7 +1,7 @@
 // CITY 2.0 — PART 6b: THE LEGENDARY SKY's rules (core/harbor-legend.js) — rarity, the nights, the timelines, the drain.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { legendNight, legendAt, eveningOf, barnstormDay, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD, JETS_GONE } from '../js/core/harbor-legend.js';
+import { legendNight, legendAt, eveningOf, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD, JETS_GONE } from '../js/core/harbor-legend.js';
 
 test('Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold from 4 s before the craft until the jets are gone + the power is back', () => {
   const h = trafficHold({ kind: 'tr3b', t0: 1000 });
@@ -34,11 +34,6 @@ test('a legendary joined mid-way: legendAt lands mid-way, after midnight belongs
   const a = legendAt(lc);
   assert.ok(a && a.kind === n.kind && Math.abs(a.s - 10) < 1.5, JSON.stringify(a));
   assert.deepEqual([eveningOf({ y: 2026, m: 3, d: 2, h: 0, mi: 30 }).d, eveningOf({ y: 2026, m: 3, d: 2, h: 0, mi: 30 }).hr], [1, 24.5]);
-});
-
-test('the barnstormer: a few days a week', () => {
-  const n = days(2026, 364).filter(([y, m, d]) => barnstormDay(y, m, d)).length;
-  assert.ok(n / 52 > 2.2 && n / 52 < 4, `${(n / 52).toFixed(2)} a week`);
 });
 
 test('the abduction: the film in order — the approach, the beam, the walker, the lift, the vanish, gone; the music back', () => {

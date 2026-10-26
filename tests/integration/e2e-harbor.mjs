@@ -2548,14 +2548,9 @@ G('legends', async () => {
     const pt = await ev(Q.page, 'window.__district.party()');
     ok(pt.on < 0.05 && pt.beams < 0.05, `THE BLACKOUT WINS OVER THE PARTY: the show ${pt.on.toFixed(2)}, the sky beams ${pt.beams}`);
     await Q.ctx.close(); }
-  // ---- 6b: THE BARNSTORMER (its overlay over the sign while it flies, gone after), THE AIR SHOW, a 3-PAGE drone message
-  { const Q = await open({ slot: 'lg3', qs: `when=2026-10-21T13:00${GR}&force=barnstormer`, view: [402, 874] });
+  // ---- 6b: THE AIR SHOW, a 3-PAGE drone message (POLISH 5: the barnstormer removed)
+  { const Q = await open({ slot: 'lg3', qs: `when=2026-10-21T13:00${GR}`, view: [402, 874] });
     await harborUp(Q.page);
-    await waitFor(Q.page, `!!${P}.sky.state.barn && !!document.querySelector('canvas.nd-skyfront')`, 'the barnstormer + its overlay', 15000);
-    const z = await ev(Q.page, "+getComputedStyle(document.querySelector('canvas.nd-skyfront')).zIndex");
-    ok(z > 5 && z < 70, `THE BARNSTORMER: its overlay above the sign (z ${z}) — under the corner buttons (70)`);
-    await ev(Q.page, `${P}.sky.stop()`); await sleep(400);
-    ok(!(await ev(Q.page, "!!document.querySelector('canvas.nd-skyfront')")), 'THE BARNSTORMER: the overlay removed when it is gone');
     await ev(Q.page, `${P}.sky.airshow('airshow')`);
     await waitFor(Q.page, `!!${P}.sky.state.show && ${P}.sky.state.heavy`, 'the air show', 8000);
     ok(true, 'THE AIR SHOW: the diamond up (both sky lanes, the city calmed)');

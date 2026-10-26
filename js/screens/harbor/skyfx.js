@@ -21,10 +21,9 @@ import { createBalloons } from './balloons.js';
 import { createDrones } from './drones.js';
 import { createCelestial } from './moon.js';
 import { createAirShow, SHOW_LEN } from './jets.js';
-import { createBarnstorm } from './barnstorm.js';
 import { createMeteors } from './meteors.js';
 import { createAurora } from './aurora.js';
-import { barnstormDay, BARN_LEN, flybyDay } from '../../core/harbor-legend.js';
+import { flybyDay } from '../../core/harbor-legend.js';
 import { sunTimes } from '../../core/sky.js';
 import { project } from '../../core/harbor-layout.js';
 import { bannerPanels, eventMessage, smokeWeather, balloonWeather, bannerWeather, skyHolidayOn, fillText, droneTimeline, DRONE_SHAPES, messagePages } from '../../core/harbor-sky.js';
@@ -35,7 +34,7 @@ const hexRgb = h => { const n = parseInt(String(h).replace('#', ''), 16); return
 
 export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } = {}) {
   const may = (id, kind) => !allow || allow(id, kind);
-  const aur = createAurora(), met = createMeteors(), barn = createBarnstorm(), show = createAirShow(), air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
+  const aur = createAurora(), met = createMeteors(), show = createAirShow(), air = createAir(), banner = createBanner(), smoke = createSmoke(), birds = createBirds(), balloons = createBalloons(), drones = createDrones(), cel = createCelestial();
   let W = 1, H = 1, HZ = 1, L = null, lanes = null, waterTop = 0, waterY1 = 0, barge = null;
   const handled = new Set();                 // the scheduler's events already turned into pieces (id|start)
   let duskOf = null;                         // (POLISH 4: tonight's sunset hour for the surprise flyby, per date)
@@ -155,8 +154,6 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       dim('msg', { logo: s.motion ? lv : 0.15, tag: 0, ms: e < 0.8 ? 70 : 1400 });
     } else dim('msg', null);
     dim('banner', banner.on() ? { logo: 1, tag: 0, ms: 1500 } : null);
-    const wk = barn.on() && clamp01(s.L.w.night + s.L.w.late) > 0.5 && s.motion ? barn.wake(s) : null;
-    dim('barn', wk != null ? { logo: wk, tag: 1, ms: 60 } : null);
   }
 
   // ---- what the frame starts: the scheduler's events, the holiday sky, the previews
@@ -190,11 +187,6 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       if (fb && !holiday.has(`${date}|flyby`) && hr >= fb.h && hr < fb.h + SHOW_LEN.flyby / 3600 && !show.on() && !Lk.storm && !(Lk.rain > 0.3) && (Lk.fog || 0) < 0.5) {
         if (show.start('flyby', atOf(fb.h), { dir: fb.dir, n: fb.n })) holiday.add(`${date}|flyby`);
       }
-      // (6b: THE BARNSTORMER — ~3 days a week at its seeded hour: through the letters, weather allowing)
-      const bd = barnstormDay(lc.y, lc.m, lc.d);
-      if (bd && !holiday.has(`${date}|barn`) && hr >= bd.h && hr < bd.h + BARN_LEN / 3600 && !barn.on() && !Lk.rain && !Lk.storm && (Lk.wind || 0) < 12 && (Lk.fog || 0) < 0.4) {
-        if (barn.start(atOf(bd.h))) holiday.add(`${date}|barn`);
-      }
       if (ent && ent.night && !holiday.has(`${date}|night`) && hr >= ent.night.h && hr < ent.night.h + droneTimeline(ent.night.show.length, ent.calm).end / 3600 && !drones.on()
         && clamp01(Lk.w.night + Lk.w.late) > 0.6 && !(Lk.rain > 0.1) && !Lk.storm && (Lk.wind || 0) < 12 && may('drones', 'holiday')) {
         if (startDrones(s, ent.night.show, atOf(ent.night.h), { calm: ent.calm, seed: lc.y * 400 + lc.m * 31 + lc.d })) holiday.add(`${date}|night`);
@@ -215,7 +207,6 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       again('jets', show.on(), at => show.start('airshow', at));
       again('missing-man', show.on(), at => show.start('missing', at));
       again('flyby', show.on(), at => show.start('flyby', at, { dir: (Math.floor(at / 1000) & 1) ? 1 : -1, n: 2 + (Math.floor(at / 7000) % 3) }));
-      again('barnstormer', barn.on(), at => barn.start(at));
       again('balloons', balloons.on(), at => startBalloons(s, at, false, 3));
       again('balloon-festival', balloons.on(), at => startBalloons(s, at, true, 5));
       again('drones', drones.on(), at => {
@@ -235,7 +226,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       const cam = l.cam, z = 108, xs = W * (cam.wide ? 0.6 : 0.71), wx = (xs - cam.VPX) * z / cam.F, [bx, by] = project(cam, wx, -0.8, z);
       barge = { x: bx, y: by, w: cam.F * 13 / z };
       for (const m of [air, banner, smoke, birds, balloons, drones, cel, met, aur]) if (m.resize) m.resize(W, H, HZ);
-      for (const m of [air, banner, smoke, balloons, drones, show, barn]) if (m.setDpr) m.setDpr(o.dpr);
+      for (const m of [air, banner, smoke, balloons, drones, show]) if (m.setDpr) m.setDpr(o.dpr);
     },
     setLanes(l) { lanes = l; },
     /** THE PREVIEW PANEL changed the flags: gone = the &force= ids switched off (or changed: their pieces leave the sky at once);
@@ -248,7 +239,6 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
         else if (id === 'skywrite' || id === 'skytype') smoke.stop();
         else if (id === 'drones') drones.stop();
         else if (id === 'jets' || id === 'missing-man' || id === 'flyby') show.stop();
-        else if (id === 'barnstormer') barn.stop();
         else if (id === 'balloons' || id === 'balloon-festival') balloons.stop();
       }
     },
@@ -269,9 +259,10 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       if (lanes) banner.draw(c, s, bannerLane(s));
       smoke.draw(c, s, lastSun);                                   // (POLISH 4: the sun, so the sky letters' dark halo firms up in front of its glare)
       if (show.on()) show.draw(c, s, msgBox(s));                 // (6b: the air show / the missing man — the whole open sky)
-      if (barn.on()) barn.draw(c, s);                            // (6b: the barnstormer — its smoke here, the plane on its overlay THROUGH the letters)
       if (!s.force.has('no-birds') && s.motion) birds.sky(c, s, { 'sky-high': free['sky-high'] && !inUse.has('sky-high'), 'sky-low': free['sky-low'] && !inUse.has('sky-low') });
     },
+    /** POLISH 5 — CLOUDS NEVER COVER A MESSAGE: a skytyped message is up (the scene draws every cloud BEHIND it while it is) */
+    msgUp: () => (smoke.on() ? smoke.bounds() : null),
     /** over the far rows: swifts + bats round the rooftops */
     low(c, s) { if (!s.force.has('no-birds') && s.motion) birds.low(c, s); },
     /** after the near city (before the water: the mirror doubles them): the drones up in the sky, the gulls over the harbor */
@@ -303,12 +294,12 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     /** lanes a heavy piece quiets (merged into the scheduler's quiet → fs.density) */
     quiet() { if (!heavy()) return []; const u = used(); return LANES.filter(l => !u.has(l)); },
     /** anything fast up there (the calm frame rate: 60 fps while it flies) */
-    busy: () => barn.on() || show.on() || air.busy() || banner.on() || smoke.on() || drones.on() || birds.busy() || balloons.on(),
+    busy: () => show.on() || air.busy() || banner.on() || smoke.on() || drones.on() || birds.busy() || balloons.on(),
     /** (6b: the tagline steps aside through the sign-dim hook now — signFor) */
     holdTag: () => false,
     /** PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js reads it ~4× a second): what's up there now — the planes + the
      *  helicopter (where), the banner plane, the skywriters, the balloons, the drone show, the birds */
-    listen: () => ({ barn: barn.flying(), jets: last ? show.listen(last) : null, air: air.debug(), banner: banner.on(), smoke: smoke.on(), balloons: balloons.on(), drones: drones.on(), birds: birds.debug() }),
+    listen: () => ({ jets: last ? show.listen(last) : null, air: air.debug(), banner: banner.on(), smoke: smoke.on(), balloons: balloons.on(), drones: drones.on(), birds: birds.debug() }),
     // ---- THE API (harbor().sky): each piece starts now, or at o.at (clock ms); → true if it could start
     api: {
       banner: (lines, o = {}) => !!last && startBanner(last, lines, o.at || last.now, o),
@@ -319,12 +310,10 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       helicopter: (o = {}) => { if (!last) return false; air.heli(last, o.at || last.now, o.seed || 1); return air.heliOn(); },
       /** 6b: the jets — airshow('airshow' | 'missing', { at }) */
       airshow: (kind = 'airshow', o = {}) => !!last && show.start(kind, o.at || last.now),
-      /** 6b: the barnstormer through the letters, now (or at o.at) */
-      barnstorm: (o = {}) => !!last && barn.start(o.at || last.now),
       fly: (route, o = {}) => { if (!last) return false; air.fly(last, route, o); return true; },
-      stop: () => { banner.stop(); smoke.stop(); drones.stop(); balloons.stop(); show.stop(); barn.stop(); },
+      stop: () => { banner.stop(); smoke.stop(); drones.stop(); balloons.stop(); show.stop(); },
     },
-    debug: () => ({ meteors: met.debug(), barn: barn.debug(), show: show.debug(), cel: cel.debug(), air: air.debug(), banner: banner.debug(), smoke: smoke.debug(), birds: birds.debug(), balloons: balloons.debug(), drones: drones.debug(), barge, aurora, used: [...used()], heavy: heavy() }),
-    destroy() { for (const m of [air, banner, smoke, balloons, drones, cel, show, barn, met, aur]) m.destroy(); },
+    debug: () => ({ meteors: met.debug(), show: show.debug(), cel: cel.debug(), air: air.debug(), banner: banner.debug(), smoke: smoke.debug(), birds: birds.debug(), balloons: balloons.debug(), drones: drones.debug(), barge, aurora, used: [...used()], heavy: heavy() }),
+    destroy() { for (const m of [air, banner, smoke, balloons, drones, cel, show, met, aur]) m.destroy(); },
   };
 }

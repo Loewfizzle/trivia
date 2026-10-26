@@ -45,7 +45,7 @@ export function createSmoke() {
         const dir = pass++ % 2 ? -1 : 1, rowY = oy + i * 6 * p;
         const xs = dir > 0 ? box.x - lead : box.x + box.w + lead, xe = dir > 0 ? box.x + box.w + lead : box.x - lead, dur = Math.abs(xe - xs) / v;
         legs.push({ a: [xs, rowY], b: [xe, rowY], t0: t, t1: t + dur, dir, pitch: p, page: pi });
-        for (const [cx, cy, li] of T.dots) if (li === i) { const x = ox + cx * p, tt = t + (x - xs) / (xe - xs) * dur; puffs.push({ x, y: oy + cy * p, t: tt, r0: p * 0.42, page: pi }); if (tt > done) done = tt; }
+        for (const [cx, cy, li] of T.dots) if (li === i) { const x = ox + cx * p, tt = t + (x - xs) / (xe - xs) * dur; puffs.push({ x, y: oy + cy * p, t: tt, r0: p * 0.55, page: pi }); if (tt > done) done = tt; }   // (POLISH 5: denser — 0.42 → 0.5 of the pitch: the dots nearly touch, each letter one clear shape)
         t += dur + 2.4;
       });
       const last = pi === pages.length - 1;
@@ -69,7 +69,8 @@ export function createSmoke() {
     const top = light.gold > 0.3 ? [255, 228, 214] : [255, 255, 255], under = light.gold > 0.3 ? [196, 160, 176] : [196, 206, 224];
     let g = x.createRadialGradient(32, 37, 2, 32, 37, 30); g.addColorStop(0, `rgba(${under},0.55)`); g.addColorStop(0.6, `rgba(${under},0.22)`); g.addColorStop(1, `rgba(${under},0)`);
     x.fillStyle = g; x.fillRect(0, 0, 64, 64);
-    g = x.createRadialGradient(31, 29, 1, 32, 31, 27); g.addColorStop(0, `rgba(${top},0.95)`); g.addColorStop(0.45, `rgba(${top},0.55)`); g.addColorStop(1, `rgba(${top},0)`);
+    // (POLISH 5 — CRISPER: a firm bright core with a short falloff — a dot, not a soft puff)
+    g = x.createRadialGradient(31, 29, 1, 32, 31, 25); g.addColorStop(0, `rgba(${top},1)`); g.addColorStop(0.5, `rgba(${top},0.92)`); g.addColorStop(0.72, `rgba(${top},0.45)`); g.addColorStop(1, `rgba(${top},0)`);
     x.fillStyle = g; x.fillRect(0, 0, 64, 64);
     return puffSpr;
   }
@@ -85,14 +86,14 @@ export function createSmoke() {
     x.fillStyle = g; x.fillRect(0, 0, 64, 64);
     return haloSpr;
   }
-  const HALO_R = 2.3;                                   // (the shade's radius, of the puff's)
+  const HALO_R = 1.8;                                   // (POLISH 5: tighter — a faint dark EDGE round each dot, never a smudge)                                   // (the shade's radius, of the puff's)
   // (only where something bright is behind: a faint shade on the open blue, FIRM in front of the sun's glare — its place from the sun
   // pass, skyfx.sunHaze — so the letters never turn into grey smudges on a plain sky)
   let sunG = null;
   const haloA = (light, x = 0, y = 0) => {
     let g = 0;
     if (sunG && sunG.vis > 0.05) { const d = Math.hypot(x - sunG.x, y - sunG.y) / sunG.R; const u = d >= 1 ? 0 : 1 - d; g = Math.min(1, sunG.vis * u * u * (3 - 2 * u) * 1.4); }
-    return (0.12 + 0.06 * light.gold) + 0.46 * g;
+    return (0.12 + 0.06 * light.gold) + 0.62 * g;
   };
   // one puff's look at e (s since the writing began): { r, a } (null = not yet / gone)
   function puffNow(q, e, motion) {
@@ -103,8 +104,9 @@ export function createSmoke() {
     if (fade <= 0) return null;
     const form = smooth(0, 0.3, age);
     const blow = since > 0 && pg.fadeLen < 20 ? smooth(0, pg.fadeLen, since) : 0;
-    const grow = motion ? Math.min(age, 120) * 0.035 * K + blow * q.r0 * 1.6 : 0;
-    const soft = 1 - 0.45 * smooth(20, 90, age);   // (the blur: wider, thinner)
+    // (POLISH 5: the puffs hold their shape while the page is read — a little growth, a little softening; the drift + the blow-away as before)
+    const grow = motion ? Math.min(age, 120) * 0.008 * K + blow * q.r0 * 1.6 : 0;
+    const soft = 1 - 0.18 * smooth(30, 110, age);
     return { r: q.r0 * (0.5 + 0.5 * smooth(0, 0.25, age)) + grow, a: form * fade * soft };
   }
   // a page being cleared: its puffs carried off on a gust (the wind's way, a little up) as they fade
@@ -159,6 +161,8 @@ export function createSmoke() {
       cur = p; layerAt = -1e9;
       return true;
     },
+    /** POLISH 5: the letters' box (pt) — every puff of the message, padded — so the clouds over it thin out (scene.js) */
+    bounds() { if (!cur) return null; if (!cur.bb) { let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const q of cur.puffs) { x0 = Math.min(x0, q.x - q.r0 * 3); x1 = Math.max(x1, q.x + q.r0 * 3); y0 = Math.min(y0, q.y - q.r0 * 3); y1 = Math.max(y1, q.y + q.r0 * 3); } cur.bb = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 }; } return cur.bb; },
     /** the sign may come back (the last page has been read): s since the start ≥ release */
     released: s => !cur || (s.now - cur.at) / 1000 >= cur.release,
     on: () => !!cur,

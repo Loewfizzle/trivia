@@ -281,6 +281,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (a change the weather brought after the reveal blends SLOWLY: the bakes, the sky + the clouds over WX_BLEND ms — never a jump)
   const WX_BLEND = 6000, WX_WAIT = 2500;
   let fadeMs = 1200, skyPrev = null, skyFadeFrom = -1, skyFadeMs = 1500;
+  let thinK = 0, thinBox = null;                 // (POLISH 5: the clouds over a sky message thin out while it is up)
   const wxRecent = () => performance.now() - wxChangedAt < 12000;
   // FP3a — THE LOAD GATE (FREV B1: on an iPhone the city "shrinks, enlarges and snaps" while Safari's bars settle): during the LOAD
   // WINDOW (until the reveal + LOAD_WIN) a height-only resize under 25 % is coalesced into ONE build 400 ms after the LAST one; a
@@ -1021,11 +1022,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.tick(fs, events.active);
     snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W, legend: legends ? legends.listen() : null,
       hydrant: (() => { const h = wild.hydrantState && wild.hydrantState(); if (!h || !(h.spray > 0.01)) return null; const [hx] = project(cam, h.x + 1.3, 0, h.z); return { k: h.spray, pan: Math.max(-1, Math.min(1, (hx / W) * 2 - 1)) }; })() });
-    sky.sky(c, fs);
+    // (POLISH 5 — CLOUDS NEVER COVER A MESSAGE, the owner: a cumulus hid part of "JESSICA": while a message is skytyped every cloud is
+    // drawn BEHIND the letters — before the sky's pieces — the rest of the time after them, as before)
+    const cloudsNow = () => {
     // THE DAY PASS — THE CLOUDS (clouds.js: the Harbor's own, every hour, the real cover + wind); City 1.0's weather-fx only for
     // the lightning now (its clouds off: cloud 0)
     // (DT2: the sun's whole place — its x + y on the screen, how visible, and its side when it has set: each cloud is lit from it)
     { const sd = sun.debug(); if (!off.has('no-clouds')) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }); }
+    };
+    const msgB = sky.msgUp ? sky.msgUp() : null, msgUp = !!msgB;
+    { const dt0 = Math.min(100, dt || 16); thinK = Math.max(0, Math.min(1, thinK + (msgUp ? 1 : -1) * dt0 / 1800)); if (msgB) thinBox = msgB; clouds.thin(thinK > 0.002 ? thinBox : null, thinK); }
+    if (msgUp) cloudsNow();
+    sky.sky(c, fs);
+    if (!msgUp) cloudsNow();
     if (LK.storm) wfx.sky(c, { ...fs, L: { ...LK, cloud: 0 } });
     // (6b: THE TR-3B + its chase — under the cloud base, in front of the stars + the moon, behind the city's crowns)
     if (legends && !off.has('no-legends')) legends.sky(c, fs);

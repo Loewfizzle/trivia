@@ -4,7 +4,6 @@
 // seeded) and of the seconds since an event began (a phone that joins mid-way lands mid-way; a refresh never re-rolls).
 //   legendNight(y, m, d)   tonight's legendary (the EVENING's date): { kind: 'ufo' | 'tr3b', h } or null — ~1.5 a month each,
 //                          never both on one night, never two legendary nights in a row
-//   barnstormDay(y, m, d)  the barnstormer's day: { h } or null — ~3 days a week (by day; now and then after dark)
 //   ufoAt(s) / tr3bAt(s)   each event's state s seconds in (its phases, the craft, the beam, the figure, the drain, the music)
 //   drainAt(x, d)          THE TR-3B's POWER DRAIN at a screen x (0 = cut dead … 1 = untouched) for a band (its range by distance)
 import { hashString, rngFrom } from './rng.js';
@@ -59,14 +58,7 @@ export function legendAt(lc) {
   return s >= 0 && s < len ? { kind: t.kind, s, len, h: t.h } : null;
 }
 
-/** THE BARNSTORMER: ~3 days a week, at a seeded hour by day (one in five after dark: its wingtip lights on the tubes) → { h } | null */
-export function barnstormDay(y, m, d) {
-  const r = rngFrom(hashString(`barnstorm|${dateKey(y, m, d)}`));
-  if (r() >= 0.43) return null;
-  const night = r() < 0.2;
-  return { h: Math.round((night ? lerp(20.75, 22.5, r()) : lerp(10.5, 17.5, r())) * 60) / 60, night };
-}
-export const BARN_LEN = 16;
+// (POLISH 5 — the owner: "I don't like it": THE BARNSTORMER is gone — its event, its preview + panel row, its schedule slot)
 
 /**
  * THE SURPRISE FLYBY (POLISH 4, the owner): now and then, unannounced, a few F-16s scream straight across the sky — from GOLDEN
