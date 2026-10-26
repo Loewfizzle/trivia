@@ -2325,26 +2325,27 @@ G('people', async () => {
     await waitFor(Q.page, `${P}.speakeasy.hush().since > 3`, 'the word lit through', 8000).catch(() => {});
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`);
     hushRect = hs.rect;
-    // (SP3: the letters live on their own full-dpr overlay canvas over the window — canvas.nd-hushc)
-    const red = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('canvas.nd-hushc'); if (!cv) { res(0); return; } const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`);
+    // (WIN: THE HUSH WORD ON THE WALL — the letters stacked on the corner pier's plate; nothing on the glass any more)
+    const cyanShare = () => ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('canvas.nd-hushc'); if (!cv) { res(0); return; } const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && d[i + 2] > 215 && d[i + 1] > 180) n++; res(n / (cv.width * cv.height)); }))`);
+    let red = 0; for (let i = 0; i < 6 && red < 0.006; i++) { red = Math.max(red, await cyanShare()); if (red < 0.006) await sleep(400); }   // (the overlay redraws when a level moves — sampled a few times)
     hushRed = red;
-    ok(hs.text === 'SWING' && hs.lit === 1 && hs.overlay && red > 0.006 && hs.rows.join('/') === 'SWI/NG', `THE HUSH WORD SIGN at night with a lobby: ${hs.rows.join(' / ')} in ice-cyan neon tubes in the upstairs window (${(red * 100).toFixed(1)} % of its glass glowing, ${hs.capPt} pt)`);
-    // SP4 (the owner: the JAZZ letters rode over the pane's frame): the letters' box INSIDE the glass, the overlay canvas IS the glass
-    // (its CSS box = the glass rect mapped to the screen), at 402 / 390 / 430 — the window's live rect after each re-layout
+    ok(hs.text === 'SWING' && hs.lit === 1 && hs.overlay && red > 0.006 && hs.rows.join('') === 'SWING', `THE HUSH WORD SIGN at night with a lobby: ${hs.rows.join(' / ')} stacked in ice-cyan neon tubes on the door's plate (${(red * 100).toFixed(1)} % of the plate glowing, ${hs.capPt} pt caps)`);
+    // the plate INSIDE the corner pier's run, the letters inside the plate, a clear gap to the blade's board, the overlay = the plate — at
+    // 402 / 390 / 430 (the live rects after each re-layout)
     const fits = [];
-    const fit = async (w, h) => { const o = await ev(Q.page, `(() => { const s = ${P}.speakeasy.hush(), cv = document.querySelector('canvas.nd-hushc'), r = cv && cv.getBoundingClientRect(); return { w: ${P}.cam.W, inside: s.inside, letters: s.letters, rect: s.rect, css: s.css, dom: r && { x: r.x, y: r.y, w: r.width, h: r.height } }; })()`);
+    const fit = async (w, h) => { const o = await ev(Q.page, `(() => { const s = ${P}.speakeasy.hush(), cv = document.querySelector('canvas.nd-hushc'), r = cv && cv.getBoundingClientRect(); return { w: ${P}.cam.W, inside: s.inside, inPier: s.inPier, gap: s.gapBlade, letters: s.letters, rect: s.rect, pier: s.pier, css: s.css, capPt: s.capPt, dom: r && { x: r.x, y: r.y, w: r.width, h: r.height } }; })()`);
       const domOk = o.dom && o.css && Math.abs(o.dom.x - o.css.x) < 1.5 && Math.abs(o.dom.y - o.css.y) < 1.5 && Math.abs(o.dom.w - o.css.w) < 1.5 && Math.abs(o.dom.h - o.css.h) < 1.5;
-      const glassOk = o.rect && o.css && Math.abs(o.css.x - o.rect.x) <= 1.5 && Math.abs(o.css.y - o.rect.y) <= 1.5 && Math.abs(o.css.w - o.rect.w) <= 2.5 && Math.abs(o.css.h - o.rect.h) <= 2.5;
-      fits.push({ w: o.w, inside: o.inside, domOk, glassOk, letters: o.letters, rect: o.rect }); return o; };
+      const plateOk = o.rect && o.css && Math.abs(o.css.x - o.rect.x) <= 1.5 && Math.abs(o.css.y - o.rect.y) <= 1.5 && Math.abs(o.css.w - o.rect.w) <= 2.5 && Math.abs(o.css.h - o.rect.h) <= 2.5;
+      fits.push({ w: o.w, inside: o.inside, inPier: o.inPier, gap: o.gap, domOk, plateOk, capPt: o.capPt, rect: o.rect }); return o; };
     await fit(402, 874);
     for (const [w, h] of [[390, 844], [430, 932]]) { await Q.page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await waitFor(Q.page, `${P}.cam.W === ${w}`, 'the re-layout', 8000).catch(() => {}); await sleep(700); await fit(w, h); }
-    ok(fits.length === 3 && fits.every(f => f.inside && f.domOk && f.glassOk), `THE HUSH SIGN INSIDE ITS PANE at ${fits.map(f => f.w).join(' / ')}: ${fits.map(f => `${f.w}: letters ${f.inside ? 'inside' : 'OUTSIDE'} (${f.letters && `${f.letters.w.toFixed(1)}×${f.letters.h.toFixed(1)} in ${f.rect.w.toFixed(1)}×${f.rect.h.toFixed(1)}`}), overlay = the glass ${f.glassOk}, placed ${f.domOk}`).join(' · ')}`);
+    ok(fits.length === 3 && fits.every(f => f.inside && f.inPier && f.gap != null && f.gap >= 3 && f.domOk && f.plateOk && f.capPt >= 11), `THE WALL SIGN IN ITS PIER at ${fits.map(f => f.w).join(' / ')}: ${fits.map(f => `${f.w}: letters ${f.inside ? 'in the plate' : 'OUTSIDE'}, the plate ${f.inPier ? 'in the pier' : 'OFF THE PIER'} (${f.rect ? `${f.rect.w.toFixed(1)}×${f.rect.h.toFixed(1)} pt` : '?'}), ${f.gap} pt to the blade, ${f.capPt} pt caps`).join(' · ')}`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'pp3', qs: `when=2026-10-22T22:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await settle(Q.page);
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`), lamps = await ev(Q.page, `${P}.lampLife()`);
     const red0 = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('canvas.nd-hushc'); if (!cv) { res(0); return; } const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data; let n = 0; for (let i = 0; i < d.length; i += 4) if (d[i + 3] > 200 && d[i + 2] > 215 && d[i + 1] > 190 && d[i + 2] > d[i] + 50) n++; res(n / (d.length / 4)); }))`);
-    ok(!hs.text && hs.lit === 0 && !hs.overlay && red0 < hushRed / 3, `THE HUSH WORD SIGN at night, no lobby: absent (the window's neon cyan ${(red0 * 100).toFixed(2)} % vs ${(hushRed * 100).toFixed(2)} % with the word)`);
+    ok(!hs.text && hs.lit === 0 && !hs.overlay && red0 < hushRed / 3, `THE HUSH WORD SIGN at night, no lobby: absent (the pier's neon cyan ${(red0 * 100).toFixed(2)} % vs ${(hushRed * 100).toFixed(2)} % with the word)`);
     ok(lamps && lamps.levels.length >= 4 && lamps.levels.filter((v, i) => !(lamps.moment && lamps.moment.i === i)).every(v => v === 1), `THE LAMPS' LIFE at 10:30 pm: every lamp on (${lamps && lamps.levels.join(' ')}; switch-on order ${lamps && lamps.th.join(' ')})`);
     await Q.ctx.close(); }
   // ---- THE BUS (&force=bus: one a minute): it comes, stops at the curb short of the crossing with its door open, then goes

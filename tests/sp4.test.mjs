@@ -3,28 +3,30 @@
 // looks table (lit / shadow / silhouette / ghost — every moment has one), the web's build-up by date (tests/signdress.test.mjs has it).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { hushPlan, hushGlass, HUSH } from '../js/core/harbor-hush.js';
+import { wallPlan, HUSH_WALL } from '../js/core/harbor-hush.js';
 import { SPEAK_WIN, SPEAK_V } from '../js/core/harbor-speakeasy.js';
 import { look } from '../js/core/sky.js';
 import { driftSpeed, driftX } from '../js/core/harbor-clouds.js';
 import { dripRate, dripSheet, rateK as rainLevel } from '../js/core/harbor-weather.js';
 import { MOMENTS, WINDOW_LOOKS, LOOK_WHY } from '../js/core/harbor-moments.js';
 
-test('the hush sign: every lobby word sits INSIDE the lower-right pane, its tubes and their halo clear of the frame', () => {
-  // (the geometry as hushsign.js reads it: the lower-right upstairs window — the third column × the first row, SP3's sizes)
-  const [a, b] = SPEAK_WIN[2], [r0, r1] = SPEAK_V.rows[0];
-  const glass = hushGlass(a, b, r0, r1), [g0, g1, h0, h1] = glass;
+test("WIN — the hush word on the WALL: every lobby word stacked on its plate inside the corner pier (over the sconce, under the washer), its tubes + halo clear of the plate's edge, centred; 4 letters ~15 pt at 402, 5 ~12", () => {
+  const H = HUSH_WALL, K402 = 13.6;   // (≈ pt a wall unit on a 402 phone)
   for (const word of ['JAZZ', 'SWING', 'MOON', 'VELVET', 'GIN', 'TANGO']) {
-    const P = hushPlan(word, glass), half = P.tube / 2, halo = P.tube * 0.75 * 1.2;   // (the lit sprite's halo: hushsign.js glow = w × 0.75)
+    const P = wallPlan(word), [p0, p1, q0, q1] = P.plate, half = P.tube / 2, halo = P.tube * 0.75 * 1.2;
+    assert.equal(P.letters.map(l => l.ch).join(''), word.slice(0, 6), `${word}: one letter a row, top → bottom`);
+    for (let i = 1; i < P.letters.length; i++) assert.ok(P.letters[i].base < P.letters[i - 1].base, `${word}: stacked downward`);
     let x0 = 1e9, x1 = -1e9, y0 = 1e9, y1 = -1e9;
-    for (const r of P.rows) for (const l of r.letters) for (const p of l.polys) for (const [x, y] of p.pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
-    assert.ok(x0 - half - halo >= g0 && x1 + half + halo <= g1, `${word}: across — ${(x0 - half - halo).toFixed(2)} … ${(x1 + half + halo).toFixed(2)} in ${g0.toFixed(2)} … ${g1.toFixed(2)}`);
-    assert.ok(y0 - half - halo >= h0 && y1 + half + halo <= h1, `${word}: up — ${(y0 - half - halo).toFixed(2)} … ${(y1 + half + halo).toFixed(2)} in ${h0.toFixed(2)} … ${h1.toFixed(2)}`);
-    // centred: the block's middle within a few % of the glass's
-    const cx = (x0 + x1) / 2, cy = (y0 + y1) / 2;
-    assert.ok(Math.abs(cx - (g0 + g1) / 2) < (g1 - g0) * 0.06 && Math.abs(cy - (h0 + h1) / 2) < (h1 - h0) * 0.08, `${word}: centred (${cx.toFixed(2)}, ${cy.toFixed(2)})`);
+    for (const l of P.letters) for (const p of l.polys) for (const [x, y] of p.pts) { x0 = Math.min(x0, x); x1 = Math.max(x1, x); y0 = Math.min(y0, y); y1 = Math.max(y1, y); }
+    assert.ok(x0 - half - halo >= p0 && x1 + half + halo <= p1 && y0 - half - halo >= q0 && y1 + half + halo <= q1, `${word}: the tubes + halo inside the plate`);
+    assert.ok(p0 >= H.u0 + H.margin - 1e-6 && p1 <= H.u1 - H.margin + 1e-6 && q0 >= H.v0 - 1e-6 && q1 <= H.v1 + 1e-6, `${word}: the plate inside the pier's run (${p0.toFixed(2)}–${p1.toFixed(2)} × ${q0.toFixed(2)}–${q1.toFixed(2)})`);
+    assert.ok(Math.abs((p0 + p1) / 2 - (H.u0 + H.u1) / 2) < 1e-6 && Math.abs((q0 + q1) / 2 - (H.v0 + H.v1) / 2) < 0.02, `${word}: centred in the pier`);
   }
-  assert.ok(HUSH.margin >= 0.18, 'the margin leaves room for the halo');
+  assert.ok(wallPlan('JAZZ').cap * K402 > 14.5 && wallPlan('JAZZ').cap * K402 < 17, `four letters ${(wallPlan('JAZZ').cap * K402).toFixed(1)} pt at 402`);
+  assert.ok(wallPlan('SWING').cap * K402 > 11.5, `five letters ${(wallPlan('SWING').cap * K402).toFixed(1)} pt at 402`);
+  assert.equal(wallPlan('GIN').cap, wallPlan('JAZZ').cap, 'a 3-letter word sized as four (never huge)');
+  assert.equal(wallPlan(''), null, 'no word, no sign');
+  assert.ok(H.v0 > 3.43 && H.v1 < 9.09, "the run: over the sconce, under the washer's hood");
 });
 
 test('the seeded fallback is CALM: a light breeze (1–3.5 m/s) on every day of a year, never the old 2–6', () => {

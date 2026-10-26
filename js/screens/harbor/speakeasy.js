@@ -115,7 +115,7 @@ export function createSpeakeasy() {
   let mirror = 0, lastK = -1;   // (mirror: the hidden door's hook — FP3b's real doors read it; lastK: debug().k)
   // PART 7b — THE LIFE: the window moments, the rooms' states, the taps (screens/harbor/windows.js; the plan: core/harbor-moments.js)
   const life = createWindowLife();
-  // 8P — THE HUSH WORD SIGN in the shop window (hushsign.js; Lobby 2.0: hush(word))
+  // 8P → WIN — THE HUSH WORD SIGN on the corner pier (hushsign.js; Lobby 2.0: hush(word))
   const hush = createHushSign();
   let basementDbg = null;
   let giltCv = null, giltKey = '', giltAt = null, lastT = 0, lastGame = null, bedsNow = { club: 0, tv: 0, party: false };
@@ -129,7 +129,7 @@ export function createSpeakeasy() {
     const [b0, b1, bv0, bv1] = s.shop.basement, [p, py] = G.front(b0, bv1), [q, qy] = G.front(b1, bv0);
     basement = { x: p, y: py, w: q - p, h: qy - py };
     litKey = bladeKey = '';
-    hush.layout(G, { dpr });
+    hush.layout(G, { dpr, blade: bladeGeo(G).rect });   // (WIN: the sign on the corner pier keeps a gap from the blade's board)
   }
   // the window's level now: its own (a hook) or the timeline's (core/harbor-speakeasy.js#roomLight)
   const levelOf = (rm, f) => (own.has(rm.id) ? own.get(rm.id) : roomLight(rm.id, f.hour));
@@ -363,7 +363,7 @@ export function createSpeakeasy() {
     const [ox, oy] = G.front(0, 0);
     if (!quiet && P > 0.04) life.draw(c, {   // (POL4: in a blackout the life's own lit windows — the TV, the night lamp — go dark with the rest)
       map: x => wallMap(x, ox, oy, G.K), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
-    // 8P — THE HUSH WORD SIGN: bare neon tubes inside the lower-right upstairs window (the jazz room — its life shows between the letters),
+    // 8P → WIN — THE HUSH WORD SIGN: the door's password sign on the corner pier (the letters stacked on a dark plate, over the sconce),
     // only while a lobby is open (hushsign.js) — POLISH 5: one clear pane, nothing laid over them
     { if (f.hush !== undefined) hush.set(f.hush);
       hush.draw(c, { t: f.t || 0, T: f.tw || { day: 1 - k, gold: 0, night: k }, fade: fade * P, motion: f.motion });

@@ -199,7 +199,7 @@ export function createWetGround() {
           if (y > R.y && y < R.y + R.h) c.fillRect(x0 - 0.5, y - 0.6, 1, 1.2);
         }
       }
-      // the hush sign's cyan on the wet pavement under the shop window (a soft streak toward us)
+      // the hush sign's cyan on the wet brick + pavement under its plate on the corner pier (a soft streak down; WIN: the sign moved there)
       if (o.hush && o.hush.k > 0.02 && o.hush.rect) {
         const H2 = o.hush.rect, wet = clamp01(o.wet == null ? 1 : o.wet), cx = H2.x + H2.w / 2, y0 = H2.y + H2.h + 10, len = 26 + 30 * wet;
         const g = c.createLinearGradient(0, y0, 0, y0 + len); g.addColorStop(0, `rgba(120,236,255,${(0.32 * o.hush.k * wet * o.fade).toFixed(3)})`); g.addColorStop(1, 'rgba(120,236,255,0)');

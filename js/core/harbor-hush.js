@@ -57,3 +57,31 @@ export function strikeLevel(i, dt) {
 }
 /** going dark when the lobby closes (PURE): dt = s since → 0..1 — a last flicker, then out (gone after ~0.5 s) */
 export const darkLevel = dt => (dt < 0 ? 1 : dt < 0.08 ? 0.35 : dt < 0.16 ? 0.9 : dt < 0.5 ? 0.9 * (1 - (dt - 0.16) / 0.34) : 0);
+
+// ------------------------------------------------------------------ WIN — THE HUSH WORD ON THE WALL (the owner, Oct 26: DECIDED)
+/**
+ * THE DOOR'S PASSWORD SIGN: a vertical neon sign mounted FLAT on the brick PIER right of the right window column (core/harbor-speakeasy.js
+ * SPEAK_PIERS[3] — the corner pier the blade hangs beside), the letters STACKED top to bottom, in a thin dark door-plate mount —
+ * from above the side door's sconce (its top 3.43) up to under the right wall-washer's hood (its lamp at 9.13; the sign's top 8.95).
+ * FEASIBILITY (checked before building — docs/harbor.md#win): the run is 5.4 units ≈ 74 pt at 402; a 4-letter word gets ~1.09-unit caps
+ * ≈ 14.8 pt (14.4 at 390, 15.8 at 430), five letters ~0.87 ≈ 11.9 pt — not the owner's 18–22 pt (that needs the right washer gone:
+ * +0.65 units of run → ~17 pt). minN: a 3-letter word is sized as four (never huge). The plate hugs the word (margin + plate), centred in
+ * the pier's run; its right edge ~3 pt from the corner, ~7 pt from the blade's board. ALL FOUR WINDOWS stay free for the moments.
+ */
+export const HUSH_WALL = Object.freeze({ u0: 9.35, u1: 11.2, v0: 3.55, v1: 8.95, margin: 0.08, plate: 0.12, gap: 0.12, lw: 0.84, tube: 0.17, minN: 4, col: [96, 232, 255] });
+/**
+ * wallPlan(text) → { text, cap, tube, letters: [{ ch, u0, w, base, polys }] (top → bottom), plate: [u0, u1, v0, v1], pier: [u0, u1, v0, v1] }
+ * in WALL UNITS (u across the facade, v up) — or null without a word
+ */
+export function wallPlan(text) {
+  const H = HUSH_WALL, s = String(text || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6), n = s.length;
+  if (!n) return null;
+  const inset = H.margin + H.plate, W = H.u1 - H.u0 - 2 * inset, Hh = H.v1 - H.v0 - 2 * inset, N = Math.max(H.minN, n);
+  const PADK = 0.14;   // (the plate's pad round the letters, × the cap: the halo — 0.75 × the tube — stays on the plate)
+  const cap = Math.min(W / (H.lw + 2 * PADK), Hh / (N + (N - 1) * H.gap + 2 * PADK)), lw = H.lw * cap, total = n * cap + (n - 1) * H.gap * cap;
+  const cx = (H.u0 + H.u1) / 2, cy = (H.v0 + H.v1) / 2, top = cy + total / 2, u0 = cx - lw / 2;
+  const letters = [...s].map((ch, i) => { const base = top - (i + 1) * cap - i * H.gap * cap, d = LETTERS[ch];
+    return { ch, u0, w: lw, base, polys: d ? flattenPath(d, 1, 0, 0, 0.6).map(p => ({ ...p, pts: p.pts.map(([x, y]) => [u0 + x * lw / 10, base + cap - y * cap / 14]) })) : [] }; });
+  const pad = H.plate + PADK * cap;
+  return { text: s, cap, tube: H.tube * cap, letters, plate: [u0 - pad, u0 + lw + pad, top - total - pad, top + pad], pier: [H.u0, H.u1, H.v0, H.v1] };
+}

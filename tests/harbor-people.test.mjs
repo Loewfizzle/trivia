@@ -3,7 +3,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
-import { hushPlan, hushState, strikeLevel, darkLevel, hushGlass } from '../js/core/harbor-hush.js';
+import { wallPlan, hushState, strikeLevel, darkLevel } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
 import { FOLK, MIX, mixNow, folkMap, folkAt, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
 import { signalAt } from '../js/core/harbor-promenade.js';
@@ -16,16 +16,16 @@ const SIZES = {
 const setup = k => { const s = SIZES[k]; const cam = cameraFor(s.W, s.H, { dock: { x: 14, y: s.H - 116, w: s.W - 28, h: 76 } }, s.safe); return { cam, L: harborLayout(cam) }; };
 
 // ------------------------------------------------------------------ THE HUSH WORD SIGN
-test('8P — THE HUSH WORD SIGN: bare tubes in the lower-right upstairs window — a 4-letter word a 2 × 2 block as big as the glass allows; 5 letters (3 + 2) fit; inside the glass at 390 / 402 / 430', () => {
+test("8P → WIN — THE HUSH WORD SIGN: the letters stacked on the corner pier's plate — a 4-letter word ~15 pt at 402, five letters ~12, every word inside the pier at 390 / 402 / 430", () => {
   for (const k of Object.keys(SIZES)) {
-    const { cam, L } = setup(k), s = L.speakeasy, K = cam.F / s.z0, [a, b] = s.windows[2], [r0, r1] = s.rows[0], g = hushGlass(a, b, r0, r1);
-    const four = hushPlan('JAZZ', g), five = hushPlan('SWING', g);
-    assert.deepEqual(four.rows.map(r => r.word), ['JA', 'ZZ']); assert.deepEqual(five.rows.map(r => r.word), ['SWI', 'NG']);
+    const { cam, L } = setup(k), s = L.speakeasy, K = cam.F / s.z0;
+    const four = wallPlan('JAZZ'), five = wallPlan('SWING');
+    assert.deepEqual(four.letters.map(l => l.ch), ['J', 'A', 'Z', 'Z']); assert.deepEqual(five.letters.map(l => l.ch), ['S', 'W', 'I', 'N', 'G']);
     assert.ok(four.cap >= five.cap, `${k}: four letters at least as big as five`);
-    for (const p of [four, five]) for (const r of p.rows) for (const l of r.letters) for (const q of l.polys) for (const [u, v] of q.pts)
-      assert.ok(u >= g[0] - 1e-6 && u <= g[1] + 1e-6 && v >= g[2] - 1e-6 && v <= g[3] + 1e-6, `${k} ${p.text}: inside the glass`);
-    // (the size the window allows: reported, not a pass mark — ~11 pt caps for four letters on a 390 phone)
-    assert.ok(four.cap * K > 9.5, `${k}: four letters ${(four.cap * K).toFixed(1)} pt`);
+    for (const p of [four, five]) for (const l of p.letters) for (const q of l.polys) for (const [u, v] of q.pts)
+      assert.ok(u >= p.pier[0] - 1e-6 && u <= p.pier[1] + 1e-6 && v >= p.pier[2] - 1e-6 && v <= p.pier[3] + 1e-6, `${k} ${p.text}: inside the pier`);
+    // (the size the pier allows: reported, not a pass mark — ~15 pt caps for four letters on a 402 phone)
+    assert.ok(four.cap * K > 13.5, `${k}: four letters ${(four.cap * K).toFixed(1)} pt`);
   }
 });
 test('8P — THE HUSH WORD SIGN exists ONLY in a lobby: absent otherwise (no unlit tubes); lights letter by letter; dark + gone on leaving', () => {
