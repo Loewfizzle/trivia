@@ -1210,3 +1210,17 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       the people (a storm empties it, shelter, umbrellas, newspapers, hats held, fog); the fan on a hot day
 - [x] Group 4: glasswx.js — beads + drips + glaze + icicles on the NEON tubes, rain + frost on the dock's + the corner buttons' glass
 - [x] Group 5: ten weather sounds + the mix + thunder; the `weather` e2e group; docs
+
+## CITY 2.0 — SP3: THE SPEAKEASY + CRISP NEON (Oct 26 2026) — docs/harbor.md#sp3
+- [x] 9a's review: the NEON logo lights with the city on a dark storm afternoon; the tree crowns sway in the real wind; the festival's six
+      drift together (no overlap at 402); the weather's source decided before the reveal + held after it (the owner's "+0.48 s seeded")
+- [x] The rain on the sign + the rain lit by the signs follow each light's live level (the blackout: dark clear beads); in the light audit
+- [x] Real water on the dock + ☰ / ♪ (beads, merges, streaks, trails, drips; a lens each) — inside each button, so it fades with it
+- [x] Drizzle / rain / heavy rain apart (rain = the anchor; heavy: 3× streaks, waves, the skyline hazed, runners, louder)
+- [x] Rosie every hour 7 am – 11 pm (docked at :00, gone by ~:06), her strings chasing on party nights
+- [x] CRISP NEON: the hush sign on a full-dpr overlay (whole tubes, a tight halo); the logo's tube recipe (edge step 69 → 117 at 3×);
+      SPEAKEASY + its rules + diamonds as white neon tubes (milky glass by day)
+- [x] The windows 2.2 × 2.25 + equal; one star window at a time + slow life in the others; close staging (STAGE); warm-white rooms;
+      the TV switches off at 3 am and the room goes dark (the edge window's lamp keeps the building never fully dark)
+- [x] The promenade's people + the animals ~9 % bigger
+- [x] The roof signs' hourly modes (spell / race / breath, one big move at a time, the restart flicker); HIGH STAKES's five lamps (+14 %)

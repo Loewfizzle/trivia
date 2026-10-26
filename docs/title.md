@@ -662,3 +662,15 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
 - **Reduced effects:** fewer planes, steady lights (no strobe), contrails that don't spread; satellites as usual.
 - **Preview:** `&force=planes` (a plane every ~9 s), `&force=approach`, `&force=satellites` (a train now), `&force=sat`;
   `&force=no-planes` switches them off (performance checks). Tests: `tests/aircraft.test.mjs`, `tests/integration/e2e-sky.mjs`.
+
+## CITY 2.0, SP3 (Oct 26, 2026) — CRISP NEON + SPEAKEASY IN WHITE NEON (`ui/word-neon.js`, `ui/logo.js`, `css/title.css`)
+- **The NEON logo** (City 2.0's premium SVG): the city's tube recipe — the near glow a step under the body (`.ndp .ndl-glow1` 0.6 / 0.72
+  lit), the white-hot core 0.4 × the tube, the glass highlight 1 wide — the tube's edge reads (3×: an edge step 69 → 117 levels). The same
+  SVG + classes: the boot, the flicker, the catch + the race, taps, the punch, the tired tube, the dim, the holiday dress. City 1.0 unchanged.
+- **SPEAKEASY** in City 2.0 is white neon: `div.nd-word.nd-wn` — each character a `span.wn-c` (its text invisible: the layout, the
+  screen reader, the halo's `.nd-word-g` measure) carrying an inline SVG tube letter (`wordLetterSvg`: edge, glass, glow, body, core,
+  highlight, tiny electrodes); `.nd-word-p` (the beat punch) + `.nd-word-r i` (the race) carry the letters' light alone and keep their
+  per-frame writers. The rules + diamonds: data-URL tube SVGs (dim glass → lit at steady → milky by day). The shimmer is gone in City 2.0.
+- **The glass's weather** (9a's `glasswx.js`): its canvases live INSIDE the buttons (`canvas.nd-wxg`) — they fade with the dock + the
+  corner buttons at rest; the labels draw on top.
+- `&idle=0` keeps the dock + the corner buttons up (look reviews).
