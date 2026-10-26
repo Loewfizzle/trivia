@@ -37,6 +37,15 @@ are kept anyway, with each source file's MD5.
 - Original: Freesound user SpliceSound, "Bar restaurant closing, chatter, glasses, walla, medium adult murmur" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## birdsong-morning.mp3  →  birdsong-morning
+
+- MD5 `c2581395c799e52dd9e4b1e1df6c4fcd`
+- birdsong-morning.mp3   (1,023,744 bytes)   (MP3 - the only version offered)
+- "Urban Morning Birds – 4 AM Soundscape" - 49656682
+- Page: https://pixabay.com/sound-effects/nature-urban-morning-birds-4-am-soundscape-366500/
+- Source: https://cdn.pixabay.com/download/audio/2025/06/26/audio_058fb67e0b.mp3?filename=49656682-urban-morning-birds-4-am-soundscape-366500.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+
 ## boat-putter.mp3  →  boat-putter
 
 - MD5 `8dc3461fefdb6b931b89358e99756c0d`
@@ -172,6 +181,15 @@ are kept anyway, with each source file's MD5.
 - Original: Freesound user stijn, "BottlesCrate" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## crickets-night.mp3  →  crickets-night
+
+- MD5 `a35bb91a8eeb37af454f94083c870a03`
+- crickets-night.mp3   (3,858,599 bytes)   (MP3 - the only version offered)
+- "Night atmosphere with crickets" - Schorsch1964
+- Page: https://pixabay.com/sound-effects/nature-night-atmosphere-with-crickets-374652/
+- Source: https://cdn.pixabay.com/download/audio/2025/07/14/audio_8714bc189b.mp3?filename=schorsch1964-night-atmosphere-with-crickets-374652.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+
 ## crowd-clap.mp3  →  crowd-clap
 
 - MD5 `87b91b3901a33ed51216bf4b756a4993`
@@ -214,6 +232,15 @@ are kept anyway, with each source file's MD5.
 - "SW006_Quadcopter_engine_right_constant_coilmic" - ShapingWaves (SW006 Quadcopter), Sonniss GDC 2016 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/ShapingWaves%20-%20%20QUADCOPTER/SW006_Quadcopter_engine_right_constant_coilmic.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## foghorn.mp3  →  foghorn
+
+- MD5 `044330027bda2fc288a96dff5303e246`
+- foghorn.mp3   (3,491,631 bytes)   (MP3 - the only version offered)
+- "foghorn and sea gulls" - Deborah_Wong
+- Page: https://pixabay.com/sound-effects/nature-foghorn-and-sea-gulls-326216/
+- Source: https://cdn.pixabay.com/download/audio/2025/04/11/audio_745877e758.mp3?filename=deborah_wong-foghorn-and-sea-gulls-326216.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 
 ## footsteps-cobble.wav  →  footsteps-cobble
 
@@ -289,6 +316,15 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - Original: https://freesound.org/people/TRP/sounds/574388/ (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/) - "Seagulls distant urban St John 190529.flac", FLAC 48 kHz/24-bit stereo
 - NOTE: The file imported is the lossless Freesound original named in this block (TRP, sound 574388, CC0 1.0; FLAC 48 kHz 24-bit stereo, 0:52), not the Pixabay MP3 copy.
+
+## gutter-drip.mp3  →  gutter-drip
+
+- MD5 `236d9066d7e5030ebd15fb5b98c683b9`
+- gutter-drip.mp3   (1,058,272 bytes)   (MP3 - the only version offered)
+- "Autumn rain in the gutter" - AudioPapkin
+- Page: https://pixabay.com/sound-effects/nature-autumn-rain-in-the-gutter-306966/
+- Source: https://cdn.pixabay.com/download/audio/2025/02/27/audio_e484b3a048.mp3?filename=audiopapkin-autumn-rain-in-the-gutter-306966.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 
 ## heli-flyby.mp3  →  helicopter
 
@@ -452,6 +488,43 @@ are kept anyway, with each source file's MD5.
 - Original: https://freesound.org/people/TRP/sounds/577775/ (CC0 1.0) - FLAC 48 kHz/16-bit stereo
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## rain-awning.mp3  →  rain-awning
+
+- MD5 `f61caa24c2addc1aa68fdad997cb5b03`
+- rain-awning.mp3   (1,978,368 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "Rain on tarp" - luksifox (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/nature-rain-on-tarp-64271/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_dfae8993dc.mp3?filename=freesound_community-rain-on-tarp-64271.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user luksifox, "Rain on tarp" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+
+## rain-drizzle.wav  →  rain-drizzle
+
+- MD5 `f09fbb1f5b597ac38bd35d6b13c6610e`
+- rain-drizzle.wav   (6,960,060 bytes)
+- "Light rain loop" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/rain/
+- Source: https://assets.mixkit.co/active_storage/sfx/1253/1253.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
+## rain-pavement.mp3  →  rain-pavement
+
+- MD5 `dc3d691ef0447d989c97b808fd2023d6`
+- rain-pavement.mp3   (4,586,496 bytes)   (MP3 - the only version offered)
+- "Balkan Street Rain Echo" - dbsound
+- Page: https://pixabay.com/sound-effects/nature-balkan-street-rain-echo-532507/
+- Source: https://cdn.pixabay.com/download/audio/2026/05/11/audio_52a1258997.mp3?filename=dbsound-balkan-street-rain-echo-532507.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+
+## rain-water.mp3  →  rain-water
+
+- MD5 `20e61026f2da729289fb7c716d733671`
+- rain-water.mp3   (2,101,498 bytes)   (MP3 - the only version offered)
+- "Rain and Waves - Nature Sounds" - JuliusH
+- Page: https://pixabay.com/sound-effects/nature-rain-and-waves-nature-sounds-8240/
+- Source: https://cdn.pixabay.com/download/audio/2021/09/11/audio_ba53973ab5.mp3?filename=juliush-rain-and-waves-nature-sounds-8240.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+
 ## roller-blind.mp3  →  roller-blind
 
 - MD5 `755dec8dc398aa282fe2f803dae44c4c`
@@ -567,6 +640,15 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Coll%20Anderson%20-%20House/EFX%20INT%20HOUSE%20DOOR%20Front%20O_C%20Far%20Soft%2001.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## thunder-far.wav  →  thunder-far
+
+- MD5 `9c33658fe24d7ff58ed0fb7f5a1fd43c`
+- thunder-far.wav   (9,129,430 bytes)
+- "Thunder rumble during a storm" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/thunder/
+- Source: https://assets.mixkit.co/active_storage/sfx/2395/2395.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
 ## tr3b-crackle.wav  →  tr3b-crackle
 
 - MD5 `dac89af8ad7b3a7a22177e6aabf1e77f`
@@ -655,6 +737,16 @@ are kept anyway, with each source file's MD5.
 - "AMB_EXT_Fort_McAllister_Water_Lapping_Boat_Ramp" - TS Sound ("Savannah, GA Ambiences"), Sonniss GDC 2016 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/TS%20Sound%20-%20Savannah%2C%20GA%20Ambiences/AMB_EXT_Fort_McAllister_Water_Lapping_Boat_Ramp.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## wind-leaves.mp3  →  wind-leaves
+
+- MD5 `2da431b77800a24e65376211a002d6c0`
+- wind-leaves.mp3   (865,440 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "WindLeavesRustlingonStreet" - kvgarlic (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/nature-windleavesrustlingonstreet-76478/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/15/audio_1466a44432.mp3?filename=freesound_community-windleavesrustlingonstreet-76478.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user kvgarlic, "WindLeavesRustlingonStreet" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 
 ## window-sash.mp3  →  window-sash-down, window-sash-up
 

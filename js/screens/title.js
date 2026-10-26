@@ -310,7 +310,8 @@ export function createTitle() {
     scene.set({ motion: reduced() ? 0 : 1 });
     if (createHarbor) scene.set({ onReveal: reveal, measure: () => ({ clear: clearZones(), textRects: textRects() }) });
     // a lightning strike: thunder a few seconds later, the glass of the dock catches the flash
-    scene.set({ onFlash: e => { if (destroyed) return; thunder(e); flashGlass(e.near); } });
+    // (City 2.0, 9a: the Harbor plays its own thunder — 'thunder-far', delayed by the strike's distance: harbor/sounds.js#thunder)
+    scene.set({ onFlash: e => { if (destroyed) return; if (!createHarbor) thunder(e); flashGlass(e.near); } });
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
     scene.set({ beat: beatSource, kick: createHarbor ? beatKick : null, beatWhy: createHarbor ? beatWhy : null, beatCal: createHarbor ? beatCal : null, musicLine: createHarbor ? musicLine : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
@@ -677,7 +678,7 @@ export function createTitle() {
   }
   // the rain sound only while it rains on screen: in over ~3 s when a shower starts, out over 4 s when it stops
   function rainSound() {
-    if (destroyed || !scene) return;
+    if (destroyed || !scene || createHarbor) return;      // (City 2.0, 9a: the Harbor's rain beds are its own — harbor/sounds.js)
     const L = scene.look(), level = (L.rain || 0) + (L.storm ? 0.25 : 0);
     if (level > 0 && !stopRain) stopRain = startRain(level);
     else if (level > 0 && stopRain && stopRain.level) stopRain.level(level);

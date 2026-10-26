@@ -77,6 +77,32 @@ BITRATE = '64k'
 #   decodes at 16 kHz: half the memory of a minute-long buffer, nothing lost
 PRESENCE = (5.0, 2000)
 CUTS = {
+    # ---- PART 9a — THE WEATHER (measured: tests by loudness envelope + tonality — no words, no melody found; Grok's chain: a low cut, a
+    # touch of phone saturation on the low ones, distance by low-pass; the beds' level set at runtime ×slot gain)
+    # (2:23 "Balkan street rain echo": steady −32…−38 dB the whole way — a long window, a little presence for the patter)
+    'rain-pavement': [{'loop': (6.0, 34.0), 'xf': 2.5, 'hp': 140, 'presence': (2.0, 1800), 'rate': 22050, 'kbps': 48}],
+    # (0:39 a light rain loop, flat ±1 dB: nearly all of it)
+    'rain-drizzle': [{'loop': (1.0, 32.0), 'xf': 2.0, 'hp': 160, 'lp': 9000, 'rate': 22050, 'kbps': 48}],
+    # (1:06 rain + small waves — a wave every ~10 s (−20 vs −28 dB): far off across the harbor, low-passed)
+    'rain-water': [{'loop': (2.0, 32.0), 'xf': 2.5, 'hp': 140, 'lp': 5200, 'rate': 16000, 'kbps': 40}],
+    # (1:02 rain on a tarp, steady −25 dB: close under the awning)
+    'rain-awning': [{'loop': (2.0, 32.0), 'xf': 2.5, 'hp': 150, 'rate': 22050, 'kbps': 48}],
+    # (0:52 a storm's rumble: a crack at ~1 s rolling away to ~12 s, a second roll at ~32 s — two takes, far: low-passed, the lows
+    # through the phone's saturation)
+    'thunder-far': [{'cut': (0.0, 14.5), 'fin': 0.04, 'fout': 3.5, 'hp': 45, 'lp': 3200, 'sat': (4.0, 1.2, 140), 'rate': 16000, 'kbps': 48},
+                    {'cut': (30.6, 47.0), 'fin': 0.4, 'fout': 3.5, 'hp': 45, 'lp': 2600, 'sat': (4.0, 1.2, 140), 'rate': 16000, 'kbps': 48}],
+    # (0:43 wind in leaves on a street — its first 9 s carry a tonal hum: the steady 17–39 s)
+    'wind-leaves': [{'loop': (17.0, 22.0), 'xf': 2.0, 'hp': 160, 'rate': 22050, 'kbps': 48}],
+    # (1:49 a harbor's foghorn — blasts at ~8, 28, 38, 48 … s over water + wind: three separate blasts, far: low-passed + saturated)
+    'foghorn': [{'cut': (4.5, 15.5), 'fin': 0.3, 'fout': 2.5, 'hp': 70, 'lp': 2400, 'sat': (5.0, 1.4, 180), 'rate': 16000, 'kbps': 48},
+                {'cut': (24.5, 35.5), 'fin': 0.3, 'fout': 2.5, 'hp': 70, 'lp': 2400, 'sat': (5.0, 1.4, 180), 'rate': 16000, 'kbps': 48},
+                {'cut': (35.0, 45.5), 'fin': 0.3, 'fout': 2.5, 'hp': 70, 'lp': 2400, 'sat': (5.0, 1.4, 180), 'rate': 16000, 'kbps': 48}],
+    # (2:01 summer-night crickets, steady: a minute of it)
+    'crickets-night': [{'loop': (20.0, 32.0), 'xf': 2.5, 'hp': 300, 'rate': 22050, 'kbps': 48}],
+    # (0:32 morning birdsong, −35…−41 dB)
+    'birdsong-morning': [{'loop': (2.0, 26.0), 'xf': 2.0, 'hp': 300, 'rate': 22050, 'kbps': 48}],
+    # (0:33 a gutter dripping, steady)
+    'gutter-drip': [{'loop': (1.0, 29.0), 'xf': 2.0, 'hp': 200, 'rate': 22050, 'kbps': 48}],
     # (2:03, a boat ramp: the steadiest of all; 0–3 s fades in in the source) — 60 s of it is plenty for lapping water
     'water-lapping': [{'loop': (8.0, 60.0), 'xf': 2.5, 'hp': 110}],
     # (1:57, NYC's waterfront across the water: a steady wash under 2 kHz + a faint 266 Hz drone; nothing horn-like found. 65–82 s

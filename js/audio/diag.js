@@ -46,7 +46,9 @@ export function mountAudioDiag() {
     try { L = window.__district && window.__district.loop ? window.__district.loop() : null; } catch { /* no city */ }
     if (!L) return [];
     const ok = L.running && L.ago < 1500;
-    return [line(ok ? 'dbg-ok' : 'dbg-bad', `city ${L.running ? (ok ? 'running' : 'STALLED') : 'STOPPED'} · last frame ${(Math.round(L.ago / 500) / 2).toFixed(1)} s ago · restarts ${L.restarts}${L.why ? ` (last: ${L.why})` : ''}${L.stalls ? ` · stalls ${L.stalls}` : ''}${L.failStop ? ' · FAIL-STOP' : ''}`)];
+    // (9a: THE WEATHER's beds sounding now — the rain by where you stand, the drips, the wind, the crickets, the birds)
+    const wb = L.wxBeds && Object.keys(L.wxBeds).length ? [line('dbg-ok', `weather ${L.wx || '—'} · beds ${Object.entries(L.wxBeds).map(([k, v]) => `${k} ${v}`).join(' · ')}`)] : [];
+    return [...wb, line(ok ? 'dbg-ok' : 'dbg-bad', `city ${L.running ? (ok ? 'running' : 'STALLED') : 'STOPPED'} · last frame ${(Math.round(L.ago / 500) / 2).toFixed(1)} s ago · restarts ${L.restarts}${L.why ? ` (last: ${L.why})` : ''}${L.stalls ? ` · stalls ${L.stalls}` : ''}${L.failStop ? ' · FAIL-STOP' : ''}`)];
   }
   function paint() {
     let d;

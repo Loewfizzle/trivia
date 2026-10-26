@@ -17,6 +17,9 @@ export const FILES = /*FILES*/{
   "bar-open": [
     {"f": "bar-open.mp3", "v": "18a43fd0", "d": 8.0, "lufs": -20.4, "peak": 0.8, "sw": [0.35, 7.25], "from": [62.0, 70.0], "src": "bar-ambience-close", "r": 16000}
   ],
+  "birdsong-morning": [
+    {"f": "birdsong-morning.mp3", "v": "ff3796a0", "d": 28.0, "lufs": -24.4, "loop": 26.0, "xf": 2.0, "from": [1.0, 29.0], "src": "birdsong-morning", "r": 22050}
+  ],
   "boat-putter": [
     {"f": "boat-putter.mp3", "v": "732f29bc", "d": 32.5, "lufs": -24.4, "loop": 30.0, "xf": 2.5, "from": [11.4, 43.9], "src": "boat-putter", "r": 16000}
   ],
@@ -76,6 +79,9 @@ export const FILES = /*FILES*/{
     {"f": "crates-clink_2.mp3", "v": "d3827e2f", "d": 1.6, "lufs": -20.5, "peak": 0.35, "sw": [0.15, 1.45], "from": [5.7, 7.3], "src": "crates-clink"},
     {"f": "crates-clink_3.mp3", "v": "662b59c9", "d": 1.9, "lufs": -20.5, "peak": 0.55, "sw": [0.15, 0.8], "from": [13.7, 15.6], "src": "crates-clink"}
   ],
+  "crickets-night": [
+    {"f": "crickets-night.mp3", "v": "fdcbd184", "d": 34.5, "lufs": -24.4, "loop": 32.0, "xf": 2.5, "from": [21.2, 55.7], "src": "crickets-night", "r": 22050}
+  ],
   "crowd-clap": [
     {"f": "crowd-clap_1.mp3", "v": "8c7727e0", "d": 6.0, "lufs": -20.4, "peak": 1.1, "sw": [0.2, 5.4], "from": [9.0, 15.0], "src": "crowd-clap", "r": 16000},
     {"f": "crowd-clap_2.mp3", "v": "f739550a", "d": 6.0, "lufs": -20.4, "peak": 1.6, "sw": [0.25, 5.1], "from": [14.5, 20.5], "src": "crowd-clap", "r": 16000},
@@ -99,6 +105,11 @@ export const FILES = /*FILES*/{
   ],
   "drone-swarm": [
     {"f": "drone-swarm.mp3", "v": "e58dfe45", "d": 43.0, "lufs": -24.4, "loop": 40.0, "xf": 3.0, "from": [3.0, 46.0], "src": "drone-swarm", "r": 16000}
+  ],
+  "foghorn": [
+    {"f": "foghorn_1.mp3", "v": "4f8e447a", "d": 11.0, "lufs": -20.4, "peak": 3.95, "sw": [0.2, 6.0], "from": [4.5, 15.5], "src": "foghorn", "r": 16000},
+    {"f": "foghorn_2.mp3", "v": "df5f64cd", "d": 11.0, "lufs": -20.4, "peak": 3.7, "sw": [3.25, 4.45], "from": [24.5, 35.5], "src": "foghorn", "r": 16000},
+    {"f": "foghorn_3.mp3", "v": "40add8cc", "d": 10.5, "lufs": -20.4, "peak": 3.7, "sw": [0.35, 7.55], "from": [35.0, 45.5], "src": "foghorn", "r": 16000}
   ],
   "footsteps-cobble": [
     {"f": "footsteps-cobble_1.mp3", "v": "16f9486b", "d": 0.46, "lufs": -20.4, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.14, 0.6], "src": "footsteps-cobble"},
@@ -135,6 +146,9 @@ export const FILES = /*FILES*/{
     {"f": "gulls_2.mp3", "v": "5b853e65", "d": 1.6, "lufs": -20.4, "peak": 1.06, "from": [2.05, 3.65], "src": "gulls"},
     {"f": "gulls_3.mp3", "v": "547a9f4e", "d": 1.5, "lufs": -20.5, "peak": 0.37, "from": [3.7, 5.2], "src": "gulls", "w": 0.6},
     {"f": "gulls_4.mp3", "v": "0639841f", "d": 1.75, "lufs": -20.4, "peak": 0.97, "from": [6.85, 8.6], "src": "gulls"}
+  ],
+  "gutter-drip": [
+    {"f": "gutter-drip.mp3", "v": "65ba49cc", "d": 31.0, "lufs": -24.6, "loop": 29.0, "xf": 2.0, "from": [1.5, 32.5], "src": "gutter-drip", "r": 22050}
   ],
   "helicopter": [
     {"f": "heli-flyby-2.mp3", "v": "875a25e8", "d": 35.6, "lufs": -20.4, "peak": 9.25, "sw": [3.65, 20.9], "from": [0.0, 35.6], "src": "heli-flyby-2", "r": 16000},
@@ -196,6 +210,18 @@ export const FILES = /*FILES*/{
   "prop-plane": [
     {"f": "prop-plane.mp3", "v": "0818f33b", "d": 39.0, "lufs": -20.4, "peak": 7.55, "sw": [0.8, 23.6], "from": [1.0, 40.0], "src": "prop-plane", "r": 16000}
   ],
+  "rain-awning": [
+    {"f": "rain-awning.mp3", "v": "7d83be99", "d": 34.5, "lufs": -24.3, "loop": 32.0, "xf": 2.5, "from": [5.5, 40.0], "src": "rain-awning", "r": 22050}
+  ],
+  "rain-drizzle": [
+    {"f": "rain-drizzle.mp3", "v": "3229b66a", "d": 34.0, "lufs": -24.2, "loop": 32.0, "xf": 2.0, "from": [2.7, 36.7], "src": "rain-drizzle", "r": 22050}
+  ],
+  "rain-pavement": [
+    {"f": "rain-pavement.mp3", "v": "53649f2b", "d": 36.5, "lufs": -24.4, "loop": 34.0, "xf": 2.5, "from": [5.8, 42.3], "src": "rain-pavement", "r": 22050}
+  ],
+  "rain-water": [
+    {"f": "rain-water.mp3", "v": "532b5f97", "d": 34.5, "lufs": -24.4, "loop": 32.0, "xf": 2.5, "from": [2.6, 37.1], "src": "rain-water", "r": 16000}
+  ],
   "roller-blind": [
     {"f": "roller-blind.mp3", "v": "ed18dd77", "d": 0.93, "lufs": -20.3, "peak": 0.6, "sw": [0.15, 0.75], "from": [0.12, 1.05], "src": "roller-blind"}
   ],
@@ -246,6 +272,10 @@ export const FILES = /*FILES*/{
     {"f": "street-door-close_3.mp3", "v": "b32747ae", "d": 1.25, "lufs": -20.9, "peak": 0.45, "sw": [0.2, 0.7], "from": [12.55, 13.8], "hit": 0.35, "src": "street-door"},
     {"f": "street-door-close_4.mp3", "v": "e83644b0", "d": 1.1, "lufs": -20.9, "peak": 0.35, "sw": [0.15, 0.85], "from": [19.0, 20.1], "hit": 0.3, "src": "street-door", "w": 0.6}
   ],
+  "thunder-far": [
+    {"f": "thunder-far_1.mp3", "v": "5d162591", "d": 14.5, "lufs": -20.4, "peak": 1.35, "sw": [0.6, 5.4], "from": [0.0, 14.5], "src": "thunder-far", "r": 16000},
+    {"f": "thunder-far_2.mp3", "v": "cdb797e2", "d": 16.4, "lufs": -20.5, "peak": 1.55, "sw": [0.3, 14.8], "from": [30.6, 47.0], "src": "thunder-far", "r": 16000}
+  ],
   "tr3b-crackle": [
     {"f": "tr3b-crackle.mp3", "v": "c15b09e5", "d": 3.6, "lufs": -20.4, "peak": 1.3, "sw": [0.15, 3.15], "from": [0.0, 3.6], "src": "tr3b-crackle"}
   ],
@@ -281,6 +311,9 @@ export const FILES = /*FILES*/{
   ],
   "water-lapping": [
     {"f": "water-lapping.mp3", "v": "5ec91343", "d": 62.5, "lufs": -24.4, "loop": 60.0, "xf": 2.5, "from": [9.4, 71.9], "src": "water-lapping"}
+  ],
+  "wind-leaves": [
+    {"f": "wind-leaves.mp3", "v": "058c8808", "d": 24.0, "lufs": -24.1, "loop": 22.0, "xf": 2.0, "from": [19.2, 43.2], "src": "wind-leaves", "r": 22050}
   ],
   "window-sash-down": [
     {"f": "window-sash-down.mp3", "v": "be42e2df", "d": 1.65, "lufs": -20.5, "peak": 0.9, "sw": [0.15, 1.15], "from": [12.75, 14.4], "hit": 0.9, "src": "window-sash"}

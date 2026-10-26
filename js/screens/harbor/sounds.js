@@ -50,6 +50,8 @@ export function createCitySounds() {
   let duckNow = 1, jetX = 0.5, jetKey = '', jetFetch = '';
   // PART 6b — THE LEGENDARY SKY: the run heard (its one-shots fired once), the music's dip / muffle / tape stop while it lasts
   let lgRun = null, lgDuck = 1, lgHz = 20000, lgRate = 1, lgBendAt = 0;
+  let wxBed = null;                     // (9a: the weather's beds now — the AUDIO panel lists them)
+  const thunders = [];                  // (9a: the thunder waiting for its distance)
 
   /** keep a bed at this gain (0 = fade it out; stopped after `linger` s at zero: its buffer is freed) */
   function keep(slot, gain, pan = 0, { ramp = 1.5, linger = 20, fadeIn = 2 } = {}) {
@@ -86,7 +88,7 @@ export function createCitySounds() {
     } else if (r) { for (const h of r.hs) h.stop(fade); runs.delete(slot); }
   }
 
-  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null, hydrant = null } = {}) {
+  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null, hydrant = null, weather = null } = {}) {
     if (dead) return;
     const t = performance.now();
     if (t - lastT < 250) return;
@@ -119,6 +121,24 @@ export function createCitySounds() {
       keep('line-murmur', clamp(people.line, 0, 1) * bm.k, people.linePan, { ramp: 2.5, linger: 20, fadeIn: 3 });
       keep('rooftop-party', clamp(people.roof, 0, 1) * bm.k, people.roofPan, { ramp: 3, linger: 20, fadeIn: 4 });
     }
+    // ---- 9a — THE WEATHER, heard (only when real / forced): the rain's beds layered by its intensity + by where you "stand" — the
+    // awning drumming close (left: the speakeasy), the pavement around you, the rain on the water far off (right); the drips after it;
+    // the wind in the leaves on a windy day; crickets on warm summer nights, birdsong on spring / summer mornings — all under the
+    // music (bm.k), felt more than heard
+    { const W9 = weather || {}, r = clamp(W9.rain || 0, 0, 1), on = !bm.hold && unlockedAt ? bm.k : 0, mo = W9.month || 0, h = W9.hour == null ? 12 : W9.hour;
+      const drizzle = W9.state === 'drizzle' || W9.state === 'freezing';
+      wxBed = { drizzle: (drizzle ? smooth(0.02, 0.2, r) : smooth(0.02, 0.2, r) * (1 - smooth(0.3, 0.55, r))) * 0.9, pavement: smooth(0.22, 0.75, r), awning: smooth(0.12, 0.6, r) * 0.75,
+        water: smooth(0.3, 0.9, r) * 0.6, drip: clamp(W9.drip || 0, 0, 1) * (1 - smooth(0.04, 0.25, r)) * 0.8, wind: smooth(8, 14, W9.gust || 0) * (1 - 0.5 * smooth(0.3, 0.8, r)),
+        crickets: (W9.night || 0) > 0.55 && (W9.temp == null ? false : W9.temp >= 16) && mo >= 6 && mo <= 9 && r < 0.05 ? 0.8 * smooth(0.55, 0.85, W9.night) : 0,
+        birds: mo >= 4 && mo <= 8 && r < 0.1 && (W9.fog || 0) < 0.6 ? 0.8 * smooth(5.2, 6.2, h) * (1 - smooth(8.6, 9.8, h)) : 0 };
+      keep('rain-drizzle', wxBed.drizzle * on, 0.05, { ramp: 3, linger: 30, fadeIn: 4 });
+      keep('rain-pavement', wxBed.pavement * on, 0.1, { ramp: 3, linger: 30, fadeIn: 4 });
+      keep('rain-awning', wxBed.awning * on, -0.55, { ramp: 3, linger: 30, fadeIn: 4 });
+      keep('rain-water', wxBed.water * on, 0.4, { ramp: 3, linger: 30, fadeIn: 5 });
+      keep('gutter-drip', wxBed.drip * on, -0.45, { ramp: 4, linger: 30, fadeIn: 3 });
+      keep('wind-leaves', wxBed.wind * on, 0.2, { ramp: 4, linger: 30, fadeIn: 5 });
+      keep('crickets-night', wxBed.crickets * on, 0.15, { ramp: 6, linger: 60, fadeIn: 8 });
+      keep('birdsong-morning', wxBed.birds * on, -0.15, { ramp: 6, linger: 60, fadeIn: 8 }); }
     // ---- 8P — THE SPEAKEASY's LIFE, heard: each moment's cues (on the clock), the barbershop's day
     life(t);
     // ---- THE SKY (skyfx.listen(): what's up there now) — under the bed, ducked with it under the music (bm.k)
@@ -349,6 +369,16 @@ export function createCitySounds() {
     /** POLISH 5 — THE PERISCOPE's SONAR PING (once per appearance, the legendary egg calls it as the periscope breaks the surface): over the
      *  music with a brief dip so it cuts through (never a startle: its peak capped by the slot's gain), the echo heard out */
     periscope({ pan = 0.2 } = {}) { return this.ducked('periscope-ping', { gain: 1, pan, depth: 0.5, hold: 1.6, release: 3.2 }); },
+    /** 9a — THE THUNDER after its flash: a strike ev { delay (s: its distance), level, km } → 'thunder-far' then, panned a little
+     *  (never two rolls on top of each other: a newer strike waits for the last to roll away) */
+    thunder(ev = {}) {
+      if (dead) return;
+      const at = performance.now() + Math.max(0, ev.delay || 3) * 1000, last = thunders[thunders.length - 1];
+      const when = last ? Math.max(at, last + 6000) : at; thunders.push(when); if (thunders.length > 4) thunders.shift();
+      setTimeout(() => { if (!dead) citySound('thunder-far', { gain: clamp(ev.level == null ? 0.8 : ev.level, 0.3, 1), pan: rnd(-0.35, 0.35) }); }, when - performance.now());
+    },
+    /** 9a: the weather's beds now (the AUDIO panel's line) */
+    weatherBeds: () => (wxBed ? Object.fromEntries(Object.entries(wxBed).filter(([, v]) => v > 0.01).map(([k, v]) => [k, +v.toFixed(2)])) : {}),
     /** 8P — THE BUS: bus('arrive' | 'idle' | 'door' | 'depart' | 'pan' | 'gone', { pan, gain, stopIn }) — see busEvent */
     bus: busEvent,
     /** 8P — ONE FOOTSTEP of the nearest walking figure: kind 'cobble' | 'heels', pan −1…1, gain 0..1 (its distance); very soft;

@@ -117,6 +117,11 @@ export const SLOTS = [
   S('foghorn', '9', 'once', 0.14, 'a distant FOGHORN (real fog)', 'the lighthouse in real fog: every ~40–80 s'),
   S('rain-pavement', '9', 'loop', 0.1, 'rain on the pavement'),
   S('rain-water', '9', 'loop', 0.09, 'rain on the water'),
+  // (9a — THE WEATHER's beds by where you "stand": the awning close, the pavement, the water far; the thunder after its flash; the gutter after the rain)
+  S('rain-drizzle', '9', 'loop', 0.08, 'a light drizzle'),
+  S('rain-awning', '9', 'loop', 0.08, 'rain drumming on the awning (close)'),
+  S('thunder-far', '9', 'once', 0.16, 'distant thunder rolling (two takes)', 'after the lightning, delayed by its distance'),
+  S('gutter-drip', '9', 'loop', 0.06, 'drips from the gutter + the eaves after the rain'),
   // ---- PART 9 — the construction tower
   S('tower-siren', 'tower', 'once', 0.12, 'the demolition’s warning siren'),
   S('tower-horn', 'tower', 'once', 0.14, 'the warning horn blasts'),
