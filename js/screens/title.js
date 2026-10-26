@@ -1223,6 +1223,8 @@ export function createTitle() {
     if (destroyed || !scene || !tl || !tl.done || swallowed) return;
     if (e.target.closest('button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel')) return;
     const x = e.clientX, y = e.clientY;
+    // (WIN — the spider on the sign is asked BEFORE the letters: a tap on it bolts it down its thread; the letter taps keep the rest of the rect)
+    if (scene.spiderHit && scene.spiderHit(x, y)) return;
     const r = logoRect();
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
     const hit = scene.hit(x, y);

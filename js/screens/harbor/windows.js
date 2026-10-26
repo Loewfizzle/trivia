@@ -166,12 +166,20 @@ function paintLampRoom(x, G, lamp = 1) {
 let RIM = null;
 /** the window being drawn sets its lamp's rim for the figures in it (null: none) */
 export function setRim(r) { RIM = r; }
+// WIN — THE MOTION TRACE (the owner: "the toast looks choppy" — measured like PEO): every figure drawn this frame, where + how it
+// stands (the window, the waist, the scale, the arms' angles, the lean, the face, the stride) — rebuilt each frame by frame(), read by
+// harbor().speakeasy.life.figs. A few small objects a frame: nothing measurable.
+let TRACE = [], TRACE_WIN = '';
+export function traceWindow(id) { TRACE_WIN = id || ''; }
+export function traceReset() { TRACE = []; }
+export const traceList = () => TRACE;
+const traceOf = P => ({ w: TRACE_WIN, x: +(P.x || 0).toFixed(4), y: +(P.y || 0).toFixed(4), s: +(P.s || 1).toFixed(3), lean: +(P.lean || 0).toFixed(4), face: +(P.face || 0).toFixed(3), step: +(P.step || 0).toFixed(4), arms: P.arms ? P.arms.map(a => (a ? [+a[0].toFixed(4), +a[1].toFixed(4)] : [0, 0])) : null, sil: !P.pal });
 /** SP4 — LIT PEOPLE (the owner: "if it's lit in the room you should be able to SEE them, not silhouettes"): P.lit = { col: [r,g,b]
  *  (the room's lamp), side (-1 | 0 | 1: where the lamp is; 0 = above), k (0..1 the room's level) } draws the figure in its palette's REAL
  *  colours tinted by the lamp, MODELLED by it — a lit side, a shade side (a gradient over every shape, away from the lamp; from above:
  *  the shoulders + the hat lit, the waist in shade), the warm rim on the lamp's side — the face a simple lit shape. P.marks = the
  *  clothes' patterns as blocks of colour: 'braces' | 'pocket' (a pocket square) | 'bow' | 'pearls' | 'pinstripe' | 'collar' | 'sash'. */
-export function figure(c, P) { castPass(c, P); rimPass(c, P); body(c, P, 0); }
+export function figure(c, P) { TRACE.push(traceOf(P)); castPass(c, P); rimPass(c, P); body(c, P, 0); }
 /** a palette in a room's light: each colour toward the lamp's tone, the whole a little under daylight (a lit room at night) */
 export function litPal(pal, lamp, k = 1) {
   const out = {}, L = lamp || [255, 222, 176], m = Math.min(1, 0.72 + 0.28 * k);
@@ -184,7 +192,7 @@ export function litPal(pal, lamp, k = 1) {
 }
 /** a GROUP that overlaps (the toast's three, the tango's couple): every rim first, then every body — one figure's rim never lands on
  *  another's dark shape */
-export function figures(c, list) { for (const P of list) if (P) castPass(c, P); for (const P of list) if (P) rimPass(c, P); for (const P of list) if (P) body(c, P, 0); }
+export function figures(c, list) { for (const P of list) if (P) { TRACE.push(traceOf(P)); castPass(c, P); } for (const P of list) if (P) rimPass(c, P); for (const P of list) if (P) body(c, P, 0); }
 /** SP4 — THE CAST SHADOW (the owner: lit people in 3D): a lit figure throws a soft shadow on the wall / the furniture behind it, away from
  *  the lamp (two offset silhouettes, the farther fainter: a soft edge without a blur) */
 function castPass(c, P) {
@@ -289,7 +297,13 @@ function body(c, P, inf) {
     c.bezierCurveTo(-hw2 - 0.02 * s + sw * 0.08 * s, foot * 0.5, -hw2 + sw * 0.05 * s, shY * 0.4, -sh * 1.05, shY - 0.04 * s);
     c.bezierCurveTo(-0.24 * s, shY + 0.08 * s, -0.2 * s, top + 0.02 * s, 0, top + 0.03 * s);
     F('body');
-    if (!inf && P.eyes !== false && !P.shadePass && !P.volPass) { c.fillStyle = P.eyeCol || 'rgba(10,8,14,0.92)'; for (const ex of [-0.05, 0.05]) { c.beginPath(); c.ellipse(ex * s + f * 0.03 * s, shY + 0.21 * s, 0.024 * s, 0.036 * s, 0, 0, TAU); c.fill(); } }
+    // (WIN — the owner: "the ghost needs BIGGER EYES": two big hollow eyes + a wailing mouth, the three dark holes that say GHOST at the
+    // real window size — each eye ~2 × 3 pt at 402, tilted a little inward at the top; the mouth an O below them)
+    if (!inf && P.eyes !== false && !P.shadePass && !P.volPass) {
+      c.fillStyle = P.eyeCol || 'rgba(10,8,14,0.92)';
+      for (const e of [-1, 1]) { c.beginPath(); c.ellipse(e * 0.095 * s + f * 0.03 * s, shY + 0.215 * s, 0.062 * s, 0.085 * s, e * 0.22, 0, TAU); c.fill(); }
+      c.beginPath(); c.ellipse(f * 0.03 * s, shY + 0.06 * s, 0.05 * s, 0.068 * s, 0, 0, TAU); c.fill();
+    }
     c.restore();
     return;
   }
@@ -547,7 +561,7 @@ export function createWindowLife() {
   const blocks = new Map();           // `${key}|${hour}` → that hour's plan
   let dark = null, darkKey = '', routines = {}, rKey = '';
   const taps = [];                     // { id, kind, at (frame s) } — the viewer's own taps (local, not synced)
-  let catTap = -1, forcedT0 = -1, forcedId = null, last = { on: [], states: {}, sec: 0, key: '', next: null, forced: null };
+  let catTap = -1, forcedT0 = -1, forcedId = null, last = { on: [], states: {}, sec: 0, key: '', next: null, forced: null }, busyNow = false;
   const sprites = new Map();
   function spot(col) {
     const key = col.join(','); let cv = sprites.get(key);
@@ -631,6 +645,9 @@ export function createWindowLife() {
       else (byWin.get(e.win) || byWin.set(e.win, []).get(e.win)).push(e);
     }
     c.save(); env.map(c);
+    // (WIN — what keeps the city at 60 fps: a moment on, a tap answering, someone passing deep in a room — scene.js#fastNow reads busy())
+    traceReset(); busyNow = fr.on.length > 0 || taps.some(o => t - o.at < 3.2) || (catTap >= 0 && t - catTap < 1);
+    const passer = mo && !fr.on.some(e => MOMENT[e.id] && MOMENT[e.id].rarity !== 'routine') ? passerAt(t) : null;
     // the glints: the glasses + the shaker catching the light where they are (warm at night, a cool sparkle by day)
     const glints = (x, gx, gy, s) => { const a = x.globalAlpha; x.save(); x.globalCompositeOperation = 'lighter'; glow(x, k > 0.3 ? [255, 236, 190] : [255, 255, 255], gx, gy, 0.12 * s, 0.85 * Math.max(0.35, k) * a); x.restore(); };
     for (const w of env.wins) {
@@ -640,6 +657,7 @@ export function createWindowLife() {
       const dress = holDress(fr.hol, w.id) || (list.some(e => e.id === 'ofrenda') ? 'ofrenda' : null);
       if (!list.length && !tap && !dress && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp')) continue;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
+      traceWindow(w.id);
       const E = { c, G, w, k, kl, day, t, mo, T, glints, f, env, frameC, after: [] };
       // (11a-1: each room's lamp rims its silhouettes — its own warm tone, stronger on the lamp's side)
       setRim(k > 0.25 && kl > 0.05 ? { col: RIM_COL[w.id] || [255, 222, 176], a: 0.48 * Math.min(1, kl * 1.2), side: RIM_SIDE[w.id] || 0, w: 0.026 } : null);
@@ -649,8 +667,10 @@ export function createWindowLife() {
       if (w.id === 'apartment') zoomed(STAGE_ROOM, () => apartmentState(E, fr.states.apartment, list));
       if (w.id === 'bar') zoomed(STAGE_ROOM, () => barState(E, fr.states.bar, list));
       if (w.id === 'jazz' && kl > 0.01 && !list.some(e => e.id === 'mummy')) { const solo = list.find(e => e.id === 'sax'); zoomed(solo ? STAGE.sax : STAGE_ROOM, () => saxPlayer(E, solo)); }
-      // (SP3 — the windows that aren't the star keep SLOW SIMPLE LIFE: now and then someone passes deep in the room, a soft shadow)
-      if (!list.length && kl > 0.05 && mo && w.id !== 'apartment') passing(E);
+      // (SP3 — the windows that aren't the star keep SLOW SIMPLE LIFE: now and then someone passes deep in the room, a soft shadow.
+      // WIN — ONE passer at a time across the whole building, never while a star moment plays: the owner saw figures moving in several
+      // panes at once and read it as "the tango in all the windows" — a moment belongs to ONE window, and so does a passer-by)
+      if (!list.length && kl > 0.05 && mo && passer && passer.id === w.id) passing(E, passer);
       // 11a-1 — THE HOLIDAY IN THE ROOM: the ofrenda on its sill (its candles lit one by one while the ofrenda moment runs) · a jack-o'-lantern
       if (dress === 'ofrenda') ofrendaState(E, list.find(e => e.id === 'ofrenda'), fr.hol && fr.hol.id === 'dotd' ? fr.hol.ofrendas : 1);
       else if (dress === 'pumpkin' && kl > 0.05) sillPumpkin(E);
@@ -663,18 +683,27 @@ export function createWindowLife() {
     c.restore();
     setRim(null);
     // the shop (the barbershop's big window): its day life, its CLOSED card, the hidden mirror door
+    traceWindow('shop');
     shop(c, env, fr, byWin.get('shop') || [], { k, day, t, mo, T, f });
+    traceWindow('');
     // the TV's blue spill on the brick round the apartment window (the bake's warm blobs belong to the lit rooms)
     spills(c, env, fr, t);
   }
 
-  // ---------------------------------------------------------------- SLOW LIFE (SP3)
-  /** someone passing deep in a lit room: a soft dark shape gliding across the back wall, ~8 s every 50–110 s (seeded per window) */
-  function passing(E) {
-    const { c, G, t, kl, w } = E, seed = [...w.id].reduce((a, ch) => a + ch.charCodeAt(0), 0), per = 50 + (seed % 60), ph = (seed * 7.3) % per, cyc = (t + ph) % per, len = 8;
-    if (cyc > len) return;
-    const u = cyc / len, dir = Math.floor((t + ph) / per) % 2 ? 1 : -1, x = G.cx + dir * (u - 0.5) * (G.cw + 1.2), y = G.h0 + G.ch * 0.08, s = 1.15;
+  // ---------------------------------------------------------------- SLOW LIFE (SP3; WIN: one passer at a time)
+  const PASS_WINS = ['bar', 'jazz', 'back', 'edge2', 'edge3'], PASS_PER = 64, PASS_LEN = 8;
+  /** the building's one passer-by now: every PASS_PER s one slot picks ONE window (seeded on the slot: every phone the same) and someone
+   *  crosses deep in it for PASS_LEN s → { id, u (0..1), dir, seed } or null */
+  function passerAt(t) {
+    const slot = Math.floor(t / PASS_PER), start = slot * PASS_PER + hsh(slot, 21) * (PASS_PER - PASS_LEN - 4) + 2, u = (t - start) / PASS_LEN;
+    if (u < 0 || u >= 1) return null;
+    return { id: PASS_WINS[Math.floor(hsh(slot, 22) * PASS_WINS.length)], u, dir: hsh(slot, 23) < 0.5 ? -1 : 1, seed: slot };
+  }
+  /** someone passing deep in a lit room: a soft dark shape gliding across the back wall */
+  function passing(E, P) {
+    const { c, G, t, kl } = E, { u, dir, seed } = P, x = G.cx + dir * (u - 0.5) * (G.cw + 1.2), y = G.h0 + G.ch * 0.08, s = 1.15;
     const a = 0.26 * kl * Math.sin(Math.PI * u);
+    busyNow = true;
     c.save(); c.globalAlpha = a;
     figure(c, { x, y, s, rim: null, lean: -dir * 0.04, tilt: 0, face: dir, arms: [[0.06 + 0.06 * Math.sin(t * 3), 0.1], [0.06 - 0.06 * Math.sin(t * 3), 0.1]], col: 'rgb(40,20,14)', hat: seed % 2 ? 'fedora' : null, hair: seed % 2 ? null : 'bob' });
     c.restore();
@@ -738,7 +767,9 @@ export function createWindowLife() {
     const slot = Math.floor(t / 31), ph = t - slot * 31, shake = mo && hsh(slot, 3) < 0.7 && ph > 22 && ph < 25;
     const pol = mo ? Math.sin(t * 5.2) : 0;
     let arms = [[0.55, 1.75 + 0.15 * pol], [0.35, 1.9 - 0.12 * pol]], hold = ['cloth', 'glass'];
-    if (shake) { const u = Math.sin((ph - 22) * 22); arms = [[0.25, 2.3], [1.9 + 0.35 * u, 0.9 - 0.3 * u]]; hold = [null, 'shaker']; }
+    // (WIN — measured: the shake was a 22 rad/s sine switched on in one frame — 0.24 rad a frame, a blur that read as a stutter; now it
+    // EASES in + out over 0.3 s and shakes at 1.75 Hz with a smaller throw: ≤ 0.05 rad a frame at 60 fps)
+    if (shake) { const su = sm(22, 22.3, ph) * (1 - sm(24.7, 25, ph)), u = Math.sin((ph - 22) * 11) * su; arms = [[lerp(0.55, 0.25, su), lerp(1.75 + 0.15 * pol, 2.3, su)], [lerp(0.35, 1.9 + 0.25 * u, su), lerp(1.9 - 0.12 * pol, 0.9 - 0.22 * u, su)]]; hold = su > 0.5 ? [null, 'shaker'] : ['cloth', 'glass']; }
     // (behind the counter = further back than the patrons: a step smaller + a lighter silhouette, the back-bar's glow round him — so the
     // patrons' raised glasses read against him)
     if (mode === 'day') figure(c, { x, y, s: 0.86, face: 0, arms, hold, pal: { ...DAY_PALS[2], body: 'rgb(236,232,222)', arm: 'rgb(236,232,222)' }, glints: lit > 0.5 ? E.glints : null });
@@ -754,7 +785,7 @@ export function createWindowLife() {
     const { c, G } = E, y = G.h0 - 0.02;
     const full = toast && !toast.solo;
     const who = full ? [[0.2, 'fedora', 0.88, 1, whoM(0)], [0.5, 'cloche', 0.8, 0, whoW(0)], [0.8, 'fedora', 0.9, -1, whoM(1)]] : [[0.74, 'fedora', 0.9, -1, whoM(1)]];
-    const p = toast ? toast.p : 0, up = toast ? sm(0.06, 0.26, p) * (1 - sm(0.84, 0.98, p)) : 0, clink = full ? sm(0.3, 0.38, p) * (1 - sm(0.44, 0.52, p)) : 0, drink = toast ? sm(0.54, 0.62, p) * (1 - sm(0.74, 0.82, p)) : 0;
+    const p = toast ? toast.p : 0, up = toast ? sm(0.06, 0.26, p) * (1 - sm(0.84, 0.98, p)) : 0, clink = full ? sm(0.3, 0.38, p) * (1 - sm(0.44, 0.52, p)) : 0, drink = toast ? sm(0.54, 0.65, p) * (1 - sm(0.74, 0.85, p)) : 0;   // (WIN: the glass to the lips over 0.77 s — ≤ 4 rad/s a joint, measured)
     const group = [];
     for (const [u, hat, s, toward, pal] of who) {
       const x = G.g0 + G.cw * u;
@@ -1367,7 +1398,9 @@ export function createWindowLife() {
     paint: PAINT,
     /** a tap on the cat let go (its next instance comes back) */
     catReset() { catTap = -1; },
-    debug: () => ({ on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size }),
+    /** WIN: something in a window is MOVING (a moment, a tap's answer, a passer-by) — a 60-fps reason (scene.js#fastNow) */
+    busy: () => busyNow,
+    debug: () => ({ on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice() }),
     destroy() { for (const cv of sprites.values()) cv.width = cv.height = 0; sprites.clear(); blocks.clear(); },
   };
 }

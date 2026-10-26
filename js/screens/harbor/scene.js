@@ -853,7 +853,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let lobbyLine = 0;
   // 8P — THE HUSH WORD SIGN's preview: &force=hushsign&hush=JAZZ (the lobby's word; Lobby 2.0 calls harbor().speakeasy.hush(word));
   // undefined = leave the sign to its hook
-  const hushPreview = () => (clock.force.has('hushsign') ? (qp.get('hush') || 'JAZZ') : undefined);
+  // (WIN — the owner's "JAZZ over the sax solo": a stale JUST ME &force=hushsign kept the word SET after CLEAR ALL, because an un-forced
+  // frame passed `undefined` = "leave it". The lobby's own word lives here (harbor().speakeasy.hush(word)); every frame passes one value:
+  // the forced preview's word, else the lobby's, else null — the sign can never outlive its force or its lobby)
+  let lobbyHush = null;
+  const hushPreview = () => (clock.force.has('hushsign') ? (qp.get('hush') || 'JAZZ') : lobbyHush);
   // PART 7b: a forced window moment — &force=window&moment=<id> (the preview links) or the panel's WINDOWS rows (&force=window-<id>)
   function forcedMoment() {
     const f = clock.force;
@@ -1121,6 +1125,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const d = people.doors(); if ((d.side > 0.002 && d.side < 0.998) || (d.shop > 0.002 && d.shop < 0.998)) return 'door'; }   // (POL4: a door swinging — every frame, never a stepped swing)
     if (people.driving()) return 'traffic';          // (POL4: a motorcar rolling on the back road — its wheels + its glide at 60)
     if (people.moving()) return 'people';            // (PEO: anyone walking on screen — a walker held at 30 fps judders, and the 30 ↔ 60 flips were the afternoon's stutter)
+    if (!clock.force.has('no-speakeasy') && speak.busy()) return 'window';   // (WIN: a window moment, a tap's answer, a passer-by — the owner's "choppy toast" was the saver's 30 fps + its 30 ↔ 60 flips with nobody walking)
     if (!clock.force.has('no-wildlife') && wild.busy()) return 'wildlife';   // (8b1: a bird on the wing, the squirrel's dash, the coyote's trot — every frame)
     return '';
   }
@@ -2201,6 +2206,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { kind: 'door' };
       return null;
     },
+    /** WIN — THE SPIDER'S TAP (the owner's iPhone: tapping it did nothing — title.js answered every tap inside the logo's rect with a
+     *  letter buzz before the scene was asked): the dressing's hit alone, asked FIRST by title.js#onCityTap; { kind: 'spider' } or null */
+    spiderHit(x, y) { if (!dress) return null; const d = dress.hit(x, y); if (d) fastUntil = performance.now() + 1500; return d; },
     signOn: () => P.sign > 0.5,
     palette: () => P,
     signCol: () => S.signCol || null,
@@ -2254,7 +2262,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
+    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
@@ -2271,7 +2279,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (8b1: THE WILDLIFE — who's where; scare(x, z, r) / startle(): Group 3's witnesses; budget(k): THE DIRECTOR)
       raid: (() => { const P = raidPlanNow(), nowS = clock.now() / 1000, R = P ? raidAt(P, nowS) : null; return P ? { key: P.key, why: P.why, party: P.party, s: +(nowS - P.t0).toFixed(1), tAppear: +(P.tAppear - P.t0).toFixed(1), tStop: P.tStop != null ? +(P.tStop - P.t0).toFixed(1) : null, tDepart: P.tDepart != null ? +(P.tDepart - P.t0).toFixed(1) : null, tBack: +(P.tBack - P.t0).toFixed(1), tEnd: +(P.tEnd - P.t0).toFixed(1), phase: R ? R.phase : 'after', power: R ? +R.power.toFixed(2) : 1, cars: R ? R.cars.length : 0, beam: R ? +R.beam.toFixed(2) : 0, club: R ? +R.club.toFixed(2) : 1 } : null; })(),
       wildlife: { ...wild.debug(), scare: (x, z, r) => wild.scare(x, z, r), startle: () => wild.startle(), budget: k => wild.budget(k), hydrantState: () => wild.hydrantState(), busy: wild.busy() },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
-      speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => speak.hush(w), ad: (speakCtx().game || {}).id || null, door: L.door },
+      speakeasy: { ...speak.debug(), life: speak.life(), hit: (x, y) => speak.hit(x, y), windows: () => speak.windows(), light: (id, k) => speak.light(id, k), mirror: k => speak.mirror(k), power: k => speak.power(k), pole: o => speak.pole(o), quiet: on => speak.quiet(on), roomDraw: (id, fn) => speak.roomDraw(id, fn), hush: w => { if (w !== undefined) lobbyHush = w || null; return speak.hush(w); }, ad: (speakCtx().game || {}).id || null, door: L.door },
       // (PF: THE CENTREPIECE — set({ piece, h, rig: { on, col, k }, lights }) / clear(); its state, the cap, the spots on screen)
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },
       strings: { ...strings.debug(), on: true, set: o => strings.set(o) },

@@ -255,6 +255,8 @@ export function createSignDress() {
 
   return {
     setHost, frame, hit,
+    /** WIN — the spider on screen (CSS px: the e2e's touch tap aims here) or null */
+    spiderAt() { if (!cv || !on || !spider || !cv.isConnected) return null; const r = cv.getBoundingClientRect(); if (!r.width) return null; const st = spider.state(); return { x: r.left + (st.x - BOX.x0) / (BOX.x1 - BOX.x0) * r.width, y: r.top + (st.y - BOX.y0) / (BOX.y1 - BOX.y0) * r.height, mode: st.mode }; },
     debug: () => ({ on, pieces: lastEnv ? want(lastEnv) : [], web: lastEnv && lastEnv.pieces ? lastEnv.pieces.web : null, webs: webs.map(w => ({ id: w.id, radials: w.radials.length, spiral: w.spiral.length })),
       spider: spider ? spider.state() : null, legs: spider ? spider.legCheck() : null, shimmer: shimmer ? shimmer.state() : null, dotd: dotd ? dotd.debug() : null, draws, bakes, slowTask, ms: +lastMs.toFixed(2), canvas: cv ? [cv.width, cv.height] : null, dpr }),
     destroy: detach,

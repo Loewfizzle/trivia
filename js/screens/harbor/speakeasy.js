@@ -507,6 +507,8 @@ export function createSpeakeasy() {
     /** PART 7b: a tap on the speakeasy's windows → { kind: 'window', id, tap } | { kind: 'cat', id } | null */
     hit: (x, y) => (G ? life.hit(x, y, wins, lastT) : null),
     life: () => life.debug(),
+    /** WIN: something moving in a window (a moment, a tap's answer, a passer-by) — scene.js#fastNow's 60-fps reason */
+    busy: () => life.busy(),
     /** SP3: the blade's board on screen (the tree sway keeps clear of it) */
     bladeRect: () => (G ? bladeGeo(G).rect : null),
     /** PART 7b: the speakeasy's sound beds now (sounds.js#speakeasy): { club, tv, party } */

@@ -2026,6 +2026,85 @@ G('windows', async () => {
     ok(L.states.shop === 'open' && L.states.bar === 'closed', `BY DAY: the barbershop open, the bar closed (${JSON.stringify(L.states)})`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}windows-day-402x874.png` });
     await Q.ctx.close(); }
+  // ================================================================ WIN — THE WINDOW BUGS (the owner's SP4 phone review)
+  // the moments' motion trace: every rAF — the drawn count, the 60-fps reason, every window figure (windows.js#TRACE: window, waist, arms)
+  const winTrace = secs => `new Promise(res => { const D = window.__district, out = [], t0 = performance.now();
+    (function loop() { const h = D.harbor(), lp = D.loop(), L = h.speakeasy.life;
+      out.push({ t: performance.now(), drawn: lp ? lp.drawn : 0, fast: h.rate ? h.rate.fast : '', on: L.on.map(e => e.id + '@' + e.win), figs: L.figs });
+      if (performance.now() - t0 < ${secs * 1000}) requestAnimationFrame(loop); else res(out); })(); })`;
+  // ---- THE TOAST AT 60 FPS with nobody walking (measured: the saver's 30 fps + its 30 ↔ 60 flips were the choppiness — now a window
+  // moment is a 60-fps reason), and its arms EASED: no stepped updates, no snap inside a cycle
+  { const Q = await open({ slot: 'w-fps', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife&moment=toast`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'toast' && e.el < 1)", 'a toast starting', 25000);
+    const fr = await ev(Q.page, winTrace(6));
+    const drawn = fr.filter((f, i) => i > 0 && f.drawn !== fr[i - 1].drawn), onFrames = fr.filter(f => f.on.length);
+    const fastShare = onFrames.filter(f => f.fast).length / Math.max(1, onFrames.length), why = [...new Set(onFrames.map(f => f.fast))];
+    const drawnShare = drawn.length / Math.max(1, fr.length - 1);
+    ok(fr.length > 60 && fastShare >= 0.95 && why.includes('window'), `THE TOAST KEEPS 60 FPS with nobody walking: ${Math.round(fastShare * 100)} % of its frames fast (${why.join(', ') || 'none'})`);
+    okT(drawnShare >= 0.9, `THE TOAST IS DRAWN EVERY FRAME: ${drawn.length} of ${fr.length - 1} rAF frames drawn (${Math.round(drawnShare * 100)} %)`);
+    // the arms: per drawn frame, each figure's biggest arm move (dt-normalised to 60 fps), inside one cycle (the same figures in the window)
+    // (judged PER FIGURE: each one's own series — a stop-then-double frame is one under a quarter of ITS median beside one over 1.5×)
+    let maxStep = 0, judder = 0, n = 0, total = 0; const series = new Map(), meds = [];
+    for (let i = 1; i < drawn.length; i++) {
+      const a = drawn[i - 1], b = drawn[i]; if (!a.figs || !b.figs || a.figs.length !== b.figs.length || !a.on.length || !b.on.length) continue;
+      const dt = Math.max(0.5, (b.t - a.t) / 16.7);
+      for (let k = 0; k < b.figs.length; k++) { const p = a.figs[k], q = b.figs[k]; if (!p.arms || !q.arms || p.w !== q.w || Math.abs(p.x - q.x) > 0.3) continue; const d = Math.max(...[0, 1].flatMap(j => [Math.abs(q.arms[j][0] - p.arms[j][0]), Math.abs(q.arms[j][1] - p.arms[j][1])])) / dt; (series.get(k) || series.set(k, []).get(k)).push(d); }   // (the biggest single JOINT move, like PEO's dancers)
+    }
+    for (const steps of series.values()) {
+      const moving = steps.filter(v => v > 0.004).sort((a, b) => a - b); if (moving.length < 20) continue;
+      const med = moving[Math.floor(moving.length / 2)]; meds.push(med); n += moving.length; total += steps.length; maxStep = Math.max(maxStep, moving[moving.length - 1]);
+      for (let i = 1; i < steps.length - 1; i++) if (steps[i] < med * 0.25 && (steps[i - 1] > med * 1.5 || steps[i + 1] > med * 1.5)) judder++;
+    }
+    ok(n > 60 && maxStep < 0.2 && judder <= Math.max(3, total * 0.03), `THE TOAST'S ARMS ARE EASED: ${series.size} figures, ${n} moving frames, median joint moves of ${meds.map(v => v.toFixed(3)).join(' / ')} rad/frame, the biggest ${maxStep.toFixed(4)} (${(maxStep * 60).toFixed(1)} rad/s — never a snap), ${judder} stop-then-double frames of ${total}`);
+    await Q.ctx.close(); }
+  // ---- ONE WINDOW AT A TIME — the tango (legendary, 'all' windows): its figures cross ONE pane at a time; no passer-by elsewhere while it plays
+  { const Q = await open({ slot: 'w-one', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife&moment=tango`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'tango' && e.el > 0.5)", 'the tango on', 25000);
+    const fr = await ev(Q.page, winTrace(12));
+    // a window MOVES in a frame when one of its figures stands where none stood the frame before (the steady ones — the bartender, the
+    // patron, the sax player — keep their x; a crossing couple changes it every frame)
+    let worst = 0, total = 0; const seen = new Set();
+    for (let i = 1; i < fr.length; i++) {
+      if (!fr[i].on.length || fr[i].drawn === fr[i - 1].drawn) continue;
+      const prev = new Map(); for (const g of fr[i - 1].figs || []) (prev.get(g.w) || prev.set(g.w, []).get(g.w)).push(g.x);
+      const moving = new Set();
+      for (const g of fr[i].figs || []) { const xs = prev.get(g.w) || []; if (!xs.some(x => Math.abs(x - g.x) < 0.0015)) moving.add(g.w); }
+      worst = Math.max(worst, moving.size); total++; for (const w of moving) seen.add(w);
+    }
+    ok(total > 100 && worst <= 1 && seen.size >= 2, `ONE WINDOW AT A TIME through the tango: at most ${worst} window with moving figures in any of ${total} frames (it visited ${[...seen].join(', ')})`);
+    await Q.ctx.close(); }
+  // ---- THE HUSH SIGN NEVER OUTLIVES ITS FORCE (the owner's "JAZZ over the sax solo": a stale JUST ME &force=hushsign): the panel forces
+  // it, then clears it — the word + its overlay go at once
+  { const Q = await open({ slot: 'w-hush', qs: `when=2026-10-22T22:30${GR}&force=window&moment=sax&panel=1`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, '!!window.__district.remote()', 'the panel', 10000);
+    await ev(Q.page, "window.__district.remote().setMine({ force: ['hushsign', 'window-sax'] })");
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.hush().text === 'JAZZ'", 'the forced JAZZ', 8000);
+    await ev(Q.page, "window.__district.remote().setMine({ force: ['window-sax'] })");
+    const gone = await waitFor(Q.page, "(() => { const h = window.__district.harbor().speakeasy.hush(); return !h.text && !h.overlay; })()", 'the sign gone', 4000).then(() => true).catch(() => false);
+    const hs = await ev(Q.page, 'window.__district.harbor().speakeasy.hush()');
+    ok(gone, `THE HUSH SIGN CLEARS WITH ITS FORCE: forced JAZZ, then the force dropped → text ${hs.text}, overlay ${hs.overlay}`);
+    await Q.ctx.close(); }
+  // ---- THE GHOST'S EYES: two big hollow eyes + a mouth — dark holes inside the pale sheet, readable at 402
+  { const Q = await open({ slot: 'w-ghost', qs: `when=2026-10-22T22:00${GR}&force=window&moment=ghost`, view: [402, 874] });
+    await harborUp(Q.page); await lit(Q.page);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'ghost' && e.el > 4.6 && e.el < 6.4)", 'the ghost at the glass', 30000);
+    const win = (await ev(Q.page, 'window.__district.harbor().speakeasy.life.on[0].win')), r = (await wins(Q.page))[win];
+    const holes = await ev(Q.page, `(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x0 = Math.round(${r.x} * k), y0 = Math.round(${r.y} * k), w = Math.round(${r.w} * k), h = Math.round(${r.h} * k);
+      const d = cv.getContext('2d').getImageData(x0, y0, w, h).data, L = (i) => 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2];
+      let bx0 = 1e9, bx1 = -1, by0 = 1e9, by1 = -1, bright = 0;
+      for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const i = (y * w + x) * 4; if (L(i) > 150 && d[i + 1] > d[i] - 10) { bright++; bx0 = Math.min(bx0, x); bx1 = Math.max(bx1, x); by0 = Math.min(by0, y); by1 = Math.max(by1, y); } }
+      if (bright < 40) return { bright, holes: 0 };
+      // the holes: dark pixels inside the sheet's box whose row + column both hold bright pixels on BOTH sides (inside the pale cloth)
+      let holes = 0; const rows = [], cols = [];
+      for (let y = by0; y <= by1; y++) { let a = -1, b = -1; for (let x = bx0; x <= bx1; x++) { const i = (y * w + x) * 4; if (L(i) > 150) { if (a < 0) a = x; b = x; } } rows[y] = [a, b]; }
+      for (let x = bx0; x <= bx1; x++) { let a = -1, b = -1; for (let y = by0; y <= by1; y++) { const i = (y * w + x) * 4; if (L(i) > 150) { if (a < 0) a = y; b = y; } } cols[x] = [a, b]; }
+      for (let y = by0; y <= by1; y++) for (let x = bx0; x <= bx1; x++) { const i = (y * w + x) * 4; if (L(i) < 80 && rows[y][0] >= 0 && x > rows[y][0] + 1 && x < rows[y][1] - 1 && cols[x][0] >= 0 && y > cols[x][0] + 1 && y < cols[x][1] - 1) holes++; }
+      return { bright, holes, box: [bx1 - bx0, by1 - by0], k }; })()`);
+    ok(holes.bright >= 40 && holes.holes >= 24, `THE GHOST'S EYES + MOUTH: ${holes.holes} dark device px of holes inside the pale sheet (${holes.bright} px of sheet, ${holes.box ? holes.box.join('×') : '?'} at ${holes.k}×) in the ${win} window`);
+    await Q.ctx.close(); }
 });
 
 // ================================================================ PART 8a — THE CITY SOUNDS (ONLY=sounds; docs/audio.md#the-city-sounds)
@@ -2476,6 +2555,24 @@ G('holiday', async () => {
   { const Q = await page('hol-n3', '2026-11-03T20:00');
     const h = await ev(Q.page, `${P}.holiday`), wh = await ev(Q.page, `${P}.wheel.schemeId`);
     ok(h.state.id === null && wh !== 'dotd' && (await sign(Q)) === '', `NOV 3 EVENING — ALL DOWN: ${h.state.id}, the wheel ${wh}, the sign ${await sign(Q) || 'its own'}`);
+    await Q.ctx.close(); }
+  // ---- WIN — THE SPIDER'S TAP ON A TOUCH PHONE (the owner's iPhone: tapping it did nothing — title.js answered every tap inside the
+  // logo's rect with a letter buzz before the scene was asked): a real touch tap on the spider bolts it down its thread; a touch tap on a
+  // letter beside it still buzzes that letter
+  { const Q = await page('hol-tap', '2026-10-31T21:00', '&force=sign-web');
+    await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.spider && ${P}.spiderAt`, 'the spider', 15000).catch(() => {});
+    await Q.page.touchscreen.tap(30, 120); await sleep(900);            // (a priming tap: the idle title swallows the first touch after 10 s)
+    const at = await ev(Q.page, `${P}.spiderAt`);
+    let dropped = false;
+    if (at) { await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'hang'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
+    const st = await ev(Q.page, `${P}.dress.spider`);
+    ok(at && dropped, `THE SPIDER'S TAP (touch, ${at ? `${at.x.toFixed(0)},${at.y.toFixed(0)}` : 'no spider'}): it bolts down its thread (${st && st.mode})`);
+    // a letter beside it: the letter farthest from the spider, tapped — its tube stutters out at once (the night plan: off at 0 ms)
+    const letters = await ev(Q.page, `[...document.querySelectorAll('.nd-sign .ndl')].map(l => { const r = l.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, on: l.classList.contains('on') }; })`);
+    const far = letters.map((l, i) => ({ ...l, i, d: at ? Math.hypot(l.x - at.x, l.y - at.y) : 999 })).sort((a, b) => b.d - a.d)[0];
+    let buzzed = false;
+    if (far && far.d > 24) { await Q.page.touchscreen.tap(far.x, far.y); buzzed = await waitFor(Q.page, `!document.querySelectorAll('.nd-sign .ndl')[${far.i}].classList.contains('on')`, 'the letter out', 1500).then(() => true).catch(() => false); }
+    ok(far && far.d > 24 && buzzed, `A LETTER TAP BESIDE IT (letter ${far && far.i}, ${far && far.d.toFixed(0)} pt from the spider): it stutters out ${buzzed ? 'at once' : 'NEVER'}`);
     await Q.ctx.close(); }
   // ---- REDUCED MOTION on Halloween night: no witch, no bats, no window moments; the dressing still there, the spider still
   { const Q = await page('hol-rm', '2026-10-31T21:30', '&force=witch,bats', { fn: () => { try { const k = 'na:settings', s = JSON.parse(localStorage.getItem(k) || '{}'); s.reducedFx = true; localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, arg: null });
