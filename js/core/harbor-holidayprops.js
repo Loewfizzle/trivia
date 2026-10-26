@@ -61,7 +61,7 @@ export const BALE = Object.freeze({ w: 1.8, h: 0.74, d: 1.0 });
 export const BIG_PIECES = Object.freeze([
   { spot: 'hydrant', kind: 'classic', d: 1.5, face: 'toothy', bale: false },                // the nearest + the biggest, on the pavement by the hydrant (~23 pt at 402; WIN2: a round classic, the squat kind read stretched)
   { spot: 'bench-right', kind: 'classic', d: 1.5, face: 'scary', bale: true, gourd: true },  // on a straw bale at the bench's end, a gourd beside it (~19 pt)
-  { spot: 'lamp-1', kind: 'tall', d: 1.35, face: 'happy', bale: true },                     // on a bale at the right tall lamp's foot (~16 pt)
+  { spot: 'corner-right', kind: 'tall', d: 1.6, face: 'happy', bale: true },               // on a bale at the front strip's right end, left of the cart + the framing maple (~25 pt; WIN3: it stood hidden behind the maple's canopy at the lamp post)
 ]);
 /** the big pieces placed on their spots → [{ i (100+), spot, x, y (the bale's top if on one), z, d, kind, face, bale, gourd, pass, tilt, seed,
  *  flick, baleX, baleZ }] — a spot the layout lacks is skipped */

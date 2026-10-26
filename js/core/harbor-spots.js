@@ -27,8 +27,10 @@ export function dressingSpots(L) {
   if (L.hydrant) out.push({ id: 'hydrant', kind: 'hydrant', x: L.hydrant.x + 1.2, z: L.hydrant.z - 0.1, y: 0, r: 0.8, face: 1, pass: 'top', by: 'hydrant' });
   // THE QUAY RAILING (across the road, the far pavement): three along it, clear of the crosswalk's lantern + its landing
   if (L.rail && cw) { const z = L.rail.z + 0.5, hw = L.cam.hw ? L.cam.hw(z) : L.cam.VPX * z / L.cam.F; for (const [k, f] of [[0, 0.1], [1, 0.42], [2, 0.9]]) { const x = -hw + 2 * hw * f; if (Math.abs(x - (cw.lantern ? cw.lantern.x : cx)) < 1.6 || (x > cw.x0 - 0.8 && x < cw.x1 + 0.8)) continue; out.push({ id: `rail-${k}`, kind: 'rail', x, z, y: 0, r: 0.6, face: x < 0 ? 1 : -1, pass: 'far', by: 'rail' }); } }
-  // THE OPEN CORNER on the right: the floor's front-right, before the framing maple's grate, behind the cart's rest
-  { const maple = (L.trees || []).find(t => t.kind === 'maple' && t.big) || (L.trees || []).find(t => t.kind === 'maple'); if (maple) out.push({ id: 'corner-right', kind: 'corner', x: maple.x - 1.4, z: 40.6, y: 0, r: 0.9, face: -1, pass: 'near', by: 'maple' }); }
+  // THE OPEN CORNER on the right (WIN3 — the owner: the lamp post's piece stood hidden behind the framing maple's canopy → the spot is
+  // the FRONT STRIP's right end: on the promenade's front edge just left of the cart's rest + the maple's grate, nearer than anyone
+  // on the floor (the walkers' zMin is 38.75), the tree framing it; above the dock + the HOST ring at every phone)
+  { const maple = (L.trees || []).find(t => t.kind === 'maple' && t.big) || (L.trees || []).find(t => t.kind === 'maple'); const ax = L.cart ? L.cart.x - 2.5 : maple ? maple.x - 4.6 : null; if (ax != null) out.push({ id: 'corner-right', kind: 'corner', x: ax, z: 37.4, y: 0, r: 0.85, face: 1, pass: 'top', by: L.cart ? 'cart' : 'maple' }); }
   // THE PLANTERS (none on today's promenade — the ids are ready for the day they return)
   (L.planters || []).forEach((p, i) => out.push({ id: `planter-${i}`, kind: 'planter', x: p.x + p.w / 2 + 0.8, z: p.z, y: 0, r: 0.7, face: 1, pass: 'near', by: `planter-${i}` }));
   // (a desktop PANORAMA keeps the phone's stage beside the speakeasy — its front strip's lamps can fall off the left edge: a spot the
