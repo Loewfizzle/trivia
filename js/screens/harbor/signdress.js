@@ -205,8 +205,8 @@ export function createSignDress() {
     if (rebaked) {
       if (ids.includes('spider') && !spiders[0]) spiders[0] = createSpider(webs[0], { seed: 11 });
       if (ids.includes('spider2') && !spiders[1]) spiders[1] = createSpider(webs[1], { seed: 23 });
-      if (spiders[0]) spiders[0].setReach(Math.max(10, 34 * webGrowth(webs[0], P.web)));
-      if (spiders[1]) spiders[1].setReach(Math.max(8, 18 * webGrowth(webs[1], P.web)));
+      if (spiders[0]) spiders[0].setReach(Math.max(10, 34 * webGrowth(webs[0], P.web)), webGrowth(webs[0], P.web));   // (SP5: + the growth — the roam goes out to the tubes along spun silk)
+      if (spiders[1]) spiders[1].setReach(Math.max(8, 18 * webGrowth(webs[1], P.web)), webGrowth(webs[1], P.web));
     }
     if (!ids.includes('spider')) spiders[0] = null;
     if (!ids.includes('spider2')) spiders[1] = null;
