@@ -2117,3 +2117,19 @@ the owner, Oct 25 10:05 pm.)
   Sized from the live layout (the needle's tip + the tagline's rect from the title's measure()), not a fixed number — on
   the owner's iPhone that's ~50 pt above the spire tip, so with his folded wings hanging below his feet he stands ~60–70
   pt tall. The take-off's open wings may pass BEHIND the sign + tagline (the sign always draws on top and stays readable).
+
+## OWNER'S NOTES — OCT 26 (after SP3)
+- SP3 shipped (9179692). The owner hasn't phone-tested SP3 yet (he will after 11a-1). Two SP3 decisions STAND unless he
+  says otherwise: the windows ~12 % taller (the lintel vs the cornice) + ~16 % wider; the NEON logo kept as an SVG with
+  the tube treatment — IF his iPhone still shows it soft, the canvas rebuild is its own later pass (NOT 11a-1).
+- The promenade's wildlife scaled with the people (+9 %) — done in SP3 (the owner's add-on, Oct 26 12:56 am).
+- THE QUALITY BAR FOR EVERY HOLIDAY (the owner, Oct 26 2:52 am): TOP TIER, STUNNING — NO CLIP-ART LOOK anywhere (no flat
+  cartoon pumpkins, no sticker bats, no emoji ghosts). THE SPIDER: the first one built (earlier) was BAD. Build it
+  REALISTIC + premium (a real orb-weaver's silhouette: the abdomen's shape + sheen, eight jointed legs with natural
+  angles, moving with a spider's stop-start gait, catching the neon on its body), judged zoomed + full screen at 402; IF
+  after the refine passes it still doesn't look truly realistic + good, make it ALIEN / FUTURISTIC instead (a sleek
+  bio-mechanical spider with faint neon seams and glowing eyes) — stunning either way, never cheap. The same rule for
+  every Halloween piece: realistic + premium, or a deliberate stylised design that's just as premium.
+- THE BUILD TABLE: 11a-1 HALLOWEEN + DAY OF THE DEAD (+ the shared holiday system + the window figures; live before Sat
+  Oct 31) → NEXT 11a-2 THANKSGIVING (+ the parade system), then 9b WINTER, ATM (the FABLE ATMOSPHERE pass), 10 PARTY
+  NIGHTS, 11b CHRISTMAS + NYE (live by Nov 26).
