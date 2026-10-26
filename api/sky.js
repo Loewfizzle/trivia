@@ -29,7 +29,8 @@ export function placeOf(req) {
 
 async function fetchWeather(a, fetcher) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${a.lat}&longitude=${a.lon}`
-    + '&current=temperature_2m,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,visibility,is_day&wind_speed_unit=ms'
+    + '&current=temperature_2m,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,visibility,is_day&wind_speed_unit=ms'
+    // (CITY 2.0, 9a: + the gusts + the precipitation — THE WEATHER's rate + the windy days: core/harbor-weather.js)
     // RAINBOWS: the last two hours of precipitation in quarter hours (when the rain really stopped), no forecast
     + '&minutely_15=precipitation&past_minutely_15=8&forecast_minutely_15=0&timeformat=unixtime';
   const ctl = new AbortController();

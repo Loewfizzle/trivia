@@ -22,7 +22,7 @@ export const QUIET = 0.3;
 
 /**
  * An event: { id, lanes: [...LANES], when(ctx) → bool, rarity: 'common'|'daily'|'weekly'|'rare'|'legendary', duration (ms),
- * cost?: ms per frame (default 0.5), heavy?: bool, seed?: number }.
+ * cost?: ms per frame (default 0.5), heavy?: bool, seed?: number, long?: bool (9a: its piece outlives the window — kept in at(ms).recent) }.
  * ctx (from ctxAt(ms)): what is known about that moment — { ms, force: Set, night (the sun under −6° there and then), el + az (the
  * sun's, Part 6a), month (1–12, UTC), south }. A function of ms ONLY: the replay asks it about the past. (Live things — the real
  * wind, the cloud — are not known about the past: an event the weather forbids still runs in the schedule, its art just
@@ -35,6 +35,9 @@ export function defineEvent(e) {
   if (!(e.duration > 0) || e.duration > 8 * SLOT_MS) throw new Error(`event ${e.id}: duration`);
   return { cost: 0.5, heavy: false, seed: hashString(e.id), when: () => true, ...e };
 }
+
+/** how far back at(ms).recent looks (the longest flight that outlives its event: the balloon festival, ≤ 90 min) */
+export const RECENT_MS = 3 * 3600e3;
 
 /** the chance an eligible event starts in a given slot */
 export const startChance = e => Math.min(1, SLOT_MS / RARITY[e.rarity]);
@@ -56,6 +59,9 @@ export function createScheduler(events, ctxAt, { seed = 1924, forced = [], ancho
   const longest = Math.max(SLOT_MS, ...events.map(e => e.duration));
   let slot = slotOf(anchor) - 1;   // the last slot decided
   let running = [];
+  // 9a — THE LONG FLIGHTS (the balloons stay up 45–90 min while their event's window is 12): what STARTED in the last few hours, kept
+  // for the pieces that outlive their window (a load 30 min into a flight finds it: at(ms).recent)
+  let history = [];
   let decided = 0;                 // slots decided in all (the replay + the live ones): tests, &debug
 
   function decide(n) {
@@ -81,7 +87,9 @@ export function createScheduler(events, ctxAt, { seed = 1924, forced = [], ancho
       if (live.reduce((s, r) => s + r.cost, 0) + e.cost > BUDGET.total) continue;           // over the frame budget
       if (e.cost > BUDGET.lane * e.lanes.length) continue;
       if (e.heavy && live.some(r => r.heavy)) continue;
-      running.push({ id: e.id, lanes: e.lanes, start, end, cost: e.cost, heavy: e.heavy, seed: (e.seed ^ hashString(String(n))) >>> 0 });
+      const r = { id: e.id, lanes: e.lanes, start, end, cost: e.cost, heavy: e.heavy, seed: (e.seed ^ hashString(String(n))) >>> 0 };
+      running.push(r);
+      if (e.long) { history.push(r); if (history.length > 64) history = history.filter(h => h.start > t0 - RECENT_MS); }
     }
     slot = n; decided++;
   }
@@ -100,7 +108,8 @@ export function createScheduler(events, ctxAt, { seed = 1924, forced = [], ancho
     const active = running.filter(r => r.start <= ms && ms < r.end).map(r => ({ ...r, k: (ms - r.start) / (r.end - r.start) }));
     const quiet = [];
     for (const r of active) if (r.heavy) for (const l of LANES) if (!r.lanes.includes(l) && !quiet.includes(l)) quiet.push(l);
-    return { active, quiet };
+    const recent = history.filter(r => r.start <= ms && ms - r.start < RECENT_MS);
+    return { active, quiet, recent };
   }
 
   return { at, advance, get slot() { return slot; }, get decided() { return decided; } };
@@ -133,7 +142,7 @@ export const HARBOR_EVENTS = [
   //   the helicopter: in, a hover over the harbor, out — day or night (its searchlight after dark)
   defineEvent({ id: 'helicopter', lanes: ['sky-low'], rarity: 'daily', duration: SLOT_MS, cost: 0.3, when: ctx => ctx.el != null }),
   //   hot air balloons: calm, clear mornings (Apr–Oct) + summer evenings (Jun–Aug); the weather is checked when it starts
-  defineEvent({ id: 'balloons', lanes: ['sky-low'], rarity: 'daily', duration: 8 * SLOT_MS, cost: 0.3, when: ctx => ctx.el != null && !!balloonTime(ctx.el, ctx.az, ctx.month, ctx.south) }),
+  defineEvent({ id: 'balloons', lanes: ['sky-low'], rarity: 'daily', duration: 8 * SLOT_MS, cost: 0.3, long: true, when: ctx => ctx.el != null && !!balloonTime(ctx.el, ctx.az, ctx.month, ctx.south) }),
   //   rarely a small festival of several, both sky lanes (heavy: the rest of the city calms)
-  defineEvent({ id: 'balloon-festival', lanes: ['sky-high', 'sky-low'], rarity: 'rare', duration: 8 * SLOT_MS, cost: 0.6, heavy: true, when: ctx => ctx.el != null && !!balloonTime(ctx.el, ctx.az, ctx.month, ctx.south) }),
+  defineEvent({ id: 'balloon-festival', lanes: ['sky-high', 'sky-low'], rarity: 'rare', duration: 8 * SLOT_MS, cost: 0.6, heavy: true, long: true, when: ctx => ctx.el != null && !!balloonTime(ctx.el, ctx.az, ctx.month, ctx.south) }),
 ];

@@ -153,7 +153,9 @@ export function createWheel() {
       g.fillStyle = rgb(roofC); g.beginPath(); g.ellipse(0, hang + ch * 0.1, cw * 0.56, ch * 0.16, 0, Math.PI, 0); g.fill();
       g.fillRect(-cw * 0.58, hang + ch * 0.08, cw * 1.16, ch * 0.08);
       g.fillStyle = rgb(body); g.beginPath(); g.roundRect(-cw / 2, hang + ch * 0.15, cw, ch * 0.8, [cw * 0.08, cw * 0.08, cw * 0.28, cw * 0.28]); g.fill();
-      if (night > 0.3) {
+      // (9a — the blackout regression: sprites 4 + 5 are the DARK cabins — the blackout + the two unlit of every night switch to them;
+      // POLISH 5's recolour gave them the glow too, so the wheel kept 16 warm lights under the TR-3B)
+      if (night > 0.3 && n < 4) {
         const k = clamp01((night - 0.3) / 0.4), cy = hang + ch * 0.44;
         const gg = g.createRadialGradient(0, cy, 0, 0, cy, cw * 1.0); gg.addColorStop(0, `rgba(255,206,136,${(0.55 * k).toFixed(3)})`); gg.addColorStop(0.45, `rgba(255,184,100,${(0.2 * k).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,184,100,0)');
         g.globalCompositeOperation = 'lighter'; g.fillStyle = gg; g.fillRect(-cw * 1.1, hang - ch * 0.1, cw * 2.2, ch * 1.2); g.globalCompositeOperation = 'source-over';
@@ -355,7 +357,8 @@ export function createWheel() {
       const ai = a + (i / CARS) * Math.PI * 2, px = Math.cos(ai) * r * 1.0, py = Math.sin(ai) * r * 1.0;
       const sw = f.motion ? 0.07 * Math.sin(f.t * 0.85 + i * 1.7) + 0.03 * Math.sin(f.t * 2.1 + i) : 0;
       // (POLISH 4: the TR-3B's blackout — f.lights falls with the city's power — darkens them all, a few flicking back first)
-      const cv = cars[f.T.night > 0.3 ? (i % 8 === 5 || (f.lights != null && f.lights < 0.3 + 0.4 * ((i * 7) % 16) / 16) ? 4 + (i % 2) : i % 4) : i % 4];     // (NEON PASS 5: 2 of 16 dark, the rest warm-lit)
+      const ci = f.T.night > 0.3 ? (i % 8 === 5 || (f.lights != null && f.lights < 0.3 + 0.4 * ((i * 7) % 16) / 16) ? 4 + (i % 2) : i % 4) : i % 4, cv = cars[ci];     // (NEON PASS 5: 2 of 16 dark, the rest warm-lit)
+      if (!mirror) { if (i === 0) litCars = 0; if (f.T.night > 0.3 && ci < 4) litCars++; }
       const W = cv.width / dpr, H = cv.height / dpr;
       c.save(); c.translate(px, py); if (sw) c.rotate(sw); c.drawImage(cv, -W / 2, -2, W, H); c.restore();
     }
@@ -376,7 +379,7 @@ export function createWheel() {
   // THE CACHE (Part 5's perf pass): the wheel turns 2.4° a second — so the turning steel, the gondolas and the bulbs are drawn
   // into one screen-aligned image 20 times a second (10 on the lower tiers; the rim moves ≤ 0.25 pt a step — invisible) and every
   // frame draws just that image (+ the front A-frame); the water's mirror reuses it
-  let cache = null, cacheAt = -1e9, cacheKey = '', CP = 0;
+  let cache = null, cacheAt = -1e9, cacheKey = '', CP = 0, litCars = 0, lastLights = 0;
   function refresh(f) {
     const now = performance.now(), key = `${lookKey}|${bulbKey}|${Math.round(f.lights * 40)}|${f.motion ? 1 : 0}|${f.sparkle > 0 ? 1 : 0}`;
     // (NEON PASS 5: a party night's wheel refreshes 30 times a second at tier 2 — the beat's chases need it; else 20)
@@ -400,6 +403,7 @@ export function createWheel() {
     draw(c, f) {
       if (!L || f.fade <= 0) return;
       build(f.T); buildBulbs();
+      lastLights = f.lights * f.fade;
       c.save(); c.globalAlpha = f.fade;
       // the warm haze the bulbs throw into the night air + their pool on the platform's deck (under the wheel)
       if (f.lights > 0.01) {
@@ -419,6 +423,8 @@ export function createWheel() {
     setTier(t) { tier = t; },
     /** a tap on the wheel? (Part 12's egg: a gondola rocks) */
     hit: (x, y) => Math.hypot(x - cx, y - cy) < r * 1.05,
+    /** 9a — THE BLACKOUT AUDIT: the light the wheel drew last (its bulbs' level + the cabins lit) */
+    lit: () => ({ bulbs: +lastLights.toFixed(3), cars: litCars }),
     debug: () => ({ x: cx, y: cy, r, scheme: schemeName, mb: +(mb + (bulbs ? bulbs.reduce((s, b) => s + b.width * b.height * 4, 0) / 1e6 : 0) + (cache ? cache.width * cache.height * 4 / 1e6 : 0)).toFixed(2) }),
     destroy() { for (const cv of [steel, front, haze, pool, cache, allBulbs, ring, ...cars, ...(bulbs || []), ...dots.values()]) if (cv) { cv.width = 0; cv.height = 0; } dots.clear(); L = null; },
   };

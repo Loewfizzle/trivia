@@ -428,6 +428,8 @@ body.reduced-fx .nd-word-s, body.reduced-fx .nd-word-p { animation: none !import
    tagline fades to --sd-tag, over --sd-ms — opacity only, on wrappers nothing else writes (at rest --sd-logo is unset: 1) */
 .nd-sign .nd-logo-wrap { opacity: var(--sd-logo, 1); transition: opacity var(--sd-ms, 1.2s) ease; }
 .nd-sign.nd-tag-sky .nd-tag:not(.nd-count) { opacity: var(--sd-tag, 0) !important; transition: opacity var(--sd-ms, 1.2s) ease !important; }
+/* (9a: + a first visit's "12 PARTY GAMES · ONE PHONE EACH" — it sat over a drone message's first line) */
+.nd-sign.nd-tag-sky .nd-sub { opacity: var(--sd-tag, 0) !important; transition: opacity var(--sd-ms, 1.2s) ease !important; }
 .nd.is-idle .nd-sign:not(.nd-tag-gone) .nd-tag.nd-tag-msg { opacity: 1; transition: opacity 1.2s ease; }
 
 /* the screen at rest: just the sign and the city */

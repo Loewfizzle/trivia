@@ -136,8 +136,9 @@ export function createCitySounds() {
       run('airliner-far', bl * sk, best ? panX(best.x0 + (best.x1 - best.x0) * clamp(best.k, 0, 1), W) : 0, { ramp: 0.8, fade: 4 });
       run('prop-plane', s.banner || s.smoke ? sk : 0, 0, { ramp: 1.2, fade: 3 });
       keep('drone-swarm', s.drones ? sk : 0, 0, { ramp: 2, linger: 6 });
-      if (s.balloons && t > next.burner) { if (next.burner) citySound('balloon-burner', { pan: rnd(-0.6, 0.6), gain: rnd(0.6, 1) * sk }); next.burner = t + rnd(6000, 18000); }
-      if (!s.balloons) next.burner = 0;
+      // (9a: the burner heard WITH the burns you see — rare + irregular now: balloons.js#burnSchedule — panned to the balloon)
+      if (s.balloons && s.balloons.id !== next.burnId) { if (next.burnId != null) citySound('balloon-burner', { pan: Math.max(-0.7, Math.min(0.7, s.balloons.pan || 0)), gain: rnd(0.6, 1) * sk }); next.burnId = s.balloons.id; }
+      if (!s.balloons) next.burnId = null;
       // the geese: ONE flyover while a V crosses (~22 s; a crossing ~30 s), panned with it, faded out as it leaves
       const geese = s.birds && s.birds.geese;
       run('geese', geese ? sk : 0, geese && s.birds.geeseX != null ? panX(s.birds.geeseX, W) : 0, { ramp: 1, fade: 3, chain: false });

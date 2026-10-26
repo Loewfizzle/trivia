@@ -20,7 +20,7 @@ import { PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_STEP } from './harbor-beat.j
 import { MOMENTS } from './harbor-moments.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'mood', 'debug', 'grid', 'pulse'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'mood', 'debug', 'grid', 'pulse'];
 
 const GAME_IDS = ['cipher', 'signal', 'overclock', 'bluff', 'pulse', 'golf', 'prism', 'gridlock', 'slip', 'agent', 'stakes', 'rum'];
 const NEON_SCHEMES = ['halloween', 'christmas', 'july4', 'valentine', 'stpatrick', 'nye', 'thanksgiving', 'easter', 'party'];
@@ -137,6 +137,9 @@ export const EVENTS = [
   { id: 'missing-man', label: 'MISSING MAN', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'a finger-four, #3 pulls up + away — Memorial + Veterans Day' },
   { id: 'balloons', label: 'BALLOONS', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   { id: 'balloon-festival', label: 'BALLOON FESTIVAL', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
+  // (9a — the owner: the balloons STAY UP 45–90 min; the FAST rows show the whole crossing ×12, ~4–7 min)
+  { id: 'balloons-fast', label: 'BALLOONS · FAST', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'the whole slow crossing ×12 — ~4 min instead of 45–60' },
+  { id: 'balloon-festival-fast', label: 'FESTIVAL · FAST', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'the six launches + the crossing ×12' },
   { id: 'planes', label: 'PLANES', cat: 'sky', group: 'AIRCRAFT' },
   { id: 'approach', label: 'PLANE ON APPROACH', cat: 'sky', group: 'AIRCRAFT' },
   { id: 'satellites', label: 'SATELLITE TRAIN', cat: 'sky', group: 'AIRCRAFT', night: true },
@@ -302,6 +305,8 @@ export const TIMES = [
   { id: 'late', label: '3 AM', more: true }, { id: 'powerdown', label: 'POWER-DOWN', more: true }, { id: 'dawn', label: 'DAWN', more: true }, { id: 'powerup', label: 'POWER-UP', more: true },
 ];
 export const SPEEDS = [1, 20, 60];
+/** 9a: the forced weather's INTENSITY (&wxk=; AUTO = the state's own) */
+export const WX_INTENSITY = [{ id: 'light', label: 'LIGHT' }, { id: 'medium', label: 'MEDIUM' }, { id: 'heavy', label: 'HEAVY' }];
 /** 8a — PULSE STRENGTH (LIGHTS): the beat punch × this, in percent — the state's `pulse` (absent = the default, core/harbor-beat.js
  *  #PULSE_DEFAULT: the owner's pick locks in there), the URL's &pulse=<percent> */
 export const PULSE = { min: Math.round(PULSE_MIN * 100), max: Math.round(PULSE_MAX * 100), step: Math.round(PULSE_STEP * 100), def: Math.round(PULSE_DEFAULT * 100) };
@@ -309,7 +314,10 @@ export const PULSE = { min: Math.round(PULSE_MIN * 100), max: Math.round(PULSE_M
 export const MUSIC_MOODS = [{ id: 'morning', label: 'MORNING' }, { id: 'day', label: 'DAY' }, { id: 'evening', label: 'EVENING' }, { id: 'late', label: 'LATE NIGHT' }, { id: 'party', label: 'PARTY' }];
 export const WEATHER = [
   { id: 'clear', label: 'CLEAR' }, { id: 'clouds', label: 'CLOUDS' }, { id: 'cirrus', label: 'HIGH CIRRUS' }, { id: 'veil', label: 'HAZY VEIL' },
-  { id: 'overcast', label: 'OVERCAST' }, { id: 'rain', label: 'RAIN' }, { id: 'storm', label: 'STORM' }, { id: 'snow', label: 'SNOW' }, { id: 'fog', label: 'FOG' },
+  { id: 'overcast', label: 'OVERCAST' },
+  // (9a — THE WEATHER: one row per state — each also a link flag: &force=drizzle|rain|heavy-rain|storm|fog|mist|windy|freezing-rain)
+  { id: 'drizzle', label: 'DRIZZLE' }, { id: 'rain', label: 'RAIN' }, { id: 'heavy', label: 'HEAVY RAIN' }, { id: 'storm', label: 'STORM' },
+  { id: 'freezing', label: 'FREEZING RAIN' }, { id: 'windy', label: 'WINDY' }, { id: 'snow', label: 'SNOW' }, { id: 'fog', label: 'FOG' },
   // (FP3a — the weather by layers: a 600 m MIST (no banks), a low STRATUS deck, a HIGH OVERCAST = a bright veil, never grey)
   { id: 'mist', label: 'MIST' }, { id: 'stratus', label: 'LOW STRATUS' }, { id: 'highovercast', label: 'HIGH OVERCAST' },
 ];
@@ -412,6 +420,7 @@ export function cleanRemote(raw) {
   if (r.when != null && r.when !== '') { if (validWhen(r.when)) out.when = String(r.when); else bad.push('when'); }
   if (r.speed != null && r.speed !== '' && Number(r.speed) !== 1) { const v = Number(r.speed); if (SPEEDS.includes(v)) out.speed = v; else bad.push('speed'); }
   sel('wx', WEATHER.map(w => w.id));
+  sel('wxk', WX_INTENSITY.map(w => w.id));
   sel('hol', HOLIDAYS.map(h => h.id));
   sel('mood', MUSIC_MOODS.map(m => m.id));
   if (r.debug) out.debug = true;
@@ -438,7 +447,7 @@ export function toParams(st) {
   if (st.party === 'on') force.push('party');
   if (st.party === 'off') force.push('no-party');
   if (force.length) p.force = force.join(',');
-  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'mood']) if (st[k] != null) p[k] = String(st[k]);
+  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'wxk', 'mood']) if (st[k] != null) p[k] = String(st[k]);
   if (st.cycle) p.cycle = '1';
   if (st.speed && st.speed !== 1) p.speed = String(st.speed);
   if (st.debug) p.debug = '1';
@@ -463,7 +472,7 @@ export function describe(st) {
   if (st.hol) out.push(HOLIDAYS.find(h => h.id === st.hol).label);
   if (st.when) { const [y, m, d] = st.when.slice(0, 10).split('-').map(Number); out.push(`${DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${m}/${d} ${st.when.slice(11)}`); }
   if (st.speed > 1) out.push(`${st.speed}×`);
-  if (st.wx) out.push(st.wx.toUpperCase());
+  if (st.wx) out.push(`${(WEATHER.find(w => w.id === st.wx) || { label: st.wx.toUpperCase() }).label}${st.wxk ? ` · ${st.wxk.toUpperCase()}` : ''}`);
   if (st.mood) out.push(`MUSIC ${MUSIC_MOODS.find(m => m.id === st.mood).label}`);
   if (st.debug) out.push('READOUT');
   if (st.grid) out.push('GRID');

@@ -12,6 +12,7 @@
 //   }
 
 import { isFresh, forcedWeather, opaqueOf, veilOf } from './weather.js';
+import { WX_FORCE, WX_K } from './harbor-weather.js';
 import { partyLateK, inPartyWindow } from './party.js';
 
 const RAD = Math.PI / 180;
@@ -530,7 +531,11 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
   const rained = q.get('rained') != null && q.get('rained') !== '' && Number.isFinite(Number(q.get('rained'))) ? Number(q.get('rained')) : null;
   // &wind=12: the wind in m/s (THE STREET: the trees' sway, gusts, the falling leaves)
   const windQ = q.get('wind') != null && Number.isFinite(Number(q.get('wind'))) ? Math.max(0, Number(q.get('wind'))) : null;
-  const wx = q.get('wx') || place || rained != null || windQ != null ? { ...forcedWeather(q.get('wx') || 'clear'), forced: true, ...(place || {}), ...(windQ != null ? { wind: windQ } : {}) } : null;
+  // (9a — THE WEATHER's previews by name too: &force=drizzle|rain|heavy-rain|storm|fog|mist|windy|freezing-rain (the first one named), its
+  // intensity &wxk=light|medium|heavy — core/harbor-weather.js#WX_FORCE)
+  const fwx = [...force].find(id => WX_FORCE[id]), wxk = WX_K[q.get('wxk')];
+  const wxId = q.get('wx') || (fwx ? WX_FORCE[fwx][0] : null), wxExtra = fwx && !q.get('wx') ? WX_FORCE[fwx][1] : {};
+  const wx = wxId || place || rained != null || windQ != null ? { ...forcedWeather(wxId || 'clear', wxExtra), forced: true, ...(wxk != null && wxId ? { k: wxk } : {}), ...(place || {}), ...(windQ != null ? { wind: windQ } : {}) } : null;
   let base = null;
   if (when) {
     // the wall time is in tz: find the UTC instant whose local time in tz matches

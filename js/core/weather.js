@@ -71,6 +71,18 @@ export function fogOf(code, vis) {
 }
 const round2 = v => Math.round(v * 100) / 100;
 
+/** PURE (9a): the rain's RATE (mm/h) — the last quarter hour that has passed (×4), else the current block's precipitation (Open-Meteo:
+ *  the quarter hour before the current slot, ×4); 0 when dry or unknown */
+export function rateOf(cur, m15, nowMs = Date.now()) {
+  if (m15 && Array.isArray(m15.time) && Array.isArray(m15.precipitation)) {
+    let best = null;
+    for (let i = 0; i < m15.time.length; i++) { const t = Number(m15.time[i]) * 1000, p = Number(m15.precipitation[i]); if (Number.isFinite(t) && Number.isFinite(p) && t <= nowMs + 60_000 && (best == null || t > best[0])) best = [t, p]; }
+    if (best && nowMs - best[0] < 45 * 60_000) return Math.round(Math.max(0, best[1]) * 4 * 10) / 10;
+  }
+  const p = cur && Number(cur.precipitation);
+  return Number.isFinite(p) && p > 0 ? Math.round(p * 4 * 10) / 10 : 0;
+}
+
 /** PURE: Open-Meteo's `current` block (+ where; + its past 15-minute precipitation) → the city's weather. */
 export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
   const code = cur && cur.weather_code != null && Number.isFinite(Number(cur.weather_code)) ? Number(cur.weather_code) : null;
@@ -93,6 +105,8 @@ export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
     rain: clamp01(w.rain || 0), snow: clamp01(w.snow || 0), storm: w.storm ? 1 : 0, fog: round2(fog),
     cloud: round2(Math.max(cloud, wet ? 0.8 : 0)), opaque: round2(opaque), veil: round2(veil),
     wind: Math.round(num(cur && cur.wind_speed_10m) * 10) / 10, windDir: Math.round(num(cur && cur.wind_direction_10m)),
+    // (9a: the gusts + the rain's rate — core/harbor-weather.js#cityWeather)
+    gust: cur && cur.wind_gusts_10m != null ? Math.round(num(cur.wind_gusts_10m) * 10) / 10 : null, rate: wet ? rateOf(cur, m15, at) : 0,
     temp: Math.round(num(cur && cur.temperature_2m, 15) * 10) / 10,
     lat: where.lat ?? null, lon: where.lon ?? null, city: where.city || null, at,
     // RAINBOWS (core/rainbow.js): when it last rained — raining now counts as now
@@ -116,8 +130,11 @@ export function forcedWeather(kind, extra = {}) {
     // a HIGH OVERCAST (WMO 3, all of it high: a bright veil, never the grey deck))
     mist: { kind: 'mist', cloud: 0.6, fog: 0.45, vis: 600 }, stratus: { kind: 'overcast', cloud: 1, layers: { lo: 1, mid: 0, hi: 0 } },
     highovercast: { kind: 'veil', cloud: 1, code: 3, layers: { lo: 0, mid: 0, hi: 1 } },
+    // (9a — THE WEATHER's previews: core/harbor-weather.js#WX_FORCE gives each its rate / wind / ice)
+    heavy: { kind: 'heavy', cloud: 1, rain: 0.9, rate: 12 }, windy: { kind: 'windy', cloud: 0.45, wind: 14, gust: 21 },
+    freezing: { kind: 'freezing', cloud: 1, rain: 0.5, rate: 2.5, temp: -2, code: 67 },
   }[kind] || { kind: 'clear', cloud: 0.1 };
-  return { rain: 0, snow: 0, storm: 0, fog: 0, wind: kind === 'storm' ? 9 : 3, windDir: 250, temp: kind === 'snow' ? -2 : kind === 'freeze' ? -16 : 12, lat: null, lon: null, city: null, at: Date.now(), ...base, ...extra };
+  return { rain: 0, snow: 0, storm: 0, fog: 0, wind: kind === 'storm' ? 9 : kind === 'windy' ? 14 : 3, windDir: 250, temp: kind === 'snow' || kind === 'freezing' ? -2 : kind === 'freeze' ? -16 : 12, lat: null, lon: null, city: null, at: Date.now(), ...base, ...extra };
 }
 
 /** Real weather is used for 45 minutes after it was fetched (FP3a: was 75 — then the seeded weather until the next answer; a

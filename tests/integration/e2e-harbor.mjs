@@ -458,7 +458,7 @@ async function neonPass5Panel() {
   // every sky piece fired from the panel appears within a few seconds (JUST ME; the night pieces at night, the day ones by day)
   const SKY = [
     ['banner', 'st.banner'], ['skywrite', 'st.smoke && st.smoke.kind === "skytype"'], ['skytype', 'st.smoke && st.smoke.kind === "skytype"'], ['helicopter', 'st.air.heli'],
-    ['balloons', 'st.balloons'], ['balloon-festival', 'st.balloons'], ['planes', 'st.air.planes.length > 0'], ['approach', 'st.air.planes.some(p => p.approach)'],
+    ['balloons', 'st.balloons'], ['balloon-festival', 'st.balloons'], ['balloons-fast', 'st.balloons && st.balloons.fast > 1'], ['planes', 'st.air.planes.length > 0'], ['approach', 'st.air.planes.some(p => p.approach)'],
     ['geese', 'st.birds.geese > 0'], ['swifts', 'st.birds.swifts > 0'], ['bats-dusk', 'st.birds.bats > 0'], ['heron-sky', 'st.birds.heron'],   // (8b1: 'heron' is the heron on its piling now — the wildlife group)
   ];
   const NIGHT_SKY = [['satellites', 'st.air.train'], ['drones', 'st.drones']];
@@ -964,6 +964,8 @@ G('neon', async () => {
     await waitFor(P.page, 'window.__district.surge().count === 2', 'the second surge', 15000).catch(() => {});
     const s2 = await ev(P.page, 'window.__district.surge()');
     ok(s2.count === 2 && s2.last.why === 'music' && s2.last.did === 'surge', `THE MUSIC BUTTON back ON: the sign surged again (${s2.count}, ${JSON.stringify(s2.last)})`);
+    // (9a — the owner's add-on: ON A BEAT — the race waits for the song's next beat (the next downbeat within 0.6 s) on a trusted grid)
+    okT(!s2.last.onBeat || (s2.last.onBeat.wait <= 1500 && (s2.last.onBeat.err == null || Math.abs(s2.last.onBeat.err) <= 0.1)), `THE SURGE ON THE BEAT: ${s2.last.onBeat ? `waited ${s2.last.onBeat.wait} ms, fired ${s2.last.onBeat.err} beats off the ${s2.last.onBeat.down ? 'downbeat' : 'beat'}` : 'no trusted grid — at once'}`);
     // (3) OFF / ON again inside 10 s → the cooldown (toggling can't spam it)
     await tap(P.page, '.music-btn'); await waitFor(P.page, `${CLOCK}.then(c => c < 0)`, 'the music off', 5000); await sleep(1300);
     await tap(P.page, '.music-btn');
@@ -2515,6 +2517,14 @@ G('legends', async () => {
     ok(lum(c) > 150 && c[2] >= c[0] - 30, `THE ABDUCTION: the beam lights the air over the compass (rgb ${c.join(',')} — pale + bright)`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-ufo-402x874.png` });
     await Q.ctx.close(); }
+  // ---- 9a: THE LIGHT AUDIT's control — a normal night: the wheel's bulbs + its cabins, the promenade's lamps, the pier lit (so the
+  // blackout check above can't pass on zeros)
+  { const Q = await open({ slot: 'lg0', qs: `${NIGHT}`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(() => { const a = ${P}.lightAudit(); return a.wheelBulbs > 0.5 && a.lampsPost > 0.5; })()`, 'the night lit', 15000).catch(() => {});
+    const au = await ev(Q.page, `${P}.lightAudit()`);
+    ok(au.wheelBulbs > 0.5 && au.wheelCars >= 10 && au.lampsPost > 0.5 && au.pier > 0.3, `THE LIGHT AUDIT on a normal night: the wheel ${au.wheelBulbs} (${au.wheelCars} cabins lit), the lamps ${au.lampsPost}, the pier ${au.pier}`);
+    await Q.ctx.close(); }
   // ---- THE TR-3B arriving (&lgs=6): the city flickering out from the side it comes in on — some strips dead, not all
   { const Q = await open({ slot: 'lg2a', qs: `${NIGHT}&force=tr3b&lgs=6`, view: [402, 874] });
     await harborUp(Q.page);
@@ -2533,6 +2543,9 @@ G('legends', async () => {
     // (8b2 — the scene APPLIES it: the speakeasy's power hook dark — the check the old test lacked when the scene stopped reading it)
     await waitFor(Q.page, `${P}.speakeasy.power() < 0.05`, 'the speakeasy dark', 10000).catch(() => {});
     ok((await ev(Q.page, `${P}.speakeasy.power()`)) < 0.05, 'THE TR-3B BLACKOUT reaches the scene: the speakeasy dark');
+    // (9a — the owner: the WHEEL kept its lights after POLISH 5's recolour; EVERY light source the blackout should kill, as the frame drew it)
+    { const au = await ev(Q.page, `${P}.lightAudit()`), lit = Object.entries(au).filter(([, v]) => v > 0.02);
+      ok(lit.length === 0, `THE BLACKOUT KILLS EVERY LIGHT (the wheel's bulbs + cabins, the pier, the quay, the beam, the boats, the windows, the neon, the beacons, the lamps, the signals, the strings, the speakeasy, the beams): ${lit.length ? `still lit — ${lit.map(([k, v]) => `${k} ${v}`).join(', ')}` : 'all dark'}`); }
     // Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold is on (from 4 s before the craft until the jets are gone + the power is back);
     // no car, cab, bus or truck ENTERED inside it (one already rolling finishes); the street under the dock adopts no new pass
     { const hd = await ev(Q.page, `${P}.legend.hold`), tr = await ev(Q.page, `${P}.people.traffic`), rd = await ev(Q.page, `${P}.road`);

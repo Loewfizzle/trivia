@@ -35,6 +35,22 @@ export function createPeople() {
   const busSt = new Map(), steps = new Map();
   let lastT = 0, laughAt = 0, forced = '';
   const trails = new Map(); let wandT = -1;
+  // 9a — THE DANCERS' CLOCK NEVER JUMPS (POLISH 5's cloud saw one arm jump): the grid they dance to can jump — the song's grid arriving
+  // mid-dance (the steady 120 bpm stand-in before it), the lead re-calibrated, a new song. Their clock follows the source's PACE and
+  // glides to its phase: whole beats are absorbed at once (only WHICH beat of the phrase changes — never a pose), the fraction at
+  // ≤ 0.6 beat a second. Several passes a frame ask with the same t: answered once.
+  const DCK = { v: null, off: 0, t: 0, src: 0, rate: 2 };
+  function danceBeat(src, t) {
+    if (DCK.v == null || !Number.isFinite(DCK.v) || t < DCK.t - 1 || t - DCK.t > 5) { Object.assign(DCK, { v: src, off: 0, t, src }); return src; }
+    if (t === DCK.t) return DCK.v;
+    const dt = t - DCK.t, inst = (src - DCK.src) / dt;
+    if (inst > 0.5 && inst < 6 && Math.abs(inst - DCK.rate) < DCK.rate * 0.5) DCK.rate += (inst - DCK.rate) * Math.min(1, dt * 2);
+    let v = DCK.v + DCK.rate * dt, err = src - DCK.off - v;
+    if (Math.abs(err) > 0.5) { DCK.off += Math.round(err); err = src - DCK.off - v; }
+    v += Math.max(-0.6 * dt, Math.min(0.6 * dt, err));
+    Object.assign(DCK, { v, t, src });
+    return v;
+  }
   // PEO (Oct 25) — THE MOTION PROBE: the planner's cost this frame (folkAt + roofAt, ms) + the env of the last NEAR draw, so rigs() can
   // hand a test the exact screen joints of the frame just drawn (tests/integration/e2e-harbor.mjs `street`: the judder + foot-slide check)
   let frameMs = 0, frameMsMax = 0, lastEnv = null, lastBeatsF = 0;
@@ -169,7 +185,7 @@ export function createPeople() {
     const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...cars.map(car => ({ z: car.z, car })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : []), ...props.map(p => ({ z: p.z, prop: p })), ...(env.extra || []).map(x => ({ z: x.z, x }))].sort((a, b) => b.z - a.z);
     const hands = new Map(), collars = new Map(), taut = new Set(), pins = [];
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
-    const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, advance = pass === 'near' && env.t !== wandT;
+    const bt = env.beat, beatsF = danceBeat(bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, env.t || 0), advance = pass === 'near' && env.t !== wandT;
     if (advance) { wandT = env.t; if (trails.size > 40) trails.clear(); }
     if (pass === 'near') { lastEnv = env; lastBeatsF = beatsF; }
     const nDancers = items.filter(m => m.kind === 'dancer').length || 1;
@@ -352,7 +368,7 @@ export function createPeople() {
     const ms = capByTier(now.members, env.tier == null ? 2 : env.tier).filter(m => m.routine === 'dance');
     const dancers = ms.filter(m => m.kind === 'dancer' && m.s.pose === 'wands'), clappers = ms.filter(m => m.kind === 'watcher' && m.s.pose === 'clap').length;
     if (!dancers.length) { dz.beat = dz.ph = null; return; }
-    const bt = env.beat, beatsF = bt && bt.beatsF != null ? bt.beatsF : t * 2, beat = Math.floor(beatsF), ph = Math.floor(beatsF / 8);
+    const bt = env.beat, beatsF = danceBeat(bt && bt.beatsF != null ? bt.beatsF : t * 2, t), beat = Math.floor(beatsF), ph = Math.floor(beatsF / 8);
     const cx = dancers.reduce((a, m) => a + m.s.x, 0) / dancers.length;
     if (dz.beat != null && beat !== dz.beat && t - dz.swishAt > 0.9) {
       // (POL4: each dancer their own moves — a random dancer whose move swishes on this beat)

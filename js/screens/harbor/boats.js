@@ -2,7 +2,7 @@
 // routes, pure + tested). 8b2 Group 3 — THE BOATS IN 3D: every boat is a real MODEL now (boat-models.js on boat3d.js's kit) in
 // the Harbor's own camera, posed by its heading, so it TURNS on the water (bow, three-quarter, side and stern views all true):
 //
-//   ROSIE      the riverboat: a white hull with a red boot stripe, three decks of arched windows, the pilothouse, twin black
+//   ROSIE      the riverboat: a white hull over a broad navy boot-top + a gold pinstripe (9a), three decks of arched windows, the pilothouse, twin black
 //              stacks with feathered crowns + a gold band, the stern PADDLEWHEEL under its red hood with her name (the wheel
 //              turns live — between her back and front: you see it from astern, it hides behind her from ahead), flagstaffs +
 //              pennants, lifebuoys; at night every window warm and STRINGS OF BULBS from the bow staff over the stacks to the
@@ -68,7 +68,7 @@ export function createBoats() {
     const P = {
       // (POLISH 5 — TOO MUCH RED + WHITE, the owner: Rosie WHITE with DEEP NAVY trim — her boot stripe, the paddle box, the roof, the
       // pennants — + BLACK stacks; the gold only where it is big enough to read: her name on the paddle box, the stacks' bands)
-      rosie: { ...common, white, shadeW: shade(white, -0.18), edge: shade(white, 0.1), rail: shade(white, 0.15), red: navy, redD: shade(navy, -0.35), roof: shade(navy, -0.1), stack: lit([16, 15, 19], 0.3), buoy: lit([236, 96, 40]), deck: lit([186, 166, 136]) },
+      rosie: { ...common, white, shadeW: shade(white, -0.18), edge: shade(white, 0.1), rail: shade(white, 0.15), red: lit([30, 46, 96], 0.6), redD: shade(navy, -0.35), roof: shade(navy, -0.1), pin: lit([226, 186, 96], 0.42),   /* (9a: the boot-top keeps its navy at night + the pinstripe a lamp-lit gold) */ stack: lit([16, 15, 19], 0.3), buoy: lit([236, 96, 40]), deck: lit([186, 166, 136]) },
       taxi: { ...common, yellow: lit([244, 196, 40]), white: lit([240, 238, 230]), black: lit([24, 22, 28], 0.3), teak: lit([170, 120, 70]), flag: lit([60, 120, 220]), win: night > 0.35 ? [255, 214, 150] : mix([60, 84, 110], [160, 190, 210], day * 0.5) },
       tug: { ...common, hull: lit([22, 20, 26], 0.3), band: lit([176, 36, 36]), cream: lit([236, 226, 200]), buff: lit([200, 160, 90]), deck: lit([120, 100, 80]), tyre: lit([14, 12, 16], 0.3), fender: shade(lit([22, 20, 26], 0.3), 0.1), win: night > 0.35 ? [255, 206, 130] : mix([60, 84, 110], [160, 190, 210], day * 0.5), winDim: night > 0.35 ? [120, 96, 70] : shade(lit([236, 226, 200]), -0.3) },
       fish: { ...common, hull: lit([226, 224, 216]), band: lit([44, 104, 74]), cream: lit([214, 196, 150]), buff: lit([44, 104, 74]), deck: lit([150, 130, 100]), tyre: lit([14, 12, 16], 0.3), fender: shade(lit([226, 224, 216]), 0.1), win: night > 0.35 ? [255, 206, 130] : mix([60, 84, 110], [160, 190, 210], day * 0.5), winDim: night > 0.35 ? [120, 96, 70] : shade(lit([214, 196, 150]), -0.3) },

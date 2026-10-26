@@ -111,7 +111,11 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     return { x, y: y0, w, h: Math.max(24, y1 - y0) };
   }
   function startDrones(s, specs0, at, o = {}) {
-    const box = msgBox(s) || droneBox(s);
+    let box = msgBox(s) || droneBox(s);
+    // (9a — POLISH 5's known issue: the first line sat under the NEON sign's 15 % ghost — the drones' lines now start UNDER the letters:
+    // below SPEAKEASY (its ghost too), the tagline's band free (it steps aside while drones fly), down to the crowns)
+    const wr = s.textRects && (s.textRects.word || s.textRects.neon);
+    if (box && wr) { const y0 = Math.max(box.y, wr.y + wr.h + 6), y1 = box.y + box.h; if (y1 - y0 >= 90) box = { ...box, y: y0, h: y1 - y0 }; }
     // (6b: a long message plays as PAGES — each its own formation, wrapped for the biggest letters in the box)
     const specs = [];
     // (POLISH 4: a MESSAGE only — no opening figure, no shapes: any { shape } asked for is left out)
@@ -127,13 +131,13 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     const out = specs.map(sp => (sp.text == null ? { ...sp, cycle: sp.cycle ?? !!o.cycle } : { ...sp, col: C(sp.col) || (sp.cols ? undefined : C(o.colour)), cols: sp.cols ? sp.cols.map(C) : o.colours ? o.colours.map(C) : undefined, by: sp.by || o.by, cycle: sp.cycle ?? !!o.cycle }));
     return drones.start(out, at, { box, barge, waterTop, year: s.L.local ? s.L.local.y : 2026, seed: o.seed || Math.floor(at / 1000), calm: !!o.calm, wave: o.wave });
   }
-  function startBalloons(s, at, fest, seed) {
+  function startBalloons(s, at, fest, seed, o = {}) {
     if (!lanes) return false;
     festival = !!fest;
     const wd = s.L.windDir == null ? 250 : s.L.windDir;
     // (6b: BALLOONS USE THE WHOLE SKY — from under the corner buttons to the crowns, behind the sign, in front of the sun + the moon)
     const mb = msgBox(s), box = mb ? { x: 0, y: mb.y, w: W, h: mb.h + 10 } : null;
-    balloons.start({ at, seed, festival: fest, box, lanes: { 'sky-high': lanes['sky-high'], 'sky-low': lanes['sky-low'] }, windSign: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1 });
+    balloons.start({ at, seed, festival: fest, box, lanes: { 'sky-high': lanes['sky-high'], 'sky-low': lanes['sky-low'] }, windSign: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1, fast: !!o.fast, fade: !!o.fade });
     return true;
   }
 
@@ -157,8 +161,17 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
   }
 
   // ---- what the frame starts: the scheduler's events, the holiday sky, the previews
-  function sync(s, active) {
+  function sync(s, active, recent = []) {
     const u = used(), Lk = s.L;
+    // 9a — THE BALLOONS STAY UP (45–90 min, their event's window 12): a flight launched before this page opened is still up — joined
+    // mid-way (opening the city 30 min in shows it mid-sky); the weather is checked now, as when it starts
+    if (!balloons.on()) for (const e of recent) {
+      if (e.id !== 'balloons' && e.id !== 'balloon-festival') continue;
+      const key = `${e.id}|${e.start}`, fest = e.id === 'balloon-festival';
+      if (handled.has(key) || s.now - e.start > balloons.flightLen(e.seed, fest) * 1000 - 30000) continue;
+      handled.add(key);
+      if (balloonWeather(Lk) && (!fest || may('festival', 'rare'))) { startBalloons(s, e.start, fest, e.seed); break; }
+    }
     for (const e of active) {
       const key = `${e.id}|${e.start}`;
       if (handled.has(key) || !['banner', 'helicopter', 'balloons', 'balloon-festival'].includes(e.id)) continue;
@@ -207,8 +220,11 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       again('jets', show.on(), at => show.start('airshow', at));
       again('missing-man', show.on(), at => show.start('missing', at));
       again('flyby', show.on(), at => show.start('flyby', at, { dir: (Math.floor(at / 1000) & 1) ? 1 : -1, n: 2 + (Math.floor(at / 7000) % 3) }));
-      again('balloons', balloons.on(), at => startBalloons(s, at, false, 3));
+      // (9a: the long flights — a preview joins a single flight 30 % in (in view); the FAST rows show the whole crossing ×12)
+      again('balloons', balloons.on(), at => startBalloons(s, at - balloons.flightLen(3, false) * 300, false, 3, { fade: true }));
       again('balloon-festival', balloons.on(), at => startBalloons(s, at, true, 5));
+      again('balloons-fast', balloons.on(), at => startBalloons(s, at, false, 3, { fast: true }));
+      again('balloon-festival-fast', balloons.on(), at => startBalloons(s, at, true, 5, { fast: true }));
       again('drones', drones.on(), at => {
         // (POLISH 4: the drone show is A MESSAGE — its pages only; an old link's &show=heart,… is ignored)
         const msgs = (text || 'HELLO').split('|').map(t => ({ text: t.toUpperCase() }));
@@ -246,7 +262,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     /** tonight's aurora (the scene: auroraTonight + the sky) — strength for the art */
     setAurora(a) { aurora = a || { on: false, strength: 0 }; },
     /** the frame's state: start what the scheduler / the clock / the previews ask (call once a frame, before drawing) */
-    tick(s, active) { last = s; if (lanes) sync(s, active); signFor(s); },
+    tick(s, active, recent) { last = s; if (lanes) sync(s, active, recent); signFor(s); },
     // ---- the draw passes (scene.js, far → near)
     /** the sun's golden-hour haze (after the sun's disc) */
     sunHaze: (c, s, sun) => { lastSun = sun || null; return cel.sunHaze(c, s, sun); },
@@ -299,14 +315,14 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     holdTag: () => false,
     /** PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js reads it ~4× a second): what's up there now — the planes + the
      *  helicopter (where), the banner plane, the skywriters, the balloons, the drone show, the birds */
-    listen: () => ({ jets: last ? show.listen(last) : null, air: air.debug(), banner: banner.on(), smoke: smoke.on(), balloons: balloons.on(), drones: drones.on(), birds: birds.debug() }),
+    listen: () => ({ jets: last ? show.listen(last) : null, air: air.debug(), banner: banner.on(), smoke: smoke.on(), balloons: balloons.on() ? balloons.burn() : null, drones: drones.on(), birds: birds.debug() }),
     // ---- THE API (harbor().sky): each piece starts now, or at o.at (clock ms); → true if it could start
     api: {
       banner: (lines, o = {}) => !!last && startBanner(last, lines, o.at || last.now, o),
       skywrite: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now),   // (6b: skywriting cut — typed)
       skytype: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now),
       drones: (specs, o = {}) => !!last && startDrones(last, (Array.isArray(specs) ? specs : [specs]).map(x => (typeof x === 'string' ? (DRONE_SHAPES.includes(x) || x.startsWith('mark:') ? { shape: x } : { text: x }) : x)), o.at || last.now, o),
-      balloons: (o = {}) => !!last && startBalloons(last, o.at || last.now, !!o.festival, o.seed || 3),
+      balloons: (o = {}) => !!last && startBalloons(last, o.at || last.now, !!o.festival, o.seed || 3, { fast: !!o.fast, fade: !!o.fade }),
       helicopter: (o = {}) => { if (!last) return false; air.heli(last, o.at || last.now, o.seed || 1); return air.heliOn(); },
       /** 6b: the jets — airshow('airshow' | 'missing', { at }) */
       airshow: (kind = 'airshow', o = {}) => !!last && show.start(kind, o.at || last.now),

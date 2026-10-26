@@ -10,7 +10,7 @@
 import { project } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
 import { GEAR, gearCart } from './gear.js';
-import { LADDER, HANDS, liftSq, raiseK } from '../../core/harbor-crew.js';
+import { LADDER, HANDS, liftSq, raiseK, railAhead } from '../../core/harbor-crew.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -307,8 +307,11 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const reach = (i, ta, ty, out = 0.1) => { const s0 = shJ[i], dx = ta - s0.a, dy = ty - s0.y, d = Math.min(Math.hypot(dx, dy), (upA + foreA) * 0.999), ph = Math.atan2(dx, -dy);
     const be = Math.acos(clamp01((upA * upA + d * d - foreA * foreA) / (2 * upA * d))), ga = Math.acos(clamp01((foreA * foreA + d * d - upA * upA) / (2 * foreA * d))); arm(i, ph - be, be + ga, out); };
   if ((walking && cr0 === 'walkup') || back) { const Hb = 2.1 * (L.h || 1), sw = walking ? 0.03 * Math.sin(p * Math.PI * 2) : 0; for (let i = 0; i < 2; i++) reach(i, HANDS.up / Hb + (i ? sw : -sw), LADDER.hR / Hb + (i ? -sw : sw) * 0.6); }
-  if (pose === 'push' || pose === 'catch') { const k = smooth(pose === 'push' ? uP : 1 - uP); for (let i = 0; i < 2; i++) arm(i, 2.75 - 0.95 * k + (i === near ? 0 : 0.06), 0.15 + 0.25 * k, 0.1); shJ.forEach(q => { q.a += 0.03 * k; }); head.a += 0.03 * k; }
-  if (pose === 'haul') { const c8 = Math.cos((mo ? sN : 0) / LADDER.pull * Math.PI); arm(near, 2.0 + 0.55 * c8, 0.5, 0.08); arm(1 - near, 2.0 - 0.55 * c8, 0.5, 0.08); }
+  // (9a — POLISH 5's known issue: the push upright / the catch / the haul kept FIXED arm angles; now the hands REACH the rails as the
+  // ladder turns (core/harbor-crew.js#railAhead — the same eased turn the ladder makes) and the rope as he hauls, hand over hand)
+  if (pose === 'push' || pose === 'catch') { const kk = pose === 'push' ? uP : 1 - uP, k = smooth(kk), Hb = 2.1 * (L.h || 1); shJ.forEach(q => { q.a += 0.03 * k; }); head.a += 0.03 * k;
+    for (let i = 0; i < 2; i++) { const y = LADDER.hR + (1.55 - LADDER.hR) * k + (i === near ? 0 : -0.12); reach(i, railAhead(y, kk) / Hb, y / Hb); } }
+  if (pose === 'haul') { const c8 = Math.cos((mo ? sN : 0) / LADDER.pull * Math.PI), Hb = 2.1 * (L.h || 1); for (let i = 0; i < 2; i++) { const y = 1.7 + (i === near ? 0.32 : -0.32) * c8; reach(i, (LADDER.push - 0.06) / Hb, y / Hb, 0.08); } }
   if (pose === 'upend' || pose === 'lay') { const k = smooth(pose === 'upend' ? uP : 1 - uP); arm(near, 2.62 + (1.25 - 2.62) * k, 2.6 + (0.35 - 2.6) * k, 0.14); arm(1 - near, 0.1 + 1.5 * k, 0.12 + 0.28 * k, 0.1); }
   if (pose === 'spread' || pose === 'fold') { arm(near, 1.95, 0.35); arm(1 - near, 1.85, 0.4); }
   // 8b2 — 'unload': both hands in over a truck's bed EMPTY, then out WITH the load — up onto the shoulder for a shoulder load (gear.js

@@ -44,7 +44,9 @@ export function rosieModel() {
     { a: 21.8, aw: 21.8, b: 2.12, bw: 1.86, h: 1.68 }, { a: 23.0, aw: 22.75, b: 1.38, bw: 1.0, h: 1.8 }, { a: 23.7, aw: 23.1, b: 0.62, bw: 0.3, h: 1.95 },
     { a: 24.15, aw: 23.3, b: 0.04, bw: 0.02, h: 2.1 },
   ];
-  loft(H, st, [[-1, 0.12, 'dark'], [0.12, 0.23, 'white'], [0.23, 0.55, 'red'], [0.55, 1.42, 'white'], [1.42, 99, 'rail']], 'deck');
+  // (9a — the owner: Rosie read TOO WHITE after POLISH 5: a BROAD deep-navy band from the waterline up (the boot-top) + a thin GOLD
+  // pinstripe under the main deck's rail — no red)
+  loft(H, st, [[-1, 0.1, 'dark'], [0.1, 0.8, 'red'], [0.8, 1.24, 'white'], [1.24, 1.33, 'pin'], [1.33, 1.42, 'white'], [1.42, 99, 'rail']], 'deck');
   // THE MAIN DECK: the cabin (arched windows all round), its edge catching the light, the shadow under the overhang
   const C1 = newPart('cabin1', { on: 'hull' }); parts.push(C1);
   const c1 = box(C1, 2.4, 21.8, 1.5, 3.9, -2.55, 2.55, 'white', { skip: ['bot', 'top'] });
@@ -109,7 +111,7 @@ export function rosieModel() {
   const HD = newPart('hood', { on: 'wheel' }); parts.push(HD);
   const hd = prismS(HD, hoodProf, -2.3, 2.3, 'red');
   for (const [F, s, dirA] of [[hd.stbd, 2.3, 1], [hd.port, -2.3, -1]]) {
-    dec(F, hoodProf.map(([a, u]) => ID(a, u, s)), 'trim', { w: 0.09 });
+    dec(F, hoodProf.map(([a, u]) => ID(a, u, s)), 'pin', { w: 0.13 });     // (9a: the navy paddle box's gold edge, bolder)
     for (let i = 0; i < 4; i++) { const a = -1.85 + i * 0.95; decS(F, a, a + 0.1, 2.95, 3.12, s, 'redD'); }
     text(HD, F, 'ROSIE', ID(-0.375, 3.3, s + 0.02 * Math.sign(s)), ID(dirA, 0, 0), ID(0, 1, 0), 0.6, 'trim');
   }

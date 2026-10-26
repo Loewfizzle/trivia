@@ -30,6 +30,7 @@ import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource, beatKick, beatWhy, beatCal, songInfo, syncLine, clockLine } from '../audio/beat.js';
+import { beatMode } from '../core/harbor-beat.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
 import { cityFailed } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
@@ -971,6 +972,44 @@ export function createTitle() {
       signSurge(p.why);
     });
   }
+  // 9a — THE SURGE ON THE BEAT (the owner's add-on): when the music comes on (the first tap or the music button), the race starts ON
+  // the song's NEXT BEAT — the next DOWNBEAT when that's within ONBEAT.down — from the trusted grid as heard (audio/beat.js#beatSource,
+  // the same clock the city's lights follow). No trusted grid → at once; a tap that should start the music whose clock hasn't moved
+  // within ONBEAT.wait → at once too (the clock's later start then meets the 10-s cooldown). Never more than one waiting.
+  const ONBEAT = { down: 0.6, wait: 800, early: 0.02 };
+  let beatT = 0, armedAt = 0, onBeat = null;
+  /** where the song is on its trusted grid as heard (beats, 0 mod 4 = a downbeat) + its beats a second; null without one */
+  function gridNow() {
+    const sg = beatSource(); const md = beatMode(sg);
+    if (!sg || (md !== 'grid' && md !== 'direct-grid')) return null;
+    const g = sg.grid, bps = g.bpm / 60;
+    return { tb: (sg.pos - (g.t0 || 0)) * bps - (g.down || 0), bps };
+  }
+  /** ms to the next beat (or downbeat) of the song as heard; null without a trusted grid */
+  function nextBeatMs() {
+    const gn = gridNow(); if (!gn) return null;
+    const { tb, bps } = gn;
+    const toBeat = (Math.ceil(tb + ONBEAT.early) - tb) / bps, toDown = (4 * Math.ceil((tb + ONBEAT.early) / 4) - tb) / bps;
+    return Math.round((toDown <= ONBEAT.down ? toDown : toBeat) * 1000);
+  }
+  function surgeOnBeat(why) {
+    armedAt = 0;
+    if (beatT) return;
+    const ms = nextBeatMs();
+    if (ms == null) { signSurge(why); return; }
+    onBeat = { why, wait: ms, at: Math.round(performance.now()) };
+    beatT = setTimeout(() => {
+      beatT = 0; if (destroyed) return;
+      const gn = gridNow(), err = gn ? gn.tb - Math.round(gn.tb) : null;     // (how far off the beat it really fired, in beats)
+      const did = signSurge(why);
+      if (surgeLast) surgeLast.onBeat = { wait: onBeat.wait, err: err == null ? null : +err.toFixed(3), down: gn ? ((Math.round(gn.tb) % 4) + 4) % 4 === 0 : null, did };
+      onBeat = null;
+    }, ms);
+  }
+  // (a tap that should start the music — the music on, not muted, its clock still — arms the fallback; read after the tap's own
+  // handlers have run: the music button's toggle first)
+  const armTap = () => setTimeout(() => { if (!destroyed && !settings.musicOff && !settings.muted && settings.music > 0 && musicClock() < 0) armedAt = performance.now(); }, 0);
+  if (createHarbor) document.addEventListener('pointerup', armTap, true);
   if (createHarbor) {
     // the detector + &force=first-tap — from the URL or THE PREVIEW PANEL (live: the scene's force set): 2.4 s after the intro
     // (shots.mjs's burst starts ~2.6 s after it: --every 120 --count 12 catches it), then every 5 s while it's on
@@ -978,7 +1017,8 @@ export function createTitle() {
     const watch = () => {
       if (destroyed) return;
       const now = performance.now();
-      if (surgeStart.feed(musicClock(), now)) signSurge('music');
+      if (surgeStart.feed(musicClock(), now)) surgeOnBeat('music');
+      else if (armedAt && now - armedAt > ONBEAT.wait) { armedAt = 0; if (!beatT && musicClock() < 0) signSurge('music'); }
       const on = !!(scene && scene.forced && scene.forced('first-tap')) && !!(tl && tl.done);
       if (on && !surgeOn) surgeNext = now + 2400;
       surgeOn = on;
@@ -1537,7 +1577,7 @@ export function createTitle() {
       // 'catch' the warm-up window | 'soft' | 'skip:…'); surge() — how many ran, the last one { why: music | force | hook, did, at },
       // pending (waiting for the intro / a race to end), cool (ms left of the 10 s cooldown after a real answer to the music))
       signSurge: () => signSurge('hook'),
-      surge: () => ({ count: surgeCount, last: surgeLast, pending: !!surgePending, cool: Math.max(0, Math.round(SURGE_COOL - (performance.now() - surgeAt))),
+      surge: () => ({ count: surgeCount, last: surgeLast, pending: !!surgePending, onBeat: onBeat ? { ...onBeat } : null, cool: Math.max(0, Math.round(SURGE_COOL - (performance.now() - surgeAt))),
         running: !!(race && (race.kind === 'surge' || race.kind === 'first')) }),
       dock: {
         join: openJoin,
@@ -1569,7 +1609,7 @@ export function createTitle() {
     window.removeEventListener('pointermove', onMouse);
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
-    clearTimeout(surgeIv);
+    clearTimeout(surgeIv); clearTimeout(beatT); document.removeEventListener('pointerup', armTap, true);
     document.removeEventListener('visibilitychange', onVisTitle);
     window.removeEventListener('pointerdown', outsideDown, { capture: true });
     if (window.visualViewport) { window.visualViewport.removeEventListener('resize', fitKeyboard); window.visualViewport.removeEventListener('scroll', fitKeyboard); }

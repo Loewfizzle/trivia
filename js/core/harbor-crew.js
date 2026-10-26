@@ -80,7 +80,10 @@ export function truckPlan(L, P, id, spec, tE, tReady) {
  * THE STEPLADDER (`STEPS`): carried on edge on one shoulder, swung down + stood up folded, spread, climbed; folded, swung back up, away.
  * The props' states are PURE functions of t (`at(t)`) built with the itineraries — the hands + the prop never disagree.
  */
-export const LADDER = Object.freeze({ len: 5.75, w: 0.4, wf: 0.32, hA: 0.5, hB: 0.55, gap: 4.7, ys: 1.6, hR: 2.2, vUp: 0.8, pull: 0.5, pitch: 0.32 });
+export const LADDER = Object.freeze({ len: 5.75, w: 0.4, wf: 0.32, hA: 0.5, hB: 0.55, gap: 4.7, ys: 1.6, hR: 2.2, vUp: 0.8, pull: 0.5, pitch: 0.32, push: 0.6 });
+/** 9a: the push / catch — where the rail is in front of the climber (world units ahead of him, at height y) as the ladder turns, k 0..1 from
+ *  the walked-up angle to upright (the same eased turn as ladderAt's 'turn'): folk.js's hands REACH it */
+export const railAhead = (y, k) => { const thU = Math.atan2(LADDER.hR, LADDER.push - HANDS.up), th = thU + (Math.PI / 2 - thU) * sm(cl01(k)); return LADDER.push - y / Math.tan(th); };
 export const STEPS = Object.freeze({ ws: 0.15, d: 0.42, ys: 1.66, upend: 2.0, spread: 1.3 });
 /** the painters' KIT hung on the ladder (`d` up from its foot): the paint bucket + the rolled drop cloth (`cloth`: its x extent round its
  *  middle; `un`: s to unroll / roll up) */
@@ -344,7 +347,7 @@ function tallLadder(M, P, r, t0, kit = false) {
   const X = LADDER, Ld = P.ladder, F = Ld.foot, T = Ld.top, zL = F.z, zC = zL - 0.17, zF = zL - 0.22;   // (carried on their FAR shoulders: they walk in front of it)
   const thL = Math.atan2(T.y, T.x - F.x), px = F.x + (X.w / 2) * Math.sin(thL), E = Math.hypot(T.x - F.x, T.y) - X.len;
   const ex = M.exits.right, e0 = Array.isArray(ex) ? ex.reduce((p, q) => (Math.abs(q.z - zC) < Math.abs(p.z - zC) ? q : p)) : ex;
-  const xS = Math.max(16, e0.x) + X.hA + 1.4, xH = px + X.hA, xR = px + 5.45, xU = px + 0.6;   // (in from past the edge; the holder's stop; the hoist; the push)
+  const xS = Math.max(16, e0.x) + X.hA + 1.4, xH = px + X.hA, xR = px + 5.45, xU = px + X.push;   // (in from past the edge; the holder's stop; the hoist; the push)
   const v0 = FOLK.speed.walk * (0.94 + r() * 0.1), ph = [], G = { px, zL, E, thL }, kitOn = [], props = [];
   const footAt = { x: F.x + 0.12, z: zL + 0.45 };                     // (the holder footing it: behind its foot, facing out)
   // (the painters' KIT — the paint bucket + the rolled drop cloth — rides hung on the ladder, KIT.d up from its foot; the cloth spread

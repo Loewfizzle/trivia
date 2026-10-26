@@ -449,7 +449,9 @@ export function createRemote({ scene, api = apiCall }) {
       sec: 'weather', last: false, label: 'THE WEATHER', q: 'weather sky',
       n: () => R.WEATHER.length,
       on: st => [st.wx ? R.WEATHER.find(w => w.id === st.wx).label : null],
-      kids: st => [opts(btn('REAL', !st.wx, () => edit(s => { delete s.wx; }), { q: 'real live weather' }), ...R.WEATHER.map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }), { q: `${w.label} ${w.id} weather` })))],
+      kids: st => [opts(btn('REAL', !st.wx, () => edit(s => { delete s.wx; delete s.wxk; }), { q: 'real live weather clear it' }), ...R.WEATHER.map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }), { q: `${w.label} ${w.id} weather` }))),
+        // (9a: the INTENSITY of the forced state — AUTO = its own)
+        opts(btn('AUTO', !st.wxk, () => edit(s => { delete s.wxk; }), { q: 'weather intensity auto' }), ...R.WX_INTENSITY.map(w => btn(w.label, st.wxk === w.id, () => edit(s => { s.wxk = w.id; }), { q: `${w.label} intensity weather rain` })))],
     },
     party: {
       sec: 'lightsmusic', last: false, label: 'PARTY SHOW', q: 'party show night neon',
