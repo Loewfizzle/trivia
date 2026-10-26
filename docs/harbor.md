@@ -6634,6 +6634,13 @@ sign's dressing ~0 at rest (bookkeeping), the spider ~1 ms a redraw only while i
 - The procession's candle halos are subtle at full size (tuned large); the ofrenda's poles sit at the bearers' near shoulders.
 - The papel picado's back strings draw over anyone standing between z 51.6 and 53.6 (behind the tall lamps) — rare + small.
 - The outside black cat + the window cat can be out at once on Halloween (the outside one is a stray).
+- **The cloud runs** (the two-run rule): run 1 (40290380364) — four jobs red: the door's knock swallowed by the black cat's tap target
+  (fixed: the door wins), a party night in the last week lost its party wheel (fixed: Halloween's own night only), the ghost ship's check
+  read its first fade-in frame + the roof modes' check raced a sign joining (both checks wait now), and SP3's LOAD WEATHER. Run 2
+  (40292408474): audio, show, wild, holiday green; `city` 103/104 — SP3's known LOAD WEATHER check again (the runner's UTC dawn re-bakes the
+  windows: clock-dependent, SP3's Known issues; not this pass); `street` 67/68 — "BY DAY: the barbershop open, the bar closed ({})": the
+  rooms' states read before the life's first frame on the slow runner (passed in run 1 and locally 17/17); the check now waits for
+  them. Not re-run (two runs max).
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&debug=1&…`)
 - **The build-up**: `&when=2026-10-10T19:00` · `&when=2026-10-20T19:00` · `&when=2026-10-27T19:00` (dusk) · the same at `T21:30` (night) ·
