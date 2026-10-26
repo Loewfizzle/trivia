@@ -2134,3 +2134,53 @@ the owner, Oct 25 10:05 pm.)
 - THE BUILD TABLE: 11a-1 HALLOWEEN + DAY OF THE DEAD (+ the shared holiday system + the window figures; live before Sat
   Oct 31) → NEXT 11a-2 THANKSGIVING (+ the parade system), then 9b WINTER, ATM (the FABLE ATMOSPHERE pass), 10 PARTY
   NIGHTS, 11b CHRISTMAS + NYE (live by Nov 26).
+
+## OWNER'S NOTES — OCT 26 (after HALLOWEEN)
+- THE BUILD TABLE: SP4 (this pass: the Halloween spider + web redone futuristic, the window people lit, the weather source
+  fixed for good) → then 11a-2 THANKSGIVING, 9b WINTER, ATM (the FABLE ATMOSPHERE pass — it takes "MORNING CHECKS" (3), the
+  menacing lightning), 10 PARTY NIGHTS, 11b CHRISTMAS + NYE (live by Nov 26). The NEON logo redraw is CANCELLED (the
+  owner's verdict, Oct 26 8:19 am).
+- THE WIND STUCK ON + THE CLOUDS RACING (the owner's iPhone, Oct 26 7:38 am, a real morning with a JUST ME Halloween
+  preview): the clouds fly by extremely fast and the wind seems stuck on. CHECK FIRST: a leftover panel override
+  (last night's &force=windy kept by JUST ME?) — CLEAR ALL must clear it, and the readout's weather line must say what's
+  forced. If nothing is forced: the clouds' speed must follow the real wind AT THEIR HEIGHT, slowed for the camera (a
+  cloud crossing the screen in minutes, not seconds) — a bug for the next pass + the ATMOSPHERE pass's whole job.
+  ALSO in the same screenshot: the AUDIO panel says "sounding" + "el playing c2-evening12" while it says "want … (music
+  off)" and the ♪ button shows the OFF slash — check the music-off setting really silences the song (or the readout's
+  wording is wrong).
+- THE WEATHER STILL FLIPS TO "SEEDED" — SP3's FIX DIDN'T HOLD (the owner's LOAD log, Oct 26 7:41 am, a plain Safari
+  load): the reveal at 1238 ms with "wx clear (cached · 15 min old)" ✔, then +0.41 s "wx none (seeded) → the city reads
+  seeded" → the sky repainted (6 s fade), a ⚠ lit crossfade, ⚠ the clouds re-planned to 7 (cirrus + cumulus), and +8.07 s
+  a ⚠ bake crossfade (neon, facade). So: (1) THE LIVE WEATHER ANSWERS "none" on his phone — find why on the real site
+  (the /api/sky function failing / timing out, Open-Meteo rate-limited, a parse error, the location missing): log the
+  reason in the readout ("live: failed — <why>"); (2) a "none" must NEVER replace a real answer — the 15-min-old cached
+  clear stays until a live one arrives (SP3 said it would hold; it doesn't); (3) the SEEDED fallback is probably the
+  "wind stuck on + clouds racing" (7 seeded clouds + a seeded wind) — the fallback must be CALM + plausible and say
+  "seeded" plainly; (4) the +8 s neon / facade crossfade after the reveal — find its cause; (5) the debug readouts draw
+  ON TOP of the open PREVIEW PANEL (the strips cover its controls) — hide them, or draw them under the panel, while
+  it's open. FIRST JOB of the next pass (Group 0).
+- MORNING CHECKS (the owner, Oct 26 8:10 am): DRIZZLE / RAIN / HEAVY RAIN now clearly different ✔ (SP3). BUGS:
+  (1) THE JAZZ HUSH SIGN IS MISPLACED — since SP3 put it on its own 3× overlay + enlarged the windows, the 2×2 letters
+  sit off the lower-right pane (riding up over its top frame, past its right edge) — it must sit centred INSIDE the
+  window's glass, following the window's live rect (the new SP3 sizes, every phone, resize / re-layout), clipped to
+  the pane; a check that the letters' box is inside the glass. (2) THE AWNING's DRIPS fall at the SAME RATE whatever
+  the rain — they must scale with it (drizzle: an occasional drip; rain: a steady line; heavy: a running fringe of
+  drops + a sheet pouring off the corners), and taper off over minutes after the rain stops. (3) THE LIGHTNING must look
+  MENACING (for the ATMOSPHERE pass, with "THE STORM ISN'T A STORM YET"): jagged, thick, violent forks with a
+  blinding core, a split-second double / triple stroke flicker, the whole storm deck lit from inside, the city's
+  shadows thrown for an instant, the thunder cracking right on top of a close one.
+- THE OWNER's VERDICTS (Oct 26 8:19 am): (1) THE NEON LOGO: he can't see a difference → LEAVE IT AS IS (no redraw pass).
+  (2) THE SPIDER + THE WEB LOOK CHEAP → per his rule ("if you can't make one look realistic + really good, make it alien
+  / futuristic"): REDO BOTH as a deliberate FUTURISTIC NEON design — the web a fine geometric web of thin glowing filaments
+  (laser-thin light threads in a cool violet / ice white, a perfect radial + spiral geometry, tiny bright nodes where
+  threads cross like dew of light, a faint shimmer travelling along the threads), still GROWING day by day through
+  October; the spider a sleek BIO-MECHANICAL spider — glossy black chrome body, faint neon seams + glowing eyes, eight
+  precisely articulated legs with a mechanical stop-start gait (no tangling at the turn), catching the NEON's pink on its
+  chrome; tap → it drops on a glowing thread. Premium + menacing-cool, never cartoon. (3) THE WINDOW FIGURES NEED MORE
+  WORK: "if it's lit in the room you should be able to SEE them, not silhouettes" → in a LIT room people are LIT: skin
+  tones, hair colour, clothes in real colours + patterns read as blocks of colour (a red dress, a white shirt + braces, a
+  dark suit with a pocket square), the lamp's light modelling them (a lit side + a shade side, a warm rim), faces as
+  simple lit shapes (no tiny features that can't read); a SILHOUETTE only when the person is between the lamp and the
+  window (backlit) or in a dark room / the ghost scenes. Judged at the real window size at 402. (4) MUSIC-OFF WORKS (the
+  song stays off with the slash) → the AUDIO readout's "sounding / el playing" while the music is off is WRONG wording —
+  make it say the truth (e.g. "music off — the element paused / silent").
