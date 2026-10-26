@@ -3,6 +3,7 @@
 // + its two granite steps, the promenade's lamps + trees. The painters + the live manager: screens/harbor/holidayprops.js.
 //   pumpkinSlots(L)     HALLOWEEN — the jack-o'-lanterns' places on + round the side door's steps (slot i = the i-th pumpkin to
 //                       arrive — core/harbor-holiday.js#PUMPKIN_DAYS — the first ones take the best spots), their kind + size + face
+//   bigPumpkins(L)      WIN — the farm delivery's three BIG jack-o'-lanterns on the promenade's DRESSING SPOTS (core/harbor-spots.js)
 //   marigoldSpots(L)    DAY OF THE DEAD — the marigold pots by the door, the rings round the trees' grates, the clumps at the lamps'
 //                       feet + the planters (wide layouts)
 //   garlandPosts(L)     the lamp posts the marigold garlands wind up
@@ -12,6 +13,7 @@
 //   monarchAt(n, u, L)  a monarch's flight (u 0..1 across) → { x, y, z, hd, flap }
 //   monarchSlot(ms, o)  is a monarch flying now (rare: about one every ~13 minutes by day) → { n, u } | null
 import { rngFrom, hashString } from './rng.js';
+import { dressingSpots } from './harbor-spots.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -30,17 +32,18 @@ export const PUMPKIN_KINDS = Object.freeze({
 export const FACES = Object.freeze(['triangles', 'toothy', 'scary', 'cat', 'happy', 'wink', 'surprised', 'fangs', 'none']);
 /** the steps (core/harbor-layout.js speakeasy.door u0 9.05 → u1 10.55; the lower step z0 − 0.75 → − 0.4 at y 0.13, the upper z0 − 0.4 → z0
  *  at y 0.26). The door's path (u ≈ 9.3 → 10.3) stays free; the black cat sits at u1 + 0.32 on the upper step (harbor-wildlife.js#catSpot). */
+// (WIN add-on — the owner: "too crowded on small iPhones → fewer, better laid out (a neat stepped group on the steps + one each side of the
+// door), clear of the door's swing, the walk-in and the lobby line; check at 390": nine → FIVE — a stepped group on the steps (the big
+// classic low-left, the tall one on the upper step behind it, a small one low-right, clear of the cat's spot) + one on the pavement each
+// side of the door (the warty one left of the steps, the squat Cinderella past the corner on the right); the white one by the pole, the
+// front-row pair + the gourds are gone)
 const PUMPKIN_SPOTS = [
   // u (along the facade), y (what it stands on), dz (from the facade, − = toward us), d (its diameter, world units), kind
-  { u: 8.98, y: 0.13, dz: -0.58, d: 0.66, kind: 'classic' },     // 0 the lower step, left — the first + the biggest
-  { u: 11.42, y: 0, dz: -1.02, d: 0.72, kind: 'squat' },         // 1 the pavement, right of the steps (past the corner)
-  { u: 9.08, y: 0.26, dz: -0.18, d: 0.52, kind: 'tall' },        // 2 the upper step, left
-  { u: 8.36, y: 0, dz: -0.86, d: 0.6, kind: 'warty' },           // 3 the pavement, left of the steps
-  { u: 10.28, y: 0.13, dz: -0.62, d: 0.46, kind: 'classic' },    // 4 the lower step, right (clear of the cat)
-  { u: 7.86, y: 0, dz: -0.42, d: 0.56, kind: 'white' },          // 5 against the wall by the pole
-  { u: 8.86, y: 0, dz: -1.22, d: 0.42, kind: 'classic' },        // 6 the pavement, in front-left
-  { u: 7.98, y: 0, dz: -1.14, d: 0.5, kind: 'gourds' },          // 7 the gourds, a little cluster
-  { u: 10.98, y: 0, dz: -1.32, d: 0.48, kind: 'tall' },          // 8 the pavement, front-right
+  { u: 8.92, y: 0.13, dz: -0.6, d: 0.68, kind: 'classic' },      // 0 the lower step, left — the first + the biggest of the group
+  { u: 11.5, y: 0, dz: -1.0, d: 0.74, kind: 'squat' },           // 1 the pavement, right of the door (past the corner)
+  { u: 9.06, y: 0.26, dz: -0.2, d: 0.52, kind: 'tall' },         // 2 the upper step, left, behind the first (the stepped group)
+  { u: 8.2, y: 0, dz: -0.9, d: 0.62, kind: 'warty' },            // 3 the pavement, left of the steps
+  { u: 10.3, y: 0.13, dz: -0.64, d: 0.44, kind: 'classic' },     // 4 the lower step, right — small, clear of the cat
 ];
 export function pumpkinSlots(L) {
   const s = L.speakeasy;
@@ -48,6 +51,28 @@ export function pumpkinSlots(L) {
     const r = rngFrom(hashString(`pumpkin|${i}`));
     return { i, x: s.x0 + p.u, y: p.y, z: s.z0 + p.dz, d: p.d * 1.3, kind: p.kind, face: p.kind === 'gourds' ? 'none' : FACES[i % 8], tilt: (r() - 0.5) * 0.16, seed: Math.floor(r() * 1e6), flick: 0.6 + r() * 0.8 };
   });
+}
+
+// ------------------------------------------------------------------ HALLOWEEN: THE BIG JACK-O'-LANTERNS ON THE PROMENADE (WIN add-on)
+/** the straw bale a set piece may stand on (world units): w across, h tall, d deep */
+export const BALE = Object.freeze({ w: 1.8, h: 0.74, d: 1.0 });
+/** the farm delivery's three BIG jack-o'-lanterns (the owner: "readable at a glance: a big one next to the BENCH, another by a LAMP POST or
+ *  the FIRE HYDRANT, carved faces glowing at night, some on a straw bale") — each on a named DRESSING SPOT (core/harbor-spots.js) */
+export const BIG_PIECES = Object.freeze([
+  { spot: 'hydrant', kind: 'squat', d: 1.6, face: 'toothy', bale: false },                  // the nearest + the biggest, on the pavement by the hydrant (~25 pt at 402)
+  { spot: 'bench-right', kind: 'classic', d: 1.5, face: 'scary', bale: true, gourd: true },  // on a straw bale at the bench's end, a gourd beside it (~19 pt)
+  { spot: 'lamp-1', kind: 'tall', d: 1.35, face: 'happy', bale: true },                     // on a bale at the right tall lamp's foot (~16 pt)
+]);
+/** the big pieces placed on their spots → [{ i (100+), spot, x, y (the bale's top if on one), z, d, kind, face, bale, gourd, pass, tilt, seed,
+ *  flick, baleX, baleZ }] — a spot the layout lacks is skipped */
+export function bigPumpkins(L) {
+  const spots = dressingSpots(L), out = [];
+  BIG_PIECES.forEach((p, i) => {
+    const sp = spots.find(q => q.id === p.spot); if (!sp) return;
+    const r = rngFrom(hashString(`bigpumpkin|${i}`));
+    out.push({ i: 100 + i, spot: sp.id, x: sp.x, z: sp.z, y: p.bale ? BALE.h : 0, d: p.d, kind: p.kind, face: p.face, bale: !!p.bale, gourd: !!p.gourd, pass: sp.pass, side: sp.face, tilt: (r() - 0.5) * 0.1, seed: Math.floor(r() * 1e6), flick: 0.6 + r() * 0.8 });
+  });
+  return out;
 }
 
 // ------------------------------------------------------------------ DAY OF THE DEAD

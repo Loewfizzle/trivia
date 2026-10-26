@@ -2574,6 +2574,21 @@ G('holiday', async () => {
     if (far && far.d > 24) { await Q.page.touchscreen.tap(far.x, far.y); buzzed = await waitFor(Q.page, `!document.querySelectorAll('.nd-sign .ndl')[${far.i}].classList.contains('on')`, 'the letter out', 1500).then(() => true).catch(() => false); }
     ok(far && far.d > 24 && buzzed, `A LETTER TAP BESIDE IT (letter ${far && far.i}, ${far && far.d.toFixed(0)} pt from the spider): it stutters out ${buzzed ? 'at once' : 'NEVER'}`);
     await Q.ctx.close(); }
+  // ---- WIN add-on — HALLOWEEN SET PIECES: the door's FIVE pumpkins at 390 (a stepped group on the steps + one each side, apart on screen,
+  // above the dock) and the three BIG jack-o'-lanterns on the dressing spots (the hydrant, the bench's bale, the lamp post's bale: ≥ 15 pt
+  // across, above the dock, drawn), their faces glowing after dark
+  { const Q = await open({ slot: 'hol-set', qs: `when=2026-10-27T21:00${GR}&wx=clear`, view: [390, 844] });
+    await harborUp(Q.page); await sleep(1500);
+    await waitFor(Q.page, `${P}.hprops && ${P}.hprops.stat.rects && ${P}.hprops.stat.rects.filter(r => r.big).length >= 3`, 'the big jack-o\'-lanterns drawn', 15000).catch(() => {});
+    const hp = await ev(Q.page, `${P}.hprops`), cam = await ev(Q.page, `${P}.cam`), rects = (hp && hp.stat.rects) || [];
+    const steps = rects.filter(r => !r.big), bigs = rects.filter(r => r.big);
+    const ov = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+    let pairs = 0; for (let i = 0; i < steps.length; i++) for (let j = i + 1; j < steps.length; j++) if (ov(steps[i], steps[j]) && Math.abs(steps[i].y + steps[i].h - (steps[j].y + steps[j].h)) < 2) pairs++;
+    ok(steps.length === 5 && pairs === 0 && steps.every(r => r.y + r.h < cam.dock.y), `THE DOOR'S PUMPKINS at 390 (Oct 27): ${steps.length} (five), ${pairs} overlapping on one level, all above the dock (${steps.map(r => `${r.w.toFixed(0)}pt@${r.x.toFixed(0)}`).join(' ')})`);
+    ok(bigs.length === 3 && bigs.every(r => r.w >= 15 && r.y + r.h < cam.dock.y) && new Set(bigs.map(r => r.id)).size === 3, `THE BIG JACK-O'-LANTERNS at 390: ${bigs.map(r => `${r.id} ${r.w.toFixed(0)} pt`).join(', ')} — ≥ 15 pt each, above the dock ${cam.dock.y}`);
+    ok(hp && hp.stat.bigGlows >= 3, `THEIR FACES GLOW after dark: ${hp && hp.stat.bigGlows} of 3 lit`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}holiday-setpieces-390x844.png` });
+    await Q.ctx.close(); }
   // ---- REDUCED MOTION on Halloween night: no witch, no bats, no window moments; the dressing still there, the spider still
   { const Q = await page('hol-rm', '2026-10-31T21:30', '&force=witch,bats', { fn: () => { try { const k = 'na:settings', s = JSON.parse(localStorage.getItem(k) || '{}'); s.reducedFx = true; localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, arg: null });
     await sleep(2500);

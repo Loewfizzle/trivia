@@ -9,7 +9,7 @@
 // colours lit like the promenade's animals (fauna.js#litCol: the night + each lamp's pool); per frame only sprites are drawn (+ the
 // flags' transforms, the candles' flicker, a monarch's wings). Reduced motion: the flags still, the candles steady, no monarchs.
 import { project } from '../../core/harbor-layout.js';
-import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt } from '../../core/harbor-holidayprops.js';
+import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt, bigPumpkins, BALE } from '../../core/harbor-holidayprops.js';
 import { lightField } from '../../core/harbor-light.js';
 import { litCol } from './fauna.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -231,8 +231,8 @@ function paintFlag(ci, pi, col, lit) {
 
 // ------------------------------------------------------------------ THE LIVE MANAGER
 export function createHolidayProps() {
-  const stat = {};
-  let L = null, lay = '', slots = [], spots = [], posts = [], path = null, runs = [];
+  const stat = { rects: [] };
+  let L = null, lay = '', slots = [], spots = [], posts = [], path = null, runs = [], bigs = [];
   const cache = new Map();
   let lightKey = '', lightFn = null, lightDark = -1;
   const SPRITE_MAX = 220;
@@ -242,7 +242,7 @@ export function createHolidayProps() {
     const sig = `${Lnew.cam.W}|${Lnew.cam.H}|${Lnew.cam.F}|${dpr}|${Lnew.speakeasy.x0.toFixed(3)}`;
     if (L === Lnew && sig === lay) return;
     L = Lnew; lay = sig;
-    slots = pumpkinSlots(L); spots = marigoldSpots(L); posts = garlandPosts(L); path = petalPath(L); runs = papelRuns(L);
+    slots = pumpkinSlots(L); spots = marigoldSpots(L); posts = garlandPosts(L); path = petalPath(L); runs = papelRuns(L); bigs = bigPumpkins(L);
     for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0;
     cache.clear(); lightKey = '';
   }
@@ -291,6 +291,7 @@ export function createHolidayProps() {
       c.fillStyle = 'rgba(10,6,12,0.42)'; c.beginPath(); c.ellipse(sx, sy, sl.d * s * 0.55, sl.d * s * 0.13, 0, 0, TAU); c.fill();
       c.save(); c.translate(sx, sy); c.rotate(sl.tilt);
       c.drawImage(sp.cv, -sp.cx / dpr, -sp.foot / dpr, sp.w / dpr, sp.h / dpr);
+      stat.rects.push({ id: `step-${sl.i}`, x: +(sx - sp.cx / dpr).toFixed(1), y: +(sy - sp.foot / dpr).toFixed(1), w: +(sp.w / dpr).toFixed(1), h: +(sp.h / dpr).toFixed(1) });
       // the candle inside (after dark): the glow through the carved face, flickering
       if (sp.glow && night > 0.02) {
         const fl = mo ? clamp01(0.78 + 0.12 * Math.sin(t * 9.1 * sl.flick + sl.seed) + 0.07 * Math.sin(t * 23.7 + sl.seed * 0.3) + 0.05 * Math.sin(t * 3.3 + sl.i)) : 0.9;
@@ -306,6 +307,75 @@ export function createHolidayProps() {
       for (const o of glows) { c.globalAlpha = 0.34 * o.k; c.drawImage(g, o.sx - o.r, o.gy - o.r * 0.32, o.r * 2, o.r * 0.64); c.globalAlpha = 0.12 * o.k; c.drawImage(g, o.sx - o.r * 0.7, o.sy - o.r * 0.9, o.r * 1.4, o.r * 1.4); }
       c.restore(); c.globalAlpha = 1;
     }
+  }
+
+  // ---------------------------------------------------------------- WIN — THE BIG JACK-O'-LANTERNS on the DRESSING SPOTS (+ their straw bales)
+  // (the owner: "BIG jack-o'-lanterns on the promenade, readable at a glance: a big one next to the BENCH, another by a LAMP POST or the FIRE
+  // HYDRANT, carved faces glowing at night, some on a straw bale" — core/harbor-holidayprops.js#BIG_PIECES on core/harbor-spots.js's spots;
+  // each a sprite per light key like the steps' ones; z-sorted with the walkers through people.js's extras (items('near')), the front
+  // strip's in the 'top' pass)
+  function baleSprite(b, E, dpr) {
+    const k = `bale|${b.i}|${lightKey}`; let sp = cache.get(k); if (sp) return sp;
+    const px = L.cam.F / b.z * dpr, col = colAt(E, b.x, b.z, 1.0), side = b.side || 1, r = rngFrom(b.seed + 7);
+    const w = BALE.w * px, h = BALE.h * px, dd = BALE.d * 0.38 * px, W = w + dd + 0.3 * px, Hh = h + dd + 0.24 * px, cv = mk(W, Hh), x = safeCtx(cv), cx = W / 2, foot = Hh - 0.04 * px;
+    const straw = [214, 172, 72], strawHi = [240, 208, 112], strawLo = [146, 104, 38], twine = [92, 62, 28];
+    // the front face: straw, darker at the foot; the top face lighter + leaning back; the side we see (away from the screen's centre) darker
+    { const g = x.createLinearGradient(0, foot - h, 0, foot); g.addColorStop(0, rgb(col(mix(straw, strawHi, 0.25)))); g.addColorStop(1, rgb(col(strawLo))); x.fillStyle = g; x.fillRect(cx - w / 2, foot - h, w, h); }
+    x.fillStyle = rgb(col(mix(straw, strawHi, 0.55))); x.beginPath(); x.moveTo(cx - w / 2, foot - h); x.lineTo(cx + w / 2, foot - h); x.lineTo(cx + w / 2 + side * dd * 0.35, foot - h - dd); x.lineTo(cx - w / 2 + side * dd * 0.35, foot - h - dd); x.closePath(); x.fill();
+    x.fillStyle = rgb(col(mix(strawLo, [90, 60, 24], 0.35))); x.beginPath(); x.moveTo(cx + side * w / 2, foot); x.lineTo(cx + side * w / 2, foot - h); x.lineTo(cx + side * (w / 2 + dd * 0.35), foot - h - dd); x.lineTo(cx + side * (w / 2 + dd * 0.35), foot - dd * 0.55); x.closePath(); x.fill();
+    // the fibres: short straws across the front + the top, lighter + darker; a few sticking out of the top edge
+    x.lineCap = 'round'; x.lineWidth = Math.max(0.5, 0.012 * px);
+    for (let i = 0; i < 80; i++) { const fx = cx - w / 2 + r() * w, fy = foot - r() * h, len = (0.05 + r() * 0.12) * px, a = (r() - 0.5) * 0.5; x.strokeStyle = rgb(col(r() < 0.5 ? strawHi : strawLo), 0.7); x.beginPath(); x.moveTo(fx, fy); x.lineTo(fx + Math.cos(a) * len, fy + Math.sin(a) * len); x.stroke(); }
+    for (let i = 0; i < 20; i++) { const fx = cx - w / 2 + r() * w, fy = foot - h - r() * dd * 0.9, len = (0.06 + r() * 0.1) * px; x.strokeStyle = rgb(col(strawHi), 0.8); x.beginPath(); x.moveTo(fx, fy); x.lineTo(fx + len * 0.9, fy - len * 0.2); x.stroke(); }
+    x.lineWidth = Math.max(0.5, 0.014 * px); x.strokeStyle = rgb(col(strawHi));
+    for (let i = 0; i < 7; i++) { const fx = cx - w / 2 + r() * w, len = (0.08 + r() * 0.1) * px; x.beginPath(); x.moveTo(fx, foot - h); x.lineTo(fx + (r() - 0.5) * len, foot - h - len); x.stroke(); }
+    // the twine: two dark bands round the bale (over the front + the top)
+    x.fillStyle = rgb(col(twine), 0.9);
+    for (const f of [0.3, 0.7]) { const bx = cx - w / 2 + w * f; x.fillRect(bx - 0.016 * px, foot - h, 0.032 * px, h); x.beginPath(); x.moveTo(bx - 0.016 * px, foot - h); x.lineTo(bx + 0.016 * px, foot - h); x.lineTo(bx + 0.016 * px + side * dd * 0.35, foot - h - dd); x.lineTo(bx - 0.016 * px + side * dd * 0.35, foot - h - dd); x.closePath(); x.fill(); }
+    { const g = x.createLinearGradient(0, foot - h * 0.35, 0, foot); g.addColorStop(0, 'rgba(30,16,4,0)'); g.addColorStop(1, 'rgba(30,16,4,0.38)'); x.fillStyle = g; x.fillRect(cx - w / 2 - dd, foot - h, w + dd * 2, h); }
+    return put(k, { cv, cx, foot, w: W, h: Hh });
+  }
+  function bigSprite(b, E, dpr, gourd = false) {
+    const k = `big|${b.i}|${gourd ? 'g' : 'p'}|${lightKey}`; let sp = cache.get(k); if (sp) return sp;
+    const s = L.cam.F / b.z, slot = gourd ? { ...b, kind: 'gourds', face: 'none', seed: b.seed + 3 } : b, px = (gourd ? 0.55 : b.d) * s * dpr, lc = colAt(E, b.x, b.z, gourd ? 1.1 : 0.55), nk = gourd ? 0 : clamp01((E.dark - 0.25) / 0.5) * 0.4;
+    sp = paintPumpkin(slot, px, c => lc(c).map(v => v * (1 - nk)), !gourd, E.dark > 0.4);
+    sp.glow = !gourd && b.face !== 'none' ? paintFaceGlow(b, sp) : null;
+    return put(k, sp);
+  }
+  /** one big piece where it stands: the contact shadow, the bale (if any), the pumpkin (+ a gourd beside it), the candle's glow after dark */
+  function drawBig(c, b, env, E) {
+    const dpr = env.dpr || 2, t = env.t || 0, mo = env.motion !== false, night = clamp01((E.dark - 0.25) / 0.5) * (env.power == null ? 1 : env.power), cam = L.cam, s = cam.F / b.z, fade = env.fade == null ? 1 : env.fade;
+    const [gx, gy] = project(cam, b.x, 0, b.z), [sx, sy] = project(cam, b.x, b.y, b.z);
+    c.save(); c.globalAlpha = fade;
+    c.fillStyle = 'rgba(10,6,12,0.42)'; c.beginPath(); c.ellipse(gx, gy, (b.bale ? BALE.w * 0.62 : b.d * 0.55) * s, (b.bale ? BALE.w * 0.15 : b.d * 0.13) * s, 0, 0, TAU); c.fill();
+    if (b.bale) { const bs = baleSprite(b, E, dpr); c.drawImage(bs.cv, gx - bs.cx / dpr, gy - bs.foot / dpr, bs.w / dpr, bs.h / dpr); }
+    if (b.gourd) { const g = bigSprite(b, E, dpr, true), gxx = sx + (b.side || 1) * (b.d * 0.5 + 0.3) * s; c.drawImage(g.cv, gxx - g.cx / dpr, sy - g.foot / dpr, g.w / dpr, g.h / dpr); }
+    const sp = bigSprite(b, E, dpr);
+    c.save(); c.translate(sx, sy); c.rotate(b.tilt);
+    c.drawImage(sp.cv, -sp.cx / dpr, -sp.foot / dpr, sp.w / dpr, sp.h / dpr);
+    const fl = mo ? clamp01(0.78 + 0.12 * Math.sin(t * 9.1 * b.flick + b.seed) + 0.07 * Math.sin(t * 23.7 + b.seed * 0.3) + 0.05 * Math.sin(t * 3.3 + b.i)) : 0.9;
+    if (sp.glow && night > 0.02) {
+      c.globalAlpha = night * fl * fade; c.drawImage(sp.glow, -sp.cx / dpr, -sp.foot / dpr, sp.w / dpr, sp.h / dpr);
+      if (env.tier !== 0) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.85 * night * fl * fade; c.drawImage(sp.glow, -sp.cx / dpr, -sp.foot / dpr, sp.w / dpr, sp.h / dpr); c.globalCompositeOperation = 'source-over'; }
+    }
+    c.restore();
+    if (sp.glow && night > 0.02) {
+      // the light on the paving / the bale round it (one additive pass, as the steps')
+      const g = glowSprite(), r = b.d * s * 2.0; c.globalCompositeOperation = 'lighter';
+      c.globalAlpha = 0.34 * night * fl * fade; c.drawImage(g, sx - r, gy - r * 0.32, r * 2, r * 0.64);
+      c.globalAlpha = 0.12 * night * fl * fade; c.drawImage(g, sx - r * 0.7, sy - b.d * s * 0.42 - r * 0.9, r * 1.4, r * 1.4);
+      c.globalCompositeOperation = 'source-over'; stat.bigGlows = (stat.bigGlows || 0) + 1;
+    }
+    c.restore();
+    stat.rects.push({ id: b.spot, x: +(sx - sp.cx / dpr).toFixed(1), y: +(sy - sp.foot / dpr).toFixed(1), w: +(sp.w / dpr).toFixed(1), h: +(sp.h / dpr).toFixed(1), big: true });
+  }
+  /** the big pieces on a pass as z-sorted extras for people.js ('near': with the walkers; 'far': across the road) → [{ z, draw(c) }] */
+  function items(pass, env) {
+    const HS = env.HS, HP = env.HP;
+    if (!env.L || !HS || HS.id !== 'halloween' || !HP || !HP.bigs || !(env.fade > 0) || !env.T) return [];
+    layout(env.L, env.dpr || 2);
+    const E = envLight(env);
+    return bigs.filter(b => b.pass === pass).map(b => ({ z: b.z, draw: c => drawBig(c, b, env, E) }));
   }
 
   // ---------------------------------------------------------------- the marigolds (a sprite per spot / per post)
@@ -496,6 +566,7 @@ export function createHolidayProps() {
     if (fade < 1) c.globalAlpha = fade;
     const halloween = HS && HS.id === 'halloween' && HP, dotd = HS && HS.id === 'dotd' && HP;
     if (pass === 'ground') {
+      stat.rects = []; stat.bigGlows = 0; stat.big = halloween && HP.bigs ? bigs.length : 0;
       if (dotd && HP.petals > 0.01 && path) { const o = pathSprite(E, env.dpr || 2); c.globalAlpha = fade * HP.petals; c.drawImage(o.cv, o.x0, o.y0, o.w, o.h); c.globalAlpha = 1; drawVotives(c, env, E, HP.petals); }
       if (dotd) { drawSpots(c, env, E, false, HP.marigolds * fade); drawPosts(c, env, E, false, HP.garlands); }
       if (halloween && HP.pumpkins && HP.pumpkins.length) drawPumpkins(c, env, E, HP.pumpkins);
@@ -503,6 +574,7 @@ export function createHolidayProps() {
       if (dotd) drawPapel(c, env, E, HP.papel);
     } else if (pass === 'top') {
       if (dotd) { drawSpots(c, env, E, true, HP.marigolds * fade); drawPosts(c, env, E, true, HP.garlands); }
+      if (halloween && HP.bigs) for (const b of bigs) if (b.pass === 'top') drawBig(c, b, env, E);   // (WIN: the front strip's big jack-o'-lantern — nearer than anyone on the floor)
       if (env.motion !== false && env.tier !== 0) {
         const m = monarchSlot(env.ms || Date.now(), { on: !!(dotd && HP.monarchs), forceAt: env.monarchAt });
         if (m) drawMonarch(c, env, E, m);
@@ -511,8 +583,8 @@ export function createHolidayProps() {
     c.restore();
   }
   return {
-    draw,
-    debug: () => ({ stat: { ...stat }, slots: slots.length, spots: spots.length, posts: posts.length, runs: runs.map(r => r.n), petals: path ? path.pts.length : 0, sprites: cache.size }),
+    draw, items,
+    debug: () => ({ stat: { ...stat, rects: (stat.rects || []).slice() }, bigs: bigs.map(b => ({ spot: b.spot, pass: b.pass, d: b.d })), slots: slots.length, spots: spots.length, posts: posts.length, runs: runs.map(r => r.n), petals: path ? path.pts.length : 0, sprites: cache.size }),
     destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); },
   };
 }

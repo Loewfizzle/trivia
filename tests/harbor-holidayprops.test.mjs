@@ -27,7 +27,7 @@ test('11a-1 — THE PUMPKINS: one place per arrival, on + round the side door\'s
     // never two pumpkins in one place
     for (let i = 0; i < sl.length; i++) for (let j = i + 1; j < sl.length; j++) assert.ok(Math.hypot(sl[i].x - sl[j].x, (sl[i].z - sl[j].z) * 1.6) > (sl[i].d + sl[j].d) * 0.36, `${k}: ${i} + ${j} apart`);
     // the faces differ (the first eight carved ones)
-    assert.equal(new Set(sl.slice(0, 7).map(p => p.face)).size, 7, 'each face different');
+    assert.equal(new Set(sl.map(p => p.face)).size, sl.length, 'each face different');   // (WIN: five, every one its own face)
   }
 });
 
