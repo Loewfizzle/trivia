@@ -913,6 +913,8 @@ G('neon', async () => {
   { const N = await open({ slot: 'rm1', qs: NIGHT, view: [402, 874] });
     await harborUp(N.page);
     await waitFor(N.page, '!!window.__district.harbor().roofModes', 'the roof modes', 15000).catch(() => {});
+    // (11a-1: on a slow runner a sign can join the skyline a moment after the modes first exist — wait until every lit sign has its mode)
+    await waitFor(N.page, '(() => { const h = window.__district.harbor(), rm = h.roofModes; return !!rm && h.neon.signs.filter(s => s.rect).every(s => rm.modes[s.id]); })()', 'every sign its mode', 15000).catch(() => {});
     const rm = await ev(N.page, 'window.__district.harbor().roofModes'), sg = (await ev(N.page, 'window.__district.harbor().neon.signs')).filter(s => s.rect).sort((a, b) => a.rect.x - b.rect.x).map(s => s.id);
     const md = rm ? sg.map(id => rm.modes[id]) : [];
     ok(rm && md.length >= 3 && md.every(Boolean) && md.every((m, i) => !i || m !== md[i - 1]), `THE ROOF SIGNS' MODES this hour: ${sg.map((id, i) => `${id} ${md[i]}`).join(', ')} (neighbours never the same)`);
@@ -2392,7 +2394,7 @@ G('holiday', async () => {
     await Q.ctx.close(); }
   // ---- THE GHOST SHIP (forced on any night) + a window scene on the kit
   { const Q = await page('hol-gs', '2026-10-22T22:00', '&force=ghost-ship,window&moment=ghost');
-    await waitFor(Q.page, `${P}.halloweenSky && ${P}.halloweenSky.ship.on`, 'the ghost ship', 15000).catch(() => {});
+    await waitFor(Q.page, `${P}.halloweenSky && ${P}.halloweenSky.ship.on && ${P}.halloweenSky.ship.a > 0.05`, 'the ghost ship', 20000).catch(() => {});
     const g = await ev(Q.page, `${P}.halloweenSky`), w = await ev(Q.page, `${P}.speakeasy.life`);
     ok(g && g.ship.on && g.ship.a > 0, `THE GHOST SHIP (forced): ${JSON.stringify(g && g.ship)}`);
     await waitFor(Q.page, `${P}.speakeasy.life.on.some(e => e.id === 'ghost')`, 'the ghost scene', 8000).catch(() => {});

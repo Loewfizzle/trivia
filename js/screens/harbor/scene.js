@@ -1305,7 +1305,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const sh = neon.show(); PT.drop = sh.drop; PT.big = sh.big; PT.scene = sh.scene;
       const wantParty = PT.on > 0.5;          // (NEON PASS 4: the wheel wears the party's colours all party night)
       // (11a-1: THE HOLIDAY LIGHT RULES — core/harbor-holiday.js#lightRules — the holiday's scheme wins over the party's)
-      { const want = HR.wheel || (wantParty ? 'party' : 'city'); if ((want !== wheelWant || wantParty !== wheelParty) && !clock.force.has('wheel-scheme')) { wheelParty = wantParty; wheelWant = want; wheel.scheme(want); } }
+      { const want = HR.wheel && (HS.eve || !wantParty) ? HR.wheel : wantParty ? 'party' : 'city'; if ((want !== wheelWant || wantParty !== wheelParty) && !clock.force.has('wheel-scheme')) { wheelParty = wantParty; wheelWant = want; wheel.scheme(want); } }
       // (NEON PASS 4: Rosie in her party bulbs all party night — boats.set is a no-op while unchanged)
       // (SP3 — ROSIE ON THE MOVE: on a party night her deck strings CHASE in the party colours — two bands a beat when the music's grid is
       // trusted (hbeat.bpm), a lively 6 a second without it; quantized so set() changes only when the tempo does)
@@ -2167,7 +2167,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       fastUntil = performance.now() + 1500;        // (a tap: whatever answers it moves at 60 fps)
       if (dress) { const d = dress.hit(x, y); if (d) return d; }      // (11a-1: the spider on the sign bolts down its line)
       // (11a-1: the black cat on the side door's step — a tap: it hisses + darts off, back a minute later)
-      { const ct = L && !clock.force.has('no-wildlife') && wild.catTap ? wild.catTap(x, y) : null; if (ct) { if (S.motion) snd.play('cat-hiss', { gain: 0.85, pan: ct.pan }); return { kind: 'black-cat' }; } }
+      { const dr = L && L.door.rect, onDoor = dr && x >= dr.x && x <= dr.x + dr.w && y >= dr.y && y <= dr.y + dr.h;   // (the door's knock always wins over the cat beside it)
+        const ct = L && !onDoor && !clock.force.has('no-wildlife') && wild.catTap ? wild.catTap(x, y) : null; if (ct) { if (S.motion) snd.play('cat-hiss', { gain: 0.85, pan: ct.pan }); return { kind: 'black-cat' }; } }
       const f = fx.hit(x, y);
       if (f) return { kind: f };
       const sg = neon.hit(x, y);
