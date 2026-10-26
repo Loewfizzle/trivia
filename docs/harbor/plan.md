@@ -2342,3 +2342,74 @@ the owner, Oct 25 10:05 pm.)
   street, blinking rarely (slow, deliberate; now and then drifting a little or narrowing). No body, no face. 11 pm–4 am on 2 random
   weekend nights a month (seeded; never on a legendary's night, never with the edge windows' "eerie red" mood or a Mothman night — no
   Mothman exists yet: the hook `ctx.mothman`). Readable unzoomed at 402. In PLAY ALL + `&force=window&moment=eyes`.
+
+## OWNER'S NOTES — OCT 26 (after WIN2)
+Build table from here: **WIN3** (this pass: the spiders right for Halloween, the panel's scene buttons, the boss's TV room, the cash
+count, the party in the windows) → 11a-2 THANKSGIVING (+ the parade; Opus) → 9b WINTER → ATM (the FABLE ATMOSPHERE pass) → 10 PARTY
+NIGHTS → 11b CHRISTMAS + NYE (live by Nov 26) … 13 CITY CONTROL (+ THE BIRTHDAY EVENT). WIN2's two test fixes pushed without `[harbor]`
+are proven by THIS pass's cloud run.
+
+- A NEW WINDOW MOMENT — THE EYES IN THE HAZE (the owner, Oct 26 1:32 pm — DECIDED): one of the four full windows becomes a dark room
+  FILLED WITH SMOKY HAZE (slow drifting layers, faintly lit from below by a dim ember-red glow) with just a PAIR OF BIG RED GLOWING
+  EYES in it, WATCHING YOU (facing the street), BLINKING RARELY / occasionally (a slow, deliberate blink; now and then they drift a
+  little in the haze or narrow). No body, no face — only the eyes + the haze. 11 pm → 4 am, on 2 WEEKEND nights a month at random
+  (seeded, the same nights for everyone; never on a legendary's night, never the same night as the edge windows' "eerie red" mood,
+  never with the Mothman's nights). Readable UNZOOMED at 402 (the eyes big + bright enough, the haze a soft glowing volume). In PLAY
+  ALL + `&force=window&moment=eyes`. (BUILT in WIN2.)
+- A BIRTHDAY EVENT (the owner, Oct 26 1:35 pm — for PART 13 CITY CONTROL; "we don't have to do it now"): a reusable "HAPPY BIRTHDAY"
+  CELEBRATION the owner schedules for an exact date + time (one moment for everyone, or at that local time, or only for people who
+  open a private link — CITY CONTROL's options): the city throws a party for one name — the BANNER PLANE ("HAPPY BIRTHDAY <NAME>!"),
+  SKYTYPING by day / the DRONE SHOW message at night, THE PARADE down the waterside road (Thanksgiving's reusable parade system,
+  birthday balloons + a band), FIREWORKS (Part 10) at night, the city's LIGHTS in party colours (the wheel, the sky beams, the roof
+  signs spelling it), the NEON sign dressed (balloons, a birthday tube piece), the tagline "HAPPY BIRTHDAY, <NAME>." + confetti; joins
+  mid-way; a preview in the panel. Composed from existing events (no new art beyond the birthday dressings). LATER (Progression 2.0):
+  a player may add their birthday (MONTH + DAY only, never the year) to their profile → a small personal celebration only THEY see
+  on the day. Depends on: the parade (11a-2), fireworks (10), City Control (13).
+- THE SPIDERS — WIN2 REVIEW (the owner, Oct 26 3:10 pm): (1) THE SECOND SPIDER only appears ON Halloween → part of the BUILD-UP: it
+  arrives ~2 days before (Oct 29), so the 30th + 31st have two; (2) on SPEAKEASY they must WALK ON TOP of the word (in front of the
+  tubes, feet on them), never BEHIND it — draw the crawling spider over the white-neon letters; (3) THE DROP: the spider descends ON
+  ITS THREAD and DANGLES down onto the word — body hanging below the thread, legs tucked / relaxed around it as real spiders do (a
+  gentle sway + a slow spin), touching down feet-first, then walking; NOT its legs stretched down to reach the letters (unnatural).
+  The climb home the same in reverse (reeling the thread, legs gathered). Check: both visible + tappable on Oct 29 / 30 / 31 at
+  390 / 402 / 430, unzoomed.
+- THE PANEL's WINDOW-SCENE BUTTONS DON'T WORK (the owner, Oct 26 3:14 pm): PEEK AT THE STREET + CASH COUNT (and likely the others) do
+  nothing from the preview panel — the `&force=window&moment=` links work but the panel's rows don't fire them (a wrong id after WIN's
+  rename / the new sections, a gate like "only on its own nights" blocking a forced moment, the JUST ME clock not jumping to the
+  moment's hour). Fix every row in SPEAKEASY → windows + a check that EACH row starts its moment (in its window, at a time it's
+  allowed, the chip naming it).
+- PARTY NIGHT IN THE SPEAKEASY (the owner, Oct 26 3:14 pm — agreed, with Claude's notes): on PARTY NIGHTS, during the party's PEAK (not
+  the whole evening: normal moments in the warm-up, the party after), the BLINDS GO UP in every window — NOT ALL AT ONCE (the owner,
+  3:26 pm): ONE ROOM AT A TIME, ~every 10 s, the whole building partying within ~60 s (a seeded order each night: blinds up, the
+  colour floods in, the crowd starts jumping), winding down the same way at the end; the boss's TV room never joins — all glass — and
+  EVERY ROOM IS ONE BIG DANCE PARTY, each room lit in its OWN NEON COLOUR (the party palette: magenta, cyan, violet, amber… never two
+  rooms alike), crowds as DARK SILHOUETTES against the coloured light (backlit = allowed), JUMPING + dancing with arms swinging, ON
+  THE BEAT (the same beat as the city when music plays), a few GLOW WANDS like the promenade's dance circle; the coloured light
+  SPILLS out onto the promenade (pools of each room's colour on the cobbles + the wet street), giving the foreground colour. The
+  exception to the "one star window" rule (a party is meant to be busy; it reads as colour + motion). The edge windows join with their
+  party cycle. A RAID cuts it: the lights snap off, the dancers scatter, the blinds drop. Readable unzoomed at 402; the wall's hush
+  sign stays readable beside it. A row in PLAY ALL + `&force=window-party`.
+- THE CASH COUNT — REWORK (the owner, Oct 26 3:20 pm): its opening reads like a poker table and is "almost unviewable" → ONLY the
+  close-up: the man (head, shoulders, hands) counting under the green lamp from the first frame; NATURAL HANDS — a real counting
+  rhythm (one hand holds the stack, the thumb flicks bills off one at a time into the other hand or onto the pile, a lick of the
+  thumb now and then, a squared-up stack tapped on the table, a band snapped on), eased, never robotic; readable unzoomed at 402.
+- THE TV ROOM — WHAT IT'S REALLY ABOUT (the owner, Oct 26 3:20 pm — personal, "I need to get that one right"): driving late at night
+  he'd always see, on the TOP FLOOR of a house at 3 a.m., the BLUE GLOW of someone watching TV — you NEVER saw the person, so you
+  wondered who he was, what he was watching, how he was doing. Seeing the person takes that away. DECIDED (Claude's suggestion): NO
+  PERSON AT ALL — THE MYSTERY IS THE POINT. The room is DARK and the only light is the unseen TV's GLOW: a blue light thrown up onto
+  the ceiling + the back wall from below the sill, through a half-drawn curtain / blind (its edge catching the light), FLICKERING like
+  a real TV seen from the street — irregular cuts, brightness jumps, colour shifts (cool blue ↔ a warm flash ↔ dim), a fast burst when
+  someone changes the channel (late, ~1 am), a long steady dim stretch (a quiet scene); once in a while a SHADOW moves across the
+  ceiling glow (someone shifting, getting up for a snack) — only ever a shadow. REVISED (the owner, 3:22 pm): NOT the only room on —
+  the other rooms keep their life; the TV room is a CONSTANT FEATURE of the speakeasy, EVERY NIGHT ~10 pm → 3 am, "almost a feature of
+  it" — LORE: maybe it's THE BOSS's room; nobody knows. It's noticed by being THE ONLY COOL BLUE window among the warm rooms + its
+  unmistakable flicker (no dimming of the others needed). The boss lore in small ways: on a RAID night the TV snaps off early as the
+  sirens start (and a shadow at the curtain edge watches the street); on PARTY nights it's the ONE window that does NOT join the dance
+  party — it stays blue (the boss doesn't dance); + SOME NIGHTS IT's THE ONLY ONE ON (the owner, 3:22 pm — variety, never stale): on a
+  few quiet nights (seeded, ~1 in 6, mostly Sun–Wed, never a party night), the other rooms go to bed one by one after midnight (lamps
+  clicking off, a last shadow at a window) until his blue glow is the ONLY light on the building — the 3 a.m. feeling; other nights the
+  building stays lively around it; on Halloween / Christmas its glow takes a faint tint of the holiday film he's watching; at ~3 am the
+  TV clicks off (a last flicker) and the window goes dark. Remove the couch, the faces + the smoke-from-a-person (the smoke may stay
+  as a faint haze catching the blue). Readable unzoomed at 402: a lone blue flickering window high up.
+- THANKSGIVING SOUNDS (Oct 26 3:28 pm): the owner is giving Grok a batch for 11a-2 — geese-v, parade-crowd (+ parade-cheer),
+  marching-band-far (a PUBLIC-DOMAIN recording only, e.g. a pre-1926 Sousa march), leaves-rake, balloon-flap — into
+  ~/Downloads/city-sfx, credits.txt "Thanksgiving + parade sounds". 11a-2 imports them.
