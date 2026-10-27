@@ -431,7 +431,7 @@ export function createSpeakeasy() {
     c.globalCompositeOperation = 'source-over';
     // THE BLADE AT NIGHT: the lit letters, the bulbs
     if (f.game && (f.lamp || 0) > 0.004) {
-      const key = f.game.id + '|' + dpr + '|' + G.K.toFixed(2);
+      const key = f.game.id + '|' + (f.game.style ? f.game.style.key : '') + '|' + dpr + '|' + G.K.toFixed(2);   // (SP5: the week's look)
       if (key !== bladeKey || !bladeCv) { bladeAt = paintBladeLit(f.game); bladeKey = key; }
       const a = clamp01(f.lamp) * fade;
       c.globalAlpha = a; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h);

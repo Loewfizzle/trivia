@@ -50,7 +50,7 @@ import { roadSteps, signalSteps, drawSignalLamps, drawLantern, LENS, WORDS } fro
 import { speakeasySteps, bladeStep, createSpeakeasy } from './speakeasy.js';
 import { lateTvK, dayKey as momentDayKey } from '../../core/harbor-moments.js';
 import { createCentre } from './centre.js';
-import { ghostAdGame } from '../../core/harbor-speakeasy.js';
+import { ghostAdGame , bladeStyle, adWeek } from '../../core/harbor-speakeasy.js';
 import { promenadeSteps, furnitureSteps, drawLampLight, dimPools } from './stage.js';
 import { lampThresholds, warmUp, lampMoment } from '../../core/harbor-lamps.js';
 import { createPeople } from './people.js';
@@ -797,7 +797,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   function workBlade(c, tr) {
     const g = speakCtxFor(clock.now() + (tr.monday && !workForced() ? 0 : 7 * 864e5)).game;      // (the NEW week's name — on a Monday this week's; a preview: next week's)
-    const key = `${g ? g.id : ''}|${toneKey(TW)}|${camSig}`;
+    const key = `${g ? g.id + '|' + (g.style ? g.style.key : '') : ''}|${toneKey(TW)}|${camSig}`;
     if (key !== bladeK) { bladeK = key; bladeV = bladeArt(L, bakeTones, g, dpr); }
     if (bladeV) drawBlade(c, bladeV, tr.blade, performance.now() / 1000);
   }
@@ -847,7 +847,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const trafficHoldNow = () => { const h = trafficHold(legendForPeople()); return h ? { t0: h[0], t1: h[1], on: inHold(h, clock.now() / 1000) } : null; };
   const peopleFrame = () => ({ ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active(), season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(), holiday: HS, hpieces: HP, local: LK.local, forceHoliday: clock.force, forceAt: id => (clock.force.has(id) ? forceAtOf(id) * 1000 : null) /* (the clock ms the flag came on) */,
     forceWork: workForced(), forceWorkAt: workForceAt(), noWork: clock.force.has('no-work'), dusk: duskFor, hot: hotDay,
-    forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), noDance: clock.force.has('no-dance'), shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
+    forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), noDance: clock.force.has('no-dance'), blocked: danceBlocked, shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
   // life's dusk (the outside cat never with the window cat), the previews (&force=pigeons, coyote, … — wildlife.js#WILD_FORCES)
   let moonK = 0, moonAt = -1e12, winDark = null, winDarkAt = -1e12;
@@ -865,11 +865,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     people.line(clock.force.has('line') ? Number(qp.get('n') || 6) : lobbyLine);
     return { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), power: LB ? legendPow(W * 0.5, 'near', 209) : 1, t: performance.now() / 1000, mo: S.motion, season: L.season, rain: LK.rain || 0, fog: LK.fog || 0, wind: WXS ? WXS.gust : LK.wind || 0, fade: fadeIn, tier, party: PT.on > 0.3, snd: S.motion ? snd : null,
       // (FP3b — the dance circle's beat: the party's song clock + its punch + palette; null off a party → wands.js keeps a steady 120 bpm)
-      beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette } : null,
+      beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette, ...songEdge() } : null,   // (SP5: the song's edge — the dancers wind down, idle, pick up)
       // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
       wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
   }
   let lobbyLine = 0;
+  /** SP5 — the hourly dance never during a raid or a legendary (the TR-3B / the abduction): the evening's raid plan + the traffic hold */
+  function danceBlocked(a, b) {
+    try { const P = raidPlanNow(); if (P && b > P.t0 - 90 && a < P.tEnd + 60) return true; const H = trafficHoldNow(); return !!(H && H.on !== false && H.t1 > a - 60 && H.t0 < b + 60); } catch { return false; }
+  }
   /** SP5 — THE SONG's EDGE for every dancer (core/harbor-dance.js): the song playing (id), seconds LEFT in it (its end: they wind down),
    *  and GAP = the music is on but between songs (audio/beat.js's 'no song' — music off / muted / a locked context is NOT a gap) */
   function songEdge() {
@@ -905,8 +909,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let speakMemo = null;
   // (8b1 — THE SIGN PAINTERS: on Monday the blade keeps LAST week's name until they've finished repainting it, ~4 pm)
   function speakCtxFor(ms) {
-    const id = ghostAdGame(ms, playable.map(g => g.id), null);
-    return { game: playable.find(g => g.id === id) || null };
+    const id = ghostAdGame(ms, playable.map(g => g.id), null), g = playable.find(g => g.id === id) || null;
+    return { game: g ? { ...g, style: bladeStyle(adWeek(ms), qp.get('blade')) } : null };   // (SP5: the week's letter style + colours)
   }
   function bladeMs() {
     const ms = clock.now(), tr = pplLive0() ? (people.crew() || {}).traces : null;
@@ -923,7 +927,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (WIN2 — the owner: the right pier's wall-washer is removed ONLY while the lobby sign is lit, so the hush word grows to ~17 pt; the
     // facade re-bakes through the city's crossfade — a smooth swap — when the sign comes or goes)
     const hushLit = !!hushPreview();
-    const v = { game: playable.find(g => g.id === id) || null, month, hushLit, key: `${id}|${month}|${hushLit ? 'h' : ''}` };
+    const g0 = playable.find(g => g.id === id) || null, style = bladeStyle(adWeek(bladeMs()), qp.get('blade'));   // (SP5: the week's blade look; &blade=<font>-<ink>-<panel> previews one)
+    const v = { game: g0 ? { ...g0, style } : null, month, hushLit, key: `${id}|${style.key}|${month}|${hushLit ? 'h' : ''}` };
     speakMemo = { at: now, v };
     return v;
   }

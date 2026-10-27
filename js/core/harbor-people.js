@@ -142,10 +142,13 @@ export function folkMap(L, { event = false, line = null, cart = false } = {}) {
     busDoor: { x: busStopX(L), z: F.busZ },
     // (POLISH 5 — THE HYDRANT: where a dog walker stands so the dog (on the right, a step ahead) has its nose at the hydrant)
     hydrant: L.hydrant ? { x: L.hydrant.x - 1.5, z: F.zMin + 0.02 } : null,
-    // (FP3b — the vendor spot at the front curb: the VENDOR at the cart's left end beside his tray of chestnuts (behind the cart his
-    // head would hide under its counter at phone size), a customer a step further left facing him)
-    cart: L.cart && L.cart.shown !== false ? { x: L.cart.x - 2.75, z: Math.max(FOLK.zMin + 0.05, L.cart.z + 0.6) } : null,
-    vendor: L.cart && L.cart.shown !== false ? { x: L.cart.x - 1.6, z: L.cart.z + 0.4 } : null,
+    // (FP3b — the vendor spot at the front curb: the VENDOR beside his tray of chestnuts at the cart's end (behind the cart his head would
+    // hide under its counter at phone size), a customer a step further out facing him. SP5 — the owner: the vendor stood on the cart's LEFT,
+    // right behind Halloween's front-strip jack-o'-lantern (core/harbor-spots.js#corner-right = the cart's rest − 2.5) → the cart's RIGHT
+    // side is his serving spot now, the customer right of him; the newsboy's stand (8b's hook) would share the same rule)
+    // (the framing maple's trunk stands at the cart's right end (x + 2.05, nearer the camera): the vendor steps past it, the customer past him)
+    cart: L.cart && L.cart.shown !== false ? { x: L.cart.x + 4.3, z: Math.max(FOLK.zMin + 0.05, L.cart.z + 0.6) } : null,
+    vendor: L.cart && L.cart.shown !== false ? { x: L.cart.x + 2.95, z: L.cart.z + 0.45 } : null,
     view: { x: cx + cww * 0.15, z: F.zMax - 0.15 },
     sky: { x: L.medallion.x - 2.2, z: L.medallion.z - 1.2 },
     meetA: { x: L.medallion.x + 2.6, z: L.medallion.z - 1.8 },
@@ -801,7 +804,7 @@ export function folkAt(t, world, cache = new Map()) {
   };
   // THE ROUTINES (FP3b — core/harbor-routines.js): the dance circle's sessions near t, their people; while one runs the inlay is
   // CLOSED to the crowd (the blocks route round it: Mev) and its people count against the cap (the blocks plan around them)
-  const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceDance, forceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null };
+  const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceDance, forceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, event: !!ctx.event, blocked: ctx.blocked || null };   // (SP5: no circle under a centrepiece, during a raid or a legendary)
   const sess = j => get(`DS|${j}|${rctx.force ? 1 : 0}|${rctx.forceAt == null ? '' : Math.round(rctx.forceAt)}`, () => danceSlot(j, rctx));
   const sessionsNear = (a, b) => (ctx.noDance ? [] : danceSlotsNear(a, b, rctx).map(sess).filter(x => x && x.s1 + 90 > a && x.s0 - 40 < b));
   const danceVisits = x => get(`DV|${x.id}`, () => planDance(x, M, L));
@@ -821,7 +824,7 @@ export function folkAt(t, world, cache = new Map()) {
     // then wheels it out the way he came)
     const v = M.nodes.vendor, dx = v.x - cartX, xin = cartIn(L.cam) + dx, r = rngFrom(hashString(`vendor|${e.t0}`));
     const legs = [{ k: 'walk', pts: [{ x: xin, z: v.z }, { x: v.x, z: v.z }], t0: e.t0, t1: e.ta, v: VENDOR.roll },
-      { k: 'pose', pose: 'cart', x: v.x, z: v.z, t0: e.ta, t1: e.tb, hd: -PI / 2 - 0.55 },
+      { k: 'pose', pose: 'cart', x: v.x, z: v.z, t0: e.ta, t1: e.tb, hd: -PI / 2 + 0.55 },   // (SP5: on the cart's right, turned a little toward his customer on the right)
       { k: 'walk', pts: [{ x: v.x, z: v.z }, { x: xin, z: v.z }], t0: e.tb, t1: e.t1, v: VENDOR.roll }];
     return { id: `vendor.${Math.round(e.t0)}`, kind: 'vendor', routine: 'cart', idx: 0, look: 'worker', gait: 'walk', legs, t0: e.t0, t1: e.t1, tEnd: e.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }] };
   });

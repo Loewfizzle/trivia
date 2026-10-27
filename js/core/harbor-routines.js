@@ -16,7 +16,12 @@ import { partyAt } from './harbor-moments.js';
 /** the circle's numbers: slot (s), the window (local hours, after midnight + 24), the chance a slot has one, when it starts in its
  *  slot + how long it dances (s), the dancers (tier 0: the first `tier0`), their ring (× the inlay's ring) + the watchers' */
 export const DANCE = Object.freeze({
-  slot: 900, from: 22, to: 24.75, chance: 0.75, start: 150, len: 360, stagger: 2.2,
+  // SP5 — ON THE HOUR (the owner, DECIDED — replaces the always-on circle from 10 pm): on PARTY NIGHTS (any party mode) EVERY HOUR ON THE
+  // HOUR the dancers walk up to the centre circle (from the side door, arriving over ~30 s: the stagger + the walk), dance for TWO SONGS
+  // (~2 × 3.5 min on the party's clock — the same for everyone; when music plays, the dance clock shapes the moves to the songs:
+  // core/harbor-dance.js — a wind-down at a song's end, a cheer, idle in the gap, the pick-up), then leave in twos + threes. Never under a
+  // holiday centrepiece, never during a raid or a legendary (ctx.event / ctx.blocked); joins mid-way (seeded on the clock).
+  slot: 3600, from: 20.5, to: 26.25, chance: 1, start: 0, len: 420, stagger: 2.2, songs: 2, song: 210,
   // (POL4 — the owner: "bunched in the exact centre": SPREAD OUT loosely in a ring ACROSS + AROUND the compass — each its own radius
   // (ring × [min, max] of the inlay's ring, seeded per circle) + its own angle (the base angle ± jitter); reach: the floor the crowd
   // keeps clear of while it dances (× the ring), the watchers further out behind + beside)
@@ -42,11 +47,14 @@ export function danceSlot(j, ctx = {}) {
   if (F && ctx.forceAt != null && j < 0) return null;
   const r = rngFrom(hashString(`dance|${ctx.seed || 1924}|${j}|${F ? 'f' : ''}`));
   if (!F) {
-    const loc = localOf(t0 + S / 2, ctx.off), hh = loc.h < 3 ? loc.h + 24 : loc.h;
-    const party = ctx.party ? ctx.party(t0 + S / 2) : partyAt(loc.dow, loc.h);
+    // (the slot is the hour itself — its circle starts ON the hour; judged a minute in, so the party's own window + mode decide)
+    const loc = localOf(t0 + 60, ctx.off), hh = loc.h < 3 ? loc.h + 24 : loc.h;
+    const party = ctx.party ? ctx.party(t0 + 60) : partyAt(loc.dow, loc.h);
     if (!party || hh < DANCE.from || hh >= DANCE.to || r() >= DANCE.chance) return null;
+    if (ctx.event) return null;
   }
-  const s0 = t0 + (F ? F.start : DANCE.start + r() * 60), s1 = s0 + (F ? F.len : DANCE.len * (0.85 + r() * 0.3));
+  const s0 = t0 + (F ? F.start : DANCE.start + r() * 10), s1 = s0 + (F ? F.len : DANCE.len);
+  if (!F && ctx.blocked && ctx.blocked(s0, s1)) return null;
   const nw = DANCE.watchers[0] + Math.floor(r() * (DANCE.watchers[1] - DANCE.watchers[0] + 1));
   return { id: `dance.${j}`, s0, s1, dancers: DANCE.n, watchers: nw, seed: Math.floor(r() * 1e6) };
 }

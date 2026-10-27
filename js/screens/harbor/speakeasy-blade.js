@@ -9,6 +9,7 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
 import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
+import { BLADE_PANELS, INK_COLS } from '../../core/harbor-speakeasy.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 
 // ------------------------------------------------------------------ THE BLADE SIGN (the weekly ghost ad's home — the owner's pick, 8a)
@@ -81,21 +82,48 @@ export function bladeLetters(name, bw = BLADE.bw, v0 = BLADE.v0, v1 = BLADE.v1) 
 /** paint the name (board units, v up): each letter centred in its slot, squeezed / stretched to fill the column; style: 'day' (cream +
  *  gold paint, a dark keyline, a drop shade), 'dark' (the night's unlit letters: dull paint), 'lit' (the warm-white self-lit letter
  *  + a tight glow — the live layer) */
+// SP5 — THE WEEKLY LOOK (core/harbor-speakeasy.js#bladeStyle on game.style): four Art Deco letter styles, the ink (the game's colour with a
+// white-hot core / warm white / amber), the panel's enamel — the painters repaint all of it on Mondays
+const BLADE_FONT = {
+  block: FONT,                                                                                     // (a bold Deco block: Chakra Petch, stretched wide)
+  condensed: px => `700 ${px}px "Chakra Petch", Orbitron, sans-serif`,                                // (a condensed marquee sans: tall, never stretched)
+  slab: px => `800 ${px}px "JetBrains Mono", "Courier New", monospace`,                             // (a slab)
+  inline: px => `900 ${px}px Orbitron, "Chakra Petch", sans-serif`,                                   // (a heavy Deco face with an inline cut through it)
+};
+const BLADE_WIDE = { block: LETTER.wide, condensed: 1.08, slab: 1.55, inline: 1.45 };
+const lum3 = c => (c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722);
+/** the week's ink colour for a game (the game's painted colour lifted toward white until it reads lit) */
+export function bladeInk(game) {
+  const S = game.style || { ink: 'warm' };
+  if (S.ink === 'warm') return INK_COLS.warm;
+  if (S.ink === 'amber') return INK_COLS.amber;
+  let c = dayPaint(game).face;
+  for (let i = 0; i < 6 && lum3(c) < 150; i++) c = mix(c, [255, 255, 255], 0.22);
+  return c;
+}
+export const bladePanel = game => BLADE_PANELS[(game.style && game.style.panel) || 'navy'] || BLADE_PANELS.navy;
 export function paintLetters(x, game, style, M) {
-  const L = bladeLetters(game.name || game.id);
-  x.save(); x.font = FONT(100); const cap = (x.measureText('H').actualBoundingBoxAscent || 70) / 100; x.restore();
+  const L = bladeLetters(game.name || game.id), S = game.style || { font: 'block', ink: 'warm', panel: 'navy' }, font = BLADE_FONT[S.font] || FONT, wide = BLADE_WIDE[S.font] || LETTER.wide;
+  const ink = bladeInk(game), panel = bladePanel(game);
+  x.save(); x.font = font(100); const cap = (x.measureText('H').actualBoundingBoxAscent || 70) / 100; x.restore();
   for (const col of L.cols) [...col.word].forEach((ch, i) => {
     const size = col.cap / cap, vb = col.top - col.lh * (i + 1) + (col.lh - col.cap) / 2;
     // (one stretch for every letter, from an H: an I stays a narrow stroke, never a block)
-    x.save(); x.font = FONT(size * 100); const nat = x.measureText('H').width / 100, own = x.measureText(ch).width / 100; x.restore();
-    const sq = Math.max(0.6, Math.min(LETTER.wide, (L.cw * LETTER.fill) / Math.max(1e-3, nat), (L.cw * 0.98) / Math.max(1e-3, own)));   // (a wide M / W never past its column)
+    x.save(); x.font = font(size * 100); const nat = x.measureText('H').width / 100, own = x.measureText(ch).width / 100; x.restore();
+    const sq = Math.max(0.6, Math.min(wide, (L.cw * LETTER.fill) / Math.max(1e-3, nat), (L.cw * 0.98) / Math.max(1e-3, own)));   // (a wide M / W never past its column)
+    const inline = S.font === 'inline' ? () => text(x, ch, col.cx, vb + size * 0.04, size * 0.86, { stroke: rgb(panel, 0.9), lw: size * 0.04, sq: sq * 0.86, font }) : null;   // (the inline: a thin cut of the panel's colour inside the letter)
     if (style === 'day') {
-      text(x, ch, col.cx + size * 0.05, vb - size * 0.05, size, { fill: rgb(mix(M.giltLo, [10, 10, 20], 0.3), 0.85), sq });
-      text(x, ch, col.cx, vb, size, { fill: rgb(mix([246, 232, 196], M.inside, 0.5 * M.night)), stroke: rgb(mix(M.gilt, M.inside, 0.5 * M.night)), lw: size * 0.07, sq });
-    } else if (style === 'dark') text(x, ch, col.cx, vb, size, { fill: rgb(M.letterN), stroke: rgb(M.letterN), lw: size * 0.06, sq });
+      const paintCol = S.ink === 'game' ? mix(ink, [255, 255, 255], 0.1) : S.ink === 'amber' ? INK_COLS.amber : [246, 232, 196];
+      text(x, ch, col.cx + size * 0.05, vb - size * 0.05, size, { fill: rgb(mix(M.giltLo, [10, 10, 20], 0.3), 0.85), sq, font });
+      text(x, ch, col.cx, vb, size, { fill: rgb(mix(paintCol, M.inside, 0.5 * M.night)), stroke: rgb(mix(S.ink === 'game' ? mix(ink, [20, 20, 30], 0.45) : M.gilt, M.inside, 0.5 * M.night)), lw: size * 0.07, sq, font });
+      if (inline) inline();
+    } else if (style === 'dark') { text(x, ch, col.cx, vb, size, { fill: rgb(M.letterN), stroke: rgb(M.letterN), lw: size * 0.06, sq, font }); if (inline) inline(); }
     else {
-      text(x, ch, col.cx, vb, size, { fill: 'rgb(255,214,150)', stroke: 'rgb(255,190,120)', lw: size * 0.1, sq, glow: [M.glowPx, 'rgba(255,170,90,0.95)'] });
-      text(x, ch, col.cx, vb, size, { fill: 'rgb(255,246,226)', stroke: 'rgb(255,236,200)', lw: size * 0.05, sq });
+      const body = mix(ink, [255, 255, 255], S.ink === 'game' ? 0.12 : 0.3), edge = mix(ink, [255, 255, 255], 0.05);
+      text(x, ch, col.cx, vb, size, { fill: rgb(body), stroke: rgb(edge), lw: size * 0.1, sq, font, glow: [M.glowPx, rgb(ink, 0.95)] });
+      // (the WHITE-HOT CORE: a smaller letter inside the coloured one — the colour stays the letter's, the core makes it read in any colour)
+      text(x, ch, col.cx, vb + size * 0.1, size * 0.8, { fill: 'rgb(255,250,240)', sq: sq * 0.8, font });
+      if (inline) inline();
     }
   });
 }
@@ -106,7 +134,7 @@ export function paintBlade(x, M, game, lit = false) {
     paintLetters(x, game, 'lit', M);
     return;
   }
-  const enamel = tri(M.T, [24, 30, 50], [30, 28, 44], [10, 11, 22]), giltE = mix(M.gilt, enamel, 0.15);
+  const PN = bladePanel(game), enamel = tri(M.T, PN, mix(PN, [60, 44, 30], 0.18), mix(PN, [0, 0, 0], 0.55)), giltE = mix(M.gilt, enamel, 0.15);   // (SP5: the week's panel colour, by the time of day)
   // the iron brackets from the wall (scrolled arms) at the top and the foot
   x.strokeStyle = rgb(M.iron); x.lineWidth = 0.07; x.lineCap = 'round';
   for (const v of [v1 - 0.55, v0 + 0.35]) { x.beginPath(); x.moveTo(-B.out, v); x.lineTo(0.1, v); x.stroke(); x.beginPath(); x.arc(-B.out * 0.45, v - 0.12, 0.09, 0, Math.PI * 1.6); x.stroke(); }

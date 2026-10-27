@@ -98,7 +98,7 @@ const moveOf = (S, ph) => (((ph % 6) + 6) % 6 === 5 ? 'sway' : S.set[(((ph + S.o
  * (the style's seed) → { move, arms: [[phi, bend], [phi, bend]], sway, dip, spin (a turn added to the heading, rad), hit (0..1: the
  * beat's accent, for the wands) }
  */
-export function danceMoves(idx, beatsF, key = idx) {
+export function danceMoves(idx, beatsF, key = idx, en = null) {
   // (PEO: the dancer's own lag applies in EVERY phrase — it used to drop to 0 on the together phrases, a shift of the whole pose at that boundary)
   const S = danceStyle(key), x0 = beatsF + S.lag, ph = Math.floor(x0 / 8), x = x0 - ph * 8;
   const styleAt = p => ((((p % 6) + 6) % 6) === 5 ? { ...S, mir: 1, amp: 1 } : S);
@@ -119,6 +119,16 @@ export function danceMoves(idx, beatsF, key = idx) {
   const Q = x >= 0.12 ? at(ph, x - 0.12) : at(ph - 1, x - 0.12 + 8);
   P.a0 = [P.a0[0], P.a0[1] + Math.max(-0.3, Math.min(0.7, (P.a0[0] - Q.a0[0]) * 1.4))];
   P.a1 = [P.a1[0], P.a1[1] + Math.max(-0.3, Math.min(0.7, (P.a1[0] - Q.a1[0]) * 1.4))];
+  // SP5 — THE ENERGY (core/harbor-dance.js; en = { dk, cheer, t }): at a song's end the moves slow + soften toward an idle stance (the wands
+  // held low, a slow sway, a shift of weight), a cheer as it ends (both arms up), the pick-up smooth on the new song
+  if (en && en.dk < 0.999) {
+    const dk = Math.max(0, en.dk), idle = 1 - dk, t = en.t || 0, sw = Math.sin(t * 1.1 + idx * 1.7), sh = Math.sin(t * 0.37 + idx * 0.9);
+    const ia0 = [0.42 + 0.1 * sw, 0.45], ia1 = [0.42 - 0.1 * sw, 0.45], ch = Math.max(0, Math.min(1, en.cheer || 0));
+    const mixA = (a, b, k) => [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k];
+    let a0 = mixA(ia0, P.a0, dk), a1 = mixA(ia1, P.a1, dk);
+    if (ch > 0) { a0 = mixA(a0, [2.6, 0.25], ch); a1 = mixA(a1, [2.6, 0.25], ch); }
+    return { move: dk < 0.3 ? 'idle' : cur, arms: [a0, a1], sway: P.sway * dk + 0.28 * sw * idle, dip: P.dip * dk + 0.01 * Math.max(0, sh) * idle, spin: P.spin * dk, hit: acc(((x % 1) + 1) % 1) * dk, en: dk };
+  }
   return { move: cur, arms: [P.a0, P.a1], sway: P.sway, dip: P.dip, spin: P.spin, hit: acc(((x % 1) + 1) % 1) };
 }
 

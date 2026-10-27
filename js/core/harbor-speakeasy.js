@@ -1,4 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 7a: THE SPEAKEASY's plan (PURE — tested in tests/harbor.test.mjs; drawn by screens/harbor/speakeasy.js).
+import { rngFrom, hashString } from './rng.js';
 // The once-grand 1920s Deco corner building on our side of the harbor, its barbershop front the cover. This file holds what the
 // building IS, not how it looks: the rooms behind its windows (the hooks Part 7b's window MOMENTS animate), the weekly GHOST AD on
 // its blade sign (the owner's pick, 8a — the corner-turn preview is gone).
@@ -66,6 +67,33 @@ export const AD_EPOCH = Date.UTC(2026, 0, 5, 9, 0);
 /** the rotation: one ad per game, each about every 12 weeks, neighbours in different colours */
 export const AD_ORDER = Object.freeze(['rum', 'golf', 'stakes', 'pulse', 'cipher', 'overclock', 'agent', 'slip', 'gridlock', 'bluff', 'prism', 'signal']);
 export const adWeek = ms => Math.floor((ms - AD_EPOCH) / WEEK);
+// ------------------------------------------------------------------ SP5 — THE BLADE'S WEEKLY LOOK (the owner: never boring)
+/** Each Monday's repaint (the sign painters, 1–4 pm) changes THE GAME + THE LETTER COLOUR + THE LETTER STYLE + THE PANEL COLOUR; the
+ *  marquee bulbs stay warm white. Four letter styles from one 1920s Art Deco family — never a script, never the same style two weeks
+ *  running (an iterative seeded walk from the epoch's week, the same on every phone); the ink: the GAME's colour with a white-hot core
+ *  (most weeks), a classic warm white or an amber; the panel: one of five dark enamels. By day the painted letters + the panel vary the
+ *  same way. forced ('<font>-<ink>-<panel>', the &blade= preview) overrides any part. */
+export const BLADE_FONTS = Object.freeze(['block', 'condensed', 'slab', 'inline']);
+export const BLADE_INKS = Object.freeze(['game', 'warm', 'amber']);
+export const BLADE_PANELS = Object.freeze({ navy: [24, 30, 50], green: [14, 42, 34], burgundy: [54, 16, 28], charcoal: [26, 26, 31], violet: [34, 20, 54] });
+export const INK_COLS = Object.freeze({ warm: [255, 214, 150], amber: [255, 168, 56] });
+const styleMemo = new Map();
+export function bladeStyle(week, forced = null) {
+  const w = Math.max(0, week | 0);
+  let font = styleMemo.get(w);
+  if (!font) {
+    let f = BLADE_FONTS[Math.floor(rngFrom(hashString('blade-font|0'))() * 4)], from = 0;
+    for (let i = w; i > 0; i--) if (styleMemo.has(i)) { f = styleMemo.get(i); from = i; break; }
+    for (let i = from + 1; i <= w; i++) { const r = rngFrom(hashString(`blade-font|${i}`)), others = BLADE_FONTS.filter(x => x !== f); f = others[Math.floor(r() * others.length)]; styleMemo.set(i, f); }
+    if (w === 0) styleMemo.set(0, f);
+    font = f;
+  }
+  const r = rngFrom(hashString(`blade-look|${w}`)), u = r();
+  const out = { font, ink: u < 0.62 ? 'game' : u < 0.86 ? 'warm' : 'amber', panel: Object.keys(BLADE_PANELS)[Math.floor(r() * 5)] };
+  if (forced) { const [f, i, pn] = String(forced).split('-'); if (BLADE_FONTS.includes(f)) out.font = f; if (BLADE_INKS.includes(i)) out.ink = i; if (BLADE_PANELS[pn]) out.panel = pn; }
+  out.key = `${out.font}-${out.ink}-${out.panel}`;
+  return out;
+}
 /** this week's ghost ad: a game id from `ids` (the playable games), the same for everyone; `avoid`: tonight's billboard game (the
  *  board stands right behind the speakeasy — on a night it shows the same game, the ad is the next one in the rotation) */
 export function ghostAdGame(ms, ids, avoid = null) {

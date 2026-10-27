@@ -19,6 +19,7 @@ import { drawBus } from './bus.js';
 import { createVehicles, UNDERGLOW } from './vehicles.js';
 import { beaconOf, drawBeacon } from './raid.js';
 import { danceMoves, drawWands } from './wands.js';
+import { createDanceClock, stepDanceClock } from '../../core/harbor-dance.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -54,6 +55,7 @@ export function createPeople() {
   // PEO (Oct 25) — THE MOTION PROBE: the planner's cost this frame (folkAt + roofAt, ms) + the env of the last NEAR draw, so rigs() can
   // hand a test the exact screen joints of the frame just drawn (tests/integration/e2e-harbor.mjs `street`: the judder + foot-slide check)
   let frameMs = 0, frameMsMax = 0, lastEnv = null, lastBeatsF = 0;
+  const PD = createDanceClock(); let pdT = null;   // (SP5: the promenade dancers' energy — core/harbor-dance.js)
   const pnow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   function layout(l) { L = l; mapKey = ''; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; }
   function ensureMap(event) {
@@ -205,6 +207,8 @@ export function createPeople() {
     const hands = new Map(), collars = new Map(), taut = new Set(), pins = [], bearers = new Map();
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
     const bt = env.beat, beatsF = danceBeat(bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, env.t || 0), advance = pass === 'near' && env.t !== wandT;
+    if (pass === 'near') { stepDanceClock(PD, pdT == null ? 0 : Math.max(0, (env.t || 0) - pdT), bt && bt.beatsF != null ? { beatsF: bt.beatsF, gap: !!bt.gap, left: bt.left == null ? null : bt.left, id: bt.id || null } : null); pdT = env.t || 0; }
+    const EN = { dk: env.mo === false ? 1 : PD.dk, cheer: PD.cheer, t: env.t || 0 };
     if (advance) { wandT = env.t; if (trails.size > 40) trails.clear(); }
     if (pass === 'near') { lastEnv = env; lastBeatsF = beatsF; }
     const nDancers = items.filter(m => m.kind === 'dancer').length || 1;
@@ -231,7 +235,7 @@ export function createPeople() {
       if (riding.has(it.m)) continue;
       const mem = it.m, look = lookFor(mem, env);
       let st = mem.s, mv = null;
-      if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF, mem.vid); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+      if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF, mem.vid, EN); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
       // (8b1: the bootleggers' lookout keeps turning his head — up the street, down it, back)
       else if (st.pose === 'lookout') st = { ...st, hd: st.hd + 0.85 * Math.sin((env.t || 0) * 0.55 + (mem.m.seed % 7)) };
       else if (mem.kind === 'watcher') st = { ...st, beatF: beatsF };
@@ -522,7 +526,7 @@ export function createPeople() {
     traffic: (() => { const at = v => (typeof v === 'number' && isFinite(v) ? +v.toFixed(1) : null);   // (never throw inside harbor(): the panel reads it too)
       return () => ({ cars: (now.cars || []).map(c => ({ id: c.id, ts: at(c.ts), cab: !!c.cab })), buses: (now.buses || []).map(b => ({ id: b.id, tE: at(b.tE) })), trucks: ((now.crew && now.crew.trucks) || []).map(T => ({ id: T.id, tE: at(T.tE != null ? T.tE : T.tA) })) }); })(),
     /** FP3b — THE DANCE CIRCLE now: { on, k (0..1 formed), id, s0, s1 } (the scene lights the inlay's floor spots + keeps the cart away) */
-    dance: () => ({ ...(now.dance || { on: false, k: 0 }) }),
+    dance: () => ({ ...(now.dance || { on: false, k: 0 }), energy: +PD.dk.toFixed(2), cheer: +PD.cheer.toFixed(2), gap: PD.gap }),   // (SP5: the dancers' energy + the gap between songs)
     /** 8b1 — THE WORKERS now: who's out (kinds), the traces (the milk on the step, the board's game, the blade's repaint, the faults…), the props, the trucks */
     crew: () => (now.crew ? { works: now.crew.works, traces: now.crew.traces, props: (now.crew.props || []).map(p => p.kind), trucks: (now.crew.trucks || []).map(T => ({ id: T.id, model: T.model, x: +T.x.toFixed(2), parked: T.parked })), roof: (now.crew.roof || []).map(m => ({ kind: m.kind, pose: m.s.pose, x: +m.s.x.toFixed(2), y: +(m.s.y || 0).toFixed(2) })), members: now.members.filter(m => m.routine === 'work').map(m => ({ id: m.vid, kind: m.kind, pose: m.s.pose, carry: m.s.carry || null, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), y: +(m.s.y || 0).toFixed(2) })) } : null),
     /** FP3b — THE VENDOR SPOT now: the chestnut cart { on, x, parked, moving } */
@@ -544,7 +548,7 @@ export function createPeople() {
       const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...lineMembers(t)].filter(m => m.s.z <= FOLK.roadZ && !insideDoor(m) && m.m.role !== 'dog');
       for (const mem of all) {
         let st = mem.s, mv = null;
-        if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, lastBeatsF, mem.vid); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+        if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, lastBeatsF, mem.vid, { dk: PD.dk, cheer: PD.cheer, t: lastEnv ? lastEnv.t || 0 : 0 }); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
         const { J, fx, fy, H } = rigOf(L.cam, st, lookFor(mem, env), t, env.mo !== false, st.y || 0);
         out.push({ id: mem.vid, role: mem.m.role, kind: mem.kind, pose: st.pose, x: st.x, z: st.z, y: st.y || 0, hd: st.hd, dist: st.dist || 0, v: st.v || 0, fx, fy, H, feet: J.feet, planted: J.planted, heel: J.heel, hands: J.hands, elbows: J.elbows, shs: J.shs, head: J.head, move: mv ? mv.move : null, beatsF: mv ? lastBeatsF : null });
       }
