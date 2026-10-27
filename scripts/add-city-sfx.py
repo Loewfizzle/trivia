@@ -27,6 +27,14 @@ For each file (the originals are never touched — read only, decoded through ff
     meeting the sill — callers align it); `to` the slot this cut goes to (one source, several slots); `name` its file's stem;
     `kbps` its bitrate (a low-passed bed: 40). SKIP names the folder's files that are never imported (stand-ins, alternatives,
     files that failed the checks)
+  * 11a-2's extras (the Thanksgiving + parade set): `af` an ffmpeg audio filter chain run at DECODE, before the mono fold (a 5.1
+    file's own fold-down with `pan=mono|…` — ffmpeg's default downmix assumes FL FR FC LFE BL BR, wrong for a film-order L C R Ls Rs
+    LFE file; a 78's `adeclick,anlmdn`); `deess` (dB, lo, hi) a soft dynamic cut of the lo–hi band where it pokes over its own
+    median (≤ dB: the kids' squeal, the 2–6 kHz harshness); `mixin` {f, at, lu, hp, lp} ANOTHER recording of the folder laid under a
+    LOOP — read continuously from `at` s for the loop + its tail (so the seam stays seamless), its own low cut / low-pass, `lu` LU
+    against the main recording (the parade's adult murmur under the kids); `verb` (wet, pre-delay s, RT60 s, lp Hz) a simple hall
+    — a synthetic impulse (seeded noise, an exponential decay, low-passed: never brighter), pre-delayed, mixed `wet` (0–1) at the
+    dry's own RMS, after the mixin. The files keep the house levels (below): the brief's quieter beds are the SLOT's gain
   * a one-shot's PEAK = the loudest 0.3 s of its RMS envelope (s) and its SWELL `sw` = where it stays within 15 dB of that —
     measured on the encoded file (the motorcar lines its crossing up with them: FP3)
   * a LOOP keeps its window + a TAIL (the audio right after it, `xf` s): audio/city-sound.js crossfades the tail into the head at
@@ -435,11 +443,50 @@ CUTS = {
     # (15.2 s Pixabay MP3, a tube hum swelling up: 62 % under 150 Hz — a phone loses ~11 LU. 0–9 s (the swell + the hum), HEAVY
     # saturation + a duplicate layer high-passed at 180 Hz so its harmonics carry it; it plays as the power stutters back)
     'power-restore': [{'cut': (0.0, 9.0), 'fin': 0.3, 'fout': 2.2, 'hp': 50, 'sat': (8.0, 1.4, 170), 'dup': (180, 6.0)}],
+    # ---- 11a-2 — THANKSGIVING + THE PARADE (credits.txt "Thanksgiving + parade sounds"; Grok's processing brief, measured — not
+    # listened to: per-band energies, the 0.25–1 s envelope, the voiced share + one-voice F0 continuity + the 3–6 Hz syllabic
+    # modulation per 0.5 s for words, tonal lines + self-similarity for the 78; docs/audio.md#11a-2). Distance = a low-pass + a hall
+    # (`verb`), never brighter; levels: the house's (loops −24, one-shots −20 LUFS) — the brief's −30 LUFS beds are the SLOT gains
+    # (0.05 against the cheer's 0.1: the brief's 10 dB between a bed and a one-shot)
+    # (5.2 s Mixkit, a flock of geese honking past — 88 % of it 400–1500 Hz, no clipping: the whole file, the brief's long fades; mono —
+    # the slow L → R pan is the caller's: citySound's handle .set({ pan }, ramp) / sounds.js run() with the V's x)
+    'geese-v': [{'cut': (0.0, 5.22), 'fin': 1.5, 'fout': 2.0, 'hp': 200, 'lp': 4000, 'verb': (0.25, 0.03, 1.6, 3000), 'rate': 16000, 'kbps': 48}],
+    # (31.1 s Pixabay MP3, kids cheering + clapping: no word-like stretch (the voiced bursts at 1.5 + 16–17 s are one held "yaaay" —
+    # syllabic modulation 0.12–0.26), a possible "Bye!" past 30 s left out: the loop + its tail end by 30.0 s. Squealy (27 % at
+    # 1.5–4 kHz): de-essed 2.5–6 kHz, low-passed 6 kHz. THE PARADE CROWD = the kids + the adult murmur (parade-crowd-2.wav, a large
+    # outdoor reception: babble, voiced ≤ 0.4) laid 4.5 LU under, from 0.0 s — its one word-like half-second (30.0 s: one voice
+    # held + syllabic) stays outside — low-passed harder than the brief's 5 kHz (3 kHz: no word readable) — ONE loop)
+    'parade-crowd': [{'loop': (0.6, 27.3), 'xf': 2.0, 'search': 0.1, 'hp': 150, 'deess': (6.0, 2500, 6000), 'lp': 6000,
+                      'mixin': {'f': 'parade-crowd-2.wav', 'at': 0.0, 'lu': -4.5, 'hp': 150, 'lp': 3000},
+                      'verb': (0.15, 0.025, 1.0, 3500), 'rate': 16000, 'kbps': 48}],
+    # (10.9 s Sonniss, a stadium's big surge, 5.1 at 96 kHz in FILM order (L C R Ls Rs LFE — measured: channel 6 is the −54 dB LFE):
+    # folded by hand (L + R + 0.707 C, the surrounds −3 dB, the LFE dropped), 1.0–9.5 s; one held "woo" at 6–7 s, no words; already
+    # dark (93 % at 400–1500 Hz) — kept far back by its low gain)
+    'parade-cheer': [{'cut': (1.0, 9.5), 'af': 'pan=mono|c0=0.5*c0+0.707*c1+0.5*c2+0.354*c3+0.354*c4', 'fin': 0.05, 'fout': 1.5,
+                      'hp': 120, 'lp': 6000, 'verb': (0.2, 0.025, 1.4, 3500), 'rate': 16000, 'kbps': 48}],
+    # (4:08, the US Marine Band's "Washington Post March", Edison Diamond Disc 1923, a FLAT transfer: 40 % of its energy is rumble
+    # < 150 Hz, the hiss 4–8 kHz 6 dB over the band's mids, dense crackle; the band itself clear (held notes in 55–93 % of frames
+    # past 20 s). A ONE-SHOT, not a loop: no exact musical repeat found through the noise and a crossfaded seam would blend two bars of
+    # a march — "a band passes" (2–92 s, the brief's 2 s in / 4 s out), chained by the caller. Mono first, then adeclick + anlmdn (the
+    # 400–3000 Hz floor −8.9 dB, the music's peaks −2.3, ~two-thirds of the crackle impulses left: the trace), HPF 150, an outdoor
+    # hall: two blocks away. At the brief's LPF 3.5 kHz HALF its energy sat at 2–5 kHz (the crackle + hiss — harsh on a phone): the
+    # 1.8–4.5 kHz peaks de-essed 6 dB + LPF 3 kHz (still the brief's 2.5–4 kHz "far" range) → 24 %, the band over the floor unchanged.
+    # The disc's end thump (~241 s) far outside)
+    'marching-band-far': [{'cut': (2.0, 92.0), 'af': 'pan=mono|c0=0.5*c0+0.5*c1,adeclick,anlmdn=s=7', 'fin': 2.0, 'fout': 4.0,
+                           'hp': 150, 'deess': (6.0, 1800, 4500), 'lp': 3000, 'verb': (0.3, 0.035, 1.2, 2500), 'rate': 16000, 'kbps': 40}],
+    # (79 s Pixabay MP3, a big flag flapping — gusty (−29 … −44 dB a second), 18 % under 120 Hz; the louder gust from 75 s left out: a
+    # 48 s window of the first 72 s; stands in for a giant parade balloon's fabric)
+    'balloon-flap': [{'loop': (2.0, 48.0), 'xf': 3.0, 'search': 2.0, 'hp': 120, 'lp': 7000, 'verb': (0.12, 0.02, 0.8, 4000), 'rate': 16000, 'kbps': 40}],
+    # (21.8 s Freesound CC0, raking leaves: a stroke every ~1.5 s, 74 % of it over 4 kHz (bright, not harsh: little at 2–5 kHz). The
+    # whole file as a loop from one gap between strokes (2.4 s) to another (20.7 s) — a 1.3 s beat across the seam, like the rest —
+    # with a 1 s seam; the 2–5 kHz peaks de-harshed 4 dB (57 → 42 % there — the broom's 82 % and the squeegee's 47–82 % are this
+    # city's scrapes); a short street hall)
+    'leaves-rake': [{'loop': (2.4, 18.3), 'xf': 1.0, 'search': 0.05, 'hp': 150, 'deess': (4.0, 2000, 5000), 'lp': 7000, 'verb': (0.15, 0.015, 0.6, 5000), 'rate': 16000, 'kbps': 48}],
 }
 # source files named after what they are, not their slot (the folder's names) → the slot
 ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-formation': 'jet-flyby', 'tr3b-powerdown': 'tr3b-power-down',
          'club-murmur': 'club-murmur-calm', 'mirror-door': 'door-heavy', 'bar-ambience-close': 'bar-open', 'window-sash': 'window-sash-up',
-         'secret-knock': 'door-knock'}
+         'secret-knock': 'door-knock', 'marching-band-far': 'parade-band'}
 # never imported (8P): the diesel bus stand-ins (the 1945 truck's takes instead), the "haunted" door alternatives, the TV murmur (MUSIC
 # held in it — G4 / E5 / G5 notes for 1–1.9 s at 26–41 s — and one clear talker: modulation 0.5–1.1), the slot (inside the knock)
 # 6b: traffic-far (MODERN traffic — the owner: leave the slot empty), trash-truck (a modern ZIL diesel standing still: start, revs, stop —
@@ -449,7 +496,9 @@ ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-form
 SKIP = {'bus-idle', 'bus-depart', 'mirror-door-open', 'mirror-door-close', 'tv-murmur', 'door-slot',
         'traffic-far', 'trash-truck', 'raccoon-chitter', 'police-car-1920s', 'duck-quack',
         # 8b1: the second try at far traffic still measures as MODERN (a continuous wash: CUTS['traffic-far-2'] has its cut, ready)
-        'traffic-far-2'}
+        'traffic-far-2',
+        # 11a-2: the adult murmur is laid INSIDE parade-crowd (its `mixin`), never a take of its own
+        'parade-crowd-2'}
 PIXABAY = ('The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — '
            'the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).')
 CREDIT_NOTE = {
@@ -466,6 +515,21 @@ CREDIT_NOTE = {
     'door-slot': 'Used inside door-knock (THE SECRET KNOCK: the peephole slot after the knocks).',
     'gulls': 'The file imported is the lossless Freesound original named in this block (TRP, sound 574388, CC0 1.0; FLAC 48 kHz '
              '24-bit stereo, 0:52), not the Pixabay MP3 copy.',
+    'parade-crowd': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original. '
+                    'parade-crowd-2.wav (credited below) is laid under it as the adult murmur.',
+    'parade-crowd-2': 'Used inside parade-crowd (the adult murmur laid under the kids).',
+    'balloon-flap': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',
+    'marching-band-far': 'Public domain in the US only (a 1923 US sound recording + an 1889 composition); the import is a 90 s excerpt, '
+                         'declicked, denoised and filtered.',
+}
+# credits.txt lists some downloads only as a line under "DOWNLOAD YOURSELF FROM FREESOUND" (not a block of their own): their blocks
+# here (11a-2), used when the folder's credits.txt has none for that file
+CREDIT_BLOCK = {
+    'leaves-rake.wav': ['leaves-rake.wav', '  "Raking leaves" - markbolden (Freesound 421790)', '  Page: https://freesound.org/people/markbolden/sounds/421790/',
+                        '  Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed'],
+    'parade-crowd-2.wav': ['parade-crowd-2.wav', '  "Large Crowd at an Outdoor Reception" - timothyd4y (Freesound 472606; WAV 48 kHz / 24-bit)',
+                           '  Page: https://freesound.org/people/timothyd4y/sounds/472606/',
+                           '  Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed'],
 }
 
 
@@ -486,11 +550,12 @@ def run_ff(args):
     raise RuntimeError(r.stderr.decode('utf-8', 'replace')[-400:])
 
 
-def decode(path, t0=None, t1=None):
+def decode(path, t0=None, t1=None, af=None):
+    """the source, read only → mono float at SR; `af` (11a-2) an ffmpeg filter chain run first, at the file's own rate + channels"""
     a = []
     if t0 is not None: a += ['-ss', f'{t0:.3f}']
     if t1 is not None: a += ['-t', f'{t1 - (t0 or 0):.3f}']
-    r = run_ff([*a, '-i', str(path), '-map', '0:a:0', '-f', 'f32le', '-ac', '1', '-ar', str(SR), '-'])
+    r = run_ff([*a, '-i', str(path), '-map', '0:a:0', *(['-af', af] if af else []), '-f', 'f32le', '-ac', '1', '-ar', str(SR), '-'])
     return np.frombuffer(r.stdout, dtype=np.float32).astype(np.float64)
 
 
@@ -702,7 +767,7 @@ def credit_for(blocks, name):
     stem = Path(name).stem
     for k, v in blocks.items():
         if Path(k).stem == stem: return v
-    return None
+    return CREDIT_BLOCK.get(name)
 
 
 LICENCE_OK = re.compile(r'CC0|Sonniss|royalty-free|public domain|Mixkit Sound Effects Free License|Pixabay Content License', re.I)
@@ -766,8 +831,59 @@ def shape(y, cut):
         # (8b1: a DUPLICATE layer high-passed at `hz`, `db` louder — a hum's harmonics carry it on a phone's speaker)
         hz, db = cut['dup']
         y = y + sosfiltfilt(butter(4, hz, 'highpass', fs=SR, output='sos'), y) * 10 ** (db / 20)
+    if cut.get('deess'): y = deess(y, *cut['deess'])
     if cut.get('lp'): y = lowpass(y, cut['lp'])
     return y
+
+
+def deess(y, db, lo, hi, ratio=3.0):
+    """11a-2 — `deess` (dB, lo, hi): the lo–hi band split off (zero-phase, so band + rest = the input), its 10 ms level against its own
+    median; where it pokes over, it comes down by (excess × (1 − 1/ratio)), at most `db` — a fast attack, a 60 ms release"""
+    band = sosfiltfilt(butter(2, [lo, hi], 'bandpass', fs=SR, output='sos'), y)
+    rest = y - band
+    w = max(1, int(0.01 * SR))
+    cs = np.concatenate([[0.0], np.cumsum(band ** 2)])
+    idx = np.arange(len(y))
+    a, b = np.maximum(0, idx - w // 2), np.minimum(len(y), idx + w // 2 + 1)
+    env = 10 * np.log10((cs[b] - cs[a]) / (b - a) + 1e-15)
+    red = np.clip((env - np.median(env)) * (1 - 1 / ratio), 0, db)
+    out, cur, r = np.empty(len(y)), 0.0, 1 - np.exp(-32 / (0.06 * SR))
+    for i in range(0, len(y), 32):
+        t = red[i:i + 32].max()
+        cur = t if t > cur else cur + (t - cur) * r
+        out[i:i + 32] = cur
+    return rest + band * 10 ** (-out / 20)
+
+
+def reverb(y, wet, pre, rt60, lp, seed=11):
+    """11a-2 — `verb` (wet, pre-delay s, RT60 s, lp Hz): a simple hall — a synthetic impulse (seeded noise × an exponential decay to
+    −60 dB at rt60, low-passed at lp: the far end of a street is darker, never brighter), pre-delayed, convolved; the reverb brought
+    to the dry's RMS and mixed (1 − wet) dry + wet reverb"""
+    from scipy.signal import fftconvolve
+    n = int(rt60 * SR)
+    t = np.arange(n) / SR
+    ir = np.random.default_rng(seed).standard_normal(n) * 10 ** (-3 * t / rt60)
+    ir = sosfiltfilt(butter(2, lp, 'lowpass', fs=SR, output='sos'), ir)
+    k = min(n, int(0.004 * SR)); ir[:k] *= np.linspace(0, 1, k)          # (a 4 ms onset: no click)
+    ir = np.concatenate([np.zeros(int(pre * SR)), ir])
+    w = fftconvolve(y, ir)[:len(y)]
+    w *= np.sqrt(np.mean(y ** 2)) / (np.sqrt(np.mean(w ** 2)) + 1e-12)
+    return (1 - wet) * y + wet * w
+
+
+def mixin(y, off, L, m, folder):
+    """11a-2 — `mixin` {f, at, lu, hp, lp}: another recording laid under a loop. y is the loop's decoded stretch with the loop's start
+    at sample `off`; the mixin's `at` s lines up with it, read continuously for all of y (before its start: silence), its own low cut
+    + colour, brought to `lu` LU against the main recording's body"""
+    p = folder / m['f']
+    s0 = m['at'] - off / SR
+    z = decode(p, max(0.0, s0), s0 + len(y) / SR, m.get('af'))
+    if s0 < 0: z = np.concatenate([np.zeros(int(round(-s0 * SR))), z])
+    z = np.pad(z, (0, max(0, len(y) - len(z))))[:len(y)]
+    z = shape(sosfiltfilt(butter(2, m.get('hp', 120), 'highpass', fs=SR, output='sos'), z), m)
+    body = slice(off, off + int(round(L * SR)))
+    z *= 10 ** ((lufs(y[body]) + m['lu'] - lufs(z[body])) / 20)
+    return y + z
 
 
 def saturate(y, drive, mix, lo):
@@ -860,21 +976,24 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
         # the seam: the start nudged (± `search` s, default 5) to where the head and the tail match best
         span = cut.get('search', 5.0)
         a0 = max(0.0, t0 - span - pad)
-        raw = decode(path, a0, t0 + span + L + xf + pad)
+        raw = decode(path, a0, t0 + span + L + xf + pad, cut.get('af'))
         f = shape(sosfiltfilt(sos, raw), {**cut, 'lp': None})
         s0 = max(a0 + pad, t0 - span)
+        if s0 >= t0 + span: s0 = max(0.0, t0 - span)       # (11a-2: a loop within its pre-roll of the file's start — search without it)
         i0 = int(round((s0 - a0) * SR))
         dt, _ = seam_search(f[i0:], L, xf, (t0 + span - s0) / 2)
         t0 = s0 + (t0 + span - s0) / 2 + dt
         cut = {**cut, 'loop': (round(t0, 2), L)}
-        raw = decode(path, max(0.0, t0 - pad), t0 + L + xf + pad)
+        raw = decode(path, max(0.0, t0 - pad), t0 + L + xf + pad, cut.get('af'))
         off = int(round((t0 - max(0.0, t0 - pad)) * SR))
         y = shape(sosfiltfilt(sos, raw), cut)
+        if cut.get('mixin'): y = mixin(y, off, L, cut['mixin'], path.parent)
     else:
         t0, t1 = cut['cut']
-        raw = decode(path, max(0.0, t0 - pad), t1 + pad)
+        raw = decode(path, max(0.0, t0 - pad), t1 + pad, cut.get('af'))
         off = int(round((t0 - max(0.0, t0 - pad)) * SR))
         y = shape(sosfiltfilt(sos, raw), cut)
+    if cut.get('verb'): y = reverb(y, *cut['verb'])
     hit = None
     if 'loop' in cut:
         y = y[off:off + int(round((L + xf) * SR))]
@@ -971,8 +1090,8 @@ def main():
                     files.setdefault(sid, []).append(take)
             used_slots = sorted(set([c.get('to', slot) for c in cuts] + [s for c in cuts for s in c.get('also', [])]))
             sources[stem] = {'file': p.name, 'md5': h, 'slots': used_slots, 'credit': cr, 'note': CREDIT_NOTE.get(stem)}
-            # (a take assembled from other files of the folder: those are credited too)
-            for f in sorted(set(x[0] for c in cuts for x in c.get('seq', []) if x[0])):
+            # (a take assembled from other files of the folder — a `seq` piece, a `mixin` layer: those are credited too)
+            for f in sorted(set([x[0] for c in cuts for x in c.get('seq', []) if x[0]] + [c['mixin']['f'] for c in cuts if c.get('mixin')])):
                 q = p.parent / f
                 sources[Path(f).stem] = {'file': f, 'md5': md5(q), 'slots': used_slots, 'credit': credit_for(blocks, f), 'note': CREDIT_NOTE.get(Path(f).stem)}
     if a.dry_run: return

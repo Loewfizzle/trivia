@@ -155,6 +155,9 @@ export const SLOTS = [
   S('jet-flyby', 'sky', 'once', 0.198, 'jets flying by right → left (the air show) — REALLY loud: the music ducks for the pass (`duck`)', 'the jets’ pass (8P: sounds.jets(o) — panned right → left over its swell, the music dipped ~5 dB round its peak)', { duck: 0.56 }),
   S('balloon-burner', 'sky', 'once', 0.111, 'a hot air balloon’s burner whoosh, far off (five bursts, low-passed)', 'the balloons while they’re up: a burn every ~6–18 s'),
   S('geese', 'sky', 'once', 0.075, 'a skein of geese honking overhead (~28 s: one crossing)', 'the geese while a V crosses: one flyover a V, panned with it'),
+  // (11a-2 — a SHORT V passing over (5.2 s: the honks swell + fade, its fades baked in) — a moment, not a crossing: mono, so the caller
+  // pans it L → R with the V (run('geese-v', g, panX(x), { chain: false }) or the handle's set({ pan }, ramp)); ~4 dB under the cheer)
+  S('geese-v', 'sky', 'once', 0.06, 'a V of geese passing over: a few honks swelling + fading (5.2 s, low-passed 4 kHz, a hall)', ''),
   // (POLISH 4, the owner: "the drones have NO SOUND" — at −51.5 LUFS under the music's duck it was never heard: +7.4 dB (0.064 → 0.15),
   // a soft hum under the helicopter, clearly there while the fleet flies)
   S('drone-swarm', 'sky', 'loop', 0.15, 'the drone show’s soft swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
@@ -173,6 +176,16 @@ export const SLOTS = [
   // (11a-1 — HALLOWEEN: the haunted wind under Halloween night; the black cat's hiss when tapped — synthesized, scripts/build-synth-sfx.py)
   S('haunted-wind', '11', 'loop', 0.05, 'a haunted wind: a hollow moaning wind through the streets (Halloween night)', 'Halloween night, low under the city (sounds.js#holiday)'),
   S('cat-hiss', '11', 'once', 0.12, 'a cat’s hiss: a sharp breathy spit + hold (synthesized)', 'the black cat on the speakeasy’s step, tapped (11a-1)'),
+  // (11a-2 — THANKSGIVING + THE PARADE: heard from across the street (low-passed + a hall, never brighter). Grok's brief: beds at −30
+  // LUFS, one-shots at −20 — the files keep the house levels (−24 / −20), so the brief's balance is in these gains: the beds 0.05 =
+  // 10 dB under the cheer's 0.1 (≈ −50 LUFS into the bus, the market's / the line's family); the band a ONE-SHOT (a 90 s pass:
+  // chain it while the parade runs — run('parade-band', g, pan) — a looped march would blend two bars at its seam) at −20 LUFS
+  // × 0.032 = the beds' −50)
+  S('parade-crowd', '11', 'loop', 0.05, 'the parade crowd across the street: kids cheering + clapping over an adult murmur 4.5 LU under (one loop; de-essed, low-passed 6 / 3 kHz: no word readable)', ''),
+  S('parade-cheer', '11', 'once', 0.1, 'a crowd’s big cheer as a float passes, far back (a stadium surge folded from 5.1, 8.5 s)', ''),
+  S('parade-band', '11', 'once', 0.032, 'a brass band two blocks away: the US Marine Band’s 1923 "Washington Post March" from a 78, a 90 s pass (2 s in, 4 s out; the crackle’s trace kept, low-passed 3.5 kHz)', ''),
+  S('balloon-flap', '11', 'loop', 0.05, 'a giant parade balloon’s fabric flapping in the wind (a big flag, low-passed 7 kHz)', ''),
+  S('leaves-rake', '11', 'loop', 0.05, 'someone raking leaves: a stroke every ~1.5 s (an 18 s loop, a short street hall)', ''),
   S('sleigh-bells', 'sky', 'once', 0.1, 'sleigh bells (Christmas)'),
   // ---- LEGENDARY EVENTS
   S('ghost-ship-creak', 'legend', 'loop', 0.08, 'the ghost ship: creaking wood'),

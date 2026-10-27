@@ -14,6 +14,9 @@ export const FILES = /*FILES*/{
     {"f": "balloon-burner_4.mp3", "v": "9e382bbd", "d": 5.75, "lufs": -20.4, "peak": 0.55, "sw": [0.15, 4.05], "from": [15.75, 21.5], "src": "balloon-burner", "w": 0.6, "r": 16000},
     {"f": "balloon-burner_5.mp3", "v": "c017d61c", "d": 9.55, "lufs": -20.4, "peak": 7.25, "sw": [0.15, 9.05], "from": [22.45, 32.0], "src": "balloon-burner", "w": 0.5, "r": 16000}
   ],
+  "balloon-flap": [
+    {"f": "balloon-flap.mp3", "v": "230c0924", "d": 51.0, "lufs": -25.2, "loop": 48.0, "xf": 3.0, "from": [1.6, 52.6], "src": "balloon-flap", "r": 16000}
+  ],
   "bar-open": [
     {"f": "bar-open.mp3", "v": "18a43fd0", "d": 8.0, "lufs": -20.4, "peak": 0.8, "sw": [0.35, 7.25], "from": [62.0, 70.0], "src": "bar-ambience-close", "r": 16000}
   ],
@@ -133,6 +136,9 @@ export const FILES = /*FILES*/{
   "geese": [
     {"f": "geese.mp3", "v": "bc5363bd", "d": 22.0, "lufs": -20.8, "peak": 19.2, "sw": [17.9, 20.15], "from": [12.0, 34.0], "src": "geese", "r": 16000}
   ],
+  "geese-v": [
+    {"f": "geese-v.mp3", "v": "05e941cf", "d": 5.218, "lufs": -20.4, "peak": 1.95, "sw": [0.6, 4.65], "from": [0.0, 5.22], "src": "geese-v", "r": 16000}
+  ],
   "ghost-bell": [
     {"f": "ghost-bell.mp3", "v": "d9a5dbd4", "d": 3.106, "lufs": -20.5, "peak": 0.2, "sw": [0.15, 0.95], "from": [0.09, 3.19], "src": "ghost-bell"}
   ],
@@ -183,6 +189,9 @@ export const FILES = /*FILES*/{
     {"f": "laugh-distant_1.mp3", "v": "d990b77f", "d": 2.75, "lufs": -20.4, "peak": 0.95, "sw": [0.15, 2.5], "from": [0.0, 2.75], "src": "laugh-distant"},
     {"f": "laugh-distant_2.mp3", "v": "2e63c0c4", "d": 1.32, "lufs": -20.4, "peak": 0.45, "sw": [0.15, 1.05], "from": [2.8, 4.12], "src": "laugh-distant"}
   ],
+  "leaves-rake": [
+    {"f": "leaves-rake.mp3", "v": "60fae8fd", "d": 19.3, "lufs": -24.3, "loop": 18.3, "xf": 1.0, "from": [2.35, 21.65], "src": "leaves-rake", "r": 16000}
+  ],
   "line-murmur": [
     {"f": "line-murmur.mp3", "v": "7ca5e8ac", "d": 26.5, "lufs": -24.4, "loop": 24.0, "xf": 2.5, "from": [163.5, 190.0], "src": "bar-ambience-close", "r": 16000}
   ],
@@ -195,6 +204,15 @@ export const FILES = /*FILES*/{
   ],
   "newspaper-rustle": [
     {"f": "newspaper-rustle.mp3", "v": "7beeccf9", "d": 0.778, "lufs": -20.2, "peak": 0.35, "sw": [0.15, 0.6], "from": [0.0, 0.78], "src": "newspaper-rustle"}
+  ],
+  "parade-band": [
+    {"f": "marching-band-far.mp3", "v": "48dde6d3", "d": 90.0, "lufs": -20.4, "peak": 4.05, "sw": [0.8, 26.0], "from": [2.0, 92.0], "src": "marching-band-far", "r": 16000}
+  ],
+  "parade-cheer": [
+    {"f": "parade-cheer.mp3", "v": "419f9eb1", "d": 8.5, "lufs": -20.4, "peak": 5.85, "sw": [0.15, 7.4], "from": [1.0, 9.5], "src": "parade-cheer", "r": 16000}
+  ],
+  "parade-crowd": [
+    {"f": "parade-crowd.mp3", "v": "67649432", "d": 29.3, "lufs": -24.4, "loop": 27.3, "xf": 2.0, "from": [0.5, 29.8], "src": "parade-crowd", "r": 16000}
   ],
   "periscope-ping": [
     {"f": "periscope-ping.mp3", "v": "991b4d4d", "d": 4.288, "lufs": -20.4, "peak": 0.15, "sw": [0.15, 1.95], "from": [0.0, 4.29], "src": "periscope-ping"}

@@ -35,7 +35,16 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     // (9a — THE WEATHER's sounds)
     'birdsong-morning', 'crickets-night', 'foghorn', 'gutter-drip', 'rain-awning', 'rain-drizzle', 'rain-pavement', 'rain-water', 'thunder-far', 'wind-leaves',
     // (11a-1 — HALLOWEEN: the witch, the ghost ship, the haunted wind + the black cat's synthesized hiss)
-    'cat-hiss', 'ghost-bell', 'ghost-ship-creak', 'haunted-wind', 'witch-cackle'].sort());
+    'cat-hiss', 'ghost-bell', 'ghost-ship-creak', 'haunted-wind', 'witch-cackle',
+    // (11a-2 — THANKSGIVING + THE PARADE: the crowd (kids + the adult murmur, one loop), the cheer, the band (a one-shot pass), the
+    // balloon's fabric, the raker, a short V of geese)
+    'parade-crowd', 'parade-cheer', 'parade-band', 'balloon-flap', 'leaves-rake', 'geese-v'].sort());
+  // 11a-2: the crowd's loop + tail end before the kids' "Bye!" (30 s); the band is a one-shot pass that stops well before the disc's end
+  // thump (~241 s); the murmur is laid inside the crowd, never a take; the 5.1 cheer + the 78 were decoded through their own `af`
+  assert.ok(takesOf('parade-crowd')[0].from[1] <= 30.0, '11a-2: the crowd loop never reaches the "Bye!"');
+  assert.ok(slotOf('parade-band').kind === 'once' && takesOf('parade-band')[0].from[1] < 200, '11a-2: the band, a one-shot far from the end thump');
+  assert.ok(Object.values(FILES).flat().every(t => t.src !== 'parade-crowd-2'), '11a-2: the murmur is a layer, not a take');
+  for (const id of ['parade-crowd', 'balloon-flap', 'leaves-rake']) assert.ok(slotOf(id).gain <= 0.05, `11a-2: ${id} a quiet bed (the brief's −30 LUFS)`);
   // (8b1 — Grok's second try: the TV window's walla (indistinct, through glass), the old truck's arrival + departure, the TR-3B heard on a phone)
   assert.ok(takesOf('tv-murmur')[0].src === 'tv-murmur-2' && takesOf('tv-murmur')[0].r === 16000, '8b1: the second try fills the TV window');
   assert.ok(takesOf('trash-truck-arrive')[0].hit > 10 && takesOf('trash-truck-depart')[0].hit > 10, '8b1: the truck stops / pulls out at its `hit`');
@@ -64,7 +73,7 @@ test('every take points at a real, small file whose content matches its cache ke
       assert.ok(t.lufs < -18 && t.lufs > (s.kind === 'once' ? -30 : -27), `${t.f}: levelled (${t.lufs} LUFS)`);
       if (s.kind === 'loop') {
         // (beds 30 s+; 8P's smaller beds — heard less often or under the music — 20 s+; the bus's idle a short engine loop)
-        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28 }[id] ?? 30;   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
+        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
         assert.ok(t.loop >= min && t.xf >= (min < 20 ? 0.5 : 2) && t.xf <= 3, `${t.f}: a ${min} s+ loop with its seam (${t.loop} + ${t.xf})`);
         assert.ok(Math.abs(t.loop + t.xf - t.d) < 0.1, `${t.f}: the file is the loop + its tail`);
       } else assert.ok(t.peak >= 0 && t.peak <= t.d, `${t.f}: its loudest moment is inside it`);
@@ -77,7 +86,8 @@ test('every take points at a real, small file whose content matches its cache ke
   // (8b1: + the second-try set 1.0 MB → 10.3 MB)
   // (9a: 11 → 13 MB — the weather's 1.8 MB (lean: 22 / 16 kHz, 40–48 kbps); every slot is fetched only when its event plays)
   // (11a-1: + Halloween's five, lean like the weather: 12.84 MB)
-  assert.ok(total < 13e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (11a-2: + Thanksgiving + the parade, lean — 16 kHz decode, 40–48 kbps; the band's 90 s pass the biggest at 440 KB: 13.93 MB)
+  assert.ok(total < 14.5e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');

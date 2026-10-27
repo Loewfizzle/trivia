@@ -26,6 +26,16 @@ are kept anyway, with each source file's MD5.
 - Original: https://freesound.org/s/491300/ (CC0 1.0) - WAV 44.1 kHz/32-bit stereo
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## balloon-flap.mp3  →  balloon-flap
+
+- MD5 `6785a7b6f6d58781a141020d8d24bd5e`
+- balloon-flap.mp3   (2,526,981 bytes)   (MP3 - the only version offered)
+- "CLOTHFlp-CU_Flag, Large, Flapping_Nicholas Judy_TDC" - designerschoice
+- Page: https://pixabay.com/sound-effects/household-clothflp-cu-flag-large-flapping-nicholas-judy-tdc-493280/
+- Source: https://cdn.pixabay.com/download/audio/2026/03/01/audio_1ff3c8dd71.mp3?filename=designerschoice-clothflp-cu_flag-large-flapping_nicholas-judy_tdc-493280.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- NOTE: A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.
+
 ## bar-ambience-close.mp3  →  bar-open, line-murmur
 
 - MD5 `9630a36239d83ec67c42051325cb3b04`
@@ -277,6 +287,15 @@ are kept anyway, with each source file's MD5.
 - Original: Freesound user jackmichaelking, https://freesound.org/people/jackmichaelking/ (CC0 1.0) - "Brent geese flying overhead in Essex Wetland.WAV"
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## geese-v.wav  →  geese-v
+
+- MD5 `3b1a71839a09d1fa717266d7999d6ff8`
+- geese-v.wav   (920,574 bytes)
+- "Flock of wild geese" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/goose/
+- Source: https://assets.mixkit.co/active_storage/sfx/20/20.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
 ## ghost-bell.mp3  →  ghost-bell
 
 - MD5 `2bc3a96759f07938193e233afe71c859`
@@ -421,6 +440,25 @@ are kept anyway, with each source file's MD5.
 - Source: https://assets.mixkit.co/active_storage/sfx/424/424.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
+## leaves-rake.wav  →  leaves-rake
+
+- MD5 `00a2b2553ba100890de847600f02874c`
+- leaves-rake.wav
+- "Raking leaves" - markbolden (Freesound 421790)
+- Page: https://freesound.org/people/markbolden/sounds/421790/
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+
+## marching-band-far.mp3  →  parade-band
+
+- MD5 `47933851f778ff419d6cdddfdc9bcd89`
+- marching-band-far.mp3   (8,500,525 bytes)   (MP3 48 kHz ~271 kbps - the 24-bit FLAC is 100 MB)
+- "Washington Post March" (J. P. Sousa) - United States Marine Band, Edison Diamond Disc 51377-R, matrix 9198, recorded New York 9 Oct 1923 (78rpm transfer by George Blood L.P. for the Internet Archive Great 78 Project)
+- Page: https://archive.org/details/78_washington-post-march_united-states-marine-band-sousa_gbia0192369b
+- Source: https://archive.org/download/78_washington-post-march_united-states-marine-band-sousa_gbia0192369b/WASHINGTON%20POST%20MARCH%20-%20UNITED%20STATES%20MARINE%20BAND.mp3
+- Discography: https://adp.library.ucsb.edu/index.php/matrix/detail/2000156188
+- Licence: Public domain in the US - US sound recording first published 1923 (IA metadata date 1923; recorded 10/9/1923), so its federal protection under the Music Modernization Act (17 U.S.C. 1401) ended 1 Jan 2024; the composition (1889) is also public domain. PD status is US-only. No attribution required (courtesy credit above).
+- NOTE: Public domain in the US only (a 1923 US sound recording + an 1889 composition); the import is a 90 s excerpt, declicked, denoised and filtered.
+
 ## market-murmur.wav  →  market-murmur
 
 - MD5 `2c0ab689b46888a08d393c62410126ca`
@@ -455,6 +493,34 @@ are kept anyway, with each source file's MD5.
 - "newspaper_opening_009" - SpillAudio - Paper, Sonniss GDC 2020 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/SpillAudio%20-%20Paper/newspaper_opening_009.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## parade-cheer.flac  →  parade-cheer
+
+- MD5 `eb28d03733087a227078ba172691e0f0`
+- parade-cheer.flac   (6,598,736 bytes)   (5.1 surround FLAC, 96 kHz/24-bit - fold down to stereo)
+- "Crowd Cheering Exterior, Big Surge, Rose Bowl Stadium, Applause _5.1 LCRLsRsLf" - 2496SoundEffects ("Surround At The Show 1 5.1 - 2"), Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/2496SoundEffects%20-%20Surround%20At%20The%20Show%201%205.1%20-%202/Crowd%20Cheering%20Exterior%2C%20Big%20Surge%2C%20Rose%20Bowl%20Stadium%2C%20Applause%20_5.1%20LCRLsRsLf.flac
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## parade-crowd.mp3  →  parade-crowd
+
+- MD5 `d44fe4bac869f6bb1507be0b0367f911`
+- parade-crowd.mp3   (995,328 bytes)   (MP3 - the only version offered)
+- "Kids cheering on playground" - paulseling
+- Page: https://pixabay.com/sound-effects/people-kids-cheering-on-playground-195045/
+- Source: https://cdn.pixabay.com/download/audio/2024/03/08/audio_858ecbed3d.mp3?filename=paulseling-kids-cheering-on-playground-195045.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- NOTE: kids' layer only - the adult street-crowd murmur is a Freesound download (see below).
+- NOTE: A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original. parade-crowd-2.wav (credited below) is laid under it as the adult murmur.
+
+## parade-crowd-2.wav  →  parade-crowd
+
+- MD5 `7311668fae7e210e472d8e6b5228731b`
+- parade-crowd-2.wav
+- "Large Crowd at an Outdoor Reception" - timothyd4y (Freesound 472606; WAV 48 kHz / 24-bit)
+- Page: https://freesound.org/people/timothyd4y/sounds/472606/
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+- NOTE: Used inside parade-crowd (the adult murmur laid under the kids).
 
 ## periscope-ping.wav  →  periscope-ping
 

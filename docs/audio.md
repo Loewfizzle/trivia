@@ -1149,3 +1149,40 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   a fast flutter, a throaty growl under it (0.95 s, −20.4 LUFS) — the black cat tapped (scene.js HOOK-HIT-D).
 - New slots in core/city-sounds.js: PART 11 · THE HOLIDAYS (`haunted-wind`, `cat-hiss`); the witch + the ghost ship's were 8a's empty
   slots, filled now. The trick-or-treaters' treats use the doors' own sounds.
+
+## 11a-2 — THE THANKSGIVING + PARADE SOUNDS (Oct 26 2026; City 2.0 — imported, not wired yet) — `scripts/add-city-sfx.py` CUTS, `core/city-sounds.js`
+- **From** ~/Downloads/city-sfx (credits.txt "Thanksgiving + parade sounds"; MD5s match), processed per Grok's brief (cozy, far: across the street
+  / two blocks away; a low-pass + a hall, never brighter) — **measured, not listened to**. The lossless originals stay out of the repo; only the
+  encoded MP3s land in audio/city/ (**13.93 MB** now; the test's cap 13 → 14.5 MB). `leaves-rake-2.wav` (the indoor foley) was not in the folder.
+- **The importer's new recipe keys** (docstring): `af` an ffmpeg filter chain at DECODE (a 5.1 file's own fold, a 78's `adeclick,anlmdn`);
+  `deess` (dB, lo, hi) a soft dynamic cut of a band's peaks over its own median; `mixin` {f, at, lu, hp, lp} another recording laid under a
+  LOOP, read continuously for the loop + its tail (the seam stays seamless), `lu` against the main one; `verb` (wet, pre-delay, RT60, lp) a simple
+  hall — a seeded-noise impulse decaying to −60 dB at RT60, low-passed, pre-delayed, mixed at the dry's RMS. Credits: `CREDIT_BLOCK` holds the
+  two Freesound downloads credits.txt lists only as links (leaves-rake.wav, parade-crowd-2.wav, both CC0). A fix: a loop starting within its
+  1 s pre-roll + search of the file's start searched a negative window (its start drifted) — it now searches without the pre-roll.
+- **Levels: the house's** (loops −24 LUFS, one-shots −20 — the test + every other bed), the brief's quieter beds (−30 LUFS-I) are the **slot
+  gains**: the beds 0.05 = 10 dB under the cheer's 0.1, the brief's own bed-to-one-shot gap (≈ −50 LUFS into the bus: the market's / the line's
+  family); the band (a −20 LUFS one-shot) 0.032 = the beds' −50; the geese ~4 dB under the cheer (the brief's "−24 since it's ambient").
+
+| slot | kind · gain | source → cut + recipe | measured (the shipped MP3) |
+| --- | --- | --- | --- |
+| `geese-v` (sky) | once · 0.06 | geese-v.wav (5.2 s Mixkit) → the whole file, fades 1.5 s in / 2 s out, HPF 200, LPF 4 kHz, hall 25 % (30 ms, RT 1.6 s) | 5.22 s · −20.4 LUFS-I (S-max −19.3) · −3.3 dBTP · centroid 1281 Hz · 2–5 kHz 1.6 % / > 5 kHz 0 % · 31 KB |
+| `parade-crowd` | loop · 0.05 | parade-crowd.mp3 (31 s Pixabay, kids cheering + clapping) 0.5 → 27.8 s + a 2 s tail (ends 29.8 s: the "Bye!" past 30 s out), HPF 150, de-essed 2.5–6 kHz (≤ 6 dB), LPF 6 kHz, + `mixin` parade-crowd-2.wav (57 s Freesound CC0, a large outdoor reception) from 0.0 s **4.5 LU under**, HPF 150, LPF **3 kHz** (the brief said 5: no word readable), hall 15 % (25 ms, RT 1.0) — ONE loop | loop 27.3 s + 2 · −24.4 LUFS-I · −7.0 dBTP · centroid 1073 Hz · 2–5 kHz 8.5 % · seam (the runtime's sin/cos crossfade simulated): max 50 ms step 4.4 dB vs the body's p95 3.5 / max 6.3, 3 s before vs after −0.1 dB · 172 KB |
+| `parade-cheer` | once · 0.1 | parade-cheer.flac (10.9 s Sonniss, 5.1 / 96 kHz in FILM order L C R Ls Rs LFE — channel 6 measured as the −54 dB LFE, so ffmpeg's default fold (FL FR FC LFE BL BR) would have dropped a surround + mixed the LFE in): `af` `pan=mono|0.5 L + 0.707 C + 0.5 R + 0.354 Ls + 0.354 Rs` (= L + 0.707 C, R + 0.707 C, surrounds −3 dB, LFE dropped, then mono), 1.0–9.5 s, 1.5 s fade-out, HPF 120, LPF 6 kHz, hall 20 % | 8.5 s · −20.4 LUFS-I (S-max −19.1) · −6.1 dBTP · centroid 1019 Hz (already dark: 93 % at 400–1500 Hz) · 2–5 kHz 2.9 % · 50 KB |
+| `parade-band` | **once** · 0.032 | marching-band-far.mp3 (the US Marine Band, "Washington Post March", Edison 1923, a FLAT 78 transfer: 40 % of its energy rumble < 150 Hz, the hiss 6 dB over the band's mids, dense crackle; held notes in 55–93 % of frames past 20 s) → **2–92 s**, 2 s in / 4 s out; `af` mono, `adeclick` (default) + `anlmdn=s=7` (400–3000 Hz floor −8.9 dB, the music's peaks −2.3, ~⅔ of the crackle impulses left: the trace; `afftdn` didn't engage below `nf=-40`, `adeclick=t=1` ran 81 s per 30 s), HPF 150, the 1.8–4.5 kHz peaks de-essed 6 dB, LPF **3 kHz**, an outdoor hall 30 % (35 ms, RT 1.2) | 90 s · −20.4 LUFS-I (S-max −17.2) · −1.7 dBTP · centroid 1413 Hz · **2–5 kHz 24 %** (52 % at the brief's LPF 3.5 kHz alone — the crackle + hiss, harsh on a phone) · the strains −21…−24 dB, the softer trio from ~72 s −26…−28 · 440 KB |
+| `balloon-flap` | loop · 0.05 | balloon-flap.mp3 (79 s Pixabay, a big flag) → 1.6 → 49.6 s + a 3 s tail (inside the brief's 0–72 s, the louder gust from 75 s out; 48 s not 72: size + memory), HPF 120, LPF 7 kHz, hall 12 % | loop 48 s + 3 · −25.2 LUFS-I (gusty: the limiter takes 1.2 dB) · −1.5 dBTP · centroid 744 Hz · 2–5 kHz 2.1 % · seam step 14.1 dB vs the body's p95 9.6 / max 15.8 (the flaps' own), +1.7 dB · 249 KB |
+| `leaves-rake` | loop · 0.05 | leaves-rake.wav (21.8 s Freesound CC0) → 2.35 → 20.65 s + a 1 s tail (gap to gap between strokes: the ~1.5 s beat holds across the seam), HPF 150, 2–5 kHz peaks de-harshed 4 dB (57 → 42 %; the accepted broom is 82 %, the squeegee 47–82 %), LPF 7 kHz, a short street hall 15 % (15 ms, RT 0.6) | loop 18.3 s + 1 · −24.3 LUFS-I · −4.0 dBTP · centroid 3963 Hz · > 5 kHz 36 % · seam step 8.6 dB vs the body's p95 6.6 / max 19.3 (the tail is the file's own fade into a gap) · 114 KB |
+
+- **Words** (the 300–3400 Hz band per 0.5 s: the voiced share of 40 ms frames, ONE voice's F0 held within 8 %, the 3–6 Hz syllabic share of
+  its envelope — word-like = all three high): the kids' file 0 of 62 windows (its voiced bursts at 1.5 + 16–17 s are one held "yaaay",
+  syllabic 0.12–0.26), the murmur 1 of 115 (30.0 s: kept outside the layer), the cheer 0 of 21 (one held "woo" at 6–7 s), the shipped crowd
+  0 / 58, the cheer 0 / 17, the band 0 / 180 (instrumental). The geese flag 4 of 10 — honks are voiced at ~4 Hz: a goose, not a word.
+- **Skipped:** nothing of what was in the folder — the band was the closest call (a flat 78: see its row; the owner can drop it by putting
+  `marching-band-far` in SKIP and re-running). `leaves-rake-2.wav` wasn't there (add it + a CUTS row with a longer hall for its indoor foley).
+- **How a caller plays them** (the main session wires them with the parade, the raker + the V — `screens/harbor/sounds.js`): the beds with
+  `keep('parade-crowd', k * bm.k, pan, { ramp, linger, fadeIn })` (0 fades it out, freed after `linger` s; `bm.k` = the duck under the music),
+  likewise `balloon-flap`, `leaves-rake`; the cheer as a float passes: `play('parade-cheer', { gain, pan })`; THE BAND (a 90 s pass) chained
+  while the parade runs: `run('parade-band', k, pan, { chain: true })` (the next pass starts 2.5 s before one ends — a band finishing, the next
+  striking up), or one pass with `citySound`; THE V: `run('geese-v', k, panX(x, W), { chain: false })` — its pan follows the V's x each tick
+  (ramped), or `const h = citySound('geese-v', { pan: -0.7 })` then, once `h.started()`, `h.set({ pan: 0.7 }, h.dur)` (a ramp: before the
+  file has loaded a `set` only changes the start pan).
