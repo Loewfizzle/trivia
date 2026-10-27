@@ -1287,7 +1287,7 @@ export function createTitle() {
   function armIdle() { clearTimeout(idleTimer); if (!destroyed && autoIdle) idleTimer = setTimeout(goIdle, IDLE_MS); }
   function goIdle() {
     if (destroyed || !tl || !tl.done) return;
-    const busyNow = busy || document.querySelector('.modal, .sheet') || document.activeElement === els.code || els.actions.classList.contains('is-join');
+    const busyNow = busy || document.querySelector('.modal, .sheet, .gm') || document.activeElement === els.code || els.actions.classList.contains('is-join');
     if (busyNow) { armIdle(); return; }
     els.root.classList.add('is-idle');
     document.body.classList.add('nd-idle');
@@ -1297,7 +1297,8 @@ export function createTitle() {
   function onWake(e) {
     if (destroyed) return;
     // the touch that wakes the screen only wakes it (it doesn't press whatever was under it)
-    if (els.root.classList.contains('is-idle') && e.type === 'pointerdown') { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
+    // (9b: never a tap inside the ☰ menu or a sheet — the owner's CREDITS tap on the iPhone was swallowed this way)
+    if (els.root.classList.contains('is-idle') && e.type === 'pointerdown' && !(e.target && e.target.closest && e.target.closest('.gm, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
     wake();
     armIdle();
   }

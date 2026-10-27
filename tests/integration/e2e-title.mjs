@@ -435,6 +435,32 @@ try {
 
   } // flow
   if (on('dock')) {
+  // ================================================================ 8a. ☰ → CREDITS on a phone (9b: the owner's iPhone tap did nothing — the screen
+  // went to rest under the open menu after 10 s and the next tap was swallowed as the wake tap). The screen at rest is ON here (&idle).
+  { const K = await open({ slot: 'k', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'idle' });
+    await waitFor(K.page, '!!window.__district && window.__district.phase().done', 'title K');
+    const credits = async () => {
+      await tap(K.page, '.menu-btn'); await K.page.waitForSelector('.gm .gm-item', { timeout: 4000 }); await sleep(350);   // (the panel scales in over 0.2 s — a timed thing)
+      const at = await ev(K.page, `(() => { const b = [...document.querySelectorAll('.gm-item')].find(x => /^CREDITS/.test(x.textContent)).getBoundingClientRect(); return [b.left + b.width / 2, b.top + b.height / 2]; })()`);
+      return at;
+    };
+    let at = await credits();
+    await tapAt(K.page, at[0], at[1]);
+    await K.page.waitForSelector('.cr-modal .cr-sheet', { timeout: 4000 }).catch(() => {});
+    await waitFor(K.page, '!document.querySelector(".gm")', 'the menu gone', 3000).catch(() => {});
+    ok(await ev(K.page, `(() => { const s = document.querySelector('.cr-modal .cr-sheet'); if (!s) return false; const r = s.getBoundingClientRect(); return r.height > 200 && document.elementFromPoint(r.left + r.width / 2, r.top + 80)?.closest('.cr-sheet') === s && !!s.querySelector('.cr-item'); })()`), 'CREDITS (☰ on the title, a phone): the sheet opens on a tap, on top, with its credits');
+    await waitFor(K.page, `!document.querySelector('.cr-sheet').getAnimations().length`, 'the sheet up', 3000).catch(() => {});
+    await tap(K.page, '.cr-sheet .btn-primary');
+    await waitFor(K.page, '!document.querySelector(".cr-modal")', 'credits closed', 3000).catch(() => {});
+    ok(await ev(K.page, '!document.querySelector(".cr-modal")'), 'CREDITS: CLOSE closes it');
+    // the menu stays open past the rest timer: the screen stays awake under it, and CREDITS still opens on the first tap
+    at = await credits();
+    await K.page.evaluate(() => window.__district.idle());
+    ok(!(await ev(K.page, 'window.__district.isIdle()')), 'CREDITS: the screen never goes to rest under the open ☰ menu');
+    await tapAt(K.page, at[0], at[1]);
+    await K.page.waitForSelector('.cr-modal .cr-sheet', { timeout: 4000 }).catch(() => {});
+    ok(await ev(K.page, '!!document.querySelector(".cr-modal .cr-sheet")'), 'CREDITS: still opens on the first tap after the menu sat open');
+    await K.ctx.close(); }
   // ================================================================ 8b. THE NEON RING: the dock
   { const G = await open({ slot: 'g', profile: PROFILES.ava, seen: true, view: [390, 844], qs: 'when=2026-10-20T21:30&tz=America/New_York' });
     await waitFor(G.page, '!!window.__district && window.__district.phase().done', 'title G');
