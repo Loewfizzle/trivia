@@ -59,7 +59,7 @@ const SCENES = {
   'n4-beams': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-beams', 'n4-str': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-strings', 'n4-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race,no-punch,no-shimmer,no-beams,no-strings',
   'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
   // (11a-2's speed round: the parade at its peak (balloons + the band + the crowd), Halloween night with the giant, an ordinary November day)
-  'tg-parade': 'when=2026-11-26T09:20&wx=clear&force=no-planes', 'hw-giant': 'when=2026-10-31T21:30&wx=clear&force=no-planes', 'nov-day': 'when=2026-11-18T14:00&wx=clear&force=no-planes',
+  'tg-parade': 'when=2026-11-26T09:20&wx=clear&force=no-planes', 'hw-giant': 'when=2026-10-31T21:30&wx=clear&force=no-planes', 'nov-day': 'when=2026-11-18T14:00&wx=clear&force=no-planes', 'tg-parade-nb': 'when=2026-11-26T09:20&wx=clear&force=no-planes,no-holiday-props', 'tg-parade-np': 'when=2026-11-26T09:20&wx=clear&force=no-planes,no-people',
   // 11a-1 — HALLOWEEN NIGHT at its peak (a Saturday: the party + the zombies + the spooky light + the web + the pumpkins + the ghost ship forced) ·
   // DAY OF THE DEAD's procession at dusk (Nov 2: the candles along the waterside + the papel picado + the ofrendas)
   'hw-peak': 'when=2026-10-31T21:45&wx=clear&force=no-planes,ghost-ship', 'dd-proc': 'when=2026-11-02T18:20&wx=clear&force=no-planes',

@@ -1356,3 +1356,17 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       the LOAD log capped + scrolling with its first lines on top
 - [x] THE QUALITY STEP: never judged in the first 15 s, in a bake, the crossfade or the sign's surge; sustained slowness only (four looks);
       the EFFECTS tier first (live, no re-bake — invisible), the canvas resolution last; what the judge measured in the readout's tier line
+
+## CITY 2.0 — 11a-2: THANKSGIVING + THE PARADE (+ Halloween's last touches, Black Friday) (Oct 26–27 2026) — docs/harbor.md#part-11a-2
+- [x] THE GIANT BITCOIN PUMPKIN on the compass (ray-marched, the ₿ carved + lit by fire, Oct 20 → 31) + the dance RINGING it
+- [x] BIG HOLIDAY PIECES CHANGE OFF-CAMERA (latchBig: a load, a return from the background, a clock jump)
+- [x] The letter tap's hum ≤ 1.5 s, never stacked; the boss's shadow walks up / stays / away at the party; a bolder spade; a bluer TV
+- [x] THE ABDUCTION UFO REDESIGNED (gunmetal saucer, smoked dome, the racing ring, the green beam) — the abduction byte-identical, proved
+- [x] THE WITCH SMOOTH (the sky's clock to the millisecond + one canvas: 97 % still frames → 0 %)
+- [x] THE NOVEMBER BUILD-UP by date: mums, bales, corn stalks, the spots' pumpkins, THE HARVEST DISPLAY, THE SIGN's HARVEST WREATH, the raker, cider, geese
+- [x] THE PARADE SYSTEM (pure, reusable) + Thanksgiving's balloon parade (turkey, pumpkin, acorn, cider mug; the band, the float, the crowd) + its sounds
+- [x] The Thanksgiving + parade sounds imported + wired (the crowd, the cheers, the band, the flapping, the rake, the geese's V)
+- [x] THE HOMECOMING: the night before Thanksgiving a party night (partyDow, every planner asks with the date)
+- [x] Thanksgiving's day: amber sign + harvest wheel / strings, amber windows, CHIMNEY SMOKE, pies, the family table + the football game in the windows
+- [x] BLACK FRIDAY: the rush (bags + boxes), the tree stand, the sale banner, THE FIRST CHRISTMAS CREW stringing the speakeasy (strings lit every evening to Jan 6)
+- [x] Fixed: the sign amber on Black Friday (City 1.0's calendar); Thanksgiving a day off for the workers' trucks

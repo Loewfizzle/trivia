@@ -1150,7 +1150,7 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
 - New slots in core/city-sounds.js: PART 11 · THE HOLIDAYS (`haunted-wind`, `cat-hiss`); the witch + the ghost ship's were 8a's empty
   slots, filled now. The trick-or-treaters' treats use the doors' own sounds.
 
-## 11a-2 — THE THANKSGIVING + PARADE SOUNDS (Oct 26 2026; City 2.0 — imported, not wired yet) — `scripts/add-city-sfx.py` CUTS, `core/city-sounds.js`
+## 11a-2 — THE THANKSGIVING + PARADE SOUNDS (Oct 26 2026; City 2.0 — imported + WIRED, see the end of this section) — `scripts/add-city-sfx.py` CUTS, `core/city-sounds.js`
 - **From** ~/Downloads/city-sfx (credits.txt "Thanksgiving + parade sounds"; MD5s match), processed per Grok's brief (cozy, far: across the street
   / two blocks away; a low-pass + a hall, never brighter) — **measured, not listened to**. The lossless originals stay out of the repo; only the
   encoded MP3s land in audio/city/ (**13.93 MB** now; the test's cap 13 → 14.5 MB). `leaves-rake-2.wav` (the indoor foley) was not in the folder.
@@ -1186,3 +1186,12 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   striking up), or one pass with `citySound`; THE V: `run('geese-v', k, panX(x, W), { chain: false })` — its pan follows the V's x each tick
   (ramped), or `const h = citySound('geese-v', { pan: -0.7 })` then, once `h.started()`, `h.set({ pan: 0.7 }, h.dur)` (a ramp: before the
   file has loaded a `set` only changes the start pan).
+- **WIRED (the main session, Oct 27 — `screens/harbor/sounds.js#tick`, its inputs from `scene.js`):** the scene hands `parade: { units: [{ kind,
+  i, x }] }` (the units on screen, x 0..1 of the width — `scene.js#paraSound`, the same pure clock as the marchers) + `raker: { pan }` (the
+  groundskeeper standing still with his rake — `people.positions()`):
+  - `parade-crowd` — a bed at 1 while any unit is on screen, faded in over 3 s, out over 2.5 s (freed 10 s later);
+  - `parade-cheer` — ONCE per balloon as its middle crosses the screen's middle (x 0.42–0.6), panned to it (±0.6), gain 0.7–1;
+  - `parade-band` — `run(…, { chain: true })` while a BAND unit is on screen, panned to the nearest band (±0.85): the 90 s pass chained;
+  - `balloon-flap` — a bed while a balloon is up, louder near the middle (1 → 0.4 at the edges), panned to the nearest balloon;
+  - `leaves-rake` — a bed while the raker stands raking, panned to him;
+  - `geese-v` — one take a V (`chain: false`), its pan following the V's x (with the older `geese` flyover under it).

@@ -15,7 +15,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** the parade's road: its pace (units / s — a slow march), its two files (z: the near lane's), the lead the hold starts before its head,
  *  the gap between units (units of road), the spectators' kerb (z) + how many */
-export const PARADE = Object.freeze({ v: 0.78, files: Object.freeze([55.5, 56.9]), z: 56.2, lead: 50, gap: 3.4, kerb: Object.freeze([51.75, 52.3]), crowd: 14 });
+export const PARADE = Object.freeze({ v: 0.78, files: Object.freeze([55.5, 56.9]), z: 56.2, lead: 50, gap: 3.4, kerb: Object.freeze([51.75, 52.3]), crowd: 10 });   // (crowd 14 → 10: the speed round — ~0.3 ms a figure on the laptop at 2× CPU)
 /** the units' kinds: their length along the road (units) */
 export const UNIT = Object.freeze({ band: 7.2, balloon: 11.5, float: 7.5 });
 /** THE GIANT BALLOONS (original, unbranded): w × h (units — a person is 2.1), how high their foot flies (lift), their handlers, their
