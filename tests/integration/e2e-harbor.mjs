@@ -3413,6 +3413,70 @@ G('legends', async () => {
     await Q.ctx.close(); }
 });
 
+// ================================================================ 9b — WINTER: the climate fallback, the snowpack's stages on the city, the
+// falling snow, the plow, the sign's snow, the January snowman (phone-sized pages; the look itself is reviewed in screenshots)
+G('snow', async () => {
+  const P = 'window.__district.harbor()', SNW = `${P}.snow`;
+  // the plaza's mean brightness (an 8-pt patch average at a few points in front of the shop + by the inlay): snow reads as light
+  const plaza = p => ev(p, `(() => { const cv = document.querySelector('.nd-scene canvas'), x = cv.getContext('2d'), hb = window.__district.harbor(), k = cv.width / cv.clientWidth;
+    const y = hb.cam.H * 0.845; let s = 0, n = 0; for (const f of [0.35, 0.5, 0.65, 0.8]) { const d = x.getImageData(Math.round((hb.cam.W * f - 4) * k), Math.round((y - 4) * k), Math.round(8 * k), Math.round(8 * k)).data; for (let i = 0; i < d.length; i += 4) { s += (d[i] + d[i + 1] + d[i + 2]) / 3; n++; } } return Math.round(s / n); })()`);
+  // ---- THE CLIMATE FALLBACK (&force=climate): a January afternoon in Grand Rapids — the readout's source + snow on the ground from it
+  { const Q = await open({ slot: 'sn-cl', qs: `when=2027-01-20T13:00${GR}&force=climate&debug=1`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(800);
+    const s = await ev(Q.page, SNW), line = await ev(Q.page, `(document.querySelector('.dbg-strip, [class*=debug-strip]') || document.body).innerText`);
+    ok(s && s.src === 'the climate fallback' && s.stage !== 'none', `CLIMATE FALLBACK: a January in Grand Rapids has snow on the ground (${s && s.stage} · ${s && s.why} · ${s && s.src})`);
+    ok(/climate fallback/.test(line || ''), 'CLIMATE FALLBACK: the readout names it');
+    await Q.ctx.close(); }
+  // ---- NO SNOW where there is none: an early-November afternoon (the climate's ground on a preview clock) — nothing white baked
+  let bare = 0;
+  { const Q = await open({ slot: 'sn-0', qs: `when=2026-11-05T13:00${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(800);
+    const s = await ev(Q.page, SNW); bare = await plaza(Q.page);
+    ok(s && s.stage === 'none' && !s.key, `NO SNOW in early November (${s && s.stage}; the plaza ${bare})`);
+    await Q.ctx.close(); }
+  // ---- THE STAGES (&snow=…) by day: each reads as itself; FRESH whitens the plaza; THE THAW wets the street
+  for (const st of ['fresh', 'older', 'banks', 'thaw', 'spring']) {
+    const Q = await open({ slot: `sn-${st}`, qs: `when=2026-11-05T13:00${GR}&snow=${st}`, view: [402, 874] });
+    await harborUp(Q.page); await waitFor(Q.page, `${P}.bakes >= 1 && !${P}.pending`, 'baked', 10000).catch(() => {}); await sleep(600);
+    const s = await ev(Q.page, SNW), lum = await plaza(Q.page), w = await ev(Q.page, `${P}.weather`);
+    ok(s && s.stage === st && s.key, `SNOW — ${st.toUpperCase()}: the stage + its bake key (${s && s.why} · ${s && s.key})`);
+    if (st === 'fresh') ok(lum > bare + 35, `SNOW — FRESH: the plaza reads white (${bare} → ${lum})`);
+    if (st === 'spring') ok(lum < bare + 60, `SNOW — SPRING: patches, mostly dark ground (${bare} → ${lum})`);
+    if (st === 'thaw') ok(w && w.wet > 0.4, `SNOW — THAW: the melt wets the street (wet ${w && w.wet})`);
+    await Q.ctx.close();
+  }
+  // ---- FALLING SNOW at night + THE PLOW: the flakes fall; the plow truck crosses the waterside road (the road white ahead of it)
+  { const Q = await open({ slot: 'sn-fall', qs: `when=2027-01-14T22:30${GR}&force=snowfall,plow&snow=fresh`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${SNW}.fall.flakes > 60`, 'the snowfall', 12000).catch(() => {});
+    const s = await ev(Q.page, SNW), w = await ev(Q.page, `${P}.weather`);
+    ok(w && w.state === 'snow' && s.fall.flakes > 60, `FALLING SNOW: the state + the flakes (${w && w.state} · ${s && s.fall.flakes} flakes)`);
+    let plow = null;
+    await waitFor(Q.page, `${P}.people.cars.some(c => c.model === 'plow')`, 'the plow on the road', 15000).then(async () => { plow = await ev(Q.page, `${P}.people.cars.find(c => c.model === 'plow')`); }).catch(() => {});
+    ok(plow && plow.lane === 'near', `THE PLOW: on the waterside road's near lane (${plow ? `x ${plow.x}, ${plow.speed} u/s` : 'never came'}) · the road ${s && s.road}`);
+    await Q.ctx.close(); }
+  // ---- THE SIGN: snow heaped on the tubes by day (the sign off); lit at night most of it has melted (joined)
+  { const D = await open({ slot: 'sn-sd', qs: `when=2027-01-15T13:00${GR}&snow=fresh`, view: [402, 874] });
+    await harborUp(D.page); await sleep(1500);
+    const a = await ev(D.page, SNW);
+    const N = await open({ slot: 'sn-sn', qs: `when=2027-01-15T21:30${GR}&snow=fresh&temp=-6`, view: [402, 874] });
+    await harborUp(N.page); await sleep(1500);
+    const b = await ev(N.page, SNW);
+    ok(a && b && a.sign > 0.6 && b.sign < 0.4 && b.icicles > 0.2, `SNOW ON THE NEON: by day ${a && a.sign} · lit at night ${b && b.sign} (melted) + icicles ${b && b.icicles}`);
+    await D.ctx.close(); await N.ctx.close(); }
+  // ---- THE JANUARY SNOWMAN: Jan 31 (the climate's January) stands done on the inlay; &snowman=base the forced stage
+  { const Q = await open({ slot: 'sn-man', qs: `when=2027-01-31T13:00${GR}`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(600);
+    const m = await ev(Q.page, `${P}.snowman`), c = await ev(Q.page, `${P}.centrepiece.active()`);
+    ok(m && m.standing && m.progress >= 0.9 && c, `THE SNOWMAN on Jan 31: ${m && m.stage} ${m && m.progress} (${m && m.why}) on the inlay (${c})`);
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'sn-man2', qs: `when=2026-07-15T13:00${GR}&snowman=base`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(400);
+    const m = await ev(Q.page, `${P}.snowman`);
+    ok(m && m.stage === 'base', `THE SNOWMAN — &snowman=base (${m && m.stage})`);
+    await Q.ctx.close(); }
+});
+
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
 async function runGroup(name) {
   const fns = GROUPS.get(name);

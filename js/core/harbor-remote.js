@@ -207,6 +207,7 @@ export const EVENTS = [
   { id: 'snowball', label: 'SNOWBALL FIGHT', cat: 'weather', group: 'WINTER', hint: '9b: kids on the plaza (snowy weekend afternoons)' },
   { id: 'slip', label: 'A SLIP', cat: 'weather', group: 'WINTER', hint: '9b: a walker slips + catches themselves (thaw nights)' },
   { id: 'snowman-build', label: 'SNOWMAN BUILDERS', cat: 'weather', group: 'WINTER', hint: '9b: the kids + a grown-up building the January snowman (with THE SNOWMAN at a stage)' },
+  { id: 'sign-melt', label: 'SIGN SNOW MELTING', cat: 'weather', group: 'WINTER', hint: '9b: the NEON sign\u2019s snow melting off the lit tubes ×20 (at night, with SNOW ON THE GROUND)' },
   { id: 'awning-slab', label: 'AWNING SLAB', cat: 'weather', group: 'WINTER', hint: '9b: a slab of snow slides off the speakeasy awning (needs snow on the ground: SNOW ON THE GROUND in THE WEATHER)' },
   { id: 'climate', label: 'CLIMATE FALLBACK', cat: 'weather', group: 'WEATHER FX', hint: '9b: the weather as if the live ask failed — this date + place from the climate normals (+ its snow on the ground)' },
   { id: 'sundogs', label: 'SUN DOGS', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL: the 22° halo + its two sun dogs (the rarer bonus)' },

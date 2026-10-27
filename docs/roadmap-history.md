@@ -1357,6 +1357,21 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE QUALITY STEP: never judged in the first 15 s, in a bake, the crossfade or the sign's surge; sustained slowness only (four looks);
       the EFFECTS tier first (live, no re-bake — invisible), the canvas resolution last; what the judge measured in the readout's tier line
 
+## CITY 2.0 — 9b: WINTER (Oct 27 2026) — docs/harbor.md#part-9b
+- THE CLIMATE-AWARE FALLBACK (core/climate.js): when the live ask fails, the weather from the date + the place + the nearest of 48 cities'
+  monthly normals, seeded, gentle through the day; the readout names it; &force=climate.
+- THE SNOWPACK (core/harbor-snow.js): /api/sky adds the snow depth + 30 days; a daily model (sticks only when cold, settles, melts only
+  above freezing, the banks last longest) checked against a real Grand Rapids winter; FRESH · OLDER · BANKS · THAW · SPRING read by colour +
+  coverage — the snow on every layer's tops (one GPU cap pass), the plaza + its worn footpaths + the banks, the road, the speakeasy, the
+  trees; the Harbor's own lit snowfall; coats + snowy hats.
+- THE WINTER WORK + PLAY: the plow + the salt truck through the back road's own traffic; the doorman's shovel, a shoveller, the weekend
+  snowball fight, a slip in the thaw; the snow's hush + the shovel heard.
+- SNOW ON THE NEON: fluffy pillowy mounds that pile only while the sign is off; lit, it melts in clumps from the tube up, wet + dripping,
+  icicles on freezing nights.
+- THE JANUARY SNOWMAN on the centre circle: built on January's snow days, done by ~Jan 31, slumps + gets patched, melts in a real thaw.
+- CREDITS opened on desktop but not on the iPhone (the title rested under the open menu, swallowing the tap) — fixed + tested; CLAUDE.md:
+  the phone-first rule.
+
 ## CITY 2.0 — SP6: THE FIXES BEFORE WINTER (Oct 27 2026) — docs/harbor.md#sp6
 - The cloud minutes: `tests` runs only on a `[ci]` / `[harbor]` push, pull requests + by hand; ≈ 30–40 cloud minutes a pass.
 - 11a-2's holiday failures: the giant check waits for its own first frame; both spiders' taps wait still + read live + retry.

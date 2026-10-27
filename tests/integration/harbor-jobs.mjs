@@ -27,6 +27,7 @@ export const SECONDS = {
   weather: 70,         // (9a: THE WEATHER — fourteen pages, joined at once; 66 s on the laptop)
   holiday: 75,         // (11a-1: THE HOLIDAYS — eight pages: the build-up by date, the night, the come-down, the procession, reduced motion)
   panelrows: 100,
+  snow: 80,           // (9b: WINTER — eleven pages; measured on the laptop)
   thanks: 70,          // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
 };
 
@@ -37,7 +38,7 @@ export const CI_JOBS = {
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'panel', 'perf'],   // (PEO: promenade moved here from street — motion took its room)
   street: ['speakeasy', 'sounds', 'people', 'motion'],   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room; WIN3: windows → its own job)
   // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
-  windows: ['windows'],
+  windows: ['windows', 'snow'],   // (9b: WINTER — the lightest job by its seconds)
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
   wild: ['wildlife', 'workers', 'legends', 'weather'],
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
