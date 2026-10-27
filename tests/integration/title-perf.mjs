@@ -75,6 +75,8 @@ const SCENES = {
   // CITY 2.0, Part 4: the water — a windy night (the most light-column copies + the broken mirror); nw- = the same scenes without
   // the live water (only its baked base: Part 3's cost), for a before / after
   'np-windy': 'when=2026-10-14T21:30&wx=clear&wind=13&force=no-planes',
+  // SP6: a normal night with the blue TV window on (23:00); the UFO's abduction (the beam drawn as one image now)
+  'sp6-tv': 'when=2026-10-14T23:00&wx=clear&force=no-planes', 'sp6-ufo': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo',
   'nw-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes,no-water', 'nw-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water',
   'nw-neon': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water,neon-party,searchlights,spell&text=2027',
   // CITY 2.0, Part 5: the harbor's worst — the neon's party + searchlights + a word, a real fog (the beam at its widest), the

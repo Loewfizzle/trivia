@@ -1357,6 +1357,17 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE QUALITY STEP: never judged in the first 15 s, in a bake, the crossfade or the sign's surge; sustained slowness only (four looks);
       the EFFECTS tier first (live, no re-bake — invisible), the canvas resolution last; what the judge measured in the readout's tier line
 
+## CITY 2.0 — SP6: THE FIXES BEFORE WINTER (Oct 27 2026) — docs/harbor.md#sp6
+- The cloud minutes: `tests` runs only on a `[ci]` / `[harbor]` push, pull requests + by hand; ≈ 30–40 cloud minutes a pass.
+- 11a-2's holiday failures: the giant check waits for its own first frame; both spiders' taps wait still + read live + retry.
+- THE BLUE TV WINDOW: the owner's picked palette (B home, A, H, N, F, a warm W) cut like scenes on a seeded per-minute clock; the whole pane washed,
+  strongest low at the front right; an empty couch, a floor lamp, a picture frame dark with lit edges; the owner's chosen frame held as the primary glow.
+- THE BOSS: the TV from a party's start; the shade drawn as real cloth whenever lit (hot spot, weave, sag, darker edges).
+- THE UFO: the model file absent → no bake (the classic stays); the beam's 11 seam lines fixed (one image + a masked front); the abduction beside a centrepiece.
+- CREDITS sheet (☰ → CREDITS; js/ui/credits.js). Roof modes WORD FLASH / LAYERS / TWO-TONE (+ six panel rows); a burnout-night crash caught in the pass.
+- Vehicles: words sized to their panels + outlined, never mirrored, SANITATION, a bigger TAXI sign; the patrol car, the van + the sanitation truck in the
+  foreground street's random traffic. Pies + bags bigger; chimney smoke shaded against a pink sky.
+
 ## CITY 2.0 — 11a-2: THANKSGIVING + THE PARADE (+ Halloween's last touches, Black Friday) (Oct 26–27 2026) — docs/harbor.md#part-11a-2
 - [x] THE GIANT BITCOIN PUMPKIN on the compass (ray-marched, the ₿ carved + lit by fire, Oct 20 → 31) + the dance RINGING it
 - [x] BIG HOLIDAY PIECES CHANGE OFF-CAMERA (latchBig: a load, a return from the background, a clock jump)
