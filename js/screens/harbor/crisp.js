@@ -4,7 +4,7 @@
 // reads up close: small overlay canvases at the phone's FULL dpr laid exactly over their spot in the city (placed through the city
 // context's current transform, like the hush sign's), each redrawn only when its key changes (a new bake, a new game, a lit level step)
 // and CROSSFADED with the city's own re-bake fade (never a pop). The city still bakes / draws the same thing underneath (the fallback:
-// a desktop at DPR ≤ 2, tier 0, or the layer turned off with &force=no-crisp draws nothing here).
+// a desktop at DPR ≤ 2, tier 0 (the low-power state), or the layer turned off with &force=no-crisp draws nothing here).
 //   What goes here: things with letters that NOTHING passes in front of (above the walkers' heads): the speakeasy's BLADE (its board, its
 //   lit letters, its marquee bulbs), the EST. 1924 DATE STONE, the speakeasy's ROOF BILLBOARD's poster face by day. NOT here: the windows,
 //   people, vehicles, bricks, textures (the owner's DECIDED list), and anything a walker crosses in front of (the barber's gilt, the
@@ -22,7 +22,7 @@ export function createCrisp() {
     host = c && c.canvas && c.canvas.parentElement;
     const dev = (typeof window !== 'undefined' && window.devicePixelRatio) || 1, cw = (c && c.canvas && c.canvas.clientWidth) || 1, canvasDpr = c && c.canvas ? c.canvas.width / cw : dev;
     dpr = Math.min(tier === 0 ? 2 : 3, dev);
-    on = !!host && wanted && dpr > canvasDpr + 0.2;
+    on = !!host && wanted && tier !== 0 && dpr > canvasDpr + 0.2;   // (tier 0 — the phone's low-power state: none; the speed round)
     return on;
   }
   const mkCv = (z) => { const cv = document.createElement('canvas'); cv.className = 'hc-crisp'; cv.setAttribute('aria-hidden', 'true'); Object.assign(cv.style, { position: 'absolute', pointerEvents: 'none', left: '0px', top: '0px', zIndex: String(z) }); host.append(cv); return cv; };

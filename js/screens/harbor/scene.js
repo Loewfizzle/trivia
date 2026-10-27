@@ -778,7 +778,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // 9c — THE CRISP LAYER (crisp.js): the speakeasy's BLADE (its board — the bake's own step re-run at full dpr + its snow cap; the lit
   // letters + the bulbs are speakeasy.js's), the EST. 1924 DATE STONE and the speakeasy's ROOF BILLBOARD's poster by day — each crossfading
   // with the city's re-bake. Off while a worker is at it (the painters, the billposter, the bulb man: a layer over the city can't go behind
-  // them), &force=no-crisp, a desktop at DPR ≤ 2; tier 0 at 2× (no gain there).
+  // them), &force=no-crisp, a desktop at DPR ≤ 2; tier 0 (the low-power state).
   function crispTick(c, off, fadeIn, pplLive, crispOn) {
     if (!crispOn) { crisp.end(); return; }
     const crew = pplLive ? people.crew() : null, busy = !!(crew && crew.works && crew.works.some(w => /paint|billpost|bulb|lamp|wash|repair|sign/.test(w))) ||   // (the works up on the facade / the board; never the doorman at his post)

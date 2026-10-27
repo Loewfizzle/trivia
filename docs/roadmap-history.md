@@ -1357,6 +1357,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE QUALITY STEP: never judged in the first 15 s, in a bake, the crossfade or the sign's surge; sustained slowness only (four looks);
       the EFFECTS tier first (live, no re-bake — invisible), the canvas resolution last; what the judge measured in the readout's tier line
 
+## CITY 2.0 — 9c: THE FIXES BEFORE THE TOWER (Oct 27 2026) — docs/harbor.md#9c
+- The sign's snow follows the power (a moonlit grey in the TR-3B's blackout) and glows from within by each letter's own light (the boot
+  flicker lights it letter by letter).
+- &force=plow / salt: backdated past the speakeasy's corner + started at the reveal, never dropped for a bus — in view ~1 s after the reveal,
+  the salt truck right behind; PLAY ALL WINTER; a unit test that a real snowfall schedules them.
+- Winter made to read: smooth trodden lanes worn to the cobbles (crossing → door, the railing, round the compass); big plowed banks with a
+  white crust beside a black wet road; a real shovel stroke (plant, push, lift, twist, toss onto a pile, step on, the cleared strip) + the
+  doorman in uniform clearing the steps one by one, then a wide arc of salt; the snowman's arms always sticks.
+- City 1.0's frozen pane on a deep freeze (clear round the sign, the dock + the buttons) + the buttons' lace thinning inward; FROST LOOK.
+- THE CRISP LAYER (crisp.js): the blade, the date stone + the roof poster at the phone's full dpr, crossfading with the re-bake.
+- THE CENTREPIECE's SHOW LIGHTING (floods.js): warm floods, a pool, a shadow, a rim — dimmed to a fill once the piece lights itself.
+- The boss's day blind in the building's cream linen; WINDOW SCENES NEVER POP IN (a walk-up or the blind cycle, every moment).
+- The UFO hovers above the Ferris wheel (same size); its two view angles hand off over ±2.5°, its sheets pre-decoded.
+
 ## CITY 2.0 — THE UFO BAKE (Oct 27 2026) — docs/harbor.md#the-ufo-bake
 - The abduction's craft is "UFO" by sebslom (CC BY 4.0) — art/models/ufo/ (source only, never deployed) baked offline by
   scripts/bake-ufo.mjs (three.js in Playwright's Chromium) into assets/city/ufo/: 24-frame turntables over the model's 30° symmetry at the
