@@ -83,8 +83,18 @@ export function rateOf(cur, m15, nowMs = Date.now()) {
   return Number.isFinite(p) && p > 0 ? Math.round(p * 4 * 10) / 10 : 0;
 }
 
-/** PURE: Open-Meteo's `current` block (+ where; + its past 15-minute precipitation) → the city's weather. */
-export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
+/** PURE (9b): Open-Meteo's daily block (unixtime) → compact rows [[dayStartMs, high °C, low °C, snowfall cm, rain mm], …] (oldest first);
+ *  null when missing — the snowpack's days (core/harbor-snow.js#daysOf) */
+export function dailyRows(daily) {
+  if (!daily || !Array.isArray(daily.time)) return null;
+  const col = k => (Array.isArray(daily[k]) ? daily[k] : []);
+  const r1 = v => (v == null || !Number.isFinite(Number(v)) ? null : Math.round(Number(v) * 10) / 10);
+  const out = daily.time.map((t, i) => [Number(t) * 1000, r1(col('temperature_2m_max')[i]), r1(col('temperature_2m_min')[i]), r1(col('snowfall_sum')[i]), r1(col('rain_sum')[i])]).filter(r => Number.isFinite(r[0]));
+  return out.length ? out : null;
+}
+
+/** PURE: Open-Meteo's `current` block (+ where; + its past 15-minute precipitation; + 9b: its daily block) → the city's weather. */
+export function normalize(cur, where = {}, at = Date.now(), m15 = null, daily = null) {
   const code = cur && cur.weather_code != null && Number.isFinite(Number(cur.weather_code)) ? Number(cur.weather_code) : null;
   const w = fromWmo(code);
   const cloud = cur && cur.cloud_cover != null ? clamp01(num(cur.cloud_cover) / 100) : w.cloud;
@@ -115,6 +125,11 @@ export function normalize(cur, where = {}, at = Date.now(), m15 = null) {
     // high = cirrus, mid = altocumulus, low = cumulus / stratocumulus / the deck); null when the data has none
     layers,
     src: 'open-meteo/best_match', code, vis: vis == null ? null : Math.round(vis), t: slot,
+    // 9b — THE SNOWPACK: the real snow depth now (cm; null when the model has none) + the snowfall of the last quarter hour (cm) + the
+    // last 30 days as rows (core/harbor-snow.js)
+    snowDepth: cur && cur.snow_depth != null && Number.isFinite(Number(cur.snow_depth)) ? Math.round(Number(cur.snow_depth) * 1000) / 10 : null,
+    snowfall: cur && cur.snowfall != null && Number.isFinite(Number(cur.snowfall)) ? Math.round(Number(cur.snowfall) * 10) / 10 : 0,
+    days: dailyRows(daily),
   };
 }
 

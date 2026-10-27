@@ -12,6 +12,9 @@ const KP = 'nd:kp';           // CITY 2.0 (Part 6a): NOAA's planetary Kp blocks 
 let wx = null, kp = null, started = false, at = 0, inflight = null, settled = false, fromCache = false;
 const readCache = st => { try { const s = JSON.parse(st.getItem(KEY) || 'null'); return isFresh(s) ? s : null; } catch { return null; } };
 try { wx = readCache(localStorage) || readCache(sessionStorage); } catch { /* private mode */ }
+// 9b — THE CLIMATE FALLBACK's place: the last answer this device kept, however old (only its rounded area — never a fresh fix)
+let placeHint = null;
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s && Number.isFinite(s.lat) && Number.isFinite(s.lon)) placeHint = { lat: s.lat, lon: s.lon }; } catch { /* private mode */ }
 if (wx) { settled = true; fromCache = true; at = Math.min(Date.now(), wx.got || 0); }    // (fetched less than 15 min ago: no new ask until then)
 try { const k = JSON.parse(sessionStorage.getItem(KP) || 'null'); if (k && Array.isArray(k.b) && Date.now() - k.at < 6 * 3600e3) kp = k; } catch { /* private mode */ }
 
@@ -71,6 +74,9 @@ export function lastWetAt() {
   const w = wx && wx.wetAt ? wx.wetAt : null;
   return w && m ? Math.max(w, m) : w || m;
 }
+
+/** 9b: where this device last had weather (the answer's rounded area, any age) — the climate fallback's place; null when never */
+export const lastPlace = () => (wx && Number.isFinite(wx.lat) && Number.isFinite(wx.lon) ? { lat: wx.lat, lon: wx.lon } : placeHint);
 
 /** SP3: the last ask's outcome { status, ms, err } (the load log + the readout) */
 export const weatherAsk = () => lastAsk;

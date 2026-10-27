@@ -29,17 +29,20 @@ export function placeOf(req) {
 
 async function fetchWeather(a, fetcher) {
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${a.lat}&longitude=${a.lon}`
-    + '&current=temperature_2m,weather_code,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,visibility,is_day&wind_speed_unit=ms'
+    + '&current=temperature_2m,weather_code,snow_depth,snowfall,cloud_cover,cloud_cover_low,cloud_cover_mid,cloud_cover_high,wind_speed_10m,wind_direction_10m,wind_gusts_10m,precipitation,visibility,is_day&wind_speed_unit=ms'
     // (CITY 2.0, 9a: + the gusts + the precipitation — THE WEATHER's rate + the windy days: core/harbor-weather.js)
     // RAINBOWS: the last two hours of precipitation in quarter hours (when the rain really stopped), no forecast
-    + '&minutely_15=precipitation&past_minutely_15=8&forecast_minutely_15=0&timeformat=unixtime';
+    + '&minutely_15=precipitation&past_minutely_15=8&forecast_minutely_15=0&timeformat=unixtime'
+    // (CITY 2.0, 9b — THE SNOWPACK: the real snow depth now + the last 30 days' highs, lows, snowfall + rain in the place's own days —
+    // core/harbor-snow.js runs its model on them when the depth is missing)
+    + '&daily=temperature_2m_max,temperature_2m_min,snowfall_sum,rain_sum&past_days=30&forecast_days=1&timezone=auto';
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), 4000);
   try {
     const r = await fetcher(url, { signal: ctl.signal });
     if (!r.ok) throw new Error(`open-meteo ${r.status}`);
     const j = await r.json();
-    return j && j.current ? { cur: j.current, m15: j.minutely_15 || null } : null;
+    return j && j.current ? { cur: j.current, m15: j.minutely_15 || null, daily: j.daily || null } : null;
   } finally { clearTimeout(timer); }
 }
 
@@ -52,7 +55,7 @@ export async function skyFor(place, { now = Date.now(), fetcher = fetch } = {}) 
   if (stored && now - stored.at < SKY_TTL_MS) { mem.set(place.key, stored); return { ...stored, city: place.city }; }
   const got = await fetchWeather(place, fetcher);
   if (!got) return stored ? { ...stored, city: place.city } : null;
-  const wx = normalize(got.cur, { lat: place.lat, lon: place.lon }, now, got.m15);
+  const wx = normalize(got.cur, { lat: place.lat, lon: place.lon }, now, got.m15, got.daily);
   mem.set(place.key, wx);
   if (mem.size > 500) mem.delete(mem.keys().next().value);
   try { ref(`wx/${place.key}`).set(wx).catch(() => {}); } catch { /* no database configured: memory only */ }

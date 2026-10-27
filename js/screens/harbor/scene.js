@@ -98,7 +98,8 @@ import { WITNESS, witnessWindow } from '../../core/harbor-witness.js';
 import { hornsBetween } from '../../core/harbor-boats.js';
 import { createDirector } from '../../core/harbor-director.js';
 import { createLoadLog, keyDiff } from '../../core/harbor-loadlog.js';
-import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk } from '../district/live-weather.js';
+import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk, lastPlace } from '../district/live-weather.js';
+import { climateWeather } from '../../core/climate.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 import { paradeWindow, paradeUnits } from '../../core/harbor-parade.js';
 import { latchBig, holidayAt, halloweenPieces, dotdPieces, thanksgivingPieces, holidaySeason, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
@@ -446,14 +447,26 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // moves keeps the live weather (clock.keepLive: it is the real weather here, the panel only moves the time; a forced weather still wins),
   // and a stored JUST ME state is applied BEFORE the reveal (tryReveal waits for it: one picture, decided once)
   const wxNow = () => {
+    if (clock.force.has('climate')) return climateNow();        // (9b: &force=climate — the fallback on demand, as if the live ask failed; &at= is its place)
     if (clock.wx) return clock.wx;
     if (clock.preview && !clock.keepLive) return null;
     const lw = liveWeather();
     if (lw) { wxHeld = lw; return clock.keepLive ? { ...lw, keep: true } : lw; }   // (keep: fresh by the real clock, whatever the panel's)
     const held = wxRevealed && wxHeld && Date.now() - wxHeld.at < 3 * 3600e3 ? wxHeld : null;
-    return held && clock.keepLive ? { ...held, keep: true } : held;
+    if (held) return clock.keepLive ? { ...held, keep: true } : held;
+    // 9b — THE CLIMATE FALLBACK (core/climate.js): the ask has settled with no usable answer (down, 204, stale) → the climate's best guess
+    // for this date + place, seeded (everyone here agrees), re-read every 5 min of the clock; never while the first ask is still out
+    return weatherSettled() && !clock.force.has('no-climate') ? climateNow() : null;
   };
-  const wxSourceNow = () => { if (clock.wx) return `forced ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`; if (clock.preview && !clock.keepLive) return 'preview (seeded)'; const s = weatherSource(), lw = liveWeather(); if (lw) return `${s.src} · ${s.age} min old${clock.keepLive ? ' · the panel moved the clock, the weather is live' : ''}`; if (wxHeld && wxRevealed) return `held (${s.src || 'the last answer'} ${Math.round((Date.now() - wxHeld.at) / 60000)} min old — a new ask on the way)`; return s.src ? `seeded (the ${s.src} answer is stale: ${s.age} min old)` : 'seeded (no answer yet)'; };
+  let climateC = null, climateB = -1;
+  const climateNow = () => {
+    const ms = clock.keepLive ? Date.now() : clock.now(), b = Math.floor(ms / 300e3);
+    if (b !== climateB || !climateC) { const pl = clock.wx && clock.wx.lat != null ? { lat: clock.wx.lat, lon: clock.wx.lon } : lastPlace(); climateB = b; climateC = { ...climateWeather(b * 300e3, { lat: pl ? pl.lat : null, lon: pl ? pl.lon : null, tz: clock.tz }), keep: !!clock.keepLive }; }
+    return climateC;
+  };
+  /** why the live weather isn't in hand (the readout's climate line) */
+  const liveWhy = () => { if (clock.force.has('climate')) return 'forced (&force=climate)'; const a = weatherAsk(), s = weatherSource(); if (s.src && !s.fresh) return `the ${s.src} answer is ${s.age} min old`; if (!a) return 'never asked'; if (a.status === 204) return 'no location (204)'; if (a.status) return `HTTP ${a.status}`; return a.err || 'offline'; };
+  const wxSourceNow = () => { if (clock.force.has('climate') && climateC) return `climate fallback — forced · ${climateC.climate.why}`; if (clock.wx) return `forced ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`; if (clock.preview && !clock.keepLive) return 'preview (seeded)'; const s = weatherSource(), lw = liveWeather(); if (lw) return `${s.src} · ${s.age} min old${clock.keepLive ? ' · the panel moved the clock, the weather is live' : ''}`; if (wxHeld && wxRevealed) return `held (${s.src || 'the last answer'} ${Math.round((Date.now() - wxHeld.at) / 60000)} min old — a new ask on the way)`; if (climateC && weatherSettled() && !clock.force.has('no-climate')) return `climate fallback — live failed: ${liveWhy()} · ${climateC.climate.why} · from ${climateC.climate.how}`; return s.src ? `seeded (the ${s.src} answer is stale: ${s.age} min old)` : 'seeded (no answer yet)'; };
   // CITY 2.0 MUSIC (core/city.js): the music follows THIS clock — the scene's own, so the preview panel's time jumps + speeds move it too —
   // the weather it shows (the sun's place) and the flags it runs on (&mood=)
   // (8b1 — THE BEAT, the owner: the panel's PARTY and every forced SHOW drive the MUSIC MOOD too — a party show plays a party song, so
@@ -1048,7 +1061,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     DK = darkNow();
     TW = toneWeights(LH);
     { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none';
-      if (sig !== wxSig) { if (wxSig && LK.wxKind !== wxKindLast) wxChangedAt = now; LOADLOG.add('wx', `${w ? `${clock.wx ? 'forced' : 'live'} ${w.kind}` : 'none (seeded)'} → the city reads ${LK.wxKind || 'seeded'}${wxSig ? '' : ' (at the start)'}`); wxSig = sig; wxKindLast = LK.wxKind; } }
+      if (sig !== wxSig) { if (wxSig && LK.wxKind !== wxKindLast) wxChangedAt = now; LOADLOG.add('wx', `${w ? `${w.src === 'climate' ? 'climate' : clock.wx ? 'forced' : 'live'} ${w.kind}` : 'none (seeded)'} → the city reads ${LK.wxKind || 'seeded'}${wxSig ? '' : ' (at the start)'}`); wxSig = sig; wxKindLast = LK.wxKind; } }
     // THE AURORA (Part 6a, the owner's call): a rare timed event for everyone (~2 nights a month, seeded, never two in a row) +
     // a bonus night on a real strong storm (NOAA Kp >= 7, via /api/sky) — at night, under clear-enough skies only
     { const lc = LK.local, ev = lc ? new Date(Date.UTC(lc.y, lc.m - 1, lc.d) - (lc.h < 12 ? 864e5 : 0)) : null;
@@ -1726,10 +1739,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const f2 = v => (+v || 0).toFixed(2), pct = v => Math.round((+v || 0) * 100);
     const out = `→ ${LK.wxKind || 'seeded'} · opaque ${f2(LK.cloud)} veil ${f2(LK.veil)} fog ${f2(LK.fog)}`;
     const wl = weatherLine(WXS);
+    if (clock.force.has('climate')) { const cw = climateNow(); return [`weather: climate fallback — forced (&force=climate)`, `wx ${cw.climate.why} · from ${cw.climate.how} · ${cw.temp} °C · WMO ${cw.code}`, `${out} · climate`, wl]; }
     if (clock.wx) return [`wx FORCED ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`, `${out} · forced`, wl];
+    if (clock.force.has('climate')) { const cw = climateNow(); return [`weather: climate fallback — forced (&force=climate)`, `wx ${cw.climate.why} · from ${cw.climate.how} · ${cw.temp} °C · WMO ${cw.code}`, `${out} · climate`, wl]; }
     if (clock.preview && !clock.keepLive) return [`wx a preview clock — no live weather (${remoteKey ? 'the panel: JUST ME / EVERYONE' : 'the link'})`, `${out} · seeded`, wl];
     const lw = wxNow();
     if (!lw) return [`wx ${wxSourceNow()}`, `${out} · seeded`, wl];
+    if (lw.src === 'climate') return [`weather: climate fallback — live failed: ${liveWhy()}`, `wx ${lw.climate.why} · from ${lw.climate.how} · ${lw.temp} °C · WMO ${lw.code}`, `${out} · climate`, wl];
     const hm = ms => { const d = new Date(ms); return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`; };
     const L = lw.layers, vis = lw.vis != null ? (lw.vis >= 1000 ? `${(lw.vis / 1000).toFixed(1)} km` : `${lw.vis} m`) : '?';
     return [`wx ${lw.src || 'open-meteo'} · ${lw.lat},${lw.lon} · slot ${lw.t ? hm(lw.t) : '?'} · ${Math.round((Date.now() - (lw.t || lw.at)) / 60000)} min old · WMO ${lw.code != null ? lw.code : '?'} · cc ${pct(lw.cloud)}${L ? ` (lo ${pct(L.lo)} mid ${pct(L.mid)} hi ${pct(L.hi)})` : ''} · vis ${vis}`, `${out} · ${wxSourceNow()}`, wl];

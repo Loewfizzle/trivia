@@ -201,6 +201,7 @@ export const EVENTS = [
   { id: 'lightning', label: 'LIGHTNING', cat: 'weather', group: 'WEATHER FX', hint: 'with WEATHER = STORM' },
   { id: 'freeze', label: 'FROST', cat: 'weather', group: 'WEATHER FX' },
   { id: 'halo', label: '22° SUN HALO', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL (a thin cirrostratus sky): the rare faint ring round the sun' },
+  { id: 'climate', label: 'CLIMATE FALLBACK', cat: 'weather', group: 'WEATHER FX', hint: '9b: the weather as if the live ask failed — this date + place from the climate normals (+ its snow on the ground)' },
   { id: 'sundogs', label: 'SUN DOGS', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL: the 22° halo + its two sun dogs (the rarer bonus)' },
   { id: 'beams', label: 'SKY BEAMS', cat: 'party', group: 'PARTY · ANY NIGHT', night: true, hint: 'the party’s vertical beams from the tall towers' },
   { id: 'searchlights', label: 'SEARCHLIGHTS', cat: 'lights', group: 'THE TOWERS', night: true },
