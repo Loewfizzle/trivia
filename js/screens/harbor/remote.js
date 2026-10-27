@@ -544,7 +544,10 @@ export function createRemote({ scene, api = apiCall }) {
         opts(btn('AUTO', !st.wxk, () => edit(s => { delete s.wxk; }), { q: 'weather intensity auto' }), ...R.WX_INTENSITY.map(w => btn(w.label, st.wxk === w.id, () => edit(s => { s.wxk = w.id; }), { q: `${w.label} intensity weather rain` }))),
         // (9b: SNOW ON THE GROUND — the snowpack's stages; AUTO = the real ground)
         h('div.hr-gl', 'SNOW ON THE GROUND'),
-        opts(btn('AUTO', !st.snow, () => edit(s => { delete s.snow; }), { q: 'snow ground auto real' }), ...R.SNOW_GROUND.map(w => btn(w.label, st.snow === w.id, () => edit(s => { s.snow = w.id; }), { q: `${w.label} snow ground winter` })))],
+        opts(btn('AUTO', !st.snow, () => edit(s => { delete s.snow; }), { q: 'snow ground auto real' }), ...R.SNOW_GROUND.map(w => btn(w.label, st.snow === w.id, () => edit(s => { s.snow = w.id; }), { q: `${w.label} snow ground winter` }))),
+        // (9b: THE JANUARY SNOWMAN's stages — AUTO = the real one)
+        h('div.hr-gl', 'THE SNOWMAN'),
+        opts(btn('AUTO', !st.snowman, () => edit(s => { delete s.snowman; }), { q: 'snowman auto real' }), ...R.SNOWMAN_STAGES.map(w => btn(w.label, st.snowman === w.id, () => edit(s => { s.snowman = w.id; }), { q: `${w.label} snowman january` })))],
     },
     party: {
       sec: 'lightsmusic', last: false, label: 'PARTY SHOW', q: 'party show night neon',

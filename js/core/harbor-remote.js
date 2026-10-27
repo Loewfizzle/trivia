@@ -20,7 +20,7 @@ import { PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_STEP } from './harbor-beat.j
 import { MOMENTS } from './harbor-moments.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'mood', 'debug', 'grid', 'pulse'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
@@ -206,6 +206,7 @@ export const EVENTS = [
   { id: 'shovel', label: 'SHOVELLING', cat: 'weather', group: 'WINTER', hint: '9b: the doorman shovels + salts the speakeasy steps; a shoveller on the front walk' },
   { id: 'snowball', label: 'SNOWBALL FIGHT', cat: 'weather', group: 'WINTER', hint: '9b: kids on the plaza (snowy weekend afternoons)' },
   { id: 'slip', label: 'A SLIP', cat: 'weather', group: 'WINTER', hint: '9b: a walker slips + catches themselves (thaw nights)' },
+  { id: 'snowman-build', label: 'SNOWMAN BUILDERS', cat: 'weather', group: 'WINTER', hint: '9b: the kids + a grown-up building the January snowman (with THE SNOWMAN at a stage)' },
   { id: 'awning-slab', label: 'AWNING SLAB', cat: 'weather', group: 'WINTER', hint: '9b: a slab of snow slides off the speakeasy awning (needs snow on the ground: SNOW ON THE GROUND in THE WEATHER)' },
   { id: 'climate', label: 'CLIMATE FALLBACK', cat: 'weather', group: 'WEATHER FX', hint: '9b: the weather as if the live ask failed — this date + place from the climate normals (+ its snow on the ground)' },
   { id: 'sundogs', label: 'SUN DOGS', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL: the 22° halo + its two sun dogs (the rarer bonus)' },
@@ -361,6 +362,8 @@ export const TIMES = [
 ];
 export const SPEEDS = [1, 20, 60];
 /** 9b: SNOW ON THE GROUND (&snow=; AUTO = the real ground — the live depth, the climate's on a preview clock) */
+/** 9b: THE JANUARY SNOWMAN's stages (&snowman=; AUTO = the real one) */
+export const SNOWMAN_STAGES = [{ id: 'base', label: 'BASE' }, { id: 'head', label: 'HEAD' }, { id: 'carrot', label: 'CARROT' }, { id: 'done', label: 'DONE' }, { id: 'slump', label: 'SLUMP' }, { id: 'melt', label: 'MELT' }];
 export const SNOW_GROUND = [{ id: 'fresh', label: 'FRESH' }, { id: 'older', label: 'OLDER' }, { id: 'banks', label: 'PLOWED BANKS' }, { id: 'thaw', label: 'THAW' }, { id: 'spring', label: 'SPRING' }, { id: 'none', label: 'NONE' }];
 /** 9a: the forced weather's INTENSITY (&wxk=; AUTO = the state's own) */
 export const WX_INTENSITY = [{ id: 'light', label: 'LIGHT' }, { id: 'medium', label: 'MEDIUM' }, { id: 'heavy', label: 'HEAVY' }];
@@ -537,6 +540,7 @@ export function cleanRemote(raw) {
   sel('wx', WEATHER.map(w => w.id));
   sel('wxk', WX_INTENSITY.map(w => w.id));
   sel('snow', SNOW_GROUND.map(w => w.id));
+  sel('snowman', SNOWMAN_STAGES.map(w => w.id));
   sel('hol', HOLIDAYS.map(h => h.id));
   sel('mood', MUSIC_MOODS.map(m => m.id));
   if (r.debug) out.debug = true;
@@ -563,7 +567,7 @@ export function toParams(st) {
   if (st.party === 'on') force.push('party');
   if (st.party === 'off') force.push('no-party');
   if (force.length) p.force = force.join(',');
-  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'wxk', 'snow', 'mood']) if (st[k] != null) p[k] = String(st[k]);
+  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'wxk', 'snow', 'snowman', 'mood']) if (st[k] != null) p[k] = String(st[k]);
   if (st.cycle) p.cycle = '1';
   if (st.speed && st.speed !== 1) p.speed = String(st.speed);
   if (st.debug) p.debug = '1';
@@ -589,6 +593,7 @@ export function describe(st) {
   if (st.when) { const [y, m, d] = st.when.slice(0, 10).split('-').map(Number); out.push(`${DAYS[new Date(Date.UTC(y, m - 1, d)).getUTCDay()]} ${m}/${d} ${st.when.slice(11)}`); }
   if (st.speed > 1) out.push(`${st.speed}×`);
   if (st.wx) out.push(`${(WEATHER.find(w => w.id === st.wx) || { label: st.wx.toUpperCase() }).label}${st.wxk ? ` · ${st.wxk.toUpperCase()}` : ''}`);
+  if (st.snowman) out.push(`SNOWMAN ${st.snowman.toUpperCase()}`);
   if (st.snow) out.push(`SNOW ${(SNOW_GROUND.find(w => w.id === st.snow) || { label: st.snow.toUpperCase() }).label}`);
   if (st.mood) out.push(`MUSIC ${MUSIC_MOODS.find(m => m.id === st.mood).label}`);
   if (st.debug) out.push('READOUT');

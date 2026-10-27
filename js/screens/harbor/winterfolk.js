@@ -95,6 +95,22 @@ export function createWinterFolk() {
         out.push(fig('walker', 6060 + Math.floor(t / P), st));
       }
     }
+    // ---- THE SNOWMAN's PEOPLE (core/harbor-snowman.js): his BUILDERS on a January snow day (10 am – 3 pm: two kids rolling + packing,
+    // a grown-up lifting at the top) while he isn't finished; once he stands, VISITS now + then — a kid at his face (the pebble smile),
+    // someone holding a camera up to him
+    if (w.sm && w.sm.standing && L.medallion) {
+      const m = L.medallion, h = w.lc ? w.lc.h + w.lc.mi / 60 : 12, f = w.force || new Set();
+      const building = f.has('snowman-build') || (w.sm.progress < 1 && w.lc && w.lc.m === 1 && h >= 10 && h < 15 && w.sn && w.sn.stage !== 'none' && !(w.falling > 0.6));
+      if (building) {
+        out.push(fig('kid', 5101, { x: m.x - 1.7, z: m.z - 0.9, pose: 'push', v: 0, hd: 0, dist: 0, a: 1, since: 9 }));
+        out.push(fig('kid', 5117, { x: m.x + 1.6, z: m.z - 1.3, pose: (t % 4) < 1.6 ? 'pick' : 'wait', v: 0, hd: Math.PI, dist: 0, a: 1, since: t % 4, left: 1.6 - (t % 4) }));
+        out.push(fig('walker', 5131, { x: m.x + 0.9, z: m.z + 0.9, pose: 'reach', v: 0, hd: Math.PI, dist: 0, a: 1, since: 9 }));
+      } else if (w.sm.progress >= 0.93 && h >= 9 && h < 17) {
+        const P = 360, ph = t % P, n = Math.floor(t / P);
+        if (ph < 50) out.push(n % 2 ? fig('kid', 5200 + (n % 5), { x: m.x - 0.8, z: m.z - 1.1, pose: 'reach', v: 0, hd: 0.3, dist: 0, a: Math.min(1, ph / 2, (50 - ph) / 2), since: 9 })
+          : fig('stroll', 5300 + (n % 7), { x: m.x + 2.6, z: m.z - 2.4, pose: 'watch', v: 0, hd: Math.PI * 0.85, dist: 0, a: Math.min(1, ph / 2, (50 - ph) / 2), since: 9 }));
+      }
+    }
     // the balls in flight + their bursts (sorted in at the thrower's depth)
     if (balls.length || puffs.length) {
       out.push({ z: L.medallion ? L.medallion.z - 5 : 40, draw: c => {

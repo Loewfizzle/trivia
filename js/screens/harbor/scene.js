@@ -15,7 +15,7 @@
 // The camera + every position come from core/harbor-layout.js (pure, tested); the static layers are baked per look key in
 // small chunks into a second set of canvases and crossfaded in (bake.js: the memory budget); only lights and moving things
 // draw every frame. Progressive start: the sky first, the city fades in when its first bake is done.
-import { look as skyLook, skyClock, sunPosition, moonPhase, sunTimes } from '../../core/sky.js';
+import { look as skyLook, skyClock, sunPosition, moonPhase, sunTimes, localParts } from '../../core/sky.js';
 import { paletteFor } from '../district/palette.js';
 import { createStars } from '../district/stars.js';
 import { createFx } from '../district/fx.js';
@@ -99,7 +99,9 @@ import { hornsBetween } from '../../core/harbor-boats.js';
 import { createDirector } from '../../core/harbor-director.js';
 import { createLoadLog, keyDiff } from '../../core/harbor-loadlog.js';
 import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk, lastPlace } from '../district/live-weather.js';
-import { climateWeather } from '../../core/climate.js';
+import { climateWeather, climateDays, nearestStation } from '../../core/climate.js';
+import { snowmanPlan, forcedSnowman } from '../../core/harbor-snowman.js';
+import { snowmanPiece, SNOWMAN_H } from './snowman.js';
 import { snowState, forcedPack, packFromDays, daysOf, snowKey, emptyPack } from '../../core/harbor-snow.js';
 import { capFor, groundSteps, roadStep, speakStep, topsOf, snowTones, releaseSnow, awningSnow, plowedStrip } from './snow.js';
 import { createSnowfall } from './snowfx.js';
@@ -767,6 +769,30 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return lc != null && clock.now() / 1000 - lc < 1500 ? 'plowed' : 'white';
   };
   let stripX = null, stripAt = 0;
+  // 9b — THE JANUARY SNOWMAN (core/harbor-snowman.js — the plan from the same days as the snowpack; snowman.js — the art on THE CENTREPIECE
+  // RIG): LATCHED — decided at the load + on every return from the background, never changing on camera (the big pieces' rule); the
+  // previews: &snowman=base|middle|head|face|carrot|scarf|hat|done|slump|melt
+  let SM = null, smRelatch = true, smKey = '', smSet = false;
+  function snowmanNow() {
+    const q = qp.get('snowman');
+    if (q && q !== 'auto') return forcedSnowman(q);
+    if (clock.force.has('no-snow') || clock.force.has('no-snowman')) return null;
+    const lc = LK && LK.local; if (!lc || !(lc.m === 1 || lc.m === 2 || lc.m === 3)) return null;
+    const w = wxNow();
+    let days;
+    if (w && w.days && w.src !== 'climate' && !clock.wx && !(clock.preview && !clock.keepLive)) days = w.days.filter(r => r[0] + 864e5 <= Date.now()).map(r => { const d = localParts(r[0] + 6 * 3600e3, clock.tz); return { y: d.y, m: d.m, d: d.d, tmax: r[1] ?? 0, tmin: r[2] ?? -5, snow: r[3] || 0, rain: r[4] || 0 }; });
+    else days = climateDays(nearestStation(LK.lat, LK.lon), lc.y, lc.m, lc.d, 45);
+    return snowmanPlan(days, { y: lc.y, m: lc.m, d: lc.d, h: lc.h + lc.mi / 60, tmax: LK.temp != null ? LK.temp : -2 });
+  }
+  function snowmanTick() {
+    const key = `${qp.get('snowman') || ''}|${clock.force.has('no-snow') ? 1 : 0}|${LK.local ? `${LK.local.y}-${LK.local.m}-${LK.local.d}` : ''}`;
+    if (!smRelatch && key === smKey) return;
+    // (the day turning over while the city is on screen waits for the next return; a preview link / the panel applies at once)
+    if (!smRelatch && smKey && key.split('|').slice(0, 2).join('|') === smKey.split('|').slice(0, 2).join('|')) return;
+    smRelatch = false; smKey = key; SM = snowmanNow();
+    if (SM && SM.standing) { centre.set({ piece: snowmanPiece(SM), h: SNOWMAN_H }); smSet = true; LOADLOG.add('snowman', `${SM.stage} · ${Math.round(SM.progress * 100)}% · ${SM.why}`); }
+    else if (smSet) { centre.clear(); smSet = false; }
+  }
   const snowNow = () => { if (clock.force.has('no-snow')) return ''; const k = snowKey(SN); return k ? `${k}${roadModeNow()[0]}${doorCleared(LK.local, SN) ? 'd' : ''}` : ''; };
   const wetNow = () => streetWet({ force: clock.force.has('wet-street'), wet: WXS ? Math.round(WXS.wet * 4) / 4 : 0 });
   // 9a — THE WEATHER (core/harbor-weather.js): ONE city state from the live / forced answer, stepped every frame through its soft
@@ -1119,6 +1145,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     LK = skyLook(ms, clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() }); lkMs = ms;
     holidayTick();
     snowTick();
+    snowmanTick();
     LH = harborWeights(LK, Math.round(0.5 * stormDark() * 10) / 10);     // (9a: a storm afternoon's gloom — in tenths)
     P = paletteFor(LH);
     DK = darkNow();
@@ -1660,7 +1687,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (WIN: the holiday's big set pieces — the jack-o'-lanterns by the bench + the lamp post — in by depth with everyone too)
     { const hx = hpropsItems('near', fadeIn, lit);
       // (9b: THE WINTER PEOPLE — sorted in by depth with everyone on the near pass)
-      const wx9 = pplOn && (SN.stage !== 'none' || ['shovel', 'snowball', 'slip'].some(id => clock.force.has(id))) && !clock.force.has('no-snow') ? winterFolk.items({ L, t: clock.now() / 1000, lc: LK.local, sn: SN.stage !== 'none' ? SN : { ...SN, stage: 'fresh', cover: 1, age: 0 }, falling: WXS ? WXS.snow : 0, force: clock.force, env: pplEnv, snowCol: bakeTones ? snowTones(bakeTones, SN.stage !== 'none' ? SN : null).snow : [240, 244, 252] }) : [];
+      const wx9 = pplOn && (SN.stage !== 'none' || (SM && SM.standing) || ['shovel', 'snowball', 'slip'].some(id => clock.force.has(id))) && !clock.force.has('no-snow') ? winterFolk.items({ sm: SM, L, t: clock.now() / 1000, lc: LK.local, sn: SN.stage !== 'none' ? SN : { ...SN, stage: 'fresh', cover: 1, age: 0 }, falling: WXS ? WXS.snow : 0, force: clock.force, env: pplEnv, snowCol: bakeTones ? snowTones(bakeTones, SN.stage !== 'none' ? SN : null).snow : [240, 244, 252] }) : [];
       if (pplOn) { people.draw(c, 'near', { ...pplEnv, extra: [...(wlOn ? wild.items('near', wlEnv) : []), ...hx, ...wx9], dogLunge: vid => wild.dogLunge(vid) }); people.draw(c, 'roof', pplEnv); }
       else { if (wlOn) wild.draw(c, 'near', wlEnv); for (const it of hx) { c.save(); it.draw(c); c.restore(); } } }
     if (wlOn) wild.draw(c, 'front', wlEnv);
@@ -2330,8 +2357,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const RETURN_GRACE = 3000;
   function returnGrace() { tierHold = Math.max(tierHold, performance.now() + RETURN_GRACE); frames.length = 0; cool = Math.max(cool, 30); returns++; }
   let returns = 0;
-  const onVis = () => { if (document.visibilityState === 'visible') { bigRelatch = true; returnGrace(); wakeLoop('visible'); } else stop(); };   // (11a-2: back from the background — the big holiday pieces may change now)
-  const onShow = () => { bigRelatch = true; returnGrace(); wakeLoop('pageshow'); }, onFocus = () => wakeLoop('focus'), onTapWake = () => wakeLoop('tap');
+  const onVis = () => { if (document.visibilityState === 'visible') { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('visible'); } else stop(); };   // (11a-2: back from the background — the big holiday pieces may change now)
+  const onShow = () => { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('pageshow'); }, onFocus = () => wakeLoop('focus'), onTapWake = () => wakeLoop('tap');
   const watchdog = setInterval(() => wakeLoop('watchdog'), 1000);
   let resizeT = 0, relayT = 0, laneKey = '';
   // (a resize that changed nothing — iOS fires one on the way back from the home screen — never re-bakes the city)
@@ -2590,6 +2617,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
+      snowman: SM ? { ...SM } : null,
       snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0 },          // (9b: THE SNOWPACK + where it came from)
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
