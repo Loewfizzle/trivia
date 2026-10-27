@@ -8154,7 +8154,10 @@ each flake's batch key, the far flakes as tiny squares (no arcs). The sign's flu
   cached (a re-render on each 1/60 depth step while it melts: ~every 10 s live).
 - **`load`'s "a stored JUST ME jump into a holiday night"**: a party night's lit swap sometimes lands just after the reveal (a race — passed on
   the next run with the same code; its sibling timing check fails on the baseline too).
-- **The cloud's known flakes** (SP6's list: `show`'s half-time beat check, `city`'s panel + perf timeouts, the spider tap) — untouched code.
+- **THE FINAL CLOUD RUN (40538288471)**: `windows` (with the new `snow` group), `audio`, `show`, `street`, `wild` GREEN; `tests` (40538288379)
+  green; `holiday` 63/64 — the SPIDER'S TAP (SP6's known race); `city` 92/93 — the panel's "the word gone" timeout (fails on the baseline
+  too) + LOAD WEATHER "answered after 6 s" (a `lit crossfade · share` — the windows' hourly share stepping on the real clock: SP3's
+  clock-dependent flake). All three in code this pass didn't touch; not re-run (the two-run rule).
 - The snowball kids + the snowman's builders are drawn by `winterfolk.js`, not the people planner: they don't route round other walkers
   (a passer-by can cross them).
 - No plow on the street under the dock; no ice on the water; no snow on the moving boats.
