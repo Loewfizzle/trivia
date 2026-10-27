@@ -5,7 +5,8 @@
 // its painter in screens/harbor/windows.js (PAINT[id]). ADDING A MOMENT LATER = one entry here + one painter there (+ its row
 // appears in THE PREVIEW PANEL's WINDOWS category by itself, and &force=window&moment=<id> previews it).
 //   rarity     routine (fixed in the day: `at` + a seeded few minutes) · common · uncommon · rare (random draws weighted by
-//              RARITY) · legendary (its own calendar: a few nights a year, `plays` times through the evening)
+//              RARITY) · legendary (its own calendar: a few nights a year, `plays` times through the evening) · holiday (11a-2: a
+//              holiday's ROOM LIFE on its own calendar — `calendar` + `from`/`to`: back-to-back plays of `len` s, never drawn at random)
 //   windows    the rooms it may use (core/harbor-speakeasy.js ROOMS ids + 'shop' — the barbershop's big window); the draw picks
 //              a free one. 'all' = every window in turn (it holds them all while it runs)
 //   hours      [from, to) local hours, wrapping past midnight ([19.5, 2] = 7:30 pm → 2 am); null = any hour
@@ -21,7 +22,7 @@ import { legendNight } from './harbor-legend.js';
 import { partyDow } from './party.js';
 
 export const RARITY = Object.freeze({ common: 1, uncommon: 0.34, rare: 0.008 });
-export const RARITIES = Object.freeze(['routine', 'common', 'uncommon', 'rare', 'legendary']);
+export const RARITIES = Object.freeze(['routine', 'common', 'uncommon', 'rare', 'legendary', 'holiday']);
 export const WINDOW_IDS = Object.freeze(['edge2', 'bar', 'jazz', 'edge3', 'apartment', 'back', 'shop']);
 /** the tango's way round the building: the top floor left → right, then the bar floor right → left */
 export const TANGO_PATH = Object.freeze(['edge3', 'back', 'jazz', 'bar', 'edge2']);   // (SP5: never through the boss's room)
@@ -64,6 +65,13 @@ export const MOMENTS = Object.freeze([
   // 150 s; never a legendary's night, never with the edge windows' eerie-red mood, never a Mothman night (ctx.mothman — none yet)
   { id: 'eyes', label: 'THE EYES IN THE HAZE', rarity: 'legendary', calendar: 'eyes', windows: ['bar', 'jazz', 'back'], hours: [23, 4], light: 'night', len: 150, plays: 3, starter: false, kind: 'a dark room full of slow haze, an ember-red glow from below, a pair of big red eyes watching the street — blinking rarely, drifting, narrowing; no body, no face' },
   { id: 'cash', label: 'COUNTING THE CASH', rarity: 'uncommon', windows: ['back'], hours: [22.5, 2.5], light: 'night', len: 26, cooldown: 420, party: 0.6, boot: true, noRaid: true, starter: false, kind: 'a close-up: a man in shirtsleeves + braces under the green banker\'s lamp, bills peeled off the heap into banded stacks, a lick of the thumb, a glance over his shoulder; a shadow at the door — it all goes in the bag' },
+  // ---- 11a-2 — THANKSGIVING's ROOM LIFE (the owner: "candlelit family tables in windows on the lit 3D kit + ACT BIG — NEVER in the boss's
+  // room, a football game on a TV in another room"): long steady scenes on the holiday's own date (calendar: 'thanksgiving' — the fourth
+  // Thursday of November), each played as back-to-back chunks of `len` s from `from` to `to` (local hours; a seeded few minutes' jitter):
+  // a phone opened at 4 pm or 7 pm walks straight into them. The people ARRIVE at the start of the first chunk + LEAVE at the end of the
+  // last (walkIn), never a cut; the chunks between are seamless. They are the rooms' own life (starOnly keeps them with the routines)
+  { id: 'table', label: 'THE FAMILY TABLE', rarity: 'holiday', calendar: 'thanksgiving', holiday: 'thanksgiving', windows: ['back'], from: 15, to: 21.5, hours: [15, 21.5], len: 900, cooldown: 900, starter: false, kind: 'Thanksgiving dinner by candlelight: a white cloth, the turkey on its platter, the dishes going round, a family of four at the table — passing a dish, leaning in, a toast' },
+  { id: 'football', label: 'THE GAME ON TV', rarity: 'holiday', calendar: 'thanksgiving', holiday: 'thanksgiving', windows: ['jazz'], from: 12.5, to: 19, hours: [12.5, 19], len: 900, cooldown: 900, starter: false, kind: 'Thanksgiving football: the set\u2019s green glow on three on the couch, the snap, a long run — and on a score they jump up, arms high' },
 ]);
 export const MOMENT = Object.freeze(Object.fromEntries(MOMENTS.map(m => [m.id, m])));
 export const STARTERS = Object.freeze(MOMENTS.filter(m => m.starter !== false).map(m => m.id));
@@ -178,8 +186,27 @@ export function fixedPlan(key, only = null, ctx = {}) {
     if (only && !only.includes(m.id)) continue;
     if (m.rarity === 'routine') out.push({ id: m.id, win: m.windows[0], t0: routineAt(m.id, key), len: m.len, n: 0 });
     else if (m.calendar === 'eyes') { for (const p of eyesPlaysOn(key, ctx)) out.push({ id: m.id, win: p.win, t0: p.t0, len: m.len, n: p.n }); }   // (WIN2: its own calendar, in ONE window)
+    else if (m.calendar === 'thanksgiving') out.push(...holidayPlays(m, key, ctx));   // (11a-2: the holiday's room life, by its date)
     else if (m.rarity === 'legendary') { const s = legendNights(y, m.id)[key]; if (s) s.forEach((t0, i) => out.push({ id: m.id, win: 'all', t0, len: m.len, n: i })); }
   }
+  return out;
+}
+/** 11a-2 — the fourth Thursday of November (Thanksgiving) of year y → its day of the month */
+export const thanksgivingOf = y => { const dow = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return 1 + ((4 - dow + 7) % 7) + 21; };
+/** is local day `key` ('YYYY-MM-DD') the holiday a calendar names? (11a-2: 'thanksgiving') */
+export function holidayDay(cal, key) {
+  const [y, m, d] = String(key).split('-').map(Number);
+  return cal === 'thanksgiving' && m === 11 && d === thanksgivingOf(y);
+}
+/** 11a-2 — a holiday ROOM-LIFE moment's plays on day `key` (PURE): from `from` (+ a seeded 0–6 min) to `to`, back-to-back chunks of
+ *  m.len s in its window → [{ id, win, t0, len, n, first?, last? }] (first: the people arrive in it · last: they leave). Never the boss's. */
+export function holidayPlays(m, key, ctx = {}) {
+  if (!holidayDay(m.calendar, key)) return [];
+  const win = windowsOf(m).find(w => w !== BOSS_ROOM);
+  if (!win) return [];
+  const r = rngFrom(hashString(`hol|${m.id}|${key}|${ctx.seed || 1924}`)), t0 = Math.round(m.from * 3600 + r() * 360), t1 = Math.round(m.to * 3600 - r() * 360);
+  const n = Math.max(1, Math.round((t1 - t0) / m.len)), out = [];
+  for (let i = 0; i < n; i++) out.push({ id: m.id, win, t0: t0 + i * m.len, len: m.len, n: i, ...(i === 0 ? { first: true } : {}), ...(i === n - 1 ? { last: true } : {}) });
   return out;
 }
 /**
@@ -256,8 +283,9 @@ export function momentsAt(entries, sec) {
  *  first (the eye always knows where to look); the rest wait their turn off the stage. PURE: on → the filtered list */
 export function starOnly(on) {
   let star = null;
-  for (const e of on) if (MOMENT[e.id] && MOMENT[e.id].rarity !== 'routine' && (!star || e.t0 < star.t0 || (e.t0 === star.t0 && e.id < star.id))) star = e;
-  return on.filter(e => (MOMENT[e.id] && MOMENT[e.id].rarity === 'routine') || e === star);
+  const own = e => MOMENT[e.id] && (MOMENT[e.id].rarity === 'routine' || MOMENT[e.id].rarity === 'holiday');   // (11a-2: a holiday's room life too)
+  for (const e of on) if (MOMENT[e.id] && !own(e) && (!star || e.t0 < star.t0 || (e.t0 === star.t0 && e.id < star.id))) star = e;
+  return on.filter(e => own(e) || e === star);
 }
 /** SP3 — THE STAGING (the owner: "too small — you can't make anything out"): how close each moment plays to the glass — a zoom about the
  *  pane's foot, so a close moment is a BOLD silhouette cropped by the frame (~60–70 % of the pane's height: head + shoulders the shape),
@@ -268,10 +296,10 @@ export function starOnly(on) {
  *  every moment in the table. */
 export const WINDOW_LOOKS = Object.freeze({
   wake: 'lit', 'shop-open': 'lit', bartender: 'lit', 'lights-out': 'silhouette', dance: 'shadow', toast: 'lit', sax: 'shadow', cat: 'silhouette',
-  fan: 'silhouette', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit', cash: 'lit', eyes: 'light',
+  fan: 'silhouette', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit', cash: 'lit', eyes: 'light', table: 'lit', football: 'lit',
 });
 export const LOOK_WHY = Object.freeze({ shadow: 'on the jazz room\'s shade (backlit)', silhouette: 'a dark room, or backlit by the TV', ghost: 'the holiday\'s own glow', lit: 'in a lit room', light: 'light + shadow only — no figure (WIN2)' });
-export const STAGE = Object.freeze({ eyes: 1.0, cash: 1.0, ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
+export const STAGE = Object.freeze({ eyes: 1.0, cash: 1.0, table: 1.0, football: 1.0, ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
 /** the rooms' own steady figures (the jazz room's player, the TV couch, the bar's afternoon) — a step closer too */
 export const STAGE_ROOM = 1.22;
 /** the next start after `sec` (the readout + the e2e): { id, win, in: seconds } or null */

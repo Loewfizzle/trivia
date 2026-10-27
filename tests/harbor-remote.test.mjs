@@ -64,7 +64,7 @@ test('WIN — PLAY ALL: a playlist per catalogue — every window moment once (t
   assert.deepEqual(w.map(i => i.id).sort(), MOMENTS.map(m => `window-${m.id}`).sort(), 'every moment once');
   { const party = wAll.find(i => i.id === 'window-party'); assert.ok(party && party.night && party.hour === 22.5 && party.len >= 60, 'WIN3: the window party in the loop, at the peak'); }
   const firstNight = w.findIndex(i => i.night); assert.ok(firstNight > 0 && w.slice(firstNight).every(i => i.night) && w.slice(0, firstNight).every(i => !i.night), 'day first, then night');
-  for (const i of w) { const m = MOMENTS.find(x => `window-${x.id}` === i.id); assert.ok(i.len >= m.len + 3 && i.len <= m.len + 5, `${i.id}: its full length + the loop's gap`); assert.equal(i.hol, m.holiday || null); }
+  for (const i of w) { const m = MOMENTS.find(x => `window-${x.id}` === i.id), ml = m.rarity === 'holiday' ? 75 : m.len; assert.ok(i.len >= ml + 3 && i.len <= ml + 5, `${i.id}: its full length + the loop's gap (11a-2: a holiday's room life 75 s)`); assert.equal(i.hol, m.holiday || null); }
   for (const kind of ['holidays', 'wildlife', 'workers']) { const l = playlistOf(kind); assert.ok(l.length >= 5, `${kind}: ${l.length} rows`); assert.ok(l.every(i => !i.id.startsWith('no-') && i.len > 0 && eventDef(i.id)), `${kind}: real rows, never an off-switch`); }
   assert.ok(playlistOf('holidays').filter(i => i.hol === 'halloween').length >= 4 && playlistOf('holidays').some(i => i.hol === 'dotd'), 'the holidays know their night');
   for (const p of PLAY_ALL) assert.ok(SECTIONS.some(s => s.id === p.sec) && playlistOf(p.kind).length > 0, `${p.kind} in ${p.sec}`);

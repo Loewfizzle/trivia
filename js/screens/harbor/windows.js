@@ -814,7 +814,7 @@ export function createWindowLife() {
       // the room's own state (POLISH 5: single panes — nothing is laid back over the glass after)
       if (w.id === 'apartment' && !eyesOn) zoomed(STAGE_ROOM, () => apartmentState(E, fr.states.apartment, list));
       if (w.id === 'bar' && !eyesOn) zoomed(STAGE_ROOM, () => barState(E, fr.states.bar, list));
-      if (w.id === 'jazz' && kl > 0.01 && !eyesOn && !list.some(e => e.id === 'mummy')) { const solo = list.find(e => e.id === 'sax'); zoomed(solo ? STAGE.sax : STAGE_ROOM, () => saxPlayer(E, solo)); }
+      if (w.id === 'jazz' && kl > 0.01 && !eyesOn && !list.some(e => e.id === 'mummy' || e.id === 'football')) { const solo = list.find(e => e.id === 'sax'); zoomed(solo ? STAGE.sax : STAGE_ROOM, () => saxPlayer(E, solo)); }
       // WIN2 — THE EDGE WINDOWS' MOOD LIGHTS (light + shadow only, no people): at night the whole pane is the mood's
       if (w.edge && k > 0.01 && fr.full.has(w.id) && dress !== 'ofrenda') edgeMood(E, fr.moods ? fr.moods[w.id] : 'candle', fr.moods);
       // (SP3 — the windows that aren't the star keep SLOW SIMPLE LIFE: now and then someone passes deep in the room, a soft shadow.
@@ -1562,8 +1562,186 @@ export function createWindowLife() {
     c.globalCompositeOperation = 'lighter'; glow(c, [255, 150, 50], x, y + ry, 0.5, 0.45 * k * fl); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
   }
 
+  // ---------------------------------------------------------------- 11a-2 — THANKSGIVING's ROOM LIFE (core#holidayPlays)
+  // (the owner: "candlelit family tables in windows on the lit 3D kit + ACT BIG — NEVER in the boss's room; a football game on a TV in
+  // another room"). Both are the rooms' own steady life all afternoon / evening on the day: the people ARRIVE through the room's depth in
+  // the first chunk + LEAVE the same way in the last (tgSeat), everything between seamless; small natural motion on a seeded loop.
+  const TG_CANDLE = [255, 188, 104], TG_TV = [150, 236, 168];
+  /** person i of n: 0 (away) … 1 (in place) — the first chunk brings them in one after another, the last takes them out */
+  function tgSeat(inst, el, len, i, n) {
+    const first = !!(inst && (inst.first || (inst.n != null && inst.n < 0))), lst = !!(inst && inst.last);
+    let w = 1;
+    if (first) w = Math.min(w, sm(2 + i * 3.2, 8 + i * 3.2, el));
+    if (lst) w = Math.min(w, 1 - sm(len - 26 + (n - 1 - i) * 3.2, len - 20 + (n - 1 - i) * 3.2, el));
+    return w;
+  }
+  /** a person walking in from the room's door (deep, at doorX) to their place (x, depth d, seated waist y): → the figure's x, depth, y,
+   *  legs (while standing), step */
+  function tgWalk(E, w, doorX, x, d, y, s) {
+    const go = sm(0, 0.82, w), sit = sm(0.78, 1, w), walking = w > 0.001 && w < 0.8;
+    return { x: lerp(doorX, x, go), d: lerp(0.9, d, go), y: y + 0.44 * s * (1 - sit), legs: sit < 0.6 ? 0.6 * s : 0, step: walking && E.mo ? Math.sin(E.t * 6.2) : 0, face: walking ? Math.sign(x - doorX) * 0.85 : null, walking };
+  }
+  /** THE FAMILY TABLE (the back room, floor 3 — next door to the boss, never in his room): a dining room in candlelight — claret walls
+   *  catching the two tapers, a framed picture, velvet drapes framing the pane; a table under a white cloth with the TURKEY on its platter,
+   *  the cranberry + the sweet potatoes + the greens, a plate + a glass at every place; a family of four seated round it (grandpa at the
+   *  left end, mother + father behind it, the daughter at the right end), lit FROM BELOW by the candles. On a 64-s loop (offset per
+   *  chunk): talk passing round (heads turning to whoever speaks), forks to mouths, a dish passed across, grandpa leaning in, a laugh —
+   *  and a TOAST (glasses up, the clink's glint). */
+  function tgTable(E, el, len, inst) {
+    const { c, G, k, t, mo, B } = E, night = clamp01(k), day = 1 - night, seed = 3;
+    c.save(); c.globalAlpha = 1;
+    // ---- the room (a dimmer daylight interior by day; at night only what the candles + the low lamp reach)
+    const W0 = mixc([112, 84, 72], [58, 22, 26], night), W1 = mixc([164, 128, 108], [128, 52, 46], night);
+    paintBox(c, G, B, { wall: [W0, W1], floor: [mixc([84, 60, 44], [32, 18, 14], night), mixc([108, 80, 58], [52, 30, 22], night)], side: [mixc([92, 68, 58], [44, 18, 20], night), mixc([132, 100, 84], [84, 34, 32], night)], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, rgb(W1)) });
+    if (B) lampFall(c, G, B, { u: G.cx, v: G.h0 + G.ch * 0.42, t: 0.45 }, TG_CANDLE, 0.55 + 0.45 * night, { reach: 1.05, corner: 0.62 });
+    // the picture over the sideboard (deep): a gilt frame, a dark landscape
+    deepAt(c, B, 0.98, () => { const px = G.cx + G.cw * 0.02, py = G.h0 + G.ch * 0.66; R(c, px - 0.34, py, px + 0.34, py + 0.42, rgb(mixc([170, 130, 60], [120, 84, 40], night))); R(c, px - 0.29, py + 0.05, px + 0.29, py + 0.37, rgb(mixc([88, 96, 70], [40, 34, 30], night))); R(c, px - 0.29, py + 0.05, px + 0.29, py + 0.15, rgb(mixc([120, 110, 70], [60, 46, 34], night))); });
+    // ---- the people (the loop: who speaks, the dish, the toast)
+    const LOOP = 64, L0 = mo ? ((el + (inst && inst.n > 0 ? inst.n * 23 : 0)) % LOOP) : 20;
+    const toast = sm(41, 43, L0) * (1 - sm(47, 49, L0)), clink = sm(43.6, 44.2, L0) * (1 - sm(44.6, 45.4, L0)), sip = sm(47, 48, L0) * (1 - sm(49.5, 50.5, L0));
+    const pass = sm(14, 16, L0) * (1 - sm(20, 22, L0)), passU = sm(16, 20, L0), laugh = sm(30, 30.6, L0) * (1 - sm(33, 34, L0)), lean = sm(52, 54, L0) * (1 - sm(60, 62, L0));
+    const speaker = Math.floor(L0 / 7.5) % 4;
+    const DP = 0.46, DT = 0.3, seatY = G.h0 + G.ch * 0.2, doorX = G.g0 + G.cw * 0.06;
+    const SEATS = [
+      { u: 0.14, s: 1.04, face: 0.85, hair: 'short', pal: { ...whoM(2), hair: 'rgb(196,192,184)' } },                 // grandpa (the left end, a brown suit, grey)
+      { u: 0.38, s: 1.06, face: 0.25, hair: 'bun', dress: true, pal: whoW(2) },                                     // mother (champagne + pearls)
+      { u: 0.63, s: 1.12, face: -0.2, hair: 'short', pal: whoM(0) },                                                // father (a white shirt + braces)
+      { u: 0.86, s: 0.9, face: -0.85, hair: 'bob', dress: true, pal: whoW(1) },                                     // the daughter (the right end, teal)
+    ];
+    const lightOf = pal => ({ ...litP(E, pal, { lamp: TG_CANDLE, side: 0, a: 0.6 }), lit: { side: 0, a: 0.6, below: true, cast: 0.28 } });
+    const list = [];
+    SEATS.forEach((S, i) => {
+      const w = tgSeat(inst, el, len, i, SEATS.length);
+      if (w <= 0.001) return;
+      const x = G.g0 + G.cw * S.u, P = tgWalk(E, w, doorX, x, DP, seatY, S.s);
+      // the arms: resting / a fork up now + then (each on its own beat) / the dish across / the toast / leaning in
+      const fork = mo ? sm(0.55, 0.62, ((L0 + i * 2.7) % 5.2) / 5.2) * (1 - sm(0.8, 0.9, ((L0 + i * 2.7) % 5.2) / 5.2)) * (1 - toast) * (1 - pass * (i === 1 || i === 2 ? 1 : 0)) : 0;
+      const rest = [0.32, 1.25], forkA = [0.22, 2.35];
+      let L = rest, Rt = [lerp(rest[0], forkA[0], fork), lerp(rest[1], forkA[1], fork)];
+      if (i === 1 && pass > 0.01) Rt = [lerp(Rt[0], 1.35, pass), lerp(Rt[1], 0.35, pass)];          // (mother hands the dish across…)
+      if (i === 2 && pass > 0.01) L = [lerp(L[0], 1.3, pass), lerp(L[1], 0.4, pass)];               // (…father takes it)
+      if (toast > 0.01) { const up = [lerp(Rt[0], 2.35 - 0.25 * clink, toast), lerp(Rt[1], 0.45 + 0.2 * clink, toast)]; Rt = sip > 0.01 ? [lerp(up[0], 0.75, sip), lerp(up[1], 2.25, sip)] : up; }
+      const arms = P.walking ? [[0.12 + 0.08 * P.step, 0.3], [0.12 - 0.08 * P.step, 0.3]] : i === 0 ? [Rt, L] : [L, Rt];   // (grandpa faces right: his near hand is his left)
+      const talk = speaker === i ? (mo ? Math.sin(t * 2.3 + i) * 0.04 : 0) : 0, look = P.face != null ? P.face : lerp(S.face, Math.sign(SEATS[speaker].u - S.u) * 0.55 || S.face, speaker === i ? 0 : 0.5);
+      const lk = (i === 0 ? lean : 0) * 0.16 - (i === 3 ? laugh : 0) * 0.12;
+      list.push({ d: P.d, F: { x: P.x, y: P.y, s: S.s, face: look, lean: lk * Math.sign(S.face) + talk, tilt: (i === 3 ? laugh * 0.18 : 0) + talk * 0.6, hair: S.hair, dress: !!S.dress, legs: P.legs || 0, step: P.step,
+        arms, hold: toast > 0.2 ? (i === 0 ? ['glass', null] : [null, 'glass']) : null, glints: toast > 0.3 ? E.glints : null, ...lightOf(S.pal) } });
+    });
+    list.sort((a, b) => b.d - a.d);
+    for (const p of list) E.deep(p.d, () => figure(c, p.F));
+    // ---- the table (nearer than the family: its cloth covers their laps)
+    E.deep(DT, () => {
+      const y0 = G.h0 + G.ch * 0.06, y1 = y0 + 0.22, a0 = G.g0 + 0.02, a1 = G.g1 - 0.02, cloth = mixc([226, 222, 210], [244, 226, 196], night);
+      // the top (seen a little from above), the cloth's drop + its folds + the hem
+      c.fillStyle = rgb(cloth); c.beginPath(); c.moveTo(a0, y0); c.lineTo(a1, y0); c.lineTo(a1 - 0.08, y1); c.lineTo(a0 + 0.08, y1); c.closePath(); c.fill();
+      { const g = c.createLinearGradient(0, y0, 0, y0 - 0.5); g.addColorStop(0, rgb(mixc(cloth, [120, 90, 70], 0.18 + 0.2 * night))); g.addColorStop(1, rgb(mixc(cloth, [60, 30, 26], 0.55))); c.fillStyle = g; c.fillRect(a0, y0 - 0.5, a1 - a0, 0.5); }
+      c.fillStyle = 'rgba(80,50,40,0.18)'; for (let u = a0 + 0.16; u < a1 - 0.1; u += 0.27) c.fillRect(u, y0 - 0.5, 0.035, 0.5);
+      // the places: a plate + a glass in front of each
+      for (const S of SEATS) { const px = G.g0 + G.cw * S.u; c.fillStyle = rgb(mixc([246, 244, 236], [255, 236, 206], night)); c.beginPath(); c.ellipse(px + (S.u < 0.2 ? 0.14 : S.u > 0.8 ? -0.14 : 0), y0 + 0.12, 0.13, 0.035, 0, 0, TAU); c.fill(); }
+      // the platter + THE TURKEY (golden brown, glossy, its drumsticks with paper frills), parsley round it
+      const tx = G.cx - 0.02, ty = y0 + 0.11;
+      c.fillStyle = rgb(mixc([206, 210, 214], [236, 214, 176], night)); c.beginPath(); c.ellipse(tx, ty, 0.34, 0.07, 0, 0, TAU); c.fill();
+      c.fillStyle = 'rgb(70,120,50)'; for (let j = 0; j < 7; j++) { c.beginPath(); c.arc(tx - 0.28 + j * 0.093, ty + 0.01 + (j % 2) * 0.012, 0.03, 0, TAU); c.fill(); }
+      const tb = c.createRadialGradient(tx - 0.05, ty + 0.17, 0.02, tx, ty + 0.1, 0.25); tb.addColorStop(0, 'rgb(236,170,92)'); tb.addColorStop(0.55, 'rgb(176,98,40)'); tb.addColorStop(1, 'rgb(104,52,22)');
+      c.fillStyle = tb; c.beginPath(); c.ellipse(tx, ty + 0.1, 0.22, 0.135, 0, 0, TAU); c.fill();
+      for (const e of [-1, 1]) { c.fillStyle = 'rgb(150,78,32)'; c.beginPath(); c.ellipse(tx + e * 0.2, ty + 0.06, 0.09, 0.05, e * 0.5, 0, TAU); c.fill(); c.fillStyle = 'rgb(250,246,236)'; c.beginPath(); c.arc(tx + e * 0.29, ty + 0.1, 0.026, 0, TAU); c.fill(); }
+      c.fillStyle = 'rgba(255,240,210,0.55)'; c.beginPath(); c.ellipse(tx - 0.07, ty + 0.17, 0.07, 0.03, -0.3, 0, TAU); c.fill();
+      // the dishes: cranberry (left), sweet potatoes (right), the green beans (passed across)
+      const dish = (x, y, col) => { c.fillStyle = 'rgb(232,230,222)'; c.beginPath(); c.ellipse(x, y, 0.11, 0.035, 0, 0, TAU); c.fill(); c.fillStyle = rgb(col); c.beginPath(); c.ellipse(x, y + 0.02, 0.085, 0.035, 0, Math.PI, 0); c.fill(); };
+      dish(G.g0 + G.cw * 0.27, y0 + 0.09, [168, 20, 40]); dish(G.g0 + G.cw * 0.74, y0 + 0.08, [236, 128, 40]);
+      const bx = lerp(G.g0 + G.cw * 0.42, G.g0 + G.cw * 0.58, passU), by = y0 + 0.16 + 0.12 * pass;
+      dish(bx, by, [80, 140, 60]);
+      // the CANDLES: two tall tapers in brass sticks either side of the bird, their flames flickering
+      for (const [e, ph] of [[-1, 0], [1, 2.1]]) {
+        const cx = tx + e * 0.42, base = y0 + 0.12, top = base + 0.34, fl = mo ? 0.82 + 0.18 * Math.sin(t * 8.3 + ph) * Math.sin(t * 3.7 + ph * 1.7) : 1;
+        c.fillStyle = 'rgb(176,136,60)'; c.beginPath(); c.ellipse(cx, base, 0.06, 0.018, 0, 0, TAU); c.fill(); R(c, cx - 0.014, base, cx + 0.014, base + 0.08, 'rgb(196,156,70)');
+        R(c, cx - 0.018, base + 0.08, cx + 0.018, top, 'rgb(250,244,230)');
+        c.fillStyle = 'rgb(255,236,170)'; c.beginPath(); c.ellipse(cx + (mo ? Math.sin(t * 5 + ph) * 0.004 : 0), top + 0.035 * fl, 0.014, 0.036 * fl, 0, 0, TAU); c.fill();
+        c.save(); c.globalCompositeOperation = 'lighter'; glow(c, TG_CANDLE, cx, top + 0.03, 0.75, (0.32 + 0.35 * night) * fl, 0.9); glow(c, [255, 248, 220], cx, top + 0.03, 0.06, 0.9 * fl); c.restore(); c.globalAlpha = 1;
+      }
+      if (clink > 0.01) { c.save(); c.globalCompositeOperation = 'lighter'; glow(c, [255, 246, 214], G.cx, y0 + 0.95, 0.4, 0.8 * clink); c.restore(); c.globalAlpha = 1; }
+    });
+    // the drapes framing the pane (deep red velvet, their inner edges catching the light)
+    for (const [p, q] of [[G.g0 - 0.05, G.g0 + 0.1], [G.g1 - 0.1, G.g1 + 0.05]]) { R(c, p, G.h0, q, G.h1, rgb(mixc([120, 40, 44], [70, 16, 22], night))); c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect((p + q) / 2, G.h0, 0.03, G.ch); }
+    R(c, G.g0, G.h1 - 0.1, G.g1, G.h1, rgb(mixc([110, 36, 40], [60, 14, 20], night)));
+    // by day the room reads dimmer than the street (a lit interior through glass)
+    if (day > 0.01) { c.globalCompositeOperation = 'multiply'; c.globalAlpha = 0.35 * day; R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(150,160,176)'); c.globalCompositeOperation = 'source-over'; }
+    c.restore(); c.globalAlpha = 1;
+  }
+  /** THE GAME ON TV (the jazz room becomes the den for the afternoon — never the boss's room): wood panelling, the SET on its stand at the
+   *  left (its green field, the yard lines, the two teams' dots running, the ball), its green-white light flickering over three on the
+   *  couch at the right watching it (lit from the screen's side). On a 48-s loop: the drive (leaning in, a sip from a mug), the long
+   *  run, the SCORE (the screen flashes, they jump up, arms high, then flop back down) */
+  function tgFootball(E, el, len, inst) {
+    const { c, G, k, t, mo, B } = E, night = clamp01(k), day = 1 - night;
+    c.save(); c.globalAlpha = 1;
+    const LOOP = 48, L0 = mo ? ((el + (inst && inst.n > 0 ? inst.n * 17 : 0)) % LOOP) : 18;
+    const drive = sm(18, 21, L0) * (1 - sm(29, 30, L0)), run = sm(26, 29.5, L0), score = sm(30, 30.5, L0) * (1 - sm(34.5, 36, L0)), flash = sm(29.8, 30.2, L0) * (1 - sm(30.6, 31.6, L0));
+    const sip = sm(8, 9, L0) * (1 - sm(11, 12, L0));
+    const tv = mo ? tvLight(t, 23) : { k: 0.8, tint: 0.5 }, tvk = Math.min(1, 0.55 + 0.45 * tv.k + 0.6 * flash);
+    const W0 = mixc([96, 74, 58], [30, 26, 22], night), W1 = mixc([140, 108, 82], [52, 44, 34], night);
+    paintBox(c, G, B, { wall: [W0, W1], floor: [mixc([90, 70, 54], [24, 22, 18], night), mixc([110, 86, 66], [36, 32, 26], night)], side: [mixc([84, 64, 50], [26, 24, 20], night), mixc([120, 94, 72], [44, 40, 32], night)], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, rgb(W1)) });
+    // the panelling's seams on the back wall
+    deepAt(c, B, 0.98, () => { c.fillStyle = 'rgba(0,0,0,0.18)'; for (let u = G.g0 + 0.2; u < G.g1; u += 0.32) c.fillRect(u, G.h0, 0.025, G.ch); });
+    // ---- THE SET (the left, mid depth): a wooden cabinet, the screen inset — the game on it
+    const sx = G.g0 + G.cw * 0.2, sy = G.h0 + G.ch * 0.3;
+    deepAt(c, B, 0.62, () => {
+      R(c, sx - 0.42, sy - 0.3, sx + 0.42, sy, 'rgb(46,30,20)');                                   // (the stand)
+      R(c, sx - 0.4, sy, sx + 0.4, sy + 0.6, rgb(mixc([120, 76, 40], [60, 38, 22], night)));       // (the cabinet)
+      const s0 = sx - 0.31, s1 = sx + 0.31, v0 = sy + 0.09, v1 = sy + 0.5;
+      const fg = c.createLinearGradient(0, v0, 0, v1); fg.addColorStop(0, rgb(mixc([40, 120, 50], [255, 255, 255], 0.5 * flash))); fg.addColorStop(1, rgb(mixc([70, 170, 80], [255, 255, 255], 0.5 * flash)));
+      c.fillStyle = fg; c.fillRect(s0, v0, s1 - s0, v1 - v0);
+      c.save(); c.beginPath(); c.rect(s0, v0, s1 - s0, v1 - v0); c.clip();
+      const pan = mo ? (L0 * 0.035 + run * 0.4) % 0.16 : 0;
+      c.strokeStyle = 'rgba(240,250,240,0.85)'; c.lineWidth = 0.014;
+      for (let u = s0 - 0.2 - pan; u < s1 + 0.2; u += 0.16) { c.beginPath(); c.moveTo(u + 0.06, v0); c.lineTo(u - 0.04, v1); c.stroke(); }
+      for (let j = 0; j < 9; j++) {
+        const team = j % 2, ph = j * 1.7, ux = s0 + 0.04 + ((j * 0.37 + (mo ? Math.sin(t * 0.9 + ph) * 0.04 : 0) + run * (team ? 0.25 : 0.2)) % 1) * (s1 - s0 - 0.08), vy = v0 + 0.06 + ((j * 0.53) % 1) * (v1 - v0 - 0.12);
+        c.fillStyle = team ? 'rgb(240,240,236)' : 'rgb(170,30,40)'; c.fillRect(ux - 0.016, vy - 0.02, 0.032, 0.045);
+      }
+      { const bx = s0 + 0.08 + (s1 - s0 - 0.16) * (0.3 + 0.6 * run), byy = v0 + (v1 - v0) * 0.5; c.fillStyle = 'rgb(120,70,30)'; c.beginPath(); c.ellipse(bx, byy, 0.016, 0.011, 0, 0, TAU); c.fill(); }
+      c.restore();
+      c.strokeStyle = 'rgb(30,22,16)'; c.lineWidth = 0.03; c.strokeRect(s0, v0, s1 - s0, v1 - v0);
+      for (const e of [-1, 1]) { c.fillStyle = 'rgb(176,140,80)'; c.beginPath(); c.arc(sx + e * 0.18, sy + 0.04, 0.022, 0, TAU); c.fill(); }   // (the knobs)
+      c.save(); c.globalCompositeOperation = 'lighter'; glow(c, TG_TV, sx, sy + 0.3, 0.9, (0.25 + 0.35 * night) * tvk, 0.8); glow(c, [255, 255, 255], sx, sy + 0.3, 0.32, 0.3 * flash); c.restore(); c.globalAlpha = 1;
+    });
+    // the screen's light thrown across the room (onto the couch side)
+    c.save(); c.globalCompositeOperation = 'lighter'; glow(c, TG_TV, G.cx + G.cw * 0.18, G.h0 + G.ch * 0.42, G.cw * 0.75, (0.12 + 0.3 * night) * tvk, 0.8); c.restore(); c.globalAlpha = 1;
+    // ---- THE COUCH (the right, nearer) + the three watching, turned to the set (lit from its side)
+    const DC = 0.36, cy0 = G.h0 + G.ch * 0.08, seatY = cy0 + 0.36, doorX = G.g1 - G.cw * 0.04;
+    const WHO = [{ u: 0.5, s: 0.94, hair: 'short', pal: whoM(3) }, { u: 0.69, s: 0.9, hair: 'bob', dress: true, pal: whoW(3) }, { u: 0.87, s: 0.98, hair: 'short', pal: whoM(1), mug: true }];
+    const sofa = mixc([150, 56, 46], [74, 30, 28], night);
+    E.deep(DC + 0.04, () => { R(c, G.g0 + G.cw * 0.38, cy0 + 0.18, G.g1 + 0.1, cy0 + 0.68, rgb(mixc(sofa, [0, 0, 0], 0.25))); });   // (the couch's back)
+    const list = [];
+    WHO.forEach((S, i) => {
+      const w = tgSeat(inst, el, len, i, WHO.length);
+      if (w <= 0.001) return;
+      const x = G.g0 + G.cw * S.u, P = tgWalk(E, w, doorX, x, DC, seatY, S.s), up = score * (0.8 + 0.2 * Math.sin(i * 2.1)), hop = mo ? Math.abs(Math.sin((L0 - 30) * 7 + i)) * 0.06 * score : 0;
+      let arms = [[0.3, 1.1], [0.3, 1.1]];
+      if (i === 0) arms = [[lerp(0.3, 0.55, drive), lerp(1.1, 1.7, drive)], [lerp(0.3, 0.55, drive), lerp(1.1, 1.7, drive)]];   // (elbows on his knees for the drive)
+      if (S.mug && sip > 0.01) arms = [arms[0], [lerp(0.3, 0.7, sip), lerp(1.1, 2.3, sip)]];
+      if (up > 0.01) arms = arms.map(([a, e], j) => [lerp(a, 2.85 + 0.12 * j, up), lerp(e, 0.15, up)]);
+      if (P.walking) arms = [[0.12 + 0.08 * P.step, 0.3], [0.12 - 0.08 * P.step, 0.3]];
+      list.push({ d: P.d, F: { x: P.x, y: P.y + 0.3 * up * S.s + hop, s: S.s, face: P.face != null ? P.face : -0.6, lean: (i === 0 ? -0.14 * drive : 0) + 0.1 * up, tilt: 0.08 * up, hair: S.hair, dress: !!S.dress, legs: P.legs || (up > 0.4 ? 0.45 * S.s * up : 0), step: P.step,
+        arms, hold: S.mug ? [null, 'cup'] : null, ...litP(E, S.pal, { lamp: mixc(TG_TV, [255, 240, 220], 0.4 + 0.3 * day), side: -1, a: 0.55 }) } });
+    });
+    list.sort((a, b) => b.d - a.d);
+    for (const p of list) E.deep(p.d, () => figure(c, p.F));
+    // the couch's seat + its arms in front of their laps; a bowl of popcorn on the cushion
+    E.deep(DC - 0.04, () => {
+      R(c, G.g0 + G.cw * 0.38, cy0 - 0.1, G.g1 + 0.1, cy0 + 0.3, rgb(sofa)); R(c, G.g0 + G.cw * 0.38, cy0 + 0.26, G.g1 + 0.1, cy0 + 0.32, rgb(mixc(sofa, [255, 220, 200], 0.15)));
+      c.fillStyle = rgb(mixc(sofa, [0, 0, 0], 0.15)); c.beginPath(); c.ellipse(G.g0 + G.cw * 0.38, cy0 + 0.22, 0.09, 0.2, 0, 0, TAU); c.fill();
+      c.fillStyle = 'rgb(214,214,206)'; c.beginPath(); c.ellipse(G.g0 + G.cw * 0.6, cy0 + 0.32, 0.1, 0.03, 0, 0, TAU); c.fill(); c.fillStyle = 'rgb(252,240,200)'; c.beginPath(); c.ellipse(G.g0 + G.cw * 0.6, cy0 + 0.34, 0.08, 0.04, 0, Math.PI, 0, true); c.fill();
+    });
+    if (day > 0.01) { c.globalCompositeOperation = 'multiply'; c.globalAlpha = 0.35 * day; R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(150,160,176)'); c.globalCompositeOperation = 'source-over'; }
+    c.restore(); c.globalAlpha = 1;
+  }
+
   // ---------------------------------------------------------------- THE MOMENTS' PAINTERS (PAINT[id](E, el, len, inst))
   const PAINT = {
+    // 11a-2 — THANKSGIVING's ROOM LIFE (tgTable / tgFootball above)
+    table: (E, el, len, inst) => tgTable(E, el, len, inst),
+    football: (E, el, len, inst) => tgFootball(E, el, len, inst),
     // 9a — A FAN ON A HOT DAY: a little desk fan on the sill (its round cage, the stand, the blades a soft blur turning), the curtain's hem
     // stirring in its breeze; the room's own light behind it (a silhouette at night, a dark shape on the daylit glass)
     fan(E, el, len) {

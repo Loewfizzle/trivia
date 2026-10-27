@@ -16,7 +16,7 @@ test('7b — THE CATALOGUE: one self-contained entry per moment — windows, rar
   for (const m of MOMENTS) {
     assert.ok(!ids.has(m.id), `${m.id}: unique`); ids.add(m.id);
     assert.ok(RARITIES.includes(m.rarity), `${m.id}: a rarity`);
-    assert.ok(m.len > 3 && (m.len <= 60 || m.calendar === 'eyes'), `${m.id}: a length`);   // (WIN2: the eyes WATCH — a long presence, its own calendar)
+    assert.ok(m.len > 3 && (m.len <= 60 || m.calendar === 'eyes' || m.rarity === 'holiday'), `${m.id}: a length`);   // (WIN2: the eyes WATCH — a long presence, its own calendar; 11a-2: a holiday's room life plays in long chunks)
     assert.ok(m.label && m.kind, `${m.id}: a label + what it is`);
     for (const w of windowsOf(m)) assert.ok(WINDOW_IDS.includes(w), `${m.id}: ${w} is a real window`);
     if (m.rarity === 'routine') assert.ok(m.at != null && m.at >= 0 && m.at < 24, `${m.id}: its hour`);
@@ -377,4 +377,31 @@ test('SP5 — THE EDGE WINDOWS\' ROLLER SHADES: a seeded height a night (up / ha
     seen.edge2.add(S.edge2); seen.edge3.add(S.edge3);
   }
   assert.equal(seen.edge2.size + seen.edge3.size, 6, 'every height on both windows over 90 nights');
+});
+
+test("11a-2 — THANKSGIVING's ROOM LIFE: the family table (back) 3 pm → 9:30 pm + the game on TV (jazz) 12:30 → 7 pm, back-to-back on the day only, never the boss's room", async () => {
+  const M = await import('../js/core/harbor-moments.js');
+  const TG = { dow: 4, month: 11, dark: [17.6, 7.6] };
+  for (const [key, ok] of [['2026-11-26', true], ['2027-11-25', true], ['2026-11-25', false], ['2026-11-27', false], ['2026-11-19', false], ['2027-11-26', false]]) {
+    const plan = M.dayPlan(key, TG), tb = plan.filter(e => e.id === 'table'), fb = plan.filter(e => e.id === 'football');
+    if (!ok) { assert.equal(tb.length + fb.length, 0, `${key}: not Thanksgiving`); continue; }
+    for (const [list, win, from, to] of [[tb, 'back', 15, 21.5], [fb, 'jazz', 12.5, 19]]) {
+      assert.ok(list.length >= 20, `${key}: ${list.length} chunks`);
+      assert.ok(list.every(e => e.win === win && e.win !== M.BOSS_ROOM), `${key}: in ${win}`);
+      // back-to-back: no gap between chunks, the first one flagged (they arrive), the last (they leave)
+      for (let i = 1; i < list.length; i++) assert.equal(list[i].t0, list[i - 1].t0 + list[i - 1].len, `${key}: seamless at ${i}`);
+      assert.ok(list[0].first && list[list.length - 1].last && !list[1].first);
+      assert.ok(list[0].t0 >= from * 3600 && list[0].t0 < from * 3600 + 400, `${key}: starts ~${from}`);
+      const end = list[list.length - 1].t0 + list[list.length - 1].len; assert.ok(Math.abs(end - to * 3600) < 900, `${key}: ends ~${to}`);
+      // anyone opening the city at 4 pm / 6 pm sees it running (the windows read the hour's block + the last)
+      for (const h of [16, 18]) {
+        const sec = h * 3600 + 7 * 60; if (sec < from * 3600 || sec >= end) continue;
+        const on = M.starOnly(M.momentsAt([...M.hourPlan(key, h - 1, TG), ...M.hourPlan(key, h, TG)], sec)); assert.ok(on.some(e => e.win === win), `${key} ${h}:07 → ${win} on`);
+      }
+    }
+    // the random draws keep out of their windows while they run
+    for (const e of plan) if (e.id !== 'table' && e.id !== 'football' && e.win !== 'all') for (const o of [...tb, ...fb]) assert.ok(!(e.win === o.win && e.t0 < o.t0 + o.len && e.t0 + e.len > o.t0), `${key}: ${e.id} clear of ${o.id}`);
+  }
+  assert.equal(M.MOMENT.table.rarity, 'holiday'); assert.ok(!M.MOMENTS.filter(m => m.rarity === 'holiday').some(m => M.RARITY[m.rarity]), 'never in the random pool');
+  assert.equal(M.WINDOW_LOOKS.table, 'lit'); assert.equal(M.WINDOW_LOOKS.football, 'lit');
 });

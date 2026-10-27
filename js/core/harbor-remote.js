@@ -308,7 +308,7 @@ export const EVENTS = [
   { id: 'boss-signal', label: 'THE BOOTLEGGERS’ TELL', cat: 'windows', group: 'THE TV ROOM', kw: 'boss violet spade lamp shade bootleg signal tell', hint: 'the violet lamp + the dark spade behind the boss’s drawn shade — lit from 3 pm before Saturday’s delivery (5 pm before a weeknight run) until the truck arrives' },
   { id: 'boss-watch', label: 'THE BOSS AT THE SHADE', cat: 'windows', group: 'THE TV ROOM', kw: 'boss shadow shade party cigar ember watch', night: true, hint: 'a party night: his shade all the way down, glowing with the set’s light — now + then his shadow stands against it looking down at the street, the cigar’s ember glowing through' },
   { id: 'smoke', label: 'A HAZE IN THE TV ROOM', cat: 'windows', group: 'THE TV ROOM', kw: 'smoke cigarette haze blue boss', night: true, hint: 'a faint haze in the boss’s dark room catching the screen’s blue (the TV on: 10 pm → 3 am) — nobody is ever seen' },
-  ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', sec: m.rarity === 'legendary' ? 'legendary' : undefined, group: m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
+  ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', sec: m.rarity === 'legendary' ? 'legendary' : undefined, group: m.holiday === 'thanksgiving' ? 'THANKSGIVING' : m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
   { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', sec: 'tools', group: 'DEBUG PIECES', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
 ];
 export const EVENT_GROUPS = [...new Set(EVENTS.map(e => e.group))];
@@ -410,7 +410,7 @@ export function momentHour(m) {
 }
 export function playlistOf(kind) {
   let items;
-  if (kind === 'windows') items = [...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), len: Math.round(m.len + 3.7), night: m.light === 'night' || m.id === 'lights-out', hol: m.holiday || null, hour: momentHour(m) })),
+  if (kind === 'windows') items = [...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), len: Math.round((m.rarity === 'holiday' ? 75 : m.len) + 3.7), night: m.light === 'night' || m.id === 'lights-out', hol: m.holiday || null, hour: momentHour(m) })),
     { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', len: 90, night: true, hol: null, hour: PARTY_HOUR }];   // (WIN3: the rooms up one by one over ~60 s, then the dancing)
   else {
     const holOf = e => (e.group === 'HALLOWEEN' || e.group === 'ON THE WATER' ? 'halloween' : e.group === 'DAY OF THE DEAD' ? 'dotd' : e.group === 'THANKSGIVING' ? 'thanksgiving' : null);
