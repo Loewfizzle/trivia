@@ -104,6 +104,9 @@ CUTS = {
                     {'cut': (30.6, 47.0), 'fin': 0.4, 'fout': 3.5, 'hp': 45, 'lp': 2600, 'sat': (4.0, 1.2, 140), 'rate': 16000, 'kbps': 48}],
     # (0:43 wind in leaves on a street — its first 9 s carry a tonal hum: the steady 17–39 s)
     'wind-leaves': [{'loop': (17.0, 22.0), 'xf': 2.0, 'hp': 160, 'rate': 22050, 'kbps': 48}],
+    # (9b — WINTER: the cold interior wind as the snow's hush (all of it, lean), the shovel's scrape + toss (lean)
+    'snow-hush': [{'loop': (1.0, 21.4), 'xf': 2.5, 'hp': 140, 'lp': 5000, 'rate': 16000, 'kbps': 40}],
+    'snow-shovel': [{'loop': (1.0, 37.0), 'xf': 2.0, 'hp': 160, 'rate': 16000, 'kbps': 40}],
     # (1:49 a harbor's foghorn — blasts at ~8, 28, 38, 48 … s over water + wind: three separate blasts, far: low-passed + saturated)
     'foghorn': [{'cut': (4.5, 15.5), 'fin': 0.3, 'fout': 2.5, 'hp': 70, 'lp': 2400, 'sat': (5.0, 1.4, 180), 'rate': 16000, 'kbps': 48},
                 {'cut': (24.5, 35.5), 'fin': 0.3, 'fout': 2.5, 'hp': 70, 'lp': 2400, 'sat': (5.0, 1.4, 180), 'rate': 16000, 'kbps': 48},
@@ -504,7 +507,7 @@ PIXABAY = ('The file imported is the Pixabay MP3 copy named in this block (Pixab
 CREDIT_NOTE = {
     'heli-flyby': PIXABAY, 'prop-plane': PIXABAY, 'balloon-burner': PIXABAY, 'geese': PIXABAY,
     'bar-ambience-close': PIXABAY, 'shop-bell': PIXABAY, 'broom-sweep': PIXABAY, 'window-sash': PIXABAY, 'roller-blind': PIXABAY,
-    'cat-land': PIXABAY, 'rooftop-party': PIXABAY,
+    'cat-land': PIXABAY, 'rooftop-party': PIXABAY, 'snow-shovel': PIXABAY,   # (9b)
     'tv-murmur-2': PIXABAY, 'trash-truck-2': PIXABAY, 'power-failure': PIXABAY, 'power-restore': PIXABAY,   # (8b1: the second-try set)
     'milk-bottles': PIXABAY, 'trash-can-lid': PIXABAY, 'ladder-clank': PIXABAY, 'crates-clink': PIXABAY, 'ships-bell': PIXABAY,
     'ship-horn': PIXABAY, 'boat-putter': PIXABAY,

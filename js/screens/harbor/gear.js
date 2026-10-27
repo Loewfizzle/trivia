@@ -172,6 +172,15 @@ export const GEAR = {
     c.save(); c.translate(ex, ey); c.rotate(Math.atan2(ey - y, ex - x) - Math.PI / 2); c.fillStyle = g.f([186, 160, 96]);
     c.beginPath(); c.moveTo(-H * 0.02, 0); c.lineTo(H * 0.02, 0); c.lineTo(H * 0.045, H * 0.07); c.lineTo(-H * 0.045, H * 0.07); c.closePath(); c.fill(); c.restore();
   },
+  // 9b — THE SNOW SHOVEL: a long wooden handle with a D-grip, a WIDE flat steel blade at its foot carrying a heap of snow (the bright accent)
+  shovel(c, g) {
+    const [x, y] = g.hand, H = g.H, sw = g.pose === 'sweep', ex = sw ? g.X(g.J.cx * 0.46) : x + g.d * H * 0.05, ey = sw ? g.Y(0.03) : y + H * 0.42;
+    c.strokeStyle = g.f([132, 100, 66]); c.lineWidth = lw(g, 0.012); c.beginPath(); c.moveTo(x - (ex - x) * 0.28, y - (ey - y) * 0.28); c.lineTo(ex, ey); c.stroke();
+    c.save(); c.translate(ex, ey); c.rotate(Math.atan2(ey - y, ex - x) - Math.PI / 2);
+    c.fillStyle = g.f([70, 74, 84]); c.fillRect(-H * 0.055, 0, H * 0.11, H * 0.075);
+    c.fillStyle = g.f([240, 244, 252]); c.beginPath(); c.ellipse(0, H * 0.012, H * 0.06, H * 0.03, 0, Math.PI, 0); c.fill();
+    c.restore();
+  },
   // 11a-2 — THE LEAF RAKE: a long wooden handle, a FAN of thin tines at its foot (spread wide, raking the leaves toward him)
   rake(c, g) {
     const [x, y] = g.hand, H = g.H, sw = g.pose === 'sweep', ex = sw ? g.X(g.J.cx * 0.5) : x + g.d * H * 0.05, ey = sw ? g.Y(0.015) : y + H * 0.45;

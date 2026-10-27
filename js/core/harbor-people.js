@@ -19,6 +19,7 @@ import { rngFrom, hashString } from './rng.js';
 import { signalAt, SIGNAL_CYCLE, xOfF } from './harbor-promenade.js';
 import { partyAtT } from './harbor-moments.js';
 import { carsAt } from './harbor-traffic.js';
+import { workSpawns, workKey } from './harbor-snowwork.js';
 import { trafficHold, inHold } from './harbor-legend.js';
 import { DANCE, RING, ringAt, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
 import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
@@ -1007,7 +1008,7 @@ export function folkAt(t, world, cache = new Map()) {
   // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
   // (8b2: the raid's convoy holds the near lane — nobody enters it behind them — and its patrol cars join the road's cars)
   const raidIn = (a, b) => (ctx.raid && ctx.raid.tEnd > a && ctx.raid.t0 < b ? [raidHold(ctx.raid)] : []);
-  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b), ...raidIn(a, b), ...cabsNear(a, b).map(pl => pl.T)], off: ctx.off, seed: ctx.seed, party: ctx.party, tag: ctx.raid ? ctx.raid.key : '', hold });
+  const cars = ctx.noCars ? [] : carsAt(t, { L, busesIn: (a, b) => [...busesNear(a, b), ...trucksNear(a, b), ...raidIn(a, b), ...cabsNear(a, b).map(pl => pl.T)], off: ctx.off, seed: ctx.seed, party: ctx.party, tag: ctx.raid ? ctx.raid.key : '', extra: ctx.snowWork ? (j, lane) => workSpawns(j, lane, ctx.snowWork) : null, extraKey: workKey(ctx.snowWork), hold });
   // (8b2: the cabs at the curb — the back road's cars drawn the same way; sign: the TAXI lamp, lit when free)
   if (!ctx.noCars) for (const pl of cabsNear(t - 5, t + 5)) { const T = pl.T; if (t < T.tE || t > T.tX) continue; const x = T.x(t); cars.push({ id: T.id, model: 'taxi', paint: 0, len: T.len, z: T.z, dir: 1, x, dist: T.dist(t), speed: t < T.tA ? Math.max(0, (T.x(t + 0.05) - x) / 0.05) : t >= T.tD ? (T.x(t + 0.05) - x) / 0.05 : 0, n: 5, glow: -1, cab: true, sign: T.sign(t), door: T.door ? T.door(t) : 0, ts: T.tE }); }
   if (RP) { const R = raidAt(RP, t); if (R) cars.push(...R.cars); }

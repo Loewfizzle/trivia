@@ -78,3 +78,39 @@ export function createSnowfall() {
     debug: () => ({ flakes: flakes.length, slab: !!slab }),
   };
 }
+
+/**
+ * 9b — THE WINTER WORK's live effects (people.js#drawCar, after the truck): THE PLOW's SPRAY — snow thrown up off the blade's top in an
+ * arc toward the kerb, a white plume that reads at phone size while it moves; THE SALT TRUCK's FAN — grains sprayed from the spinner
+ * under its tail in a widening cone onto the road + the darker WET lane it leaves behind it.
+ * o: { x (screen: the truck's middle), y (the road under it), sp (pt a unit), dir, len (units), speed (u / s), t, night 0..1, xEnd (screen:
+ *     where the lane leaves the screen behind it), fade }
+ */
+export function workFx(c, kind, o) {
+  const mv = clamp01((o.speed || 0) / 1.5), sp = o.sp, d = o.dir, t = o.t || 0;
+  if (kind === 'plow') {
+    if (mv < 0.05) return;
+    const bx = o.x + d * (o.len / 2 + 0.1) * sp;            // (the blade's outer end)
+    c.fillStyle = o.night > 0.5 ? 'rgb(172,178,214)' : 'rgb(246,249,255)';
+    for (let i = 0; i < 24; i++) {
+      const u = ((t * 1.4 + i / 24) % 1), a = (1 - u * u) * 0.95 * mv * (o.fade == null ? 1 : o.fade), w = ((i * 0.618) % 1) - 0.5;
+      if (a < 0.03) continue;
+      // (each puff leaves the blade's top, arcs up + forward-out, falls back toward the kerb as it spreads — a bold white plume)
+      const px = bx + d * (0.1 + 2.4 * u + 0.4 * w) * sp, py = o.y - (1.1 + 2.0 * u - 2.6 * u * u + 0.3 * w) * sp, r = (0.2 + 0.42 * u) * sp;
+      c.globalAlpha = a; c.beginPath(); c.arc(px, py, Math.max(0.8, r), 0, 6.2832); c.fill();
+    }
+    c.globalAlpha = 1;
+  } else if (kind === 'salter') {
+    const tx = o.x - d * (o.len / 2 - 0.2) * sp;             // (the spinner under the tail)
+    // the wet salted lane behind it (darker, a faint gloss) — out to where the lane leaves the screen
+    if (o.xEnd != null) { const a = Math.min(tx, o.xEnd), w = Math.abs(o.xEnd - tx); c.globalAlpha = 0.22 * (o.fade == null ? 1 : o.fade); c.fillStyle = 'rgb(18,18,28)'; c.fillRect(a, o.y - 0.5 * sp, w, 0.9 * sp); c.globalAlpha = 1; }
+    if (mv < 0.05) return;
+    c.fillStyle = o.night > 0.5 ? 'rgb(200,204,226)' : 'rgb(236,234,226)';
+    for (let i = 0; i < 26; i++) {
+      const u = ((t * 2.4 + i * 0.381) % 1), side = ((i * 0.618) % 1) * 2 - 1, a = (1 - u) * 0.85 * mv;
+      const px = tx - d * (0.15 + 1.1 * u) * sp + side * 0.25 * sp * u, py = o.y - (0.55 - 0.5 * u) * sp + side * 0.35 * sp * u;
+      c.globalAlpha = a; c.fillRect(px, py, Math.max(0.7, 0.07 * sp), Math.max(0.7, 0.07 * sp));
+    }
+    c.globalAlpha = 1;
+  }
+}

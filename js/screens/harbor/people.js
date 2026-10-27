@@ -14,6 +14,7 @@
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier } from '../../core/harbor-people.js';
+import { workFx } from './snowfx.js';
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen, drawOfrenda } from './folk.js';
 import { drawBus } from './bus.js';
 import { createVehicles, UNDERGLOW } from './vehicles.js';
@@ -82,7 +83,7 @@ export function createPeople() {
     ensureMap(!!f.event, !!f.ring);
     const hf = hforceOf(f);
     const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
+    const t = f.ms / 1000, ctx = { snowWork: f.snowWork || null, off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
@@ -297,7 +298,9 @@ export function createPeople() {
     }
     let lampK = 0; for (const l of L.lamps) if (l.kind === 'tall') { const d = (car.x - l.x) / 7; if (d * d < 1) lampK = Math.max(lampK, (1 - d * d) ** 2); }
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
-    kit.draw(c, { door: car.door || 0, inside, id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
+    if (car.work === 'salter') workFx(c, 'salter', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, xEnd: car.dir > 0 ? -10 : cam.W + 10, fade: env.fade });   // (9b: its wet salted lane, under it)
+    kit.draw(c, { plowing: car.work === 'plow' ? clamp01((car.speed || 0) / 1.5) : 0, door: car.door || 0, inside, id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
+    if (car.work === 'plow') workFx(c, 'plow', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, fade: env.fade });   // (9b: the spray off the blade)
     // 8b2 — THE PATROL CAR's BEACON: red, then blue, each a hard double flash (the raid's wash comes from it: raid.js)
     if (car.beacon) { const A = kit.anatomy(car.model); if (A.beacon) drawBeacon(c, cx + car.dir * (A.beacon[0] - car.len / 2) * sp, gy - A.beacon[1] * sp + bob, sp, beaconOf(env.t || 0, car.n), env.fade == null ? 1 : env.fade, night); }
   }

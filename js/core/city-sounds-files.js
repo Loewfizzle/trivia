@@ -279,6 +279,12 @@ export const FILES = /*FILES*/{
     {"f": "siren-1920s_1.mp3", "v": "dbd2a0b9", "d": 14.5, "lufs": -20.4, "peak": 6.15, "sw": [1.7, 11.9], "from": [0.5, 15.0], "src": "siren-1920s", "r": 16000},
     {"f": "siren-1920s_2.mp3", "v": "8b4fede4", "d": 32.0, "lufs": -20.4, "peak": 6.25, "sw": [1.4, 18.35], "from": [14.5, 46.5], "src": "siren-1920s", "w": 0.6, "r": 16000}
   ],
+  "snow-hush": [
+    {"f": "snow-hush.mp3", "v": "f770d3fe", "d": 23.9, "lufs": -24.4, "loop": 21.4, "xf": 2.5, "from": [2.2, 26.1], "src": "snow-hush", "r": 16000}
+  ],
+  "snow-shovel": [
+    {"f": "snow-shovel.mp3", "v": "7bb27fa7", "d": 39.0, "lufs": -24.1, "loop": 37.0, "xf": 2.0, "from": [2.5, 41.5], "src": "snow-shovel", "r": 16000}
+  ],
   "squeegee": [
     {"f": "squeegee_1.mp3", "v": "964340ae", "d": 2.2, "lufs": -20.4, "peak": 1.65, "sw": [0.3, 1.95], "from": [0.0, 2.2], "src": "squeegee"},
     {"f": "squeegee_2.mp3", "v": "2ea1a202", "d": 1.5, "lufs": -20.3, "peak": 1.05, "sw": [0.2, 1.35], "from": [3.9, 5.4], "src": "squeegee"},

@@ -38,7 +38,9 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     'cat-hiss', 'ghost-bell', 'ghost-ship-creak', 'haunted-wind', 'witch-cackle',
     // (11a-2 — THANKSGIVING + THE PARADE: the crowd (kids + the adult murmur, one loop), the cheer, the band (a one-shot pass), the
     // balloon's fabric, the raker, a short V of geese)
-    'parade-crowd', 'parade-cheer', 'parade-band', 'balloon-flap', 'leaves-rake', 'geese-v'].sort());
+    'parade-crowd', 'parade-cheer', 'parade-band', 'balloon-flap', 'leaves-rake', 'geese-v',
+    // (9b — WINTER: the snow's hush at night, the shovel)
+    'snow-hush', 'snow-shovel'].sort());
   // 11a-2: the crowd's loop + tail end before the kids' "Bye!" (30 s); the band is a one-shot pass that stops well before the disc's end
   // thump (~241 s); the murmur is laid inside the crowd, never a take; the 5.1 cheer + the 78 were decoded through their own `af`
   assert.ok(takesOf('parade-crowd')[0].from[1] <= 30.0, '11a-2: the crowd loop never reaches the "Bye!"');
@@ -73,7 +75,7 @@ test('every take points at a real, small file whose content matches its cache ke
       assert.ok(t.lufs < -18 && t.lufs > (s.kind === 'once' ? -30 : -27), `${t.f}: levelled (${t.lufs} LUFS)`);
       if (s.kind === 'loop') {
         // (beds 30 s+; 8P's smaller beds — heard less often or under the music — 20 s+; the bus's idle a short engine loop)
-        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
+        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18, 'snow-hush': 20 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
         assert.ok(t.loop >= min && t.xf >= (min < 20 ? 0.5 : 2) && t.xf <= 3, `${t.f}: a ${min} s+ loop with its seam (${t.loop} + ${t.xf})`);
         assert.ok(Math.abs(t.loop + t.xf - t.d) < 0.1, `${t.f}: the file is the loop + its tail`);
       } else assert.ok(t.peak >= 0 && t.peak <= t.d, `${t.f}: its loudest moment is inside it`);

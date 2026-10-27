@@ -308,6 +308,10 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'watch') { arm(N, 1.0, 1.9); arm(Fa, 0.9, 1.6); }
   if (pose === 'chat') { const g = mo ? Math.sin(t * 2.3 + L.h * 5) : 0; arm(N, 0.7 + 0.25 * g, 1.1); }
   if (pose === 'lean') { arm(0, 1.3, 0.3); arm(1, 1.25, 0.35); headA += 0.03; }
+  // 9b — THE SNOWBALL THROW: the arm winds up over the head + back (0.55 s, leaning back), then snaps forward (the release ~0.6 s in)
+  if (pose === 'throw') { const sN0 = st.since == null ? 0 : st.since, k = sN0 < 0.55 ? smooth(clamp01(sN0 / 0.55)) : 1 - smooth(clamp01((sN0 - 0.55) / 0.18)); shJ.forEach(q => { q.a -= 0.05 * k; }); head.a -= 0.06 * k; arm(N, 1.1 + 2.5 * k, 0.5, 0.2); arm(Fa, 0.9 - 0.3 * k, 0.4); }
+  // 9b — THE SLIP on the thaw's ice: the arms fly out wide, a lurch back, then caught (over ~1.1 s)
+  if (pose === 'slip') { const sN0 = st.since == null ? 0 : st.since, k = Math.sin(Math.PI * clamp01(sN0 / 1.1)); shJ.forEach(q => { q.a -= 0.1 * k; }); head.a -= 0.13 * k; arm(0, 1.4 + 0.6 * k, 0.2, 0.3 + 0.9 * k); arm(1, 1.3 + 0.7 * k, 0.25, 0.3 + 0.9 * k); }
   if (pose === 'cart' || pose === 'shop') arm(N, 0.55, 0.9);
   if (pose === 'sit') { arm(0, 0.5, 0.9); arm(1, 0.4, 0.9); }
   // (the watchers — FP3b item 9: CLAP on the beat — the hands meet on it, part between; BOB — a dip on the beat, the arms loose)

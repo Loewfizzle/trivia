@@ -77,7 +77,9 @@ export function simulateLane(j, laneId, ctx = {}) {
   // already on the road finishes its crossing)
   const inHold = s => !!ctx.hold && s.t0 >= ctx.hold[0] && s.t0 < ctx.hold[1];
   const keep = s => !inHold(s) && !buses.some(b => s.t0 > b.tE - (b.hold ? 45 : 25) && s.t0 < (b.hold ? b.tX : b.tE + 3));
-  const prev = laneSpawns(j - 1, laneId, ctx).filter(keep), mine = laneSpawns(j, laneId, ctx).filter(keep);
+  // (9b: the winter work — the plow + the salt truck — as extra cars of the lane: ctx.extra(j, lane) → spawns, core/harbor-snowwork.js)
+  const ex = jj => (ctx.extra ? ctx.extra(jj, laneId) : []);
+  const prev = [...laneSpawns(j - 1, laneId, ctx), ...ex(j - 1)].filter(keep).sort((p, q) => p.t0 - q.t0), mine = [...laneSpawns(j, laneId, ctx), ...ex(j)].filter(keep).sort((p, q) => p.t0 - q.t0);
   const all = [...prev, ...mine].map(s => ({ ...s, x: ln.xIn, vel: s.v, on: false, done: false, xs: [], ts: null, stopped: 0 }));
   const t0 = (j - 1) * B, t1 = (j + 1) * B + TRAFFIC.tail;
   for (let t = t0; t < t1; t += dt) {
@@ -110,7 +112,7 @@ export function simulateLane(j, laneId, ctx = {}) {
       if (dir * (c.x - ln.xOut) > 0) c.done = true;
     }
   }
-  return { cars: all.slice(prev.length).filter(c => c.ts != null).map(c => ({ id: c.id, n: c.n, model: c.model, len: c.len, paint: c.paint, trade: c.trade, rumble: c.rumble, glow: c.glow, lane: laneId, z: ln.z, dir, ts: c.ts, xs: Float32Array.from(c.xs) })) };
+  return { cars: all.slice(prev.length).filter(c => c.ts != null).map(c => ({ id: c.id, n: c.n, work: c.work || null, model: c.model, len: c.len, paint: c.paint, trade: c.trade, rumble: c.rumble, glow: c.glow, lane: laneId, z: ln.z, dir, ts: c.ts, xs: Float32Array.from(c.xs) })) };
 }
 /** a simulated car at t → { x, speed, dist } | null (not on the road) */
 export function carState(car, t) {
@@ -128,12 +130,12 @@ const sims = new Map();
 export function carsAt(t, world) {
   const L = world.L; if (!L || !L.crosswalk) return [];
   const lanes = trafficLanes(L), B = TRAFFIC.block, j = Math.floor(t / B), out = [];
-  const key0 = `${L.cam ? L.cam.W : 0}x${L.cam ? L.cam.H : 0}|${world.seed || 1924}|${world.off || 0}|${world.tag || ''}|${world.hold ? Math.round(world.hold[0]) : ''}`;   // (8b2: tag — a raid's convoy holding the near lane)
+  const key0 = `${L.cam ? L.cam.W : 0}x${L.cam ? L.cam.H : 0}|${world.seed || 1924}|${world.off || 0}|${world.tag || ''}|${world.hold ? Math.round(world.hold[0]) : ''}|${world.extraKey || ''}`;   // (8b2: tag — a raid's convoy holding the near lane)
   for (const lane of Object.keys(lanes)) for (const jj of [j - 1, j]) {
     const key = `${key0}|${lane}|${jj}`;
     let sim = sims.get(key);
     if (!sim) { const a = (jj - 1) * B, b = (jj + 1) * B + TRAFFIC.tail, buses = lane === 'near' && world.busesIn ? world.busesIn(a, b).filter(o => o.tX > a && o.tE < b) : [];   // (the buses over the simulation's own span: the same on every phone, whenever the page opened)
-      sim = simulateLane(jj, lane, { lanes, buses, off: world.off, seed: world.seed, party: world.party, hold: world.hold || null }); sims.set(key, sim); if (sims.size > 24) sims.delete(sims.keys().next().value); }
+      sim = simulateLane(jj, lane, { lanes, buses, off: world.off, seed: world.seed, party: world.party, hold: world.hold || null, extra: world.extra || null }); sims.set(key, sim); if (sims.size > 24) sims.delete(sims.keys().next().value); }
     for (const c of sim.cars) { const s = carState(c, t); if (s) out.push({ ...c, xs: undefined, ...s }); }
   }
   return out;

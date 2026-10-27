@@ -109,7 +109,7 @@ export function groundSteps(L, T, SN) {
   const tn = snowTones(T, SN), lightAt = lightField(L, T), path = pathsOf(L), night = T.night || 0;
   const st = SN.stage, cover = st === 'spring' ? SN.cover : Math.max(SN.cover, st === 'fresh' ? 0.55 : 0);
   const trod = mix(mix(tn.dirt, tn.wet, 0.35), tn.shade, st === 'banks' ? 0.1 : 0.22), slush = mix(tn.wet, tn.dirt, 0.35);
-  const s = L.speakeasy, shopX = s ? s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2 : null;
+  const s = L.speakeasy, shopX = s ? s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2 : null, doorX = s ? s.x0 + (s.door.u0 + s.door.u1) / 2 : null;
   // the shade: the last snow hangs on where the sun doesn't reach — along the speakeasy's foot, round the trees' feet
   const shadeK = (x, z) => {
     let k = 0;
@@ -129,6 +129,8 @@ export function groundSteps(L, T, SN) {
       if (bx < -2 || ax > cam.W + 2) continue;
       const n = fbm(xc * 0.32, zc * 0.45), sh = shadeK(xc, zc);
       let a = cover >= 0.97 ? 1 : smooth(1 - cover - 0.1, 1 - cover + 0.1, n + (st === 'spring' ? 0.35 * sh - 0.12 : 0.1 * sh));
+      // (the doorman's shovelled path from the speakeasy's steps to the walk: bare, wet stone once he has been out — SN.door)
+      if (SN.door && doorX != null) { const dk = Math.max(0, 1 - Math.abs(xc - doorX) / 1.1) * (zc > s.z0 - 3.4 && zc < s.z0 + 0.2 ? 1 : 0); if (dk > 0.25) { a *= 0.12; } }
       const pk = path(xc, zc) * (SN.paths || 0);
       let c = mix(tn.shade, tn.snow, 0.62 + 0.38 * n);
       if (pk > 0.02) {

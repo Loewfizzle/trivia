@@ -141,7 +141,11 @@ export function createCitySounds() {
       keep('crickets-night', wxBed.crickets * on, 0.15, { ramp: 6, linger: 60, fadeIn: 8 });
       keep('birdsong-morning', wxBed.birds * on, -0.15, { ramp: 6, linger: 60, fadeIn: 8 });
       // 11a-1 — HALLOWEEN NIGHT: a hollow haunted wind moaning low through the streets, under everything (the scene's `hween` 0..1)
-      keep('haunted-wind', clamp(hween || 0, 0, 1) * 0.9 * on, 0.25, { ramp: 6, linger: 40, fadeIn: 10 }); }
+      keep('haunted-wind', clamp(hween || 0, 0, 1) * 0.9 * on, 0.25, { ramp: 6, linger: 40, fadeIn: 10 });
+      // 9b — WINTER: the snow's muffled hush while snow lies at night (a soft cold wind, felt more than heard), the shovel's scrape while
+      // someone shovels (panned to them)
+      keep('snow-hush', clamp(W9.snowLie || 0, 0, 1) * smooth(0.4, 0.8, W9.night || 0) * (1 - smooth(0.1, 0.5, r)) * 0.8 * on, 0.1, { ramp: 6, linger: 40, fadeIn: 10 });
+      keep('snow-shovel', clamp(W9.shovel || 0, 0, 1) * on, W9.shovelPan || 0, { ramp: 1.5, linger: 20, fadeIn: 2 }); }
     // ---- 8P — THE SPEAKEASY's LIFE, heard: each moment's cues (on the clock), the barbershop's day
     life(t);
     // ---- THE SKY (skyfx.listen(): what's up there now) — under the bed, ducked with it under the music (bm.k)

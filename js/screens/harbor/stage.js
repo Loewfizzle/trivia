@@ -146,6 +146,7 @@ export function promenadeSteps(L, T) {
 export function shadowsStep(L, T) {
   return x => {
     const cam = L.cam, cx = pieceCtx(L);
+    x.globalAlpha = 0.55;                    // (softer on the snow: a pale blue shadow, never the stones' dark one)
     lampShadows(x, L, T);
     L.trees.forEach((t, i) => treeShadow(x, cam, t, T, { ...cx, i }));
     for (const b of [L.bench, ...(L.bench.more || [])]) propShadow(x, cam, b, 'bench', T, cx);

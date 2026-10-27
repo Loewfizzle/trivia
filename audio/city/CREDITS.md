@@ -706,6 +706,26 @@ are kept anyway, with each source file's MD5.
 - Source: https://assets.mixkit.co/active_storage/sfx/1651/1651.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
+## snow-hush.wav  →  snow-hush
+
+- MD5 `7419977075dfd214673aacb097ed2c76`
+- snow-hush.wav   (6,944,240 bytes)
+- "Wind cold interior" - Mixkit
+- Page: https://mixkit.co/free-sound-effects/wind/
+- Source: https://assets.mixkit.co/active_storage/sfx/1172/1172.wav
+- Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
+## snow-shovel.mp3  →  snow-shovel
+
+- MD5 `376124dadd82f904dc7b030b592ea62e`
+- snow-shovel.mp3   (872,160 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "Snow shovel" - Tompalompa (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/nature-snow-shovel-67220/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_a29ffe5367.mp3?filename=freesound_community-snow-shovel-67220.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user Tompalompa, "Snow shovel" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## squeegee.mp3  →  squeegee
 
 - MD5 `71bd2f79660072429436ecb9006db6df`

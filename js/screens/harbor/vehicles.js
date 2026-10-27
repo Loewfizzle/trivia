@@ -61,6 +61,13 @@ export const MODELS = Object.freeze({
     bed: { u0: 0.1, u1: 3.48, v1: 2.42, kind: 'dump' }, paints: [['forest', 'black', 'cream'], ['grey', 'black', 'cream']], trades: ['SANITATION'] },
   stake: { len: 6.25, h: 2.26, r: 0.5, base: 3.95, ovR: 1.05, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.86, cab: [3.86, 4.74], rake: 0.04, roof: 'cab', grille: 'brass', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
     bed: { u0: 0.1, u1: 3.72, v1: 2.5, kind: 'tarp' }, paints: [['black', 'black'], ['green', 'black']] },
+  // 9b — THE WINTER WORK (core/harbor-snowwork.js): the city's PLOW TRUCK (the dump's lines in the street department's green, CITY on its
+  // box, a big ORANGE angled blade on a push frame in front — live: draw() + people.js's spray) + the SALT TRUCK (a grey V-hopper of salt,
+  // SALT on it; its fan of grains: people.js)
+  plow: { len: 6.0, h: 2.32, r: 0.5, base: 3.75, ovR: 1.02, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.62, cab: [3.62, 4.5], rake: 0.04, roof: 'cab', grille: 'nickel', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
+    bed: { u0: 0.1, u1: 3.48, v1: 2.3, kind: 'dump' }, paints: [['forest', 'black', 'cream']], trades: ['CITY'], blade: { k: 1.15, h: 1.12, col: [226, 112, 34] } },
+  salter: { len: 6.0, h: 2.32, r: 0.5, base: 3.75, ovR: 1.02, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.62, cab: [3.62, 4.5], rake: 0.04, roof: 'cab', grille: 'nickel', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
+    bed: { u0: 0.1, u1: 3.48, v1: 2.45, kind: 'dump' }, paints: [['grey', 'black', 'cream']], trades: ['SALT'], salt: true },
   // 8b2 — THE PATROL CAR (the raid): a 1929 police sedan on the Model A's lines — BLACK with WHITE DOORS (the owner: "period black-and-
   // white cars"), POLICE lettered on them with the city's gold star, a chrome SPOTLIGHT on the windshield post, the BEACON on the roof
   // (its red + blue lit live: people.js#drawCar — the owner's neon-1920s fusion), whitewall wire wheels
@@ -613,6 +620,18 @@ export function createVehicles() {
         doorBox = { x: Math.min(sx0, sx1), y: v.y + r.y, w: Math.abs(sx1 - sx0), h: r.h };
         if (v.inside) { c.save(); c.scale(sg, 1); c.translate(-v.x, -v.y); c.beginPath(); c.rect(doorBox.x, doorBox.y, doorBox.w, doorBox.h); c.clip(); c.globalAlpha = k; v.inside(c, doorBox); c.restore(); }
       });
+    }
+    // 9b — THE PLOW's BLADE: a big angled moldboard on its push frame in front of the nose (bright orange, its lower edge steel; snow
+    // rolling off its face while it pushes — v.plowing 0..1)
+    if (M.blade) {
+      const n0 = (A.nose - M.len / 2 + 0.05) * sp, B = M.blade, bl = rgb(look === 'night' ? mix(B.col, [40, 30, 50], 0.55) : look === 'golden' ? mix(B.col, [255, 150, 90], 0.15) : B.col), dark = rgb(look === 'night' ? [30, 26, 34] : [70, 50, 40]), bob = v.bob || 0;
+      c.fillStyle = dark; c.fillRect(n0 - 0.05 * sp, -0.62 * sp + bob, 0.62 * sp, Math.max(0.8, 0.09 * sp)); c.fillRect(n0 - 0.05 * sp, -0.36 * sp + bob, 0.66 * sp, Math.max(0.8, 0.08 * sp));
+      const bx0 = n0 + 0.55 * sp, bx1 = n0 + (0.55 + B.k) * sp;
+      c.fillStyle = bl; c.beginPath(); c.moveTo(bx0, -0.04 * sp); c.lineTo(bx1, -0.02 * sp); c.quadraticCurveTo(bx1 - 0.05 * sp, -B.h * 0.6 * sp + bob, bx1 - 0.32 * sp, -B.h * sp + bob); c.lineTo(bx0 + 0.12 * sp, -B.h * 0.92 * sp + bob); c.closePath(); c.fill();
+      c.fillStyle = 'rgba(0,0,0,0.28)'; c.beginPath(); c.moveTo(bx0, -0.04 * sp); c.lineTo(bx0 + 0.12 * sp, -B.h * 0.92 * sp + bob); c.lineTo(bx0 + 0.3 * sp, -B.h * 0.9 * sp + bob); c.lineTo(bx0 + 0.24 * sp, -0.04 * sp); c.closePath(); c.fill();
+      c.fillStyle = look === 'night' ? 'rgba(160,160,180,0.5)' : 'rgba(240,240,236,0.8)'; c.fillRect(bx0 + 0.1 * sp, -B.h * 0.94 * sp + bob, (B.k - 0.38) * sp, Math.max(0.6, 0.05 * sp));   // (the lit top edge)
+      c.fillStyle = dark; c.fillRect(bx0, -0.1 * sp, B.k * sp, Math.max(0.7, 0.08 * sp));                  // (the steel cutting edge)
+      if ((v.plowing || 0) > 0.02) { c.fillStyle = look === 'night' ? 'rgba(170,176,210,0.95)' : 'rgba(244,247,255,0.97)'; c.beginPath(); c.ellipse(bx1 - 0.1 * sp, -0.22 * sp, 0.55 * sp * v.plowing, 0.3 * sp, 0, Math.PI, 0); c.fill(); }
     }
     // a party night's LIT TRIM: the running board's edge + the belt line in the underglow's colour (crisp, a tight glow)
     if (v.underglow && (v.glowK || 0) > 0.02) {

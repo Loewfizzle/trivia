@@ -114,7 +114,13 @@ export const SLOTS = [
   S('crickets-night', '9', 'loop', 0.07, 'summer-night crickets'),
   S('wind-leaves', '9', 'loop', 0.08, 'autumn wind through leaves'),
   S('wind-winter', '9', 'loop', 0.08, 'winter wind'),
-  S('snow-hush', '9', 'loop', 0.06, 'snow’s muffled hush'),
+  S('snow-hush', '9', 'loop', 0.06, 'snow’s muffled hush', '9b: while snow lies at night (sounds.js THE WEATHER)'),
+  // (9b — THE WINTER WORK + PLAY: the doorman's shovel at the steps; the plow's blade on the road, the salt off the spinner, footsteps in
+  // the snow — each slot waits for its recording, silent until then)
+  S('snow-shovel', '9', 'loop', 0.07, 'a snow shovel scraping + tossing (the doorman at the steps, the shoveller on the walk)', '9b: winterfolk.js — while someone shovels'),
+  S('plow-scrape', '9', 'loop', 0.08, 'a plow blade scraping the road + the truck’s engine', '9b: the plow on the waterside road'),
+  S('salt-spread', '9', 'loop', 0.05, 'salt hissing off a spinner onto the road', '9b: the salt truck'),
+  S('snow-steps', '9', 'loop', 0.04, 'footsteps crunching in fresh snow', '9b: fresh snow + people walking'),
   S('foghorn', '9', 'once', 0.14, 'a distant FOGHORN (real fog)', 'the lighthouse in real fog: every ~40–80 s'),
   S('rain-pavement', '9', 'loop', 0.1, 'rain on the pavement'),
   S('rain-water', '9', 'loop', 0.09, 'rain on the water'),
