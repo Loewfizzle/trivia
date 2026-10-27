@@ -8387,7 +8387,9 @@ the blade's bulbs as the abduction flickers the power); tier 0 is the phone's lo
   loading them at once; holding the flight until they land would need the legendary's clock to wait (9d / later).
 - The giant's sprite under the floods reads a little flat at its brightest (a strong wash) — the owner's phone decides; `floods.js`'s wash
   strength is one number per piece (`o.wash`).
-- THE FINAL CLOUD RUN: below (written after the push).
+- **THE FINAL CLOUD RUN (40603170174, the pass's only one)**: `wild`, `show`, `holiday`, `audio`, `street`, `windows` GREEN; `tests`
+  (40603170005) green; `city` 108/109 — LOAD WEATHER "answered after 6 s" (`lit crossfade · share`: SP3's known clock-dependent flake, in
+  9b's + the UFO bake's known issues; code this pass didn't touch). Not re-run (the two-run rule). Vercel: deployed.
 
 ### Handoff → 9d (THE CONSTRUCTION TOWER + THE CITY LIFE + THE SAX REWORK)
 - The sax's entrance is 9d's (ENTERS_BY_MOTION lists it until then: give it a walk-up or remove it from the list to give it the blind).
