@@ -78,6 +78,8 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   const layers = new Map();                  // id → { cv, x, y, w, h, ctx }
   let beads = [], drips = [], sprites = new Map(), on = false, R = rng(1924);
   let frostCv = new Map(), frostK = 0, iceK = 0, spawnAcc = 0, first = true, icDrip = 0, frameN = 0, glassKey = '';
+  // 9b — SNOW ON THE NEON: snowK (0..1 how deep the mounds on the tubes' tops), icSnow (0..1 the icicles from its melt refreezing), the melt's drips
+  let snowK = 0, icSnow = 0, meltDrip = 0, snowFirst = true;
   const water = new Map(), elLayers = new Map();   // (SP3: each glass shape's water + its canvas inside the element)
 
   function layer(id, box) {
@@ -151,6 +153,41 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     drips = drips.filter(d => d.y < d.y1);
   }
   let icicleTips = [];
+  /** 9b — the snow mounds on the tubes' tops (snowK): under-shade body, a lit crest, the tube's own light at the foot when lit */
+  function drawSnow(x, lit, amb, col) {
+    const H = geo.half, k = snowK;
+    const top = [246, 249, 255].map((v, i) => Math.round(v * amb + [150, 156, 196][i] * (1 - amb)));
+    const under = [196, 208, 232].map((v, i) => Math.round(v * amb + [90, 92, 132][i] * (1 - amb)));
+    const glowC = col.map((v, i) => Math.round(v * 0.55 + top[i] * 0.45));
+    x.save(); x.lineJoin = 'round'; x.lineCap = 'round';
+    for (let t = 0; t < geo.tubes.length; t++) {
+      const P = geo.tubes[t].pts;
+      let run = [];
+      const flush = () => {
+        if (run.length < 2) { run = []; return; }
+        const up = run.map(p => { const [nx, ny] = underside(p, 1); return [-nx, -ny]; });
+        const hgt = run.map((p, i) => H * (0.5 + 2.1 * k) * Math.min(1, (Math.abs(p.tx) - 0.35) / 0.4 + 0.25) * (0.82 + 0.18 * Math.sin(p.s * 0.33 + t * 1.7)) * Math.min(1, Math.min(i + 1, run.length - i) / 2.2));
+        const edge = (f, base) => { x.beginPath(); run.forEach((p, i) => { const r = base + hgt[i] * f; const px = p.x + up[i][0] * r, py = p.y + up[i][1] * r; if (i) x.lineTo(px, py); else x.moveTo(px, py); }); };
+        edge(1, H * 0.55);
+        for (let i = run.length - 1; i >= 0; i--) x.lineTo(run[i].x + up[i][0] * H * 0.35, run[i].y + up[i][1] * H * 0.35);
+        x.closePath(); x.fillStyle = `rgb(${under})`; x.fill();
+        edge(0.82, H * 0.55); x.strokeStyle = `rgb(${top})`; x.lineWidth = Math.max(1, H * (0.6 + 1.5 * k)); x.stroke();
+        if (lit > 0.05) { edge(0, H * 0.55); x.strokeStyle = `rgba(${glowC},${(0.85 * lit).toFixed(3)})`; x.lineWidth = Math.max(0.8, H * 0.9); x.stroke(); }
+        run = [];
+      };
+      for (const p of P) { if (Math.abs(p.tx) > 0.35) run.push(p); else flush(); }
+      flush();
+      // a cap on a vertical tube's upper end
+      for (const [e, nb] of [[P[0], P[Math.min(3, P.length - 1)]], [P[P.length - 1], P[Math.max(0, P.length - 4)]]]) {
+        if (Math.abs(e.tx) > 0.35 || e.y > nb.y) continue;
+        x.fillStyle = `rgb(${top})`; x.beginPath(); x.ellipse(e.x, e.y - H * (0.7 + 0.6 * k), H * 1.15, H * (0.5 + 0.9 * k), 0, 0, Math.PI * 2); x.fill();
+      }
+    }
+    // the clips (the mounting brackets) wear a little cap too
+    x.fillStyle = `rgb(${top})`;
+    for (const [cx, cy] of geo.clips) { x.beginPath(); x.ellipse(cx, cy - H * 1.9, H * 0.75, H * (0.3 + 0.5 * k), 0, Math.PI, 0); x.fill(); }
+    x.restore();
+  }
   function drawSign(x, o) {
     const lit = clamp01(o.lit), day = clamp01(o.day), col = o.signCol || [255, 95, 180];
     // what a bead shows: the lit tube's colour (hot) at night; by day the pale pink glass + the sky
@@ -160,10 +197,14 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     const amb = clamp01(0.12 + 0.88 * day), glassC = [226, 222, 234], nightC = [64, 66, 92];
     const bc = [0, 1, 2].map(i => Math.round((glassC[i] * amb + nightC[i] * (1 - amb)) * (1 - lit) + col[i] * lit));
     // the FREEZING GLAZE (under the beads): a clear uneven sheet thicker on the tubes' tops, thinning on a lit (warm) tube + sparkles
-    const ice = iceK * (1 - 0.45 * lit);
-    if (ice > 0.01) {
+    // 9b — THE SNOW on the tubes' tops (under the beads + the icicles): mounds along every level run, a cap on a vertical tube's top end;
+    // white by day (a blue shadow under it), lit from below by the tube at night (its colour warming the mound's foot). The word always
+    // reads: a mound is at most ~1.3 tube widths
+    if (snowK > 0.01) drawSnow(x, lit, amb, col);
+    const ice = iceK * (1 - 0.45 * lit), ikk = Math.max(iceK, icSnow);
+    if (ice > 0.01 || icSnow > 0.01) {
       x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
-      for (const tb of geo.tubes) {
+      if (ice > 0.01) for (const tb of geo.tubes) {
         const P = tb.pts;
         for (let i = 0; i < P.length - 1; i += 3) {
           const j = Math.min(P.length - 1, i + 3), uneven = 0.6 + 0.4 * Math.sin(P[i].s * 0.21 + tb.len) * Math.sin(P[i].s * 0.073);
@@ -177,7 +218,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
       }
       // sparkle: points on the glaze catching the glow (seeded spots, twinkling)
       const sr = rng(77);
-      for (let n = 0; n < 34; n++) {
+      for (let n = 0; n < (ice > 0.01 ? 34 : 0); n++) {
         const tb = geo.tubes[Math.floor(sr() * geo.tubes.length)], p = tb.pts[Math.floor(sr() * tb.pts.length)], tw = 0.5 + 0.5 * Math.sin((o.t || 0) * (1.3 + sr() * 2.2) + sr() * 9);
         if (tw < 0.55) continue;
         const s = (0.5 + sr() * 0.9) * tw * ice, [nx, ny] = underside(p, 1), px = p.x - nx * geo.half * 0.7, py = p.y - ny * geo.half * 0.7;
@@ -187,13 +228,13 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
       // night (their colour + a bright edge), clear + pale by day; the warm lit tubes drip them (o.lit: icDrip)
       const ir = rng(31), ic = lit > 0.3 ? col.map(v => Math.round(v * 0.45 + 140)) : [232, 244, 255].map((v, i) => Math.round(v * amb + nightC[i] * (1 - amb))), il = 0.35 + 0.65 * Math.max(amb, lit);
       const spots = [...geo.clips.map(([cx, cy]) => [cx, cy + geo.half * 1.6, 1]), ...geo.tubes.flatMap(tb => [tb.pts[0], tb.pts[tb.pts.length - 1]].filter(p => p.ty > 0.6 || Math.abs(p.ty) < 0.2).map(p => [p.x, p.y + geo.half * 0.9, 0.8]))];
-      for (const [cx, cy] of geo.clips) { x.fillStyle = `rgba(226,240,255,${(0.24 * iceK).toFixed(3)})`; x.fillRect(cx - geo.half * 0.55, cy - geo.half * 1.75, geo.half * 1.1, geo.half * 3.5); }
+      if (ice > 0.01) for (const [cx, cy] of geo.clips) { x.fillStyle = `rgba(226,240,255,${(0.24 * iceK).toFixed(3)})`; x.fillRect(cx - geo.half * 0.55, cy - geo.half * 1.75, geo.half * 1.1, geo.half * 3.5); }
       icicleTips = [];
       for (const [cx, top, sz] of spots) for (let n = 0; n < 2 + Math.floor(ir() * 2); n++) {
-        const ix = cx + (ir() - 0.5) * geo.half * 2.4, len = (3 + ir() * 7.5) * sz * (0.35 + 0.65 * iceK), w = (0.8 + ir() * 0.8) * sz;
-        const g = x.createLinearGradient(0, top, 0, top + len); g.addColorStop(0, `rgba(${ic},${(0.9 * iceK * il).toFixed(3)})`); g.addColorStop(0.7, `rgba(${ic},${(0.45 * iceK * il).toFixed(3)})`); g.addColorStop(1, `rgba(${ic},0.06)`);
+        const ix = cx + (ir() - 0.5) * geo.half * 2.4, len = (3 + ir() * 7.5) * sz * (0.35 + 0.65 * ikk), w = (0.8 + ir() * 0.8) * sz;
+        const g = x.createLinearGradient(0, top, 0, top + len); g.addColorStop(0, `rgba(${ic},${(0.9 * ikk * il).toFixed(3)})`); g.addColorStop(0.7, `rgba(${ic},${(0.45 * ikk * il).toFixed(3)})`); g.addColorStop(1, `rgba(${ic},0.06)`);
         x.fillStyle = g; x.beginPath(); x.moveTo(ix - w, top); x.lineTo(ix + w, top); x.quadraticCurveTo(ix + w * 0.3, top + len * 0.6, ix + (ir() - 0.5) * 0.3, top + len); x.quadraticCurveTo(ix - w * 0.35, top + len * 0.55, ix - w, top); x.fill();
-        x.fillStyle = `rgba(255,255,255,${(0.9 * iceK * il).toFixed(3)})`; x.fillRect(ix - w * 0.45, top + 0.5, 0.55, len * 0.55);
+        x.fillStyle = `rgba(255,255,255,${(0.9 * ikk * il).toFixed(3)})`; x.fillRect(ix - w * 0.45, top + 0.5, 0.55, len * 0.55);
         icicleTips.push([ix, top + len]);
       }
       x.restore();
@@ -438,8 +479,20 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
       if (first && o.shown) { first = false; frostK = o.motion ? clamp01(o.cold) : 0; iceK = clamp01(o.ice); }
       frostK += ((o.motion ? clamp01(o.cold) : 0) - frostK) * Math.min(1, sec / 12);
       iceK += (clamp01(o.ice) - iceK) * Math.min(1, sec / 20);
-      const signOn = !!geo && (o.rain > 0.02 || beads.length || drips.length || iceK > 0.01);
-      if (signOn && o.motion && !(o.rain > 0.02) && iceK > 0.01) stepBeads(0, o);
+      // 9b — SNOW ON THE NEON (o.snow: { lie (0..1 what the sign holds when off), falling (0..1), cold (a freezing night) }): joined at
+      // the reveal (a lit sign has already melted most of it); it BUILDS UP while the sign is off, PILLOWS while snow falls on it, MELTS
+      // SLOWLY when lit (~10 min, never a pop) — drips while it melts, icicles on a freezing night
+      { const S = o.snow || { lie: 0, falling: 0, cold: false }, lt = clamp01(o.lit);
+        if (snowFirst && o.shown) { const jl = S.joinLit == null ? lt : S.joinLit; snowFirst = false; snowK = jl > 0.5 ? S.lie * 0.22 : S.lie; icSnow = jl > 0.5 && S.cold ? 0.6 * S.lie : 0; }
+        if (S.falling > 0.05) snowK = Math.min(1, snowK + sec * S.falling * (lt > 0.5 ? 0.004 : 0.012));
+        if (lt > 0.3) {
+          snowK = Math.max(0, snowK - sec * snowK * 0.0017 * lt);
+          if (snowK > 0.04 && o.motion && geo) { meltDrip += sec * (0.15 + 0.6 * snowK) * lt; while (meltDrip >= 1) { meltDrip--; const tb = geo.tubes[Math.floor(R() * geo.tubes.length)], p = tb.pts[Math.floor(R() * tb.pts.length)], un = underside(p, 1); drips.push({ x: p.x + un[0] * geo.half, y: p.y + un[1] * geo.half + 1, v: 8, r: 0.9, y1: geo.box.y + geo.box.h - 4 }); } }
+          if (S.cold && snowK > 0.03) icSnow = Math.min(1, icSnow + sec * 0.0025 * lt); else if (!S.cold) icSnow = Math.max(0, icSnow - sec * 0.002);
+        } else if (S.falling <= 0.05) snowK += (S.lie - snowK) * Math.min(1, sec / 600);
+        if (!(S.lie > 0) && !(S.falling > 0)) { snowK = Math.max(0, snowK - sec / 300); if (!S.cold) icSnow = Math.max(0, icSnow - sec / 300); } }
+      const signOn = !!geo && (o.rain > 0.02 || beads.length || drips.length || iceK > 0.01 || snowK > 0.01 || icSnow > 0.01);
+      if (signOn && o.motion && !(o.rain > 0.02) && (iceK > 0.01 || drips.length)) stepBeads(0, o);
       const anyWater = [...water.values()].some(w => w.drops.length || w.drips.length || w.trails.length);
       const glassOn = glass.length && (o.glassWet > 0.01 || frostK > 0.01 || o.rain > 0.02 || (o.motion && anyWater));
       on = signOn || glassOn;
@@ -466,7 +519,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         dropGlassLayers(keep);
       } else if (elLayers.size) dropGlassLayers();
     },
-    debug: () => ({ on, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
+    debug: () => ({ on, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
       water: Object.fromEntries([...water].map(([id, w]) => [id, { drops: w.drops.length, streaking: w.drops.filter(d => d.sl).length, trails: w.trails.length, drips: w.drips.length }])) }),
     destroy() { dropLayers(); dropGlassLayers(); water.clear(); sprites.clear(); for (const f of frostCv.values()) f.width = 0; frostCv.clear(); geo = null; },
   };

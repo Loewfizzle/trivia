@@ -1735,7 +1735,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const cold = clock.force.has('freeze') ? 1 : tc == null ? 0 : smooth(1, -6, tc);
       const sc = S.signCol ? (n => [n >> 16, (n >> 8) & 255, n & 255])(parseInt(S.signCol.slice(1), 16)) : [255, 95, 180];
       AUD.signWx = (LK.rain || 0) > 0.02 || WXS.ice > 0.01 ? signLive() : 0;   // (SP3: the beads' light on the NEON tubes — the blackout audit)
-      glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: signLive(), signCol: sc, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
+      glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: signLive(), snow: { joinLit: litK(DK, 'neon'), lie: snowNow() ? topsOf(SN) : 0, falling: LK.snow || 0, cold: tc != null ? tc <= -2 : SN.stage !== 'none' && SN.stage !== 'thaw' && SN.stage !== 'spring' }, signCol: sc, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
     }
     // (9a: City 1.0's full-screen frost pane is off in the Harbor — the cold shows on the buttons' glass (glasswx.js); the frost of a
     // snowy night across the screen is 9b's)
