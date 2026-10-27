@@ -5,7 +5,7 @@
 // + THE AWNING's SLAB (9b — "WEATHER ON THE SPEAKEASY"): now + then a slab of snow slides off the awning's front edge and drops (a white
 //   chunk breaking into a puff on the walk) — only while snow lies on it.
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
-const CAPS = [90, 180, 300];
+const CAPS = [60, 130, 220];   // (the speed round: the near flakes carry the look)
 const DEPTH = [{ k: 0.42, v: 14, r: 0.85, a: 0.6 }, { k: 0.36, v: 24, r: 1.45, a: 0.88 }, { k: 0.22, v: 40, r: 2.9, a: 0.72 }];
 
 export function createSnowfall() {
@@ -36,13 +36,15 @@ export function createSnowfall() {
         const L = night > 0.15 && s.lightAt ? s.lightAt(f.x, f.y) : null;
         if (L && L[3] > 0.02) { const k = Math.min(1, L[3] * 2.2) * night; col = [col[0] + (L[0] - col[0]) * k * 0.7 + 40 * k, col[1] + (L[1] - col[1]) * k * 0.7 + 40 * k, col[2] + (L[2] - col[2]) * k * 0.7 + 40 * k]; }
         const a = D.a * (f.d === 0 ? 0.6 + 0.4 * day : 1) * Math.min(1, (f.land - f.y) / 40 + 0.2);
-        const key = `${f.d}|${q(col[0])},${q(col[1])},${q(col[2])}|${Math.round(a * 4)}`;
-        let b = B.get(key); if (!b) { b = { col: [q(col[0]), q(col[1]), q(col[2])].map(v => Math.min(255, v)), a: Math.round(a * 4) / 4, d: f.d, pts: [] }; B.set(key, b); }
+        const r0 = Math.min(255, q(col[0])), g0 = Math.min(255, q(col[1])), b0 = Math.min(255, q(col[2])), al = Math.round(a * 4), key = ((f.d * 4 + al) * 11 + r0 / 24) * 121 + (g0 / 24) * 11 + b0 / 24;   // (a number, never a string a flake)
+        let b = B.get(key); if (!b) { b = { col: [r0, g0, b0], a: al / 4, d: f.d, pts: [] }; B.set(key, b); }
         b.pts.push(f.x, f.y, D.r * f.s);
       }
       for (const b of B.values()) {
         if (b.a <= 0) continue;
-        c.globalAlpha = b.a; c.fillStyle = `rgb(${b.col[0] | 0},${b.col[1] | 0},${b.col[2] | 0})`; c.beginPath();
+        c.globalAlpha = b.a; c.fillStyle = `rgb(${b.col[0] | 0},${b.col[1] | 0},${b.col[2] | 0})`;
+        if (b.d === 0) { for (let i = 0; i < b.pts.length; i += 3) { const r = b.pts[i + 2]; c.fillRect(b.pts[i] - r, b.pts[i + 1] - r, r * 2, r * 2); } continue; }   // (the far ones: tiny squares — no arcs)
+        c.beginPath();
         for (let i = 0; i < b.pts.length; i += 3) { const r = b.pts[i + 2]; c.moveTo(b.pts[i] + r, b.pts[i + 1]); c.arc(b.pts[i], b.pts[i + 1], r, 0, 6.2832); }
         c.fill();
       }

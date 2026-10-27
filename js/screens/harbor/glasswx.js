@@ -163,7 +163,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   // has its own melt order: the thin spots go first) with the bare tube between them glistening wet, beads gathering at the clumps' edges
   // + running off (the bead + drip system), until only a few slushy lumps are left — never a pop. Rendered into its own canvas when it
   // changes (a 1/60 step of depth, the light, the wetness) and blitted every frame.
-  let snowGeo = null, snowCv = null, snowKey = '', glints = [];
+  let snowGeo = null, snowCv = null, snowKey = '', glints = [], snowRenders = 0;
   const hash1 = n => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
   const vn = (s, f, seed) => { const u = s * f, i = Math.floor(u), t = u - i, w = t * t * (3 - 2 * t); return hash1(i + seed) * (1 - w) + hash1(i + 1 + seed) * w; };
   function buildSnowGeo() {
@@ -242,7 +242,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   function drawSnow(x, lit, amb, col, wet) {
     if (!snowGeo || snowGeo.of !== geo) { buildSnowGeo(); snowKey = ''; }
     const key = `${Math.round(snowK * 60)}|${Math.round(lit * 8)}|${Math.round(amb * 8)}|${Math.round(wet * 6)}|${col.join(',')}|${dpr}|${geo.box.w}`;
-    if (key !== snowKey) { snowKey = key; renderSnow(lit, amb, col, wet); }
+    if (key !== snowKey) { snowKey = key; snowRenders++; renderSnow(lit, amb, col, wet); }
     if (snowCv) x.drawImage(snowCv, geo.box.x, geo.box.y, geo.box.w, geo.box.h);
     const H = geo.half, t = performanceT;
     // THE BARE WET TUBE where the snow has melted off (a melt in progress): a bright glistening line along its top
@@ -606,7 +606,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         dropGlassLayers(keep);
       } else if (elLayers.size) dropGlassLayers();
     },
-    debug: () => ({ on, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
+    debug: () => ({ on, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), snowRenders, layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
       water: Object.fromEntries([...water].map(([id, w]) => [id, { drops: w.drops.length, streaking: w.drops.filter(d => d.sl).length, trails: w.trails.length, drips: w.drips.length }])) }),
     destroy() { dropLayers(); dropGlassLayers(); water.clear(); sprites.clear(); for (const f of frostCv.values()) f.width = 0; frostCv.clear(); geo = null; },
   };

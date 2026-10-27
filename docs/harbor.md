@@ -8118,3 +8118,49 @@ preview), `city-sounds` (the two new recordings). E2E: the new `snow` group (the
 fallback + its readout line, no snow in early November, each stage + its bake key, FRESH whitens the plaza, SPRING stays mostly dark, THE
 THAW wets the street, the snowfall's flakes, the plow on the near lane, the sign's snow by day vs lit at night + its icicles, the snowman on
 Jan 31 + a forced stage. `e2e-title.mjs` `dock`: the CREDITS tap.
+
+### Measured — the speed round (`title-perf.mjs --ab` against 8bf0c29, the commit before the pass — it draws NO snow, so B's extra is the
+snow's whole cost; 402×874, 2 + 2 windows of 5 s; scenes `s9-*` added)
+| scene | tier 0 (4× CPU) work A → B | tier 2 (2× CPU + GPU) work A → B | verdict |
+| --- | --- | --- | --- |
+| s9-party (a party night with FRESH snow) | 17.5 → 17.3 ms | 39.7 → 39.2 (at 4× CPU) | **same** — the snow costs the party nights nothing |
+| s9-fresh (a clear night, fresh snow) | same (−0.17 ms) | — | **same** (the caps + the ground are baked) |
+| s9-thaw (the wet street) | 20.9 → 19.0 | 50.6 → 39.4 (4× CPU) | same / faster (noise) |
+| s9-fall (snow falling at night) | 16.1 → 17.9 (after the trim; first run +3.4) | 11.4 → 12.6, 60 fps (p95 16.9 ms) | tier 0 **same** after THE TRIM; tier 2 +1.25 ms |
+| s9-plow (the plow by day, fresh snow) | 9.7 → 11.3 | 7.0 → 8.0, 60 fps | +1–1.6 ms (the trucks + their spray, the people's snow) |
+THE TRIM (the first run's falling snow was +3.4 ms at tier 0): the flakes 90/180/300 → 60/130/220 by tier, a NUMBER (never a string) as
+each flake's batch key, the far flakes as tiny squares (no arcs). The sign's fluffy snow renders once + re-renders only on a 1/60 depth step
+(probed: one render in 5 s of snowfall at night). Absolute numbers are this laptop's (warnings only; the owner's iPhone readout decides).
+
+### Decisions made (each the most reasonable reading; easy to reverse)
+- The climate fallback is City 2.0's only (City 1.0 keeps its dry seeded sky); it starts once the live ask has SETTLED with no answer (a
+  204 counts: no location is no weather) — while the first ask is out nothing changes, so the load gate is SP3's.
+- A PREVIEW clock (`&when=`) without `&snow=` shows the CLIMATE's ground for that date + place (a January link shows a Michigan January);
+  `&snow=none` turns it off. The previews' falling weather stays the link's own (dry unless forced).
+- The banks live on the plaza's back kerb + the front curb (drawn in the stage, so they read over the road's edge); the street under the
+  dock is shown plowed (no plow drives there).
+- The plow + the salt truck are cars of the back road's own simulation (they stop at the light; traffic queues behind the slow plow).
+- The fresh snow's road stays WHITE only while snow falls and the plow hasn't passed for 25 min.
+- The snowman's pace: ~1/22 a snow day (the last week ×2.2) so he's finished in the month's last week, not by mid-January; a partial
+  January may leave him unfinished (true to "built on snow days only").
+- The sign's snow (the owner, mid-pass): piles ONLY from snow falling on a dark sign; no slow drift back while it's off; on a lit sign the
+  flakes become water (beads). A load at night joins a lit sign's snow as mostly melted + wet.
+- SNOW_STAGES' whiteness: FRESH 1 · OLDER 0.7 · BANKS 0.5 · THAW 0.42 · SPRING 0.5 — tuned at 402 until each reads apart by day.
+- The glass UI's frost is 9a's (no change); "no icicles on the buttons" kept.
+- Sound: `snow-hush` uses the folder's Mixkit "Wind cold interior" (named snow-hush by the owner); `snow-shovel` the Pixabay copy of the CC0 original.
+
+### Known issues
+- **The sign's snow on a real iPhone**: proven on Chrome only (WebKit can't run here) — the owner's phone decides; the fluffy render is
+  cached (a re-render on each 1/60 depth step while it melts: ~every 10 s live).
+- **`load`'s "a stored JUST ME jump into a holiday night"**: a party night's lit swap sometimes lands just after the reveal (a race — passed on
+  the next run with the same code; its sibling timing check fails on the baseline too).
+- **The cloud's known flakes** (SP6's list: `show`'s half-time beat check, `city`'s panel + perf timeouts, the spider tap) — untouched code.
+- The snowball kids + the snowman's builders are drawn by `winterfolk.js`, not the people planner: they don't route round other walkers
+  (a passer-by can cross them).
+- No plow on the street under the dock; no ice on the water; no snow on the moving boats.
+- The sounds still missing (slots ready, silent): `plow-scrape` (a plow blade scraping a road + an old truck), `salt-spread` (salt hissing off
+  a spinner), `snow-steps` (footsteps crunching in fresh snow) — drop them in ~/Downloads/city-sfx/ as `<slot>.wav` + run the importer.
+
+### Handoff → 9c (THE CONSTRUCTION TOWER + THE CITY LIFE + THE SAX REWORK)
+- The tower's cycle can read the snowpack (`SN.stage`) for its winter shutdown; the city life's quiet hours can use `winterActs`' pattern.
+- The snow on the tower's frame comes free with the layer caps (`snow.js#capFor`) once it's baked into a group.
