@@ -13,7 +13,7 @@
 //   THE MOMENTS  PAINT[id](env, el, len, inst) — one painter per catalogue entry (wake, shop-open, bartender, lights-out, dance,
 //                toast, sax, cat, peek, tango, mirror) + the taps (a curtain twitches, a head peeks out, the cat leaps off)
 // ADD A MOMENT: an entry in core/harbor-moments.js#MOMENTS + PAINT[id] here (+ a sound through env.play if it has one).
-import { hourPlan, momentsAt, roomState, routineAt, tvLight, tvShadow, tvHolidayTint, quietNight, bedtimes, bedLevel, BED_ROOMS, windowParty, windowPartyAt, PARTY_ROOMS, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM, edgeMoods, bossDayPlan, bossDayAt, bossSignal, edgeShades, bossWatchAt, bossWatchPlan } from '../../core/harbor-moments.js';
+import { hourPlan, momentsAt, roomState, routineAt, tvLight, tvShadow, tvHolidayTint, tvScene, TV_PAL, quietNight, bedtimes, bedLevel, BED_ROOMS, windowParty, windowPartyAt, PARTY_ROOMS, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM, edgeMoods, bossDayPlan, bossDayAt, bossSignal, edgeShades, bossWatchAt, bossWatchPlan } from '../../core/harbor-moments.js';
 import { createDanceClock, stepDanceClock, idleMoves } from '../../core/harbor-dance.js';
 const TV_END_S = 3 * 3600;
 import { sunTimes } from '../../core/sky.js';
@@ -24,8 +24,9 @@ import { roomBox, lampPool } from '../../core/harbor-rooms.js';
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const sm = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
-// 11a-2 — THE BOSS's TV (the owner): a lighter, glowing blue (was [64,108,255] → [128,162,255]) + a little brighter (× TV_LIFT)
-const TV_BLUE = [[96, 148, 255], [168, 202, 255]], TV_LIFT = 1.18;
+// SP6 — THE BOSS's TV (the owner: "it's got to be more blue"): 11a-2's lighter blue added WHITE (paler + greyer); the colours are now the
+// owner's picked set (core/harbor-moments.js#TV_PAL — deep, saturated, cut between like scenes: tvCols below); a little brighter (× TV_LIFT)
+const TV_LIFT = 1.18, HOT = [170, 205, 255];   // (HOT: a rim / hot core's lift — only on edges, never the wash)
 const lerp = (a, b, t) => a + (b - a) * t;
 const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${+a.toFixed(3)})`;
@@ -865,7 +866,9 @@ export function createWindowLife() {
     if (list.find(e => e.id === 'lights-out')) return false;   // (the routine's painter draws the whole room: the shade's lamp off, the set on)
     const tp = taps.find(o => o.id === 'apartment' && t - o.at < 3.2);   // (a tap on his window: the shade's peek)
     // SP5 — ON A PARTY NIGHT he watches over his party: the shade all the way down, glowing with the set's light (the lamp's before it)
-    if (bs.party && k > 0.02) { bossShade(E, { glow: st === 'tv' || st === 'tvoff' ? 'tv' : st === 'lamp' ? 'lamp' : 'dark', cover: 1, watch: bs.watch, signal: bs.signal, tap: tp }); return true; }
+    // (SP6 — the owner: before 10 pm it read as a flat blank YELLOW pane among the dancing windows: the TV is ON from the party's start — the
+    // one cool-blue window all party night)
+    if (bs.party && k > 0.02) { bossShade(E, { glow: st === 'tv' || st === 'tvoff' || st === 'lamp' ? 'tv' : 'dark', cover: 1, watch: bs.watch, signal: bs.signal, tap: tp }); return true; }
     if (st === 'tv') { if (k > 0.01) { if (last.tvOff) tvDark(E); else tvRoom(E, 1); return true; } return false; }
     // (SP3 — the owner's 3 am bug: the TV room went ORANGE; now the TV gives a last flicker, the picture shrinks away, the room DARK)
     if (st === 'tvoff') { const el = (last.sec - TV_END_S + 86400) % 86400, on = el < 0.35 ? 1 : el < 0.5 ? 0.25 : el < 0.8 ? 0.95 : Math.max(0, 1 - (el - 0.8) / (TV_OFF - 0.8)) ** 1.6; if (k > 0.01 && on > 0.01) { if (last.tvOff) tvDark(E); else tvRoom(E, on); return true; } return false; }
@@ -885,13 +888,31 @@ export function createWindowLife() {
     const peek = Math.max(ev && ev.id === 'peek' ? liftK(p) : 0, o.tap ? liftK(clamp01((t - o.tap.at) / 3.2)) : 0);
     const cover = cover0 - 0.07 * peek, hem = G.h1 - G.ch * cover;
     // the dark room under the hem (a sliver), lit faintly by what's behind
-    const glowC = o.glow === 'tv' ? (() => { const tv = mo ? tvLight(t, 11, { late: !!last.tvLate }) : { k: 0.7, tint: 0.4, warm: 0 }; return { col: tv.warm ? [255, 206, 160] : mixc(TV_BLUE[0], TV_BLUE[1], tv.tint), a: Math.min(1, tv.k * TV_LIFT) * k }; })()
+    const glowC = o.glow === 'tv' ? (() => { const tv = mo ? tvLight(t, 11, { late: !!last.tvLate }) : { k: 0.7, tint: 0.4, warm: 0 }; return { col: tvCols(tv, t).near, a: Math.min(1, (0.5 + 0.5 * tv.k) * TV_LIFT) * k }; })()   /* (SP6: a quiet stretch never sinks the party's one blue window) */
       : o.glow === 'lamp' ? { col: [255, 196, 120], a: 0.85 * k } : { col: [40, 36, 50], a: 0 };
     R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([9, 8, 14], glowC.col, 0.18 * glowC.a)));
     // THE SHADE: the cloth (by day a dull olive-brown in the sun, dark where the recess shades it; lit from behind at night)
-    const cloth = mixc([74, 66, 48], [30, 28, 30], 1 - day), lit = mixc(mixc(cloth, glowC.col, 0.75 * glowC.a), [150, 84, 240], 0.7 * sig);   // (the tell: the cloth itself violet)
+    const cloth = mixc([74, 66, 48], [30, 28, 30], 1 - day), lit = mixc(mixc(cloth, glowC.col, (o.glow === 'tv' ? 0.92 : 0.75) * glowC.a), [150, 84, 240], 0.7 * sig);   // (the tell: the cloth itself violet)
     { const g = c.createLinearGradient(0, hem, 0, G.h1); g.addColorStop(0, rgb(mixc(lit, [0, 0, 0], 0.2))); g.addColorStop(0.5, rgb(lit)); g.addColorStop(1, rgb(mixc(lit, [255, 250, 230], 0.18 * day))); c.fillStyle = g; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, G.h1 - hem + 0.1); }
-    if (glowC.a > 0.02) { c.globalCompositeOperation = 'lighter'; glow(c, glowC.col, G.cx, G.h0 + G.ch * 0.55, G.cw * 0.9, 0.5 * glowC.a, 0.8); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
+    // SP6 — A REAL SHADE whenever it's lit (the owner: never a flat fill): the light from behind as a soft HOT SPOT where it is (the lamp low
+    // left of centre; the set low at the front right), a broad glow through the cloth round it, the cloth's faint horizontal weave + a
+    // sag line from the hem's corners, and the EDGES darker (the light falls off + the recess)
+    if (glowC.a > 0.02) {
+      const tvG = o.glow === 'tv', hx = tvG ? G.g1 - G.cw * 0.26 : G.g0 + G.cw * 0.4, hy = tvG ? G.h0 + G.ch * 0.26 : G.h0 + G.ch * 0.42;
+      c.globalCompositeOperation = 'lighter';
+      glow(c, glowC.col, G.cx, G.h0 + G.ch * 0.52, G.cw * 0.95, 0.34 * glowC.a, 0.85);
+      glow(c, glowC.col, hx, hy, G.cw * (tvG ? 0.8 : 0.62), (tvG ? 0.9 : 0.62) * glowC.a, 0.9);
+      glow(c, mixc(glowC.col, HOT, tvG ? 0.3 : 0), tvG ? hx : hx, hy, G.cw * (tvG ? 0.34 : 0.24), (tvG ? 0.55 : 0.4) * glowC.a, 0.85);
+      c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+      c.fillStyle = `rgba(0,0,0,${(0.07 * glowC.a).toFixed(3)})`; for (let v = hem + 0.06; v < G.h1 - 0.05; v += 0.075) c.fillRect(G.g0, v, G.cw, 0.012);   // (the weave)
+      c.strokeStyle = `rgba(0,0,0,${(0.14 * glowC.a).toFixed(3)})`; c.lineWidth = 0.02;
+      c.beginPath(); c.moveTo(G.g0 + 0.02, hem + 0.04); c.quadraticCurveTo(G.g0 + G.cw * 0.28, hem + G.ch * 0.1, G.g0 + G.cw * 0.42, hem + G.ch * 0.26); c.stroke();   // (the sag lines)
+      c.beginPath(); c.moveTo(G.g1 - 0.02, hem + 0.04); c.quadraticCurveTo(G.g1 - G.cw * 0.28, hem + G.ch * 0.1, G.g1 - G.cw * 0.42, hem + G.ch * 0.26); c.stroke();
+    }
+    if (glowC.a > 0.02) { const ed = 0.5 * glowC.a, g = c.createLinearGradient(G.g0, 0, G.g1, 0);   // (lit only: by day the shade stays as SP5 drew it)
+      g.addColorStop(0, `rgba(0,0,0,${ed.toFixed(3)})`); g.addColorStop(0.2, 'rgba(0,0,0,0)'); g.addColorStop(0.8, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${ed.toFixed(3)})`);
+      c.fillStyle = g; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, G.h1 - hem + 0.1);
+      const g2 = c.createLinearGradient(0, G.h1, 0, G.h1 - G.ch * 0.22); g2.addColorStop(0, `rgba(0,0,0,${(0.7 * ed).toFixed(3)})`); g2.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g2; c.fillRect(G.g0 - 0.1, G.h1 - G.ch * 0.22, G.cw + 0.2, G.ch * 0.22); }   // (the top under the roller, darker)
     // THE TELL: the violet lamp's glow through the cloth + the dark spade against it
     if (sig > 0.01) {
       const VI = [168, 96, 255]; c.globalCompositeOperation = 'lighter';
@@ -1079,7 +1100,7 @@ export function createWindowLife() {
     paintBox(c, G, E.B, { wall: [[26, 20, 22], [40, 32, 34]], floor: [[16, 12, 12], [26, 20, 20]], side: [[20, 16, 16], [34, 26, 26]], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(30,24,24)') });
     let col = [255, 214, 150], a = 0.9, cx = G.cx, cy = G.h0 + G.ch * 0.55, r = G.cw * 1.1, extra = null;
     const slot = Math.floor(t / 1.3), buzz = hsh(slot + idx * 7, 41) < 0.12 ? 0.4 + 0.6 * Math.abs(Math.sin(t * 47)) : 1;
-    if (mood === 'tv') { const tv = mo ? tvLight(t, 29 + idx * 3) : { k: 0.7, tint: 0.4, warm: 0 }; col = tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint); a = 0.7 * Math.min(1, tv.k); cy = G.h0 + G.ch * 0.4; }
+    if (mood === 'tv') { const tv = mo ? tvLight(t, 29 + idx * 3) : { k: 0.7, tint: 0.4, warm: 0 }; col = tv.warm ? TV_PAL.W[0] : mixc(...TV_PAL[tvScene(t, 29 + idx * 3).id], 0.3); a = 0.75 * Math.min(1, tv.k); cy = G.h0 + G.ch * 0.4; }   // (SP6: the owner's deep blues)
     else if (mood === 'red') { col = [255, 40, 30]; a = 0.55 * (mo ? buzz : 1); cy = G.h0 + G.ch * 0.8; r = G.cw * 0.9; }
     else if (mood === 'candle') { col = [255, 180, 90]; a = (mo ? 0.62 + 0.18 * Math.sin(t * 7.3) * Math.sin(t * 3.1) + 0.08 * Math.sin(t * 11.7) : 0.7); cx = G.g0 + G.cw * 0.32; cy = G.h0 + G.ch * 0.28; r = G.cw * 0.95; }
     else if (mood === 'banker') { col = [120, 230, 150]; a = 0.6; cy = G.h0 + G.ch * 0.42; r = G.cw * 0.8; const per = 38, ph = (t + idx * 11) % per; if (ph < 3) extra = cc => { const u = ph / 3, sx = G.g0 - 0.4 + (G.cw + 0.8) * u; cc.fillStyle = 'rgba(4,2,4,0.55)'; cc.fillRect(sx - 0.22, G.h0, 0.44, G.ch); }; }
@@ -1143,41 +1164,93 @@ export function createWindowLife() {
     return bossWatchAt(watchPlans[seed] || (watchPlans[seed] = bossWatchPlan(seed)), L.partyPeakS, seed);
   }
   let partyT0 = null, partyDead = null, partyCutT = null, partyKeep = null;   // (WIN3: the window party — forced from t0; dead after a raid's cut)
+  /** SP6 — the set's light now: the scene's palette (core#tvScene — cuts between the owner's picked blues, settling on B), the late burst's
+   *  channel flips each their own, the quiet stretches on B, a rare warm cut (W); the holiday film's tint over the blues →
+   *  { near (the light by the set), far (the deeper wash), ceil (H: the ceiling catching it), id } */
+  function tvCols(tv, t, seed = 11) {
+    const id = tv.burst ? 'BANHFBW'[Math.min(6, Math.floor((tv.tint || 0) * 7))] : tv.quiet != null ? 'B' : tv.warm ? 'W' : tvScene(t, seed).id;
+    let [near, far] = TV_PAL[id];
+    const hol = tvHolidayTint(last.hol ? last.hol.id : null);
+    if (hol && id !== 'W') { near = mixc(near, hol.col, hol.w); far = mixc(far, hol.col, hol.w); }
+    return { near, far, ceil: id === 'H' ? 1 : 0, id, hol };
+  }
   function tvRoom(E, on = 1) {
     const { c, G, t, k, mo, B } = E, a = k * on, late = !!last.tvLate;
     const tv = mo ? tvLight(t, 11, { late }) : { k: 0.75, tint: 0.4, warm: 0, cut: 1, dim: 0 };
-    const hol = tvHolidayTint(last.hol ? last.hol.id : null);
-    // (11a-2 — the owner's SP5 review: "a little BRIGHTER + a LIGHTER, glowing blue" — the set's blue lifted toward a pale electric blue
-    // (TV_BLUE), the room's glow × TV_LIFT; the calm flicker (core#tvLight) untouched)
-    let tc = tv.warm ? [255, 206, 160] : mixc(TV_BLUE[0], TV_BLUE[1], tv.tint);
-    if (hol) tc = mixc(tc, hol.col, hol.w);
-    const tk = Math.min(1, tv.k * TV_LIFT);
-    lastTv = { k: +tv.k.toFixed(3), tint: +tv.tint.toFixed(2), warm: tv.warm, burst: tv.burst ? 1 : 0, quiet: tv.quiet ? 1 : 0, late, hol: hol ? last.hol.id : null, on: +on.toFixed(2) };
+    // SP6 — THE BLUE TV WINDOW (the owner: "you almost nailed it the very first time — it's got to be more blue"): 7b's FIRST look filled
+    // the pane with the set's light; WIN's room made most of it dim GREY furniture. Now: (1) the colour DEEP + SATURATED (TV_PAL, no white
+    // added), (2) the WHOLE pane washed with it — strongest low at the front right, where the unseen set stands below the sill, the ceiling +
+    // the curtain's inner edge catching it — (3) the room's shapes DARK against it, each with a lit side toward the set: an EMPTY couch's
+    // back low across (a thin blue rim along its top — whoever watches may be lying down below it), a floor lamp (off), a picture frame on
+    // the back wall. STILL NO PERSON, ever. The calm, irregular flicker (core#tvLight) untouched.
+    const P = tvCols(tv, t), near = P.near, far = P.far;
+    // (SP6 — the owner, on a frame burst: "THAT's the glow" — the bright frame (the pane ≈ [38,64,150]) is the PRIMARY glow; the old quiet
+    // stretches sank it to a dim navy most of the time. Now a quiet stretch HOLDS the primary glow, the cuts + the flicker move round it, a
+    // dim spell dips only a little)
+    const tk = tv.quiet != null ? 0.92 : 0.6 + 0.4 * Math.min(1, tv.k * TV_LIFT), L = a * (0.62 + 0.38 * tk);   // (the wash never sinks far: it must read "a TV is on" from across the street, even in a quiet stretch)
+    lastTv = { k: +tv.k.toFixed(3), tint: +tv.tint.toFixed(2), warm: tv.warm, burst: tv.burst ? 1 : 0, quiet: tv.quiet ? 1 : 0, late, hol: P.hol ? last.hol.id : null, on: +on.toFixed(2), scene: P.id, col: near.map(Math.round) };
     c.globalAlpha = 1;
-    const dark = [7, 8, 18], wash = mixc([44, 70, 168], tc, 0.66 * tk);
-    // the box near-black: the back wall lit toward its TOP, the floor + the sill's foot in shadow, the left wall's far end catching it
-    paintBox(c, G, B, { wall: [mixc(dark, wash, 0.22 * a), mixc(dark, wash, 0.8 * a)], floor: [mixc(dark, wash, 0.08 * a), mixc(dark, wash, 0.18 * a)], side: [mixc(dark, wash, 0.15 * a), mixc(dark, wash, 0.5 * a)], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc(dark, wash, 0.45 * a))) });
+    const dark = [3, 4, 12], v = (col, x) => mixc(dark, col, clamp01(x));
+    // (1 + 2) THE WASH: every face of the box the set's blue at a value — never grey
+    paintBox(c, G, B, { wall: [v(near, 0.6 * L), v(far, 0.62 * L)], floor: [v(far, 0.12 * L), v(far, 0.3 * L)], side: [v(far, 0.2 * L), v(far, 0.5 * L)],
+      flat: () => { const g = c.createLinearGradient(0, G.h0, 0, G.h1); g.addColorStop(0, rgb(v(far, 0.32 * L))); g.addColorStop(1, rgb(v(near, 0.74 * L))); c.fillStyle = g; c.fillRect(G.g0, G.h0, G.cw, G.ch); } });
     c.globalCompositeOperation = 'lighter';
-    const sx = G.g1 - G.cw * 0.22;   // (the unseen set below the sill, right)
-    glow(c, tc, G.cx + G.cw * 0.1, G.h1 - G.ch * 0.1, G.cw * 1.1, 0.8 * TV_LIFT * a * tk, 0.55);      // (the ceiling line + the wall's top washed)
-    glow(c, tc, G.cx + G.cw * 0.15, G.h0 + G.ch * 0.6, G.cw * 0.85, 0.55 * TV_LIFT * a * tk, 0.8);     // (the back wall's upper half)
-    glow(c, tc, sx, G.h0 + G.ch * 0.04, G.cw * 0.22, 0.2 * a * tk, 0.4);                     // (the set's own small halo at the sill's foot)
-    c.globalCompositeOperation = 'source-over'; { const g = c.createLinearGradient(0, G.h0, 0, G.h0 + G.ch * 0.3); g.addColorStop(0, `rgba(4,4,10,${(0.7 * a).toFixed(3)})`); g.addColorStop(1, 'rgba(4,4,10,0)'); c.fillStyle = g; c.fillRect(G.g0, G.h0, G.cw, G.ch * 0.3); }   // (the sill's foot in shadow: the light comes from below the sill, not through it)
-    c.globalCompositeOperation = 'lighter';
-    c.globalCompositeOperation = 'source-over';
+    const sx = G.g1 - G.cw * 0.2;   // (the unseen set below the sill, front right)
+    glow(c, near, sx, G.h0 + G.ch * 0.22, G.cw * 1.05, 0.72 * a * tk, 1.0);                                  // (strongest low at the front right)
+    glow(c, mixc(near, HOT, 0.25), sx, G.h0 + G.ch * 0.16, G.cw * 0.42, 0.4 * a * tk, 0.8);                  // (its hot core just over the couch)
+    glow(c, near, G.cx + G.cw * 0.18, G.h1 - G.ch * 0.06, G.cw * 1.1, (0.3 + 0.3 * P.ceil) * a * tk, 0.42);   // (the ceiling catching it)
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+    // (3) THE ROOM's DARK SHAPES — the lit side toward the set (right + below), the far side dark
+    const SIL = rgb(v(far, 0.06 * a)), rimA = x => Math.min(1, x * a * tk), rimC = mixc(near, HOT, 0.45);   // (a rim brighter than the wall behind it)
+    // the picture frame on the back wall, its glass catching a little of the light
+    E.deep(0.9, () => {
+      const x0 = G.cx + G.cw * 0.0, x1 = G.cx + G.cw * 0.26, y0 = G.h0 + G.ch * 0.52, y1 = G.h0 + G.ch * 0.7, fw = (x1 - x0) * 0.12;
+      c.fillStyle = SIL; c.fillRect(x0, y0, x1 - x0, y1 - y0);
+      const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, rgb(v(far, 0.16 * a))); g.addColorStop(1, rgb(v(near, 0.55 * L))); c.fillStyle = g; c.fillRect(x0 + fw, y0 + fw, x1 - x0 - 2 * fw, y1 - y0 - 2 * fw);
+      c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgb(rimC, rimA(0.55)); c.lineWidth = 0.02;
+      c.beginPath(); c.moveTo(x1, y1); c.lineTo(x1, y0); c.lineTo(x0, y0); c.stroke();   // (its lower + right edges lit from below right)
+      c.globalCompositeOperation = 'source-over';
+    });
+    // the floor lamp (off) just past the curtain's edge
+    E.deep(0.5, () => {
+      const lx = G.g0 + G.cw * 0.33, top = G.h0 + G.ch * 0.46, sw0 = G.cw * 0.05, sw1 = G.cw * 0.095, sh = G.ch * 0.1;
+      c.fillStyle = SIL;
+      c.fillRect(lx - 0.013, G.h0 - 0.2, 0.026, top - G.h0 + 0.2);
+      c.beginPath(); c.moveTo(lx - sw1, top); c.lineTo(lx + sw1, top); c.lineTo(lx + sw0, top + sh); c.lineTo(lx - sw0, top + sh); c.closePath(); c.fill();
+      c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgb(rimC, rimA(0.7)); c.lineWidth = 0.018;
+      c.beginPath(); c.moveTo(lx - sw1 * 0.6, top); c.lineTo(lx + sw1, top); c.lineTo(lx + sw0, top + sh); c.stroke();   // (the shade's lit underside + right edge)
+      c.strokeStyle = rgb(rimC, rimA(0.45)); c.lineWidth = 0.012; c.beginPath(); c.moveTo(lx + 0.013, G.h0 - 0.2); c.lineTo(lx + 0.013, top); c.stroke();   // (the pole's lit side)
+      c.globalCompositeOperation = 'source-over';
+    });
+    // the EMPTY COUCH's back, low across the window — two cushions, a thin blue rim along its top (brightest toward the set)
+    E.deep(0.2, () => {
+      const x0 = G.g0 + G.cw * 0.18, x1 = G.g1 + G.cw * 0.06, top = G.h0 + G.ch * 0.1, bot = G.h0 - 0.3, r = G.ch * 0.05, mid = (x0 + x1) / 2;
+      const path = () => { c.beginPath(); c.moveTo(x0, bot); c.lineTo(x0, top - r); c.quadraticCurveTo(x0, top, x0 + r, top);
+        c.quadraticCurveTo((x0 + mid) / 2, top + r * 0.3, mid, top - r * 0.2); c.quadraticCurveTo((mid + x1) / 2, top + r * 0.3, x1 - r, top);
+        c.quadraticCurveTo(x1, top, x1, top - r); c.lineTo(x1, bot); c.closePath(); };
+      path(); c.fillStyle = SIL; c.fill();
+      c.globalCompositeOperation = 'lighter';
+      { const g = c.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, rgb(near, 0)); g.addColorStop(1, rgb(near, rimA(0.13))); c.fillStyle = g; path(); c.fill(); }   // (the face toward the set, faintly)
+      c.save(); c.beginPath(); c.rect(x0 - 0.1, top - r * 1.6, x1 - x0 + 0.2, r * 3); c.clip();
+      { const g = c.createLinearGradient(x0, 0, x1, 0); g.addColorStop(0, rgb(rimC, rimA(0.3))); g.addColorStop(1, rgb(rimC, rimA(1))); c.strokeStyle = g; c.lineWidth = 0.026; path(); c.stroke(); }
+      c.restore();
+      c.globalCompositeOperation = 'source-over';
+    });
+    // the sill's foot a touch darker (the light comes from below the sill, not through it)
+    { const g = c.createLinearGradient(0, G.h0, 0, G.h0 + G.ch * 0.14); g.addColorStop(0, `rgba(2,2,8,${(0.45 * a).toFixed(3)})`); g.addColorStop(1, 'rgba(2,2,8,0)'); c.fillStyle = g; c.fillRect(G.g0, G.h0, G.cw, G.ch * 0.14); }
     // the shadow across the glow now and then (only ever a shadow)
     const sh = mo ? tvShadow(t, 11) : null;
     if (sh) { const u = sh.dir > 0 ? sh.u : 1 - sh.u; glow(c, [2, 2, 6], G.g0 + G.cw * (0.2 + 0.6 * u), G.h0 + G.ch * 0.66, G.cw * 0.26, 0.6 * sh.a * a, 1.3); }
     // the haze some nights, catching the blue (no cigarette, no one)
     const smk = smokeLevel(t);
-    if (smk.haze > 0.01) { c.globalCompositeOperation = 'lighter'; const sc = mixc([150, 160, 190], tc, 0.5); for (let i = 0; i < 4; i++) { const hx2 = G.g0 + G.cw * ((0.15 + 0.25 * i + (mo ? t * 0.012 : 0)) % 1.1), hy2 = G.h0 + G.ch * (0.6 + 0.12 * Math.sin(t * 0.21 + i * 1.7)); glow(c, sc, hx2, hy2, G.cw * 0.34, 0.08 * smk.haze * a * (0.35 + 0.65 * tk), 0.42); } c.globalCompositeOperation = 'source-over'; }
+    if (smk.haze > 0.01) { c.globalCompositeOperation = 'lighter'; const sc = mixc([120, 140, 200], near, 0.6); for (let i = 0; i < 4; i++) { const hx2 = G.g0 + G.cw * ((0.15 + 0.25 * i + (mo ? t * 0.012 : 0)) % 1.1), hy2 = G.h0 + G.ch * (0.6 + 0.12 * Math.sin(t * 0.21 + i * 1.7)); glow(c, sc, hx2, hy2, G.cw * 0.34, 0.08 * smk.haze * a * (0.35 + 0.65 * tk), 0.42); } c.globalCompositeOperation = 'source-over'; }
     c.globalAlpha = 1;
     // THE HALF-DRAWN CURTAIN over the left third, hanging from the rod, its folds dark, its inner edge catching the screen's light
     const cu = G.g0 + G.cw * 0.22;
-    c.fillStyle = 'rgb(11,10,22)'; c.fillRect(G.g0 - 0.1, G.h0 - 0.1, cu - G.g0 + 0.1, G.ch + 0.2);
+    c.fillStyle = rgb(v(far, 0.09 * a)); c.fillRect(G.g0 - 0.1, G.h0 - 0.1, cu - G.g0 + 0.1, G.ch + 0.2);
     c.fillStyle = 'rgba(0,0,0,0.35)'; for (const f of [0.25, 0.7]) c.fillRect(G.g0 + (cu - G.g0) * f, G.h0, 0.035, G.ch);
-    { const g = c.createLinearGradient(cu - 0.16, 0, cu, 0); g.addColorStop(0, rgb(tc, 0)); g.addColorStop(1, rgb(tc, 0.5 * a * tk)); c.fillStyle = g; c.fillRect(cu - 0.16, G.h0, 0.16, G.ch); }
-    c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgb(tc, 0.55 * a * tk); c.lineWidth = 0.03; c.beginPath(); c.moveTo(cu, G.h0); c.lineTo(cu, G.h1); c.stroke(); c.globalCompositeOperation = 'source-over';
+    { const g = c.createLinearGradient(cu - 0.16, 0, cu, 0); g.addColorStop(0, rgb(near, 0)); g.addColorStop(1, rgb(near, rimA(0.6))); c.fillStyle = g; c.fillRect(cu - 0.16, G.h0, 0.16, G.ch); }
+    c.globalCompositeOperation = 'lighter'; c.strokeStyle = rgb(near, rimA(0.7)); c.lineWidth = 0.03; c.beginPath(); c.moveTo(cu, G.h0); c.lineTo(cu, G.h1); c.stroke(); c.globalCompositeOperation = 'source-over';
     c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(G.g0, G.h1 - 0.06, G.cw, 0.06);   // (the rod's shadow line)
   }
   /** WIN3 — THE PARTY IN THE WINDOWS (the owner): ONE room's party — the colour flooding it (pulsing on the beat), the crowd as DARK
@@ -1402,10 +1475,12 @@ export function createWindowLife() {
   // lit top + the reveal + a short fall, flickering with the set; the soft blob over the brick is gone)
   function spills(c, env, fr, t) {
     const w = env.wins.find(o => o.id === 'apartment');
-    if (!w || fr.states.apartment !== 'tv' || env.k < 0.02) return;
+    // (SP6: the same blue as the room — the scene's near colour; on a party night the boss's set from the party's start, softened by his shade)
+    const st = fr.states.apartment, bossTv = !!(last.boss && last.boss.party) && (st === 'lamp' || st === 'tv');
+    if (!w || (st !== 'tv' && !bossTv) || env.k < 0.02) return;
     const tv = env.f.motion !== false && env.f.motion !== 0 ? tvLight(t, 11) : { k: 0.75, tint: 0.4, warm: 0 };
     c.save(); env.map(c); c.globalCompositeOperation = 'lighter';
-    landing(c, glassOf(w), tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint), 0.75 * env.k * Math.min(0.92, tv.k));
+    landing(c, glassOf(w), tvCols(tv, t).near, (bossTv ? 0.55 : 0.8) * env.k * Math.min(0.92, tv.k));
     c.restore();
   }
 

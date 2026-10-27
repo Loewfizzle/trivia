@@ -405,3 +405,28 @@ test("11a-2 — THANKSGIVING's ROOM LIFE: the family table (back) 3 pm → 9:30 
   assert.equal(M.MOMENT.table.rarity, 'holiday'); assert.ok(!M.MOMENTS.filter(m => m.rarity === 'holiday').some(m => M.RARITY[m.rarity]), 'never in the random pool');
   assert.equal(M.WINDOW_LOOKS.table, 'lit'); assert.equal(M.WINDOW_LOOKS.football, 'lit');
 });
+
+// SP6 — THE BLUE TV WINDOW's colours: the owner's picked set, cut between like scenes
+test('SP6 tvScene: the picked blues, cuts every ~3–8 s (long steady stretches), F + W brief + back to B, mostly B, deterministic', async () => {
+  const { tvScenes, tvScene, TV_PAL } = await import('../js/core/harbor-moments.js');
+  const ids = Object.keys(TV_PAL);
+  assert.deepEqual(ids.sort(), ['A', 'B', 'F', 'H', 'N', 'W']);
+  for (const id of ids) if (id !== 'W') { const [r, g, b] = TV_PAL[id][0]; assert.ok(b === 255 && r <= 90 && g <= 110, `${id} deep + saturated (no white)`); }
+  let time = { B: 0 }, total = 0, longs = 0;
+  for (let slot = 0; slot < 400; slot++) {
+    const L = tvScenes(slot, 11);
+    assert.equal(L[0].t0, 0);
+    for (let i = 0; i < L.length; i++) {
+      const s = L[i], last = i === L.length - 1;
+      if (i) assert.notEqual(s.id, L[i - 1].id, 'a cut is a change');
+      if (i && (L[i - 1].id === 'F' || L[i - 1].id === 'W')) assert.equal(s.id, 'B', 'a brief scene settles on B');
+      if (!last) { if (s.id === 'F' || s.id === 'W') assert.ok(s.len >= 1.2 && s.len <= 2.2); else assert.ok(s.len >= 3 && s.len <= 20); }
+      if (s.len >= 12) longs++;
+      time[s.id] = (time[s.id] || 0) + s.len; total += s.len;
+    }
+  }
+  assert.ok(time.B / total > 0.45, `B is home: ${(time.B / total).toFixed(2)} of the time`);
+  assert.ok((time.W || 0) / total < 0.05 && (time.F || 0) / total < 0.06, 'F + W only now + then');
+  assert.ok(longs > 100, 'long steady stretches');
+  assert.deepEqual(tvScene(1234.5, 11), tvScene(1234.5, 11));
+});

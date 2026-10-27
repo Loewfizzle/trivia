@@ -364,6 +364,52 @@ export function tvLight(t, seed = 7, o = {}) {
   const flash = el < 0.1 && h01(c, seed + 4) < 0.2 ? 0.22 : 0;      // (a bright cut now and then)
   return { k: Math.max(0.12, Math.min(1.2, lv + drift + fl + flash)), tint, warm, cut: el, dim };
 }
+/** SP6 — THE BLUE TV WINDOW's COLOURS (the owner, Oct 27, picked from a 15-swatch mock-up): the set's light CUTS between scenes like
+ *  channels / shots — DEEP, SATURATED blues, bright without whitening. Each palette: [the light near the set, the deeper wash further off].
+ *  B (deep royal) is HOME, then A (7b's first look), H (royal, the ceiling catching it: `ceil`), N (sapphire); F (violet-blue) now + then,
+ *  briefly; W (amber) a brief warm scene on the odd change. Never a pale periwinkle. */
+export const TV_PAL = Object.freeze({
+  B: [[40, 90, 255], [20, 45, 170]],
+  A: [[64, 108, 255], [40, 70, 200]],
+  H: [[45, 95, 255], [28, 62, 196]],
+  N: [[20, 60, 255], [10, 30, 160]],
+  F: [[85, 85, 255], [50, 48, 190]],
+  W: [[255, 190, 110], [196, 122, 58]],
+});
+const TV_SLOT = 60;
+/** the scene list of one minute (seeded: the same on every phone) → [{ id, t0, len }] — a cut every ~3–8 s (never a metronome), about a
+ *  quarter of the B scenes a LONG steady stretch (12–20 s), F + W brief (1.2–2.2 s) and always followed by B (it SETTLES on the blue) */
+export function tvScenes(slot, seed = 7) {
+  const out = []; let t = 0, prev = 'B', i = 0;
+  while (t < TV_SLOT && i < 40) {
+    const u = h01(slot * 64 + i, seed + 41), r = h01(slot * 64 + i, seed + 42);
+    let id = u < 0.42 ? 'B' : u < 0.6 ? 'A' : u < 0.75 ? 'H' : u < 0.88 ? 'N' : u < 0.95 ? 'F' : 'W';
+    if (prev === 'F' || prev === 'W') id = 'B';                                      // (a brief scene always settles back on B)
+    else if (prev !== 'B' && id !== 'B' && r < 0.5) id = 'B';                        // (and the others drift home often)
+    if (id === prev) id = id === 'B' ? 'A' : 'B';                                     // (a cut is a change)
+    const brief = id === 'F' || id === 'W', long = id === 'B' && h01(slot * 64 + i, seed + 43) < 0.25;
+    const len = brief ? 1.2 + r : long ? 12 + 8 * r : 3 + 5 * r;
+    out.push({ id, t0: t, len: Math.min(len, TV_SLOT - t) });
+    t += len; prev = id; i++;
+  }
+  return out;
+}
+const tvCache = new Map();
+/** the scene on screen at t (seconds) → { id, col: [near, far], ceil (H), el (seconds since the cut) } */
+export function tvScene(t, seed = 7) {
+  const slot = Math.floor(t / TV_SLOT), key = slot * 131 + seed;
+  let list = tvCache.get(key);
+  if (!list) { if (tvCache.size > 8) tvCache.clear(); list = tvScenes(slot, seed); tvCache.set(key, list); }
+  const el = t - slot * TV_SLOT;
+  let sc = list[0];
+  for (const s of list) if (el >= s.t0) sc = s;
+  return { id: sc.id, col: TV_PAL[sc.id], ceil: sc.id === 'H' ? 1 : 0, el: el - sc.t0 };
+}
+/** a TV's light colour now, one call (the near colour, toward the far by `far` 0..1) — every TV in the city reads its blue here */
+export function tvColour(t, seed = 7, far = 0) {
+  const s = tvScene(t, seed), a = s.col[0], b = s.col[1];
+  return [a[0] + (b[0] - a[0]) * far, a[1] + (b[1] - a[1]) * far, a[2] + (b[2] - a[2]) * far];
+}
 /** WIN3 — a SHADOW across the ceiling's glow now and then (someone shifting, getting up for a snack — only ever a shadow): every ~2–3 min
  *  a soft dark shape crosses the back wall over ~2.6 s → { u (0..1 across, the direction in dir), a (0..1) } | null */
 export function tvShadow(t, seed = 7) {
