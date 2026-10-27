@@ -26,6 +26,7 @@ import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbo
 import { raidAt, raidHold } from './harbor-raid.js';
 import { cabEvents, cabPlan } from './harbor-cabs.js';
 import { totGroups, zombieGroups, procWindow, procWalkers, procHold, PROC, ZOMBIE, halloweenAt } from './harbor-holidayfolk.js';
+import { PARADE, paradeWindow, paradeHold, paradeUnits, unitsAt, unitPeople, paradeCrowd } from './harbor-parade.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -756,7 +757,9 @@ export function folkAt(t, world, cache = new Map()) {
   // (its hold — the same rule as a legendary's); otherwise a legendary's hold
   const HF = ctx.hforce || {}, PW = procWindow(t, { off: ctx.off, dusk: ctx.dusk, forceAt: HF.procession == null ? null : HF.procession });
   const procX0 = L.speakeasy ? L.speakeasy.x1 - 2.6 : -20, procX1 = z => (L.cam && L.cam.hw ? L.cam.hw(z) : 20) + 1.6, procCross = (procX1(PROC.files[1]) - procX0 + 2) / PROC.v;
-  const hold = PW ? procHold(PW, procCross) : trafficHold(ctx.legend), hk = hold ? Math.round(hold[0]) : '';
+  // 11a-2 — THE PARADE (core/harbor-parade.js — Thanksgiving morning, or &force=parade): the same route + rule as the procession
+  const PA = paradeWindow(t, { off: ctx.off, forceAt: HF.parade == null ? null : HF.parade }), paraCross = (procX1(PARADE.files[1]) - procX0 + 12) / PARADE.v;
+  const hold = PW ? procHold(PW, procCross) : PA ? paradeHold(PA, paraCross) : trafficHold(ctx.legend), hk = hold ? Math.round(hold[0]) : '';
   const hourBuses = hAbs => get(`bus|${hAbs}|${ctx.forceBus ? 1 : 0}`, () => { const loc = localOf(hAbs * 3600 + 1, ctx.off); return busesOf(L, loc.key, Math.floor(loc.h), hAbs * 3600 - (((ctx.off || 0) * 60) % 3600 + 3600) % 3600, { force: !!ctx.forceBus }); });
   const busesNear = (a, b) => { const out = []; for (let h = Math.floor(a / 3600) - 1; h <= Math.floor(b / 3600) + 1; h++) out.push(...hourBuses(h)); return out.filter(x => x.tE < b + 600 && x.tX > a - 600 && !inHold(hold, x.tE) && !busBlocked(x) && !(ctx.forceBus && ctx.forceBusAt != null && x.tE < ctx.forceBusAt)); };   // (POLISH 5: a forced bus never joins mid-stop — the first one drives in after the fire)
   // (8b1: a bus due while a worker's truck holds the stop rides on — it never comes)
@@ -846,14 +849,23 @@ export function folkAt(t, world, cache = new Map()) {
   const HB = 600, totOf = k => get(`TOT|${k}|${HF.tot == null ? '' : Math.round(HF.tot)}`, () => totGroups(k, { off: ctx.off, seed: ctx.seed, forceAt: HF.tot == null ? null : HF.tot }).map(g => totVisit(g, M)).filter(Boolean));
   const zomOf = k => get(`ZOM|${k}|${HF.zombies == null ? '' : Math.round(HF.zombies)}`, () => zombieGroups(k, { off: ctx.off, seed: ctx.seed, forceAt: HF.zombies == null ? null : HF.zombies }).map(g => zombieVisit(g, M)).filter(Boolean));
   const procOf = c => get(`PR|${Math.round(PW.T0)}|${c}`, () => procWalkers(c, PW, { seed: ctx.seed }).map(e => procVisit(e, procX0, procX1)));
+  // 11a-2 — THE PARADE's people: each unit's band / handlers / crew marching along the near lane at the parade's pace; the crowd at the kerb
+  const paraUnits = () => get(`PU|${Math.round(PA.T0)}`, () => paradeUnits(PA));
+  const paraOf = u => get(`PV|${Math.round(PA.T0)}|${u.i}`, () => unitPeople(u).map((p, j) => paradeVisit(u, p, j, procX0, procX1)));
+  const xsKerb = () => [Math.max(procX0 + 1.5, (L.speakeasy ? L.speakeasy.x1 : -6) + 1.2), (L.cam && L.cam.hw ? L.cam.hw(PARADE.kerb[0]) : 18) - 1.2];
+  const crowdOf = () => get(`PC|${Math.round(PA.T0)}`, () => paradeCrowd(PA, paraUnits(), procX0, xsKerb()).map(s => crowdVisit(s, M, L)).filter(Boolean));
   function holidayVisits(tt) {
     const out = [], kb = Math.floor(tt / HB);
+    if (PA && tt > PA.T0 - 1300 && tt < PA.T1 + paraCross + 900) {
+      for (const u of unitsAt(paraUnits(), tt + 4, procX0 - 6, procX1(PARADE.files[1]) + 8)) out.push(...paraOf(u));
+      out.push(...crowdOf());
+    }
     for (const k of [kb - 1, kb]) out.push(...totOf(k), ...zomOf(k));
     if (PW && tt > PW.T0 - 10 && tt < PW.T1 + procCross + 10) { const c1 = Math.floor((tt - PW.T0) / PROC.chunk), c0 = Math.floor((tt - procCross - 8 - PW.T0) / PROC.chunk); for (let c = Math.max(0, c0); c <= c1; c++) out.push(...procOf(c)); }
     return out.filter(v => tt >= v.t0 - 1 && tt < (v.tEnd || v.t1) + 1);
   }
   // (11a-1: while THE PROCESSION is in the street, nobody crosses it — the crowd's visits are planned without a crossing then)
-  cx0.noCross = PW ? tt => tt > PW.T0 - PROC.lead - 60 && tt < PW.T1 + procCross : null;
+  cx0.noCross = PW ? tt => tt > PW.T0 - PROC.lead - 60 && tt < PW.T1 + procCross : PA ? tt => tt > PA.T0 - PARADE.lead - 60 && tt < PA.T1 + paraCross : null;
   // (POLISH 4: the dance circle is ON TOP of the crowd's count — the owner: "8–12 (the dance circle on top)"; the vendor + the line count)
   const routineOcc = (a, b) => [...[a, b].map(cartEv).filter((e, i, arr) => e && arr.indexOf(e) === i && b > e.t0 && a < e.t1).map(e => ({ t0: e.t0, t1: e.t1, n: 1 })), ...occOf(lineVisits(a, b)), ...occOf(crewIn(a, b).visits)];
   // (8b2: the cabs' riders count in the crowd's budget too — the calmer counts hold on a night of cabs)
@@ -1029,6 +1041,28 @@ function procVisit(e, x0, x1) {
     : [{ role: 'lead', costume: e.role, dx: 0, dz: 0, lag: 0, seed: e.seed, pn: e.n }];
   const back = e.members ? Math.max(...e.members.map(m => -m.dx)) : 0;
   return { id: `proc.${Math.round(e.t * 10)}`, kind: 'proc', routine: 'proc', idx: e.n, group: e.group || null, look: 'proc', gait: 'stroll', legs, t0: e.t, t1, tEnd: t1 + back / PROC.v + 0.5, members };
+}
+
+/** 11a-2 — a parade marcher (a band member, a balloon's handler, a float's farmer) → a visit: in from behind the speakeasy at the unit's
+ *  pace — the moment its place in the unit (dx behind the head) reaches the route's start — off the right edge */
+function paradeVisit(u, p, j, x0, x1) {
+  const X1 = x1(p.z) + 2, t0 = u.t + (-p.dx) / PARADE.v, t1 = t0 + (X1 - x0) / PARADE.v;
+  return { id: `par.${u.i}.${j}`, kind: 'parade', routine: 'parade', idx: u.i, unit: u.kind, look: 'parade', gait: 'walk', legs: [{ k: 'walk', pts: [{ x: x0, z: p.z }, { x: X1, z: p.z }], t0, t1, v: PARADE.v }],
+    t0, t1, tEnd: t1 + 0.5, members: [{ role: 'lead', costume: p.role, inst: p.role === 'brass' ? 'trumpet' : p.role === 'drum' ? 'drum' : p.role === 'tuba' ? 'tuba' : p.role === 'drummajor' ? 'baton' : p.role === 'handler' ? 'rope' : null, dx: 0, dz: 0, lag: 0, seed: p.seed }] };
+}
+/** 11a-2 — a spectator: in from the nearer edge before the parade, at the kerb facing the road — WAVING (arms up, a cheer) while a balloon
+ *  is in front, watching between — off again after */
+function crowdVisit(s, M, L) {
+  const r = rngFrom(s.seed), spot = { x: s.x, z: s.z }, kid = r() < 0.3;
+  const a = planVisit({ look: kid ? 'kid' : r() < 0.5 ? 'walker' : 'stroll', gait: kid ? 'kid' : 'stroll', goals: [{ from: s.x < 4 ? 'left' : 'right' }, { at: spot }] }, s.t0, M, { r });
+  if (!a) return null;
+  const legs = [...a.legs], hd = PI / 2 + (r() - 0.5) * 0.5;
+  let t = a.t1;
+  for (const [c0, c1] of s.cheers) { if (c1 <= t) continue; if (c0 > t) legs.push({ k: 'pose', pose: 'watch', x: spot.x, z: spot.z, t0: t, t1: c0, hd }); legs.push({ k: 'pose', pose: 'wave', x: spot.x, z: spot.z, t0: Math.max(t, c0), t1: c1, hd }); t = c1; }
+  if (s.t1 > t) legs.push({ k: 'pose', pose: 'watch', x: spot.x, z: spot.z, t0: t, t1: s.t1, hd });
+  const b = planVisit({ look: 'stroll', gait: 'stroll', goals: [{ exit: 'any' }] }, Math.max(t, s.t1), M, { r, start: spot });
+  if (!b) return null;
+  return { id: `pc.${s.k}.${Math.round(s.t0)}`, kind: 'spectator', routine: 'parade', look: kid ? 'kid' : 'stroll', gait: kid ? 'kid' : 'stroll', legs: [...legs, ...b.legs], t0: a.t0, t1: b.t1, tEnd: b.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: s.seed }] };
 }
 
 // ------------------------------------------------------------------ THE DANCE CIRCLE's people (FP3b item 9 — core/harbor-routines.js)

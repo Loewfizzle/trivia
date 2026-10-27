@@ -21,6 +21,7 @@ import { LOGO_LETTERS } from '../../ui/logo.js';
 import { flattenPath } from '../../core/tube-path.js';
 import { WEB_SPECS, buildWeb, webGrowth, paintWeb, paintStrays, createSpider, createShimmer } from './dress-halloween.js';
 import { createDotdDress } from './dress-dotd.js';
+import { createThanksgivingDress } from './dress-thanksgiving.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** the overlay's box in logo units (the SVG's viewBox is −26 −30 384 160) */
@@ -111,7 +112,7 @@ export function createSignDress() {
   const cache = { silk: null, glow: null };
   let slowTask = { ms: 0 }, colsRef = null, colRef = null, job = null, staticKey = '', glowA = -1, lastDyn = 0, wasDyn = false, draws = 0, bakes = 0, lastMs = 0, lfKey = '', LF = null, on = false;
   const webs = WEB_SPECS.map(buildWeb);
-  let spiders = [null, null], dotd = null, shimmer = null, lastEnv = null, prevBox = null, prevShim = [];   // (WIN2: two spiders — the main web's + the corner web's on the last N)
+  let thanks = null, spiders = [null, null], dotd = null, shimmer = null, lastEnv = null, prevBox = null, prevShim = [];   // (WIN2: two spiders — the main web's + the corner web's on the last N)
   const live = () => spiders.filter(Boolean);
 
   function setHost(el) {
@@ -149,6 +150,7 @@ export function createSignDress() {
       if (P.spider2 && webGrowth(webs[1], P.web) >= 0.5) out.push('spider2');   // (WIN2: the second on the corner web, once half spun; WIN3: by date — halloweenPieces().spider2, Oct 29)
     }
     if (H && H.id === 'dotd' && P && P.sign > 0.01) out.push('dotd');
+    if (H && H.id === 'thanksgiving' && P && P.wreath > 0.01) out.push('thanks');   // (11a-2: the harvest wreath round the O + the swags)
     return out;
   }
 
@@ -168,7 +170,7 @@ export function createSignDress() {
     }
     const ck = lfKey;
     const P = env.pieces || {};
-    const stageQ = ids.includes('web') ? Math.round(P.web * 400) : 0, dotQ = ids.includes('dotd') ? Math.round(P.sign * 40) : 0;
+    const stageQ = ids.includes('web') ? Math.round(P.web * 400) : 0, dotQ = ids.includes('dotd') ? Math.round(P.sign * 40) : ids.includes('thanks') ? Math.round(P.wreath * 40) : 0;
     const key = `${ids.join(',')}|${stageQ}|${dotQ}|${dayB}|${ck}|${wpx.toFixed(1)}|${env.tier}`;
     const lightAt = (px, py) => LF.at(px, py);
     let rebaked = false;
@@ -186,10 +188,11 @@ export function createSignDress() {
           if (L === 'silk') for (const fn of dotd.prepare(sc, dayB)) tasks.push([L, fn]);
           for (const part of ['garland', 'rest']) tasks.push([L, c => dotd.paint(c, P.sign, { ...o, part })]);
         }
+        if (ids.includes('thanks')) { if (!thanks) thanks = createThanksgivingDress(); tasks.push([L, c => thanks.paint(c, P.wreath, o)]); }
       }
       const boxes = [];
       if (ids.includes('web')) boxes.push([-14, -14, 152, 106], [262, -8, 342, 58], [140, -6, 210, 8]);
-      if (ids.includes('dotd')) boxes.push([-16, -16, 348, 120]);
+      if (ids.includes('dotd') || ids.includes('thanks')) boxes.push([-16, -16, 348, 120]);
       job = { key, tasks, boxes, silk: mk(), glow: mk(), n: 0 };
       for (const L of ['silk', 'glow']) { const c = safeCtx(job[L]); toLogo(c); }
     }
@@ -211,6 +214,7 @@ export function createSignDress() {
     if (!ids.includes('spider')) spiders[0] = null;
     if (!ids.includes('spider2')) spiders[1] = null;
     if (!ids.includes('dotd')) dotd = null;
+    if (!ids.includes('thanks')) thanks = null;
     // SP4: the web's shimmer (a faint light travelling along the threads) — only on a web that is spun
     if (ids.includes('web') && !shimmer) shimmer = createShimmer(webs);
     if (!ids.includes('web')) shimmer = null;
@@ -223,7 +227,7 @@ export function createSignDress() {
     const now = performance.now(), fps = env.tier === 0 ? 15 : 30;
     const due = rebaked || gA !== glowA || (dyn && now - lastDyn >= 1000 / fps - 2) || (!dyn && wasDyn);
     if (!due) return;
-    const full = rebaked || gA !== glowA || !(live().length || dotd || shimmer);
+    const full = rebaked || gA !== glowA || !(live().length || dotd || shimmer) || !!thanks;
     glowA = gA; lastDyn = now; wasDyn = !!dyn; draws++;
     // ---- compose: silk, the neon's glow × the sign's level, then the moving things — a frame where only they moved is CLIPPED to
     // their boxes (the spider's last + this frame's; the flames + their light, the flags)
@@ -245,6 +249,7 @@ export function createSignDress() {
     if (gA > 0.01) { x.globalCompositeOperation = 'lighter'; x.globalAlpha = gA; x.drawImage(cache.glow, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; }
     toLogo(x);
     if (dotd) dotd.dyn(x, P.sign, look);
+    if (thanks) thanks.dyn(x, P.wreath, look);
     if (shimmer) shimmer.draw(x, look);
     for (const sp of live()) sp.draw(x, look);
     x.restore();

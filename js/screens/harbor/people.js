@@ -104,8 +104,8 @@ export function createPeople() {
     const force = f.forceHoliday, o = {};
     if (!force || typeof force.has !== 'function') return o;
     // (THE PREVIEW PANEL's rows: force.has('trick-or-treat') · force.has('zombies') · force.has('procession'))
-    const on = { 'trick-or-treat': force.has('trick-or-treat'), zombies: force.has('zombies'), procession: force.has('procession') };
-    for (const [id, k] of [['trick-or-treat', 'tot'], ['zombies', 'zombies'], ['procession', 'procession']]) {
+    const on = { 'trick-or-treat': force.has('trick-or-treat'), zombies: force.has('zombies'), procession: force.has('procession'), parade: force.has('parade') };
+    for (const [id, k] of [['trick-or-treat', 'tot'], ['zombies', 'zombies'], ['procession', 'procession'], ['parade', 'parade']]) {
       if (!on[id]) continue;
       let a = typeof f.forceAt === 'function' ? f.forceAt(id) : null;
       if (a != null && a > 1e11) a /= 1000;
@@ -326,7 +326,7 @@ export function createPeople() {
     let anch;
     if (st.moving) anch = paintCart(c, st, T, hood);
     else {
-      const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}|${hood ? 1 : 0}`;
+      const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}|${hood ? 1 : 0}|${L.cart.cider ? 1 : 0}`;
       if (T !== cartT || key !== cartKey || !cartCv) {
         cartT = T; cartKey = key;
         const bx = Math.floor(gx - 4.2 * s * sc), by = Math.floor(gy - 5.4 * s * sc), bw = Math.ceil(8.4 * s * sc), bh = Math.ceil(6.6 * s * sc);

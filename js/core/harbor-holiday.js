@@ -30,7 +30,13 @@ export const HOLIDAY_TABLE = Object.freeze([
   { id: 'halloween', label: 'HALLOWEEN', build: [10, 1], day: [10, 31], night: [17.5, 28], end: [11, 1, 4], downLen: 0 },
   // (Day of the Dead: Nov 1 + 2 — dressed 4 → 7 am on Nov 1 while Halloween's last pieces go; Nov 3 down through the day)
   { id: 'dotd', label: 'DAY OF THE DEAD', start: [11, 1, 4], dressLen: 3, day: [11, 1], days: 2, night: [17, 23.5], down: [11, 3, 7], downLen: 12 },
+  // 11a-2 — THANKSGIVING (the fourth Thursday of November): the build-up from Nov 4 (Day of the Dead's last pieces gone the evening
+  // before) growing day by day to the Wednesday before; that Wednesday's evening = THE HOMECOMING party night (`eve`); the day itself
+  // (the parade in the morning, the quiet warm afternoon + evening); everything down OVERNIGHT into Black Friday (4 am)
+  { id: 'thanksgiving', label: 'THANKSGIVING', build: [11, 4], eveH: 17.5, end: 4 },
 ]);
+/** the fourth Thursday of November of year y → its day of the month */
+export function thanksgivingDay(y) { const dow = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return 1 + ((4 - dow + 7) % 7) + 21; }
 
 /**
  * holidayAt(lc) → the state. lc: { y, m, d, h, mi, s? } local.
@@ -60,6 +66,15 @@ export function holidayAt(lc) {
       const hr = (t - Math.floor(t)) * 24, eve = t < dEnd && hr >= R.night[0] && hr < R.night[1];
       const phase = t >= down0 ? 'down' : eve ? 'night' : 'day';
       return { id: 'dotd', label: R.label, phase, stage, down, days: t - s0, day: dayNo, eve, key: `dotd|${phase}|${dayNo}|${Math.floor((t - s0) * 144)}` };
+    }
+  }
+  // ---- THANKSGIVING: Nov 4 → 4 am the morning after the day (Black Friday)
+  {
+    const R = HOLIDAY_TABLE[2], td = thanksgivingDay(y), b0 = at(y, R.build[0], R.build[1]), d0 = at(y, 11, td), eve0 = d0 - 1 + R.eveH / 24, end = d0 + 1 + R.end / 24;
+    if (t >= b0 && t < end) {
+      const stage = clamp01((t - b0) / (eve0 - b0)), eve = t >= eve0 && t < d0 + 3 / 24, onDay = t >= d0 + 3 / 24;
+      const phase = onDay ? 'day' : eve ? 'night' : 'build';
+      return { id: 'thanksgiving', label: R.label, phase, stage: onDay || eve ? 1 : stage, down: 0, days: t - b0, eve, day: td, key: `thanksgiving|${phase}|${Math.floor((t - b0) * 144)}` };
     }
   }
   return none;
@@ -133,7 +148,7 @@ export function halloweenPieces(H, o = {}) {
  * BIG_KEYS: the pieces' keys this rule holds (every holiday's pieces object). latchBig(held, now, relatch) → the pieces to show: `now`
  * with its big keys taken from `held` unless relatch (or nothing held yet); returns { pieces, held } (held: the big keys in force).
  */
-export const BIG_KEYS = Object.freeze(['giant', 'bigs', 'harvest', 'centre']);
+export const BIG_KEYS = Object.freeze(['giant', 'bigs', 'harvest', 'centre', 'spots', 'stalks', 'mums', 'bales']);
 export function latchBig(held, now, relatch = false) {
   const fresh = {}; for (const k of BIG_KEYS) if (now && now[k] != null) fresh[k] = now[k];
   const use = relatch || !held ? fresh : held;
@@ -141,6 +156,44 @@ export function latchBig(held, now, relatch = false) {
   const pieces = { ...(now || {}) };
   for (const k of BIG_KEYS) { if (use[k] != null) pieces[k] = use[k]; else delete pieces[k]; }
   return { pieces, held: use };
+}
+
+/**
+ * 11a-2 — what of THANKSGIVING shows now. H: holidayAt(); o: { hour } → the pieces (date-driven: the November build-up grows day by
+ * day; the BIG pieces are latched — latchBig — so a new one only appears at a load / a return):
+ *   mums     0..4 how many dressing spots have their potted mums (from Nov 4)
+ *   bales    straw bales on the spots (from ~Nov 6) · spots: 0..3 the set pieces on them (1 a pumpkin, 2 + gourds, 3 + a second pumpkin)
+ *   stalks   cornstalk bundles tied to the lamp posts (from ~Nov 8)
+ *   harvest  THE HARVEST DISPLAY on the centre circle (from ~Nov 13)
+ *   wreath   0..1 the NEON sign's harvest wreath + garland going up (wheat → oak leaves → gourds → the bulbs; from ~Nov 15)
+ *   amber    the sign's tubes amber (the day itself)
+ *   raker    someone raking leaves by day (Nov 4 → ~22)
+ *   cider    the chestnut cart also sells hot cider (the whole build-up)
+ *   geese    the V's crossing more often (×) · party: the Wednesday's homecoming party night · parade: Thanksgiving morning
+ */
+export function thanksgivingPieces(H, o = {}) {
+  if (!H || H.id !== 'thanksgiving') return null;
+  const s = H.stage, hr = o.hour == null ? 12 : o.hour, day = H.phase === 'day', days = H.days;
+  return {
+    mums: Math.min(4, 1 + Math.floor(s * 6)),
+    bales: s >= 0.09 || day,
+    spots: s < 0.09 ? 0 : s < 0.28 ? 1 : s < 0.5 ? 2 : 3,
+    stalks: s >= 0.18 || day,
+    harvest: s >= 0.42 || day,
+    wreath: day ? 1 : clamp01((s - 0.5) / 0.42),
+    amber: day,
+    raker: days < 18.5 && hr > 8.6 && hr < 16.2 && !day,
+    cider: true,
+    geese: 2.2,
+    party: !!H.eve,
+    parade: day && hr >= 8.5 && hr < 11.6,
+  };
+}
+/** 11a-2 — THE TREES HOLD THEIR PEAK COLOUR for Thanksgiving (the plan: "peak autumn trees"): the real season would thin + bare them from
+ *  ~Nov 3 → Nov 20; through the build-up + the day they stay a full autumn crown → { season, phase } */
+export function holidaySeason(H, season, phase) {
+  if (H && H.id === 'thanksgiving') return { season: 'autumn', phase: Math.min(season === 'autumn' ? phase : 0.62, 0.62) };
+  return { season, phase };
 }
 
 /** THE GHOST SHIP's crossings on Halloween night (local hours on the evening's clock: 24.5 = 00:30) — seeded by the year, the
@@ -212,6 +265,11 @@ export function lightRules(H, o = {}) {
   } else if (H.id === 'dotd') {
     const p = dotdPieces(H, o) || {};
     if (p.warm > 0.5) { out.sign = 'dotd'; out.signLight = '#ffa62a'; out.strings = p.up > 0.5 ? 'dotd' : null; out.wheel = p.up > 0.5 ? 'dotd' : null; }
+  } else if (H.id === 'thanksgiving') {
+    // (the day: the sign's tubes AMBER, the skyline's lit windows warm + amber, the roof's strings a warm harvest gold; the build-up's last
+    // week the wheel in harvest colours of an evening)
+    if (H.phase === 'day') { out.sign = 'thanksgiving'; out.signLight = '#ffa040'; out.strings = 'harvest'; out.windowTint = [255, 214, 160]; out.windowTintK = 0.35 * dark; }
+    if (H.phase === 'day' || H.stage > 0.8) out.wheel = 'harvest';
   }
   return out;
 }
@@ -221,6 +279,7 @@ export function titleHoliday(H) {
   if (!H || !H.id) return null;
   if (H.id === 'halloween') return { id: 'halloween', full: H.phase !== 'build', k: H.phase === 'build' ? 0.3 + 0.45 * H.stage : 1, c2: true };
   if (H.id === 'dotd') return { id: 'dotd', full: H.phase !== 'down', k: H.stage * (1 - H.down), c2: true };
+  if (H.id === 'thanksgiving') return { id: 'thanksgiving', full: H.phase === 'day', k: H.phase === 'day' ? 1 : 0.3 + 0.5 * H.stage, c2: true };
   return null;
 }
 

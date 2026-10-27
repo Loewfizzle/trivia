@@ -178,6 +178,8 @@ export const EVENTS = [
   { id: 'sign-dotd', label: 'THE SIGN · DAY OF THE DEAD', cat: 'holidays', group: 'DAY OF THE DEAD', kw: 'marigold papel picado candles neon', hint: 'the marigold garland, papel picado + candles on NEON, any day' },
   { id: 'black-cat', label: 'THE BLACK CAT', cat: 'holidays', group: 'HALLOWEEN', kw: 'cat hiss tap', hint: 'on the speakeasy’s step — tap it: it hisses + darts off' },
   { id: 'procession', label: 'CANDLELIGHT PROCESSION', cat: 'holidays', group: 'DAY OF THE DEAD', kw: 'dia de muertos catrina mariachi candles', hint: 'Nov 2 at dusk: candles, Catrinas with flower crowns, a mariachi trio along the waterside road' },
+  { id: 'parade', label: 'THE BALLOON PARADE', cat: 'holidays', group: 'THANKSGIVING', kw: 'turkey pumpkin acorn cider balloons band handlers thanksgiving', hint: 'Thanksgiving morning 9 → ~11:25: giant balloons on ropes, a marching band, a harvest float down the waterside road; the crowd cheering at the kerb (from its start)' },
+  { id: 'sign-thanks', label: 'THE SIGN · HARVEST WREATH', cat: 'holidays', group: 'THANKSGIVING', kw: 'wheat oak leaves gourds bulbs amber neon', hint: 'the harvest wreath round the O + the wheat swags on NEON, any day (the real one goes up Nov 15 → 25)' },
   { id: 'monarchs', label: 'MONARCH BUTTERFLIES', cat: 'holidays', group: 'DAY OF THE DEAD', kw: 'butterfly', hint: 'the rare monarchs of Nov 1 + 2, by day' },
   // (PART 6b — THE LEGENDARY SKY: ~1–2 nights a month each for everyone; here on demand, repeating while on — JUST ME or EVERYONE, the same moment)
   { id: 'ufo', label: 'UFO ABDUCTION', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'alien saucer beam', oneShot: true, night: true, hint: 'the saucer, the beam, someone lifted off the compass (~30 s)' },
@@ -234,6 +236,7 @@ export const EVENTS = [
   { id: 'no-dance', sec: 'tools', label: 'NO DANCE CIRCLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without the glow-wand circle — compare (its cost)' },
   { id: 'no-people', sec: 'tools', label: 'NO PEOPLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'the promenade + the roof empty — compare' },
   // PART 8b1 — THE WORKERS' SCHEDULE: each one on a loop (its own clock: a few minutes, the long shows joined mid-way); NO WORKERS: compare
+  { id: 'work-raker', label: 'THE LEAF RAKER', cat: 'workers', group: 'MORNING', kw: 'leaves rake autumn thanksgiving', hint: 'Nov 4 → 22 late morning (Mon–Sat): a groundskeeper rakes the fallen leaves under the trees into piles, bags them + carries the sack off' },
   { id: 'work-sweeper', label: 'THE STREET SWEEPER', cat: 'workers', group: 'MORNING', hint: '~5:30 Mon–Sat: a white wing with his can cart, slow passes, a wet streak drying on the cobbles' },
   { id: 'work-milk', label: 'THE MILK TRUCK', cat: 'workers', group: 'MORNING', hint: '6:00 sharp: the milkman leaves his bottles on the barbershop step (they wait there till the barber, 8:30)' },
   { id: 'work-newsdrop', label: 'THE NEWSPAPER VAN', cat: 'workers', group: 'MORNING', hint: '~6:35: two bundles dropped at the vendor spot before the newsboy comes' },
@@ -373,7 +376,12 @@ export const HOLIDAYS = [
   { id: 'dotd', label: 'DAY OF THE DEAD · NOV 1', date: () => ({ m: 11, d: 1 }) },
   { id: 'dotd-2', label: 'DAY OF THE DEAD · NOV 2', date: () => ({ m: 11, d: 2 }) },
   { id: 'veterans', label: 'VETERANS DAY', date: () => ({ m: 11, d: 11 }) },
+  // (11a-2: the November build-up by date, the homecoming party night, the day, Black Friday)
+  { id: 'thanks-10', label: 'THANKSGIVING · NOV 10', date: () => ({ m: 11, d: 10 }) },
+  { id: 'thanks-20', label: 'THANKSGIVING · NOV 20', date: () => ({ m: 11, d: 20 }) },
+  { id: 'thanks-wed', label: 'THE HOMECOMING PARTY (WED)', date: y => { const t = thanksgiving(y); return { m: t.m, d: t.d - 1 }; } },
   { id: 'thanksgiving', label: 'THANKSGIVING', date: y => thanksgiving(y) },
+  { id: 'blackfriday', label: 'BLACK FRIDAY', date: y => { const t = thanksgiving(y); return { m: t.m, d: t.d + 1 }; } },
   { id: 'christmas-eve', label: 'CHRISTMAS EVE', date: () => ({ m: 12, d: 24 }) },
   { id: 'christmas', label: 'CHRISTMAS', date: () => ({ m: 12, d: 25 }) },
   { id: 'nye', label: 'NEW YEAR’S EVE', date: () => ({ m: 12, d: 31 }) },
@@ -400,7 +408,7 @@ export function playlistOf(kind) {
   if (kind === 'windows') items = [...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), len: Math.round(m.len + 3.7), night: m.light === 'night' || m.id === 'lights-out', hol: m.holiday || null, hour: momentHour(m) })),
     { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', len: 90, night: true, hol: null, hour: PARTY_HOUR }];   // (WIN3: the rooms up one by one over ~60 s, then the dancing)
   else {
-    const holOf = e => (e.group === 'HALLOWEEN' || e.group === 'ON THE WATER' ? 'halloween' : e.group === 'DAY OF THE DEAD' ? 'dotd' : null);
+    const holOf = e => (e.group === 'HALLOWEEN' || e.group === 'ON THE WATER' ? 'halloween' : e.group === 'DAY OF THE DEAD' ? 'dotd' : e.group === 'THANKSGIVING' ? 'thanksgiving' : null);
     const rows = PANEL_EVENTS.filter(e => !e.id.startsWith('no-') && (kind === 'holidays' ? e.cat === 'holidays' : kind === 'wildlife' ? e.cat === 'wildlife' : kind === 'workers' ? e.cat === 'workers' : false));
     items = rows.map(e => ({ id: e.id, label: e.label, len: kind === 'workers' ? 60 : 45, night: !!e.night, hol: kind === 'holidays' ? holOf(e) : null, hour: e.night ? 22.5 : 14 }));
   }

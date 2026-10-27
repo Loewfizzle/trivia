@@ -157,6 +157,15 @@ export const GEAR = {
     c.save(); c.translate(ex, ey); c.rotate(Math.atan2(ey - y, ex - x) - Math.PI / 2); c.fillStyle = g.f([186, 160, 96]);
     c.beginPath(); c.moveTo(-H * 0.02, 0); c.lineTo(H * 0.02, 0); c.lineTo(H * 0.045, H * 0.07); c.lineTo(-H * 0.045, H * 0.07); c.closePath(); c.fill(); c.restore();
   },
+  // 11a-2 — THE LEAF RAKE: a long wooden handle, a FAN of thin tines at its foot (spread wide, raking the leaves toward him)
+  rake(c, g) {
+    const [x, y] = g.hand, H = g.H, sw = g.pose === 'sweep', ex = sw ? g.X(g.J.cx * 0.5) : x + g.d * H * 0.05, ey = sw ? g.Y(0.015) : y + H * 0.45;
+    c.strokeStyle = g.f([150, 116, 74]); c.lineWidth = lw(g, 0.01); c.beginPath(); c.moveTo(x - (ex - x) * 0.3, y - (ey - y) * 0.3); c.lineTo(ex, ey); c.stroke();
+    const a = Math.atan2(ey - y, ex - x);
+    c.save(); c.translate(ex, ey); c.rotate(a - Math.PI / 2); c.strokeStyle = g.f([110, 104, 96]); c.lineWidth = lw(g, 0.004);
+    for (let i = -4; i <= 4; i++) { c.beginPath(); c.moveTo(0, -H * 0.005); c.lineTo(i * H * 0.014, H * 0.065); c.stroke(); }
+    c.beginPath(); c.moveTo(-H * 0.058, H * 0.05); c.quadraticCurveTo(0, H * 0.068, H * 0.058, H * 0.05); c.stroke(); c.restore();
+  },
   wcan(c, g) {
     const [x, y] = g.hand, H = g.H;
     c.fillStyle = g.f([62, 104, 80]); c.fillRect(x - H * 0.035, y + H * 0.02, H * 0.07, H * 0.06);

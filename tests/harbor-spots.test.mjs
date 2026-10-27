@@ -73,3 +73,18 @@ test('WIN — THE DOOR\'S FIVE at 390: a stepped group on the steps + one each s
     assert.equal(new Set(sl.map(p => p.face)).size, sl.length, `${k}: every face different`);
   }
 });
+
+test('11a-2 — THE NOVEMBER SPOT PIECES: the bench\'s bale, the hydrant\'s mums, the corn stalks round the tall lamp posts + the globe — on screen, above the dock, clear of the dance ring, at three phone sizes', async () => {
+  const { thanksgivingSpots } = await import('../js/core/harbor-holidayprops.js');
+  const full = { mums: 4, bales: true, spots: 3, stalks: true };
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { L } = setup(k), list = thanksgivingSpots(L, full), m = L.medallion;
+    assert.deepEqual(list.map(p => p.id).sort(), ['bench-left', 'hydrant', 'stalks-0', 'stalks-1', 'stalks-globe'].sort(), `${k}: the five pieces`);
+    for (const p of list) {
+      const [sx, sy] = project(L.cam, p.x, 0, p.z);
+      assert.ok(sx > 0 && sx < L.cam.W && sy < L.cam.dock.y - 2, `${k}: ${p.id} on screen above the dock (${sx.toFixed(0)}, ${sy.toFixed(0)})`);
+      if (p.id === 'bench-left' || p.id === 'hydrant') { const e = Math.hypot((p.x - m.x) / RING.rx, (p.z - m.z - RING.cz) / RING.rz); assert.ok(e > 1.1, `${k}: ${p.id} clear of the dance ring (${e.toFixed(2)})`); }
+    }
+    assert.equal(thanksgivingSpots(L, { mums: 1, bales: false, spots: 0, stalks: false }).length, 1, `${k}: Nov 4 — the hydrant's first mums only`);
+  }
+});

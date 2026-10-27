@@ -51,6 +51,7 @@ const WORKWEAR = {
   painter: { coat: 'none', hat: 'painter', s: [232, 228, 212], l: [230, 224, 208], h: [236, 232, 220], overalls: true, spatter: true },
   washer: { coat: 'none', hat: 'flatcap', s: [196, 200, 204], l: [64, 84, 120], h: [60, 64, 70], overalls: true },
   billposter: { coat: 'short', hat: 'flatcap', c: [118, 96, 70], l: [70, 66, 62], h: [84, 70, 58], apron: [218, 210, 190], spatter: 'paste' },
+  raker: { coat: 'short', hat: 'flatcap', c: [124, 62, 46], l: [62, 60, 56], h: [92, 70, 52], trim: [70, 40, 30] },   // (11a-2: the groundskeeper — a rust wool coat, a flat cap)
   iceman: { coat: 'none', hat: 'flatcap', s: [196, 190, 176], l: [70, 66, 60], h: [90, 76, 60], apron: [110, 76, 48], gloves: [92, 64, 40] },
   trashman: { coat: 'short', hat: 'flatcap', c: [74, 72, 62], l: [64, 62, 58], h: [56, 54, 50], gloves: [120, 96, 64], belt: [40, 34, 30] },
   repairman: { coat: 'none', hat: 'flatcap', s: [196, 186, 160], l: [58, 76, 112], h: [58, 74, 108], overalls: true, belt: [70, 52, 36] },
@@ -104,6 +105,7 @@ export function lookOf(name, seed, o = {}) {
   if (name === 'trick') trickLook(L, r, o.m || {});
   if (name === 'zombie') zombieLook(L, r, o.m || {});
   if (name === 'proc') procLook(L, r, o.m || {});
+  if (name === 'parade') paradeLook(L, r, o.m || {});   // (11a-2: the Thanksgiving parade's band, balloon handlers, float farmers)
   if (o.hween && name === 'guest') partyCostume(L, r);
   if (L.woman && L.coat === 'long') L.dress = L.dress || 'day';
   // (FP3b, the owner after FP3a: people ON THE BENCH blended into its wood at noon — a sitter wears cloth AWAY from the oak's browns:
@@ -674,6 +676,14 @@ function hat(c, L, X, Y, H, hx, hy, hr, J, f) {
     const pw = hr * (0.9 + 0.3 * ax), px = hx + cx * hr * 0.75;
     if (J.cz < 0.6) c.fillRect(X(px - pw), Y(hy + hr * 0.62), pw * 2 * H * (0.55 + 0.45 * (1 - ax)), Math.max(0.5, 0.012 * H));
   }
+  else if (L.hat === 'shako') {
+    // 11a-2 — THE BAND's SHAKO: a tall black cylinder (a little wider at its crown), a gilt plate on its front, a short glossy visor, the
+    // white PLUME standing up from its top
+    const base = hy + hr * 0.45, top = hy + hr * 2.55, w0 = hr * 1.02, w1 = hr * 1.18;
+    c.beginPath(); c.moveTo(X(hx - w0), Y(base)); c.lineTo(X(hx - w1), Y(top)); c.lineTo(X(hx + w1), Y(top)); c.lineTo(X(hx + w0), Y(base)); c.closePath(); c.fill();
+    if (J.cz < 0.6) { c.fillStyle = f([222, 180, 72], 1.3); c.beginPath(); c.arc(X(hx + cx * hr * 0.5), Y(hy + hr * 1.5), Math.max(0.5, hr * 0.32 * H), 0, TAU); c.fill(); c.fillStyle = f([22, 22, 26]); const pw = hr * (0.75 + 0.45 * ax), px = hx + cx * hr * 0.9; c.fillRect(X(px - pw), Y(hy + hr * 0.5), pw * 2 * H, Math.max(0.5, 0.012 * H)); }
+    if (L.plume) { c.fillStyle = f(L.plume, 1.4); c.beginPath(); c.ellipse(X(hx), Y(top + hr * 0.75), Math.max(0.5, hr * 0.3 * H), hr * 0.85 * H, 0, 0, TAU); c.fill(); }
+  }
   else if (L.hat === 'peaked') {
     // (8b1) a 1920s service cap: a flat-topped crown a little wider than the head, a dark band, a short glossy VISOR the way they face
     const top = hy + hr * 1.32, w0 = hr * 1.12, w1 = hr * 1.3;
@@ -784,6 +794,25 @@ function zombieLook(L, r, m) {
   if (k === 'bride') L.hem = 0.05;
   C.skin = pick(r, [[150, 178, 138], [136, 160, 140], [172, 182, 150]]); C.hair = pick(r, [[64, 58, 50], [40, 36, 34], [126, 116, 92]]);
 }
+/** 11a-2 — THE PARADE's people (core/harbor-parade.js#unitPeople): the MARCHING BAND in deep red tunics with gold trim, navy trousers +
+ *  tall black SHAKOS with a white plume (the drum major in a long coat swinging his mace), its brass, its tuba, its drums; the BALLOONS'
+ *  HANDLERS in cream coveralls + navy caps, each holding a rope up to the balloon; the FLOAT's farmers in denim + straw hats */
+function paradeLook(L, r, m) {
+  const role = m.costume || 'handler', C = L.cols;
+  Object.assign(L, { nightLift: 0.3, scarf: null, carry: null, umbrella: null, paper: false, holdHat: false, woman: false, dress: null, kid: false });
+  C.scarf = null;
+  if (role === 'drummajor' || role === 'brass' || role === 'tuba' || role === 'drum') {
+    Object.assign(L, { coat: role === 'drummajor' ? 'long' : 'short', hat: 'shako', hcarry: m.inst || null, trim: [222, 180, 72], belt: [236, 232, 220] });
+    C.coat = [164, 28, 38]; C.legs = [30, 36, 74]; C.hat = [24, 24, 30]; C.shirt = [236, 232, 220];
+    if (role === 'drummajor') { C.coat = [150, 22, 34]; L.plume = [250, 250, 246]; L.hh = 1.06; } else L.plume = [244, 244, 240];
+  } else if (role === 'handler') {
+    Object.assign(L, { coat: 'none', hat: 'peaked', hcarry: 'rope', belt: [60, 58, 54] });
+    C.shirt = [232, 224, 200]; C.legs = [226, 218, 196]; C.hat = [34, 40, 70];
+  } else {
+    Object.assign(L, { coat: 'none', hat: 'boater', hcarry: null, overalls: true });
+    C.shirt = pick(r, [[176, 52, 44], [200, 90, 40], [120, 60, 40]]); C.legs = [56, 76, 120];
+  }
+}
 /** the DAY OF THE DEAD procession: mourners in their good dark clothes + bright REBOZOS (shawls) with a candle, Catrinas (the skull
  *  face paint, the long dress, the wide flowered hat or a marigold crown), children in flower crowns, the mariachi trio (charro suits +
  *  sombreros), the ofrenda's two bearers (white shirts, an orange sash) */
@@ -850,7 +879,12 @@ function holidayArms({ L, st, pose, walking, p, t, mo, arm, shJ, head, near, far
   else if (hc === 'violin') { arm(farA, 1.45, 0.45, 0.36); arm(near, 1.2 + (mo ? 0.28 * Math.sin(t * 3.4) : 0), 1.5, 0.22); head.b += 0.02; }
   else if (hc === 'poleF' || hc === 'poleB') arm(near, 2.62, 2.6, 0.14);                  // (the ofrenda's pole on the shoulder)
   else if (hc === 'torch') arm(near, 0.78, 0.22, 0.08);                                     // (the torch pointed at the cobbles ahead)
-  else if (hc === 'broom') arm(near, 0.42, 0.3, 0.1);
+  // (11a-2 — THE PARADE: the rope held up toward its balloon, the mace swung high + twirled, the tuba hugged, the drum played)
+  else if (hc === 'rope') { arm(near, 2.35, 0.35, 0.14); arm(farA, 2.05, 0.45, 0.2); }
+  else if (hc === 'baton') { const s8 = mo ? Math.sin(t * 3.1) : 0; arm(near, 2.2 + 0.5 * s8, 0.3, 0.12); }
+  else if (hc === 'tuba') { arm(near, 0.95, 1.4, 0.2); arm(farA, 1.05, 1.25, 0.3); }
+  else if (hc === 'drum') { const s8 = mo ? Math.sin(t * 9.4) : 0; arm(near, 0.7 + 0.18 * s8, 1.35, 0.14); arm(farA, 0.7 - 0.18 * s8, 1.35, 0.2); }
+  else if (hc === 'broom' || hc === 'rake') arm(near, 0.42, 0.3, 0.1);
 }
 
 // ---- the drawing (body() calls these; f = the scene's light on a colour)
@@ -1112,6 +1146,26 @@ function holidayCarry(c, J, L, X, Y, H, f, env, hand) {
     const mx = X(J.head[0] + J.cx * 0.06), my = Y(J.head[1] - 0.04), ex = mx + d * H * 0.2, ey = my + H * 0.01;
     c.strokeStyle = f([226, 184, 80], 1.35); c.lineWidth = Math.max(0.5, H * 0.014); c.beginPath(); c.moveTo(mx, my); c.lineTo(ex, ey); c.stroke();
     c.fillStyle = f([240, 200, 90], 1.4); c.beginPath(); c.moveTo(ex, ey - H * 0.006); c.lineTo(ex + d * H * 0.045, ey - H * 0.03); c.lineTo(ex + d * H * 0.045, ey + H * 0.03); c.lineTo(ex, ey + H * 0.006); c.closePath(); c.fill();
+  } else if (hc === 'rope') {
+    // (the rope itself is drawn by the parade's balloon (screens/harbor/parade.js) to this hand; here only the hand's grip)
+    c.fillStyle = f([226, 214, 180]); c.beginPath(); c.arc(hx, hy, Math.max(0.35, H * 0.012), 0, TAU); c.fill();
+  } else if (hc === 'baton') {
+    // THE DRUM MAJOR's MACE: a long gilt staff, its round head
+    const ex = hx + d * H * 0.06, ey = hy - H * 0.3;
+    c.strokeStyle = f([210, 170, 70], 1.35); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(hx - d * H * 0.02, hy + H * 0.08); c.lineTo(ex, ey); c.stroke();
+    c.fillStyle = f([236, 200, 90], 1.4); c.beginPath(); c.arc(ex, ey, Math.max(0.6, H * 0.03), 0, TAU); c.fill();
+  } else if (hc === 'tuba') {
+    // THE TUBA: its coiled brass body on the chest, the big bell over the shoulder
+    const bx = X(J.sh[0] + J.cx * 0.06), by = Y(J.sh[1] - 0.14);
+    c.strokeStyle = f([226, 186, 80], 1.3); c.lineWidth = Math.max(0.8, H * 0.03); c.beginPath(); c.ellipse(bx, by, H * 0.07, H * 0.09, 0, 0, TAU); c.stroke();
+    c.fillStyle = f([238, 200, 92], 1.4); c.beginPath(); c.moveTo(bx - d * H * 0.02, by - H * 0.09); c.lineTo(bx + d * H * 0.04, by - H * 0.26); c.lineTo(bx + d * H * 0.2, by - H * 0.2); c.closePath(); c.fill();
+    c.fillStyle = f([140, 100, 40]); c.beginPath(); c.ellipse(bx + d * H * 0.12, by - H * 0.23, H * 0.08, H * 0.03, -0.4 * d, 0, TAU); c.fill();
+  } else if (hc === 'drum') {
+    // THE SNARE: a white drum at the hip on its sling, red hoops, the sticks in the hands
+    const dx0 = X(J.hip[0] + J.cx * 0.1), dy0 = Y(J.hip[1] + 0.1), w = H * 0.08;
+    c.fillStyle = f([240, 236, 226], 1.2); c.fillRect(dx0 - w, dy0 - w * 0.5, w * 2, w * 0.9);
+    c.fillStyle = f([176, 30, 40]); c.fillRect(dx0 - w, dy0 - w * 0.55, w * 2, w * 0.18); c.fillRect(dx0 - w, dy0 + w * 0.3, w * 2, w * 0.15);
+    c.strokeStyle = f([200, 170, 120]); c.lineWidth = Math.max(0.35, H * 0.008); c.beginPath(); c.moveTo(hx, hy); c.lineTo(dx0, dy0 - w * 0.5); c.stroke();
   } else if (hc === 'violin') {
     const fa = J.hands[1 - J.near], cx0 = X(J.sh[0] + J.cx * 0.02), cy0 = Y(J.sh[1] - 0.03), nx = X(fa[0]), ny = Y(fa[1]);
     c.strokeStyle = f([60, 36, 22]); c.lineWidth = Math.max(0.4, H * 0.01); c.beginPath(); c.moveTo(cx0, cy0); c.lineTo(nx, ny); c.stroke();

@@ -166,6 +166,9 @@ export function drawCart(x, cam, c, T, ctx = {}) {
   if (kind === 'chestnuts') roasterTop(x, P, Lt, X, by1 + 0.07, glow, r, out, !!c.hood);
   else if (kind === 'icecream') iceTop(x, P, Lt, X, by1 + 0.08);
   else flowerTop(x, P, Lt, X, by1 + 0.08, r);
+  // 11a-2 — HOT CIDER through the Thanksgiving build-up (c.cider): a chalkboard A-frame leaning at the cart's left end — "HOT / CIDER"
+  // in chalk with a little steaming mug drawn under it
+  if (c.cider && kind === 'chestnuts') ciderBoard(x, P, Lt, bx0 - 0.62, D0 - 0.35);
   // 4. the near shaft of the handles + the near wheels (in front of the body)
   handle(x, P, Lt, X, hEnd, 0.25, hDir);
   for (const u of [X - 0.8, X + 0.8]) wheel(x, P, Lt, K, u, 0.6, -0.04, 0.6, false, roll);
@@ -287,6 +290,24 @@ function handle(x, P, Lt, X, bx0, d, dir = -1) {
   }
 }
 /** the body's front: a raised frame, two panels with gilt pinstriping + corner curls, the trade in gilt across the board */
+function ciderBoard(x, P, Lt, cx, d) {
+  const s = P.s, w = 0.42, y0 = 0.08, y1 = 1.02, lean = 0.22, wood = [112, 78, 46];
+  // the back legs, then the board (its frame + the slate) leaning back, the chalk
+  line(x, P(cx - w * 0.85, 0, d + 0.45), P(cx - w * 0.75, y1 * 0.95, d + lean), lit(Lt, wood, [0, 0.3, -1], 0), Math.max(0.5, 0.05 * s), 1);
+  line(x, P(cx + w * 0.85, 0, d + 0.45), P(cx + w * 0.75, y1 * 0.95, d + lean), lit(Lt, wood, [0, 0.3, -1], 0), Math.max(0.5, 0.05 * s), 1);
+  const q = [P(cx - w, y0, d), P(cx + w, y0, d), P(cx + w, y1, d + lean), P(cx - w, y1, d + lean)];
+  fillPts(x, q, lit(Lt, wood, [0, 0.25, -1], 0.05));
+  const qi = [P(cx - w + 0.06, y0 + 0.06, d + 0.012), P(cx + w - 0.06, y0 + 0.06, d + 0.012), P(cx + w - 0.06, y1 - 0.06, d + lean - 0.012), P(cx - w + 0.06, y1 - 0.06, d + lean - 0.012)];
+  fillPts(x, qi, lit(Lt, [34, 40, 38], [0, 0.25, -1], 0.08));
+  const [tx, ty] = P(cx, y1 - 0.24, d + lean * 0.8), [mx, my] = P(cx, y0 + 0.26, d + lean * 0.25), size = 0.2 * s, chalk = lit(Lt, [236, 232, 220], [0, 0.25, -1], 0);
+  x.save(); x.fillStyle = rgb(chalk); x.font = FONT(size); x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText('HOT', tx, ty); x.fillText('CIDER', tx, ty + size * 1.05);
+  // the mug + its steam (chalk lines)
+  x.strokeStyle = rgb(chalk, 0.9); x.lineWidth = Math.max(0.35, 0.025 * s);
+  x.strokeRect(mx - 0.08 * s, my - 0.07 * s, 0.14 * s, 0.13 * s); x.beginPath(); x.arc(mx + 0.07 * s, my - 0.005 * s, 0.035 * s, -1.2, 1.2); x.stroke();
+  x.beginPath(); for (const k of [-0.03, 0.03]) { x.moveTo(mx + k * s, my - 0.09 * s); x.quadraticCurveTo(mx + (k + 0.03) * s, my - 0.14 * s, mx + k * s, my - 0.19 * s); } x.stroke();
+  x.restore();
+}
 function bodyFront(x, P, Lt, K, x0, x1, y0, y1, d) {
   const s = P.s, body = lit(Lt, K.body, FRONT), dk = lit(Lt, shade(K.body, -0.3), FRONT), hi = rimCol(Lt, K.body, [0, 0.7, -0.7]);
   const gilt = lit(Lt, GILT, FRONT, 0.9), giltHi = rimCol(Lt, GILT, [0, 0.5, -0.9]);

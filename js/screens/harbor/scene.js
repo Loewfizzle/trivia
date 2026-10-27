@@ -97,7 +97,8 @@ import { createDirector } from '../../core/harbor-director.js';
 import { createLoadLog, keyDiff } from '../../core/harbor-loadlog.js';
 import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk } from '../district/live-weather.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
-import { latchBig, holidayAt, halloweenPieces, dotdPieces, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
+import { paradeWindow, paradeUnits } from '../../core/harbor-parade.js';
+import { latchBig, holidayAt, halloweenPieces, dotdPieces, thanksgivingPieces, holidaySeason, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
 
 const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: 2, bakeMs: 4 }];
 /** DT1: how far the billboard's lamps drop once the neon is fully up (1 − LAMP_DIM of full). M3 (the owner: "an advertisement — you
@@ -138,7 +139,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // on the NEON sign — Halloween's web + spider, Day of the Dead's marigolds, papel picado + candles — on its own full-dpr canvas inside the
   // logo's wrap (S.dressHost, from title.js). &force=sign-web (the finished web + the spider, any day) · &force=sign-dotd (the sign dressed)
   let dress = null, dressLoading = false;
-  const DRESS_COLS = { halloween: [[255, 122, 18], [155, 61, 255], [255, 122, 18], [155, 61, 255]], dotd: [[255, 166, 42], [255, 46, 151], [255, 166, 42], [255, 46, 151]] };
+  const DRESS_COLS = { halloween: [[255, 122, 18], [155, 61, 255], [255, 122, 18], [155, 61, 255]], dotd: [[255, 166, 42], [255, 46, 151], [255, 166, 42], [255, 46, 151]], thanksgiving: [[255, 160, 64], [255, 160, 64], [255, 160, 64], [255, 160, 64]] };
   // WIN2 — THE SPIDERS' WORLD: the SPEAKEASY word's tubes in LOGO units (the sign's viewBox: -26 -30 384 …; logoRect() is the SVG's
   // rect inset 7 % / 18 %), and the letters' middles for a poke's x
   const LOGO_VB = { x: -26, y: -30, w: 384 }, LETTER_X = [32, 128, 208, 300];
@@ -153,11 +154,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let lastSignLv = -1, pokeLog = [], partyPools = [];   // (WIN3: the window party's pools on the cobbles this frame — CSS px, for the e2e)
   function pokeDress(ev) { if (!dress || !dress.scare) return 0; const x = ev.x != null ? ev.x : ev.letter != null ? LETTER_X[Math.max(0, Math.min(3, ev.letter | 0))] : null; const n = dress.scare({ kind: ev.kind || 'poke', x, k: ev.k }); pokeLog.push({ t: +nowT.toFixed(1), kind: ev.kind, x, n }); if (pokeLog.length > 12) pokeLog.shift(); return n; }
   function dressTick(t) {
-    const fw = clock.force.has('sign-web'), fd = clock.force.has('sign-dotd');
-    const H = fw && HS.id !== 'halloween' ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd && HS.id !== 'dotd' ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : HS;
-    const P = H === HS ? HP : H.id === 'halloween' ? { web: 1, spider: true, spider2: true } : { sign: 1 };
+    const fw = clock.force.has('sign-web'), fd = clock.force.has('sign-dotd'), ft = clock.force.has('sign-thanks');   // (11a-2: &force=sign-thanks — the harvest wreath, any day)
+    const H = fw && HS.id !== 'halloween' ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd && HS.id !== 'dotd' ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : ft && HS.id !== 'thanksgiving' ? { id: 'thanksgiving', phase: 'build', stage: 1, down: 0, days: 20, eve: false } : HS;
+    const P = H === HS ? HP : H.id === 'halloween' ? { web: 1, spider: true, spider2: true } : H.id === 'thanksgiving' ? { wreath: 1 } : { sign: 1 };
     if (!dress) {
-      if (!dressLoading && (H.id === 'halloween' || H.id === 'dotd')) { dressLoading = true; import('./signdress.js').then(m => { if (!destroyed) dress = m.createSignDress(); }).catch(e => { dressLoading = false; console.warn('[harbor] sign dress', e); }); }
+      if (!dressLoading && (H.id === 'halloween' || H.id === 'dotd' || H.id === 'thanksgiving')) { dressLoading = true; import('./signdress.js').then(m => { if (!destroyed) dress = m.createSignDress(); }).catch(e => { dressLoading = false; console.warn('[harbor] sign dress', e); }); }
       return;
     }
     if (S.dressHost) dress.setHost(S.dressHost);
@@ -181,6 +182,26 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let hprops = null, hpropsLoading = false, hpropsMs = 0;
   const hpropsEnv = (fadeIn, lit, mon) => { const wd = LK.windDir == null ? 250 : LK.windDir; return { L, HS, HP, T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), t: performance.now() / 1000, ms: clock.now(), motion: S.motion, tier, dpr, fade: fadeIn,
     wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), gust: WXS ? WXS.gust || 0 : 0, power: LB ? legendPow(W * 0.3, 'near', 211) : 1, monarchAt: mon ? forceAtOf('monarchs') * 1000 : null }; };
+  // 11a-2 — THE PARADE (screens/harbor/parade.js, LAZY: its morning or &force=parade): its balloons + the float in the FAR pass with the
+  // marchers (core/harbor-people.js plans them); the window + the units are pure (core/harbor-parade.js) — every phone the same
+  let parade = null, paradeLoading = false, paraKey = '', paraUnits = null;
+  function paradeItems(fadeIn) {
+    if (!L || !bakeTones || clock.force.has('no-holiday-props')) return [];
+    const nowS = clock.now() / 1000, fp = clock.force.has('parade'), w = paradeWindow(nowS, { off: LK.local ? LK.local.off : 0, forceAt: fp ? forceAtOf('parade') : null });
+    if (!w || nowS < w.T0 - 5) return [];
+    if (!parade) { if (!paradeLoading) { paradeLoading = true; import('./parade.js').then(m => { if (!destroyed) parade = m.createParade(); }).catch(e => { paradeLoading = false; console.warn('[harbor] parade', e); }); } return []; }
+    const k = `${Math.round(w.T0)}`; if (k !== paraKey) { paraKey = k; paraUnits = paradeUnits(w); }
+    const wd = LK.windDir == null ? 250 : LK.windDir;
+    return parade.items({ L, w, units: paraUnits, x0: L.speakeasy ? L.speakeasy.x1 - 2.6 : -20, t: nowS, T: bakeTones, dark: litK(DK, 'lamps'), dpr, fade: fadeIn,
+      wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), gust: WXS ? WXS.gust || 0 : 0 });
+  }
+  /** the parade for the sounds: { units: [{ kind, i, x (0..1 of the screen: its middle) }] } | null */
+  function paraSound() {
+    if (!paraUnits || !L) return null;
+    const nowS = clock.now() / 1000, x0 = L.speakeasy ? L.speakeasy.x1 - 2.6 : -20, out = [];
+    for (const u of paraUnits) { if (u.t > nowS) break; const head = x0 + (nowS - u.t) * 0.78, mid = head - u.len / 2; const [sx] = project(cam, mid, 0, 56.2); if (sx < -0.4 * W || sx > 1.4 * W) continue; out.push({ kind: u.kind, i: u.i, x: sx / W }); }
+    return out.length ? { units: out } : null;
+  }
   /** WIN — the holiday's big set pieces on a pass, z-sorted with the walkers (people.js's extras) → [{ z, draw(c) }] */
   const hpropsItems = (pass, fadeIn, lit) => (hprops && (HS.id || (HP && (HP.giant || HP.bigs))) && !clock.force.has('no-holiday-props') && bakeTones && L ? hprops.items(pass, hpropsEnv(fadeIn, lit, false)) : []);
   function hpropsDraw(c, pass, fadeIn, lit) {
@@ -445,11 +466,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     HS = holidayAt(lc);
     const hr = lc ? lc.h + lc.mi / 60 + (lc.s || 0) / 3600 : 12;
     if (lc && duskDay !== `${lc.y}-${lc.m}-${lc.d}`) { duskDay = `${lc.y}-${lc.m}-${lc.d}`; try { const st = sunTimes(clock.now(), clock.tz, LK.lat, LK.lon); if (st.set) duskH = ((((st.set + lc.off * 60000) / 3.6e6) % 24) + 24) % 24; } catch { /* the default */ } }
-    const hp = HS.id === 'halloween' ? halloweenPieces(HS, { hour: hr }) : HS.id === 'dotd' ? dotdPieces(HS, { hour: hr, dusk: duskH }) : null;
+    const hp = HS.id === 'halloween' ? halloweenPieces(HS, { hour: hr }) : HS.id === 'dotd' ? dotdPieces(HS, { hour: hr, dusk: duskH }) : HS.id === 'thanksgiving' ? thanksgivingPieces(HS, { hour: hr }) : null;
     // (11a-2 — BIG PIECES CHANGE OFF-CAMERA (core/harbor-holiday.js#latchBig): the giant + the big set pieces only change at a load, a return
     // from the background or a jump of the clock (a preview, the panel) — never on screen)
     { const nowMs = clock.now(), wall = performance.now(); if (bigClock != null && Math.abs((nowMs - bigClock) - (wall - bigWall)) > 90e3) bigRelatch = true; bigClock = nowMs; bigWall = wall; }
     { const r = latchBig(bigHeld, hp, bigRelatch); HP = r.pieces; bigHeld = r.held; bigRelatch = false; }
+    if (L && L.cart) L.cart.cider = !!(HP && HP.cider);   // (11a-2: the chestnut cart's HOT CIDER board through the Thanksgiving build-up)
     HR = lightRules(HS, { hour: hr, dark: clamp01((LK.w.night || 0) + (LK.w.late || 0) + 0.5 * (LK.w.dusk || 0)) });
     // (City 2.0 owns Halloween + Day of the Dead: the district's Halloween — its witch, bats + rooftop pumpkin — never runs here; the
     // title's sign dressing reads City 2.0's calendar through look())
@@ -947,6 +969,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     wantBake = false;
     L.impliedOn = impliedOn(); L.lampK = lampsNow(); L.wet = wetNow();
     L.season = seasonNow(); L.seasonPhase = seasonForced() ? 0.5 : seasonPhase(LK && LK.local ? LK.local.m : 10, LK && LK.local ? LK.local.d : 15, { south: !!(LK && LK.south) });
+    // (11a-2: the trees hold their peak autumn colour through the Thanksgiving build-up + the day — core/harbor-holiday.js#holidaySeason)
+    if (!seasonForced() && !(LK && LK.south)) { const hs = holidaySeason(HS, L.season, L.seasonPhase); L.season = hs.season; L.seasonPhase = hs.phase; }
     const T = lookTones(), parts = bakeParts(), bk = Object.values(parts).join('|');
     { const d = partsDiff(bakeParts0, parts), slow = shownAt >= 0 && wxRecent() && /tones|sun|road/.test(d);
       fadeMs = slow ? WX_BLEND : 1200;
@@ -1274,7 +1298,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.tick(fs, events.active, events.recent || []);
     snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W, legend: legends ? legends.listen() : null, hween: HP && HP.spooky ? HP.spooky * clamp01((LK.w.night || 0) + (LK.w.late || 0)) : 0,
       weather: WXS ? { rain: LK.rain || 0, state: WXS.state, drip: WXS.drip, gust: WXS.gust, fog: LK.fog || 0, temp: (() => { const tq = qp.get('temp'); return tq != null && tq !== '' && Number.isFinite(+tq) ? +tq : LK.temp; })(), month: LK.local ? LK.local.m : 0, hour: LK.local ? LK.local.h + LK.local.mi / 60 : 12, night: clamp01((LK.w.night || 0) + (LK.w.late || 0)) } : null,
-      hydrant: (() => { const h = wild.hydrantState && wild.hydrantState(); if (!h || !(h.spray > 0.01)) return null; const [hx] = project(cam, h.x + 1.3, 0, h.z); return { k: h.spray, pan: Math.max(-1, Math.min(1, (hx / W) * 2 - 1)) }; })() });
+      hydrant: (() => { const h = wild.hydrantState && wild.hydrantState(); if (!h || !(h.spray > 0.01)) return null; const [hx] = project(cam, h.x + 1.3, 0, h.z); return { k: h.spray, pan: Math.max(-1, Math.min(1, (hx / W) * 2 - 1)) }; })(),
+      // 11a-2 — THE PARADE heard (its units in view: the balloons + the bands, screen x 0..1) + THE RAKER raking (people.js#positions)
+      parade: paraSound(), raker: (() => { if (off.has('no-people')) return null; const p = people.positions().find(m => m.kind === 'raker' && m.v < 0.05); if (!p) return null; const [rx] = project(cam, p.x, 0, p.z); return { pan: Math.max(-1, Math.min(1, (rx / W) * 2 - 1)) }; })() });
     // (POLISH 5 — CLOUDS NEVER COVER A MESSAGE, the owner: a cumulus hid part of "JESSICA": while a message is skytyped every cloud is
     // drawn BEHIND the letters — before the sky's pieces — the rest of the time after them, as before)
     const cloudsNow = () => {
@@ -1443,7 +1469,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     raidSounds(RP, nowRS);
     if (RR && RR.cars.length && fadeIn > 0) raidFx.ground(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), wet: (LK.rain || 0) > 0.1 ? 1 : 0.55, fade: fadeIn, tier });
     // (8b1: the animals on the far side — gulls on the railing, the coyote — sorted in by depth with the people)
-    if (pplOn) people.draw(c, 'far', wlOn ? { ...pplEnv, extra: wild.items('far', wlEnv), dogLunge: vid => wild.dogLunge(vid) } : pplEnv);
+    if (pplOn) { const px = paradeItems(fadeIn); people.draw(c, 'far', wlOn || px.length ? { ...pplEnv, extra: [...(wlOn ? wild.items('far', wlEnv) : []), ...px], dogLunge: vid => wild.dogLunge(vid) } : pplEnv); }
     else if (wlOn) wild.draw(c, 'far', wlEnv);
     layer('bill');
     // (8b1 — THE BOARD SWAP AT ONCE: a billboard just changed (the billposter, the API) — its new board painted over the baked one in the

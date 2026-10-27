@@ -9,7 +9,8 @@
 // colours lit like the promenade's animals (fauna.js#litCol: the night + each lamp's pool); per frame only sprites are drawn (+ the
 // flags' transforms, the candles' flicker, a monarch's wings). Reduced motion: the flags still, the candles steady, no monarchs.
 import { project } from '../../core/harbor-layout.js';
-import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt, bigPumpkins, BALE, giantPiece, giantDecor } from '../../core/harbor-holidayprops.js';
+import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt, bigPumpkins, BALE, giantPiece, giantDecor, thanksgivingSpots } from '../../core/harbor-holidayprops.js';
+import { createHarvest, paintSpotPiece } from './harvest.js';
 import { createGiant } from './giant.js';
 import { lightField } from '../../core/harbor-light.js';
 import { litCol } from './fauna.js';
@@ -80,7 +81,7 @@ function facePath(x, face, w) {
 }
 /** a pumpkin into its sprite (px: the diameter in px). col: the light at its place; carved: its face cut (dark by day, a glowing cavity at
  *  night is the glow sprite's). Returns { cv, cx, cy (the foot), r } */
-function paintPumpkin(slot, px, col, carved, night) {
+export function paintPumpkin(slot, px, col, carved, night) {
   const K = PUMPKIN_KINDS[slot.kind], R = px / 2, W = R * 2.6 * Math.max(1, K.w), H = R * 2.6, cv = mk(W, H), x = safeCtx(cv);
   const cx = W / 2, foot = H * 0.86, rx = R * K.w, ry = R * K.h, cy = foot - ry;
   const r = rngFrom(slot.seed);
@@ -235,6 +236,8 @@ export function createHolidayProps() {
   const stat = { rects: [] };
   let L = null, lay = '', slots = [], spots = [], posts = [], path = null, runs = [], bigs = [], giantG = null, decor = [];
   const giant = createGiant();   // (11a-2: THE GIANT JACK-O'-LANTERN on the centre circle — giant.js)
+  const harvest = createHarvest({ paintPumpkin });   // (11a-2: THE HARVEST DISPLAY on the centre circle — harvest.js)
+  let tgKey = '', tgList = [];
   const cache = new Map();
   let lightKey = '', lightFn = null, lightDark = -1;
   const SPRITE_MAX = 220;
@@ -376,6 +379,7 @@ export function createHolidayProps() {
   function items(pass, env) {
     const HS = env.HS, HP = env.HP;
     // (11a-2: the big pieces are LATCHED (core/harbor-holiday.js#latchBig) — they may outlive their holiday on screen until the next load)
+    if (env.L && HP && (HP.harvest || HP.bales || HP.stalks || HP.mums) && env.fade > 0 && env.T) { giant.clearLight(); return tgItems(pass, env); }
     if (!env.L || !HP || !(HP.bigs || HP.giant) || !(env.fade > 0) || !env.T) { giant.clearLight(); return []; }
     layout(env.L, env.dpr || 2);
     const E = envLight(env), out = HP.bigs ? bigs.filter(b => b.pass === pass).map(b => ({ z: b.z, draw: c => drawBig(c, b, env, E) })) : [];
@@ -385,6 +389,24 @@ export function createHolidayProps() {
       for (const b of decor) out.push({ z: b.z, draw: c => drawBig(c, b, env, E) });
       out.push({ z: giantG.z, draw: c => giant.draw(c, { L, g: giantG, T: E.T, dark: E.dark, dpr: env.dpr || 2, carved: !!gp.carved, lit: night, bright: HS && HS.id === 'halloween' && HS.eve ? 1.3 : 1, t: env.t || 0, mo: env.motion !== false, fade: env.fade, tier: env.tier, power: env.power, lightKey }) });
     } else if (pass === 'near') giant.clearLight();
+    return out;
+  }
+
+  // ---------------------------------------------------------------- 11a-2 — THANKSGIVING: the harvest display + the spot pieces
+  function tgPieces(HP) { const key = `${lay}|${HP.mums}|${HP.bales ? 1 : 0}|${HP.spots}|${HP.stalks ? 1 : 0}`; if (key !== tgKey) { tgKey = key; tgList = thanksgivingSpots(L, HP); } return tgList; }
+  function tgSprite(pc, E, dpr) {
+    const k = `tg|${pc.id}|${tgKey}|${lightKey}`; let sp = cache.get(k); if (sp) return sp;
+    sp = paintSpotPiece(L, pc, E.T, E.dark, Math.min(2, dpr), { paintPumpkin, col: (x, z) => colAt(E, x, z, 1.0) });
+    return sp ? put(k, sp) : null;
+  }
+  function drawTg(c, pc, env, E) { const sp = tgSprite(pc, E, env.dpr || 2); if (!sp) return; c.save(); c.globalAlpha = env.fade == null ? 1 : env.fade; c.drawImage(sp.cv, sp.x, sp.y, sp.w, sp.h); c.restore(); stat.rects.push({ id: `tg-${pc.id}`, x: sp.x, y: sp.y, w: sp.w, h: sp.h, tg: true }); }
+  /** the November pieces on a pass as z-sorted extras (+ THE HARVEST DISPLAY on the inlay, 'near') */
+  function tgItems(pass, env) {
+    layout(env.L, env.dpr || 2);
+    const E = envLight(env), HP = env.HP, out = [];
+    for (const pc of tgPieces(HP)) if (pc.pass === pass) out.push({ z: pc.z, draw: c => drawTg(c, pc, env, E) });
+    if (pass === 'near' && HP.harvest && L.medallion) { const m = L.medallion, night = clamp01((E.dark - 0.25) / 0.5);
+      out.push({ z: m.z, draw: c => harvest.draw(c, { L, m, T: E.T, dark: E.dark, dpr: env.dpr || 2, lightKey, col: (x, z) => colAt(E, x, z, 1.0), lit: night, power: env.power, fade: env.fade }) }); }
     return out;
   }
 
@@ -585,6 +607,7 @@ export function createHolidayProps() {
     } else if (pass === 'top') {
       if (dotd) { drawSpots(c, env, E, true, HP.marigolds * fade); drawPosts(c, env, E, true, HP.garlands); }
       if (HP && HP.bigs) for (const b of bigs) if (b.pass === 'top') drawBig(c, b, env, E);   // (WIN: the front strip's big jack-o'-lantern — nearer than anyone on the floor)
+      if (HP && (HP.mums || HP.stalks) && !HP.bigs) for (const pc of tgPieces(HP)) if (pc.pass === 'top') drawTg(c, pc, env, E);   // (11a-2: the front strip's November pieces)
       if (env.motion !== false && env.tier !== 0) {
         const m = monarchSlot(env.ms || Date.now(), { on: !!(dotd && HP.monarchs), forceAt: env.monarchAt });
         if (m) drawMonarch(c, env, E, m);
@@ -596,8 +619,8 @@ export function createHolidayProps() {
     draw, items,
     /** 11a-2: the giant jack-o'-lantern's light this frame (people.js lights the dancers + walkers by it) + whether it stands */
     giantLight: () => giant.pointLight(),
-    giantOn: (HS, HP) => !!(HP && HP.giant),
-    debug: () => ({ giant: giant.debug(), stat: { ...stat, rects: (stat.rects || []).slice() }, bigs: bigs.map(b => ({ spot: b.spot, pass: b.pass, d: b.d })), slots: slots.length, spots: spots.length, posts: posts.length, runs: runs.map(r => r.n), petals: path ? path.pts.length : 0, sprites: cache.size }),
-    destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); giant.destroy(); },
+    giantOn: (HS, HP) => !!(HP && (HP.giant || HP.harvest)),   // (a centrepiece the hourly dance RINGS: the giant pumpkin, the harvest display)
+    debug: () => ({ giant: giant.debug(), harvest: harvest.debug(), tg: tgList.map(p => p.id), stat: { ...stat, rects: (stat.rects || []).slice() }, bigs: bigs.map(b => ({ spot: b.spot, pass: b.pass, d: b.d })), slots: slots.length, spots: spots.length, posts: posts.length, runs: runs.map(r => r.n), petals: path ? path.pts.length : 0, sprites: cache.size }),
+    destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); giant.destroy(); harvest.destroy(); },
   };
 }

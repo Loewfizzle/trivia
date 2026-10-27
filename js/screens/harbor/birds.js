@@ -213,7 +213,8 @@ export function createBirds() {
         let id = free['sky-high'] && (!free['sky-low'] || Math.random() < 0.55) ? 'sky-high' : free['sky-low'] ? 'sky-low' : null;
         if (!id && force.has('geese')) id = Math.random() < 0.5 ? 'sky-high' : 'sky-low';
         if (id && s.textRects && s.textRects.neon) geese = newGeese(L, s.lanes[id], force.has('geese'));
-        nextGeese = force.has('geese') ? 6 : rnd(1200, 3600) / Math.max(0.1, who.geese);
+        // (11a-2: the Thanksgiving build-up — the V's cross ~2× as often: every ~10–25 min by day in November)
+        nextGeese = force.has('geese') ? 6 : rnd(1200, 3600) / Math.max(0.1, who.geese) / (s.holiday === 'thanksgiving' ? 2.2 : 1);
       }
       if (geese) {
         // (a function of the flight's time: x, y + every bird's place come from g.t — the same at 30 fps as at 60)

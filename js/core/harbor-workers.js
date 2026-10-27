@@ -63,6 +63,9 @@ export const SHOWS = Object.freeze({
   // POLISH 5 — HOT SUMMER AFTERNOONS (the real temperature ≥ HOT_C — ctx.hot(key), the live weather): a city worker opens THE HYDRANT,
   // its spray arcs onto the cobbles for a couple of minutes (a kid runs through it), shut again; the wet patch dries (~2 hot days in 3)
   hydrant: { days: EVERY, win: [13.6, 16.7], len: 3.6 * 60, prio: 2, hot: true, chance: 0.66 },
+  // 11a-2 — THE LEAF RAKER (the Thanksgiving build-up: Nov 4 → 22, late morning): a groundskeeper rakes the fallen leaves under the
+  // trees into two piles, bags them + carries the sack off (dates: a local-date gate — PURE)
+  raker: { days: MON_SAT, win: [10.9, 11.5], len: 32 * 60, prio: 2, dates: key => { const [, m, d] = key.split('-').map(Number); return m === 11 && d >= 4 && d <= 22; } },
 });
 /** the hydrant's day: the real temperature at least this (°C: ~85 °F) */
 export const HOT_C = 29;
@@ -157,6 +160,7 @@ export function workDay(key, ctx = {}) {
     if (S.rare && !bootlegNight(key, ctx)) continue;
     if (kind === 'newsdrop') continue;
     if (S.hot && !(ctx.hot && ctx.hot(key) && rngFrom(hashString(`hot|${ctx.seed || 1924}|${key}`))() < S.chance)) continue;
+    if (S.dates && !S.dates(key)) continue;
     const u = r();
     const at = S.at != null ? S.at : S.win[0] + u * (S.win[1] - S.win[0]);
     want.push({ kind, S, t0: day0 + at * H, fixed: S.at != null });

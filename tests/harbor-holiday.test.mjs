@@ -9,15 +9,17 @@ import { WEB_SPECS, buildWeb, webGrowth } from '../js/screens/harbor/dress-hallo
 const lc = (m, d, h = 21, mi = 0, y = 2026) => ({ y, m, d, h, mi, s: 0 });
 const days = y => { const out = []; for (let t = Date.UTC(y, 0, 1); t < Date.UTC(y + 1, 0, 1); t += 864e5) { const D = new Date(t); out.push([D.getUTCMonth() + 1, D.getUTCDate()]); } return out; };
 
-test('a whole year: only Oct 1 → Nov 3 is dressed — Halloween through October, Day of the Dead Nov 1–3, nothing else (yet)', () => {
+test('a whole year: Oct 1 → Nov 3 + the Thanksgiving build-up are dressed — Halloween through October, Day of the Dead Nov 1–3, Thanksgiving Nov 4 → the morning after the day (11a-2)', async () => {
+  const { thanksgivingDay } = await import('../js/core/harbor-holiday.js');
   for (const y of [2026, 2027, 2028]) for (const [m, d] of days(y)) for (const h of [3, 9, 15, 21]) {
     const H = holidayAt(lc(m, d, h, 0, y));
-    const want = m === 10 || (m === 11 && d === 1 && h < 4) ? 'halloween' : m === 11 && (d === 1 || d === 2 || (d === 3 && h < 19)) ? 'dotd' : null;
+    const td = thanksgivingDay(y), tg = m === 11 && d >= 4 && (d <= td || (d === td + 1 && h < 4));
+    const want = m === 10 || (m === 11 && d === 1 && h < 4) ? 'halloween' : m === 11 && (d === 1 || d === 2 || (d === 3 && h < 19)) ? 'dotd' : tg ? 'thanksgiving' : null;
     assert.equal(H.id, want, `${y}-${m}-${d} ${h}:00`);
     if (!want) assert.equal(H.key, 'none');
   }
   assert.equal(holidayAt(null).id, null);
-  assert.deepEqual(HOLIDAY_TABLE.map(r => r.id), ['halloween', 'dotd']);
+  assert.deepEqual(HOLIDAY_TABLE.map(r => r.id), ['halloween', 'dotd', 'thanksgiving']);
 });
 
 test('HALLOWEEN builds up BY DATE: the stage climbs every day of October, the web fully woven as the 31st\'s night begins', () => {
@@ -114,7 +116,9 @@ test('the title\'s sign reads City 2.0\'s calendar (titleHoliday); the lamps\' g
   assert.deepEqual(titleHoliday(holidayAt(lc(10, 20))), { id: 'halloween', full: false, k: 0.3 + 0.45 * holidayAt(lc(10, 20)).stage, c2: true });
   assert.equal(titleHoliday(holidayAt(lc(10, 31, 12))).full, true, 'the pumpkin O on the 31st');
   assert.equal(titleHoliday(holidayAt(lc(11, 2, 12))).id, 'dotd');
-  assert.equal(titleHoliday(holidayAt(lc(11, 20))), null);
+  assert.equal(titleHoliday(holidayAt(lc(11, 20))).full, false, 'the build-up: the tubes their own');
+  assert.equal(titleHoliday(holidayAt(lc(11, 26, 12))).full, true, 'the day: AMBER tubes');
+  assert.equal(titleHoliday(holidayAt(lc(12, 5))), null);
   let dips = 0;
   for (let s = 0; s < 600; s += 0.05) for (let i = 0; i < 8; i++) { const v = spookyFlicker(s, i); assert.ok(v >= 0 && v <= 0.9); if (v > 0.5) dips++; }
   assert.ok(dips > 200 && dips < 4000, `a few stutters a minute per lamp (${dips})`);
@@ -140,4 +144,18 @@ test('11a-2 — BIG PIECES CHANGE OFF-CAMERA (latchBig): held while watching, ch
   r = latchBig(r.held, null, true);
   assert.equal(r.pieces, null);
   assert.ok(BIG_KEYS.includes('giant') && BIG_KEYS.includes('harvest'));
+});
+
+test('11a-2 — THE NOVEMBER BUILD-UP grows day by day: mums first, the bales, the corn stalks, the spots\' pumpkins, the harvest display, the wreath; the day itself amber + the parade in the morning; the raker by day until ~Nov 22; the trees held at peak colour', async () => {
+  const { holidayAt, thanksgivingPieces, holidaySeason } = await import('../js/core/harbor-holiday.js');
+  const at = (d, h = 12) => { const H = holidayAt({ y: 2026, m: 11, d, h, mi: 0 }); return { H, P: thanksgivingPieces(H, { hour: h }) }; };
+  let prev = null;
+  for (let d = 4; d <= 25; d++) { const { P } = at(d); if (prev) for (const k of ['mums', 'spots', 'wreath']) assert.ok(P[k] >= prev[k], `${k} never shrinks (Nov ${d})`); if (prev) for (const k of ['bales', 'stalks', 'harvest']) if (prev[k]) assert.ok(P[k], `${k} stays (Nov ${d})`); prev = P; }
+  assert.ok(at(4).P.mums >= 1 && !at(4).P.bales && !at(4).P.harvest && at(4).P.wreath === 0, 'Nov 4: the first mums only');
+  assert.ok(at(14).P.harvest && at(14).P.stalks && at(14).P.bales, 'mid-November: the harvest display stands');
+  assert.ok(at(25, 21).P.party && at(25, 21).P.wreath === 1, 'the Wednesday: the homecoming party, the wreath complete');
+  assert.ok(at(26, 9).P.parade && at(26, 9).P.amber && !at(26, 14).P.parade, 'the day: the parade in the morning, amber tubes');
+  assert.ok(at(10, 11).P.raker && !at(10, 18).P.raker && !at(24, 11).P.raker, 'the raker: late mornings until ~Nov 22');
+  assert.deepEqual(holidaySeason(at(24).H, 'winter', 0.05), { season: 'autumn', phase: 0.62 }, 'the trees at their peak colour on Thanksgiving week');
+  assert.deepEqual(holidaySeason(holidayAt({ y: 2026, m: 12, d: 5, h: 12, mi: 0 }), 'winter', 0.1), { season: 'winter', phase: 0.1 }, 'after: the real season');
 });

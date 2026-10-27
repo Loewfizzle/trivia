@@ -50,6 +50,7 @@ export function crewSpots(L, M) {
     hatch: { x: (bk.x0 + bk.x1) / 2, z: bk.z0 - 0.3 }, beds: (rf.planters || []).map(p => ({ x: p.x, z: p.z - 0.7 })),
     board: { x0: bd.x0, x1: bd.x1, y0: bd.y0, y1: bd.y1, z: bd.z, ladderX: bd.x0 + 0.7 * (bd.x1 - bd.x0), walkZ: bd.z - 0.5, walkY: Math.max(0.6, bd.y0 - 0.12 - s.h), footZ: bd.z - 0.9 },
     lamps: L.lamps || [],
+    trees: (L.trees || []).map(t => ({ x: t.x, z: t.z, kind: t.kind })),   // (11a-2: the raker works under them)
     truckZ: TRAFFIC.lanes.near.z, stopFront: cw.x0 - TRAFFIC.stopBack - 0.15, cw,
   };
 }
@@ -294,6 +295,26 @@ PLAN.crew = (w, M, P, r) => {
   return { roof: out };
 };
 PLAN.sweep2 = (w, M, P, r) => PLAN.sweeper(w, M, P, r);
+PLAN.raker = (w, M, P, r) => {
+  // 11a-2 — THE LEAF RAKER: in from the left with his rake; under two trees on the floor (the crabapple by the bench, a tree on the right)
+  // he rakes the fallen leaves into a pile (the pile GROWS as he works, its leaves drawn by workers.js#leafPile), then bags each pile (it
+  // shrinks into the sack) and carries the sack off to the right
+  // (the crabapple at the back by the bench: in front of it; the framing maple on the front strip: just behind it, on the floor)
+  const zMin = FOLK.zMin + 0.35, zMax = FOLK.zMax - 0.6, crab = P.trees.find(t => t.kind === 'crab'), right = P.trees.filter(t => t !== crab).sort((a, b) => b.x - a.x)[0];
+  const spots = [crab, right].filter(Boolean).map((t, i) => ({ x: t.x + (i ? -1.7 : 1.6), z: Math.min(zMax, Math.max(zMin + 0.3, t.z > 45 ? t.z - 1.7 : t.z + 1.5)) }));
+  const c = crewOf(M, P, r, 'walk', w.t0).edge('left', 42.4).hold('rake'), piles = [];
+  for (const [i, sp] of spots.entries()) {
+    c.go(sp);
+    const g0 = c.now;
+    for (let k = 0; k < 4; k++) c.pose('sweep', 70 + r() * 40, { face: k % 2 ? 1 : -1 });
+    piles.push({ kind: 'leafpile', x: sp.x + (i ? -0.85 : 0.85), z: sp.z + 0.25, seed: Math.floor(r() * 1e6) + i, grow: [g0 + 10, c.now], gone: null, t0: g0 });
+  }
+  // bag them: at each pile a minute stooped over it (the pile shrinks into the sack), the sack carried off
+  c.hold(null);
+  for (const p of piles) { c.go({ x: p.x + 0.7, z: p.z - 0.2 }); const b0 = c.now; c.pose('pick', 55, { face: -1 }); p.gone = [b0 + 4, c.now - 3]; p.t1 = c.now; c.hold('sack'); }
+  c.exit('right', 41.6);
+  return { visits: [c.out(w.id, 'raker', 'raker')], props: piles };
+};
 PLAN.billposter = (w, M, P, r) => {
   // ~5–6 pm: in at the side door with his paste bucket, the roll of sheets + the long brush; up through the hatch, across the deck,
   // up the board's ladder to the catwalk; each sheet pasted (the long brush up the board, the sheet smoothed); a dead lamp fixed; down

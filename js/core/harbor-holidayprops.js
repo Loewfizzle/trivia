@@ -107,6 +107,44 @@ export function giantDecor(L) {
   });
 }
 
+// ------------------------------------------------------------------ 11a-2 — THANKSGIVING: THE NOVEMBER SPOT DRESSINGS
+/** what stands on the DRESSING SPOTS through the November build-up (P: core/harbor-holiday.js#thanksgivingPieces — mums 0..4, bales, spots
+ *  0..3, stalks) → [{ id, x, z (its foot), pass ('near' | 'top'), parts (screens/harbor/harvest.js#paintSpotPiece), seed, ext, shadow }]:
+ *  the bench's far end a straw bale with pumpkins + gourds + a pot of mums beside it, the hydrant's mums + a squat pumpkin, CORN-STALK
+ *  BUNDLES tied round the two tall lamp posts (a pot of mums / a pumpkin at a foot), a smaller bundle round the front globe post */
+export function thanksgivingSpots(L, P) {
+  if (!P) return [];
+  const spots = dressingSpots(L), at = id => spots.find(q => q.id === id), out = [];
+  const add = (id, x, z, pass, parts, o = {}) => { if (parts.length) out.push({ id, x, z, pass, parts, seed: hashString(`tg|${id}`), ext: o.ext || [1.6, 3.2], shadow: o.shadow || 0.9 }); };
+  const bl = at('bench-left');
+  if (bl && (P.bales || P.mums >= 2)) {
+    const parts = [];
+    if (P.bales) { parts.push(['bale', 1.6, 0.85]); if (P.spots >= 1) parts.push(['pumpkin', 'classic', 0.92, -0.28, 0, true]); if (P.spots >= 2) parts.push(['gourds', 0.52, 0.42, -0.06, true]); }
+    if (P.spots >= 3) parts.push(['pumpkin', 'white', 0.72, 0.55, -0.62, false]);
+    if (P.mums >= 2) parts.push(['mum', 'rust', 0.78, -1.1, -0.4]);
+    add('bench-left', bl.x, bl.z, 'near', parts, { shadow: 1.2 });
+  }
+  const hy = at('hydrant');
+  if (hy && P.mums >= 1) {
+    const parts = [['mum', 'gold', 0.82, 0.1, 0.05]];
+    if (P.mums >= 3) parts.push(['mum', 'burgundy', 0.7, 0.85, 0.15]);
+    if (P.spots >= 1) parts.push(['pumpkin', 'squat', 0.95, -0.55, -0.25]);
+    add('hydrant', hy.x, hy.z, hy.pass, parts, { shadow: 1.0 });
+  }
+  if (P.stalks) {
+    (L.lamps || []).filter(l => l.kind === 'tall').forEach((l, i) => {
+      const parts = [['stalks', 2.6]];
+      const side = l.x < (L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : 6) ? -1 : 1;
+      if (i === 0 && P.mums >= 4) parts.push(['mum', 'gold', 0.7, side * 0.62, -0.32]);
+      if (i === 1 && P.spots >= 2) parts.push(['pumpkin', 'warty', 0.78, side * 0.66, -0.3]);
+      add(`stalks-${i}`, l.x, l.z - 0.05, 'near', parts, { ext: [1.2, 3.0], shadow: 0.6 });
+    });
+    const gl = (L.lamps || []).filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0];
+    if (gl) add('stalks-globe', gl.x, gl.z - 0.05, 'top', [['stalks', 1.9, 0.28], ...(P.spots >= 3 ? [['gourds', 0.5, 0.55, -0.22, false]] : [])], { ext: [1.0, 2.4], shadow: 0.5 });
+  }
+  return out;
+}
+
 // ------------------------------------------------------------------ DAY OF THE DEAD
 /** the marigold spots: { x, z, y, w (spread, world units), n (blooms), kind: 'pot' | 'ring' | 'clump' | 'planter', front (drawn after
  *  the front row) , half?: 'back' | 'front' (a ring round a tree: its back half behind the trunk) } */

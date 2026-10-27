@@ -46,7 +46,8 @@ export function createCitySounds() {
   const lastStep = { cobble: 0, heels: 0 };
   const people = { line: 0, linePan: -0.45, roof: 0, roofPan: -0.5 };
   const bus = { arrive: null, idle: null, depart: null, pan: 0, gain: 1 };
-  const ducks = [];                     // { h, take, depth, pan: [w, dir] | null } — the jets: the music dips round their peak
+  const ducks = [];
+  const cheered = new Set();          // (11a-2: the parade's balloons already cheered)                     // { h, take, depth, pan: [w, dir] | null } — the jets: the music dips round their peak
   let duckNow = 1, jetX = 0.5, jetKey = '', jetFetch = '';
   // PART 6b — THE LEGENDARY SKY: the run heard (its one-shots fired once), the music's dip / muffle / tape stop while it lasts
   let lgRun = null, lgDuck = 1, lgHz = 20000, lgRate = 1, lgBendAt = 0;
@@ -88,7 +89,7 @@ export function createCitySounds() {
     } else if (r) { for (const h of r.hs) h.stop(fade); runs.delete(slot); }
   }
 
-  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null, hydrant = null, weather = null, hween = 0 } = {}) {
+  function tick(fs, { dark = 0, sky = null, boats = false, W = 1, legend = null, hydrant = null, weather = null, hween = 0, parade = null, raker = null } = {}) {
     if (dead) return;
     const t = performance.now();
     if (t - lastT < 250) return;
@@ -164,6 +165,8 @@ export function createCitySounds() {
       // the geese: ONE flyover while a V crosses (~22 s; a crossing ~30 s), panned with it, faded out as it leaves
       const geese = s.birds && s.birds.geese;
       run('geese', geese ? sk : 0, geese && s.birds.geeseX != null ? panX(s.birds.geeseX, W) : 0, { ramp: 1, fade: 3, chain: false });
+      // (11a-2: + the V's own call as it comes over — geese-v, one short take a V, panned with it as it crosses)
+      run('geese-v', geese ? sk : 0, geese && s.birds.geeseX != null ? panX(s.birds.geeseX, W) : 0, { ramp: 0.6, fade: 2, chain: false });
       // the gulls: by day while gulls fly over the harbor — a distant call now and then (fewer gulls, fewer calls)
       const g = s.birds && s.birds.who ? s.birds.who.gulls || 0 : 0;
       // (FP: mostly one call, now and then two or three in a row — different takes, levels, pitches — at random gaps: never a pattern)
@@ -188,6 +191,18 @@ export function createCitySounds() {
     keep('boat-putter', boats ? 1 : 0, 0, { ramp: 1.5, linger: 8 });
     // POLISH 5 — THE HYDRANT on a hot day: its hiss + splash while it sprays (hydrant: { k 0..1, pan }), easing in + out with the stem
     keep('hydrant-spray', hydrant ? hydrant.k : 0, hydrant ? hydrant.pan : -0.5, { ramp: 1.2, linger: 6, fadeIn: 1.2 });
+    // 11a-2 — THE PARADE: the crowd's cheering bed (the kids + the grown-ups' murmur) while it passes, a CHEER as each balloon reaches the
+    // middle of the screen (once a balloon), the BAND two blocks away following the nearest band (its 90-s pass chained), the giant
+    // balloons' fabric flapping in the wind while one is up — each panned with what makes it
+    { const U = parade ? parade.units : [], ball = U.filter(u => u.kind === 'balloon'), band = U.filter(u => u.kind === 'band');
+      keep('parade-crowd', U.length ? 1 : 0, 0, { ramp: 2.5, linger: 10, fadeIn: 3 });
+      for (const b of ball) if (b.x > 0.42 && b.x < 0.6 && !cheered.has(b.i)) { cheered.add(b.i); if (cheered.size > 40) cheered.delete(cheered.values().next().value); play('parade-cheer', { gain: rnd(0.7, 1), pan: clamp(b.x * 2 - 1, -0.6, 0.6) }); }
+      const nb = band.length ? band.reduce((a, b) => (Math.abs(b.x - 0.5) < Math.abs(a.x - 0.5) ? b : a)) : null;
+      run('parade-band', nb ? 1 : 0, nb ? clamp(nb.x * 2 - 1, -0.85, 0.85) : 0, { ramp: 1.5, fade: 4 });
+      const fb = ball.length ? ball.reduce((a, b) => (Math.abs(b.x - 0.5) < Math.abs(a.x - 0.5) ? b : a)) : null;
+      keep('balloon-flap', fb ? 1 - 0.6 * Math.min(1, Math.abs(fb.x - 0.5) * 1.6) : 0, fb ? clamp(fb.x * 2 - 1, -0.8, 0.8) : 0, { ramp: 1.2, linger: 8, fadeIn: 1.5 });
+      // 11a-2 — THE RAKER: his rake on the leaves while he rakes, panned to him
+      keep('leaves-rake', raker ? 1 : 0, raker ? raker.pan : 0, { ramp: 0.8, linger: 6, fadeIn: 0.8 }); }
     if (L && (L.fog || 0) > 0.45 && L.wxKind !== 'mist' && t > next.fog) { citySound('foghorn', { pan: 0.35, gain: rnd(0.8, 1) }); next.fog = t + rnd(40000, 80000); }
   }
 

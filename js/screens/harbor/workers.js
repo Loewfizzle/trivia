@@ -17,6 +17,7 @@ import { bladeGeo, paintBlade, BLADE, bladeLetters } from './speakeasy-blade.js'
 import { speakGeo, mats, wallMap } from './speakeasy-geo.js';
 import { LADDER, KIT } from '../../core/harbor-crew.js';
 import { kitBucket, kitRoll } from './gear.js';
+import { rngFrom } from '../../core/rng.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -48,6 +49,7 @@ export function propItems(L, crew, pass, t) {
     else if (p.kind === 'stand') { out.push({ z: p.z, draw: (c, env) => newsstand(c, cam, p, env, t) }); const b = p.bundles; if (b && t >= b.untie && t < p.fold) { const k = 1 - clamp01((t - b.untie) / Math.max(1, p.fold - 6 - b.untie)); if (k > 0.02) out.push({ z: b.z, draw: (c, env) => bundles(c, cam, b, env, k) }); } }
     else if (p.kind === 'cloth') { out.push({ z: 1e3, draw: (c, env) => cloth(c, cam, p, env, t) }); if (p.un) out.push({ z: p.z - 0.15, draw: (c, env) => clothBucket(c, cam, p, env) }); }
     else if (p.kind === 'wet') out.push({ z: 1e3 + 1, draw: (c, env) => wetStreak(c, cam, p, env, t) });
+    else if (p.kind === 'leafpile') { const k = leafK(p, t); if (k > 0.01) out.push({ z: p.z, draw: (c, env) => leafPile(c, cam, p, k, env) }); }
     else if (p.kind === 'hatch') { out.push({ z: 1e3 + 2, draw: (c, env) => hatchHole(c, cam, p, env, t) }, { z: p.z + 0.4, draw: (c, env) => hatchLeaves(c, cam, p, env, t) }); }
     else if (p.kind === 'platform') { out.push({ z: p.z + 0.25, draw: (c, env) => platform(c, cam, s, p, env, t, 'back') }, { z: p.z - 0.4, draw: (c, env) => platform(c, cam, s, p, env, t, 'front') }); }
   }
@@ -234,6 +236,24 @@ function cloth(c, cam, p, env, t) {
   c.restore();
 }
 
+// 11a-2 — THE RAKER's LEAF PILES (core/harbor-crew.js#PLAN.raker): a mound of fallen leaves growing as he rakes, shrinking into his sack
+const leafK = (p, t) => clamp01((t - p.grow[0]) / Math.max(1, p.grow[1] - p.grow[0])) * (p.gone ? 1 - clamp01((t - p.gone[0]) / Math.max(1, p.gone[1] - p.gone[0])) : 1);
+const LEAF_COLS = [[214, 96, 30], [232, 150, 40], [176, 60, 34], [196, 122, 46], [150, 84, 40], [236, 176, 70]];
+function leafPile(c, cam, p, k, env) {
+  const [x, y] = project(cam, p.x, 0, p.z), s = cam.F / p.z, w = 1.05 * s * Math.sqrt(k), h = 0.42 * s * k, r = rngFrom(p.seed);
+  const dk = clamp01(env.dark || 0), T = env.T || {}, night = Math.max(dk, T.night || 0), lit = col => col.map(v => v * (1 - 0.68 * night) + 14 * night);
+  c.save();
+  c.fillStyle = `rgba(20,14,10,${(0.32 * Math.min(1, k * 2)).toFixed(3)})`; c.beginPath(); c.ellipse(x, y, w * 1.05, w * 0.22, 0, 0, Math.PI * 2); c.fill();
+  // the mound: leaves laid from the outside in + the bottom up (its top lighter: the sky on it), each a small tilted ellipse
+  const n = Math.round(26 + 70 * k);
+  for (let i = 0; i < n; i++) {
+    const u = r(), a = r() * Math.PI * 2, rr = Math.sqrt(r()), lx = x + Math.cos(a) * w * rr, top = h * (1 - rr * rr), ly = y - top * (0.4 + 0.6 * u) + Math.sin(a) * w * 0.18 * rr;
+    const col = LEAF_COLS[Math.floor(r() * LEAF_COLS.length)].map(v => v * (0.8 + 0.3 * (1 - rr)));
+    c.fillStyle = `rgb(${lit(col).map(v => Math.round(Math.min(255, v))).join(',')})`;
+    c.beginPath(); c.ellipse(lx, ly, Math.max(0.6, 0.075 * s), Math.max(0.4, 0.045 * s), r() * Math.PI, 0, Math.PI * 2); c.fill();
+  }
+  c.restore();
+}
 function wetStreak(c, cam, p, env, t) {
   // the sweeper's cart sprinkles as he goes: a dark damp band along his passes, laid down behind him, drying out from its edges (WET.dry)
   c.save(); c.lineCap = 'round'; c.lineJoin = 'round';
