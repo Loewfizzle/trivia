@@ -7646,7 +7646,12 @@ it passed; the spiders went out first (Halloween is Sat Oct 31).
   passes: the pixel reads wait on a frame the backgrounded page never paints; run the groups in the foreground (or with the tool's own
   background mode, which keeps their stdio).
 - **The panel has no row for the blade's styles** (`&blade=<font>-<ink>-<panel>` is a link flag; the game via `&ad=`).
-- **The cloud run**: CLOUD_RESULT
+- **The cloud run** (40426219558 — started by hand with `gh workflow run harbor`: the final push was docs only, outside the workflow's paths;
+  the pass's one run): `street`, `wild`, `windows`, `holiday`, `audio`, `city` GREEN; `show` 70/71 — "HALF-TIME: the punch on beats 1 + 3
+  (0.96, 0.75), beats 2 + 4 calm (0.35, 0.35)": beats 2 + 4 must read under 0.35 × the downbeat (0.336) and read 0.35 — a hair over, in the
+  beat's punch code this pass did not touch (`core/harbor-beat.js`, `neon.js`), sampled on the 2-core runner at the party's peak (where the
+  window party + the hourly circle now run — the laptop's A/B read the scene `same`). Not re-run (the two-run rule); if the next pass's run
+  shows it again at the same hair, the check's margin is the thing to look at, not the punch.
 
 ### Previews (Ben's iPhone — `https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&…`)
 - **The spiders**: `&when=2026-10-29T21:00` · `&when=2026-10-31T21:00` — tap either (a run to the hub if it is out roaming, then the drop);
