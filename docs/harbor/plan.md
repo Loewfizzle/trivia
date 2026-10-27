@@ -63,7 +63,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 11a-2 | ✅ (Oct 27 — docs/harbor.md#part-11a-2: Halloween's giant BITCOIN pumpkin + the dance ringing it, BIG PIECES CHANGE OFF-CAMERA, the boss's shadow walking up, the bolder spade, the bluer TV, the UFO redesigned (the abduction byte-identical), the witch smooth; the November build-up by date (bales, stalks, the spots, the harvest display, the wreath, the raker, cider); THE PARADE SYSTEM + Thanksgiving's balloon parade + its sounds; the homecoming party; the amber day, chimney smoke, pies, the family tables + the football game in the windows; BLACK FRIDAY: the rush, the tree stand, the sale banner, the first Christmas crew stringing the speakeasy's lights) THANKSGIVING + the reusable PARADE system (the Wednesday party, Black Friday's first Christmas crew) — by mid-Nov | Opus 5.5 high | ~2–3 h |
 | SP6 | ✅ (Oct 27 — docs/harbor.md#sp6: the cloud chore; the blue TV window (the owner's palette + his chosen glow) + the boss's party window; the UFO beam's lines + the spot beside the giant; CREDITS; WORD FLASH / LAYERS / TWO-TONE; the vehicles' words readable + foreground traffic; the small fixes — the real UFO model was not on the machine: no bake yet) THE FIXES BEFORE WINTER — the cloud failures + the CI-minutes chore, the blue TV window, the boss's party window, the UFO from the real model (+ the beam, the spot, a CREDITS sheet), the three roof-sign modes, the small fixes | Opus 5.5 high | ~3 h |
 | 9b | ✅ (Oct 27 — docs/harbor.md#part-9b: the climate fallback; the snowpack's stages on every top + the plaza + the road + the speakeasy; the lit snowfall; the plow + the salt truck; the shovellers, the snowball fight, the slip; the fluffy snow on the NEON that piles only while it's off + melts in clumps when lit; the January snowman; CREDITS fixed; the phone rule) WINTER (the snowpack stages, plows / salt / shovelers, the snowman, snow on the sign + the speakeasy, frost on the glass; + the climate-aware fallback, the CREDITS bug, the phone rule in CLAUDE.md) | Opus 5.5 high | ~3 h |
-| 9c | ← NEXT: THE CONSTRUCTION TOWER (the yearly cycle + the implosion) + THE CITY LIFE (the dead times filled) + THE SAX REWORK | Opus 5.5 high | ~3 h |
+| UFO | ✅ THE UFO BAKE — sebslom's model as sprites (the owner: "looks good"; hover higher + the flight's stutter → 9c) | Opus 5.5 high | ~1 h |
+| 9c | ← NEXT: THE FIXES — winter made to read, the crisp layer, the centrepiece floodlights, the sign's snow in the blackout, the boss's cream blind, the window-scene rule, the UFO higher + smooth | Opus 5.5 high | ~3 h |
+| 9d | THE CONSTRUCTION TOWER (the yearly cycle + the implosion) + THE CITY LIFE (the dead times filled, the street under the dock as a stage + the quick fade) + THE SAX REWORK | Opus 5.5 high | ~3 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
@@ -2828,3 +2830,117 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   which the snow depends on); 9c = THE CONSTRUCTION TOWER + THE CITY LIFE (the night-shift henchman, the water wagon, Sunday bells,
   weekday late nights, the newspaper window, the joggers, the street under the dock as a stage + the quick fade, the TR-3B
   party-only rule) + THE SAX REWORK (the owner didn't ask to hide it meanwhile → it stays until 9c).
+
+## OWNER'S NOTES — OCT 27 (after 9b + the UFO bake)
+- 9b PHONE REVIEW (the owner, Oct 27 12:35 pm, a screenshot): "Snow looks really good, kind of in general"; THE SNOWFALL "looks
+  great". TO REWORK (9c Group 0 — winter is close): (1) THE WORN FOOTPATHS (snow=older) — "you can't really tell what that is": make
+  them read at phone size as trodden lanes: wide, clearly darker grey-brown slushy strips with soft edges along the real walking
+  routes (the crossing → the door, along the railing, round the compass), the cobbles' dark showing through in the middle, the
+  people walking ON them; strong contrast against the white. (2) THE PLOWED BANKS — "can't really understand what that is either":
+  BIG mounds (knee-to-waist on the people) along the kerb, dirty grey-brown sides with darker grit streaks, a whiter crust on top, a
+  clear BLACK wet cleared road beside them, gaps at the crossing + the bus stop; read as "the plow piled this". (3) THE SNOW ON THE
+  SIGN MUST GLOW (the screenshot: the lit N's pillow of snow is pure flat white): snow on a LIT tube is lit FROM WITHIN by it — the
+  tube's own colour (pink on the pink letters, each letter its own) strongest where the snow touches the tube, bleeding up + out
+  through the mound, a soft halo round it at night; by day the glow fainter but there; an unlit tube's snow stays white (+ the day
+  sky's light). The same on the roof signs + the billboards. Judged on the phone, unzoomed.
+  (4) THE PLOW + THE SALT TRUCK DIDN'T SHOW (the owner's iPhone, 12:36 pm, &force=plow / &force=salt): a preview must start AT THE
+  BEGINNING within a couple of seconds (the rule) — find why it didn't (waiting for the dock to rest? a traffic hold? the slot's
+  schedule? iOS?), make &force=plow bring the plow on the waterside road in ≤ 3 s with the salt truck right behind, + a PLAY ALL
+  item; and check they really run on real snow days (a unit test: after a real snowfall the plow + salt are scheduled that day).
+  (5) THE SHOVELLERS (the owner, 12:37 pm): THE DOORMAN's shovelling "looks a little cheap — needs to look more premium"; THE
+  PROMENADE SHOVELLER must MOVE "back and forth like he's actually shovelling". Read on the phone by BIG motion + silhouette: the
+  stroke cycle (plant, PUSH the blade forward along the ground, lift, a body twist, TOSS to the side with a visible spray / clump of
+  snow arcing onto a growing pile), stepping forward between strokes, the CLEARED dark strip growing behind him; the shovel big +
+  readable (the blade catching the light); the doorman in his proper uniform (long coat, cap) clearing the steps ONE BY ONE, then a
+  wide arc of salt tossed across them. Lit by the scene like the window people (WINDOW_LOOKS), never flat.
+  APPROVED (12:39 pm): the SNOWBALL FIGHT "looks perfect"; the SNOWMAN being built "looks good"; the CREDITS sheet "works perfectly".
+  (6) THE SNOWMAN's ARMS: in some shots they look like SNOW arms, in others STICKS — always STICKS (dark twig arms with a fork or two),
+  at every stage once the arms are on; no white blob that reads as an arm (check every stage's shot). (7) THE FROST on the dock + the
+  buttons "looks good" — but let it FEATHER further IN toward the centre of each button + the dock, getting FINER + fainter as it
+  goes so it's hardly noticeable at the centre (heavier at the edges, a fine fern-like lace thinning to almost nothing); labels,
+  icons, contrast + taps untouched.
+  (7b) THE OWNER PREFERS CITY 1.0's FROST (1:58 pm: "I like that look better I think"). City 1.0 (js/screens/district/frost.js#pane):
+  a FROZEN-WINDOW PANE over the WHOLE SCREEN on a real deep freeze (−4 °C → full by −12 °C): a frosted haze thickest in the corners +
+  along the bottom, ~2,600 fine rime grains crowded to the edges, and FERN-LIKE DENDRITES (a stem, twigs at ±60°, feathered again)
+  grown inward from the corners + edges, thick at the rim and GONE well before the sign + the buttons; it forms slowly as the cold
+  arrives; baked once per screen size. City 1.0 had NO frost on the dock / buttons themselves. → 9c: bring that PANE to City 2.0 as
+  the cold look (the same rule: never over the sign, the hush word or the dock's labels; the dock + the buttons sit inside the clear
+  area or catch only its finest edge), and restyle the dock + button frost in the SAME fern-dendrite language (finer + fainter toward
+  the centre, per (7)) — or drop the button frost if the pane reads better without it. Show both on the phone; the owner picks. DECIDED (1:59 pm, "yeah let's try it").
+- A BLIZZARD MODE (the owner, Oct 27 1:00 pm — DECIDED, slot: ATM): none today (weather.js has snow 0..1 + the wind apart). The city goes
+  BLIZZARD when the live weather says heavy snow + strong wind (sustained ~15 m/s / 35 mph, or gusts) or low visibility (Open-Meteo's
+  visibility < ~400 m with snow): a WHITEOUT with depth (the far skyline gone first, then the mid towers; the near stage + the neon
+  cutting through as soft glowing smears), snow DRIVING SIDEWAYS in gusting waves, GROUND SNOW BLOWING (streamers racing across the
+  promenade, drifts against the speakeasy, the bench, the lamps), few people out, leaning into it, heads down, holding hats, the bus
+  crawling with its lamps glowing, the wind's roar under the snow hush. Judged on the phone. &force=blizzard + a panel row.
+- THE SPEAKEASY's BLADE LOOKS BLURRY (the owner, Oct 27 4:38 pm, a phone screenshot by day: DOUBLE AGENT soft next to the crisp
+  city). Likely why (read-only): the city canvases are capped at DPR 2 (speakeasy.js: dpr = min(2, …); scene.js TIERS max 2) on an
+  iPhone's DPR 3 → every canvas sign is upscaled 1.5×; the bake's memory budget can step big layers down to 1.5 / 1 (bake.js#plan);
+  a tier step lowers it again. The NEON logo is SVG / DOM, so it's always sharp — the contrast shows. FIX (9c Group 0): measure first
+  (&debug=1: the tier, the layer's dpr), then draw the BLADE (day + night) as its own small FULL-DPR (3×) overlay like the hush sign
+  (WIN moved it to a 3× overlay for the same reason), its letters + frame + bulbs crisp; check the other near signs the eye reads up
+  close (the barbershop's sign, the EST. 1924 plaque, the roof billboards on the speakeasy) and give them the same if they're soft.
+  Judged unzoomed on the iPhone, day + night, against the logo.
+  WIDENED (the owner, 4:39 pm: "do that with the other billboard too on top of the speakeasy … and all other important things"):
+  ONE SHARED "CRISP TEXT" LAYER at the phone's full DPR for EVERYTHING WITH LETTERING the eye reads: the speakeasy's BLADE + its ROOF
+  BILLBOARD (today's game, e.g. RUMRUNNER / OVERCLOCK), the barbershop sign, the EST. 1924 plaque, the WAIT / WALK signal, the skyline's
+  word signs (HIGH STAKES, NEON PAR, PULSE + the vertical blades — BLUFF, OVERCLOCK…), the sale / holiday banners, the banner plane's
+  text; the vehicles' lettering (TAXI, POLICE, DAIRY) if it's cheap enough while they move. NOT the bricks, people, trees or textures
+  (softness there is fine + saves memory). Tier-aware (tier 0 may stay at 2×), inside the iOS memory budget, measured (title-perf --ab);
+  the sharpness gain shown in before / after crops at 3×.
+  DECIDED (4:41 pm): lettering — NOT the speakeasy's windows (live-drawn every frame, the cost isn't worth it), people, vehicles' bodies.
+  + THE HOLIDAY SET PIECES (4:42 pm, the owner): the big pieces that stand still + are drawn ONCE (the giant ₿ pumpkin, the harvest
+  display, the big jack-o'-lanterns, the tree stand, the Christmas tree + its lights, wreaths, the snowman, the sign's dressings) are
+  built at the phone's full DPR too, through the same shared crisp layer (their live twinkle / flicker stays a light layer on top);
+  inside the memory budget, measured. NOTE: sharpness helps their edges, but "hard to see" is mostly SIZE + contrast — any that are
+  still hard to read get bigger / bolder too (the phone rule).
+- HEAVY SNOW + WIND STILL BROKEN (the owner, Oct 27 4:46 pm, testing on the panel: heavy snow + WINDY): "it just makes the clouds go
+  crazy fast and nothing really happens in the foreground" — the same bug as Oct 26 (the clouds race, the foreground ignores the
+  wind). FOR ATM (confirmed in its scope: WIND AS ONE SYSTEM): the wind drives EVERYTHING together — the snow's slant + gusting waves,
+  the trees' crowns + branches swaying (the snow shaken off them), flags, smoke, coats + hats, the water's chop, drifting ground snow —
+  and the clouds move at a believable speed for their height, never racing. HEAVY SNOW reads in LAYERS OF DEPTH: big near flakes
+  crossing the promenade, a mid layer, a far veil softening the skyline (the blizzard's whiteout is the extreme of this). Test the
+  combinations on the panel (heavy snow + windy, rain + windy, a gale) on the phone.
+- THE CENTREPIECE NEEDS SHOW LIGHTING (the owner, Oct 27 4:49 pm, a night screenshot: the uncarved giant pumpkin on the compass sits
+  DARK, brown on brown — "it's being shown off, so it should be well lit … it can be dark when the jack-o'-lantern's lit"). DECIDED
+  for 9c (the centrepiece rig, core/harbor-centre.js — reusable for every centrepiece): at night a piece on the compass is
+  FLOODLIT — a pair of warm 1920s floodlights (on the two nearest lamp posts or low on the inlay's rim) washing it from the front
+  sides, a bright pool on the cobbles round it, a soft shadow behind, a rim of light on its top + edges; the floods come on with the
+  lamps at dusk. When the piece LIGHTS ITSELF (the ₿ carved + its candle lit, the Christmas tree's lights, a lit display) the floods
+  DIM DOWN slowly so its own glow is the star (kept at a low fill so its shape still reads). By day no floods. Read on the phone, as-is:
+  the piece must be the brightest, clearest thing on the promenade at night.
+- THE SIGN's SNOW IGNORES THE BLACKOUT (the owner, Oct 27 4:51 pm, a screenshot of the TR-3B's blackout: the tubes dark, the snow
+  on them still bright white, floating) — the same bug 9a had with the rain (fixed there: the rain follows the sign's power). 9c Group
+  0: the sign's snow follows the POWER + the light: in the blackout it goes DARK with the city (it's still there — lit only by the moon
+  / the night sky: a faint cool grey, no pink glow), and when the power comes back its light (+ the tubes' pink glow from within) comes
+  back WITH the tubes' flicker-on. The same for the icicles, the drops, the frost glaze, and the roof signs' + billboards' snow. A
+  check in the e2e (the blackout: the snow's brightness drops with the tubes).
+- THE BOSS's DAY SHADE READS "A WEIRD DARK BROWN" (the owner, Oct 27 5:06 pm). On purpose (SP5: "a dull olive cloth, dark against the
+  sunlit facade, the daylight only on its top edge" — so his window reads CLOSED among the open ones), but the colour reads as mud.
+  Claude's proposal (pending the owner): a real 1920s HOLLAND roller blind — either (A) deep BOTTLE-GREEN linen (period, still dark +
+  mysterious, clearly a blind, not a stain) or (B) cream / ecru linen lit by the daylight from outside (the commonest blind of the era,
+  reads "drawn" by its flat even glow + the pull ring), with the cloth's soft vertical sheen, a faint sag + the hem bar; the violet
+  signal + the spade unchanged. Slot: 9c.
+  THE OTHER WINDOWS (read 5:07 pm): by day the rooms are OPEN (a dark room, the people lit by the daylight); the bar's afternoon a
+  half-drawn shade; the EDGE windows' roller blinds are a warm CREAM / TAN linen ([236,214,176] → [176,146,84]). → Claude's revised pick:
+  (B) the boss's blind in THE SAME cream / tan linen as the building's other blinds (one building, one kind of blind) — fully down all
+  day, evenly lit by the sun from outside, so his window reads CLOSED by being the only one fully drawn; the violet lamp + the spade
+  glow THROUGH pale cloth far better than through a dark one. DECIDED (5:10 pm, "that sounds good").
+- WINDOW SCENES NEVER POP IN (the owner, Oct 27 5:10 pm — a RULE for every window moment, 9c): a scene starts in one of two ways
+  only — (1) the people WALK UP through the room's depth to the glass, then the scene plays (WIN2's walkIn), or (2) the BLIND comes
+  DOWN, a ~2 s pause, the blind goes UP and the scene is there; it ENDS the same way (walk away / blind down + up on the empty room).
+  Never a cut / jerk into or out of a scene. Audit every moment in the catalogue (+ the holiday scenes, the tango, the cash count, the
+  party's rooms) and add a unit / e2e check that no window's content changes between two frames without a walk or a blind.
+- THE UFO FROM THE REAL MODEL — APPROVED with two fixes (the owner, 5:10 pm: "the new UFO looks good"), 9c: (1) IT HOVERS HIGHER ON THE SCREEN —
+  the owner (5:12 pm): NOT further away / at the wheel's depth — it stays CLOSE (over the promenade, its size as now) but sits HIGHER
+  on screen, so the whole craft is in clear sky ABOVE the wheel's top (it got confused with it / blocked it); the BEAM simply gets
+  longer to reach the person (the abduction's pose + timing unchanged). Check its hover spot at 390 / 402 / 430 against the wheel, the
+  towers + the sign. (2) THE ARRIVAL + THE DEPARTURE STUTTER (skipped frames while it flies to the spot + away): measure first
+  (&debug=1 slow frames during the flight); suspects: the sprite sheet DECODED on its first draw (pre-decode with createImageBitmap
+  before it appears), the 24-frame turntable STEPPING visibly (blend between neighbouring frames or use more frames), a per-frame
+  allocation, the beam / glow re-baked as it moves. Smooth 60 fps on the phone tier is the bar.
+  FROM THE BAKE's SUMMARY (5:11 pm): the sprites are drawn from TWO view angles (~6° hovering, ~19° in + out) "each stretched slightly
+  to the true angle in between" + an approach where the craft "looked half-transparent while switching between the two angles" →
+  the ANGLE SWITCH during the arrival + departure is the prime suspect for the skip: bake more angles (e.g. every ~2–3°) or crossfade
+  over a longer stretch, so the flight is one continuous change. Also: a forced preview on a slow link shows nothing for up to 4 s —
+  pre-load the sheet when the preview is asked for.
