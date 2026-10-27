@@ -1092,6 +1092,8 @@ test('the preview panel: one registry — every &force= preview the Harbor runs 
   if (src.includes("id.startsWith('window-')")) for (const m of MOMENTS) used.add(`window-${m.id}`);
   // (PART 8b1: the WORKERS rows — scene.js#workForced reads any `work-<kind>` of the timetable)
   if (src.includes("id.startsWith('work-')")) for (const k of [...Object.keys(SHOWS), ...Object.keys(REGULARS)]) used.add(`work-${k}`);
+  // (SP3 + SP6: neon.js#planRoof reads any `roof-<mode>` of ROOF_MODES)
+  if (src.includes('f.force.has(`roof-${m}`)')) for (const m of ['spell', 'race', 'breath', 'wordflash', 'layers', 'twotone']) used.add(`roof-${m}`);
   // (not events: the perf A/B switches, the panel's own party switches, the debug-only demo, sky internals)
   const tools = id => id.startsWith('no-') || ['party', 'demo', 'sat'].includes(id);
   const ids = new Set(EVENTS.map(e => e.id));

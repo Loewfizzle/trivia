@@ -247,6 +247,7 @@ export function buildSign(spot, game, ctx) {
   if (border) border.t = [tube(border.pts, true, tw * 0.75, [false, false])];
   const sign = { id: spot.id, spot, game: game ? game.id : null, rect: R, col, parts, panel, border, bulbs, mid, kind: spot.kind, type: spot.type, frame: ctx.frame || null, letterBoxes: (parts.find(p => p.boxes) || {}).boxes || [], nText: [...String(spot.text || (game ? signName(game) : '')).replace(/ /g, '')].length };
   sign.lit = (dpr, scheme) => litSprites(sign, dpr);
+  sign.litSwap = dpr => (border ? litSprites(sign, dpr, true) : null);   // (SP6: TWO-TONE)
   return sign;
 }
 
@@ -399,8 +400,9 @@ export function drawHousing(x, sg, T, ctx) {
 }
 
 // ------------------------------------------------------------------ the lit parts (once per sign: power draws them)
-function litSprites(sg, dpr) {
-  const out = [];
+/** (SP6 — swap: TWO-TONE's set — the border tube in the letters' colour, the letters in the border's; the same sprites in the same order) */
+function litSprites(sg, dpr, swap = false) {
+  const out = [], bCol = sg.border ? (swap ? sg.col : sg.border.col) : null, tCol = c0 => (swap && sg.border ? mix(sg.col, ICE, 0.82) : c0);   // (the traded letters toward white-ice: the swap must read at phone size)
   const one = (tubes, col, w) => {
     const b = bbox(tubes), glow = Math.max(3, w * 5.5);
     return sprite(b, glow * 2.6, dpr, x => drawLit(x, tubes, col, { w, glow, a: 1, dpr }));
@@ -410,7 +412,7 @@ function litSprites(sg, dpr) {
     const P = sg.panel, w = sg.border.t[0] ? (sg.parts[0] ? sg.parts[0].w * 0.75 : 0.7) : 0.7;
     out.push(sprite({ x0: P.x, y0: P.y, x1: P.x + P.w, y1: P.y + P.h }, w * 14, dpr, x => {
       x.fillStyle = rgba(sg.col, 0.12); x.beginPath(); x.roundRect(P.x, P.y, P.w, P.h, P.r); x.fill();
-      drawLit(x, sg.border.t, sg.border.col, { w, glow: Math.max(3, w * 5), a: 0.9, dpr });
+      drawLit(x, sg.border.t, bCol, { w, glow: Math.max(3, w * 5), a: 0.9, dpr });
     }));
   }
   // the mark's tubes (one sprite), the letters (one sprite)
@@ -421,7 +423,7 @@ function litSprites(sg, dpr) {
     ms.role = 'mark'; out.push(ms);
   }
   // (the game blade's letters: a tighter glow — six big letters stacked close must not melt into one bar of light)
-  for (const p of text) if (p.t.length) { const sp = p.hot ? sprite(bbox(p.t), Math.max(3, p.w * 3.9) * 2.6, dpr, x => { drawLit(x, p.t, p.col, { w: p.w, glow: Math.max(3, p.w * 3.9), a: 1, dpr }); }) : one(p.t, p.col, p.w); sp.role = 'text'; sp.box = bbox(p.t); out.push(sp); }
+  for (const p of text) if (p.t.length) { const sp = p.hot ? sprite(bbox(p.t), Math.max(3, p.w * 3.9) * 2.6, dpr, x => { drawLit(x, p.t, tCol(p.col), { w: p.w, glow: Math.max(3, p.w * 3.9), a: 1, dpr }); }) : one(p.t, tCol(p.col), p.w); sp.role = 'text'; sp.box = bbox(p.t); sp.lines = p.lines || 1; out.push(sp); }
   return out;
 }
 

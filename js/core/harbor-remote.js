@@ -209,6 +209,13 @@ export const EVENTS = [
   { id: 'neon-party', label: 'NEON PARTY', cat: 'party', group: 'PARTY · ANY NIGHT', night: true },
   { id: 'neon-flash', label: 'NEON FLASH', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['game'], night: true },
   { id: 'neon-scheme', label: 'NEON SCHEME', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['scheme'], night: true },
+  // (SP3 + SP6 — THE ROOF SIGNS' HOURLY MODES, every named sign in one mode, its turn coming round fast: neon.js#planRoof)
+  { id: 'roof-spell', label: 'ROOF SIGNS · SPELL', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'the letters light one by one, a hold, two flashes' },
+  { id: 'roof-race', label: 'ROOF SIGNS · RACE', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'a bright pulse once round each sign’s frame' },
+  { id: 'roof-breath', label: 'ROOF SIGNS · BREATH', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'a slow brighten / dim, never off' },
+  { id: 'roof-wordflash', label: 'ROOF SIGNS · WORD FLASH', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'the 1920s drum flasher: word by word, then both held' },
+  { id: 'roof-layers', label: 'ROOF SIGNS · LAYERS', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'built in stages: the border, the letters, the icon' },
+  { id: 'roof-twotone', label: 'ROOF SIGNS · TWO-TONE', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'the border + the letters trade colours twice, then settle' },
   { id: 'spell-on', label: 'SPELL-ON ROUND', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'every named sign spells itself on in turn — the next one every 6 s' },
   // (DT1 — THE LIGHTS + SIGNS PASS: the power-up itself is TIME = POWER-UP / POWER-DOWN at SPEED 20)
   { id: 'flood-front', label: 'WATERFRONT FLOODLIGHTS', cat: 'lights', group: 'THE WATERFRONT', night: true, hint: 'the front row’s low warm uplight — compare on / off' },

@@ -931,10 +931,11 @@ G('neon', async () => {
     const md = rm ? sg.map(id => rm.modes[id]) : [];
     ok(rm && md.length >= 3 && md.every(Boolean) && md.every((m, i) => !i || m !== md[i - 1]), `THE ROOF SIGNS' MODES this hour: ${sg.map((id, i) => `${id} ${md[i]}`).join(', ')} (neighbours never the same)`);
     await N.ctx.close(); }
-  for (const mode of ['spell', 'race']) {
+  // (SP6: + WORD FLASH, LAYERS, TWO-TONE; each probe ends once two signs have taken their turn — ≤ 30 s)
+  for (const mode of ['spell', 'race', 'wordflash', 'layers', 'twotone']) {
     const N = await open({ slot: `rm-${mode}`, qs: `${NIGHT}&force=roof-${mode}`, view: [402, 874] });
     await harborUp(N.page);
-    const seen = await ev(N.page, `new Promise(res => { const ids = new Set(); let two = false; const t0 = performance.now(); (function lp() { const m = window.__district.harbor().roofModes; if (m && m.move) ids.add(m.move.id + ':' + m.move.kind); if (performance.now() - t0 < 30000) setTimeout(lp, 150); else res({ ids: [...ids], two }); })(); })`);
+    const seen = await ev(N.page, `new Promise(res => { const ids = new Set(); let two = false; const t0 = performance.now(); (function lp() { const m = window.__district.harbor().roofModes; if (m && m.move) ids.add(m.move.id + ':' + m.move.kind); if (performance.now() - t0 < 30000 && ids.size < 2) setTimeout(lp, 150); else res({ ids: [...ids], two }); })(); })`);
     ok(seen.ids.length >= 2 && seen.ids.every(s => s.endsWith(':' + mode)), `THE ROOF SIGNS — ${mode.toUpperCase()} (&force=roof-${mode}): the signs take turns (${seen.ids.join(', ')})`);
     await N.ctx.close();
   }

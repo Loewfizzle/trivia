@@ -19,7 +19,7 @@ import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHo
 import { hexRgb, markFor } from '../district/marks.js';
 import { showItems, showFrame, newShowOut, FX, everyday, signMotion, spellNow, spellParty, spellMotion, sceneAt, nightStage, rotateMix, burnout, burnoutFlicker, PARTY_PAL, partyPlan, planColours } from '../../core/harbor-show.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
-import { roofModes, roofMove, restartLevel, breathLevel, spellLevel, raceAt, ROOF_MODES } from '../../core/harbor-roofmodes.js';
+import { roofModes, roofMove, restartLevel, breathLevel, spellLevel, raceAt, ROOF_MODES, wordFlashAt, layersAt, twoToneAt } from '../../core/harbor-roofmodes.js';
 import { powerOrder, lightOn, litK, STAGE } from '../../core/harbor-dark.js';
 // NEON PASS 4: the racing light's head (white-hot) and the shimmer's glints
 const HOT = [255, 250, 244];
@@ -304,7 +304,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       frameLight(x, sg, col);
     });
   }
-  function freeItem(it) { free(it.spill); it.spill = undefined; if (it.lit) it.lit.forEach(free); free(it.night); if (it.b) free(it.b.nightS); free(it.alt); if (it.cyc) it.cyc.forEach(free); if (it.vars) for (const v of it.vars.values()) free(v); freePal(it); it.lit = null; it.night = null; it.alt = null; it.cyc = null; it.vars = null; }
+  function freeItem(it) { free(it.spill); it.spill = undefined; if (it.lit) it.lit.forEach(free); free(it.night); if (it.b) free(it.b.nightS); free(it.alt); if (it.swp) it.swp.forEach(free); it.swp = null; it.swpQ = false; if (it.cyc) it.cyc.forEach(free); if (it.vars) for (const v of it.vars.values()) free(v); freePal(it); it.lit = null; it.night = null; it.alt = null; it.cyc = null; it.vars = null; }
   function freePal(it) { if (it.ps) for (const v of it.ps.values()) free(v); it.ps = null; }
   // a tube's colour at its building's depth: the far ones sink toward the night haze (aerial perspective)
   const colOf = (role, o2) => { const c = roleColour(role, scheme); return o2 && o2.st && o2.st.haze ? mix(c, HAZE, o2.st.haze) : c; };
@@ -328,6 +328,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     return cast;
   }
   // a building's party colour: its tubes in one bright colour that contrasts with its own (built a few a frame while the party runs)
+  // SP6 — TWO-TONE's set for a roof sign (the border + the letters' colours traded; built ahead of its turn, the hour it takes the mode)
+  function buildSwap(it) { it.swpQ = false; if (it.swp || !it.lit || !it.sg.litSwap) return; it.swp = it.sg.litSwap(dpr); }
   function buildAlt(it) {
     if (!it.tubes || it.alt) return;
     const own = roleColour(it.o.roles[0], scheme), k = cam.F / 600, o2 = it.o;
@@ -648,10 +650,25 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       const rmM = it.kind === 'sign' && rmNow ? rmNow.modes.get(it.sg.id) : null, rmMv = rmM && rmNow.move && rmNow.move.id === it.sg.id ? rmNow.move : null;
       const rmLv = rmM ? rmNow.restart * (rmM === 'breath' ? breathLevel(t, it.i) : 1) : 1;
       rmMot = rmMv && rmMv.kind === 'spell' ? spellLevel(rmMv.u) : null;
+      // (SP6 — WORD FLASH / LAYERS / TWO-TONE: each part's level now — the border, the letters (word by word), the icon; or the colours traded)
+      if (rmM === 'twotone' && !it.swp && !it.swpQ && it.sg.litSwap) { it.swpQ = true; queue.push(() => buildSwap(it)); }
+      const rmP = !rmMv ? null : rmMv.kind === 'layers' ? layersAt(rmMv.u) : rmMv.kind === 'twotone' ? twoToneAt(rmMv.u) : rmMv.kind === 'wordflash' ? wordFlashAt(rmMv.u, (it.lit.find(q => q.role === 'text') || {}).lines === 2 ? 2 : 1) : null;
+      const burnHere = !!(burn && it.kind === 'sign' && burn.id === it.sg.id);
       const dm = rmM ? (rmMot ? 'roofspell' : null) : it.kind === 'sign' && daily && motion && tier > 0 ? (spellSt && spellSt.id === it.sg.id ? 'spell' : daily.blink.has(it.sg.id) ? 'blink' : daily.cycle === it.sg.id ? 'cycle' : null) : null;
       it.lit.forEach((s, i) => {
         let a = alpha(it, i, t, motion) * base * beat * rmLv;
         if (a <= 0.01) return;
+        if (rmP) {
+          const role = s.role || 'border';
+          if (rmP.words) {
+            if (role === 'text' && rmP.words.length === 2) { roofWords(c, it, s, a, rmP.words, dm, t, burnHere); return; }
+            a *= role === 'text' ? rmP.words[0] : role === 'mark' ? rmP.mark : rmP.border;
+          } else if (rmP.swap != null) {
+            const S2 = it.swp && it.swp[i];
+            if (rmP.swap > 0.001 && S2 && !(burnHere && role === 'text')) { if (rmP.swap < 0.999) { c.globalAlpha = Math.min(1, a * (1 - rmP.swap)); c.drawImage(s.c, s.x, s.y, s.w, s.h); } c.globalAlpha = Math.min(1, a * rmP.swap); c.drawImage(S2.c, S2.x, S2.y, S2.w, S2.h); return; }
+          } else a *= role === 'text' ? rmP.text : role === 'mark' ? rmP.mark : rmP.border;
+          if (a <= 0.01) return;
+        }
         // (a BURNT-OUT LETTER: the sign's text drawn with that letter cut out — dark glass — and a weak sputter now and then)
         if (s.role === 'text' && burn && burn.id === it.sg.id) { deadText(c, it, s, a, dm, t); return; }
         if (dm && s.role === 'text' && (dm === 'spell' || dm === 'blink' || dm === 'roofspell')) { signText(c, it, s, a, dm, t); return; }
@@ -925,16 +942,29 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   // night on the city's clock (one every 2–4 min), a party night between the show's scenes; &force=spell-on: the next sign every 6 s
   // SP3 — THE ROOF SIGNS' HOURLY MODES (core/harbor-roofmodes.js): the named signs in screen order; their modes this hour (seeded), the
   // one big move now, the top of the hour's restart. Off on a party night (the show takes over), at tier 0 (one still image) + reduced
-  // motion. Previews: &force=roof-spell / roof-race / roof-breath (every sign in that mode, its turn coming round fast)
+  // motion. Previews: &force=roof-spell / roof-race / roof-breath / (SP6) roof-wordflash / roof-layers / roof-twotone (every sign in that
+  // mode, its turn coming round fast)
   function planRoof(f, t) {
     if (!f.motion || tier === 0 || showOn || (f.force && f.force.has('no-roofmodes'))) return null;
     const ids = items.filter(it => it.kind === 'sign' && it.ready && it.sg.type !== 'icon' && it.sg.rect).sort((a, b) => a.sg.rect.x - b.sg.rect.x).map(it => it.sg.id);
     if (!ids.length) return null;
     const fm = f.force ? ROOF_MODES.find(m => f.force.has(`roof-${m}`)) : null;
     const ms = f.ms ?? Date.now(), hour = Math.floor(ms / 3.6e6), sec = fm ? 3 + ((t * 2.5) % 3597) : (ms / 1000) % 3600;
-    const key = `${hour}|${ids.join(',')}|${fm || ''}`;
-    if (key !== rmKey) { rmKey = key; rmModes = fm ? new Map(ids.map(id => [id, fm])) : roofModes(ids, hour); }
+    const cyc = daily ? daily.cycle || '' : '', key = `${hour}|${ids.join(',')}|${fm || ''}|${cyc}`;
+    // (SP6: TWO-TONE never on tonight's colour-cycling sign, nor a sign without a border tube to trade colours with)
+    if (key !== rmKey) { rmKey = key; const no = new Set(items.filter(it => it.kind === 'sign' && !it.sg.border).map(it => it.sg.id)); if (cyc) no.add(cyc); rmModes = fm ? new Map(ids.map(id => [id, fm])) : roofModes(ids, hour, { noTwoTone: no }); }
     return { modes: rmModes, move: roofMove(ids, rmModes, sec, hour), restart: fm ? 1 : restartLevel(sec), sec };
+  }
+  // SP6 — WORD FLASH on a stacked two-word name: each line (word) at its own level — the top half of the letters' box, then the bottom
+  // (the burnt-out letter stays dark: its own painter inside each band)
+  function roofWords(c, it, s, a, words, dm, t, burnt) {
+    const b = s.box || { x0: s.x, y0: s.y, x1: s.x + s.w, y1: s.y + s.h }, mid = (b.y0 + b.y1) / 2;
+    for (let w = 0; w < 2; w++) {
+      if (words[w] <= 0.01) continue;
+      c.save(); c.beginPath(); c.rect(s.x - 2, w ? mid : s.y - 2, s.w + 4, w ? s.y + s.h + 2 - mid : mid - s.y + 2); c.clip();
+      if (burnt) deadText(c, it, s, a * words[w], dm, t); else { c.globalAlpha = Math.min(1, a * words[w]); c.drawImage(s.c, s.x, s.y, s.w, s.h); }
+      c.restore();
+    }
   }
   // the race's head (a white-hot dot + its colour's glow) — one sprite per colour
   const raceDots = new Map();
