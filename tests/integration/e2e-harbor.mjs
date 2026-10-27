@@ -3355,6 +3355,16 @@ G('legends', async () => {
     const s2 = await ev(Q.page, `${P}.legend.state`);
     ok(s2.model === 'classic' && s2.saucer && !Q.files.some(f => /assets\/city\/ufo\//.test(f)), `THE UFO BAKE: &ufo=classic draws the hand-drawn saucer (${s2.model}, baked ${s2.saucer}), no sprites fetched`);
     await Q.ctx.close(); }
+  // ---- 9c — THE UFO HIGHER, NOT FURTHER (the owner: it got confused with the Ferris wheel): hovering, its whole hull (the belly ~0.42
+  // radii under its rim) above the wheel's top, its size as before; at 390 / 430 too
+  for (const [w, h] of [[390, 844], [430, 932]]) {
+    const Q = await open({ slot: `ufo-hi-${w}`, qs: `when=2026-09-15T23:00${GR}&force=ufo&lgs=7`, view: [w, h] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!(${P}.legend.state.craft && ${P}.legend.state.model === 'ready')`, 'the craft hovering', 25000).catch(() => {});
+    const s2 = await ev(Q.page, `${P}.legend.state`), cr = s2.craft;
+    ok(cr && s2.wheelTop && cr.y + cr.R * 0.42 < s2.wheelTop && cr.R > 60, `9c THE UFO above the wheel at ${w}: its belly ${cr && (cr.y + cr.R * 0.42).toFixed(0)} < the wheel's top ${s2.wheelTop} (hull ${cr && cr.R} pt)`);
+    await Q.ctx.close();
+  }
   // ---- 9a: THE LIGHT AUDIT's control — a normal night: the wheel's bulbs + its cabins, the promenade's lamps, the pier lit (so the
   // blackout check above can't pass on zeros)
   { const Q = await open({ slot: 'lg0', qs: `${NIGHT}`, view: [402, 874] });

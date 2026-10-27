@@ -479,7 +479,7 @@ export function createLegends({ clock, qp } = {}) {
   const lookFig = lookOf('night', 1924 * 7, { season: 'autumn' });
 
   function sizes() {
-    const sw = Math.min(W * 0.37, 168), key = `${Math.round(sw)}|${dpr}|${Math.round(W)}`;
+    const sw = Math.min(W * 0.37, 168), key = `${Math.round(sw)}|${dpr}|${Math.round(W)}|${Math.round(hoverY())}|${Math.round(med.y)}`;
     if (key === sizeKey) return;
     sizeKey = key;
     for (const s of [saucer, beam]) if (s) { s.cv.width = 0; if (s.mask) s.mask.width = 0; }
@@ -491,7 +491,16 @@ export function createLegends({ clock, qp } = {}) {
     const n = tier === 2 ? 70 : tier === 1 ? 44 : 22;
     for (let i = 0; i < n; i++) motes.push({ a: (hash01(i, 3) - 0.5) * 1.7, ph: hash01(i, 5), sp: 0.035 + 0.05 * hash01(i, 7), r: 0.5 + 1.1 * hash01(i, 9), down: hash01(i, 11) < 0.18, col: hash01(i, 13) < 0.3 ? [200, 180, 255] : hash01(i, 13) < 0.5 ? [180, 255, 240] : [240, 246, 255] });
   }
-  const hoverY = () => Math.max((lanes && lanes['sky-low'] ? lanes['sky-low'].y + 30 : H * 0.42), med.y - Math.min(H * 0.27, 250));
+  // 9c — HIGHER ON SCREEN, NOT FURTHER AWAY (the owner: it got confused with the Ferris wheel / blocked it): the same nearness + size, but
+  // the WHOLE craft in clear sky ABOVE the wheel's top (its belly ~0.4 hull radii under its rim + a gap), never up behind the tagline;
+  // the beam simply grows longer to reach the person (sizes(): the beam's length from hoverY)
+  const hoverY = () => {
+    const base = Math.max((lanes && lanes['sky-low'] ? lanes['sky-low'].y + 30 : H * 0.42), med.y - Math.min(H * 0.27, 250));
+    if (wheelTop == null) return base;
+    const Rr = sR || Math.min(W * 0.37, 168) / 2;
+    return Math.max(bandY0 + Rr * 0.85, Math.min(base, wheelTop - 10 - Rr * 0.42));
+  };
+  let wheelTop = null;
   // (POLISH 4: the size kept — the owner tried it again from the panel: smooth, and he likes it as it is)
   const triLen = () => Math.max(200, Math.min(W * 0.66, 420));
   let triKey = '';
@@ -892,6 +901,7 @@ export function createLegends({ clock, qp } = {}) {
     /** the layout: the camera, the lanes, the compass on the screen, the band above the crowns */
     layout(l, o) {
       L = l; cam = l.cam; W = cam.W; H = cam.H; lanes = l.lanes; dpr = o.dpr || dpr;
+      wheelTop = l.wheel ? project(cam, l.wheel.x, l.wheel.y + l.wheel.r + (l.wheel.frame || 0) * 0.15, l.wheel.z)[1] : null;   // (9c: the craft hovers above it)
       const m = l.medallion; const [mx, my] = project(cam, m.x, 0, m.z); medC = med = { x: mx, y: my };
       { const half = Math.min(W * 0.37, 168) * 0.5 + 6, [rx, ry] = project(cam, m.x + SPOT_OFF, 0, m.z);
         spotSide = rx + half <= W ? 1 : -1;
@@ -954,7 +964,7 @@ export function createLegends({ clock, qp } = {}) {
     active: () => !!run,
     /** POLISH 4: the scene's dark city bake is wanted (a TR-3B due within the minute, or running) */
     darkWanted: () => (run ? run.kind === 'tr3b' : warmFor === 'tr3b'),
-    debug: () => ({ run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, model: modelState, elev: +lastElev.toFixed(1), frame: lastFrame, craft: run && run.kind === 'ufo' ? lastCraft : null, warm: warmFor, ring: { w: +ringW.toFixed(2), taken: +ringTaken.toFixed(2) } }),
+    debug: () => ({ wheelTop: wheelTop == null ? null : +wheelTop.toFixed(1), craft: lastCraft, run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, model: modelState, elev: +lastElev.toFixed(1), frame: lastFrame, craft: run && run.kind === 'ufo' ? lastCraft : null, warm: warmFor, ring: { w: +ringW.toFixed(2), taken: +ringTaken.toFixed(2) } }),
     destroy() { for (const s of [saucer, beam, tri]) if (s) s.cv.width = 0; jets.destroy(); },
   };
 }
