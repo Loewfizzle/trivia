@@ -1038,6 +1038,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
 
   return {
     layout, pump, glass, draw, powerTick, housingStep,
+    /** 9c: the billboards now (the crisp layer lays the speakeasy's roof board's poster at full dpr by day) */
+    boards: () => boards,
     /** tests: each outline's visible runs on screen (after the cut) — { id, z, group, runs: [[[x, y]…]…] } */
     runs: () => outs.map(o2 => ({ id: o2.id, z: o2.z, group: o2.group, runs: o2.runs.map(r => r.pts.map(([x, y]) => [+x.toFixed(1), +y.toFixed(1)])) })),
     /** bumps when a billboard's content changes: the scene re-bakes (the boards are baked with the facades) */

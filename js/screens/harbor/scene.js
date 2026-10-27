@@ -47,7 +47,9 @@ import { lighthouseSteps, createBeam, harborBlackout } from './lighthouse.js';
 import { createBoats } from './boats.js';
 import { createWheel } from './wheel.js';
 import { roadSteps, signalSteps, drawSignalLamps, drawLantern, LENS, WORDS } from './road.js';
-import { speakeasySteps, bladeStep, createSpeakeasy } from './speakeasy.js';
+import { speakeasySteps, bladeStep, createSpeakeasy, bladeGeo, paintDateStone, DATE } from './speakeasy.js';
+import { createCrisp } from './crisp.js';
+import { speakGeo, mats as speakMats, wallMap } from './speakeasy-geo.js';
 import { lateTvK, dayKey as momentDayKey } from '../../core/harbor-moments.js';
 import { createCentre } from './centre.js';
 import { ghostAdGame , bladeStyle, adWeek } from '../../core/harbor-speakeasy.js';
@@ -431,7 +433,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const lightningFlash = () => zap.flash();
   const waterFog = createWaterFog();      // (9a: the fog lying on the harbor)
   const wetGround = createWetGround();    // (9a: the wet promenade — the puddles, the lamps' wet reflections, the rings, the awning's drips)
-  const glassWx = createGlassWeather();   // (9a: the weather on the NEON sign's tubes + the dock / corner buttons' glass — small overlay canvases)
+  const glassWx = createGlassWeather();
+  const crisp = createCrisp();   // (9c: THE CRISP LAYER — lettering at the phone's full dpr: crisp.js)   // (9a: the weather on the NEON sign's tubes + the dock / corner buttons' glass — small overlay canvases)
   let frost = { resize: NOOP, pane: NOOP, debug: () => ({}), destroy: NOOP };
   // (POLISH 5: the live weather is read at once — the answer this device kept — so the FIRST bake already has it; the ask starts now)
   const liveWeather = liveWx, lastWet = lastWetAt, liveKp = liveKpNow;
@@ -772,6 +775,29 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const letterArr = [1, 1, 1, 1];
   function letterOn() { const ls = S.signLetters; if (!ls || ls.length !== 4) return null; for (let i = 0; i < 4; i++) letterArr[i] = ls[i].classList.contains('on') ? 1 : 0; return letterArr; }
   let leadMemo = null;
+  // 9c — THE CRISP LAYER (crisp.js): the speakeasy's BLADE (its board — the bake's own step re-run at full dpr + its snow cap; the lit
+  // letters + the bulbs are speakeasy.js's), the EST. 1924 DATE STONE and the speakeasy's ROOF BILLBOARD's poster by day — each crossfading
+  // with the city's re-bake. Off while a worker is at it (the painters, the billposter, the bulb man: a layer over the city can't go behind
+  // them), &force=no-crisp, a desktop at DPR ≤ 2; tier 0 at 2× (no gain there).
+  function crispTick(c, off, fadeIn, pplLive, crispOn) {
+    if (!crispOn) { crisp.end(); return; }
+    const crew = pplLive ? people.crew() : null, busy = !!(crew && crew.works && crew.works.some(w => /paint|billpost|bulb|lamp|wash|repair|sign/.test(w))) ||   // (the works up on the facade / the board; never the doorman at his post)
+       !!(crew && crew.traces && (crew.traces.blade || (crew.traces.board && crew.traces.board.pasting)));
+    const SNB2 = snowNow() ? SN : null, cp = SNB2 && !clock.force.has('no-snowcaps') ? capFor('stage', bakeTones, SNB2) : null;
+    const xf2 = fadeMs, bk = baker.key, game = speakCtx().game;
+    const day = clamp01((TW.day || 0) + 0.8 * (TW.gold || 0)), dk = smooth(0.25, 0.65, day);   // (the date stone + the roof poster: by day — at night later passes light the facade)
+    if (!busy && !off.has('no-speakeasy') && L.speakeasy) {
+      const G = speakGeo(L), K = G.K;
+      if (game) { const r = bladeGeo(G).rect; crisp.show(c, { id: 'blade-board', z: 1, box: { x: r.x - K * 0.6, y: r.y - 6, w: r.w + K * 0.9, h: r.h + 8 }, key: `${bk}|${game.id}|${game.style ? game.style.key : ''}`, xfade: xf2, alpha: fadeIn, draw: x => { bladeStep(L, bakeTones, speakCtx())(x); if (cp) cp(x); } }); }
+      if (dk > 0.01) { const [ax, ay] = G.front(5.6 - DATE.hw - 0.1, DATE.v1 + 0.1), [bx2, by2] = G.front(5.6 + DATE.hw + 0.1, DATE.v0 - 0.1);
+        crisp.show(c, { id: 'datestone', z: 1, box: { x: ax, y: ay - 4, w: bx2 - ax, h: by2 - ay + 4 }, key: bk, xfade: xf2, alpha: fadeIn * dk, draw: x => { const [ox, oy] = G.front(0, 0); x.save(); wallMap(x, ox, oy, K); paintDateStone(x, speakMats(bakeTones), 5.6); x.restore(); if (cp) cp(x); } }); }
+    }
+    // the roof board's poster face (by day: at night its lamps light it live in the city's canvas, softly — the crisp copy fades out at dusk)
+    const rb = !busy && dk > 0.01 && !neon.fresh() ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak') : null;
+    if (rb && rb.rect) { const R0 = rb.rect, ck = rb.content ? `${rb.content.title}|${rb.content.sub}` : rb.id;
+      crisp.show(c, { id: 'roofboard', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${bk}|${ck}`, xfade: xf2, alpha: fadeIn * dk, draw: x => { x.beginPath(); x.rect(R0.x, R0.y, R0.w, R0.h); x.clip(); rb.dayDraw(x, bakeTones); } }); }
+    crisp.end();
+  }
   const frostMode = () => { const q = qp.get('frost'); return q === 'pane' || q === 'buttons' ? q : 'both'; };   // (9c: the owner picks)
   function workLead() {
     if (!cam || !L) return null;
@@ -1479,6 +1505,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     drawEvents(c, 'sky');
     // ---- the city: the baked layers, far → near, with the moving things between them
     const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - shownAt);
+    const crispOn = crisp.begin(c, tier, !off.has('no-crisp') && fadeIn > 0 && !!L && !!bakeTones && !!baker.key);   // (9c: the crisp layer this frame)
     const xf = fadeFrom < 0 ? 1 : smooth(0, fadeMs, now - fadeFrom);
     if (xf >= 1 && fadeFrom >= 0) { fadeFrom = -1; if (!baker.pending) baker.settle(); }
     if (wantBake && fadeFrom < 0 && !waitRects()) { const mv = shownAt < 0 && S.measure ? rectsMoved() : ''; if (mv) { LOADLOG.add('dock', `measured before the first bake: ${mv}`); layout('measured before the bake'); } else { wantBake = false; rebake(); } }
@@ -1668,7 +1695,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     else if (raidLit.size) { for (const id of raidLit) speak.light(id, null); raidLit.clear(); }
     if (RR && RR.dark) { if (!raidPole) { raidPole = true; speak.pole({ on: false }); } } else if (raidPole) { raidPole = false; speak.pole({ on: true }); }
     { const bd = wTr && wTr.bulbDead; speak.bulb(bd ? bd.i : null, bd ? bd.k : 1); }
-    if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
+    if (fadeIn > 0 && !off.has('no-speakeasy')) speak.draw(c, { crisp: crispOn ? crisp : null, k: litK(DK, 'lamps') * (lit > 0 ? lit : 0), lamp: (lampsF != null ? lampsF : litK(DK, 'bill')) * (lit > 0 ? lit : 0.4), day: (TW.day || 0) + (TW.gold || 0), night: litK(DK, 'lamps'), open: (TW.night || 0) < 0.5, t, motion: S.motion, fade: fadeIn, hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, game: speakCtx().game, tier, party: PT.on > 0 ? { ramp: PT.ramp, punch: PT.punch || 0, pal: PT.palette, beats: PT.beats || 0, beatU: PT.beatU || 0 } : null,   // (FP2: the barber pole's party neon + the beat; 7b: the marquee's chase)
       tw: TW, hush: hushPreview(), flash: lightningFlash(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, raidS: RP ? nowRS - (RP.t0 - 5) : null, seed: L ? L.seed || 1924 : 1924,
         // (WIN3 — THE PARTY IN THE WINDOWS: the peak's clock (seconds since it began / until it ends), the beat, the forced flag)
         partyPhase: PT.name, partyPeakS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (hr - pl.peak) * 3600; })(), partyEndS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (pl.calm - hr) * 3600; })(),
@@ -1809,6 +1836,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (fadeIn > 0 || shownAt >= 0) dressTick(t);
     sun.dim(c, fs);
     drawForeground(c, W, H, vignette, Math.min(1.22, night + (HR.shadow > 0.01 ? HR.shadow * 1.4 : 0)));
+    crispTick(c, off, fadeIn, pplLive, crispOn);
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
     // (FP: or THE PREVIEW PANEL → TOOLS → READOUT on this device — ui/debug-tools.js, live, remembered; &debug=1 still shows it)
     if (debugTool('readout', DEBUG)) { readout(now); loadStrip(now); pixWatch(now); } else { if (roStrip) { roStrip.remove(); roStrip = null; } if (llStrip) { llStrip.remove(); llStrip = null; } }
@@ -2657,7 +2685,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       snowman: SM ? { ...SM } : null,
-      snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), pane: frost.debug(), frostMode: frostMode(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
+      snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), crisp: crisp.debug(), pane: frost.debug(), frostMode: frostMode(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
@@ -2680,7 +2708,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       baker.destroy(); litBaker.destroy(); wild.destroy(); for (const d of Object.values(dark.g)) d.cv.width = d.cv.height = 0; sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
-      fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); wetGround.destroy(); glassWx.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
+      crisp.destroy(); fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); wetGround.destroy(); glassWx.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
       if (roStrip) { roStrip.remove(); roStrip = null; }
       if (llStrip) { llStrip.remove(); llStrip = null; }
       for (const c of [skyCv, skyPrev, pxCv, vignette, glow, coolGlow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }

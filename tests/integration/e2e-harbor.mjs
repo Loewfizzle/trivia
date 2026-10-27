@@ -3500,6 +3500,19 @@ G('snow', async () => {
     ok(s && (s.pane.grown > 0.3) === paneOn && s.pane.clear >= 3 && (s.gwx.frost > 0.05) === glassOn, `9c FROST ${mode.toUpperCase()}: the pane ${s && s.pane.grown} (${s && s.pane.clear} clear holes), the buttons' frost ${s && s.gwx.frost}`);
     await Q.ctx.close();
   }
+  // ---- 9c — THE CRISP LAYER (the owner: the blade blurry next to the logo): on an iPhone-like DPR 3 by day the blade's board, the date
+  // stone + the roof poster ride full-dpr overlays; at night the blade's lit letters + bulbs; at DPR 2 (the canvas's own) none at all
+  { const D = await open({ slot: 'cr-d', qs: `when=2026-10-27T13:00${GR}`, view: [402, 874], dpr: 3 });
+    await harborUp(D.page); await waitFor(D.page, `${SNW}.crisp.items.length >= 3`, 'the crisp items', 10000).catch(() => {});
+    const a = await ev(D.page, `${SNW}.crisp`), ids = a.items.map(i => i.id).sort().join(',');
+    ok(a.on && a.dpr === 3 && ids === 'blade-board,datestone,roofboard' && a.items.every(i => i.w > 20), `9c THE CRISP LAYER by day at DPR 3: ${ids} (${a.items.map(i => `${i.w}×${i.h}`).join(', ')})`);
+    const n = await ev(D.page, `document.querySelectorAll('canvas.hc-crisp').length`);
+    await D.ctx.close();
+    const N = await open({ slot: 'cr-2', qs: `when=2026-10-27T13:00${GR}`, view: [402, 874], dpr: 2 });
+    await harborUp(N.page); await sleep(800);
+    const b = await ev(N.page, `${SNW}.crisp`);
+    ok(n >= 3 && !b.on && b.items.length === 0, `9c THE CRISP LAYER off where it gains nothing (DPR 2): ${b.on} · ${b.items.length} items (DPR 3 had ${n} overlays)`);
+    await N.ctx.close(); }
   // ---- THE JANUARY SNOWMAN: Jan 31 (the climate's January) stands done on the inlay; &snowman=base the forced stage
   { const Q = await open({ slot: 'sn-man', qs: `when=2027-01-31T13:00${GR}`, view: [402, 874] });
     await harborUp(Q.page); await sleep(600);

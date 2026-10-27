@@ -206,6 +206,11 @@ export function createSpeakeasy() {
     bulbAt = { x: x0, y: y0, w: x1 - x0, h: y1 - y0 };
     bulbCv = bulbCv || document.createElement('canvas'); bulbCv.width = Math.ceil(bulbAt.w * dpr); bulbCv.height = Math.ceil(bulbAt.h * dpr);
     const x = safeCtx(bulbCv); x.setTransform(dpr, 0, 0, dpr, -x0 * dpr, -y0 * dpr); x.clearRect(x0, y0, bulbAt.w, bulbAt.h);
+    bulbsInto(x, a, tier, pk, beats, beatU);
+  }
+  /** the lit bulbs painted into x (in pt): the sprite above, or 9c's crisp layer at full dpr */
+  function bulbsInto(x, a, tier, pk, beats, beatU) {
+    const S = marqueeScreen(bladeGeo(G));
     x.globalCompositeOperation = 'lighter';
     for (const b of S) {
       const lv = marqueeLevel(b.i, pk, beats, beatU) * a * (b.i === dead.i ? dead.k : 1);   // (8b1: a dead bulb — the repairman's next morning)
@@ -434,7 +439,10 @@ export function createSpeakeasy() {
       const key = f.game.id + '|' + (f.game.style ? f.game.style.key : '') + '|' + dpr + '|' + G.K.toFixed(2);   // (SP5: the week's look)
       if (key !== bladeKey || !bladeCv) { bladeAt = paintBladeLit(f.game); bladeKey = key; }
       const a = clamp01(f.lamp) * fade;
-      c.globalAlpha = a; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h);
+      // (9c — THE CRISP LAYER: on a DPR-3 phone the lit letters at the phone's full dpr over the board — f.crisp; else in the city's canvas)
+      const CR = f.crisp && f.crisp.on ? f.crisp : null, bg0 = bladeGeo(G);
+      const crispLit = CR && CR.show(c, { id: 'blade-lit', z: 2, box: bladeAt, key: `${key}|${CR.dpr}`, alpha: a, draw: x => { wallMap(x, bg0.ox, bg0.oy, bg0.k); paintBlade(x, { ...mats({ day: 0, gold: 0, night: 1, sunDir: 0, sunEl: 30, ovc: 0, haze: [40, 40, 70] }), glowPx: BLADE_GLOW * CR.dpr }, f.game, true); } });
+      if (!crispLit) { c.globalAlpha = a; c.drawImage(bladeCv, bladeAt.x, bladeAt.y, bladeAt.w, bladeAt.h); }
       c.globalCompositeOperation = 'lighter';
       // 7b — THE MARQUEE'S BULBS lit: each a crisp warm-white globe (the hot core) + a small TIGHT halo (none at tier 0) — steady; a
       // party night's slow chase (marqueeLevel: a step a beat)
@@ -443,7 +451,8 @@ export function createSpeakeasy() {
       const beats = pt ? pt.beats || 0 : 0, fq = pt ? Math.round(clamp01((pt.beatU || 0) * 3) * 4) / 4 : 1, aq = Math.round(a * 16) / 16;
       const bk = `${dead.i}:${dead.k}|${aq}|${f.tier === 0 ? 0 : 1}|${pk > 0.01 ? `${((beats % 3) + 3) % 3}|${fq}|${Math.round(pk * 8)}` : 's'}|${dpr}|${G.K.toFixed(2)}`;
       if (bk !== bulbKey) { bulbKey = bk; paintBulbs(aq, f.tier, pk, beats, fq / 3); }
-      if (bulbCv && bulbAt) { c.globalAlpha = 1; c.drawImage(bulbCv, bulbAt.x, bulbAt.y, bulbAt.w, bulbAt.h); }
+      const crispB = CR && bulbAt && CR.show(c, { id: 'blade-bulbs', z: 3, box: bulbAt, key: `${bk}|${CR.dpr}`, alpha: 1, draw: x => bulbsInto(x, aq, f.tier, pk, beats, fq / 3) });
+      if (!crispB && bulbCv && bulbAt) { c.globalAlpha = 1; c.drawImage(bulbCv, bulbAt.x, bulbAt.y, bulbAt.w, bulbAt.h); }
       c.globalCompositeOperation = 'source-over';
     }
     c.globalAlpha = fade;
