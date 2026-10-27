@@ -247,6 +247,7 @@ function openMenu() {
   if (!inRoom) rows.push(item('THE BOARD', 'Hall of fame', () => { closeMenu(); setState({ view: 'board' }); }));
   rows.push(item('HOW TO PLAY', null, () => { closeMenu(); openHelp(playing ? state.game.id : undefined); }));
   rows.push(item('SETTINGS', inRoom ? 'Sound, controls, room' : 'Sound and controls', () => { closeMenu(); open(); }));
+  rows.push(item('CREDITS', null, () => { closeMenu(); import('./credits.js').then(m => m.openCredits()).catch(() => {}); }));   // (SP6: the CC BY credits)
   if (inGame) {
     rows.push(h('div.gm-sep'));
     rows.push(armed('QUIT TO LOBBY', 'TAP AGAIN TO QUIT', 'The others keep playing', () => { setState({ quit: state.game.matchId }); toast('YOU LEFT THE GAME — YOU’LL BE DEALT INTO THE NEXT ONE', 'info', 3200); }));

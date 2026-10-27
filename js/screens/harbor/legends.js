@@ -22,6 +22,7 @@
 //   power — the edge of its range sputters, the middle dies, the lights come back late + unevenly behind it), the music POWERING DOWN
 //   (sounds.js), then THE CHASE: three F-16s screaming across after it in an echelon, afterburners with MACH DIAMONDS (jets.js)
 import { project } from '../../core/harbor-layout.js';
+import { GIANT } from '../../core/harbor-holidayprops.js';
 import { ufoAt, tr3bAt, legendAt, legendNight, tr3bDir, eveningOf, drainAt, blackAt, blackAll, CHASE, chaseX, chasePeakS, FORMATIONS, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
 import { lookOf, drawFolk } from './folk.js';
 import { createJets, jetLook } from './jets.js';
@@ -454,6 +455,12 @@ export function createLegends({ clock, qp } = {}) {
   // (&lgs=<s>: a preview HELD at that second of the event — the look review's frame-exact shots; motion keeps running)
   const hold = qp && qp.get('lgs') != null && qp.get('lgs') !== '' ? Number(qp.get('lgs')) : null;
   let W = 1, H = 1, cam = null, L = null, lanes = null, dpr = 2, tier = 2, med = null, crown = 0, bandY0 = 0;
+  // SP6 — THE SPOT (the owner: the person rose from INSIDE the giant ₿ pumpkin): when a holiday CENTREPIECE stands on the compass the whole
+  // abduction — the walker, the beam, the craft — happens BESIDE it, just past its walk-around ring (GIANT.clear) on the walker's side;
+  // the walk is TRANSLATED, never changed (the pose, the lift + the timing untouched). The side with room for the craft: right of it (the
+  // walker's own side) when the saucer fits on screen there, else left (the walk-in mirrored: in from the left, never through the piece)
+  const SPOT_OFF = GIANT.clear + 1.3;
+  let medC = null, medS = null, spotX = 0, spotSide = 1;
   let saucer = null, beam = null, tri = null, sizeKey = '';
   let ringPh = 0, ringT = null, ringW = 0, ringTaken = 0;   // (11a-2: the racing ring's phase, integrated so its speed can change smoothly)
   const jets = createJets();
@@ -466,7 +473,7 @@ export function createLegends({ clock, qp } = {}) {
     const sw = Math.min(W * 0.37, 168), key = `${Math.round(sw)}|${dpr}|${Math.round(W)}`;
     if (key === sizeKey) return;
     sizeKey = key;
-    for (const s of [saucer, beam]) if (s) s.cv.width = 0;
+    for (const s of [saucer, beam]) if (s) { s.cv.width = 0; if (s.mask) s.mask.width = 0; }
     saucer = saucerSprite(sw, dpr);
     const top = sw * 0.5, len = Math.max(60, med.y - hoverY() - sw * 0.06), bot = sw * 1.12;
     beam = beamSprite(top, bot, len, dpr);
@@ -691,6 +698,7 @@ export function createLegends({ clock, qp } = {}) {
   }
   function drawUfo(c, fs, env) {
     if (!st || run.kind !== 'ufo') return;
+    spotX = fs.centre ? SPOT_OFF * spotSide : 0; med = spotX ? medS : medC;
     sizes();
     const t = sNow, sa = saucerAt(), R = saucer.R * sa.s, bellyY = sa.y + R * 0.16;
     const night = clamp01(fs.L.w.night + fs.L.w.late), mo = fs.motion;
@@ -709,7 +717,7 @@ export function createLegends({ clock, qp } = {}) {
         c.save(); c.fillStyle = `rgba(8,8,18,${(0.42 * k).toFixed(3)})`;
         const hs = 16, m0 = L.medallion;
         for (const l of L.lamps) {
-          const dx = l.x - m0.x, dz = l.z - m0.z, dist = Math.hypot(dx, dz);
+          const dx = l.x - (m0.x + spotX), dz = l.z - m0.z, dist = Math.hypot(dx, dz);
           if (dist > 13 || dist < 0.5) continue;
           const sl = Math.min(9, l.h * dist / Math.max(2, hs - l.h)), ux = dx / dist, uz = dz / dist, w0 = 0.18, w1 = 0.5;
           const q = (a, b) => project(cam, a, 0, b);
@@ -723,25 +731,31 @@ export function createLegends({ clock, qp } = {}) {
     // ---- THE WALKER (before the lift): in from the right along the compass's row, stops, looks up, points
     const m0 = L.medallion;
     if (!st.lift.on && sNow < 9.2 && env) {
-      const u = st.walker.u, x0 = m0.x + 8.5, xw = lerp(x0, m0.x + 0.25, u);
+      const sd = spotX < 0 ? -1 : 1, u = st.walker.u, x0 = m0.x + spotX + 8.5 * sd, xw = lerp(x0, m0.x + spotX + 0.25 * sd, u);   // (sd −1: the mirrored walk-in)
       const pz = st.walker.pose === 'walk' ? 'walk' : st.walker.pose === 'point' ? 'point' : 'wait';
-      const hd = st.walker.pose === 'walk' ? Math.PI : lerp(Math.PI, -Math.PI / 2 - 0.25, smooth(6.2, 7, sNow));
-      drawFolk(c, cam, { s: { x: xw, z: m0.z, pose: pz, hd, dist: (x0 - xw), v: st.walker.pose === 'walk' ? 1.4 : 0, a: 1 }, L: lookFig }, env);
+      const hw0 = sd > 0 ? Math.PI : 0, hd = st.walker.pose === 'walk' ? hw0 : lerp(hw0, -Math.PI / 2 - 0.25 * sd, smooth(6.2, 7, sNow));
+      drawFolk(c, cam, { s: { x: xw, z: m0.z, pose: pz, hd, dist: Math.abs(x0 - xw), v: st.walker.pose === 'walk' ? 1.4 : 0, a: 1 }, L: lookFig }, env);
     }
     // ---- THE BEAM (a wide soft cone from the emitter down to the paving; opening downward, shimmering, full of motes)
     if (beamK > 0.01 && open > 0.01) {
       const top = bellyY + R * 0.02, len = gy - top, bw = beam.w * (len / beam.h * 0.25 + 0.75);
       const reach = open * len;
-      // (the opening's front is SOFT: the cone drawn in slices, each fading out round its reach — never a cut edge)
-      const soft = Math.min(46, len * 0.22), slices = 12;
-      const pass = (a, wk) => {
-        const sw = bw * wk, x0 = med.x - sw / 2, sh0 = beam.cv.height / slices;
-        for (let i = 0; i < slices; i++) {
-          const yc = (i + 0.5) / slices * len, f = open >= 0.999 ? 1 : 1 - smooth(reach - soft, reach + soft * 0.3, yc);
-          if (f <= 0.01) continue;
-          c.globalAlpha = a * f; c.drawImage(beam.cv, 0, i * sh0, beam.cv.width, sh0, x0, top + i * len / slices, sw, len / slices + 0.5);
-        }
-      };
+      // (the opening's front is SOFT — never a cut edge. SP6, the owner's phone: thin, evenly spaced HORIZONTAL LINES ran across the beam +
+      // the haze round it — the cone was drawn in 12 slices overlapping by half a pixel, three passes deep, so every seam drew twice. Now
+      // ONE image per pass: fully open, the bake itself; while it opens, the bake masked once a frame by a soft gradient at its reach)
+      const soft = Math.min(46, len * 0.22);
+      let img = beam.cv;
+      if (open < 0.999) {
+        const bc = beam.cv, m = beam.mask || (beam.mask = mk(bc.width, bc.height)), mx = safeCtx(m), sy = bc.height / len;
+        mx.globalCompositeOperation = 'copy'; mx.globalAlpha = 1; mx.drawImage(bc, 0, 0);
+        mx.globalCompositeOperation = 'destination-in';
+        const y0 = Math.max(0, (reach - soft) * sy), y1 = Math.max(y0 + 1, (reach + soft * 0.3) * sy), g = mx.createLinearGradient(0, y0, 0, y1);
+        g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.5, 'rgba(0,0,0,0.5)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+        mx.fillStyle = g; mx.fillRect(0, 0, m.width, m.height);
+        mx.globalCompositeOperation = 'source-over';
+        img = m;
+      }
+      const pass = (a, wk) => { const sw = bw * wk; c.globalAlpha = a; c.drawImage(img, med.x - sw / 2, top, sw, len); };
       c.save();
       const sh = mo ? 0.88 + 0.08 * Math.sin(t * 2.3) + 0.04 * Math.sin(t * 5.1) : 0.95;
       // the light IN THE AIR: a pale veil first (the cone glows as a body of light — the city behind it seen through a bright haze, never
@@ -825,7 +839,10 @@ export function createLegends({ clock, qp } = {}) {
     /** the layout: the camera, the lanes, the compass on the screen, the band above the crowns */
     layout(l, o) {
       L = l; cam = l.cam; W = cam.W; H = cam.H; lanes = l.lanes; dpr = o.dpr || dpr;
-      const m = l.medallion; const [mx, my] = project(cam, m.x, 0, m.z); med = { x: mx, y: my };
+      const m = l.medallion; const [mx, my] = project(cam, m.x, 0, m.z); medC = med = { x: mx, y: my };
+      { const half = Math.min(W * 0.37, 168) * 0.5 + 6, [rx, ry] = project(cam, m.x + SPOT_OFF, 0, m.z);
+        spotSide = rx + half <= W ? 1 : -1;
+        const [bx, by] = spotSide > 0 ? [rx, ry] : project(cam, m.x - SPOT_OFF, 0, m.z); medS = { x: bx, y: by }; }
       bandY0 = lanes && lanes['sky-low'] ? (lanes['sky-low'].y0NoTag != null ? lanes['sky-low'].y0NoTag : lanes['sky-low'].y) + 6 : H * 0.3;
       crown = o.crown || (lanes && lanes['sky-low'] ? lanes['sky-low'].y + lanes['sky-low'].h : H * 0.45);
       sizeKey = ''; jets.setDpr(dpr);
@@ -835,7 +852,7 @@ export function createLegends({ clock, qp } = {}) {
     remote(at, gone = [], came = []) { for (const id of came) if (id === 'ufo' || id === 'tr3b') { firstAt.set(id, at); lastForce = 0; } for (const id of gone) if (run && run.kind === id) run = null; },
     tick,
     /** what runs: { kind, s, st, dir } or null */
-    state: () => (run && st ? { kind: run.kind, s: sNow, st, dir: run.dir } : null),
+    state: () => (run && st ? { kind: run.kind, s: sNow, st, dir: run.dir, beside: spotX > 0, spot: med ? { x: +med.x.toFixed(1), y: +med.y.toFixed(1) } : null } : null),
     power, drainCols,
     /** the sky pass (after the clouds, before the city's layers): the TR-3B + the chase */
     sky: (c, fs) => drawTr3b(c, fs),
