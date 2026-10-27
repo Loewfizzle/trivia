@@ -27,6 +27,7 @@ import { ufoAt, tr3bAt, legendAt, legendNight, tr3bDir, eveningOf, drainAt, blac
 import { lookOf, drawFolk } from './folk.js';
 import { createJets, jetLook } from './jets.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { loadUfoModel, rowsAt, frameAt, drawBody, drawLights, portsAt } from './ufo-model.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -461,8 +462,16 @@ export function createLegends({ clock, qp } = {}) {
   // walker's own side) when the saucer fits on screen there, else left (the walk-in mirrored: in from the left, never through the piece)
   const SPOT_OFF = GIANT.clear + 1.3;
   let medC = null, medS = null, spotX = 0, spotSide = 1;
-  let saucer = null, beam = null, tri = null, sizeKey = '';
+  let saucer = null, beam = null, tri = null, sizeKey = '', sR = 0;   // (sR: the hull's radius in pt — the hand-drawn saucer's or the model's)
   let ringPh = 0, ringT = null, ringW = 0, ringTaken = 0;   // (11a-2: the racing ring's phase, integrated so its speed can change smoothly)
+  // THE CRAFT FROM A REAL MODEL (sebslom's "UFO", baked: ufo-model.js) — fetched when an abduction is due; &ufo=classic = the hand-drawn
+  // saucer (also the stand-in while the sprites load, from 4 s in, or if they fail)
+  let model = null, modelState = qp && qp.get('ufo') === 'classic' ? 'classic' : 'off', spinPh = 0, spinT = null, lastElev = 0, lastFrame = -1, lastCraft = null, modelT0 = 0;
+  function wantModel() {
+    if (modelState !== 'off') return;
+    modelState = 'loading'; modelT0 = performance.now();
+    loadUfoModel().then(m => { model = m; modelState = 'ready'; }, () => { modelState = 'failed'; });
+  }
   const jets = createJets();
   // the run: { kind, at (clock ms it began), dir, seed, forced }
   let run = null, st = null, sNow = 0, lastForce = 0, firstAt = new Map();
@@ -474,7 +483,8 @@ export function createLegends({ clock, qp } = {}) {
     if (key === sizeKey) return;
     sizeKey = key;
     for (const s of [saucer, beam]) if (s) { s.cv.width = 0; if (s.mask) s.mask.width = 0; }
-    saucer = saucerSprite(sw, dpr);
+    sR = sw / 2;
+    saucer = modelState === 'classic' || modelState === 'failed' ? saucerSprite(sw, dpr) : null;
     const top = sw * 0.5, len = Math.max(60, med.y - hoverY() - sw * 0.06), bot = sw * 1.12;
     beam = beamSprite(top, bot, len, dpr);
     motes = [];
@@ -498,6 +508,7 @@ export function createLegends({ clock, qp } = {}) {
   function warm(kind) {
     if (!L || warmFor === kind) return;
     warmFor = kind; clearTimeout(warmT);
+    if (kind === 'ufo') wantModel();
     warmT = setTimeout(() => { if (!L) return; if (kind === 'tr3b') triSizes(); else sizes(); }, 30);
   }
   const chaseLen = () => Math.max(54, Math.min(W * 0.2, 119));   // (C2 — the owner: "way too big" → 15 % smaller than Oct 25's 0.235 W / 64–140 pt)
@@ -700,7 +711,11 @@ export function createLegends({ clock, qp } = {}) {
     if (!st || run.kind !== 'ufo') return;
     spotX = fs.centre ? SPOT_OFF * spotSide : 0; med = spotX ? medS : medC;
     sizes();
-    const t = sNow, sa = saucerAt(), R = saucer.R * sa.s, bellyY = sa.y + R * 0.16;
+    const t = sNow, sa = saucerAt(), R = sR * sa.s, bellyY = sa.y + R * 0.16;
+    const useM = modelState === 'ready' && !!model;
+    lastCraft = { x: +sa.x.toFixed(1), y: +sa.y.toFixed(1), R: +R.toFixed(1) };
+    // (the hand-drawn saucer stands in: &ufo=classic, the sprites failed, or still loading after 4 s — a slow network on a preview)
+    if (!useM && !saucer && (modelState !== 'loading' || performance.now() - modelT0 > 4000)) saucer = saucerSprite(sR * 2, dpr);
     const night = clamp01(fs.L.w.night + fs.L.w.late), mo = fs.motion;
     const beamK = st.beam.k, open = st.beam.open;
     // ---- THE LIGHT ON THE GROUND + THE SURROUNDINGS (the pool, the wash, the water under it, the lamps' long shadows)
@@ -795,40 +810,78 @@ export function createLegends({ clock, qp } = {}) {
     // strong soft glow pouring down into the beam, THE RACING RING (ice-white slots lit in sequence round the rim: calm while it hovers,
     // ACCELERATING as it lifts him, a flash of them all as he's taken, slowing as it leaves), the smoked dome's faint inner light
     c.save(); c.translate(sa.x, sa.y); c.rotate(sa.tilt); c.scale(sa.s, sa.s);
-    const R0 = saucer.R, se0 = saucer.se, GL = [196, 255, 214], GW = [236, 255, 242];
+    const R0 = sR, GL = [196, 255, 214], GW = [236, 255, 242];
     const hum = mo ? 0.92 + 0.05 * Math.sin(t * 2.1) + 0.03 * Math.sin(t * 5.3) : 0.95, bk = 0.45 + 0.55 * beamK;   // (the belly's glow: on from the approach, full with the beam)
     c.globalCompositeOperation = 'lighter';
     glow(c, GL, 0, R0 * 0.55, R0 * 2.4, R0 * 1.15, (0.1 + 0.12 * night) * bk * hum);                 // (its light in the haze + on the roofs below)
     glow(c, GL, 0, R0 * 0.22, R0 * 1.25, R0 * 0.42, 0.32 * bk * hum);                                // (pouring out from under it)
     c.globalCompositeOperation = 'source-over';
-    // (leaving: a short streak — the hull drawn a few times back along its path, fading)
-    if (st.craft.out > 0.05) for (let i = 3; i >= 1; i--) { c.globalAlpha = 0.18 * st.craft.out / i; c.drawImage(saucer.cv, -saucer.w / 2 - i * 14 / sa.s, -saucer.oy + i * 6 / sa.s, saucer.w, saucer.h); }
-    c.globalAlpha = 1; c.drawImage(saucer.cv, -saucer.w / 2, -saucer.oy, saucer.w, saucer.h);
-    c.globalCompositeOperation = 'lighter';
-    // THE BELLY in its light: a soft bright body under the rim (wider than the hull's underside: never a shape — only light), its core
-    // white-green, its edge into the haze
-    glow(c, GL, 0, saucer.by, R0 * 1.08, R0 * 0.24, 0.7 * bk * hum);
-    glow(c, GW, 0, saucer.by, R0 * 0.8, R0 * 0.13, 0.85 * bk * hum);
-    glow(c, [255, 255, 255], 0, saucer.by + R0 * 0.01, R0 * 0.46, R0 * 0.06, 0.85 * bk * hum);
-    // THE RING: the rim's slots (the front half we see), a head racing round with a fading trail; its speed from the scene's moment
-    { const lift = st.lift, taken = lift.on ? smooth(0.6, 0.68, lift.fade) * (1 - smooth(0.72, 0.86, lift.fade)) : 0;
-      const w = !mo ? 0 : st.craft.out > 0.02 ? lerp(7, 1.4, st.craft.out) : lift.on ? 7 + 30 * lift.h : 7;   // (rad/s: calm, racing, slowing)
+    // THE RING's pace (the classic's slots + the model's ports share it): calm while it hovers, ACCELERATING as it lifts him, a flash of
+    // them all as he's taken, slowing as it leaves
+    const lift = st.lift, taken = lift.on ? smooth(0.6, 0.68, lift.fade) * (1 - smooth(0.72, 0.86, lift.fade)) : 0;
+    { const w = !mo ? 0 : st.craft.out > 0.02 ? lerp(7, 1.4, st.craft.out) : lift.on ? 7 + 30 * lift.h : 7;   // (rad/s: calm, racing, slowing)
       if (ringT == null || t < ringT - 1) ringT = t;
-      ringPh += w * Math.max(0, Math.min(0.1, t - ringT)); ringT = t; ringW = w; ringTaken = taken;
-      const n = 30, rowY = R0 * 0.005;
-      for (let i = 0; i < n; i++) {
-        const a = Math.PI + (i + 0.5) / n * Math.PI;                         // (the front half: z toward us)
-        const ex = Math.cos(a) * R0 * 0.995, ey = rowY - Math.sin(a) * R0 * se0 * 0.98;
-        const d0 = ((ringPh - a) % TAU + TAU) % TAU, trail = Math.exp(-d0 / 0.55) + 0.75 * Math.exp(-((TAU - d0) / 0.08));
-        const lv = Math.min(1, 0.3 + 0.95 * trail + taken * 1.2) * (0.5 + 0.5 * Math.abs(Math.sin(a)));   // (the edge-on slots at the sides fainter)
-        glow(c, [170, 236, 255], ex, ey, R0 * 0.1, R0 * 0.05, 0.9 * lv);
-        const sw2 = R0 * 0.042 * (0.35 + 0.65 * Math.abs(Math.sin(a)));   // (foreshortened toward the sides)
-        c.globalAlpha = Math.min(1, lv * 1.1); c.fillStyle = rgb(mix([200, 244, 255], [255, 255, 255], Math.min(1, trail + taken))); c.fillRect(ex - sw2 / 2, ey - R0 * 0.012, sw2, R0 * 0.024);
+      ringPh += w * Math.max(0, Math.min(0.1, t - ringT)); ringT = t; ringW = w; ringTaken = taken; }
+    if (useM) {
+      // THE MODEL (sebslom's "UFO", baked — ufo-model.js): its turntable spinning slowly (faster as it lifts him, a dash as it leaves), the
+      // hover row cross-fading into the steep one as it climbs (the real view angle: the craft's height over the horizon), its OWN green
+      // ports — their baked layer at a low level, each port's soft glow (it reads at phone size) lit by the racing ring
+      const elev = Math.atan2(cam.VPY - sa.y, cam.F) * 180 / Math.PI;
+      const spinW = !mo ? 0 : st.craft.out > 0.02 ? lerp(16, 70, st.craft.out) : lift.on ? 16 + 44 * lift.h : 16;   // (°/s)
+      if (spinT == null || t < spinT - 1) spinT = t;
+      spinPh += spinW * Math.max(0, Math.min(0.1, t - spinT)); spinT = t;
+      const rows = rowsAt(model, elev), fi = frameAt(rows[0][0], spinPh);
+      lastElev = elev; lastFrame = fi;
+      // (leaving: a short streak — the hull drawn a few times back along its path, fading)
+      if (st.craft.out > 0.05) for (let i = 3; i >= 1; i--) { c.save(); c.translate(-i * 14 / sa.s, i * 6 / sa.s); for (const [row, a, sy] of rows) drawBody(c, row, fi, R0, 0.18 * st.craft.out / i * a, sy); c.restore(); }
+      for (const [row, a, sy] of rows) drawBody(c, row, fi, R0, a, sy);
+      c.globalCompositeOperation = 'lighter';
+      // THE BELLY in its light: the glass sphere's underside lit from within as the emitter (on from the approach, full with the beam)
+      const wLo = rows.length > 1 ? rows[1][1] : rows[0][0] === model.rows.lo ? 1 : 0;
+      const by = lerp(model.rows.hi.belly[1] * rows[0][2], model.rows.lo.belly[1] * rows[rows.length - 1][2], wLo) * R0;
+      glow(c, GL, 0, by, R0 * 0.95, R0 * 0.22, 0.55 * bk * hum);
+      glow(c, GW, 0, by - R0 * 0.03, R0 * 0.5, R0 * 0.11, 0.7 * bk * hum);
+      glow(c, [255, 255, 255], 0, by - R0 * 0.02, R0 * 0.26, R0 * 0.05, 0.7 * bk * hum);
+      // THE PORTS: the model's own green (its layer: dim between the passes of the chase), each port its own glow + a hot core as the
+      // ring's head passes (the trail fading behind it); all of them flash as he's taken
+      const PG = [96, 255, 120], PC = [214, 255, 206];
+      for (const [row, a, sy] of rows) {
+        drawLights(c, row, fi, R0, a * (0.55 + 0.45 * taken), sy);
+        for (const p of portsAt(row, fi)) {
+          const d0 = ((ringPh - p.az) % TAU + TAU) % TAU, trail = Math.exp(-d0 / 0.55) + 0.75 * Math.exp(-((TAU - d0) / 0.08));
+          const lv = Math.min(1, 0.22 + 0.95 * trail + taken * 1.2) * a, r = Math.max(R0 * 0.05, p.size * R0 * 1.6);
+          glow(c, PG, p.x * R0, p.y * R0 * sy, r * 2.2, r * 1.4, 0.7 * lv);
+          glow(c, PC, p.x * R0, p.y * R0 * sy, r * 0.75, r * 0.5, 0.95 * lv);
+        }
       }
-      if (taken > 0.01) glow(c, [220, 250, 255], 0, rowY + R0 * 0.08, R0 * 1.4, R0 * 0.4, 0.6 * taken);
+      if (taken > 0.01) glow(c, PG, 0, 0, R0 * 1.4, R0 * 0.4, 0.55 * taken);
+    } else if (saucer) {
+      const se0 = saucer.se;
+      // (leaving: a short streak — the hull drawn a few times back along its path, fading)
+      if (st.craft.out > 0.05) for (let i = 3; i >= 1; i--) { c.globalAlpha = 0.18 * st.craft.out / i; c.drawImage(saucer.cv, -saucer.w / 2 - i * 14 / sa.s, -saucer.oy + i * 6 / sa.s, saucer.w, saucer.h); }
+      c.globalAlpha = 1; c.drawImage(saucer.cv, -saucer.w / 2, -saucer.oy, saucer.w, saucer.h);
+      c.globalCompositeOperation = 'lighter';
+      // THE BELLY in its light: a soft bright body under the rim (wider than the hull's underside: never a shape — only light), its core
+      // white-green, its edge into the haze
+      glow(c, GL, 0, saucer.by, R0 * 1.08, R0 * 0.24, 0.7 * bk * hum);
+      glow(c, GW, 0, saucer.by, R0 * 0.8, R0 * 0.13, 0.85 * bk * hum);
+      glow(c, [255, 255, 255], 0, saucer.by + R0 * 0.01, R0 * 0.46, R0 * 0.06, 0.85 * bk * hum);
+      // THE RING: the rim's slots (the front half we see), a head racing round with a fading trail
+      { const n = 30, rowY = R0 * 0.005;
+        for (let i = 0; i < n; i++) {
+          const a = Math.PI + (i + 0.5) / n * Math.PI;                         // (the front half: z toward us)
+          const ex = Math.cos(a) * R0 * 0.995, ey = rowY - Math.sin(a) * R0 * se0 * 0.98;
+          const d0 = ((ringPh - a) % TAU + TAU) % TAU, trail = Math.exp(-d0 / 0.55) + 0.75 * Math.exp(-((TAU - d0) / 0.08));
+          const lv = Math.min(1, 0.3 + 0.95 * trail + taken * 1.2) * (0.5 + 0.5 * Math.abs(Math.sin(a)));   // (the edge-on slots at the sides fainter)
+          glow(c, [170, 236, 255], ex, ey, R0 * 0.1, R0 * 0.05, 0.9 * lv);
+          const sw2 = R0 * 0.042 * (0.35 + 0.65 * Math.abs(Math.sin(a)));   // (foreshortened toward the sides)
+          c.globalAlpha = Math.min(1, lv * 1.1); c.fillStyle = rgb(mix([200, 244, 255], [255, 255, 255], Math.min(1, trail + taken))); c.fillRect(ex - sw2 / 2, ey - R0 * 0.012, sw2, R0 * 0.024);
+        }
+        if (taken > 0.01) glow(c, [220, 250, 255], 0, rowY + R0 * 0.08, R0 * 1.4, R0 * 0.4, 0.6 * taken);
+      }
+      // THE DOME's faint light inside (a slow cool breath behind the smoked glass)
+      glow(c, [150, 230, 220], 0, -R0 * 0.2, R0 * 0.2, R0 * 0.13, 0.1 + (mo ? 0.04 * Math.sin(t * 1.3) : 0));
     }
-    // THE DOME's faint light inside (a slow cool breath behind the smoked glass)
-    glow(c, [150, 230, 220], 0, -R0 * 0.2, R0 * 0.2, R0 * 0.13, 0.1 + (mo ? 0.04 * Math.sin(t * 1.3) : 0));
     c.restore();
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     // its light on the water under it (the water draws its own reflection column): the pale green of its glow
@@ -866,7 +919,7 @@ export function createLegends({ clock, qp } = {}) {
     // x (its middle now, a fraction of W) } from a few seconds before they come; the sounds start the take so its peak lands there)
     listen: () => {
       if (!run || !st) return null;
-      const o = { id: run.at, kind: run.kind, s: sNow, st, dir: run.dir, x: run.kind === 'ufo' ? (saucer ? saucerAt().x / W : 0.6) : st.x };
+      const o = { id: run.at, kind: run.kind, s: sNow, st, dir: run.dir, x: run.kind === 'ufo' ? (sR ? saucerAt().x / W : 0.6) : st.x };
       if (run.kind === 'tr3b' && sNow > CHASE.t0 - 6 && sNow < CHASE.t0 + CHASE.dur * CHASE.uOff) {
         const pk = chasePeakS(chaseLen() / W), js = chaseJets((sNow - CHASE.t0) / CHASE.dur), mx = js.reduce((a, j) => a + j.x, 0) / js.length;
         o.jets = { peakIn: pk - sNow, x: mx / W };
@@ -901,7 +954,7 @@ export function createLegends({ clock, qp } = {}) {
     active: () => !!run,
     /** POLISH 4: the scene's dark city bake is wanted (a TR-3B due within the minute, or running) */
     darkWanted: () => (run ? run.kind === 'tr3b' : warmFor === 'tr3b'),
-    debug: () => ({ run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, warm: warmFor, ring: { w: +ringW.toFixed(2), taken: +ringTaken.toFixed(2) } }),
+    debug: () => ({ run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, model: modelState, elev: +lastElev.toFixed(1), frame: lastFrame, craft: run && run.kind === 'ufo' ? lastCraft : null, warm: warmFor, ring: { w: +ringW.toFixed(2), taken: +ringTaken.toFixed(2) } }),
     destroy() { for (const s of [saucer, beam, tri]) if (s) s.cv.width = 0; jets.destroy(); },
   };
 }

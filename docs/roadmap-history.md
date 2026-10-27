@@ -1357,6 +1357,14 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE QUALITY STEP: never judged in the first 15 s, in a bake, the crossfade or the sign's surge; sustained slowness only (four looks);
       the EFFECTS tier first (live, no re-bake — invisible), the canvas resolution last; what the judge measured in the readout's tier line
 
+## CITY 2.0 — THE UFO BAKE (Oct 27 2026) — docs/harbor.md#the-ufo-bake
+- The abduction's craft is "UFO" by sebslom (CC BY 4.0) — art/models/ufo/ (source only, never deployed) baked offline by
+  scripts/bake-ufo.mjs (three.js in Playwright's Chromium) into assets/city/ufo/: 24-frame turntables over the model's 30° symmetry at the
+  camera's two real view angles (6° hovering, 19° on the approach + the exit), the body lit as night + the model's own green lights + every
+  port per frame (398 KB, fetched only for an abduction).
+- The city: the rows stretched to the true angle + handed off at their midpoint, the turntable spinning (faster as it lifts him), the ports
+  chased at the ring's pace; the beam, the pose + the timing untouched; &ufo=classic; ☰ → CREDITS → 3D MODELS. Speed: same as the classic.
+
 ## CITY 2.0 — 9b: WINTER (Oct 27 2026) — docs/harbor.md#part-9b
 - THE CLIMATE-AWARE FALLBACK (core/climate.js): when the live ask fails, the weather from the date + the place + the nearest of 48 cities'
   monthly normals, seeded, gentle through the day; the readout names it; &force=climate.

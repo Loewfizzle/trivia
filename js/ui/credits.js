@@ -4,8 +4,9 @@
 import { h } from './dom.js';
 
 export const CREDITS = [
-  // 3D MODELS (rendered offline into sprites — scripts/bake-*.mjs; the raw models never ship): the UFO's line goes here when its model
-  // (art/models/ufo/) is baked — word for word from its credits.txt
+  // 3D MODELS (rendered offline into sprites — scripts/bake-*.mjs; the raw models never ship) — word for word from its credits.txt
+  // (art/models/<name>/credits.txt): the title, the author, the link, the licence
+  { group: '3D MODELS', title: '"UFO" by sebslom', by: 'https://sketchfab.com/3d-models/ufo-75655f43c4fc4c56ab60746caf7119fe', licence: 'Licensed under CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/)', link: 'https://sketchfab.com/3d-models/ufo-75655f43c4fc4c56ab60746caf7119fe' },
   { group: 'THE CITY SOUNDS', title: 'Field recordings + effects', by: 'Freesound contributors (CC0), the Sonniss GDC Game Audio Bundles, Mixkit, Pixabay', licence: 'CC0 · royalty-free licences (edited, cut + re-encoded for the city)' },
   { group: 'THE TYPE', title: 'Orbitron', by: 'Matt McInerney', licence: 'SIL Open Font License 1.1', link: 'https://fonts.google.com/specimen/Orbitron' },
   { group: 'THE TYPE', title: 'Chakra Petch', by: 'Cadson Demak', licence: 'SIL Open Font License 1.1', link: 'https://fonts.google.com/specimen/Chakra+Petch' },

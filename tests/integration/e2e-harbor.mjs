@@ -3328,6 +3328,7 @@ G('legends', async () => {
     const st = await ev(Q.page, `${P}.legend.state`);
     // (jets.js is shared with skytyping + the air show — the legendary module itself, legends.js, is the lazy one)
     ok(!Q.files.some(f => /harbor\/legends\.js/.test(f)) && !st.run, `THE LEGENDARY SKY: a normal night never loads its module (${Q.files.filter(f => /legends\.js/.test(f)).length} files)`);
+    ok(!Q.files.some(f => /assets\/city\/ufo\//.test(f)), `THE UFO BAKE: a normal night never fetches the craft's sprites (${Q.files.filter(f => /city\/ufo\//.test(f)).length} files)`);
     await Q.ctx.close(); }
   // ---- THE UFO ABDUCTION held mid-lift (&lgs=14): the module loaded on demand, the beam a bright pale column over the compass
   // (11a-2: a NOVEMBER night — from Oct 20 the giant pumpkin stands on the compass, and no abduction is scheduled over a centrepiece)
@@ -3340,7 +3341,19 @@ G('legends', async () => {
     await sleep(600);
     const lg = await ev(Q.page, `${P}.legend.state`);
     ok(!lg || !lg.ring || lg.ring.w > 9, `THE RING RACES while he's lifted: ${lg && lg.ring ? lg.ring.w : '?'} rad/s (calm 7)`);
+    // THE UFO BAKE: the craft is sebslom's model (its sprites fetched for the run, drawn — the hand-drawn saucer never baked), its turntable
+    // frame + the view angle from the camera (hovering: seen from a few degrees below its rim)
+    await waitFor(Q.page, `${P}.legend.state.model === 'ready' && ${P}.legend.state.frame >= 0`, 'the model drawn', 10000).catch(() => {});
+    { const s2 = await ev(Q.page, `${P}.legend.state`), got = Q.files.filter(f => /assets\/city\/ufo\//.test(f)).length;
+      ok(s2.model === 'ready' && !s2.saucer && s2.frame >= 0 && s2.elev > 2 && s2.elev < 25 && got >= 5, `THE UFO BAKE: the model's craft (${s2.model}, frame ${s2.frame}, seen ${s2.elev}° from below, ${got} sprite files), no hand-drawn bake (${s2.saucer})`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-ufo-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- THE UFO BAKE: &ufo=classic = the hand-drawn saucer (no sprites fetched)
+  { const Q = await open({ slot: 'lg1c', qs: `when=2026-11-04T22:00${GR}&force=ufo&lgs=7&ufo=classic&force=no-people`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.legend.state.saucer`, 'the classic saucer', 20000).catch(() => {});
+    const s2 = await ev(Q.page, `${P}.legend.state`);
+    ok(s2.model === 'classic' && s2.saucer && !Q.files.some(f => /assets\/city\/ufo\//.test(f)), `THE UFO BAKE: &ufo=classic draws the hand-drawn saucer (${s2.model}, baked ${s2.saucer}), no sprites fetched`);
     await Q.ctx.close(); }
   // ---- 9a: THE LIGHT AUDIT's control — a normal night: the wheel's bulbs + its cabins, the promenade's lamps, the pier lit (so the
   // blackout check above can't pass on zeros)

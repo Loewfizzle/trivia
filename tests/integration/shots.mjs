@@ -125,6 +125,13 @@ const SCENE = {
   // and the 3-2-1 chip: --js "__district.remote().search('rain')" / --js "__district.remote().close(), __district.remote().previewCountdown('me', 3)"
   'panel-legend': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['legendary', 'people'], on: { force: ['ufo', 'work-milk'] } }],
   'panel-lights': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['lightsmusic'], on: { party: 'on', scene: 'climb+crowns', force: ['searchlights'] } }],
+  // THE UFO BAKE (the abduction's craft from sebslom's model; &ufo=classic = the hand-drawn saucer): held at a second of the event
+  // (&lgs) — the approach, the hover as the beam opens, the lift, the exit; -classic the same moment hand-drawn; -pumpkin beside the
+  // giant ₿ pumpkin (SP6's spot). --crop ufo = the craft close up at its real size (no zoom: the phone rule)
+  'ufo-approach': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=3' }], 'ufo-hover': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=7' }],
+  'ufo-lift': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=14' }], 'ufo-leave': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=25.4' }],
+  'ufo-classic': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=7&ufo=classic' }], 'ufo-lift-classic': ['2026-09-15T23:00', { qs: 'force=ufo&lgs=14&ufo=classic' }],
+  'ufo-pumpkin': ['2026-10-29T22:00', { qs: 'force=ufo&lgs=14' }],
   drones: ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 26000 }], 'drones-launch': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 9000 }], 'drones-text': ['2026-10-21T22:00', { qs: 'force=drones&text=HELLO&show=heart', wait: 40000 }],
 };
 const scenes = String(opt('scenes', 'night,day')).split(',').filter(Boolean).map(s => {
@@ -227,6 +234,11 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
         if (cc === 'cart') { const [x, y] = pr.cart; return { x: Math.max(0, x - 75), y: Math.max(0, y - 80), width: Math.min(150, innerWidth - Math.max(0, x - 75)), height: 100 }; }
         const t = [...pr.trees].sort((a, b) => a.at[0] - b.at[0])[0]; if (!t) return null; const [x, y] = t.at, r = t.r;
         return { x: Math.max(0, x - r * 1.6), y: Math.max(0, y - r * 3.4), width: Math.min(innerWidth, r * 3.6), height: r * 4 }; }, c);
+    } else if (c === 'ufo') {
+      // CITY 2.0 (the UFO bake): the craft close up at its real size — 3.4 hull radii wide (min 220 pt), from above its dome to under its belly
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); const lg = hb && hb.legend && hb.legend.state; const cr = lg && lg.craft; if (!cr) return null;
+        const w = Math.min(innerWidth, Math.max(220, cr.R * 3.4)), h = Math.max(120, cr.R * 2.2), x = Math.max(0, Math.min(innerWidth - w, cr.x - w / 2)), y = Math.max(0, cr.y - h * 0.5);
+        return { x, y, width: w, height: Math.min(innerHeight - y, h) }; });
     } else if (c === 'band') {
       // CITY 2.0 (FP2): the band under the dock — from a little above the promenade's front edge to the screen's foot
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); if (!hb) return null; const y = Math.max(0, hb.cam.dock.y - 40); return { x: 0, y, width: innerWidth, height: innerHeight - y }; });
