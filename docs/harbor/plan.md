@@ -62,7 +62,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 11a-1 | HALLOWEEN + DAY OF THE DEAD + the shared holiday system (calendar, build-ups day by day, sign dressings; the web, the pumpkins, the window ghosts on SP3's window kit, the ghost ship, the witch, the trick-or-treaters) — LIVE BY ~OCT 29 | Opus 5.5 high | ~3 h |
 | 11a-2 | ✅ (Oct 27 — docs/harbor.md#part-11a-2: Halloween's giant BITCOIN pumpkin + the dance ringing it, BIG PIECES CHANGE OFF-CAMERA, the boss's shadow walking up, the bolder spade, the bluer TV, the UFO redesigned (the abduction byte-identical), the witch smooth; the November build-up by date (bales, stalks, the spots, the harvest display, the wreath, the raker, cider); THE PARADE SYSTEM + Thanksgiving's balloon parade + its sounds; the homecoming party; the amber day, chimney smoke, pies, the family tables + the football game in the windows; BLACK FRIDAY: the rush, the tree stand, the sale banner, the first Christmas crew stringing the speakeasy's lights) THANKSGIVING + the reusable PARADE system (the Wednesday party, Black Friday's first Christmas crew) — by mid-Nov | Opus 5.5 high | ~2–3 h |
 | SP6 | ✅ (Oct 27 — docs/harbor.md#sp6: the cloud chore; the blue TV window (the owner's palette + his chosen glow) + the boss's party window; the UFO beam's lines + the spot beside the giant; CREDITS; WORD FLASH / LAYERS / TWO-TONE; the vehicles' words readable + foreground traffic; the small fixes — the real UFO model was not on the machine: no bake yet) THE FIXES BEFORE WINTER — the cloud failures + the CI-minutes chore, the blue TV window, the boss's party window, the UFO from the real model (+ the beam, the spot, a CREDITS sheet), the three roof-sign modes, the small fixes | Opus 5.5 high | ~3 h |
-| 9b | ← NEXT: WINTER + THE CONSTRUCTION TOWER (real snow on the ground, the stages, plows + salt + shovelers, the January snowman, snow on the sign + frost on the glass, the tower's yearly cycle) | Opus 5.5 high | ~3 h |
+| 9b | ← NEXT: WINTER (the snowpack stages, plows / salt / shovelers, the snowman, snow on the sign + the speakeasy, frost on the glass; + the climate-aware fallback, the CREDITS bug, the phone rule in CLAUDE.md) | Opus 5.5 high | ~3 h |
+| 9c | THE CONSTRUCTION TOWER (the yearly cycle + the implosion) + THE CITY LIFE (the dead times filled) + THE SAX REWORK | Opus 5.5 high | ~3 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
@@ -2793,3 +2794,37 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   saucer becomes the real model, so it must be right either way. ALSO seen: the abduction spot is the compass, where the holiday
   CENTREPIECE stands (Oct: the giant ₿ pumpkin) — the person rose from INSIDE the pumpkin. When a centrepiece is up, the abduction
   takes someone beside it (or the craft picks a spot clear of it).
+
+## OWNER'S NOTES — OCT 27 (after SP6)
+
+- THE SAX SCENE NEEDS A TOTAL REWORK (the owner, Oct 27 9:09 am: "comically cheap"). Today (harbor-moments.js 'sax' + windows.js
+  saxPlayer): the JAZZ room behind an amber shade three-quarters down, the sax player as a soft SHADOW on the shade swaying all night,
+  THE SOLO (20:00–02:00, uncommon, 15 s) = the shadow leaning back hard. Direction to discuss (Claude): drop the shadow puppet — the
+  room's shade UP like the other lit rooms, a real LIT musician in the 2.5D room (the window people's kit, lit warm by the room's lamp,
+  the BRASS BELL catching the light as the one bright accent), a playing posture that reads by SILHOUETTE alone (the horn's angle,
+  the lean); the sway on THE CITY'S BEAT when music is on (the dance clock exists); the SOLO = he steps forward to the glass, leans
+  back, the bell up. THE OWNER (9:16 am, "as ALWAYS, it has to be readable for the phone. I hate that I have to keep repeating
+  that"): judged UNZOOMED on the iPhone — the window is ~40 pt wide, so NO fingers, no breathing, no background band: ONE big lit
+  figure + the gold bell + the motion; anything that can't be seen at that size is not built. Slot: TO DECIDE (polish, not a bug) — options: hide
+  the sax moment now until the rework, or rework it in 9b.
+- A STANDING RULE FOR EVERY PASS (the owner, Oct 27 9:18 am — "add that requirement"): WINDOW SCENES + PEOPLE (and everything
+  else) must READ ON THE PHONE AS-IS, UNZOOMED. Before building a detail, check it against its real size on the iPhone; a detail
+  that can't be seen there (fingers, a figure in the dark behind, small props) is NOT built — make it bigger, bolder, a clear
+  silhouette + one bright accent, or drop it. Put this in CLAUDE.md's ground rules (the visual review) in the next pass.
+- THE REPO GOES PUBLIC WHILE WE BUILD (the owner, Oct 27 10:17 am — DECIDED): public now (GitHub Actions minutes free + unlimited on a
+  public repo; private burned Free's 2,000 + would burn Pro's 3,000 in about a week). REMIND HIM: GO PRIVATE BEFORE any anti-cheat /
+  leaderboard work (Board 2.0, Progression 2.0, anything touching /api's result checks or THE BOARD) — Claude says so BEFORE writing
+  the first of those prompts, and that prompt's "Read first" starts with a check that the repo is private (`gh repo view --json
+  visibility`). Know: going private later doesn't take back copies made while public; never commit a secret (the scan Oct 27 found
+  none: the service-account key + the pepper live in Vercel's env).
+- AFTER SP6 (Oct 27 ~10:20 am): THE UFO BAKE = a short task of its own once the owner has put ufo-01-sebslom.glb +
+  credits.txt in ~/Downloads/city-models/ufo/ (the CREDITS sheet gets its line) — see SP6 PHONE REVIEW below. The cloud's known issues are piling up (`show`'s half-time beat check,
+  `city`'s two panel/perf timeouts, the spider tap now + then): the next FABLE REVIEW + CLEANUP fixes or retires each one. WHEN HE'S BACK AT THE LAPTOP (no pass running),
+  the owner runs THE EMAIL REWRITE (every commit → 288292705+Loewfizzle@users.noreply.github.com) and THEN makes the repo public.
+- SP6 PHONE REVIEW (the owner, Oct 27 10:27 am, on the road): "Everything else looks good" — ONE BUG: the CREDITS sheet doesn't open
+  when CREDITS is tapped in the ☰ menu (top left, the title) → 9b Group 0. THE REPO STUFF (the email rewrite, then public, + the UFO
+  .glb download) waits until he's back at the laptop this afternoon (a reminder is set for 3 pm) — so THE UFO BAKE is a short task
+  after that, NOT in 9b. 9b SPLIT (Claude: winter + the tower + the city life is ~6 h): 9b = WINTER (+ the climate-aware fallback,
+  which the snow depends on); 9c = THE CONSTRUCTION TOWER + THE CITY LIFE (the night-shift henchman, the water wagon, Sunday bells,
+  weekday late nights, the newspaper window, the joggers, the street under the dock as a stage + the quick fade, the TR-3B
+  party-only rule) + THE SAX REWORK (the owner didn't ask to hide it meanwhile → it stays until 9c).
