@@ -7,6 +7,7 @@ import { dressingSpots, spotProblems, spotById } from '../js/core/harbor-spots.j
 import { bigPumpkins, BIG_PIECES, pumpkinSlots, BALE } from '../js/core/harbor-holidayprops.js';
 import { PUMPKINS_MAX, BIG_DAY, halloweenPieces, holidayAt } from '../js/core/harbor-holiday.js';
 import { linePlaces } from '../js/core/harbor-people.js';
+import { RING } from '../js/core/harbor-routines.js';
 
 const SIZES = { '390x844': [390, 844, 47], '402x874': [402, 874, 62], '430x932': [430, 932, 59], '1440x900': [1440, 900, 0] };
 const setup = k => { const [W, H, top] = SIZES[k]; const cam = cameraFor(W, H, { dock: { x: 14, y: H - 116, w: W - 28, h: 76 } }, { top, bottom: 34 }); return { cam, L: harborLayout(cam) }; };
@@ -46,9 +47,11 @@ test('WIN — THE BIG JACK-O\'-LANTERNS: three on known spots (the hydrant, the 
       for (const o of steps) assert.ok(!overlap(r, rect(cam, o)), `${k}: ${b.spot} clear of the door's pumpkins`);
     }
     for (let i = 0; i < bigs.length; i++) for (let j = i + 1; j < bigs.length; j++) assert.ok(!overlap(rect(cam, bigs[i]), rect(cam, bigs[j])), `${k}: ${bigs[i].spot} + ${bigs[j].spot} apart`);
-    assert.ok(bigs.some(b => b.spot === 'hydrant' && !b.bale) && bigs.some(b => b.spot === 'bench-right' && b.bale) && bigs.some(b => b.spot === 'corner-right' && b.bale && b.pass === 'top' && b.d >= 1.5), `${k}: the hydrant's, the bench's on a bale, the front corner's on a bale (WIN3: the lamp post's stood behind the maple)`);
+    // (11a-2: the giant owns the centre — the bench's piece at its FAR end, the front corner's retired)
+    assert.ok(bigs.some(b => b.spot === 'hydrant' && !b.bale) && bigs.some(b => b.spot === 'bench-left' && b.bale) && !bigs.some(b => b.spot === 'corner-right' || b.spot === 'bench-right'), `${k}: the hydrant's + the bench's far end on a bale`);
     // (WIN3: the corner piece on the front strip — nearer than any walker (zMin 38.75), left of the cart's rest, above the dock)
-    { const c = bigs.find(b => b.spot === 'corner-right'); assert.ok(c.z + 0.9 < 38.75 && (!L.cart || c.x < L.cart.x - 1.6), `${k}: the corner's piece clear of the walkers + the cart (z ${c.z}, x ${c.x.toFixed(2)})`); }
+    // (11a-2: every big piece clear of THE GIANT's dance ring round the inlay)
+    { const m = L.medallion; for (const b of bigs) { const e = Math.hypot((b.x - m.x) / RING.rx, (b.z - m.z - RING.cz) / RING.rz); assert.ok(e > 1.15, `${k}: ${b.spot} clear of the ring (${e.toFixed(2)})`); } }
   }
   const at = (d, h = 21) => halloweenPieces(holidayAt({ y: 2026, m: 10, d, h, mi: 0 }));
   assert.equal(BIG_DAY, 20); assert.ok(!at(19).bigs && at(20).bigs && at(27).bigs && at(31).bigs, 'the big ones from Oct 20');

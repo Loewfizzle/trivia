@@ -2167,7 +2167,8 @@ G('windows', async () => {
       for (let j = 0; j < 5; j++) { const row = []; for (let i = 0; i < 5; i++) { let s = 0, n = 0; for (let y = Math.floor(j * h / 5); y < Math.floor((j + 1) * h / 5); y++) for (let x = Math.floor(i * w / 5); x < Math.floor((i + 1) * w / 5); x++) { const q = (y * w + x) * 4; s += 0.2126 * d[q] + 0.7152 * d[q + 1] + 0.0722 * d[q + 2]; n++; } row.push(s / n); } out.push(row); } res(out); }))`);
     // (no bright rectangle anywhere — the old set read ~150+ at the back wall's centre; the light lands low right, where the unseen set is)
     const cells = grid.flat(), maxC = Math.max(...cells), meanC = cells.reduce((a, b) => a + b, 0) / cells.length;
-    okF(maxC < 140 && maxC < meanC * 3.2, `THE SET IS NEVER SEEN (WIN2: option B — the viewers' lit faces read ~120, the set stays below the sill): the pane's brightest 5×5 cell ${maxC.toFixed(0)} against its mean ${meanC.toFixed(0)} — never a bright screen on the wall (the old set read 150+)`);
+    okF(maxC < 175 && maxC < meanC * 3.2,   // (11a-2: the set brighter + a lighter blue at the owner's ask — 140 → 175; never a bright screen: the ratio holds)
+      `THE SET IS NEVER SEEN (WIN2: option B — the viewers' lit faces read ~120, the set stays below the sill): the pane's brightest 5×5 cell ${maxC.toFixed(0)} against its mean ${meanC.toFixed(0)} — never a bright screen on the wall (the old set read 150+)`);
     await Q.ctx.close(); }
   // ---- WIN — COUNTING THE CASH (forced): the back room green under the banker's lamp, a lit figure, the pane changing as he counts
   { const Q = await open({ slot: 'w-cash', qs: `when=2026-10-22T23:10${GR}&force=window&moment=cash`, view: [402, 874] });
@@ -2257,6 +2258,10 @@ G('windows', async () => {
   // shadow standing against it now + then with the cigar's ember — forced here so a stand comes within the wait)
   { const Q = await open({ slot: 'w-watch', qs: `when=2026-10-24T22:30${GR}&wx=clear&force=window-party,boss-watch`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
+    // (11a-2: he WALKS UP — the shadow sharpening as he nears the shade — then stands; the demo cycle from the flag)
+    const walk = []; { const t0 = Date.now(); while (Date.now() - t0 < 25000) { const B = await ev(Q.page, 'window.__district.harbor().speakeasy.life.boss'); const w = B && B.watch; if (w) walk.push({ ph: w.phase, n: w.near }); if (w && w.phase === 'stand' && w.a > 0.95) break; await sleep(150); } }
+    const ups = walk.filter(w => w.ph === 'up');
+    ok(ups.length >= 3 && ups.some(w => w.n < 0.6) && ups.every((w, i) => !i || w.n >= ups[i - 1].n - 1e-6) && walk.some(w => w.ph === 'stand'), `THE BOSS WALKS UP to the shade: ${ups.length} frames walking (near ${ups.map(w => w.n.toFixed(2)).slice(0, 6).join(' → ')}…), then he stands`);
     const seen = await waitFor(Q.page, '(() => { const B = window.__district.harbor().speakeasy.life.boss; return B && B.party && B.watch && B.watch.a > 0.95; })()', 'his shadow at the shade', 90000).then(() => true).catch(() => false);
     const B = await ev(Q.page, 'window.__district.harbor().speakeasy.life.boss'), W = await wins(Q.page);
     const col = await area(Q.page, W.apartment, 0.05, 0.2, 0.3, 0.7), midL = lum(await area(Q.page, W.apartment, Math.max(0, (B && B.watch ? B.watch.x : 0.5) - 0.08), Math.min(1, (B && B.watch ? B.watch.x : 0.5) + 0.08), 0.35, 0.6)), sideL = lum(col);
@@ -2533,6 +2538,18 @@ G('sounds', async () => {
   await waitFor(N.page, `import('/js/audio/ambience.js').then(m => m.neonLog.length >= ${n0} + 2)`, 'the tap\'s two sounds', 6000).catch(() => {});
   const tapLog = await ev(N.page, `import('/js/audio/ambience.js').then(m => m.neonLog.slice(${n0}).map(x => ({ name: x.name, gain: x.gain })))`);
   ok(tapLog.length >= 2 && tapLog.every(x => Math.abs(x.gain - 0.5 * 0.5625) < 1e-6), `NEON TAP: its dropout + power-on at ${tapLog.map(x => `${x.name.replace('neon-', '').replace('.wav', '')} ${x.gain}`).join(', ')} (was 0.375: × 0.75 ≈ −2.5 dB)`);
+  // 11a-2 — THE TAP's HUM FOLLOWS THE RACE (the owner: "way too long"): the power-on cut + the hum faded ≤ 1.5 s in all; two quick taps
+  // on another letter never stack (one strike, the cooldown)
+  { const sl = await ev(N.page, 'window.__district.neonSoundLog()'), last = sl[sl.length - 1] || {};
+    const pw = await ev(N.page, `import('/js/audio/ambience.js').then(m => m.neonLog.slice(${n0}).filter(x => /power-on/.test(x.name)).map(x => x.dur))`);
+    ok(last.kind === 'tap' && last.total <= 1.5 && pw.length >= 1 && pw.every(d => d <= 1.5), `NEON TAP's HUM: ${last.kind} ${last.total} s in all, the strike ${pw.join(', ')} s (≤ 1.5 — it was 2.1 s + a hum held 1.5 s + a 10 s fade)`);
+    const l2 = await ev(N.page, "(() => { const s = document.querySelector('.nd-logo-wrap svg.nd-logo') || document.querySelector('svg.nd-logo'); const b = s.getBoundingClientRect(); return { x: b.left + b.width * 0.62, y: b.top + b.height / 2 }; })()");
+    await sleep(2600);
+    const k0 = await ev(N.page, 'window.__district.neonSoundLog().length');
+    await tapAt(N.page, l2.x, l2.y); await sleep(1700); await tapAt(N.page, l2.x + 40, l2.y); await sleep(1700);
+    const k1 = await ev(N.page, `window.__district.neonSoundLog().slice(${k0})`);
+    const gaps = k1.slice(1).map((x, i) => x.at - k1[i].at);
+    ok(k1.length >= 1 && gaps.every(g => g >= 350), `NEON TAP: no stacking — ${k1.length} power-on(s), ${gaps.length ? `${gaps.join(', ')} ms apart` : 'one'} (each stops the last; ≥ 350 ms between strikes)`); }
   await N.ctx.close();
   // ---- 7. FP3 — THE CAR IN SYNC (the owner: its sound came 5–6 s after the car): every car file held back 2.5 s (a slow phone
   // network) — the take's PEAK still lands on the car's mid-crossing (it used to start whenever its file arrived: late by the wait);
@@ -2908,17 +2925,39 @@ G('holiday', async () => {
   // across, above the dock, drawn), their faces glowing after dark
   { const Q = await open({ slot: 'hol-set', qs: `when=2026-10-27T21:00${GR}&wx=clear`, view: [390, 844] });
     await harborUp(Q.page); await sleep(1500);
-    await waitFor(Q.page, `${P}.hprops && ${P}.hprops.stat.rects && ${P}.hprops.stat.rects.filter(r => r.big).length >= 3`, 'the big jack-o\'-lanterns drawn', 15000).catch(() => {});
+    await waitFor(Q.page, `${P}.hprops && ${P}.hprops.stat.rects && ${P}.hprops.stat.rects.filter(r => r.big).length >= 2`, 'the big jack-o\'-lanterns drawn', 15000).catch(() => {});
     const hp = await ev(Q.page, `${P}.hprops`), cam = await ev(Q.page, `${P}.cam`), rects = (hp && hp.stat.rects) || [];
-    const steps = rects.filter(r => !r.big), bigs = rects.filter(r => r.big);
+    const steps = rects.filter(r => !r.big && !r.decor), bigs = rects.filter(r => r.big);
     const ov = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
     let pairs = 0; for (let i = 0; i < steps.length; i++) for (let j = i + 1; j < steps.length; j++) if (ov(steps[i], steps[j]) && Math.abs(steps[i].y + steps[i].h - (steps[j].y + steps[j].h)) < 2) pairs++;
     ok(steps.length === 5 && pairs === 0 && steps.every(r => r.y + r.h < cam.dock.y), `THE DOOR'S PUMPKINS at 390 (Oct 27): ${steps.length} (five), ${pairs} overlapping on one level, all above the dock (${steps.map(r => `${r.w.toFixed(0)}pt@${r.x.toFixed(0)}`).join(' ')})`);
-    ok(bigs.length === 3 && bigs.every(r => r.w >= 15 && r.y + r.h < cam.dock.y) && new Set(bigs.map(r => r.id)).size === 3, `THE BIG JACK-O'-LANTERNS at 390: ${bigs.map(r => `${r.id} ${r.w.toFixed(0)} pt`).join(', ')} — ≥ 15 pt each, above the dock ${cam.dock.y}`);
+    // (11a-2 — the owner: the giant owns the centre — the bench's piece at its far end, the front corner's retired)
+    ok(bigs.length === 2 && bigs.some(r => r.id === 'bench-left') && bigs.some(r => r.id === 'hydrant') && bigs.every(r => r.w >= 15 && r.y + r.h < cam.dock.y), `THE BIG JACK-O'-LANTERNS at 390: ${bigs.map(r => `${r.id} ${r.w.toFixed(0)} pt`).join(', ')} — ≥ 15 pt each, above the dock ${cam.dock.y}`);
     // (WIN2 — the owner: the hydrant's read stretched: every big one at a pumpkin's own proportions — its sprite box no wider than 1.2× its height, never a flat disc)
     ok(bigs.every(r => r.w / r.h <= 1.2 && r.w / r.h >= 0.75), `THE BIG JACK-O'-LANTERNS' PROPORTIONS: ${bigs.map(r => `${r.id} ${(r.w / r.h).toFixed(2)}`).join(', ')} wide : tall (round, never stretched)`);
-    ok(hp && hp.stat.bigGlows >= 3, `THEIR FACES GLOW after dark: ${hp && hp.stat.bigGlows} of 3 lit`);
+    ok(hp && hp.stat.bigGlows >= 2, `THEIR FACES GLOW after dark: ${hp && hp.stat.bigGlows} of 2 lit`);
+    // 11a-2 — THE GIANT on Oct 27: on its plinth, NOT carved yet (the carvers come in the night into the 28th), so no candle
+    { const g = hp && hp.giant; ok(g && g.drawn > 0 && !g.carved && g.lit === 0 && g.rect && g.rect.y + g.rect.h < cam.dock.y, `THE GIANT on Oct 27: on its plinth (${g && g.drawn} frames), uncarved (${g && g.carved}), unlit (${g && g.lit}), above the dock`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}holiday-setpieces-390x844.png` });
+    await Q.ctx.close(); }
+  // ---- 11a-2 — THE GIANT on the centre circle (the owner: HUGE, the BITCOIN LOGO carved + lit from within), carved overnight into Oct 28:
+  // its ₿ lit at night (the light on the cobbles), ~55 pt across at 402, its top under the WAIT / WALK lantern, above the dock; the dance
+  // (forced here) RINGS it — the dancers evenly round it, nobody walking through it
+  { const Q = await open({ slot: 'hol-giant', qs: `when=2026-10-28T21:00${GR}&wx=clear&force=dance`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.hprops && ${P}.hprops.giant && ${P}.hprops.giant.lit > 0.3`, 'the giant lit', 15000).catch(() => {});
+    const g = (await ev(Q.page, `${P}.hprops`)).giant, cam = await ev(Q.page, `${P}.cam`);
+    ok(g && g.carved && g.lit > 0.3 && g.pool > 0.1 && g.body.w >= 100 && g.body.w <= 125 && g.rect.y + g.rect.h < cam.dock.y && g.body.top > 600, `THE GIANT on Oct 28 night: carved (${g && g.carved}), its candle lit (${g && g.lit}), the light on the cobbles (${g && g.pool}), ${g && g.body.w} pt across, its stem's top at y ${g && g.body.top}, above the dock ${cam.dock.y}`);
+    // (the ₿'s glow: the pixels in the coin's middle hot + bright against the dark skin beside it)
+    const px = await ev(Q.page, `(() => { const r = ${P}.hprops.giant.rect, cv = document.querySelector('canvas'); const x = cv.getContext('2d'); const d = window.devicePixelRatio || 1; const at = (u, v) => { const p = x.getImageData(Math.round((r.x + r.w * u) * d), Math.round((r.y + r.h * v) * d), 1, 1).data; return [p[0], p[1], p[2]]; }; return { mid: at(0.5, 0.52), side: at(0.12, 0.55) }; })()`).catch(() => null);
+    const L2 = q => (q ? q[0] * 0.3 + q[1] * 0.59 + q[2] * 0.11 : 0);
+    ok(!px || L2(px.mid) > L2(px.side) + 40, `THE ₿ GLOWS from within: its middle ${px ? px.mid.join(',') : '(no read)'} vs the skin ${px ? px.side.join(',') : ''}`);
+    const seen = await waitFor(Q.page, `${P}.people && ${P}.people.dance && ${P}.people.dance.on && ${P}.people.dance.k > 0.95`, 'the ring formed', 80000).then(() => true).catch(() => false);
+    const ring = await ev(Q.page, `(() => { const H = ${P}, ms = (H.people && H.people.members) || []; return ms.filter(x => x.kind === 'dancer').map(x => ({ x: x.x, z: x.z, pose: x.pose })); })()`);
+    const med = await ev(Q.page, `${P}.medallion`);
+    const rs = med ? ring.filter(d => d.pose === 'wands').map(d => Math.hypot((d.x - med.x) / 6.0, (d.z - med.z + 0.55) / 5.0)) : [];
+    ok(seen && (!med || (rs.length >= 3 && rs.every(r => Math.abs(r - 1) < 0.05))), `THE DANCE RINGS THE GIANT: ${seen ? 'formed' : 'never formed'}, ${rs.length} dancers on its oval (${rs.map(r => r.toFixed(2)).join(', ')} of 1)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}holiday-giant-ring-402x874.png` });
     await Q.ctx.close(); }
   // ---- REDUCED MOTION on Halloween night: no witch, no bats, no window moments; the dressing still there, the spider still
   { const Q = await page('hol-rm', '2026-10-31T21:30', '&force=witch,bats', { fn: () => { try { const k = 'na:settings', s = JSON.parse(localStorage.getItem(k) || '{}'); s.reducedFx = true; localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, arg: null });

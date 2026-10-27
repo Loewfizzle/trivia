@@ -34,6 +34,14 @@ export const DANCE = Object.freeze({
   // (&force=dance: a circle every 5 minutes, any night)
   force: { slot: 300, start: 8, len: 240 },
 });
+/** 11a-2 — THE RING round the GIANT BITCOIN PUMPKIN (the owner: on Halloween night — a Saturday — the hourly dance circles it): the
+ *  dancers evenly round it on an oval (rx × rz, its centre cz toward us — clear of its straw bed), dancing in place for a `phrase` (s), then all
+ *  stepping one place on round it together (`move` s: a slow sideways shuffle along the arc, counter-clockwise from above — the front
+ *  ones moving right), from `first` s after the first dancer steps out (everyone's there by then) */
+export const RING = Object.freeze({ rx: 6.0, rz: 5.0, cz: -0.55, phrase: 36, move: 4.6, first: 50, clear: 4.85 });
+/** a place on the ring at angle a (world, round the inlay m): an OVAL round the giant, its centre a little toward us (the bench + the
+ *  crossing's kerb behind it stay clear; the back half is hidden behind the giant) */
+export const ringAt = (m, a) => ({ x: m.x + Math.cos(a) * RING.rx, z: m.z + RING.cz + Math.sin(a) * RING.rz });
 
 const localOf = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 1000); return { key: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`, dow: d.getUTCDay(), h: ((lt / 3600) % 24 + 24) % 24 }; };
 
@@ -51,12 +59,12 @@ export function danceSlot(j, ctx = {}) {
     const loc = localOf(t0 + 60, ctx.off), hh = loc.h < 3 ? loc.h + 24 : loc.h;
     const party = ctx.party ? ctx.party(t0 + 60) : partyAt(loc.dow, loc.h);
     if (!party || hh < DANCE.from || hh >= DANCE.to || r() >= DANCE.chance) return null;
-    if (ctx.event) return null;
+    if (ctx.event && !ctx.ring) return null;   // (11a-2: a centrepiece the dance may RING — the giant jack-o'-lantern — keeps its circle)
   }
   const s0 = t0 + (F ? F.start : DANCE.start + r() * 10), s1 = s0 + (F ? F.len : DANCE.len);
   if (!F && ctx.blocked && ctx.blocked(s0, s1)) return null;
   const nw = DANCE.watchers[0] + Math.floor(r() * (DANCE.watchers[1] - DANCE.watchers[0] + 1));
-  return { id: `dance.${j}`, s0, s1, dancers: DANCE.n, watchers: nw, seed: Math.floor(r() * 1e6) };
+  return { id: `dance.${j}`, s0, s1, dancers: DANCE.n, watchers: nw, seed: Math.floor(r() * 1e6), ring: !!ctx.ring };
 }
 /** the slots whose circle could touch [a, b] */
 export function danceSlotsNear(a, b, ctx = {}) {

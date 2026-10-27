@@ -374,17 +374,56 @@ export function bossSignal(sec, { boot = false, sat = false, truckAt = null } = 
   if (sec < from || sec >= to) return 0;
   return Math.min(1, (sec - from) / 25);
 }
-/** THE BOSS AT THE SHADE on a party night (the owner: he watches over his party — the shade all the way down, glowing with the set's
- *  light; now + then HIS SHADOW stands against it looking down at the street, the cigar's ember glowing through, then he steps away):
- *  about every 80 s (7 slots in 10), a stand of 7–14 s → { u, a (the shadow's presence: steps up / away over 1.4 s), ember (0..1, a draw
- *  on the cigar every ~4 s on most stands), x (where across the pane) } | null */
-export function bossWatch(t, seed = 11) {
-  const slot = Math.floor(t / 80), s0 = slot * 80 + 6 + h01(slot, seed + 41) * 50, len = 7 + 7 * h01(slot, seed + 42);
-  if (h01(slot, seed + 40) < 0.3 || t < s0 || t >= s0 + len) return null;
-  const u = (t - s0) / len, a = Math.min(1, u * len / 1.4, (1 - u) * len / 1.4);
-  const ph = ((t - s0) % 4.2) / 4.2, ember = h01(slot, seed + 43) < 0.65 && ph < 0.22 && u > 0.12 && u < 0.9 ? Math.sin(Math.PI * ph / 0.22) : 0;
-  return { u, a, ember, x: 0.42 + 0.3 * h01(slot, seed + 44) };
+/** THE BOSS AT THE SHADE on a party night — 11a-2 (the owner's SP5 phone review, Oct 26 9:13 + 9:24 pm: "fades in, stays a moment +
+ *  fades out" → he WALKS UP to the shade, STANDS there ~15 min, WALKS AWAY, is gone ~10 min, comes BACK for another ~15 min… for about
+ *  1 h 45 min at the party's PEAK, then done for the night). The shade is all the way down, glowing with the set's light; his shadow on
+ *  it sharpens + darkens as he nears it (from the room's depth, a big soft blur) and blurs off as he leaves. While he stands: TINY LIFE —
+ *  a weight shift now + then, the cigar's ember brightening on a draw (raised to the mouth), a slow turn of the head.
+ *  The plan's clock `s` = seconds since the party's PEAK began (the same on every phone; a page opened mid-way joins mid-stand);
+ *  `demo` (&force=boss-watch, the panel's row) = a short preview cycle from the flag (stands of 40 s, 12 s away, forever). */
+export const BOSS_WATCH = Object.freeze({ start: [90, 330], stands: 4, stand: [15 * 60, 18 * 60], away: [10 * 60, 13 * 60], up: 7, off: 6,
+  demo: { start: 2, stand: 40, away: 12 } });
+/** the night's stands (PURE): [{ t0 (he sets off toward the shade), t1 (gone from it) }] in the plan's seconds */
+export function bossWatchPlan(seed = 11, { demo = false, n = null } = {}) {
+  const W = BOSS_WATCH, out = [];
+  if (demo) { let t = W.demo.start; for (let i = 0; i < (n || 400); i++) { out.push({ t0: t, t1: t + W.up + W.demo.stand + W.off }); t += W.up + W.demo.stand + W.off + W.demo.away; } return out; }
+  let t = W.start[0] + (W.start[1] - W.start[0]) * h01(1, seed + 50);
+  for (let i = 0; i < W.stands; i++) {
+    const st = W.stand[0] + (W.stand[1] - W.stand[0]) * h01(i, seed + 51), aw = W.away[0] + (W.away[1] - W.away[0]) * h01(i, seed + 52);
+    out.push({ t0: t, t1: t + W.up + st + W.off }); t += W.up + st + W.off + aw;
+  }
+  return out;
 }
+const ease = v => (v <= 0 ? 0 : v >= 1 ? 1 : v * v * (3 - 2 * v));
+/** a slow seeded wander (−1..1): a new target every ~`per` s (± a third), eased over `ease` s — the weight shift, the head's turn */
+function wander(s, per, ez, seed, salt) {
+  const k = Math.floor(s / per), u = s - k * per, at = v => h01(v, seed + salt) * 2 - 1;
+  return at(k - 1) + (at(k) - at(k - 1)) * ease(u / ez);
+}
+/** his shadow at `s` (the plan's seconds) → null (not at the shade) | { phase 'up' | 'stand' | 'away', a (its darkness 0..1), near (0..1:
+ *  1 = against the shade — sharp; 0 = deep in the room — a big soft blur), x (across the pane), shift (−1..1 the weight), head (−1..1
+ *  a turn), ember (0..1: a draw — the cigar at the mouth), hold (0..1: the cigar's faint glow at his side between draws), stand (i) } */
+export function bossWatchAt(plan, s, seed = 11) {
+  const W = BOSS_WATCH;
+  for (let i = 0; i < plan.length; i++) {
+    const p = plan[i];
+    if (s < p.t0 || s >= p.t1) continue;
+    const el = s - p.t0, left = p.t1 - s, x0 = 0.44 + 0.24 * h01(i, seed + 53);
+    let phase = 'stand', near = 1, side = 0;
+    if (el < W.up) { phase = 'up'; near = ease(el / W.up); side = (1 - near) * (h01(i, seed + 54) < 0.5 ? -1 : 1); }
+    else if (left < W.off) { phase = 'away'; near = ease(left / W.off); side = (1 - near) * (h01(i, seed + 55) < 0.5 ? -1 : 1); }
+    const a = Math.pow(near, 0.6);
+    const sl = Math.max(0, el - W.up);          // (the stand's own clock)
+    const shift = phase === 'stand' ? wander(sl, 26, 1.8, seed + i * 7, 56) : 0, head = phase === 'stand' ? wander(sl + 9, 34, 2.6, seed + i * 7, 57) : 0;
+    // the draws: one every 30–55 s (seeded per draw), 2.6 s each (the hand up 0.5 s, the ember flaring, down) — never in the walk
+    let ember = 0, k = 0, t = 12 + 10 * h01(i, seed + 58);
+    while (t < sl && k < 80) { if (sl < t + 2.6) { const u = (sl - t) / 2.6; ember = Math.sin(Math.PI * Math.min(1, u * 1.15)) * (u < 0.85 ? 1 : (1 - u) / 0.15); break; } t += 30 + 25 * h01(k++, seed + i * 13 + 59); }
+    return { phase, a: +a.toFixed(4), near: +near.toFixed(4), x: x0 + 0.2 * side, shift, head, ember: phase === 'stand' ? Math.max(0, ember) : 0, hold: phase === 'stand' ? 0.22 : 0.1, stand: i };
+  }
+  return null;
+}
+/** (SP5's old name, kept for callers: the plan's stand at `s` for the default plan) */
+export function bossWatch(s, seed = 11, demo = false) { return bossWatchAt(bossWatchPlan(seed, { demo }), s, seed); }
 
 // ------------------------------------------------------------------ WIN3 — THE QUIET NIGHTS (the boss's glow the only light on)
 const dowOfKey = key => { const [y, m, d] = key.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };

@@ -60,8 +60,10 @@ export const BALE = Object.freeze({ w: 1.8, h: 0.74, d: 1.0 });
  *  the FIRE HYDRANT, carved faces glowing at night, some on a straw bale") — each on a named DRESSING SPOT (core/harbor-spots.js) */
 export const BIG_PIECES = Object.freeze([
   { spot: 'hydrant', kind: 'classic', d: 1.5, face: 'toothy', bale: false },                // the nearest + the biggest, on the pavement by the hydrant (~23 pt at 402; WIN2: a round classic, the squat kind read stretched)
-  { spot: 'bench-right', kind: 'classic', d: 1.5, face: 'scary', bale: true, gourd: true },  // on a straw bale at the bench's end, a gourd beside it (~19 pt)
-  { spot: 'corner-right', kind: 'tall', d: 1.6, face: 'happy', bale: true },               // on a bale at the front strip's right end, left of the cart + the framing maple (~25 pt; WIN3: it stood hidden behind the maple's canopy at the lamp post)
+  // (11a-2 — the owner: "rearrange the other pumpkins if you have a better layout": THE GIANT owns the centre now — the bench's piece moves
+  // to the bench's FAR (left) end, out of the dance ring's way, framing the scene from the left with the hydrant's; the front strip's
+  // corner piece (it stood straight in front of the giant) is retired — the centre reads as ONE hero)
+  { spot: 'bench-left', kind: 'classic', d: 1.5, face: 'scary', bale: true, gourd: true },   // on a straw bale at the bench's far end, a gourd beside it (~19 pt)
 ]);
 /** the big pieces placed on their spots → [{ i (100+), spot, x, y (the bale's top if on one), z, d, kind, face, bale, gourd, pass, tilt, seed,
  *  flick, baleX, baleZ }] — a spot the layout lacks is skipped */
@@ -73,6 +75,36 @@ export function bigPumpkins(L) {
     out.push({ i: 100 + i, spot: sp.id, x: sp.x, z: sp.z, y: p.bale ? BALE.h : 0, d: p.d, kind: p.kind, face: p.face, bale: !!p.bale, gourd: !!p.gourd, pass: sp.pass, side: sp.face, tilt: (r() - 0.5) * 0.1, seed: Math.floor(r() * 1e6), flick: 0.6 + r() * 0.8 });
   });
   return out;
+}
+
+// ------------------------------------------------------------------ 11a-2 — THE GIANT JACK-O'-LANTERN on the centre circle (the owner, Oct 26)
+/** its size (world units — a person is 2.1 tall): the body (R its radius across the ribs, Hh its half-height, yc its centre over the bed,
+ *  the ribs, how deep a crease cuts, the rind's thickness), the straw bed under it (`plinth`: an ellipse w × d, h its thickness), the
+ *  sprite's box (x: half its width; top + bottom on screen, in units up), e: the depth exaggeration (the props' frame). The owner (Oct 26:
+ *  "HUGE … twice the size"): an Atlantic giant ~8.2 units across (~110 pt at 402, two people tall) — it hides the crosswalk's near
+ *  stripes + the WAIT / WALK lantern's foot behind its stem (DECIDED: the owner's size wins) */
+export const GIANT = Object.freeze({
+  body: Object.freeze({ R: 4.1, Hh: 2.2, yc: 2.05, ribs: 16, rib: 0.06, rind: 0.36 }),
+  plinth: Object.freeze({ w: 11.2, d: 10.2, h: 0.12 }),
+  box: Object.freeze({ x: 4.75, top: 5.8, bottom: -1.9 }),
+  e: 1.15,
+  /** how far round it the walkers keep (units, from its centre) — its girth + a step */
+  clear: 4.85,
+});
+/** the giant on the inlay (L.medallion) → { x, z, seed } | null */
+export function giantPiece(L) {
+  const m = L && L.medallion;
+  return m ? { x: m.x, z: m.z, seed: 1031 } : null;
+}
+/** the small pieces dressing the giant's plinth (its two front corners: a warty pumpkin + gourds left, a white pumpkin + gourds right;
+ *  uncarved — the giant is the one carved) → [{ i, spot, x, y, z, d, kind, face, bale, gourd, side, tilt, seed, flick, decor }] */
+export function giantDecor(L) {
+  const m = L && L.medallion; if (!m) return [];
+  const y = GIANT.plinth.h;
+  return [{ x: m.x - 3.9, z: m.z - 3.0, kind: 'warty', d: 1.0, side: -1 }, { x: m.x + 3.95, z: m.z - 2.95, kind: 'white', d: 0.95, side: 1 }].map((q, k) => {
+    const r = rngFrom(hashString(`giant-decor|${k}`));
+    return { i: 200 + k, spot: `giant-decor-${k}`, x: q.x, y, z: q.z, d: q.d, kind: q.kind, face: 'none', bale: false, gourd: true, side: q.side, tilt: (r() - 0.5) * 0.12, seed: Math.floor(r() * 1e6), flick: 1, decor: true, pass: 'near' };
+  });
 }
 
 // ------------------------------------------------------------------ DAY OF THE DEAD

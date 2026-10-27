@@ -158,19 +158,32 @@ function neonBuf(ctx, name) {
 }
 /** warm the neon files (the title calls it once City 2.0 is up and audio is unlocked: the first flicker then plays on time) */
 export function neonPreload() { if (!isUnlocked()) return; const ctx = getContext(); for (const n of [...NEON_REC.flicker, NEON_REC.powerOn, NEON_REC.dropout, NEON_REC.hum]) neonBuf(ctx, n); }
-function playNeon(name, level, fallback, kind = 'strike', gain = 1) {
-  if (!isUnlocked()) return;
+// (11a-2 — THE LETTER-TAP's HUM, the owner: "way too long": `dur` s cuts a one-shot short — it fades out over its last
+// NEON_TAIL s and stops; the returned stop(fade) ends it early (a new tap takes over — never two strikes stacked))
+const NEON_TAIL = 0.35;
+function playNeon(name, level, fallback, kind = 'strike', gain = 1, dur = 0) {
+  if (!isUnlocked()) return () => {};
   const ctx = getContext();
+  let s = null, g = null, stopped = false;
   neonBuf(ctx, name).then(buf => {
+    if (stopped) return;
     if (!buf) { fallback(); return; }
-    const s = ctx.createBufferSource(), g = ctx.createGain(), t = ctx.currentTime;
+    s = ctx.createBufferSource(); g = ctx.createGain(); const t = ctx.currentTime;
     s.buffer = buf; s.playbackRate.value = 0.97 + Math.random() * 0.06;      // (±3 %: repeats never sound stamped)
     const v = NEON_GAIN * gain * level * (settings.musicOff || settings.music <= 0.02 ? NEON_NO_MUSIC : 1);
     g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(v, t + NEON_ATTACK);
     s.connect(g).connect(neonChain(ctx, kind)); s.start(t);
+    // (the cut: after start() — a stop() before it throws)
+    if (dur > 0 && dur < buf.duration) { const e = t + Math.max(NEON_ATTACK + 0.05, dur); g.gain.setValueAtTime(v, Math.max(t + NEON_ATTACK, e - NEON_TAIL)); g.gain.linearRampToValueAtTime(0, e); s.stop(e + 0.02); }
     s.onended = () => g.disconnect();
-    neonLog.push({ name, kind, gain: v, at: performance.now() }); if (neonLog.length > 40) neonLog.shift();
+    neonLog.push({ name, kind, gain: v, at: performance.now(), dur: dur > 0 ? Math.min(dur, buf.duration) : buf.duration }); if (neonLog.length > 40) neonLog.shift();
   });
+  return (f = 0.08) => {
+    if (stopped) return; stopped = true;
+    if (!s || !g) return;
+    const n = ctx.currentTime;
+    try { if (g.gain.cancelAndHoldAtTime) g.gain.cancelAndHoldAtTime(n); else { const v = g.gain.value; g.gain.cancelScheduledValues(0); g.gain.setValueAtTime(v, n); } g.gain.linearRampToValueAtTime(0, n + f); s.stop(n + f + 0.02); } catch {}
+  };
 }
 let lastFlicker = -1;
 /** a tube STRIKING (a warm-up flicker, a dawn stutter): one of four real flickers at random, never the same twice in a row */
@@ -200,7 +213,7 @@ export function neonTwitch({ gain = NEON_GAINS.dropout * 0.5625, louder = false 
 /** a tube CUTTING OUT */
 export function neonDropout({ level = 1 } = {}) { playNeon(NEON_REC.dropout, level, () => neonBuzz({ on: false, level: level * 0.5 }), 'strike', NEON_GAINS.dropout); }
 /** THE CATCH: the whole sign striking and settling into its hum */
-export function neonCatch({ level = 1 } = {}) { playNeon(NEON_REC.powerOn, level, () => neonPowerOn({ crackles: [0, 0.05, 0.13], dur: 1.6 }), 'strike', NEON_GAINS.powerOn); }
+export function neonCatch({ level = 1, dur = 0 } = {}) { return playNeon(NEON_REC.powerOn, level, () => neonPowerOn({ crackles: [0, 0.05, 0.13], dur: dur ? Math.min(1.6, dur) : 1.6 }), 'strike', NEON_GAINS.powerOn, dur); }
 /** the hum while the sign is lit: a seamless loop, very quiet; returns stop(fade s) */
 export function startNeonHum({ level = 1, fadeIn = 2.5 } = {}) {
   if (!isUnlocked()) return () => {};
@@ -263,6 +276,12 @@ export function neonTick() {
   if (!isUnlocked()) return;
   const ctx = getContext();
   crackle(ctx, ctx.currentTime + 0.005, 0.009);
+}
+/** 11a-2 — the crackle RIDING THE RACE: `n` soft ticks across `span` s (the light running letter to letter), fading as it goes */
+export function neonRaceCrackle({ span = 1, n = 5, level = 1 } = {}) {
+  if (!isUnlocked()) return;
+  const ctx = getContext(), t0 = ctx.currentTime + 0.02;
+  for (let i = 0; i < n; i++) { const u = n > 1 ? i / (n - 1) : 0; crackle(ctx, t0 + u * span + (Math.random() - 0.5) * 0.04, 0.006 * level * (1 - 0.55 * u)); }
 }
 
 // ---------------------------------------------------------------- weather: the rain and the thunder (LIVE WEATHER)

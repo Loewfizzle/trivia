@@ -29,7 +29,7 @@ import { firebaseReady } from '../firebase.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
-import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
+import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonRaceCrackle, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource, beatKick, beatWhy, beatCal, songInfo, syncLine, clockLine } from '../audio/beat.js';
 import { beatMode } from '../core/harbor-beat.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
@@ -64,6 +64,10 @@ const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock:
 const SEEN = 'nd:entered';      // localStorage: this device has been through the door before
 const BACK = 'nd:back';          // sessionStorage: just stepped back from the name / profile screen (a quick re-light)
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+// 11a-2 — the power-on's sound per kind (s): the strike cut to `strike`, the hum up over `up`, held `hold`, faded over `fade`;
+// the crackle's ticks across `crackle` (the race's run); `cool` ms between two taps' strikes. A tap ≤ 1.5 s in all.
+const NEON_SOUND = { tap: { strike: 1.2, up: 0.3, hold: 0.35, fade: 1.1, crackle: 0.9, ticks: 4 }, catch: { strike: 2.14, up: 0.6, hold: 0.9, fade: 2.2, crackle: 1.4, ticks: 6 }, cool: 350 };
+const neonSoundLog = [];
 const NEON_TAP_LEVEL = 0.75 * 0.75;   // City 2.0: tapping a NEON letter — its dropout / power-on (PART 8a: ~25 % quieter than 0.75)
 let surgeAt = -1e9;             // THE MUSIC STARTING (City 2.0, FP3a): when the sign last really answered it (module-wide: the 10 s cooldown spans re-mounts)
 const store = (s, k, v) => { try { if (v === undefined) return s.getItem(k); s.setItem(k, v); } catch { /* private mode */ } return null; };
@@ -716,12 +720,23 @@ export function createTitle() {
     if (!neonWarm && isUnlocked()) { neonWarm = true; neonPreload(); }
     if ((!on || destroyed || document.visibilityState !== 'visible') && humStop) { humStop(0.6); humStop = null; }
   }
-  /** City 2.0: a power-on (the catch, a tapped letter re-igniting) — the recorded strike + the hum fading out after it */
-  function neonOnSound(level = 1) {
+  /** City 2.0: a power-on (the catch, a tapped letter re-igniting) — the recorded strike + the hum fading out after it.
+   *  11a-2 (the owner, Oct 26: the tap's hum lasted "way too long"): the sound FOLLOWS THE RACE — a short buzz-up as the letter
+   *  re-lights, a light crackle riding the race across the letters, then it fades out as the race ends: a TAP ≤ ~1.5 s in all
+   *  (NEON_SOUND.tap), THE CATCH a little longer with its longer race (~3 s, never a drone). One at a time: a new power-on stops the
+   *  last one's strike + hum at once (never stacked), and a tap within NEON_SOUND.cool of the last one plays no new strike. */
+  let strikeStop = null, strikeAt = -1e9;
+  function neonOnSound(level = 1, kind = 'catch') {
     if (!createHarbor || destroyed || document.visibilityState !== 'visible') return;
-    neonCatch({ level });
-    if (humStop) humStop(0.3);
-    humStop = neonHumFade({ level });
+    const cfg = NEON_SOUND[kind] || NEON_SOUND.catch, now = performance.now();
+    if (kind === 'tap' && now - strikeAt < NEON_SOUND.cool) return;
+    strikeAt = now;
+    if (strikeStop) strikeStop(0.06);
+    if (humStop) humStop(0.06);
+    strikeStop = neonCatch({ level, dur: cfg.strike });
+    humStop = neonHumFade({ level, fadeIn: cfg.up, hold: cfg.hold, fade: cfg.fade });
+    neonRaceCrackle({ span: cfg.crackle, n: cfg.ticks, level: kind === 'tap' ? 0.7 : 1 });
+    neonSoundLog.push({ kind, at: Math.round(now), total: +(Math.max(cfg.strike, cfg.hold + cfg.fade)).toFixed(2) }); if (neonSoundLog.length > 20) neonSoundLog.shift();
   }
   // CITY 2.0 — THE WARM-UP'S LAST 30 s (NEON PASS 4, the owner): the golden-hour sputters stay silent until the last
   // WARM_SOUND_MS before THE CATCH; from then each tube striking plays a flicker, quiet at first and building toward the catch
@@ -1252,7 +1267,7 @@ export function createTitle() {
     // when it lights; by night: out at once, re-ignites at 1.6 s; by day: sparks on at once, out at 1.85 s)
     // (PART 8a, the owner: the TAP's on / off ~25 % quieter — 0.75 → 0.5625, ≈ −2.5 dB; THE CATCH's power-on + the first-tap surge
     // keep their level: neonOnSound() at 1 elsewhere)
-    const sound = on => { if (!createHarbor || reduced()) return; if (on) neonOnSound(NEON_TAP_LEVEL); else neonDropout({ level: NEON_TAP_LEVEL }); };
+    const sound = on => { if (!createHarbor || reduced()) return; if (on) neonOnSound(NEON_TAP_LEVEL, 'tap'); else neonDropout({ level: NEON_TAP_LEVEL }); };
     const set = (on, ms, tick) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', on); if (tick) { neonTick(); sound(on); } }, ms);
     // [state, at ms]: the stutter, the hold, the restart flicker
     const plan = day
@@ -1590,6 +1605,7 @@ export function createTitle() {
       rainSound: () => !!stopRain,
       neonAt: t => (neonPlanV ? neonState(neonPlanV, t) : null),
       neonSounds: () => neonSounds,
+      neonSoundLog: () => neonSoundLog.slice(),                               // (11a-2: each power-on's kind + its total length, s)
       neonWarmSounds: () => neonWarmSounds,                                   // (City 2.0: the warm-up's last-30-s flickers)
       neon: () => { const p = neonPlanV; return { stage: neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
       party: () => (scene ? scene.party() : null),

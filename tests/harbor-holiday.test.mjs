@@ -119,3 +119,25 @@ test('the title\'s sign reads City 2.0\'s calendar (titleHoliday); the lamps\' g
   for (let s = 0; s < 600; s += 0.05) for (let i = 0; i < 8; i++) { const v = spookyFlicker(s, i); assert.ok(v >= 0 && v <= 0.9); if (v > 0.5) dips++; }
   assert.ok(dips > 200 && dips < 4000, `a few stutters a minute per lamp (${dips})`);
 });
+
+test('11a-2 — THE GIANT (the Bitcoin pumpkin) on the calendar: on its plinth from Oct 20 uncarved, carved overnight into Oct 28 (by 4 am), carved on the night, gone at 4 am Nov 1', async () => {
+  const { holidayAt, halloweenPieces } = await import('../js/core/harbor-holiday.js');
+  const g = (m, d, h) => { const H = holidayAt({ y: 2026, m, d, h, mi: 0 }); const P = H.id === 'halloween' ? halloweenPieces(H, { hour: h }) : null; return P ? P.giant : null; };
+  assert.equal(g(10, 19, 12), null);
+  assert.deepEqual([g(10, 20, 9).carved, g(10, 27, 23).carved, g(10, 28, 3).carved, g(10, 28, 5).carved, g(10, 31, 21).carved], [false, false, false, true, true]);
+  assert.equal(g(11, 1, 5), null);
+});
+test('11a-2 — BIG PIECES CHANGE OFF-CAMERA (latchBig): held while watching, changed at a load / a return / a jump; the rest of the pieces live', async () => {
+  const { latchBig, BIG_KEYS } = await import('../js/core/harbor-holiday.js');
+  let r = latchBig(null, { giant: { carved: false }, web: 0.5 }, true);
+  assert.deepEqual(r.pieces, { giant: { carved: false }, web: 0.5 });
+  r = latchBig(r.held, { giant: { carved: true }, web: 0.6 }, false);           // (its moment passed on screen: still uncarved, the web grows)
+  assert.deepEqual(r.pieces, { giant: { carved: false }, web: 0.6 });
+  r = latchBig(r.held, { giant: { carved: true }, web: 0.6 }, true);            // (the next load: carved)
+  assert.equal(r.pieces.giant.carved, true);
+  r = latchBig(r.held, { marigolds: 1 }, false);                              // (the holiday over on screen: the giant stays until the next load)
+  assert.ok(r.pieces.giant && r.pieces.marigolds === 1);
+  r = latchBig(r.held, null, true);
+  assert.equal(r.pieces, null);
+  assert.ok(BIG_KEYS.includes('giant') && BIG_KEYS.includes('harvest'));
+});

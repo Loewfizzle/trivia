@@ -343,11 +343,27 @@ test('SP5 — THE BOOTLEGGERS\' TELL: the violet spade from 3 pm on a Saturday /
   assert.equal(bossSignal(18 * 3600, { boot: true, sat: true }), 1, 'without the schedule: the delivery window\'s middle');
 });
 
-test('SP5 — THE BOSS AT THE SHADE on a party night: a stand every ~80 s on most slots, 7–14 s, stepping up + away over 1.4 s, the ember on a draw', async () => {
-  const { bossWatch } = await import('../js/core/harbor-moments.js');
-  let stands = 0, inStand = false, maxA = 0, ember = 0, longest = 0, cur = 0;
-  for (let t = 0; t < 1600; t += 0.05) { const w = bossWatch(t, 11); if (w) { maxA = Math.max(maxA, w.a); if (w.ember > 0.5) ember++; assert.ok(w.a >= 0 && w.a <= 1 && w.x > 0.4 && w.x < 0.73); cur += 0.05; if (!inStand) { stands++; inStand = true; assert.ok(w.a < 0.1, 'steps up from nothing'); } } else { if (inStand) longest = Math.max(longest, cur); cur = 0; inStand = false; } }
-  assert.ok(stands >= 10 && stands <= 20 && maxA === 1 && longest >= 7 && longest <= 14.2 && ember > 0, `${stands} stands in 1600 s, the longest ${longest.toFixed(1)} s, the ember glowed on ${ember} samples`);
+test('11a-2 — THE BOSS AT THE SHADE: he walks up, stands ~15 min (a weight shift, the ember on a draw, a slow head turn), walks away ~10 min, back… ~1 h 45 min at the peak, then done', async () => {
+  const { bossWatchPlan, bossWatchAt, BOSS_WATCH } = await import('../js/core/harbor-moments.js');
+  for (const seed of [11, 1924, 7, 99]) {
+    const P = bossWatchPlan(seed);
+    assert.deepEqual(P, bossWatchPlan(seed), 'seeded');
+    assert.equal(P.length, BOSS_WATCH.stands);
+    const stands = P.map(p => (p.t1 - p.t0) / 60), aways = P.slice(1).map((p, i) => (p.t0 - P[i].t1) / 60), end = P[P.length - 1].t1 / 60;
+    assert.ok(stands.every(m => m >= 15 && m <= 18.5) && aways.every(m => m >= 10 && m <= 13) && end >= 95 && end <= 115, `seed ${seed}: stands ${stands.map(v => v.toFixed(1))}, aways ${aways.map(v => v.toFixed(1))}, done at ${end.toFixed(0)} min`);
+    // the walk-up: the shadow sharpens + darkens over the first seconds; the walk away the reverse; nothing after the last stand
+    const p = P[1], w0 = bossWatchAt(P, p.t0 + 0.5, seed), w1 = bossWatchAt(P, p.t0 + 3.5, seed), w2 = bossWatchAt(P, p.t0 + 30, seed), wa = bossWatchAt(P, p.t1 - 1, seed);
+    assert.ok(w0.phase === 'up' && w1.phase === 'up' && w0.near < w1.near && w1.near < 1 && w2.phase === 'stand' && w2.near === 1 && wa.phase === 'away' && wa.near < 0.5, 'up → stand → away');
+    assert.equal(bossWatchAt(P, p.t1 + 60, seed), null, 'gone between stands');
+    assert.equal(bossWatchAt(P, P[P.length - 1].t1 + 10, seed), null, 'done for the night');
+    // the tiny life over a stand: the weight + the head move (slowly), the ember flares on a few draws
+    let draws = 0, prev = 0, shifts = new Set(), heads = new Set(), maxStep = 0, last = null;
+    for (let s = p.t0 + BOSS_WATCH.up; s < p.t1 - BOSS_WATCH.off; s += 0.1) { const w = bossWatchAt(P, s, seed); if (w.ember > 0.5 && prev <= 0.5) draws++; prev = w.ember; shifts.add(Math.round(w.shift * 4)); heads.add(Math.round(w.head * 4)); if (last) maxStep = Math.max(maxStep, Math.abs(w.shift - last.shift), Math.abs(w.head - last.head)); last = w; }
+    assert.ok(draws >= 12 && draws <= 40 && shifts.size >= 3 && heads.size >= 3 && maxStep < 0.2, `a stand: ${draws} draws, ${shifts.size} weights, ${heads.size} head turns, the biggest step ${maxStep.toFixed(3)} a tenth of a second (smooth)`);
+  }
+  // the preview's demo cycle: a stand within a few seconds of the flag, walking away within a minute
+  const D = bossWatchPlan(11, { demo: true });
+  assert.ok(bossWatchAt(D, 6, 11) && bossWatchAt(D, 6, 11).phase === 'up' && bossWatchAt(D, 20, 11).phase === 'stand' && bossWatchAt(D, D[0].t1 - 1, 11).phase === 'away' && D[0].t1 < 60);
 });
 
 test('SP5 — THE EDGE WINDOWS\' ROLLER SHADES: a seeded height a night (up / half / down), the two never alike, every height seen over a season', async () => {

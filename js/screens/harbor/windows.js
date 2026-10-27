@@ -13,7 +13,7 @@
 //   THE MOMENTS  PAINT[id](env, el, len, inst) — one painter per catalogue entry (wake, shop-open, bartender, lights-out, dance,
 //                toast, sax, cat, peek, tango, mirror) + the taps (a curtain twitches, a head peeks out, the cat leaps off)
 // ADD A MOMENT: an entry in core/harbor-moments.js#MOMENTS + PAINT[id] here (+ a sound through env.play if it has one).
-import { hourPlan, momentsAt, roomState, routineAt, tvLight, tvShadow, tvHolidayTint, quietNight, bedtimes, bedLevel, BED_ROOMS, windowParty, windowPartyAt, PARTY_ROOMS, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM, edgeMoods, bossDayPlan, bossDayAt, bossSignal, bossWatch, edgeShades } from '../../core/harbor-moments.js';
+import { hourPlan, momentsAt, roomState, routineAt, tvLight, tvShadow, tvHolidayTint, quietNight, bedtimes, bedLevel, BED_ROOMS, windowParty, windowPartyAt, PARTY_ROOMS, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM, edgeMoods, bossDayPlan, bossDayAt, bossSignal, edgeShades, bossWatchAt, bossWatchPlan } from '../../core/harbor-moments.js';
 import { createDanceClock, stepDanceClock, idleMoves } from '../../core/harbor-dance.js';
 const TV_END_S = 3 * 3600;
 import { sunTimes } from '../../core/sky.js';
@@ -24,6 +24,8 @@ import { roomBox, lampPool } from '../../core/harbor-rooms.js';
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const sm = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
+// 11a-2 — THE BOSS's TV (the owner): a lighter, glowing blue (was [64,108,255] → [128,162,255]) + a little brighter (× TV_LIFT)
+const TV_BLUE = [[96, 148, 255], [168, 202, 255]], TV_LIFT = 1.18;
 const lerp = (a, b, t) => a + (b - a) * t;
 const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const rgb = (c, a = 1) => `rgba(${c[0] | 0},${c[1] | 0},${c[2] | 0},${+a.toFixed(3)})`;
@@ -741,7 +743,7 @@ export function createWindowLife() {
     const overcast = !!L.overcast, bKey = `${loc.key}|${overcast ? 'o' : ''}`;
     if (bossKey !== bKey) { bossKey = bKey; bossPlan = bossDayPlan(loc.key, { seed: L.seed, overcast }); }
     const bossParty = !!L.bossWatch || !!(party && party.on && !party.cut);
-    const boss = { day: bossDayAt(bossPlan, loc.sec), signal: L.bossSignal ? 1 : bossSignal(loc.sec, { boot: ctx.boot, sat: loc.dow === 6, truckAt: L.truckAt == null ? null : L.truckAt }), party: bossParty, watch: bossParty && f.motion !== false && f.motion !== 0 ? bossWatch(f.t + (L.bossWatch ? watchLead(L.seed || 11) : 0), L.seed || 11) : null };   // (forced: the first stand within ~5 s)
+    const boss = { day: bossDayAt(bossPlan, loc.sec), signal: L.bossSignal ? 1 : bossSignal(loc.sec, { boot: ctx.boot, sat: loc.dow === 6, truckAt: L.truckAt == null ? null : L.truckAt }), party: bossParty, watch: bossParty && f.motion !== false && f.motion !== 0 ? watchNow(L, f.t) : null };   // (11a-2: the walk-up cycle on the peak's clock; forced: the demo cycle from the flag)
     const full = new Set(['apartment']);
     if (states.bar === 'last') full.add('bar');
     for (const e of on) if (e.id === 'lights-out') full.add('apartment'); else if (e.id === 'wake') full.add(e.win); else if (e.id === 'bartender') full.add('bar'); else if (e.id === 'eyes') full.add(e.win);   // (WIN2: the eyes' dark room; SP5: the wake in its own window)
@@ -883,7 +885,7 @@ export function createWindowLife() {
     const peek = Math.max(ev && ev.id === 'peek' ? liftK(p) : 0, o.tap ? liftK(clamp01((t - o.tap.at) / 3.2)) : 0);
     const cover = cover0 - 0.07 * peek, hem = G.h1 - G.ch * cover;
     // the dark room under the hem (a sliver), lit faintly by what's behind
-    const glowC = o.glow === 'tv' ? (() => { const tv = mo ? tvLight(t, 11, { late: !!last.tvLate }) : { k: 0.7, tint: 0.4, warm: 0 }; return { col: tv.warm ? [255, 206, 160] : mixc([70, 112, 255], [128, 162, 255], tv.tint), a: Math.min(1, tv.k) * k }; })()
+    const glowC = o.glow === 'tv' ? (() => { const tv = mo ? tvLight(t, 11, { late: !!last.tvLate }) : { k: 0.7, tint: 0.4, warm: 0 }; return { col: tv.warm ? [255, 206, 160] : mixc(TV_BLUE[0], TV_BLUE[1], tv.tint), a: Math.min(1, tv.k * TV_LIFT) * k }; })()
       : o.glow === 'lamp' ? { col: [255, 196, 120], a: 0.85 * k } : { col: [40, 36, 50], a: 0 };
     R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([9, 8, 14], glowC.col, 0.18 * glowC.a)));
     // THE SHADE: the cloth (by day a dull olive-brown in the sun, dark where the recess shades it; lit from behind at night)
@@ -895,21 +897,47 @@ export function createWindowLife() {
       const VI = [168, 96, 255]; c.globalCompositeOperation = 'lighter';
       glow(c, VI, G.cx, G.h0 + G.ch * 0.52, G.cw * 1.1, 1.0 * sig * (0.92 + 0.08 * Math.sin(t * 0.9)), 0.85); glow(c, [214, 176, 255], G.cx, G.h0 + G.ch * 0.52, G.cw * 0.55, 0.7 * sig, 0.65);
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-      const sx = G.cx, sy = G.h0 + G.ch * 0.52, S = G.cw * 0.24;   // THE SPADE ♠ (y is UP here): the point up, two lobes, the stem below
-      c.fillStyle = `rgba(6,4,12,${(0.92 * sig).toFixed(3)})`;
-      c.beginPath(); c.moveTo(sx, sy + S * 1.15); c.quadraticCurveTo(sx + S * 0.95, sy + S * 0.15, sx + S * 0.95, sy - S * 0.15); c.quadraticCurveTo(sx + S * 0.35, sy - S * 0.1, sx, sy + S * 0.05); c.quadraticCurveTo(sx - S * 0.35, sy - S * 0.1, sx - S * 0.95, sy - S * 0.15); c.quadraticCurveTo(sx - S * 0.95, sy + S * 0.15, sx, sy + S * 1.15); c.fill();
-      for (const d of [-1, 1]) { c.beginPath(); c.arc(sx + d * S * 0.5, sy - S * 0.2, S * 0.52, 0, TAU); c.fill(); }
-      c.beginPath(); c.moveTo(sx - S * 0.24, sy - S * 0.98); c.quadraticCurveTo(sx, sy - S * 0.55, sx + S * 0.24, sy - S * 0.98); c.lineTo(sx + S * 0.1, sy - S * 0.4); c.lineTo(sx - S * 0.1, sy - S * 0.4); c.closePath(); c.fill();
+      // THE SPADE ♠ (y is UP here) — 11a-2 (the owner: "reads as a black TRIANGLE"): BOLDER — two full lobes, a fat body to a sharp point,
+      // the classic FLARED FOOT under it (a stem widening to a broad base), sized to the pane (~0.7 of its width) and filled as ONE shape
+      // (the subpaths' union — no darker overlaps), crisp against the violet
+      const S = Math.min(G.cw * 0.36, G.ch * 0.36), sx = G.cx, sy = G.h0 + G.ch * 0.5 - S * 0.04;
+      const spade = () => { c.beginPath();
+        // (every subpath wound the same way — counter-clockwise with y up, like arc()'s — so 'nonzero' fills their union)
+        c.moveTo(sx, sy + S * 1.1); c.bezierCurveTo(sx - S * 0.22, sy + S * 0.78, sx - S * 0.98, sy + S * 0.42, sx - S * 0.98, sy - S * 0.06);
+        c.lineTo(sx, sy - S * 0.2); c.lineTo(sx + S * 0.98, sy - S * 0.06); c.bezierCurveTo(sx + S * 0.98, sy + S * 0.42, sx + S * 0.22, sy + S * 0.78, sx, sy + S * 1.1); c.closePath();
+        for (const d of [-1, 1]) { c.moveTo(sx + d * S * 0.48 + S * 0.5, sy - S * 0.1); c.arc(sx + d * S * 0.48, sy - S * 0.1, S * 0.5, 0, TAU); }
+        c.moveTo(sx - S * 0.11, sy - S * 0.42); c.quadraticCurveTo(sx - S * 0.13, sy - S * 0.88, sx - S * 0.52, sy - S * 1.04); c.lineTo(sx + S * 0.52, sy - S * 1.04);
+        c.quadraticCurveTo(sx + S * 0.13, sy - S * 0.88, sx + S * 0.11, sy - S * 0.42); c.closePath(); };
+      spade(); c.fillStyle = `rgba(5,3,10,${(0.96 * sig).toFixed(3)})`; c.fill('nonzero');
     }
     // THE SHADOW behind the lit shade (an overcast day: someone crossing; a party night: him, standing — looking down at the street)
     if (ev && ev.id === 'shadow') { const u = p, a = Math.sin(Math.PI * u); glow(c, [8, 6, 12], G.g0 + G.cw * (0.15 + 0.7 * u), G.h0 + G.ch * 0.5, G.cw * 0.3, 0.55 * a, 1.2); c.globalAlpha = 1; }
     if (wa && wa.a > 0.01) {
-      const x = G.g0 + G.cw * wa.x, a = 0.9 * wa.a * Math.max(0.35, glowC.a), sway = mo ? Math.sin(t * 0.7) * 0.012 : 0;
-      c.fillStyle = `rgba(4,3,9,${a.toFixed(3)})`;
-      c.beginPath(); c.ellipse(x + sway, G.h0 + G.ch * 0.58, G.cw * 0.11, G.ch * 0.1, 0, 0, TAU); c.fill();   // (the head)
-      c.beginPath(); c.moveTo(x - G.cw * 0.3 + sway, hem - 0.02); c.quadraticCurveTo(x - G.cw * 0.28 + sway, G.h0 + G.ch * 0.52, x - G.cw * 0.1 + sway, G.h0 + G.ch * 0.49); c.lineTo(x + G.cw * 0.1 + sway, G.h0 + G.ch * 0.49); c.quadraticCurveTo(x + G.cw * 0.3 + sway, G.h0 + G.ch * 0.52, x + G.cw * 0.32 + sway, hem - 0.02); c.closePath(); c.fill();   // (the shoulders)
-      glow(c, [2, 2, 6], x + sway, G.h0 + G.ch * 0.5, G.cw * 0.32, 0.35 * wa.a, 1.1); c.globalAlpha = 1;
-      if (wa.ember > 0.02) { c.globalCompositeOperation = 'lighter'; glow(c, [255, 120, 30], x + G.cw * 0.1 + sway, G.h0 + G.ch * 0.56, G.cw * 0.07, 0.95 * wa.ember * wa.a, 0.5); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
+      // 11a-2 — HIS SHADOW (core#bossWatchAt): sharp + dark against the shade when he stands at it, a bigger SOFT blur while he's deeper
+      // in the room (walking up / away — the shade catches him from the lamp's side); a fedora's brim + crown, the shoulders; the
+      // weight shift (a lean + a step across), the head's slow turn (narrowing to a profile), the cigar's ember — faint at his side,
+      // raised to the mouth + flaring on a draw
+      const nr = wa.near == null ? 1 : wa.near, soft = 1 - nr, sc = 1 + 0.35 * soft, sway = mo ? Math.sin(t * 0.7) * 0.008 : 0;
+      const x = G.g0 + G.cw * wa.x + (wa.shift || 0) * G.cw * 0.035 + sway, lean = (wa.shift || 0) * 0.025, hd = wa.head || 0;
+      const A = 0.9 * wa.a * Math.max(0.35, glowC.a), Y = v => hem + (G.h0 + v * G.ch - hem) * sc, X = (u, v) => x + (u * G.cw + lean * (v * G.ch)) * sc;
+      const body = (ox, oy) => {
+        c.beginPath(); c.moveTo(X(-0.3, 0) + ox, hem - 0.02 + oy); c.quadraticCurveTo(X(-0.29, 0.53) + ox, Y(0.53) + oy, X(-0.1, 0.49) + ox, Y(0.49) + oy);
+        c.lineTo(X(0.1, 0.49) + ox, Y(0.49) + oy); c.quadraticCurveTo(X(0.3, 0.53) + ox, Y(0.53) + oy, X(0.32, 0) + ox, hem - 0.02 + oy); c.closePath(); c.fill();   // (the shoulders)
+        const hx = X(0.03 * hd, 0.58) + ox, rx = G.cw * 0.105 * sc * (1 - 0.22 * Math.abs(hd));
+        c.beginPath(); c.ellipse(hx, Y(0.585) + oy, rx, G.ch * 0.095 * sc, 0, 0, TAU); c.fill();   // (the head)
+        if (Math.abs(hd) > 0.15) { c.beginPath(); c.ellipse(hx + Math.sign(hd) * rx * 0.95, Y(0.565) + oy, rx * 0.22 * Math.abs(hd), G.ch * 0.022 * sc, 0, 0, TAU); c.fill(); }   // (a profile: the nose)
+        c.beginPath(); c.ellipse(X(0.03 * hd, 0.655) + ox, Y(0.655) + oy, G.cw * 0.2 * sc * (1 - 0.12 * Math.abs(hd)), G.ch * 0.02 * sc, 0, 0, TAU); c.fill();   // (the fedora's brim)
+        const cx0 = X(0.03 * hd - 0.085, 0.66) + ox, cx1 = X(0.03 * hd + 0.085, 0.66) + ox, ct = Y(0.745) + oy, cb = Y(0.655) + oy;
+        c.beginPath(); c.moveTo(cx0, cb); c.lineTo(cx0 + G.cw * 0.012, ct - G.ch * 0.012); c.quadraticCurveTo((cx0 + cx1) / 2, ct - G.ch * 0.004, cx1 - G.cw * 0.012, ct - G.ch * 0.012); c.lineTo(cx1, cb); c.closePath(); c.fill();   // (the crown, pinched)
+      };
+      const passes = soft > 0.06 ? 7 : 1, br = soft * G.cw * 0.09;
+      c.fillStyle = `rgba(4,3,9,${(passes > 1 ? A * (0.32 + 0.3 * nr) : A).toFixed(3)})`;
+      for (let i = 0; i < passes; i++) { const an = i * TAU / Math.max(1, passes - 1); body(i ? Math.cos(an) * br : 0, i ? Math.sin(an) * br : 0); }
+      glow(c, [2, 2, 6], x, Y(0.5), G.cw * 0.32 * sc, 0.35 * wa.a, 1.1); c.globalAlpha = 1;
+      const em = wa.ember || 0, hold = wa.hold || 0, up = Math.min(1, em * 1.7);
+      if (em + hold > 0.02) { const ex = X(0.24 + (0.12 + 0.03 * hd - 0.24) * up, 0.3 + 0.26 * up), ey = Y(0.3 + 0.26 * up);
+        c.globalCompositeOperation = 'lighter'; glow(c, [255, 120, 30], ex, ey, G.cw * (0.045 + 0.035 * em), (0.35 * hold + 0.95 * em) * wa.a, 0.5); if (em > 0.3) glow(c, [255, 214, 150], ex, ey, G.cw * 0.018, 0.8 * em * wa.a, 0.4);
+        c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; }
     }
     // THE CIGAR SMOKE out of the sash cracked open at the top: a thin curl rising + drifting under the head, out over the brick
     if (ev && ev.id === 'smoke' && mo) {
@@ -1104,26 +1132,35 @@ export function createWindowLife() {
   let lastTv = null, cashTrace = { flicks: 0 }, tvDead = null;   // (tvDead: the night key the TV snapped off on — a raid)
   let bossKey = '', bossPlan = [];   // (SP5: the boss's day plan, rebuilt per day / overcast)
   const wd = createDanceClock(); let wdT = null;   // (SP5: the building's dance clock)
-  /** SP5 — the forced preview (&force=boss-watch, the panel's row) must show a stand soon: the seeded clock's lead to its first stand − 5 s */
-  let watchLeadS = null;
-  function watchLead(seed) { if (watchLeadS == null) { watchLeadS = 0; for (let t = 0; t < 1200; t += 0.25) { const w = bossWatch(t, seed); if (w && w.u < 0.05) { watchLeadS = Math.max(0, t - 5); break; } } } return watchLeadS; }
+  /** 11a-2 — his shadow now: on a party night the night's plan on the PEAK's clock (life.partyPeakS: seconds since the peak began — the
+   *  same on every phone); forced (&force=boss-watch, the panel's row) the short demo cycle from the flag's first frame */
+  let watchT0 = null, watchPlans = {};
+  function watchNow(L, t) {
+    const seed = L.seed || 11;
+    if (L.bossWatch) { if (watchT0 == null) watchT0 = t; return bossWatchAt(watchPlans.d || (watchPlans.d = bossWatchPlan(seed, { demo: true })), t - watchT0, seed); }
+    watchT0 = null;
+    if (L.partyPeakS == null || L.partyPeakS < 0) return null;
+    return bossWatchAt(watchPlans[seed] || (watchPlans[seed] = bossWatchPlan(seed)), L.partyPeakS, seed);
+  }
   let partyT0 = null, partyDead = null, partyCutT = null, partyKeep = null;   // (WIN3: the window party — forced from t0; dead after a raid's cut)
   function tvRoom(E, on = 1) {
     const { c, G, t, k, mo, B } = E, a = k * on, late = !!last.tvLate;
     const tv = mo ? tvLight(t, 11, { late }) : { k: 0.75, tint: 0.4, warm: 0, cut: 1, dim: 0 };
     const hol = tvHolidayTint(last.hol ? last.hol.id : null);
-    let tc = tv.warm ? [255, 206, 160] : mixc([64, 108, 255], [128, 162, 255], tv.tint);
+    // (11a-2 — the owner's SP5 review: "a little BRIGHTER + a LIGHTER, glowing blue" — the set's blue lifted toward a pale electric blue
+    // (TV_BLUE), the room's glow × TV_LIFT; the calm flicker (core#tvLight) untouched)
+    let tc = tv.warm ? [255, 206, 160] : mixc(TV_BLUE[0], TV_BLUE[1], tv.tint);
     if (hol) tc = mixc(tc, hol.col, hol.w);
-    const tk = Math.min(1, tv.k);
+    const tk = Math.min(1, tv.k * TV_LIFT);
     lastTv = { k: +tv.k.toFixed(3), tint: +tv.tint.toFixed(2), warm: tv.warm, burst: tv.burst ? 1 : 0, quiet: tv.quiet ? 1 : 0, late, hol: hol ? last.hol.id : null, on: +on.toFixed(2) };
     c.globalAlpha = 1;
-    const dark = [7, 8, 18], wash = mixc([34, 52, 140], tc, 0.6 * tk);
+    const dark = [7, 8, 18], wash = mixc([44, 70, 168], tc, 0.66 * tk);
     // the box near-black: the back wall lit toward its TOP, the floor + the sill's foot in shadow, the left wall's far end catching it
     paintBox(c, G, B, { wall: [mixc(dark, wash, 0.22 * a), mixc(dark, wash, 0.8 * a)], floor: [mixc(dark, wash, 0.08 * a), mixc(dark, wash, 0.18 * a)], side: [mixc(dark, wash, 0.15 * a), mixc(dark, wash, 0.5 * a)], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc(dark, wash, 0.45 * a))) });
     c.globalCompositeOperation = 'lighter';
     const sx = G.g1 - G.cw * 0.22;   // (the unseen set below the sill, right)
-    glow(c, tc, G.cx + G.cw * 0.1, G.h1 - G.ch * 0.1, G.cw * 1.1, 0.8 * a * tk, 0.55);      // (the ceiling line + the wall's top washed)
-    glow(c, tc, G.cx + G.cw * 0.15, G.h0 + G.ch * 0.6, G.cw * 0.85, 0.55 * a * tk, 0.8);     // (the back wall's upper half)
+    glow(c, tc, G.cx + G.cw * 0.1, G.h1 - G.ch * 0.1, G.cw * 1.1, 0.8 * TV_LIFT * a * tk, 0.55);      // (the ceiling line + the wall's top washed)
+    glow(c, tc, G.cx + G.cw * 0.15, G.h0 + G.ch * 0.6, G.cw * 0.85, 0.55 * TV_LIFT * a * tk, 0.8);     // (the back wall's upper half)
     glow(c, tc, sx, G.h0 + G.ch * 0.04, G.cw * 0.22, 0.2 * a * tk, 0.4);                     // (the set's own small halo at the sill's foot)
     c.globalCompositeOperation = 'source-over'; { const g = c.createLinearGradient(0, G.h0, 0, G.h0 + G.ch * 0.3); g.addColorStop(0, `rgba(4,4,10,${(0.7 * a).toFixed(3)})`); g.addColorStop(1, 'rgba(4,4,10,0)'); c.fillStyle = g; c.fillRect(G.g0, G.h0, G.cw, G.ch * 0.3); }   // (the sill's foot in shadow: the light comes from below the sill, not through it)
     c.globalCompositeOperation = 'lighter';
@@ -1864,7 +1901,7 @@ export function createWindowLife() {
     catReset() { catTap = -1; },
     /** WIN: something in a window is MOVING (a moment, a tap's answer, a passer-by) — a 60-fps reason (scene.js#fastNow) */
     busy: () => busyNow,
-    debug: () => ({ shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), ember: +last.boss.watch.ember.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
+    debug: () => ({ shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
     destroy() { for (const cv of sprites.values()) cv.width = cv.height = 0; sprites.clear(); blocks.clear(); },
   };
 }

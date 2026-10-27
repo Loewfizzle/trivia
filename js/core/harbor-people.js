@@ -20,7 +20,7 @@ import { signalAt, SIGNAL_CYCLE, xOfF } from './harbor-promenade.js';
 import { partyAt } from './harbor-moments.js';
 import { carsAt } from './harbor-traffic.js';
 import { trafficHold, inHold } from './harbor-legend.js';
-import { DANCE, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
+import { DANCE, RING, ringAt, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
 import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
 import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbor-witness.js';
 import { raidAt, raidHold } from './harbor-raid.js';
@@ -124,7 +124,7 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1 } 
  * real pieces (core/harbor-promenade.js): the bench, the cart, the inlay, the crossing, the speakeasy's doors, the bus stop.
  * line: an active lobby line's rect (people route round it).
  */
-export function folkMap(L, { event = false, line = null, cart = false } = {}) {
+export function folkMap(L, { event = false, line = null, cart = false, ring = false } = {}) {
   const cam = L.cam, s = L.speakeasy, cw = L.crosswalk, b = L.bench, F = FOLK;
   const hwAt = z => cam.hw(z);
   const crab = (L.trees || []).find(t => t.kind === 'crab');
@@ -177,7 +177,8 @@ export function folkMap(L, { event = false, line = null, cart = false } = {}) {
   // own spot behind it stays free for him)
   if (cart && L.cart && L.cart.shown !== false) { rects.push({ id: 'cart', x0: L.cart.x - 1.3, x1: L.cart.x + 2.0, z0: F.zMin - 2, z1: L.cart.z + 0.75 }); }
   // (POL4: the dance circle spreads round the compass — the closed floor reaches its outer dancers: DANCE.reach × the ring)
-  if (event) { const m = L.medallion; circles.push({ id: 'event', x: m.x, z: m.z, r: m.ring * DANCE.reach + 0.4 });
+  // (11a-2: THE GIANT on the inlay (ring) — the closed floor its plinth's corners + a step: RING.clear)
+  if (event) { const m = L.medallion; circles.push({ id: 'event', x: m.x, z: m.z, r: ring ? Math.max(m.ring * DANCE.reach + 0.4, RING.clear) : m.ring * DANCE.reach + 0.4 });
     for (const sg of [-1, 1]) circles.push({ id: 'event', x: m.x + sg * m.ring * DANCE.side.at, z: m.z, r: DANCE.side.r }); }
   return { nodes, exits, rects, circles, hydrantSpot: L.hydrant || null, face: s.z0, cw: { x0: cw.x0 + cww * 0.22, x1: cw.x1 - cww * 0.22, z0: F.curbZ, z1: F.farZ } };
 }
@@ -220,7 +221,8 @@ export function route(map, a, b, depth = 0) {
   const pad = 0.35, way = [];
   for (const r of map.rects) for (const [x, z] of [[r.x0 - pad, r.z0 - pad], [r.x1 + pad, r.z0 - pad], [r.x0 - pad, r.z1 + pad], [r.x1 + pad, r.z1 + pad]])
     if (z >= FOLK.zMin - 0.3 && Math.abs(x) < 900 && !map.rects.some(o => inRect({ x, z }, o)) && !map.circles.some(c => Math.hypot(x - c.x, z - c.z) < c.r)) way.push({ x, z });   // (FP3b: never a corner inside a circle — the closed compass)
-  for (const c of map.circles) for (let i = 0; i < 6; i++) { const a2 = i * Math.PI / 3, p = { x: c.x + Math.cos(a2) * (c.r + pad), z: c.z + Math.sin(a2) * (c.r + pad) }; if (!map.rects.some(o => inRect(p, o)) && !map.circles.some(o => o !== c && Math.hypot(p.x - o.x, p.z - o.z) < o.r)) way.push(p); }   // (POL4: never a way point inside another circle)
+  // (11a-2: a BIG circle — the giant's floor — gets twelve waypoints: six's chords cut inside a wide circle, so no way round was found)
+  for (const c of map.circles) for (let i = 0, nw = c.r > 3.5 ? 12 : 6; i < nw; i++) { const a2 = i * 2 * Math.PI / nw, p = { x: c.x + Math.cos(a2) * (c.r + pad), z: c.z + Math.sin(a2) * (c.r + pad) }; if (!map.rects.some(o => inRect(p, o)) && !map.circles.some(o => o !== c && Math.hypot(p.x - o.x, p.z - o.z) < o.r)) way.push(p); }   // (POL4: never a way point inside another circle)
   const pts = [a, ...way, b], n = pts.length, dist = new Array(n).fill(Infinity), prev = new Array(n).fill(-1), done = new Array(n).fill(false);
   dist[0] = 0;
   for (;;) {
@@ -804,17 +806,17 @@ export function folkAt(t, world, cache = new Map()) {
   };
   // THE ROUTINES (FP3b — core/harbor-routines.js): the dance circle's sessions near t, their people; while one runs the inlay is
   // CLOSED to the crowd (the blocks route round it: Mev) and its people count against the cap (the blocks plan around them)
-  const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceDance, forceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, event: !!ctx.event, blocked: ctx.blocked || null };   // (SP5: no circle under a centrepiece, during a raid or a legendary)
-  const sess = j => get(`DS|${j}|${rctx.force ? 1 : 0}|${rctx.forceAt == null ? '' : Math.round(rctx.forceAt)}`, () => danceSlot(j, rctx));
+  const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceDance, forceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, event: !!ctx.event, ring: !!ctx.ring, blocked: ctx.blocked || null };   // (SP5: no circle under a centrepiece, during a raid or a legendary)
+  const sess = j => get(`DS|${j}|${rctx.force ? 1 : 0}|${rctx.forceAt == null ? '' : Math.round(rctx.forceAt)}|${rctx.event ? 1 : 0}${rctx.ring ? 1 : 0}`, () => danceSlot(j, rctx));
   const sessionsNear = (a, b) => (ctx.noDance ? [] : danceSlotsNear(a, b, rctx).map(sess).filter(x => x && x.s1 + 90 > a && x.s0 - 40 < b));
-  const danceVisits = x => get(`DV|${x.id}`, () => planDance(x, M, L));
-  const Mev = get('Mev', () => folkMap(L, { event: true }));
+  const danceVisits = x => get(`DV|${x.id}|${x.ring ? 1 : 0}`, () => planDance(x, M, L));
+  const Mev = get(`Mev|${ctx.ring ? 1 : 0}`, () => folkMap(L, { event: true, ring: !!ctx.ring }));
   const closed = (a, b) => sessionsNear(a, b).some(x => b > x.s0 - 30 && a < x.s1 + 60);
   // THE VENDOR SPOT (FP3b — core/harbor-routines.js#VENDOR): the chestnut cart's evening, wheeled in from the right edge + out again;
   // never while the inlay is in use (a centrepiece: ctx.event; the dance circle: &force=dance — the real circles start after it's gone)
   const cartX = L.cart ? L.cart.x : 0, cartIn = cam => (cam ? cam.hw(L.cart.z) + 3.2 : cartX + 12);
   // (Part 9's hook: in HEAVY rain — ctx.rain > 0.6 — the cart doesn't come out; in drizzle people.js puts its little hood up)
-  const cartEv = tt => { if (!L.cart || L.cart.shown === false || ctx.event || ctx.forceDance || (ctx.rain || 0) > 0.6) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
+  const cartEv = tt => { if (!L.cart || L.cart.shown === false || (ctx.event && !ctx.ring) || ctx.forceDance || (ctx.rain || 0) > 0.6) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
     return get(`CE|${loc.key}`, () => cartEvening(loc.key, loc.month, day0, cartIn(L.cam), cartX, { seed: ctx.seed })); };
   const cartOut = (a, b) => { for (const tt of [a, b]) { const e = cartEv(tt); if (e && b > e.t0 - 10 && a < e.t1 + 10) return true; } return false; };
   const cartParked = (a, b) => { const e = cartEv(a); return !!(e && a >= e.ta && b <= e.tb); };
@@ -837,8 +839,9 @@ export function folkAt(t, world, cache = new Map()) {
   const lineOn = (a, b) => linesNear(a, b).some(x => b > x.T0 - 60 && a < x.T1 + 60);
   const lineVisits = (a, b) => linesNear(a, b).flatMap(x => x.visits).filter(v => v.tEnd > a && v.t0 < b);
   // (the map a visit is planned on: the compass closed by the dance circle, the cart standing, the line queuing — any mix of them)
-  const mapAt = (a, b, M0) => { const ev = closed(a, b), ct = cartOut(a, b), ln = lineOn(a, b); if (!ev && !ct && !ln) return M0;
-    return get(`MX|${ev ? 1 : 0}${ct ? 1 : 0}${ln ? 1 : 0}`, () => folkMap(L, { event: ev, cart: ct, line: ln ? lineRect(L, LINE.max) : null })); };
+  // (11a-2: a centrepiece standing on the inlay (ctx.event — the giant) keeps its closed floor on every map, the cart's + the line's too)
+  const mapAt = (a, b, M0) => { const ev = closed(a, b) || !!ctx.event, ct = cartOut(a, b), ln = lineOn(a, b); if (!closed(a, b) && !ct && !ln) return M0;
+    return get(`MX|${ev ? 1 : 0}${ct ? 1 : 0}${ln ? 1 : 0}${ctx.ring ? 1 : 0}`, () => folkMap(L, { event: ev, ring: !!ctx.ring, cart: ct, line: ln ? lineRect(L, LINE.max) : null })); };
   // 11a-1 — the holidays' visits near t: [visit] (each block / chunk planned once: cached)
   const HB = 600, totOf = k => get(`TOT|${k}|${HF.tot == null ? '' : Math.round(HF.tot)}`, () => totGroups(k, { off: ctx.off, seed: ctx.seed, forceAt: HF.tot == null ? null : HF.tot }).map(g => totVisit(g, M)).filter(Boolean));
   const zomOf = k => get(`ZOM|${k}|${HF.zombies == null ? '' : Math.round(HF.zombies)}`, () => zombieGroups(k, { off: ctx.off, seed: ctx.seed, forceAt: HF.zombies == null ? null : HF.zombies }).map(g => zombieVisit(g, M)).filter(Boolean));
@@ -1033,6 +1036,7 @@ function procVisit(e, x0, x1) {
  *  until it ends, then back in one by one; the watchers in from the edges to spots behind + beside it, clapping / bobbing / watching,
  *  then away. Each visit: { routine: 'dance', idx } (people.js#wands reads the index: the moves, the colour, the race) */
 function planDance(sess, M, L) {
+  if (sess.ring) return planRing(sess, M, L);
   const m = L.medallion, r = rngFrom(sess.seed), out = [];
   const lead = () => [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }];
   for (let i = 0; i < sess.dancers; i++) {
@@ -1063,6 +1067,44 @@ function planDance(sess, M, L) {
       legs: [...a.legs, { k: 'pose', pose, x: spot.x, z: spot.z, t0: a.t1, t1: tEnd, hd: Math.atan2(m.z - spot.z, m.x - spot.x) }, ...b.legs], t0: a.t0, t1: b.t1, tEnd: b.t1, members: lead() });
   }
   return out;
+}
+
+/** 11a-2 — THE RING round the giant jack-o'-lantern (core/harbor-routines.js#RING): the dancers out of the side door to their places evenly
+ *  round it (a late one goes straight to where the ring has got to), dancing in place for a phrase, then all stepping one place on along
+ *  the arc together (a walk leg along the circle — never a slide), again + again, then back in; the watchers as the circle's */
+function planRing(sess, M, L) {
+  const m = L.medallion, r = rngFrom(sess.seed), out = [], n = sess.dancers, step = 2 * PI / n, P = RING.phrase + RING.move, T0 = sess.s0 + RING.first;
+  const angle = (i, pos) => -PI / 2 + step / 2 + (i + pos) * step;
+  const spotAt = (i, pos) => ringAt(m, angle(i, pos));
+  const posAt = tA => (tA < T0 ? 0 : Math.floor((tA - T0) / P) + 1);         // (the places the ring has moved on by tA)
+  const face = sp => lerpHd(-PI / 2, Math.atan2(m.z - sp.z, m.x - sp.x), 0.3);
+  const lead = () => [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }];
+  for (let i = 0; i < n; i++) {
+    const start = sess.s0 + i * DANCE.stagger, tEnd = sess.s1 + i * 1.3;
+    let a = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: 'side' }, { at: spotAt(i, 0) }] }, start, M, { r });
+    if (!a) continue;
+    let pos = posAt(a.t1 + 1);
+    if (pos > 0) { a = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: 'side' }, { at: spotAt(i, pos) }] }, start, M, { r }); if (!a) continue; pos = posAt(a.t1 + 1); }
+    if (a.t1 >= tEnd - 20) continue;
+    const legs = [...a.legs];
+    let t = a.t1;
+    for (let guard = 0; guard < 64; guard++) {
+      const Tm = T0 + pos * P, sp = spotAt(i, pos);
+      if (Tm + RING.move >= tEnd - 1) { legs.push({ k: 'pose', pose: 'wands', x: sp.x, z: sp.z, t0: t, t1: tEnd, hd: face(sp) }); break; }
+      if (Tm > t) legs.push({ k: 'pose', pose: 'wands', x: sp.x, z: sp.z, t0: t, t1: Tm, hd: face(sp) });
+      const a0 = angle(i, pos), pts = []; for (let q = 0; q <= 8; q++) pts.push(ringAt(m, a0 + step * q / 8));
+      const t1 = Math.max(Tm, t) + RING.move;
+      legs.push({ k: 'walk', pts, t0: Math.max(Tm, t), t1, v: pathLen(pts) / RING.move });
+      t = t1; pos++;
+    }
+    const last = legs[legs.length - 1], end = { x: last.x, z: last.z };
+    const b = planVisit({ look: 'guest', gait: 'walk', goals: [{ door: 'side' }] }, tEnd, M, { r, start: end });
+    if (!b) continue;
+    out.push({ id: `${sess.id}.d${i}`, kind: 'dancer', routine: 'dance', idx: i, look: 'guest', gait: 'walk', party: true, ring: true, legs: [...legs, ...b.legs], t0: a.t0, t1: b.t1, tEnd: b.t1, members: lead() });
+  }
+  // (the watchers: the circle's own — behind + beside, further out than the ring)
+  const base = planDance({ ...sess, ring: false, dancers: 0 }, M, L);
+  return [...out, ...base];
 }
 
 // ------------------------------------------------------------------ THE LOBBY LINE (Lobby 2.0's hook — the owner's "LINE AT THE SPEAKEASY")

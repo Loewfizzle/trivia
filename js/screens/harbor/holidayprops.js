@@ -9,7 +9,8 @@
 // colours lit like the promenade's animals (fauna.js#litCol: the night + each lamp's pool); per frame only sprites are drawn (+ the
 // flags' transforms, the candles' flicker, a monarch's wings). Reduced motion: the flags still, the candles steady, no monarchs.
 import { project } from '../../core/harbor-layout.js';
-import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt, bigPumpkins, BALE } from '../../core/harbor-holidayprops.js';
+import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt, bigPumpkins, BALE, giantPiece, giantDecor } from '../../core/harbor-holidayprops.js';
+import { createGiant } from './giant.js';
 import { lightField } from '../../core/harbor-light.js';
 import { litCol } from './fauna.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -232,7 +233,8 @@ function paintFlag(ci, pi, col, lit) {
 // ------------------------------------------------------------------ THE LIVE MANAGER
 export function createHolidayProps() {
   const stat = { rects: [] };
-  let L = null, lay = '', slots = [], spots = [], posts = [], path = null, runs = [], bigs = [];
+  let L = null, lay = '', slots = [], spots = [], posts = [], path = null, runs = [], bigs = [], giantG = null, decor = [];
+  const giant = createGiant();   // (11a-2: THE GIANT JACK-O'-LANTERN on the centre circle — giant.js)
   const cache = new Map();
   let lightKey = '', lightFn = null, lightDark = -1;
   const SPRITE_MAX = 220;
@@ -242,7 +244,7 @@ export function createHolidayProps() {
     const sig = `${Lnew.cam.W}|${Lnew.cam.H}|${Lnew.cam.F}|${dpr}|${Lnew.speakeasy.x0.toFixed(3)}`;
     if (L === Lnew && sig === lay) return;
     L = Lnew; lay = sig;
-    slots = pumpkinSlots(L); spots = marigoldSpots(L); posts = garlandPosts(L); path = petalPath(L); runs = papelRuns(L); bigs = bigPumpkins(L);
+    slots = pumpkinSlots(L); spots = marigoldSpots(L); posts = garlandPosts(L); path = petalPath(L); runs = papelRuns(L); bigs = bigPumpkins(L); giantG = giantPiece(L); decor = giantDecor(L);
     for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0;
     cache.clear(); lightKey = '';
   }
@@ -347,7 +349,8 @@ export function createHolidayProps() {
     const dpr = env.dpr || 2, t = env.t || 0, mo = env.motion !== false, night = clamp01((E.dark - 0.25) / 0.5) * (env.power == null ? 1 : env.power), cam = L.cam, s = cam.F / b.z, fade = env.fade == null ? 1 : env.fade;
     const [gx, gy] = project(cam, b.x, 0, b.z), [sx, sy] = project(cam, b.x, b.y, b.z);
     c.save(); c.globalAlpha = fade;
-    c.fillStyle = 'rgba(10,6,12,0.42)'; c.beginPath(); c.ellipse(gx, gy, (b.bale ? BALE.w * 0.62 : b.d * 0.55) * s, (b.bale ? BALE.w * 0.15 : b.d * 0.13) * s, 0, 0, TAU); c.fill();
+    // (11a-2: the giant's plinth decor stands ON the plinth — its contact shadow on the straw, not on the cobbles under it)
+    c.fillStyle = 'rgba(10,6,12,0.42)'; c.beginPath(); c.ellipse(gx, b.decor ? sy : gy, (b.bale ? BALE.w * 0.62 : b.d * 0.55) * s, (b.bale ? BALE.w * 0.15 : b.d * 0.13) * s, 0, 0, TAU); c.fill();
     if (b.bale) { const bs = baleSprite(b, E, dpr); c.drawImage(bs.cv, gx - bs.cx / dpr, gy - bs.foot / dpr, bs.w / dpr, bs.h / dpr); }
     if (b.gourd) { const g = bigSprite(b, E, dpr, true), gxx = sx + (b.side || 1) * (b.d * 0.5 + 0.3) * s; c.drawImage(g.cv, gxx - g.cx / dpr, sy - g.foot / dpr, g.w / dpr, g.h / dpr); }
     const sp = bigSprite(b, E, dpr);
@@ -367,15 +370,22 @@ export function createHolidayProps() {
       c.globalCompositeOperation = 'source-over'; stat.bigGlows = (stat.bigGlows || 0) + 1;
     }
     c.restore();
-    stat.rects.push({ id: b.spot, x: +(sx - sp.cx / dpr).toFixed(1), y: +(sy - sp.foot / dpr).toFixed(1), w: +(sp.w / dpr).toFixed(1), h: +(sp.h / dpr).toFixed(1), big: true });
+    stat.rects.push({ id: b.spot, x: +(sx - sp.cx / dpr).toFixed(1), y: +(sy - sp.foot / dpr).toFixed(1), w: +(sp.w / dpr).toFixed(1), h: +(sp.h / dpr).toFixed(1), big: !b.decor, decor: !!b.decor });
   }
   /** the big pieces on a pass as z-sorted extras for people.js ('near': with the walkers; 'far': across the road) → [{ z, draw(c) }] */
   function items(pass, env) {
     const HS = env.HS, HP = env.HP;
-    if (!env.L || !HS || HS.id !== 'halloween' || !HP || !HP.bigs || !(env.fade > 0) || !env.T) return [];
+    // (11a-2: the big pieces are LATCHED (core/harbor-holiday.js#latchBig) — they may outlive their holiday on screen until the next load)
+    if (!env.L || !HP || !(HP.bigs || HP.giant) || !(env.fade > 0) || !env.T) { giant.clearLight(); return []; }
     layout(env.L, env.dpr || 2);
-    const E = envLight(env);
-    return bigs.filter(b => b.pass === pass).map(b => ({ z: b.z, draw: c => drawBig(c, b, env, E) }));
+    const E = envLight(env), out = HP.bigs ? bigs.filter(b => b.pass === pass).map(b => ({ z: b.z, draw: c => drawBig(c, b, env, E) })) : [];
+    // 11a-2 — THE GIANT JACK-O'-LANTERN on the inlay: one item at the inlay's centre — the ring of dancers in depth round it
+    if (pass === 'near' && HP.giant && giantG) {
+      const gp = HP.giant, night = clamp01((E.dark - 0.25) / 0.5);
+      for (const b of decor) out.push({ z: b.z, draw: c => drawBig(c, b, env, E) });
+      out.push({ z: giantG.z, draw: c => giant.draw(c, { L, g: giantG, T: E.T, dark: E.dark, dpr: env.dpr || 2, carved: !!gp.carved, lit: night, bright: HS && HS.id === 'halloween' && HS.eve ? 1.3 : 1, t: env.t || 0, mo: env.motion !== false, fade: env.fade, tier: env.tier, power: env.power, lightKey }) });
+    } else if (pass === 'near') giant.clearLight();
+    return out;
   }
 
   // ---------------------------------------------------------------- the marigolds (a sprite per spot / per post)
@@ -574,7 +584,7 @@ export function createHolidayProps() {
       if (dotd) drawPapel(c, env, E, HP.papel);
     } else if (pass === 'top') {
       if (dotd) { drawSpots(c, env, E, true, HP.marigolds * fade); drawPosts(c, env, E, true, HP.garlands); }
-      if (halloween && HP.bigs) for (const b of bigs) if (b.pass === 'top') drawBig(c, b, env, E);   // (WIN: the front strip's big jack-o'-lantern — nearer than anyone on the floor)
+      if (HP && HP.bigs) for (const b of bigs) if (b.pass === 'top') drawBig(c, b, env, E);   // (WIN: the front strip's big jack-o'-lantern — nearer than anyone on the floor)
       if (env.motion !== false && env.tier !== 0) {
         const m = monarchSlot(env.ms || Date.now(), { on: !!(dotd && HP.monarchs), forceAt: env.monarchAt });
         if (m) drawMonarch(c, env, E, m);
@@ -584,7 +594,10 @@ export function createHolidayProps() {
   }
   return {
     draw, items,
-    debug: () => ({ stat: { ...stat, rects: (stat.rects || []).slice() }, bigs: bigs.map(b => ({ spot: b.spot, pass: b.pass, d: b.d })), slots: slots.length, spots: spots.length, posts: posts.length, runs: runs.map(r => r.n), petals: path ? path.pts.length : 0, sprites: cache.size }),
-    destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); },
+    /** 11a-2: the giant jack-o'-lantern's light this frame (people.js lights the dancers + walkers by it) + whether it stands */
+    giantLight: () => giant.pointLight(),
+    giantOn: (HS, HP) => !!(HP && HP.giant),
+    debug: () => ({ giant: giant.debug(), stat: { ...stat, rects: (stat.rects || []).slice() }, bigs: bigs.map(b => ({ spot: b.spot, pass: b.pass, d: b.d })), slots: slots.length, spots: spots.length, posts: posts.length, runs: runs.map(r => r.n), petals: path ? path.pts.length : 0, sprites: cache.size }),
+    destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); giant.destroy(); },
   };
 }

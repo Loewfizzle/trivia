@@ -58,10 +58,10 @@ export function createPeople() {
   const PD = createDanceClock(); let pdT = null;   // (SP5: the promenade dancers' energy — core/harbor-dance.js)
   const pnow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   function layout(l) { L = l; mapKey = ''; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; }
-  function ensureMap(event) {
-    const key = `${event ? 1 : 0}|${lineN}`;
+  function ensureMap(event, ring = false) {
+    const key = `${event ? 1 : 0}${ring ? 1 : 0}|${lineN}`;
     if (key === mapKey && M) return;
-    M = folkMap(L, { event, line: lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
+    M = folkMap(L, { event, ring, line: lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
   }
   const lookFor = (mem, env) => {
     const key = `${mem.vid}|${mem.m.seed}|${mem.m.role}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${env.wind > 10 ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}|${mem.hween ? 'H' : ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
@@ -79,10 +79,10 @@ export function createPeople() {
    */
   function frame(f) {
     if (!L) return;
-    ensureMap(!!f.event);
+    ensureMap(!!f.event, !!f.ring);
     const hf = hforceOf(f);
     const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, lobby: lineN,
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
@@ -173,7 +173,15 @@ export function createPeople() {
    */
   // (8b1 — the blackout's leftovers: the lamps' light on the figures — their lit cloth + the rim — follows the city's POWER (a dead
   // lamp lights nobody); their night tone stays the scene's darkness (drawFolk: T.night), so they stay dark silhouettes)
-  const envOf = env => { const dark = clamp01(env.dark || 0) * (env.power == null ? 1 : clamp01(env.power)); return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: lights(dark), rimSide, shadow: h => sunShadow(env.T || {}, h) }; };
+  // (11a-2 — a set piece's OWN LIGHT (env.pointLights: the giant jack-o'-lantern's candle through its face) added to the lamps' where a
+  // figure stands: warm, falling off over a few units — the dancers circling it + anyone walking past it lit from that side)
+  const withPoints = (base, pls) => (x, z) => {
+    let v = base ? base(x, z) : null;
+    for (const q of pls) { const d = Math.hypot(x - q.x, (z - q.z) * 1.1); if (d > q.r * 1.8) continue; const k = q.k / (1 + (d / (q.r * 0.45)) ** 2); if (k < 0.01) continue; v = v ? v.slice() : [0, 0, 0]; for (let i = 0; i < 3; i++) v[i] += q.col[i] * k; }
+    return v;
+  };
+  const envOf = env => { const dark = clamp01(env.dark || 0) * (env.power == null ? 1 : clamp01(env.power)), base = lights(dark), pls = env.pointLights && env.pointLights.length ? env.pointLights : null;
+    return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: pls ? withPoints(base, pls) : base, rimSide, shadow: h => sunShadow(env.T || {}, h) }; };
   /** FP3b — REAL DOORS: is this member inside a doorway (behind the facade's plane — drawn by drawInside through the opening)? */
   const insideDoor = m => !!(m.s.door && !m.s.door.bus && M && m.s.z > M.face - 0.02);
   const inBus = (m, b) => !!(m.s.door && m.s.door.bus && m.s.door.id === b.id && m.s.z > b.z - 0.02);

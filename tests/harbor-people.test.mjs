@@ -353,6 +353,37 @@ test('FP3b — THE DANCE CIRCLE (the routines layer): party nights only, at the 
   }
   assert.ok(formed > 100, `the circle danced (${formed} samples)`);
 });
+test('11a-2 — THE RING round the GIANT JACK-O\'-LANTERN: on Halloween night (a Saturday) the hourly dance circles it — evenly round it at RING.r, stepping on together along the arc (never a slide), nobody walking through it, the cart still out', async () => {
+  const { RING, danceSlot } = await import('../js/core/harbor-routines.js');
+  const onRing = x => Math.hypot((x.s.x - m.x) / RING.rx, (x.s.z - m.z - RING.cz) / RING.rz);
+  const { GIANT } = await import('../js/core/harbor-holidayprops.js');
+  const { L } = setup('402x874'), M = folkMap(L, { event: true, ring: true }), cache = new Map(), m = L.medallion;   // (people.js#ensureMap: the event's map)
+  const sat = Date.parse('2026-10-31T22:00:00-04:00') / 1000, ctx = { off: OFF, event: true, ring: true };
+  assert.ok(danceSlot(Math.floor(sat / 3600), ctx), 'the hour still has its dance with the giant standing (ring)');
+  assert.equal(danceSlot(Math.floor(sat / 3600), { off: OFF, event: true }), null, 'a centrepiece that is not ringed still stops it');
+  let posed = 0, moved = 0, prev = null, slides = 0;
+  for (let t = sat + 70; t < sat + 400; t += 0.5) {
+    const f = folkAt(t, { L, M, ctx }, cache);
+    const d = f.members.filter(x => x.kind === 'dancer' && x.routine === 'dance');
+    for (const x of d) {
+      const r = onRing(x);
+      if (x.s.pose === 'wands') { posed++; assert.ok(Math.abs(r - 1) < 0.02, `a dancer on the ring (${r.toFixed(3)})`); }
+      if (x.s.pose === 'walk' && Math.abs(r - 1) < 0.04) { moved++; if (!(x.s.v > 0.3)) slides++; }
+    }
+    // (nobody walks through the giant: its girth + a body's width)
+    for (const x of f.members) if (!x.routine && x.m.role !== 'dog') assert.ok(Math.hypot(x.s.x - m.x, x.s.z - m.z) > GIANT.body.R * 1.08, `${x.kind} walking through the giant (${(x.s.x - m.x).toFixed(2)}, ${(x.s.z - m.z).toFixed(2)})`);
+    // (evenly round it: no two posed dancers closer than ~2/3 of a step)
+    const ps = d.filter(x => x.s.pose === 'wands');
+    for (let a = 0; a < ps.length; a++) for (let b = a + 1; b < ps.length; b++) assert.ok(Math.hypot(ps[a].s.x - ps[b].s.x, ps[a].s.z - ps[b].s.z) > RING.rz * 0.6, 'evenly spaced');
+    prev = d;
+  }
+  void prev;
+  assert.ok(posed > 1000 && moved > 50 && slides === 0, `the ring danced (${posed} posed samples) + stepped round together (${moved} walking samples, ${slides} sliding)`);
+  // the chestnut cart still comes out (the giant stands on the inlay, the cart's spot is its own)
+  let cart = 0; const c2 = new Map();
+  for (let t = Date.parse('2026-10-29T18:30:00-04:00') / 1000; t < Date.parse('2026-10-29T21:00:00-04:00') / 1000; t += 60) if (folkAt(t, { L, M, ctx }, c2).cart.on) cart++;
+  assert.ok(cart > 60, `the chestnut cart out with the giant up (${cart} min)`);
+});
 test('FP3b — THE VENDOR SPOT: the chestnut cart wheeled in ~6:30 pm + out ~9:30 pm in the cold months only, its vendor with it; never while the inlay is in use; its customers only while it stands there', async () => {
   const { VENDOR } = await import('../js/core/harbor-routines.js');
   const { L } = setup('402x874'), M = folkMap(L);
