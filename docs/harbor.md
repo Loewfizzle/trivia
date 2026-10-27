@@ -8251,3 +8251,6 @@ sounds. `&ufo=classic` = the hand-drawn saucer.
 ### Known issues
 - The turntable's wrap (frame 23 → 0) shifts the worn texture's rust specks by 30° — invisible at phone size, visible zoomed in.
 - On a very slow network a forced preview shows no craft for up to 4 s, then the hand-drawn saucer.
+- **THE FINAL CLOUD RUN (40582957813, the pass's only one)**: `show`, `audio`, `holiday`, `windows`, `street`, `wild` GREEN; `tests`
+  (40582958002) green; `city` 92/93 + `panel`'s "the word gone" timeout — SP3's known clock-dependent LOAD WEATHER flake + the panel
+  timeout that fails on the baseline too (SP6's known issues); neither touches the UFO. Not re-run (the two-run rule).
