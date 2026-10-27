@@ -61,6 +61,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | SP5 | ✅ (Oct 26 — docs/harbor.md#sp5) THE SPEAKEASY FOLLOW-UPS (Fable, Oct 26 — "OWNER'S NOTES — OCT 26 (after WIN3)": the spiders independent + the drop's feet + the bigger scare (FIRST, for Halloween), the boss's room by day + the violet spade + the TV nudge + his shadow at the party, the roller shades, the barbershop's values, the cash count's one arm pair + walk-up, the edge dancers + depth + between songs, the vendor's side, the promenade dance on the hour, the blade's weekly repaint) | Fable | ~4 h |
 | 11a-1 | HALLOWEEN + DAY OF THE DEAD + the shared holiday system (calendar, build-ups day by day, sign dressings; the web, the pumpkins, the window ghosts on SP3's window kit, the ghost ship, the witch, the trick-or-treaters) — LIVE BY ~OCT 29 | Opus 5.5 high | ~3 h |
 | 11a-2 | ✅ (Oct 27 — docs/harbor.md#part-11a-2: Halloween's giant BITCOIN pumpkin + the dance ringing it, BIG PIECES CHANGE OFF-CAMERA, the boss's shadow walking up, the bolder spade, the bluer TV, the UFO redesigned (the abduction byte-identical), the witch smooth; the November build-up by date (bales, stalks, the spots, the harvest display, the wreath, the raker, cider); THE PARADE SYSTEM + Thanksgiving's balloon parade + its sounds; the homecoming party; the amber day, chimney smoke, pies, the family tables + the football game in the windows; BLACK FRIDAY: the rush, the tree stand, the sale banner, the first Christmas crew stringing the speakeasy's lights) THANKSGIVING + the reusable PARADE system (the Wednesday party, Black Friday's first Christmas crew) — by mid-Nov | Opus 5.5 high | ~2–3 h |
+| SP6 | ← NEXT: THE FIXES BEFORE WINTER — the cloud failures + the CI-minutes chore, the blue TV window, the boss's party window, the UFO from the real model (+ the beam, the spot, a CREDITS sheet), the three roof-sign modes, the small fixes | Opus 5.5 high | ~3 h |
 | 9b | WINTER + THE CONSTRUCTION TOWER (real snow on the ground, the stages, plows + salt + shovelers, the January snowman, snow on the sign + frost on the glass, the tower's yearly cycle) | Opus 5.5 high | ~3 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
@@ -2655,3 +2656,140 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
 - **THE CASH COUNT + THE POKER-TABLE WINDOW — PARKED** (the owner, Oct 26 9:21 pm): dislikes the GREEN lamp + its glow and
   the "cheap poker table" window — "skip that guy for now". DON'T touch them in the next passes; revisit when he raises it
   (a note for then: a warm amber desk lamp; the poker-table room needs the act-big rework or a different scene).
+
+## OWNER'S NOTES — OCT 27 (after 11a-2)
+- BIG HOLIDAY PIECES CHANGE OFF-CAMERA (the owner, Oct 26 10:04 pm — DECIDED, a rule for EVERY holiday / event centrepiece +
+  big set piece): no delivery / build / removal scenes — a big piece (the giant jack-o'-lantern, the harvest display, the
+  Christmas tree, the snowman's stages, a parade's leftovers…) is simply THERE when the user loads in, and when its time
+  is over it's simply GONE the next time they open the city — "taken care of when he's not on". IMPLEMENTATION: such a
+  change (appear / disappear / the next build-up stage, e.g. the pumpkin carved) only applies at a LOAD or when the page
+  comes back from the BACKGROUND (hidden → visible); if its moment passes while someone is watching, it waits until the
+  next load / return (never pops in or out on screen). Exceptions stay as decided: the people's own moments (the crew
+  stringing Christmas lights, the snowman being built by kids) are scenes on purpose.
+- FOCUS: FINISH THE CITY, THEN THE GAMES (the owner, Oct 26 10:11 pm): he wants to finish City 2.0 RIGHT, stick to the
+  roadmap, then build the games + open it to players; deep polish of scenes (the window moments, the holiday pieces'
+  transitions, the cash count, the poker room…) comes AFTER launch. Claude's working rule from here: new ideas during the
+  city passes go to a POLISH BACKLOG (after launch) by default unless they're a bug, a deadline (a holiday), or the owner
+  says "now"; each remaining city pass stays in its lane.
+- THE GIANT JACK-O'-LANTERN = A ₿ PUMPKIN, TWICE THE SIZE (the owner, Oct 26 10:22 pm — DECIDED): the centrepiece pumpkin
+  ~2× bigger, CARVED WITH THE BITCOIN ₿ (a bold B with its two strokes above + below, cut clean through the rind — the carved
+  edges showing the pale flesh + depth) instead of a face, LIT FROM INSIDE BY FIRE (a real flame's flicker: orange-gold
+  light pulsing irregularly through the ₿ + the stem gap, a faint glow through the thinner rind, the light dancing on the
+  cobbles + the people around it; a wisp of smoke from the stem now + then). Fits Oct 31 = the Bitcoin whitepaper's
+  anniversary. Still clear of the crossing, the walk paths, the lobby line + the dock at 390 / 402 / 430 (shrink the hay
+  plinth before the pumpkin if space is tight); the dance ring circles it on Halloween night.
+- THE ABDUCTION UFO REDESIGNED (the owner, Oct 26 10:32–10:34 pm — DECIDED from Claude's three prototype stills, option C +
+  A's dome): today's saucer reads CARTOONISH (the underside especially; the glass dome may stay). NEW: a heavy GUNMETAL saucer
+  (real brushed / anodised metal — panel seams, a soft specular band, reflections of the city's lights + the moon on its
+  upper hull, no flat colours, no outlines), a SMOKED glass dome (dark, a faint inner glow, one crisp highlight), a RING OF
+  GLOWING SLOTS round the rim (blue-white, softly pulsing, the night's key light), and THE BELLY NEVER SEEN — lost in a strong
+  soft glow that pours into the concentrated beam (no orange underbelly, no cartoon details); its light lands on the haze,
+  the water, the rooftops + the promenade below. "Just got to look real, not cheap" — the reference is the FLOOR: three
+  refine passes, zoomed + full screen at 402, night (+ fog). The abducted person stays as he is (the owner loved him).
+  For the next pass that touches the legendaries (ATM or Part 10) — or sooner if the owner says "now".
+  + THE RING + THE BEAM (the owner, 10:36 pm — Claude's recommendation): the rim slots RACE in a ring — lit sequentially,
+  FAST, round the whole diameter, calm while it hovers, ACCELERATING as it lifts the person, a quick flash of all of them
+  when he's taken, slowing as it leaves; the slots cool WHITE / ice-cyan (NOT red: red = the towers' beacons, the TR-3B's
+  orb, the Mothman's + the haze-room's eyes); THE BEAM a pale GREEN tint (the classic tractor beam, unlike any other light
+  in the city — violet is the boss's spade), soft-edged, dust motes drifting up in it.
+  !! HARD RULE (the owner, 10:39 pm — "very important"): THE ABDUCTION SCENE ITSELF STAYS EXACTLY THE SAME — the person's
+  lift animation + pose untouched (limp, arched backwards, pulled up like a puppet, arms draped down, head tilted back —
+  the classic abduction pose), its timing + path unchanged; ONLY the UFO's look + the beam's look change. Prove it: the
+  person's rig / keyframes / timing files untouched in the diff + a before / after frame burst of the lift side by side.
+- THE WITCH IS CHOPPY (the owner, Oct 26 10:59 pm, on his phone, seen live flying across): "very, very choppy" — sent as an ADD-ON to
+  11a-2 (Oct 26 11:12 pm), to fix before Halloween; check it in 11a-2's summary. Likely cause from the code (check, don't assume): witch.js#drawFigure
+  re-creates its TWO offscreen canvases whenever her size in pixels changes (`fig.width !== px`, px from W.size, which grows/shrinks
+  as she nears/leaves) — i.e. nearly every frame, plus a full repaint of both — so garbage-collection hitches. Fix: allocate once at
+  her largest size (or in a few size steps) and scale the blit; measure frame times while she flies (&debug=1) on the phone tier
+  before + after; check the sparks too. Preview: &force=witch.
+- THREE NEW ROOF-SIGN MODES (the owner, Oct 26 11:20 pm — DECIDED, "I like all your suggestions"; NOT an add-on to 11a-2 —
+  goes in SP6, the pass before 9b): added to core/harbor-roofmodes.js's hourly draw next to SPELL / RACE / BREATH, same rules (seeded per
+  sign per hour, neighbours never the same, one big move at a time, off on party nights / tier 0 / reduced motion): WORD FLASH (the 1920s drum
+  flasher: word by word — NEON… PAR… NEON PAR — then held lit; a one-word sign alternates the word and its icon / border), LAYERS
+  (built in stages: the border → the letters → the accent / icon → held), TWO-TONE (the flasher swaps two parts' colours — border
+  and letters trade a couple of times, then settle; never on a sign that has tonight's everyday colour-cycle). Skipped on purpose: a
+  continuous border chase (too close to RACE; continuous chasing stays the party show's), sparkle (reads as noise on a phone), more
+  failing tubes. Previews &force=roof-wordflash / roof-layers / roof-twotone.
+- PRISM DROP DAY + NIGHT (the owner, Oct 26 11:20 pm — to discuss, for the games phase; "when applicable" the same for other
+  games): DAY = chill + peaceful: soft, warm colours, calm "Japanese zen" keyboard music without a beat · NIGHT = the party skin: the
+  neon, upbeat music on the beat. Switches morning → golden hour = DAY, golden hour on = NIGHT. A room setting, the host chooses:
+  AUTO (default) / DAY / NIGHT (to play one outside his time of day).
+  THE LOOK (the owner, Oct 26 11:26 pm — to decide at the review): it doesn't have to be the tube engine or glow; what he wants is the
+  city's night neon QUALITY — bright, HD / 4K-crisp outlines — on the pieces' edges ("if I could get that outlined in these bricks,
+  that would be awesome"). Points to settle then: crisp lit edges + solid readable cores (not glow bleeding between cells); the
+  sharpness at the phone's full resolution; staying readable at full speed. Also to settle: whose time decides day (suggested: the
+  host's, by the city's real sun), the mode locked for a whole match, day SFX in key but free-timed (no beat to lock to), same rules
+  in both skins (Score Rush suggested by day, not forced), the day palette tested for telling pieces apart at speed, the switch built
+  once in the match kit for every game. The day songs: the owner gets them from Grok later (not now) — give him the Grok prompt
+  before the pass that needs them.
+- THE WATER TOO STILL (the owner, Oct 26 11:47 pm — to fix, slot: ATM, the Fable atmosphere pass, which owns the wind): "too still
+  and flat … seems like a mirror". Why (water.js / docs/harbor.md#the-water): roughness is 0 under ~1.2 m/s of real wind — a glassy
+  mirror on a calm night. A real harbor is never glass: give it a FLOOR of motion (a minimum roughness at any wind, so the
+  reflections always break into bands), a slow long SWELL under the ripples (a gentle rise + fall rolling toward us, a few seconds a
+  wave), the wavelets always sliding; the wind still adds the chop on top. Contained in water.js (the hooks — reflect / light /
+  wake — ride the same distortion); measure the cost (title-perf --ab) + compare &wind=0 / 3 / 8 at 390 / 402 / 430.
+- THE BLUE TV WINDOW READS DULL GREY (the owner, Oct 26 11:56 pm — slot: SP6 (the fixes before winter); "you almost nailed it the very first time. It's got
+  to be more blue … I'm going to be picky at it, but we're going to get there"). Why (windows.js, read-only): the FIRST version (7b)
+  filled the whole pane with the set's light — the glass itself glowed a deep, saturated blue; WIN rebuilt it as a dark room lit from
+  below (the couch, the curtain), so most of the pane became dim grey furniture with the blue only as a spill; and 11a-2's "lighter"
+  blue ([64,108,255]–[128,162,255] → [96,148,255]–[168,202,255]) added WHITE, which reads paler + greyer, not bluer. THE FIX: keep
+  the room, but (1) the colour DEEP + SATURATED, brighter without whitening (≈ [40,90,255]–[80,140,255]; never a pale periwinkle),
+  (2) the WHOLE pane washed with that blue (strongest low-centre where the set is, the glass + the ceiling + the curtain's inner edge
+  catching it) and the room's shapes DARK silhouettes against it, not grey-lit, (3) the spill on the brick + the cobbles the same
+  blue. Judge it on the phone at night, as-is, next to the warm windows: it must read "a TV is on in there" from across the street.
+  Compare with the 7b look (git show of the first windows.js) at 390 / 402 / 430, three refine passes.
+  THE COLOURS PICKED (the owner, Oct 27 12:01 am, from a 15-swatch mock-up — the mock-up chose the COLOURS only; the fix above
+  stands): the set's light flicks between scenes like channels/shots — mostly B (deep royal [40,90,255]→[20,45,170]), A (the first
+  look [64,108,255]→[40,70,200]), H (royal with the ceiling catching it [45,95,255]) and N (sapphire [20,60,255]→[10,30,160]); F
+  (violet-blue [85,85,255]) now + then, briefly; a brief WARM scene (amber [255,190,110]) on the odd change ("that warm tone looks
+  good"); it SETTLES on the blue (B). The rhythm stays irregular + mostly calm (SP5's nudge): a change every ~3–8 s, never a
+  metronome, long steady stretches between.
+  THE LAYOUT (the owner, Oct 27 12:29 am — DECIDED, "let's try it"): still NO PERSON, ever; but the room gets a few DARK shapes for the
+  light to show off (today it is only the walls, the ceiling + the curtain — part of why it reads flat grey): an EMPTY COUCH's back low
+  across the window (a thin blue rim along its top: whoever watches may be lying down below it — the mystery kept), a floor lamp (off,
+  a silhouette) at one side, a picture frame on the back wall catching a little light, the half-drawn curtain kept (its inner edge
+  blue), the rare shadow across the glow kept. The light stays from the unseen set BELOW THE SILL AT THE FRONT RIGHT (not the mock-up's
+  low centre): every shape with a lit side + a dark side.
+- THE UFO FROM A REAL MODEL (the owner, Oct 27 12:29 am — slot: SP6 (the fixes before winter); replaces the hand-drawn saucer, which stays as &ufo=classic):
+  "UFO" by sebslom (Sketchfab, CC BY 4.0, ~8k tris, 2K PBR + an emissive map; ufo-01-sebslom.glb, ~15 MB, in
+  ~/Downloads/city-models/ufo/ with credits.txt). The builder COPIES it into the repo as a SOURCE file outside the served site
+  (art/models/ufo/ufo-sebslom.glb + credits.txt; .vercelignore'd — never shipped, never loaded by a phone) and BAKES SPRITES offline
+  with a script (three.js in the Playwright that's already installed — scripts/bake-ufo.mjs; the browser never sees three.js): a
+  turntable of yaw frames (24) at the city camera's real view angles (from below / three-quarter, read from harbor-layout.js), at 3×
+  the largest on-screen width, transparent WebP/PNG, in separate layers — the BODY (lit for night: the city's moon + neon as rim
+  light), the LIGHTS from the emissive map as their own white layer (the code tints + animates them: the racing white/cyan ring, the
+  glowing belly), a DOME mask. THE LOOK (the owner, Oct 27 12:31 am — CHANGED: "the model looks gorgeous … just
+  replicate the model"): the MODEL'S OWN look, faithfully — its worn dark steel + panel seams, its GREEN port lights round the rim,
+  its glossy bluish dome — no recolour; lit as a NIGHT scene (the city's moon + neon as the light, not the viewer's studio light)
+  but true to its materials. The lights still animate in code, in the model's green (the earlier white/cyan racing ring dropped); the
+  pale green beam (now matching) + the abduction pose untouched. Bob, tilt, the beam = code, not frames. Judge at 60–120 pt on the phone
+  next to the classic. THE CREDIT (CC BY needs it on the site): a CREDITS section (the menu's HOW TO PLAY / settings area, with the
+  city sounds' credits) + art/models/ufo/credits.txt. Backups if it fails at phone size: "UFO Doodle" by re1monsen (CC BY 4.0) ·
+  BlackHawk0512's saucer (Sketchfab Standard: commercial OK, no credit needed, renders only — never the raw model on the site).
+- AFTER 11a-2 (Oct 27): GitHub refused the cloud runs (BILLING: a failed payment / the spending limit) — the owner fixes it, then
+  `gh workflow run harbor` once (counts as 11a-2's run). Into SP6's list: THE MILK VAN's lettering reads MIRRORED ("YRIAD ROBAH", older
+  than 11a-2) · the pies + shopping bags too small at phone size (ACT BIG) · the chimney smoke near-invisible against a bright pink sky ·
+  the parade's +5.4 ms a frame (the crowd's figures; check &debug=1 on the phone at the peak). The hand-drawn UFO redraw is superseded
+  by the real model (SP6); 11a-2's lighter TV blue is superseded by THE BLUE TV WINDOW notes (SP6).
+- CLOUD MINUTES (the owner, Oct 27 7:20 am — upgraded GitHub to PRO: 3,000 Actions minutes a month; Free's 2,000 ran out Oct 26
+  ~11:50 pm, which is what blocked 11a-2's runs — not a card). The pace Oct 24–26 was ~400–600 min a DAY (the quick `tests` on
+  EVERY push + the harbor jobs) = Pro's month in about a week. A CHORE at the START of SP6: (1) `tests` runs only on a pass's final
+  push (the [harbor] tag) + by hand (workflow_dispatch) — the laptop runs the unit suite before every push anyway; (2) a concurrency
+  group with cancel-in-progress on both workflows (a newer push stops the older run); (3) the owner may set a $5–10 Actions budget as a
+  cushion. Goal: ~30–40 cloud minutes a pass. CLAUDE.md's testing section updated to match.
+- 11a-2 REVIEW, the owner's phone (Oct 27 7:23 am on): the violet SPADE "looks great"; the boss's SHADOW at the party "good" — keep
+  both. THE BOSS's WINDOW BEFORE 10 PM ON A PARTY NIGHT reads as a flat blank YELLOW pane (the shade lit by the lamp until the TV comes
+  on at 22:00 — as built, but cheap among the dancing windows). DECIDED for SP6 (Oct 27 7:27 am, "your suggestions for the boss sound great"): the TV on from the party's start
+  (the one cool-blue window all party night) + the shade drawn as a real shade whenever it's lit (cloth, the hem, a soft hot spot
+  where the light is, darker edges — never a flat fill; normal nights' lamp-lit evenings too).
+- THE HOLIDAYS: BUILD NOW, POLISH LATER (the owner, Oct 27 7:45 am — DECIDED): Thanksgiving "looks all right"; for now each holiday is
+  BUILT, checked that it crashes nothing, and we push forward. A HOLIDAY POLISH PASS comes AFTER CITY 2.0 IS COMPLETE (the owner, Oct 27
+  8:13 am: "the Thanksgiving holiday stuff needs polishing but only after City 2.0 is complete"): every holiday (Halloween,
+  Thanksgiving + the parade, Christmas, NYE, …) refined together then.
+- THE UFO BEAM's HORIZONTAL LINES (the owner, Oct 27 8:05 am, a phone screenshot — a BUG for SP6): thin evenly spaced horizontal
+  lines run across the beam AND the wash round it (past the beam's edges) — looks like strip/row seams (a light drawn in horizontal
+  bands with fractional heights, or a low-res bake scaled up), not a design. Find the source (legends.js: beamSprite + the live wash /
+  dust / the ground light), fix it so the beam is one smooth soft cone; check on the phone at DPR 3. The beam stays code when the
+  saucer becomes the real model, so it must be right either way. ALSO seen: the abduction spot is the compass, where the holiday
+  CENTREPIECE stands (Oct: the giant ₿ pumpkin) — the person rose from INSIDE the pumpkin. When a centrepiece is up, the abduction
+  takes someone beside it (or the craft picks a spot clear of it).
