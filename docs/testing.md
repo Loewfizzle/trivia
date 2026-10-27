@@ -3,7 +3,11 @@
 Every test suite in detail: unit + simulation, emulators, the smoke test, each game's E2E and its flags, previews, Lighthouse.
 
 ## Testing
-- **GitHub checks** (`.github/workflows/tests.yml`, Oct 2026): every push to main (and every pull request) runs the unit tests,
+- **GitHub checks** (`.github/workflows/tests.yml`, Oct 2026): **since SP6 (the owner's CLOUD MINUTES, Oct 27 — Pro's 3,000 a month went at
+  ~400–600 a day when this ran on every push) only a pass's FINAL push runs it**: a push with **`[ci]`** (a game / app pass) or **`[harbor]`** (a City 2.0
+  pass) in one of its commit messages; pull requests and `gh workflow run tests` always run; any other push shows a skipped run (0 minutes; it never
+  cancels a full run in flight — a newer full run cancels an older one). The laptop runs `node --test tests/*.test.mjs` before every push. Budget
+  ≈ 30–40 cloud minutes a pass (this workflow ≈ 10, the harbor's 7 jobs ≈ 25–30). It runs the unit tests,
   then the rules tests, the `/api` tests and the smoke test on the emulators with headless Chrome. They run **next to** the Vercel
   deploy, never in front of it — a push goes live as fast as before; a failure is a red ✗ on the commit (and an email). The smoke
   test's screenshots are attached to a failed run. Nothing there needs a secret. `gh run list` / `gh run watch` from the terminal.
@@ -13,7 +17,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   that touches a City 2.0 file (the `paths:` list: `js/screens/harbor/`, `js/core/harbor-*` + `city-*`, the title, `js/audio/`, `audio/city/`,
   the harbor CSS, the suite + `harbor-jobs.mjs`…) — or by hand: `gh workflow run harbor` (Actions → harbor → Run workflow), `gh workflow run
   harbor -f job=street` for one job. A mid-pass push without the tag shows a SKIPPED harbor run (0 minutes) and never cancels a full run in
-  flight; a newer full run cancels an older one. The quick `tests` workflow (unit, rules, `/api`, smoke) still runs on every push.
+  flight; a newer full run cancels an older one. The quick `tests` workflow (unit, rules, `/api`, smoke) runs on the same `[harbor]` push (and on `[ci]`).
   - **4 parallel jobs** (the matrix `audio` · `show` · `city` · `street`; each job's groups in **`tests/integration/harbor-jobs.mjs`**,
     run in order in one process with `JOB=<name>` — the same command works locally): audio = music, flags, harbor, dock · show = neon,
     party, sky, life (FP3b: real doors + the dance circle) · city = core, skyline, water, load (FP3a: THE LOAD GATE — the reveal through two bar changes), then panel + perf (the

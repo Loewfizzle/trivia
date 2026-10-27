@@ -2910,8 +2910,14 @@ G('holiday', async () => {
     ok(d && (d.pieces || []).filter(p => /spider/.test(p)).length === want && sp.length === want && sp.every(inSign), `${when.slice(5, 10)} at ${view[0]}: ${sp.length} spider(s) (${((d && d.pieces) || []).join(',')}) — ${want} wanted, all inside the sign (${sp.map(s => `${s.x.toFixed(0)},${s.y.toFixed(0)}`).join(' · ')})`);
     if (want === 2 && sp.length === 2) {
       await Q.page.touchscreen.tap(30, 120); await sleep(900);            // (the priming tap)
-      const a2 = await ev(Q.page, `${P}.spiders[1]`); await Q.page.touchscreen.tap(a2.x, a2.y);
-      const t2 = await waitFor(Q.page, `${P}.dress.spider2 && ${P}.dress.spider2.trip === 'drop'`, 'the second dropping', 2500).then(() => true).catch(() => false);
+      // (SP6 — the cloud's miss at 430: the second spider ROAMS, so on a slow runner the tap landed where it had been. Wait till it stands
+      // still, read where it IS just before the tap, and tap once more if the first missed — a person taps again too)
+      let t2 = false;
+      for (let tries = 0; tries < 2 && !t2; tries++) {
+        await waitFor(Q.page, `(() => { const s = ${P}.spiders[1]; return s && s.mode === 'still'; })()`, 'the second still', 8000).catch(() => {});
+        const a2 = await ev(Q.page, `${P}.spiders[1]`); await Q.page.touchscreen.tap(a2.x, a2.y);
+        t2 = await waitFor(Q.page, `${P}.dress.spider2 && ${P}.dress.spider2.trip === 'drop'`, 'the second dropping', 2500).then(() => true).catch(() => false);
+      }
       const s1 = await ev(Q.page, `${P}.dress.spider.trip`);
       const a1 = await ev(Q.page, `${P}.spiders[0]`); await Q.page.touchscreen.tap(a1.x, a1.y);
       const t1 = await waitFor(Q.page, `${P}.dress.spider && ${P}.dress.spider.trip === 'drop'`, 'the first dropping', 2500).then(() => true).catch(() => false);
@@ -2937,7 +2943,9 @@ G('holiday', async () => {
     ok(bigs.every(r => r.w / r.h <= 1.2 && r.w / r.h >= 0.75), `THE BIG JACK-O'-LANTERNS' PROPORTIONS: ${bigs.map(r => `${r.id} ${(r.w / r.h).toFixed(2)}`).join(', ')} wide : tall (round, never stretched)`);
     ok(hp && hp.stat.bigGlows >= 2, `THEIR FACES GLOW after dark: ${hp && hp.stat.bigGlows} of 2 lit`);
     // 11a-2 — THE GIANT on Oct 27: on its plinth, NOT carved yet (the carvers come in the night into the 28th), so no candle
-    { const g = hp && hp.giant; ok(g && g.drawn > 0 && !g.carved && g.lit === 0 && g.rect && g.rect.y + g.rect.h < cam.dock.y, `THE GIANT on Oct 27: on its plinth (${g && g.drawn} frames), uncarved (${g && g.carved}), unlit (${g && g.lit}), above the dock`); }
+    // (SP6: the wait is for the GIANT's own first frame — its sliced bake draws after the small jack-o'-lanterns on a slow runner)
+    await waitFor(Q.page, `${P}.hprops && ${P}.hprops.giant && ${P}.hprops.giant.drawn > 0`, 'the giant drawn', 20000).catch(() => {});
+    { const g = await ev(Q.page, `${P}.hprops && ${P}.hprops.giant`); ok(g && g.drawn > 0 && !g.carved && g.lit === 0 && g.rect && g.rect.y + g.rect.h < cam.dock.y, `THE GIANT on Oct 27: on its plinth (${g && g.drawn} frames), uncarved (${g && g.carved}), unlit (${g && g.lit}), above the dock`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}holiday-setpieces-390x844.png` });
     await Q.ctx.close(); }
   // ---- 11a-2 — THE GIANT on the centre circle (the owner: HUGE, the BITCOIN LOGO carved + lit from within), carved overnight into Oct 28:

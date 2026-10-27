@@ -7847,6 +7847,16 @@ ordinary morning at ~0.3 ms each here. The crowd went 14 → 10 for it (was +6.2
 - **The chimney smoke is subtle by design** (the owner's "felt more than seen"); on a bright pink sky it can nearly vanish.
 - **The geese's V call** (`geese-v`) plays only when a V crosses — not forced by any test (no `&force=` for a V with sound on).
 - The window agent's `windows` run had one timing-only miss (the boss's room sampled 8 frames in 3 s, needs 12) — a slow-machine flake.
+- **THE CLOUD RUN (40495579126, by hand after the billing fix — the pass's only run):** `street` 54/54, `show` 71/71, `audio` 133/133,
+  `windows` 57/57, `wild` 51/51 green; `city` 106/107 — SP3's known clock-dependent "LOAD WEATHER — answered after 6 s" flake (not this
+  pass's code; not re-run); `holiday` 62/64 — (1) **"THE GIANT on Oct 27: on its plinth (0 frames)"** — this pass's new check: it waits
+  for the two big jack-o'-lanterns, not the giant, so on the slow runner it read the giant before its sliced bake drew a frame (the
+  Oct 28 check, which waits for `giant.lit`, passed at 109.8 pt) — **FIXED in SP6** (the check now waits for the giant's own first frame;
+  locally 53 frames drawn; real phones were never affected — the owner saw the giant on Oct 27);
+  (2) "10-29 at 430: BOTH TAPPABLE — the second drops on its tap (false)" — the roaming second spider missed at 430 only (390 passed in
+  the same run); the spiders' code is SP5's, 11a-2 only added the Thanksgiving wreath beside them in signdress.js — likely the tap
+  landing where the spider was a moment before (it roams), first seen here — **FIXED in SP6** (the tap waits till the spider stands still,
+  reads where it IS, and taps once more on a miss; it passed locally at 390 + 430 before and after). The quick `tests` run (40452962389, re-run) green.
 
 ### Handoff → 9b WINTER (+ the city-life fill-ins)
 - Chimney smoke is ready for winter: `chimneys.set(k)` from 9b's cold (e.g. the real temperature ≤ 3 °C after 4 pm, more in snow).

@@ -242,11 +242,13 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
    counts, and write `docs/<id>.md`.
 
 ## Testing (the short version; every suite and flag: `docs/testing.md`)
-- **GitHub checks** run on every push to main (unit → rules → /api → smoke, on the emulators): next to the Vercel deploy, never
-  blocking it. Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
+- **GitHub checks** (unit → rules → /api → smoke, on the emulators) run **only on a pass's FINAL push** (SP6, the owner's CLOUD MINUTES, Oct 27):
+  a game / app pass tags that push's commit **`[ci]`**, a City 2.0 pass **`[harbor]`** (which runs both workflows); pull requests + `gh workflow run tests`
+  always run; every other push shows a skipped run (0 minutes) — run the unit suite on the laptop before every push. Next to the Vercel deploy, never
+  blocking it. Budget: ≈ 30–40 cloud minutes a pass (tests ≈ 10, the harbor's 7 jobs ≈ 25–30). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`): the FULL `e2e-harbor` suite runs on GitHub **only on a pass's FINAL push** —
   put **`[harbor]`** in a commit message of that push (and it must touch a City 2.0 file: the `paths:` list) — or by hand: `gh workflow run harbor`
-  (`-f job=street` = one job). Mid-pass pushes show a skipped harbor run and cost nothing; the quick `tests` workflow runs on every push.
+  (`-f job=street` = one job). Mid-pass pushes show skipped runs and cost nothing (both workflows: a newer full run cancels an older one).
   It runs as **4 parallel jobs** (`audio` `show` `city` `street`, ≈ 4 min each); a red job → **"Re-run failed jobs"** re-runs that job only.
   **A new test group goes in exactly one job in `tests/integration/harbor-jobs.mjs`** (e2e-harbor.mjs refuses to run and the unit test fails
   until it does). Timing checks (`okT`) and known-flaky pixel probes (`okF`) are WARNINGS on CI, listed in each job's summary page.

@@ -1,5 +1,8 @@
-# Checks on every push to main (and on pull requests). They run NEXT TO the Vercel deploy, never in front of it: a push
+# Checks on a pass's FINAL push to main (and on pull requests). They run NEXT TO the Vercel deploy, never in front of it: a push
 # goes live as fast as before, and a failure shows as a red ✗ on the commit on GitHub (+ an email to the pusher).
+# SP6 (the owner, Oct 27 — CLOUD MINUTES): no longer on EVERY push. A push runs the jobs only when one of its commit messages carries
+# [ci] (a game / app pass's final push) or [harbor] (a City 2.0 pass's final push); every other push shows a skipped run that costs
+# nothing (the laptop runs the unit suite before every push anyway). Pull requests + Run workflow by hand (`gh workflow run tests`) always run.
 # Nothing here needs a secret — everything runs against the local Firebase emulators. docs/testing.md "GitHub checks".
 name: tests
 
@@ -12,13 +15,15 @@ on:
     paths-ignore: ['docs/**', '**/*.md']
   workflow_dispatch:
 
+# (a newer FULL run cancels an older full run; a skipped push never cancels a full one)
 concurrency:
-  group: tests-${{ github.ref }}
+  group: tests-${{ github.ref }}-${{ (github.event_name != 'push' || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')) && 'full' || 'skip' }}
   cancel-in-progress: true
 
 jobs:
   unit:
     name: unit + whole-match simulations
+    if: github.event_name != 'push' || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -30,6 +35,7 @@ jobs:
 
   integration:
     name: rules + /api + smoke test (emulators, headless Chrome)
+    if: github.event_name != 'push' || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:
