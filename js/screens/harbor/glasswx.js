@@ -393,10 +393,14 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
       let sx, sy, a;
       if (g.kind === 'circle') { const th = r() * Math.PI * 2; sx = cx + Math.cos(th) * W2 / 2 * 0.99; sy = cy + Math.sin(th) * H2 / 2 * 0.99; a = th + Math.PI + (r() - 0.5) * 0.9; }
       else { const e = r(); if (e < 0.4) { sx = r() * W2; sy = 0.5; a = Math.PI / 2 + (r() - 0.5) * 0.9; } else if (e < 0.8) { sx = r() * W2; sy = H2 - 0.5; a = -Math.PI / 2 + (r() - 0.5) * 0.9; } else { sx = e < 0.9 ? 0.5 : W2 - 0.5; sy = r() * H2; a = (e < 0.9 ? 0 : Math.PI) + (r() - 0.5) * 0.9; } }
-      fern(sx, sy, a + (r() - 0.5) * 0.8, (g.kind === 'circle' ? W2 * 0.15 : g.edge * 1.05) * (0.35 + r() * r() * 1.1), 0.55 + r() * 0.35, 0);
+      // (9c — the owner: let it FEATHER further IN toward the centre, finer + fainter as it goes: the ferns reach ~3× further in)
+      fern(sx, sy, a + (r() - 0.5) * 0.8, (g.kind === 'circle' ? W2 * 0.4 : Math.max(g.edge * 2.6, H2 * 0.55)) * (0.35 + r() * r() * 1.1), 0.55 + r() * 0.35, 0);
     }
-    for (const [ax, ay, bx, by, w, a] of segs) { x.strokeStyle = `rgba(214,234,255,${(0.18 * a).toFixed(3)})`; x.lineWidth = w * 2.2; x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke(); }
-    for (const [ax, ay, bx, by, w, a] of segs) { x.strokeStyle = `rgba(248,252,255,${(0.7 * a).toFixed(3)})`; x.lineWidth = Math.max(0.25, w * 0.5); x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke(); }
+    // (how far in a point is: 0 at the rim → 1 at the centre; the lace thins to almost nothing there — labels + icons untouched)
+    const inward = (px, py) => g.kind === 'circle' ? 1 - Math.min(1, Math.hypot(px - cx, py - cy) / (W2 / 2)) : Math.min(1, Math.min(py, H2 - py, px * 0.6, (W2 - px) * 0.6) / (H2 / 2));
+    const fade = (px, py) => { const u = inward(px, py); return Math.pow(1 - Math.min(1, u * 1.08), 1.7); };
+    for (const [ax, ay, bx, by, w, a] of segs) { const f = fade((ax + bx) / 2, (ay + by) / 2); if (f < 0.02) continue; x.strokeStyle = `rgba(214,234,255,${(0.18 * a * f).toFixed(3)})`; x.lineWidth = w * 2.2 * (0.4 + 0.6 * f); x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke(); }
+    for (const [ax, ay, bx, by, w, a] of segs) { const f = fade((ax + bx) / 2, (ay + by) / 2); if (f < 0.02) continue; x.strokeStyle = `rgba(248,252,255,${(0.7 * a * (0.25 + 0.75 * f)).toFixed(3)})`; x.lineWidth = Math.max(0.2, w * 0.5 * (0.35 + 0.65 * f)); x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke(); }
     f = cv; frostCv.set(key, f);
     return f;
   }
@@ -580,8 +584,8 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
       const sec = Math.min(0.1, (o.dt || 16) / 1000), nowMs = performance.now();
       dpr = Math.min(3, o.dpr || 1); o.nowMs = nowMs;
       // (the frost forms over ~a minute + melts the same; a city OPENED on a cold day already has it — joined, never forming after the reveal)
-      if (first && o.shown) { first = false; frostK = o.motion ? clamp01(o.cold) : 0; iceK = clamp01(o.ice); }
-      frostK += ((o.motion ? clamp01(o.cold) : 0) - frostK) * Math.min(1, sec / 12);
+      if (first && o.shown) { first = false; frostK = o.motion && o.frostButtons !== false ? clamp01(o.cold) : 0; iceK = clamp01(o.ice); }
+      frostK += ((o.motion && o.frostButtons !== false ? clamp01(o.cold) : 0) - frostK) * Math.min(1, sec / 12);   // (9c: &frost=pane turns the buttons' frost off)
       iceK += (clamp01(o.ice) - iceK) * Math.min(1, sec / 20);
       // 9b — SNOW ON THE NEON (o.snow: { lie (0..1 what the sign holds when off), falling (0..1), cold (a freezing night) }): joined at
       // the reveal (a lit sign has already melted most of it); it BUILDS UP while the sign is off, PILLOWS while snow falls on it, MELTS

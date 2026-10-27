@@ -82,19 +82,31 @@ function vnoise(x, y) {
 }
 const fbm = (x, y) => 0.6 * vnoise(x, y) + 0.3 * vnoise(x * 2.1 + 7, y * 2.1 + 3) + 0.1 * vnoise(x * 4.3 + 1, y * 4.3 + 9);
 
-/** PURE-ish: the walkers' worn routes on the promenade (0..1 at x, z): the front walk, the back walk, the speakeasy's door → the front
- *  walk, the crossing → the back kerb */
+/** PURE-ish: the walkers' worn routes on the promenade (0..1 at x, z) — 9c (the owner: "you can't really tell what that is"): WIDE
+ *  trodden LANES along the routes people really take — the crossing → the speakeasy's door (the diagonal), along the railing, round the
+ *  compass inlay, the front walk + the door's own short path. 1 = the lane's middle (the cobbles show through), soft at the edges. */
 export function pathsOf(L) {
   const e = L.edge, ir = L.impliedRoad, on = L.impliedOn !== false;
   const zF = on ? e.z + e.curbW : ir.z0;
   const s = L.speakeasy, door = s ? s.x0 + (s.door.u0 + s.door.u1) / 2 : null, cw = L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : null;
+  const m = L.medallion || null;
   const band = (v, a, b, soft) => smooth(a - soft, a + soft, v) * (1 - smooth(b - soft, b + soft, v));
+  // a lane along a segment (x0, z0) → (x1, z1), half-width hw, soft edge
+  const seg = (x, z, x0, z0, x1, z1, hw, soft) => {
+    const dx = x1 - x0, dz = z1 - z0, l2 = dx * dx + dz * dz, t = l2 ? Math.max(0, Math.min(1, ((x - x0) * dx + (z - z0) * dz) / l2)) : 0;
+    const d = Math.hypot(x - (x0 + dx * t), z - (z0 + dz * t));
+    return 1 - smooth(hw - soft, hw + soft, d);
+  };
   return (x, z) => {
-    const wob = 0.35 * (vnoise(x * 0.4, z * 0.4) - 0.5);
-    let k = band(z + wob, zF + 0.7, zF + 2.9, 0.45);                   // the front walk
-    k = Math.max(k, band(z + wob, 49.2, 51.0, 0.4));                    // the back walk along the curb band
-    if (door != null) k = Math.max(k, band(x + wob, door - 0.9, door + 0.9, 0.35) * band(z, zF + 1, s.z0, 0.3));
-    if (cw != null) k = Math.max(k, band(x + wob, cw - 1.3, cw + 1.3, 0.4) * band(z, 49.5, 54.5, 0.3));
+    const wob = 0.4 * (vnoise(x * 0.35, z * 0.35) - 0.5);
+    let k = band(z + wob, zF + 0.5, zF + 3.3, 0.6);                    // the front walk
+    k = Math.max(k, band(z + wob, 49.4, 51.8, 0.55));                   // along the railing (in front of the lamps + the trees)
+    if (door != null) k = Math.max(k, band(x + wob, door - 1.1, door + 1.1, 0.45) * band(z, zF + 1, s.z0, 0.3));
+    // the crossing → the door: the diagonal everyone takes off the crosswalk to the speakeasy
+    if (cw != null && door != null) k = Math.max(k, seg(x + wob, z, cw, 53.6, door + 0.6, s.z0 + 1.2, 1.15, 0.55));
+    if (cw != null) k = Math.max(k, band(x + wob, cw - 1.4, cw + 1.4, 0.5) * band(z, 49.5, 54.5, 0.3));
+    // round the compass: a ring trodden just outside the inlay
+    if (m) { const d = Math.hypot(x - m.x, (z - m.z) * 1.15); k = Math.max(k, band(d + wob * 0.6, m.r + 0.45, m.r + 2.0, 0.45)); }
     return k;
   };
 }
@@ -108,7 +120,7 @@ export function groundSteps(L, T, SN) {
   const P = (x, z) => project(cam, x, 0, z);
   const tn = snowTones(T, SN), lightAt = lightField(L, T), path = pathsOf(L), night = T.night || 0;
   const st = SN.stage, cover = st === 'spring' ? SN.cover : Math.max(SN.cover, st === 'fresh' ? 0.55 : 0);
-  const trod = mix(mix(tn.dirt, tn.wet, 0.35), tn.shade, st === 'banks' ? 0.1 : 0.22), slush = mix(tn.wet, tn.dirt, 0.35);
+  const trod = mix(mix(tn.dirt, tn.wet, 0.5), [70, 56, 44], 0.25 * (1 - night)), slush = mix(tn.wet, tn.dirt, 0.35);   // (9c: darker, browner — the slush)
   const s = L.speakeasy, shopX = s ? s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2 : null, doorX = s ? s.x0 + (s.door.u0 + s.door.u1) / 2 : null;
   // the shade: the last snow hangs on where the sun doesn't reach — along the speakeasy's foot, round the trees' feet
   const shadeK = (x, z) => {
@@ -131,12 +143,12 @@ export function groundSteps(L, T, SN) {
       let a = cover >= 0.97 ? 1 : smooth(1 - cover - 0.1, 1 - cover + 0.1, n + (st === 'spring' ? 0.35 * sh - 0.12 : 0.1 * sh));
       // (the doorman's shovelled path from the speakeasy's steps to the walk: bare, wet stone once he has been out — SN.door)
       if (SN.door && doorX != null) { const dk = Math.max(0, 1 - Math.abs(xc - doorX) / 1.1) * (zc > s.z0 - 3.4 && zc < s.z0 + 0.2 ? 1 : 0); if (dk > 0.25) { a *= 0.12; } }
-      const pk = path(xc, zc) * (SN.paths || 0);
+      const pk = st === 'older' || st === 'banks' ? 0 : path(xc, zc) * (SN.paths || 0);   // (9c: older / banks → pathStrips)
       let c = mix(tn.shade, tn.snow, 0.62 + 0.38 * n);
       if (pk > 0.02) {
         if (st === 'fresh') c = mix(c, tn.shade, 0.55 * pk);                                   // (a few fresh tracks: a soft blue trough)
         else if (st === 'thaw' || st === 'spring') { c = mix(c, slush, pk); a *= 1 - 0.75 * pk; }   // (the walks go bare + wet first)
-        else c = mix(c, trod, Math.min(1, 1.1 * pk));                                         // (packed, grey-brown, trodden)
+        else c = mix(c, trod, Math.min(1, 1.1 * pk));
       }
       if (st === 'thaw') c = mix(c, slush, 0.25 * (1 - n));
       const lt = lightAt ? lightAt(xc, zc) : null;
@@ -151,31 +163,104 @@ export function groundSteps(L, T, SN) {
   };
   const steps = [];
   for (let i = 0; i < rows.length; i += 6) { const part = rows.slice(i, i + 6); steps.push(x => { for (const [z0, z1] of part) paint(x, z0, z1); }); }
+  if ((st === 'older' || st === 'banks') && (SN.paths || 0) > 0.05) steps.push(x => pathStrips(x, L, tn, T, lightAt, Math.min(1, SN.paths)));
   // THE BANKS along the front curb (the street under the dock's plow piles it up): lumpy grey-brown mounds on the gutter, in front of
   // the curb's face; the last dirty piles in spring
   // + THE BANK along the back kerb (the waterside road's plow throws it onto the plaza's back edge — the biggest, the longest-lasting)
-  if (SN.banks > 0.05) steps.push(x => bankRow(x, cam, 53.4, hw(53.4), SN.banks, tn, T, 377, L.crosswalk));
-  if (on && SN.banks > 0.05) steps.push(x => bankRow(x, cam, e.z - 0.35, hw(e.z), SN.banks * 0.75, tn, T, 911));
+  const bk = Math.max(SN.banks, st === 'older' || st === 'banks' ? 0.55 : 0);   // (9c: the plows have been by on every older pack)
+  const gaps = L.crosswalk ? [[L.crosswalk.x0 - 0.5, L.crosswalk.x1 + 0.5], [L.crosswalk.x0 - 1.4 - 1.2, L.crosswalk.x0 - 1.4 + 1.0]] : [];   // (the crossing + the bus door: core/harbor-people.js#busStopX)
+  if (bk > 0.05) steps.push(x => bankRow(x, cam, 53.75, hw(53.75), bk, tn, T, 377, gaps, st));
+  if (on && bk > 0.05) steps.push(x => bankRow(x, cam, e.z - 0.35, hw(e.z), bk * 0.55, tn, T, 911, [], st));
   return steps;
 }
 
-/** a row of plowed-snow mounds along z (world), height by k (0..1 → up to ~0.75 units): lumpy, dirty, a lit top */
-function bankRow(x, cam, z, H, k, tn, T, seed, gap = null) {
-  const top = mix(tn.dirt, tn.snow, 0.6), body = mix(tn.dirt, tn.shade, 0.3), hmax = 0.4 + 1.5 * k;
-  const pts = [];
-  for (let wx = -H - 1; wx <= H + 1; wx += 0.5) {
-    const n = vnoise(wx * 0.45 + seed, seed * 0.1);
-    // (cut through at the crossing: the plows leave the crosswalk open)
-    const cut = gap ? smooth(gap.x0 - 0.6, gap.x0 + 0.4, wx) * (1 - smooth(gap.x1 - 0.4, gap.x1 + 0.6, wx)) : 0;
-    pts.push(project(cam, wx, hmax * (0.45 + 0.55 * n) * (0.6 + 0.4 * k) * (1 - cut), z));
+/** PURE-ish: the worn routes as world polylines [{ pts: [[x, z], …], hw (half-width) }] — 9c: the crossing → the speakeasy's door, along
+ *  the railing, round the compass, the front walk, the door's own short path, the crosswalk's landing (what pathsOf describes) */
+export function pathRoutes(L) {
+  const e = L.edge, ir = L.impliedRoad, on = L.impliedOn !== false, cam = L.cam;
+  const zF = on ? e.z + e.curbW : ir.z0, H = cam.hw(zF) * 1.05 + 2;
+  const s = L.speakeasy, door = s ? s.x0 + (s.door.u0 + s.door.u1) / 2 : null, cw = L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : null, m = L.medallion;
+  const line = (x0, x1, z, amp, seed) => { const pts = []; for (let x = x0; x <= x1 + 0.01; x += 0.6) pts.push([x, z + amp * (vnoise(x * 0.18 + seed, seed) - 0.5)]); return pts; };
+  const out = [{ pts: line(-H, H, zF + 1.9, 0.7, 3), hw: 1.35 }, { pts: line(-cam.hw(50.6) * 1.05 - 2, cam.hw(50.6) * 1.05 + 2, 50.7, 0.6, 11), hw: 1.15 }];
+  if (door != null) out.push({ pts: [[door, zF + 1.2], [door + 0.15, s.z0 - 0.2]], hw: 1.05 });
+  if (cw != null && door != null) { const pts = []; for (let i = 0; i <= 14; i++) { const t = i / 14, bow = Math.sin(t * Math.PI) * 0.9; pts.push([cw + (door + 0.6 - cw) * t, 53.7 + (s.z0 + 1.0 - 53.7) * t - bow]); } out.push({ pts, hw: 1.1 }); }
+  if (cw != null) out.push({ pts: [[cw, 49.6], [cw, 54.2]], hw: 1.3 });
+  if (m) { const pts = [], R = m.r + 1.2; for (let i = 0; i <= 40; i++) { const a = (i / 40) * Math.PI * 2; pts.push([m.x + Math.cos(a) * R, m.z + Math.sin(a) * R / 1.15]); } out.push({ pts, hw: 0.75 }); }
+  return out;
+}
+/** the worn lanes on an older pack (9c — the owner: "you can't really tell what that is"): smooth strips in perspective — a soft trodden
+ *  edge, the packed grey-brown slush, and a dark wet CORE where the feet have worn through to the cobbles; lit by the lamp pools */
+function pathStrips(x, L, tn, T, lightAt, k) {
+  const cam = L.cam, night = T.night || 0;
+  const trod = mix(mix(tn.dirt, tn.wet, 0.45), [86, 70, 56], 0.3 * (1 - night)), edge = mix(trod, tn.shade, 0.45);
+  const core = mix(mix(tn.wet, [58, 46, 40], 0.35 * (1 - night)), [0, 0, 0], 0.1);
+  const routes = pathRoutes(L);
+  const quad = (pts, i, hw) => {
+    const [x0, z0] = pts[i], [x1, z1] = pts[i + 1], dx = x1 - x0, dz = z1 - z0, l = Math.hypot(dx, dz) || 1, nx = -dz / l * hw, nz = dx / l * hw;
+    const a = project(cam, x0 + nx, 0, z0 + nz), b = project(cam, x1 + nx, 0, z1 + nz), c = project(cam, x1 - nx, 0, z1 - nz), d = project(cam, x0 - nx, 0, z0 - nz);
+    x.beginPath(); x.moveTo(a[0], a[1]); x.lineTo(b[0], b[1]); x.lineTo(c[0], c[1]); x.lineTo(d[0], d[1]); x.closePath(); x.fill();
+  };
+  // (three passes over every route — the soft edge, the lane, the worn core — so crossings merge into one trodden floor)
+  for (const [m, col, al] of [[1.45, edge, 0.38 * k], [1, trod, 0.82 * k], [0.48, core, 0.7 * k]]) {
+    for (const r of routes) for (let i = 0; i < r.pts.length - 1; i++) {
+      const [xc, zc] = r.pts[i];
+      if (zc < 36 || zc > 54.4) continue;
+      let c = col; const lt = lightAt ? lightAt(xc, zc) : null; if (lt) c = addc(c, lt, m === 0.48 ? 0.3 : 0.42);
+      x.fillStyle = rgb(c, al); quad(r.pts, i, r.hw * m * 1.02);
+    }
   }
-  const [, yb] = project(cam, 0, 0, z + 0.3);
-  x.fillStyle = rgb(body); x.beginPath(); x.moveTo(pts[0][0], yb);
-  for (const p of pts) x.lineTo(p[0], p[1]);
-  x.lineTo(pts[pts.length - 1][0], yb); x.closePath(); x.fill();
-  // the lit top (a soft lighter band along the crest)
-  x.strokeStyle = rgb(top); x.lineWidth = Math.max(1, cam.F * 0.12 / z); x.lineJoin = 'round'; x.beginPath();
-  pts.forEach((p, i) => (i ? x.lineTo(p[0], p[1] + x.lineWidth * 0.4) : x.moveTo(p[0], p[1] + x.lineWidth * 0.4))); x.stroke();
+}
+
+/** a row of plowed-snow mounds along z (world): 9c — BIG (k 0.5 ≈ knee-high, 1 ≈ waist-high on a person), lumpy; dirty grey-brown sides
+ *  streaked with darker grit, a whiter crust on top, a dark wet foot; cut open at the gaps ([[x0, x1], …] world: the crossing, the bus
+ *  door) with a sloped end either side */
+function bankRow(x, cam, z, H, k, tn, T, seed, gaps = [], st = 'banks') {
+  const night = T.night || 0, spring = st === 'spring', thaw = st === 'thaw';
+  const dirty = mix(tn.dirt, [92, 80, 66], 0.35 * (1 - night)), crust = mix(tn.snow, tn.dirt, spring ? 0.55 : thaw ? 0.35 : 0.12);
+  const body = mix(dirty, tn.shade, 0.25), dark = mix(dirty, [0, 0, 0], 0.35), hmax = (0.7 + 0.9 * k) * (spring ? 0.55 : thaw ? 0.8 : 1);
+  const step = 0.35, pts = [];
+  const cutAt = wx => { let c = 0; for (const [g0, g1] of gaps) c = Math.max(c, smooth(g0 - 0.9, g0 + 0.2, wx) * (1 - smooth(g1 - 0.2, g1 + 0.9, wx))); return c; };
+  for (let wx = -H - 1; wx <= H + 1; wx += step) {
+    const n = 0.62 * vnoise(wx * 0.33 + seed, seed * 0.1) + 0.38 * vnoise(wx * 1.1 + seed * 2, 3.7);
+    const h = hmax * (0.55 + 0.45 * n) * (1 - cutAt(wx));
+    pts.push([wx, h]);
+  }
+  const P = (wx, h, dz = 0) => project(cam, wx, h, z + dz);
+  const [, yb] = P(0, 0, 0.35);
+  // the dark wet foot (the meltwater + the shadow where the mound meets the ground)
+  x.fillStyle = rgb(mix(tn.wet, [0, 0, 0], 0.3), 0.55);
+  x.beginPath(); pts.forEach(([wx, h], i) => { const [px, py] = P(wx, 0, 0.45), [, py2] = P(wx, h > 0.02 ? 0.12 : 0, 0.45); if (i) x.lineTo(px, py2); else x.moveTo(px, py2); }); for (let i = pts.length - 1; i >= 0; i--) { const [px, py] = P(pts[i][0], 0, 0.5); x.lineTo(px, py); } x.closePath(); x.fill();
+  // the body: dirty grey-brown, darker toward the foot
+  const sp = pts.map(([wx, h]) => P(wx, h));
+  const yTop = Math.min(...sp.map(p => p[1]));
+  const g = x.createLinearGradient(0, yTop, 0, yb);
+  g.addColorStop(0, rgb(body)); g.addColorStop(1, rgb(dark));
+  x.fillStyle = g; x.beginPath(); x.moveTo(sp[0][0], yb);
+  for (const p of sp) x.lineTo(p[0], p[1]);
+  x.lineTo(sp[sp.length - 1][0], yb); x.closePath(); x.fill();
+  // the GRIT: darker streaks down the sides (the road's dirt the plow threw up), seeded
+  x.save(); x.clip();
+  x.strokeStyle = rgb(mix(dark, [40, 32, 26], 0.4), 0.55); x.lineCap = 'round';
+  for (let i = 0; i < pts.length; i += 2) {
+    const [wx, h] = pts[i]; if (h < 0.15) continue;
+    const r = vnoise(wx * 3.1 + seed, 9.3); if (r < 0.42) continue;
+    const [px, py] = P(wx + (r - 0.5) * 0.3, h * (0.45 + 0.3 * r)), [, py1] = P(wx, h * 0.05);
+    x.lineWidth = Math.max(0.6, cam.F * (0.05 + 0.06 * r) / z); x.beginPath(); x.moveTo(px, py); x.lineTo(px + (r - 0.6) * 2, py1); x.stroke();
+  }
+  x.restore();
+  // the CRUST: the upper part of the mound white (the snow on top), its lower edge lumpy where it meets the dirty side
+  x.fillStyle = rgb(crust); x.beginPath();
+  sp.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])));
+  for (let i = pts.length - 1; i >= 0; i--) { const [wx, h] = pts[i], d = 0.3 + 0.22 * vnoise(wx * 0.9 + seed * 3, 5.1); const p = P(wx, Math.max(0, h * (1 - d))); x.lineTo(p[0], p[1]); }
+  x.closePath(); x.fill();
+  const lw = Math.max(1.4, cam.F * 0.2 / z);
+  x.strokeStyle = rgb(crust); x.lineWidth = lw; x.lineJoin = 'round'; x.lineCap = 'round';
+  x.beginPath(); let on = false;
+  sp.forEach((p, i) => { if (pts[i][1] < 0.12) { on = false; return; } if (on) x.lineTo(p[0], p[1] + lw * 0.35); else { x.moveTo(p[0], p[1] + lw * 0.35); on = true; } }); x.stroke();
+  // (its light: a bright rim along the very top toward the sky)
+  x.strokeStyle = rgb(mix(crust, [255, 255, 255], 0.35 * (1 - night)), 0.8); x.lineWidth = Math.max(0.7, lw * 0.35);
+  x.beginPath(); on = false;
+  sp.forEach((p, i) => { if (pts[i][1] < 0.12) { on = false; return; } if (on) x.lineTo(p[0], p[1] + lw * 0.1); else { x.moveTo(p[0], p[1] + lw * 0.1); on = true; } }); x.stroke();
 }
 
 // ------------------------------------------------------------------ THE WATERSIDE ROAD
@@ -194,9 +279,11 @@ export function roadStep(L, T, SN, mode = 'plowed') {
       for (const zc of lanes) for (const dz of [-0.55, 0.55]) { const y = Y(zc + dz), t = Math.max(0.6, cam.F * 0.22 / zc); x.fillRect(0, y - t / 2, W, t); }
     } else {
       // the plowed + salted lane: the asphalt darker + wet (a gloss band), the kerb strips white / slushy
-      const lane = mix(T.road, [0, 0, 0], 0.18), gloss = mix(tn.wet, [255, 255, 255], 0.12);
-      x.fillStyle = rgb(lane, 0.55); x.fillRect(0, yRail, W, yCurb - yRail);
-      x.fillStyle = rgb(gloss, 0.28); x.fillRect(0, Y((r.z0 + r.lane) / 2 + 0.4), W, Math.max(0.8, (yCurb - yRail) * 0.12));
+      // (9c: BLACK + WET beside the banks — "the plow piled this" reads from the contrast: white mounds, a black cleared road)
+      const lane = mix(T.road, [10, 10, 14], st === 'older' || st === 'banks' || st === 'fresh' ? 0.55 : 0.3), gloss = mix(tn.wet, [255, 255, 255], 0.22);
+      x.fillStyle = rgb(lane, 0.8); x.fillRect(0, yRail, W, yCurb - yRail);
+      x.fillStyle = rgb(gloss, 0.32); x.fillRect(0, Y((r.z0 + r.lane) / 2 + 0.4), W, Math.max(0.8, (yCurb - yRail) * 0.12));
+      x.fillStyle = rgb(gloss, 0.22); x.fillRect(0, Y((r.lane + r.z1) / 2 + 0.4), W, Math.max(0.6, (yCurb - yRail) * 0.08));
       const edge = st === 'thaw' || st === 'spring' ? mix(tn.wet, tn.dirt, 0.5) : mix(tn.dirt, tn.snow, 0.6);
       const a = st === 'spring' ? 0.35 : 0.95;
       x.fillStyle = rgb(edge, a); x.fillRect(0, Y(r.z0 + 0.9), W, yCurb - Y(r.z0 + 0.9));     // (the near kerb's strip)

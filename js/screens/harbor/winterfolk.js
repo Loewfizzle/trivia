@@ -11,6 +11,7 @@ import { project } from '../../core/harbor-layout.js';
 import { rngFrom, hashString } from '../../core/rng.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+const smooth01 = u => u * u * (3 - 2 * u);
 
 /** PURE: what winter work + play is on at this local time — { shovel, shoveller, snowball (session seed | null), slip } */
 export function winterActs(lc, sn, o = {}) {
@@ -33,8 +34,18 @@ export const doorCleared = (lc, sn) => !!sn && sn.stage !== 'none' && (sn.stage 
 export function createWinterFolk() {
   const looks = new Map();
   const lookFor = (name, seed, carry) => { const k = `${name}|${seed}|${carry || ''}`; let l = looks.get(k); if (!l) { l = { ...lookOf(name, seed, { season: 'winter', cold: true }), ...(carry !== undefined ? { carry } : {}) }; looks.set(k, l); if (looks.size > 40) looks.delete(looks.keys().next().value); } return l; };
+  // 9c — THE DOORMAN IN HIS PROPER UNIFORM for the morning round: the long navy coat with brass buttons + a belt, a PEAKED cap, gloves
+  const doormanLook = carry => { const k = `door|${carry || ''}`; let l = looks.get(k); if (!l) { const b = lookOf('doorman', 4242, { season: 'winter', cold: true }); l = { ...b, carry, hat: 'peaked', coat: 'long', trim: [222, 184, 98], belt: [30, 26, 30], gloves: [36, 32, 34], scarf: null, cols: { ...b.cols, coat: [40, 46, 92], hat: [34, 38, 74], scarf: null } }; looks.set(k, l); } return l; };
+  // the stroke clock (9c): one stroke every STROKE s, the clump leaving at TOSS of it; a shoveller's piles grow with his strokes
+  const STROKE = 2.3, TOSS = 0.8;
   let balls = [], puffs = [], lastT = 0;
 
+  /** 9c: a tossed heap of snow (never a ball): three overlapping lumps, breaking up as it flies (k 0..1) */
+  function clump(c, x, y, r, col, k) {
+    const sp = 0.35 + 0.9 * k;
+    blob(c, x, y, r, col); blob(c, x - r * sp, y + r * 0.35 * (1 + k), r * 0.62, col); blob(c, x + r * sp * 0.9, y + r * 0.25, r * 0.5, col, 0.95);
+    c.fillStyle = 'rgba(90,100,130,0.35)'; c.beginPath(); c.ellipse(x, y + r * 0.55, r * 0.9, r * 0.28, 0, 0, 6.2832); c.fill();   // (its shaded underside)
+  }
   /** a white clump / ball / burst in screen space */
   function blob(c, x, y, r, col, a = 1, edge = false) {
     c.globalAlpha = a;
@@ -53,26 +64,68 @@ export function createWinterFolk() {
     const dt = Math.max(0, Math.min(0.1, t - lastT)); lastT = t;
     const fig = (name, seed, st, extra) => ({ z: st.z, draw: c => { drawFolk(c, cam, { s: st, L: lookFor(name, seed, st.carry) }, E); if (extra) extra(c); } });
     // ---- THE DOORMAN at the steps: shovel strokes, a clump thrown left each stroke; the last third of each minute a fan of salt
+    // 9c (the owner: "looks a little cheap — needs to look more premium"): in his proper uniform he clears the steps ONE BY ONE — three
+    // strokes on each (the top step first, the blade at that step's height), stepping down between them, then the walk before them —
+    // and then a WIDE ARC of salt flung across the cleared steps; the cycle repeats each ~60 s while his round lasts
     if (acts.shovel && s) {
-      const dx = s.x0 + (s.door.u0 + s.door.u1) / 2, z = s.z0 - 1.1, cyc = t % 60, salting = cyc > 44;
-      const sway = mo ? Math.sin(t * 0.21) * 0.5 : 0, st = { x: dx + 0.4 + sway, z, pose: salting ? 'point' : 'sweep', v: 0, hd: Math.PI, dist: 0, a: 1, since: 9 };
-      out.push(fig('doorman', 4242, { ...st, carry: salting ? null : 'shovel' }, c => {
-        const [gx, gy] = project(cam, st.x, 0, z), sp = cam.F / z;
+      const dx = s.x0 + (s.door.u0 + s.door.u1) / 2, zs = s.z0 - 1.1, cyc = mo ? t % 60 : 20, salting = cyc > 44;
+      const n = Math.floor(cyc / STROKE), ph = (cyc / STROKE) % 1, stepI = Math.min(3, Math.floor(n / 3));   // (0, 1, 2: the steps top → bottom; 3: the walk)
+      const z = zs - 0.5 * Math.min(stepI, 3), low = [0.24, 0.16, 0.08, 0][stepI];
+      const st = salting ? { x: dx + 0.5, z: zs - 0.6, pose: 'point', v: 0, hd: Math.PI * 0.6, dist: 0, a: 1, since: 9, carry: null }
+        : { x: dx + 1.15, z, pose: 'shovel', ph, low, v: 0, hd: Math.PI, dist: 0, a: 1, since: 9, carry: 'shovel' };
+      out.push({ z: st.z, draw: c => {
+        drawFolk(c, cam, { s: st, L: doormanLook(st.carry) }, E);
         if (!mo) return;
-        if (!salting) { const u = (t % 1.25) / 1.25; if (u > 0.55) { const k = (u - 0.55) / 0.45; blob(c, gx - (0.9 + 1.6 * k) * sp, gy - (0.6 + 1.0 * k - 1.3 * k * k) * sp, 0.32 * sp, col, 1 - k * 0.4); } }
-        else { c.fillStyle = 'rgb(232,230,222)'; for (let i = 0; i < 14; i++) { const u = (t * 1.8 + i * 0.37) % 1; c.globalAlpha = 1 - u; c.fillRect(gx + (0.5 + 1.8 * u) * sp * (i % 2 ? 1 : 0.6), gy - (1.0 - 0.9 * u) * sp + (i % 3) * 0.12 * sp, Math.max(0.7, 0.06 * sp), Math.max(0.7, 0.06 * sp)); } c.globalAlpha = 1; }
-      }));
+        const sp = cam.F / st.z;
+        if (!salting) {
+          // the clump off the blade on the toss: a big white heap arcing left onto the pile beside the steps
+          if (ph > TOSS - 0.04) { const k = clamp01((ph - TOSS + 0.04) / (1 - TOSS + 0.04)); const [ax, ay] = project(cam, st.x - 0.75, 0.75 + low, st.z), [bx, by] = project(cam, dx - 1.9, 0.15, zs - 0.4); clump(c, ax + (bx - ax) * k, ay + (by - ay) * k - Math.sin(k * Math.PI) * 0.7 * sp, 0.24 * sp, col, k); }
+        } else {
+          // the WIDE ARC of salt: his arm sweeping, the grains flung out in a fan that spreads across the steps + falls
+          const u0 = (cyc - 44) / 16;
+          c.fillStyle = 'rgb(236,234,226)';
+          for (let i = 0; i < 40; i++) { const a = -0.9 + 1.8 * ((i * 0.618) % 1), u = (u0 * 4 + i * 0.137) % 1, [px, py] = project(cam, st.x + Math.cos(a) * 2.6 * u - 0.6, 1.2 * (1 - u) * (1 - u) + 0.05, st.z + Math.sin(a) * 0.9 * u); c.globalAlpha = 0.95 * (1 - u * 0.7); const r = Math.max(0.7, 0.05 * sp); c.fillRect(px, py, r, r); }
+          c.globalAlpha = 1;
+        }
+      } });
+      // the pile he builds beside the steps (grows through the round)
+      out.push({ z: zs - 0.4, draw: c => { const [px, py] = project(cam, dx - 1.9, 0, zs - 0.4), sp = cam.F / (zs - 0.4), k = salting ? 1 : clamp01(n / 12); if (k > 0.05) { c.fillStyle = col; c.beginPath(); c.ellipse(px, py - 0.12 * sp * k, (0.5 + 0.35 * k) * sp, 0.3 * sp * k + 0.5, 0, Math.PI, 0); c.fill(); c.fillStyle = 'rgba(70,80,110,0.35)'; c.fillRect(px - (0.5 + 0.35 * k) * sp, py - 0.5, (1 + 0.7 * k) * sp, 1); } } });
     }
     // ---- A SHOVELLER working slowly along the front walk (left → right over two hours), clumps tossed toward the curb
+    // 9c (the owner: he must MOVE "back and forth like he's actually shovelling"): the full stroke (folk.js 'shovel'), a step forward between
+    // strokes (pushing along the walk to the right), each toss a heap arcing onto the growing pile toward the curb; the CLEARED strip
+    // (the wet dark stone) growing behind him. Forced: a 70-s pass from the left; live: across the walk over the two hours.
     if (acts.shoveller && L.edge) {
       const zF = (L.impliedOn !== false ? L.edge.z + L.edge.curbW : L.impliedRoad.z0) + 1.6, hw = cam.hw(zF);
-      const h = w.lc ? w.lc.h + w.lc.mi / 60 : 10, u = w.force && w.force.has('shovel') ? 0.35 + 0.1 * Math.sin(t * 0.02) : clamp01((h - 9) / 2);
-      const st = { x: -hw * 0.8 + u * hw * 1.6, z: zF, pose: 'sweep', v: 0, hd: 0, dist: 0, a: 1, since: 9, carry: 'shovel' };
-      out.push(fig('worker', 777, st, c => {
-        if (!mo) return;
-        const [gx, gy] = project(cam, st.x, 0, zF), sp = cam.F / zF, q = ((t + 0.4) % 1.25) / 1.25;
-        if (q > 0.55) { const k = (q - 0.55) / 0.45; blob(c, gx + (0.6 + 1.4 * k) * sp * 0.4, gy - (0.6 + 0.9 * k - 1.2 * k * k) * sp, 0.3 * sp, col, 1 - 0.4 * k); }
-      }));
+      const h = w.lc ? w.lc.h + w.lc.mi / 60 : 10, forced = !!(w.force && w.force.has('shovel'));
+      const x0 = -hw * 0.7, span = hw * 1.4, STEP = 0.55;
+      const tt = mo ? (forced ? t % 90 : (h - 9) * 3600) : 30, n = Math.floor(tt / STROKE), ph = (tt / STROKE) % 1;
+      const xs = x0 + Math.min(span, (n + smooth01(clamp01((ph - 0.86) / 0.14))) * STEP);   // (the step forward between strokes)
+      const done = forced ? false : (h - 9) * 3600 / STROKE * STEP > span;
+      if (!done) {
+        const st = { x: xs, z: zF, pose: 'shovel', ph, low: 0, v: 0, hd: 0, dist: 0, a: 1, since: 9, carry: 'shovel' };
+        out.push(fig('worker', 777, st, c => {
+          if (!mo || ph < TOSS - 0.04) return;
+          const k = clamp01((ph - TOSS + 0.04) / (1 - TOSS + 0.04)), sp = cam.F / zF;
+          const [ax, ay] = project(cam, xs + 0.7, 0.8, zF), [bx, by] = project(cam, xs + 0.4, 0.1, zF - 1.1);
+          clump(c, ax + (bx - ax) * k, ay + (by - ay) * k - Math.sin(k * Math.PI) * 0.8 * sp, 0.24 * sp, col, k);
+          if (k > 0.85) for (let i = 0; i < 5; i++) blob(c, bx + (i - 2) * 0.16 * sp, by - (0.1 + 0.05 * (i % 2)) * sp, 0.09 * sp, col, 1 - (k - 0.85) * 5);   // (the spray where it lands)
+        }));
+      }
+      // the CLEARED strip behind him (bare wet stone) + the pile ridge he throws toward the curb, both growing with his strokes
+      const xe = done ? x0 + span : xs - 0.3;
+      if (xe > x0 + 0.1) out.push({ z: zF + 0.8, draw: c => {
+        const P = (x, z) => project(cam, x, 0, z);
+        const a = P(x0, zF + 0.7), b = P(xe, zF + 0.7), c2 = P(xe, zF - 0.6), d = P(x0, zF - 0.6);
+        c.fillStyle = `rgba(${w.wetCol || '108,100,100'},0.78)`; c.beginPath(); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(c2[0], c2[1]); c.lineTo(d[0], d[1]); c.closePath(); c.fill();
+        c.fillStyle = 'rgba(255,255,255,0.12)'; c.fillRect(Math.min(a[0], d[0]), (a[1] + d[1]) / 2, b[0] - a[0], 1);   // (its wet sheen)
+      } });
+      if (xe > x0 + 0.1) out.push({ z: zF - 1.1, draw: c => {
+        const sp = cam.F / (zF - 1.1); c.fillStyle = col; c.beginPath();
+        const [ax, ay] = project(cam, x0, 0, zF - 1.1), [bx] = project(cam, xe + 0.6, 0, zF - 1.1);
+        c.moveTo(ax, ay); for (let i = 0; i <= 12; i++) { const u = i / 12, x = ax + (bx - ax) * u; c.lineTo(x, ay - (0.18 + 0.1 * Math.sin(u * 17)) * sp); } c.lineTo(bx, ay); c.closePath(); c.fill();
+        c.fillStyle = 'rgba(70,80,110,0.3)'; c.fillRect(ax, ay - 1, bx - ax, 1.2);
+      } });
     }
     // ---- THE SNOWBALL FIGHT: two pairs of kids facing each other across the inlay; scoop → wind up → THROW, the ball's arc, the burst
     if (acts.snowball && L.medallion) {
@@ -104,10 +157,10 @@ export function createWinterFolk() {
       if (building) {
         out.push(fig('kid', 5101, { x: m.x - 1.7, z: m.z - 0.9, pose: 'push', v: 0, hd: 0, dist: 0, a: 1, since: 9 }));
         out.push(fig('kid', 5117, { x: m.x + 1.6, z: m.z - 1.3, pose: (t % 4) < 1.6 ? 'pick' : 'wait', v: 0, hd: Math.PI, dist: 0, a: 1, since: t % 4, left: 1.6 - (t % 4) }));
-        out.push(fig('walker', 5131, { x: m.x + 0.9, z: m.z + 0.9, pose: 'reach', v: 0, hd: Math.PI, dist: 0, a: 1, since: 9 }));
+        out.push(fig('walker', 5131, { x: m.x + 1.75, z: m.z - 0.15, pose: 'reach', v: 0, hd: Math.PI, dist: 0, a: 1, since: 9 }));   // (9c: BESIDE him — behind, his raised arms read as the snowman's)
       } else if (w.sm.progress >= 0.93 && h >= 9 && h < 17) {
         const P = 360, ph = t % P, n = Math.floor(t / P);
-        if (ph < 50) out.push(n % 2 ? fig('kid', 5200 + (n % 5), { x: m.x - 0.8, z: m.z - 1.1, pose: 'reach', v: 0, hd: 0.3, dist: 0, a: Math.min(1, ph / 2, (50 - ph) / 2), since: 9 })
+        if (ph < 50) out.push(n % 2 ? fig('kid', 5200 + (n % 5), { x: m.x - 1.55, z: m.z - 0.7, pose: 'reach', v: 0, hd: 0.2, dist: 0, a: Math.min(1, ph / 2, (50 - ph) / 2), since: 9 })
           : fig('stroll', 5300 + (n % 7), { x: m.x + 2.6, z: m.z - 2.4, pose: 'watch', v: 0, hd: Math.PI * 0.85, dist: 0, a: Math.min(1, ph / 2, (50 - ph) / 2), since: 9 }));
       }
     }

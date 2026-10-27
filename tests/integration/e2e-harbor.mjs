@@ -3490,6 +3490,16 @@ G('snow', async () => {
     const b = await ev(N.page, SNW);
     ok(a && b && a.sign > 0.6 && b.sign < 0.4 && b.icicles > 0.2, `SNOW ON THE NEON: by day ${a && a.sign} · lit at night ${b && b.sign} (melted) + icicles ${b && b.icicles}`);
     await D.ctx.close(); await N.ctx.close(); }
+  // ---- 9c — THE FROST (the owner prefers City 1.0's frozen pane): a deep freeze grows the PANE (kept clear of the sign + the dock + the
+  // buttons) and the buttons' lace (BOTH by default); &frost=pane = the pane alone, no frost on the buttons
+  for (const [mode, paneOn, glassOn] of [['both', true, true], ['pane', true, false]]) {
+    const Q = await open({ slot: `sn-fr-${mode}`, qs: `when=2027-01-20T22:00${GR}&snow=older&temp=-14${mode === 'both' ? '' : `&frost=${mode}`}`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${SNW}.pane.grown > 0.3`, 'the pane forming', 20000).catch(() => {});
+    const s = await ev(Q.page, SNW);
+    ok(s && (s.pane.grown > 0.3) === paneOn && s.pane.clear >= 3 && (s.gwx.frost > 0.05) === glassOn, `9c FROST ${mode.toUpperCase()}: the pane ${s && s.pane.grown} (${s && s.pane.clear} clear holes), the buttons' frost ${s && s.gwx.frost}`);
+    await Q.ctx.close();
+  }
   // ---- THE JANUARY SNOWMAN: Jan 31 (the climate's January) stands done on the inlay; &snowman=base the forced stage
   { const Q = await open({ slot: 'sn-man', qs: `when=2027-01-31T13:00${GR}`, view: [402, 874] });
     await harborUp(Q.page); await sleep(600);

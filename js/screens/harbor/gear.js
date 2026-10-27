@@ -174,6 +174,21 @@ export const GEAR = {
   },
   // 9b — THE SNOW SHOVEL: a long wooden handle with a D-grip, a WIDE flat steel blade at its foot carrying a heap of snow (the bright accent)
   shovel(c, g) {
+    // 9c — THE STROKE (folk.js pose 'shovel': J.sv): the handle from the upper hand through the lower one to a big steel blade that rides
+    // the ground on the push, comes up loaded, swings + FLIPS on the toss; the blade's top edge catches the light
+    if (g.pose === 'shovel' && g.J.sv) {
+      const sv = g.J.sv, H = g.H, hs = g.J.hands, up = hs[0][1] > hs[1][1] ? 0 : 1, [ux, uy] = [g.X(hs[up][0]), g.Y(hs[up][1])];
+      const bx = g.X(g.J.cx * sv.u), by = g.Y(sv.v), ang = Math.atan2(by - uy, bx - ux);
+      c.strokeStyle = g.f([132, 100, 66]); c.lineWidth = lw(g, 0.016); c.lineCap = 'round'; c.beginPath(); c.moveTo(ux - Math.cos(ang) * H * 0.05, uy - Math.sin(ang) * H * 0.05); c.lineTo(bx, by); c.stroke();
+      c.lineWidth = lw(g, 0.02); c.beginPath(); c.moveTo(ux - Math.cos(ang) * H * 0.07 - Math.sin(ang) * H * 0.025, uy - Math.sin(ang) * H * 0.07 + Math.cos(ang) * H * 0.025); c.lineTo(ux - Math.cos(ang) * H * 0.07 + Math.sin(ang) * H * 0.025, uy - Math.sin(ang) * H * 0.07 - Math.cos(ang) * H * 0.025); c.stroke();   // (the D-grip)
+      c.save(); c.translate(bx, by); c.rotate(ang - Math.PI / 2 + sv.flip * 1.9 * g.d);
+      const bw = H * 0.17, bh = H * 0.1;
+      c.fillStyle = g.f([58, 62, 72]); c.beginPath(); c.moveTo(-bw / 2, 0); c.lineTo(bw / 2, 0); c.lineTo(bw / 2 * 0.92, bh); c.lineTo(-bw / 2 * 0.92, bh); c.closePath(); c.fill();
+      c.fillStyle = g.f([196, 204, 216], 1.15); c.fillRect(-bw / 2, -Math.max(0.5, H * 0.006), bw, Math.max(0.7, H * 0.014));   // (the lit edge)
+      if (sv.heap) { c.fillStyle = g.f([244, 247, 253], 1.1); c.beginPath(); c.ellipse(0, bh * 0.35, bw * 0.48, bh * 0.75, 0, Math.PI, 0); c.fill(); }
+      c.restore();
+      return;
+    }
     const [x, y] = g.hand, H = g.H, sw = g.pose === 'sweep', ex = sw ? g.X(g.J.cx * 0.46) : x + g.d * H * 0.05, ey = sw ? g.Y(0.03) : y + H * 0.42;
     c.strokeStyle = g.f([132, 100, 66]); c.lineWidth = lw(g, 0.012); c.beginPath(); c.moveTo(x - (ex - x) * 0.28, y - (ey - y) * 0.28); c.lineTo(ex, ey); c.stroke();
     c.save(); c.translate(ex, ey); c.rotate(Math.atan2(ey - y, ex - x) - Math.PI / 2);

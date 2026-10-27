@@ -14,6 +14,7 @@ export function createFrost() {
   let W = 1, H = 1, cv = null, key = '', grown = 0, wasCold = false;
 
   // ---------------------------------------------------------------- the frozen pane
+  let clearRects = null;   // (9c — City 2.0: [{ x, y, w, h, f (feather pt) }] kept clear: the sign, the hush word, the dock's labels, the corner buttons)
   function bake() {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     if (cv) cv.width = 0;
@@ -69,11 +70,25 @@ export function createFrost() {
     const m = x.createRadialGradient(W * 0.5, H * 0.46, Math.min(W, H) * 0.3, W * 0.5, H * 0.46, Math.hypot(W, H) * 0.56);
     m.addColorStop(0, 'rgba(0,0,0,0)'); m.addColorStop(0.55, 'rgba(0,0,0,0.35)'); m.addColorStop(1, 'rgba(0,0,0,1)');
     x.fillStyle = m; x.fillRect(0, 0, W, H);
+    // (9c: City 2.0's rects cut out with a soft feather — only the finest edge of the lace reaches a button)
+    if (clearRects && clearRects.length) {
+      x.globalCompositeOperation = 'destination-out';
+      // (a feathered hole, no hard corner: rounded rects growing outward, each erasing a little — the frost thins to nothing over f pt)
+      const rr = (x0, y0, w, h, r) => { x.beginPath(); x.moveTo(x0 + r, y0); x.arcTo(x0 + w, y0, x0 + w, y0 + h, r); x.arcTo(x0 + w, y0 + h, x0, y0 + h, r); x.arcTo(x0, y0 + h, x0, y0, r); x.arcTo(x0, y0, x0 + w, y0, r); x.closePath(); x.fill(); };
+      for (const r of clearRects) {
+        const f = r.f || 18, N = 12;
+        x.fillStyle = 'rgba(0,0,0,0.22)';
+        for (let i = 0; i < N; i++) { const e = f * (1 - i / N); rr(r.x - e, r.y - e, r.w + 2 * e, r.h + 2 * e, Math.min(f, (r.h + 2 * e) / 2)); }
+        x.fillStyle = 'rgba(0,0,0,1)'; rr(r.x, r.y, r.w, r.h, Math.min(8, r.h / 2));
+      }
+    }
     x.globalCompositeOperation = 'source-over';
   }
 
   return {
     resize(w, h) { W = w; H = h; key = ''; },
+    /** 9c (City 2.0): the rects the pane keeps clear (re-bakes when they move a few pt) */
+    setClear(rects) { const k2 = (rects || []).map(r => `${Math.round(r.x / 6)},${Math.round(r.y / 6)},${Math.round(r.w / 6)},${Math.round(r.h / 6)}`).join(';'); if (k2 !== (clearRects && clearRects.key)) { clearRects = rects || null; if (clearRects) clearRects.key = k2; key = ''; } },
     pane(c, s) {
       const k = s.L.freeze || (s.force.has('freeze') ? 1 : 0);
       if (k <= 0.01) { grown = 0; wasCold = false; return; }
@@ -107,7 +122,7 @@ export function createFrost() {
         }
       }
     },
-    debug: () => ({ grown }),
+    debug: () => ({ grown, clear: clearRects ? clearRects.length : 0 }),
     destroy() { if (cv) cv.width = 0; },
   };
 }

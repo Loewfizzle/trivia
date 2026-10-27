@@ -71,12 +71,21 @@ export function snowmanPiece(S) {
     }
     // THE STICK ARMS: twigs out of the middle (drooping as he slumps), a fork at each end
     if (has(p, 'arms') && has(p, 'middle')) {
-      x.strokeStyle = rgb(lit(Lt, STICK, FRONT)); x.lineWidth = Math.max(0.8, 0.07 * s); x.lineCap = 'round';
-      for (const sd of [-1, 1]) {
-        const ax = mx + sd * rm * s * 0.85, ay = my - rm * s * 0.15, droop = (0.25 + 0.6 * sl + 0.5 * me) * s * (sd > 0 ? 1 : 0.7);
-        const ex = ax + sd * 0.95 * s, ey = ay - 0.55 * s + droop;
-        x.beginPath(); x.moveTo(ax, ay); x.lineTo(ex, ey); x.moveTo(ax + (ex - ax) * 0.7, ay + (ey - ay) * 0.7); x.lineTo(ex + sd * 0.1 * s, ey - 0.3 * s); x.moveTo(ex, ey); x.lineTo(ex + sd * 0.28 * s, ey + 0.05 * s); x.stroke();
-      }
+      // (9c — the owner: "always STICKS" — thicker dark twigs that start INSIDE the ball (never a white stub), two forks each, a pale bark
+      // edge on top so they read against the dark road behind him)
+      x.lineCap = 'round'; x.lineJoin = 'round';
+      const twig = (col, w, dy) => {
+        x.strokeStyle = rgb(col); x.lineWidth = w;
+        for (const sd of [-1, 1]) {
+          const ax = mx + sd * rm * s * 0.62, ay = my - rm * s * 0.15 + dy, droop = (0.25 + 0.6 * sl + 0.5 * me) * s * (sd > 0 ? 1 : 0.7);
+          const ex = ax + sd * 1.15 * s, ey = ay - 0.6 * s + droop;
+          x.beginPath(); x.moveTo(ax, ay); x.lineTo(ex, ey);
+          x.moveTo(ax + (ex - ax) * 0.62, ay + (ey - ay) * 0.62); x.lineTo(ax + (ex - ax) * 0.62 + sd * 0.12 * s, ay + (ey - ay) * 0.62 - 0.36 * s);
+          x.moveTo(ex, ey); x.lineTo(ex + sd * 0.3 * s, ey - 0.16 * s); x.moveTo(ex, ey); x.lineTo(ex + sd * 0.26 * s, ey + 0.1 * s); x.stroke();
+        }
+      };
+      twig(lit(Lt, STICK, FRONT), Math.max(1.2, 0.11 * s), 0);
+      twig(lit(Lt, mix(STICK, [214, 178, 128], 0.5), FRONT), Math.max(0.5, 0.035 * s), -Math.max(0.4, 0.03 * s));
     }
   };
   return { draw };

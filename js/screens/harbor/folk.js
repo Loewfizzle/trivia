@@ -365,6 +365,30 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // (8b2 — STROKES, not wiggles: each work motion is a working stroke (slow, with weight) + a quick return — sk(period, share))
   const sk = (P, share, off = 0) => { const u = (((tw8 + L.h * 13 + off) / P) % 1 + 1) % 1; return u < share ? smooth(u / share) : 1 - smooth((u - share) / (1 - share)); };
   if (pose === 'sweep') { const k = sk(1.25, 0.62); shJ.forEach(q => { q.a += 0.04 * k; }); head.a += 0.04 * k; arm(N, 0.5 + 0.5 * k, 0.5 - 0.1 * k); arm(Fa, 0.8 + 0.5 * k, 0.22); }
+  // 9c — THE SHOVEL STROKE (the owner: "back and forth like he's actually shovelling", "more premium"): st.ph 0..1 through ONE stroke —
+  // PLANT (bent in, the blade down ahead) → PUSH (lean + arms driving the blade along the ground) → LIFT (the heap comes up, the back
+  // straightens) → TWIST (the arms swing up + out to the side) → TOSS (a flick: the snow leaves) → back. Read by the whole body's motion.
+  // J.sv: the blade's spot (body-local u, v) + its heap + its flip for gear.js#shovel
+  let sv = null;
+  if (pose === 'shovel') {
+    const ph = ((st.ph || 0) % 1 + 1) % 1, low = st.low || 0;
+    // keyframes: [t, lean, near arm [ang, bend, out], far arm [ang, bend, out], dip, blade [u (forward), v (height)], heap, flip]
+    const K = [
+      [0, 0.1, [1.0, 0.3, 0.06], [0.72, 0.4, 0.06], 0.05, [0.5, 0.02 + low], 0, 0],
+      [0.4, 0.2, [1.32, 0.08, 0.06], [1.08, 0.14, 0.06], 0.07, [0.8, 0.02 + low], 1, 0],
+      [0.56, 0.05, [1.55, 0.75, 0.1], [1.25, 0.85, 0.08], 0.02, [0.6, 0.24 + low], 1, 0],
+      [0.72, -0.02, [1.95, 0.55, 0.42], [1.6, 0.6, 0.28], 0, [0.48, 0.52 + low * 0.5], 1, 0.2],
+      [0.82, 0.02, [2.2, 0.15, 0.62], [1.85, 0.3, 0.45], 0, [0.66, 0.62 + low * 0.5], 0, 1],
+      [1, 0.1, [1.0, 0.3, 0.06], [0.72, 0.4, 0.06], 0.05, [0.5, 0.02 + low], 0, 0],
+    ];
+    let i = 0; while (i < K.length - 2 && ph >= K[i + 1][0]) i++;
+    const A = K[i], B = K[i + 1], k = smooth(clamp01((ph - A[0]) / (B[0] - A[0]))), Lr = (a, b) => a + (b - a) * k;
+    const lean = Lr(A[1], B[1]), dip = Lr(A[4], B[4]);
+    shJ.forEach(q => { q.a += lean; q.y -= dip; }); head.a += lean * 1.1; head.y -= dip;
+    arm(N, Lr(A[2][0], B[2][0]), Lr(A[2][1], B[2][1]), Lr(A[2][2], B[2][2]));
+    arm(Fa, Lr(A[3][0], B[3][0]), Lr(A[3][1], B[3][1]), Lr(A[3][2], B[3][2]));
+    sv = { u: Lr(A[5][0], B[5][0]), v: Lr(A[5][1], B[5][1]), heap: ph > 0.12 && ph < 0.8 ? 1 : 0, flip: Lr(A[7], B[7]) };
+  }
   if (pose === 'crank') { const c8 = tw8 * 4.2; arm(N, 2.0 + 0.45 * Math.sin(c8), 0.5 + 0.3 * Math.cos(c8)); arm(Fa, 1.75 + 0.45 * Math.sin(c8), 0.6 + 0.3 * Math.cos(c8)); }
   if (pose === 'climb') {
     // (hand over hand: the hand opposite the stepping foot reaches up to the next rung while the other slides down as he rises)
@@ -409,7 +433,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
     hd, cx, cz, d: cx >= 0 ? 1 : -1, side: Math.abs(cx) > 0.72, face: st.dir, pose, walking, p, jog, toast, near: N,
     noCarry: (pose === 'pick' && uP < 0.5) || (pose === 'set' && uP >= 0.5) || (pose === 'unload' && uP < 0.45), uk, sq,
     feet: feetS, knees: kneesS, hips: hipsS, hip: mid(hipsS[0], hipsS[1]), shs: shsS, sh: mid(shsS[0], shsS[1]),
-    elbows: elbow.map(scr), hands: hand.map(scr), head: scr(head), tw, planted, heel,
+    elbows: elbow.map(scr), hands: hand.map(scr), head: scr(head), tw, planted, heel, sv,
     D: { legs: foot.map(dep), arms: hand.map(dep) },
   };
 }
