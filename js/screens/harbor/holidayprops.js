@@ -12,6 +12,8 @@ import { project } from '../../core/harbor-layout.js';
 import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt, bigPumpkins, BALE, giantPiece, giantDecor, thanksgivingSpots } from '../../core/harbor-holidayprops.js';
 import { createHarvest, paintSpotPiece } from './harvest.js';
 import { createGiant } from './giant.js';
+import { paintTreeStand } from './treestand.js';
+import { spotById } from '../../core/harbor-spots.js';
 import { lightField } from '../../core/harbor-light.js';
 import { litCol } from './fauna.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -376,7 +378,23 @@ export function createHolidayProps() {
     stat.rects.push({ id: b.spot, x: +(sx - sp.cx / dpr).toFixed(1), y: +(sy - sp.foot / dpr).toFixed(1), w: +(sp.w / dpr).toFixed(1), h: +(sp.h / dpr).toFixed(1), big: !b.decor, decor: !!b.decor });
   }
   /** the big pieces on a pass as z-sorted extras for people.js ('near': with the walkers; 'far': across the road) → [{ z, draw(c) }] */
-  function items(pass, env) {
+  // 11a-2 — THE CHRISTMAS-TREE STAND (treestand.js) at the bench's left end, from Black Friday morning (env.tree: core/harbor-xmas.js,
+  // latched by the scene like every big piece); its lantern's glow after dark
+  function treeItems(pass, env) {
+    if (pass !== 'near' || !env.L || !env.T || !(env.fade > 0)) return [];
+    layout(env.L, env.dpr || 2);
+    const sp = spotById(env.L, 'bench-left'); if (!sp) return [];
+    const E = envLight(env), night = clamp01((E.dark - 0.25) / 0.5);
+    return [{ z: sp.z, draw: c => {
+      const k = `tree|${lightKey}`; let o = cache.get(k); if (!o) o = put(k, paintTreeStand(L, sp, Math.min(2, env.dpr || 2), colAt(E, sp.x, sp.z, 1.0)));
+      c.save(); c.globalAlpha = env.fade == null ? 1 : env.fade; c.drawImage(o.cv, o.x, o.y, o.w, o.h);
+      if (night > 0.02) { const g = glowSprite(), r = 0.9 * o.s; c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.55 * night * (env.power == null ? 1 : env.power) * (env.fade == null ? 1 : env.fade); c.drawImage(g, o.lantern[0] - r, o.lantern[1] - r, r * 2, r * 2); }
+      // (its rect replaces last frame's: on a day with no holiday the ground pass never resets the list)
+      c.restore(); stat.rects = stat.rects.filter(q => q.id !== 'treestand'); stat.rects.push({ id: 'treestand', x: +o.x.toFixed(1), y: +o.y.toFixed(1), w: +o.w.toFixed(1), h: +o.h.toFixed(1), big: true });
+    } }];
+  }
+  function items(pass, env) { const a = itemsHol(pass, env); return env.tree ? a.concat(treeItems(pass, env)) : a; }
+  function itemsHol(pass, env) {
     const HS = env.HS, HP = env.HP;
     // (11a-2: the big pieces are LATCHED (core/harbor-holiday.js#latchBig) — they may outlive their holiday on screen until the next load)
     if (env.L && HP && (HP.harvest || HP.bales || HP.stalks || HP.mums) && env.fade > 0 && env.T) { giant.clearLight(); return tgItems(pass, env); }

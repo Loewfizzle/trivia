@@ -18,6 +18,8 @@ import { speakGeo, mats, wallMap } from './speakeasy-geo.js';
 import { LADDER, KIT } from '../../core/harbor-crew.js';
 import { kitBucket, kitRoll } from './gear.js';
 import { rngFrom } from '../../core/rng.js';
+import { sillsAt } from '../../core/harbor-xmas.js';
+import { paintXLights } from './xlights.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -51,6 +53,7 @@ export function propItems(L, crew, pass, t) {
     else if (p.kind === 'wet') out.push({ z: 1e3 + 1, draw: (c, env) => wetStreak(c, cam, p, env, t) });
     else if (p.kind === 'leafpile') { const k = leafK(p, t); if (k > 0.01) out.push({ z: p.z, draw: (c, env) => leafPile(c, cam, p, k, env) }); }
     else if (p.kind === 'hatch') { out.push({ z: 1e3 + 2, draw: (c, env) => hatchHole(c, cam, p, env, t) }, { z: p.z + 0.4, draw: (c, env) => hatchLeaves(c, cam, p, env, t) }); }
+    else if (p.kind === 'xlights') out.push({ z: s.z0 - 0.07, draw: (c, env) => paintXLights(c, cam, s, xlProg(p, t), { lit: 0, dark: env.dark || 0 }) });   // (11a-2: Black Friday's strings, as hung)
     else if (p.kind === 'platform') { out.push({ z: p.z + 0.25, draw: (c, env) => platform(c, cam, s, p, env, t, 'back') }, { z: p.z - 0.4, draw: (c, env) => platform(c, cam, s, p, env, t, 'front') }); }
   }
   // THE TRACES (core/harbor-crew.js#tracesAt): the milk on the step, the bundles at the vendor spot
@@ -59,6 +62,12 @@ export function propItems(L, crew, pass, t) {
   return out;
 }
 
+/** 11a-2 — the strings hung by t (core/harbor-xmas.js#sillsAt — the rig's order; the awning's string by the stepladder man's two stands) */
+function xlProg(p, t) {
+  const o = sillsAt((t - p.rig.start) / Math.max(1, p.rig.len));
+  let a = 0; for (const [a0, a1] of p.awning || []) a += clamp01((t - a0) / Math.max(1, a1 - a0)) / Math.max(1, (p.awning || []).length);
+  o.awning = a; return o;
+}
 // ---- THE TALL LADDER (leaning against the blade's outer edge — its feet on the promenade, its top at the crest)
 function rails(c, a, b, w) { const dx = b[0] - a[0], dy = b[1] - a[1], l = Math.hypot(dx, dy) || 1, nx = -dy / l * w, ny = dx / l * w; return [[a[0] - nx, a[1] - ny], [b[0] - nx * 0.75, b[1] - ny * 0.75], [a[0] + nx, a[1] + ny], [b[0] + nx * 0.75, b[1] + ny * 0.75]]; }
 function tallLadder(c, cam, p, env, t) {

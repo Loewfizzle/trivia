@@ -104,15 +104,18 @@ function periodAt(h, weekend = false) {
   return MIX.find(p => x >= p.from && x < p.to) || MIX[0];
 }
 /** how many people on average now + the kinds' weights (PURE). ctx: { h, dow, party, rain, budget } */
-export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1 } = {}) {
+export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, rush = 0 } = {}) {
   // (9a: a STORM — the heaviest rain — almost empties the promenade: on top of the rain's cut)
   const storm = Math.max(0, Math.min(1, (rain - 0.75) / 0.2));
   const weekend = dow === 0 || dow === 6 || (dow === 5 && h >= 17), p = periodAt(h, weekend);
   let n = p.n[weekend ? 1 : 0] * (party ? MOOD.partyN : 1);
   n *= 1 - MOOD.rainCut * Math.max(0, Math.min(1, rain));
   n *= 1 - MOOD.stormCut * storm;
+  // (11a-2 — BLACK FRIDAY's SHOPPING RUSH: more people out, most of them hurrying — core/harbor-xmas.js#xmasPrelude's rush)
+  n *= 1 + 0.7 * Math.max(0, Math.min(1, rush));
   n *= Math.max(0, Math.min(1, budget));
   const mix = { ...p.mix };
+  if (rush > 0.05) { mix.brisk = (mix.brisk || 0.5) + 2.4 * rush; mix.couple = (mix.couple || 0.5) * (1 + 0.5 * rush); if (mix.bench) mix.bench *= 1 - 0.6 * rush; if (mix.stargazer) delete mix.stargazer; }
   // (POLISH 4: party nights — more people out ENJOYING it: couples, the water, the bench; the guests themselves come by THE LINE)
   if (party) { mix.couple = (mix.couple || 1) * 1.6; mix.meet = (mix.meet || 0) + 1.2; mix.water = (mix.water || 0) + 0.8; }
   if (rain > 0.3) { delete mix.lunch; delete mix.water; delete mix.stargazer; if (mix.jogger) mix.jogger *= 0.3; if (mix.bench) mix.bench *= 0.15; mix.shelter = 1.6; }
@@ -679,7 +682,8 @@ function blockVisits(phase, k, M, ctx = {}) {
   const B = FOLK.block, t0 = k * B + (phase ? B / 2 : 0), t1 = t0 + B, loc = localOf(t0 + B / 2, ctx.off);
   const r = rngFrom(hashString(`folk|${ctx.seed || 1924}|${loc.key}|${phase}|${k}`));
   const party = ctx.party ? ctx.party(t0 + B / 2) : partyAtT(t0 + B / 2, ctx.off);
-  const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: ctx.rain || 0, budget: ctx.budget == null ? 1 : ctx.budget });
+  const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: ctx.rain || 0, budget: ctx.budget == null ? 1 : ctx.budget, rush: ctx.rush ? ctx.rush(t0 + B / 2) : 0 });
+  const rushK = ctx.rush ? ctx.rush(t0 + B / 2) : 0;
   // (×1.3: a phase's visits must fit inside its block, so its load falls off toward the block's end — the other phase fills in)
   const want = mn.n / 2 * B * 1.3, cap = phase === 0 ? Math.ceil(FOLK.cap * 0.65) : FOLK.cap, out = [];
   const occ = [...(ctx.others || [])], taken = [...(ctx.seats || [])];
@@ -703,7 +707,10 @@ function blockVisits(phase, k, M, ctx = {}) {
     spent += n * (vis.t1 - vis.t0);
   }
   for (let tries = 0; tries < 140 && spent < want; tries++) {
-    const kind = pickW(r, mn.mix), spec = KINDS[kind](r, M);
+    const kind = pickW(r, mn.mix);
+    let spec = KINDS[kind](r, M);
+    // (11a-2 — Black Friday: everyone in a hurry — a stroll becomes a walk, a walk brisk)
+    if (rushK > 0.3 && !spec.sit && !spec.pair) spec = { ...spec, gait: spec.gait === 'stroll' ? 'walk' : spec.gait === 'walk' ? 'brisk' : spec.gait };
     if (spec.need === 'cart' && (!M.nodes.cart || !ctx.cartOut)) continue;
     if (spec.hours && (loc.h < spec.hours[0] || loc.h >= spec.hours[1])) continue;
     const start = t0 + 2 + r() * (B * 0.75);

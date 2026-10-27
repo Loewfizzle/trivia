@@ -64,10 +64,10 @@ export function createPeople() {
     M = folkMap(L, { event, ring, line: lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
   }
   const lookFor = (mem, env) => {
-    const key = `${mem.vid}|${mem.m.seed}|${mem.m.role}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${env.wind > 10 ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}|${mem.hween ? 'H' : ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
+    const key = `${mem.vid}|${mem.m.seed}|${mem.m.role}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${env.wind > 10 ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}|${mem.hween ? 'H' : ''}|${env.holCarry || ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
     let lk = looks.get(key);
     // (11a-1: the holidays' people carry their costume / instrument / role on the member — core/harbor-people.js#totVisit, #procVisit)
-    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, wind: env.wind, role: mem.m.role, sit, m: mem.m, hween: !!mem.hween });
+    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, wind: env.wind, role: mem.m.role, sit, m: mem.m, hween: !!mem.hween, hcarry: env.holCarry || null });
       // (POLISH 5 — the line prototype: the COAT in the player's colour — a long coat, the colour a touch deep so it reads as cloth)
       if (mem.coat) { lk = { ...lk, coat: 'long', dress: lk.woman ? 'day' : null, cols: { ...lk.cols, coat: mem.coat.map(v => Math.round(v * 0.82)), dress: mem.coat.map(v => Math.round(v * 0.82)) } }; }
       looks.set(key, lk); if (looks.size > 160) looks.delete(looks.keys().next().value); }
@@ -82,7 +82,7 @@ export function createPeople() {
     ensureMap(!!f.event, !!f.ring);
     const hf = hforceOf(f);
     const fk = `${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
+    const t = f.ms / 1000, ctx = { off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction

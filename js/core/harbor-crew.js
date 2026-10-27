@@ -272,6 +272,60 @@ PLAN.washers = (w, M, P, r) => {
   // its park — and swung back in after they're off: never popped; workers.js#platform, `swing` s each way)
   return { visits: vs, props: [{ kind: 'platform', t0: w.t0 - 9, t1: w.t1 + 9, swing: 8, len, start: w.t0, u0: W.u0, u1: W.u1, z: W.z, x0: W.x0 }] };
 };
+PLAN.xlights = (w, M, P, r, L) => {
+  // 11a-2 — BLACK FRIDAY: THE FIRST CHRISTMAS CREW (core/harbor-xmas.js). The electrician's van pulls up at the stop; two riggers carry
+  // a box of light strings each in at the side door — up on the roof they let the WINDOW WASHERS' RIG down over the parapet and work
+  // the front bay by bay (the cornice as it goes down past it, the top floor's sills, a floor down, the lower sills), leaving a string
+  // of big bulbs hung along every sill; the third man takes the STEPLADDER to the awning, two stands along it, and strings its edge,
+  // then loads the ladder + drives the van off. The riggers come down + walk off when the rig is wound back up. (A scene to WATCH: the
+  // strings appear on screen as they work — the off-camera rule's exception.)
+  const s = L.speakeasy, aw = s.awning, W = P.wash, len = w.t1 - w.t0;
+  let inAt = w.t0;
+  const marks = { awning: [] }, props = [];
+  const res = truckShow(L, w, M, P, r, T => {
+    const vs = [];
+    for (let i = 0; i < 2; i++) {
+      const c = crewOf(M, P, r, 'walk', T.tA + 1.4 + i * 1.8).fromTruck(T, i).tail(T, i).unload(1.8, 'lights').fromTail(T, i).door('side', 'in');
+      inAt = Math.max(inAt, c.now); vs.push(c.out(`${w.id}.${i}a`, 'xlights', 'lineman'));
+    }
+    // the stepladder man: off the bed with the ladder, to the awning's left half, the ladder set + climbed, the string hung across that
+    // half, down, the ladder moved to the right half, the same, back to the van with it
+    const c = crewOf(M, P, r, 'walk', T.tA + 6).fromTruck(T, 1).tail(T, 1).unload(2.0, 'ladder').fromTail(T, 1);
+    const zs = s.z0 - 0.78, spots = [s.x0 + aw.u0 + (aw.u1 - aw.u0) * 0.27, s.x0 + aw.u0 + (aw.u1 - aw.u0) * 0.73], work = Math.max(30, Math.min(70, len * 0.05));
+    for (const x of spots) {
+      c.go({ x, z: zs }).pose('set', 1.6, { hd: PI / 2 }).hold('lights');
+      const set = c.now;
+      c.climb({ x, z: zs }, 1.25, 2.4, PI / 2);
+      const a = c.now; c.pose('reach', work, { hd: PI / 2 }); marks.awning.push([a, c.now]);
+      c.climb({ x, z: zs }, 0, 2.2, -PI / 2).pose('fold', 1.4, { hd: PI / 2 }).hold('ladder');
+      props.push({ kind: 'steps', t0: set - 0.2, t1: c.now, foot: { x, z: zs + 0.12 }, top: { x, y: 1.2, z: zs + 0.12 } });
+    }
+    c.tail(T, 1).pose('set', 1.8, { hd: 0, carry: null }).hold(null).fromTail(T, 1).toTruck(T, 1);
+    vs.push(c.out(`${w.id}.2`, 'xlights', 'lineman'));
+    return { visits: vs };
+  });
+  // the rig: from a little after they're in to the show's last minutes
+  const r0 = inAt + 45, r1 = Math.max(r0 + 120, w.t1 - 110), rl = r1 - r0, vs = [...res.visits];
+  for (let i = 0; i < 2; i++) {
+    const onAt = r0 + 4, offAt = r1 - 2, steps = 36;
+    let t = onAt;
+    const legs = [{ k: 'fade', x: W.x0 + (i ? 8.85 : 7.85), z: W.z, t0: onAt - 0.8, t1: onAt, out: false, y: platformAt(4, rl).y + 0.12 }];
+    for (let k = 0; k < steps; k++) {
+      const t1 = onAt + (offAt - onAt) * (k + 1) / steps, st = platformAt((t + t1) / 2 - r0, rl), bay = st.bay ? [7.4, 9.3] : [4.2, 6.1];
+      const u = i ? bay[1] - 0.45 : bay[0] + 0.45, x = W.x0 + u + (r() - 0.5) * 0.3;
+      legs.push({ k: 'pose', pose: st.moving ? 'wait' : 'reach', x, z: W.z, t0: t, t1, hd: PI / 2, y: st.y + 0.12, plat: true, carry: 'lights' });
+      t = t1;
+    }
+    legs.push({ k: 'fade', x: legs[legs.length - 1].x, z: W.z, t0: offAt, t1: offAt + 0.8, out: true, y: platformAt(rl - 4, rl).y + 0.12 });
+    vs.push({ id: `${w.id}.${i}p`, kind: 'xlights', routine: 'work', idx: i, look: 'lineman', gait: 'walk', legs, t0: legs[0].t0, t1: legs[legs.length - 1].t1, tEnd: legs[legs.length - 1].t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }] });
+    const back = crewOf(M, P, r, 'walk', offAt + 35 + i * 2.5).at(P.sideDoor).door('side', 'out').exit('right', 43);
+    vs.push(back.out(`${w.id}.${i}b`, 'xlights', 'lineman'));
+  }
+  props.push({ kind: 'platform', t0: r0 - 9, t1: r1 + 9, swing: 8, len: rl, start: r0, u0: W.u0, u1: W.u1, z: W.z, x0: W.x0 });
+  // THE STRINGS as they're hung (screens/harbor/xlights.js draws them; core/harbor-xmas.js#sillsAt — the rig's order)
+  props.push({ kind: 'xlights', t0: w.t0, t1: w.t1 + 1, rig: { start: r0, len: rl }, awning: marks.awning });
+  return { ...res, visits: vs, props: [...(res.props || []), ...props] };
+};
 PLAN.gardener = (w, M, P, r) => {
   // Wednesday: up through the hatch with his watering can, each bed in turn (bending, tending), back down
   const R = { rects: [], circles: [], exits: M.exits, nodes: M.nodes, face: M.face };

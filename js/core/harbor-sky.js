@@ -193,6 +193,9 @@ export const SKYTYPE_POOL = ['HAVE A NICE DAY', 'LOOK UP!', 'SEE YOU AT THE PIER
 export const HOLIDAY_BANNERS = Object.freeze({
   halloween: [['HAPPY HALLOWEEN'], ['TRICK OR TREAT', 'OCTOBER 31'], ['COSTUME PARTY', 'AT THE SPEAKEASY'], ['FRESH PUMPKINS', 'AT THE PIER'], ['BEWARE THE', 'GHOST SHIP']],
   dotd: [['FELIZ DIA DE MUERTOS'], ['REMEMBER THEM', 'WITH LOVE'], ['CANDLELIGHT PROCESSION', 'NOV 2 AT DUSK'], ['MARIGOLDS', 'AT THE MARKET']],
+  thanksgiving: [['HAPPY THANKSGIVING'], ['GIVE THANKS'], ['BALLOON PARADE', 'THURSDAY 9 AM'], ['FRESH PIES', 'ORDER NOW']],
+  // (11a-2 — BLACK FRIDAY: the sale — no store, no brand: the city's own shops)
+  blackfriday: [['BLACK FRIDAY SALE'], ['EVERYTHING MUST GO', 'TODAY ONLY'], ['HALF OFF', 'ALL DAY'], ['DOORS OPEN AT SIX', 'BIG SAVINGS']],
 });
 export function eventMessage(kind, seed, games = [], holiday = null) {
   const s = seed >>> 0;
@@ -247,6 +250,12 @@ const overrides = new Map();
 /** CITY CONTROL (later): cancel (null) or override (a patch: { day, night } — either may be null) one holiday's sky; undefined resets */
 export function setSkyHoliday(id, patch) { if (patch === undefined) overrides.delete(id); else overrides.set(id, patch); }
 /** the holiday sky on a local date: the entry (with any override) or null */
+/** 11a-2 — THE SALE DAYS (not holidays — no message in the sky, no drone show): a banner plane's SALE pass on the clock (three passes,
+ *  weather allowing — skyfx.js); the day's random banners carry its lines too (HOLIDAY_BANNERS — the scene names the day) */
+export const SALE_DAYS = Object.freeze([
+  { id: 'blackfriday', date: y => ({ m: 11, d: thanksgiving(y).d + 1 }), banner: { text: ['BLACK FRIDAY SALE', 'EVERYTHING MUST GO'], h: 11, passes: 3 } },
+]);
+export function saleDayOn(y, m, d) { for (const s of SALE_DAYS) { const dt = s.date(y); if (dt.m === m && dt.d === d) return s; } return null; }
 export function skyHolidayOn(y, m, d) {
   for (const h of SKY_HOLIDAYS) {
     const dt = h.date(y);

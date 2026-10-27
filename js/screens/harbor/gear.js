@@ -73,6 +73,21 @@ export const GEAR = {
     c.fillStyle = g.f(WOOD_LO); for (const v of [-0.02, 0.02]) c.fillRect(x - H * 0.08, y + H * v, H * 0.16, lw(g, 0.007));
     c.fillStyle = g.f([210, 200, 160], 1.1); for (let i = 0; i < 5; i++) { c.beginPath(); c.arc(x - H * 0.06 + i * H * 0.03, y - H * 0.055, lw(g, 0.01), 0, TAU); c.fill(); }
   },
+  // 11a-2 — THE CHRISTMAS CREW's LIGHTS: walking, a cardboard carton of strings (a few big bulbs peeking over its flaps); at work up on
+  // the rig ('reach'), a loop of the string hanging from the hand — green wire, the big C9 bulbs in their colours
+  lights(c, g) {
+    const H = g.H, BUL = [[226, 60, 50], [60, 170, 90], [240, 186, 60], [70, 110, 220]];
+    if (g.pose === 'reach' || g.pose === 'wait') {
+      const [x, y] = g.hand, dx = -g.d * H * 0.05;
+      c.strokeStyle = g.f([40, 70, 44]); c.lineWidth = lw(g, 0.008); c.beginPath(); c.moveTo(x, y); c.quadraticCurveTo(x + dx, y + H * 0.26, x + dx * 2, y + H * 0.04); c.stroke();
+      for (let i = 0; i < 4; i++) { const u = (i + 0.5) / 4, bx = x + dx * 2 * u, by = y + H * 0.26 * 2 * u * (1 - u) + H * 0.02; c.fillStyle = g.f(BUL[i], 1.25); c.beginPath(); c.ellipse(bx, by + lw(g, 0.012), lw(g, 0.011), lw(g, 0.016), 0, 0, TAU); c.fill(); }
+      return;
+    }
+    const [x, y0] = g.pose === 'unload' ? loadOf(g) : g.hand, y = y0 + (g.pose === 'unload' ? -H * 0.05 : H * 0.01);
+    c.fillStyle = g.f([176, 140, 96]); c.fillRect(x - H * 0.06, y, H * 0.12, H * 0.085);
+    c.fillStyle = g.f([140, 108, 70]); c.fillRect(x - H * 0.06, y, H * 0.12, lw(g, 0.012));
+    for (let i = 0; i < 3; i++) { c.fillStyle = g.f(BUL[i], 1.3); c.beginPath(); c.ellipse(x - H * 0.035 + i * H * 0.035, y - lw(g, 0.012), lw(g, 0.011), lw(g, 0.016), 0, 0, TAU); c.fill(); }
+  },
   bucket(c, g) {
     const [x, y] = g.hand, H = g.H;
     c.fillStyle = g.f(ZINC); c.beginPath(); c.moveTo(x - H * 0.04, y + H * 0.03); c.lineTo(x + H * 0.04, y + H * 0.03); c.lineTo(x + H * 0.032, y + H * 0.105); c.lineTo(x - H * 0.032, y + H * 0.105); c.closePath(); c.fill();

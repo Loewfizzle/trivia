@@ -2966,6 +2966,67 @@ G('holiday', async () => {
     ok((!g || (!g.witch.on && !g.bats.colony)) && w.on.length === 0 && d && d.on, `REDUCED MOTION: no witch (${g ? g.witch.on : 'none'}), no bats, no window moments (${JSON.stringify(w.on)}), the dressing still up`);
     await Q.ctx.close(); }
 });
+// ================================================================ 11a-2 — THANKSGIVING, THE PARADE + BLACK FRIDAY (ONLY=thanks): the
+// November build-up by date, the homecoming party ringing the harvest display, the balloon parade from its start, the amber evening with
+// its chimney smoke, Black Friday's crew + strings + tree stand + rush, and the sign never amber after the holiday (City 1.0's calendar)
+G('thanks', async () => {
+  const P = 'window.__district.harbor()';
+  const page = async (slot, when, extra = '') => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874] }); await harborUp(Q.page); await sleep(1500); return Q; };
+  const sign = Q => ev(Q.page, `[...document.querySelector('.nd-sign').classList].filter(c => c.startsWith('sg-')).join(',')`);
+  // ---- NOV 10: a third of the way — bales, corn stalks round the lamp posts, the spots' pumpkins; no harvest display, no wreath yet
+  { const Q = await page('tg-n10', '2026-11-10T21:00');
+    const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`);
+    ok(h.state.id === 'thanksgiving' && h.state.phase === 'build' && h.pieces.bales && h.pieces.stalks && h.pieces.spots >= 1 && !h.pieces.harvest && !(h.pieces.wreath > 0) && !h.pieces.giant && (await sign(Q)) === '',
+      `NOV 10 — THE BUILD-UP: stage ${h.state.stage.toFixed(2)}, bales ${h.pieces.bales}, stalks ${h.pieces.stalks}, spots ${h.pieces.spots}, harvest ${h.pieces.harvest}, wreath ${h.pieces.wreath}, the sign ${(await sign(Q)) || 'its own'}`);
+    void d; await Q.ctx.close(); }
+  // ---- NOV 20: the harvest display on the centre circle, the wreath going up on the sign
+  { const Q = await page('tg-n20', '2026-11-20T21:00');
+    await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.pieces.includes('thanks')`, 'the wreath on the sign', 15000).catch(() => {});
+    const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`);
+    ok(h.pieces.harvest && h.pieces.wreath > 0.4 && d && d.pieces.includes('thanks'), `NOV 20 — THE HARVEST DISPLAY + THE WREATH: harvest ${h.pieces.harvest}, wreath ${h.pieces.wreath.toFixed(2)} (${d ? d.pieces.join(',') : 'no dressing'})`);
+    await Q.ctx.close(); }
+  // ---- NOV 25, 10 pm: THE HOMECOMING — a party night on a Wednesday (the show on, the dance's circle round the harvest display)
+  { const Q = await page('tg-wed', '2026-11-25T22:01:30');
+    await waitFor(Q.page, 'window.__district.party().on > 0.5', 'the party on', 20000).catch(() => {});
+    const pt = await ev(Q.page, 'window.__district.party()'), h = await ev(Q.page, `${P}.holiday`);
+    ok(pt.on > 0.5 && h.pieces.party && h.pieces.harvest, `THE HOMECOMING (Wed Nov 25): the party ${pt.on.toFixed(2)} (${pt.name}), the harvest display ${h.pieces.harvest}`);
+    await Q.ctx.close(); }
+  // ---- NOV 26, 9:00:30: THE BALLOON PARADE from its start — the band first, then the giant balloons on their ropes, the crowd at the kerb
+  { const Q = await page('tg-par', '2026-11-26T09:03:40');
+    await waitFor(Q.page, `${P}.parade && ${P}.parade.balloons > 0`, 'a balloon up', 30000).catch(() => {});
+    const pa = await ev(Q.page, `${P}.parade`), ms = await ev(Q.page, `(${P}.people && ${P}.people.members || []).map(m => m.kind)`);
+    const band = ms.filter(k => k === 'parade').length, crowd = ms.filter(k => k === 'spectator').length;
+    ok(pa && pa.balloons >= 1 && pa.ropes >= 3 && band >= 4 && crowd >= 4, `THE PARADE: ${pa ? pa.balloons : 0} balloon(s) on ${pa ? pa.ropes : 0} ropes, ${band} marchers, ${crowd} at the kerb (${pa ? pa.units : 0} units)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}thanks-parade-402x874.png` });
+    // (its SOUNDS once the audio is unlocked: the crowd's bed, the band two blocks away or the balloons' fabric — core/city-sounds.js)
+    await tapAt(Q.page, 30, 300);
+    const SND = `${P}.sounds`;
+    const heard = await waitFor(Q.page, `(() => { const d = ${SND}.debug ? ${SND}.debug() : ${SND}; const b = (d.beds || []).map(x => x.slot), r = (d.runs || []).map(x => x.slot); return b.includes('parade-crowd') && (b.includes('balloon-flap') || r.includes('parade-band')); })()`, 'the parade heard', 20000).then(() => true).catch(() => false);
+    const sd = await ev(Q.page, `(() => { const d = ${SND}.debug ? ${SND}.debug() : ${SND}; return { beds: (d.beds || []).map(x => x.slot), runs: (d.runs || []).map(x => x.slot) }; })()`);
+    ok(heard, `THE PARADE HEARD: beds ${sd.beds.join(', ')} · runs ${sd.runs.join(', ') || '-'}`);
+    await Q.ctx.close(); }
+  // ---- NOV 26, 7:30 pm: the day — the sign + the wheel amber / harvest, chimney smoke, no strings yet
+  { const Q = await page('tg-eve', '2026-11-26T19:30');
+    const wh = await ev(Q.page, `${P}.wheel.schemeId`), ch = await ev(Q.page, `${P}.chimneys`), x = await ev(Q.page, `${P}.xmas`);
+    ok((await sign(Q)) === 'sg-thanksgiving' && wh === 'harvest' && ch.k > 0.5 && ch.stacks.length >= 3 && ch.drawn > 10 && !x.lights, `THANKSGIVING EVENING: the sign ${await sign(Q)}, the wheel ${wh}, chimney smoke ${ch.k} from ${ch.stacks.length} stacks (${ch.drawn} puffs), the strings ${x.lights}`);
+    await Q.ctx.close(); }
+  // ---- NOV 27, 10:40: BLACK FRIDAY — the crew on the rig hanging the strings, the tree stand by the bench, the rush; the sign its own
+  { const Q = await page('tg-bf', '2026-11-27T10:40');
+    await waitFor(Q.page, `(${P}.people.crew || {}).props && ${P}.people.crew.props.includes('xlights')`, 'the strings going up', 20000).catch(() => {});
+    const cr = await ev(Q.page, `${P}.people.crew`), x = await ev(Q.page, `${P}.xmas`), hp = await ev(Q.page, `${P}.hprops`);
+    const tree = hp && ((hp.stat && hp.stat.rects) || []).some(r => r.id === 'treestand');
+    ok(cr && cr.props.includes('xlights') && cr.props.includes('platform') && x.bf && x.crew === 'during' && x.rush > 0.9 && tree && (await sign(Q)) === '',
+      `BLACK FRIDAY morning: the crew's props ${cr ? cr.props.join(',') : '-'}, crew ${x.crew}, rush ${x.rush.toFixed(2)}, the tree stand ${tree}, the sign ${(await sign(Q)) || 'its own'}`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}thanks-blackfriday-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- NOV 27, 6:30 pm: the first strings ON (the speakeasy's sills + cornice + awning; the roof's café lights in Christmas colours)
+  { const Q = await page('tg-bfn', '2026-11-27T18:30');
+    await waitFor(Q.page, `${P}.xmas && ${P}.xmas.xlK > 0.3`, 'the strings lit', 15000).catch(() => {});
+    const x = await ev(Q.page, `${P}.xmas`), st = await ev(Q.page, `${P}.strings`);
+    ok(x.lights === 1 && x.lit && x.xlK > 0.3 && st && st.cfg && st.cfg.scheme === 'christmas', `BLACK FRIDAY evening: the strings up ${x.lights}, lit ${x.lit} (${x.xlK}), the roof's scheme ${st && st.cfg ? st.cfg.scheme : '-'}`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}thanks-blackfriday-night-402x874.png` });
+    await Q.ctx.close(); }
+});
 G('motion', async () => {
   const P = 'window.__district.harbor()';
   // ---- a weekday afternoon (the owner's "stutter now and then on an ordinary afternoon")

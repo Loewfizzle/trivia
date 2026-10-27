@@ -52,6 +52,7 @@ const WORKWEAR = {
   washer: { coat: 'none', hat: 'flatcap', s: [196, 200, 204], l: [64, 84, 120], h: [60, 64, 70], overalls: true },
   billposter: { coat: 'short', hat: 'flatcap', c: [118, 96, 70], l: [70, 66, 62], h: [84, 70, 58], apron: [218, 210, 190], spatter: 'paste' },
   raker: { coat: 'short', hat: 'flatcap', c: [124, 62, 46], l: [62, 60, 56], h: [92, 70, 52], trim: [70, 40, 30] },   // (11a-2: the groundskeeper — a rust wool coat, a flat cap)
+  lineman: { coat: 'short', hat: 'flatcap', c: [52, 82, 64], l: [70, 64, 56], h: [56, 50, 44], trim: [40, 60, 46], belt: [84, 60, 38], gloves: [150, 112, 72] },   // (11a-2: the Christmas crew — a green canvas jacket, a tool belt, leather gloves)
   iceman: { coat: 'none', hat: 'flatcap', s: [196, 190, 176], l: [70, 66, 60], h: [90, 76, 60], apron: [110, 76, 48], gloves: [92, 64, 40] },
   trashman: { coat: 'short', hat: 'flatcap', c: [74, 72, 62], l: [64, 62, 58], h: [56, 54, 50], gloves: [120, 96, 64], belt: [40, 34, 30] },
   repairman: { coat: 'none', hat: 'flatcap', s: [196, 186, 160], l: [58, 76, 112], h: [58, 74, 108], overalls: true, belt: [70, 52, 36] },
@@ -96,6 +97,9 @@ export function lookOf(name, seed, o = {}) {
   // 8b1 — THE WORKERS' CLOTHES (period uniforms that read by colour + shape at ~27 pt): the white-wing sweeper all in white, the milkman's
   // white jacket + cap, the beat cop's navy tunic + peaked cap, the mailman's grey-blue, the barber's white jacket, the painters' white
   // overalls, the iceman's leather apron, the bootleggers in dark caps, the bar staff in shirt-sleeves + waistcoats
+  // 11a-2 — WHAT THE DAY'S PEOPLE CARRY (o.hcarry): Thanksgiving afternoon a PIE on its way to dinner (~1 in 3 passers-by), Black Friday
+  // SHOPPING BAGS or a wrapped BOX (~2 in 3) — drawn last from the member's own dice, so nothing else about them changes
+  if (o.hcarry && !kid && ['commuter', 'walker', 'stroll', 'lady', 'couple'].includes(name)) { const u = r(); if (o.hcarry === 'pie' && u < 0.34) L.carry = 'pie'; else if (o.hcarry === 'shop' && u < 0.66) L.carry = u < 0.42 ? 'bags' : 'box'; }
   const W8 = WORKWEAR[name];
   if (W8) { L.woman = !!W8.woman; L.dress = W8.woman ? 'day' : null; L.coat = W8.coat; L.hat = W8.hat; L.carry = W8.carry || null; L.scarf = null; L.cols.scarf = null;
     if (W8.c) L.cols.coat = W8.c; if (W8.l) L.cols.legs = W8.l; if (W8.h) L.cols.hat = W8.h; if (W8.s) L.cols.shirt = W8.s; if (W8.d) L.cols.dress = W8.d; L.trim = W8.trim || null; L.vest = W8.vest || null; L.apron = W8.apron || null; L.overalls = !!W8.overalls; L.badge = !!W8.badge;
@@ -722,6 +726,25 @@ function carry(c, what, [hx, hy], H, f, d) {
   if (what === 'case') { c.fillStyle = f([66, 44, 30]); c.fillRect(hx - H * 0.06, hy, H * 0.12, H * 0.08); }
   else if (what === 'pail') { c.fillStyle = f([120, 120, 126]); c.fillRect(hx - H * 0.035, hy + H * 0.01, H * 0.07, H * 0.06); }
   else if (what === 'purse') { c.fillStyle = f([70, 40, 44]); c.beginPath(); c.ellipse(hx, hy + H * 0.03, H * 0.035, H * 0.025, 0, 0, TAU); c.fill(); }
+  else if (what === 'pie') {
+    // a pie in its tin, held flat in front: the golden crust's dome + its lattice + a checked cloth under the tin
+    const px = hx + H * 0.03 * d, py = hy - H * 0.01;
+    c.fillStyle = f([196, 54, 48]); c.beginPath(); c.ellipse(px, py + H * 0.012, H * 0.075, H * 0.018, 0, 0, TAU); c.fill();
+    c.fillStyle = f([150, 150, 156]); c.beginPath(); c.ellipse(px, py, H * 0.062, H * 0.02, 0, 0, TAU); c.fill();
+    c.fillStyle = f([222, 160, 78], 1.15); c.beginPath(); c.ellipse(px, py - H * 0.012, H * 0.056, H * 0.022, 0, Math.PI, 0); c.fill();
+    c.strokeStyle = f([176, 112, 50]); c.lineWidth = Math.max(0.3, H * 0.006); c.beginPath(); for (const k of [-0.5, 0, 0.5]) { c.moveTo(px + H * 0.045 * k - H * 0.012, py - H * 0.004); c.lineTo(px + H * 0.045 * k + H * 0.012, py - H * 0.03); } c.stroke();
+  }
+  else if (what === 'bags') {
+    // two paper shopping bags with rope handles (one kraft, one striped)
+    for (const [k, col] of [[0, [196, 160, 112]], [1, [214, 64, 60]]]) { const bx = hx - d * H * 0.035 * k, by = hy + H * 0.035; c.fillStyle = f(col); c.fillRect(bx - H * 0.04, by, H * 0.08, H * 0.1); c.strokeStyle = f(col.map(v => v * 0.7)); c.lineWidth = Math.max(0.3, H * 0.008); c.beginPath(); c.moveTo(bx - H * 0.02, by); c.lineTo(hx, hy); c.lineTo(bx + H * 0.02, by); c.stroke(); if (k) { c.fillStyle = f([246, 240, 226]); c.fillRect(bx - H * 0.04, by + H * 0.035, H * 0.08, H * 0.018); } }
+  }
+  else if (what === 'box') {
+    // a wrapped gift box under the arm: red paper, a gold ribbon both ways + its bow
+    const bx = hx - d * H * 0.02, by = hy - H * 0.05, w = H * 0.11, h = H * 0.08;
+    c.fillStyle = f([184, 40, 44]); c.fillRect(bx - w / 2, by, w, h);
+    c.fillStyle = f([236, 196, 84], 1.2); c.fillRect(bx - Math.max(0.3, H * 0.007), by, Math.max(0.6, H * 0.014), h); c.fillRect(bx - w / 2, by + h / 2 - Math.max(0.3, H * 0.007), w, Math.max(0.6, H * 0.014));
+    c.beginPath(); c.ellipse(bx - H * 0.012, by - H * 0.006, H * 0.014, H * 0.008, 0.5, 0, TAU); c.ellipse(bx + H * 0.012, by - H * 0.006, H * 0.014, H * 0.008, -0.5, 0, TAU); c.fill();
+  }
   else if (what === 'papers') { c.fillStyle = f([220, 214, 196]); c.fillRect(hx - H * 0.02 * d - H * 0.03, hy - H * 0.06, H * 0.05, H * 0.1); }
 }
 

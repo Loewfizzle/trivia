@@ -18,6 +18,8 @@
 // &force=work-<kind> (one every few minutes, any day) + a row in core/harbor-remote.js's WORKERS category.
 import { rngFrom, hashString } from './rng.js';
 import { partyAt, partyAtT } from './harbor-moments.js';
+import { XMAS, blackFriday } from './harbor-xmas.js';
+import { thanksgiving } from './sky.js';
 import { legendNight } from './harbor-legend.js';
 
 const H = 3600;
@@ -65,6 +67,8 @@ export const SHOWS = Object.freeze({
   hydrant: { days: EVERY, win: [13.6, 16.7], len: 3.6 * 60, prio: 2, hot: true, chance: 0.66 },
   // 11a-2 — THE LEAF RAKER (the Thanksgiving build-up: Nov 4 → 22, late morning): a groundskeeper rakes the fallen leaves under the
   // trees into two piles, bags them + carries the sack off (dates: a local-date gate — PURE)
+  // 11a-2 — BLACK FRIDAY: THE FIRST CHRISTMAS CREW (core/harbor-xmas.js — its hour + length; the strings appear as they work)
+  xlights: { days: EVERY, at: XMAS.crew.at, len: XMAS.crew.len * 60, prio: 7, truck: { model: 'van', word: 'HOLIDAY LIGHTING', paint: 1 }, dates: key => { const [y, m, d] = key.split('-').map(Number), b = blackFriday(y); return m === b.m && d === b.d; } },
   raker: { days: MON_SAT, win: [10.9, 11.5], len: 32 * 60, prio: 2, dates: key => { const [, m, d] = key.split('-').map(Number); return m === 11 && d >= 4 && d <= 22; } },
 });
 /** the hydrant's day: the real temperature at least this (°C: ~85 °F) */
@@ -135,6 +139,8 @@ export function dayOf(t, off = 0) {
   return { key: `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`, dow: d.getUTCDay(), h, month: d.getUTCMonth() + 1, day0: t - h * H };
 }
 export const prevKey = key => keyOfNum(dayNum(key) - 1);
+/** 11a-2 — the days the workers' shows stay home (Thanksgiving: the parade has the road) */
+export const holidayOff = key => { const [y, m, d] = key.split('-').map(Number); const t = thanksgiving(y); return m === t.m && d === t.d; };
 /** dusk on a day (local hours) when the scene doesn't hand the real one: Grand Rapids' sunset by the month + ~25 min */
 export const duskOf = month => 19.6 + 1.85 * Math.cos(((month - 6.6) / 12) * 2 * Math.PI) + 0.42;
 
@@ -161,6 +167,8 @@ export function workDay(key, ctx = {}) {
     if (kind === 'newsdrop') continue;
     if (S.hot && !(ctx.hot && ctx.hot(key) && rngFrom(hashString(`hot|${ctx.seed || 1924}|${key}`))() < S.chance)) continue;
     if (S.dates && !S.dates(key)) continue;
+    // (11a-2: THANKSGIVING is a day off — no truck, no crew on the parade's road: only the newspaper van at dawn)
+    if (holidayOff(key)) continue;
     const u = r();
     const at = S.at != null ? S.at : S.win[0] + u * (S.win[1] - S.win[0]);
     want.push({ kind, S, t0: day0 + at * H, fixed: S.at != null });
@@ -211,7 +219,7 @@ export function workDay(key, ctx = {}) {
  *  POLISH 5 (the owner: the lamp repairman POPPED IN already up his ladder): the slots count from ctx.forceAt — the moment the flag was
  *  switched on (the link's load, the panel's 3-2-1) — so every preview shows the whole visit: in from off screen with the props, the
  *  job, away. Without forceAt (old callers) the clock's own grid. */
-export const FORCE = Object.freeze({ slot: 180, lead: 3, long: { washers: 900, painters: 1200, billposter: 2160, gardener: 600, crew: 600, doorman: 600, flowers: 600, newsboy: 600, evening: 600, sweeper: 600, sweep2: 600 } });
+export const FORCE = Object.freeze({ slot: 180, lead: 3, long: { washers: 900, xlights: 1500, painters: 1200, billposter: 2160, gardener: 600, crew: 600, doorman: 600, flowers: 600, newsboy: 600, evening: 600, sweeper: 600, sweep2: 600 } });
 export function forcedWork(kind, t, ctx = {}) {
   const S = SHOWS[kind] || REGULARS[kind]; if (!S) return [];
   const slot = FORCE.long[kind] || FORCE.slot, base = ctx.forceAt != null ? ctx.forceAt : 0, k = Math.floor((t - base) / slot), out = [];

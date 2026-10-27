@@ -26,7 +26,7 @@ import { createAurora } from './aurora.js';
 import { flybyDay } from '../../core/harbor-legend.js';
 import { sunTimes } from '../../core/sky.js';
 import { project } from '../../core/harbor-layout.js';
-import { bannerPanels, eventMessage, smokeWeather, balloonWeather, bannerWeather, skyHolidayOn, fillText, droneTimeline, DRONE_SHAPES, messagePages } from '../../core/harbor-sky.js';
+import { bannerPanels, eventMessage, smokeWeather, balloonWeather, bannerWeather, skyHolidayOn, saleDayOn, fillText, droneTimeline, DRONE_SHAPES, messagePages } from '../../core/harbor-sky.js';
 import { LANES } from '../../core/harbor-events.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -186,6 +186,9 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     if (lc && !Lk.alwaysNight) {
       const ent = skyHolidayOn(lc.y, lc.m, lc.d), hr = lc.h + lc.mi / 60 + (lc.s || 0) / 3600, date = `${lc.y}-${lc.m}-${lc.d}`;
       const atOf = h => s.now - (hr - h) * 3600e3;
+      // (11a-2 — A SALE DAY's banner (core/harbor-sky.js#SALE_DAYS: Black Friday) on the clock: its passes, weather allowing)
+      { const sd = saleDayOn(lc.y, lc.m, lc.d), sb = sd && sd.banner;
+        if (sb && !holiday.has(`${date}|sale`) && hr >= sb.h && hr < sb.h + 0.08 && bannerWeather(Lk) && !banner.on() && !u.has('sky-high')) { if (startBanner(s, sb.text, atOf(sb.h), { passes: sb.passes })) holiday.add(`${date}|sale`); } }
       if (ent && ent.day && !holiday.has(`${date}|day`) && hr >= ent.day.h && hr < ent.day.h + 0.08 && smokeWeather(Lk) && !smoke.on()) {
         if (startSmoke(s, ent.day.kind, fillText(ent.day.text, lc.y), atOf(ent.day.h))) holiday.add(`${date}|day`);
       }
