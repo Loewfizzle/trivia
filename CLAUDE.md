@@ -251,6 +251,13 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   a game / app pass tags that push's commit **`[ci]`**, a City 2.0 pass **`[harbor]`** (which runs both workflows); pull requests + `gh workflow run tests`
   always run; every other push shows a skipped run (0 minutes) — run the unit suite on the laptop before every push. Next to the Vercel deploy, never
   blocking it. Budget: ≈ 30–40 cloud minutes a pass (tests ≈ 10, the harbor's 7 jobs ≈ 25–30). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
+- **VERCEL DEPLOYS ONLY TAGGED PUSHES** (the owner's DEPLOYMENT STORAGE, Oct 27: Hobby's 10 GB went at ~300 MB a deploy on every push):
+  `vercel.json#ignoreCommand` builds only when the push's **LAST commit message** carries **`[harbor]`**, **`[ci]`** or **`[deploy]`**
+  (unlike the GitHub checks, which read every commit of the push) — so a pass makes ONE deployment: its FINAL push carries its tag (as above)
+  ON THE TOP COMMIT; anything that must go live mid-pass (a hotfix, a docs-only fix the site shows) goes up with **`[deploy]`** (deploys, runs no
+  cloud tests). Every other push shows "Canceled by Ignored Build Step" on Vercel — main stays live on the last tagged deploy.
+  `.vercelignore` keeps everything no page or `/api` loads out of the deploy (docs, screenshots, tests, scripts, shots*, art) — a deploy ≈ 264 MB,
+  ~255 MB of it the music; a new top-level folder the site loads must NOT match it.
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`): the FULL `e2e-harbor` suite runs on GitHub **only on a pass's FINAL push** —
   put **`[harbor]`** in a commit message of that push (and it must touch a City 2.0 file: the `paths:` list) — or by hand: `gh workflow run harbor`
   (`-f job=street` = one job). Mid-pass pushes show skipped runs and cost nothing (both workflows: a newer full run cancels an older one).

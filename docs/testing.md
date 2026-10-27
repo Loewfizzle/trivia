@@ -9,7 +9,8 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   cancels a full run in flight — a newer full run cancels an older one). The laptop runs `node --test tests/*.test.mjs` before every push. Budget
   ≈ 30–40 cloud minutes a pass (this workflow ≈ 10, the harbor's 7 jobs ≈ 25–30). It runs the unit tests,
   then the rules tests, the `/api` tests and the smoke test on the emulators with headless Chrome. They run **next to** the Vercel
-  deploy, never in front of it — a push goes live as fast as before; a failure is a red ✗ on the commit (and an email). The smoke
+  deploy, never in front of it; a failure is a red ✗ on the commit (and an email). (Since Oct 27 Vercel itself deploys only a push whose LAST
+  commit carries `[harbor]`, `[ci]` or `[deploy]` — `vercel.json#ignoreCommand`, CLAUDE.md → Testing.) The smoke
   test's screenshots are attached to a failed run. Nothing there needs a secret. `gh run list` / `gh run watch` from the terminal.
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, Oct 24 — the laptop runs out of memory on the full suite): the WHOLE
   `e2e-harbor.mjs` (`SHOTS=0`, on the emulators) on GitHub's machines. **The rule (PART 8P, the owner's 2,000 monthly minutes — the repo is

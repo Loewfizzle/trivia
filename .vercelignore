@@ -14,3 +14,12 @@ neon speakeasy leaderboard key.txt
 
 # City 2.0 reference mockups: owner-approved look, never served
 docs/harbor/ref
+
+# never loaded by a page or /api (checked Oct 27 2026: the site + /api read only
+# index/board/admin.html, sw.js, manifest, api/, js/, css/, data/, assets/, audio/)
+/docs
+/screenshots
+/art
+/shots*
+/.github
+node_modules

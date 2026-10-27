@@ -1396,3 +1396,8 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Thanksgiving's day: amber sign + harvest wheel / strings, amber windows, CHIMNEY SMOKE, pies, the family table + the football game in the windows
 - [x] BLACK FRIDAY: the rush (bags + boxes), the tree stand, the sale banner, THE FIRST CHRISTMAS CREW stringing the speakeasy (strings lit every evening to Jan 6)
 - [x] Fixed: the sign amber on Black Friday (City 1.0's calendar); Thanksgiving a day off for the workers' trucks
+
+## DEPLOY STORAGE (Oct 27 2026)
+- [x] The commit author renamed to Loewfizzle across the whole history (every branch + the `city-1.0` tag, author, committer + tagger; git filter-repo; force-pushed — every hash changed, old hashes in the docs stay as labels)
+- [x] Vercel's Hobby DEPLOYMENT STORAGE was ~49 GB / 10 GB (~300 MB a deploy, one on every push): `vercel.json#ignoreCommand` now builds only when the push's last commit message carries `[harbor]`, `[ci]` or `[deploy]` (exit 1 = build, 0 = skip) — one deployment a pass
+- [x] `.vercelignore`: `/docs`, `/screenshots`, `/art`, `/shots*`, `/.github`, `node_modules` added (checked: no page, the service worker or `/api` loads them; `/api` reads only `js/` + `data/`) — a deploy 299 → ≈ 264 MB; every audio file is still referenced, so the music (~255 MB) is the floor
