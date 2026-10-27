@@ -108,7 +108,9 @@ export function createWitch() {
    * draw(c, env) — scene.js HOOK-B-SKY. env: { lc, weight (HP.witch), since (&force=witch's start, s) | null, nowS, W, HZ, safeTop,
    *   lanes, moonAt ({ x, y, r }) | null, t, dt, motion, tier, dark (0..1), play }
    */
-  function draw(c, env) {
+  let drawMs = 0;
+  function draw(c, env) { const t0 = performance.now(); drawInner(c, env); drawMs = drawMs * 0.9 + (performance.now() - t0) * 0.1; }
+  function drawInner(c, env) {
     const dt = Math.min(0.1, (env.dt || 16) / 1000);
     const P = env.motion && env.dark > 0.35 ? passOf(env) : null;
     cur = null;
@@ -157,33 +159,35 @@ export function createWitch() {
   }
 
   // her silhouette, rim-lit: rendered into a small canvas each frame (she is one ~50 pt figure for 13 s every few minutes)
+  // (11a-2 — the owner: "very choppy": she cost ~25 ms a frame at 4× CPU — two full canvases repainted every frame at the phone's 3×.
+  // Now ONE canvas (the rims painted first, the silhouette over them), at most 2× density (a ~50 pt silhouette in motion), allocated
+  // once at its largest + only grown, and the cloak's ripples REPAINTED at ~30 fps — her place still moves every frame (a sub-pixel
+  // drawImage))
+  let figT = -1, figSz = 0;
   function drawFigure(c, W, env) {
-    const dpr = Math.min(3, env.dpr || 2), pad = 12, sz = W.size * 1.45 + pad * 2, px = Math.ceil(sz * dpr);
-    if (!fig || fig.width !== px) { fig = mk(px, px * 0.8); rim = mk(px, px * 0.8); }
-    const ph = env.t, fl = 1;
-    const fx = safeCtx(fig), rx = safeCtx(rim), cx = fig.width / 2, cy = fig.height * 0.56, k = W.sc * dpr;
-    for (const x of [fx, rx]) { x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, fig.width, fig.height); x.setTransform(k * W.dir, 0, 0, k, cx, cy); x.rotate(W.tilt * W.dir); }
-    // the rim pass: the silhouette in the rim's colours, offset toward each light (the moon above + behind; the neon city below)
-    const paint = (x, col) => { x.fillStyle = col; x.beginPath(); figurePaths(x, ph, fl); x.fill(); x.strokeStyle = col; x.lineWidth = 1.3; x.lineCap = 'round'; twigs(x, ph, fl); x.stroke(); };
-    // (1) the moonlit rim: cool white, from above-behind — strongest crossing the disc
-    const moonA = 0.35 + 0.65 * W.near;
-    const o = 0.75 / W.sc;                     // (the rim ~0.75 pt wide at any size)
-    rx.save(); rx.translate(-1.0 * o, -1.25 * o); paint(rx, `rgba(214,228,255,${moonA.toFixed(3)})`); rx.restore();
-    // (2) the neon from the city below: a warm orange-pink rim on the undersides
-    rx.save(); rx.translate(0.3 * o, 1.2 * o); paint(rx, 'rgba(255,120,170,0.6)'); rx.restore();
-    // the silhouette on top (the rims show only at the edges)
-    paint(fx, 'rgb(10,7,18)');
-    // the details that read inside the silhouette: the hat's band (a faint purple sheen), the buckle's glint
-    fx.save(); fx.globalCompositeOperation = 'source-atop';
-    fx.fillStyle = 'rgba(120,70,170,0.55)'; fx.beginPath(); fx.moveTo(4, -43.5); fx.quadraticCurveTo(12, -45.5, 18.6, -43); fx.lineTo(19.2, -41.2); fx.quadraticCurveTo(12, -43.4, 3.6, -41.2); fx.closePath(); fx.fill();
-    fx.fillStyle = 'rgba(255,190,90,0.9)'; fx.fillRect(10.2, -44.4, 2.2, 2.2);
-    // the cloak's inner lining catching the neon (a sliver of deep purple along its underside)
-    fx.fillStyle = 'rgba(90,36,120,0.5)'; fx.beginPath(); fx.moveTo(-8, -4); fx.quadraticCurveTo(-20, -11, -30, -9); fx.quadraticCurveTo(-24, -7, -8, -2); fx.closePath(); fx.fill();
-    fx.restore();
-    const x0 = W.x - fig.width / dpr / 2, y0 = W.y - cy / dpr;
+    const dpr = Math.min(2, env.dpr || 2), pad = 12, sz = W.size * 1.45 + pad * 2, px = Math.ceil(sz * dpr);
+    if (!fig || fig.width < px) { if (fig) fig.width = fig.height = 0; fig = mk(px, px * 0.8); figT = -1; }
+    const fresh = figSz !== px || env.t - figT >= 1 / 31 || env.t < figT || env.motion === false;
+    const cx = px / 2, cy = Math.ceil(px * 0.8) * 0.56;
+    if (fresh) {
+      figT = env.t; figSz = px;
+      const ph = env.t, fl = 1, fx = safeCtx(fig), k = W.sc * dpr;
+      fx.setTransform(1, 0, 0, 1, 0, 0); fx.clearRect(0, 0, fig.width, fig.height); fx.setTransform(k * W.dir, 0, 0, k, cx, cy); fx.rotate(W.tilt * W.dir);
+      const paint = (col) => { fx.fillStyle = col; fx.beginPath(); figurePaths(fx, ph, fl); fx.fill(); fx.strokeStyle = col; fx.lineWidth = 1.3; fx.lineCap = 'round'; twigs(fx, ph, fl); fx.stroke(); };
+      // the rims first, offset toward each light: (1) the moonlit rim — cool white, from above-behind, strongest crossing the disc;
+      // (2) the neon from the city below — a warm orange-pink on the undersides; then the silhouette on top (the rims show at the edges)
+      const moonA = 0.35 + 0.65 * W.near, o = 0.75 / W.sc;
+      fx.save(); fx.translate(-1.0 * o, -1.25 * o); paint(`rgba(214,228,255,${moonA.toFixed(3)})`); fx.restore();
+      fx.save(); fx.translate(0.3 * o, 1.2 * o); paint('rgba(255,120,170,0.6)'); fx.restore();
+      paint('rgb(10,7,18)');
+      // the details that read inside the silhouette: the hat's band (a faint purple sheen), the buckle's glint, the cloak's lining
+      fx.fillStyle = 'rgba(120,70,170,0.55)'; fx.beginPath(); fx.moveTo(4, -43.5); fx.quadraticCurveTo(12, -45.5, 18.6, -43); fx.lineTo(19.2, -41.2); fx.quadraticCurveTo(12, -43.4, 3.6, -41.2); fx.closePath(); fx.fill();
+      fx.fillStyle = 'rgba(255,190,90,0.9)'; fx.fillRect(10.2, -44.4, 2.2, 2.2);
+      fx.fillStyle = 'rgba(90,36,120,0.5)'; fx.beginPath(); fx.moveTo(-8, -4); fx.quadraticCurveTo(-20, -11, -30, -9); fx.quadraticCurveTo(-24, -7, -8, -2); fx.closePath(); fx.fill();
+    }
+    const w = px / dpr, h = Math.ceil(px * 0.8) / dpr, x0 = W.x - w / 2, y0 = W.y - cy / dpr;
     c.save(); c.globalAlpha = Math.min(1, clamp01(W.u / 0.04) * clamp01((1 - W.u) / 0.04) + 0.0001);
-    c.drawImage(rim, x0, y0, fig.width / dpr, fig.height / dpr);
-    c.drawImage(fig, x0, y0, fig.width / dpr, fig.height / dpr);
+    c.drawImage(fig, 0, 0, px, Math.ceil(px * 0.8), x0, y0, w, h);
     c.restore();
   }
 
@@ -192,7 +196,7 @@ export function createWitch() {
     /** the preview page: her figure at a place — W: { x, y, size, dir, tilt, near, u } */
     drawAt(c, W, env) { drawFigure(c, { sc: W.size / 100, tilt: 0, near: 0, u: 0.5, ...W }, env); },
     busy: () => !!cur || sparks.length > 0,
-    debug: () => (cur ? { on: true, x: Math.round(cur.x), y: Math.round(cur.y), u: +cur.u.toFixed(2), near: +cur.near.toFixed(2), sparks: sparks.length } : { on: false, sparks: sparks.length }),
-    destroy() { sparks = []; if (fig) { fig.width = fig.height = rim.width = rim.height = 0; } fig = rim = null; for (const cv of sparkSpr.values()) cv.width = cv.height = 0; sparkSpr.clear(); },
+    debug: () => (cur ? { on: true, x: +cur.x.toFixed(1), y: Math.round(cur.y), u: +cur.u.toFixed(2), near: +cur.near.toFixed(2), sparks: sparks.length, ms: +drawMs.toFixed(2) } : { on: false, sparks: sparks.length, ms: +drawMs.toFixed(2) }),
+    destroy() { sparks = []; if (fig) fig.width = fig.height = 0; fig = rim = null; for (const cv of sparkSpr.values()) cv.width = cv.height = 0; sparkSpr.clear(); },
   };
 }

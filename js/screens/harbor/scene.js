@@ -171,7 +171,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // from a tower crown (birds.js via fs.hween)): loaded lazily — in October or for a preview (&force=ghost-ship / witch / bats)
   let hsky = null, hskyLoading = false;
   const hskyWanted = () => HS.id === 'halloween' || clock.force.has('ghost-ship') || clock.force.has('witch') || clock.force.has('bats');
-  const hskyEnv = o => ({ L, W, HZ, dpr, lc: LK.local, nowS: clock.now() / 1000, motion: S.motion, tier, hp: HP, dusk: duskH, force: clock.force, forceAt: forceAtOf, play: S.motion ? snd.play : null, dark: clamp01((LK.w.night || 0) + (LK.w.late || 0) + 0.6 * (LK.w.dusk || 0)), ...o });
+  // (11a-2 — THE WITCH WAS CHOPPY (the owner's phone): LK.local carries WHOLE seconds, refreshed only with the look — her pass (+ the ghost
+  // ship's) read from it jumped ~40–120 pt at a time. The sky's holiday pieces get the local time to the millisecond: the look's local
+  // second + the time since it was taken)
+  const fineLocal = () => { const lc = LK.local; if (!lc) return lc; return { ...lc, s: lc.s + (clock.now() - Math.floor(lkMs / 1000) * 1000) / 1000 }; };
+  const hskyEnv = o => ({ L, W, HZ, dpr, lc: fineLocal(), nowS: clock.now() / 1000, motion: S.motion, tier, hp: HP, dusk: duskH, force: clock.force, forceAt: forceAtOf, play: S.motion ? snd.play : null, dark: clamp01((LK.w.night || 0) + (LK.w.late || 0) + 0.6 * (LK.w.dusk || 0)), ...o });
   // PART 11a-1 — THE HOLIDAY DRESSINGS ON THE GROUND (screens/harbor/holidayprops.js, LAZY: a holiday or a preview): the jack-o'-lanterns
   // on the side door's steps; Day of the Dead's petal path, marigolds, garlands, papel picado + the monarchs — three passes (ground · air · top)
   let hprops = null, hpropsLoading = false, hpropsMs = 0;
@@ -431,7 +435,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the lights' grid is a party song's; audio/mood.js#moodNow asks show() over AUTO — an explicit MUSIC MOOD choice still wins)
   const SHOW_FORCES = ['party', 'neon-party', 'finale', 'fireworks', 'drones', 'dance', 'strings-party', 'beams'];
   setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k), show: () => (!clock.force.has('no-party') && SHOW_FORCES.some(f => clock.force.has(f)) ? 'party' : null) });
-  let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
+  let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() }), lkMs = clock.now();
   // PART 11a-1 — THE HOLIDAY (core/harbor-holiday.js, PURE): what the city is dressed for now (HS), what of it shows (HP), the holiday
   // light rules (HR) — refreshed with the look; every holiday piece reads these (the sign's dressing, the steps, the windows, the people)
   let HS = holidayAt(null), HP = null, HR = lightRules(HS), HL = null, duskH = 17.6, duskDay = '', wheelWant = 'city', beamWant = 'null', stringsWant = null;
@@ -997,7 +1001,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (now - lookAt < ((clock.speed || 1) > 1 ? 250 : 2500) && skyKey) return;
     lookAt = now;
     const ms = clock.now();
-    LK = skyLook(ms, clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() });
+    LK = skyLook(ms, clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() }); lkMs = ms;
     holidayTick();
     LH = harborWeights(LK, Math.round(0.5 * stormDark() * 10) / 10);     // (9a: a storm afternoon's gloom — in tenths)
     P = paletteFor(LH);
