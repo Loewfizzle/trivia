@@ -52,3 +52,33 @@ test('the winter people: the doorman\'s round + the shoveller the morning after;
   assert.ok(!doorCleared(lc(7, 3), fresh) && doorCleared(lc(9, 3), fresh) && doorCleared(lc(7, 3), older), 'the steps cleared after his round');
   assert.ok(!winterActs(lc(7, 3, 45), { stage: 'none', cover: 0, age: 99 }).shovel, 'no snow: no shovel');
 });
+
+// 9c — the owner's iPhone: &force=plow showed nothing (the plow entered off-screen at a crawl + hid behind the speakeasy; a bus due at the
+// stop could drop it). A forced pass is backdated by the scene's lead (in view ~1 s after the flag), the salt truck right behind, and a
+// forced spawn is never dropped for a bus.
+test('9c: a forced plow starts `lead` s early (in view at once), the salt truck right behind; a bus due never drops it', () => {
+  const f = workPasses(T0 - 60, T0 + 120, { forced: { plow: T0, salt: null }, lead: { plow: 6, salter: 5 } });
+  const plow = f.find(x => x.kind === 'plow'), salt = f.find(x => x.kind === 'salter');
+  assert.equal(plow.t0, T0 - 6);
+  assert.ok(salt.t0 > plow.t0 && salt.t0 - T0 <= SNOWWORK.forcedSalt, `the salt truck ${salt.t0 - T0} s after the flag`);
+  assert.ok(f.every(x => x.forced));
+  const L = { crosswalk: { x0: -2, x1: 2 }, cam: { hw: () => 30 } }, lanes = trafficLanes(L), ctx = { forced: { plow: T0 + 10, salt: null } }, j = Math.floor((T0 + 10) / 120);
+  const bus = { tE: T0 + 20, tX: T0 + 80, len: 8, x: () => -100 };   // (a bus entering 10 s after the plow: a car would be dropped)
+  const sim = simulateLane(j, 'near', { lanes, buses: [bus], extra: (jj, lane) => workSpawns(jj, lane, ctx), seed: 1924, off: -300 });
+  assert.ok(sim.cars.some(c => c.model === 'plow'), 'the forced plow kept despite the bus');
+});
+
+test('9c: a REAL snowfall schedules the plow + the salt truck — while it falls, and the clean-up round the morning after', async () => {
+  const { packFromDays, snowState } = await import('../js/core/harbor-snow.js');
+  const off = -300, day0 = Math.floor((T0 + off * 60) / 86400) * 86400 - off * 60;
+  // two dry cold days, then a 12 cm snowfall day (high −2 °C): the morning after, the pack is FRESH, nothing falling
+  const pack = packFromDays([{ tmax: 1, tmin: -6, snow: 0, rain: 0 }, { tmax: -1, tmin: -7, snow: 0, rain: 0 }, { tmax: -2, tmin: -8, snow: 12, rain: 0 }]);
+  const st = snowState(pack, { falling: 0, temp: -4 });
+  assert.equal(st.stage, 'fresh', `the morning after: ${st.why}`);
+  const morning = workPasses(day0, day0 + 86400, { snowing: false, fresh: st.stage === 'fresh', off, seed: 1924 });
+  assert.ok(morning.some(p => p.kind === 'plow') && morning.some(p => p.kind === 'salter'), 'the plow + the salt truck the morning after');
+  // while it falls (the live weather's snow ≥ the plow's threshold): passes through the day
+  const falling = snowState(pack, { falling: 0.6, temp: -3 });
+  const during = workPasses(day0 + 9 * 3600, day0 + 17 * 3600, { snowing: falling.stage === 'fresh', off, seed: 1924 });
+  assert.ok(during.filter(p => p.kind === 'plow').length >= 8 && during.some(p => p.kind === 'salter'), `${during.length} passes while it snows`);
+});

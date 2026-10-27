@@ -4,17 +4,21 @@
 // every phone the same) as extra cars of their lane.
 //   WHEN  while SNOW IS FALLING: a plow pass on each lane every ~40 min (seeded offsets), the salt truck ~10 min after each near-lane pass;
 //         the MORNING AFTER a snowfall (fresh snow, nothing falling): the clean-up round at ~6:40 → 7:30; &force=plow / &force=salt: one
-//         pass now (the near lane) — the salt truck 40 s behind a forced plow. NEVER during the parade or a raid (hold windows).
+//         pass now (the near lane) — the salt truck right behind a forced plow. NEVER during the parade or a raid (hold windows).
+//   9c — THE PREVIEW STARTS AT ONCE (the owner's iPhone: &force=plow showed nothing): a forced pass is BACKDATED by ctx.lead (s — the
+//         scene's time from the lane's entry, off-screen, to where the road first shows past the speakeasy) so the plow comes into view
+//         ~1 s after the flag; forced spawns are never dropped for a bus due at the stop / a worker's truck (simulateLane's `forced`).
 import { rngFrom, hashString } from './rng.js';
 
-export const SNOWWORK = Object.freeze({ every: 2400, saltAfter: 600, v: { plow: 3.0, salt: 3.6 }, len: { plow: 7.1, salter: 6.0 }, morning: [[6.65, 'plow', 'near'], [6.9, 'plow', 'far'], [7.2, 'salter', 'near'], [7.45, 'salter', 'far']], forcedSalt: 40, block: 120 });
+export const SNOWWORK = Object.freeze({ every: 2400, saltAfter: 600, v: { plow: 3.0, salt: 3.6 }, len: { plow: 7.1, salter: 6.0 }, morning: [[6.65, 'plow', 'near'], [6.9, 'plow', 'far'], [7.2, 'salter', 'near'], [7.45, 'salter', 'far']], forcedSalt: 8, block: 120 });
 
 const localHour = (t, off) => ((((t + (off || 0) * 60) / 3600) % 24) + 24) % 24;
 
 /**
  * PURE: the work passes in a span [a, b) (s): [{ id, kind ('plow' | 'salter'), lane ('near' | 'far'), t0 }]. ctx: { snowing (bool: snow
  * falling now ≥ the plow's threshold), fresh (bool: fresh snow lying, nothing falling — the morning after), off (min from UTC), seed,
- * forced: { plow: t | null, salt: t | null } (when a preview flag came on), holds: [[t0, t1], …] (the parade, a raid: nothing starts inside) }
+ * forced: { plow: t | null, salt: t | null } (when a preview flag came on), lead: { plow, salter } (s: a forced pass starts this much
+ * earlier, so it is IN VIEW at once), holds: [[t0, t1], …] (the parade, a raid: nothing starts inside) }
  */
 export function workPasses(a, b, ctx = {}) {
   const out = [], seed = ctx.seed || 1924, E = SNOWWORK.every;
@@ -39,17 +43,21 @@ export function workPasses(a, b, ctx = {}) {
       }
     }
   }
-  const f = ctx.forced || {};
-  if (f.plow != null) { if (f.plow >= a && f.plow < b) out.push({ id: `plow.near.f${Math.round(f.plow)}`, kind: 'plow', lane: 'near', t0: f.plow }); const ts = f.plow + SNOWWORK.forcedSalt; if (ts >= a && ts < b) out.push({ id: `salt.near.f${Math.round(f.plow)}`, kind: 'salter', lane: 'near', t0: ts }); }
-  if (f.salt != null && f.salt >= a && f.salt < b) out.push({ id: `salt.near.g${Math.round(f.salt)}`, kind: 'salter', lane: 'near', t0: f.salt });
-  return out.filter(p => !held(p.t0)).sort((p, q) => p.t0 - q.t0);
+  const f = ctx.forced || {}, ld = ctx.lead || {}, lp = Math.max(0, ld.plow || 0), ls = Math.max(0, ld.salter == null ? lp : ld.salter);
+  if (f.plow != null) {
+    const tp = f.plow - lp, ts = f.plow - ls + SNOWWORK.forcedSalt;
+    if (tp >= a && tp < b) out.push({ id: `plow.near.f${Math.round(f.plow)}`, kind: 'plow', lane: 'near', t0: tp, forced: true });
+    if (ts >= a && ts < b) out.push({ id: `salt.near.f${Math.round(f.plow)}`, kind: 'salter', lane: 'near', t0: ts, forced: true });
+  }
+  if (f.salt != null) { const ts = f.salt - ls; if (ts >= a && ts < b) out.push({ id: `salt.near.g${Math.round(f.salt)}`, kind: 'salter', lane: 'near', t0: ts, forced: true }); }
+  return out.filter(p => p.forced || !held(p.t0)).sort((p, q) => p.t0 - q.t0);
 }
 
 /** PURE: the passes of block j on a lane as the traffic simulation's spawns (core/harbor-traffic.js#simulateLane: ctx.extra) */
 export function workSpawns(j, lane, ctx = {}) {
   const B = SNOWWORK.block;
   return workPasses(j * B, (j + 1) * B, ctx).filter(p => p.lane === lane).map((p, i) => ({
-    id: p.id, n: 9000 + i, t0: p.t0, v: SNOWWORK.v[p.kind === 'plow' ? 'plow' : 'salt'], model: p.kind, len: SNOWWORK.len[p.kind], paint: 0, trade: 0, rumble: false, glow: -1, work: p.kind,
+    id: p.id, n: 9000 + i, t0: p.t0, v: SNOWWORK.v[p.kind === 'plow' ? 'plow' : 'salt'], model: p.kind, len: SNOWWORK.len[p.kind], paint: 0, trade: 0, rumble: false, glow: -1, work: p.kind, forced: !!p.forced,
   }));
 }
 
@@ -59,4 +67,4 @@ export function lastCleared(t, ctx = {}) {
   return ps.length ? ps[ps.length - 1].t0 + 70 : null;
 }
 /** a short signature of the work's state for the traffic cache (its spawns change with it) */
-export const workKey = ctx => (ctx ? `${ctx.snowing ? 's' : ''}${ctx.fresh ? 'f' : ''}${ctx.forced && ctx.forced.plow != null ? `p${Math.round(ctx.forced.plow)}` : ''}${ctx.forced && ctx.forced.salt != null ? `x${Math.round(ctx.forced.salt)}` : ''}` : '');
+export const workKey = ctx => (ctx ? `${ctx.snowing ? 's' : ''}${ctx.fresh ? 'f' : ''}${ctx.forced && ctx.forced.plow != null ? `p${Math.round(ctx.forced.plow)}` : ''}${ctx.forced && ctx.forced.salt != null ? `x${Math.round(ctx.forced.salt)}` : ''}${ctx.lead ? `l${Math.round(ctx.lead.plow || 0)}` : ''}` : '');

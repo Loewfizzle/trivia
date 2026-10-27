@@ -69,6 +69,7 @@ test('WIN — PLAY ALL: a playlist per catalogue — every window moment once (t
   assert.ok(playlistOf('holidays').filter(i => i.hol === 'halloween').length >= 4 && playlistOf('holidays').some(i => i.hol === 'dotd'), 'the holidays know their night');
   for (const p of PLAY_ALL) assert.ok(SECTIONS.some(s => s.id === p.sec) && playlistOf(p.kind).length > 0, `${p.kind} in ${p.sec}`);
   assert.deepEqual(playlistOf('nope'), []);
+  { const w = playlistOf('winter'); assert.ok(w.length >= 6 && w[0].id === 'plow' && w.every(i => i.state && i.state.snow), `9c: PLAY ALL WINTER — ${w.map(i => i.id).join(', ')} (the plow first, each with its snow)`); }
   // the weather's groups: every row in one, the groups in the owner's order
   assert.deepEqual(WEATHER_GROUPS, ['THE SKY', 'RAIN', 'STORM', 'FOG', 'COLD']); for (const x of WEATHER) assert.ok(WEATHER_GROUPS.includes(x.group), x.id);
 });

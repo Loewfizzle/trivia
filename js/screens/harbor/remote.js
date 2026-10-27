@@ -239,7 +239,7 @@ export function createRemote({ scene, api = apiCall }) {
     // (WIN2 — the owner: "run by day, the night moments played in a daytime room": before EACH item the city's clock jumps to the item's
     // OWN hour on today's date — the TV room ~23:00, the cash count late, the wake ~7:00, the shop by day — or its holiday's date; the
     // light, the rooms + the sky follow through the city's crossfade; the chip shows the time)
-    const it = play.items[play.i], s = { force: [it.id] }, u = { custom: null };
+    const it = play.items[play.i], s = { ...(it.state || {}), force: [it.id] }, u = { custom: null };   // (9c: a winter row brings its snow)
     const day = it.hol ? R.holidayDay(it.hol, today()) : ymd(today());
     s.when = R.itemWhen(it, day); if (it.hol) s.hol = it.hol;
     u.custom = s.when; u.t = null;

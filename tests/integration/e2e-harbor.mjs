@@ -3403,6 +3403,19 @@ G('legends', async () => {
     ok(dark ? au.signWx < 0.15 && au.rainSigns < 0.05 : au.signWx > 0.3 && au.rainSigns > 0.3, `THE SIGN's WEATHER LIGHT ${dark ? 'DIES IN THE BLACKOUT' : 'on a normal rainy night (the control)'}: the beads' light ${au.signWx}, the signs' light on the rain ${au.rainSigns}`);
     await Q.ctx.close();
   }
+  // ---- 9c — THE SIGN's SNOW FOLLOWS THE POWER (the owner's screenshot: the tubes dark, the snow on them still bright white): a snowy
+  // night's sign snow is lit (+ glows the tube's colour); under the TR-3B's blackout it drops to the moon's faint grey
+  { const lum = {};
+    for (const [slot, qs, dark] of [['lg2s', `${NIGHT}&force=tr3b&lgs=15&snow=fresh&temp=-6`, true], ['lg2t', `${NIGHT}&snow=fresh&temp=-6`, false]]) {
+      const Q = await open({ slot, qs, view: [402, 874] });
+      await harborUp(Q.page);
+      if (dark) await waitFor(Q.page, `(() => { const k = ${P}.legend.dark(); return k.far && k.near; })()`, 'the dark city', 25000).catch(() => {});
+      await waitFor(Q.page, `${P}.snow.sign > 0.02 && ${P}.snow.signLum > 0`, 'the sign holding snow', 15000).catch(() => {});
+      await sleep(800);
+      lum[dark ? 'dark' : 'lit'] = await ev(Q.page, `${P}.snow.signLum`);
+      await Q.ctx.close();
+    }
+    ok(lum.dark > 0 && lum.dark < 135 && lum.lit > lum.dark + 40, `THE SIGN's SNOW FOLLOWS THE POWER: lit night ${lum.lit} → the blackout ${lum.dark} (the moon's grey)`); }
   // ---- 8b2: THE BLACKOUT WINS OVER THE PARTY (the owner forced the TR-3B with PARTY ON: the show stayed lit) — the show off while dead
   { const Q = await open({ slot: 'lg2p', qs: `${NIGHT}&force=tr3b,party&lgs=15`, view: [402, 874] });
     await harborUp(Q.page);

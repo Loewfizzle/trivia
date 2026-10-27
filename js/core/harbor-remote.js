@@ -201,7 +201,7 @@ export const EVENTS = [
   { id: 'lightning', label: 'LIGHTNING', cat: 'weather', group: 'WEATHER FX', hint: 'with WEATHER = STORM' },
   { id: 'freeze', label: 'FROST', cat: 'weather', group: 'WEATHER FX' },
   { id: 'halo', label: '22° SUN HALO', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL (a thin cirrostratus sky): the rare faint ring round the sun' },
-  { id: 'plow', label: 'THE PLOW', cat: 'weather', group: 'WINTER', hint: '9b: the plow truck clears the waterside road now (the salt truck 40 s behind it); with snow on the ground' },
+  { id: 'plow', label: 'THE PLOW', cat: 'weather', group: 'WINTER', hint: '9b: the plow truck clears the waterside road now — in view ~1 s after the tap, the salt truck right behind it; with snow on the ground' },
   { id: 'salt', label: 'THE SALT TRUCK', cat: 'weather', group: 'WINTER', hint: '9b: the salt truck now — its fan of grains + the wet salted lane behind it' },
   { id: 'shovel', label: 'SHOVELLING', cat: 'weather', group: 'WINTER', hint: '9b: the doorman shovels + salts the speakeasy steps; a shoveller on the front walk' },
   { id: 'snowball', label: 'SNOWBALL FIGHT', cat: 'weather', group: 'WINTER', hint: '9b: kids on the plaza (snowy weekend afternoons)' },
@@ -419,7 +419,14 @@ export const PLAY_ALL = Object.freeze([
   { kind: 'holidays', sec: 'holidays', label: 'PLAY ALL HOLIDAY MOMENTS', hint: 'every holiday piece in turn on its holiday’s night, 45 s each' },
   { kind: 'wildlife', sec: 'wildlife', label: 'PLAY ALL ANIMALS', hint: 'every animal + behaviour in turn, 45 s each' },
   { kind: 'workers', sec: 'people', label: 'PLAY ALL WORKERS', hint: 'every worker’s show in turn, 60 s each' },
+  { kind: 'winter', sec: 'weather', label: 'PLAY ALL WINTER', hint: '9c: the plow + the salt truck, the shovellers, the snowball fight, the slip, the snowman’s builders, the sign’s snow melting, the awning slab — each with its snow on the ground + at its own hour, 40 s each' },
 ]);
+/** 9c — PLAY ALL WINTER: each winter row's own set-up (the snow on the ground it needs, snow falling, its hour) */
+const WINTER_PLAY = {
+  plow: { state: { snow: 'fresh', wx: 'snow' }, hour: 13 }, salt: { state: { snow: 'fresh' }, hour: 13.5 },
+  shovel: { state: { snow: 'fresh' }, hour: 7.75 }, snowball: { state: { snow: 'older' }, hour: 14.5 }, slip: { state: { snow: 'thaw' }, hour: 20.5, night: true },
+  'snowman-build': { state: { snow: 'fresh', snowman: 'head' }, hour: 12 }, 'sign-melt': { state: { snow: 'fresh' }, hour: 21.5, night: true }, 'awning-slab': { state: { snow: 'fresh' }, hour: 11 },
+};
 /** the playlist of a catalogue → [{ id (the force id), label, len (s), night, hol }] — the day rows first, then the night rows */
 /** WIN2 — a window moment's OWN hour (decimal, 0–24): a routine's `at`; else the middle of its hours (wrapping past midnight — an hour
  *  under 6 belongs to the next day's small hours); a moment with no hours plays at 20:30 at night, 14:00 by day */
@@ -434,7 +441,8 @@ export function playlistOf(kind) {
     { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', len: 90, night: true, hol: null, hour: PARTY_HOUR }];   // (WIN3: the rooms up one by one over ~60 s, then the dancing)
   else {
     const holOf = e => (e.group === 'HALLOWEEN' || e.group === 'ON THE WATER' ? 'halloween' : e.group === 'DAY OF THE DEAD' ? 'dotd' : e.group === 'THANKSGIVING' ? 'thanksgiving' : null);
-    const rows = PANEL_EVENTS.filter(e => !e.id.startsWith('no-') && (kind === 'holidays' ? e.cat === 'holidays' : kind === 'wildlife' ? e.cat === 'wildlife' : kind === 'workers' ? e.cat === 'workers' : false));
+    const rows = PANEL_EVENTS.filter(e => !e.id.startsWith('no-') && (kind === 'holidays' ? e.cat === 'holidays' : kind === 'wildlife' ? e.cat === 'wildlife' : kind === 'workers' ? e.cat === 'workers' : kind === 'winter' ? e.group === 'WINTER' : false));
+    if (kind === 'winter') return rows.map(e => { const w = WINTER_PLAY[e.id] || { state: { snow: 'fresh' }, hour: 13 }; return { id: e.id, label: e.label, len: 40, night: !!w.night, hol: null, hour: w.hour, state: w.state }; });   // (the plow first, in the catalogue's order)
     items = rows.map(e => ({ id: e.id, label: e.label, len: kind === 'workers' ? 60 : 45, night: !!e.night, hol: kind === 'holidays' ? holOf(e) : null, hour: e.night ? 22.5 : 14 }));
   }
   return [...items.filter(i => !i.night), ...items.filter(i => i.night)];

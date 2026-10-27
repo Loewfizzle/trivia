@@ -344,7 +344,7 @@ export function createTitle() {
       h('div.nd-tag', TAGLINE),
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
     // (11a-1: THE SIGN DECORATION SYSTEM's overlay lives in the logo's wrap — harbor/signdress.js; the scene drives it)
-    if (createHarbor && scene) scene.set({ dressHost: els.sign.querySelector('.nd-logo-wrap') });
+    if (createHarbor && scene) scene.set({ dressHost: els.sign.querySelector('.nd-logo-wrap'), signLetters: [...els.sign.querySelectorAll('.nd-logo .ndl')] });   // (9c: the snow on each letter glows by its own light)
     els.actions = buildActions();
     { const st0 = neonNow(); if (!st0.caught) { els.sign.classList.add('is-day'); if (st0.stage !== 'goodbye') els.actions.classList.add('is-daylit'); } }
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },

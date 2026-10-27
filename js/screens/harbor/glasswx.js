@@ -46,10 +46,10 @@ export function resample(pts, step) {
 export function signGeometry(nr, step = 1.6) {
   const w0 = nr.w / 0.86, h0 = nr.h / 0.64, x0 = nr.x - w0 * 0.07, y0 = nr.y - h0 * 0.18, k = w0 / (LOGO_W + 52);
   const ox = x0 + 26 * k, oy = y0 + 30 * k, tubes = [];
-  for (const L of LOGO_LETTERS) for (const poly of flattenPath(L.d, k, ox + L.x * k, oy, 1.5)) {
+  LOGO_LETTERS.forEach((L, li) => { for (const poly of flattenPath(L.d, k, ox + L.x * k, oy, 1.5)) {
     const pts = resample(poly.pts, step);
-    if (pts.length > 2) tubes.push({ pts, len: pts[pts.length - 1].s });
-  }
+    if (pts.length > 2) tubes.push({ pts, len: pts[pts.length - 1].s, li });   // (li: its letter — 9c: each letter's snow glows by its own light)
+  } });
   return { tubes, k, half: (LOGO_TUBE * k) / 2, clips: CLIPS.map(([x, y]) => [ox + x * k, oy + y * k]), box: { x: x0 - 6, y: y0 - 6, w: w0 + 12, h: h0 + 70 } };
 }
 
@@ -171,17 +171,18 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     geo.tubes.forEach((tb, t) => {
       const P = tb.pts; let run = [];
       const flush = () => {
-        if (run.length >= 2) runs.push(run.map((p, i) => {
+        if (run.length >= 2) runs.push(Object.assign(run.map((p, i) => {
           const [nx, ny] = underside(p, 1), lev = Math.min(1, (Math.abs(p.tx) - 0.3) / 0.45 + 0.2), end = Math.min(1, Math.min(i + 1, run.length - i) / 2.5);
           return { x: p.x, y: p.y, ux: -nx, uy: -ny, lev: lev * end, big: vn(p.s, 0.11, t * 7.3), small: vn(p.s, 0.55, t * 3.1 + 50), melt: 0.35 * vn(p.s, 0.18, t * 5.7 + 99) + 0.65 * vn(p.s, 0.07, t * 1.9 + 7) };
-        }));
+        }), { li: tb.li || 0 }));
         run = [];
       };
       for (const p of P) { if (Math.abs(p.tx) > 0.3) run.push(p); else flush(); }
       flush();
-      for (const [e, nb] of [[P[0], P[Math.min(3, P.length - 1)]], [P[P.length - 1], P[Math.max(0, P.length - 4)]]]) if (Math.abs(e.tx) <= 0.3 && e.y <= nb.y) caps.push({ x: e.x, y: e.y, melt: hash1(t * 3.3 + e.x) });
+      for (const [e, nb] of [[P[0], P[Math.min(3, P.length - 1)]], [P[P.length - 1], P[Math.max(0, P.length - 4)]]]) if (Math.abs(e.tx) <= 0.3 && e.y <= nb.y) caps.push({ x: e.x, y: e.y, melt: hash1(t * 3.3 + e.x), li: tb.li || 0 });
     });
-    const clips = geo.clips.map(([cx, cy], i) => ({ x: cx, y: cy - H * 1.8, melt: hash1(i * 9.1) }));
+    const near = (cx, cy) => { let best = 0, bd = Infinity; for (const tb of geo.tubes) for (let i = 0; i < tb.pts.length; i += 4) { const d = (tb.pts[i].x - cx) ** 2 + (tb.pts[i].y - cy) ** 2; if (d < bd) { bd = d; best = tb.li || 0; } } return best; };
+    const clips = geo.clips.map(([cx, cy], i) => ({ x: cx, y: cy - H * 1.8, melt: hash1(i * 9.1), li: near(cx, cy) }));
     // the glitter: seeded points on the puffs' upper faces
     glints = []; let n = 0;
     for (const r of runs) for (let i = 0; i < r.length; i += 5) if (hash1(++n * 1.7) < 0.32) glints.push({ r, i, ph: hash1(n) * 6.28, f: 1.2 + 2.5 * hash1(n * 3.1), dx: hash1(n * 5.3) - 0.5 });
@@ -189,7 +190,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   }
   /** where a stretch still holds snow at melt level k (0..1): the thin + early spots go first, a smooth edge (clumps, never a cut) */
   const holds = (m, k) => { const a = 0.08 + 0.78 * m, e = 0.09; const u = (k - a + e) / (2 * e); return u <= 0 ? 0 : u >= 1 ? 1 : u * u * (3 - 2 * u); };
-  function renderSnow(lit, amb, col, wet) {
+  function renderSnow(litL, amb, col, wet, pw = 1) {
     const H = geo.half, k = snowK, b = geo.box;
     const W = Math.ceil(b.w * dpr), Hh = Math.ceil(b.h * dpr);
     if (!snowCv) snowCv = mk(1, 1);
@@ -197,12 +198,24 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     const x = safeCtx(snowCv); x.setTransform(dpr, 0, 0, dpr, -b.x * dpr, -b.y * dpr); x.clearRect(b.x, b.y, b.w, b.h);
     const mixc = (a, c, t) => a.map((v, i) => Math.round(v + (c[i] - v) * t));
     // the snow's colours in this light (+ wet: greyer, a touch of the tube's colour showing through the slush)
-    const dayHi = [252, 253, 255], nightHi = [218, 222, 246];
-    let hi = mixc(nightHi, dayHi, amb), body = mixc([118, 124, 168], [212, 222, 240], amb), shade = mixc([70, 72, 112], [168, 182, 214], amb);
-    if (wet > 0.01) { const g = [150, 156, 176].map((v, i) => Math.round(v * amb + [70, 70, 96][i] * (1 - amb))); hi = mixc(hi, mixc(g, [255, 255, 255], 0.35), 0.55 * wet); body = mixc(body, g, 0.6 * wet); shade = mixc(shade, mixc(g, [0, 0, 0], 0.35), 0.6 * wet); }
+    // (9c — THE BLACKOUT: at night the snow shows only the light that's THERE — the city's glow × its power; with the power gone it
+    // falls to a faint cool moonlit grey, and comes back with the city)
+    const dayHi = [252, 253, 255], nightHi = mixc([88, 94, 122], [212, 216, 240], pw);
+    const hi0 = mixc(nightHi, dayHi, amb), body0 = mixc(mixc([44, 48, 70], [112, 118, 160], pw), [212, 222, 240], amb), shade0 = mixc(mixc([26, 28, 44], [66, 68, 106], pw), [168, 182, 214], amb);
+    // (9c — THE GLOW, EACH LETTER ITS OWN: a lit tube lights its snow FROM WITHIN — the tube's colour washes the mound's body + shade
+    // (strongest at night), so the pillow reads as lit by its letter, never a flat white cap; a dark letter's snow stays white / grey)
+    const tc = col.map(v => Math.min(255, Math.round(v * 0.9 + 40))), dc = col.map(v => Math.round(v * 0.62)), wg = [150, 156, 176].map((v, i) => Math.round(v * amb + [70, 70, 96][i] * (1 - amb)));
+    const pal = litL.map(lit => {
+      const gk = lit * (1 - 0.6 * amb) * (1 - 0.3 * wet);
+      let hi = hi0, body = body0, shade = shade0;
+      if (gk > 0.01) { body = mixc(body, tc, 0.5 * gk); shade = mixc(shade, dc, 0.62 * gk); hi = mixc(hi, mixc(tc, [255, 255, 255], 0.55), 0.45 * gk); }
+      if (wet > 0.01) { hi = mixc(hi, mixc(wg, [255, 255, 255], 0.35), 0.55 * wet); body = mixc(body, wg, 0.6 * wet); shade = mixc(shade, mixc(wg, [0, 0, 0], 0.35), 0.6 * wet); }
+      return { gk, hi, body, shade, ga: lit * (1 - 0.55 * amb) * (1 - 0.3 * wet) };
+    });
+    lastLum = Math.round(Math.max(...pal.map(q => 0.3 * q.hi[0] + 0.59 * q.hi[1] + 0.11 * q.hi[2])));
     const sink = 1 - 0.35 * wet;                                                      // (wet snow settles lower)
-    const puffs = [];                                                                 // [x, y, r, light-facing] — every lump of the mound
-    for (const r of snowGeo.runs) for (let i = 0; i < r.length; i++) {
+    const groups = litL.map(() => []);                                                // per letter: [x, y, r, light-facing] — every lump of its mound
+    for (const r of snowGeo.runs) { const puffs = groups[r.li] || groups[0]; for (let i = 0; i < r.length; i++) {
       const p = r[i], hk = holds(p.melt, k);
       if (hk < 0.02 || p.lev < 0.05) continue;
       const d = H * (0.45 + 2.3 * k * sink) * p.lev * hk * (0.72 + 0.5 * p.big);     // (the mound's height here)
@@ -210,39 +223,50 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
       const rr = d * (0.5 + 0.22 * p.small) + H * 0.35, off = H * 0.45 + d * 0.48;
       puffs.push([p.x + p.ux * off, p.y + p.uy * off, rr, 1]);
       if (i % 2 === 0 && p.small > 0.55 && hk > 0.6) puffs.push([p.x + p.ux * (off + rr * 0.45) + p.uy * rr * 0.4 * (p.big - 0.5), p.y + p.uy * (off + rr * 0.45) - p.ux * rr * 0.4 * (p.big - 0.5), rr * 0.55, 1]);   // (a small lump on top)
-    }
-    for (const c of snowGeo.caps) { const hk = holds(c.melt, k); if (hk > 0.05) puffs.push([c.x, c.y - H * (0.5 + 0.7 * k * hk * sink), H * (0.8 + 0.45 * k * hk), 1]); }
-    for (const c of snowGeo.clips) { const hk = holds(c.melt, k); if (hk > 0.05) puffs.push([c.x, c.y - H * 0.1 * hk, H * (0.4 + 0.3 * k * hk), 0.6]); }
-    if (!puffs.length) return;
-    // 1. the soft scattering rim (a faint halo just outside the snow: light diffusing through its edge)
-    x.fillStyle = `rgba(${hi},${(0.16 * (1 - 0.6 * wet)).toFixed(3)})`; x.beginPath(); for (const [px, py, r] of puffs) { x.moveTo(px + r * 1.14, py); x.arc(px, py, r * 1.14, 0, 6.2832); } x.fill();
-    // 2. the shaded body (each lump nudged down: the underside in its own shadow)
-    x.fillStyle = `rgb(${shade})`; x.beginPath(); for (const [px, py, r] of puffs) { x.moveTo(px + r, py + r * 0.12); x.arc(px, py + r * 0.12, r, 0, 6.2832); } x.fill();
-    // 3. the mid tone, a little smaller + up — the round form of every lump
-    x.fillStyle = `rgb(${body})`; x.beginPath(); for (const [px, py, r] of puffs) { x.moveTo(px - r * 0.06 + r * 0.86, py - r * 0.1); x.arc(px - r * 0.06, py - r * 0.1, r * 0.86, 0, 6.2832); } x.fill();
-    // 4. the lit tops (toward the light: up + a little left), their soft fall-off
-    for (const [px, py, r, f] of puffs) {
-      const g = x.createRadialGradient(px - r * 0.3, py - r * 0.42, r * 0.05, px - r * 0.18, py - r * 0.28, r * 0.85);
-      g.addColorStop(0, `rgba(${hi},${(0.98 * f).toFixed(3)})`); g.addColorStop(0.6, `rgba(${hi},${(0.55 * f).toFixed(3)})`); g.addColorStop(1, `rgba(${hi},0)`);
-      x.fillStyle = g; x.beginPath(); x.arc(px - r * 0.18, py - r * 0.28, r * 0.85, 0, 6.2832); x.fill();
-    }
-    // 5. the lit tube glowing INSIDE the snow's foot (its colour scattered up through the crystals) — night, the sign on
-    if (lit > 0.05) {
+    } }
+    for (const c of snowGeo.caps) { const hk = holds(c.melt, k); if (hk > 0.05) (groups[c.li] || groups[0]).push([c.x, c.y - H * (0.5 + 0.7 * k * hk * sink), H * (0.8 + 0.45 * k * hk), 1]); }
+    for (const c of snowGeo.clips) { const hk = holds(c.melt, k); if (hk > 0.05) (groups[c.li] || groups[0]).push([c.x, c.y - H * 0.1 * hk, H * (0.4 + 0.3 * k * hk), 0.6]); }
+    if (!groups.some(g => g.length)) return;
+    const circles = (puffs, m, dx = 0, dy = 0) => { x.beginPath(); for (const [px, py, r] of puffs) { x.moveTo(px + dx * r + r * m, py + dy * r); x.arc(px + dx * r, py + dy * r, r * m, 0, 6.2832); } x.fill(); };
+    groups.forEach((puffs, li) => {
+      if (!puffs.length) return;
+      const { gk, hi, body, shade } = pal[li];
+      // 0. (9c) THE HALO at night: the lit tube's light scattering out of the snow — a soft glow of its colour round the mound
+      if (gk > 0.01) for (const [m, a] of [[1.9, 0.07], [1.45, 0.12]]) { x.fillStyle = `rgba(${col.join(',')},${(a * gk).toFixed(3)})`; circles(puffs, m); }
+      // 1. the soft scattering rim (a faint halo just outside the snow: light diffusing through its edge)
+      x.fillStyle = `rgba(${hi},${(0.16 * (1 - 0.6 * wet)).toFixed(3)})`; circles(puffs, 1.14);
+      // 2. the shaded body (each lump nudged down: the underside in its own shadow)
+      x.fillStyle = `rgb(${shade})`; circles(puffs, 1, 0, 0.12);
+      // 3. the mid tone, a little smaller + up — the round form of every lump
+      x.fillStyle = `rgb(${body})`; circles(puffs, 0.86, -0.06, -0.1);
+      // 4. the lit tops (toward the light: up + a little left), their soft fall-off
+      for (const [px, py, r, f] of puffs) {
+        const g = x.createRadialGradient(px - r * 0.3, py - r * 0.42, r * 0.05, px - r * 0.18, py - r * 0.28, r * 0.85);
+        g.addColorStop(0, `rgba(${hi},${(0.98 * f).toFixed(3)})`); g.addColorStop(0.6, `rgba(${hi},${(0.55 * f).toFixed(3)})`); g.addColorStop(1, `rgba(${hi},0)`);
+        x.fillStyle = g; x.beginPath(); x.arc(px - r * 0.18, py - r * 0.28, r * 0.85, 0, 6.2832); x.fill();
+      }
+    });
+    // 5. the lit tube glowing INSIDE the snow (its colour scattered up through the crystals): strongest where the snow touches the
+    // tube, bleeding up + out through the whole mound — at night bold, by day fainter but there (9c: the owner — "the snow must glow");
+    // each tube by its own letter's light
+    if (pal.some(q => q.ga > 0.04)) {
       x.save(); x.globalCompositeOperation = 'source-atop'; x.lineJoin = 'round'; x.lineCap = 'round';
-      for (const [w, a] of [[H * 4.2, 0.1], [H * 2.8, 0.2], [H * 1.8, 0.34]]) {
-        x.strokeStyle = `rgba(${col.map(v => Math.min(255, Math.round(v * 0.85 + 50))).join(',')},${(a * lit * (1 - 0.3 * wet)).toFixed(3)})`; x.lineWidth = w;
-        for (const tb of geo.tubes) { x.beginPath(); tb.pts.forEach((p, i) => (i ? x.lineTo(p.x, p.y) : x.moveTo(p.x, p.y))); x.stroke(); }
+      const sc = col.map(v => Math.min(255, Math.round(v * 0.85 + 50))).join(',');
+      for (const [w, a] of [[H * 8, 0.14], [H * 5.2, 0.24], [H * 3.2, 0.4], [H * 1.9, 0.62]]) {
+        x.lineWidth = w;
+        for (const tb of geo.tubes) { const ga = (pal[tb.li] || pal[0]).ga; if (ga <= 0.04) continue; x.strokeStyle = `rgba(${sc},${(a * ga).toFixed(3)})`; x.beginPath(); tb.pts.forEach((p, i) => (i ? x.lineTo(p.x, p.y) : x.moveTo(p.x, p.y))); x.stroke(); }
       }
       x.restore();
     }
     // 6. WET: the slush's gloss — a thin bright sheen on the clumps' lit side
-    if (wet > 0.05) { x.save(); x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(255,255,255,${(0.18 * wet).toFixed(3)})`; for (const [px, py, r] of puffs) { x.beginPath(); x.ellipse(px - r * 0.25, py - r * 0.5, r * 0.45, r * 0.16, -0.3, 0, 6.2832); x.fill(); } x.restore(); }
+    if (wet > 0.05) { x.save(); x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(255,255,255,${(0.18 * wet).toFixed(3)})`; for (const puffs of groups) for (const [px, py, r] of puffs) { x.beginPath(); x.ellipse(px - r * 0.25, py - r * 0.5, r * 0.45, r * 0.16, -0.3, 0, 6.2832); x.fill(); } x.restore(); }
   }
   /** the snow on the sign this frame: the cached render + the glitter (fresh, by day / under the lamps) + the bare wet tube where it melted */
-  function drawSnow(x, lit, amb, col, wet) {
+  function drawSnow(x, litL, amb, col, wet, pw = 1) {
     if (!snowGeo || snowGeo.of !== geo) { buildSnowGeo(); snowKey = ''; }
-    const key = `${Math.round(snowK * 60)}|${Math.round(lit * 8)}|${Math.round(amb * 8)}|${Math.round(wet * 6)}|${col.join(',')}|${dpr}|${geo.box.w}`;
-    if (key !== snowKey) { snowKey = key; snowRenders++; renderSnow(lit, amb, col, wet); }
+    const lit = Math.max(...litL);
+    const key = `${Math.round(snowK * 60)}|${litL.map(v => Math.round(v * 12)).join('')}|${Math.round(amb * 8)}|${Math.round(wet * 6)}|${Math.round(pw * 10)}|${col.join(',')}|${dpr}|${geo.box.w}`;
+    if (key !== snowKey) { snowKey = key; snowRenders++; renderSnow(litL, amb, col, wet, pw); }
     if (snowCv) x.drawImage(snowCv, geo.box.x, geo.box.y, geo.box.w, geo.box.h);
     const H = geo.half, t = performanceT;
     // THE BARE WET TUBE where the snow has melted off (a melt in progress): a bright glistening line along its top
@@ -257,26 +281,30 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         const p = g.r[g.i]; if (holds(p.melt, snowK) < 0.8) continue;
         const tw = Math.sin(t * g.f + g.ph); if (tw < 0.75) continue;
         const d = H * (0.45 + 2.3 * snowK) * p.lev * (0.72 + 0.5 * p.big), px = p.x + p.ux * (H * 0.45 + d * 0.9) + g.dx * d * 0.6, py = p.y + p.uy * (H * 0.45 + d * 0.9);
-        const a = (tw - 0.75) * 4 * (1 - wet) * Math.max(amb, 0.45 * lit + 0.2), sz = 0.5 + 1.1 * (tw - 0.75) * 4;
+        const a = (tw - 0.75) * 4 * (1 - wet) * Math.max(amb, 0.45 * lit + 0.2 * pw), sz = 0.5 + 1.1 * (tw - 0.75) * 4;
         x.fillStyle = `rgba(255,255,255,${Math.min(1, a).toFixed(3)})`; x.fillRect(px - sz, py - 0.25, sz * 2, 0.5); x.fillRect(px - 0.25, py - sz, 0.5, sz * 2);
       }
     }
   }
-  let performanceT = 0;
+  let performanceT = 0, lastLum = 0;
   function drawSign(x, o) {
     const lit = clamp01(o.lit), day = clamp01(o.day), col = o.signCol || [255, 95, 180];
     // what a bead shows: the lit tube's colour (hot) at night; by day the pale pink glass + the sky
     // (SP3 — the owner's blackout-in-the-rain bug: the beads glowed PINK on dark letters. A bead only shows the light that's THERE: the
     // tube's colour × the sign's LIVE level (the blackout, the boot flicker, a sky message's dim — o.lit); unlit by day = clear water on
     // the pale glass with the sky's highlight; unlit at night = a dark clear drop with a faint glint of the night)
-    const amb = clamp01(0.12 + 0.88 * day), glassC = [226, 222, 234], nightC = [64, 66, 92];
+    // (9c: the night's light on the ice + the drops is the city's — the blackout takes it down to the moon's)
+    const pw0 = o.power == null ? 1 : clamp01(o.power), amb = clamp01(0.12 + 0.88 * day) * (0.35 + 0.65 * Math.max(pw0, day)), glassC = [226, 222, 234], nightC = [64, 66, 92].map(v => Math.round(v * (0.45 + 0.55 * pw0)));
     const bc = [0, 1, 2].map(i => Math.round((glassC[i] * amb + nightC[i] * (1 - amb)) * (1 - lit) + col[i] * lit));
     // the FREEZING GLAZE (under the beads): a clear uneven sheet thicker on the tubes' tops, thinning on a lit (warm) tube + sparkles
     // 9b — THE SNOW on the tubes' tops (under the beads + the icicles): mounds along every level run, a cap on a vertical tube's top end;
     // white by day (a blue shadow under it), lit from below by the tube at night (its colour warming the mound's foot). The word always
     // reads: a mound is at most ~1.3 tube widths
     performanceT = o.t || 0;
-    if (snowK > 0.01) drawSnow(x, lit, amb, col, snowWet);
+    const pw = o.power == null ? 1 : clamp01(o.power);
+    // (9c: each letter's own light — the boot flicker lights them one by one; o.letters: 1 / 0 per letter, × the sign's live level)
+    const litL = o.letters && o.letters.length === 4 ? o.letters.map(v => v * lit) : [lit, lit, lit, lit];
+    if (snowK > 0.01) drawSnow(x, litL, amb, col, snowWet, pw);
     const ice = iceK * (1 - 0.45 * lit), ikk = Math.max(iceK, icSnow);
     if (ice > 0.01 || icSnow > 0.01) {
       x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
@@ -606,7 +634,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         dropGlassLayers(keep);
       } else if (elLayers.size) dropGlassLayers();
     },
-    debug: () => ({ on, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), snowRenders, layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
+    debug: () => ({ on, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), snowRenders, snowLum: lastLum, layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
       water: Object.fromEntries([...water].map(([id, w]) => [id, { drops: w.drops.length, streaking: w.drops.filter(d => d.sl).length, trails: w.trails.length, drips: w.drips.length }])) }),
     destroy() { dropLayers(); dropGlassLayers(); water.clear(); sprites.clear(); for (const f of frostCv.values()) f.width = 0; frostCv.clear(); geo = null; },
   };

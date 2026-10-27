@@ -76,7 +76,8 @@ export function simulateLane(j, laneId, ctx = {}) {
   // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: ctx.hold = [t0, t1] (core/harbor-legend.js#trafficHold): no car enters inside it; one
   // already on the road finishes its crossing)
   const inHold = s => !!ctx.hold && s.t0 >= ctx.hold[0] && s.t0 < ctx.hold[1];
-  const keep = s => !inHold(s) && !buses.some(b => s.t0 > b.tE - (b.hold ? 45 : 25) && s.t0 < (b.hold ? b.tX : b.tE + 3));
+  // (9c: a FORCED preview spawn — the plow on &force=plow — is never dropped: the owner asked for it NOW)
+  const keep = s => s.forced || !inHold(s) && !buses.some(b => s.t0 > b.tE - (b.hold ? 45 : 25) && s.t0 < (b.hold ? b.tX : b.tE + 3));
   // (9b: the winter work — the plow + the salt truck — as extra cars of the lane: ctx.extra(j, lane) → spawns, core/harbor-snowwork.js)
   const ex = jj => (ctx.extra ? ctx.extra(jj, laneId) : []);
   const prev = [...laneSpawns(j - 1, laneId, ctx), ...ex(j - 1)].filter(keep).sort((p, q) => p.t0 - q.t0), mine = [...laneSpawns(j, laneId, ctx), ...ex(j)].filter(keep).sort((p, q) => p.t0 - q.t0);

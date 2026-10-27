@@ -105,7 +105,8 @@ import { snowmanPiece, SNOWMAN_H } from './snowman.js';
 import { snowState, forcedPack, packFromDays, daysOf, snowKey, emptyPack } from '../../core/harbor-snow.js';
 import { capFor, groundSteps, roadStep, speakStep, topsOf, snowTones, releaseSnow, awningSnow, plowedStrip } from './snow.js';
 import { createSnowfall } from './snowfx.js';
-import { lastCleared } from '../../core/harbor-snowwork.js';
+import { lastCleared, SNOWWORK } from '../../core/harbor-snowwork.js';
+import { trafficLanes } from '../../core/harbor-traffic.js';
 import { createWinterFolk, doorCleared, winterActs } from './winterfolk.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 import { paradeWindow, paradeUnits } from '../../core/harbor-parade.js';
@@ -376,6 +377,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let spellBy = null;                             // who lit the current word: 'force' | an event's seed
   let raf = 0, last = 0, lastRaf = 0, running = false, destroyed = false, t0 = performance.now();
   let drawn = 0, fastUntil = 0, fastWhy = '';      // BATTERY: the frames actually drawn; what keeps the city at 60 fps right now
+  let shownClock = null;                   // (9c: the city's clock at THE REVEAL — a preview forced at the load starts here, not under the curtain)
   let shownAt = -1;                         // THE REVEAL (FP3a): when the city was let in — its first bake ready, the viewport settled
   // POLISH 5 — THE LOAD LOG (core/harbor-loadlog.js; &debug=1 → the 'load' strip; harbor().loadLog): every change to the picture from
   // the first frame to 15 s after the reveal, each with its cause (a resize's sizes before → after, a re-layout, a bake, a tier step,
@@ -758,12 +760,35 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const fp = clock.force.has('plow'), fsl = clock.force.has('salt');
     if ((clock.force.has('no-snow') || !snowKey(SN)) && !fp && !fsl) return null;
     const snowing = !!(WXS && WXS.snow >= 0.25);
-    return { snowing, fresh: SN.stage === 'fresh' && !snowing, off: LK.local ? LK.local.off : 0, seed: L.seed || 1924, forced: { plow: fp ? forceAtOf('plow') : null, salt: fsl ? forceAtOf('salt') : null } };
+    // (9c: a pass forced at the load starts at THE REVEAL — before it, under the curtain, it would drive by unseen)
+    const fAt = id => { const f = forceAtOf(id); return f == null || shownClock == null ? null : Math.max(f, shownClock); };
+    return { snowing, fresh: SN.stage === 'fresh' && !snowing, off: LK.local ? LK.local.off : 0, seed: L.seed || 1924, forced: { plow: fp ? fAt('plow') : null, salt: fsl ? fAt('salt') : null }, lead: fp || fsl ? workLead() : null };
+  }
+  // 9c — THE PREVIEW STARTS AT ONCE (the owner's iPhone: &force=plow showed nothing — the plow entered off-screen at a crawl and spent its
+  // first ~10 s behind the speakeasy): the seconds from the near lane's entry to where the road FIRST SHOWS (the screen's left edge, or
+  // past the speakeasy's front corner when it stands on the left), less 1 s — a forced pass starts that much earlier, so it is in view ~1 s
+  // after the flag (core/harbor-snowwork.js#workPasses)
+  // 9c — the NEON letters' own on-state (title.js's boot flicker toggles .ndl.on per letter): the sign's snow glows by each letter's light
+  const letterArr = [1, 1, 1, 1];
+  function letterOn() { const ls = S.signLetters; if (!ls || ls.length !== 4) return null; for (let i = 0; i < 4; i++) letterArr[i] = ls[i].classList.contains('on') ? 1 : 0; return letterArr; }
+  let leadMemo = null;
+  function workLead() {
+    if (!cam || !L) return null;
+    const sig = `${camSig}|${L.speakeasy ? L.speakeasy.x1 : ''}`;
+    if (leadMemo && leadMemo.sig === sig) return leadMemo.v;
+    const ln = trafficLanes(L).near, z = ln.z, px = x => project(cam, x, 0, z)[0];
+    const a = -50, b = 50, pa = px(a), pb = px(b), atScreen = sx => a + (sx - pa) / (pb - pa) * (b - a);
+    let edge = 0;
+    if (L.speakeasy && L.speakeasy.x1 != null) { const sc = project(cam, L.speakeasy.x1, 0, L.speakeasy.z0)[0]; if (sc > 0 && sc < cam.W * 0.6) edge = sc; }
+    const xVis = atScreen(edge) + 1.5;   // (the truck's centre a little past the edge: its front half in view)
+    const v = { plow: Math.max(0, (xVis - ln.xIn) / SNOWWORK.v.plow - 1), salter: Math.max(0, (xVis - ln.xIn) / SNOWWORK.v.salt - 1) };
+    leadMemo = { sig, v };
+    return v;
   }
   // the waterside road: WHITE while the snow falls + the plow hasn't been by for 25 min (the snow building back), else its plowed lane
   const roadModeNow = () => {
     // (&force=plow: the road white ahead of the forced pass, so the cleared lane shows behind it)
-    if (clock.force.has('plow') && SN.stage !== 'none') { const f = forceAtOf('plow'); if (f != null && clock.now() / 1000 < f + 75) return 'white'; }
+    if (clock.force.has('plow') && SN.stage !== 'none') { const f = forceAtOf('plow'); if (f != null && clock.now() / 1000 < Math.max(f, shownClock || 0) + 75) return 'white'; }
     if (!(WXS && WXS.snow > 0.25 && SN.stage === 'fresh')) return 'plowed';
     const w = snowWorkNow(), lc = w ? lastCleared(clock.now() / 1000, w) : null;
     return lc != null && clock.now() / 1000 - lc < 1500 ? 'plowed' : 'white';
@@ -1762,7 +1787,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const cold = clock.force.has('freeze') ? 1 : tc == null ? 0 : smooth(1, -6, tc);
       const sc = S.signCol ? (n => [n >> 16, (n >> 8) & 255, n & 255])(parseInt(S.signCol.slice(1), 16)) : [255, 95, 180];
       AUD.signWx = (LK.rain || 0) > 0.02 || WXS.ice > 0.01 ? signLive() : 0;   // (SP3: the beads' light on the NEON tubes — the blackout audit)
-      glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: signLive(), snow: { fast: clock.force.has('sign-melt') ? 20 : 1, joinLit: litK(DK, 'neon'), lie: snowNow() ? topsOf(SN) : 0, falling: LK.snow || 0, cold: tc != null ? tc <= -2 : SN.stage !== 'none' && SN.stage !== 'thaw' && SN.stage !== 'spring' }, signCol: sc, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
+      glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: signLive(), snow: { fast: clock.force.has('sign-melt') ? 20 : 1, joinLit: litK(DK, 'neon'), lie: snowNow() ? topsOf(SN) : 0, falling: LK.snow || 0, cold: tc != null ? tc <= -2 : SN.stage !== 'none' && SN.stage !== 'thaw' && SN.stage !== 'spring' }, signCol: sc, power: LB ? clamp01(1 - LB.k) : 1, letters: letterOn(), day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
     }
     // (9a: City 1.0's full-screen frost pane is off in the Harbor — the cold shows on the buttons' glass (glasswx.js); the frost of a
     // snowy night across the screen is 9b's)
@@ -2408,7 +2433,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (POLISH 5: the title's rects measured NOW, once — a font swapped in, the intro's dock — and the city re-laid in the dark if they
     // moved: the title only reports them again after its power-on, which used to land AFTER the reveal: a re-layout + a crossfade)
     if (!late && L && S.measure) { const mv = rectsMoved(); if (mv) { LOADLOG.add('dock', `measured before the reveal: ${mv}`); layout('measured before the reveal'); return; } }
-    shownAt = now; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
+    shownAt = now; shownClock = clock.now() / 1000; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
     const waits = [!ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds', !panel && "the panel's stored state"].filter(Boolean);
     wxRevealed = true; wxHeld = wxNow() || wxHeld;
@@ -2618,7 +2643,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       snowman: SM ? { ...SM } : null,
-      snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, sign: glassWx.debug().snow, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
+      snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
