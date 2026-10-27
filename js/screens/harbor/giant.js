@@ -344,6 +344,7 @@ export function createGiant() {
     // the body
     const x0 = bx - sp.G.ox / dpr, y0 = by - sp.G.oy / dpr, w = sp.G.w / dpr, h = sp.G.h / dpr;
     c.drawImage(sp.body, x0, y0, w, h);
+    lastSp = { cv: sp.body, x: x0, y: y0, w, h };   // (9c: the floods wash this silhouette — floods.js)
     if (sp.glows && sp.glows.length && K > 0.02) {
       // the fire's three states, each at its share of the moment (+ a second pass for the heat; a third on Halloween night)
       c.globalCompositeOperation = 'lighter';
@@ -365,8 +366,11 @@ export function createGiant() {
     stat.body = { w: +(S.R * 2 * s).toFixed(1), top: +(by - (S.yc + S.Hh * 0.82 + 0.5 * DS) * s).toFixed(1), coin: { x: +bx.toFixed(1), y: +(by - (S.yc + COIN.cy) * s).toFixed(1), r: +(COIN.r * s).toFixed(1) } };
     pl = K > 0.02 ? { x: g.x, z: g.z - S.R, y: GIANT.plinth.h + S.yc, col: [255, 150, 60], k: 0.95 * K, r: 3.6 * DS } : null;
   }
+  let lastSp = null;
   return {
     draw, pending,
+    /** 9c: the body as it was last drawn ({ cv, x, y, w, h }) — the floods' wash uses its silhouette */
+    lastSprite: () => lastSp,
     /** the light it throws now (people.js lights the dancers + walkers near it): { x, z, y, col, k, r } | null */
     pointLight: () => pl,
     clearLight() { pl = null; },

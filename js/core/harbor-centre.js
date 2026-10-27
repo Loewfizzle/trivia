@@ -114,3 +114,14 @@ export function centreBox(cam, m, h) {
   const x = Math.floor(x0), y = Math.floor(top);
   return { x, y, w: Math.ceil(x1) - x, h: Math.ceil(foot) - y };
 }
+
+// 9c — THE CENTREPIECE's SHOW LIGHTING (screens/harbor/floods.js): two warm floods low on the inlay's rim. out / fwd: where they stand
+// (beyond the piece's radius, ahead of its centre — × its radius), y: the lens's height; pool: the pool's radius (× the piece's); ease
+// (s): how slowly they dim + come up; fill: the low fill they keep while the piece lights itself
+export const FLOOD = Object.freeze({ out: 0.7, fwd: 0.75, y: 0.35, pool: 2.2, ease: 4, fill: 0.28 });
+/** PURE: the floods' level — on with the street lamps (lamps 0..1: their ramp; by day 0), dimmed to a low fill as the piece lights itself
+ *  (self 0..1: the carved ₿'s fire, a tree's lights) */
+export function floodTarget(lamps, self = 0) {
+  const l = Math.max(0, Math.min(1, lamps || 0)), sl = Math.max(0, Math.min(1, self || 0));
+  return l * (1 - (1 - FLOOD.fill) * sl);
+}

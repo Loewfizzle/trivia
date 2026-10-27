@@ -3513,6 +3513,16 @@ G('snow', async () => {
     const b = await ev(N.page, `${SNW}.crisp`);
     ok(n >= 3 && !b.on && b.items.length === 0, `9c THE CRISP LAYER off where it gains nothing (DPR 2): ${b.on} · ${b.items.length} items (DPR 3 had ${n} overlays)`);
     await N.ctx.close(); }
+  // ---- 9c — THE CENTREPIECE's SHOW LIGHTING (the owner: the uncarved giant sat dark, brown on brown): floodlit at night; dimmed to a
+  // low fill once the carved ₿'s fire is lit; nothing by day
+  { const fl = {};
+    for (const [k, when] of [['dark', '2026-10-27T21:30'], ['carved', '2026-10-29T21:30'], ['day', '2026-10-27T13:00']]) {
+      const Q = await open({ slot: `fl-${k}`, qs: `when=${when}${GR}`, view: [402, 874] });
+      await harborUp(Q.page); await sleep(1800);
+      fl[k] = await ev(Q.page, `(${P}.hprops && ${P}.hprops.floods) ? ${P}.hprops.floods.k : -1`);
+      await Q.ctx.close();
+    }
+    ok(fl.dark > 0.6 && fl.carved > 0.05 && fl.carved < 0.45 && fl.day === 0, `9c THE FLOODS on the giant: the uncarved night ${fl.dark} · carved + lit ${fl.carved} (a fill) · by day ${fl.day}`); }
   // ---- THE JANUARY SNOWMAN: Jan 31 (the climate's January) stands done on the inlay; &snowman=base the forced stage
   { const Q = await open({ slot: 'sn-man', qs: `when=2027-01-31T13:00${GR}`, view: [402, 874] });
     await harborUp(Q.page); await sleep(600);

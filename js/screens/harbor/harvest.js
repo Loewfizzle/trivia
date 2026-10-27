@@ -173,7 +173,7 @@ export function createHarvest(deps) {
     c.restore();
     stat.drawn++; stat.bulbs = n; stat.rect = { x: sp.x, y: sp.y, w: sp.w, h: sp.h };
   }
-  return { draw, debug: () => ({ ...stat, sprites: cache.size }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); last = null; void last; } };
+  return { draw, lastSprite: () => last, debug: () => ({ ...stat, sprites: cache.size }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); last = null; void last; } };
 }
 
 // ------------------------------------------------------------------ 11a-2 — THE NOVEMBER SPOT DRESSINGS (core/harbor-spots.js's spots)

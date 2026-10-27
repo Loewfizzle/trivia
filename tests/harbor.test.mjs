@@ -3039,7 +3039,7 @@ test('FP2 — NEON BY DEPTH at 390 / 402 / 430: no building in front shares its 
 
 // ---------------------------------------------------------------- PF — THE INLAY / THE RIG / THE MAILBOX (core/harbor-centre.js PURE; props.js
 // drawInlay / drawMailbox / the test obelisk; screens/harbor/centre.js — harbor().centrepiece)
-import { INLAY, inlayPlan, wearAt, RIG, rigSpots, normCentre, rigLevel, centreActive, centreBox, MAX_LIGHTS } from '../js/core/harbor-centre.js';
+import { INLAY, inlayPlan, wearAt, RIG, rigSpots, normCentre, rigLevel, centreActive, centreBox, MAX_LIGHTS, floodTarget, FLOOD } from '../js/core/harbor-centre.js';
 test('PF — THE INLAY: a brick compass rose — the bands nest (soldier ⊃ header ⊃ field ⊃ centre), every ring a multiple of 4, north away from us, the star inside the field; readable on the phones', () => {
   const m = { x: 3, z: 44.8, ring: 2.6 }, pl = inlayPlan(m);
   assert.equal(pl.R, 2.6);
@@ -3274,4 +3274,11 @@ test('POLISH 4 — THE ROOF BILLBOARD: no poster stands on a warm orange / amber
     const a = lum(p.face), b = lum(p.ink), cr = (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05);
     assert.ok(cr >= 4.5, `${g.id}: its letters ${cr.toFixed(1)} : 1 on the field`);
   }
+});
+
+test('9c — THE CENTREPIECE SHOW LIGHTING: the floods come on with the lamps (none by day), dim to a low fill as the piece lights itself', () => {
+  assert.equal(floodTarget(0, 0), 0, 'by day: no floods');
+  assert.equal(floodTarget(1, 0), 1, 'a dark piece at night: full');
+  assert.ok(Math.abs(floodTarget(1, 1) - FLOOD.fill) < 1e-9 && FLOOD.fill > 0.1 && FLOOD.fill < 0.5, 'a lit piece: a low fill — its shape still reads');
+  assert.ok(floodTarget(0.5, 0) < floodTarget(1, 0) && floodTarget(1, 0.5) < floodTarget(1, 0), 'with the lamps ramp; the more it lights itself the lower');
 });

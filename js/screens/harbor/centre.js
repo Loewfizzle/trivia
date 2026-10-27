@@ -25,6 +25,7 @@ import { centrepieceCap } from '../../core/harbor-promenade.js';
 import { rigSpots, normCentre, rigLevel, centreBox, centreActive, RIG } from '../../core/harbor-centre.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { pieceCtx } from '../../core/harbor-light.js';
+import { createFloods } from './floods.js';
 // (FP3a: THE TEST PIECE lives in props-test.js, loaded only when &force=centrepiece-test asks for it)
 let TEST_PIECE = null, testLoad = null;
 
@@ -32,6 +33,7 @@ export function createCentre() {
   let L = null, cam = null, dpr = 2, cap = 0, spots = [], api = null, testOn = false, rev = 0;
   let spr = null, lit = null, sprKey = '', sprT = null, box = null;
   const glows = new Map();
+  const floods = createFloods();   // (9c: the show lighting)
   /** the state drawn now: the API's (a holiday part's) wins over the test piece */
   const current = () => api || dance || (testOn ? TEST : null);
   // (FP3b: THE DANCE CIRCLE — the rig alone, no piece: the floor spots on in the phrase's colour while it dances; the floor stays walkable)
@@ -133,9 +135,12 @@ export function createCentre() {
      * Live, every frame (after the stage layer, before the front row): o = { T (the baked look), lamps (the lamps' ramp now, 0..1),
      * fade, t (s) }. Nothing at all without a centrepiece.
      */
-    draw(c, { T, lamps = 0, fade = 1, t = 0 } = {}) {
+    draw(c, { T, lamps = 0, fade = 1, t = 0, tier = 2, power = 1 } = {}) {
       const st = current();
       if (!st || !L || fade <= 0) return;
+      // 9c — THE SHOW LIGHTING (floods.js): a piece on the compass is floodlit at night; one with its own lights eases them to a fill
+      const fo = st.piece && st !== TEST ? { cam, m: { x: L.medallion.x, z: L.medallion.z, r: L.medallion.r }, h: st.h, lamps, self: st.lights.length ? 1 : 0, t, fade, tier, power, wash: 0.3 } : null;   // (a white snowman blows out under the full wash)
+      if (fo) floods.under(c, fo);
       const m = L.medallion, k = rigLevel(st, lamps) * fade, col = st.rig.col;
       if (st.piece) {
         const key = `${rev}|${dpr}|${cam.W}x${cam.H}`;
@@ -148,6 +153,7 @@ export function createCentre() {
         c.drawImage(spr, box.x, box.y, box.w, box.h);
         if (k > 0.02 && lit) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, k); c.drawImage(lit, box.x, box.y, box.w, box.h); if (k > 1) { c.globalAlpha = k - 1; c.drawImage(lit, box.x, box.y, box.w, box.h); } }
       }
+      if (fo && spr && box) { c.save(); floods.over(c, { ...fo, sprite: { cv: spr, x: box.x, y: box.y, w: box.w, h: box.h } }); c.restore(); }
       c.globalCompositeOperation = 'lighter';
       if (k > 0.02) for (const sp of spots) if (sp.front) drawSpot(c, sp, col, k);
       // the piece's own lights: a source + a tight halo each (twinkling if asked), after dark at full, by day faint
@@ -167,7 +173,7 @@ export function createCentre() {
     },
     debug: () => {
       const st = current();
-      return { on: !!st, test: !api && testOn, piece: !!(st && st.piece), h: st ? st.h : 0, cap, rig: st ? { ...st.rig } : null, lights: st ? st.lights.length : 0, active: centreActive(st),
+      return { floods: floods.debug(), on: !!st, test: !api && testOn, piece: !!(st && st.piece), h: st ? st.h : 0, cap, rig: st ? { ...st.rig } : null, lights: st ? st.lights.length : 0, active: centreActive(st),
         spots: spots.map(sp => ({ x: +sp.sx.toFixed(1), y: +sp.sy.toFixed(1), front: sp.front })), box: box ? { ...box } : null, rev };
     },
     destroy() { for (const v of glows.values()) v.width = v.height = 0; glows.clear(); if (spr) spr.width = spr.height = 0; if (lit) lit.width = lit.height = 0; spr = lit = null; },

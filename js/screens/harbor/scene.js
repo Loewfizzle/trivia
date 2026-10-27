@@ -1729,7 +1729,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     centre.test(off.has('centrepiece-test'));
     // FP3b — THE DANCE CIRCLE lights the inlay's floor spots (the rig without a piece), in the party palette's colour of the phrase
     { const dn = pplLive ? people.dance() : null; centre.dance(dn && dn.on ? { k: dn.k, col: PT.palette && PT.palette.length ? PT.palette[Math.floor((PT.beatsF || 0) / 8) % PT.palette.length] : null } : null); }
-    if (fadeIn > 0 && bakeTones) centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * (LB ? legendPow(W * 0.5, 'near', 207) : 1), fade: fadeIn, t });
+    if (fadeIn > 0 && bakeTones) centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * (LB ? legendPow(W * 0.5, 'near', 207) : 1), fade: fadeIn, t, tier });
     hpropsDraw(c, 'ground', fadeIn, lit);         // (11a-1: the petal path, the marigolds, the back garlands, the jack-o'-lanterns)
     // 8P — THE PEOPLE on the promenade (after the stage + the speakeasy's live layer, before the front row: the corner globes, the framing
     // maple, the cart stand nearer than anyone on the floor) + the ROOF's guests (clipped to the sky over the parapet)
