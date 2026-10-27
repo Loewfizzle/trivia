@@ -3142,7 +3142,7 @@ G('workers', async () => {
     ok(c.works.includes('newsboy') && c.props.includes('stand'), `THE REAL DAY (Mon 8:31): out — ${c.works.join(', ')}; props ${c.props.join(', ')}`);
     await Q.ctx.close(); }
   // ---- THE WITNESSES (Group 3, &force=ufo on a busy Saturday night): they look up, then RUN as the beam opens; the promenade empties
-  { const Q = await open({ slot: 'wk5', qs: `when=2026-10-24T22:10:00${GR}&force=ufo`, view: [402, 874] });
+  { const Q = await open({ slot: 'wk5', qs: `when=2026-11-07T22:10:00${GR}&force=ufo`, view: [402, 874] });   // (11a-2: a November Saturday — the giant stands on the compass Oct 20 → 31)
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.people.running >= 2`, 'the witnesses fleeing at a run', 60000);
     const p1 = await ev(Q.page, `${P}.people`);
@@ -3255,11 +3255,16 @@ G('legends', async () => {
     ok(!Q.files.some(f => /harbor\/legends\.js/.test(f)) && !st.run, `THE LEGENDARY SKY: a normal night never loads its module (${Q.files.filter(f => /legends\.js/.test(f)).length} files)`);
     await Q.ctx.close(); }
   // ---- THE UFO ABDUCTION held mid-lift (&lgs=14): the module loaded on demand, the beam a bright pale column over the compass
-  { const Q = await open({ slot: 'lg1', qs: `${NIGHT}&force=ufo&lgs=14&force=no-people`, view: [402, 874] });
+  // (11a-2: a NOVEMBER night — from Oct 20 the giant pumpkin stands on the compass, and no abduction is scheduled over a centrepiece)
+  { const Q = await open({ slot: 'lg1', qs: `when=2026-11-04T22:00${GR}&force=ufo&lgs=14&force=no-people`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.legend.state.phase === 'lift'`, 'the abduction loaded + lifting', 20000);
     const m = (await ev(Q.page, `${P}.promenade`)).medallion, c = await px(Q.page, m[0] - 22, m[1] - 70);
-    ok(lum(c) > 150 && c[2] >= c[0] - 30, `THE ABDUCTION: the beam lights the air over the compass (rgb ${c.join(',')} — pale + bright)`);
+    // (11a-2 — THE REDESIGN: the beam a PALE GREEN — green the strongest channel, still bright; the ring RACING while he's lifted)
+    ok(lum(c) > 150 && c[1] >= c[0] && c[1] >= c[2] - 6, `THE ABDUCTION: the beam lights the air over the compass a pale green (rgb ${c.join(',')})`);
+    await sleep(600);
+    const lg = await ev(Q.page, `${P}.legend.state`);
+    ok(!lg || !lg.ring || lg.ring.w > 9, `THE RING RACES while he's lifted: ${lg && lg.ring ? lg.ring.w : '?'} rad/s (calm 7)`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-ufo-402x874.png` });
     await Q.ctx.close(); }
   // ---- 9a: THE LIGHT AUDIT's control — a normal night: the wheel's bulbs + its cabins, the promenade's lamps, the pier lit (so the
