@@ -1277,6 +1277,41 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE PANEL: PLAY ALL (scenes / holiday moments / animals / workers — a chip beside the pill: skip, pause, stop) + the tidy (a SPEAKEASY
       section, the weather in groups, the off-switches + debug pieces in TOOLS)
 
+## CITY 2.0 — SP5: THE SPEAKEASY FOLLOW-UPS — THE SPIDERS, THE BOSS'S ROOM, THE WINDOWS, THE PARTY, THE PROMENADE DANCE, THE BLADE, CLEAR ALL (Oct 26 2026) — docs/harbor.md#sp5
+- [x] THE SPIDERS: the drop's feet LET GO (the hanging feet were placed in the hub's frame — they stayed pinned to the web and the legs
+      stretched; every foot follows the drawn, hanging body now, the leg lengths constant through the drop); fully INDEPENDENT (their own
+      leg-lift grids, reaction times, dash directions + distances); a ROAM of at least a letter's length — out a spun radial to its anchor on
+      the tube and along the frame thread on the tube (a tap out there: a run to the hub, then the drop); a BIGGER SCARE — a panicked dash
+      22–46 units along a radial away from the flicker (up the thread when hanging, along the word when crawling) at ~125 units/s with the
+      legs cycling in a run pose + a motion-blur ghost, a hold, then a slow wary return in creeping bursts
+- [x] THE BOSS'S ROOM: NO moment ever in his window (THE UPSTAIRS WAKES → the back room, the cat / fan / peek / ghost / witch / eyes elsewhere,
+      the tango skips it, hourPlan refuses it; a year of schedules checked); BY DAY the shade drawn (dark against the facade, warm at dusk) with
+      a seeded day plan — the peek (a tap too), the cigar smoke from the cracked sash, a shadow on overcast days; THE BOOTLEGGERS' TELL — a
+      violet lamp + a dark spade ♠ behind the shade from 3 pm (Saturday's delivery) / 5 pm (a weeknight run) until the truck arrives;
+      THE TV's SMALL NUDGE (hard jumps 86 → 23 a minute, warm flashes 85 → ~15 per ten minutes, the mean change halved, steady stretches
+      2 → ~10 %); HE WATCHES OVER HIS PARTY — the shade down glowing with the set's light, his shadow standing against it now + then with
+      the cigar's ember, then away
+- [x] CLEAR ALL = THE REAL CITY NOW (the owner's add-on): one tap in JUST ME strips the link's own &when / &force / &wx / &hush / &at… from
+      the URL + the scene (the real clock, the live weather back, every sky piece + a legendary stopped, PLAY ALL off), ignores an active
+      EVERYONE state here with the button asking for a second tap to clear it for everyone; the toast names what was cleared
+- [x] THE ROLLER SHADES: no curtains in the half-cut edge windows — a plain 1920s roller shade at a seeded height a night (up / half / down;
+      down = a warm translucent panel the mood's shadows play on), the two never alike
+- [x] THE BARBERSHOP'S VALUES: the barber's white jacket with a dark waistcoat + a black bow tie; the customer under a deep navy pinstripe cape
+- [x] THE CASH COUNT: ONE pair of arms (the kit's arms solved by two-bone IK to end at the counting hands) and the WALK-UP first through the
+      room's depth, then the close-up count
+- [x] THE DANCE CLOCK (core/harbor-dance.js, pure): every dancer follows the song's grid with every change of phase / tempo BLENDED (never a
+      snap at a song switch), winds down over a song's last bars, idles in the gap (a sway, a weight shift, a clap, a sip, a cheer as the song
+      ends), picks up on the new song — the window party + the promenade's circle read it
+- [x] THE WINDOW PARTY: the half-cut edge windows join with one or two dancers each (party only), one smaller dimmer dancer behind each group
+- [x] THE CHESTNUT VENDOR on the cart's right, past the framing maple's trunk (he stood behind Halloween's front-strip jack-o'-lantern)
+- [x] THE PROMENADE DANCE ON THE HOUR: on party nights every hour on the hour the circle's dancers walk up (arriving over ~30 s), dance two
+      songs' worth (2 × 3.5 min on the party's clock; the dance clock shapes the moves to the real songs), leave; never under a centrepiece,
+      during a raid or a legendary; joins mid-way
+- [x] THE BLADE'S WEEKLY LOOK: each Monday's repaint changes the game + the letter colour (the game's colour with a white-hot core / warm
+      white / amber) + the letter style (a Deco block, a condensed sans, a slab, an inline — never the same two weeks running) + the panel's
+      enamel; the bulbs stay warm white; &blade=<font>-<ink>-<panel> previews
+- [x] shots.mjs --until "<expr>" (wait for a page condition before the shot)
+
 ## CITY 2.0 — WIN3: THE SPIDERS RIGHT FOR HALLOWEEN, THE PANEL'S SCENE BUTTONS, THE BOSS'S TV ROOM, THE CASH COUNT, THE PARTY IN THE WINDOWS (Oct 26 2026) — docs/harbor.md#win3
 - [x] THE SPIDERS: the second spider arrives Oct 29 by date (the build-up: the 30th + the 31st have two); both walk ON TOP of the SPEAKEASY
       tubes (the dressing canvas above the word); THE DROP a dangle — the legs gather into a tuck, it hangs below the thread swaying + slowly
