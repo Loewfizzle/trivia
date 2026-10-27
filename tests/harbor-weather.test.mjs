@@ -42,7 +42,7 @@ test('the previews by name: &force=storm / &wx=heavy + &wxk=', () => {
   for (const id of Object.keys(WX_FORCE)) {
     const c = skyClock(`?force=${id}&at=42.96,-85.67`);
     assert.ok(c.wx && c.wx.forced, id);
-    assert.equal(cityWeather(c.wx).state, { 'heavy-rain': 'heavy', 'freezing-rain': 'freezing' }[id] || id, id);
+    assert.equal(cityWeather(c.wx).state, { 'heavy-rain': 'heavy', 'freezing-rain': 'freezing', snowfall: 'snow' }[id] || id, id);
   }
   const k = skyClock('?wx=rain&wxk=light'); assert.equal(cityWeather(k.wx).k, 0.3);
   assert.equal(cityWeather(forcedWeather('windy')).state, 'windy');

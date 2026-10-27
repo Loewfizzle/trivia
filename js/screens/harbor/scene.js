@@ -51,7 +51,7 @@ import { speakeasySteps, bladeStep, createSpeakeasy } from './speakeasy.js';
 import { lateTvK, dayKey as momentDayKey } from '../../core/harbor-moments.js';
 import { createCentre } from './centre.js';
 import { ghostAdGame , bladeStyle, adWeek } from '../../core/harbor-speakeasy.js';
-import { promenadeSteps, furnitureSteps, drawLampLight, dimPools } from './stage.js';
+import { promenadeSteps, furnitureSteps, drawLampLight, dimPools, shadowsStep } from './stage.js';
 import { lampThresholds, warmUp, lampMoment } from '../../core/harbor-lamps.js';
 import { createPeople } from './people.js';
 import { createWildlife } from './wildlife.js';
@@ -100,6 +100,9 @@ import { createDirector } from '../../core/harbor-director.js';
 import { createLoadLog, keyDiff } from '../../core/harbor-loadlog.js';
 import { startWeather, liveWeather as liveWx, lastWetAt, liveKp as liveKpNow, weatherSettled, weatherSource, weatherAsk, lastPlace } from '../district/live-weather.js';
 import { climateWeather } from '../../core/climate.js';
+import { snowState, forcedPack, packFromDays, daysOf, snowKey, emptyPack } from '../../core/harbor-snow.js';
+import { capFor, groundSteps, roadStep, speakStep, topsOf, snowTones, releaseSnow, awningSnow } from './snow.js';
+import { createSnowfall } from './snowfx.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 import { paradeWindow, paradeUnits } from '../../core/harbor-parade.js';
 import { latchBig, holidayAt, halloweenPieces, dotdPieces, thanksgivingPieces, holidaySeason, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
@@ -413,6 +416,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let wfx = { resize: NOOP, sky: NOOP, fogLayer: NOOP, flash: NOOP, flashNow: () => 0, moonVeil: () => 1, debug: () => ({}), destroy: NOOP };
   // 9a — THE RAIN is the Harbor's own now (rainfx.js: depth, the wind's slant, lit by the tubes + the lamps, rings + splashes)
   const rain = createHarborRain();
+  const snowfall = createSnowfall();       // (9b: the Harbor's own falling snow, lit by the neon + the lamps; the awning's slab)
   // 9a — THE LIGHTNING (lightning.js: inside the deck + a bolt behind the skyline; capped, never a white screen) → the thunder after it
   const zap = createLightning({ onStrike: ev => { snd.thunder(ev); if (S.onFlash) S.onFlash(ev); } });
   const lightningFlash = () => zap.flash();
@@ -621,6 +625,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     skyKey = skyKeyNow();
     skyMix.sky = null;                                         // (a re-layout repaints the sky: the merged copy too)
     for (const m of [fx, wfx, rain, sun, zap]) m.resize(W, H, HZ);
+    snowfall.resize(W, H);
     clouds.resize(W, safeTopV, skyGlowY, HZ, dpr);
     clouds.avoid(tagBand());
     sky.layout(L, { HZ, waterTop: waterBand(L).y0, waterY1: waterBand(L).y1, dpr: Math.min(2, dpr) });
@@ -714,6 +719,34 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const impliedOn = () => !clock.force.has('no-implied-road');
   // FP2 — THE STREET's WET HOOK (Part 9 hands it the real rain: streetWet({ wet })); &force=wet-street previews it (baked: in the key)
   // (9a: the REAL rain — THE WEATHER's wet street, in quarter steps so the bake follows it while it soaks + while it dries, patch by patch)
+  // 9b — THE SNOWPACK (core/harbor-snow.js): the ground's snow — &snow= (the panel's SNOW ON THE GROUND) → the climate fallback's → the live
+  // answer's real depth + its 30 days → a preview clock: the climate's ground for that date + place. SN: { stage, cover, banks, branches,
+  // white, paths, slush, depth, age, why } — refreshed with the look (every 2.5 s); the bake reads it through snowKey (quantized)
+  let SN = snowState(emptyPack()), snowSrc = 'none', snowLiveC = { key: '', pack: null }, snowPrevC = { key: '', pack: null };
+  function snowPackNow() {
+    const sq = qp.get('snow');
+    if (sq && sq !== 'auto') { const p = forcedPack(sq, qp.get('snowdepth')); if (p) return { pack: p, depth: null, src: `forced ${sq}` }; }
+    if (qp.get('snowdepth') != null && qp.get('snowdepth') !== '') { const d = Number(qp.get('snowdepth')); if (Number.isFinite(d)) return { pack: forcedPack(d > 0 ? 'older' : 'none', d), depth: d, src: `forced ${d} cm` }; }
+    const w = wxNow();
+    if (w && w.src === 'climate') return { pack: w.pack, depth: null, src: 'the climate fallback' };
+    if (w && !clock.wx && !(clock.preview && !clock.keepLive)) {
+      const rows = w.days || null, k = rows ? `${rows.length}:${rows[rows.length - 1][0]}` : 'none';
+      if (snowLiveC.key !== k) snowLiveC = { key: k, pack: rows ? packFromDays(daysOf(rows, Date.now())) : emptyPack() };
+      return { pack: snowLiveC.pack, depth: w.snowDepth != null ? w.snowDepth : null, src: `live${w.snowDepth != null ? ` · ${w.snowDepth} cm deep` : rows ? ' · the model' : ' · no snow data'}` };
+    }
+    // (a preview clock: the climate's ground on that date at that place — the most likely winter there)
+    const lc = LK && LK.local, k = lc ? `${lc.y}-${lc.m}-${lc.d}|${clock.tz}|${LK.lat}|${LK.lon}` : '';
+    if (snowPrevC.key !== k) snowPrevC = { key: k, pack: lc ? climateWeather(lkMs, { lat: LK.lat, lon: LK.lon, tz: clock.tz }).pack : emptyPack() };
+    return { pack: snowPrevC.pack, depth: null, src: 'a preview: the climate ground' };
+  }
+  function snowTick() {
+    const sp = snowPackNow(), tq = qp.get('temp'), temp = tq != null && tq !== '' && Number.isFinite(+tq) ? +tq : LK.temp;
+    SN = snowState(sp.pack, { depth: sp.depth, falling: WXS ? WXS.snow || 0 : (LK.snow || 0), temp: temp == null ? -2 : temp });
+    snowSrc = sp.src;
+  }
+  // the waterside road: WHITE while snow is falling + the plow hasn't been by (Group 3: the plow's passes), else its plowed lane
+  const roadModeNow = () => (WXS && WXS.snow > 0.25 && SN.stage === 'fresh' ? 'white' : 'plowed');
+  const snowNow = () => { if (clock.force.has('no-snow')) return ''; const k = snowKey(SN); return k ? `${k}${roadModeNow()[0]}` : ''; };
   const wetNow = () => streetWet({ force: clock.force.has('wet-street'), wet: WXS ? Math.round(WXS.wet * 4) / 4 : 0 });
   // 9a — THE WEATHER (core/harbor-weather.js): ONE city state from the live / forced answer, stepped every frame through its soft
   // transitions; the look's rain / fog / storm / wind follow it (every system reads LK), the street's wetness + the drips are its own
@@ -793,6 +826,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!WXS) { const wa = clock.wx && clock.wx.wetAt != null ? clock.wx.wetAt : clock.preview ? null : lastWet(); WXS = createWeatherState(wxTarget, { wet: wetFrom(wa, clock.now()), drip: dripFrom(wa, clock.now()) }); }
     stepWeather(WXS, wxTarget, (dt / 1000) * Math.min(60, clock.speed || 1), { forced: !!clock.wx });
     LK.rain = WXS.rain; LK.fog = WXS.fog; LK.storm = WXS.lightning ? 1 : 0; LK.wind = WXS.wind;
+    if (WXS.snow > 0.001 || (wxTarget && wxTarget.state === 'snow')) LK.snow = WXS.snow;     // (9b: the flakes ease in + out like the rain)
+    if (SN.slush >= 0.6 && !clock.force.has('no-snow')) { WXS.wet = Math.max(WXS.wet, 0.5 + 0.3 * SN.slush); WXS.drip = Math.max(WXS.drip, 0.35); }   // (9b: THE THAW — the melt water: 9a's wet street, puddles + the lights' reflections, the eaves dripping)
     // THE STORM SKY on the clouds (clouds.js#set: grey, dark, a lower base) — the deck heavier + darker with the rain, a storm's base
     // lower + near-black underneath; in tenths (each change re-lights the clouds)
     const st = WXS.state, rk = WXS.rain, q = v => Math.round(v * 10) / 10;
@@ -802,7 +837,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   let cloudSetKey = '';
   // (POLISH 5: named parts — the load log says WHICH changed: bakeKey is their values joined, the same string as before)
-  const bakeParts = () => ({ season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key });
+  const bakeParts = () => ({ season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key, snow: snowNow() });
   const bakeKey = () => Object.values(bakeParts()).join('|');
   let bakeParts0 = null;
   const partsDiff = (a, b) => (a ? Object.keys(b).filter(k => String(a[k]) !== String(b[k])).join(', ') || 'same' : 'first');
@@ -996,6 +1031,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function rebake() {
     wantBake = false;
     L.impliedOn = impliedOn(); L.lampK = lampsNow(); L.wet = wetNow();
+    // (9b: the props' + the trees' snow hooks — the tops by the stage, the branches only while fresh, the snow's tone in this light)
+    { const on = !!snowNow(); L.snow = on ? topsOf(SN) : 0; L.snowBranch = on ? SN.branches : 0; L.snowCol = on ? snowTones(lookTones(), SN).snow : null; }
     L.season = seasonNow(); L.seasonPhase = seasonForced() ? 0.5 : seasonPhase(LK && LK.local ? LK.local.m : 10, LK && LK.local ? LK.local.d : 15, { south: !!(LK && LK.south) });
     // (11a-2: the trees hold their peak autumn colour through the Thanksgiving build-up + the day — core/harbor-holiday.js#holidaySeason)
     if (!seasonForced() && !(LK && LK.south)) { const hs = holidaySeason(HS, L.season, L.seasonPhase); L.season = hs.season; L.seasonPhase = hs.phase; }
@@ -1004,15 +1041,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       fadeMs = slow ? WX_BLEND : 1200;
       LOADLOG.add('bake', `${shownAt >= 0 ? `crossfade ${fadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: shownAt >= 0 && !slow }); bakeParts0 = parts; }
     revOfBake.set(bk, neon.rev); if (revOfBake.size > 8) revOfBake.delete(revOfBake.keys().next().value);   // (8b1: the board swap's overlay)
+    // 9b — THE SNOW (snow.js): the caps on every layer's tops, the ground after the paving (+ the day's shadows again over it), the
+    // waterside road (white before the plow, then its clear lane), the speakeasy's sills + awning; nothing when there's none
+    const SNB = snowNow() ? SN : null, cap = g => (SNB && !clock.force.has('no-snowcaps') ? capFor(g, T, SNB) : null), ok = a => a.filter(Boolean);
+    if (!SNB) releaseSnow();
     baker.start(bk, {
-      far: [...facadeSteps(L, T, 'far', 6, neon.glass), neon.housingStep('far', T)],
-      near: [...facadeSteps(L, T, 'near', 6, neon.glass), neon.housingStep('near', T), searchlightStep(L, T), ...quaySteps(L, T)],
+      far: ok([...facadeSteps(L, T, 'far', 6, neon.glass), neon.housingStep('far', T), cap('far')]),
+      near: ok([...facadeSteps(L, T, 'near', 6, neon.glass), neon.housingStep('near', T), searchlightStep(L, T), ...quaySteps(L, T), cap('near')]),
       water: waterSteps(L, T),
-      harbor: [...pierSteps(L, T), ...lighthouseSteps(L, T)],
-      road: roadSteps(L, T),
-      bill: [neon.housingStep('bill', T)],
-      stage: [...promenadeSteps(L, T), ...signalSteps(L, T), ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z > L.speakeasy.side.z), ...speakeasySteps(L, T, speakCtx(), { blade: false }), ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z <= L.speakeasy.side.z), bladeStep(L, T, speakCtx())],   // (FP: the blade in front of the curb trees beside the side wall)
-      front: furnitureSteps(L, T, it => it.z < L.speakeasy.z0),
+      harbor: ok([...pierSteps(L, T), ...lighthouseSteps(L, T), cap('harbor')]),
+      road: ok([...roadSteps(L, T), SNB ? roadStep(L, T, SNB, roadModeNow()) : null, cap('road')]),
+      bill: ok([neon.housingStep('bill', T), cap('bill')]),
+      stage: ok([...promenadeSteps(L, T), ...(SNB ? [...groundSteps(L, T, SNB), shadowsStep(L, T)] : []), ...signalSteps(L, T), ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z > L.speakeasy.side.z), ...speakeasySteps(L, T, speakCtx(), { blade: false }), SNB ? speakStep(L, T, SNB) : null, ...furnitureSteps(L, T, it => it.z >= L.speakeasy.z0 && it.z <= L.speakeasy.side.z), bladeStep(L, T, speakCtx()), cap('stage')]),   // (FP: the blade in front of the curb trees beside the side wall)
+      front: ok([...furnitureSteps(L, T, it => it.z < L.speakeasy.z0), cap('front')]),
     });
     bakeTones = T;
   }
@@ -1056,6 +1097,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const ms = clock.now();
     LK = skyLook(ms, clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() }); lkMs = ms;
     holidayTick();
+    snowTick();
     LH = harborWeights(LK, Math.round(0.5 * stormDark() * 10) / 10);     // (9a: a storm afternoon's gloom — in tenths)
     P = paletteFor(LH);
     DK = darkNow();
@@ -1646,7 +1688,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     drawEvents(c, 'front');
     // ---- the weather over everything, the frame
     if (!off.has('no-rain')) { rain.lights(rainLights, now); rain.drops(c, rainEnv(fs, 'drops')); }
-    fx.front(c, fs);
+    // 9b — THE AWNING's SLAB sliding off now + then (while snow lies on it), then THE FALLING SNOW (the Harbor's own: City 1.0's flakes off)
+    if (fadeIn > 0 && L.speakeasy && !off.has('no-snow')) {
+      const sa = awningSnow(L.speakeasy), sx = L.speakeasy.x0, [ax0, ay] = project(cam, sx + sa.u0, sa.yF, sa.zF), [ax1] = project(cam, sx + sa.u1, sa.yF, sa.zF);
+      snowfall.slab(c, { on: (topsOf(SN) > 0.25 || off.has('awning-slab')) && !!snowNow(), a: { x0: ax0, x1: ax1, y: ay }, foot: groundY(cam, L.speakeasy.z0 - 1.6), col: bakeTones ? snowTones(bakeTones, SN).snow : [240, 244, 252], t, motion: S.motion, force: off.has('awning-slab') });
+    }
+    if (!off.has('no-snowfall') && fadeIn > 0) snowfall.draw(c, { snow: LK.snow || 0, wind: Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) * (WXS ? WXS.wind : LK.wind || 2), day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), dt, t, tier, motion: S.motion, lightAt: rain.lightAt });
+    { const sn = LK.snow; LK.snow = 0; fx.front(c, fs); LK.snow = sn; }
     zap.city(c, { y0: 0, y1: H });
     // 9a — THE WEATHER ON THE SIGN + THE GLASS (only when real / forced): the beads on the NEON tubes, the freezing glaze + icicles,
     // the rain + the cold frost on the dock's + the corner buttons' glass (glasswx.js; its own small canvases over the title)
@@ -1738,7 +1786,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function wxLines() {
     const f2 = v => (+v || 0).toFixed(2), pct = v => Math.round((+v || 0) * 100);
     const out = `→ ${LK.wxKind || 'seeded'} · opaque ${f2(LK.cloud)} veil ${f2(LK.veil)} fog ${f2(LK.fog)}`;
-    const wl = weatherLine(WXS);
+    const wl = weatherLine(WXS) + (SN.stage !== 'none' ? ` · ground ${SN.stage} ${SN.depth} cm (${snowSrc})` : '');
     if (clock.force.has('climate')) { const cw = climateNow(); return [`weather: climate fallback — forced (&force=climate)`, `wx ${cw.climate.why} · from ${cw.climate.how} · ${cw.temp} °C · WMO ${cw.code}`, `${out} · climate`, wl]; }
     if (clock.wx) return [`wx FORCED ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`, `${out} · forced`, wl];
     if (clock.force.has('climate')) { const cw = climateNow(); return [`weather: climate fallback — forced (&force=climate)`, `wx ${cw.climate.why} · from ${cw.climate.how} · ${cw.temp} °C · WMO ${cw.code}`, `${out} · climate`, wl]; }
@@ -2512,6 +2560,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
+      snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0 },          // (9b: THE SNOWPACK + where it came from)
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },

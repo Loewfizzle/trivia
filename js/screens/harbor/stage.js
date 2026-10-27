@@ -142,6 +142,18 @@ export function promenadeSteps(L, T) {
   });
   return steps;
 }
+/** 9b: the shadows by day again, over the snow (groundSteps covers the first ones): the lamps', the trees', the props' */
+export function shadowsStep(L, T) {
+  return x => {
+    const cam = L.cam, cx = pieceCtx(L);
+    lampShadows(x, L, T);
+    L.trees.forEach((t, i) => treeShadow(x, cam, t, T, { ...cx, i }));
+    for (const b of [L.bench, ...(L.bench.more || [])]) propShadow(x, cam, b, 'bench', T, cx);
+    if (L.cart.shown !== false && !L.cart.live) propShadow(x, cam, L.cart, 'cart', T, cx);
+    for (const p of L.planters) propShadow(x, cam, p, 'planter', T, cx);
+    if (L.mailbox) propShadow(x, cam, L.mailbox, 'mailbox', T, cx);
+  };
+}
 function lampShadows(x, L, T) {
   const cam = L.cam;
   for (const l of L.lamps) {

@@ -536,12 +536,15 @@ export function createRemote({ scene, api = apiCall }) {
     weather: {
       sec: 'weather', last: false, label: 'THE WEATHER', q: 'weather sky',
       n: () => R.WEATHER.length,
-      on: st => [st.wx ? R.WEATHER.find(w => w.id === st.wx).label : null],
+      on: st => [st.wx ? R.WEATHER.find(w => w.id === st.wx).label : null, st.snow ? `SNOW ${st.snow.toUpperCase()}` : null],
       kids: st => [h('div.hr-row', btn('REAL', !st.wx, () => edit(s => { delete s.wx; delete s.wxk; }), { cls: 'hr-wide', title: 'the live weather', q: 'real live weather clear it' })),
         // (WIN: the rows in groups — the sky's cover, rain, storm, fog, cold)
         ...R.WEATHER_GROUPS.flatMap(g => [h('div.hr-gl', g), opts(...R.WEATHER.filter(w => w.group === g).map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }), { q: `${w.label} ${w.id} weather ${g}` })))]),
         // (9a: the INTENSITY of the forced state — AUTO = its own)
-        opts(btn('AUTO', !st.wxk, () => edit(s => { delete s.wxk; }), { q: 'weather intensity auto' }), ...R.WX_INTENSITY.map(w => btn(w.label, st.wxk === w.id, () => edit(s => { s.wxk = w.id; }), { q: `${w.label} intensity weather rain` })))],
+        opts(btn('AUTO', !st.wxk, () => edit(s => { delete s.wxk; }), { q: 'weather intensity auto' }), ...R.WX_INTENSITY.map(w => btn(w.label, st.wxk === w.id, () => edit(s => { s.wxk = w.id; }), { q: `${w.label} intensity weather rain` }))),
+        // (9b: SNOW ON THE GROUND — the snowpack's stages; AUTO = the real ground)
+        h('div.hr-gl', 'SNOW ON THE GROUND'),
+        opts(btn('AUTO', !st.snow, () => edit(s => { delete s.snow; }), { q: 'snow ground auto real' }), ...R.SNOW_GROUND.map(w => btn(w.label, st.snow === w.id, () => edit(s => { s.snow = w.id; }), { q: `${w.label} snow ground winter` })))],
     },
     party: {
       sec: 'lightsmusic', last: false, label: 'PARTY SHOW', q: 'party show night neon',

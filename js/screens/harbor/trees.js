@@ -153,7 +153,7 @@ function drawGrate(x, cam, t, rig, ctx) {
   // the opening: mulch round the trunk
   const [ox, oy] = P(0, 0), rx = 0.36 * s, ry = Math.max(1, (P(0, -0.36)[1] - P(0, 0.36)[1]) / 2);
   x.fillStyle = rgb(mix(soil, [0, 0, 0], 0.25)); x.beginPath(); x.ellipse(ox, oy, rx, ry, 0, 0, TAU); x.fill();
-  if (ctx.snow > 0.02) { x.fillStyle = `rgba(244,246,255,${(0.85 * ctx.snow).toFixed(3)})`; x.beginPath(); quad(1); x.fill(); }
+  if (ctx.snow > 0.02) { const sc = ctx.snowCol || [244, 246, 255]; x.fillStyle = `rgba(${sc[0] | 0},${sc[1] | 0},${sc[2] | 0},${(0.85 * ctx.snow).toFixed(3)})`; x.beginPath(); quad(1); x.fill(); }
 }
 
 /** leaves / petals / fruit lying on the grate + the paving round it */
@@ -261,8 +261,11 @@ function drawLimbs(x, s, bx, by, segs, maxD, rig, bark, ctx) {
     x.fill();
   }
   // Part 9's hook: snow on the tops of the limbs (the more level a limb, the more it holds)
-  if (ctx.snow > 0.02) {
-    x.strokeStyle = `rgba(246,248,255,${(0.92 * ctx.snow).toFixed(3)})`; x.lineCap = 'round';
+  // (9b: the branches hold snow only while it's FRESH — ctx.snowBranch; its tone in this light — ctx.snowCol)
+  const sb = ctx.snowBranch ?? ctx.snow ?? 0;
+  if (sb > 0.02) {
+    const sc = ctx.snowCol || [246, 248, 255];
+    x.strokeStyle = `rgba(${sc[0] | 0},${sc[1] | 0},${sc[2] | 0},${(0.92 * sb).toFixed(3)})`; x.lineCap = 'round';
     for (let d = 1; d <= Math.min(maxD, 5); d++) {
       x.lineWidth = Math.max(0.5, 0.06 * s / d); x.beginPath();
       for (const sg of segs) {

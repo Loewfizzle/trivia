@@ -71,18 +71,18 @@ export function snowState(pack, { depth: realDepth = null, falling = 0, temp = n
   if (depth < SNOW.none && banksCm < SNOW.bankNone) return { ...base, stage: 'none', cover: 0, branches: 0, white: 0, paths: 0, slush: p.thaw ? 0.3 : 0, banks: 0, why: 'no snow on the ground' };
   const cov = clamp01(Math.pow(clamp01(depth / 7), 0.6));
   if (!fallingNow && (depth < SNOW.none || (depth < SNOW.springDepth && p.peak >= SNOW.springPeak && p.age > 1))) {
-    return { ...base, stage: 'spring', cover: Math.round(clamp01(0.12 + depth / 9) * 100) / 100, branches: 0, white: 0.62, paths: 0, slush: p.thaw ? 0.6 : 0.25, why: `the last patches · ${base.depth} cm · the banks ${Math.round(banksCm)} cm` };
+    return { ...base, stage: 'spring', cover: Math.round(clamp01(0.12 + depth / 9) * 100) / 100, branches: 0, white: 0.5, paths: 0, slush: p.thaw ? 0.6 : 0.25, why: `the last patches · ${base.depth} cm · the banks ${Math.round(banksCm)} cm` };
   }
   if (!fallingNow && p.thaw >= 1 && p.warm > 2 && p.age > 0) {
-    return { ...base, stage: 'thaw', cover: Math.round(clamp01(cov * 0.85) * 100) / 100, branches: 0, white: 0.6, paths: 1, slush: 1, why: `thawing · ${base.depth} cm · ${p.warm} °C` };
+    return { ...base, stage: 'thaw', cover: Math.round(clamp01(cov * 0.62) * 100) / 100, branches: 0, white: 0.42, paths: 1, slush: 1, why: `thawing · ${base.depth} cm · ${p.warm} °C` };
   }
   if (fallingNow || p.age <= SNOW.freshDays) {
     return { ...base, stage: 'fresh', cover: Math.round(Math.max(cov, fallingNow ? 0.5 : 0) * 100) / 100, branches: fallingNow ? 1 : p.age === 0 ? 1 : 0.55, white: 1, paths: fallingNow ? 0.15 : p.age === 0 ? 0.3 : 0.6, slush: 0, why: `fresh snow · ${base.depth} cm${fallingNow ? ' · falling' : ''}` };
   }
   if (p.age <= SNOW.olderDays) {
-    return { ...base, stage: 'older', cover: Math.round(cov * 100) / 100, branches: 0.12, white: 0.82, paths: 1, slush: 0.15, why: `older snow · ${base.depth} cm · ${p.age} days` };
+    return { ...base, stage: 'older', cover: Math.round(cov * 100) / 100, branches: 0.12, white: 0.7, paths: 1, slush: 0.15, why: `older snow · ${base.depth} cm · ${p.age} days` };
   }
-  return { ...base, stage: 'banks', cover: Math.round(clamp01(cov * 0.9) * 100) / 100, branches: 0, white: 0.7, paths: 1, slush: 0.2, banks: Math.max(base.banks, 0.5), why: `an old pack · ${base.depth} cm · the banks ${Math.round(banksCm)} cm · ${p.age} days` };
+  return { ...base, stage: 'banks', cover: Math.round(clamp01(cov * 0.9) * 100) / 100, branches: 0, white: 0.5, paths: 1, slush: 0.2, banks: Math.max(base.banks, 0.5), why: `an old pack · ${base.depth} cm · the banks ${Math.round(banksCm)} cm · ${p.age} days` };
 }
 
 /** the previews: &snow=fresh|older|banks|thaw|spring|none (+ &snowdepth=<cm>) → a pack that reads as that stage */

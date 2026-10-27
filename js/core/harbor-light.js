@@ -16,7 +16,7 @@ const norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / 
 
 /** what every piece's art gets (trees.js, props.js, centre.js): the season + how far into it, the lamps (their light at night: lampK =
  *  the lamps' ramp baked), Part 9's hooks (snow on the ground + branches, a wet sheen) */
-export const pieceCtx = L => ({ season: L.season || 'autumn', phase: L.seasonPhase ?? 0.5, lights: [...L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), ...hiddenLamps(L)], lampK: L.lampK || 0, snow: L.snow || 0, wet: L.wet || 0 });
+export const pieceCtx = L => ({ season: L.season || 'autumn', phase: L.seasonPhase ?? 0.5, lights: [...L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), ...hiddenLamps(L)], lampK: L.lampK || 0, snow: L.snow || 0, snowBranch: L.snowBranch ?? L.snow ?? 0, snowCol: L.snowCol || null, wet: L.wet || 0 });
 
 // POL4 — THE HIDDEN LAMP (the owner: at night the tree just left of the crossing — behind the blade sign — and the bench under it were the
 // darkest spot on the promenade): a street lamp standing just BEHIND the speakeasy's corner + the blade sign, never drawn (on every
