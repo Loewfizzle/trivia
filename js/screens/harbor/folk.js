@@ -68,7 +68,7 @@ const WORKWEAR = {
  * ('case' | 'pail' | 'purse' | 'papers' | null), jog }. r: the member's own random; o: { season, party, night, role }.
  */
 export function lookOf(name, seed, o = {}) {
-  const r = rngFrom(seed), season = o.season || 'autumn', cold = season === 'winter' || season === 'autumn', summer = season === 'summer';
+  const r = rngFrom(seed), season = o.season || 'autumn', cold = season === 'winter' || season === 'autumn' || !!o.cold, summer = season === 'summer' && !o.cold;
   const party = !!o.party, role = o.role || 'lead';
   let woman = r() < 0.5, kid = false;
   if (name === 'lady') woman = true;
@@ -121,6 +121,10 @@ export function lookOf(name, seed, o = {}) {
   L.umbrella = (o.rain || 0) > 0.3 && !L.jog && r() < 0.74 ? pick(r, [[28, 28, 34], [28, 28, 34], [30, 30, 36], [26, 24, 30], [150, 36, 42], [44, 62, 110], [190, 150, 54], [80, 50, 96]]) : null;
   L.paper = (o.rain || 0) > 0.3 && !L.umbrella && !L.jog && !kid && r() < 0.65;
   L.holdHat = (o.wind || 0) > 10 && !!L.hat && !L.umbrella && !L.paper && r() < 0.6;
+  // 9b — WINTER: in the real cold (≤ 4 °C) the kids get a short coat + a cap too; while snow falls it settles on the hats + the shoulders
+  // (never on an umbrella's holder — the umbrella keeps it off)
+  if (o.cold && kid && L.coat === 'none' && !L.worker) { L.coat = 'short'; L.cols.coat = pick(r, [[150, 50, 46], [60, 80, 130], [70, 110, 80], [140, 110, 70]]); if (!L.hat) L.hat = 'flatcap'; }
+  L.snowy = (o.snow || 0) > 0.2 && !L.umbrella;
   L.dog = pick(r, DOGS); L.dogSize = 0.75 + r() * 0.5;
   L.stride = 0.94 + r() * 0.12;   // (PEO: a little longer or shorter in the step, per person)
   return L;
@@ -543,6 +547,7 @@ function body(c, J, L, X, Y, H, lit, env) {
   }
   if (L.tux && cz < 0.4) { const v0 = tX + cx * sx * 0.45; c.fillStyle = f(cols.shirt, 1.2); c.beginPath(); c.moveTo(X(v0 - 0.03 * (1 - ax * 0.5)), Y(top)); c.lineTo(X(v0 + 0.03 * (1 - ax * 0.5)), Y(top)); c.lineTo(X(v0), Y(top - 0.13)); c.closePath(); c.fill(); }
   if (L.coat !== 'none' && ax > 0.5) { c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(X(tX - sx * 0.1 * d), Y(top - 0.05), Math.max(0.4, H * 0.012), (top - 0.05 - hem) * H * 0.95); }
+  if (L.snowy && L.coat !== 'none') { c.fillStyle = f([238, 242, 252]); c.beginPath(); c.ellipse(X(tX), Y(top + 0.012), sx * H * 1.02, Math.max(0.7, H * 0.022), 0, Math.PI, 0); c.fill(); }   // (9b: snow on the shoulders)
   if (cols.scarf && L.coat !== 'none') { c.fillStyle = f(cols.scarf); c.beginPath(); c.ellipse(X(tX), Y(top - 0.005), sx * H * 0.92, H * 0.026, 0, 0, TAU); c.fill(); if (ax > 0.5 || cz < -0.5) c.fillRect(X(tX + (ax > 0.5 ? -d * 0.05 : 0.02)), Y(top - 0.005), Math.max(0.6, 0.03 * H), 0.13 * H); }
   // 8b1 — THE UNIFORMS' DETAILS: an overalls' bib + straps, an apron, a waistcoat, brass buttons down the front (+ the cop's badge)
   if (L.overalls) {
@@ -586,6 +591,9 @@ function body(c, J, L, X, Y, H, lit, env) {
   if (sun) { const g = c.createLinearGradient(X(hx - hr * sun.s), 0, X(hx + hr * sun.s), 0); g.addColorStop(0, `rgba(${sun.hi},${(0.24 * sun.k).toFixed(3)})`); g.addColorStop(0.5, `rgba(${sun.hi},0)`); g.addColorStop(0.55, 'rgba(30,20,40,0)'); g.addColorStop(1, `rgba(30,20,40,${(0.3 * sun.k).toFixed(3)})`); c.fillStyle = g; c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); }
   face(c, J, L, X, Y, H, f, hx, hy, hr);
   hat(c, L, X, Y, H, hx, hy, hr, J, f);
+  // (9b: snow settled on the hat's crown + its brim — or the bare head — while it falls: one bright accent that reads at 27 pt)
+  if (L.snowy) { const sc = f([242, 246, 255]), top = L.hat === 'fedora' || L.hat === 'top' ? 1.48 : L.hat ? 1.2 : 1.0; c.fillStyle = sc; c.beginPath(); c.ellipse(X(hx + J.cx * hr * 0.06), Y(hy + hr * top), hr * 0.85 * H, Math.max(0.6, hr * 0.32 * H), 0, Math.PI, 0); c.fill();
+    if (L.hat === 'fedora') c.fillRect(X(hx - hr * 1.5), Y(hy + hr * 0.62), hr * 3 * H, Math.max(0.6, 0.012 * H)); }
   if (L.cape && !behind) cape(c, J, L, X, Y, H, f);
   if (L.tail && !behind) tail(c, J, X, Y, H, f, env);
   if (L.hat && BRIM[L.hat] != null && back < 0.7) { const k = sunSide(env, true) * (1 - back); if (k > 0.05) { const by = BRIM[L.hat]; c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip(); c.fillStyle = `rgba(26,18,30,${(0.42 * k).toFixed(3)})`; c.fillRect(X(hx - hr * 1.2), Y(hy + hr * by), hr * 2.4 * H, hr * 0.55 * H); c.restore(); } }

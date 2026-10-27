@@ -64,10 +64,10 @@ export function createPeople() {
     M = folkMap(L, { event, ring, line: lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
   }
   const lookFor = (mem, env) => {
-    const key = `${mem.vid}|${mem.m.seed}|${mem.m.role}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${env.wind > 10 ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}|${mem.hween ? 'H' : ''}|${env.holCarry || ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
+    const key = `${mem.vid}|${mem.m.seed}|${mem.m.role}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${env.wind > 10 ? 1 : 0}|${env.snow > 0.2 ? 1 : 0}${env.cold ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}|${mem.hween ? 'H' : ''}|${env.holCarry || ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
     let lk = looks.get(key);
     // (11a-1: the holidays' people carry their costume / instrument / role on the member — core/harbor-people.js#totVisit, #procVisit)
-    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, wind: env.wind, role: mem.m.role, sit, m: mem.m, hween: !!mem.hween, hcarry: env.holCarry || null });
+    if (!lk) { lk = lookOf(mem.look, mem.m.seed, { season: env.season, party: mem.party, rain: env.rain, wind: env.wind, snow: env.snow, cold: env.cold, role: mem.m.role, sit, m: mem.m, hween: !!mem.hween, hcarry: env.holCarry || null });
       // (POLISH 5 — the line prototype: the COAT in the player's colour — a long coat, the colour a touch deep so it reads as cloth)
       if (mem.coat) { lk = { ...lk, coat: 'long', dress: lk.woman ? 'day' : null, cols: { ...lk.cols, coat: mem.coat.map(v => Math.round(v * 0.82)), dress: mem.coat.map(v => Math.round(v * 0.82)) } }; }
       looks.set(key, lk); if (looks.size > 160) looks.delete(looks.keys().next().value); }
@@ -120,7 +120,7 @@ export function createPeople() {
   const gaits = new Map();
   let movingNow = false;
   function gait(members, f) {
-    const seen = new Set(), env = { season: f.season, rain: f.rain || 0, wind: f.wind || 0 };
+    const seen = new Set(), env = { season: f.season, rain: f.rain || 0, wind: f.wind || 0, snow: f.snow || 0, cold: f.temp != null && f.temp <= 4 };   // (9b: snow on the hats while it falls; coats + scarves in the real cold)
     for (const m of members) {
       const key = m.vid + '|' + m.m.role, st = m.s, g = gaits.get(key), walking = st.pose === 'walk' && st.v > 0.05;
       const sl = strideLen(lookFor(m, env), st.v);
