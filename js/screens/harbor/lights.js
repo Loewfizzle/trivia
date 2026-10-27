@@ -27,7 +27,7 @@ const NEONW = [[255, 96, 190], [178, 112, 255], [64, 236, 200], [236, 70, 255], 
 const AMBER = [255, 194, 122];
 const PARTYW = [[255, 70, 180], [70, 220, 255], [170, 100, 255], [255, 200, 90], [255, 70, 180], [70, 220, 255]];
 /** 11a-1 — HALLOWEEN NIGHT's windows: an eerie green-white share + a jack-o'-lantern orange one · DAY OF THE DEAD's candlelight */
-const GHOSTW = [[150, 255, 176], [196, 255, 206], [120, 236, 160]], LANTERNW = [[255, 140, 40], [255, 166, 60]], CANDLEW = [[255, 176, 84], [255, 150, 70], [255, 196, 120]];
+const GHOSTW = [[150, 255, 176], [196, 255, 206], [120, 236, 160]], LANTERNW = [[255, 140, 40], [255, 166, 60]], CANDLEW = [[255, 176, 84], [255, 150, 70], [255, 196, 120]], AMBERW = [[255, 168, 76], [255, 188, 104], [255, 150, 62], [255, 204, 128]];
 const DARK = [8, 8, 20];
 const mixc = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];
 const strs = new Map();
@@ -105,11 +105,13 @@ function drawLit(x, cam, it, look, meta, group, idx) {
       if (fl || winHash(b.seed, t, c, r, 21) < 0.2) { col = PARTYW[Math.floor(winHash(b.seed, t, fl ? 0 : c, r, 22) * PARTYW.length)]; a = Math.min(1, Math.max(a, 0.7) * 1.1); }
     }
     // 11a-1 — THE HOLIDAY's windows (baked with the light key: look.hol): Halloween night ~1 in 5 lit windows an eerie green-white, ~1 in 12
-    // a jack-o'-lantern's orange; Day of the Dead's evenings ~1 in 6 the low gold of candles
+    // a jack-o'-lantern's orange; Day of the Dead's evenings ~1 in 6 the low gold of candles; Thanksgiving's evening amber (below)
     if (look.hol && tr.cls !== 'tv' && !quiet) {
       const hh = winHash(b.seed, t, c, r, 27), hk = look.hol.k;
       if (look.hol.id === 'halloween') { if (hh < 0.2 * hk) col = GHOSTW[Math.floor(winHash(b.seed, t, c, r, 28) * GHOSTW.length)]; else if (hh < 0.28 * hk) col = LANTERNW[Math.floor(winHash(b.seed, t, c, r, 28) * LANTERNW.length)]; }
       else if (look.hol.id === 'dotd' && hh < 0.17 * hk) col = CANDLEW[Math.floor(winHash(b.seed, t, c, r, 28) * CANDLEW.length)];
+      // (11a-2 — THANKSGIVING's evening: ~2 in 5 lit windows the amber of a family dinner by candle + lamp, a touch brighter — everyone's home)
+      else if (look.hol.id === 'thanksgiving' && hh < 0.4 * hk) { col = AMBERW[Math.floor(winHash(b.seed, t, c, r, 28) * AMBERW.length)]; a = Math.min(1, Math.max(a, 0.72) * 1.08); }
     }
     let [wx, wy, ww, wh] = rect;
     // FAR GLITTER (Part 3, the owner's review): far + mid windows are fine, irregular points of light — each its own size inside

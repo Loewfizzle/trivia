@@ -10,12 +10,20 @@ export const PARTY_END_H = 26;       // 2 am (as an hour of the evening's day)
 export const PARTY_FADE_MIN = 1.5;   // the wind-down at 2 am, minutes
 export const FALLBACK_BREATH_S = 3.5; // one breath every 3.5 s before the music plays
 
-/** The hour as an hour of the EVENING's day: 20..26 through a party night, 2 am = 26 (null outside a Fri/Sat night). */
+/** THE HOMECOMING (11a-2): the night before Thanksgiving (the fourth Thursday of November) is a party night too. partyDow → the day of
+ *  the week as the party sees it: that Wednesday counts as a Friday (its evening), Thanksgiving itself as a Sunday (only the party's
+ *  small hours — its own evening stays quiet); every other day is itself */
+const tgDay = y => { const dow = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return 1 + ((4 - dow + 7) % 7) + 21; };
+export function partyDow(y, m, d, dow) { if (m !== 11 || !y) return dow; const td = tgDay(y); return d === td - 1 ? 5 : d === td ? 0 : dow; }
+export const homecomingNight = (y, m, d) => m === 11 && d === tgDay(y) - 1;
+
+/** The hour as an hour of the EVENING's day: 20..26 through a party night, 2 am = 26 (null outside a Fri/Sat night — or the homecoming). */
 export function partyHour(local) {
   if (!local) return null;
   const hr = (local.h || 0) + (local.mi || 0) / 60 + (local.s || 0) / 3600;
-  if ((local.dow === 5 || local.dow === 6) && hr >= PARTY_START_H - 0.5) return hr;          // the evening (from 7:30 pm, for the fade-in maths)
-  if ((local.dow === 6 || local.dow === 0) && hr < PARTY_END_H - 24 + 1.5) return hr + 24;    // the small hours (to 3:30 am, for the fade-out)
+  const dow = local.y ? partyDow(local.y, local.m, local.d, local.dow) : local.dow;
+  if ((dow === 5 || dow === 6) && hr >= PARTY_START_H - 0.5) return hr;          // the evening (from 7:30 pm, for the fade-in maths)
+  if ((dow === 6 || dow === 0) && hr < PARTY_END_H - 24 + 1.5) return hr + 24;    // the small hours (to 3:30 am, for the fade-out)
   return null;
 }
 

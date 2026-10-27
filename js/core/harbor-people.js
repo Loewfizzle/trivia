@@ -17,7 +17,7 @@
 // its weight in MIX's periods; a new look: folk.js#LOOKS (+ its name in the builder's `look`).
 import { rngFrom, hashString } from './rng.js';
 import { signalAt, SIGNAL_CYCLE, xOfF } from './harbor-promenade.js';
-import { partyAt } from './harbor-moments.js';
+import { partyAtT } from './harbor-moments.js';
 import { carsAt } from './harbor-traffic.js';
 import { trafficHold, inHold } from './harbor-legend.js';
 import { DANCE, RING, ringAt, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
@@ -678,7 +678,7 @@ const tailOf = m => Math.max(0, ...m.map(x => x.lag));
 function blockVisits(phase, k, M, ctx = {}) {
   const B = FOLK.block, t0 = k * B + (phase ? B / 2 : 0), t1 = t0 + B, loc = localOf(t0 + B / 2, ctx.off);
   const r = rngFrom(hashString(`folk|${ctx.seed || 1924}|${loc.key}|${phase}|${k}`));
-  const party = ctx.party ? ctx.party(t0 + B / 2) : partyAt(loc.dow, loc.h);
+  const party = ctx.party ? ctx.party(t0 + B / 2) : partyAtT(t0 + B / 2, ctx.off);
   const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: ctx.rain || 0, budget: ctx.budget == null ? 1 : ctx.budget });
   // (×1.3: a phase's visits must fit inside its block, so its load falls off toward the block's end — the other phase fills in)
   const want = mn.n / 2 * B * 1.3, cap = phase === 0 ? Math.ceil(FOLK.cap * 0.65) : FOLK.cap, out = [];
@@ -836,7 +836,7 @@ export function folkAt(t, world, cache = new Map()) {
   // POLISH 4 — THE LINE AT THE DOOR (party nights — lineNight): one simulation an evening, its guests + the doorman; never with Lobby
   // 2.0's own line (ctx.lobby) or the &force=doors preview
   const lineOf = tt => { if (ctx.lobby || ctx.forceDoors) return null; const lc = localOf(tt, ctx.off), eh = lc.h < 12 ? lc.h + 24 : lc.h, day0 = tt - eh * 3600, ek = localOf(day0 + 43200, ctx.off);
-    if (eh < LINE.from - 0.1 || eh > LINE.to + 0.2) return null; const party = ctx.party ? ctx.party(day0 + 22 * 3600) : partyAt(ek.dow, 22);
+    if (eh < LINE.from - 0.1 || eh > LINE.to + 0.2) return null; const party = ctx.party ? ctx.party(day0 + 22 * 3600) : partyAtT(day0 + 22 * 3600, ctx.off);
     if (!party) return null; return get(`LN|${ek.key}`, () => lineNight(day0, ek.key, Mev, L, ctx)); };   // (planned round the compass: the dance circle may close it)
   const linesNear = (a, b) => [...new Set([a, b].map(lineOf).filter(Boolean))];
   const lineOn = (a, b) => linesNear(a, b).some(x => b > x.T0 - 60 && a < x.T1 + 60);
@@ -1213,7 +1213,7 @@ export function roofMap(L) {
 function roofVisits(phase, k, L, ctx = {}) {
   const B = 600, t0 = k * B + (phase ? B / 2 : 0), t1 = t0 + B, loc = localOf(t0 + B / 2, ctx.off), R = roofMap(L), F = FOLK;
   const r = rngFrom(hashString(`roof|${ctx.seed || 1924}|${loc.key}|${phase}|${k}`));
-  const party = ctx.party ? ctx.party(t0 + B / 2) : partyAt(loc.dow, loc.h), crowd = roofCrowd({ h: loc.h, dow: loc.dow, month: loc.month, party, rain: ctx.rain || 0 });
+  const party = ctx.party ? ctx.party(t0 + B / 2) : partyAtT(t0 + B / 2, ctx.off), crowd = roofCrowd({ h: loc.h, dow: loc.dow, month: loc.month, party, rain: ctx.rain || 0 });
   const want = crowd.n / 2 * B, out = [], occ = [...(ctx.others || [])];
   const load = (a, b) => { let mx = 0; for (const tt of [a, ...occ.filter(o => o.t0 > a && o.t0 < b).map(o => o.t0)]) { let n = 0; for (const o of occ) if (tt >= o.t0 && tt < o.t1) n += o.n; mx = Math.max(mx, n); } return mx; };
   const M = { rects: R.rects, circles: R.circles };

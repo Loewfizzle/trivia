@@ -75,6 +75,7 @@ import { tracesAt } from '../../core/harbor-crew.js';
 import { folkMap } from '../../core/harbor-people.js';
 import { drawSheets, sheetArt, bladeArt, drawBlade } from './workers.js';
 import { createDayFx } from './dayfx.js';
+import { createChimneys } from './chimneys.js';   // (11a-2: chimney smoke — Thanksgiving's ovens + hearths; 9b's winter)
 import { createClouds } from './clouds.js';
 import { createHarborRain, rainSlant, rainLook } from './rainfx.js';
 import { createLightning } from './lightning.js';
@@ -397,6 +398,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const sun = createSun({ look: 'harbor' });
   const clouds = createClouds();
   const dayfx = createDayFx();
+  const chimneys = createChimneys();
   const bow = createRainbow({ harbor: true });   // (6b: the Harbor's own fit — core/rainbow.js#bowGeometry's o.harbor)
   const fw = createFireworks({ onBurst: e => { PT.swell = Math.min(1, PT.swell + 0.55); PT.bursts++; if (S.onBurst) S.onBurst(e); } });
   const bc = createBeatClock();
@@ -603,6 +605,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     cam.lhLit = lhEdgeBlocks(L);
     { const l = L.lighthouse, [x, ty] = project(cam, l.x, l.h + 6, l.z); cam.lhWall = cam.wide ? null : { x, ty, hw: 30 * cam.F / 600, z: l.z }; }
     dayfx.layout(L, signSpots(L).map(sp => sp.rect).filter(Boolean));
+    chimneys.layout(L);
     strings.layout(L);
     roadLight.layout(L);
     leaves.layout(L);
@@ -1000,7 +1003,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const lightKey = () => `${Math.round(winShare() * 60)}|${winBias()}|${Math.round((P.winWarm || 0) * 10)}|${windowsNight(DK) ? 1 : 0}|${camSig}|${partyLit() ? 'p' : ''}|${holLit() ? `${holLit().id}${holLit().k}` : ''}`;
   /** 11a-1 — THE HOLIDAY IN THE SKYLINE's WINDOWS (lights.js): Halloween night's eerie green + jack-o'-lantern orange share, Day of the
    *  Dead's candlelight — { id, k (quarters) } or null; baked with the light key */
-  const holLit = () => (HR.windowTintK > 0.05 ? { id: 'halloween', k: Math.round(HR.windowTintK * 4) / 4 } : HR.sign === 'dotd' ? { id: 'dotd', k: 1 } : null);
+  // (11a-2: Thanksgiving's evening — the skyline's windows AMBER: families home round their tables)
+  const holLit = () => (HR.windowTintK > 0.05 ? { id: HS.id === 'thanksgiving' ? 'thanksgiving' : 'halloween', k: Math.round(HR.windowTintK * 4) / 4 } : HR.sign === 'dotd' ? { id: 'dotd', k: 1 } : null);
   // (NEON PASS 3: a party night's windows — re-baked once when the party starts and once when it ends)
   const partyLit = () => PT.on > 0.5 || clock.force.has('neon-party');
   function rebakeLights() {
@@ -1384,6 +1388,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (cam.lhWall && !off.has('no-beam')) beam.wall(c, { k: fadeIn * litK(DK, 'beams') * litK(DK, 'flood') * (lit > 0 ? lit : 0) * legendPow(cam.lhWall.x, 'harbor', 303), wallZ: 241, motion: S.motion, now: performance.now(), ms: clock.now() });
     // THE DAY PASS — the day's motion: flags on the roofs in the real wind, sun glints on the towers' glass (dayfx.js)
     if (!off.has('no-dayfx')) dayfx.draw(c, { t, LK, T: bakeTones, fade: fadeIn, motion: S.motion, tier });
+    // 11a-2 — CHIMNEY SMOKE (chimneys.js): the skyline's roof vents here, the speakeasy's own chimney after its roof (&force=chimneys)
+    chimneys.set(clock.force.has('chimneys') ? 1 : HP && HP.chimneys ? HP.chimneys : 0);
+    const chimF = { t, dt, LK, T: bakeTones, fade: fadeIn, motion: S.motion, tier };
+    chimneys.draw(c, chimF, 'far');
     // THE SKY BEAMS (NEON PASS 4): straight up from the tall towers' crowns on a party night — one by one through the warm-up (FP2: 8:30 →
     // 9:30 pm, later when the dusk is late), all from the peak, taking turns with the searchlights; pulsing on the beat; in each tower's colour (the sweeps too)
     { const sh = neon.show(), forced = clock.force.has('beams');
@@ -1517,6 +1525,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         // (WIN3 — THE PARTY IN THE WINDOWS: the peak's clock (seconds since it began / until it ends), the beat, the forced flag)
         partyPhase: PT.name, partyPeakS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (hr - pl.peak) * 3600; })(), partyEndS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (pl.calm - hr) * 3600; })(),
         partyForce: clock.force.has('window-party'), beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, ...songEdge() } : null, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+    if (fadeIn > 0 && !off.has('no-speakeasy')) chimneys.draw(c, chimF, 'near');
     // WIN3 — THE WINDOW PARTY's COLOUR ON THE COBBLES: each room's light pooled on the promenade in front of its window (a flat ellipse,
     // 'lighter', in the room's colour — the foreground takes the party's colour)
     partyPools = [];
@@ -2425,7 +2434,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
     harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
-      clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(),
+      clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(), chimneys: chimneys.debug(),
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
       wheel: (() => { const w = L.wheel, [x, y] = project(cam, w.x, w.y, w.z), r = cam.F * w.r / w.z, [, deck] = project(cam, w.x, L.pier.y, w.z), hd = L.pier.head, [h0] = project(cam, hd.x0, L.pier.y, w.z), [h1] = project(cam, hd.x1, L.pier.y, w.z); return { ...wheel.debug(), schemeId: wheel.debug().scheme, x, y, r, deck, legs: [x - w.leg * r, x + w.leg * r], head: [h0, h1], scheme: n => wheel.scheme(n) }; })(),

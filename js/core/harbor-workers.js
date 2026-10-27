@@ -17,7 +17,7 @@
 // then its itinerary in core/harbor-crew.js#PLAN[kind] (+ a look in folk.js#lookOf, props in screens/harbor/workers.js). Its preview:
 // &force=work-<kind> (one every few minutes, any day) + a row in core/harbor-remote.js's WORKERS category.
 import { rngFrom, hashString } from './rng.js';
-import { partyAt } from './harbor-moments.js';
+import { partyAt, partyAtT } from './harbor-moments.js';
 import { legendNight } from './harbor-legend.js';
 
 const H = 3600;
@@ -146,11 +146,11 @@ export const duskOf = month => 19.6 + 1.85 * Math.cos(((month - 6.6) / 12) * 2 *
  */
 export function workDay(key, ctx = {}) {
   const day0 = ctx.day0, dow = dowOf(key), r = rngFrom(hashString(`work|${ctx.seed || 1924}|${key}`)), out = [];
-  const party = t => { if (ctx.party) return ctx.party(t); const d = dayOf(t, ctx.off || 0); return partyAt(d.dow, d.h); };
+  const party = t => (ctx.party ? ctx.party(t) : partyAtT(t, ctx.off || 0));
   const dusk = ctx.dusk ? ctx.dusk(key) : duskOf(+key.split('-')[1]);
   const yKey = prevKey(key), y0 = day0 - 24 * H;
   // the night before (the cause → this morning's effect)
-  const yParty = ctx.party ? ctx.party(y0 + 22.5 * H) : partyAt(dowOf(yKey), 22.5);
+  const yParty = ctx.party ? ctx.party(y0 + 22.5 * H) : partyAt(dowOf(yKey), 22.5, yKey);
   const causes = { bulbOut: bulbOut(yKey, y0, ctx), lampFault: lampFault(yKey, y0, ctx), party: yParty };
   // the shows: fixed first (by prio), then the windowed ones sliding into the gaps
   const want = [];

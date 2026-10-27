@@ -27,6 +27,7 @@ const SCHEMES = {
   christmas: [[255, 60, 60], [80, 255, 120], [255, 214, 120], [90, 160, 255]],
   halloween: [[255, 140, 30], [170, 70, 255]],
   dotd: [[255, 150, 20], [236, 50, 140], [150, 70, 220], [40, 200, 180], [255, 206, 60]],   // (11a-1: Day of the Dead)
+  harvest: [[255, 184, 92], [255, 140, 52], [255, 212, 130], [236, 110, 48]],                   // (11a-2: Thanksgiving — warm harvest golds + amber)
 };
 
 /** the front's top silhouette (wall units u → v): the parapet, the pier finials, the stepped Deco crest (speakeasy.js#paintFrontDeco) */

@@ -55,7 +55,7 @@ export function raidEvening(key, ctx = {}) {
   const r = rngFrom(hashString(`raid|${ctx.seed || 1924}|${key}`)), uA = r(), uP = r(), uT = r();
   const dow = dowOf(key), prev = prevKey(key), [y, m, d] = ymd(key);
   const delivered = bootlegNight(prev, ctx) || dowOf(prev) === 6;      // (a quiet weeknight delivery, or Saturday's big one)
-  const party = partyAt(dow, 22);
+  const party = partyAt(dow, 22, key);
   const why = delivered && uA < RAID.after ? 'after-delivery' : party && uP < RAID.party ? 'party' : null;
   if (!why) return null;
   const hol = holidayOf(y, m, d);

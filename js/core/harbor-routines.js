@@ -11,7 +11,7 @@
 // round it (behind + beside, never in front of the dancers) — clapping, bobbing, watching — and drift off after. The floor spots
 // (the inlay's event rig) come on with it. &force=dance: one every 5 minutes, any night (the preview).
 import { rngFrom, hashString } from './rng.js';
-import { partyAt } from './harbor-moments.js';
+import { partyAtT } from './harbor-moments.js';
 
 /** the circle's numbers: slot (s), the window (local hours, after midnight + 24), the chance a slot has one, when it starts in its
  *  slot + how long it dances (s), the dancers (tier 0: the first `tier0`), their ring (× the inlay's ring) + the watchers' */
@@ -57,7 +57,7 @@ export function danceSlot(j, ctx = {}) {
   if (!F) {
     // (the slot is the hour itself — its circle starts ON the hour; judged a minute in, so the party's own window + mode decide)
     const loc = localOf(t0 + 60, ctx.off), hh = loc.h < 3 ? loc.h + 24 : loc.h;
-    const party = ctx.party ? ctx.party(t0 + 60) : partyAt(loc.dow, loc.h);
+    const party = ctx.party ? ctx.party(t0 + 60) : partyAtT(t0 + 60, ctx.off);
     if (!party || hh < DANCE.from || hh >= DANCE.to || r() >= DANCE.chance) return null;
     if (ctx.event && !ctx.ring) return null;   // (11a-2: a centrepiece the dance may RING — the giant jack-o'-lantern — keeps its circle)
   }

@@ -187,6 +187,9 @@ export function thanksgivingPieces(H, o = {}) {
     geese: 2.2,
     party: !!H.eve,
     parade: day && hr >= 8.5 && hr < 11.6,
+    chimneys: day && hr >= 11 ? 1 : 0,                                // (the ovens + the hearths: chimney smoke from late morning)
+    pies: day && hr >= 12 && hr < 18.5,                               // (people carrying pies to dinner)
+    tables: day && hr >= 14.5,                                        // (the family tables in the windows)
   };
 }
 /** 11a-2 — THE TREES HOLD THEIR PEAK COLOUR for Thanksgiving (the plan: "peak autumn trees"): the real season would thin + bare them from
@@ -268,7 +271,7 @@ export function lightRules(H, o = {}) {
   } else if (H.id === 'thanksgiving') {
     // (the day: the sign's tubes AMBER, the skyline's lit windows warm + amber, the roof's strings a warm harvest gold; the build-up's last
     // week the wheel in harvest colours of an evening)
-    if (H.phase === 'day') { out.sign = 'thanksgiving'; out.signLight = '#ffa040'; out.strings = 'harvest'; out.windowTint = [255, 214, 160]; out.windowTintK = 0.35 * dark; }
+    if (H.phase === 'day') { out.sign = 'thanksgiving'; out.signLight = '#ffa040'; out.strings = 'harvest'; out.windowTint = [255, 214, 160]; out.windowTintK = 0.9 * dark; }
     if (H.phase === 'day' || H.stage > 0.8) out.wheel = 'harvest';
   }
   return out;

@@ -18,6 +18,7 @@
 // under 1 — by day — the rest of the slot stays empty: rare stays rare).
 import { rngFrom, hashString } from './rng.js';
 import { legendNight } from './harbor-legend.js';
+import { partyDow } from './party.js';
 
 export const RARITY = Object.freeze({ common: 1, uncommon: 0.34, rare: 0.008 });
 export const RARITIES = Object.freeze(['routine', 'common', 'uncommon', 'rare', 'legendary']);
@@ -78,8 +79,14 @@ export function inHours(h, w) {
 }
 /** a local date's key (YYYY-MM-DD) */
 export const dayKey = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
-/** is it a party night at this hour (Fri / Sat 8 pm → 2 am — core/party.js's window; dow 0 = Sunday) */
-export const partyAt = (dow, h) => ((dow === 5 || dow === 6) && h >= 19.5) || ((dow === 6 || dow === 0) && h < 2.25);
+/** is it a party night at this hour (Fri / Sat 8 pm → 2 am — core/party.js's window; dow 0 = Sunday). key (that day's 'y-m-d', optional):
+ *  + THE HOMECOMING — the night before Thanksgiving (core/party.js#partyDow) */
+export const partyAt = (dow, h, key) => {
+  if (key) { const [y, m, d] = String(key).split('-').map(Number); dow = partyDow(y, m, d, dow); }
+  return ((dow === 5 || dow === 6) && h >= 19.5) || ((dow === 6 || dow === 0) && h < 2.25);
+};
+/** partyAt at an absolute time (s) in a zone (off: minutes east of UTC) */
+export const partyAtT = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 1000); return partyAt(d.getUTCDay(), ((lt / 3600) % 24 + 24) % 24, `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`); };
 /** the rooms are lit (the evening's dusk → the morning's dawn; dark = [duskH, dawnH]; none known: 19 → 7) */
 export const darkAt = (h, dark) => { const [d, w] = dark || [19, 7]; return h >= d || h < w; };
 
@@ -192,7 +199,7 @@ export function hourPlan(key, hour, ctx = {}) {
   let t = H0 + 2 + r() * 6, n = hour * 1000 + 1, recent = [];
   while (t < H1) {
     recent = recent.filter(e => e.t0 + e.len > t);
-    const h = t / 3600, party = partyAt(ctx.dow, h), cands = [];
+    const h = t / 3600, party = partyAt(ctx.dow, h, key), cands = [];
     let wsum = 0;
     for (const m of pool) {
       if (t + m.len > H1) continue;

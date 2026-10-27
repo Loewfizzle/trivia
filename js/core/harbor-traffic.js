@@ -14,7 +14,7 @@
 // opened mid-way lands mid-way) and sampled: carsAt(t) → who is where now.
 import { signalAt, SIGNAL_CYCLE, SIGNAL_PERIOD } from './harbor-promenade.js';
 import { rngFrom, hashString } from './rng.js';
-import { partyAt } from './harbor-moments.js';
+import { partyAtT } from './harbor-moments.js';
 
 /** the numbers: the cruise (u / s), acceleration + braking (u / s²), the gap kept (u), the reaction after green (s), the block (s), the
  *  cars a block per lane by the hour, the lanes' depth (z) + direction, how far off screen a car enters + leaves (u) */
@@ -46,7 +46,7 @@ export function trafficLanes(L) {
 /** the spawns of lane `lane` in block j (PURE): [{ id, n (its number in the lane — the model's cycle), t0 (enters), v, model, len, glow }] */
 export function laneSpawns(j, lane, ctx = {}) {
   const B = TRAFFIC.block, t0 = j * B, r = rngFrom(hashString(`traffic|${ctx.seed || 1924}|${lane}|${j}`));
-  const h = localHour(t0 + B / 2, ctx.off), dow = new Date((t0 + B / 2 + (ctx.off || 0) * 60) * 1000).getUTCDay(), party = !!(ctx.party ? ctx.party(t0 + B / 2) : partyAt(dow, h));
+  const h = localHour(t0 + B / 2, ctx.off), dow = new Date((t0 + B / 2 + (ctx.off || 0) * 60) * 1000).getUTCDay(), party = !!(ctx.party ? ctx.party(t0 + B / 2) : partyAtT(t0 + B / 2, ctx.off));
   const band = party && h >= 20 ? 'party' : h >= 7 && h < 19 ? 'day' : h >= 19 && h < 24 ? 'evening' : h < 1.5 ? 'evening' : h < 6 ? 'late' : 'evening';
   const [a, b] = TRAFFIC.perBlock[band];
   const n = a + Math.floor(r() * (b - a + 1)), out = [];

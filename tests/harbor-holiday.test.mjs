@@ -159,3 +159,20 @@ test('11a-2 — THE NOVEMBER BUILD-UP grows day by day: mums first, the bales, t
   assert.deepEqual(holidaySeason(at(24).H, 'winter', 0.05), { season: 'autumn', phase: 0.62 }, 'the trees at their peak colour on Thanksgiving week');
   assert.deepEqual(holidaySeason(holidayAt({ y: 2026, m: 12, d: 5, h: 12, mi: 0 }), 'winter', 0.1), { season: 'winter', phase: 0.1 }, 'after: the real season');
 });
+
+test('11a-2 — THE HOMECOMING: the night before Thanksgiving is a party night (both clocks), Thanksgiving evening is not', async () => {
+  const { partyHour, partyDow, homecomingNight } = await import('../js/core/party.js');
+  const { partyAt, partyAtT } = await import('../js/core/harbor-moments.js');
+  const L = (y, d, h, dow) => ({ y, m: 11, d, h, mi: 0, dow });
+  // 2026: Thanksgiving Thu Nov 26 → the homecoming Wed Nov 25; 2027: Thu Nov 25 → Wed Nov 24
+  assert.equal(homecomingNight(2026, 11, 25), true); assert.equal(homecomingNight(2027, 11, 24), true); assert.equal(homecomingNight(2026, 11, 18), false);
+  assert.equal(partyHour(L(2026, 25, 21, 3)), 21);                 // Wednesday 9 pm: the party
+  assert.equal(partyHour(L(2026, 26, 1, 4)), 25);                  // its small hours (Thanksgiving 1 am)
+  assert.equal(partyHour(L(2026, 26, 21, 4)), null);               // Thanksgiving evening: quiet
+  assert.equal(partyHour(L(2026, 18, 21, 3)), null);               // an ordinary Wednesday
+  assert.equal(partyDow(2026, 11, 27, 5), 5);                      // Black Friday is still a Friday
+  const off = -300, at = (d, h) => Date.UTC(2026, 10, d, h) / 1000 - off * 60;
+  assert.equal(partyAtT(at(25, 22), off), true); assert.equal(partyAtT(at(26, 1), off), true);
+  assert.equal(partyAtT(at(26, 22), off), false); assert.equal(partyAtT(at(18, 22), off), false); assert.equal(partyAtT(at(27, 22), off), true);
+  assert.equal(partyAt(3, 22, '2026-11-25'), true); assert.equal(partyAt(3, 22), false);
+});

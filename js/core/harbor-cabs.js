@@ -11,7 +11,7 @@ import { rngFrom, hashString } from './rng.js';
 import { truckPlan } from './harbor-crew.js';
 import { FOLK, planVisit } from './harbor-people.js';
 import { TRAFFIC, trafficLanes } from './harbor-traffic.js';
-import { partyAt } from './harbor-moments.js';
+import { partyAtT } from './harbor-moments.js';
 
 /** the numbers: the evening's window (local hours, 25 = 1 am), the chance of a call per block (normal / party), drops before `swap`
  *  (local hour) mostly, pick-ups after; the cab's length; the riders' walk */
@@ -45,7 +45,7 @@ export function cabEvents(k, ctx = {}) {
   const mid = t0 + B / 2, h = localH(mid, ctx.off);
   if (h < CAB.from || h >= CAB.to) return out;
   const eh = h >= 24 ? h - 24 : h, dow = dowAt(mid, ctx.off);
-  const party = ctx.party ? !!ctx.party(mid) : partyAt(dow, eh);
+  const party = ctx.party ? !!ctx.party(mid) : partyAtT(mid, ctx.off);
   const n = party ? CAB.party[0] + Math.floor(r() * (CAB.party[1] - CAB.party[0] + 1)) : r() < CAB.p ? 1 : 0;
   for (let i = 0; i < n; i++) {
     const t = t0 + 40 + (B - 120) * ((i + r()) / Math.max(1, n));
