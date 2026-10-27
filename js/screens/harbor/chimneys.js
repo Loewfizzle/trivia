@@ -75,7 +75,10 @@ export function createChimneys() {
       const day = clamp01((T.day || 0) + 0.7 * (T.gold || 0)), night = 1 - day;
       // (by day a soft wood-smoke grey — darker than the bright sky behind it, so it reads — warmer at golden hour; after dark the smoke only
       // shows where the city's light catches it: dusky, warm)
-      const col = mix(mix([158, 156, 164], [184, 156, 142], clamp01(T.gold || 0)), [150, 126, 134], night), A = (1 * day + 0.75 * night) * k * (f.fade == null ? 1 : f.fade);
+      // (SP6 — the owner: near-invisible against a bright PINK sky: at golden hour the warm grey matched the sunset. Against a bright sunset
+      // smoke reads BACKLIT — a shaded, darker, cool grey-violet body, a touch denser — so it holds on any pink / orange sky)
+      const gold = clamp01(T.gold || 0);
+      const col = mix(mix([158, 156, 164], [96, 86, 108], gold), [150, 126, 134], night), A = (1 * day + 0.75 * night) * (1 + 0.45 * gold * day) * k * (f.fade == null ? 1 : f.fade);
       lastA = { A: +A.toFixed(3), day: +day.toFixed(2), fade: f.fade };
       if (A < 0.01) return;
       const sp = sprite(col), lean = SMOKE.lean * (0.6 + wind), n = Math.ceil(SMOKE.life / SMOKE.gap), tierN = f.tier === 0 ? Math.ceil(n * 0.6) : n;

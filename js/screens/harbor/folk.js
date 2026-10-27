@@ -728,15 +728,27 @@ function carry(c, what, [hx, hy], H, f, d) {
   else if (what === 'purse') { c.fillStyle = f([70, 40, 44]); c.beginPath(); c.ellipse(hx, hy + H * 0.03, H * 0.035, H * 0.025, 0, 0, TAU); c.fill(); }
   else if (what === 'pie') {
     // a pie in its tin, held flat in front: the golden crust's dome + its lattice + a checked cloth under the tin
-    const px = hx + H * 0.03 * d, py = hy - H * 0.01;
-    c.fillStyle = f([196, 54, 48]); c.beginPath(); c.ellipse(px, py + H * 0.012, H * 0.075, H * 0.018, 0, 0, TAU); c.fill();
-    c.fillStyle = f([150, 150, 156]); c.beginPath(); c.ellipse(px, py, H * 0.062, H * 0.02, 0, 0, TAU); c.fill();
-    c.fillStyle = f([222, 160, 78], 1.15); c.beginPath(); c.ellipse(px, py - H * 0.012, H * 0.056, H * 0.022, 0, Math.PI, 0); c.fill();
-    c.strokeStyle = f([176, 112, 50]); c.lineWidth = Math.max(0.3, H * 0.006); c.beginPath(); for (const k of [-0.5, 0, 0.5]) { c.moveTo(px + H * 0.045 * k - H * 0.012, py - H * 0.004); c.lineTo(px + H * 0.045 * k + H * 0.012, py - H * 0.03); } c.stroke();
+    // (SP6 — ACT BIG, the owner: "too small at phone size": ~1.6× bigger, a dark outline round the whole (its silhouette against the
+    // coats + the cobbles), the crust's top edge catching the light)
+    const px = hx + H * 0.05 * d, py = hy - H * 0.01, Q = 1.6, ol = 'rgba(12,8,10,0.85)', lw0 = Math.max(0.5, H * 0.009);
+    c.fillStyle = ol; c.beginPath(); c.ellipse(px, py + H * 0.012 * Q, H * 0.075 * Q + lw0, H * 0.018 * Q + lw0, 0, 0, TAU); c.ellipse(px, py - H * 0.012 * Q, H * 0.056 * Q + lw0, H * 0.022 * Q + lw0, 0, Math.PI, 0); c.fill();
+    c.fillStyle = f([196, 54, 48]); c.beginPath(); c.ellipse(px, py + H * 0.012 * Q, H * 0.075 * Q, H * 0.018 * Q, 0, 0, TAU); c.fill();
+    c.fillStyle = f([150, 150, 156]); c.beginPath(); c.ellipse(px, py, H * 0.062 * Q, H * 0.02 * Q, 0, 0, TAU); c.fill();
+    c.fillStyle = f([222, 160, 78], 1.15); c.beginPath(); c.ellipse(px, py - H * 0.012 * Q, H * 0.056 * Q, H * 0.022 * Q, 0, Math.PI, 0); c.fill();
+    c.strokeStyle = f([176, 112, 50]); c.lineWidth = Math.max(0.4, H * 0.008); c.beginPath(); for (const k of [-0.5, 0, 0.5]) { c.moveTo(px + H * 0.045 * Q * k - H * 0.012 * Q, py - H * 0.004 * Q); c.lineTo(px + H * 0.045 * Q * k + H * 0.012 * Q, py - H * 0.03 * Q); } c.stroke();
+    c.strokeStyle = f([255, 214, 140], 1.5); c.lineWidth = Math.max(0.45, H * 0.008); c.beginPath(); c.ellipse(px, py - H * 0.012 * Q, H * 0.05 * Q, H * 0.02 * Q, 0, Math.PI * 1.15, Math.PI * 1.85); c.stroke();   // (the lit crust edge)
   }
   else if (what === 'bags') {
-    // two paper shopping bags with rope handles (one kraft, one striped)
-    for (const [k, col] of [[0, [196, 160, 112]], [1, [214, 64, 60]]]) { const bx = hx - d * H * 0.035 * k, by = hy + H * 0.035; c.fillStyle = f(col); c.fillRect(bx - H * 0.04, by, H * 0.08, H * 0.1); c.strokeStyle = f(col.map(v => v * 0.7)); c.lineWidth = Math.max(0.3, H * 0.008); c.beginPath(); c.moveTo(bx - H * 0.02, by); c.lineTo(hx, hy); c.lineTo(bx + H * 0.02, by); c.stroke(); if (k) { c.fillStyle = f([246, 240, 226]); c.fillRect(bx - H * 0.04, by + H * 0.035, H * 0.08, H * 0.018); } }
+    // two paper shopping bags with rope handles (one kraft, one striped) — SP6, ACT BIG: ~1.5× bigger, outlined dark, a bright top fold
+    const Q = 1.5, bw = H * 0.08 * Q, bh = H * 0.1 * Q, ol = 'rgba(12,8,10,0.85)', lw0 = Math.max(0.5, H * 0.009);
+    for (const [k, col] of [[0, [196, 160, 112]], [1, [214, 64, 60]]]) {
+      const bx = hx - d * H * 0.045 * Q * k, by = hy + H * 0.03;
+      c.strokeStyle = f(col.map(v => v * 0.7)); c.lineWidth = Math.max(0.4, H * 0.009); c.beginPath(); c.moveTo(bx - bw * 0.25, by); c.lineTo(hx, hy); c.lineTo(bx + bw * 0.25, by); c.stroke();
+      c.fillStyle = ol; c.fillRect(bx - bw / 2 - lw0, by - lw0, bw + lw0 * 2, bh + lw0 * 2);
+      c.fillStyle = f(col); c.fillRect(bx - bw / 2, by, bw, bh);
+      c.fillStyle = f(col, 1.45); c.fillRect(bx - bw / 2, by, bw, Math.max(0.5, bh * 0.1));   // (the folded top catching the light)
+      if (k) { c.fillStyle = f([246, 240, 226]); c.fillRect(bx - bw / 2, by + bh * 0.38, bw, bh * 0.18); }
+    }
   }
   else if (what === 'box') {
     // a wrapped gift box under the arm: red paper, a gold ribbon both ways + its bow

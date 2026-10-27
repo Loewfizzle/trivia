@@ -2920,8 +2920,13 @@ G('holiday', async () => {
         t2 = await waitFor(Q.page, `${P}.dress.spider2 && ${P}.dress.spider2.trip === 'drop'`, 'the second dropping', 2500).then(() => true).catch(() => false);
       }
       const s1 = await ev(Q.page, `${P}.dress.spider.trip`);
-      const a1 = await ev(Q.page, `${P}.spiders[0]`); await Q.page.touchscreen.tap(a1.x, a1.y);
-      const t1 = await waitFor(Q.page, `${P}.dress.spider && ${P}.dress.spider.trip === 'drop'`, 'the first dropping', 2500).then(() => true).catch(() => false);
+      // (the cloud's next run: the FIRST one's tap missed at 390 the same way — the same wait-still + read-now + one more tap)
+      let t1 = false;
+      for (let tries = 0; tries < 2 && !t1; tries++) {
+        await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the first still', 8000).catch(() => {});
+        const a1 = await ev(Q.page, `${P}.spiders[0]`); await Q.page.touchscreen.tap(a1.x, a1.y);
+        t1 = await waitFor(Q.page, `${P}.dress.spider && ${P}.dress.spider.trip === 'drop'`, 'the first dropping', 2500).then(() => true).catch(() => false);
+      }
       ok(t2 && s1 === null && t1, `${when.slice(5, 10)} at ${view[0]}: BOTH TAPPABLE — the second drops on its tap (${t2}; the first untouched: ${s1 === null}), the first on its own (${t1})`);
     }
     if (SHOTS && want === 2) await Q.page.screenshot({ path: `${OUT}holiday-spiders-${view[0]}x${view[1]}.png` });

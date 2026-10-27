@@ -56,9 +56,9 @@ export const MODELS = Object.freeze({
   taxi: { len: 4.85, h: 2.18, r: 0.47, base: 3.2, ovR: 0.82, sill: 0.66, belt: 1.4, hood: 1.44, cowl: 3.16, cab: [0.5, 3.02], rake: 0.08, roof: 'hard', grille: 'nickel', fender: 'sweep', wheel: 'wood', white: false, spare: 'rear', louvre: 12, checker: true, taxiSign: true,
     paints: [['taxi', 'black', 'black']] },
   // 8b1 — THE WORKERS' TRUCKS (roof 'cab': a closed cab behind the hood + a BED behind it): the city's DUMP TRUCK (a riveted steel body
-  // with its ribs, CITY SANITATION stencilled on it) + the bootleggers' STAKE TRUCK (wooden stakes + a canvas tarp lashed over the load)
+  // with its ribs, SANITATION stencilled on it — SP6, the owner: just SANITATION, big enough to read) + the bootleggers' STAKE TRUCK (wooden stakes + a canvas tarp lashed over the load)
   dump: { len: 6.0, h: 2.32, r: 0.5, base: 3.75, ovR: 1.02, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.62, cab: [3.62, 4.5], rake: 0.04, roof: 'cab', grille: 'nickel', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
-    bed: { u0: 0.1, u1: 3.48, v1: 2.42, kind: 'dump' }, paints: [['forest', 'black', 'cream'], ['grey', 'black', 'cream']], trades: ['CITY SANITATION'] },
+    bed: { u0: 0.1, u1: 3.48, v1: 2.42, kind: 'dump' }, paints: [['forest', 'black', 'cream'], ['grey', 'black', 'cream']], trades: ['SANITATION'] },
   stake: { len: 6.25, h: 2.26, r: 0.5, base: 3.95, ovR: 1.05, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.86, cab: [3.86, 4.74], rake: 0.04, roof: 'cab', grille: 'brass', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
     bed: { u0: 0.1, u1: 3.72, v1: 2.5, kind: 'tarp' }, paints: [['black', 'black'], ['green', 'black']] },
   // 8b2 — THE PATROL CAR (the raid): a 1929 police sedan on the Model A's lines — BLACK with WHITE DOORS (the owner: "period black-and-
@@ -81,7 +81,12 @@ export function nightPaint(id, paint) {
 /** the order the models take on a road (a fixed cycle, stepped on at the end of every lap: never the same model twice in a row on
  *  consecutive slots). THE BACK ROAD takes all seven; THE STREET under the dock only the ones whose roof stays under the dock's top
  *  (its lanes are planned for a 1928 sedan's height — the Model T + the van stand too tall there) */
-export const SEQ = Object.freeze({ back: ['packard', 'modelA', 'taxi', 'roadster', 'modelT', 'coupe', 'van'], street: ['packard', 'modelA', 'taxi', 'roadster', 'coupe'] });
+// (SP6 — the owner: "those cars should be driving in the foreground too, just randomly as traffic": the patrol car joins the street's
+// cycle (2.1 tall: under the dock's top on either lane); the street's NEAR lane (streetNear — the passes to the right when the street
+// has two lanes) also takes the lettered van + the SANITATION truck: on the near lane their roofs stay well under the dock's top (the
+// far lane would put the van's 9 pt over it — measured at 390 / 402 / 430))
+export const SEQ = Object.freeze({ back: ['packard', 'modelA', 'taxi', 'roadster', 'modelT', 'coupe', 'van'], street: ['packard', 'modelA', 'taxi', 'roadster', 'police', 'coupe'],
+  streetNear: ['packard', 'van', 'modelA', 'taxi', 'dump', 'roadster', 'police', 'coupe'] });
 /** the vehicle for slot n (an integer) on a road ('back' | 'street'): { model, paint (index into its paints), trade, rumble } — PURE,
  *  the same on every phone; slot n and n + 1 never share a model (nor n + 2 … n + L − 1 for a cycle of L) */
 export function vehicleFor(n, road = 'back', salt = 0) {
@@ -105,7 +110,7 @@ export function anatomy(id) {
   const nose = M.len - (M.grille === 'shield' ? 0.12 : 0.16);
   return {
     wheels: [rw, fw], head: [M.len - 0.06, M.hood - 0.32], fog: M.fog ? [M.len + 0.02, M.sill - 0.02] : null, tail: [0.1, M.belt - 0.36],
-    nose, top: M.h + (M.taxiSign ? 0.34 : M.beacon ? 0.26 : 0.06), pad: 0.36, len: M.len, h: M.h, r: M.r,
+    nose, top: M.h + (M.taxiSign ? 0.56 : M.beacon ? 0.26 : 0.06), pad: 0.36, len: M.len, h: M.h, r: M.r,
     beacon: M.beacon ? [(M.cab[0] + M.cab[1]) / 2 + 0.15, M.h + 0.12] : null,
   };
 }
@@ -148,7 +153,33 @@ function drawDoorOpen(c, id, M, K, sp, k01, look, bob, inside) {
 }
 
 // ------------------------------------------------------------------ THE BODY (baked)
-/** the body (everything but the turning wheels) at s px a unit, facing right; o: { trade, rumble } → canvas */
+/** SP6 — THE LETTERING, BIG ENOUGH TO READ ON AN iPHONE (the owner: "POLICE, TAXI, BAKERY — big enough to read"): the word as big as
+ *  its panel allows — box (cx, cy, w, h in px), two-word names stacked on two lines when that reads bigger, letters squeezed to 72 % at
+ *  most before the size drops, a dark OUTLINE round them (o.ol) so they hold by night; o.mir: drawn mirrored (draw() flips the sprite) */
+function letter(x, word, cx, cy, w, h, o) {
+  const fit = lines => {
+    let F = h / (0.74 * lines.length + 0.24 * (lines.length - 1));
+    x.font = `700 ${F}px "Chakra Petch", Orbitron, sans-serif`;
+    const tw = Math.max(...lines.map(l => x.measureText(l).width)) * 1.04;
+    let sq = Math.min(1, w / Math.max(1, tw));
+    if (sq < 0.72) { F *= sq / 0.72; sq = 0.72; }
+    return { lines, F, sq };
+  };
+  const one = fit([word]), two = word.includes(' ') ? fit([word.slice(0, word.indexOf(' ')), word.slice(word.indexOf(' ') + 1)]) : null;
+  const L = two && two.F > one.F * 1.15 ? two : one;
+  x.save(); x.font = `700 ${L.F}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.lineJoin = 'round';
+  x.translate(cx, cy); x.scale(o.mir ? -L.sq : L.sq, 1);
+  const step = L.F * 0.98;
+  L.lines.forEach((ln, i) => {
+    const y = (i - (L.lines.length - 1) / 2) * step;
+    if (o.ol) { x.strokeStyle = o.ol; x.lineWidth = L.F * 0.16; x.strokeText(ln, 0, y); }
+    x.fillStyle = o.fill; x.fillText(ln, 0, y);
+  });
+  x.restore();
+}
+/** the body (everything but the turning wheels) at s px a unit, facing right; o: { trade, rumble, mir } → canvas (SP6 — o.mir: the
+ *  lettering baked mirrored, for a trip to the LEFT: draw() flips the whole sprite, so the words read right — the milk van read
+ *  "YRIAD ROBRAH") */
 export function bodySprite(id, s, K, o = {}) {
   const M = MODELS[id] || MODELS.modelA, A = anatomy(id), PAD = A.pad, TOP = A.top + 0.06;
   const W = Math.ceil((M.len + PAD * 2) * s), H = Math.ceil((TOP + 0.12) * s), cv = document.createElement('canvas');
@@ -241,9 +272,7 @@ export function bodySprite(id, s, K, o = {}) {
     x.fillStyle = wg; x.fillRect(X(u0), Y(v1), (u1 - u0) * s, (v1 - v0) * s);
     x.restore();
     // POLICE in black block letters + the city's gold star between the doors' handles
-    x.save(); x.font = `800 ${0.27 * s}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
-    const word = 'POLICE', tw = x.measureText(word).width, sq = Math.min(1, (u1 - u0 - 0.5) * s / Math.max(1, tw));
-    x.translate(X((u0 + u1) / 2 + 0.1), Y((v0 + v1) / 2 - 0.02)); x.scale(sq, 1); x.fillStyle = rgb(K.bk); x.fillText(word, 0, 0); x.restore();
+    letter(x, 'POLICE', X((u0 + 0.8 + u1 - 0.52) / 2), Y((v0 + v1) / 2 - 0.03), (u1 - u0 - 1.32) * s, (v1 - v0 - 0.2) * s, { fill: rgb(K.bk), mir: o.mir });   // (clear of the rear fender + the star, under the belt)
     const sx0 = X(u1 - 0.32), sy0 = Y(v1 - 0.18), sr = 0.1 * s;
     x.fillStyle = rgb(mix([214, 170, 70], K.hi, 0.15)); x.beginPath(); for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? sr * 0.45 : sr; x.lineTo(sx0 + Math.cos(a) * rr, sy0 + Math.sin(a) * rr); } x.closePath(); x.fill();
   } else if (trimC) {
@@ -295,12 +324,8 @@ export function bodySprite(id, s, K, o = {}) {
   if (M.deck) { x.fillStyle = rgb(K.chrome, 0.85); x.fillRect(X(0.2), Y(M.belt - 0.16), (rU - 0.3) * s, Math.max(0.5, 0.02 * s)); }   // (the coupe's chrome strip)
   // THE VAN's trade, lettered on its box (gilt, shadowed — a sign-writer's hand)
   if (M.roof === 'van') {
-    const word = o.word || (M.trades || [''])[o.trade || 0], cx = X(M.cab[0] / 2 + 0.05), cy = Y((M.belt + M.h) / 2 - 0.06), size = 0.36 * s;
-    x.save(); x.font = `800 ${size}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle';
-    const tw = x.measureText(word).width, sq = Math.min(1, (M.cab[0] - 0.36) * s / Math.max(1, tw));
-    x.translate(cx, cy); x.scale(sq, 1);
-    x.fillStyle = rgb(shade(p, -0.5), 0.9); x.fillText(word, 0.03 * s, 0.03 * s);
-    x.fillStyle = rgb(trimC || [214, 170, 82]); x.fillText(word, 0, 0); x.restore();
+    const word = o.word || (M.trades || [''])[o.trade || 0], pt = M.h - 0.24, pb = M.belt - 0.14;   // (the lettered panel's top + foot)
+    letter(x, word, X(0.2 + (M.cab[0] - 0.36) / 2), Y((pt + pb) / 2), (M.cab[0] - 0.56) * s, (pt - pb - 0.14) * s, { fill: rgb(K.name === 'night' ? mix(trimC || [214, 170, 82], [240, 226, 186], 0.45) : trimC || [214, 170, 82]), ol: rgb(shade(p, -0.62), 0.95), mir: o.mir });   // (by night the sign-writer's colour held up — it must read)
     x.strokeStyle = rgb(trimC || [214, 170, 82], 0.8); x.lineWidth = lw(0.016); x.strokeRect(X(0.2), Y(M.h - 0.24), (M.cab[0] - 0.36) * s, (M.h - 0.24 - M.belt + 0.1) * s);
   }
   // ---- THE LONG HOOD: its hinge line + the LOUVRES (lit edges), the cowl lamps (the Packard)
@@ -384,9 +409,11 @@ export function bodySprite(id, s, K, o = {}) {
   // THE TAXI sign on the roof (its lamp lit live at night)
   if (M.taxiSign) {
     const u = (M.cab[0] + M.cab[1]) / 2 + 0.2;
-    x.fillStyle = rgb(K.bk); x.fillRect(X(u - 0.36), Y(M.h + 0.06), 0.72 * s, 0.06 * s);
-    x.fillStyle = rgb(mix([240, 214, 120], K.p, 0.2)); x.beginPath(); x.roundRect(X(u - 0.3), Y(M.h + 0.3), 0.6 * s, 0.24 * s, 0.04 * s); x.fill();
-    x.save(); x.font = `800 ${0.18 * s}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillStyle = rgb(K.bk); x.fillText('TAXI', X(u), Y(M.h + 0.18)); x.restore();
+    // (SP6 — the owner: TAXI big enough to read on an iPhone: the roof sign 1.15 × 0.44 units, its word filling it)
+    x.fillStyle = rgb(K.bk); x.fillRect(X(u - 0.5), Y(M.h + 0.06), 1.0 * s, 0.06 * s);
+    x.fillStyle = rgb(mix([240, 214, 120], K.p, 0.2)); x.beginPath(); x.roundRect(X(u - 0.575), Y(M.h + 0.52), 1.15 * s, 0.44 * s, 0.06 * s); x.fill();
+    x.strokeStyle = rgb(K.bk, 0.85); x.lineWidth = Math.max(0.6, 0.03 * s); x.stroke();
+    letter(x, 'TAXI', X(u), Y(M.h + 0.3), 1.0 * s, 0.34 * s, { fill: rgb(K.bk), mir: o.mir });
   }
   return cv;
 }
@@ -405,7 +432,7 @@ function truckBed(x, X, Y, s, K, M, o) {
     x.fillStyle = rgb(mix(p, K.hi, 0.6), 0.8); x.fillRect(X(u0 - 0.06), Y(B.v1 + 0.02), (u1 - u0 + 0.06) * s, lw(0.02));
     x.fillStyle = rgb(mix(p, [240, 236, 220], 0.4), 0.7); for (let u = u0 + 0.1; u < u1; u += 0.22) { x.beginPath(); x.arc(X(u), Y(B.v1 - 0.03), Math.max(0.35, 0.018 * s), 0, TAU); x.fill(); }
     const word = o.word || (M.trades || [''])[0];
-    if (word) { x.save(); x.font = `800 ${0.27 * s}px "Chakra Petch", Orbitron, sans-serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; const tw = x.measureText(word).width, sq = Math.min(1, (u1 - u0 - 0.4) * s / Math.max(1, tw)); x.translate(X((u0 + u1) / 2), Y((B.v1 + v0) / 2 + 0.04)); x.scale(sq, 1); x.fillStyle = rgb(shade(p, -0.5), 0.8); x.fillText(word, 0.025 * s, 0.025 * s); x.fillStyle = rgb(mix([226, 214, 170], p, K.name === 'night' ? 0.55 : 0.1)); x.fillText(word, 0, 0); x.restore(); }
+    if (word) letter(x, word, X((u0 + u1) / 2), Y((B.v1 + v0) / 2 + 0.02), (u1 - u0 - 0.5) * s, (B.v1 - v0) * 0.5 * s, { fill: rgb(mix([236, 226, 184], p, K.name === 'night' ? 0.25 : 0.06)), ol: rgb(shade(p, -0.6), 0.95), mir: o.mir });
     return;
   }
   // THE STAKE BED: the deck's edge, the wooden stakes + two rails, then the tarp over the hoops (rounded, sagging between them)
@@ -533,9 +560,11 @@ export function createVehicles() {
   };
   const paintsOf = (id, paint) => { const M = MODELS[id] || MODELS.modelA, P = M.paints[((paint % M.paints.length) + M.paints.length) % M.paints.length]; return { body: PAINT[P[0]], fender: PAINT[P[1]], trim: P[2] ? PAINT[P[2]] : null }; };
   /** the body sprite for a model / look / paint at s px a unit */
+  const LETTERED = id => { const M = MODELS[id] || MODELS.modelA; return M.roof === 'van' || !!M.trades || !!M.taxiSign || !!M.police; };
   function body(id, look, paint, s, o = {}) {
-    const key = `b|${id}|${look}|${paint}|${o.trade || 0}|${o.word || ''}|${o.rumble ? 1 : 0}|${Math.round(s * 8)}`;
-    return get(key, () => { const P = paintsOf(id, paint), K = lookOf(look, P.body), F = lookOf(look, P.fender), Tm = P.trim ? lookOf(look, P.trim).p : null; return bodySprite(id, s, K, { fender: F.p, trim: Tm, trade: o.trade, word: o.word, rumble: o.rumble }); });
+    const mir = o.dir < 0 && LETTERED(id);   // (only a lettered model needs its mirrored twin)
+    const key = `b|${id}|${look}|${paint}|${o.trade || 0}|${o.word || ''}|${o.rumble ? 1 : 0}|${mir ? 1 : 0}|${Math.round(s * 8)}`;
+    return get(key, () => { const P = paintsOf(id, paint), K = lookOf(look, P.body), F = lookOf(look, P.fender), Tm = P.trim ? lookOf(look, P.trim).p : null; return bodySprite(id, s, K, { fender: F.p, trim: Tm, trade: o.trade, word: o.word, rumble: o.rumble, mir }); });
   }
   function wheel(id, look, s) {
     const M = MODELS[id] || MODELS.modelA;
@@ -609,7 +638,7 @@ export function createVehicles() {
       const tx = (A.tail[0] - M.len / 2) * sp, ty = -A.tail[1] * sp + (v.bob || 0), r3 = 0.22 * sp;
       c.globalAlpha = 0.85 * hk; c.drawImage(glowR, tx - r3, ty - r3, r3 * 2, r3 * 2);
       // (8b2 — THE CABS: the TAXI lamp lit only while it's FREE — v.sign 0..1; a fare aboard: dark)
-      if (M.taxiSign && (v.sign == null || v.sign > 0.02)) { const sg = v.sign == null ? 1 : v.sign, u = (M.cab[0] + M.cab[1]) / 2 + 0.2 - M.len / 2, rs = 0.55 * sp; c.globalAlpha = 0.6 * hk * sg; c.drawImage(glowOf([255, 220, 120]), u * sp - rs, -(M.h + 0.18) * sp - rs * 0.6, rs * 2, rs * 1.2); c.globalAlpha = 0.9 * hk * sg; c.fillStyle = 'rgb(255,236,170)'; c.fillRect(u * sp - 0.26 * sp, -(M.h + 0.29) * sp, 0.52 * sp, 0.2 * sp); }
+      if (M.taxiSign && (v.sign == null || v.sign > 0.02)) { const sg = v.sign == null ? 1 : v.sign, u = (M.cab[0] + M.cab[1]) / 2 + 0.2 - M.len / 2, rs = 0.85 * sp; c.globalAlpha = 0.6 * hk * sg; c.drawImage(glowOf([255, 220, 120]), u * sp - rs, -(M.h + 0.3) * sp - rs * 0.6, rs * 2, rs * 1.2); c.globalAlpha = 0.9 * hk * sg; c.fillStyle = 'rgb(255,236,170)'; c.beginPath(); c.roundRect(u * sp - 0.53 * sp, -(M.h + 0.49) * sp, 1.06 * sp, 0.38 * sp, 0.05 * sp); c.fill(); { const g0 = c.globalCompositeOperation; c.globalCompositeOperation = 'source-over'; letter(c, 'TAXI', u * sp, -(M.h + 0.3) * sp, 1.0 * sp, 0.34 * sp, { fill: 'rgb(24,18,10)', mir: v.dir < 0 }); c.globalCompositeOperation = g0; } }   // (SP6: the lit face at the sign's new size, the word dark on it)
       c.globalCompositeOperation = 'source-over';
     }
     c.restore();

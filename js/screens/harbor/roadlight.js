@@ -112,7 +112,7 @@ export function createRoadLight() {
         const car = carAt(cur, center, f.ms, cam, st, cross);
         if (car.on) {
           // (POL4: the pass's vehicle from the street's cycle — never the same model twice in a row; a party night: one in three glows)
-          const n = parseInt(String(cur.id).slice(1), 10) || 0, veh = vehicleFor(n, 'street'), ug = f.party && ((n * 2654435761) >>> 0) % 3 === 0 ? UNDERGLOW[((n >>> 0) % UNDERGLOW.length)] : null;
+          const n = parseInt(String(cur.id).slice(1), 10) || 0, veh = vehicleFor(n, st.two && cur.dir > 0 ? 'streetNear' : 'street'), ug = f.party && ((n * 2654435761) >>> 0) % 3 === 0 ? UNDERGLOW[((n >>> 0) % UNDERGLOW.length)] : null;
           motor.draw(c, car, { cam, T: f.T, k: vis * f.fade, night: f.night, lampAt, vehicle: veh, underglow: ug, dpr: f.dpr || 2, t: f.t || 0, motion: f.motion, wet: f.wet || 0, rails: st.rails, lamps: f.power == null ? 1 : f.power });
           seen = true;
         } else motor.reset();

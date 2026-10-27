@@ -76,9 +76,11 @@ test('POL4 — THE BACK ROAD runs a red? never: a car passing its stop line does
 
 test('POL4 — THE VEHICLES vary: never the same model twice in a row (the back road + the street under the dock); party nights only glow', async () => {
   const { vehicleFor, MODELS, SEQ } = await import('../js/screens/harbor/vehicles.js');
-  for (const road of ['back', 'street']) for (let n = -50; n < 400; n++) assert.notEqual(vehicleFor(n, road).model, vehicleFor(n + 1, road).model, `${road} ${n}`);
+  for (const road of ['back', 'street', 'streetNear']) for (let n = -50; n < 400; n++) assert.notEqual(vehicleFor(n, road).model, vehicleFor(n + 1, road).model, `${road} ${n}`);
   for (let n = 0; n < 200; n++) assert.notEqual(backVehicle(n).model, backVehicle(n + 1).model);
   assert.ok(SEQ.street.every(id => MODELS[id].h <= 2.2), 'the street under the dock: only cars under the dock\'s top');
+  // (SP6: the lettered ones as random traffic in the foreground — the patrol car on both lanes, the van + the SANITATION truck on the near lane)
+  assert.ok(SEQ.street.includes('police') && ['van', 'dump', 'police', 'taxi'].every(id => SEQ.streetNear.includes(id)));
   const glowOn = j => laneSpawns(j, 'near', { off: OFF }).some(s => s.glow >= 0);
   const sat = Math.floor(Date.parse('2026-10-24T22:30:00-04:00') / 1000 / TRAFFIC.block), thu = Math.floor(Date.parse('2026-10-22T22:30:00-04:00') / 1000 / TRAFFIC.block);
   let gs = 0, gt = 0; for (let k = 0; k < 30; k++) { if (glowOn(sat + k)) gs++; if (glowOn(thu + k)) gt++; }
