@@ -7976,7 +7976,10 @@ ordinary morning at ~0.3 ms each here. The crowd went 14 → 10 for it (was +6.2
   23:00, the blue TV on) — t2 same (work 32.0 → 29.9 ms, noise ±2.3), t0 same (15.0 → 16.7, noise ±1.7); **np-party** (the peak: the boss's blue
   shade) — t2 faster (59.2 → 51.1, noise ±7.5), t0 same (23.3 → 24.5, noise ±5.5); **sp6-ufo** (the abduction) — t2 **faster** (24.3 → 18.9 ms,
   slow frames 72 → 40 %: the beam's 36 slice draws a frame → 3 images), t0 same (14.7 → 14.7). Absolute numbers are this laptop's (warnings only).
-- Cloud minutes: this pass ran the full cloud TWICE (Group 0's accidental tag + the final `[harbor]` push).
+- Cloud minutes: this pass ran the full cloud TWICE (Group 0's accidental tag + the final run, by hand: the final push held no City 2.0 path).
+- **THE FINAL CLOUD RUN (40517936043)**: `windows`, `audio`, `holiday`, `street`, `wild` GREEN (the holiday fixes hold); `tests` (40517935676)
+  green; `show` 73/74 — SP5's known HALF-TIME near-miss again (beats 2 + 4 at 0.36 vs the limit 0.343, the beat code untouched); `city` 85/85
+  checks with `panel`'s "the word gone" + `perf`'s "re-bake" timeouts (both fail on the baseline locally too). Not re-run (the two-run rule).
 
 ### Known issues
 - `panel`'s "the word gone" timeout fails locally on the baseline too (and on the cloud's accidental Group-0 run) — not this pass's code; open.
