@@ -65,15 +65,19 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
+| **THE ROADMAP REORDERED** | **(the owner, Oct 26 6:01 pm — DECIDED; "OWNER'S NOTES — OCT 26 (after SP5)")** after the city's five above (11a-2 → 9b → ATM → 10 → 11b): LOBBY 2.0 → BOARD 2.0 → (a SHORT game-lineup TALK) → PROGRESSION 2.0 → TV MODE → the GAME LINEUP CHAT → the games → the release; a Fable review + a cleanup after 11b and again after Progression 2.0. 11c / 12 / C3 / 13 stay on the list, slotted by the owner | — | — |
+| R-A | FABLE REVIEW + CLEANUP (after 11b, before Lobby 2.0) | Fable + Opus 5.5 | ~2 h |
+| 14 | Lobby 2.0 + the public crowd | Opus 5.5 high | 90–120 min |
+| 16 | Board 2.0 | Opus 5.5 high | 60–90 min |
+| L0 | a SHORT GAME-LINEUP TALK (no build) before Progression 2.0 — the streaks + achievements the daily puzzles / solo games will need | chat | ~30 min |
+| 17 | Progression 2.0 | Opus 5.5 high | 90–120 min |
+| R-B | FABLE REVIEW + CLEANUP (after Progression 2.0) | Fable + Opus 5.5 | ~2 h |
+| 15 | TV mode, step 1 | Opus 5.5 high | 60–90 min |
+| L | GAME LINEUP SESSION (a chat with Claude, no build — the owner, Oct 23): which games stay / go / are new, final names (e.g. PRISM vs PRISM DROP), how each roughly plays — BEFORE Lobby 2.0 + Progression 2.0, which are built around the games. The owner's order: finish the city → this session → lobby, progression, City Control, settings → the games; release once ~5 games are complete, no date | chat | ~1 h |
 | 11c | spring, summer + patriotic: Valentine's, St. Patrick's, Easter, Memorial Day, July 4th (air show + fireworks), September 11, Veterans Day | Opus 5.5 high | 60–90 min |
 | 12 | easter eggs, sounds, desktop, switch-over | Opus 5.5 medium | 60–90 min |
 | C3 | final cleanup | Opus 5.5 medium | 30–45 min |
 | 13 | CITY CONTROL (admin) | Opus 5.5 medium | 45–60 min |
-| L | GAME LINEUP SESSION (a chat with Claude, no build — the owner, Oct 23): which games stay / go / are new, final names (e.g. PRISM vs PRISM DROP), how each roughly plays — BEFORE Lobby 2.0 + Progression 2.0, which are built around the games. The owner's order: finish the city → this session → lobby, progression, City Control, settings → the games; release once ~5 games are complete, no date | chat | ~1 h |
-| 14 | Lobby 2.0 + the public crowd | Opus 5.5 high | 90–120 min |
-| 15 | TV mode, step 1 | Opus 5.5 high | 60–90 min |
-| 16 | Board 2.0 | Opus 5.5 high | 60–90 min |
-| 17 | Progression 2.0 | Opus 5.5 high | 90–120 min |
 | R-ALL | FABLE WHOLE-APP READ-ONLY REVIEW (the very end — the games, lobby + rooms + sync, profiles + progression, every /api, City 1.0 / the Harbor, security before app stores + payments); a report, then a cleanup prompt | Fable | ~60–90 min |
 
 **FASTER RUNS (the owner, Oct 24 — "this takes so long"; the laptop is the bottleneck: low memory, 4× CPU throttling,
@@ -2535,3 +2539,119 @@ CONTROL (+ the birthday event). FUTURE IDEAS: SYNCHRONIZED DANCES (parked — se
   snap); the same for the promenade's hourly dance between its two songs. (BUILT in SP5 Group 3.)
 - FUTURE IDEAS + SYNCHRONIZED DANCES (the owner, Oct 26 5:45 pm — PARKED): a few choreographed group dances in step with the beat (a
   1920s Charleston line, a swing circle, a modern line dance on party nights), picked per song.
+
+## OWNER'S NOTES — OCT 26 (after SP5)
+
+Most of this is RECORD-ONLY for later passes (9b, ATM, Part 10, Lobby 2.0, Progression 2.0, Part 13). Part 11a-2 builds only
+what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the boss's tweaks; Thanksgiving; the parade system).
+
+- **CLEAR ALL DOESN'T GO BACK TO THE REAL CITY** (the owner, Oct 26 5:57 pm — BUILT in SP5). Claude read
+  js/screens/harbor/remote.js#clearAll: in JUST ME it emptied the panel's own state + called scene.remote(null) — but (1) a
+  PREVIEW LINK's flags in the address bar (&when / &force / &wx / &hush…) were NOT cleared, so after CLEAR ALL the link kept
+  forcing the same time / event = "it doesn't do anything"; (2) an EVERYONE state on city2/live (still inside its `until`)
+  took over the moment JUST ME was empty; (3) events already running (a forced moment, a legendary, PLAY ALL's last item)
+  kept playing to their end. FIX: CLEAR ALL = truly the real city NOW: strip every preview flag from the URL
+  (history.replaceState → ?city=2 + only non-preview params like &debug), stop every forced / in-flight event + PLAY ALL, the
+  clock back to real time, the live weather back; if an EVERYONE state is active, say so on the button + offer to clear it
+  too; the toast names what was cleared. A check: from a link with &when + &force + JUST ME changes, one CLEAR ALL leaves the
+  real city (real clock, no forced events, live weather).
+- **THE ROADMAP REORDERED** (the owner, Oct 26 6:01 pm — DECIDED): after the city's five (11a-2 THANKSGIVING → 9b WINTER →
+  ATM → 10 PARTY NIGHTS → 11b CHRISTMAS + NYE): LOBBY 2.0 → BOARD 2.0 → PROGRESSION 2.0 → TV MODE → THEN the GAME LINEUP
+  CHAT (onboarding, solo, daily puzzles, the new games) → the games → the release. FABLE REVIEWS + CLEANUP PASSES slotted in
+  when needed (Claude's proposal: a Fable review + a cleanup after 11b — before Lobby 2.0 — and again after Progression
+  2.0). Claude's caution (raised with the owner): Progression 2.0 designs streaks + achievements that the daily puzzles /
+  solo games will need → a SHORT game-lineup TALK (no build) before Progression 2.0, so it isn't redone later.
+- **THE PARTY YACHT = A HUGE MODERN SUPERYACHT** (the owner, Oct 26 6:07 pm — agreed, for Part 10): not a 1920s boat — the
+  city already mixes eras (neon skyscrapers), so the joke lands: a sleek, HUGE modern motor superyacht (a billionaire's toy —
+  dark hull, tiers of glass decks, a HELIPAD on the top deck) that DWARFS Rosie and makes the harbor look small; GENERIC +
+  original (never a real person's or a real yacht's look, name or livery). ONLY AT SUNSET OR AT NIGHT: it glides in at
+  golden hour / dusk, anchors offshore, lights up — deck strings, UNDERWATER lights glowing turquoise in the harbor, a
+  laser or two on the top deck, party colours on the beat, the music's thump muffled across the water (yacht-party.mp3
+  far) — the HELICOPTER comes in + LANDS on its helipad (the arriving VIP), later lifts off; the yacht slips away before
+  dawn. A 3D model like Rosie. FREQUENCY — DECIDED (the owner, 6:10 pm: "he's home for the holidays"): ONE RANDOM PARTY
+  NIGHT A MONTH (seeded) + GUARANTEED on the HOLIDAY PARTY NIGHTS — the WEDNESDAY BEFORE THANKSGIVING (the homecoming), the
+  LAST SATURDAY BEFORE CHRISTMAS, NEW YEAR'S EVE, JULY 4th, and the Saturday of LABOR DAY weekend. Never two nights in a row.
+  + FIREWORKS — DECIDED (the owner, 6:12 pm): EVERY party night ends at MIDNIGHT with a big NEON + LIGHT FINALE (every tower
+  flashing together, the sky beams sweeping, the window party's peak) — NO fireworks on ordinary party nights; REAL
+  FIREWORKS only on the YACHT's nights (launched from the yacht + a barge), NEW YEAR'S EVE, JULY 4th + the BIRTHDAY EVENT.
+- **THE CITY SCHEDULE — A REVIEW** (Claude, Oct 26 ~6:20 pm, read from the code; there is NO single schedule document — the
+  timing lives in harbor-workers / harbor-people / harbor-boats / harbor-moments / harbor-events / harbor-legend /
+  harbor-wildlife / harbor-traffic). DEAD TIMES FOUND: (1) 02:00–06:00 EVERY DAY — ~0.3 people, no bus, no Rosie, the TV off
+  at 3, the bar closed; only the hourly bell, the odd car, the coyote, rare legendaries; (2) DAYTIME WINDOWS ~09:30–16:00 —
+  almost every window moment is night-only; (3) WEEKDAY EVENINGS AFTER 22:00 — ~2.3 people, ~1.3 after midnight; (4) no
+  SUNDAY / church bells (church-bells.mp3 is in the folder), no weekend-morning life. PROPOSED (pending the owner): a
+  generated SCHEDULE DOC (docs/harbor/schedule.md, built from the code's tables by a script + checked in a test).
+- **FILLING THE DEAD TIMES — DECIDED** (the owner, Oct 26 6:23 pm): BUILD SOON — (1) THE NIGHT SHIFT: SPEAKEASY SECURITY /
+  the boss's HENCHMEN patrolling the promenade in the small hours (2–6 am, + late weekday nights) with a LANTERN or a
+  FLASHLIGHT (its beam + pool reading at 402), checking the door, the corner, the alley; WHEN THE COPS COME (the beat cop, the
+  9 pm patrol, the raid) the henchmen SLIP INTO THE SPEAKEASY (a quick walk to the side door, a glance back); (2) the WATER
+  WAGON washing the street — A LONG SHIFT (the owner, 6:28 pm): ~2:45 → ~3:30 am (~40–45 min, seeded) on weeknights + the
+  mornings after a party (never after rain / below freezing): a 1920s street flusher on the BACK ROAD making several slow
+  passes (fans of spray caught in the lamps), stopping to REFILL AT THE FIRE HYDRANT (a crewman with a wrench + a hose), a
+  second man HOSING the promenade's cobbles while the truck idles, a break with a smoke on the running board, then off; the
+  wet sheen drying over ~20–30 min; (3) SUNDAY MORNING CHURCH BELLS (far off, ~9–11 am) + a slower Sunday (Sunday best);
+  THE HENCHMAN's ROUTE (6:25 pm): he PATROLS THE BLOCK — two loops, mixed + seeded: (a) THE FULL LAP: from BEHIND the
+  speakeasy, up its side, along the FRONT past the doors, off the LEFT edge, a pause (round the block off screen), back again
+  from behind — a lap every few minutes; (b) THE BEAT: up to the left edge, STOP, turn, look around, back to the building's
+  back corner, STOP, turn… Unhurried, the lantern / flashlight swinging, a glance at the door or up the street; (4) WEEKDAY
+  LATE NIGHTS livelier: strollers, couples LEAVING THE BAR (the side door, arm in arm, 10 pm → 1 am), the cop's patrol;
+  (5) ONE DAYTIME WINDOW MOMENT NOW: SOMEONE READING THE NEWSPAPER at the window (a big unfolded paper, a page turned, a sip of
+  coffee), late morning. LATER: more daytime window moments (a candlestick-phone call, a piano lesson, a maid at the sash,
+  lunch at noon, a nap). METEORS are ALREADY PLANNED (6b section 0: rarer shooting stars + a rare FIREBALL) — confirm it
+  shipped, else add. THE JOGGERS: today only 05:30–08:00 (weight 1.6) + a trace in the evening (0.25), rain ×0.3 — ADD a
+  lunchtime + an after-work jog (12–13, 17–19) and a weekend-morning peak (8–10); never in heavy rain or storms.
+- **THE STREET UNDER THE DOCK IS A STAGE** (the owner, Oct 26 6:30 pm — DECIDED): once the dock fades away (+ the lobby's
+  waiting view in Lobby 2.0) USE THE FRONT STREET FREELY: the water wagon's passes, the henchman's patrol along the curb,
+  cars + cabs + the bus pulling over, a newsboy, a delivery, puddles + snow + the plows later; NOTHING STARTS on it while the
+  dock is shown; a scene ALREADY UNDER WAY when the user taps is NEVER cut, snapped, sped up or faded — the dock draws ON TOP
+  and the scene CONTINUES underneath to its natural end (6:32 pm). + THE QUICK FADE (6:34 pm): a tap WHILE a front-street
+  scene plays → the dock appears but fades away again within ~2 s (normal rest: 10 s) so they keep watching; ANY further
+  touch on the dock (a button, a press-and-hold, a scroll) returns to the normal 10 s timer.
+- **PROFILE PAGES FOR OTHER PLAYERS** (a reminder fired Oct 26 6:30 pm): tap someone's name (the lobby, the chat, the podium,
+  THE BOARD) → their stats, rank + membership card; "sooner rather than later" → slotted into LOBBY 2.0 (tapping people,
+  friends, invites, SOCIAL) with PROGRESSION 2.0's stats; or a small pass of its own sooner if the owner wants.
+- **THE GIANT JACK-O'-LANTERN ON THE CENTREPIECE** (the owner, Oct 26 6:52 pm — DECIDED; built in 11a-2 Group 0): a GIANT
+  glowing jack-o'-lantern on the promenade's centre circle — arrives in the build-up (~Oct 20: a huge uncarved pumpkin on a
+  straw-bale plinth), CARVED ~Oct 28, LIT every night from then (a flickering candle glow, light spilling onto the cobbles +
+  the people), Halloween night its brightest; gone Nov 1. Sized to read at 402 without blocking the crossing, the walk
+  paths, the lobby line or the dock. THE HOURLY DANCE (party nights, incl. Halloween night) DANCES AROUND IT — a ring.
+  Premium + 3D-looking (ribs, a stem, real carving depth, the inner glow), never clip-art.
+- **THE LETTER-TAP RACE's HUM IS TOO LONG** (the owner, Oct 26 6:57 pm; built in 11a-2 Group 0): the hum follows the race: a
+  short buzz-up (~0.3 s), a light crackle riding the race, FADES OUT as the race ends (≤ ~1.5 s), never a drone; repeated
+  taps don't stack (one at a time, a cooldown); the same check for the music-on surge's sound + the dusk catch.
+- **THE TR-3B ONLY ON PARTY NIGHTS** (the owner, Oct 26 7:06 pm — DECIDED; for a later pass): ONLY on a PARTY NIGHT (Fri /
+  Sat), ~1–2 a month, during the PEAK (~22:00–00:30) — the whole lit-up party BLACKING OUT is the drama; the dancers freeze +
+  look up, then the city stutters back + the party resumes. Never on the same night as the YACHT / fireworks / a raid / the
+  UFO; never inside the midnight finale's minutes or the first minutes of an hourly dance; never two nights running. The UFO
+  keeps its any-night schedule.
+- **CITY SIGHTINGS — TAP A LEGENDARY TO "SPOT" IT** (the owner, Oct 26 7:08 pm — DECIDED in principle; PROGRESSION 2.0, the
+  reactions built with each legendary): ONLY the LEGENDARY + truly rare things are tappable. A tap = (1) a REACTION (the
+  TR-3B's circuitry races faster, the UFO wobbles, the periscope dives, the Mothman's eyes flare + he turns his head, the ghost
+  ship's bell tolls…); (2) an ACHIEVEMENT ("SIGHTED: THE TR-3B") into a SIGHTINGS collection on the profile (the unseen ones
+  as dark silhouettes / "???"), RARITY TIERS, each dated. Claude's notes: (a) SERVER-VERIFIED — the server re-computes the
+  seeded schedule (the pure core modules shared with /api); a &force= / panel preview NEVER awards; (b) DISCOVERY: the
+  first-ever legendary gives a faint pulse / a one-time hint; (c) a spoiler-free shareable card; (d) THE BOARD's "most
+  sightings"; (e) a guest keeps sightings on the device until they make a profile.
+- **CITY SIGHTINGS — THE RARITY TIERS** (the owner, Oct 26 7:10 pm — his colour ladder; Claude's categories, pending OK):
+  COMMON = NEON GREEN (a few times a month: the raid, the surprise flyby, a balloon festival, the aurora); RARE = NEON BLUE
+  (about monthly: the UFO, the TR-3B, the superyacht + its helicopter, a FIREBALL); EPIC = NEON PINK / PURPLE (a few a year
+  or odd hours: the Mothman at 3 am, the ghost ship on Halloween night, the eyes in the haze, the periscope); LEGENDARY =
+  SHIMMERING GOLD (once or twice a year: BIGFOOT, a real solar ECLIPSE, the rarest holiday legendaries). Each card in its
+  tier's neon (gold with a slow shimmer + a sparkle), the tier on the toast, the collection sorted by tier; colours from the
+  tokens (--green, --cyan, --magenta / --violet, + a new gold).
+- **THE BLACKBIRD — A QUICK-TAP SIGHTING** (the owner, Oct 26 7:13 pm — agreed): an SR-71-style spy plane (the silhouette is
+  fine; no real insignia / logos / display-team livery) SCREAMS across the sky HIGH above the NEON sign at ~3× the other jets'
+  speed — a dark arrowhead, a thin contrail + the twin engines' glow, gone in ~1–1.5 s, a delayed SONIC BOOM. JULY 4th: ~5
+  passes through the day (seeded) + RARELY on random clear days. THE SKILL SIGHTING: TAP IT while it's crossing (a hit box a
+  little larger than the plane, no slow-motion help). Its own badge (EPIC or "QUICK DRAW"), a camera-flash sparkle on the tap.
+  Server-verified like every sighting.
+- **SP5 PHONE REVIEW** (the owner, Oct 26 9:13 pm; built in 11a-2 Group 0): THE SPIDERS ✔; THE DANCING ✔. (1) THE BOSS's
+  SHADOW at the party: he WALKS UP to the shade (the shadow growing / sharpening), STANDS ~15 min (a weight shift, the cigar's
+  ember on a draw, a slow turn of the head), WALKS AWAY (the shadow shrinking off), gone ~10 min, BACK ~15 min… for about
+  1 h 45 min at the party's peak (9:24 pm), then done for the night; (2) THE VIOLET SPADE reads as a black TRIANGLE → BOLDER:
+  a fatter spade with a clearly visible STEM / foot, sized to the pane, crisp edges; (3) THE BOSS's TV a little BRIGHTER + a
+  LIGHTER, glowing blue (still the calm flicker); (4) WITHDRAWN (9:25 pm: "I was mistaken — keep how it normally is"): NO
+  change to the normal-night room, no new check.
+- **THE CASH COUNT + THE POKER-TABLE WINDOW — PARKED** (the owner, Oct 26 9:21 pm): dislikes the GREEN lamp + its glow and
+  the "cheap poker table" window — "skip that guy for now". DON'T touch them in the next passes; revisit when he raises it
+  (a note for then: a warm amber desk lamp; the poker-table room needs the act-big rework or a different scene).
