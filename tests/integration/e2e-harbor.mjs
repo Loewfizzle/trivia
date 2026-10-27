@@ -1945,14 +1945,14 @@ G('windows', async () => {
     const runsAt = () => ev(Q.page, `(() => { const hb = window.__district.harbor(), ws = hb.speakeasy.windows(), cv = document.querySelector('.nd-scene canvas'), x = cv.getContext('2d'), k = cv.width / cv.clientWidth, day = ${mode === 'day'};
       const rows = [...new Set(ws.map(q => q.rect.y))].sort((a, b) => a - b);
       return { W: hb.cam.W, rects: ws.map(q => ({ id: q.id, x: +q.rect.x.toFixed(2), y: +q.rect.y.toFixed(2), w: +q.rect.w.toFixed(2), h: +q.rect.h.toFixed(2) })), rows: rows.map(ry => { const r0 = ws.find(q => q.rect.y === ry).rect, y = Math.round((ry + r0.h * 0.5) * k), x1 = Math.round(Math.min(innerWidth, 140) * k), d = x.getImageData(0, y, x1, 1).data, runs = []; let cur = null;
-        for (let i = 0; i < x1; i++) { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], olive = r > 55 && r < 135 && g > 48 && g < 130 && b < 115 && Math.abs(r - g) < 30 && r >= b - 4, pane = day ? ((b > r + 25 && b > 90) || olive) : (0.2126 * r + 0.7152 * g + 0.0722 * b > 70 && !(r > g + 30 && r > b + 30 && r < 160)); if (pane) { if (!cur) cur = { a: i, b: i }; else cur.b = i; } else if (cur) { if (cur.b - cur.a > 6 * k) runs.push(cur); cur = null; } }
+        for (let i = 0; i < x1; i++) { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], olive = (r > 55 && r < 135 && g > 48 && g < 130 && b < 115 && Math.abs(r - g) < 30 && r >= b - 4) || (r > 165 && g > 140 && b > 100 && r > b + 22 && r >= g - 4), pane = day ? ((b > r + 25 && b > 90) || olive) : (0.2126 * r + 0.7152 * g + 0.0722 * b > 70 && !(r > g + 30 && r > b + 30 && r < 160)); if (pane) { if (!cur) cur = { a: i, b: i }; else cur.b = i; } else if (cur) { if (cur.b - cur.a > 6 * k) runs.push(cur); cur = null; } }
         if (cur && cur.b - cur.a > 6 * k) runs.push(cur);
         return runs.map(q => ({ x: +(q.a / k).toFixed(1), w: +((q.b - q.a + 1) / k).toFixed(1) })).filter(q => q.x > 2); }) }; })()`);
     // (at night the rooms' own content — a dark back room, the people, the TV — breaks a brightness run: the night measure is the rects
     // the rooms are painted into (paintRoom(glassOf(w)) — the same for every window) + their gaps; by day the painted glass itself)
     const judge = (o) => { if (mode === 'night') { const rs = o.rects.sort((p, q) => p.y - q.y || p.x - q.x), rows = [...new Set(rs.map(r => r.y))].map(y => rs.filter(r => r.y === y)); const ws = rs.map(r => r.w), hs = rs.map(r => r.h), mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rows.map(r => r.slice(1).map((q, i) => +(q.x - (r[i].x + r[i].w)).toFixed(1))).flat(); const gmn = Math.min(...gaps), gmx = Math.max(...gaps); return { ok: (mx - mn) / mx <= 0.02 && (gmx - gmn) / gmx <= 0.02 && (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs) <= 0.02, mn, mx, gaps, ws }; }
       const rs = o.rows.map(r => r.slice(-2)); const ws = rs.flat().map(r => r.w);
-      // (SP5: by day the boss's pane is his DRAWN SHADE — an olive cloth run instead of blue glass: the predicate above counts it)
+      // (SP5: by day the boss's pane is his DRAWN SHADE — 9c: the cream linen blind (was olive) instead of blue glass: the predicate above counts it)
       if (ws.length < 4) return { ok: false, why: `only ${ws.length} panes seen` }; const mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rs.map(r => r.length === 2 ? +(r[1].x - (r[0].x + r[0].w)).toFixed(1) : null); return { ok: (mx - mn) / mx <= 0.02, mn, mx, gaps, ws }; };
     const seen = [];
     for (const [w, h] of [[402, 874], [390, 844], [430, 932]]) {
@@ -2235,12 +2235,12 @@ G('windows', async () => {
     ok(!L2.quiet && Object.values(L2.bed || {}).every(v => v === 1), `A NORMAL NIGHT at 1:30: quiet ${L2.quiet}, every room awake (${JSON.stringify(L2.bed)})`);
     await N.ctx.close(); }
   // ---- SP5 — THE BOSS's ROOM BY DAY (the owner: the shade drawn all day — the one window that never opens to the daylight; never a person):
-  // at 1 pm the apartment's pane is DARK beside the back room's glass, its day plan runs (a peek / the cigar smoke / a shadow), no figure
+  // at 1 pm the apartment's pane is the PALE drawn linen blind (9c — the owner's pick: the building's cream blind; was a dark olive) beside the back room's glass, its day plan runs (a peek / the cigar smoke / a shadow), no figure
   { const Q = await open({ slot: 'w-bossday', qs: `when=2026-10-27T13:00${GR}&wx=clear`, view: [402, 874] });
     await harborUp(Q.page); await sleep(1200);
     const W = await wins(Q.page), apt = lum(await area(Q.page, W.apartment, 0.2, 0.8, 0.25, 0.85)), back = lum(await area(Q.page, W.back, 0.2, 0.8, 0.25, 0.85));
     const B = await ev(Q.page, 'window.__district.harbor().speakeasy.life.boss'), fr = await ev(Q.page, winTrace(2)), inApt = fr.reduce((n, f) => n + ((f.figs || []).filter(g => g.w === 'apartment').length), 0);
-    ok(B && B.signal === 0 && !B.party && apt < back - 12 && inApt === 0, `THE BOSS's ROOM BY DAY: the shade drawn (its pane ${apt.toFixed(0)} vs the back room's ${back.toFixed(0)}), no tell on a Tuesday (${B && B.signal}), nobody in it (${inApt} figures over ${fr.length} frames)`);
+    ok(B && B.signal === 0 && !B.party && apt > back + 12 && inApt === 0, `THE BOSS's ROOM BY DAY: the shade drawn (its pane ${apt.toFixed(0)} vs the back room's ${back.toFixed(0)}), no tell on a Tuesday (${B && B.signal}), nobody in it (${inApt} figures over ${fr.length} frames)`);
     await Q.ctx.close(); }
   // ---- SP5 — THE BOOTLEGGERS' TELL: Saturday 5:30 pm (the big delivery at ~6:30) — the violet lamp + the spade behind the shade (the pane
   // VIOLET: blue over red over green), the pane's middle darker than its sides (the spade); the same hour on a Tuesday: no violet
@@ -3523,6 +3523,16 @@ G('snow', async () => {
       await Q.ctx.close();
     }
     ok(fl.dark > 0.6 && fl.carved > 0.05 && fl.carved < 0.45 && fl.day === 0, `9c THE FLOODS on the giant: the uncarved night ${fl.dark} · carved + lit ${fl.carved} (a fill) · by day ${fl.day}`); }
+  // ---- 9c — WINDOW SCENES NEVER POP IN (the owner's rule): a moment that doesn't walk in gets the blind — down + held in its ONE window
+  // before the scene, up on it (the preview row: &force=window&moment=peek)
+  { const Q = await open({ slot: 'w-blind', qs: `when=2026-10-27T21:00${GR}&force=window&moment=peek`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `Object.values(${P}.speakeasy.life.blinds || {}).some(v => v > 0.95)`, 'the blind down', 6000).catch(() => {});
+    const a = await ev(Q.page, `${P}.speakeasy.life.blinds`);
+    await waitFor(Q.page, `!Object.keys(${P}.speakeasy.life.blinds || {}).length`, 'the blind up on the scene', 9000).catch(() => {});
+    const b = await ev(Q.page, `${P}.speakeasy.life.blinds`);
+    ok(Object.keys(a).length === 1 && Object.values(a)[0] > 0.95 && !Object.keys(b).length, `9c THE BLIND CYCLE: down in one window before the scene (${JSON.stringify(a)}), up on it (${JSON.stringify(b)})`);
+    await Q.ctx.close(); }
   // ---- THE JANUARY SNOWMAN: Jan 31 (the climate's January) stands done on the inlay; &snowman=base the forced stage
   { const Q = await open({ slot: 'sn-man', qs: `when=2027-01-31T13:00${GR}`, view: [402, 874] });
     await harborUp(Q.page); await sleep(600);

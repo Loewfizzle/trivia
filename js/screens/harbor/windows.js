@@ -13,7 +13,7 @@
 //   THE MOMENTS  PAINT[id](env, el, len, inst) — one painter per catalogue entry (wake, shop-open, bartender, lights-out, dance,
 //                toast, sax, cat, peek, tango, mirror) + the taps (a curtain twitches, a head peeks out, the cat leaps off)
 // ADD A MOMENT: an entry in core/harbor-moments.js#MOMENTS + PAINT[id] here (+ a sound through env.play if it has one).
-import { hourPlan, momentsAt, roomState, routineAt, tvLight, tvShadow, tvHolidayTint, tvScene, TV_PAL, quietNight, bedtimes, bedLevel, BED_ROOMS, windowParty, windowPartyAt, PARTY_ROOMS, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM, edgeMoods, bossDayPlan, bossDayAt, bossSignal, edgeShades, bossWatchAt, bossWatchPlan } from '../../core/harbor-moments.js';
+import { usesBlind, BLIND, blindAt, blindsAt, hourPlan, momentsAt, roomState, routineAt, tvLight, tvShadow, tvHolidayTint, tvScene, TV_PAL, quietNight, bedtimes, bedLevel, BED_ROOMS, windowParty, windowPartyAt, PARTY_ROOMS, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM, edgeMoods, bossDayPlan, bossDayAt, bossSignal, edgeShades, bossWatchAt, bossWatchPlan } from '../../core/harbor-moments.js';
 import { createDanceClock, stepDanceClock, idleMoves } from '../../core/harbor-dance.js';
 const TV_END_S = 3 * 3600;
 import { sunTimes } from '../../core/sky.js';
@@ -719,22 +719,30 @@ export function createWindowLife() {
       if (partyDead === nightKey && partyCutT != null && f.t - partyCutT < 1.6 && partyKeep) party = { on: true, k: partyKeep.k, col: partyKeep.col, order: partyKeep.order, cut: true, scatter: f.t - partyCutT, beat: L.beat || null };
       if (partyDead !== nightKey) { partyCutT = null; partyKeep = null; }
     }
-    let on;
+    let on, blinds = {};
     const forced = L.moment && MOMENT[L.moment] ? L.moment : null;
     if (forced) {
       // THE PREVIEW (&force=window&moment=<id>, the panel's WINDOWS rows): that moment on a loop from 1.2 s in, nothing else drawn
-      if (forcedId !== forced) { forcedId = forced; forcedT0 = f.t + 1.2; }
-      const m = MOMENT[forced], cyc = m.len + 2.5, el = f.t - forcedT0;
+      // (9c — the blind's moments: their lead-in — the blind down + held — before the scene, the blind up + down again round each loop)
+      const bl = usesBlind(forced), lead = bl ? BLIND.down + BLIND.hold + 0.3 : 1.2;
+      if (forcedId !== forced) { forcedId = forced; forcedT0 = f.t + lead; }
+      const m = MOMENT[forced], cyc = m.len + (bl ? 2 * (BLIND.down + BLIND.hold) + 0.6 : 2.5), el = f.t - forcedT0;
       const n = Math.floor(el / cyc), e = el - n * cyc;
-      on = el >= 0 && e < m.len ? [{ id: forced, win: m.windows === 'all' ? 'all' : (Array.isArray(m.windows) ? m.windows[((n % m.windows.length) + m.windows.length) % m.windows.length] : m.windows), el: e, len: m.len, n: -1 - n, p: e / m.len }] : [];
+      const winN = q => (m.windows === 'all' ? 'all' : (Array.isArray(m.windows) ? m.windows[((q % m.windows.length) + m.windows.length) % m.windows.length] : m.windows));
+      on = el >= 0 && e < m.len ? [{ id: forced, win: winN(n), el: e, len: m.len, n: -1 - n, p: e / m.len }] : [];
+      if (bl) { const n0 = Math.max(0, n), rel = el - n0 * cyc, b0 = blindAt(rel, m.len), b1 = blindAt(rel - cyc, m.len); blinds = {}; if (b0 > 0) blinds[winN(n0)] = b0; if (b1 > 0) blinds[winN(n0 + 1)] = Math.max(blinds[winN(n0 + 1)] || 0, b1); }
     } else {
       forcedId = null;
       const hr = Math.floor(h), prev = hr ? block(loc.key, hr - 1, ctx) : block(localNow(ms - 86400e3, L.off).key, 23, { ...ctx, dow: (loc.dow + 6) % 7 }).map(e => ({ ...e, t0: e.t0 - 86400 }));
-      on = starOnly(momentsAt([...prev, ...block(loc.key, hr, ctx)], loc.sec));   // (SP3: one star window at a time)
+      const all = [...prev, ...block(loc.key, hr, ctx)];
+      on = starOnly(momentsAt(all, loc.sec));   // (SP3: one star window at a time)
+      blinds = blindsAt(all, loc.sec);           // (9c: the blinds' cycles round the moments that use them — before + after their window)
+      if (bed) for (const id of Object.keys(blinds)) if (bedK[id] != null && bedK[id] <= 0.5) delete blinds[id];
+      if (party && party.on) for (const id of Object.keys(blinds)) if (party.k[id] > 0.01) delete blinds[id];
       if (bed) on = on.filter(e => e.win === 'all' || bedK[e.win] == null || bedK[e.win] > 0.5);   // (WIN3: a room gone to bed has no moments)
       if (party && party.on) on = on.filter(e => e.win !== 'all' && !(party.k[e.win] > 0.01));   // (WIN3: a room at the party has no other moment)
       // (Reduced motion: no moving moments — the rooms keep their states: the TV's light steady, the night lamp, the shop's barber still)
-      if (f.motion === false || f.motion === 0) on = [];   // (11a-1: the title passes motion 0 — the old === false never caught it)
+      if (f.motion === false || f.motion === 0) { on = []; blinds = {}; }   // (11a-1: the title passes motion 0 — the old === false never caught it)
     }
     const states = { apartment: roomState('apartment', h, routines), bar: roomState('bar', h, routines), shop: roomState('shop', h, routines) };
     // SP5 — THE BOSS's ROOM (core#bossDayPlan / bossSignal / bossWatch): the shade drawn all day (its rare life: the peek, the cigar smoke,
@@ -757,7 +765,7 @@ export function createWindowLife() {
     const shades = edgeShades(nightKey, { seed: L.seed });
     stepDanceClock(wd, wdT == null ? 0 : Math.max(0, f.t - wdT), L.beat ? { beatsF: L.beat.beatsF, gap: !!L.beat.gap, left: L.beat.left == null ? null : L.beat.left, id: L.beat.id || null } : null); wdT = f.t;
     const cur = block(loc.key, Math.floor(h), ctx), nx = cur.find(e => e.t0 > loc.sec);
-    last = { on, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
+    last = { on, blinds, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
     return last;
   }
 
@@ -788,8 +796,9 @@ export function createWindowLife() {
       const list = byWin.get(w.id) || [];
       const tap = taps.find(o => o.id === w.id && t - o.at < 3.2);
       const dress = holDress(fr.hol, w.id) || (list.some(e => e.id === 'ofrenda') ? 'ofrenda' : null);
-      if (!list.length && !tap && !dress && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp')) continue;
-      if (w.edge && k < 0.01 && !list.length && !tap && !dress) continue;
+      const bl9 = fr.blinds ? fr.blinds[w.id] || 0 : 0;   // (9c: a moment's blind cycle in this window)
+      if (!list.length && !tap && !dress && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp') && bl9 < 0.002) continue;
+      if (w.edge && k < 0.01 && !list.length && !tap && !dress && bl9 < 0.002) continue;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
       traceWindow(w.id);
       // WIN3 — A ROOM GONE TO BED (a quiet night): its pane dark, nothing drawn in it (the lit layer is × its bed level too: speakeasy.js)
@@ -827,6 +836,7 @@ export function createWindowLife() {
       else if (dress === 'pumpkin' && kl > 0.05) sillPumpkin(E);
       // the moments in this window
       for (const e of list) { const p = PAINT[e.id]; if (p) zoomed(STAGE[e.id] || 1, () => p(E, e.el, e.len, e)); }
+      if (bl9 > 0.002) cycleBlind(E, bl9);   // (9c: never a cut — the blind down, the scene swapped under it, the blind up)
       if (tap) tapPaint(E, tap);
       c.restore();
       for (const fn of E.after) fn();
@@ -881,6 +891,18 @@ export function createWindowLife() {
    *  from the lamp behind (o.glow 'lamp'), on a party night cool BLUE from the set (o.glow 'tv', core#tvLight); the TELL: VIOLET with a
    *  dark SPADE cut-out (o.signal); its life: the PEEK (the hem lifts an inch + drops — o.day / a tap), the CIGAR SMOKE out of the sash
    *  cracked at the top, the SHADOW crossing behind the lit shade (o.day); THE WATCH: his shadow standing against the glow + the ember */
+  /** 9c — THE BLIND CYCLE (core#blindAt): the building's cream holland linen rolled down from the head to b (0 up … 1 down): by day lit
+   *  evenly from outside, at night glowing with the room's light behind it; the hem bar + the ring pull, the roller's shadow at the head */
+  function cycleBlind(E, b) {
+    const { c, G, kl, day } = E, cover = 0.96 * b, hem = G.h1 - G.ch * cover, lamp = Math.min(1, (kl || 0) * 1.2);
+    const cloth = mixc(mixc([30, 26, 26], [226, 204, 164], day), [255, 214, 150], 0.55 * lamp * (1 - day));
+    const g = c.createLinearGradient(0, hem, 0, G.h1); g.addColorStop(0, rgb(mixc(cloth, [40, 30, 24], 0.25))); g.addColorStop(0.5, rgb(mixc(cloth, [255, 244, 220], 0.1))); g.addColorStop(1, rgb(mixc(cloth, [40, 30, 24], 0.32)));
+    c.fillStyle = g; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, G.h1 - hem + 0.1);
+    c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, 0.03);
+    c.fillStyle = rgb(mixc([176, 146, 84], cloth, 0.3)); c.fillRect(G.g0 - 0.1, hem - 0.013, G.cw + 0.2, 0.028);   // (the hem bar)
+    c.strokeStyle = rgb([156, 126, 70], 0.95); c.lineWidth = 0.016; c.beginPath(); c.arc(G.cx, hem - 0.075, 0.036, 0, TAU); c.stroke();   // (the ring pull)
+    c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(G.g0, G.h1 - 0.05, G.cw, 0.05);   // (the roller's shadow at the head)
+  }
   function bossShade(E, o = {}) {
     const { c, G, k, t, mo, day } = E, sig = o.signal || 0, wa = o.watch, cover0 = o.cover == null ? 0.9 : o.cover;
     const ev = o.day, p = ev ? ev.p : 0;
@@ -891,8 +913,10 @@ export function createWindowLife() {
     const glowC = o.glow === 'tv' ? (() => { const tv = mo ? tvLight(t, 11, { late: !!last.tvLate }) : { k: 0.7, tint: 0.4, warm: 0 }; return { col: tvCols(tv, t).near, a: Math.min(1, (0.5 + 0.5 * tv.k) * TV_LIFT) * k }; })()   /* (SP6: a quiet stretch never sinks the party's one blue window) */
       : o.glow === 'lamp' ? { col: [255, 196, 120], a: 0.85 * k } : { col: [40, 36, 50], a: 0 };
     R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([9, 8, 14], glowC.col, 0.18 * glowC.a)));
-    // THE SHADE: the cloth (by day a dull olive-brown in the sun, dark where the recess shades it; lit from behind at night)
-    const cloth = mixc([74, 66, 48], [30, 28, 30], 1 - day), lit = mixc(mixc(cloth, glowC.col, (o.glow === 'tv' ? 0.92 : 0.75) * glowC.a), [150, 84, 240], 0.7 * sig);   // (the tell: the cloth itself violet)
+    // THE SHADE: the cloth — 9c (the owner: the olive "reads a weird dark brown"; DECIDED: the building's own blind): by day the same CREAM /
+    // TAN HOLLAND LINEN as the edge windows' blinds ([236,214,176] → [176,146,84]), fully down + evenly lit by the sun from outside (his
+    // window reads CLOSED by being the only one fully drawn); dark at night, lit from behind
+    const cloth = mixc([228, 206, 166], [30, 28, 30], 1 - day), lit = mixc(mixc(cloth, glowC.col, (o.glow === 'tv' ? 0.92 : 0.75) * glowC.a), [150, 84, 240], 0.7 * sig);   // (the tell: the cloth itself violet)
     { const g = c.createLinearGradient(0, hem, 0, G.h1); g.addColorStop(0, rgb(mixc(lit, [0, 0, 0], 0.2))); g.addColorStop(0.5, rgb(lit)); g.addColorStop(1, rgb(mixc(lit, [255, 250, 230], 0.18 * day))); c.fillStyle = g; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, G.h1 - hem + 0.1); }
     // SP6 — A REAL SHADE whenever it's lit (the owner: never a flat fill): the light from behind as a soft HOT SPOT where it is (the lamp low
     // left of centre; the set low at the front right), a broad glow through the cloth round it, the cloth's faint horizontal weave + a
@@ -909,7 +933,21 @@ export function createWindowLife() {
       c.beginPath(); c.moveTo(G.g0 + 0.02, hem + 0.04); c.quadraticCurveTo(G.g0 + G.cw * 0.28, hem + G.ch * 0.1, G.g0 + G.cw * 0.42, hem + G.ch * 0.26); c.stroke();   // (the sag lines)
       c.beginPath(); c.moveTo(G.g1 - 0.02, hem + 0.04); c.quadraticCurveTo(G.g1 - G.cw * 0.28, hem + G.ch * 0.1, G.g1 - G.cw * 0.42, hem + G.ch * 0.26); c.stroke();
     }
-    if (glowC.a > 0.02) { const ed = 0.5 * glowC.a, g = c.createLinearGradient(G.g0, 0, G.g1, 0);   // (lit only: by day the shade stays as SP5 drew it)
+    // 9c — THE LINEN BY DAY: its soft vertical sheen (the cloth's slight waves catching the light), a faint sag from the hem's corners, the
+    // darker hem bar + the pull ring hanging under it, a little shade under the roller at the head
+    if (day > 0.05 && glowC.a <= 0.02) {
+      c.globalAlpha = day;
+      for (let i = 0; i < 5; i++) { const u = G.g0 + G.cw * (0.1 + 0.2 * i), w = G.cw * 0.08; const g = c.createLinearGradient(u - w, 0, u + w, 0); g.addColorStop(0, 'rgba(255,250,236,0)'); g.addColorStop(0.5, `rgba(${i % 2 ? '120,96,60,0.07' : '255,250,236,0.16'})`); g.addColorStop(1, 'rgba(255,250,236,0)'); c.fillStyle = g; c.fillRect(u - w, hem, w * 2, G.h1 - hem); }
+      c.strokeStyle = 'rgba(110,84,50,0.16)'; c.lineWidth = 0.018;
+      c.beginPath(); c.moveTo(G.g0 + 0.02, hem + 0.04); c.quadraticCurveTo(G.g0 + G.cw * 0.28, hem + G.ch * 0.08, G.g0 + G.cw * 0.4, hem + G.ch * 0.2); c.stroke();
+      c.beginPath(); c.moveTo(G.g1 - 0.02, hem + 0.04); c.quadraticCurveTo(G.g1 - G.cw * 0.28, hem + G.ch * 0.08, G.g1 - G.cw * 0.4, hem + G.ch * 0.2); c.stroke();
+      const g2 = c.createLinearGradient(0, G.h1, 0, G.h1 - G.ch * 0.16); g2.addColorStop(0, 'rgba(60,44,28,0.28)'); g2.addColorStop(1, 'rgba(60,44,28,0)'); c.fillStyle = g2; c.fillRect(G.g0 - 0.1, G.h1 - G.ch * 0.16, G.cw + 0.2, G.ch * 0.16);
+      c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, 0.03);
+      c.fillStyle = rgb([176, 146, 84]); c.fillRect(G.g0 - 0.1, hem - 0.014, G.cw + 0.2, 0.03);   // (the hem bar)
+      c.strokeStyle = rgb([150, 120, 64], 0.95); c.lineWidth = 0.016; c.beginPath(); c.arc(G.cx, hem - 0.075, 0.038, 0, TAU); c.stroke();   // (the ring pull)
+      c.globalAlpha = 1;
+    }
+    if (glowC.a > 0.02) { const ed = 0.5 * glowC.a, g = c.createLinearGradient(G.g0, 0, G.g1, 0);   // (lit only)
       g.addColorStop(0, `rgba(0,0,0,${ed.toFixed(3)})`); g.addColorStop(0.2, 'rgba(0,0,0,0)'); g.addColorStop(0.8, 'rgba(0,0,0,0)'); g.addColorStop(1, `rgba(0,0,0,${ed.toFixed(3)})`);
       c.fillStyle = g; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, G.h1 - hem + 0.1);
       const g2 = c.createLinearGradient(0, G.h1, 0, G.h1 - G.ch * 0.22); g2.addColorStop(0, `rgba(0,0,0,${(0.7 * ed).toFixed(3)})`); g2.addColorStop(1, 'rgba(0,0,0,0)'); c.fillStyle = g2; c.fillRect(G.g0 - 0.1, G.h1 - G.ch * 0.22, G.cw + 0.2, G.ch * 0.22); }   // (the top under the roller, darker)
@@ -2154,7 +2192,7 @@ export function createWindowLife() {
     catReset() { catTap = -1; },
     /** WIN: something in a window is MOVING (a moment, a tap's answer, a passer-by) — a 60-fps reason (scene.js#fastNow) */
     busy: () => busyNow,
-    debug: () => ({ shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
+    debug: () => ({ blinds: last.blinds || {}, shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
     destroy() { for (const cv of sprites.values()) cv.width = cv.height = 0; sprites.clear(); blocks.clear(); },
   };
 }

@@ -279,6 +279,38 @@ export function momentsAt(entries, sec) {
   for (const e of entries) if (e.t0 <= sec && sec < e.t0 + e.len) on.push({ ...e, el: sec - e.t0, p: (sec - e.t0) / e.len });
   return on;
 }
+/** 9c — WINDOW SCENES NEVER POP IN (the owner's RULE, Oct 27): a scene starts in one of two ways only — (1) its people WALK UP through the
+ *  room's depth (WIN2's walkIn) / arrive by their own motion, or (2) the BLIND comes DOWN, ~2 s, the blind goes UP and the scene is there;
+ *  it ENDS the same way. ENTERS_BY_MOTION: the moments whose painters bring their people in + out (walkIn, crossing the shade, the cat
+ *  jumping up, the routines' own actions — the blind up at the wake, the lamp clicking on one by one, the mirror swinging); every other
+ *  moment gets THE BLIND CYCLE (blindAt). The sax is 9d's rework (its own entrance there). tests/harbor-windows-rule.test.mjs */
+export const ENTERS_BY_MOTION = Object.freeze(['wake', 'shop-open', 'bartender', 'lights-out', 'dance', 'toast', 'cat', 'tango', 'mirror', 'cash', 'eyes', 'table', 'football', 'sax']);
+export const BLIND = Object.freeze({ down: 0.7, hold: 2.0 });
+export const usesBlind = id => !!MOMENT[id] && !ENTERS_BY_MOTION.includes(id);
+const sm01 = u => { const v = u < 0 ? 0 : u > 1 ? 1 : u; return v * v * (3 - 2 * v); };
+/** PURE: how far a moment's blind is down (0 up … 1 down) at rel s after its start (len s long): down + held BEFORE it starts (the scene
+ *  swaps under it), up over its first 0.7 s; down over its last 0.7 s, held, up again on the empty room */
+export function blindAt(rel, len) {
+  const D = BLIND.down, H = BLIND.hold;
+  if (rel < -(D + H) || rel >= len + D + H) return 0;
+  if (rel < -H) return sm01((rel + D + H) / D);
+  if (rel < 0) return 1;
+  if (rel < D) return 1 - sm01(rel / D);
+  if (rel < len - D) return 0;
+  if (rel < len) return sm01((rel - (len - D)) / D);
+  if (rel < len + H) return 1;
+  return 1 - sm01((rel - len - H) / D);
+}
+/** PURE: the blinds' levels by window at second `sec` from the day's entries (+ the last hour's) → { [win]: 0..1 } */
+export function blindsAt(entries, sec) {
+  const out = {};
+  for (const e of entries) {
+    if (e.win === 'all' || !usesBlind(e.id)) continue;
+    const b = blindAt(sec - e.t0, e.len);
+    if (b > 0 && b > (out[e.win] || 0)) out[e.win] = b;
+  }
+  return out;
+}
 /** SP3 — ONE STAR WINDOW AT A TIME (the owner): of the moments on now, the routines (a room's own life) + ONE star — the one that started
  *  first (the eye always knows where to look); the rest wait their turn off the stage. PURE: on → the filtered list */
 export function starOnly(on) {
