@@ -349,3 +349,16 @@ test('SP5 — THE BOSS AT THE SHADE on a party night: a stand every ~80 s on mos
   for (let t = 0; t < 1600; t += 0.05) { const w = bossWatch(t, 11); if (w) { maxA = Math.max(maxA, w.a); if (w.ember > 0.5) ember++; assert.ok(w.a >= 0 && w.a <= 1 && w.x > 0.4 && w.x < 0.73); cur += 0.05; if (!inStand) { stands++; inStand = true; assert.ok(w.a < 0.1, 'steps up from nothing'); } } else { if (inStand) longest = Math.max(longest, cur); cur = 0; inStand = false; } }
   assert.ok(stands >= 10 && stands <= 20 && maxA === 1 && longest >= 7 && longest <= 14.2 && ember > 0, `${stands} stands in 1600 s, the longest ${longest.toFixed(1)} s, the ember glowed on ${ember} samples`);
 });
+
+test('SP5 — THE EDGE WINDOWS\' ROLLER SHADES: a seeded height a night (up / half / down), the two never alike, every height seen over a season', async () => {
+  const { edgeShades, SHADE_HEIGHTS } = await import('../js/core/harbor-moments.js');
+  const seen = { edge2: new Set(), edge3: new Set() };
+  for (let d = 1; d <= 90; d++) {
+    const dt = new Date(Date.UTC(2026, 9, d)), key = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+    const S = edgeShades(key);
+    assert.ok(SHADE_HEIGHTS.includes(S.edge2) && SHADE_HEIGHTS.includes(S.edge3) && S.edge2 !== S.edge3, `${key}: ${S.edge2} / ${S.edge3}`);
+    assert.deepEqual(S, edgeShades(key), 'seeded');
+    seen.edge2.add(S.edge2); seen.edge3.add(S.edge3);
+  }
+  assert.equal(seen.edge2.size + seen.edge3.size, 6, 'every height on both windows over 90 nights');
+});

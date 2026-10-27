@@ -870,6 +870,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
   }
   let lobbyLine = 0;
+  /** SP5 — THE SONG's EDGE for every dancer (core/harbor-dance.js): the song playing (id), seconds LEFT in it (its end: they wind down),
+   *  and GAP = the music is on but between songs (audio/beat.js's 'no song' — music off / muted / a locked context is NOT a gap) */
+  function songEdge() {
+    const sg = PT.song || null, si = sg && S.song ? S.song() : null, why = !sg && S.beatWhy ? S.beatWhy() : '';
+    return { id: sg ? sg.id : null, gap: !sg && why === 'no song', left: sg && si && si.dur > 0 ? Math.max(0, si.dur - sg.pos) : null };
+  }
   /** WIN — the cash count's gates (core/harbor-moments.js: boot / noRaid): tonight a bootleggers' night (a weeknight delivery — the
    *  workers' schedule — or Saturday's big one), tonight a raid night (the evening's raid, already planned by raidPlanNow) */
   let truckKey = '', truckAt = null;   // (SP5: the bootleggers' truck tonight — seconds after local midnight; the boss's tell goes off then)
@@ -1058,6 +1064,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (ps.on > 0 && !ps.forced) { PT.energy = hp0.energy; PT.name = hp0.name; }
     PT.palette = partyPalette(hol);
     const song = ps.on > 0 && S.beat ? S.beat() : null;
+    PT.song = song;   // (SP5: the dancers' song edge — songEdge())
     advanceBeat(bc, dt, song);
     PT.breath = S.motion ? bc.breath : 0.5;
     // THE BEAT (NEON PASS 5 — core/harbor-beat.js): the song's grid (real bars, the downbeat) + the kicks the analyser hears; the
@@ -1467,7 +1474,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       tw: TW, hush: hushPreview(), flash: lightningFlash(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, raidS: RP ? nowRS - (RP.t0 - 5) : null, seed: L ? L.seed || 1924 : 1924,
         // (WIN3 — THE PARTY IN THE WINDOWS: the peak's clock (seconds since it began / until it ends), the beat, the forced flag)
         partyPhase: PT.name, partyPeakS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (hr - pl.peak) * 3600; })(), partyEndS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (pl.calm - hr) * 3600; })(),
-        partyForce: clock.force.has('window-party'), beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0 } : null, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+        partyForce: clock.force.has('window-party'), beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, ...songEdge() } : null, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     // WIN3 — THE WINDOW PARTY's COLOUR ON THE COBBLES: each room's light pooled on the promenade in front of its window (a flat ellipse,
     // 'lighter', in the room's colour — the foreground takes the party's colour)
     partyPools = [];

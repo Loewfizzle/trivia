@@ -13,7 +13,8 @@
 //   THE MOMENTS  PAINT[id](env, el, len, inst) — one painter per catalogue entry (wake, shop-open, bartender, lights-out, dance,
 //                toast, sax, cat, peek, tango, mirror) + the taps (a curtain twitches, a head peeks out, the cat leaps off)
 // ADD A MOMENT: an entry in core/harbor-moments.js#MOMENTS + PAINT[id] here (+ a sound through env.play if it has one).
-import { hourPlan, momentsAt, roomState, routineAt, tvLight, tvShadow, tvHolidayTint, quietNight, bedtimes, bedLevel, BED_ROOMS, windowParty, windowPartyAt, PARTY_ROOMS, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM, edgeMoods, bossDayPlan, bossDayAt, bossSignal, bossWatch } from '../../core/harbor-moments.js';
+import { hourPlan, momentsAt, roomState, routineAt, tvLight, tvShadow, tvHolidayTint, quietNight, bedtimes, bedLevel, BED_ROOMS, windowParty, windowPartyAt, PARTY_ROOMS, dayKey, MOMENT, TANGO_PATH, TV_OFF, starOnly, STAGE, STAGE_ROOM, edgeMoods, bossDayPlan, bossDayAt, bossSignal, bossWatch, edgeShades } from '../../core/harbor-moments.js';
+import { createDanceClock, stepDanceClock, idleMoves } from '../../core/harbor-dance.js';
 const TV_END_S = 3 * 3600;
 import { sunTimes } from '../../core/sky.js';
 import { rngFrom } from '../../core/rng.js';
@@ -93,6 +94,16 @@ export function walkIn(p, o = {}) {
   return { d: lerp(from, to, x), k: x, in: inK, out: outK, walking: (p < pin || p > pout) ? 1 : 0 };
 }
 const darker = (c, k = WALL_DARK) => [c[0] * k, c[1] * k, c[2] * k];
+/** SP5 — TWO-BONE IK for the kit's arms: the hand's offset from the shoulder (dx, dy — world units, y up) → the kit's [a, e] (the upper
+ *  arm's angle from straight down, outward positive on its side; the elbow's bend) so the forearm ends AT the hand (the elbow out) */
+export function solveArm(side, dx, dy, L1, L2) {
+  const ox = side * dx, dn = -dy, dmax = L1 + L2 - 0.02, dmin = Math.abs(L1 - L2) + 0.02;
+  const d = Math.max(dmin, Math.min(dmax, Math.hypot(ox, dn) || 1e-6)), phi = Math.atan2(ox, dn);
+  const beta = Math.acos(Math.max(-1, Math.min(1, (L1 * L1 + d * d - L2 * L2) / (2 * L1 * d)))), a = phi + beta;
+  const ex = side * Math.sin(a) * L1, ey = -Math.cos(a) * L1;
+  const fa = Math.atan2(side * (dx - ex), -(dy - ey));
+  return [a, fa - a];
+}
 /** a figure's contact shadow on the floor (drawn inside its depth frame: y = the floor line there) */
 export function floorShadow(c, x, y, s, a = 0.3) { c.save(); c.fillStyle = `rgba(10,6,12,${a.toFixed(3)})`; c.beginPath(); c.ellipse(x, y, 0.24 * s, 0.055 * s, 0, 0, TAU); c.fill(); c.restore(); }
 
@@ -486,7 +497,7 @@ function body(c, P, inf) {
     seg(sx, sy, ex, ey, aw * 1.08, aw * 0.86);
     seg(ex, ey, hx2, hy2, aw * 0.86, aw * 0.66);
     // the hand: a small mitten along the forearm's line (the fingers' mass + the thumb's nub)
-    { const dx = Math.sin(fa) * side, dy = -Math.cos(fa); setForm({ kind: 'head', cx: hx2 + dx * 0.035 * s, cy: hy2 + dy * 0.035 * s, rx: 0.05 * s, ry: 0.036 * s, far }); c.beginPath(); c.ellipse(hx2 + dx * 0.035 * s, hy2 + dy * 0.035 * s, 0.05 * s, 0.036 * s, Math.atan2(dy, dx), 0, TAU); F('skin'); }
+    if (!P.noHands) { const dx = Math.sin(fa) * side, dy = -Math.cos(fa); setForm({ kind: 'head', cx: hx2 + dx * 0.035 * s, cy: hy2 + dy * 0.035 * s, rx: 0.05 * s, ry: 0.036 * s, far }); c.beginPath(); c.ellipse(hx2 + dx * 0.035 * s, hy2 + dy * 0.035 * s, 0.05 * s, 0.036 * s, Math.atan2(dy, dx), 0, TAU); F('skin'); }   // (SP5: noHands — the cash count's own hands at the arms' ends)
     if (P.bones && !inf) { c.strokeStyle = P.bones; c.lineWidth = 0.018 * s; c.beginPath(); c.moveTo(sx, sy); c.lineTo(ex, ey); c.lineTo(hx2, hy2); c.stroke(); }
     const hold = P.hold && P.hold[i];
     if (hold && !inf) prop(c, hold, hx2, hy2, side, fa, s, fill('prop'), P);
@@ -506,6 +517,7 @@ function body(c, P, inf) {
     const mk = pal.marks || 'rgb(40,30,34)', lt = pal.light || 'rgb(240,236,228)';
     for (const m of P.marks) {
       if (m === 'braces') { c.strokeStyle = mk; c.lineWidth = 0.03 * s; c.beginPath(); for (const e of [-1, 1]) { c.moveTo(e * 0.075 * s, 0.02 * s); c.lineTo(e * 0.11 * s, shY - 0.02 * s); } c.stroke(); }
+      else if (m === 'vest') { c.fillStyle = mk; c.beginPath(); c.moveTo(-wh * 0.98, 0.0 * s); c.lineTo(wh * 0.98, 0.0 * s); c.lineTo(wh * 0.86, shY - 0.08 * s); c.lineTo(0.1 * s, shY - 0.02 * s); c.lineTo(0, shY - 0.22 * s); c.lineTo(-0.1 * s, shY - 0.02 * s); c.lineTo(-wh * 0.86, shY - 0.08 * s); c.closePath(); c.fill(); }   // (SP5: a dark waistcoat, the shirt a white V at the chest)
       else if (m === 'pocket') { c.fillStyle = lt; c.fillRect(0.08 * s + f * 0.02 * s, shY - 0.22 * s, 0.07 * s, 0.028 * s); }
       else if (m === 'bow') { c.fillStyle = mk; c.beginPath(); c.moveTo(0, shY + 0.07 * s); c.lineTo(-0.06 * s, shY + 0.1 * s); c.lineTo(-0.06 * s, shY + 0.04 * s); c.closePath(); c.fill(); c.beginPath(); c.moveTo(0, shY + 0.07 * s); c.lineTo(0.06 * s, shY + 0.1 * s); c.lineTo(0.06 * s, shY + 0.04 * s); c.closePath(); c.fill(); }
       else if (m === 'pearls') { c.fillStyle = lt; for (let i = -2; i <= 2; i++) { c.beginPath(); c.arc(i * 0.03 * s + f * 0.01 * s, shY + 0.03 * s - Math.abs(i) * 0.012 * s, 0.013 * s, 0, TAU); c.fill(); } }
@@ -602,7 +614,7 @@ const DAY_PALS = [
   { body: 'rgb(150,62,58)', skin: 'rgb(196,146,112)', hair: 'rgb(40,28,24)', hat: 'rgb(70,50,44)', legs: 'rgb(60,54,60)', prop: 'rgb(220,220,214)' },
   { body: 'rgb(208,196,170)', skin: 'rgb(222,178,146)', hair: 'rgb(120,80,44)', hat: 'rgb(110,84,60)', legs: 'rgb(70,66,74)', prop: 'rgb(110,140,160)' },
 ];
-const BARBER = { body: 'rgb(238,236,228)', skin: 'rgb(210,164,130)', hair: 'rgb(44,32,28)', hat: 'rgb(44,32,28)', legs: 'rgb(46,44,52)', prop: 'rgb(214,220,228)', arm: 'rgb(232,230,222)' };
+const BARBER = { body: 'rgb(238,236,228)', skin: 'rgb(210,164,130)', hair: 'rgb(44,32,28)', hat: 'rgb(44,32,28)', legs: 'rgb(46,44,52)', prop: 'rgb(214,220,228)', arm: 'rgb(232,230,222)', marks: 'rgb(30,26,34)', m: ['vest', 'bow'] };   // (SP5 — the owner: two white shapes in the shop → the barber's dark vest + black bow tie over his white jacket)
 const pals = n => DAY_PALS[((n % 3) + 3) % 3];
 /** SP4 — THE NIGHT'S CLOTHES in real colours (+ `m`: the marks drawn as blocks — braces, a pocket square, a bow tie, pearls, pinstripes),
  *  lit by each room's lamp through litPal(); `light` = the pale marks' colour, `marks` the dark ones' */
@@ -737,8 +749,12 @@ export function createWindowLife() {
     // WIN2 — THE EDGE WINDOWS' MOOD LIGHTS: at night the two edge windows are the live layer's (their mood seeded by the night's date)
     if (darkAtNow(h, ctx.dark)) { full.add('edge2'); full.add('edge3'); }
     const moods = edgeMoods(nightKey, { hol: ctx.hol ? ctx.hol.id : null, party: ctx.party });
+    // SP5 — the edge windows' roller shades tonight (core#edgeShades) + THE DANCE CLOCK every dancer in the building reads (core/harbor-dance.js:
+    // the song's grid blended, the energy winding down at a song's end, idle in the gap, picking up on the new song)
+    const shades = edgeShades(nightKey, { seed: L.seed });
+    stepDanceClock(wd, wdT == null ? 0 : Math.max(0, f.t - wdT), L.beat ? { beatsF: L.beat.beatsF, gap: !!L.beat.gap, left: L.beat.left == null ? null : L.beat.left, id: L.beat.id || null } : null); wdT = f.t;
     const cur = block(loc.key, Math.floor(h), ctx), nx = cur.find(e => e.t0 > loc.sec);
-    last = { on, states, boss, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
+    last = { on, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
     return last;
   }
 
@@ -1052,11 +1068,19 @@ export function createWindowLife() {
     c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     if (extra) extra(c);
     if (flash > 0.02) { c.fillStyle = `rgba(236,240,255,${(0.6 * flash * k).toFixed(3)})`; c.fillRect(G.g0, G.h0, G.cw, G.ch); }
-    // the curtains tied back (cream, lit by the mood), the gap between them brighter
-    c.globalAlpha = 0.72 * k;
-    const cc = mixc([60, 46, 38], mixc([242, 218, 178], col, 0.3), Math.min(1, A * 0.9));
-    for (const [p, q, d] of [[G.g0, G.g0 + G.cw * 0.44, 1], [G.g1 - G.cw * 0.44, G.g1, -1]]) { c.fillStyle = rgb(cc); c.beginPath(); c.moveTo(p, G.h1); c.lineTo(q, G.h1); c.quadraticCurveTo(d > 0 ? q - 0.06 : p + 0.06, G.h0 + G.ch * 0.45, d > 0 ? q - 0.1 : p + 0.1, G.h0); c.lineTo(d > 0 ? p : q, G.h0); c.fill(); }
-    c.fillStyle = 'rgba(120,40,24,0.28)'; for (const fx of [0.12, 0.3, 0.7, 0.88]) c.fillRect(G.g0 + G.cw * fx, G.h0, 0.05, G.ch);
+    // SP5 — THE ROLLER SHADE (the owner: the curtains read as bow ties and blocked what little window there is — NO curtains in the half-cut
+    // windows): a plain fabric blind from the head at tonight's seeded height (core#edgeShades) — UP: the roller only (the full mood light);
+    // HALF: the cloth over the top half, the light + its shadows below one straight edge; DOWN: the shade itself a warm translucent panel
+    // the mood's light + shadows play ON (the fan's blades, a passer, the flicker show through it, softened). One clean horizontal edge.
+    const shd = (last.shades && last.shades[w.id]) || 'half', cover = shd === 'down' ? 0.93 : shd === 'half' ? 0.5 : 0.07, hem = G.h1 - G.ch * cover;
+    const lit2 = Math.min(1, A), cloth = mixc([236, 214, 176], col, 0.3 * lit2);
+    c.globalAlpha = (shd === 'down' ? 0.6 : shd === 'half' ? 0.8 : 0.92) * Math.max(0.5, k);
+    { const g = c.createLinearGradient(0, hem, 0, G.h1); g.addColorStop(0, rgb(mixc(cloth, [40, 30, 24], 0.4 - 0.25 * lit2))); g.addColorStop(0.5, rgb(mixc(cloth, [255, 240, 210], 0.12 * lit2))); g.addColorStop(1, rgb(mixc(cloth, [40, 30, 24], 0.3))); c.fillStyle = g; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, G.h1 - hem + 0.1); }
+    c.globalAlpha = Math.max(0.5, k);
+    c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, 0.035);                                       // (the hem's shadow line)
+    c.fillStyle = rgb(mixc([150, 124, 72], cloth, 0.3)); c.fillRect(G.g0 - 0.1, hem - 0.012, G.cw + 0.2, 0.026);               // (the hem bar)
+    c.strokeStyle = rgb([176, 146, 84], 0.9); c.lineWidth = 0.014; c.beginPath(); c.arc(G.cx, hem - 0.07, 0.035, 0, TAU); c.stroke();   // (the ring pull)
+    c.fillStyle = 'rgba(0,0,0,0.5)'; c.fillRect(G.g0, G.h1 - 0.05, G.cw, 0.05);                                                // (the roller's shadow at the head)
     c.globalAlpha = 1; c.restore();
   }
 
@@ -1079,6 +1103,7 @@ export function createWindowLife() {
   // window party; on the quiet nights the other rooms go to bed around it. lastTv: the light drawn this frame (the readout + the e2e).
   let lastTv = null, cashTrace = { flicks: 0 }, tvDead = null;   // (tvDead: the night key the TV snapped off on — a raid)
   let bossKey = '', bossPlan = [];   // (SP5: the boss's day plan, rebuilt per day / overcast)
+  const wd = createDanceClock(); let wdT = null;   // (SP5: the building's dance clock)
   /** SP5 — the forced preview (&force=boss-watch, the panel's row) must show a stand soon: the seeded clock's lead to its first stand − 5 s */
   let watchLeadS = null;
   function watchLead(seed) { if (watchLeadS == null) { watchLeadS = 0; for (let t = 0; t < 1200; t += 0.25) { const w = bossWatch(t, seed); if (w && w.u < 0.05) { watchLeadS = Math.max(0, t - 5); break; } } } return watchLeadS; }
@@ -1124,22 +1149,46 @@ export function createWindowLife() {
    *  off at once, the dancers scatter to the sides + the blind drops (o.cut, o.scatter s) */
   function partyRoom(E, col, k, o = {}) {
     const { c, G, t, mo, B } = E, P = o.party, sc = o.scatter || 0, cut = !!o.cut;
-    const beatsF = P && P.beat ? P.beat.beatsF : t * 2, punch = P && P.beat ? Math.max(0.5, P.beat.punch) : 0.8;
-    const ph = beatsF - Math.floor(beatsF), hit = mo ? Math.pow(1 - ph, 2.2) : 0.5;
+    // SP5 — THE DANCE CLOCK (core/harbor-dance.js): the beat the dancers follow is the BLENDED one (a song switch never snaps them), their
+    // ENERGY dk winds down over a song's last bars, is 0 in the gap (they idle: sway, shift, turn to each other, a clap, a sip, a cheer as the
+    // song ends) and picks up smoothly on the new song's first beats. Without music: the city's own calm beat at full energy.
+    const D = last.dance || { bf: t * 2, dk: 1, cheer: 0, gap: 0 }, dk = mo ? D.dk : 1, ch = mo ? D.cheer : 0;
+    const beatsF = P && P.beat ? D.bf : t * 2, punch = P && P.beat ? Math.max(0.5, P.beat.punch) : 0.8;
+    const ph = beatsF - Math.floor(beatsF), hit = mo ? Math.pow(1 - ph, 2.2) * (0.3 + 0.7 * dk) : 0.5;
     const lightK = cut ? 0 : k * (0.78 + 0.22 * hit * punch);
     const dark = [8, 6, 16], wash = mixc(dark, col, 0.55 * lightK);
     paintBox(c, G, B, { wall: [mixc(dark, wash, 0.9), mixc(dark, wash, 0.6)], floor: [mixc(dark, wash, 0.5), mixc(dark, wash, 0.8)], side: [mixc(dark, wash, 0.6), mixc(dark, wash, 0.8)], flat: () => R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc(dark, wash, 0.8))) });
     if (lightK > 0.01) { c.globalCompositeOperation = 'lighter'; glow(c, col, G.cx, G.h0 + G.ch * 0.55, G.cw * 1.1, 0.75 * lightK, 0.9); glow(c, col, G.cx - G.cw * 0.3, G.h0 + G.ch * 0.2, G.cw * 0.6, 0.35 * lightK * (0.6 + 0.4 * hit), 0.5); c.globalCompositeOperation = 'source-over'; }
     c.globalAlpha = 1; setRim(null);   // (glow() leaves its alpha behind; the dancers are DARK silhouettes — no lamp rim: backlit by the colour)
-    if (!o.edge && (k > 0.3 || sc > 0)) {
-      const n = o.n || 4, seed = o.seed || 0, SIL = 'rgb(6,5,12)';
-      for (let i = 0; i < n; i++) {
-        const off = hsh(seed + i, 41) < 0.35 ? 0.5 : 0, pj = beatsF + off, u = pj - Math.floor(pj), jump = mo ? Math.pow(Math.sin(Math.PI * Math.min(1, u / 0.6)), 1.4) * (u < 0.6 ? 1 : 0) * (0.6 + 0.4 * hsh(seed + i, 42)) : 0;
-        const swing = mo ? Math.sin((beatsF + off) * Math.PI) * (hsh(seed + i, 43) < 0.5 ? 1 : -1) : 0.5, d = 0.25 + 0.4 * hsh(seed + i, 44), x0 = G.g0 + G.cw * (0.12 + 0.76 * ((i + 0.5) / n) + (hsh(seed + i, 45) - 0.5) * 0.1);
-        const scat = sc > 0 ? sc * 2.2 * (x0 < G.cx ? -1 : 1) : 0, s = 0.9 + 0.3 * (1 - d), wand = hsh(seed + i, 46) < 0.4, wc = mixc(col, [255, 255, 255], 0.6);
-        E.deep(d, () => figure(c, { x: x0 + scat, y: G.h0 - 0.08 + (sc > 0 ? 0 : 0.16 * jump), s, col: SIL, face: 0, lean: 0.08 * swing, tilt: 0.1 * swing, hair: hsh(seed + i, 47) < 0.5 ? 'bob' : 'short', hat: hsh(seed + i, 48) < 0.3 ? 'fedora' : null, dress: hsh(seed + i, 47) < 0.5,
-          arms: [[1.2 + 0.9 * swing + 0.6 * jump, 0.5], [1.2 - 0.9 * swing + 0.6 * jump, 0.5]], hold: wand ? ['wand', null] : null, step: sc > 0 ? Math.sin(t * 14) : 0,
+    if (k > 0.3 || sc > 0) {
+      const seed = o.seed || 0, SIL = 'rgb(6,5,12)', wc = mixc(col, [255, 255, 255], 0.6);
+      // (SP5 — the owner: the half-cut EDGE windows join with one or two dancers at the cut side — the room continues past the screen's
+      // edge; the full rooms get one more dancer BEHIND the group: smaller, dimmer, partly hidden — the 2.5D depth)
+      const edge = !!o.edge, n = edge ? 1 + (seed % 2) : (o.n || 4);
+      const dancer = (i, d, x0, dim, s0) => {
+        const off = hsh(seed + i, 41) < 0.35 ? 0.5 : 0, pj = beatsF + off, u = pj - Math.floor(pj);
+        const jump = mo ? Math.pow(Math.sin(Math.PI * Math.min(1, u / 0.6)), 1.4) * (u < 0.6 ? 1 : 0) * (0.6 + 0.4 * hsh(seed + i, 42)) * (0.1 + 0.9 * dk) : 0;
+        const swing = mo ? Math.sin((beatsF + off) * Math.PI) * (hsh(seed + i, 43) < 0.5 ? 1 : -1) * dk : 0.5 * dk;
+        const im = mo ? idleMoves(t, seed * 3 + i) : { sway: 0, shift: 0, clap: 0, sip: 0, turn: 0 }, idle = 1 - dk;
+        const scat = sc > 0 ? sc * 2.2 * (x0 < G.cx ? -1 : 1) : 0, wand = hsh(seed + i, 46) < 0.4 && !edge;
+        // the arms: the dance's swing at full energy; idle: hanging, a clap (both forward), a sip (one to the mouth), the cheer (both up)
+        const dA = [1.2 + 0.9 * swing + 0.6 * jump, 1.2 - 0.9 * swing + 0.6 * jump], dE = 0.5;
+        const iA = [0.25 + 0.12 * im.sway, 0.25 - 0.12 * im.sway], iE = [0.35, 0.35];
+        if (im.clap > 0.01) { iA[0] = lerp(iA[0], 1.05, im.clap); iA[1] = lerp(iA[1], 1.05, im.clap); iE[0] = lerp(iE[0], 1.5, im.clap); iE[1] = lerp(iE[1], 1.5, im.clap); }
+        if (im.sip > 0.01) { iA[1] = lerp(iA[1], 0.55, im.sip); iE[1] = lerp(iE[1], 2.3, im.sip); }
+        const arms = [[lerp(iA[0], dA[0], dk) + 1.2 * ch, lerp(iE[0], dE, dk) - 0.2 * ch], [lerp(iA[1], dA[1], dk) + 1.2 * ch, lerp(iE[1], dE, dk) - 0.2 * ch]];
+        const lean = 0.08 * swing + 0.05 * im.sway * idle, tilt = 0.1 * swing + 0.04 * im.shift * idle, face = 0.6 * im.turn * idle;
+        c.save(); if (dim < 1) c.globalAlpha = dim;
+        E.deep(d, () => figure(c, { x: x0 + scat, y: G.h0 - 0.08 + (sc > 0 ? 0 : 0.16 * jump), s: s0, col: SIL, face, lean, tilt, hair: hsh(seed + i, 47) < 0.5 ? 'bob' : 'short', hat: hsh(seed + i, 48) < 0.3 ? 'fedora' : null, dress: hsh(seed + i, 47) < 0.5,
+          arms, hold: wand ? ['wand', null] : null, step: sc > 0 ? Math.sin(t * 14) : 0,
           glints: wand && !cut ? (cc, gx, gy, ss) => { cc.save(); cc.globalCompositeOperation = 'lighter'; cc.strokeStyle = rgb(wc, 0.95); cc.lineWidth = 0.035 * ss; cc.lineCap = 'round'; cc.beginPath(); cc.moveTo(gx - 0.1 * ss * swing, gy - 0.1 * ss); cc.lineTo(gx + 0.08 * ss * swing, gy + 0.14 * ss); cc.stroke(); glow(cc, wc, gx, gy + 0.02 * ss, 0.1 * ss, 0.6); cc.restore(); } : null }));
+        c.restore();
+      };
+      if (!edge) dancer(9, 0.74, G.g0 + G.cw * (0.3 + 0.4 * hsh(seed, 49)), 0.55, 0.72);   // (the one behind: deep, small, dim, half hidden by the front row)
+      for (let i = 0; i < n; i++) {
+        // (an edge window: its LEFT part is past the screen's edge — the first dancer stands in the visible right part, a second further toward the cut, half off the screen)
+        const d = 0.25 + 0.4 * hsh(seed + i, 44), x0 = edge ? G.g1 - G.cw * (0.22 + 0.4 * i + (hsh(seed + i, 45) - 0.5) * 0.08) : G.g0 + G.cw * (0.12 + 0.76 * ((i + 0.5) / n) + (hsh(seed + i, 45) - 0.5) * 0.1);
+        dancer(i, d, x0, 1, 0.9 + 0.3 * (1 - d));
       }
     }
     // THE BLIND: a dark slab from the top covering (1 − k) of the pane, sliding up as the room joins; dropping over 1.2 s at a raid
@@ -1230,7 +1279,7 @@ export function createWindowLife() {
       if (sit > 0.01) seated(c, chairX, base, sit, pals(n), mo ? t : 0, 1);
       // (WIN2: the barber right at his head — the comb in one hand, the scissors snipping at the hair in the other)
       const orbit = mo ? Math.sin(t * 0.13 + n) : 0.3, bx = chairX + 0.66 + 0.12 * orbit, snip = mo ? (Math.sin(t * 9) > 0 ? 1 : 0) : 0;
-      figure(c, { x: bx, y: base + 0.95, s: 1.0, legs: 0.95, face: -1, lean: 0.08, tilt: 0.14, pal: BARBER, arms: [[1.45, 1.3 + 0.08 * snip], [1.25, 1.55 + 0.1 * snip]], hold: ['cloth', 'scissors'], snip });
+      figure(c, { x: bx, y: base + 0.95, s: 1.0, legs: 0.95, face: -1, lean: 0.08, tilt: 0.14, pal: BARBER, marks: BARBER.m, arms: [[1.45, 1.3 + 0.08 * snip], [1.25, 1.55 + 0.1 * snip]], hold: ['cloth', 'scissors'], snip });
     } else {
       // between customers: the barber reading the paper in his own chair
       seated(c, chairX, base, 1, BARBER, 0, 0, true);
@@ -1253,16 +1302,19 @@ export function createWindowLife() {
       // the customer's shoes at the footrest, his trousers' cuffs under the cape's hem
       c.fillStyle = 'rgb(36,30,30)'; for (const dx of [0.16, 0.42]) { c.beginPath(); c.ellipse(x + dx, base + 0.4, 0.11, 0.045, 0, 0, TAU); c.fill(); }
       c.fillStyle = pal.legs || 'rgb(50,48,56)'; c.fillRect(x + 0.06, base + 0.4, 0.46, 0.14);
-      // THE CAPE: a pale cloth draped from the shoulders out over the knees — lit from the window (brighter at the top), its folds, a stripe
-      const g = c.createLinearGradient(0, y + 0.72 * s, 0, base + 0.5); g.addColorStop(0, 'rgb(248,248,244)'); g.addColorStop(0.5, 'rgb(222,222,218)'); g.addColorStop(1, 'rgb(178,180,180)');
+      // THE CAPE (SP5 — the owner: the barber + the customer both read as white → the customer under a DEEP NAVY cape with a thin
+      // pinstripe, the two opposite values): draped from the shoulders out over the knees, lit from the window (bluer at the top), its folds
+      const g = c.createLinearGradient(0, y + 0.72 * s, 0, base + 0.5); g.addColorStop(0, 'rgb(58,70,124)'); g.addColorStop(0.5, 'rgb(38,46,92)'); g.addColorStop(1, 'rgb(22,28,60)');
       c.fillStyle = g; c.beginPath(); c.moveTo(x - 0.34, y + 0.66 * s); c.quadraticCurveTo(x - 0.5, y + 0.2, x - 0.44, base + 0.52); c.lineTo(x + 0.64, base + 0.52); c.quadraticCurveTo(x + 0.62, y + 0.2, x + 0.38, y + 0.66 * s); c.closePath(); c.fill();
-      c.strokeStyle = 'rgba(120,124,130,0.5)'; c.lineWidth = 0.025; c.beginPath(); for (const u of [-0.18, 0.02, 0.24]) { c.moveTo(x + u, y + 0.5 * s); c.quadraticCurveTo(x + u * 1.4, y - 0.1, x + u * 1.7, base + 0.56); } c.stroke();
-      c.fillStyle = 'rgba(80,120,170,0.35)'; c.beginPath(); c.moveTo(x - 0.3, y + 0.2); c.lineTo(x + 0.36, y + 0.2); c.lineTo(x + 0.4, y + 0.08); c.lineTo(x - 0.32, y + 0.08); c.closePath(); c.fill();   // (a blue band on the cloth)
-      // his head + shoulders above the cape (the shoulders in the cape's white: the kit's torso), his face front, his hair
-      figure(c, { x: x + 0.02, y: y + rise, s, face: 0.2, pal: { ...pal, body: 'rgb(246,246,242)', arm: 'rgb(246,246,242)' }, arms: [[0.05, 0.05], [0.05, 0.05]], hair: 'short', tilt: t ? 0.05 * Math.sin(t * 0.8) : 0 });
+      c.save(); c.beginPath(); c.moveTo(x - 0.34, y + 0.66 * s); c.quadraticCurveTo(x - 0.5, y + 0.2, x - 0.44, base + 0.52); c.lineTo(x + 0.64, base + 0.52); c.quadraticCurveTo(x + 0.62, y + 0.2, x + 0.38, y + 0.66 * s); c.closePath(); c.clip();
+      c.strokeStyle = 'rgba(196,206,236,0.42)'; c.lineWidth = 0.011; c.beginPath(); for (let u = -0.4; u <= 0.6; u += 0.085) { c.moveTo(x + u, y + 0.7 * s); c.lineTo(x + u * 1.22 + 0.04, base + 0.5); } c.stroke();   // (the pinstripe)
+      c.strokeStyle = 'rgba(10,14,40,0.5)'; c.lineWidth = 0.025; c.beginPath(); for (const u of [-0.18, 0.02, 0.24]) { c.moveTo(x + u, y + 0.5 * s); c.quadraticCurveTo(x + u * 1.4, y - 0.1, x + u * 1.7, base + 0.56); } c.stroke();   // (the folds)
+      c.restore();
+      // his head + shoulders above the cape (the shoulders in the cape's navy: the kit's torso), his face front, his hair
+      figure(c, { x: x + 0.02, y: y + rise, s, face: 0.2, pal: { ...pal, body: 'rgb(44,52,100)', arm: 'rgb(44,52,100)' }, arms: [[0.05, 0.05], [0.05, 0.05]], hair: 'short', tilt: t ? 0.05 * Math.sin(t * 0.8) : 0 });
       return;
     }
-    figure(c, { x: x + 0.02, y: y + rise, s, face: reading ? 0 : 1, pal, arms: reading ? [[0.5, 1.7], [0.5, 1.7]] : [[0.1, 0.9], [0.1, 0.9]], hold: reading ? ['paper', null] : null, tilt: t ? 0.05 * Math.sin(t * 0.8) : 0 });
+    figure(c, { x: x + 0.02, y: y + rise, s, face: reading ? 0 : 1, pal, marks: pal.m || null, arms: reading ? [[0.5, 1.7], [0.5, 1.7]] : [[0.1, 0.9], [0.1, 0.9]], hold: reading ? ['paper', null] : null, tilt: t ? 0.05 * Math.sin(t * 0.8) : 0 });
   }
   /** THE OPENING (~9 am): the lamp on, the barber in from the back → out to the door (the card flips) → back to the chair; the first
    *  customer in; the cape; the first snips */
@@ -1731,57 +1783,65 @@ export function createWindowLife() {
       const GREEN = [96, 220, 150], PALE = [214, 248, 206], SKIN = [214, 172, 140], lx = G.g0 + G.cw * 0.2, ly = G.h0 + G.ch * 0.9;
       const out = sm(0.955, 0.985, p), lampK = (1 - out) * (mo ? 0.95 + 0.05 * Math.sin(t * 47) * Math.sin(t * 13) : 1);
       const ty = G.h0 + G.ch * 0.3;   // (the table's edge, low: the close-up is above it)
-      // THE RHYTHM (a 24-s loop inside the moment): counting 0–15.5 s (a bill every 0.46 s, a lick at 7.4), the square-up + two taps
+      // SP5 — HE WALKS UP FIRST (the owner: he snapped in): in from the room's depth over the first fifth of the moment (WIN2's walk-in),
+      // leans in at the table, THEN the close-up count; back out through the depth at the end. DM: the man's + his hands' ONE depth
+      const W = walkIn(p, { pin: 0.2, pout: 0.93, from: 0.85, to: 0.24 }), DM = 0.24, T_IN = len * 0.2, elc = Math.max(0, el - T_IN);
+      // THE RHYTHM (a 24-s loop inside the count): counting 0–15.5 s (a bill every 0.46 s, a lick at 7.4), the square-up + two taps
       // 15.5–17.2, the band 17.2–18.0, the brick set aside 18.0–18.8, a breath, then counting again
-      const LOOP = 24, e = mo ? el % LOOP : 5.3, FL = 0.46, ec = e < 15.5 ? e : Math.max(0, e - 19.2);
+      const LOOP = 24, e = mo ? elc % LOOP : 5.3, FL = 0.46, ec = e < 15.5 ? e : Math.max(0, e - 19.2);
       const counting = e < 15.5 || e >= 19.2, cnt = (ec % FL) / FL, lick = e > 7.4 && e < 8.1 ? sm(7.4, 7.55, e) * (1 - sm(7.9, 8.1, e)) : 0;
       const sq = sm(15.5, 15.9, e) * (1 - sm(18.6, 18.9, e)), tap = e > 16.0 && e < 17.0 ? Math.abs(Math.sin((e - 16.0) * Math.PI * 2)) : 0, band = sm(17.2, 17.5, e) * (1 - sm(17.95, 18.05, e)), aside = sm(18.0, 18.8, e);
-      const bricks = Math.min(3, Math.floor(el / LOOP) + (e >= 18.4 ? 1 : 0));   // (the banded bricks at the table's right grow)
+      const bricks = Math.min(3, Math.floor(elc / LOOP) + (e >= 18.4 ? 1 : 0));   // (the banded bricks at the table's right grow)
       // the lamp's pool on the table (near) + the table's edge
       E.deep(0.22, () => { R(c, G.g0 - 0.4, G.h0 - 0.4, G.g1 + 0.4, ty, 'rgb(18,32,24)'); c.globalCompositeOperation = 'lighter'; glow(c, GREEN, G.cx, ty - 0.1, G.cw * 0.5, 0.5 * lampK, 0.4); c.globalCompositeOperation = 'source-over'; c.globalAlpha = al; R(c, G.g0 - 0.4, ty - 0.04, G.g1 + 0.4, ty, 'rgb(70,46,28)'); });
-      // THE MAN at the glass (big): head bowed to the count, shirtsleeves + braces, lit green from the left; a glance up at the lick
-      const pal = litPal(whoM(0), [214, 248, 222], 0.95), bow = 0.22 - 0.12 * lick;
-      E.deep(0.3, () => figure(c, { x: G.cx + G.cw * 0.04, y: ty - 0.2, s: 1.7, face: 0.1 + 0.3 * lick, tilt: bow, lean: 0.03, hair: 'short', arms: [[0.55, 1.75], [0.55, 1.75]], pal, lit: { side: -1, a: 0.6, cast: 0.3 }, marks: ['braces'], rim: { col: GREEN, a: 0.5, side: -1, w: 0.03 } }));
-      // THE HANDS + THE MONEY (nearer than him, in front of his chest over the table): the left hand holds the stack, the right hand's
-      // thumb flicks the top bill off onto the counted pile beside it
-      E.deep(0.2, () => {
+      const pal = litPal(whoM(0), [214, 248, 222], 0.95), bow = 0.22 - 0.12 * lick, LIT = { side: -1, a: 0.6, cast: 0.3 }, RIM = { col: GREEN, a: 0.5, side: -1, w: 0.03 };
+      if (W.k < 0.99) {
+        // THE WALK: in from the back wall (small) to the table — the feet stepping, the arms swinging a little; out again the same way
+        const xw = G.cx + G.cw * (0.04 + 0.32 * (1 - W.k)), stepW = mo && W.walking ? Math.sin(el * 6.5) : 0;
+        E.deep(W.d, () => figure(c, { x: xw, y: ty - 0.2, s: 1.7, face: W.out > 0.01 ? -0.25 : 0.12, step: stepW, lean: 0.02, hair: 'short', arms: [[0.18 + 0.22 * stepW, 0.3], [0.18 - 0.22 * stepW, 0.3]], pal, lit: LIT, marks: ['braces'], rim: RIM }));
+        cashTrace = { el: +el.toFixed(1), phase: 'walk', flicks: cashTrace.flicks || 0, n: 0, bricks, d: +W.d.toFixed(2) };
+      } else E.deep(DM, () => {
+        // ONE RIG (the owner: four arms — the kit's arms + the counting hands): the hands' places first, then the kit's arms SOLVED to end
+        // AT them (two-bone IK; the kit draws no mittens), then the hands + the money at those places
         const hy = ty + 0.34, lxh = G.cx - G.cw * 0.2, rxh = G.cx + G.cw * 0.2;
         const skin = (sh = 0) => rgb(mixc(mixc(SKIN, GREEN, 0.18), [40, 30, 24], sh)), hand = (x, y, rot, s = 1) => { c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = skin(0.25); c.beginPath(); c.ellipse(0.02, -0.02, 0.17 * s, 0.13 * s, 0, 0, TAU); c.fill(); c.fillStyle = skin(0); c.beginPath(); c.ellipse(0, 0, 0.16 * s, 0.12 * s, 0, 0, TAU); c.fill(); c.restore(); };
         const bill = (x, y, rot, lit2 = 1) => { c.save(); c.translate(x, y); c.rotate(rot); c.fillStyle = rgb(mixc([70, 110, 70], PALE, 0.55 + 0.45 * lit2 * lampK)); c.fillRect(-0.2, -0.09, 0.4, 0.18); c.fillStyle = rgb(mixc([40, 70, 44], PALE, 0.3 * lampK)); c.fillRect(-0.14, -0.04, 0.28, 0.08); c.restore(); };
-        // the stack in the left hand (a brick of bills thinning as he counts), the hand under it, the left thumb on top
         const stackH = 0.26 - 0.1 * (counting ? Math.min(1, ec / 15.5) : 1);
         const sx = lxh + (sq > 0.01 ? (rxh - lxh) * 0.5 * sq : 0), sy = hy + (sq > 0.01 ? 0.06 * tap : 0);
-        hand(sx, sy - 0.06, -0.2, 1.05);
-        c.fillStyle = rgb(mixc([70, 110, 70], PALE, 0.55 * lampK)); c.fillRect(sx - 0.2, sy - 0.02, 0.4, stackH); for (let yy = 0.04; yy < stackH; yy += 0.05) R(c, sx - 0.2, sy - 0.02 + yy, sx + 0.2, sy + yy, rgb([40, 70, 44], 0.5));
-        c.fillStyle = skin(0.1); c.beginPath(); c.ellipse(sx - 0.1, sy + stackH - 0.01, 0.07, 0.045, -0.4, 0, TAU); c.fill();
-        // the counted pile under the right hand (growing through the count), its bills loosely squared — then squared up
         const n = counting ? Math.min(14, Math.floor(ec / FL)) : 14, px = rxh - (sq > 0.01 ? (rxh - lxh) * 0.5 * sq : 0), py = hy - 0.02 + (sq > 0.01 ? 0.06 * tap : 0);
-        for (let i = 0; i < n; i++) bill(px + (hsh(i, 3) - 0.5) * 0.08 * (1 - sq), py + i * 0.014, (hsh(i, 4) - 0.5) * 0.5 * (1 - sq), 0.8 + 0.2 * hsh(i, 5));
-        // the band snapped on: a dark-red strip stretched over the brick, then tight
-        if (band > 0.01) { const st = 1.3 - 0.3 * sm(0.6, 1, band); c.fillStyle = rgb([150, 40, 50], 0.9 * band); c.fillRect(px - 0.2 * st, py + 0.06, 0.4 * st, 0.05); }
-        let phase = 'count';
+        // where the hands are this frame (the left under the stack; the right: the flick's arc / the lick / the square-up + the brick aside)
+        let phase = 'count', LH = [sx, sy - 0.06, -0.2], RH = [px + 0.04, py + n * 0.014 + 0.1, 0.3], thumb = null, flick = null;
         if (counting && lick < 0.3 && sq < 0.01) {
-          // THE FLICK: the top bill leaves the stack with the right thumb's stroke — up off the stack, an arc over, dropped flat on the pile
           const u = sm(0, 0.55, cnt), arc = Math.sin(Math.PI * Math.min(1, cnt / 0.75)) * 0.16;
-          if (cnt < 0.75) bill(lerp(sx + 0.05, px, u), lerp(sy + stackH + 0.02, py + n * 0.014 + 0.02, u) + arc, lerp(-0.5, 0.1, u) + 0.4 * arc, 1);
-          // the right hand: down at the stack's top for the pick (0–0.25), over with the bill (0.25–0.6), a rest on the pile (0.6–1)
+          if (cnt < 0.75) flick = [lerp(sx + 0.05, px, u), lerp(sy + stackH + 0.02, py + n * 0.014 + 0.02, u) + arc, lerp(-0.5, 0.1, u) + 0.4 * arc];
           const hx = cnt < 0.6 ? lerp(sx + 0.16, px + 0.04, sm(0.2, 0.6, cnt)) : px + 0.04, hy2 = cnt < 0.6 ? lerp(sy + stackH + 0.08, py + n * 0.014 + 0.1, sm(0.2, 0.6, cnt)) + arc * 0.6 : py + n * 0.014 + 0.1;
-          hand(hx, hy2, 0.3 - 0.5 * u, 1.05);
-          c.fillStyle = skin(0.1); c.beginPath(); c.ellipse(hx - 0.14, hy2 - 0.06, 0.07, 0.045, 0.6, 0, TAU); c.fill();   // (the thumb)
+          RH = [hx, hy2, 0.3 - 0.5 * u]; thumb = [hx - 0.14, hy2 - 0.06, 0.6];
         } else if (lick > 0.01) {
-          // THE LICK: the right thumb up to the lips (the head comes up to meet it), back down
           phase = 'lick';
           const hx = lerp(px + 0.04, G.cx + G.cw * 0.14, lick), hy2 = lerp(py + 0.1, ty + 1.12, lick);
-          hand(hx, hy2, 0.3 - 1.2 * lick, 1.05); c.fillStyle = skin(0.1); c.beginPath(); c.ellipse(hx - 0.02, hy2 + 0.1 * lick, 0.06, 0.045, 1.2, 0, TAU); c.fill();
+          RH = [hx, hy2, 0.3 - 1.2 * lick]; thumb = [hx - 0.02, hy2 + 0.1 * lick, 1.2];
         } else if (sq > 0.01 || aside > 0.01) {
-          // the square-up: both hands on the pile, two taps on the table; the band; then the right hand slides the banded brick aside
           phase = band > 0.01 ? 'band' : aside > 0.01 ? 'aside' : 'square';
           const bx = lerp(px, G.g1 - 0.25, aside), by = py + 0.06 * tap;
-          hand(bx + 0.14, by + 0.04, 0.2, 1.05); if (aside < 0.01) hand(bx - 0.14, by + 0.04, -0.2, 1.05);
+          RH = [bx + 0.14, by + 0.04, 0.2]; if (aside < 0.01) LH = [bx - 0.14, by + 0.04, -0.2];
         }
+        // THE MAN (big, at the glass): head bowed to the count, shirtsleeves + braces, lit green from the left; a glance up at the lick; his
+        // arms end where his hands are (the kit's shoulders: ±(0.295·s − 0.055·s) from his middle, 0.64·s − 0.045·s above his waist)
+        const fx = G.cx + G.cw * 0.04, fy = ty - 0.2, S = 1.7, shy = fy + 0.64 * S - 0.045 * S, shx = 0.295 * S * (1 - 0.22 * Math.abs(0.1 + 0.3 * lick)) - 0.055 * S;
+        const arm = (side, hx, hy2) => solveArm(side, hx - (fx + side * shx), hy2 - shy, 0.32 * S, 0.29 * S);
+        figure(c, { x: fx, y: fy, s: S, face: 0.1 + 0.3 * lick, tilt: bow, lean: 0.03, hair: 'short', arms: [arm(-1, LH[0], LH[1]), arm(1, RH[0], RH[1])], noHands: true, pal, lit: LIT, marks: ['braces'], rim: RIM });
+        // THE HANDS + THE MONEY: the left hand under the stack (a brick of bills thinning as he counts), its thumb on top
+        hand(LH[0], LH[1], LH[2], 1.05);
+        if (sq < 0.01 || aside > 0.01) { c.fillStyle = rgb(mixc([70, 110, 70], PALE, 0.55 * lampK)); c.fillRect(sx - 0.2, sy - 0.02, 0.4, stackH); for (let yy = 0.04; yy < stackH; yy += 0.05) R(c, sx - 0.2, sy - 0.02 + yy, sx + 0.2, sy + yy, rgb([40, 70, 44], 0.5)); c.fillStyle = skin(0.1); c.beginPath(); c.ellipse(sx - 0.1, sy + stackH - 0.01, 0.07, 0.045, -0.4, 0, TAU); c.fill(); }
+        // the counted pile (growing through the count), its bills loosely squared — then squared up; the band snapped on
+        for (let i = 0; i < n; i++) bill(px + (hsh(i, 3) - 0.5) * 0.08 * (1 - sq), py + i * 0.014, (hsh(i, 4) - 0.5) * 0.5 * (1 - sq), 0.8 + 0.2 * hsh(i, 5));
+        if (band > 0.01) { const st = 1.3 - 0.3 * sm(0.6, 1, band); c.fillStyle = rgb([150, 40, 50], 0.9 * band); c.fillRect(px - 0.2 * st, py + 0.06, 0.4 * st, 0.05); }
+        if (flick) bill(flick[0], flick[1], flick[2], 1);   // (THE FLICK: the top bill up off the stack, an arc over, dropped flat on the pile)
+        hand(RH[0], RH[1], RH[2], 1.05);
+        if (thumb) { c.fillStyle = skin(0.1); c.beginPath(); c.ellipse(thumb[0], thumb[1], phase === 'lick' ? 0.06 : 0.07, 0.045, thumb[2], 0, TAU); c.fill(); }
         // the banded bricks set aside at the table's right (the night's take growing)
         for (let i = 0; i < bricks; i++) { const bx = G.g1 - 0.25 - (i % 2) * 0.42, by = hy - 0.04 + Math.floor(i / 2) * 0.24; c.fillStyle = rgb(mixc([70, 110, 70], PALE, 0.55 * lampK)); c.fillRect(bx - 0.2, by, 0.4, 0.2); c.fillStyle = rgb([150, 40, 50], 0.9); c.fillRect(bx - 0.2, by + 0.07, 0.4, 0.05); }
-        cashTrace = { el: +el.toFixed(1), phase, flicks: counting ? Math.floor(ec / FL) : cashTrace.flicks, n, bricks };
+        cashTrace = { el: +el.toFixed(1), phase, flicks: counting ? Math.floor(ec / FL) : cashTrace.flicks, n, bricks, d: DM };
       });
       // the lamp (near, top-left): the green glass shade on its brass stem, the bulb under it, its glow on the wall
       E.deep(0.18, () => {
@@ -1804,7 +1864,7 @@ export function createWindowLife() {
     catReset() { catTap = -1; },
     /** WIN: something in a window is MOVING (a moment, a tap's answer, a passer-by) — a 60-fps reason (scene.js#fastNow) */
     busy: () => busyNow,
-    debug: () => ({ boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), ember: +last.boss.watch.ember.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
+    debug: () => ({ shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), ember: +last.boss.watch.ember.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
     destroy() { for (const cv of sprites.values()) cv.width = cv.height = 0; sprites.clear(); blocks.clear(); },
   };
 }

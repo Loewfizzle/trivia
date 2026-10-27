@@ -121,6 +121,16 @@ export function edgeMoods(key, ctx = {}) {
   return out;
 }
 /** the eerie-red mood is on tonight (the eyes never share a night with it) */
+/** SP5 — THE EDGE WINDOWS' ROLLER SHADES (the owner: the curtains looked like bow ties and blocked what little window there is → NO
+ *  curtains in the half-cut windows; a plain 1920s roller shade at a seeded HEIGHT each night): 'up' (the full mood light), 'half' (the
+ *  light + its shadows below one straight edge), 'down' (the shade itself a glowing translucent panel with the mood's shadows playing ON
+ *  it). The two edge windows never at the same height the same night. → { edge2, edge3 } */
+export const SHADE_HEIGHTS = Object.freeze(['up', 'half', 'down']);
+export function edgeShades(key, ctx = {}) {
+  const r = rngFrom(hashString(`shade|${ctx.seed || 1924}|${key}`));
+  const a = SHADE_HEIGHTS[Math.floor(r() * 3)], b = SHADE_HEIGHTS[(SHADE_HEIGHTS.indexOf(a) + 1 + Math.floor(r() * 2)) % 3];
+  return { edge2: a, edge3: b };
+}
 export const redMoodNight = (key, ctx = {}) => { const m = edgeMoods(key, ctx); return m.edge2 === 'red' || m.edge3 === 'red'; };
 
 // ------------------------------------------------------------------ WIN2 — THE EYES' CALENDAR

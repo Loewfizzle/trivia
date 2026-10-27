@@ -1944,15 +1944,14 @@ G('windows', async () => {
     const runsAt = () => ev(Q.page, `(() => { const hb = window.__district.harbor(), ws = hb.speakeasy.windows(), cv = document.querySelector('.nd-scene canvas'), x = cv.getContext('2d'), k = cv.width / cv.clientWidth, day = ${mode === 'day'};
       const rows = [...new Set(ws.map(q => q.rect.y))].sort((a, b) => a - b);
       return { W: hb.cam.W, rects: ws.map(q => ({ id: q.id, x: +q.rect.x.toFixed(2), y: +q.rect.y.toFixed(2), w: +q.rect.w.toFixed(2), h: +q.rect.h.toFixed(2) })), rows: rows.map(ry => { const r0 = ws.find(q => q.rect.y === ry).rect, y = Math.round((ry + r0.h * 0.5) * k), x1 = Math.round(Math.min(innerWidth, 140) * k), d = x.getImageData(0, y, x1, 1).data, runs = []; let cur = null;
-        for (let i = 0; i < x1; i++) { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], pane = day ? (b > r + 25 && b > 90) : (0.2126 * r + 0.7152 * g + 0.0722 * b > 70 && !(r > g + 30 && r > b + 30 && r < 160)); if (pane) { if (!cur) cur = { a: i, b: i }; else cur.b = i; } else if (cur) { if (cur.b - cur.a > 6 * k) runs.push(cur); cur = null; } }
+        for (let i = 0; i < x1; i++) { const r = d[i * 4], g = d[i * 4 + 1], b = d[i * 4 + 2], olive = r > 55 && r < 135 && g > 48 && g < 130 && b < 115 && Math.abs(r - g) < 30 && r >= b - 4, pane = day ? ((b > r + 25 && b > 90) || olive) : (0.2126 * r + 0.7152 * g + 0.0722 * b > 70 && !(r > g + 30 && r > b + 30 && r < 160)); if (pane) { if (!cur) cur = { a: i, b: i }; else cur.b = i; } else if (cur) { if (cur.b - cur.a > 6 * k) runs.push(cur); cur = null; } }
         if (cur && cur.b - cur.a > 6 * k) runs.push(cur);
         return runs.map(q => ({ x: +(q.a / k).toFixed(1), w: +((q.b - q.a + 1) / k).toFixed(1) })).filter(q => q.x > 2); }) }; })()`);
     // (at night the rooms' own content — a dark back room, the people, the TV — breaks a brightness run: the night measure is the rects
     // the rooms are painted into (paintRoom(glassOf(w)) — the same for every window) + their gaps; by day the painted glass itself)
     const judge = (o) => { if (mode === 'night') { const rs = o.rects.sort((p, q) => p.y - q.y || p.x - q.x), rows = [...new Set(rs.map(r => r.y))].map(y => rs.filter(r => r.y === y)); const ws = rs.map(r => r.w), hs = rs.map(r => r.h), mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rows.map(r => r.slice(1).map((q, i) => +(q.x - (r[i].x + r[i].w)).toFixed(1))).flat(); const gmn = Math.min(...gaps), gmx = Math.max(...gaps); return { ok: (mx - mn) / mx <= 0.02 && (gmx - gmn) / gmx <= 0.02 && (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs) <= 0.02, mn, mx, gaps, ws }; }
       const rs = o.rows.map(r => r.slice(-2)); const ws = rs.flat().map(r => r.w);
-      // (SP5: by day the boss's pane is his DRAWN SHADE — no blue glass to run along; its painted rect stands in for it: the shade covers the whole pane)
-      if (ws.length === 3) { const ap = o.rects.find(r => r.id === 'apartment'); if (ap) ws.push(+ap.w.toFixed(1)); }
+      // (SP5: by day the boss's pane is his DRAWN SHADE — an olive cloth run instead of blue glass: the predicate above counts it)
       if (ws.length < 4) return { ok: false, why: `only ${ws.length} panes seen` }; const mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rs.map(r => r.length === 2 ? +(r[1].x - (r[0].x + r[0].w)).toFixed(1) : null); return { ok: (mx - mn) / mx <= 0.02, mn, mx, gaps, ws }; };
     const seen = [];
     for (const [w, h] of [[402, 874], [390, 844], [430, 932]]) {
@@ -2173,22 +2172,27 @@ G('windows', async () => {
   // ---- WIN — COUNTING THE CASH (forced): the back room green under the banker's lamp, a lit figure, the pane changing as he counts
   { const Q = await open({ slot: 'w-cash', qs: `when=2026-10-22T23:10${GR}&force=window&moment=cash`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
-    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'cash' && e.el > 3)", 'the count on', 30000);
+    await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'cash' && e.el > 7.5)", 'the count on (SP5: after the walk-up)', 36000);
     const r = (await wins(Q.page)).back, c = await area(Q.page, r, 0.1, 0.9, 0.1, 0.9), figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`);
     const man = (figs || []).find(g => g.w === 'back' && !g.sil);
-    ok(c[1] > c[0] + 10 && c[1] > c[2] + 6 && !!man && man.s >= 1.3, `THE CASH COUNT: the back room green (rgb ${c.map(v => v.toFixed(0)).join(',')}), a lit close-up figure (s ${man && man.s} at depth ${man && man.d})`);
+    ok(c[1] > c[0] + 4 && c[1] > c[2] + 6 && !!man && man.s >= 1.3, `THE CASH COUNT: the back room green (rgb ${c.map(v => v.toFixed(0)).join(',')}), a lit close-up figure (s ${man && man.s} at depth ${man && man.d})`);
     const a = [], L0 = await ev(Q.page, 'window.__district.harbor().speakeasy.life');
     for (let i = 0; i < 5; i++) { a.push(await area(Q.page, r, 0.3, 0.9, 0.1, 0.45)); await sleep(400); }
     const ls = a.map(lum), moved = Math.max(...ls) - Math.min(...ls);
     okT(moved > 1.5, `THE BILLS MOVE: the table's light changes as he counts (${ls.map(v => v.toFixed(1)).join(' → ')}) — ${JSON.stringify(L0.on)}`);
-    // WIN3 — THE CLOSE-UP ONLY, FROM THE FIRST FRAME (the owner: the table-wide opening read like a poker table): the big figure is there
-    // at el < 1.5 s of the next loop; NATURAL HANDS on a rhythm — the flicks counted, a lick, the square-up, the band, the brick set aside
-    await waitFor(Q.page, "(() => { const e = window.__district.harbor().speakeasy.life.on.find(o => o.id === 'cash'); return e && e.el < 1.2; })()", 'the next loop', 32000);
-    const first = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res({ figs: window.__district.harbor().speakeasy.life.figs, cash: window.__district.harbor().speakeasy.life.cash })))`);
-    const big0 = (first.figs || []).find(g => g.w === 'back' && g.s >= 1.6);
-    const phases = new Set(); let flicks0 = first.cash ? first.cash.flicks : 0, flicksN = flicks0;
+    // SP5 — THE WALK-UP FIRST (the owner: he snapped in), THEN THE CLOSE-UP with ONE PAIR OF ARMS (the owner: four arms — the kit's + the
+    // counting hands): at el < 1.2 s of the next loop the figure is deep in the room (its trace d ≥ 0.45, small); by el ~7 s he is at the
+    // table (d ≈ 0.24, s 1.7) with the kit's hands OFF (one rig: cash.phase past 'walk'); NATURAL HANDS on a rhythm — the flicks counted, a
+    // lick, the square-up, the band, the brick set aside
+    await waitFor(Q.page, "(() => { const e = window.__district.harbor().speakeasy.life.on.find(o => o.id === 'cash'); return e && e.el > 0.5 && e.el < 1.8; })()", 'the next loop', 32000);
+    const first = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => res({ figs: window.__district.harbor().speakeasy.life.figs, cash: window.__district.harbor().speakeasy.life.cash }))))`);
+    const deep0 = (first.figs || []).find(g => g.w === 'back' && g.d >= 0.45);
+    await waitFor(Q.page, "(() => { const e = window.__district.harbor().speakeasy.life.on.find(o => o.id === 'cash'); return e && e.el > 6.5; })()", 'at the table', 12000);
+    const atT = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res({ figs: window.__district.harbor().speakeasy.life.figs, cash: window.__district.harbor().speakeasy.life.cash })))`);
+    const big = (atT.figs || []).find(g => g.w === 'back' && g.s >= 1.6 && g.d < 0.3), nBack = (atT.figs || []).filter(g => g.w === 'back').length;
+    const phases = new Set(); let flicks0 = atT.cash ? atT.cash.flicks : 0, flicksN = flicks0;
     const tEnd = Date.now() + 20000; while (Date.now() < tEnd) { const cs = await ev(Q.page, 'window.__district.harbor().speakeasy.life.cash'); if (cs) { phases.add(cs.phase); flicksN = Math.max(flicksN, cs.flicks); } await sleep(120); }
-    ok(!!big0 && flicksN - flicks0 >= 20 && ['count', 'lick', 'square', 'band', 'aside'].every(ph => phases.has(ph)), `THE CLOSE-UP FROM THE FIRST FRAME (s ${big0 && big0.s} at el ${first.cash && first.cash.el}), the hands on a rhythm: ${flicksN - flicks0} bills flicked in 20 s, the phases ${[...phases].join(' → ')}`);
+    ok(!!deep0 && !!big && nBack === 1 && first.cash && first.cash.phase === 'walk' && atT.cash && atT.cash.phase !== 'walk' && flicksN - flicks0 >= 20 && ['count', 'lick', 'square', 'band', 'aside'].every(ph => phases.has(ph)), `THE WALK-UP, THEN THE CLOSE-UP: deep in the room at el ${first.cash && first.cash.el} (d ${deep0 && deep0.d}, ${first.cash && first.cash.phase}), at the table by 7 s (s ${big && big.s}, d ${big && big.d}, ${atT.cash && atT.cash.phase}; ${nBack} figure in the room — one rig), the hands on a rhythm: ${flicksN - flicks0} bills flicked in 20 s, the phases ${[...phases].join(' → ')}`);
     await Q.ctx.close(); }
   // ================================================================ WIN2 — THE WINDOWS READ AS-IS (judged unzoomed at 402)
   // ---- THE TOAST's WALK-IN: the two friends come up through the room's depth (their depth falling from ~0.78 toward 0.14 over the first
@@ -2284,6 +2288,11 @@ G('windows', async () => {
     const fr = await ev(Q.page, winTrace(2.5)), dancers = fr.map(f => (f.figs || []).filter(g => ['bar', 'jazz', 'back'].includes(g.w) && g.sil));
     const ys = dancers.map(d => d.length ? d.reduce((a, g) => a + g.y, 0) / d.length : null).filter(v => v != null), bob = ys.length ? Math.max(...ys) - Math.min(...ys) : 0;
     ok(dancers.length > 10 && dancers.every(d => d.length >= 6) && bob > 0.02, `THE CROWD: ${dancers[0] && dancers[0].length} silhouettes a frame across the full rooms, jumping (the mean waist moves ${bob.toFixed(3)} over 2.5 s)`);
+    // SP5 — THE HALF-CUT EDGE WINDOWS JOIN (the owner): one or two dancers each during the party only; DEPTH: one dancer BEHIND each full room's
+    // group (its trace d ≥ 0.7), smaller + dimmer, never crowding the front row
+    { const fr2 = await ev(Q.page, winTrace(1.5)), all = fr2.flatMap(f => f.figs || []);
+      const edgeN = ['edge2', 'edge3'].map(id => Math.max(0, ...fr2.map(f => (f.figs || []).filter(g => g.w === id).length))), deepRooms = ['bar', 'jazz', 'back'].filter(id => all.some(g => g.w === id && g.d >= 0.7)), frontMax = Math.max(0, ...['bar', 'jazz', 'back'].map(id => Math.max(0, ...fr2.map(f => (f.figs || []).filter(g => g.w === id && g.d < 0.7).length))));
+      ok(edgeN.every(n => n >= 1 && n <= 2) && deepRooms.length === 3 && frontMax <= 4, `THE EDGE WINDOWS DANCE TOO: edge2 ${edgeN[0]}, edge3 ${edgeN[1]} silhouettes (1–2 each); ONE BEHIND EACH GROUP: ${deepRooms.join(', ')} have a dancer at depth ≥ 0.7, the front rows ≤ ${frontMax}`); }
     // (the pools: the cobbles are warm — the proof is the SHIFT from the surround toward the room's colour at the pool's centre; the back
     // room's window stands over the bar's, so their pools stack: one read per distinct spot, against the colour of the room nearest the ground)
     const pools = await ev(Q.page, 'window.__district.harbor().partyPools'), reads = [], seen = [];
@@ -2311,6 +2320,12 @@ G('windows', async () => {
     const figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`), inEdge = (figs || []).filter(g => g.w === 'edge2' || g.w === 'edge3').length;
     const a = await area(Q.page, W.edge2, 0.55, 0.95, 0.2, 0.8), b = await area(Q.page, W.edge3, 0.55, 0.95, 0.2, 0.8), dc = Math.abs(a[0] - b[0]) + Math.abs(a[1] - b[1]) + Math.abs(a[2] - b[2]);
     ok(L1.moods && L1.moods.edge2 !== L1.moods.edge3 && inEdge === 0 && (dc > 18 || Math.abs(lum(a) - lum(b)) > 10), `THE EDGE WINDOWS' MOODS tonight: ${L1.moods && L1.moods.edge2} / ${L1.moods && L1.moods.edge3} — light + shadow only (${inEdge} figures), the panes differ (rgb ${a.map(x => x.toFixed(0)).join(',')} vs ${b.map(x => x.toFixed(0)).join(',')})`);
+    // SP5 — THE ROLLER SHADES (the owner: no curtains in the half-cut windows): tonight's seeded heights, the two never alike; the shade
+    // drawn: a straight hem — the pane's upper part (cloth) differs in luminance from its lower part (the room's light) on a half / down night
+    { const SH = await ev(Q.page, 'window.__district.harbor().speakeasy.life.shades'), W2 = await wins(Q.page);
+      const probe = async id => { const r = W2[id]; if (!r) return null; const top = lum(await area(Q.page, r, 0.55, 0.95, 0.6, 0.9)), low = lum(await area(Q.page, r, 0.55, 0.95, 0.12, 0.4)); return { top: +top.toFixed(0), low: +low.toFixed(0) }; };
+      const p2 = await probe('edge2'), p3 = await probe('edge3');
+      ok(SH && ['up', 'half', 'down'].includes(SH.edge2) && ['up', 'half', 'down'].includes(SH.edge3) && SH.edge2 !== SH.edge3 && p2 && p3, `THE ROLLER SHADES tonight: edge2 ${SH && SH.edge2} (cloth ${p2 && p2.top} / below ${p2 && p2.low}), edge3 ${SH && SH.edge3} (${p3 && p3.top} / ${p3 && p3.low}) — never the same height`); }
     await Q.ctx.close(); }
   // ---- THE EYES IN THE HAZE (forced): one full window goes dark with two red glows in it; nothing else in that window
   { const Q = await open({ slot: 'w2-eyes', qs: `when=2026-10-22T23:30${GR}&force=window&moment=eyes`, view: [402, 874] });
