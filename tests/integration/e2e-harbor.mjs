@@ -249,8 +249,9 @@ async function panelSection() {
     const wx = (await flags(O.page)).wx;
     ok(!d.countdown && d.queued && d.pend.wx === 'snow' && wx === 'rain', `THE DELAY: reopening cancels the countdown (${JSON.stringify(d.countdown)}), SNOW still QUEUED, the city still rain after 3 s (${wx})`); }
   // RECENT: the rows fired (this device); one tap fires one again — the sheet closes, the countdown runs, the queued SNOW goes with it
+  // (9d: RECENT sits under the NOW bar — below the first screen on a phone: scrolled to, like a thumb would)
   { const rc = await ev(O.page, `[...document.querySelectorAll('.hr-rc')].map(b => b.dataset.rk)`);
-    const t = await ev(O.page, `(() => { const b = document.querySelector('.hr-rc[data-rk="ev:aurora"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, h: r.height }; })()`);
+    const t = await ev(O.page, `(() => { const b = document.querySelector('.hr-rc[data-rk="ev:aurora"]'); if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, h: r.height }; })()`);
     if (t) await tapAt(O.page, t.x, t.y);
     await waitFor(O.page, '!document.querySelector(".hr-modal") && !!document.querySelector(".hr-cd")', 'RECENT → the countdown', 3000).catch(() => {});
     await waitFor(O.page, "window.__district.harbor().flags.wx === 'snow'", 'the queue with it', 6000).catch(() => {});

@@ -8537,7 +8537,17 @@ the blade's bulbs as the abduction flickers the power); tier 0 is the phone's lo
 - Run 1 (9bdc410): `tests` ✅; `harbor` — three red checks, all from this pass: the panel test tapped 20× inside the closed MORE TIME fold
   (it tapped the backdrop and closed the sheet) → the test opens a fold first; FREEZING RAIN expected frost on the buttons (0 now by the
   owner's decision) → the test expects none; the doors' sliver pop above (a real fix) + the doors check's baseline now the frames on
-  both sides of the latch (a guest walking off keeps ~100 px moving). Run 2: the final push.
+  both sides of the latch (a guest walking off keeps ~100 px moving).
+- Run 2 (d21547a, the last of the pass's two): `tests` ✅; `harbor` 5 of 7 jobs ✅ (windows · doors, wild · freezing rain fixed). Red:
+  `city` · panel's RECENT — RECENT now sits under the NOW bar, below the first screen on a phone; the test tapped it without scrolling to
+  it (the tap missed, the sheet stayed up, the next ☰ tap landed on the sheet) → the test scrolls it into view (committed after the run,
+  UNVERIFIED in the cloud: the panel group needs the emulators — 9e's run checks it); `audio` · THE WHEEL ON ITS PIER "its sprites
+  0 MB" — code this pass never touched, a memory probe; a known flake per the two-run rule.
+
+### Known issues (from the cloud)
+- The `panel` group's RECENT fix (scroll into view) is unverified until 9e's cloud run; the rest of the panel group (the ADMIN row, the cue,
+  CLEAR from the menu, THE DELAY with MORE TIME) passed in run 2 up to RECENT.
+- `audio` · THE WHEEL ON ITS PIER's sprite-memory probe read 0 MB once (untouched code).
 
 ### Handoff → 9e (THE CONSTRUCTION TOWER + THE CITY LIFE + THE SAX REWORK + two vehicle models)
 - A lit door / sign / shopfront anywhere can use the same light model: a mask × `color-dodge` (speakeasy.js#lightMask is the example).
