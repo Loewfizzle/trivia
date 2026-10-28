@@ -8917,6 +8917,10 @@ mid-September, the opening the first Saturday of October 2027–2033.
 ### Known issues
 - e2e-profiles: about one run in three times out waiting for the podium's plaques (`.rc-plaque.is-in`) — the SAME on the unchanged code
   (a worktree at 95cecaf on :5174: 1 of 3 runs), so it predates BNAME.
+- **The cloud (one run each, by hand — the last push was docs only):** `tests` 40731296102 green; `harbor` 40731301014: audio, show,
+  city (the tower group's new crane checks), windows, holiday, wild green; `street` 82/83 — THE DANCERS' ARMS NEVER JUMP saw 2 jumps over
+  1 rad in 366 frames: the known cloud flake (SP5's section: the trace starts as the circle forms on the cloud's slow frames); BNAME
+  touches no dancer code. Not re-run (the two-run rule).
 
 ### Handoff → ATM (the FABLE ATMOSPHERE pass)
 The plan's next row: ATM (Fable). Owed by the owner first: re-publish `database.rules.json` (the `profiles` read rule), and the look of the
