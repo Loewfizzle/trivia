@@ -53,8 +53,8 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
   `gridlock-w-{classic|salvo|royale|arcade}`, `agent-esc`, `agent-spot`, `signal-el`, `bluff-fool`, `prism-ko` (`js/core/boards.js`).
 - `lb/{board}/{period}/{pid}` = a **sort value** (higher is better; `toSort`/`fromSort` negate lower-is-better boards). `period` is
   `all` or the Monday of the week in Eastern time (`w20261012`) — a new week writes to a new key at Monday 00:00 ET; no reset job.
-- Entries hold only the pid; `GET /api/board` joins names/tags/emblems from `profiles/` at read time (offensive names → "Player"),
-  so a rename shows on every board, every week, every past record. It is public (the `/board` page), cached ~15 s in memory and by
+- Entries hold only the pid; `GET /api/board` joins the emblem / colour / rank from `profiles/` at read time. **BNAME (Oct 28): a
+  public row NEVER carries the typed name or the profile id** — see "THE BOARD's PUBLIC NAMES" below. It is public (the `/board` page), cached ~15 s in memory and by
   the CDN (`s-maxage=20`), paged (`start`, `n`, top 100). Your exact rank (even outside the top 100, even when hidden) comes from
   `POST /api/profile {action:'ranks'}`: `1 + count(entries > yours)`.
 - **Opt-out** ("Show me on global leaderboards"): `profiles/{pid}/h` + every board entry removed; stats keep counting (`pstats`), and
@@ -87,11 +87,36 @@ REGULAR in the first evening, INSIDER after a few, LEGEND after 40+ evenings (mo
 - **Sounds** (`js/board/audio.js`, SFX bus): tab, rows, pb (bell triad), top10 (rising flourish), first (short brass fanfare over a
   timpani), forge (swell → anvil strike in inharmonic partials → a bloom). THE BOARD and the card play the time-of-day MOOD MUSIC (CLASSIC setting: menu3.mp3 / menu.mp3).
 
+### THE BOARD's PUBLIC NAMES (BNAME, Oct 28 2026 — a privacy fix)
+- **The rule:** no public response (`GET /api/board`, the CDN's cached copy, `/board`, the title's top-3 preview) carries another
+  player's TYPED name or profile id. A row is `{ id, n, t, a, c, r, rank, v }`: `id` = the **board id** — `HMAC-SHA256(pepper,
+  'board:' + pid)`, 16 hex (`api/_lib/lb.js#boardId`; not reversible without the server's pepper, so a row can't be looked up);
+  `n` + `t` = the **HOUSE NICKNAME** that id picks (`js/core/nicknames.js#houseNick`: 16 adjectives × 13 nouns = 208 1920s
+  nicknames — "Dapper Fox", "Velvet Ace", "Midnight Jaguar" — every word and pair through the board-name filter, none a first name,
+  + a 4-digit number in the tag's slot). The same player wears the same nickname every week, on every phone; a rename doesn't change it.
+- **Your own row** stays your real name: `publicProfile()` gives your device its `bid`; THE BOARD (app + `/board` when that browser
+  has the profile) swaps your row's nickname for your name + a **YOU** chip, on your device only.
+- **The rules** (`database.rules.json`): `profiles/{pid}` is readable **one at a time by signed-in users** (the lobby + podium read a
+  room-mate's profile by the pid on their seat), never the whole list and never signed out (it was `.read: true` at the top — a dump of
+  every typed name). **Re-publish the rules in the Firebase console.**
+- **THE 3-MATCH FLOOR:** a profile is listed on any public board only from its **3rd counted match** (all games together;
+  `profiles/{pid}/m`, the server's own count, written with every counted match — older profiles without it are counted from `pstats`
+  once). Under it no board entry is written (`boardPaths(..., hidden)`); the match that crosses it re-syncs every game's boards at once.
+  Your pinned row says "N MORE MATCHES TO JOIN THE BOARD" (the `ranks` call returns `m` + `mm`, the floor); no would-be rank is shown.
+  Env `BOARD_MIN_MATCHES` (tests: 1).
+- **REPORT:** a ⋯ on every other player's row (a 44-pt strip at the row's right edge) → a sheet: SUSPICIOUS SCORE · BAD NAME OR EMBLEM ·
+  CANCEL → `POST /api/board { action: 'report', b, id, why, dev }` (no sign-in) → `flags/{id}: { pid, n, why{}, b{}, first, last }`
+  (server only). Limited per device (5 an hour; a random id in `localStorage bd:dev`), per IP (8 an hour, hashed) and 400 a day in all.
+  With nicknames the typed name is never on THE BOARD, so a "bad name" report reads as: the name this player shows in rooms / chat
+  (where others do see it) or an emblem — the admin sees the real name next to the report and decides.
+
 ## Admin (`/admin`)
 Signs in with the browser's own anonymous identity (same as the game there). `POST /api/admin` checks the caller's profile id against
 `ADMIN_PIDS` (comma-separated) and writes `audit/{push}` for every change. Actions: search (name prefix, `Name#1234`, profile id),
 view a player (profile, boards with ranks, games), remove a record (all-time / this week / both), reset a career board, rename (no
-limit), hide from / return to every board, the audit log, **errors from phones** (below). A non-admin sees their own profile id and the setup steps.
+limit), hide from / return to every board, the audit log, **errors from phones** (below), **BOARD REPORTS** (BNAME: `flags` / `clearFlag`
+— newest first, the real name + the house nickname + the reasons + the boards; tap the name to open the player, HIDE them there;
+DISMISS). The player view shows "ON THE BOARD AS <nickname>" and "n/3 MATCHES — NOT LISTED YET" under the floor. A non-admin sees their own profile id and the setup steps.
 
 **CITY 2.0's PREVIEW PANEL** (Oct 22 2026; `docs/harbor.md#the-preview-panel`): `cityLive { state, mins? }` writes the public
 `city2/live` node every phone on `?city=2` plays (the state validated by `js/core/harbor-remote.js#cleanRemote` — anything dropped

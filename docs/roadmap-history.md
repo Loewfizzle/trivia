@@ -1475,3 +1475,13 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The commit author renamed to Loewfizzle across the whole history (every branch + the `city-1.0` tag, author, committer + tagger; git filter-repo; force-pushed — every hash changed, old hashes in the docs stay as labels)
 - [x] Vercel's Hobby DEPLOYMENT STORAGE was ~49 GB / 10 GB (~300 MB a deploy, one on every push): `vercel.json#ignoreCommand` now builds only when the push's last commit message carries `[harbor]`, `[ci]` or `[deploy]` (exit 1 = build, 0 = skip) — one deployment a pass
 - [x] `.vercelignore`: `/docs`, `/screenshots`, `/art`, `/shots*`, `/.github`, `node_modules` added (checked: no page, the service worker or `/api` loads them; `/api` reads only `js/` + `data/`) — a deploy 299 → ≈ 264 MB; every audio file is still referenced, so the music (~255 MB) is the floor
+
+## BNAME — THE BOARD's PUBLIC NAMES + THE CRANE + THE SHORTER CYCLE (Oct 28 2026) — docs/profiles.md, docs/harbor.md#bname
+- THE BOARD: public rows carry an opaque board id (HMAC of the pid) + a HOUSE NICKNAME (208, filtered), never the typed name or the pid
+  (the cached GET + the CDN too); your own row swaps in your name + YOU on your device; the title's top-3 too.
+- The rules: `profiles/{pid}` one at a time for signed-in users (it was readable by anyone, as a whole list). Re-publish.
+- THE 3-MATCH FLOOR (`profiles/{pid}/m`), the pinned row's "N MORE MATCHES TO JOIN THE BOARD".
+- REPORT (⋯ → SUSPICIOUS SCORE / BAD NAME OR EMBLEM) → `flags/` → /admin's "Board reports" (limited per device + IP + day).
+- THE BAKE TOOL (`scripts/bake-model.mjs` + recipes; the UFO re-bakes byte-for-byte). THE CRANE from J-Toastie's model (45 slew frames,
+  day + night, a seamless mast tile, 180 KB, lazy; `&crane=classic`). THE SHORTER CYCLE (rise June 1 → Sept 1, opening the first
+  Saturday of October).
