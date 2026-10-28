@@ -153,6 +153,83 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     drips = drips.filter(d => d.y < d.y1);
   }
   let icicleTips = [];
+  // ---------------------------------------------------------------- 9e — SNOW LANDS ON THE SIGN (the owner: "the snowflakes have to land on it
+  // and stop falling … I don't think any of them land on it. Small detail, but it matters"). While snow falls, flakes AT THE SIGN's DEPTH
+  // (the mid layer's size + speed, a touch bigger to read when still) drift down onto a level stretch of a tube and STOP on its top edge
+  // (on the snow already there), sit a moment — a still white dot among the falling ones — then soften into the cap: on a DARK tube each
+  // one adds to the pile (the cap builds from what lands: half of the build-up is these); on a LIT tube it sits briefly and melts into a
+  // bead that gathers + runs (the bead + drip system). A few NEARER flakes (the near layer's big soft ones) fall past in front of the
+  // letters and never stop — never a flat wall. All in the sign's overlay (the falling snow behind is the city's canvas).
+  let landers = [], passers = [], landAcc = 0, passAcc = 0, landed = 0, flakeSp = null;
+  const LAND = Object.freeze({ max: 14, rate: 2.2, v: 26, r0: 1.55, r1: 2.1, sit: [1.6, 3.6], sitLit: [0.5, 1.1], soft: 1.7, add: 0.003, passMax: 7, passRate: 1.6, passV: 52 });
+  function flakeSprite() {
+    if (flakeSp) return flakeSp;
+    const S = 24, c = mk(S, S), x = safeCtx(c), g = x.createRadialGradient(S / 2, S / 2, 0, S / 2, S / 2, S / 2);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.42, 'rgba(255,255,255,0.92)'); g.addColorStop(0.7, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    x.fillStyle = g; x.fillRect(0, 0, S, S); flakeSp = c; return c;
+  }
+  /** a level spot on a tube's top (t, i) + where its top surface is (on the snow already there) */
+  function landSpot() {
+    for (let n = 0; n < 8; n++) {
+      const t = Math.floor(R() * geo.tubes.length), pts = geo.tubes[t].pts, i = 2 + Math.floor(R() * Math.max(1, pts.length - 4)), p = pts[Math.min(pts.length - 1, i)];
+      if (Math.abs(p.tx) < 0.55) continue;
+      const [nx, ny] = underside(p, 1), up = geo.half * (1 + 1.5 * snowK);
+      return { t, i: Math.min(pts.length - 1, i), li: geo.tubes[t].li || 0, x: p.x - nx * up, y: p.y - ny * up };
+    }
+    return null;
+  }
+  function stepLanders(sec, o, S, litOf) {
+    const b = geo.box, falling = S.falling || 0;
+    if (falling > 0.05 && o.motion) {
+      landAcc += sec * falling * LAND.rate * (o.tier === 0 ? 0.6 : 1);
+      while (landAcc >= 1) {
+        landAcc--;
+        if (landers.length >= LAND.max) continue;
+        const sp = landSpot(); if (!sp) continue;
+        const drift = (R() - 0.5) * 14, y0 = b.y + 2 + R() * 4;
+        if (sp.y - y0 < 6) continue;
+        landers.push({ ...sp, goal: sp.x, yGoal: sp.y, x0: sp.x + drift, y0, x: sp.x + drift, y: y0, st: 'fall', u: 0, ph: R() * 6.28, r: LAND.r0 + R() * (LAND.r1 - LAND.r0), age: 0, a: 0, dur: (sp.y - y0) / (LAND.v * (0.85 + R() * 0.3)) });
+      }
+      passAcc += sec * falling * LAND.passRate * (o.tier === 0 ? 0.5 : 1);
+      while (passAcc >= 1) { passAcc--; if (passers.length < LAND.passMax) passers.push({ x: b.x + R() * b.w, y: b.y - 4, ph: R() * 6.28, r: 2.4 + R() * 1.2, v: LAND.passV * (0.85 + R() * 0.3) }); }
+    }
+    for (const f of landers) {
+      f.age += sec;
+      if (f.st === 'fall') {
+        f.u = Math.min(1, f.u + sec / Math.max(0.3, f.dur));
+        const sway = Math.sin(f.ph + f.age * 2.1) * 1.6 * (1 - f.u);
+        f.x = f.x0 + (f.goal - f.x0) * (f.u * f.u * (3 - 2 * f.u)) + sway;
+        f.y = f.y0 + (f.yGoal - f.y0) * f.u;
+        f.a = Math.min(1, f.age / 0.35);
+        if (f.u >= 1) { f.st = 'sit'; f.age = 0; f.x = f.goal; f.y = f.yGoal; const L = litOf(f.li); f.lit = L >= 0.3; f.sit = f.lit ? LAND.sitLit[0] + R() * (LAND.sitLit[1] - LAND.sitLit[0]) : LAND.sit[0] + R() * (LAND.sit[1] - LAND.sit[0]); landed++; }
+      } else if (f.st === 'sit') {
+        if (f.age >= f.sit) {
+          f.st = 'soft'; f.age = 0;
+          if (f.lit) { if (beads.length < BEAD.max * 0.6) beads.push({ t: f.t, i: f.i, f: 0, r: BEAD.r0 * 0.9 + R() * 0.3, side: R() < 0.5 ? -1 : 1, age: 0 }); }
+          else snowK = Math.min(1, snowK + LAND.add);
+        }
+      } else { f.a = 1 - Math.min(1, f.age / (f.lit ? 0.35 : LAND.soft)); if (f.a <= 0) f.gone = true; }
+    }
+    landers = landers.filter(f => !f.gone);
+    for (const p of passers) { p.y += p.v * sec; p.x += Math.sin(p.ph + p.y * 0.05) * 6 * sec; }
+    passers = passers.filter(p => p.y < b.y + b.h + 4);
+  }
+  function drawLanders(x, amb, lit) {
+    if (!landers.length && !passers.length) return;
+    const sp = flakeSprite(), b = geo.box;
+    // (the light on a flake: white by day; at night a cool pale white lifted by the city + the sign's own glow — always a clear dot)
+    const k = 0.78 + 0.22 * Math.max(amb, lit);
+    x.save();
+    for (const f of landers) {
+      const r = f.r * (f.st === 'soft' && !f.lit ? 1 - 0.35 * (1 - f.a) : 1);
+      x.globalAlpha = Math.max(0, Math.min(1, f.a)) * 0.95 * k; x.drawImage(sp, f.x - r * 1.6, f.y - r * 1.6 - (f.st === 'fall' ? 0 : r * 0.35), r * 3.2, r * 3.2);
+    }
+    for (const p of passers) {
+      const edge = Math.min(1, (p.y - b.y + 4) / 10, (b.y + b.h + 4 - p.y) / 12);
+      x.globalAlpha = Math.max(0, edge) * 0.62 * k; x.drawImage(sp, p.x - p.r * 1.7, p.y - p.r * 1.7, p.r * 3.4, p.r * 3.4);
+    }
+    x.restore();
+  }
   // ---------------------------------------------------------------- 9b — SNOW ON THE NEON, FLUFFY + MELTING FOR REAL (the owner: "realistic and
   // fluffy, super realistic … melt very realistically too"). THE SHAPE: snow lies only where a tube runs level enough to hold it, as a
   // lumpy, pillowy mound built from overlapping PUFFS (big slow lumps + small bumps, seeded per tube), overhanging the tube's sides like
@@ -315,6 +392,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     // (9c: each letter's own light — the boot flicker lights them one by one; o.letters: 1 / 0 per letter, × the sign's live level)
     const litL = o.letters && o.letters.length === 4 ? o.letters.map(v => v * lit) : [lit, lit, lit, lit];
     if (snowK > 0.01) drawSnow(x, litL, amb, col, snowWet, pw);
+    drawLanders(x, amb, lit);   // (9e: the flakes landing on the tops + the nearer ones falling past)
     const ice = iceK * (1 - 0.45 * lit), ikk = Math.max(iceK, icSnow);
     if (ice > 0.01 || icSnow > 0.01) {
       x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
@@ -605,7 +683,9 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         if (snowFirst && o.shown) { const jl = fs > 1 ? 0 : S.joinLit == null ? lt : S.joinLit; snowFirst = false; snowK = jl > 0.5 ? S.lie * 0.22 : S.lie; snowWet = jl > 0.5 && S.lie > 0 ? 0.8 : 0; icSnow = jl > 0.5 && S.cold ? 0.6 * S.lie : 0; }
         // (the owner: snow PILES UP only while the sign is OFF; flakes landing on a LIT sign melt on the warm tubes — they turn to water:
         // beads gathering + running off, never a pile)
-        if (S.falling > 0.05 && lt < 0.3) snowK = Math.min(1, snowK + sec * S.falling * 0.012 * (1 - lt / 0.3));
+        // (9e: half the pile builds from the flakes that LAND — stepLanders; the other half here, the fine snow nobody sees land)
+        if (S.falling > 0.05 && lt < 0.3) snowK = Math.min(1, snowK + sec * S.falling * 0.006 * (1 - lt / 0.3));
+        if (geo && (S.falling > 0.05 || landers.length || passers.length)) stepLanders(sec, o, S, li => (o.letters && o.letters.length === 4 ? o.letters[li] : 1) * lt);
         if (S.falling > 0.05 && lt >= 0.3 && o.motion && geo) {
           spawnAcc += sec * S.falling * 9 * lt;
           while (spawnAcc >= 1 && beads.length < BEAD.max * 0.6) { spawnAcc--; const t = Math.floor(R() * geo.tubes.length), pts = geo.tubes[t].pts; beads.push({ t, i: Math.floor(R() * pts.length), f: 0, r: BEAD.r0 * 0.8 + R() * 0.4, side: R() < 0.5 ? -1 : 1, age: 0 }); }
@@ -620,7 +700,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         }   // (off + nothing falling: it stays as it is — snow only piles from snow falling on a dark sign)
         snowWet += ((lt > 0.3 && snowK > 0.02 ? Math.min(1, 0.45 + 0.6 * (1 - snowK)) : 0) - snowWet) * Math.min(1, sec * fs / 40);
         if (!(S.lie > 0) && !(S.falling > 0)) { snowK = Math.max(0, snowK - sec / 300); if (!S.cold) icSnow = Math.max(0, icSnow - sec / 300); } }
-      const signOn = !!geo && (o.rain > 0.02 || beads.length || drips.length || iceK > 0.01 || snowK > 0.01 || icSnow > 0.01);
+      const signOn = !!geo && (o.rain > 0.02 || beads.length || drips.length || iceK > 0.01 || snowK > 0.01 || icSnow > 0.01 || landers.length > 0 || passers.length > 0);
       if (signOn && o.motion && !(o.rain > 0.02) && (iceK > 0.01 || drips.length)) stepBeads(0, o);
       const anyWater = [...water.values()].some(w => w.drops.length || w.drips.length || w.trails.length);
       const glassOn = glass.length && (o.glassWet > 0.01 || frostK > 0.01 || o.rain > 0.02 || (o.motion && anyWater));
@@ -648,7 +728,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         dropGlassLayers(keep);
       } else if (elLayers.size) dropGlassLayers();
     },
-    debug: () => ({ on, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), snowRenders, snowLum: lastLum, layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
+    debug: () => ({ on, landers: landers.length, sitting: landers.filter(f => f.st === 'sit').length, landed, passers: passers.length, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), snowRenders, snowLum: lastLum, layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
       water: Object.fromEntries([...water].map(([id, w]) => [id, { drops: w.drops.length, streaking: w.drops.filter(d => d.sl).length, trails: w.trails.length, drips: w.drips.length }])) }),
     destroy() { dropLayers(); dropGlassLayers(); water.clear(); sprites.clear(); for (const f of frostCv.values()) f.width = 0; frostCv.clear(); geo = null; },
   };

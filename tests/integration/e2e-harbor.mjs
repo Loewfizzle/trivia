@@ -3527,6 +3527,14 @@ G('snow', async () => {
     ok(fr.every(v => v > 38), `9e THE FROST READS in all four corners (mean light ${fr.join(' · ')} of 255)`);
     await Q.ctx.close();
   }
+  // ---- 9e — SNOW LANDS ON THE SIGN (the owner: "the snowflakes have to land on it and stop falling"): in a night snowfall flakes stop on
+  // the tubes' tops (sitting = still dots), on the LIT tubes they melt into beads; nearer flakes fall past in front
+  { const Q = await open({ slot: 'sn-land', qs: `when=2027-01-14T21:30${GR}&snow=fresh&wx=snow&temp=-6`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${SNW}.gwx.landed >= 4 && ${SNW}.gwx.sitting >= 1`, 'flakes landing on the sign', 20000).catch(() => {});
+    const g = await ev(Q.page, `${SNW}.gwx`);
+    ok(g.landed >= 4 && g.sitting >= 1 && g.passers >= 1 && g.beads > 0, `9e SNOW LANDS ON THE SIGN: ${g.landed} landed, ${g.sitting} sitting now, ${g.passers} nearer ones falling past, ${g.beads} beads (the lit tubes melt them)`);
+    await Q.ctx.close(); }
   // ---- 9c — THE CRISP LAYER (the owner: the blade blurry next to the logo): on an iPhone-like DPR 3 by day the blade's board, the date
   // stone + the roof poster ride full-dpr overlays; at night the blade's lit letters + bulbs; at DPR 2 (the canvas's own) none at all
   { const D = await open({ slot: 'cr-d', qs: `when=2026-10-27T13:00${GR}`, view: [402, 874], dpr: 3 });
