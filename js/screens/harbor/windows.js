@@ -1909,40 +1909,6 @@ export function createWindowLife() {
       c.fillStyle = body; c.beginPath(); c.arc(x, cy, r * 0.2, 0, Math.PI * 2); c.fill();
       c.restore(); c.globalAlpha = 1;
     },
-    // 9e — THE MORNING PAPER (late morning, the daylit glass): a reader seated close behind the pane, the BIG UNFOLDED PAPER held up in
-    // both hands — the bright accent (newsprint catching the daylight, its columns + headline as bold grey bands) — the hat's crown + the
-    // fingers' grip at its edges; every ~14 s A PAGE TURNED (the paper folds to half + opens again), once THE PAPER LOWERED to one side for
-    // a sip of coffee (the face, the cup to it). Phone size: one big pale rectangle + a head — nothing smaller. Enters by the blind.
-    paper(E, el, len) {
-      const { c, G, t, mo } = E, p = el / len, a = sm(0, 0.04, p) * (1 - sm(0.96, 1, p));
-      if (a <= 0.01) return;
-      c.save(); c.globalAlpha = a;
-      // the room behind: a dim daylit interior (the far wall, a picture's frame)
-      // (2nd look pass: a LIGHT daylit wall behind — the reader's dark fedora + face read over the paper against it, never dark on dark)
-      R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(150,126,100)'); c.fillStyle = 'rgba(255,236,200,0.22)'; c.fillRect(G.g0, G.h0 + G.ch * 0.5, G.cw, G.ch * 0.5);
-      const cx = G.g0 + G.cw * 0.5, base = G.h0 + 0.02, pw = G.cw * 0.78, ph = G.ch * 0.4, top = base + G.ch * 0.54;   // (y runs UP: h0 the sill)
-      // the sip: the paper lowered to the right ~60 → 76 % of the scene; the turns: a fold at the paper's middle
-      const sip = sm(0.58, 0.63, p) * (1 - sm(0.72, 0.77, p)), turnU = mo ? ((el % 14) / 14) : 0.5, fold = 1 - 0.5 * Math.sin(Math.PI * sm(0.82, 1, turnU));
-      const skin = [214, 170, 132], coat = [70, 64, 74], hat = [52, 44, 40];
-      // the reader: shoulders + head (the face shows over the paper only when it's lowered; else the hat's crown above it)
-      c.fillStyle = `rgb(${coat})`; c.beginPath(); c.ellipse(cx, base + G.ch * 0.18, G.cw * 0.34, G.ch * 0.2, 0, 0, Math.PI); c.fill(); c.fillRect(cx - G.cw * 0.34, base, G.cw * 0.68, G.ch * 0.18);
-      const hy = base + G.ch * 0.55;
-      c.fillStyle = `rgb(${skin})`; c.beginPath(); c.ellipse(cx, hy, G.cw * 0.12, G.ch * 0.11, 0, 0, Math.PI * 2); c.fill();
-      c.fillStyle = 'rgba(80,50,40,0.45)'; c.beginPath(); c.ellipse(cx - G.cw * 0.04, hy - G.ch * 0.02, G.cw * 0.07, G.ch * 0.09, 0, 0, Math.PI * 2); c.fill();   // (the shaded side)
-      c.fillStyle = `rgb(${hat})`; c.fillRect(cx - G.cw * 0.17, hy + G.ch * 0.07, G.cw * 0.34, G.ch * 0.035); c.beginPath(); c.ellipse(cx, hy + G.ch * 0.12, G.cw * 0.11, G.ch * 0.07, 0, 0, Math.PI); c.fill();
-      // the cup at the sip: white, raised to the mouth
-      if (sip > 0.02) { const ux = cx + G.cw * 0.13, uy = hy - G.ch * 0.05 - G.ch * 0.18 * (1 - sip); c.globalAlpha = a * sip; c.fillStyle = 'rgb(246,244,238)'; c.fillRect(ux - G.cw * 0.05, uy - G.ch * 0.05, G.cw * 0.1, G.ch * 0.09); c.fillStyle = `rgb(${skin})`; c.fillRect(ux + G.cw * 0.05, uy - G.ch * 0.03, G.cw * 0.05, G.ch * 0.05); c.globalAlpha = a; }
-      // THE PAPER: up in front of the face, or lowered + swung to the right for the sip
-      const px = cx + G.cw * 0.42 * sip, py = top - G.ch * 0.36 * sip, w = pw * fold * (1 - 0.45 * sip), hh = ph * (1 - 0.25 * sip);
-      c.fillStyle = 'rgb(236,232,218)'; c.fillRect(px - w / 2, py - hh, w, hh);
-      c.fillStyle = 'rgba(120,110,96,0.6)'; c.fillRect(px - 0.012, py - hh, 0.024, hh);                                  // (the fold down its middle)
-      c.fillStyle = 'rgb(46,42,40)'; c.fillRect(px - w * 0.44, py - hh * 0.24, w * 0.88, hh * 0.15);                      // (THE MASTHEAD across its top: bold)
-      c.fillStyle = 'rgba(90,86,80,0.75)'; for (let i = 0; i < 2; i++) c.fillRect(px - w * 0.42 + i * w * 0.46, py - hh * 0.9, w * 0.38, hh * 0.52);   // (two bold columns)
-      c.fillStyle = 'rgba(255,255,250,0.35)'; c.fillRect(px - w / 2, py - hh * 0.08, w, hh * 0.08);                       // (the daylight on its top edge)
-      // the hands at its edges
-      c.fillStyle = `rgb(${skin})`; for (const sx of [-1, 1]) c.fillRect(px + sx * w / 2 - G.cw * 0.03, py - hh * 0.62, G.cw * 0.06, G.ch * 0.07);
-      c.restore(); c.globalAlpha = 1;
-    },
     wake(E, el, len) {
       const { c, G, k, t, mo } = E, p = el / len, day = 1 - k;
       // the room: the lamp room at night (the morning before the sun), the dark glass by day

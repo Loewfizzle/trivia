@@ -254,6 +254,7 @@ export const EVENTS = [
   // (8P: THE PEOPLE — the lobby line at the door (&n= guests, 6 by default; Lobby 2.0 fills it), a bus every minute, everyone off to compare)
   { id: 'line', sec: 'speakeasy', label: 'THE LOBBY LINE', cat: 'promenade', group: 'THE DOOR', hint: 'guests lined up at the speakeasy’s door (6; &n=<guests>) — Lobby 2.0 fills it with the room' },
   { id: 'bus', sec: 'people', label: 'A BUS EVERY MINUTE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the 1920s bus arriving, stopping at the curb, riders on + off, pulling away on green' },
+  { id: 'joggers', sec: 'people', label: 'THE JOGGERS', cat: 'promenade', group: 'ON THE PROMENADE', kw: 'jogger run running runner', hint: 'a jogger through every ~20 s (their own hours: early, lunch 12–1, after work 5–7, weekend mornings 8–10 — one every 1–2 min)' },
   { id: 'dance', sec: 'people', label: 'THE DANCE CIRCLE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the glow-wand dancers on the compass inlay — a circle every 5 minutes (best with PARTY ON)' },
   { id: 'doors', sec: 'speakeasy', label: 'THE DOORS', cat: 'promenade', group: 'THE DOOR', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
   { id: 'no-dance', sec: 'tools', label: 'NO DANCE CIRCLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without the glow-wand circle — compare (its cost)' },

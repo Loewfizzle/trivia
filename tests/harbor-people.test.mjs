@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
 import { wallPlan, hushState, strikeLevel, darkLevel } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
-import { FOLK, MIX, mixNow, folkMap, folkAt, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
+import { FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
 import { signalAt } from '../js/core/harbor-promenade.js';
 
 const SIZES = {
@@ -101,7 +101,7 @@ const inR = (p, r) => p.x > r.x0 + 0.05 && p.x < r.x1 - 0.05 && p.z > r.z0 + 0.0
 test('8P — WHO\'S OUT WHEN: the mix by the clock (joggers + dogs early, the commute, lunch on the bench, couples + guests at night, nearly empty at 3 am), weekends busier, party nights a stream of guests, rain fewer', () => {
   const at = (h, o = {}) => mixNow({ h, dow: 4, ...o });
   assert.ok(at(3.5).n < 1, 'the small hours: almost empty');
-  assert.ok(at(6.5).mix.jogger && at(6.5).mix.dogwalker && at(6.5).mix.worker, 'early: joggers, dog walkers, a worker to the bus');
+  assert.ok(jogHour(6.5, false) && at(6.5).mix.dogwalker && at(6.5).mix.worker, 'early: joggers (9f: their own lane — JOG), dog walkers, a worker to the bus');
   assert.ok(at(8.5).mix.brisk && at(8.5).mix.busrider && at(8.5).mix.newsboy, 'the commute');
   assert.ok(at(12.5).mix.lunch && at(12.5).mix.window && at(12.5).mix.customer, 'midday: lunch on the bench, a window-shopper, a customer');
   assert.ok(at(17).mix.homeward, 'late afternoon: heading home');
@@ -545,4 +545,22 @@ test('PEO — THE STEP FOLLOWS THE SPEED: a stroll takes a shorter step than a b
     }
     assert.ok(stance > 30 && drift < 0.03, `v ${v} at ${hd.toFixed(2)}: the planted foot moves ${drift.toFixed(3)} pt a step of 0.02 units (stride ${strideLen(L, v).toFixed(2)})`);
   }
+});
+
+// 9f — THE JOGGERS ON THEIR OWN LANE (the owner, Oct 28: "the joggers didn't show" — 1 person in ~20 at lunch): one every ~1–2 min in
+// their hours, none in heavy rain, &force=joggers every ~20 s at any hour
+test('9f — THE JOGGERS: one every ~1–2 min in their hours (lunch, after work, early, weekend mornings), none in heavy rain; forced every ~20 s', () => {
+  const { L } = setup('402x874'), M = folkMap(L);
+  const count = (h0, mins, ctx = {}) => {
+    const t0 = DAY + h0 * 3600, cache = new Map(), seen = new Set();
+    for (let t = t0; t < t0 + mins * 60; t += 2) for (const x of folkAt(t, { L, M, ctx: { off: OFF, ...ctx } }, cache).members) if (x.kind === 'jogger') seen.add(x.vid);
+    return seen.size;
+  };
+  const lunch = count(12, 30), after = count(17.5, 30), dull = count(15, 30), wet = count(12, 30, { rain: 0.8 }), forced = count(3, 10, { forceJog: true });
+  assert.ok(lunch >= 14 && lunch <= 32, `lunch (Thu 12:00–12:30): a jogger every ~1–2 min (${lunch} in 30 min)`);
+  assert.ok(after >= 14 && after <= 32, `after work (17:30–18:00): ${after} in 30 min`);
+  assert.equal(dull, 0, `mid-afternoon (15:00–15:30) none (${dull})`);
+  assert.equal(wet, 0, `heavy rain at lunch: none (${wet})`);
+  assert.ok(forced >= 20, `&force=joggers at 3 am: one every ~20 s (${forced} in 10 min)`);
+  assert.ok(jogHour(9, true) && !jogHour(9, false) && JOG.gap[1] <= 120, 'weekend mornings 8–10 only on the weekend');
 });

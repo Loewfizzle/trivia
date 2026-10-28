@@ -45,9 +45,7 @@ export const MOMENTS = Object.freeze([
   { id: 'cat', label: 'THE CAT ON THE SILL', rarity: 'uncommon', windows: ['back', 'edge3', 'edge2'], hours: null, len: 26, cooldown: 240, kind: 'the cat: up onto the sill, settles, tail flicking, down again' },
   // 9a — THE WEATHER ON THE GLASS (the plan's wx gate): a DESK FAN turning on the sill on hot afternoons (the real temperature ≥ HOT_C)
   { id: 'fan', label: 'A FAN ON A HOT DAY', rarity: 'common', windows: ['back'], hours: [11.5, 21], len: 55, cooldown: 300, wx: ['hot'], starter: false, kind: 'a desk fan on the sill, its blades a blur, the curtain stirring' },
-  // 9e — FILLING THE DEAD TIMES (plan.md, the owner — DECIDED (5)): ONE DAYTIME WINDOW MOMENT — someone READING THE MORNING PAPER at the
-  // window, late morning: a big unfolded paper (the bright accent in the daylit glass), a page turned now + then, a sip of coffee
-  { id: 'paper', label: 'THE MORNING PAPER', rarity: 'common', windows: ['back', 'bar'], hours: [9.5, 12.5], light: 'day', len: 48, cooldown: 420, starter: false, kind: 'someone reading the newspaper at the window: a big unfolded paper held up, a page turned, the paper lowered for a sip of coffee' },
+  // (9e's MORNING PAPER was taken out in 9f — the owner: "way too cheap looking"; the back / bar windows' other moments fill its hours)
   { id: 'peek', label: 'A PEEK AT THE STREET', rarity: 'rare', windows: ['jazz', 'back'], hours: [7.5, 2], len: 6.5, cooldown: 1800, kind: 'a silhouette behind the curtain, looking left and right' },
   { id: 'tango', label: 'THE TANGO (LEGENDARY)', rarity: 'legendary', windows: 'all', hours: [20.5, 23.75], light: 'night', len: 30, plays: 3, nights: 4, kind: 'a top hat + a flapper dress tango past every window in turn' },
   // ---- THE HIDDEN MIRROR DOOR (the barbershop's back wall — not one of the starter ten: the speakeasy's own secret)
@@ -331,10 +329,10 @@ export function starOnly(on) {
  *  every moment in the table. */
 export const WINDOW_LOOKS = Object.freeze({
   wake: 'lit', 'shop-open': 'lit', bartender: 'lit', 'lights-out': 'silhouette', dance: 'shadow', toast: 'lit', sax: 'lit', cat: 'silhouette',
-  fan: 'silhouette', paper: 'lit', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit', cash: 'lit', eyes: 'light', table: 'lit', football: 'lit',
+  fan: 'silhouette', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit', cash: 'lit', eyes: 'light', table: 'lit', football: 'lit',
 });
 export const LOOK_WHY = Object.freeze({ shadow: 'on the jazz room\'s shade (backlit)', silhouette: 'a dark room, or backlit by the TV', ghost: 'the holiday\'s own glow', lit: 'in a lit room', light: 'light + shadow only — no figure (WIN2)' });
-export const STAGE = Object.freeze({ paper: 1.35, eyes: 1.0, cash: 1.0, table: 1.0, football: 1.0, ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
+export const STAGE = Object.freeze({ eyes: 1.0, cash: 1.0, table: 1.0, football: 1.0, ghost: 1.12, mummy: 1.12, witchsil: 1.0, costume: 1.16, ofrenda: 1.1, peek: 1.55, toast: 1.45, wake: 1.4, 'lights-out': 1.3, bartender: 1.3, sax: 1.3, cat: 1.3, dance: 1.18, fan: 1.1, tango: 1, mirror: 1, 'shop-open': 1 });
 /** the rooms' own steady figures (the jazz room's player, the TV couch, the bar's afternoon) — a step closer too */
 export const STAGE_ROOM = 1.22;
 /** the next start after `sec` (the readout + the e2e): { id, win, in: seconds } or null */

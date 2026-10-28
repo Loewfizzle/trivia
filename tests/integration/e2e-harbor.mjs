@@ -3734,11 +3734,14 @@ G('citylife', async () => {
     const a = await ev(Q.page, `(() => { const p = ${P}.people; return { works: p.crew.works, wagon: p.traffic.cars.some(c => String(c.id).startsWith('flush.')), hench: (p.crew.members || []).find(m => m.kind === 'henchman'), wet: ${P}.snow.work && ${P}.snow.work.flush }; })()`);
     ok(a.works.includes('henchman') && a.hench && a.wagon && a.wet, `9e THE NIGHT SHIFT at 3:10 am: the henchman on his patrol (${a.hench ? `${a.hench.pose} at x ${a.hench.x}` : 'missing'}), the water wagon in the back road's traffic (${a.wagon}, its night: ${a.wet})`);
     await Q.ctx.close(); }
-  { const Q = await open({ slot: 'cl-paper', qs: `when=2026-10-21T10:30${GR}&wx=clear&force=window&moment=paper`, view: [402, 874] });
+  // 9f — THE JOGGERS (the owner: "the joggers didn't show"): &force=joggers sends one through every ~20 s at any hour (here 3 pm, outside
+  // their hours) — two different joggers seen within ~50 s
+  { const Q = await open({ slot: 'cl-jog', qs: `when=2026-10-21T15:00${GR}&wx=clear&force=joggers`, view: [402, 874] });
     await harborUp(Q.page);
-    await waitFor(Q.page, `${P}.speakeasy.life.on.some(e => e.id === 'paper')`, 'the morning paper in a window', 30000).catch(() => {});
-    const on = await ev(Q.page, `${P}.speakeasy.life.on`), dropped = await ev(Q.page, `${P}.speakeasy.life.dropped`);
-    ok(on.some(e => e.id === 'paper') && !dropped.length, `9e THE MORNING PAPER plays (${JSON.stringify(on)}), nothing dropped (${dropped.join(', ') || 'none'})`);
+    await ev(Q.page, `(() => { window.__jog = new Set(); window.__jogI = setInterval(() => { for (const m of ${P}.people.members) if (m.kind === 'jogger') window.__jog.add(m.id); }, 250); })()`);
+    await waitFor(Q.page, 'window.__jog.size >= 2', 'two joggers', 60000).catch(() => {});
+    const n = await ev(Q.page, 'window.__jog.size');
+    ok(n >= 2, `9f THE JOGGERS: &force=joggers sends them through (${n} seen within a minute at 3 pm, outside their hours)`);
     await Q.ctx.close(); }
 });
 

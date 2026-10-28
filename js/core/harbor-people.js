@@ -85,7 +85,7 @@ function capCrowd(ms, cap) {
 // occasional customer by day; the side door's guests come on their own schedule (DOOR_STREAM) + THE LINE on party nights (lineNight))
 export const MIX = Object.freeze([
   { id: 'small-hours', from: 2, to: 5.5, n: [0.3, 0.5], mix: { nightworker: 2, lone: 1 } },
-  { id: 'early', from: 5.5, to: 8, n: [2.3, 1.7], mix: { jogger: 1.6, dogwalker: 3, worker: 2, water: 1, bench: 1 } },
+  { id: 'early', from: 5.5, to: 8, n: [2.3, 1.7], mix: { dogwalker: 3, worker: 2, water: 1, bench: 1 } },
   { id: 'commute', from: 8, to: 9.25, n: [5.2, 3.4], mix: { busrider: 4, brisk: 1.6, newsboy: 1.5, dogwalker: 1.5, worker: 1, bench: 0.6 } },
   { id: 'morning', from: 9.25, to: 11.5, n: [3.5, 4.6], mix: { bench: 3, water: 2.5, couple: 2.5, dogwalker: 1.5, window: 1.5, meet: 1.5, busrider: 1.5, stroller: 0.8, customer: 0.3, newsboy: 0.5 } },
   { id: 'midday', from: 11.5, to: 14, n: [5, 5.2], mix: { lunch: 4, bench: 1.2, couple: 2.5, water: 2, meet: 2, window: 1.2, busrider: 1.2, stroller: 0.8, brisk: 0.5, customer: 0.3 } },
@@ -119,11 +119,8 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, r
   if (rush > 0.05) { mix.brisk = (mix.brisk || 0.5) + 2.4 * rush; mix.couple = (mix.couple || 0.5) * (1 + 0.5 * rush); if (mix.bench) mix.bench *= 1 - 0.6 * rush; if (mix.stargazer) delete mix.stargazer; }
   // (POLISH 4: party nights — more people out ENJOYING it: couples, the water, the bench; the guests themselves come by THE LINE)
   if (party) { mix.couple = (mix.couple || 1) * 1.6; mix.meet = (mix.meet || 0) + 1.2; mix.water = (mix.water || 0) + 0.8; }
-  // 9e — FILLING THE DEAD TIMES (plan.md, the owner — DECIDED): THE JOGGERS' new hours — a lunchtime run (12–13), the after-work run (17–19),
-  // a weekend-morning peak (8–10) beside the early one; never in heavy rain or a storm
-  if (h >= 12 && h < 13) mix.jogger = (mix.jogger || 0) + 1.0;
-  if (h >= 17 && h < 19) mix.jogger = (mix.jogger || 0) + 1.2;
-  if (weekend && h >= 8 && h < 10) mix.jogger = (mix.jogger || 0) + 2.4;
+  // (9e's JOGGERS' hours were weights in this mix — 1 person in ~20, the owner watched minutes and saw none; 9f: they run on their own
+  // seeded lane, JOG below, one every ~1–2 min in their hours)
   // WEEKDAY LATE NIGHTS livelier (Mon–Thu, 10 pm → 1 am): more strollers, couples LEAVING THE BAR by the side door arm in arm
   // (the couples leaving the bar come out by the side door's own schedule — streamOf's `late` lane — never the random mix: POLISH 4)
   const lateWk = !weekend && !party && (h >= 22 || h < 1) && dow !== 5 && dow !== 6;
@@ -196,7 +193,7 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
   if (cart && L.cart && L.cart.shown !== false) { rects.push({ id: 'cart', x0: L.cart.x - 1.3, x1: L.cart.x + 2.0, z0: F.zMin - 2, z1: L.cart.z + 0.75 }); }
   // (POL4: the dance circle spreads round the compass — the closed floor reaches its outer dancers: DANCE.reach × the ring)
   // (11a-2: THE GIANT on the inlay (ring) — the closed floor its plinth's corners + a step: RING.clear)
-  if (event) { const m = L.medallion; circles.push({ id: 'event', x: m.x, z: m.z, r: ring ? Math.max(m.ring * DANCE.reach + 0.4, RING.clear) : m.ring * DANCE.reach + 0.4 });
+  if (event) { const m = L.medallion; circles.push({ id: 'event', x: m.x, z: m.z, r: ring ? Math.max(m.ring * DANCE.reach + 0.4, RING.clear) + 0.6 : m.ring * DANCE.reach + 0.4 });   // (9f: + a partner's offset round the giant — a pair's chat spot is checked for the lead; the friend stands 0.55 aside)
     for (const sg of [-1, 1]) circles.push({ id: 'event', x: m.x + sg * m.ring * DANCE.side.at, z: m.z, r: DANCE.side.r }); }
   return { nodes, exits, rects, circles, hydrantSpot: L.hydrant || null, face: s.z0, cw: { x0: cw.x0 + cww * 0.22, x1: cw.x1 - cww * 0.22, z0: F.curbZ, z1: F.farZ } };
 }
@@ -590,6 +587,11 @@ export function visitAt(vis, t) {
 /** THE SIDE DOOR's own schedule (never the random mix): evenings a trickle — a pair going in every few minutes (`inGap` s, from
  *  `inHours`), leavers later (`outGap`, from `outHours`); party nights only the leavers here (the guests queue in THE LINE); by day
  *  nobody. `gap`: two arrivals on the promenade at least this far apart (never a burst). Hours on the evening's clock (25 = 1 am). */
+// 9f — THE JOGGERS ON THEIR OWN LANE (the owner, Oct 28: "the joggers didn't show"): one passes every gap s (seeded per block — every phone
+// the same) in their hours: the early block (5:30–8), lunch (12–13), after work (17–19), weekend mornings (8–10); fewer in rain, none in
+// heavy rain or a storm; &force=joggers (the panel's JOGGERS row) sends one through every ~20 s at any hour
+export const JOG = Object.freeze({ gap: [45, 90], forced: [17, 23], hours: [[5.5, 8], [12, 13], [17, 19]], weekend: [8, 10], wetCut: 0.3, noRain: 0.6 });
+export function jogHour(h, weekend) { return JOG.hours.some(([a, b]) => h >= a && h < b) || (weekend && h >= JOG.weekend[0] && h < JOG.weekend[1]); }
 export const STREAM = Object.freeze({ gap: 9, inGap: [170, 290], inHours: [18.5, 23.25], outGap: [220, 380], outHours: [21, 25.75], party: { outGap: [95, 165], outHours: [21.5, 26.25] }, late: { outGap: [260, 420], outHours: [22, 25] } });
 const evHour = (tt, off) => { const h = localOf(tt, off).h; return h < 12 ? h + 24 : h; };
 function streamOf(k, t0, ctx, party) {
@@ -602,6 +604,13 @@ function streamOf(k, t0, ctx, party) {
   // (9e — WEEKDAY LATE NIGHTS livelier: Sun–Thu evenings 10 pm → 1 am more couples leave the bar arm in arm — a second, closer lane)
   if (!party) { const wk = tt => { const lc = localOf(tt, ctx.off), dw = lc.h < 12 ? (lc.dow + 6) % 7 : lc.dow; return dw <= 4; };
     lane(STREAM.late.outGap, STREAM.late.outHours, tt => (wk(tt) ? { t: tt, kind: 'leaving', seed: Math.floor(r() * 2147483647), spec: { look: 'guest', gait: 'stroll', pair: true, goals: [{ from: 'side' }, { exit: r() < 0.3 ? 'cross' : 'any' }] } } : null)); }
+  // (9f — THE JOGGERS' lane: in their hours; the rain thins them, heavy rain stops them; forced: every ~20 s)
+  { const rain = ctx.rain || 0, forced = !!ctx.forceJog;
+    if (forced || rain < JOG.noRain) lane(forced ? JOG.forced : JOG.gap, [0, 48], tt => {
+      const lc = localOf(tt, ctx.off), we = lc.dow === 0 || lc.dow === 6;
+      if (!forced && (!jogHour(lc.h, we) || (rain > JOG.wetCut && r() < 0.6))) return null;
+      return { t: tt, kind: 'jogger', seed: Math.floor(r() * 2147483647), spec: KINDS.jogger(r) };
+    }); }
   lane(P.outGap, P.outHours, tt => ({ t: tt, kind: 'leaving', seed: Math.floor(r() * 2147483647), spec: { look: 'guest', gait: 'stroll', pair: true, goals: [{ from: 'side' }, { exit: r() < 0.3 ? 'cross' : 'any' }] } }));
   return out.sort((a, b) => a.t - b.t);
 }
@@ -730,7 +739,7 @@ function blockVisits(phase, k, M, ctx = {}) {
   // evening, leavers later; on party nights the guests go in by THE LINE (lineNight) and only the leavers come out here)
   if (phase === 0) for (const e of streamOf(k, t0, ctx, party)) {
     if (!spaced(e.t)) continue;
-    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, fog: ctx.fog || 0, r: rngFrom(e.seed) });
+    const vis = planVisit(e.spec, e.t, ctx.mapAt ? ctx.mapAt(e.t, e.t + 60, M) : M, { rain: ctx.rain || 0, fog: ctx.fog || 0, r: rngFrom(e.seed), noCross: ctx.noCross || null });   // (9f: + noCross — a stream's jogger never crosses through the procession)
     if (!vis || vis.t1 > t1 - 1) continue;
     const members = membersOf(e.spec, rngFrom(e.seed + 1)), n = heads(members);
     if (load(vis.t0, vis.t1) + n > cap) continue;
