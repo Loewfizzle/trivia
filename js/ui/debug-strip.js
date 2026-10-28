@@ -28,12 +28,27 @@ body.hr-sheet-open .dbg-col { visibility: hidden; }
 .dbg-s[data-id='load'] { flex-shrink: 6; display: flex; flex-direction: column; }
 .dbg-s[data-id='load'] .dbg-b { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
 .dbg-s[data-id='load'] .dbg-b > div { flex-shrink: 0; }
+/* (9e: a FOLDED load log shows its title only — the rule above out-ranked the fold) */
+.dbg-s.dbg-fold[data-id='load'] .dbg-b { display: none; }
+/* 9e — SEND REPORT: one big-enough button on top of the column (44 pt tall tap area), never hidden by the readout's fold */
+.dbg-btn { order: -1; align-self: flex-start; pointer-events: auto; min-height: 30px; padding: 6px 12px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.35);
+  background: rgba(0, 0, 0, 0.78); color: #fff; font: 700 11px/14px ui-monospace, "JetBrains Mono", monospace; letter-spacing: 0.06em; position: relative;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; cursor: pointer; }
+.dbg-btn::after { content: ''; position: absolute; inset: -7px -4px; }
+.dbg-btn.dbg-busy { opacity: 0.6; }
+.dbg-btn.dbg-done { border-color: #7ef0b0; color: #9ff0c8; }
+.dbg-btn.dbg-fail { border-color: #ff9a9a; color: #ffb0b0; }
 .dbg-s .dbg-bad { color: #ffb0b0; }
 .dbg-s .dbg-ok { color: #9ff0c8; }
 .dbg-s .dbg-ev { color: #d6dbe6; }
 `;
 
 let col = null, st = null, count = 0;
+function ensureCol() {
+  if (col) return;
+  st = document.createElement('style'); st.textContent = CSS; document.head.append(st);
+  col = document.createElement('div'); col.className = 'dbg-col'; document.body.append(col);
+}
 const ORDER = { readout: 0, audio: 1, load: 2 };   // (POLISH 5: the LOAD LOG's strip — screens/harbor/scene.js#loadStrip; SP3: last, it gives way first)
 
 /**
@@ -41,10 +56,7 @@ const ORDER = { readout: 0, audio: 1, load: 2 };   // (POLISH 5: the LOAD LOG's 
  * → { el, folded, set({ head, rows: [[cls, text]…] | [text…], ok }), remove() }
  */
 export function createDebugStrip(id) {
-  if (!col) {
-    st = document.createElement('style'); st.textContent = CSS; document.head.append(st);
-    col = document.createElement('div'); col.className = 'dbg-col'; document.body.append(col);
-  }
+  ensureCol();
   count++;
   const box = document.createElement('div'); box.className = 'dbg-s'; box.dataset.id = id; box.style.order = String(ORDER[id] ?? 5);
   const head = document.createElement('div'); head.className = 'dbg-h'; head.setAttribute('role', 'button'); head.tabIndex = 0;
@@ -83,4 +95,35 @@ export function createDebugStrip(id) {
     },
   };
   return api;
+}
+
+/**
+ * 9e — a BUTTON on top of the column (SEND REPORT): onTap() → Promise<bool | string> (true = done, false = failed, a string = its
+ * own label). pointerdown + pointerup with the 6 px move guard (iOS sends no 'click' to plain page areas; this is a <button>, but the
+ * column above lets taps through). → { el, remove() }
+ */
+export function createDebugButton(label, onTap) {
+  ensureCol();
+  count++;
+  const b = document.createElement('button'); b.type = 'button'; b.className = 'dbg-btn'; b.textContent = label; b.dataset.id = 'report';
+  let down = null, busy = false, resetT = 0;
+  const fire = () => {
+    if (busy) return;
+    busy = true; clearTimeout(resetT); b.className = 'dbg-btn dbg-busy'; b.textContent = 'SENDING…';
+    Promise.resolve().then(onTap).catch(() => false).then(r => {
+      busy = false;
+      b.className = 'dbg-btn ' + (r ? 'dbg-done' : 'dbg-fail');
+      b.textContent = typeof r === 'string' ? r : r ? 'SENT ✓ — see /admin' : 'NOT SENT — try again';
+      resetT = setTimeout(() => { b.className = 'dbg-btn'; b.textContent = label; }, 6000);
+    });
+  };
+  b.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; e.stopPropagation(); });
+  b.addEventListener('pointerup', e => { e.stopPropagation(); if (!down) return; const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y); down = null; if (moved <= 6) fire(); });
+  b.addEventListener('pointercancel', () => { down = null; });
+  b.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fire(); } });
+  col.append(b);
+  return {
+    el: b,
+    remove() { clearTimeout(resetT); b.remove(); if (--count <= 0) { count = 0; if (col) col.remove(); if (st) st.remove(); col = null; st = null; } },
+  };
 }

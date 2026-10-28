@@ -10,8 +10,12 @@ const TAU = Math.PI * 2;
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
-export function createFrost() {
-  let W = 1, H = 1, cv = null, key = '', grown = 0, wasCold = false;
+// opts.bold (9e — City 2.0): the owner's iPhone saw NO frost on a −14 °C night — the hairline ferns + the faint haze vanish against the lit
+// harbor at phone size. Bold = the haze ×1.7, the ferns ~2× wider + ~1.4× longer, more of them along the edges (still gone before the
+// sign, the hush word + the dock's labels — the same middle mask + holes).
+export function createFrost(opts = {}) {
+  const BOLD = !!opts.bold, HZ = BOLD ? 1.7 : 1, LW = BOLD ? 2.1 : 1, LN = BOLD ? 1.4 : 1;
+  let W = 1, H = 1, cv = null, key = '', grown = 0, wasCold = false, lastA = 0, lastOp = '';
 
   // ---------------------------------------------------------------- the frozen pane
   let clearRects = null;   // (9c — City 2.0: [{ x, y, w, h, f (feather pt) }] kept clear: the sign, the hush word, the dock's labels, the corner buttons)
@@ -26,14 +30,14 @@ export function createFrost() {
     // 1. the ice crust: a frosted haze thickest at the corners and along the bottom, grained like real rime
     for (const [cx, cy, rr] of [[0, 0, 0.5], [W, 0, 0.5], [0, H, 0.62], [W, H, 0.62]]) {
       const g = x.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * rr);
-      g.addColorStop(0, 'rgba(226,240,255,0.42)'); g.addColorStop(0.45, 'rgba(214,232,255,0.16)'); g.addColorStop(1, 'rgba(214,232,255,0)');
+      g.addColorStop(0, `rgba(226,240,255,${Math.min(0.8, 0.42 * HZ)})`); g.addColorStop(0.45, `rgba(214,232,255,${0.16 * HZ})`); g.addColorStop(1, 'rgba(214,232,255,0)');
       x.fillStyle = g; x.fillRect(0, 0, W, H);
     }
     for (let i = 0; i < 2600; i++) {
       // grains, crowded toward the edges
       const e = R(), u = R(), d = Math.pow(R(), 2.2) * Math.min(W, H) * 0.42;
       const px = e < 0.25 ? d : e < 0.5 ? W - d : u * W, py = e < 0.5 ? u * H : e < 0.75 ? d : H - d;
-      x.fillStyle = `rgba(240,248,255,${0.18 + R() * 0.4})`; x.fillRect(px, py, 0.6 + R() * 0.9, 0.6 + R() * 0.9);
+      x.fillStyle = `rgba(240,248,255,${0.18 + R() * 0.4})`; x.fillRect(px, py, (0.6 + R() * 0.9) * (BOLD ? 1.5 : 1), (0.6 + R() * 0.9) * (BOLD ? 1.5 : 1));
     }
     // 2. the feathers: fern-like dendrites — a main stem, short twigs off both sides at ±60° (shorter toward the tip),
     //    the twigs feathered again; grown inward from seeds crowded into the corners and along the edges
@@ -55,16 +59,16 @@ export function createFrost() {
     };
     const inward = (sx, sy) => Math.atan2(H * 0.45 - sy, W * 0.5 - sx) + (R() - 0.5) * 1.1;
     const seed = (sx, sy, len, w) => fern(sx, sy, inward(sx, sy), len, w, 0);
-    for (const [cx, cy, n] of [[0, 0, 7], [W, 0, 7], [0, H, 9], [W, H, 9]]) for (let i = 0; i < n; i++) seed(cx + (R() - 0.5) * W * 0.3, cy + (R() - 0.5) * H * 0.12, 26 + R() * 62, 1.2);
-    for (let i = 0; i < 22; i++) {
+    for (const [cx, cy, n] of [[0, 0, 7], [W, 0, 7], [0, H, 9], [W, H, 9]]) for (let i = 0; i < n; i++) seed(cx + (R() - 0.5) * W * 0.3, cy + (R() - 0.5) * H * 0.12, (26 + R() * 62) * LN, 1.2 * LW);
+    for (let i = 0; i < (BOLD ? 34 : 22); i++) {
       const e = Math.floor(R() * 4), u = R();
-      seed(e === 1 ? W : e === 3 ? 0 : u * W, e === 0 ? 0 : e === 2 ? H : u * H, 12 + R() * 30, 0.9);
+      seed(e === 1 ? W : e === 3 ? 0 : u * W, e === 0 ? 0 : e === 2 ? H : u * H, (12 + R() * 30) * LN, 0.9 * LW);
     }
     // a soft glow under the crystals, then the crystals themselves: bright, fine, pale blue-white
     x.save(); x.shadowColor = 'rgba(200,225,255,0.8)'; x.shadowBlur = 5;
-    for (const g of segs) { x.strokeStyle = `rgba(225,240,255,${0.16 * g.a})`; x.lineWidth = g.w * 2.6; x.beginPath(); x.moveTo(g.x0, g.y0); x.lineTo(g.x1, g.y1); x.stroke(); }
+    for (const g of segs) { x.strokeStyle = `rgba(225,240,255,${0.16 * g.a * (BOLD ? 1.6 : 1)})`; x.lineWidth = g.w * 2.6; x.beginPath(); x.moveTo(g.x0, g.y0); x.lineTo(g.x1, g.y1); x.stroke(); }
     x.restore();
-    for (const g of segs) { x.strokeStyle = `rgba(246,251,255,${0.85 * g.a})`; x.lineWidth = Math.max(0.4, g.w * 0.75); x.beginPath(); x.moveTo(g.x0, g.y0); x.lineTo(g.x1, g.y1); x.stroke(); }
+    for (const g of segs) { x.strokeStyle = `rgba(246,251,255,${Math.min(1, 0.85 * g.a * (BOLD ? 1.15 : 1))})`; x.lineWidth = Math.max(BOLD ? 0.8 : 0.4, g.w * 0.75); x.beginPath(); x.moveTo(g.x0, g.y0); x.lineTo(g.x1, g.y1); x.stroke(); }
     // keep the middle clear: the sign, the tagline and the buttons always read
     x.globalCompositeOperation = 'destination-in';
     const m = x.createRadialGradient(W * 0.5, H * 0.46, Math.min(W, H) * 0.3, W * 0.5, H * 0.46, Math.hypot(W, H) * 0.56);
@@ -92,14 +96,17 @@ export function createFrost() {
     pane(c, s) {
       const k = s.L.freeze || (s.force.has('freeze') ? 1 : 0);
       if (k <= 0.01) { grown = 0; wasCold = false; return; }
-      if (!wasCold) { wasCold = true; grown = 0; }
+      // (9e: s.joined — a city OPENED on a frozen night already has its frost; it creeps in slowly only when the cold arrives while you look)
+      if (!wasCold) { wasCold = true; grown = s.joined ? 1 : 0; }
       // it forms slowly: a few seconds to creep in from the edges
       grown = Math.min(1, grown + s.dt / (s.motion ? 9000 : 1));
       const kk = `${W}|${H}`;
       if (kk !== key) { bake(); key = kk; }
       const night = s.L.w.night + s.L.w.late;
-      c.globalAlpha = k * (0.55 + 0.35 * night) * grown * grown * (3 - 2 * grown);
+      c.globalAlpha = lastA = k * (0.55 + 0.35 * night) * grown * grown * (3 - 2 * grown);
+      const op0 = c.globalCompositeOperation; c.globalCompositeOperation = 'source-over'; lastOp = op0;
       c.drawImage(cv, 0, 0, W, H);
+      c.globalCompositeOperation = op0;
       c.globalAlpha = 1;
     },
     /** baked into a skyline row: icicles under the nearer rows' roof lines (x: the row's canvas context, css-px transform) */
@@ -122,7 +129,7 @@ export function createFrost() {
         }
       }
     },
-    debug: () => ({ grown, clear: clearRects ? clearRects.length : 0 }),
+    debug: () => ({ grown, clear: clearRects ? clearRects.length : 0, rects: clearRects ? clearRects.map(r => [r.x, r.y, r.w, r.h, r.f].map(Math.round)) : [], alpha: +lastA.toFixed(3), op: lastOp, size: [W, H] }),
     destroy() { if (cv) cv.width = 0; },
   };
 }

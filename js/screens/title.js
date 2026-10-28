@@ -1611,6 +1611,7 @@ export function createTitle() {
       neon: () => { const p = neonPlanV; return { stage: neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
       party: () => (scene ? scene.party() : null),
       loop: () => (scene && scene.loop ? scene.loop() : null),                // (8a: the city's frame loop — running, ms since its last frame, the watchdog's restarts)
+      report: () => (scene && scene.report ? scene.report() : null),        // (9e: City 2.0's report snapshot + the hang watch)
       rainbow: () => (scene && scene.rainbow ? scene.rainbow() : null),
       street: () => (scene && scene.street ? scene.street() : null),
       cost: () => (scene && scene.cost ? scene.cost() : []),

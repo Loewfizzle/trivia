@@ -73,6 +73,17 @@ let queue = [];
 let timer = 0;
 let sent = 0;
 
+// 9e — the last 20 errors on this page (every one, repeats counted — the per-page send limit doesn't apply): City 2.0's SEND REPORT
+// + the hang watch put them in their snapshot (screens/harbor/report.js)
+const ring = [];
+export const recentErrors = () => ring.map(e => ({ ...e }));
+function remember(e) {
+  const last = ring[ring.length - 1];
+  if (last && last.m === e.m && last.s === e.s && last.l === e.l) { last.n++; last.t = Date.now(); return; }
+  ring.push({ m: e.m, s: e.s, l: e.l, k: e.k ? e.k.split(String.fromCharCode(10)).slice(0, 3).join(' ← ') : '', n: 1, t: Date.now() });
+  if (ring.length > 20) ring.shift();
+}
+
 /** Which screen is up (no ids): 'title', 'lobby', 'game:golf/play'… — set by the page's entry module. */
 export function setErrorContext(fn, pageName) { where = fn; if (pageName) page = pageName; }
 
@@ -91,10 +102,12 @@ function flush() {
 
 function record(input, label = '') {
   try {
-    if (typeof location === 'undefined' || sent >= MAX_PER_PAGE) return;
+    if (typeof location === 'undefined') return;
     const e = normalizeError(input, location.origin);
     if (!e) return;
     if (label) e.m = clip(`${label}: ${e.m}`, 300);
+    remember(e);
+    if (sent >= MAX_PER_PAGE) return;
     const key = errorKey(e);
     if (seen.has(key)) return;
     seen.add(key);

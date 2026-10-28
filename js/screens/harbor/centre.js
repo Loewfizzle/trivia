@@ -117,38 +117,9 @@ export function createCentre() {
     const cr = RIG.lens * s;
     c.globalAlpha = Math.min(1, 0.95 * k); c.drawImage(glow([255, 250, 238]), sp.sx - cr * 1.6, sp.sy - cr * 1.6 * sp.flat, cr * 3.2, cr * 3.2 * sp.flat);
   }
-  return {
-    layout,
-    /** set the centrepiece (see the header); returns the cleaned state's summary */
-    set(o) { const st = normCentre(o, cap || Infinity); api = st ? { ...st, raw: o } : null; rev++; sprKey = ''; return st ? { h: st.h, rig: { ...st.rig }, lights: st.lights.length, cap } : null; },
-    clear() { api = null; rev++; sprKey = ''; },
-    /** FP3b — the dance circle (the scene, every frame): { k (0..1 formed), col } | null — the floor spots, under any holiday piece */
-    dance(o) { dance = o && o.k > 0.01 ? normCentre({ rig: { on: true, col: o.col || RIG.col, k: 1.3 * o.k } }) : null; },
-    /** &force=centrepiece-test (the scene, every frame) */
-    test(on) {
-      if (!!on !== testOn) { testOn = !!on; rev++; sprKey = ''; }
-      if (testOn && !TEST_PIECE && !testLoad) testLoad = import('./props-test.js').then(m => { TEST_PIECE = m.TEST_PIECE; if (cam) { TEST = normCentre({ piece: TEST_PIECE.piece, h: TEST_PIECE.h }, cap); rev++; sprKey = ''; } }).catch(() => { testLoad = null; });
-    },
-    /** 8b's rule: an event stands on the inlay now (the cart stops short, the walkers go round) */
-    active: () => centreActive(current()),
-    /**
-     * Live, every frame (after the stage layer, before the front row): o = { T (the baked look), lamps (the lamps' ramp now, 0..1),
-     * fade, t (s) }. Nothing at all without a centrepiece.
-     */
-    draw(c, { T, lamps = 0, fade = 1, t = 0, tier = 2, power = 1 } = {}) {
-      const st = current();
-      if (!st || !L || fade <= 0) return;
-      // 9c — THE SHOW LIGHTING (floods.js): a piece on the compass is floodlit at night; one with its own lights eases them to a fill
-      const fo = st.piece && st !== TEST ? { cam, m: { x: L.medallion.x, z: L.medallion.z, r: L.medallion.r }, h: st.h, lamps, self: st.lights.length ? 1 : 0, t, fade, tier, power, wash: 0.3 } : null;   // (a white snowman blows out under the full wash)
-      if (fo) floods.under(c, fo);
-      const m = L.medallion, k = rigLevel(st, lamps) * fade, col = st.rig.col;
-      if (st.piece) {
-        const key = `${rev}|${dpr}|${cam.W}x${cam.H}`;
-        if (key !== sprKey || T !== sprT) { sprT = T; sprKey = key; build(st, T); }
-      }
-      c.save(); c.globalCompositeOperation = 'lighter';
-      if (k > 0.02) for (const sp of spots) if (!sp.front) drawSpot(c, sp, col, k);
-      c.globalCompositeOperation = 'source-over'; c.globalAlpha = fade;
+  let lastZ = null;   // (9e: the depth the piece last sorted in at — null = drawn under everyone)
+  function pieceDraw(c, st, fo, k, col, m, fade, lamps, t) {
+    c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = fade;
       if (st.piece && spr && box) {
         c.drawImage(spr, box.x, box.y, box.w, box.h);
         if (k > 0.02 && lit) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, k); c.drawImage(lit, box.x, box.y, box.w, box.h); if (k > 1) { c.globalAlpha = k - 1; c.drawImage(lit, box.x, box.y, box.w, box.h); } }
@@ -170,11 +141,52 @@ export function createCentre() {
         }
       }
       c.restore();
+  }
+  return {
+    layout,
+    /** set the centrepiece (see the header); returns the cleaned state's summary */
+    set(o) { const st = normCentre(o, cap || Infinity); api = st ? { ...st, raw: o } : null; rev++; sprKey = ''; return st ? { h: st.h, rig: { ...st.rig }, lights: st.lights.length, cap } : null; },
+    clear() { api = null; rev++; sprKey = ''; },
+    /** FP3b — the dance circle (the scene, every frame): { k (0..1 formed), col } | null — the floor spots, under any holiday piece */
+    dance(o) { dance = o && o.k > 0.01 ? normCentre({ rig: { on: true, col: o.col || RIG.col, k: 1.3 * o.k } }) : null; },
+    /** &force=centrepiece-test (the scene, every frame) */
+    test(on) {
+      if (!!on !== testOn) { testOn = !!on; rev++; sprKey = ''; }
+      if (testOn && !TEST_PIECE && !testLoad) testLoad = import('./props-test.js').then(m => { TEST_PIECE = m.TEST_PIECE; if (cam) { TEST = normCentre({ piece: TEST_PIECE.piece, h: TEST_PIECE.h }, cap); rev++; sprKey = ''; } }).catch(() => { testLoad = null; });
+    },
+    /** 8b's rule: an event stands on the inlay now (the cart stops short, the walkers go round) */
+    active: () => centreActive(current()),
+    /**
+     * Live, every frame (after the stage layer, before the front row): o = { T (the baked look), lamps (the lamps' ramp now, 0..1),
+     * fade, t (s) }. Nothing at all without a centrepiece.
+     */
+    draw(c, { T, lamps = 0, fade = 1, t = 0, tier = 2, power = 1, defer = false } = {}) {
+      const st = current();
+      if (!st || !L || fade <= 0) return null;
+      // 9c — THE SHOW LIGHTING (floods.js): a piece on the compass is floodlit at night; one with its own lights eases them to a fill
+      const fo = st.piece && st !== TEST ? { cam, m: { x: L.medallion.x, z: L.medallion.z, r: L.medallion.r }, h: st.h, lamps, self: st.lights.length ? 1 : 0, t, fade, tier, power, wash: 0.3 } : null;   // (a white snowman blows out under the full wash)
+      if (fo) floods.under(c, fo);
+      const m = L.medallion, k = rigLevel(st, lamps) * fade, col = st.rig.col;
+      if (st.piece) {
+        const key = `${rev}|${dpr}|${cam.W}x${cam.H}`;
+        if (key !== sprKey || T !== sprT) { sprT = T; sprKey = key; build(st, T); }
+      }
+      c.save(); c.globalCompositeOperation = 'lighter';
+      if (k > 0.02) for (const sp of spots) if (!sp.front) drawSpot(c, sp, col, k);
+      c.restore();
+      // (9e — THE SNOWMAN's DEPTH: "people walking behind the snowman snapped in front of him" — the piece was drawn before the whole
+      //  people pass. With `defer` the floor (the pool + the back spots) is drawn now and the PIECE comes back as { z, draw } for the near
+      //  pass's depth sort, like the giant pumpkin + the harvest display: a walker behind it (farther z) passes BEHIND)
+      const piece = c2 => pieceDraw(c2, st, fo, k, col, m, fade, lamps, t);
+      lastZ = defer ? +m.z.toFixed(2) : null;
+      if (defer) return { z: m.z, draw: piece };
+      piece(c);
+      return null;
     },
     debug: () => {
       const st = current();
       return { floods: floods.debug(), on: !!st, test: !api && testOn, piece: !!(st && st.piece), h: st ? st.h : 0, cap, rig: st ? { ...st.rig } : null, lights: st ? st.lights.length : 0, active: centreActive(st),
-        spots: spots.map(sp => ({ x: +sp.sx.toFixed(1), y: +sp.sy.toFixed(1), front: sp.front })), box: box ? { ...box } : null, rev };
+        spots: spots.map(sp => ({ x: +sp.sx.toFixed(1), y: +sp.sy.toFixed(1), front: sp.front })), box: box ? { ...box } : null, rev, z: lastZ };
     },
     destroy() { for (const v of glows.values()) v.width = v.height = 0; glows.clear(); if (spr) spr.width = spr.height = 0; if (lit) lit.width = lit.height = 0; spr = lit = null; },
   };

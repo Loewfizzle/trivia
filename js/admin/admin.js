@@ -70,9 +70,16 @@ function shell() {
             confirmBtn('Clear all', async () => { renderErrors((await call('clearErrors')).errors); toast('Cleared'); audit(); }, 'is-danger'))),
         h('p.ad-dim', 'Code errors on players’ screens, grouped: the same error from many phones is one line with a count. Quiet for 30 days → removed.'),
         h('ol.ad-errs', { id: 'ad-errs' }, h('li.ad-dim', 'Loading…'))),
+      h('section.ad-card.ad-errors',
+        h('div.ad-row.ad-between', h('h2', 'Reports from phones'),
+          h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: reports }, 'Refresh'),
+            confirmBtn('Clear all', async () => { renderReports((await call('clearReports')).reports); toast('Cleared'); audit(); }, 'is-danger'))),
+        h('p.ad-dim', 'City 2.0 snapshots: SEND REPORT in the &debug=1 strip (TAP), or sent by the page itself when it froze (HANG — the main thread stopped answering; STALL — no frames). Newest 40 kept.'),
+        h('ol.ad-errs', { id: 'ad-reps' }, h('li.ad-dim', 'Loading…'))),
       h('section.ad-card.ad-audit', h('div.ad-row.ad-between', h('h2', 'Audit log'), h('button.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' }))));
   audit();
   errors();
+  reports();
   loadStats();
   // "live now" keeps itself current while the page is open and visible (the server caches it for 30 s)
   setInterval(() => { if (document.visibilityState === 'visible') loadStats(false, true); }, 30_000);
@@ -284,6 +291,26 @@ function renderErrors(list) {
         e.p === 'board' ? h('span', '/board') : null),
       stack);
   }) : [h('li.ad-dim', 'No errors reported. 🎉')]));
+}
+
+async function reports() {
+  if (!document.getElementById('ad-reps')) return;
+  renderReports((await call('reports')).reports);
+}
+function renderReports(list) {
+  const box = document.getElementById('ad-reps');
+  if (!box) return;
+  box.replaceChildren(...(list.length ? list.map(r => {
+    const body = h('pre.ad-stack.ad-rep', r.text);
+    body.hidden = list.indexOf(r) > 0;   // (the newest open, the rest folded)
+    return h('li.ad-err',
+      h('div.ad-err-top',
+        h('b.ad-err-n', String(r.kind || 'tap').toUpperCase()),
+        h('button.ad-err-m', { type: 'button', title: 'Show / hide', onclick: () => { body.hidden = !body.hidden; } }, `${when(r.at)} · ${r.d || '?'} ${r.b || ''}`),
+        confirmBtn('Clear', async () => { renderReports((await call('clearReports', { id: r.id })).reports); audit(); })),
+      h('div.ad-err-meta', r.v ? h('span', `build ${r.v}`) : null, h('span', r.ua || '')),
+      body);
+  }) : [h('li.ad-dim', 'No reports yet.')]));
 }
 
 async function boot() {

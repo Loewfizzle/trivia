@@ -11,6 +11,8 @@
 //   stats { fresh? }               → STATS (js/core/insights.js#summarize): live rooms, games, players, busiest times
 //   errors                         → { errors: [...] } errors from players' phones (api/log.js), newest first
 //   clearErrors { sig? }           → removes one error (sig) or all of them
+//   reports                        → { reports: [...] } 9e: SEND REPORT / hang-watch snapshots from phones (api/log.js), newest first
+//   clearReports { id? }           → removes one report (id) or all of them
 //   cityLive { state, mins?, delay? } → CITY 2.0's PREVIEW PANEL, EVERYONE ON CITY 2: writes city2/live (every phone on ?city=2 plays
 //                                    it from startAt until `until`; js/core/harbor-remote.js validates the state; C2: `delay` 0–10 s
 //                                    pushes startAt — every phone counts down + starts on the same beat) → { live }
@@ -125,6 +127,15 @@ async function errorList(now) {
     .slice(0, 150);
 }
 
+// 9e — the phones' REPORTS (SEND REPORT + the hang watch, api/log.js#logReport): newest first, only the newest 40 kept
+async function reportList() {
+  const all = (await val('phonelog')) || {};
+  const list = Object.entries(all).map(([id, r]) => ({ id, ...r })).sort((a, b) => b.at - a.at);
+  const old = list.slice(40);
+  if (old.length) await ref('phonelog').update(Object.fromEntries(old.map(r => [r.id, null])));
+  return list.slice(0, 40);
+}
+
 // CITY 2.0 — THE PREVIEW PANEL (docs/harbor.md): one public node, written here only (the rules: read by signed-in users, no
 // client writes). Plain values only — the state is rebuilt from the registry's lists; anything it had to drop refuses the call.
 async function cityLive(me, body, now) {
@@ -185,6 +196,14 @@ export async function adminAction(uid, body, now = Date.now()) {
       await ref(sig ? `errlog/${sig}` : 'errlog').remove();
       await audit(me, sig ? 'clearError' : 'clearErrors', null, sig ? { b: sig } : {});
       return { errors: await errorList(now) };
+    }
+    case 'reports': return { reports: await reportList() };
+    case 'clearReports': {
+      const id = body.id ? String(body.id) : null;
+      if (id && !/^[-_A-Za-z0-9]{10,40}$/.test(id)) throw new ApiError(400, 'bad_id');
+      await ref(id ? `phonelog/${id}` : 'phonelog').remove();
+      await audit(me, id ? 'clearReport' : 'clearReports', null, {});
+      return { reports: await reportList() };
     }
     case 'cityLive': return cityLive(me, body, now);
     case 'cityClear': await ref('city2/live').remove(); await audit(me, 'cityClear', null); return { live: null };

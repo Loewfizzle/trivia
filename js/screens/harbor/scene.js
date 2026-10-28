@@ -29,7 +29,7 @@ import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainb
 import { cameraFor, harborLayout, laneRects, roofline, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
 import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core/harbor-events.js';
 import { settings } from '../../audio/settings.js';
-import { reportError } from '../../errlog.js';
+import { reportError, recentErrors } from '../../errlog.js';
 import { createBaker } from './bake.js';
 import { toneWeights, toneKey, tones, sunLook, sunKey, harborSky, harborWeights } from './tones.js';
 import { paintSky } from './sky.js';
@@ -88,7 +88,8 @@ import { createWetGround } from './wetground.js';
 import { createGlassWeather } from './glasswx.js';
 import { safeCtx, starvedCount, blurWorks } from '../../ui/canvas-safe.js';
 import { debugTool } from '../../ui/debug-tools.js';
-import { createDebugStrip } from '../../ui/debug-strip.js';
+import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
+import { createReporter } from './report.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power, photocell, beaconStep } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, UFO_LEN, TR3B_LEN, trafficHold, inHold } from '../../core/harbor-legend.js';
@@ -445,7 +446,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // modules are no longer loaded here)
     Promise.all([import('../district/weather-fx.js'), import('../district/frost.js')]).then(([a, f]) => {
       if (destroyed) return;
-      wfx = a.createWeatherFx({ onFlash: ev => { if (S.onFlash) S.onFlash(ev); } }); frost = f.createFrost();
+      wfx = a.createWeatherFx({ onFlash: ev => { if (S.onFlash) S.onFlash(ev); } }); frost = f.createFrost({ bold: true });
       wfx.resize(W, H, HZ);
       frost.resize(W, H);
       extrasIn = true; LOADLOG.add('extras', 'the weather\'s effects in (fog, rain, frost)');
@@ -1345,6 +1346,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the Safari floor: a frame that throws — iOS out of canvas memory, a layer's context refused — never takes the city down
     // every frame: it steps the tier down to free memory, and after many in a row stops the loop on the last good frame)
     try { draw(t, dt, now); fails = 0; } catch (e) { if (!frameFailed(e)) return; }
+    mk9('between frames');
     if (starvedCount() !== starvedSeen && now - starvedAt > 2000) { starvedSeen = starvedCount(); starvedAt = now; if (tier > 0) { if (loadFrozen(now)) { wantStep = wantStep || 'starved'; LOADLOG.add('tier', 'a starved canvas: a step recorded for later'); } else stepTier(tier - 1, 'starved'); } }
     drawn++;
     costs.push(performance.now() - c0); if (costs.length > 90) costs.shift();
@@ -1367,6 +1369,40 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         LK && LK.rain > 0.2 ? 'rain' : '', LK && LK.snow > 0.2 ? 'snowing' : '', [...(clock.force || [])].slice(0, 6).join(',')].filter(Boolean).join(' · ');
     } catch { /* the context is polish */ }
     reportError(new Error(`the city stalled ≥ ${GAP_MS / 1000} s — ${how} (${what})`), 'harbor stall');
+    if (reporter) reporter.stall();   // (9e: the whole snapshot to /admin → Reports from phones, once a session)
+  }
+  // 9e — THE REPORT (SEND REPORT in the &debug=1 strip; the hang watch's beat; a stall): everything that says why the city stopped, as
+  // plain text the owner can read + screenshot on /admin. Each part on its own (a part that throws says so; the rest still comes).
+  let reporter = null, repBtn = null, markNow = '';
+  function reportText(kind) {
+    const out = [`NEON SPEAKEASY — CITY 2.0 REPORT · ${String(kind || 'tap').toUpperCase()} · ${new Date().toISOString()}`];
+    const part = (name, fn) => { try { const v = fn(); if (v != null && v !== '') out.push(`${name}: ${v}`); } catch (e) { out.push(`${name}: (failed: ${e && e.message})`); } };
+    const pn = performance.now(), f1 = n => (Number.isFinite(n) ? n.toFixed(1) : String(n));
+    part('link', () => location.search || '(none)');
+    part('device', () => `${navigator.userAgent} · screen ${screen.width}×${screen.height} · viewport ${innerWidth}×${innerHeight} · dpr ${window.devicePixelRatio} · cores ${navigator.hardwareConcurrency || '?'}${navigator.deviceMemory ? ` · ${navigator.deviceMemory} GB` : ''}`);
+    part('page', () => `${document.visibilityState} · up ${f1((pn - t0) / 1000)} s · shown ${shownAt < 0 ? 'not yet' : `${f1((pn - shownAt) / 1000)} s ago`}`);
+    part('city clock', () => `${new Date(clock.now()).toISOString()} (${clock.tz || '?'}) · speed ${clock.speed || 1} · preview ${!!clock.preview} · forced ${[...(clock.force || [])].join(',') || 'none'}`);
+    part('loop', () => `running ${running} · failStop ${failStop} · fails ${fails} · drawn ${drawn} · last rAF ${Math.round(pn - lastRaf)} ms ago · last frame ${Math.round(pn - seenAt)} ms ago · restarts ${loopLog.restarts} (${loopLog.why || '-'}) · stalls ${loopLog.stalls} · fast ${fastWhy || 'calm'} · in ${markNow || '-'}`);
+    part('tier', () => `t${tier}${dprTier !== tier ? `/${dprTier}` : ''} · dpr ${dpr} · steps ${tierHist.join('→')} · why ${stepWhy.slice(-4).join(' | ') || '-'} · capped ${capped || '-'}`);
+    part('frames', () => {
+      const fr = frames.slice().sort((a, b) => a - b), cs = costs.slice().sort((a, b) => a - b), q = (a, p) => (a.length ? a[Math.min(a.length - 1, Math.floor(a.length * p))] : 0);
+      return `interval p50 ${f1(q(fr, 0.5))} p95 ${f1(q(fr, 0.95))} max ${f1(fr[fr.length - 1] || 0)} ms · work p50 ${f1(q(cs, 0.5))} p95 ${f1(q(cs, 0.95))} ms · session ${sess.n} frames, ${sess.n ? f1(100 * sess.slow / sess.n) : 0} % slow, longest ${f1(sess.max)} ms, worst run ${sess.maxRun}`;
+    });
+    part('legendary', () => {
+      if (!legends) return 'not loaded';
+      const lg = legends.state ? legends.state() : null;
+      if (!lg) return `none running · active ${legends.active ? legends.active() : '?'} · busy ${legends.busy ? legends.busy() : '?'}`;
+      const st = lg.st || {};
+      return `${lg.kind} at ${f1(lg.s)} s · phase ${st.phase || '?'} · x ${st.x != null ? st.x.toFixed(3) : '?'} · dip ${st.dip != null ? st.dip.toFixed(2) : '?'} · drain ${st.drain != null ? st.drain.toFixed(2) : '?'} · held ${/[?&]lgs=/.test(location.search)} · forced ${clock.force.has(lg.kind)}`;
+    });
+    part('blackout', () => (LB ? `k ${(LB.k || 0).toFixed(2)} · dark city ${dark.want ? (darkOf('far') && darkOf('near') ? 'baked' : `baking (${dark.q.length} steps left)`) : 'not wanted'}` : 'none'));
+    part('scene', () => `party ${PT.on > 0 ? PT.on.toFixed(2) : 'off'} · snow ${SN.stage} (falling ${WXS ? (WXS.snow || 0).toFixed(2) : 0}) · weather ${WXS ? WXS.state : '?'} · temp ${tempNow()} · holiday ${HS && HS.id ? HS.id : '-'} · people ${people.debug().n}`);
+    part('bakes', () => `key ${String(baker.key).slice(0, 60)} · pending ${baker.pending} · lit pending ${litBaker.pending} · bakes ${baker.bakes}`);
+    part('memory', () => { const m = memAll(); const pm = performance.memory; return `canvases ~${m.mb} MB (budget ${m.budget}) · main ${canvas.width}×${canvas.height} · ${document.querySelectorAll('canvas').length} canvas elements${pm ? ` · JS heap ${Math.round(pm.usedJSHeapSize / 1e6)} / ${Math.round(pm.jsHeapSizeLimit / 1e6)} MB` : ''}`; });
+    part('audio', () => { const a = snd && snd.debug ? snd.debug() : null; return a ? JSON.stringify(a).slice(0, 300) : null; });
+    try { const er = recentErrors(); out.push(`errors (${er.length}, newest last):`); for (const e of er) out.push(`  ×${e.n} ${new Date(e.t).toISOString().slice(11, 19)} ${e.m} @ ${e.s}:${e.l}${e.k ? ` · ${e.k}` : ''}`); } catch { /* polish */ }
+    try { out.push('load log:'); for (const l of LOADLOG.lines(40)) out.push(`  ${l}`); } catch { /* polish */ }
+    return out.join('\n');
   }
   let fails = 0, failLogged = false, starvedSeen = starvedCount(), starvedAt = -1e9;
   function frameFailed(e) {
@@ -1375,7 +1411,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // once per error) and the LOAD log (&debug=1's strip), and the loop's stop is logged too)
     if (!failLogged) { failLogged = true; console.warn('[harbor] a frame failed', e); reportError(e, 'harbor frame'); LOADLOG.add('note', `a frame failed: ${String(e && e.message || e).slice(0, 120)}`); }
     if (fails === 3 && tier > 0) { if (loadFrozen(performance.now())) { wantStep = wantStep || 'failed'; LOADLOG.add('tier', '3 failed frames: a step recorded for later'); } else stepTier(tier - 1, 'failed frames'); fails = 0; }
-    else if (fails >= 30) { running = false; failStop = true; cancelAnimationFrame(raf); LOADLOG.add('note', '30 failed frames in a row: the loop stopped on the last good frame'); return false; }
+    else if (fails >= 30) { running = false; failStop = true; cancelAnimationFrame(raf); LOADLOG.add('note', '30 failed frames in a row: the loop stopped on the last good frame'); if (reporter) reporter.stall(); return false; }
     return true;
   }
   /** what keeps the city at 60 fps right now ('' = calm: every other frame is enough). Cheap: flags of the last draw. */
@@ -1405,6 +1441,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return '';
   }
 
+  const mk9 = (m) => { markNow = m; if (reporter) reporter.mark(m); };   // (9e: the part of the frame we're in — a hang names it)
   function draw(t, dt, now) {
     const c = ctx;
     syncForce();
@@ -1415,6 +1452,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // bake a little of the next look (never more than a few ms a frame)
     // (the first bake: nothing but the sky draws yet, so it may take a bigger slice of the frame — the city and its windows are
     // ready early in the title's power-on wave)
+    mk9('bakes');
     if (baker.pump(shownAt < 0 ? TIERS[tier].bakeMs * 3 + 2 : TIERS[tier].bakeMs)) {
       if (shownAt < 0) baker.settle(); else fadeFrom = now;   // (before the reveal nothing shows: a bake swaps in at once, no crossfade)
       liveTones = bakeTones;
@@ -1445,6 +1483,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (THE DIRECTOR's view of this frame: what heavy is on screen now)
     director.frame([PT.on > 0.5 ? { id: 'party', kind: 'party' } : null, ...sky.heavies(), hsky && hsky.active && hsky.active() ? { id: 'ghost-ship', kind: 'legendary' } : null, legends && legends.active() ? { id: 'legend', kind: 'legendary' } : null], tier);
     if (legends) {
+      mk9('legend tick');
       legends.tick(fs, (id, kind) => director.may(id, kind));
       const gl = legends.signGlitch();
       if (gl != null) signDim.set('tr3b', { logo: gl, tag: Math.min(1, gl + 0.05), ms: 60 }); else if (signDim.ids().includes('tr3b')) signDim.clear('tr3b');
@@ -1481,6 +1520,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (POLISH 4 — THE BLACKOUT: the city's glow on the low sky goes with its lights — the haze over the skyline darker while it's dead)
     if (dk0 > 0.01) { const nk = clamp01(LK.w.night + LK.w.late), y1 = cam.horizon != null ? cam.horizon : HZ, g = c.createLinearGradient(0, y1 - HZ * 0.55, 0, y1);
       g.addColorStop(0, 'rgba(3,2,9,0)'); g.addColorStop(1, `rgba(3,2,9,${(0.42 * dk0 * nk).toFixed(3)})`); c.fillStyle = g; c.fillRect(0, y1 - HZ * 0.55, W, HZ * 0.55); }
+    mk9('the sky');
     fs.moonVeil = wfx.moonVeil(LK) * tagMoonDim(dt);
     sky.moonSky({ band: tagBand(), veil: clouds.veil() });
     moonNow = fs.moonAt || null;
@@ -1530,6 +1570,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     drawEvents(c, 'sky');
     // ---- the city: the baked layers, far → near, with the moving things between them
     const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - shownAt);
+    mk9('the skyline');
     const crispOn = crisp.begin(c, tier, !off.has('no-crisp') && fadeIn > 0 && !!L && !!bakeTones && !!baker.key);   // (9c: the crisp layer this frame)
     const xf = fadeFrom < 0 ? 1 : smooth(0, fadeMs, now - fadeFrom);
     if (xf >= 1 && fadeFrom >= 0) { fadeFrom = -1; if (!baker.pending) baker.settle(); }
@@ -1618,6 +1659,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!deadCity) lights.beacons(c, now, beaconK, fadeIn * (1 - bcn.k) * (bcn.on ? 0 : 1), S.motion);
     if (legends && legends.active()) drainCity(c, fadeIn, 'near');   // (6b: THE TR-3B's power drain rolling across the city under it)
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
+    mk9('the harbor');
     wfx.fogLayer(c, fs, 2, t);
     // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)
     if ((LK.fog || 0) > 0.35 && !deadCity) lights.beacons(c, now, Math.max(nightK, beaconK) * (lit > 0 ? lit : 0) * (1 - dk0), 0, S.motion, LK.fog, true);
@@ -1673,6 +1715,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // 8P — THE PEOPLE: who's where now (a pure function of the city clock), then the FAR pass — the crosswalk, the waterside sidewalk,
     // the bus — before the stage (the stop lights, the lamps, the trees + the speakeasy stand in front of them)
     // (FP3a, FREV H3: the people's clock + their sounds run every frame — tick() — whether or not they're drawn; drawn only over a baked stage)
+    mk9('the stage + people');
     const pplLive = !off.has('no-people'), pplOn = pplLive && fadeIn > 0 && !!bakeTones && !!(baker.group('stage') || {}).ready;
     const pplEnv = pplLive ? peopleEnv(lit, fadeIn) : null;
     if (pplLive) people.frame(peopleFrame());
@@ -1755,10 +1798,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       raidFx.facade(c, RR, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn, tier }, { side, windows: ws, officer: people.officer(), spotAt: raidFrame.spotAt });
     }
     // PF — THE CENTREPIECE on the inlay + its rig's floor spots (nothing without one; &force=centrepiece-test: the test obelisk)
+    mk9('the promenade');
     centre.test(off.has('centrepiece-test'));
     // FP3b — THE DANCE CIRCLE lights the inlay's floor spots (the rig without a piece), in the party palette's colour of the phrase
     { const dn = pplLive ? people.dance() : null; centre.dance(dn && dn.on ? { k: dn.k, col: PT.palette && PT.palette.length ? PT.palette[Math.floor((PT.beatsF || 0) / 8) % PT.palette.length] : null } : null); }
-    if (fadeIn > 0 && bakeTones) centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * (LB ? legendPow(W * 0.5, 'near', 207) : 1), fade: fadeIn, t, tier });
+    // (9e: the floor now; the PIECE (the snowman…) sorted in by depth with the near pass below — walkers behind it pass behind)
+    const centreItem = fadeIn > 0 && bakeTones ? centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * (LB ? legendPow(W * 0.5, 'near', 207) : 1), fade: fadeIn, t, tier, defer: true }) : null;
     hpropsDraw(c, 'ground', fadeIn, lit);         // (11a-1: the petal path, the marigolds, the back garlands, the jack-o'-lanterns)
     // 8P — THE PEOPLE on the promenade (after the stage + the speakeasy's live layer, before the front row: the corner globes, the framing
     // maple, the cart stand nearer than anyone on the floor) + the ROOF's guests (clipped to the sky over the parapet)
@@ -1770,8 +1815,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const hx = hpropsItems('near', fadeIn, lit);
       // (9b: THE WINTER PEOPLE — sorted in by depth with everyone on the near pass)
       const wx9 = pplOn && (SN.stage !== 'none' || (SM && SM.standing) || ['shovel', 'snowball', 'slip'].some(id => clock.force.has(id))) && !clock.force.has('no-snow') ? winterFolk.items({ sm: SM, L, t: clock.now() / 1000, lc: LK.local, sn: SN.stage !== 'none' ? SN : { ...SN, stage: 'fresh', cover: 1, age: 0 }, falling: WXS ? WXS.snow : 0, force: clock.force, env: pplEnv, snowCol: bakeTones ? snowTones(bakeTones, SN.stage !== 'none' ? SN : null).snow : [240, 244, 252] }) : [];
-      if (pplOn) { people.draw(c, 'near', { ...pplEnv, extra: [...(wlOn ? wild.items('near', wlEnv) : []), ...hx, ...wx9], dogLunge: vid => wild.dogLunge(vid) }); people.draw(c, 'roof', pplEnv); }
-      else { if (wlOn) wild.draw(c, 'near', wlEnv); for (const it of hx) { c.save(); it.draw(c); c.restore(); } } }
+      if (pplOn) { people.draw(c, 'near', { ...pplEnv, extra: [...(wlOn ? wild.items('near', wlEnv) : []), ...hx, ...wx9, ...(centreItem ? [centreItem] : [])], dogLunge: vid => wild.dogLunge(vid) }); people.draw(c, 'roof', pplEnv); }
+      else { if (centreItem) centreItem.draw(c); if (wlOn) wild.draw(c, 'near', wlEnv); for (const it of hx) { c.save(); it.draw(c); c.restore(); } } }
+    mk9('the front row + weather');
     if (wlOn) wild.draw(c, 'front', wlEnv);
     if (pplLive) people.tick(pplEnv);
     if (wlLive) wild.tick({ snd: S.motion ? snd : null });
@@ -1846,9 +1892,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       AUD.signWx = (LK.rain || 0) > 0.02 || WXS.ice > 0.01 ? signLive() : 0;   // (SP3: the beads' light on the NEON tubes — the blackout audit)
       glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: signLive(), snow: { fast: clock.force.has('sign-melt') ? 20 : 1, joinLit: litK(DK, 'neon'), lie: snowNow() ? topsOf(SN) : 0, falling: LK.snow || 0, cold: tc != null ? tc <= -2 : SN.stage !== 'none' && SN.stage !== 'thaw' && SN.stage !== 'spring' }, signCol: sc, power: LB ? clamp01(1 - LB.k) : 1, letters: letterOn(), frostButtons: false, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
     }
+    // 11a-1 — THE SIGN'S DRESSING (its own canvas in the logo's wrap: redrawn only when it changes; the spider + flames ≤ 30 fps)
+    if (fadeIn > 0 || shownAt >= 0) dressTick(t);
+    sun.dim(c, fs);
+    mk9('the foreground + frost');
+    drawForeground(c, W, H, vignette, Math.min(1.22, night + (HR.shadow > 0.01 ? HR.shadow * 1.4 : 0)));
     // 9c — THE FROZEN PANE (the owner prefers City 1.0's frost): district/frost.js#pane over the whole screen on a REAL deep freeze (−4 °C →
     // full by −12 °C, or FROST forced), forming slowly, kept clear of the NEON sign + SPEAKEASY, the dock's labels + the corner buttons
     // (soft-edged holes: only the lace's finest edge reaches them). 9d: the pane only — no frost on the buttons.
+    // (9e: the pane AFTER the vignette — the frost is on the glass, nearest the eye; under the vignette the corners it grows in were darkened away)
     if (fadeIn > 0 && !off.has('no-glasswx')) {
       const tc2 = tempNow();
       const fz = clock.force.has('freeze') ? 1 : tc2 == null ? 0 : smooth(-4, -12, tc2);
@@ -1856,19 +1908,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         const cr = [];
         if (S.logoRect) { const r = S.logoRect; cr.push({ x: r.x - 14, y: r.y - 18, w: r.w + 28, h: r.h * 1.75 + 36, f: 34 }); }
         if (S.textRects && S.textRects.tag) { const r = S.textRects.tag; cr.push({ x: r.x - 8, y: r.y - 6, w: r.w + 16, h: r.h + 12, f: 22 }); }
-        for (const g of S.glass || []) cr.push({ x: g.x - 4, y: g.y - 4, w: g.w + 8, h: g.h + 8, f: g.group === 'corner' ? 26 : 30 });
+        // (9e — THE FROST LINK SHOWED NOTHING: the corner buttons' 26-pt holes erased the top corners + the dock's 30-pt holes the bottom —
+        //  exactly where the frost grows; with 9d's button frost gone, nothing was left. Now: no hole round the corner buttons (their glass
+        //  sits over the frost like a frosted window's latch), a tight one round the dock's buttons only)
+        for (const g of S.glass || []) if (g.group !== 'corner') cr.push({ x: g.x + 2, y: g.y + 2, w: g.w - 4, h: g.h - 4, f: 10 });
         frost.setClear && frost.setClear(cr);
-        frost.pane(c, { L: { freeze: fz, w: { night: LK.w.night || 0, late: LK.w.late || 0 } }, force: clock.force, dt, motion: S.motion });
+        frost.pane(c, { L: { freeze: fz, w: { night: LK.w.night || 0, late: LK.w.late || 0 } }, force: clock.force, dt, motion: S.motion, joined: shownAt < 0 || performance.now() - shownAt < 3000 });
       }
     }
-    // 11a-1 — THE SIGN'S DRESSING (its own canvas in the logo's wrap: redrawn only when it changes; the spider + flames ≤ 30 fps)
-    if (fadeIn > 0 || shownAt >= 0) dressTick(t);
-    sun.dim(c, fs);
-    drawForeground(c, W, H, vignette, Math.min(1.22, night + (HR.shadow > 0.01 ? HR.shadow * 1.4 : 0)));
+    mk9('the crisp layer');
     crispTick(c, off, fadeIn, pplLive, crispOn);
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
     // (FP: or THE PREVIEW PANEL → TOOLS → READOUT on this device — ui/debug-tools.js, live, remembered; &debug=1 still shows it)
-    if (debugTool('readout', DEBUG)) { readout(now); loadStrip(now); pixWatch(now); } else { if (roStrip) { roStrip.remove(); roStrip = null; } if (llStrip) { llStrip.remove(); llStrip = null; } }
+    if (debugTool('readout', DEBUG)) { readout(now); loadStrip(now); pixWatch(now); if (!repBtn && reporter) repBtn = createDebugButton('SEND REPORT', () => reporter.send('tap')); } else { if (roStrip) { roStrip.remove(); roStrip = null; } if (llStrip) { llStrip.remove(); llStrip = null; } if (repBtn) { repBtn.remove(); repBtn = null; } }
   }
   // POLISH 5 — THE LOAD LOG's strip (&debug=1, foldable like the readout; remembered per device): the reveal's why + ms and every
   // change to the picture after it, ⚠ on the ones the eye sees. Twice a second while the log records, once more when it closes.
@@ -2337,7 +2389,18 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // TIER_GRACE after the city shows, and the first window it judges holds no frame from before)
     // (POLISH 4 — A LEGENDARY HOLDS THE TIER: the owner's iPhone stepped 2→1→2 during the TR-3B — each step REBAKES the whole city,
     // mid-event; its ~50 s are judged by nobody, and the window after it starts fresh)
-    if (legends && legends.active()) { legendHeld = true; return; }
+    if (legends && legends.active()) {
+      legendHeld = true;
+      // (9e — the owner's TR-3B link repeats the run every ~47 s, so the judge was held FOREVER there: WebKit at 9 fps stayed at t2 for
+      //  580 frames. A legendary still holds the normal judging, but a CRAWL (the 75th-percentile frame over 40 ms — under 25 fps — on four
+      //  half-second looks in a row) drops the live EFFECTS a step (no re-bake: invisible); the resolution waits for the run's end)
+      if (tier > 0 && frames.length >= 90 && document.visibilityState === 'visible' && !(++perfN % 30)) {
+        const s = [...frames].sort((a, b) => a - b);
+        legSlow = s[67] > 40 ? legSlow + 1 : 0;
+        if (legSlow >= 4) { legSlow = 0; stepDown(judge(now, 'a crawl under a legendary (< 25 fps)', 'down')); frames.length = 0; }
+      }
+      return;
+    }
     if (legendHeld) { legendHeld = false; frames.length = 0; tierHold = Math.max(tierHold, now + 3000); return; }
     // (WIN2 — THE QUALITY STEP (the owner's iPhone: a step ~9.5 s after the reveal, a full-city crossfade for it): KNOWN HEAVY MOMENTS are
     // judged by nobody — a bake in flight, the crossfade of one, the sign's surge / race / a tapped letter — their frames never enter
@@ -2376,6 +2439,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }
   }
   const TOP_TIER = 2, TIER_GRACE = 15000;   // (WIN2: never judged in the first 15 s after the reveal — the bakes, the people, the windows, the fonts + images landing)
+  let legSlow = 0;
   let graceDone = false, legendHeld = false, heavyHeld = null, heavyUntil = 0, heavyWhy = '', slowN = 0, lastJudge = null;
   /** WIN2: a known heavy moment right now (its name) — nothing is judged in it */
   function heavyNow(now) {
@@ -2573,6 +2637,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
 
   build();
   start();
+  // 9e — THE HANG WATCH + SEND REPORT (report.js): the worker beats from now; &debug=1 also names the frame's parts
+  try { reporter = createReporter({ text: reportText, marks: DEBUG }); } catch { reporter = null; }
 
   return {
     set(v) {
@@ -2649,6 +2715,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, failStop, ...loopLog, at: Math.round(loopLog.at), wx: WXS ? WXS.state : null, wxBeds: snd.weatherBeds() }),
     /** 8a (test hook): what the watchdog does now (why: 'visible' | 'pageshow' | 'focus' | 'tap' | 'watchdog') → true = restarted */
     wakeLoop: why => wakeLoop(why),
+    /** 9e: the report's snapshot text + whether the hang watch runs */
+    report: () => ({ text: reportText('tap'), watching: !!(reporter && reporter.watching), button: !!repBtn }),
     partyLight: () => null,                   // the party's light for the lobby's still: Part 11
     /** THE STAGE (test hook): the layout's stage pieces + the knocks */
     street: () => (L ? { city: 2, HZ: Math.round(groundY(cam, Z.road[1])), K: cam.F / 600, lamps: L.lamps.map(l => ({ x: project(cam, l.x, 0, l.z)[0], lit: T0(), tree: false })), trees: L.trees.length, signals: L.signals.map(s => ({ x: project(cam, s.x, 0, s.z)[0], state: s.state })), door: { ...L.door }, people: { knocks, peds: people.debug().n } } : null),
@@ -2740,6 +2808,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       crisp.destroy(); fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); wetGround.destroy(); glassWx.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
       if (roStrip) { roStrip.remove(); roStrip = null; }
       if (llStrip) { llStrip.remove(); llStrip = null; }
+      if (repBtn) { repBtn.remove(); repBtn = null; }
+      if (reporter) { reporter.destroy(); reporter = null; }
       for (const c of [skyCv, skyPrev, pxCv, vignette, glow, coolGlow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;
     },

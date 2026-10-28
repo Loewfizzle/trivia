@@ -3472,7 +3472,7 @@ G('snow', async () => {
   // ---- THE CLIMATE FALLBACK (&force=climate): a January afternoon in Grand Rapids — the readout's source + snow on the ground from it
   { const Q = await open({ slot: 'sn-cl', qs: `when=2027-01-20T13:00${GR}&force=climate&debug=1`, view: [402, 874] });
     await harborUp(Q.page); await sleep(800);
-    const s = await ev(Q.page, SNW), line = await ev(Q.page, `(document.querySelector('.dbg-strip, [class*=debug-strip]') || document.body).innerText`);
+    const s = await ev(Q.page, SNW), line = await ev(Q.page, `(document.querySelector('.dbg-col') || document.body).textContent`);   // (9e: textContent — the strips start folded; their rows are kept up to date while hidden)
     ok(s && s.src === 'the climate fallback' && s.stage !== 'none', `CLIMATE FALLBACK: a January in Grand Rapids has snow on the ground (${s && s.stage} · ${s && s.why} · ${s && s.src})`);
     ok(/climate fallback/.test(line || ''), 'CLIMATE FALLBACK: the readout names it');
     await Q.ctx.close(); }
@@ -3520,7 +3520,11 @@ G('snow', async () => {
     await harborUp(Q.page);
     await waitFor(Q.page, `${SNW}.pane.grown > 0.3`, 'the pane forming', 20000).catch(() => {});
     const s = await ev(Q.page, SNW);
-    ok(s && (s.pane.grown > 0.3) === paneOn && s.pane.clear >= 3 && (s.gwx.frost > 0.05) === glassOn, `9c FROST ${mode.toUpperCase()}: the pane ${s && s.pane.grown} (${s && s.pane.clear} clear holes), the buttons' frost ${s && s.gwx.frost}`);
+    ok(s && (s.pane.grown > 0.3) === paneOn && s.pane.clear >= 2 && s.pane.alpha > 0.5 && (s.gwx.frost > 0.05) === glassOn, `9c FROST ${mode.toUpperCase()}: the pane ${s && s.pane.grown} at ${s && s.pane.alpha} (${s && s.pane.clear} clear holes), the buttons' frost ${s && s.gwx.frost}`);
+    // (9e — THE FROST LINK SHOWED NOTHING on the iPhone: the hairline pane vanished on the lit city + the corner buttons' holes erased the
+    //  top corners. Now bold + no corner holes: the four corners must read — bright pixels in each corner of the real picture)
+    const fr = await ev(Q.page, `(() => { const c = document.querySelector('.nd-scene canvas') || [...document.querySelectorAll('canvas')].sort((a, b) => b.width * b.height - a.width * a.height)[0]; const x = document.createElement('canvas'); x.width = 40; x.height = 87; const g = x.getContext('2d'); g.drawImage(c, 0, 0, 40, 87); const d = g.getImageData(0, 0, 40, 87).data; const L = (i) => d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11; const m = (x0, y0) => { let s = 0; for (let y = y0; y < y0 + 8; y++) for (let x1 = x0; x1 < x0 + 6; x1++) s += L(y * 40 + x1); return s / 48; }; return [m(0, 0), m(34, 0), m(0, 79), m(34, 79)].map(v => Math.round(v)); })()`);
+    ok(fr.every(v => v > 38), `9e THE FROST READS in all four corners (mean light ${fr.join(' · ')} of 255)`);
     await Q.ctx.close();
   }
   // ---- 9c — THE CRISP LAYER (the owner: the blade blurry next to the logo): on an iPhone-like DPR 3 by day the blade's board, the date
@@ -3535,7 +3539,14 @@ G('snow', async () => {
     await harborUp(N.page); await sleep(800);
     const b = await ev(N.page, `${SNW}.crisp`);
     ok(n >= 3 && !b.on && b.items.length === 0, `9c THE CRISP LAYER off where it gains nothing (DPR 2): ${b.on} · ${b.items.length} items (DPR 3 had ${n} overlays)`);
-    await N.ctx.close(); }
+    await N.ctx.close();
+    // (9e — THE BLADE STAYS SHARP AT EVERY TIER: the low-power tier 0 keeps the layer — the owner's busy holiday night stepped down + went soft)
+    const Z = await open({ slot: 'cr-0', qs: `when=2026-10-27T21:30${GR}`, view: [402, 874], dpr: 3 });
+    await harborUp(Z.page); await ev(Z.page, 'window.__district.setTier(0)');
+    await waitFor(Z.page, `${SNW}.crisp.on && ${SNW}.crisp.items.some(i => i.id.startsWith('blade'))`, 'the crisp blade at tier 0', 10000).catch(() => {});
+    const z = await ev(Z.page, `${SNW}.crisp`);
+    ok(z.on && z.dpr === 3 && z.items.some(i => i.id.startsWith('blade')), `9e THE BLADE SHARP AT TIER 0: the crisp layer ${z.on} at dpr ${z.dpr} (${z.items.map(i => i.id).join(', ')})`);
+    await Z.ctx.close(); }
   // ---- 9c — THE CENTREPIECE's SHOW LIGHTING (the owner: the uncarved giant sat dark, brown on brown): floodlit at night; dimmed to a
   // low fill once the carved ₿'s fire is lit; nothing by day
   { const fl = {};
@@ -3561,6 +3572,9 @@ G('snow', async () => {
     await harborUp(Q.page); await sleep(600);
     const m = await ev(Q.page, `${P}.snowman`), c = await ev(Q.page, `${P}.centrepiece.active()`);
     ok(m && m.standing && m.progress >= 0.9 && c, `THE SNOWMAN on Jan 31: ${m && m.stage} ${m && m.progress} (${m && m.why}) on the inlay (${c})`);
+    // (9e — "people walking behind the snowman snapped in front of him": the piece sorts in with the near pass at the inlay's depth)
+    const cz = await ev(Q.page, `({ z: ${P}.centrepiece.z, mz: ${P}.medallion && ${P}.medallion.z })`);
+    ok(cz.z != null && (cz.mz == null || Math.abs(cz.z - cz.mz) < 0.05), `9e THE SNOWMAN's DEPTH: sorted in with the walkers at z ${cz.z} (the inlay ${cz.mz})`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'sn-man2', qs: `when=2026-07-15T13:00${GR}&snowman=base`, view: [402, 874] });
     await harborUp(Q.page); await sleep(400);
@@ -3579,7 +3593,8 @@ G('freeze', async () => {
   const LINKS = [
     { id: 'tr3b-snow', qs: `when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b&lgs=15${GR}`, held: true },
     // (9d: the same Friday party night + fresh snow + the frost with the TR-3B's WHOLE run — the blackout, the jets, the power's return)
-    { id: 'tr3b-run', qs: `when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b${GR}` },
+    // (9e: watched for the WHOLE run — the owner's iPhone stuck with the craft at its dip: the craft's clock must move every 2 s until it ends)
+    { id: 'tr3b-run', qs: `when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b${GR}`, whole: true },
     { id: 'peek', qs: `when=2026-10-27T21:00&force=window&moment=peek${GR}`, until: "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'peek' && e.win === 'back')", what: 'the peek in the back window' },
     { id: 'night', qs: `when=2026-10-27T21:00${GR}` },
     { id: 'night-late', qs: `when=2026-10-21T23:30${GR}` },
@@ -3589,14 +3604,16 @@ G('freeze', async () => {
     const px = Array.from(c.getImageData(0, 0, 100, 218).data.filter((v, i) => i % 4 !== 3)); x.width = 0;
     return { running: l.running, failStop: l.failStop, drawn: l.drawn, canvases: document.querySelectorAll('canvas').length,
       heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : 0, dropped: h.speakeasy.life.dropped || [],
-      failed: ((h.loadLog && h.loadLog.lines) || []).filter(s => /frame failed|loop stopped/.test(s)), px }; })()`;
+      failed: ((h.loadLog && h.loadLog.lines) || []).filter(s => /frame failed|loop stopped/.test(s)), px,
+      lg: h.legend && h.legend.state && h.legend.state.run ? +h.legend.state.s.toFixed(2) : null, at: performance.now(), watch: !!(window.__district.report() || {}).watching }; })()`;
   const diff = (a, b) => { let n = 0; for (let i = 0; i < a.length; i += 3) if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 24) n++; return n; };
   await Promise.all(LINKS.map(async L => {
     const P = await open({ slot: `fz${L.id.slice(0, 4)}`, qs: `${L.qs}&intro=1`, view: [402, 874], dpr: 3, cores: 6 });
     await harborUp(P.page);
     if (L.until) await waitFor(P.page, L.until, `${L.id}: ${L.what}`, 45000);
     const s = [];
-    for (let i = 0; i <= 10; i++) { s.push(await ev(P.page, SNAP)); if (i < 10) await sleep(2000); }
+    const NS = L.whole ? 24 : 10;
+    for (let i = 0; i <= NS; i++) { s.push(await ev(P.page, SNAP)); if (i < NS) await sleep(2000); }
     const a = s[0], z = s[s.length - 1], still = s.slice(1).filter((q, i) => q.drawn <= s[i].drawn).length;
     const moving = s.slice(1).filter((q, i) => diff(q.px, s[i].px) >= 20).length;
     const med = arr => arr.slice().sort((p, q) => p - q)[arr.length >> 1];
@@ -3604,7 +3621,17 @@ G('freeze', async () => {
     ok(z.running && !z.failStop && !s.some(q => q.failed.length) && !z.dropped.length,
       `NEVER FREEZE (${L.id}): 20 s after the power-on the loop runs — no failed frame, no window scene dropped${z.failed.length ? ` (${z.failed.join('; ')})` : ''}${z.dropped.length ? ` (dropped: ${z.dropped.join(', ')})` : ''}`);
     ok(still === 0 && z.drawn - a.drawn > 100, `NEVER FREEZE (${L.id}): frames keep painting (${z.drawn - a.drawn} drawn in 20 s, ${still} stalled 2-s windows)`);
-    ok(moving >= 8, `NEVER FREEZE (${L.id}): the picture keeps moving (${moving}/10 two-second windows changed)`);
+    ok(moving >= NS * 0.8, `NEVER FREEZE (${L.id}): the picture keeps moving (${moving}/${NS} two-second windows changed)`);
+    ok(z.watch, `9e THE HANG WATCH runs (${L.id}): the worker that reports a stuck main thread to /admin`);
+    if (L.whole) {
+      // (the craft's clock: every 2-s look while the run is on moves it ~2 s on — a stuck clock = the owner's "the craft is just stuck")
+      // (its seconds against the page's own time between the looks — several pages share the CPU, a look can come late)
+      const runs = s.map(q => q.lg), steps = runs.slice(1).map((v, i) => (v != null && runs[i] != null && v > runs[i] ? (v - runs[i]) / ((s[i + 1].at - s[i].at) / 1000) : null)).filter(v => v != null);
+      // (each look: it MOVED (a starved page draws late + catches up, so one look's rate varies); over the whole run: real time)
+      const pairs = runs.slice(1).map((v, i) => (v != null && runs[i] != null && v > runs[i] - 0.01 ? [v - runs[i], (s[i + 1].at - s[i].at) / 1000] : null)).filter(Boolean);
+      const rate = pairs.reduce((a, q) => a + q[0], 0) / Math.max(1e-6, pairs.reduce((a, q) => a + q[1], 0));
+      ok(pairs.length >= 12 && pairs.every(q => q[0] > 0.05) && rate > 0.8 && rate < 1.2, `9e THE TR-3B's WHOLE RUN never sticks: its clock moved on all ${pairs.length} looks, ${rate.toFixed(2)} × real time over the run (${runs.filter(v => v != null).length} looks with the run on)`);
+    }
     ok(z.canvases <= s[3].canvases + 2 && (!h0 || h1 <= h0 * 1.5 + 25), `NEVER FREEZE (${L.id}): no climb (from 6 s in: the power-on adds its overlays first) — canvases ${s[3].canvases} → ${z.canvases}, JS heap ${h0} → ${h1} MB`);
     if (L.held) {
       // 9d: a HELD preview (&lgs=) is a still — the song never stuck at half speed, no crackle repeating forever; the &temp= override

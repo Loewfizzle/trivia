@@ -21,7 +21,7 @@ import { boardQuery } from '../../api/board.js';
 import { adminAction } from '../../api/admin.js';
 import reportHandler from '../../api/report.js';
 import boardHandler from '../../api/board.js';
-import logHandler, { logErrors, errorSig } from '../../api/log.js';
+import logHandler, { logErrors, errorSig, logReport, cleanReport, REPORT_LIMITS } from '../../api/log.js';
 import skyHandler, { placeOf, skyFor, clearSkyCache, setKpFetcher } from '../../api/sky.js';
 import { clearBoardCache } from '../../api/_lib/lb.js';
 import { finalGame } from '../fixtures/finals.mjs';
@@ -32,7 +32,7 @@ const NOW = Date.UTC(2026, 9, 14, 23, 0, 0);       // Wed 2026-10-14, 7 pm Easte
 const DAY = 86_400_000;
 let clock = NOW;
 const tick = (ms = 60_000) => (clock += ms);
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx', 'phonelog'];
 
 before(async () => {
   await ref('/').update(Object.fromEntries(NODES.map(n => [n, null])));
@@ -499,6 +499,39 @@ test('error log: grouped by error, rate-limited, readable and clearable by admin
     list = (await adminAction('u-errboss', { action: 'clearErrors' }, now)).errors;
     assert.equal(list.length, 0, 'all cleared');
     assert.equal((await adminAction('u-errboss', { action: 'audit' })).log[0].act, 'clearErrors');
+  } finally { process.env.ADMIN_PIDS = ''; }
+});
+
+// ---- 9e — SEND REPORT + the hang watch (api/log.js#logReport) and the admin's view of them
+test('phone reports: stored as plain text, rate-limited, newest 40 kept, admins only', async () => {
+  await ref('/').update({ phonelog: null, rl: null });
+  const now = Date.UTC(2026, 9, 28, 3);
+  const iphone = 'Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/18.0 Mobile/15E148 Safari/604.1';
+  assert.equal(cleanReport(null), null);
+  assert.equal(cleanReport({ text: '   ' }), null);
+  assert.deepEqual(cleanReport({ kind: 'weird', text: 'x' }), { kind: 'tap', text: 'x' });
+  assert.equal(cleanReport({ kind: 'hang', text: 'y'.repeat(99_999) }).text.length, REPORT_LIMITS.text);
+  assert.equal(await logReport({ p: 'report', r: { kind: 'hang', text: 'THE MAIN THREAD STOPPED' } }, { ip: '5.5.5.5', ua: iphone, now }), 1);
+  const all = Object.values(await val('phonelog'));
+  assert.equal(all.length, 1);
+  assert.equal(all[0].kind, 'hang'); assert.equal(all[0].d, 'iPhone'); assert.equal(all[0].text, 'THE MAIN THREAD STOPPED');
+  // 8 an hour per IP
+  let kept = 0; for (let i = 0; i < 12; i++) kept += await logReport({ r: { text: `r${i}` } }, { ip: '6.6.6.6', now: now + i });
+  assert.equal(kept, REPORT_LIMITS.ipPerHour);
+  // HTTP: the same endpoint as the errors, a report body
+  const r = await call(logHandler, { body: JSON.stringify({ p: 'report', r: { kind: 'tap', text: 'SEND REPORT' } }) });
+  assert.equal(r.status, 200); assert.equal(r.body.kept, 1);
+  const boss = await ensure('u-repboss', 'RepBoss');
+  await rejects(adminAction('u-repboss', { action: 'reports' }), 403, 'not_admin');
+  process.env.ADMIN_PIDS = boss.pid;
+  try {
+    let list = (await adminAction('u-repboss', { action: 'reports' })).reports;
+    assert.ok(list.length >= 9 && list[0].at >= list[list.length - 1].at, 'newest first');
+    list = (await adminAction('u-repboss', { action: 'clearReports', id: list[0].id })).reports;
+    assert.ok(list.length >= 8);
+    await rejects(adminAction('u-repboss', { action: 'clearReports', id: '../profiles' }), 400, 'bad_id');
+    list = (await adminAction('u-repboss', { action: 'clearReports' })).reports;
+    assert.equal(list.length, 0);
   } finally { process.env.ADMIN_PIDS = ''; }
 });
 

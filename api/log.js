@@ -1,4 +1,5 @@
 // POST /api/log { p: 'app'|'board', e: [{ m, s, l, c, k, w, t }] } — errors from players' phones (js/errlog.js).
+// (9e: { p: 'report', r: { kind, text } } — a SEND REPORT / hang-watch snapshot, see logReport below)
 // No sign-in (sendBeacon can't carry a token), so it is careful instead:
 //   · small bodies only, at most 10 errors per request, every field clipped;
 //   · the same error from many phones becomes ONE entry with a count: errlog/{sig} { m, s, l, c, k, w, n, first, last,
@@ -10,7 +11,30 @@ import { createHash } from 'node:crypto';
 import { route, send, readBody, clientIp } from './_lib/http.js';
 import { ref, fb } from './_lib/fb.js';
 
-export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody: 16_000 };
+export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody: 32_000 };
+// 9e — SEND REPORT (the &debug=1 strip's button) + THE HANG WATCH (a worker that reports when the page's main thread stops answering —
+// js/hangwatch.js): POST /api/log { p: 'report', r: { kind: 'tap' | 'hang' | 'stall', text } } → phonelog/{push} { at, kind, text, ua, d,
+// b, v } — plain text the owner reads (+ screenshots) on /admin. 8 an hour per IP, 120 a day in all, the newest 40 kept.
+export const REPORT_LIMITS = { ipPerHour: 8, perDay: 120, keep: 40, text: 24_000 };
+const REPORT_KINDS = ['tap', 'hang', 'stall'];
+
+/** PURE: a report body → { kind, text } to store, or null */
+export function cleanReport(r) {
+  if (!r || typeof r !== 'object' || typeof r.text !== 'string' || !r.text.trim()) return null;
+  return { kind: REPORT_KINDS.includes(r.kind) ? r.kind : 'tap', text: r.text.slice(0, REPORT_LIMITS.text) };
+}
+
+/** Stores one report (rate-limited). Returns 1 when kept, 0 when dropped. */
+export async function logReport(body, { ip = '', ua = '', now = Date.now() } = {}) {
+  const r = cleanReport(body && body.r);
+  if (!r) return 0;
+  let n = await take(`rep_ip_${ipKey(ip)}`, 1, REPORT_LIMITS.ipPerHour, 3600_000, now);
+  if (n) n = await take(`rep_day_${dayKey(now)}`, 1, REPORT_LIMITS.perDay, 86_400_000, now);
+  if (!n) return 0;
+  const { d, b } = deviceOf(ua);
+  await ref('phonelog').push({ at: now, kind: r.kind, text: r.text, ua: str(ua, 220), d, b, v: str(process.env.VERCEL_GIT_COMMIT_SHA, 7) || 'local' });
+  return 1;
+}
 
 const str = (x, n) => String(x == null ? '' : x).slice(0, n);
 
@@ -78,6 +102,7 @@ export async function logErrors(body, { ip = '', ua = '', now = Date.now() } = {
 export default route(['POST'], async (req, res) => {
   if (Number(req.headers['content-length'] || 0) > LOG_LIMITS.maxBody) { send(res, 413, { error: 'too_large' }); return; }
   const body = await readBody(req);
-  const kept = await logErrors(body, { ip: clientIp(req), ua: String(req.headers['user-agent'] || ''), now: Date.now() });
+  const meta = { ip: clientIp(req), ua: String(req.headers['user-agent'] || ''), now: Date.now() };
+  const kept = body && body.p === 'report' ? await logReport(body, meta) : await logErrors(body, meta);
   send(res, 200, { kept });
 });
