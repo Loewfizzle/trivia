@@ -22,7 +22,7 @@ export function skyItems(L) {
   for (const t of L.towers) {
     const fl = FLOOD[t.id] || (t.rank === 'pano' && t.seed % 3 === 0 ? { col: [255, 210, 156], from: t.tiers.length - 1 } : null);
     t.tiers.forEach((tr, i) => (t.z0 >= SPLIT ? far : near).push({
-      b: { ...tr, mat: t.mat, seed: t.seed, kind: 'landmark', tower: t.id, rank: t.rank },
+      b: { ...tr, mat: t.mat, seed: t.seed, kind: 'landmark', tower: t.id, rank: t.rank, works: t.works || null },   // (9e: the construction slot's frame / dark shell)
       o: { rank: t.rank, tierIndex: i, tiers: t.tiers.length, flood: fl && i >= fl.from ? fl.col : null, gold: !!t.gold, tower: t },
     }));
   }

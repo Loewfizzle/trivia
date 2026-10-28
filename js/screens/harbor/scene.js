@@ -90,6 +90,8 @@ import { safeCtx, starvedCount, blurWorks } from '../../ui/canvas-safe.js';
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
 import { createReporter } from './report.js';
+import { createTowerFx } from './tower.js';
+import { towerAt, forcedTower, towerKey, implosionSounds, IMPLODE } from '../../core/harbor-tower.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power, photocell, beaconStep } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, UFO_LEN, TR3B_LEN, trafficHold, inHold } from '../../core/harbor-legend.js';
@@ -599,10 +601,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     cam.tagGone = !!S.tagGone;                    // (a re-layout keeps the faded tagline: its band stays sky-low's)
     camSig = [W, H, Math.round(cam.dock.y), Math.round(cam.limitY), tier].join('|');
     LOADLOG.add('layout', `${why}${sig0 ? (sig0 !== camSig ? ` · camera ${sig0} → ${camSig}` : ' · the camera unchanged') : ''}`);
-    L = harborLayout(cam, seed);
+    L = harborLayout(cam, seed, { tower: (TWS = towerNow()) });
+    L.towerKey = towerKey(TWS);
     HZ = Math.round(groundY(cam, Z.quay));
     // the roofline (the highest roof over every 4 pt): the sun fits its arch to it, the planes keep above it
-    skyline = roofline(L);
+    // (9e — THE SUN MUST NOT BREAK: the envelope, the construction slot always at full height — core/harbor-layout.js#envelope)
+    skyline = L.envelope || roofline(L);
+    towerFx.layout(L);
     archFor();
     lights.layout(L);
     { const bt = workTraceNow(); neon.layout(L, { dpr, tier, night: nightKey(LK.local), board: bt ? bt.board.key : null, boardGame: bt ? boardGameOf(bt.board.key, L) : null, boardDead: bt ? bt.boardLampDead : null }); } neon.setTier(tier);
@@ -1387,7 +1392,35 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // 9e — THE REPORT (SEND REPORT in the &debug=1 strip; the hang watch's beat; a stall): everything that says why the city stopped, as
   // plain text the owner can read + screenshot on /admin. Each part on its own (a part that throws says so; the rest still comes).
   let reporter = null, repBtn = null, markNow = '';
-  let frontStage = null;   // (9e: the front street's other players — the night patrol on the curb, the water wagon — set where they're drawn)
+  // 9e — THE CONSTRUCTION TOWER (core/harbor-tower.js): its stage now — the real calendar, or a preview (&build=<stage>[&buildk=0..1], the
+  // panel's build-<stage> rows, &force=implosion: one every IMPLOSION_LOOP s from the flag, the siren ~10 s after it)
+  const towerFx = createTowerFx();
+  let TWS = null, twKeyAt = 0, twSndS = null;
+  const IMPLOSION_LOOP = 300;
+  function towerNow() {
+    const f = clock.force;
+    if (f.has('no-tower')) return null;
+    const bk = qp.get('buildk'), k = bk != null && bk !== '' && Number.isFinite(+bk) ? +bk : null;
+    if (f.has('implosion')) { const s0 = forceAtOf('implosion'); const u = s0 == null ? 0 : clock.now() / 1000 - s0; return forcedTower('implosion', null, (((u % IMPLOSION_LOOP) + IMPLOSION_LOOP) % IMPLOSION_LOOP) + IMPLODE.siren - 10); }
+    const fb = f.has('build-standing') ? 'standing' : f.has('build-rubble') ? 'rubble' : f.has('build-cleanup') ? 'cleanup' : f.has('build-rising') ? 'rising' : f.has('build-topping') ? 'topping' : f.has('build-finishing') ? 'finishing' : f.has('build-opening') ? 'opening' : f.has('build-finished') ? 'finished' : null;
+    const b = fb || qp.get('build');
+    // (&builds=<s>: the implosion held at that second — the look review's frame-exact shots)
+    if (b) { const bs = qp.get('builds'), st = forcedTower(b, k, bs != null && bs !== '' && Number.isFinite(+bs) ? +bs : null); if (st) return st; }
+    const lc = LK.local; if (!lc) return towerAt({ y: 2026, m: 10, d: 28, h: 12 });
+    return towerAt({ y: lc.y, m: lc.m, d: lc.d, h: lc.h + lc.mi / 60 + (lc.s || 0) / 3600 });
+  }
+  /** per frame: the stage now; a re-layout (+ re-bake) when what the bake shows of it changed; the implosion's sounds; the work's beds */
+  function towerTick(now) {
+    TWS = towerNow();
+    if (L && now - twKeyAt > 1000) { twKeyAt = now; if (towerKey(TWS) !== L.towerKey) { wantBuild = 'the construction tower'; LOADLOG.add('layout', `the construction tower: ${L.towerKey || '-'} → ${towerKey(TWS) || '-'}`); } }
+    if (TWS && TWS.stage === 'implosion' && S.motion && !clock.force.has('no-tower')) {
+      if (twSndS != null && TWS.s > twSndS && TWS.s - twSndS < 5) for (const e of implosionSounds(twSndS, TWS.s)) snd.play(e.slot === 'tower-siren' ? 'siren-1920s' : e.slot, { gain: e.slot === 'tower-siren' ? 1.6 : 1, pan: -0.4 });   // (the siren's own recording to come: the 1920s siren stands in; the charges' slot stays silent until then)
+      twSndS = TWS.s;
+    } else twSndS = null;
+    const day = clamp01((TW.day || 0) + 0.6 * (TW.gold || 0)), work = TWS && (TWS.stage === 'rising' || TWS.stage === 'topping') ? 1 : TWS && (TWS.stage === 'cleanup' || TWS.stage === 'finishing') ? 0.5 : 0;
+    if (snd.tower) snd.tower({ crane: TWS && TWS.crane ? day * 0.8 : 0, hammer: work * day, pan: -0.45 });
+  }
+  let frontStage = null, towerFailed = false;   // (9e: the front street's other players — the night patrol on the curb, the water wagon — set where they're drawn)
   function reportText(kind) {
     const out = [`NEON SPEAKEASY — CITY 2.0 REPORT · ${String(kind || 'tap').toUpperCase()} · ${new Date().toISOString()}`];
     const part = (name, fn) => { try { const v = fn(); if (v != null && v !== '') out.push(`${name}: ${v}`); } catch (e) { out.push(`${name}: (failed: ${e && e.message})`); } };
@@ -1457,6 +1490,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
 
   const mk9 = (m) => { markNow = m; if (reporter) reporter.mark(m); };   // (9e: the part of the frame we're in — a hang names it)
   function draw(t, dt, now) {
+    try { towerTick(now); } catch (e) { if (!towerFailed) { towerFailed = true; reportError(e, 'harbor tower'); } }
     const c = ctx;
     syncForce();
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -1632,6 +1666,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     lights.lateTv(LK.local ? lateTvK(LK.local.h + LK.local.mi / 60) * nightK : 0);
     if (!deadCity) lights.draw(c, 'near', now, nightK, S.motion);
     neon.draw(c, 'near', deadCity ? { ...nf, off: true } : nf);
+    // 9e — THE CONSTRUCTION TOWER's live layer (tower.js: the crane, the work lights, topping out, the implosion + its dust, the opening's
+    // searchlights) — behind the roofs nearer than the slot (its own clip)
+    if (TWS && !off.has('no-tower')) towerFx.draw(c, { st: TWS, night: litK(DK, 'lamps'), t, motion: S.motion, power: LB ? legendPow(W * 0.3, 'city', 411) : 1, logo: S.logoRect, fade: fadeIn, wind: LK.wind == null ? 3 : LK.wind });
     // (DT1: the lighthouse's beam brightens the floodlit wall behind it as it sweeps past — under the lighthouse, drawn later)
     if (cam.lhWall && !off.has('no-beam')) beam.wall(c, { k: fadeIn * litK(DK, 'beams') * litK(DK, 'flood') * (lit > 0 ? lit : 0) * legendPow(cam.lhWall.x, 'harbor', 303), wallZ: 241, motion: S.motion, now: performance.now(), ms: clock.now() });
     // THE DAY PASS — the day's motion: flags on the roofs in the real wind, sun glints on the towers' glass (dayfx.js)
@@ -2729,6 +2766,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, failStop, ...loopLog, at: Math.round(loopLog.at), wx: WXS ? WXS.state : null, wxBeds: snd.weatherBeds() }),
     /** 8a (test hook): what the watchdog does now (why: 'visible' | 'pageshow' | 'focus' | 'tap' | 'watchdog') → true = restarted */
     wakeLoop: why => wakeLoop(why),
+    /** 9e — THE CONSTRUCTION TOWER: its stage now + what the live layer sees */
+    tower: () => ({ st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L ? L.towerKey : null, fx: towerFx.debug(), envelope: !!(L && L.envelope) }),
     /** 9e — THE STREET UNDER THE DOCK IS A STAGE: a scene playing on it now (the title's QUICK FADE) */
     frontBusy: () => !!(roadLight.front() || (frontStage && frontStage())),
     /** 9e: the report's snapshot text + whether the hang watch runs */
@@ -2752,7 +2791,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
+    harbor: () => (L ? { tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(), chimneys: chimneys.debug(), xmas: { ...XP, tree: treeHeld, xlK: +xlK.toFixed(2) }, parade: parade ? { ...parade.debug(), units: paraUnits ? paraUnits.length : 0 } : null,
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),

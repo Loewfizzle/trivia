@@ -121,6 +121,9 @@ export function createCitySounds() {
       keep('broom-sweep', st && st.bar === 'last' && k > 0.3 && speakBeds.motion !== false ? 0.85 * k * bm.k : 0, -0.5, { ramp: 2, linger: 15 });
       keep('line-murmur', clamp(people.line, 0, 1) * bm.k, people.linePan, { ramp: 2.5, linger: 20, fadeIn: 3 });
       keep('rooftop-party', clamp(people.roof, 0, 1) * bm.k, people.roofPan, { ramp: 3, linger: 20, fadeIn: 4 });
+      // (9e — THE CONSTRUCTION TOWER across the harbor by day: the crane's hoist + the hammering, far + low)
+      keep('crane', clamp(people.crane || 0, 0, 1) * bm.k, people.towerPan || -0.45, { ramp: 4, linger: 30, fadeIn: 5 });
+      keep('hammering', clamp(people.hammer || 0, 0, 1) * bm.k, people.towerPan || -0.45, { ramp: 4, linger: 30, fadeIn: 5 });
     }
     // ---- 9a — THE WEATHER, heard (only when real / forced): the rain's beds layered by its intensity + by where you "stand" — the
     // awning drumming close (left: the speakeasy), the pavement around you, the rain on the water far off (right); the drips after it;
@@ -431,6 +434,8 @@ export function createCitySounds() {
     },
     /** 8P — THE LINE's MURMUR at the speakeasy's door: level 0..1 (0 = gone; e.g. the people waiting ÷ 8), pan (default −0.45) */
     line(level = 0, { pan } = {}) { people.line = +level || 0; if (pan != null) people.linePan = clamp(pan, -1, 1); },
+    /** 9e — THE CONSTRUCTION TOWER's beds: { crane, hammer (0..1), pan } */
+    tower({ crane = 0, hammer = 0, pan } = {}) { people.crane = +crane || 0; people.hammer = +hammer || 0; if (pan != null) people.towerPan = clamp(pan, -1, 1); },
     /** 8P — THE ROOFTOP PARTY: level 0..1 while the rooftop guests are up (0 = none), pan (default −0.5) */
     rooftop(level = 0, { pan } = {}) { people.roof = +level || 0; if (pan != null) people.roofPan = clamp(pan, -1, 1); },
     /** 8P — THE JETS' PASS (the air show): jets({ gain, dir, width }) → the handle; the music dips ~3.6 dB round its peak */

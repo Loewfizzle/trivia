@@ -11,6 +11,7 @@
 import { rngFrom, hashString } from './rng.js';
 import { SPEAK_V, SPEAK_WIN } from './harbor-speakeasy.js';
 import { promenadeLayout } from './harbor-promenade.js';
+import { TOWER_ID, slotShape } from './harbor-tower.js';
 
 /** the mockup's reference phone and camera */
 export const REF = { W: 402, H: 874, VPY: 540, CAMH: 13.5, F: 600 };
@@ -459,7 +460,32 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   const L = { cam, seed, bands, landmarks, heroes, quay, water, pier, wheel, lighthouse, breakwater, cottage, boats, rail, road, signals, prom, lamps, trees, bench, planters, cart, speakeasy, roof, medallion, mailbox, hydrant, crosswalk, edge, impliedRoad, zones, towers, cuts: sky.cuts, gaps: sky.cuts.map(g => ({ sx: g.sx, w: g.w })), squeeze: (sqRef || sqLoc).s, knee: (sqRef || sqLoc).knee };
   L.door = doorRect(L);
   L.lanes = laneRects(L);
+  // 9e — THE CONSTRUCTION TOWER (core/harbor-tower.js): THE SUN MUST NOT BREAK — the envelope (the roofline with the slot at full height:
+  // the sun's arch, its catch time, the rays read it) is taken BEFORE the stage changes the slot's building; then the stage (the old /
+  // new design standing, the empty lot, the rising frame, the clad dark shell)
+  L.envelope = roofline(L);
+  if (opts.tower) towerStage(L, opts.tower);
   return L;
+}
+
+/** 9e — the construction slot's building at a stage (the layout's last step; the envelope already taken) */
+function towerStage(L, st) {
+  const t = L.towers.find(x => x.id === TOWER_ID); if (!t) return;
+  const sh = slotShape(st), full = t.h, d = st.design;
+  t.stage = st.stage;
+  t.full0 = { h: t.h, tiers: t.tiers.map(x => ({ ...x })), mat: t.mat, crown: t.crown };   // (the old building as it stood: the implosion's live copy)
+  if (d && (!sh || sh.works === 'dark') && (d.form !== t.form || d.mat !== t.mat || !t.crown || d.crown.t !== t.crown.t)) {
+    t.form = d.form; t.mat = d.mat; t.crown = { ...d.crown, h: d.crown.h * (t.squeeze || 1) };
+    t.tiers = tiersOf(t);
+    if (t.face) { const g = t.tiers[0].win; t.face = { ...t.face, rows: Math.max(0, Math.min(t.face.rows, g.rows - t.face.row0)) }; }
+  }
+  if (!sh) return;
+  t.works = sh.works;
+  if (sh.works === 'dark') { t.word = null; t.face = null; return; }
+  t.word = null; t.face = null; t.crown = null; t.form = 'block';
+  if (sh.works === 'gone') { t.h = 0.4; t.tiers = tiersOf(t); return; }
+  if (d) t.mat = d.mat;
+  t.full = full; t.h = Math.max(4, full * sh.h); t.tiers = tiersOf(t);
 }
 
 /** the speakeasy's door on screen: { x, y (its foot), w, h, rect (the ≥ 44 pt tap target) } */

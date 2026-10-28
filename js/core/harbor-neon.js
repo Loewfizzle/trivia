@@ -145,6 +145,7 @@ export function outlines(L, signRects = new Map()) {
   const signsOn = id => (signRects instanceof Map ? signRects.get(id) || [] : signRects.has && signRects.has(id) ? [{ x0: -1e9, x1: 1e9, y0: -1e9, y1: 1e9 }] : []);
   // the towers: the heroes + the landmarks + the word towers fully, the middle tier on the setbacks + crowns, the glass towers' roofs
   for (const t of L.towers) {
+    if (t.works) continue;   // (9e: no neon on the construction slot while it's a frame / a dark shell — it lights at its grand opening)
     const pano = t.rank === 'pano', hero = t.rank === 'hero' || pano, word = t.rank === 'word', mid = t.rank === 'mid', modern = t.rank === 'modern';
     const k = pano ? Math.abs(t.seed) % 4 : 0;
     const roles = ROLES[t.id] || (modern ? ['b1', 'b1'] : pano ? PANO[k] : ['b0', 'b0']);

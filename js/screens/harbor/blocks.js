@@ -131,7 +131,29 @@ function floodWash(x, cam, b, a, w, ty, h, s, k, tower) {
   g.addColorStop(0, rgb(FLOOD_C, 0.62 * k)); g.addColorStop(0.45, rgb(FLOOD_C, 0.36 * k)); g.addColorStop(0.8, rgb(FLOOD_C, 0.1 * k)); g.addColorStop(1, rgb(FLOOD_C, 0));
   x.fillStyle = g; x.fillRect(a, ty, w, h);
 }
+/** 9e — THE CONSTRUCTION SLOT's FRAME (core/harbor-tower.js: rising / topping out): a steel skeleton — the columns at every bay, the floor
+ *  beams, cross-bracing now + then; the lower floors CLAD in raw concrete (the cladding follows the frame up), the top ones open to the
+ *  sky. Dark rust-brown steel by day, a near-black silhouette at night. Phone size: a clear lattice, no rivets. */
+function worksBlock(x, cam, b, T) {
+  const y0 = b.y0 || 0, y1 = y0 + b.h, [a, ty] = P(cam, b.x0, y1, b.z0), [c, by] = P(cam, b.x1, y0, b.z0), w = c - a, h = by - ty, s = cam.F / b.z0;
+  if (w <= 0.2 || h <= 0.2) return;
+  const night = T.night || 0, steel = night > 0.5 ? [26, 24, 32] : [96, 62, 46], clad = night > 0.5 ? [40, 40, 50] : [176, 170, 160];
+  const cladTo = by - h * 0.62;   // (the concrete reaches ~62 % up the frame: the top floors are bare steel)
+  x.fillStyle = rgb(mix(clad, [120, 120, 130], 0.2 * night)); x.fillRect(a, cladTo, w, by - cladTo);
+  x.fillStyle = night > 0.5 ? 'rgba(10,10,16,0.55)' : 'rgba(70,64,60,0.35)';
+  for (let yy = by - 3 * s; yy > cladTo; yy -= 3 * s) x.fillRect(a + 0.5, yy - 1.1 * s, w - 1, 1.1 * s);   // (the window openings, dark)
+  x.strokeStyle = rgb(steel); x.lineWidth = Math.max(0.7, 0.32 * s);
+  const bays = Math.max(3, Math.round(w / (2.3 * s))), floors = Math.max(2, Math.round(h / (3 * s)));
+  x.beginPath();
+  for (let i = 0; i <= bays; i++) { const xx = a + w * i / bays; x.moveTo(xx, ty); x.lineTo(xx, by); }
+  for (let j = 0; j <= floors; j++) { const yy = by - h * j / floors; x.moveTo(a, yy); x.lineTo(c, yy); }
+  x.stroke();
+  x.lineWidth = Math.max(0.5, 0.18 * s); x.beginPath();
+  for (let j = 0; j < floors; j++) { if (j % 3) continue; const yA = by - h * j / floors, yB = by - h * (j + 1) / floors; x.moveTo(a, yA); x.lineTo(a + w / bays, yB); x.moveTo(c, yA); x.lineTo(c - w / bays, yB); }
+  x.stroke();
+}
 export function skyBlock(x, cam, b, T, o = {}) {
+  if (b.works === 'frame') { worksBlock(x, cam, b, T); return; }
   // (the quiet blocks behind the wheel: a touch further back in the haze — lower contrast, never blurred; NEON PASS 6: lifted to a
   // dusky violet-blue, each its own tone; THE DAY PASS: floodlit from their feet, the owner's pick d — floodWash)
   const bw = behindWheel(cam, b);

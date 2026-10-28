@@ -8,6 +8,7 @@
 //   MESSAGES       the skytype lines (≤ 16 a line, ≤ 2 lines: the window font's 5 rows = the 5 planes), the skywriting strokes
 //                  (single-stroke capitals: the tube alphabet + digits, a heart), the banner's panels (≤ 3, ≤ 24 characters)
 //   THE BIRDS      who is up: gulls by day, swifts at summer dusk, geese (in V's — the migrations most), bats at summer dusk
+import { implosionDay, announceText, FIRST_YEAR as TOWER_FIRST } from './harbor-tower.js';
 import { flattenPath } from './tube-path.js';
 import { lineCells, lineWidth, normText, glyph, FONT_H } from './harbor-windows.js';
 import { hashString } from './rng.js';
@@ -254,6 +255,8 @@ export function setSkyHoliday(id, patch) { if (patch === undefined) overrides.de
  *  weather allowing — skyfx.js); the day's random banners carry its lines too (HOLIDAY_BANNERS — the scene names the day) */
 export const SALE_DAYS = Object.freeze([
   { id: 'blackfriday', date: y => ({ m: 11, d: thanksgiving(y).d + 1 }), banner: { text: ['BLACK FRIDAY SALE', 'EVERYTHING MUST GO'], h: 11, passes: 3 } },
+  // 9e — THE CONSTRUCTION TOWER's IMPLOSION (core/harbor-tower.js): the banner plane announces it the three days before (from 2027)
+  ...[3, 2, 1].map(k => ({ id: `demolition-${k}`, date: y => (y >= TOWER_FIRST ? { m: 4, d: implosionDay(y).d - k } : { m: 0, d: 0 }), banner: { text: [announceText(), 'STAND WELL BACK'], h: 13.5, passes: 2 } })),
 ]);
 export function saleDayOn(y, m, d) { for (const s of SALE_DAYS) { const dt = s.date(y); if (dt.m === m && dt.d === d) return s; } return null; }
 export function skyHolidayOn(y, m, d) {

@@ -77,7 +77,7 @@ function drawLit(x, cam, it, look, meta, group, idx) {
   }
   x.globalCompositeOperation = 'source-over';
   const g = b.win;
-  if (!g || g.rows <= 0) return;
+  if (!g || g.rows <= 0 || b.works) return;   // (9e: the construction slot's frame / dark shell — no lit windows until its grand opening)
   // (THE DAY PASS §0: the blocks freed beside the lighthouse light most of their windows again, like their neighbours)
   const dice0 = buildingDice(b.seed, o.rank), dice = cam.lhLit && cam.lhLit.has(b.id) ? { ...dice0, lit: Math.max(dice0.lit, 0.86), floor: 0.3 } : dice0;
   const s = cam.F / b.z0, deco = isDeco(o.rank), t = o.tierIndex || 0;
@@ -218,6 +218,7 @@ export function createLights() {
     const u = l.cam.F / 600;
     let best = null;
     for (const t of l.towers) {
+      if (t.works) continue;   // (9e: the construction slot under works — its crane carries the beacon: tower.js)
       const top = t.tiers[t.tiers.length - 1], c = top.crown;
       // (a tower carrying a roof sign — Part 5, the owner's call: its beacon blinks on top of the sign's frame, the tallest
       // thing on it — whatever its crown)

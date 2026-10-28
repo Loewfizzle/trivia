@@ -3729,6 +3729,28 @@ G('citylife', async () => {
     await Q.ctx.close(); }
 });
 
+// ================================================================ 9e — THE CONSTRUCTION TOWER (ONLY=tower; the `city` cloud job)
+// THE SUN MUST NOT BREAK: the sun's arch the same at every stage (the envelope keeps the slot full height); the frame + the crane while it
+// rises; the empty lot after the implosion; the implosion itself running (the old building live, then the dust)
+G('tower', async () => {
+  const A = {}, P = 'window.__district.harbor()';
+  for (const st of ['standing', 'rubble', 'rising', 'finished']) {
+    const Q = await open({ slot: `tw-${st}`, qs: `when=2026-09-16T10:00${GR}&wx=clear&build=${st}`, view: [402, 874] });
+    await harborUp(Q.page);
+    A[st] = await ev(Q.page, `({ arch: ${P}.arch, tower: ${P}.tower })`);
+    await Q.ctx.close();
+  }
+  const same = ['rubble', 'rising', 'finished'].every(st => JSON.stringify(A[st].arch) === JSON.stringify(A.standing.arch));
+  ok(same, `9e THE SUN MUST NOT BREAK: the arch at every stage = today's (${JSON.stringify(A.standing.arch)} · ${['rubble', 'rising', 'finished'].map(st => JSON.stringify(A[st].arch)).join(' · ')})`);
+  ok(A.rising.tower.fx.works === 'frame' && A.rising.tower.st.crane && A.rubble.tower.fx.works === 'gone' && !A.standing.tower.fx.works && A.finished.tower.st.design !== A.standing.tower.st.design,
+    `9e THE TOWER's stages: rising = a frame + the crane (${A.rising.tower.fx.works}, ${A.rising.tower.st.crane}), the lot after (${A.rubble.tower.fx.works}), a new design when finished (${A.finished.tower.st.design} vs ${A.standing.tower.st.design})`);
+  { const Q = await open({ slot: 'tw-imp', qs: `when=2026-09-16T10:00${GR}&wx=clear&build=implosion&builds=6`, view: [402, 874] });
+    await harborUp(Q.page);
+    const t = await ev(Q.page, `${P}.tower`);
+    ok(t.st.stage === 'implosion' && Math.abs(t.st.s - 6) < 0.01 && t.fx.works === 'gone', `9e THE IMPLOSION at 6 s: drawn live (${t.st.stage}, s ${t.st.s}), the slot empty in the bake (${t.fx.works})`);
+    await Q.ctx.close(); }
+});
+
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
 async function runGroup(name) {
   const fns = GROUPS.get(name);
