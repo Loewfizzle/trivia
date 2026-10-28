@@ -3470,3 +3470,46 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   but TURNED TO FACE THE HARBOR — its sitters seen from BEHIND (hats + shoulders against the lit water: a clear silhouette at phone
   size), strollers stop + sit a few minutes, couples watch the skyline. Low (~15 pt), so the view stays open; the middle stays clear.
   Two benches, two jobs: the FRONT one = the cab stand (faces the street), the BACK one = watching the water. Part of THE PROMENADE pass.
+
+## OWNER'S NOTES — OCT 28 (the 9g review)
+- 9g REVIEW (the owner, Oct 28 4:20 pm): ✔ THE UFO SOUNDS "sound great" — BUT on the FIRST run after opening the link the APPROACH
+  (the hover hum's spin-up) is silent; from the 2nd / 3rd loop on it plays every time. LIKELY CAUSE (Claude, to measure): the UFO's
+  sound files are fetched + decoded LAZILY on first use, so the first spin-up is over before its file is ready (cached afterwards).
+  FIX (next pass): fetch + decode the abduction's sounds AHEAD — when a legendary is due (the real night's window, the panel's start,
+  a forced link's armed run, the 4 s after the tap) — and never start the craft's approach before its hum is ready (or start the hum at
+  the right offset); the same check for the TR-3B's + the implosion's one-shots. A test: the FIRST run after a cold load plays the
+  spin-up (the audio event log).
+- THE IMPLOSION's TIMING + HORN — DECIDED (the owner, Oct 28 4:25 pm: "it takes way too long"): (1) the SIREN ~10 % louder again;
+  (2) THE NEW TIMELINE: the siren → 10 s after it ENDS the HORNS (B's three blasts) → 5 s after the last blast the CHARGES flash down the
+  floors + the COLLAPSE (the fall, the one crash, the rumble + the dust) — today it was siren ~14 s / horns ~50–70 s / the fall ~76 s;
+  the visuals' timeline (core/harbor-tower.js IMPLODE: siren, the flashes, the drop, the dust) moves with the sound so they stay in
+  sync; the &force=implosion loop + the real Sunday 10 am event both use it; (3) HORN B (the old `warning-horn` take) is the DEFAULT —
+  A + C stay only as panel alternates (or go, Claude Code's call).
+- ✔ THE TR-3B — all its links "awesome, work perfect" (the owner, Oct 28 4:28 pm). THE TR-3B AT FULL RESOLUTION (the owner: "it's slow and
+  so beautiful — make it the best"): read-only, legends.js#tr3bSprite renders the craft at up to 2.5× and it's drawn into the city's
+  2×-capped canvas → effectively 2×, soft on a 3× iPhone. FIX: the craft (+ its lights, the red orb, the hub) on its OWN full-device-dpr
+  overlay like the Blackbird's (3× on an iPhone; ~a 300 × 120 pt box ≈ 1–1.5 MB at 3× — affordable, only while it flies), baked at 3×.
+  THE JET CHASE (the owner): the escorts become the F-22 MODEL (Grok's f22_raptor_free.glb, gear up, as already decided for every F-22),
+  flying in a TIGHT TRIANGLE — a "vic" of three (a lead + two wingmen tucked behind either side) instead of today's staggered chase
+  (jets.js FORMATIONS.chase) — menacing; mid-screen a small, slow BANK (the wings tilt a few degrees together, then level back) — a
+  readable change of silhouette at phone size, all three in unison; full-dpr like the craft. SLOT: 11c with the Blackbird (one jet bake +
+  one full-res overlay for all the jets), unless the owner wants it sooner. (A real TR-3B model: Grok found none on Oct 27 — the
+  hand-drawn craft stays; a re-search is optional.)
+- 9g REVIEW, cont. (the owner, Oct 28 4:31 pm): ✔ THE RIVET GUN by day "sounds great"; ✔ the TR-3B links. THE UFO PICKS (the owner: "your
+  pick, they both sound good") → Claude: HUM A (ufo-hum-2 — the mid-band pulse carries on a phone; B is mostly bass) + DEPART LAYERED (the
+  clear falling pitch with the fast whoosh's punch under it) as the DEFAULTS; the others stay as panel alternates.
+- THE WATCHER's REWARD (the owner, Oct 28 4:32 pm — DECIDED, slot 11c with the Blackbird): someone WATCHING THE CITY FOR AN HOUR STRAIGHT
+  gets the BLACKBIRD FLYBY (with its radio-static tell ~3 s before). Claude's rules: "watching" = the title's city on screen + the tab
+  VISIBLE for 60 continuous minutes (taps, the dock waking, the menu briefly are fine; leaving the page / the tab hidden / the phone
+  locking for more than ~1 min resets the count); it's PERSONAL (that device only — not everyone on City 2.0), at most ONCE per device per
+  day; it never interrupts a legendary already running (it waits for the sky to clear); a reward, not a schedule — never announced. Fits
+  THE WELCOME MOMENTS system (the same trigger machinery). Note: a phone left alone locks after a few minutes unless the owner's settings
+  keep it awake — so in practice it rewards people who really sit with it (or a desktop / TV left on).
+- THE JOGGERS, cont. (the owner, Oct 28 4:35 pm): ✔ "the legs look much better". FIX: (1) THEIR CLOTHES — running kit, not street
+  clothes: SHORTS or SWEATPANTS (period-true: 1920s runners wore shorts + a sleeveless singlet, or a grey wool sweatsuit), a mix between
+  joggers; read at phone size by a light singlet / top + the bare-leg or sweatpant silhouette, no hat (or a flat cap at most); (2) THE
+  ARMS TUCKED IN — elbows bent ~90° and close to the body, a small forward-back swing near the ribs, never flung wide; judged frame by
+  frame + at speed, unzoomed.
+  + DECIDED (the owner, 4:36 pm): the watch count resets only when the visitor is AWAY (the page left / the tab hidden / the phone locked)
+  for MORE THAN 5 MINUTES — shorter breaks pause the count, they don't reset it (time away doesn't count toward the hour).
+- 9g REVIEW DONE (the owner, Oct 28 4:37 pm): ✔ THE CRANE BY DAY "looks great" (no pulse), ✔ THE DOCK FADE "works great". The 9g follow-ups (the UFO's sounds loaded ahead, the implosion's timing + HORN B + the siren +10 %, the UFO defaults HUM A + DEPART LAYERED, the joggers' clothes + arms) ride in THE PROMENADE pass's Group 0.
