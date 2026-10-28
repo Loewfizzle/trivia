@@ -75,6 +75,10 @@ if (show('jog')) {
 label('jogger', 4, y - 70);
 for (let i = 0; i < 8; i++) { const S = 0.62 * 2.1, dist = i / 8 * 2 * S; draw(40 * SCALE / 2 + i * 44 * SCALE / 2, y, { pose: 'walk', dir: 1, dist, v: 3 }, 'jogger', 21); }
 y += 34 * SCALE + 14;
+// (PROM: the kit — shorts + a singlet / the grey sweatsuit — eight joggers mid-stride, across + toward + away)
+label('joggers: the kit (8 seeds) · across · 3/4 · toward · away', 4, y - 70);
+for (let i = 0; i < 8; i++) draw(40 * SCALE / 2 + i * 44 * SCALE / 2, y, { pose: 'walk', hd: [0, Math.PI, -Math.PI / 4, -Math.PI / 2, Math.PI / 2, 0, Math.PI * 0.75, Math.PI][i], dist: 0.4 + i * 0.37, v: 3 }, 'jogger', 30 + i);
+y += 34 * SCALE + 14;
 }
 // the poses (front, back, side)
 if (show('poses')) {

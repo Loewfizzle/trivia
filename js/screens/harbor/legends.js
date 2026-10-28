@@ -474,7 +474,7 @@ export function createLegends({ clock, qp } = {}) {
   }
   const jets = createJets();
   // the run: { kind, at (clock ms it began), dir, seed, forced }
-  let run = null, st = null, sNow = 0, lastForce = 0, firstAt = new Map();
+  let run = null, st = null, sNow = 0, lastForce = 0, firstAt = new Map(), waitSnd = null;
   let motes = [];
   const lookFig = lookOf('night', 1924 * 7, { season: 'autumn' });
 
@@ -527,7 +527,14 @@ export function createLegends({ clock, qp } = {}) {
     const now = fs.now, force = fs.force;
     const forced = force.has('ufo') ? 'ufo' : force.has('tr3b') ? 'tr3b' : null;
     if (run && run.forced && run.kind !== forced) run = null;
+    // (PROM: a preview started HERE (the panel's JUST ME, a link once its gate opened) waits — up to 3 s — for its sounds, fetched +
+    // decoded the moment it was asked for, so the craft's approach never runs ahead of its hum; an EVERYONE preview keeps the shared clock)
+    if (!run && forced && !firstAt.has(forced) && fs.soundsReady && !fs.soundsReady(forced)) {
+      if (!waitSnd || waitSnd.kind !== forced) waitSnd = { kind: forced, t: performance.now() };
+      if (performance.now() - waitSnd.t < 3000) { warm(forced); return; }
+    }
     if (!run && forced && performance.now() - lastForce > 2500) {
+      waitSnd = null;
       const a = firstAt.get(forced); firstAt.delete(forced);
       run = { kind: forced, at: a != null ? a : now, dir: forced === 'tr3b' ? ((Math.floor(now / 1000) & 1) ? 1 : -1) : 1, forced: true };
     }
@@ -926,6 +933,8 @@ export function createLegends({ clock, qp } = {}) {
     stop() { run = null; st = null; },
     /** 9g: a link's legendary waiting for the first tap — its craft (+ the TR-3B's dark city: darkWanted) baked meanwhile */
     prewarm(kind) { if (!run && (kind === 'ufo' || kind === 'tr3b')) warm(kind); },
+    /** PROM — the legendary running or due (its craft baking): its sounds are fetched ahead too (scene.js#legendSoundsWarm) */
+    warming: () => (run ? run.kind : warmFor || null),
     /** the sounds (sounds.js reads it ~4× a second) */
     // (POLISH 4: the chase's roar placed on the clock — `jets`: { peakIn (s until the formation's middle crosses the screen's centre),
     // x (its middle now, a fraction of W) } from a few seconds before they come; the sounds start the take so its peak lands there)

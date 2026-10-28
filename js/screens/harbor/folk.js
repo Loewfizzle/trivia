@@ -86,7 +86,14 @@ export function lookOf(name, seed, o = {}) {
   if (name === 'commuter') { L.carry = r() < 0.55 ? (woman ? 'purse' : 'case') : 'papers'; if (!woman) L.hat = summer ? 'boater' : 'fedora'; }
   if (name === 'lady') L.carry = 'purse';
   if (name === 'worker' || name === 'nightworker') { L.hat = 'flatcap'; L.coat = 'short'; L.carry = 'pail'; L.cols.coat = pick(r, [[70, 84, 112], [112, 96, 74], [88, 88, 90]]); L.dress = null; L.woman = false; }
-  if (name === 'jogger') { L.jog = true; L.coat = 'none'; L.dress = null; L.woman = false; L.hat = r() < 0.5 ? 'flatcap' : null; L.cols.shirt = pick(r, [[214, 210, 200], [120, 40, 44], [44, 60, 96], [90, 90, 96]]); L.cols.legs = pick(r, [[180, 170, 150], [60, 60, 66], [214, 210, 200]]); L.scarf = null; L.cols.scarf = null; }
+  // (PROM — THE JOGGERS IN RUNNING KIT (the owner: "running kit, not street clothes"): 1920s runners — SHORTS + a light SLEEVELESS
+  // SINGLET (bare arms + legs: the silhouette reads at phone size), or a GREY WOOL SWEATSUIT; a mix; no hat (a flat cap at most, sweats only))
+  if (name === 'jogger') {
+    L.jog = true; L.coat = 'none'; L.dress = null; L.woman = false; L.scarf = null; L.cols.scarf = null; L.carry = null;
+    L.kit = r() < 0.55 ? 'shorts' : 'sweats';
+    if (L.kit === 'shorts') { L.hat = null; L.cols.shirt = pick(r, [[236, 232, 220], [228, 222, 204], [220, 226, 232]]); L.cols.shorts = pick(r, [[34, 36, 52], [30, 30, 34], [236, 232, 220], [112, 34, 40]]); L.cols.legs = L.cols.skin; }
+    else { L.hat = r() < 0.3 ? 'flatcap' : null; L.cols.hat = [70, 70, 74]; L.cols.shirt = pick(r, [[138, 136, 132], [150, 148, 142], [120, 120, 124]]); L.cols.legs = L.cols.shirt.map(v => v - 8); }
+  }
   // (POLISH 5 — the kid who runs through the hydrant's spray: summer things, no coat, a flat cap)
   if (name === 'kid') { L.coat = 'none'; L.dress = null; L.hat = r() < 0.6 ? 'flatcap' : null; L.cols.shirt = pick(r, [[236, 232, 220], [120, 160, 210], [214, 120, 90]]); L.cols.legs = pick(r, [[110, 96, 80], [70, 80, 110]]); L.scarf = null; L.cols.scarf = null; L.carry = null; }
   if (name === 'newsboy') { L.hat = 'newsboy'; L.coat = 'short'; L.carry = 'papers'; L.cols.coat = pick(r, [[130, 108, 80], [100, 94, 86], [116, 92, 66]]); L.cols.legs = [116, 104, 86]; }
@@ -329,7 +336,10 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const near = cx >= 0 ? 0 : 1, farA = 1 - near;                                   // (the arm nearer us — the one a pose uses)
   const idle = mo ? Math.sin(t * 0.9 + L.h * 11) * 0.04 : 0;
   for (let i = 0; i < 2; i++) {
-    if (walking) { const sw = -G.arm * (foot[i].a - mid0) / (A || 1) * (heavy ? 0.55 : 1); arm(i, sw, jog ? G.bend : G.bend + Math.max(0, sw) * 0.4); }
+    // (PROM — A JOGGER's ARMS TUCKED (the owner: "never flung wide"): the elbow bent ~90° and close to the ribs, a small swing mostly
+    // BACK (the elbow behind the body) — the hand closing toward the chest as it comes forward; anyone else running keeps the pump)
+    if (walking && jog && L.jog) { const n = -(foot[i].a - mid0) / (A || 1); arm(i, -0.1 + 0.34 * n, 1.58 + 0.24 * Math.max(0, n), 0.012); }
+    else if (walking) { const sw = -G.arm * (foot[i].a - mid0) / (A || 1) * (heavy ? 0.55 : 1); arm(i, sw, jog ? G.bend : G.bend + Math.max(0, sw) * 0.4); }
     else arm(i, 0.1 + (i ? -idle : idle), 0.12);
   }
   // (8b2: a load on the shoulder — the near hand up on it; a heavy one in the hand — that arm straight down, a little out, no swing)
@@ -562,6 +572,8 @@ function body(c, J, L, X, Y, H, lit, env) {
     const hp = J.hips[i], k = J.knees[i], ft = J.feet[i];
     c.strokeStyle = f(col); c.lineWidth = w * H; c.lineCap = 'round'; c.lineJoin = 'round';
     c.beginPath(); c.moveTo(X(hp[0]), Y(hp[1])); c.lineTo(X(k[0]), Y(k[1])); c.lineTo(X(ft[0]), Y(ft[1] - 0.012)); c.stroke();
+    // (PROM: a jogger's SHORTS over the bare thigh — from the hip ~40 % of the way to the knee, a touch wider than the leg)
+    if (kitShorts) { const q = 0.42; c.strokeStyle = f(col === legCol ? cols.shorts : far(cols.shorts)); c.lineWidth = w * 1.45 * H; c.lineCap = 'butt'; c.beginPath(); c.moveTo(X(hp[0]), Y(hp[1] + 0.03)); c.lineTo(X(hp[0] + (k[0] - hp[0]) * q), Y(hp[1] + (k[1] - hp[1]) * q)); c.stroke(); c.lineCap = 'round'; }
     // the shoe: long in profile, short + round from the front / the back; the heel lifting at push-off
     const tip = 0.024 * cx, hl = J.heel[i] * 0.012;
     c.fillStyle = f([24, 20, 22]); c.beginPath(); c.ellipse(X(ft[0] + tip), Y(ft[1] - 0.018 + hl), H * (0.028 + 0.016 * ax), H * 0.017, (J.heel[i] * 0.35) * -d * ax, 0, TAU); c.fill();
@@ -573,8 +585,9 @@ function body(c, J, L, X, Y, H, lit, env) {
     c.fillStyle = f(L.gloves || cols.skin, 0.9); c.beginPath(); c.arc(X(h[0]), Y(h[1]), H * (L.gloves ? 0.025 : 0.022), 0, TAU); c.fill();
     return [X(h[0]), Y(h[1])];
   };
-  const legCol = L.dress && !L.tux ? (L.woman ? [196, 170, 150] : cols.legs) : cols.legs, legW = L.woman ? 0.05 : L.jog ? 0.066 : 0.078;
-  const sleeve = L.coat === 'none' ? (L.jog ? cols.shirt : L.woman ? cols.dress : cols.shirt) : cols.coat;
+  const kitShorts = !!L.jog && L.kit === 'shorts' && !!cols.shorts;
+  const legCol = L.dress && !L.tux ? (L.woman ? [196, 170, 150] : cols.legs) : cols.legs, legW = L.woman ? 0.05 : L.jog ? (kitShorts ? 0.056 : 0.066) : 0.078;
+  const sleeve = L.coat === 'none' ? (kitShorts ? cols.skin : L.jog ? cols.shirt : L.woman ? cols.dress : cols.shirt) : cols.coat;
   // the legs (both under the coat: its hem covers the thighs), the far one first + darker
   const lo = J.D.legs[0] > J.D.legs[1] ? [0, 1] : [1, 0], lgap = Math.abs(J.D.legs[0] - J.D.legs[1]) > 0.02;
   // (11a-1: a cape / a tail BEHIND the figure — drawn first when it faces us or walks across, over the back when it walks away)

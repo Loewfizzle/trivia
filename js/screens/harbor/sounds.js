@@ -22,8 +22,8 @@
 //                while he cuts), the 3 am broom · THE BUS (bus(event, o)) · THE PEOPLE (step / laugh / cart / cartBell / line /
 //                rooftop) · THE JETS (jets(o): panned right → left, the music ducked round their peak — the slot's `duck`)
 // City 2.0's title only (the scene lives there); the Effects slider + Mute rule it (the SFX bus); all of it fails silently.
-import { citySound, cityLoop, cityPrefetch, citySoundsDebug } from '../../audio/city-sound.js';
-import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan, pickTakes, rivetGap } from '../../core/city-sounds.js';
+import { citySound, cityLoop, cityPrefetch, cityReady, citySoundsDebug } from '../../audio/city-sound.js';
+import { isFilled, takesOf, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan, pickTakes, rivetGap } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { CHASE, BLACK, tr3bAt } from '../../core/harbor-legend.js';
 import { isUnlocked } from '../../audio/engine.js';
@@ -36,6 +36,28 @@ const rnd = (a, b) => a + Math.random() * (b - a);
 let liftAt = 0;   // (9f: the next crane lift, s)
 let rivetAt = 0, rivetN = 0;   // (9g: the next rivet burst, s; how many so far — the seeded gaps)
 const towerT0 = typeof performance !== 'undefined' ? performance.now() / 1000 : 0;
+// PROM — THE LEGENDARIES' SOUNDS LOADED AHEAD (the owner, 9g: "on the FIRST run after opening the link the approach is silent" — the
+// files were fetched + decoded on first use, the 5 s spin-up over before its file was ready). Each legendary's whole set: [slot, take
+// index | null = every take that isn't a BACKUP]; the picks (&hum= / &depart= / &horn=) choose theirs. `key` = the ones its start needs
+const LEGEND_SET = {
+  ufo: p => [['ufo-hum-up'], ...pickTakes('hum', p.hum).map(i => ['ufo-hum', i]), ['ufo-beam-on'], ['ufo-beam-idle', 0], ['ufo-lift'], ['ufo-beam-off'], ...pickTakes('depart', p.depart).map(i => ['ufo-depart', i]), ['ufo-hum-down'], ['crowd-flee']],
+  tr3b: () => [['tr3b-presence', 0], ['tr3b-drone', 0], ['power-failure'], ['tr3b-power-down'], ['power-restore'], ['tr3b-crackle'], ['jet-flyby', 0]],
+  implosion: p => [['tower-siren'], ...pickTakes('horn', p.horn).map(i => ['tower-horn', i]), ['implosion-charges'], ['implosion-rumble']],
+};
+const LEGEND_KEY = { ufo: 3, tr3b: 3, implosion: 2 };
+const LEGEND_HOLD = { ufo: 150000, tr3b: 200000, implosion: 420000 };
+/** a legendary's takes: [[slot, index] …] (empty slots dropped) */
+export function legendTakes(kind, picks = {}) {
+  const f = LEGEND_SET[kind]; if (!f) return [];
+  const out = [];
+  for (const [slot, i] of f(picks)) {
+    const ts = takesOf(slot); if (!ts.length) continue;
+    if (i != null) { if (ts[i]) out.push([slot, i]); continue; }
+    const live = ts.map((t, j) => ((t.w ?? 1) > 0 ? j : -1)).filter(j => j >= 0);
+    for (const j of live.length ? live : [0]) out.push([slot, j]);
+  }
+  return out;
+}
 const BEND_AHEAD = 0.6;   // (9f: the TR-3B's tape ramps — each aims this far ahead on the envelope, over this long: on time, not behind)
 
 export function createCitySounds() {
@@ -326,7 +348,9 @@ export function createCitySounds() {
       // over the last 6 s of the rise (its peak as he's taken, ~20.5 s); the DEPARTURE as it shoots off (24.4 s); the CROWD fleeing as
       // the beam opens — only with people on the promenade to flee (lg.crowd). A run joined mid-way plays only what's still ahead of it
       const hum = pickTakes('hum', lg.hum), humA = !lg.hum || lg.hum === 'a', at = (k, t0, w = 1.2) => !lgRun[k] && lg.s >= t0 && lg.s < t0 + w && (lgRun[k] = true);
-      if (humA && at('humUp', 0, 3.5)) citySound('ufo-hum-up', { pan, jitter: 0 });
+      // (PROM: the spin-up placed on the run's own clock — its file is loaded ahead now, but a file still late (a slow phone, an
+      // EVERYONE preview joined mid-way) joins part-way at the right second instead of starting the 5 s spin-up late over the loop)
+      if (humA && at('humUp', 0, 3.5)) { const t0 = performance.now(), s0 = lg.s; citySound('ufo-hum-up', { pan, jitter: 0, sync: { peakIn: () => -(s0 + (performance.now() - t0) / 1000), mark: 'start', late: -4.4, fade: 0.25 } }); }
       keep('ufo-hum', clamp((humA ? smooth(4.0, 5.2, lg.s) : st.craft.k) * (1 - smooth(24.4, 26.2, lg.s)), 0, 1), pan, { ramp: 0.6, linger: 6, fadeIn: humA ? 0.6 : 3, take: hum[0] ?? null });
       if (at('beamOn', 5.3)) citySound('ufo-beam-on', { pan, jitter: 0 });
       keep('ufo-beam-idle', clamp(smooth(7.2, 8.4, lg.s) * (1 - smooth(21.4, 22.4, lg.s)), 0, 1), pan, { ramp: 0.5, linger: 6, fadeIn: 1.2 });
@@ -435,6 +459,18 @@ export function createCitySounds() {
     /** 8b1 — THE BIG MOMENTS DUCK THE MUSIC (plan.md: the noon steam whistle, the 7 pm dinner cruise's horn): play a slot with the music
      *  dipped to `depth` as it starts (over 0.6 s), held while it sounds (`hold` s), then eased back up over `release` s — a few a day
      *  → the handle or null (an empty slot: silent, no dip) */
+    /** PROM — a legendary's whole set fetched + decoded AHEAD (+ pinned until it's over): 'ufo' | 'tr3b' | 'implosion'; picks: { hum,
+     *  depart, horn } → true when it could ask (audio unlocked + effects on) */
+    prefetchLegend(kind, picks = {}) {
+      let ok = true;
+      for (const [slot, i] of legendTakes(kind, picks)) ok = cityPrefetch(slot, i, { hold: LEGEND_HOLD[kind] || 120000 }) && ok;
+      return ok;
+    },
+    /** PROM — the takes its START needs are decoded (or nothing could sound anyway: locked, muted, effects off) */
+    legendReady(kind, picks = {}) {
+      if (!isUnlocked() || settings.muted || (settings.sfx != null && settings.sfx <= 0.01)) return true;
+      return legendTakes(kind, picks).slice(0, LEGEND_KEY[kind] || 2).every(([slot, i]) => cityReady(slot, i));
+    },
     ducked(slot, { gain = 1, pan = 0, depth = 0.55, hold = 3.5, release = 5 } = {}) {
       const h = citySound(slot, { gain, pan: clamp(pan, -1, 1) });
       if (h) ducks.push({ h, depth, pan: null, follow: false, env: el => (el < 0 ? 1 : el < 0.6 ? 1 - (1 - depth) * (el / 0.6) : el < hold ? depth : el < hold + release ? depth + (1 - depth) * ((el - hold) / release) : 1) });

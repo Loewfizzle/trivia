@@ -133,7 +133,7 @@ export const SLOTS = [
   // ---- PART 9 — the construction tower
   // (9g — the owner: the siren "louder … carries over the music like a real distant air-raid siren, still far off": 0.07 → 0.16 (+7 dB),
   // the music dipped under it (sounds.js#ducked); the horn's three takes are the panel's HORN A / B / C (&horn=a|b|c — core: hornTake))
-  S('tower-siren', 'tower', 'once', 0.16, 'the demolition’s warning siren — one slow distant wail (9f: craigsmith, CC0)'),
+  S('tower-siren', 'tower', 'once', 0.176, 'the demolition’s warning siren — one slow distant wail (9f: craigsmith, CC0)'),
   S('tower-horn', 'tower', 'once', 0.14, 'the warning horn blasts (A: craigsmith’s destroyer horn · B: the old warning horn · C: synthesized compressed air)'),
   S('implosion-charges', 'tower', 'once', 0.16, 'the implosion’s charges'),
   S('implosion-rumble', 'tower', 'once', 0.16, 'the long rumble as it comes down'),
@@ -233,9 +233,10 @@ export function takeBySrc(id, src) { const i = takesOf(id).findIndex(t => t.src 
 /** 9g — THE PANEL's A / B / C picks (the owner decides by ear): &horn= (the implosion's warning horn), &hum= (the UFO's hover),
  *  &depart= (the UFO leaving; 'layered' = A + B at once). The first of each is the default (today's horn; the brief's picks) */
 export const SOUND_PICKS = Object.freeze({
-  horn: Object.freeze({ slot: 'tower-horn', a: 'tower-horn-2', b: 'warning-horn', c: 'tower-horn-3' }),
-  hum: Object.freeze({ slot: 'ufo-hum', a: 'ufo-hum-2', b: 'ufo-hum-3' }),
-  depart: Object.freeze({ slot: 'ufo-depart', a: 'ufo-depart', b: 'ufo-depart-2', layered: null }),
+  // (PROM — the owner's picks, Oct 28: HORN B (warning-horn), HUM A, DEPART LAYERED are the DEFAULTS (`def`); the rest stay as alternates)
+  horn: Object.freeze({ slot: 'tower-horn', def: 'b', a: 'tower-horn-2', b: 'warning-horn', c: 'tower-horn-3' }),
+  hum: Object.freeze({ slot: 'ufo-hum', def: 'a', a: 'ufo-hum-2', b: 'ufo-hum-3' }),
+  depart: Object.freeze({ slot: 'ufo-depart', def: 'layered', a: 'ufo-depart', b: 'ufo-depart-2', layered: null }),
 });
 /** 9g — THE RIVET GUN's gaps (s) after burst n (seed: the page's own start — irregular, never a beat): mostly 20–50 s of quiet, now +
  *  then (1 in 4) a quick second burst 3–7 s on — a riveter driving a few rivets, then moving along. Mean ≈ 28 s: a couple a minute at most */
@@ -244,10 +245,10 @@ export function rivetGap(seed, n) {
   const r = () => { h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; h = Math.imul(h ^ (h >>> 12), 0x297a2d39) >>> 0; return ((h ^ (h >>> 15)) >>> 0) / 4294967296; };
   return r() < 0.25 ? 3 + 4 * r() : 20 + 30 * r();
 }
-/** a pick's value ('a' | 'b' | 'c' | 'layered' | anything else = the default 'a') → [take index …] in its slot (null entries dropped) */
+/** a pick's value ('a' | 'b' | 'c' | 'layered' | anything else = the pick's default, `def`) → [take index …] in its slot (null entries dropped) */
 export function pickTakes(kind, v) {
   const P = SOUND_PICKS[kind]; if (!P) return [];
-  const key = v && Object.prototype.hasOwnProperty.call(P, v) && v !== 'slot' ? v : 'a';
+  const key = v && Object.prototype.hasOwnProperty.call(P, v) && v !== 'slot' && v !== 'def' ? v : P.def || 'a';
   const srcs = key === 'layered' ? [P.a, P.b] : [P[key]];
   return srcs.map(src => takeBySrc(P.slot, src)).filter(i => i != null);
 }

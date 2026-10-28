@@ -181,14 +181,25 @@ export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take =
   } catch { return null; }
 }
 
-/** fetch + decode a take ahead of its moment (the motorcar's next pass: its sound then starts on time) → true when asked */
-export function cityPrefetch(slot, i = 0) {
+/** fetch + decode a take ahead of its moment (the motorcar's next pass: its sound then starts on time) → true when asked.
+ *  PROM — `hold` ms: the decoded buffer is PINNED that long (a legendary's whole set, loaded before it starts, is never trimmed by
+ *  the one-shots' LRU before its moment comes) */
+export function cityPrefetch(slot, i = 0, { hold = 0 } = {}) {
   try {
     const t = takesOf(slot)[i];
     if (!t || !isUnlocked() || !audible()) return false;
-    load(t);
+    const e = load(t);
+    if (hold > 0 && !e.held) {
+      e.held = true; e.pins++;
+      setTimeout(() => { e.held = false; e.pins = Math.max(0, e.pins - 1); e.used = performance.now(); trim(); }, hold);
+    }
     return true;
   } catch { return false; }
+}
+/** PROM — a take decoded + ready to start at once (fetched and decoded already) */
+export function cityReady(slot, i = 0) {
+  const t = takesOf(slot)[i], e = t && bufs.get(t.f);
+  return !!(e && e.mb > 0);
 }
 
 // ---------------------------------------------------------------- loops

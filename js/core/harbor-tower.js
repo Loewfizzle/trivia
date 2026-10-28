@@ -30,7 +30,9 @@ export const DESIGNS = Object.freeze([
 export const designFor = year => DESIGNS[((((year - 2026) % DESIGNS.length) + DESIGNS.length) % DESIGNS.length)];
 
 /** the implosion's timeline (s from the moment, T): the siren, the horns, the charges' flashes down the floors, the drop, the dust */
-export const IMPLODE = Object.freeze({ h: 10, siren: -60, horns: [-20, -12, -5], flash0: 0, flash1: 2.6, drop0: 2.8, drop1: 9.5, dust1: 240, window: [-120, 300] });
+// (PROM — the owner, Oct 28: "it takes way too long" → THE NEW TIMELINE: the siren (10.5 s) → 10 s after it ENDS, HORN B's three
+// blasts (4.65 s each, 1.55 s apart) → 5 s after the last one ENDS, the charges + the fall. Was siren −60 / horns −20 −12 −5)
+export const IMPLODE = Object.freeze({ h: 10, siren: -42.6, horns: [-22.1, -15.9, -9.7], flash0: 0, flash1: 2.6, drop0: 2.8, drop1: 9.5, dust1: 240, window: [-120, 300] });
 /** the stages' calendar (local dates of year Y) */
 export const CYCLE = Object.freeze({ announceDays: 3, rubbleDays: 10, rise: [6, 1], top: [9, 1], finish: [9, 8], craneOff: [9, 15], openH: 19 });
 export const STAGES = Object.freeze(['standing', 'implosion', 'rubble', 'cleanup', 'rising', 'topping', 'finishing', 'opening', 'finished']);

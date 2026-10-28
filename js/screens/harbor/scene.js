@@ -261,6 +261,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!linkHeld.size) return;
     if (linkGoAt == null) { if (shownAt >= 0 && linkTapAt != null) linkGoAt = Math.max(shownAt, linkTapAt) + LINK_LEAD; else return; }
     if (now < linkGoAt) return;
+    // (PROM: + up to 4 s more while the held legendary's sounds still decode — its approach never starts ahead of its hum)
+    if (now < linkGoAt + 4000 && snd && snd.legendReady && [...linkHeld].some(id => !snd.legendReady(id, sndPicks()))) return;
     const ids = [...linkHeld]; linkHeld.clear();
     for (const id of ids) {
       if (id === 'implosion') { forceSince.set('implosion', clock.now() / 1000); continue; }
@@ -291,6 +293,20 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }).catch(e => { legendsLoading = false; console.warn('[harbor] legends', e); });
   }
   /** 9g — what the sounds hear of a legendary: legends.listen() + the panel's picks (&hum= / &depart=) + how many on the promenade flee */
+  // PROM — THE LEGENDARIES' SOUNDS LOADED AHEAD (the owner, 9g: the first run's spin-up silent — fetched on first use): a link's held
+  // legendary (from its reveal), tonight's due within the minute / running (legends.warming), the implosion's countdown → the whole set
+  // fetched + decoded + pinned (sounds.js#prefetchLegend), tried again until the audio is unlocked
+  const sndPicks = () => ({ hum: qp.get('hum'), depart: qp.get('depart'), horn: qp.get('horn') });
+  let sndWarmAt = -1e9;
+  function legendSoundsWarm(now) {
+    if (now - sndWarmAt < 500 || !snd || !snd.prefetchLegend) return;
+    sndWarmAt = now;
+    const kinds = new Set(linkHeld);
+    if (legends) { const w = legends.warming(); if (w) kinds.add(w); }
+    for (const id of ['ufo', 'tr3b']) if (clock.force.has(id)) kinds.add(id);
+    if (clock.force.has('implosion') || (TWS && TWS.stage === 'implosion' && TWS.s < IMPLODE.drop0 + 5)) kinds.add('implosion');
+    for (const k of kinds) snd.prefetchLegend(k, sndPicks());
+  }
   const legendHeard = () => { const o = legends ? legends.listen() : null; if (o && o.kind === 'ufo') { o.hum = qp.get('hum'); o.depart = qp.get('depart'); o.crowd = people && people.witnessN ? people.witnessN() : 0; } return o; };
   /** tonight's legendary is due within a minute (or running) */
   function legendSoon() {
@@ -1581,10 +1597,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the scheduler's first read is at once, the moment it exists)
     if (now - eventsAt > 500 || (sched && !schedRead)) { eventsAt = now; if (sched) { events = sched.at(clock.now()); schedRead = true; } density = densityOf([...events.quiet, ...sky.quiet()]); }
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
-    const fs = { centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
+    const fs = { centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
     linkGate(now);
+    legendSoundsWarm(now);
     if (now - legendCheckAt > 1000) { legendCheckAt = now; if (!legends && (off.has('ufo') || off.has('tr3b') || linkHeld.has('ufo') || linkHeld.has('tr3b') || legendSoon())) needLegends(); }
     if (legends && shownAt >= 0) for (const id of linkHeld) if (id !== 'implosion') legends.prewarm(id);   // (9g: the held link's craft + the dark city baked while it waits — after the reveal)
     // (THE DIRECTOR's view of this frame: what heavy is on screen now)

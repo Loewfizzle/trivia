@@ -60,3 +60,10 @@ test('9e THE SUN MUST NOT BREAK: the skyline envelope the sun reads is the same 
   assert.ok(towerKey(forcedTower('rising', 0.5)) !== towerKey(forcedTower('rising', 0.6)) && towerKey(forcedTower('finished')) === towerKey(forcedTower('opening')));
   assert.ok(DESIGNS.length >= 4);
 });
+test('PROM THE IMPLOSION’s NEW TIMELINE (the owner: "it takes way too long"): 10 s after the siren ENDS the horns, 5 s after the last blast ENDS the fall', () => {
+  const SIREN = 10.5, HORN = 4.65;   // (tower-siren-2 · warning-horn — HORN B, the default)
+  assert.ok(Math.abs(IMPLODE.horns[0] - (IMPLODE.siren + SIREN + 10)) < 0.05);
+  assert.ok(Math.abs(IMPLODE.flash0 - (IMPLODE.horns[2] + HORN + 5)) < 0.1);
+  for (let i = 1; i < 3; i++) assert.ok(IMPLODE.horns[i] - IMPLODE.horns[i - 1] >= HORN + 1, 'the blasts never overlap');
+  assert.ok(IMPLODE.flash0 - IMPLODE.siren < 45, 'the countdown under 45 s (was 60)');
+});

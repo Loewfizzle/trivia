@@ -51,10 +51,10 @@ export const INPUTS = {
   tower: { kind: 'select', label: 'TOWERS', options: TOWER_CHOICES, labels: { '': 'AUTO', wordA: 'A', wordB: 'B', wordV: 'VERTICAL', 'wordA,wordB': 'A + B', 'wordA,wordB,wordV': 'A + B + V' } },
   scheme: { kind: 'select', label: 'SCHEME', options: [...new Set([...NEON_SCHEMES, ...ROSIE_SCHEMES])], default: 'halloween' },
   game: { kind: 'select', label: 'GAME', options: GAME_IDS, default: 'pulse' },
-  // (9g — THE SOUNDS NOBODY HAS HEARD: the owner picks by ear — core/city-sounds.js#SOUND_PICKS; '' = the default, A)
-  horn: { kind: 'select', label: 'HORN', options: ['', 'b', 'c'], labels: { '': 'A · TODAY’S', b: 'B · THE OLD HORN', c: 'C · SYNTHESIZED' } },
+  // (9g — THE SOUNDS NOBODY HAS HEARD: the owner picks by ear — core/city-sounds.js#SOUND_PICKS; '' = the default: PROM — HORN B, HUM A, DEPART LAYERED)
+  horn: { kind: 'select', label: 'HORN', options: ['', 'a', 'c'], labels: { '': 'B · THE OLD HORN', a: 'A · DESTROYER', c: 'C · SYNTHESIZED' } },
   hum: { kind: 'select', label: 'HUM', options: ['', 'b'], labels: { '': 'A · HOVER ENGINE', b: 'B · DEEP THROB' } },
-  depart: { kind: 'select', label: 'DEPART', options: ['', 'b', 'layered'], labels: { '': 'A · FALLING FLYBY', b: 'B · FAST WHOOSH', layered: 'A + B LAYERED' } },
+  depart: { kind: 'select', label: 'DEPART', options: ['', 'a', 'b'], labels: { '': 'A + B LAYERED', a: 'A · FALLING FLYBY', b: 'B · FAST WHOOSH' } },
 };
 
 /** THE PANEL'S CATEGORIES (PART 7a §0 — the owner: "it's getting so cluttered"): collapsible sections, in this order, collapsed by

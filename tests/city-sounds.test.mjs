@@ -5,7 +5,7 @@ import { existsSync, statSync, readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
 const ROOT = new URL('..', import.meta.url);
-const { SLOTS, PARTS, slotOf, takesOf, isFilled, filledSlots, pickTake, checkSlots } = await import('../js/core/city-sounds.js');
+const { SLOTS, PARTS, slotOf, takesOf, isFilled, filledSlots, pickTake, pickTakes, checkSlots } = await import('../js/core/city-sounds.js');
 const { FILES } = await import('../js/core/city-sounds-files.js');
 
 test('every slot: a unique kebab-case id, a known part, loop | once, a mix level, what it is — the registry\'s own checks', () => {
@@ -216,4 +216,13 @@ test('FP — THE DEBUG TOOLS: the readout + the AUDIO panel switched on this dev
   T.setDebugTool('nope', true);
   assert.deepEqual(seen, ['audio:true', 'readout:false'], 'listeners told; unknown ids ignored');
   off();
+});
+test('PROM THE PICKS\' DEFAULTS: HORN B, HUM A, DEPART LAYERED (the alternates still pickable)', () => {
+  const src = (slot, is) => is.map(i => takesOf(slot)[i].src);
+  assert.deepEqual(src('tower-horn', pickTakes('horn')), ['warning-horn']);
+  assert.deepEqual(src('tower-horn', pickTakes('horn', 'a')), ['tower-horn-2']);
+  assert.deepEqual(src('ufo-hum', pickTakes('hum', '')), ['ufo-hum-2']);
+  assert.deepEqual(src('ufo-depart', pickTakes('depart', null)), ['ufo-depart', 'ufo-depart-2']);
+  assert.deepEqual(src('ufo-depart', pickTakes('depart', 'a')), ['ufo-depart']);
+  assert.deepEqual(src('ufo-depart', pickTakes('depart', 'def')), ['ufo-depart', 'ufo-depart-2']);
 });
