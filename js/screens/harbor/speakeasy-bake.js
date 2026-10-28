@@ -261,12 +261,6 @@ export function paintSideLeaf(x, M, d) {
   x.fillStyle = rgb(M.iron); for (let u = gu - 0.1; u <= gu + 0.11; u += 0.1) x.fillRect(u - 0.015, 1.67, 0.03, 0.26);
   x.fillStyle = rgb(M.gilt); x.beginPath(); x.arc(d.u1 - 0.22, 1.18, 0.06, 0, Math.PI * 2); x.fill();
 }
-/** the sconce's light on the side door's upper planks (additive; the caller is in 'lighter') */
-export function sideLeafLamp(x, M, d) {
-  const lk = sideLampK(M); if (lk <= 0.01) return;
-  const W = [255, 196, 130], g3 = x.createLinearGradient(0, d.h, 0, d.h - 1.8);
-  g3.addColorStop(0, rgb(W, 0.42 * lk)); g3.addColorStop(0.45, rgb(W, 0.16 * lk)); g3.addColorStop(1, rgb(W, 0)); x.fillStyle = g3; x.fillRect(d.u0, d.h - 1.8, d.u1 - d.u0, 1.8);
-}
 /** THE SHOP DOOR's leaf (wall units): the glazed wood door — the wood, the glass (the shop inside at night), the lower panel, the knob */
 export function paintShopLeaf(x, M, sh) {
   const night = M.night > 0.5, [d0, d1, dh] = sh.door;
@@ -351,23 +345,10 @@ export function paintGround(x, M, s) {
     x.fillStyle = rgb(M.iron); for (let u = b0 + 0.2; u < b1; u += 0.24) x.fillRect(u - 0.025, bv0, 0.05, bv1 - bv0); }
   // THE SCONCE over the side door (its bracket + lantern; lit at night: live)
   { const sc = sh.sconce; R(x, sc.u - 0.05, sc.v - 0.32, sc.u + 0.05, sc.v + 0.02, M.iron); R(x, sc.u - 0.14, sc.v - 0.05, sc.u + 0.14, sc.v + 0.32, M.iron); R(x, sc.u - 0.1, sc.v, sc.u + 0.1, sc.v + 0.26, night ? [60, 40, 26] : mix(M.glassTop, [255, 240, 200], 0.4)); R(x, sc.u - 0.17, sc.v + 0.32, sc.u + 0.17, sc.v + 0.38, M.iron); }
-  // FP2 — THE SCONCE'S LIGHT LANDING (at night, by the lamps' ramp — baked like the cobbles' pools): a warm scallop on the brick round
-  // it, falling down over the door's granite frame + the oak, gone within SHOP_GLOW.landR (the live layer adds only the lit glass + a
-  // tight halo); its iron cap shades the wall just above it
-  { const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
-    if (lk > 0.01) { const sc = sh.sconce, R0 = SHOP_GLOW.landR;
-      x.save(); x.globalCompositeOperation = 'lighter'; x.translate(sc.u, sc.v - 0.05); x.scale(1, 1.25);
-      const g = x.createRadialGradient(0, -0.12, 0, 0, -0.12, R0);
-      for (const [t, a] of [[0, 0.62], [0.15, 0.4], [0.35, 0.17], [0.6, 0.05], [1, 0]]) g.addColorStop(t, rgb([255, 184, 116], a * lk));
-      x.fillStyle = g; x.fillRect(-R0, -R0 - 0.12, 2 * R0, 2 * R0); x.restore();
-      // (SP2 — CRISP: the light catching what's under it — the granite surround's top edge, the door's upper planks fading down, the
-      // two steps' fronts faintly; the brick round it only a small tight pool)
-      const d = s.door, W = [255, 196, 130];
-      x.save(); x.globalCompositeOperation = 'lighter';
-      { const g2 = x.createLinearGradient(d.u0 - 0.2, 0, d.u1 + 0.2, 0); g2.addColorStop(0, rgb(W, 0.1 * lk)); g2.addColorStop((sc.u - d.u0 + 0.2) / (d.u1 - d.u0 + 0.4), rgb(W, 0.6 * lk)); g2.addColorStop(1, rgb(W, 0.12 * lk)); x.fillStyle = g2; x.fillRect(d.u0 - 0.2, d.h + 0.2, d.u1 - d.u0 + 0.4, 0.08); }
-      sideLeafLamp(x, M, d);
-      x.fillStyle = rgb(W, 0.18 * lk); x.fillRect(d.u0 - 0.3, 0.12, d.u1 - d.u0 + 0.6, 0.02); x.fillRect(d.u0 - 0.15, 0.25, d.u1 - d.u0 + 0.3, 0.02);
-      x.restore();
+  // FP2's SCONCE LANDING (an additive scallop + glints baked over the brick, the granite + the oak) is gone — 9d: THE DOOR's LIGHT is
+  // real light now, live (speakeasy.js#doorLight: a mask that MULTIPLIES what it reaches); only the iron cap's soot over it stays
+  { const lk = sideLampK(M);
+    if (lk > 0.01) { const sc = sh.sconce;
       R(x, sc.u - 0.2, sc.v + 0.38, sc.u + 0.2, sc.v + 0.5, M.soot, 0.25 * lk); } }
 }
 

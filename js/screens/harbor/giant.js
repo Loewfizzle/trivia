@@ -169,11 +169,20 @@ const SKIN = [232, 116, 22], CREASE = [124, 52, 14], CROWN = [204, 150, 50], FLE
 const HOT = [255, 248, 222], MID = [255, 182, 72], DEEP = [255, 104, 16], BTC = [247, 120, 14];
 const hash = (a, b) => { let x = Math.imul((a * 73856093) ^ (b * 19349663), 0x85ebca6b); x ^= x >>> 13; x = Math.imul(x, 0xc2b2ae35); x ^= x >>> 16; return (x >>> 0) / 4294967296; };
 
-/** the shading job for this light: the body + the fire's three glow states (sliced: shadeStep) */
+// 9d — THE FLOODS AS LIGHT (the owner: "at its brightest the floodlit giant reads a little flat"): the show floods (floods.js) are real
+// lights on the body's own normals — a KEY from the front-left fixture, a weaker FILL from the front-right, both low (brightest at the
+// foot, fading up the body), the creases occluded like the rest — so each rib's face toward the key lights up, its crease stays dark and
+// the far side turns into shadow; a waxy highlight runs down the ribs facing the key. Baked once per light as its own pass (`flood`);
+// floods.js lays it on by the floods' level instead of a wash over the silhouette.
+const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+export const GFLOOD = Object.freeze({ key: norm([-0.78, 0.2, -0.6]), fill: norm([0.8, 0.16, -0.58]), kKey: 1.38, kFill: 0.5, amb: 0.06, spec: 0.3, foot: 0.45, col: [255, 212, 156] });
+const GF_H = norm([GFLOOD.key[0], GFLOOD.key[1] + 0.3, GFLOOD.key[2] - 1]);
+/** the shading job for this light: the body + the fire's three glow states (sliced: shadeStep) + the floods' pass at night */
 function shadeJob(G, Lt, seed) {
   const body = mk(G.w, G.h), bx = safeCtx(body);
   if (!bx) return { done: true, out: { body: null, glows: [] } };
   const J = { G, Lt, seed, body, bx, img: bx.createImageData(G.w, G.h), p: 0, done: false, out: null, glows: [], gimgs: [] };
+  if ((Lt.night || 0) > 0.05) { const cv = mk(G.w, G.h), x = safeCtx(cv); if (x) { J.flood = cv; J.fx = x; J.fimg = x.createImageData(G.w, G.h); } }
   if (G.carved) for (let s = 0; s < 3; s++) { const cv = mk(G.w, G.h), x = safeCtx(cv); if (!x) break; J.glows.push({ cv, x }); J.gimgs.push(x.createImageData(G.w, G.h)); }
   return J;
 }
@@ -198,6 +207,14 @@ function shadeStep(J, budget = 4) {
     const shv = G.shave[p];
     if (shv > 0) { const fl = lit(Lt, COINF.map(v => v * (0.95 + 0.05 * Math.sin(th * 41 + yy * 37))), nrm, 0.06), gr = fl.map(v => v * 0.58); c = mix(c, mix(fl, gr, G.rim[p]), shv); }
     const hw = G.hole[p];
+    // 9d: THE FLOODS' PASS — the skin (or the shaved coin) × the key + the fill on this pixel's normal, the foot brightest, occluded
+    if (J.fimg) {
+      const FD = J.fimg.data, fa = shv > 0 ? mix(alb, COINF, shv) : alb, F = GFLOOD;
+      const v = (F.kKey * Math.max(0, dot3(nrm, F.key)) + F.kFill * Math.max(0, dot3(nrm, F.fill)) + F.amb) * ao * (1 - F.foot * clamp01(yy)) * (1 - hw);
+      const sp = F.spec * Math.pow(Math.max(0, dot3(nrm, GF_H)), 18) * Math.sqrt(lobe) * (1 - hw);
+      for (let i = 0; i < 3; i++) FD[p * 4 + i] = Math.min(255, fa[i] * v * F.col[i] / 255 + sp * F.col[i]);
+      FD[p * 4 + 3] = Math.round(255 * m);
+    }
     if (hw > 0) {
       // through the ₿: the CUT FACE of the rind (pale, facing up at us) or the CAVITY's far wall (dark by day)
       const cutN = norm([nrm[0] * 0.5, 1, nrm[2] * 0.5]), cut = lit(Lt, FLESH, cutN, 0).map(v => v * 0.92);
@@ -223,6 +240,7 @@ function shadeStep(J, budget = 4) {
   }
   bx.putImageData(J.img, 0, 0);
   J.glows.forEach((g, s) => g.x.putImageData(J.gimgs[s], 0, 0));
+  if (J.fimg) { J.fx.putImageData(J.fimg, 0, 0); J.fimg = null; }
   // THE STEM (drawn over the body, in the sprite's px): a thick fluted woody stalk out of the dimple, curving + leaning, its cut top pale;
   // a dry curling tendril; one leaf dried on the crown
   { const r = rngFrom(seed + 5), Sx = G.Sx, up = y => G.oy - y * Sx, cx = G.ox, base = S.yc + S.Hh * 0.82, top = base + 0.5 * DS, lean = 0.14 * DS;
@@ -245,7 +263,7 @@ function shadeStep(J, budget = 4) {
     for (let q = 0; q <= 16; q++) { const a = q / 16 * TAU, lob = 1 + 0.18 * Math.cos(a * 5); bx.lineTo(Math.cos(a) * Sx * DS * 0.21 * lob, Math.sin(a) * Sx * DS * 0.07 * lob); }
     bx.closePath(); bx.fill(); bx.strokeStyle = rgb(mix(lc, [30, 26, 10], 0.5), 0.8); bx.lineWidth = Math.max(0.5, Sx * DS * 0.008); bx.beginPath(); bx.moveTo(-Sx * DS * 0.2, 0); bx.lineTo(Sx * DS * 0.2, 0); bx.stroke(); bx.restore();
   }
-  J.out = { body, glows: J.glows.map(g => g.cv) }; J.done = true;
+  J.out = { body, glows: J.glows.map(g => g.cv), flood: J.flood || null }; J.done = true;
   return true;
 }
 
@@ -277,7 +295,7 @@ function paintBed(cam, g, Lt, dpr, seed) {
 // ------------------------------------------------------------------ THE PIECE
 export function createGiant() {
   const cache = new Map();
-  const free = o => { for (const c of [o.body, ...(o.glows || []), o.bed && o.bed.cv]) if (c) c.width = c.height = 0; };
+  const free = o => { for (const c of [o.body, o.flood, ...(o.glows || []), o.bed && o.bed.cv]) if (c) c.width = c.height = 0; };
   const put = (k, v) => { cache.set(k, v); if (cache.size > 8) { const k0 = cache.keys().next().value; const o = cache.get(k0); if (o !== lastReady) free(o); cache.delete(k0); } return v; };
   const stat = { drawn: 0, carved: false, lit: 0, rect: null, pool: 0, bakes: 0 };
   const jobs = new Map(), BUDGET = 4;
@@ -344,7 +362,7 @@ export function createGiant() {
     // the body
     const x0 = bx - sp.G.ox / dpr, y0 = by - sp.G.oy / dpr, w = sp.G.w / dpr, h = sp.G.h / dpr;
     c.drawImage(sp.body, x0, y0, w, h);
-    lastSp = { cv: sp.body, x: x0, y: y0, w, h };   // (9c: the floods wash this silhouette — floods.js)
+    lastSp = { cv: sp.body, flood: sp.flood || null, x: x0, y: y0, w, h };   // (9c: the floods light this piece — floods.js; 9d: by its own flood pass)
     if (sp.glows && sp.glows.length && K > 0.02) {
       // the fire's three states, each at its share of the moment (+ a second pass for the heat; a third on Halloween night)
       c.globalCompositeOperation = 'lighter';

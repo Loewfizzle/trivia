@@ -81,7 +81,9 @@ export function createFloods() {
       c.restore();
       c.save(); c.globalCompositeOperation = 'lighter';
       const sp = o.sprite;
-      if (sp && sp.cv && sp.cv.width > 2) { const wcv = washOf(sp.cv); if (wcv) { c.globalAlpha = Math.min(1, (o.wash == null ? 0.72 : o.wash) * kk); c.drawImage(wcv, sp.x, sp.y, sp.w, sp.h); } }
+      // (9d: a piece that bakes its OWN flood pass — the giant: the floods as lights on its normals — gets that; the others the wash)
+      if (sp && sp.flood && sp.flood.width > 2) { c.globalAlpha = Math.min(1, kk); c.drawImage(sp.flood, sp.x, sp.y, sp.w, sp.h); }
+      else if (sp && sp.cv && sp.cv.width > 2) { const wcv = washOf(sp.cv); if (wcv) { c.globalAlpha = Math.min(1, (o.wash == null ? 0.72 : o.wash) * kk); c.drawImage(wcv, sp.x, sp.y, sp.w, sp.h); } }
       for (const f of fixtures(cam, m)) {
         const [fx, fy] = project(cam, f.x, f.y, f.z), s = cam.F / f.z;
         const [tx, ty] = project(cam, m.x, (o.h || 2) * 0.45, m.z);

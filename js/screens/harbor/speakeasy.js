@@ -23,9 +23,9 @@ import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { createHushSign } from './hushsign.js';
 import { wallVP } from '../../core/harbor-rooms.js';
 import { frontProfile } from './strings.js';
-import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, DOOR_FLOOD, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
+import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
-import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, paintGilt, GILT, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, bladeStep, speakeasySteps, paintSideLeaf, sideLeafLamp, paintShopLeaf } from './speakeasy-bake.js';
+import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, paintGilt, GILT, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, bladeStep, speakeasySteps, paintSideLeaf, paintShopLeaf } from './speakeasy-bake.js';
 export * from './speakeasy-geo.js';
 export * from './speakeasy-blade.js';
 export * from './speakeasy-bake.js';
@@ -287,18 +287,91 @@ export function createSpeakeasy() {
     x.putImageData(im, 0, 0);
     return { cv: haloCv, X: X0, Y: Y0 };
   }
-  /** POL4 — a door's FLOOD: a warm wash from its lamp at (u, v top) down over the door (half width hw, height h) + onto its step — an
-   *  elliptical falloff brightest just under the lamp, additive (the caller is in 'lighter') */
-  function flood(c, u, v, hw, h, a) {
-    const [cx, cy] = G.front(u, v - h * 0.38), rx = hw * DOOR_FLOOD.w * 2.2 * G.K, ry = h * DOOR_FLOOD.h * 0.62 * G.K;
-    const g = c.createRadialGradient(cx, cy - ry * 0.35, 0, cx, cy - ry * 0.35, Math.max(rx, ry));
-    const col = DOOR_FLOOD.col.join(','), k = DOOR_FLOOD.k * a;
-    g.addColorStop(0, `rgba(${col},${k.toFixed(3)})`); g.addColorStop(0.45, `rgba(${col},${(k * 0.45).toFixed(3)})`); g.addColorStop(1, `rgba(${col},0)`);
-    c.save(); c.globalAlpha = 1; c.translate(cx, cy); c.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry)); c.translate(-cx, -cy);
-    c.fillStyle = g; c.fillRect(cx - Math.max(rx, ry), cy - Math.max(rx, ry) * 1.4, Math.max(rx, ry) * 2, Math.max(rx, ry) * 2.8); c.restore();
+  // 9d — THE DOORS' LIGHT, REAL (the owner: "all the other lights look so realistic, but in the foreground, where it's the most important,
+  // it looks the most cheap"). POL4's flood was ONE additive gradient laid over the door — orange haze on the mortar, the recess and the
+  // oak alike, only ever "a weak blob" or "a washed-out blob". Now the lamp LIGHTS what it reaches: its light is a mask drawn with
+  // 'color-dodge', which multiplies each pixel under it (lit brick faces brighten + warm, the mortar + the recesses stay dark — light ×
+  // albedo); the mask is the lamp's SHAPE — a cone from under its shade or cap (a crisp top edge: nothing above the cap but a sliver,
+  // brightest just inside the cone's edges: the scallop), falling off with distance — minus the SHADOWS (the lintel's band across the
+  // door's head, the jambs' strips); a POOL on the cobbles (+ the side door's two treads, their nosings catching the light), and the
+  // fixture's own HOT BULB with a small glare. Baked once per layout (the mask), one drawImage a frame.
+  const DLIGHT = Object.freeze({
+    col: [196, 146, 88],          // the light's colour as a dodge (≈ a gain of 4.3 / 2.3 / 1.5 at full: warm, never white)
+    side: { cone: 1.32, soft: 0.3, reach: 2.45, up: 0.05, k: 1, pool: { dz: 0.95, rx: 1.45, rz: 1.1, k: 0.8 } },   // (the lantern under its iron cap: wide)
+    shop: { cone: 0.82, soft: 0.24, reach: 2.2, up: 0.02, k: 0.62, pool: { dz: 0.8, rx: 1.2, rz: 0.9, k: 0.7 } },     // (the awning's bell-shaded bulb: a cone down)
+    lintel: 0.62, lintelH: 0.24, jamb: 0.42, jambW: 0.07,
+  });
+  const dlMasks = new Map();
+  /** the lamp's light on the wall as a mask in screen pt: lamp { u, v (where the light leaves: the shade's rim / the cap's underside) } */
+  function lightMask(id, lamp, door) {
+    const Lp = DLIGHT[id], o = G.front(0, 0), key = `${id}|${dpr}|${G.K.toFixed(4)}|${Math.round(o[0])}|${Math.round(o[1])}`;
+    const had = dlMasks.get(id); if (had && had.key === key) return had;
+    if (had) { had.cv.width = 0; dlMasks.delete(id); }
+    // (the box holds the whole falloff — a mask cut short by its own box draws a hard edge)
+    const R = Math.max(Lp.reach, (lamp.v + 0.2) * 1.42 + 0.1), [X0, Y0] = G.front(lamp.u - R, lamp.v + Lp.up + 0.06), [X1, Y1] = G.front(lamp.u + R, -0.02);
+    const w = X1 - X0, h = Y1 - Y0, W = Math.max(1, Math.ceil(w * dpr)), H = Math.max(1, Math.ceil(h * dpr));
+    const cv = document.createElement('canvas'), ang = document.createElement('canvas'); cv.width = ang.width = W; cv.height = ang.height = H;
+    const x = safeCtx(cv), ax = safeCtx(ang); if (!x || !ax) { cv.width = ang.width = 0; return null; }
+    for (const q of [x, ax]) q.setTransform(dpr, 0, 0, dpr, -X0 * dpr, -Y0 * dpr);
+    const [lx, ly] = G.front(lamp.u, lamp.v), Rb = Math.hypot(w, h) * 1.2, N = 64;
+    // 1. THE CONE: wedges from the lamp by the angle off straight down — full inside, a soft penumbra at the edge, a touch brighter just
+    // inside it (the scallop), nothing above the shade (an up-spill only within `up` of it — the cap's lip)
+    for (let i = 0; i < N; i++) {
+      const t0 = -Math.PI / 2 + (i / N) * Math.PI, t1 = -Math.PI / 2 + ((i + 1) / N) * Math.PI, tm = Math.abs((t0 + t1) / 2);
+      const e = (tm - (Lp.cone - Lp.soft)) / (Lp.soft * 1.4), a = (e <= 0 ? 1 : e >= 1 ? 0 : 1 - e * e * (3 - 2 * e)) * (1 + 0.28 * Math.exp(-(((tm - (Lp.cone - Lp.soft * 0.9)) / 0.16) ** 2)));
+      if (a <= 0.003) continue;
+      ax.fillStyle = `rgba(255,255,255,${Math.min(1, a / 1.28).toFixed(3)})`;
+      ax.beginPath(); ax.moveTo(lx, ly); ax.lineTo(lx + Rb * Math.sin(t0), ly + Rb * Math.cos(t0)); ax.lineTo(lx + Rb * Math.sin(t1), ly + Rb * Math.cos(t1)); ax.closePath(); ax.fill();
+    }
+    if (Lp.up > 0) { const [, yu] = G.front(lamp.u, lamp.v + Lp.up); const g = ax.createLinearGradient(0, ly, 0, yu); g.addColorStop(0, 'rgba(255,255,255,0.55)'); g.addColorStop(1, 'rgba(255,255,255,0)'); ax.fillStyle = g; ax.fillRect(lx - G.K * 0.45, yu, G.K * 0.9, ly - yu); }
+    // 2. THE FALLOFF with distance (from just under the lamp), in the light's colour
+    const col = DLIGHT.col, Rd = Math.max(1, (lamp.v + 0.2) * G.K) * 1.42, cy = ly + 0.06 * G.K;
+    const g = x.createRadialGradient(lx, cy, 0, lx, cy, Rd);
+    for (const [t, a] of [[0, 1], [0.1, 0.92], [0.32, 0.66], [0.6, 0.4], [0.82, 0.16], [1, 0]]) g.addColorStop(t, `rgba(${col[0]},${col[1]},${col[2]},${a})`);
+    x.fillStyle = g; x.fillRect(X0, Y0, w, h);
+    x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'destination-in'; x.drawImage(ang, 0, 0); x.restore();
+    ang.width = ang.height = 0;
+    // 3. THE SHADOWS: the lintel's band across the door's head (the door sits back in its granite surround, the lamp above), the jambs
+    if (door) {
+      x.globalCompositeOperation = 'destination-out';
+      const [a0, b0] = G.front(door.u0, door.h), [a1, b1] = G.front(door.u1, door.h - DLIGHT.lintelH), gl = x.createLinearGradient(0, b0, 0, b1);
+      gl.addColorStop(0, `rgba(0,0,0,${DLIGHT.lintel})`); gl.addColorStop(0.55, `rgba(0,0,0,${DLIGHT.lintel * 0.45})`); gl.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = gl; x.fillRect(a0, b0, a1 - a0, b1 - b0);
+      const [, bb] = G.front(door.u0, door.v0), jw = DLIGHT.jambW * G.K;
+      for (const [xa, dir] of [[a0, 1], [a1, -1]]) { const gj = x.createLinearGradient(xa, 0, xa + dir * jw, 0); gj.addColorStop(0, `rgba(0,0,0,${DLIGHT.jamb})`); gj.addColorStop(1, 'rgba(0,0,0,0)'); x.fillStyle = gj; x.fillRect(Math.min(xa, xa + dir * jw), b0, jw, bb - b0); }
+      x.globalCompositeOperation = 'source-over';
+    }
+    const m = { key, cv, X: X0, Y: Y0, w, h, lx, ly };
+    dlMasks.set(id, m);
+    return m;
+  }
+  /** the door's light this frame: a (0..1 the lamp's level × the power), the mask dodged over the wall + the door, the pool on the
+   *  cobbles, the treads' nosings (side), the hot bulb at bulb [x, y] */
+  function doorLight(c, id, lamp, door, a, bulb) {
+    if (a <= 0.004) return;
+    const Lp = DLIGHT[id], m = lightMask(id, lamp, door), col = DLIGHT.col, s = G.s, cam = G.cam;
+    c.save();
+    c.globalCompositeOperation = 'color-dodge';
+    if (m) { c.globalAlpha = Math.min(1, a * Lp.k); c.drawImage(m.cv, m.X, m.Y, m.w, m.h); }
+    // the POOL on the cobbles in front (an ellipse on the ground: its depth by the camera), the same dodge — the stones lit as stones
+    { const P = Lp.pool, u = id === 'side' ? (door.u0 + door.u1) / 2 : lamp.u, [px] = project(cam, s.x0 + u, 0, s.z0 - P.dz), [, pn] = project(cam, s.x0 + u, 0, s.z0 - P.dz - P.rz), [, pf] = project(cam, s.x0 + u, 0, s.z0 - P.dz + P.rz);
+      const rx = P.rx * cam.F / (s.z0 - P.dz), ry = Math.max(1, (pn - pf) / 2);
+      c.globalAlpha = Math.min(1, a * P.k); c.save(); c.translate(px, (pn + pf) / 2); c.scale(1, ry / rx);
+      const g = c.createRadialGradient(0, -rx * 0.25, 0, 0, 0, rx);
+      for (const [t, k] of [[0, 1], [0.3, 0.7], [0.65, 0.26], [1, 0]]) g.addColorStop(t, `rgba(${col[0]},${col[1]},${col[2]},${k})`);
+      c.fillStyle = g; c.fillRect(-rx, -rx, rx * 2, rx * 2); c.restore(); }
+    c.globalCompositeOperation = 'lighter';
+    // the side door's two granite treads: their nosings catch the lamp (the treads lit, the risers not)
+    if (id === 'side') {
+      c.lineWidth = Math.max(0.5, G.K * 0.025); c.globalAlpha = Math.min(1, a * 0.5);
+      for (const [y, z, wd] of [[0.26, -0.4, 0.15], [0.13, -0.75, 0.3]]) { const [p0, q0] = project(cam, s.x0 + door.u0 - wd, y, s.z0 + z), [p1, q1] = project(cam, s.x0 + door.u1 + wd, y, s.z0 + z); const g = c.createLinearGradient(p0, 0, p1, 0); g.addColorStop(0, 'rgba(255,190,120,0)'); g.addColorStop(0.5, 'rgba(255,200,132,0.9)'); g.addColorStop(1, 'rgba(255,190,120,0)'); c.strokeStyle = g; c.beginPath(); c.moveTo(p0, q0); c.lineTo(p1, q1); c.stroke(); }
+    }
+    // THE HOT BULB: a small bright core + a tight glare (the light's source — never a cloud)
+    if (bulb) { const r = G.K * 0.05; c.globalAlpha = Math.min(1, a); soft(c, [255, 214, 160], bulb[0], bulb[1], G.K * 0.2, 0.75 * a); c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,246,226)'; c.beginPath(); c.arc(bulb[0], bulb[1], r, 0, Math.PI * 2); c.fill(); }
+    c.restore();
   }
   // 9d — THE LEAVES' SPRITES: each door's leaf painted by the BAKE's own painters (speakeasy-bake.js#paintSideLeaf / paintShopLeaf,
-  // + the sconce's light on the side door's planks, + the wall's light over it: paintLight) from the BAKE's tones, at the city's dpr —
+  // + the wall's light over it: paintLight; the door lamp's light is live — doorLight — and lands on the swinging leaf too) from the BAKE's tones, at the city's dpr —
   // so the leaf that swings (doors.js) IS the baked door, and shutting hands over to the bake without a jump. Re-painted per bake.
   let leafT = null, leafAt = '';
   const leaves = { side: null, shop: null };
@@ -314,7 +387,7 @@ export function createSpeakeasy() {
       const x = safeCtx(cv); if (!x) { leaves[id] = null; continue; }
       x.setTransform(k, 0, 0, -k, -d.u0 * k, d.v1 * k);
       x.save(); x.beginPath(); x.rect(d.u0, d.v0, d.u1 - d.u0, d.v1 - d.v0); x.clip();
-      if (id === 'side') { paintSideLeaf(x, M, G.s.door); x.save(); x.globalCompositeOperation = 'lighter'; sideLeafLamp(x, M, G.s.door); x.restore(); }
+      if (id === 'side') paintSideLeaf(x, M, G.s.door);
       else paintShopLeaf(x, M, G.s.shop);
       paintLight(x, M, 0, W_FRONT, false, 51);
       x.restore();
@@ -434,9 +507,9 @@ export function createSpeakeasy() {
     // soft wash it threw over the door is gone
     { const sc = G.s.shop.sconce, [sx, sy] = G.front(sc.u, sc.v + 0.13), a = clamp01(f.sconce == null ? f.k : f.sconce) * fade;
       if (a > 0.004) { const [p, py] = G.front(sc.u - 0.1, sc.v + 0.26), [q, qy] = G.front(sc.u + 0.1, sc.v); c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,226,170)'; c.fillRect(p, py, q - p, qy - py); c.globalCompositeOperation = 'lighter'; }
-      soft(c, [255, 210, 150], sx, sy, G.K * SHOP_GLOW.sconce, 0.95 * a); glowAt.sconce = [sx, sy];
-      // (POL4: THE DOOR FLOODED — the sconce's warm wash down over the side door + its steps)
-      if (a > 0.004) { const d = G.s.door; flood(c, (d.u0 + d.u1) / 2, d.h + 0.15, (d.u1 - d.u0) / 2, d.h, a); } }
+      soft(c, [255, 210, 150], sx, sy, G.K * SHOP_GLOW.sconce, 0.6 * a); glowAt.sconce = [sx, sy];
+      // (9d: THE DOOR's LIGHT, real — the lantern under its iron cap lights the brick, the granite, the oak, the treads + the cobbles)
+      if (a > 0.004) { const d = G.s.door; doorLight(c, 'side', { u: sc.u, v: sc.v + 0.34 }, { u0: d.u0, u1: d.u1, h: d.h, v0: 0.12 }, a, G.front(sc.u, sc.v + 0.08)); c.globalCompositeOperation = 'lighter'; } }
     // 8P — THE AWNING'S THREE LAMPS lit: each bulb a crisp warm globe + a small TIGHT halo (their light on the canvas, the shopfront and
     // the pavement is baked — speakeasySteps); the barber pole stays the brightest light on the front
     { const a = clamp01(f.sconce == null ? f.k : f.sconce) * fade;
@@ -447,7 +520,8 @@ export function createSpeakeasy() {
         c.fillStyle = 'rgb(255,252,240)'; c.beginPath(); c.arc(bx, by + r * 0.15, r * 0.5, 0, Math.PI * 2); c.fill(); c.globalCompositeOperation = 'lighter';
       }
       // (POL4: the barbershop's door flooded from the lamp now centred over it — awningBulbs' first)
-      if (a > 0.004) { const dd = G.s.shop.door; flood(c, (dd[0] + dd[1]) / 2, dd[2] - 0.1, (dd[1] - dd[0]) / 2, dd[2] - V.plinth, a * 0.85); } }
+      // (9d: THE DOOR's LIGHT, real — the bell-shaded bulb over the barbershop's door lights its door, the shopfront + the pavement)
+      if (a > 0.004) { const dd = G.s.shop.door, b = awningBulbs(G.s.awning)[0]; c.save(); awningClip(c); doorLight(c, 'shop', { u: b.u, v: b.y - 0.02 }, { u0: dd[0], u1: dd[1], h: dd[2], v0: V.plinth - 0.05 }, a * 0.85, null); c.restore(); c.globalCompositeOperation = 'lighter'; } }
     // THE BASEMENT WINDOW: the one hint of the secret — 8P (the owner: "you can't really tell"): the club's heart, unlike every room above —
     // a DEEPER smoky amber edging to copper, a bit brighter; alive through MOVEMENT: now and then the shadows of people passing behind it
     // (the light warming + dimming as they pass), a gentle pulse with the beat on party nights (the music's heart is down there), a very
@@ -529,9 +603,7 @@ export function createSpeakeasy() {
       for (const [a0, b0] of WASH.piers) { const v = WASH.lampV; R(c, a0 - 0.15, v - WASH.drop - 0.3, b0 + 0.15, v, 'rgb(104,96,116)'); }   // (their warm cones down the piers)
       c.globalCompositeOperation = 'source-over';
       const sc = G.s.shop.sconce; R(c, sc.u - 0.11, sc.v - 0.01, sc.u + 0.11, sc.v + 0.27, 'rgb(34,26,24)');
-      c.globalCompositeOperation = 'multiply';
-      { const r0 = SHOP_GLOW.landR * 1.3, g = c.createRadialGradient(sc.u, sc.v - 0.17, 0, sc.u, sc.v - 0.17, r0);
-        g.addColorStop(0, 'rgb(96,88,104)'); g.addColorStop(0.5, 'rgb(170,162,176)'); g.addColorStop(1, 'rgb(255,255,255)'); c.fillStyle = g; c.fillRect(sc.u - r0, sc.v - 0.17 - r0, r0 * 2, r0 * 2); }
+      c.globalCompositeOperation = 'multiply';   // (9d: the sconce's baked landing is gone — its light is live (doorLight) and dies with the power)
       R(c, 5.6 - DATE.hw - 0.05, DATE.v0 - 0.05, 5.6 + DATE.hw + 0.05, DATE.v1 + 0.05, 'rgb(118,112,130)');
       c.restore();
     }
