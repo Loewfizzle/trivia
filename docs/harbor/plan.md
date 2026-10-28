@@ -68,7 +68,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | HOT1 | ✅ (Oct 27 — the night freeze: the back window's peek threw every frame and the loop stopped; fixed, failed frames reported to /admin, e2e-harbor `freeze`) | Opus 5.5 high | ~30 min |
 | 9d | ✅ (Oct 27 — docs/harbor.md#9d: the held TR-3B preview's music fixed + stalls report to /admin (the freeze not reproduced on Chrome); &temp= reaches the snowman; THE DOORS never snap (the leaf is the baked door, a door closer) + REAL door light (a lamp's mask × the brick); the giant lit on its normals; the sign's snow white; the frost pane only; the beacons' photocell at sunset; ☰ → ADMIN + the NOW bar) THE FIXES II | Opus 5.5 high | ~3 h |
 | 9e | ✅ (Oct 28 — docs/harbor.md#9e: SEND REPORT + the hang watch (the freeze not reproduced, even on WebKit); the frost reads; the snowman's depth; the blade crisp at tier 0; snow lands on the sign; the henchman, the water wagon, Sunday's bells, the morning paper, the joggers, the stage under the dock + the quick fade, the TR-3B on party nights; THE CONSTRUCTION TOWER's cycle (the sun never breaks); the sax lit — the two vehicle models CUT) THE FIXES III + THE CITY LIFE + THE CONSTRUCTION TOWER + THE SAX REWORK | Opus 5.5 high | ~4–5 h |
-| CONN | ← NEXT: THE DATABASE CONNECTION ONLY WHEN NEEDED (the owner's Oct 27 note "EVERY VISITOR HOLDS A DATABASE CONNECTION": the RTDB socket opened for HOST / JOIN / a resumed room / THE BOARD's live bits only, goOffline() after a room + when hidden, city2/live through a cached /api poll; the console's connection graph before + after) + the two vehicle models 9e cut, if the owner still wants them | Opus 5.5 high | ~1–1.5 h |
+| CONN | ← NEXT (runs now, after 9e): THE DATABASE CONNECTION ONLY WHEN NEEDED (the owner's Oct 27 note "EVERY VISITOR HOLDS A DATABASE CONNECTION": the RTDB socket opened for HOST / JOIN / a resumed room / THE BOARD's live bits only, goOffline() after a room + when hidden, city2/live through a cached /api poll; the console's connection graph before + after) + the two vehicle models 9e cut, if the owner still wants them | Opus 5.5 high | ~1–1.5 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
@@ -3209,3 +3209,12 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   (3) PEOPLE WALKING BEHIND THE SNOWMAN ARE DRAWN IN FRONT OF HIM ("they snapped in front of the snowman"): the centrepiece rig's
   pieces must sort with the walkers by depth (their feet) — a walker behind passes BEHIND; check every centrepiece piece (the giant
   pumpkin, the harvest display, the tree stand) + the snowman's builders the same.
+
+## OWNER'S NOTES — OCT 28 (after 9e)
+- CITY PREVIEW — A SHOWREEL BUTTON IN ADMIN (the owner, Oct 28 1:07 am — the idea, to talk through): one button in the ADMIN panel
+  that SPEED-RUNS the city's most impressive stuff: sunrise → morning → noon → afternoon → golden hour → sunset → night, the weather
+  (rain, storm, snow, fog), the party mode, the legendary events — "cycles through all the most impressive stuff". Workers / city life:
+  NOT in it (the owner: "don't worry about that"). Claude's take: a good idea (a demo for friends + a launch video) — build it on the
+  panel's existing PLAY ALL sequencers; the legendaries only their best ~10–15 s each (the TR-3B's full run is over a minute), the
+  whole reel ~3–4 min, smooth fades between scenes (never a hard cut), any tap stops it + returns to the real city; JUST ME by default.
+  SLOT: 13 CITY CONTROL (or a small pass sooner if he wants it).
