@@ -313,6 +313,9 @@ export function createLights() {
 
   /** per frame, after a group's lit layer: the shimmer, the TVs, the switched lights, the beacons, the words. k = the night */
   function draw(c, group, now, k, motion) {
+    // (a word cleared or run out BY DAY still finishes: the lights skip drawing then, so drawSpell's drop never came — the word lingered
+    // in `spelling` until dusk; the panel's CLEAR ALL check failed by day)
+    if (spell && k <= 0.02 && ((spell.out >= 0 && now - spell.out > 1600) || now > spell.until + 1600)) dropSpell();
     if (k <= 0.02 || !L) return;
     const t = now / 1000, meta = group === 'far' ? metaFar : metaNear;
     c.save();

@@ -316,7 +316,8 @@ async function panelSection() {
       `CLEAR ALL = THE REAL CITY NOW: from a night link (${new Date(f0.now).toISOString().slice(11, 16)} UTC, forced [${f0.force}]) one tap → force [${f1.force}], the real clock (${Math.round((f1.now - Date.now()) / 1000)} s off now), the live weather back (preview ${f1.preview}, keepLive ${f1.keepLive}), the URL "${url}", the toast "${toastT.slice(0, 90)}"`);
     await P.ctx.close(); }
   // 7a §0 — THE WORD TOWERS from the panel: one word per tower, the one too long for its tower scrolls on it; the readout says so
-  await ev(O.page, "window.__district.remote().setMine({ force: ['spell'], text: 'HAPPY BIRTHDAY SAM', tower: 'wordA,wordB,wordV' })");
+  // (CONN: at night, like its EVERYONE twin — after CLEAR ALL the clock is the real one, and the words never light by day)
+  await ev(O.page, "window.__district.remote().setMine({ force: ['spell'], text: 'HAPPY BIRTHDAY SAM', tower: 'wordA,wordB,wordV', when: '2026-10-24T23:00' })");
   await waitFor(O.page, "(() => { const s = window.__district.harbor().windows.spelling; return !!s && s.towers.length === 3; })()", 'three towers', 8000).catch(() => {});
   { const s = await ev(O.page, 'window.__district.harbor().windows.spelling');
     await ev(O.page, "window.__district.remote().open(), window.__district.remote().openCats(['lights'])");
