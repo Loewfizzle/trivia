@@ -1138,6 +1138,12 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   city: `tests/integration/tape-preview.html` (RUN: a compressed drain you can hear). **WebKit**: Playwright's WebKit download stalled
   twice on this machine (224 KB of ~100 MB); not run here — the owner's AUDIO panel decides (the test link in docs/harbor.md).
 
+- **9f — THE TAPE ON THE DRAIN** (the owner: "the audio slowdown effect was lagging"): measured 2 s behind the lights. The sag is now
+  the blackout's own curve (`tr3bAt`'s `sag` = `smooth(BLACK.die0 − sput, die0 + dieSpan + 0.9)`), `sounds.js` engages the tape at
+  0.998 × just before the first dip and aims each ramp `BEND_AHEAD` (0.6 s) ahead on the envelope at every 1 % step, and the slice's
+  prepare retries until the song is playing (a load-forced run's only try used to come before the first tap). Lights 2.67 s → the tape
+  2.88 s (was 4.71); e2e `tape`: `9f — THE TAPE ON THE DRAIN` / `ON TIME`.
+
 ## 11a-1 — THE HOLIDAY SOUNDS (Oct 26 2026; City 2.0 — docs/harbor.md#part-11a-1)
 - **Imported** from ~/Downloads/city-sfx (credits.txt "Weather + party + holiday sounds"; the importer's levels): `witch-cackle` (4.65 s,
   −20.4 LUFS — once as the witch crosses the moon: witch.js), `ghost-bell` (3.1 s, −20.5 LUFS — twice a crossing), `ghost-ship-creak`

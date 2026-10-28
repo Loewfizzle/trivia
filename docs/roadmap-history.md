@@ -1383,6 +1383,18 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - The boss's day blind in the building's cream linen; WINDOW SCENES NEVER POP IN (a walk-up or the blind cycle, every moment).
 - The UFO hovers above the Ferris wheel (same size); its two view angles hand off over ±2.5°, its sheets pre-decoded.
 
+## CITY 2.0 — 9f: THE FIXES IV (Oct 28 2026) — docs/harbor.md#9f
+- LOAD WEATHER (red on every harbor run since 9e): a weather answer landing after the reveal re-baked the lit windows with a 1.2 s
+  crossfade — they ride the weather's 6 s blend now; the party windows + the roof board are decided before the reveal.
+- THE TR-3B's TAPE STOP: measured 2 s behind the lights (the sag a second late, the first bend waiting for 2 %, ramps aimed at the
+  present, a load-forced run's slice never prepared) → the sag is the blackout's curve, the tape engaged before the dip, the ramps aimed
+  ahead: the lights 2.67 s / the tape 2.88 s (was 4.71). The crisp layer + the hush sign read clientWidth every frame (a forced layout
+  while the sign restyles) → cssWidth.
+- THE MORNING PAPER out; THE JOGGERS on their own lane (one every 45–90 s in their hours, none in heavy rain; &force=joggers).
+- THE REAL TOWER IMPLODES (its original block baked with skyBlock into a sprite, dropped in floor bands, the top leaning); THE SITE AT
+  NIGHT (bulb strings, deck floods, red obstruction lights on the beacons' pulse); the site's work-light beam on party nights; the tower's
+  CC0 alternates (the siren, the default horn + a backup, the rivet gun, the crane lift).
+
 ## CONN — THE DATABASE CONNECTIONS (Oct 28 2026) — CLAUDE.md → Multiplayer mechanics, docs/data-model.md#the-connection-conn-oct-28
 - Why: Firebase's free Spark plan allows 100 SIMULTANEOUS database connections and every visitor held one from the title's first paint
   (the `.info` listeners at boot) — ~100 people on the title would have locked the 101st out of hosting or joining.

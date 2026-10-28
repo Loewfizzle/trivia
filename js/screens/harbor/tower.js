@@ -91,16 +91,20 @@ export function createTowerFx() {
   // BULBS along the floors' edges (rows of warm dots outlining the rising frame, a little sag between the columns — one string every
   // ~2 floors so the rows read apart on a phone), two FLOODS on the top deck lighting the steel from inside (a warm pool + the lit
   // columns, each with its shadow side), the RED OBSTRUCTION LIGHTS on the frame's top corners pulsing slowly with the skyline's beacons
+  // (the speed round: everything but the red lights' pulse is static for a given frame height — baked into TWO cached layers when the frame
+  // rises a step: the GLOW (the bulbs, the floods' pools + lamps, the lit columns; drawn 'lighter') and the SHADE (the columns' shadow
+  // sides; drawn normally) — two blits a frame)
   let bulbs = null, bulbKey = '';
   function bulbLayer(f, top) {
     const s = geo.s, k = Math.min(2, f.dpr || 1), w = geo.xR - geo.xL, foot = geo.yB;
     const key = `${Math.round(geo.xL * 4)}|${Math.round(w * 4)}|${Math.round(top * 4)}|${Math.round(foot)}|${k}`;
     if (bulbs && key === bulbKey) return bulbs;
     bulbKey = key;
-    const pad = 4, x0 = Math.floor(geo.xL - pad), y0 = Math.floor(top - pad), cw = Math.ceil(w + pad * 2), ch = Math.ceil(foot - top + pad * 2);
-    const cv = (bulbs && bulbs.cv) || document.createElement('canvas');
-    cv.width = Math.max(1, cw * k); cv.height = Math.max(1, ch * k);
-    const x = safeCtx(cv); x.setTransform(k, 0, 0, k, -x0 * k, -y0 * k);
+    const pad = Math.ceil(Math.max(12, w * 0.7)), x0 = Math.floor(geo.xL - pad), y0 = Math.floor(top - pad), cw = Math.ceil(w + pad * 2), ch = Math.ceil(foot - top + pad * 2);
+    const mk = old => { const cv = old || document.createElement('canvas'); cv.width = Math.max(1, cw * k); cv.height = Math.max(1, ch * k); const x = safeCtx(cv); x.setTransform(k, 0, 0, k, -x0 * k, -y0 * k); return [cv, x]; };
+    const [cv, x] = mk(bulbs && bulbs.cv), [sv, z] = mk(bulbs && bulbs.sv);
+    x.globalCompositeOperation = 'lighter';
+    // the bulb strings
     const pitch = 3 * s, every = Math.max(1, Math.ceil(4.6 / pitch)), bays = Math.max(3, Math.round(w / (2.3 * s))), gap = Math.max(1.9, 1.15 * s);
     const n = Math.max(2, Math.round(w / gap));
     for (let yy = top + 0.6, j = 0; yy < foot; yy += pitch * every, j++) {
@@ -108,39 +112,35 @@ export function createTowerFx() {
         const u = (i + (j % 2 ? 0.5 : 0)) / n; if (u > 1) continue;
         const xx = geo.xL + u * w, bu = (u * bays) % 1, sag = Math.sin(bu * Math.PI) * Math.min(1.3, 0.55 * s);
         const r = Math.max(1.5, 0.95 * s);
-        x.globalAlpha = 0.38; x.drawImage(warm(), xx - r * 1.6, yy + sag - r * 1.6, r * 3.2, r * 3.2);
-        x.globalAlpha = 1; x.fillStyle = 'rgb(255,216,138)'; const cr = Math.max(0.45, 0.3 * s); x.beginPath(); x.arc(xx, yy + sag, cr, 0, TAU); x.fill();
+        x.globalAlpha = 0.38 * 0.9; x.drawImage(warm(), xx - r * 1.6, yy + sag - r * 1.6, r * 3.2, r * 3.2);
+        x.globalAlpha = 0.9; x.fillStyle = 'rgb(255,216,138)'; const cr = Math.max(0.45, 0.3 * s); x.beginPath(); x.arc(xx, yy + sag, cr, 0, TAU); x.fill();
       }
     }
-    bulbs = { cv, x0, y0, w: cw, h: ch };
-    return bulbs;
-  }
-  function siteLights(c, f) {
-    const s = geo.s, top = frameTop(), k = f.night * f.power, w = geo.xR - geo.xL;
-    if (k < 0.05) return;
-    c.save(); c.globalCompositeOperation = 'lighter';
-    // the bulb strings (one cached layer; steady — bare bulbs, no flicker)
-    const b = bulbLayer(f, top);
-    c.globalAlpha = 0.9 * k; blit(c, b.cv, 0, 0, b.cv.width, b.cv.height, b.x0, b.y0, b.w, b.h);
-    // THE FLOODS on the top deck: a warm pool down into the top floors + the columns it hits lit on the side facing it
-    const bays = Math.max(3, Math.round(w / (2.3 * s))), depth = Math.min(geo.yB - top, 14 * s);
+    // THE FLOODS on the top deck: a warm pool down into the top floors + the columns it hits lit on the side facing it (+ their shadows)
+    const depth = Math.min(foot - top, 14 * s);
+    x.lineWidth = Math.max(0.6, 0.3 * s); z.lineWidth = Math.max(0.5, 0.22 * s); z.strokeStyle = 'rgb(8,8,14)';
     for (const fu of [0.28, 0.72]) {
       const fx = geo.xL + w * fu, R = Math.max(10, w * 0.62);
-      c.globalAlpha = 0.62 * k; c.drawImage(warm(), fx - R, top - R * 0.3, R * 2, R * 1.7);
-      c.lineWidth = Math.max(0.6, 0.3 * s);
+      x.globalAlpha = 0.62; x.drawImage(warm(), fx - R, top - R * 0.3, R * 2, R * 1.7);
       for (let i = 0; i <= bays; i++) {
         const cx = geo.xL + w * i / bays, d = Math.abs(cx - fx) / (w * 0.6);
         if (d > 1) continue;
-        const a = (1 - d) * 0.75 * k, side = cx < fx ? 1 : -1;
-        c.globalAlpha = a; c.strokeStyle = 'rgb(255,214,150)'; c.beginPath(); c.moveTo(cx + side * 0.25 * s, top); c.lineTo(cx + side * 0.25 * s, top + depth * (1 - 0.5 * d)); c.stroke();
+        const side = cx < fx ? 1 : -1;
+        x.globalAlpha = (1 - d) * 0.75; x.strokeStyle = 'rgb(255,214,150)'; x.beginPath(); x.moveTo(cx + side * 0.25 * s, top); x.lineTo(cx + side * 0.25 * s, top + depth * (1 - 0.5 * d)); x.stroke();
+        if (d >= 0.08) { z.globalAlpha = (1 - d) * 0.6 * 0.55; z.beginPath(); z.moveTo(cx - side * 0.3 * s, top + 0.5 * s); z.lineTo(cx - side * 0.3 * s, top + depth * 0.8); z.stroke(); }
       }
-      // the lamp itself: a small hot point on the deck
-      const rr = Math.max(2.2, 1.5 * s); c.globalAlpha = k; c.drawImage(glow(), fx - rr, top - 0.6 * s - rr, rr * 2, rr * 2);
+      const rr = Math.max(2.2, 1.5 * s); x.globalAlpha = 1; x.drawImage(glow(), fx - rr, top - 0.6 * s - rr, rr * 2, rr * 2);
     }
-    c.restore();
-    // (the columns' shadow sides: a dark line beside each lit one, normal blending)
-    c.save(); c.lineWidth = Math.max(0.5, 0.22 * s); c.strokeStyle = 'rgba(8,8,14,0.55)';
-    for (const fu of [0.28, 0.72]) { const fx = geo.xL + w * fu; for (let i = 0; i <= bays; i++) { const cx = geo.xL + w * i / bays, d = Math.abs(cx - fx) / (w * 0.6); if (d > 1 || d < 0.08) continue; const side = cx < fx ? -1 : 1; c.globalAlpha = (1 - d) * 0.6 * k; c.beginPath(); c.moveTo(cx + side * 0.3 * s, top + 0.5 * s); c.lineTo(cx + side * 0.3 * s, top + depth * 0.8); c.stroke(); } }
+    bulbs = { cv, sv, x0, y0, w: cw, h: ch };
+    return bulbs;
+  }
+  function siteLights(c, f) {
+    const top = frameTop(), k = f.night * f.power;
+    if (k < 0.05) return;
+    const b = bulbLayer(f, top);
+    c.save();
+    c.globalAlpha = k; blit(c, b.sv, 0, 0, b.sv.width, b.sv.height, b.x0, b.y0, b.w, b.h);
+    c.globalCompositeOperation = 'lighter'; blit(c, b.cv, 0, 0, b.cv.width, b.cv.height, b.x0, b.y0, b.w, b.h);
     c.restore();
     obstruction(c, f, top);
   }

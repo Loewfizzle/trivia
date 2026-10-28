@@ -26,3 +26,9 @@ export const getDb = () => null;
 export const dbRef = path => ({ path });
 export const serverNow = () => Date.now();
 export const idToken = () => Promise.reject(new Error('preview: no sign-in'));
+// (9f: CONN's parked-database API — the previews never open a socket: wanting / releasing the line does nothing; the title-preview
+// page threw "does not provide an export named 'release'" from CONN on, so every look preview + title-perf.mjs were down)
+export const GRACE_MS = 30000, HIDDEN_MS = 120000;
+export function want() {}
+export function release() {}
+export const lineInfo = () => ({ net: 'parked', wants: [], parked: true, started: false, offset: 0, touches: 0, touchFrom: [], log: [] });
