@@ -73,7 +73,10 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | BNAME | ✅ (Oct 28 — 0797967 · 937590e; docs/profiles.md + docs/harbor.md#bname: house nicknames for everyone else on THE BOARD (an HMAC board id, never the typed name or the pid in any public response), `profiles` no longer world-readable, the 3-match floor, ⋯ → REPORT → /admin; THE CRANE from J-Toastie's model (180 KB, lazy, &crane=classic); the cycle 3 months, the opening the first Saturday of October; ONE bake tool, the UFO byte-for-byte) THE BOARD's PUBLIC NAMES (house nicknames, a 3-match minimum, REPORT) + THE CRANE from a 3D model + the tower's shorter cycle | Opus 5.5 high | ~1.5 h |
 | 9g | ✅ (Oct 28 — c4ab10e · 54b62e3 · a774787; docs/harbor.md#9g: a link's legendary waits for the reveal + the first tap (+4 s), opened mid-drain the song silent until the lights return; the UFO's real sounds (HUM A/B, DEPART A/B/LAYERED — nobody has listened); the implosion's one crash, the siren louder, HORN A/B/C; the rivet bursts; the crane's pulse gone (1° frames, the nearest whole); the joggers' running stride; the dock fade 10 s / 5 s) THE FIXES V — legendary links wait for a tap, the implosion's sound, the rivet bursts, the crane's day pulse, the joggers' stride, the dock fade, THE UFO's sounds | Opus 5.5 high | ~2 h |
 | PROM | ✅ (Oct 28 — docs/harbor.md#prom: no lampposts — the implied lamps behind the viewer, the lit crosswalk, the hydrant left, the bigger compass (centrepieces at today's size), the cab stand + its taxi while the dock rests, the water bench facing the harbor, the cart left of the compass (from the left), the doorman against the wall, the awning lit from below (1 am / 2 am), the benches sharp at full dpr, Grok's models compared (the drawn pieces stay); Group 0: the UFO's sounds loaded ahead, the implosion's new timeline + HORN B, the joggers' kit) THE PROMENADE, FINAL | Opus 5.5 high | ~3 h |
-| ATM | ← NEXT: a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
+| FR4 | ← NEXT: a FABLE READ-ONLY REVIEW #4 (everything since review #3, Oct 24: 9a → PROM — the weather, winter, the holidays, the legends' sounds, CONN, BNAME, the bake tool, the tower; the cloud's recurring flakes; memory + frame time on the phone path, "can the foreground be 3×?"; the docs vs the code; the owner's PROM notes — "OWNER'S NOTES — OCT 28 (PROM's review)") → docs/harbor/review-4.md | Fable high | ~1.5 h |
+| C4 | THE CLEANUP: review-4's TODO list merged with the owner's PROM review notes (the crosswalk's soft light + the cars lit through it, the compass left + the cart in the middle, the sitters, the doorman who opens the door, the barbershop as a 2.5D room + the awning brighter, the lit blind, the wet sheen, &force=waterbench, THE PEOPLE RULE after the UFO) | Opus 5.5 high | ~3 h (split if over) |
+| SKY | THE LEGENDS: THE BLACKBIRD (one flyby animation — the static tell, the vapor cone + shock ring + the late double boom, the Mach-diamond plumes, above the sign — its rare solo sightings, the hour-watcher's reward, joining every TR-3B chase once the jets are ~⅓ across), THE F-22 MODELS everywhere (the tight triangle + the bank), THE TR-3B AT FULL RESOLUTION (one solid body, no shadow on the backdrop), THE MOTHMAN on the needle (Grok's model, standing, wings spread, red eyes), THE SHADOWBOXER (9–11 pm, 3-min rounds + 1-min breaks, the full two hours; THE WINDOW RULE II), the upper windows on the crisp layer — "OWNER'S NOTES — OCT 28 (PROM's review)" | Opus 5.5 high | ~4–5 h |
+| ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
 | **THE ROADMAP REORDERED** | **(the owner, Oct 26 6:01 pm — DECIDED; "OWNER'S NOTES — OCT 26 (after SP5)")** after the city's five above (11a-2 → 9b → ATM → 10 → 11b): LOBBY 2.0 → BOARD 2.0 → (a SHORT game-lineup TALK) → PROGRESSION 2.0 → TV MODE → the GAME LINEUP CHAT → the games → the release; a Fable review + a cleanup after 11b and again after Progression 2.0. 11c / 12 / C3 / 13 stay on the list, slotted by the owner | — | — |
@@ -3513,3 +3516,202 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   + DECIDED (the owner, 4:36 pm): the watch count resets only when the visitor is AWAY (the page left / the tab hidden / the phone locked)
   for MORE THAN 5 MINUTES — shorter breaks pause the count, they don't reset it (time away doesn't count toward the hour).
 - 9g REVIEW DONE (the owner, Oct 28 4:37 pm): ✔ THE CRANE BY DAY "looks great" (no pulse), ✔ THE DOCK FADE "works great". The 9g follow-ups (the UFO's sounds loaded ahead, the implosion's timing + HORN B + the siren +10 %, the UFO defaults HUM A + DEPART LAYERED, the joggers' clothes + arms) ride in THE PROMENADE pass's Group 0.
+
+## OWNER'S NOTES — OCT 28 (PROM's review)
+- A FABLE REVIEW (the owner, Oct 28 4:39 pm: "we haven't done one in forever … I'm sure it will catch some stuff"; the last was FREV, Oct
+  24). Claude's pick (pending): RIGHT AFTER PROM, before ATM + 11b — read-only (a report), then a cleanup pass from it; reviewing before
+  PROM would spend effort on the lamp code PROM is about to replace. It covers everything since Oct 24 (9a → PROM: the weather, winter,
+  the holidays, the legends' sounds, CONN, BNAME, the bake tool, the tower), the cloud's recurring flakes, performance on the phone path,
+  memory, the docs vs the code.
+- A NEW WINDOW MOMENT — THE SHADOWBOXER (the owner, Oct 28 5:10 pm — the idea; Claude's shape pending his OK): a BACKLIT room, one man
+  seen SIDE-ON as a dark SILHOUETTE against the lit room (the party windows' look), shadowboxing. Claude's push: make him a 1920s BOXER
+  rather than kung fu (kung fu reached American screens decades later; prize-fighting was THE 1920s sport — the Dempsey era — and fits
+  the speakeasy's world: a local fighter training at night) — maybe one rare surprise high kick as a wink. READS AT ~40 pt because it's
+  all silhouette + big motion: a full-body profile, the guard up, jab-jab-cross with the arm fully extended, a duck + weave, a bounce on
+  the toes, a pause to roll the shoulders; no fingers, no face — the shape + the rhythm only. Evenings (~7–11 pm), now + then, enters by
+  its own motion (bouncing in from the side) per THE WINDOW RULE. Slot: the next window / city-life pass.
+- THE LEGENDS MOVE UP (the owner, Oct 28 5:11 pm — DECIDED): a new pass SKY — THE BLACKBIRD (fast, Mach diamonds, above the sign, the
+  radio-static tell, full res, the hour-watcher's reward), THE F-22 MODELS everywhere (the chase in a TIGHT TRIANGLE + the bank), THE
+  TR-3B AT FULL RESOLUTION, THE MOTHMAN on the needle (Grok's model) — right AFTER Part 10 (party nights + fireworks + the superyacht)
+  and BEFORE 11b; 11c keeps the spring / summer / patriotic holidays. ORDER: PROM → the Fable review + cleanup → ATM → 10 → SKY → 11b
+  (still by ~Nov 20) → 11c → 12 → 13 → C3 → the holiday polish. PENDING before SKY: the Mothman's pose (Claude: standing, wings spread).
+- THE MOTHMAN's POSE + MOTION (the owner, Oct 28 5:12 pm — DECIDED standing, wings spread; + motion): the model is NOT RIGGED (no walk
+  cycle without rigging it in Blender), so the motion uses what a rigid baked model can do, all readable at phone size: (1) ON THE PERCH
+  he TURNS slowly between baked yaw angles (the bake makes a turntable like the UFO's) — scanning the city left ↔ right, a pause each
+  way (the owner's "back and forth"); (2) now + then he LEAVES: a short crouch-less drop + a silent GLIDE off the screen's edge on his
+  spread wings (rigid — a glide, not a flap), and ~30 s later GLIDES BACK in + lands on the needle FACING THE OTHER WAY (the owner's
+  "walks off + comes back facing the other way" — gliding, since a walk needs a rig); the red eyes glow through it all. If the owner
+  wants a real walk / wing flap later → a rig in Blender (a separate job).
+  CORRECTION (the owner, 5:13 pm): that motion was meant for THE SHADOWBOXER, not the Mothman. THE MOTHMAN = STANDING on the needle, wings
+  spread, red eyes (DECIDED) — the turn / glide-off ideas above are NOT decided (optional, ask before building).
+- THE SHADOWBOXER's MOTION (the owner, 5:12–5:13 pm — DECIDED, with the boxer as the default unless he says kung fu): while he boxes he
+  MOVES SIDE TO SIDE across the room (footwork, back + forth); now + then he steps OUT of the window's view, and ~30 s later steps BACK in
+  FACING THE OTHER WAY and carries on — walking in + out of the frame by his own motion (THE WINDOW RULE), never popping.
+  DECIDED (the owner, 5:14 pm): THE SHADOWBOXER is a 1920s BOXER (not kung fu).
+- THE SHADOWBOXER — THE FULL SPEC (Claude, Oct 28 5:14 pm, pending the owner's OK):
+  WHEN: NIGHT ONLY (a backlit silhouette needs the room brighter than the street — by day you'd see glass + reflections, not him);
+  ~7:00–11:30 pm; 2–3 nights a week (seeded by the date, every phone the same), 2–3 sets a night; never on a party night (the windows
+  hold the party), never during a raid / a legendary.
+  WHERE: one upper speakeasy window (the back / "gym" room — Claude Code picks the window with the cleanest wall behind).
+  LOOK: the room lit WARM by ONE bare hanging bulb near the top of the frame (the bright accent; it sways a touch when he hits the bag),
+  the back wall a warm amber glow, HE is a solid BLACK SILHOUETTE in strict profile ~70 % of the window's height (~38 pt — the full body,
+  the guard up, no face, no fingers); optional: a HEAVY BAG hanging at one side as a second big shape he works now + then (a dark
+  cylinder ~⅓ his height — reads).
+  ONE SET (~2.5 min): bounces in from the side (~2 s) → shadowboxes ~45 s moving SIDE TO SIDE (footwork, a bounce on the toes; jab-jab-
+  cross with the arm fully out, hooks, a duck + weave; a combination on the bag now + then) → steps OUT of view (~2 s) → GONE ~30 s → steps
+  BACK IN FACING THE OTHER WAY → ~45 s more → rolls his shoulders, wipes his brow with a forearm (a big readable motion) → bounces out.
+  THE RULE: always in + out by his own motion (THE WINDOW RULE); the rhythm steady + human (a breath between combinations), never a loop
+  you can spot. Preview: a panel row WINDOWS → THE SHADOWBOXER (+ &force=window&moment=boxer).
+
+- THE WINDOW RULE II — LONG ROUTINES ARE THE BASE (the owner, Oct 28 5:20 pm — STANDING): most speakeasy windows each night carry a scene
+  that runs for HOURS and changes within itself (the boxer, the TV room, the card game, the bar, the cash count) so a casual visitor just
+  catches it; short rare moments (the peek, the eyes, the holiday scenes) are the SPICE on top, never the base. Every scene still enters +
+  leaves by its own motion (THE WINDOW RULE).
+- THE SHADOWBOXER — REVISED SPEC (the owner, Oct 28 5:20 pm — DECIDED; supersedes the 2.5-min "set" spec above): 2–3 nights a week (seeded
+  by the date, every phone the same), 9–11 pm, the FULL TWO HOURS, built like a real 1920s workout: 3-MINUTE ROUNDS + 1-MINUTE BREAKS; the
+  rounds vary (shadowboxing side to side, the HEAVY BAG, footwork drills, duck + weave); in the breaks he steps OUT of view (towel, water) and
+  comes back facing either way; now + then a longer break; he walks in at the start + out at the end. Night only, one bare bulb, a black
+  silhouette in strict profile; never on a party night, a raid or a legendary. Preview: WINDOWS → THE SHADOWBOXER (+ a skip-to-round control).
+- THE ORDER (the owner, Oct 28 5:21 pm — DECIDED): PROM → FR4 (Fable review) → SKY (the Blackbird, the F-22s, the TR-3B full res, the Mothman
+  + the shadowboxer; FR4's cleanup in its Group 0) → ATM → 10 → 11b (by ~Nov 20) → 11c → 12 → 13 → C3 → the holiday polish → the games.
+- THE TR-3B's CHASE GETS THE BLACKBIRD (the owner, Oct 28 5:33 pm — DECIDED, for SKY): the F-22 vic's behaviour is UNCHANGED; once the
+  jets are ~⅓ of the way across the screen, THE BLACKBIRD screams across in the strip of sky ABOVE THE NEON SIGN, straight + level, the
+  SAME DIRECTION as the chase (it's chasing too), the huge Mach-diamond plumes, much faster — it passes the jets + leaves the screen
+  before them; then the jets carry on as before. Claude's rules: EVERY TR-3B chase gets it (the TR-3B is already 1–2 a month; the
+  Blackbird's own solo sightings + the hour-watcher's reward stay rare + separate); its radio-static tell ~3 s before still plays but sits
+  UNDER the jets' roar (the music is still drained then); its scream distinct from the F-22s' (a higher, tearing whine, not a second
+  roar); its path never crosses the jets' (it's above the sign, they're lower) + never over the TR-3B's exit; full-dpr like the jets.
+- THE TR-3B AT FULL RES — A LOOK CHECK (the owner, Oct 28 5:33 pm): it once read as a FLAT 2D cut-out CASTING A SHADOW on the backdrop
+  (maybe just the angle) → SKY makes sure: NO shadow / dark halo on the sky or buildings behind it (it's in the air, far from any wall),
+  ONE SOLID UNIT (the hull, the lights, the hub, the red orb drawn as one body that turns + tilts together, its edge shading reading as
+  volume, not a sticker); judged frame by frame through its whole path + at speed, at 390 / 402 / 430, unzoomed.
+- THE BLACKBIRD BREAKS THE SOUND BARRIER (the owner, Oct 28 5:35 pm — DECIDED, for SKY; in the chase AND its solo flybys): just after it
+  enters, a VAPOR CONE flashes white around its tail half (~0.4 s, big enough to read at phone size — a bright cone, not a mist) + ONE
+  pale SHOCK RING expands from that point + fades (~0.8 s, a thin bright ring, NOT a heat-shimmer distortion — that vanishes on a phone);
+  the plumes go to full Mach diamonds at that moment. THE SOUND arrives LATE like the real thing: a DOUBLE BOOM ("ba-BOOM") ~0.8–1 s after
+  the cone, then the scream; the boom shakes the city a touch (the windows' glass glint, a one-frame flicker on the roof signs, a few
+  pigeons lift) — never the NEON logo. Needs a sonic-boom take (Grok brief, Oct 28).
+- ONE BLACKBIRD FLYBY (the owner, Oct 28 5:36 pm): the Blackbird has ONE animation — the static tell, the entry, the vapor cone + shock
+  ring + late double boom, the Mach-diamond plumes, straight across above the sign — reused as-is by every trigger (its rare solo
+  sightings, the hour-watcher's reward, the TR-3B chase); the chase only decides WHEN it starts (the jets ~⅓ across) + its direction.
+  + THE BOOM'S SOUND IS IN (the owner, 5:37 pm): ~/Downloads/city-sfx/sonic-boom.wav (Grok's "anti-tank mine" take, the owner-approved
+  Oct 27) — no new brief; played twice ~0.15–0.3 s apart for the "ba-BOOM", now ~0.8–1 s after the vapor cone (replaces the Oct 27 order's
+  "the boom a beat later, after the roar").
+- THE ORDER, REVISED (the owner, Oct 28 5:38 pm): PROM → FR4 (Fable review, read-only) → C4 (its cleanup, its OWN pass — SKY is too big to carry it) → SKY → ATM → 10 → 11b → … as planned.
+- FOR FR4 — CAN THE FOREGROUND BE 3×? (the owner, Oct 28 5:55 pm, loved a PROM screenshot's crispness — a downscaled test render): measure
+  the city's real canvas memory on an iPhone-sized run (every baked layer + overlay, at 2× today) vs Safari's canvas-memory limit, and
+  report whether drawing the FOREGROUND BAND (the speakeasy + the promenade + its people) at the full 3× on tier-0 phones fits, with its
+  memory + frame cost — numbers + a recommendation only (pending the owner's OK to include).
+  + (5:57 pm) measure it at the WORST frame, not a calm night: a PARTY NIGHT at its peak (+ snow falling), where the 3× foreground's fill
+  stacks on the party's cost; if it only fits on calm nights, say so — the tier system could step the foreground back to 2× when frames
+  drop (a visible sharpness change? report it).
+  + (5:59 pm, the owner's fallback idea): if only the heaviest case fails (a party night WHILE snowing), 3× on every other night is fine —
+  FR4 reports which combinations fit; any switch 3× ↔ 2× happens at a hidden moment (the load, a weather change's blend, behind a
+  crossfade), never as a visible pop mid-scene. The owner judges the difference on his iPhone unzoomed before it's kept.
+- THE UPPER WINDOWS AT FULL 3× (the owner, Oct 28 6:00 pm — the idea; Claude: worth it, cheap): today only the hush sign, the blade, the
+  date stone + the roof billboard sit on the crisp full-dpr layer — the WINDOWS were made bigger (SP3) but are still drawn in the 2×
+  city. The UPPER speakeasy windows (not the barbershop: walkers pass in front of it) go on the crisp layer: small (~6 panes, ~1–2 MB at
+  3×), nobody walks in front. THE CATCH: whatever crosses in front of them (falling snow + rain, pigeons on the sills, the holiday
+  strings, the spider, sill snow, the blackout / drain dimming) must draw ABOVE the overlay or on it, never vanish behind it. FR4 lists
+  everything that crosses the upper windows; SLOT: SKY, with the shadowboxer (he's the first to benefit). If the 3× foreground band later
+  fits (FR4's numbers), this folds into it.
+- SPEAK TO THE CITY — THE INTERCOM (the owner, Oct 28 6:03 pm — DECIDED, slot Part 13 CITY CONTROL): an admin-panel button, PUSH-TO-TALK
+  (hold, speak up to ~30 s, release) — NOT a live stream (no outside streaming service). The clip uploads (Vercel's free Blob storage,
+  auto-deleted after a few minutes) + goes out through the EVERYONE system (city2/live): admins hear it at once, every other phone on
+  City 2.0 within the ~45 s poll. VOICE ONLY — no captions, no sky text (muted phones simply don't hear it; banners / skytyping exist
+  for text). THE SOUND, applied on each phone in Web Audio: a two-tone chime → the music ducks → the voice through a tinny 1920s PA
+  (band-limited, a touch of drive + crackle, a short slap echo off the buildings) → the chime → the music back up. Plays once per clip
+  per phone; never over a legendary's own audio (it waits for it to end); a JUST ME test button to hear the effect first.
+  + CANCEL (the owner, 6:03 pm — DECIDED): releasing the button does NOT send — it opens a review step: PLAY BACK (hear it through the
+  intercom effect, JUST ME) · SEND · DISCARD (nothing leaves the phone before SEND). After SEND, an UNSEND button stays up until every phone
+  would have it (~1 min): it pulls the clip, so any phone that hasn't fetched it yet never plays it; a phone that already started finishes
+  its (≤ 30 s) clip — the panel says how many minutes / which state ("sent · unsend until 6:05").
+  + IN A GAME IT WAITS (the owner, 6:05 pm — DECIDED): a phone in a running game never plays it mid-game, on the podium or in the
+  progression window — it holds the clip and plays it once the player is back in the LOBBY (or the title). Claude's rules: (1) in a room,
+  every phone in that room plays it TOGETHER (one start time on the server clock, like the lobby song) — not each phone on its own; (2)
+  the clip is kept up to ~1 HOUR (a game can run 20–40 min; a rematch straight from the podium skips the lobby) — still waiting after
+  that → dropped, never played late; (3) UNSEND still works for any phone still holding it (it re-checks right before playing); (4) a
+  phone that wasn't on City 2.0 / in a room when it was sent doesn't get it later (no backlog). The lobby + game screens learn to check
+  for it (the title's poll today) — Part 13 checks it with CONN's rules (no new socket: the room's socket or the cached poll).
+  + A NOW OPTION (the owner, 6:06 pm — DECIDED): the review step's SEND has two choices — SEND (waits for the lobby, the default) ·
+  SEND NOW (plays at once everywhere, mid-game too, ducking the game's music). Claude's exception: a game whose MUSIC IS THE GAMEPLAY
+  (PULSE's rounds — timing to the song) still waits until that round ends (a duck + a voice there wrecks the play); any game can mark
+  itself that way (a module flag, e.g. `NO_INTERCOM`).
+  + (6:06 pm) naming: SEND NOW → "DON'T WAIT" (it skips the lobby wait; it isn't instant). DELIVERY: phones IN A ROOM already hold the
+  room's database socket → they LISTEN to the intercom node on it (no new connection, CONN-safe) and get the clip in ~1–2 s; title
+  visitors (parked, no socket) get it on the cached ~45 s poll.
+  + PICK WHO HEARS IT (the owner, 6:07 pm — DECIDED): the review step gets a TARGET — EVERYONE (the city + every room) · THE CITY ONLY
+  (title visitors) · ONE ROOM (a list of the open rooms right now: the hush word, the players' count, lobby / which game; locked rooms
+  shown too, marked). One room = only that room's phones, together on the server clock, ~1–2 s on their socket; the lobby-wait / DON'T
+  WAIT choice still applies. Server-written (via /api/admin, a node only that room's players can read); the room list from the admin
+  side, never a public list. Claude's flag for launch: a voice in a STRANGER's room may feel invasive — fine among friends now; revisit
+  before the public launch (e.g. only rooms the owner is in or invited to, or a lobby setting to opt out).
+  + (6:08 pm, the owner): KEEP ONE ROOM targeting as-is for launch — "I'm not going to creep people out, but I want the option there"; no
+  restriction built (the flag above = noted, closed).
+- PROM REVIEW (the owner, Oct 28 7:19 pm): ✔ plain night "all right", ✔ crosswalk at night okay, ✔ DAY "beautiful — a lot better without
+  the lampposts + clutter". FIX (C4): (1) the CROSSWALK's light reads like SPOTLIGHTS → softer + wider, no hard-edged pools (a lamp's
+  spill across the asphalt, not a stage light); (2) CARS on the back road pass through it UNLIT → every vehicle brightens as it crosses
+  the crossing's light (+ the signal's tint on its body). IDEA (pending): the COMPASS shifted LEFT, same depth (z 42.6), lined up with the
+  WATER BENCH (f 0.6675 → ~0.515) so a centrepiece (snowman, Christmas tree, the giant) never blocks the crosswalk.
+- PROM REVIEW, cont. (the owner, Oct 28 7:24 pm, his iPhone screenshot): (1) THE CAB STAND's SITTER reads as STANDING — at phone size you
+  can't tell what he's doing → a clear SEATED silhouette: thicker legs, the thigh a clear horizontal on the seat + the shin down (the knee's
+  right angle IS the read), a little lighter than the bench's dark wood; judged unzoomed at 390 / 402 / 430, day + night. (2) THE COMPASS
+  LEFT is a GO (C4): f 0.6675 → in line with the WATER BENCH (~0.515), same depth (z 42.6). (3) THE CHESTNUT CART moves to the RIGHT of the
+  compass, in the MIDDLE of the gap between the compass and the cab-stand bench (≈ f 0.68–0.70), FORWARD (≈ z 38.4, the cab bench's
+  depth — not far back): low on the screen, it clears the crosswalk's view (Claude's check on the real numbers: its top ~30 pt below the
+  crossing at 402). Claude Code checks against the real layout: the dance circle's reach (ring × ~1.5 + its watchers) + the cab-stand's
+  waiters' path + the walkers' routes; L.cart.stopX flips side (it stays right of the compass, never stands during an event); the cart
+  wheels in from the RIGHT again only if it can without crossing the cab bench, else from the bottom / the street. Render it before
+  committing (the moved compass + the cart, day + night + a holiday centrepiece).
+- PROM REVIEW, cont. (the owner, Oct 28 7:29 pm): ✔ THE IMPLOSION "much better", ✔ THE JOGGERS' clothes + arms "look great". THE DOORMAN
+  doesn't read — "just a guy standing there", can't tell back-to-the-wall from looking sideways → REDO (C4, DECIDED): drop the lean; HE
+  OPENS THE DOOR for every guest — steps to it, pulls it open (doors.js's real swing + spill), holds it while they pass, a TIP OF THE HAT,
+  closes it, steps back to his post; at rest he stands STILL beside the door FACING US, hands clasped in front (a weight shift now + then).
+  A distinct silhouette so he's not a passer-by: a long doorman's coat + a PEAKED CAP (not a fedora), one bright accent (brass buttons read
+  as one light stripe down the coat). Judged unzoomed at 390 / 402 / 430. THE HALLOWEEN FOOT SLIDE: seen; FR4 recommends (the compass
+  moving left may remove the squeeze).
+- PROM REVIEW, cont. (the owner, Oct 28 7:36 pm, two iPhone screenshots, unzoomed): (1) THE BARBERSHOP WINDOW AT NIGHT IS WASHED OUT —
+  a flat orange haze + a pale blob, no room ("that light has always been off — like you're not using real light") → C4 REBUILDS it as a
+  REAL 2.5D ROOM like the upstairs ones (core/harbor-rooms.js: floor + back wall in perspective): the back wall's big MIRROR (the hidden
+  door), the barber CHAIR as one bold silhouette, ONE lamp with a visible shade casting a defined pool on the floor + the chair (the light
+  model on surfaces) — NO additive glow / radial blob over the glass. At night the shop is CLOSED → the room DIM (a night lamp + the warm
+  edge when the mirror door opens), so the AWNING becomes the brightest thing on that storefront. The glass reads as glass (a faint
+  reflection, the gilt HARBOR BARBERS on it). Claude Code also checks EVERY window for the same flat-glow washout (the upper right pane in
+  his shot reads as one flat yellow glow with a blob too). (2) THE AWNING — the right direction, BRIGHTER: the lamps under it aim UP —
+  the red + white stripes glow from below (a warm gradient on the underside, brightest at the lamps), a soft spill down onto the window
+  head + the cobbles in front; keeps its hours (dusk → 1 am / 2 am party nights) + the blackout.
+- PROM REVIEW, cont. (the owner, Oct 28 7:39 pm, a rainy night): ✔ THE WET REFLECTIONS "really good, I like them" — the back ones (the
+  signals' green, the door lamp, the neon) run straight down toward us, which is physically right; C4 softens them a touch (a little less
+  bright + broken up by the cobbles + the rain's ripples, so they're not ruler-straight lines). THE FOREGROUND STREAKS (the two dotted
+  lines on the street under the dock, going their own ways) are WRONG (Claude): a wet floor only mirrors what's IN FRONT of the viewer —
+  lamps BEHIND the viewer can't show up as streaks; they make a broad wet SHEEN instead (the glare on the near cobbles + the street,
+  brightest at the bottom edge, the puddles bright) → C4 replaces those streaks with that sheen. THE GOLD HARBOR BARBERS LETTERING
+  (the owner unsure: remove it, or print it on the awning): Claude's pick — KEEP it on the glass for now (period-true gilt on a shop
+  window), dark gilt with a faint glint at night (never lamp-lit once the awning is off) on the rebuilt dim room; if it still doesn't read
+  after C4's rebuild → the name on the AWNING's front flap (the valance), only if it reads ≥ 8 pt at 402 unzoomed; else drop it (the pole
+  says barbershop).
+- PROM REVIEW, cont. (the owner, Oct 28 7:42 pm): ✔ THE SNOWY NIGHT "looks beautiful". THE WATER BENCH's SITTERS look SEE-THROUGH, legs too
+  thin (zoomed: a man sitting, but it doesn't read) → Claude's read: seen from BEHIND, the bench's BACKREST SLATS are drawn over him — gaps
+  between slats over a dark figure read as transparency. FIX (C4): a SOLID backrest (wide boards, no see-through gaps on that bench, or the
+  figure drawn solid behind it), his HEAD + SHOULDERS + HAT clearly ABOVE the backrest line (the read from behind), bolder; the same
+  seated-silhouette rules as the cab stand (clear knee + thigh when seen side-on). THE UPPER RIGHT PANE (the flat yellow) = a BLIND DRAWN
+  with the lamp behind it (the owner) → keep the blind, but light it like a real lit blind: the lamp's glow a soft gradient (brightest
+  near the lamp, falling off to the edges), the blind's slight fold lines + a pull cord + the sash's shadow, the lamp's silhouette faint
+  through it — not one flat colour + a blob.
+  CORRECTION (the owner, 7:43 pm): the SEE-THROUGH + thin legs was the CAB STAND's sitter (the bench FACING US), not the water bench (not
+  checked yet). So: the cab-stand sitter (seen from the front) → his legs much thicker + solid, the bench's slats + frame NEVER showing
+  through his body or between thin legs (the thighs a solid mass over the seat's front edge, the shins solid down to the cobbles, drawn
+  over the bench), the knee's bend the read (the 7:24 pm note). The solid-backrest + head-above-the-back fix stays as a CHECK for the
+  water bench once he's looked at it.
+- PROM REVIEW, cont. (the owner, Oct 28 7:47 pm): THE WATER BENCH (the back one, facing the harbor) — nobody sat during his visit (random)
+  → C4 adds &force=waterbench (+ a panel row): a sitter arrives within ~10 s, a couple stops beside it, so it can be judged; then the
+  owner checks the see-through question there too. DAY OF THE DEAD: skip this year (the site won't be released before then) — no work.
+  CHRISTMAS: only the C9 strings on the speakeasy's front at Nov 28 ("looks amazing"), nothing on the trees / the promenade yet →
+  DEFERRED to 11b (Christmas + New Year's): DISCUSS the whole Christmas look with the owner BEFORE writing 11b's prompt (what dresses the
+  trees, the compass, the railing, the door, when each piece arrives in the build-up).
+- PROM REVIEW DONE (the owner, Oct 28 7:49 pm): ✔ THE UFO's approach sound on a cold load "awesome". BUG (C4): after the abduction (everyone
+  flees), once the UFO leaves the promenade's people SNAP back into place → THE RETURN: the promenade refills GRADUALLY by real arrivals
+  only — walking in from the screen's edges, from behind the speakeasy (left), across the crosswalk from the back sidewalk, dropped off by
+  a cab — staggered over ~1–2 min, nobody spawning on screen. General rule (THE PEOPLE RULE, like THE WINDOW RULE): NO walker ever appears
+  or vanishes in view — after any clear-out (the UFO, the TR-3B's blackout, a raid, the implosion, the dock fading) the plan rejoins
+  mid-way only through entry points; a test (a pixel / plan check: every new walker's first frame lies at an entry point or off screen).
