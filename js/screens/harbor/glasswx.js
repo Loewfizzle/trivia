@@ -161,6 +161,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   // bead that gathers + runs (the bead + drip system). A few NEARER flakes (the near layer's big soft ones) fall past in front of the
   // letters and never stop — never a flat wall. All in the sign's overlay (the falling snow behind is the city's canvas).
   let landers = [], passers = [], landAcc = 0, passAcc = 0, landed = 0, flakeSp = null;
+  const landedBy = [0, 0, 0, 0];   // (per letter: N · E · O · N)
   const LAND = Object.freeze({ max: 14, rate: 2.2, v: 26, r0: 1.55, r1: 2.1, sit: [1.6, 3.6], sitLit: [0.5, 1.1], soft: 1.7, add: 0.003, passMax: 7, passRate: 1.6, passV: 52 });
   function flakeSprite() {
     if (flakeSp) return flakeSp;
@@ -168,13 +169,28 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.42, 'rgba(255,255,255,0.92)'); g.addColorStop(0.7, 'rgba(255,255,255,0.35)'); g.addColorStop(1, 'rgba(255,255,255,0)');
     x.fillStyle = g; x.fillRect(0, 0, S, S); flakeSp = c; return c;
   }
-  /** a level spot on a tube's top (t, i) + where its top surface is (on the snow already there) */
+  /** a spot on a tube's top (t, i) + where its top surface is (on the snow already there). (The owner: "does it happen on the N's too?" —
+   *  it didn't: only near-level stretches took flakes, and the N's are uprights + a steep diagonal. Now the LETTER is picked first (all
+   *  four alike), then a spot in it: a level stretch, a sloping one (the N's diagonal), or the round TOP END of an upright) */
+  let landKey = null, landBy = null;
+  function landSpots() {
+    if (landKey === geo) return landBy;
+    landKey = geo; landBy = [[], [], [], []];
+    geo.tubes.forEach((tb, t) => {
+      const P = tb.pts, li = Math.max(0, Math.min(3, tb.li || 0));
+      for (let i = 2; i < P.length - 2; i++) if (Math.abs(P[i].tx) >= 0.36) landBy[li].push({ t, i, cap: false });
+      for (const [i, j] of [[0, Math.min(3, P.length - 1)], [P.length - 1, Math.max(0, P.length - 4)]]) if (Math.abs(P[i].tx) < 0.36 && P[i].y < P[j].y) for (let k = 0; k < 4; k++) landBy[li].push({ t, i, cap: true });
+    });
+    return landBy;
+  }
   function landSpot() {
+    const by = landSpots();
     for (let n = 0; n < 8; n++) {
-      const t = Math.floor(R() * geo.tubes.length), pts = geo.tubes[t].pts, i = 2 + Math.floor(R() * Math.max(1, pts.length - 4)), p = pts[Math.min(pts.length - 1, i)];
-      if (Math.abs(p.tx) < 0.55) continue;
-      const [nx, ny] = underside(p, 1), up = geo.half * (1 + 1.5 * snowK);
-      return { t, i: Math.min(pts.length - 1, i), li: geo.tubes[t].li || 0, x: p.x - nx * up, y: p.y - ny * up };
+      const li = Math.floor(R() * 4), list = by[li].length ? by[li] : by.flat(); if (!list.length) return null;
+      const c = list[Math.floor(R() * list.length)], p = geo.tubes[c.t].pts[c.i], up = geo.half * (1 + 1.5 * snowK);
+      if (c.cap) return { t: c.t, i: c.i, li, x: p.x, y: p.y - up };
+      const [nx, ny] = underside(p, 1);
+      return { t: c.t, i: c.i, li, x: p.x - nx * up, y: p.y - ny * up };
     }
     return null;
   }
@@ -202,7 +218,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         f.x = f.x0 + (f.goal - f.x0) * (f.u * f.u * (3 - 2 * f.u)) + sway;
         f.y = f.y0 + (f.yGoal - f.y0) * f.u;
         f.a = Math.min(1, f.age / 0.35);
-        if (f.u >= 1) { f.st = 'sit'; f.age = 0; f.x = f.goal; f.y = f.yGoal; const L = litOf(f.li); f.lit = L >= 0.3; f.sit = f.lit ? LAND.sitLit[0] + R() * (LAND.sitLit[1] - LAND.sitLit[0]) : LAND.sit[0] + R() * (LAND.sit[1] - LAND.sit[0]); landed++; }
+        if (f.u >= 1) { f.st = 'sit'; f.age = 0; f.x = f.goal; f.y = f.yGoal; const L = litOf(f.li); f.lit = L >= 0.3; f.sit = f.lit ? LAND.sitLit[0] + R() * (LAND.sitLit[1] - LAND.sitLit[0]) : LAND.sit[0] + R() * (LAND.sit[1] - LAND.sit[0]); landed++; landedBy[f.li] = (landedBy[f.li] || 0) + 1; }
       } else if (f.st === 'sit') {
         if (f.age >= f.sit) {
           f.st = 'soft'; f.age = 0;
@@ -729,7 +745,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         dropGlassLayers(keep);
       } else if (elLayers.size) dropGlassLayers();
     },
-    debug: () => ({ on, landers: landers.length, sitting: landers.filter(f => f.st === 'sit').length, landed, passers: passers.length, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), snowRenders, snowLum: lastLum, layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
+    debug: () => ({ on, landers: landers.length, sitting: landers.filter(f => f.st === 'sit').length, landed, landedBy: landedBy.slice(), passers: passers.length, beads: beads.length, drips: drips.length, frost: +frostK.toFixed(3), ice: +iceK.toFixed(3), snow: +snowK.toFixed(3), icicles: +icSnow.toFixed(3), snowRenders, snowLum: lastLum, layers: [...layers.keys()], glassLayers: [...elLayers.keys()], tubes: geo ? geo.tubes.length : 0, glass: glass.map(g => g.id),
       water: Object.fromEntries([...water].map(([id, w]) => [id, { drops: w.drops.length, streaking: w.drops.filter(d => d.sl).length, trails: w.trails.length, drips: w.drips.length }])) }),
     destroy() { dropLayers(); dropGlassLayers(); water.clear(); sprites.clear(); for (const f of frostCv.values()) f.width = 0; frostCv.clear(); geo = null; },
   };

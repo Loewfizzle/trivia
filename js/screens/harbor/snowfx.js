@@ -103,18 +103,18 @@ export function workFx(c, kind, o) {
     }
     c.globalAlpha = 1;
   } else if (kind === 'flusher') {
-    // 9e — THE WATER WAGON: two FANS of spray from the nozzles under the front bumper, low + wide out to both sides (the near fan toward
-    // us, the far one back), arcing down onto the road — droplets caught in the lamps at night (a pale silver-blue), sparkling white by
-    // day; the road behind left dark + glossy (a wide wet band out to where the lane leaves the screen)
-    const nx = o.x + d * (o.len / 2 - 0.15) * sp, fade = o.fade == null ? 1 : o.fade;
+    // 9e — THE WATER WAGON: two FANS of spray from the nozzles at the TAIL (the owner: "the water should be coming out the back of it"),
+    // low + wide out to both sides + trailing behind, arcing down onto the road — droplets caught in the lamps at night (a pale
+    // silver-blue), sparkling white by day; the road behind left dark + glossy (a wide wet band out to where the lane leaves the screen)
+    const nx = o.x - d * (o.len / 2 - 0.15) * sp, fade = o.fade == null ? 1 : o.fade;
     if (o.xEnd != null) { const a = Math.min(nx, o.xEnd), w = Math.abs(o.xEnd - nx); c.globalAlpha = 0.3 * fade; c.fillStyle = 'rgb(14,16,26)'; c.fillRect(a, o.y - 0.7 * sp, w, 1.3 * sp); c.globalAlpha = 0.12 * fade; c.fillStyle = o.night > 0.5 ? 'rgb(150,160,200)' : 'rgb(230,236,246)'; c.fillRect(a, o.y - 0.2 * sp, w, Math.max(0.6, 0.12 * sp)); c.globalAlpha = 1; }
     if (mv < 0.05) return;
     c.fillStyle = o.night > 0.5 ? 'rgb(196,210,240)' : 'rgb(244,248,255)';
     // (2nd look pass: the fans were a faint mist at phone size — bigger, brighter drops, wider out, a soft veil behind them)
-    c.globalAlpha = 0.18 * mv * fade; c.beginPath(); c.ellipse(nx + d * 1.0 * sp, o.y - 0.25 * sp, 1.6 * sp, 0.55 * sp, 0, 0, 6.2832); c.fill();
+    c.globalAlpha = 0.18 * mv * fade; c.beginPath(); c.ellipse(nx - d * 1.0 * sp, o.y - 0.25 * sp, 1.6 * sp, 0.55 * sp, 0, 0, 6.2832); c.fill();
     for (let i = 0; i < 64; i++) {
       const u = ((t * 1.7 + i * 0.381) % 1), side = i % 2 ? 1 : -1, w = ((i * 0.618) % 1) - 0.5, a = (1 - u * u) * (0.85 + 0.15 * w) * mv * fade;
-      const px = nx + d * (0.3 + 1.5 * u + 0.35 * w) * sp, py = o.y - (0.45 + 1.1 * u - 1.3 * u * u) * sp + side * (0.15 + 2.0 * u) * sp * 0.45, r = Math.max(0.9, (0.09 + 0.14 * u) * sp);
+      const px = nx - d * (0.3 + 1.5 * u + 0.35 * w) * sp, py = o.y - (0.45 + 1.1 * u - 1.3 * u * u) * sp + side * (0.15 + 2.0 * u) * sp * 0.45, r = Math.max(0.9, (0.09 + 0.14 * u) * sp);
       c.globalAlpha = a; c.beginPath(); c.arc(px, py, r, 0, 6.2832); c.fill();
     }
     c.globalAlpha = 1;

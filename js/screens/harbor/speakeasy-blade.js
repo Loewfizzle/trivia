@@ -119,10 +119,11 @@ export function paintLetters(x, game, style, M) {
       if (inline) inline();
     } else if (style === 'dark') { text(x, ch, col.cx, vb, size, { fill: rgb(M.letterN), stroke: rgb(M.letterN), lw: size * 0.06, sq, font }); if (inline) inline(); }
     else {
-      const body = mix(ink, [255, 255, 255], S.ink === 'game' ? 0.12 : 0.3), edge = mix(ink, [255, 255, 255], 0.05);
-      text(x, ch, col.cx, vb, size, { fill: rgb(body), stroke: rgb(edge), lw: size * 0.1, sq, font, glow: [M.glowPx, rgb(ink, 0.95)] });
-      // (the WHITE-HOT CORE: a smaller letter inside the coloured one — the colour stays the letter's, the core makes it read in any colour)
-      text(x, ch, col.cx, vb + size * 0.1, size * 0.8, { fill: 'rgb(255,250,240)', sq: sq * 0.8, font });
+      // (9e — the owner: "a weird font or effect on the vertical blade sign": the WHITE-HOT CORE was a second, 80 %-size letter shifted up
+      //  inside a coloured letter with a thick edge — the two never lined up, so every letter read as a hollow outlined tile. Now ONE clean
+      //  letter: near-white (a breath of the game's colour), a thin edge in its colour, the glow in its colour — a lit sign, one shape)
+      const body = mix(ink, [255, 252, 244], 0.8), edge = mix(ink, [255, 255, 255], 0.35);
+      text(x, ch, col.cx, vb, size, { fill: rgb(body), stroke: rgb(edge), lw: size * 0.045, sq, font, glow: [M.glowPx, rgb(ink, 0.95)] });
       if (inline) inline();
     }
   });
