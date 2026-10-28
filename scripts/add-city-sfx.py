@@ -391,6 +391,21 @@ CUTS = {
     'crane-work': [{'loop': (1.0, 48.0), 'xf': 2.5, 'hp': 160, 'lp': 2600, 'rate': 24000, 'kbps': 40}],
     'hammering-far': [{'loop': (1.0, 54.0), 'xf': 2.5, 'hp': 220, 'lp': 3200, 'rate': 24000, 'kbps': 40}],
     'implosion': [{'cut': (0.0, 24.0), 'fin': 0.02, 'fout': 6.0, 'hp': 60, 'lp': 5000, 'rate': 32000, 'kbps': 56}],
+    # 9f — THE TOWER's CC0 ALTERNATES (craigsmith's Hollywood optical / mag effects, 1930s–60s, Freesound CC0 — Grok's cut points, the owner's
+    # brief): THE SIREN (the slot was empty — the 1920s siren stood in) one slow distant wail 0.5–11.0 s, never the fast warbles (24.3–29.5,
+    # 43–48 s); quiet (−29.5 LUFS) → levelled to the one-shots' −20 like every take, far + soft by its slot gain + a low-pass
+    'tower-siren-2': [{'cut': (0.5, 11.0), 'fin': 0.4, 'fout': 2.5, 'hp': 220, 'lp': 2600, 'rate': 24000, 'kbps': 48}],
+    # THE WARNING HORN, the new default: three blasts 11.5–17.0 s (a destroyer's horn; ~226 Hz fundamental — a presence lift at 900 Hz
+    # so its harmonics carry on a phone's speaker); the old horn (warning-horn) stays as the BACKUP take (BACKUP below: weight 0)
+    'tower-horn-2': [{'cut': (11.5, 17.0), 'fin': 0.03, 'fout': 0.5, 'hp': 160, 'presence': (4.0, 900), 'lp': 5000}],
+    # THE RIVET GUN (a power riveter on a steel building) — its OWN loop slot over the hammering bed, now + then: 5.20 → 35.15 s (both
+    # ends in natural gaps: no seam search), a short 150 ms seam; the +3.5 dB step at 26.8 s (just after a gap) taken back out; HARSH
+    # (75 % at 2–5 kHz) → −6 dB round 3.2 kHz (a broad cut) + a low-pass for the distance
+    'hammering-2': [{'to': 'rivet-gun', 'name': 'rivet-gun', 'loop': (5.2, 29.95), 'xf': 0.15, 'search': 0.02, 'hp': 220, 'presence': (-6.0, 3200), 'lp': 6000,
+                     'gainenv': [(21.6, 31.0, -3.5)], 'rate': 24000, 'kbps': 48}],
+    # THE CRANE LIFT (a period crane lifting a big load) — a ONE-SHOT 4.5 → 70 s (the lift: the winch winding up, the swell, the fade)
+    # layered now + then over the crane's steady loop
+    'crane-2': [{'to': 'crane-lift', 'name': 'crane-lift', 'cut': (4.5, 70.0), 'fin': 1.2, 'fout': 6.0, 'hp': 120, 'lp': 3500, 'rate': 16000, 'kbps': 40}],
     # (12 s Sonniss, a Royal Hudson's whistle from the cab: the engine's noise 0–2 s (no tone), THE WHISTLE 2.0–4.3 s (437.5 Hz held:
     # voiced 0.5–0.67), then the engine chuffing (modulation 0.75–0.8) to the end — 1.7–4.9 s, low-passed 3.5 kHz (far off at noon))
     'steam-whistle': [{'cut': (1.7, 4.9), 'fin': 0.3, 'fout': 0.6, 'hp': 250, 'lp': 3500}],
@@ -509,10 +524,20 @@ SKIP = {'bus-idle', 'bus-depart', 'mirror-door-open', 'mirror-door-close', 'tv-m
         # 8b1: the second try at far traffic still measures as MODERN (a continuous wash: CUTS['traffic-far-2'] has its cut, ready)
         'traffic-far-2',
         # 11a-2: the adult murmur is laid INSIDE parade-crowd (its `mixin`), never a take of its own
-        'parade-crowd-2'}
+        'parade-crowd-2',
+        # 9f: Grok's Oct 28 first set for the tower (the Mixkit hand siren, the narrowboat horn, the mill's drop hammer, the modern
+        # diesel crane, fireworks as the charges, the wall collapse) — not asked for: the owner picked the craigsmith alternates (the
+        # -2 files). Drop a stem from here to try one (each has its trim in credits.txt)
+        'tower-siren', 'tower-horn', 'hammering', 'crane', 'implosion-charges', 'implosion-rumble'}
+# 9f — BACKUP TAKES: imported + kept on disk but never picked (weight 0: core/city-sounds.js#pickTake) — the old warning horn behind the
+# craigsmith horn. TO SWAP BACK: move the stem from here to the new take's place (BACKUP = {'tower-horn-2'}), re-run --only tower-horn
+BACKUP = {'warning-horn'}
 PIXABAY = ('The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — '
            'the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).')
+CRAIG = ('craigsmith (Freesound) — Hollywood optical / mag effects of the 1930s–60s transferred by USC Cinema; CC0 1.0 (public domain: '
+         'https://creativecommons.org/publicdomain/zero/1.0/). Imported from the untouched original.')
 CREDIT_NOTE = {
+    'tower-siren-2': CRAIG, 'tower-horn-2': CRAIG, 'hammering-2': CRAIG, 'crane-2': CRAIG,   # (9f: the tower's alternates)
     'heli-flyby': PIXABAY, 'prop-plane': PIXABAY, 'balloon-burner': PIXABAY, 'geese': PIXABAY,
     'bar-ambience-close': PIXABAY, 'shop-bell': PIXABAY, 'broom-sweep': PIXABAY, 'window-sash': PIXABAY, 'roller-blind': PIXABAY,
     'cat-land': PIXABAY, 'rooftop-party': PIXABAY, 'snow-shovel': PIXABAY,   # (9b)
@@ -1008,6 +1033,7 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
     hit = None
     if 'loop' in cut:
         y = y[off:off + int(round((L + xf) * SR))]
+        if cut.get('gainenv'): y = gain_env(y, cut['gainenv'])   # (9f: a loop's level step evened out — the rivet gun)
         body = int(round(L * SR))
         # (the level is the body's — the tail only overlaps the head at the seam)
         g = 10 ** ((LOOP_LUFS - lufs(y[:body])) / 20)
@@ -1082,6 +1108,7 @@ def main():
             stem, kind = p.stem, slots[slot]
             h = md5(p)
             cuts = CUTS.get(stem) or default_cuts(p, kind)
+            if stem in BACKUP: cuts = [{**c, 'w': 0} for c in cuts]   # (9f: kept, never picked)
             extra = sorted(set(s for c in cuts for s in [*c.get('also', []), *([c['to']] if c.get('to') else [])]))
             print(f'{p.name} → {slot}{" + " + ", ".join(extra) if extra else ""} ({kind}, {len(cuts)} take{"s" if len(cuts) > 1 else ""}{", default cut" if stem not in CUTS else ""})')
             for s in extra:

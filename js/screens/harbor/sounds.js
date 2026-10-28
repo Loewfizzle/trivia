@@ -33,6 +33,8 @@ import { settings } from '../../audio/settings.js';
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const rnd = (a, b) => a + Math.random() * (b - a);
+let liftAt = 0;   // (9f: the next crane lift, s)
+const towerT0 = typeof performance !== 'undefined' ? performance.now() / 1000 : 0;
 const BEND_AHEAD = 0.6;   // (9f: the TR-3B's tape ramps — each aims this far ahead on the envelope, over this long: on time, not behind)
 
 export function createCitySounds() {
@@ -125,6 +127,14 @@ export function createCitySounds() {
       // (9e — THE CONSTRUCTION TOWER across the harbor by day: the crane's hoist + the hammering, far + low)
       keep('crane', clamp(people.crane || 0, 0, 1) * bm.k, people.towerPan || -0.45, { ramp: 4, linger: 30, fadeIn: 5 });
       keep('hammering', clamp(people.hammer || 0, 0, 1) * bm.k, people.towerPan || -0.45, { ramp: 4, linger: 30, fadeIn: 5 });
+      // (9f — THE TOWER's CC0 LAYERS now + then over the beds: the RIVET GUN ~40 s of every 2.5 min while the hammering plays (the first
+      // ~20 s after the page opens), A CRANE LIFT every 4–6 min while the crane works (the first within ~1–1.5 min) — far + soft)
+      { const ts = performance.now() / 1000, ph = (ts - towerT0 + 130) % 150, rv = ph < 40 ? 1 : 0, tp = people.towerPan || -0.45;
+        keep('rivet-gun', clamp(people.hammer || 0, 0, 1) * rv * bm.k, tp, { ramp: 2.5, linger: 20, fadeIn: 2 });
+        if ((people.crane || 0) > 0.2 && bm.k > 0.05 && isFilled('crane-lift')) {
+          if (!liftAt) liftAt = ts + 40 + Math.random() * 50;
+          else if (ts > liftAt) { citySound('crane-lift', { gain: clamp(people.crane, 0, 1) * bm.k, pan: tp }); liftAt = ts + 240 + Math.random() * 120; }
+        } else liftAt = 0; }
     }
     // ---- 9a — THE WEATHER, heard (only when real / forced): the rain's beds layered by its intensity + by where you "stand" — the
     // awning drumming close (left: the speakeasy), the pavement around you, the rain on the water far off (right); the drips after it;

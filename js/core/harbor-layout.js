@@ -474,6 +474,14 @@ function towerStage(L, st) {
   const sh = slotShape(st), full = t.h, d = st.design;
   t.stage = st.stage;
   t.full0 = { h: t.h, tiers: t.tiers.map(x => ({ ...x })), mat: t.mat, crown: t.crown };   // (the old building as it stood: the implosion's live copy)
+  // (9f — THE REAL TOWER IMPLODES, the owner: "why does the building look so cheap and flat … the original building should implode": the
+  // WHOLE original block — its form, stone, tiers + crown, last cycle's design in a later year — kept for tower.js, which bakes it with the
+  // skyline's own skyBlock into a sprite and drops that, floor band by floor band)
+  if (st.old || st.stage === 'implosion') {
+    const o = { ...t, tiers: t.tiers.map(x => ({ ...x })), crown: t.crown ? { ...t.crown } : null }, od = st.old;
+    if (od && (od.form !== o.form || od.mat !== o.mat || !o.crown || od.crown.t !== o.crown.t)) { o.form = od.form; o.mat = od.mat; o.crown = { ...od.crown, h: od.crown.h * (o.squeeze || 1) }; o.tiers = tiersOf(o); }
+    t.orig = o;
+  }
   if (d && (!sh || sh.works === 'dark') && (d.form !== t.form || d.mat !== t.mat || !t.crown || d.crown.t !== t.crown.t)) {
     t.form = d.form; t.mat = d.mat; t.crown = { ...d.crown, h: d.crown.h * (t.squeeze || 1) };
     t.tiers = tiersOf(t);

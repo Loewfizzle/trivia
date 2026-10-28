@@ -108,6 +108,10 @@ export function createSkyBeams() {
       // so a thinner, fainter, ice-white beam that still joins the colour sweeps)
       const far = t.id === 'glassL' && !cam.wide;
       if (!['hero', 'word', 'pano'].includes(t.rank) && !(t.rank === 'modern' && cam.wide) && !far) continue;
+      // (9f — THE CONSTRUCTION SITE JOINS THE SHOW: while the slot is a rising frame / the dark shell its beam is a WORK LIGHT from the
+      // top deck — warm white, a little narrower — never a tower colour; the empty lot (works 'gone') has none)
+      if (t.works === 'gone') continue;
+      const site = t.works === 'frame' || t.works === 'dark';
       const tp = t.tiers[t.tiers.length - 1], cx = (tp.x0 + tp.x1) / 2;
       const [x, y] = project(cam, cx, tp.y0 + tp.h + (tp.crown ? tp.crown.h : 0) + (t.needle || 0), tp.z0);
       if (x < 6 || x > cam.W - 6) continue;
@@ -116,7 +120,7 @@ export function createSkyBeams() {
       // under the page, the buttons stay on top and tappable)
       const top = 0;
       if (y - top < 40 * K) continue;                                // (too little sky above it: no beam)
-      cand.push({ id: t.id, x, y, top, under, len: y - top, far });
+      cand.push({ id: t.id, x, y, top, under, len: y - top, far, site });
     }
     // the ones rising free of the sign first (the tall beams), then the tallest — spread out (never two within ~40 pt)
     cand.sort((a, b) => (a.under - b.under) || a.y - b.y);
@@ -153,7 +157,8 @@ export function createSkyBeams() {
       if (a < 0.01) return;
       let col = (cfg.colours && cfg.colours[i % cfg.colours.length]) || cols[i] || [255, 255, 255];
       if (b.far) col = col.map((v, j) => Math.round([224, 240, 255][j] * 0.72 + v * 0.28));      // (the glass tower's: ice-white, a touch of the sweep)
-      const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.9 + 0.3 * (f.punch || 0)) * (b.far ? 0.5 : 1);   // (7a: the beam swells more on the beat)
+      if (b.site) col = [255, 238, 206];                                                              // (9f: the site's work light)
+      const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.9 + 0.3 * (f.punch || 0)) * (b.far ? 0.5 : b.site ? 0.72 : 1);   // (7a: the beam swells more on the beat)
       if (!sp) return;
       if (vol > 0.01) {
         const lv = (y0 - b.top) * (1 - 0.55 * heavy) * (1.05 - 0.2 * vol), hw = 30 * K * cfg.width * (1 + 1.3 * heavy) * (b.far ? 0.55 : 1), av = a * pulse * vol * (b.far ? 0.5 : 1);

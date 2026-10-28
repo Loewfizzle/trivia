@@ -86,6 +86,9 @@ export const FILES = /*FILES*/{
   "crane": [
     {"f": "crane-work.mp3", "v": "e19b7e58", "d": 50.5, "lufs": -24.4, "loop": 48.0, "xf": 2.5, "from": [2.1, 52.6], "src": "crane-work", "r": 24000}
   ],
+  "crane-lift": [
+    {"f": "crane-lift.mp3", "v": "8c566de5", "d": 65.5, "lufs": -20.4, "peak": 14.85, "sw": [0.35, 58.3], "from": [4.5, 70.0], "src": "crane-2", "r": 16000}
+  ],
   "crates-clink": [
     {"f": "crates-clink_1.mp3", "v": "051d062d", "d": 2.5, "lufs": -20.9, "peak": 0.9, "sw": [0.65, 1.15], "from": [1.5, 4.0], "src": "crates-clink"},
     {"f": "crates-clink_2.mp3", "v": "d3827e2f", "d": 1.6, "lufs": -20.5, "peak": 0.35, "sw": [0.15, 1.45], "from": [5.7, 7.3], "src": "crates-clink"},
@@ -264,6 +267,9 @@ export const FILES = /*FILES*/{
   "rain-water": [
     {"f": "rain-water.mp3", "v": "532b5f97", "d": 34.5, "lufs": -24.4, "loop": 32.0, "xf": 2.5, "from": [2.6, 37.1], "src": "rain-water", "r": 16000}
   ],
+  "rivet-gun": [
+    {"f": "rivet-gun.mp3", "v": "9d769789", "d": 30.1, "lufs": -24.4, "loop": 29.95, "xf": 0.15, "from": [5.18, 35.28], "src": "hammering-2", "r": 24000}
+  ],
   "roller-blind": [
     {"f": "roller-blind.mp3", "v": "ed18dd77", "d": 0.93, "lufs": -20.3, "peak": 0.6, "sw": [0.15, 0.75], "from": [0.12, 1.05], "src": "roller-blind"}
   ],
@@ -325,7 +331,11 @@ export const FILES = /*FILES*/{
     {"f": "thunder-far_2.mp3", "v": "cdb797e2", "d": 16.4, "lufs": -20.5, "peak": 1.55, "sw": [0.3, 14.8], "from": [30.6, 47.0], "src": "thunder-far", "r": 16000}
   ],
   "tower-horn": [
-    {"f": "warning-horn.mp3", "v": "6b1ac191", "d": 4.653, "lufs": -20.4, "peak": 2.1, "sw": [0.15, 4.25], "from": [1.17, 5.83], "src": "warning-horn"}
+    {"f": "tower-horn-2.mp3", "v": "79b5640e", "d": 5.5, "lufs": -20.4, "peak": 0.95, "sw": [0.2, 1.35], "from": [11.5, 17.0], "src": "tower-horn-2"},
+    {"f": "warning-horn.mp3", "v": "6b1ac191", "d": 4.653, "lufs": -20.4, "peak": 2.1, "sw": [0.15, 4.25], "from": [1.17, 5.83], "src": "warning-horn", "w": 0}
+  ],
+  "tower-siren": [
+    {"f": "tower-siren-2.mp3", "v": "d0053bde", "d": 10.5, "lufs": -20.4, "peak": 8.45, "sw": [2.05, 9.45], "from": [0.5, 11.0], "src": "tower-siren-2", "r": 24000}
   ],
   "tr3b-crackle": [
     {"f": "tr3b-crackle.mp3", "v": "c15b09e5", "d": 3.6, "lufs": -20.4, "peak": 1.3, "sw": [0.15, 3.15], "from": [0.0, 3.6], "src": "tr3b-crackle"}

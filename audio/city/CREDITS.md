@@ -197,6 +197,16 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Discover%20Oregon%20-%20Coyotes/Coyotes%202015.13.28_Sutton_CloseCoyoteNR1.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## crane-2.wav  →  crane-lift
+
+- MD5 `a63dce8dc32921fe0512fbf38ceb55db`
+- crane-2.wav   (11,935,844 bytes)
+- "S10-01 Construction crane lifts large object.wav" - craigsmith - https://freesound.org/people/craigsmith/sounds/675205/
+- Original filename: 675205__craigsmith__s10-01-construction-crane-lifts-large-object.wav | WAV 24-bit 48 kHz mono, 82.88 s
+- Loop: 8.5-38.5 s (30 s; the start and end levels match), with a 1 s crossfade. Inside the loop the level swells by about 6 dB (peaks about 18-30 s).
+- Notes: one lift event, starting at 4.5 s and fading out about 70 s, with a restart at about 76 s. 53% at 300 Hz-2 kHz, 1% at 2-5 kHz. Works best as a one-shot (4.5-70 s).
+- NOTE: craigsmith (Freesound) — Hollywood optical / mag effects of the 1930s–60s transferred by USC Cinema; CC0 1.0 (public domain: https://creativecommons.org/publicdomain/zero/1.0/). Imported from the untouched original.
+
 ## crane-work.mp3  →  crane
 
 - MD5 `b4f00631758b74549ad52d03b7b5d92a`
@@ -391,6 +401,16 @@ are kept anyway, with each source file's MD5.
 - Page: https://pixabay.com/sound-effects/nature-autumn-rain-in-the-gutter-306966/
 - Source: https://cdn.pixabay.com/download/audio/2025/02/27/audio_e484b3a048.mp3?filename=audiopapkin-autumn-rain-in-the-gutter-306966.mp3
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+
+## hammering-2.wav  →  rivet-gun
+
+- MD5 `e01bbe534a9265748cc9b935cf6bce0f`
+- hammering-2.wav   (5,427,054 bytes)
+- "S09-23 Power riveting on steel building.wav" - craigsmith - https://freesound.org/people/craigsmith/sounds/675536/
+- Original filename: 675536__craigsmith__s09-23-power-riveting-on-steel-building.wav | WAV 24-bit 48 kHz mono, 37.68 s
+- Loop: 5.20-35.15 s (30 s; both points sit in natural gaps in the rattle). The level steps up about 3 dB at about 26 s, so crossfade 100-200 ms.
+- Notes: continuous rivet-gun rattle at about 12 hits/s. HARSH: 75% of energy at 2-5 kHz, so cut 2-5 kHz by about 6 dB for phones.
+- NOTE: craigsmith (Freesound) — Hollywood optical / mag effects of the 1930s–60s transferred by USC Cinema; CC0 1.0 (public domain: https://creativecommons.org/publicdomain/zero/1.0/). Imported from the untouched original.
 
 ## hammering-far.mp3  →  hammering
 
@@ -810,6 +830,26 @@ are kept anyway, with each source file's MD5.
 - Page: https://mixkit.co/free-sound-effects/thunder/
 - Source: https://assets.mixkit.co/active_storage/sfx/2395/2395.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
+## tower-horn-2.wav  →  tower-horn
+
+- MD5 `3fe10e796c0e7bbb0716d984a0828f7e`
+- tower-horn-2.wav   (3,476,604 bytes)
+- "S29-07 Destroyer horn blasts warning for 5 inch guns to fire.wav" - craigsmith - https://freesound.org/people/craigsmith/sounds/675788/
+- Original filename: 675788__craigsmith__s29-07-destroyer-horn-blasts-warning-for-5-inch-guns-to-fire.wav | WAV 24-bit 48 kHz mono, 24.13 s
+- Trim: 11.5-17.0 s = three blasts (11.7-12.8, 13.5-14.6, 15.3-16.8 s). Alternative: 18.5-20.2 s = three quick toots.
+- Notes: long blast 0-7.1 s, single blips at 7.3 and 9.0 s, three blasts 11.7-16.8 s, then a run of about 9 rapid toots 18.6-23.5 s. Fundamental about 226 Hz with strong harmonics (58% at 150-300 Hz, 41% at 300 Hz-2 kHz). Peak -2.5 dBFS.
+- NOTE: craigsmith (Freesound) — Hollywood optical / mag effects of the 1930s–60s transferred by USC Cinema; CC0 1.0 (public domain: https://creativecommons.org/publicdomain/zero/1.0/). Imported from the untouched original.
+
+## tower-siren-2.wav  →  tower-siren
+
+- MD5 `26d2103007e74562210fd920e298810e`
+- tower-siren-2.wav   (7,049,548 bytes)
+- "S24-17 distant siren.wav" - craigsmith - https://freesound.org/people/craigsmith/sounds/675688/
+- Original filename: 675688__craigsmith__s24-17-distant-siren.wav | WAV 24-bit 48 kHz mono, 48.95 s
+- Trim: 0.5-11.0 s (one full slow up/down wail) or 0.5-21.0 s (two wails). Avoid 24.3-29.5 s and 43-48 s, which are fast warble sections.
+- Notes: distant, motor-driven, about 99.7% of energy at 300 Hz-2 kHz. Quiet (-29.5 LUFS), with a low noise floor (about -72 dB).
+- NOTE: craigsmith (Freesound) — Hollywood optical / mag effects of the 1930s–60s transferred by USC Cinema; CC0 1.0 (public domain: https://creativecommons.org/publicdomain/zero/1.0/). Imported from the untouched original.
 
 ## tr3b-crackle.wav  →  tr3b-crackle
 

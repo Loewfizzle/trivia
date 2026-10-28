@@ -91,6 +91,7 @@ import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
 import { createReporter } from './report.js';
 import { createTowerFx } from './tower.js';
+import { isFilled } from '../../core/city-sounds.js';
 import { towerAt, forcedTower, towerKey, implosionSounds, IMPLODE } from '../../core/harbor-tower.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power, photocell, beaconStep } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
@@ -1428,7 +1429,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     TWS = towerNow();
     if (L && now - twKeyAt > 1000) { twKeyAt = now; if (towerKey(TWS) !== L.towerKey) { wantBuild = 'the construction tower'; LOADLOG.add('layout', `the construction tower: ${L.towerKey || '-'} → ${towerKey(TWS) || '-'}`); } }
     if (TWS && TWS.stage === 'implosion' && S.motion && !clock.force.has('no-tower')) {
-      if (twSndS != null && TWS.s > twSndS && TWS.s - twSndS < 5) for (const e of implosionSounds(twSndS, TWS.s)) snd.play(e.slot === 'tower-siren' ? 'siren-1920s' : e.slot, { gain: e.slot === 'tower-siren' ? 1.6 : 1, pan: -0.4 });   // (the siren's own recording to come: the 1920s siren stands in; the charges' slot stays silent until then)
+      if (twSndS != null && TWS.s > twSndS && TWS.s - twSndS < 5) for (const e of implosionSounds(twSndS, TWS.s)) { const alt = e.slot === 'tower-siren' && !isFilled('tower-siren'); snd.play(alt ? 'siren-1920s' : e.slot, { gain: alt ? 1.6 : 1, pan: -0.4 }); }   // (9f: the siren's own recording — craigsmith's distant wail; the 1920s siren only if the slot were empty; the charges' slot stays silent)
       twSndS = TWS.s;
     } else twSndS = null;
     const day = clamp01((TW.day || 0) + 0.6 * (TW.gold || 0)), work = TWS && (TWS.stage === 'rising' || TWS.stage === 'topping') ? 1 : TWS && (TWS.stage === 'cleanup' || TWS.stage === 'finishing') ? 0.5 : 0;
@@ -1682,7 +1683,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     neon.draw(c, 'near', deadCity ? { ...nf, off: true } : nf);
     // 9e — THE CONSTRUCTION TOWER's live layer (tower.js: the crane, the work lights, topping out, the implosion + its dust, the opening's
     // searchlights) — behind the roofs nearer than the slot (its own clip)
-    if (TWS && !off.has('no-tower')) towerFx.draw(c, { st: TWS, night: litK(DK, 'lamps'), t, motion: S.motion, power: LB ? legendPow(W * 0.3, 'city', 411) : 1, logo: S.logoRect, fade: fadeIn, wind: LK.wind == null ? 3 : LK.wind });
+    if (TWS && !off.has('no-tower')) towerFx.draw(c, { st: TWS, T: bakeTones, dpr, bt: now / 1000, night: litK(DK, 'lamps'), t, motion: S.motion, power: LB ? legendPow(W * 0.3, 'city', 411) : 1, logo: S.logoRect, fade: fadeIn, wind: LK.wind == null ? 3 : LK.wind });
     // (DT1: the lighthouse's beam brightens the floodlit wall behind it as it sweeps past — under the lighthouse, drawn later)
     if (cam.lhWall && !off.has('no-beam')) beam.wall(c, { k: fadeIn * litK(DK, 'beams') * litK(DK, 'flood') * (lit > 0 ? lit : 0) * legendPow(cam.lhWall.x, 'harbor', 303), wallZ: 241, motion: S.motion, now: performance.now(), ms: clock.now() });
     // THE DAY PASS — the day's motion: flags on the roofs in the real wind, sun glints on the towers' glass (dayfx.js)

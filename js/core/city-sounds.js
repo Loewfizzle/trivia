@@ -131,12 +131,14 @@ export const SLOTS = [
   S('thunder-far', '9', 'once', 0.16, 'distant thunder rolling (two takes)', 'after the lightning, delayed by its distance'),
   S('gutter-drip', '9', 'loop', 0.06, 'drips from the gutter + the eaves after the rain'),
   // ---- PART 9 — the construction tower
-  S('tower-siren', 'tower', 'once', 0.12, 'the demolition’s warning siren'),
+  S('tower-siren', 'tower', 'once', 0.07, 'the demolition’s warning siren — one slow distant wail (9f: craigsmith, CC0)'),
   S('tower-horn', 'tower', 'once', 0.14, 'the warning horn blasts'),
   S('implosion-charges', 'tower', 'once', 0.16, 'the implosion’s charges'),
   S('implosion-rumble', 'tower', 'once', 0.16, 'the long rumble as it comes down'),
   S('hammering', 'tower', 'loop', 0.07, 'distant hammering'),
   S('crane', 'tower', 'loop', 0.07, 'a crane at work'),
+  S('rivet-gun', 'tower', 'loop', 0.045, 'a rivet gun on the steel — now + then over the hammering (9f)'),
+  S('crane-lift', 'tower', 'once', 0.06, 'a period crane lifting a big load — now + then over the crane (9f)'),
   // ---- PART 10 — party nights + fireworks
   S('firework-launch', '10', 'once', 0.12, 'a firework’s launch whoosh'),
   S('firework-burst', '10', 'once', 0.14, 'a firework bursting (near)', 'the party’s finale (the synthesized burst until it’s filled)'),
@@ -216,7 +218,10 @@ export function pickTake(id, rnd = Math.random, last = -1) {
   const t = takesOf(id);
   if (!t.length) return null;
   if (t.length === 1) return { take: t[0], i: 0 };
-  const idx = t.map((_, i) => i).filter(i => i !== last);
+  // (9f: a take of weight 0 is a BACKUP — kept, never picked while another take is there)
+  const live = t.map((_, i) => i).filter(i => (t[i].w ?? 1) > 0);
+  if (live.length === 1) return { take: t[live[0]], i: live[0] };
+  const idx = (live.length ? live : t.map((_, i) => i)).filter(i => i !== last);
   const tot = idx.reduce((a, i) => a + (t[i].w ?? 1), 0);
   let r = rnd() * tot;
   for (const i of idx) { r -= t[i].w ?? 1; if (r < 0) return { take: t[i], i }; }
@@ -244,7 +249,7 @@ export function checkSlots() {
       if (!t || typeof t.f !== 'string' || !/^[a-z0-9_.-]+\.(mp3|m4a|wav)$/.test(t.f)) bad.push(`files:${id}:name`);
       if (!(t.d > 0)) bad.push(`files:${id}:${t.f}:d`);
       if (s.kind === 'loop' && !(t.loop > 1 && t.xf > 0 && t.loop + t.xf <= t.d + 0.05)) bad.push(`files:${id}:${t.f}:loop`);
-      if (t.w != null && !(t.w > 0)) bad.push(`files:${id}:${t.f}:w`);
+      if (t.w != null && !(t.w >= 0)) bad.push(`files:${id}:${t.f}:w`);   // (9f: 0 = a BACKUP take, kept, never picked)
       if (s.kind === 'once' && t.sw != null && !(Array.isArray(t.sw) && t.sw[0] >= 0 && t.sw[0] <= t.peak && t.peak <= t.sw[1] && t.sw[1] <= t.d)) bad.push(`files:${id}:${t.f}:sw`);
       if (t.hit != null && !(t.hit > 0 && t.hit < t.d)) bad.push(`files:${id}:${t.f}:hit`);
     }

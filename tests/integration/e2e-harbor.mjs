@@ -3756,7 +3756,9 @@ G('tower', async () => {
     A[st] = await ev(Q.page, `({ arch: ${P}.arch, tower: ${P}.tower })`);
     await Q.ctx.close();
   }
-  const same = ['rubble', 'rising', 'finished'].every(st => JSON.stringify(A[st].arch) === JSON.stringify(A.standing.arch));
+  // (9f: within 0.01 pt — the arch's apex is measured from the NEON logo's DOM rect, which can differ by ~1e-5 px between page loads)
+  const near = (a, b) => !!a && !!b && ['peak', 'low', 'top'].every(k => Math.abs((a[k] ?? 0) - (b[k] ?? 0)) < 0.01);
+  const same = ['rubble', 'rising', 'finished'].every(st => near(A[st].arch, A.standing.arch));
   ok(same, `9e THE SUN MUST NOT BREAK: the arch at every stage = today's (${JSON.stringify(A.standing.arch)} · ${['rubble', 'rising', 'finished'].map(st => JSON.stringify(A[st].arch)).join(' · ')})`);
   ok(A.rising.tower.fx.works === 'frame' && A.rising.tower.st.crane && A.rubble.tower.fx.works === 'gone' && !A.standing.tower.fx.works && A.finished.tower.st.design !== A.standing.tower.st.design,
     `9e THE TOWER's stages: rising = a frame + the crane (${A.rising.tower.fx.works}, ${A.rising.tower.st.crane}), the lot after (${A.rubble.tower.fx.works}), a new design when finished (${A.finished.tower.st.design} vs ${A.standing.tower.st.design})`);
@@ -3764,6 +3766,16 @@ G('tower', async () => {
     await harborUp(Q.page);
     const t = await ev(Q.page, `${P}.tower`);
     ok(t.st.stage === 'implosion' && Math.abs(t.st.s - 6) < 0.01 && t.fx.works === 'gone', `9e THE IMPLOSION at 6 s: drawn live (${t.st.stage}, s ${t.st.s}), the slot empty in the bake (${t.fx.works})`);
+    // (9f — THE REAL TOWER IMPLODES: the slot's original block baked into its own sprite with the skyline's skyBlock — the same building)
+    ok(t.fx.old && t.fx.old.w > 10 && t.fx.old.h > 60 && t.fx.old.form && t.fx.old.form !== 'block', `9f THE REAL BUILDING comes down: its own sprite (${t.fx.old ? `${t.fx.old.w}×${t.fx.old.h} pt, form ${t.fx.old.form}` : 'none — the plain block'})`);
+    await Q.ctx.close(); }
+  // (9f — THE SITE AT NIGHT: the bulb strings, the floods, the obstruction lights — drawn on a night the frame rises; a party night's
+  // work-light beam from the deck)
+  { const Q = await open({ slot: 'tw-night', qs: `when=2026-09-16T22:00${GR}&wx=clear&build=rising&force=beams`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.tower.fx.bulbs`, 'the bulb strings', 8000).catch(() => {});
+    const t = await ev(Q.page, `${P}.tower`), lum = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, f = ${P}.tower.fx, x = cv.getContext('2d').getImageData(Math.round((f.x - 8) * k), Math.round((f.frameTop + 2) * k), Math.round(16 * k), Math.round(6 * k)).data; let m = 0; for (let i = 0; i < x.length; i += 4) m = Math.max(m, 0.2126 * x[i] + 0.7152 * x[i + 1] + 0.0722 * x[i + 2]); res(Math.round(m)); }))`);
+    ok(t.fx.bulbs && lum > 150, `9f THE SITE AT NIGHT: the bulb strings + the floods light the rising frame (the brightest in its top floors ${lum})`);
     await Q.ctx.close(); }
 });
 
