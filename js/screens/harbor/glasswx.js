@@ -164,6 +164,9 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   // + running off (the bead + drip system), until only a few slushy lumps are left — never a pop. Rendered into its own canvas when it
   // changes (a 1/60 step of depth, the light, the wetness) and blitted every frame.
   let snowGeo = null, snowCv = null, snowKey = '', glints = [], snowRenders = 0;
+  // 9d — the tube's light on its snow: the tint on the body / the underside / the tops (× the letter's light), the contact band's strokes
+  // ([width in tube half-widths, alpha]) — 9c was body 0.5, under 0.62, top 0.45, a halo, contact [[8, .14], [5.2, .24], [3.2, .4], [1.9, .62]]
+  const SNOW_LIT = { lift: 0.55, body: 0.07, under: 0.18, top: 0.03, contact: [[2.6, 0.1], [1.6, 0.2]] };
   const hash1 = n => { const v = Math.sin(n * 127.1 + 311.7) * 43758.5453; return v - Math.floor(v); };
   const vn = (s, f, seed) => { const u = s * f, i = Math.floor(u), t = u - i, w = t * t * (3 - 2 * t); return hash1(i + seed) * (1 - w) + hash1(i + 1 + seed) * w; };
   function buildSnowGeo() {
@@ -202,13 +205,22 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     // falls to a faint cool moonlit grey, and comes back with the city)
     const dayHi = [252, 253, 255], nightHi = mixc([88, 94, 122], [212, 216, 240], pw);
     const hi0 = mixc(nightHi, dayHi, amb), body0 = mixc(mixc([44, 48, 70], [112, 118, 160], pw), [212, 222, 240], amb), shade0 = mixc(mixc([26, 28, 44], [66, 68, 106], pw), [168, 182, 214], amb);
-    // (9c — THE GLOW, EACH LETTER ITS OWN: a lit tube lights its snow FROM WITHIN — the tube's colour washes the mound's body + shade
-    // (strongest at night), so the pillow reads as lit by its letter, never a flat white cap; a dark letter's snow stays white / grey)
+    // (9c → 9d — LIT BY ITS LETTER, NATURALLY (the owner, after 9c's pink: "maybe a little glow, just whatever's natural, not nearly as
+    // much … the neon sign is a light source, and you know how snow gets affected by light"): the snow stays WHITE — the tube's colour
+    // only where its light reaches: the UNDERSIDE (the face turned to the tube) takes a soft tint, the body a trace, the lit tops none;
+    // no halo, no glow from within — about a quarter of 9c. Each letter by its own light; a dark letter's snow stays white / grey)
     const tc = col.map(v => Math.min(255, Math.round(v * 0.9 + 40))), dc = col.map(v => Math.round(v * 0.62)), wg = [150, 156, 176].map((v, i) => Math.round(v * amb + [70, 70, 96][i] * (1 - amb)));
     const pal = litL.map(lit => {
       const gk = lit * (1 - 0.6 * amb) * (1 - 0.3 * wet);
       let hi = hi0, body = body0, shade = shade0;
-      if (gk > 0.01) { body = mixc(body, tc, 0.5 * gk); shade = mixc(shade, dc, 0.62 * gk); hi = mixc(hi, mixc(tc, [255, 255, 255], 0.55), 0.45 * gk); }
+      // (the tube is a strong light: it LIFTS its snow toward white — the body + the tops brighter, the underside lit by the tube itself —
+      // and only then a hint of its colour)
+      if (gk > 0.01) {
+        const lw = mixc(tc, [255, 255, 255], 0.78);
+        body = mixc(mixc(body, [226, 226, 236], SNOW_LIT.lift * gk), tc, SNOW_LIT.body * gk);
+        shade = mixc(mixc(shade, lw, SNOW_LIT.lift * 0.8 * gk), tc, SNOW_LIT.under * gk);
+        hi = mixc(mixc(hi, [250, 250, 255], SNOW_LIT.lift * gk), tc, SNOW_LIT.top * gk);
+      }
       if (wet > 0.01) { hi = mixc(hi, mixc(wg, [255, 255, 255], 0.35), 0.55 * wet); body = mixc(body, wg, 0.6 * wet); shade = mixc(shade, mixc(wg, [0, 0, 0], 0.35), 0.6 * wet); }
       return { gk, hi, body, shade, ga: lit * (1 - 0.55 * amb) * (1 - 0.3 * wet) };
     });
@@ -231,8 +243,7 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
     groups.forEach((puffs, li) => {
       if (!puffs.length) return;
       const { gk, hi, body, shade } = pal[li];
-      // 0. (9c) THE HALO at night: the lit tube's light scattering out of the snow — a soft glow of its colour round the mound
-      if (gk > 0.01) for (const [m, a] of [[1.9, 0.07], [1.45, 0.12]]) { x.fillStyle = `rgba(${col.join(',')},${(a * gk).toFixed(3)})`; circles(puffs, m); }
+      // (9d: 9c's HALO of the tube's colour round the mound is gone — snow lit by a coloured light has no halo of its own)
       // 1. the soft scattering rim (a faint halo just outside the snow: light diffusing through its edge)
       x.fillStyle = `rgba(${hi},${(0.16 * (1 - 0.6 * wet)).toFixed(3)})`; circles(puffs, 1.14);
       // 2. the shaded body (each lump nudged down: the underside in its own shadow)
@@ -246,13 +257,12 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
         x.fillStyle = g; x.beginPath(); x.arc(px - r * 0.18, py - r * 0.28, r * 0.85, 0, 6.2832); x.fill();
       }
     });
-    // 5. the lit tube glowing INSIDE the snow (its colour scattered up through the crystals): strongest where the snow touches the
-    // tube, bleeding up + out through the whole mound — at night bold, by day fainter but there (9c: the owner — "the snow must glow");
-    // each tube by its own letter's light
+    // 5. THE CONTACT (9d): the tube's light on the snow right where it touches — a THIN band of its colour along the tube, fading within
+    // a few pt (9c bled it up through the whole mound four strokes deep: "glows too much pink"); each tube by its own letter's light
     if (pal.some(q => q.ga > 0.04)) {
       x.save(); x.globalCompositeOperation = 'source-atop'; x.lineJoin = 'round'; x.lineCap = 'round';
-      const sc = col.map(v => Math.min(255, Math.round(v * 0.85 + 50))).join(',');
-      for (const [w, a] of [[H * 8, 0.14], [H * 5.2, 0.24], [H * 3.2, 0.4], [H * 1.9, 0.62]]) {
+      const sc = col.map(v => Math.min(255, Math.round(v * 0.45 + 140))).join(',');   // (9d: the contact's light mostly white, a hint of the tube)
+      for (const [w, a] of SNOW_LIT.contact.map(([wk, ak]) => [H * wk, ak])) {
         x.lineWidth = w;
         for (const tb of geo.tubes) { const ga = (pal[tb.li] || pal[0]).ga; if (ga <= 0.04) continue; x.strokeStyle = `rgba(${sc},${(a * ga).toFixed(3)})`; x.beginPath(); tb.pts.forEach((p, i) => (i ? x.lineTo(p.x, p.y) : x.moveTo(p.x, p.y))); x.stroke(); }
       }

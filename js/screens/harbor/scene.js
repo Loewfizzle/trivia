@@ -800,7 +800,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       crisp.show(c, { id: 'roofboard', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${bk}|${ck}`, xfade: xf2, alpha: fadeIn * dk, draw: x => { x.beginPath(); x.rect(R0.x, R0.y, R0.w, R0.h); x.clip(); rb.dayDraw(x, bakeTones); } }); }
     crisp.end();
   }
-  const frostMode = () => { const q = qp.get('frost'); return q === 'pane' || q === 'buttons' ? q : 'both'; };   // (9c: the owner picks)
+  // (9d — THE FROST: the PANE only (the owner, DECIDED: "the frost on the buttons looks bad" → none on the buttons or the dock); the
+  // 9c &frost= switch + the panel's FROST LOOK are gone)
   function workLead() {
     if (!cam || !L) return null;
     const sig = `${camSig}|${L.speakeasy ? L.speakeasy.x1 : ''}`;
@@ -1838,12 +1839,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const cold = clock.force.has('freeze') ? 1 : tc == null ? 0 : smooth(1, -6, tc);
       const sc = S.signCol ? (n => [n >> 16, (n >> 8) & 255, n & 255])(parseInt(S.signCol.slice(1), 16)) : [255, 95, 180];
       AUD.signWx = (LK.rain || 0) > 0.02 || WXS.ice > 0.01 ? signLive() : 0;   // (SP3: the beads' light on the NEON tubes — the blackout audit)
-      glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: signLive(), snow: { fast: clock.force.has('sign-melt') ? 20 : 1, joinLit: litK(DK, 'neon'), lie: snowNow() ? topsOf(SN) : 0, falling: LK.snow || 0, cold: tc != null ? tc <= -2 : SN.stage !== 'none' && SN.stage !== 'thaw' && SN.stage !== 'spring' }, signCol: sc, power: LB ? clamp01(1 - LB.k) : 1, letters: letterOn(), frostButtons: frostMode() !== 'pane', day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
+      glassWx.frame({ rain: LK.rain || 0, drip: WXS.drip, ice: WXS.ice, cold: Math.max(cold, WXS.ice * 0.7), glassWet: Math.max(clamp01((LK.rain || 0) * 2.2), 0.5 * WXS.drip), lit: signLive(), snow: { fast: clock.force.has('sign-melt') ? 20 : 1, joinLit: litK(DK, 'neon'), lie: snowNow() ? topsOf(SN) : 0, falling: LK.snow || 0, cold: tc != null ? tc <= -2 : SN.stage !== 'none' && SN.stage !== 'thaw' && SN.stage !== 'spring' }, signCol: sc, power: LB ? clamp01(1 - LB.k) : 1, letters: letterOn(), frostButtons: false, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, dt, motion: S.motion, tier, dpr: window.devicePixelRatio || dpr, shown: shownAt >= 0 });
     }
     // 9c — THE FROZEN PANE (the owner prefers City 1.0's frost): district/frost.js#pane over the whole screen on a REAL deep freeze (−4 °C →
     // full by −12 °C, or FROST forced), forming slowly, kept clear of the NEON sign + SPEAKEASY, the dock's labels + the corner buttons
-    // (soft-edged holes: only the lace's finest edge reaches them). &frost=pane|buttons|both (the panel's FROST LOOK; BOTH by default).
-    if (fadeIn > 0 && frostMode() !== 'buttons' && !off.has('no-glasswx')) {
+    // (soft-edged holes: only the lace's finest edge reaches them). 9d: the pane only — no frost on the buttons.
+    if (fadeIn > 0 && !off.has('no-glasswx')) {
       const tc2 = tempNow();
       const fz = clock.force.has('freeze') ? 1 : tc2 == null ? 0 : smooth(-4, -12, tc2);
       if (fz > 0.01) {
@@ -2708,7 +2709,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       snowman: SM ? { ...SM } : null,
-      snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), crisp: crisp.debug(), pane: frost.debug(), frostMode: frostMode(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
+      snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), crisp: crisp.debug(), pane: frost.debug(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },

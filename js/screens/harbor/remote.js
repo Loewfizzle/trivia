@@ -547,10 +547,7 @@ export function createRemote({ scene, api = apiCall }) {
         opts(btn('AUTO', !st.snow, () => edit(s => { delete s.snow; }), { q: 'snow ground auto real' }), ...R.SNOW_GROUND.map(w => btn(w.label, st.snow === w.id, () => edit(s => { s.snow = w.id; }), { q: `${w.label} snow ground winter` }))),
         // (9b: THE JANUARY SNOWMAN's stages — AUTO = the real one)
         h('div.hr-gl', 'THE SNOWMAN'),
-        opts(btn('AUTO', !st.snowman, () => edit(s => { delete s.snowman; }), { q: 'snowman auto real' }), ...R.SNOWMAN_STAGES.map(w => btn(w.label, st.snowman === w.id, () => edit(s => { s.snowman = w.id; }), { q: `${w.label} snowman january` }))),
-        // (9c: THE FROST's look on a deep freeze — the owner picks: City 1.0's frozen PANE, the BUTTONS' glass, or BOTH; with FROST in WEATHER FX)
-        h('div.hr-gl', 'FROST LOOK'),
-        opts(...R.FROST_LOOKS.map(w => btn(w.label, (st.frost || 'both') === w.id, () => edit(s => { if (w.id === 'both') delete s.frost; else s.frost = w.id; }), { q: `${w.label} frost look pane buttons freeze` })))],
+        opts(btn('AUTO', !st.snowman, () => edit(s => { delete s.snowman; }), { q: 'snowman auto real' }), ...R.SNOWMAN_STAGES.map(w => btn(w.label, st.snowman === w.id, () => edit(s => { s.snowman = w.id; }), { q: `${w.label} snowman january` })))],
     },
     party: {
       sec: 'lightsmusic', last: false, label: 'PARTY SHOW', q: 'party show night neon',
