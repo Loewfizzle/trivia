@@ -69,7 +69,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 9d | ✅ (Oct 27 — docs/harbor.md#9d: the held TR-3B preview's music fixed + stalls report to /admin (the freeze not reproduced on Chrome); &temp= reaches the snowman; THE DOORS never snap (the leaf is the baked door, a door closer) + REAL door light (a lamp's mask × the brick); the giant lit on its normals; the sign's snow white; the frost pane only; the beacons' photocell at sunset; ☰ → ADMIN + the NOW bar) THE FIXES II | Opus 5.5 high | ~3 h |
 | 9e | ✅ (Oct 28 — docs/harbor.md#9e: SEND REPORT + the hang watch (the freeze not reproduced, even on WebKit); the frost reads; the snowman's depth; the blade crisp at tier 0; snow lands on the sign; the henchman, the water wagon, Sunday's bells, the morning paper, the joggers, the stage under the dock + the quick fade, the TR-3B on party nights; THE CONSTRUCTION TOWER's cycle (the sun never breaks); the sax lit — the two vehicle models CUT) THE FIXES III + THE CITY LIFE + THE CONSTRUCTION TOWER + THE SAX REWORK | Opus 5.5 high | ~4–5 h |
 | CONN | ✅ (Oct 28 — aa51ae9; CLAUDE.md → Multiplayer mechanics, docs/data-model.md#the-connection-conn-oct-28) THE DATABASE CONNECTION ONLY WHEN NEEDED: the socket PARKED until want() (HOST / JOIN / a resume / an invite check / a room / the admin's panel), offline 30 s after + after 2 min hidden with no room, never in a room; no false SIGNAL LOST; City 2.0's EVERYONE through GET /api/admin?live=1 (edge 15 s, polled ~45 s). OPEN SOCKETS before → after (tests/integration/e2e-conn.mjs): title idle 1 → **0** · City 2.0 title 1 → **0** · invite link (checked) 1 → 1, **0** after 30 s · lobby / game 1 → 1 · hidden tab in a room 1 → 1 · title after QUIT 1 → **0** (after the grace) · hidden title tab 1 → **0** · /board 0 → 0 · /admin 1 → **0** · an admin on City 2.0 1 → 1. Fixed on the way (the cloud's first run, by day): a word cleared BY DAY never left `spelling` (the window lights skip drawing then, so the fade-out's drop never came — lights.js drops it now) + the JUST ME word-towers check pinned to 23:00 like its EVERYONE twin (by day the words never light; both failed only in daylight runs). Known: LOAD WEATHER's race (listed in 9e). The two vehicle models: not in this pass (the owner's call) | Opus 5.5 high | ~1–1.5 h |
-| ATM | ← NEXT: a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
+| 9f | ← NEXT: THE FIXES IV — the 9e review: LOAD WEATHER fixed, the TR-3B stutter + the tape-stop lag, the morning paper out, the joggers, the REAL tower imploding, the site's night lights + its party beam | Opus 5.5 high | ~2–2.5 h |
+| ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
 | **THE ROADMAP REORDERED** | **(the owner, Oct 26 6:01 pm — DECIDED; "OWNER'S NOTES — OCT 26 (after SP5)")** after the city's five above (11a-2 → 9b → ATM → 10 → 11b): LOBBY 2.0 → BOARD 2.0 → (a SHORT game-lineup TALK) → PROGRESSION 2.0 → TV MODE → the GAME LINEUP CHAT → the games → the release; a Fable review + a cleanup after 11b and again after Progression 2.0. 11c / 12 / C3 / 13 stay on the list, slotted by the owner | — | — |
@@ -3218,3 +3219,57 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   panel's existing PLAY ALL sequencers; the legendaries only their best ~10–15 s each (the TR-3B's full run is over a minute), the
   whole reel ~3–4 min, smooth fades between scenes (never a hard cut), any tap stops it + returns to the real city; JUST ME by default.
   SLOT: 13 CITY CONTROL (or a small pass sooner if he wants it).
+
+## OWNER'S NOTES — OCT 28 (the 9e review)
+- 9e PHONE REVIEW (the owner, Oct 28 8:02 am): THE MORNING PAPER in the window is "way too cheap looking"
+  (https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&when=2026-11-04T10:00&force=window&moment=paper).
+  Claude's take (pending the owner's pick): at ~40 pt the fake print (masthead, columns) is what cheapens it — either REWORK it to what
+  reads (one clean pale sheet held open, lit by the daylight through the window + a soft fold shadow, the fedora + brow over it, the
+  page turn as one big motion, NO fake text) or TAKE IT OUT (a weak moment hurts more than none; the windows have plenty).
+- THE JOGGERS DIDN'T SHOW (the owner, Oct 28 8:03 am, the lunchtime link). WHY (read-only, core/harbor-people.js#mixNow): 9e added
+  the jogger at weight 1.0 into midday's mix of ~22 (lunch 4, couples 2.5, …) with ~5 people out → about 1 person in 20 is a jogger,
+  so a visitor can watch for minutes and see none; the weekend morning (+2.4) is better but still rare. And there is NO preview switch
+  for them. FIX (next pass): weight them so a jogger passes every ~1–2 min in their hours (lunch, after work, weekend mornings, the
+  early block), never in heavy rain; a `&force=joggers` panel row (PEOPLE) that sends one through every ~20 s.
+- THE IMPLOSION's BUILDING (the owner, Oct 28 8:06 am: "Implosion looks great but why does the building look so cheap and flat and
+  basic and not the original building? Original building should implode"). WHY: 9e's known issue — during the implosion the old
+  building is drawn LIVE as a simplified flat slab. FIX (next pass): the REAL tower comes down — its own baked pixels (the same
+  facade, crown, outline + shading as the skyline bake) lifted out as a sprite the moment the implosion starts, the gap behind it
+  baked, then the sprite cut into floor bands that drop + crumble into the dust (a slight squash, the top tipping). Claude's note
+  (pending): a building about to be imploded is EMPTY — its windows dark + its neon word taken down in the days before (the crew
+  removing the sign could be the prelude); the shape + facade stay exactly the original's, so it's clearly the same building.
+  DECIDED (the owner, 8:35 am): KEEP IT COMPLETE as it comes down — the original building exactly as it stands (its word sign + all),
+  no emptying / sign removal prelude; it implodes by day (Sunday 10 am), so its lights are off anyway.
+- THE TOWER UNDER CONSTRUCTION (the owner, Oct 28 8:37 am): (1) THE CRANE "needs to be higher def and better looking" → Claude: SOURCE
+  it — a real 3D TOWER CRANE model (Grok; a lattice mast, the jib + counter-jib, the cab, the hook block), baked like the UFO at the
+  camera's view in a few jib angles (the slew), day + night, credited; the hand-drawn one stays the stand-in until it's in. (2) THE
+  FRAME AT NIGHT must stand out: REAL site lighting, not strobes (Claude: blinking flashers read cheap + modern) — strings of BARE WORK
+  BULBS along each finished floor's edge (rows of warm dots that outline the rising frame — reads at phone size), a couple of FLOODS on
+  the top deck lighting the steel from inside (warm, casting the columns' shadows), the red obstruction lights on the frame's top
+  corners + the crane's tip blinking slowly like the skyline's beacons. (3) A SKY BEAM from the top deck ON PARTY NIGHTS, joining the
+  party's own beams (skybeams.js) — the site takes part in the show; not every night (the grand opening keeps its own searchlights).
+- THE TR-3B's TAPE STOP LAGS NOW (the owner, Oct 28 8:39 am, iPhone, the full TR-3B link with &debug=1; his readout: t2 · 60 fps ·
+  0 % slow, AUDIO sounding · ctx running, ready 1.39 s, a party + snow night): "getting better but still has issues. The audio
+  slowdown effect was lagging. It was perfect before, now it's off" — the tape stop (audio/tape-stop.js, TR3) no longer lands with the
+  drain. SUSPECTS (to measure, not guess): 9d's change for HELD previews (the sounds skip the tape stop + the repeating one-shots
+  when `held`) leaking into the full run; 9e's CRAWL tier step under a legendary; the decoded slice's start time on iOS (decoding the
+  ~42 s slice late → the slow-down starts after the picture's drain); the dark city's re-bake at the drain's start delaying the audio
+  kick. Compare against TR3's timing (the e2e `tape` group) — the slow-down must start ON the drain's first dip and bottom out with the
+  lights. The owner's SEND REPORT (if he sent one) is in /admin → Reports from phones.
+- DECIDED (the owner, Oct 28 8:41 am): (1) THE MORNING PAPER — TAKE IT OUT (the moment removed from the catalogue + the panel; the
+  back / bar windows' other moments fill its hours). (2) THE TR-3B did NOT freeze this time: "kind of was slow, maybe stuttered a
+  little bit" (+ the tape stop lagging, above) → measure the full run's frame pacing on the phone path (the SEND REPORT / hang-watch
+  data, 4× CPU at DPR 3) — the stutter + the audio lag may be the same cause (a heavy moment at the drain's start).
+  (3) THE VERTICAL WINDOW WORDS while the construction tower is down (Apr → Nov): pending the owner's pick — accept the seasonal gap
+  (Claude's pick) or give another tower a square-window grid that can spell the vertical words.
+- 9e PHONE REVIEW, cont. (the owner, Oct 28 8:42 am): ✔ the VERTICAL WINDOW WORDS' seasonal gap ACCEPTED (none while the tower is
+  down / rising — DECIDED); ✔ THE FROST good; ✔ THE SNOWMAN (walkers behind him) good; ✔ THE HENCHMAN good; ✔ THE WATER WAGON good;
+  ✔ THE WEEKNIGHT COUPLES good; ✔ THE QUICK FADE under the dock good; THE SAX "alright" (accepted — polish later if it nags).
+  REMIND HIM in the next pass's review list: THE SUNDAY CHURCH BELLS (he couldn't listen yet) —
+  https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&when=2026-11-08T08:59&wx=clear
+- LOAD WEATHER IS RED ON EVERY HARBOR RUN NOW (9e's run + both of CONN's): no longer a "known flake" to list — FIX IT in the next
+  pass (the lit crossfade after a late weather answer counted as a visible change on CI): a red that's always red trains everyone to
+  ignore red.
+- REMIND THE OWNER (Oct 28 9:27 am — he's on the road, no second phone / people around): CONN's real-phone check is still OWED —
+  HOST on one phone + JOIN by the hush word on another, play a game, QUIT, HOST again; an EVERYONE preview reaching a second phone
+  within ~1 min. Put it at the top of the next summary's review list until he says it's done.
