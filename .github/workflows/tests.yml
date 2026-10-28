@@ -62,7 +62,7 @@ jobs:
           key: firebase-emulators-${{ hashFiles('tests/integration/package-lock.json') }}
       - name: Let Chrome use its sandbox (Ubuntu 24.04 restricts user namespaces)
         run: sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0
-      - name: Rules, /api and the smoke test on the emulators
+      - name: Rules, /api, the smoke test and the database connections (CONN) on the emulators
         working-directory: tests/integration
         env:
           CHROME: /usr/bin/google-chrome
@@ -74,6 +74,7 @@ jobs:
             (cd ../.. && node scripts/serve.mjs --emu > /tmp/serve.log 2>&1 &)
             for i in $(seq 1 30); do curl -sf http://localhost:5173/ > /dev/null && break; sleep 1; done
             node e2e-smoke.mjs "$CHROME" ./shots
+            node e2e-conn.mjs "$CHROME" ./shots
           '
       - name: Smoke-test screenshots (on failure)
         if: failure()

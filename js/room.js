@@ -1,7 +1,7 @@
 // Room lifecycle: create / join / resume / leave / kick, live mirroring and presence.
 import {
   dbRef, get, set, update, remove, onValue, onDisconnect, serverTimestamp, serverNow,
-  query, orderByChild, endAt, limitToFirst, runTransaction,
+  query, orderByChild, endAt, limitToFirst, runTransaction, want, release,
 } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe } from './identity.js';
@@ -14,6 +14,9 @@ import { livePathsFor, liveKeyFor } from './games/registry.js';
 import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
 
 const R = code => `rooms/${code}`;
+// CONN: the database line is wanted while HOST / JOIN / a resume / an invite check runs ('join') and the whole time we're in a
+// room ('room', from enterRoom to exitRoom) — firebase.js parks it 30 s after the last reason lets go
+const joining = fn => async (...a) => { want('join'); try { return await fn(...a); } finally { release('join'); } };
 let unsubs = [];
 let liveUnsubs = [];
 let liveWanted = null;
@@ -70,7 +73,7 @@ async function claimRoom(code) {
   return !!(res && res.committed && res.snapshot.exists() && res.snapshot.child('hostId').val() === state.uid);
 }
 
-export async function createRoom(profile) {
+export const createRoom = joining(async profile => {
   cleanupStaleRooms().catch(() => {});
   const [words, hush] = await Promise.all([
     loadHushWords(),
@@ -90,7 +93,7 @@ export async function createRoom(profile) {
   await writePlayer(code, profile, {});
   enterRoom(code);
   return code;
-}
+});
 
 // hush/ entries older than 24 h are no use to anyone: whoever opens a room sweeps a few (best effort).
 function cleanupHush(hush, now) {
@@ -117,7 +120,7 @@ export const joinWait = () => missCooldown(readMisses(), Date.now());
 
 export const LOCKED_MSG = 'The door’s locked. Ask the host to let you in.';
 
-export async function joinRoom(input, profile) {
+export const joinRoom = joining(async (input, profile) => {
   const code = normalizeCode(input);
   if (!code) throw new Error('The hush word is 4 letters.');
   const wait = joinWait();
@@ -138,15 +141,17 @@ export async function joinRoom(input, profile) {
   }
   enterRoom(code);
   return code;
-}
+});
 
 // Called on boot: puts a refreshed/returning player straight back into their room.
 // Returns 'ok', 'none' (no saved room), 'gone' (closed / removed / full — forgotten) or
 // 'error' (couldn't reach the room right now — the session is kept so a retry works).
 export async function resumeSession() {
   const session = loadSession();
+  return session && session.code ? resumeSaved(session) : 'none';   // (no saved room: the line stays parked)
+}
+const resumeSaved = joining(async session => {
   const profile = loadProfile();
-  if (!session || !session.code) return 'none';
   let room;
   try { room = await readRoomBasics(session.code); } catch { return 'error'; }
   // Back the next day: the room sat for an hour without a game — close it and start fresh on the title.
@@ -162,9 +167,10 @@ export async function resumeSession() {
   } catch {
     return 'error';
   }
-}
+});
 
 function enterRoom(code) {
+  want('room');
   stopListening();
   saveSession(code);
   setUrlRoom(code);
@@ -249,6 +255,7 @@ export function exitRoom(reason, kind = 'warn') {
   saveSession(null);
   setUrlRoom(null);
   setState({ ...EMPTY_ROOM, view: 'title' });
+  release('room');
   if (reason) toast(reason, kind, 3500);
 }
 
@@ -316,8 +323,8 @@ export async function cleanupStaleRooms() {
 }
 
 // Used by the title screen to tell a player up front that an invite has expired.
-export async function roomExists(input) {
+export const roomExists = joining(async input => {
   const code = normalizeCode(input);
   if (!code) return false;
   try { return (await get(dbRef(`${R(code)}/meta/status`))).exists(); } catch { return true; } // unknown → let the join attempt decide
-}
+});

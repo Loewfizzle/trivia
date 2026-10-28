@@ -90,6 +90,14 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     Looks without a server: `board-preview.html` (`?mode=public&g=pulse&c=records&p=all&far=1&anon=1&empty=1&err=1`),
     `results-preview.html` (`?case=first|top10|world|pb|merged|rankup|legend`), `emblems-preview.html`; `og-board.html` renders the
     /board link preview (`render-assets.mjs` writes assets/og-board.jpg).
+  - **CONN — THE DATABASE CONNECTIONS (Oct 28, ~1.5 min; in the cloud's tests job after the smoke test):** `node e2e-conn.mjs "<browser path>" ./shots-conn`
+    watches every page's WebSockets through the DevTools protocol and counts the open database sockets in each state — a first visit's
+    title (City 1.0 + 2.0): **0**; HOST: 1; JOIN by the hush word + by an invite link from a parked start: 1; a game: 1 each; a refresh
+    mid-game resumes (1); a hidden tab IN a room keeps it; a host whose page is FROZEN mid-game (`Page.setWebLifecycleState` — a locked
+    phone) hands over as before; QUIT → 1 through the grace, then **0**; HOST again from a parked title; a hidden title tab with no room → 0;
+    /board + /admin: 0; never the SIGNAL LOST banner on a parked title. `&conngrace=` / `&connhid=` (ms, `?emu` only, kept for the tab)
+    shorten the 30 s grace + the 2 min hidden wait; `MEASURE=1` prints the table without judging (a BEFORE run on an older commit), `LINE=1`
+    each state's line (`window.__arcade.line()`: net, the reasons, the last changes, `touches` = dbRef calls nobody wanted).
   - **Smoke test first (~2 min):** `node e2e-smoke.mjs "<browser path>" ./shots` (DT1: `GAMES=cipher` runs only those — the one-game check a City 2.0 pass runs after touching a shared file; `shots.mjs` names a custom crop by it: `-c0x420x150x140`; Oct 24: it sends startGame / backToLobby to whichever tab is the host NOW and retries back-to-lobby from the current host — on GitHub NEON PAR's software WebGL can starve a tab's host beat and the other phone takes over, which made `golf: back to lobby` time out) — two REGULAR phone tabs (no `?slot=`; every
     other suite uses test slots, which once hid a lobby bug that printed "null" only on a real phone): create/join, lobby, HOW TO
     PLAY, all six games started and watched, back to the lobby. Fails on visible "null"/"undefined"/"NaN"/"[object Object]",

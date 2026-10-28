@@ -18,7 +18,7 @@ import { deleteApp } from 'firebase-admin/app';
 import { processReport } from '../../api/report.js';
 import { profileAction } from '../../api/profile.js';
 import { boardQuery } from '../../api/board.js';
-import { adminAction } from '../../api/admin.js';
+import adminHandler, { adminAction, LIVE_CACHE } from '../../api/admin.js';
 import reportHandler from '../../api/report.js';
 import boardHandler from '../../api/board.js';
 import logHandler, { logErrors, errorSig, logReport, cleanReport, REPORT_LIMITS } from '../../api/log.js';
@@ -572,6 +572,32 @@ test('CITY 2.0 preview panel: cityLive / cityClear — admins only, validated pl
     const log = (await adminAction('u-cityboss', { action: 'audit' })).log.filter(l => l.by === boss.pid).map(l => l.act);
     assert.deepEqual(log.slice(0, 3), ['cityClear', 'cityLive', 'cityLive'], 'every send + the clear in the audit log');
   } finally { process.env.ADMIN_PIDS = ''; }
+});
+
+// CONN — the public read of EVERYONE's preview: GET /api/admin?live=1 (no sign-in, edge-cached 15 s) instead of a database socket
+test('CONN: GET /api/admin?live=1 — city2/live for any visitor, edge-cached, only the fields a phone plays, nothing else by GET', async () => {
+  const call = url => new Promise(resolve => {
+    const h = {};
+    const res = { statusCode: 200, setHeader(k, v) { h[k.toLowerCase()] = v; }, end: b => resolve({ code: res.statusCode, h, body: b ? JSON.parse(b) : null }) };
+    adminHandler({ method: 'GET', url, headers: {} }, res);
+  });
+  await ref('city2').remove();
+  { const r = await call('/api/admin?live=1');
+    assert.equal(r.code, 200); assert.equal(r.body.live, null); assert.ok(Math.abs(r.body.at - Date.now()) < 5000, 'the server time it was read');
+    assert.equal(r.h['cache-control'], LIVE_CACHE); assert.match(LIVE_CACHE, /s-maxage=\d+/); assert.match(LIVE_CACHE, /public/); }
+  const now = Date.now();
+  await ref('city2/live').set({ v: 1, kind: 'preview', state: { force: ['banner'], text: 'HI ALL' }, params: { force: 'banner' }, label: 'secret label', startAt: now, until: now + 60_000, by: 'ptest00000000' });
+  { const r = await call('/api/admin?live=1');
+    assert.deepEqual(r.body.live, { state: { force: ['banner'], text: 'HI ALL' }, startAt: now, until: now + 60_000, by: 'ptest00000000' });
+    assert.ok(!JSON.stringify(r.body).includes('secret label'), 'the label stays private'); }
+  // a finished preview reads as nothing (the phones go back to the real city)
+  await ref('city2/live').update({ until: now - 1 });
+  assert.equal((await call('/api/admin?live=1')).body.live, null);
+  // GET does nothing else: no actions, no admin reads, never cached when refused
+  { const r = await call('/api/admin?action=stats'); assert.equal(r.code, 400); assert.equal(r.h['cache-control'], 'no-store'); }
+  { const r = await new Promise(resolve => { const res = { statusCode: 200, setHeader() {}, end: b => resolve({ code: res.statusCode, body: JSON.parse(b) }) }; adminHandler({ method: 'PUT', url: '/api/admin', headers: {} }, res); });
+    assert.equal(r.code, 405); }
+  await ref('city2').remove();
 });
 
 test('admin stats: live rooms, games, players and busiest times from the real nodes', async () => {

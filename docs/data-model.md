@@ -192,12 +192,21 @@ audit/{push}:     { at, by (admin pid), act, pid, … }                         
 rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid})
 ```
 
+## THE CONNECTION (CONN, Oct 28)
+The Realtime Database socket is PARKED until something wants it (`js/firebase.js#want` / `release`; CLAUDE.md → Multiplayer mechanics):
+a phone on the title holds none (anonymous auth is HTTPS, not a socket); HOST / JOIN / a resumed room / an invite's check opens it; a
+room keeps it the whole time (presence + onDisconnect + host election); 30 s after the room (QUIT, closed, kicked) it goes offline, and a
+tab hidden 2 min with no room too. Nothing in this file needs the socket outside a room except `city2/live` for an admin. The before /
+after socket table: docs/harbor/plan.md (the CONN row) · the proof: tests/integration/e2e-conn.mjs.
+
 ## CITY 2.0 — THE PREVIEW PANEL (top level, server-written — `docs/harbor.md#the-preview-panel`)
 ```
 city2/live: { v: 1, kind: 'preview', state (core/harbor-remote.js: { force: [ids], text?, show?, colours?, when?, speed?, wx?, scene?,
               party?, hol?, debug?, … }), params (the same as URL flags), label (the status line), startAt (server ms), until, by (pid) }
               read: signed-in users · write: the server only (/api/admin cityLive / cityClear). Every phone on ?city=2 plays it from
-              startAt until `until`; the default city never reads it.
+              startAt until `until`; the default city never reads it. CONN (Oct 28): only ADMINS listen to it live (the panel open
+              on the title); every other phone reads it through `GET /api/admin?live=1` ({ live: { state, startAt, until, by } | null,
+              at }, edge-cached 15 s), polled ~45 s while visible — no database socket on the title.
 ```
 
 ## RUMRUNNER (`docs/rum.md`)

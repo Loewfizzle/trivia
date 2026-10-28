@@ -1383,6 +1383,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - The boss's day blind in the building's cream linen; WINDOW SCENES NEVER POP IN (a walk-up or the blind cycle, every moment).
 - The UFO hovers above the Ferris wheel (same size); its two view angles hand off over ±2.5°, its sheets pre-decoded.
 
+## CONN — THE DATABASE CONNECTIONS (Oct 28 2026) — CLAUDE.md → Multiplayer mechanics, docs/data-model.md#the-connection-conn-oct-28
+- Why: Firebase's free Spark plan allows 100 SIMULTANEOUS database connections and every visitor held one from the title's first paint
+  (the `.info` listeners at boot) — ~100 people on the title would have locked the 101st out of hosting or joining.
+- THE PARKED DATABASE (js/firebase.js): anonymous sign-in still at boot; the socket opens on `want(reason)` ('join' around HOST / JOIN /
+  a resume / an invite check, 'room' from enterRoom to exitRoom, 'admin' for the preview panel) and parks 30 s after the last
+  `release()`; a tab hidden 2 min with no room parks; never in a room. A dbRef() nobody wanted wakes it for a grace ('touch').
+- `state.net` (parked · waking · online · lost): only a LOST line shows SIGNAL LOST — a parked title never warns. `serverNow()` keeps the
+  last offset per device.
+- City 2.0's EVERYONE preview: non-admins poll `GET /api/admin?live=1` (edge-cached 15 s, ~45 s polls while visible); admins listen live.
+- THE BOARD + /admin were already /api only (/admin's page held a socket from `initFirebase` — now none).
+- The proof: tests/integration/e2e-conn.mjs (18 checks, a before / after table; in the cloud's tests job) + server.test's GET case.
+- BEFORE → AFTER (open sockets): title idle 1 → 0 · City 2.0 title 1 → 0 · title after QUIT 1 → 0 (after the grace) · hidden title tab
+  1 → 0 · /admin 1 → 0 · /board 0 → 0 · lobby / game 1 → 1 · an admin on City 2.0 1 → 1.
+
 ## CITY 2.0 — 9e: THE FIXES III + THE CITY LIFE + THE CONSTRUCTION TOWER + THE SAX (Oct 28 2026) — docs/harbor.md#9e
 - SEND REPORT (&debug=1) + THE HANG WATCH (a worker that posts the last snapshot when the main thread stops answering) → /api/log → /admin.
 - The TR-3B freeze investigated on WebKit 18 at last (installed by hand): not reproduced; a crawl under a legendary now steps the effects down.

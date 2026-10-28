@@ -2,6 +2,7 @@
 export const state = {
   uid: null,
   connected: false,
+  net: 'parked',          // CONN — the database line: 'parked' (on purpose) · 'waking' · 'online' · 'lost' (firebase.js#want)
   ready: false,           // firebase signed in
 
   // local navigation while not in a room: 'title' | 'setup'

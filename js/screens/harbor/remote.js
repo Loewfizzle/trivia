@@ -1,6 +1,8 @@
 // CITY 2.0 — THE PREVIEW PANEL: the owner's test remote (docs/harbor.md#the-preview-panel). ?city=2 only: title.js imports this
 // module after the city's first paint, never on the default city.
-//   everyone on ?city=2   listens to city2/live (server-written: /api/admin cityLive / cityClear) once Firebase is up and plays
+//   everyone on ?city=2   reads city2/live (server-written: /api/admin cityLive / cityClear) — CONN (Oct 28): through the cached
+//                         GET /api/admin?live=1 about once a minute while the city is visible (no database socket; ≲ 1 min to arrive);
+//                         admins keep the live listener (firebase.js#want('admin')) — and plays
 //                         its state in sync from its startAt (the scene's remote(): the clock runs from there, a sky piece's
 //                         first flight starts there) until CLEAR or `until`; then the real city again. A node whose startAt is
 //                         still ahead (C2: the panel's DELAY) waits for it — every phone starts on the same beat
@@ -32,7 +34,7 @@
 // event block its area); openCats() takes a section id or an old category id.
 import { h } from '../../ui/dom.js';
 import { toast } from '../../ui/toast.js';
-import { serverNow, firebaseReady, onValue, dbRef } from '../../firebase.js';
+import { serverNow, firebaseReady, onValue, dbRef, want, release } from '../../firebase.js';
 import { localParts, deviceZone } from '../../core/sky.js';
 import { api as apiCall } from '../../profile/api.js';
 import * as R from '../../core/harbor-remote.js';
@@ -94,6 +96,9 @@ const navType = () => { try { const e = performance.getEntriesByType('navigation
 let linkChecked = false;
 let cssReady = null;             // (the panel's stylesheet, loaded once a page: the pill waits for it)
 // (test-only: the panel without an admin profile — the previews and the emulator E2E; never on the real site's pages)
+// CONN: how often a visitor re-reads EVERYONE's node (the /api answer is edge-cached 15 s: a preview arrives within ~1 min, ~30 s on
+// average); the emulator E2E reads every 1.5 s
+const POLL_MS = typeof location !== 'undefined' && /[?&]emu(?:[=&]|$)/.test(location.search) ? 1500 : 45_000;
 const TEST_PANEL = typeof location !== 'undefined' && /[?&]panel=1(?:&|$)/.test(location.search)
   && (location.pathname.includes('/tests/') || /[?&]emu(?:[=&]|$)/.test(location.search));
 
@@ -137,26 +142,48 @@ export function createRemote({ scene, api = apiCall }) {
   }
   const tick = setInterval(() => { apply(); if (sheet) paintStatus(); }, 4000);
 
-  // EVERYONE's node (readable by any signed-in visitor; only the server writes it). A startAt still ahead (the DELAY) waits: the
-  // phone keeps what it shows until then — the owner's phone counts it down beside the pill
-  firebaseReady.then(() => {
-    if (destroyed) return;
-    try {
-      unsub = onValue(dbRef('city2/live'), snap => {
-        const v = snap && snap.val ? snap.val() : null;
-        const ok = v && typeof v === 'object' && Number.isFinite(v.startAt) && Number.isFinite(v.until);
-        let node = ok ? { state: R.cleanRemote(v.state).state, startAt: v.startAt, until: v.until, by: v.by || null } : null;
-        if (node && R.isEmpty(node.state)) node = null;
-        clearTimeout(nextT);
-        if (node && node.startAt > serverNow() + 25) {
-          liveNext = node; promote();
-          if (admin && (!cd || cd.mode !== 'all' || cd.at !== node.startAt)) countdown('all', node.startAt, R.describe(node.state));
-        } else { live = node; liveNext = null; if (cd && cd.mode === 'all') stopCd(); }
-        apply();
-        if (sheet) render();
-      }, () => {});
-    } catch (e) { console.warn('city2/live', e); }
-  }).catch(() => {});
+  // EVERYONE's node (only the server writes it). A startAt still ahead (the DELAY) waits: the phone keeps what it shows until then —
+  // the owner's phone counts it down beside the pill.
+  // CONN: everyone reads it through the cached GET /api/admin?live=1 (no database socket on the title: the free plan's 100 connections)
+  // about once a minute while the page is visible; an ADMIN listens live (want('admin') — the panel sends + sees it at once). Each
+  // answer carries the server time it was read (`at`): an older one (a cached poll after a newer answer) is ignored.
+  let liveSeen = -Infinity, pollT = 0, pollOn = true;
+  function onLiveNode(v, at) {
+    if (destroyed || !(at >= liveSeen)) return;
+    liveSeen = at;
+    const ok = v && typeof v === 'object' && Number.isFinite(v.startAt) && Number.isFinite(v.until);
+    let node = ok ? { state: R.cleanRemote(v.state).state, startAt: v.startAt, until: v.until, by: v.by || null } : null;
+    if (node && R.isEmpty(node.state)) node = null;
+    const same = (a, b) => (!a && !b) || (a && b && a.startAt === b.startAt && a.until === b.until && JSON.stringify(a.state) === JSON.stringify(b.state));
+    if (same(node, liveNext || live)) return;                 // (a poll repeating what's on: nothing to redo)
+    clearTimeout(nextT);
+    if (node && node.startAt > serverNow() + 25) {
+      liveNext = node; promote();
+      if (admin && (!cd || cd.mode !== 'all' || cd.at !== node.startAt)) countdown('all', node.startAt, R.describe(node.state));
+    } else { live = node; liveNext = null; if (cd && cd.mode === 'all') stopCd(); }
+    apply();
+    if (sheet) render();
+  }
+  async function poll() {
+    clearTimeout(pollT); pollT = 0;
+    if (destroyed || !pollOn) return;
+    if (document.visibilityState === 'visible') {
+      try {
+        const r = await fetch('/api/admin?live=1', { headers: { Accept: 'application/json' } });
+        if (r.ok) { const j = await r.json(); if (j && Number.isFinite(j.at)) onLiveNode(j.live || null, j.at); }
+      } catch { /* offline / no /api here: keep what's on */ }
+    }
+    if (!destroyed && pollOn && !pollT) pollT = setTimeout(poll, POLL_MS * (0.9 + Math.random() * 0.2));
+  }
+  const onVis = () => { if (document.visibilityState === 'visible' && pollOn) poll(); };
+  document.addEventListener('visibilitychange', onVis);
+  poll();
+  function listenLive() {
+    pollOn = false; clearTimeout(pollT); pollT = 0;
+    want('admin');
+    // (the listener is the truth: its answers always win — the polls stop for good)
+    try { unsub = onValue(dbRef('city2/live'), snap => onLiveNode(snap && snap.val ? snap.val() : null, Infinity), () => {}); } catch (e) { console.warn('city2/live', e); }
+  }
 
   // ---------------------------------------------------------------- the owner's pill (admins only)
   async function checkAdmin() {
@@ -170,6 +197,7 @@ export function createRemote({ scene, api = apiCall }) {
   checkAdmin().then(a => {
     if (destroyed || !a) return false;
     admin = true;
+    firebaseReady.then(() => { if (!destroyed) listenLive(); }).catch(() => {});
     if (!cssReady) cssReady = new Promise(res => { const l = h('link', { rel: 'stylesheet', href: '/css/harbor-remote.css', 'data-hr': '1' }); const done = () => res(true); l.onload = l.onerror = done; setTimeout(done, 3000); document.head.append(l); });
     return cssReady;
   }).then(ok => {
@@ -844,7 +872,8 @@ export function createRemote({ scene, api = apiCall }) {
       destroyed = true; clearInterval(tick); clearInterval(musicT); clearTimeout(typeT); clearTimeout(nextT); clearTimeout(goT);
       if (cd) clearInterval(cd.iv);
       if (play) clearTimeout(play.timer);
-      if (unsub) { try { unsub(); } catch { /* fine */ } }
+      if (unsub) { try { unsub(); } catch { /* fine */ } release('admin'); }
+      clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis);
       if (bar) bar.remove();
       if (sheet) sheet.remove();
       setMenuExtra('admin', null); setMenuCue(null);

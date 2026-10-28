@@ -5,7 +5,7 @@ import { glitchFlash } from './ui/components.js';
 import { toast } from './ui/toast.js';
 import { APP_NAME, GAMES } from './config.js';
 import { state, setState, subscribe } from './store.js';
-import { initFirebase, isConfigured, serverNow } from './firebase.js';
+import { initFirebase, isConfigured, serverNow, lineInfo } from './firebase.js';
 import { inviteCode, watchDuplicateTabs, slot, loadSession } from './identity.js';
 import { resumeSession, armPresence, roomExists } from './room.js';
 import { startHostLoop } from './host.js';
@@ -178,12 +178,12 @@ subscribe(st => {
 });
 
 // ---- connection banner: "reconnecting…" while our own socket is down, "back online" when it returns ----
-let everConnected = false;
+// CONN: a PARKED database (no room, nothing wanted it — firebase.js#want) is not "offline": no banner. st.net: 'parked' · 'waking'
+// (opening; never warned, as before the first connection) · 'online' · 'lost' (it was up and the network dropped it)
 let wasOffline = false;
 let backTimer = 0;
 function renderConnection(st) {
-  if (st.connected) everConnected = true;
-  const offline = st.ready && everConnected && (!st.connected || !navigator.onLine);
+  const offline = st.ready && (st.net === 'lost' || (st.net === 'online' && !navigator.onLine));
   if (offline && !wasOffline) {
     clearTimeout(backTimer);
     netBadge.classList.remove('is-back');
@@ -234,7 +234,7 @@ async function boot() {
     if (b && !b.closest('[data-sfx="none"]') && !b.disabled) sfx('tap');
   }, { capture: true, passive: true });
   // Music is lazy: tracks download only after the first tap unlocks audio (see audio/music.js).
-  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, beat: beatSource, mood: () => moodNow(), state, serverNow };
+  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, beat: beatSource, mood: () => moodNow(), state, serverNow, line: lineInfo };
   // Escape closes the top-most sheet (its backdrop click handler does the closing).
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
@@ -260,8 +260,8 @@ async function boot() {
     return;
   }
   try {
-    const uid = await initFirebase(connected => {
-      setState({ connected });
+    const uid = await initFirebase((connected, net) => {
+      setState({ connected, net });
       if (connected) armPresence();
     });
     setState({ uid });

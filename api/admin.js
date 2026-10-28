@@ -1,3 +1,6 @@
+// GET /api/admin?live=1 — CONN (Oct 28): CITY 2.0's EVERYONE preview (city2/live) for ANY visitor, no sign-in, edge-cached 15 s
+//                         (`s-maxage`): { live: {…} | null, at } — the title polls it instead of holding a database socket
+//                         (harbor/remote.js; on an existing function: Vercel Hobby caps how many there are)
 // POST /api/admin { action, … } — moderation, for the profile ids in the ADMIN_PIDS environment variable only.
 // Every change is written to audit/{push} with who did it. Actions:
 //   whoami                         → { pid, admin }   (anyone: the /admin page shows your id so you can add it)
@@ -211,7 +214,21 @@ export async function adminAction(uid, body, now = Date.now()) {
   }
 }
 
-export default route(['POST'], async (req, res) => {
+/** CONN — the public read of city2/live (the fields a phone plays; the label + the audit stay private) */
+export async function cityLiveNow(now = Date.now()) {
+  const v = await val('city2/live');
+  const ok = v && typeof v === 'object' && Number.isFinite(v.startAt) && Number.isFinite(v.until) && v.until > now;
+  return { live: ok ? { state: v.state || {}, startAt: v.startAt, until: v.until, by: v.by || null } : null, at: now };
+}
+export const LIVE_CACHE = 'public, max-age=0, s-maxage=15';
+
+export default route(['GET', 'POST'], async (req, res) => {
+  if (req.method === 'GET') {
+    const q = new URL(req.url || '/', 'http://x').searchParams;
+    if (q.get('live') !== '1') throw new ApiError(400, 'bad_action');
+    send(res, 200, await cityLiveNow(), { 'Cache-Control': LIVE_CACHE });
+    return;
+  }
   const uid = await requireUser(req);
   const body = await readBody(req);
   send(res, 200, await adminAction(uid, body));

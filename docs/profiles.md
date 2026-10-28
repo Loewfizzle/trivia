@@ -97,7 +97,10 @@ limit), hide from / return to every board, the audit log, **errors from phones**
 `city2/live` node every phone on `?city=2` plays (the state validated by `js/core/harbor-remote.js#cleanRemote` — anything dropped
 refuses the call; 1–240 min, default 30) and `cityClear` removes it; both audited (`cityLive` with the status line + minutes,
 `cityClear`). They are sent from the TEST pill on the title (?city=2, admins only), not from the /admin page. `whoami` also tells the
-title whether to show that pill (cached 6 h per tab).
+title whether to show that pill (cached 6 h per tab). **CONN (Oct 28):** `GET /api/admin?live=1` (no sign-in, the only GET) returns
+the node's playable fields `{ live: { state, startAt, until, by } | null, at }` with `Cache-Control: public, max-age=0, s-maxage=15` —
+every non-admin phone on `?city=2` polls it (~45 s, while visible) instead of holding a database socket; a finished one (`until` past)
+reads as null; the label + the audit stay private.
 
 **Stats** (Oct 2026; `js/core/insights.js#summarize`, PURE, `tests/insights.test.mjs`; action `stats`, cached 30 s): at the top of
 /admin. LIVE NOW (refreshes every 30 s while the page is visible): players in rooms, rooms open, games in progress, a row per room

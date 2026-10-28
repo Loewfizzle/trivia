@@ -1509,6 +1509,14 @@ The seed of Part 13's CITY CONTROL: every `&force=` preview, the party show's sc
 sheet on the owner's phone — on that phone only (JUST ME) or on every phone on `?city=2` at once (EVERYONE). City 1.0 never loads
 or listens to any of it (the E2E checks: no `remote.js` request, no pill, no listener without the flag).
 
+**CONN (Oct 28) — EVERYONE WITHOUT A SOCKET:** the free database plan allows 100 simultaneous connections, so a visitor on the title no
+longer listens to `city2/live`. Every NON-admin phone polls `GET /api/admin?live=1` (edge-cached 15 s; `remote.js#poll`, every ~45 s
+while the page is visible, at once when it comes back) — an EVERYONE preview reaches the other phones within about a minute (~30 s on
+average), the DELAY's startAt still lines them up (`serverNow()` keeps the last known offset per device while the database is parked).
+Each answer carries the server time it was read (`at`); an older answer (a cached copy after a newer one) is ignored. An ADMIN keeps the
+live listener (`want('admin')`, from the moment `whoami` says so until the title goes; parked like any tab after 2 min hidden) — SEND
+and its countdown are instant on the owner's phone. The E2E reads every 1.5 s under `?emu`.
+
 **C2 (Oct 25) — REWORKED** (the owner: "very busy and unorganized"; the old sheet's notes below still hold for the registry, the sync
 and the server): **FULL SCREEN** (inside the safe areas; a centred 820 px sheet on desktop). Pinned at the top: the title + a coloured
 line — **JUST ME — ONLY THIS PHONE** (green) / **EVERYONE — EVERY PHONE ON CITY 2** (pink; the mode's colour also on the sheet's edge,
