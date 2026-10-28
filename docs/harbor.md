@@ -9157,6 +9157,16 @@ The promenade's FINAL layout (LOCKED by the owner, Oct 28 2:32 pm) — the stage
 - The bench overlays (crisp) don't carry the rain streaks / falling snow over the benches' own pixels (a few pt; the flakes pass behind).
 - A cab-stand waiter's taxi has no sound of its own yet (the city's sounds have no car-door slot).
 - The `water` walkers can pass a few pt in front of the old floor line at the left (still above the dock — the e2e checks the screen now).
+- **THE CLOUD RUN (harbor 40781830582): 4 of 7 jobs green; 3 red, all PROM's** — two fixed after the run (not re-run: the pass's two cloud
+  runs were spent): the promenade debug had TWO `cabStand` keys (the taxi's debug overwrote the bench's place — the taxi's is `cabTaxi`
+  now) and the 9c crisp test listed its overlays (now + the two benches). THE THIRD IS OPEN: e2e `motion` "THE PLANTED FOOT NEVER SKATES"
+  — a couple's partner at 0.29–0.30 of the body's speed (≤ 0.25; the pre-PROM build measures 0.05). CAUSE (measured): from Oct 24 the
+  giant jack-o'-lantern stands on the compass, and the compass came forward — its closed floor (RING.clear + a step, r 5.45) reaches
+  z ≈ 37.2, IN FRONT of the walkable floor (zMin 38.75), so walkers detour round the giant's front at z ≈ 37 (still ~8 pt above the dock)
+  on the circle's tight chords, and a couple's partner skates through those bends. Three fixes tried + reverted (a closed strip in front
+  of the piece; that strip open to a step-out; no detour point in front of the floor) — each sent someone straight through the giant,
+  because the way round BEHIND it (past the water bench, under the blade) has no route. The fix: open a route behind the compass when a
+  piece stands on it (or a smaller closed floor for the giant's drawn size) — a follow-up before Halloween 2027 (only the build-up dates).
 - 9g's known flake again: e2e `panelrows` "A WITCH AT HER CAULDRON" fired nothing once with panel + people + panelrows together (24 of 25
   rows) — load-dependent, code PROM doesn't touch.
 - A frame failed silently in the browser during Group 2 (`st` out of scope in folk.js's head painter) — caught by the load log; the

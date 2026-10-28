@@ -2649,12 +2649,12 @@ G('people', async () => {
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.people.members.some(m => m.kind === 'cabwait' && m.pose === 'sit')`, 'a waiter sitting at the cab stand', 40000).catch(() => {});
     await sleep(4500);
-    const up = await ev(Q.page, `${P}.promenade.cabStand`);
+    const up = await ev(Q.page, `${P}.promenade.cabTaxi`);
     await ev(Q.page, 'window.__district.idle()');
-    await waitFor(Q.page, `!!${P}.promenade.cabStand.run`, 'the taxi pulling up (the dock at rest)', 15000).catch(() => {});
-    const run = await ev(Q.page, `${P}.promenade.cabStand`);
-    await waitFor(Q.page, `(() => { const c = ${P}.promenade.cabStand; return !c.run && c.taken.length > 0; })()`, 'the taxi gone with its fare', 25000).catch(() => {});
-    const done = await ev(Q.page, `${P}.promenade.cabStand`), still = await ev(Q.page, `${P}.people.members.filter(m => m.kind === 'cabwait').map(m => m.id)`);
+    await waitFor(Q.page, `!!${P}.promenade.cabTaxi.run`, 'the taxi pulling up (the dock at rest)', 15000).catch(() => {});
+    const run = await ev(Q.page, `${P}.promenade.cabTaxi`);
+    await waitFor(Q.page, `(() => { const c = ${P}.promenade.cabTaxi; return !c.run && c.taken.length > 0; })()`, 'the taxi gone with its fare', 25000).catch(() => {});
+    const done = await ev(Q.page, `${P}.promenade.cabTaxi`), still = await ev(Q.page, `${P}.people.members.filter(m => m.kind === 'cabwait').map(m => m.id)`);
     ok(!up.run && up.runs === 0 && run.run && done.taken.includes(run.run.vid), `PROM THE CAB STAND: no taxi with the dock up (${up.runs}); the dock rests → the taxi came for ${run.run ? run.run.vid : '—'} + took them (${done.taken.join(', ')})`);
     void still;
     await Q.ctx.close(); }
@@ -3637,7 +3637,7 @@ G('snow', async () => {
   { const D = await open({ slot: 'cr-d', qs: `when=2026-10-27T13:00${GR}`, view: [402, 874], dpr: 3 });
     await harborUp(D.page); await waitFor(D.page, `${SNW}.crisp.items.length >= 3`, 'the crisp items', 10000).catch(() => {});
     const a = await ev(D.page, `${SNW}.crisp`), ids = a.items.map(i => i.id).sort().join(',');
-    ok(a.on && a.dpr === 3 && ids === 'blade-board,datestone,roofboard' && a.items.every(i => i.w > 20), `9c THE CRISP LAYER by day at DPR 3: ${ids} (${a.items.map(i => `${i.w}×${i.h}`).join(', ')})`);
+    ok(a.on && a.dpr === 3 && ids.replace(/,?still-(street|water)/g, '') === 'blade-board,datestone,roofboard' && ['still-street', 'still-water'].every(id => ids.includes(id)) &&   /* (PROM: + the two benches) */ a.items.every(i => i.w > 20), `9c THE CRISP LAYER by day at DPR 3: ${ids} (${a.items.map(i => `${i.w}×${i.h}`).join(', ')})`);
     const n = await ev(D.page, `document.querySelectorAll('canvas.hc-crisp').length`);
     await D.ctx.close();
     const N = await open({ slot: 'cr-2', qs: `when=2026-10-27T13:00${GR}`, view: [402, 874], dpr: 2 });
