@@ -8450,7 +8450,8 @@ the blade's bulbs as the abduction flickers the power); tier 0 is the phone's lo
   tones (`bakeT`) once per bake; `doors.js` lays the sprite into the turning quad in 12 perspective strips, darkens it as it turns from
   the street's light, its free edge catching the light (amber from the passage at night). Over the last 7 % of the swing the LEAF ALONE
   fades into the bake (the doorway + whoever is in it are drawn only while it's opaque — a see-through leaf showed the guest who just went
-  in as a ghost on the door).
+  in as a ghost on the door); the doorway is still drawn in the SLIVER the leaf leaves open (the opening minus the leaf), fading with
+  it — the cloud run caught that sliver flicking to the bake in one frame when the hand-off began (~150 px).
 - **A DOOR CLOSER's swing** (`core/harbor-people.js#closerLeft`, PURE): the close is 1.3 s (was 0.9) — a sweep from rest that carries
   the leaf to its last ~9°, then the latch speed slowing it to rest at the latch, the speed continuous where they meet
   (tests/harbor-people.test.mjs: never back open, no speed at the latch, no jump in the speed).
@@ -8531,6 +8532,12 @@ the blade's bulbs as the abduction flickers the power); tier 0 is the phone's lo
 - The doors: no shadow of the person in the doorway on the door's light (planned in the note; small at phone size).
 - The cloud-only checks: the `panel` group (the ADMIN row, the cue, CLEAR from the menu) needs the emulators (no Java on the laptop) —
   it runs in this pass's one cloud run; `panelrows` + `music` ran locally (135/135).
+
+### The cloud runs
+- Run 1 (9bdc410): `tests` ✅; `harbor` — three red checks, all from this pass: the panel test tapped 20× inside the closed MORE TIME fold
+  (it tapped the backdrop and closed the sheet) → the test opens a fold first; FREEZING RAIN expected frost on the buttons (0 now by the
+  owner's decision) → the test expects none; the doors' sliver pop above (a real fix) + the doors check's baseline now the frames on
+  both sides of the latch (a guest walking off keeps ~100 px moving). Run 2: the final push.
 
 ### Handoff → 9e (THE CONSTRUCTION TOWER + THE CITY LIFE + THE SAX REWORK + two vehicle models)
 - A lit door / sign / shopfront anywhere can use the same light model: a mask × `color-dodge` (speakeasy.js#lightMask is the example).

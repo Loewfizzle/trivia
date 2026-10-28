@@ -46,6 +46,15 @@ export function drawDoor(c, G, d, id, k, f, inside, leaf = null) {
   c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(x0, y0, Math.max(0.6, (x1 - x0) * 0.08), y1 - y0);
   // ---- THE PEOPLE INSIDE the doorway (people.js — each clipped here, dimming with depth)
   if (inside) { c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.clip(); inside(c, rect); c.restore(); }
+  } else {
+    // (the hand-off: the doorway only in the SLIVER the leaf leaves open — the opening minus the leaf — fading with the leaf, so the
+    // last point of dark beside its free edge closes smoothly instead of flicking to the bake when the hand-off begins)
+    const th = k * DOORS.swing, W = d.u1 - d.u0, cu = d.u0 + W * Math.cos(th), dz = W * Math.sin(th);
+    const q = [at(d.u0, d.v0), at(d.u0, d.v1), at(cu, d.v1, dz), at(cu, d.v0, dz)];
+    c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.moveTo(q[0][0], q[0][1]); for (const p of q.slice(1)) c.lineTo(p[0], p[1]); c.closePath(); c.clip('evenodd');
+    const g = c.createLinearGradient(0, y0, 0, y1);
+    g.addColorStop(0, rgb(mix(S.dark, S.amberTop, lit))); g.addColorStop(1, rgb(mix(S.dark, S.amberLow, lit * 0.95)));
+    c.fillStyle = g; c.fillRect(x0, y0, x1 - x0, y1 - y0); c.restore();
   }
   // ---- THE LEAF: hinged at u0, swung in by k × SWING — its OUTER face still toward us (the camera stands right of the door)
   c.globalAlpha = fade;

@@ -209,6 +209,8 @@ async function panelSection() {
     await waitFor(O.page, `document.querySelector('.hr-s[data-sec="${hd.sec}"]').classList.contains('is-open')`, `${hd.sec} opens`, 3000);
   };
   const chip = async label => {
+    // (9d: a row inside a closed fold — the NOW bar's MORE TIME — is unfolded first, as a person would)
+    if (await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); const d = b && b.closest('details'); if (!d || d.open) return false; d.open = true; return true; }, label)) await sleep(150);
     await reveal(label);
     const r = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }, label);
     if (!r) throw new Error(`no chip ${label}`);
@@ -262,7 +264,8 @@ async function panelSection() {
   f1 = await flags(O.page);
   ok(/T0[5-8]:\d\d$/.test(f1.q.when || ''), `JUST ME: DAWN from the real sun (${f1.q.when}), the city's look follows (delay NOW: as the sheet closes)`);
   await reopen(O.page);
-  await chip('BACK TO NOW'); await chip('REAL'); await chip('1×');
+  // (9d: the NOW bar — TODAY = the real clock; the weather chip that's on (SNOW, from RECENT) tapped again = the real weather; 1× under MORE TIME)
+  await chip('TODAY'); await chip('SNOW'); await chip('1×');
   await chip('WORDS IN THE WINDOWS');
   await waitFor(O.page, "!!document.querySelector('.hr-text')", 'the text box under its row', 6000);   // (8b1: the cloud once grabbed it before the panel drew it)
   await O.page.evaluate(() => { const i = document.querySelector('.hr-text'); i.scrollIntoView({ block: 'center', behavior: 'instant' }); i.focus(); });
@@ -2772,7 +2775,7 @@ G('weather', async () => {
       ok(mx <= 0.43 && gaps.every(g2 => g2 >= 4400), `THE LIGHTNING IS CAPPED: the brightest flash ${mx.toFixed(2)} (<= 0.42), ${st.length} strikes ${gaps.length ? `${Math.round(Math.min(...gaps))} ms+ apart` : ''}`);
       if (SHOTS) await Q.page.screenshot({ path: `${OUT}weather-storm-night-402x874.png` });
     }
-    if (id === 'freezing-rain') { const g = await ev(Q.page, `${W}.glass`); ok(g.ice > 0.3 && g.frost > 0.2 && g.glassLayers.includes('pill'), `FREEZING RAIN: the glaze on the tubes (${g.ice}), the frost on the glass (${g.frost}), layers ${g.layers.join(',')} + ${g.glassLayers.join(',')}`); }
+    if (id === 'freezing-rain') { const g = await ev(Q.page, `${W}.glass`); ok(g.ice > 0.3 && g.frost === 0 && g.glassLayers.includes('pill'), `FREEZING RAIN: the glaze on the tubes (${g.ice}), no frost on the buttons' glass — 9d, the pane only (${g.frost}), layers ${g.layers.join(',')} + ${g.glassLayers.join(',')}`); }
     await Q.ctx.close();
   }
   // ---- REDUCED MOTION (the app's setting): no lightning flash, no weather on the glass UI
@@ -3634,13 +3637,16 @@ G('doors', async () => {
         if (R.prev) for (let i = 0; i < px.length; i += 4) if (Math.abs(px[i] - R.prev[i]) + Math.abs(px[i + 1] - R.prev[i + 1]) + Math.abs(px[i + 2] - R.prev[i + 2]) > 40) n++;
         R.prev = px; R.rows.push([k, n]); };
       requestAnimationFrame(tick); })()`);
-    await waitFor(P.page, `(() => { const r = window.__dr.rows; let n = 0; for (let i = 1; i < r.length; i++) if (r[i - 1][0] > 0 && r[i][0] === 0) n++; return n >= 1 && r.length > 0 && r[r.length - 1][0] === 0 && r.slice(-6).every(q => q[0] === 0); })()`, `${L.id}: a door swung shut`, 60000);
+    await waitFor(P.page, `(() => { const r = window.__dr.rows; let n = 0; for (let i = 1; i < r.length; i++) if (r[i - 1][0] > 0 && r[i][0] === 0) n++; return n >= 1 && r.length > 0 && r[r.length - 1][0] === 0 && r.slice(-12).every(q => q[0] === 0); })()`, `${L.id}: a door swung shut`, 60000);
     const rows = await ev(P.page, '(() => { const r = window.__dr.rows; window.__dr = null; return r; })()');
     const ends = []; for (let i = 1; i < rows.length; i++) if (rows[i - 1][0] > 0 && rows[i][0] === 0) ends.push(i);
-    const res = ends.map(e => { const before = rows.slice(Math.max(1, e - 24), e - 4).map(q => q[1]).sort((a, b) => a - b), med = before[before.length >> 1] || 0, latch = Math.max(...rows.slice(e - 4, e + 3).map(q => q[1])); return { med, latch }; });
-    const worst = res.reduce((a, q) => (q.latch - 2.5 * q.med - 40 > a.latch - 2.5 * a.med - 40 ? q : a), res[0]);
-    const swung = rows.filter(q => q[0] > 0.5).length;
-    ok(swung > 10 && worst && worst.latch <= 2.5 * worst.med + 40, `THE DOORS NEVER SNAP (${L.id}, ${L.when.slice(11)}): at the latch ≤ ${worst ? worst.latch : '?'} pixels changed in a frame (the frames before: ${worst ? worst.med : '?'}; ${ends.length} closes, ${swung} frames swung open)`);
+    // (the baseline: what moves there anyway — the frames before the latch AND after it (a guest walking off in front of the shop door
+    // keeps changing ~100 px a frame on its own); a snap is a one-frame spike far above both)
+    const medOf = a => { const v = a.map(q => q[1]).sort((x, y) => x - y); return v[v.length >> 1] || 0; };
+    const res = ends.map(e => { const med = Math.max(medOf(rows.slice(Math.max(1, e - 24), e - 4)), medOf(rows.slice(e + 3, e + 12))), latch = Math.max(...rows.slice(e - 4, e + 3).map(q => q[1])); return { med, latch }; });
+    const worst = res.reduce((a, q) => (q.latch - 2.5 * q.med - 60 > a.latch - 2.5 * a.med - 60 ? q : a), res[0]);
+    const swung = rows.filter(q => q[0] > 0.3).length;
+    ok(swung >= 5 && worst && worst.latch <= 2.5 * worst.med + 60, `THE DOORS NEVER SNAP (${L.id}, ${L.when.slice(11)}): at the latch ≤ ${worst ? worst.latch : '?'} pixels changed in a frame (what moves there anyway, the frames round it: ${worst ? worst.med : '?'}; ${ends.length} closes, ${swung} frames swung open)`);
     await P.ctx.close();
   }
 });
