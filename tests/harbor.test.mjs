@@ -89,8 +89,9 @@ for (const k of Object.keys(SIZES)) {
       assert.ok(person > 24 * f && person < 30 * f, `person ${person}`);
       assert.ok(bus > 100 * f && bus < 120 * f, `bus ${bus}`);
       assert.ok(ptAt(cam, units('car'), SIZE.car.z) > 48 * f && ptAt(cam, units('car'), SIZE.car.z) < 62 * f);
-      // (8a: the promenade at the owner's scale — the tall curb lamp ~70 pt, a curb maple's crown ~55 pt across)
-      assert.ok(ptAt(cam, L.lamps[0].h, L.lamps[0].z) > 62 * f && ptAt(cam, L.lamps[0].h, L.lamps[0].z) < 78 * f);
+      // (PROM: no lampposts — the cab stand's bench ~40–60 pt across at the front curb, a curb maple's crown ~55 pt across)
+      assert.ok(L.lamps.every(l => l.implied), 'no lampposts on the promenade');
+      assert.ok(ptAt(cam, L.cabStand.w, L.cabStand.z) > 40 * f && ptAt(cam, L.cabStand.w, L.cabStand.z) < 60 * f, `the cab stand's bench ${ptAt(cam, L.cabStand.w, L.cabStand.z).toFixed(1)} pt`);
       // (FP2: no curb maple on the phone any more — the rule holds for the panorama's curb maples; the phone's curb crabapple ~47 pt)
       assert.ok(ptAt(cam, PROM_PIECE.maple.w, 52.75) > 48 * f && ptAt(cam, PROM_PIECE.maple.w, 52.75) < 64 * f);
       const crab = L.trees.find(t => t.kind === 'crab'); assert.ok(ptAt(cam, crab.r * 2, crab.z) > 48 * f && ptAt(cam, crab.r * 2, crab.z) < 64 * f, `the bench's crabapple (PF: bigger, ~56 pt) ${ptAt(cam, crab.r * 2, crab.z)}`);
@@ -2341,7 +2342,7 @@ test('8a — THE PROMENADE: the centrepiece spot in the open plaza (clear of the
     const [w1] = P(L.speakeasy.x0 + L.speakeasy.shop.win[1], 0, L.speakeasy.z0);
     assert.ok(mx - piece > w1, `${k}: clear of the shop window`);
     // open space: no furniture within the ring (+ a margin)
-    for (const it of [...L.lamps, ...L.trees, ...L.planters, L.bench, L.cart]) {
+    for (const it of [...L.lamps.filter(l => !l.implied), ...L.trees, ...L.planters, L.bench, L.cabStand, L.cart]) {
       const [ix] = P(it.x, 0, it.z);
       if (Math.abs(it.z - m.z) < 6) assert.ok(Math.abs(ix - mx) > ring + 6, `${k}: ${it.kind || 'a piece'} at ${ix.toFixed(0)} clear of the medallion ${mx.toFixed(0)}`);
     }
@@ -2349,7 +2350,7 @@ test('8a — THE PROMENADE: the centrepiece spot in the open plaza (clear of the
     const w = L.wheel, [, hy] = P(w.x, w.y, w.z), [, ty] = P(m.x, 11, m.z);
     assert.ok(ty > hy + 30 * cam.F / 600, `${k}: the tall piece's top ${ty.toFixed(0)} under the hub ${hy.toFixed(0)}`);
     // nothing stands under the dock; no tree is cut by the screen's edges
-    for (const it of [...L.lamps, ...L.trees, ...L.planters, L.bench, L.cart]) assert.ok(P(it.x, 0, it.z)[1] <= cam.dock.y + 1, `${k}: ${it.kind || 'piece'} above the dock`);
+    for (const it of [...L.lamps.filter(l => !l.implied), ...L.trees, ...L.planters, L.bench, L.cabStand, L.cart, L.hydrant]) assert.ok(P(it.x, 0, it.z)[1] <= cam.dock.y + 1, `${k}: ${it.kind || 'piece'} above the dock`);
     for (const t of L.trees) { const [tx] = P(t.x, 0, t.z), r = cam.F * t.w / 2 / t.z; assert.ok(tx - r >= 0 && tx + r <= cam.W, `${k}: a ${t.kind} inside the screen`); }
     // no flag; the stop lights right of the wheel's base
     assert.equal(L.flag, undefined);
@@ -2357,32 +2358,42 @@ test('8a — THE PROMENADE: the centrepiece spot in the open plaza (clear of the
     for (const sg of L.signals) assert.ok(P(sg.x, 0, sg.z)[0] > wx + base, `${k}: the ${sg.id} stop light right of the wheel's base`);
   }
 });
-test('FP / PF — THE PROMENADE: furniture on the edges (the back row clear of the stop lights, the lantern + the crossing\'s landing), an open floor, the front edge clear (two corner globes + the framing maple), the bench by a tall lamp', () => {
+test('PROM — THE PROMENADE, FINAL (LOCKED Oct 28): no lampposts; the back row clear of the stop lights, the lantern + the crossing\'s landing; the water bench at the crabapple facing the harbor; the framing maple moved back + THE CAB STAND at the front curb in front of it (above the dock); the cart left of the bigger compass; the hydrant at the left curb', () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { cam, L } = setup(k), P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
     const crown = t => cam.F * t.w / 2 / t.z;
-    // THE BACK ROW (the curb): (FP2) the crabapple, two tall lamps, the bench — every tree's crown clear of both stop lights' heads + the lantern
+    // NO LAMPPOSTS: every lamp is an implied one (below the screen, never drawn)
+    assert.ok(L.lamps.length >= 4 && L.lamps.every(l => l.implied && P(l.x, l.z)[1] > cam.H), `${k}: the implied lamps only, below the screen`);
+    // THE BACK ROW (the curb): the crabapple only — its crown clear of both stop lights' heads + the lantern
     const back = [...L.trees, ...L.lamps].filter(it => it.z >= 50);
-    assert.deepEqual(back.filter(t => t.kind === 'maple' || t.kind === 'crab').map(t => t.kind), ['crab'], `${k}: one curb tree — the crabapple (FP2: the red maple by the blade is gone)`); assert.equal(back.filter(l => l.kind === 'tall').length, 2, `${k}: two tall lamps`);
-    assert.ok(L.bench.z > 47 && L.bench.z < 50, `${k}: the bench a little forward of the back row (PF)`);
+    assert.deepEqual(back.filter(t => t.kind === 'maple' || t.kind === 'crab').map(t => t.kind), ['crab'], `${k}: one curb tree — the crabapple`);
+    assert.ok(L.bench.z > 47 && L.bench.z < 50 && L.bench.face === 'water', `${k}: THE WATER BENCH a little forward of the back row, facing the harbor`);
     const keep = [...L.signals.map(sg => sx(sg)), sx(L.crosswalk.lantern)];
     for (const t of L.trees.filter(t => t.z >= 50)) for (const kx of keep) assert.ok(Math.abs(sx(t) - kx) > crown(t) + 4, `${k}: a curb maple (${sx(t).toFixed(0)}) clear of a stop light / the lantern (${kx.toFixed(0)})`);
     // the crossing's landing on the curb stays open: no tree trunk, lamp post or bench in the crosswalk's width
     const [c0] = P(L.crosswalk.x0, 53), [c1] = P(L.crosswalk.x1, 53);
     for (const it of [...back, L.bench]) { const x = sx(it), hw = it === L.bench ? cam.F * L.bench.w / 2 / L.bench.z : 3; assert.ok(x + hw < c0 || x - hw > c1, `${k}: the crossing's landing open (${x.toFixed(0)} vs ${c0.toFixed(0)}–${c1.toFixed(0)})`); }
-    // THE OPEN FLOOR (z 38.4–50): only the medallion + the cart (FP2: the corner urn is gone — no planter on the promenade)
+    // THE OPEN FLOOR (z 38.4–50): the framing maple moved BACK (f 0.875, z 42 — its whole crown on screen, clear of the compass's ring),
+    // no lamp, no planter
     const floor = [...L.trees, ...L.lamps, ...L.planters].filter(it => it.z > 38.4 && it.z < 50);
-    assert.deepEqual(floor, [], `${k}: the floor holds no tree, lamp or planter`);
-    const s = L.speakeasy;
+    assert.deepEqual(floor.map(t => t.kind), ['maple'], `${k}: the floor holds only the framing maple`);
+    const s = L.speakeasy, big = floor[0];
     assert.equal(L.planters.length, 0, `${k}: no planter (FP2)`);
-    // THE FRONT EDGE (nearer than z 38.4): only the two corner globes + the framing maple at the right — not covering the cart
-    const front = [...L.trees, ...L.lamps, ...L.planters].filter(it => it.z <= 38.4);
-    const globes = front.filter(l => l.kind === 'globe').map(sx).sort((a, b) => a - b), [faceX] = P(s.x1, s.z0);
-    assert.equal(globes.length, 2, `${k}: two globes`); assert.ok(Math.abs(globes[0] - faceX) < 0.04 * cam.W && globes[1] > 0.93 * cam.W, `${k}: one at each corner (${globes.map(v => v.toFixed(0))})`);
-    const big = front.filter(t => t.kind === 'maple'); assert.equal(big.length, 1, `${k}: one framing maple`);
-    const inR = sx(L.medallion) + cam.F * L.medallion.ring / L.medallion.z; assert.ok(sx(big[0]) - crown(big[0]) >= inR && sx(big[0]) > 0.82 * cam.W, `${k}: the framing maple at the right edge, clear of the inlay`);
-    // the bench in a tall lamp's light (it must read at night: PF — the left flanking lamp behind its right end)
-    assert.ok(L.lamps.some(l => l.kind === 'tall' && Math.hypot(l.x - L.bench.x, l.z - L.bench.z) < 5.5 && sx(l) > sx(L.bench)), `${k}: the bench by a tall lamp`);
+    assert.ok(Math.abs(big.z - 42) < 0.01 && sx(big) - crown(big) > 0 && sx(big) + crown(big) <= cam.W && P(big.x, big.z, big.trunk + big.h)[1] > 0, `${k}: the maple's whole crown shows`);
+    const inR = sx(L.medallion) + cam.F * L.medallion.ring / L.medallion.z; assert.ok(sx(big) - crown(big) >= inR - 2, `${k}: the maple clear of the compass's ring (${(sx(big) - crown(big)).toFixed(0)} vs ${inR.toFixed(0)})`);
+    // THE COMPASS: bigger (r 1.8, ring 3.05) + forward (z 42.6)
+    assert.ok(L.medallion.r === 1.8 && L.medallion.ring === 3.05 && L.medallion.z === 42.6, `${k}: the bigger compass, brought forward`);
+    // THE FRONT EDGE (nearer than z 38.4): no lamp, no tree — THE CAB STAND at the front curb in front of the maple, facing the street,
+    // fully ABOVE the dock (its sitters' heads too); the HYDRANT at the left curb
+    const front = [...L.trees, ...L.lamps.filter(l => !l.implied), ...L.planters].filter(it => it.z <= 38.4);
+    assert.deepEqual(front, [], `${k}: no lamp or tree on the front edge`);
+    const cb = L.cabStand;
+    assert.ok(cb && cb.face === 'street' && cb.z === 38 && Math.abs(sx(cb) - sx(big)) < 6, `${k}: the cab stand in front of the maple`);
+    assert.ok(P(cb.x, cb.z)[1] <= cam.dock.y - 8 && P(cb.x + cb.w / 2, cb.z)[0] < cam.W - 4, `${k}: the cab stand fully above the dock + on screen (${P(cb.x, cb.z)[1].toFixed(0)} vs ${cam.dock.y})`);
+    assert.ok(sx(L.hydrant) < 0.06 * cam.W, `${k}: the hydrant at the left curb`);
+    // THE VENDOR CART at the front-middle LEFT of the compass — its right end short of the ring
+    const ringL = sx(L.medallion) - cam.F * L.medallion.ring / L.medallion.z, cartR = P(L.cart.x + 1.49, L.cart.z)[0];
+    assert.ok(cartR <= ringL + 1, `${k}: the cart left of the compass (${cartR.toFixed(0)} ≤ ${ringL.toFixed(0)})`);
   }
 });
 test('8a — THE SEASON by the real date (Michigan), forced by &season=, the south shifted', () => {
@@ -2403,8 +2414,8 @@ test('8a — THE IMPLIED ROAD: one car a slot at most, on the clock (the same fo
 
 // ------------------------------------------------------------------ PART 8a: THE PROPS' ART (props.js) — every prop, season and look
 // draws with real colours (never NaN), and the shadows follow the rules: a cast shadow only in the sun, the contact shadow always
-test('8a — the props draw in every season + look with finite colours; cast shadows only in the sun (none at night / overcast)', async () => {
-  const { drawBench, drawCart, drawMedallion, propShadow } = await import('../js/screens/harbor/props.js');
+test('8a — the props draw in every season + look with finite colours; cast shadows in the sun + (PROM) under the implied lamps at night, none under an overcast deck', async () => {
+  const { drawBench, drawBenchBack, drawCart, drawMedallion, propShadow } = await import('../js/screens/harbor/props.js');
   const { drawPlanter } = await import('../js/screens/harbor/props-garden.js');
   const { promenadeLayout } = await import('../js/core/harbor-promenade.js');
   const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = promenadeLayout(cam);
@@ -2419,12 +2430,15 @@ test('8a — the props draw in every season + look with finite colours; cast sha
   for (const season of ['spring', 'summer', 'autumn', 'winter']) for (const [name, T] of Object.entries(looks)) {
     const ctx = { season, phase: 0.5, lights: L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), lampK: T.lamps || 0, snow: season === 'winter' ? 0.5 : 0 };
     const { o, x } = rec();
-    drawBench(x, cam, L.bench, T, ctx); drawCart(x, cam, L.cart, T, ctx); for (const p of L.planters) drawPlanter(x, cam, p, T, ctx); drawMedallion(x, cam, L.medallion, T, ctx);
+    drawBench(x, cam, L.cabStand, T, ctx); drawBenchBack(x, cam, L.bench, T, ctx); drawCart(x, cam, L.cart, T, ctx); for (const p of L.planters) drawPlanter(x, cam, p, T, ctx); drawMedallion(x, cam, L.medallion, T, ctx);
     assert.deepEqual(o.bad, [], `${season} ${name}`);
-    // the shadows: the bench's cast + contact = 2 soft fills in the sun; only the contact one at night / under an overcast deck
-    const sh = rec(); propShadow(sh.x, cam, L.bench, 'bench', T, ctx);
-    assert.equal(sh.o.soft, name === 'night' || name === 'overcast' ? 1 : 2, `${season} ${name} shadows`);
-    assert.deepEqual(sh.o.bad, []);
+    // the shadows: a bench's cast + contact = 2 soft fills in the sun AND at night (PROM: the implied lamps throw it up the screen); only
+    // the contact one under an overcast deck
+    for (const b of [L.bench, L.cabStand]) {
+      const sh = rec(); propShadow(sh.x, cam, b, 'bench', T, ctx);
+      assert.equal(sh.o.soft, name === 'overcast' ? 1 : 2, `${season} ${name} shadows (${b.face})`);
+      assert.deepEqual(sh.o.bad, []);
+    }
   }
 });
 
@@ -2472,7 +2486,7 @@ test('8a — THE TREES: one seeded skeleton through the year, the crown inside i
   assert.equal(densityOf('maple', 'winter'), 0); assert.equal(densityOf('maple', 'summer'), 1);
 });
 
-test('8a — THE TREES draw in every season + look with finite colours; cast shadows only in the sun; THE FALLING LEAVES: capped by tier, none at tier 0 / reduced motion / winter', async () => {
+test('8a — THE TREES draw in every season + look with finite colours; cast shadows in the sun + (PROM) under the implied lamps at night; THE FALLING LEAVES: capped by tier, none at tier 0 / reduced motion / winter', async () => {
   const { drawTree, treeShadow, createLeaves } = await import('../js/screens/harbor/trees.js');
   const { promenadeLayout } = await import('../js/core/harbor-promenade.js');
   const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = { ...promenadeLayout(cam), cam };
@@ -2484,7 +2498,7 @@ test('8a — THE TREES draw in every season + look with finite colours; cast sha
     return { o, x: new Proxy(base, { get: (t, k) => (k in t ? t[k] : num), set: (t, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle') chk(v); t[k] = v; return true; } }) };
   };
   const looks = { day: { day: 1, gold: 0, night: 0, sunDir: -0.4, sunEl: 40, ovc: 0 }, gold: { day: 0, gold: 1, night: 0, sunDir: 1, sunEl: 6, ovc: 0 },
-    night: { day: 0, gold: 0, night: 1, sunDir: 0, sunEl: 6, ovc: 0 }, overcast: { day: 1, gold: 0, night: 0, sunDir: 0, sunEl: 40, ovc: 0.75 } };
+    night: { day: 0, gold: 0, night: 1, sunDir: 0, sunEl: 6, ovc: 0, lamps: 1 }, overcast: { day: 1, gold: 0, night: 0, sunDir: 0, sunEl: 40, ovc: 0.75 } };
   for (const season of ['spring', 'summer', 'autumn', 'winter']) for (const [name, T] of Object.entries(looks)) {
     const ctx = { season, phase: 0.5, lights: L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind })), lampK: name === 'night' ? 1 : 0, snow: season === 'winter' ? 0.5 : 0, wet: 0 };
     L.trees.forEach((t, i) => {
@@ -2492,7 +2506,7 @@ test('8a — THE TREES draw in every season + look with finite colours; cast sha
       assert.deepEqual(o.bad, [], `${t.kind} ${season} ${name}`); assert.ok(o.fills > 5);
       const sh = rec(); treeShadow(sh.x, cam, t, T, { ...ctx, i });
       assert.deepEqual(sh.o.bad, []);
-      assert.equal(sh.o.fills > 0, name === 'day' || name === 'gold', `${t.kind} ${season} ${name}: a cast shadow only in the sun`);
+      assert.equal(sh.o.fills > 0, name !== 'overcast', `${t.kind} ${season} ${name}: a cast shadow in the sun + under the lamps, none overcast`);
     });
   }
   // the leaves: a minute of frames in a wind
@@ -2751,7 +2765,7 @@ import { centrepieceCap, CENTRE_PAD, EVENT_CLEAR } from '../js/core/harbor-prome
 import { benchBox } from '../js/screens/harbor/props.js';
 import { FAR_KERB, drawLanternBody } from '../js/screens/harbor/road.js';
 import * as roadMod from '../js/screens/harbor/road.js';
-test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flanking tall lamps, the bench + its crabapple just left of the crossing (the blade free), the cart placed right of the inlay (8P), the centrepiece's height cap, the corner clean", () => {
+test("PF → PROM — THE FINAL LAYOUT: the inlay on the crossing's axis (no flanking lamps now), the bench + its crabapple just left of the crossing (the blade free), the cart LEFT of the inlay (PROM), the centrepiece's height cap, the corner clean", () => {
   for (const k of ['390x844', '402x874', '430x932']) {
     const { s, cam, L } = setup(k), f = s.W / 402, P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
     const m = L.medallion, mx = sx(m), ring = cam.F * m.ring / m.z, bx = sx(L.bench);
@@ -2762,10 +2776,8 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     // (the crossing's axis on screen: the crosswalk's middle, z 59 — the pieces stand by screen fraction)
     const ax = (P(L.crosswalk.x0, 59)[0] + P(L.crosswalk.x1, 59)[0]) / 2;
     assert.ok(Math.abs(mx - ax) < 3 * f, `${k}: the inlay on the crossing's axis (${mx.toFixed(0)} vs ${ax.toFixed(0)})`);
-    // THE TALL PAIR flanking the crossing: one either side, symmetric about its centre, outside the stop lights
-    const tall = L.lamps.filter(l => l.kind === 'tall').map(sx).sort((a, b) => a - b), sg = L.signals.map(sx).sort((a, b) => a - b);
-    assert.equal(tall.length, 2); assert.ok(tall[0] < c0 && tall[1] > c1 && tall[0] < sg[0] && tall[1] > sg[1], `${k}: the tall lamps flank the crossing (${tall.map(v => v.toFixed(0))})`);
-    assert.ok(Math.abs((tall[0] + tall[1]) / 2 - ax) < 3 * f, `${k}: a matched pair, symmetric about the crossing`);
+    // (PROM: no tall pair — the crossing is lit by the back road's implied lamps; nothing stands at its landing)
+    assert.equal(L.lamps.filter(l => l.kind === 'tall').length, 0, `${k}: no tall lamps`);
     // the bench + its crabapple just LEFT of the crossing; the crabapple's crown clear of the blade (the blade free, the tree shows)
     const bw = cam.F * L.bench.w / 2 / L.bench.z;
     assert.ok(bx + bw < c0 && cx < bx, `${k}: the crabapple · the bench · the crossing, left to right`);
@@ -2773,7 +2785,7 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     // (POLISH 5: nudged left so the cab at its stop shows whole — the crown may tuck a little BEHIND the blade (drawn in front of it: the
     // blade stays free) as long as most of the tree shows: ≥ 75 % of its crown right of the blade)
     assert.ok(cx + crown - (blade.x + blade.w) >= 0.75 * 2 * crown, `${k}: the crabapple's crown (${(cx - crown).toFixed(0)}–${(cx + crown).toFixed(0)}) mostly right of the blade (${(blade.x + blade.w).toFixed(0)})`);
-    assert.ok(cx + crown < tall[0] - cam.F * PROM_PIECE.tall.arm / 52.6 + 3 * f, `${k}: … and left of the flanking lamp's head`);
+    assert.ok(cx + crown < c0 + 3 * f, `${k}: … and left of the crossing`);
     // the door + the shop window clear of the inlay; nothing at the speakeasy's corner
     const d = L.door, [w1] = P(L.speakeasy.x0 + L.speakeasy.shop.win[1], L.speakeasy.z0);
     assert.ok(mx - ring > d.x + d.w + 4 && mx - ring > w1, `${k}: the inlay clear of the door + the shop window`);
@@ -2781,14 +2793,16 @@ test("PF — THE FINAL LAYOUT: the inlay on the crossing's axis between the flan
     // FP3b — THE VENDOR SPOT (the owner, Oct 24): the cart at the FRONT CURB, just in front of the compass — on screen right of it, its
     // body never over the inlay (the ring's width at the cart's counter row), its wheels above the dock, short of the framing maple's
     // trunk; LIVE (drawn by the people on its schedule — core/harbor-routines.js#VENDOR), its handles on the right, its umbrella furled
-    assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === 1);
+    assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === -1, 'PROM: its handles on the LEFT — wheeled in from the left edge');
     { const sc = L.cart.scale, [cxs, gy] = P(L.cart.x, L.cart.z), hw = cam.F * 1.3 * sc / L.cart.z, [, cy] = P(L.cart.x, L.cart.z, 1.92 * sc);
       const [, ry0] = P(m.x, m.z + m.ring), [, ry1] = P(m.x, m.z - m.ring), ec = (ry0 + ry1) / 2, eh = (ry1 - ry0) / 2, dy = Math.min(1, Math.abs(Math.max(cy, Math.min(gy, ec)) - ec) / eh);
       const ringR = mx + ring * Math.sqrt(Math.max(0, 1 - dy * dy)), maple = L.trees.find(t => t.big), mapleL = P(maple.x, maple.z)[0] - cam.F * 0.3 / maple.z;
-      assert.ok(cxs - hw > ringR, `${k}: the cart (its left end ${(cxs - hw).toFixed(1)}) clear of the inlay (${ringR.toFixed(1)})`);
+      // (PROM: the vendor spot at the front-middle LEFT of the compass — its right end short of the ring's left edge at its counter row)
+      const ringL = mx - ring * Math.sqrt(Math.max(0, 1 - dy * dy));
+      assert.ok(cxs + hw < ringL + 1 * f, `${k}: the cart (its right end ${(cxs + hw).toFixed(1)}) clear of the inlay (${ringL.toFixed(1)})`);
       assert.ok(gy < cam.dock.y - 8, `${k}: its wheels above the dock (${gy.toFixed(0)} vs ${cam.dock.y})`);
-      assert.ok(cxs + hw < mapleL - 4, `${k}: short of the maple's trunk`);
-      assert.ok(Math.abs(cxs - mx) < 70 * f, `${k}: in the middle, by the compass (${(cxs - mx).toFixed(0)} pt right of it)`); }
+      assert.ok(cxs + hw < mapleL - 4, `${k}: short of the maple's trunk`); void ringR;
+      assert.ok(Math.abs(cxs - mx) < 80 * f, `${k}: in the middle, by the compass (${(mx - cxs).toFixed(0)} pt left of it)`); }
     // THE HEIGHT CAP: under the game blade's bottom and the wheel's hub (by CENTRE_PAD), a Christmas tree's height at least
     const bl = signSpots(L).find(sp => sp.id === 'n-blade'), nb = bl.rect.y + bl.rect.h, hub = P(L.wheel.x, L.wheel.z, L.wheel.y)[1];
     const cap = centrepieceCap(cam, m, [nb, hub]), [, top] = P(m.x, m.z, cap);
@@ -3151,7 +3165,7 @@ test('PF — the inlay, the mailbox\'s art + the test piece (+ its light pass) d
     assert.deepEqual(o.bad, [], name);
     assert.ok(o.fills > 200, `${name}: the inlay laid brick by brick (${o.fills} fills)`);
     const sh = rec(); propShadow(sh.x, cam, L.mailbox, 'mailbox', T, ctx);
-    assert.equal(sh.o.soft, name === 'night' || name === 'overcast' ? 1 : 2, `${name}: the mailbox's shadows`);
+    assert.equal(sh.o.soft, name === 'overcast' ? 1 : 2, `${name}: the mailbox's shadows (PROM: at night the implied lamps' too)`);
   }
 });
 test('PF — THE PREVIEW PANEL lists the centrepiece test under PROMENADE', () => {

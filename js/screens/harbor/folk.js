@@ -532,7 +532,7 @@ export function drawFolk(c, cam, it, env) {
   c.save(); c.globalAlpha = a * (c.globalAlpha || 1);
   if (env.clip) env.clip(c);
   // ---- the shadows: a soft contact shadow; by day the sun's cast shadow along the ground
-  const sh = env.shadow ? env.shadow(BODY_H * L.h) : null;
+  const sh = env.shadow ? env.shadow(BODY_H * L.h, st.x, st.z) : null;
   if (sh && st.pose !== 'sit') {
     const [tx, ty] = project(cam, st.x + sh.dx, yUp, st.z + sh.dz), w = H * 0.09;
     c.fillStyle = `rgba(28,22,44,${(sh.a * 0.85).toFixed(3)})`; c.beginPath(); c.moveTo(fx - w, fy); c.lineTo(fx + w, fy); c.lineTo(tx + w * 0.55, ty); c.lineTo(tx - w * 0.55, ty); c.closePath(); c.fill();

@@ -21,11 +21,11 @@
 
 import { project } from '../../core/harbor-layout.js';
 import { signSpots } from '../../core/harbor-neon.js';
-import { centrepieceCap } from '../../core/harbor-promenade.js';
+import { centrepieceCap, centreK } from '../../core/harbor-promenade.js';
 import { rigSpots, normCentre, rigLevel, centreBox, centreActive, RIG } from '../../core/harbor-centre.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { pieceCtx } from '../../core/harbor-light.js';
-import { createFloods } from './floods.js';
+import { createFloods, atCentreScale } from './floods.js';
 // (FP3a: THE TEST PIECE lives in props-test.js, loaded only when &force=centrepiece-test asks for it)
 let TEST_PIECE = null, testLoad = null;
 
@@ -177,7 +177,8 @@ export function createCentre() {
       // (9e — THE SNOWMAN's DEPTH: "people walking behind the snowman snapped in front of him" — the piece was drawn before the whole
       //  people pass. With `defer` the floor (the pool + the back spots) is drawn now and the PIECE comes back as { z, draw } for the near
       //  pass's depth sort, like the giant pumpkin + the harvest display: a walker behind it (farther z) passes BEHIND)
-      const piece = c2 => pieceDraw(c2, st, fo, k, col, m, fade, lamps, t);
+      // (PROM: at today's on-screen size on the bigger, nearer compass — × centreK about its foot)
+      const piece = c2 => atCentreScale(c2, cam, m.x, m.z, centreK(L), () => pieceDraw(c2, st, fo, k, col, m, fade, lamps, t));
       lastZ = defer ? +m.z.toFixed(2) : null;
       if (defer) return { z: m.z, draw: piece };
       piece(c);

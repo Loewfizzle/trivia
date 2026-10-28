@@ -3,7 +3,9 @@
 //             under a lamp, a tree grate, the bench or the hydrant): each mirrors the sky (pale by day, the night's navy) and the LIGHTS
 //             standing behind it (the globes' + the tall lamps' warm streaks, the neon's colour) — and each has its own depth, so as the
 //             street DRIES they shrink + vanish one by one (the shallow first: patch by patch); RINGS dance in them while it rains
-//   THE LAMPS' WET REFLECTIONS   long broken streaks of each lit lamp running down the wet stones toward us (the classic wet street)
+//   THE WET REFLECTIONS   long broken streaks of each light standing on the promenade running down the wet stones toward us (the classic
+//             wet street) — PROM (no lampposts): the NEON (the blade), the door's lamp, the barbershop's awning + window, the stop lights
+//             (red / amber / green with the cycle); the implied lamps behind the viewer have no streak (nothing of them is in view)
 //   THE AWNING'S DRIPS   drops gathering along the awning's front edge + falling to the pavement (while it rains, then the drips die away)
 // The puddles + the streaks are BAKED into one canvas when the wetness / the lamps / the light move a step (wetKey); the rings + the drips
 // are live (a few strokes). Reduced motion: the still puddles only.
@@ -19,7 +21,8 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Mat
 export function puddlesOf(L, seed = 1924) {
   const r = rngFrom((seed * 31 + 9001) >>> 0), cam = L.cam, s = L.speakeasy, out = [];
   const blocked = [];
-  for (const l of L.lamps || []) blocked.push({ x: l.x, z: l.z, r: 1.0 });
+  for (const l of L.lamps || []) if (!l.implied) blocked.push({ x: l.x, z: l.z, r: 1.0 });
+  if (L.cabStand) blocked.push({ x: L.cabStand.x, z: L.cabStand.z, r: 2.0 });
   for (const t of L.trees || []) blocked.push({ x: t.x, z: t.z, r: (t.grate ? 1.6 : 1.2) });
   if (L.medallion) blocked.push({ x: L.medallion.x, z: L.medallion.z, r: 3.4 });
   if (L.bench) blocked.push({ x: L.bench.x, z: L.bench.z, r: 2.0 });
@@ -55,21 +58,19 @@ export function createWetGround() {
     x.setTransform(dpr, 0, 0, dpr, 0, -y0 * dpr);
     x.clearRect(0, y0, W, h);
     const sky = day > 0.5 ? [176, 190, 210] : [22, 24, 46], skyHi = day > 0.5 ? [228, 236, 246] : [92, 70, 130];
-    // THE LAMPS' WET REFLECTIONS: a long broken streak of each lit globe down the stones toward us (stronger the wetter)
-    if (o.night > 0.05) for (const [i, l] of (L.lamps || []).entries()) {
-      const lv = (o.levels && o.levels[i] != null ? o.levels[i] : 1) * o.night;
-      if (lv < 0.05) continue;
-      for (const hd of l.heads || []) {
-        if (hd.x == null) continue;
-        const [bx, by] = project(cam, l.x, 0, l.z), len = (28 + 38 * wet) * cam.F / l.z / 12, w0 = Math.max(1.2, (hd.rw || 2) * 0.9);
-        const g = x.createLinearGradient(0, by, 0, by + len);
-        g.addColorStop(0, `rgba(255,214,150,${(0.5 * lv * wet).toFixed(3)})`); g.addColorStop(0.4, `rgba(255,196,128,${(0.26 * lv * wet).toFixed(3)})`); g.addColorStop(1, 'rgba(255,190,120,0)');
-        x.fillStyle = g; x.globalCompositeOperation = 'lighter';
-        // broken: a few dashes, wider near the lamp, a little wobble
-        const rr = rngFrom(i * 97 + 13);
-        for (let k = 0; k < 7; k++) { const t0 = k / 7, t1 = t0 + 0.09 + rr() * 0.05, ww = w0 * (1.4 - 0.7 * t0) * (0.7 + rr() * 0.5); x.fillRect(hd.x - ww / 2 + (rr() - 0.5) * 1.2, by + 2 + len * t0, ww, len * (t1 - t0)); }
-        x.globalCompositeOperation = 'source-over';
-      }
+    // THE WET REFLECTIONS (PROM): a long broken streak under each light on the promenade (o.reflect: { x, y (its foot on the wet ground,
+    // screen pt), col, k, w (pt), len (pt at full wetness) }) down the stones toward us — stronger the wetter
+    if (o.night > 0.05) for (const [i, R] of (o.reflect || []).entries()) {
+      const lv = (R.k ?? 1) * o.night;
+      if (lv < 0.05 || R.x < -20 || R.x > W + 20) continue;
+      const len = (R.len || 40) * (0.45 + 0.55 * wet), w0 = Math.max(1.2, R.w || 2.4), c = R.col || [255, 214, 150], by = R.y;
+      const g = x.createLinearGradient(0, by, 0, by + len);
+      g.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${(0.55 * lv * wet).toFixed(3)})`); g.addColorStop(0.4, `rgba(${c[0]},${c[1]},${c[2]},${(0.28 * lv * wet).toFixed(3)})`); g.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+      x.fillStyle = g; x.globalCompositeOperation = 'lighter';
+      // broken: a few dashes, wider near the light, a little wobble
+      const rr = rngFrom(i * 97 + 13 + Math.round(R.x));
+      for (let k = 0; k < 7; k++) { const t0 = k / 7, t1 = t0 + 0.09 + rr() * 0.05, ww = w0 * (1.4 - 0.7 * t0) * (0.7 + rr() * 0.5); x.fillRect(R.x - ww / 2 + (rr() - 0.5) * 1.2, by + 2 + len * t0, ww, len * (t1 - t0)); }
+      x.globalCompositeOperation = 'source-over';
     }
     // THE PUDDLES: the deep ones keep longest (thr); a puddle's size grows with how far the wetness is past its own threshold
     for (const p of pud) {
@@ -88,12 +89,12 @@ export function createWetGround() {
       x.fillStyle = g; x.fillRect(S.cx - rx * 1.6, S.cy - ry * 1.6, rx * 3.2, ry * 3.2);
       // the lights standing behind it, mirrored as vertical streaks through it (the lamps' globes; the neon's colours from the light grid)
       if (o.night > 0.05) {
-        for (const [i, l] of (L.lamps || []).entries()) for (const hd of l.heads || []) {
-          if (hd.x == null || Math.abs(hd.x - S.cx) > rx * 1.1) continue;
-          const lv = (o.levels && o.levels[i] != null ? o.levels[i] : 1) * o.night;
-          x.globalCompositeOperation = 'lighter'; x.fillStyle = `rgba(255,214,156,${(0.7 * lv * k).toFixed(3)})`;
-          x.fillRect(hd.x - 1.1, S.cy - ry, 2.2, ry * 2);
-          x.fillStyle = `rgba(255,200,140,${(0.25 * lv * k).toFixed(3)})`; x.fillRect(hd.x - 3, S.cy - ry, 6, ry * 2);
+        for (const R of o.reflect || []) {
+          if (Math.abs(R.x - S.cx) > rx * 1.1 || R.y > S.cy + ry) continue;
+          const lv = (R.k ?? 1) * o.night, c = R.col || [255, 214, 156];
+          x.globalCompositeOperation = 'lighter'; x.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${(0.7 * lv * k).toFixed(3)})`;
+          x.fillRect(R.x - 1.1, S.cy - ry, 2.2, ry * 2);
+          x.fillStyle = `rgba(${c[0]},${c[1]},${c[2]},${(0.25 * lv * k).toFixed(3)})`; x.fillRect(R.x - 3, S.cy - ry, 6, ry * 2);
         }
         // (the lit things behind + above it: the light grid sampled up the screen — the neon's colours + the lit windows, mirrored as soft
         // vertical streaks; the strongest a little brighter at the puddle's far edge)
@@ -123,7 +124,7 @@ export function createWetGround() {
       if (!L || o.fade <= 0) return;
       const wet = clamp01(o.wet);
       if (wet > 0.02) {
-        const k = `${Math.round(wet * 20)}|${Math.round(o.day * 6)}|${Math.round(o.night * 10)}|${(o.levels || []).map(v => Math.round(v * 4)).join('')}|${W}x${H}|${o.lightKey || ''}`;
+        const k = `${Math.round(wet * 20)}|${Math.round(o.day * 6)}|${Math.round(o.night * 10)}|${(o.reflect || []).map(R => `${Math.round(R.x)}.${Math.round((R.k ?? 1) * 4)}.${(R.col || []).join('')}`).join(',')}|${W}x${H}|${o.lightKey || ''}`;
         if (k !== key) { key = k; bake({ ...o, wet }); }
         if (cv && box) { c.save(); c.globalAlpha = o.fade; c.drawImage(cv, 0, box.y0, W, box.h); c.restore(); }
       }

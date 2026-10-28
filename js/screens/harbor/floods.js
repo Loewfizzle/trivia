@@ -15,6 +15,14 @@ import { safeCtx } from '../../ui/canvas-safe.js';
 const TAU = Math.PI * 2;
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 
+/** PROM — a centrepiece drawn at TODAY's on-screen size (core/harbor-promenade.js#centreK — the compass came forward): fn() drawn × k
+ *  about the piece's foot (x, z on the ground) */
+export function atCentreScale(c, cam, x, z, k, fn) {
+  if (!(k > 0) || Math.abs(k - 1) < 0.002) return fn();
+  const [fx, fy] = project(cam, x, 0, z);
+  c.save(); c.translate(fx, fy); c.scale(k, k); c.translate(-fx, -fy);
+  try { return fn(); } finally { c.restore(); }
+}
 export function createFloods() {
   let k = 0, lastT = null, washes = new WeakMap(), glowCv = null;
   /** the eased level this frame (slow: ~4 s — the floods dim down as the fire catches, come up with the lamps) */

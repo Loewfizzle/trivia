@@ -35,7 +35,7 @@ export function roadSteps(L, T) {
         x.save(); x.beginPath(); x.rect(0, yRail, cam.W, yCurb - yRail); x.clip();
         // (concentric rings, each adding a little: a clear pool with a soft edge — (1 − d²)² summed in 9 steps)
         x.translate(cx, (ya + yb) / 2); x.scale(rw, (yb - ya) / 2);
-        for (let q = 9; q >= 1; q--) { const r0 = q / 9, f = (1 - (r0 - 1 / 9) ** 2) ** 2 - (1 - r0 * r0) ** 2; x.fillStyle = rgb(CROSS.col, Math.min(1, Math.max(0, f) * CROSS.k * lk)); x.beginPath(); x.arc(0, 0, r0, 0, Math.PI * 2); x.fill(); }
+        for (let q = 9; q >= 1; q--) { const r0 = q / 9, f = (1 - (r0 - 1 / 9) ** 2) ** 2 - (1 - r0 * r0) ** 2; x.fillStyle = rgb(CROSS.col, Math.min(1, Math.max(0, f) * CROSS.k * (p.k ?? 1) * lk)); x.beginPath(); x.arc(0, 0, r0, 0, Math.PI * 2); x.fill(); }
         x.restore();
       }
       x.restore();
@@ -60,14 +60,20 @@ export function roadSteps(L, T) {
   }];
 }
 
-/** 8P — the crossing's light: each tall lamp of the pair flanking it throws a pool onto the road (world units: centred a little into the
- *  road, rx across, rz along the crossing); col: the tall lamps' cool white on the asphalt; paint: the stripes lit */
-export const CROSS = Object.freeze({ z: 57, rx: 5.8, rz: 4.8, k: 1.05, col: [214, 222, 240], paint: [246, 248, 255] });
-export const crossPools = L => L.lamps.filter(l => l.kind === 'tall').map(l => ({ x: l.x + (L.crosswalk ? Math.sign((L.crosswalk.x0 + L.crosswalk.x1) / 2 - l.x) * 1.2 : 0), z: CROSS.z, rx: CROSS.rx, rz: CROSS.rz }));
-/** the light at (x, z) on the road from the crossing's pools (PURE): the sum of each pool's (1 − d²)² */
+/** 8P — the crossing's light (world units: rx across, rz along the crossing); col: the light on the asphalt; paint: the stripes lit.
+ *  PROM — NO LAMPPOSTS (the owner, Oct 28: the crosswalk "must READ at night — today it's a vague dark band"): the back road's IMPLIED
+ *  LAMPS just past the screen's left + right edges spill their light along the asphalt, and the crossing is the brightest strip in the
+ *  middle (its own pool, the paint catching the most) — warm, like the implied lamps on our side */
+export const CROSS = Object.freeze({ z: 57, rx: 7.2, rz: 5.0, k: 1.15, col: [236, 214, 182], paint: [250, 246, 236], edge: { dx: 2.5, rx: 10, rz: 5.2, k: 0.7 } });
+export const crossPools = L => {
+  if (!L.crosswalk) return [];
+  const cw = L.crosswalk, cx = (cw.x0 + cw.x1) / 2, hw = L.cam && L.cam.hw ? L.cam.hw(CROSS.z) : 19, E = CROSS.edge;
+  return [{ x: cx, z: CROSS.z, rx: CROSS.rx, rz: CROSS.rz, k: 1 }, { x: -hw - E.dx, z: CROSS.z, rx: E.rx, rz: E.rz, k: E.k }, { x: hw + E.dx, z: CROSS.z, rx: E.rx, rz: E.rz, k: E.k }];
+};
+/** the light at (x, z) on the road from the crossing's pools (PURE): the sum of each pool's (1 − d²)² × its k */
 export function crossLightOf(L) {
   const P = crossPools(L);
-  return (x, z) => P.reduce((s, p) => { const d2 = ((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2; return d2 < 1 ? s + (1 - d2) ** 2 : s; }, 0);
+  return (x, z) => P.reduce((s, p) => { const d2 = ((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2; return d2 < 1 ? s + (p.k ?? 1) * (1 - d2) ** 2 : s; }, 0);
 }
 
 // ---- FP — THE STOP LIGHTS + THE CROSSING (the owner: "both face the camera, but the cars drive left ↔ right")
@@ -180,7 +186,9 @@ export function drawSignalLamps(c, L, st, o) {
       c.globalCompositeOperation = 'lighter';
       const r2 = ln.r * (1.35 + 0.35 * lk);
       c.globalAlpha = o.fade * (0.22 + 0.26 * lk); c.drawImage(g, sd.x - r2, ln.y - r2, r2 * 2, r2 * 2);
-      if (lk > 0.05) { const [, gy] = project(L.cam, sg.x, 0, sg.z), gw = ln.r * 2.4; c.globalAlpha = o.fade * 0.07 * lk; c.drawImage(g, sd.x - gw, gy - gw * 0.18, gw * 2, gw * 0.36); }
+      // (PROM — THE SIGNALS TINT THE ASPHALT (the owner: "the crosswalk must READ at night"): a clear red / amber / green pool on the road
+      // under each head, spread ALONG the road (the light falls to both sides), changing with the light — read at phone size)
+      if (lk > 0.05) { const [, gy] = project(L.cam, sg.x, 0, sg.z), [, gy2] = project(L.cam, sg.x, 0, sg.z + 2.2), gw = ln.r * 7.5, gh = Math.max(3, (gy - gy2) * 1.6); c.globalAlpha = o.fade * 0.2 * lk; c.drawImage(g, sd.x - gw, gy - gh * 0.75, gw * 2, gh); c.globalAlpha = o.fade * 0.12 * lk; c.drawImage(g, sd.x - gw * 0.45, gy - gh * 0.35, gw * 0.9, gh * 0.5); }
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     }
   }

@@ -446,7 +446,7 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   const PR = promenadeLayout(cam, { seed, wide: cam.spread > 1.6, stopH, front: cam.wide, face });
   const signals = PR.signals;
   const prom = { z0: Z.prom[0], z1: Z.prom[1] };
-  const { lamps, trees, bench, planters, cart, medallion, crosswalk, edge, impliedRoad, zones, mailbox, hydrant } = PR;   // (POLISH 5: the fire hydrant — the can's old spot)
+  const { lamps, trees, bench, cabStand, planters, cart, medallion, crosswalk, edge, impliedRoad, zones, mailbox, hydrant } = PR;   // (PROM: + the cab stand; the lamps are the IMPLIED row now — never drawn)   // (POLISH 5: the fire hydrant — the can's old spot)
   // the rooftop (7a): the string lights' POSTS on the parapet (each pier) + their tall POLE at the back, the stair BULKHEAD, the
   // CHIMNEY; the deck between them is left open for 7b's parties + the seasonal garden (planters: where its beds go)
   const roofBack = Math.min(side.z, 56);
@@ -457,7 +457,7 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   // THE BILLBOARD on the roof (8a): its board in world units + the dunnage platform under the frame (core/harbor-neon.js: the spot)
   { const B = BILLBOARD, y0 = B.dun + B.open;
     roof.board = { x0: sx0 + B.u0, x1: sx0 + B.u1, y0, y1: y0 + B.h, z: roofBack - B.back, dun: B.dun, deck: speakeasy.h }; }
-  const L = { cam, seed, bands, landmarks, heroes, quay, water, pier, wheel, lighthouse, breakwater, cottage, boats, rail, road, signals, prom, lamps, trees, bench, planters, cart, speakeasy, roof, medallion, mailbox, hydrant, crosswalk, edge, impliedRoad, zones, towers, cuts: sky.cuts, gaps: sky.cuts.map(g => ({ sx: g.sx, w: g.w })), squeeze: (sqRef || sqLoc).s, knee: (sqRef || sqLoc).knee };
+  const L = { cam, seed, bands, landmarks, heroes, quay, water, pier, wheel, lighthouse, breakwater, cottage, boats, rail, road, signals, prom, lamps, trees, bench, cabStand, planters, cart, speakeasy, roof, medallion, mailbox, hydrant, crosswalk, edge, impliedRoad, zones, towers, cuts: sky.cuts, gaps: sky.cuts.map(g => ({ sx: g.sx, w: g.w })), squeeze: (sqRef || sqLoc).s, knee: (sqRef || sqLoc).knee };
   L.door = doorRect(L);
   L.lanes = laneRects(L);
   // 9e — THE CONSTRUCTION TOWER (core/harbor-tower.js): THE SUN MUST NOT BREAK — the envelope (the roofline with the slot at full height:
@@ -516,7 +516,7 @@ export function screenBoxes(L) {
   for (const b of L.heroes) out.push({ ...box(b.id, 'sky', b.x0, b.x1, 0, b.h, b.z0), rank: 'quay' });
   for (const bt of L.boats) out.push(box(`boat:${bt.id}`, 'alive', bt.x - bt.len / 2, bt.x + bt.len / 2, 0, bt.h, bt.z));
   if (L.cart.shown !== false) out.push(box('cart', 'alive', L.cart.x - 1.2, L.cart.x + 1.2, 0, 3.5, L.cart.z));
-  for (const l of L.lamps) out.push(box('lamp', 'still', l.x - 0.3, l.x + 0.3, 0, l.h, l.z));
+  for (const l of L.lamps) if (!l.implied) out.push(box('lamp', 'still', l.x - 0.3, l.x + 0.3, 0, l.h, l.z));   // (PROM: the implied lamps stand behind the viewer)
   for (const s of L.signals) out.push(box(`signal:${s.id}`, 'still', s.x - 0.3, s.x + 0.3, 0, s.h, s.z));
   return out;
 }

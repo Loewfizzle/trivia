@@ -162,8 +162,9 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
     // right behind Halloween's front-strip jack-o'-lantern (core/harbor-spots.js#corner-right = the cart's rest − 2.5) → the cart's RIGHT
     // side is his serving spot now, the customer right of him; the newsboy's stand (8b's hook) would share the same rule)
     // (the framing maple's trunk stands at the cart's right end (x + 2.05, nearer the camera): the vendor steps past it, the customer past him)
-    cart: L.cart && L.cart.shown !== false ? { x: L.cart.x + 4.3, z: Math.max(FOLK.zMin + 0.05, L.cart.z + 0.6) } : null,
-    vendor: L.cart && L.cart.shown !== false ? { x: L.cart.x + 2.95, z: L.cart.z + 0.45 } : null,
+    // (PROM: on the cart's HANDLE side — L.cart.hand: its left end now, away from the compass)
+    cart: L.cart && L.cart.shown !== false ? { x: L.cart.x + (L.cart.hand || 1) * 4.3, z: Math.max(FOLK.zMin + 0.05, L.cart.z + 0.6) } : null,
+    vendor: L.cart && L.cart.shown !== false ? { x: L.cart.x + (L.cart.hand || 1) * 2.95, z: L.cart.z + 0.45 } : null,
     view: { x: cx + cww * 0.15, z: F.zMax - 0.15 },
     sky: { x: L.medallion.x - 2.2, z: L.medallion.z - 1.2 },
     meetA: { x: L.medallion.x + 2.6, z: L.medallion.z - 1.8 },
@@ -190,7 +191,7 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
   // CAN — so no route can reach it; a circle here only added way points under the dock: none)
   // (the cart, only while it's OUT — FP3b's vendor spot is shared by time: nobody walks through it or behind its handles; the vendor's
   // own spot behind it stays free for him)
-  if (cart && L.cart && L.cart.shown !== false) { rects.push({ id: 'cart', x0: L.cart.x - 1.3, x1: L.cart.x + 2.0, z0: F.zMin - 2, z1: L.cart.z + 0.75 }); }
+  if (cart && L.cart && L.cart.shown !== false) { const hd = L.cart.hand || 1; rects.push({ id: 'cart', x0: L.cart.x - (hd > 0 ? 1.3 : 2.0), x1: L.cart.x + (hd > 0 ? 2.0 : 1.3), z0: F.zMin - 2, z1: L.cart.z + 0.75 }); }
   // (POL4: the dance circle spreads round the compass — the closed floor reaches its outer dancers: DANCE.reach × the ring)
   // (11a-2: THE GIANT on the inlay (ring) — the closed floor its plinth's corners + a step: RING.clear)
   if (event) { const m = L.medallion; circles.push({ id: 'event', x: m.x, z: m.z, r: ring ? Math.max(m.ring * DANCE.reach + 0.4, RING.clear) + 0.6 : m.ring * DANCE.reach + 0.4 });   // (9f: + a partner's offset round the giant — a pair's chat spot is checked for the lead; the friend stands 0.55 aside)
@@ -867,7 +868,8 @@ export function folkAt(t, world, cache = new Map()) {
   const closed = (a, b) => sessionsNear(a, b).some(x => b > x.s0 - 30 && a < x.s1 + 60);
   // THE VENDOR SPOT (FP3b — core/harbor-routines.js#VENDOR): the chestnut cart's evening, wheeled in from the right edge + out again;
   // never while the inlay is in use (a centrepiece: ctx.event; the dance circle: &force=dance — the real circles start after it's gone)
-  const cartX = L.cart ? L.cart.x : 0, cartIn = cam => (cam ? cam.hw(L.cart.z) + 3.2 : cartX + 12);
+  // (PROM: from the cart's handle side — the LEFT edge now: the cab stand stands on its old way in from the right)
+  const cartX = L.cart ? L.cart.x : 0, cartHand = (L.cart && L.cart.hand) || 1, cartIn = cam => cartHand * (cam ? cam.hw(L.cart.z) + 3.2 : Math.abs(cartX) + 12);
   // (Part 9's hook: in HEAVY rain — ctx.rain > 0.6 — the cart doesn't come out; in drizzle people.js puts its little hood up)
   const cartEv = tt => { if (!L.cart || L.cart.shown === false || (ctx.event && !ctx.ring) || ctx.forceDance || (ctx.rain || 0) > 0.6) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
     return get(`CE|${loc.key}`, () => cartEvening(loc.key, loc.month, day0, cartIn(L.cam), cartX, { seed: ctx.seed })); };
@@ -879,7 +881,7 @@ export function folkAt(t, world, cache = new Map()) {
     // then wheels it out the way he came)
     const v = M.nodes.vendor, dx = v.x - cartX, xin = cartIn(L.cam) + dx, r = rngFrom(hashString(`vendor|${e.t0}`));
     const legs = [{ k: 'walk', pts: [{ x: xin, z: v.z }, { x: v.x, z: v.z }], t0: e.t0, t1: e.ta, v: VENDOR.roll },
-      { k: 'pose', pose: 'cart', x: v.x, z: v.z, t0: e.ta, t1: e.tb, hd: -PI / 2 + 0.55 },   // (SP5: on the cart's right, turned a little toward his customer on the right)
+      { k: 'pose', pose: 'cart', x: v.x, z: v.z, t0: e.ta, t1: e.tb, hd: -PI / 2 + 0.55 * cartHand },   // (SP5: on the cart's handle side, turned a little toward his customer beyond it)
       { k: 'walk', pts: [{ x: v.x, z: v.z }, { x: xin, z: v.z }], t0: e.tb, t1: e.t1, v: VENDOR.roll }];
     return { id: `vendor.${Math.round(e.t0)}`, kind: 'vendor', routine: 'cart', idx: 0, look: 'worker', gait: 'walk', legs, t0: e.t0, t1: e.t1, tEnd: e.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }] };
   });

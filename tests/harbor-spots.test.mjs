@@ -14,11 +14,12 @@ const setup = k => { const [W, H, top] = SIZES[k]; const cam = cameraFor(W, H, {
 const rect = (cam, p) => { const [x, y] = project(cam, p.x, p.y || 0, p.z), s = cam.F / p.z, w = p.d * s; return { x: x - w / 2, y: y - w * 0.95, w, h: w * 0.95 }; };
 const overlap = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
 
-test('WIN — THE DRESSING SPOTS: named spots at the bench, the lamp posts, the hydrant, the globes, the railing + the open corner — every one obeys the rules at every phone', () => {
+test('WIN — THE DRESSING SPOTS (PROM: no lampposts — by the BIG pieces only: the bench, the two trees, the compass, the hydrant, the railing + the open corner) — every one obeys the rules at every phone', () => {
   for (const k of Object.keys(SIZES)) {
     const { L } = setup(k), sp = dressingSpots(L), ids = sp.map(s => s.id);
     // (a desktop panorama drops the spots its left edge cuts — the front strip's; every phone has them all)
-    for (const id of [...(L.cam.wide ? ['bench-left', 'bench-right', 'lamp-0', 'lamp-1', 'corner-right'] : ['bench-left', 'bench-right', 'lamp-0', 'lamp-1', 'globe-0', 'globe-1', 'hydrant', 'corner-right'])]) assert.ok(ids.includes(id), `${k}: ${id}`);
+    assert.ok(!ids.some(i => /^(lamp|globe)-/.test(i)), `${k}: no lamp-post spots (${ids.join(' ')})`);
+    for (const id of [...(L.cam.wide ? ['bench-left', 'bench-right', 'compass-left', 'compass-right'] : ['bench-left', 'bench-right', 'maple', 'compass-left', 'compass-right', 'hydrant', 'corner-right'])]) assert.ok(ids.includes(id), `${k}: ${id}`);
     assert.ok(ids.filter(i => i.startsWith('rail-')).length >= 2, `${k}: spots along the railing (${ids.join(' ')})`);
     assert.equal(new Set(ids).size, ids.length, `${k}: distinct ids`);
     for (const s of sp) {
@@ -74,12 +75,12 @@ test('WIN — THE DOOR\'S FIVE at 390: a stepped group on the steps + one each s
   }
 });
 
-test('11a-2 — THE NOVEMBER SPOT PIECES: the bench\'s bale, the hydrant\'s mums, the corn stalks round the tall lamp posts + the globe — on screen, above the dock, clear of the dance ring, at three phone sizes', async () => {
+test('11a-2 — THE NOVEMBER SPOT PIECES: the bench\'s bale, the hydrant\'s mums, the corn stalks round the two trees (PROM: no lampposts) — on screen, above the dock, clear of the dance ring, at three phone sizes', async () => {
   const { thanksgivingSpots } = await import('../js/core/harbor-holidayprops.js');
   const full = { mums: 4, bales: true, spots: 3, stalks: true };
   for (const k of ['390x844', '402x874', '430x932']) {
     const { L } = setup(k), list = thanksgivingSpots(L, full), m = L.medallion;
-    assert.deepEqual(list.map(p => p.id).sort(), ['bench-left', 'hydrant', 'stalks-0', 'stalks-1', 'stalks-globe'].sort(), `${k}: the five pieces`);
+    assert.deepEqual(list.map(p => p.id).sort(), ['bench-left', 'hydrant', 'stalks-0', 'stalks-1'].sort(), `${k}: the four pieces`);
     for (const p of list) {
       const [sx, sy] = project(L.cam, p.x, 0, p.z);
       assert.ok(sx > 0 && sx < L.cam.W && sy < L.cam.dock.y - 2, `${k}: ${p.id} on screen above the dock (${sx.toFixed(0)}, ${sy.toFixed(0)})`);

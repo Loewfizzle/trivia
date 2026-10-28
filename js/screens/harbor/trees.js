@@ -16,7 +16,7 @@ import { project } from '../../core/harbor-layout.js';
 import { PIECE } from '../../core/harbor-promenade.js';
 import { treePlan, envelopeOf, treeMix, BARK, FRUIT, LEAF } from '../../core/harbor-trees.js';
 import { rgb, mix } from './shapes.js';
-import { treeLamps } from '../../core/harbor-light.js';
+import { treeLamps, lampShadow } from '../../core/harbor-light.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -371,11 +371,13 @@ export function crownDiscs(cam, t, ctx = {}) {
  *  one; dappled (the crown's clusters, each a disc on the paving), the bare branches' lines in winter. */
 export function treeShadow(x, cam, t, T, ctx = {}) {
   const n = T.night || 0, g = T.gold || 0, d = T.day ?? Math.max(0, 1 - n - g), day = d + g;
-  if (day < 0.15 || (T.ovc || 0) >= 0.5) return;
-  const a = 0.3 * Math.min(1, day) * (1 - 0.6 * (T.ovc || 0));
+  // (PROM — AT NIGHT: the IMPLIED LAMPS behind the viewer throw the tree's shadow UP the screen, away from us — core/harbor-light.js#lampShadow)
+  const nightSh = day < 0.15 ? lampShadow(ctx.lights, 1, t.x, t.z, (ctx.lampK ?? T.lamps ?? 0) * Math.min(1, n * 1.4)) : null;
+  if ((day < 0.15 || (T.ovc || 0) >= 0.5) && !nightSh) return;
+  const a = nightSh ? nightSh.a * 0.85 : 0.3 * Math.min(1, day) * (1 - 0.6 * (T.ovc || 0));
   const plan = planOf(t, ctx), el = Math.max(6, T.sunEl || 30) * Math.PI / 180, side = T.sunDir || 0;
-  const long = Math.min(3.2, 1 / Math.tan(el)), hx = -side * 0.9, hz = 0.35 + 0.4 * (1 - Math.abs(side));
-  const stretch = Math.min(2.4, 1 / Math.sin(el));
+  const long = nightSh ? 1 : Math.min(3.2, 1 / Math.tan(el)), hx = nightSh ? nightSh.dx : -side * 0.9, hz = nightSh ? nightSh.dz : 0.35 + 0.4 * (1 - Math.abs(side));
+  const stretch = nightSh ? 1.25 : Math.min(2.4, 1 / Math.sin(el));
   const G = (u, v) => [t.x + u + hx * v * long, t.z + hz * v * long];
   const col = mix([28, 22, 44], [48, 24, 56], g / (day || 1));
   x.fillStyle = rgb(col, a);

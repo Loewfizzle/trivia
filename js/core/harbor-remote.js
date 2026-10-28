@@ -274,7 +274,6 @@ export const EVENTS = [
   { id: 'work-barber', label: 'THE BARBER', cat: 'workers', group: 'MORNING', hint: '8:30 sharp: the milk taken in, into the shop, out with his broom, the awning cranked' },
   { id: 'work-cop', label: 'THE BEAT COP', cat: 'workers', group: 'MORNING', hint: '9:00 am + 9:00 pm: a friendly stroll, the baton twirled, a tip of the hat' },
   { id: 'work-bulb', label: 'BULB REPAIR (THE BLADE)', cat: 'workers', group: 'MORNING', hint: 'the morning after a blade bulb dies: a tall ladder at the corner, the swap, a test flicker' },
-  { id: 'work-lamp', label: 'LAMP REPAIR', cat: 'workers', group: 'MORNING', hint: 'the morning after a lamppost’s bad night: a stepladder at that lamp' },
   { id: 'work-ice', label: 'THE ICE MAN', cat: 'workers', group: 'MIDDAY', hint: 'mid-morning weekdays: an ice block on his shoulder to the side door' },
   { id: 'work-mail', label: 'THE MAILMAN', cat: 'workers', group: 'MIDDAY', hint: '~10:30: the post through the barbershop’s door' },
   { id: 'work-washers', label: 'THE WINDOW WASHERS', cat: 'workers', group: 'MIDDAY', hint: 'Tue + Fri late morning: their hanging platform, the upper floor then the one below' },

@@ -18,7 +18,7 @@ import { rgb, shade, mix } from './shapes.js';
 import { PIECE } from '../../core/harbor-promenade.js';
 import { inlayPlan, wearAt, rigSpots, RIG } from '../../core/harbor-centre.js';
 import { rngFrom } from '../../core/rng.js';
-import { sunShadow } from '../../core/harbor-light.js';
+import { castShadow } from '../../core/harbor-light.js';
 import { FONT, FRONT, TOP, fillPts, frame, hull2, lightFor, line, lit, norm, pbox, rimCol, seedOf, soft } from './props-light.js';
 // (FP3a: the light model + frame → props-light.js; the dormant planters + mailbox → props-garden.js; the test obelisk → props-test.js)
 
@@ -109,6 +109,65 @@ export function drawBench(x, cam, b, T, ctx = {}) {
   x.restore();
 }
 /** wood grain along a board: a few thin darker streaks + a knot or two. at(u, f): the board's point at x u, f 0..1 across it */
+// PROM — THE WATER BENCH, SEEN FROM BEHIND (the owner, Oct 28: "turned to face the harbor — its sitters seen from behind, hats +
+// shoulders against the lit water"): the same bench turned round — its frame's depth mirrored (BACK_D), so the leaning back is NEAREST
+// us (its rear face toward us, the slats' gaps showing the seat), the seat behind it, the iron ends + armrests the same Deco ironwork.
+// Drawn far → near: the seat, the far (front) legs, the ends + armrests, the back posts + the back's slats (rear faces, no plaque).
+const BACK_D = 0.9;
+export function drawBenchBack(x, cam, b, T, ctx = {}) {
+  const P0 = frame(cam, b.z, 1.8), P = (u, y, d = 0) => P0(u, y, BACK_D - d), s = P0.s, Lt = lightFor(T, ctx, b.x, b.z + 0.4), hw = b.w / 2, X = b.x;
+  const r = rngFrom(seedOf(b.x, b.z) + 3);
+  const ends = [X - hw + 0.2, X + hw - 0.2], lw = v => Math.max(0.45, v * s);
+  x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
+  const iron = n => lit(Lt, IRON_B, n, 0.5), ironHi = rimCol(Lt, IRON_B, [Lt.sd >= 0 ? 0.6 : -0.6, 0.5, -0.6]);
+  const back = t => [0.7 + 0.18 * t, 0.7 + 0.62 * t];          // (the back's plane in the bench's own depth — mirrored by P)
+  // 1. the seat: four oak slats seen from above (the far ones first — now the seat's FRONT edge is the far one)
+  for (let i = 0; i <= 3; i++) {
+    const d0 = 0.04 + i * 0.165, d1 = d0 + 0.13, y = 0.6, c = shade(OAK, (r() - 0.5) * 0.1 + 0.03), x0 = X - hw, x1 = X + hw;
+    fillPts(x, [P(x0, y, d0), P(x1, y, d0), P(x1, y, d1), P(x0, y, d1)], lit(Lt, c, TOP));
+    line(x, P(x0, y, d1), P(x1, y, d1), rimCol(Lt, c, [0, 0.8, -0.6]), Math.max(0.3, s * 0.02), 0.7);
+  }
+  // 2. the far legs (the seat's front legs, now behind) + the centre support
+  for (const u of [...ends, X]) { const k0 = P(u, 0.56, 0.06), f = P(u, 0.02, 0.02); x.strokeStyle = rgb(iron([0, -0.2, -1])); x.lineWidth = lw(u === X ? 0.07 : 0.09); x.beginPath(); x.moveTo(k0[0], k0[1]); x.lineTo(f[0], f[1]); x.stroke(); }
+  // 3. the armrests (a bar from the back post forward to the curl, now running AWAY from us) + their brackets
+  for (const [j, u] of ends.entries()) {
+    const a0 = P(u, 0.94, 0.72), a1 = P(u, 0.9, 0.02), out = j === 0 ? -1 : 1;
+    x.strokeStyle = rgb(iron(TOP)); x.lineWidth = lw(0.1); x.beginPath(); x.moveTo(a0[0], a0[1]); x.lineTo(a1[0], a1[1]); x.stroke();
+    const cu = P(u, 0.86, 0); x.fillStyle = rgb(iron([0, 0.3, 1])); x.beginPath(); x.arc(cu[0], cu[1], 0.07 * s, 0, Math.PI * 2); x.fill();
+    line(x, [a0[0], a0[1] - 0.04 * s], [a1[0], a1[1] - 0.04 * s], ironHi, Math.max(0.3, 0.025 * s), 0.75);
+    // the near legs: the back post down to the ground, its foot scrolled outward
+    const m = P(u, 0.62, back(0)[0]), g0 = P(u, 0.03, 0.74), ft = P(u + out * 0.16, 0.03, 0.76);
+    x.strokeStyle = rgb(iron(FRONT)); x.lineWidth = lw(0.1); x.beginPath(); x.moveTo(m[0], m[1]); x.lineTo(g0[0], g0[1]); x.lineTo(ft[0], ft[1]); x.stroke();
+  }
+  // 4. the back posts (nearest: from the seat up past the top slat, a stepped finial each end)
+  for (const u of [...ends, X]) {
+    const [d0] = back(0), [d1, y1] = back(1), m = P(u, 0.62, d0), t = P(u, y1 + 0.08, d1 + 0.02);
+    x.strokeStyle = rgb(iron(FRONT)); x.lineWidth = lw(u === X ? 0.08 : 0.11);
+    x.beginPath(); x.moveTo(m[0], m[1]); x.lineTo(t[0], t[1]); x.stroke();
+    if (u !== X) { const f = P(u, y1 + 0.1, d1 + 0.02); x.fillStyle = rgb(iron([0, 0.6, -0.8])); x.beginPath(); x.arc(f[0], f[1] - 0.1 * s, 0.06 * s, 0, Math.PI * 2); x.fill();
+      x.fillStyle = rgb(ironHi, 0.8); x.beginPath(); x.arc(f[0], f[1] - 0.12 * s, 0.024 * s, 0, Math.PI * 2); x.fill(); }
+  }
+  // 5. the back's three slats, their REAR faces toward us (leaning toward us: the face points a little down), grain, a lit top edge
+  const nb = norm([0, -0.25, -0.97]);
+  for (let i = 0; i < 3; i++) {
+    const t0 = 0.12 + i * 0.3, t1 = t0 + 0.22, [da, ya] = back(t0), [db, yb] = back(t1);
+    const c = shade(OAK, (r() - 0.5) * 0.12 - 0.04), x0 = X - hw + 0.04, x1 = X + hw - 0.04;
+    fillPts(x, [P(x0, ya, da), P(x1, ya, da), P(x1, yb, db), P(x0, yb, db)], lit(Lt, c, nb));
+    grain(x, P0, Lt, c, nb, x0, x1, (u, f) => { const [d, y] = back(t0 + (t1 - t0) * f); return P(u, y, d); }, r);
+    line(x, P(x0, yb, db), P(x1, yb, db), rimCol(Lt, c, [0, 0.9, -0.4]), Math.max(0.35, s * 0.035), 0.9);
+    line(x, P(x0, ya, da), P(x1, ya, da), lit(Lt, shade(c, -0.45), nb), Math.max(0.3, s * 0.025), 0.8);
+    for (const u of [...ends, X]) { const p = P(u, (ya + yb) / 2, (da + db) / 2); x.fillStyle = rgb(iron(nb)); x.beginPath(); x.arc(p[0], p[1], Math.max(0.35, 0.03 * s), 0, Math.PI * 2); x.fill(); }
+  }
+  if (ctx.snow > 0.05) { const [d1, y1] = back(1); x.globalAlpha = Math.min(1, ctx.snow * 1.4); fillPts(x, [P(X - hw, y1 + 0.03, d1 - 0.03), P(X + hw, y1 + 0.03, d1 - 0.03), P(X + hw, y1 + 0.03, d1 + 0.05), P(X - hw, y1 + 0.03, d1 + 0.05)], lit(Lt, [240, 244, 250], TOP)); x.globalAlpha = 1; }
+  x.restore();
+}
+/** PROM — the bench on screen either way it faces (pt): drawBench's box, mirrored for a water bench */
+export function benchBoxAny(cam, b) {
+  if (b.face !== 'water') return benchBox(cam, b);
+  const P0 = frame(cam, b.z, 1.8), P = (u, y, d) => P0(u, y, BACK_D - d), hw = (b.w || PIECE.bench.w) / 2, pts = [];
+  for (const u of [-hw - 0.2, hw + 0.2]) for (const [y, d] of [[0, -0.05], [0, 0.95], [1.55, 1.4], [1.55, -0.05]]) pts.push(P(b.x + u, y, d));
+  return boxOf(pts);
+}
 function grain(x, P, Lt, c, n, x0, x1, at, r, nl = 3) {
   const dk = lit(Lt, shade(c, -0.28), n), lt = lit(Lt, shade(c, 0.12), n), w = Math.max(0.22, P.s * 0.012);
   for (let k = 0; k < nl; k++) {
@@ -563,6 +622,11 @@ function shadowShapes(kind, it) {
   if (it.shapes) return it.shapes;                     // (PF: a centrepiece's own — { e, boxes, contact })
   if (kind === 'mailbox') return { e: 1.5, boxes: [{ x0: -0.4, x1: 0.4, y0: 0, y1: 0.53, d0: 0.05, d1: 0.7 }, { x0: -0.42, x1: 0.42, y0: 0.53, y1: 1.62, d0: 0.05, d1: 0.7 }, { x0: -0.3, x1: 0.3, y0: 1.62, y1: 1.88, d0: 0.15, d1: 0.6 }],
     contact: [{ x0: -0.47, x1: 0.47, d0: -0.03, d1: 0.78, a: 0.5 }] };
+  if (kind === 'bench' && it.face === 'water') {
+    // (PROM: the water bench turned round — its depths mirrored like drawBenchBack's frame)
+    const S = shadowShapes('bench', { ...it, face: 'street' }), m = d => BACK_D - d;
+    return { e: S.e, boxes: S.boxes.map(b => ({ ...b, d0: m(b.d1), d1: m(b.d0) })), contact: S.contact.map(c => ({ ...c, d0: m(c.d1), d1: m(c.d0) })) };
+  }
   if (kind === 'bench') {
     const hw = (it.w || PIECE.bench.w) / 2;
     return { e: 1.8, boxes: [{ x0: -hw, x1: hw, y0: 0.53, y1: 0.6, d0: 0.04, d1: 0.7 }, { x0: -hw + 0.04, x1: hw - 0.04, y0: 0.82, y1: 1.32, d0: 0.75, d1: 0.86 },
@@ -582,7 +646,8 @@ function shadowShapes(kind, it) {
  *  under an overcast deck (T.ovc ≥ 0.5) or at night — and its CONTACT shadow, always (soft, a little darker right under it) */
 export function propShadow(x, cam, item, kind, T, ctx = {}) {
   const S = shadowShapes(kind, item), P = frame(cam, item.z, S.e), s = P.s, X = item.x;
-  const sh = sunShadow(T, 1);
+  // (PROM: at night the IMPLIED LAMPS' shadow — up the screen, away from us — core/harbor-light.js#castShadow)
+  const sh = castShadow(T, 1, item.x, item.z, ctx.lights);
   if (sh) {
     // (the frame exaggerates depth by e: the shadow's reach back is the world's, so divide it out)
     const g = (u, y, d) => P(X + u + sh.dx * y, 0, d + sh.dz * y / S.e);

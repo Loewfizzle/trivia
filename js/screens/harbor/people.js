@@ -24,7 +24,8 @@ import { createDanceClock, stepDanceClock } from '../../core/harbor-dance.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
-import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
+import { lightField, lightSources, castShadow } from '../../core/harbor-light.js';
+import { crossLightOf, CROSS } from './road.js';
 import { frontProfile } from './strings.js';
 import { SPEAK_V } from '../../core/harbor-speakeasy.js';
 import { propItems } from './workers.js';
@@ -58,7 +59,8 @@ export function createPeople() {
   let frameMs = 0, frameMsMax = 0, lastEnv = null, lastBeatsF = 0;
   const PD = createDanceClock(); let pdT = null;   // (SP5: the promenade dancers' energy — core/harbor-dance.js)
   const pnow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
-  function layout(l) { L = l; mapKey = ''; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; }
+  let backLight = () => 0;   // (PROM: the back road's light at x, z — road.js#crossLightOf)
+  function layout(l) { L = l; mapKey = ''; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
   function ensureMap(event, ring = false) {
     const key = `${event ? 1 : 0}${ring ? 1 : 0}|${lineN}`;
     if (key === mapKey && M) return;
@@ -182,7 +184,8 @@ export function createPeople() {
     return v;
   };
   const envOf = env => { const dark = clamp01(env.dark || 0) * (env.power == null ? 1 : clamp01(env.power)), base = lights(dark), pls = env.pointLights && env.pointLights.length ? env.pointLights : null;
-    return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: pls ? withPoints(base, pls) : base, rimSide, shadow: h => sunShadow(env.T || {}, h) }; };
+    // (PROM: by day the sun's shadow; at night the IMPLIED LAMPS' — up the screen, away from us: core/harbor-light.js#castShadow)
+    return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: pls ? withPoints(base, pls) : base, rimSide, shadow: (h, x, z) => castShadow(env.T || {}, h, x, z, L.lamps, dark * clamp01(((env.T && env.T.night) || 0) * 1.4)) }; };
   /** FP3b — REAL DOORS: is this member inside a doorway (behind the facade's plane — drawn by drawInside through the opening)? */
   const insideDoor = m => !!(m.s.door && !m.s.door.bus && M && m.s.z > M.face - 0.02);
   const inBus = (m, b) => !!(m.s.door && m.s.door.bus && m.s.door.id === b.id && m.s.z > b.z - 0.02);
@@ -296,7 +299,8 @@ export function createPeople() {
       const fx = cx + car.dir * (len / 2 + 2.4 * sp), rw = 2.8 * sp, rh = Math.max(1.5, 0.55 * sp);
       c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.32 * lit; c.drawImage(carPool, fx - rw, gy - rh, rw * 2, rh * 2); c.restore();
     }
-    let lampK = 0; for (const l of L.lamps) if (l.kind === 'tall') { const d = (car.x - l.x) / 7; if (d * d < 1) lampK = Math.max(lampK, (1 - d * d) ** 2); }
+    // (PROM: no lampposts — a car on the back road lit by the back road's own light: brightest over the crossing, the edges' spill)
+    const lampK = Math.min(1, backLight(car.x, CROSS.z));
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
     if (car.work === 'salter') workFx(c, 'salter', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, xEnd: car.dir > 0 ? -10 : cam.W + 10, fade: env.fade });   // (9b: its wet salted lane, under it)
     kit.draw(c, { plowing: car.work === 'plow' ? clamp01((car.speed || 0) / 1.5) : 0, door: car.door || 0, inside, id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });

@@ -24,8 +24,7 @@ const BLADE_AT = Object.freeze({ w: 0.42, outer: 0.22 + 1.86, v0: 2.75, v1: 11.0
 /** where the crew works (world x, z; y up) for a layout + the people's map */
 export function crewSpots(L, M) {
   const s = L.speakeasy, cw = L.crosswalk, F = FOLK;
-  const globes = (L.lamps || []).filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x), fl = globes[0] || { x: -4.4, z: 36.6 };
-  const hyd = L.hydrant ? { x: L.hydrant.x, z: L.hydrant.z } : { x: fl.x + 0.95, z: fl.z + 0.3 };
+  const hyd = L.hydrant ? { x: L.hydrant.x, z: L.hydrant.z } : { x: -3.45, z: 36.9 };   // (PROM: no globe lamp to stand by)
   const bx = s.x1 + BLADE_AT.outer, bz = s.z0 + BLADE_AT.w;
   const rf = L.roof || {}, bk = rf.bulkhead || { x0: -8.7, x1: -6.9, z0: 51.4 }, bd = rf.board || { x0: -16.2, x1: -9.4, y0: 12.4, y1: 16.1, z: 55, deck: 10.5 };
   return {
@@ -49,7 +48,7 @@ export function crewSpots(L, M) {
     // the roof: the stair house's door (the hatch), the planters, the billboard's catwalk (y above the deck) + its ladder
     hatch: { x: (bk.x0 + bk.x1) / 2, z: bk.z0 - 0.3 }, beds: (rf.planters || []).map(p => ({ x: p.x, z: p.z - 0.7 })),
     board: { x0: bd.x0, x1: bd.x1, y0: bd.y0, y1: bd.y1, z: bd.z, ladderX: bd.x0 + 0.7 * (bd.x1 - bd.x0), walkZ: bd.z - 0.5, walkY: Math.max(0.6, bd.y0 - 0.12 - s.h), footZ: bd.z - 0.9 },
-    lamps: L.lamps || [],
+    lamps: (L.lamps || []).filter(l => !l.implied),   // (PROM: the implied lamps stand behind the viewer — nothing to climb)
     trees: (L.trees || []).map(t => ({ x: t.x, z: t.z, kind: t.kind })),   // (11a-2: the raker works under them)
     truckZ: TRAFFIC.lanes.near.z, stopFront: cw.x0 - TRAFFIC.stopBack - 0.15, cw,
   };

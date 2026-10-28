@@ -2423,8 +2423,10 @@ G('promenade', async () => {
     await waitFor(Q.page, 'window.__district.harbor().promenade.lampK >= 0.99', 'the lamps fully on (baked)', 25000); await settle(Q.page);
     const pr = await ev(Q.page, 'window.__district.harbor().promenade');
     ok(pr.season === 'autumn' && !pr.flag && pr.impliedOn, `THE PROMENADE (Oct 21): autumn by the real date, no flag, the implied road on (${pr.season})`);
-    const tall = pr.lamps.filter(l => l.kind === 'tall'), globes = pr.lamps.filter(l => l.kind === 'globe');
-    ok(tall.length >= 1 && globes.length >= 2 && pr.lamps.every(l => l.heads >= 1), `THE LAMPS: ${tall.length} tall double-head + ${globes.length} globes, every one with its glass on screen`);
+    // (PROM — NO LAMPPOSTS: the implied lamps only, below the screen, nothing of them drawn; the cab stand + the hydrant above the dock)
+    ok(pr.lamps.length >= 4 && pr.lamps.every(l => l.kind === 'implied' && l.heads === 0 && l.at[1] > 874), `PROM — NO LAMPPOSTS: ${pr.lamps.length} implied lamps below the screen, none drawn`);
+    { const dockY = await ev(Q.page, 'window.__district.harbor().cam.dock.y');
+      ok(pr.cabStand && pr.cabStand[1] < dockY - 8 && pr.hydrant && pr.hydrant[0] < 26 && pr.hydrant[1] < dockY, `PROM — THE CAB STAND (${pr.cabStand}) + THE HYDRANT at the left curb (${pr.hydrant}) above the dock (${dockY})`); }
     // (FP2: the framing maple + the curb crabapple over the bench — the red maple by the blade is gone)
     ok(pr.trees.length >= 2 && pr.trees.some(t => t.kind === 'maple') && pr.trees.some(t => t.kind === 'crab') && pr.trees.every(t => t.at[0] - t.r >= 0 && t.at[0] + t.r <= 402), `THE TREES: ${pr.trees.map(t => t.kind).join(', ')} — none cut by the screen's edges`);
     const door = await ev(Q.page, 'window.__district.harbor().door');
@@ -2439,7 +2441,7 @@ G('promenade', async () => {
     await harborUp(O.page); await settle(O.page);
     const b = lum(await patchOn(O.page, pr.pool.lit[0], pr.pool.lit[1]));
     await O.ctx.close();
-    ok(a > b * 1.4 && b > 4, `THE POOLS: the cobbles by a globe lamp (at ${pr.pool.lit.join(",")}) ${a.toFixed(0)} lit vs ${b.toFixed(0)} unlit — a clear pool on a dim (never black) ground`);
+    ok(a > b * 1.4 && b > 4, `THE POOLS (PROM: the implied lamps' at the front curb, at ${pr.pool.lit.join(",")}) ${a.toFixed(0)} lit vs ${b.toFixed(0)} unlit — a clear pool on a dim (never black) ground`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}promenade-night-402x874.png` });
     // FP — THE CROSSING: the stop lights + the WALK / WAIT lantern in step on the city's clock; the lit pane glowing, the other dark
     { await waitFor(Q.page, 'window.__district.harbor().crossing.lit', 'the lantern lit (not in a blink off half)', 5000);

@@ -13,7 +13,11 @@ import { rgb, shade, mix } from './shapes.js';
 import { drawTree, treeShadow } from './trees.js';
 import { drawBench, drawCart, drawMedallion, propShadow } from './props.js';
 import { drawPlanter, drawMailbox } from './props-garden.js';
-import { pieceCtx, LIGHT, REACH, lightSources, lightField, sunShadow } from '../../core/harbor-light.js';
+import { pieceCtx, LIGHT, REACH, lightSources, lightField, sunShadow, IMPLIED_LIGHT } from '../../core/harbor-light.js';
+
+/** PROM — an implied lamp's light as a ground ellipse (the baked low glow in the joints + the dusk's dimming): its centre well up the
+ *  promenade from the lamp (below the screen), rx across, rz along (world units) */
+export const impliedEll = s => ({ x: s.x, z: s.z + IMPLIED_LIGHT.ell.dz, rx: IMPLIED_LIGHT.ell.rx, rz: IMPLIED_LIGHT.ell.rz });
 import { paintSett, streetSteps, streetOver } from './street.js';
 
 const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.gold || 0) + n[i] * (T.night || 0));
@@ -54,9 +58,10 @@ export function promenadeSteps(L, T) {
     if (lightAt) {
       x.globalCompositeOperation = 'lighter';
       for (const s of lightSources(L)) {
-        const R = REACH[s.kind], [cx] = P(s.x, s.z), ya = groundY(cam, s.z + R), yb = groundY(cam, s.z - R), rw = cam.F * R / s.z;
+        // (PROM: an implied lamp's glow — its ellipse up the promenade, softer: its light is spread wide)
+        const E = s.implied ? impliedEll(s) : null, R = E ? E.rz : REACH[s.kind], zc = E ? E.z : s.z, [cx] = P(s.x, zc), ya = groundY(cam, zc + R), yb = groundY(cam, Math.max(cam.F * 0.03, zc - R)), rw = cam.F * (E ? E.rx : R) / zc;
         const g = x.createRadialGradient(0, 0, 0, 0, 0, 1);
-        g.addColorStop(0, rgb(mulc(LIGHT[s.kind], (T.lamps || 0) * 0.45 * s.k))); g.addColorStop(1, 'rgba(0,0,0,0)');
+        g.addColorStop(0, rgb(mulc(LIGHT[s.kind], (T.lamps || 0) * (E ? 0.3 : 0.45) * s.k))); g.addColorStop(1, 'rgba(0,0,0,0)');
         x.save(); x.translate(cx, (ya + yb) / 2); x.scale(rw, (yb - ya) / 2); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, Math.PI * 2); x.fill(); x.restore();
       }
       x.globalCompositeOperation = 'source-over';
@@ -135,7 +140,7 @@ export function promenadeSteps(L, T) {
     drawMedallion(x, cam, L.medallion, T, { ...cx, lightAt });
     lampShadows(x, L, T);
     L.trees.forEach((t, i) => treeShadow(x, cam, t, T, { ...cx, i }));
-    for (const b of [L.bench, ...(L.bench.more || [])]) propShadow(x, cam, b, 'bench', T, cx);
+    for (const b of benchesOf(L)) propShadow(x, cam, b, 'bench', T, cx);
     if (L.cart.shown !== false && !L.cart.live) propShadow(x, cam, L.cart, 'cart', T, cx);   // (FP3b: the live cart draws its own)
     for (const p of L.planters) propShadow(x, cam, p, 'planter', T, cx);
     if (L.mailbox) propShadow(x, cam, L.mailbox, 'mailbox', T, cx);   // (PF)
@@ -149,15 +154,18 @@ export function shadowsStep(L, T) {
     x.globalAlpha = 0.55;                    // (softer on the snow: a pale blue shadow, never the stones' dark one)
     lampShadows(x, L, T);
     L.trees.forEach((t, i) => treeShadow(x, cam, t, T, { ...cx, i }));
-    for (const b of [L.bench, ...(L.bench.more || [])]) propShadow(x, cam, b, 'bench', T, cx);
+    for (const b of benchesOf(L)) propShadow(x, cam, b, 'bench', T, cx);
     if (L.cart.shown !== false && !L.cart.live) propShadow(x, cam, L.cart, 'cart', T, cx);
     for (const p of L.planters) propShadow(x, cam, p, 'planter', T, cx);
     if (L.mailbox) propShadow(x, cam, L.mailbox, 'mailbox', T, cx);
   };
 }
+/** PROM — every bench of a layout: the water bench, the cab stand, a panorama's extras */
+export const benchesOf = L => [L.bench, ...(L.cabStand ? [L.cabStand] : []), ...((L.bench && L.bench.more) || [])].filter(Boolean);
 function lampShadows(x, L, T) {
   const cam = L.cam;
   for (const l of L.lamps) {
+    if (l.implied) continue;                       // (PROM: behind the viewer — nothing stands on the promenade)
     const sh = sunShadow(T, l.h);
     if (!sh) return;
     const w = l.kind === 'tall' ? 0.17 : 0.12, [a0, ya0] = project(cam, l.x - w, 0, l.z), [b0] = project(cam, l.x + w, 0, l.z), [a1, ya1] = project(cam, l.x + sh.dx, 0, l.z + sh.dz);
@@ -238,12 +246,15 @@ function globe(x, sx, footY, s, w, h, M, lit2, d) {
 
 /** the stage's still pieces, far first (PART 7a: keep(item) picks a share by depth — the scene bakes the ones behind / beside the
  *  speakeasy into 'stage' and the front row into 'front', over the speakeasy's live layer) */
-export function furnitureSteps(L, T, keep = null) {
+export function furnitureSteps(L, T, keep = null, crownOf = null) {
   const cam = L.cam, cx = pieceCtx(L);
   const items = [
-    ...L.lamps.map(l => ({ z: l.z, f: x => drawLamp(x, cam, l, T) })),
-    ...L.trees.map((t, i) => ({ z: t.z, heavy: true, f: x => drawTree(x, cam, t, T, { ...cx, i }) })),
-    ...[L.bench, ...(L.bench.more || [])].map(b => ({ z: b.z, f: x => drawBench(x, cam, b, T, cx) })),
+    ...L.lamps.filter(l => !l.implied).map(l => ({ z: l.z, f: x => drawLamp(x, cam, l, T) })),
+    // (PROM — a tree out on the FLOOR (the framing maple, z 42): crownOf(item) → a screen y: only the part ABOVE it is drawn (the crown —
+    // the front layer lays it over the walkers behind it, while anyone in front walks over its trunk in the stage layer))
+    ...L.trees.map((t, i) => ({ z: t.z, heavy: true, tree: t, f: x => { const cy = crownOf ? crownOf({ tree: t, z: t.z }) : null; if (cy != null) { x.save(); x.beginPath(); x.rect(-50, -50, cam.W + 100, cy + 50); x.clip(); } drawTree(x, cam, t, T, { ...cx, i }); if (cy != null) x.restore(); } })),
+    // (PROM: the water bench + the cab stand are LIVE — still.js, sorted with the walkers at the phone's full dpr; a panorama's extras stay baked)
+    ...((L.bench && L.bench.more) || []).map(b => ({ z: b.z, f: x => drawBench(x, cam, b, T, cx) })),
     ...L.planters.map(p => ({ z: p.z, f: x => drawPlanter(x, cam, p, T, cx) })),
     ...(L.cart.shown !== false && !L.cart.live ? [{ z: L.cart.z, f: x => drawCart(x, cam, L.cart, T, cx) }] : []),   // (FP3b: the cart is LIVE — people.js draws it on its schedule)
     ...(L.mailbox ? [{ z: L.mailbox.z, f: x => drawMailbox(x, cam, L.mailbox, T, cx) }] : []),     // (PF: the 1920s pillar box)
@@ -298,7 +309,8 @@ export function dimPools(c, L, off, baked) {
   c.save(); c.globalCompositeOperation = 'multiply';
   L.lamps.forEach((l, i) => {
     const d = off[i] || 0; if (d < 0.02) return;
-    const sr = src[i], R = REACH[sr.kind], [cx] = project(cam, sr.x, 0, sr.z), ya = groundY(cam, sr.z + R / 1.15), yb = groundY(cam, sr.z - R / 1.15), rw = cam.F * R / sr.z;
+    // (PROM: an implied lamp's pool is its wide ellipse up the promenade — the dusk's switch-on + the rare outage darken that)
+    const sr = src[i], E = sr.implied ? impliedEll(sr) : null, R = E ? E.rz : REACH[sr.kind], zc = E ? E.z : sr.z, [cx] = project(cam, sr.x, 0, zc), ya = groundY(cam, zc + R / 1.15), yb = groundY(cam, Math.max(cam.F * 0.03, zc - R / 1.15)), rw = cam.F * (E ? E.rx : R) / zc;
     const m = Math.round(255 * (1 - Math.min(0.62, d * baked * sr.k * 0.6))), g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
     g.addColorStop(0, `rgb(${m},${m},${m})`); g.addColorStop(0.5, `rgb(${Math.round((m + 255) / 2)},${Math.round((m + 255) / 2)},${Math.round((m + 255) / 2)})`); g.addColorStop(1, 'rgb(255,255,255)');
     c.save(); c.translate(cx, (ya + yb) / 2); c.scale(rw, (yb - ya) / 2); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 1, 0, Math.PI * 2); c.fill(); c.restore();

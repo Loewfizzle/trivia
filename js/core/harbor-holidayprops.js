@@ -132,15 +132,14 @@ export function thanksgivingSpots(L, P) {
     add('hydrant', hy.x, hy.z, hy.pass, parts, { shadow: 1.0 });
   }
   if (P.stalks) {
-    (L.lamps || []).filter(l => l.kind === 'tall').forEach((l, i) => {
-      const parts = [['stalks', 2.6]];
-      const side = l.x < (L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : 6) ? -1 : 1;
-      if (i === 0 && P.mums >= 4) parts.push(['mum', 'gold', 0.7, side * 0.62, -0.32]);
-      if (i === 1 && P.spots >= 2) parts.push(['pumpkin', 'warty', 0.78, side * 0.66, -0.3]);
-      add(`stalks-${i}`, l.x, l.z - 0.05, 'near', parts, { ext: [1.2, 3.0], shadow: 0.6 });
+    // (PROM — NO LAMPPOSTS: the corn-stalk bundles are tied round the TWO TREES' trunks now — the crabapple + the framing maple — a pot of
+    // mums / a pumpkin at a foot)
+    (L.trees || []).slice().sort((a, b) => a.x - b.x).forEach((t, i) => {
+      const parts = [['stalks', t.big ? 2.6 : 2.2]];
+      if (i === 0 && P.mums >= 4) parts.push(['mum', 'gold', 0.7, 0.62, -0.32]);
+      if (i === 1 && P.spots >= 2) parts.push(['pumpkin', 'warty', 0.78, -0.66, -0.3]);
+      add(`stalks-${i}`, t.x, t.z - 0.05, 'near', parts, { ext: [1.2, 3.0], shadow: 0.6 });
     });
-    const gl = (L.lamps || []).filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0];
-    if (gl) add('stalks-globe', gl.x, gl.z - 0.05, 'top', [['stalks', 1.9, 0.28], ...(P.spots >= 3 ? [['gourds', 0.5, 0.55, -0.22, false]] : [])], { ext: [1.0, 2.4], shadow: 0.5 });
   }
   return out;
 }
@@ -154,17 +153,21 @@ export function marigoldSpots(L) {
   out.push({ x: s.x0 + 8.62, y: 0, z: s.z0 - 0.5, w: 0.62, n: 9, kind: 'pot', front: false });
   out.push({ x: s.x0 + 11.0, y: 0, z: s.z0 - 0.62, w: 0.62, n: 9, kind: 'pot', front: false });
   // the trees' grates: a ring of marigolds (its back half behind the trunk, its front half in front)
-  for (const t of L.trees || []) if (t.grate) for (const half of ['back', 'front']) out.push({ x: t.x, y: 0, z: t.z, w: 0.95, n: 14, kind: 'ring', half, front: t.z < zs && half === 'front' });
-  // the lamps' feet: a clump each side of the base
-  for (const l of L.lamps || []) out.push({ x: l.x, y: 0, z: l.z - 0.12, w: 0.55, n: 8, kind: 'clump', front: l.z < zs });
+  for (const t of L.trees || []) if (t.grate) for (const half of ['back', 'front']) out.push({ x: t.x, y: 0, z: t.z, w: 0.95, n: 14, kind: 'ring', half, front: t.z < Math.min(zs, 38.75) && half === 'front' });   // (PROM: a tree out on the floor — the maple — keeps its ring under the walkers)
+  // (PROM — no lampposts: the clumps stand at THE COMPASS instead — one at each of its four diagonals, just outside its ring)
+  if (L.medallion) for (const a of [0.25, 0.75, 1.25, 1.75]) { const m = L.medallion, rr = m.ring + 0.45; out.push({ x: m.x + Math.cos(a * Math.PI) * rr, y: 0, z: m.z + Math.sin(a * Math.PI) * rr, w: 0.55, n: 8, kind: 'clump', front: false }); }
   // the planters (wide layouts): filled
   for (const p of L.planters || []) out.push({ x: p.x, y: p.h || 0.9, z: p.z, w: (p.w || 1.6) * 0.5, n: 14, kind: 'planter', front: p.z < zs });
   return out;
 }
-/** the lamp posts the garlands wind up: { x, z, h (the garland's top), front } */
+/** what the marigold garlands wind up: { x, z, h (the garland's top), base, front, kind, r (the helix's radius), turns }. PROM — NO
+ *  LAMPPOSTS (the owner, Oct 28): the TWO TREES' trunks (up to their first fork) + the speakeasy's FRONT — a pair framing the side
+ *  door (wound up its pilasters) */
 export function garlandPosts(L) {
-  const zs = L.speakeasy.z0;
-  return (L.lamps || []).map(l => ({ x: l.x, z: l.z, h: l.kind === 'tall' ? l.h * 0.62 : l.h * 0.72, base: 0.25, front: l.z < zs, kind: l.kind }));
+  const s = L.speakeasy, zs = s.z0, out = [];
+  for (const t of L.trees || []) if (!(L.cam && L.cam.wide && Math.abs(t.x) > L.cam.hw(t.z))) out.push({ x: t.x, z: t.z - 0.02, h: (t.trunk || 2) * 0.86, base: 0.18, front: t.z < Math.min(zs, 38.75), kind: 'trunk', r: t.big ? 0.2 : 0.16, turns: t.big ? 4.2 : 3.4 });
+  if (s && s.door) for (const u of [s.door.u0 - 0.24, s.door.u1 + 0.24]) out.push({ x: s.x0 + u, z: s.z0 - 0.12, h: 2.75, base: 0.2, front: false, kind: 'door', r: 0.12, turns: 3.6 });
+  return out;
 }
 /** the petal path: from the open promenade in front of the medallion to the side door's steps — a soft S-curve; denser at the door */
 export function petalPath(L, n = 980) {
@@ -192,17 +195,25 @@ export function petalPath(L, n = 980) {
  *  runs in the front row: its ends on the front lamps) }] — the tall lamps' pair, the corner from the speakeasy to the left tall lamp,
  *  the front globes' pair (+ the speakeasy's corner to the left globe) */
 export function papelRuns(L) {
-  const s = L.speakeasy, out = [], lamps = (L.lamps || []).slice().sort((a, b) => a.x - b.x);
-  const tall = lamps.filter(l => l.kind === 'tall'), globes = lamps.filter(l => l.kind !== 'tall');
-  const post = (l, y) => ({ x: l.x, y, z: l.z });
-  const run = (a, b, front) => { const len = Math.hypot(b.x - a.x, b.z - a.z); if (len < 2) return; out.push({ a, b, sag: Math.min(0.9, 0.16 + len * 0.05), n: Math.max(5, Math.round(len / 0.52)), front }); };
-  // (the first run starts in the crabapple's crown right of the blade sign — strung from the speakeasy's corner it passed BEHIND the blade,
-  // which hangs nearer to us; no crabapple → the speakeasy's corner)
-  const crab = (L.trees || []).filter(o => o.kind === 'crab' && tall.length && o.x < tall[0].x).sort((a, b) => b.x - a.x)[0];
-  const corner = crab ? { x: crab.x + 0.35, y: (crab.trunk || 2) + 1.1, z: crab.z - 0.2 } : { x: s.x1 - 0.05, y: 4.05, z: s.z0 - 0.05 };
-  if (tall.length) run(corner, post(tall[0], 4.75), false);
-  for (let i = 0; i + 1 < tall.length; i++) run(post(tall[i], 4.75), post(tall[i + 1], 4.75), false);
-  for (let i = 0; i + 1 < globes.length; i++) run(post(globes[i], 3.25), post(globes[i + 1], 3.25), true);
+  // PROM — NO LAMPPOSTS (the owner, Oct 28: "the RAILING itself becomes the main spot … the papel picado strings re-anchor from the lamps
+  // to the railing / the wall / the tree"): ACROSS THE PROMENADE from the crabapple's crown to the framing maple's (high over the floor);
+  // ALONG THE RAILING across the road — strung low between its posts, in runs that leave the WAIT / WALK lantern + the crossing's landing
+  // clear (`rail`: drawn under the traffic + the far pavement's walkers, which pass in front of it)
+  const s = L.speakeasy, out = [];
+  const run = (a, b, front, o = {}) => { const len = Math.hypot(b.x - a.x, b.z - a.z); if (len < 2) return; out.push({ a, b, sag: o.sag != null ? o.sag : Math.min(0.9, 0.16 + len * 0.05), n: Math.max(5, Math.round(len / (o.gap || 0.52))), front, rail: !!o.rail }); };
+  const crab = (L.trees || []).find(o => o.kind === 'crab'), maple = (L.trees || []).find(o => o.kind === 'maple' && o.big);
+  const crown = t => ({ x: t.x, y: (t.trunk || 2) + (t.big ? 1.6 : 1.1), z: t.z - 0.2 });
+  if (crab && maple) run({ ...crown(crab), x: crab.x + 0.5 }, { ...crown(maple), x: maple.x - 0.9 }, false);
+  // (the bold one: from the speakeasy's corner wall right across the floor to the maple — the owner's "across the promenade", nearer + lower)
+  if (maple && s) run({ x: s.x1 - 0.05, y: 4.05, z: s.z0 - 0.05 }, { ...crown(maple), x: maple.x - 1.2, y: crown(maple).y - 0.5, z: maple.z - 0.4 }, false);
+  // the railing's run: from the left edge to the lantern, from past the crossing's landing to the right edge
+  const cw = L.crosswalk, rz = (L.rail ? L.rail.z : 64) - 0.15, y = (L.rail ? L.rail.y : 1.1) + 0.85, hw = L.cam && L.cam.hw ? L.cam.hw(rz) : 21;
+  if (cw) {
+    const lx = cw.lantern ? cw.lantern.x : (cw.x0 + cw.x1) / 2, cut0 = Math.min(cw.x0, lx - 1.4) - 0.4, cut1 = Math.max(cw.x1, lx + 1.4) + 0.4;
+    const segs = [[-hw - 0.5, cut0], [cut1, hw + 0.5]];
+    for (const [x0, x1] of segs) { const n = Math.max(1, Math.round((x1 - x0) / 7)); for (let i = 0; i < n; i++) { const a = x0 + (x1 - x0) * i / n, b = x0 + (x1 - x0) * (i + 1) / n; run({ x: a, y, z: rz }, { x: b, y, z: rz }, false, { rail: true, sag: 0.32, gap: 0.62 }); } }
+  }
+  void s;
   return out;
 }
 

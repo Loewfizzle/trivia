@@ -58,7 +58,8 @@ export const SHOWS = Object.freeze({
   // CAUSE AND EFFECT (the city notices itself): the morning after a blade bulb went out — the repairman's tall ladder at the corner
   bulb: { days: EVERY, win: [9.15, 9.7], len: 8 * 60, prio: 4, after: 'bulbOut' },
   // the morning after a lamppost's bad night — a short ladder at that lamp
-  lamp: { days: EVERY, win: [9.0, 10.9], len: 5.5 * 60, prio: 3, after: 'lampFault' },
+  // (PROM — RETIRED: `lamp`, the lampman's stepladder at a lamppost — the promenade has no lampposts now (the implied lamps stand behind
+  // the viewer); a lamp's bad night still stutters its implied pool until the next day — lampFault below + scene.js#lampLife)
   // the morning after a party night: the extra sweep (7:30) + a cleanup crew on the roof (9 am)
   sweep2: { days: [0, 6], win: [7.4, 7.7], len: 32 * 60, prio: 3, after: 'party' },
   crew: { days: [0, 6], win: [8.95, 9.2], len: 70 * 60, prio: 3, after: 'party' },

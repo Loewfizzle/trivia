@@ -20,12 +20,11 @@ const SUN = { rise: 7.9, set: 18.8 };
 const at = (y, mo, d, h, mi = 0) => Date.UTC(y, mo - 1, d, h, mi) / 1000 - OFF * 60;   // (local wall time → s abs)
 const ctxOf = (o = {}) => ({ off: OFF, seed: 1924, spots: wildSpots(L), sun: SUN, rain: 0, wind: 3, force: new Set(), ...o });
 
-test('POLISH 5 — THE FIRE HYDRANT (where the can stood): right of the front-left globe, fully above the dock at 390 / 402 / 430, nearer than anyone on the floor, clear of the lobby line', () => {
+test('POLISH 5 → PROM — THE FIRE HYDRANT at the LEFT CURB (f 0.035, framing the corner), fully above the dock at 390 / 402 / 430, nearer than anyone on the floor, clear of the lobby line', () => {
   for (const k of Object.keys(SIZES)) {
     const { cam, L } = setup(k), can = hydrantOf(L), [cx, foot] = project(cam, can.x, 0, can.z), [, top] = project(cam, can.x, can.h, can.z);
-    const g = L.lamps.filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0], [gx] = project(cam, g.x, 0, g.z);
     assert.ok(foot <= cam.dock.y - 2, `${k}: its foot ${foot.toFixed(1)} above the dock ${cam.dock.y}`);
-    assert.ok(cx > gx + 8 && cx < gx + 40, `${k}: just right of the front-left globe (${(cx - gx).toFixed(1)} pt)`);
+    assert.ok(cx > 8 && cx < cam.W * 0.06, `${k}: at the left curb, framing the corner (${cx.toFixed(1)} pt)`);
     assert.ok(can.z < FOLK.zMin - 0.4, `${k}: in front of the walkable floor`);
     for (const p of linePlaces(L, 12)) assert.ok(project(cam, p.x, 0, p.z)[0] < cx - 6 || p.z > can.z + 2.5, `${k}: the lobby line stays clear of the hydrant`);
     assert.ok(top > 0 && cx > 0 && cx < cam.W, `${k}: on screen`);

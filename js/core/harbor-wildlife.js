@@ -47,7 +47,7 @@ const CANOPY = { back: 1.2, top: 13.0, posts: [2.55, 9.75] };
 const BLADE = { w: 0.42, out: 0.22, bw: 1.86, v1: 11.0 };
 /** POLISH 5 — THE FIRE HYDRANT's spot (the trash can's old one): the layout's (core/harbor-promenade.js#hydrantSpot — L.hydrant) */
 export { HYDRANT };
-export const hydrantOf = L => L.hydrant || hydrantSpot(L.cam, L.lamps);
+export const hydrantOf = L => L.hydrant || hydrantSpot(L.cam, 0.035);
 /** THE MOORING PILING (the heron's): a weathered three-timber dolphin out in the open water between the WALK / WAIT lantern and the
  *  right stop light (f 0.712, z 100 at 402 — clear of the lamps' globes, the lantern + the crabapple: the heron stands over the lamps'
  *  line against the bright water + Rosie's reflection); its top `top` over the water */
@@ -297,10 +297,10 @@ export function coyoteNight(key, day0, L, ctx = {}) {
   if (!f.has('coyote')) { const lc = localOf(t0, ctx.off); if (mixNow({ h: lc.h, dow: lc.dow }).n > 1.6) return distant ? { distant } : null; }
   return { ...coyotePath(L, t0, r), howl: full, distant };
 }
-/** the coyote's route from t0: in from the right edge across the promenade, a stop under the left tall lamp, on over the road to the
- *  waterside sidewalk and off behind the speakeasy (or the reverse) */
+/** the coyote's route from t0: in from the right edge across the promenade, a stop by the crabapple's grate (PROM: under the left tall
+ *  lamp until the lampposts went), on over the road to the waterside sidewalk and off behind the speakeasy (or the reverse) */
 export function coyotePath(L, t0, r = Math.random) {
-  const cam = L.cam, lamp = (L.lamps || []).filter(l => l.kind === 'tall').sort((a, b) => a.x - b.x)[0] || { x: 0, z: 52.6 };
+  const cam = L.cam, crab = (L.trees || []).find(t => t.kind === 'crab'), lamp = crab ? { x: crab.x + 2.4, z: crab.z + 1.1 } : { x: 0, z: 52.6 };
   const rev = r() < 0.4, z1 = 46.5 + r() * 2, edge = { x: cam.hw(z1) + 2.5, z: z1 }, stop = { x: lamp.x + 0.9, z: lamp.z - 1.25 };
   const curb = { x: stop.x - 1.6, z: FOLK.roadZ + 0.2 }, far = { x: stop.x - 2.6, z: FOLK.farZ - 0.1 }, gone = { x: L.speakeasy.x1 - 4, z: FOLK.farZ - 0.1 };
   const pts1 = rev ? [gone, far, curb, stop] : [edge, stop], pts2 = rev ? [stop, edge] : [stop, curb, far, gone];

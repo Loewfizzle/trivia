@@ -3,7 +3,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
-import { lightSources, lightField, sunShadow, lampOn, treeLamps, roadLampAt, pieceCtx, REACH, FACE } from '../js/core/harbor-light.js';
+import { lightSources, lightField, sunShadow, lampOn, treeLamps, roadLampAt, pieceCtx, REACH, FACE, impliedAt, lampShadow, castShadow } from '../js/core/harbor-light.js';
+import { project } from '../js/core/harbor-layout.js';
 
 const setup = (W = 402, H = 874) => { const cam = cameraFor(W, H, {}, { top: 59, bottom: 34 }); return harborLayout(cam, 'gr'); };
 
@@ -12,20 +13,39 @@ test('FP3a — THE LIGHT: the pools only at night, brightest at a lamp\'s heart;
   assert.equal(lightField(L, { lamps: 0 }), null, 'by day: no pools');
   const at = lightField(L, { lamps: 1 }), src = lightSources(L);
   assert.ok(src.length >= L.lamps.length + 2 && src.some(s => s.kind === 'spill'), 'the lamps + the spill');
-  const lamp = src.find(s => s.kind === 'globe'), heart = at(lamp.x, lamp.z), edge = at(lamp.x + REACH.globe * 0.9, lamp.z);
-  const lum = c => (c ? c[0] + c[1] + c[2] : 0);
-  assert.ok(lum(heart) > lum(edge) * 3, 'the heart far brighter than the rim');
+  // (PROM: no lampposts — the IMPLIED LAMPS below the screen: a pool on the street under the dock right in front of each, brightest at
+  // the FRONT CURB of the promenade, falling off toward the railing; the street's pools distinct (dim between two lamps))
+  const lamp = src.find(s => s.implied), lum = c => (c ? c[0] + c[1] + c[2] : 0);
+  assert.ok(lamp && L.lamps.every(l => l.implied) && !L.lamps.some(l => l.kind === 'tall' || l.kind === 'globe'), 'no lampposts: every lamp implied');
+  const yz = z => project(L.cam, 0, 0, z)[1];
+  assert.ok(yz(lamp.z) > L.cam.H, `the implied lamps stand below the screen's foot (${yz(lamp.z).toFixed(0)} > ${L.cam.H})`);
+  const street = at(lamp.x, lamp.z + 6), between = at(lamp.x + 4.5, lamp.z + 6), front = at(lamp.x, 37.4), mid = at(lamp.x, 44), back = at(lamp.x, 51.5);
+  assert.ok(lum(street) > lum(between) * 2, `distinct pools on the street (${lum(street).toFixed(0)} vs ${lum(between).toFixed(0)} between)`);
+  assert.ok(lum(front) > lum(mid) * 1.6 && lum(mid) > lum(back) * 1.3 && lum(back) > 0, `brightest at the front curb, falling off toward the railing (${lum(front).toFixed(0)} › ${lum(mid).toFixed(0)} › ${lum(back).toFixed(0)})`);
+  assert.equal(impliedAt(lamp, lamp.x, lamp.z - 1), 0, 'nothing behind the lamp');
+});
+test('PROM — THE SHADOWS CLIMB UP THE SCREEN at night (away from the implied lamps behind the viewer); the sun\'s by day', () => {
+  const L = setup(), b = L.cabStand, sh = lampShadow(L.lamps, 2, b.x, b.z, 1);
+  assert.ok(sh && sh.dz > 0 && sh.dz > Math.abs(sh.dx), `away from us, up the screen (dz ${sh && sh.dz.toFixed(2)}, dx ${sh && sh.dx.toFixed(2)})`);
+  assert.ok(project(L.cam, b.x + sh.dx, 0, b.z + sh.dz)[1] < project(L.cam, b.x, 0, b.z)[1], 'its tip higher on the screen than its foot');
+  assert.equal(lampShadow(L.lamps, 2, b.x, b.z, 0), null, 'the lamps off: none');
+  assert.equal(castShadow({ night: 1, lamps: 0 }, 2, b.x, b.z, L.lamps), null, 'night, lamps off: none');
+  assert.ok(castShadow({ night: 1, lamps: 1 }, 2, b.x, b.z, L.lamps).dz > 0, 'night, lamps on: the lamps\' shadow');
+  const day = castShadow({ day: 1, sunEl: 30, sunDir: 0.5, lamps: 0 }, 2, b.x, b.z, L.lamps);
+  assert.deepEqual(day, sunShadow({ day: 1, sunEl: 30, sunDir: 0.5, lamps: 0 }, 2), 'by day the sun\'s');
 });
 
 test('FP3a — THE LIGHT: a face takes the NEAREST lamp (its colour, reach, direction); none at night far away; the trees + the road read the same lamps', () => {
-  const L = setup(), ctx = pieceCtx(L), g = L.lamps.find(l => l.kind === 'globe');
-  const near = lampOn(ctx.lights, g.x + 1, g.z - 0.5, 1);
-  assert.deepEqual(near.lcol, FACE.col.globe);
-  assert.ok(near.lk > 0.5 && near.ld[1] > 0, `lit from above (${near.lk.toFixed(2)})`);
-  assert.equal(lampOn(ctx.lights, g.x + 400, g.z, 1).lk, 0, 'out of reach: no lamp light');
+  const L = setup(), ctx = pieceCtx(L), b = L.cabStand;
+  // (PROM: the cab stand's face toward us takes the nearest IMPLIED lamp — warm, from the front + above)
+  const near = lampOn(ctx.lights, b.x, b.z, 1);
+  assert.deepEqual(near.lcol, FACE.col.implied);
+  assert.ok(near.lk > 0.5 && near.ld[1] > 0 && near.ld[2] < 0, `lit from the front + above (${near.lk.toFixed(2)})`);
+  assert.equal(lampOn(ctx.lights, b.x + 400, b.z, 1).lk, 0, 'out of reach: no lamp light');
   assert.equal(lampOn([], 0, 0, 1).lk, 0);
   const t = L.trees[0], tl = treeLamps(ctx, t);
-  for (const l of tl) assert.ok(Math.abs(l.x) <= 10 + 2 && l.k > 0, 'a tree sees only its neighbours');
+  for (const l of tl) assert.ok(Math.abs(l.x) <= 12 && l.k > 0, 'a tree sees only its neighbours');
+  assert.ok(tl.some(l => l.w > 5), 'the implied lamps light a crown from the front (toward us)');
   const front = L.lamps.find(l => l.z <= 40);
   if (front) assert.ok(roadLampAt(L.lamps, front.x) > 0.9 && roadLampAt(L.lamps, front.x + 400) === 0, 'the car under a front lamp');
 });

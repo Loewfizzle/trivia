@@ -5,12 +5,16 @@
 // The bands, back to front (world z; the camera's numbers in docs/harbor.md — on a 402 phone the promenade is the strip from the
 // road's near kerb, y ≈ 682, down to the dock's top, y ≈ 758):
 //   THE WATERSIDE ROAD   z 54–64 (core/harbor-layout.js: the bus, the cars, the two stop lights + the CROSSWALK between them)
-//   THE CURB BAND        z ≈ 52.6: tall double-head Art Deco street lamps, sugar maples in iron grates between them
+//   THE CURB BAND        z ≈ 52.6: the crabapple's grate (PROM: NO LAMPPOSTS — the tall pair by the crossing is gone)
 //   THE PLAZA / MIDDLE   z 41–48: open cobbles in front of the speakeasy's door (8 guests, the party line, crowds); the
 //                        CENTREPIECE SPOT just right of the door (an Art Deco medallion in a ring of smooth stone); the bench,
 //                        the vendor cart, the stone flower planters — in the clearly visible middle, never low by the dock
-//   THE FRONT WALK       z ≈ 36.5–38: short warm globe lamps along its curb (their bases = the promenade's bottom edge), the
-//                        flowering crabapples
+//   THE FRONT WALK       z ≈ 36.5–38: THE CAB STAND (a bench at the front curb facing the street, the framing maple behind it),
+//                        the vendor cart left of the compass, the hydrant at the left curb (PROM: the two globe lamps are gone)
+//   THE IMPLIED LAMPS    PROM (the owner, Oct 28 — LOCKED): no lampposts on the promenade at all; a row of street lamps on OUR side
+//                        of the front street, just below the screen, behind the viewer (never drawn) — their warm light pools on the
+//                        street under the dock + the promenade, brightest at the front curb, falling off toward the railing; the
+//                        shadows climb UP the screen, away from us (core/harbor-light.js#IMPLIED)
 // NO FLAGPOLE (the owner, 8a: flags only on holidays / special events — a later part dresses the lamp posts then)
 //   THE IMPLIED ROAD     z < 36: its granite curb just under the dock's top edge, THE STREET below (FP2: full-bleed — setts, a
 //                        streetcar track, a manhole, a drain); while the dock shows, passing cars are LIGHT only (headlight
@@ -22,6 +26,15 @@ import { rngFrom } from './rng.js';
 
 /** the bands' depths (world z) */
 export const PROM = Object.freeze({ curb: 52.6, mid: [41, 48], front: 37.8, globes: 36.6, edge: 35.6, road: [22, 35.6] });
+/** PROM — THE IMPLIED LAMPS (never drawn): the row of street lamps on our side of the front street, below the screen's foot (z 21.5 — the
+ *  screen's foot is z ≈ 23.5 on every upright phone), their heads h up, gap apart along x (half a gap off the centre: a pool either side
+ *  of the screen's middle on the street under the dock, the outer ones spilling in from the edges) */
+export const IMPLIED = Object.freeze({ z: 21.5, h: 5.6, gap: 9 });
+/** PROM — the centrepieces keep TODAY's on-screen size (the owner, Oct 28 2:32 pm): the compass came forward from z 44.8 to 42.6, so a piece
+ *  standing on it is drawn × centreK(L) about its foot (screens/harbor: centre.js, giant + harvest in holidayprops.js) — "unless noted
+ *  otherwise": a piece may be marked bigger case by case */
+export const CENTRE_Z0 = 44.8;
+export const centreK = L => (L && L.medallion ? Math.min(1, L.medallion.z / CENTRE_Z0) : 1);
 
 /** the pieces' sizes (world units — a person is 2.1 since the owner's 8a scale, ~⅔ of the speakeasy's door; ~0.85 m a unit) */
 export const PIECE = Object.freeze({
@@ -32,7 +45,7 @@ export const PIECE = Object.freeze({
   bench: { w: 3.3, h: 1.25 },
   cart: { w: 3.3, h: 1.5 },               // the chestnut roaster cart (FP3b: no umbrella — ≈ 3.4 tall to its chimney's cap)
   planter: { w: 2.6, h: 1.35, d: 1.6 },
-  medallion: { r: 1.55, ring: 2.6 },
+  medallion: { r: 1.8, ring: 3.05 },     // (PROM: bigger — 1.55 / 2.6 → 1.8 / 3.05 — a bold brass ring; the centrepieces keep their size: centreK)
 });
 
 /**
@@ -68,18 +81,28 @@ export const PHONE = Object.freeze({
   // outside the two stop lights: the crossing framed + lit, the bench in the left one's light); the two short globes stay at the
   // front corners; nothing in front of the shopfront or the blade. THE CENTREPIECE is a brick PAVING INLAY now (props.js) on the
   // crossing's axis, a little further back (z 43.4 → 44.8) — inside both flanking lamps' pools. THE MAILBOX by the front curb, right.
-  tall: [{ f: 0.559, z: 52.6 }, { f: 0.776, z: 52.6 }],
-  maples: [{ f: 0.888, z: 38.2, big: true, v: 1 }],
+  // PROM — THE PROMENADE, FINAL (the owner, Oct 28 — LOCKED): NO LAMPPOSTS (the tall pair + the two front globes gone: the implied lamps
+  // behind the viewer light it); THE FRAMING MAPLE moved BACK (f 0.888 z 38.2 → f 0.875 z 42.0 — its whole crown shows); THE CAB STAND
+  // bench at the FRONT CURB in front of it, facing the street (`cabStand`); THE WATER BENCH back at the crabapple, turned to face the
+  // harbor (`bench`, face 'water'); THE COMPASS bigger + forward (z 44.8 → 42.6); THE VENDOR CART to the front-middle LEFT of the compass
+  // (f 0.805 → 0.5); THE HYDRANT to the LEFT CURB (f 0.035), framing the corner
+  tall: [],
+  maples: [{ f: 0.875, z: 42.0, big: true, v: 1 }],
   crabs: [{ f: 0.42, z: 50.9, k: 1.4 }],    // (POLISH 5: 0.45 / k 1.45 → 0.42 / 1.4 — the cab at its stop no longer half behind it at 402; PF: 0.405 / z 52.9 / k 1.25 → its crown 153–209 pt at 402: right of the blade, left of the lamp's arm)
-  globes: [0.322, 0.962],                  // (the front edge's two corners: by the speakeasy's corner, by the right edge)
-  medallion: { f: 0.6675, z: 44.8 },        // (PF: on the crossing's axis, between the flanking lamps — inside both their pools)
-  bench: { f: 0.515, z: 47.8 },             // (PF: in front of the crabapple, a little right — its trunk + uplight show at the bench's left end; its right end by the left flanking lamp)
+  globes: [],
+  medallion: { f: 0.6675, z: 42.6 },        // (PROM: forward from 44.8 — on the crossing's axis)
+  bench: { f: 0.515, z: 47.8, face: 'water' },   // (PROM: THE WATER BENCH — the old spot in front of the crabapple, turned to face the harbor: its sitters seen from behind)
+  cabStand: { f: 0.875, z: 38.0, face: 'street' },   // (PROM: THE CAB STAND — at the front curb in front of the framing maple, facing us + the street; ~13 pt above the dock at 390 / 402 / 430)
+  hydrant: { f: 0.035 },                    // (PROM: at the LEFT CURB, framing the corner)
   // (FP3b — THE VENDOR SPOT, the owner, Oct 24: the cart moves to the FRONT CURB in the MIDDLE, just in front of the compass inlay —
   // RIGHT of it on screen: centred in front of it, its body would cover the compass's front half at every phone size (the strip is
   // ~70 pt deep); at f 0.805 its left end clears the inlay by ~3 pt and its right end stays ~10 pt short of the framing maple's trunk;
   // fully above the dock at 390 / 402 / 430 (its wheels ~15 pt over it), ~0.9 of its old size (it stands nearer). Shared by time —
   // core/harbor-routines.js#VENDOR: the chestnut cart 6:30–9:30 pm in the cold months, the newsboy's stand (8b) in the mornings)
-  cart: { f: 0.805, z: 38.4, scale: 0.9 },
+  // (PROM: the vendor spot moves to the front-middle LEFT of the compass — f 0.805 → 0.47 (the owner's "~0.5", a step further left: its
+  // right end clears the bigger compass's ring + Halloween's giant at 390 / 402 / 430) — wheeled in from the LEFT edge now (the cab stand
+  // stands on its old way in from the right), its push handles + the vendor + his customers on its LEFT end, away from the compass)
+  cart: { f: 0.47, z: 38.4, scale: 0.9, hand: -1 },
   planters: [],
   // (PF placed a 1920s pillar box here — `mailbox: { f: 0.81, z: 38.6 }`; the owner didn't like the olive-green box: gone, Oct 24. props.js keeps the art.)
   mailbox: null,
@@ -164,16 +187,21 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   // (FP2: the framing maple's crown a little rounder — h 1.1 → 1.14 × — its trunk sturdier: core/harbor-trees.js#treePlan's big; v: its colour mix)
   S.maples.forEach(m => { maple(X(m.f, m.z), m.z); const t = trees[trees.length - 1]; if (m.v != null) t.v = m.v; if (m.big) Object.assign(t, { big: true, w: P.maple.w * 1.12, r: P.maple.w * 0.56, h: P.maple.h * 1.14, trunk: P.maple.trunk * 1.02 }); });
   S.globes.forEach(f => globe(X(f, PROM.globes)));
+  // PROM — THE IMPLIED LAMPS: a row along our side of the front street, below the screen (never drawn: kind 'implied'); enough of them for
+  // the widest view (their light fans out — the outer ones spill in from the edges)
+  { const span = (wide ? cam.hw(PROM.curb) * 1.4 : cam.hw(50)) + IMPLIED.gap, n = Math.ceil(span / IMPLIED.gap), cx0 = wide && face != null ? X(0.5, IMPLIED.z) : 0;
+    for (let i = -n; i < n; i++) lamps.push({ x: cx0 + (i + 0.5) * IMPLIED.gap, z: IMPLIED.z, h: IMPLIED.h, kind: 'implied', implied: true, dir: 1 }); }
   S.crabs.forEach(c => crab(X(c.f, c.z), c.z, c.k || 1));
   for (const p of S.planters) planters.push({ x: X(p.f, p.z), z: p.z, w: P.planter.w * (p.corner ? 1.08 : 0.92), corner: !!p.corner });
-  const bench = { x: X(S.bench.f, S.bench.z), z: S.bench.z, w: P.bench.w };
+  const bench = { x: X(S.bench.f, S.bench.z), z: S.bench.z, w: P.bench.w, face: S.bench.face || 'street' };
+  const cabStand = S.cabStand ? { x: X(S.cabStand.f, S.cabStand.z), z: S.cabStand.z, w: P.bench.w, face: 'street', cab: true } : null;
   // (live: drawn by the people's near pass on its schedule, never baked; hand 1: its handles on the right end — FP3b: a low roaster
   // cart, no umbrella: props.js#drawCart)
-  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: true, live: true, scale: S.cart.scale || 1, hand: 1 };
+  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: true, live: true, scale: S.cart.scale || 1, hand: S.cart.hand || 1 };
   const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring, clear: EVENT_CLEAR };
   // (FP2 — THE CART'S RULE for 8b: it rests LEFT of the medallion; on a normal day its route rolls across the floor — over the
   // medallion — to the open right side and back; during an event on the medallion it stops short: never right of stopX)
-  cart.route = { x0: cart.x, x1: X(0.8, cart.z), z: cart.z };
+  cart.route = { x0: cart.x, x1: cart.x, z: cart.z };   // (PROM: it rests where it stands — the compass + the cab stand fill its old way)
   cart.stopX = medallion.x - EVENT_CLEAR;
   const crosswalk = { x0: X(S.crosswalk[0], 59), x1: X(S.crosswalk[1], 59), z0: 54, z1: 64 };
   // (FP: THE WALK / WAIT LANTERN — on the FAR side of the crossing, at the railing where the crosswalk lands, facing us: the people
@@ -182,9 +210,10 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   // a wide screen (a panorama): the curb band goes on to the right edge — lamp / maple pairs, a bench now and then; the front row
   // (globes + a crabapple) either side of the dock, never under it
   if (wide) {
+    // (PROM: no lampposts on a panorama either — the curb band goes on with maples, a bench now and then; the implied lamps light it)
     const r = rngFrom(seed + 99), end = cam.hw(PROM.curb) * 0.97;
-    for (let x = X(S.tall[1].f, PROM.curb) + 8, i = 0; x < end; x += 8 + r() * 2, i++) {
-      if (i % 2 === 0) tall(x, i); else maple(x);
+    for (let x = X(0.776, PROM.curb) + 8, i = 0; x < end; x += 8 + r() * 2, i++) {
+      if (i % 2 === 1) maple(x);
       if (i % 4 === 1) more.push({ x: x + 3.2, z: 46.6, w: P.bench.w });
     }
     if (front) {
@@ -193,7 +222,7 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
       const sxOf = x => cam.VPX + cam.F * x / zf;
       for (let x = X(0.04, zf), i = 0; x < cam.hw(zf) * 0.96; x += 6 + r() * 3, i++) {
         if (!free(sxOf(x))) continue;
-        if (i % 3 === 2) crab(x, zf + 1.2); else globe(x);
+        if (i % 3 === 2) crab(x, zf + 1.2);   // (PROM: no globe lamps)
       }
     }
   }
@@ -211,14 +240,18 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
     walk: { x0: X(0.0, 46), x1: X(1.0, 46), z0: 40, z1: 51.6 },
     front: { x0: X(0.0, 38), x1: X(1.0, 38), z0: 36.9, z1: 40 },
     curb: { x0: X(0.36, 53), x1: X(1.0, 53), z0: 51.6, z1: 53.6 },
-    block: [...trees.map(t => ({ x: t.x, z: t.z, r: 0.8 })), ...lamps.map(l => ({ x: l.x, z: l.z, r: 0.35 })), ...(cart.shown ? [{ x: cart.x, z: cart.z, r: 1.6 }] : []), { x: bench.x, z: bench.z, r: 1.4 }, ...planters.map(p => ({ x: p.x, z: p.z, r: 1.1 }))],
+    block: [...trees.map(t => ({ x: t.x, z: t.z, r: 0.8 })), ...lamps.filter(l => !l.implied).map(l => ({ x: l.x, z: l.z, r: 0.35 })), ...(cart.shown ? [{ x: cart.x, z: cart.z, r: 1.6 }] : []), { x: bench.x, z: bench.z, r: 1.4 }, ...(cabStand ? [{ x: cabStand.x, z: cabStand.z + 0.4, r: 1.4 }] : []), ...planters.map(p => ({ x: p.x, z: p.z, r: 1.1 }))],
   };
+  // (PROM: a tree out on the floor — the framing maple at z 42 — walkers round it, never straight behind its trunk: its trunk is in the
+  // stage layer under them; its crown is laid over everyone behind it — scene.js#floorTree)
+  for (const t of trees) if (t.big) zones.block.push({ x: t.x, z: t.z + 1.3, r: 1.0 });
   const mailbox = S.mailbox ? { x: X(S.mailbox.f, S.mailbox.z), z: S.mailbox.z } : null;   // (PF: props.js#drawMailbox)
   if (mailbox) zones.block.push({ x: mailbox.x, z: mailbox.z + 0.3, r: 0.6 });
-  // POLISH 5 — THE FIRE HYDRANT (the owner: replacing the trash can): just right of the front-left globe lamp
-  const hydrant = hydrantSpot(cam, lamps);
+  // POLISH 5 — THE FIRE HYDRANT (the owner: replacing the trash can); PROM: at the LEFT CURB (f 0.035), framing the corner
+  const hydrant = hydrantSpot(cam, S.hydrant ? S.hydrant.f : null);
+  if (wide && face != null && S.hydrant) hydrant.x = X(S.hydrant.f, hydrant.z);   // (a panorama: the phone's corner beside the speakeasy)
   zones.block.push({ x: hydrant.x, z: hydrant.z, r: 0.6 });
-  return { lamps, trees, bench, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones, mailbox, hydrant };
+  return { lamps, trees, bench, cabStand, planters, cart, medallion, signals, crosswalk, edge, impliedRoad, zones, mailbox, hydrant };
 }
 
 /** 8b1 wildlife — (was THE TRASH CAN, the owner's pick, Oct 24): its spot just RIGHT of the front-left globe lamp
@@ -230,13 +263,14 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
 // screen at the curb): a classic red 1920s cast-iron hydrant where the can stood — by the front-left lamppost, fully above the dock,
 // clear of the lobby line + the walk to the door; h / r: its height (~0.8 m with the bonnet) + its barrel's radius (fauna.js#drawHydrant)
 export const HYDRANT = Object.freeze({ dx: 0.8, pad: 4, zMin: 37.2, zMax: 38.2, h: 1.0, r: 0.24 });
-export function hydrantSpot(cam, lamps) {
-  const g = (lamps || []).filter(l => l.kind === 'globe').sort((a, b) => a.x - b.x)[0];
+export function hydrantSpot(cam, f = null) {
+  // (PROM: no lamppost to stand by — at the LEFT CURB, framing the corner: f 0.035 of the screen at its depth; before PROM it stood
+  // HYDRANT.dx right of the front-left globe lamp, f 0.322 — still the fallback when no f is given)
   const dockY = cam.dock && cam.dock.y && !cam.wide ? cam.dock.y : cam.H;
   const zFoot = cam.F * cam.CAMH / Math.max(1, dockY - HYDRANT.pad - cam.VPY);
   const z = Math.max(HYDRANT.zMin, Math.min(HYDRANT.zMax, zFoot));
-  const gx = g ? g.x * z / g.z : xOfF(cam, 0.322, z);
-  return { x: gx + HYDRANT.dx, z, h: HYDRANT.h, r: HYDRANT.r, post: g ? gx : null };
+  if (f == null || !Number.isFinite(+f)) return { x: xOfF(cam, 0.322, z) + HYDRANT.dx, z, h: HYDRANT.h, r: HYDRANT.r, post: null };
+  return { x: xOfF(cam, f, z), z, h: HYDRANT.h, r: HYDRANT.r, post: null };
 }
 
 // ------------------------------------------------------------------ THE SEASON (the trees, the planters)

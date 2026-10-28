@@ -6,7 +6,7 @@ import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
 import { wallPlan, hushState, strikeLevel, darkLevel } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
 import { FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
-import { signalAt } from '../js/core/harbor-promenade.js';
+import { signalAt, centreK } from '../js/core/harbor-promenade.js';
 
 const SIZES = {
   '390x844': { W: 390, H: 844, safe: { top: 47, bottom: 34 } },
@@ -84,12 +84,14 @@ test('8P — THE BASEMENT WINDOW: shadows pass now and then, the beat lifts it o
   assert.ok(basementLight(t0, { night: 1 }).a > basementLight(t0, { night: 0 }).a, 'brighter at night');
   assert.ok(basementLight(t0, { night: 1, beat: 1 }).a > basementLight(t0, { night: 1 }).a * (1 + BASEMENT.beat * 0.9), 'the beat lifts it');
 });
-test('8P — THE CROSSWALK LIT: the two lamps framing it light the crossing — brightest on the stripes nearest the promenade, fading across', async () => {
+test('8P → PROM — THE CROSSWALK LIT (no lampposts): the back road’s implied lamps past both edges + the crossing the brightest strip, fading by the far kerb', async () => {
   const { crossLightOf, crossPools } = await import('../js/screens/harbor/road.js');
   for (const k of Object.keys(SIZES)) {
-    const { L } = setup(k), cw = L.crosswalk, f = crossLightOf(L), mid = (cw.x0 + cw.x1) / 2;
-    assert.equal(crossPools(L).length, 2, `${k}: the pair`);
-    assert.ok(f(mid, 56.5) > 1, `${k}: the pools overlap on the crossing (${f(mid, 56.5).toFixed(2)})`);
+    const { L, cam } = setup(k), cw = L.crosswalk, f = crossLightOf(L), mid = (cw.x0 + cw.x1) / 2;
+    assert.equal(crossPools(L).length, 3, `${k}: the crossing's + the two edges'`);
+    assert.ok(f(mid, 56.5) > 0.8, `${k}: the crossing lit (${f(mid, 56.5).toFixed(2)})`);
+    assert.ok(f(mid, 57) > f(mid - 9, 57) && f(mid, 57) > f(mid + 9, 57) * 0.95, `${k}: brightest at the crossing`);
+    if (!cam.wide) assert.ok(f(-cam.hw(57) + 0.5, 57) > 0.15 && f(cam.hw(57) - 0.5, 57) > 0.15, `${k}: the edges catch the implied lamps' spill`);
     for (const x of [cw.x0, mid, cw.x1]) assert.ok(f(x, 55.5) > 0.6, `${k}: lit across its width`);
     assert.ok(f(mid, 63.9) < 0.2, `${k}: fading by the far kerb`);
   }
@@ -384,7 +386,9 @@ test('11a-2 — THE RING round the GIANT JACK-O\'-LANTERN: on Halloween night (a
       if (x.s.pose === 'walk' && Math.abs(r - 1) < 0.04) { moved++; if (!(x.s.v > 0.3)) slides++; }
     }
     // (nobody walks through the giant: its girth + a body's width)
-    for (const x of f.members) if (!x.routine && x.m.role !== 'dog') assert.ok(Math.hypot(x.s.x - m.x, x.s.z - m.z) > GIANT.body.R * 1.08, `${x.kind} walking through the giant (${(x.s.x - m.x).toFixed(2)}, ${(x.s.z - m.z).toFixed(2)})`);
+    // (PROM: the giant is drawn at today's on-screen size on the nearer compass — × centreK about its foot: its girth in world units)
+    // (+ the compass came forward: the front strip passes just IN FRONT of it — drawn in front, never through it)
+    for (const x of f.members) if (!x.routine && x.m.role !== 'dog') assert.ok(Math.hypot(x.s.x - m.x, x.s.z - m.z) > GIANT.body.R * centreK(L) * 1.08 || x.s.z - m.z < -GIANT.body.R * centreK(L), `${x.kind} walking through the giant (${(x.s.x - m.x).toFixed(2)}, ${(x.s.z - m.z).toFixed(2)})`);
     // (evenly round it: no two posed dancers closer than ~2/3 of a step)
     const ps = d.filter(x => x.s.pose === 'wands');
     for (let a = 0; a < ps.length; a++) for (let b = a + 1; b < ps.length; b++) assert.ok(Math.hypot(ps[a].s.x - ps[b].s.x, ps[a].s.z - ps[b].s.z) > RING.rz * 0.6, 'evenly spaced');

@@ -12,7 +12,8 @@ import { project } from '../../core/harbor-layout.js';
 import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt, bigPumpkins, BALE, giantPiece, giantDecor, thanksgivingSpots } from '../../core/harbor-holidayprops.js';
 import { createHarvest, paintSpotPiece } from './harvest.js';
 import { createGiant } from './giant.js';
-import { createFloods } from './floods.js';
+import { createFloods, atCentreScale } from './floods.js';
+import { centreK } from '../../core/harbor-promenade.js';
 import { GIANT as GIANT_P } from '../../core/harbor-holidayprops.js';
 import { paintTreeStand } from './treestand.js';
 import { spotById } from '../../core/harbor-spots.js';
@@ -410,7 +411,7 @@ export function createHolidayProps() {
       for (const b of decor) out.push({ z: b.z, draw: c => drawBig(c, b, env, E) });
       // (9c: floodlit at night — dimmed to a low fill once its carved fire is lit: the fire is the star)
       const fo = { cam: L.cam, m: { x: giantG.x, z: giantG.z, r: GIANT_P.body.R }, h: GIANT_P.plinth.h + GIANT_P.body.yc + GIANT_P.body.Hh, lamps: E.dark, self: gp.carved ? night : 0, t: env.t || 0, fade: env.fade, tier: env.tier, power: env.power };
-      out.push({ z: giantG.z, draw: c => { floods.under(c, fo); giant.draw(c, { L, g: giantG, T: E.T, dark: E.dark, dpr: env.dpr || 2, carved: !!gp.carved, lit: night, bright: HS && HS.id === 'halloween' && HS.eve ? 1.3 : 1, t: env.t || 0, mo: env.motion !== false, fade: env.fade, tier: env.tier, power: env.power, lightKey }); floods.over(c, { ...fo, sprite: giant.lastSprite() }); } });
+      out.push({ z: giantG.z, draw: c => atCentreScale(c, L.cam, giantG.x, giantG.z, centreK(L), () => { floods.under(c, fo); giant.draw(c, { L, g: giantG, T: E.T, dark: E.dark, dpr: env.dpr || 2, carved: !!gp.carved, lit: night, bright: HS && HS.id === 'halloween' && HS.eve ? 1.3 : 1, t: env.t || 0, mo: env.motion !== false, fade: env.fade, tier: env.tier, power: env.power, lightKey }); floods.over(c, { ...fo, sprite: giant.lastSprite() }); }) });   // (PROM: today's size on the bigger compass)
     } else if (pass === 'near') giant.clearLight();
     return out;
   }
@@ -431,7 +432,7 @@ export function createHolidayProps() {
     if (pass === 'near' && HP.harvest && L.medallion) { const m = L.medallion, night = clamp01((E.dark - 0.25) / 0.5);
       // (9c: floodlit at night; its own Edison bulbs make it a lit display — the floods ease to a fill as they come on)
       const fo = { cam: L.cam, m: { x: m.x, z: m.z, r: (m.r || 1.55) * 1.3 }, h: 2.2, lamps: E.dark, self: night * 0.8, t: env.t || 0, fade: env.fade, tier: env.tier, power: env.power };
-      out.push({ z: m.z, draw: c => { floods.under(c, fo); harvest.draw(c, { L, m, T: E.T, dark: E.dark, dpr: env.dpr || 2, lightKey, col: (x, z) => colAt(E, x, z, 1.0), lit: night, power: env.power, fade: env.fade }); floods.over(c, { ...fo, sprite: harvest.lastSprite() }); } }); }
+      out.push({ z: m.z, draw: c => atCentreScale(c, L.cam, m.x, m.z, centreK(L), () => { floods.under(c, fo); harvest.draw(c, { L, m, T: E.T, dark: E.dark, dpr: env.dpr || 2, lightKey, col: (x, z) => colAt(E, x, z, 1.0), lit: night, power: env.power, fade: env.fade }); floods.over(c, { ...fo, sprite: harvest.lastSprite() }); }) }); }
     return out;
   }
 
@@ -481,7 +482,7 @@ export function createHolidayProps() {
     let o = cache.get(k); if (o) return o;
     const s = L.cam.F / p.z, px = s * dpr, col = colAt(E, p.x, p.z, 1.2), r = rngFrom(hashString(`garl|${p.x.toFixed(2)}|${p.z}`));
     const W = 1.0 * px, Hh = (p.h + 0.3) * px, cv = mk(W, Hh), x = safeCtx(cv), cx = W / 2, foot = Hh - 1;
-    const R = (p.kind === 'tall' ? 0.15 : 0.13) * px, br = 0.072 * px, turns = p.kind === 'tall' ? 4.4 : 3.2, n = Math.round(turns * 11);
+    const R = (p.r || (p.kind === 'tall' ? 0.15 : 0.13)) * px, br = 0.072 * px, turns = p.turns || (p.kind === 'tall' ? 4.4 : 3.2), n = Math.round(turns * 11);
     // the garland wound up the post: a helix of blooms (the ones behind the post smaller + darker, cut by its width), a few leaves
     const pts = [];
     for (let i = 0; i < n; i++) { const u = i / (n - 1), a = u * turns * TAU, y = foot - (p.base + u * (p.h - p.base)) * px; pts.push({ x: cx + Math.sin(a) * R, y: y + Math.cos(a) * R * 0.18, front: Math.cos(a) > 0, d: Math.cos(a) }); }
@@ -550,11 +551,12 @@ export function createHolidayProps() {
     const night = q, col = c => { let v = c; if ((E.T && E.T.gold) > 0.3) v = mix(v, [v[0] * 1.08 + 10, v[1] * 0.95, v[2] * 0.82], 0.4); if (night > 0.01) v = mix(v, [24, 20, 40], 0.78 * night); if (litK) v = mix(v, [Math.min(255, c[0] * 1.15 + 50), Math.min(255, c[1] * 1.05 + 30), Math.min(255, c[2] * 0.9 + 10)], 0.62 * night); return v; };
     return put(k, { cv: paintFlag(ci, pi, col, litK) });
   }
-  function drawPapel(c, env, E, k) {
+  function drawPapel(c, env, E, k, rail = false) {
     if (k <= 0.01 || !runs.length) return;
     const mo = env.motion !== false, t = mo ? env.t || 0 : 0, wind = mo ? (env.wind || 0) : 0, gust = mo ? (env.gust || 0) : 0, tier = env.tier == null ? 2 : env.tier;
     const wn = Math.max(-1.4, Math.min(1.4, wind / 6)), gk = clamp01((Math.abs(gust) - Math.abs(wind)) / 6 + 0.1 * Math.abs(wn));
     runs.forEach((run, ri) => {
+      if (!!run.rail !== rail) return;   // (PROM: the railing's runs on the ground pass, under the traffic; the rest over the people)
       const [ax, ay] = project(L.cam, run.a.x, run.a.y, run.a.z), [bx, by] = project(L.cam, run.b.x, run.b.y, run.b.z);
       const sMid = L.cam.F / ((run.a.z + run.b.z) / 2), sag = run.sag * sMid * (0.92 + 0.08 * Math.sin(t * 0.7 + ri) * (mo ? 1 : 0));
       const at = u => [lerp(ax, bx, u), lerp(ay, by, u) + 4 * sag * u * (1 - u)];
@@ -625,7 +627,7 @@ export function createHolidayProps() {
     if (pass === 'ground') {
       stat.rects = []; stat.bigGlows = 0; stat.big = halloween && HP.bigs ? bigs.length : 0;
       if (dotd && HP.petals > 0.01 && path) { const o = pathSprite(E, env.dpr || 2); c.globalAlpha = fade * HP.petals; c.drawImage(o.cv, o.x0, o.y0, o.w, o.h); c.globalAlpha = 1; drawVotives(c, env, E, HP.petals); }
-      if (dotd) { drawSpots(c, env, E, false, HP.marigolds * fade); drawPosts(c, env, E, false, HP.garlands); }
+      if (dotd) { drawSpots(c, env, E, false, HP.marigolds * fade); drawPosts(c, env, E, false, HP.garlands); drawPapel(c, env, E, HP.papel, true); }
       if (halloween && HP.pumpkins && HP.pumpkins.length) drawPumpkins(c, env, E, HP.pumpkins);
     } else if (pass === 'air') {
       if (dotd) drawPapel(c, env, E, HP.papel);

@@ -45,15 +45,20 @@ test('11a-1 — DAY OF THE DEAD: the petal path runs from the open promenade to 
   }
 });
 
-test('11a-1 — DAY OF THE DEAD: marigolds at the door, the trees + the lamps; a garland on every lamp post; papel picado strung between the lamps', () => {
+test('11a-1 — DAY OF THE DEAD (PROM: re-anchored, no lampposts): marigolds at the door, the trees + the compass; garlands up the two trees + framing the door; papel picado across the promenade (tree to tree) + along the railing', () => {
   for (const k of Object.keys(SIZES)) {
     const { L } = setup(k), sp = marigoldSpots(L), posts = garlandPosts(L), runs = papelRuns(L);
     assert.equal(sp.filter(o => o.kind === 'pot').length, 2, 'two pots flank the door');
     assert.equal(sp.filter(o => o.kind === 'ring').length, L.trees.filter(t => t.grate).length * 2, 'a ring round every tree (two halves)');
-    assert.equal(posts.length, L.lamps.length, 'a garland on every lamp post');
-    for (const p of posts) { assert.ok(p.h > p.base && p.h < 6.2, 'wound up the post, below its head'); assert.equal(p.front, p.z < L.speakeasy.z0); }
-    assert.ok(runs.length >= 2, `${k}: strings across the promenade (${runs.length})`);
-    for (const r of runs) { assert.ok(r.n >= 5 && r.sag > 0.1 && r.sag <= 0.9, 'flags + a sag'); assert.ok(r.a.y > 2.5 && r.b.y > 2.5, 'over the people\'s heads'); }
+    assert.equal(sp.filter(o => o.kind === 'clump').length, 4, 'four clumps at the compass');
+    if (!L.cam.wide) assert.equal(posts.filter(p => p.kind === 'trunk').length, L.trees.length, 'a garland up every tree');
+    assert.equal(posts.filter(p => p.kind === 'door').length, 2, 'a pair framing the side door');
+    for (const p of posts) assert.ok(p.h > p.base && p.h < 3.2, 'wound up a trunk / a pilaster, below the crown');
+    const across = runs.filter(r => !r.rail), rail = runs.filter(r => r.rail);
+    assert.ok(across.length >= 1 && rail.length >= 2, `${k}: a string across the promenade + runs along the railing (${across.length} + ${rail.length})`);
+    for (const r of across) { assert.ok(r.n >= 5 && r.sag > 0.1 && r.sag <= 0.9, 'flags + a sag'); assert.ok(r.a.y > 2.5 && r.b.y > 2.5, 'over the people\'s heads'); }
+    const cw = L.crosswalk, lx = cw.lantern.x;
+    for (const r of rail) { assert.ok(r.a.z > 60 && r.n >= 5, 'along the railing'); assert.ok(Math.max(r.a.x, r.b.x) < Math.min(cw.x0, lx - 1.4) || Math.min(r.a.x, r.b.x) > Math.max(cw.x1, lx + 1.4), 'the lantern + the crossing\'s landing left clear'); }
   }
 });
 
