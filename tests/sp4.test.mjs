@@ -71,7 +71,8 @@ test("the awning's drips scale with the rain: drizzle an occasional drip, rain a
 test('the window people: every moment has a look, the rule holds — the jazz shade is a shadow, the dark rooms + the TV are silhouettes, lit rooms are lit', () => {
   for (const m of MOMENTS) assert.ok(WINDOW_LOOKS[m.id], `${m.id} has a look`);
   for (const [id, look] of Object.entries(WINDOW_LOOKS)) { assert.ok(LOOK_WHY[look], `${id}: ${look} is a known look`); assert.ok(MOMENTS.some(m => m.id === id), `${id} is a moment`); }
-  for (const id of ['dance', 'sax', 'mummy']) assert.equal(WINDOW_LOOKS[id], 'shadow', `${id}: on the jazz shade`);
+  for (const id of ['dance', 'mummy']) assert.equal(WINDOW_LOOKS[id], 'shadow', `${id}: on the jazz shade`);
+  assert.equal(WINDOW_LOOKS.sax, 'lit', '9e — THE SAX REWORK: the musician LIT in the open room (the shade up), no more shadow puppet');
   for (const id of ['witchsil', 'lights-out', 'cat']) assert.equal(WINDOW_LOOKS[id], 'silhouette', `${id}: a dark room / the TV`);
   assert.equal(WINDOW_LOOKS.ghost, 'ghost');
   for (const id of ['toast', 'costume', 'tango', 'mirror', 'wake', 'peek', 'bartender', 'ofrenda']) assert.equal(WINDOW_LOOKS[id], 'lit', `${id}: lit`);

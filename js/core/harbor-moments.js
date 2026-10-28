@@ -41,7 +41,7 @@ export const MOMENTS = Object.freeze([
   // ---- the random draws
   { id: 'dance', label: 'A COUPLE DANCING', rarity: 'common', windows: ['jazz'], hours: [19.5, 2], light: 'night', len: 9, cooldown: 30, party: 2, kind: 'big silhouettes crossing the shade' },
   { id: 'toast', label: 'A TOAST AT THE BAR', rarity: 'common', windows: ['bar'], hours: [19, 2.5], light: 'night', len: 7, cooldown: 24, party: 1.6, kind: 'arms up, glasses glinting, the clink' },
-  { id: 'sax', label: 'THE SAX SOLO', rarity: 'uncommon', windows: ['jazz'], hours: [20, 2], light: 'night', len: 15, cooldown: 200, party: 1.5, kind: 'the sax player’s shadow swaying hard on the blind' },
+  { id: 'sax', label: 'THE SAX SOLO', rarity: 'uncommon', windows: ['jazz'], hours: [20, 2], light: 'night', len: 15, cooldown: 200, party: 1.5, kind: 'the sax player (lit in the honey room, the shade up) steps to the glass, leans back + swings the brass bell up (9e)' },
   { id: 'cat', label: 'THE CAT ON THE SILL', rarity: 'uncommon', windows: ['back', 'edge3', 'edge2'], hours: null, len: 26, cooldown: 240, kind: 'the cat: up onto the sill, settles, tail flicking, down again' },
   // 9a — THE WEATHER ON THE GLASS (the plan's wx gate): a DESK FAN turning on the sill on hot afternoons (the real temperature ≥ HOT_C)
   { id: 'fan', label: 'A FAN ON A HOT DAY', rarity: 'common', windows: ['back'], hours: [11.5, 21], len: 55, cooldown: 300, wx: ['hot'], starter: false, kind: 'a desk fan on the sill, its blades a blur, the curtain stirring' },
@@ -330,7 +330,7 @@ export function starOnly(on) {
  *  silhouette (a dark room / backlit by the TV) · ghost (the holiday's own glow). windows.js draws them so; tests/sp4.test.mjs keeps
  *  every moment in the table. */
 export const WINDOW_LOOKS = Object.freeze({
-  wake: 'lit', 'shop-open': 'lit', bartender: 'lit', 'lights-out': 'silhouette', dance: 'shadow', toast: 'lit', sax: 'shadow', cat: 'silhouette',
+  wake: 'lit', 'shop-open': 'lit', bartender: 'lit', 'lights-out': 'silhouette', dance: 'shadow', toast: 'lit', sax: 'lit', cat: 'silhouette',
   fan: 'silhouette', paper: 'lit', peek: 'lit', tango: 'lit', mirror: 'lit', ghost: 'ghost', mummy: 'shadow', witchsil: 'silhouette', costume: 'lit', ofrenda: 'lit', cash: 'lit', eyes: 'light', table: 'lit', football: 'lit',
 });
 export const LOOK_WHY = Object.freeze({ shadow: 'on the jazz room\'s shade (backlit)', silhouette: 'a dark room, or backlit by the TV', ghost: 'the holiday\'s own glow', lit: 'in a lit room', light: 'light + shadow only — no figure (WIN2)' });

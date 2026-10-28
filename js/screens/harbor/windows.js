@@ -125,11 +125,13 @@ export function paintRoom(x, w, o = {}) {
     // (WIN: the box in honey — its floor + left wall show under the shade's hem)
     paintBox(x, G, B, { wall: [[128, 92, 66], [236, 198, 146]], floor: [[66, 42, 30], [96, 62, 42]], side: [[98, 68, 48], [160, 112, 80]], flat: () => warm('rgb(236,198,146)', 'rgb(128,92,66)') });
     if (B) lampFall(x, G, B, { u: G.cx + 0.2, v: h0 + ch * 0.62, t: 0.85 }, [255, 214, 150], 0.9, { reach: 1.3, corner: 0.5 });
-    const sv = h0 + ch * 0.26;
-    const g = x.createRadialGradient(G.cx, h0 + ch * 0.62, 0, G.cx, h0 + ch * 0.62, ch * 0.75);
-    g.addColorStop(0, 'rgb(255,238,204)'); g.addColorStop(0.55, 'rgb(244,206,150)'); g.addColorStop(1, 'rgb(212,162,108)');
-    x.fillStyle = g; x.fillRect(g0, sv, cw, h1 - sv);
-    R(x, g0, sv, g1, sv + 0.05, 'rgba(110,60,30,0.8)');
+    // (9e — THE SAX REWORK, the owner: "comically cheap" → the shadow puppet dropped: the SHADE UP — a short rolled valance at the head
+    // (its amber cloth, the hem), the honey room open below it: the musician stands LIT in it, live — windows.js#saxPlayer)
+    const vh = h1 - ch * 0.17;
+    const g = x.createLinearGradient(0, vh, 0, h1);
+    g.addColorStop(0, 'rgb(214,160,100)'); g.addColorStop(0.5, 'rgb(244,204,148)'); g.addColorStop(1, 'rgb(176,120,70)');
+    x.fillStyle = g; x.fillRect(g0, vh, cw, h1 - vh);
+    R(x, g0, vh - 0.04, g1, vh, 'rgba(110,60,30,0.85)');
   } else if (w.lit === 'lamp') paintLampRoom(x, G, 1, B);
   else if (w.lit === 'table') {
     // THE BACK ROOM: dark, ONE green-shaded lamp low over a round table (its pool of light), the heads round it
@@ -1119,20 +1121,34 @@ export function createWindowLife() {
     }
     });
   }
-  /** the jazz room's sax player: his shadow on the shade (soft) — swaying gently all night; THE SOLO (sax) leans back hard */
+  /** 9e — THE SAX REWORK (the owner: "comically cheap" — and "as ALWAYS, it has to be readable for the phone"): ONE big LIT musician in
+   *  the honey room (the shade up), real colours modelled by the room's lamp (a dark suit, the white shirt-front + a bow, a fedora), the
+   *  BRASS SAX the one bright accent (gold, its bell catching the lamp); a playing pose that reads by silhouette alone (the horn's angle,
+   *  the lean) and THE SWAY on the city's beat (the dance clock: one sway every two beats, livelier with the song's energy; a slow
+   *  drift with no music). THE SOLO (the sax moment): he steps forward to the glass (bigger, nearer), leans back, the bell up — then
+   *  back. Nothing smaller than reads at ~40 pt: no fingers, no breathing, no band behind. */
+  const SAXMAN = { body: 'rgb(44,40,54)', skin: 'rgb(196,148,112)', hair: 'rgb(36,28,26)', hat: 'rgb(32,28,36)', legs: 'rgb(40,36,48)', prop: 'rgb(226,180,70)', arm: 'rgb(44,40,54)', marks: 'rgb(240,236,226)', m: ['collar', 'bow'] };
   function saxPlayer(E, solo) {
-    const { c, G, t, mo, kl } = E, sv = G.h0 + G.ch * 0.26;
-    const p = solo ? solo.el / solo.len : 0, big = solo ? sm(0, 0.12, p) * (1 - sm(0.86, 1, p)) : 0;
-    const beat = mo ? Math.sin(t * (solo ? 7.4 : 2.1)) : 0;
-    const lean = mo ? -0.06 * Math.sin(t * 1.3) - big * (0.32 + 0.1 * beat) : 0, bob = big * 0.05 * Math.abs(beat);
+    const { c, G, t, mo, kl } = E;
+    const p = solo ? solo.el / solo.len : 0, big = solo ? sm(0, 0.15, p) * (1 - sm(0.85, 1, p)) : 0;
+    const d = last.dance || {}, bf = mo ? (d.bf != null && !d.gap ? d.bf : t * 0.9) : 0, dk = d.dk == null || d.gap ? 0.45 : 0.45 + 0.55 * d.dk;
+    const sway = mo ? Math.sin(bf * Math.PI) * 0.07 * dk : 0, bob = mo ? Math.abs(Math.sin(bf * Math.PI)) * 0.03 * dk : 0;
+    const lean = sway * (1 - 0.5 * big) - big * 0.36;
     c.save(); c.globalAlpha = kl;
-    c.beginPath(); c.rect(G.g0, sv, G.cw, G.h1 - sv); c.clip();
-    const x = G.g0 + G.cw * 0.46, y = sv - 0.08 + bob, s = 1.08;
-    E.deep(0.45, () => {
-    figure(c, { x, y, s, lean, tilt: -0.2 - big * 0.35, face: 1, arms: [[0.55 - big * 0.2, 1.4], [0.75 - big * 0.25, 1.15]], col: SHADOW, hat: 'fedora', rim: null });
-    // the sax: its mouthpiece at the lips, the body down + out, the bell up in the solo
-    const mx = x + Math.sin(-lean) * 0.0 + 0.12 * s, my = y + 0.86 * s;
-    sax(c, mx + lean * -0.5, my, s * 1.35, 0.15 + big * 0.75, 1, SHADOW);
+    E.deep(0.5 - 0.3 * big, () => {
+      // (2nd look pass: standing ON the floor — the legs drawn, never a floating half-figure; the arms in, both hands on the horn; the
+      // mouthpiece at the lips + the horn no longer than waist-to-mouth)
+      // (3rd pass: in PROFILE facing right — the classic sax silhouette, the horn in front of him; a size that keeps the hat inside the pane)
+      const legs = 0.55 * 0.92, x = G.g0 + G.cw * (0.42 - 0.04 * big), y = G.h0 + 0.03 + legs + bob, sc = 0.92;
+      floorShadow(c, x, G.h0 + 0.03, sc, 0.25);
+      const pal = litPal(SAXMAN, RIM_COL.jazz, E.kl);
+      figure(c, { x, y, s: sc, legs, lean, tilt: -0.12 - big * 0.32, face: 1, hat: 'fedora', arms: [[-0.15, 2.3 + 0.2 * big], [0.3, 1.6 + 0.3 * big]], pal, lit: { side: 0, a: 0.55 }, marks: SAXMAN.m, rim: { col: RIM_COL.jazz, a: 0.45, side: 0, w: 0.026 } });
+      // THE SAX in brass: its mouthpiece at the lips, the body down + out to the bell at the hip, swung up in the solo
+      const SX = sc * 1.1, mx = x + 0.12 * sc + Math.sin(lean) * 0.7 * sc, my = y + 0.72 * sc, ang = 0.15 - big * 0.65;   // (the solo: the bell swings UP in front of him)
+      sax(c, mx, my, SX, ang, 1, rgb(mixc([226, 180, 70], [255, 222, 150], 0.25 * kl)));
+      // the bell catching the lamp (the bright accent at phone size: a soft gold glint, brighter in the solo)
+      const bx = 0.45 * SX, by = -0.3 * SX, th = -ang, gx = mx + bx * Math.cos(th) - by * Math.sin(th), gy = my + bx * Math.sin(th) + by * Math.cos(th);
+      c.save(); c.globalCompositeOperation = 'lighter'; glow(c, [255, 214, 120], gx, gy, 0.22 * sc, (0.5 + 0.4 * big) * kl, 0.9); c.restore();
     });
     c.restore(); c.globalAlpha = 1;
   }
