@@ -70,13 +70,15 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 9e | ✅ (Oct 28 — docs/harbor.md#9e: SEND REPORT + the hang watch (the freeze not reproduced, even on WebKit); the frost reads; the snowman's depth; the blade crisp at tier 0; snow lands on the sign; the henchman, the water wagon, Sunday's bells, the morning paper, the joggers, the stage under the dock + the quick fade, the TR-3B on party nights; THE CONSTRUCTION TOWER's cycle (the sun never breaks); the sax lit — the two vehicle models CUT) THE FIXES III + THE CITY LIFE + THE CONSTRUCTION TOWER + THE SAX REWORK | Opus 5.5 high | ~4–5 h |
 | CONN | ✅ (Oct 28 — aa51ae9; CLAUDE.md → Multiplayer mechanics, docs/data-model.md#the-connection-conn-oct-28) THE DATABASE CONNECTION ONLY WHEN NEEDED: the socket PARKED until want() (HOST / JOIN / a resume / an invite check / a room / the admin's panel), offline 30 s after + after 2 min hidden with no room, never in a room; no false SIGNAL LOST; City 2.0's EVERYONE through GET /api/admin?live=1 (edge 15 s, polled ~45 s). OPEN SOCKETS before → after (tests/integration/e2e-conn.mjs): title idle 1 → **0** · City 2.0 title 1 → **0** · invite link (checked) 1 → 1, **0** after 30 s · lobby / game 1 → 1 · hidden tab in a room 1 → 1 · title after QUIT 1 → **0** (after the grace) · hidden title tab 1 → **0** · /board 0 → 0 · /admin 1 → **0** · an admin on City 2.0 1 → 1. Fixed on the way (the cloud's first run, by day): a word cleared BY DAY never left `spelling` (the window lights skip drawing then, so the fade-out's drop never came — lights.js drops it now) + the JUST ME word-towers check pinned to 23:00 like its EVERYONE twin (by day the words never light; both failed only in daylight runs). Known: LOAD WEATHER's race (listed in 9e). The two vehicle models: not in this pass (the owner's call) | Opus 5.5 high | ~1–1.5 h |
 | 9f | ✅ (Oct 28 — 04eb891 · 9d600bc · 269efca; docs/harbor.md#9f: LOAD WEATHER's cause fixed (the lit windows ride the weather's slow blend; the party windows + the roof board decided before the reveal); the tape on the drain (lights 2.67 s → the tape 2.88 s, was 4.71) + no layout read per frame; the paper out; the joggers on their own lane + the panel row; the REAL tower implodes in floor bands; the site at night (bulbs, floods, slow red lights) + its party beam; the tower's CC0 sounds) THE FIXES IV — the 9e review | Opus 5.5 high | ~2–2.5 h |
-| ATM | ← NEXT: a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
+| BNAME | ← NEXT: THE BOARD's PUBLIC NAMES (house nicknames, a 3-match minimum, REPORT) + THE CRANE from a 3D model + the tower's shorter cycle | Opus 5.5 high | ~1.5 h |
+| ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
 | **THE ROADMAP REORDERED** | **(the owner, Oct 26 6:01 pm — DECIDED; "OWNER'S NOTES — OCT 26 (after SP5)")** after the city's five above (11a-2 → 9b → ATM → 10 → 11b): LOBBY 2.0 → BOARD 2.0 → (a SHORT game-lineup TALK) → PROGRESSION 2.0 → TV MODE → the GAME LINEUP CHAT → the games → the release; a Fable review + a cleanup after 11b and again after Progression 2.0. 11c / 12 / C3 / 13 stay on the list, slotted by the owner | — | — |
 | R-A | FABLE REVIEW + CLEANUP (after 11b, before Lobby 2.0) | Fable + Opus 5.5 | ~2 h |
 | 14 | Lobby 2.0 + the public crowd | Opus 5.5 high | 90–120 min |
-| 16 | Board 2.0 | Opus 5.5 high | 60–90 min |
+| 16 | Board 2.0 — RESCOPED (the owner, Oct 28 — "OWNER'S NOTES — OCT 28 (after 9f)"): no weekly XP ladder; YOUR TABLE (friends: the week's best-10 party results + today's dailies), the daily percentiles + finish bands, a certified HALL of 25 | Opus 5.5 high | 60–90 min |
+| DAILY 1 | the first daily puzzle + THE STREAK ENGINE (one daily streak, the neon tube flame; Downloads\grok\Solo\SOLO-DECISIONS.md + Progression\PROGRESSION-DECISIONS.md first) — after Board 2.0, before Progression 2.0 | Opus 5.5 high | ~90 min |
 | L0 | a SHORT GAME-LINEUP TALK (no build) before Progression 2.0 — the streaks + achievements the daily puzzles / solo games will need | chat | ~30 min |
 | 17 | Progression 2.0 | Opus 5.5 high | 90–120 min |
 | R-B | FABLE REVIEW + CLEANUP (after Progression 2.0) | Fable + Opus 5.5 | ~2 h |
@@ -86,6 +88,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 12 | easter eggs, sounds, desktop, switch-over | Opus 5.5 medium | 60–90 min |
 | C3 | final cleanup | Opus 5.5 medium | 30–45 min |
 | 13 | CITY CONTROL (admin) | Opus 5.5 medium | 45–60 min |
+| GO PRIVATE | (moved, the owner Oct 28 — DECIDED) the repo goes PRIVATE right before the public launch (not before Board 2.0); anti-cheat never depends on the code being secret; a self-hosted runner if sooner | — | — |
 | R-ALL | FABLE WHOLE-APP READ-ONLY REVIEW (the very end — the games, lobby + rooms + sync, profiles + progression, every /api, City 1.0 / the Harbor, security before app stores + payments); a report, then a cleanup prompt | Fable | ~60–90 min |
 
 **FASTER RUNS (the owner, Oct 24 — "this takes so long"; the laptop is the bottleneck: low memory, 4× CPU throttling,
@@ -3273,3 +3276,44 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
 - REMIND THE OWNER (Oct 28 9:27 am — he's on the road, no second phone / people around): CONN's real-phone check is still OWED —
   HOST on one phone + JOIN by the hush word on another, play a game, QUIT, HOST again; an EVERYONE preview reaching a second phone
   within ~1 min. Put it at the top of the next summary's review list until he says it's done.
+
+## OWNER'S NOTES — OCT 28 (after 9f)
+
+- THE TOWER's ALTERNATE SOUNDS (Grok via the owner, Oct 28 9:56 am — Freesound CC0, WAV 48 k mono, untouched, in ~/Downloads/city-sfx;
+  Grok ANALYSED them, nobody has listened yet): tower-siren-2.wav = the NEW DEFAULT siren (use 0.5–11.0 s, one distant wail; 0.5–21.0 for
+  two; AVOID 24.3–29.5 + 43–48 s, a fast warble; quiet → ~+10 dB); tower-horn-2.wav = the NEW DEFAULT horn (11.5–17.0 s = three blasts;
+  alt 18.5–20.2 s, three quick toots; ~226 Hz fundamental; tower-horn.wav kept as the phone-safe backup); hammering-2.wav = a real rivet
+  gun (loop 5.20–35.15 s, 100–200 ms crossfade, a +3 dB step ~26 s; HARSH, 75 % at 2–5 kHz → cut 2–5 kHz ~6 dB; hammering.wav stays the
+  under-music bed); crane-2.wav = a period crane lift (one-shot 4.5–70 s or loop 8.5–38.5 s, 1 s crossfade, a ~6 dB swell; crane.wav
+  stays the steady loop, crane-2 layered now + then). Import through scripts/add-city-sfx.py (CUTS + gains), CC0 lines in CREDITS.
+  The owner listens on the implosion preview with sound on before it's final.
+- THE TOWER's CYCLE SHORTER (the owner, Oct 28 10:15 am: "that cycle takes too long — 3 months instead of 4.5"): the RISE becomes ~3
+  months. Claude's proposal (pending his OK): implosion 3rd Sunday of April (unchanged) → rubble 10 days → cleanup to June 1 → RISING
+  June 1 → Sept 1 → topping out Sept 1–8 → finishing (clad, dark) ~4 weeks, the crane down mid-September → the GRAND OPENING the FIRST
+  SATURDAY OF OCTOBER, 7 pm (kept clear of November's Thanksgiving build-up + the holidays). core/harbor-tower.js CYCLE + openingDay.
+  (Also pending: NEON ON EVERY FINISHED FLOOR — Claude's take: it spoils the grand opening's first-light moment + reads as finished;
+  9f's warm work-bulb lines per floor first, then brighter / denser bulbs or ONE neon line on the top beam at topping out if they
+  don't pop.)
+  DECIDED (the owner, 10:16 am): the SHORTER CYCLE as proposed (rise June 1 → Sept 1, topping Sept 1–8, finishing ~4 weeks with the
+  crane down mid-September, the GRAND OPENING the first Saturday of October, 7 pm) — next pass. NO NEON on the construction (the
+  work-bulb lines only).
+- FROM THE GAMES CHAT (Oct 28 10:18 am — settled with Grok, FUTURE plan, no build now; the full plans: Downloads\grok\Progression\
+  PROGRESSION-DECISIONS.md + Downloads\grok\Solo\SOLO-DECISIONS.md — a pass that builds them reads those files first):
+  (1) BOARD 2.0 RESCOPED — no weekly XP ladder; the bar's honor board shows YOUR TABLE (friends: this week's best-10 party results +
+  today's dailies side by side, scores hidden until you've played), today's daily-puzzle percentiles with finish bands (PENTHOUSE /
+  VIP ROOM / LOUNGE / BAR / FLOOR), and a certified HALL of 25. (2) PROGRESSION 2.0 — levels 1–100 over the existing XP (ranks as
+  bands + OWNER at 100); ONE daily streak shown as a NEON TUBE FLAME (a day = a daily puzzle, a solo game or a party match; ends 4 am
+  local; freezes; WIN IT BACK; an outage button in /admin); the streak XP multiplier retired for milestone rewards (the owner's
+  wardrobe / decor / entrances / TINFOIL HAT / FAVOR list). (3) THE ORDER (Claude's correction to the proposal: GO PRIVATE comes
+  BEFORE Board 2.0 — it's leaderboard work): Lobby 2.0 → GO PRIVATE → Board 2.0 (rescoped) → DAILY 1 (the first daily puzzle + the
+  streak engine) → Progression 2.0. (4) A SMALL PRESENT-DAY FIX (BNAME, schedule soon — a privacy fix): board.html shows other players'
+  TYPED names publicly → stable HOUSE NICKNAMES for everyone else (your own row stays your real name), a 3-match minimum before
+  anyone appears, a REPORT NAME button (→ /admin). Its own short pass (~45 min, the ci tag), after 9f.
+
+- GO PRIVATE MOVES TO RIGHT BEFORE THE PUBLIC LAUNCH (the owner, Oct 28 10:20 am — DECIDED; replaces "before Board 2.0 / Progression
+  2.0 / any anti-cheat or leaderboard prompt"): private would burn GitHub's minutes (Pro 3,000 / month ≈ 3–4 passes a day for a few
+  weeks) right through the games work, so the repo stays PUBLIC until just before the real launch. STANDING RULE for every pass from now
+  on: ANTI-CHEAT NEVER DEPENDS ON THE CODE BEING SECRET — the server checks + replays every result itself (/api), the secrets live only in
+  Vercel's env (the service-account key, the pepper), nothing in the repo a cheater could use. Claude reminds him before the launch
+  prompts. To go private sooner: a SELF-HOSTED GitHub runner (no minutes used, even private) — the laptop runs out of memory on the
+  harbor suite, a mini PC could do it (ties to the RAM / mini PC decision).
