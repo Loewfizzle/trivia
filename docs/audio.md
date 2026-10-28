@@ -1201,3 +1201,38 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   - `balloon-flap` — a bed while a balloon is up, louder near the middle (1 → 0.4 at the edges), panned to the nearest balloon;
   - `leaves-rake` — a bed while the raker stands raking, panned to him;
   - `geese-v` — one take a V (`chain: false`), its pan following the V's x (with the older `geese` flyover under it).
+
+
+## 9g — THE UFO's REAL SOUNDS, THE IMPLOSION's ONE CRASH, THE RIVET BURSTS (Oct 28 2026; City 2.0 — docs/harbor.md#9g) — `scripts/add-city-sfx.py` CUTS, `core/city-sounds.js`
+- **From** ~/Downloads/city-sfx (credits.txt "UFO sounds" + "UFO sounds - Ben's extra picks"; the originals untouched), processed per
+  Grok's brief — **MEASURED, NOT LISTENED TO** (by anyone). Before: `ufo-hum` at 0.06 ≈ −56 dB into the bus in a phone's band (its energy
+  under 150 Hz — inaudible on a phone) + one riser.
+- **The importer's new recipe keys** (docstring): `gainpre` dB at the decode (ufo-beam-3's +2.5 dBTP overs lowered first), `speed` (a
+  one-shot faster, the pitch with it), `bend` (r0, r1: the rate glided across the take — the lift RISES), `air` (dB, lo, hi: band noise on
+  the take's own envelope — an airy top), `chorus` (ms, depth, Hz, mix: a slight warble — a beam, not a force field). A file laid inside
+  another take (a `seq` / `mixin` piece) now keeps its own slots + credit in sources.json (footsteps-cobble).
+- **The takes** (mono; the phone band 300 Hz–8 kHz vs the full level; × the slot gain = into the bus, phone band):
+
+  | slot | file (source, cut) | kind | KB | into the bus (phone) |
+  | --- | --- | --- | --- | --- |
+  | `ufo-hum` A (default) | ufo-hum-2.mp3 (the hover engine, loop 5.02 → 40.1 s, a 0.2 s seam, +3 dB @ 1.2 kHz) | loop 35.1 s | 277 | −41 dB |
+  | `ufo-hum` B (`&hum=b`) | ufo-hum-3.mp3 (BlueZone's 1 Hz throb, loop 2.5 → 31.5 s, harmonics made (`sat`), low-passed + a distance hall) | loop 27 s | 227 | −43 dB |
+  | `ufo-hum-up` / `-down` | hum-2's own start-up (0–5.2 s) / shut-down (41–49 s) | once | 41 / 63 | −41 / −44 dB |
+  | `ufo-beam-on` / `-idle` / `-off` | ufo-beam-3 (activation 0–4.2 s · the idle LOOPED 5.5 → 30.5 s · the stop 31.6–36 s), high-passed 140 Hz, harmonics, a 4.6 Hz warble | once / loop 25 s / once | 34 / 208 / 35 | −43 / −45 / −43 dB |
+  | `ufo-lift` | ufo-lift-2 (the 5.95 s riser bent 1.0 → 1.25 ×, an airy layer, a 0.3 s fade-out) | once 5.3 s | 42 | −42 dB |
+  | `ufo-depart` A (default) | ufo-depart.mp3 (the falling flyby 0.8–4.8 s, 12 % faster) | once 3.6 s | 29 | −36 dB |
+  | `ufo-depart` B (`&depart=b`) | ufo-depart-2.mp3 (the fast pass-by 0–3.2 s, high-passed + harmonics) | once 3.2 s | 26 | −41 dB |
+  | `crowd-flee` | crowd-flee.mp3 2.0–14.0 s + footsteps-cobble 15 dB under (a `seq`), low-passed 3.8 kHz | once 12 s | 83 | −42 dB |
+
+  `&depart=layered` plays A + B together (B at 0.75). The whole new set ≈ 1.1 MB (24 kHz decode, 56–64 kbps). Not imported: ufo-beam-2,
+  ufo-lift (the brief's "ignore"). The Oct 24 ufo-hum / ufo-beam takes stay registered (the old riser no longer called).
+- **The tower:** `tower-siren` 0.07 → 0.16 (−37 dB, phone band) and the music ducked under it; `tower-horn` C = **tower-horn-3.mp3**
+  synthesized (`scripts/build-synth-sfx.py#horn`: two horns a fifth apart ~154 + 231 Hz, each a detuned saw + square pair, the air
+  horn's bend up at the start + a sag at the valve, a tanh drive, formants at ~550 + 1300 Hz, an air-noise breath, a 2.2 s room + distance
+  IR; three blasts short-short-long, 7.4 s) — a BACKUP take (weight 0) like B (warning-horn): only `&horn=` plays them;
+  `implosion-rumble` re-cut as ONE crash (the collapse 0–6.3 s + the file's own settling from 15.5 s, 9 dB under, crossfaded) — one
+  onset at 0.5–1 s, smooth to silence by 12.7 s; `rivet-gun` a ONE-SHOT now — rivet-gun-1…4.mp3 (1.8–4.2 s, cut at the recording's own
+  gaps) at 0.075 (+2.9 dB over the hammering bed in the phone band).
+- **The picks:** `core/city-sounds.js#SOUND_PICKS` + `pickTakes(kind, v)` (by the take's source — the registry's order follows the
+  imports); `cityLoop(slot, { take })` (a loop's take; by default the first that isn't a BACKUP); the panel's inputs `horn` / `hum` /
+  `depart` (core/harbor-remote.js: validated server-side too).

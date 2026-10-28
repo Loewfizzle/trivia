@@ -58,6 +58,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   the TOP under the corner buttons (`ui/debug-strip.js`) — WIN2: every strip starts FOLDED on every load (never
   remembered open), the readout's title cycles open → EVERY OTHER STRIP HIDDEN → folded, the open LOAD log capped + scrolling — never
   over the pill, the promenade or the dock; THE PREVIEW PANEL → TOOLS switches them without the link.
+- **A legendary from a LINK waits (9g):** `&force=ufo|tr3b|implosion` in the page's URL starts after the reveal + the first tap (+4 s),
+  like the panel; `&lgnow=1` = the old start at the load (tests / perf scenes that time it); `&lgs=` holds a still as before.
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
   map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js` (see gridlock-preview.html). Iterate screens there in
   seconds; run the E2E once the look is right.

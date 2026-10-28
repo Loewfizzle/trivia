@@ -1485,3 +1485,13 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE BAKE TOOL (`scripts/bake-model.mjs` + recipes; the UFO re-bakes byte-for-byte). THE CRANE from J-Toastie's model (45 slew frames,
   day + night, a seamless mast tile, 180 KB, lazy; `&crane=classic`). THE SHORTER CYCLE (rise June 1 → Sept 1, opening the first
   Saturday of October).
+
+## CITY 2.0 — 9g: THE FIXES V + THE UFO's SOUND (Oct 28 2026) — docs/harbor.md#9g, docs/audio.md#9g
+- A legendary forced from a LINK (`&force=ufo|tr3b|implosion`) waits for the reveal + the first tap, then starts 4 s later (`&lgnow=1` =
+  the old start at the load); opened while a TR-3B drains, the first tap starts the song silent until the lights come back.
+- THE UFO ABDUCTION's real recordings (Grok's brief): the hover (A / B) + its spin-up / down, the beam on / idle / off, the lift, the
+  departure (A / B / LAYERED), the crowd fleeing — the panel's HUM + DEPART picks; nobody has listened yet.
+- THE IMPLOSION: the second crash was inside the rumble file (three events) — re-cut as one; the siren +7 dB over a music dip; HORN A / B / C
+  (C synthesized). THE RIVET GUN: short seeded bursts, not a 40 s loop.
+- THE CRANE: the nearest of 133 one-degree frames (BNAME's blend thickened the lattice through each 3° step — measured, gone).
+- THE JOGGERS: a runner's leg (the heel tucked, the foot landing under the hips). THE DOCK FADE: 10 s first visit, 5 s after.

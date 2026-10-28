@@ -89,6 +89,7 @@ const SCENES = {
   // (9e's speed round: a plain night, a party night with the TR-3B, a snowy night (the flakes landing on the sign), a day with the tower's crane)
   's9e-night': 'when=2026-09-16T21:30&wx=clear&force=no-planes', 's9e-tr3b': 'when=2026-10-16T23:00&wx=clear&force=no-planes,tr3b&lgnow=1', 's9e-snow': 'when=2027-01-14T21:30&wx=snow&snow=fresh&temp=-6&force=no-planes', 's9e-crane': 'when=2026-09-16T14:00&wx=clear&build=rising&force=no-planes',
   // (9f's speed round: the owner's TR-3B link (a Friday party + fresh snow), the site rising at night, the site on a party night (its beam), the implosion mid-fall)
+  's9g-site': 'when=2026-09-16T12:30&wx=clear&build=rising&force=no-planes,joggers&cranet=36',   // (9g: the day crane mid-swing (one frame, no blend) + the joggers' new stride)
   's9f-tr3b': 'when=2027-01-15T21:30&wx=clear&snow=fresh&temp=-6&force=no-planes,tr3b&lgnow=1', 's9f-site': 'when=2026-09-16T22:00&wx=clear&build=rising&force=no-planes', 's9f-sitep': 'when=2026-10-17T23:00&wx=clear&build=rising&force=no-planes', 's9f-imp': 'when=2026-09-16T10:00&wx=clear&build=implosion&builds=6&force=no-planes',
   'nw-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes,no-water', 'nw-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water',
   'nw-neon': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water,neon-party,searchlights,spell&text=2027',

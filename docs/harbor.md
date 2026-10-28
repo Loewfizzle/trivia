@@ -8925,3 +8925,94 @@ mid-September, the opening the first Saturday of October 2027–2033.
 ### Handoff → ATM (the FABLE ATMOSPHERE pass)
 The plan's next row: ATM (Fable). Owed by the owner first: re-publish `database.rules.json` (the `profiles` read rule), and the look of the
 crane by day + at night on his phone (`&crane=classic` to compare).
+
+
+## 9g — THE FIXES V + THE UFO's SOUND (Oct 28 2026; plan.md "OWNER'S NOTES — OCT 28 (the afternoon review + THE PROMENADE, LOCKED)"; behind `?city=2`)
+
+### A LEGENDARY FROM A LINK WAITS FOR THE TAP (Group 0)
+- **Why** (the owner: the TR-3B "worked perfectly" from ☰ → ADMIN, glitched from `&force=tr3b`): a link started it AT THE LOAD — under
+  the bake + the reveal, before the first tap unlocked the music, so the tape stop had no song to slow and the drain landed on the load's
+  heavy work.
+- **Now** (`scene.js#linkGate`): `&force=ufo` / `tr3b` / `implosion` in the PAGE's own URL wait for **THE REVEAL + THE FIRST TAP**
+  (touchend / click / a key — the engine's audio unlock too, but never only it: a browser that can't make an AudioContext would wait
+  forever — WebKit headless did), then start **4 s later** (`LINK_LEAD`) from their beginning — a link behaves like the panel. ufo + tr3b
+  stay OUT of the force set until then (their craft + the TR-3B's dark city pre-baked meanwhile: `legends.prewarm`); the implosion keeps
+  its flag with its clock HELD at the countdown's start (the tower never changes look). `&lgs=` (a held still) and `&builds=` keep their
+  own behaviour; **`&lgnow=1`** = the old start at the load (the tests + perf scenes that time it). A panel state on screen owns the force
+  set (the link's flag waits under it); CLEAR ALL drops a waiting link. `harbor().legend.link` = { held, tap, go, shown }; the load log
+  notes the start.
+- **OPENED MID-DRAIN** (the real case: a visitor arriving while the scheduled TR-3B runs — `when=2026-12-05T22:51:06`): the reveal
+  measured against the same page a minute earlier (4× CPU, DPR 3): worst frame 373 vs 915 ms (Chromium), 403 vs 382 (WebKit headless,
+  software) — no stutter of its own. **The music: SILENT until the lights return** (`sounds.js#legendSounds`, `late`): a first tap after
+  the sag began starts the song ducked to 0 — no tape joining mid-sag (its slice was never decoded; the speed would jump straight to the
+  drained 0.5 ×) — then fades it in at its own speed with the power (BLACK.on0 − 0.3 → + 2 s). The cleanest of the three options: no
+  half-speed song arriving out of nowhere, and the city's return brings the music with it.
+- Tests: e2e-harbor `freeze` (+7: the link waits, starts 4.0 s after the tap from s 0; the implosion's link held; opened mid-drain —
+  joined at 11 s, silent at the tap, the music back with the lights, the reveal no slower). The `tr3b-run` freeze page now taps.
+
+### THE SOUNDS (Group 1 — details + the levels in docs/audio.md#9g)
+- **THE IMPLOSION:** the SIREN +7 dB (slot 0.07 → 0.16) + the music dipped under its wail (`snd.ducked`, depth 0.62); the HORN = the
+  panel's **HORN A / B / C** (`&horn=` — A today's craigsmith destroyer horn, the default; B the old warning horn; C SYNTHESIZED: a deep
+  compressed-air horn — `scripts/build-synth-sfx.py#horn`); **THE SECOND CRASH found:** the rumble take itself held three events — the
+  collapse 0.5–5.5 s, a smaller crash at 6.75 s, a second big crumble rising at 12.5 s (as loud as the first at 15–17 s). Re-cut as the
+  collapse + the file's own late settling crossfaded under its decay: ONE onset, then a smooth fade to silence by 12.7 s.
+- **THE RIVET GUN:** a one-shot of four 1.5–4 s bursts (a few hits, a pause, a few more), fired with seeded gaps (`rivetGap`: mostly
+  20–50 s, one in four a quick second burst) while the hammering plays, +2.9 dB over the hammering bed in the phone band.
+- **THE UFO ABDUCTION, HEARD:** Grok's recordings in new slots, placed on the film (`ufoAt`): the hover's spin-up (0 s) → its loop →
+  the spin-down with the departure; the beam's activation (5.3 s), its held hum while open, its stop (21.6 s); the lift's riser over the
+  last 6 s of the rise (peak ≈ 20.5 s, as he's taken); the departure (24.4 s); the crowd fleeing (5.9 s) — only with people on the
+  promenade (`people.witnessN()`). The panel's UFO row: **HUM A / B** (`&hum=b`: the deep throb, no spin-up / down) + **DEPART A / B /
+  LAYERED** (`&depart=b|layered`). A run joined mid-way plays only what's still ahead.
+- Tests: e2e-harbor `legends` (the film's sounds in order; HUM B + LAYERED), `tower` (the siren once, HORN C × 3, ONE rumble; the rivet a
+  burst, never a loop); unit `city-sounds` + `harbor-sounds` (the slots, the loops' seams, the size cap 17.2 MB).
+
+### THE CRANE's DAY PULSE (Group 2)
+- **Measured first** (a frame-by-frame probe of the crane's box at DPR 3, mid-swing): BNAME drew frame A whole + frame B over it at the
+  blend — the lattice's INK climbed through each 3° step (−0.5 % → +0.8 % against its trend) and snapped back at every frame switch:
+  a sawtooth once a second where the jib moves fastest (~2.8°/s). That's the pulse.
+- **Fixed:** the NEAREST frame drawn whole (`crane-model.js#drawCrane`; the beacons ride the same frame), re-baked at **1° a step**
+  (133 frames; `scripts/bake/crane.mjs` BAKE.step 1) — a 3° step moved the jib's tip 1.7 pt at the slow ends of the swing (a visible
+  tick), 1° moves it ≤ 0.6 pt. After: the sawtooth flat (0.0 % in every bin), the frame-to-frame wobble p95 1.2 % → 0.2 %. Night shares
+  the code path (the same fix). Bytes 180 → 528 KB (lazy: only while the crane is up), ~11.7 MB decoded for both atlases.
+  **`&cranet=<s>`** starts the swing that far along (36–41 = broadside, where it moves fastest).
+- Tests: e2e-harbor `tower` (+1: the ink within 0.6 % of its trend frame to frame, p95, over 11° of the swing).
+
+### THE JOGGERS' STRIDE (Group 2)
+- **Why** (the owner: the knees "bent way out in front of them"): the old jog planted the foot a full half-stride AHEAD of the hips and
+  carried the swing foot forward + high — the IK threw the knee out in front (overstriding).
+- **Now** (`folk.js#runSwing`, `RUN_KEYS`, GAIT.jog `land` + `push`): the swing foot's path comes from a runner's own leg — the thigh's
+  angle + the knee's fold through the swing (the heel folds up behind, toward the seat, the thigh comes through, the shank unfolds only
+  just before landing) — the foot LANDS just ahead of the hips (0.62 × the half stride) and pushes off well behind (the heel rising);
+  the hips, shoulders + arms swing about the stance's middle; a slight forward lean (0.1). In body heights: the knee's furthest reach
+  0.22 → 0.17, the landing foot 0.22 → 0.14 ahead of the hips; the heel 0.2+ up behind. Looked at frame by frame (folk-preview
+  `only=jog&scale=5`) next to the old cycle — two passes (the first passed the swing foot too low: a shuffle).
+- Tests: unit `harbor-people` (+1: the knee < 0.19, the landing < 0.16, the heel tucked > 0.2 behind, clear of the ground passing).
+
+### THE DOCK FADE (Group 2)
+`title.js#IDLE_MS`: **10 s on a device's FIRST visit** (this page load began before it ever went through the door — `nd:entered`, read
+once per load, so the title made again later in that visit keeps 10 s), **5 s on every visit after**. The quick 2 s fade over a street
+scene unchanged. `__district.idleMs()`. Test: e2e-harbor `dock` (+1). TO SEE A FIRST VISIT AGAIN: a private window (or clear the site's
+data).
+
+### Speed
+`title-perf.mjs --ab` (the commit before Group 2 vs after, `s9g-site`: the day crane mid-swing + forced joggers, 4× CPU): t2 same,
+t1 faster (one crane draw instead of two), t0 same.
+
+### Decisions made (unattended)
+1. **HORN B = `warning-horn`** (the slot's existing BACKUP take — "the old backup" the plan means), not `tower-horn.wav` (Grok's first-set
+   narrowboat horn the owner never picked, SKIP'd). A/B/C via `&horn=` like the other picks; A stays the default.
+2. **Opened mid-drain → silent until the lights return** (not the song at the drained speed): no decoded slice exists at that moment, and
+   a half-speed song appearing mid-blackout reads as a bug; the music arriving WITH the power reads as the event.
+3. **The link gate counts a real tap, not only the audio unlock** (WebKit without an AudioContext never "unlocks").
+4. **The UFO set in the house format** (mono, 24 kHz decode, 64 kbps ≈ the brief's 96–128 kbps stereo; the whole new set ≈ 1.1 MB, the
+   brief's ~2 MB budget). The old `ufo-hum` / `ufo-beam` takes stay registered (the old riser's slot no longer called).
+5. **HUM B's loop 3 → 30 s** (Grok's 3–33 ran into the file's fade-out: a +5.5 dB step at the seam; now 0.0 dB).
+6. **The crowd plays only with people to flee** (the witnesses' count) — an empty promenade at 2 am stays quiet.
+7. **The crane at 1°** (not 1.5°): the owner's range allowed either; 1° keeps the slow-end tick under ~2 px on an iPhone.
+
+### Known issues
+- **NOBODY HAS LISTENED** to any new sound — not Grok, not Claude (measured only: envelopes, bands, onsets, the phone band 300 Hz–8 kHz).
+  The owner's ears decide HORN A / B / C, HUM A / B, DEPART A / B / LAYERED, and whether the crowd has words or close screams.
+- WebKit headless has no audio here, so the mid-drain MUSIC check runs on Chromium only (WebKit checked the gate + the reveal).
+- e2e-harbor `panelrows`: "A WITCH AT HER CAULDRON" fired nothing once when run together with freeze + legends + panel on the laptop
+  (24 of 25 rows); alone it passes (26/26). Load-dependent, in code 9g doesn't touch.
