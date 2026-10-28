@@ -67,7 +67,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 9c | ✅ (Oct 27 — docs/harbor.md#9c: the sign's snow glows + goes dark in the blackout; the forced plow in view at once; trodden lanes, big banks, the shovel stroke, the snowman's sticks, City 1.0's frozen pane; THE CRISP LAYER; the centrepiece floods; the boss's cream blind; the blind cycle — no window scene pops in; the UFO above the wheel) THE FIXES — winter made to read, the crisp layer, the centrepiece floodlights, the sign's snow in the blackout, the boss's cream blind, the window-scene rule, the UFO higher + smooth | Opus 5.5 high | ~3 h |
 | HOT1 | ✅ (Oct 27 — the night freeze: the back window's peek threw every frame and the loop stopped; fixed, failed frames reported to /admin, e2e-harbor `freeze`) | Opus 5.5 high | ~30 min |
 | 9d | ✅ (Oct 27 — docs/harbor.md#9d: the held TR-3B preview's music fixed + stalls report to /admin (the freeze not reproduced on Chrome); &temp= reaches the snowman; THE DOORS never snap (the leaf is the baked door, a door closer) + REAL door light (a lamp's mask × the brick); the giant lit on its normals; the sign's snow white; the frost pane only; the beacons' photocell at sunset; ☰ → ADMIN + the NOW bar) THE FIXES II | Opus 5.5 high | ~3 h |
-| 9e | ← NEXT: THE CONSTRUCTION TOWER (the yearly cycle + the implosion) + THE CITY LIFE (the dead times filled, the street under the dock as a stage + the quick fade) + THE SAX REWORK + two vehicle models (the taxi + the police car) to compare | Opus 5.5 high | ~3 h |
+| 9e | ← NEXT: THE FIXES III (the TR-3B freeze + SEND REPORT, the frost link, the snowman's depth, the blade at every tier, snow landing on the sign) + THE CITY LIFE + THE CONSTRUCTION TOWER + THE SAX REWORK + two vehicle models | Opus 5.5 high | ~4–5 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
@@ -3097,3 +3097,114 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   the surprise flyby, the missing man — is drawn from Grok's f22_raptor_free.glb (gear UP, stencil text removed), baked like the UFO,
   replacing jets.js's hand-drawn Raptor; the Mach diamonds, the afterburner + the heat haze stay code on top. Slot: with the Blackbird
   in 11c (one bake of both jets), or earlier if a pass touches the jets first.
+
+## OWNER'S NOTES — OCT 27–28 (after 9d)
+- WELCOME MOMENTS — PERSONAL SIGHTINGS TIMED TO WHEN PEOPLE ARE LOOKING (the owner, Oct 27 10:31 pm — the idea, to discuss): the Blackbird
+  (and other one-offs) appear ~5 s after a player lands on the title, ~5 s after they're back in their lobby from a game, or ~5 s after
+  joining a lobby — rarely, but when they ARE looking; "or even better: the THIRD time they log in, 10 s later, the Blackbird screams
+  across — like a reward … small one-offs as rewards for logging in, progressively cooler the more times they log in every day"; AND
+  keep GLOBAL ones too (the global Blackbird super rare). Claude's take (pending): a strong idea — show moments when attention is there.
+  Cautions: (1) it pulls against "you got to be lucky to see it" (the quick-tap sighting) if the Blackbird is GUARANTEED on the 3rd
+  visit → keep the Blackbird a RARE ROLL in the ladder, not a sure thing; (2) "log in" = opening the site (no accounts) — count visits
+  per device per day; (3) "more visits a day = cooler rewards" can feel like slot-machine bait → a gentle ladder that caps (e.g. visit
+  2 / 3 / 5 of the day) and resets daily; (4) City Sightings (Progression 2.0, server-verified) must not become farmable by reloading →
+  personal moments may not count, or count once a day. In a LOBBY the moment is SHARED by the room (the host's seed) so friends see it
+  together. SLOT: the trigger system + the Blackbird in 11c; the escalating daily ladder + what counts as a sighting in PROGRESSION 2.0.
+- THE ARRIVAL LADDER — A DAILY-STREAK "WELCOME" (the owner, Oct 27 10:36 pm — FUTURE, park for PROGRESSION 2.0; it supersedes the
+  per-visit ladder above): every arrival already gets the neon race + the music (the attention-getter). On top, by CONSECUTIVE DAYS:
+  day 2 = a small distant sound a couple of seconds after the first tap (a boat whistle / a far train whistle — never the hourly
+  chime, that stays the hourly chime), day 3 = the sun flashes / a glint, day 4 = a lightning strike (Claude: weather-consistent — on a
+  clear day a different "basic" one, e.g. a shooting star, a searchlight sweep, the lighthouse flash), … "something different happens
+  every time … the randomness is the hook", built from the many moments already in the city; the BIG ones (the sea monster, the
+  periscope, the Blackbird) only for long streaks (Claude: e.g. 7 / 30 / 100 / 365 days), never everyday. Claude's notes: use the
+  profile's existing STREAK (docs/profiles.md) where a profile exists, else a per-device count; never explained (discovered); one per
+  arrival, ~2–5 s after the first tap when they're looking; a missed day steps back gently, not to zero; the legendaries' rarity +
+  City Sightings stay intact (streak moments don't count as sightings, or once a day). Part of the WELCOME MOMENTS system above.
+- DESKTOP = THE SAME CITY, ONE BETTER SHOT — NO DESKTOP-ONLY PIECES (the owner, Oct 27 11:18 pm — DECIDED: "I don't want to make
+  desktop-only items … I'm getting burnt out already. I can't make two versions of this intricate thing"). DROPPED: the elevated train,
+  the far-quay people, the theatre crowd, any new building forms for the panorama. KEPT (the desktop pass, its own ~1.5–2 h pass, not
+  in Part 12): a re-composed CAMERA for wide screens using only what the phone city has — lower + closer so the skyline is big, more
+  water, the promenade a shallow foreground band, the speakeasy a proud corner, the sign bigger; the extra width filled by the
+  existing towers re-shuffled (no visible repeats) + the procedural sky + water; a billboard slot kept for the four billboard games;
+  everything checked at 1440×900 + 1920×1080. TV mode reuses this camera. The owner's desktop questions still come first.
+  CLARIFIED (11:20 pm): a one-time desktop pass can take the time it needs (~3–4 h is fine) to be really good; what he refuses is the
+  ONGOING double work. THE RULE FROM THEN ON (into CLAUDE.md with the desktop pass): every feature, holiday + event is built + judged
+  for the PHONE only; desktop gets it automatically through the shared city + the desktop camera — never a desktop-only piece or a
+  second version; Claude Code checks desktop itself in every pass (shots at 1440×900 / 1920×1080 as part of the automated review)
+  and fixes anything that breaks there — the owner tests on his phone only, never has to check desktop.
+- EVERY VISITOR HOLDS A DATABASE CONNECTION (raised by the games chat, Oct 27 11:30 pm; Claude verified in the code, read-only): YES —
+  js/app.js boots Firebase for EVERY visitor once the title has painted (initFirebase → getDatabase + a `.info/connected` listener →
+  an open RTDB socket), on City 1.0 AND 2.0, with or without a room; City 2.0 also listens to city2/live for everyone (remote.js).
+  Firebase SPARK allows 100 SIMULTANEOUS connections → ~100 people sitting on the title would fill it and the 101st couldn't host or
+  join. Not a problem today (almost no traffic), a hard ceiling at launch. FIX (a small pass BEFORE LOBBY 2.0 / any public launch):
+  open the database socket only when it's needed (HOST / JOIN / resuming a room / THE BOARD's live bits) — anonymous AUTH can still
+  start early (it isn't a database connection); goOffline() after leaving a room + when the tab is hidden a while; city2/live read
+  through a cached /api poll (e.g. once a minute, edge-cached) or only for admins; the profile's live watch on demand. Check the
+  Firebase console's connection graph before + after. (The alternative: Firebase BLAZE — 200,000 connections, pay-as-you-go, ~$0 at
+  this size — needs a card on file: the owner's call.) Lobby 2.0's public crowd already plans a once-a-minute server summary — the same
+  pattern.
+- THE MOTHMAN MODEL (Grok via the owner, Oct 27 11:46 pm — for 11c's MOTHMAN on the needle): "MOTHMAN REMAKE 2.0" (Sketchfab, CC BY 4.0
+  — CREDIT REQUIRED: the line in credits.txt → the CREDITS sheet, js/ui/credits.js; NOT audio/city/CREDITS.md, that's for sounds). In
+  C:\Users\benja\Downloads\Grok\models\mothman\: mothman_remake_2.0.glb (2.9 MB, 2K textures, two meshes: base_body + wings_decals,
+  two PNGs, NO rig / animation, STANDING with the wings fully spread, wingspan ~5.5 units) + mothman-remake-20.zip (24 MB, the artist's
+  originals — keep OUT of the repo) + credits.txt. The owner's vision (as decided Oct 25–26): giant, crouched / perched on the NEEDLE's
+  top, its head about the height of the SPEAKEASY letters, ALL BLACK, two GLOWING RED EYES, its body REFLECTING the neon round it (the
+  rim light following the needle's colour), 2:00–5:30 am about twice a month. WATCH: (1) deliberately low-poly (~13.7k faces,
+  old-PlayStation style) — chosen for the SILHOUETTE in solid black at 60–250 px; edges may facet up close (fine at phone size);
+  (2) NOT RIGGED + standing → a true crouch needs a rig (Blender) — Claude's recommendation: keep him STANDING on the needle's tip,
+  wings spread (the iconic Mothman pose) or the WINGS mesh rotated as one rigid piece to half-fold them (it's a separate mesh); only
+  rig for a crouch if the standing pose doesn't read; (3) the red eyes are only in the texture → add small EMISSIVE eye pieces (or a
+  mask) for the glow; (4) a GLOSSY BLACK material so he catches the neon; (5) the baked sprites only ship.
+### OWNER'S NOTES — Oct 28 (12:20 am): THE PROMENADE WITHOUT LAMPPOSTS (PENDING — talk it through with the owner BEFORE building; not in 9e unless he says so)
+- The owner liked the mockup (plan/promenade-lights-mock.png: top = now, bottom = the idea): "looks better, frees up a lot of room".
+- NO LAMPPOSTS ON THE PROMENADE: both curb lamps go (all or none — one left alone would look forgotten + light one side) AND the
+  double-globe lamps along the back railing (their poles vanish into the dark water: they read as floating lights + clutter the view).
+- THE IMPLIED LAMPS: a row of street lamps on OUR side of the road, just below the screen, behind the viewer — the warm pools on the
+  promenade + the road under the dock come from there (brightest at the curb, fading toward the railing; the back falls off naturally,
+  the skyline + its reflection carry it). The tell: SHADOWS CLIMB UP THE SCREEN, away from the viewer (people, the hydrant, the bench,
+  the trunks); the trees lit from the front / below.
+- THE DOOR LANTERNS — REJECTED by the owner ("I don't like those lanterns by the door"): the door's own light stays as 9d's real-light
+  lamp over the door; any other door light is an open question for the talk-through.
+- THE DOORMAN (agreed): his back flat to the brick on the RIGHT of the door (under the blade, more wall, visible), a foot up on the wall,
+  arms crossed, his head + hat turning to follow passers-by; pushes off the wall + nods when a guest comes and the door opens; leans back.
+- HOLIDAY SPOTS move: the RAILING itself becomes the main spot (garlands, papel picado, bunting along its run), plus the tree, the bench,
+  the hydrant, the speakeasy wall; the papel picado strings re-anchor from the lamps to the railing / the wall / the tree; everything in
+  core/harbor-spots.js + the lamps' life (core/harbor-lamps.js) + the wet-ground streaks that read the lamps is retargeted.
+- THE CHECK: side by side against today's look on a plain night (https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&when=2026-09-15T23:00)
+  + a holiday + rain before anything replaces the lamps — the risk is a darker / flatter front.
+- THE CROSSWALK AT THE BACK (the owner, 12:25 am, with the railing lamps gone): it must READ at night — today it's a vague dark band.
+  Implied lamps just past the screen's left + right edges along the back road (their light spills across the asphalt, brightest at
+  the crossing in the middle); the crossing's painted stripes bold + pale enough to read unzoomed (a ladder of wide stripes); the
+  signals tint the asphalt red / green under them, changing with the light; the WAIT / WALK sign glows on the steps; passing cars
+  sweep their headlights across it.
+
+### OWNER'S NOTES — Oct 28 (12:30 am): FOR 9e
+- THE BLADE STAYS SHARP AT EVERY TIER (the owner's phone, Oct 28 12:06 am, Day of the Dead night at 20 % battery: the blade looked
+  fuzzy). WHY (read-only): crisp.js#begin turns the 9c crisp layer OFF at tier 0, and the frame-rate judge steps down on a busy night →
+  the blade falls back to the 2× canvas. The layer costs ~0.1 MB and redraws only when its key changes — keep it on at every tier
+  (only the canvas-DPR check stays). If it is still soft at tier 2, the gold edge round the white core is the cause → the flatter
+  lettering (already noted).
+- 9d's known issue: the panel/RECENT cloud check (the test now scrolls RECENT into view) is confirmed in 9e's cloud run.
+- SNOW LANDS ON THE SIGN (the owner, Oct 28 12:38 am: "the snowflakes have to land on it and stop falling … I don't think any of them
+  land on it. Small detail, but it matters"): flakes at the sign's depth that meet a tube's TOP edge STOP there, sit a moment, then
+  soften into the cap (the cap visibly builds from what lands during a snowfall); flakes in front of the sign (nearer) keep falling
+  past it (never a flat wall); on a LIT tube a landed flake melts faster into a bead that runs down + joins glasswx.js's drips. Judged
+  unzoomed: a flake stopping is a visible dot against the falling ones. Check: https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&when=2027-01-14T21:30&snow=fresh&wx=snow&temp=-6
+- 9d PHONE REVIEW (the owner, Oct 28 12:36–12:44 am): ✔ THE DOOR LIGHT "better", ✔ THE DOOR CLOSING "better", ✔ ADMIN "in the right
+  spot", ✔ THE BEACONS before sunset "perfect". STILL BROKEN — 9e GROUP 0, FIRST:
+  (1) THE TR-3B FREEZE on the FULL run (https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b):
+  "the craft is just stuck. The music still plays, but everything else is frozen" (his 12:40 screenshot: the craft big over the
+  skyline at its dip, the city dark in the blackout, the people standing). The music playing proves nothing (iOS plays audio off the
+  page's main thread). On the HELD link (&lgs=15) at 12:35 his readout showed t2 · 60 fps · 2.9 % slow — the loop ran there. 9d could
+  not reproduce it on Chrome, and Safari's engine wouldn't install. → (a) A SEND REPORT button in the &debug=1 strip: ONE tap posts a
+  snapshot to /api/log → /admin (the frame stats + the tier history, the legend run's state — kind, its second s, the phase, run.at vs
+  the city clock, held / forced — the load log, the last ~20 errors, the user agent, memory where the phone exposes it), so the owner's
+  iPhone can say what's wrong; (b) suspects to check in the code: a layer that throws every frame AFTER the readout counts it (the
+  canvas left stale while rAF runs), the blackout's dark-city path reusing a cached frame forever, the legend's clock stalling under
+  &when= (run.at vs the preview clock), the stall report itself; (c) try Playwright's WebKit once more (it is the closest to iOS
+  Safari); time-box 2–3 real attempts, then ship the report button + the evidence.
+  (2) THE FROST LINK SHOWS NO FROST AT ALL (https://neonspeakeasy.com/?city=2&tz=America/Detroit&at=42.96,-85.67&when=2027-01-20T22:00&snow=older&temp=-14):
+  find why (the trigger's conditions vs the link, or the pane broken by 9d's "pane only" change) and fix whichever it is.
+  (3) PEOPLE WALKING BEHIND THE SNOWMAN ARE DRAWN IN FRONT OF HIM ("they snapped in front of the snowman"): the centrepiece rig's
+  pieces must sort with the walkers by depth (their feet) — a walker behind passes BEHIND; check every centrepiece piece (the giant
+  pumpkin, the harvest display, the tree stand) + the snowman's builders the same.
