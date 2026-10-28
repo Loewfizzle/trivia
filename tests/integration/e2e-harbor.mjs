@@ -3564,7 +3564,9 @@ G('snow', async () => {
 // link waits for the peek to play in the BACK window (its 2nd loop) — the scene that froze.
 G('freeze', async () => {
   const LINKS = [
-    { id: 'tr3b-snow', qs: `when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b&lgs=15${GR}` },
+    { id: 'tr3b-snow', qs: `when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b&lgs=15${GR}`, held: true },
+    // (9d: the same Friday party night + fresh snow + the frost with the TR-3B's WHOLE run — the blackout, the jets, the power's return)
+    { id: 'tr3b-run', qs: `when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b${GR}` },
     { id: 'peek', qs: `when=2026-10-27T21:00&force=window&moment=peek${GR}`, until: "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'peek' && e.win === 'back')", what: 'the peek in the back window' },
     { id: 'night', qs: `when=2026-10-27T21:00${GR}` },
     { id: 'night-late', qs: `when=2026-10-21T23:30${GR}` },
@@ -3591,6 +3593,13 @@ G('freeze', async () => {
     ok(still === 0 && z.drawn - a.drawn > 100, `NEVER FREEZE (${L.id}): frames keep painting (${z.drawn - a.drawn} drawn in 20 s, ${still} stalled 2-s windows)`);
     ok(moving >= 8, `NEVER FREEZE (${L.id}): the picture keeps moving (${moving}/10 two-second windows changed)`);
     ok(z.canvases <= s[3].canvases + 2 && (!h0 || h1 <= h0 * 1.5 + 25), `NEVER FREEZE (${L.id}): no climb (from 6 s in: the power-on adds its overlays first) — canvases ${s[3].canvases} → ${z.canvases}, JS heap ${h0} → ${h1} MB`);
+    if (L.held) {
+      // 9d: a HELD preview (&lgs=) is a still — the song never stuck at half speed, no crackle repeating forever; the &temp= override
+      // reaches the snowman (the owner's log read "slumping · 12 °C" on this −6 °C link)
+      const q = await ev(P.page, `(() => { const h = window.__district.harbor(); return { snd: h.sounds.legend, sm: h.snowman && h.snowman.why }; })()`);
+      ok(q.snd && q.snd.rate === 1 && q.snd.crackles === 0, `NEVER FREEZE (${L.id}): the held preview never bends the music or repeats the crackle (rate ${q.snd && q.snd.rate}, crackles ${q.snd && q.snd.crackles})`);
+      ok(!q.sm || !/\b(1[0-9]|[5-9]) °C/.test(q.sm), `&temp= reaches the snowman (${q.sm || 'none standing'})`);
+    }
     await P.ctx.close();
   }));
 });

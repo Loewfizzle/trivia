@@ -929,7 +929,9 @@ export function createLegends({ clock, qp } = {}) {
     // x (its middle now, a fraction of W) } from a few seconds before they come; the sounds start the take so its peak lands there)
     listen: () => {
       if (!run || !st) return null;
-      const o = { id: run.at, kind: run.kind, s: sNow, st, dir: run.dir, x: run.kind === 'ufo' ? (sR ? saucerAt().x / W : 0.6) : st.x };
+      // (9d: `held` — an &lgs= preview frozen at one second: the sounds skip the tape stop + the repeating one-shots, which would
+      // otherwise warble the song at half speed and crackle forever — the owner's iPhone: "very glitching")
+      const o = { id: run.at, kind: run.kind, s: sNow, st, dir: run.dir, x: run.kind === 'ufo' ? (sR ? saucerAt().x / W : 0.6) : st.x, held: !!(run.forced && hold != null && isFinite(hold)) };
       if (run.kind === 'tr3b' && sNow > CHASE.t0 - 6 && sNow < CHASE.t0 + CHASE.dur * CHASE.uOff) {
         const pk = chasePeakS(chaseLen() / W), js = chaseJets((sNow - CHASE.t0) / CHASE.dur), mx = js.reduce((a, j) => a + j.x, 0) / js.length;
         o.jets = { peakIn: pk - sNow, x: mx / W };

@@ -311,7 +311,7 @@ export function createCitySounds() {
       if (!lgRun.down && lg.s > 2.6 && lg.s < 8) { lgRun.down = true; citySound('tr3b-power-down', { pan, gain: 0.55, jitter: 0 }); }
       // (8b1: THE POWER COMING BACK — a tube hum swelling (audible ~3 s into its take) as the lights stutter back from BLACK.on0)
       if (!lgRun.restore && lg.s > BLACK.on0 - 2.8 && lg.s < BLACK.on0 + 0.8) { lgRun.restore = true; citySound('power-restore', { pan: 0, jitter: 0 }); }
-      if (st.music.crackle > 0.3 && t > lgRun.crack) { if (lgRun.crack) citySound('tr3b-crackle', { gain: rnd(0.55, 1) * st.music.crackle, pan: clamp(pan + rnd(-0.5, 0.5), -1, 1) }); lgRun.crack = t + rnd(1600, 4200); }
+      if (!lg.held && st.music.crackle > 0.3 && t > lgRun.crack) { if (lgRun.crack) lgRun.crackN = (lgRun.crackN || 0) + 1, citySound('tr3b-crackle', { gain: rnd(0.55, 1) * st.music.crackle, pan: clamp(pan + rnd(-0.5, 0.5), -1, 1) }); lgRun.crack = t + rnd(1600, 4200); }
       // (THE CHASE's roar, IN SYNC — POLISH 4: the take fetched as the TR-3B arrives, started so its peak lands as the formation's
       // middle crosses the screen's centre (lg.jets.peakIn), panned with them)
       if (!lgRun.fetched) { lgRun.fetched = true; cityPrefetch('jet-flyby', 0); }
@@ -320,7 +320,8 @@ export function createCitySounds() {
     // the music: the dip + the muffle (+ the tape stop for the TR-3B) — eased, a few steps a second
     lgDuck = st.music.duck;
     if (Math.abs(st.music.hz - lgHz) > lgHz * 0.06) { lgHz = st.music.hz; filterMusic(lgHz, 0.6); }
-    const r = st.music.rate == null ? 1 : st.music.rate;
+    // (9d: a HELD preview (&lgs=) is a still — the song plays at its own speed under the duck + the muffle, never a tape stuck mid-sag)
+    const r = st.music.rate == null || lg.held ? 1 : st.music.rate;
     // (the base rate's ramps, a few a second while it moves; the warble is the tape's own oscillators — their depths ride along)
     if (Math.abs(r - lgRate) > 0.02 || (r === 1 && lgRate !== 1) || (r < 1 && t - lgBendAt > 2000 && (st.music.warble || 0) > 0.05 && lgBendAt > 0)) { lgRate = r; lgBendAt = t; bendMusic(r, r < 1 ? 1.2 : 1.5, { wow: st.music.wow || 0, flutter: st.music.flutter || 0 }); }
     // (a room-clocked song makes up the time the tape lost — asked while the music is quiet under the jets; the title's mood music
@@ -441,6 +442,7 @@ export function createCitySounds() {
     debug: () => ({ mix, beds: [...beds.entries()].map(([slot, b]) => ({ slot, zero: !!b.zeroAt, ...(b.h.debug ? b.h.debug() : {}) })),
       runs: [...runs.entries()].map(([slot, r]) => ({ slot, gain: +r.g.toFixed(3), pan: +r.p.toFixed(2), takes: r.hs.map(h => h.take), started: r.n })),
       pending: pending.map(c => ({ slot: c.slot, in: +((c.at - performance.now()) / 1000).toFixed(1), mark: c.mark })), duck: duckNow, people: { ...people },
+      legend: { rate: lgRate, hz: Math.round(lgHz), duck: +lgDuck.toFixed(2), crackles: lgRun ? lgRun.crackN || 0 : 0 },
       bus: { arrive: !!bus.arrive, idle: !!bus.idle, depart: !!bus.depart, pan: bus.pan }, barber: barberLast, next: Object.fromEntries(Object.entries(next).map(([k, v]) => [k, v ? Math.round((v - performance.now()) / 1000) : null])), player: citySoundsDebug() }),
     destroy() {
       dead = true; for (const b of beds.values()) b.h.stop(1.2); beds.clear(); for (const r of runs.values()) for (const h of r.hs) h.stop(1.2); runs.clear();

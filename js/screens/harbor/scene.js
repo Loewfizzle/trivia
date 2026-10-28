@@ -547,7 +547,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return h;
   };
   // POLISH 5 — A HOT DAY (the hydrant's spray): the real temperature now ≥ HOT_C (the live weather; &temp=<°C> previews one)
-  const hotDay = () => { const q = qp.get('temp'); const tc = q != null && q !== '' && Number.isFinite(+q) ? +q : LK.temp; return tc != null && tc >= HOT_C; };
+  // (9d: ONE reading of the temperature — &temp= (a preview's forced °C) over the live / climate one; the snowman ignored it before)
+  const tempNow = () => { const q = qp.get('temp'); return q != null && q !== '' && Number.isFinite(+q) ? +q : LK.temp; };
+  const hotDay = () => { const tc = tempNow(); return tc != null && tc >= HOT_C; };
   // the traces outside a frame (the billboard's game at a layout): the crew's pure plan on the base map
   let workCache = new Map(), workCacheL = null;
   function workTraceNow() {
@@ -752,7 +754,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return { pack: snowPrevC.pack, depth: null, src: 'a preview: the climate ground' };
   }
   function snowTick() {
-    const sp = snowPackNow(), tq = qp.get('temp'), temp = tq != null && tq !== '' && Number.isFinite(+tq) ? +tq : LK.temp;
+    const sp = snowPackNow(), temp = tempNow();
     SN = snowState(sp.pack, { depth: sp.depth, falling: WXS ? WXS.snow || 0 : (LK.snow || 0), temp: temp == null ? -2 : temp });
     snowSrc = sp.src;
   }
@@ -834,10 +836,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     let days;
     if (w && w.days && w.src !== 'climate' && !clock.wx && !(clock.preview && !clock.keepLive)) days = w.days.filter(r => r[0] + 864e5 <= Date.now()).map(r => { const d = localParts(r[0] + 6 * 3600e3, clock.tz); return { y: d.y, m: d.m, d: d.d, tmax: r[1] ?? 0, tmin: r[2] ?? -5, snow: r[3] || 0, rain: r[4] || 0 }; });
     else days = climateDays(nearestStation(LK.lat, LK.lon), lc.y, lc.m, lc.d, 45);
-    return snowmanPlan(days, { y: lc.y, m: lc.m, d: lc.d, h: lc.h + lc.mi / 60, tmax: LK.temp != null ? LK.temp : -2 });
+    return snowmanPlan(days, { y: lc.y, m: lc.m, d: lc.d, h: lc.h + lc.mi / 60, tmax: tempNow() != null ? tempNow() : -2 });
   }
   function snowmanTick() {
-    const key = `${qp.get('snowman') || ''}|${clock.force.has('no-snow') ? 1 : 0}|${LK.local ? `${LK.local.y}-${LK.local.m}-${LK.local.d}` : ''}`;
+    const key = `${qp.get('snowman') || ''}|${clock.force.has('no-snow') ? 1 : 0}${qp.get('temp') || ''}|${LK.local ? `${LK.local.y}-${LK.local.m}-${LK.local.d}` : ''}`;
     if (!smRelatch && key === smKey) return;
     // (the day turning over while the city is on screen waits for the next return; a preview link / the panel applies at once)
     if (!smRelatch && smKey && key.split('|').slice(0, 2).join('|') === smKey.split('|').slice(0, 2).join('|')) return;
@@ -1039,7 +1041,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // read it through peopleFrame's legend; the street under the dock (roadLight) + the raid read it here
   const trafficHoldNow = () => { const h = trafficHold(legendForPeople()); return h ? { t0: h[0], t1: h[1], on: inHold(h, clock.now() / 1000) } : null; };
   const giantUp = () => !!(hprops && hprops.giantOn && !clock.force.has('no-holiday-props') && hprops.giantOn(HS, HP));
-  const peopleFrame = () => ({ snowWork: snowWorkNow(), ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, snow: LK.snow || 0, temp: (() => { const tq = qp.get('temp'); return tq != null && tq !== '' && Number.isFinite(+tq) ? +tq : LK.temp != null ? LK.temp : SN.stage !== 'none' ? -2 : null; })(), wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active() || giantUp(), ring: !centre.active() && giantUp() /* (11a-2: the dance RINGS the giant jack-o'-lantern) */, season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(), holiday: HS, hpieces: HP, local: LK.local, forceHoliday: clock.force, forceAt: id => (clock.force.has(id) ? forceAtOf(id) * 1000 : null) /* (the clock ms the flag came on) */,
+  const peopleFrame = () => ({ snowWork: snowWorkNow(), ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, snow: LK.snow || 0, temp: (() => { const tc = tempNow(); return tc != null ? tc : SN.stage !== 'none' ? -2 : null; })(), wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active() || giantUp(), ring: !centre.active() && giantUp() /* (11a-2: the dance RINGS the giant jack-o'-lantern) */, season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(), holiday: HS, hpieces: HP, local: LK.local, forceHoliday: clock.force, forceAt: id => (clock.force.has(id) ? forceAtOf(id) * 1000 : null) /* (the clock ms the flag came on) */,
     forceWork: workForced(), forceWorkAt: workForceAt(), noWork: clock.force.has('no-work'), dusk: duskFor, hot: hotDay, rush: clock.force.has('shoppers') ? () => 1 : XP.bf ? tt => rushAtT(tt, LK.local ? LK.local.off : 0) : null,
     forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), noDance: clock.force.has('no-dance'), blocked: danceBlocked, shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
@@ -1322,6 +1324,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (wantBuild) { const why = typeof wantBuild === 'string' ? wantBuild : 'a rebuild'; wantBuild = false; measure(); build(why); }      // (FP3a: the clear and the redraw in ONE frame — never a blank one)
     seenAt = performance.now();                          // (8a: THE LOOP'S PULSE — the watchdog below restarts a loop that stopped getting frames)
     perf(Math.min(100, Math.max(0, now - lastRaf) || 16.7));          // (the frame intervals the tiering watches: every rAF, drawn or not)
+    if (now - lastRaf > GAP_MS && shownAt >= 0 && lastRaf > 0 && document.visibilityState === 'visible' && now - hiddenAt > now - lastRaf + 500) frameGap(now - lastRaf, 'a frame gap');
     lastRaf = now;
     // BATTERY + HEAT (cleanup pass 1): when nothing fast is on screen — a calm day, a quiet night, ALWAYS NIGHT with no events —
     // the city draws every other frame (30 fps; every third under reduced motion), and comes back to 60 the moment anything
@@ -1344,6 +1347,24 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (starvedCount() !== starvedSeen && now - starvedAt > 2000) { starvedSeen = starvedCount(); starvedAt = now; if (tier > 0) { if (loadFrozen(now)) { wantStep = wantStep || 'starved'; LOADLOG.add('tier', 'a starved canvas: a step recorded for later'); } else stepTier(tier - 1, 'starved'); } }
     drawn++;
     costs.push(performance.now() - c0); if (costs.length > 90) costs.shift();
+  }
+  // 9d — A STALL NAMES ITSELF (the owner's iPhone: the TR-3B + snow + party link "froze up … very glitching" with no error sent; Chrome
+  // never reproduced it): the page visible, yet no frame for over GAP_MS (a frame that came late — or the loop watchdog below restarting
+  // a loop iOS stopped feeding) → the LOAD log + /admin ONCE a session, with what was on (the tier, the party, the snow, the legendary,
+  // the weather), so the next one arrives with its evidence
+  const GAP_MS = 1500;
+  let stallSent = false, hiddenAt = -1e9;   // (hiddenAt: a gap that spans a trip to the background is no stall)
+  function frameGap(ms, how) {
+    LOADLOG.add('note', `the city stalled ${Math.round(ms)} ms (${how})`);
+    if (stallSent) return;
+    stallSent = true;
+    let what = '';
+    try {
+      const lg = legends && legends.state ? legends.state() : null;
+      what = [`t${tier}`, PT && PT.on > 0.3 ? 'party' : '', SN && SN.stage && SN.stage !== 'none' ? `snow ${SN.stage}` : '', lg ? `${lg.kind}@${Math.round(lg.s)}s` : '',
+        LK && LK.rain > 0.2 ? 'rain' : '', LK && LK.snow > 0.2 ? 'snowing' : '', [...(clock.force || [])].slice(0, 6).join(',')].filter(Boolean).join(' · ');
+    } catch { /* the context is polish */ }
+    reportError(new Error(`the city stalled ≥ ${GAP_MS / 1000} s — ${how} (${what})`), 'harbor stall');
   }
   let fails = 0, failLogged = false, starvedSeen = starvedCount(), starvedAt = -1e9;
   function frameFailed(e) {
@@ -1470,7 +1491,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sun.draw(c, fs);
     sky.tick(fs, events.active, events.recent || []);
     snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W, legend: legends ? legends.listen() : null, hween: HP && HP.spooky ? HP.spooky * clamp01((LK.w.night || 0) + (LK.w.late || 0)) : 0,
-      weather: WXS ? { rain: LK.rain || 0, state: WXS.state, drip: WXS.drip, gust: WXS.gust, fog: LK.fog || 0, temp: (() => { const tq = qp.get('temp'); return tq != null && tq !== '' && Number.isFinite(+tq) ? +tq : LK.temp; })(), month: LK.local ? LK.local.m : 0, hour: LK.local ? LK.local.h + LK.local.mi / 60 : 12, night: clamp01((LK.w.night || 0) + (LK.w.late || 0)), ...winterSound() } : null,
+      weather: WXS ? { rain: LK.rain || 0, state: WXS.state, drip: WXS.drip, gust: WXS.gust, fog: LK.fog || 0, temp: tempNow(), month: LK.local ? LK.local.m : 0, hour: LK.local ? LK.local.h + LK.local.mi / 60 : 12, night: clamp01((LK.w.night || 0) + (LK.w.late || 0)), ...winterSound() } : null,
       hydrant: (() => { const h = wild.hydrantState && wild.hydrantState(); if (!h || !(h.spray > 0.01)) return null; const [hx] = project(cam, h.x + 1.3, 0, h.z); return { k: h.spray, pan: Math.max(-1, Math.min(1, (hx / W) * 2 - 1)) }; })(),
       // 11a-2 — THE PARADE heard (its units in view: the balloons + the bands, screen x 0..1) + THE RAKER raking (people.js#positions)
       parade: paraSound(), raker: (() => { if (off.has('no-people')) return null; const p = people.positions().find(m => m.kind === 'raker' && m.v < 0.05); if (!p) return null; const [rx] = project(cam, p.x, 0, p.z); return { pan: Math.max(-1, Math.min(1, (rx / W) * 2 - 1)) }; })() });
@@ -1813,7 +1834,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (WXS && fadeIn > 0 && !off.has('no-glasswx')) {
       if (S.logoRect) glassWx.setSign(S.logoRect);
       if (S.glass) glassWx.setGlass(S.glass, S.dockIdle);
-      const tq = qp.get('temp'), tc = tq != null && tq !== '' && Number.isFinite(+tq) ? +tq : LK.temp;
+      const tc = tempNow();
       const cold = clock.force.has('freeze') ? 1 : tc == null ? 0 : smooth(1, -6, tc);
       const sc = S.signCol ? (n => [n >> 16, (n >> 8) & 255, n & 255])(parseInt(S.signCol.slice(1), 16)) : [255, 95, 180];
       AUD.signWx = (LK.rain || 0) > 0.02 || WXS.ice > 0.01 ? signLive() : 0;   // (SP3: the beads' light on the NEON tubes — the blackout audit)
@@ -1823,7 +1844,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // full by −12 °C, or FROST forced), forming slowly, kept clear of the NEON sign + SPEAKEASY, the dock's labels + the corner buttons
     // (soft-edged holes: only the lace's finest edge reaches them). &frost=pane|buttons|both (the panel's FROST LOOK; BOTH by default).
     if (fadeIn > 0 && frostMode() !== 'buttons' && !off.has('no-glasswx')) {
-      const tq2 = qp.get('temp'), tc2 = tq2 != null && tq2 !== '' && Number.isFinite(+tq2) ? +tq2 : LK.temp;
+      const tc2 = tempNow();
       const fz = clock.force.has('freeze') ? 1 : tc2 == null ? 0 : smooth(-4, -12, tc2);
       if (fz > 0.01) {
         const cr = [];
@@ -2413,7 +2434,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // seen at once — and not in the first ½ s after a start)
     const now = performance.now(), stalled = running && now - seenAt > STALL_MS && now - startAt > 500;
     if (running && !stalled) return false;
-    if (stalled) { loopLog.stalls++; cancelAnimationFrame(raf); running = false; }
+    if (stalled) { loopLog.stalls++; cancelAnimationFrame(raf); running = false; if (shownAt >= 0 && (why === 'watchdog' || why === 'tap') && now - hiddenAt > now - seenAt + 500) frameGap(now - seenAt, `the loop restarted (${why})`); }
     loopLog.restarts++; loopLog.why = why; loopLog.at = performance.now();
     returnGrace();                                    // (a restart is a return too: its first frames never cost a tier)
     start();
@@ -2426,7 +2447,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const RETURN_GRACE = 3000;
   function returnGrace() { tierHold = Math.max(tierHold, performance.now() + RETURN_GRACE); frames.length = 0; cool = Math.max(cool, 30); returns++; }
   let returns = 0;
-  const onVis = () => { if (document.visibilityState === 'visible') { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('visible'); } else stop(); };   // (11a-2: back from the background — the big holiday pieces may change now)
+  const onVis = () => { if (document.visibilityState === 'visible') { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('visible'); } else { hiddenAt = performance.now(); stop(); } };   // (11a-2: back from the background — the big holiday pieces may change now)
   const onShow = () => { bigRelatch = true; smRelatch = true; returnGrace(); wakeLoop('pageshow'); }, onFocus = () => wakeLoop('focus'), onTapWake = () => wakeLoop('tap');
   const watchdog = setInterval(() => wakeLoop('watchdog'), 1000);
   let resizeT = 0, relayT = 0, laneKey = '';
