@@ -9016,3 +9016,5 @@ t1 faster (one crane draw instead of two), t0 same.
 - WebKit headless has no audio here, so the mid-drain MUSIC check runs on Chromium only (WebKit checked the gate + the reveal).
 - e2e-harbor `panelrows`: "A WITCH AT HER CAULDRON" fired nothing once when run together with freeze + legends + panel on the laptop
   (24 of 25 rows); alone it passes (26/26). Load-dependent, in code 9g doesn't touch.
+- **The cloud (one run each):** `tests` 40757291276 green; `harbor` 40757370227 (by hand — the final push was docs only, outside its
+  paths): all 7 jobs green (audio, show, city, street, windows, holiday, wild).
