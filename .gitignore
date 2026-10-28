@@ -17,3 +17,7 @@ neon speakeasy leaderboard key.txt
 *serviceAccount*.json
 .env
 .env.*
+
+# PROM (Oct 28): Grok's bench + hydrant candidates — they lost the side-by-side to the hand-drawn pieces (docs/harbor.md#prom); the
+# sources stay on the laptop only (27–55 MB each), the bake recipe (scripts/bake/promenade.mjs) can re-render their looks
+art/models/promenade/**/*.glb

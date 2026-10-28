@@ -1,0 +1,11 @@
+fire_hydrant.glb   (54940008 bytes, glTF Binary from Sketchfab, original textures, unmodified) - pick #1
+"Fire Hydrant" (https://sketchfab.com/3d-models/fire-hydrant-cc6968cdaec44f7c8f82b0b4f38a1e1b) by iedalton (https://sketchfab.com/iedalton) is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+Downloaded 2026-10-28 from the model page (Download 3D Model > glTF Binary .glb), unmodified. Licence checked on the model page and in the download dialog: CC Attribution 4.0, commercial use allowed, author must be credited.
+Materials: RedMetal, Bolt_Chain, SilverMetal (4K textures).
+MD5 17902739f3b4f2ed7b66a92a2bd25560
+
+american_fire_hydrant.glb   (14886864 bytes, glTF Binary from Sketchfab, 2K textures, unmodified) - pick #2
+"American fire hydrant" (https://sketchfab.com/3d-models/american-fire-hydrant-d021f42ea8c44afe9c90655beaa36d89) by Fayruso (https://sketchfab.com/Fayruso) is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+Downloaded 2026-10-28 from the model page (Download 3D Model > glTF Binary .glb), unmodified. Licence checked on the model page and in the download dialog: CC Attribution 4.0, commercial use allowed, author must be credited.
+Note: painted green/black (needs a red hue shift), two hydrant copies in the scene, raised lettering on the barrel (unreadable at game size).
+MD5 1583ad511685a0c9ed94f23f803b98ac

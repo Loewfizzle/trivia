@@ -31,6 +31,12 @@ export function createStill() {
     return e;
   }
   return {
+    /** the benches' sprites now (the crisp overlay's — scene.js#crispTick): [{ id, z (the depth a figure must be nearer than to stand in
+     *  front), cv, box, key }] */
+    sprites(L, T, dpr) {
+      if (!L || !T) return [];
+      return [L.bench, L.cabStand].filter(Boolean).map(b => { const e = sprite(L, b, T, Math.max(1, Math.min(3, dpr))); return e ? { id: `still-${b.face}`, z: b.z + (b.face === 'water' ? -0.25 : 0.1), cv: e.cv, box: e.box, key: e.key } : null; }).filter(Boolean);
+    },
     /** the near pass's still pieces → [{ z, draw(c) }] (people.js's extras); T: the bake's tones; dpr: the phone's own */
     items(L, T, { dpr = 2, fade = 1 } = {}) {
       if (!L || !T || !(fade > 0)) return [];

@@ -1,0 +1,11 @@
+fancy_bench.glb   (26981104 bytes, glTF Binary from Sketchfab, original textures, unmodified) - pick #1
+"Fancy Bench" (https://sketchfab.com/3d-models/fancy-bench-82cadef8dfb24c0784eefff7be71610c) by SomeKevin (https://sketchfab.com/SomeKevin) is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+Downloaded 2026-10-28 from the model page (Download 3D Model > glTF Binary .glb), unmodified. Licence checked on the model page and in the download dialog: CC Attribution 4.0, commercial use allowed, author must be credited.
+Note: the author's page says no credit is needed, but the download is marked CC BY, so keep this credit line.
+MD5 76a29994b3cafa83e2de7016a219501c
+
+park_bench.glb   (10568036 bytes, glTF Binary from Sketchfab, 2K textures, unmodified) - pick #2
+"Park Bench" (https://sketchfab.com/3d-models/park-bench-84426d6537ac4cdc837d602ccabe7036) by DutraBR98 (https://sketchfab.com/DutraBR98) is licensed under Creative Commons Attribution (http://creativecommons.org/licenses/by/4.0/).
+Downloaded 2026-10-28 from the model page (Download 3D Model > glTF Binary .glb), unmodified. Licence checked on the model page and in the download dialog: CC Attribution 4.0, commercial use allowed, author must be credited.
+Note: ornate S-scroll ends that look more like bent wrought iron than cast iron; probably one shared material.
+MD5 3f1efebb035c55cbfb90b693f7c98567

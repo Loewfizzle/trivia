@@ -880,6 +880,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (dk > 0.01) { const [ax, ay] = G.front(5.6 - DATE.hw - 0.1, DATE.v1 + 0.1), [bx2, by2] = G.front(5.6 + DATE.hw + 0.1, DATE.v0 - 0.1);
         crisp.show(c, { id: 'datestone', z: 1, box: { x: ax, y: ay - 4, w: bx2 - ax, h: by2 - ay + 4 }, key: bk, xfade: xf2, alpha: fadeIn * dk, draw: x => { const [ox, oy] = G.front(0, 0); x.save(); wallMap(x, ox, oy, K); paintDateStone(x, speakMats(bakeTones), 5.6); x.restore(); if (cp) cp(x); } }); }
     }
+    // PROM — THE STILL PIECES SHARP: the two benches at the phone's full dpr IN THEIR PLACE in the layering — the overlay re-draws whoever
+    // stands in front of the bench (people.js#redrawOver), so a walker still passes in front of it (the flat paving — the compass, the
+    // grates — stays in the bake: everyone stands on it, the dance, the centrepieces; a brick texture, not lettering)
+    if (!off.has('no-promenade') && !off.has('no-still-crisp') && L.bench) for (const sp of still.sprites(L, bakeTones, crisp.dpr)) {
+      const ok9 = pplLive ? people.overKey(sp.box, sp.z) : '';
+      crisp.show(c, { id: sp.id, z: 0, box: sp.box, key: `${sp.key}|${ok9}`, xfade: 0, alpha: fadeIn, draw: x => { x.drawImage(sp.cv, sp.box.x, sp.box.y, sp.box.w, sp.box.h); if (pplLive) people.redrawOver(x, sp.box, sp.z); } });
+    }
     // the roof board's poster face (by day: at night its lamps light it live in the city's canvas, softly — the crisp copy fades out at dusk)
     const rb = !busy && dk > 0.01 && !neon.fresh() ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak') : null;
     if (rb && rb.rect) { const R0 = rb.rect, ck = rb.content ? `${rb.content.title}|${rb.content.sub}` : rb.id;

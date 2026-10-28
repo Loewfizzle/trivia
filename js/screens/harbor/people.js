@@ -212,6 +212,7 @@ export function createPeople() {
     const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? [...(now.cars || []), ...((now.crew && now.crew.trucks) || [])] : [];
     // 8b1 — THE WORKERS' PROPS at their own depths (ladders, the platform, the stand, the bottles, the hatch, the wet streak…)
     const props = pass === 'near' ? propItems(L, now.crew, pass, lastT) : [];   // (the props' states run on the CITY clock)
+    if (pass === 'near') drawnNear.length = 0;
     if (!items.length && !buses.length && !cars.length && !props.length && !(env.extra && env.extra.length)) return;
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);
@@ -261,7 +262,10 @@ export function createPeople() {
       const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
       // (9a — FOG: the far ones fade into it — walking away they melt, walking in they come out of it)
       const fogA = (env.fog || 0) > 0.3 && pass !== 'roof' ? 1 - 0.8 * Math.min(1, ((env.fog || 0) - 0.3) / 0.6) * Math.max(0, Math.min(1, (st.z - 41) / 16)) : 1;
-      const box = drawFolk(c, cam, { s: { ...st, link, a: (st.a == null ? 1 : st.a) * fogA }, L: look }, { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 });
+      const fs9 = { s: { ...st, link, a: (st.a == null ? 1 : st.a) * fogA }, L: look }, fe9 = { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 };
+      const box = drawFolk(c, cam, fs9, fe9);
+      // (PROM: who was drawn where, this frame — a still piece's full-dpr overlay re-draws anyone standing IN FRONT of it: redrawOver)
+      if (box && pass === 'near') drawnNear.push({ z: st.z, box, key: `${mem.vid}|${mem.m.role}|${st.x.toFixed(2)}|${st.z.toFixed(2)}|${st.pose}|${(st.dist || 0).toFixed(2)}`, redo: cc => drawFolk(cc, cam, fs9, fe9) });
       if (box && mem.pin) pins.push([box.x + box.w / 2, box.y - box.h * 0.16, mem.pin, box.h]);
       // (11a-1 — THE OFRENDA carried in the procession: drawn on its poles between its two bearers' shoulders once both are drawn)
       if (box && mem.kind === 'proc' && mem.m.bearer != null) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), sh = J.shs[J.near], pt = [fx + sh[0] * H, fy - (sh[1] + 0.03) * H], o = bearers.get(mem.vid); if (o) { drawOfrenda(c, o, pt, H, E); bearers.delete(mem.vid); } else bearers.set(mem.vid, pt); }
@@ -531,6 +535,11 @@ export function createPeople() {
   }
   // PROM — a member's state laid over the plan on this device (screens/harbor/cabstand.js): vid → partial state | 'hide'
   const over = new Map();
+  // PROM — THE STILL PIECES SHARP (still.js + the crisp layer): the near pass's figures as drawn this frame, so a full-dpr overlay over a
+  // bench can draw again whoever stands in front of it (nearer than its z, overlapping its box) — it stays in its place in the layering
+  const drawnNear = [];
+  const hits = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
+  const frontOf = (box, z) => drawnNear.filter(d => d.z < z && hits(d.box, box));
   // PROM — THE DOORMAN AGAINST THE WALL follows each guest with his HEAD (his hat's brim turning left / front / right — the body stays on
   // the brick), and PUSHES OFF the wall + nods as one reaches the side door, then leans back. Live, from whoever is near him now
   const DOORMAN = Object.freeze({ near: 6.5, door: [0.8, 2.2], turn: 3.2 });
@@ -557,6 +566,9 @@ export function createPeople() {
     return items.map(m => (m === dm ? { ...m, s: { ...m.s, look: dmLook, off: dmOff, nod, z: m.s.z - 0.12 * dmOff } } : m));
   }
   return {
+    /** PROM: the figures in front of a still piece's box this frame — a key (redraw when it changes) + their redraw into another context */
+    overKey: (box, z) => frontOf(box, z).map(d => d.key).join(';'),
+    redrawOver(cc, box, z) { for (const d of frontOf(box, z).sort((a, b) => b.z - a.z)) { try { d.redo(cc); } catch { /* polish */ } } },
     /** PROM: override a member (vid) on this device — a partial state, 'hide', or null to give them back to the plan */
     override(vid, s) { if (s == null) over.delete(vid); else over.set(vid, s); if (over.size > 24) over.delete(over.keys().next().value); },
     /** PROM: the cab stand's waiters now (the taxi's candidates): [{ vid, x, z, pose, since, left }] */
