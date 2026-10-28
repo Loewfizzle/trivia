@@ -8,7 +8,7 @@
 // neon); the plate itself in the city's canvas. ALL FOUR WINDOWS stay free for the moments. Lobby 2.0: set(word) (null = no lobby).
 import { wallPlan, hushState, strikeLevel, darkLevel, HUSH_WALL } from '../../core/harbor-hush.js';
 import { tube, drawLit, sprite, free, bbox } from './tubes.js';
-import { ctx2d } from '../../ui/canvas-safe.js';
+import { ctx2d, cssWidth } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const HUSH = HUSH_WALL;
@@ -34,7 +34,7 @@ export function createHushSign() {
     const host = c && c.canvas && c.canvas.parentElement;
     if (!host || typeof document === 'undefined') return null;
     if (!ov || !ov.cv.isConnected || ov.host !== host) { if (ov) ov.cv.remove(); const cv = document.createElement('canvas'); cv.className = 'nd-hushc'; cv.setAttribute('aria-hidden', 'true'); Object.assign(cv.style, { position: 'absolute', pointerEvents: 'none', left: '0px', top: '0px' }); host.append(cv); ov = { cv, host, ctx: null }; ovKey = ''; }
-    const M = typeof c.getTransform === 'function' ? c.getTransform() : null, cw = c.canvas.clientWidth || 1, ratio = c.canvas.width / cw || 1;
+    const M = typeof c.getTransform === 'function' ? c.getTransform() : null, cw = cssWidth(c.canvas) || 1, ratio = c.canvas.width / cw || 1;
     const T = M ? { a: M.a, b: M.b, c: M.c, d: M.d, e: M.e, f: M.f } : { a: ratio, b: 0, c: 0, d: ratio, e: 0, f: 0 };
     const P = (x, y) => [(T.a * x + T.c * y + T.e) / ratio, (T.b * x + T.d * y + T.f) / ratio];
     const cs = [P(box.x, box.y), P(box.x + box.w, box.y), P(box.x, box.y + box.h), P(box.x + box.w, box.y + box.h)];

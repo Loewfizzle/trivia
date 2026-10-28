@@ -10,7 +10,7 @@
 //   people, vehicles, bricks, textures (the owner's DECIDED list), and anything a walker crosses in front of (the barber's gilt, the
 //   promenade's set pieces — a layer over the city can't go behind a person; see docs/harbor.md#9c).
 //   Memory: only the items' boxes (the blade ~25 × 115 pt → 75 × 345 px ≈ 0.1 MB, two while it crossfades).
-import { ctx2d } from '../../ui/canvas-safe.js';
+import { ctx2d, cssWidth } from '../../ui/canvas-safe.js';
 
 export function createCrisp() {
   const items = new Map();   // id → { a, b (the two canvases: a = current, b = the one fading out), key, css, M, shownAt, op, z, xf }
@@ -20,7 +20,7 @@ export function createCrisp() {
   function begin(c, tier, wanted = true) {
     frameN++;
     host = c && c.canvas && c.canvas.parentElement;
-    const dev = (typeof window !== 'undefined' && window.devicePixelRatio) || 1, cw = (c && c.canvas && c.canvas.clientWidth) || 1, canvasDpr = c && c.canvas ? c.canvas.width / cw : dev;
+    const dev = (typeof window !== 'undefined' && window.devicePixelRatio) || 1, cw = (c && c.canvas && cssWidth(c.canvas)) || 1, canvasDpr = c && c.canvas ? c.canvas.width / cw : dev;
     // (9e — THE BLADE STAYS SHARP AT EVERY TIER: the owner's Day of the Dead night at 20 % battery stepped down to tier 0 and the blade went
     //  soft on the city's canvas. The layer is ~0.1 MB + redraws only on a key change, so it stays on at every tier; only the DPR check
     //  remains — a tier-0 canvas is even softer, so it matters most there)
@@ -37,7 +37,7 @@ export function createCrisp() {
   function show(c, it) {
     if (!on || !it.box || !(it.box.w > 0) || !(it.box.h > 0)) return false;
     let I = items.get(it.id);
-    const M0 = typeof c.getTransform === 'function' ? c.getTransform() : null, cw = c.canvas.clientWidth || 1, ratio = c.canvas.width / cw || 1;
+    const M0 = typeof c.getTransform === 'function' ? c.getTransform() : null, cw = cssWidth(c.canvas) || 1, ratio = c.canvas.width / cw || 1;
     const T = M0 ? M0 : { a: ratio, b: 0, c: 0, d: ratio, e: 0, f: 0 };
     const P = (x, y) => [(T.a * x + T.c * y + T.e) / ratio, (T.b * x + T.d * y + T.f) / ratio];
     const bx = it.box, cs = [P(bx.x, bx.y), P(bx.x + bx.w, bx.y), P(bx.x, bx.y + bx.h), P(bx.x + bx.w, bx.y + bx.h)];

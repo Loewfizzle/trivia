@@ -1197,7 +1197,8 @@ G('load', async () => {
     const vis = r.log.visible, onlyHol = vis.every(x => x.kind === 'bake' && /^(neon|facade|neon, facade|facade, neon)$/.test((x.msg.match(/· ([a-z, ]+)$/) || [])[1] || ''));
     ok(/wx overcast/.test(r.rv.msg) && /the panel moved the clock, the weather is live/.test(r.rv.msg) && pr && /before the reveal/.test(pr.msg) && !r.log.rows.some(x => /none \(seeded\)/.test(x.msg)) && onlyHol,
       `LOAD WEATHER — a stored JUST ME time jump: applied before the reveal (${pr ? pr.msg : 'no panel row'}), the live overcast KEPT (${r.rv.msg}), never "none (seeded)", no sky / cloud / lit change after (${vis.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`);
-    // (the holiday night's own neon scheme + the ground's lazily loaded pieces still re-bake the neon + facade ~1 s after the reveal — SP4 Known issues)
+    // (SP4's known re-bake ~1 s after the reveal — the roof board's game + the party windows decided late — fixed in 9f: both are
+    // decided before the reveal now; kept a timing check for CI's slow machine)
     okT(vis.length === 0, `LOAD WEATHER — a stored JUST ME jump into a holiday night: 0 changes after the reveal (${vis.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
   { const r = await wxLoad('intro', { delay: 300, cached: false, intro: true });
     ok(r.log.visible.length === 0, `LOAD — THE FULL POWER-ON (&intro=1: the screen's entrance, the fonts, the dock easing in): 0 changes after the reveal (${r.rv.msg}; ${r.log.visible.map(x => `${x.kind} ${x.msg}`).join(' | ') || 'none'})`); }
@@ -3311,6 +3312,9 @@ G('tape', async () => {
   await tapAt(p, 30, 300);
   await waitFor(p, PLAYING, 'the music playing', 15000);
   const at0 = await ev(p, `${D}.at`);
+  // (9f — THE TAPE ON THE DRAIN: the owner's iPhone, "the audio slowdown effect was lagging" — measured, the lights dipped at 2.7 s and
+  // the tape audibly at 4.6 s; a sampler of the run's second, the city's darkness + the tape's rate, every 40 ms)
+  await ev(p, `(() => { window.__TS = []; window.__TSi = setInterval(() => { try { const h = ${P}, l = h.legend.state, b = h.legend.blackout(), d = ${D}; if (l && l.run) window.__TS.push([l.s, b ? b.k : 0, d.tape.rate]); } catch { /* fine */ } }, 40); window.__TF = []; let lt = 0; const fr = t => { if (!window.__TSi) return; try { const l = ${P}.legend.state; if (lt && l && l.run) window.__TF.push([l.s, t - lt]); } catch { /* fine */ } lt = t; requestAnimationFrame(fr); }; requestAnimationFrame(fr); })()`);
   // the TR-3B started by the API (the forced flag would start it at the load, before the music): its slice is prepared as it arrives
   await ev(p, `${P}.legend.start('tr3b')`);
   await waitFor(p, `${D}.tape.phase === 'bent'`, 'the tape takes the song (the sag at ~3 s)', 20000);
@@ -3324,6 +3328,14 @@ G('tape', async () => {
   ok(a.sounding && b.sounding && a.elPaused && a.rate < 0.55 && a.rate > 0.4, `HELD DEEP: ~0.5 × (${a.rate}), the element paused on purpose, the music SOUNDING (${a.sounding}, probe ${a.peak})`);
   ok(slope > 0.35 && slope < 0.65, `THE SONG CLOCK MOVES AT THE TAPE'S SPEED: ${a.at} → ${b.at} s over ${((b.t - a.t) / 1000).toFixed(1)} s (×${slope.toFixed(2)}), ${b.lost} s behind real time`);
   okT(a.peak > 0.002 && b.peak > 0.002, `SOUND FLOWS THROUGH THE BEND: the probe hears the slice (${a.peak.toFixed(3)}, ${b.peak.toFixed(3)})`);
+  { await waitFor(p, `window.__TS.some(x => x[1] > 0.97)`, 'the city all dark', 15000).catch(() => {});
+    const { TS, TF } = await ev(p, '(() => { clearInterval(window.__TSi); window.__TSi = 0; return { TS: window.__TS, TF: window.__TF }; })()');
+    const drainF = TF.filter(x => x[0] > 2 && x[0] < 7).map(x => x[1]), worst = drainF.length ? Math.max(...drainF) : 0;
+    const dip = TS.find(x => x[1] > 0.02), tape = TS.find(x => x[2] < 0.98), dark = TS.find(x => x[1] > 0.97);
+    const f = x => (x ? `${x[0].toFixed(2)} s` : '—');
+    ok(dip && tape && tape[0] < dip[0] + 1.0, `9f — THE TAPE ON THE DRAIN: the slow-down starts with the lights' first dip (the lights ${f(dip)}, the tape under 0.98 × at ${f(tape)}; before 9f ~2 s after)`);
+    okT(dip && tape && Math.abs(tape[0] - dip[0]) < 0.5 && dark && dark[2] < 0.6, `9f — THE TAPE ON TIME: within 0.5 s of the first dip (${f(dip)} → ${f(tape)}) + deep as the city goes dark (${dark ? `${dark[2].toFixed(2)} × at ${f(dark)}` : 'never all dark'})`);
+    okT(drainF.length > 30 && worst < 200, `9f — THE DRAIN's FIRST SECONDS SMOOTH: ${drainF.length} frames from 2 to 7 s, the longest ${Math.round(worst)} ms (no heavy work at the drain's start)`); }
   const strip = await ev(p, `(() => { const d = document.querySelector('.dbg-s[data-id=audio]'); return d ? d.textContent : ''; })()`);
   ok(/AUDIO [▾▸] sounding/.test(strip) && /ON THE TAPE 0\.[45]\d×/.test(strip) && !/NOT SOUNDING/.test(strip), `THE AUDIO PANEL reads "sounding" + ON THE TAPE through the drain ("${strip.slice(0, 120)}…")`);
   ok((await ev(p, 'window.__rateSets.length')) === 0, 'THE ELEMENT\'S playbackRate IS NEVER ASSIGNED (the setter trap saw 0 writes)');

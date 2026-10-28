@@ -68,3 +68,20 @@ export function safeCtx(cv, o) {
 }
 /** how many contexts iOS has refused so far (safeCtx) */
 export const starvedCount = () => starved;
+
+// 9f — A CANVAS's CSS WIDTH WITHOUT A LAYOUT READ: reading `clientWidth` in the frame loop forces a synchronous layout whenever
+// the page was restyled since the last frame (the TR-3B's drain restyles the NEON sign every frame — the crisp layer + the hush
+// sign's overlays then paid a whole page layout per frame). One read the first time, then a ResizeObserver keeps it.
+const cssW = new WeakMap();
+/** the canvas's CSS width (px), cached per canvas */
+export function cssWidth(cv) {
+  if (!cv) return 0;
+  let e = cssW.get(cv);
+  if (!e) {
+    e = { w: cv.clientWidth || 0 };
+    cssW.set(cv, e);
+    if (typeof ResizeObserver !== 'undefined') { try { new ResizeObserver(es => { for (const x of es) e.w = x.contentRect.width; }).observe(cv); } catch { e.w = -1; } }
+    else e.w = -1;
+  }
+  return e.w >= 0 ? e.w : (cv.clientWidth || 0);
+}

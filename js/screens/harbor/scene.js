@@ -233,7 +233,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (DEBUG) { const d = performance.now() - t0; hpropsMs = hpropsMs * 0.97 + d * 0.03 * 3; if (typeof window !== 'undefined') { window.__hpropsMs = +(hpropsMs / 3).toFixed(3); window.__hprops = hprops; const b = window.__hpropsLog || (window.__hpropsLog = []); if (pass === 'ground') b.push(d); else if (b.length) b[b.length - 1] += d; if (b.length > 900) b.splice(0, 300); } }
   }                 // NEON PASS 4: STRING LIGHTS on the speakeasy's roof (Parts 8 + 11 reuse them)          // NEON PASS 2: THE WATERFRONT STRIP — the far shore's bars, diners, the theatre
   let pierLampsAt = [];
-  let litFadeFrom = -1, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
+  let litFadeFrom = -1, litFadeMs = 1200, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
   // THE EVERYDAY SKY (Part 6a): the planes, the banner plane, skywriting + skytyping, the helicopter, the birds, balloons, the
   // drone show, the moon's + the aurora's art (screens/harbor/skyfx.js)
@@ -990,7 +990,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // other way round, so the billposter's daily change can never flip the blade)
   const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), games.filter(g => g.playable !== false).map(g => g.id), null); };
   const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g; } catch { return null; } };
-  function workBoard(c, tr) {
+  // (9f — LOAD WEATHER: the board's game is synced BEFORE the reveal too — a panel's clock jump to another day used to swap the poster
+  // ~1 s after the city showed, a neon re-bake crossfading over it)
+  function boardSync(tr) {
     lampFaultNow = tr.lampFault || null;
     const now = performance.now();
     if (now - boardCheck > 500 && now > boardHeld) {
@@ -999,6 +1001,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (the board shows the key's game; a paste in progress keeps the OLD one under the sheets until the last sheet is up)
       if (want && (neon.boardGame(BOARD_ID) !== want || neon.boardDead(BOARD_ID) !== dead)) neon.billboard(BOARD_ID, { game: want, dead });
     }
+  }
+  function workBoard(c, tr) {
+    boardSync(tr);
     const ps = tr.board.pasting;
     if (!ps || !bakeTones) return;
     const g = boardGameOf(ps.to), key = `${g}|${toneKey(TW)}|${camSig}|${tr.boardLampDead}`;
@@ -1193,9 +1198,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (11a-2: Thanksgiving's evening — the skyline's windows AMBER: families home round their tables)
   const holLit = () => (HR.windowTintK > 0.05 ? { id: HS.id === 'thanksgiving' ? 'thanksgiving' : 'halloween', k: Math.round(HR.windowTintK * 4) / 4 } : HR.sign === 'dotd' ? { id: 'dotd', k: 1 } : null);
   // (NEON PASS 3: a party night's windows — re-baked once when the party starts and once when it ends)
-  const partyLit = () => PT.on > 0.5 || clock.force.has('neon-party');
+  const partyLit = () => (PT.litOn != null ? PT.litOn : PT.on) > 0.5 || clock.force.has('neon-party');
   function rebakeLights() {
-    LOADLOG.add('lit', `${shownAt >= 0 && litBaker.bakes >= 1 ? 'crossfade' : 'swap (dark)'} · ${keyDiff(litBaker.key, lightKey(), ['share', 'bias', 'warm', 'night', 'W', 'H', 'dock', 'limit', 'tier', 'party'])}`, { fade: shownAt >= 0 && litBaker.bakes >= 1 });
+    // (9f — LOAD WEATHER: a weather answer that lands after the reveal darkens the sky → the windows' share / bias / night step with
+    // it; those ride the weather's own slow blend (WX_BLEND, like the bakes + the sky), never a 1.2 s crossfade the eye catches)
+    { const d = keyDiff(litBaker.key, lightKey(), ['share', 'bias', 'warm', 'night', 'W', 'H', 'dock', 'limit', 'tier', 'party']), fade = shownAt >= 0 && litBaker.bakes >= 1;
+      const slow = fade && wxRecent() && /^(share|bias|warm|night)(, (share|bias|warm|night))*$/.test(d);
+      litFadeMs = slow ? WX_BLEND : 1200;
+      LOADLOG.add('lit', `${fade ? `crossfade ${litFadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: fade && !slow }); }
     litLook = { share: Math.round(winShare() * 60) / 60, bias: winBias(), warm: P.winWarm || 0, night: DK, party: partyLit(), hol: holLit() };
     const mf = newMeta(), mn = newMeta();
     litMeta = { far: mf, near: mn };
@@ -1292,6 +1302,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the sky beams, the searchlights' turn) reads PT.on / PT.ramp; dark while the city is dead, ramping back with the power)
     const blk = legends && legends.active() ? legends.blackout() : null, pwK = blk ? clamp01(1 - blk.k) : 1;
     if (pwK < 1) ps.on *= pwK;
+    // (9f — LOAD WEATHER: the windows' party look is baked from tonight's party WITHOUT the title's gates (its entrance light, the
+    // sign's catch — which lags a panel's clock jump by a second): the city's own darkness decides; the entrance fades
+    // the whole city in anyway, so a party night's windows are party from the first picture, never re-baked mid-fade-in)
+    PT.litOn = ps.forced ? ps.on : partyState(LK.local, { caught: isNight(DK) && partyReady(DK) && hp0.on, force: clock.force.has('party') }).on * pwK;
     PT.name = ps.phase; PT.on = ps.on; PT.ramp = ps.on; PT.energy = ps.energy; PT.motion = S.motion; PT.tier = tier; PT.plan = plan; PT.power = pwK;
     // (the harbor's own night — FP2: 8:30 pm warm-up → 9:30 pm peak → calming after 1 am; core/party.js keeps the window + the 2 am wind-down)
     if (ps.on > 0 && !ps.forced) { PT.energy = hp0.energy; PT.name = hp0.name; }
@@ -1637,7 +1651,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       c.globalAlpha = 1;
     };
     // the lit windows (their own layer: the light timeline), the bottom rows first while the city powers on (S.wave)
-    const lx = litFadeFrom < 0 ? 1 : smooth(0, 1200, now - litFadeFrom);
+    const lx = litFadeFrom < 0 ? 1 : smooth(0, litFadeMs, now - litFadeFrom);
     if (lx >= 1 && litFadeFrom >= 0) { litFadeFrom = -1; if (!litBaker.pending) litBaker.settle(); }
     const winK = fadeIn * (0.82 + 0.18 * T.night) * (lit > 0 ? 1 : 0);
     const nightK = litK(DK, 'city') * fadeIn * lit;
@@ -1792,7 +1806,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // 8b1 — THE WORKERS' TRACES on the city (core/harbor-crew.js#tracesAt): the roof board's game follows the billposter (+ its dead
     // gooseneck until he fixes it), his sheets pasted over the old poster, the blade's dead bulb, a lamppost's bad night
     const wTr = pplLive && !off.has('no-work') ? (people.crew() || {}).traces : null;
-    if (wTr && fadeIn > 0) workBoard(c, wTr);
+    if (wTr && fadeIn > 0) workBoard(c, wTr); else if (wTr && shownAt < 0) boardSync(wTr);
     if (wlOn) wild.draw(c, 'bill', wlEnv);           // (8b1: the birds on the roof billboard's top edge + its catwalk railing)
     layer('stage');
     swayTrees(c, 'stage', t, xf, fadeIn);            // (SP3: the crowns in the wind)

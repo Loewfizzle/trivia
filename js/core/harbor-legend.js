@@ -164,7 +164,10 @@ export function tr3bAt(s, dir = 1) {
   // (C2: the jets came ~5 s sooner — everything round them is measured from CHASE.t0 (J) + JETS_GONE (G): the hush under the roar
   // J − 3.5 → J − 0.5, the volume back G − 0.3 → G + 1.5, the spin-up G + 0.5 → G + 6.6 — the same shape as before, earlier)
   const J = CHASE.t0, G = JETS_GONE;
-  const sag = smooth(3.0, 9.5, s), up = smooth(G + 0.5, G + 6.6, s), fadeOut = smooth(8.5, 12.5, s), back = smooth(G - 0.3, G + 1.5, s), hush = smooth(J - 3.5, J - 0.5, s);
+  // (9f — THE TAPE ON THE DRAIN (the owner's iPhone: "the audio slowdown effect was lagging"): the sag IS the city's power — the
+  // blackout's own curve (blackAll: the first lights stutter at die0 − sput, all dark at die0 + dieSpan + 0.9), so the slow-down starts
+  // on the first dip + bottoms out with the lights; it used to start a second later and the way it was sent lagged it ~2 s: sounds.js)
+  const sag = smooth(BLACK.die0 - BLACK.sput, BLACK.die0 + BLACK.dieSpan + 0.9, s), up = smooth(G + 0.5, G + 6.6, s), fadeOut = smooth(8.5, 12.5, s), back = smooth(G - 0.3, G + 1.5, s), hush = smooth(J - 3.5, J - 0.5, s);
   const bent = sag * (1 - up);
   const rate = Math.max(DRAIN_M.floor, lerp(1, DRAIN_M.rate, bent));
   return {

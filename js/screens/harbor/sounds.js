@@ -25,7 +25,7 @@
 import { citySound, cityLoop, cityPrefetch, citySoundsDebug } from '../../audio/city-sound.js';
 import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
-import { CHASE, BLACK } from '../../core/harbor-legend.js';
+import { CHASE, BLACK, tr3bAt } from '../../core/harbor-legend.js';
 import { isUnlocked } from '../../audio/engine.js';
 import { musicSounding, duckMusic, filterMusic, bendMusic, musicCatchUp, prepareBend } from '../../audio/music.js';
 import { settings } from '../../audio/settings.js';
@@ -33,6 +33,7 @@ import { settings } from '../../audio/settings.js';
 const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const rnd = (a, b) => a + Math.random() * (b - a);
+const BEND_AHEAD = 0.6;   // (9f: the TR-3B's tape ramps — each aims this far ahead on the envelope, over this long: on time, not behind)
 
 export function createCitySounds() {
   let lastT = 0, born = performance.now(), dead = false;
@@ -303,7 +304,9 @@ export function createCitySounds() {
       if (!lgRun.beam && lg.s > 3.8 && lg.s < 9) { lgRun.beam = true; citySound('ufo-beam', { pan, jitter: 0 }); }
     } else {
       // (THE TAPE STOP: the song's slice decoded now, so the sag at 3 s starts on time)
-      if (!lgRun.prep && lg.s < 2.5) { lgRun.prep = true; prepareBend(); }
+      // (9f: retried until the song is there — a run forced at the load used to get one try at s < 2.5, before the first tap had
+      // started the music, so its slice was fetched + decoded only when the first bend asked: the tape seconds late on an iPhone)
+      if (!lgRun.prep && !lg.held && lg.s < BLACK.die0 + BLACK.dieSpan) lgRun.prep = !!prepareBend();
       const over = lg.s < CHASE.t0 - 1 ? clamp(1.25 - Math.abs(lg.x - 0.5) * 1.2, 0, 1) : 0;
       keep('tr3b-drone', over, pan, { ramp: 1, linger: 8, fadeIn: 4 });
       // (8b1 — HEARD ON A PHONE: its electromagnetic PRESENCE while it crosses (saturated: its harmonics carry it), panned with it)
@@ -324,9 +327,14 @@ export function createCitySounds() {
     lgDuck = st.music.duck;
     if (Math.abs(st.music.hz - lgHz) > lgHz * 0.06) { lgHz = st.music.hz; filterMusic(lgHz, 0.6); }
     // (9d: a HELD preview (&lgs=) is a still — the song plays at its own speed under the duck + the muffle, never a tape stuck mid-sag)
-    const r = st.music.rate == null || lg.held ? 1 : st.music.rate;
+    // (9f — THE TAPE ON TIME (measured: the lights dipped at 2.7 s, the tape audibly at 4.6 s): each ramp aims at where the envelope
+    // WILL be when it lands (BEND_AHEAD s on), sent at every 1 % step; and the tape is ENGAGED just before the first dip at an inaudible
+    // 0.998 × (its 0.35 s crossfade from the element done before the sag needs it), so the slow-down starts on the lights' first dip)
+    const tape = lg.kind === 'tr3b' && !lg.held && st.music.rate != null;
+    const ahead = tape ? tr3bAt(lg.s + BEND_AHEAD, lg.dir).music.rate : 1;
+    const r = !tape ? 1 : lg.s > BLACK.die0 - BLACK.sput - 0.6 && lg.s < BLACK.die0 ? Math.min(0.998, ahead) : ahead < 0.999 ? ahead : st.music.rate;
     // (the base rate's ramps, a few a second while it moves; the warble is the tape's own oscillators — their depths ride along)
-    if (Math.abs(r - lgRate) > 0.02 || (r === 1 && lgRate !== 1) || (r < 1 && t - lgBendAt > 2000 && (st.music.warble || 0) > 0.05 && lgBendAt > 0)) { lgRate = r; lgBendAt = t; bendMusic(r, r < 1 ? 1.2 : 1.5, { wow: st.music.wow || 0, flutter: st.music.flutter || 0 }); }
+    if (Math.abs(r - lgRate) > 0.01 || (r < 1 && lgRate >= 0.999) || (r === 1 && lgRate !== 1) || (r < 1 && t - lgBendAt > 2000 && (st.music.warble || 0) > 0.05 && lgBendAt > 0)) { lgRate = r; lgBendAt = t; bendMusic(r, r < 1 ? BEND_AHEAD : 1.5, { wow: st.music.wow || 0, flutter: st.music.flutter || 0 }); }
     // (a room-clocked song makes up the time the tape lost — asked while the music is quiet under the jets; the title's mood music
     // goes on from where the tape got to: music.js#musicCatchUp)
     if (st.music.catchUp && !lgRun.caught) { lgRun.caught = true; musicCatchUp(); }
