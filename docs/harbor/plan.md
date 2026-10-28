@@ -71,12 +71,14 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | CONN | ✅ (Oct 28 — aa51ae9; CLAUDE.md → Multiplayer mechanics, docs/data-model.md#the-connection-conn-oct-28) THE DATABASE CONNECTION ONLY WHEN NEEDED: the socket PARKED until want() (HOST / JOIN / a resume / an invite check / a room / the admin's panel), offline 30 s after + after 2 min hidden with no room, never in a room; no false SIGNAL LOST; City 2.0's EVERYONE through GET /api/admin?live=1 (edge 15 s, polled ~45 s). OPEN SOCKETS before → after (tests/integration/e2e-conn.mjs): title idle 1 → **0** · City 2.0 title 1 → **0** · invite link (checked) 1 → 1, **0** after 30 s · lobby / game 1 → 1 · hidden tab in a room 1 → 1 · title after QUIT 1 → **0** (after the grace) · hidden title tab 1 → **0** · /board 0 → 0 · /admin 1 → **0** · an admin on City 2.0 1 → 1. Fixed on the way (the cloud's first run, by day): a word cleared BY DAY never left `spelling` (the window lights skip drawing then, so the fade-out's drop never came — lights.js drops it now) + the JUST ME word-towers check pinned to 23:00 like its EVERYONE twin (by day the words never light; both failed only in daylight runs). Known: LOAD WEATHER's race (listed in 9e). The two vehicle models: not in this pass (the owner's call) | Opus 5.5 high | ~1–1.5 h |
 | 9f | ✅ (Oct 28 — 04eb891 · 9d600bc · 269efca; docs/harbor.md#9f: LOAD WEATHER's cause fixed (the lit windows ride the weather's slow blend; the party windows + the roof board decided before the reveal); the tape on the drain (lights 2.67 s → the tape 2.88 s, was 4.71) + no layout read per frame; the paper out; the joggers on their own lane + the panel row; the REAL tower implodes in floor bands; the site at night (bulbs, floods, slow red lights) + its party beam; the tower's CC0 sounds) THE FIXES IV — the 9e review | Opus 5.5 high | ~2–2.5 h |
 | BNAME | ✅ (Oct 28 — 0797967 · 937590e; docs/profiles.md + docs/harbor.md#bname: house nicknames for everyone else on THE BOARD (an HMAC board id, never the typed name or the pid in any public response), `profiles` no longer world-readable, the 3-match floor, ⋯ → REPORT → /admin; THE CRANE from J-Toastie's model (180 KB, lazy, &crane=classic); the cycle 3 months, the opening the first Saturday of October; ONE bake tool, the UFO byte-for-byte) THE BOARD's PUBLIC NAMES (house nicknames, a 3-match minimum, REPORT) + THE CRANE from a 3D model + the tower's shorter cycle | Opus 5.5 high | ~1.5 h |
-| ATM | ← NEXT: a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
+| 9g | ← NEXT: THE FIXES V — legendary links wait for a tap, the implosion's sound, the rivet bursts, the crane's day pulse, the joggers' stride, the dock fade, THE UFO's sounds | Opus 5.5 high | ~2 h |
+| PROM | THE PROMENADE, FINAL (LOCKED Oct 28 — no lampposts, the implied lamps, the lit crosswalk, the hydrant left, the bigger compass, the cab stand + the water bench, the vendor cart left of the compass, the doorman, the awning lit from below, the still pieces sharp + Grok's bench / hydrant) | Opus 5.5 high | ~3 h |
+| ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
 | **THE ROADMAP REORDERED** | **(the owner, Oct 26 6:01 pm — DECIDED; "OWNER'S NOTES — OCT 26 (after SP5)")** after the city's five above (11a-2 → 9b → ATM → 10 → 11b): LOBBY 2.0 → BOARD 2.0 → (a SHORT game-lineup TALK) → PROGRESSION 2.0 → TV MODE → the GAME LINEUP CHAT → the games → the release; a Fable review + a cleanup after 11b and again after Progression 2.0. 11c / 12 / C3 / 13 stay on the list, slotted by the owner | — | — |
 | R-A | FABLE REVIEW + CLEANUP (after 11b, before Lobby 2.0) | Fable + Opus 5.5 | ~2 h |
-| 14 | Lobby 2.0 + the public crowd | Opus 5.5 high | 90–120 min |
+| 14 | Lobby 2.0 + the public crowd + the winner's banner plane | Opus 5.5 high | 90–120 min |
 | 16 | Board 2.0 — RESCOPED (the owner, Oct 28 — "OWNER'S NOTES — OCT 28 (after 9f)"): no weekly XP ladder; YOUR TABLE (friends: the week's best-10 party results + today's dailies), the daily percentiles + finish bands, a certified HALL of 25 | Opus 5.5 high | 60–90 min |
 | DAILY 1 | the first daily puzzle + THE STREAK ENGINE (one daily streak, the neon tube flame; Downloads\grok\Solo\SOLO-DECISIONS.md + Progression\PROGRESSION-DECISIONS.md first) — after Board 2.0, before Progression 2.0 | Opus 5.5 high | ~90 min |
 | L0 | a SHORT GAME-LINEUP TALK (no build) before Progression 2.0 — the streaks + achievements the daily puzzles / solo games will need | chat | ~30 min |
@@ -3317,3 +3319,154 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   Vercel's env (the service-account key, the pepper), nothing in the repo a cheater could use. Claude reminds him before the launch
   prompts. To go private sooner: a SELF-HOSTED GitHub runner (no minutes used, even private) — the laptop runs out of memory on the
   harbor suite, a mini PC could do it (ties to the RAM / mini PC decision).
+
+## OWNER'S NOTES — OCT 28 (the afternoon review + THE PROMENADE, LOCKED)
+- THE WINNER'S BANNER PLANE (the owner, Oct 28 12:08–12:10 pm — the idea, Claude's shape pending his OK; slot LOBBY 2.0 + the city):
+  (1) AFTER EVERY MATCH, ~2 s after everyone is back in the lobby, the banner plane flies across with the winner — SHORT so it reads on
+  the phone as it passes ("BEN TAKES PRISM DROP!", "CHEERS TO BEN — PRISM CHAMPION"), the wording varied so ten games a night never repeat
+  the same banner; ties ("BEN + SAM SPLIT THE POT!"); the SAME plane on every phone in the room at once (the host's clock + seed); names
+  are room-only (friends already see them; they already pass the filter). Needs the city's SKY visible in the lobby → Lobby 2.0's waiting
+  view. (2) THE NIGHT's CHAMPION — no "we're done" button (the owner: that doesn't make sense): the night = the room's games together
+  (the game-night scoreboard, night/{matchId}, already tracks it). When a player LEAVES the room after 2+ games (QUIT, or the room closing),
+  their title city's banner plane flies "LAST CALL — BEN WINS THE NIGHT" (+ a trail of fireworks or skywriting); a player who just closed
+  the app sees it the NEXT time they open the site within ~12 h ("LAST NIGHT'S CHAMPION: BEN") — stored per device from the scoreboard; a
+  WELCOME MOMENT (ties into the welcome-moments plan). Once per night per device, never repeated.
+- THE BLACKBIRD's PATH (the owner, Oct 28 12:13 pm — DECIDED, for 11c): it flies ABOVE THE NEON SIGN — the strip of sky between the
+  top of the screen + the sign's letters (on an upright iPhone ~30–40 pt tall, the ☰ + music buttons at its corners: the jet crosses the
+  middle, drawn UNDER the buttons, never over the letters), the whole width in ~1–1.5 s (as decided Oct 27), slightly climbing; ~40–50
+  pt long with its plumes so it reads unzoomed; the tap box = the body + plumes (hard but fair). Check the strip's real height at 390 /
+  402 / 430 in Safari (bars shown + hidden) BEFORE building — if it's under ~28 pt, the path dips to cross just over the letters' tops.
+- THE BLACKBIRD MUST LOOK FAST + PREMIUM (the owner, Oct 28 12:14 pm: "long Mach diamond plasma jets coming out of the back … it has to
+  look premium … fast and look fast"): (1) TWO LONG AFTERBURNER PLUMES, together ~1.5–2× the body's length (so the whole thing ~60–75 pt),
+  white-hot + blue-violet at the nozzles fading through orange to a transparent tip, with 4–5 bright MACH DIAMONDS spaced along each
+  (bold bright knots that read as beads at phone size — not fine detail), a flicker in their length + brightness; (2) THE SPEED READ: a
+  glowing STREAK left behind along its path that fades over ~0.8–1 s (the eye reads speed from the trail), a slight stretch / motion blur
+  on the body, a heat shimmer behind the nozzles, the sky + the sign's top edge catching a quick warm glow as it passes over; (3) THE
+  SOUND a beat late (the roar after the jet, the double boom later — the owner's approved Sonniss takes). Built on jets.js's Mach-diamond
+  code, upgraded (the F-22s get the upgrade too). Judged unzoomed on the phone, frame by frame (shots.mjs --cast) + at full speed.
+  + (12:14 pm → 1:07 pm, the owner): "make them very high resolution … the best it can look for an iPhone" → the Blackbird + its plumes +
+  diamonds + streak drawn at the phone's FULL device pixel ratio (3× on an iPhone — its own small full-dpr overlay like 9c's crisp layer,
+  never the city's 2×-capped canvas), the model baked at 3× its largest on-screen size; the same for the F-22s.
+- REVIEW (the owner, Oct 28 1:12 pm): ✔ THE SUNDAY CHURCH BELLS "sound good". THE DOCK's FADE SHORTER: today the dock + the corner
+  buttons fade after 10 s without a touch (js/screens/title.js IDLE_MS 10000; it already waits while the JOIN code is being typed, a sheet
+  / the menu is open or a step is busy) → 5 s (the owner). Claude's tweak (pending): a device's FIRST visit keeps 10 s (a newcomer is still
+  reading the screen + finding HOST / JOIN); every visit after that 5 s. THE QUICK FADE (2 s during a street scene) unchanged.
+- THE TR-3B WORKS PERFECTLY FROM THE PANEL (the owner, Oct 28 1:16 pm): opened a plain link, then ☰ → ADMIN → the TR-3B → "it worked
+  perfectly" — the glitches were THE LINKS (&force=tr3b in the URL). WHY (Claude, from 9f's note "a run forced at load missed its one
+  chance to prepare the slowed audio"): a link starts the event AT LOAD — while the city is still baking + revealing and BEFORE the
+  first tap unlocks iOS audio, so the tape stop has no music to slow + the drain lands on the load's heavy work. FIX (next pass): (1) a
+  legendary FORCED FROM A LINK (&force=tr3b / ufo / implosion …) waits for the reveal AND the first tap, then starts ~4 s later — a link
+  behaves like the panel; (2) THE REAL CASE TOO: a visitor who OPENS THE SITE while a TR-3B is already under way (joined mid-way) hits the
+  same load + no-audio combination — test it (open the plain site mid-drain on the phone path) and make it clean: no stutter during the
+  reveal, the tape joining correctly at the first tap (or the music simply starting at the drained speed / silent until the lights
+  return). Claude's links from now on: the plain city link + "☰ → ADMIN → …" for legendaries until (1) ships.
+- THE IMPLOSION REVIEW (the owner, Oct 28 1:19 pm, from the panel, sound on): ✔ the implosion "looks good", ✔ the FALL looks good, the
+  sound lines up with the fall. FIX (next pass): (1) THE SIREN must be LOUDER (tower-siren-2 sits too low under the city — raise it so it
+  carries over the music like a real distant air-raid siren, still far off); (2) THE HORN BLASTS "sound a little weird … maybe you can
+  synthesize something better … they're all right, if you can't come up with something better, keep them": try a SYNTHESIZED deep
+  compressed-air warning horn (build-synth-sfx.py: two detuned low saw / square partials ~150–230 Hz, a fast attack, a slight pitch sag,
+  a room + distance reverb, three blasts) AND the old backup take (tower-horn.wav) — the panel gets HORN A / B / C so the owner picks by
+  ear; the current one stays unless he picks another; (3) A SECOND CRASH: after the collapse, while the dust rises, "it almost sounds like
+  you hear another crashing noise afterwards" — find it (a second impact inside the rumble file's cut, the rumble + another one-shot
+  overlapping, the dust's own sound, or a one-shot re-firing on a frame / loop) → ONE crash at the fall, then only the rolling rumble +
+  the debris settling, fading.
+- THE CRANE (the owner, Oct 28 1:21 pm): ✔ "looks good at night". BY DAY "it almost looks like it's pulsing a little bit … something
+  crawling around in that code". LIKELY CAUSE (Claude, read-only — docs/harbor.md#bname: crane-model.js#drawCrane CROSS-FADES the two
+  neighbouring slew frames, 3° apart): two semi-transparent copies of a thin lattice blended together go faint + doubled half-way between
+  frames, then sharp again on a frame — a pulse every ~3° of the swing; by day the bright yellow lattice on the sky shows it most. FIX
+  (next pass, measure first with shots.mjs --cast on the day crane): never blend two partial copies — draw the NEAREST frame whole (the
+  swing is slow, ~140 s; if 3° steps show, bake finer steps — 1–1.5°, the budget allows it), or draw frame A at full + B over it at the
+  blend (never both faded); a frame-to-frame check that the crane's brightness + coverage never dip.
+- CONN's TWO-PHONE CHECK POSTPONED (the owner, Oct 28 1:23 pm): "push it till later — I don't have the games made or the lobby hooked
+  up yet" → it moves to LOBBY 2.0's review (host + join on two phones there); stop listing it at the top of every summary until then.
+  (The cloud's smoke test already plays every game on two simulated phones on CONN's code — green.)
+- REVIEW, cont. (the owner, Oct 28 1:27 pm): ✔ THE SITE ON A PARTY NIGHT + its beam "looks great". THE RIVET GUN (by day): LOUDER, and
+  SHORT, INFREQUENT BURSTS instead of ~40 s every 2.5 min ("it almost sounds like a bug in the background") → bursts of ~1.5–4 s (a real
+  riveter's rattle: a few hits, a pause, a few more), a couple a minute at most with long quiet gaps, seeded so it feels irregular, a
+  touch louder than the hammering bed. THE JOGGERS ✔ working, but THEIR KNEES look unnatural ("bent way out in front of them") → a
+  REAL RUNNING STRIDE in the 2.5-D rig (folk.js's run cycle): the knee lifts + flexes behind the hips' line on the swing, the lower leg
+  folds back under the body (heel toward the seat), the foot lands under the body, not reaching far forward; a slight forward lean + the
+  arms bent ~90° swinging opposite; judged unzoomed + frame by frame against a real runner's silhouette. THE BOARD (nicknames): not
+  reviewed — "not worried until later, we'll probably redo it anyway" (Board 2.0).
+- THE UFO ABDUCTION NEEDS PROPER SOUND (the owner, Oct 28 1:35 pm: "too beautiful not to have some sound effects"): today only two
+  slots — `ufo-hum` (a low tonal hum, very quiet, 0.06) + `ufo-beam` (a riser) — check what fills them now (synthesized stand-ins?)
+  and how loud they really sit on a phone. Grok is sourcing real recordings (brief in chat): ufo-hum-2 (a pulsating hover hum), ufo-beam-2
+  (the tractor beam: a rising charge + a shimmering sustain), ufo-lift (the figure rising: an airy upward sweep), ufo-depart (the craft
+  shooting away: a whoosh / a falling pitch), crowd-flee (a distant muffled scared crowd running off — wordless, no clear words or
+  screams up close) → import into the slots (+ new ones) with add-city-sfx.py; the hum + beam must carry on a phone speaker (audible
+  mid-range), still under the music.
+- THE DOORMAN, CONFIRMED (the owner, Oct 28 1:54 pm, with the promenade rework): his BACK FLAT AGAINST THE WALL right of the door (under
+  the blade — visible once the curb lamp is gone), and his HEAD TRACKS each guest as they walk up + in — he watches them go through the
+  door. Readable at phone size by the HAT: the brim + the head's silhouette turn toward the guest (a clear left / centre / right), the
+  body stays against the brick; the push-off + nod when a guest reaches the door as before. Part of THE PROMENADE pass.
+- THE BARBERSHOP AWNING LIT FROM UNDERNEATH (the owner, Oct 28 1:55–1:56 pm — DECIDED "B"): the three small lamps over the awning go;
+  a row of warm bulbs / a hidden strip tucked UNDER the awning's front edge — the underside of the canvas lit so the stripes glow from
+  below, the light washing down the shop window + the HARBOR BARBERS lettering, a warm pool on the sidewalk — through the REAL LIGHT
+  MODEL (9d's door lamp: it lights the brick + glass as surfaces, no additive haze), one clear lit band across the building's foot
+  (reads at phone size); period-correct (NOT a modern back-lit glowing awning). HOURS (Claude's pick, the owner asked): ON AT DUSK by
+  the photocell (the darkness input, like the beacons — earlier on a dark overcast evening), OFF at 1:00 am Sun–Thu + 2:00 am Fri / Sat
+  (+ holiday party nights) — last call; a short warm fade, never a snap; OFF during the TR-3B's blackout with everything else; after it
+  goes off, the shop window keeps its faint night lamp. Part of THE PROMENADE pass.
+- THE URNS ARE DROPPED (the owner, Oct 28 2:09 pm: "can you see them from an iPhone? If you can't tell what it is from a freaking
+  iPhone, we can't use it"). Claude measured it against the real render: a person by the railing at the crosswalk is ~11 pt tall on an
+  upright iPhone, so a waist-high urn there would be ~5 pt — a dark speck, unreadable. NO URNS (and none in Grok's brief — the bench +
+  the hydrant only). THE HOLIDAY ANCHORS are only the BIG pieces that read unzoomed: the RAILING's long run, the TWO TREES, the
+  SPEAKEASY's front (the door, the awning, the windows), the COMPASS centrepiece. (Claude's miss: the urn idea was suggested before
+  checking its size — the phone rule.)
+- THE DOCK FADE — DECIDED (the owner, Oct 28 2:11 pm): 10 s on a device's FIRST visit, 5 s on every visit after (js/screens/title.js
+  IDLE_MS; the quick 2 s fade during a street scene unchanged) — in 9g.
+- The final promenade MOCKUP waits (the owner: still discussing) — Claude reviews Grok's bench / hydrant (/ urn) models first; the urns
+  stay dropped whatever Grok finds (too small on the phone).
+- THE UFO SOUNDS ARE IN (Grok via the owner, Oct 28 2:14 pm — the full processing brief: plan/grok-ufo-sounds-processing.md, to paste
+  into 9g whole): in ~/Downloads/city-sfx (credits.txt "UFO sounds" + "UFO sounds - Ben's extra picks"; Sonniss GDC + the Pixabay
+  licence, no attribution needed, never shipped as loose raw files): HOVER ufo-hum-2.mp3 (1.54 Hz pulse, loop 5.0–40.1 s, the best
+  phone fit) vs ufo-hum-3.wav (1.0 Hz, bass-heavy → saturate / layer, push outside); BEAM ufo-beam-3.wav (activation 0–3 s, idle loop 4–31 s,
+  stop 32–35 s; lower the gain first: +2.5 dBTP; a slight warble so it reads as a beam, not a force field); LIFT ufo-lift-2.wav (a
+  5.95 s riser: a 0.3 s fade-out + a gentle upward bend / an airy layer); DEPART ufo-depart.wav (564 → 150 Hz, trim 0.8–4.8 s) layered
+  over / vs ufo-depart-2.wav (a fast whoosh, 0–3.2 s); CROWD crowd-flee.mp3 (2.0–14.0 s; avoid 62–70 s; WORDLESS checked by
+  speech-to-text only) + quiet footsteps-cobble.wav under it. IGNORE ufo-beam-2.wav + ufo-lift.wav; the older ufo-hum.wav / ufo-beam.wav
+  left alone. Shipped compressed (~96–128 kbps), the set ≈ 2 MB. NOBODY HAS LISTENED (Grok measured only) → the panel gets HUM A / B +
+  DEPART A / B / LAYERED so the owner picks by ear; he confirms the crowd has no words or close screams. Slot: 9g (with the UFO-link fix).
+- THE BENCH + HYDRANT MODELS ARE IN (Grok via the owner, Oct 28 2:16 pm): C:\Users\benja\Downloads\Grok\models\promenade\ — bench\
+  fancy_bench.glb (#1, 27 MB) + park_bench.glb (#2, 10.6 MB); hydrant\ fire_hydrant.glb (#1, 55 MB) + american_fire_hydrant.glb (#2,
+  14.9 MB, painted GREEN → recolour to the city's red); each folder's credits.txt = the CC BY lines for both + flaw notes (→ the CREDITS
+  sheet for whichever ships). No urns (dropped). THE PROMENADE pass: copy (never edit), sources over ~20 MB git-ignored (only the baked
+  sprites ship, a few KB), bake each candidate with the one bake tool at the camera's real view + real size (the bench ~40 pt wide, the
+  hydrant ~17 × 20 pt at the left curb) by day + night, side by side with the hand-drawn piece, UNZOOMED — pick the better; the HYDRANT
+  only if it clearly beats the hand-drawn one at that size (era-correct: a domed bonnet, not a modern squat hydrant).
+- THE FINAL-LAYOUT MOCKUP (Oct 28 ~2:20 pm, Claude — real renders of a scratch copy: the lamps out, the hydrant at the left curb, the
+  compass r 1.55 → 1.8 / ring 2.6 → 3.05 + forward z 44.8 → 42.6; the light + the crosswalk + the shadows painted on): plan/ — sent to the
+  owner. Finding: brought forward + bigger, the centrepieces scale up with it — Halloween's giant pumpkin becomes the hero but covers the
+  bench + the crosswalk stripes + reaches the railing. PENDING the owner: keep that scale, or the bigger compass with the centrepieces
+  capped at today's on-screen size.
+- THE CAB STAND (the owner, Oct 28 2:23 pm — the idea, Claude: YES with these rules; for THE PROMENADE pass): the front-right TREE moves
+  left a touch; THE BENCH moves from the back-left to the FRONT CURB beside it, FACING THE STREET (its sitters face the viewer — front-on
+  figures read better at phone size; the front row is ~25–30 pt people); people walk up + WAIT there, and a TAXI pulls up on the FRONT
+  STREET (under the dock), they get in, it drives off — another way to leave. RULES: (1) the street under the dock is a stage only while
+  the dock is HIDDEN (9e) — the cab never arrives / is never seen while the dock shows; a scene already under way finishes under the
+  dock; (2) waiters who've waited a while with the dock up give up: walk off, or hail a cab on the BACK road (core/harbor-cabs.js's own
+  cabs) — never stuck forever; (3) the cab = the existing taxi model + its TAXI lamp (free → lit, taken → off); (4) FEASIBILITY FIRST:
+  the bench + its sitters + the tree's new spot must stay clear ABOVE the dock (the HOST button sits right under it) at 390 / 402 / 430
+  with Safari's bars shown + hidden — check the numbers before building; (5) the back-left spot left empty → a clearer view of the
+  water (+ the left tree). People still sit + watch the water elsewhere (the railing).
+- THE CAB STAND LAYOUT RENDERED (Oct 28 ~2:30 pm, the scratch copy: the framing maple f 0.888 z 38.2 → f 0.875 z 42.0 — moved BACK,
+  its whole crown shows; THE BENCH f 0.515 z 47.8 → f 0.875 z 38.0 — at the front curb in front of the tree, facing us, fully above the
+  dock + the HOST button at 402; the back-left spot by the crabapple left empty). NOTE: the crosswalk's stripes already exist by day — only
+  the NIGHT light is missing. CONFLICT TO SOLVE: the VENDOR SPOT (the chestnut cart 6:30–9:30 pm cold months / the newsboy mornings, f
+  0.805 z 38.4) now crowds the bench → Claude's pick (pending): move it to the front-middle LEFT of the compass (~f 0.5, z 38.4), the
+  open floor's front. Anything else permanent: NO (the owner: "we can always add stuff later") — the open floor stays for people,
+  centrepieces + events.
+- DECIDED (the owner, Oct 28 2:32 pm): (1) THE COMPASS bigger (r 1.8 / ring 3.05) + brought forward (z ~42.6), BUT THE CENTREPIECES
+  KEEP TODAY'S ON-SCREEN SIZE ("unless noted otherwise" — a piece may be marked bigger case by case); the bench + the crosswalk stay
+  visible behind / beside them. (2) THE VENDOR CART moves to the front-middle LEFT of the compass (~f 0.5, z 38.4) — clear of the cab
+  stand. THE PROMENADE plan is LOCKED: no lampposts · the implied lamps behind the viewer (pools on at dusk one by one, shadows up the
+  screen, neon reflections in the rain) · the lit crosswalk (night light only — its stripes exist) · the hydrant at the left curb ·
+  the bigger compass, centrepieces at today's size · the right maple moved back (f 0.875, z 42) + THE CAB STAND bench in front of it
+  at the front curb facing us (the waiters + the taxi on the front street while the dock rests) · the vendor cart left of the compass ·
+  the doorman against the wall right of the door, his head following the guests · the barbershop awning lit from underneath (B) ·
+  the still pieces sharp (+ Grok's bench / hydrant models if they win the side-by-side) · the holiday anchors = the railing, the two
+  trees, the speakeasy's front, the compass. Slot: THE PROMENADE pass, right after 9g, before ATM + 11b.
+- A SECOND BENCH FACING THE WATER (the owner, Oct 28 2:36 pm — DECIDED): back at the old spot by the left crabapple (f ~0.515, z ~47.8)
+  but TURNED TO FACE THE HARBOR — its sitters seen from BEHIND (hats + shoulders against the lit water: a clear silhouette at phone
+  size), strollers stop + sit a few minutes, couples watch the skyline. Low (~15 pt), so the view stays open; the middle stays clear.
+  Two benches, two jobs: the FRONT one = the cab stand (faces the street), the BACK one = watching the water. Part of THE PROMENADE pass.
