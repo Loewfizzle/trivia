@@ -65,7 +65,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | 9b | ✅ (Oct 27 — docs/harbor.md#part-9b: the climate fallback; the snowpack's stages on every top + the plaza + the road + the speakeasy; the lit snowfall; the plow + the salt truck; the shovellers, the snowball fight, the slip; the fluffy snow on the NEON that piles only while it's off + melts in clumps when lit; the January snowman; CREDITS fixed; the phone rule) WINTER (the snowpack stages, plows / salt / shovelers, the snowman, snow on the sign + the speakeasy, frost on the glass; + the climate-aware fallback, the CREDITS bug, the phone rule in CLAUDE.md) | Opus 5.5 high | ~3 h |
 | UFO | ✅ THE UFO BAKE — sebslom's model as sprites (the owner: "looks good"; hover higher + the flight's stutter → 9c) | Opus 5.5 high | ~1 h |
 | 9c | ✅ (Oct 27 — docs/harbor.md#9c: the sign's snow glows + goes dark in the blackout; the forced plow in view at once; trodden lanes, big banks, the shovel stroke, the snowman's sticks, City 1.0's frozen pane; THE CRISP LAYER; the centrepiece floods; the boss's cream blind; the blind cycle — no window scene pops in; the UFO above the wheel) THE FIXES — winter made to read, the crisp layer, the centrepiece floodlights, the sign's snow in the blackout, the boss's cream blind, the window-scene rule, the UFO higher + smooth | Opus 5.5 high | ~3 h |
-| 9d | ← NEXT: THE CONSTRUCTION TOWER (the yearly cycle + the implosion) + THE CITY LIFE (the dead times filled, the street under the dock as a stage + the quick fade) + THE SAX REWORK | Opus 5.5 high | ~3 h |
+| HOT1 | ✅ (Oct 27 — the night freeze: the back window's peek threw every frame and the loop stopped; fixed, failed frames reported to /admin, e2e-harbor `freeze`) | Opus 5.5 high | ~30 min |
+| 9d | ← NEXT: THE FIXES II — the TR-3B + snow + party glitch, the doors (snap + real light + the flat giant), the sign's snow lit naturally + the frost pane only, the beacons at sunset, the admin panel in ☰ | Opus 5.5 high | ~3 h |
+| 9e | THE CONSTRUCTION TOWER (the yearly cycle + the implosion) + THE CITY LIFE (the dead times filled, the street under the dock as a stage + the quick fade) + THE SAX REWORK + two vehicle models (the taxi + the police car) to compare | Opus 5.5 high | ~3 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
@@ -2944,3 +2946,154 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   the ANGLE SWITCH during the arrival + departure is the prime suspect for the skip: bake more angles (e.g. every ~2–3°) or crossfade
   over a longer stretch, so the flight is one continuous change. Also: a forced preview on a slow link shows nothing for up to 4 s —
   pre-load the sheet when the preview is asked for.
+
+## OWNER'S NOTES — OCT 27 (after 9c + the hotfix)
+- HIGH THIN CLOUDS READ AS A DREARY GREY DAY (the owner, Oct 27 5:50 pm, a screenshot of the live Grand Rapids sky — real sky: "high,
+  spread-out thin clouds, but you can see blue through them"; the city: a flat grey-mauve overcast, the whole scene dull) — FOR ATM.
+  The sky must follow the cloud LAYERS (Open-Meteo's cloud_cover_low / _mid / _high, which the weather already reads): HIGH thin cloud
+  (cirrus / cirrostratus) = a bright VEIL with BLUE showing through in breaks + streaks, the sun softened but still casting light,
+  the city's colours + shadows near a clear day; only thick LOW / MID cloud (stratus, nimbostratus, a real overcast) greys the scene.
+  Mixed skies (blue gaps between cloud banks, broken altocumulus) look mixed. Compare the live sky to the real one on the owner's phone.
+- THE RED BEACONS ON AT SUNSET (the owner, Oct 27 6:28 pm — DECIDED, slot 9d): real obstruction lights switch on by a light sensor as
+  the daylight drops — around SUNSET. Today (lights.js#drawBeacons) the red pulse follows the night input, landing closer to the blue
+  hour. → the red beacons fade on AT SUNSET (a photocell's soft ramp over a minute or two), so they blink through the last of golden
+  hour into dusk; on a dark overcast evening they come on earlier (the real light level — harbor-dark's darkness input); the white
+  strobe on the tallest by day hands over to the red at the same moment; off again at sunrise the same way.
+- THE DOORS STILL SNAP SHUT (the owner, Oct 27 6:59 pm: when people go in + out of the speakeasy "it still just kind of snaps at the
+  end … not smooth. Since that happens so much, we really need to get that right") — slot 9d, Group 0, measured first. Read-only
+  facts: the swing is core/harbor-people.js#doorOpenK (open 0.8 s, close 0.9 s, a smoothstep) — smooth on paper, so the snap is likely
+  ELSEWHERE: (1) THE HAND-OFF at the end — the live leaf (doors.js) drawn only while k > 0, then the BAKED closed door takes over: if the
+  baked door's light, shade, pane or position differs at all from the live leaf at k ≈ 0, it pops (pixdiff the last live frame vs the
+  first baked one); (2) the doorway's light SPILL / the amber passage cut off at once instead of fading with the swing; (3) several walkers
+  or groups (doors[...] = max of their curves, lag per member) restarting / dropping the curve between people; (4) the planner or a 30 fps
+  path stepping the leaf. FIX: one continuous swing every time — a real door closer's motion (it swings shut, SLOWS for the last few
+  degrees, a soft latch with the faintest settle), the spill fading with the gap, the live leaf identical to the baked door at the end
+  (or the live leaf kept until it's pixel-equal); a check that the door's pixels never jump between two frames. Judged on the phone
+  with &force=doors, side door + shop door, day + night.
+- THE DOOR's FLOODLIGHT LOOKS CHEAP (the owner, Oct 27 7:50 pm: "too weak at first, now it might be too bright … all the other lights
+  look so realistic, but in the foreground, where it's the most important, it looks the most cheap") — slot 9d. WHY (read-only):
+  speakeasy.js#flood (POL4) is ONE ADDITIVE ELLIPTICAL GRADIENT pasted over the door ('lighter', DOOR_FLOOD k 0.42) — it adds orange haze
+  on top of everything (the mortar, the dark recess, the door alike) instead of LIGHTING the surfaces, so it can only be "a weak blob" or
+  "a washed-out blob"; that's why tuning its strength never fixes it. FIX: light it like the rest of the city — (1) the light MODULATES the
+  surfaces it hits (the brick lit as brick: the faces brighter + warmer, the mortar + recesses staying dark — a lit copy of the wall /
+  door / steps blended in by the lamp's falloff, the same model as core/harbor-light.js's pools), (2) the lamp's real SHAPE: a shaded
+  1920s gooseneck / sconce throwing a cone with a crisp top edge under its shade and a scalloped spread down the wall, (3) SHADOWS: the
+  door frame + the lintel + the person in the doorway casting soft shadows, the steps' top faces brighter than their risers, a pool on
+  the cobbles in front, (4) the fixture itself: a hot bulb / lens with a small glare + its own glow. Brightness set against the street
+  lamps (the door's lamp a touch warmer + closer); judged at night on the phone, unzoomed, before / after, both doors.
+- AFTER 9c (Oct 27 ~7:50 pm) — for 9d / the review: (1) THE CRISP LAYER CAME OUT NARROWER than decided — only the blade, the date stone
+  + the roof billboard; the skyline's word signs + vertical blades and the promenade's still set pieces were left soft because "a layer
+  drawn over the city can't go behind a person walking past". That's a limit of the OVERLAY approach, not of the idea: those pieces can
+  be BAKED / composed at the phone's full DPR IN THEIR OWN PLACE in the layer order (their own canvas at 3×, drawn where they are now),
+  so walkers + birds + planes still pass in front. → 9d: do it for the skyline's word signs + blades and the still set pieces if they
+  look soft on the owner's phone (he judges; memory measured). (2) "At its brightest the floodlit giant reads a little flat" — the same
+  lesson as THE DOOR's FLOODLIGHT: light must MODULATE the surface (lit faces, dark creases, a shadow side), never add a wash. (3) The
+  UFO still sits in front of the tallest towers at hover (clearing them would put it behind the tagline) — the wheel is clear (accepted
+  unless the owner objects). (4) THE FROST LOOK: the owner picks PANE / BUTTONS / BOTH.
+- SOURCED 3D MODELS (the owner, Oct 27 7:58 pm — DECIDED, after the UFO "looks so good"): Grok finds royalty-free models for (1) THE
+  CHRISTMAS TREE (11b — urgent), (2) the TR-3B BLACK TRIANGLE, (3) the foreground 1920s VEHICLES kit (taxi, sedans, police, delivery,
+  bus, the plow / work truck), (4) the SUPERYACHT (Part 10), (5) the SR-71 BLACKBIRD (11c), (6) the GHOST SHIP (next Halloween); each
+  baked into sprites like the UFO (scripts/bake-ufo.mjs generalised into one bake tool), credited. NOT sourced: photo textures for the
+  brick / cobbles (would clash with the painted style), the Ferris wheel + lighthouse (woven into too many systems), people + window
+  scenes (models don't help at 15–20 pt). Grok's brief: grok-city-models.md; files → ~/Downloads/city-models/<object>/.
+- 9c PHONE REVIEW (the owner, Oct 27 8:14 pm): (1) THE SIGN SNOW's PINK GLOW "glows too much pink — give up on that idea and revert
+  back to how it was" → REVISED (8:19 pm: "maybe a little glow, just whatever's natural, not nearly as much … the neon
+  sign is a light source, and you know how snow gets affected by light"): 9d — the snow stays WHITE, LIT by the tube like any
+  white surface next to a coloured light: a soft tint of the tube's colour only where the light reaches (strongest in a thin band
+  right at the contact + the mound's underside, fading within a few pt), a faint warm-pink sheen on the faces turned toward the
+  tube; NO glowing-from-within mass, NO halo; roughly a quarter of 9c's strength or less — the mound must read as white snow at a
+  glance. Keep the blackout fix (dark with the power). (2) TWO PREVIEW LINKS CRASHED HIS iPHONE — 9d GROUP 0, TOP PRIORITY (a crash on a real phone is worse than any look):
+  the BLACKOUT + SNOW link (&when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b&lgs=15: "glitched my phone, I can't do anything") and
+  the WINDOW SCENE STARTING WITH THE BLIND (&force=window&moment=peek: "crashed the site"). Reproduce on WebKit / the iOS memory
+  limits, find the cause (memory blow-up? an exception loop? a canvas too big?), fix, and add both to the e2e. Check the other 9c
+  links don't do it. (3) THE FOOTPATHS "look a lot better" ✔; THE BANKS + THE PLOW / SALT "look good" ✔. (4) THE SHOVELLERS: "alright,
+  but their motions are not very smooth — that's okay, we can't be too picky" → leave (polish-after list). (5) THE FROST ON THE
+  BUTTONS "looks bad": either really subtle, the whole button frosted, or nothing → Claude's pick (pending his yes): NOTHING on the
+  buttons — keep City 1.0's PANE only (the frost lives at the screen's edges; the buttons stay clean glass). (6) THE UFO's hover +
+  height "perfect" ✔. (7) REMIND HIM: ask Grok for an F-22 model / render for the TR-3B's jet chase (added to the models brief).
+- 9c PHONE REVIEW, cont. (8:23–8:25 pm): a THIRD night load froze right after the power-on (his LOAD log: ready 1.49 s, t2, 60 fps
+  0% slow, "+1.51 s power" then frozen) → an URGENT HOTFIX pass (HOT1) before 9d: find + fix the 9c night regression, push with the
+  deploy tag. APPROVED ✔: the snowman's arms, the floodlit giant ("better"), the cream blind, the walk-up scene, the sharper blade +
+  billboard. LATER (polish list, not now): THE BLADE's LETTERING ("a weird font … almost like 3D letters, painted for close-up detail,
+  not for an iPhone — but it's fine, you can read it") → flatter, bolder letters with one clean edge + a crisp shadow; THE SKYLINE
+  SIGNS "slightly soft, not too bad" → the proper full-DPR sign layer later. THE BUTTON FROST: none on the buttons, the pane only
+  (DECIDED).
+- THE PREVIEW PANEL NEEDS A CLEAN-UP (the owner, Oct 27 8:45 pm: "take a better look at organizing now that we added a lot more
+  stuff. Put TIME closer to the top, if not the top — I use that one more than anything") — slot 9d. Today (core/harbor-remote.js
+  SECTIONS, C2): SKY · LEGENDARY · SPEAKEASY · HOLIDAYS · PEOPLE + WORKERS · WILDLIFE · HARBOR · WEATHER · TIME (9th!) · LIGHTS +
+  MUSIC · TOOLS, + the search box. DECIDED (9:54 pm, "admin panel sounds good"): (1) a PINNED "NOW" BAR at the very top, always open: TIME first
+  (the date + the time, quick chips — dawn · morning · noon · golden hour · dusk · 10 pm · 2 am · TODAY; the date's holiday chips),
+  then WEATHER's quick chips (clear · clouds · rain · storm · snow · fog · freeze · windy), JUST ME / EVERYONE + CLEAR ALL; (2) a RECENT
+  row (the last ~6 things he used, one tap to repeat); (3) the sections re-ordered by use: HOLIDAYS · SPEAKEASY (windows inside) · SKY ·
+  LEGENDARY · PEOPLE + WORKERS · WINTER (the snow, the snowman, the plow) · WILDLIFE · HARBOR · LIGHTS + MUSIC · TOOLS; PLAY ALL inside
+  each; (4) every row's label plain + short (the hint under it), no duplicates across sections; the search kept at the top.
+  + (8:46 pm, the owner): MOVE THE TEST PILL INTO THE ☰ MENU — "put it in the bottom in there, call it ADMIN or TEST … that way it's
+  not taking up anything on my screen": the TEST pill leaves the screen; the title's ☰ menu gets an ADMIN row at the BOTTOM (admins
+  only, as the pill was) that opens the panel. Claude's note: while a preview is ACTIVE (JUST ME / EVERYONE), keep a tiny cue so he
+  never mistakes a forced city for the real one — a small coloured dot on the ☰ button (+ "ADMIN · JUST ME · 10/27 22:30" on the row,
+  with CLEAR there); the big status pill with its × goes away.
+- THE MODELS ARE IN (the owner, Oct 27 9:23 pm): Grok found good ones — the CHRISTMAS TREE (undecorated + a decorated one with
+  presents under it), several 1920s–30s VEHICLES, the SR-71 BLACKBIRD, the F-22, the GHOST SHIP, the SUPERYACHT; NO good TR-3B triangle
+  (keep the hand-drawn one; search again later). WHERE: in ~/Downloads/grok/ — under a models folder ("somewhere in there": the pass
+  that uses them SEARCHES Downloads/grok for them + their credits). Grok is sending a summary of what he has → into this plan when it
+  arrives. Each goes in with the pass that needs it: the tree → 11b, the yacht → Part 10, the vehicles → a vehicles bake (after 9e), the
+  Blackbird + the F-22 → 11c / the jets, the ghost ship → before next Halloween; all through ONE generalised bake tool (bake-ufo.mjs's
+  method), credited.
+- THE BLACKBIRD's AUDIO TELL (the owner, Oct 27 9:23 pm — DECIDED, for 11c's Blackbird quick-tap sighting): ~3 s BEFORE the SR-71 screams
+  across, a hint for those paying attention — a short burst of RADIO STATIC / interference crackling over the music (as if the song's
+  signal is being jammed; a brief crackle + a dip / bit-crush on the music, ~0.5–1 s), and with the music OFF the same static as a
+  quiet sound effect; then the jet. Claude's notes: keep it short + rare so it never annoys; the roar arrives a beat AFTER the jet (sound
+  lags a high, fast plane) with a soft double sonic-boom; a Grok sound prompt (radio static / interference + an SR-71 roar + a distant
+  double boom) BEFORE 11c.
+  + (9:30 pm, the owner): "make sure you get that thing screaming across. It's got to go fast and hard to tap — you got to be lucky to
+  see it." → it crosses the WHOLE screen FAST (~1–1.5 s), slightly climbing, a sharp silhouette; its AFTERBURNERS LIT (it really cruised
+  in afterburner): two long bright plumes with MACH DIAMONDS, hot white-blue at the nozzles fading to orange, a faint heat shimmer;
+  rare (the sighting's rarity), the tap window = only while it's on screen, the hit box just its body + plumes (fair but hard).
+- THE MODELS INVENTORY (Grok's summary, Oct 27 9:34 pm) — in C:\Users\benja\Downloads\Grok\models\ (unmodified originals: work from
+  COPIES into art/models/<x>/, never edit the originals; each subfolder has a credits.txt — all CC0 or CC BY 4.0 → the CREDITS sheet):
+  (1) xmas-tree\ — christmas_tree.glb: UNDECORATED, no textures (colour materials only), ~1.23M faces / 70 MB (bake in pieces if the
+  laptop's memory struggles; give the needles a real material) = THE BASE (our own lights, ornaments + star); xmas_tree.glb: DECORATED
+  (lights, a star, gifts at the base — the gifts may need hiding; or use it for a window / the lobby). (2) blackbird\ —
+  sr-71_blackbird_free_downloadable.glb: untextured (2 materials), no markings → a dark matte material + our own afterburner plumes.
+  (3) f22\ — f22_raptor_free.glb: grey PBR textures, ANIMATED, gear DOWN by default → use the gear-up pose; check the textures for small
+  stencil text. (4) vehicles\ — 1928_chevy_tudor.glb (the TAXI base, repaint yellow), 1936_american_sedan_free.glb (the POLICE car base),
+  ford_model_a_v2_downloadable.glb (untextured; has a TEXT OBJECT to delete), free_1938_vairogs_v8_van_ford_based.glb (the DELIVERY
+  VAN), free_1940s_city_buscoach_white_motor_co..glb (the CITY BUS; the double dot is normal), 1938_vairogs_v8_flatbed_truck_ford_based.glb
+  (the WORK TRUCK: the plow / dump base); remove EVERY maker badge, hubcap logo + readable text. Claude's note: the city is 1920s — the
+  1936–1940s bodies run a decade late (the kit is already "1920s–30s"); fine at phone size, but the 1940s bus is the most out of era —
+  keep it only if it reads 1920s–30s once lit + painted. (5) superyacht\ — yacht.glb: dark hull, multi-deck, a helipad, no textures but
+  69 materials (split the windows + deck lights by material), no name. (6) ghost-ship\ — dutch_ship_large_02_4k.gltf + .bin + textures\
+  (9 maps at 4K: hull, rigging, sails × diffuse / normal (GL) / ARM) + a preview png (reference only); the translucent green ghost look is
+  ours. NOT FOUND: the TR-3B (dropped — the hand-drawn one stays). All baked through ONE generalised bake tool (bake-ufo.mjs's method).
+  THE SIZE RULE (the owner + Grok, 9:35 pm: "70 MB for a small Christmas tree?"): phones NEVER get a model — only the baked images (a
+  few hundred KB, like the UFO's 398 KB). The big SOURCE files stay OUT OF GIT: GitHub warns at 50 MB and refuses 100 MB, and every clone
+  + cloud job would download them forever → a source over ~20 MB lives in a git-ignored folder on the laptop (art/models-local/ or
+  read straight from Downloads\Grok\models), only its credits.txt + the bake settings committed; the baked sprites are what ship.
+  WHICH MODELS ARE WORTH THE USAGE (the owner, Oct 27 9:43 pm — DECIDED, "that sounds great"): (1) the CHRISTMAS TREE — yes (11b),
+  (2) the SUPERYACHT — yes (Part 10), (3) the BLACKBIRD + the F-22 — "absolutely" (11c / the jets), (4) the VEHICLES — only TWO for now,
+  to compare against the current hand-built kit (the TAXI from the 1928 Chevy + the POLICE car from the 1936 sedan), in a short bake
+  folded into 9e; the rest only if the owner wants them after seeing those two, (5) the GHOST SHIP — next year, before Halloween. Every
+  bake folded into the pass that needs it (no separate runs), one shared bake tool.
+- HOT1 RETEST (the owner's iPhone, Oct 27 9:51 pm): the plain night city ✔, the PEEK link ✔ — fixed. THE TR-3B + SNOW link STILL
+  GLITCHES ("froze up … very glitching … definitely issues"; his screenshot: t2, 60 fps 0% slow at that instant, ready 1.71 s; Jan 15
+  2027 is a FRIDAY = a PARTY night (lit swap "party") + fresh snow + the frost + the blackout + the TR-3B all at once). → 9d GROUP 0,
+  FIRST: read the phone's error reports in /admin (HOT1 now sends every failed frame there) + reproduce the COMBINATION (party + snow +
+  frost + blackout + the craft) at DPR 3 with 4× CPU; look for frame spikes (not just exceptions): the blackout's re-bakes, the party
+  show + the snow's caps re-baking, the frost overlays, the tape-stop audio. ALSO SEEN in the log: "snowman face · 59% · slumping ·
+  12 °C" while the link forced temp=-6 → the snowman (+ maybe the snowpack) ignores the &temp= override — fix. ALSO: "that TEST
+  button, you got to move it under the menu … get it out of the way" → the ADMIN row in ☰ (already planned) — do it in 9d.
+- THE BLACKBIRD's SOUNDS ARE IN (Grok via the owner, Oct 27 10:08 pm — for 11c): in ~/Downloads/city-sfx/ (credits.txt's "Blackbird
+  sounds" section; all SONNISS GDC — royalty-free for commercial games, NO credit line needed, never redistributed as loose files: only
+  processed excerpts ship, like the other city sounds; unmodified originals → process from copies). (1) radio-static.wav — the warning:
+  old-radio tuning warble + static, 15 s, 96 k / 24-bit mono, THREE takes split by silence (0–3 s, 6.2–9.4 s, 11.2–14.2 s) → trim ~0.5–1 s
+  each, use all three as variations; strong mid-range (phones). (2) jet-scream.wav — the flyby: an F-16 overhead pass with a strong
+  Doppler, peak ~4.5 s, 25 s stereo → use 1.5–8.5 s, the peak lined up with the jet crossing; ignore after ~14 s (a steady tone); the
+  stand-in (no PD SR-71 recording exists). (3) sonic-boom.wav — a distant explosion standing in (no licensed double boom), single hit,
+  17 s mono → use 0.6–5.0 s, played TWICE ~0.15–0.3 s apart for the "boom-boom", distant + low. (4) jet-afterburner-roar.wav — a
+  distant F/A-18 roar fading, 27 s stereo → use 5–18 s (the engine cuts ~19 s); low-mid, keep enough mid for phones. ORDER: the static
+  (~3 s before) → the scream as it crosses → the roar trailing → the boom a beat later, far off. Grok checked them only visually — the
+  OWNER LISTENED to all four (10:09 pm): "they're good to go" ✔.
+- THE F-22s USE THE NEW MODEL — EVERYWHERE (the owner, Oct 27 10:08 pm): every F-22 in the city — the TR-3B's jet chase, the air show,
+  the surprise flyby, the missing man — is drawn from Grok's f22_raptor_free.glb (gear UP, stencil text removed), baked like the UFO,
+  replacing jets.js's hand-drawn Raptor; the Mach diamonds, the afterburner + the heat haze stay code on top. Slot: with the Blackbird
+  in 11c (one bake of both jets), or earlier if a pass touches the jets first.
