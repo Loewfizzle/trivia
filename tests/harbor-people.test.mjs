@@ -327,6 +327,19 @@ test('FP3b — REAL DOORS: nobody fades on the promenade — through the speakea
   }
   assert.ok(sideOpen > 20 && shopOpen > 10 && through > 100, `doors in use over the day (side ${sideOpen}, shop ${shopOpen}, ${through} member-frames in a doorway)`);
 });
+test('9d — THE DOOR CLOSER: the swing shut is one continuous motion — it starts gently, sweeps, SLOWS through the last ~9° and comes to rest at the latch (no speed left: never a snap)', async () => {
+  const { closerLeft, CLOSER } = await import('../js/core/harbor-people.js');
+  assert.equal(closerLeft(0), 1); assert.equal(closerLeft(1), 0);
+  const N = 2000, v = [];
+  for (let i = 0; i < N; i++) v.push((closerLeft(i / N) - closerLeft((i + 1) / N)) * N);   // (the closing speed, swings per closing time)
+  assert.ok(v.every(x => x >= -1e-9), 'it never swings back open');
+  assert.ok(v[0] < 0.05, `it starts from rest (${v[0].toFixed(3)})`);
+  assert.ok(v[N - 1] < 0.02, `no speed left at the latch (${v[N - 1].toFixed(3)})`);
+  let jump = 0; for (let i = 1; i < N; i++) jump = Math.max(jump, Math.abs(v[i] - v[i - 1]));
+  assert.ok(jump < 0.01, `the speed never jumps (${jump.toFixed(4)} per step)`);
+  const at = closerLeft(CLOSER.sweep), peak = Math.max(...v), late = v[Math.round(N * 0.9)];
+  assert.ok(Math.abs(at - CLOSER.latch) < 1e-9 && late < peak * 0.35, `slow through the last degrees (${late.toFixed(2)} vs the sweep's ${peak.toFixed(2)})`);
+});
 test('FP3b — THE DANCE CIRCLE (the routines layer): party nights only, at the peak; dancers out of the side door + back in; the crowd routes round the compass while it dances; within the cap; tier 0 keeps 4 dancers', async () => {
   const { DANCE, danceSlot } = await import('../js/core/harbor-routines.js');
   const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), m = L.medallion;

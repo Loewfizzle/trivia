@@ -245,6 +245,36 @@ export function paintWindow(x, M, a, b, r0, r1, o) {
 
 /** THE GROUND FLOOR: the barbershop (its window with the chair + the mirror wall + gold leaf, its door + the OPEN / CLOSED card),
  *  the pole's brackets, the unmarked side door, the basement window, the sconce */
+// 9d — THE DOORS' LEAVES, shared: the bake paints them in place and doors.js paints the SAME leaf (+ the wall's light over it: paintLight,
+// + the sconce's light on its upper planks) onto the swinging door — so the door that swings shut IS the baked door (the owner: "it
+// still just kind of snaps at the end"; the live leaf was a plain amber-tinted board that turned into the detailed bake at the latch)
+/** the sconce's lamp level on the side door (0..1) — the bake's own reading of the tones */
+export const sideLampK = M => clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
+/** THE UNMARKED SIDE DOOR's leaf (wall units, v up; d = s.door): heavy oak planks, iron strap hinges, the grille (the peephole), a brass knob */
+export function paintSideLeaf(x, M, d) {
+  const oak = tri(M.T, [66, 40, 28], [80, 44, 30], [16, 11, 16]);
+  R(x, d.u0, 0.12, d.u1, d.h, oak);
+  x.fillStyle = rgb(shade(oak, -0.3)); for (let u = d.u0 + 0.25; u < d.u1; u += 0.25) x.fillRect(u, 0.12, 0.02, d.h - 0.12);
+  x.fillStyle = rgb(shade(oak, 0.12)); for (let u = d.u0 + 0.05; u < d.u1; u += 0.25) x.fillRect(u, 0.12, 0.02, d.h - 0.12);
+  for (const v of [0.6, d.h - 0.55]) { R(x, d.u0, v, d.u0 + 0.75, v + 0.09, M.iron); x.fillStyle = rgb(M.iron); x.beginPath(); x.arc(d.u0 + 0.75, v + 0.045, 0.07, 0, Math.PI * 2); x.fill(); }
+  const gu = (d.u0 + d.u1) / 2; R(x, gu - 0.2, 1.62, gu + 0.2, 1.98, M.iron); R(x, gu - 0.15, 1.67, gu + 0.15, 1.93, tri(M.T, [20, 16, 18], [24, 16, 18], [4, 4, 8]));
+  x.fillStyle = rgb(M.iron); for (let u = gu - 0.1; u <= gu + 0.11; u += 0.1) x.fillRect(u - 0.015, 1.67, 0.03, 0.26);
+  x.fillStyle = rgb(M.gilt); x.beginPath(); x.arc(d.u1 - 0.22, 1.18, 0.06, 0, Math.PI * 2); x.fill();
+}
+/** the sconce's light on the side door's upper planks (additive; the caller is in 'lighter') */
+export function sideLeafLamp(x, M, d) {
+  const lk = sideLampK(M); if (lk <= 0.01) return;
+  const W = [255, 196, 130], g3 = x.createLinearGradient(0, d.h, 0, d.h - 1.8);
+  g3.addColorStop(0, rgb(W, 0.42 * lk)); g3.addColorStop(0.45, rgb(W, 0.16 * lk)); g3.addColorStop(1, rgb(W, 0)); x.fillStyle = g3; x.fillRect(d.u0, d.h - 1.8, d.u1 - d.u0, 1.8);
+}
+/** THE SHOP DOOR's leaf (wall units): the glazed wood door — the wood, the glass (the shop inside at night), the lower panel, the knob */
+export function paintShopLeaf(x, M, sh) {
+  const night = M.night > 0.5, [d0, d1, dh] = sh.door;
+  R(x, d0, V.plinth - 0.05, d1, dh, M.wood);
+  R(x, d0 + 0.12, 1.25, d1 - 0.12, dh - 0.12, night ? mix(M.inside, M.glassTop, 0.15) : mix(M.glassTop, M.inside, 0.45));
+  R(x, d0 + 0.12, V.plinth + 0.1, d1 - 0.12, 1.1, shade(M.wood, -0.15));
+  R(x, d1 - 0.2, 1.05, d1 - 0.13, 1.18, M.gilt);
+}
 export function paintGround(x, M, s) {
   const night = M.night > 0.5, open = !night, sd = M.sd, sh = s.shop;
   const [w0, w1, wv0, wv1] = sh.win, [d0, d1, dh] = sh.door;
@@ -300,11 +330,8 @@ export function paintGround(x, M, s) {
   R(x, w0 - 0.07, wv0, w0, wv1, M.frame); R(x, w1, wv0, w1 + 0.07, wv1, M.frame);
   // THE SHOP DOOR: a glazed wood door, a transom, the card (OPEN by day, CLOSED at night)
   R(x, d0 - 0.1, V.plinth - 0.05, d1 + 0.1, dh + 0.5, sf);
-  R(x, d0, V.plinth - 0.05, d1, dh, M.wood);
-  R(x, d0 + 0.12, 1.25, d1 - 0.12, dh - 0.12, night ? mix(M.inside, M.glassTop, 0.15) : mix(M.glassTop, M.inside, 0.45));
-  R(x, d0 + 0.12, V.plinth + 0.1, d1 - 0.12, 1.1, shade(M.wood, -0.15));
+  paintShopLeaf(x, M, sh);
   R(x, d0 + 0.08, dh + 0.08, d1 - 0.08, dh + 0.42, night ? M.inside : mix(M.glassTop, M.inside, 0.3));
-  R(x, d1 - 0.2, 1.05, d1 - 0.13, 1.18, M.gilt);
   // (8P: the door's tiny OPEN / CLOSED card is gone — a ~3 pt word read as mush; THE HUSH WORD SIGN in the window says OPEN in neon)
   // the pole's brackets (the pole itself is live: it turns)
   R(x, sh.pole.u - 0.22, sh.pole.v1 - 0.05, sh.pole.u + 0.22, sh.pole.v1 + 0.12, M.iron); R(x, sh.pole.u - 0.22, sh.pole.v0 - 0.12, sh.pole.u + 0.22, sh.pole.v0 + 0.05, M.iron);
@@ -315,14 +342,7 @@ export function paintGround(x, M, s) {
     R(x, d.u0 - 0.2, 0, d.u1 + 0.2, d.h + 0.28, g);
     R(x, d.u0 - 0.2, d.h + 0.2, d.u1 + 0.2, d.h + 0.28, mix(g, [255, 250, 240], 0.2 * (1 - M.night)));
     R(x, d.u0 - 0.2, 0, d.u0 - 0.17, d.h + 0.2, shade(g, -0.3));
-    const oak = tri(M.T, [66, 40, 28], [80, 44, 30], [16, 11, 16]);
-    R(x, d.u0, 0.12, d.u1, d.h, oak);
-    x.fillStyle = rgb(shade(oak, -0.3)); for (let u = d.u0 + 0.25; u < d.u1; u += 0.25) x.fillRect(u, 0.12, 0.02, d.h - 0.12);
-    x.fillStyle = rgb(shade(oak, 0.12)); for (let u = d.u0 + 0.05; u < d.u1; u += 0.25) x.fillRect(u, 0.12, 0.02, d.h - 0.12);
-    for (const v of [0.6, d.h - 0.55]) { R(x, d.u0, v, d.u0 + 0.75, v + 0.09, M.iron); x.fillStyle = rgb(M.iron); x.beginPath(); x.arc(d.u0 + 0.75, v + 0.045, 0.07, 0, Math.PI * 2); x.fill(); }
-    const gu = (d.u0 + d.u1) / 2; R(x, gu - 0.2, 1.62, gu + 0.2, 1.98, M.iron); R(x, gu - 0.15, 1.67, gu + 0.15, 1.93, tri(M.T, [20, 16, 18], [24, 16, 18], [4, 4, 8]));
-    x.fillStyle = rgb(M.iron); for (let u = gu - 0.1; u <= gu + 0.11; u += 0.1) x.fillRect(u - 0.015, 1.67, 0.03, 0.26);
-    x.fillStyle = rgb(M.gilt); x.beginPath(); x.arc(d.u1 - 0.22, 1.18, 0.06, 0, Math.PI * 2); x.fill();
+    paintSideLeaf(x, M, d);
     R(x, d.u0 - 0.1, 0, d.u1 + 0.1, 0.12, shade(g, 0.1)); }
   // THE BASEMENT WINDOW in the plinth: a dark opening, its iron bars (the amber glow inside is live: day + night)
   { const [b0, b1, bv0, bv1] = sh.basement;
@@ -345,7 +365,7 @@ export function paintGround(x, M, s) {
       const d = s.door, W = [255, 196, 130];
       x.save(); x.globalCompositeOperation = 'lighter';
       { const g2 = x.createLinearGradient(d.u0 - 0.2, 0, d.u1 + 0.2, 0); g2.addColorStop(0, rgb(W, 0.1 * lk)); g2.addColorStop((sc.u - d.u0 + 0.2) / (d.u1 - d.u0 + 0.4), rgb(W, 0.6 * lk)); g2.addColorStop(1, rgb(W, 0.12 * lk)); x.fillStyle = g2; x.fillRect(d.u0 - 0.2, d.h + 0.2, d.u1 - d.u0 + 0.4, 0.08); }
-      { const g3 = x.createLinearGradient(0, d.h, 0, d.h - 1.8); g3.addColorStop(0, rgb(W, 0.42 * lk)); g3.addColorStop(0.45, rgb(W, 0.16 * lk)); g3.addColorStop(1, rgb(W, 0)); x.fillStyle = g3; x.fillRect(d.u0, d.h - 1.8, d.u1 - d.u0, 1.8); }
+      sideLeafLamp(x, M, d);
       x.fillStyle = rgb(W, 0.18 * lk); x.fillRect(d.u0 - 0.3, 0.12, d.u1 - d.u0 + 0.6, 0.02); x.fillRect(d.u0 - 0.15, 0.25, d.u1 - d.u0 + 0.3, 0.02);
       x.restore();
       R(x, sc.u - 0.2, sc.v + 0.38, sc.u + 0.2, sc.v + 0.5, M.soot, 0.25 * lk); } }

@@ -25,7 +25,7 @@ import { wallVP } from '../../core/harbor-rooms.js';
 import { frontProfile } from './strings.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, DOOR_FLOOD, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
-import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, paintGilt, GILT, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, bladeStep, speakeasySteps } from './speakeasy-bake.js';
+import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, paintGilt, GILT, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, bladeStep, speakeasySteps, paintSideLeaf, sideLeafLamp, paintShopLeaf } from './speakeasy-bake.js';
 export * from './speakeasy-geo.js';
 export * from './speakeasy-blade.js';
 export * from './speakeasy-bake.js';
@@ -297,6 +297,43 @@ export function createSpeakeasy() {
     c.save(); c.globalAlpha = 1; c.translate(cx, cy); c.scale(rx / Math.max(rx, ry), ry / Math.max(rx, ry)); c.translate(-cx, -cy);
     c.fillStyle = g; c.fillRect(cx - Math.max(rx, ry), cy - Math.max(rx, ry) * 1.4, Math.max(rx, ry) * 2, Math.max(rx, ry) * 2.8); c.restore();
   }
+  // 9d — THE LEAVES' SPRITES: each door's leaf painted by the BAKE's own painters (speakeasy-bake.js#paintSideLeaf / paintShopLeaf,
+  // + the sconce's light on the side door's planks, + the wall's light over it: paintLight) from the BAKE's tones, at the city's dpr —
+  // so the leaf that swings (doors.js) IS the baked door, and shutting hands over to the bake without a jump. Re-painted per bake.
+  let leafT = null, leafAt = '';
+  const leaves = { side: null, shop: null };
+  const doorBox = id => (id === 'side' ? { u0: G.s.door.u0, u1: G.s.door.u1, v0: 0.12, v1: G.s.door.h } : { u0: G.s.shop.door[0], u1: G.s.shop.door[1], v0: V.plinth - 0.05, v1: G.s.shop.door[2] });
+  function leafSprites(T) {
+    const at = `${dpr}|${G.K.toFixed(4)}`;
+    if (!T || (T === leafT && at === leafAt)) return;
+    leafT = T; leafAt = at;
+    const M = mats(T), k = G.K * dpr;
+    for (const id of ['side', 'shop']) {
+      const d = doorBox(id), w = Math.max(1, Math.ceil((d.u1 - d.u0) * k)), h = Math.max(1, Math.ceil((d.v1 - d.v0) * k));
+      const cv = leaves[id] && leaves[id].cv || document.createElement('canvas'); cv.width = w; cv.height = h;
+      const x = safeCtx(cv); if (!x) { leaves[id] = null; continue; }
+      x.setTransform(k, 0, 0, -k, -d.u0 * k, d.v1 * k);
+      x.save(); x.beginPath(); x.rect(d.u0, d.v0, d.u1 - d.u0, d.v1 - d.v0); x.clip();
+      if (id === 'side') { paintSideLeaf(x, M, G.s.door); x.save(); x.globalCompositeOperation = 'lighter'; sideLeafLamp(x, M, G.s.door); x.restore(); }
+      else paintShopLeaf(x, M, G.s.shop);
+      paintLight(x, M, 0, W_FRONT, false, 51);
+      x.restore();
+      leaves[id] = { cv, d };
+    }
+  }
+  /** 9d: a clip that leaves out the awning's valance (its scallops traced) + its lamps — whatever the live shop door must stay behind */
+  function awningClip(c) {
+    const s = G.s, cam = G.cam, aw = s.awning;
+    const [va, vy0] = project(cam, s.x0 + aw.u0, aw.y1 + 0.6, aw.z), [vb, vy1] = project(cam, s.x0 + aw.u1, aw.y1 - VAL, aw.z), sw = (vb - va) / 14;
+    c.beginPath(); c.rect(va - 400, vy0 - 400, vb - va + 800, 1600);
+    c.moveTo(va, vy0); c.lineTo(vb, vy0); c.lineTo(vb, vy1);
+    for (let i = 13; i >= 0; i--) c.arc(va + sw * (i + 0.5), vy1, sw / 2, 0, Math.PI, false);
+    c.lineTo(va, vy0); c.closePath();
+    c.clip('evenodd');
+    c.beginPath(); c.rect(va - 400, vy0 - 400, vb - va + 800, 1600);
+    for (const b of awningBulbs(aw)) { const [bx, by] = project(cam, s.x0 + b.u, b.y, b.z), r = AWNING_LAMP.bulb * cam.F / b.z * 1.9; c.moveTo(bx + r, by); c.arc(bx, by, r, 0, Math.PI * 2); }
+    c.clip('evenodd');
+  }
   function drawPole(c, f) {
     const s = G.s, p = s.shop.pole, z = s.z0 - 0.42, [cx, y0] = project(G.cam, s.x0 + p.u, p.v1, z), [, y1] = project(G.cam, s.x0 + p.u, p.v0, z), sc = G.cam.F / z, r = 0.17 * sc, h = y1 - y0;
     const day = clamp01(f.day), lit = poleOff ? 0 : clamp01(f.pole == null ? f.k : f.pole), fade = f.fade == null ? 1 : f.fade;
@@ -379,10 +416,14 @@ export function createSpeakeasy() {
     c.save(); c.globalAlpha = fade; giltOver(c, f); c.restore();
     // FP3b — REAL DOORS (doors.js): the side door + the shop door swinging open while someone walks through (people.js drives
     // doors({ side, shop, inside }) from core/harbor-people.js#folkAt's doors), the side door's amber spill at night
-    { const sh = G.s.shop, sd = G.s.door, df = { day: f.day, night: f.night == null ? k : f.night, fade, power: P };
+    { const df = { day: f.day, night: f.night == null ? k : f.night, fade, power: P };
       const ins = id => (doorState.inside ? (cc, r) => doorState.inside(cc, id, r) : null);
-      doorRects.side = drawDoor(c, G, { u0: sd.u0, u1: sd.u1, v0: 0.12, v1: sd.h }, 'side', doorState.side, df, ins('side'));
-      doorRects.shop = drawDoor(c, G, { u0: sh.door[0], u1: sh.door[1], v0: V.plinth - 0.05, v1: sh.door[2] }, 'shop', doorState.shop, df, ins('shop')); }
+      if (doorState.side > 0.002 || doorState.shop > 0.002) leafSprites(f.bakeT);
+      doorRects.side = drawDoor(c, G, doorBox('side'), 'side', doorState.side, df, ins('side'), leaves.side);
+      // (9d: the AWNING hangs in front of the shop door's head — its valance + scallops + the lamps under it are baked AFTER the front,
+      // so the live door is clipped round them: the scallops no longer vanish while the door swings)
+      if (doorState.shop > 0.002) { c.save(); awningClip(c); doorRects.shop = drawDoor(c, G, doorBox('shop'), 'shop', doorState.shop, df, ins('shop'), leaves.shop); c.restore(); }
+      else doorRects.shop = null; }
     bedsNow = { ...life.bedLevels(k, !!(f.party && (f.party.ramp == null ? 1 : f.party.ramp) > 0.3)), fr, k, motion: f.motion !== false };   // (8P: the moments' + the shop's sound cues read the frame — sounds.js)
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
     // for 7b: a moment's own painter over its window
@@ -505,7 +546,7 @@ export function createSpeakeasy() {
     /** FP3b — tests: quiet(true) holds the basement's light steady + pauses the windows' moments (the mirror door's light), quiet(false) back */
     quiet(on) { quiet = !!on; quietF = null; return quiet; },
     /** FP3b — REAL DOORS: { side, shop } how open (0..1), inside(c, id, rect) draws whoever is in that doorway → the doors now */
-    doors(o) { if (o) doorState = { side: clamp01(o.side || 0), shop: clamp01(o.shop || 0), inside: o.inside || null }; return { side: doorState.side, shop: doorState.shop, rects: { ...doorRects } }; },
+    doors(o) { if (o) doorState = { side: clamp01(o.side || 0), shop: clamp01(o.shop || 0), inside: o.inside || null }; return { side: doorState.side, shop: doorState.shop, rects: { ...doorRects }, leaves: { side: leaves.side && leaves.side.cv, shop: leaves.shop && leaves.shop.cv } }; },
     /** FP3a: every light on the facade × k (0 = dark, 1 = as the night has it) → the level now; power() reads it */
     power(k) { if (k !== undefined) power = clamp01(+k); return power; },
     /** 8b1: a dead marquee bulb — bulb(i, k): bulb i at level k (0 dead … 1 fixed); bulb(null) all lit; bulb() → { i, k, n } */

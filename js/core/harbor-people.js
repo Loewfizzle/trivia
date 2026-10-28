@@ -341,7 +341,7 @@ export const KINDS = {
 // (POL4 — the owner: "the swing is jaggy", "people ENTERING walk in at a WEIRD angle": a slower, eased swing (open 0.8 s, close 0.9 s); the
 // last APPROACH units straight at the door, facing it; at the side door they STEP UP its two granite steps (SIDE_STEPS: the treads' z
 // from the wall + their heights) through the opening, then down the stair inside)
-export const DOOR = Object.freeze({ open: 0.8, close: 0.9, pace: 0.75, step: 0.45, stepSide: 0.95, approach: 1.4, clear: 0.8, inside: 1.3, bus: { open: 0.15, floor: 0.6 } });
+export const DOOR = Object.freeze({ open: 0.8, close: 1.3, pace: 0.75, step: 0.45, stepSide: 0.95, approach: 1.4, clear: 0.8, inside: 1.3, bus: { open: 0.15, floor: 0.6 } });
 export const SIDE_STEPS = Object.freeze([[-0.75, 0.13], [-0.4, 0.26]]);
 /** the ground's height at z (world) in front of + through the side door: the two steps up, the stair going down inside (PURE) */
 export function sideStepY(z, face) {
@@ -361,8 +361,23 @@ export function doorLeg(kind, dir, x, t, v, zFace, { bus = false } = {}) {
   return { k: 'door', door: kind, dir, x0: x, z0, x1: x, z1: zs, t0: t, t1, w0: op / (t1 - t), w1: 1, tOpen: t, tClose, y0: y, y1: 0, ...(bus ? { bus: kind } : {}), ...(kind === 'side' ? { steps: zFace } : {}) };
 }
 const smooth01 = u => { const x = Math.max(0, Math.min(1, u)); return x * x * (3 - 2 * x); };
-/** how open a door leg holds its door at t (0..1, PURE): swinging open from tOpen, shutting from tClose */
-export const doorOpenK = (lg, t) => (t < lg.tOpen || t > lg.tClose + DOOR.close ? 0 : smooth01((t - lg.tOpen) / DOOR.open) * (1 - smooth01((t - lg.tClose) / DOOR.close)));
+/**
+ * 9d — A DOOR CLOSER's swing shut (the owner: "it still just kind of snaps at the end … since that happens so much, we really need to
+ * get that right"): how much of the swing is LEFT u (0..1) of the way through the close → 1..0. The SWEEP (the first CLOSER.sweep of
+ * the time) starts gently and carries the leaf to the last CLOSER.latch of its angle (~9° of 77°); then the LATCH SPEED — the closer's
+ * valve slowing it through those last degrees, decelerating to rest at 0 (no speed left at the latch: a soft click, never a slam).
+ * The speed is continuous where the two meet (PURE; tests/harbor-people.test.mjs).
+ */
+export const CLOSER = Object.freeze({ sweep: 0.6, latch: 0.12 });
+export function closerLeft(u) {
+  const x = u < 0 ? 0 : u > 1 ? 1 : u, a = CLOSER.sweep, rl = CLOSER.latch;
+  if (x >= a) { const q = 1 - (x - a) / (1 - a); return rl * q * q; }
+  // (a cubic from rest whose end speed matches the latch's start speed: g' (1) = m)
+  const m = (2 * rl * a) / ((1 - rl) * (1 - a)), y = x / a;
+  return 1 - (1 - rl) * ((m - 2) * y * y * y + (3 - m) * y * y);
+}
+/** how open a door leg holds its door at t (0..1, PURE): swinging open from tOpen (eased), shutting from tClose on the closer's curve */
+export const doorOpenK = (lg, t) => (t < lg.tOpen || t > lg.tClose + DOOR.close ? 0 : smooth01((t - lg.tOpen) / DOOR.open) * (t <= lg.tClose ? 1 : closerLeft((t - lg.tClose) / DOOR.close)));
 
 // ------------------------------------------------------------------ PLANNING A VISIT → legs on the clock
 /**

@@ -3604,6 +3604,38 @@ G('freeze', async () => {
   }));
 });
 
+// ================================================================ 9d — THE DOORS NEVER SNAP (ONLY=doors; the `street` cloud job)
+// The owner: "it still just kind of snaps at the end". The side door at night (&force=doors: someone every 24 s) watched EVERY frame at an
+// iPhone's DPR: the door's box read back each frame, the pixels changed since the last one counted. At the latch (the frames round k → 0)
+// nothing may jump beyond what was already moving there (people passing in front): never more than the frames before + a small margin.
+// (Before 9d the live leaf was a plain amber board that turned into the baked door at k = 0 — thousands of pixels in one frame.)
+G('doors', async () => {
+  for (const L of [{ id: 'side', when: '2026-10-21T22:00' }, { id: 'shop', when: '2026-10-21T13:00' }]) {
+    const P = await open({ slot: `dr${L.id}`, qs: `when=${L.when}&wx=clear&force=doors,no-planes${GR}`, view: [402, 874], dpr: 3 });
+    await harborUp(P.page);
+    await ev(P.page, `(() => {
+      const sp = window.__district.harbor().speakeasy, cv = document.querySelector('canvas'), x = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+      const R = window.__dr = { rows: [], rect: null, prev: null, s: cv.width / cv.clientWidth };
+      const tick = () => { if (!window.__dr) return; requestAnimationFrame(tick);
+        const d = sp.doors(), k = d['${L.id}'], r = d.rects['${L.id}'];
+        if (r && !R.rect) { R.rect = { x: Math.floor((r.x - 4) * R.s), y: Math.floor((r.y - 4) * R.s), w: Math.ceil((r.w + 8) * R.s), h: Math.ceil((r.h + 8) * R.s) }; x.canvas.width = R.rect.w; x.canvas.height = R.rect.h; }
+        if (!R.rect) return;
+        x.clearRect(0, 0, R.rect.w, R.rect.h); x.drawImage(cv, R.rect.x, R.rect.y, R.rect.w, R.rect.h, 0, 0, R.rect.w, R.rect.h);
+        const px = x.getImageData(0, 0, R.rect.w, R.rect.h).data; let n = 0;
+        if (R.prev) for (let i = 0; i < px.length; i += 4) if (Math.abs(px[i] - R.prev[i]) + Math.abs(px[i + 1] - R.prev[i + 1]) + Math.abs(px[i + 2] - R.prev[i + 2]) > 40) n++;
+        R.prev = px; R.rows.push([k, n]); };
+      requestAnimationFrame(tick); })()`);
+    await waitFor(P.page, `(() => { const r = window.__dr.rows; let n = 0; for (let i = 1; i < r.length; i++) if (r[i - 1][0] > 0 && r[i][0] === 0) n++; return n >= 1 && r.length > 0 && r[r.length - 1][0] === 0 && r.slice(-6).every(q => q[0] === 0); })()`, `${L.id}: a door swung shut`, 60000);
+    const rows = await ev(P.page, '(() => { const r = window.__dr.rows; window.__dr = null; return r; })()');
+    const ends = []; for (let i = 1; i < rows.length; i++) if (rows[i - 1][0] > 0 && rows[i][0] === 0) ends.push(i);
+    const res = ends.map(e => { const before = rows.slice(Math.max(1, e - 24), e - 4).map(q => q[1]).sort((a, b) => a - b), med = before[before.length >> 1] || 0, latch = Math.max(...rows.slice(e - 4, e + 3).map(q => q[1])); return { med, latch }; });
+    const worst = res.reduce((a, q) => (q.latch - 2.5 * q.med - 40 > a.latch - 2.5 * a.med - 40 ? q : a), res[0]);
+    const swung = rows.filter(q => q[0] > 0.5).length;
+    ok(swung > 10 && worst && worst.latch <= 2.5 * worst.med + 40, `THE DOORS NEVER SNAP (${L.id}, ${L.when.slice(11)}): at the latch ≤ ${worst ? worst.latch : '?'} pixels changed in a frame (the frames before: ${worst ? worst.med : '?'}; ${ends.length} closes, ${swung} frames swung open)`);
+    await P.ctx.close();
+  }
+});
+
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
 async function runGroup(name) {
   const fns = GROUPS.get(name);
