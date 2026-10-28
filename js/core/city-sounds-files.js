@@ -59,6 +59,9 @@ export const FILES = /*FILES*/{
   "cat-meow": [
     {"f": "cat-meow.mp3", "v": "d0cbba57", "d": 0.85, "lufs": -20.4, "peak": 0.15, "sw": [0.15, 0.7], "from": [0.0, 0.85], "src": "cat-meow"}
   ],
+  "church-bells": [
+    {"f": "church-bells.mp3", "v": "3b6fe7b7", "d": 40.0, "lufs": -20.4, "peak": 16.15, "sw": [1.1, 37.9], "from": [2.0, 42.0], "src": "church-bells", "r": 24000}
+  ],
   "city-hum-day": [
     {"f": "city-hum-day.mp3", "v": "f29db512", "d": 72.5, "lufs": -24.4, "loop": 70.0, "xf": 2.5, "from": [3.5, 76.0], "src": "city-hum-day", "r": 16000}
   ],
@@ -79,6 +82,9 @@ export const FILES = /*FILES*/{
     {"f": "coyote-yip_1.mp3", "v": "69b2f73f", "d": 1.8, "lufs": -20.4, "peak": 0.65, "sw": [0.25, 1.4], "from": [15.9, 17.7], "src": "coyote-yip"},
     {"f": "coyote-yip_2.mp3", "v": "4de11255", "d": 3.1, "lufs": -20.4, "peak": 2.45, "sw": [1.65, 2.85], "from": [32.9, 36.0], "src": "coyote-yip"},
     {"f": "coyote-yip_3.mp3", "v": "c42f6c95", "d": 2.3, "lufs": -20.4, "peak": 0.7, "sw": [0.25, 1.85], "from": [46.4, 48.7], "src": "coyote-yip"}
+  ],
+  "crane": [
+    {"f": "crane-work.mp3", "v": "e19b7e58", "d": 50.5, "lufs": -24.4, "loop": 48.0, "xf": 2.5, "from": [2.1, 52.6], "src": "crane-work", "r": 24000}
   ],
   "crates-clink": [
     {"f": "crates-clink_1.mp3", "v": "051d062d", "d": 2.5, "lufs": -20.9, "peak": 0.9, "sw": [0.65, 1.15], "from": [1.5, 4.0], "src": "crates-clink"},
@@ -165,6 +171,9 @@ export const FILES = /*FILES*/{
   "gutter-drip": [
     {"f": "gutter-drip.mp3", "v": "65ba49cc", "d": 31.0, "lufs": -24.6, "loop": 29.0, "xf": 2.0, "from": [1.5, 32.5], "src": "gutter-drip", "r": 22050}
   ],
+  "hammering": [
+    {"f": "hammering-far.mp3", "v": "d2b83a31", "d": 56.5, "lufs": -24.8, "loop": 54.0, "xf": 2.5, "from": [1.1, 57.6], "src": "hammering-far", "r": 24000}
+  ],
   "haunted-wind": [
     {"f": "haunted-wind.mp3", "v": "9fb27309", "d": 26.5, "lufs": -24.4, "loop": 24.0, "xf": 2.5, "from": [1.9, 28.4], "src": "haunted-wind", "r": 16000}
   ],
@@ -174,6 +183,9 @@ export const FILES = /*FILES*/{
   ],
   "hydrant-spray": [
     {"f": "hydrant-spray.mp3", "v": "db67d2d4", "d": 40.0, "lufs": -24.4, "loop": 37.5, "xf": 2.5, "from": [1.0, 41.0], "src": "hydrant-spray"}
+  ],
+  "implosion-rumble": [
+    {"f": "implosion.mp3", "v": "67cdf241", "d": 24.0, "lufs": -20.4, "peak": 1.7, "sw": [0.7, 5.85], "from": [0.0, 24.0], "src": "implosion", "r": 32000}
   ],
   "jet-flyby": [
     {"f": "jets-formation.mp3", "v": "55b5e33c", "d": 23.0, "lufs": -20.4, "peak": 5.5, "sw": [1.5, 9.1], "from": [11.0, 34.0], "src": "jets-formation", "r": 16000}
@@ -311,6 +323,9 @@ export const FILES = /*FILES*/{
   "thunder-far": [
     {"f": "thunder-far_1.mp3", "v": "5d162591", "d": 14.5, "lufs": -20.4, "peak": 1.35, "sw": [0.6, 5.4], "from": [0.0, 14.5], "src": "thunder-far", "r": 16000},
     {"f": "thunder-far_2.mp3", "v": "cdb797e2", "d": 16.4, "lufs": -20.5, "peak": 1.55, "sw": [0.3, 14.8], "from": [30.6, 47.0], "src": "thunder-far", "r": 16000}
+  ],
+  "tower-horn": [
+    {"f": "warning-horn.mp3", "v": "6b1ac191", "d": 4.653, "lufs": -20.4, "peak": 2.1, "sw": [0.15, 4.25], "from": [1.17, 5.83], "src": "warning-horn"}
   ],
   "tr3b-crackle": [
     {"f": "tr3b-crackle.mp3", "v": "c15b09e5", "d": 3.6, "lufs": -20.4, "peak": 1.3, "sw": [0.15, 3.15], "from": [0.0, 3.6], "src": "tr3b-crackle"}

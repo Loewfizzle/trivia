@@ -30,7 +30,7 @@ const sprite = (rgbStr, soft = 0.5) => {
 
 export function createRoadLight() {
   let L = null, cam = null, beam = null, shade = null, washSp = null;
-  let cur = null, center = 0, cross = null, ti = -1, washCol = null, washK = 0, vis = 0, seen = false;
+  let cur = null, center = 0, cross = null, ti = -1, washCol = null, washK = 0, vis = 0, seen = false, shownFor = null;
   // FP3: the sound playing (its own pass's centre / direction / speed, so it pans on after the next pass begins); the city's clock
   // vs performance.now() (the sync reads the clock when the file is ready, between frames); the passes whose take was fetched
   let snd = null, skew = 0, panAt = 0, nextAt = 0;
@@ -47,6 +47,8 @@ export function createRoadLight() {
     wash(o) { washCol = o && o.col ? o.col : null; washK = o ? Math.max(0, Math.min(1, +o.k || 0)) : 0; },
     /** a car is on screen (seen): the scene keeps 60 fps for its wheels */
     busy: () => seen,
+    /** 9e — a front-street scene is playing now (the title's QUICK FADE) */
+    front: () => seen && vis > 0.5,
     /**
      * f: { ms (the city's clock), hourAt (local hour at a ms — the busy-ness), night (the lamps' darkness 0..1), day (0..1), motion,
      * fade, on (the implied road is on), force (a pass every ~13 s), play(slot, o) → handle | null; FP2: gone (the dock rests),
@@ -56,7 +58,10 @@ export function createRoadLight() {
      *  every frame the scene runs, whether or not the light is drawn (the same f as draw) */
     tick(f) {
       // (reduced motion: no car rolls — the implied light stays, as with the dock shown)
-      vis = carVis(vis, !!f.gone && !!f.on && !!f.motion, f.dt || 16.7);
+      // (9e — THE STREET UNDER THE DOCK IS A STAGE, the owner: a scene ALREADY UNDER WAY is never cut, snapped or faded when the dock comes
+      //  back — the dock draws ON TOP and the car drives on to its natural end; NOTHING STARTS on it while the dock shows — a crossing
+      //  that began under the dock never pops in mid-street when it fades. Was: the car faded with the dock — carVis)
+      vis = cur && shownFor === cur.id && f.on && f.motion ? 1 : carVis(vis, false, f.dt || 16.7);
       if (!L || !f.on) return;
       skew = f.ms - performance.now();
       const st0 = L.impliedRoad && L.impliedRoad.street, zc = L.edge ? L.edge.z - 4 : 31.5;
@@ -68,7 +73,7 @@ export function createRoadLight() {
       const fresh = !!pass && (!heldUntil || pass.t0 > heldUntil);
       if (pass && !f.hold && fresh && (!cur || cur.id !== pass.id)) {
         // the car is nearest at the pass's CENTRE (the same on every phone); its take = the pass's own (takeAt): its swell sets the speed
-        cur = pass; center = pass.t0 + ROAD_PASS.peak;
+        cur = pass; center = pass.t0 + ROAD_PASS.peak; shownFor = f.gone && f.motion ? pass.id : null;   // (9e: shown only if it began at rest)
         const tk = takeAt(SLOT, pass.take);
         cross = crossFor(tk && tk.take); ti = tk ? tk.i : -1;
         // its sound, placed on the clock: the take's peak on the centre (city-sound.js#citySound's sync — whenever its file is ready);

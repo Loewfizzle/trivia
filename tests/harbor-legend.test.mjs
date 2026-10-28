@@ -1,7 +1,7 @@
 // CITY 2.0 — PART 6b: THE LEGENDARY SKY's rules (core/harbor-legend.js) — rarity, the nights, the timelines, the drain.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { legendNight, legendAt, eveningOf, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD, JETS_GONE } from '../js/core/harbor-legend.js';
+import { TR3B_HOURS, legendNight, legendAt, eveningOf, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD, JETS_GONE } from '../js/core/harbor-legend.js';
 
 test('Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold from 4 s before the craft until the jets are gone + the power is back', () => {
   const h = trafficHold({ kind: 'tr3b', t0: 1000 });
@@ -20,6 +20,14 @@ test('legendary rarity: ~1–2 a month each, never two in one night, never two n
   for (const [y, m, d] of days(2026, 365 * 3)) {
     const n = legendNight(y, m, d);
     if (n) { if (n.kind === 'ufo') ufo++; else tr++; assert.equal(prev, null, `two legendary nights in a row at ${y}-${m}-${d}`); assert.ok(n.h >= 21.5 && n.h <= 24.75); }
+    // (9e — THE TR-3B ONLY ON PARTY NIGHTS: a Fri / Sat evening (or the homecoming Wednesday), at the peak, clear of the midnight finale +
+    // each hourly dance's first minutes, never on a fireworks night)
+    if (n && n.kind === 'tr3b') {
+      const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+      assert.ok(dow === 5 || dow === 6 || (m === 11 && dow === 3), `the TR-3B on a party night (${y}-${m}-${d}, dow ${dow})`);
+      assert.ok(TR3B_HOURS.some(([p, q]) => n.h >= p - 1e-9 && n.h <= q + 1e-9) && n.h % 1 > 0.12 && Math.abs(n.h - 24) > 0.1, `at the peak, clear of the finale + the dances (${n.h})`);
+      assert.ok(!((m === 7 && d === 4) || (m === 12 && d === 31) || (m === 1 && d === 1)), 'never on a fireworks night');
+    }
     assert.deepEqual(legendNight(y, m, d), n);                 // (seeded: every phone the same)
     prev = n;
   }

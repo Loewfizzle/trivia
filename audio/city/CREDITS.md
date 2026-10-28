@@ -145,6 +145,17 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Soundholder%20-%20Cat%20-%20Meow%20Library/animals%20cat%20Fiona%2031%20meow%20mono%20192kHz.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## church-bells.mp3  →  church-bells
+
+- MD5 `0edfe5a959ac8cd36c9fcfef1ae9479a`
+- church-bells.mp3   (2,435,866 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "Distant Church Bells" - XPLOman (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/city-distant-church-bells-54849/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/13/audio_cfea9bf670.mp3?filename=freesound_community-distant-church-bells-54849.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user XPLOman, "Distant Church Bells" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## city-hum-day.wav  →  city-hum-day
 
 - MD5 `aad14ef309eda9872952ccc8375d51d8`
@@ -185,6 +196,17 @@ are kept anyway, with each source file's MD5.
 - "Coyotes 2015.13.28_Sutton_CloseCoyoteNR1" - Discover Oregon - Coyotes, Sonniss GDC 2018 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Discover%20Oregon%20-%20Coyotes/Coyotes%202015.13.28_Sutton_CloseCoyoteNR1.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## crane-work.mp3  →  crane
+
+- MD5 `b4f00631758b74549ad52d03b7b5d92a`
+- crane-work.mp3   (1,722,827 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "Electric Hoist" - tosha73 (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/city-electric-hoist-65902/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/14/audio_796d6a75dc.mp3?filename=freesound_community-electric-hoist-65902.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user tosha73, "Electric Hoist" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
 ## crates-clink.mp3  →  crates-clink
 
@@ -370,6 +392,17 @@ are kept anyway, with each source file's MD5.
 - Source: https://cdn.pixabay.com/download/audio/2025/02/27/audio_e484b3a048.mp3?filename=audiopapkin-autumn-rain-in-the-gutter-306966.mp3
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 
+## hammering-far.mp3  →  hammering
+
+- MD5 `5f9ba030c0ab52280cf769f8febf892d`
+- hammering-far.mp3   (1,169,760 bytes)   (LOSSY Pixabay MP3 - lossless original is on Freesound, see below)
+- "180511 Distant hammering roof, urban noisy construction" - TRP (re-hosted on Pixabay as freesound_community)
+- Page: https://pixabay.com/sound-effects/city-180511-distant-hammering-roof-urban-noisy-construction-26090/
+- Source: https://cdn.pixabay.com/download/audio/2022/03/09/audio_b3bb4c8137.mp3?filename=freesound_community-180511-distant-hammering-roof-urban-noisy-construction-26090.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- Original: Freesound user TRP, "180511 Distant hammering roof, urban noisy construction" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
 ## haunted-wind.wav  →  haunted-wind
 
 - MD5 `dad5e46867bb16ac6342c94b5f920067`
@@ -403,6 +436,15 @@ are kept anyway, with each source file's MD5.
 - MD5 `4bbdad0fe7a76f016ea7bd9492130205`
 - hydrant-spray.wav
 - an open fire hydrant: the stream’s hiss + the splash on cobbles — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)
+
+## implosion.mp3  →  implosion-rumble
+
+- MD5 `95c4615d31409786f18ec19d04ba16a6`
+- implosion.mp3   (1,929,216 bytes)   (MP3 - the only version offered)
+- "Structure Crumbling - Traveling Echo in Deep Ruins" - Saturn-3-Music
+- Page: https://pixabay.com/sound-effects/film-special-effects-structure-crumbling-traveling-echo-in-deep-ruins-523648/
+- Source: https://cdn.pixabay.com/download/audio/2026/05/07/audio_872eb17ad6.mp3?filename=saturn-3-music-structure-crumbling-traveling-echo-in-deep-ruins-523648.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 
 ## jets-formation.wav  →  jet-flyby
 
@@ -849,6 +891,15 @@ are kept anyway, with each source file's MD5.
 - "DSGNDron_Sci-Fi Drone Light Space Exploration_SYSO_SYSO018" - Systematic Sound / Daniel Meuser (Tonal Elements: High Tech Soul), Sonniss GDC 2023 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/Systematic%20Sound%20-%20Tonal%20Elements%20High%20Tech%20Soul%20%E2%80%93%20Evolving%20Pads%20%26%20Sci-Fi%20Textures/DSGNDron_Sci-Fi%20Drone%20Light%20Space%20Exploration_SYSO_SYSO018.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## warning-horn.mp3  →  tower-horn
+
+- MD5 `8ea15555919f596bead07e7c413eb6be`
+- warning-horn.mp3   (186,409 bytes)   (MP3 - the only version offered)
+- "SoundFX for Free - Alarm Klaxon" - SoundFXforfree
+- Page: https://pixabay.com/sound-effects/film-special-effects-soundfx-for-free-alarm-klaxon-130906/
+- Source: https://cdn.pixabay.com/download/audio/2022/12/23/audio_318741e96b.mp3?filename=soundfxforfree-soundfx-for-free-alarm-klaxon-130906.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 
 ## water-lapping.wav  →  water-lapping
 

@@ -290,9 +290,14 @@ export const EVENTS = [
   { id: 'work-bootleg', label: 'THE BOOTLEGGERS', cat: 'workers', group: 'NIGHT', hint: '~11 pm, a few nights a month: a truck without lamps, crates down the cellar hatch, a lookout' },
   { id: 'work-delivery', label: 'THE BIG DELIVERY', cat: 'workers', group: 'NIGHT', hint: 'Saturdays ~6:30 pm: the bootleggers’ big load before the party night' },
   { id: 'work-staff', label: 'THE BAR STAFF LOCK UP', cat: 'workers', group: 'NIGHT', hint: '~2 am: out of the side door, the last one locks it' },
+  { id: 'work-henchman', label: 'THE NIGHT SHIFT (HENCHMAN)', cat: 'workers', group: 'NIGHT', kw: 'security patrol flashlight guard boss', hint: '2 → 6 am every night + Sun–Thu 11:24 pm → 12:51 am: the boss’s henchman patrols the block with a flashlight — the beat, the corner, the door, a lap round the block' },
+  { id: 'work-henchman2', label: 'THE NIGHT SHIFT · LATE WEEKNIGHTS', cat: 'workers', group: 'NIGHT', kw: 'security patrol flashlight guard', hint: 'Sun–Thu 11:24 pm → 12:51 am: the henchman’s earlier round (the same patrol)' },
+  { id: 'work-hoser', label: 'THE WATER WAGON’S HOSE', cat: 'workers', group: 'NIGHT', kw: 'hydrant hose wash street flusher', hint: '~3 am while the water wagon washes the street (not after rain, below freezing or on snow): a crewman opens the hydrant + hoses the cobbles' },
+  { id: 'flusher', label: 'THE WATER WAGON', cat: 'workers', group: 'NIGHT', kw: 'street flusher wash spray truck', hint: '~2:45 → 3:30 am (not after rain, below freezing or on snow): the street flusher’s slow passes on the back road, fans of spray caught in the lamps, the road left wet — on a loop' },
   { id: 'no-work', label: 'NO WORKERS', cat: 'workers', sec: 'tools', group: 'COMPARE — OFF SWITCHES', hint: 'every worker stays home — compare (their cost)' },
   // PART 8b1 — THE HARBOR'S TIMETABLE, heard (every 30 s while on)
   { id: 'ships-bell', label: 'THE SHIP’S BELL', cat: 'harbor', group: 'THE TIMETABLE', hint: 'the hourly bell (one ring, under the music) — every 30 s' },
+  { id: 'church-bells', label: 'SUNDAY’S CHURCH BELLS', cat: 'harbor', group: 'THE TIMETABLE', kw: 'church sunday bells peal', hint: 'Sundays 9:00 + 10:45 am: a far, soft peal across the harbor (40 s) — every 30 s' },
   { id: 'steam-whistle', label: 'THE NOON WHISTLE', cat: 'harbor', group: 'THE TIMETABLE', hint: 'the noon steam whistle off Rosie’s stacks (a white plume, the music dipped) — every 30 s' },
   { id: 'dinner-horn', label: 'THE DINNER CRUISE HORN', cat: 'harbor', group: 'THE TIMETABLE', hint: 'Rosie’s long blast as she casts off at 7 pm (the music dipped) — every 30 s' },
   // ---- PART 8b1 — THE WILDLIFE (screens/harbor/wildlife.js#WILD_FORCES; each on a loop, any hour — the light is the hour's)

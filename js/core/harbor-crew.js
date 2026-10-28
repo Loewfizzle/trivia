@@ -635,6 +635,30 @@ PLAN.cop = (w, M, P, r) => {
   return { visits: [c.out(w.id, 'cop', 'cop')], marks: { whistle: r() < 0.4 ? w.t0 + 20 + r() * 25 : null } };
 };
 PLAN.patrol = PLAN.cop;
+// 9e — THE NIGHT SHIFT: the boss's henchman on his patrol (a dark overcoat + a fedora, the flashlight's beam + pool on the cobbles —
+// folk.js WORKWEAR.henchman), unhurried: out of the side door, then seeded rounds until his shift ends — THE BEAT (to the front's left
+// end, stop, a look round; back to the corner, stop, a look up the street + down at the road; now + then a check of the side door) or THE
+// LAP (from the corner off the left edge, round the block off screen ~a minute, back in from the left) — then back in at the side door
+PLAN.henchman = (w, M, P, r) => {
+  const c = crewOf(M, P, r, 'stroll', w.t0).at(P.sideDoor).door('side', 'out');
+  const zF = M.face - 1.35, corner = { x: P.lookout.x + 0.2, z: P.lookout.z + 0.1 }, west = { x: P.shopDoor.x - 1.4, z: zF };
+  const doorSpot = { x: P.sideDoor.x + 0.45, z: M.face - 1.15 }, end = w.t1 - 45;
+  for (let n = 0; c.now < end && n < 400; n++) {
+    if (r() < 0.58) {
+      c.go(west).pose('watch', 3 + r() * 3, { hd: PI }).pose('watch', 2 + r() * 2.5, { hd: -PI / 2 });
+      c.go(corner).pose('watch', 3 + r() * 3, { hd: 0 }).pose('watch', 2 + r() * 2, { hd: -PI / 2 });
+      if (r() < 0.45) c.go(doorSpot).pose('watch', 2.4 + r() * 1.5, { hd: PI / 2 });
+    } else {
+      c.go(corner).pose('watch', 2 + r() * 2, { hd: 0 });
+      c.exit('left', 42.4).wait(45 + r() * 50).edge('left', 40).go(west);
+    }
+  }
+  c.go(doorSpot).door('side', 'in');
+  return { visits: [c.out(w.id, 'henchman', 'henchman')], marks: { patrol: [w.t0, c.now] } };
+};
+PLAN.henchman2 = PLAN.henchman;
+// 9e — the water wagon's night: the crewman's hydrant (the hot day's show without the kid: the spray onto the cobbles = the hosing)
+PLAN.hoser = (w, M, P, r) => { const res = PLAN.hydrant(w, M, P, r); return { visits: [res.visits[0] ? { ...res.visits[0], kind: 'hoser' } : null].filter(Boolean), marks: res.marks }; };
 PLAN.mail = (w, M, P, r) => {
   const c = crewOf(M, P, r, 'walk', w.t0).edge('right', 42.6).hold('mailbag').go({ x: P.shopDoor.x + 0.3, z: M.face - 1.4 }).pose('post', 3.2, { hd: PI / 2 }).exit('right', 41.5);
   return { visits: [c.out(w.id, 'mailman', 'mailman')] };
@@ -747,5 +771,5 @@ export function tracesAt(t, world, cache = new Map()) {
   const lf = [[lampFault(yKey, y0, ctx), m.lamp && m.lamp.lampFix ? m.lamp.lampFix.t : d.day0 + 86400], [lampFault(d.key, d.day0, ctx), Infinity]].find(([o, fx]) => o && t >= o.from && t < fx);
   const bl = [[boardLampOut(yKey, y0, ctx), bp ? bp.fixAt : d.day0 + 86400], [boardLampOut(d.key, d.day0, ctx), Infinity]].find(([o, fx]) => o && t >= o.t && t < fx);
   return { bulbDead, lampFault: lf ? { lamp: lf[0].lamp, from: lf[0].from, period: lf[0].period } : null, boardLampDead: bl ? bl[0].lamp : ctx.force === 'billposter' && bp && t < bp.fixAt ? 1 : null,
-    milk: !!milk, bundles: !!bundles, board, blade, bladeDone: pt ? pt.t1 : null, monday: d.dow === 1, bulbFix: m.bulb && m.bulb.bulbFix ? m.bulb.bulbFix.t : null, lampFix: m.lamp && m.lamp.lampFix ? { t: m.lamp.lampFix.t, t0: m.lamp.lampFix.t0, t1: m.lamp.lampFix.t1 } : null, hydrant: hydrantTrace(m.hydrant, t), doorman: m.doorman ? m.doorman.doorman : (my.doorman ? my.doorman.doorman : null), whistle: [m.cop && m.cop.whistle, m.patrol && m.patrol.whistle].filter(Boolean), day: d };
+    milk: !!milk, bundles: !!bundles, board, blade, bladeDone: pt ? pt.t1 : null, monday: d.dow === 1, bulbFix: m.bulb && m.bulb.bulbFix ? m.bulb.bulbFix.t : null, lampFix: m.lamp && m.lamp.lampFix ? { t: m.lamp.lampFix.t, t0: m.lamp.lampFix.t0, t1: m.lamp.lampFix.t1 } : null, hydrant: hydrantTrace(m.hydrant || m.hoser, t), doorman: m.doorman ? m.doorman.doorman : (my.doorman ? my.doorman.doorman : null), whistle: [m.cop && m.cop.whistle, m.patrol && m.patrol.whistle].filter(Boolean), day: d };
 }

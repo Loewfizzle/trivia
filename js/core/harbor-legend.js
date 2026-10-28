@@ -7,6 +7,7 @@
 //   ufoAt(s) / tr3bAt(s)   each event's state s seconds in (its phases, the craft, the beam, the figure, the drain, the music)
 //   drainAt(x, d)          THE TR-3B's POWER DRAIN at a screen x (0 = cut dead … 1 = untouched) for a band (its range by distance)
 import { hashString, rngFrom } from './rng.js';
+import { partyDow } from './party.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -30,10 +31,26 @@ export const UFO_LEN = 30, TR3B_LEN = Math.round(JETS_GONE + 11);
 /** the legendary hours (local, the evening's clock: 24.5 = 00:30 the next morning) */
 export const LEGEND_HOURS = [21.5, 24.75];
 
+/** 9e — THE TR-3B ONLY ON PARTY NIGHTS (the owner, Oct 26 — DECIDED): a Friday / Saturday evening (or the homecoming), its own roll
+ *  (~1.5 a month: TR3B_PARTY_P of ~8.6 party nights), at the PEAK — the whole lit party blacking out is the drama — in the peak's hours
+ *  but never inside the midnight finale's minutes or the first minutes of an hourly dance (TR3B_HOURS: the windows' starts + ends);
+ *  never on a fireworks night (July 4th, New Year's Eve); the UFO keeps its any-night roll (LEGEND_P); never two legendary nights running
+ *  (legendNight); a raid never shares its night (harbor-raid.js#raidEvening skips legendary nights) */
+export const TR3B_PARTY_P = 0.17;
+export const TR3B_HOURS = [[22.15, 22.85], [23.15, 23.85], [24.15, 24.5]];
+const FIREWORKS = (m, d) => (m === 7 && d === 4) || (m === 12 && d === 31) || (m === 1 && d === 1);
+const partyEvening = (y, m, d) => { const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(), pd = partyDow(y, m, d, dow); return pd === 5 || pd === 6; };
 function dice(y, m, d) {
   const r = rngFrom(hashString(`legend|${dateKey(y, m, d)}`));
-  const u = r(), h = r();
-  return { kind: u < LEGEND_P ? 'ufo' : u < 2 * LEGEND_P ? 'tr3b' : null, h: Math.round(lerp(LEGEND_HOURS[0], LEGEND_HOURS[1], h) * 60) / 60 };
+  const u = r(), h = r(), v = r(), hp = r();
+  if (u < LEGEND_P) return { kind: 'ufo', h: Math.round(lerp(LEGEND_HOURS[0], LEGEND_HOURS[1], h) * 60) / 60 };
+  if (v < TR3B_PARTY_P && partyEvening(y, m, d) && !FIREWORKS(m, d)) {
+    // (the peak's windows laid end to end, the roll spread over them)
+    const tot = TR3B_HOURS.reduce((a, [p, q]) => a + q - p, 0); let x = hp * tot, hh = TR3B_HOURS[0][0];
+    for (const [p, q] of TR3B_HOURS) { if (x <= q - p) { hh = p + x; break; } x -= q - p; }
+    return { kind: 'tr3b', h: Math.round(hh * 60) / 60 };
+  }
+  return { kind: null, h: 0 };
 }
 /** tonight's legendary (y, m, d = the EVENING's local date) → { kind, h } | null. Never two legendary nights in a row. */
 export function legendNight(y, m, d) {

@@ -68,6 +68,10 @@ export const MODELS = Object.freeze({
     bed: { u0: 0.1, u1: 3.48, v1: 2.3, kind: 'dump' }, paints: [['forest', 'black', 'cream']], trades: ['CITY'], blade: { k: 1.15, h: 1.12, col: [226, 112, 34] } },
   salter: { len: 6.0, h: 2.32, r: 0.5, base: 3.75, ovR: 1.02, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.62, cab: [3.62, 4.5], rake: 0.04, roof: 'cab', grille: 'nickel', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
     bed: { u0: 0.1, u1: 3.48, v1: 2.45, kind: 'dump' }, paints: [['grey', 'black', 'cream']], trades: ['SALT'], salt: true },
+  // 9e — THE WATER WAGON (the street flusher: core/harbor-snowwork.js#FLUSH): the dump's chassis in the street department's green with a
+  // big riveted water TANK on the bed (its bands, a filler cap on top, STREET DEPT. on its side); the spray fans off the front: snowfx.js
+  flusher: { len: 6.2, h: 2.32, r: 0.5, base: 3.75, ovR: 1.02, sill: 0.74, belt: 1.44, hood: 1.5, cowl: 4.62, cab: [3.62, 4.5], rake: 0.04, roof: 'cab', grille: 'nickel', fender: 'cycle', wheel: 'wood', white: false, spare: 'none', louvre: 8,
+    bed: { u0: 0.12, u1: 3.5, v1: 2.28, kind: 'tank' }, paints: [['forest', 'black', 'cream']], trades: ['STREET DEPT.'] },
   // 8b2 — THE PATROL CAR (the raid): a 1929 police sedan on the Model A's lines — BLACK with WHITE DOORS (the owner: "period black-and-
   // white cars"), POLICE lettered on them with the city's gold star, a chrome SPOTLIGHT on the windshield post, the BEACON on the roof
   // (its red + blue lit live: people.js#drawCar — the owner's neon-1920s fusion), whitewall wire wheels
@@ -440,6 +444,19 @@ function truckBed(x, X, Y, s, K, M, o) {
     x.fillStyle = rgb(mix(p, [240, 236, 220], 0.4), 0.7); for (let u = u0 + 0.1; u < u1; u += 0.22) { x.beginPath(); x.arc(X(u), Y(B.v1 - 0.03), Math.max(0.35, 0.018 * s), 0, TAU); x.fill(); }
     const word = o.word || (M.trades || [''])[0];
     if (word) letter(x, word, X((u0 + u1) / 2), Y((B.v1 + v0) / 2 + 0.02), (u1 - u0 - 0.5) * s, (B.v1 - v0) * 0.5 * s, { fill: rgb(mix([236, 226, 184], p, K.name === 'night' ? 0.25 : 0.06)), ol: rgb(shade(p, -0.6), 0.95), mir: o.mir });
+    return;
+  }
+  if (B.kind === 'tank') {
+    // 9e — THE WATER TANK: a long rounded drum lying on the bed (lit along its top, dark underneath), three iron bands, a filler cap
+    const vt = B.v1, vb = v0 + 0.05, rr = (vt - vb) / 2, ym = Y((vt + vb) / 2);
+    const g = x.createLinearGradient(0, Y(vt), 0, Y(vb));
+    g.addColorStop(0, rgb(mix(p, K.hi, 0.35))); g.addColorStop(0.25, rgb(p)); g.addColorStop(0.75, rgb(shade(p, -0.2))); g.addColorStop(1, rgb(shade(p, -0.45)));
+    x.fillStyle = g; x.beginPath(); x.roundRect(X(u0), Y(vt), (u1 - u0) * s, (vt - vb) * s, rr * s * 0.9); x.fill();
+    x.fillStyle = rgb(shade(p, -0.5)); for (const f of [0.18, 0.5, 0.82]) x.fillRect(X(u0 + (u1 - u0) * f), Y(vt - 0.02), 0.07 * s, (vt - vb - 0.04) * s);
+    x.fillStyle = rgb(mix(p, K.hi, 0.6), 0.8); x.fillRect(X(u0 + rr * 0.6), Y(vt - 0.03), (u1 - u0 - rr * 1.2) * s, lw(0.025));
+    x.fillStyle = rgb(shade(p, -0.4)); x.fillRect(X(u0 + (u1 - u0) * 0.62), Y(vt + 0.13), 0.28 * s, 0.14 * s);
+    const word = o.word || (M.trades || [''])[0];
+    if (word) letter(x, word, X((u0 + u1) / 2), ym + 0.02 * s, (u1 - u0 - 0.9) * s, (vt - vb) * 0.38 * s, { fill: rgb(mix([236, 226, 184], p, K.name === 'night' ? 0.25 : 0.06)), ol: rgb(shade(p, -0.6), 0.95), mir: o.mir });
     return;
   }
   // THE STAKE BED: the deck's edge, the wooden stakes + two rails, then the tarp over the hoops (rounded, sagging between them)

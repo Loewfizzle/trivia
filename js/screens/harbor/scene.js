@@ -108,7 +108,7 @@ import { snowmanPiece, SNOWMAN_H } from './snowman.js';
 import { snowState, forcedPack, packFromDays, daysOf, snowKey, emptyPack } from '../../core/harbor-snow.js';
 import { capFor, groundSteps, roadStep, speakStep, topsOf, snowTones, releaseSnow, awningSnow, plowedStrip } from './snow.js';
 import { createSnowfall } from './snowfx.js';
-import { lastCleared, SNOWWORK } from '../../core/harbor-snowwork.js';
+import { lastCleared, SNOWWORK, flushWet } from '../../core/harbor-snowwork.js';
 import { trafficLanes } from '../../core/harbor-traffic.js';
 import { createWinterFolk, doorCleared, winterActs } from './winterfolk.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
@@ -556,7 +556,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function workTraceNow() {
     if (!L || !LK.local || clock.force.has('no-work')) return null;
     if (workCacheL !== L) { workCache = new Map(); workCacheL = L; }
-    try { return tracesAt(clock.now() / 1000, { L, M: folkMap(L), ctx: { off: LK.local.off, seed: L.seed || 1924, force: workForced(), forceAt: workForceAt(), dusk: duskFor, hot: hotDay } }, workCache); } catch { return null; }
+    try { return tracesAt(clock.now() / 1000, { L, M: folkMap(L), ctx: { off: LK.local.off, seed: L.seed || 1924, force: workForced(), forceAt: workForceAt(), dusk: duskFor, hot: hotDay, flush: () => flushOk() } }, workCache); } catch { return null; }
   }
   // (DT1: the palette + the facades' tones from the Harbor's weights — the sky model's + THE BLUE HOUR: tones.js#harborWeights)
   let LH = harborWeights(LK), P = paletteFor(LH), skyKey = '', lookAt = 0, TW = toneWeights(LH);
@@ -763,12 +763,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // 9b — THE WINTER WORK (core/harbor-snowwork.js): the plow + the salt truck on the waterside road — while snow falls (a pass each lane
   // every ~40 min), the morning after a snowfall, or a preview (&force=plow / salt); null when there's no snow + no preview
   function snowWorkNow() {
-    const fp = clock.force.has('plow'), fsl = clock.force.has('salt');
-    if ((clock.force.has('no-snow') || !snowKey(SN)) && !fp && !fsl) return null;
-    const snowing = !!(WXS && WXS.snow >= 0.25);
+    const fp = clock.force.has('plow'), fsl = clock.force.has('salt'), ffl = clock.force.has('flusher') && !clock.force.has('no-work');
+    const snowy = !(clock.force.has('no-snow') || !snowKey(SN)), fl = flushOk();
+    if (!snowy && !fp && !fsl && !fl && !ffl) return null;
+    const snowing = snowy && !!(WXS && WXS.snow >= 0.25);
     // (9c: a pass forced at the load starts at THE REVEAL — before it, under the curtain, it would drive by unseen)
     const fAt = id => { const f = forceAtOf(id); return f == null || shownClock == null ? null : Math.max(f, shownClock); };
-    return { snowing, fresh: SN.stage === 'fresh' && !snowing, off: LK.local ? LK.local.off : 0, seed: L.seed || 1924, forced: { plow: fp ? fAt('plow') : null, salt: fsl ? fAt('salt') : null }, lead: fp || fsl ? workLead() : null };
+    return { snowing, fresh: snowy && SN.stage === 'fresh' && !snowing, flush: fl, off: LK.local ? LK.local.off : 0, seed: L.seed || 1924, forced: { plow: fp ? fAt('plow') : null, salt: fsl ? fAt('salt') : null, flush: ffl ? fAt('flusher') : null }, lead: fp || fsl || ffl ? workLead() : null };
+  }
+  // 9e — THE WATER WAGON's nights (its passes + the hoser at the hydrant): never after rain (wet / raining now), below freezing, on snow
+  function flushOk() {
+    if (!L || clock.force.has('no-work')) return false;
+    const tc = tempNow();
+    return !(tc != null && tc <= 1) && !((LK.rain || 0) > 0.03) && !(WXS && WXS.wet > 0.15) && SN.stage === 'none';
   }
   // 9c — THE PREVIEW STARTS AT ONCE (the owner's iPhone: &force=plow showed nothing — the plow entered off-screen at a crawl and spent its
   // first ~10 s behind the speakeasy): the seconds from the near lane's entry to where the road FIRST SHOWS (the screen's left edge, or
@@ -812,7 +819,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     let edge = 0;
     if (L.speakeasy && L.speakeasy.x1 != null) { const sc = project(cam, L.speakeasy.x1, 0, L.speakeasy.z0)[0]; if (sc > 0 && sc < cam.W * 0.6) edge = sc; }
     const xVis = atScreen(edge) + 1.5;   // (the truck's centre a little past the edge: its front half in view)
-    const v = { plow: Math.max(0, (xVis - ln.xIn) / SNOWWORK.v.plow - 1), salter: Math.max(0, (xVis - ln.xIn) / SNOWWORK.v.salt - 1) };
+    const v = { plow: Math.max(0, (xVis - ln.xIn) / SNOWWORK.v.plow - 1), salter: Math.max(0, (xVis - ln.xIn) / SNOWWORK.v.salt - 1), flusher: Math.max(0, (xVis - ln.xIn) / SNOWWORK.v.flusher - 1) };
     leadMemo = { sig, v };
     return v;
   }
@@ -850,7 +857,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     else if (smSet) { centre.clear(); smSet = false; }
   }
   const snowNow = () => { if (clock.force.has('no-snow')) return ''; const k = snowKey(SN); return k ? `${k}${roadModeNow()[0]}${doorCleared(LK.local, SN) ? 'd' : ''}` : ''; };
-  const wetNow = () => streetWet({ force: clock.force.has('wet-street'), wet: WXS ? Math.round(WXS.wet * 4) / 4 : 0 });
+  // (9e: the water wagon leaves the roads wet while it works + drying ~25 min after — core/harbor-snowwork.js#flushWet; in quarters, like the rain's)
+  const wetNow = () => { const w = L ? snowWorkNow() : null, fw = w ? flushWet(clock.now() / 1000, w) * 0.75 : 0; return streetWet({ force: clock.force.has('wet-street'), wet: Math.round(Math.max(WXS ? WXS.wet : 0, fw) * 4) / 4 }); };
   // 9a — THE WEATHER (core/harbor-weather.js): ONE city state from the live / forced answer, stepped every frame through its soft
   // transitions; the look's rain / fog / storm / wind follow it (every system reads LK), the street's wetness + the drips are its own
   // the rain's inputs this frame: its level, the lean from the real wind + its gusts, how much day, the strike, where it lands
@@ -1020,6 +1028,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if ((hourAt(ms) !== hourAt(a) && ((hourAt(ms) % 24) + 24) % 24 === 12) || (f.has('steam-whistle') && tick30('steam-whistle'))) { steamAt = ms; if (snd.ducked) snd.ducked('steam-whistle', { gain: 1, pan: 0.4, depth: 0.5 }); }
     for (const h of hornsBetween(a, ms, off)) { if (h.kind === 'rosie-dinner') { if (snd.ducked) snd.ducked('ship-horn', { gain: 1, pan: 0.4, depth: 0.55 }); } else snd.play('ship-horn', { gain: 0.7, pan: 0.4 }); }
     if (f.has('dinner-horn') && tick30('dinner-horn')) { if (snd.ducked) snd.ducked('ship-horn', { gain: 1, pan: 0.4, depth: 0.55 }); }
+    // 9e — SUNDAY MORNING's CHURCH BELLS (plan.md "FILLING THE DEAD TIMES — DECIDED" (3)): far off + soft, 9:00 + 10:45 on Sundays (the
+    // ship's bell keeps the hour); &force=church-bells: every 30 s
+    { const minAt = t => Math.floor((t / 1000 + off * 60) / 60), dowAt = t => new Date(t + off * 60000).getUTCDay();
+      const m1 = minAt(ms), m0 = minAt(a), mm = ((m1 % 1440) + 1440) % 1440;
+      if ((m1 !== m0 && dowAt(ms) === 0 && (mm === 9 * 60 || mm === 10 * 60 + 45)) || (f.has('church-bells') && tick30('church-bells'))) snd.play('church-bells', { gain: 0.9, pan: -0.35 }); }
   }
   let lgMemo = null, lgStartled = -1;
   function legendForPeople() {
@@ -1044,7 +1057,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const trafficHoldNow = () => { const h = trafficHold(legendForPeople()); return h ? { t0: h[0], t1: h[1], on: inHold(h, clock.now() / 1000) } : null; };
   const giantUp = () => !!(hprops && hprops.giantOn && !clock.force.has('no-holiday-props') && hprops.giantOn(HS, HP));
   const peopleFrame = () => ({ snowWork: snowWorkNow(), ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, snow: LK.snow || 0, temp: (() => { const tc = tempNow(); return tc != null ? tc : SN.stage !== 'none' ? -2 : null; })(), wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active() || giantUp(), ring: !centre.active() && giantUp() /* (11a-2: the dance RINGS the giant jack-o'-lantern) */, season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(), holiday: HS, hpieces: HP, local: LK.local, forceHoliday: clock.force, forceAt: id => (clock.force.has(id) ? forceAtOf(id) * 1000 : null) /* (the clock ms the flag came on) */,
-    forceWork: workForced(), forceWorkAt: workForceAt(), noWork: clock.force.has('no-work'), dusk: duskFor, hot: hotDay, rush: clock.force.has('shoppers') ? () => 1 : XP.bf ? tt => rushAtT(tt, LK.local ? LK.local.off : 0) : null,
+    forceWork: workForced(), forceWorkAt: workForceAt(), noWork: clock.force.has('no-work'), dusk: duskFor, hot: hotDay, flush: () => flushOk(), rush: clock.force.has('shoppers') ? () => 1 : XP.bf ? tt => rushAtT(tt, LK.local ? LK.local.off : 0) : null,
     forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), noDance: clock.force.has('no-dance'), blocked: danceBlocked, shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
   // life's dusk (the outside cat never with the window cat), the previews (&force=pigeons, coyote, … — wildlife.js#WILD_FORCES)
@@ -1086,7 +1099,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const lc = LK.local; if (!lc) return { boot: false, raid: false };
     const key = momentDayKey(lc.y, lc.m, lc.d), seed = L ? L.seed || 1924 : 1924, dow = new Date(Date.UTC(lc.y, lc.m - 1, lc.d)).getUTCDay();
     const r = raidDays.get(key), boot = dow === 6 || bootlegNight(key, { seed });
-    if (boot && truckKey !== key) { truckKey = key; truckAt = null; try { const d = workDayOf(clock.now() / 1000, lc.off || 0); const w = workDay(d.key, { off: lc.off || 0, seed, day0: d.day0, dusk: duskFor, hot: hotDay }).find(o => o.kind === 'bootleg' || o.kind === 'delivery'); truckAt = w ? w.t0 - d.day0 : null; } catch { truckAt = null; } }
+    if (boot && truckKey !== key) { truckKey = key; truckAt = null; try { const d = workDayOf(clock.now() / 1000, lc.off || 0); const w = workDay(d.key, { off: lc.off || 0, seed, day0: d.day0, dusk: duskFor, hot: hotDay, flush: () => flushOk() }).find(o => o.kind === 'bootleg' || o.kind === 'delivery'); truckAt = w ? w.t0 - d.day0 : null; } catch { truckAt = null; } }
     return { boot, raid: !!r, truckAt: boot ? truckAt : null, overcast: (LK.cloud || 0) >= 0.7, bossSignal: clock.force.has('boss-signal'), bossWatch: clock.force.has('boss-watch') };
   }
   // 8P — THE HUSH WORD SIGN's preview: &force=hushsign&hush=JAZZ (the lobby's word; Lobby 2.0 calls harbor().speakeasy.hush(word));
@@ -1374,6 +1387,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // 9e — THE REPORT (SEND REPORT in the &debug=1 strip; the hang watch's beat; a stall): everything that says why the city stopped, as
   // plain text the owner can read + screenshot on /admin. Each part on its own (a part that throws says so; the rest still comes).
   let reporter = null, repBtn = null, markNow = '';
+  let frontStage = null;   // (9e: the front street's other players — the night patrol on the curb, the water wagon — set where they're drawn)
   function reportText(kind) {
     const out = [`NEON SPEAKEASY — CITY 2.0 REPORT · ${String(kind || 'tap').toUpperCase()} · ${new Date().toISOString()}`];
     const part = (name, fn) => { try { const v = fn(); if (v != null && v !== '') out.push(`${name}: ${v}`); } catch (e) { out.push(`${name}: (failed: ${e && e.message})`); } };
@@ -2715,6 +2729,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, failStop, ...loopLog, at: Math.round(loopLog.at), wx: WXS ? WXS.state : null, wxBeds: snd.weatherBeds() }),
     /** 8a (test hook): what the watchdog does now (why: 'visible' | 'pageshow' | 'focus' | 'tap' | 'watchdog') → true = restarted */
     wakeLoop: why => wakeLoop(why),
+    /** 9e — THE STREET UNDER THE DOCK IS A STAGE: a scene playing on it now (the title's QUICK FADE) */
+    frontBusy: () => !!(roadLight.front() || (frontStage && frontStage())),
     /** 9e: the report's snapshot text + whether the hang watch runs */
     report: () => ({ text: reportText('tap'), watching: !!(reporter && reporter.watching), button: !!repBtn }),
     partyLight: () => null,                   // the party's light for the lobby's still: Part 11

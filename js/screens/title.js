@@ -1294,8 +1294,19 @@ export function createTitle() {
     tagState();
   }
   function wake() { const was = els.root.classList.contains('is-idle'); els.root.classList.remove('is-idle'); document.body.classList.remove('nd-idle'); if (was) tagState(); }
+  // 9e — THE QUICK FADE (the owner, DECIDED): a tap WHILE a scene plays on the street under the dock (the car crossing, the patrol…) brings
+  // the dock up but lets it fade away again within ~2 s so they keep watching; ANY further touch (a button, a press-and-hold, a scroll)
+  // returns to the normal 10 s
+  const QUICK_MS = 2000;
+  let quickIdle = false;
   function onWake(e) {
     if (destroyed) return;
+    const wasIdle = els.root.classList.contains('is-idle');
+    if (wasIdle && e.type === 'pointerdown' && autoIdle && scene && scene.frontBusy && scene.frontBusy()) {
+      if (!(e.target && e.target.closest && e.target.closest('.gm, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
+      wake(); quickIdle = true; clearTimeout(idleTimer); idleTimer = setTimeout(goIdle, QUICK_MS); return;
+    }
+    quickIdle = false;
     // the touch that wakes the screen only wakes it (it doesn't press whatever was under it)
     // (9b: never a tap inside the ☰ menu or a sheet — the owner's CREDITS tap on the iPhone was swallowed this way)
     if (els.root.classList.contains('is-idle') && e.type === 'pointerdown' && !(e.target && e.target.closest && e.target.closest('.gm, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
@@ -1306,7 +1317,7 @@ export function createTitle() {
   function onMouse(e) {
     if (e.pointerType !== 'mouse') return;
     if (!mouseAt) { mouseAt = [e.clientX, e.clientY]; return; }
-    if (Math.hypot(e.clientX - mouseAt[0], e.clientY - mouseAt[1]) > 24) { mouseAt = [e.clientX, e.clientY]; wake(); armIdle(); }
+    if (Math.hypot(e.clientX - mouseAt[0], e.clientY - mouseAt[1]) > 24) { mouseAt = [e.clientX, e.clientY]; if (quickIdle && !els.root.classList.contains('is-idle')) return; wake(); armIdle(); }
   }
 
   function meta(g) {
@@ -1602,6 +1613,8 @@ export function createTitle() {
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),
       idle: () => goIdle(),
+      quickIdle: () => quickIdle,   // (9e: the QUICK FADE armed — the dock up for ~2 s over a front-street scene)
+      frontBusy: () => (scene && scene.frontBusy ? scene.frontBusy() : null),
       isIdle: () => els.root.classList.contains('is-idle'),
       rainSound: () => !!stopRain,
       neonAt: t => (neonPlanV ? neonState(neonPlanV, t) : null),

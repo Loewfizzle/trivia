@@ -69,6 +69,10 @@ export const SHOWS = Object.freeze({
   // trees into two piles, bags them + carries the sack off (dates: a local-date gate — PURE)
   // 11a-2 — BLACK FRIDAY: THE FIRST CHRISTMAS CREW (core/harbor-xmas.js — its hour + length; the strings appear as they work)
   xlights: { days: EVERY, at: XMAS.crew.at, len: XMAS.crew.len * 60, prio: 7, truck: { model: 'van', word: 'HOLIDAY LIGHTING', paint: 1 }, dates: key => { const [y, m, d] = key.split('-').map(Number), b = blackFriday(y); return m === b.m && d === b.d; } },
+  // 9e — THE WATER WAGON's NIGHT (plan.md "FILLING THE DEAD TIMES — DECIDED" (2)): while the street flusher makes its slow passes on the back
+  // road (~2:45 → 3:30 — core/harbor-snowwork.js#flushWindow), a crewman opens THE HYDRANT and hoses the cobbles (the hot day's spray,
+  // its wet patch drying); never after rain, below freezing or on snow (ctx.flush(key) — the scene's live conditions)
+  hoser: { days: EVERY, win: [2.95, 3.1], len: 4 * 60, prio: 3, flush: true },
   raker: { days: MON_SAT, win: [10.9, 11.5], len: 32 * 60, prio: 2, dates: key => { const [, m, d] = key.split('-').map(Number); return m === 11 && d >= 4 && d <= 22; } },
 });
 /** the hydrant's day: the real temperature at least this (°C: ~85 °F) */
@@ -98,6 +102,12 @@ export const REGULARS = Object.freeze({
   musician: { days: [0, 2, 3, 4, 5, 6], win: [19.85, 20.1], len: 75 },
   // ~2 am THE BAR STAFF lock up + leave (the evening's own clock: 26 = 2 am)
   staff: { days: EVERY, at: 25.97, len: 150 },
+  // 9e — THE NIGHT SHIFT (plan.md "FILLING THE DEAD TIMES — DECIDED" (1)): the boss's HENCHMAN patrols the block with a flashlight in the
+  // small hours (2:03 → 5:55, every night — after the staff have locked up) + the weekday late nights (Sun–Thu, 11:24 pm → 12:51 am);
+  // his BEAT (the left end of the front, a look round, the corner, a look up the street, a check of the door) + his LAP (off round the
+  // block, back a minute later)
+  henchman: { days: EVERY, at: 2.05, len: 3.85 * H },
+  henchman2: { days: [0, 1, 2, 3, 4], at: 23.4, len: 1.45 * H },
 });
 
 // ------------------------------------------------------------------ CAUSE AND EFFECT (seeded nights)
@@ -166,6 +176,7 @@ export function workDay(key, ctx = {}) {
     if (S.rare && !bootlegNight(key, ctx)) continue;
     if (kind === 'newsdrop') continue;
     if (S.hot && !(ctx.hot && ctx.hot(key) && rngFrom(hashString(`hot|${ctx.seed || 1924}|${key}`))() < S.chance)) continue;
+    if (S.flush && !(ctx.flush && ctx.flush(key))) continue;   // (9e: the water wagon's night — never after rain / below freezing / on snow)
     if (S.dates && !S.dates(key)) continue;
     // (11a-2: THANKSGIVING is a day off — no truck, no crew on the parade's road: only the newspaper van at dawn)
     if (holidayOff(key)) continue;

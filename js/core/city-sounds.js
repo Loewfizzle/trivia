@@ -81,6 +81,7 @@ export const SLOTS = [
   S('laugh-distant', '8', 'once', 0.04, 'a group laughing, distant (two takes)', 'a group of people (8P: sounds.laugh(o))'),
   S('cart-bell', '8', 'once', 0.05, 'the chestnut cart’s hand bell (one ring)', 'the cart, now and then (8P: sounds.cart({ on, pan }) / sounds.cartBell(o))'),
   S('ships-bell', '8', 'once', 0.14, 'the HOURLY SHIP’S BELL (one ring)'),
+  S('church-bells', '8', 'once', 0.07, 'SUNDAY MORNING’s distant church bells (9e — far + soft: 9:00 + 10:45 on Sundays, sounds.js#life)'),
   // (8b2 — the owner: the boat whistle ~10 % louder: the noon whistle + Rosie's horn 0.16 → 0.18, +1 dB)
   S('steam-whistle', '8', 'once', 0.18, 'the NOON STEAM WHISTLE (a 1920s steamboat / factory; a steam engine’s whistle, low-passed)'),
   S('ship-horn', '8', 'once', 0.18, 'a big ship’s horn, distant (the 7 pm dinner cruise)'),

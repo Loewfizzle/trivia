@@ -40,7 +40,9 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     // balloon's fabric, the raker, a short V of geese)
     'parade-crowd', 'parade-cheer', 'parade-band', 'balloon-flap', 'leaves-rake', 'geese-v',
     // (9b — WINTER: the snow's hush at night, the shovel)
-    'snow-hush', 'snow-shovel'].sort());
+    'snow-hush', 'snow-shovel',
+    // (9e — SUNDAY's BELLS + THE CONSTRUCTION TOWER's crane, hammering, the implosion's rumble + the warning horn)
+    'church-bells', 'crane', 'hammering', 'implosion-rumble', 'tower-horn'].sort());
   // 11a-2: the crowd's loop + tail end before the kids' "Bye!" (30 s); the band is a one-shot pass that stops well before the disc's end
   // thump (~241 s); the murmur is laid inside the crowd, never a take; the 5.1 cheer + the 78 were decoded through their own `af`
   assert.ok(takesOf('parade-crowd')[0].from[1] <= 30.0, '11a-2: the crowd loop never reaches the "Bye!"');
@@ -89,7 +91,8 @@ test('every take points at a real, small file whose content matches its cache ke
   // (9a: 11 → 13 MB — the weather's 1.8 MB (lean: 22 / 16 kHz, 40–48 kbps); every slot is fetched only when its event plays)
   // (11a-1: + Halloween's five, lean like the weather: 12.84 MB)
   // (11a-2: + Thanksgiving + the parade, lean — 16 kHz decode, 40–48 kbps; the band's 90 s pass the biggest at 440 KB: 13.93 MB)
-  assert.ok(total < 14.5e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (9e: + Sunday's bells + the tower's crane, hammering, rumble + horn — 24 kHz, 40–56 kbps, ~0.96 MB: 15.23 MB; fetched only when they play)
+  assert.ok(total < 15.6e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');

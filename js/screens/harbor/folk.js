@@ -61,6 +61,9 @@ const WORKWEAR = {
   flowers: { woman: true, coat: 'short', hat: null, c: [124, 62, 72], d: [92, 80, 110], carry: 'flowers' },
   musician: { coat: 'long', hat: 'fedora', c: [30, 30, 38], l: [26, 26, 32], h: [26, 26, 32], carry: 'bass' },
   staff: { coat: 'none', hat: null, s: [238, 234, 224], l: [30, 30, 36], vest: [40, 34, 40] },
+  // 9e — THE NIGHT SHIFT: the boss's henchman — big, a long charcoal overcoat with its collar up + a fedora (a silhouette at ~27 pt), the
+  // FLASHLIGHT's beam + pool its one bright accent (the 'torch' hand carry)
+  henchman: { coat: 'long', hat: 'fedora', c: [44, 42, 48], l: [34, 34, 40], h: [30, 30, 36], collar: true, hcarry: 'torch', big: true, torchK: 2.6 },
 };
 /**
  * LOOKS: what a visitor wears → { woman, kid, coat ('long' | 'short' | 'none'), dress ('day' | 'flapper' | null), hat ('fedora' |
@@ -103,7 +106,8 @@ export function lookOf(name, seed, o = {}) {
   const W8 = WORKWEAR[name];
   if (W8) { L.woman = !!W8.woman; L.dress = W8.woman ? 'day' : null; L.coat = W8.coat; L.hat = W8.hat; L.carry = W8.carry || null; L.scarf = null; L.cols.scarf = null;
     if (W8.c) L.cols.coat = W8.c; if (W8.l) L.cols.legs = W8.l; if (W8.h) L.cols.hat = W8.h; if (W8.s) L.cols.shirt = W8.s; if (W8.d) L.cols.dress = W8.d; L.trim = W8.trim || null; L.vest = W8.vest || null; L.apron = W8.apron || null; L.overalls = !!W8.overalls; L.badge = !!W8.badge;
-    L.bow = W8.bow || null; L.belt = W8.belt || null; L.gloves = W8.gloves || null; L.spatter = W8.spatter || null; L.collar = !!W8.collar; L.worker = name; }
+    L.bow = W8.bow || null; L.belt = W8.belt || null; L.gloves = W8.gloves || null; L.spatter = W8.spatter || null; L.collar = !!W8.collar; L.worker = name;
+    if (W8.hcarry) L.hcarry = W8.hcarry; if (W8.big) L.hh = 1.1; if (W8.torchK) L.torchK = W8.torchK; }
   // 11a-1 — THE PEOPLE OF THE HOLIDAYS (core/harbor-holidayfolk.js): Halloween's trick-or-treaters (their costumes) + their grown-up, the
   // costume party's zombies, the Day of the Dead procession (Catrinas, candles, marigolds, photos, the mariachi trio, the ofrenda's bearers)
   if (name === 'trick') trickLook(L, r, o.m || {});
@@ -1172,12 +1176,14 @@ function holidayCarry(c, J, L, X, Y, H, f, env, hand) {
     c.fillStyle = f([60, 58, 66], 1.2); c.beginPath(); c.arc(hx, hy, Math.max(0.5, H * 0.014), 0, TAU); c.fill();
     if (nk > 0.25) {
       // the beam on the cobbles ahead (a soft cone down to a pool) — the torch's own light, so it reads in the dark between the lamps
-      const gx = hx + d * H * 0.75 * Math.max(0.35, Math.abs(J.cx)), gy = hy + H * 0.62 * (J.cz < -0.3 ? 1.15 : 1);
-      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.14 * nk;
+      // (9e: L.torchK — the night shift's flashlight is his one bright accent: a longer, brighter beam + a bigger pool at phone size)
+      const tk = L.torchK || 1, reach = tk > 1 ? 1.25 : 1;
+      const gx = hx + d * H * 0.75 * reach * Math.max(0.35, Math.abs(J.cx)), gy = hy + H * 0.62 * (J.cz < -0.3 ? 1.15 : 1);
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(0.5, 0.14 * nk * tk);
       const g = c.createLinearGradient(hx, hy, gx, gy); g.addColorStop(0, 'rgba(255,240,200,0.9)'); g.addColorStop(1, 'rgba(255,240,200,0.15)');
       c.fillStyle = g; c.beginPath(); c.moveTo(hx, hy); c.lineTo(gx - H * 0.18, gy); c.lineTo(gx + H * 0.18, gy); c.closePath(); c.fill(); c.restore();
-      c.save(); c.translate(gx, gy); c.scale(1, 0.32); glow(c, 0, 0, H * 0.24, 0.5 * nk); c.restore();
-      glow(c, hx, hy, H * 0.05, 0.6 * nk);
+      c.save(); c.translate(gx, gy); c.scale(1, 0.32); glow(c, 0, 0, H * 0.24 * (tk > 1 ? 1.5 : 1), Math.min(1, 0.5 * nk * Math.sqrt(tk))); c.restore();
+      glow(c, hx, hy, H * 0.05 * (tk > 1 ? 1.6 : 1), Math.min(1, 0.6 * nk * Math.sqrt(tk)));
     }
   } else if (hc === 'broom') {
     c.strokeStyle = f([110, 76, 44]); c.lineWidth = Math.max(0.4, H * 0.012); c.beginPath(); c.moveTo(hx - d * H * 0.12, hy - H * 0.14); c.lineTo(hx + d * H * 0.16, hy + H * 0.3); c.stroke();

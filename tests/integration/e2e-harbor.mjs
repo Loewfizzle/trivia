@@ -2450,7 +2450,11 @@ G('promenade', async () => {
     const r0 = await ev(Q.page, 'window.__district.harbor().road');
     ok(r0.vis === 0 && !r0.car, `FP2 — THE DOCK SHOWN: no car drawn (vis ${r0.vis}) — only the implied light`);
     await ev(Q.page, 'window.__district.idle()');
-    await waitFor(Q.page, 'window.__district.isIdle() && window.__district.harbor().road.vis >= 0.99', 'the dock at rest, the car visible', 8000);
+    // (9e — THE STREET IS A STAGE: the crossing already under way when the dock faded never pops in mid-street — the NEXT one, begun at rest,
+    // is the one seen (a forced pass every slot: within ~40 s))
+    const rIdle = await ev(Q.page, 'window.__district.harbor().road');
+    ok(rIdle.vis < 0.05, `9e — a crossing begun under the dock stays hidden when it fades (vis ${rIdle.vis}) — never a car popping in mid-street`);
+    await waitFor(Q.page, 'window.__district.isIdle() && window.__district.harbor().road.vis >= 0.99', 'the dock at rest, the car visible', 45000);
     const cam = await ev(Q.page, 'window.__district.harbor().cam');
     // the band's texture: the setts + the rails (the old asphalt was one flat tone: σ ≈ 2)
     const band = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, y0 = ${cam.dock.y} + 14, h = 874 - 8 - y0;
@@ -2464,8 +2468,11 @@ G('promenade', async () => {
     ok(fast !== '', `FP2 — 60 fps while it shows (its wheels; the reason now: ${fast} — 'car' when nothing else asks)`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}street-car-night-402x874.png` });
     await tapAt(Q.page, 30, 300);
-    await waitFor(Q.page, '!window.__district.isIdle() && window.__district.harbor().road.vis === 0 && !window.__district.harbor().road.car', 'the car gone with the dock back', 3000);
-    ok(true, 'FP2 — THE DOCK BACK: the car gone at once (vis 0)');
+    // (9e — the owner, Oct 26 DECIDED: a scene ALREADY UNDER WAY is never cut, snapped or faded — the dock draws ON TOP and the car drives on
+    // to its natural end (was FP2: the car gone at once); the tap's dock fades again in ~2 s — THE QUICK FADE)
+    await sleep(300);
+    const back = await ev(Q.page, '({ idle: window.__district.isIdle(), vis: window.__district.harbor().road.vis, quick: window.__district.quickIdle() })');
+    ok(!back.idle && back.vis >= 0.99, `9e — THE DOCK BACK over a crossing: the car drives on under it (vis ${back.vis}) (the quick fade: the stage9e check — this page has no &idle=1)`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'pr3', qs: `${NIGHT}&force=no-implied-road`, view: [402, 874] });
     await harborUp(Q.page);
@@ -2592,6 +2599,22 @@ G('sounds', async () => {
     okT(heard.length >= 1 && heard.every(q => q.dt != null && Math.abs(q.dt) < 0.35) && pairs.every(q => Math.abs(q.on - q.cross) < 0.4),
       `FP3 — THE CAR IN SYNC (car files held back 2.5 s): ${pairs.map(q => `${q.f} on screen ${q.on.toFixed(2)} s (its swell's ${q.cross} s), its sound's peak ${q.skipped ? 'SKIPPED (late, silent by design)' : q.dt == null ? 'MISSING' : `${q.dt >= 0 ? '+' : ''}${q.dt.toFixed(2)} s`} from mid-crossing`).join(' · ')}`);
     ok(res.sounds.every(x => Math.abs(x.pan) <= 0.6 + 1e-6) && res.sounds.some(x => Math.abs(x.pan) > 0.3), `FP3 — THE PAN: each sound starts on its car's side, gentle (${res.sounds.map(x => x.pan).join(', ')}; ±0.6 at most)`);
+    await C.ctx.close(); }
+  // ---- 9e — THE STREET UNDER THE DOCK IS A STAGE + THE QUICK FADE (the owner, DECIDED): a car crossing that began at rest drives on under the
+  // dock when a tap brings it back (never cut or faded); that tap's dock fades again in ~2 s; a further touch → the normal 10 s
+  { const C = await open({ slot: 'stage9e', qs: `${NIGHT}&force=road-pass&idle=1`, view: [402, 874] });
+    await harborUp(C.page);
+    await waitFor(C.page, '(window.__district.idle(), window.__district.isIdle())', 'the dock at rest', 20000);
+    await waitFor(C.page, 'window.__district.harbor().road.vis > 0.9 && window.__district.frontBusy()', 'a car crossing at rest, on screen', 45000).catch(() => {});
+    const before = await ev(C.page, 'window.__district.harbor().road.vis');
+    await tapAt(C.page, 200, 300);
+    await sleep(400);
+    const a = await ev(C.page, `({ vis: window.__district.harbor().road.vis, idle: window.__district.isIdle(), quick: window.__district.quickIdle() })`);
+    await sleep(2300);
+    const b = await ev(C.page, `({ idle: window.__district.isIdle() })`);
+    await tapAt(C.page, 200, 300); await sleep(250); await tapAt(C.page, 200, 320); await sleep(2600);
+    const c2 = await ev(C.page, `({ idle: window.__district.isIdle(), quick: window.__district.quickIdle() })`);
+    ok(before > 0.9 && a.vis > 0.9 && !a.idle && a.quick && b.idle && !c2.idle && !c2.quick, `9e THE STAGE + THE QUICK FADE: the car at rest (${before}) drives on under the dock after the tap (${a.vis}); the dock back for the tap (${!a.idle}, quick ${a.quick}) and gone again 2.7 s later (${b.idle}); a second touch → the normal 10 s (still up 2.6 s on: ${!c2.idle})`);
     await C.ctx.close(); }
 });
 
@@ -3685,6 +3708,25 @@ G('doors', async () => {
     ok(swung >= 5 && worst && worst.latch <= 2.5 * worst.med + 60, `THE DOORS NEVER SNAP (${L.id}, ${L.when.slice(11)}): at the latch ≤ ${worst ? worst.latch : '?'} pixels changed in a frame (what moves there anyway, the frames round it: ${worst ? worst.med : '?'}; ${ends.length} closes, ${swung} frames swung open)`);
     await P.ctx.close();
   }
+});
+
+// ================================================================ 9e — THE CITY LIFE (ONLY=citylife; the `wild` cloud job): the dead times filled
+// THE NIGHT SHIFT (the henchman's flashlight patrol at 3 am), THE WATER WAGON (its passes in the back road's traffic + the road left wet),
+// THE MORNING PAPER in a window (late morning), all on their own schedules (the same on every phone)
+G('citylife', async () => {
+  const P = 'window.__district.harbor()';
+  { const Q = await open({ slot: 'cl-night', qs: `when=2026-09-16T03:10${GR}&wx=clear&force=flusher`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.traffic.cars.some(c => String(c.id).startsWith('flush.'))`, 'the water wagon on the back road', 30000).catch(() => {});
+    const a = await ev(Q.page, `(() => { const p = ${P}.people; return { works: p.crew.works, wagon: p.traffic.cars.some(c => String(c.id).startsWith('flush.')), hench: (p.crew.members || []).find(m => m.kind === 'henchman'), wet: ${P}.snow.work && ${P}.snow.work.flush }; })()`);
+    ok(a.works.includes('henchman') && a.hench && a.wagon && a.wet, `9e THE NIGHT SHIFT at 3:10 am: the henchman on his patrol (${a.hench ? `${a.hench.pose} at x ${a.hench.x}` : 'missing'}), the water wagon in the back road's traffic (${a.wagon}, its night: ${a.wet})`);
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'cl-paper', qs: `when=2026-10-21T10:30${GR}&wx=clear&force=window&moment=paper`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.speakeasy.life.on.some(e => e.id === 'paper')`, 'the morning paper in a window', 30000).catch(() => {});
+    const on = await ev(Q.page, `${P}.speakeasy.life.on`), dropped = await ev(Q.page, `${P}.speakeasy.life.dropped`);
+    ok(on.some(e => e.id === 'paper') && !dropped.length, `9e THE MORNING PAPER plays (${JSON.stringify(on)}), nothing dropped (${dropped.join(', ') || 'none'})`);
+    await Q.ctx.close(); }
 });
 
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups

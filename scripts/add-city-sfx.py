@@ -384,6 +384,13 @@ CUTS = {
     # (4.3 s Pixabay MP3 of a CC0 original, ONE ship's bell ring: partials 437 / 875 / 1172 / 1594 / 1828 / 2094 / 3000 Hz… held
     # 1–4 s — the bell itself, not music)
     'ships-bell': [{'cut': (0.0, 4.3), 'fin': 0.003, 'fout': 1.2, 'hp': 300}],
+    # 9e — SUNDAY's BELLS (1:16 Pixabay MP3 of XPLOman's CC0 "Distant Church Bells"): 40 s of the far peal, FAR + SOFT (a low-pass, slow ends)
+    'church-bells': [{'cut': (2.0, 42.0), 'fin': 2.5, 'fout': 6.0, 'hp': 200, 'lp': 3500, 'rate': 24000, 'kbps': 48}],
+    # 9e — THE CONSTRUCTION TOWER's beds + the implosion (Pixabay MP3s of CC0 originals; Saturn-3's crumbling a Pixabay original): far,
+    # low-passed — a construction site across the harbor; the implosion's long crumbling rumble (its first 24 s)
+    'crane-work': [{'loop': (1.0, 48.0), 'xf': 2.5, 'hp': 160, 'lp': 2600, 'rate': 24000, 'kbps': 40}],
+    'hammering-far': [{'loop': (1.0, 54.0), 'xf': 2.5, 'hp': 220, 'lp': 3200, 'rate': 24000, 'kbps': 40}],
+    'implosion': [{'cut': (0.0, 24.0), 'fin': 0.02, 'fout': 6.0, 'hp': 60, 'lp': 5000, 'rate': 32000, 'kbps': 56}],
     # (12 s Sonniss, a Royal Hudson's whistle from the cab: the engine's noise 0–2 s (no tone), THE WHISTLE 2.0–4.3 s (437.5 Hz held:
     # voiced 0.5–0.67), then the engine chuffing (modulation 0.75–0.8) to the end — 1.7–4.9 s, low-passed 3.5 kHz (far off at noon))
     'steam-whistle': [{'cut': (1.7, 4.9), 'fin': 0.3, 'fout': 0.6, 'hp': 250, 'lp': 3500}],
@@ -489,7 +496,8 @@ CUTS = {
 # source files named after what they are, not their slot (the folder's names) → the slot
 ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-formation': 'jet-flyby', 'tr3b-powerdown': 'tr3b-power-down',
          'club-murmur': 'club-murmur-calm', 'mirror-door': 'door-heavy', 'bar-ambience-close': 'bar-open', 'window-sash': 'window-sash-up',
-         'secret-knock': 'door-knock', 'marching-band-far': 'parade-band'}
+         'secret-knock': 'door-knock', 'marching-band-far': 'parade-band',
+         'crane-work': 'crane', 'hammering-far': 'hammering', 'implosion': 'implosion-rumble', 'warning-horn': 'tower-horn'}   # (9e: the tower's)
 # never imported (8P): the diesel bus stand-ins (the 1945 truck's takes instead), the "haunted" door alternatives, the TV murmur (MUSIC
 # held in it — G4 / E5 / G5 notes for 1–1.9 s at 26–41 s — and one clear talker: modulation 0.5–1.1), the slot (inside the knock)
 # 6b: traffic-far (MODERN traffic — the owner: leave the slot empty), trash-truck (a modern ZIL diesel standing still: start, revs, stop —
@@ -510,7 +518,7 @@ CREDIT_NOTE = {
     'cat-land': PIXABAY, 'rooftop-party': PIXABAY, 'snow-shovel': PIXABAY,   # (9b)
     'tv-murmur-2': PIXABAY, 'trash-truck-2': PIXABAY, 'power-failure': PIXABAY, 'power-restore': PIXABAY,   # (8b1: the second-try set)
     'milk-bottles': PIXABAY, 'trash-can-lid': PIXABAY, 'ladder-clank': PIXABAY, 'crates-clink': PIXABAY, 'ships-bell': PIXABAY,
-    'ship-horn': PIXABAY, 'boat-putter': PIXABAY,
+    'ship-horn': PIXABAY, 'boat-putter': PIXABAY, 'church-bells': PIXABAY, 'crane-work': PIXABAY, 'hammering-far': PIXABAY,   # (9e)
     'squeegee': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',
     'crowd-clap': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',
     'bus-door': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.',

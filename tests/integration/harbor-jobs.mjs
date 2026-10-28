@@ -30,6 +30,7 @@ export const SECONDS = {
   snow: 80,           // (9b: WINTER — eleven pages; measured on the laptop)
   freeze: 45,          // (HOTFIX Oct 27: NEVER FREEZE AT NIGHT — four pages side by side, 46 s on the laptop)
   doors: 20,           // (9d: THE DOORS NEVER SNAP — two pages one after the other, a forced pass each; 13 s on the laptop)
+  citylife: 40,        // (9e: THE CITY LIFE — the night shift, the water wagon, the morning paper; three pages)
   thanks: 70,          // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
 };
 
@@ -44,7 +45,7 @@ export const CI_JOBS = {
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
   wild: ['wildlife', 'workers', 'legends', 'weather'],
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
-  holiday: ['holiday', 'thanks', 'panelrows'],   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
+  holiday: ['holiday', 'thanks', 'panelrows', 'citylife'],   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };
 
 export const SERIAL = ['panel', 'perf'];

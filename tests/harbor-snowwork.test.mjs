@@ -1,7 +1,7 @@
 // CITY 2.0 — 9b: THE WINTER WORK (core/harbor-snowwork.js) + THE WINTER PEOPLE's schedule (screens/harbor/winterfolk.js#winterActs)
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { workPasses, workSpawns, lastCleared, SNOWWORK } from '../js/core/harbor-snowwork.js';
+import { workPasses, workSpawns, lastCleared, SNOWWORK, FLUSH, flushWindow, flushWet } from '../js/core/harbor-snowwork.js';
 import { winterActs, doorCleared } from '../js/screens/harbor/winterfolk.js';
 import { simulateLane, trafficLanes } from '../js/core/harbor-traffic.js';
 
@@ -81,4 +81,22 @@ test('9c: a REAL snowfall schedules the plow + the salt truck — while it falls
   const falling = snowState(pack, { falling: 0.6, temp: -3 });
   const during = workPasses(day0 + 9 * 3600, day0 + 17 * 3600, { snowing: falling.stage === 'fresh', off, seed: 1924 });
   assert.ok(during.filter(p => p.kind === 'plow').length >= 8 && during.some(p => p.kind === 'salter'), `${during.length} passes while it snows`);
+});
+
+test('9e — THE WATER WAGON: its shift ~2:45 → 3:30 local on its nights only, slow passes in turn on both lanes, the road wet after + drying; &force=flusher a loop', () => {
+  const OFF = -240, day = Date.UTC(2026, 9, 22, 4) / 1000, d = Math.floor((day + OFF * 60) / 86400) + 1;
+  const [w0, w1] = flushWindow(d, { off: OFF, seed: 1924 });
+  const h0 = ((w0 + OFF * 60) / 3600) % 24;
+  assert.ok(h0 >= 2.74 && h0 <= 2.84 && w1 - w0 >= 40 * 60 && w1 - w0 <= 46 * 60, `the shift ${h0.toFixed(2)} h, ${((w1 - w0) / 60).toFixed(0)} min`);
+  const ps = workPasses(w0 - 600, w1 + 600, { flush: true, off: OFF, seed: 1924 }).filter(p => p.kind === 'flusher');
+  assert.ok(ps.length >= 6 && ps.every(p => p.t0 >= w0 && p.t0 < w1), `${ps.length} passes inside the shift`);
+  assert.ok(ps.some(p => p.lane === 'near') && ps.some(p => p.lane === 'far'), 'both lanes');
+  assert.equal(workPasses(w0 - 600, w1 + 600, { flush: false, off: OFF, seed: 1924 }).filter(p => p.kind === 'flusher').length, 0, 'not on a wet / freezing / snowy night');
+  const sp = workSpawns(Math.floor(ps[0].t0 / SNOWWORK.block), ps[0].lane, { flush: true, off: OFF, seed: 1924 }).find(x => x.id === ps[0].id);
+  assert.ok(sp && sp.model === 'flusher' && sp.v === SNOWWORK.v.flusher, 'it drives in the traffic of its lane as the flusher model');
+  const c = { flush: true, off: OFF, seed: 1924 };
+  assert.equal(flushWet(w0 - 60, c), 0); assert.equal(flushWet(w0 + 1200, c), 1);
+  const wd = flushWet(w1 + FLUSH.dry / 2, c); assert.ok(wd > 0.4 && wd < 0.6, `drying (${wd})`); assert.equal(flushWet(w1 + FLUSH.dry + 10, c), 0);
+  const f = workPasses(5000, 5000 + 1200, { forced: { flush: 5000 }, off: OFF }).filter(p => p.kind === 'flusher');
+  assert.ok(f.length >= 3 && f.every(p => p.forced), `&force=flusher: a pass every ${FLUSH.every} s (${f.length})`);
 });
