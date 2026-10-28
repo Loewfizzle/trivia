@@ -2,8 +2,8 @@
 """POLISH 5 — two city sounds SYNTHESIZED (the owner: "built from the water sounds already in the folder or synthesized — no new Grok
 batch"): written as WAVs into a folder the city-sounds importer reads, then imported like any recording (cut, levelled, encoded, registered):
 
-    python -I scripts/build-synth-sfx.py                       # writes ~/Downloads/city-sfx-synth/{hydrant-spray,periscope-ping}.wav + credits.txt
-    ~/.cache/neural-arcade/pyenv/Scripts/python -I scripts/add-city-sfx.py --src ~/Downloads/city-sfx-synth --only hydrant-spray,periscope-ping
+    python -I scripts/build-synth-sfx.py                       # writes ~/Downloads/city-sfx-synth/{hydrant-spray,periscope-ping,cat-hiss,tower-horn-3}.wav + credits.txt
+    ~/.cache/neural-arcade/pyenv/Scripts/python -I scripts/add-city-sfx.py --src ~/Downloads/city-sfx-synth --only hydrant-spray,periscope-ping   (9g: --only tower-horn — HORN C)
 
   * hydrant-spray (a loop): an open fire hydrant — the pressurized stream's HISS (noise, 2.2–7 kHz, a slow uneven flutter) over the
     SPLASH where it lands on the cobbles (a dense rain of short droplet grains, 400 Hz–2.6 kHz, + a soft low wash) — mid-range, for a
@@ -98,6 +98,44 @@ def hiss(dur=0.95):
     return norm(band(y, 600, 9000, 2))
 
 
+def horn(blasts=((0.0, 1.15), (1.6, 1.15), (3.2, 1.6)), tail=2.6):
+    """9g — HORN C: a deep COMPRESSED-AIR WARNING HORN (a demolition site's), three blasts (short, short, long). Two horns in a FIFTH
+    (~154 + ~231 Hz, the owner's 150–230 Hz), each a detuned pair of saw + square partials; air horns BEND UP as the pressure builds
+    (≈ −5 % → pitch over 0.12 s), a slight SAG as the valve closes; a soft tanh drive (the compressed, brassy edge), a formant lift
+    round 550 + 1300 Hz (the bell of the horn — what a phone's speaker plays), a breath of air noise; then FAR: a room + distance
+    reverb (a seeded noise IR, 2.2 s, low-passed) under the dry, the highs rolled off — a horn across the harbor, not in your ear"""
+    n = int((blasts[-1][0] + blasts[-1][1] + tail) * SR); t = np.arange(n) / SR
+    dry = np.zeros(n)
+    for t0, d in blasts:
+        i0, L = int(t0 * SR), int((d + 0.35) * SR)
+        tt = np.arange(L) / SR
+        bend = 1 - 0.05 * np.exp(-tt / 0.045) - 0.025 * np.clip((tt - d + 0.12) / 0.3, 0, 1)
+        env = np.minimum(1, tt / 0.035) * np.where(tt < d, 1.0, np.exp(-(tt - d) / 0.07))
+        env *= 0.94 + 0.06 * np.sin(2 * np.pi * 5.5 * tt)               # (the air's own flutter)
+        y = np.zeros(L)
+        for f0, g in ((154.0, 1.0), (231.0, 0.72)):
+            for det in (-0.004, 0.004):
+                ph = 2 * np.pi * np.cumsum(f0 * (1 + det) * bend) / SR
+                saw = 2 * ((ph / (2 * np.pi)) % 1.0) - 1
+                sq = np.sign(np.sin(ph)) * 0.6
+                y += g * (0.65 * saw + 0.35 * sq)
+        y = np.tanh(1.6 * y / np.abs(y).max()) * env
+        air = band(rng.standard_normal(L), 900, 3200, 2) * env * 0.035
+        dry[i0:i0 + L] += y + air
+    # the bell's formants (a phone plays these), the top rolled off
+    f1 = band(dry, 420, 720, 2); f2 = band(dry, 1050, 1600, 2)
+    dry = low(dry + 1.1 * f1 + 0.6 * f2, 3600)
+    dry = band(dry, 110, 5000, 2)
+    # the room + the distance
+    Li = int(2.2 * SR); ti = np.arange(Li) / SR
+    ir = low(rng.standard_normal(Li), 1800, 2) * np.exp(-ti / 0.55) * np.minimum(1, ti / 0.02)
+    ir[:int(0.035 * SR)] = 0                                            # (pre-delay: the far wall)
+    wet = fftconvolve(dry, ir / np.abs(ir).max())[:n]
+    y = 0.8 * norm(dry, 1.0) + 0.5 * norm(wet, 1.0)
+    fade = np.ones(n); fl = int(0.6 * SR); fade[-fl:] = np.cos(np.linspace(0, np.pi / 2, fl)) ** 2
+    return norm(y * fade)
+
+
 def write(name, y):
     os.makedirs(OUT, exist_ok=True)
     wf.write(os.path.join(OUT, name), SR, (np.clip(y, -1, 1) * 32767).astype(np.int16))
@@ -108,7 +146,8 @@ if __name__ == '__main__':
     write('hydrant-spray.wav', hydrant())
     write('periscope-ping.wav', ping())
     write('cat-hiss.wav', hiss())
+    write('tower-horn-3.wav', horn())
     with open(os.path.join(OUT, 'credits.txt'), 'w', encoding='utf-8') as fh:
-        for f, what in (('hydrant-spray.wav', 'an open fire hydrant: the stream’s hiss + the splash on cobbles'), ('periscope-ping.wav', 'a submarine sonar ping with its underwater echo'), ('cat-hiss.wav', 'a cat’s hiss (11a-1)')):
+        for f, what in (('hydrant-spray.wav', 'an open fire hydrant: the stream’s hiss + the splash on cobbles'), ('periscope-ping.wav', 'a submarine sonar ping with its underwater echo'), ('cat-hiss.wav', 'a cat’s hiss (11a-1)'), ('tower-horn-3.wav', 'a deep compressed-air warning horn, three blasts, far (9g: HORN C)')):
             fh.write(f'{f}\n    {what} — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)\n\n')
     print('credits.txt written')

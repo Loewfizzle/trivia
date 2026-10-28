@@ -125,10 +125,10 @@ test('THE SKY SOUNDS: every recording in its slot, cut as measured — flybys ar
   assert.ok(pd.from[0] < 134.75 && pd.from[1] > 150 && Math.abs(pd.from[0] + pd.hit - 134.75) < 0.1, `the blackout's hit on the turbine's clunk (${pd.from[0]} + ${pd.hit})`);
   assert.ok(Math.abs(pd.peak - pd.hit) < 0.3, 'the thump is the loudest moment');
   // the loops: a 30 s+ body + a 3 s crossfade, from the windows asked (the TR-3B: 30–120 s; the UFO: 20–80 s; the swarm: 3–73 s)
-  const tr = one('tr3b-drone')[0], ufo = one('ufo-hum')[0], sw = one('drone-swarm')[0];
+  const tr = one('tr3b-drone')[0], ufo = one('ufo-hum').find(t => t.src === 'ufo-hum'), sw = one('drone-swarm')[0];   // (9g: the Oct 24 hum kept, after the brief's two)
   assert.ok(tr.from[0] >= 30 && tr.from[1] <= 120 && ufo.from[0] >= 20 && ufo.from[1] <= 80 && sw.from[0] >= 3);
   // decoded small: the low / distant ones at 16 kHz (half the memory; nothing much above ~6 kHz in them)
-  for (const id of ['helicopter', 'airliner-far', 'prop-plane', 'geese', 'drone-swarm', 'ufo-hum', 'tr3b-drone']) for (const t of one(id)) assert.equal(t.r, 16000, `${t.f} decodes at 16 kHz`);
+  for (const id of ['helicopter', 'airliner-far', 'prop-plane', 'geese', 'drone-swarm', 'ufo-hum', 'tr3b-drone']) for (const t of one(id)) assert.equal(t.r, id === 'ufo-hum' && t.src !== 'ufo-hum' ? 24000 : 16000, `${t.f} decodes at ${id === 'ufo-hum' && t.src !== 'ufo-hum' ? 24 : 16} kHz`);   // (9g: the UFO's hover A + B keep their 24 kHz: their pulse's mid-range is what a phone hears)
   for (const id of ['helicopter', 'airliner-far', 'prop-plane', 'jet-flyby', 'geese', 'balloon-burner']) for (const t of one(id)) assert.ok(t.d <= 45, `${t.f}: ${t.d} s`);
 });
 

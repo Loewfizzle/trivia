@@ -92,7 +92,7 @@ import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
 import { createReporter } from './report.js';
 import { createTowerFx } from './tower.js';
-import { isFilled } from '../../core/city-sounds.js';
+import { isFilled, pickTakes } from '../../core/city-sounds.js';
 import { towerAt, forcedTower, towerKey, implosionSounds, IMPLODE } from '../../core/harbor-tower.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power, photocell, beaconStep } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
@@ -290,6 +290,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (legendWant) { legends.start(legendWant.kind, legendWant.at, legendWant); legendWant = null; }
     }).catch(e => { legendsLoading = false; console.warn('[harbor] legends', e); });
   }
+  /** 9g — what the sounds hear of a legendary: legends.listen() + the panel's picks (&hum= / &depart=) + how many on the promenade flee */
+  const legendHeard = () => { const o = legends ? legends.listen() : null; if (o && o.kind === 'ufo') { o.hum = qp.get('hum'); o.depart = qp.get('depart'); o.crowd = people && people.witnessN ? people.witnessN() : 0; } return o; };
   /** tonight's legendary is due within a minute (or running) */
   function legendSoon() {
     const lc = LK.local; if (!lc || LK.alwaysNight) return false;
@@ -1462,7 +1464,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     TWS = towerNow();
     if (L && now - twKeyAt > 1000) { twKeyAt = now; if (towerKey(TWS) !== L.towerKey) { wantBuild = 'the construction tower'; LOADLOG.add('layout', `the construction tower: ${L.towerKey || '-'} → ${towerKey(TWS) || '-'}`); } }
     if (TWS && TWS.stage === 'implosion' && S.motion && !clock.force.has('no-tower')) {
-      if (twSndS != null && TWS.s > twSndS && TWS.s - twSndS < 5) for (const e of implosionSounds(twSndS, TWS.s)) { const alt = e.slot === 'tower-siren' && !isFilled('tower-siren'); snd.play(alt ? 'siren-1920s' : e.slot, { gain: alt ? 1.6 : 1, pan: -0.4 }); }   // (9f: the siren's own recording — craigsmith's distant wail; the 1920s siren only if the slot were empty; the charges' slot stays silent)
+      if (twSndS != null && TWS.s > twSndS && TWS.s - twSndS < 5) for (const e of implosionSounds(twSndS, TWS.s)) {
+        // (9f: the siren's own recording — craigsmith's distant wail; the 1920s siren only if the slot were empty; the charges' slot stays
+        // silent. 9g — the owner: the siren LOUDER, carrying over the music: its slot +7 dB + the music dipped under its wail; the horn's
+        // take = the panel's HORN A / B / C (&horn=), today's (A) by default)
+        if (e.slot === 'tower-siren' && isFilled('tower-siren') && snd.ducked) { snd.ducked('tower-siren', { gain: 1, pan: -0.4, depth: 0.62, hold: 7, release: 4 }); continue; }
+        const alt = e.slot === 'tower-siren' && !isFilled('tower-siren'), take = e.slot === 'tower-horn' ? pickTakes('horn', qp.get('horn'))[0] ?? null : null;
+        snd.play(alt ? 'siren-1920s' : e.slot, { gain: alt ? 1.6 : 1, pan: -0.4, take });
+      }
       twSndS = TWS.s;
     } else twSndS = null;
     const day = clamp01((TW.day || 0) + 0.6 * (TW.gold || 0)), work = TWS && (TWS.stage === 'rising' || TWS.stage === 'topping') ? 1 : TWS && (TWS.stage === 'cleanup' || TWS.stage === 'finishing') ? 0.5 : 0;
@@ -1630,7 +1639,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.sunHaze(c, fs, sun.debug());
     sun.draw(c, fs);
     sky.tick(fs, events.active, events.recent || []);
-    snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W, legend: legends ? legends.listen() : null, hween: HP && HP.spooky ? HP.spooky * clamp01((LK.w.night || 0) + (LK.w.late || 0)) : 0,
+    snd.tick(fs, { dark: DK, sky, boats: boats.busy(), W, legend: legendHeard(), hween: HP && HP.spooky ? HP.spooky * clamp01((LK.w.night || 0) + (LK.w.late || 0)) : 0,
       weather: WXS ? { rain: LK.rain || 0, state: WXS.state, drip: WXS.drip, gust: WXS.gust, fog: LK.fog || 0, temp: tempNow(), month: LK.local ? LK.local.m : 0, hour: LK.local ? LK.local.h + LK.local.mi / 60 : 12, night: clamp01((LK.w.night || 0) + (LK.w.late || 0)), ...winterSound() } : null,
       hydrant: (() => { const h = wild.hydrantState && wild.hydrantState(); if (!h || !(h.spray > 0.01)) return null; const [hx] = project(cam, h.x + 1.3, 0, h.z); return { k: h.spray, pan: Math.max(-1, Math.min(1, (hx / W) * 2 - 1)) }; })(),
       // 11a-2 — THE PARADE heard (its units in view: the balloons + the bands, screen x 0..1) + THE RAKER raking (people.js#positions)

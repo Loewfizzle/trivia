@@ -131,13 +131,18 @@ export const SLOTS = [
   S('thunder-far', '9', 'once', 0.16, 'distant thunder rolling (two takes)', 'after the lightning, delayed by its distance'),
   S('gutter-drip', '9', 'loop', 0.06, 'drips from the gutter + the eaves after the rain'),
   // ---- PART 9 — the construction tower
-  S('tower-siren', 'tower', 'once', 0.07, 'the demolition’s warning siren — one slow distant wail (9f: craigsmith, CC0)'),
-  S('tower-horn', 'tower', 'once', 0.14, 'the warning horn blasts'),
+  // (9g — the owner: the siren "louder … carries over the music like a real distant air-raid siren, still far off": 0.07 → 0.16 (+7 dB),
+  // the music dipped under it (sounds.js#ducked); the horn's three takes are the panel's HORN A / B / C (&horn=a|b|c — core: hornTake))
+  S('tower-siren', 'tower', 'once', 0.16, 'the demolition’s warning siren — one slow distant wail (9f: craigsmith, CC0)'),
+  S('tower-horn', 'tower', 'once', 0.14, 'the warning horn blasts (A: craigsmith’s destroyer horn · B: the old warning horn · C: synthesized compressed air)'),
   S('implosion-charges', 'tower', 'once', 0.16, 'the implosion’s charges'),
   S('implosion-rumble', 'tower', 'once', 0.16, 'the long rumble as it comes down'),
   S('hammering', 'tower', 'loop', 0.07, 'distant hammering'),
   S('crane', 'tower', 'loop', 0.07, 'a crane at work'),
-  S('rivet-gun', 'tower', 'loop', 0.045, 'a rivet gun on the steel — now + then over the hammering (9f)'),
+  // (9g — the owner: "short, infrequent bursts … it almost sounds like a bug in the background": a ONE-SHOT of four 1.5–4 s bursts,
+  // fired now + then (sounds.js: a couple a minute at most, long seeded gaps), louder: −20 LUFS × 0.075 ≈ −42.5 LUFS, a touch over the
+  // hammering bed's −24 × 0.07 ≈ −47)
+  S('rivet-gun', 'tower', 'once', 0.075, 'a rivet gun on the steel — short bursts now + then over the hammering (9g: four takes)', 'the site by day while the hammering plays (sounds.js — rivetDue)'),
   S('crane-lift', 'tower', 'once', 0.06, 'a period crane lifting a big load — now + then over the crane (9f)'),
   // ---- PART 10 — party nights + fireworks
   S('firework-launch', '10', 'once', 0.12, 'a firework’s launch whoosh'),
@@ -170,8 +175,21 @@ export const SLOTS = [
   // (POLISH 4, the owner: "the drones have NO SOUND" — at −51.5 LUFS under the music's duck it was never heard: +7.4 dB (0.064 → 0.15),
   // a soft hum under the helicopter, clearly there while the fleet flies)
   S('drone-swarm', 'sky', 'loop', 0.15, 'the drone show’s soft swarm hum (five quadcopters layered + detuned, low-passed)', 'the drone show while it flies'),
-  S('ufo-hum', 'sky', 'loop', 0.06, 'the UFO saucer’s low tonal hum (soft top — lower / filter it under the music)'),
-  S('ufo-beam', 'sky', 'once', 0.1, 'the abduction beam (a riser, its peak ~6 s in)'),
+  // (9g — THE UFO's REAL SOUNDS (Grok's brief, the owner: "too beautiful not to have some sound effects"): before, a 0.06 hum (≈ −48 LUFS
+  // into the bus, its energy under 150 Hz — nothing a phone plays) + one riser. Now the whole film: the hover (A / B: &hum=), its
+  // spin-up + spin-down, the beam's activation + idle + stop, the lift, the departure (A / B / LAYERED: &depart=), the crowd fleeing.
+  // Levels against the music's dip + muffle while the craft is here (core/harbor-legend.js#ufoAt: 0.42 + a 900 Hz low-pass): the beds
+  // ≈ −38 LUFS, the one-shots ≈ −36 … −39 — the mid-range carried (each take checked through a 300 Hz–8 kHz phone band, docs/audio.md#9g)
+  S('ufo-hum', 'sky', 'loop', 0.2, 'the UFO’s hover: a pulsing engine throb (A: the hover engine, 1.54 Hz · B: BlueZone’s 1.0 Hz throb, harmonics added)', 'the abduction while the craft is here (sounds.js#legendSounds)'),
+  S('ufo-hum-up', 'sky', 'once', 0.16, 'the hover engine spinning up (5 s)', 'the craft arriving (hum A)'),
+  S('ufo-hum-down', 'sky', 'once', 0.12, 'the hover engine spinning down (8 s)', 'the craft leaving, under the departure (hum A)'),
+  S('ufo-beam', 'sky', 'once', 0.1, 'the abduction beam (a riser, its peak ~6 s in) — 9g: replaced by ufo-beam-on / idle / off + ufo-lift', ''),
+  S('ufo-beam-on', 'sky', 'once', 0.13, 'the tractor beam switching on (a 4 s activation)', 'the beam opening (5.3 s in)'),
+  S('ufo-beam-idle', 'sky', 'loop', 0.13, 'the tractor beam held: a 246 Hz tone + a slow throb, a slight warble', 'the beam while it’s open'),
+  S('ufo-beam-off', 'sky', 'once', 0.13, 'the tractor beam switching off', 'the beam closing (21.6 s in)'),
+  S('ufo-lift', 'sky', 'once', 0.15, 'the figure rising up the beam: a flutter riser bending up, an airy top', 'the last 6 s of the lift (peaks as he’s taken)'),
+  S('ufo-depart', 'sky', 'once', 0.2, 'the craft shooting away (A: a falling flyby · B: a fast pass-by whoosh; LAYERED: both)', 'the craft leaving (24.4 s in)'),
+  S('crowd-flee', 'sky', 'once', 0.085, 'a distant muffled crowd fleeing in fright (wordless) + quiet running steps', 'the witnesses scattering as the beam opens (only with people on the promenade)'),
   S('tr3b-drone', 'sky', 'loop', 0.08, 'the TR-3B’s deep drone (low-mids kept: a phone still hears it)'),
   S('tr3b-crackle', 'sky', 'once', 0.1, 'electrical crackle (an electric arc + its reverb, ~3.6 s)'),
   S('tr3b-power-down', 'sky', 'once', 0.12, 'the power-down (the blackout): the hum cut dead with a thump at `hit` s, a turbine winding down'),
@@ -210,6 +228,29 @@ export const slotOf = id => BY_ID.get(id) || null;
 /** the recorded takes of a slot ([] = empty: silent) — each { f, d, v, w?, loop?, xf?, peak?, lufs, src } */
 export const takesOf = id => (BY_ID.has(id) && Array.isArray(FILES[id]) ? FILES[id] : []);
 export const isFilled = id => takesOf(id).length > 0;
+/** 9g — a take by its SOURCE's name (the registry's order follows the imports) → its index, or null */
+export function takeBySrc(id, src) { const i = takesOf(id).findIndex(t => t.src === src); return i < 0 ? null : i; }
+/** 9g — THE PANEL's A / B / C picks (the owner decides by ear): &horn= (the implosion's warning horn), &hum= (the UFO's hover),
+ *  &depart= (the UFO leaving; 'layered' = A + B at once). The first of each is the default (today's horn; the brief's picks) */
+export const SOUND_PICKS = Object.freeze({
+  horn: Object.freeze({ slot: 'tower-horn', a: 'tower-horn-2', b: 'warning-horn', c: 'tower-horn-3' }),
+  hum: Object.freeze({ slot: 'ufo-hum', a: 'ufo-hum-2', b: 'ufo-hum-3' }),
+  depart: Object.freeze({ slot: 'ufo-depart', a: 'ufo-depart', b: 'ufo-depart-2', layered: null }),
+});
+/** 9g — THE RIVET GUN's gaps (s) after burst n (seed: the page's own start — irregular, never a beat): mostly 20–50 s of quiet, now +
+ *  then (1 in 4) a quick second burst 3–7 s on — a riveter driving a few rivets, then moving along. Mean ≈ 28 s: a couple a minute at most */
+export function rivetGap(seed, n) {
+  let h = (Math.floor(seed * 1000) ^ Math.imul(n + 1, 0x9e3779b1)) >>> 0;
+  const r = () => { h = Math.imul(h ^ (h >>> 15), 0x2c1b3c6d) >>> 0; h = Math.imul(h ^ (h >>> 12), 0x297a2d39) >>> 0; return ((h ^ (h >>> 15)) >>> 0) / 4294967296; };
+  return r() < 0.25 ? 3 + 4 * r() : 20 + 30 * r();
+}
+/** a pick's value ('a' | 'b' | 'c' | 'layered' | anything else = the default 'a') → [take index …] in its slot (null entries dropped) */
+export function pickTakes(kind, v) {
+  const P = SOUND_PICKS[kind]; if (!P) return [];
+  const key = v && Object.prototype.hasOwnProperty.call(P, v) && v !== 'slot' ? v : 'a';
+  const srcs = key === 'layered' ? [P.a, P.b] : [P[key]];
+  return srcs.map(src => takeBySrc(P.slot, src)).filter(i => i != null);
+}
 /** the slots with something in them / still waiting for a recording */
 export const filledSlots = () => SLOTS.filter(s => isFilled(s.id)).map(s => s.id);
 

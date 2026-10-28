@@ -200,8 +200,9 @@ const SILENT = Object.freeze({ silent: true, slot: '', set() {}, stop() {}, play
  * A bed while its thing lasts: the slot's loop (its first take), started at a random place with a fade-in, crossfaded into itself.
  * → { set({ gain, pan }, ramp s), stop(fade s), playing(), debug() }; an EMPTY slot → a handle that does nothing.
  */
-export function cityLoop(slot, { gain = 1, pan = 0, fadeIn = 2, start = null } = {}) {
-  const s = slotOf(slot), t = takesOf(slot)[0];
+export function cityLoop(slot, { gain = 1, pan = 0, fadeIn = 2, start = null, take = null } = {}) {
+  // (9g: `take` an index — the panel's A / B choices; by default the first take that isn't a BACKUP (weight 0))
+  const ts = takesOf(slot), s = slotOf(slot), t = take != null && ts[take] ? ts[take] : ts.find(x => (x.w ?? 1) > 0) || ts[0];
   if (!s || !t || !(t.loop > 0)) return { ...SILENT, slot };
   // (start: s into the loop for the first pass — tests put the seam a few seconds away; default a random place)
   const L = { slot, s, t, gain, pan, fadeIn, start, want: true, c: null, outG: null, pn: null, voices: [], next: 0, entry: null, started: 0 };

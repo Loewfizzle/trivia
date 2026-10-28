@@ -23,7 +23,7 @@
 //                rooftop) · THE JETS (jets(o): panned right → left, the music ducked round their peak — the slot's `duck`)
 // City 2.0's title only (the scene lives there); the Effects slider + Mute rule it (the SFX bus); all of it fails silently.
 import { citySound, cityLoop, cityPrefetch, citySoundsDebug } from '../../audio/city-sound.js';
-import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan } from '../../core/city-sounds.js';
+import { isFilled, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan, pickTakes, rivetGap } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { CHASE, BLACK, tr3bAt } from '../../core/harbor-legend.js';
 import { isUnlocked } from '../../audio/engine.js';
@@ -34,6 +34,7 @@ const clamp = (v, a, b) => (v < a ? a : v > b ? b : v);
 const smooth = (a, b, v) => { const t = clamp((v - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
 const rnd = (a, b) => a + Math.random() * (b - a);
 let liftAt = 0;   // (9f: the next crane lift, s)
+let rivetAt = 0, rivetN = 0;   // (9g: the next rivet burst, s; how many so far — the seeded gaps)
 const towerT0 = typeof performance !== 'undefined' ? performance.now() / 1000 : 0;
 const BEND_AHEAD = 0.6;   // (9f: the TR-3B's tape ramps — each aims this far ahead on the envelope, over this long: on time, not behind)
 
@@ -58,11 +59,13 @@ export function createCitySounds() {
   const thunders = [];                  // (9a: the thunder waiting for its distance)
 
   /** keep a bed at this gain (0 = fade it out; stopped after `linger` s at zero: its buffer is freed) */
-  function keep(slot, gain, pan = 0, { ramp = 1.5, linger = 20, fadeIn = 2 } = {}) {
+  function keep(slot, gain, pan = 0, { ramp = 1.5, linger = 20, fadeIn = 2, take = null } = {}) {
     if (!isFilled(slot)) return;
     let b = beds.get(slot);
+    // (9g: a bed asked for another TAKE — the panel's HUM A / B — starts again on it)
+    if (b && take != null && b.take !== take) { b.h.stop(0.6); beds.delete(slot); b = null; }
     if (gain > 0.002) {
-      if (!b) { b = { h: cityLoop(slot, { gain, pan, fadeIn }), zeroAt: 0, g: gain, p: pan }; beds.set(slot, b); }
+      if (!b) { b = { h: cityLoop(slot, { gain, pan, fadeIn, take }), zeroAt: 0, g: gain, p: pan, take }; beds.set(slot, b); }
       else if (Math.abs(b.g - gain) > 0.01 || Math.abs(b.p - pan) > 0.02 || b.zeroAt) { b.h.set({ gain, pan }, ramp); b.g = gain; b.p = pan; }
       b.zeroAt = 0;
     } else if (b) {
@@ -127,10 +130,15 @@ export function createCitySounds() {
       // (9e — THE CONSTRUCTION TOWER across the harbor by day: the crane's hoist + the hammering, far + low)
       keep('crane', clamp(people.crane || 0, 0, 1) * bm.k, people.towerPan || -0.45, { ramp: 4, linger: 30, fadeIn: 5 });
       keep('hammering', clamp(people.hammer || 0, 0, 1) * bm.k, people.towerPan || -0.45, { ramp: 4, linger: 30, fadeIn: 5 });
-      // (9f — THE TOWER's CC0 LAYERS now + then over the beds: the RIVET GUN ~40 s of every 2.5 min while the hammering plays (the first
-      // ~20 s after the page opens), A CRANE LIFT every 4–6 min while the crane works (the first within ~1–1.5 min) — far + soft)
-      { const ts = performance.now() / 1000, ph = (ts - towerT0 + 130) % 150, rv = ph < 40 ? 1 : 0, tp = people.towerPan || -0.45;
-        keep('rivet-gun', clamp(people.hammer || 0, 0, 1) * rv * bm.k, tp, { ramp: 2.5, linger: 20, fadeIn: 2 });
+      // (9f — THE TOWER's CC0 LAYERS now + then over the beds: A CRANE LIFT every 4–6 min while the crane works (the first within
+      // ~1–1.5 min) — far + soft; 9g — THE RIVET GUN as SHORT BURSTS (the owner: "it almost sounds like a bug in the background"): one
+      // 1.5–4 s burst (a few hits, a pause, a few more), then a long seeded gap (core/city-sounds.js#rivetGap: ~20–50 s, now + then a
+      // quick second burst) — a couple a minute at most, while the hammering plays)
+      { const ts = performance.now() / 1000, tp = people.towerPan || -0.45, hm = clamp(people.hammer || 0, 0, 1);
+        if (hm > 0.2 && bm.k > 0.05 && isFilled('rivet-gun')) {
+          if (!rivetAt) rivetAt = ts + 3 + rivetGap(towerT0, rivetN++) * 0.15;
+          else if (ts > rivetAt) { citySound('rivet-gun', { gain: hm * bm.k, pan: tp }); rivetAt = ts + rivetGap(towerT0, rivetN++); }
+        } else rivetAt = 0;
         if ((people.crane || 0) > 0.2 && bm.k > 0.05 && isFilled('crane-lift')) {
           if (!liftAt) liftAt = ts + 40 + Math.random() * 50;
           else if (ts > liftAt) { citySound('crane-lift', { gain: clamp(people.crane, 0, 1) * bm.k, pan: tp }); liftAt = ts + 240 + Math.random() * 120; }
@@ -312,9 +320,24 @@ export function createCitySounds() {
     if (lgRun.tapS == null && unlockedAt) lgRun.tapS = lg.s;
     const st = lg.st, pan = clamp(((lg.x == null ? 0.5 : lg.x) - 0.5) * 1.6, -0.9, 0.9);
     if (lg.kind === 'ufo') {
-      keep('ufo-hum', clamp(st.craft.k * (1 - st.craft.out), 0, 1), pan, { ramp: 0.8, linger: 6, fadeIn: 3 });
-      // (the riser's peak — 6.65 s into its take — lands as he leaves the ground, ~10.6 s in)
-      if (!lgRun.beam && lg.s > 3.8 && lg.s < 9) { lgRun.beam = true; citySound('ufo-beam', { pan, jitter: 0 }); }
+      // 9g — THE ABDUCTION, HEARD (Grok's real recordings; the owner picks by ear: &hum=a|b, &depart=a|b|layered — the panel's rows):
+      // the HOVER spins up as the craft comes in (hum A's own start-up, 0–5.2 s) into its loop, held while it's here, spun down as it
+      // goes; the BEAM switches on as it opens (5.3 s), hums held while it's open, switches off as it closes (21.6 s); the LIFT's riser
+      // over the last 6 s of the rise (its peak as he's taken, ~20.5 s); the DEPARTURE as it shoots off (24.4 s); the CROWD fleeing as
+      // the beam opens — only with people on the promenade to flee (lg.crowd). A run joined mid-way plays only what's still ahead of it
+      const hum = pickTakes('hum', lg.hum), humA = !lg.hum || lg.hum === 'a', at = (k, t0, w = 1.2) => !lgRun[k] && lg.s >= t0 && lg.s < t0 + w && (lgRun[k] = true);
+      if (humA && at('humUp', 0, 3.5)) citySound('ufo-hum-up', { pan, jitter: 0 });
+      keep('ufo-hum', clamp((humA ? smooth(4.0, 5.2, lg.s) : st.craft.k) * (1 - smooth(24.4, 26.2, lg.s)), 0, 1), pan, { ramp: 0.6, linger: 6, fadeIn: humA ? 0.6 : 3, take: hum[0] ?? null });
+      if (at('beamOn', 5.3)) citySound('ufo-beam-on', { pan, jitter: 0 });
+      keep('ufo-beam-idle', clamp(smooth(7.2, 8.4, lg.s) * (1 - smooth(21.4, 22.4, lg.s)), 0, 1), pan, { ramp: 0.5, linger: 6, fadeIn: 1.2 });
+      if (at('lift', 15.6)) citySound('ufo-lift', { pan, jitter: 0 });
+      if (at('beamOff', 21.6)) citySound('ufo-beam-off', { pan, jitter: 0 });
+      if (at('depart', 24.4)) {
+        const dp = pickTakes('depart', lg.depart);
+        dp.forEach((take, i) => citySound('ufo-depart', { pan, take, jitter: 0, gain: i ? 0.75 : 1 }));
+        if (humA) citySound('ufo-hum-down', { pan, jitter: 0 });
+      }
+      if (lg.crowd > 0 && at('crowd', 5.9, 2)) citySound('crowd-flee', { pan: 0, jitter: 0, gain: clamp(0.5 + lg.crowd / 8, 0.5, 1) });
     } else {
       // (THE TAPE STOP: the song's slice decoded now, so the sag at 3 s starts on time)
       // (9f: retried until the song is there — a run forced at the load used to get one try at s < 2.5, before the first tap had

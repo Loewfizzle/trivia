@@ -35,6 +35,11 @@ For each file (the originals are never touched — read only, decoded through ff
     against the main recording (the parade's adult murmur under the kids); `verb` (wet, pre-delay s, RT60 s, lp Hz) a simple hall
     — a synthetic impulse (seeded noise, an exponential decay, low-passed: never brighter), pre-delayed, mixed `wet` (0–1) at the
     dry's own RMS, after the mixin. The files keep the house levels (below): the brief's quieter beds are the SLOT's gain
+  * 9g's extras (THE UFO SET): `speed` a one-shot played faster (resampled: the pitch rises with it — a glide a touch quicker); `bend`
+    (r0, r1) the take's rate glided r0 → r1 across it (a riser that also RISES in pitch); `air` (dB, lo, hi) a breath of noise in the
+    lo–hi band following the take's own envelope, `dB` under its RMS (an airy layer: "rising"); `chorus` (ms, depth ms, Hz, mix) a
+    slight WARBLE — a copy on a delay swept by a slow sine, mixed in (a beam, not a force field); `gainpre` dB at the decode (a source
+    with inter-sample overs lowered before anything else touches it)
   * a one-shot's PEAK = the loudest 0.3 s of its RMS envelope (s) and its SWELL `sw` = where it stays within 15 dB of that —
     measured on the encoded file (the motorcar lines its crossing up with them: FP3)
   * a LOOP keeps its window + a TAIL (the audio right after it, `xf` s): audio/city-sound.js crossfades the tail into the head at
@@ -198,6 +203,32 @@ CUTS = {
     # key: it sits low (soft top) so it never fights the song; 6b lowers / filters it under the music. The loop: the best-matching
     # 30 s inside 20–80 s (scanned: head vs tail level + tilt) — it evolves, a longer window never closed on itself)
     'ufo-hum': [{'loop': (41.0, 30.0), 'xf': 3.0, 'search': 2.0, 'hp': 80, 'lp': 2500, 'rate': 16000}],
+    # 9g — THE UFO SET (Grok's Oct 28 brief, plan/grok-ufo-sounds-processing.md; measured here, NOBODY HAS LISTENED): HUM A — the hover
+    # engine's 1.54 Hz mid-band pulse (28 % of it 300 Hz–3 kHz: the phone's), the loop 5.0 → 40.1 s (≈ 54 pulses, a 0.2 s seam), its
+    # own spin-up (0–5.2 s) + spin-down (41–49 s) as one-shots; a lossy 24 kHz source (nothing above ~11 kHz: no air added)
+    'ufo-hum-2': [{'name': 'ufo-hum-2', 'loop': (5.0, 35.1), 'xf': 0.2, 'search': 0.08, 'hp': 70, 'presence': (3.0, 1200), 'rate': 24000, 'kbps': 64},
+                  {'to': 'ufo-hum-up', 'name': 'ufo-hum-up', 'cut': (0.0, 5.2), 'fin': 0.05, 'fout': 0.5, 'hp': 70, 'presence': (3.0, 1200), 'rate': 24000, 'kbps': 64},
+                  {'to': 'ufo-hum-down', 'name': 'ufo-hum-down', 'cut': (41.0, 49.0), 'fin': 0.4, 'fout': 2.0, 'hp': 70, 'presence': (3.0, 1200), 'rate': 24000, 'kbps': 64}],
+    # HUM B — BlueZone's steady 1.0 Hz interior throb: 96 % under 300 Hz → its harmonics MADE (sat) so a phone hears it, then pushed
+    # OUTSIDE (a low-pass + a distance hall); the loop 3 → 30 s (+ its 2 s seam: the file fades out from ~32 s — Grok's 3–33 ran into it)
+    'ufo-hum-3': [{'loop': (3.0, 27.0), 'xf': 2.0, 'search': 0.5, 'gainpre': -4.0, 'hp': 45, 'sat': (4.0, 1.8, 220), 'presence': (4.0, 700), 'lp': 2600,
+                   'verb': (0.32, 0.04, 1.8, 2200), 'rate': 24000, 'kbps': 64}],
+    # THE BEAM — SoundMorph's barrier: the activation (0–4.2 s), the idle (246 Hz + a 0.9 Hz throb) LOOPED 5 → 30 s, the stop
+    # (31.6–36 s); +2.5 dBTP → −4 dB at the decode first; 65 % under 150 Hz → a high-pass + harmonics; a slight WARBLE (a beam, not a force field)
+    'ufo-beam-3': [{'to': 'ufo-beam-on', 'name': 'ufo-beam-on', 'cut': (0.0, 4.2), 'fin': 0.02, 'fout': 0.9, 'gainpre': -4.0, 'hp': 140, 'sat': (2.5, 0.8, 220), 'presence': (3.0, 1500), 'chorus': (12.0, 1.4, 4.6, 0.5), 'lp': 7000, 'kbps': 64},
+                   {'to': 'ufo-beam-idle', 'name': 'ufo-beam-idle', 'loop': (5.0, 25.0), 'xf': 1.5, 'search': 0.5, 'gainpre': -4.0, 'hp': 140, 'sat': (2.5, 0.8, 220), 'presence': (3.0, 1500), 'chorus': (12.0, 1.4, 4.6, 0.5), 'lp': 7000, 'kbps': 64},
+                   {'to': 'ufo-beam-off', 'name': 'ufo-beam-off', 'cut': (31.6, 36.0), 'fin': 0.25, 'fout': 1.6, 'gainpre': -4.0, 'hp': 140, 'sat': (2.5, 0.8, 220), 'presence': (3.0, 1500), 'chorus': (12.0, 1.4, 4.6, 0.5), 'lp': 7000, 'kbps': 64}],
+    # THE LIFT — L.A. Sound's reverse-flutter riser (5.95 s, 76 % under 300 Hz, flat in pitch, an abrupt end): harmonics for a phone,
+    # its rate glided 1.0 → 1.25 (it RISES), an airy layer following it, a 0.3 s fade-out
+    'ufo-lift-2': [{'to': 'ufo-lift', 'name': 'ufo-lift', 'cut': (0.0, 5.95), 'fin': 0.05, 'fout': 0.3, 'hp': 110, 'sat': (3.0, 1.0, 250), 'presence': (2.5, 1400),
+                    'bend': (1.0, 1.25), 'air': (-15.0, 2500, 7500), 'kbps': 64}],
+    # THE DEPART — A: InspectorJ's descending flyby (564 → 150 Hz, strong mids) 0.8–4.8 s, 12 % faster; B: PMSFX's fast pass-by (0–3.2 s,
+    # 83 % under 150 Hz → a high-pass + harmonics). LAYERED = both at once (sounds.js — no file of its own)
+    'ufo-depart': [{'cut': (0.8, 4.8), 'speed': 1.12, 'fin': 0.03, 'fout': 0.5, 'hp': 110, 'presence': (2.0, 1200), 'kbps': 64}],
+    'ufo-depart-2': [{'cut': (0.0, 3.2), 'fin': 0.01, 'fout': 0.8, 'hp': 110, 'sat': (3.0, 0.9, 220), 'presence': (3.0, 1500), 'kbps': 64}],
+    # THE CROWD — Sdanezis' muffled panic 2.0–14.0 s (wordless by speech-to-text — listen), with quiet cobble footsteps 15 dB under it
+    'crowd-flee': [{'seq': [(None, 2.0, 14.0, 0.0, 0.0, False, 0.6), ('footsteps-cobble.wav', 1.0, 11.5, 0.7, -15.0, False, 1.0)],
+                    'fin': 0.6, 'fout': 2.5, 'hp': 180, 'lp': 3800, 'rate': 24000, 'kbps': 56}],
     # (0:18 Sonniss, a riser: up from ~2 s to its peak at 9 s, a reverb tail to 17 s)
     'ufo-beam': [{'cut': (3.0, 17.0), 'fin': 0.4, 'fout': 1.5, 'hp': 90}],
     # (3:00 Sonniss, 104 MB — never copied: a 40 s loop from 30–120 s, its seam searched ±10 s. Flat 20–400 Hz: NO low cut (a
@@ -390,7 +421,12 @@ CUTS = {
     # low-passed — a construction site across the harbor; the implosion's long crumbling rumble (its first 24 s)
     'crane-work': [{'loop': (1.0, 48.0), 'xf': 2.5, 'hp': 160, 'lp': 2600, 'rate': 24000, 'kbps': 40}],
     'hammering-far': [{'loop': (1.0, 54.0), 'xf': 2.5, 'hp': 220, 'lp': 3200, 'rate': 24000, 'kbps': 40}],
-    'implosion': [{'cut': (0.0, 24.0), 'fin': 0.02, 'fout': 6.0, 'hp': 60, 'lp': 5000, 'rate': 32000, 'kbps': 56}],
+    # (9g — ONE CRASH (the owner: "it almost sounds like you hear another crashing noise afterwards"): the file holds THREE events — the
+    # collapse 0.5–5.5 s, a smaller crash at 6.75 s and a second big crumble from 12.5 s (as loud as the first at 15–17 s). Now: the
+    # collapse (0–6.3 s) + the file's own late settling (15.5 s → its end: no onset, a slow fade) crossfaded in under the collapse's
+    # decay 9 dB down — one crash, then the debris settling, fading)
+    'implosion': [{'seq': [(None, 0.0, 6.3, 0.0, 0.0, False, 0.5), (None, 15.5, 23.9, 4.3, -9.0, False, 1.8)],
+                   'fin': 0.02, 'fout': 3.0, 'hp': 60, 'lp': 4200, 'rate': 32000, 'kbps': 56}],
     # 9f — THE TOWER's CC0 ALTERNATES (craigsmith's Hollywood optical / mag effects, 1930s–60s, Freesound CC0 — Grok's cut points, the owner's
     # brief): THE SIREN (the slot was empty — the 1920s siren stood in) one slow distant wail 0.5–11.0 s, never the fast warbles (24.3–29.5,
     # 43–48 s); quiet (−29.5 LUFS) → levelled to the one-shots' −20 like every take, far + soft by its slot gain + a low-pass
@@ -401,8 +437,15 @@ CUTS = {
     # THE RIVET GUN (a power riveter on a steel building) — its OWN loop slot over the hammering bed, now + then: 5.20 → 35.15 s (both
     # ends in natural gaps: no seam search), a short 150 ms seam; the +3.5 dB step at 26.8 s (just after a gap) taken back out; HARSH
     # (75 % at 2–5 kHz) → −6 dB round 3.2 kHz (a broad cut) + a low-pass for the distance
-    'hammering-2': [{'to': 'rivet-gun', 'name': 'rivet-gun', 'loop': (5.2, 29.95), 'xf': 0.15, 'search': 0.02, 'hp': 220, 'presence': (-6.0, 3200), 'lp': 6000,
-                     'gainenv': [(21.6, 31.0, -3.5)], 'rate': 24000, 'kbps': 48}],
+    # (9g — SHORT BURSTS (the owner: "it almost sounds like a bug in the background"): the slot is a ONE-SHOT now — four takes of
+    # 1.5–4 s, each a few hits, a pause, a few more, cut at the recording's own gaps; sounds.js fires one now + then with long gaps)
+    'hammering-2': [{'to': 'rivet-gun', 'name': 'rivet-gun-1', 'seq': [(None, 15.1, 16.6, 0.0, 0.0, False, 0.04), (None, 18.0, 19.3, 2.05, -1.0, False, 0.04)], 'fin': 0.01, 'fout': 0.15, 'hp': 220, 'presence': (-6.0, 3200), 'lp': 6000, 'rate': 24000, 'kbps': 48},
+                    {'to': 'rivet-gun', 'name': 'rivet-gun-2', 'seq': [(None, 9.6, 11.4, 0.0, 0.0, False, 0.04)], 'fin': 0.01, 'fout': 0.15, 'hp': 220, 'presence': (-6.0, 3200), 'lp': 6000, 'rate': 24000, 'kbps': 48},
+                    {'to': 'rivet-gun', 'name': 'rivet-gun-3', 'seq': [(None, 23.85, 25.1, 0.0, 0.0, False, 0.04), (None, 27.0, 28.2, 1.75, -2.0, False, 0.04)], 'fin': 0.01, 'fout': 0.15, 'hp': 220, 'presence': (-6.0, 3200), 'lp': 6000, 'rate': 24000, 'kbps': 48},
+                    {'to': 'rivet-gun', 'name': 'rivet-gun-4', 'seq': [(None, 31.0, 32.3, 0.0, 0.0, False, 0.04), (None, 32.5, 33.4, 1.75, -1.5, False, 0.04), (None, 33.5, 34.6, 3.1, -3.0, False, 0.04)], 'fin': 0.01, 'fout': 0.2, 'hp': 220, 'presence': (-6.0, 3200), 'lp': 6000, 'rate': 24000, 'kbps': 48}],
+    # (9g — HORN C, SYNTHESIZED: scripts/build-synth-sfx.py#horn → ~/Downloads/city-sfx-synth/tower-horn-3.wav; a BACKUP take (weight 0) the
+    # panel's HORN C plays — the owner picks by ear)
+    'tower-horn-3': [{'cut': (0.0, 7.4), 'fin': 0.005, 'fout': 1.2, 'hp': 110, 'lp': 4800}],
     # THE CRANE LIFT (a period crane lifting a big load) — a ONE-SHOT 4.5 → 70 s (the lift: the winch winding up, the swell, the fade)
     # layered now + then over the crane's steady loop
     'crane-2': [{'to': 'crane-lift', 'name': 'crane-lift', 'cut': (4.5, 70.0), 'fin': 1.2, 'fout': 6.0, 'hp': 120, 'lp': 3500, 'rate': 16000, 'kbps': 40}],
@@ -528,16 +571,21 @@ SKIP = {'bus-idle', 'bus-depart', 'mirror-door-open', 'mirror-door-close', 'tv-m
         # 9f: Grok's Oct 28 first set for the tower (the Mixkit hand siren, the narrowboat horn, the mill's drop hammer, the modern
         # diesel crane, fireworks as the charges, the wall collapse) — not asked for: the owner picked the craigsmith alternates (the
         # -2 files). Drop a stem from here to try one (each has its trim in credits.txt)
-        'tower-siren', 'tower-horn', 'hammering', 'crane', 'implosion-charges', 'implosion-rumble'}
+        'tower-siren', 'tower-horn', 'hammering', 'crane', 'implosion-charges', 'implosion-rumble',
+        # 9g: the UFO brief's NOT-CHOSEN files (Grok: "IGNORE ufo-beam-2.wav and ufo-lift.wav")
+        'ufo-beam-2', 'ufo-lift'}
 # 9f — BACKUP TAKES: imported + kept on disk but never picked (weight 0: core/city-sounds.js#pickTake) — the old warning horn behind the
 # craigsmith horn. TO SWAP BACK: move the stem from here to the new take's place (BACKUP = {'tower-horn-2'}), re-run --only tower-horn
-BACKUP = {'warning-horn'}
+BACKUP = {'warning-horn', 'tower-horn-3', 'ufo-hum-3'}   # (9g: HORN C + HUM B — the panel's A / B choices, never picked at random)
 PIXABAY = ('The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — '
            'the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).')
 CRAIG = ('craigsmith (Freesound) — Hollywood optical / mag effects of the 1930s–60s transferred by USC Cinema; CC0 1.0 (public domain: '
          'https://creativecommons.org/publicdomain/zero/1.0/). Imported from the untouched original.')
 CREDIT_NOTE = {
     'tower-siren-2': CRAIG, 'tower-horn-2': CRAIG, 'hammering-2': CRAIG, 'crane-2': CRAIG,   # (9f: the tower's alternates)
+    'ufo-hum-2': PIXABAY, 'footsteps-cobble': 'Also laid under crowd-flee (9g: quiet cobble footsteps under the fleeing crowd).',
+    'crowd-flee': 'A Pixabay original (Pixabay Content License: free for commercial use, no attribution required); quiet footsteps-cobble.wav laid under it.',
+    'tower-horn-3': 'Synthesized by scripts/build-synth-sfx.py#horn (9g: HORN C) — made here, CC0 1.0.',
     'heli-flyby': PIXABAY, 'prop-plane': PIXABAY, 'balloon-burner': PIXABAY, 'geese': PIXABAY,
     'bar-ambience-close': PIXABAY, 'shop-bell': PIXABAY, 'broom-sweep': PIXABAY, 'window-sash': PIXABAY, 'roller-blind': PIXABAY,
     'cat-land': PIXABAY, 'rooftop-party': PIXABAY, 'snow-shovel': PIXABAY,   # (9b)
@@ -868,8 +916,46 @@ def shape(y, cut):
         hz, db = cut['dup']
         y = y + sosfiltfilt(butter(4, hz, 'highpass', fs=SR, output='sos'), y) * 10 ** (db / 20)
     if cut.get('deess'): y = deess(y, *cut['deess'])
+    if cut.get('chorus'): y = chorus(y, *cut['chorus'])
     if cut.get('lp'): y = lowpass(y, cut['lp'])
     return y
+
+
+def chorus(y, ms, depth_ms, hz, mix):
+    """9g — `chorus`: a slight WARBLE — a copy read `ms` behind, the delay swept ± `depth_ms` by a `hz` sine, mixed in at `mix`"""
+    i = np.arange(len(y), dtype=np.float64)
+    d = (ms + depth_ms * np.sin(2 * np.pi * hz * i / SR)) * SR / 1000.0
+    w = np.interp(i - d, i, y, left=0.0, right=0.0)
+    return (y + mix * w) / (1 + mix * 0.5)
+
+
+def retime(y, r0, r1=None):
+    """9g — the rate glided r0 → r1 across the take (r1 None: a constant speed): read through by the integral of the rate (linear
+    interpolation — the take is already band-limited well under the new Nyquist for these rates)"""
+    n = len(y)
+    if r1 is None or r1 == r0:
+        pos = np.arange(0, n - 1, r0)
+    else:
+        # the read position after k output samples: ∫ r — solved forward in small steps (r is linear in the INPUT position)
+        pos, p = [], 0.0
+        step = max(1, n // 4000)
+        while p < n - 1:
+            r = r0 + (r1 - r0) * (p / n)
+            for _ in range(step):
+                pos.append(p); p += r
+                if p >= n - 1: break
+        pos = np.array(pos)
+    return np.interp(pos, np.arange(n), y)
+
+
+def airy(y, db, lo, hi, seed=9):
+    """9g — `air`: band noise lo–hi following the take's own envelope (50 ms), `db` under the take's RMS"""
+    rng = np.random.default_rng(seed)
+    nz = sosfiltfilt(butter(4, [lo, min(hi, SR / 2 - 200)], 'bandpass', fs=SR, output='sos'), rng.standard_normal(len(y)))
+    w = max(1, int(0.05 * SR)); k = np.ones(w) / w
+    e = np.sqrt(np.convolve(y ** 2, k, mode='same'))
+    nz = nz / (np.sqrt(np.mean(nz ** 2)) + 1e-12) * e
+    return y + nz * 10 ** (db / 20)
 
 
 def deess(y, db, lo, hi, ratio=3.0):
@@ -1012,7 +1098,7 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
         # the seam: the start nudged (± `search` s, default 5) to where the head and the tail match best
         span = cut.get('search', 5.0)
         a0 = max(0.0, t0 - span - pad)
-        raw = decode(path, a0, t0 + span + L + xf + pad, cut.get('af'))
+        raw = decode(path, a0, t0 + span + L + xf + pad, cut.get('af')) * 10 ** (cut.get('gainpre', 0.0) / 20)
         f = shape(sosfiltfilt(sos, raw), {**cut, 'lp': None})
         s0 = max(a0 + pad, t0 - span)
         if s0 >= t0 + span: s0 = max(0.0, t0 - span)       # (11a-2: a loop within its pre-roll of the file's start — search without it)
@@ -1020,14 +1106,17 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
         dt, _ = seam_search(f[i0:], L, xf, (t0 + span - s0) / 2)
         t0 = s0 + (t0 + span - s0) / 2 + dt
         cut = {**cut, 'loop': (round(t0, 2), L)}
-        raw = decode(path, max(0.0, t0 - pad), t0 + L + xf + pad, cut.get('af'))
+        raw = decode(path, max(0.0, t0 - pad), t0 + L + xf + pad, cut.get('af')) * 10 ** (cut.get('gainpre', 0.0) / 20)
         off = int(round((t0 - max(0.0, t0 - pad)) * SR))
         y = shape(sosfiltfilt(sos, raw), cut)
         if cut.get('mixin'): y = mixin(y, off, L, cut['mixin'], path.parent)
     else:
         t0, t1 = cut['cut']
-        raw = decode(path, max(0.0, t0 - pad), t1 + pad, cut.get('af'))
+        raw = decode(path, max(0.0, t0 - pad), t1 + pad, cut.get('af')) * 10 ** (cut.get('gainpre', 0.0) / 20)
         off = int(round((t0 - max(0.0, t0 - pad)) * SR))
+        if cut.get('speed'):
+            # (9g: faster — the cut's window in the source's seconds, its length in the take's)
+            raw = retime(raw, cut['speed']); off = int(round(off / cut['speed']))
         y = shape(sosfiltfilt(sos, raw), cut)
     if cut.get('verb'): y = reverb(y, *cut['verb'])
     hit = None
@@ -1044,7 +1133,9 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
         info = {'loop': round(L, 3), 'xf': round(xf, 3), 'from': [round(t0, 2), round(t0 + L + xf, 2)]}
         note = f'from {t0:.2f} s · seam: head vs tail {seam:+.1f} dB'
     else:
-        y = y[off:off + int(round((t1 - t0) * SR))]
+        y = y[off:off + int(round((t1 - t0) / cut.get('speed', 1.0) * SR))]
+        if cut.get('bend'): y = retime(y, *cut['bend'])
+        if cut.get('air'): y = airy(y, *cut['air'])
         if cut.get('gainenv'): y = gain_env(y, cut['gainenv'])
         if cut.get('gate') is not None: y = gate(y, cut['gate'])
         if cut.get('mark') is not None: hit = float(cut['mark'])
@@ -1052,7 +1143,7 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
             hit = float(cut['blackout'])
             y = blackout(y, hit)
         fin, fout = cut.get('fin', 0.6), cut.get('fout', 1.8)
-        nI, nO = int(fin * SR), int(min(fout, (t1 - t0) * 0.6) * SR)
+        nI, nO = int(fin * SR), int(min(fout, len(y) / SR * 0.6) * SR)
         if nI: y[:nI] *= 0.5 - 0.5 * np.cos(np.linspace(0, np.pi, nI))
         if nO: y[-nO:] *= 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, nO))
         y = level(y, ONCE_LUFS)
@@ -1131,7 +1222,8 @@ def main():
             # (a take assembled from other files of the folder — a `seq` piece, a `mixin` layer: those are credited too)
             for f in sorted(set([x[0] for c in cuts for x in c.get('seq', []) if x[0]] + [c['mixin']['f'] for c in cuts if c.get('mixin')])):
                 q = p.parent / f
-                sources[Path(f).stem] = {'file': f, 'md5': md5(q), 'slots': used_slots, 'credit': credit_for(blocks, f), 'note': CREDIT_NOTE.get(Path(f).stem)}
+                old = sources.get(Path(f).stem) or {}
+                sources[Path(f).stem] = {**old, 'file': f, 'md5': md5(q), 'slots': sorted(set((old.get('slots') or []) + used_slots)), 'credit': old.get('credit') or credit_for(blocks, f), 'note': CREDIT_NOTE.get(Path(f).stem) or old.get('note')}   # (9g: merged — a file used in several places keeps them all)
     if a.dry_run: return
     # (the files no take points at any more: gone)
     used = {t['f'] for ts in files.values() for t in ts}

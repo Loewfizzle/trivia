@@ -248,6 +248,16 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - NOTE: A Pixabay original (Pixabay Content License: free for commercial use, no attribution required) — no Freesound original.
 
+## crowd-flee.mp3  →  crowd-flee
+
+- MD5 `a415fefad25b786b4fc08966197ffb71`
+- crowd-flee.mp3   (2,985,900 bytes)   (LOSSY Pixabay MP3 - 44.1 kHz, 256 kbps; no lossless original exists, native Pixabay upload)
+- "Crowd In Panic" - Sdanezis, Pixabay
+- Page: https://pixabay.com/sound-effects/people-crowd-in-panic-278670/
+- Source: https://cdn.pixabay.com/download/audio/2024/12/20/audio_752eb4d125.mp3?filename=sdanezis-crowd-in-panic-278670.mp3
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- NOTE: A Pixabay original (Pixabay Content License: free for commercial use, no attribution required); quiet footsteps-cobble.wav laid under it.
+
 ## crowd-whoop.wav  →  crowd-whoop
 
 - MD5 `decb7e208593ca680f42af74ad4850dd`
@@ -290,7 +300,7 @@ are kept anyway, with each source file's MD5.
 - Source: https://cdn.pixabay.com/download/audio/2025/04/11/audio_745877e758.mp3?filename=deborah_wong-foghorn-and-sea-gulls-326216.mp3
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 
-## footsteps-cobble.wav  →  footsteps-cobble
+## footsteps-cobble.wav  →  crowd-flee, footsteps-cobble
 
 - MD5 `cd6fea1db75c694efc0c9aaa315f4502`
 - footsteps-cobble.wav   (5,184,404 bytes)
@@ -298,6 +308,7 @@ are kept anyway, with each source file's MD5.
 - Page: https://mixkit.co/free-sound-effects/footsteps/
 - Source: https://assets.mixkit.co/active_storage/sfx/1270/1270.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+- NOTE: Also laid under crowd-flee (9g: quiet cobble footsteps under the fleeing crowd).
 
 ## footsteps-heels.wav  →  footsteps-heels
 
@@ -841,6 +852,13 @@ are kept anyway, with each source file's MD5.
 - Notes: long blast 0-7.1 s, single blips at 7.3 and 9.0 s, three blasts 11.7-16.8 s, then a run of about 9 rapid toots 18.6-23.5 s. Fundamental about 226 Hz with strong harmonics (58% at 150-300 Hz, 41% at 300 Hz-2 kHz). Peak -2.5 dBFS.
 - NOTE: craigsmith (Freesound) — Hollywood optical / mag effects of the 1930s–60s transferred by USC Cinema; CC0 1.0 (public domain: https://creativecommons.org/publicdomain/zero/1.0/). Imported from the untouched original.
 
+## tower-horn-3.wav  →  tower-horn
+
+- MD5 `12525b95fc34ce9899f9380010693ab9`
+- tower-horn-3.wav
+- a deep compressed-air warning horn, three blasts, far (9g: HORN C) — synthesized by scripts/build-synth-sfx.py (POLISH 5), seeded; made here — CC0 1.0 (public domain)
+- NOTE: Synthesized by scripts/build-synth-sfx.py#horn (9g: HORN C) — made here, CC0 1.0.
+
 ## tower-siren-2.wav  →  tower-siren
 
 - MD5 `26d2103007e74562210fd920e298810e`
@@ -924,12 +942,63 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/L.A.%20Sounds%20-%20Transitions%20002/Riser%20Reverb%20Synth%20Tone%2001.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## ufo-beam-3.wav  →  ufo-beam-idle, ufo-beam-off, ufo-beam-on
+
+- MD5 `00b8949383dfb43b63cbaf654eb442a7`
+- ufo-beam-3.wav   (22743832 bytes)
+- "Energy - defense barrier activation idle&stop" - SoundMorph (ENERGY), Sonniss GDC 2017 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-3/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle/SoundMorph%20-%20ENERGY/Energy%20-%20defense%20barrier%20activation%20idle%26stop.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## ufo-depart.wav  →  ufo-depart
+
+- MD5 `848b7ed18962bdc40451f892427e7ccc`
+- ufo-depart.wav   (5,338,960 bytes)
+- "AbstractSpaceship_Flyby_Descending_C10" - InspectorJ (Abstract Spaceships), Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/InspectorJ%20-%20Abstract%20Spaceships/AbstractSpaceship_Flyby_Descending_C10.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## ufo-depart-2.wav  →  ufo-depart
+
+- MD5 `f88299110ca6b47bb8bb5a04c3e2c2b5`
+- ufo-depart-2.wav   (3214304 bytes)
+- "PM_DSSP_Passby_Designed_Whoosh_Futuristic_Scifi_Airy_Synth_Spaceship_Fast_12" - PMSFX (Scifi Passby), Sonniss GDC 2020 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/PMSFX%20-Scifi%20Passby%20%5Bdesigner%20Series%5D/PM_DSSP_Passby_Designed_Whoosh_Futuristic_Scifi_Airy_Synth_Spaceship_Fast_12.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
 ## ufo-hum.wav  →  ufo-hum
 
 - MD5 `3e1e54d23f3d125458f38e46f40201b0`
 - ufo-hum.wav   (96,694,092 bytes)
 - "DSGNDron_Sci-Fi Drone Light Space Exploration_SYSO_SYSO018" - Systematic Sound / Daniel Meuser (Tonal Elements: High Tech Soul), Sonniss GDC 2023 bundle
 - Source: https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/Systematic%20Sound%20-%20Tonal%20Elements%20High%20Tech%20Soul%20%E2%80%93%20Evolving%20Pads%20%26%20Sci-Fi%20Textures/DSGNDron_Sci-Fi%20Drone%20Light%20Space%20Exploration_SYSO_SYSO018.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## ufo-hum-2.mp3  →  ufo-hum, ufo-hum-down, ufo-hum-up
+
+- MD5 `9fa328f909c408880073290a3519e7f5`
+- ufo-hum-2.mp3   (981,120 bytes)   (LOSSY Pixabay MP3 - 24 kHz, 160 kbps re-host; lossless 48 kHz/24-bit WAV original is on Freesound, see below)
+- "Hover engine" - freesound_community (original: peridactyloptrix), Pixabay
+- Page: https://pixabay.com/sound-effects/film-special-effects-hover-engine-6391/
+- Source: https://cdn.pixabay.com/download/audio/2021/08/04/audio_7d0045ce27.mp3?filename=freesound_community-hover-engine-6391.mp3
+- Original: https://freesound.org/people/peridactyloptrix/sounds/213384/ (CC0 1.0)
+- Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
+- NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## ufo-hum-3.wav  →  ufo-hum
+
+- MD5 `305f5097ada05e9c7840d9b924e1ba21`
+- ufo-hum-3.wav   (20736232 bytes)
+- "Bluezone_BC0242_background_interior_ambience_014" - BlueZone (Alien Spacecraft Sound Effects), Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/BlueZone%20-%20Alien%20Spacecraft%20Sound%20Effects/Bluezone_BC0242_background_interior_ambience_014.wav
+- Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
+
+## ufo-lift-2.wav  →  ufo-lift
+
+- MD5 `876769cc17c5b2d31009b3cd8bec4ff6`
+- ufo-lift-2.wav   (5179642 bytes)
+- "Reverse Flutter Riser 01" - L.A. Sound (Transitions 003), Sonniss GDC 2019 bundle
+- Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/L.A.%20Sounds%20-%20Transitions%20003/Reverse%20Flutter%20Riser%2001.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
 ## warning-horn.mp3  →  tower-horn

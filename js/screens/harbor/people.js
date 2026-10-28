@@ -566,6 +566,8 @@ export function createPeople() {
       }
       return out;
     },
+    /** 9g — how many on the promenade are reacting to a legendary now (the crowd's fleeing sound: none without people) */
+    witnessN: () => (now.witness ? now.witness.n || 0 : 0),
     /** what's on the promenade now (tests, the readout) */
     debug: () => ({ hol: { trick: now.members.filter(m => m.kind === 'trick').length, zombies: now.members.filter(m => m.kind === 'zombie').length, proc: now.members.filter(m => m.kind === 'proc').length, costumed: now.members.filter(m => m.m && m.m.costume).length }, witness: now.witness || null, running: now.members.filter(m => m.s.run).length, n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),

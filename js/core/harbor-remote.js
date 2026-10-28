@@ -20,7 +20,7 @@ import { PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_STEP } from './harbor-beat.j
 import { MOMENTS } from './harbor-moments.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'horn', 'hum', 'depart'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
@@ -51,6 +51,10 @@ export const INPUTS = {
   tower: { kind: 'select', label: 'TOWERS', options: TOWER_CHOICES, labels: { '': 'AUTO', wordA: 'A', wordB: 'B', wordV: 'VERTICAL', 'wordA,wordB': 'A + B', 'wordA,wordB,wordV': 'A + B + V' } },
   scheme: { kind: 'select', label: 'SCHEME', options: [...new Set([...NEON_SCHEMES, ...ROSIE_SCHEMES])], default: 'halloween' },
   game: { kind: 'select', label: 'GAME', options: GAME_IDS, default: 'pulse' },
+  // (9g — THE SOUNDS NOBODY HAS HEARD: the owner picks by ear — core/city-sounds.js#SOUND_PICKS; '' = the default, A)
+  horn: { kind: 'select', label: 'HORN', options: ['', 'b', 'c'], labels: { '': 'A · TODAY’S', b: 'B · THE OLD HORN', c: 'C · SYNTHESIZED' } },
+  hum: { kind: 'select', label: 'HUM', options: ['', 'b'], labels: { '': 'A · HOVER ENGINE', b: 'B · DEEP THROB' } },
+  depart: { kind: 'select', label: 'DEPART', options: ['', 'b', 'layered'], labels: { '': 'A · FALLING FLYBY', b: 'B · FAST WHOOSH', layered: 'A + B LAYERED' } },
 };
 
 /** THE PANEL'S CATEGORIES (PART 7a §0 — the owner: "it's getting so cluttered"): collapsible sections, in this order, collapsed by
@@ -189,7 +193,7 @@ export const EVENTS = [
   { id: 'shoppers', label: 'THE BLACK FRIDAY RUSH', cat: 'holidays', group: 'BLACK FRIDAY', kw: 'shopping bags boxes busy crowd hurry', hint: 'more people out, hurrying, with bags + wrapped boxes (Black Friday by day)' },
   { id: 'monarchs', label: 'MONARCH BUTTERFLIES', cat: 'holidays', group: 'DAY OF THE DEAD', kw: 'butterfly', hint: 'the rare monarchs of Nov 1 + 2, by day' },
   // (PART 6b — THE LEGENDARY SKY: ~1–2 nights a month each for everyone; here on demand, repeating while on — JUST ME or EVERYONE, the same moment)
-  { id: 'ufo', label: 'UFO ABDUCTION', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'alien saucer beam', oneShot: true, night: true, hint: 'the saucer, the beam, someone lifted off the compass (~30 s)' },
+  { id: 'ufo', label: 'UFO ABDUCTION', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'alien saucer beam sound hum depart', oneShot: true, night: true, inputs: ['hum', 'depart'], hint: 'the saucer, the beam, someone lifted off the compass (~30 s) — sound on: HUM A / B, DEPART A / B / LAYERED' },
   { id: 'tr3b', label: 'TR-3B + JET CHASE', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'triangle ufo blackout power drain f-16 jets tape stop', oneShot: true, night: true, hint: 'the black triangle drains the city’s power, then F-16s chase it (~50 s)' },
   { id: 'cat', label: 'THE MOON CAT', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, ready: false },  // (ready: false — not on the Harbor yet; still a valid id)
   { id: 'geese', sec: 'wildlife', label: 'GEESE', cat: 'sky', group: 'FLYING OVER' },
@@ -299,7 +303,7 @@ export const EVENTS = [
   // PART 8b1 — THE HARBOR'S TIMETABLE, heard (every 30 s while on)
   { id: 'ships-bell', label: 'THE SHIP’S BELL', cat: 'harbor', group: 'THE TIMETABLE', hint: 'the hourly bell (one ring, under the music) — every 30 s' },
   // 9e — THE CONSTRUCTION TOWER (core/harbor-tower.js): its stages + the implosion on a loop (the real cycle starts with April 2027's implosion)
-  { id: 'implosion', label: 'THE IMPLOSION', cat: 'harbor', group: 'THE CONSTRUCTION TOWER', kw: 'demolition tower dust siren', hint: 'the third Sunday of April, 10 am: the siren, the horns, the charges down the floors, the drop, the dust over the harbor — every 5 min from the flag' },
+  { id: 'implosion', label: 'THE IMPLOSION', cat: 'harbor', group: 'THE CONSTRUCTION TOWER', kw: 'demolition tower dust siren horn sound', inputs: ['horn'], hint: 'the third Sunday of April, 10 am: the siren, the horns, the charges down the floors, the drop, the dust over the harbor — every 5 min from the flag' },
   { id: 'build-rubble', label: 'TOWER · THE EMPTY LOT', cat: 'harbor', group: 'THE CONSTRUCTION TOWER', kw: 'construction rubble dust lot', hint: 'the days after the implosion: the gap in the skyline, the dust settling' },
   { id: 'build-rising', label: 'TOWER · RISING', cat: 'harbor', group: 'THE CONSTRUCTION TOWER', kw: 'construction crane frame steel', hint: 'June 1 → September 1: the steel frame climbing with the crane, work lights at night (&buildk=0..1: how far up)' },
   { id: 'build-topping', label: 'TOWER · TOPPING OUT', cat: 'harbor', group: 'THE CONSTRUCTION TOWER', kw: 'construction evergreen flag crane', hint: 'Sept 1–8: the full frame, a little evergreen + a flag on the top beam' },
@@ -585,6 +589,7 @@ export function cleanRemote(raw) {
   if (r.colour != null && r.colour !== '') { const v = String(r.colour).replace('#', '').toLowerCase(); if (v === 'rainbow' || HEX_RE.test(v)) out.colour = v; else bad.push('colour'); }
   sel('by', ['word', 'letter']); sel('style', INPUTS.style.options); sel('tower', TOWER_CHOICES.filter(Boolean));
   sel('scheme', INPUTS.scheme.options); sel('game', GAME_IDS);
+  sel('horn', ['b', 'c']); sel('hum', ['b']); sel('depart', ['b', 'layered']);   // (9g: the sounds' A / B / C — A is the default, never sent)
   if (r.cycle) out.cycle = true;
   sel('scene', SHOW_SCENE_LIST.map(s => s.id));
   sel('party', ['on', 'off']);
@@ -620,7 +625,7 @@ export function toParams(st) {
   if (st.party === 'on') force.push('party');
   if (st.party === 'off') force.push('no-party');
   if (force.length) p.force = force.join(',');
-  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'wxk', 'snow', 'snowman', 'mood']) if (st[k] != null) p[k] = String(st[k]);
+  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'horn', 'hum', 'depart']) if (st[k] != null) p[k] = String(st[k]);
   if (st.cycle) p.cycle = '1';
   if (st.speed && st.speed !== 1) p.speed = String(st.speed);
   if (st.debug) p.debug = '1';
@@ -637,7 +642,7 @@ export function describe(st) {
   for (const id of st.force || []) {
     const e = EV[id];
     const t = (e.inputs || []).includes('text') && st.text ? ` “${st.text}”` : '';
-    const x = ['scheme', 'game'].filter(k => (e.inputs || []).includes(k) && st[k]).map(k => ` ${st[k].toUpperCase()}`).join('');
+    const x = ['scheme', 'game'].filter(k => (e.inputs || []).includes(k) && st[k]).map(k => ` ${st[k].toUpperCase()}`).join('') + ['horn', 'hum', 'depart'].filter(k => (e.inputs || []).includes(k) && st[k]).map(k => ` ${k.toUpperCase()} ${st[k] === 'layered' ? 'A+B' : st[k].toUpperCase()}`).join('');
     out.push(e.label + t + x);
   }
   if (st.scene) out.push(`SCENE ${st.scene.toUpperCase()}`);

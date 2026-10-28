@@ -102,6 +102,9 @@ export const FILES = /*FILES*/{
     {"f": "crowd-clap_2.mp3", "v": "f739550a", "d": 6.0, "lufs": -20.4, "peak": 1.6, "sw": [0.25, 5.1], "from": [14.5, 20.5], "src": "crowd-clap", "r": 16000},
     {"f": "crowd-clap_3.mp3", "v": "70450a72", "d": 6.0, "lufs": -20.4, "peak": 0.95, "sw": [0.25, 5.4], "from": [20.0, 26.0], "src": "crowd-clap", "r": 16000}
   ],
+  "crowd-flee": [
+    {"f": "crowd-flee.mp3", "v": "7761548a", "d": 12.0, "lufs": -20.4, "peak": 3.0, "sw": [0.3, 11.25], "from": [0.0, 12.0], "src": "crowd-flee", "r": 24000}
+  ],
   "crowd-whoop": [
     {"f": "crowd-whoop.mp3", "v": "4d83f702", "d": 4.6, "lufs": -20.4, "peak": 1.25, "sw": [0.25, 3.95], "from": [0.0, 4.6], "src": "crowd-whoop"}
   ],
@@ -188,7 +191,7 @@ export const FILES = /*FILES*/{
     {"f": "hydrant-spray.mp3", "v": "db67d2d4", "d": 40.0, "lufs": -24.4, "loop": 37.5, "xf": 2.5, "from": [1.0, 41.0], "src": "hydrant-spray"}
   ],
   "implosion-rumble": [
-    {"f": "implosion.mp3", "v": "67cdf241", "d": 24.0, "lufs": -20.4, "peak": 1.7, "sw": [0.7, 5.85], "from": [0.0, 24.0], "src": "implosion", "r": 32000}
+    {"f": "implosion.mp3", "v": "d8d19eb8", "d": 12.7, "lufs": -20.4, "peak": 1.7, "sw": [0.7, 8.1], "from": [0.0, 12.7], "src": "implosion", "r": 32000}
   ],
   "jet-flyby": [
     {"f": "jets-formation.mp3", "v": "55b5e33c", "d": 23.0, "lufs": -20.4, "peak": 5.5, "sw": [1.5, 9.1], "from": [11.0, 34.0], "src": "jets-formation", "r": 16000}
@@ -268,7 +271,10 @@ export const FILES = /*FILES*/{
     {"f": "rain-water.mp3", "v": "532b5f97", "d": 34.5, "lufs": -24.4, "loop": 32.0, "xf": 2.5, "from": [2.6, 37.1], "src": "rain-water", "r": 16000}
   ],
   "rivet-gun": [
-    {"f": "rivet-gun.mp3", "v": "9d769789", "d": 30.1, "lufs": -24.4, "loop": 29.95, "xf": 0.15, "from": [5.18, 35.28], "src": "hammering-2", "r": 24000}
+    {"f": "rivet-gun-1.mp3", "v": "aaaf5091", "d": 3.35, "lufs": -20.4, "peak": 1.1, "sw": [0.15, 1.6], "from": [0.0, 3.35], "src": "hammering-2", "r": 24000},
+    {"f": "rivet-gun-2.mp3", "v": "c6b30778", "d": 1.8, "lufs": -20.4, "peak": 0.6, "sw": [0.15, 1.65], "from": [0.0, 1.8], "src": "hammering-2", "r": 24000},
+    {"f": "rivet-gun-3.mp3", "v": "be6043d0", "d": 2.95, "lufs": -20.4, "peak": 2.15, "sw": [1.65, 2.8], "from": [0.0, 2.95], "src": "hammering-2", "r": 24000},
+    {"f": "rivet-gun-4.mp3", "v": "24be80d9", "d": 4.2, "lufs": -20.4, "peak": 1.0, "sw": [0.15, 1.4], "from": [0.0, 4.2], "src": "hammering-2", "r": 24000}
   ],
   "roller-blind": [
     {"f": "roller-blind.mp3", "v": "ed18dd77", "d": 0.93, "lufs": -20.3, "peak": 0.6, "sw": [0.15, 0.75], "from": [0.12, 1.05], "src": "roller-blind"}
@@ -332,6 +338,7 @@ export const FILES = /*FILES*/{
   ],
   "tower-horn": [
     {"f": "tower-horn-2.mp3", "v": "79b5640e", "d": 5.5, "lufs": -20.4, "peak": 0.95, "sw": [0.2, 1.35], "from": [11.5, 17.0], "src": "tower-horn-2"},
+    {"f": "tower-horn-3.mp3", "v": "540cea5b", "d": 7.4, "lufs": -20.4, "peak": 4.45, "sw": [0.15, 5.3], "from": [0.0, 7.4], "src": "tower-horn-3", "w": 0},
     {"f": "warning-horn.mp3", "v": "6b1ac191", "d": 4.653, "lufs": -20.4, "peak": 2.1, "sw": [0.15, 4.25], "from": [1.17, 5.83], "src": "warning-horn", "w": 0}
   ],
   "tower-siren": [
@@ -367,8 +374,32 @@ export const FILES = /*FILES*/{
   "ufo-beam": [
     {"f": "ufo-beam.mp3", "v": "b05b355b", "d": 14.0, "lufs": -20.4, "peak": 6.65, "sw": [3.35, 9.45], "from": [3.0, 17.0], "src": "ufo-beam"}
   ],
+  "ufo-beam-idle": [
+    {"f": "ufo-beam-idle.mp3", "v": "c01252db", "d": 26.5, "lufs": -24.4, "loop": 25.0, "xf": 1.5, "from": [5.5, 32.0], "src": "ufo-beam-3"}
+  ],
+  "ufo-beam-off": [
+    {"f": "ufo-beam-off.mp3", "v": "ce5fa3b5", "d": 4.4, "lufs": -20.4, "peak": 1.55, "sw": [0.15, 2.25], "from": [31.6, 36.0], "src": "ufo-beam-3"}
+  ],
+  "ufo-beam-on": [
+    {"f": "ufo-beam-on.mp3", "v": "2a8ed755", "d": 4.2, "lufs": -20.4, "peak": 3.6, "sw": [0.65, 3.95], "from": [0.0, 4.2], "src": "ufo-beam-3"}
+  ],
+  "ufo-depart": [
+    {"f": "ufo-depart-2.mp3", "v": "401c52c4", "d": 3.2, "lufs": -20.4, "peak": 0.95, "sw": [0.35, 1.75], "from": [0.0, 3.2], "src": "ufo-depart-2"},
+    {"f": "ufo-depart.mp3", "v": "353c8215", "d": 3.571, "lufs": -20.4, "peak": 2.1, "sw": [0.3, 3.35], "from": [0.8, 4.8], "src": "ufo-depart"}
+  ],
   "ufo-hum": [
+    {"f": "ufo-hum-2.mp3", "v": "4f4d8989", "d": 35.3, "lufs": -24.4, "loop": 35.1, "xf": 0.2, "from": [5.02, 40.32], "src": "ufo-hum-2", "r": 24000},
+    {"f": "ufo-hum-3.mp3", "v": "997cc985", "d": 29.0, "lufs": -24.4, "loop": 27.0, "xf": 2.0, "from": [2.5, 31.5], "src": "ufo-hum-3", "w": 0, "r": 24000},
     {"f": "ufo-hum.mp3", "v": "4814831a", "d": 33.0, "lufs": -24.4, "loop": 30.0, "xf": 3.0, "from": [41.0, 74.0], "src": "ufo-hum", "r": 16000}
+  ],
+  "ufo-hum-down": [
+    {"f": "ufo-hum-down.mp3", "v": "4306dde3", "d": 8.0, "lufs": -20.4, "peak": 1.55, "sw": [0.15, 4.15], "from": [41.0, 49.0], "src": "ufo-hum-2", "r": 24000}
+  ],
+  "ufo-hum-up": [
+    {"f": "ufo-hum-up.mp3", "v": "b678dde0", "d": 5.2, "lufs": -20.4, "peak": 4.35, "sw": [0.95, 5.05], "from": [0.0, 5.2], "src": "ufo-hum-2", "r": 24000}
+  ],
+  "ufo-lift": [
+    {"f": "ufo-lift.mp3", "v": "5f92996b", "d": 5.311, "lufs": -20.4, "peak": 4.95, "sw": [2.4, 5.15], "from": [0.0, 5.95], "src": "ufo-lift-2"}
   ],
   "water-lapping": [
     {"f": "water-lapping.mp3", "v": "5ec91343", "d": 62.5, "lufs": -24.4, "loop": 60.0, "xf": 2.5, "from": [9.4, 71.9], "src": "water-lapping"}

@@ -3496,6 +3496,30 @@ G('legends', async () => {
     const d = (await ev(Q.page, `${P}`)).sky.state.drones;
     ok(d.shapes.length === 3 && d.n >= 180, `THE DRONE SHOW pages a long message (POLISH 4: the message only — no figures): ${d.shapes.length} pages (${d.shapes.join(' | ')}), ${d.n} drones`);
     await Q.ctx.close(); }
+  // ---- 9g — THE ABDUCTION, HEARD (Grok's real recordings — nobody has listened; the owner picks by ear): a link's UFO waits for the
+  // first tap (9g Group 0), so the sounds play the whole film: the hover's spin-up + its loop, the beam on / idle / off, the lift, the
+  // departure + the spin-down — in order, once each; the crowd only with people to flee (no-people here). Then the panel's picks:
+  // &hum=b (the deep throb: no spin-up, its own loop) + &depart=layered (both takes at once)
+  for (const [slot, qs, want] of [['lgs1', '', 'A'], ['lgs2', '&hum=b&depart=layered', 'B']]) {
+    const Q = await open({ slot, qs: `when=2026-11-04T22:00${GR}&force=ufo,no-people${qs}`, view: [402, 874] });
+    await harborUp(Q.page);
+    await tapAt(Q.page, 201, 420);
+    await waitFor(Q.page, `${P}.legend.state.run && ${P}.legend.state.s > 26.5`, `${slot}: the abduction played through`, 60000);
+    const r = await ev(Q.page, `import('/js/audio/city-sound.js').then(m => ({ log: m.cityLog.filter(x => /^ufo-|^crowd-flee/.test(x.slot)).map(x => ({ slot: x.slot, f: x.f, at: x.at })), loops: ${P}.sounds.player.loops.filter(l => /^ufo-/.test(l.slot)).map(l => ({ slot: l.slot, file: l.file })) }))`);
+    const order = r.log.map(x => x.slot), files = r.log.map(x => x.f);
+    const hum = (await ev(Q.page, `${P}.sounds.beds`) || []).find(b => b.slot === 'ufo-hum');
+    if (want === 'A') {
+      const exp = ['ufo-hum-up', 'ufo-beam-on', 'ufo-lift', 'ufo-beam-off', 'ufo-depart', 'ufo-hum-down'];
+      ok(JSON.stringify(order) === JSON.stringify(exp) && files.includes('ufo-depart.mp3') && !files.includes('ufo-depart-2.mp3'),
+        `9g THE UFO HEARD (A): ${order.join(' → ')} (the depart: ${files.filter(f => /depart/.test(f)).join(' + ')}); no crowd with nobody on the promenade`);
+    } else {
+      ok(!order.includes('ufo-hum-up') && !order.includes('ufo-hum-down') && files.includes('ufo-depart.mp3') && files.includes('ufo-depart-2.mp3'),
+        `9g THE PANEL's PICKS: HUM B (no spin-up / down) + DEPART LAYERED (${files.filter(f => /depart/.test(f)).join(' + ')})`);
+    }
+    const beds = await ev(Q.page, `${P}.sounds.beds.map(b => b.slot + ':' + (b.file || ''))`);
+    ok(true, `9g …the beds heard: ${beds.filter(b => /ufo/.test(b)).join(', ') || '(already faded)'}`);
+    await Q.ctx.close();
+  }
 });
 
 // ================================================================ 9b — WINTER: the climate fallback, the snowpack's stages on the city, the
@@ -3849,6 +3873,26 @@ G('tower', async () => {
     await waitFor(Q.page, `${P}.tower.fx.bulbs`, 'the bulb strings', 8000).catch(() => {});
     const t = await ev(Q.page, `${P}.tower`), lum = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, f = ${P}.tower.fx, x = cv.getContext('2d').getImageData(Math.round((f.x - 8) * k), Math.round((f.frameTop + 2) * k), Math.round(16 * k), Math.round(6 * k)).data; let m = 0; for (let i = 0; i < x.length; i += 4) m = Math.max(m, 0.2126 * x[i] + 0.7152 * x[i + 1] + 0.0722 * x[i + 2]); res(Math.round(m)); }))`);
     ok(t.fx.bulbs && lum > 150, `9f THE SITE AT NIGHT: the bulb strings + the floods light the rising frame (the brightest in its top floors ${lum})`);
+    await Q.ctx.close(); }
+  // ---- 9g — THE IMPLOSION HEARD (&speed=4: the 75 s countdown in ~19 s): the siren once (the music dipped under it), THREE horn
+  // blasts on HORN C (&horn=c — the synthesized compressed air), ONE rumble (the take now one crash + the settling: core/… importer)
+  { const Q = await open({ slot: 'tw-snd', qs: `when=2026-09-16T10:00${GR}&wx=clear&force=implosion&horn=c&speed=4`, view: [402, 874] });
+    await harborUp(Q.page);
+    await tapAt(Q.page, 201, 420);
+    await waitFor(Q.page, `${P}.tower.st && ${P}.tower.st.s > 6`, 'the implosion fell', 60000);
+    const log = await ev(Q.page, `import('/js/audio/city-sound.js').then(m => m.cityLog.filter(x => /^tower-|^implosion/.test(x.slot)).map(x => x.slot + ':' + x.f))`);
+    const n = re => log.filter(x => re.test(x)).length;
+    ok(n(/^tower-siren:/) === 1 && n(/^tower-horn:tower-horn-3\.mp3/) === 3 && n(/^tower-horn:/) === 3 && n(/^implosion-rumble:/) === 1,
+      `9g THE IMPLOSION HEARD: the siren ×${n(/^tower-siren:/)}, HORN C ×${n(/^tower-horn:tower-horn-3/)} (of ${n(/^tower-horn:/)}), ONE rumble ×${n(/^implosion-rumble:/)} — ${log.join(', ')}`);
+    await Q.ctx.close(); }
+  // ---- 9g — THE RIVET GUN as SHORT BURSTS (the owner: "it almost sounds like a bug"): by day on the rising site, after the tap, a burst
+  // (a one-shot take of 1.5–4 s) — never a loop
+  { const Q = await open({ slot: 'tw-rivet', qs: `when=2026-09-16T10:00${GR}&wx=clear&build=rising`, view: [402, 874] });
+    await harborUp(Q.page);
+    await tapAt(Q.page, 201, 420);
+    await waitFor(Q.page, `import('/js/audio/city-sound.js').then(m => m.cityLog.some(x => x.slot === 'rivet-gun'))`, 'a rivet burst', 30000).catch(() => {});
+    const r = await ev(Q.page, `import('/js/audio/city-sound.js').then(m => ({ shots: m.cityLog.filter(x => x.slot === 'rivet-gun').map(x => x.f), loop: ${P}.sounds.player.loops.some(l => l.slot === 'rivet-gun') }))`);
+    ok(r.shots.length >= 1 && r.shots.every(f => /^rivet-gun-\d\.mp3$/.test(f)) && !r.loop, `9g THE RIVET: a short burst (${r.shots.join(', ') || 'none in 30 s'}), no loop`);
     await Q.ctx.close(); }
 });
 

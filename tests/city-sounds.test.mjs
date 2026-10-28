@@ -44,7 +44,9 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     // (9e — SUNDAY's BELLS + THE CONSTRUCTION TOWER's crane, hammering, the implosion's rumble + the warning horn)
     'church-bells', 'crane', 'hammering', 'implosion-rumble', 'tower-horn',
     // (9f — the tower's CC0 alternates: the siren's own wail, the rivet gun + the crane lift layered over the beds)
-    'crane-lift', 'rivet-gun', 'tower-siren'].sort());
+    'crane-lift', 'rivet-gun', 'tower-siren',
+    // (9g — THE UFO's REAL SOUNDS: the hover's spin-up + down, the beam's on / idle / off, the lift, the departure, the crowd fleeing)
+    'ufo-hum-up', 'ufo-hum-down', 'ufo-beam-on', 'ufo-beam-idle', 'ufo-beam-off', 'ufo-lift', 'ufo-depart', 'crowd-flee'].sort());
   assert.ok(takesOf('tower-horn')[0].src === 'tower-horn-2' && takesOf('tower-horn').some(x => x.w === 0), '9f: the new horn the default, the old one a BACKUP take (weight 0)');
   for (let i = 0; i < 20; i++) assert.equal(pickTake('tower-horn', Math.random, 0).take.src, 'tower-horn-2', '9f: a backup take is never picked');
   // 11a-2: the crowd's loop + tail end before the kids' "Bye!" (30 s); the band is a one-shot pass that stops well before the disc's end
@@ -81,8 +83,11 @@ test('every take points at a real, small file whose content matches its cache ke
       assert.ok(t.lufs < -18 && t.lufs > (s.kind === 'once' ? -30 : -27), `${t.f}: levelled (${t.lufs} LUFS)`);
       if (s.kind === 'loop') {
         // (beds 30 s+; 8P's smaller beds — heard less often or under the music — 20 s+; the bus's idle a short engine loop)
-        const min = { 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18, 'rivet-gun': 28, 'snow-hush': 20 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
-        assert.ok(t.loop >= min && t.xf >= (t.f === 'rivet-gun.mp3' ? 0.1 : min < 20 ? 0.5 : 2) && t.xf <= 3,   // (9f: the rivet gun's seam sits in natural gaps — the owner's 100–200 ms)
+        const min = { 'ufo-beam-idle': 24, 'ufo-hum': 26, 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18, 'rivet-gun': 28, 'snow-hush': 20 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
+        // (9f: the rivet gun's seam sat in natural gaps — the owner's 100–200 ms; 9g: the UFO hover A's 0.2 s seam on its pulse (Grok's
+        // 0.1–0.2 s), the beam's idle 1.5 s)
+        const xfMin = { 'ufo-hum-2.mp3': 0.15, 'ufo-beam-idle.mp3': 1.0 }[t.f] ?? (min < 20 ? 0.5 : 2);
+        assert.ok(t.loop >= min && t.xf >= xfMin && t.xf <= 3,
            `${t.f}: a ${min} s+ loop with its seam (${t.loop} + ${t.xf})`);
         assert.ok(Math.abs(t.loop + t.xf - t.d) < 0.1, `${t.f}: the file is the loop + its tail`);
       } else assert.ok(t.peak >= 0 && t.peak <= t.d, `${t.f}: its loudest moment is inside it`);
@@ -98,7 +103,9 @@ test('every take points at a real, small file whose content matches its cache ke
   // (11a-2: + Thanksgiving + the parade, lean — 16 kHz decode, 40–48 kbps; the band's 90 s pass the biggest at 440 KB: 13.93 MB)
   // (9e: + Sunday's bells + the tower's crane, hammering, rumble + horn — 24 kHz, 40–56 kbps, ~0.96 MB: 15.23 MB; fetched only when they play)
   // (9f: + the tower's CC0 alternates — the siren, the horn, the rivet gun's loop, the crane lift (16 kHz / 40 kbps) ~0.6 MB: ~15.85 MB)
-  assert.ok(total < 16.2e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (9g: + THE UFO SET — the hover A + B + its spin-up / down, the beam's three, the lift, the departure A + B, the crowd (24 kHz / 64 kbps)
+  // ~1.1 MB, the brief's ~2 MB budget; the rivet's four bursts replace its loop; HORN C: ~16.8 MB)
+  assert.ok(total < 17.2e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');
