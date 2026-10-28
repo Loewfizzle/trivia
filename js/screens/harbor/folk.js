@@ -281,6 +281,14 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
     }
   }
   if (pose === 'sit') hipY = 0.27;
+  // PROM — THE DOORMAN AGAINST THE WALL ('wall'): his back flat to the brick, facing us — one boot up flat against the wall behind him (that
+  // knee bent forward), his weight on the other leg; `st.off` 0..1 pushes him off the wall (both feet down, a step out) for the nod
+  if (pose === 'wall') {
+    const off = clamp01(st.off || 0), up = 1 - off;
+    foot[0] = { a: 0.01, b: sg[0] * 0.075, y: ANKLE };
+    foot[1] = { a: -0.07 * up + 0.01 * off, b: sg[1] * 0.05, y: ANKLE + 0.2 * up };
+    hipY = HIP0 - 0.008;
+  }
   if (pose === 'garden') hipY = 0.36;
   if (lift) { foot[0] = { a: 0.075, b: -0.06, y: ANKLE }; foot[1] = { a: -0.05, b: 0.06, y: ANKLE + 0.012 * sq }; hipY = HIP0 - 0.215 * sq * deep; }
   // 8b1 — ON A LADDER: the feet on the rungs (just in front), climbing = the legs + arms trading rung by rung with the height gained;
@@ -353,6 +361,8 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'watch') { arm(N, 1.0, 1.9); arm(Fa, 0.9, 1.6); }
   if (pose === 'chat') { const g = mo ? Math.sin(t * 2.3 + L.h * 5) : 0; arm(N, 0.7 + 0.25 * g, 1.1); }
   if (pose === 'lean') { arm(0, 1.3, 0.3); arm(1, 1.25, 0.35); headA += 0.03; }
+  // (PROM: arms CROSSED high on the chest — the forearms folded across each other; pushed off the wall they drop to his sides for the nod)
+  if (pose === 'wall') { const off = clamp01(st.off || 0); if (off < 0.5) { arm(0, 0.42, 1.95, -0.32); arm(1, 0.36, 2.05, -0.36); } else { arm(0, 0.12, 0.2); arm(1, 0.1, 0.2); } shA -= 0.035 * (1 - off); headA += st.nod ? -0.05 * st.nod : 0; }
   // 9b — THE SNOWBALL THROW: the arm winds up over the head + back (0.55 s, leaning back), then snaps forward (the release ~0.6 s in)
   if (pose === 'throw') { const sN0 = st.since == null ? 0 : st.since, k = sN0 < 0.55 ? smooth(clamp01(sN0 / 0.55)) : 1 - smooth(clamp01((sN0 - 0.55) / 0.18)); shJ.forEach(q => { q.a -= 0.05 * k; }); head.a -= 0.06 * k; arm(N, 1.1 + 2.5 * k, 0.5, 0.2); arm(Fa, 0.9 - 0.3 * k, 0.4); }
   // 9b — THE SLIP on the thaw's ice: the arms fly out wide, a lurch back, then caught (over ~1.1 s)
@@ -557,7 +567,7 @@ export function drawFolk(c, cam, it, env) {
   // when he faces away)
   const LL = st.carry != null ? (st.carry === L.carry ? L : { ...L, carry: st.carry }) : L;
   if (LL.carry === 'sweepcart' && J.cz > 0.15) gearCart(c, J, X, Y, H, (col, k) => rgb(lit(col, k)), st);
-  body(c, J, LL, X, Y, H, lit, env);
+  body(c, st.look != null ? { ...J, look: st.look } : J, LL, X, Y, H, lit, env);   // (PROM: st.look — the head turned on its own)
   if (LL.carry === 'sweepcart' && J.cz <= 0.15) gearCart(c, J, X, Y, H, (col, k) => rgb(lit(col, k)), st);
   c.restore();
   return { x: fx - H * 0.2, y: fy - H, w: H * 0.4, h: H };
@@ -653,20 +663,23 @@ function body(c, J, L, X, Y, H, lit, env) {
   }
   // ---- the head: skin, then the hair by the facing (the back of the head walking away, the back half in profile, a fringe from the
   // front), the nose in profile, the sun's cheek, the hat, the brim's shadow across the face (no drawn features — the owner)
-  const hx = J.head[0], hy = J.head[1], hr = HR, front = Math.max(0, -cz), back = Math.max(0, cz);
+  // (PROM — st.look: the HEAD turned on its own (the doorman following a guest) — the hair, the nose, the face + the hat's brim read it;
+  // the body keeps its heading)
+  const HJ = J.look != null ? (() => { const hc = Math.cos(J.look), hs = Math.sin(J.look); return { ...J, cx: hc, cz: hs, d: hc >= 0 ? 1 : -1, side: Math.abs(hc) > 0.72 }; })() : J;
+  const hx = J.head[0], hy = J.head[1], hr = HR, front = Math.max(0, -HJ.cz), back = Math.max(0, HJ.cz);
   c.fillStyle = f(cols.skin, 0.9); c.fillRect(X(hx - 0.022), Y(hy - hr * 0.6), 0.044 * H, 0.06 * H);
   if (L.woman && L.hat !== 'cloche') { c.fillStyle = f(cols.hair); c.beginPath(); c.ellipse(X(hx - cx * hr * 0.22), Y(hy - hr * 0.05), hr * (1.12 - 0.06 * ax) * H, hr * 1.08 * H, 0, 0, TAU); c.fill(); }   // (her bob, behind the face)
   c.fillStyle = f(cols.skin, 0.9); c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill();
-  if (ax > 0.6 && back < 0.6) { c.beginPath(); c.moveTo(X(hx + d * hr * 0.9), Y(hy + 0.005)); c.lineTo(X(hx + d * hr * (0.9 + 0.35 * ax)), Y(hy - 0.012)); c.lineTo(X(hx + d * hr * 0.85), Y(hy - 0.025)); c.fill(); }   // (the nose in profile)
+  { const ax = Math.abs(HJ.cx), d = HJ.d; if (ax > 0.6 && back < 0.6) { c.beginPath(); c.moveTo(X(hx + d * hr * 0.9), Y(hy + 0.005)); c.lineTo(X(hx + d * hr * (0.9 + 0.35 * ax)), Y(hy - 0.012)); c.lineTo(X(hx + d * hr * 0.85), Y(hy - 0.025)); c.fill(); } }   // (the nose in profile)
   {
     c.fillStyle = f(cols.hair);
     c.save(); c.beginPath(); c.arc(X(hx), Y(hy), hr * H * 1.01, 0, TAU); c.clip();
-    c.beginPath(); c.arc(X(hx - cx * hr * 1.05 * (1 - back)), Y(hy + hr * 0.62 * front), hr * H * (1 + 0.12 * back), 0, TAU); c.fill();
+    c.beginPath(); c.arc(X(hx - HJ.cx * hr * 1.05 * (1 - back)), Y(hy + hr * 0.62 * front), hr * H * (1 + 0.12 * back), 0, TAU); c.fill();
     c.restore();
   }
   if (sun) { const g = c.createLinearGradient(X(hx - hr * sun.s), 0, X(hx + hr * sun.s), 0); g.addColorStop(0, `rgba(${sun.hi},${(0.24 * sun.k).toFixed(3)})`); g.addColorStop(0.5, `rgba(${sun.hi},0)`); g.addColorStop(0.55, 'rgba(30,20,40,0)'); g.addColorStop(1, `rgba(30,20,40,${(0.3 * sun.k).toFixed(3)})`); c.fillStyle = g; c.beginPath(); c.arc(X(hx), Y(hy), hr * H, 0, TAU); c.fill(); }
-  face(c, J, L, X, Y, H, f, hx, hy, hr);
-  hat(c, L, X, Y, H, hx, hy, hr, J, f);
+  face(c, HJ, L, X, Y, H, f, hx, hy, hr);
+  hat(c, L, X, Y, H, hx, hy, hr, HJ, f);
   // (9b: snow settled on the hat's crown + its brim — or the bare head — while it falls: one bright accent that reads at 27 pt)
   if (L.snowy) { const sc = f([242, 246, 255]), top = L.hat === 'fedora' || L.hat === 'top' ? 1.48 : L.hat ? 1.2 : 1.0; c.fillStyle = sc; c.beginPath(); c.ellipse(X(hx + J.cx * hr * 0.06), Y(hy + hr * top), hr * 0.85 * H, Math.max(0.6, hr * 0.32 * H), 0, Math.PI, 0); c.fill();
     if (L.hat === 'fedora') c.fillRect(X(hx - hr * 1.5), Y(hy + hr * 0.62), hr * 3 * H, Math.max(0.6, 0.012 * H)); }
@@ -754,7 +767,15 @@ function hat(c, L, X, Y, H, hx, hy, hr, J, f) {
   const k = L.cols.hat, cx = J.cx, ax = Math.abs(cx);
   if (!L.hat) return;
   c.fillStyle = f(k);
-  if (L.hat === 'fedora') { c.fillRect(X(hx - hr * 1.6), Y(hy + hr * 0.55), hr * 3.2 * H, Math.max(0.6, 0.016 * H)); c.beginPath(); c.moveTo(X(hx - hr * 0.95), Y(hy + hr * 0.55)); c.lineTo(X(hx - hr * 0.8 + cx * hr * 0.06), Y(hy + hr * 1.45)); c.lineTo(X(hx + hr * 0.8 + cx * hr * 0.06), Y(hy + hr * 1.5)); c.lineTo(X(hx + hr * 0.95), Y(hy + hr * 0.55)); c.fill(); c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(X(hx - hr * 0.92), Y(hy + hr * 0.8), hr * 1.84 * H, Math.max(0.4, 0.012 * H)); }
+  // (PROM — a head turned on its own (J.look: the doorman following a guest): the brim swings toward where he looks + dips at its front —
+  // a clear left / front / right of the hat at phone size)
+  if (L.hat === 'fedora' && J.look != null) {
+    const off = cx * hr * 0.62, dip = hr * 0.32 * Math.abs(cx), y0 = hy + hr * 0.55, th = Math.max(0.6, 0.018 * H);
+    c.beginPath(); c.moveTo(X(hx - hr * 1.6 + off), Y(y0 - (cx < 0 ? dip : 0))); c.lineTo(X(hx + hr * 1.6 + off), Y(y0 - (cx > 0 ? dip : 0))); c.lineTo(X(hx + hr * 1.6 + off), Y(y0 - (cx > 0 ? dip : 0)) + th); c.lineTo(X(hx - hr * 1.6 + off), Y(y0 - (cx < 0 ? dip : 0)) + th); c.closePath(); c.fill();
+    c.beginPath(); c.moveTo(X(hx - hr * 0.95 + off * 0.3), Y(y0)); c.lineTo(X(hx - hr * 0.8 + off * 0.4), Y(hy + hr * 1.45)); c.lineTo(X(hx + hr * 0.8 + off * 0.4), Y(hy + hr * 1.5)); c.lineTo(X(hx + hr * 0.95 + off * 0.3), Y(y0)); c.fill();
+    c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(X(hx - hr * 0.92 + off * 0.3), Y(hy + hr * 0.8), hr * 1.84 * H, Math.max(0.4, 0.012 * H));
+  }
+  else if (L.hat === 'fedora') { c.fillRect(X(hx - hr * 1.6), Y(hy + hr * 0.55), hr * 3.2 * H, Math.max(0.6, 0.016 * H)); c.beginPath(); c.moveTo(X(hx - hr * 0.95), Y(hy + hr * 0.55)); c.lineTo(X(hx - hr * 0.8 + cx * hr * 0.06), Y(hy + hr * 1.45)); c.lineTo(X(hx + hr * 0.8 + cx * hr * 0.06), Y(hy + hr * 1.5)); c.lineTo(X(hx + hr * 0.95), Y(hy + hr * 0.55)); c.fill(); c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(X(hx - hr * 0.92), Y(hy + hr * 0.8), hr * 1.84 * H, Math.max(0.4, 0.012 * H)); }
   else if (L.hat === 'top') { c.fillRect(X(hx - hr * 1.4), Y(hy + hr * 0.6), hr * 2.8 * H, Math.max(0.6, 0.014 * H)); c.fillRect(X(hx - hr * 0.8), Y(hy + hr * 2.1), hr * 1.6 * H, hr * 1.5 * H); }
   else if (L.hat === 'boater') { c.fillStyle = f([214, 196, 150]); c.fillRect(X(hx - hr * 1.5), Y(hy + hr * 0.6), hr * 3 * H, Math.max(0.6, 0.014 * H)); c.fillRect(X(hx - hr * 0.85), Y(hy + hr * 1.25), hr * 1.7 * H, hr * 0.65 * H); c.fillStyle = f([40, 40, 52]); c.fillRect(X(hx - hr * 0.85), Y(hy + hr * 0.82), hr * 1.7 * H, Math.max(0.4, hr * 0.22 * H)); }
   else if (L.hat === 'cloche') { c.beginPath(); c.arc(X(hx), Y(hy + hr * 0.15), hr * 1.16 * H, Math.PI, 0); c.fill(); c.fillRect(X(hx - hr * 1.25), Y(hy + hr * 0.18), hr * 2.5 * H, Math.max(0.5, hr * 0.3 * H)); }

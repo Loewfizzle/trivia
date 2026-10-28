@@ -103,3 +103,22 @@ export function ghostAdGame(ms, ids, avoid = null) {
   const n = order.length, w = adWeek(ms), i = ((w % n) + n) % n;
   return order[i] === avoid && n > 1 ? order[(i + 1) % n] : order[i];
 }
+
+// ------------------------------------------------------------------ PROM — THE BARBERSHOP AWNING, LIT FROM UNDERNEATH (the owner, Oct 28 — "B")
+// The three little lamps over the awning are gone: a row of warm bulbs tucked UNDER the awning's front edge lights the canvas from
+// beneath (its stripes glow through), washes the shop window + the HARBOR BARBERS lettering below and lays a warm pool on the pavement.
+// HOURS (the owner asked Claude to pick): ON AT DUSK by the PHOTOCELL (the darkness input — earlier on a dark overcast evening), OFF at
+// 1:00 am Sun–Thu + 2:00 am Fri / Sat + the holiday party nights (last call), a short warm fade (FADE_H of clock time), never a snap.
+// The TR-3B's blackout takes it with everything else (the scene's power); after it goes off the shop keeps its faint night lamp.
+export const AWNING_LIGHT = Object.freeze({ dk: [0.16, 0.34], off: 1, offLate: 2, fadeH: 0.01 });   // (fadeH: 36 s of clock time)
+/** the awning's light 0..1 at a local moment (PURE): local { h, mi, s?, dow }, dk (the darkness 0..1), lateNight (a party night: the
+ *  later switch-off) */
+export function awningLight(local, dk, lateNight = false) {
+  if (!local) return 0;
+  const A = AWNING_LIGHT, h = local.h + (local.mi || 0) / 60 + (local.s || 0) / 3600, eh = h < 12 ? h + 24 : h;
+  const dow = h < 12 ? ((local.dow ?? 0) + 6) % 7 : (local.dow ?? 0);                       // (the EVENING's day — after midnight, yesterday's)
+  const offAt = 24 + (lateNight || dow === 5 || dow === 6 ? A.offLate : A.off);
+  const cell = Math.max(0, Math.min(1, ((dk || 0) - A.dk[0]) / (A.dk[1] - A.dk[0])));
+  const shut = eh >= offAt ? 0 : eh > offAt - A.fadeH ? (offAt - eh) / A.fadeH : 1;
+  return cell * shut;
+}

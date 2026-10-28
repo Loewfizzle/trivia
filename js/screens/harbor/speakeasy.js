@@ -403,9 +403,58 @@ export function createSpeakeasy() {
     for (let i = 13; i >= 0; i--) c.arc(va + sw * (i + 0.5), vy1, sw / 2, 0, Math.PI, false);
     c.lineTo(va, vy0); c.closePath();
     c.clip('evenodd');
-    c.beginPath(); c.rect(va - 400, vy0 - 400, vb - va + 800, 1600);
-    for (const b of awningBulbs(aw)) { const [bx, by] = project(cam, s.x0 + b.u, b.y, b.z), r = AWNING_LAMP.bulb * cam.F / b.z * 1.9; c.moveTo(bx + r, by); c.arc(bx, by, r, 0, Math.PI * 2); }
-    c.clip('evenodd');
+    // (PROM: the awning's three little lamps are gone — the strip under its front edge is hidden: nothing else to leave out)
+  }
+  // PROM — THE BARBERSHOP AWNING LIT FROM UNDERNEATH (the owner, Oct 28 — "B"): a row of warm bulbs tucked UNDER the awning's front edge
+  // (hidden from us). LIVE (its hours fade it: core/harbor-speakeasy.js#awningLight): the canvas glowing from beneath (the cream stripes
+  // through the thin canvas, warmest at the front edge where the bulbs hang), the valance's scallops catching a warm rim, the shopfront
+  // under it lit as SURFACES through the doors' real light model (a dodge — the brick, the glass + the HARBOR BARBERS lettering, no haze):
+  // one clear lit band across the building's foot, and a long warm pool on the pavement. a: its level × the city's power × the fade
+  const AWN = Object.freeze({ cream: 0.52, red: 0.26, rim: 0.6, wash: 0.62, pool: { dz: 0.95, rz: 0.95, k: 0.75 }, top: 0.06, foot: 0.25 });
+  let awnMask = null;
+  function awningUnder(c, a) {
+    if (a <= 0.004 || !G) return;
+    const s = G.s, aw = s.awning, cam = G.cam, at = (u, y, z) => project(cam, s.x0 + u, y, z), W = [255, 196, 132];
+    c.save(); c.globalCompositeOperation = 'lighter';
+    // 1. the canvas, lit from below: stripe by stripe, from the wall (dim) to the front edge (bright)
+    const n = 12, du = (aw.u1 - aw.u0) / n;
+    for (let i = 0; i < n; i++) {
+      const u0 = aw.u0 + i * du, u1 = u0 + du, k = a * (i % 2 ? AWN.cream : AWN.red), p = [at(u0, aw.y0, s.z0), at(u1, aw.y0, s.z0), at(u1, aw.y1, aw.z), at(u0, aw.y1, aw.z)];
+      const g = c.createLinearGradient(0, p[0][1], 0, p[2][1]); g.addColorStop(0, `rgba(${W.join(',')},${(k * 0.3).toFixed(3)})`); g.addColorStop(1, `rgba(${W.join(',')},${k.toFixed(3)})`);
+      c.fillStyle = g; c.beginPath(); c.moveTo(p[0][0], p[0][1]); for (const q of p.slice(1)) c.lineTo(q[0], q[1]); c.closePath(); c.fill();
+    }
+    // 2. the valance's scallops: a warm rim on their lower edges (the bulbs right behind them)
+    { const [va] = at(aw.u0, aw.y1, aw.z), [vb, vy1] = at(aw.u1, aw.y1 - VAL, aw.z), ns = 14, sw = (vb - va) / ns;
+      c.strokeStyle = `rgba(255,214,160,${(AWN.rim * a).toFixed(3)})`; c.lineWidth = Math.max(0.5, 0.035 * cam.F / aw.z);
+      for (let i = 0; i < ns; i++) { c.beginPath(); c.arc(va + sw * (i + 0.5), vy1, sw / 2 - c.lineWidth / 2, 0.15, Math.PI - 0.15); c.stroke(); } }
+    // 3. the shopfront below, lit as SURFACES (the doors' dodge): a band from the strip down, strongest at the top, soft at its two ends
+    const vS = aw.y1 - VAL - AWN.top, key = `${dpr}|${G.K.toFixed(4)}|${G.front(0, 0).map(Math.round).join(',')}`;
+    if (!awnMask || awnMask.key !== key) {
+      if (awnMask) awnMask.cv.width = 0;
+      const [X0, Y0] = G.front(aw.u0 - 0.3, vS), [X1, Y1] = G.front(aw.u1 + 0.3, 0), w = X1 - X0, h = Y1 - Y0, Wd = Math.max(1, Math.ceil(w * dpr)), Hd = Math.max(1, Math.ceil(h * dpr));
+      const cv = document.createElement('canvas'); cv.width = Wd; cv.height = Hd;
+      const x = safeCtx(cv);
+      if (x) {
+        const col = DLIGHT.col, g = x.createLinearGradient(0, 0, 0, Hd);
+        for (const [t, k] of [[0, 1], [0.18, 0.9], [0.5, 0.55], [0.8, 0.32], [1, AWN.foot]]) g.addColorStop(t, `rgba(${col[0]},${col[1]},${col[2]},${k})`);
+        x.fillStyle = g; x.fillRect(0, 0, Wd, Hd);
+        x.globalCompositeOperation = 'destination-in';
+        const e = x.createLinearGradient(0, 0, Wd, 0); for (const [t, k] of [[0, 0], [0.08, 1], [0.92, 1], [1, 0]]) e.addColorStop(t, `rgba(0,0,0,${k})`);
+        x.fillStyle = e; x.fillRect(0, 0, Wd, Hd);
+      }
+      awnMask = { key, cv, X: X0, Y: Y0, w, h };
+    }
+    c.globalCompositeOperation = 'color-dodge'; c.globalAlpha = Math.min(1, a * AWN.wash);
+    c.drawImage(awnMask.cv, awnMask.X, awnMask.Y, awnMask.w, awnMask.h);
+    // 4. the pool on the pavement: long under the awning's width, the same dodge (the setts lit as setts)
+    { const P = AWN.pool, uc = (aw.u0 + aw.u1) / 2, [px, pyc] = at(uc, 0, s.z0 - P.dz), [, pn] = at(uc, 0, s.z0 - P.dz - P.rz), [, pf] = at(uc, 0, s.z0 - P.dz + P.rz);
+      const rx = (aw.u1 - aw.u0) * 0.62 * cam.F / (s.z0 - P.dz), ry = Math.max(1, (pn - pf) / 2), col = DLIGHT.col;
+      c.globalAlpha = Math.min(1, a * P.k); c.save(); c.translate(px, (pn + pf) / 2); c.scale(1, ry / rx);
+      const g = c.createRadialGradient(0, -rx * 0.15, 0, 0, 0, rx); for (const [t, k] of [[0, 0.9], [0.4, 0.6], [0.75, 0.2], [1, 0]]) g.addColorStop(t, `rgba(${col[0]},${col[1]},${col[2]},${k})`);
+      c.fillStyle = g; c.fillRect(-rx, -rx, rx * 2, rx * 2); c.restore(); void pyc; }
+    c.restore();
+    // (the wet ground's reflections: where the strip's light falls — scene.js#wetReflect)
+    glowAt.awning = { k: a, xs: [0.2, 0.5, 0.8].map(t => at(aw.u0 + (aw.u1 - aw.u0) * t, 0, s.z0)[0]) };
   }
   function drawPole(c, f) {
     const s = G.s, p = s.shop.pole, z = s.z0 - 0.42, [cx, y0] = project(G.cam, s.x0 + p.u, p.v1, z), [, y1] = project(G.cam, s.x0 + p.u, p.v0, z), sc = G.cam.F / z, r = 0.17 * sc, h = y1 - y0;
@@ -456,7 +505,7 @@ export function createSpeakeasy() {
     if (!G) return;
     if (quiet && !quietF) quietF = { k: f1.k, lamp: f1.lamp, sconce: f1.sconce, night: f1.night, fade: f1.fade, day: f1.day };
     const f0 = quiet ? { ...f1, ...quietF } : f1;
-    const P = power, f = P >= 1 ? f0 : { ...f0, k: clamp01(f0.k) * P, lamp: (f0.lamp || 0) * P, sconce: clamp01(f0.sconce == null ? f0.k : f0.sconce) * P, pole: clamp01(f0.pole == null ? f0.k : f0.pole) * P };
+    const P = power, f = P >= 1 ? f0 : { ...f0, k: clamp01(f0.k) * P, lamp: (f0.lamp || 0) * P, sconce: clamp01(f0.sconce == null ? f0.k : f0.sconce) * P, pole: clamp01(f0.pole == null ? f0.k : f0.pole) * P, awning: clamp01(f0.awning || 0) * P };   // (PROM: the awning's strip dies with the rest)
     const fade = f.fade == null ? 1 : f.fade;
     c.save();
     const k = clamp01(f.k) * fade; lastK = k; lastT = f.t || 0; lastGame = f.game || null;
@@ -510,18 +559,13 @@ export function createSpeakeasy() {
       soft(c, [255, 210, 150], sx, sy, G.K * SHOP_GLOW.sconce, 0.6 * a); glowAt.sconce = [sx, sy];
       // (9d: THE DOOR's LIGHT, real — the lantern under its iron cap lights the brick, the granite, the oak, the treads + the cobbles)
       if (a > 0.004) { const d = G.s.door; doorLight(c, 'side', { u: sc.u, v: sc.v + 0.34 }, { u0: d.u0, u1: d.u1, h: d.h, v0: 0.12 }, a, G.front(sc.u, sc.v + 0.08)); c.globalCompositeOperation = 'lighter'; } }
-    // 8P — THE AWNING'S THREE LAMPS lit: each bulb a crisp warm globe + a small TIGHT halo (their light on the canvas, the shopfront and
-    // the pavement is baked — speakeasySteps); the barber pole stays the brightest light on the front
-    { const a = clamp01(f.sconce == null ? f.k : f.sconce) * fade;
-      if (a > 0.004) for (const b of awningBulbs(G.s.awning)) {
-        const [bx, by0] = project(G.cam, G.s.x0 + b.u, b.y, b.z), r = AWNING_LAMP.bulb * G.cam.F / b.z, by = by0 + r * 0.3;
-        soft(c, [255, 204, 146], bx, by, AWNING_LAMP.halo * G.cam.F / b.z, 0.55 * a * AWNING_LAMP.k);
-        c.globalCompositeOperation = 'source-over'; c.globalAlpha = Math.min(1, a); c.fillStyle = 'rgb(255,238,208)'; c.beginPath(); c.arc(bx, by, r, 0, Math.PI * 2); c.fill();
-        c.fillStyle = 'rgb(255,252,240)'; c.beginPath(); c.arc(bx, by + r * 0.15, r * 0.5, 0, Math.PI * 2); c.fill(); c.globalCompositeOperation = 'lighter';
-      }
-      // (POL4: the barbershop's door flooded from the lamp now centred over it — awningBulbs' first)
-      // (9d: THE DOOR's LIGHT, real — the bell-shaded bulb over the barbershop's door lights its door, the shopfront + the pavement)
-      if (a > 0.004) { const dd = G.s.shop.door, b = awningBulbs(G.s.awning)[0]; c.save(); awningClip(c); doorLight(c, 'shop', { u: b.u, v: b.y - 0.02 }, { u0: dd[0], u1: dd[1], h: dd[2], v0: V.plinth - 0.05 }, a * 0.85, null); c.restore(); c.globalCompositeOperation = 'lighter'; } }
+    // PROM — THE AWNING LIT FROM UNDERNEATH (f.awning: its hours × the power; no bulbs to see — the strip is tucked under the front edge);
+    // the barbershop's door lit by the strip right over it (9d's real door light, from the strip's line)
+    { const a = clamp01(f.awning == null ? 0 : f.awning) * fade;
+      if (a > 0.004) {
+        c.save(); awningUnder(c, a); c.restore(); c.globalCompositeOperation = 'lighter';
+        const dd = G.s.shop.door, aw = G.s.awning; c.save(); awningClip(c); doorLight(c, 'shop', { u: (dd[0] + dd[1]) / 2, v: aw.y1 - VAL - 0.06 }, { u0: dd[0], u1: dd[1], h: dd[2], v0: V.plinth - 0.05 }, a * 0.7, null); c.restore(); c.globalCompositeOperation = 'lighter';
+      } else glowAt.awning = { k: 0, xs: [] }; }
     // THE BASEMENT WINDOW: the one hint of the secret — 8P (the owner: "you can't really tell"): the club's heart, unlike every room above —
     // a DEEPER smoky amber edging to copper, a bit brighter; alive through MOVEMENT: now and then the shadows of people passing behind it
     // (the light warming + dimming as they pass), a gentle pulse with the beat on party nights (the music's heart is down there), a very

@@ -2,7 +2,7 @@
 // light). node --test tests/harbor-people.test.mjs
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
+import { cameraFor, harborLayout, project } from '../js/core/harbor-layout.js';
 import { wallPlan, hushState, strikeLevel, darkLevel } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
 import { FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
@@ -127,7 +127,8 @@ test('8P — THE PEOPLE over two days at 390 / 402 / 430: never past the cap, ne
       maxN = Math.max(maxN, heads.filter(m => m.routine !== 'dance').length);   // (POLISH 4: the dance circle on top of the crowd's cap)
       for (const m of heads) {
         const s = m.s; seenKinds.add(m.kind);
-        assert.ok(s.z >= FOLK.zMin - (m.kind === 'trash' ? 1.4 : 0.6), `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);   // (8b1: the collector at the can, beside the front-left globe)
+        assert.ok(s.z >= FOLK.zMin - (m.kind === 'trash' ? 1.4 : m.kind === 'cabwait' ? 1.05 : 0.6), `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);   // (8b1: the collector at the can, beside the front-left globe; PROM: the cab stand's waiter on its bench at the front curb)
+        if (m.kind === 'cabwait') assert.ok(project(cam, s.x, 0, s.z)[1] < cam.dock.y - 6, `${k}: the cab stand's waiter above the dock (${project(cam, s.x, 0, s.z)[1].toFixed(0)})`);
         if (s.a >= 0.999 && m.m.role === 'lead' && !s.door) for (const r of block) assert.ok(!inR(s, r), `${k}: ${m.kind} inside ${r.id} at ${s.x.toFixed(2)}, ${s.z.toFixed(2)} (${s.pose})`);
         if (s.z > FOLK.roadZ + 0.2 && s.z < FOLK.farZ - 0.35 && m.m.role === 'lead') {
           const nearBus = Math.abs(s.x - busStopX(L)) < 2.2, nearCab = (R.cars || []).some(c => c.cab && s.x > c.x - c.len / 2 - 0.6 && s.x < c.x + c.len / 2 + 1.4), nearTruck = m.routine === 'work' && (R.crew.trucks || []).some(T => s.x > T.x - T.len / 2 - 0.6 && s.x < T.x + T.len / 2 + 1.4);   // (8b1: a worker by his truck: round its nose, at its bed)
@@ -590,4 +591,17 @@ test('9g — THE JOGGER RUNS LIKE A RUNNER (the owner: the knees "bent way out i
   assert.ok(land < 0.16, `the foot lands just ahead of the hips: ${land.toFixed(3)}`);
   assert.ok(tuck > 0.2, `the heel folded up behind the hips: ${tuck.toFixed(3)}`);
   assert.ok(passLift > 0.07, `the foot clear of the ground as it passes under the hips (no shuffle): ${passLift.toFixed(3)}`);
+});
+test('PROM — THE BARBERSHOP AWNING LIT FROM UNDERNEATH: on at dusk by the photocell, off at 1 am Sun–Thu / 2 am Fri–Sat + party nights (a short fade), off by day', async () => {
+  const { awningLight } = await import('../js/core/harbor-speakeasy.js');
+  const at = (dow, h, mi = 0) => ({ dow, h, mi });
+  assert.equal(awningLight(at(2, 13), 0), 0, 'by day: off');
+  assert.ok(awningLight(at(2, 20, 30), 0.12) < 0.01 && awningLight(at(2, 20, 30), 0.4) === 1, 'the photocell: dark enough → on');
+  assert.equal(awningLight(at(3, 0, 59), 1), 1, 'Tue night, 12:59 am: still on');
+  assert.equal(awningLight(at(3, 1, 5), 1), 0, 'Tue night, 1:05 am: off (last call)');
+  assert.ok(awningLight(at(3, 0, 59.5), 1) < 1 && awningLight(at(3, 0, 59.5), 1) > 0, 'a short fade, never a snap');
+  assert.equal(awningLight(at(6, 1, 30), 1), 1, 'Fri night (Sat 1:30 am): still on');
+  assert.equal(awningLight(at(6, 2, 5), 1), 0, 'Fri night (Sat 2:05 am): off');
+  assert.equal(awningLight(at(4, 1, 30), 1, true), 1, 'a holiday party night: the late switch-off');
+  assert.equal(awningLight(at(4, 6, 0), 1), 0, 'before dawn: off');
 });

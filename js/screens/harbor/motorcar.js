@@ -79,7 +79,7 @@ export function createMotorcar() {
       const bob = o.motion ? 0.012 * sp * Math.sin(o.t * 17.3) + 0.006 * sp * Math.sin(o.t * 29.1 + 1) : 0;
       const lampK = Math.max(0, Math.min(1, o.lampAt ? o.lampAt(car.x) * night * lamps : 0));
       c.globalAlpha = 1;
-      kit.draw(c, { id, paint: v.paint || 0, trade: v.trade || 0, rumble: !!v.rumble, x: cx, y: gy, sp, dir, dist: car.x * dir, speed: car.speed, look, lampK, lit: night * lamps, underglow: o.underglow || null, glowK: night * lamps, dpr: o.dpr, bob, k: o.k });
+      kit.draw(c, { id, paint: v.paint || 0, trade: v.trade || 0, rumble: !!v.rumble, x: cx, y: gy, sp, dir, dist: car.dist != null ? car.dist : car.x * dir, speed: car.speed, look, lampK, lit: night * lamps, underglow: o.underglow || null, glowK: night * lamps, dpr: o.dpr, bob, k: o.k, sign: v.sign != null ? v.sign : null, door: v.door || 0 });   // (PROM: the cab stand's taxi — its TAXI lamp + its door)
       c.restore();
       last.drawn = true;
     },

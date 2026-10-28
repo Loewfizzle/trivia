@@ -25,7 +25,7 @@ import { DANCE, RING, ringAt, danceSlot, danceSlotsNear, danceSpot, watchSpot, d
 import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
 import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbor-witness.js';
 import { raidAt, raidHold } from './harbor-raid.js';
-import { cabEvents, cabPlan } from './harbor-cabs.js';
+import { cabEvents, cabPlan, standEvents, standPlan } from './harbor-cabs.js';
 import { totGroups, zombieGroups, procWindow, procWalkers, procHold, PROC, ZOMBIE, halloweenAt } from './harbor-holidayfolk.js';
 import { PARADE, paradeWindow, paradeHold, paradeUnits, unitsAt, unitPeople, paradeCrowd } from './harbor-parade.js';
 
@@ -89,10 +89,10 @@ export const MIX = Object.freeze([
   { id: 'commute', from: 8, to: 9.25, n: [5.2, 3.4], mix: { busrider: 4, brisk: 1.6, newsboy: 1.5, dogwalker: 1.5, worker: 1, bench: 0.6 } },
   { id: 'morning', from: 9.25, to: 11.5, n: [3.5, 4.6], mix: { bench: 3, water: 2.5, couple: 2.5, dogwalker: 1.5, window: 1.5, meet: 1.5, busrider: 1.5, stroller: 0.8, customer: 0.3, newsboy: 0.5 } },
   { id: 'midday', from: 11.5, to: 14, n: [5, 5.2], mix: { lunch: 4, bench: 1.2, couple: 2.5, water: 2, meet: 2, window: 1.2, busrider: 1.2, stroller: 0.8, brisk: 0.5, customer: 0.3 } },
-  { id: 'afternoon', from: 14, to: 16.25, n: [3.3, 4.6], mix: { bench: 3, water: 2.5, couple: 2.5, dogwalker: 1.5, window: 1, meet: 1.5, busrider: 1.2, newsboy: 0.6, stroller: 0.8, customer: 0.3 } },
+  { id: 'afternoon', from: 14, to: 16.25, n: [3.3, 4.6], mix: { bench: 3, water: 2.5, couple: 2.5, skyline: 0.8, dogwalker: 1.5, window: 1, meet: 1.5, busrider: 1.2, newsboy: 0.6, stroller: 0.8, customer: 0.3 } },
   { id: 'homeward', from: 16.25, to: 18.5, n: [5.1, 4.6], mix: { busrider: 3.5, homeward: 1.2, couple: 2, bench: 2, water: 1.5, cart: 1.5, meet: 1.5, dogwalker: 1, stroller: 0.6, customer: 0.2 } },
-  { id: 'evening', from: 18.5, to: 22, n: [2.5, 3.3], mix: { couple: 3, water: 2, stargazer: 1.5, dogwalker: 1.5, cart: 2, bench: 1.5, meet: 1, stroller: 0.6, jogger: 0.25 } },
-  { id: 'late', from: 22, to: 24, n: [2.3, 3.1], mix: { couple: 2, water: 1.5, lone: 1.5, stargazer: 1, bench: 0.8, straggler: 0.4 } },
+  { id: 'evening', from: 18.5, to: 22, n: [2.5, 3.3], mix: { couple: 3, water: 2, skyline: 1.4, stargazer: 1.5, dogwalker: 1.5, cart: 2, bench: 1.5, meet: 1, stroller: 0.6, jogger: 0.25 } },
+  { id: 'late', from: 22, to: 24, n: [2.3, 3.1], mix: { couple: 2, water: 1.5, skyline: 1, lone: 1.5, stargazer: 1, bench: 0.8, straggler: 0.4 } },
   { id: 'night', from: 24, to: 26, n: [1.3, 1.9], mix: { lone: 2, couple: 1, straggler: 0.6, water: 0.5 } },
 ]);
 /** party nights: the guests' weight × this, the count × partyN; rain (0..1): the count × (1 − rainCut × rain), the gaits × (1 + rainFast) */
@@ -128,7 +128,7 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, r
   // A SLOWER SUNDAY MORNING (8:30 → 12:30): nobody hurrying to work — strolling pairs (Sunday best), the bench, the water
   const sunday = dow === 0 && h >= 8.5 && h < 12.5;
   if (sunday) { delete mix.brisk; delete mix.busrider; delete mix.worker; mix.couple = (mix.couple || 1) * 1.6; mix.stroller = (mix.stroller || 0) + 1.5; mix.water = (mix.water || 0) + 0.8; }
-  if (rain > 0.3) { delete mix.lunch; delete mix.water; delete mix.stargazer; if (mix.jogger) mix.jogger *= 0.3; if (mix.bench) mix.bench *= 0.15; mix.shelter = 1.6; }
+  if (rain > 0.3) { delete mix.lunch; delete mix.water; delete mix.stargazer; delete mix.skyline; if (mix.jogger) mix.jogger *= 0.3; if (mix.bench) mix.bench *= 0.15; mix.shelter = 1.6; }
   if (rain > 0.6) delete mix.jogger;
   return { id: p.id, n: Math.min(FOLK.cap, n), mix, weekend, party: !!party, sunday };
 }
@@ -148,8 +148,12 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
     shopDoor: { x: s.x0 + (s.shop.door[0] + s.shop.door[1]) / 2, z: F.doorZ },
     sideDoor: { x: s.x0 + (s.door.u0 + s.door.u1) / 2, z: F.doorZ },
     shopWin: { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2 + 0.6, z: F.doorZ - 0.35 },
-    bench: { x: b.x, z: b.z - 0.2 },
-    benchFront: { x: b.x, z: b.z - 1.4 },
+    // (PROM — THE WATER BENCH faces the harbor: its seat behind its back (from us), its sitters face away — reached from the water side)
+    bench: b.face === 'water' ? { x: b.x, z: b.z + 0.95 } : { x: b.x, z: b.z - 0.2 },
+    benchFront: b.face === 'water' ? { x: b.x, z: b.z + 2.05 } : { x: b.x, z: b.z - 1.4 },
+    benchFace: b.face === 'water' ? 2 : 0,
+    // (PROM: a couple stopped by the water bench, watching the skyline — seen from behind)
+    skyline: { x: b.x + b.w / 2 + 1.1, z: b.z + 1.5 },
     inlay: { x: L.medallion.x, z: L.medallion.z },
     curbWait: { x: cx, z: F.curbZ },
     farWait: { x: cx, z: F.farZ },
@@ -179,7 +183,10 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
   const rects = [
     { id: 'building', x0: -1e3, x1: s.x1 + 0.35, z0: F.doorZ + 0.2, z1: 61 },
     // (behind the bench + the crabapple, and under the blade: nobody — they're baked with the stage, the walkers drawn over it)
-    { id: 'back-left', x0: -1e3, x1: b.x + b.w / 2 + 0.55, z0: b.z - 0.05, z1: F.roadZ },
+    // (PROM: the water bench is LIVE + faces the harbor — the strip behind it, where its sitters sit, is open from its right; only the
+    // corner left of it, under the blade + the crabapple, stays closed)
+    ...(b.face === 'water' ? [{ id: 'back-left', x0: -1e3, x1: b.x - b.w / 2 - 0.25, z0: b.z - 0.05, z1: F.roadZ }, { id: 'back-bench', x0: b.x - b.w / 2 - 0.25, x1: b.x + b.w / 2 + 0.55, z0: b.z + 2.6, z1: F.roadZ }, { id: 'bench', x0: b.x - b.w / 2 - 0.15, x1: b.x + b.w / 2 + 0.15, z0: b.z - 0.25, z1: b.z + 0.55 }]
+      : [{ id: 'back-left', x0: -1e3, x1: b.x + b.w / 2 + 0.55, z0: b.z - 0.05, z1: F.roadZ }]),
     { id: 'road', x0: -1e3, x1: 1e3, z0: F.roadZ, z1: F.farZ - 0.3 },
     { id: 'curb-l', x0: -1e3, x1: cw.x0 + cww * 0.12, z0: F.zMax + 0.1, z1: F.roadZ },
     { id: 'curb-r', x0: cw.x1 - cww * 0.12, x1: 1e3, z0: F.zMax + 0.1, z1: F.roadZ },
@@ -318,7 +325,9 @@ const floor = (r, M) => {
 export const KINDS = {
   stroller: (r, M) => ({ look: 'stroll', gait: 'stroll', goals: [{ from: anySide(r) }, ...(r() < 0.7 ? [{ at: jitter(r, M.nodes.inlay, 2.5, 1.5) }, { pose: 'look', dur: 8 + r() * 16 }] : []), { exit: 'any' }] }),
   // (POLISH 4 — the bench at any hour: one or two sitting a few minutes, reading the day, watching the harbor)
-  bench: (r, M) => ({ look: r() < 0.5 ? 'walker' : 'lady', gait: 'stroll', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: 120 + r() * 200, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
+  bench: (r, M) => ({ look: r() < 0.5 ? 'walker' : 'lady', gait: 'stroll', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: 120 + r() * 200, face: M.nodes.benchFace || 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
+  // (PROM — THE WATER BENCH: a couple stops beside it to watch the skyline, seen from behind)
+  skyline: (r, M) => ({ look: 'couple', gait: 'stroll', pair: true, goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.skyline, 0.4, 0.3) }, { pose: 'watch', dur: 50 + r() * 90, face: 2 }, { exit: 'any' }] }),
   brisk: (r) => ({ look: 'commuter', gait: 'brisk', goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { exit: r() < 0.3 ? 'cross' : 'any' }] }),
   jogger: (r) => ({ look: 'jogger', gait: 'jog', goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, { exit: r() < 0.25 ? 'cross' : 'any' }] }),
   // (POLISH 5: now and then the dog stops to SNIFF THE HYDRANT on the way — the walker waits, facing it)
@@ -327,7 +336,7 @@ export const KINDS = {
   busrider: (r) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', goals: [{ from: r() < 0.3 ? 'cross' : anySide(r) }, { bus: true }] }),
   newsboy: (r, M) => ({ look: 'newsboy', gait: 'kid', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.inlay, 3, 1.2) }, { pose: 'wave', dur: 5 + r() * 6 }, { exit: 'any' }] }),
   couple: (r, M) => ({ look: 'couple', gait: 'stroll', pair: true, goals: [{ from: r() < 0.25 ? 'cross' : anySide(r) }, ...(r() < 0.85 ? [{ at: r() < 0.5 || !M.exits ? jitter(r, M.nodes.inlay, 2.5, 1.2) : floor(r, M) }, { pose: 'chat', dur: 30 + r() * 60 }] : []), { exit: r() < 0.25 ? 'cross' : 'any' }] }),
-  lunch: (r, M) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: 60 + r() * 150, face: 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
+  lunch: (r, M) => ({ look: r() < 0.5 ? 'commuter' : 'walker', gait: 'walk', sit: true, goals: [{ from: anySide(r) }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: 60 + r() * 150, face: M.nodes.benchFace || 0 }, { at: M.nodes.benchFront }, { exit: 'any' }] }),
   // 9a — SHELTERING under the awning in the rain: in from either side, a minute or two at the shop window facing out, then on
   shelter: (r, M) => ({ look: r() < 0.5 ? 'lady' : 'walker', gait: 'walk', shelter: true, goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.shopWin, 0.9, 0.1) }, { pose: 'wait', dur: 40 + r() * 70, face: 0 }, { exit: 'any' }] }),
   window: (r, M) => ({ look: r() < 0.6 ? 'lady' : 'walker', gait: 'stroll', goals: [{ from: anySide(r) }, { at: jitter(r, M.nodes.shopWin, 0.6, 0.15) }, { pose: 'shop', dur: 8 + r() * 14 }, { exit: 'any' }] }),
@@ -676,7 +685,14 @@ export function lineNight(day0, key, M, L, ctx = {}) {
     const out = planVisit({ look: 'doorman', gait: 'walk', goals: [{ from: 'side' }, { at: spot }] }, T0 - 40, M, { r: rr });
     if (out) {
       const legs = [...out.legs]; let now = out.t1;
-      for (const a of admits) { if (a - 0.6 > now) legs.push({ k: 'pose', pose: 'watch', x: spot.x, z: spot.z, t0: now, t1: a - 0.6, hd: PI }); const e = Math.max(now, a - 0.6); legs.push({ k: 'pose', pose: 'wave', x: spot.x, z: spot.z, t0: e, t1: e + 2.4, hd: PI }); now = e + 2.4; }
+      // (PROM: between admissions he leans at the wall right of the door (people.js turns his head after the guests); at each admission he
+      // steps out to beckon them in, then back to the brick)
+      const wall = { x: L.speakeasy.x0 + Math.min(L.speakeasy.door.u1 + 0.5, (L.speakeasy.door.u1 + (L.speakeasy.x1 - L.speakeasy.x0)) / 2 + 0.05), z: L.speakeasy.z0 - 0.24 };
+      const step = (a, b, t) => { const d = Math.hypot(b.x - a.x, b.z - a.z), t1 = t + d / 1.1; legs.push({ k: 'walk', pts: [a, b], t0: t, t1, v: 1.1 }); return t1; };
+      for (const a of admits) {
+        if (a - 4.5 > now) { now = step(spot, wall, now); legs.push({ k: 'pose', pose: 'wall', x: wall.x, z: wall.z, t0: now, t1: a - 2.2, hd: -PI / 2 }); now = step(wall, spot, a - 2.2); }
+        const e = Math.max(now, a - 0.6); if (e > now) legs.push({ k: 'pose', pose: 'watch', x: spot.x, z: spot.z, t0: now, t1: e, hd: PI }); legs.push({ k: 'pose', pose: 'wave', x: spot.x, z: spot.z, t0: e, t1: e + 2.4, hd: PI }); now = e + 2.4;
+      }
       const back = planVisit({ look: 'doorman', gait: 'walk', goals: [{ door: 'side' }] }, now + 12, M, { r: rr, start: spot });
       if (back) { legs.push({ k: 'pose', pose: 'watch', x: spot.x, z: spot.z, t0: now, t1: now + 12, hd: PI }, ...back.legs); visits.push({ id: `line.${key}.doorman`, kind: 'doorman', look: 'doorman', gait: 'walk', party: true, legs, t0: legs[0].t0, t1: back.t1, tEnd: back.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(rr() * 1e6) }] }); }
     }
@@ -851,11 +867,29 @@ export function folkAt(t, world, cache = new Map()) {
     }
     return out;
   });
+  // PROM — THE CAB STAND (core/harbor-cabs.js#standEvents): its waiters near [a, b]; a waiter who gives up by HAILING on the back road
+  // brings a cab of their own — kept only where the stop is free (else they simply walk off)
+  const standBlock = k => get(`SB|${k}|${hk}`, () => {
+    if (!L.cabStand || ctx.noCabs) return [];
+    const out = [];
+    for (const e of standEvents(k, ctx)) {
+      let pl = standPlan(e, L, M); if (!pl) continue;
+      if (pl.cab) {
+        const T = pl.cab.T, clash = (x0, x1) => x0 < T.tX + 18 && x1 > T.tE - 18;
+        if (inHold(hold, T.tE) || (ctx.raid && clash(ctx.raid.t0 - 30, ctx.raid.tEnd)) || busesNear(T.tE - 120, T.tX + 120).some(bb => clash(bb.tE, bb.tX)) || trucksNear(T.tE - 60, T.tX + 60).some(tr => clash(tr.tE, tr.tX))) pl = standPlan({ ...e, hail: false }, L, M);
+        if (!pl) continue;
+      }
+      out.push(pl);
+    }
+    return out;
+  });
+  const standsNear = (a, b) => { const all = []; for (let k = Math.floor(a / B) - 1; k <= Math.floor(b / B) + 1; k++) all.push(...standBlock(k)); return all.filter(pl => pl.rider.tEnd > a - 60 && pl.rider.t0 < b + 60); };
   const cabsNear = (a, b) => {
     if (ctx.noCabs) return [];
-    const all = []; for (let k = Math.floor(a / B) - 1; k <= Math.floor(b / B) + 1; k++) all.push(...cabBlock(k));
+    const all = [], mine = []; for (let k = Math.floor(a / B) - 1; k <= Math.floor(b / B) + 1; k++) { all.push(...cabBlock(k)); mine.push(...standBlock(k).filter(p => p.cab).map(p => p.cab)); }
     all.sort((p, q) => p.T.tE - q.T.tE);
-    const kept = []; for (const pl of all) if (!kept.some(o => pl.T.tE < o.T.tX + 10 && pl.T.tX > o.T.tE - 10)) kept.push(pl);
+    // (a cab-stand waiter's hail first — someone is standing at the curb waving for it — then the night's own calls round it)
+    const kept = [...mine]; for (const pl of all) if (!kept.some(o => pl.T.tE < o.T.tX + 10 && pl.T.tX > o.T.tE - 10)) kept.push(pl);
     return kept.filter(pl => pl.T.tX > a - 60 && pl.T.tE < b + 60);
   };
   // THE ROUTINES (FP3b — core/harbor-routines.js): the dance circle's sessions near t, their people; while one runs the inlay is
@@ -923,7 +957,7 @@ export function folkAt(t, world, cache = new Map()) {
   // (8b2: the cabs' riders count in the crowd's budget too — the calmer counts hold on a night of cabs)
   const workLoad = (a, b) => get(`WL|${a}`, () => [...crewIn(a, b).visits.filter(v => !v.plat), ...cabsNear(a, b).flatMap(pl => pl.riders)].reduce((s, v) => s + Math.max(0, Math.min(b, v.tEnd || v.t1) - Math.max(a, v.t0)), 0));
   const cx = { ...ctx, buses: busesNear, closed, Mev, cartOut, cartParked, Mc, mapAt, workLoad, noCross: cx0.noCross };
-  const cabOcc = (a, b) => cabsNear(a, b).flatMap(pl => occOf(pl.riders));
+  const cabOcc = (a, b) => [...cabsNear(a, b).flatMap(pl => occOf(pl.riders)), ...occOf(standsNear(a, b).map(pl => pl.rider))];
   const A = k => get(`A|${k}`, () => { const t0 = k * B; return blockVisits(0, k, M, { ...cx, others: [...busesNear(t0, t0 + B).flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)] }); });
   const Bv = k => get(`B|${k}`, () => { const t0 = k * B + B / 2, bs = busesNear(t0, t0 + B); return blockVisits(1, k, M, { ...cx, others: [...occOf(A(k)), ...occOf(A(k + 1)), ...bs.flatMap(b => occOf(riders(b))), ...routineOcc(t0, t0 + B), ...cabOcc(t0, t0 + B)], seats: [...seatsOf(A(k)), ...seatsOf(A(k + 1))] }); });
   const ka = Math.floor(t / B), kb = Math.floor((t - B / 2) / B);
@@ -945,7 +979,7 @@ export function folkAt(t, world, cache = new Map()) {
   // 'raid' kind: freeze / casually away / look away, the doorman in at the side door) from the moment the first car shows
   const RP = ctx.raid && t >= ctx.raid.t0 - 20 && t < ctx.raid.tEnd + 4 * 3600 ? ctx.raid : null;
   if (RP && RP.officer && t >= RP.officer.t0 && t < RP.officer.t1) routine.push(RP.officer);
-  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...forced, ...routine, ...hol].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
+  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...standsNear(t - 400, t + 10).map(pl => pl.rider), ...forced, ...routine, ...hol].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   // 8b1 — THE WITNESSES (core/harbor-witness.js): a legendary night (ctx.legend: { kind, t0 }) — everyone on the promenade when it comes
   // reacts (the UFO: they look up, then FLEE; the TR-3B: they stare up, a few hurry indoors); nobody new comes until the empty spell ends
   // (the reaction holds after the window too — a routine back at its post on its new path, never the old one popping back — for a few hours)
@@ -954,7 +988,7 @@ export function folkAt(t, world, cache = new Map()) {
   if (LG) {
     reacted = get(`WIT|${LG.kind}|${LG.t0}`, () => {
       const T = LG.t0 + 3, kA = Math.floor(T / B), kB = Math.floor((T - B / 2) / B), ev = cartEv(T);
-      const cand = [...A(kA), ...Bv(kB), ...busesNear(T - 400, T + 10).flatMap(b => riders(b)), ...cabsNear(T - 400, T + 10).flatMap(pl => pl.riders), ...sessionsNear(T - 120, T + 10).flatMap(danceVisits), ...(ev && T >= ev.t0 && T < ev.t1 ? [vendorVisit(ev)] : []), ...lineVisits(T - 30, T + 30), ...(ctx.noWork ? [] : crewAt(T, crewW, cache.crew).visits)]
+      const cand = [...A(kA), ...Bv(kB), ...busesNear(T - 400, T + 10).flatMap(b => riders(b)), ...cabsNear(T - 400, T + 10).flatMap(pl => pl.riders), ...standsNear(T - 400, T + 10).map(pl => pl.rider), ...sessionsNear(T - 120, T + 10).flatMap(danceVisits), ...(ev && T >= ev.t0 && T < ev.t1 ? [vendorVisit(ev)] : []), ...lineVisits(T - 30, T + 30), ...(ctx.noWork ? [] : crewAt(T, crewW, cache.crew).visits)]
         .filter((v, i, arr) => arr.findIndex(o => o.id === v.id) === i && v.t0 < LG.t0 + 1 && (v.tEnd || v.t1) > LG.t0);
       const hide = LG.kind === 'ufo' ? hiderOf(cand, LG, M) : null;
       if (LG.kind === 'raid') return cand.filter(v => v.kind !== 'officer').map(v => reactVisit(v, LG, M, {})).filter(Boolean);

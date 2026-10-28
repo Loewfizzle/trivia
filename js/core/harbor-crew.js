@@ -21,6 +21,8 @@ export const TRUCK = Object.freeze({ len: { van: 5.05, dump: 6.0, stake: 6.25 },
 /** the blade on the speakeasy's side wall (screens/harbor/speakeasy-blade.js#BLADE: w along the wall, out from it, v0 → v1 up) */
 const BLADE_AT = Object.freeze({ w: 0.42, outer: 0.22 + 1.86, v0: 2.75, v1: 11.0 });
 
+/** PROM — the doorman's post: his back to the wall right of the side door (between the door + the corner, under the blade) */
+export const doormanWall = L => { const s = L.speakeasy; return { x: s.x0 + Math.min(s.door.u1 + 0.5, (s.door.u1 + (s.x1 - s.x0)) / 2 + 0.05), z: s.z0 - 0.24 }; };
 /** where the crew works (world x, z; y up) for a layout + the people's map */
 export function crewSpots(L, M) {
   const s = L.speakeasy, cw = L.crosswalk, F = FOLK;
@@ -42,6 +44,8 @@ export function crewSpots(L, M) {
     cellar: { x: s.x0 + 5.7, z: s.z0 - 0.78 }, lookout: { x: s.x1 + 1.05, z: s.z0 - 1.45 },
     awning: { x: s.x0 + ((s.awning ? s.awning.u0 + s.awning.u1 : 10.1) / 2) + 0.9, z: s.z0 - 0.95 },
     doorman: { x: M.nodes.sideDoor.x + 1.15, z: F.doorZ - 0.8 },
+    // (PROM — THE DOORMAN AGAINST THE WALL: his back flat to the brick RIGHT of the side door, under the blade)
+    doormanWall: doormanWall(L),
     flowers: { x: s.x1 + 2.7, z: F.doorZ - 2.1 },
     // the window washers' platform along the front face (u from the speakeasy's left end): the two bays on screen
     wash: { u0: 3.85, u1: 9.65, z: s.z0 - 0.5, x0: s.x0 },
@@ -666,7 +670,9 @@ PLAN.bartender = (w, M, P, r) => ({ visits: [crewOf(M, P, r, 'walk', w.t0).edge(
 PLAN.doorman = (w, M, P, r) => {
   // from dusk: out of the side door to his post just right of it, watching the street; a nod to each guest (the password); at the end
   // of the night he walks off home
-  const c = crewOf(M, P, r, 'walk', w.t0).at(P.sideDoor).door('side', 'out').go(P.doorman).until(w.t1, 'watch', { hd: PI }).exit(r() < 0.5 ? 'left' : 'right', 42);
+  // (PROM: his post is the wall right of the door — back to the brick, a boot up, arms crossed, facing the street; people.js turns his
+  // head to follow each guest + pushes him off the wall for the nod as one reaches the door)
+  const c = crewOf(M, P, r, 'walk', w.t0).at(P.sideDoor).door('side', 'out').go(P.doorman).line([P.doormanWall]).until(w.t1 - 2.5, 'wall', { hd: -PI / 2 }).line([P.doorman]).exit(r() < 0.5 ? 'left' : 'right', 42);
   return { visits: [c.out(w.id, 'doorman', 'doorman')], marks: { doorman: [w.t0 + 12, w.t1] } };
 };
 PLAN.flowers = (w, M, P, r) => {

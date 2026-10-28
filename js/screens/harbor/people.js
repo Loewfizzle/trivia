@@ -84,8 +84,8 @@ export function createPeople() {
     if (!L) return;
     ensureMap(!!f.event, !!f.ring);
     const hf = hforceOf(f);
-    const fk = `${f.forceJog ? 1 : 0}${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { snowWork: f.snowWork || null, off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceJog: !!f.forceJog, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
+    const fk = `${f.forceJog ? 1 : 0}${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${f.forceStandAt == null ? '' : Math.round(f.forceStandAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
+    const t = f.ms / 1000, ctx = { snowWork: f.snowWork || null, off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceJog: !!f.forceJog, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, forceStandAt: f.forceStandAt == null ? null : f.forceStandAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
@@ -205,6 +205,9 @@ export function createPeople() {
       // (FP3b: the cart's vendor is a routine member now — core/harbor-people.js#folkAt — wheeling it in + out on its schedule)
       // (behind the speakeasy on the waterside sidewalk: hidden by the building — not drawn)
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ && !insideDoor(m)));
+      // (PROM — THE CAB STAND's taxi, this device's own: a waiter it picked up is gone; one walking to it is drawn where it puts them)
+      if (over.size) items = items.filter(m => over.get(m.vid) !== 'hide').map(m => (over.has(m.vid) && m.m.role === 'lead' ? { ...m, s: { ...m.s, ...over.get(m.vid) } } : m));
+      if (pass === 'near') items = doormanWatch(items, env.t || 0);
     }
     const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? [...(now.cars || []), ...((now.crew && now.crew.trucks) || [])] : [];
     // 8b1 — THE WORKERS' PROPS at their own depths (ladders, the platform, the stand, the bottles, the hatch, the wet streak…)
@@ -526,7 +529,38 @@ export function createPeople() {
     }
     for (const id of [...busSt.keys()]) if (!seen.has(id)) { busSt.delete(id); snd.bus('gone', {}); }
   }
+  // PROM — a member's state laid over the plan on this device (screens/harbor/cabstand.js): vid → partial state | 'hide'
+  const over = new Map();
+  // PROM — THE DOORMAN AGAINST THE WALL follows each guest with his HEAD (his hat's brim turning left / front / right — the body stays on
+  // the brick), and PUSHES OFF the wall + nods as one reaches the side door, then leans back. Live, from whoever is near him now
+  const DOORMAN = Object.freeze({ near: 6.5, door: [0.8, 2.2], turn: 3.2 });
+  let dmLook = null, dmT = 0, dmOff = 0;
+  function doormanWatch(items, t) {
+    const dm = items.find(m => m.kind === 'doorman' && m.s.pose === 'wall' && m.m.role === 'lead');
+    if (!dm) { dmLook = null; return items; }
+    const s = L.speakeasy, door = { x: s.x0 + (s.door.u0 + s.door.u1) / 2, z: FOLK.doorZ };
+    let best = null, bd = 1e9, dmin = 1e9;
+    for (const g of items) {
+      if (g === dm || g.m.role === 'dog' || g.kind === 'doorman') continue;
+      const d = Math.hypot(g.s.x - dm.s.x, g.s.z - dm.s.z);
+      if (d < DOORMAN.near && d < bd) { bd = d; best = g; }
+      if (g.s.door || d < DOORMAN.near) dmin = Math.min(dmin, g.s.door ? 0 : Math.hypot(g.s.x - door.x, g.s.z - door.z));
+    }
+    // (his head toward the guest — never round behind him: from his left (π) through the front (−π / 2) to his right (0))
+    let want = -Math.PI / 2;
+    if (best) { const a = Math.atan2(best.s.z - dm.s.z, best.s.x - dm.s.x); want = Math.max(-Math.PI + 0.25, Math.min(-0.25, a > Math.PI / 2 ? a - 2 * Math.PI : a)); }
+    const dt = Math.max(0, Math.min(0.1, t - dmT)); dmT = t;
+    if (dmLook == null) dmLook = want; else dmLook += (want - dmLook) * Math.min(1, dt * DOORMAN.turn);
+    const offWant = dmin < DOORMAN.door[1] ? 1 - Math.max(0, Math.min(1, (dmin - DOORMAN.door[0]) / (DOORMAN.door[1] - DOORMAN.door[0]))) : 0;
+    dmOff += (offWant - dmOff) * Math.min(1, dt * 2.6);
+    const nod = dmOff > 0.6 ? Math.max(0, Math.sin((t * 2.2) % Math.PI)) * (dmOff - 0.6) * 2.5 : 0;
+    return items.map(m => (m === dm ? { ...m, s: { ...m.s, look: dmLook, off: dmOff, nod, z: m.s.z - 0.12 * dmOff } } : m));
+  }
   return {
+    /** PROM: override a member (vid) on this device — a partial state, 'hide', or null to give them back to the plan */
+    override(vid, s) { if (s == null) over.delete(vid); else over.set(vid, s); if (over.size > 24) over.delete(over.keys().next().value); },
+    /** PROM: the cab stand's waiters now (the taxi's candidates): [{ vid, x, z, pose, since, left }] */
+    waiters: () => (now.members || []).filter(m => m.kind === 'cabwait' && m.m.role === 'lead').map(m => ({ vid: m.vid, x: m.s.x, z: m.s.z, pose: m.s.pose, since: m.s.since || 0, left: m.s.left == null ? 0 : m.s.left, look: m.look, seed: m.m.seed })),
     layout, frame, draw, tick, drawInside,
     /** FP3b — REAL DOORS: how open each speakeasy door is now ({ side, shop }: 0..1 — the speakeasy draws the leaf) */
     doors: () => ({ ...(now.doors || { side: 0, shop: 0 }) }),

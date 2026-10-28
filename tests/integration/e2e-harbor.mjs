@@ -2643,13 +2643,30 @@ G('people', async () => {
   // the stage band's pixels, as one fingerprint (the A/B against &force=no-people)
   const band = p => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, c = ${P}.cam, y0 = Math.round((c.dock.y - 130) * k), h = Math.round(120 * k);
     const d = cv.getContext('2d').getImageData(0, y0, cv.width, h).data, out = []; for (let i = 0; i < d.length; i += 4 * 97) out.push(d[i] + d[i + 1] + d[i + 2]); res(out); }))`);
+  // ---- PROM — THE CAB STAND: a waiter sits on the front bench (&force=cabstand); only once the dock RESTS does the taxi pull up on the
+  // front street — the waiter gets in (gone from this device's promenade) and it drives off; with the dock up nothing comes
+  { const Q = await open({ slot: 'pp-cab', qs: `when=2026-09-15T21:30${GR}&wx=clear&force=cabstand`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.members.some(m => m.kind === 'cabwait' && m.pose === 'sit')`, 'a waiter sitting at the cab stand', 40000).catch(() => {});
+    await sleep(4500);
+    const up = await ev(Q.page, `${P}.promenade.cabStand`);
+    await ev(Q.page, 'window.__district.idle()');
+    await waitFor(Q.page, `!!${P}.promenade.cabStand.run`, 'the taxi pulling up (the dock at rest)', 15000).catch(() => {});
+    const run = await ev(Q.page, `${P}.promenade.cabStand`);
+    await waitFor(Q.page, `(() => { const c = ${P}.promenade.cabStand; return !c.run && c.taken.length > 0; })()`, 'the taxi gone with its fare', 25000).catch(() => {});
+    const done = await ev(Q.page, `${P}.promenade.cabStand`), still = await ev(Q.page, `${P}.people.members.filter(m => m.kind === 'cabwait').map(m => m.id)`);
+    ok(!up.run && up.runs === 0 && run.run && done.taken.includes(run.run.vid), `PROM THE CAB STAND: no taxi with the dock up (${up.runs}); the dock rests → the taxi came for ${run.run ? run.run.vid : '—'} + took them (${done.taken.join(', ')})`);
+    void still;
+    await Q.ctx.close(); }
   // ---- midday (a Thursday): people out on the promenade, inside the cap, on screen + never under the dock; THE HUSH SIGN says OPEN
   { const Q = await open({ slot: 'pp1', qs: `when=2026-10-22T12:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await settle(Q.page);
     await waitFor(Q.page, `${P}.people.n >= 3`, 'people out at midday', 10000).catch(() => {});
     const pp = await ev(Q.page, `${P}.people`), cam = await ev(Q.page, `${P}.cam`);
     ok(pp.n >= 3 && pp.n <= 12, `THE PEOPLE at 12:30: ${pp.n} out (+ ${pp.dogs} dogs) — ${[...new Set(pp.members.map(m => m.kind))].join(', ')}`);
-    ok(pp.members.every(m => m.z >= 38.1), `nobody under the dock (nearest z ${Math.min(...pp.members.map(m => m.z)).toFixed(2)})`);
+    // (PROM: the cab stand's bench stands at the front curb, z 38 — its waiters sit there, still above the dock: the check is on screen)
+    { const footY = m => cam.VPY + cam.F * cam.CAMH / m.z, low = Math.max(...pp.members.map(footY));
+      ok(pp.members.every(m => footY(m) < cam.dock.y - 4), `nobody under the dock (the lowest foot ${low.toFixed(0)} vs the dock ${cam.dock.y.toFixed(0)}; nearest z ${Math.min(...pp.members.map(m => m.z)).toFixed(2)}: ${pp.members.filter(m => m.z < 38.1).map(m => `${m.kind}/${m.role}@${m.z}`).join(' ')})`); }
     const hs = await ev(Q.page, `${P}.speakeasy.hush()`);
     ok(!hs.text && hs.lit === 0, `THE HUSH WORD SIGN at noon, no lobby: absent (${hs.text})`);
     const a = await band(Q.page);

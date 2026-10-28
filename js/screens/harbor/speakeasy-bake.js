@@ -568,43 +568,8 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       // the awning's iron arms
       x.strokeStyle = rgb(M.iron); x.lineWidth = Math.max(0.5, 0.05 * sc);
       for (const u of [aw.u0 + 0.1, aw.u1 - 0.1]) { const [p, py] = project(cam, s.x0 + u, aw.y0 - 0.9, s.z0), [q, qy] = project(cam, s.x0 + u, aw.y1, aw.z); x.beginPath(); x.moveTo(p, py); x.lineTo(q, qy); x.stroke(); }
-      // SP2 — THE AWNING AT NIGHT, the 1920s way (the owner; never a backlit 1980s awning): a small shaded lamp under it at the wall over
-      // the shop window, lighting the canvas from beneath — warm near the lamp, fading out to the front edge, the cream stripes glowing a
-      // little through (the canvas is thin) — the scallops catching a warm rim, the shopfront under it + the pavement below a soft pool.
-      // Subtle: the barber pole stays the brightest light on the front. Baked (by the lamps' ramp).
-      { const lk = clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
-        if (lk > 0.01) {
-          const A = AWNING_LAMP, W = [255, 196, 132], fall = u => Math.min(1.25, A.us.reduce((sum, lu) => sum + A.k * Math.exp(-(((u - lu) / A.reach) ** 2)), 0));
-          x.save(); x.globalCompositeOperation = 'lighter';
-          for (let i = 0; i < n; i++) {
-            const u0 = aw.u0 + i * du, u1 = u0 + du, f = fall((u0 + u1) / 2) * lk * (i % 2 ? A.cream : A.red);
-            const [, ya] = project(cam, s.x0 + u0, aw.y0, s.z0), [, yb] = project(cam, s.x0 + u0, aw.y1, aw.z), g = x.createLinearGradient(0, ya, 0, yb);
-            g.addColorStop(0, rgb(W, f * 0.55)); g.addColorStop(1, rgb(W, f));
-            poly(x, cam, [at(u0, aw.y0, s.z0), at(u1, aw.y0, s.z0), at(u1, aw.y1, aw.z), at(u0, aw.y1, aw.z)], g);
-          }
-          // the scallops' warm rim (their lower edges), brightest by each lamp
-          x.lineWidth = Math.max(0.5, 0.035 * sc);
-          for (let i = 0; i < ns; i++) { const cx = va + sw * (i + 0.5), u = aw.u0 + (aw.u1 - aw.u0) * (i + 0.5) / ns; x.strokeStyle = rgb([255, 214, 160], A.rim * Math.min(1, fall(u)) * lk); x.beginPath(); x.arc(cx, vy1, sw / 2 - x.lineWidth / 2, 0.15, Math.PI - 0.15); x.stroke(); }
-          // each lamp's light LANDING: a short crisp fan down the shopfront under it (the window's head + frame, the stall riser) + a small
-          // pool on the pavement in front — three of them overlapping, so the front reads evenly lit, no fog
-          for (const b of awningBulbs(aw)) {
-            const [p0, py0] = project(cam, s.x0 + b.u, b.y, s.z0), [, py1] = project(cam, s.x0 + b.u, 0.5, s.z0), r = py1 - py0, wv = 1.15 * cam.F / s.z0;
-            const g = x.createRadialGradient(p0, py0, 0, p0, py0, r); g.addColorStop(0, rgb(W, 0.2 * A.k * lk)); g.addColorStop(0.45, rgb(W, 0.08 * A.k * lk)); g.addColorStop(1, rgb(W, 0));
-            x.save(); x.beginPath(); x.moveTo(p0 - wv * 0.25, py0); x.lineTo(p0 + wv * 0.25, py0); x.lineTo(p0 + wv, py1); x.lineTo(p0 - wv, py1); x.closePath(); x.clip();
-            x.fillStyle = g; x.fillRect(p0 - wv, py0, wv * 2, r); x.restore();
-            const [pc, pyc] = project(cam, s.x0 + b.u, 0, s.z0 - 0.8), rw = 1.5 * cam.F / s.z0, g2 = x.createRadialGradient(pc, pyc, 0, pc, pyc, rw);
-            g2.addColorStop(0, rgb(W, 0.13 * A.k * lk)); g2.addColorStop(0.6, rgb(W, 0.04 * A.k * lk)); g2.addColorStop(1, rgb(W, 0));
-            x.save(); x.translate(pc, pyc); x.scale(1, 0.2); x.translate(-pc, -pyc); x.fillStyle = g2; x.fillRect(pc - rw, pyc - rw, 2 * rw, 2 * rw); x.restore();
-          }
-          x.restore();
-        }
-        // the lamps' fixtures (by day too): a short brass stem under the valance's foot, a small bell shade, the bulb's glass under it
-        for (const b of awningBulbs(aw)) {
-          const [bx, by] = project(cam, s.x0 + b.u, b.y, b.z), [, ty] = project(cam, s.x0 + b.u, aw.y1 - VAL, aw.z), k2 = cam.F / b.z, r = AWNING_LAMP.bulb * k2;
-          x.fillStyle = rgb(M.gilt); x.fillRect(bx - Math.max(0.3, 0.012 * k2), ty, Math.max(0.6, 0.024 * k2), by - ty - r * 0.6);
-          x.fillStyle = rgb(shade(M.gilt, -0.25)); x.beginPath(); x.moveTo(bx - r * 1.7, by - r * 0.1); x.lineTo(bx + r * 1.7, by - r * 0.1); x.lineTo(bx + r * 0.7, by - r * 1.3); x.lineTo(bx - r * 0.7, by - r * 1.3); x.closePath(); x.fill();
-          x.fillStyle = rgb(lk > 0.01 ? mix(M.glassTop, [255, 230, 190], lk) : mix(M.glassTop, [236, 232, 222], 0.5)); x.beginPath(); x.arc(bx, by + r * 0.3, r, 0, Math.PI * 2); x.fill();
-        } }
+      // (PROM — the owner's "B", Oct 28: the awning's three little lamps — their fixtures + their baked light on the canvas, the shopfront
+      // + the pavement — are gone: the awning is lit from UNDERNEATH, live, by a hidden strip on its own hours: speakeasy.js#awningUnder)
       // the side door's two worn granite steps (a dip worn in the middle)
       const d = s.door;
       box(x, cam, { x0: s.x0 + d.u0 - 0.3, x1: s.x0 + d.u1 + 0.3, z0: s.z0 - 0.75, z1: s.z0, h: 0.13 }, shade(M.stone, 0.05), { light: 1, sideK: 0.12 });

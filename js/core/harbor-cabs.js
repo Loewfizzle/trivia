@@ -54,6 +54,53 @@ export function cabEvents(k, ctx = {}) {
   }
   return out;
 }
+// ------------------------------------------------------------------ PROM — THE CAB STAND (the owner, Oct 28: "people walk up + wait there,
+// and a TAXI pulls up on the FRONT STREET … another way to leave")
+// The planned part (every phone the same): a waiter walks up to the cab-stand bench at the front curb (L.cabStand, facing the street) and
+// SITS, waiting a while (`sit` s — their patience). The TAXI that comes for them on the FRONT STREET is the device's own (screens/harbor/
+// cabstand.js): the street under the dock is a stage only while the dock is HIDDEN (9e) — so with the dock up the whole time they GIVE UP:
+// most walk off; some cross to the back road's curb and HAIL one of the night's cabs (a 'pick' — cabPlan with `start`), never stuck.
+export const STAND = Object.freeze({ from: 7.5, to: 25.4, p: 0.42, party: 0.72, sit: [55, 150], hail: 0.38, every: 100 });
+/** the cab stand's waiters of people-block k (seeded): [{ id, t (setting off), sit (s), hail (gives up by hailing on the back road),
+ *  seat (0 | 1: the bench's left / right seat — by the block's parity, so two waiters never share one), seed }] */
+export function standEvents(k, ctx = {}) {
+  const B = FOLK.block, t0 = k * B, r = rngFrom(hashString(`stand|${ctx.seed || 1924}|${k}`)), mid = t0 + B / 2, h = localH(mid, ctx.off);
+  // (&force=cabstand — the panel's CAB STAND row: a waiter every STAND.every s from the flag, at any hour, who waits long (the taxi's
+  // chance while the dock rests); every third one gives up + hails on the back road)
+  if (ctx.forceStandAt != null) {
+    const out = [], F = ctx.forceStandAt + 3;
+    for (let n = Math.max(0, Math.ceil((t0 - F) / STAND.every)); F + n * STAND.every < t0 + B; n++) out.push({ id: `stand.f${n}`, t: F + n * STAND.every, sit: 150, hail: n % 3 === 2, seat: n & 1, party: false, seed: hashString(`standf|${n}`) });
+    return out;
+  }
+  if (h < STAND.from || h >= STAND.to || (ctx.rain || 0) > 0.6) return [];
+  const party = ctx.party ? !!ctx.party(mid) : partyAtT(mid, ctx.off);
+  if (r() > (party ? STAND.party : STAND.p)) return [];
+  const sit = STAND.sit[0] + r() * (STAND.sit[1] - STAND.sit[0]), cabsOn = h >= CAB.from && h < CAB.to;
+  return [{ id: `stand.${k}`, t: t0 + 30 + r() * (B - 60 - sit), sit, hail: cabsOn && r() < STAND.hail, seat: k & 1, party, seed: Math.floor(r() * 2147483647) }];
+}
+/** the cab stand's seat + where a waiter steps up to it (world) */
+export function standSpots(L) {
+  const b = L.cabStand; if (!b) return null;
+  return { seats: [{ x: b.x - 0.8, z: b.z - 0.2 }, { x: b.x + 0.75, z: b.z - 0.2 }], up: { x: b.x - b.w / 2 - 0.85, z: FOLK.zMin + 0.05 }, kerb: { x: b.x, z: (L.edge ? L.edge.z : 35.6) + 0.2 } };
+}
+/** a waiter planned (PURE): → { id, rider (the visit: walk up, sit `sit` s, then walk off), cab: cabPlan | null (a hail: the rider's
+ *  legs continue to the back road's curb + into its cab) } | null */
+export function standPlan(e, L, M) {
+  const S = standSpots(L); if (!S) return null;
+  const r = rngFrom(e.seed), seat = S.seats[e.seat] || S.seats[0];
+  const look = r() < 0.5 ? 'commuter' : r() < 0.5 ? 'lady' : 'walker';
+  const vis = planVisit({ look, gait: 'walk', goals: [{ from: r() < 0.5 ? 'left' : 'right' }, { at: S.up }, { at: seat }, { pose: 'sit', dur: e.sit, face: 0 }] }, e.t, M, { r });
+  if (!vis) return null;
+  const mk = (legs, t1) => ({ id: `${e.id}.r0`, kind: 'cabwait', look, gait: 'walk', legs, t0: vis.t0, t1, tEnd: t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }], party: e.party, stand: { seat, sitT1: vis.t1 } });
+  if (e.hail) {
+    // (gave up: up off the bench, across the promenade to the back road's curb — HAILS there; the night's cab picks them up)
+    const pl = cabPlan({ id: `cab.${e.id}`, t: vis.t1 + 42, kind: 'pick', n: 1, party: e.party, seed: e.seed, start: { x: seat.x, z: seat.z }, t0: vis.t1, look }, L, M);
+    if (pl && pl.riders[0]) { const rd = pl.riders[0]; return { id: e.id, rider: { ...mk([...vis.legs, ...rd.legs], rd.tEnd), cab: pl.id }, cab: { ...pl, riders: [] } }; }
+  }
+  const off = planVisit({ look, gait: 'walk', goals: [{ from: 'bus' }, { exit: 'any' }] }, vis.t1, M, { r, start: { ...seat } });
+  if (!off) return null;
+  return { id: e.id, rider: mk([...vis.legs, ...off.legs], off.t1), cab: null };
+}
 /** the stop for a layout (the workers' trucks' — their P: the near lane, the stop line, the crossing) */
 export const cabStop = L => { const ln = trafficLanes(L).near, cw = L.crosswalk; return { truckZ: ln.z, stopFront: cw.x0 - TRAFFIC.stopBack - 0.15, cw }; };
 
@@ -88,8 +135,9 @@ export function cabPlan(e, L, M) {
     tReady = last + 4.5;   // (the fare paid, the door shut, a look back — then the lamp on + away)
   } else {
     // the guest out of the side door, to the curb by the stop, HAILING as the cab comes up, then in
+    // (PROM: `e.start` — a cab-stand waiter who gave up, walking over from the front bench at e.t0)
     const curb = { x: front + 0.35, z: kerb };
-    const vis = planVisit({ look: 'guest', gait: 'stroll', goals: [{ from: 'side' }, { at: curb }] }, e.t - 30, M, { r });
+    const vis = e.start ? planVisit({ look: e.look || 'walker', gait: 'walk', goals: [{ from: 'bus' }, { at: curb }] }, e.t0, M, { r, start: { ...e.start } }) : planVisit({ look: 'guest', gait: 'stroll', goals: [{ from: 'side' }, { at: curb }] }, e.t - 30, M, { r });
     if (!vis) return null;
     const legs = [...vis.legs], tW = vis.t1;
     // (the cab can't come before the hail — the plan moves it later if the walk ran long)

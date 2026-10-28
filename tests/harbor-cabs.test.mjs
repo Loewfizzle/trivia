@@ -46,3 +46,23 @@ test('8b2 — A CAB at the curb: stops short of the crossing, its fares out to t
   }
   assert.ok(cabs > 0, 'cabs seen on the road');
 });
+
+test('PROM — THE CAB STAND: waiters walk up + sit on the front bench facing the street (never two on one seat), then give up — walk off or cross to HAIL a back-road cab of their own; never stuck', async () => {
+  const { cameraFor, harborLayout } = await import('../js/core/harbor-layout.js');
+  const { folkMap, FOLK } = await import('../js/core/harbor-people.js');
+  const { standEvents, standPlan, standSpots, STAND } = await import('../js/core/harbor-cabs.js');
+  const cam = cameraFor(402, 874, { dock: { x: 14, y: 758, w: 374, h: 76 } }, { top: 62, bottom: 34 }), L = harborLayout(cam), M = folkMap(L), S = standSpots(L);
+  const OFF = -240, day0 = Date.UTC(2026, 9, 22, 4) / 1000;
+  let n = 0, hail = 0, walk = 0;
+  for (let k = Math.floor(day0 / FOLK.block); k < Math.floor((day0 + 86400) / FOLK.block); k++) for (const e of standEvents(k, { off: OFF })) {
+    const pl = standPlan(e, L, M); assert.ok(pl, `${e.id} planned`); n++;
+    const legs = pl.rider.legs, sit = legs.find(l => l.k === 'pose' && l.pose === 'sit'), last = legs[legs.length - 1];
+    assert.ok(sit && Math.abs(sit.x - S.seats[e.seat].x) < 0.05 && Math.abs(sit.z - S.seats[e.seat].z) < 0.05 && sit.face === 0, `${e.id}: sits on its seat facing the street`);
+    assert.ok(sit.t1 - sit.t0 >= STAND.sit[0] - 0.01 && sit.t1 - sit.t0 <= STAND.sit[1] + 0.01, 'waits a while');
+    if (pl.cab) { hail++; assert.ok(legs.some(l => l.k === 'pose' && l.pose === 'wave') && last.k === 'door' && last.dir === 'in' && pl.cab.T.tA >= sit.t1, `${e.id}: hails on the back road + gets in`); }
+    else { walk++; assert.ok(last.k === 'walk' && Math.abs(last.pts[last.pts.length - 1].x) > cam.hw(last.pts[last.pts.length - 1].z), `${e.id}: walks off an edge`); }
+  }
+  assert.ok(n > 20 && hail >= 1 && walk > hail, `a day of waiters (${n}: ${walk} walk off, ${hail} hail)`);
+  const ev = standEvents(Math.floor(day0 / FOLK.block) + 60, { off: OFF, forceStandAt: day0 + 60 * FOLK.block });
+  assert.ok(ev.length >= 4, `&force=cabstand: a waiter every ~${STAND.every} s (${ev.length} in a block)`);
+});
