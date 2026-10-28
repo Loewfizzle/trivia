@@ -181,16 +181,17 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   function stepLanders(sec, o, S, litOf) {
     const b = geo.box, falling = S.falling || 0;
     if (falling > 0.05 && o.motion) {
-      landAcc += sec * falling * LAND.rate * (o.tier === 0 ? 0.6 : 1);
+      // (the speed round: tier 0 — the phone's low-power state — a few landers, no nearer passers)
+      landAcc += sec * falling * LAND.rate * (o.tier === 0 ? 0.4 : 1);
       while (landAcc >= 1) {
         landAcc--;
-        if (landers.length >= LAND.max) continue;
+        if (landers.length >= (o.tier === 0 ? 5 : LAND.max)) continue;
         const sp = landSpot(); if (!sp) continue;
         const drift = (R() - 0.5) * 14, y0 = b.y + 2 + R() * 4;
         if (sp.y - y0 < 6) continue;
         landers.push({ ...sp, goal: sp.x, yGoal: sp.y, x0: sp.x + drift, y0, x: sp.x + drift, y: y0, st: 'fall', u: 0, ph: R() * 6.28, r: LAND.r0 + R() * (LAND.r1 - LAND.r0), age: 0, a: 0, dur: (sp.y - y0) / (LAND.v * (0.85 + R() * 0.3)) });
       }
-      passAcc += sec * falling * LAND.passRate * (o.tier === 0 ? 0.5 : 1);
+      passAcc += o.tier === 0 ? 0 : sec * falling * LAND.passRate;
       while (passAcc >= 1) { passAcc--; if (passers.length < LAND.passMax) passers.push({ x: b.x + R() * b.w, y: b.y - 4, ph: R() * 6.28, r: 2.4 + R() * 1.2, v: LAND.passV * (0.85 + R() * 0.3) }); }
     }
     for (const f of landers) {

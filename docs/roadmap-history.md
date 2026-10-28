@@ -1383,6 +1383,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - The boss's day blind in the building's cream linen; WINDOW SCENES NEVER POP IN (a walk-up or the blind cycle, every moment).
 - The UFO hovers above the Ferris wheel (same size); its two view angles hand off over ±2.5°, its sheets pre-decoded.
 
+## CITY 2.0 — 9e: THE FIXES III + THE CITY LIFE + THE CONSTRUCTION TOWER + THE SAX (Oct 28 2026) — docs/harbor.md#9e
+- SEND REPORT (&debug=1) + THE HANG WATCH (a worker that posts the last snapshot when the main thread stops answering) → /api/log → /admin.
+- The TR-3B freeze investigated on WebKit 18 at last (installed by hand): not reproduced; a crawl under a legendary now steps the effects down.
+- The frost pane bold + over the vignette + already formed on a frozen open; the snowman (any centrepiece) sorted with the walkers; the
+  crisp blade at tier 0; snow lands on the sign (stops on the tops, softens into the cap or beads on a lit tube).
+- THE CITY LIFE: the henchman's flashlight patrol (2–6 am + weeknights), the water wagon + its hoser (~2:45–3:30), Sunday's bells (the
+  recording) + a slower Sunday, livelier weeknights (couples leaving the bar), THE MORNING PAPER window, the joggers' new hours, the street
+  under the dock as a stage + the quick fade, the TR-3B on party nights only.
+- THE CONSTRUCTION TOWER (wordV): the yearly cycle from April 2027 (the implosion + the banner plane, the gap, the frame + the crane, topping
+  out, the dark shell, the grand opening, a new design each cycle), a fixed envelope so the sun never breaks; the crane / hammering /
+  rumble / horn recordings imported.
+- THE SAX REWORK: the shade up, one lit musician with a gold horn, the sway on the beat, the solo at the glass.
+- Cut: the two vehicle models (the taxi + the police car bakes).
+
 ## CITY 2.0 — THE UFO BAKE (Oct 27 2026) — docs/harbor.md#the-ufo-bake
 - The abduction's craft is "UFO" by sebslom (CC BY 4.0) — art/models/ufo/ (source only, never deployed) baked offline by
   scripts/bake-ufo.mjs (three.js in Playwright's Chromium) into assets/city/ufo/: 24-frame turntables over the model's 30° symmetry at the

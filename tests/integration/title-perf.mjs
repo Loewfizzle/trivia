@@ -86,6 +86,8 @@ const SCENES = {
   // (9c: a deep-freeze snowy night — the glowing sign snow + the frozen pane; the floodlit giant; a normal day with the crisp layer; the UFO
   // flight is sp6-ufo)
   's9c-freeze': 'when=2027-01-15T22:00&wx=clear&snow=fresh&temp=-14&force=no-planes', 's9c-giant': 'when=2026-10-27T21:30&wx=clear&force=no-planes', 's9c-day': 'when=2026-10-27T13:00&wx=clear&force=no-planes',
+  // (9e's speed round: a plain night, a party night with the TR-3B, a snowy night (the flakes landing on the sign), a day with the tower's crane)
+  's9e-night': 'when=2026-09-16T21:30&wx=clear&force=no-planes', 's9e-tr3b': 'when=2026-10-16T23:00&wx=clear&force=no-planes,tr3b', 's9e-snow': 'when=2027-01-14T21:30&wx=snow&snow=fresh&temp=-6&force=no-planes', 's9e-crane': 'when=2026-09-16T14:00&wx=clear&build=rising&force=no-planes',
   'nw-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes,no-water', 'nw-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water',
   'nw-neon': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water,neon-party,searchlights,spell&text=2027',
   // CITY 2.0, Part 5: the harbor's worst — the neon's party + searchlights + a word, a real fog (the beam at its widest), the
