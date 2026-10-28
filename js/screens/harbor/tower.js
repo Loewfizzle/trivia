@@ -1,7 +1,7 @@
 // CITY 2.0 — 9e: THE CONSTRUCTION TOWER, its LIVE layer (the stage itself — the empty lot, the rising steel frame, the dark shell — is baked:
 // core/harbor-layout.js#towerStage + blocks.js#worksBlock). Drawn right after the near skyline, CLIPPED above the roofs nearer than the slot
 // (JAZZ, the near band): everything here stands behind them, as the building does.
-//   THE CRANE (rising → the crane's day off in November): a tower crane on the slot's right — its lattice mast climbing with the building,
+//   THE CRANE (rising → the crane's day off mid-September): a tower crane on the slot's right — its lattice mast climbing with the building,
 //     the jib slewing slowly by day (seen end-on it shortens), the hook + a load; at night a dark silhouette + its RED BEACON (a slow
 //     blink — STEADY when it would sit beside the NEON letters: the owner's rule) · THE WORK LIGHTS (night, rising / topping): warm
 //     floods on the frame's top floors · TOPPING OUT: a small evergreen + a flag on the top beam (big enough to read: ~6 pt)
@@ -17,6 +17,10 @@ import { TOWER_ID, implosionAt, IMPLODE } from '../../core/harbor-tower.js';
 import { safeCtx, blit } from '../../ui/canvas-safe.js';
 import { skyBlock } from './blocks.js';
 import { beaconPulse } from './lights.js';
+import { craneModel, drawCrane, craneAsked } from './crane-model.js';
+
+// BNAME: the crane from J-Toastie's 3D model (crane-model.js, baked) once it's loaded; &crane=classic = the hand-drawn one always
+const CLASSIC_CRANE = (() => { try { return new URLSearchParams(location.search).get('crane') === 'classic'; } catch { return false; } })();
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const TAU = Math.PI * 2;
@@ -54,6 +58,15 @@ export function createTowerFx() {
   function crane(c, f) {
     const s = geo.s, night = f.night, top = Math.min(frameTop(), geo.yB - 20 * s) - 13 * s;
     const mx = geo.xR + 1.6 * s, w = Math.max(1.2, 0.9 * s);
+    // BNAME — THE MODEL (the same swing as the hand-drawn one: ±1.1 rad about broadside, ~140 s; the slewing line 2·s BELOW the frame's
+    // top so the jib sits where the drawn one did); the beacons on its own tower head + jib tip
+    const M = CLASSIC_CRANE ? null : craneModel();
+    if (M) {
+      const a = f.motion ? Math.sin(f.t * 0.045 + 1.3) * 1.1 : 0.5;
+      const pos = drawCrane(c, M, { mx, ay: top + 15 * s, J: 24 * s, deg: a * 180 / Math.PI, night: Math.min(1, Math.max(0, night)), foot: geo.yB });
+      beacons(c, f, pos.apex, pos.tip, s);
+      return;
+    }
     const col = night > 0.5 ? 'rgb(30,30,40)' : 'rgb(214,160,44)', dark = night > 0.5 ? 'rgb(20,20,28)' : 'rgb(120,92,40)';
     // the mast (two chords + the lattice), down behind the roofs in front
     c.strokeStyle = col; c.lineWidth = Math.max(0.8, 0.3 * s);
@@ -72,18 +85,20 @@ export function createTowerFx() {
     const hx = mx + jl * 0.62, hy = top + (8 + 3 * Math.sin(f.t * 0.11)) * s, sw = f.motion ? Math.sin(f.t * 0.9) * 0.4 * s : 0;
     c.lineWidth = Math.max(0.4, 0.1 * s); c.beginPath(); c.moveTo(hx, top); c.lineTo(hx + sw, hy); c.stroke();
     c.fillStyle = dark; c.fillRect(hx + sw - 1.8 * s, hy, 3.6 * s, 0.9 * s);
-    // THE BEACON at the mast's top: a slow red blink at night — STEADY + dimmer when it would sit beside the NEON letters
-    if (night > 0.3) {
-      const by = top - 4.6 * s, nearSign = f.logo && mx > f.logo.x - 30 && mx < f.logo.x + f.logo.w + 30 && by > f.logo.y - 30 && by < f.logo.y + f.logo.h * 1.8 + 30;
-      // (9f: the skyline's own slow pulse — every beacon in the city on one clock, lights.js#beaconPulse — never a 1 Hz flasher)
-      const blink = nearSign || !f.motion ? 0.55 : 0.14 + 0.86 * beaconPulse(f.bt == null ? f.t : f.bt);
-      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = night * blink * f.power;
-      const r = Math.max(3, 2.2 * s); c.drawImage(sprite_red(), mx - r, by - r, r * 2, r * 2);
-      // (9f: the jib's tip carries one too)
-      const tx = mx + jl, tipNear = f.logo && tx > f.logo.x - 30 && tx < f.logo.x + f.logo.w + 30 && top > f.logo.y - 30 && top < f.logo.y + f.logo.h * 1.8 + 30;
-      c.globalAlpha = night * (tipNear || !f.motion ? 0.55 : 0.14 + 0.86 * beaconPulse(f.bt == null ? f.t : f.bt)) * f.power; const rt = r * 0.8; c.drawImage(sprite_red(), tx - rt, top - 0.6 * s - rt, rt * 2, rt * 2);
-      c.restore();
-    }
+    beacons(c, f, [mx, top - 4.6 * s], [mx + jl, top - 0.6 * s], s);
+  }
+  // THE BEACONS at the mast's top + the jib's tip: a slow red pulse at night — STEADY + dimmer when one would sit beside the NEON letters
+  // (the owner's rule); (9f: the skyline's own slow pulse — every beacon in the city on one clock, lights.js#beaconPulse — never a 1 Hz flasher)
+  function beacons(c, f, apex, tip, s) {
+    const night = f.night;
+    if (night <= 0.3) return;
+    const near = (x, y) => f.logo && x > f.logo.x - 30 && x < f.logo.x + f.logo.w + 30 && y > f.logo.y - 30 && y < f.logo.y + f.logo.h * 1.8 + 30;
+    const pulse = (x, y) => (near(x, y) || !f.motion ? 0.55 : 0.14 + 0.86 * beaconPulse(f.bt == null ? f.t : f.bt));
+    c.save(); c.globalCompositeOperation = 'lighter';
+    const r = Math.max(3, 2.2 * s), rt = r * 0.8;
+    c.globalAlpha = night * pulse(apex[0], apex[1]) * f.power; c.drawImage(sprite_red(), apex[0] - r, apex[1] - r, r * 2, r * 2);
+    c.globalAlpha = night * pulse(tip[0], tip[1]) * f.power; c.drawImage(sprite_red(), tip[0] - rt, tip[1] - rt, rt * 2, rt * 2);
+    c.restore();
   }
   let redSp = null; const sprite_red = () => redSp || (redSp = sprite('rgba(255,70,60,1)', 'rgba(255,40,30,0.35)'));
 
@@ -270,6 +285,6 @@ export function createTowerFx() {
       c.restore();
       if (st.stage === 'opening') searchlights(c, f, st.k == null ? 1 : st.k);
     },
-    debug: () => (geo ? { x: Math.round(geo.cx), top: Math.round(geo.yT), foot: Math.round(geo.yB), frameTop: t ? Math.round(frameTop()) : null, works: t ? t.works || null : null, stage: t ? t.stage || null : null, old: ghost ? { w: ghost.w, h: ghost.h, form: t.orig && t.orig.form } : null, bulbs: !!bulbs } : null),
+    debug: () => (geo ? { crane: CLASSIC_CRANE ? 'classic' : !craneAsked() ? 'not asked' : craneModel() ? 'model' : 'loading', x: Math.round(geo.cx), top: Math.round(geo.yT), foot: Math.round(geo.yB), frameTop: t ? Math.round(frameTop()) : null, works: t ? t.works || null : null, stage: t ? t.stage || null : null, old: ghost ? { w: ghost.w, h: ghost.h, form: t.orig && t.orig.form } : null, bulbs: !!bulbs } : null),
   };
 }

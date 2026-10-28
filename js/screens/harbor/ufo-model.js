@@ -1,4 +1,4 @@
-// CITY 2.0 — THE ABDUCTION's CRAFT FROM A REAL MODEL: "UFO" by sebslom (CC BY 4.0; ☰ → CREDITS), baked OFFLINE by scripts/bake-ufo.mjs
+// CITY 2.0 — THE ABDUCTION's CRAFT FROM A REAL MODEL: "UFO" by sebslom (CC BY 4.0; ☰ → CREDITS), baked OFFLINE by scripts/bake-model.mjs ufo (scripts/bake/ufo.mjs)
 // into sprites in assets/city/ufo/ (docs/harbor.md#the-ufo-bake). No three.js here: two turntable atlases (24 yaw frames over the
 // model's 30° symmetry — 12 ports, 12 seams) at the camera's two real view angles on the craft (hi: hovering, ~6° below its rim's
 // plane; lo: the approach + the exit, ~19°), each as a lit BODY + its LIGHTS (the model's own green ports, drawn 'lighter') + every

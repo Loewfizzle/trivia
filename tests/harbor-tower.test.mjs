@@ -15,11 +15,21 @@ test('9e THE TOWER: today stands until the first spring implosion; then the year
   const mid = at(2027, 4, imp.d, 10 + 5 / 3600); assert.equal(mid.stage, 'implosion'); assert.ok(Math.abs(mid.s - 5) < 0.01);
   assert.equal(at(2027, 4, imp.d + 3).stage, 'rubble');
   assert.equal(at(2027, 5, 10).stage, 'cleanup');
-  const r1 = at(2027, 7, 1), r2 = at(2027, 9, 1); assert.equal(r1.stage, 'rising'); assert.ok(r2.k > r1.k && r1.crane, 'it rises, the crane up');
-  assert.equal(at(2027, 10, 18).stage, 'topping');
-  assert.equal(at(2027, 11, 1).stage, 'finishing');
+  // BNAME (the owner, Oct 28): the rise June 1 → Sept 1 (~3 months), topping Sept 1–8, the crane down mid-September, the opening the
+  // FIRST Saturday of October at 7 pm
+  assert.equal(at(2027, 5, 31).stage, 'cleanup');
+  const r1 = at(2027, 6, 2), r2 = at(2027, 8, 30); assert.equal(r1.stage, 'rising'); assert.ok(r2.k > 0.95 && r2.k > r1.k && r1.crane, 'it rises, the crane up');
+  assert.ok(Math.abs(at(2027, 7, 16).k - 0.5) < 0.03, 'half way by mid-July');
+  assert.equal(at(2027, 9, 3).stage, 'topping');
+  assert.ok(at(2027, 9, 3).crane);
+  assert.equal(at(2027, 9, 10).stage, 'finishing');
+  assert.ok(at(2027, 9, 10).crane && !at(2027, 9, 20).crane, 'the crane comes down mid-September');
   const op = openingDay(2027); assert.equal(new Date(Date.UTC(op.y, op.m - 1, op.d)).getUTCDay(), 6);
-  assert.equal(at(2027, 11, op.d, 20).stage, 'opening');
+  assert.ok(op.m === 10 && op.d <= 7, 'the first Saturday of October');
+  assert.equal(at(2027, 10, op.d, 18.9).stage, 'finishing');
+  assert.equal(at(2027, 10, op.d, 20).stage, 'opening');
+  assert.equal(at(2027, 10, op.d + 1).stage, 'finished');
+  for (const y of [2027, 2028, 2029, 2030, 2031, 2032, 2033]) { const o = openingDay(y); assert.ok(o.m === 10 && o.d >= 1 && o.d <= 7 && new Date(Date.UTC(y, 9, o.d)).getUTCDay() === 6, `${y}`); }
   assert.equal(at(2027, 12, 20).stage, 'finished');
   assert.equal(at(2028, 2, 1).stage, 'finished');
   assert.notEqual(at(2027, 12, 20).design, at(2026, 12, 20).design, 'a new design each cycle');

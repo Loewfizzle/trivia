@@ -3753,9 +3753,19 @@ G('tower', async () => {
   for (const st of ['standing', 'rubble', 'rising', 'finished']) {
     const Q = await open({ slot: `tw-${st}`, qs: `when=2026-09-16T10:00${GR}&wx=clear&build=${st}`, view: [402, 874] });
     await harborUp(Q.page);
+    if (st === 'rising') await waitFor(Q.page, `${P}.tower.fx.crane === 'model'`, 'the crane model', 10000).catch(() => {});
     A[st] = await ev(Q.page, `({ arch: ${P}.arch, tower: ${P}.tower })`);
+    A[st].craneFetched = A[st].tower.fx.crane !== 'not asked';
     await Q.ctx.close();
   }
+  // (BNAME — THE CRANE FROM J-TOASTIE's MODEL: baked sprites, fetched only while the crane is up; &crane=classic = the hand-drawn one)
+  ok(A.rising.tower.fx.crane === 'model' && A.rising.craneFetched && !A.standing.craneFetched && !A.finished.craneFetched,
+    `BNAME THE CRANE: the model while the frame rises (${A.rising.tower.fx.crane}), its sprites fetched only then (rising ${A.rising.craneFetched} · standing ${A.standing.craneFetched} · finished ${A.finished.craneFetched})`);
+  { const Q = await open({ slot: 'tw-classic', qs: `when=2026-09-16T10:00${GR}&wx=clear&build=rising&crane=classic`, view: [402, 874] });
+    await harborUp(Q.page);
+    const t = await ev(Q.page, `${P}.tower`);
+    ok(t.fx.crane === 'classic', `BNAME &crane=classic: the hand-drawn crane (${t.fx.crane})`);
+    await Q.ctx.close(); }
   // (9f: within 0.01 pt — the arch's apex is measured from the NEON logo's DOM rect, which can differ by ~1e-5 px between page loads)
   const near = (a, b) => !!a && !!b && ['peak', 'low', 'top'].every(k => Math.abs((a[k] ?? 0) - (b[k] ?? 0)) < 0.01);
   const same = ['rubble', 'rising', 'finished'].every(st => near(A[st].arch, A.standing.arch));

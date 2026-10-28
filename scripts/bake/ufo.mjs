@@ -2,9 +2,11 @@
 // (js/screens/harbor/ufo-model.js). The city is Canvas 2D: three.js lives only in this script's page (from the jsDelivr CDN, pinned),
 // never on the site. docs/harbor.md#the-ufo-bake (how to re-bake, how to swap the model).
 //
-//   node scripts/bake-ufo.mjs "<chromium>"            → assets/city/ufo/{body-hi,lights-hi,body-lo,lights-lo}.webp + ufo.json
-//   node scripts/bake-ufo.mjs "<chromium>" --look DIR → the bake into DIR instead (assets untouched) + a studio / night render at both
-//                                                       angles + the base map's alpha (which parts of the model are glass)
+//   node scripts/bake-model.mjs "<chromium>" ufo            → assets/city/ufo/{body-hi,lights-hi,body-lo,lights-lo}.webp + ufo.json
+//   node scripts/bake-model.mjs "<chromium>" ufo --look DIR → the bake into DIR instead (assets untouched) + a studio / night render at
+//                                                          both angles + the base map's alpha (which parts of the model are glass)
+// (BNAME: THE RECIPE of the generalised bake tool, scripts/bake-model.mjs — this page + these steps moved over VERBATIM from
+// scripts/bake-ufo.mjs; the re-bake is byte-for-byte the same)
 //
 // <chromium>: the Playwright Chromium already on the machine (…/ms-playwright/chromium-*/chrome-win64/chrome.exe) — any Chrome with WebGL.
 //
@@ -15,23 +17,11 @@
 //           promenade's warm fill from below; reflections of a night sky in the metal) — true to the model's own materials
 //   LIGHTS  the emissive map alone (the model's own GREEN ports), occluded by the hull, on black: drawn with 'lighter'; the code dims,
 //           pulses + chases them (ufo.json lists every port's position + world angle per frame)
-import http from 'node:http';
 import fs from 'node:fs';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
-import { createRequire } from 'node:module';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const require = createRequire(path.join(ROOT, 'tests/integration/package.json'));
-const puppeteer = require('puppeteer-core');
-
-const argv = process.argv.slice(2);
-const BROWSER = argv[0];
-const LOOK = argv.includes('--look') ? argv[argv.indexOf('--look') + 1] : null;
-if (!BROWSER || !fs.existsSync(BROWSER)) { console.error('usage: node scripts/bake-ufo.mjs "<chromium.exe>" [--look DIR]'); process.exit(1); }
-const MODEL = path.join(ROOT, 'art/models/ufo/ufo-01-sebslom.glb');
-const OUT = path.join(ROOT, 'assets/city/ufo');
-const THREE = 'https://cdn.jsdelivr.net/npm/three@0.170.0';
+export const MODEL = 'art/models/ufo/ufo-01-sebslom.glb';
+export const OUT = 'assets/city/ufo';
 
 // ---- THE NUMBERS (the craft's largest on-screen width: legends.js sizes() — min(W·0.37, 168) pt, 159 pt on a 430-pt phone; ×3 = DPR 3)
 export const BAKE = {
@@ -41,7 +31,7 @@ export const BAKE = {
   fov: 13.5,                 // the camera's vertical FOV at the craft (F ≈ 600 pt, the hull ~150 pt: a mild perspective)
 };
 
-const page0 = String.raw`<!doctype html><meta charset=utf-8><body style="margin:0;background:#000">
+export const page = ({ THREE }) => String.raw`<!doctype html><meta charset=utf-8><body style="margin:0;background:#000">
 <script type="importmap">{"imports":{"three":"${THREE}/build/three.module.js","three/addons/":"${THREE}/examples/jsm/"}}</script>
 <script type="module">
 import * as THREE from 'three';
@@ -218,52 +208,32 @@ window.ready = (async () => {
 })();
 </script>`;
 
-const server = http.createServer((req, res) => {
-  if (req.url === '/model.glb') { res.writeHead(200, { 'content-type': 'model/gltf-binary' }); fs.createReadStream(MODEL).pipe(res); return; }
-  if (req.url === '/' || req.url === '/bake.html') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(page0); return; }
-  res.writeHead(404); res.end();
-});
-await new Promise(r => server.listen(0, '127.0.0.1', r));
-const port = server.address().port;
-const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--ignore-gpu-blocklist'] });
-const page = await browser.newPage();
-page.on('console', m => console.log('[page]', m.text()));
-page.on('pageerror', e => console.log('[page error]', e.message));
-await page.goto(`http://127.0.0.1:${port}/bake.html`);
-const info = await page.evaluate(() => window.ready);
-console.log('model:', JSON.stringify(info));
-
-const dataUrlToBuf = u => Buffer.from(u.split(',')[1], 'base64');
-
-// the model's symmetry: 12 ports + 12 radial seams round the rim → one period = 30°; the 24 frames cover it (1.25° a step: a smooth
-// spin), the code wraps the last to the first (only the worn texture's specks shift at the wrap — invisible at phone size)
-const PERIOD = 360 / 12;
-const out = LOOK || OUT;
-fs.mkdirSync(out, { recursive: true });
-const meta = { model: 'art/models/ufo/ufo-01-sebslom.glb', credit: fs.readFileSync(path.join(ROOT, 'art/models/ufo/credits.txt'), 'utf8').trim().split(/\r?\n/), three: THREE, rows: {} };
-let bytes = 0;
-if (LOOK) {
-  for (const studio of [true, false]) for (const elev of [6, 19]) {
-    await page.evaluate(s => window.studio(s), studio);
-    const url = await page.evaluate(o => window.shootURL(o), { elev, yaw: 0, px: 480, layer: 'body' });
-    fs.writeFileSync(path.join(out, `look-${studio ? 'studio' : 'night'}-e${elev}.png`), dataUrlToBuf(url));
+export async function run({ page, out, look, ROOT, THREE, dataUrlToBuf }) {
+  // the model's symmetry: 12 ports + 12 radial seams round the rim → one period = 30°; the 24 frames cover it (1.25° a step: a smooth
+  // spin), the code wraps the last to the first (only the worn texture's specks shift at the wrap — invisible at phone size)
+  const PERIOD = 360 / 12;
+  const meta = { model: 'art/models/ufo/ufo-01-sebslom.glb', credit: fs.readFileSync(path.join(ROOT, 'art/models/ufo/credits.txt'), 'utf8').trim().split(/\r?\n/), three: THREE, rows: {} };
+  let bytes = 0;
+  if (look) {
+    for (const studio of [true, false]) for (const elev of [6, 19]) {
+      await page.evaluate(s => window.studio(s), studio);
+      const url = await page.evaluate(o => window.shootURL(o), { elev, yaw: 0, px: 480, layer: 'body' });
+      fs.writeFileSync(path.join(out, `look-${studio ? 'studio' : 'night'}-e${elev}.png`), dataUrlToBuf(url));
+    }
+    await page.evaluate(() => window.studio(false));
+    fs.writeFileSync(path.join(out, 'look-basemap-alpha.png'), dataUrlToBuf(await page.evaluate(() => window.alphaMap())));
   }
-  await page.evaluate(() => window.studio(false));
-  fs.writeFileSync(path.join(out, 'look-basemap-alpha.png'), dataUrlToBuf(await page.evaluate(() => window.alphaMap())));
-}
-for (const [id, row] of Object.entries({ hi: BAKE.hi, lo: BAKE.lo })) {
-  const r = await page.evaluate(o => window.bakeRow(o), { elev: row.elev, px: row.px, n: BAKE.frames, period: PERIOD, cols: 4 });
-  for (const [layer, url] of [['body', r.body], ['lights', r.lights]]) {
-    const f = path.join(out, `${layer}-${id}.webp`), buf = dataUrlToBuf(url);
-    fs.writeFileSync(f, buf); bytes += buf.length;
-    console.log(`${layer}-${id}.webp`, (buf.length / 1024).toFixed(1), 'KB', `${r.meta.fw}×${r.meta.fh} a frame`);
+  for (const [id, row] of Object.entries({ hi: BAKE.hi, lo: BAKE.lo })) {
+    const r = await page.evaluate(o => window.bakeRow(o), { elev: row.elev, px: row.px, n: BAKE.frames, period: PERIOD, cols: 4 });
+    for (const [layer, url] of [['body', r.body], ['lights', r.lights]]) {
+      const f = path.join(out, `${layer}-${id}.webp`), buf = dataUrlToBuf(url);
+      fs.writeFileSync(f, buf); bytes += buf.length;
+      console.log(`${layer}-${id}.webp`, (buf.length / 1024).toFixed(1), 'KB', `${r.meta.fw}×${r.meta.fh} a frame`);
+    }
+    meta.rows[id] = r.meta;
+    console.log(`row ${id}: ports per frame`, r.meta.ports.map(p => p.length).join(' '));
   }
-  meta.rows[id] = r.meta;
-  console.log(`row ${id}: ports per frame`, r.meta.ports.map(p => p.length).join(' '));
+  const js = JSON.stringify(meta);
+  fs.writeFileSync(path.join(out, 'ufo.json'), js); bytes += js.length;
+  console.log('total', (bytes / 1024).toFixed(1), 'KB →', out);
 }
-const js = JSON.stringify(meta);
-fs.writeFileSync(path.join(out, 'ufo.json'), js); bytes += js.length;
-console.log('total', (bytes / 1024).toFixed(1), 'KB →', out);
-
-await browser.close();
-server.close();

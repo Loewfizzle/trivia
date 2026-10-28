@@ -5,11 +5,12 @@
 //            three days before: "DEMOLITION SUNDAY 10 AM"): the siren, the horn blasts, flashes down the floors, the drop, the dust cloud
 //            rolling over the harbor; anyone who missed it sees the empty lot + the settling dust later
 //   →        the lot cleared (the rubble + the excavator sit behind JAZZ: the skyline shows the GAP) until June 1
-//   SUMMER → FALL  the new tower RISES a few floors a week (a steel frame, the cladding following) with THE CRANE (its jib swinging by day,
-//            the red beacon at night) + work lights at night
-//   TOPPING OUT  (Oct 15–22) a small evergreen + a flag on the top beam
-//   FINISHING    clad, dark (no neon, no lit windows) until THE GRAND-OPENING NIGHT (the second Saturday of November, 7 pm): its neon
-//            lights for the first time, searchlights sweep the sky
+//   SUMMER   the new tower RISES a few floors a week, June 1 → September 1 (BNAME, the owner Oct 28: ~3 months, was 4.5) — a steel
+//            frame, the cladding following — with THE CRANE (its jib swinging by day, the red beacon at night) + work lights at night
+//   TOPPING OUT  (Sept 1–8) a small evergreen + a flag on the top beam
+//   FINISHING    clad, dark (no neon, no lit windows — NO NEON on the construction, the owner Oct 28: the work-bulb lines only), the crane
+//            down mid-September, until THE GRAND-OPENING NIGHT (the FIRST Saturday of OCTOBER, 7 pm — clear of November's Thanksgiving
+//            build-up + the holidays): its neon lights for the first time, searchlights sweep the sky
 //   WINTER   it stands finished — until next April. Each cycle a different DESIGN (form, stone, crown), so the skyline evolves.
 // THE SUN MUST NOT BREAK: the layout keeps a FIXED skyline envelope with this slot always at full height (harbor-layout.js#envelope) —
 // the sun's arch fit, its catch time + the god rays read it; only the drawing changes.
@@ -31,7 +32,7 @@ export const designFor = year => DESIGNS[((((year - 2026) % DESIGNS.length) + DE
 /** the implosion's timeline (s from the moment, T): the siren, the horns, the charges' flashes down the floors, the drop, the dust */
 export const IMPLODE = Object.freeze({ h: 10, siren: -60, horns: [-20, -12, -5], flash0: 0, flash1: 2.6, drop0: 2.8, drop1: 9.5, dust1: 240, window: [-120, 300] });
 /** the stages' calendar (local dates of year Y) */
-export const CYCLE = Object.freeze({ announceDays: 3, rubbleDays: 10, rise: [6, 1], top: [10, 15], finish: [10, 22], craneOff: [11, 5], openH: 19 });
+export const CYCLE = Object.freeze({ announceDays: 3, rubbleDays: 10, rise: [6, 1], top: [9, 1], finish: [9, 8], craneOff: [9, 15], openH: 19 });
 export const STAGES = Object.freeze(['standing', 'implosion', 'rubble', 'cleanup', 'rising', 'topping', 'finishing', 'opening', 'finished']);
 
 const DAY = 86400;
@@ -40,8 +41,8 @@ const dnum = (y, m, d) => Math.floor(Date.UTC(y, m - 1, d) / 864e5);
 function nthSunday(y, m, n) { const dow = new Date(Date.UTC(y, m - 1, 1)).getUTCDay(); return 1 + ((7 - dow) % 7) + 7 * (n - 1); }
 /** the implosion's local date of year Y: the third Sunday of April */
 export const implosionDay = y => ({ y, m: 4, d: nthSunday(y, 4, 3) });
-/** the grand-opening's local date of year Y: the second Saturday of November */
-export function openingDay(y) { const dow = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return { y, m: 11, d: 1 + ((6 - dow + 7) % 7) + 7 }; }
+/** the grand-opening's local date of year Y: the FIRST Saturday of October (BNAME; was the second Saturday of November) */
+export function openingDay(y) { const dow = new Date(Date.UTC(y, 9, 1)).getUTCDay(); return { y, m: 10, d: 1 + ((6 - dow + 7) % 7) }; }
 
 /**
  * THE STAGE at a local moment (PURE). lc: { y, m, d, h (hours, fractional) } →
