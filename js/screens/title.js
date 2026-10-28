@@ -1361,14 +1361,19 @@ export function createTitle() {
       h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id }); } }, 'SEE THE FULL BOARD ›'));
     const MEDALS = ['gold', 'silver', 'bronze'];
     import('../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })).then(d => {
-      list.replaceChildren(...(d.rows.length ? d.rows.map(r => h('li', h('span.nd-pv-medal', { class: `is-${MEDALS[Math.min(2, r.rank - 1)]}` }, String(r.rank)), h('span.nd-pv-n', r.n, rankBadge(r, { tag: true, size: 13 })), h('b', fmtValue(def, r.v))))
+      // BNAME: the rows carry house nicknames; your own row (by your board id) shows your real name on your device
+      const you = loadMe();
+      const own = r => !!(you && you.profile && you.profile.bid && r.id === you.profile.bid);
+      list.replaceChildren(...(d.rows.length ? d.rows.map(r => (own(r) ? { ...r, n: you.profile.n, t: you.profile.t } : r)).map(r => h('li', h('span.nd-pv-medal', { class: `is-${MEDALS[Math.min(2, r.rank - 1)]}` }, String(r.rank)), h('span.nd-pv-n', r.n, rankBadge(r, { tag: true, size: 13 })), h('b', fmtValue(def, r.v))))
         : [h('li.nd-pv-wait', 'No one yet — be the first.')]));
     }).catch(() => { wrap.remove(); });
     const me = loadMe();
     if (me && me.pid) {
       import('../profile/me.js').then(m => m.myRanks([def.id])).then(r => {
-        const x = r[def.id] && r[def.id].all;
-        mine.replaceChildren(h('span', 'YOU'), h('b', x ? `#${x.rank.toLocaleString('en-US')}` : '—'), h('span', x ? fmtValue(def, x.v) : 'NOT RANKED YET'));
+        const p = (loadMe() || {}).profile || {};
+        const under = typeof p.m === 'number' && p.m < (p.mm || 3) && !p.h;   // BNAME: the 3-match floor
+        const x = !under && r[def.id] && r[def.id].all;
+        mine.replaceChildren(h('span', 'YOU'), h('b', x ? `#${x.rank.toLocaleString('en-US')}` : '—'), h('span', x ? fmtValue(def, x.v) : under ? `${(p.mm || 3) - p.m} MORE TO GET LISTED` : 'NOT RANKED YET'));
       }).catch(() => {});
     }
     return wrap;

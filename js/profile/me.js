@@ -111,14 +111,21 @@ export async function fetchMe() {
 }
 
 export async function myRanks(boards) {
-  return (await api('profile', { action: 'ranks', boards })).ranks || {};
+  const r = await api('profile', { action: 'ranks', boards });
+  // BNAME: keep the cached profile's match count current (THE BOARD's pinned row: "N MORE MATCHES TO JOIN THE BOARD")
+  const m = loadMe();
+  if (m && m.profile && typeof r.m === 'number' && (m.profile.m !== r.m || m.profile.mm !== r.mm)) {
+    m.profile = { ...m.profile, m: r.m, mm: r.mm };
+    saveMe(m);
+  }
+  return r.ranks || {};
 }
 
 /** A match outcome from the server: the cached profile takes the new XP and rank at once (emblems everywhere). */
 export function applyOutcome(o) {
   const m = loadMe();
   if (!o || !o.xp || !m || !m.profile || m.uid !== state.uid) return;
-  m.profile = { ...m.profile, x: o.xp.to, r: o.rk ? o.rk.to : m.profile.r };
+  m.profile = { ...m.profile, x: o.xp.to, r: o.rk ? o.rk.to : m.profile.r, ...(typeof o.played === 'number' ? { m: o.played } : {}) };
   saveMe(m);
   setState({ me: { pid: m.pid, profile: m.profile } });
 }

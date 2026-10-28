@@ -3,9 +3,13 @@
 //   lb/{board}/{period}/{pid} = sort value (higher is better; boards.js#toSort). period = 'all' | 'w20261012'.
 //   Entries reference the profile, never a copy of the name: rows are joined with profiles/{pid} when read, so a
 //   rename shows on every board (every week, every record) at once.
-import { ref, val } from './fb.js';
+//   BNAME (Oct 28): a PUBLIC row never carries the typed name or the profile id — only an opaque board id (boardId: an HMAC
+//   of the pid with the server's pepper) and the house nickname it picks (js/core/nicknames.js); a profile is listed only
+//   after BOARD_MIN_MATCHES counted matches (profiles/{pid}/m, the server's own count).
+import { createHmac } from 'node:crypto';
+import { ref, val, fb } from './fb.js';
 import { BOARD_GAMES, boardDef, careerBoards, toSort, winRate, MIN_WR_GAMES, fromSort, GAME_BOARDS } from '../../js/core/boards.js';
-import { boardName } from '../../js/core/names.js';
+import { houseNick, BOARD_MIN_MATCHES } from '../../js/core/nicknames.js';
 import { weekKey } from '../../js/core/week.js';
 
 export const TOP_N = 100;
@@ -57,6 +61,24 @@ const CACHE_MS = 15_000;
 
 export function clearBoardCache() { cache.clear(); pubCache.clear(); }
 
+/** A profile's board id: 16 hex, stable, not reversible without the server's pepper (so a row can't be looked up). */
+const bids = new Map();
+export function boardId(pid) {
+  let id = bids.get(pid);
+  if (!id) {
+    id = createHmac('sha256', fb().pepper).update(`board:${pid}`).digest('hex').slice(0, 16);
+    bids.set(pid, id);
+    if (bids.size > 5000) bids.delete(bids.keys().next().value);
+  }
+  return id;
+}
+
+/** The matches a profile must have before a public board lists it (env BOARD_MIN_MATCHES for tests). */
+export const minMatches = () => Number(process.env.BOARD_MIN_MATCHES ?? BOARD_MIN_MATCHES);
+
+/** Total counted matches, all games together, from the stats (pstats/{pid}/g/{game}/p). */
+export const matchCount = stats => Object.values((stats && stats.g) || {}).reduce((n, g) => n + ((g && g.p) || 0), 0);
+
 const pubCache = new Map();
 async function profilesOf(pids) {
   const out = {};
@@ -64,13 +86,20 @@ async function profilesOf(pids) {
     const hit = pubCache.get(pid);
     if (hit && Date.now() - hit.at < CACHE_MS) { out[pid] = hit.p; return; }
     const p = await val(`profiles/${pid}`);
+    // profiles from before BNAME have no count yet: take it from their stats once
+    if (p && typeof p.m !== 'number') p.m = matchCount({ g: await val(`pstats/${pid}/g`) });
     pubCache.set(pid, { at: Date.now(), p });
     out[pid] = p;
   }));
   return out;
 }
 
-export const publicRow = (pid, p) => ({ pid, n: boardName(p.n), t: p.t, a: p.a, c: p.c, r: p.r || 0 });
+/** A row as the public sees it: the board id, the house nickname + its number, the emblem, colour and rank. No pid, no typed name. */
+export function publicRow(pid, p) {
+  const id = boardId(pid);
+  const nick = houseNick(id);
+  return { id, n: nick.n, t: nick.t, a: p.a, c: p.c, r: p.r || 0 };
+}
 
 export async function topRows(board, period, now = Date.now()) {
   const def = boardDef(board);
@@ -89,10 +118,11 @@ export async function topRows(board, period, now = Date.now()) {
   let rank = 0, prev = null, i = 0;
   for (const r of raw) {
     const p = profs[r.pid];
-    if (!p || p.h) continue;
+    if (!p || p.h || (p.m || 0) < minMatches()) continue;
     i++;
     if (r.s !== prev) { rank = i; prev = r.s; }
-    rows.push({ ...publicRow(r.pid, p), rank, v: fromSort(def, r.s) });
+    // pid stays on the cached row for the server (REPORT finds a row by its id); api/board.js sends only the public fields
+    rows.push({ ...publicRow(r.pid, p), pid: r.pid, rank, v: fromSort(def, r.s) });
     if (rows.length >= TOP_N) break;
   }
   const data = { b: board, p: pk, rows, at: Date.now() };
@@ -105,7 +135,7 @@ export async function topRows(board, period, now = Date.now()) {
 export async function syncBoards(pid, { now = Date.now(), only = null } = {}) {
   const [stats, prof] = await Promise.all([val(`pstats/${pid}`), val(`profiles/${pid}`)]);
   if (!prof) return {};
-  const paths = boardPaths(pid, stats || {}, { hidden: !!prof.h, now, only });
+  const paths = boardPaths(pid, stats || {}, { hidden: !!prof.h || matchCount(stats) < minMatches(), now, only });
   if (Object.keys(paths).length) await ref('/').update(paths);
   clearBoardCache();
   return paths;

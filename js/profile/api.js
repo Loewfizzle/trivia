@@ -38,7 +38,7 @@ export async function api(name, body) {
 const cache = new Map();
 const BOARD_CACHE_MS = 12_000;
 
-/** A board's rows (top 100, or a page): { b, p, key, rows: [{ rank, pid, n, t, a, c, r, v }], more, ends }. */
+/** A board's rows (top 100, or a page): { b, p, key, rows: [{ rank, id, n, t, a, c, r, v }], more, ends } (n + t: the house nickname). */
 export async function board(b, p = 'week', { start = 0, n = 100, fresh = false } = {}) {
   const key = `${b}|${p}|${start}|${n}`;
   const hit = cache.get(key);
@@ -52,6 +52,11 @@ export async function board(b, p = 'week', { start = 0, n = 100, fresh = false }
 }
 
 export const clearBoardCache = () => cache.clear();
+
+/** BNAME: REPORT a board row (no sign-in; the server limits it per device + IP). why: 'score' | 'name'. */
+export function reportRow(b, id, why, dev = '') {
+  return fetchJson('/api/board', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ action: 'report', b, id, why, dev }), timeout: 7000 });
+}
 
 /** Games by activity: { week, all, order } (most played this week first). Null when /api is unreachable. */
 let activeP = null;

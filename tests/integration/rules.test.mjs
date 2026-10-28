@@ -747,13 +747,16 @@ test('profiles + boards: public profiles, private stats and keys, nothing a clie
   });
   // public: names, tags, emblems (the lobby and chat show them)
   await assertSucceeds(get(ref(db('p2'), 'profiles/pmike0000000')));
-  await assertSucceeds(get(ref(db(null), 'profiles/pmike0000000')), 'even without signing in');
+  // BNAME: one profile at a time, signed in; never the whole list (a dump of every typed name), never signed out
+  await assertFails(get(ref(db(null), 'profiles/pmike0000000')), 'not without signing in');
+  await assertFails(get(ref(db('p2'), 'profiles')), 'never the whole list');
+  await assertFails(get(ref(db(null), 'profiles')), 'never the whole list, signed out');
   // private: the device link and the stats are the owner's; keys, tags, private fields, results and the audit log nobody's
   await assertSucceeds(get(ref(db('host'), 'uids/host')));
   await assertFails(get(ref(db('p2'), 'uids/host')));
   await assertSucceeds(get(ref(db('host'), 'pstats/pmike0000000')), 'the owner reads their stats');
   await assertFails(get(ref(db('p2'), 'pstats/pmike0000000')), 'nobody else does');
-  for (const path of ['ppriv/pmike0000000', 'pkeys', 'pkeys/abc', 'tags/mike', 'lb', 'lb/cipher-wins/all', 'results/ABCD_m1', 'audit', 'rl']) {
+  for (const path of ['flags', 'ppriv/pmike0000000', 'pkeys', 'pkeys/abc', 'tags/mike', 'lb', 'lb/cipher-wins/all', 'results/ABCD_m1', 'audit', 'rl']) {
     await assertFails(get(ref(db('host'), path)), `read ${path}`);
   }
   // server-write only: no client writes a profile, stats, XP, rank, board entry or link

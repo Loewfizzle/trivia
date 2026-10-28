@@ -9,7 +9,7 @@
 import { createHmac, randomBytes, createHash } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
 import { ApiError } from './http.js';
-import { syncBoards, clearBoardCache } from './lb.js';
+import { syncBoards, clearBoardCache, boardId, matchCount, minMatches } from './lb.js';
 import { keyFromBytes, formatKey, normalizeKey } from '../../js/core/pkey.js';
 import { nameKey, isOffensive } from '../../js/core/names.js';
 import { sanitizeName } from '../../js/core/room-logic.js';
@@ -39,7 +39,10 @@ export async function pidOf(uid) {
 
 export async function publicProfile(pid) {
   const p = await val(`profiles/${pid}`);
-  return p ? { pid, n: p.n, t: p.t, a: p.a, c: p.c, x: p.x || 0, r: p.r || 0, h: !!p.h, at: p.at || 0, s: p.s || 0, f: p.f || null, g: p.g || null } : null;
+  if (!p) return null;
+  // BNAME: bid = this profile's board id (the client finds its own row by it); m = counted matches (the 3-match floor)
+  const m = typeof p.m === 'number' ? p.m : matchCount({ g: await val(`pstats/${pid}/g`) });
+  return { pid, n: p.n, t: p.t, a: p.a, c: p.c, x: p.x || 0, r: p.r || 0, h: !!p.h, at: p.at || 0, s: p.s || 0, f: p.f || null, g: p.g || null, bid: boardId(pid), m, mm: minMatches() };
 }
 
 /** Claims a 4-digit tag for a name: `prefer` if it's free under that name, else a random free one. */

@@ -16,6 +16,9 @@
 //   clearErrors { sig? }           → removes one error (sig) or all of them
 //   reports                        → { reports: [...] } 9e: SEND REPORT / hang-watch snapshots from phones (api/log.js), newest first
 //   clearReports { id? }           → removes one report (id) or all of them
+//   flags                          → { flags: [...] } BNAME: THE BOARD's REPORT button (api/board.js#flagRow), newest first, with the
+//                                    player's real name + their house nickname (the admin can open the player + HIDE them)
+//   clearFlag { id? }              → dismisses one board report (the row's board id) or all of them
 //   cityLive { state, mins?, delay? } → CITY 2.0's PREVIEW PANEL, EVERYONE ON CITY 2: writes city2/live (every phone on ?city=2 plays
 //                                    it from startAt until `until`; js/core/harbor-remote.js validates the state; C2: `delay` 0–10 s
 //                                    pushes startAt — every phone counts down + starts on the same beat) → { live }
@@ -26,6 +29,7 @@ import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_
 import { syncBoards, clearEntry, boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
 import { nameKey } from '../js/core/names.js';
+import { houseNick, isBoardId } from '../js/core/nicknames.js';
 import { weekKey } from '../js/core/week.js';
 import { summarize } from '../js/core/insights.js';
 import { activity } from './_lib/activity.js';
@@ -139,6 +143,18 @@ async function reportList() {
   return list.slice(0, 40);
 }
 
+// BNAME — THE BOARD's REPORTS (api/board.js#flagRow): newest first, joined with the real profile (only the admin sees it)
+async function flagList() {
+  const all = (await val('flags')) || {};
+  const list = Object.entries(all).map(([id, f]) => ({ id, ...f })).sort((a, b) => (b.last || 0) - (a.last || 0)).slice(0, 100);
+  await Promise.all(list.map(async f => {
+    const p = f.pid && await publicProfile(f.pid);
+    f.player = p ? { pid: p.pid, n: p.n, t: p.t, a: p.a, c: p.c, h: p.h, m: p.m } : null;
+    f.nick = houseNick(f.id);
+  }));
+  return list;
+}
+
 // CITY 2.0 — THE PREVIEW PANEL (docs/harbor.md): one public node, written here only (the rules: read by signed-in users, no
 // client writes). Plain values only — the state is rebuilt from the registry's lists; anything it had to drop refuses the call.
 async function cityLive(me, body, now) {
@@ -207,6 +223,14 @@ export async function adminAction(uid, body, now = Date.now()) {
       await ref(id ? `phonelog/${id}` : 'phonelog').remove();
       await audit(me, id ? 'clearReport' : 'clearReports', null, {});
       return { reports: await reportList() };
+    }
+    case 'flags': return { flags: await flagList() };
+    case 'clearFlag': {
+      const id = body.id ? String(body.id) : null;
+      if (id && !isBoardId(id)) throw new ApiError(400, 'bad_id');
+      await ref(id ? `flags/${id}` : 'flags').remove();
+      await audit(me, id ? 'clearFlag' : 'clearFlags', null, id ? { b: id } : {});
+      return { flags: await flagList() };
     }
     case 'cityLive': return cityLive(me, body, now);
     case 'cityClear': await ref('city2/live').remove(); await audit(me, 'cityClear', null); return { live: null };

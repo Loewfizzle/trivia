@@ -221,6 +221,40 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
 .bd-me .rk-badge { margin-left: 7px; }
 .bd-me-note { grid-column: 1 / -1; text-align: center; font-size: 13px; color: var(--bd-dim); padding: 0 10px; }
 
+/* BNAME: the ⋯ on every other player's row (REPORT) — a quiet glyph on a full-height 44 pt tap strip at the row's right edge */
+.bd-row { padding-right: 46px; }
+.bd-me { padding-right: 46px; }
+.bd-cols { padding-right: 34px; }
+.bd-more {
+  /* desktop: the rows keep 56 px on the right for it (the @media (min-width: 900px) block) */
+  position: absolute; top: 0; right: 0; bottom: 0; width: 44px; display: grid; place-items: center;
+  padding: 0; border: 0; background: none; color: var(--bd-faint); cursor: pointer; -webkit-tap-highlight-color: transparent;
+}
+.bd-more span { display: grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; font: 700 15px/1 var(--font-ui); letter-spacing: 0.04em; transition: background 0.2s, color 0.2s; }
+.bd-more:hover span, .bd-more:focus-visible span { background: rgba(255, 236, 200, 0.08); color: #fff3dc; }
+.bd-more:active span { transform: scale(0.9); }
+.bd-you { margin-left: 7px; padding: 2px 5px 1px; border-radius: 4px; font: 700 8.5px/1 var(--font-mono); letter-spacing: 0.18em; color: #120a0e; background: color-mix(in srgb, var(--c) 75%, #fff); vertical-align: 2px; }
+.bd-rep { position: fixed; inset: 0; z-index: 80; display: grid; place-items: end center; padding: 16px 16px calc(16px + var(--safe-b, env(safe-area-inset-bottom, 0px))); background: rgba(4, 2, 5, 0.6); animation: bd-rep-fade 0.2s ease both; }
+.bd-rep-sheet {
+  width: min(100%, 380px); display: flex; flex-direction: column; align-items: stretch; gap: 10px; padding: 18px 16px 14px; border-radius: 22px;
+  background: linear-gradient(180deg, rgba(40, 24, 30, 0.97), rgba(14, 8, 12, 0.98)); border: 1px solid rgba(255, 220, 180, 0.22);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 236, 200, 0.16); animation: bd-rep-up 0.26s var(--ease, ease-out) both;
+}
+.bd-rep-k { align-self: center; font: 700 10px/1 var(--font-mono); letter-spacing: 0.3em; padding-left: 0.3em; color: var(--bd-faint); }
+.bd-rep-who { display: flex; align-items: center; justify-content: center; gap: 9px; font: 600 17px/1.1 var(--font-ui); color: #fff7ea; }
+.bd-rep-who span { font: 600 12px/1 var(--font-num); color: var(--bd-faint); }
+.bd-rep-on { align-self: center; font: 700 9.5px/1.3 var(--font-mono); letter-spacing: 0.16em; color: var(--bd-faint); text-align: center; }
+.bd-rep-msg { margin: 2px 0 4px; text-align: center; font: 500 13.5px/1.4 var(--font-ui); color: var(--bd-dim); }
+.bd-rep-msg.is-ok { color: #9ff0c4; font-weight: 700; letter-spacing: 0.06em; }
+.bd-rep-msg.is-err { color: #ffc2cf; }
+.bd-rep-b { min-height: 48px; border-radius: 14px; font: 700 12.5px/1 var(--font-ui); letter-spacing: 0.18em; color: #fff3dc; border: 1px solid rgba(255, 220, 180, 0.26); background: rgba(255, 255, 255, 0.05); cursor: pointer; }
+.bd-rep-b:active { transform: scale(0.98); }
+.bd-rep-b:disabled { opacity: 0.5; }
+.bd-rep-b.is-cancel { border-color: transparent; background: none; color: var(--bd-dim); }
+@keyframes bd-rep-fade { from { opacity: 0; } }
+@keyframes bd-rep-up { from { opacity: 0; transform: translateY(24px); } }
+@media (prefers-reduced-motion: reduce) { .bd-rep, .bd-rep-sheet { animation: none; } }
+
 /* ---- the public page: PLAY NOW ---- */
 .bd-cta { flex: none; display: flex; flex-direction: column; align-items: center; gap: 7px; }
 .bd-play {
@@ -247,8 +281,8 @@ body.bd-on .bg, body.bd-on #stage::before, body.bd-on #stage::after { display: n
   .bd-picks { align-items: center; }
   .bd-chips { justify-content: center; flex-wrap: wrap; margin: 0; padding: 0; -webkit-mask-image: none; mask-image: none; overflow: visible; }
   .bd-diff { width: 360px; }
-  .bd-row, .bd-me { padding: 0 26px 0 30px; column-gap: 14px; grid-template-columns: 52px 38px minmax(0, 1fr) auto; }
-  .bd-cols { padding-left: 14px; padding-right: 14px; grid-template-columns: 52px 38px minmax(0, 1fr) auto; column-gap: 14px; }
+  .bd-row, .bd-me { padding: 0 56px 0 30px; column-gap: 14px; grid-template-columns: 52px 38px minmax(0, 1fr) auto; }
+  .bd-cols { padding-left: 14px; padding-right: 44px; grid-template-columns: 52px 38px minmax(0, 1fr) auto; column-gap: 14px; }
   .bd-label { font-size: 17px; }
   .bd-row { min-height: 58px; }
   .bd-row.is-1 { min-height: 80px; }

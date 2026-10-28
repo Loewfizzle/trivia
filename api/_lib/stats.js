@@ -6,7 +6,7 @@
 //                   this week's best), day{k, g{game:1}}, last (server ms of the last counted match), m{key: at},
 //                   st{n, d} (the nightly streak), gd (the week whose goal was paid) }
 import { ref, val } from './fb.js';
-import { boardPaths, rankOf, clearBoardCache } from './lb.js';
+import { boardPaths, rankOf, clearBoardCache, matchCount, minMatches, syncBoards } from './lb.js';
 import { boardDef, better, toSort } from '../../js/core/boards.js';
 import { matchXp, rankIndex, streakAfter, streakPart, weeklyGoal, goalProgress, GOAL_XP } from '../../js/core/ranks.js';
 import { BOARD_GAMES } from '../../js/core/boards.js';
@@ -79,10 +79,13 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
     }
     const stats = tx.snapshot.val();
     const prof = (await val(`profiles/${pid}`)) || {};
+    // BNAME: listed on the public boards only from the BOARD_MIN_MATCHES-th counted match (all games together)
+    const played = matchCount(stats);
+    const listed = !prof.h && played >= minMatches();
     // ranks before the boards change (for "ENTERED THE TOP 10")
     const watch = [...res.pbs.map(p => p.b), `${ex.gid}-wins`].filter((b, i, a) => a.indexOf(b) === i);
     const before = {};
-    if (!prof.h) {
+    if (listed) {
       await Promise.all(watch.map(async b => {
         const def = boardDef(b);
         const old = boardPaths(pid, res.prevStats, { now, only: ex.gid });
@@ -91,10 +94,12 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
       }));
     }
     const r0 = rankIndex(res.from), r1 = rankIndex(stats.xp);
-    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, ...boardPaths(pid, stats, { hidden: !!prof.h, now, only: ex.gid }) };
+    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }) };
     await ref('/').update(patch);
+    // the match that crosses the floor puts every game's boards up at once (the earlier matches were held back)
+    if (listed && played === minMatches()) await syncBoards(pid, { now });
     const ranks = [];
-    if (!prof.h) {
+    if (listed) {
       const paths = boardPaths(pid, stats, { now, only: ex.gid });
       await Promise.all(watch.map(async b => {
         const va = paths[`lb/${b}/all/${pid}`], vw = paths[`lb/${b}/${res.wk}/${pid}`];
@@ -106,7 +111,7 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
     outcomes[pid] = {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n,
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
-      rk: { from: r0, to: r1 }, pbs: res.pbs, ranks, hidden: !!prof.h, streak: (stats.st && stats.st.n) || 1,
+      rk: { from: r0, to: r1 }, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1,
     };
   }));
   clearBoardCache();

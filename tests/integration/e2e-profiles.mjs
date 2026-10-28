@@ -4,7 +4,9 @@
 // load; room seats carry the profile id and the lobby shows emblems + tags; a finished match lands on the boards with
 // plaques on the podium, XP, and a RANK UP; the key reminder appears back in the lobby; a fresh browser restores the
 // profile with the key; a new key retires the old one; opting out takes you off the boards; a phone that was offline at
-// the podium reports later and the match is still counted exactly once.
+// the podium reports later and the match is still counted exactly once. BNAME (Oct 28): one match is under the 3-match floor
+// (your pinned row says how many more, nobody's listed); topped up to 3, your own row reads your real name + YOU, every other
+// row a HOUSE NICKNAME (never a typed name), ⋯ → REPORT lands in flags/; the public page shows nicknames only.
 process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
 import { createHarness, REVIEW_SIZES } from './kit/harness.mjs';
@@ -140,12 +142,47 @@ await H.run(async () => {
   const newTry = await p4.evaluate(k => import('/js/profile/me.js').then(m => m.restoreKey(k)).then(r => r.pid, e => e.code), fresh);
   ok(newTry === me0.pid, 'the new key works');
 
-  // ---- 8. THE BOARD in the app, and the opt-out
-  await p3.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'board', boardGame: 'cipher' })));
-  await p3.waitForSelector('.bd-card.is-cascade .bd-row', { timeout: 20000 });
-  await sleep(1200);
+  // ---- 8. THE BOARD in the app (BNAME: the floor, nicknames, your real name, REPORT), and the opt-out
+  const openBoard = async () => {
+    await p3.evaluate(() => import('/js/profile/api.js').then(m => m.clearBoardCache()));
+    await p3.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'title' })));
+    await p3.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'board', boardGame: 'cipher' })));
+    await p3.waitForSelector('.bd-card.is-cascade .bd-row, .bd-card .bd-empty', { timeout: 20000 });
+    await sleep(1200);
+  };
+  await openBoard();
+  const floorNote = await p3.$eval('.bd-me', el => el.textContent).catch(() => '');
+  ok(/MORE MATCH/.test(floorNote), `one match: under the 3-match floor, the pinned row says so ("${floorNote.replace(/\s+/g, ' ').trim()}")`);
+  ok((await val(`lb/cipher-score/all/${me0.pid}`)) == null, '…and no board entry is written yet');
+  // top both players up to 3 matches (two earlier ones elsewhere), then a resync puts them up
+  for (const [pg, m] of [[p0, me0], [p1, me1]]) {
+    await ref('/').update({ [`pstats/${m.pid}/g/slip/p`]: 2, [`profiles/${m.pid}/m`]: 3 });
+    await pg.evaluate(() => import('/js/profile/me.js').then(x => x.setShown(false)));
+    await pg.evaluate(() => import('/js/profile/me.js').then(x => x.setShown(true)));
+  }
+  ok((await val(`lb/cipher-score/all/${me0.pid}`)) != null, '3 matches: on the boards');
+  // the board's GET is browser-cached (max-age 10 s + stale-while-revalidate 60 s): look at ALL TIME, a list this browser hasn't fetched
+  await p3.evaluate(() => sessionStorage.setItem('bd:period', 'all'));
+  await openBoard();
   ok(await p3.$('.bd-me.is-ranked'), 'your pinned row shows your exact rank');
+  const rows = await p3.$$eval('.bd-row:not(.is-skel)', els => els.map(el => ({ n: el.querySelector('.bd-n').textContent, me: el.classList.contains('is-me'), more: !!el.querySelector('.bd-more'), id: el.dataset.id })));
+  const mine = rows.find(r => r.me);
+  const bid3 = await p3.evaluate(() => { for (const k of Object.keys(localStorage)) if (/:me$/.test(k)) { const v = JSON.parse(localStorage.getItem(k)); return `${k}=${v && v.profile && v.profile.bid}`; } return 'none'; });
+  ok(mine && mine.n.startsWith(me0.profile.n) && /YOU$/.test(mine.n) && !mine.more, `your own row: your real name + YOU, no REPORT (${mine && mine.n}; ${bid3}; rows ${rows.map(r => r.id).join(',')})`);
+  const others = rows.filter(r => !r.me);
+  ok(others.length > 0 && others.every(r => r.more && /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(r.n)), `every other row: a house nickname + ⋯ (${others.map(r => r.n).join(', ')})`);
+  ok(!rows.some(r => !r.me && r.n.toUpperCase().includes(String(me1.profile.n).toUpperCase())), `${me1.profile.n}'s typed name is nowhere on ALICE's board`);
   await shotAll(p3, 'pf-07-board');
+  // REPORT: ⋯ → the sheet → SUSPICIOUS SCORE → thanks, stored for /admin
+  const target = others[0];
+  const flagged0 = (await val(`flags/${target.id}/why/score`)) || 0;
+  await p3.click(`.bd-row[data-id="${target.id}"] .bd-more`);
+  await p3.waitForSelector('.bd-rep .bd-rep-b');
+  await shotAll(p3, 'pf-07b-report');
+  await p3.evaluate(() => [...document.querySelectorAll('.bd-rep-b')].find(b => /SCORE/.test(b.textContent)).click());
+  await p3.waitForFunction(() => /THANKS/.test((document.querySelector('.bd-rep-msg') || {}).textContent || ''), { timeout: 10000 });
+  ok((await val(`flags/${target.id}/why/score`)) === flagged0 + 1, 'REPORT: stored under flags/ for /admin');
+  await p3.waitForFunction(() => !document.querySelector('.bd-rep'), { timeout: 5000 });
   await p0.evaluate(() => import('/js/profile/me.js').then(m => m.setShown(false)));
   ok((await val(`lb/cipher-score/all/${me0.pid}`)) == null, 'opted out: off the boards');
   ok((await val(`pstats/${me0.pid}/g/cipher/p`)) === 1, '…and the stats are still there');
@@ -159,6 +196,8 @@ await H.run(async () => {
   await pub.goto(`${BASE}/board?g=cipher&c=records&p=all`);
   await pub.waitForSelector('.bd-row:not(.is-skel)', { timeout: 20000 });
   ok(await pub.$('.bd-play'), 'neonspeakeasy.com/board: the board for anyone, with PLAY NOW');
+  const pubText = await pub.$eval('.bd-rows', el => el.textContent.toUpperCase());
+  ok(!pubText.includes(String(me0.profile.n).toUpperCase()) && !pubText.includes(String(me1.profile.n).toUpperCase()), 'the public page: house nicknames only, no typed names');
   await shotAll(pub, 'pf-08-public');
   await ctx.close();
 });

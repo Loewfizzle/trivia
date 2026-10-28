@@ -1065,10 +1065,12 @@
       }
     },
     "profiles": {
-      ".read": true,
       ".indexOn": [
         "nk"
-      ]
+      ],
+      "$pid": {
+        ".read": "auth != null"
+      }
     },
     "uids": {
       "$uid": {

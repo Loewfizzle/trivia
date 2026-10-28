@@ -1,7 +1,7 @@
 // POST /api/profile { action, … } — the caller's own profile (Firebase ID token required).
 //   ensure  { name, avatar, color }  → { pid, profile, key? (new profiles only), rename? }   (created automatically)
 //   me                               → { pid, profile, stats, priv }
-//   ranks   { boards: [id] }         → { ranks: { board: { all: {v, rank}, week: {v, rank} } } }  (exact, server-side)
+//   ranks   { boards: [id] }         → { ranks: { board: { all: {v, rank}, week: {v, rank} } }, m, mm }  (exact, server-side; m = counted matches, mm = the board floor)
 //   restore { key }                  → { pid, profile }      links this device to the key's profile
 //   regen                            → { key }               a new key; the old one stops working
 //   rename  { name }                 → { profile } | 429 { until }
@@ -51,7 +51,9 @@ export async function profileAction(uid, body, ip = '', now = Date.now()) {
     case 'ranks': {
       const pid = await mine(uid);
       const boards = Array.isArray(body.boards) ? body.boards.map(String) : [];
-      return { ranks: await myRanks(pid, boards, now) };
+      // BNAME: + the server's match count and the floor (the pinned row says "N MORE MATCHES" instead of a would-be rank)
+      const [ranks, prof] = await Promise.all([myRanks(pid, boards, now), publicProfile(pid)]);
+      return { ranks, m: prof ? prof.m : 0, mm: prof ? prof.mm : 3 };
     }
     case 'restore': return restore(uid, body.key, ip, now);
     case 'regen': return { key: await newKey(await mine(uid)) };

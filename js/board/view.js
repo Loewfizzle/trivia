@@ -5,6 +5,10 @@
 // THIS WEEK / ALL TIME, the board's own picks (a song and difficulty for PULSE, a mode for GRIDLOCK…), rows that
 // cascade in, the top three lit gold / silver / bronze, and your own row pinned at the bottom in your colour with your
 // exact rank (from the server, even outside the top 100).
+// BNAME (Oct 28): every other player's row reads their HOUSE NICKNAME (the server never sends a typed name or a profile id —
+// api/board.js); your own row is found by your profile's board id (`profile.bid`) and shows your real name; a ⋯ on every other
+// row → REPORT (a suspicious score / a bad name) → POST /api/board → /admin's "Board reports". A profile is listed from its
+// 3rd counted match; until then your pinned row says how many more.
 //
 //   createBoardView({ mode: 'app' | 'public', me: () => ({ pid, profile }) | null, ranks: (boards) => Promise<{…}>,
 //                     onBack, onProfile, onPlay, initial: { game, cat, period, board } })
@@ -17,7 +21,7 @@ import { boardDef, recordBoards, careerBoards, fmtValue, BOARD_GAMES, PULSE_DIFF
 import { weekEndsAt } from '../core/week.js';
 import { fmtTag } from '../core/names.js';
 import { RANKS } from '../core/ranks.js';
-import { board as fetchBoard, activeGames } from '../profile/api.js';
+import { board as fetchBoard, activeGames, reportRow } from '../profile/api.js';
 import { createHall } from './scene.js';
 import { boardSfx } from './audio.js';
 import { settings } from '../audio/settings.js';
@@ -189,23 +193,69 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   }
 
   function row(r, i, def) {
-    const mine = myPid() && r.pid === myPid();
+    const m = me();
+    const mine = !!(m && m.profile && m.profile.bid && r.id === m.profile.bid);
     const top = r.rank <= 3;
     const c = colorHex(r.c);
+    // your own row: your real name + tag, on your device only; everyone else: the house nickname the server sent
+    const name = mine ? m.profile.n : r.n;
+    const tag = mine ? m.profile.t : r.t;
     const li = h('li.bd-row', {
       class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me' : ''].join(' '),
       style: { '--i': Math.min(i, 16), '--c': c },
+      dataset: { id: r.id || '' },
     },
     h('span.bd-rank', top ? h('span.bd-medal', { class: `is-${MEDAL[r.rank]}` }, String(r.rank)) : String(r.rank)),
     avatar(r.a, r.c, top ? 36 : 30),
     h('span.bd-who',
-      h('span.bd-n', r.n),
-      h('span.bd-t', emblem(r.r | 0, 14), h('span', fmtTag(r.t)), r.rank === 1 ? h('span.bd-crown', RANKS[r.r | 0].name) : null)),
-    h('span.bd-v', fmtValue(def, r.v)));
+      h('span.bd-n', name, mine ? h('span.bd-you', 'YOU') : null),
+      h('span.bd-t', emblem(r.r | 0, 14), h('span', fmtTag(tag)), r.rank === 1 ? h('span.bd-crown', RANKS[r.r | 0].name) : null)),
+    h('span.bd-v', fmtValue(def, r.v)),
+    mine || !r.id ? null : h('button.bd-more', { type: 'button', 'aria-label': `Report ${r.n}`, onclick: e => { e.stopPropagation(); openReport(r, def); } }, h('span', '⋯')));
     return li;
   }
 
-  function myPid() { const m = me(); return m && m.pid; }
+  // ------------------------------------------------------------------ REPORT (BNAME)
+  const devId = () => {
+    try {
+      let d = localStorage.getItem('bd:dev');
+      if (!d || !/^[a-z0-9]{8,32}$/.test(d)) { d = Array.from(crypto.getRandomValues(new Uint8Array(12)), x => (x % 36).toString(36)).join(''); localStorage.setItem('bd:dev', d); }
+      return d;
+    } catch { return ''; }
+  };
+  function closeReport() { if (els.rep) { els.rep.remove(); els.rep = null; } }
+  function openReport(r, def) {
+    closeReport();
+    boardSfx('tab');
+    const msg = h('p.bd-rep-msg', 'Tell the house what looks wrong. Nobody sees who reported.');
+    let btns = [];
+    const send = why => async () => {
+      btns.forEach(b => { b.disabled = true; });
+      try {
+        await reportRow(def.id, r.id, why, devId());
+        msg.textContent = 'THANKS — THE HOUSE WILL TAKE A LOOK.';
+        msg.className = 'bd-rep-msg is-ok';
+        setTimeout(closeReport, 1600);
+      } catch (e) {
+        msg.textContent = e && e.status === 429 ? 'Too many reports from here — try again later.' : 'Couldn’t send it — try again in a moment.';
+        msg.className = 'bd-rep-msg is-err';
+        btns.forEach(b => { b.disabled = false; });
+      }
+    };
+    btns = [
+      h('button.bd-rep-b', { type: 'button', onclick: send('score') }, 'SUSPICIOUS SCORE'),
+      h('button.bd-rep-b', { type: 'button', onclick: send('name') }, 'BAD NAME OR EMBLEM'),
+    ];
+    els.rep = h('div.bd-rep', { role: 'dialog', 'aria-modal': 'true', 'aria-label': `Report ${r.n}`, onclick: e => { if (e.target === els.rep) closeReport(); } },
+      h('div.bd-rep-sheet',
+        h('span.bd-rep-k', 'REPORT'),
+        h('div.bd-rep-who', avatar(r.a, r.c, 30), h('b', r.n), h('span', fmtTag(r.t))),
+        h('span.bd-rep-on', `${els.label.textContent} · #${r.rank}`),
+        msg,
+        ...btns,
+        h('button.bd-rep-b.is-cancel', { type: 'button', onclick: closeReport }, 'CANCEL')));
+    els.el.append(els.rep);
+  }
 
   async function refresh() {
     renderControls();
@@ -272,7 +322,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     const m = me();
     if (pub) {
       // the public page: your row only when this browser has a profile on the board
-      const r = m && S.rows.find(x => x.pid === m.pid);
+      const r = m && m.profile && m.profile.bid && S.rows.find(x => x.id === m.profile.bid);
       els.me.hidden = !r;
       if (r) fillMe(def, { rank: r.rank, v: r.v }, m);
       return;
@@ -289,10 +339,14 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
   function fillMe(def, info, m) {
     const p = m.profile;
     els.me.style.setProperty('--c', colorHex(p.c));
-    const rank = info && info !== 'loading' && info.rank;
-    const val = info && info !== 'loading' && info.v != null ? fmtValue(def, info.v) : null;
+    // BNAME: under the 3-match floor nobody sees you yet — the hint, never a would-be rank
+    const left = typeof p.m === 'number' ? Math.max(0, (p.mm || 3) - p.m) : 0;
+    const under = !!left && !p.h;
+    const rank = !under && info && info !== 'loading' && info.rank;
+    const val = !under && info && info !== 'loading' && info.v != null ? fmtValue(def, info.v) : null;
     let note = null;
-    if (info === 'loading') note = '…';
+    if (under) note = `${left} MORE MATCH${left === 1 ? '' : 'ES'} TO JOIN THE BOARD`;
+    else if (info === 'loading') note = '…';
     else if (!info) note = def && def.min ? `${MIN_WR_GAMES}+ GAMES` : def && def.kind === 'record' ? 'NO RECORD YET' : 'NOT RANKED YET';
     els.me.replaceChildren(
       h('span.bd-rank', rank ? `#${rank.toLocaleString('en-US')}` : '—'),
@@ -319,7 +373,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     } catch {
       if (token !== S.token || destroyed) return;
       // no rank from the server: show the row as it appears in the list, if it does
-      const r = S.rows.find(x => x.pid === m.pid);
+      const r = m.profile && m.profile.bid && S.rows.find(x => x.id === m.profile.bid);
       paintMe(def, 'done', r ? { rank: r.rank, v: r.v } : null);
     }
   }
@@ -363,6 +417,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     pick: (game, cat, period) => { if (period) S.period = period; if (cat) S.cat = cat; if (game && game !== S.game) pickGame(game); else refresh(); },
     destroy() {
       destroyed = true;
+      closeReport();
       ro && ro.disconnect();
       io && io.disconnect();
       hall && hall.destroy();
