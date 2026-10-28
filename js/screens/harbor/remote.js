@@ -4,8 +4,13 @@
 //                         its state in sync from its startAt (the scene's remote(): the clock runs from there, a sky piece's
 //                         first flight starts there) until CLEAR or `until`; then the real city again. A node whose startAt is
 //                         still ahead (C2: the panel's DELAY) waits for it — every phone starts on the same beat
-//   the owner (admin)     a small TEST pill top left opens the sheet: JUST ME (this phone, kept for the tab) or EVERYONE ON CITY 2
-//                         (a draft, sent with SEND TO EVERYONE); every row comes from core/harbor-remote.js
+//   the owner (admin)     9d: the ☰ menu's ADMIN row (its bottom) opens the sheet — the TEST pill is gone from the screen; while a
+//                         preview is on, a small dot on ☰ (JUST ME green, EVERYONE pink) + the row says what ("JUST ME · 10/27 22:30")
+//                         with a CLEAR beside it. JUST ME (this phone, kept for the tab) or EVERYONE ON CITY 2 (a draft, sent with
+//                         SEND TO EVERYONE); every row comes from core/harbor-remote.js
+// 9d — THE ADMIN PANEL (the owner, DECIDED): a pinned NOW bar at the very top, always open — TIME first (the date + time, the quick
+//                         chips, the date's holiday chips, MORE TIME), the WEATHER's chips, JUST ME / EVERYONE + CLEAR ALL; RECENT; the
+//                         sections by use (core/harbor-remote.js#SECTIONS); every row's hint on a line under its label
 // The state on this phone: JUST ME (if any) wins over EVERYONE's; nothing at all = the real city.
 // NEON PASS 5 — A LINK'S OWN SETTINGS WIN: opening a link that carries its own preview flags (&when, &force, &speed, &wx, &scene…)
 // drops a stored JUST ME state (a refresh of the same page keeps it); while JUST ME is on the pill says so + a one-tap ✕ beside it.
@@ -39,6 +44,7 @@ import { settings, updateSettings } from '../../audio/settings.js';
 import { SLOTS, PARTS, takesOf } from '../../core/city-sounds.js';
 import { cityPreview, citySoundsDebug } from '../../audio/city-sound.js';
 import { debugTool, setDebugTool } from '../../ui/debug-tools.js';
+import { setMenuExtra, setMenuCue } from '../../ui/settings-panel.js';
 
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin', OPEN_KEY = 'nd:hr-open', DELAY_KEY = 'nd:hr-delay', RECENT_KEY = 'nd:hr-recent';
 const RECENT_MAX = 6;
@@ -92,7 +98,7 @@ const TEST_PANEL = typeof location !== 'undefined' && /[?&]panel=1(?:&|$)/.test(
   && (location.pathname.includes('/tests/') || /[?&]emu(?:[=&]|$)/.test(location.search));
 
 export function createRemote({ scene, api = apiCall }) {
-  let destroyed = false, live = null, liveNext = null, nextT = 0, unsub = null, admin = false, chip = null, bar = null, xb = null, label = null, cdEl = null, sheet = null, sendBusy = false, typeT = 0;
+  let destroyed = false, live = null, liveNext = null, nextT = 0, unsub = null, admin = false, bar = null, cdEl = null, sheet = null, sendBusy = false, typeT = 0, moreOpen = false;
   let mode = ss.get(MODE_KEY) === 'all' ? 'all' : 'me';
   let clearAgainT = 0, ignoreLiveAt = null;   // (SP5: CLEAR ALL's second tap clears EVERYONE's state; a live state this phone cleared away stays ignored here until a new one)
   let stored = ss.get(ME_KEY);
@@ -167,26 +173,29 @@ export function createRemote({ scene, api = apiCall }) {
     if (!cssReady) cssReady = new Promise(res => { const l = h('link', { rel: 'stylesheet', href: '/css/harbor-remote.css', 'data-hr': '1' }); const done = () => res(true); l.onload = l.onerror = done; setTimeout(done, 3000); document.head.append(l); });
     return cssReady;
   }).then(ok => {
-    // (7a §0: the pill appears once its stylesheet is in — never a moment unstyled at the page's foot, where a tap would miss it)
+    // (9d: no pill on the screen — the ☰ menu's ADMIN row opens the sheet; the bar only carries the countdown + PLAY ALL chips while
+    // they run, where the pill was, beside the ☰)
     if (destroyed || !ok) return;
-    chip = h('button.hr-pill', { type: 'button', 'aria-label': 'Preview panel', onclick: open }, h('span.hr-dot'), label = h('span.hr-lbl', 'TEST'));
-    // (JUST ME on: a one-tap clear beside the pill — back to the real city, or the link's own flags)
-    xb = h('button.hr-x', { type: 'button', 'aria-label': 'Clear JUST ME', onclick: () => { mode = 'me'; ss.set(MODE_KEY, 'me'); clearAll(); } }, h('span', '×'));
-    bar = h('div.hr-bar', chip, xb);
+    bar = h('div.hr-bar');
     document.body.append(bar);
+    setMenuExtra('admin', adminRow);
     if (liveNext && !cd) countdown('all', liveNext.startAt, R.describe(liveNext.state));
     paintChip(); paintCd();
   });
+  const effective = () => (!R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : '');
+  /** "10/27 22:30" (the state's clock) or what it forces, short */
+  const nowWords = st => (st && st.when ? `${+st.when.slice(5, 7)}/${+st.when.slice(8, 10)} ${st.when.slice(11, 16)}` : R.describe(st).slice(0, 30));
+  /** 9d — THE ADMIN ROW at the ☰ menu's bottom: ADMIN · what's on; CLEAR beside it while JUST ME is on */
+  function adminRow({ close: closeMenu }) {
+    if (destroyed || !admin) return null;
+    const on = effective(), sub = on === 'me' ? `JUST ME · ${nowWords(mine.state)}` : on === 'all' ? `EVERYONE · ${nowWords(live.state)}` : 'Preview panel';
+    const main = h('button.gm-item', { type: 'button', 'aria-label': `Admin — the preview panel${on ? ` (${sub})` : ''}`, onclick: () => { closeMenu(); open(); } }, h('b', 'ADMIN'), h('span', sub));
+    return h('div.gm-adm', { dataset: { on } }, main,
+      on === 'me' ? h('button.gm-adm-x', { type: 'button', 'aria-label': 'Clear — back to the real city', onclick: () => { closeMenu(); mode = 'me'; ss.set(MODE_KEY, 'me'); clearAll(); } }, 'CLEAR') : null);
+  }
   function paintChip() {
-    if (!chip) return;
-    const on = !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : '';
-    chip.dataset.on = on;
-    const txt = on === 'me' ? `JUST ME · ${R.describe(mine.state)}` : on === 'all' ? 'TEST · EVERYONE' : 'TEST';
-    if (label.textContent !== txt) label.textContent = txt;
-    xb.hidden = on !== 'me';
-    bar.classList.toggle('hr-under', !!document.querySelector('.nd-corner .tag'));
-    // (WIN2: the debug strips sit BELOW the pill's row now (ui/debug-strip.js) — the pill never steps under them)
-    bar.classList.remove('hr-low');
+    if (!admin) return;
+    setMenuCue(effective() || null);
   }
 
   // ---------------------------------------------------------------- THE COUNTDOWN (C2): a 3-2-1 chip under the pill, then it starts
@@ -454,7 +463,9 @@ export function createRemote({ scene, api = apiCall }) {
     else if (!o.sent && draftDirty()) toast('NOT SENT — THE EVERYONE DRAFT IS KEPT', 'warn');
     paintChip();
   }
-  const btn = (label, on, onclick, o = {}) => h('button.hr-b', { type: 'button', class: [on ? 'is-on' : '', o.cls || ''].join(' ').trim() || null, 'aria-pressed': on ? 'true' : 'false', disabled: o.disabled || null, title: o.title || null, dataset: o.q != null ? { q: o.q } : null, onclick }, label, o.night ? h('span.hr-moon', { 'aria-hidden': 'true' }, '☾') : null);
+  // (9d: a row's hint as a line under its label — drawn by the stylesheet from data-hint, so the row's text stays its label)
+  const btn = (label, on, onclick, o = {}) => h('button.hr-b', { type: 'button', class: [on ? 'is-on' : '', o.cls || '', o.hint ? 'has-hint' : ''].join(' ').trim() || null, 'aria-pressed': on ? 'true' : 'false', disabled: o.disabled || null, title: o.title || null, dataset: { ...(o.q != null ? { q: o.q } : {}), ...(o.hint ? { hint: o.hint } : {}) }, onclick },
+    o.hint ? h('span.hr-bl', label, o.night ? h('span.hr-moon', { 'aria-hidden': 'true' }, '☾') : null) : label, !o.hint && o.night ? h('span.hr-moon', { 'aria-hidden': 'true' }, '☾') : null);
   const grid = (...kids) => h('div.hr-grid', ...kids);
   const opts = (...kids) => h('div.hr-grid.hr-g3', ...kids);
   let statusEl = null, musicEl = null, musicT = 0, pulseT = 0, soundsEl = null;
@@ -507,24 +518,7 @@ export function createRemote({ scene, api = apiCall }) {
   }
   // ---- THE PANEL'S OWN BLOCKS (not events): where each sits (its section; first or last in it), how many choices, what's on, its rows.
   // The ids are the old categories' (the tests + the shots find them by data-cat).
-  const timeLabel = (st, ui) => { const t = ui.t && R.TIMES.find(x => x.id === ui.t); return t ? t.label : st.when && !st.hol ? `${+st.when.slice(5, 7)}/${+st.when.slice(8, 10)} ${st.when.slice(11)}` : null; };
   const OWN = {
-    time: {
-      sec: 'time', last: false, label: 'TIME OF DAY', q: 'time of day clock jump when',
-      n: () => R.TIMES.length,
-      on: (st, ui) => [timeLabel(st, ui), st.speed > 1 ? `${st.speed}×` : null],
-      kids: (st, ui) => {
-        const dt = h('input.input.hr-dt', { type: 'datetime-local', value: st.when || '', 'aria-label': 'Date and time',
-          onchange: e => edit((s, u) => { const v = String(e.target.value || '').slice(0, 16); u.t = null; delete u.autoT; delete s.hol; if (v) { u.custom = v; s.when = v; } else { delete u.custom; delete s.when; } retime({ state: s, ui: u }); }) });
-        const tb = t => btn(t.label, ui.t === t.id, () => edit((s, u) => { u.t = t.id; delete u.autoT; delete u.custom; retime({ state: s, ui: u }); }), { q: `${t.label} ${t.id} time` });
-        // (the day in time order, SUNRISE → NIGHT; then the night's edges + the lights' power-up / down)
-        return [opts(...R.TIMES.filter(t => !t.more).map(tb)),
-          h('div.hr-gl', 'MORE'), opts(...R.TIMES.filter(t => t.more).map(tb)),
-          h('div.hr-row', { dataset: { q: 'date time custom calendar day' } }, dt),
-          h('div.hr-gl', 'CLOCK SPEED'), opts(...R.SPEEDS.map(v => btn(`${v}×`, (st.speed || 1) === v, () => edit(s => { if (v === 1) delete s.speed; else s.speed = v; }), { q: `${v}x ${v}× clock speed fast` }))),
-          h('div.hr-row', btn('BACK TO NOW', false, () => edit((s, u) => { delete s.when; delete s.speed; delete s.hol; delete u.t; delete u.autoT; delete u.custom; }), { cls: 'hr-wide', q: 'back to now real time clock reset' }))];
-      },
-    },
     holidays: {
       sec: 'holidays', last: false, label: 'HOLIDAY', q: 'holiday holidays date',
       n: () => R.HOLIDAYS.length,
@@ -534,14 +528,22 @@ export function createRemote({ scene, api = apiCall }) {
           ...R.HOLIDAYS.map(hd => btn(hd.label, st.hol === hd.id, () => edit((s, u) => { s.hol = hd.id; delete u.custom; retime({ state: s, ui: u }); }), { q: `${hd.label} holiday` })))],
     },
     weather: {
-      sec: 'weather', last: false, label: 'THE WEATHER', q: 'weather sky',
-      n: () => R.WEATHER.length,
-      on: st => [st.wx ? R.WEATHER.find(w => w.id === st.wx).label : null, st.snow ? `SNOW ${st.snow.toUpperCase()}` : null],
-      kids: st => [h('div.hr-row', btn('REAL', !st.wx, () => edit(s => { delete s.wx; delete s.wxk; }), { cls: 'hr-wide', title: 'the live weather', q: 'real live weather clear it' })),
+      // (9d: the NOW bar holds the common weather; the rest of the states + the intensity here, none of them twice)
+      sec: 'sky', last: false, label: 'MORE WEATHER', q: 'weather sky',
+      n: () => R.WEATHER.length - R.NOW_WEATHER.length + R.WX_INTENSITY.length,
+      on: st => [st.wx ? R.WEATHER.find(w => w.id === st.wx).label : null, st.wxk ? st.wxk.toUpperCase() : null],
+      kids: st => [
         // (WIN: the rows in groups — the sky's cover, rain, storm, fog, cold)
-        ...R.WEATHER_GROUPS.flatMap(g => [h('div.hr-gl', g), opts(...R.WEATHER.filter(w => w.group === g).map(w => btn(w.label, st.wx === w.id, () => edit(s => { s.wx = w.id; }), { q: `${w.label} ${w.id} weather ${g}` })))]),
+        ...R.WEATHER_GROUPS.flatMap(g => { const ws = R.WEATHER.filter(w => w.group === g && !R.NOW_WEATHER.some(([id]) => id === w.id)); return ws.length ? [h('div.hr-gl', g), opts(...ws.map(w => btn(w.label, st.wx === w.id, () => edit(s => { if (s.wx === w.id) { delete s.wx; delete s.wxk; } else s.wx = w.id; }), { q: `${w.label} ${w.id} weather ${g}` })))] : []; }),
         // (9a: the INTENSITY of the forced state — AUTO = its own)
-        opts(btn('AUTO', !st.wxk, () => edit(s => { delete s.wxk; }), { q: 'weather intensity auto' }), ...R.WX_INTENSITY.map(w => btn(w.label, st.wxk === w.id, () => edit(s => { s.wxk = w.id; }), { q: `${w.label} intensity weather rain` }))),
+        h('div.hr-gl', 'HOW HARD'),
+        opts(btn('AUTO', !st.wxk, () => edit(s => { delete s.wxk; }), { q: 'weather intensity auto' }), ...R.WX_INTENSITY.map(w => btn(w.label, st.wxk === w.id, () => edit(s => { s.wxk = w.id; }), { q: `${w.label} intensity weather rain` })))],
+    },
+    winter: {
+      sec: 'winter', last: false, label: 'SNOW + THE SNOWMAN', q: 'winter snow ground snowman',
+      n: () => R.SNOW_GROUND.length + R.SNOWMAN_STAGES.length + 2,
+      on: st => [st.snow ? `SNOW ${st.snow.toUpperCase()}` : null, st.snowman ? `SNOWMAN ${st.snowman.toUpperCase()}` : null],
+      kids: st => [
         // (9b: SNOW ON THE GROUND — the snowpack's stages; AUTO = the real ground)
         h('div.hr-gl', 'SNOW ON THE GROUND'),
         opts(btn('AUTO', !st.snow, () => edit(s => { delete s.snow; }), { q: 'snow ground auto real' }), ...R.SNOW_GROUND.map(w => btn(w.label, st.snow === w.id, () => edit(s => { s.snow = w.id; }), { q: `${w.label} snow ground winter` }))),
@@ -635,7 +637,7 @@ export function createRemote({ scene, api = apiCall }) {
     // (WIN: PLAY ALL at the top of its section — this phone, at once; EVERYONE can't sequence)
     const pa = R.PLAY_ALL.find(x => x.sec === sec.id);
     if (pa) { const on = !!(play && play.kind === pa.kind);
-      body.push(block('playall', 'PLAY ALL', `${pa.label} loop every ${pa.kind}`, [h('p.hr-note', pa.hint),
+      body.push(block('playall', 'PLAY ALL', `${pa.label} loop every ${pa.kind}`, [h('p.hr-note', R.shortHint(pa.hint)),
         grid(btn(on ? `■ STOP — ${pa.label}` : `▶ ${pa.label}`, on, () => (on ? stopPlay(true) : playAll(pa.kind)), { cls: 'hr-wide', title: 'this phone only · at once', q: `${pa.label} play all loop every`, disabled: mode === 'all' || null }))], { play: pa.kind })); }
     if (evs.some(e => e.night)) body.push(h('p.hr-note.hr-legend', '☾ = night only: by day it jumps to tonight'));
     const ownBlock = ([id, o]) => block(id, o.label, o.q, o.kids(st, ui));
@@ -646,7 +648,7 @@ export function createRemote({ scene, api = apiCall }) {
       const inputs = [...new Set(list.filter(e => force.has(e.id)).flatMap(e => e.inputs || []))];
       body.push(block(list[0].cat, head, '', [
         inputs.length ? h('div.hr-opts', { dataset: { q: list.filter(e => force.has(e.id)).map(e => `${e.label} ${(e.inputs || []).join(' ')}`).join(' ') } }, ...inputs.map(k => input(k, st, force))) : null,
-        grid(...list.map(e => { const b = btn(e.label, force.has(e.id), () => toggleForce(e.id), { night: e.night, title: e.hint, q: R.eventText(e.id) }); b.dataset.ev = e.id; return b; }))], { block: head }));
+        grid(...list.map(e => { const b = btn(e.label, force.has(e.id), () => toggleForce(e.id), { night: e.night, title: e.hint, hint: R.shortHint(e.hint) || null, q: R.eventText(e.id) }); b.dataset.ev = e.id; return b; }))], { block: head }));
     }
     for (const ob of own.filter(([, o]) => o.last)) body.push(ownBlock(ob));
     const isOpen = openSecs.has(sec.id), id = `hr-s-${sec.id}`;
@@ -658,28 +660,55 @@ export function createRemote({ scene, api = apiCall }) {
         h('span.hr-chev', { 'aria-hidden': 'true' })),
       h('div.hr-body', { id, hidden: !isOpen }, ...body));
   }
-  function header() {
+  // ---- 9d — THE NOW BAR (pinned at the top, always open): TIME first, the WEATHER's chips (the mode + CLEAR ALL follow in header())
+  const timeLabel = (st, ui) => { const t = ui.t && R.TIMES.find(x => x.id === ui.t); return t ? t.label : st.when && !st.hol ? `${+st.when.slice(5, 7)}/${+st.when.slice(8, 10)} ${st.when.slice(11)}` : null; };
+  function nowBar(st, ui) {
+    const tb = id => { const t = R.TIMES.find(x => x.id === id); return btn(t.label, ui.t === id, () => edit((s, u) => { if (u.t === id) { delete s.when; delete u.t; delete u.custom; delete u.autoT; return; } u.t = id; delete u.autoT; delete u.custom; retime({ state: s, ui: u }); }), { cls: 'hr-chip', q: `${t.label} ${t.id} time` }); };
+    const real = !st.when && !st.hol;
+    const todayB = btn('TODAY', real, () => edit((s, u) => { delete s.when; delete s.speed; delete s.hol; delete u.t; delete u.autoT; delete u.custom; }), { cls: 'hr-chip hr-today', title: 'the real clock', q: 'today now real time back' });
+    const dt = h('input.input.hr-dt', { type: 'datetime-local', value: st.when || '', 'aria-label': 'Date and time',
+      onchange: e => edit((s, u) => { const v = String(e.target.value || '').slice(0, 16); u.t = null; delete u.autoT; delete s.hol; if (v) { u.custom = v; s.when = v; } else { delete u.custom; delete s.when; } retime({ state: s, ui: u }); }) });
+    const hols = R.nearHolidays(today()).map(hd => btn(hd.label, st.hol === hd.id, () => edit((s, u) => { if (s.hol === hd.id) delete s.hol; else { s.hol = hd.id; delete u.custom; } retime({ state: s, ui: u }); }), { cls: 'hr-chip hr-holc', q: `${hd.label} holiday` }));
+    const wx = R.NOW_WEATHER.map(([id, l]) => btn(l, st.wx === id, () => edit(s => { if (s.wx === id) { delete s.wx; delete s.wxk; } else s.wx = id; }), { cls: 'hr-chip', q: `${l} ${id} weather` }));
+    const more = h('details.hr-more', { open: moreOpen || null, ontoggle: e => { moreOpen = e.currentTarget.open; } },
+      h('summary.hr-more-s', 'MORE TIME', h('small', 'sunrise · sunset · the power-up · speed')),
+      opts(...R.TIMES.filter(t => !R.NOW_TIMES.includes(t.id)).map(t => tb(t.id))),
+      h('div.hr-gl', 'CLOCK SPEED'), opts(...R.SPEEDS.map(v => btn(`${v}×`, (st.speed || 1) === v, () => edit(s => { if (v === 1) delete s.speed; else s.speed = v; }), { q: `${v}x ${v}× clock speed fast` }))));
+    const tl = real ? 'THE REAL CLOCK' : st.hol ? `${(R.HOLIDAYS.find(x => x.id === st.hol) || {}).label || ''} · ${st.when ? st.when.slice(11) : ''}` : timeLabel(st, ui) || '';
+    return h('div.hr-now', { dataset: { cat: 'time' } },
+      h('div.hr-now-h', h('b', 'TIME'), h('span', tl), st.speed > 1 ? h('small', `${st.speed}×`) : null),
+      h('div.hr-now-dt', dt),
+      h('div.hr-chips', todayB, ...R.NOW_TIMES.map(tb)),
+      hols.length ? h('div.hr-chips.hr-hols', ...hols) : null,
+      more,
+      h('div.hr-now-h', h('b', 'WEATHER'), h('span', st.wx ? R.WEATHER.find(w => w.id === st.wx).label : 'THE REAL WEATHER')),
+      h('div.hr-chips', ...wx));
+  }
+  function header(st, ui) {
     const qx = h('button.hr-qx', { type: 'button', 'aria-label': 'Clear the search', hidden: !query, onclick: () => { query = ''; qi.value = ''; qx.hidden = true; filter(); qi.focus(); } }, h('span', '×'));
     const qi = h('input.input.hr-q', { type: 'text', value: query, placeholder: 'Search…', 'aria-label': 'Search the previews', autocomplete: 'off', autocapitalize: 'none', spellcheck: 'false', enterkeyhint: 'search',
       oninput: e => { query = e.target.value; qx.hidden = !query; filter(); const b = sheet && sheet.firstChild; if (b) b.scrollTop = 0; },
       onkeydown: e => { if (e.key === 'Enter') e.target.blur(); if (e.key === 'Escape') { query = ''; e.target.value = ''; qx.hidden = true; filter(); } } });
-    return h('div.hr-top',
+    return [h('div.hr-top',
       h('div.hr-head',
-        h('div.hr-title', h('h2.sheet-title', 'PREVIEW PANEL'), h('div.hr-who', h('span.hr-who-dot'), mode === 'me' ? 'JUST ME — ONLY THIS PHONE' : 'EVERYONE — EVERY PHONE ON CITY 2')),
-        h('button.icon-btn.hr-close', { type: 'button', 'aria-label': 'Close the preview panel', onclick: () => close() }, '×')),
+        h('div.hr-title', h('h2.sheet-title', 'ADMIN'), h('div.hr-who', h('span.hr-who-dot'), mode === 'me' ? 'JUST ME — ONLY THIS PHONE' : 'EVERYONE — EVERY PHONE ON CITY 2')),
+        h('button.icon-btn.hr-close', { type: 'button', 'aria-label': 'Close the admin panel', onclick: () => close() }, '×')),
+      // (the search at the top, then the pinned NOW bar — TIME first)
+      h('div.hr-find',
+        h('div.hr-search', h('span.hr-mag', { 'aria-hidden': 'true' }), qi, qx),
+        h('div.hr-delay', { role: 'radiogroup', 'aria-label': 'Start after closing the panel' },
+          h('span.hr-delay-l', { 'aria-hidden': 'true' }, 'START'),
+          ...R.DELAYS.map(v => h('button.hr-dl', { type: 'button', role: 'radio', 'aria-checked': delay === v ? 'true' : 'false', class: delay === v ? 'is-on' : null, 'aria-label': v ? `${v} seconds after closing` : 'As soon as it closes',
+            onclick: () => { delay = v; ls.set(DELAY_KEY, v); render(); } }, v ? `${v} S` : 'NOW'))))),
+      // (9d: the NOW bar under the sticky title + search — open always, first in the scroll: a sticky one would fill the phone)
+      h('div.hr-pin', nowBar(st, ui),
       h('div.hr-mode', { role: 'radiogroup', 'aria-label': 'Who sees it' },
         ...[['me', 'JUST ME'], ['all', 'EVERYONE ON CITY 2']].map(([v, l]) => h('button.hr-b.hr-modeb', { type: 'button', role: 'radio', 'aria-checked': mode === v ? 'true' : 'false', class: mode === v ? 'is-on' : null, dataset: { m: v },
           onclick: () => { if (mode === v) return; mode = v; ss.set(MODE_KEY, v); if (v === 'all' && !draftDirty()) draft = { state: clone(liveBase()), ui: {} }; if (v === 'me') ensurePend(); render(); } }, l))),
       h('div.hr-stat',
         statusEl = h('div.hr-status', { 'aria-live': 'polite' }),
         h('button.btn.btn-ghost.hr-clear', { type: 'button', disabled: sendBusy || null, class: clearAgainT > Date.now() ? 'is-again' : null, 'aria-label': mode === 'me' ? (clearAgainT > Date.now() ? 'Everyone’s state is still on — tap again to clear it for everyone too' : 'Clear all — back to the real city') : 'Clear all for everyone', onclick: clearAll },
-          h('span', clearAgainT > Date.now() ? 'TAP AGAIN' : 'CLEAR ALL'), h('small', mode === 'me' ? (clearAgainT > Date.now() ? 'EVERYONE TOO' : 'REAL CITY') : 'EVERYONE'))),
-      h('div.hr-find',
-        h('div.hr-search', h('span.hr-mag', { 'aria-hidden': 'true' }), qi, qx),
-        h('div.hr-delay', { role: 'radiogroup', 'aria-label': 'Start after closing the panel' },
-          h('span.hr-delay-l', { 'aria-hidden': 'true' }, 'START'),
-          ...R.DELAYS.map(v => h('button.hr-dl', { type: 'button', role: 'radio', 'aria-checked': delay === v ? 'true' : 'false', class: delay === v ? 'is-on' : null, 'aria-label': v ? `${v} seconds after closing` : 'As soon as it closes',
-            onclick: () => { delay = v; ls.set(DELAY_KEY, v); render(); } }, v ? `${v} S` : 'NOW')))));
+          h('span', clearAgainT > Date.now() ? 'TAP AGAIN' : 'CLEAR ALL'), h('small', mode === 'me' ? (clearAgainT > Date.now() ? 'EVERYONE TOO' : 'REAL CITY') : 'EVERYONE'))))];
   }
   function recentRow() {
     if (!recent.length) return null;
@@ -693,7 +722,7 @@ export function createRemote({ scene, api = apiCall }) {
     const box = sheet.firstChild, top = box.scrollTop, c = cur(), st = c.state, ui = c.ui, force = new Set(st.force || []);
     const focused = document.activeElement && document.activeElement.classList && document.activeElement.classList.contains('hr-q');
     musicEl = null; soundsEl = null;
-    const kids = [header(), recentRow()];
+    const kids = [...header(st, ui), recentRow()];
     for (const sec of R.SECTIONS) kids.push(section(sec, st, ui, force));
     kids.push(h('p.hr-empty', { 'aria-live': 'polite' }));
     if (mode === 'all') {
@@ -810,7 +839,7 @@ export function createRemote({ scene, api = apiCall }) {
     playAll, playSkip: () => { if (play) playStep(play.i + 1); }, playStop: () => stopPlay(true), playing: () => (play ? { kind: play.kind, i: play.i, id: play.items[play.i].id, n: play.items.length, paused: play.paused, when: mine.state.when || null, hour: play.items[play.i].hour } : null),
     /** (shots) a countdown chip on show, as if the sheet had just closed */
     previewCountdown(m = 'me', s = 3, what = 'AURORA · DUSK') { countdown(m, serverNow() + s * 1000 + 400, what); setTimeout(() => { if (cd && cd.what === what) clearInterval(cd.iv); }, 450); },
-    debug: () => ({ mode, admin, mine: mine.state, pend: pend && pend.state, queued: dirtyMe(), live, liveNext, delay, query, recent: recent.slice(), countdown: cd && { mode: cd.mode, at: cd.at, n: cd.n, what: cd.what }, open: [...openSecs], effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
+    debug: () => ({ cue: effective() || null, what: R.describe(mine.state), words: nowWords(mine.state), mode, admin, mine: mine.state, pend: pend && pend.state, queued: dirtyMe(), live, liveNext, delay, query, recent: recent.slice(), countdown: cd && { mode: cd.mode, at: cd.at, n: cd.n, what: cd.what }, open: [...openSecs], effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
     destroy() {
       destroyed = true; clearInterval(tick); clearInterval(musicT); clearTimeout(typeT); clearTimeout(nextT); clearTimeout(goT);
       if (cd) clearInterval(cd.iv);
@@ -818,7 +847,8 @@ export function createRemote({ scene, api = apiCall }) {
       if (unsub) { try { unsub(); } catch { /* fine */ } }
       if (bar) bar.remove();
       if (sheet) sheet.remove();
-      chip = sheet = bar = xb = cdEl = null;
+      setMenuExtra('admin', null); setMenuCue(null);
+      sheet = bar = cdEl = null;
     },
   };
 }

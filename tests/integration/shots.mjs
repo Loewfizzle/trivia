@@ -120,6 +120,8 @@ const SCENE = {
   'panel-dots': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', on: { force: ['aurora', 'road-pass', 'neon-scheme'], scheme: 'halloween', wx: 'rain', when: '2026-10-24T23:00', speed: 20 } }],
   'panel-all': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', mode: 'all', cats: ['time'] }], 'panel-time': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['time', 'weather'], on: { wx: 'snow' } }],
   'panel-end': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', scroll: 1, mode: 'all', cats: '*' }],
+  // (9d: the rows with their hint lines — the WINTER section open, scrolled to it)
+  'panel-rows': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['winter'], scroll: 0.72 }],
   'panel-towers': ['2026-10-22T21:30', { qs: 'panel=1', act: 'panel', cats: ['lights'], scroll: 0.36, on: { force: ['spell'], text: 'HAPPY BIRTHDAY SAM &', tower: 'wordA,wordB,wordV' } }],
   // C2 — THE PANEL REWORK (full screen, nine sections): the legendaries + the people open; LIGHTS + MUSIC with the party on. The search
   // and the 3-2-1 chip: --js "__district.remote().search('rain')" / --js "__district.remote().close(), __district.remote().previewCountdown('me', 3)"

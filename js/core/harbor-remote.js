@@ -89,31 +89,34 @@ export const catOf = id => { const e = EV[id]; return e && CAT_IDS.has(e.cat) ? 
  *  the people on the promenade). Inside a section the rows sit in blocks: the panel's own controls + one block per event `group`. */
 // (WIN — the owner: "the panel is cluttered again": a SPEAKEASY section of its own — windows / signs / door; the rarely used debug +
 // compare rows in TOOLS at the bottom; PLAY ALL rows at the top of their section; the weather's rows in groups — rain / storm / fog / cold)
+// 9d — THE ADMIN PANEL (the owner, Oct 27: "put TIME closer to the top, if not the top — I use that one more than anything"; DECIDED):
+// TIME + the WEATHER's quick chips live in the PINNED "NOW" bar at the very top (always open: NOW_TIMES, NOW_WEATHER, the date's
+// holiday chips — nearHolidays); the sections below, by use: HOLIDAYS · SPEAKEASY (the windows inside) · SKY (+ the rest of the
+// weather) · LEGENDARY · PEOPLE + WORKERS · WINTER (the snow, the snowman, the plow) · WILDLIFE · HARBOR · LIGHTS + MUSIC · TOOLS
 export const SECTIONS = [
-  { id: 'sky', label: 'SKY' },
-  { id: 'legendary', label: 'LEGENDARY' },
-  { id: 'speakeasy', label: 'SPEAKEASY' },
   // (11a-1: THE HOLIDAYS — the date jump + every holiday moment on demand)
   { id: 'holidays', label: 'HOLIDAYS' },
+  { id: 'speakeasy', label: 'SPEAKEASY' },
+  { id: 'sky', label: 'SKY + WEATHER' },
+  { id: 'legendary', label: 'LEGENDARY' },
   { id: 'people', label: 'PEOPLE + WORKERS' },
+  { id: 'winter', label: 'WINTER' },
   { id: 'wildlife', label: 'WILDLIFE' },
   { id: 'harbor', label: 'HARBOR' },
-  { id: 'weather', label: 'WEATHER' },
-  { id: 'time', label: 'TIME' },
   { id: 'lightsmusic', label: 'LIGHTS + MUSIC' },
   { id: 'tools', label: 'TOOLS' },
 ];
 const SEC_IDS = new Set(SECTIONS.map(s => s.id));
 /** each area's section (the panel's own blocks use the same ids: time, holidays, weather, party, lights = PULSE, music, sounds, tools) */
 export const AREA_SECTION = {
-  time: 'time', holidays: 'holidays', weather: 'weather', sky: 'sky', lights: 'lightsmusic', signs: 'lightsmusic', party: 'lightsmusic',
+  time: 'sky', holidays: 'holidays', weather: 'sky', sky: 'sky', lights: 'lightsmusic', signs: 'lightsmusic', party: 'lightsmusic',
   speakeasy: 'speakeasy', music: 'lightsmusic', harbor: 'harbor', promenade: 'harbor', windows: 'speakeasy', workers: 'people',
   wildlife: 'wildlife', sounds: 'tools', tools: 'tools',
 };
 /** an event's section (an unknown id → TOOLS, never lost) */
 export const sectionOf = id => { const e = EV[id]; if (!e) return 'tools'; if (e.sec && SEC_IDS.has(e.sec)) return e.sec; return AREA_SECTION[catOf(id)] || 'tools'; };
 /** a section id, or an area id (the old categories: the tests' + the shots' openCats(['lights'])), → its section id (null = unknown) */
-export const toSection = id => (SEC_IDS.has(id) ? id : AREA_SECTION[id] || null);
+export const toSection = id => (SEC_IDS.has(id) ? id : id === 'now' ? null : AREA_SECTION[id] || null);
 /** the block heading an event sits under in its section (its group; a few areas name themselves first) */
 const BLOCK_PREFIX = { workers: 'WORKERS', windows: 'WINDOWS' };
 export const blockOf = id => { const e = EV[id]; if (!e) return ''; const p = BLOCK_PREFIX[e.cat]; return p && !(e.group || '').startsWith(p) ? `${p} · ${e.group}` : e.group || ''; };
@@ -199,16 +202,16 @@ export const EVENTS = [
   { id: 'moonbow', label: 'MOONBOW', cat: 'weather', group: 'RAINBOWS', night: true },
   { id: 'neonbow', label: 'NEON BOW', cat: 'weather', group: 'RAINBOWS', night: true },
   { id: 'lightning', label: 'LIGHTNING', cat: 'weather', group: 'WEATHER FX', hint: 'with WEATHER = STORM' },
-  { id: 'freeze', label: 'FROST', cat: 'weather', group: 'WEATHER FX' },
+  { id: 'freeze', sec: 'winter', label: 'FROST', cat: 'weather', group: 'THE COLD' },
   { id: 'halo', label: '22° SUN HALO', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL (a thin cirrostratus sky): the rare faint ring round the sun' },
-  { id: 'plow', label: 'THE PLOW', cat: 'weather', group: 'WINTER', hint: '9b: the plow truck clears the waterside road now — in view ~1 s after the tap, the salt truck right behind it; with snow on the ground' },
-  { id: 'salt', label: 'THE SALT TRUCK', cat: 'weather', group: 'WINTER', hint: '9b: the salt truck now — its fan of grains + the wet salted lane behind it' },
-  { id: 'shovel', label: 'SHOVELLING', cat: 'weather', group: 'WINTER', hint: '9b: the doorman shovels + salts the speakeasy steps; a shoveller on the front walk' },
-  { id: 'snowball', label: 'SNOWBALL FIGHT', cat: 'weather', group: 'WINTER', hint: '9b: kids on the plaza (snowy weekend afternoons)' },
-  { id: 'slip', label: 'A SLIP', cat: 'weather', group: 'WINTER', hint: '9b: a walker slips + catches themselves (thaw nights)' },
-  { id: 'snowman-build', label: 'SNOWMAN BUILDERS', cat: 'weather', group: 'WINTER', hint: '9b: the kids + a grown-up building the January snowman (with THE SNOWMAN at a stage)' },
-  { id: 'sign-melt', label: 'SIGN SNOW MELTING', cat: 'weather', group: 'WINTER', hint: '9b: the NEON sign\u2019s snow melting off the lit tubes ×20 (at night, with SNOW ON THE GROUND)' },
-  { id: 'awning-slab', label: 'AWNING SLAB', cat: 'weather', group: 'WINTER', hint: '9b: a slab of snow slides off the speakeasy awning (needs snow on the ground: SNOW ON THE GROUND in THE WEATHER)' },
+  { id: 'plow', sec: 'winter', label: 'THE PLOW', cat: 'weather', group: 'SNOW DAYS', hint: '9b: the plow truck clears the waterside road now — in view ~1 s after the tap, the salt truck right behind it; with snow on the ground' },
+  { id: 'salt', sec: 'winter', label: 'THE SALT TRUCK', cat: 'weather', group: 'SNOW DAYS', hint: '9b: the salt truck now — its fan of grains + the wet salted lane behind it' },
+  { id: 'shovel', sec: 'winter', label: 'SHOVELLING', cat: 'weather', group: 'SNOW DAYS', hint: '9b: the doorman shovels + salts the speakeasy steps; a shoveller on the front walk' },
+  { id: 'snowball', sec: 'winter', label: 'SNOWBALL FIGHT', cat: 'weather', group: 'SNOW DAYS', hint: '9b: kids on the plaza (snowy weekend afternoons)' },
+  { id: 'slip', sec: 'winter', label: 'A SLIP', cat: 'weather', group: 'SNOW DAYS', hint: '9b: a walker slips + catches themselves (thaw nights)' },
+  { id: 'snowman-build', sec: 'winter', label: 'SNOWMAN BUILDERS', cat: 'weather', group: 'SNOW DAYS', hint: '9b: the kids + a grown-up building the January snowman (with THE SNOWMAN at a stage)' },
+  { id: 'sign-melt', sec: 'winter', label: 'SIGN SNOW MELTING', cat: 'weather', group: 'SNOW DAYS', hint: '9b: the NEON sign\u2019s snow melting off the lit tubes ×20 (at night, with SNOW ON THE GROUND)' },
+  { id: 'awning-slab', sec: 'winter', label: 'AWNING SLAB', cat: 'weather', group: 'SNOW DAYS', hint: '9b: a slab of snow slides off the speakeasy awning (needs snow on the ground: SNOW ON THE GROUND in THE WEATHER)' },
   { id: 'climate', label: 'CLIMATE FALLBACK', cat: 'weather', group: 'WEATHER FX', hint: '9b: the weather as if the live ask failed — this date + place from the climate normals (+ its snow on the ground)' },
   { id: 'sundogs', label: 'SUN DOGS', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL: the 22° halo + its two sun dogs (the rarer bonus)' },
   { id: 'beams', label: 'SKY BEAMS', cat: 'party', group: 'PARTY · ANY NIGHT', night: true, hint: 'the party’s vertical beams from the tall towers' },
@@ -345,6 +348,8 @@ export function checkRegistry() {
   }
   if (CAT_IDS.size !== CATS.length) bad.push('cats:dup');
   if (SEC_IDS.size !== SECTIONS.length) bad.push('sections:dup');
+  // (9d: no duplicates — one label, one row, in one section)
+  { const seen = new Map(); for (const e of PANEL_EVENTS) { const k = `${e.label}`; if (seen.has(k)) bad.push(`label:dup:${k}:${seen.get(k)}+${e.id}`); else seen.set(k, e.id); } }
   for (const c of CATS) if (!SEC_IDS.has(AREA_SECTION[c.id])) bad.push(`area:${c.id}`);
   return bad;
 }
@@ -360,7 +365,16 @@ export const TIMES = [
   { id: 'golden', label: 'GOLDEN HOUR' }, { id: 'sunset', label: 'SUNSET' }, { id: 'dusk', label: 'DUSK' }, { id: 'night', label: 'NIGHT' },
   // (DT1: the blue hour's power-up from late golden hour; the power-down before sunrise — watch them at SPEED 20)
   { id: 'late', label: '3 AM', more: true }, { id: 'powerdown', label: 'POWER-DOWN', more: true }, { id: 'dawn', label: 'DAWN', more: true }, { id: 'powerup', label: 'POWER-UP', more: true },
+  // (9d: the NOW bar's two set hours)
+  { id: '10pm', label: '10 PM', more: true },
 ];
+// (9d: 2 AM first among the MORE rows — the list stays in the clock's order)
+TIMES.splice(TIMES.findIndex(t => t.id === 'late'), 0, { id: '2am', label: '2 AM', more: true });
+/** 9d — THE NOW BAR's time chips, in the day's order (the owner's list: dawn · morning · noon · golden hour · dusk · 10 pm · 2 am · TODAY —
+ *  TODAY is the panel's own: back to the real clock); the rest of TIMES sits under MORE TIME */
+export const NOW_TIMES = ['dawn', 'morning', 'noon', 'golden', 'dusk', '10pm', '2am'];
+/** 9d — THE NOW BAR's weather chips (WEATHER ids; a tap on the one that's on = back to the real weather) + their short labels */
+export const NOW_WEATHER = [['clear', 'CLEAR'], ['clouds', 'CLOUDS'], ['rain', 'RAIN'], ['storm', 'STORM'], ['snow', 'SNOW'], ['fog', 'FOG'], ['freezing', 'FREEZE'], ['windy', 'WINDY']];
 export const SPEEDS = [1, 20, 60];
 /** 9b: SNOW ON THE GROUND (&snow=; AUTO = the real ground — the live depth, the climate's on a preview clock) */
 /** 9b: THE JANUARY SNOWMAN's stages (&snowman=; AUTO = the real one) */
@@ -411,6 +425,20 @@ export const HOLIDAYS = [
   { id: 'christmas', label: 'CHRISTMAS', date: () => ({ m: 12, d: 25 }) },
   { id: 'nye', label: 'NEW YEAR’S EVE', date: () => ({ m: 12, d: 31 }) },
 ];
+/**
+ * 9d — THE DATE's HOLIDAY CHIPS (the NOW bar): the holidays coming up within `days` of `today` ({ y, m, d }) — this year's or next
+ * year's — soonest first, at most `n` (PURE). Today's own holiday counts (0 days).
+ */
+export function nearHolidays(today, n = 3, days = 50) {
+  const t0 = Date.UTC(today.y, today.m - 1, today.d), out = [];
+  for (const hd of HOLIDAYS) for (const y of [today.y, today.y + 1]) {
+    const dt = hd.date(y), dd = Math.round((Date.UTC(y, dt.m - 1, dt.d) - t0) / 864e5);
+    if (dd >= 0 && dd <= days) { out.push({ id: hd.id, label: hd.label, days: dd }); break; }
+  }
+  return out.sort((a, b) => a.days - b.days || HOLIDAYS.findIndex(h => h.id === a.id) - HOLIDAYS.findIndex(h => h.id === b.id)).slice(0, n);
+}
+/** 9d: a row's hint as the line under its label — the build's tag (9b:, FP3b —, WIN:) left off */
+export const shortHint = t => String(t || '').replace(/^\s*(?:[A-Z]{0,4}\d+[a-z]?\d?|[A-Z]+)\s*(?::|—|-)\s*/, '').trim();
 /** WIN — PLAY ALL (the owner): ONE button per catalogue that plays every row in turn, each its full length, in its own window / spot,
  *  looping until stopped — a sequencer in the panel (remote.js#playAll) on THIS phone (JUST ME): the day rows by day, the night rows
  *  tonight (the clock jumps once per half), a holiday row on its holiday's night. The same idea for every catalogue below. */
@@ -419,7 +447,7 @@ export const PLAY_ALL = Object.freeze([
   { kind: 'holidays', sec: 'holidays', label: 'PLAY ALL HOLIDAY MOMENTS', hint: 'every holiday piece in turn on its holiday’s night, 45 s each' },
   { kind: 'wildlife', sec: 'wildlife', label: 'PLAY ALL ANIMALS', hint: 'every animal + behaviour in turn, 45 s each' },
   { kind: 'workers', sec: 'people', label: 'PLAY ALL WORKERS', hint: 'every worker’s show in turn, 60 s each' },
-  { kind: 'winter', sec: 'weather', label: 'PLAY ALL WINTER', hint: '9c: the plow + the salt truck, the shovellers, the snowball fight, the slip, the snowman’s builders, the sign’s snow melting, the awning slab — each with its snow on the ground + at its own hour, 40 s each' },
+  { kind: 'winter', sec: 'winter', label: 'PLAY ALL WINTER', hint: '9c: the plow + the salt truck, the shovellers, the snowball fight, the slip, the snowman’s builders, the sign’s snow melting, the awning slab — each with its snow on the ground + at its own hour, 40 s each' },
 ]);
 /** 9c — PLAY ALL WINTER: each winter row's own set-up (the snow on the ground it needs, snow falling, its hour) */
 const WINTER_PLAY = {
@@ -441,7 +469,7 @@ export function playlistOf(kind) {
     { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', len: 90, night: true, hol: null, hour: PARTY_HOUR }];   // (WIN3: the rooms up one by one over ~60 s, then the dancing)
   else {
     const holOf = e => (e.group === 'HALLOWEEN' || e.group === 'ON THE WATER' ? 'halloween' : e.group === 'DAY OF THE DEAD' ? 'dotd' : e.group === 'THANKSGIVING' ? 'thanksgiving' : null);
-    const rows = PANEL_EVENTS.filter(e => !e.id.startsWith('no-') && (kind === 'holidays' ? e.cat === 'holidays' : kind === 'wildlife' ? e.cat === 'wildlife' : kind === 'workers' ? e.cat === 'workers' : kind === 'winter' ? e.group === 'WINTER' : false));
+    const rows = PANEL_EVENTS.filter(e => !e.id.startsWith('no-') && (kind === 'holidays' ? e.cat === 'holidays' : kind === 'wildlife' ? e.cat === 'wildlife' : kind === 'workers' ? e.cat === 'workers' : kind === 'winter' ? e.group === 'SNOW DAYS' : false));
     if (kind === 'winter') return rows.map(e => { const w = WINTER_PLAY[e.id] || { state: { snow: 'fresh' }, hour: 13 }; return { id: e.id, label: e.label, len: 40, night: !!w.night, hol: null, hour: w.hour, state: w.state }; });   // (the plow first, in the catalogue's order)
     items = rows.map(e => ({ id: e.id, label: e.label, len: kind === 'workers' ? 60 : 45, night: !!e.night, hol: kind === 'holidays' ? holOf(e) : null, hour: e.night ? 22.5 : 14 }));
   }
@@ -488,7 +516,7 @@ export function timeAt(id, day, tz, lat, lon) {
   const wall = ms => { const lp = localParts(ms, tz); return lp.h * 60 + lp.mi; };
   const rise = st.rise != null ? wall(st.rise) : 7 * 60, set = st.set != null ? wall(st.set) : 19 * 60;
   const mins = { dawn: rise - 22, sunrise: rise + 5, sunset: set - 5, morning: rise + 100, noon: Math.round((rise + set) / 2), afternoon: Math.round((rise + set) / 2) + 180,
-    golden: set - 40, dusk: set + 16, night: 22 * 60 + 30, late: 3 * 60, powerup: set - 28, powerdown: rise - 52 }[id];
+    golden: set - 40, dusk: set + 16, night: 22 * 60 + 30, late: 3 * 60, powerup: set - 28, powerdown: rise - 52, '10pm': 22 * 60, '2am': 2 * 60 }[id];
   if (mins == null) return null;
   const v = Math.max(0, Math.min(23 * 60 + 59, Math.round(mins)));
   return `${day}T${pad(Math.floor(v / 60))}:${pad(v % 60)}`;

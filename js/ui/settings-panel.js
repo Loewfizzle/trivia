@@ -203,11 +203,20 @@ function hideHint() { if (!hint) return; const el = hint; hint = null; el.classL
 // In a game the corner holds two buttons: ☰ (this menu) and the music on/off. The menu drops down a glass panel with
 // CHAT (unread count; locked during play in some games), HOW TO PLAY, SETTINGS and THIS GAME (QUIT TO LOBBY, and for
 // the host END GAME FOR EVERYONE). Outside games the title, lobby and THE BOARD keep the gear + music pair.
-let menuBtn = null, menuPanel = null, chatMod = null, chatUi = null;
+let menuBtn = null, menuPanel = null, chatMod = null, chatUi = null, cueEl = null, cueKind = null;
+// 9d — EXTRA ROWS at the menu's BOTTOM + a CUE on ☰ (the owner: "move the TEST pill into the menu … at the bottom, call it ADMIN —
+// that way it's not taking up anything on my screen"): the Harbor's preview panel registers its ADMIN row here (admins only), and
+// while a preview is on, a small coloured dot on ☰ says so (JUST ME green, EVERYONE pink) — never a forced city mistaken for the real one
+const menuExtras = new Map();
+/** a row for the menu's bottom: render({ close }) → an element (or null), or null to remove it */
+export function setMenuExtra(id, render) { if (render) menuExtras.set(id, render); else menuExtras.delete(id); }
+/** the cue on ☰: 'me' | 'all' | null */
+export function setMenuCue(kind) { cueKind = kind || null; if (cueEl) { cueEl.hidden = !cueKind; cueEl.dataset.k = cueKind || ''; } if (menuBtn) menuBtn.setAttribute('aria-label', cueKind ? `Menu — a preview is on (${cueKind === 'me' ? 'just me' : 'everyone'})` : 'Menu'); }
 function installGameMenu() {
   const dot = h('i.mb-dot', { hidden: true });
+  cueEl = h('i.mb-cue', { hidden: !cueKind, dataset: { k: cueKind || '' }, 'aria-hidden': 'true' });
   menuBtn = h('button.menu-btn', { type: 'button', 'aria-label': 'Menu', 'aria-expanded': 'false', onclick: () => (menuPanel ? closeMenu() : openMenu()) },
-    h('span.mb-bars', h('i'), h('i'), h('i')), dot);
+    h('span.mb-bars', h('i'), h('i'), h('i')), dot, cueEl);
   document.body.append(menuBtn);
   import('../chat/chat.js').then(m => {
     chatMod = m;
@@ -248,6 +257,8 @@ function openMenu() {
   rows.push(item('HOW TO PLAY', null, () => { closeMenu(); openHelp(playing ? state.game.id : undefined); }));
   rows.push(item('SETTINGS', inRoom ? 'Sound, controls, room' : 'Sound and controls', () => { closeMenu(); open(); }));
   rows.push(item('CREDITS', null, () => { closeMenu(); import('./credits.js').then(m => m.openCredits()).catch(() => {}); }));   // (SP6: the CC BY credits)
+  // (9d: the registered extras — the Harbor's ADMIN row — at the very bottom, outside a game)
+  if (!inGame) for (const render of menuExtras.values()) { let el = null; try { el = render({ close: closeMenu }); } catch { el = null; } if (el) rows.push(h('div.gm-sep'), el); }
   if (inGame) {
     rows.push(h('div.gm-sep'));
     rows.push(armed('QUIT TO LOBBY', 'TAP AGAIN TO QUIT', 'The others keep playing', () => { setState({ quit: state.game.matchId }); toast('YOU LEFT THE GAME — YOU’LL BE DEALT INTO THE NEXT ONE', 'info', 3200); }));

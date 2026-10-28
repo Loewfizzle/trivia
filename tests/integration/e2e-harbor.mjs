@@ -119,13 +119,16 @@ const settled = (p, what = 'settled', ms = 15000) => waitFor(p, '!window.__distr
 
 // ================================================================ THE PREVIEW PANEL (the owner's test remote; ONLY=panel runs just this)
 async function panelSection() {
-  // ---- JUST ME: the TEST pill + the sheet (&panel=1 under ?emu: the test switch — no admin profile here), live, no reload
+  // ---- JUST ME: 9d — no pill on the screen: the ☰ menu's ADMIN row (its bottom, admins only) opens the sheet (&panel=1 under ?emu: the
+  // test switch — no admin profile here), live, no reload
   const O = await open({ slot: 'hp', qs: `${NIGHT}&panel=1` });
   await harborUp(O.page);
-  await waitFor(O.page, '!!document.querySelector(".hr-pill")', 'the TEST pill', 10000);
-  const pill = await ev(O.page, `(() => { const b = document.querySelector('.hr-pill').getBoundingClientRect(); const hits = [...document.querySelectorAll('.menu-btn, .music-btn, .nd-actions, .nd-sign')].map(e => e.getBoundingClientRect()).filter(r => r.width && b.left < r.right && r.left < b.right && b.top < r.bottom && r.top < b.bottom); return { w: b.width, h: b.height, hits: hits.length }; })()`);
-  ok(pill.w >= 44 && pill.h >= 44 && pill.hits === 0, `PANEL: the TEST pill (${Math.round(pill.w)}×${Math.round(pill.h)} pt target) clear of the corner buttons, the sign and the dock`);
-  await tap(O.page, '.hr-pill');
+  await waitFor(O.page, 'window.__district.remote() && window.__district.remote().debug().admin', 'the admin panel ready', 10000);
+  await tap(O.page, '.menu-btn');
+  await waitFor(O.page, '!!document.querySelector(".gm-adm .gm-item")', 'the ADMIN row', 5000);
+  const adm = await ev(O.page, `(() => { const a = document.querySelector('.gm-adm'), b = a.querySelector('.gm-item').getBoundingClientRect(); return { last: a === a.parentNode.lastElementChild, h: b.height, txt: a.textContent, pill: !!document.querySelector('.hr-pill'), cue: !document.querySelector('.menu-btn .mb-cue').hidden }; })()`);
+  ok(adm.last && adm.h >= 44 && /ADMIN/.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on`);
+  await tap(O.page, '.gm-adm .gm-item');
   await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);
   // SP4 (the owner: the readouts drew on top of the open panel): body.hr-sheet-open while the sheet is up — debug-strip.js hides the column
@@ -136,7 +139,8 @@ async function panelSection() {
   const R0 = await import('../../js/core/harbor-remote.js');
   const sheetUp = async p => { await waitFor(p, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(p, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(300); };
   const closeSheet = async p => { await ev(p, 'window.__district.remote().close()'); await waitFor(p, '!document.querySelector(".hr-modal")', 'the sheet gone', 4000); };
-  const reopen = async p => { await tap(p, '.hr-pill'); await sheetUp(p); };
+  const openAdmin = async p => { await tap(p, '.menu-btn'); await waitFor(p, '!!document.querySelector(".gm-adm .gm-item")', 'the ADMIN row', 5000); await tap(p, '.gm-adm .gm-item'); };
+  const reopen = async p => { await openAdmin(p); await sheetUp(p); };
   await ev(O.page, 'window.__district.remote().delay(0)');
   {
     const c = await ev(O.page, `(() => { const secs = [...document.querySelectorAll('.hr-sheet .hr-s')], sh = document.querySelector('.hr-sheet').getBoundingClientRect(); return { secs: secs.map(s => s.dataset.sec), open: secs.filter(s => s.classList.contains('is-open') || !s.querySelector('.hr-body').hidden).length,
@@ -228,7 +232,7 @@ async function panelSection() {
   await closeSheet(O.page);
   const tc = Date.now();
   await waitFor(O.page, '!!document.querySelector(".hr-cd")', 'the countdown chip', 2000);
-  const cdc = await ev(O.page, `(() => { const c = document.querySelector('.hr-cd'), r = c.getBoundingClientRect(), p = document.querySelector('.hr-pill').getBoundingClientRect(); return { t: c.textContent, mode: c.dataset.mode, near: Math.abs(r.top + r.height / 2 - (p.top + p.height / 2)) < 30 }; })()`);
+  const cdc = await ev(O.page, `(() => { const c = document.querySelector('.hr-cd'), r = c.getBoundingClientRect(), p = document.querySelector('.menu-btn').getBoundingClientRect(); return { t: c.textContent, mode: c.dataset.mode, near: Math.abs(r.top + r.height / 2 - (p.top + p.height / 2)) < 30 }; })()`);
   await waitFor(O.page, "window.__district.harbor().flags.force.includes('aurora')", 'the queue starts', 6000);
   const dt = Date.now() - tc;
   f1 = await flags(O.page);
@@ -276,12 +280,15 @@ async function panelSection() {
   await waitFor(O.page, "window.__district.harbor().flags.remote && window.__district.harbor().flags.force.includes('spell')", 'JUST ME after a reload', 8000);
   ok((await flags(O.page)).q.text === 'HEY YOU', 'JUST ME: a refresh keeps it (this tab)');
   // CLEAR ALL: back to the real city at once, no countdown (the page's own flags: the link's &at keeps clear weather)
-  await waitFor(O.page, '!!document.querySelector(".hr-pill")', 'the pill again', 10000);
+  await waitFor(O.page, 'window.__district.remote() && window.__district.remote().debug().admin', 'the admin panel again', 10000);
+  // (9d: the cue on ☰ says a preview is on — JUST ME green)
+  ok(await ev(O.page, "(() => { const c = document.querySelector('.menu-btn .mb-cue'); return !!c && !c.hidden && c.dataset.k === 'me'; })()"), '9d THE CUE: a JUST ME preview on → the green dot on ☰');
   await reopen(O.page);
   // (the sections opened before the reload are open again — this device remembers; the pinned top stays in view at the bottom)
   { const r = await ev(O.page, `(() => { const s = document.querySelector('.hr-sheet'); s.scrollTop = s.scrollHeight; const open = [...document.querySelectorAll('.hr-s.is-open')].map(x => x.dataset.sec).sort();
-      const sb = s.getBoundingClientRect(), cb = document.querySelector('.hr-clear').getBoundingClientRect(); return { open, pinned: s.scrollTop > 100 && cb.top >= sb.top && cb.bottom <= sb.top + sb.height * 0.6, stored: JSON.parse(localStorage.getItem('nd:hr-open') || '[]').sort() }; })()`);
-    ok(['lightsmusic', 'sky', 'time', 'weather'].every(c => r.open.includes(c) && r.stored.includes(c)) && r.pinned, `PANEL: the open sections remembered on this device (${r.open.join(', ')}); CLEAR ALL pinned at the top when scrolled to the bottom (${r.pinned})`); }
+      const sb = s.getBoundingClientRect(), cb = document.querySelector('.hr-q').getBoundingClientRect(); return { open, pinned: s.scrollTop > 100 && cb.top >= sb.top && cb.bottom <= sb.top + sb.height * 0.3, stored: JSON.parse(localStorage.getItem('nd:hr-open') || '[]').sort() }; })()`);
+    ok(['lightsmusic', 'sky'].every(c => r.open.includes(c) && r.stored.includes(c)) && r.pinned, `PANEL: the open sections remembered on this device (${r.open.join(', ')}); the title + the search pinned at the top when scrolled to the bottom (${r.pinned})`); }
+  await ev(O.page, "document.querySelector('.hr-sheet').scrollTop = 0"); await sleep(200);
   await tap(O.page, '.hr-clear');
   await waitFor(O.page, '!window.__district.harbor().flags.remote', 'cleared', 5000);
   await waitFor(O.page, '!window.__district.harbor().windows.spelling', 'the word gone', 5000);
@@ -447,20 +454,22 @@ async function neonPass5Panel() {
   await waitFor(L1.page, 'window.__district.party().on > 0.5', 'the link\'s party', 10000).catch(() => {});
   const f1 = await flags(L1.page), p1 = await ev(L1.page, 'window.__district.party()');
   ok(!f1.remote && p1.on > 0.5 && f1.wx !== 'rain', `A LINK'S OWN SETTINGS WIN: a leftover JUST ME (party off, rain) dropped for the party link (party ${p1.on}, wx ${f1.wx})`);
-  // the chip: JUST ME on → the pill says what, the ✕ clears it in one tap
-  await ev(L1.page, "window.__district.remote().setMine({ party: 'on', force: ['aurora'] })");
-  await waitFor(L1.page, "!!document.querySelector('.hr-pill') && /JUST ME/.test(document.querySelector('.hr-lbl').textContent) && !document.querySelector('.hr-x').hidden", 'the JUST ME chip', 6000);
-  const chipTxt = await ev(L1.page, "document.querySelector('.hr-lbl').textContent"), xr = await ev(L1.page, "(() => { const r = document.querySelector('.hr-x').getBoundingClientRect(); return { w: r.width, h: r.height }; })()");
-  await tap(L1.page, '.hr-x');
-  await waitFor(L1.page, '!window.__district.harbor().flags.remote', 'cleared by the ✕', 5000);
-  ok(/AURORA/.test(chipTxt) && xr.w >= 44 && xr.h >= 44, `THE JUST ME CHIP: "${chipTxt}" + a ${Math.round(xr.w)}×${Math.round(xr.h)} pt ✕ — one tap back to the link`);
+  // 9d — JUST ME on → the cue on ☰ + the ADMIN row says what, its CLEAR back to the link in one tap
+  await ev(L1.page, "window.__district.remote().setMine({ party: 'on', force: ['aurora'], when: '2026-10-27T22:30' })");
+  await waitFor(L1.page, "(() => { const c = document.querySelector('.menu-btn .mb-cue'); return !!c && !c.hidden; })()", 'the cue on ☰', 6000);
+  await tap(L1.page, '.menu-btn');
+  await waitFor(L1.page, "!!document.querySelector('.gm-adm .gm-adm-x')", 'the ADMIN row + CLEAR', 5000);
+  const chipTxt = await ev(L1.page, "document.querySelector('.gm-adm .gm-item').textContent"), xr = await ev(L1.page, "(() => { const r = document.querySelector('.gm-adm-x').getBoundingClientRect(); return { w: r.width, h: r.height }; })()");
+  await tap(L1.page, '.gm-adm-x');
+  await waitFor(L1.page, '!window.__district.harbor().flags.remote', 'cleared by the ADMIN row', 5000);
+  ok(/JUST ME · 10\/27 22:30/.test(chipTxt) && xr.w >= 44 && xr.h >= 44, `9d THE ADMIN ROW while JUST ME is on: "${chipTxt}" + a ${Math.round(xr.w)}×${Math.round(xr.h)} pt CLEAR — one tap back to the link`);
   const linkParty = await ev(L1.page, '({ beams: window.__district.harbor().skyBeams.beams.length, pal: window.__district.harbor().neon.pal.on })');
   await L1.ctx.close();
   // PARTY ON by day (no time picked) = the party link: the clock jumps to tonight, the same show
   const D = await open({ slot: 'hd2', qs: `when=2026-10-22T13:00${GR}&panel=1`, view: [402, 874] });
   await harborUp(D.page);
-  await waitFor(D.page, '!!document.querySelector(".hr-pill")', 'the TEST pill', 10000);
-  await tap(D.page, '.hr-pill');
+  await waitFor(D.page, 'window.__district.remote() && window.__district.remote().debug().admin', 'the admin panel ready', 10000);
+  await tap(D.page, '.menu-btn'); await waitFor(D.page, '!!document.querySelector(".gm-adm .gm-item")', 'the ADMIN row', 5000); await tap(D.page, '.gm-adm .gm-item');
   await waitFor(D.page, "!!document.querySelector('.hr-sheet') && document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 6000);
   // (C2: PARTY ON sits in LIGHTS + MUSIC → PARTY SHOW — the section collapsed at first: a tap on its header opens it; the sheet's
   // close starts it — the delay NOW here)
@@ -1383,7 +1392,7 @@ G('music', async () => {
     await ev(P.page, "window.__district.remote().setMine({ mood: 'party' })");
     await changed(P.page, first, 'the panel forces PARTY');
     const now = await ev(P.page, NOW);
-    ok(deck('party').includes(now), `PANEL: MOOD = PARTY plays the party deck (${now}); the chip reads "${await ev(P.page, "document.querySelector('.hr-lbl').textContent")}"`);
+    ok(deck('party').includes(now), `PANEL: MOOD = PARTY plays the party deck (${now}); the cue on ☰: ${await ev(P.page, "window.__district.remote().debug().cue")}`);
     await ev(P.page, 'window.__district.remote().open()');
     await waitFor(P.page, `[...document.querySelectorAll('.hr-h')].some(h => h.textContent === 'MUSIC')`, 'the MUSIC section', 5000);
     const btns = await ev(P.page, `[...[...document.querySelectorAll('.hr-sec')].find(s => s.querySelector('.hr-h').textContent === 'MUSIC').querySelectorAll('.hr-b')].map(b => b.textContent)`);
@@ -3170,9 +3179,9 @@ G('panelrows', async () => {
     await ev(Q.page, 'window.__district.remote().close()');
     const want = id ? `(() => { const L = window.__district.harbor().speakeasy.life; return L.forced === '${id}' && L.on.some(o => o.id === '${id}'); })()` : row.id === 'window-party' ? `(() => { const P = window.__district.harbor().speakeasy.life.party; return !!(P && P.on && P.forced); })()` : `window.__district.harbor().flags.force.includes('${row.id}')`;
     const went = at ? await waitFor(Q.page, want, row.label, 6000).then(() => true).catch(() => false) : false;
-    const st = await ev(Q.page, `(() => { const H = window.__district.harbor(), L = H.speakeasy.life, me = JSON.parse(sessionStorage.getItem('nd:hr-me') || '{}').state || {}; return { h: +L.h.toFixed(2), on: L.on.map(o => o.id + '@' + o.win), when: me.when || null, pill: (document.querySelector('.hr-pill') || {}).textContent || '' }; })()`);
+    const st = await ev(Q.page, `(() => { const H = window.__district.harbor(), L = H.speakeasy.life, me = JSON.parse(sessionStorage.getItem('nd:hr-me') || '{}').state || {}; return { h: +L.h.toFixed(2), on: L.on.map(o => o.id + '@' + o.win), when: me.when || null, pill: window.__district.remote().debug().what, words: window.__district.remote().debug().words }; })()`);
     const winOk = !m || st.on.some(o => o.startsWith(id + '@') && (m.windows === 'all' || m.windows.includes(o.split('@')[1])));
-    const hourOk = inHours(m, st.h), named = st.pill.includes(row.label) && (!m || / \d\d:\d\d$/.test(st.pill));
+    const hourOk = inHours(m, st.h), named = st.pill.includes(row.label) && (!m || / \d\d:\d\d$/.test(st.words));   // (9d: what the ADMIN row + the status say — the pill is gone)
     if (went && winOk && hourOk && named) fired++;
     ok(!!at && went && winOk && hourOk && named, `THE ROW ${row.label}: ${at ? 'tapped' : 'NOT FOUND in the sheet'} → ${went ? 'fires' : 'NOTHING'} (${st.on.join(', ') || 'nothing on'}) at ${st.h} (${st.when || 'no jump'}${m ? `, allowed ${m.at != null ? `~${m.at}:00` : m.hours ? m.hours.join('–') : 'any hour'}` : ''}), the pill "${st.pill}"`);
   }

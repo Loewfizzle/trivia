@@ -6,13 +6,14 @@ import { momentWhen, momentHour, itemWhen, EVENTS, PANEL_EVENTS, CATS, SECTIONS,
 import { MOMENTS } from '../js/core/harbor-moments.js';
 
 test('the panel: eleven sections in the owner\'s order (WIN: SPEAKEASY of its own); every area + every row lands in one; nothing dropped', () => {
-  assert.deepEqual(SECTIONS.map(s => s.label), ['SKY', 'LEGENDARY', 'SPEAKEASY', 'HOLIDAYS', 'PEOPLE + WORKERS', 'WILDLIFE', 'HARBOR', 'WEATHER', 'TIME', 'LIGHTS + MUSIC', 'TOOLS']);
+  // (9d — THE ADMIN PANEL: the sections by use; TIME + the weather's chips are the pinned NOW bar above them)
+  assert.deepEqual(SECTIONS.map(s => s.label), ['HOLIDAYS', 'SPEAKEASY', 'SKY + WEATHER', 'LEGENDARY', 'PEOPLE + WORKERS', 'WINTER', 'WILDLIFE', 'HARBOR', 'LIGHTS + MUSIC', 'TOOLS']);
   const ids = new Set(SECTIONS.map(s => s.id));
   for (const c of CATS) assert.ok(ids.has(AREA_SECTION[c.id]), `${c.id}: its section`);
   for (const e of EVENTS) assert.ok(ids.has(sectionOf(e.id)), `${e.id}: a section`);
   assert.deepEqual(checkRegistry(), []);
   // every section holds rows (its own controls: time, holidays, weather, party, music, pulse, tools, sounds — or events)
-  const own = { time: 1, weather: 1, lightsmusic: 1, tools: 1 };
+  const own = { sky: 1, winter: 1, lightsmusic: 1, tools: 1 };
   for (const s of SECTIONS) assert.ok(own[s.id] || PANEL_EVENTS.some(e => sectionOf(e.id) === s.id), `${s.id}: not empty`);
   assert.equal(sectionOf('nope'), 'tools', 'an unknown id → TOOLS, never lost');
 });
@@ -29,7 +30,9 @@ test('the panel: the mapping — the legendaries together, the birds with the wi
   for (const id of ['no-people', 'no-work', 'no-wildlife', 'no-dance', 'no-halo', 'lamps-off', 'centrepiece-test', 'first-tap']) assert.equal(sectionOf(id), 'tools', id);
   for (const m of MOMENTS) assert.equal(sectionOf(`window-${m.id}`), m.rarity === 'legendary' ? 'legendary' : 'speakeasy', m.id);
   for (const id of ['taxi', 'rosie-turn', 'ships-bell', 'season-winter', 'road-pass', 'wet-street']) assert.equal(sectionOf(id), 'harbor', id);
-  for (const id of ['rainbow', 'moonbow', 'lightning', 'sundogs']) assert.equal(sectionOf(id), 'weather', id);
+  for (const id of ['rainbow', 'moonbow', 'lightning', 'sundogs']) assert.equal(sectionOf(id), 'sky', id);
+  // (9d: WINTER of its own — the snow days' work + play, the frost)
+  for (const id of ['plow', 'salt', 'shovel', 'snowball', 'slip', 'snowman-build', 'sign-melt', 'awning-slab', 'freeze']) assert.equal(sectionOf(id), 'winter', id);
   for (const id of ['spell', 'searchlights', 'neon-party', 'beams', 'burnout', 'lamps-on']) assert.equal(sectionOf(id), 'lightsmusic', id);
   for (const id of ['drones', 'banner', 'jets', 'flyby', 'aurora', 'fireworks', 'satellites']) assert.equal(sectionOf(id), 'sky', id);
   // the old category ids still open their section (the shots' + the tests' openCats(['lights']))
