@@ -1236,3 +1236,14 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
 - **The picks:** `core/city-sounds.js#SOUND_PICKS` + `pickTakes(kind, v)` (by the take's source — the registry's order follows the
   imports); `cityLoop(slot, { take })` (a loop's take; by default the first that isn't a BACKUP); the panel's inputs `horn` / `hum` /
   `depart` (core/harbor-remote.js: validated server-side too).
+
+## PROM — THE LEGENDARIES' SOUNDS LOADED AHEAD, THE IMPLOSION's NEW TIMELINE, THE PICKS' DEFAULTS (Oct 28 2026; City 2.0 — docs/harbor.md#prom)
+- **Loaded ahead** (the owner: the UFO's first spin-up was silent after opening the link): `screens/harbor/sounds.js#prefetchLegend` +
+  `legendReady`, `audio/city-sound.js#cityPrefetch(slot, i, { hold })` (PINNED out of the one-shots' LRU for the legendary's span) +
+  `cityReady(slot, i)`; scene.js#legendSoundsWarm asks every ½ s for a held link, tonight's due / running legendary + the implosion's
+  countdown. A link's start waits up to 4 s more for the key takes, a JUST ME preview up to 3 s; the hover's spin-up is placed on the run's
+  own clock (`sync: { mark: 'start' }`) — a late file joins part-way, never late over the loop.
+- **The implosion**: the siren's slot 0.16 → 0.176 (+10 %); the timeline (core/harbor-tower.js#IMPLODE): the siren → 10 s after it ends
+  HORN B's three blasts → 5 s after the last one the charges + the ONE crash (−42.6 / −22.1 −15.9 −9.7 / 0 s).
+- **The picks' defaults** (`core/city-sounds.js#SOUND_PICKS.def`): HORN **B** (warning-horn — the owner's pick), HUM **A** (ufo-hum-2),
+  DEPART **LAYERED** (Claude's picks — "your pick, they both sound good"); every other take stays a panel alternate.

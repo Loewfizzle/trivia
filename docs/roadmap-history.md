@@ -1495,3 +1495,19 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   (C synthesized). THE RIVET GUN: short seeded bursts, not a 40 s loop.
 - THE CRANE: the nearest of 133 one-degree frames (BNAME's blend thickened the lattice through each 3° step — measured, gone).
 - THE JOGGERS: a runner's leg (the heel tucked, the foot landing under the hips). THE DOCK FADE: 10 s first visit, 5 s after.
+
+## CITY 2.0 — PROM: THE PROMENADE, FINAL + the 9g follow-ups (Oct 28 2026) — docs/harbor.md#prom, docs/audio.md#prom
+- NO LAMPPOSTS: the implied lamps below the screen light the promenade (core/harbor-light.js#impliedAt); the shadows climb up the screen;
+  the lamps' life on the implied pools; the lampman retired.
+- The crosswalk lit at night (the back road's implied lamps + the crossing's pool, the signals tinting the asphalt); the wet reflections of
+  the neon, the door, the awning + the signals.
+- The layout: the compass r 1.8 / ring 3.05 at z 42.6 (centrepieces × centreK — today's size), the maple back to z 42 (its crown in the
+  front layer), THE CAB STAND bench at the front curb, the water bench facing the harbor, the cart at f 0.47 from the left, the hydrant at
+  f 0.035.
+- THE CAB STAND (core/harbor-cabs.js#standEvents): waiters sit, give up (walk off / hail a back-road cab); the taxi (cabstand.js) only while
+  the dock rests. The water bench's sitters + skyline couples. The doorman against the wall, his head following each guest. The awning lit
+  from underneath on its own hours.
+- The benches on full-dpr overlays that re-draw whoever stands in front; Grok's bench + hydrant models baked (scripts/bake/promenade.mjs) +
+  compared — the hand-drawn pieces stay.
+- Group 0: the legendaries' sounds fetched + pinned ahead; the implosion's new timeline + HORN B + the siren +10 %; HUM A + DEPART LAYERED
+  defaults; the joggers in shorts + singlets / grey sweatsuits, their arms tucked.
