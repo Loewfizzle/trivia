@@ -29,6 +29,7 @@ import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainb
 import { cameraFor, harborLayout, laneRects, roofline, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
 import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core/harbor-events.js';
 import { settings } from '../../audio/settings.js';
+import { onUnlock } from '../../audio/engine.js';
 import { reportError, recentErrors } from '../../errlog.js';
 import { createBaker } from './bake.js';
 import { toneWeights, toneKey, tones, sunLook, sunKey, harborSky, harborWeights } from './tones.js';
@@ -236,6 +237,38 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let pierLampsAt = [];
   let litFadeFrom = -1, litFadeMs = 1200, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
+  // 9g — A LEGENDARY FROM A LINK WAITS (the owner: the TR-3B "worked perfectly" from ☰ → ADMIN, glitched from &force=tr3b): a link used
+  // to start it AT THE LOAD — under the bake + the reveal, before the first tap unlocked the music (no song for the tape to slow). Now
+  // &force=ufo / tr3b / implosion from the page's own URL wait for THE REVEAL + THE FIRST TAP, then start LINK_LEAD ms later — a link
+  // behaves like the panel. ufo + tr3b leave the force set until then (their craft + the dark city pre-baked meanwhile:
+  // legends.prewarm); the implosion keeps its flag with its clock held at the countdown's start (the tower's look never jumps).
+  // &lgs= (a held still) and &builds= keep their own behaviour; &lgnow=1 = the old start at the load (the tests + shots that time it).
+  const LINK_LEAD = 4000;
+  const linkHeld = new Set();
+  if (qp.get('lgnow') !== '1') {
+    const held = qp.get('lgs') != null && qp.get('lgs') !== '';
+    for (const id of ['ufo', 'tr3b']) if (clock.force.has(id) && !held) { linkHeld.add(id); clock.force.delete(id); }
+    if (clock.force.has('implosion') && !(qp.get('builds') != null && qp.get('builds') !== '')) linkHeld.add('implosion');
+  }
+  let linkTapAt = null, linkGoAt = null;
+  // (the first TAP itself — touchend / click / a key, where iOS unlocks the audio — not the engine's unlock, which never comes on a
+  // browser that cannot make an AudioContext: the link would wait forever)
+  const linkTap = () => { if (linkTapAt == null) linkTapAt = performance.now(); for (const e of LINK_TAPS) window.removeEventListener(e, linkTap, true); };
+  const LINK_TAPS = ['touchend', 'click', 'keydown'];
+  if (linkHeld.size && typeof window !== 'undefined') { onUnlock(linkTap); for (const e of LINK_TAPS) window.addEventListener(e, linkTap, true); }
+  /** per frame: the gate opens LINK_LEAD after the later of the reveal + the first tap → the held ids join the force set */
+  function linkGate(now) {
+    if (!linkHeld.size) return;
+    if (linkGoAt == null) { if (shownAt >= 0 && linkTapAt != null) linkGoAt = Math.max(shownAt, linkTapAt) + LINK_LEAD; else return; }
+    if (now < linkGoAt) return;
+    const ids = [...linkHeld]; linkHeld.clear();
+    for (const id of ids) {
+      if (id === 'implosion') { forceSince.set('implosion', clock.now() / 1000); continue; }
+      pageClock.force.add(id);
+      if (!remoteKey || remoteKey === '~') clock.force.add(id);   // (a panel state on screen owns the force set; the link's flag waits under it)
+    }
+    LOADLOG.add('note', `9g: the link's ${ids.join(' + ')} started — ${Math.round((linkTapAt - shownAt) / 100) / 10} s from the reveal to the first tap, + ${LINK_LEAD / 1000} s`);
+  }
   // THE EVERYDAY SKY (Part 6a): the planes, the banner plane, skywriting + skytyping, the helicopter, the birds, balloons, the
   // drone show, the moon's + the aurora's art (screens/harbor/skyfx.js)
   // PART 6b — THE DIRECTOR (core/harbor-director.js): every heavy moment asks it before it starts — the spectacle budget per tier,
@@ -1416,7 +1449,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const f = clock.force;
     if (f.has('no-tower')) return null;
     const bk = qp.get('buildk'), k = bk != null && bk !== '' && Number.isFinite(+bk) ? +bk : null;
-    if (f.has('implosion')) { const s0 = forceAtOf('implosion'); const u = s0 == null ? 0 : clock.now() / 1000 - s0; return forcedTower('implosion', null, (((u % IMPLOSION_LOOP) + IMPLOSION_LOOP) % IMPLOSION_LOOP) + IMPLODE.siren - 10); }
+    if (f.has('implosion')) { const s0 = linkHeld.has('implosion') ? null : forceAtOf('implosion'); const u = s0 == null ? 0 : clock.now() / 1000 - s0; return forcedTower('implosion', null, (((u % IMPLOSION_LOOP) + IMPLOSION_LOOP) % IMPLOSION_LOOP) + IMPLODE.siren - 10); }
     const fb = f.has('build-standing') ? 'standing' : f.has('build-rubble') ? 'rubble' : f.has('build-cleanup') ? 'cleanup' : f.has('build-rising') ? 'rising' : f.has('build-topping') ? 'topping' : f.has('build-finishing') ? 'finishing' : f.has('build-opening') ? 'opening' : f.has('build-finished') ? 'finished' : null;
     const b = fb || qp.get('build');
     // (&builds=<s>: the implosion held at that second — the look review's frame-exact shots)
@@ -1542,7 +1575,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const fs = { centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
-    if (now - legendCheckAt > 1000) { legendCheckAt = now; if (!legends && (off.has('ufo') || off.has('tr3b') || legendSoon())) needLegends(); }
+    linkGate(now);
+    if (now - legendCheckAt > 1000) { legendCheckAt = now; if (!legends && (off.has('ufo') || off.has('tr3b') || linkHeld.has('ufo') || linkHeld.has('tr3b') || legendSoon())) needLegends(); }
+    if (legends && shownAt >= 0) for (const id of linkHeld) if (id !== 'implosion') legends.prewarm(id);   // (9g: the held link's craft + the dark city baked while it waits — after the reveal)
     // (THE DIRECTOR's view of this frame: what heavy is on screen now)
     director.frame([PT.on > 0.5 ? { id: 'party', kind: 'party' } : null, ...sky.heavies(), hsky && hsky.active && hsky.active() ? { id: 'ghost-ship', kind: 'legendary' } : null, legends && legends.active() ? { id: 'legend', kind: 'legendary' } : null], tier);
     if (legends) {
@@ -2273,6 +2308,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
    *  flight + a legendary are stopped, the forced events end with their flags. → the flags that were stripped (the panel's toast) */
   function realCity() {
     const gone = [];
+    linkHeld.clear();                                     // (9g: a link's legendary still waiting for its tap goes with the link)
     for (const k of PREVIEW_KEYS) if (pageQ.has(k)) { gone.push(k); pageQ.delete(k); }
     const c = skyClock('?' + pageQ.toString());
     pageClock = { now: c.now, wx: c.wx, speed: c.speed, tz: c.tz, preview: c.preview, force: new Set(c.force) };
@@ -2832,6 +2868,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       legend: { state: legends ? legends.debug() : { run: null, loaded: false, loading: legendsLoading },
         start: (kind, o = {}) => { const w = { kind, at: o.at || clock.now(), dir: o.dir || 1 }; if (legends) return legends.start(kind, w.at, w); legendWant = w; needLegends(); return true; },
         stop: () => { legendWant = null; if (legends) legends.stop(); }, power: (x, band) => legendPow(x, band || 'city', 0), drain: (d = 'city') => (legends ? legends.drainCols(d) : null), blackout: () => (legends ? legends.blackout() : null), dark: () => ({ far: !!darkOf('far'), near: !!darkOf('near') }),
+        link: { held: [...linkHeld], tap: linkTapAt, go: linkGoAt, shown: shownAt },   // (9g: a link's legendary waiting for the reveal + the first tap)
         hold: trafficHoldNow() /* (Oct 25: the traffic's hold — { t0, t1 (abs s), on }) */ },
       sounds: { ...snd.debug(), play: snd.play, loop: snd.loop, jets: snd.jets, bus: snd.bus, periscope: o => snd.periscope(o) },
       road: { ...roadLight.debug(), wash: o => roadLight.wash(o) },

@@ -77,19 +77,19 @@ const SCENES = {
   'np-windy': 'when=2026-10-14T21:30&wx=clear&wind=13&force=no-planes',
   // SP6: a normal night with the blue TV window on (23:00); the UFO's abduction (the beam drawn as one image now)
   's9-fresh': 'when=2027-01-15T22:00&wx=clear&snow=fresh&force=no-planes', 's9-fall': 'when=2027-01-14T22:30&snow=fresh&force=snowfall,no-planes', 's9-plow': 'when=2027-01-14T13:00&snow=fresh&force=plow,no-planes', 's9-thaw': 'when=2027-01-15T22:00&wx=clear&snow=thaw&force=no-planes', 's9-party': 'when=2027-01-15T22:30&wx=clear&snow=fresh&force=party,no-planes',   // (9b: WINTER — the snow vs none)
-  'sp6-tv': 'when=2026-10-14T23:00&wx=clear&force=no-planes', 'sp6-ufo': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo',
+  'sp6-tv': 'when=2026-10-14T23:00&wx=clear&force=no-planes', 'sp6-ufo': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo&lgnow=1',
   // 9d: the owner's TR-3B + snow + party night (held at the blackout), a night with the doors in use (their real light + the swinging
   // baked leaf), the floodlit giant (its floods as light on its own normals)
   '9d-tr3b': 'when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b&lgs=15', '9d-doors': 'when=2026-10-21T22:00&wx=clear&force=doors,no-planes', '9d-giant': 'when=2026-10-25T22:00&wx=clear&force=no-planes',
   // (the UFO bake: the abduction with the hand-drawn saucer — --scenes ufo-classic --vs sp6-ufo = the model's cost)
-  'ufo-classic': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo&ufo=classic',
+  'ufo-classic': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo&ufo=classic&lgnow=1',
   // (9c: a deep-freeze snowy night — the glowing sign snow + the frozen pane; the floodlit giant; a normal day with the crisp layer; the UFO
   // flight is sp6-ufo)
   's9c-freeze': 'when=2027-01-15T22:00&wx=clear&snow=fresh&temp=-14&force=no-planes', 's9c-giant': 'when=2026-10-27T21:30&wx=clear&force=no-planes', 's9c-day': 'when=2026-10-27T13:00&wx=clear&force=no-planes',
   // (9e's speed round: a plain night, a party night with the TR-3B, a snowy night (the flakes landing on the sign), a day with the tower's crane)
-  's9e-night': 'when=2026-09-16T21:30&wx=clear&force=no-planes', 's9e-tr3b': 'when=2026-10-16T23:00&wx=clear&force=no-planes,tr3b', 's9e-snow': 'when=2027-01-14T21:30&wx=snow&snow=fresh&temp=-6&force=no-planes', 's9e-crane': 'when=2026-09-16T14:00&wx=clear&build=rising&force=no-planes',
+  's9e-night': 'when=2026-09-16T21:30&wx=clear&force=no-planes', 's9e-tr3b': 'when=2026-10-16T23:00&wx=clear&force=no-planes,tr3b&lgnow=1', 's9e-snow': 'when=2027-01-14T21:30&wx=snow&snow=fresh&temp=-6&force=no-planes', 's9e-crane': 'when=2026-09-16T14:00&wx=clear&build=rising&force=no-planes',
   // (9f's speed round: the owner's TR-3B link (a Friday party + fresh snow), the site rising at night, the site on a party night (its beam), the implosion mid-fall)
-  's9f-tr3b': 'when=2027-01-15T21:30&wx=clear&snow=fresh&temp=-6&force=no-planes,tr3b', 's9f-site': 'when=2026-09-16T22:00&wx=clear&build=rising&force=no-planes', 's9f-sitep': 'when=2026-10-17T23:00&wx=clear&build=rising&force=no-planes', 's9f-imp': 'when=2026-09-16T10:00&wx=clear&build=implosion&builds=6&force=no-planes',
+  's9f-tr3b': 'when=2027-01-15T21:30&wx=clear&snow=fresh&temp=-6&force=no-planes,tr3b&lgnow=1', 's9f-site': 'when=2026-09-16T22:00&wx=clear&build=rising&force=no-planes', 's9f-sitep': 'when=2026-10-17T23:00&wx=clear&build=rising&force=no-planes', 's9f-imp': 'when=2026-09-16T10:00&wx=clear&build=implosion&builds=6&force=no-planes',
   'nw-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes,no-water', 'nw-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water',
   'nw-neon': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-water,neon-party,searchlights,spell&text=2027',
   // CITY 2.0, Part 5: the harbor's worst — the neon's party + searchlights + a word, a real fog (the beam at its widest), the
@@ -119,7 +119,7 @@ const SCENES = {
   // the newsboy, a truck) + the wildlife, and a Saturday party night (the line, the doorman, the dance, the animals)
   'life-noon': 'when=2026-10-27T11:20&wx=clear&force=no-planes', 'life-noon-forced': 'when=2026-10-27T11:20&wx=clear&force=no-planes,pigeons,gulls-land', 'life-party': 'when=2026-10-24T22:30&wx=clear&force=no-planes',
   // 8b2's speed round: THE TR-3B on a normal weeknight (it must cost what the same night costs) — the whole 50 s event looping; vs the night
-  'tr3b': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b', 'tr3b-night': 'when=2026-10-22T22:00&wx=clear&force=no-planes',
+  'tr3b': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b&lgnow=1', 'tr3b-night': 'when=2026-10-22T22:00&wx=clear&force=no-planes',
   // (held moments of it: the city dead overhead, the flicker-out as it arrives, the jets' pass; + PARTY ON under it)
   'tr3b-dark': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b&lgs=20', 'tr3b-dying': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b&lgs=6',
   'tr3b-jets': 'when=2026-10-22T22:00&wx=clear&force=no-planes,tr3b&lgs=30.4', 'tr3b-party': 'when=2026-10-22T22:00&wx=clear&force=no-planes,party,tr3b&lgs=20',

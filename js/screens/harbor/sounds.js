@@ -306,7 +306,10 @@ export function createCitySounds() {
       return;
     }
     const key = `${lg.kind}|${lg.id}`;                 // (the run's own start: its one-shots fire once)
-    if (!lgRun || lgRun.key !== key) lgRun = { key, beam: false, down: false, jets: false, crack: 0 };
+    if (!lgRun || lgRun.key !== key) lgRun = { key, beam: false, down: false, jets: false, crack: 0, tapS: unlockedAt ? -1 : null };
+    // 9g — JOINED MID-DRAIN (a visitor opening the site while a TR-3B is under way): the run's second at the first tap (the music's
+    // start); -1 = the audio was unlocked before the run began (the normal case)
+    if (lgRun.tapS == null && unlockedAt) lgRun.tapS = lg.s;
     const st = lg.st, pan = clamp(((lg.x == null ? 0.5 : lg.x) - 0.5) * 1.6, -0.9, 0.9);
     if (lg.kind === 'ufo') {
       keep('ufo-hum', clamp(st.craft.k * (1 - st.craft.out), 0, 1), pan, { ramp: 0.8, linger: 6, fadeIn: 3 });
@@ -340,7 +343,12 @@ export function createCitySounds() {
     // (9f — THE TAPE ON TIME (measured: the lights dipped at 2.7 s, the tape audibly at 4.6 s): each ramp aims at where the envelope
     // WILL be when it lands (BEND_AHEAD s on), sent at every 1 % step; and the tape is ENGAGED just before the first dip at an inaudible
     // 0.998 × (its 0.35 s crossfade from the element done before the sag needs it), so the slow-down starts on the lights' first dip)
-    const tape = lg.kind === 'tr3b' && !lg.held && st.music.rate != null;
+    // (9g: the first tap came AFTER the sag began — the song starts SILENT, never a tape joining mid-sag (its slice was never decoded,
+    // the speed would jump to the drained one): no tape at all, the music held at 0 until the lights come back, then faded in at its
+    // own speed — the city's return brings the music with it)
+    const late = lg.kind === 'tr3b' && !lg.held && lgRun.tapS != null && lgRun.tapS > BLACK.die0 - BLACK.sput - 0.3 && lgRun.tapS < BLACK.on0 + BLACK.onSpan;
+    if (late) lgDuck = Math.min(lgDuck, smooth(BLACK.on0 - 0.3, BLACK.on0 + 2, lg.s));
+    const tape = lg.kind === 'tr3b' && !lg.held && !late && st.music.rate != null;
     const ahead = tape ? tr3bAt(lg.s + BEND_AHEAD, lg.dir).music.rate : 1;
     const r = !tape ? 1 : lg.s > BLACK.die0 - BLACK.sput - 0.6 && lg.s < BLACK.die0 ? Math.min(0.998, ahead) : ahead < 0.999 ? ahead : st.music.rate;
     // (the base rate's ramps, a few a second while it moves; the warble is the tape's own oscillators — their depths ride along)
@@ -465,7 +473,7 @@ export function createCitySounds() {
     debug: () => ({ mix, beds: [...beds.entries()].map(([slot, b]) => ({ slot, zero: !!b.zeroAt, ...(b.h.debug ? b.h.debug() : {}) })),
       runs: [...runs.entries()].map(([slot, r]) => ({ slot, gain: +r.g.toFixed(3), pan: +r.p.toFixed(2), takes: r.hs.map(h => h.take), started: r.n })),
       pending: pending.map(c => ({ slot: c.slot, in: +((c.at - performance.now()) / 1000).toFixed(1), mark: c.mark })), duck: duckNow, people: { ...people },
-      legend: { rate: lgRate, hz: Math.round(lgHz), duck: +lgDuck.toFixed(2), crackles: lgRun ? lgRun.crackN || 0 : 0 },
+      legend: { rate: lgRate, hz: Math.round(lgHz), duck: +lgDuck.toFixed(2), crackles: lgRun ? lgRun.crackN || 0 : 0, tapS: lgRun && lgRun.tapS != null ? +lgRun.tapS.toFixed(2) : null },
       bus: { arrive: !!bus.arrive, idle: !!bus.idle, depart: !!bus.depart, pan: bus.pan }, barber: barberLast, next: Object.fromEntries(Object.entries(next).map(([k, v]) => [k, v ? Math.round((v - performance.now()) / 1000) : null])), player: citySoundsDebug() }),
     destroy() {
       dead = true; for (const b of beds.values()) b.h.stop(1.2); beds.clear(); for (const r of runs.values()) for (const h of r.hs) h.stop(1.2); runs.clear();

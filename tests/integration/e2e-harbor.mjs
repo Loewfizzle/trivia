@@ -3255,7 +3255,7 @@ G('workers', async () => {
     ok(c.works.includes('newsboy') && c.props.includes('stand'), `THE REAL DAY (Mon 8:31): out — ${c.works.join(', ')}; props ${c.props.join(', ')}`);
     await Q.ctx.close(); }
   // ---- THE WITNESSES (Group 3, &force=ufo on a busy Saturday night): they look up, then RUN as the beam opens; the promenade empties
-  { const Q = await open({ slot: 'wk5', qs: `when=2026-11-07T22:10:00${GR}&force=ufo`, view: [402, 874] });   // (11a-2: a November Saturday — the giant stands on the compass Oct 20 → 31)
+  { const Q = await open({ slot: 'wk5', qs: `when=2026-11-07T22:10:00${GR}&force=ufo&lgnow=1`, view: [402, 874] });   // (11a-2: a November Saturday — the giant stands on the compass Oct 20 → 31)
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.people.running >= 2`, 'the witnesses fleeing at a run', 60000);
     const p1 = await ev(Q.page, `${P}.people`);
@@ -3654,6 +3654,8 @@ G('freeze', async () => {
   await Promise.all(LINKS.map(async L => {
     const P = await open({ slot: `fz${L.id.slice(0, 4)}`, qs: `${L.qs}&intro=1`, view: [402, 874], dpr: 3, cores: 6 });
     await harborUp(P.page);
+    // (9g: a link's TR-3B waits for the first tap — tapped at once, the run follows ~4 s later)
+    if (L.whole) { await tapAt(P.page, 201, 420); await waitFor(P.page, 'window.__district.harbor().legend.state && !!window.__district.harbor().legend.state.run', `${L.id}: the run after the tap`, 15000); }
     if (L.until) await waitFor(P.page, L.until, `${L.id}: ${L.what}`, 45000);
     const s = [];
     const NS = L.whole ? 24 : 10;
@@ -3686,6 +3688,67 @@ G('freeze', async () => {
     }
     await P.ctx.close();
   }));
+  // ---- 9g — A LEGENDARY FROM A LINK WAITS FOR THE REVEAL + THE FIRST TAP (the owner: the TR-3B "worked perfectly" from ☰ → ADMIN,
+  // glitched from &force=tr3b — the link started it under the load, before the tap unlocked the music): nothing runs until the tap,
+  // then the run starts at its beginning ~4 s after it. The implosion's link: the tower held at the countdown's start until then.
+  // + OPENED MID-DRAIN (a visitor arriving while the scheduled TR-3B is under way — Dec 5 2026, 22:51 Grand Rapids): the reveal never
+  // stutters beyond the same page a minute earlier, and the first tap mid-sag starts the song SILENT (no tape joining mid-sag) until the
+  // lights come back, then fades it in at its own speed.
+  const GAP = `(() => { const R = window.__gaps = { last: performance.now(), rows: [] }; const f = () => { const n = performance.now(); R.rows.push([n, n - R.last]); R.last = n; if (R.rows.length < 4000) requestAnimationFrame(f); }; requestAnimationFrame(f); })()`;
+  const gapInit = { fn: js => { window.addEventListener('DOMContentLoaded', () => { (0, eval)(js); }); }, arg: GAP };
+  const worstAfterReveal = p => ev(p, `(() => { const s = window.__district.harbor().legend.link.shown, rows = window.__gaps.rows.filter(r => r[0] > s && r[0] < s + 3000).map(r => r[1]).sort((a, b) => b - a); return { worst: Math.round(rows[0] || 0), p95: Math.round(rows[Math.floor(rows.length * 0.05)] || 0), n: rows.length }; })()`);
+  await Promise.all([
+    (async () => {
+      const P = await open({ slot: 'fzlk', qs: `when=2026-10-27T21:00&force=tr3b${GR}`, view: [402, 874], dpr: 3, cores: 6 });
+      await harborUp(P.page);
+      await sleep(3000);
+      const a = await ev(P.page, `(() => { const g = window.__district.harbor().legend; return { run: !!(g.state && g.state.run), held: g.link.held, warm: g.state && g.state.warm }; })()`);
+      ok(!a.run && a.held.includes('tr3b'), `9g A LINK's TR-3B WAITS: 3 s after the reveal with no tap nothing runs (held: ${a.held.join(', ')}; pre-baked: ${a.warm || '-'})`);
+      const tapT = await ev(P.page, 'performance.now()');
+      await tapAt(P.page, 201, 420);
+      await waitFor(P.page, 'window.__district.harbor().legend.state && !!window.__district.harbor().legend.state.run', "the link's TR-3B starts after the tap", 15000);
+      const b = await ev(P.page, `(() => { const g = window.__district.harbor().legend; return { s: g.state.s, now: performance.now(), tap: g.link.tap, go: g.link.go }; })()`);
+      ok(b.go - b.tap > 3500 && b.go - b.tap < 4500 && b.s < 1.5 && b.tap >= tapT - 50, `9g …then starts ${((b.go - b.tap) / 1000).toFixed(1)} s after the first tap, from its beginning (s ${b.s})`);
+      await P.ctx.close();
+    })(),
+    (async () => {
+      const P = await open({ slot: 'fzli', qs: `when=2026-09-16T10:00&wx=clear&force=implosion${GR}`, view: [402, 874], dpr: 3, cores: 6 });
+      await harborUp(P.page);
+      const s0 = await ev(P.page, 'window.__district.harbor().tower.st.s'); await sleep(2500);
+      const s1 = await ev(P.page, 'window.__district.harbor().tower.st.s');
+      ok(s0 === s1, `9g A LINK's IMPLOSION WAITS: the tower held at the countdown's start until the tap (s ${s0} → ${s1})`);
+      await tapAt(P.page, 201, 420);
+      await waitFor(P.page, `window.__district.harbor().tower.st.s > ${s1} + 0.5`, 'the implosion runs after the tap', 15000);
+      ok(true, '9g …and runs once the tap + 4 s have passed');
+      await P.ctx.close();
+    })(),
+    (async () => {
+      // (the same page a minute before the run: the reveal's frames to compare with)
+      const runs = {};
+      for (const [k, when] of [['plain', '2026-12-05T22:50:00'], ['mid', '2026-12-05T22:51:06']]) {
+        const P = await open({ slot: `fzm${k[0]}`, qs: `when=${when}&wx=clear${GR}`, view: [402, 874], dpr: 3, cores: 6, init: gapInit });
+        await P.page.emulateCPUThrottling(4);
+        await harborUp(P.page);
+        await sleep(3200);
+        runs[k] = await worstAfterReveal(P.page);
+        if (k === 'mid') {
+          const g = await ev(P.page, `(() => { const h = window.__district.harbor(); return { s: h.legend.state.s, kind: h.legend.state.run && h.legend.state.run.kind }; })()`);
+          ok(g.kind === 'tr3b' && g.s > 5 && g.s < 30, `9g OPENED MID-DRAIN: the scheduled TR-3B joined mid-way (${g.kind} at ${g.s} s)`);
+          await P.page.emulateCPUThrottling(1);
+          await tapAt(P.page, 201, 420);
+          const B = (await import('../../js/core/harbor-legend.js')).BLACK;
+          await sleep(1500);
+          const m1 = await ev(P.page, `(() => { const h = window.__district.harbor(); return { s: h.legend.state.s, ...h.sounds.legend }; })()`);
+          ok(m1.tapS != null && m1.tapS > 5 && m1.rate === 1 && m1.duck === 0, `9g …the first tap mid-sag (at ${m1.tapS} s): the song starts SILENT, no tape (rate ${m1.rate}, duck ${m1.duck})`);
+          await waitFor(P.page, `window.__district.harbor().legend.state && window.__district.harbor().legend.state.s > ${B.on0 + 2.6}`, 'the lights back', 40000);
+          const m2 = await ev(P.page, 'window.__district.harbor().sounds.legend');
+          ok(m2.duck > 0.5 && m2.rate === 1, `9g …the music fades in at its own speed as the lights come back (duck ${m2.duck}, rate ${m2.rate})`);
+        }
+        await P.ctx.close();
+      }
+      okT(runs.mid.worst <= runs.plain.worst * 1.5 + 60, `9g OPENED MID-DRAIN: the reveal never stutters (at 4× CPU, the 3 s after it: worst frame ${runs.mid.worst} ms, p95 ${runs.mid.p95} — the same page a minute earlier ${runs.plain.worst} / ${runs.plain.p95})`);
+    })(),
+  ]);
 });
 
 // ================================================================ 9d — THE DOORS NEVER SNAP (ONLY=doors; the `street` cloud job)

@@ -924,6 +924,8 @@ export function createLegends({ clock, qp } = {}) {
     /** the API: start one now (or at `at`) */
     start(kind, at, o = {}) { if (kind !== 'ufo' && kind !== 'tr3b') return false; run = { kind, at, dir: o.dir || 1, forced: false }; return true; },
     stop() { run = null; st = null; },
+    /** 9g: a link's legendary waiting for the first tap — its craft (+ the TR-3B's dark city: darkWanted) baked meanwhile */
+    prewarm(kind) { if (!run && (kind === 'ufo' || kind === 'tr3b')) warm(kind); },
     /** the sounds (sounds.js reads it ~4× a second) */
     // (POLISH 4: the chase's roar placed on the clock — `jets`: { peakIn (s until the formation's middle crosses the screen's centre),
     // x (its middle now, a fraction of W) } from a few seconds before they come; the sounds start the take so its peak lands there)
