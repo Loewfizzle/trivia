@@ -8711,6 +8711,16 @@ laptop's absolute budgets on both sides (warnings) — the phone's readout decid
 - The server tests (`phonelog`) run only in the cloud (no Java on the laptop).
 - Group 5 (the two vehicle models) was cut.
 
+### The cloud run (3b95de6 — the pass's one run)
+- `tests` ✅; `harbor` 6 of 7 jobs ✅ (show, audio, wild, street, holiday, windows). `city` 113/114: every 9e check passed (the tower's three)
+  and **9d's panel/RECENT fix is confirmed** (RECENT re-fired AURORA + the queued SNOW). Red: LOAD WEATHER "answered after 6 s" — a lit-window
+  crossfade showed after a late weather answer. Locally the same group passes that check (its only local miss is the holiday-jump check,
+  which is a timing warning on CI); the load gate is untouched by this pass → a timing race, listed (the two-run rule: not re-run).
+
+### Known issues (from the cloud)
+- `city` · LOAD WEATHER "answered after 6 s": the lit crossfade (share, bias, night) counted as a visible change once on CI; not reproduced
+  locally.
+
 ### Handoff → CONN (the database connection only when needed) → ATM
 - The hang watch + SEND REPORT are the way to debug anything iPhone-only from now on (report.js; /admin → Reports from phones).
 - WebKit 18 is installed (ms-playwright/webkit-2083) — `import { webkit } from '…/tests/integration/node_modules/playwright/index.mjs'`.
