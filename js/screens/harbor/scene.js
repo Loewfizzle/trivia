@@ -1348,9 +1348,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let fails = 0, failLogged = false, starvedSeen = starvedCount(), starvedAt = -1e9;
   function frameFailed(e) {
     fails++;
-    if (!failLogged) { failLogged = true; console.warn('[harbor] a frame failed', e); }
+    // (HOTFIX Oct 27: the error was only a console.warn — the owner's iPhone froze and nothing said why. Now it goes to /admin (errlog,
+    // once per error) and the LOAD log (&debug=1's strip), and the loop's stop is logged too)
+    if (!failLogged) { failLogged = true; console.warn('[harbor] a frame failed', e); reportError(e, 'harbor frame'); LOADLOG.add('note', `a frame failed: ${String(e && e.message || e).slice(0, 120)}`); }
     if (fails === 3 && tier > 0) { if (loadFrozen(performance.now())) { wantStep = wantStep || 'failed'; LOADLOG.add('tier', '3 failed frames: a step recorded for later'); } else stepTier(tier - 1, 'failed frames'); fails = 0; }
-    else if (fails >= 30) { running = false; failStop = true; cancelAnimationFrame(raf); return false; }
+    else if (fails >= 30) { running = false; failStop = true; cancelAnimationFrame(raf); LOADLOG.add('note', '30 failed frames in a row: the loop stopped on the last good frame'); return false; }
     return true;
   }
   /** what keeps the city at 60 fps right now ('' = calm: every other frame is enough). Cheap: flags of the last draw. */

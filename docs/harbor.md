@@ -8391,6 +8391,23 @@ the blade's bulbs as the abduction flickers the power); tier 0 is the phone's lo
   (40603170005) green; `city` 108/109 — LOAD WEATHER "answered after 6 s" (`lit crossfade · share`: SP3's known clock-dependent flake, in
   9b's + the UFO bake's known issues; code this pass didn't touch). Not re-run (the two-run rule). Vercel: deployed.
 
+### HOTFIX (Oct 27) — the night freeze
+- **The cause:** the PEEK window moment's curtain branch (windows.js#peekPaint — the BACK window; the jazz window has its own branch) still
+  read a `col` that SP4's lit palettes removed (Oct 26). It threw every frame it played, and after 30 failed frames the loop stops on the
+  last good frame (scene.js#frameFailed) — the city "froze". Peek is a rare evening moment (7:30 am – 2 am) that lands in the back window
+  on ~56 of 60 evenings, and `&force=window&moment=peek` plays it there on its 2nd loop. Not 9c's code; it shipped the day before.
+- **The fix:** the figure takes the lit palette (`...lk`, like the jazz branch), the hand the palette's skin.
+- **Never again silently:** a window scene that throws drops out ALONE for the session (windows.js#sceneSafe — `console.error` + `/admin`,
+  `speakeasy.life.dropped`); a failed city frame goes to `/admin` (errlog) + the LOAD log (`a frame failed: …`, `the loop stopped`) — the
+  old `console.warn` only was why the iPhone's freeze never named itself. An undefined-name sweep (eslint `no-undef`) over `js/` found
+  nothing else.
+- **The check:** e2e-harbor `ONLY=freeze` (the `street` job): four night pages like the iPhone opens them (402×874, DPR 3 — the crisp
+  layer on — the full power-on) watched 20 s after it: no failed frame, no dropped scene, frames painting, the picture moving, no canvas /
+  heap climb. Fails on the old windows.js (31 frames drawn in 20 s), passes on the fix.
+- **Not reproduced:** the TR-3B + snow link (`force=tr3b&lgs=15`) runs fine on Chrome at DPR 3 / 4× CPU / no canvas blur (Safari < 18's
+  path), its canvases ~81 MB (far under iOS's cap). `lgs=15` HOLDS the craft at the event's second 15 (the blackout + the hovering craft
+  stay still by design; the people keep walking). If it still stops on the iPhone, its error now reaches `/admin` + the `&debug=1` strip.
+
 ### Handoff → 9d (THE CONSTRUCTION TOWER + THE CITY LIFE + THE SAX REWORK)
 - The sax's entrance is 9d's (ENTERS_BY_MOTION lists it until then: give it a walk-up or remove it from the list to give it the blind).
 - The tower's lettering (a builder's sign, the grand opening's banner) can ride `crisp.js` (`crisp.show(c, { id, box, key, draw })`) if

@@ -3556,6 +3556,45 @@ G('snow', async () => {
     await Q.ctx.close(); }
 });
 
+// ================================================================ HOTFIX (Oct 27) — NEVER FREEZE AT NIGHT (ONLY=freeze; the `street` cloud job)
+// The owner's iPhone froze on night loads right after the power-on: a window scene (the PEEK behind a curtain — the back window) threw
+// every frame since SP4 (an undefined `col`) and the loop stopped itself after 30 failed frames. Every night page here is opened like the
+// iPhone opens it (402×874 at DPR 3 — the crisp layer on — the full power-on with &intro=1) and watched for 20 s after the power-on: no
+// frame error, no window scene dropped, the loop running and still drawing, the picture still moving, no canvas / memory climb. The peek
+// link waits for the peek to play in the BACK window (its 2nd loop) — the scene that froze.
+G('freeze', async () => {
+  const LINKS = [
+    { id: 'tr3b-snow', qs: `when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b&lgs=15${GR}` },
+    { id: 'peek', qs: `when=2026-10-27T21:00&force=window&moment=peek${GR}`, until: "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'peek' && e.win === 'back')", what: 'the peek in the back window' },
+    { id: 'night', qs: `when=2026-10-27T21:00${GR}` },
+    { id: 'night-late', qs: `when=2026-10-21T23:30${GR}` },
+  ];
+  const SNAP = `(() => { const h = window.__district.harbor(), l = window.__district.loop(), cv = document.querySelector('canvas');
+    const x = document.createElement('canvas'); x.width = 100; x.height = 218; const c = x.getContext('2d'); c.drawImage(cv, 0, 0, 100, 218);
+    const px = Array.from(c.getImageData(0, 0, 100, 218).data.filter((v, i) => i % 4 !== 3)); x.width = 0;
+    return { running: l.running, failStop: l.failStop, drawn: l.drawn, canvases: document.querySelectorAll('canvas').length,
+      heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : 0, dropped: h.speakeasy.life.dropped || [],
+      failed: ((h.loadLog && h.loadLog.lines) || []).filter(s => /frame failed|loop stopped/.test(s)), px }; })()`;
+  const diff = (a, b) => { let n = 0; for (let i = 0; i < a.length; i += 3) if (Math.abs(a[i] - b[i]) + Math.abs(a[i + 1] - b[i + 1]) + Math.abs(a[i + 2] - b[i + 2]) > 24) n++; return n; };
+  await Promise.all(LINKS.map(async L => {
+    const P = await open({ slot: `fz${L.id.slice(0, 4)}`, qs: `${L.qs}&intro=1`, view: [402, 874], dpr: 3, cores: 6 });
+    await harborUp(P.page);
+    if (L.until) await waitFor(P.page, L.until, `${L.id}: ${L.what}`, 45000);
+    const s = [];
+    for (let i = 0; i <= 10; i++) { s.push(await ev(P.page, SNAP)); if (i < 10) await sleep(2000); }
+    const a = s[0], z = s[s.length - 1], still = s.slice(1).filter((q, i) => q.drawn <= s[i].drawn).length;
+    const moving = s.slice(1).filter((q, i) => diff(q.px, s[i].px) >= 20).length;
+    const med = arr => arr.slice().sort((p, q) => p - q)[arr.length >> 1];
+    const h0 = med(s.slice(0, 4).map(q => q.heap)), h1 = med(s.slice(-4).map(q => q.heap));
+    ok(z.running && !z.failStop && !s.some(q => q.failed.length) && !z.dropped.length,
+      `NEVER FREEZE (${L.id}): 20 s after the power-on the loop runs — no failed frame, no window scene dropped${z.failed.length ? ` (${z.failed.join('; ')})` : ''}${z.dropped.length ? ` (dropped: ${z.dropped.join(', ')})` : ''}`);
+    ok(still === 0 && z.drawn - a.drawn > 100, `NEVER FREEZE (${L.id}): frames keep painting (${z.drawn - a.drawn} drawn in 20 s, ${still} stalled 2-s windows)`);
+    ok(moving >= 8, `NEVER FREEZE (${L.id}): the picture keeps moving (${moving}/10 two-second windows changed)`);
+    ok(z.canvases <= s[3].canvases + 2 && (!h0 || h1 <= h0 * 1.5 + 25), `NEVER FREEZE (${L.id}): no climb (from 6 s in: the power-on adds its overlays first) — canvases ${s[3].canvases} → ${z.canvases}, JS heap ${h0} → ${h1} MB`);
+    await P.ctx.close();
+  }));
+});
+
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
 async function runGroup(name) {
   const fns = GROUPS.get(name);
