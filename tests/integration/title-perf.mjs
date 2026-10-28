@@ -78,6 +78,9 @@ const SCENES = {
   // SP6: a normal night with the blue TV window on (23:00); the UFO's abduction (the beam drawn as one image now)
   's9-fresh': 'when=2027-01-15T22:00&wx=clear&snow=fresh&force=no-planes', 's9-fall': 'when=2027-01-14T22:30&snow=fresh&force=snowfall,no-planes', 's9-plow': 'when=2027-01-14T13:00&snow=fresh&force=plow,no-planes', 's9-thaw': 'when=2027-01-15T22:00&wx=clear&snow=thaw&force=no-planes', 's9-party': 'when=2027-01-15T22:30&wx=clear&snow=fresh&force=party,no-planes',   // (9b: WINTER — the snow vs none)
   'sp6-tv': 'when=2026-10-14T23:00&wx=clear&force=no-planes', 'sp6-ufo': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo',
+  // 9d: the owner's TR-3B + snow + party night (held at the blackout), a night with the doors in use (their real light + the swinging
+  // baked leaf), the floodlit giant (its floods as light on its own normals)
+  '9d-tr3b': 'when=2027-01-15T21:30&snow=fresh&temp=-6&force=tr3b&lgs=15', '9d-doors': 'when=2026-10-21T22:00&wx=clear&force=doors,no-planes', '9d-giant': 'when=2026-10-25T22:00&wx=clear&force=no-planes',
   // (the UFO bake: the abduction with the hand-drawn saucer — --scenes ufo-classic --vs sp6-ufo = the model's cost)
   'ufo-classic': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo&ufo=classic',
   // (9c: a deep-freeze snowy night — the glowing sign snow + the frozen pane; the floodlit giant; a normal day with the crisp layer; the UFO

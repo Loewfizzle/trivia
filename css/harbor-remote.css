@@ -14,58 +14,10 @@
   align-items: center;
   max-width: calc(100vw - var(--safe-l) - 36px - 2 * var(--cb, 36px));   /* (… and clear of the music button, top right) */
 }
-.hr-pill {
-  position: relative;
-  min-width: 44px;
-  max-width: 100%;
-  min-height: 44px;
-  padding: 0 6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: none;
-  border: 0;
-  color: rgba(236, 240, 255, 0.9);
-  font: 700 10px/1 var(--font-mono);
-  letter-spacing: 0.22em;
-  -webkit-tap-highlight-color: transparent;
-  cursor: pointer;
-}
-/* (the visible part is smaller than the 44 pt target) */
-.hr-pill::before {
-  content: '';
-  position: absolute;
-  inset: 8px 2px;
-  border-radius: 999px;
-  background: rgba(10, 11, 30, 0.5);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
-}
-.hr-pill[data-on='me']::before { border-color: rgba(125, 255, 156, 0.55); }
-.hr-pill[data-on='all']::before { border-color: rgba(255, 124, 203, 0.6); }
-.hr-pill > * { position: relative; }
-.hr-lbl { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
-.hr-pill[data-on='me'] .hr-lbl { letter-spacing: 0.08em; color: #d8ffe4; }
-.hr-pill[data-on='all'] .hr-lbl { color: #ffd6ef; }
-.hr-x { position: relative; flex: none; width: 44px; height: 44px; margin-left: -4px; background: none; border: 0; color: #fff; font: 600 20px/1 var(--font-ui); cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.hr-x::before { content: ''; position: absolute; inset: 9px; border-radius: 50%; background: rgba(10, 11, 30, 0.6); border: 1px solid rgba(125, 255, 156, 0.55); }
-.hr-x > span { position: relative; }
-.hr-x[hidden] { display: none; }
-.hr-pill:active::before { transform: scale(0.95); }
-/* (WIN2: .hr-low is gone — the &debug=1 strips sit under the pill's row, never over it: ui/debug-strip.js) */
-/* (a dev slot's TEST SLOT tag sits beside the ☰ top left — 7a §0: under it the pill would touch the sign, so it moves to the
-   top right instead, beside the music button) */
-.hr-bar.hr-under { top: calc(var(--safe-t) + 6px); left: auto; right: calc(var(--safe-r) + 14px + var(--cb, 36px)); max-width: calc(100vw - 230px); }
-.hr-dot { width: 7px; height: 7px; border-radius: 50%; background: rgba(255, 255, 255, 0.35); }
-.hr-pill[data-on='me'] .hr-dot { background: #7dff9c; box-shadow: 0 0 8px #7dff9c; }
-.hr-pill[data-on='all'] .hr-dot { background: #ff7ccb; box-shadow: 0 0 8px #ff7ccb; }
+/* (9d: the TEST pill + its ✕ are gone from the screen — ☰ → ADMIN opens the panel; the bar keeps the countdown + PLAY ALL chips) */
 
 /* C2 — THE COUNTDOWN: a small glass chip IN the pill's row (never over the sign or the city): while it counts the pill folds to its dot
    (still the 44 pt target — a tap reopens the sheet = cancels JUST ME's countdown) and the ✕ steps aside */
-.hr-bar.hr-counting .hr-lbl, .hr-bar.hr-counting .hr-x { display: none; }
 .hr-cd {
   --hr-c: #7dff9c;
   flex: 0 1 auto;
@@ -93,7 +45,6 @@
 @keyframes hr-pop { from { transform: scale(1.4); opacity: 0.5; } }
 
 /* WIN — PLAY ALL: the chip beside the pill while a catalogue plays — n / N + the row playing (tap = skip), ❚❚ / ▶, ✕ */
-.hr-bar.hr-playing .hr-lbl, .hr-bar.hr-playing .hr-x { display: none; }
 .hr-pa {
   --hr-c: #7dff9c;
   flex: 0 1 auto;
@@ -368,7 +319,7 @@
 .sheet .btn.hr-go { flex: 1; min-width: 0; min-height: 50px; padding: 0 10px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; font-size: 15px; letter-spacing: 0.14em; white-space: nowrap; }
 .hr-go small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.2em; opacity: 0.85; }
 
-@media (prefers-reduced-motion: reduce) { .hr-b, .hr-pill::before, .hr-cat, .hr-chev { transition: none; } .hr-cd.is-pop .hr-cd-n { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .hr-b, .hr-cat, .hr-chev { transition: none; } .hr-cd.is-pop .hr-cd-n { animation: none; } }
 
 /* PART 8a — THE CITY SOUNDS: a row a slot (▶ · its id + what it is · FILLED / EMPTY) */
 .hr-snds { display: flex; flex-direction: column; gap: 6px; }

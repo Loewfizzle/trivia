@@ -1357,6 +1357,18 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE QUALITY STEP: never judged in the first 15 s, in a bake, the crossfade or the sign's surge; sustained slowness only (four looks);
       the EFFECTS tier first (live, no re-bake — invisible), the canvas resolution last; what the judge measured in the readout's tier line
 
+## CITY 2.0 — 9d: THE FIXES II (Oct 27 2026) — docs/harbor.md#9d
+- The owner's TR-3B + snow + party link measured (DPR 3, 4× CPU): healthy on Chrome; the held preview (&lgs) left the song tape-stopped at half speed
+  + crackling forever — a held preview is a still now; a city stall (> 1.5 s with the page visible) reports itself to /admin once with what was on.
+- `&temp=` read once (tempNow) — the snowman followed the live October temperature on a −6 °C link.
+- THE DOORS: the snap measured (~1,230 px in one frame at the latch) → the leaf is the baked door (shared painters, a sprite in perspective strips), a
+  door closer's swing (1.3 s, slowing through the last ~9°), the leaf alone fading into the bake; the shop door behind the awning; e2e `doors`.
+- THE DOOR's LIGHT: a lamp's mask (cone, scallop, falloff, the lintel's + jambs' shadows) drawn with color-dodge — light × albedo; a pool on the
+  cobbles, the treads' nosings, a hot bulb; the old additive flood + baked scallop gone. THE GIANT: the floods as lights on its normals.
+- The sign's snow white, lit by the tube (a quarter of 9c); the frost on the pane only; the beacons' photocell at sunset (tests on the real sun).
+- THE ADMIN PANEL: ☰ → ADMIN + a cue dot; the NOW bar (TIME first, the weather's chips, the date's holidays), the sections by use, WINTER, hints
+  under the labels.
+
 ## CITY 2.0 — 9c: THE FIXES BEFORE THE TOWER (Oct 27 2026) — docs/harbor.md#9c
 - The sign's snow follows the power (a moonlit grey in the TR-3B's blackout) and glows from within by each letter's own light (the boot
   flicker lights it letter by letter).
