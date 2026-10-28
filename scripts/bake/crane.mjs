@@ -8,7 +8,7 @@
 // F ≈ 600 → seen ~9° from below, so far away the perspective is nearly flat):
 //   TOP    the SLEWING part — the jib, the counter-jib + its counterweight, the cab, the tower head, the trolley + the hook block — cut
 //          from the mast at the slewing line (where the model widens above the mast: the cab), in SLEW frames over the swing the code
-//          plays (±66° about broadside, 3° a step; the code cross-fades two neighbours), each as DAY + NIGHT (two atlases, the same
+//          plays (±66° about broadside, 1° a step — 9g: the code draws the NEAREST frame whole, never two blended), each as DAY + NIGHT (two atlases, the same
 //          silhouette: the code blends them by the darkness). Per frame: the anchor (the mast's axis at the slewing line) + the tower
 //          head's apex + the jib's tip (the two red beacons stay CODE, on the skyline's own pulse).
 //   MAST   the lattice below the slewing line (it never turns): a HEAD strip from the slewing line down + a seamless TILE (whole
@@ -22,7 +22,7 @@ import path from 'node:path';
 
 export const MODEL = 'art/models/crane/crane-01-jtoastie.glb';
 export const OUT = 'assets/city/crane';
-export const BAKE = { jibPx: 100, elev: 9, slew: [-66, 66], step: 3, mastYaw: 34, SS: 4, q: 0.82 };
+export const BAKE = { jibPx: 100, elev: 9, slew: [-66, 66], step: 1, mastYaw: 34, SS: 4, q: 0.82 };   // (9g: 1° a step — the code draws the NEAREST frame whole)
 
 export const page = ({ THREE }) => String.raw`<!doctype html><meta charset=utf-8><body style="margin:0;background:#000">
 <script type="importmap">{"imports":{"three":"${THREE}/build/three.module.js","three/addons/":"${THREE}/examples/jsm/"}}</script>

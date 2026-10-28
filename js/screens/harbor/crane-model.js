@@ -1,9 +1,11 @@
 // CITY 2.0 — BNAME (Oct 28): THE CONSTRUCTION TOWER's CRANE FROM A REAL MODEL — "Crane" by J-Toastie (CC BY 3.0; ☰ → CREDITS), baked
 // OFFLINE by scripts/bake-model.mjs crane into assets/city/crane/ (docs/harbor.md#bname). No three.js here:
-//   TOP   the slewing part (the jib, the counter-jib + its weight, the cab, the tower head, the hook block) in 45 SLEW frames (±66° about
-//         broadside, 3° a step) as DAY + NIGHT atlases — two neighbours cross-faded so the swing reads smooth, night blended over day
-//         by the darkness; each frame's anchor (the mast's axis at the slewing line), the tower head's apex + the jib's tip (the RED
-//         BEACONS stay code: tower.js, on the skyline's pulse)
+//   TOP   the slewing part (the jib, the counter-jib + its weight, the cab, the tower head, the hook block) in 133 SLEW frames (±66°
+//         about broadside, 1° a step) as DAY + NIGHT atlases — the NEAREST frame drawn whole (9g, the owner: by day "it almost looks
+//         like it's pulsing": BNAME laid the next frame over the current one at the blend, so the thin lattice thickened through each
+//         3° step + snapped back at the next — measured: the lattice's ink +1.3 % saw-toothing once a second mid-swing; a 1° step moves
+//         the jib's tip ≤ 0.6 pt at the slow ends of the swing, ~0.1 pt mid-swing), night blended over day by the darkness; each frame's
+//         anchor (the mast's axis at the slewing line), the tower head's apex + the jib's tip (the RED BEACONS stay code: tower.js)
 //   MAST  a head strip + a seamless lattice TILE repeated down to the roofs in front (day | night columns)
 // LAZY: fetched only while the crane is up (tower.js asks when st.crane), never at first paint; until it's in (or if it fails) the
 // hand-drawn crane stands in. &crane=classic = the hand-drawn crane always.
@@ -39,8 +41,7 @@ export function craneModel() {
   return null;
 }
 
-const lerp = (a, b, u) => a + (b - a) * u;
-/** the frame pair at a slew (°): [i, j, u] — j drawn over i at u */
+/** the frame pair at a slew (°): [i, j, u] (j = i + 1, u how far towards it) — drawCrane draws the nearer one */
 export function slewFrames(top, deg) {
   const p = Math.max(0, Math.min(top.n - 1, (deg - top.slews[0]) / (top.slews[1] - top.slews[0])));
   const i = Math.floor(p), j = Math.min(top.n - 1, i + 1);
@@ -53,7 +54,7 @@ export function slewFrames(top, deg) {
  */
 export function drawCrane(c, M, { mx, ay, J, deg, night, foot }) {
   const T = M.top, k = J / T.px;   // (pt per baked px)
-  const [i, j, u] = slewFrames(T, deg);
+  const [i0, j0, u] = slewFrames(T, deg), n0 = u < 0.5 ? i0 : j0;   // (9g: THE NEAREST FRAME, whole — never two copies of the lattice)
   const cell = n => [(n % T.cols) * T.fw, Math.floor(n / T.cols) * T.fh];
   const at = n => T.frames[n].a;
   // THE MAST first (behind the cab): the head strip, then the tile down to the foot
@@ -68,18 +69,16 @@ export function drawCrane(c, M, { mx, ay, J, deg, night, foot }) {
   };
   const ga = c.globalAlpha;
   mastLayer(0, ga); mastLayer(1, ga * night);
-  // THE TOP: frame i, frame j over it at u; night over day
+  // THE TOP: the nearest frame; night over day
   const topLayer = (img, a) => {
-    for (const [n, w] of [[i, 1], [j, u]]) {
-      if (w * a <= 0.004) continue;
-      const [sx, sy] = cell(n), [axu, ayu] = at(n);
-      c.globalAlpha = a * w;
-      c.drawImage(img, sx, sy, T.fw, T.fh, mx - axu * J, ay - ayu * J, T.fw * k, T.fh * k);
-    }
+    if (a <= 0.004) return;
+    const [sx, sy] = cell(n0), [axu, ayu] = at(n0);
+    c.globalAlpha = a;
+    c.drawImage(img, sx, sy, T.fw, T.fh, mx - axu * J, ay - ayu * J, T.fw * k, T.fh * k);
   };
   topLayer(M.img.day, ga); topLayer(M.img.night, ga * night);
   c.globalAlpha = ga;
-  // the beacons' places (interpolated between the two frames)
-  const pt = key => { const A = T.frames[i], B = T.frames[j]; return [mx + (lerp(A[key][0], B[key][0], u) - lerp(A.a[0], B.a[0], u)) * J, ay + (lerp(A[key][1], B[key][1], u) - lerp(A.a[1], B.a[1], u)) * J]; };
+  // the beacons' places: on the frame drawn (they ride the same steps as the lattice under them)
+  const pt = key => { const A = T.frames[n0]; return [mx + (A[key][0] - A.a[0]) * J, ay + (A[key][1] - A.a[1]) * J]; };
   return { apex: pt('apex'), tip: pt('tip') };
 }

@@ -146,12 +146,28 @@ export function lookOf(name, seed, o = {}) {
 // contact poses have straight legs), the hip riding over it like a pendulum (a small bob, highest at mid-stance), the knee bending
 // only on the swing leg (most at the passing pose, ~50°), the pelvis + the shoulders counter-rotating a little, the arms opposite the
 // legs. THE JOG: its own cycle — a short stance with a flexed knee, a flight phase (both feet up, the hip highest), the heel kicked up
-// behind in the swing, the arms bent ~90° pumping, a forward lean.
+// behind in the swing, the arms bent ~90° pumping, a forward lean. 9g — A REAL RUNNING STRIDE (the owner: the joggers' knees "bent way
+// out in front of them"): the swing foot's path comes from a runner's own leg — the THIGH's angle + the KNEE's fold through the swing
+// (RUN_KEYS: the heel folds up toward the seat early, under the hips, the thigh comes through, the shank only unfolds just before the
+// foot lands) — and the foot LANDS just ahead of the hips (GAIT.jog.land × the half stride), pushes off well behind them (the heel
+// rising: `push`), so the knee is never carried out in front with the foot reaching.
 const LEG = 0.47, ANKLE = 0.03, HIP0 = ANKLE + LEG, HALF = LEG / 2, HR = 0.066;
 export const GAIT = Object.freeze({
   walk: { stance: 0.6, lift: 0.08, bob: 0.3, hip: 0.1, sh: 0.13, arm: 0.42, bend: 0.25 },
-  jog: { stance: 0.38, lift: 0.19, bob: 0, hip: 0.12, sh: 0.18, arm: 0.62, bend: 1.62, kick: 0.55, sink: 0.05, rise: 0.025 },
+  jog: { stance: 0.38, lift: 0.19, bob: 0, hip: 0.12, sh: 0.18, arm: 0.62, bend: 1.62, kick: 0.55, sink: 0.05, rise: 0.025, land: 0.62, push: 0.065 },
 });
+/** 9g — THE RUNNING LEG through its swing (u 0 = toe-off … 1 = the foot down): [u, the thigh's angle from straight down (° + forward),
+ *  the knee's fold (°)] — a jogger's (the heel nearest the seat at ~0.3, the thigh furthest forward at ~0.75, nearly straight to land) */
+export const RUN_KEYS = Object.freeze([[0, -22, 28], [0.3, -6, 104], [0.55, 24, 112], [0.78, 36, 44], [1, 21, 6]]);
+const D2R = Math.PI / 180;
+/** the swing foot by the runner's own leg (forward kinematics from a hip at height hy) → { a (forward of the hip), y } */
+export function runSwing(u, hy) {
+  const K = RUN_KEYS;
+  let k = 0; while (k < K.length - 2 && u > K[k + 1][0]) k++;
+  const [u0, t0, f0] = K[k], [u1, t1, f1] = K[k + 1], w = smooth(Math.min(1, Math.max(0, (u - u0) / (u1 - u0))));
+  const th = (t0 + (t1 - t0) * w) * D2R, sh = th - (f0 + (f1 - f0) * w) * D2R;
+  return { a: HALF * (Math.sin(th) + Math.sin(sh)), y: hy - HALF * (Math.cos(th) + Math.cos(sh)) };
+}
 const smooth = u => u * u * (3 - 2 * u);
 /** 8b2 — the loads: on the shoulder (one hand up on it) vs heavy in the hand (that arm straight, no swing) */
 const SHOULDER = new Set(['ice', 'crate', 'can', 'ladder', 'steps', 'ladderA', 'ladderB', 'kit']);
@@ -211,9 +227,24 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // ---- the legs (figure frame: a, b, y)
   const foot = [], hipJ = [], planted = [false, false], heel = [0, 0];
   let hipY = HIP0, lean = 0;
+  // (9g: the run's planted stretch sits BEHIND the hips — down at land × A in front, off at land × A − 2A behind; `mid` its middle, what
+  // the hips, the shoulders + the arms swing about: mid0)
+  const runLeg = walking && jog && !L.zombie, land = runLeg ? G.land * A : 0, mid0 = runLeg ? land - A : 0;
+  const rs0 = runLeg ? runSwing(0, HIP0 - 0.035) : null, rs1 = runLeg ? runSwing(1, HIP0 - 0.035) : null;
   for (let i = 0; i < 2; i++) {
     let fa = 0, fy = ANKLE;
-    if (walking) {
+    if (runLeg) {
+      const q = (p + i * 0.5) % 1, s = G.stance;
+      if (q < s) {
+        const v = q / s, hl = smooth(clamp01((v - 0.55) / 0.45));
+        fa = land - 2 * A * v; planted[i] = true; heel[i] = hl; fy = ANKLE + G.push * hl;
+      } else {
+        // (the runner's leg, its ends eased onto this stride's own toe-off + landing)
+        const u = (q - s) / (1 - s), k = runSwing(u, HIP0 - 0.035), w = smooth(u);
+        fa = k.a + (1 - w) * (land - 2 * A - rs0.a) + w * (land - rs1.a);
+        fy = Math.max(ANKLE, k.y + (1 - w) * (ANKLE + G.push - rs0.y) + w * (ANKLE - rs1.y));
+      }
+    } else if (walking) {
       // (11a-1 — THE SHAMBLE: the steps uneven (the stiff leg follows sooner), the stiff one barely lifted — dragged)
       const q = (p + i * (L.zombie ? 0.42 : 0.5)) % 1, s = G.stance, lf = L.zombie ? (i === 1 ? 0.18 : 0.75) : 1;
       if (q < s) { fa = A - 2 * A * q / s; planted[i] = true; heel[i] = q > s - 0.14 ? (q - (s - 0.14)) / 0.14 : 0; fy = ANKLE + 0.02 * heel[i]; }
@@ -239,7 +270,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
       let st0 = -1; for (let i = 0; i < 2; i++) if (planted[i]) st0 = i;
       const q = st0 >= 0 ? ((p + st0 * 0.5) % 1) / G.stance : 0;
       hipY = HIP0 - 0.035 + (st0 >= 0 ? -G.sink * Math.sin(Math.PI * q) : G.rise);
-      lean = 0.075;
+      lean = 0.1;   // (9g: a runner's slight forward lean)
     }
   }
   if (pose === 'sit') hipY = 0.27;
@@ -269,7 +300,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const bph = st.beatF != null ? ((st.beatF % 1) + 1) % 1 : mo ? (t * (st.bps || 2)) % 1 : 0.5;
   const dip = pose === 'wands' && st.moves ? st.moves.dip || 0 : pose === 'bob' ? 0.022 * (1 - bph) * (1 - bph) : 0;
   hipY -= dip;
-  for (let i = 0; i < 2; i++) hipJ.push({ a: (walking ? G.hip * foot[i].a : 0) + (pose === 'garden' ? -0.04 : 0), b: sg[i] * 0.045, y: hipY });
+  for (let i = 0; i < 2; i++) hipJ.push({ a: (walking ? G.hip * (foot[i].a - mid0) : 0) + (pose === 'garden' ? -0.04 : 0), b: sg[i] * 0.045, y: hipY });
   // the knees: two-segment IK in each leg's own plane, always bending FORWARD; sitting: the thighs forward along the seat
   const knee = [];
   for (let i = 0; i < 2; i++) {
@@ -285,7 +316,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   let shA = lean * up, headA = lean * (up + 0.115);
   if (pose === 'garden') { shA = 0.12; headA = 0.17; }
   if (lift) { shA = 0.15 * sq; headA = 0.17 * sq; }
-  const shJ = [0, 1].map(i => ({ a: shA - (walking ? G.sh * foot[i].a : 0), b: sg[i] * 0.11, y: shY - 0.015 }));
+  const shJ = [0, 1].map(i => ({ a: shA - (walking ? G.sh * (foot[i].a - mid0) : 0), b: sg[i] * 0.11, y: shY - 0.015 }));
   const head = { a: headA, b: 0, y: shY + 0.115 + (pose === 'garden' ? -0.025 : 0) };
   // ---- the arms: arm(i, ang (from hanging down, + forward), bend (the elbow, + forward), out (lifted sideways))
   const elbow = [null, null], hand = [null, null], upA = 0.155, foreA = 0.15;
@@ -298,7 +329,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const near = cx >= 0 ? 0 : 1, farA = 1 - near;                                   // (the arm nearer us — the one a pose uses)
   const idle = mo ? Math.sin(t * 0.9 + L.h * 11) * 0.04 : 0;
   for (let i = 0; i < 2; i++) {
-    if (walking) { const sw = -G.arm * foot[i].a / (A || 1) * (heavy ? 0.55 : 1); arm(i, sw, jog ? G.bend : G.bend + Math.max(0, sw) * 0.4); }
+    if (walking) { const sw = -G.arm * (foot[i].a - mid0) / (A || 1) * (heavy ? 0.55 : 1); arm(i, sw, jog ? G.bend : G.bend + Math.max(0, sw) * 0.4); }
     else arm(i, 0.1 + (i ? -idle : idle), 0.12);
   }
   // (8b2: a load on the shoulder — the near hand up on it; a heavy one in the hand — that arm straight down, a little out, no swing)

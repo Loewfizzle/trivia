@@ -1100,6 +1100,19 @@ G('dock', async () => {
   await waitFor(B.page, '!!window.__arcade.state.code', 'B joined', 20000);
   ok((await ev(B.page, 'window.__arcade.state.code')) === code, 'JOIN (city 2): typing the hush word joins the room');
   await H.ctx.close(); await B.ctx.close();
+  // ---- 9g — THE DOCK FADE (the owner, DECIDED Oct 28): 10 s on a device's FIRST visit (it never went through the door), 5 s on every
+  // visit after; the dock rests 5 s after the last touch on a returning device (&idle=1: the local runs' own switch)
+  { const blockSeen = { fn: () => { const o = Storage.prototype.setItem; Storage.prototype.setItem = function (k, v) { if (k === 'nd:entered') return; return o.call(this, k, v); }; }, arg: null };
+    const F = await open({ slot: 'df1', qs: `${NIGHT}&idle=1`, view: [402, 874], init: blockSeen });
+    const R = await open({ slot: 'df2', qs: `${NIGHT}&idle=1`, view: [402, 874] });
+    await Promise.all([harborUp(F.page), harborUp(R.page)]);
+    const fm = await ev(F.page, 'window.__district.idleMs()'), rm = await ev(R.page, 'window.__district.idleMs()');
+    await tapAt(R.page, 200, 300); await sleep(3800);
+    const at4 = await ev(R.page, 'window.__district.isIdle()');
+    await waitFor(R.page, 'window.__district.isIdle()', 'the returning device at rest', 4000).catch(() => {});
+    const at6 = await ev(R.page, 'window.__district.isIdle()');
+    ok(fm === 10000 && rm === 5000 && !at4 && at6, `9g THE DOCK FADE: a first visit ${fm / 1000} s, a returning device ${rm / 1000} s (up at 3.8 s: ${!at4}, at rest by ~5 s: ${at6})`);
+    await F.ctx.close(); await R.ctx.close(); }
 });
 // ================================================================ FP3a — THE LOAD GATE (FREV B1: the iPhone's "shrinks, enlarges, snaps" on load)
 // A sampler installed BEFORE the page mounts records every frame: the canvas's backing size, the scene's opacity, the harbor's shown /
@@ -3893,6 +3906,28 @@ G('tower', async () => {
     await waitFor(Q.page, `import('/js/audio/city-sound.js').then(m => m.cityLog.some(x => x.slot === 'rivet-gun'))`, 'a rivet burst', 30000).catch(() => {});
     const r = await ev(Q.page, `import('/js/audio/city-sound.js').then(m => ({ shots: m.cityLog.filter(x => x.slot === 'rivet-gun').map(x => x.f), loop: ${P}.sounds.player.loops.some(l => l.slot === 'rivet-gun') }))`);
     ok(r.shots.length >= 1 && r.shots.every(f => /^rivet-gun-\d\.mp3$/.test(f)) && !r.loop, `9g THE RIVET: a short burst (${r.shots.join(', ') || 'none in 30 s'}), no loop`);
+    await Q.ctx.close(); }
+  // ---- 9g — THE CRANE NEVER PULSES BY DAY (the owner: "it almost looks like it's pulsing … something crawling around in that code"):
+  // BNAME laid the next slew frame over the current one at the blend — the lattice thickened through each 3° step + snapped back.
+  // Now the nearest of 133 frames (1° a step) is drawn whole: frame by frame at an iPhone's DPR, the lattice's ink (its yellow over the
+  // sky) never jumps against its own slow trend
+  { const Q = await open({ slot: 'tw-pulse', qs: `when=2026-09-16T11:00${GR}&wx=clear&build=rising&force=no-planes,no-birds,no-people&cranet=36`, view: [402, 874], dpr: 3 });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.tower.fx.crane === 'model' && !!${P}.tower.fx.craneAt`, 'the crane model drawn', 15000);
+    await settled(Q.page); await sleep(1500);   // (past the reveal's own fade-in)
+    const ink = await ev(Q.page, `new Promise(res => {
+      const cv = document.querySelector('canvas'), k = cv.width / cv.clientWidth, x = document.createElement('canvas').getContext('2d', { willReadFrequently: true });
+      const a0 = ${P}.tower.fx.craneAt, J = a0.J, R = { x: Math.floor((a0.mx - J * 1.9) * k), y: Math.floor((a0.ay - J * 0.9) * k), w: Math.ceil(J * 3.8 * k), h: Math.ceil(J * 1.3 * k) };
+      x.canvas.width = R.w; x.canvas.height = R.h; const out = [], deg = [];
+      const f = () => { x.clearRect(0, 0, R.w, R.h); x.drawImage(cv, R.x, R.y, R.w, R.h, 0, 0, R.w, R.h); const d = x.getImageData(0, 0, R.w, R.h).data; let n = 0;
+        for (let i = 0; i < d.length; i += 4) n += Math.max(0, d[i] - d[i + 2] - 10);
+        out.push(n); deg.push(${P}.tower.fx.craneAt.deg); if (out.length < 240) requestAnimationFrame(f); else res({ out, deg }); };
+      requestAnimationFrame(f); })`);
+    const med = (a, i) => { const q = a.slice(Math.max(0, i - 15), i + 16).sort((p, r) => p - r); return q[q.length >> 1]; };
+    const dev = ink.out.map((v, i) => Math.abs(v - med(ink.out, i)) / Math.max(1, med(ink.out, i))).sort((a, b) => a - b);
+    const p95 = dev[Math.floor(dev.length * 0.95)];
+    if (p95 >= 0.006) log('tw-pulse', 'ink', ink.out.slice(0, 60).join(' '));
+    ok(p95 < 0.006, `9g THE CRANE NEVER PULSES: the lattice's ink frame to frame within ${(p95 * 100).toFixed(2)} % of its trend (p95; BNAME's blend: 1.2 %) over ${Math.abs(ink.deg[ink.deg.length - 1] - ink.deg[0]).toFixed(1)}° of the swing`);
     await Q.ctx.close(); }
 });
 

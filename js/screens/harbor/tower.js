@@ -21,6 +21,8 @@ import { craneModel, drawCrane, craneAsked } from './crane-model.js';
 
 // BNAME: the crane from J-Toastie's 3D model (crane-model.js, baked) once it's loaded; &crane=classic = the hand-drawn one always
 const CLASSIC_CRANE = (() => { try { return new URLSearchParams(location.search).get('crane') === 'classic'; } catch { return false; } })();
+// (9g: &cranet=<s> — the swing that far along (a look review / the tests: 41 = broadside, where it moves fastest))
+const CRANE_T = (() => { try { return Number(new URLSearchParams(location.search).get('cranet')) || 0; } catch { return 0; } })();
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const TAU = Math.PI * 2;
@@ -55,6 +57,7 @@ export function createTowerFx() {
   /** the frame's top (pt) now */
   const frameTop = () => { const [, y] = project(L.cam, 0, t.h, t.z0); return y; };
 
+  let craneAt = null;
   function crane(c, f) {
     const s = geo.s, night = f.night, top = Math.min(frameTop(), geo.yB - 20 * s) - 13 * s;
     const mx = geo.xR + 1.6 * s, w = Math.max(1.2, 0.9 * s);
@@ -62,8 +65,9 @@ export function createTowerFx() {
     // top so the jib sits where the drawn one did); the beacons on its own tower head + jib tip
     const M = CLASSIC_CRANE ? null : craneModel();
     if (M) {
-      const a = f.motion ? Math.sin(f.t * 0.045 + 1.3) * 1.1 : 0.5;
+      const a = f.motion ? Math.sin((f.t + CRANE_T) * 0.045 + 1.3) * 1.1 : 0.5;
       const pos = drawCrane(c, M, { mx, ay: top + 15 * s, J: 24 * s, deg: a * 180 / Math.PI, night: Math.min(1, Math.max(0, night)), foot: geo.yB });
+      craneAt = { mx: +mx.toFixed(1), ay: +(top + 15 * s).toFixed(1), J: +(24 * s).toFixed(2), deg: +(a * 180 / Math.PI).toFixed(2) };   // (9g: where the model was drawn — the tests' box)
       beacons(c, f, pos.apex, pos.tip, s);
       return;
     }
@@ -285,6 +289,6 @@ export function createTowerFx() {
       c.restore();
       if (st.stage === 'opening') searchlights(c, f, st.k == null ? 1 : st.k);
     },
-    debug: () => (geo ? { crane: CLASSIC_CRANE ? 'classic' : !craneAsked() ? 'not asked' : craneModel() ? 'model' : 'loading', x: Math.round(geo.cx), top: Math.round(geo.yT), foot: Math.round(geo.yB), frameTop: t ? Math.round(frameTop()) : null, works: t ? t.works || null : null, stage: t ? t.stage || null : null, old: ghost ? { w: ghost.w, h: ghost.h, form: t.orig && t.orig.form } : null, bulbs: !!bulbs } : null),
+    debug: () => (geo ? { craneAt, crane: CLASSIC_CRANE ? 'classic' : !craneAsked() ? 'not asked' : craneModel() ? 'model' : 'loading', x: Math.round(geo.cx), top: Math.round(geo.yT), foot: Math.round(geo.yB), frameTop: t ? Math.round(frameTop()) : null, works: t ? t.works || null : null, stage: t ? t.stage || null : null, old: ghost ? { w: ghost.w, h: ghost.h, form: t.orig && t.orig.form } : null, bulbs: !!bulbs } : null),
   };
 }

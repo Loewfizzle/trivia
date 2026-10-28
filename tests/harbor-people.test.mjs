@@ -564,3 +564,26 @@ test('9f — THE JOGGERS: one every ~1–2 min in their hours (lunch, after work
   assert.ok(forced >= 20, `&force=joggers at 3 am: one every ~20 s (${forced} in 10 min)`);
   assert.ok(jogHour(9, true) && !jogHour(9, false) && JOG.gap[1] <= 120, 'weekend mornings 8–10 only on the weekend');
 });
+
+test('9g — THE JOGGER RUNS LIKE A RUNNER (the owner: the knees "bent way out in front of them"): the foot lands just ahead of the hips, the knee never carried far out in front, the heel folded up behind the hips, clear of the ground as it passes', async () => {
+  const { jointsOf } = await import('../js/screens/harbor/folk.js');
+  const L = { h: 1, jog: true, woman: false, kid: false, stride: 1 };
+  let knee = 0, land = 0, passLift = 0, tuck = 0;
+  for (let k = 0; k < 64; k++) {
+    const J = jointsOf({ pose: 'walk', dir: 1, hd: 0, dist: k / 64 * 2 * 0.62 * 1.75, v: 3, x: 0, z: 40 }, L, 0, true, [0, 0]);
+    const hx = J.hip[0];
+    for (let i = 0; i < 2; i++) {
+      knee = Math.max(knee, J.knees[i][0] - hx);
+      if (J.planted[i]) land = Math.max(land, J.feet[i][0] - hx);
+      // (the passing: the swing foot right under the hips — how high it rides)
+      if (!J.planted[i] && Math.abs(J.feet[i][0] - hx) < 0.06) passLift = Math.max(passLift, J.feet[i][1]);
+      // (the heel folded up toward the seat while the foot is still BEHIND the hips — the lower leg tucked, not the knee thrown forward)
+      if (!J.planted[i] && J.feet[i][0] < hx - 0.04) tuck = Math.max(tuck, J.feet[i][1]);
+    }
+  }
+  // (body heights; before 9g: the knee 0.22 ahead, the foot planted 0.22 ahead — overstriding — and the swing foot passing low)
+  assert.ok(knee < 0.19, `the knee's furthest reach ahead of the hips: ${knee.toFixed(3)}`);
+  assert.ok(land < 0.16, `the foot lands just ahead of the hips: ${land.toFixed(3)}`);
+  assert.ok(tuck > 0.2, `the heel folded up behind the hips: ${tuck.toFixed(3)}`);
+  assert.ok(passLift > 0.07, `the foot clear of the ground as it passes under the hips (no shuffle): ${passLift.toFixed(3)}`);
+});

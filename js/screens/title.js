@@ -71,6 +71,12 @@ const neonSoundLog = [];
 const NEON_TAP_LEVEL = 0.75 * 0.75;   // City 2.0: tapping a NEON letter — its dropout / power-on (PART 8a: ~25 % quieter than 0.75)
 let surgeAt = -1e9;             // THE MUSIC STARTING (City 2.0, FP3a): when the sign last really answered it (module-wide: the 10 s cooldown spans re-mounts)
 const store = (s, k, v) => { try { if (v === undefined) return s.getItem(k); s.setItem(k, v); } catch { /* private mode */ } return null; };
+// 9g — THE DOCK FADE (the owner, DECIDED Oct 28): 10 s on a device's FIRST visit (a newcomer still reading the screen + finding HOST /
+// JOIN), 5 s on every visit after. "First" = this page load began before the device ever went through the door (SEEN) — read ONCE per
+// page load, so the title made again later in the same visit (back from a room) keeps the first visit's 10 s
+let firstVisit = null;
+const isFirstVisit = () => (firstVisit == null ? (firstVisit = !store(localStorage, SEEN)) : firstVisit);
+export const IDLE_FIRST_MS = 10000, IDLE_MS_AFTER = 5000;
 
 // the sequences (seconds from the start). wave = window lights climbing, lit = the city's glow, bill = billboards,
 // logo = when the sign starts, steady = when it holds, menu = when the menu starts easing in
@@ -275,6 +281,7 @@ function xmasWrapSvg(svg, k) {
 const SIGN_LIGHT = { dotd: '#ffa62a', halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
 
 export function createTitle() {
+  isFirstVisit();   // (9g: read before the door is ever walked through on this load)
   const els = {};
   let scene = null;
   let stopRain = null;
@@ -1278,8 +1285,9 @@ export function createTitle() {
     setTimeout(() => { buzzing.delete(i); if (destroyed) return; l.classList.toggle('on', !day); if (tl && tl.done) neonTick(); }, plan[plan.length - 1][1] + 40);
   }
 
-  // after 10 s without a touch the menu and the tagline fade away — just the sign and the city; any touch brings them back
-  const IDLE_MS = 10000;
+  // after 10 s without a touch (a device's first visit; 5 s after that — 9g) the menu and the tagline fade away — just the sign and the
+  // city; any touch brings them back
+  const IDLE_MS = isFirstVisit() ? IDLE_FIRST_MS : IDLE_MS_AFTER;
   let idleTimer = 0, swallowed = false, mouseAt = null;
   // (local test runs don't fade on their own unless they ask with &idle=1 — a slow test step must not hide the buttons)
   // (SP3: &idle=0 keeps the dock + the corner buttons up for a look review — the glass's weather shot at length)
@@ -1619,6 +1627,7 @@ export function createTitle() {
       hit: (x, y) => scene && scene.hit(x, y),
       idle: () => goIdle(),
       quickIdle: () => quickIdle,   // (9e: the QUICK FADE armed — the dock up for ~2 s over a front-street scene)
+      idleMs: () => IDLE_MS,        // (9g: 10 s on a device's first visit, 5 s after)
       frontBusy: () => (scene && scene.frontBusy ? scene.frontBusy() : null),
       isIdle: () => els.root.classList.contains('is-idle'),
       rainSound: () => !!stopRain,
