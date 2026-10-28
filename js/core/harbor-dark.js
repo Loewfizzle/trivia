@@ -81,6 +81,24 @@ export const windowsNight = k => k > 0.2;
 /** dark enough to call it night (the sign "caught" at power-on, tier 0's calm) */
 export const isNight = k => k > 0.5;
 
+// ------------------------------------------------------------------ 9d — THE BEACONS' PHOTOCELL
+/**
+ * The owner (Oct 27): real obstruction lights switch on by a LIGHT SENSOR as the daylight drops — around sunset — so the red beacons
+ * blink through the last of golden hour into dusk (they followed the city's ramp before, landing in the blue hour); on a dark overcast
+ * evening earlier (the same darkness input: the real cloud + storm terms darken it); off again at sunrise; the white strobe on the
+ * tallest by day hands over at the same moment. ON at darkness `on` (≈ the sun on the horizon, a few minutes before sunset), OFF below
+ * `off` (a sensor's hysteresis: never flicking on + off as the light hovers), the lamps fading over `ramp` seconds.
+ */
+export const BEACON = Object.freeze({ on: 0.177, off: 0.165, ramp: 90 });
+/** PURE: the photocell's state for darkness k, given its last state (null: a first look — on from `on`) */
+export function photocell(k, was = null) { return was ? k >= BEACON.off : k >= BEACON.on; }
+/** PURE: the beacons' lamp level one step on: level (0..1) toward the cell's state over BEACON.ramp s; dt in s (a jump > 10 min joins at once) */
+export function beaconStep(level, on, dt) {
+  if (!(dt >= 0) || dt > 600) return on ? 1 : 0;
+  const d = dt / BEACON.ramp;
+  return on ? Math.min(1, level + d) : Math.max(0, level - d);
+}
+
 // ------------------------------------------------------------------ THE POWER-UP (DT1)
 /** the blue hour in darkness: the power-up runs from sunset (0.2) to the end of the blue hour (0.9) */
 export const POWER = Object.freeze([0.2, 0.9]);

@@ -89,7 +89,7 @@ import { createGlassWeather } from './glasswx.js';
 import { safeCtx, starvedCount, blurWorks } from '../../ui/canvas-safe.js';
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip } from '../../ui/debug-strip.js';
-import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power } from '../../core/harbor-dark.js';
+import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power, photocell, beaconStep } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, UFO_LEN, TR3B_LEN, trafficHold, inHold } from '../../core/harbor-legend.js';
 import { raidEvening, raidPlan, raidAt, forcedRaid, RAID } from '../../core/harbor-raid.js';
@@ -1354,6 +1354,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // a loop iOS stopped feeding) → the LOAD log + /admin ONCE a session, with what was on (the tier, the party, the snow, the legendary,
   // the weather), so the next one arrives with its evidence
   const GAP_MS = 1500;
+  const bcn = { on: null, k: 0, ms: null };   // (9d: the beacons' photocell — its state + the lamps' level + the clock it last stepped at)
   let stallSent = false, hiddenAt = -1e9;   // (hiddenAt: a gap that spans a trip to the background is no stall)
   function frameGap(ms, how) {
     LOADLOG.add('note', `the city stalled ${Math.round(ms)} ms (${how})`);
@@ -1609,13 +1610,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!off.has('no-waterfront')) waterfront.draw(c, T, fadeIn * litK(DK, 'lamps') * (lit > 0 ? lit : 0) * pQuay, fadeIn, t, S.motion, off.has('no-water') ? null : water);
     // the far quay's lamps (Part 4: lit at night, with the city's power-on; their light runs down into the water)
     drawQuayLamps(c, quayLamps, fadeIn * litK(DK, 'lamps') * lit * pQuay);
-    AUD.quay = fadeIn * litK(DK, 'lamps') * Math.max(0, lit) * pQuay; AUD.windows = (deadFar && deadCity) ? 0 : winK; AUD.neon = (deadFar && deadCity) ? 0 : nf.night * nf.fade; AUD.beacons = deadCity ? 0 : nightK;
-    if (!deadCity) lights.beacons(c, now, nightK, fadeIn * clamp01(TW.day * 1.2), S.motion);
+    AUD.quay = fadeIn * litK(DK, 'lamps') * Math.max(0, lit) * pQuay; AUD.windows = (deadFar && deadCity) ? 0 : winK; AUD.neon = (deadFar && deadCity) ? 0 : nf.night * nf.fade; AUD.beacons = deadCity ? 0 : nightK;   // (the beacons' hum stays with the night; 9d's photocell is the light)
+    // (9d — THE PHOTOCELL: the red beacons on at sunset by the real light level, faded over ~90 s; the white day strobe hands over then)
+    { const ms = clock.now(), cellOn = photocell(DK, bcn.on); if (cellOn !== bcn.on) LOADLOG.add('note', `the beacons' photocell ${cellOn ? 'on' : 'off'} (darkness ${DK.toFixed(3)})`); bcn.on = cellOn;
+      bcn.k = beaconStep(bcn.k, cellOn, bcn.ms == null ? 1e9 : Math.abs(ms - bcn.ms) / 1000); bcn.ms = ms; }
+    const beaconK = bcn.k * fadeIn * (lit > 0 ? lit : 0);
+    if (!deadCity) lights.beacons(c, now, beaconK, fadeIn * (1 - bcn.k) * (bcn.on ? 0 : 1), S.motion);
     if (legends && legends.active()) drainCity(c, fadeIn, 'near');   // (6b: THE TR-3B's power drain rolling across the city under it)
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     wfx.fogLayer(c, fs, 2, t);
     // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)
-    if ((LK.fog || 0) > 0.35 && !deadCity) lights.beacons(c, now, nightK * (lit > 0 ? lit : 0) * (1 - dk0), 0, S.motion, LK.fog, true);
+    if ((LK.fog || 0) > 0.35 && !deadCity) lights.beacons(c, now, Math.max(nightK, beaconK) * (lit > 0 ? lit : 0) * (1 - dk0), 0, S.motion, LK.fog, true);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
     AUD.search = beamK * nightK * (1 - dk0);
     if (beamK * (1 - dk0) > 0.01) drawBeams(c, L, beamK * nightK * (1 - dk0), t, { mist: LK.fog || 0, tier, fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, w, ux, uy) => clouds.beamPatch(c, h, col, a, w, ux, uy) });
