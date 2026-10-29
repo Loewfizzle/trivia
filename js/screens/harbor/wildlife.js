@@ -18,7 +18,7 @@ import { project } from '../../core/harbor-layout.js';
 import { rngFrom, hashString } from '../../core/rng.js';
 import { FOLK } from '../../core/harbor-people.js';
 import { sunTimes } from '../../core/sky.js';
-import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
+import { lightField, lightSources, sunShadow, lightMode } from '../../core/harbor-light.js';
 import { hourPlan } from '../../core/harbor-moments.js';
 import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import {
@@ -481,8 +481,8 @@ export function createWildlife() {
   // ---------------------------------------------------------------- DRAWING
   let lightKey = '', lightFn = null, srcs = null, pileKey = '', pileCv = null, pileBox = null;
   function envOf(env) {
-    const dark = clamp01(env.dark || 0), k = Math.round(dark * 20) / 20, key = String(k);
-    if (key !== lightKey) { lightKey = key; lightFn = k > 0.01 ? lightField(L, { lamps: k }) : null; }
+    const dark = clamp01(env.dark || 0), k = Math.round(dark * 20) / 20, key = `${k}|${lightMode()}`;   // (NIGHT-A: the light's mode in the key)
+    if (key !== lightKey) { lightKey = key; lightFn = k > 0.01 ? lightField(L, { lamps: k }) : null; srcs = null; }
     if (!srcs) srcs = lightSources(L);
     const rimSide = (x, z) => { let best = 0, side = 1; for (const s of srcs) { const d = Math.hypot(x - s.x, (z - s.z) * 1.15), w = s.k / (0.6 + d * d); if (w > best) { best = w; side = s.x >= x ? 1 : -1; } } return side; };
     return { T: env.T || { day: 1 }, dark, lightAt: lightFn, rimSide, shadow: h => sunShadow(env.T || {}, h), t: frameT, mo: motion, tier: env.tier == null ? tier : env.tier };

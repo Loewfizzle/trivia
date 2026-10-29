@@ -100,3 +100,29 @@ test('C4c — THE HYDRANT CORNER\'s LAMP: unseen just past the LEFT edge at 390 
   }
   assert.ok(CORNER_LAMP.k < 0.9, 'dimmer than the cab stand\'s');
 });
+
+test('NIGHT-A — THE NEW NIGHT LIGHT (&light=new): an even base + ONE warm wash by depth — no pools across the street or the promenade; only the shopfront + the cab stand (+ the cart) as local light; faces lit from the front; shadows long + soft from one direction; the tree\'s night shadow short; the old light untouched', async () => {
+  const M = await import('../js/core/harbor-light.js');
+  const L = setup(), lum = c => (c ? c[0] + c[1] + c[2] : 0);
+  const old = lightField(L, { lamps: 1 }), oldStreet = [-4.5, 0, 4.5].map(x => lum(old(x, 27)));
+  assert.ok(Math.max(...oldStreet) > Math.min(...oldStreet) * 1.4, 'the old light: the street shows pools (the owner\'s spotlight patches)');
+  try {
+    assert.equal(M.setLightMode('new'), true); assert.equal(M.lightMode(), 'new'); assert.equal(M.setLightMode('new'), false, 'no change → false');
+    const at = lightField(L, { lamps: 1 });
+    for (const z of [25, 30, 34, 40, 47]) {   // across the full width at each depth (away from the shop + the cab stand): one level
+      const row = [-1.5, 0, 1.5, 2.5].map(x => lum(at(x, z))); assert.ok(Math.max(...row) - Math.min(...row) < 2, `even across at z ${z}: ${row.map(Math.round)}`);
+    }
+    { const st = [-11, -9, -4.5, 0, 4.5, 9, 11].map(x => lum(at(x, 27))); assert.ok(Math.max(...st) - Math.min(...st) < 2, `the street under the dock: no patches across its whole width (${st.map(Math.round)})`); }
+    assert.ok(lum(at(0, 25)) > lum(at(0, 36)) && lum(at(0, 36)) > lum(at(0, 46)) && lum(at(0, 46)) > lum(at(0, 53)), 'warmest at the screen\'s foot, fading toward the railing');
+    assert.ok(lum(at(0, 53)) > 0, 'the base never black'); const c = at(0, 25); assert.ok(c[0] > c[2] * 1.5, 'the wash is warm');
+    assert.ok(!lightSources(L).some(s => s.implied), 'no implied pools'); assert.deepEqual(M.hiddenLamps(L).map(h => !!h.cab), [true], 'only the cab stand\'s lamp');
+    const s = L.speakeasy, shopX = s.x0 + (s.door.u0 + s.door.u1) / 2;
+    assert.ok(lum(at(shopX, s.z0 - 1.3)) > lum(at(3, s.z0 - 1.3)) + 40, 'the shopfront stands out');
+    const sh = lampShadow(L.lamps, 1.7, 0, 40, 1), sh2 = lampShadow(L.lamps, 1.7, -4, 40, 1);
+    assert.ok(sh.soft && sh.dz > 3 && sh.a < 0.4 && sh.dx < 0 && sh2.dx < 0, 'long, faint, soft, up the screen, all leaning one way');
+    const f = lampOn(L.lamps, 0, 40, 1); assert.ok(f.ld[2] < -0.5 && f.lk > 0.3, 'a face lit from the front');
+    assert.equal(roadLampAt(L.lamps, 0.1), roadLampAt(L.lamps, 0.37), 'the road: even');
+    assert.ok(M.NIGHT_LIGHT.treeShadow.throw < 0.5 && M.NIGHT_LIGHT.treeShadow.a < 1, 'the tree\'s night shadow short + gentle');
+  } finally { M.setLightMode('old'); }
+  assert.deepEqual([-4.5, 0, 4.5].map(x => lum(lightField(L, { lamps: 1 })(x, 27))), oldStreet, 'back to old: the same light as before');
+});

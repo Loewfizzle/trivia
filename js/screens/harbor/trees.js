@@ -16,7 +16,7 @@ import { project } from '../../core/harbor-layout.js';
 import { PIECE } from '../../core/harbor-promenade.js';
 import { treePlan, envelopeOf, treeMix, BARK, FRUIT, LEAF } from '../../core/harbor-trees.js';
 import { rgb, mix } from './shapes.js';
-import { treeLamps, lampShadow } from '../../core/harbor-light.js';
+import { treeLamps, lampShadow, lightMode, NIGHT_LIGHT } from '../../core/harbor-light.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -374,10 +374,15 @@ export function treeShadow(x, cam, t, T, ctx = {}) {
   // (PROM — AT NIGHT: the IMPLIED LAMPS behind the viewer throw the tree's shadow UP the screen, away from us — core/harbor-light.js#lampShadow)
   const nightSh = day < 0.15 ? lampShadow(ctx.lights, 1, t.x, t.z, (ctx.lampK ?? T.lamps ?? 0) * Math.min(1, n * 1.4)) : null;
   if ((day < 0.15 || (T.ovc || 0) >= 0.5) && !nightSh) return;
-  const a = nightSh ? nightSh.a * 0.85 : 0.3 * Math.min(1, day) * (1 - 0.6 * (T.ovc || 0));
+  // NIGHT-A (the owner, Oct 29: at night the maple's shadow read as a BARE tree — the long throw put the crown's clusters past the curb
+  // onto the street, only the trunk + limb lines on the paving): under the NEW light the night shadow is SHORT + SOFT — the wash's
+  // direction only, thrown ~⅓ of the height (NIGHT_LIGHT.treeShadow), so the crown's dapple lands on the cobbles beside + just behind
+  // the trunk; a gentle darkening (half strength), no stretch; the limb lines only when the tree is bare (winter). The old light as it was.
+  const nl = !!nightSh && lightMode() === 'new', TS = NIGHT_LIGHT.treeShadow, dl = nightSh ? Math.hypot(nightSh.dx, nightSh.dz) || 1 : 1;
+  const a = nightSh ? nightSh.a * (nl ? TS.a : 0.85) : 0.3 * Math.min(1, day) * (1 - 0.6 * (T.ovc || 0));
   const plan = planOf(t, ctx), el = Math.max(6, T.sunEl || 30) * Math.PI / 180, side = T.sunDir || 0;
-  const long = nightSh ? 1 : Math.min(3.2, 1 / Math.tan(el)), hx = nightSh ? nightSh.dx : -side * 0.9, hz = nightSh ? nightSh.dz : 0.35 + 0.4 * (1 - Math.abs(side));
-  const stretch = nightSh ? 1.25 : Math.min(2.4, 1 / Math.sin(el));
+  const long = nl ? TS.throw : nightSh ? 1 : Math.min(3.2, 1 / Math.tan(el)), hx = nl ? nightSh.dx / dl : nightSh ? nightSh.dx : -side * 0.9, hz = nl ? nightSh.dz / dl : nightSh ? nightSh.dz : 0.35 + 0.4 * (1 - Math.abs(side));
+  const stretch = nl ? 1 : nightSh ? 1.25 : Math.min(2.4, 1 / Math.sin(el));
   const G = (u, v) => [t.x + u + hx * v * long, t.z + hz * v * long];
   const col = mix([28, 22, 44], [48, 24, 56], g / (day || 1));
   x.fillStyle = rgb(col, a);
@@ -397,7 +402,8 @@ export function treeShadow(x, cam, t, T, ctx = {}) {
     }
     x.fill();
   }
-  // the limbs' lines (fine in summer under the leaves, the whole bare tree in winter)
+  // the limbs' lines (fine in summer under the leaves, the whole bare tree in winter; NIGHT-A's new light: only a bare tree's)
+  if (nl && plan.clusters.length) return;
   x.strokeStyle = rgb(col, a * 0.9); x.lineCap = 'round';
   for (let dd = 1; dd <= Math.min(plan.depth, 5); dd++) {
     x.lineWidth = Math.max(0.4, 0.12 * cam.F / t.z / dd); x.beginPath();

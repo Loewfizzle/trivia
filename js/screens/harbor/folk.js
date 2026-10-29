@@ -12,6 +12,8 @@ import { rngFrom } from '../../core/rng.js';
 import { GEAR, gearCart } from './gear.js';
 import { LADDER, HANDS, liftSq, raiseK, railAhead } from '../../core/harbor-crew.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { NIGHT_LIGHT } from '../../core/harbor-light.js';
+const NIGHT_LIFT = NIGHT_LIGHT.lift, NIGHT_KEEP = NIGHT_LIGHT.keep;   // (keep: the share of the night's darkening the wash gives back — every side we see faces it)   // (NIGHT-A: the new light lifts the cloth facing us)
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -541,7 +543,7 @@ export function drawFolk(c, cam, it, env) {
     if (T.gold) cc = mix(cc, [cc[0] * 1.08 + 10, cc[1] * 0.95, cc[2] * 0.82], T.gold * 0.5);
     // (11a-1: a costume's colours hold a little more at night — L.nightLift — the orange pumpkin, the white sheet, the Catrina's dress read
     // under the lamps + the door's light; the candles add their own)
-    if (dark > 0.01) { const lum = (col[0] * 0.3 + col[1] * 0.59 + col[2] * 0.11) / 255; cc = mix(cc, NIGHT, (0.86 - 0.24 * clamp01((lum - 0.55) / 0.4)) * dark * (1 - (L.nightLift || 0))); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); cc = [cc[0] + lt[0] * q * 0.1 * k * lampK, cc[1] + lt[1] * q * 0.1 * k * lampK, cc[2] + lt[2] * q * 0.1 * k * lampK]; } }   // (FP3a: mostly silhouette; the rim carries the light)
+    if (dark > 0.01) { const lum = (col[0] * 0.3 + col[1] * 0.59 + col[2] * 0.11) / 255; cc = mix(cc, NIGHT, (0.86 - 0.24 * clamp01((lum - 0.55) / 0.4)) * dark * (1 - (L.nightLift || 0)) * (env.front ? 1 - NIGHT_KEEP * Math.min(1, lk) : 1)); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); const fk = 0.1 * (env.front ? NIGHT_LIFT : 1); cc = [cc[0] + lt[0] * q * fk * k * lampK, cc[1] + lt[1] * q * fk * k * lampK, cc[2] + lt[2] * q * fk * k * lampK]; } }   // (NIGHT-A: env.front — the new light's wash lights every side we see)   // (FP3a: mostly silhouette; the rim carries the light)
     return cc.map(v => Math.min(255, v));
   };
   const X = u => fx + u * H, Y = v => fy - v * H;
@@ -549,7 +551,13 @@ export function drawFolk(c, cam, it, env) {
   if (env.clip) env.clip(c);
   // ---- the shadows: a soft contact shadow; by day the sun's cast shadow along the ground
   const sh = env.shadow ? env.shadow(BODY_H * L.h, st.x, st.z) : null;
-  if (sh && st.pose !== 'sit') {
+  if (sh && sh.soft && st.pose !== 'sit') {
+    // (NIGHT-A, the new light: a SOFT shadow — darkest at the feet, fading to nothing along its length, a little wider at its far end; no
+    // blob at the tip — "never hard black blobs")
+    const [tx, ty] = project(cam, st.x + sh.dx, yUp, st.z + sh.dz), w = H * 0.1, g = c.createLinearGradient(fx, fy, tx, ty);
+    g.addColorStop(0, `rgba(20,16,34,${(sh.a * 0.95).toFixed(3)})`); g.addColorStop(0.5, `rgba(20,16,34,${(sh.a * 0.62).toFixed(3)})`); g.addColorStop(1, 'rgba(20,16,34,0)');
+    c.fillStyle = g; c.beginPath(); c.moveTo(fx - w, fy); c.lineTo(fx + w, fy); c.lineTo(tx + w * 1.1, ty); c.lineTo(tx - w * 1.1, ty); c.closePath(); c.fill();
+  } else if (sh && st.pose !== 'sit') {
     const [tx, ty] = project(cam, st.x + sh.dx, yUp, st.z + sh.dz), w = H * 0.09;
     c.fillStyle = `rgba(28,22,44,${(sh.a * 0.85).toFixed(3)})`; c.beginPath(); c.moveTo(fx - w, fy); c.lineTo(fx + w, fy); c.lineTo(tx + w * 0.55, ty); c.lineTo(tx - w * 0.55, ty); c.closePath(); c.fill();
     c.beginPath(); c.ellipse(tx, ty, w * 0.75, w * 0.35, 0, 0, TAU); c.fill();
@@ -557,8 +565,9 @@ export function drawFolk(c, cam, it, env) {
   c.fillStyle = `rgba(8,6,16,${(0.32 + 0.18 * (1 - day) + 0.1 * lk).toFixed(3)})`;
   c.beginPath(); c.ellipse(fx, fy, H * (st.pose === 'sit' ? 0.12 : 0.14), H * 0.035, 0, 0, TAU); c.fill();
   // ---- the RIM (night, under a lamp — FP3a, the owner's 8P note 3: on the HEAD + SHOULDERS only, never the whole outline)
-  if (dark > 0.3 && lt && lk > 0.12 && env.tier !== 0) {              // (tier 0: no rim pass)
-    const side = env.rimSide ? env.rimSide(st.x, st.z) : 1, n = Math.max(lt[0], lt[1], lt[2]) || 1, rc = mix(lt.map(v => Math.min(255, 52 + v / n * 200)), [255, 214, 160], 0.45);
+  const rimS = dark > 0.3 && lt && lk > 0.12 && env.tier !== 0 && env.rimSide ? env.rimSide(st.x, st.z) : 1;   // (NIGHT-A: 0 = no side to rim from — the new light's wash)
+  if (dark > 0.3 && lt && lk > 0.12 && env.tier !== 0 && rimS !== 0) {              // (tier 0: no rim pass)
+    const side = rimS, n = Math.max(lt[0], lt[1], lt[2]) || 1, rc = mix(lt.map(v => Math.min(255, 52 + v / n * 200)), [255, 214, 160], 0.45);
     c.save(); c.translate(side * Math.max(0.7, H * 0.034), -Math.max(0.35, H * 0.01)); c.globalAlpha = a * 0.95 * clamp01(0.35 + lk * 0.8) * lampK;
     rimUpper(c, J, L, X, Y, H, rgb(rc)); c.restore();
   }

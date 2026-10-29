@@ -16,6 +16,35 @@ import { PIECE } from './harbor-promenade.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / l, v[1] / l, v[2] / l]; };
 
+// ------------------------------------------------------------------ NIGHT-A — THE NIGHT LIGHT, NEW (`&light=new|old` + the panel's row)
+// The owner, Oct 29 ("THE NIGHT LIGHTING REWORK — DECIDED"): (1) an even BASE night level over the whole promenade + the street under
+// the dock — dim, cool, the city's glow: the cobbles + every walker always readable; (2) the implied lamps behind the viewer are a
+// DIRECTION, not lamp positions — ONE broad, soft, warm WASH across the full width, warmest at the screen's foot, fading toward the
+// railing: NO pools anywhere (the street under the dock showed the six lamps as spotlight patches: sx 1.2 + 0.09 dz, 9 u apart); (3) only
+// TWO places stand out, each with a visible source — the shopfront (the awning + the door's lamp: the speakeasy's spill) + the cab
+// stand (its lamp); the POL4 lamp behind the blade + the hydrant corner's lamp fold into the wash; (4) people lit by it — their fronts
+// (facing us) catch it, a soft long faint shadow UP the screen (never a hard blob); (6) the blackout takes it all down. One switch for
+// every painter (the stage's bake, the street, the people, the props, the trees, the road's cars, the snow, the wildlife, the holiday
+// pieces); the scene sets it (scene.js#lightModeNow) and re-bakes on a change. OLD = today's light, unchanged, until the owner's OK.
+export const LIGHT_MODES = Object.freeze(['old', 'new']);
+export const LIGHT_DEFAULT = 'old';
+let MODE = LIGHT_DEFAULT;
+export const lightMode = () => MODE;
+/** → true when it changed (the caller re-bakes) */
+export function setLightMode(m) { const v = m === 'new' ? 'new' : 'old'; if (v === MODE) return false; MODE = v; return true; }
+const NEW = () => MODE === 'new';
+// base: the cool city glow (a constant × the lamps' ramp — the city's power: the blackout takes it down with the rest); wash: the
+// implied lamps' warm light, its strength by DEPTH only (z0: the screen's foot on every phone ≈ 23–24 u; `fall`: half-strength ~15 u
+// in — the curb ≈ 0.6, the compass ≈ 0.4, the railing ≈ 0.2); shadow: the wash's direction (from a far light behind the viewer at
+// z = LAMP_Z − back, x pulled toward the middle by `fan` + `side` u to the right: ONE direction for the whole promenade, the shadows
+// leaning a little left — straight up they hid behind the figure's own body), long (a lamp ~48 u behind + 5.6 up throws a figure's
+// shadow far further; it fades out along its length) + faint; lift: the figures' cloth lit by it
+// (× folk.js's 0.1 — mostly silhouette before; facing us, every visible side faces the wash)
+export const NIGHT_LIGHT = Object.freeze({ base: [13, 17, 32], wash: [242, 158, 76], washK: 0.95, z0: 24, fall: 15, lampZ: 21.5, lampY: 5.6,
+  shadow: { len: 3.4, a: 0.36, back: 30, fan: 0.4, side: 7 }, lift: 2.6, keep: 0.42, treeShadow: { throw: 0.34, a: 0.5 }, face: 0.8, tree: { k: 0.55, fall: 24 }, road: 0.7 });
+/** the wash's strength at depth z (0..washK) — the same at every x */
+export function washAt(z) { const d = z - NIGHT_LIGHT.z0; return NIGHT_LIGHT.washK * (d <= 0 ? 1 : 1 / (1 + (d / NIGHT_LIGHT.fall) ** 2)); }
+
 /** what every piece's art gets (trees.js, props.js, centre.js): the season + how far into it, the lamps (their light at night: lampK =
  *  the lamps' ramp baked), Part 9's hooks (snow on the ground + branches, a wet sheen) */
 export const pieceCtx = L => ({ season: L.season || 'autumn', phase: L.seasonPhase ?? 0.5, lights: [...L.lamps.map(l => ({ x: l.x, z: l.z, kind: l.kind, h: l.h })), ...hiddenLamps(L)], lampK: L.lampK || 0, snow: L.snow || 0, snowBranch: L.snowBranch ?? L.snow ?? 0, snowCol: L.snowCol || null, wet: L.wet || 0 });
@@ -28,6 +57,7 @@ export const pieceCtx = L => ({ season: L.season || 'autumn', phase: L.seasonPha
 export const HIDDEN = Object.freeze({ dx: -3.2, dz: 1.5, h: 4.0, k: 1 });
 export function hiddenLamps(L) {
   const t = (L.trees || []).find(o => o.kind === 'crab'), cab = cabLamp(L), cor = cornerLamp(L);
+  if (NEW()) return cab ? [cab] : [];   // (NIGHT-A: the blade's hidden lamp + the hydrant corner's fold into the wash)
   return [...(t ? [{ x: t.x + HIDDEN.dx, z: t.z + HIDDEN.dz, h: HIDDEN.h, kind: 'hidden', k: HIDDEN.k, pool: { dx: 1.6, dz: -0.8, k: 0.5 } }] : []), ...(cab ? [cab] : []), ...(cor ? [cor] : [])];
 }
 // C4b — THE CAB STAND's OWN LAMP (the owner, Oct 28 10:03 + 10:37 pm — DECIDED): the cab-stand bench in front of the framing maple
@@ -83,20 +113,22 @@ export function impliedAt(s, x, z) {
 /** the speakeasy's warm spill on the cobbles: its side door's sconce, the shop's one dim lamp through the big window (+ FP2: the
  *  barber pole's small cool pool) */
 function speakSpill(L) {
-  const s = L.speakeasy, z = s.z0 - 1.3;
-  return [{ x: s.x0 + (s.door.u0 + s.door.u1) / 2, z, kind: 'spill', k: 0.95 }, { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2, z, kind: 'spill', k: 0.5 },
+  // (NIGHT-A: the new light's wash adds under the spill — trimmed to keep the shopfront where it was, below the windows: THE LADDER)
+  const s = L.speakeasy, z = s.z0 - 1.3, sk = NEW() ? 0.8 : 1;
+  return [{ x: s.x0 + (s.door.u0 + s.door.u1) / 2, z, kind: 'spill', k: 0.95 * sk }, { x: s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2, z, kind: 'spill', k: 0.5 * sk },
     ...(s.shop && s.shop.pole ? [{ x: s.x0 + s.shop.pole.u, z: s.z0 - 0.8, kind: 'pole', k: 0.6 }] : [])];
 }
 /** every light that pools on the ground: the lamps, the speakeasy's spill, the cart */
-export const lightSources = L => [...L.lamps.map(l => ({ x: l.x, z: l.z, kind: 'implied', k: 1, implied: true })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false && !L.cart.live ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : []), ...hiddenLamps(L).map(h => ({ x: h.x + h.pool.dx, z: h.z + h.pool.dz, kind: 'hidden', k: h.pool.k }))];   // (FP3b: the live cart lays its own pool — people.js; POL4: the hidden lamp's pool, its heart a little toward the tree — the lamp itself is behind the blade, its light falls forward + right)
+export const lightSources = L => [...(NEW() ? [] : L.lamps).map(l => ({ x: l.x, z: l.z, kind: 'implied', k: 1, implied: true })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false && !L.cart.live ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : []), ...hiddenLamps(L).map(h => ({ x: h.x + h.pool.dx, z: h.z + h.pool.dz, kind: 'hidden', k: h.pool.k }))];   // (FP3b: the live cart lays its own pool — people.js; POL4: the hidden lamp's pool, its heart a little toward the tree — the lamp itself is behind the blade, its light falls forward + right)
 /** the light on the ground at (x, z) at night — every lamp's pool (overlapping: every path lit, the shadows between dim) + the
  *  speakeasy's spill; null by day (T.lamps 0) */
 export function lightField(L, T) {
   const k = T.lamps || 0;
   if (k < 0.01) return null;
-  const src = lightSources(L);
+  const src = lightSources(L), nw = NEW(), B = NIGHT_LIGHT.base, C = NIGHT_LIGHT.wash;
   return (x, z) => {
     let r = 0, g = 0, b = 0;
+    if (nw) { const w = washAt(z); r = B[0] + C[0] * w; g = B[1] + C[1] * w; b = B[2] + C[2] * w; }   // (NIGHT-A: the base + the wash, no pools)
     for (const s of src) {
       if (s.implied) { const f = impliedAt(s, x, z); if (f > 0.002) { const c = LIGHT.implied; r += c[0] * f; g += c[1] * f; b += c[2] * f; } continue; }
       const R = REACH[s.kind], dx = x - s.x, dz = (z - s.z) * 1.15, d2 = (dx * dx + dz * dz) / (R * R);
@@ -124,6 +156,14 @@ export function sunShadow(T, h) {
 const LAMP_SHADOW = Object.freeze({ len: 0.95, a: 0.42 });
 export function lampShadow(lamps, h, x, z, k) {
   if (!(k > 0.05) || x == null || z == null) return null;
+  if (NEW()) {
+    // (NIGHT-A: the wash's shadow — away from a far light behind the viewer, a slight fan outward; long, faint, fainter up the promenade
+    // where the wash is weaker. Beside the cab stand its own lamp throws it (LEFT, C4b's) — the lamp you can see the light of)
+    const S = NIGHT_LIGHT.shadow, cab = (lamps || []).find(l => l.cab && Math.hypot(l.x - x, l.z - z) < CAB_LAMP.shadowR);
+    const sx = cab ? cab.x : x * S.fan + S.side, sz = cab ? cab.z : NIGHT_LIGHT.lampZ - S.back, d = Math.hypot(x - sx, z - sz) || 1;
+    const len = S.len * h * (cab ? 0.75 : 1), a = S.a * Math.min(1, k) * (cab ? 0.9 : 0.55 + 0.45 * washAt(z) / NIGHT_LIGHT.washK);
+    return { dx: (x - sx) / d * len, dz: (z - sz) / d * len, a, soft: true };
+  }
   let best = null, bd = 1e9;
   for (const l of lamps || []) { if (!l.implied && l.kind !== 'implied' && !l.cab && !l.corner) continue; const d = Math.hypot(l.x - x, l.z - z); if ((l.cab && d > CAB_LAMP.shadowR) || (l.corner && d > CORNER_LAMP.shadowR)) continue; if (d < bd) { bd = d; best = l; } }   // (C4b: the cab stand's lamp near it — the bench's shadow falls LEFT)
   if (!best) return null;
@@ -144,6 +184,20 @@ export function castShadow(T, h, x, z, lamps, k = null) {
 export const FACE = Object.freeze({ col: { tall: [196, 212, 236], globe: [255, 190, 118], hidden: [255, 184, 108], implied: [255, 194, 128] }, reach: { tall: 14, globe: 12, hidden: 9, implied: 36 }, y: { tall: 5.8, globe: 3.9, hidden: 4.0, implied: 5.6 } });
 /** the NEAREST lamp's light on a face at (wx, wz): { lk (strength × lampK), lcol, ld (the unit direction toward it) } */
 export function lampOn(lights, wx, wz, lampK) {
+  if (NEW()) {
+    // (NIGHT-A: the wash on a face — from the front + a little above (the implied lamps' heads behind the viewer), its strength by depth;
+    // the cab stand's lamp blended in near it, as before)
+    let lk = lampK * Math.min(1, NIGHT_LIGHT.face * washAt(wz) / NIGHT_LIGHT.washK + 0.12), lcol = FACE.col.implied;
+    let ld = norm([-wx * 0.3, NIGHT_LIGHT.lampY - 1, (NIGHT_LIGHT.lampZ - NIGHT_LIGHT.shadow.back) - wz]);
+    for (const h of lights || []) {
+      if (h.kind !== 'hidden') continue;
+      const d = Math.hypot(h.x - wx, (h.z - wz) * 1.1), hk = lampK * (h.k || 1) * 0.9 * Math.pow(clamp01(1 - d / FACE.reach.hidden), 1.3);
+      if (hk < 0.01) continue;
+      const w = hk / (lk + hk), hd = norm([h.x - wx, h.h - 1, h.z - wz]);
+      lcol = lcol.map((v, i) => v * (1 - w) + FACE.col.hidden[i] * w); ld = norm(ld.map((v, i) => v * (1 - w) + hd[i] * w)); lk = Math.min(1, lk + hk);
+    }
+    return { lk, lcol, ld };
+  }
   let best = null, bd = 1e9;
   for (const l of lights || []) { if (l.kind === 'hidden') continue; const d = Math.hypot(l.x - wx, (l.z - wz) * 1.1); if (d < bd) { bd = d; best = l; } }
   const kind = best && (best.kind === 'tall' || best.kind === 'implied') ? best.kind : 'globe';
@@ -166,7 +220,10 @@ export const TREE_LAMP = Object.freeze({ tall: { col: [0.84, 0.95, 1.2], k: 0.58
 /** the lamps within reach of tree t, in its local frame: [{ x, y, w (toward us), col, k }] (a tall lamp = its two heads) */
 export function treeLamps(ctx, t) {
   const out = [];
+  // (NIGHT-A: the wash lights a crown evenly from the FRONT — one broad far light straight in front of it, not the 2–3 nearest lamps)
+  if (NEW()) out.push({ x: -t.x * 0.3, y: NIGHT_LIGHT.lampY, w: t.z - (NIGHT_LIGHT.lampZ - 8), col: TREE_LAMP.implied.col, k: NIGHT_LIGHT.tree.k, fall: NIGHT_LIGHT.tree.fall });
   for (const l of ctx.lights || []) {
+    if (l.kind === 'implied' && NEW()) continue;
     // (PROM: the implied lamps light a crown from the FRONT + below — the nearer ones only, each a far light: `fall` long)
     if (l.kind === 'implied') { if (Math.abs(l.x - t.x) < 11) out.push({ x: l.x - t.x, y: l.h ?? 5.6, w: -(l.z - t.z), col: TREE_LAMP.implied.col, k: TREE_LAMP.implied.k, fall: TREE_LAMP.implied.fall }); continue; }
     if (Math.abs(l.x - t.x) > 10 || Math.abs(l.z - t.z) > 14) continue;
@@ -183,6 +240,7 @@ export function treeLamps(ctx, t) {
 const ROAD_LAMP = Object.freeze({ reach: 7, zMax: 40 });
 /** the front walk's lamps on a car at world x (0..1) */
 export function roadLampAt(lamps, x) {
+  if (NEW()) return NIGHT_LIGHT.road;   // (NIGHT-A: the wash is even along the road — a car never passes through pools)
   let k = 0;
   for (const l of lamps) { if (l.z > ROAD_LAMP.zMax) continue; const d = (x - l.x) / ROAD_LAMP.reach; if (d * d < 1) k += (1 - d * d) ** 2; }
   return Math.min(1, k);

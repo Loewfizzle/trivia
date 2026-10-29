@@ -17,7 +17,7 @@ import { centreK } from '../../core/harbor-promenade.js';
 import { GIANT as GIANT_P } from '../../core/harbor-holidayprops.js';
 import { paintTreeStand } from './treestand.js';
 import { spotById } from '../../core/harbor-spots.js';
-import { lightField } from '../../core/harbor-light.js';
+import { lightField, lightMode } from '../../core/harbor-light.js';
 import { litCol } from './fauna.js';
 import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { rngFrom, hashString } from '../../core/rng.js';
@@ -259,9 +259,9 @@ export function createHolidayProps() {
   }
   function envLight(env) {
     const dark = clamp01(env.dark || 0), k = Math.round(dark * 20) / 20;
-    if (k !== lightDark) { lightDark = k; lightFn = k > 0.01 ? lightField(L, { lamps: k }) : null; }
+    if (k + lightMode() !== lightDark) { lightDark = k + lightMode(); lightFn = k > 0.01 ? lightField(L, { lamps: k }) : null; }   // (NIGHT-A: the light's mode in the key)
     const T = env.T || { day: 1 };
-    const key = `${k}|${Math.round((T.day || 0) * 10)}|${Math.round((T.gold || 0) * 10)}|${Math.round((T.night || 0) * 10)}|${Math.round((T.ovc || 0) * 5)}|${lay}`;
+    const key = `${lightMode()}|${k}|${Math.round((T.day || 0) * 10)}|${Math.round((T.gold || 0) * 10)}|${Math.round((T.night || 0) * 10)}|${Math.round((T.ovc || 0) * 5)}|${lay}`;
     if (key !== lightKey) { lightKey = key; }
     return { T, dark: k, lightAt: lightFn };
   }

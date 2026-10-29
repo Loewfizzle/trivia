@@ -34,6 +34,7 @@ export const SECONDS = {
   doors: 20,           // (9d: THE DOORS NEVER SNAP — two pages one after the other, a forced pass each; 13 s on the laptop)
   tower: 37,           // (9e: THE CONSTRUCTION TOWER — four pages one after the other; 9f: + the site at night — 18 s on the laptop; BNAME: + the classic crane page — 21 s)
   citylife: 40,        // (9e: THE CITY LIFE — the night shift, the water wagon, the morning paper; three pages)
+  light: 40,           // (NIGHT-A: THE BRIGHTNESS LADDER — four pages at 3×; a guess from the laptop)
   thanks: 70,          // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
 };
 
@@ -41,7 +42,7 @@ export const SECONDS = {
 export const CI_JOBS = {
   audio: ['music', 'flags', 'harbor', 'dock', 'tape'],   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life'],
-  city: ['core', 'skyline', 'water', 'load', 'promenade', 'panel'],
+  city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'panel'],   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)
   perf: ['tower', 'perf'],
   // (city's history: 9e — tower before the serial pair (now in perf); PEO — promenade moved here from street, motion took its room)

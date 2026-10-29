@@ -24,7 +24,7 @@ import { createDanceClock, stepDanceClock } from '../../core/harbor-dance.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
 import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
-import { lightField, lightSources, castShadow, hiddenLamps } from '../../core/harbor-light.js';
+import { lightField, lightSources, castShadow, hiddenLamps, lightMode } from '../../core/harbor-light.js';
 import { crossLightOf, crossPools, poolFall, CROSS, LENS } from './road.js';
 import { frontProfile } from './strings.js';
 import { SPEAK_V } from '../../core/harbor-speakeasy.js';
@@ -169,11 +169,13 @@ export function createPeople() {
   }
   // the lamps' light where a figure stands (stage.js's pools, live by the lamps' ramp) + the side the strongest one is on
   function lights(dark) {
-    const k = Math.round(dark * 20) / 20, key = String(k);
-    if (key !== lightKey) { lightKey = key; lightFn = k > 0.01 ? lightField(L, { lamps: k }) : null; }
+    const k = Math.round(dark * 20) / 20, key = `${k}|${lightMode()}`;   // (NIGHT-A: the light's mode in the key — its sources too)
+    if (key !== lightKey) { lightKey = key; lightFn = k > 0.01 ? lightField(L, { lamps: k }) : null; srcs = L ? lightSources(L) : srcs; shKey = null; }
     return lightFn;
   }
-  const rimSide = (x, z) => { let best = 0, side = 1; for (const s of srcs) { const d = Math.hypot(x - s.x, (z - s.z) * 1.15); const w = s.k / (0.6 + d * d); if (w > best) { best = w; side = s.x >= x ? 1 : -1; } } return side; };
+  // (NIGHT-A, the new light: the wash comes from the FRONT — no side to rim from; a rim only near a source you can see (the shopfront, the
+  // cab stand, the cart): 0 = no rim)
+  const rimSide = (x, z) => { let best = 0, side = 1; for (const s of srcs) { const d = Math.hypot(x - s.x, (z - s.z) * 1.15); const w = s.k / (0.6 + d * d); if (w > best) { best = w; side = s.x >= x ? 1 : -1; } } return lightMode() === 'new' && best < 0.02 ? 0 : side; };
   /** the line's guests (Lobby 2.0): static, alive — shifting weight, a glance at a watch, two chatting */
   // POLISH 5 — THE LOBBY LINE FEASIBILITY (&lineproto=1 only: core/harbor-people.js#linePlaces2): the staggered two-deep line, coats in
   // the player colours, a glowing PIN over each head (the first — "you" — brighter, pulsing)
@@ -208,7 +210,7 @@ export function createPeople() {
   let shLamps = null, shKey = null; const shadowLamps = () => { if (shKey !== L) { shKey = L; shLamps = [...L.lamps, ...hiddenLamps(L).filter(h => h.cab || h.corner)]; } return shLamps; };
   const envOf = env => { const dark = clamp01(env.dark || 0) * (env.power == null ? 1 : clamp01(env.power)), base = lights(dark), pls = env.pointLights && env.pointLights.length ? env.pointLights : null;
     // (PROM: by day the sun's shadow; at night the IMPLIED LAMPS' — up the screen, away from us: core/harbor-light.js#castShadow)
-    return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: pls ? withPoints(base, pls) : base, rimSide, shadow: (h, x, z) => castShadow(env.T || {}, h, x, z, shadowLamps(), dark * clamp01(((env.T && env.T.night) || 0) * 1.4)) }; };
+    return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: pls ? withPoints(base, pls) : base, rimSide, front: lightMode() === 'new', shadow: (h, x, z) => castShadow(env.T || {}, h, x, z, shadowLamps(), dark * clamp01(((env.T && env.T.night) || 0) * 1.4)) }; };
   /** FP3b — REAL DOORS: is this member inside a doorway (behind the facade's plane — drawn by drawInside through the opening)? */
   const insideDoor = m => !!(m.s.door && !m.s.door.bus && M && m.s.z > M.face - 0.02);
   const inBus = (m, b) => !!(m.s.door && m.s.door.bus && m.s.door.id === b.id && m.s.z > b.z - 0.02);

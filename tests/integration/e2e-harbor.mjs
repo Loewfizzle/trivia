@@ -3782,6 +3782,45 @@ G('legends', async () => {
 
 // ================================================================ 9b — WINTER: the climate fallback, the snowpack's stages on the city, the
 // falling snow, the plow, the sign's snow, the January snowman (phone-sized pages; the look itself is reviewed in screenshots)
+// ================================================================ NIGHT-A — THE NIGHT LIGHT (core/harbor-light.js; docs/harbor/passes/night-a.md)
+G('light', async () => {
+  const P = 'window.__district.harbor()';
+  // ---- THE BRIGHTNESS LADDER (the owner, Oct 29: "the neon sign + the skyline neon > the speakeasy windows > the shopfront > the
+  // promenade wash > the base"), measured on the real composited screen at the owner's 402×660 at 3× (the DOM sign + every canvas): the
+  // sign's tubes (p97 of its rect), the skyline's neon (p99.5 of the band right of the speakeasy), the lit windows (the 3 brightest panes'
+  // p97 — the room's lit glass, not the dancers' silhouettes over it), the shopfront's ground, the open promenade, its back by the railing (means) — nobody on the promenade (no-people, no-wildlife).
+  // BRIGHTNESS = the max channel (HSV's value): a light's colour counts — luma reads a saturated magenta pane (a party room) as ~75
+  const measure = async (page, lad) => {
+    const b64 = await page.screenshot({ encoding: 'base64' });
+    return page.evaluate((b64, lad) => new Promise(res => { const im = new Image(); im.onload = () => {
+      const o = document.createElement('canvas'); o.width = im.width; o.height = im.height; const x = o.getContext('2d'); x.drawImage(im, 0, 0); const d = im.width / innerWidth;
+      const stat = (r, q) => { if (!r || !(r.w >= 1) || !(r.h >= 1)) return null; const X0 = Math.max(0, Math.round(r.x * d)), Y0 = Math.max(0, Math.round(r.y * d)), X1 = Math.min(o.width, Math.round((r.x + r.w) * d)), Y1 = Math.min(o.height, Math.round((r.y + r.h) * d)); if (X1 <= X0 || Y1 <= Y0) return null;
+        const a = x.getImageData(X0, Y0, X1 - X0, Y1 - Y0).data, v = []; for (let i = 0; i < a.length; i += 4) v.push(Math.max(a[i], a[i + 1], a[i + 2])); v.sort((p, q2) => p - q2);
+        return +(q == null ? v.reduce((s, y) => s + y, 0) / v.length : v[Math.min(v.length - 1, Math.floor(v.length * q))]).toFixed(1); };
+      const wins = (lad.windows || []).map(r => stat(r, 0.97)).filter(v => v != null).sort((p, q) => q - p).slice(0, 3);
+      res({ sign: stat(lad.sign, 0.97), skyline: stat(lad.skyline, 0.995), windows: wins.length ? +(wins.reduce((s, v) => s + v, 0) / wins.length).toFixed(1) : null, shop: stat(lad.shop), wash: stat(lad.wash), base: stat(lad.base) }); };
+      im.src = 'data:image/png;base64,' + b64; }), b64, lad);
+  };
+  // (plain September nights: no holiday dressing — Halloween week's glowing jack-o'-lanterns stand on the side door's steps, inside the
+  // shopfront's probe)
+  for (const [tag, when] of [['night', '2026-09-24T22:00'], ['party', '2026-09-26T23:00']]) {
+    const got = {};
+    for (const mode of ['old', 'new']) {
+      const Q = await open({ slot: `lad${tag}${mode}`, qs: `when=${when}${GR}&wx=clear&light=${mode}&force=no-people,no-wildlife`, view: [402, 660], dpr: 3 });
+      await harborUp(Q.page);
+      await waitFor(Q.page, `${P}.speakeasy.k > 0.9 && !${P}.pending && !${P}.fading`, 'the rooms lit + settled', 25000).catch(() => {});
+      await sleep(700);
+      const lad = await ev(Q.page, `(() => { const l = ${P}.ladder; return l ? { ...l, windows: ${P}.speakeasy.windows().map(q => q.rect) } : null; })()`);
+      got[mode] = lad ? { mode: lad.mode, ...(await measure(Q.page, lad)) } : null;
+      if (SHOTS) await Q.page.screenshot({ path: `${OUT}light-ladder-${tag}-${mode}-402x660.png` });
+      await Q.ctx.close();
+    }
+    const n = got.new || {}, o = got.old || {}, top = Math.min(n.sign ?? 0, n.skyline ?? 0), row = v => `sign ${v.sign} · skyline ${v.skyline} · windows ${v.windows} · shop ${v.shop} · wash ${v.wash} · base ${v.base}`;
+    ok(n.mode === 'new' && o.mode === 'old', `NIGHT-A THE LIGHT's SWITCH: &light=old → ${o.mode}, &light=new → ${n.mode} (${tag})`);
+    ok(top > n.windows && n.windows > n.shop && n.shop > n.wash && n.wash > n.base, `NIGHT-A THE BRIGHTNESS LADDER (${tag}, 402×660 at 3×, the new light): ${row(n)} — the sign + the skyline > the windows > the shopfront > the wash > the base (the old light: ${row(o)})`);
+  }
+});
+
 G('blackout', async () => {
   const P = 'window.__district.harbor()';
   // ---- C4c — THE BLACKOUT, FOR REAL (the owner, Oct 29 7:54 am: mid-drain on a late-October night the cab bench, the MUM by the hydrant +
@@ -3789,8 +3828,9 @@ G('blackout', async () => {
   // exist + no prop stands): the TR-3B at the blackout's depth on a late-October, a Thanksgiving build-up + a December night (+ the plain
   // one), at the iPhone's 3× (the sharp overlays on), probes on every holiday piece drawn, both benches, every tree's crown, the hydrant
   // corner — nothing in the foreground brighter than the dark city round it (a ring 14 pt out: in ≤ ring × 1.25 + 8)
-  for (const [tag, when] of [['oct', '2026-10-29T22:00'], ['tg', '2026-11-20T22:00'], ['dec', '2026-12-10T22:00'], ['sep', '2026-09-23T22:00']]) {
-    const Q = await open({ slot: `lgb${tag}`, qs: `when=${when}${GR}&wx=clear&force=tr3b&lgs=15`, view: [402, 874], dpr: 3 });
+  // (NIGHT-A: + the NEW night light on the late-October night — its wash, base + the cab stand's lamp taken down with the rest)
+  for (const [tag, when, xq = ''] of [['oct', '2026-10-29T22:00'], ['oct-new', '2026-10-29T22:00', '&light=new'], ['tg', '2026-11-20T22:00'], ['dec', '2026-12-10T22:00'], ['sep', '2026-09-23T22:00']]) {
+    const Q = await open({ slot: `lgb${tag}`, qs: `when=${when}${GR}&wx=clear&force=tr3b&lgs=15${xq}`, view: [402, 874], dpr: 3 });
     await harborUp(Q.page);
     await waitFor(Q.page, `(() => { const k = ${P}.legend.dark(); return k.far && k.near; })()`, 'the dark city baked', 25000).catch(() => {});
     await waitFor(Q.page, `${P}.speakeasy.power() < 0.05`, 'the speakeasy dark', 15000).catch(() => {});

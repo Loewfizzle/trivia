@@ -13,7 +13,11 @@ import { rgb, shade, mix } from './shapes.js';
 import { drawTree, treeShadow } from './trees.js';
 import { drawBench, drawCart, drawMedallion, propShadow } from './props.js';
 import { drawPlanter, drawMailbox } from './props-garden.js';
-import { pieceCtx, LIGHT, REACH, lightSources, lightField, sunShadow, IMPLIED_LIGHT } from '../../core/harbor-light.js';
+import { pieceCtx, LIGHT, REACH, lightSources, lightField, sunShadow, IMPLIED_LIGHT, lightMode, washAt, NIGHT_LIGHT } from '../../core/harbor-light.js';
+
+/** NIGHT-A — the wash by DEPTH as a vertical gradient from the railing (z 54) to the screen's foot: [[t 0..1, the wash 0..washK]] */
+const WASH_Z = [54, 47, 41, 36, 32, 28, NIGHT_LIGHT.z0];
+function washStops(cam, y0) { const span = Math.max(1, cam.H - y0); return WASH_Z.map(z => [Math.min(1, Math.max(0, (groundY(cam, z) - y0) / span)), washAt(z)]); }
 
 /** PROM — an implied lamp's light as a ground ellipse (the baked low glow in the joints + the dusk's dimming): its centre well up the
  *  promenade from the lamp (below the screen), rx across, rz along (world units) */
@@ -57,6 +61,12 @@ export function promenadeSteps(L, T) {
     x.fillStyle = rgb(joint); x.fillRect(0, y0, cam.W, cam.H - y0);
     if (lightAt) {
       x.globalCompositeOperation = 'lighter';
+      // (NIGHT-A, the new light: the base + the wash low in the joints — one full-width gradient by depth, no pools)
+      if (lightMode() === 'new') {
+        const g = x.createLinearGradient(0, y0, 0, cam.H), B = NIGHT_LIGHT.base, C = NIGHT_LIGHT.wash, lk = (T.lamps || 0) * 0.3;
+        for (const [u, w] of washStops(cam, y0)) g.addColorStop(u, rgb([0, 1, 2].map(i => (B[i] + C[i] * w) * lk)));
+        x.fillStyle = g; x.fillRect(0, y0, cam.W, cam.H - y0);
+      }
       for (const s of lightSources(L)) {
         // (PROM: an implied lamp's glow — its ellipse up the promenade, softer: its light is spread wide)
         const E = s.implied ? impliedEll(s) : null, R = E ? E.rz : REACH[s.kind], zc = E ? E.z : s.z, [cx] = P(s.x, zc), ya = groundY(cam, zc + R), yb = groundY(cam, Math.max(cam.F * 0.03, zc - R)), rw = cam.F * (E ? E.rx : R) / zc;
@@ -192,7 +202,19 @@ export function dimPools(c, L, off, baked, all = 0) {
   if ((!off && !(all > 0.02)) || baked < 0.02) return;
   const cam = L.cam, src = lightSources(L), cap = all > 0 ? 0.85 : 0.62;
   c.save(); c.globalCompositeOperation = 'multiply';
-  (all > 0 ? src : L.lamps).forEach((l, i) => {
+  // NIGHT-A, the new light: the implied lamps are ONE wash — the dusk's switch-on + an outage take it down by the lamps' MEAN darkness (a
+  // gentle step as each one catches, never a dark patch), the blackout by `all`; full-width by depth like the wash; then (blackout only)
+  // the shopfront's + the cab stand's + the cart's pools at their own ellipses
+  if (lightMode() === 'new') {
+    const d = all > 0 ? all : off && off.length ? off.reduce((a, v) => a + (v || 0), 0) / off.length : 0;
+    if (d >= 0.02) {
+      const y0 = groundY(cam, L.prom.z1), g = c.createLinearGradient(0, y0, 0, cam.H), base = 0.3, wk = NIGHT_LIGHT.washK;
+      for (const [u, w] of washStops(cam, y0)) { const m = Math.round(255 * (1 - Math.min(cap, d * baked * (all > 0 ? 1 : 0.6) * (base + (1 - base) * w / wk)))); g.addColorStop(u, `rgb(${m},${m},${m})`); }
+      c.fillStyle = g; c.fillRect(0, y0, cam.W, cam.H - y0);
+    }
+    if (!(all > 0.02)) { c.restore(); return; }
+  }
+  (all > 0 || lightMode() === 'new' ? src : L.lamps).forEach((l, i) => {
     const d = all > 0 ? all : off[i] || 0; if (d < 0.02) return;
     // (PROM: an implied lamp's pool is its wide ellipse up the promenade — the dusk's switch-on + the rare outage darken that)
     const sr = src[i], E = sr.implied ? impliedEll(sr) : null, R = E ? E.rz : REACH[sr.kind], zc = E ? E.z : sr.z, [cx] = project(cam, sr.x, 0, zc), ya = groundY(cam, zc + R / 1.15), yb = groundY(cam, Math.max(cam.F * 0.03, zc - R / 1.15)), rw = cam.F * (E ? E.rx : R) / zc;

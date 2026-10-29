@@ -67,7 +67,7 @@ import { createSkyFx } from './skyfx.js';
 import { createCitySounds } from './sounds.js';
 import { createRoadLight } from './roadlight.js';
 import { createLeaves, crownDiscs } from './trees.js';
-import { pieceCtx } from '../../core/harbor-light.js';
+import { pieceCtx, setLightMode, lightMode, LIGHT_DEFAULT } from '../../core/harbor-light.js';
 import { createWaterfront } from './waterfront.js';
 import { createSkyBeams } from './skybeams.js';
 import { createStrings } from './strings.js';   // (the roof's café-light canopy — SP2)
@@ -245,6 +245,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const qp = new URLSearchParams(q);
   // (NIGHT-A: a link's own &prop wins over a forced row — &prop=drawn shows the drawn display whatever the panel kept)
   const propModelNow = () => (qp.has('prop') ? qp.get('prop') === 'model' : clock.force.has('harvest-model'));
+  // NIGHT-A — THE NIGHT LIGHT's switch (core/harbor-light.js): a link's &light=new|old, else the panel's rows, else the default (OLD until
+  // the owner's OK) — set before every frame + the first bake; the bake key carries it, so a flip re-bakes the ground
+  const lightModeNow = () => { const v = qp.get('light'); return v === 'new' || v === 'old' ? v : clock.force.has('light-new') ? 'new' : clock.force.has('light-old') ? 'old' : LIGHT_DEFAULT; };
+  setLightMode(lightModeNow());
   // 9g — A LEGENDARY FROM A LINK WAITS (the owner: the TR-3B "worked perfectly" from ☰ → ADMIN, glitched from &force=tr3b): a link used
   // to start it AT THE LOAD — under the bake + the reveal, before the first tap unlocked the music (no song for the tape to slow). Now
   // &force=ufo / tr3b / implosion from the page's own URL wait for THE REVEAL + THE FIRST TAP, then start LINK_LEAD ms later — a link
@@ -1080,13 +1084,25 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   let cloudSetKey = '';
   // (POLISH 5: named parts — the load log says WHICH changed: bakeKey is their values joined, the same string as before)
-  const bakeParts = () => ({ season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key, snow: snowNow() });
+  const bakeParts = () => ({ light: (setLightMode(lightModeNow()), lightMode()), season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key, snow: snowNow() });
   const bakeKey = () => Object.values(bakeParts()).join('|');
   let bakeParts0 = null;
   const partsDiff = (a, b) => (a ? Object.keys(b).filter(k => String(a[k]) !== String(b[k])).join(', ') || 'same' : 'first');
   // 8P — THE LAMPS' LIFE (core/harbor-lamps.js): the switch-on order + the warm-up, the rare moment on the city clock (the same lamp on
   // every phone); a lamp already on when the page opens never stutters; the crossing's pair stays steady while an event is on the inlay
   let lampTh = null, lampThKey = '', lampOnAt = [], lampWas = [];
+  // NIGHT-A — THE PARTY's TINT on the new light's wash (the owner: "party nights tint the wash faintly with the neon's colours"): one
+  // full-width gradient over the promenade + the street, 'lighter', a few % — the party palette's colour, a new one every 8 bars (eased
+  // over the last bar: never on the beat, never a flash); the blackout takes it down with the lamps. Tier 0: none (one fill a frame).
+  function partyWash(c, fadeIn) {
+    if (lightMode() !== 'new' || !(PT.on > 0.02) || tier === 0 || fadeIn <= 0 || !PT.palette || !PT.palette.length) return;
+    const k = 0.06 * PT.on * fadeIn * litK(DK, 'lamps') * (S.lit > 0 ? S.lit : 0) * (LB ? legendPow(W * 0.5, 'near', 210) : 1);
+    if (k < 0.004) return;
+    const pal = PT.palette, n = pal.length, u = S.motion ? (((PT.bar || 0) % (8 * n)) + (PT.phase || 0)) / 8 : 0, i = Math.floor(u) % n, f = clamp01(((u % 1) - 0.85) / 0.15);
+    const col = pal[i].map((v, j) => Math.round(v + (pal[(i + 1) % n][j] - v) * f)), y0 = groundY(cam, L.prom.z1), g = c.createLinearGradient(0, y0, 0, H);
+    g.addColorStop(0, `rgba(${col},${(k * 0.35).toFixed(4)})`); g.addColorStop(1, `rgba(${col},${k.toFixed(4)})`);
+    c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(0, y0, W, H - y0); c.restore();
+  }
   function lampLife(t) {
     const n = L.lamps.length, ramp = litK(DK, 'lamps'), seed = L.seed || 1924, key = `${n}|${seed}`;
     if (key !== lampThKey) { lampThKey = key; lampTh = lampThresholds(n, seed); lampOnAt = new Array(n).fill(-99); lampWas = new Array(n).fill(null); }
@@ -1962,6 +1978,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // lamp that is off takes its baked pool back down
     const LLF = lampLife(t); lampLevels = LLF.levels;
     if (LLF.dim && fadeIn > 0 && bakeTones) dimPools(c, L, LLF.off, bakeTones.lamps || 0);
+    partyWash(c, fadeIn);
     // the stop lights' lamps: lit at every hour, a glow after dark (FP: side-on, the glow spilling along the road; the cycle: signalAt) —
     // right after their bake, so the people + the front row stand in front of them
     if (fadeIn > 0) drawSignalLamps(c, L, sigSt, sigO);
@@ -1997,8 +2014,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // WIN3 — THE WINDOW PARTY's COLOUR ON THE COBBLES: each room's light pooled on the promenade in front of its window (a flat ellipse,
     // 'lighter', in the room's colour — the foreground takes the party's colour)
     partyPools = [];
-    if (fadeIn > 0 && !off.has('no-speakeasy') && L.speakeasy && speak.partySpill) { const sp = speak.partySpill(); if (sp.length) { c.save(); c.globalCompositeOperation = 'lighter'; const sz = L.speakeasy.z0 - 1.3;
-      for (const q of sp) { const [px, py] = project(cam, L.speakeasy.x0 + q.u, 0, sz), rx = 2.8 * cam.F / sz; partyPools.push({ id: q.id, x: +px.toFixed(1), y: +py.toFixed(1), r: +rx.toFixed(1), col: q.col, k: +q.k.toFixed(2) }); const g = c.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},${(0.45 * q.k * (lit > 0 ? lit : 0)).toFixed(3)})`); g.addColorStop(0.5, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},${(0.16 * q.k).toFixed(3)})`); g.addColorStop(1, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},0)`);
+    if (fadeIn > 0 && !off.has('no-speakeasy') && L.speakeasy && speak.partySpill) { const sp = speak.partySpill(); if (sp.length) { c.save(); c.globalCompositeOperation = lightMode() === 'new' ? 'source-over' : 'lighter';   /* (NIGHT-A: in the new light the rooms' colour TINTS the lit cobbles — added on the wash it outshone the windows themselves: THE LADDER) */ const sz = L.speakeasy.z0 - 1.3;
+      for (const q of sp) { const [px, py] = project(cam, L.speakeasy.x0 + q.u, 0, sz), rx = 2.8 * cam.F / sz; partyPools.push({ id: q.id, x: +px.toFixed(1), y: +py.toFixed(1), r: +rx.toFixed(1), col: q.col, k: +q.k.toFixed(2) }); const g = c.createRadialGradient(0, 0, 0, 0, 0, rx); g.addColorStop(0, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},${((lightMode() === 'new' ? 0.3 : 0.45) * q.k * (lit > 0 ? lit : 0)).toFixed(3)})`);   /* (NIGHT-A: a tint over the new light's wash, not added light) */ g.addColorStop(0.5, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},${(0.16 * q.k).toFixed(3)})`); g.addColorStop(1, `rgba(${q.col[0]},${q.col[1]},${q.col[2]},0)`);
         c.save(); c.translate(px, py); c.scale(1, 0.3); c.fillStyle = g; c.fillRect(-rx, -rx, rx * 2, rx * 2); c.restore(); }
       c.restore(); } }
     // 9a — THE SPEAKEASY IN THE RAIN: the glass wet (a sheen, beads, rivulets), the hush sign's cyan on the wet pavement
@@ -3047,6 +3064,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (FP: the crossing now — the cycle's state, the lantern's box + the heads on screen)
       crossing: (() => { const ln = L.crosswalk && L.crosswalk.lantern; return { ...signalAt(clock.now()), lantern: ln && ln.box ? { x: ln.box.x, y: ln.box.y, w: ln.box.w, h: ln.box.h, letter: ln.box.panes[0].h * 0.74, panes: ln.box.panes.map(q => ({ word: q.word, x: q.x, y: q.y, w: q.w, h: q.h })) } : null, heads: L.signals.map(s => (s.head ? { id: s.id, x: s.head.x, y: s.head.y, w: s.head.w, h: s.head.h, state: s.state } : null)) }; })(),
       // (8a: THE PROMENADE — what stands where (screen pt), the season, the implied road, a lit + a dark point of the tall lamp's pool)
+      // (NIGHT-A — THE BRIGHTNESS LADDER's places, in pt: the NEON sign + the tagline (their text rects), the shopfront's ground (in front of
+      // the barbershop window + the side door), the open promenade (the wash), its back by the railing (the base), the skyline band; the mode)
+      ladder: L ? (() => { const s = L.speakeasy, rz = (x0, x1, z0, z1) => { const [ax, ay] = project(cam, x0, 0, z1), [bx, by] = project(cam, x1, 0, z0); return { x: +Math.min(ax, bx).toFixed(1), y: +ay.toFixed(1), w: +Math.abs(bx - ax).toFixed(1), h: +(by - ay).toFixed(1) }; };
+        const tr = S.textRects || {}, yb = groundY(cam, L.prom.z1), ty = tr.tag ? tr.tag.y + tr.tag.h + 10 : HZ - 120;
+        return { mode: lightMode(), sign: tr.neon || null, shop: rz(s.x0 + s.shop.win[0], s.x0 + s.door.u1, s.z0 - 2.4, s.z0 - 0.9), wash: rz(2.5, 6.5, 37.2, 39.4), base: rz(2.5, 6.5, 50.5, 52.6), skyline: { x: Math.round(W * 0.45), y: Math.round(ty), w: Math.round(W * 0.55), h: Math.max(10, Math.round(yb - 70 - ty)) } }; })() : null,
       promenade: L ? (() => { const P = (x, z, y = 0) => project(cam, x, y, z).map(v => +v.toFixed(1));
         return { season: L.season, phase: L.seasonPhase, impliedOn: L.impliedOn !== false, lampK: L.lampK, flag: !!L.flag,
           lamps: L.lamps.map(l => ({ kind: l.kind, at: P(l.x, l.z), heads: (l.heads || []).length })), trees: L.trees.map(t => ({ kind: t.kind, at: P(t.x, t.z), r: +(cam.F * t.w / 2 / t.z).toFixed(1), crown: P(t.x, t.z, (t.trunk || 2) + (t.h || t.w || 3) * 0.5) /* (C4c: the crown's middle — the blackout probe) */ })),

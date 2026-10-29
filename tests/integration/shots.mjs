@@ -78,6 +78,11 @@ const SCENE = {
   // THE STREET, Part 2 (the people)
   umbrellas: ['2026-10-21T21:30', { qs: 'wx=rain&force=peds,umbrellas' }], 'party-line': ['2026-10-23T23:15', { qs: 'force=line,door' }],
   hail: ['2026-10-21T21:30', { qs: 'force=hail,peds' }], 'small-hours': ['2026-10-22T03:00'], 'halloween-kids': ['2026-10-31T19:30', { qs: 'force=halloween-kids' }],
+  // NIGHT-A — THE NIGHT LIGHT's review set (compare with --qs light=old | light=new): a plain Thursday, a party peak, a wet night, Halloween,
+  // a Thanksgiving build-up night (the harvest display), a snowy night, the dusk as the lamps catch
+  'na-night': ['2026-10-29T22:00', { qs: 'wx=clear' }], 'na-party': ['2026-10-24T23:00', { qs: 'wx=clear' }], 'na-wet': ['2026-10-29T22:00', { qs: 'wx=rain' }],
+  'na-halloween': ['2026-10-31T21:30', { qs: 'wx=clear' }], 'na-thanks': ['2026-11-19T21:00', { qs: 'wx=clear' }], 'na-snow': ['2026-12-18T21:00', { qs: 'wx=snow' }],
+  'na-dusk': ['2026-10-29T19:05', { qs: 'wx=clear' }],
   // party nights (a Saturday at the peak) and real snow — both cities
   party: ['2026-10-24T23:00'], snow: ['2026-12-18T21:00', { qs: 'wx=snow' }],
   // THE WATER (City 2.0, Part 4): a calm night (a crisp mirror), a windy one (broken columns), the moon's path (a waxing gibbous
