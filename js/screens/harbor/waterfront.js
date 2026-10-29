@@ -15,6 +15,7 @@ import { tube, drawLit, drawGlass, sprite, free, mix, rgba } from './tubes.js';
 import { LETTERS } from '../district/marks.js';
 import { flattenPath } from '../../core/tube-path.js';
 import { hashString } from '../../core/rng.js';
+import { BAKE_CAP } from '../../ui/canvas-safe.js';
 
 // the neon shapes (a 10 × 10 box, single tubes) — read at a glance, no letters
 const GLYPH = {
@@ -84,7 +85,7 @@ export function createWaterfront() {
   let L = null, cam = null, dpr = 2, fronts = [], art = null, artKey = '', lit = null, clipY = 0, words = false, K = 1;
 
   function layout(l, o) {
-    L = l; cam = l.cam; dpr = Math.min(2, o.dpr || 1); K = cam.F / 600;
+    L = l; cam = l.cam; dpr = Math.min(BAKE_CAP, o.dpr || 1); K = cam.F / 600;
     fronts = storefronts(L);
     words = !!cam.wide;                                // names only where they read (desktop / TV)
     clipY = project(cam, 0, 0.4, 230)[1];             // (the far quay's top edge stands in front of the shop floors' feet)

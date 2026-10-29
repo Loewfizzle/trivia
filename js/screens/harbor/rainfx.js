@@ -102,7 +102,8 @@ export function createHarborRain() {
     resize(w, h, hz) { if (w === W && h === H && hz === HZ) return; W = w; H = h; HZ = hz; drops = []; rings = []; splashes = []; grid = null; gridAt = -1e9; },
     /** the lights the drops catch: [{ x, y, r (pt), ry? (vertical squash), col [r,g,b], k }] (or a function giving them — asked only when
      *  due) — rebuilt at most every 300 ms */
-    lights(list, now) { if (now - gridAt < 300 && grid) return; gridAt = now; buildGrid((typeof list === 'function' ? list() : list) || []); },
+    lights(list, now, every = 300) { if (now - gridAt < every && grid) return;   // (C4c: every 100 ms under a legendary — the drain takes the signs fast)
+      gridAt = now; buildGrid((typeof list === 'function' ? list() : list) || []); },
     /** behind the skyline: shafts of rain hanging from the cloud base (s: { rain, slant, day, t, motion, top (the base), hz }) */
     veils(c, s) {
       if (!(s.rain > 0.02)) return;

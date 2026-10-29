@@ -29,7 +29,7 @@
 import { project } from '../../core/harbor-layout.js';
 import { mix, rgb, shade, clamp01 } from './shapes.js';
 import { PARTY_PAL } from '../../core/harbor-show.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 
 const TURN_S = 150;                         // one turn (s)
 // (NEON PASS 4 — A STRONGER WHEEL, the owner: the spokes read as LINES OF LIGHT — seven bulbs along each, the rim bolder, a
@@ -89,7 +89,7 @@ export function createWheel() {
   const dot = col => { const k = col.join(','); if (!dots.has(k)) dots.set(k, glowDot(k)); return dots.get(k); };
 
   function layout(l, o) {
-    L = l; cam = l.cam; dpr = Math.min(2, o.dpr || 1); tier = o.tier ?? 2;
+    L = l; cam = l.cam; dpr = Math.min(BAKE_CAP, o.dpr || 1); tier = o.tier ?? 2;
     const w = L.wheel;
     [cx, cy] = project(cam, w.x, w.y, w.z); u = cam.F / w.z; r = w.r * u; deckY = project(cam, w.x, L.pier.y, w.z)[1];
     P = Math.ceil(r * 1.06 + 4);

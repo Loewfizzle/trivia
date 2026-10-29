@@ -3527,7 +3527,7 @@ G('legends', async () => {
     await Q.ctx.close(); }
   // ---- THE TR-3B over the city (&lgs=15) — POLISH 4: THE TOTAL BLACKOUT: every depth dead (its lights not drawn at all), the dark
   // city's bake in place (no floodlit crowns), the lit windows gone from the skyline
-  { const Q = await open({ slot: 'lg2', qs: `${NIGHT}&force=tr3b&lgs=15`, view: [402, 874] });
+  { const Q = await open({ slot: 'lg2', qs: `${NIGHT}&wx=clear&force=tr3b&lgs=15` /* (C4c: clear — a live rainy night lit the rain's signs a moment late, C4b's flake) */, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.legend.state.phase === 'cross'`, 'the TR-3B loaded + crossing', 20000);
     await waitFor(Q.page, `(() => { const k = ${P}.legend.dark(); return k.far && k.near; })()`, 'the dark city baked', 20000);
@@ -3637,6 +3637,37 @@ G('legends', async () => {
 
 // ================================================================ 9b — WINTER: the climate fallback, the snowpack's stages on the city, the
 // falling snow, the plow, the sign's snow, the January snowman (phone-sized pages; the look itself is reviewed in screenshots)
+G('blackout', async () => {
+  const P = 'window.__district.harbor()';
+  // ---- C4c — THE BLACKOUT, FOR REAL (the owner, Oct 29 7:54 am: mid-drain on a late-October night the cab bench, the MUM by the hydrant +
+  // the right maple's autumn crown stayed lit — C4b's probe ran on a plain September night at 2×, where the benches' 3× overlays don't
+  // exist + no prop stands): the TR-3B at the blackout's depth on a late-October, a Thanksgiving build-up + a December night (+ the plain
+  // one), at the iPhone's 3× (the sharp overlays on), probes on every holiday piece drawn, both benches, every tree's crown, the hydrant
+  // corner — nothing in the foreground brighter than the dark city round it (a ring 14 pt out: in ≤ ring × 1.25 + 8)
+  for (const [tag, when] of [['oct', '2026-10-29T22:00'], ['tg', '2026-11-20T22:00'], ['dec', '2026-12-10T22:00'], ['sep', '2026-09-23T22:00']]) {
+    const Q = await open({ slot: `lgb${tag}`, qs: `when=${when}${GR}&wx=clear&force=tr3b&lgs=15`, view: [402, 874], dpr: 3 });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(() => { const k = ${P}.legend.dark(); return k.far && k.near; })()`, 'the dark city baked', 25000).catch(() => {});
+    await waitFor(Q.page, `${P}.speakeasy.power() < 0.05`, 'the speakeasy dark', 15000).catch(() => {});
+    if (tag !== 'sep') await waitFor(Q.page, `${P}.hprops && ${P}.hprops.stat && (${P}.hprops.stat.rects || []).length > 0`, 'the holiday pieces drawn', 15000).catch(() => {});
+    await sleep(600);
+    const pr = await ev(Q.page, `${P}.promenade`), hp = await ev(Q.page, `${P}.hprops`), H = 874;
+    const zones = [['cab bench', pr.cabStand ? [pr.cabStand[0] - 26, pr.cabStand[1] - 22, pr.cabStand[0] + 26, pr.cabStand[1]] : null], ['water bench', [pr.bench[0] - 20, pr.bench[1] - 18, pr.bench[0] + 20, pr.bench[1]]],
+      ['hydrant', pr.hydrant ? [pr.hydrant[0] - 16, pr.hydrant[1] - 30, pr.hydrant[0] + 16, pr.hydrant[1] + 2] : null],
+      ...pr.trees.filter(t => t.crown && t.crown[1] > 0 && t.crown[1] < H).map((t, i) => [`${t.kind} ${i} crown`, [Math.max(1, t.crown[0] - t.r * 0.7), t.crown[1] - t.r * 0.45, Math.min(401, t.crown[0] + t.r * 0.7), t.crown[1] + t.r * 0.45]]),
+      ...((hp && hp.stat && hp.stat.rects) || []).filter(r => r.w > 4 && r.h > 4 && r.y < H && r.y + r.h > 0).map(r => [`prop ${r.id || '?'}`, [Math.max(1, r.x), Math.max(1, r.y), Math.min(401, r.x + r.w), Math.min(H - 1, r.y + r.h)]])].filter(z => z[1]);
+    const lum = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const d = devicePixelRatio || 1, cs = [...document.querySelectorAll('canvas')].filter(c => c.offsetParent !== null && c.width > 0), o = document.createElement('canvas'); o.width = innerWidth * d; o.height = innerHeight * d; const x = o.getContext('2d');
+      for (const c of cs) { const r = c.getBoundingClientRect(); if (r.width < 1) continue; try { x.drawImage(c, r.left * d, r.top * d, r.width * d, r.height * d); } catch { /* tainted */ } }
+      const Lm = (x0, y0, x1, y1, ex) => { const X0 = Math.max(0, Math.round(Math.min(x0, x1) * d)), Y0 = Math.max(0, Math.round(Math.min(y0, y1) * d)), X1 = Math.min(o.width, Math.round(Math.max(x0, x1) * d)), Y1 = Math.min(o.height, Math.round(Math.max(y0, y1) * d)); if (X1 <= X0 || Y1 <= Y0) return 0; const im = x.getImageData(X0, Y0, X1 - X0, Y1 - Y0).data, w = X1 - X0; let s = 0, n = 0; const all = [];
+        for (let i = 0; i < im.length; i += 4) { const px = (i / 4) % w + X0, py = Math.floor(i / 4 / w) + Y0; if (ex && px >= ex[0] * d && px <= ex[2] * d && py >= ex[1] * d && py <= ex[3] * d) continue; const v = 0.2126 * im[i] + 0.7152 * im[i + 1] + 0.0722 * im[i + 2]; s += v; n++; if (!ex) all.push(v); } if (!ex) { all.sort((p, q) => p - q); Lm.p90 = all.length ? all[Math.floor(all.length * 0.9)] : 0; } return n ? s / n : 0; };
+      res(${JSON.stringify(zones)}.map(([id, b]) => { const g = 14, xa = Math.min(b[0], b[2]), ya = Math.min(b[1], b[3]), xb = Math.max(b[0], b[2]), yb = Math.max(b[1], b[3]); const iv = +Lm(xa, ya, xb, yb).toFixed(1), p90 = +Lm.p90.toFixed(1); return { id, in: iv, p90, ring: +Lm(xa - g, ya - g, xb + g, yb + g, [xa, ya, xb, yb]).toFixed(1) }; })); }))`);
+    const hot = lum.filter(z => z.in > z.ring * 1.25 + 8 || (/crown/.test(z.id) && z.p90 > z.ring * 1.6 + 12)), props = lum.filter(z => z.id.startsWith('prop')).length;
+    ok(lum.length >= 5 && (tag === 'sep' || props > 0) && !hot.length, `C4c THE BLACKOUT ON ${tag.toUpperCase()} (${when}, 3×): ${lum.length} zones (${props} holiday pieces) — ${lum.map(z => `${z.id} ${z.in}/${z.ring}${/crown/.test(z.id) ? ` (p90 ${z.p90})` : ''}`).join(' · ')}${hot.length ? ` — STILL LIT: ${hot.map(z => z.id).join(', ')}` : ''}`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-blackout-${tag}-402x874.png` });
+    await Q.ctx.close();
+  }
+});
+
 G('snow', async () => {
   const P = 'window.__district.harbor()', SNW = `${P}.snow`;
   // the plaza's mean brightness (an 8-pt patch average at a few points in front of the shop + by the inlay): snow reads as light

@@ -23,7 +23,7 @@ import { project } from '../../core/harbor-layout.js';
 import { boatRoutes, boatAt, cycleOf } from '../../core/harbor-boats.js';
 import { mix, rgb, shade, clamp01 } from './shapes.js';
 import { LEVEL, axisAt } from './water.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { pose, paint, windowsOf } from './boat3d.js';
 import { rosieModel, taxiModel, tugModel, sailModel } from './boat-models.js';
 
@@ -45,7 +45,7 @@ export function createBoats() {
   const glow = () => { if (dot) return dot; dot = cvs(32, 32); const x = safeCtx(dot), g = x.createRadialGradient(16, 16, 0, 16, 16, 16); g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.2, 'rgba(255,255,255,0.6)'); g.addColorStop(1, 'rgba(255,255,255,0)'); x.fillStyle = g; x.fillRect(0, 0, 32, 32); return dot; };
 
   function layout(l, o) {
-    L = l; cam = l.cam; dpr = Math.min(2, o.dpr || 1); tier = o.tier ?? 2; turnLoop = !!o.turn;
+    L = l; cam = l.cam; dpr = Math.min(BAKE_CAP, o.dpr || 1); tier = o.tier ?? 2; turnLoop = !!o.turn;
     routes = boatRoutes(L, { taxi: !!o.taxi });
     for (const p of spr.values()) freePool(p);
     spr.clear(); models.clear();

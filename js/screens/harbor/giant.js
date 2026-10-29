@@ -20,7 +20,7 @@ import { project } from '../../core/harbor-layout.js';
 import { GIANT } from '../../core/harbor-holidayprops.js';
 import { lightFor, lit, norm } from './props-light.js';
 import { pieceCtx } from '../../core/harbor-light.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { rngFrom } from '../../core/rng.js';
 
 const TAU = Math.PI * 2;
@@ -321,7 +321,7 @@ export function createGiant() {
    * (1; 1.3 on Halloween night), t, mo (motion), fade, tier, power (a blackout), lightKey }
    */
   function draw(c, o) {
-    const { L, g } = o, cam = L.cam, dpr = Math.min(2, o.dpr || 2), fade = o.fade == null ? 1 : o.fade;
+    const { L, g } = o, cam = L.cam, dpr = Math.min(BAKE_CAP, o.dpr || 2), fade = o.fade == null ? 1 : o.fade;
     const sp = sprites(L, g, o.T, o.dark || 0, dpr, !!o.carved, o.lightKey || '');
     if (!sp || !sp.body) return;
     const [bx, by] = project(cam, g.x, GIANT.plinth.h, g.z), s = sp.s;

@@ -20,7 +20,7 @@ import { FOLK } from '../../core/harbor-people.js';
 import { sunTimes } from '../../core/sky.js';
 import { lightField, lightSources, sunShadow } from '../../core/harbor-light.js';
 import { hourPlan } from '../../core/harbor-moments.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import {
   localOf, wildSpots, spotPoint, offPoint, hydrantOf, pilingSpot, PIGEON, pigeonAt, groundLife, GULL, gullSlot, gullSlotLen, OWL, owlDay, owlAt,
   SQUIRREL, squirrelSlot, squirrelSlotLen, fishSlotLen, coyoteNight, coyotePath, pathAt, coyoteTracks, catEvening, catPath, catSpot, halloweenCat, CAT,
@@ -527,7 +527,7 @@ export function createWildlife() {
       const T = E.T || {}, key = `${cam.W}x${cam.H}|${[T.day, T.gold, T.night, T.ovc, E.dark].map(v => Math.round((v || 0) * 20)).join(',')}`;
       if (key !== pileKey) {
         pileKey = key; const s = cam.F / piling.z, [px, py] = project(cam, piling.x, piling.y, piling.z), [, wy] = project(cam, piling.x, piling.water, piling.z);
-        const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bx = Math.floor(px - piling.r * s * 1.6), by = Math.floor(py - 0.4 * s), bw = Math.ceil(piling.r * s * 3.2), bh = Math.ceil(wy - by + (wy - py) * 0.6 + 2);
+        const dpr = Math.min(BAKE_CAP, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bx = Math.floor(px - piling.r * s * 1.6), by = Math.floor(py - 0.4 * s), bw = Math.ceil(piling.r * s * 3.2), bh = Math.ceil(wy - by + (wy - py) * 0.6 + 2);
         pileCv = pileCv || document.createElement('canvas'); pileCv.width = Math.max(1, Math.ceil(bw * dpr)); pileCv.height = Math.max(1, Math.ceil(bh * dpr));
         const x = safeCtx(pileCv); if (x) { x.setTransform(dpr, 0, 0, dpr, -bx * dpr, -by * dpr); drawPiling(x, cam, piling, E); }
         pileBox = { x: bx, y: by, w: bw, h: bh };

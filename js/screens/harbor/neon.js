@@ -18,7 +18,7 @@ import { tube, drawLit, drawGlass, caps, sprite, bbox, free, mix, rgba } from '.
 import { buildSign, buildBillboard, billboardContent, signName, SIGN_ACC, drawHousing, frameLight } from './signs.js';
 import { hexRgb, markFor } from '../district/marks.js';
 import { showItems, showFrame, newShowOut, FX, everyday, signMotion, spellNow, spellParty, spellMotion, sceneAt, nightStage, rotateMix, burnout, burnoutFlicker, PARTY_PAL, partyPlan, planColours } from '../../core/harbor-show.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { roofModes, roofMove, restartLevel, breathLevel, spellLevel, raceAt, ROOF_MODES, wordFlashAt, layersAt, twoToneAt } from '../../core/harbor-roofmodes.js';
 import { powerOrder, lightOn, litK, STAGE } from '../../core/harbor-dark.js';
 // NEON PASS 4: the racing light's head (white-hot) and the shimmer's glints
@@ -58,7 +58,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
 
   // ---------------------------------------------------------------- the layout
   function layout(l, o) {
-    L = l; cam = l.cam; W = cam.W; dpr = Math.min(2, o.dpr || 1); tier = o.tier ?? 2;
+    L = l; cam = l.cam; W = cam.W; dpr = Math.min(BAKE_CAP, o.dpr || 1); tier = o.tier ?? 2;
     // A re-layout never blanks the neon: the current set keeps drawing (and keeps its power) until the new one is built, then
     // they swap (like the baker's layers). A re-layout during a build drops the half-built set.
     if (pending) { for (const it of pending.items) freeItem(it); pending = null; }

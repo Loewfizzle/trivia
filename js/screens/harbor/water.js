@@ -26,7 +26,7 @@
 // above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · wake(o) — Part 5
 // draws boat wakes · set({ rain, fog }) — Part 9 (rain roughens the mirror now; the rings + the fog over the water: Part 9).
 import { rgb, mix } from './shapes.js';
-import { blit, safeCtx } from '../../ui/canvas-safe.js';
+import { blit, safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { groundY, project } from '../../core/harbor-layout.js';
 
 /** the water's surface (world y): the far quay wall stands 1.2 above it (its stones show between the lamps + the water) */
@@ -82,7 +82,7 @@ export function createWater() {
   function size(cv, w, h) { const cw = Math.max(1, Math.ceil(w)), ch = Math.max(1, Math.ceil(h)); if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; } return safeCtx(cv); }
   /** the layout: the band, the canvases, the strips (thin far, thick near: one wave phase per depth) */
   function layout(l, o) {
-    L = l; cam = l.cam; W = cam.W; tier = o.tier ?? 2; dpr = Math.min(2, o.dpr || 1);
+    L = l; cam = l.cam; W = cam.W; tier = o.tier ?? 2; dpr = Math.min(BAKE_CAP, o.dpr || 1);
     ({ y0, y1 } = waterBand(L)); Hw = Math.max(4, y1 - y0);
     A0 = y0;
     top = Math.max(0, cam.limitY - 12); sh = Math.max(Hw + 4, y0 - top);

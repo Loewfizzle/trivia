@@ -23,7 +23,7 @@ import { danceMoves, drawWands } from './wands.js';
 import { createDanceClock, stepDanceClock } from '../../core/harbor-dance.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { lightField, lightSources, castShadow, hiddenLamps } from '../../core/harbor-light.js';
 import { crossLightOf, crossPools, poolFall, CROSS, LENS } from './road.js';
 import { frontProfile } from './strings.js';
@@ -338,7 +338,7 @@ export function createPeople() {
     const sig = sigI >= 0 && P0 ? { col: LENS[sigI], k: poolFall(((car.x - P0.x) / P0.rx) ** 2) * night * pw } : null;
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
     if (car.work === 'salter') workFx(c, 'salter', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, xEnd: car.dir > 0 ? -10 : cam.W + 10, fade: env.fade });   // (9b: its wet salted lane, under it)
-    kit.draw(c, { plowing: car.work === 'plow' ? clamp01((car.speed || 0) / 1.5) : 0, door: car.door || 0, inside, id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK.map(v => v * night * 0.85 * pw), sig, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
+    kit.draw(c, { plowing: car.work === 'plow' ? clamp01((car.speed || 0) / 1.5) : 0, door: car.door || 0, inside, id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK.map(v => v * night * 0.85 * pw), sig, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(BAKE_CAP, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
     if (car.work === 'flusher') workFx(c, 'flusher', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, xEnd: car.dir > 0 ? -10 : cam.W + 10, fade: env.fade });   // (9e: the water wagon's spray fans + its wet lane)
     if (car.work === 'plow') workFx(c, 'plow', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, fade: env.fade });   // (9b: the spray off the blade)
     // 8b2 — THE PATROL CAR's BEACON: red, then blue, each a hard double flash (the raid's wash comes from it: raid.js)
@@ -369,7 +369,7 @@ export function createPeople() {
     let anch;
     if (st.moving) anch = paintCart(c, st, T, hood);
     else {
-      const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}|${cz.toFixed(2)}|${hood ? 1 : 0}|${L.cart.cider ? 1 : 0}`;
+      const dpr = Math.min(BAKE_CAP, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}|${cz.toFixed(2)}|${hood ? 1 : 0}|${L.cart.cider ? 1 : 0}`;
       if (T !== cartT || key !== cartKey || !cartCv) {
         cartT = T; cartKey = key;
         const bx = Math.floor(gx - 4.2 * s * sc), by = Math.floor(gy - 5.4 * s * sc), bw = Math.ceil(8.4 * s * sc), bh = Math.ceil(6.6 * s * sc);

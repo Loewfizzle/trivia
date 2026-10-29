@@ -9,7 +9,7 @@
 // over the canvas), in front of the moon + the stars + the clouds. A cackle once as she passes the moon. Drawn at scene.js
 // HOOK-B-SKY. Reduced motion: no witch.
 import { witchAt, witchPath, WITCH_LEN } from '../../core/harbor-ghost.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -165,7 +165,7 @@ export function createWitch() {
   // drawImage))
   let figT = -1, figSz = 0;
   function drawFigure(c, W, env) {
-    const dpr = Math.min(2, env.dpr || 2), pad = 12, sz = W.size * 1.45 + pad * 2, px = Math.ceil(sz * dpr);
+    const dpr = Math.min(BAKE_CAP, env.dpr || 2), pad = 12, sz = W.size * 1.45 + pad * 2, px = Math.ceil(sz * dpr);
     if (!fig || fig.width < px) { if (fig) fig.width = fig.height = 0; fig = mk(px, px * 0.8); figT = -1; }
     const fresh = figSz !== px || env.t - figT >= 1 / 31 || env.t < figT || env.motion === false;
     const cx = px / 2, cy = Math.ceil(px * 0.8) * 0.56;

@@ -20,6 +20,7 @@ export const SECONDS = {
   life: 90,            // (FP3b: real doors + the dance circle — a circle forming ~40 s after the page opens)
   load: 30,            // (FP3a: the load gate — measured on the laptop)
   legends: 40,         // (6b: the legendary sky — three pages, a guess)
+  blackout: 30,        // (C4c: the TR-3B's blackout on four holiday nights at 3× — 24 s on the laptop)
   workers: 75,         // (8b1: the workers — four pages, measured on the laptop)
   wildlife: 85,        // (8b1: the animals — eight pages incl. the panel rows; 81 s on the laptop)
   tape: 85,            // (Oct 25: THE TAPE STOP — one page, a whole TR-3B in real time + a second run; measured on the laptop)
@@ -42,7 +43,7 @@ export const CI_JOBS = {
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'tower', 'panel', 'perf'],   // (9e: tower — before the serial pair)   // (PEO: promenade moved here from street — motion took its room)
   street: ['speakeasy', 'sounds', 'people', 'motion', 'freeze'],   // (HOTFIX Oct 27: freeze — the lightest job)   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room; WIN3: windows → its own job)
   // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
-  windows: ['windows', 'snow', 'doors'],   // (9d: doors)   // (9b: WINTER — the lightest job by its seconds)
+  windows: ['windows', 'snow', 'doors', 'blackout'],   // (9d: doors)   // (9b: WINTER — the lightest job by its seconds)
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
   wild: ['wildlife', 'workers', 'legends', 'weather'],
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)

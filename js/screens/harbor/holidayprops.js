@@ -19,7 +19,7 @@ import { paintTreeStand } from './treestand.js';
 import { spotById } from '../../core/harbor-spots.js';
 import { lightField } from '../../core/harbor-light.js';
 import { litCol } from './fauna.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { rngFrom, hashString } from '../../core/rng.js';
 
 const TAU = Math.PI * 2;
@@ -390,7 +390,7 @@ export function createHolidayProps() {
     const sp = spotById(env.L, 'bench-left'); if (!sp) return [];
     const E = envLight(env), night = clamp01((E.dark - 0.25) / 0.5);
     return [{ z: sp.z, draw: c => {
-      const k = `tree|${lightKey}`; let o = cache.get(k); if (!o) o = put(k, paintTreeStand(L, sp, Math.min(2, env.dpr || 2), colAt(E, sp.x, sp.z, 1.0)));
+      const k = `tree|${lightKey}`; let o = cache.get(k); if (!o) o = put(k, paintTreeStand(L, sp, Math.min(BAKE_CAP, env.dpr || 2), colAt(E, sp.x, sp.z, 1.0)));
       c.save(); c.globalAlpha = env.fade == null ? 1 : env.fade; c.drawImage(o.cv, o.x, o.y, o.w, o.h);
       if (night > 0.02) { const g = glowSprite(), r = 0.9 * o.s; c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.55 * night * (env.power == null ? 1 : env.power) * (env.fade == null ? 1 : env.fade); c.drawImage(g, o.lantern[0] - r, o.lantern[1] - r, r * 2, r * 2); }
       // (its rect replaces last frame's: on a day with no holiday the ground pass never resets the list)
@@ -420,7 +420,7 @@ export function createHolidayProps() {
   function tgPieces(HP) { const key = `${lay}|${HP.mums}|${HP.bales ? 1 : 0}|${HP.spots}|${HP.stalks ? 1 : 0}`; if (key !== tgKey) { tgKey = key; tgList = thanksgivingSpots(L, HP); } return tgList; }
   function tgSprite(pc, E, dpr) {
     const k = `tg|${pc.id}|${tgKey}|${lightKey}`; let sp = cache.get(k); if (sp) return sp;
-    sp = paintSpotPiece(L, pc, E.T, E.dark, Math.min(2, dpr), { paintPumpkin, col: (x, z) => colAt(E, x, z, 1.0) });
+    sp = paintSpotPiece(L, pc, E.T, E.dark, Math.min(BAKE_CAP, dpr), { paintPumpkin, col: (x, z) => colAt(E, x, z, 1.0) });
     return sp ? put(k, sp) : null;
   }
   function drawTg(c, pc, env, E) { const sp = tgSprite(pc, E, env.dpr || 2); if (!sp) return; c.save(); c.globalAlpha = env.fade == null ? 1 : env.fade; c.drawImage(sp.cv, sp.x, sp.y, sp.w, sp.h); c.restore(); stat.rects.push({ id: `tg-${pc.id}`, x: sp.x, y: sp.y, w: sp.w, h: sp.h, tg: true }); }

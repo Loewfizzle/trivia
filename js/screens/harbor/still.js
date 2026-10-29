@@ -13,9 +13,10 @@ const toneKey = T => (T ? [T.day, T.gold, T.night, T.lamps, T.sunDir, T.sunEl, T
 export function createStill() {
   const cache = new Map();
   let drawn = 0;
-  /** a bench's sprite for this light: { cv, box } */
-  function sprite(L, b, T, dpr) {
-    const cam = L.cam, cx = pieceCtx(L), key = `${b.x.toFixed(2)}|${b.z}|${b.face}|${dpr}|${cam.W}x${cam.H}|${toneKey(T)}|${r2(cx.lampK)}|${r2(cx.snow)}|${cx.season}`;
+  /** a bench's sprite for this light: { cv, box }; pw: the lamps' power (C4c — the TR-3B's drain + blackout: the lamp light painted
+   *  into the sprite goes with the city's lamps, in the scene's steps) */
+  function sprite(L, b, T, dpr, pw = 1) {
+    const cam = L.cam, c0 = pieceCtx(L), cx = pw < 1 ? { ...c0, lampK: (c0.lampK || 0) * pw } : c0, key = `${b.x.toFixed(2)}|${b.z}|${b.face}|${dpr}|${cam.W}x${cam.H}|${toneKey(T)}|${r2(cx.lampK)}|${r2(cx.snow)}|${cx.season}`;
     const id = `${b.face}|${b.x.toFixed(2)}|${b.z}`;
     let e = cache.get(id);
     if (e && e.key === key) return e;
@@ -33,18 +34,18 @@ export function createStill() {
   return {
     /** the benches' sprites now (the crisp overlay's — scene.js#crispTick): [{ id, z (the depth a figure must be nearer than to stand in
      *  front), cv, box, key }] */
-    sprites(L, T, dpr) {
+    sprites(L, T, dpr, pw = 1) {
       if (!L || !T) return [];
-      return [L.bench, L.cabStand].filter(Boolean).map(b => { const e = sprite(L, b, T, Math.max(1, Math.min(3, dpr))); return e ? { id: `still-${b.face}`, z: b.z + (b.face === 'water' ? -0.25 : 0.1), cv: e.cv, box: e.box, key: e.key } : null; }).filter(Boolean);
+      return [L.bench, L.cabStand].filter(Boolean).map(b => { const e = sprite(L, b, T, Math.max(1, Math.min(3, dpr)), pw); return e ? { id: `still-${b.face}`, z: b.z + (b.face === 'water' ? -0.25 : 0.1), cv: e.cv, box: e.box, key: e.key } : null; }).filter(Boolean);
     },
     /** the near pass's still pieces → [{ z, draw(c) }] (people.js's extras); T: the bake's tones; dpr: the phone's own */
-    items(L, T, { dpr = 2, fade = 1 } = {}) {
+    items(L, T, { dpr = 2, fade = 1, pw = 1 } = {}) {
       if (!L || !T || !(fade > 0)) return [];
       const out = [];
       for (const b of [L.bench, L.cabStand]) {
         if (!b) continue;
         out.push({ z: b.z + (b.face === 'water' ? -0.25 : 0.1), still: b.face === 'water' ? 'water-bench' : 'cab-stand', draw: c => {
-          const e = sprite(L, b, T, Math.max(1, Math.min(3, dpr)));
+          const e = sprite(L, b, T, Math.max(1, Math.min(3, dpr)), pw);
           if (!e) return;
           c.save(); c.globalAlpha *= fade; c.drawImage(e.cv, e.box.x, e.box.y, e.box.w, e.box.h); c.restore();
         } });

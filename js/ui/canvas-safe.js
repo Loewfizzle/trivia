@@ -69,6 +69,11 @@ export function safeCtx(cv, o) {
 /** how many contexts iOS has refused so far (safeCtx) */
 export const starvedCount = () => starved;
 
+// C4c — `&dpr=3` (review-4 §E 17): the Harbor's baked + offscreen layers are capped at 2× on phones; the flag lifts the cap to the
+// device's own dpr (3 on an iPhone) for the owner's LOOK judgement only — never a default (the memory + the fill cost ×2.25).
+// Read once at load: the flag is a link's, not a panel toggle.
+export const BAKE_CAP = (() => { try { return typeof location !== 'undefined' && new URLSearchParams(location.search).get('dpr') === '3' ? 3 : 2; } catch { return 2; } })();
+
 // 9f — A CANVAS's CSS WIDTH WITHOUT A LAYOUT READ: reading `clientWidth` in the frame loop forces a synchronous layout whenever
 // the page was restyled since the last frame (the TR-3B's drain restyles the NEON sign every frame — the crisp layer + the hush
 // sign's overlays then paid a whole page layout per frame). One read the first time, then a ResizeObserver keeps it.

@@ -13,7 +13,7 @@
 // low-wind days (core/harbor-sky.js#smokeWeather) — the API and &force= previews type whatever the weather.
 import { messagePages, dotLayout } from '../../core/harbor-sky.js';
 import { createJets, jetLook } from './jets.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -121,7 +121,7 @@ export function createSmoke() {
     return [Math.sin(dir * Math.PI / 180) * w * 0.12 * K, -0.04 * K];        // pt/s (east is screen-left: facing south)
   }
   function renderLayer(s, e, light) {
-    const d = Math.min(2, dpr), x = safeCtx(layer), spr = puffSprite(light);
+    const d = Math.min(BAKE_CAP, dpr), x = safeCtx(layer), spr = puffSprite(light);
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, layer.width, layer.height);
     x.setTransform(d, 0, 0, d, 0, 0);
     const [vx, vy] = drift(s), hs = haloSprite(), live = [];
@@ -177,11 +177,11 @@ export function createSmoke() {
       if (e < 0) return true;
       const L = s.L, day = clamp01(L.w.day + L.w.golden * 0.8 + L.w.dawn * 0.7) * (1 - clamp01(L.w.night + L.w.late) * 0.85), gold = clamp01((L.w.golden + L.w.dawn) * 1.3);
       const light = { day: Math.max(0.12, day), gold };
-      if (!layer) { const d = Math.min(2, dpr); layer = mk(W * d, H * 0.62 * d); }
+      if (!layer) { const d = Math.min(BAKE_CAP, dpr); layer = mk(W * d, H * 0.62 * d); }
       // the layer: all the puffs up to its time, re-rendered 8 times a second while the planes write, 3 after (2 at tier 0)
       const writing = e < cur.last + 0.5, every = writing ? 125 : tier === 0 ? 500 : 333;
       if (performance.now() - layerAt > every || layerE > e) renderLayer(s, e, light);
-      const [vx, vy] = drift(s), dt = s.motion ? e - layerE : 0, d = Math.min(2, dpr);
+      const [vx, vy] = drift(s), dt = s.motion ? e - layerE : 0, d = Math.min(BAKE_CAP, dpr);
       c.drawImage(layer, vx * dt, vy * dt, layer.width / d, layer.height / d);
       // the newest puffs (born since the layer): live
       const spr = puffSprite(light), hs = haloSprite();

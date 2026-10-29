@@ -17,7 +17,7 @@ import { SPEAK_V, ROOMS, roomLight } from '../../core/harbor-speakeasy.js';
 import { rngFrom } from '../../core/rng.js';
 import { rgb, mix, shade, box, poly } from './shapes.js';
 import { faces } from './blocks.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
 import { paintRoom, createWindowLife, lateOf } from './windows.js';
 import { paintShopRoom, shopGlass, shopLamp, boxOf } from './window-rooms.js';
@@ -122,7 +122,7 @@ export function createSpeakeasy() {
   let basementDbg = null;
   let glassCv = null, glassKey = '', glassAt = null, lastT = 0, lastGame = null, bedsNow = { club: 0, tv: 0, party: false };
   function layout(L, o = {}) {
-    G = speakGeo(L); dpr = Math.min(2, o.dpr || 1);
+    G = speakGeo(L); dpr = Math.min(BAKE_CAP, o.dpr || 1);
     const s = G.s;
     wins = ROOMS.map(rm => { const [a, b] = s.windows[rm.col], [r0, r1] = s.rows[rm.floor - 2], [x0, y0] = G.front(a, r1), [x1, y1] = G.front(b, r0); return { ...rm, u: [a, b], v: [r0, r1], rect: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 } }; });
     bulbKey = '';

@@ -11,7 +11,7 @@
 import { project } from '../../core/harbor-layout.js';
 import { lightFor, lit, norm } from './props-light.js';
 import { pieceCtx } from '../../core/harbor-light.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { rngFrom } from '../../core/rng.js';
 
 const TAU = Math.PI * 2;
@@ -156,7 +156,7 @@ export function createHarvest(deps) {
   const cache = new Map(); let last = null;
   const bulbs = harvestBulbs(), stat = { drawn: 0, rect: null, bulbs: 0 };
   function draw(c, o) {
-    const { L, m } = o, dpr = Math.min(2, o.dpr || 2), key = `${L.cam.W}x${L.cam.H}|${dpr}|${o.lightKey || ''}`;
+    const { L, m } = o, dpr = Math.min(BAKE_CAP, o.dpr || 2), key = `${L.cam.W}x${L.cam.H}|${dpr}|${o.lightKey || ''}`;
     let sp = cache.get(key);
     if (!sp) { sp = paint(L, m, o.T, o.dark || 0, dpr, { ...deps, col: o.col }); if (!sp) return; cache.set(key, sp); if (cache.size > 6) { const k0 = cache.keys().next().value; const v = cache.get(k0); if (v && v.cv) v.cv.width = v.cv.height = 0; cache.delete(k0); } }
     last = sp;

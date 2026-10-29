@@ -12,7 +12,7 @@ import { project } from '../../core/harbor-layout.js';
 import { PARADE, BALLOONS, unitsAt, unitPeople, balloonMotion } from '../../core/harbor-parade.js';
 import { lightFor, lit, norm } from './props-light.js';
 import { pieceCtx } from '../../core/harbor-light.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { rngFrom } from '../../core/rng.js';
 import { paintSpotPiece } from './harvest.js';
 import { paintPumpkin } from './holidayprops.js';
@@ -129,7 +129,7 @@ export function createParade() {
    * gust, fade, deps (holidayprops: paintPumpkin + col) } → [{ z, draw(c) }]
    */
   function items(env) {
-    const { L, units, x0, t } = env, cam = L.cam, out = [], dpr = Math.min(2, env.dpr || 2);
+    const { L, units, x0, t } = env, cam = L.cam, out = [], dpr = Math.min(BAKE_CAP, env.dpr || 2);
     if (!units) return out;
     const x1 = (cam.hw ? cam.hw(PARADE.z) : 20) + 8;
     const lk = `${Math.round((env.dark || 0) * 10)}|${Math.round(((env.T && env.T.day) || 0) * 10)}|${Math.round(((env.T && env.T.gold) || 0) * 10)}`;
