@@ -5,7 +5,7 @@ import { rngFrom } from '../../core/rng.js';
 import { figure, whoW, whoM, SHADOW, LEGS_SH, COSTUME_PALS, SIL, figures } from './window-figure.js';
 import { tvLight } from '../../core/harbor-moments.js';
 
-export function createHoliday({ glow, litP, passing, seated }) {
+export function createHoliday({ glow, litP }) {
   // ---------------------------------------------------------------- 11a-1 — THE HOLIDAYS IN THE ROOMS
   /** which holiday dressing a window wears tonight: 'ofrenda' (Day of the Dead's altars: the edge windows + the back room) ·
    *  'pumpkin' (Halloween's last week: a jack-o'-lantern on the edge windows' sills) · null */

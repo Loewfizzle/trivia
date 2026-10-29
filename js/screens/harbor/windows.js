@@ -267,7 +267,10 @@ export function createWindowLife() {
     c.fillStyle = g; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, G.h1 - hem + 0.1);
     c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, 0.03);
     c.fillStyle = rgb(mixc([176, 146, 84], cloth, 0.3)); c.fillRect(G.g0 - 0.1, hem - 0.013, G.cw + 0.2, 0.028);   // (the hem bar)
-    c.strokeStyle = rgb([156, 126, 70], 0.95); c.lineWidth = 0.016; c.beginPath(); c.arc(G.cx, hem - 0.075, 0.036, 0, TAU); c.stroke();   // (the ring pull)
+    c.strokeStyle = rgb([156, 126, 70], 0.95); c.lineWidth = 0.016; c.beginPath(); c.arc(G.cx, hem - 0.075, 0.036, 0, TAU); c.stroke();
+    // (C4a: at night the cloth is a LIT BLIND — the room's lamp a radial through it, the folds, the edges — over the even day linen)
+    const nk = lamp * (1 - day);
+    if (nk > 0.01) { c.save(); c.globalAlpha = Math.min(1, (1 - day) * 1.4); litBlind(c, G, { hem, cloth: [70, 58, 46], col: [255, 214, 150], a: nk, lamp: { u: G.cx, v: Math.max(hem + 0.15, G.h0 + G.ch * 0.6) }, sil: false }); c.restore(); }   // (the ring pull)
     c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(G.g0, G.h1 - 0.05, G.cw, 0.05);   // (the roller's shadow at the head)
   }
 
@@ -318,8 +321,8 @@ export function createWindowLife() {
   // S: what the painters share with the life — its taps, the dance clock, the glow sprite, the lit look; the life's state read live
   // (getters) + the two traces the painters write (lastTv, cashTrace: the readout + the e2e)
   const S = { taps, wd, glow, litP, get last() { return last; }, get routines() { return routines; }, get smokeForced() { return smokeForced; }, get catTap() { return catTap; }, lastTv: null, cashTrace: { flicks: 0 } };
-  const { apartmentState, barState, saxPlayer, edgeMood, partyRoom, watchNow, tvCols, shop, tapPaint, seated, PAINT: ROOM_PAINT } = createPaint(S);
-  const { holDress, ofrendaState, sillPumpkin, PAINT: HOL_PAINT } = createHoliday({ glow, litP, passing, seated });
+  const { apartmentState, barState, saxPlayer, edgeMood, partyRoom, watchNow, tvCols, shop, tapPaint, litBlind, PAINT: ROOM_PAINT } = createPaint(S);
+  const { holDress, ofrendaState, sillPumpkin, PAINT: HOL_PAINT } = createHoliday({ glow, litP });
   const PAINT = { ...HOL_PAINT, ...ROOM_PAINT };
 
   return {

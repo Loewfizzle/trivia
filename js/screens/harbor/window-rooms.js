@@ -220,3 +220,119 @@ export function paintLampRoom(x, G, lamp = 1, B = null) {
   for (const [p, q, d] of [[g0, g0 + 0.22, 1], [g1 - 0.22, g1, -1]]) { x.fillStyle = rgb(mixc([40, 14, 18], [130, 36, 40], lamp)); x.beginPath(); x.moveTo(p, h1); x.lineTo(q, h1); x.quadraticCurveTo(d > 0 ? q - 0.04 : p + 0.04, h0 + ch * 0.45, d > 0 ? q - 0.09 : p + 0.09, h0); x.lineTo(d > 0 ? p : q, h0); x.fill(); }
 }
 
+
+// ------------------------------------------------------------------ C4a — THE BARBERSHOP AS A ROOM (review-4 §C1 1a)
+// (the owner, Oct 28: "that light has always been off — like you're not using real light": a flat back wall, a veil, a pale oval blob +
+// an additive halo + the awning's dodge band over the glass.) Now the shop is a BOX like the rooms upstairs: the MIRROR WALL across the
+// back (one panel of it the hidden door to the bar), the black + white tiles on its floor, ONE barber chair mid-room as a bold
+// silhouette, ONE lamp with a visible shade over it. The bake paints it by the day's light (paintShopRoom with the look's tones); at
+// night the lit canvas paints it again DIM + CLOSED (the lamp's pool on the floor + the chair, the mirrors catching it, the corners
+// dark — lampFall), and the live barber, the customer + the mirror door stand in the same box (SHOP_ROOM's depths).
+/** the shop window's glass (s.shop.win [w0, w1, v0, v1]) as a room's G */
+export function shopGlass(win) {
+  const [w0, w1, v0, v1] = win;
+  return { g0: w0, g1: w1, h0: v0, h1: v1, cw: w1 - w0, ch: v1 - v0, cx: (w0 + w1) / 2, mid: v0 + (v1 - v0) * 0.46 };
+}
+/** where the shop's pieces stand (fractions of the glass's width + depths in its box): the chair, the lamp over it, the mirror panels
+ *  (pitch + the door = the third), the shelf of tonics; dim: the lamp's level after hours (closed); col: its warm white */
+export const SHOP_ROOM = Object.freeze({ chairU: 0.36, chairT: 0.5, lamp: { uK: 0.63, dv: 1.02, t: 0.62 }, mirror: { u0: 0.15, pitch: 1.0, w: 0.9, door: 2, v0: 0.65, top: 0.3 }, shelfT: 0.96, dim: 0.45, col: [255, 232, 200] });
+export const shopChairX = G => G.g0 + G.cw * SHOP_ROOM.chairU;
+export const shopLamp = G => ({ u: G.g0 + G.cw * SHOP_ROOM.lamp.uK, v: G.h1 - SHOP_ROOM.lamp.dv, t: SHOP_ROOM.lamp.t });
+/** the mirror door's panel in the glass's units (at the back wall: draw it through deepAt(…, 1)) → [m0, m1, mv0, mv1] */
+export function shopMirrorDoor(G) {
+  const M = SHOP_ROOM.mirror, m0 = G.g0 + M.u0 + M.door * M.pitch - 0.02;
+  return [m0, m0 + M.w + 0.04, G.h0 + 0.47, G.h1 - M.top];
+}
+/** THE BARBER CHAIR, front on (its base at `base`, its middle at cx): the porcelain foot, the chrome column + the footrest, the red
+ *  leather seat, the armrests, the high back + the headrest — one bold silhouette; P { leather, hi, chrome, foot } ([r,g,b]); rim: a
+ *  0..1 warm edge on its top edges (the lamp over it) */
+export function barberChair(x, cx, base, P, rim = 0) {
+  const y = base + 0.86;
+  x.fillStyle = rgb(P.foot); x.beginPath(); x.ellipse(cx + 0.02, base + 0.06, 0.42, 0.07, 0, 0, TAU); x.fill();
+  R(x, cx - 0.05, base + 0.06, cx + 0.09, base + 0.56, rgb(P.chrome)); R(x, cx - 0.02, base + 0.06, cx + 0.02, base + 0.56, rgb(mixc(P.chrome, [255, 255, 255], 0.25)));
+  x.fillStyle = rgb(P.chrome); x.beginPath(); x.ellipse(cx + 0.3, base + 0.34, 0.2, 0.05, 0, 0, TAU); x.fill();          // (the footrest)
+  R(x, cx - 0.3, y - 0.1, cx + 0.34, y + 0.9, rgb(mixc(P.leather, [0, 0, 0], 0.18)));                                  // (the back)
+  x.fillStyle = rgb(P.leather); x.beginPath(); x.ellipse(cx + 0.02, y + 1.02, 0.2, 0.1, 0, 0, TAU); x.fill();           // (the headrest)
+  R(x, cx - 0.42, y - 0.36, cx + 0.44, y - 0.06, rgb(P.leather));                                                      // (the seat)
+  R(x, cx - 0.44, y - 0.06, cx - 0.32, y + 0.46, rgb(P.hi)); R(x, cx + 0.34, y - 0.06, cx + 0.46, y + 0.46, rgb(P.hi)); // (the armrests)
+  if (rim > 0.01) {
+    const c = rgb([255, 228, 186], Math.min(1, rim));
+    R(x, cx - 0.2, y + 1.08, cx + 0.24, y + 1.12, c); R(x, cx - 0.3, y + 0.76, cx + 0.34, y + 0.8, c);
+    R(x, cx - 0.44, y + 0.42, cx - 0.32, y + 0.46, c); R(x, cx + 0.34, y + 0.42, cx + 0.46, y + 0.46, c); R(x, cx - 0.42, y - 0.1, cx + 0.44, y - 0.07, c);
+  }
+}
+/** the shop's tones for a light: T { day, gold, night } (the bake: the daylight through the glass), or lit > 0 (the night's lamp —
+ *  the lit canvas) */
+export function shopTones(T, lit = 0) {
+  const t = (d, g, n, l) => (lit > 0 ? l : tri(T, d, g, n));
+  return {
+    wall: [t([168, 160, 142], [176, 142, 112], [16, 14, 22], [48, 34, 26]), t([198, 190, 170], [204, 166, 130], [20, 18, 28], [64, 46, 34])],
+    side: [t([140, 132, 116], [146, 116, 92], [12, 11, 18], [36, 26, 22]), t([176, 168, 150], [180, 146, 116], [16, 14, 22], [52, 38, 30])],
+    floor: [t([200, 196, 186], [206, 176, 146], [20, 18, 24], [54, 42, 34]), t([170, 166, 156], [176, 146, 120], [16, 14, 20], [44, 34, 28])],
+    tile: t([70, 66, 72], [70, 56, 52], [8, 8, 12], [30, 22, 20]),
+    mirror: t([176, 190, 200], [200, 170, 150], [22, 22, 34], [52, 46, 44]), frame: t([118, 92, 52], [130, 90, 56], [30, 24, 22], [70, 52, 34]),
+    wood: t([74, 46, 32], [84, 46, 34], [18, 13, 20], [56, 34, 24]),
+    leather: t([150, 26, 34], [170, 40, 40], [26, 10, 18], [100, 26, 24]), hi: t([176, 40, 46], [190, 56, 50], [32, 12, 20], [122, 36, 30]),
+    chrome: t([200, 204, 210], [230, 200, 170], [40, 40, 54], [132, 112, 92]), foot: t([62, 60, 68], [70, 56, 52], [10, 10, 16], [36, 30, 30]),
+    shade: t([46, 92, 70], [60, 86, 64], [10, 16, 16], [40, 70, 54]), iron: t([32, 32, 38], [30, 26, 30], [10, 10, 18], [24, 20, 20]),
+    dark: lit > 0 ? 0 : clamp01(T.night || 0),
+  };
+}
+/** THE SHOP AS A ROOM (wall units, v up; the caller clips to the glass): the box (the back wall, the tiled floor, the left wall), the
+ *  mirror wall at the back (o.doorOpen: the hidden door's panel left out — the live layer draws it swinging), the counter + the tonics,
+ *  the chair mid-room, the lamp over it with its shade (o.lit: the night's lamp on — its pool, the hot spot, the dark corners: lampFall
+ *  at o.lit × SHOP_ROOM.dim × 2) */
+export function paintShopRoom(x, G, B, o = {}) {
+  const C = o.tones || shopTones(o.T || { day: 1, gold: 0, night: 0 }, o.lit || 0), lit = o.lit || 0, { g0, g1, h0, h1, cw } = G;
+  paintBox(x, G, B, { wall: C.wall, floor: C.floor, side: C.side, flat: () => R(x, g0, h0, g1, h1, rgb(C.wall[1])) });
+  // the floor's black + white tiles, in the box's perspective (rows from the glass to the back wall)
+  if (B && B.faces.floor) {
+    x.fillStyle = rgb(C.tile);
+    const rows = 4, cols = 9;
+    for (let i = 0; i < rows; i++) for (let j = 0; j < cols; j++) {
+      if ((i + j) % 2) continue;
+      const t0 = i / rows, t1 = (i + 1) / rows, u0 = g0 + (cw * j) / cols, u1 = g0 + (cw * (j + 1)) / cols;
+      quad(x, [B.at(u0, h0, t0), B.at(u1, h0, t0), B.at(u1, h0, t1), B.at(u0, h0, t1)]); x.fill();
+    }
+  }
+  // THE MIRROR WALL (at the back): the counter along its foot, bevelled frames, the silvered glass catching the room (a lighter band)
+  const M = SHOP_ROOM.mirror;
+  deepAt(x, B, 1, () => {
+    R(x, g0, h0, g1, h0 + 0.45, rgb(C.wood)); R(x, g0, h0 + 0.42, g1, h0 + 0.47, rgb(mixc(C.wood, [255, 230, 200], 0.2 * (1 - C.dark))));
+    for (let k = 0, u = g0 + M.u0; u < g1 - 0.3; k++, u += M.pitch) {
+      if (k === M.door && o.doorOpen) continue;
+      R(x, u, h0 + M.v0, u + M.w, h1 - M.top, rgb(C.frame));
+      const g = x.createLinearGradient(u, 0, u + M.w - 0.04, 0);
+      g.addColorStop(0, rgb(mixc(C.mirror, [0, 0, 0], 0.18))); g.addColorStop(0.5, rgb(mixc(C.mirror, [255, 255, 255], 0.12 * (1 - C.dark)))); g.addColorStop(1, rgb(mixc(C.mirror, [0, 0, 0], 0.24)));
+      x.fillStyle = g; x.fillRect(u + 0.04, h0 + M.v0 + 0.04, M.w - 0.08, h1 - M.top - h0 - M.v0 - 0.08);
+    }
+  });
+  // the shelf of tonics on the counter
+  deepAt(x, B, SHOP_ROOM.shelfT, () => {
+    R(x, g0, h0 + 0.62, g1, h0 + 0.68, rgb(C.wood));
+    const rr = rngFrom(7), cols = [[60, 140, 90], [170, 60, 50], [220, 170, 80], [90, 120, 190], [230, 230, 220]];
+    for (let u = g0 + 0.2; u < g1 - 0.2; u += 0.16 + rr() * 0.1) { const c = cols[Math.floor(rr() * cols.length)], h = 0.18 + rr() * 0.14; R(x, u, h0 + 0.68, u + 0.08, h0 + 0.68 + h, rgb(mixc(c, C.wall[0], C.dark ? 0.75 : lit ? 0.45 : 0.15))); }
+  });
+  // the lamp's light FALLS in the room (before the chair: the chair stands in it)
+  const L = shopLamp(G);
+  if (lit > 0.01 && B) {
+    lampFall(x, G, B, L, SHOP_ROOM.col, lit * SHOP_ROOM.dim * 2, { reach: 1.05, corner: 0.75 });
+    // (+ a DEFINED pool on the tiles right under the shade — the cone's footprint, its edge soft but readable)
+    const [fu, fv] = B.at(L.u, h0, L.t), r = 0.8 * B.scale(L.t), col = SHOP_ROOM.col;
+    x.save(); x.globalCompositeOperation = 'lighter'; x.translate(fu, fv); x.scale(1, 0.3);
+    const g = x.createRadialGradient(0, 0, 0, 0, 0, r); g.addColorStop(0, rgb(col, 0.3 * lit)); g.addColorStop(0.55, rgb(col, 0.19 * lit)); g.addColorStop(0.82, rgb(col, 0.06 * lit)); g.addColorStop(1, rgb(col, 0));
+    x.fillStyle = g; x.fillRect(-r, -r, r * 2, r * 2); x.restore();
+  }
+  // THE CHAIR mid-room (the live barber + his customer stand round it at the same depth)
+  if (!o.noChair) deepAt(x, B, SHOP_ROOM.chairT, () => barberChair(x, shopChairX(G), h0 + 0.02, C, lit * 0.55));
+  // THE LAMP over the chair: its cord from the ceiling, an enamel shade (green outside, white inside); lit: the inside of the shade
+  // glowing + the bulb under it
+  deepAt(x, B, L.t, () => {
+    R(x, L.u - 0.012, L.v + 0.1, L.u + 0.012, h1 + 0.6, rgb(C.iron));
+    x.fillStyle = rgb(C.shade); x.beginPath(); x.moveTo(L.u - 0.07, L.v + 0.12); x.lineTo(L.u + 0.07, L.v + 0.12); x.lineTo(L.u + 0.22, L.v - 0.04); x.lineTo(L.u - 0.22, L.v - 0.04); x.closePath(); x.fill();
+    if (lit > 0.01) {
+      x.fillStyle = rgb([255, 236, 200], Math.min(1, 0.6 + lit)); x.beginPath(); x.ellipse(L.u, L.v - 0.04, 0.2, 0.035, 0, 0, TAU); x.fill();
+      x.fillStyle = 'rgb(255,250,236)'; x.beginPath(); x.arc(L.u, L.v - 0.06, 0.05, 0, TAU); x.fill();
+    } else { x.fillStyle = rgb(mixc(C.shade, [255, 255, 255], 0.35 * (1 - C.dark))); x.fillRect(L.u - 0.2, L.v - 0.045, 0.4, 0.02); }
+  });
+}

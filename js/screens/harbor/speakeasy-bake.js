@@ -8,6 +8,8 @@ import { faces } from './blocks.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { dayPaint } from './signs.js';
 import { paintRoom, createWindowLife, lateOf } from './windows.js';
+import { paintShopRoom, shopGlass, boxOf } from './window-rooms.js';
+import { wallVP } from '../../core/harbor-rooms.js';
 import { createHushSign } from './hushsign.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
@@ -269,8 +271,8 @@ export function paintShopLeaf(x, M, sh) {
   R(x, d0 + 0.12, V.plinth + 0.1, d1 - 0.12, 1.1, shade(M.wood, -0.15));
   R(x, d1 - 0.2, 1.05, d1 - 0.13, 1.18, M.gilt);
 }
-export function paintGround(x, M, s) {
-  const night = M.night > 0.5, open = !night, sd = M.sd, sh = s.shop;
+export function paintGround(x, M, s, vp = null) {
+  const night = M.night > 0.5, sd = M.sd, sh = s.shop;
   const [w0, w1, wv0, wv1] = sh.win, [d0, d1, dh] = sh.door;
   // the shopfront's surround: bottle-green painted wood, a gilt pinstripe, panelled stall-risers under the window
   const sf = mix(M.frame, [40, 70, 58], 0.3 * M.day);
@@ -278,43 +280,12 @@ export function paintGround(x, M, s) {
   R(x, d0 - 0.08, V.ground - 0.24, w1 + 0.12, V.ground - 0.2, M.gilt, 0.8);
   R(x, w0, V.plinth + 0.06, w1, wv0 - 0.06, mix(sf, M.frameHi, 0.25));
   for (let u = w0 + 0.1; u < w1 - 0.5; u += 1.05) { R(x, u, V.plinth + 0.12, u + 0.92, wv0 - 0.12, shade(sf, -0.2)); R(x, u + 0.04, V.plinth + 0.16, u + 0.88, wv0 - 0.16, mix(sf, M.frameHi, 0.4)); }
-  // THE BIG WINDOW — inside: a black + white tiled floor, the MIRROR WALL across the back (a shelf of tonics in front of it), the
-  // BARBER CHAIR (porcelain base, red leather, chrome), a hanging lamp; then the glass: the street's reflection, a sheen
+  // THE BIG WINDOW — inside (C4a): THE SHOP AS A ROOM (window-rooms.js#paintShopRoom: the box in the street's perspective, the tiled
+  // floor, the MIRROR WALL at the back, the barber chair mid-room, the lamp with its shade) in the day's light; at night dark + closed
+  // (the lit canvas lays the lamp's dim light over it: speakeasy.js#paintLit). No veil, no sheen baked: the glass's own reflection is
+  // the live gilt layer's (speakeasy.js#giltOver — in front of the barber, as glass is)
   x.save(); x.beginPath(); x.rect(w0, wv0, w1 - w0, wv1 - wv0); x.clip();
-  const lightIn = open ? 1 : 0.18;
-  const wall = mix(tri(M.T, [214, 204, 180], [220, 180, 140], [18, 16, 26]), [0, 0, 0], 0.2);
-  R(x, w0, wv0, w1, wv1, wall);
-  // the mirror wall: silvered panels (reflecting the shop: a soft lighter band), bevelled frames
-  for (let u = w0 + 0.15; u < w1 - 0.3; u += 1.0) {
-    R(x, u, wv0 + 0.65, u + 0.9, wv1 - 0.3, shade(M.gilt, -0.35));
-    const g = x.createLinearGradient(u, 0, u + 0.86, 0); const mc = tri(M.T, [176, 190, 200], [200, 170, 150], [22, 22, 34]);
-    g.addColorStop(0, rgb(shade(mc, -0.15))); g.addColorStop(0.5, rgb(shade(mc, 0.12 * lightIn))); g.addColorStop(1, rgb(shade(mc, -0.2)));
-    x.fillStyle = g; x.fillRect(u + 0.04, wv0 + 0.69, 0.82, wv1 - wv0 - 1.03);
-  }
-  // the shelf of tonics
-  R(x, w0, wv0 + 0.62, w1, wv0 + 0.68, M.wood);
-  { const rr = rngFrom(7), cols = [[60, 140, 90], [170, 60, 50], [220, 170, 80], [90, 120, 190], [230, 230, 220]];
-    for (let u = w0 + 0.2; u < w1 - 0.2; u += 0.16 + rr() * 0.1) { const c = cols[Math.floor(rr() * cols.length)], h = 0.18 + rr() * 0.14; R(x, u, wv0 + 0.68, u + 0.08, wv0 + 0.68 + h, mix(c, M.inside, night ? 0.7 : 0.15)); } }
-  // the counter + the floor's tiles
-  R(x, w0, wv0, w1, wv0 + 0.45, M.wood); R(x, w0, wv0 + 0.42, w1, wv0 + 0.47, mix(M.wood, [255, 230, 200], 0.2 * (1 - M.night)));
-  // THE CHAIR (facing right): the porcelain pedestal, the footrest, the seat, the back + the headrest, the chrome arm
-  { const cx = w0 + (w1 - w0) * 0.36, base = wv0 + 0.02, leather = tri(M.T, [150, 26, 34], [170, 40, 40], [26, 10, 18]), por = tri(M.T, [236, 234, 226], [240, 216, 190], [30, 28, 40]), chrome = tri(M.T, [200, 204, 210], [230, 200, 170], [40, 40, 54]);
-    R(x, cx - 0.2, base, cx + 0.2, base + 0.12, por); R(x, cx - 0.08, base + 0.12, cx + 0.08, base + 0.62, por);
-    R(x, cx + 0.3, base + 0.3, cx + 0.62, base + 0.36, chrome);                                   // the footrest
-    R(x, cx - 0.36, base + 0.62, cx + 0.46, base + 0.86, leather); R(x, cx - 0.36, base + 0.84, cx + 0.46, base + 0.88, shade(leather, 0.25));
-    R(x, cx - 0.42, base + 0.66, cx - 0.22, base + 1.62, leather); R(x, cx - 0.4, base + 1.58, cx - 0.24, base + 1.62, shade(leather, 0.3));
-    R(x, cx - 0.36, base + 1.66, cx - 0.26, base + 1.86, chrome); R(x, cx - 0.48, base + 1.86, cx - 0.12, base + 2.04, leather);   // the headrest
-    R(x, cx - 0.3, base + 1.02, cx + 0.42, base + 1.07, chrome); }
-  // the hanging lamp (a milk-glass globe)
-  { const lx = w0 + (w1 - w0) * 0.38; R(x, lx - 0.01, wv1 - 0.4, lx + 0.01, wv1, M.iron); x.fillStyle = rgb(tri(M.T, [240, 236, 220], [250, 220, 180], [40, 36, 46])); x.beginPath(); x.arc(lx, wv1 - 0.48, 0.12, 0, Math.PI * 2); x.fill(); }
-  // the glass: the street's pale reflection low, a soft diagonal sheen, a little of the sky up top (by day); the awning's shadow
-  if (!night) {
-    // (8P — CRISP: the milky street reflection that veiled the lower half of the glass is gone — a clean sky tint at the head + two
-    // hard-edged sheens; the shop inside reads sharp)
-    const g = x.createLinearGradient(0, wv0, 0, wv1); g.addColorStop(0, 'rgba(236,232,220,0.06)'); g.addColorStop(0.6, 'rgba(255,255,255,0)'); g.addColorStop(1, rgb(M.glassTop, 0.28));
-    x.fillStyle = g; x.fillRect(w0, wv0, w1 - w0, wv1 - wv0);
-    x.fillStyle = 'rgba(255,255,255,0.08)'; for (const [p, q] of [[0.1, 0.55], [0.62, 0.78]]) { x.beginPath(); x.moveTo(w0 + (w1 - w0) * p, wv1); x.lineTo(w0 + (w1 - w0) * q, wv1); x.lineTo(w0 + (w1 - w0) * (q - 0.22), wv0); x.lineTo(w0 + (w1 - w0) * (p - 0.22), wv0); x.fill(); }
-  } else R(x, w0, wv0, w1, wv1, M.inside, 0.55);
+  { const G0 = shopGlass(sh.win); paintShopRoom(x, G0, boxOf(G0, vp), { T: M.T }); }
   R(x, w0, wv1 - 0.3, w1, wv1, [0, 0, 0], 0.3 * (M.day + M.gold) + 0.1);
   // THE GOLD LEAF: NOT baked (8P — Ben's zoom: the bake's copy + the live layer's copy, a hair apart, read as a ghost — the blur): the live
   // layer draws it ONCE every frame, on the glass, over whatever moves inside (giltOver)
@@ -542,7 +513,7 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
       x.restore();
     },
     // the ground floor: the barbershop, the side door, the basement window, the sconce
-    x => { x.save(); frontMap(x); paintGround(x, M, s); x.restore(); },
+    x => { x.save(); frontMap(x); paintGround(x, M, s, wallVP(...G.front(0, 0), G.K, G.cam.VPX, G.cam.VPY)); x.restore(); },
     // the light + the weather (POL4: the ivy removed — the owner)
     x => { x.save(); frontMap(x); paintLight(x, M, 0, W_FRONT, false, 51); x.restore(); },
     // what stands out from the walls: the awning, the side door's steps, the parapet's posts, the ad's lamps
