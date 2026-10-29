@@ -9299,6 +9299,9 @@ so a car brightens ACROSS the crossing nose-first; the wheels lit at their own s
 - The crossing's traffic is hidden by the giant pumpkin through Halloween's build-up (C4b disables the giant).
 - The wet reflections' rain ripple re-bakes the wet layer 2.5 × a second while it rains (only then; small — the perf A/B's rainy night).
 - The street under the dock still shows no snow on a snowy night (unchanged; not this pass).
+- THE CLOUD RUN (harbor 40804688140 + tests 40804849973, started by hand — the final push was docs-only): tests green, harbor 6 of 7
+  jobs green; `street` 92 / 93 — "THE PLANTED FOOT NEVER SKATES" (the couple round the giant pumpkin's front): PROM's known open issue,
+  code this pass didn't touch; C4b disables the giant first. Not re-run (the two-run cap).
 
 ### Handoff → C4b (the people + the compass + the giant off)
 - The barbershop's box (`SHOP_ROOM`, `deepAt`) is where the doorman's / the barber's future moves live; the chair is one painter
