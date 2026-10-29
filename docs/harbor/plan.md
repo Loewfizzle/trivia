@@ -73,8 +73,10 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | BNAME | ✅ (Oct 28 — 0797967 · 937590e; docs/profiles.md + docs/harbor.md#bname: house nicknames for everyone else on THE BOARD (an HMAC board id, never the typed name or the pid in any public response), `profiles` no longer world-readable, the 3-match floor, ⋯ → REPORT → /admin; THE CRANE from J-Toastie's model (180 KB, lazy, &crane=classic); the cycle 3 months, the opening the first Saturday of October; ONE bake tool, the UFO byte-for-byte) THE BOARD's PUBLIC NAMES (house nicknames, a 3-match minimum, REPORT) + THE CRANE from a 3D model + the tower's shorter cycle | Opus 5.5 high | ~1.5 h |
 | 9g | ✅ (Oct 28 — c4ab10e · 54b62e3 · a774787; docs/harbor.md#9g: a link's legendary waits for the reveal + the first tap (+4 s), opened mid-drain the song silent until the lights return; the UFO's real sounds (HUM A/B, DEPART A/B/LAYERED — nobody has listened); the implosion's one crash, the siren louder, HORN A/B/C; the rivet bursts; the crane's pulse gone (1° frames, the nearest whole); the joggers' running stride; the dock fade 10 s / 5 s) THE FIXES V — legendary links wait for a tap, the implosion's sound, the rivet bursts, the crane's day pulse, the joggers' stride, the dock fade, THE UFO's sounds | Opus 5.5 high | ~2 h |
 | PROM | ✅ (Oct 28 — docs/harbor.md#prom: no lampposts — the implied lamps behind the viewer, the lit crosswalk, the hydrant left, the bigger compass (centrepieces at today's size), the cab stand + its taxi while the dock rests, the water bench facing the harbor, the cart left of the compass (from the left), the doorman against the wall, the awning lit from below (1 am / 2 am), the benches sharp at full dpr, Grok's models compared (the drawn pieces stay); Group 0: the UFO's sounds loaded ahead, the implosion's new timeline + HORN B, the joggers' kit) THE PROMENADE, FINAL | Opus 5.5 high | ~3 h |
-| FR4 | ← NEXT: a FABLE READ-ONLY REVIEW #4 (everything since review #3, Oct 24: 9a → PROM — the weather, winter, the holidays, the legends' sounds, CONN, BNAME, the bake tool, the tower; the cloud's recurring flakes; memory + frame time on the phone path, "can the foreground be 3×?"; the docs vs the code; the owner's PROM notes — "OWNER'S NOTES — OCT 28 (PROM's review)") → docs/harbor/review-4.md | Fable high | ~1.5 h |
-| C4 | THE CLEANUP: review-4's TODO list merged with the owner's PROM review notes (the crosswalk's soft light + the cars lit through it, the compass left + the cart in the middle, the sitters, the doorman who opens the door, the barbershop as a 2.5D room + the awning brighter, the lit blind, the wet sheen, &force=waterbench, THE PEOPLE RULE after the UFO) | Opus 5.5 high | ~3 h (split if over) |
+| FR4 | ✅ (Oct 28 — 31e208a; docs/harbor/review-4.md) a FABLE READ-ONLY REVIEW #4 (everything since review #3, Oct 24: 9a → PROM — the weather, winter, the holidays, the legends' sounds, CONN, BNAME, the bake tool, the tower; the cloud's recurring flakes; memory + frame time on the phone path, "can the foreground be 3×?"; the docs vs the code; the owner's PROM notes — "OWNER'S NOTES — OCT 28 (PROM's review)") → docs/harbor/review-4.md | Fable high | ~1.5 h |
+| C4a | ← NEXT: THE SHOPFRONT + THE GROUND (review-4 §E items 1–6, the windows.js split first): the barbershop as a real 2.5D room (dim at night, the mirror door), the awning lit from below + brighter, the lit blind, the wet sheen (no implied-lamp streaks), the crosswalk's soft light, the cars lit through it | Opus 5.5 high | ~3 h |
+| C4b | THE PEOPLE + THE COMPASS + THE GIANT OFF: the giant ₿ pumpkin disabled (first), the compass + the water bench + the cart re-placed (re-measured first), the sitters, the doorman who opens the door, &force=waterbench, THE PEOPLE RULE after the UFO | Opus 5.5 high | ~3 h |
+| C4c | THE CODE / TESTS / DOCS: the cloud's test fixes, the readout, dead code, &dpr=3, the docs trims | Opus 5.5 high | ~2 h |
 | SKY | THE LEGENDS: THE BLACKBIRD (one flyby animation — the static tell, the vapor cone + shock ring + the late double boom, the Mach-diamond plumes, above the sign — its rare solo sightings, the hour-watcher's reward, joining every TR-3B chase once the jets are ~⅓ across), THE F-22 MODELS everywhere (the tight triangle + the bank), THE TR-3B AT FULL RESOLUTION (one solid body, no shadow on the backdrop), THE MOTHMAN on the needle (Grok's model, standing, wings spread, red eyes), THE SHADOWBOXER (9–11 pm, 3-min rounds + 1-min breaks, the full two hours; THE WINDOW RULE II), the upper windows on the crisp layer — "OWNER'S NOTES — OCT 28 (PROM's review)" | Opus 5.5 high | ~4–5 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
@@ -3715,3 +3717,63 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   a cab — staggered over ~1–2 min, nobody spawning on screen. General rule (THE PEOPLE RULE, like THE WINDOW RULE): NO walker ever appears
   or vanishes in view — after any clear-out (the UFO, the TR-3B's blackout, a raid, the implosion, the dock fading) the plan rejoins
   mid-way only through entry points; a test (a pixel / plan check: every new walker's first frame lies at an entry point or off screen).
+
+## OWNER'S NOTES — OCT 28 (FR4's answers)
+- WHOSE CITY IN A LOBBY? (the owner, Oct 28 8:17 pm — a question, for Lobby 2.0): a California host + a New York guest. TODAY each phone
+  draws ITS OWN city (its own clock, sun, sky, weather, music mood) — only the ROOM's pieces are shared (the lobby line, the hush word sign,
+  the lobby song on the host's clock). Claude's recommendation: KEEP IT — your city is your real sky (the hook), and showing the HOST's sky
+  would leak roughly where the host lives (sunset time ≈ longitude, the weather ≈ the city) to everyone in the room — strangers too once
+  Lobby 2.0's open-rooms list exists. Optional later (Lobby 2.0, pending): a tiny line in the lobby like "it's sunset for the host" — or
+  nothing. Pending the owner's answer.
+- THE MOTHMAN — REVISED (the owner, Oct 28 8:19 pm; supersedes "standing, wings spread"): standing ON THE SPIRE's TIP (the talons gripping
+  the very point — never the spire "going up through him"), a CROUCH, the WINGS FOLDED like a cloak (the two wing peaks rising above the
+  head with hooked claws, the ragged hem near the knees), the head hunched low + forward between the peaks; his HEAD + EYES may sit IN
+  FRONT OF the SPEAKEASY tagline (the owner allows it — he covers ~one letter); ~70 pt tall at 402; MENACING / DISTURBING. Claude's mock:
+  scratchpad moth3 (approved direction pending). THE MODEL: Grok's "MOTHMAN REMAKE 2.0" is wings-SPREAD + unrigged → it can't fold like a
+  cloak (the wings are one rigid mesh) → a Grok search for a FOLDED / perched winged-creature model (brief Oct 28); fallbacks: (a) the
+  bake rotates Grok's wing mesh back + down as rigid pieces and tests it at the camera, (b) a hand-built high-res piece on the crisp
+  layer (he barely moves). THE DISTURBING MOTION (Claude, pending): a rare SLOW HEAD TILT (~60–90° sideways, held for seconds, back),
+  the eyes blinking OUT OF SYNC now + then, the needle's neon stuttering under his feet (planned), and once a night the wings half-OPEN
+  + refold (the one moment of scale — needs a second pose).
+- THE ROOF SIGNS AT 3× (the owner, Oct 28 8:29 pm — "I thought those already were 3×"; worried a crisp sign would pop against the 2×
+  city): TRY IT in SKY with the upper windows (the same crisp-layer work): the roof signs' LETTERING + boards (SIGNAL, BLUFF, CIPHER, HIGH
+  STAKES — whichever stand tonight) + the PRISM blade on the crisp layer; the GLOW halo stays soft (it's a blur anyway), the frames' feet
+  where they meet the building stay in the 2× city so there's no hard seam. Everything that animates them routes through: the roof modes
+  (spell / race / breath), the party pulse + colours, the tired / burnt-out letter, the restart flicker, the TR-3B drain + the blackout,
+  the planes passing BEHIND them (the whole-sky rule — fine, the signs are in front). An A/B on the owner's iPhone (crisp vs today) —
+  kept only if it doesn't look pasted on (the OVERCLOCK billboard already does this without a seam).
+  → DROPPED (the owner, 8:34 pm, "not too sold"; Claude agrees: far back, glows hide softness, little gain for the work) — the roof signs
+  stay 2×; the UPPER WINDOWS at 3× stay in SKY.
+- THE CONSTRUCTION TOWER → THE FAR-LEFT TOWER? (the owner, Oct 28 8:34 pm — only if it's easy): move the yearly cycle (implosion →
+  gap → rise → opening) from `wordV` (the vertical WORD tower, f 0.25) to the far-left hero `empire` (f 0.105, the stepped tower with the
+  mast). Claude's read of the code: not a one-line switch but SMALL (~45–60 min inside a pass): TOWER_ID in core/harbor-tower.js + a
+  DESIGNS[0] that matches the empire as it stands + the crane / work lights / dust / rubble re-anchored to the new slot + its base hidden
+  (behind the OVERCLOCK billboard / the speakeasy's roof — check at 390 / 402 / 430) + the sun envelope test + the window words tests.
+  PLUS: the vertical window words keep their tower all year (today they lose it during the gap). MINUS: the empire is one of the two
+  hero landmarks (its mast) — each cycle replaces it with a new design. No urgency (the first implosion is April 2027) → pending the
+  owner's yes; slot C3 (or C4 if it has room).
+  + DECIDED (the owner, 8:37 pm): SWITCH IT — later down the road (C3 or after; not urgent). His idea for the new tower: THE TALLEST in
+  the city, a cool design WITH WORD WINDOWS. Claude's flags (check feasibility FIRST, CLAUDE.md): (1) height — the far left's top sits
+  under the SPEAKEASY tagline's left end; the tallest tower may reach the tagline / the sign band → measure at 390 / 402 / 430 before
+  designing (how tall it can go with ≥ ~10 pt of sky under the tagline); (2) the sun's fixed envelope (the arch, the catch time, the god
+  rays) is built on today's heights → a taller slot changes it (re-fit + its tests); (3) a word tower that is also the construction slot
+  loses its words every spring → summer (the gap + the rise) — so: wordV STAYS the permanent word tower, and the new tall tower's designs
+  get word windows AS WELL once it opens (two places for messages), unless the owner prefers otherwise.
+  + (8:39 pm, the owner): (1) the HEIGHT — just a little taller, its top up to about LEVEL WITH the tagline's left decorative line ("——◇"
+  left of SPEAKEASY), maybe a touch past it — on his phone the far-left misses the sign; the line + the tower's crown may sit side by side
+  (measure: never touching the line's glow at 390 / 402 / 430); (2) the sun re-fit: fine, part of the job; (3) wordV stays the permanent
+  word tower + the new tall tower gets word windows too — "exactly what I was thinking". ALL DECIDED; slot later (C3 or after).
+- FR4 DONE (Oct 28 ~8:35 pm): review-4.md — four decisions for the owner: (1) the compass (A stay + the giant's floor shrunk + a route
+  behind it — Fable's pick; B f 0.58; C 0.515 with the water bench moved), (2) 3×: judge &dpr=3 on the iPhone, then extend the crisp layer
+  (no band), (3) harbor.md's split into docs/harbor/passes/ (C4c or after 11b), (4) the implosion's clear-out (C4b or later). Claude's
+  own miss: the cart's clearance under the crossing is ~6 pt, not ~30.
+- THE GIANT PUMPKIN OUT (the owner, Oct 28 8:43 pm — "Halloween's almost done, no one's going to see it"): remove the giant ₿ pumpkin from the
+  promenade (C4b, first). Claude: DISABLE it in the holiday calendar (no giant from now on) rather than delete the code — next Halloween
+  decides again (it's a big baked piece; git keeps it either way). It takes the foot slide (F6) with it.
+  → THE COMPASS, RE-DECIDED without the giant (Claude, pending the owner's OK): FR4's three blockers were mostly the giant's (the crosswalk
+  still covered, the blade brushed, the door's landing 1.3 u, the cab route cut) → with only the smaller pieces (the Christmas tree ~5 u
+  tall, the snowman, the dance circle) option C works: the COMPASS to ~f 0.515 (the crosswalk CLEAR — the owner's goal: the snowman spans
+  189–225 pt vs the crossing 246–290 at 402), THE WATER BENCH moves to ~f 0.42 (back in front of the crabapple, where it stood) so no
+  centrepiece hides it, THE CART at f 0.69, z 38.4 in the middle (hand −1, the customers' spot +2.6 u, in from below the dock). C4b
+  RE-MEASURES before building: the Christmas tree's footprint vs the crossing + the door's landing (≥ ~2.5 u) + the cab stand's waiters'
+  route + the water bench vs the RUM RUNNER blade at 390 / 402 / 430; renders day + night + the snowman + the tree before committing.
