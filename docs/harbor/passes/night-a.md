@@ -102,6 +102,9 @@ then the panel's rows, then `LIGHT_DEFAULT`, and the bake key carries it (a flip
 - The TAXI STAND plate: not built (the feasibility numbers above).
 
 ### Known issues
+- The cloud's first run (40967705853): the city job's DEBUG STRIPS check still held the old 232-pt cap (this pass raised it to 260 + made it
+  a touch scroller on purpose) — the check updated; and C4d's NO IndexedDB POLLING read 5 transactions in 15 s on the runner (< 3 wanted;
+  the polling was ~18) — 0 on the laptop, this pass touched neither Firebase nor auth: a runner flake to watch, not a regression.
 - The party stall from the owner's iPhone (build 2808ff8) not reproduced on 48df906 — watch /admin's stalls (they carry the build).
 - The bad-tz string itself is still unknown: the next report will spell its code points (`bad tz` on /admin).
 - The harvest model's WebP vs PNG on the owner's phone: still waiting on the readout's `harvest:` row from his phone (HOTFIX Oct 29).

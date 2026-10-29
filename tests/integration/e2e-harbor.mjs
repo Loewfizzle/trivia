@@ -618,7 +618,7 @@ G('core', async () => {
       const over = b => !!b && b.bottom > col.top && b.top < col.bottom && b.right > col.left && b.left < col.right;
       return { col: { top: col.top, bottom: col.bottom, left: col.left, right: col.right }, limitY: c.limitY, dock: c.dock.y, H: innerHeight, pill: !!pill, overPill: over(pill), overBtn: btn.some(over),
         folded: [...document.querySelectorAll('.dbg-s')].map(s => s.classList.contains('dbg-fold')), fold: Object.fromEntries([...document.querySelectorAll('.dbg-s')].map(s => [s.dataset.id, s.classList.contains('dbg-fold')])), shown: [...document.querySelectorAll('.dbg-s')].filter(s => s.getBoundingClientRect().height > 0).length,
-        load: (() => { const b = document.querySelector(".dbg-s[data-id='load'] .dbg-b"); return b ? { h: b.clientHeight, sh: b.scrollHeight, st: b.scrollTop, first: b.firstElementChild ? b.firstElementChild.getBoundingClientRect().top >= b.getBoundingClientRect().top - 1 : null } : null; })() }; })()`);
+        load: (() => { const b = document.querySelector(".dbg-s[data-id='load'] .dbg-b"); if (!b) return null; const cs = getComputedStyle(b); return { h: b.clientHeight, sh: b.scrollHeight, st: b.scrollTop, first: b.firstElementChild ? b.firstElementChild.getBoundingClientRect().top >= b.getBoundingClientRect().top - 1 : null, touch: cs.overflowY === 'auto' && cs.pointerEvents === 'auto' && /pan-y/.test(cs.touchAction) }; })() }; })()`);
     const g0 = await geo();
     ok(g0.folded.every(Boolean) && !g0.overPill && !g0.overBtn && g0.col.top >= 50 && g0.col.bottom < g0.dock, `DEBUG STRIPS ${w}: every strip FOLDED on load, the column under the TEST pill (${g0.pill ? 'shown' : 'none'}) + the corner buttons (${Math.round(g0.col.top)}–${Math.round(g0.col.bottom)} pt; folded ${g0.folded.join('/')})`);
     const head = async (id, want) => { for (let k = 0; k < 2; k++) { const b = await ev(D.page, `(() => { const r = document.querySelector('.dbg-s[data-id=${id}] .dbg-h').getBoundingClientRect(); return { x: r.left + 20, y: r.top + r.height / 2 }; })()`); await tapAt(D.page, b.x, b.y); if (await waitFor(D.page, want, `${id} tapped`, 2000).then(() => true, () => false)) return true; } return false; };
@@ -632,7 +632,9 @@ G('core', async () => {
     await head('load', "!document.querySelector('.dbg-s[data-id=load]').classList.contains('dbg-fold')");
     await waitFor(D.page, "!!document.querySelector('.dbg-s[data-id=load] .dbg-b div')", 'the log rows', 5000).catch(() => {});
     await sleep(400); const g4 = await geo();
-    ok(g4.load && g4.load.h <= 232 && g4.load.st === 0 && g4.load.first !== false && g4.col.bottom < g4.dock && !g4.overPill, `DEBUG STRIPS ${w}: the open LOAD log is capped (${g4.load && g4.load.h} pt of ${g4.load && g4.load.sh}) + scrolls inside, its first line on top, still under the pill`);
+    // (NIGHT-A — the owner's iPhone: the strips were cut at a fixed height + didn't scroll on iOS: the open LOAD log capped at 260 pt + a TOUCH
+    // scroller — overflow-y auto, its own taps, pan-y)
+    ok(g4.load && g4.load.h <= 262 && g4.load.touch && g4.load.st === 0 && g4.load.first !== false && g4.col.bottom < g4.dock && !g4.overPill, `DEBUG STRIPS ${w}: the open LOAD log is capped (${g4.load && g4.load.h} pt of ${g4.load && g4.load.sh}) + scrolls inside by touch (${g4.load && g4.load.touch}), its first line on top, still under the pill`);
     if (SHOTS && w === 390) await D.page.screenshot({ path: `${OUT}debug-strips-load-390x844.png` });
     await D.page.reload(); await waitFor(D.page, "document.querySelectorAll('.dbg-s').length >= 3", 'the strips again', 15000);
     await sleep(300); const g5 = await geo();
