@@ -92,6 +92,13 @@ tests green; harbor 4 of 7 jobs green (audio, show, holiday, wild). Red, each wi
   → one 1.2 s crossfade); F16 THE TOAST'S ARM STEP 0.264 rad (`okT`, as designed); the PERF numbers (informational on the runner).
 - Local re-run of load, tower, motion, windows: 91/91.
 
+### The cloud — run 2 (harbor 40932207686, tests 40932207693 — the pass's last)
+ALL GREEN: 7 of 7 harbor jobs + tests. Its warnings, each named: the three CI skips (A CALM LOAD — p75 66.6 ms; BATTERY — 30 fps, 23
+frames in 0.6 s) and GitHub's own (actions/cache@v4 + setup-java@v4 run on Node 20, deprecated — bump them in a later chore). Deployed
+(Vercel Ready); the live site carries the fixes. The links proven on the live site: the harvest pair (WebKit + Chromium at 402×660 — the
+model in ~200 ms, its load in the LOAD LOG; the drawn link never asks for it), the dog walk day + night (on screen 0–6 s after the reveal),
+the forced bus (away 1.6 s after its door shut in Chromium; the planner: 1.0–2.0 s for every forced bus of that hour).
+
 ### Decisions made (unattended)
 - A preview link does NOT win over an active EVERYONE state (the late-arrival design + its e2e); the override is told instead (a toast).
 - The bus aims its departure ~7 s into a green (measured best: every bus of two days away within 2 s of its shut).
