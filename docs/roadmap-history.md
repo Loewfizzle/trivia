@@ -1535,3 +1535,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - Group 3: the crosswalk dimmer (k 1.15 → 0.4, the edges 0.5 → 0.14, the stripes pale: × ≥ 2 the gaps) + its light LIVE at the lamps × the
   power (road.js#createCrossLight); the mirror door's first-frame jump gone; the benches' overlays out while it rains / snows; HARBOR
   BARBERS removed (speakeasy.js#glassOver); every baked pool + the benches' overlays dark in the blackout + the luminance test.
+
+## CITY 2.0 — C4c: THE OWNER'S BUGS + THE MEASURING TOOLS (Oct 29 2026) — docs/harbor.md#c4c (plan.md "OWNER'S NOTES — OCT 29 (C4b's review)")
+- Group 0: THE BLACKOUT, FOR REAL — the lamps' light painted into the benches' + the props' sprites follows the drain in steps (scene.js#stepPow);
+  the props' top pass before the veil; the front row darkened through its own alpha (veilFront); the test at 3× on four dates (e2e `blackout`);
+  the rain-signs flake fixed.
+- Group 1: the bus door eased (busDoorAt); the dogs lit after dark + re-drawn over the 3× overlays + the sniff on the hydrant's right; the hay bale
+  off the wall (WALL_CLEAR + the building rule); THE HYDRANT CORNER's LAMP (cornerLamp); the maple f 0.888; the benches solid in the planner; the
+  side door hinged right + swinging out (doors.js, the bake's sill, DOOR.stepSide 1.55, the doorman's hold at its free edge).
+- Group 2: &dpr=3 (BAKE_CAP); THE PHONE BENCH (&bench=1, bench.js, kind 'bench' to /admin); the memory guard measured (nothing ever stepped) +
+  64 / 96 / 160 counting every live canvas (canvasMb); the readout's canvases row; the climb re-armed after heavy moments + a 3-min retry.
+- Group 3: the harvest display's 3D model test (recipe `harvest`, assets/city/harvest/, &prop=model + a HOLIDAYS row; its credit ready).
+

@@ -221,6 +221,13 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"`
     (`scripts/serve.mjs` gzips like Vercel so the numbers are representative).
 
+- C4c — THE BLACKOUT, FOR REAL: `ONLY=blackout node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 25 s) — the TR-3B at the blackout's depth on a
+  late-October, a Thanksgiving, a December + a September night AT 3× (the benches' sharp overlays exist only above the city's 2×), every holiday
+  piece drawn + both benches + every tree's crown (its brightest tenth too) + the hydrant vs the dark city round them. THE PHONE BENCH:
+  `ONLY=bench` (≈ 15 s: no bench without the flag, the START card, two scenes at `&benchfast=1`, the report + its COPY + the send);
+  `MEASURE=1 ONLY=bench` adds THE MEMORY GUARD's table (390 / 402 / 430 × the three tiers at a 3× phone + `&dpr=3`: what the bakes want,
+  whether the old 24 / 40 / 64 MB budgets would have stepped a layer down, every live canvas). On a phone: `?city=2&bench=1` → START
+  (≈ 3 min, keep the screen on) → the report on screen (COPY) + /admin → Reports from phones (BENCH). `&dpr=3` = the city at 3× for a look.
 - THE MUSIC ON AN iPHONE (docs/audio.md#m2 / #m3 / #m4): `ONLY=music node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 90 s, the emulators) — §6 the
   M2 scenarios (leave + come back, stuck, the music button, a network error, the OS pause, bfcache, a dead voice), §7 iOS's gesture rule
   emulated (play() / resume() refused outside touchend / click; a frozen clock → the direct element, the rebuild cap), §8 THE EVIDENCE
