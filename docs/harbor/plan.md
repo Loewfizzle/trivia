@@ -75,10 +75,11 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | PROM | ✅ (Oct 28 — docs/harbor.md#prom: no lampposts — the implied lamps behind the viewer, the lit crosswalk, the hydrant left, the bigger compass (centrepieces at today's size), the cab stand + its taxi while the dock rests, the water bench facing the harbor, the cart left of the compass (from the left), the doorman against the wall, the awning lit from below (1 am / 2 am), the benches sharp at full dpr, Grok's models compared (the drawn pieces stay); Group 0: the UFO's sounds loaded ahead, the implosion's new timeline + HORN B, the joggers' kit) THE PROMENADE, FINAL | Opus 5.5 high | ~3 h |
 | FR4 | ✅ (Oct 28 — 31e208a; docs/harbor/review-4.md) a FABLE READ-ONLY REVIEW #4 (everything since review #3, Oct 24: 9a → PROM — the weather, winter, the holidays, the legends' sounds, CONN, BNAME, the bake tool, the tower; the cloud's recurring flakes; memory + frame time on the phone path, "can the foreground be 3×?"; the docs vs the code; the owner's PROM notes — "OWNER'S NOTES — OCT 28 (PROM's review)") → docs/harbor/review-4.md | Fable high | ~1.5 h |
 | C4a | ✅ (Oct 28 — docs/harbor.md#c4a) THE SHOPFRONT + THE GROUND (review-4 §E items 1–6, the windows.js split first): the barbershop as a real 2.5D room (dim at night, the mirror door), the awning lit from below + brighter, the lit blind, the wet sheen (no implied-lamp streaks), the crosswalk's soft light, the cars lit through it | Opus 5.5 high | ~3 h |
-| C4b | ← NEXT: THE PEOPLE + THE COMPASS + THE GIANT OFF: the giant ₿ pumpkin disabled (first), the compass + the water bench + the cart re-placed (re-measured first), the sitters, the doorman who opens the door, &force=waterbench, THE PEOPLE RULE after the UFO | Opus 5.5 high | ~3 h |
+| C4b | ← NEXT (this pass): THE PEOPLE + THE COMPASS + THE GIANT OFF: the giant ₿ pumpkin disabled (first), the compass + the water bench + the cart re-placed (re-measured first), the sitters, the doorman who opens the door, &force=waterbench, THE PEOPLE RULE after the UFO | Opus 5.5 high | ~3 h |
 | C4c | THE CODE / TESTS / DOCS: the cloud's test fixes, the readout, dead code, &dpr=3, the docs trims | Opus 5.5 high | ~2 h |
 | SKY | THE LEGENDS: THE BLACKBIRD (one flyby animation — the static tell, the vapor cone + shock ring + the late double boom, the Mach-diamond plumes, above the sign — its rare solo sightings, the hour-watcher's reward, joining every TR-3B chase once the jets are ~⅓ across), THE F-22 MODELS everywhere (the tight triangle + the bank), THE TR-3B AT FULL RESOLUTION (one solid body, no shadow on the backdrop), THE MOTHMAN on the needle (Grok's model, standing, wings spread, red eyes), THE SHADOWBOXER (9–11 pm, 3-min rounds + 1-min breaks, the full two hours; THE WINDOW RULE II), the upper windows on the crisp layer — "OWNER'S NOTES — OCT 28 (PROM's review)" | Opus 5.5 high | ~4–5 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
+| PERF | a SHORT SPEED PASS set by C4c's phone bench (`&bench=1`): the cheap wins FR4 listed (one glow-sprite cache, the still 'lighter' pools baked, the bar's day repaint), the spectacle cap + the budgets from the bench — "OWNER'S NOTES — OCT 28 (C4a's review)" | Opus 5.5 high | ~1–1.5 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
 | 11b | winter holidays: the Christmas build-up, the tree lighting, the Christmas sign, New Year's Eve (ball drop, window countdown, the finale on Part 10's fireworks) | Opus 5.5 high | 60–90 min |
 | **THE ROADMAP REORDERED** | **(the owner, Oct 26 6:01 pm — DECIDED; "OWNER'S NOTES — OCT 26 (after SP5)")** after the city's five above (11a-2 → 9b → ATM → 10 → 11b): LOBBY 2.0 → BOARD 2.0 → (a SHORT game-lineup TALK) → PROGRESSION 2.0 → TV MODE → the GAME LINEUP CHAT → the games → the release; a Fable review + a cleanup after 11b and again after Progression 2.0. 11c / 12 / C3 / 13 stay on the list, slotted by the owner | — | — |
@@ -3777,3 +3778,82 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   centrepiece hides it, THE CART at f 0.69, z 38.4 in the middle (hand −1, the customers' spot +2.6 u, in from below the dock). C4b
   RE-MEASURES before building: the Christmas tree's footprint vs the crossing + the door's landing (≥ ~2.5 u) + the cab stand's waiters'
   route + the water bench vs the RUM RUNNER blade at 390 / 402 / 430; renders day + night + the snowman + the tree before committing.
+
+## OWNER'S NOTES — OCT 28 (C4a's review)
+- THE MOON AT 3×? (the owner, Oct 28 8:56 pm — "it should be 3×, isn't it already?"): NO — read-only: moon.js draws the photographic disc
+  (NASA's map, 256 px) into the city's fx canvas → the 2× cap like the skyline. A crisp OVERLAY doesn't fit (clouds, the veil, planes,
+  balloons, the aurora + the tagline all pass IN FRONT of the moon). The clean way: draw the moon on the SKY layer UNDERNEATH the city at
+  the full dpr (everything in front then just works) — if the sky is its own canvas below the main one (review-4 lists "the sky pair");
+  cheap (one small disc). PLAN: the owner judges it with C4c's `&dpr=3` flag first; if the moon looks clearly better at 3× → C4c (or SKY)
+  moves it to the sky layer at full dpr. (The source map is 256 px — enough for a ~35 pt disc at 3×; a 512 px map if it's bigger at
+  moonrise.)
+- ARE WE THROTTLING OURSELVES ON MEMORY? (the owner, Oct 28 9:07 pm) — read-only: YES, possibly: bake.js#MEM_BUDGET_MB = 24 / 40 / 64 MB
+  (tier 0 / 1 / 2), set in Part 1 when Safari's limit was believed ~224–384 MB; OVER it, the tallest baked layers step DOWN to DPR 1.5,
+  then 1 — a visible softness. FR4 measured the real iOS ceiling ≥ ~1 GB and the city at 70–83 MB in every state. FOR C4c: (1) log +
+  report, per tier + state (plain / party / snow / Halloween / mid-legend, 390 / 402 / 430), whether ANY layer steps down today; (2)
+  raise the budget to fit FR4's numbers with headroom (Claude: ~2–3× today's, e.g. 64 / 96 / 160 MB, still < 20 % of the ceiling), so
+  softness only ever comes from the SPEED tier, never from the memory guard; (3) the budget counts what's real (FR4's H19 honest total).
+- ARE WE TOO CAREFUL ANYWHERE ELSE? (the owner, Oct 28 9:11 pm: "any way we can squeeze out" before fireworks + the party boat + New Year's,
+  the heaviest nights). Claude's read of the code (read-only):
+  (1) THE MEMORY GUARD (above) → C4c.
+  (2) THE WAY BACK UP IS STRICT (scene.js perf): after a step down the city climbs back only after 20 s of steady 60 fps with LIGHT work
+      (mean ≤ 4.5 ms, p95 ≤ 8), at most TWICE a session, and NEVER again after a step-down that followed a step-up (upLock) → one heavy
+      party moment can leave the city at lower quality for the rest of the visit. → C4c: re-arm the climb after each heavy moment ends
+      (the party's peak, the fireworks, a legendary), retry every few minutes, keep the probe that catches a capped phone; log it.
+  (3) WE TUNE ON THE LAPTOP, NOT THE PHONE: every budget + threshold was set from the laptop at 4× CPU (FR4: "relative only"), while the
+      owner's iPhone showed 1–3 ms of work at tier 1 (Part 6a) — the phone may have far more headroom. → C4c: A PHONE BENCH — `&bench=1`
+      plays the heaviest scenes ~20 s each (a party peak, party + snow, Halloween, the UFO over a crowd, the TR-3B drain + chase, a storm),
+      records the frame times + the work per frame + the tier, and SENDS THE REPORT to /admin at the end (the 9e SEND REPORT path). The
+      owner runs it once; the budgets below are set from it.
+  (4) THE SPECTACLE CAP (core/harbor-director.js SPECTACLE = [1, 2, 2]: at most two heavy shows at once even at the top tier) → set from
+      the bench for Part 10 / 11b (New Year's: fireworks + the yacht + beams + the drones may want 3).
+  (5) THE CHEAP WINS FR4 LISTED (the foreground is 35–65 % of the frame): ONE glow-sprite cache for the 12 private ones (H2), the live
+      'lighter' pools baked where they don't move, the bar's day repaint (H15) → a short PERF pass right BEFORE Part 10 (after ATM adds
+      the storms), sized by the bench; Part 10 may draw the fireworks' particles on their own layer (a WebGL layer is allowed for sky
+      effects — CLAUDE.md) if the bench says the 2D budget is tight.
+  (6) THE AUDIO BUDGET (13 MB of city sounds, self-set; every slot loads only when its event plays) → raise freely for 10 / 11b.
+  + THE BENCH's REPORT (the owner, Oct 28 9:18 pm — DECIDED): at the end the report shows ON SCREEN with a COPY button (the owner pastes it
+  into the chat / the next pass — nobody else can read /admin), AND it's saved to /admin's "Reports from phones" (a friend's older phone's
+  run lands there). The owner's phone: an iPhone 16 Pro (the strong end) → his bench sets the top; one run on an older iPhone (12–14 / SE)
+  sets the floor.
+- CLAUDE's 3× PICKS (the owner asked, Oct 28 9:20 pm — the rule: small, still or slow, hard edges / lettering, looked at closely, little
+  passes in front). ALREADY 3×: the NEON logo + SPEAKEASY, the blade, the date stone, the OVERCLOCK billboard, the hush sign, the benches.
+  ADD: (1) the UPPER WINDOWS (SKY — the most-looked-at detail); (2) THE MOTHMAN + the legends' craft (the TR-3B, the Blackbird, the F-22s —
+  SKY; + the UFO's baked sprites if they're drawn in the 2× city) — the Mothman sits IN FRONT of the 3× tagline, so a 2× figure there would
+  look soft beside it; (3) THE SHOPFRONT: the barbershop glass + the HARBOR BARBERS gilt + the awning's valance + the BARBER POLE (thin
+  turning stripes alias at 2×) — people pass in front, so it redraws them over it like the benches do (C4a's rebuild first; then a crisp
+  step, C4c or SKY); (4) THE WAIT / WALK signal boxes (small lettering high on their poles, nothing passes in front — cheap); (5) THE MOON
+  via the sky layer (if &dpr=3 shows it). LEAVE 2×: the skyline + its neon + the roof signs, the wheel, the water, the clouds, the people
+  in motion, the vehicles. &dpr=3 on the owner's iPhone confirms or trims the list.
+- THE FRONT MAPLE + THE CAB STAND TO THE RIGHT EDGE (the owner, Oct 28 9:57 pm, his iPhone screenshot — DECIDED, C4b with the compass
+  + the cart): slide the big framing maple RIGHT until its crown's right edge just touches the screen's right edge (the whole tree still
+  in view — never cut off, at 390 / 402 / 430) and the cab-stand bench moves with it (same offset). Claude's numbers (read-only): the
+  maple at f 0.875 → ≈ f 0.90–0.91 (its crown reaches ~0.97 today), the cab bench 0.875 → ≈ 0.905 (still fully on screen) — ~12–15 pt
+  freed in the middle at 402; it also gives the cart (f 0.69) + its customers the room FR4 said they lacked. CHECK: the taxi stopping for
+  the cab stand on the street under the dock stays mostly in view (it may stop a little LEFT of the bench), the waiters' route, the
+  holiday spots on that tree (re-pinned), the lighthouse above it unaffected. Render with the compass + the cart before committing.
+  + THE CAB STAND's OWN IMPLIED LAMP (the owner, 10:03 pm — DECIDED, C4b): the bench in front of the maple blocks the light that lit it →
+  one more IMPLIED lamp (core/harbor-light.js#impliedAt), just OFF-SCREEN RIGHT at the curb, high: a soft warm wash from above-right on
+  the maple's lower crown + trunk (the leaves' undersides catching it), the cab bench's seat + its waiters, a soft pool on the cobbles
+  with the bench's shadow falling LEFT — a streetlamp's spill, never a spotlight (no hard edge, no cone). It also makes the cab stand read
+  as a lit taxi stand at night. Its hours = the implied lamps'; the blackout / drain dims it like them.
+- C4a DONE + REVIEWED (the owner, Oct 28 10:33 pm): ✔ the barbershop at night + the awning "looks good", ✔ after 1 am, ✔ the barber by day
+  (hard to see but "you get the idea — that's all that matters"), ✔ the upper-right blind, ✔ the rainy night "really good", ✔ after rain.
+  FIX (C4b): THE MIRROR DOOR's opening is a little CHOPPY (seen + heard, but the motion steps) → a smooth eased swing at the frame rate
+  (no stepped / low-rate updates; check its redraw isn't throttled or baked in steps), judged frame by frame at 402. Still open: the
+  crosswalk + cars (the giant hides them until C4b), HARBOR BARBERS keep / valance / drop. ALSO for C4b or ATM: the street under the
+  dock shows no snow on a snowy night (old).
+- THE CROSSWALK IS STILL TOO BRIGHT (the owner, Oct 28 10:34 pm, his iPhone screenshot after C4a): the crossing reads as a glowing white
+  band that WASHES OUT its own stripes; the bright pools at its ends too. WANT (C4b): DIMLY / modestly lit — "you can see people and see
+  the white stripes, just so you can see it's a crosswalk". → the crossing's light down hard (~half or less of C4a's), the side pools
+  dimmer still; THE STRIPES must read: pale stripes over DARK asphalt between them (measured: the stripe-to-gap luminance ratio ≥ ~2:1
+  at 402, the gaps never washed to grey), the stripes never glowing or clipped to white; a walker crossing reads as a silhouette with a
+  soft lit edge; the cars still brighten through it (gentler). Judged on his phone's view: the crossing as a calm, lit patch of street,
+  not a stage. Check on a wet night too (the reflections must not wash it back out).
+- THE CAB STAND's LAMP LIGHTS THE MAPLE's LEAVES (the owner, Oct 28 10:37 pm — ADD-ON to the cab stand's implied lamp, C4b): the lamp
+  must clearly LIGHT THE LEAVES, not just the trunk + the bench. The lower + right side of the crown (nearest the lamp, off-screen right)
+  catches warm light: leaf clusters lit individually with their own highlights, brightest nearest the lamp and falling off up + to the
+  left into the crown's shadow — a real lamp lighting a real tree, not a flat tint over the whole crown and not every leaf (roughly the
+  lower-right third to half of the crown). Every season: summer greens glow warm, autumn's orange leaves blaze, spring blossom / new
+  leaves, winter's bare branches + any snow on them catch the light. Judge it at night at 390 / 402 / 430 unzoomed, and on a party night
+  (it must still read under the party colours).
