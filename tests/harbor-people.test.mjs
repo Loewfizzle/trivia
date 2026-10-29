@@ -91,7 +91,8 @@ test('8P → PROM — THE CROSSWALK LIT (no lampposts): the back road’s implie
     assert.equal(crossPools(L).length, 3, `${k}: the crossing's + the two edges'`);
     assert.ok(f(mid, 56.5) > 0.8, `${k}: the crossing lit (${f(mid, 56.5).toFixed(2)})`);
     assert.ok(f(mid, 57) > f(mid - 9, 57) && f(mid, 57) > f(mid + 9, 57) * 0.95, `${k}: brightest at the crossing`);
-    if (!cam.wide) assert.ok(f(-cam.hw(57) + 0.5, 57) > 0.15 && f(cam.hw(57) - 0.5, 57) > 0.15, `${k}: the edges catch the implied lamps' spill`);
+    // (C4b: the edges' pools dimmer still — 0.5 → 0.14 of a pool: a faint spill, never a band)
+    if (!cam.wide) assert.ok(f(-cam.hw(57) + 0.5, 57) > 0.04 && f(cam.hw(57) - 0.5, 57) > 0.04 && f(-cam.hw(57) + 0.5, 57) < 0.2, `${k}: the edges catch the implied lamps' faint spill`);
     for (const x of [cw.x0, mid, cw.x1]) assert.ok(f(x, 55.5) > 0.6, `${k}: lit across its width`);
     assert.ok(f(mid, 63.9) < 0.2, `${k}: fading by the far kerb`);
   }

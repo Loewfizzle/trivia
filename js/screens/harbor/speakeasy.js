@@ -26,7 +26,7 @@ import { wallVP } from '../../core/harbor-rooms.js';
 import { frontProfile } from './strings.js';
 import { clamp01, tri, FONT, V, W_FRONT, GLASS_IN, AWNING_LAMP, VAL, awningBulbs, SHOP_GLOW, speakGeo, mats, wallMap, R, devRect, fillPat, text, brickTile, streak, fan, chevrons } from './speakeasy-geo.js';
 import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqueeScreen, marqueeLevel, LETTER, BLADE_SPLIT, BLADE_ONE, bladeWords, bladeLetters, paintLetters, paintBlade } from './speakeasy-blade.js';
-import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, paintGilt, GILT, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, bladeStep, speakeasySteps, paintSideLeaf, paintShopLeaf } from './speakeasy-bake.js';
+import { paintStructure, paintFrontDeco, DATE, paintDateStone, paintWindow, paintGround, WASH, washCone, smooth, paintWashers, paintWasherLamps, paintLight, bladeStep, speakeasySteps, paintSideLeaf, paintShopLeaf } from './speakeasy-bake.js';
 export * from './speakeasy-geo.js';
 export * from './speakeasy-blade.js';
 export * from './speakeasy-bake.js';
@@ -120,7 +120,7 @@ export function createSpeakeasy() {
   // 8P → WIN — THE HUSH WORD SIGN on the corner pier (hushsign.js; Lobby 2.0: hush(word))
   const hush = createHushSign();
   let basementDbg = null;
-  let giltCv = null, giltKey = '', giltAt = null, lastT = 0, lastGame = null, bedsNow = { club: 0, tv: 0, party: false };
+  let glassCv = null, glassKey = '', glassAt = null, lastT = 0, lastGame = null, bedsNow = { club: 0, tv: 0, party: false };
   function layout(L, o = {}) {
     G = speakGeo(L); dpr = Math.min(2, o.dpr || 1);
     const s = G.s;
@@ -168,34 +168,31 @@ export function createSpeakeasy() {
     x.restore();
     return { x: ox, y: oy, w: ow, h: oh };
   }
-  // the gold leaf laid again over whatever moves behind the shop's glass (7b: the barber, the customer, the mirror door's light) —
-  // one small canvas per look (the gilt's colours by the day / golden / night tones), drawn 1:1 over the window.
-  // C4a — THE GLASS READS AS GLASS: its own faint reflection lives here, IN FRONT of the room (two hard sheens: 0.08 by day, 0.04 at
-  // night; the sky in its head by day; at night the lit awning's underside caught in its top) — and the gilt is lit ONLY by the
-  // awning's strip (aw: its level now — 0 after 1 am / 2 am on a party night, in a blackout): dark gilt with a faint glint after hours
-  // (the "gold after 1 am" known issue, closed)
-  function giltOver(c, f) {
+  // C4a — THE GLASS READS AS GLASS: its own faint reflection, IN FRONT of the room (two hard sheens: 0.08 by day, 0.04 at night; the sky
+  // in its head by day; at night the lit awning's underside caught in its top — aw: the strip's level now, 0 after hours / in a blackout)
+  // — one small canvas per look, drawn 1:1 over the window, over whatever moves inside (the barber, the customer, the mirror door's light)
+  // (C4b: the HARBOR BARBERS gold leaf is gone — the owner, Oct 28 10:41 pm: the barber pole says barbershop)
+  function glassOver(c, f) {
     const T = f.tw || { day: 1, gold: 0, night: 0 }, aw = Math.round(clamp01(f.awning || 0) * 8) / 8;
     const key = [T.day || 0, T.gold || 0, T.night || 0].map(v => v.toFixed(1)).join(',') + '|' + aw + '|' + dpr + '|' + G.K.toFixed(2);
-    if (key !== giltKey || !giltCv) {
-      giltKey = key;
+    if (key !== glassKey || !glassCv) {
+      glassKey = key;
       const [w0, w1, wv0, wv1] = G.s.shop.win, [ax, ay] = G.front(w0, wv1), [bx, by] = G.front(w1, wv0);
       // (on whole DEVICE pixels, drawn at its natural size: never resampled)
-      giltAt = { x: Math.floor(ax * dpr) / dpr, y: Math.floor(ay * dpr) / dpr, w: 0, h: 0 };
-      giltCv = giltCv || document.createElement('canvas'); giltCv.width = Math.ceil((bx - giltAt.x + 2) * dpr); giltCv.height = Math.ceil((by - giltAt.y + 2) * dpr);
-      giltAt.w = giltCv.width / dpr; giltAt.h = giltCv.height / dpr;
-      const x = safeCtx(giltCv), [ox, oy] = G.front(0, 0), dayK = clamp01((T.day || 0) + (T.gold || 0)), nk = clamp01(T.night || 0);
-      x.setTransform(dpr, 0, 0, dpr, -giltAt.x * dpr, -giltAt.y * dpr); x.clearRect(giltAt.x, giltAt.y, giltAt.w, giltAt.h);
+      glassAt = { x: Math.floor(ax * dpr) / dpr, y: Math.floor(ay * dpr) / dpr, w: 0, h: 0 };
+      glassCv = glassCv || document.createElement('canvas'); glassCv.width = Math.ceil((bx - glassAt.x + 2) * dpr); glassCv.height = Math.ceil((by - glassAt.y + 2) * dpr);
+      glassAt.w = glassCv.width / dpr; glassAt.h = glassCv.height / dpr;
+      const x = safeCtx(glassCv), [ox, oy] = G.front(0, 0), dayK = clamp01((T.day || 0) + (T.gold || 0)), nk = clamp01(T.night || 0);
+      x.setTransform(dpr, 0, 0, dpr, -glassAt.x * dpr, -glassAt.y * dpr); x.clearRect(glassAt.x, glassAt.y, glassAt.w, glassAt.h);
       x.save(); wallMap(x, ox, oy, G.K); x.beginPath(); x.rect(w0, wv0, w1 - w0, wv1 - wv0); x.clip();
       // the glass: the sky's tint in its head by day, two hard-edged sheens, the lit awning's underside caught in its top at night
       if (dayK > 0.01) { const sky = tri(T, [150, 180, 214], [214, 150, 120], [24, 22, 44]), g = x.createLinearGradient(0, wv0, 0, wv1); g.addColorStop(0, `rgba(236,232,220,${(0.06 * dayK).toFixed(3)})`); g.addColorStop(0.6, 'rgba(255,255,255,0)'); g.addColorStop(1, `rgba(${sky.map(Math.round)},${(0.28 * dayK).toFixed(3)})`); x.fillStyle = g; x.fillRect(w0, wv0, w1 - w0, wv1 - wv0); }
       x.fillStyle = `rgba(255,255,255,${(0.08 * dayK + 0.04 * nk).toFixed(3)})`;
       for (const [p, q] of [[0.1, 0.55], [0.62, 0.78]]) { x.beginPath(); x.moveTo(w0 + (w1 - w0) * p, wv1); x.lineTo(w0 + (w1 - w0) * q, wv1); x.lineTo(w0 + (w1 - w0) * (q - 0.22), wv0); x.lineTo(w0 + (w1 - w0) * (p - 0.22), wv0); x.fill(); }
       if (aw > 0 && nk > 0.01) { const g = x.createLinearGradient(0, wv1, 0, wv1 - 0.7); g.addColorStop(0, `rgba(255,190,130,${(0.16 * aw * nk).toFixed(3)})`); g.addColorStop(1, 'rgba(255,190,130,0)'); x.fillStyle = g; x.fillRect(w0, wv1 - 0.7, w1 - w0, 0.7); }
-      paintGilt(x, { gilt: tri(T, [214, 168, 78], [236, 176, 90], [104, 84, 62]), giltHi: tri(T, [255, 232, 160], [255, 214, 140], [150, 124, 90]), giltLo: tri(T, [128, 86, 34], [140, 80, 40], [40, 30, 34]), night: T.night || 0, lamps: aw }, G.s.shop);
       x.restore();
     }
-    c.drawImage(giltCv, giltAt.x, giltAt.y, giltAt.w, giltAt.h);
+    c.drawImage(glassCv, glassAt.x, glassAt.y, glassAt.w, glassAt.h);
   }
   // THE MARQUEE's lit bulbs, all in one sprite over the blade (screen pt + a halo's pad): each a crisp warm-white globe (the hot core) + a
   // small TIGHT halo (none at tier 0) at its level (steady; the party's slow chase: marqueeLevel)
@@ -535,14 +532,14 @@ export function createSpeakeasy() {
     c.globalAlpha = 1;
     const [ox, oy] = G.front(0, 0);
     if (!quiet && P > 0.04) life.draw(c, {   // (POL4: in a blackout the life's own lit windows — the TV, the night lamp — go dark with the rest)
-      map: x => wallMap(x, ox, oy, G.K), vp: wallVP(ox, oy, G.K, G.cam.VPX, G.cam.VPY), wins, levels, k, f, shopWin: G.s.shop.win, card: null, gilt: null, play: f.play });
+      map: x => wallMap(x, ox, oy, G.K), vp: wallVP(ox, oy, G.K, G.cam.VPX, G.cam.VPY), wins, levels, k, f, shopWin: G.s.shop.win, card: null, play: f.play });
     // 8P → WIN — THE HUSH WORD SIGN: the door's password sign on the corner pier (the letters stacked on a dark plate, over the sconce),
     // only while a lobby is open (hushsign.js) — POLISH 5: one clear pane, nothing laid over them
     { if (f.hush !== undefined) hush.set(f.hush);
       hush.draw(c, { t: f.t || 0, T: f.tw || { day: 1 - k, gold: 0, night: k }, fade: fade * P, motion: f.motion });
     }
-    // THE GOLD LEAF on the glass — once (8P), over the shop's life + the sign inside
-    c.save(); c.globalAlpha = fade; giltOver(c, f); c.restore();
+    // THE GLASS's reflection — once, over the shop's life + the sign inside (C4b: no gold leaf)
+    c.save(); c.globalAlpha = fade; glassOver(c, f); c.restore();
     // FP3b — REAL DOORS (doors.js): the side door + the shop door swinging open while someone walks through (people.js drives
     // doors({ side, shop, inside }) from core/harbor-people.js#folkAt's doors), the side door's amber spill at night
     { const df = { day: f.day, night: f.night == null ? k : f.night, fade, power: P };
@@ -693,6 +690,6 @@ export function createSpeakeasy() {
     /** PART 7b: the speakeasy's sound beds now (sounds.js#speakeasy): { club, tv, party } */
     beds: () => bedsNow,
     debug: () => ({ basement: basementDbg ? { a: +basementDbg.a.toFixed(3), shadows: basementDbg.shadows.length, flick: basementDbg.flick } : null, marquee: G && lastGame ? marqueeScreen(bladeGeo(G)).map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1) })) : [], poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(4), poleRate: poleA ? +poleA.rate.toFixed(3) : 0, polePx, box, dpr, k: lastK, lit: !!litCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
-    destroy() { life.destroy(); hush.destroy(); for (const cv of [litCv, bladeCv, poleCv, haloCv, giltCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
+    destroy() { life.destroy(); hush.destroy(); for (const cv of [litCv, bladeCv, poleCv, haloCv, glassCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
   };
 }

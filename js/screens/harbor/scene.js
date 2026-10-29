@@ -47,7 +47,7 @@ import { pierSteps, pierLamps } from './pier.js';
 import { lighthouseSteps, createBeam, harborBlackout } from './lighthouse.js';
 import { createBoats } from './boats.js';
 import { createWheel } from './wheel.js';
-import { roadSteps, signalSteps, drawSignalLamps, drawLantern, LENS, WORDS } from './road.js';
+import { roadSteps, signalSteps, drawSignalLamps, drawLantern, LENS, WORDS, createCrossLight } from './road.js';
 import { speakeasySteps, bladeStep, createSpeakeasy, bladeGeo, paintDateStone, DATE } from './speakeasy.js';
 import { createCrisp } from './crisp.js';
 import { speakGeo, mats as speakMats, wallMap } from './speakeasy-geo.js';
@@ -447,6 +447,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js): the bed (water + the hum by the darkness) and every event's slot
   const snd = createCitySounds();
   const roadLight = createRoadLight();
+  const crossLit = createCrossLight();   // (C4b: the crossing's pools + the stripes' lift, live at the lamps × the power)
   const leaves = createLeaves();                  // (8a: the trees' falling leaves / petals — live)             // (8a: THE IMPLIED ROAD's cars — light only, + their sound)
   // (the word's flags are read when it lights: THE PREVIEW PANEL changes them live)
   const spellOpts = () => [qp.get('text') || 'HELLO', { style: qp.get('style') || 'wipe', tower: qp.get('tower') || undefined }];
@@ -883,9 +884,18 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // PROM — THE STILL PIECES SHARP: the two benches at the phone's full dpr IN THEIR PLACE in the layering — the overlay re-draws whoever
     // stands in front of the bench (people.js#redrawOver), so a walker still passes in front of it (the flat paving — the compass, the
     // grates — stays in the bake: everyone stands on it, the dance, the centrepieces; a brick texture, not lettering)
+    // (C4b — the owner, Oct 28 10:55 pm: the benches stayed lit through the TR-3B's blackout — the overlay sits above the city's dark veil;
+    // the same veil now darkens the overlay (its own pixels: the bench + whoever stands in front of it), quantized in its key)
+    const veil9 = LB ? Math.round((1 - legendPow(W * 0.5, 'near', 210)) * clamp01(LK.w.night + LK.w.late) * 20) / 20 : 0;
+    // (C4b — PROM's known issue: the falling rain + snow passed BEHIND the sharp benches — a dry patch in their shape. While it falls the
+    // overlays crossfade out (never a pop: smooth on the precipitation's own blend) and the city's bench under them — drawn before the
+    // rain, so it falls over it — shows; they come back when it stops)
+    const wet9 = 1 - smooth(0.03, 0.15, Math.max(LK.rain || 0, LK.snow || 0, WXS ? WXS.snow || 0 : 0));
     if (!off.has('no-promenade') && !off.has('no-still-crisp') && L.bench) for (const sp of still.sprites(L, bakeTones, crisp.dpr)) {
       const ok9 = pplLive ? people.overKey(sp.box, sp.z) : '';
-      crisp.show(c, { id: sp.id, z: 0, box: sp.box, key: `${sp.key}|${ok9}`, xfade: 0, alpha: fadeIn, draw: x => { x.drawImage(sp.cv, sp.box.x, sp.box.y, sp.box.w, sp.box.h); if (pplLive) people.redrawOver(x, sp.box, sp.z); } });
+      if (wet9 < 0.01) continue;
+      crisp.show(c, { id: sp.id, z: 0, box: sp.box, key: `${sp.key}|${ok9}|v${veil9}`, xfade: 0, alpha: fadeIn * wet9, draw: x => { x.drawImage(sp.cv, sp.box.x, sp.box.y, sp.box.w, sp.box.h); if (pplLive) people.redrawOver(x, sp.box, sp.z);
+        if (veil9 > 0) { x.save(); x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(4,4,26,${(0.54 * veil9).toFixed(3)})`; x.fillRect(sp.box.x, sp.box.y, sp.box.w, sp.box.h); x.restore(); } } });
     }
     // the roof board's poster face (by day: at night its lamps light it live in the city's canvas, softly — the crisp copy fades out at dusk)
     const rb = !busy && dk > 0.01 && !neon.fresh() ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak') : null;
@@ -1874,6 +1884,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     } else stripX = null;
     // (FP: the crossing's cycle on the city's clock — the stop lights + the WALK / WAIT lantern across the road, lit before the traffic)
     const sigSt = signalAt(clock.now()), sigO = { fade: fadeIn * (LB ? legendPow(W * 0.62, 'near', 206) : 1), lk: litK(DK, 'lamps'), glow: i => sigGlow[i] || (sigGlow[i] = radial(LENS[i].join(','))) };
+    // C4b — THE CROSSING's LIGHT, live: the lamps' ramp × the power at the crossing (a TR-3B's drain + the blackout take it, the lamps' hours)
+    if (fadeIn > 0 && L.crosswalk && !off.has('no-promenade')) { const lkX = litK(DK, 'lamps') * (LB ? legendPow(project(cam, (L.crosswalk.x0 + L.crosswalk.x1) / 2, 0, 57)[0], 'near', 213) : 1); AUD.crossing = lkX; crossLit.draw(c, L, lkX * fadeIn, Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1)); }
     if (fadeIn > 0) drawLantern(c, L, sigSt, { ...sigO, glow: k => sigGlow[3 + k] || (sigGlow[3 + k] = radial(WORDS[k].col.join(','))) });
     // 8P — THE PEOPLE: who's where now (a pure function of the city clock), then the FAR pass — the crosswalk, the waterside sidewalk,
     // the bus — before the stage (the stop lights, the lamps, the trees + the speakeasy stand in front of them)
@@ -1999,6 +2011,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // spill on the cobbles are part of the stage's bake — a multiply veil from the back road down takes them out with the power, the
     // moonlit promenade left; the speakeasy's own lights go by its power hook)
     if (LB && fadeIn > 0) { const pn = legendPow(W * 0.5, 'near', 210), rg = baker.group('road'); if (pn < 0.98 && rg && rg.ready) { const y0 = rg.show.y0, nk = clamp01(LK.w.night + LK.w.late);
+      // (C4b — the owner: "the new lights ignore the drain": every BAKED pool on the cobbles — the implied lamps', the hidden + the cab stand's
+      // lamps', the speakeasy's spill — taken down at its own ellipse first (stage.js#dimPools, all sources), so no pool stays the brightest
+      // patch of a dark city; then the veil)
+      if (bakeTones) dimPools(c, L, null, bakeTones.lamps || 0, (1 - pn) * nk);
       c.save(); c.globalCompositeOperation = 'multiply'; c.globalAlpha = (1 - pn) * nk; c.fillStyle = 'rgb(118,116,150)'; c.fillRect(0, y0, W, H - y0);
       // (the trees' baked UPLIGHTS: their warm glow under each crown + up the trunk taken down a little more — the crown a dark mass)
       for (const tr of L.trees) { if (!tr.grate) continue; const ch = (tr.h || (tr.w || 3)) * 0.3, [tx, ty] = project(cam, tr.x, (tr.trunk || 2) + ch, tr.z), r = cam.F * (tr.w || 3) / 2 / tr.z, g = c.createRadialGradient(tx, ty, 0, tx, ty, r * 1.25);
@@ -2947,7 +2963,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       promenade: L ? (() => { const P = (x, z, y = 0) => project(cam, x, y, z).map(v => +v.toFixed(1));
         return { season: L.season, phase: L.seasonPhase, impliedOn: L.impliedOn !== false, lampK: L.lampK, flag: !!L.flag,
           lamps: L.lamps.map(l => ({ kind: l.kind, at: P(l.x, l.z), heads: (l.heads || []).length })), trees: L.trees.map(t => ({ kind: t.kind, at: P(t.x, t.z), r: +(cam.F * t.w / 2 / t.z).toFixed(1) })),
-          medallion: P(L.medallion.x, L.medallion.z), crossing: L.crosswalk && L.road ? [P(L.crosswalk.x0 - 8, L.road.z1 + 1), P(L.crosswalk.x1 + 8, L.road.z0 - 1)] : null /* (C4a: the crossing's box for shots.mjs --crop crossing) */, crossX: L.crosswalk ? +((L.crosswalk.x0 + L.crosswalk.x1) / 2).toFixed(2) : null, bench: P(L.bench.x, L.bench.z), cart: P(L.cart.x, L.cart.z), planters: L.planters.map(p => P(p.x, p.z)),
+          medallion: P(L.medallion.x, L.medallion.z), crossing: L.crosswalk && L.road ? [P(L.crosswalk.x0 - 8, L.road.z1 + 1), P(L.crosswalk.x1 + 8, L.road.z0 - 1)] : null /* (C4a: the crossing's box for shots.mjs --crop crossing) */, stripes: L.crosswalk ? [P(L.crosswalk.x0, L.crosswalk.z1), P(L.crosswalk.x1, L.crosswalk.z0)] : null /* (C4b: the stripes' own box — the blackout + the stripe-ratio probes) */, shopWin: L.speakeasy ? [P(L.speakeasy.x0 + L.speakeasy.shop.win[0], L.speakeasy.z0, L.speakeasy.shop.win[3]), P(L.speakeasy.x0 + L.speakeasy.shop.win[1], L.speakeasy.z0, L.speakeasy.shop.win[2])] : null, crossX: L.crosswalk ? +((L.crosswalk.x0 + L.crosswalk.x1) / 2).toFixed(2) : null, bench: P(L.bench.x, L.bench.z), cart: P(L.cart.x, L.cart.z), planters: L.planters.map(p => P(p.x, p.z)),
           pool: (() => { const g = L.lamps.filter(l => l.implied).sort((a, b) => Math.abs(a.x - L.medallion.x) - Math.abs(b.x - L.medallion.x))[0]; return g ? { lit: P(g.x, 37.4) } : null; })(), cabStand: L.cabStand ? P(L.cabStand.x, L.cabStand.z) : null, hydrant: L.hydrant ? P(L.hydrant.x, L.hydrant.z) : null, still: still.debug(), cabTaxi: cabStand.debug() /* (PROM: cabStand = the bench on screen, cabTaxi = its taxi) */ }; })() : null,   // (FP: the open floor beside the left corner globe)      // (8a: THE IMPLIED ROAD — the pass now; wash({ col, k }) for 7b's raid)      // (PART 8a: the city's sound slots — play('car-1920s-pass', { pan, gain }))
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
       water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },

@@ -24,45 +24,13 @@ export function roadSteps(L, T) {
       x.fillStyle = rgb(shade(kb, 0.1)); x.fillRect(0, yt, cam.W, yk - yt + 0.2);
       x.fillStyle = rgb(shade(kb, -0.22)); x.fillRect(0, yk, cam.W, Math.max(0.8, yf - yk));
       x.fillStyle = rgb(shade(kb, -0.4), 0.6); for (let sx = (cam.W / 2) % 19; sx < cam.W; sx += 19) x.fillRect(sx, yt, 0.5, yf - yt); }
-    // 8P — THE CROSSWALK LIT (the owner: the lamps flank it but no light landed ON it): the two tall lamps framing the crossing throw
-    // their pools ONTO the road — overlapping across the stripes, so at night the crossing is the brightest strip of ground on the
-    // promenade; crisp pools with a soft edge (no haze), the asphalt warmed a little, the painted stripes catching more (pale, a glossy
-    // near edge). Baked with the road (T.lamps: the lamps' ramp). crossLight(x, z) — the light there, 0..~1.2.
-    // C4a (the owner: "spotlights / stage pools"): ONE soft radial per pool — a lamp's spill across the asphalt, wider, its tail long
-    // (poolFall to d 1.25) — painted on a pool layer FEATHERED ~6 pt at the curb + the rail (no hard clip line), then added to the road
-    const lk = T.lamps || 0, crossLight = crossLightOf(L);
-    if (lk > 0.01 && L.crosswalk) {
-      const m = x.getTransform(), k = Math.max(1, Math.abs(m.a) || 1), bh = yCurb - yRail, cv = document.createElement('canvas');
-      cv.width = Math.max(1, Math.ceil(cam.W * k)); cv.height = Math.max(1, Math.ceil(bh * k));
-      const pc = safeCtx(cv);
-      if (pc) {
-        pc.setTransform(k, 0, 0, k, 0, -yRail * k); pc.globalCompositeOperation = 'lighter';
-        for (const p of crossPools(L)) {
-          const [cx] = project(cam, p.x, 0, p.z), ya = groundY(cam, p.z + p.rz), yb = groundY(cam, p.z - p.rz), rw = cam.F * p.rx / p.z;
-          pc.save(); pc.translate(cx, (ya + yb) / 2); pc.scale(rw, (yb - ya) / 2);
-          const g = pc.createRadialGradient(0, 0, 0, 0, 0, POOL_R);
-          for (const d of [0, 0.25, 0.5, 0.75, 1, POOL_R]) g.addColorStop(d / POOL_R, rgb(CROSS.col, Math.min(1, poolFall(d * d) * CROSS.k * (p.k ?? 1) * lk)));
-          pc.fillStyle = g; pc.fillRect(-POOL_R, -POOL_R, POOL_R * 2, POOL_R * 2); pc.restore();
-        }
-        const fe = Math.min(6, bh * 0.3), f = pc.createLinearGradient(0, yRail, 0, yCurb);
-        f.addColorStop(0, 'rgba(0,0,0,0)'); f.addColorStop(fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1 - fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1, 'rgba(0,0,0,0)');
-        pc.globalCompositeOperation = 'destination-in'; pc.fillStyle = f; pc.fillRect(0, yRail, cam.W, bh);
-        x.save(); x.globalCompositeOperation = 'lighter'; x.drawImage(cv, 0, yRail, cam.W, bh); x.restore();
-      }
-      cv.width = cv.height = 0;
-    }
+    // C4b — THE CROSSING's LIGHT IS LIVE (the owner, Oct 28 10:34 + 10:55 pm: "still too bright — a glowing white band washing out its
+    // own stripes" + "the new lights ignore the drain"): the bake keeps the bare asphalt + the stripes in their own unlit paint; the
+    // pools + the stripes' lift are crossLight's layer (createCrossLight below), drawn every frame at the lamps × the city's power
     // THE CROSSWALK (8a) between the two stop lights: wide white bars across the road, worn
-    if (L.crosswalk) {
-      const cw = L.crosswalk, n = 9;
-      for (let i = 0; i < n; i++) {
-        const z0 = cw.z0 + (cw.z1 - cw.z0) * i / n, z1 = z0 + (cw.z1 - cw.z0) / n * 0.55;
-        const [a, ya] = project(cam, cw.x0, 0, z0), [b] = project(cam, cw.x1, 0, z0), [a2, yb] = project(cam, cw.x0, 0, z1), [b2] = project(cam, cw.x1, 0, z1);
-        const lt = lk > 0.01 ? Math.min(1.2, crossLight((cw.x0 + cw.x1) / 2, (z0 + z1) / 2)) * lk : 0;
-        x.fillStyle = rgb(mix(shade(T.lane, -0.05), CROSS.paint, Math.min(1, lt * 1.6)), Math.min(1, 0.75 + 0.4 * lt));
-        x.beginPath(); x.moveTo(a, ya); x.lineTo(b, ya); x.lineTo(b2, yb); x.lineTo(a2, yb); x.closePath(); x.fill();
-        // (the paint's glossy near edge catching the lamps)
-        if (lt > 0.05) { x.fillStyle = rgb([250, 250, 255], 0.5 * Math.min(1, lt)); x.fillRect(Math.min(a, a2), ya - Math.max(0.35, (ya - yb) * 0.18), Math.abs(b - a), Math.max(0.35, (ya - yb) * 0.18)); }
-      }
+    if (L.crosswalk) for (const q of stripeQuads(L)) {
+      x.fillStyle = rgb(shade(T.lane, -0.05), 0.75);
+      x.beginPath(); x.moveTo(q.a, q.ya); x.lineTo(q.b, q.ya); x.lineTo(q.b2, q.yb); x.lineTo(q.a2, q.yb); x.closePath(); x.fill();
     }
     // THE WALK / WAIT LANTERN (FP) at the railing across the road (behind the traffic: a passing bus hides it)
     if (L.crosswalk && L.crosswalk.lantern) drawLanternBody(x, cam, L.crosswalk.lantern, T);
@@ -76,7 +44,9 @@ export function roadSteps(L, T) {
  *  LAMPS just past the screen's left + right edges spill their light along the asphalt, and the crossing is the brightest strip in the
  *  middle (its own pool, the paint catching the most) — warm, like the implied lamps on our side */
 // (C4a: wider + softer — the centre rx 7.2 → 9.5, rz 5.0 → 6.2, the edges rx 10 → 13 + k 0.7 → 0.5 (the crossing stays the brightest); the falloff's tail to d 1.25: poolFall)
-export const CROSS = Object.freeze({ z: 57, rx: 9.5, rz: 6.2, k: 1.15, col: [236, 214, 182], paint: [250, 246, 236], edge: { dx: 2.5, rx: 13, rz: 5.2, k: 0.5 } });
+// (C4b — the owner: "DIMLY / modestly lit — you can see people and see the white stripes": the centre k 1.15 → 0.4, the edges' 0.5 → 0.14;
+// the stripes' lift `stripe` × the light (never the full paint: pale, not white) — the stripe-to-gap luminance ≥ 2:1 measured at 402)
+export const CROSS = Object.freeze({ z: 57, rx: 9.5, rz: 6.2, k: 0.4, col: [236, 214, 182], paint: [250, 246, 236], stripe: 0.2, gloss: 0.1, edge: { dx: 2.5, rx: 13, rz: 5.2, k: 0.14 } });
 /** a pool's light at d² (d: the distance in its own radii) — (1 − d²/R²)² out to R = POOL_R (PURE: the road's paint + the cars' light) */
 export const POOL_R = 1.25;
 export const poolFall = d2 => (d2 < POOL_R * POOL_R ? (1 - d2 / (POOL_R * POOL_R)) ** 2 : 0);
@@ -89,6 +59,61 @@ export const crossPools = L => {
 export function crossLightOf(L) {
   const P = crossPools(L);
   return (x, z) => P.reduce((s, p) => s + (p.k ?? 1) * poolFall(((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2), 0);
+}
+
+/** the crosswalk's nine stripes on screen (pt): [{ a, b, a2, b2, ya, yb, x, z }] — the near edge (a → b at ya), the far (a2 → b2 at yb) */
+export function stripeQuads(L) {
+  const cam = L.cam, cw = L.crosswalk, n = 9, out = [];
+  for (let i = 0; i < n; i++) {
+    const z0 = cw.z0 + (cw.z1 - cw.z0) * i / n, z1 = z0 + (cw.z1 - cw.z0) / n * 0.55;
+    const [a, ya] = project(cam, cw.x0, 0, z0), [b] = project(cam, cw.x1, 0, z0), [a2, yb] = project(cam, cw.x0, 0, z1), [b2] = project(cam, cw.x1, 0, z1);
+    out.push({ a, b, a2, b2, ya, yb, x: (cw.x0 + cw.x1) / 2, z: (z0 + z1) / 2 });
+  }
+  return out;
+}
+/**
+ * C4b — THE CROSSING's LIGHT, LIVE: the pools on the asphalt (one soft radial each, C4a's, feathered at the curb + the rail) + the
+ * stripes' lift (pale paint over the unlit stripes, a faint gloss at the near edge) on ONE layer, made once per layout + dpr and drawn
+ * every frame with 'lighter' at k = the lamps × the power there (a legendary's drain / the blackout take it with the city, the lamps'
+ * hours bring it back). draw(c, L, k) · box() (the layer's band) · free()
+ */
+export function createCrossLight() {
+  let cv = null, key = '', y0 = 0, bh = 0;
+  function build(L, dpr) {
+    const cam = L.cam, r = L.road, yRail = groundY(cam, r.z1), yCurb = groundY(cam, r.z0);
+    y0 = yRail; bh = yCurb - yRail;
+    cv = cv || document.createElement('canvas'); cv.width = Math.max(1, Math.ceil(cam.W * dpr)); cv.height = Math.max(1, Math.ceil(bh * dpr));
+    const pc = safeCtx(cv); if (!pc) return false;
+    pc.setTransform(dpr, 0, 0, dpr, 0, -yRail * dpr); pc.clearRect(0, yRail, cam.W, bh); pc.globalCompositeOperation = 'lighter';
+    for (const p of crossPools(L)) {
+      const [cx] = project(cam, p.x, 0, p.z), ya = groundY(cam, p.z + p.rz), yb = groundY(cam, p.z - p.rz), rw = cam.F * p.rx / p.z;
+      pc.save(); pc.translate(cx, (ya + yb) / 2); pc.scale(rw, (yb - ya) / 2);
+      const g = pc.createRadialGradient(0, 0, 0, 0, 0, POOL_R);
+      for (const d of [0, 0.25, 0.5, 0.75, 1, POOL_R]) g.addColorStop(d / POOL_R, rgb(CROSS.col, Math.min(1, poolFall(d * d) * CROSS.k * (p.k ?? 1))));
+      pc.fillStyle = g; pc.fillRect(-POOL_R, -POOL_R, POOL_R * 2, POOL_R * 2); pc.restore();
+    }
+    // (the stripes catch the light: pale paint added in proportion — the gaps between them only the asphalt's dim pool)
+    const crossLight = crossLightOf(L);
+    for (const q of stripeQuads(L)) {
+      const lt = Math.min(1.2, crossLight(q.x, q.z)) / CROSS.k;
+      pc.fillStyle = rgb(CROSS.paint, Math.min(1, CROSS.stripe * lt)); pc.beginPath(); pc.moveTo(q.a, q.ya); pc.lineTo(q.b, q.ya); pc.lineTo(q.b2, q.yb); pc.lineTo(q.a2, q.yb); pc.closePath(); pc.fill();
+      if (lt > 0.05) { const h = Math.max(0.35, (q.ya - q.yb) * 0.18); pc.fillStyle = rgb([250, 250, 255], CROSS.gloss * Math.min(1, lt)); pc.fillRect(Math.min(q.a, q.a2), q.ya - h, Math.abs(q.b - q.a), h); }
+    }
+    const fe = Math.min(6, bh * 0.3), f = pc.createLinearGradient(0, yRail, 0, yCurb);
+    f.addColorStop(0, 'rgba(0,0,0,0)'); f.addColorStop(fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1 - fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1, 'rgba(0,0,0,0)');
+    pc.globalCompositeOperation = 'destination-in'; pc.fillStyle = f; pc.fillRect(0, yRail, cam.W, bh);
+    return true;
+  }
+  return {
+    draw(c, L, k, dpr = 2) {
+      if (!L || !L.crosswalk || !L.road || !(k > 0.005)) return;
+      const kk = `${L.cam.W}x${L.cam.H}|${dpr}|${L.crosswalk.x0.toFixed(2)}`;
+      if (kk !== key) { if (!build(L, dpr)) return; key = kk; }
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, k); c.drawImage(cv, 0, y0, L.cam.W, bh); c.restore();
+    },
+    box: () => ({ y: y0, h: bh }),
+    free() { if (cv) cv.width = cv.height = 0; cv = null; key = ''; },
+  };
 }
 
 // ---- FP — THE STOP LIGHTS + THE CROSSING (the owner: "both face the camera, but the cars drive left ↔ right")

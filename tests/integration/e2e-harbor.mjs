@@ -2641,8 +2641,18 @@ G('people', async () => {
   let hushRect = null, hushRed = 0;
   // ---- C4a — THE CARS LIT THROUGH THE CROSSING (the owner: they passed through its light unlit): ONE car followed — its body's
   // brightness 8 u before the crossing vs on it ≥ 1.6× (the lamp-lit body through its tail → nose gradient: vehicles.js)
+  const CARLIT = 1.12;   // (C4b: the crossing's light down hard — the car still brightens through it, gentler: was 1.6)
   { const Q = await open({ slot: 'pp-carlit', qs: `when=2026-09-16T22:30${GR}&wx=clear`, view: [402, 874] });   // (September: no holiday piece stands in front of the crossing — Halloween's giant hides it)
     await harborUp(Q.page);
+    // C4b — THE CROSSWALK DIMMER (the owner: "you can see people and see the white stripes, just so you can see it's a crosswalk"): down the
+    // crossing's middle, the stripes ≥ 2× the asphalt between them, the gaps dark (never washed grey), the stripes pale — never clipped white
+    { await waitFor(Q.page, `!${P}.pending && !${P}.fading && ${P}.lightAudit().crossing > 0.8`, 'the crossing lit', 20000).catch(() => {}); await sleep(600);
+      const sr = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const b = ${P}.promenade.stripes, cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x = cv.getContext('2d');
+        const cx = Math.round((b[0][0] + b[1][0]) / 2 * k), y0 = Math.round(Math.min(b[0][1], b[1][1]) * k), y1 = Math.round(Math.max(b[0][1], b[1][1]) * k), d = x.getImageData(cx - 6, y0, 13, y1 - y0).data, rows = [];
+        for (let r = 0; r < y1 - y0; r++) { let s = 0; for (let c = 0; c < 13; c++) { const i = (r * 13 + c) * 4; s += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; } rows.push(s / 13); }
+        const so = [...rows].sort((a, b) => a - b), n = so.length, t = Math.max(1, Math.floor(n / 3)), lo = so.slice(0, t).reduce((a, b) => a + b, 0) / t, hi = so.slice(-t).reduce((a, b) => a + b, 0) / t;
+        res({ lo: +lo.toFixed(1), hi: +hi.toFixed(1), max: +so[n - 1].toFixed(1) }); }))`);
+      ok(sr.hi >= 2 * sr.lo && sr.hi > 60 && sr.lo < 70 && sr.max < 235, `C4b THE CROSSWALK DIMMER: the stripes ${sr.hi} vs the gaps ${sr.lo} (× ${(sr.hi / Math.max(1, sr.lo)).toFixed(2)}, ≥ 2), the brightest ${sr.max} (< 235: never clipped white)`); }
     const lum = id => ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const h = ${P}, c = h.people.cars.find(o => o.id === ${JSON.stringify(id)}); if (!c || !c.at) return res(null);
       const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round((c.at[0] - 6) * k), Math.round((c.at[1] - 3) * k), Math.round(12 * k), Math.round(6 * k)).data;
       let s = 0; for (let i = 0; i < d.length; i += 4) s += 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; res({ l: s / (d.length / 4), dx: +(c.x - h.promenade.crossX).toFixed(2) }); }))`);
@@ -2655,7 +2665,7 @@ G('people', async () => {
       await waitFor(Q.page, `(() => { const h = ${P}, c = h.people.cars.find(o => o.id === ${JSON.stringify(id)}); return !!c && Math.abs(c.x - h.promenade.crossX) < 0.6; })()`, 'the same car on the crossing', 20000).catch(() => {});
       near = await lum(id);
     }
-    okT(far && near && near.l >= 1.6 * far.l, `C4a THE CARS LIT THROUGH IT: car ${id} — ${far ? far.l.toFixed(0) : '—'} at ${far ? far.dx : '—'} u → ${near ? near.l.toFixed(0) : '—'} on the crossing (${near ? near.dx : '—'} u): × ${far && near ? (near.l / far.l).toFixed(2) : '—'} (≥ 1.6)`);
+    okT(far && near && near.l >= CARLIT * far.l, `C4a THE CARS LIT THROUGH IT: car ${id} — ${far ? far.l.toFixed(0) : '—'} at ${far ? far.dx : '—'} u → ${near ? near.l.toFixed(0) : '—'} on the crossing (${near ? near.dx : '—'} u): × ${far && near ? (near.l / far.l).toFixed(2) : '—'} (≥ ${CARLIT}: C4b's dimmer crossing — gentler)`);
     await Q.ctx.close(); }
   const settle = p => waitFor(p, `!${P}.pending && !${P}.fading`, 'settled', 20000);
   // the stage band's pixels, as one fingerprint (the A/B against &force=no-people)
@@ -3464,18 +3474,24 @@ G('legends', async () => {
   // ---- C4b — THE PEOPLE RULE (the owner saw everyone snap back after the abduction): the UFO at 8× — the witnesses flee, the promenade
   // stays empty, then refills; every walker's FIRST frame after the page's first is at a way in (off a screen edge, a doorway, the back
   // road / the far kerb, the front street under the dock); nobody walks in before the empty spell ends
-  { const Q = await open({ slot: 'lgrule', qs: `when=2026-11-04T21:40${GR}&wx=clear&force=ufo&lgnow=1&speed=8`, view: [402, 874] });
-    await harborUp(Q.page);
+  // (started through the API once the page has settled — as a scheduled night or the panel does: &lgnow=1 starts the craft at the load,
+  // before its lazy module, so the planner would learn of it after the fact)
+  { const Q = await open({ slot: 'lgrule', qs: `when=2026-11-04T21:40${GR}&wx=clear&speed=8`, view: [402, 874] });
+    await harborUp(Q.page); await waitFor(Q.page, `!${P}.pending && !${P}.fading`, 'settled', 20000).catch(() => {});
+    await ev(Q.page, `${P}.legend.start('ufo')`);
     await ev(Q.page, `(() => { const H = () => window.__district.harbor(), seen = new Map(); window.__rule = { firsts: [], t0: null };
-      const tick = () => { try { const h = H(), cam = h.cam, lg = h.legend.state, ms = (h.people && h.people.members) || [], now = h.clock ? h.clock.now : Date.now();
-        if (window.__rule.t0 == null && lg && lg.t0) window.__rule.t0 = lg.t0; const first = !window.__rule.started; window.__rule.started = true;
+      // (from the moment the planner knows the legendary — &lgnow starts it at the load, before its lazy module: on a real night it's known a
+      // minute ahead; slack: the distance a walker covers in one frame at 8×)
+      let last = null; const tick = () => { try { const h = H(), cam = h.cam, lg = h.legend.state, ms = (h.people && h.people.members) || [], pn = performance.now(), dt = last == null ? 0 : (pn - last) / 1000 * 8; last = pn;
+        if (!window.__rule.started && (!lg || !lg.run)) { requestAnimationFrame(tick); return; } const first = !window.__rule.started; window.__rule.started = true; const slack = 3.2 * dt;
         for (const m of ms) { if (m.role !== 'lead' || seen.has(m.id)) continue; seen.set(m.id, 1); if (first) continue;
-          const hw = m.z * cam.W / 2 / cam.F, way = Math.abs(m.x) >= hw + 0.9 || !!m.door || m.z >= 53.5 || m.z < 38.35 || m.a < 0.2;
+          const hw = m.z * cam.W / 2 / cam.F, way = Math.abs(m.x) >= hw + 0.9 - slack || !!m.door || m.z >= 53.5 - slack || m.z < 38.35 + slack || m.a < 0.2;
           window.__rule.firsts.push({ id: m.id, kind: m.kind, x: m.x, z: m.z, way, lgT: lg && lg.t != null ? lg.t : null }); }
-        window.__rule.guard = h.people.guard; } catch { /* next frame */ } requestAnimationFrame(tick); }; requestAnimationFrame(tick); })()`);
+        window.__rule.guard0 = window.__rule.guard0 == null ? h.people.guard.total : window.__rule.guard0; window.__rule.guard = h.people.guard; } catch { /* next frame */ } requestAnimationFrame(tick); }; requestAnimationFrame(tick); })()`);
     await sleep(52000);
     const R = await ev(Q.page, 'window.__rule'), bad = R.firsts.filter(f => !f.way);
-    ok(R.firsts.length >= 2 && !bad.length, `C4b THE PEOPLE RULE after the UFO: ${R.firsts.length} walked in, all at a way in${bad.length ? ` — NOT: ${bad.map(b => `${b.kind} at ${b.x.toFixed(1)}, ${b.z.toFixed(1)}`).join('; ')}` : ''} (the safety net kept ${R.guard ? R.guard.total : '?'} off screen)`);
+    // (the planner does the work: the live safety net should rarely have anyone to hide — ≤ 3 at 8×)
+    ok(R.firsts.length >= 2 && !bad.length && R.guard && R.guard.total - (R.guard0 || 0) <= 3, `C4b THE PEOPLE RULE after the UFO: ${R.firsts.length} walked in, all at a way in${bad.length ? ` — NOT: ${bad.map(b => `${b.kind} at ${b.x.toFixed(1)}, ${b.z.toFixed(1)}`).join('; ')}` : ''} (the safety net kept ${R.guard ? R.guard.total : '?'} off screen)`);
     await Q.ctx.close(); }
   // ---- THE UFO BAKE: &ufo=classic = the hand-drawn saucer (no sprites fetched)
   { const Q = await open({ slot: 'lg1c', qs: `when=2026-11-04T22:00${GR}&force=ufo&lgs=7&ufo=classic&force=no-people`, view: [402, 874] });
@@ -3523,6 +3539,18 @@ G('legends', async () => {
     // (9a — the owner: the WHEEL kept its lights after POLISH 5's recolour; EVERY light source the blackout should kill, as the frame drew it)
     { const au = await ev(Q.page, `${P}.lightAudit()`), lit = Object.entries(au).filter(([, v]) => v > 0.02);
       ok(lit.length === 0, `THE BLACKOUT KILLS EVERY LIGHT (the wheel's bulbs + cabins, the pier, the quay, the beam, the boats, the windows, the neon, the beacons, the lamps, the signals, the strings, the speakeasy, the beams): ${lit.length ? `still lit — ${lit.map(([k, v]) => `${k} ${v}`).join(', ')}` : 'all dark'}`); }
+    // C4b — THE NEW LIGHTS FOLLOW THE BLACKOUT (the owner, Oct 28 10:55 pm: the crosswalk + the cab-stand bench stayed lit mid-TR-3B): at the
+    // blackout's depth no known light zone — the crossing's stripes, the two benches (their sharp overlays composited in), the shop window,
+    // the implied pools at the front curb — is brighter than the dark city round it (a ring 14 pt out)
+    { const pr = await ev(Q.page, `${P}.promenade`), zones = [['crossing', pr.stripes ? [pr.stripes[0][0], pr.stripes[0][1], pr.stripes[1][0], pr.stripes[1][1]] : null], ['cab bench', pr.cabStand ? [pr.cabStand[0] - 26, pr.cabStand[1] - 22, pr.cabStand[0] + 26, pr.cabStand[1]] : null],
+        ['water bench', [pr.bench[0] - 20, pr.bench[1] - 18, pr.bench[0] + 20, pr.bench[1]]], ['shop window', pr.shopWin ? [pr.shopWin[0][0], pr.shopWin[0][1], pr.shopWin[1][0], pr.shopWin[1][1]] : null], ['implied pool', pr.pool && pr.pool.lit ? [pr.pool.lit[0] - 20, pr.pool.lit[1] - 10, pr.pool.lit[0] + 20, pr.pool.lit[1] + 4] : null]].filter(z => z[1]);
+      const lum = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const d = devicePixelRatio || 1, cs = [...document.querySelectorAll('canvas')].filter(c => c.offsetParent !== null && c.width > 0), o = document.createElement('canvas'); o.width = innerWidth * d; o.height = innerHeight * d; const x = o.getContext('2d');
+        for (const c of cs) { const r = c.getBoundingClientRect(); if (r.width < 1) continue; try { x.drawImage(c, r.left * d, r.top * d, r.width * d, r.height * d); } catch { /* tainted */ } }
+        const Lm = (x0, y0, x1, y1, ex) => { const X0 = Math.max(0, Math.round(Math.min(x0, x1) * d)), Y0 = Math.max(0, Math.round(Math.min(y0, y1) * d)), X1 = Math.round(Math.max(x0, x1) * d), Y1 = Math.round(Math.max(y0, y1) * d); const im = x.getImageData(X0, Y0, Math.max(1, X1 - X0), Math.max(1, Y1 - Y0)).data, w = Math.max(1, X1 - X0); let s = 0, n = 0;
+          for (let i = 0; i < im.length; i += 4) { const px = (i / 4) % w + X0, py = Math.floor(i / 4 / w) + Y0; if (ex && px >= ex[0] * d && px <= ex[2] * d && py >= ex[1] * d && py <= ex[3] * d) continue; s += 0.2126 * im[i] + 0.7152 * im[i + 1] + 0.0722 * im[i + 2]; n++; } return n ? s / n : 0; };
+        res(${JSON.stringify(zones)}.map(([id, b]) => { const g = 14, xa = Math.min(b[0], b[2]), ya = Math.min(b[1], b[3]), xb = Math.max(b[0], b[2]), yb = Math.max(b[1], b[3]); return { id, in: +Lm(xa, ya, xb, yb).toFixed(1), ring: +Lm(xa - g, ya - g, xb + g, yb + g, [xa, ya, xb, yb]).toFixed(1) }; })); }))`);
+      const hot = lum.filter(z => z.in > z.ring * 1.25 + 8);
+      ok(lum.length >= 4 && !hot.length, `C4b THE NEW LIGHTS FOLLOW THE BLACKOUT: ${lum.map(z => `${z.id} ${z.in} vs its ring ${z.ring}`).join(' · ')}${hot.length ? ` — STILL LIT: ${hot.map(z => z.id).join(', ')}` : ''}`); }
     // Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold is on (from 4 s before the craft until the jets are gone + the power is back);
     // no car, cab, bus or truck ENTERED inside it (one already rolling finishes); the street under the dock adopts no new pass
     { const hd = await ev(Q.page, `${P}.legend.hold`), tr = await ev(Q.page, `${P}.people.traffic`), rd = await ev(Q.page, `${P}.road`);

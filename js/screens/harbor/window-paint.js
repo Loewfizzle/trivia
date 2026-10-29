@@ -580,8 +580,7 @@ export function createPaint(life) {
     }
     if (mirror && k > 0.01) { mirrorDoor(c, mirror.el / mirror.len, { SG, B, k, t, glow }); drew = true; }
     c.restore();
-    // the gold leaf over whatever moved behind the glass (it is ON the glass)
-    if (drew && env.gilt) env.gilt(c);
+    void drew;
     // the door's card: CLOSED by day before the opening (the bake says OPEN by day) → flipped at the opening
     if (day > 0.01 && env.card && (!open || routine)) {
       c.save(); env.map(c);
@@ -658,8 +657,13 @@ export function createPaint(life) {
     if (o <= 0.004) return;
     // (C4a: the door is the third mirror panel IN THE BACK WALL — drawn at depth 1 in the shop's box: window-rooms.js#shopMirrorDoor)
     const [m0, m1, mv0, mv1] = shopMirrorDoor(SG);
+    // (C4b — the owner: "the mirror door's opening is a little CHOPPY": the leaf was painted a flat dark board over the whole doorway the
+    // instant the swing began — a one-frame jump from the lit mirror the room's bake shows there. Now the bar beyond is painted only in the
+    // GAP the leaf uncovers (from its free edge to the jamb) and the leaf fades in as it turns — the first frames change nothing)
+    const th = o * 1.25, wv = (m1 - m0) * Math.cos(th), ins = 0.12 * Math.sin(th), gap0 = m0 + wv, leafA = sm(0, 0.35, o);
     c.globalAlpha = k;
     deepAt(c, B, 1, () => {
+      c.save(); c.beginPath(); c.rect(gap0, mv0, m1 - gap0, mv1 - mv0); c.clip();
       // the bar beyond: amber, the shelves of bottles glowing, a couple with their glasses
       const bg = c.createLinearGradient(0, mv0, 0, mv1); bg.addColorStop(0, 'rgb(255,170,80)'); bg.addColorStop(0.6, 'rgb(220,120,52)'); bg.addColorStop(1, 'rgb(120,56,28)');
       c.fillStyle = bg; c.fillRect(m0, mv0, m1 - m0, mv1 - mv0);
@@ -671,11 +675,13 @@ export function createPaint(life) {
       figure(c, { x: m0 + 0.5, y: mv0 + 0.32, s: 0.86, lean: sway, face: -1, hat: 'fedora', arms: [[0.15, 0.3], [0.4, 1.9]], hold: [null, 'glass'], pal: litPal(whoM(1), RIM_COL.bar, 1), lit: { side: 0, a: 0.55 }, marks: whoM(1).m, rim: { col: RIM_COL.bar, a: 0.5, side: 0, w: 0.026 } });
       figure(c, { x: m0 + 0.14, y: mv0 + 0.3, s: 0.76, lean: -sway, face: 1, hat: 'cloche', hair: 'bob', dress: true, arms: [[0.2, 0.5], [0.3, 0.4]], pal: litPal(whoW(0), RIM_COL.bar, 1), lit: { side: 0, a: 0.55 }, marks: whoW(0).m, rim: { col: RIM_COL.bar, a: 0.5, side: 0, w: 0.026 } });
       c.restore();
-      // the mirror itself, swung in on its left hinge (foreshortened: narrower, its far edge shorter), catching the light
-      const th = o * 1.25, wv = (m1 - m0) * Math.cos(th), ins = 0.12 * Math.sin(th);
+      c.restore();
+      // the mirror itself, swung in on its left hinge (foreshortened: narrower, its far edge shorter), catching the light — faded in
+      c.globalAlpha = k * leafA;
       c.fillStyle = 'rgb(46,40,52)'; c.beginPath(); c.moveTo(m0, mv0); c.lineTo(m0 + wv, mv0 + ins); c.lineTo(m0 + wv, mv1 - ins); c.lineTo(m0, mv1); c.closePath(); c.fill();
       c.fillStyle = `rgba(255,214,150,${(0.35 * o).toFixed(3)})`; c.beginPath(); c.moveTo(m0, mv0); c.lineTo(m0 + wv, mv0 + ins); c.lineTo(m0 + wv, mv1 - ins); c.lineTo(m0, mv1); c.closePath(); c.fill();
       // the doorway's lit edge (its frame catching the bar's light)
+      c.globalAlpha = k;
       c.fillStyle = `rgba(255,200,130,${(0.8 * o).toFixed(3)})`; c.fillRect(m1 - 0.03, mv0, 0.03, mv1 - mv0);
     });
     // its light LANDS in the dark shop (C4a: real light — a pool across the tiles from the doorway, the back wall warmed round it; the

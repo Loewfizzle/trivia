@@ -94,7 +94,7 @@ export function createPeople() {
       hforce: hf };
     const p0 = pnow();
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
-    guard(now, t);
+    if (f.off == null) guardT = null; else guard(now, t);   // (no plan yet — the clock's offset unknown: the first real frame is a load)
     roofNow = roofAt(t, L, ctx, roofCache);
     frameMs = pnow() - p0; if (frameMs > frameMsMax) frameMsMax = frameMs;
     lastT = t;
@@ -106,18 +106,20 @@ export function createPeople() {
   // holiday's visits switching on while watched, a preview row toggled): someone whose FIRST frame on this device is not at a way in (off a
   // screen edge, in a doorway, the back road / the far kerb, the front street under the dock) is never drawn for that visit. The first
   // frame + a clock jump (a link, the panel's time, back from the background) show everyone where they are — joined mid-way, like a load.
-  const guardSeen = new Set(), guardHide = new Set(); let guardT = null, guarded = 0;
-  const atWayIn = s => Math.abs(s.x) >= L.cam.hw(s.z) + 0.9 || !!s.door || s.z >= FOLK.roadZ - 0.1 || s.z < FOLK.zMin - 0.4 || (s.a != null && s.a < 0.2);
+  // (seen: vid → the last t it was present — forgotten after 20 s away: a plan swapped for a frame is no newcomer)
+  const guardSeen = new Map(), guardHide = new Set(), guardLog = []; let guardT = null, guarded = 0;
+  // (slack: how far anyone could have walked in since the last frame — a long frame, a sped-up clock — so a real entrant is never mistaken)
+  const atWayIn = (s, slack) => Math.abs(s.x) >= L.cam.hw(s.z) + 0.9 - slack || !!s.door || s.z >= FOLK.roadZ - 0.1 - slack || s.z < FOLK.zMin - 0.4 + slack || (s.a != null && s.a < 0.2);
   function guard(n, t) {
-    const fresh = guardT == null || Math.abs(t - guardT) > 5, present = new Set(); guardT = t;
+    const fresh = guardT == null || Math.abs(t - guardT) > 5, present = new Set(), slack = guardT == null ? 0 : 3.2 * Math.max(0, t - guardT);   // (a stalled frame — a re-bake, a hiccup — lets a real entrant get further in) guardT = t;
     if (fresh) { guardSeen.clear(); guardHide.clear(); }
     for (const m of n.members) {
       const id = m.vid; present.add(id);
-      if (guardSeen.has(id) || m.m.role !== 'lead') continue;   // (a visit as one: its lead's first frame — a group, a dog walker hide together)
-      guardSeen.add(id);
-      if (!fresh && !atWayIn(m.s)) { guardHide.add(id); guarded++; }
+      if (m.m.role !== 'lead') continue;   // (a visit as one: its lead's first frame — a group, a dog walker hide together)
+      const was = guardSeen.has(id); guardSeen.set(id, t); if (was) continue;
+      if (!fresh && !atWayIn(m.s, slack)) { guardHide.add(id); guarded++; guardLog.push({ id, kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, t: +t.toFixed(1), slack: +slack.toFixed(2) }); if (guardLog.length > 24) guardLog.shift(); }
     }
-    for (const id of guardSeen) if (!present.has(id)) { guardSeen.delete(id); guardHide.delete(id); }
+    for (const [id, at] of guardSeen) if (!present.has(id) && t - at > 20) { guardSeen.delete(id); guardHide.delete(id); }
     if (guardHide.size) n.members = n.members.filter(m => !guardHide.has(m.vid));
   }
   // 11a-1 — the holidays' previews from the scene's force set (f.forceHoliday: a Set of ids, f.forceAt(id): when it was switched on — the
@@ -331,7 +333,7 @@ export function createPeople() {
     // C4a — THE CARS LIT THROUGH IT (the owner): the light SAMPLED along the body — the tail, the middle, the nose (in the car's own
     // order) — so a car brightens ACROSS the crossing from the nose back (vehicles.js draws the lit body through that gradient); inside
     // the centre pool the signal's colour on its flank
-    const half = car.len * 0.4, kAt = dx => Math.min(1, backLight(car.x + dx, CROSS.z)), lampK = [kAt(-car.dir * half), kAt(0), kAt(car.dir * half)];
+    const half = car.len * 0.4, kAt = dx => Math.min(1, backLight(car.x + dx, CROSS.z)) * pw, lampK = [kAt(-car.dir * half), kAt(0), kAt(car.dir * half)];
     const P0 = crossPools(L)[0], sigI = env.sig === 'red' ? 0 : env.sig === 'amber' ? 1 : env.sig ? 2 : -1;
     const sig = sigI >= 0 && P0 ? { col: LENS[sigI], k: poolFall(((car.x - P0.x) / P0.rx) ** 2) * night * pw } : null;
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
@@ -642,7 +644,7 @@ export function createPeople() {
     witnessN: () => (now.witness ? now.witness.n || 0 : 0),
     /** what's on the promenade now (tests, the readout) */
     debug: () => ({ hol: { trick: now.members.filter(m => m.kind === 'trick').length, zombies: now.members.filter(m => m.kind === 'zombie').length, proc: now.members.filter(m => m.kind === 'proc').length, costumed: now.members.filter(m => m.m && m.m.costume).length }, witness: now.witness || null, running: now.members.filter(m => m.s.run).length, n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
-      guard: { hidden: guardHide.size, total: guarded },   // (C4b: THE PEOPLE RULE's safety net — who it kept off screen)
+      guard: { hidden: guardHide.size, total: guarded, log: guardLog.slice() },   // (C4b: THE PEOPLE RULE's safety net — who it kept off screen)
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
       doors: { ...(now.doors || {}) }, cart: now.cart ? { on: !!now.cart.on, parked: !!now.cart.parked, x: +(now.cart.x || 0).toFixed(2) } : null, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
       roofMembers: roofNow.members.map(m => ({ kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })), map: M ? { nodes: M.nodes, rects: M.rects.length } : null }),

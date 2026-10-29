@@ -303,15 +303,17 @@ export function drawLampLight(c, L, k, glow, cool = glow, dpr = 2, levels = null
 }
 /** 8P — a lamp that is OFF (not caught yet at dusk, or out for a moment) while its pool is baked lit: its pool taken back down (a
  *  multiply over the pool's ellipse on the paving). off: each lamp's 0..1 darkness; baked: the bake's T.lamps */
-export function dimPools(c, L, off, baked) {
-  if (!off || baked < 0.02) return;
-  const cam = L.cam, src = lightSources(L);
+export function dimPools(c, L, off, baked, all = 0) {
+  // (C4b: `all` 0..1 — the blackout: EVERY baked source's pool (the implied lamps, the hidden + the cab stand's lamps, the speakeasy's
+  // spill) taken down by that much, harder than an outage (up to 0.85 of its light))
+  if ((!off && !(all > 0.02)) || baked < 0.02) return;
+  const cam = L.cam, src = lightSources(L), cap = all > 0 ? 0.85 : 0.62;
   c.save(); c.globalCompositeOperation = 'multiply';
-  L.lamps.forEach((l, i) => {
-    const d = off[i] || 0; if (d < 0.02) return;
+  (all > 0 ? src : L.lamps).forEach((l, i) => {
+    const d = all > 0 ? all : off[i] || 0; if (d < 0.02) return;
     // (PROM: an implied lamp's pool is its wide ellipse up the promenade — the dusk's switch-on + the rare outage darken that)
     const sr = src[i], E = sr.implied ? impliedEll(sr) : null, R = E ? E.rz : REACH[sr.kind], zc = E ? E.z : sr.z, [cx] = project(cam, sr.x, 0, zc), ya = groundY(cam, zc + R / 1.15), yb = groundY(cam, Math.max(cam.F * 0.03, zc - R / 1.15)), rw = cam.F * (E ? E.rx : R) / zc;
-    const m = Math.round(255 * (1 - Math.min(0.62, d * baked * sr.k * 0.6))), g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
+    const m = Math.round(255 * (1 - Math.min(cap, d * baked * (sr.k ?? 1) * (all > 0 ? 1 : 0.6)))), g = c.createRadialGradient(0, 0, 0, 0, 0, 1);
     g.addColorStop(0, `rgb(${m},${m},${m})`); g.addColorStop(0.5, `rgb(${Math.round((m + 255) / 2)},${Math.round((m + 255) / 2)},${Math.round((m + 255) / 2)})`); g.addColorStop(1, 'rgb(255,255,255)');
     c.save(); c.translate(cx, (ya + yb) / 2); c.scale(rw, (yb - ya) / 2); c.fillStyle = g; c.beginPath(); c.arc(0, 0, 1, 0, Math.PI * 2); c.fill(); c.restore();
   });

@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: THE SPEAKEASY — THE BAKE (the walls, the date stone, the windows, the ground floor, the gilt, the wall-washers, the ivy + the steps that paint them) (FP3b: split out of speakeasy.js, FREV A1's split by responsibility; speakeasy.js
+// CITY 2.0 — THE HARBOR: THE SPEAKEASY — THE BAKE (the walls, the date stone, the windows, the ground floor, the wall-washers, the ivy + the steps that paint them) (FP3b: split out of speakeasy.js, FREV A1's split by responsibility; speakeasy.js
 // re-exports everything, so its importers are unchanged).
 import { project } from '../../core/harbor-layout.js';
 import { SPEAK_V, SPEAK_WIN, SPEAK_PIERS, ROOMS, roomLight } from '../../core/harbor-speakeasy.js';
@@ -283,12 +283,10 @@ export function paintGround(x, M, s, vp = null) {
   // THE BIG WINDOW — inside (C4a): THE SHOP AS A ROOM (window-rooms.js#paintShopRoom: the box in the street's perspective, the tiled
   // floor, the MIRROR WALL at the back, the barber chair mid-room, the lamp with its shade) in the day's light; at night dark + closed
   // (the lit canvas lays the lamp's dim light over it: speakeasy.js#paintLit). No veil, no sheen baked: the glass's own reflection is
-  // the live gilt layer's (speakeasy.js#giltOver — in front of the barber, as glass is)
+  // the live glass layer's (speakeasy.js#glassOver — in front of the barber, as glass is)
   x.save(); x.beginPath(); x.rect(w0, wv0, w1 - w0, wv1 - wv0); x.clip();
   { const G0 = shopGlass(sh.win); paintShopRoom(x, G0, boxOf(G0, vp), { T: M.T }); }
   R(x, w0, wv1 - 0.3, w1, wv1, [0, 0, 0], 0.3 * (M.day + M.gold) + 0.1);
-  // THE GOLD LEAF: NOT baked (8P — Ben's zoom: the bake's copy + the live layer's copy, a hair apart, read as a ghost — the blur): the live
-  // layer draws it ONCE every frame, on the glass, over whatever moves inside (giltOver)
   x.restore();
   // the window's frame: a bronze bar sash, mullion
   R(x, w0 - 0.07, wv0 - 0.07, w1 + 0.07, wv0, M.frameHi); R(x, w0 - 0.07, wv1, w1 + 0.07, wv1 + 0.07, M.frame);
@@ -323,28 +321,8 @@ export function paintGround(x, M, s, vp = null) {
       R(x, sc.u - 0.2, sc.v + 0.38, sc.u + 0.2, sc.v + 0.5, M.soot, 0.25 * lk); } }
 }
 
-/** THE GOLD LEAF on the shop window: "HARBOR BARBERS" arched, "SHAVE & HAIRCUT" under it — gilt with a dark keyline and a shade, a
- *  little faded (in wall units; the bake paints it on the glass, the live layer lays it again over whatever moves inside) */
-export function paintGilt(x, M, sh) {
-  const [w0, w1, , wv1] = sh.win, G0 = GILT;
-  // (8P — THE BARBERSHOP FRONT WAS BLURRY, the owner's biggest note: the letters were ~3 pt caps with a drop-shade offset by under a
-  // point — at phone size that read as a double image, a smear. Now bigger, ONE crisp dark keyline round a clean gold fill, no offset
-  // shade; the arch flatter + higher (THE HUSH WORD SIGN hangs under it); "SHAVE & HAIRCUT" gone — the sign has that spot. At night
-  // the leaf catches the awning's lamps: a warm lit gold, never the murky brown it was.)
-  // (C4a: lit ONLY by the awning's strip right over it — M.lamps = the awning's level — at 0.85 now the dodge no longer lifts it; dark
-  // gilt after the strip goes off at 1 am / 2 am)
-  const cx = (w0 + w1) / 2, R0 = G0.R, word = 'HARBOR BARBERS', size = G0.size, cy = wv1 - G0.top - R0;
-  const lampK = clamp01(M.lamps != null ? M.lamps : M.T && M.T.lamps != null ? M.T.lamps : M.night) * clamp01(M.night || 0);
-  const gi = mix(mix(M.gilt, M.giltHi, 0.3 * (1 - M.night)), G0.lit, 0.85 * lampK), key = rgb(mix([20, 12, 10], [8, 6, 10], M.night || 0), 0.92);
-  const span = (w1 - w0) * G0.span / R0, step = span / (word.length - 1);
-  for (let i = 0; i < word.length; i++) {
-    const a = -span / 2 + i * step, u = cx + Math.sin(a) * R0, v = cy + Math.cos(a) * R0;
-    text(x, word[i], u, v, size, { fill: rgb(gi), stroke: key, lw: G0.key, rot: a });
-  }
-}
-/** 8P — the gold leaf's arch (wall units): font size, the apex's baseline under the window's head (top), the arch's radius (flat),
- *  its span (of the window's width), the keyline's width, the leaf's colour when the awning's lamps light it */
-export const GILT = Object.freeze({ size: 0.44, top: 0.55, R: 10, span: 0.84, key: 0.06, lit: [236, 184, 104] });
+// (C4b — THE GOLD LEAF OFF THE GLASS, the owner, Oct 28 10:41 pm — DECIDED: "HARBOR BARBERS" removed in every state; the barber pole says
+// barbershop. paintGilt + GILT gone; the glass keeps only its faint reflection: speakeasy.js#glassOver)
 
 // ------------------------------------------------------------------ 7b — THE WALL-WASHERS (the owner: "something's missing" at night)
 /** small warm lamps under the capitals, aimed DOWN, GRAZING the brick PIERS between the windows (never the windows): from dusk all
