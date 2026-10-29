@@ -88,7 +88,10 @@ export function createPaint(life) {
     // the dark room under the hem (a sliver), lit faintly by what's behind
     const glowC = o.glow === 'tv' ? (() => { const tv = mo ? tvLight(t, 11, { late: !!life.last.tvLate }) : { k: 0.7, tint: 0.4, warm: 0 }; return { col: tvCols(tv, t).near, a: Math.min(1, (0.5 + 0.5 * tv.k) * TV_LIFT) * k }; })()   /* (SP6: a quiet stretch never sinks the party's one blue window) */
       : o.glow === 'lamp' ? { col: [255, 196, 120], a: 0.85 * k } : { col: [40, 36, 50], a: 0 };
-    R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([9, 8, 14], glowC.col, 0.18 * glowC.a)));
+    // (NIGHT-A — the owner, Oct 29: by day the strip under his hem read as an OPEN HOLE — this near-black was opaque over the bake's glass.
+    // By day it is only a dim room seen THROUGH the same glass as the neighbours' lower panes (the bake's sky tint + sheen under this
+    // layer show through); at night as before — the dark room + the lamp / TV's glow under the hem)
+    { const dk = clamp01(day) * (1 - Math.min(1, glowC.a * 2)), a0 = c.globalAlpha; c.globalAlpha = a0 * (1 - 0.78 * dk); R(c, G.g0, G.h0, G.g1, G.h1, rgb(mixc([9, 8, 14], glowC.col, 0.18 * glowC.a))); c.globalAlpha = a0; }
     // THE SHADE: the cloth — 9c (the owner: the olive "reads a weird dark brown"; DECIDED: the building's own blind): by day the same CREAM /
     // TAN HOLLAND LINEN as the edge windows' blinds ([236,214,176] → [176,146,84]), fully down + evenly lit by the sun from outside (his
     // window reads CLOSED by being the only one fully drawn); dark at night, lit from behind

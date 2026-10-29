@@ -3,11 +3,13 @@
 // exactly as its credits.txt gives it (e.g. art/models/<name>/credits.txt). Groups show in the order they first appear.
 import { h } from './dom.js';
 
-// C4c — READY, NOT LISTED: the harvest display's 3D model test (art/models/harvest/credits.txt). Add it to CREDITS below if the owner
-// picks the model over the drawn display (&prop=model). Its licence (Tencent Hunyuan 3D 2.1 Community License) asks AI-generated content
-// shown publicly to be identified as AI-generated, and does not cover the EU, the UK + South Korea — the owner's call before it ships.
+// C4c — the harvest display's 3D model (art/models/harvest/credits.txt). Its licence (Tencent Hunyuan 3D 2.1 Community License) asks
+// AI-generated content shown publicly to be identified as AI-generated, and does not cover the EU, the UK + South Korea.
+// NIGHT-A — LISTED (the owner, Oct 29 4:34 pm: "we don't care about those few countries — it's a hobby project": Hunyuan3D models MAY
+// SHIP, with the AI-generated label here). Before any MONEY (the app stores, payments, a paid pack): re-check every Hunyuan asset's terms.
 export const HARVEST_MODEL_CREDIT = Object.freeze({ group: '3D MODELS', title: 'Harvest display (AI-generated)', by: 'Generated with Tencent Hunyuan3D 2.1 from a Grok Imagine reference image', licence: 'Tencent Hunyuan 3D 2.1 Community License — AI-generated', link: 'https://huggingface.co/tencent/Hunyuan3D-2.1' });
 export const CREDITS = [
+  HARVEST_MODEL_CREDIT,   // (NIGHT-A: live — the AI-generated label the licence asks for)
   // 3D MODELS (rendered offline into sprites — scripts/bake-model.mjs + scripts/bake/<recipe>.mjs; the raw models never ship) — word for word from its credits.txt
   // (art/models/<name>/credits.txt): the title, the author, the link, the licence
   { group: '3D MODELS', title: '"UFO" by sebslom', by: 'https://sketchfab.com/3d-models/ufo-75655f43c4fc4c56ab60746caf7119fe', licence: 'Licensed under CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/)', link: 'https://sketchfab.com/3d-models/ufo-75655f43c4fc4c56ab60746caf7119fe' },

@@ -210,8 +210,9 @@ function harvestModel() {
     mLoading = (async () => {
       let meta = MODEL_META, metaWhy = '';
       try { const r = await fetch(new URL('harvest.json', MODEL_BASE).href); if (!r.ok) throw new Error(String(r.status)); meta = await r.json(); } catch (e) { metaWhy = ` · harvest.json ${String((e && e.message) || e).slice(0, 40)}: built-in numbers`; }
-      const [day, night] = await Promise.all([modelSprite('day'), modelSprite('night')]);
-      mModel = { ...meta, day: day.img, night: night.img };
+      // (NIGHT-A: + the GOLDEN HOUR's sprite — between day + night; a missing one never holds the model: day → night as before)
+      const [day, night, gold] = await Promise.all([modelSprite('day'), modelSprite('night'), modelSprite('gold').catch(() => null)]);
+      mModel = { ...meta, day: day.img, night: night.img, gold: gold ? gold.img : null };
       mSet('in', `${meta.w}×${meta.h} ${day.fmt === night.fmt ? day.fmt : `day ${day.fmt}, night ${night.fmt}`}${metaWhy}`, t0); return mModel;
     })();
     mLoading.catch(e => {
@@ -240,6 +241,8 @@ export function createHarvest(deps) {
     if (mCv.width !== M.w || mCv.height !== M.h) { mCv.width = M.w; mCv.height = M.h; }
     const x = safeCtx(mCv); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, M.w, M.h);
     if (n < 0.999) x.drawImage(M.day, 0, 0);
+    // (NIGHT-A: the golden hour's own bake over the day by the tones' gold — a low warm sun; then the night by the darkness)
+    const gk = M.gold ? clamp01(T.gold || 0) * (1 - n) : 0; if (gk > 0.001) { x.globalAlpha = gk; x.drawImage(M.gold, 0, 0); x.globalAlpha = 1; }
     if (n > 0.001) { x.globalAlpha = n; x.drawImage(M.night, 0, 0); x.globalAlpha = 1; }
     // (the night sprite carries the lamps' light: with the lamps down — the dusk before they catch, the blackout — it darkens on its own pixels)
     const dim = n * (1 - lamp) * 0.72; if (dim > 0.01) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(10,8,22,${dim.toFixed(3)})`; x.fillRect(0, 0, M.w, M.h); x.globalCompositeOperation = 'source-over'; }
