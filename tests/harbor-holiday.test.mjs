@@ -126,10 +126,13 @@ test('the title\'s sign reads City 2.0\'s calendar (titleHoliday); the lamps\' g
 
 test('11a-2 — THE GIANT (the Bitcoin pumpkin) on the calendar: on its plinth from Oct 20 uncarved, carved overnight into Oct 28 (by 4 am), carved on the night, gone at 4 am Nov 1', async () => {
   const { holidayAt, halloweenPieces } = await import('../js/core/harbor-holiday.js');
-  const g = (m, d, h) => { const H = holidayAt({ y: 2026, m, d, h, mi: 0 }); const P = H.id === 'halloween' ? halloweenPieces(H, { hour: h }) : null; return P ? P.giant : null; };
+  const g = (m, d, h) => { const H = holidayAt({ y: 2026, m, d, h, mi: 0 }); const P = H.id === 'halloween' ? halloweenPieces(H, { hour: h, giant: true }) : null; return P ? P.giant : null; };
   assert.equal(g(10, 19, 12), null);
   assert.deepEqual([g(10, 20, 9).carved, g(10, 27, 23).carved, g(10, 28, 3).carved, g(10, 28, 5).carved, g(10, 31, 21).carved], [false, false, false, true, true]);
   assert.equal(g(11, 1, 5), null);
+  // C4b — OFF in the calendar (GIANT_ON false): no giant on its dates unless forced
+  const H = holidayAt({ y: 2026, m: 10, d: 28, h: 21, mi: 0 });
+  assert.equal(halloweenPieces(H, { hour: 21 }).giant, null, 'the giant is off');
 });
 test('11a-2 — BIG PIECES CHANGE OFF-CAMERA (latchBig): held while watching, changed at a load / a return / a jump; the rest of the pieces live', async () => {
   const { latchBig, BIG_KEYS } = await import('../js/core/harbor-holiday.js');

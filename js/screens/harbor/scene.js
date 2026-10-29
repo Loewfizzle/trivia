@@ -578,7 +578,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     HS = holidayAt(lc);
     const hr = lc ? lc.h + lc.mi / 60 + (lc.s || 0) / 3600 : 12;
     if (lc && duskDay !== `${lc.y}-${lc.m}-${lc.d}`) { duskDay = `${lc.y}-${lc.m}-${lc.d}`; try { const st = sunTimes(clock.now(), clock.tz, LK.lat, LK.lon); if (st.set) duskH = ((((st.set + lc.off * 60000) / 3.6e6) % 24) + 24) % 24; } catch { /* the default */ } }
-    const hp = HS.id === 'halloween' ? halloweenPieces(HS, { hour: hr }) : HS.id === 'dotd' ? dotdPieces(HS, { hour: hr, dusk: duskH }) : HS.id === 'thanksgiving' ? thanksgivingPieces(HS, { hour: hr }) : null;
+    const hp = HS.id === 'halloween' ? halloweenPieces(HS, { hour: hr, giant: clock.force.has('giant') }) : HS.id === 'dotd' ? dotdPieces(HS, { hour: hr, dusk: duskH }) : HS.id === 'thanksgiving' ? thanksgivingPieces(HS, { hour: hr }) : null;
     // (11a-2 — BIG PIECES CHANGE OFF-CAMERA (core/harbor-holiday.js#latchBig): the giant + the big set pieces only change at a load, a return
     // from the background or a jump of the clock (a preview, the panel) — never on screen)
     { const nowMs = clock.now(), wall = performance.now(); if (bigClock != null && Math.abs((nowMs - bigClock) - (wall - bigWall)) > 90e3) bigRelatch = true; bigClock = nowMs; bigWall = wall; }

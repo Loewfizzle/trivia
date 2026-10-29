@@ -3036,7 +3036,7 @@ G('holiday', async () => {
   // ---- WIN add-on — HALLOWEEN SET PIECES: the door's FIVE pumpkins at 390 (a stepped group on the steps + one each side, apart on screen,
   // above the dock) and the three BIG jack-o'-lanterns on the dressing spots (the hydrant, the bench's bale, the lamp post's bale: ≥ 15 pt
   // across, above the dock, drawn), their faces glowing after dark
-  { const Q = await open({ slot: 'hol-set', qs: `when=2026-10-27T21:00${GR}&wx=clear`, view: [390, 844] });
+  { const Q = await open({ slot: 'hol-set', qs: `when=2026-10-27T21:00${GR}&wx=clear&force=giant`, view: [390, 844] });
     await harborUp(Q.page); await sleep(1500);
     await waitFor(Q.page, `${P}.hprops && ${P}.hprops.stat.rects && ${P}.hprops.stat.rects.filter(r => r.big).length >= 2`, 'the big jack-o\'-lanterns drawn', 15000).catch(() => {});
     const hp = await ev(Q.page, `${P}.hprops`), cam = await ev(Q.page, `${P}.cam`), rects = (hp && hp.stat.rects) || [];
@@ -3055,10 +3055,11 @@ G('holiday', async () => {
     { const g = await ev(Q.page, `${P}.hprops && ${P}.hprops.giant`); ok(g && g.drawn > 0 && !g.carved && g.lit === 0 && g.rect && g.rect.y + g.rect.h < cam.dock.y, `THE GIANT on Oct 27: on its plinth (${g && g.drawn} frames), uncarved (${g && g.carved}), unlit (${g && g.lit}), above the dock`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}holiday-setpieces-390x844.png` });
     await Q.ctx.close(); }
+  // (C4b: the giant is OFF in the calendar — core/harbor-holiday.js#GIANT_ON; these checks show it with &force=giant)
   // ---- 11a-2 — THE GIANT on the centre circle (the owner: HUGE, the BITCOIN LOGO carved + lit from within), carved overnight into Oct 28:
   // its ₿ lit at night (the light on the cobbles), ~55 pt across at 402, its top under the WAIT / WALK lantern, above the dock; the dance
   // (forced here) RINGS it — the dancers evenly round it, nobody walking through it
-  { const Q = await open({ slot: 'hol-giant', qs: `when=2026-10-28T21:00${GR}&wx=clear&force=dance`, view: [402, 874] });
+  { const Q = await open({ slot: 'hol-giant', qs: `when=2026-10-28T21:00${GR}&wx=clear&force=dance,giant`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.hprops && ${P}.hprops.giant && ${P}.hprops.giant.lit > 0.3`, 'the giant lit', 15000).catch(() => {});
     const g = (await ev(Q.page, `${P}.hprops`)).giant, cam = await ev(Q.page, `${P}.cam`);
@@ -3687,7 +3688,7 @@ G('snow', async () => {
   // low fill once the carved ₿'s fire is lit; nothing by day
   { const fl = {};
     for (const [k, when] of [['dark', '2026-10-27T21:30'], ['carved', '2026-10-29T21:30'], ['day', '2026-10-27T13:00']]) {
-      const Q = await open({ slot: `fl-${k}`, qs: `when=${when}${GR}`, view: [402, 874] });
+      const Q = await open({ slot: `fl-${k}`, qs: `when=${when}${GR}&force=giant`, view: [402, 874] });
       await harborUp(Q.page); await sleep(1800);
       fl[k] = await ev(Q.page, `(${P}.hprops && ${P}.hprops.floods) ? ${P}.hprops.floods.k : -1`);
       await Q.ctx.close();

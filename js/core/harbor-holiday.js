@@ -97,6 +97,10 @@ export const SPIDER2_DAY = 29;
  *  plinth on Oct 20 (uncarved), is CARVED OVERNIGHT into Oct 28 (by 4 am — the carvers come in the small hours; the city wakes to it),
  *  lit every night from then (its candle from dusk), brightest on Halloween night; gone with the rest at 4 am Nov 1 */
 export const GIANT_DAYS = Object.freeze({ arrive: 20, carve: 28, carveH: 4 });
+/** C4b — THE GIANT OFF (the owner, Oct 28 8:43 pm — "Halloween's almost done, no one's going to see it"): DISABLED from now on — the
+ *  code + its bake stay for next October's decision. `&force=giant` (o.giant) still shows it on its dates (a preview + its e2e). With it
+ *  off go its closed floor, its floods + the dance's ring round it (they all read `pieces.giant`). */
+export const GIANT_ON = false;
 /** the day (of October) each pumpkin arrives (i 0..8) and the day it is carved — spread through the month, carving from ~the 18th */
 export const PUMPKIN_DAYS = Object.freeze(Array.from({ length: PUMPKINS_MAX }, (_, i) => {
   const arrive = 2 + Math.round(i * 6 + h01(i, 3) * 1.6);                     // Oct 2 → ~Oct 27 (five, a week apart)
@@ -121,7 +125,7 @@ export function halloweenPieces(H, o = {}) {
     // WIN — THE BIG JACK-O'-LANTERNS on the promenade's dressing spots: the farm delivery comes Oct 20 (carved at the stand), lit after dark
     bigs: day >= BIG_DAY,
     // 11a-2 — THE GIANT JACK-O'-LANTERN on the centre circle: { carved, bright } from Oct 20 (bright: Halloween night's extra candle)
-    giant: day >= GIANT_DAYS.arrive ? { carved: night || H.days >= GIANT_DAYS.carve - 1 + GIANT_DAYS.carveH / 24, bright: night ? 1.3 : 1 } : null,
+    giant: (GIANT_ON || o.giant) && day >= GIANT_DAYS.arrive ? { carved: night || H.days >= GIANT_DAYS.carve - 1 + GIANT_DAYS.carveH / 24, bright: night ? 1.3 : 1 } : null,
     // the window scenes (the build-up's weight: from mid-month, more each night, the most on the night)
     windows: night ? 1 : H.stage < 0.45 ? 0 : 0.25 + 0.6 * clamp01((H.stage - 0.45) / 0.55),
     // the people of the night (Halloween night only): trick-or-treaters from dusk → 9 pm, zombies shambling 8 pm → 2 am

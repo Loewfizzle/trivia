@@ -9157,7 +9157,7 @@ The promenade's FINAL layout (LOCKED by the owner, Oct 28 2:32 pm) — the stage
 - The bench overlays (crisp) don't carry the rain streaks / falling snow over the benches' own pixels (a few pt; the flakes pass behind).
 - A cab-stand waiter's taxi has no sound of its own yet (the city's sounds have no car-door slot).
 - The `water` walkers can pass a few pt in front of the old floor line at the left (still above the dock — the e2e checks the screen now).
-- **THE CLOUD RUN (harbor 40781830582): 4 of 7 jobs green; 3 red, all PROM's** — two fixed after the run (not re-run: the pass's two cloud
+- **THE CLOUD RUN (harbor 40781830582): 4 of 7 jobs green; 3 red, all PROM's** (the third — the foot slide — CLOSED by C4b: the giant is off, the couple's partner 0.06 of the body's speed) — two fixed after the run (not re-run: the pass's two cloud
   runs were spent): the promenade debug had TWO `cabStand` keys (the taxi's debug overwrote the bench's place — the taxi's is `cabTaxi`
   now) and the 9c crisp test listed its overlays (now + the two benches). THE THIRD IS OPEN: e2e `motion` "THE PLANTED FOOT NEVER SKATES"
   — a couple's partner at 0.29–0.30 of the body's speed (≤ 0.25; the pre-PROM build measures 0.05). CAUSE (measured): from Oct 24 the
