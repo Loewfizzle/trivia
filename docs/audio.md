@@ -349,7 +349,7 @@ pulse any more".
 ONE registry of every sound the city will ever make (the owner's CITY SOUNDS hunt list, docs/harbor/plan.md), each a named SLOT; the first
 recordings imported into theirs; every event that exists today calls its slot; an EMPTY slot is simply silent.
 - **The slots** (`core/city-sounds.js#SLOTS`, PURE): `{ id (kebab-case, stable), part, kind: 'loop' | 'once', gain (its mix level), what, by (what calls
-  it today) }` — 63 slots (8b2: duck-quack + raccoon-chitter removed with their animals). A one-shot may hold several TAKES (one slot, one picked at random, weighted, never the same twice running — `pickTake`);
+  it today) }` — 134 slots (116 filled, Oct 29) (8b2: duck-quack + raccoon-chitter removed with their animals). A one-shot may hold several TAKES (one slot, one picked at random, weighted, never the same twice running — `pickTake`);
   the alternative (a slot per take) would make every caller pick, and a fourth car would mean code changes. FILLED = it has takes in the GENERATED
   `core/city-sounds-files.js` (no network probe); `checkSlots()` guards ids / parts / kinds / gains / the takes' shape.
   | part | slots (**filled**) |
