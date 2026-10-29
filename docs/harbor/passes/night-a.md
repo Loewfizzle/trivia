@@ -104,7 +104,10 @@ then the panel's rows, then `LIGHT_DEFAULT`, and the bake key carries it (a flip
 ### Known issues
 - The cloud's first run (40967705853): the city job's DEBUG STRIPS check still held the old 232-pt cap (this pass raised it to 260 + made it
   a touch scroller on purpose) — the check updated; and C4d's NO IndexedDB POLLING read 5 transactions in 15 s on the runner (< 3 wanted;
-  the polling was ~18) — 0 on the laptop, this pass touched neither Firebase nor auth: a runner flake to watch, not a regression.
+  the polling was ~18) — 0 on the laptop, this pass touched neither Firebase nor auth. The second run (40969208988, the city job
+  only — the two-run cap): the strips check green; IndexedDB 4 in 15 s AGAIN (so a steady 4–5 on the runner since C4d's green run —
+  between: the HOTFIX, pushed without cloud tests, + this pass; look at it next pass: likely Firebase's heartbeat store on a fresh
+  runner profile, far below the ~18 of the polling C4d removed); LOAD WEATHER failed once (green in the first run on the same code: a flake).
 - The party stall from the owner's iPhone (build 2808ff8) not reproduced on 48df906 — watch /admin's stalls (they carry the build).
 - The bad-tz string itself is still unknown: the next report will spell its code points (`bad tz` on /admin).
 - The harvest model's WebP vs PNG on the owner's phone: still waiting on the readout's `harvest:` row from his phone (HOTFIX Oct 29).
