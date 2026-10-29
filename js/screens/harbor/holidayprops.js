@@ -241,7 +241,7 @@ export function createHolidayProps() {
   const stat = { rects: [] };
   let L = null, lay = '', slots = [], spots = [], posts = [], path = null, runs = [], bigs = [], giantG = null, decor = [];
   const giant = createGiant();   // (11a-2: THE GIANT JACK-O'-LANTERN on the centre circle — giant.js)
-  const harvest = createHarvest({ paintPumpkin });
+  const harvest = createHarvest({ paintPumpkin }), unwatch = [];
   const floods = createFloods();   // (9c: THE SHOW LIGHTING on the centre circle's piece — the giant, the harvest display: floods.js)   // (11a-2: THE HARVEST DISPLAY on the centre circle — harvest.js)
   let tgKey = '', tgList = [];
   const cache = new Map();
@@ -647,8 +647,10 @@ export function createHolidayProps() {
     /** 11a-2: the giant jack-o'-lantern's light this frame (people.js lights the dancers + walkers by it) + whether it stands */
     giantLight: () => giant.pointLight(),
     giantOn: (HS, HP) => !!(HP && (HP.giant || HP.harvest)),   // (a centrepiece the hourly dance RINGS: the giant pumpkin, the harvest display)
-    onHarvestModel,   // (C4d: the harvest model's load state → the scene's LOAD LOG)
+    // (C4d: the harvest model's load state → the scene's LOAD LOG; the watcher leaves with these props — a module-level watcher kept every
+    // old scene alive: +125 MB over the perf group's 20 title ↔ setup cycles)
+    onHarvestModel: fn => { const off = onHarvestModel(fn); unwatch.push(off); return off; },
     debug: () => ({ giant: giant.debug(), harvest: harvest.debug(), floods: floods.debug(), tg: tgList.map(p => p.id), stat: { ...stat, rects: (stat.rects || []).slice() }, bigs: bigs.map(b => ({ spot: b.spot, pass: b.pass, d: b.d })), slots: slots.length, spots: spots.length, posts: posts.length, runs: runs.map(r => r.n), petals: path ? path.pts.length : 0, sprites: cache.size }),
-    destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); giant.destroy(); harvest.destroy(); },
+    destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); giant.destroy(); harvest.destroy(); for (const off of unwatch.splice(0)) off(); },
   };
 }

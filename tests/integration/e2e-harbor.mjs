@@ -48,6 +48,11 @@ const TIMING_WARN = process.env.TIMING === 'warn' || (!!process.env.CI && proces
 const warnings = [];
 const soft = kind => (cond, what) => { if (cond || !TIMING_WARN) return ok(cond, what); checks.push({ what, ok: true, warn: kind }); warnings.push(`[${kind}] ${what}`); log('WARN', `${what} (a ${kind} check: a warning on this machine)`); };
 const okT = soft('timing'), okF = soft('flaky');
+// C4d — NOT A CHECK ON THE CLOUD (FR4's F14 + F15: the 2-core runner's p75 is 50–67 ms and it draws 8–20 frames in 0.6 s on every run —
+// these speed questions are never answered there, only warned about): skipped on CI with a named reason (listed in the summary), run
+// as before on a real machine. TIMING=strict runs them anyway.
+const ON_CI = !!process.env.CI && process.env.TIMING !== 'strict';
+const skipCI = (what, why) => { checks.push({ what, ok: true, warn: 'skipped' }); warnings.push(`[skipped] ${what} — on CI: ${why}`); log('SKIP', `${what} (on CI: ${why})`); };
 const GR = '&tz=America/Detroit&at=42.96,-85.67';
 const NIGHT = `when=2026-10-21T22:00${GR}`;
 
@@ -410,7 +415,8 @@ async function neonPass5Party() {
   })`);
   const share = m.shares.reduce((a, b) => a + b, 0) / Math.max(1, m.shares.length);
   ok(share > 0.05, `THE PARTY MOVES at phone size: ${(100 * share).toFixed(1)} % of the skyline's pixels change between frames ~250 ms apart`);
-  ok(m.beats[0] > 0.5 && m.beats[1] < m.beats[0] * 0.35 && m.beats[3] < m.beats[0] * 0.35 && m.beats[2] > m.beats[0] * 0.5,
+  // (C4d — F8: beats 2 + 4 are BEAT_WEIGHT 0.45 BY DESIGN (core/harbor-beat.js); 0.35 passed only when sampled mid-decay — the design + a margin)
+  ok(m.beats[0] > 0.5 && m.beats[1] < m.beats[0] * 0.55 && m.beats[3] < m.beats[0] * 0.55 && m.beats[2] > m.beats[0] * 0.5,
     `HALF-TIME: the punch on beats 1 + 3 (${m.beats[0].toFixed(2)}, ${m.beats[2].toFixed(2)}), beats 2 + 4 calm (${m.beats[1].toFixed(2)}, ${m.beats[3].toFixed(2)})`);
   ok(m.hi > 0.35 && m.lo < 0.15, `THE NEON LOGO PUNCHES with the city: its glow layer ${m.lo.toFixed(2)} → ${m.hi.toFixed(2)} (gentler than the skyline)`);
   ok(m.tired <= 2, `THE TIRED TUBE: ${m.tired} tired letter(s) right now (0–2, rotating)`);
@@ -793,6 +799,7 @@ G('harbor', async () => {
     await harborUp(H.page);
     await waitFor(H.page, '(() => { const n = window.__district.harbor().neon; return n.items > 20 && n.built >= n.items && !n.queued; })()', 'the neon built', 15000);
     await waitFor(H.page, "window.__district.harbor().boats.boats.some(b => b.on && b.id === 'taxi')", 'the taxi out', 10000).catch(() => {});
+    await waitFor(H.page, 'window.__district.harbor().wheel.mb > 0', "the wheel's lazy sprites baked", 15000).catch(() => {});   // (C4d — F11: wheel.js sets mb at the END of its lazy bake)
     const h = await ev(H.page, 'window.__district.harbor()');
     const w = h.wheel;
     ok(w.legs[0] > w.head[0] && w.legs[1] < w.head[1] && w.r > 40 && w.mb > 0,
@@ -1228,7 +1235,8 @@ G('perf', async () => {
     const ti = await ev(C2.page, 'window.__district.tiering()');
     const calm = ti.hist.length === 1 && ti.why.length === 0 && ti.tier === 2 && ti.dprTier === 2;
     const machine = !!(ti.judge && ti.judge.p75 > 28);   // (this machine itself can't hold 60 fps here: a timing check, not the city's)
-    (machine ? okT : ok)(calm && ti.grace >= 15000, `A CALM LOAD STEPS NOTHING (2x CPU, 30 s): tier ${ti.tier}/${ti.dprTier}, steps ${ti.hist.join('->')}${ti.why.length ? ` (${ti.why.join(' | ')})` : ''}, judged from ${ti.grace / 1000} s${ti.judge ? `; the judge: ${ti.judge.text}` : ''}`);
+    if (ON_CI) { ok(ti.grace >= 15000, `A CALM LOAD: nothing judged in the first ${ti.grace / 1000} s (≥ 15)`); skipCI('A CALM LOAD STEPS NOTHING', `the runner's p75 ${ti.judge ? ti.judge.p75 : '?'} ms can't hold 60 fps`); }
+    else (machine ? okT : ok)(calm && ti.grace >= 15000, `A CALM LOAD STEPS NOTHING (2x CPU, 30 s): tier ${ti.tier}/${ti.dprTier}, steps ${ti.hist.join('->')}${ti.why.length ? ` (${ti.why.join(' | ')})` : ''}, judged from ${ti.grace / 1000} s${ti.judge ? `; the judge: ${ti.judge.text}` : ''}`);
     await cd.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await C2.ctx.close(); }
   // ================================================================ 5. frame pacing at 4× CPU, memory over 20 cycles, a hidden tab
   const Q = await open({ slot: 'hq', qs: `when=2026-10-24T23:00${GR}` });   // a Saturday at the party's peak
@@ -1271,12 +1279,16 @@ G('perf', async () => {
   await setTierBack();
   async function setTierBack() { await ev(Q.page, 'window.__district.setTier(0)'); await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 're-bake', 15000); }
   const memH0 = await ev(Q.page, 'window.__district.harbor()'), mem0 = memH0.mem.mb;
+  // (C4d — the laptop's "Protocol error (Runtime.callFunctionOn): Promise was collected" (Chromium 149): each cycle AWAITED a dynamic
+  // import() inside page.evaluate right after a forced GC — CDP lost the pending promise. The store is imported ONCE, before the GC, and
+  // the cycles call it synchronously; the screens are waited for as before)
+  await Q.page.evaluate(() => import('/js/store.js').then(m => { window.__e2eStore = m; return true; }));
   await cdp.send('HeapProfiler.collectGarbage');
   const q0 = (await cdp.send('Runtime.getHeapUsage')).usedSize;
   for (let i = 0; i < 20; i++) {
-    await Q.page.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'setup', setupMode: 'host' })));
+    await Q.page.evaluate(() => { window.__e2eStore.setState({ view: 'setup', setupMode: 'host' }); return true; });
     await waitFor(Q.page, "!!document.querySelector('.setup-screen') && !window.__district", 'the setup screen', 8000).catch(() => {});
-    await Q.page.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'title' })));
+    await Q.page.evaluate(() => { window.__e2eStore.setState({ view: 'title' }); return true; });
     await waitFor(Q.page, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'the title again', 10000);
   }
   await waitFor(Q.page, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'back on the title', 15000);
@@ -1300,6 +1312,7 @@ G('perf', async () => {
 
   // ================================================================ 5b. BATTERY (cleanup pass 1): a calm night draws every other frame; a hidden page draws none
   { const C = await open({ slot: 'hc', qs: `${NIGHT}&force=no-planes,no-birds,no-people` });   // (PEO: anyone walking keeps 60 fps now — the saver is tested on an empty promenade)
+    await C.page.bringToFront();   // (C4d: the group's perf page stays open — behind it, Chromium 149's headless tab got no animation frames: 0 drawn)
     await harborUp(C.page);
     await waitFor(C.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 15000);
     await waitFor(C.page, "window.__district.harbor().rate.fast === ''", 'the city calm (the neon booted)', 20000);   // (the boot's sputters count as motion)
@@ -1312,14 +1325,14 @@ G('perf', async () => {
       if (r1.fast === '') break;
     }
     const fps = (r1.drawn - r0.drawn) / 3;
-    okT(r1.fast === '' && fps > 22 && fps < 40, `BATTERY: a calm night draws ${fps.toFixed(0)} frames a second (every other rAF; fast: '${r1.fast || 'calm'}')`);
+    if (ON_CI) skipCI('BATTERY: a calm night draws every other frame', `the runner drew ${fps.toFixed(0)} a second`); else okT(r1.fast === '' && fps > 22 && fps < 40, `BATTERY: a calm night draws ${fps.toFixed(0)} frames a second (every other rAF; fast: '${r1.fast || 'calm'}')`);
     await C.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
     await sleep(400); const h0 = await ev(C.page, 'window.__district.harbor().rate'); await sleep(600); const h1 = await ev(C.page, 'window.__district.harbor().rate');
     ok(h1.drawn === h0.drawn && h1.running === false, `BATTERY: hidden, nothing is drawn (${h0.drawn} → ${h1.drawn})`);
     await C.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
     await sleep(600); const v = await ev(C.page, 'window.__district.harbor().rate');
     ok(v.running && v.fast !== '', `BATTERY: visible again, it resumes (fast: ${v.fast})`);
-    okT(v.drawn > h1.drawn + 20, `BATTERY: visible again, at 60 fps for a moment (${v.drawn - h1.drawn} frames in 0.6 s)`);
+    if (ON_CI) skipCI('BATTERY: visible again, at 60 fps for a moment', `${v.drawn - h1.drawn} frames in 0.6 s on the runner`); else okT(v.drawn > h1.drawn + 20, `BATTERY: visible again, at 60 fps for a moment (${v.drawn - h1.drawn} frames in 0.6 s)`);
     await C.ctx.close(); }
   await Q.ctx.close();
 });
@@ -1915,7 +1928,7 @@ G('speakeasy', async () => {
         ok(Math.max(...nd) > 10, `THE POLE's light on the brick beside it +${nd.map(v => v.toFixed(1)).join(' / +')}`);
         // (6b: a WARNING — one far point read +15–18 in the cloud only (0.0 on every local run) over two FP3b runs; the tier is pinned to 2
         // above, the likeliest cause; a warning until a cloud run shows it's gone — the look itself is checked by eye at phone size)
-        okF(fd.every(v => Math.abs(v) < 6), `NO SMOKE round the pole: ~15–28 pt away ${fd.map(v => v.toFixed(1)).join(' / ')} (≈ 0)`); }
+        ok(fd.every(v => Math.abs(v) < 6), `NO SMOKE round the pole: ~15–28 pt away ${fd.map(v => v.toFixed(1)).join(' / ')} (≈ 0)`); }
       await ev(Q.page, 'window.__district.harbor().speakeasy.quiet(false)');
       await ev(Q.page, 'window.__district.harbor().speakeasy.pole({ on: true })');
       // (the condition, not a fixed pause: the parallel run's loaded frames can take longer than 400 ms to show it)
@@ -1969,7 +1982,7 @@ G('windows', async () => {
   // visible panes (bar / jazz, back / apartment) within 2 % of each other, the two rows alike, at 402 / 390 / 430
   for (const [when, mode] of [['2026-10-22T13:00', 'day'], ['2026-10-22T21:30', 'night']]) {
     const Q = await open({ slot: `wu-${mode}`, qs: `when=${when}${GR}`, view: [402, 874] });
-    await harborUp(Q.page); if (mode === 'night') await lit(Q.page); else await sleep(1500);
+    await harborUp(Q.page); if (mode === 'night') await lit(Q.page); else await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 20000).catch(() => {});
     const runsAt = () => ev(Q.page, `(() => { const hb = window.__district.harbor(), ws = hb.speakeasy.windows(), cv = document.querySelector('.nd-scene canvas'), x = cv.getContext('2d'), k = cv.width / cv.clientWidth, day = ${mode === 'day'};
       const rows = [...new Set(ws.map(q => q.rect.y))].sort((a, b) => a - b);
       return { W: hb.cam.W, rects: ws.map(q => ({ id: q.id, x: +q.rect.x.toFixed(2), y: +q.rect.y.toFixed(2), w: +q.rect.w.toFixed(2), h: +q.rect.h.toFixed(2) })), rows: rows.map(ry => { const r0 = ws.find(q => q.rect.y === ry).rect, y = Math.round((ry + r0.h * 0.5) * k), x1 = Math.round(Math.min(innerWidth, 140) * k), d = x.getImageData(0, y, x1, 1).data, runs = []; let cur = null;
@@ -1978,17 +1991,24 @@ G('windows', async () => {
         return runs.map(q => ({ x: +(q.a / k).toFixed(1), w: +((q.b - q.a + 1) / k).toFixed(1) })).filter(q => q.x > 2); }) }; })()`);
     // (at night the rooms' own content — a dark back room, the people, the TV — breaks a brightness run: the night measure is the rects
     // the rooms are painted into (paintRoom(glassOf(w)) — the same for every window) + their gaps; by day the painted glass itself)
-    const judge = (o) => { if (mode === 'night') { const rs = o.rects.sort((p, q) => p.y - q.y || p.x - q.x), rows = [...new Set(rs.map(r => r.y))].map(y => rs.filter(r => r.y === y)); const ws = rs.map(r => r.w), hs = rs.map(r => r.h), mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rows.map(r => r.slice(1).map((q, i) => +(q.x - (r[i].x + r[i].w)).toFixed(1))).flat(); const gmn = Math.min(...gaps), gmx = Math.max(...gaps); return { ok: (mx - mn) / mx <= 0.02 && (gmx - gmn) / gmx <= 0.02 && (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs) <= 0.02, mn, mx, gaps, ws }; }
+    // (C4d — F12, never passing on CI: the runs are in device px (0.5 pt steps at dpr 2) — 2 % of ~26 pt is ONE device px, so an edge's
+    // rounding at each end failed it: a 1-pt allowance (two device px); the rects the rooms are painted into checked by day too; the
+    // viewport change waits for the re-bake itself (never a fixed sleep) — then HARD again)
+    const rectJudge = (o) => { { const rs = o.rects.slice().sort((p, q) => p.y - q.y || p.x - q.x), rows = [...new Set(rs.map(r => r.y))].map(y => rs.filter(r => r.y === y)); const ws = rs.map(r => r.w), hs = rs.map(r => r.h), mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rows.map(r => r.slice(1).map((q, i) => +(q.x - (r[i].x + r[i].w)).toFixed(1))).flat(); const gmn = Math.min(...gaps), gmx = Math.max(...gaps); return { ok: (mx - mn) / mx <= 0.02 && (gmx - gmn) / gmx <= 0.02 && (Math.max(...hs) - Math.min(...hs)) / Math.max(...hs) <= 0.02, mn, mx, gaps, ws }; } };
+    const judge = (o) => { const R = rectJudge(o); if (mode === 'night') return R;
       const rs = o.rows.map(r => r.slice(-2)); const ws = rs.flat().map(r => r.w);
       // (SP5: by day the boss's pane is his DRAWN SHADE — 9c: the cream linen blind (was olive) instead of blue glass: the predicate above counts it)
-      if (ws.length < 4) return { ok: false, why: `only ${ws.length} panes seen` }; const mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rs.map(r => r.length === 2 ? +(r[1].x - (r[0].x + r[0].w)).toFixed(1) : null); return { ok: (mx - mn) / mx <= 0.02, mn, mx, gaps, ws }; };
+      if (ws.length < 4) return { ok: false, why: `only ${ws.length} panes seen` }; const mn = Math.min(...ws), mx = Math.max(...ws); const gaps = rs.map(r => r.length === 2 ? +(r[1].x - (r[0].x + r[0].w)).toFixed(1) : null); return { ok: R.ok && mx - mn <= Math.max(0.02 * mx, 1.01), mn, mx, gaps, ws, rects: R.ok }; };
     const seen = [];
     for (const [w, h] of [[402, 874], [390, 844], [430, 932]]) {
-      if (w !== 402) { await Q.page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await waitFor(Q.page, `window.__district.harbor().cam.W === ${w}`, 'the re-layout', 8000).catch(() => {}); await sleep(1800); }
-      const o = await runsAt(); seen.push({ w: o.W, ...judge(o) });
+      if (w !== 402) { await Q.page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await waitFor(Q.page, `window.__district.harbor().cam.W === ${w}`, 'the re-layout', 8000).catch(() => {}); await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'the re-bake done', 20000).catch(() => {}); }
+      // (C4d — F12's real cause: just after the scene reports settled the canvas is still the reveal's black — one cream blind visible,
+      // "only 1 pane seen"; ~3 s later every pane reads. Wait for the panes themselves: four painted runs on the two rows, ≤ 12 s)
+      let o = await runsAt();
+      for (const t0 = Date.now(); Date.now() - t0 < 12000 && o.rows.map(r => r.slice(-2)).flat().length < 4; ) { await new Promise(r => setTimeout(r, 250)); o = await runsAt(); }
+      seen.push({ w: o.W, ...judge(o) });
     }
-    // (a timing check on the cloud: the day re-bake after a viewport change can still be mid-way on the runner — 'only 2 panes seen')
-    okT(seen.every(s => s.ok), `THE UPPER PANES EQUAL ON SCREEN (${mode}): ${seen.map(s => `${s.w}: ${s.ok ? 'ok' : 'UNEVEN'} ${s.ws ? `${s.mn}–${s.mx} pt (gaps ${s.gaps.join('/')})` : s.why}`).join(' · ')}`);
+    ok(seen.every(s => s.ok), `THE UPPER PANES EQUAL ON SCREEN (${mode}): ${seen.map(s => `${s.w}: ${s.ok ? 'ok' : 'UNEVEN'} ${s.ws ? `${s.mn}–${s.mx} pt (gaps ${s.gaps.join('/')})` : s.why}`).join(' · ')}`);
     await Q.ctx.close();
   }
   // ---- an ordinary night (Thu 9:30 pm): the schedule runs — something on, or about to start, every ~10–30 s; the rooms' states
@@ -2780,16 +2800,21 @@ function motionReport(frames) {
   const by = new Map(); for (const f of D) for (const r of f.rigs) { if (!by.has(r.id)) by.set(r.id, []); by.get(r.id).push({ t: f.t, ...r }); }
   const walkers = [], dancers = [];
   for (const [id, seq] of by) {
-    const sp = [], slide = [], slideT = [], ang = []; let plants = 0, walkT = 0, jump = 0, prevA = null, maxRs = 0;
+    const sp = [], slide = [], slideT = [], ang = []; let plants = 0, walkT = 0, jump = 0, prevA = null, maxRs = 0, wandsT = null;
     for (let i = 1; i < seq.length; i++) {
-      const a = seq[i - 1], b = seq[i], dt = (b.t - a.t) / 1000; if (dt <= 0 || dt > 0.3) { prevA = null; continue; }
+      const a = seq[i - 1], b = seq[i], dt = (b.t - a.t) / 1000; if (dt <= 0 || dt > 0.3) { prevA = null; wandsT = null; continue; }
+      // (C4d — F7: a "jump" counted only once the dancer has danced ≥ 1 s (still arriving when the trace starts at dance.k > 0.9) and only
+      // after a NORMAL-length frame (the runner's 50–100 ms pacing made dt < 0.06 itself an accident: a short frame after a long one)
+      const dt0 = i > 1 ? (a.t - seq[i - 2].t) / 1000 : 1;
       if (a.pose === 'wands' && b.pose === 'wands') {
+        if (wandsT == null) wandsT = a.t;
+        const settled = b.t - wandsT >= 1000 && dt0 > 0 && dt0 < 0.06;
         const an = [0, 1].map(k => Math.atan2(b.hands[k][1] - b.shs[k][1], b.hands[k][0] - b.shs[k][0])), ln = [0, 1].map(k => Math.hypot(b.hands[k][1] - b.shs[k][1], b.hands[k][0] - b.shs[k][0]));
         // (an arm pointing at / away from us mid-spin projects to a 1–2 px stub — its screen angle means nothing: skipped under 0.12 heights)
-        if (prevA) for (let k = 0; k < 2; k++) { if (ln[k] < 0.12 || prevA.ln[k] < 0.12) continue; let d = an[k] - prevA[k].a; d = Math.atan2(Math.sin(d), Math.cos(d)); ang.push(Math.abs(d) / dt); if (dt < 0.06 && Math.abs(d) > 1) jump++; if (Math.abs(d) / dt > maxRs) maxRs = Math.abs(d) / dt; }
+        if (prevA) for (let k = 0; k < 2; k++) { if (ln[k] < 0.12 || prevA.ln[k] < 0.12) continue; let d = an[k] - prevA[k].a; d = Math.atan2(Math.sin(d), Math.cos(d)); ang.push(Math.abs(d) / dt); if (settled && dt < 0.06 && Math.abs(d) > 1) jump++; if (Math.abs(d) / dt > maxRs) maxRs = Math.abs(d) / dt; }
         prevA = { ...an.map((v, k) => ({ a: v, ln: ln[k] })), ln }; continue;
       }
-      prevA = null;
+      prevA = null; wandsT = null;
       if (!(a.pose === 'walk' && b.pose === 'walk' && a.v > 0.1 && b.v > 0.1)) continue;
       const d = Math.hypot(b.fx - a.fx, b.fy - a.fy); sp.push(d / dt); walkT += dt;
       for (let k = 0; k < 2; k++) {
@@ -2972,10 +2997,15 @@ G('holiday', async () => {
   { const Q = await page('hol-tap', '2026-10-31T21:00', '&force=sign-web');
     await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.spider && ${P}.spiderAt`, 'the spider', 15000).catch(() => {});
     await Q.page.touchscreen.tap(30, 120); await sleep(900);            // (a priming tap: the idle title swallows the first touch after 10 s)
-    const at = await ev(Q.page, `${P}.spiderAt`);
+    // (C4d — F10: SP6's twin fix here too — wait till it stands still, read where it IS just before the tap, one more tap if it missed)
+    await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the spider still', 8000).catch(() => {});
+    let at = await ev(Q.page, `${P}.spiderAt`);
     let dropped = false, onWord = false;
     let dangled = false, landed = false;
-    if (at) { await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'land', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false);
+    for (let tries = 0; tries < 2 && at && !dropped; tries++) {
+      if (tries) { await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the spider still', 8000).catch(() => {}); at = await ev(Q.page, `${P}.spiderAt`); }
+      await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'land', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
+    if (at && dropped) {
       // (WIN3 — the owner: it DANGLES on its thread — head down, the legs tucked in (the mean reach under half the stance), a slow turn — and
       // lands feet first: the legs still pose-locked (never the full stance in the air) as it settles onto the tubes)
       dangled = await waitFor(Q.page, `(() => { const s = ${P}.dress.spider; return s.mode === 'drop' && s.pose === 'tuck' && s.reach < 0.5 && s.spin > 0.5; })()`, 'the dangle', 2200).then(() => true).catch(() => false);
@@ -2997,7 +3027,9 @@ G('holiday', async () => {
     // (WIN3: its first run may follow a turn-round at the turn rate — wait for the movement itself, up to 7 s)
     await waitFor(Q.page, `Math.abs(${P}.dress.spider.x - ${x0}) > 2`, 'crawling along', 7000).catch(() => {});
     const st2 = await ev(Q.page, `${P}.dress.spider`), wordPx = await ev(Q.page, `(() => { const w = document.querySelector('.nd-word'); const r = w && w.getBoundingClientRect(); const s = ${P}.spiderAt; return r && s ? { in: s.y > r.top - 6 && s.y < r.bottom + 6 && s.x > r.left && s.x < r.right, sy: s.y, top: r.top, bottom: r.bottom } : null; })()`);
-    ok(at && dropped && onWord && st2 && st2.mode === 'crawl' && Math.abs(st2.x - x0) > 2 && wordPx && wordPx.in, `THE SPIDER'S TAP (touch, ${at ? `${at.x.toFixed(0)},${at.y.toFixed(0)}` : 'no spider'}): it drops to the SPEAKEASY word (${st && st.mode} → ${st2 && st2.mode}, y ${st2 && st2.y} on the word ${st2 && st2.word}; on screen ${wordPx && wordPx.sy} within ${wordPx && wordPx.top}–${wordPx && wordPx.bottom}) and crawls along it (x ${x0} → ${st2 && st2.x})`);
+    // (C4d — F10's cause: ITS NERVES — dress-halloween.js#createSpider — turn a crawl into a SKITTER on any flicker near it: the sign's tired
+    // tube every ~25 s (title.js#tiredTick), a blink, lightning. Both are the spider walking the word: either passes)
+    ok(at && dropped && onWord && st2 && ['crawl', 'skitter'].includes(st2.mode) && Math.abs(st2.x - x0) > 2 && wordPx && wordPx.in, `THE SPIDER'S TAP (touch, ${at ? `${at.x.toFixed(0)},${at.y.toFixed(0)}` : 'no spider'}): it drops to the SPEAKEASY word (${st && st.mode} → ${st2 && st2.mode}, y ${st2 && st2.y} on the word ${st2 && st2.word}; on screen ${wordPx && wordPx.sy} within ${wordPx && wordPx.top}–${wordPx && wordPx.bottom}) and crawls along it (x ${x0} → ${st2 && st2.x})`);
     // THE SECOND SPIDER on the last N's web: its own tap, its own trip; the two never in step
     const at2 = await ev(Q.page, `${P}.spiders[1] || null`);
     let trip2 = false;
