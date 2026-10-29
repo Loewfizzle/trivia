@@ -76,7 +76,8 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | FR4 | ✅ (Oct 28 — 31e208a; docs/harbor/review-4.md) a FABLE READ-ONLY REVIEW #4 (everything since review #3, Oct 24: 9a → PROM — the weather, winter, the holidays, the legends' sounds, CONN, BNAME, the bake tool, the tower; the cloud's recurring flakes; memory + frame time on the phone path, "can the foreground be 3×?"; the docs vs the code; the owner's PROM notes — "OWNER'S NOTES — OCT 28 (PROM's review)") → docs/harbor/review-4.md | Fable high | ~1.5 h |
 | C4a | ✅ (Oct 28 — docs/harbor.md#c4a) THE SHOPFRONT + THE GROUND (review-4 §E items 1–6, the windows.js split first): the barbershop as a real 2.5D room (dim at night, the mirror door), the awning lit from below + brighter, the lit blind, the wet sheen (no implied-lamp streaks), the crosswalk's soft light, the cars lit through it | Opus 5.5 high | ~3 h |
 | C4b | ✅ (Oct 29 — docs/harbor.md#c4b) THE PEOPLE + THE COMPASS + THE GIANT OFF: the giant ₿ pumpkin disabled (first), the compass + the water bench + the cart re-placed (re-measured first), the sitters, the doorman who opens the door, &force=waterbench, THE PEOPLE RULE after the UFO | Opus 5.5 high | ~3 h |
-| C4c | ← NEXT: THE CODE / TESTS / DOCS: the cloud's test fixes, the readout, dead code, &dpr=3, the docs trims | Opus 5.5 high | ~2 h |
+| C4c | ← NEXT: THE OWNER'S BUGS + THE MEASURING TOOLS (C4b's review: the blackout leaks, the bus door, the dogs, the hay bale, the hydrant's light, the maple's edge, the solid benches, the door's outward swing; &dpr=3, the phone bench, the memory budget, the tier's climb; the harvest display model test) | Opus 5.5 high | ~3 h |
+| C4d | review-4's code / tests / docs (§E items 12–16 + 18: Firebase Auth's polling, the cloud's five test fixes, the readout's honest total, dead code, the A/B flags list, the docs + CLAUDE.md trims, harbor.md's split, the flaky checks) | Opus 5.5 high | ~2.5 h |
 | SKY | THE LEGENDS: THE BLACKBIRD (one flyby animation — the static tell, the vapor cone + shock ring + the late double boom, the Mach-diamond plumes, above the sign — its rare solo sightings, the hour-watcher's reward, joining every TR-3B chase once the jets are ~⅓ across), THE F-22 MODELS everywhere (the tight triangle + the bank), THE TR-3B AT FULL RESOLUTION (one solid body, no shadow on the backdrop), THE MOTHMAN on the needle (Grok's model, standing, wings spread, red eyes), THE SHADOWBOXER (9–11 pm, 3-min rounds + 1-min breaks, the full two hours; THE WINDOW RULE II), the upper windows on the crisp layer — "OWNER'S NOTES — OCT 28 (PROM's review)" | Opus 5.5 high | ~4–5 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | PERF | a SHORT SPEED PASS set by C4c's phone bench (`&bench=1`): the cheap wins FR4 listed (one glow-sprite cache, the still 'lighter' pools baked, the bar's day repaint), the spectacle cap + the budgets from the bench — "OWNER'S NOTES — OCT 28 (C4a's review)" | Opus 5.5 high | ~1–1.5 h |
@@ -94,6 +95,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | L | GAME LINEUP SESSION (a chat with Claude, no build — the owner, Oct 23): which games stay / go / are new, final names (e.g. PRISM vs PRISM DROP), how each roughly plays — BEFORE Lobby 2.0 + Progression 2.0, which are built around the games. The owner's order: finish the city → this session → lobby, progression, City Control, settings → the games; release once ~5 games are complete, no date | chat | ~1 h |
 | 11c | spring, summer + patriotic: Valentine's, St. Patrick's, Easter, Memorial Day, July 4th (air show + fireworks), September 11, Veterans Day | Opus 5.5 high | 60–90 min |
 | 12 | easter eggs, sounds, desktop, switch-over | Opus 5.5 medium | 60–90 min |
+| SCHED | THE SCHEDULE REVIEW (the owner, Oct 29 — DECIDED): the whole city's timing as one (workers, people, the windows' routines, the legends + sky calendars, the holidays) — a readable timetable + a "what you'd see" sample week exported first, then a LIVE GROK ↔ CLAUDE DEBATE, one summary of agreed / disputed / the owner's decisions, then a build pass; discussion only until the owner decides | Grok + Claude, then Opus 5.5 high | ~1 h talk + a pass |
 | C3 | final cleanup | Opus 5.5 medium | 30–45 min |
 | 13 | CITY CONTROL (admin) | Opus 5.5 medium | 45–60 min |
 | GO PRIVATE | (moved, the owner Oct 28 — DECIDED) the repo goes PRIVATE right before the public launch (not before Board 2.0); anti-cheat never depends on the code being secret; a self-hosted runner if sooner | — | — |
@@ -3868,3 +3870,74 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   both benches' crisp overlays (lit by the city's own darkness, never their own), the cab stand's new implied lamp, the barbershop's lamp +
   the mirror door's spill (C4a), the lit blinds. Add A TEST: at the blackout's depth no known light zone (the crossing, the benches, the
   shop, the awning, the blinds, the implied pools) is brighter than the dark city around it (a luminance probe at 402, &force=tr3b&lgnow=1).
+
+## OWNER'S NOTES — OCT 29 (C4b's review)
+- HARBOR BARBERS OFF (the owner, Oct 28 10:41 pm — DECIDED): remove the gilt lettering from the barbershop window entirely (not moved to
+  the valance) — the barber pole says barbershop. Its glass layer keeps only the faint reflection. → C4b add-on.
+- BUG — THE NEW LIGHTS IGNORE THE TR-3B BLACKOUT (the owner, Oct 28 10:55 pm, iPhone screenshot mid-drain): the crosswalk's light (C4a)
+  stays bright + the CAB-STAND BENCH on its crisp overlay (PROM's still.js) stays fully lit (the water bench too) while the whole city is
+  dark → C4b ADD-ON: every light + overlay added since 9d follows the drain / blackout (core/harbor-legend.js#blackAt, harbor-dark.js):
+  the crossing's pools + its stripes' lift, the cars' crossing light, the benches' crisp overlays (drawn with the city's darkness, never
+  their own), the cab stand's new implied lamp, the barbershop room's lamp + the mirror door's spill (C4a), the lit blinds; + A TEST: at
+  the blackout's depth no known light zone (the crossing, the benches, the shop, the awning, the blinds, the implied pools) is brighter
+  than the dark city around it (a luminance probe at 402).
+- THE BLACKBIRD IN THE TR-3B CHASE — ITS HEIGHT (the owner, Oct 28 10:55 pm): during the chase the NEON sign is DARK (the drain), so it's
+  not in the way → in the chase the Blackbird may fly IN FRONT of the dark sign (Claude's pick: across the NEON letters' height, above the
+  jets + clear of the TR-3B's exit; its plume's glow catching the dark glass tubes as it passes — one subtle bonus). SKY checks the sign's
+  real state at that moment: if the sign is already powering back up when the jets are ⅓ across, it keeps the normal path ABOVE the sign.
+  The solo flybys keep the path above the lit sign. (ONE animation; the trigger picks the height.)
+- THE HARVEST DISPLAY AS A 3D MODEL — THE TEST MODEL IS IN (the owner, Oct 28 11:58 pm): Grok made it (image → image-to-3D on a free site)
+  and saved it under his Downloads\Grok\ folder (probably "Thanksgiving Props\harvest-display\" — the exact folder to be found; its
+  notes.txt says which site won, the license, the credit line). NEXT (a short pass after C4b, ~45 min, or inside C4c): bake it with the ONE
+  bake tool (a recipe `harvest`) at the compass's real size + the city camera, day + night (the Edison bulbs stay CODE on top), drawn in
+  place of harvest.js's display behind a SWITCH (`&prop=model|drawn` + a panel row) so the owner flips them on his phone; credits if it
+  ships. If it wins → the rest of Thanksgiving's pieces the same way, then the parade balloons.
+- THE SCHEDULE REVIEW — NEAR THE END OF CITY 2.0 (the owner, Oct 29 12:10 am — DECIDED; slot: before C3 / the final cleanup, after 13):
+  review the WHOLE CITY's timing as one: every job + worker's schedule, when people make their appearances (the walkers, the regulars, the
+  joggers, the cab stand, the vendor, the dance circles, the parades), the SPEAKEASY WINDOWS' routines + moments (THE WINDOW RULE II: long
+  routines as the base, the boxer's nights), the legends' + sky events' calendars, the holidays — gaps, pile-ups, dead hours, too-rare /
+  too-common things, what a casual visitor actually catches at their usual hours. METHOD: a LIVE DEBATE between GROK + CLAUDE (the
+  mailbox / debate setup from the mini PC), brutally honest, from a full export of the schedules (Claude Code generates a readable
+  timetable + a "what you'd see" sample week first), then ONE summary of agreed / disputed / the owner's decisions, then a build pass.
+  Discussion only until the owner decides.
+- BUG — THE BUS DOOR SNAPS (the owner, Oct 29 7:40 am): when the bus picks up / drops off, its door CLOSES by snapping into place (looks
+  bugged) → the door's open AND close as one smooth eased swing / fold at the frame rate (the 1920s bus's folding door: the leaves fold
+  out + back), timed with the riders (the last one clear of the step before it starts closing), no jump between states; judged frame by
+  frame (`--cast`) at 402; same check for every vehicle door (the cab, the police car, the trucks). → the next pass (C4c, or a C4b add-on
+  if it's still running).
+- C4b REVIEW — TWO BUGS (the owner, Oct 29 7:46 am, iPhone crop, Halloween season): (1) A DOG WALKER WITH NO DOG — the leash runs to
+  nothing; + "I haven't seen a dog in a while" → find why the dog isn't drawn (the walker's dog + the wildlife's pigeon-chasing dog —
+  a layout move / a spot / a tier gate / the holiday crowd dropping it?); a test: every leash has its dog, and the dogs appear on their
+  schedule. (2) THE HAY BALE (+ its jack-o'-lantern) at the speakeasy's corner runs THROUGH THE WALL (the dressing spot by the blade's foot,
+  re-pinned in PROM / C4b) → the spot sits fully on open cobbles in front of the wall (or moves a little right), drawn in front of the
+  facade; A TEST: no holiday / dressing piece overlaps a building's footprint at 390 / 402 / 430 (every holiday's spots). → C4c.
+- THE HYDRANT CORNER IS TOO DARK (the owner, Oct 29 7:47 am, iPhone screenshot, the Thanksgiving build-up at night): the bottom-left
+  corner is the darkest spot of the promenade — "you can't even tell it's a hydrant", and its holiday pieces (the pumpkin + the mum
+  beside it) don't read → C4c: the implied lamps' light reaches the LEFT CURB too (the left-most implied lamp's pool shifted / widened,
+  or a soft fill like the cab stand's lamp from off-screen left), so the hydrant reads as a RED hydrant with a highlight + its shadow,
+  and every dressing spot there (each holiday's pieces by the hydrant) reads at night at 390 / 402 / 430; never brighter than the
+  shopfront. Claude also saw in the same shot: THE RIGHT MAPLE's crown looks CUT by the screen's right edge — C4b measured the summer
+  crown (ends 401 at 402); the AUTUMN / held-peak crown may be wider → check every season's crown + the holiday-held crown against the edge.
+- C4b REVIEW, cont. (the owner, Oct 29 7:53 am): ✔ the cab-stand sitters "look better", ✔ the doorman "looks good", ✔ the water bench fine,
+  ✔ the crosswalk at night "a lot better". FIX (C4c): (1) THE CAB STAND's APPROACH — a waiter coming from BEHIND walked straight THROUGH the
+  bench, then sat → the benches (both) are SOLID in the planner: a walker routes round the bench's END to its front, then turns + sits; a
+  TEST: no walker's feet ever inside a bench's footprint except while seated on it. (2) THE DOOR SWINGS THE WRONG WAY FOR THE DOORMAN — he
+  stands on the door's RIGHT (the barber pole is on its left — he can't switch sides) → the side door is HINGED ON HIS SIDE and SWINGS OUT
+  toward him: he PULLS it open, holds it against himself while the guest passes, tips his cap, lets it close; the doorway + the spill
+  follow the outward swing; every other user of that door (guests alone, the raid, the lobby line) uses the same outward swing.
+- THE TR-3B BLACKOUT STILL LEAKS (the owner, Oct 29 7:54 am, iPhone screenshot mid-drain, late October): still lit while the city is dark —
+  the CAB-STAND BENCH (bright, as if lamp-lit), the MUM by the hydrant (bright yellow — the holiday props), the right MAPLE's autumn crown
+  (the cab stand lamp's leaf light?) + a little on the back bench. C4b's blackout test passed because it ran on a plain September night +
+  didn't probe the holiday props or the trees → C4c: EVERY holiday / dressing prop (pumpkins, mums, bales, stalks, the harvest display,
+  Christmas pieces) + the trees' lamp-lit leaves + both benches' crisp overlays take the city's darkness during the drain + blackout;
+  THE TEST re-run on a HOLIDAY date (late Oct + Thanksgiving + a December night) with probes on the props, both benches, both maples'
+  crowns, the hydrant corner. Rule: nothing in the foreground is brighter than the dark city around it at the blackout's depth.
+- THE MOTHMAN's SOURCE (the owner + Grok, Oct 28 11:58 pm): Grok made two images — TUCKED (crouched, wings folded, the peaks above the head,
+  ragged hems, dark sockets) + SPREAD (flying). DECIDED: the TUCKED one, run through Hunyuan3D as it is → Downloads\Grok\models\mothman-folded\
+  (the .glb + the source PNG kept as the fallback + screenshots + the license); the SPREAD one + the once-a-night half-open moment DROPPED
+  (two models can't blend without a rig). SKY bakes the 3D one AND tries the flat PNG on the needle; the owner compares (the 3D's gain: the
+  needle's real pink rim light from below).
+- C4 SPLIT AGAIN (Claude, Oct 29 8 am): the owner's C4b review added ~2 h of fixes → C4c = the owner's bugs + the measuring tools (the
+  blackout leaks, the bus door, the dogs, the hay bale, the hydrant's light, the maple's edge, the solid benches, the door's outward swing,
+  &dpr=3, the phone bench, the memory budget, the tier's climb) ~3 h; C4d = review-4's code / tests / docs (items 12–16 + 18, harbor.md's
+  split, the flaky checks) ~2.5 h; then SKY.
