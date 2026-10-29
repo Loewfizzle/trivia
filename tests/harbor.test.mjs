@@ -2344,6 +2344,8 @@ test('8a — THE PROMENADE: the centrepiece spot in the open plaza (clear of the
     // open space: no furniture within the ring (+ a margin)
     for (const it of [...L.lamps.filter(l => !l.implied), ...L.trees, ...L.planters, L.bench, L.cabStand, L.cart]) {
       const [ix] = P(it.x, 0, it.z);
+      // (C4b: the water bench stands BEHIND the compass's left side, in front of the crabapple — clear of a snowman-size piece (±1 u))
+      if (it === L.bench) { const [br] = P(it.x + it.w / 2, 0, it.z), [pl] = P(m.x - 1.0, 0, m.z); assert.ok(it.z > m.z + m.ring + 1.5 && br < pl, `${k}: the water bench (its right end ${br.toFixed(0)}) behind + left of a piece on the compass (${pl.toFixed(0)})`); continue; }
       if (Math.abs(it.z - m.z) < 6) assert.ok(Math.abs(ix - mx) > ring + 6, `${k}: ${it.kind || 'a piece'} at ${ix.toFixed(0)} clear of the medallion ${mx.toFixed(0)}`);
     }
     // an 11-unit Christmas tree there stays under the wheel's hub
@@ -2391,9 +2393,9 @@ test('PROM — THE PROMENADE, FINAL (LOCKED Oct 28): no lampposts; the back row 
     assert.ok(cb && cb.face === 'street' && cb.z === 38 && Math.abs(sx(cb) - sx(big)) < 6, `${k}: the cab stand in front of the maple`);
     assert.ok(P(cb.x, cb.z)[1] <= cam.dock.y - 8 && P(cb.x + cb.w / 2, cb.z)[0] < cam.W - 4, `${k}: the cab stand fully above the dock + on screen (${P(cb.x, cb.z)[1].toFixed(0)} vs ${cam.dock.y})`);
     assert.ok(sx(L.hydrant) < 0.06 * cam.W, `${k}: the hydrant at the left curb`);
-    // THE VENDOR CART at the front-middle LEFT of the compass — its right end short of the ring
-    const ringL = sx(L.medallion) - cam.F * L.medallion.ring / L.medallion.z, cartR = P(L.cart.x + 1.49, L.cart.z)[0];
-    assert.ok(cartR <= ringL + 1, `${k}: the cart left of the compass (${cartR.toFixed(0)} ≤ ${ringL.toFixed(0)})`);
+    // THE VENDOR CART (C4b: in the MIDDLE, RIGHT of the compass — between it + the cab stand): its left end clear of the ring
+    const ringR = sx(L.medallion) + cam.F * L.medallion.ring / L.medallion.z, cartL = P(L.cart.x - 1.3 * L.cart.scale, L.cart.z)[0], cartR = P(L.cart.x + 1.3 * L.cart.scale, L.cart.z)[0];
+    assert.ok(cartL >= ringR - 1 && cartR < P(L.cabStand.x - L.cabStand.w / 2, L.cabStand.z)[0] - 10, `${k}: the cart between the compass + the cab stand (${cartL.toFixed(0)}–${cartR.toFixed(0)} vs the ring ${ringR.toFixed(0)})`);
   }
 });
 test('8a — THE SEASON by the real date (Michigan), forced by &season=, the south shifted', () => {
@@ -2770,17 +2772,18 @@ test("PF → PROM — THE FINAL LAYOUT: the inlay on the crossing's axis (no fla
     const { s, cam, L } = setup(k), f = s.W / 402, P = (x, z, y = 0) => project(cam, x, y, z), sx = it => P(it.x, it.z)[0];
     const m = L.medallion, mx = sx(m), ring = cam.F * m.ring / m.z, bx = sx(L.bench);
     const crab = L.trees.find(t => t.kind === 'crab'), cx = sx(crab), crown = cam.F * crab.w / 2 / crab.z;
-    // the spots (402: the inlay ~268 — the crossing's centre, the bench ~207, the crabapple ~181)
-    assert.ok(Math.abs(mx - 268 * f) < 6 * f && Math.abs(bx - 207 * f) < 6 * f && Math.abs(cx - 169 * f) < 6 * f, `${k}: inlay ${mx.toFixed(0)}, bench ${bx.toFixed(0)}, crab ${cx.toFixed(0)}`);   // (POLISH 5: the crabapple 181 → 169 pt — the cab clear of it)
+    // the spots (C4b — 402: the compass ~207, the water bench ~169 in front of the crabapple ~169)
+    assert.ok(Math.abs(mx - 207 * f) < 6 * f && Math.abs(bx - 169 * f) < 6 * f && Math.abs(cx - 169 * f) < 6 * f, `${k}: inlay ${mx.toFixed(0)}, bench ${bx.toFixed(0)}, crab ${cx.toFixed(0)}`);   // (POLISH 5: the crabapple 181 → 169 pt — the cab clear of it)
     const [c0] = P(L.crosswalk.x0, 53), [c1] = P(L.crosswalk.x1, 53);
     // (the crossing's axis on screen: the crosswalk's middle, z 59 — the pieces stand by screen fraction)
     const ax = (P(L.crosswalk.x0, 59)[0] + P(L.crosswalk.x1, 59)[0]) / 2;
-    assert.ok(Math.abs(mx - ax) < 3 * f, `${k}: the inlay on the crossing's axis (${mx.toFixed(0)} vs ${ax.toFixed(0)})`);
+    // (C4b: the compass LEFT of the crossing — its ring's right edge short of the crosswalk's near-left corner: no piece on it covers it)
+    assert.ok(mx + ring <= P(L.crosswalk.x0, L.crosswalk.z0)[0] + 1 && ax > mx, `${k}: the compass clear of the crossing (${(mx + ring).toFixed(0)} vs ${P(L.crosswalk.x0, L.crosswalk.z0)[0].toFixed(0)})`);
     // (PROM: no tall pair — the crossing is lit by the back road's implied lamps; nothing stands at its landing)
     assert.equal(L.lamps.filter(l => l.kind === 'tall').length, 0, `${k}: no tall lamps`);
     // the bench + its crabapple just LEFT of the crossing; the crabapple's crown clear of the blade (the blade free, the tree shows)
     const bw = cam.F * L.bench.w / 2 / L.bench.z;
-    assert.ok(bx + bw < c0 && cx < bx, `${k}: the crabapple · the bench · the crossing, left to right`);
+    assert.ok(bx + bw < c0 && Math.abs(cx - bx) < 8 * f, `${k}: the bench in front of its crabapple, left of the crossing`);
     const blade = bladeGeo(speakGeo({ ...L, cam })).rect;
     // (POLISH 5: nudged left so the cab at its stop shows whole — the crown may tuck a little BEHIND the blade (drawn in front of it: the
     // blade stays free) as long as most of the tree shows: ≥ 75 % of its crown right of the blade)
@@ -2793,15 +2796,14 @@ test("PF → PROM — THE FINAL LAYOUT: the inlay on the crossing's axis (no fla
     // FP3b — THE VENDOR SPOT (the owner, Oct 24): the cart at the FRONT CURB, just in front of the compass — on screen right of it, its
     // body never over the inlay (the ring's width at the cart's counter row), its wheels above the dock, short of the framing maple's
     // trunk; LIVE (drawn by the people on its schedule — core/harbor-routines.js#VENDOR), its handles on the right, its umbrella furled
-    assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === -1, 'PROM: its handles on the LEFT — wheeled in from the left edge');
+    assert.ok(L.cart.shown !== false && L.cart.live && L.cart.hand === -1 && L.cart.from === 'below', 'PROM: its handles on the LEFT; C4b: wheeled up from below the dock');
     { const sc = L.cart.scale, [cxs, gy] = P(L.cart.x, L.cart.z), hw = cam.F * 1.3 * sc / L.cart.z, [, cy] = P(L.cart.x, L.cart.z, 1.92 * sc);
       const [, ry0] = P(m.x, m.z + m.ring), [, ry1] = P(m.x, m.z - m.ring), ec = (ry0 + ry1) / 2, eh = (ry1 - ry0) / 2, dy = Math.min(1, Math.abs(Math.max(cy, Math.min(gy, ec)) - ec) / eh);
       const ringR = mx + ring * Math.sqrt(Math.max(0, 1 - dy * dy)), maple = L.trees.find(t => t.big), mapleL = P(maple.x, maple.z)[0] - cam.F * 0.3 / maple.z;
-      // (PROM: the vendor spot at the front-middle LEFT of the compass — its right end short of the ring's left edge at its counter row)
-      const ringL = mx - ring * Math.sqrt(Math.max(0, 1 - dy * dy));
-      assert.ok(cxs + hw < ringL + 1 * f, `${k}: the cart (its right end ${(cxs + hw).toFixed(1)}) clear of the inlay (${ringL.toFixed(1)})`);
+      // (C4b: the vendor spot RIGHT of the compass — its left end clear of the ring's right edge at its counter row)
+      assert.ok(cxs - hw > ringR - 1 * f, `${k}: the cart (its left end ${(cxs - hw).toFixed(1)}) clear of the inlay (${ringR.toFixed(1)})`);
       assert.ok(gy < cam.dock.y - 8, `${k}: its wheels above the dock (${gy.toFixed(0)} vs ${cam.dock.y})`);
-      assert.ok(cxs + hw < mapleL - 4, `${k}: short of the maple's trunk`); void ringR;
+      assert.ok(cxs + hw < mapleL - 4, `${k}: short of the maple's trunk`);
       assert.ok(Math.abs(cxs - mx) < 80 * f, `${k}: in the middle, by the compass (${(mx - cxs).toFixed(0)} pt left of it)`); }
     // THE HEIGHT CAP: under the game blade's bottom and the wheel's hub (by CENTRE_PAD), a Christmas tree's height at least
     const bl = signSpots(L).find(sp => sp.id === 'n-blade'), nb = bl.rect.y + bl.rect.h, hub = P(L.wheel.x, L.wheel.z, L.wheel.y)[1];

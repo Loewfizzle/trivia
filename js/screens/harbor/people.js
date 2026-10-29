@@ -24,7 +24,7 @@ import { createDanceClock, stepDanceClock } from '../../core/harbor-dance.js';
 import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
-import { lightField, lightSources, castShadow } from '../../core/harbor-light.js';
+import { lightField, lightSources, castShadow, hiddenLamps } from '../../core/harbor-light.js';
 import { crossLightOf, crossPools, poolFall, CROSS, LENS } from './road.js';
 import { frontProfile } from './strings.js';
 import { SPEAK_V } from '../../core/harbor-speakeasy.js';
@@ -183,9 +183,11 @@ export function createPeople() {
     for (const q of pls) { const d = Math.hypot(x - q.x, (z - q.z) * 1.1); if (d > q.r * 1.8) continue; const k = q.k / (1 + (d / (q.r * 0.45)) ** 2); if (k < 0.01) continue; v = v ? v.slice() : [0, 0, 0]; for (let i = 0; i < 3; i++) v[i] += q.col[i] * k; }
     return v;
   };
+  // (C4b: the implied lamps + the cab stand's own lamp — a waiter's shadow falls LEFT, away from it)
+  let shLamps = null, shKey = null; const shadowLamps = () => { if (shKey !== L) { shKey = L; shLamps = [...L.lamps, ...hiddenLamps(L).filter(h => h.cab)]; } return shLamps; };
   const envOf = env => { const dark = clamp01(env.dark || 0) * (env.power == null ? 1 : clamp01(env.power)), base = lights(dark), pls = env.pointLights && env.pointLights.length ? env.pointLights : null;
     // (PROM: by day the sun's shadow; at night the IMPLIED LAMPS' — up the screen, away from us: core/harbor-light.js#castShadow)
-    return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: pls ? withPoints(base, pls) : base, rimSide, shadow: (h, x, z) => castShadow(env.T || {}, h, x, z, L.lamps, dark * clamp01(((env.T && env.T.night) || 0) * 1.4)) }; };
+    return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: pls ? withPoints(base, pls) : base, rimSide, shadow: (h, x, z) => castShadow(env.T || {}, h, x, z, shadowLamps(), dark * clamp01(((env.T && env.T.night) || 0) * 1.4)) }; };
   /** FP3b — REAL DOORS: is this member inside a doorway (behind the facade's plane — drawn by drawInside through the opening)? */
   const insideDoor = m => !!(m.s.door && !m.s.door.bus && M && m.s.z > M.face - 0.02);
   const inBus = (m, b) => !!(m.s.door && m.s.door.bus && m.s.door.id === b.id && m.s.z > b.z - 0.02);
@@ -328,14 +330,14 @@ export function createPeople() {
   let cartCv = null, cartT = null, cartKey = '', cartBox = null, cartAnch = null;
   // the roaster's painter: drawCart (props.js) round its ground point at ~0.9 size → its anchors (the chimney, the pan) on screen
   function paintCart(x, st, T, hood) {
-    const cam = L.cam, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, L.cart.z), cc = { ...L.cart, x: st.x, roll: st.roll, hood }, cx = pieceCtx(L);
+    const cam = L.cam, sc = L.cart.scale || 1, cz = st.z ?? L.cart.z, [gx, gy] = project(cam, st.x, 0, cz), cc = { ...L.cart, x: st.x, z: cz, roll: st.roll, hood }, cx = pieceCtx(L);
     x.save(); x.translate(gx, gy); x.scale(sc, sc); x.translate(-gx, -gy); propShadow(x, cam, cc, 'cart', T, cx); const a = drawCart(x, cam, cc, T, cx) || {}; x.restore();
     const map = p => (p ? [gx + (p[0] - gx) * sc, gy + (p[1] - gy) * sc] : null);
     return { chimney: map(a.chimney), pan: map(a.pan), grate: map(a.grate), dx: st.x };
   }
   function drawCartLive(c, st, env) {
     const T = env.T; if (!T || !L.cart) return;
-    const cam = L.cam, s = cam.F / L.cart.z, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, L.cart.z), rain = clamp01(env.rain || 0), hood = rain > 0.08;
+    const cam = L.cam, cz = st.z ?? L.cart.z, s = cam.F / cz, sc = L.cart.scale || 1, [gx, gy] = project(cam, st.x, 0, cz), rain = clamp01(env.rain || 0), hood = rain > 0.08;
     // its warm pool on the cobbles at night (the lantern + the stove — the live cart lays its own; a crisp ellipse, no haze)
     const nk = clamp01(env.dark || 0);
     if (nk > 0.05) {
@@ -346,7 +348,7 @@ export function createPeople() {
     let anch;
     if (st.moving) anch = paintCart(c, st, T, hood);
     else {
-      const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}|${hood ? 1 : 0}|${L.cart.cider ? 1 : 0}`;
+      const dpr = Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), key = `${cam.W}x${cam.H}|${dpr}|${st.x.toFixed(2)}|${cz.toFixed(2)}|${hood ? 1 : 0}|${L.cart.cider ? 1 : 0}`;
       if (T !== cartT || key !== cartKey || !cartCv) {
         cartT = T; cartKey = key;
         const bx = Math.floor(gx - 4.2 * s * sc), by = Math.floor(gy - 5.4 * s * sc), bw = Math.ceil(8.4 * s * sc), bh = Math.ceil(6.6 * s * sc);

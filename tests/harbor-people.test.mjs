@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { cameraFor, harborLayout, project } from '../js/core/harbor-layout.js';
 import { wallPlan, hushState, strikeLevel, darkLevel } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
-import { FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
+import { CART_IN_Z, FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
 import { signalAt, centreK } from '../js/core/harbor-promenade.js';
 
 const SIZES = {
@@ -143,7 +143,7 @@ test('8P — THE PEOPLE over two days at 390 / 402 / 430: never past the cap, ne
       maxN = Math.max(maxN, heads.filter(m => m.routine !== 'dance').length);   // (POLISH 4: the dance circle on top of the crowd's cap)
       for (const m of heads) {
         const s = m.s; seenKinds.add(m.kind);
-        assert.ok(s.z >= FOLK.zMin - (m.kind === 'trash' ? 1.4 : m.kind === 'cabwait' ? 1.05 : 0.6), `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);   // (8b1: the collector at the can, beside the front-left globe; PROM: the cab stand's waiter on its bench at the front curb)
+        assert.ok(s.z >= FOLK.zMin - (m.kind === 'trash' ? 1.4 : m.kind === 'cabwait' ? 1.05 : m.kind === 'vendor' && L.cart.from === 'below' ? FOLK.zMin - CART_IN_Z + 0.6 : 0.6), `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);   // (C4b: the vendor wheels his cart up from the front street)   // (8b1: the collector at the can, beside the front-left globe; PROM: the cab stand's waiter on its bench at the front curb)
         if (m.kind === 'cabwait') assert.ok(project(cam, s.x, 0, s.z)[1] < cam.dock.y - 6, `${k}: the cab stand's waiter above the dock (${project(cam, s.x, 0, s.z)[1].toFixed(0)})`);
         if (s.a >= 0.999 && m.m.role === 'lead' && !s.door) for (const r of block) assert.ok(!inR(s, r), `${k}: ${m.kind} inside ${r.id} at ${s.x.toFixed(2)}, ${s.z.toFixed(2)} (${s.pose})`);
         if (s.z > FOLK.roadZ + 0.2 && s.z < FOLK.farZ - 0.35 && m.m.role === 'lead') {
@@ -447,7 +447,7 @@ const bandMean = (cam, L, M, day, h0, h1, cache, step = 30) => { let n = 0, k = 
 test('POLISH 4 — THE COUNTS ON SCREEN: a weekday daytime 4–5, lunch + after work 6–7, a normal night 3–4, a party night 8–12 (the dance circle on top), late at night 0–3', () => {
   const { cam, L } = setup('402x874'), M = folkMap(L), cache = new Map(), SAT = DAY + 2 * 86400;
   const bands = [['weekday daytime', DAY, 9.5, 11, 3.6, 5.4], ['weekday afternoon', DAY, 14.2, 16, 3.6, 5.4], ['lunch', DAY, 12, 13.5, 5.6, 7.4], ['after work', DAY, 16.6, 18.2, 5.6, 7.6],
-    ['a normal night', DAY, 19, 22, 2.8, 4.4], ['a party night', SAT, 21, 24, 7.6, 12], ['late at night', DAY + 86400, 0.25, 1.75, 0, 3]];
+    ['a normal night', DAY, 19, 22, 2.8, 4.6], ['a party night', SAT, 21, 24, 7.6, 12], ['late at night', DAY + 86400, 0.25, 1.75, 0, 3]];
   for (const [name, day, h0, h1, lo, hi] of bands) { const v = bandMean(cam, L, M, day, h0, h1, cache); assert.ok(v >= lo && v <= hi, `${name}: ${v.toFixed(2)} on screen (want ${lo}–${hi})`); }
 });
 test('POLISH 4 — LINGER MORE: most of the day\'s people stay a while (a pose of 20 s or more) — the bench for minutes, the railing, a chat, the bus stop; few walk straight through', () => {

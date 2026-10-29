@@ -139,6 +139,10 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, r
  * real pieces (core/harbor-promenade.js): the bench, the cart, the inlay, the crossing, the speakeasy's doors, the bus stop.
  * line: an active lobby line's rect (people route round it).
  */
+/** C4b — the cart's start when it comes from BELOW THE DOCK (L.cart.from 'below'): on the front street (world z), hidden by the dock
+ *  unless it rests — it crosses the street + rolls up over the curb to its spot */
+export const CART_IN_Z = 30.4;
+
 export function folkMap(L, { event = false, line = null, cart = false, ring = false } = {}) {
   const cam = L.cam, s = L.speakeasy, cw = L.crosswalk, b = L.bench, F = FOLK;
   const hwAt = z => cam.hw(z);
@@ -903,7 +907,10 @@ export function folkAt(t, world, cache = new Map()) {
   // THE VENDOR SPOT (FP3b — core/harbor-routines.js#VENDOR): the chestnut cart's evening, wheeled in from the right edge + out again;
   // never while the inlay is in use (a centrepiece: ctx.event; the dance circle: &force=dance — the real circles start after it's gone)
   // (PROM: from the cart's handle side — the LEFT edge now: the cab stand stands on its old way in from the right)
-  const cartX = L.cart ? L.cart.x : 0, cartHand = (L.cart && L.cart.hand) || 1, cartIn = cam => cartHand * (cam ? cam.hw(L.cart.z) + 3.2 : Math.abs(cartX) + 12);
+  // (C4b: from BELOW THE DOCK — L.cart.from 'below': across the front street + up over the curb at its spot; the schedule's one coordinate
+  // is then the cart's z (CART_IN_Z → its rest), its x fixed)
+  const below = !!(L.cart && L.cart.from === 'below');
+  const cartX = L.cart ? (below ? L.cart.z : L.cart.x) : 0, cartHand = (L.cart && L.cart.hand) || 1, cartIn = cam => (below ? CART_IN_Z : cartHand * (cam ? cam.hw(L.cart.z) + 3.2 : Math.abs(cartX) + 12));
   // (Part 9's hook: in HEAVY rain — ctx.rain > 0.6 — the cart doesn't come out; in drizzle people.js puts its little hood up)
   const cartEv = tt => { if (!L.cart || L.cart.shown === false || (ctx.event && !ctx.ring) || ctx.forceDance || (ctx.rain || 0) > 0.6) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
     return get(`CE|${loc.key}`, () => cartEvening(loc.key, loc.month, day0, cartIn(L.cam), cartX, { seed: ctx.seed })); };
@@ -914,9 +921,10 @@ export function folkAt(t, world, cache = new Map()) {
     // (the vendor wheels the cart in from the right edge — walking with it at its pace — sells from behind it facing the promenade,
     // then wheels it out the way he came)
     const v = M.nodes.vendor, dx = v.x - cartX, xin = cartIn(L.cam) + dx, r = rngFrom(hashString(`vendor|${e.t0}`));
-    const legs = [{ k: 'walk', pts: [{ x: xin, z: v.z }, { x: v.x, z: v.z }], t0: e.t0, t1: e.ta, v: VENDOR.roll },
+    const p0 = below ? { x: v.x, z: CART_IN_Z + (v.z - L.cart.z) } : { x: xin, z: v.z };
+    const legs = [{ k: 'walk', pts: [p0, { x: v.x, z: v.z }], t0: e.t0, t1: e.ta, v: VENDOR.roll },
       { k: 'pose', pose: 'cart', x: v.x, z: v.z, t0: e.ta, t1: e.tb, hd: -PI / 2 + 0.55 * cartHand },   // (SP5: on the cart's handle side, turned a little toward his customer beyond it)
-      { k: 'walk', pts: [{ x: v.x, z: v.z }, { x: xin, z: v.z }], t0: e.tb, t1: e.t1, v: VENDOR.roll }];
+      { k: 'walk', pts: [{ x: v.x, z: v.z }, p0], t0: e.tb, t1: e.t1, v: VENDOR.roll }];
     return { id: `vendor.${Math.round(e.t0)}`, kind: 'vendor', routine: 'cart', idx: 0, look: 'worker', gait: 'walk', legs, t0: e.t0, t1: e.t1, tEnd: e.t1, members: [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }] };
   });
   // POLISH 4 — THE LINE AT THE DOOR (party nights — lineNight): one simulation an evening, its guests + the doorman; never with Lobby
@@ -1082,7 +1090,8 @@ export function folkAt(t, world, cache = new Map()) {
   // the circle now: its level (0..1 formed — the floor spots + the moves follow it), its session
   const live = nowSess.find(x => t > x.s0 - 5 && t < x.s1 + 40), dance = live ? { on: true, k: danceLevel(live, t), id: live.id, s0: live.s0, s1: live.s1 } : { on: false, k: 0 };
   // the cart now: where it is (wheeled in / parked / wheeled out) — people.js draws it
-  const cart = evNow ? { ...cartAt(evNow, t, cartIn(L.cam), cartX), z: L.cart.z, parked: t >= evNow.ta && t < evNow.tb } : { on: false };
+  const cart = evNow ? (() => { const a = cartAt(evNow, t, cartIn(L.cam), cartX); return below ? { ...a, x: L.cart.x, z: a.x } : { ...a, z: L.cart.z }; })() : { on: false };
+  if (evNow) cart.parked = t >= evNow.ta && t < evNow.tb;
   // POL4 — THE BACK ROAD'S TRAFFIC (core/harbor-traffic.js): the motorcars on the waterside road, queued behind the bus, on the signal
   // (8b2: the raid's convoy holds the near lane — nobody enters it behind them — and its patrol cars join the road's cars)
   const raidIn = (a, b) => (ctx.raid && ctx.raid.tEnd > a && ctx.raid.t0 < b ? [raidHold(ctx.raid)] : []);

@@ -27,8 +27,20 @@ export const pieceCtx = L => ({ season: L.season || 'autumn', phase: L.seasonPha
 // units: dx left, dz behind), its height; its light is baked like every lamp's (the pools, the trees' rig, the props' faces).
 export const HIDDEN = Object.freeze({ dx: -3.2, dz: 1.5, h: 4.0, k: 1 });
 export function hiddenLamps(L) {
-  const t = (L.trees || []).find(o => o.kind === 'crab');
-  return t ? [{ x: t.x + HIDDEN.dx, z: t.z + HIDDEN.dz, h: HIDDEN.h, kind: 'hidden', k: HIDDEN.k }] : [];
+  const t = (L.trees || []).find(o => o.kind === 'crab'), cab = cabLamp(L);
+  return [...(t ? [{ x: t.x + HIDDEN.dx, z: t.z + HIDDEN.dz, h: HIDDEN.h, kind: 'hidden', k: HIDDEN.k, pool: { dx: 1.6, dz: -0.8, k: 0.5 } }] : []), ...(cab ? [cab] : [])];
+}
+// C4b — THE CAB STAND's OWN LAMP (the owner, Oct 28 10:03 + 10:37 pm — DECIDED): the cab-stand bench in front of the framing maple
+// blocks the light that lit it → one more lamp nobody sees, just OFF-SCREEN RIGHT at the front curb, high (on every upright phone ~2
+// units past the right edge): a streetlamp's soft warm SPILL from above-right — never a spotlight (no edge, no cone). It lights the
+// maple's LOWER-RIGHT crown (the leaf clusters nearest it catch it one by one, brightest nearest the lamp, falling off up + left into
+// the crown's shade — trees.js's per-leaf light, `tree`), its trunk, the bench's seat + its waiters (props / people: lampOn's hidden
+// light, the pool), a soft pool on the cobbles; the bench's + the waiters' shadows fall LEFT (lampShadow: within `shadowR`). Kind
+// 'hidden' like POL4's: baked with the lamps' ramp, so its hours + the blackout are the implied lamps'. dx / dz from the cab bench.
+export const CAB_LAMP = Object.freeze({ dx: 4.0, dz: -1.3, h: 4.8, k: 0.9, pool: { dx: -3.1, dz: 1.2, k: 0.42 }, shadowR: 7.5 });
+export function cabLamp(L) {
+  const c = L.cabStand;
+  return c ? { x: c.x + CAB_LAMP.dx, z: c.z + CAB_LAMP.dz, h: CAB_LAMP.h, kind: 'hidden', cab: true, k: CAB_LAMP.k, pool: CAB_LAMP.pool } : null;
 }
 
 // ------------------------------------------------------------------ THE POOLS (the ground at night)
@@ -68,7 +80,7 @@ function speakSpill(L) {
     ...(s.shop && s.shop.pole ? [{ x: s.x0 + s.shop.pole.u, z: s.z0 - 0.8, kind: 'pole', k: 0.6 }] : [])];
 }
 /** every light that pools on the ground: the lamps, the speakeasy's spill, the cart */
-export const lightSources = L => [...L.lamps.map(l => (l.implied ? { x: l.x, z: l.z, kind: 'implied', k: 1, implied: true } : { x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: l.kind === 'tall' ? TALL_K : 1 })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false && !L.cart.live ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : []), ...hiddenLamps(L).map(h => ({ x: h.x + 1.6, z: h.z - 0.8, kind: 'hidden', k: 0.5 }))];   // (FP3b: the live cart lays its own pool — people.js; POL4: the hidden lamp's pool, its heart a little toward the tree — the lamp itself is behind the blade, its light falls forward + right)
+export const lightSources = L => [...L.lamps.map(l => (l.implied ? { x: l.x, z: l.z, kind: 'implied', k: 1, implied: true } : { x: l.x, z: l.z - (l.kind === 'tall' ? 0.9 : 0.3), kind: l.kind, k: l.kind === 'tall' ? TALL_K : 1 })), ...speakSpill(L), ...(L.cart && L.cart.shown !== false && !L.cart.live ? [{ x: L.cart.x, z: L.cart.z - 0.4, kind: 'cart', k: 0.62 }] : []), ...hiddenLamps(L).map(h => ({ x: h.x + h.pool.dx, z: h.z + h.pool.dz, kind: 'hidden', k: h.pool.k }))];   // (FP3b: the live cart lays its own pool — people.js; POL4: the hidden lamp's pool, its heart a little toward the tree — the lamp itself is behind the blade, its light falls forward + right)
 /** the light on the ground at (x, z) at night — every lamp's pool (overlapping: every path lit, the shadows between dim) + the
  *  speakeasy's spill; null by day (T.lamps 0) */
 export function lightField(L, T) {
@@ -105,7 +117,7 @@ export const LAMP_SHADOW = Object.freeze({ len: 0.95, a: 0.42 });
 export function lampShadow(lamps, h, x, z, k) {
   if (!(k > 0.05) || x == null || z == null) return null;
   let best = null, bd = 1e9;
-  for (const l of lamps || []) { if (!l.implied && l.kind !== 'implied') continue; const d = Math.hypot(l.x - x, l.z - z); if (d < bd) { bd = d; best = l; } }
+  for (const l of lamps || []) { if (!l.implied && l.kind !== 'implied' && !l.cab) continue; const d = Math.hypot(l.x - x, l.z - z); if (l.cab && d > CAB_LAMP.shadowR) continue; if (d < bd) { bd = d; best = l; } }   // (C4b: the cab stand's lamp near it — the bench's shadow falls LEFT)
   if (!best) return null;
   const ux = (x - best.x) / bd, uz = (z - best.z) / bd, len = LAMP_SHADOW.len * h * (0.8 + 0.4 * Math.min(1, bd / 26));
   return { dx: ux * len, dz: uz * len, a: LAMP_SHADOW.a * Math.min(1, k) * (1 - 0.45 * Math.min(1, Math.max(0, (bd - 16) / 18))) };
@@ -142,7 +154,7 @@ export function lampOn(lights, wx, wz, lampK) {
 
 // ------------------------------------------------------------------ THE TREES (lamps as local lights round a crown)
 // (PF: a tall lamp 0.8 → 0.58 — the crabapple stands right beside the left flanking lamp: its crown's side went one flat orange)
-export const TREE_LAMP = Object.freeze({ tall: { col: [0.84, 0.95, 1.2], k: 0.58 }, globe: { col: [1.35, 0.86, 0.46], k: 1.15 }, hidden: { col: [1.38, 0.9, 0.48], k: 0.85 }, implied: { col: [1.32, 0.9, 0.52], k: 0.28, fall: 16 } });
+export const TREE_LAMP = Object.freeze({ tall: { col: [0.84, 0.95, 1.2], k: 0.58 }, globe: { col: [1.35, 0.86, 0.46], k: 1.15 }, hidden: { col: [1.38, 0.9, 0.48], k: 0.85 }, cab: { col: [1.42, 0.94, 0.5], k: 0.95, fall: 2.1, wK: 0.4, y: -0.6 }, implied: { col: [1.32, 0.9, 0.52], k: 0.28, fall: 16 } });
 /** the lamps within reach of tree t, in its local frame: [{ x, y, w (toward us), col, k }] (a tall lamp = its two heads) */
 export function treeLamps(ctx, t) {
   const out = [];
@@ -151,7 +163,9 @@ export function treeLamps(ctx, t) {
     if (l.kind === 'implied') { if (Math.abs(l.x - t.x) < 11) out.push({ x: l.x - t.x, y: l.h ?? 5.6, w: -(l.z - t.z), col: TREE_LAMP.implied.col, k: TREE_LAMP.implied.k, fall: TREE_LAMP.implied.fall }); continue; }
     if (Math.abs(l.x - t.x) > 10 || Math.abs(l.z - t.z) > 14) continue;
     const tall = l.kind === 'tall', w = -(l.z - t.z), P = tall ? TREE_LAMP.tall : TREE_LAMP.globe;
-    if (l.kind === 'hidden') { out.push({ x: l.x - t.x, y: l.h, w, col: TREE_LAMP.hidden.col, k: TREE_LAMP.hidden.k }); continue; }
+    // (C4b: the cab lamp on the maple — its depth offset compressed (wK) + a little lower (y): seen from 5 u in front, every leaf on the
+    // crown's right was the same distance from it — a flat half; nearer + lower, the LOWER RIGHT catches it and it falls off up + left)
+    if (l.kind === 'hidden') { const H = l.cab ? TREE_LAMP.cab : TREE_LAMP.hidden; out.push({ x: l.x - t.x, y: l.h + (H.y || 0), w: w * (H.wK || 1), col: H.col, k: H.k, fall: H.fall }); continue; }
     if (tall) for (const s of [-1, 1]) out.push({ x: l.x - t.x + s * PIECE.tall.arm, y: PIECE.tall.h - 0.45, w, col: P.col, k: P.k });
     else out.push({ x: l.x - t.x, y: PIECE.globe.h + 0.18, w, col: P.col, k: P.k });
   }

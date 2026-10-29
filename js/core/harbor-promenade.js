@@ -86,13 +86,21 @@ export const PHONE = Object.freeze({
   // bench at the FRONT CURB in front of it, facing the street (`cabStand`); THE WATER BENCH back at the crabapple, turned to face the
   // harbor (`bench`, face 'water'); THE COMPASS bigger + forward (z 44.8 → 42.6); THE VENDOR CART to the front-middle LEFT of the compass
   // (f 0.805 → 0.5); THE HYDRANT to the LEFT CURB (f 0.035), framing the corner
+  // C4b — THE LAYOUT (the owner, Oct 28 — review-4 §C3 option C, the giant off): THE COMPASS LEFT to f 0.515 (the crosswalk clear of
+  // every remaining centrepiece: its ring's right edge 250 pt vs the crossing's near edge 251 at 402), THE WATER BENCH back in front of
+  // the crabapple (f 0.42 — no centrepiece hides it), THE FRAMING MAPLE + THE CAB STAND to the RIGHT EDGE (f 0.875 → 0.9, its leaves 1–4
+  // pt inside the screen's edge at 390 / 402 / 430; the bench the same 0.70 u: f 0.9025; the maple keeps its crown — `seedF`, the plan's
+  // seed from its old spot), THE CART in the middle (f 0.69 — between the compass + the cab bench), wheeled up from BELOW THE DOCK
+  // (`from: 'below'`: across the front street + over the curb at its spot)
   tall: [],
-  maples: [{ f: 0.875, z: 42.0, big: true, v: 1 }],
+  maples: [{ f: 0.9, z: 42.0, big: true, v: 1, seedF: 0.875 }],
   crabs: [{ f: 0.42, z: 50.9, k: 1.4 }],    // (POLISH 5: 0.45 / k 1.45 → 0.42 / 1.4 — the cab at its stop no longer half behind it at 402; PF: 0.405 / z 52.9 / k 1.25 → its crown 153–209 pt at 402: right of the blade, left of the lamp's arm)
   globes: [],
-  medallion: { f: 0.6675, z: 42.6 },        // (PROM: forward from 44.8 — on the crossing's axis)
-  bench: { f: 0.515, z: 47.8, face: 'water' },   // (PROM: THE WATER BENCH — the old spot in front of the crabapple, turned to face the harbor: its sitters seen from behind)
-  cabStand: { f: 0.875, z: 38.0, face: 'street' },   // (PROM: THE CAB STAND — at the front curb in front of the framing maple, facing us + the street; ~13 pt above the dock at 390 / 402 / 430)
+  medallion: { f: 0.515, z: 42.6 },         // (PROM: forward from 44.8 — on the crossing's axis; C4b: LEFT, 0.6675 → 0.515 — the crossing clear)
+  bench: { f: 0.42, z: 47.8, face: 'water' },   // (C4b: 0.515 → 0.42 — back in front of the crabapple: the compass's pieces never hide it)
+    // (PROM: THE WATER BENCH — the old spot in front of the crabapple, turned to face the harbor: its sitters seen from behind)
+  cabStand: { f: 0.9025, z: 38.0, face: 'street' },   // (C4b: 0.875 → 0.9025 — the maple's 0.70 u to the right edge)
+    // (PROM: THE CAB STAND — at the front curb in front of the framing maple, facing us + the street; ~13 pt above the dock at 390 / 402 / 430)
   hydrant: { f: 0.035 },                    // (PROM: at the LEFT CURB, framing the corner)
   // (FP3b — THE VENDOR SPOT, the owner, Oct 24: the cart moves to the FRONT CURB in the MIDDLE, just in front of the compass inlay —
   // RIGHT of it on screen: centred in front of it, its body would cover the compass's front half at every phone size (the strip is
@@ -102,7 +110,7 @@ export const PHONE = Object.freeze({
   // (PROM: the vendor spot moves to the front-middle LEFT of the compass — f 0.805 → 0.47 (the owner's "~0.5", a step further left: its
   // right end clears the bigger compass's ring + Halloween's giant at 390 / 402 / 430) — wheeled in from the LEFT edge now (the cab stand
   // stands on its old way in from the right), its push handles + the vendor + his customers on its LEFT end, away from the compass)
-  cart: { f: 0.47, z: 38.4, scale: 0.9, hand: -1 },
+  cart: { f: 0.69, z: 38.4, scale: 0.9, hand: -1, from: 'below' },   // (C4b: 0.47 → 0.69, in from below the dock)
   planters: [],
   // (PF placed a 1920s pillar box here — `mailbox: { f: 0.81, z: 38.6 }`; the owner didn't like the olive-green box: gone, Oct 24. props.js keeps the art.)
   mailbox: null,
@@ -185,7 +193,7 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   const signals = S.signals.map(s => ({ id: s.id, x: X(s.f, 54.6), z: 54.6, dir: s.dir, arm: s.arm, h: stopH, state: 'green' }));
   S.tall.forEach((t, i) => tall(X(t.f, t.z), i));
   // (FP2: the framing maple's crown a little rounder — h 1.1 → 1.14 × — its trunk sturdier: core/harbor-trees.js#treePlan's big; v: its colour mix)
-  S.maples.forEach(m => { maple(X(m.f, m.z), m.z); const t = trees[trees.length - 1]; if (m.v != null) t.v = m.v; if (m.big) Object.assign(t, { big: true, w: P.maple.w * 1.12, r: P.maple.w * 0.56, h: P.maple.h * 1.14, trunk: P.maple.trunk * 1.02 }); });
+  S.maples.forEach(m => { maple(X(m.f, m.z), m.z); const t = trees[trees.length - 1]; if (m.v != null) t.v = m.v; if (m.seedF != null) t.seedX = X(m.seedF, m.z); if (m.big) Object.assign(t, { big: true, w: P.maple.w * 1.12, r: P.maple.w * 0.56, h: P.maple.h * 1.14, trunk: P.maple.trunk * 1.02 }); });
   S.globes.forEach(f => globe(X(f, PROM.globes)));
   // PROM — THE IMPLIED LAMPS: a row along our side of the front street, below the screen (never drawn: kind 'implied'); enough of them for
   // the widest view (their light fans out — the outer ones spill in from the edges)
@@ -197,12 +205,12 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   const cabStand = S.cabStand ? { x: X(S.cabStand.f, S.cabStand.z), z: S.cabStand.z, w: P.bench.w, face: 'street', cab: true } : null;
   // (live: drawn by the people's near pass on its schedule, never baked; hand 1: its handles on the right end — FP3b: a low roaster
   // cart, no umbrella: props.js#drawCart)
-  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: true, live: true, scale: S.cart.scale || 1, hand: S.cart.hand || 1 };
+  const cart = { x: X(S.cart.f, S.cart.z), z: S.cart.z, kind: 'chestnuts', shown: true, live: true, scale: S.cart.scale || 1, hand: S.cart.hand || 1, from: S.cart.from || 'side' };
   const medallion = { x: X(S.medallion.f, S.medallion.z), z: S.medallion.z, r: P.medallion.r, ring: P.medallion.ring, clear: EVENT_CLEAR };
   // (FP2 — THE CART'S RULE for 8b: it rests LEFT of the medallion; on a normal day its route rolls across the floor — over the
   // medallion — to the open right side and back; during an event on the medallion it stops short: never right of stopX)
   cart.route = { x0: cart.x, x1: cart.x, z: cart.z };   // (PROM: it rests where it stands — the compass + the cab stand fill its old way)
-  cart.stopX = medallion.x - EVENT_CLEAR;
+  cart.stopX = medallion.x + EVENT_CLEAR;   // (C4b: the cart stands RIGHT of the compass now — never left of this during an event)
   const crosswalk = { x0: X(S.crosswalk[0], 59), x1: X(S.crosswalk[1], 59), z0: 54, z1: 64 };
   // (FP: THE WALK / WAIT LANTERN — on the FAR side of the crossing, at the railing where the crosswalk lands, facing us: the people
   // waiting on the promenade's kerb read it across the road, the way a pedestrian signal stands)

@@ -87,7 +87,7 @@ export function envelopeOf(t) {
  */
 export function treePlan(t, { season = 'autumn', phase = 0.5, i = 0 } = {}) {
   const crab = t.kind === 'crab', env = envelopeOf(t), { cv, a, b } = env;
-  const key = `${Math.round(t.x * 10)}|${Math.round(t.z * 10)}|${t.kind}`;
+  const key = `${Math.round((t.seedX ?? t.x) * 10)}|${Math.round(t.z * 10)}|${t.kind}`;   // (C4b: seedX — a moved tree keeps its crown)
   // --- THE SKELETON (always to the finest twig; the season picks how deep it shows)
   const R = rngFrom(`tree-sk|${key}`), segs = [];
   // (FP2: the big framing maple's trunk sturdier — the owner: "a lopsided crown on a thin trunk" — and it forks a little lower, so

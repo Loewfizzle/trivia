@@ -39,8 +39,9 @@ test('FP3a — THE LIGHT: a face takes the NEAREST lamp (its colour, reach, dire
   const L = setup(), ctx = pieceCtx(L), b = L.cabStand;
   // (PROM: the cab stand's face toward us takes the nearest IMPLIED lamp — warm, from the front + above)
   const near = lampOn(ctx.lights, b.x, b.z, 1);
-  assert.deepEqual(near.lcol, FACE.col.implied);
-  assert.ok(near.lk > 0.5 && near.ld[1] > 0 && near.ld[2] < 0, `lit from the front + above (${near.lk.toFixed(2)})`);
+  // (C4b: + its OWN lamp off-screen right — the colour the implied lamps' warm white blended toward it, the light from the RIGHT + above)
+  assert.ok(near.lcol.every((v, i) => v <= Math.max(FACE.col.implied[i], FACE.col.hidden[i]) + 1e-9 && v >= Math.min(FACE.col.implied[i], FACE.col.hidden[i]) - 1e-9), 'warm: the implied lamps + the cab lamp');
+  assert.ok(near.lk > 0.5 && near.ld[1] > 0 && near.ld[0] > 0.1, `lit from the right + above (${near.lk.toFixed(2)}, ${near.ld.map(v => v.toFixed(2))})`);
   assert.equal(lampOn(ctx.lights, b.x + 400, b.z, 1).lk, 0, 'out of reach: no lamp light');
   assert.equal(lampOn([], 0, 0, 1).lk, 0);
   const t = L.trees[0], tl = treeLamps(ctx, t);
@@ -61,4 +62,24 @@ test('FP3a — the stage ↔ props import cycle is broken (both read core/harbor
   const src = f => readFileSync(new URL(`../js/screens/harbor/${f}`, import.meta.url), 'utf8');
   assert.ok(!/from '\.\/stage\.js'/.test(src('props.js')), 'props.js no longer imports stage.js');
   for (const f of ['motorcar.js', 'centre.js', 'people.js']) assert.ok(!/from '\.\/stage\.js'/.test(src(f)), `${f} reads the pure light module, not stage.js`);
+});
+
+test("C4b — THE CAB STAND's OWN LAMP: just off-screen right at the front curb, high; it lights the maple's lower-right crown (brighter there than up-left), the bench from the right, a pool round the bench; the bench's shadow falls LEFT", async () => {
+  const { cabLamp, TREE_LAMP, lightField, lampShadow, hiddenLamps } = await import('../js/core/harbor-light.js');
+  for (const [W, H] of [[390, 844], [402, 874], [430, 932]]) {
+    const k = `${W}x${H}`, L = setup(W, H), cam = L.cam, c = cabLamp(L), [sx] = project(cam, c.x, 0, c.z);
+    assert.ok(sx > cam.W + 10 && sx < cam.W + 60, `${k}: off-screen right (${sx.toFixed(0)} of ${cam.W})`);
+    assert.ok(hiddenLamps(L).some(h => h.cab), 'one of the hidden lamps');
+    // the maple's crown: a lower-right point nearer the lamp than an upper-left one — the lamp's share falls off up + left
+    const ctx = pieceCtx(L), mp = L.trees.find(t => t.big), lp = treeLamps(ctx, mp).find(l => l.col === TREE_LAMP.cab.col);
+    assert.ok(lp && lp.x > 0 && lp.w > 0, `${k}: the maple sees it from the right + front`);
+    const share = (u, v) => lp.k / (1 + (Math.hypot(lp.x - u, lp.y - v, lp.w) / lp.fall) ** 2);
+    assert.ok(share(2, 4) > 1.5 * share(2, 7.5) && share(2, 4) > 3 * share(-2, 7.5), `${k}: the lower right ${share(2, 4).toFixed(2)} vs the upper right ${share(2, 7.5).toFixed(2)} + the upper left ${share(-2, 7.5).toFixed(2)}`);
+    // the pool at the bench: brighter than 8 u left of it along the front strip
+    const f = lightField(L, { lamps: 1 }), lum = v => (v ? v[0] + v[1] + v[2] : 0);
+    assert.ok(lum(f(L.cabStand.x, L.cabStand.z + 0.6)) > lum(f(L.cabStand.x - 8, L.cabStand.z + 0.6)), `${k}: a pool at the cab stand`);
+    // the bench's shadow (and a waiter's) falls LEFT, away from the lamp
+    const sh = lampShadow([...L.lamps, c], 1, L.cabStand.x, L.cabStand.z, 1);
+    assert.ok(sh && sh.dx < -0.5, `${k}: the shadow falls left (${sh && sh.dx.toFixed(2)})`);
+  }
 });
