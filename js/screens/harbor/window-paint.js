@@ -561,12 +561,11 @@ export function createPaint(life) {
     // (C4a: the shop is a ROOM — window-rooms.js#paintShopRoom: the barber, his customer + the chair at the chair's depth, the lamp at
     // its own, the mirror door in the back wall)
     const SG = shopGlass(sw), B = boxOf(SG, env.vp), chairX = shopChairX(SG), base = v0 + 0.02, T = o.T || { day, gold: 0, night: k };
-    let drew = false;
     c.save(); env.map(c); c.beginPath(); c.rect(w0, v0, w1 - w0, v1 - v0); c.clip();
     if (day > 0.01 && (routine || !open)) {
       // CLOSED (before 9, after 6): the shop dim inside (the bake is the open shop by day) — the opening brings the lights up
       const lit = routine ? sm(0.02, 0.12, routine.el / routine.len) : 0;
-      c.globalAlpha = day * (1 - lit) * 0.5; R(c, w0, v0, w1, v1, 'rgb(14,12,18)'); c.globalAlpha = 1; drew = true;
+      c.globalAlpha = day * (1 - lit) * 0.5; R(c, w0, v0, w1, v1, 'rgb(14,12,18)'); c.globalAlpha = 1;
     }
     if (day > 0.01 && (open || routine)) {
       c.globalAlpha = day;
@@ -576,11 +575,10 @@ export function createPaint(life) {
         if (routine) shopOpening(c, routine.el / routine.len, { w0, w1, v0, v1, chairX, base, t, mo, T });
         else barberDay(c, fr, { w0, w1, v0, v1, chairX, base, t, mo, T });
       });
-      c.globalAlpha = 1; drew = true;
+      c.globalAlpha = 1;
     }
-    if (mirror && k > 0.01) { mirrorDoor(c, mirror.el / mirror.len, { SG, B, k, t, glow }); drew = true; }
+    if (mirror && k > 0.01) { mirrorDoor(c, mirror.el / mirror.len, { SG, B, k, t, glow }); }
     c.restore();
-    void drew;
     // the door's card: CLOSED by day before the opening (the bake says OPEN by day) → flipped at the opening
     if (day > 0.01 && env.card && (!open || routine)) {
       c.save(); env.map(c);

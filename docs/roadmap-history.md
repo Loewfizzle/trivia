@@ -1523,3 +1523,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE WET STREET: no implied-lamp streaks — a sheen brightest at the foot; the back reflections 0.42 / 0.2 + broken + rippling in rain.
 - THE CROSSWALK: one soft radial per pool, feathered at the curb + the rail, wider; THE CARS sampled tail / middle / nose → a gradient,
   the wheels lit, the signal's colour at the crossing. New: shots --crop crossing, the crossing unit test, e2e `weather` + `people` probes.
+
+## CITY 2.0 — C4b: THE PEOPLE + THE LAYOUT (Oct 28–29 2026) — docs/harbor.md#c4b (review-4.md §E items 7–11 + the owner's Oct 28 notes)
+- Group 0: THE GIANT OFF (core/harbor-holiday.js#GIANT_ON; &force=giant + a panel row) — the planted-foot check 0.29 → 0.06.
+- Group 1: THE LAYOUT — the compass f 0.6675 → 0.515 (the crossing clear), the water bench 0.515 → 0.42, the framing maple 0.875 → 0.9 +
+  the cab bench → 0.9025 (the crown kept: seedX), the cart 0.47 → 0.69 from below the dock; THE CAB STAND's OWN LAMP (core/harbor-light.js
+  #cabLamp: the maple's lower-right leaves, the bench + its waiters, a pool, the shadows left).
+- Group 2: the front-facing seated rig + the lap; the water bench's back lower + solid; &force=waterbench; THE DOORMAN OPENS THE DOOR
+  (core/harbor-crew.js#doormanAt — attend, the hold, the cap's tip, the peaked cap + the brass stripe); THE PEOPLE RULE (harbor-witness.js
+  #rejoinVisits + people.js#guard) + its unit + e2e checks.
+- Group 3: the crosswalk dimmer (k 1.15 → 0.4, the edges 0.5 → 0.14, the stripes pale: × ≥ 2 the gaps) + its light LIVE at the lamps × the
+  power (road.js#createCrossLight); the mirror door's first-frame jump gone; the benches' overlays out while it rains / snows; HARBOR
+  BARBERS removed (speakeasy.js#glassOver); every baked pool + the benches' overlays dark in the blackout + the luminance test.
