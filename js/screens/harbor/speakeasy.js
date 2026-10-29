@@ -690,6 +690,6 @@ export function createSpeakeasy() {
     /** PART 7b: the speakeasy's sound beds now (sounds.js#speakeasy): { club, tv, party } */
     beds: () => bedsNow,
     debug: () => ({ basement: basementDbg ? { a: +basementDbg.a.toFixed(3), shadows: basementDbg.shadows.length, flick: basementDbg.flick } : null, marquee: G && lastGame ? marqueeScreen(bladeGeo(G)).map(b => ({ x: +b.x.toFixed(1), y: +b.y.toFixed(1) })) : [], poleRect, glowAt: { ...glowAt }, turned: G ? G.turned : null, side: G ? +G.len.toFixed(2) : 0, sidePt: G ? Math.round(G.side(G.len, 0)[0] - G.side(0, 0)[0]) : 0, windows: wins.length, mirror, poleOn: !poleOff, polePh: +polePh.toFixed(4), poleRate: poleA ? +poleA.rate.toFixed(3) : 0, polePx, box, dpr, k: lastK, lit: !!litCv, mb: +(((litCv ? litCv.width * litCv.height : 0) + (bladeCv ? bladeCv.width * bladeCv.height : 0)) * 4 / 1e6).toFixed(2) }),
-    destroy() { life.destroy(); hush.destroy(); for (const cv of [litCv, bladeCv, poleCv, haloCv, glassCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; giltCv = bulbCv = null; bulbKey = ''; litCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
+    destroy() { life.destroy(); hush.destroy(); for (const cv of [litCv, bladeCv, poleCv, haloCv, glassCv, bulbCv, ...softs.values()]) if (cv) cv.width = cv.height = 0; glassCv = bulbCv = null; bulbKey = ''; litCv = bladeCv = poleCv = haloCv = poleImg = null; haloKey = ''; softs.clear(); },
   };
 }

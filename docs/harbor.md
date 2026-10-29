@@ -9426,6 +9426,11 @@ blade, so it's BAKED with the lamps' ramp (its hours, the dusk, the blackout's d
   probes were tightened: the crosswalk 180 vs 37; THE PEOPLE RULE after the UFO — 4 walked in, all at a way in, the safety net hid 0; THE
   BLACKOUT probe — crossing 3.9 vs its ring 6 · cab bench 5 vs 5.1 · water bench 5.8 vs 6.3 · shop window 4.5 vs 4.5 · implied pool 5.2 vs 4.9.
 - The mirror door at 402 (`--cast`, every painted frame, the shop's box): the swing's first frame 0.83 → none (0.31 → 0.44 a frame, smooth).
+- THE CLOUD RUN #1 (harbor 40822157405 + tests 40822157473): tests green; harbor 6 of 7 jobs green, `city` 122 / 123 — "MEMORY: 20
+  title↔setup cycles leave one city, heap 124.2 MB" (≤ 6). CAUSE: the gilt's removal renamed giltCv → glassCv but the speakeasy's
+  `destroy()` still cleared `giltCv` — it threw, so every city torn down on the way to HOST / JOIN stayed in memory (~6.7 MB a trip).
+  Fixed (one name); measured locally after: +9.1 / +10.1 MB over 20 cycles, flat, vs the commit before the pass +7.7 (the same wander).
+  THE CLOUD RUN #2 (the pass's last): the result in the commit after it.
 - SPEED (`title-perf.mjs --ab` against the commit before the pass, b19f803 on :5174; 390 × 844, 4× CPU): a PLAIN NIGHT same (t2 +0.9 /
   +0.2 ms, t0 flagged +4.5 vs noise ±3.1 in the first run, then +1.5 vs ±2.3 in a re-run — noise); a PARTY NIGHT same at every tier (+4.6
   ms each, inside its ±4.6–17.6 noise — a consistent offset worth PERF's look); a SNOWY NIGHT faster at t2 (−4.9), t0 same (−2.8), t1
