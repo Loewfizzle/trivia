@@ -855,13 +855,50 @@ function busRiders(bus, M, ctx = {}) {
   return out;
 }
 
+/** HOTFIX Oct 29 — the dog's turn: how long its heading takes to follow its walker's path (s) — one eased turn, never a snap */
+const DOG_EASE = 0.6, DOG_N = 12;
+/** the dog's heading at t (PURE): its walker's path heading at the dog's own lag point, averaged over the last DOG_EASE s with a tent
+ *  (sampled every DOG_EASE / DOG_N s, each unwrapped onto the one before — the way the walker really turned): a sudden half turn becomes
+ *  one ease-in-out over DOG_EASE, a wiggle round a threshold never shows */
+function dogHeading(v, t, s) {
+  let a = s.hd, sum = 0, wsum = 0;
+  for (let k = 0; k <= DOG_N; k++) {
+    const q = k ? visitAt(v, t - k * DOG_EASE / DOG_N) : s; if (!q) break;
+    if (k) a += ((q.hd - a) % (2 * PI) + 3 * PI) % (2 * PI) - PI;
+    const w = Math.min(k + 1, DOG_N + 1 - k); sum += a * w; wsum += w;
+  }
+  return sum / wsum;
+}
+/** the dog at t → { hd (its eased heading), off (its place from the walker's point s: dogOffset, kept off the dock's edge + the railing —
+ *  BEFORE a sniff blends it to the hydrant, so the sniff's start never releases a clamp in one frame) } */
+const DOG_DT = 0.08;
+function dogPlace(v, m, t, s) {
+  const hd = dogHeading(v, t - m.lag, s), off = dogOffset(m, hd);
+  off.z = Math.max(FOLK.zMin - 0.3, Math.min(FOLK.farZ + 0.25, s.z + off.z)) - s.z;
+  return { hd, off };
+}
+/** the dog's place beside its walker at heading h (PURE, continuous in h): m.dx along the heading, m.dz to the side the old 4-way rule
+ *  chose (toward us when walking across, to the right when walking in or out) — the perpendicular nearest (1, 1)/√2, at full length
+ *  from half its reach, in line with the walker on the two diagonals where the side changes */
+export function dogOffset(m, h) {
+  const fx = Math.cos(h), fz = Math.sin(h), r = Math.SQRT1_2, d = r * fx + r * fz, px = r - d * fx, pz = r - d * fz, pl = Math.hypot(px, pz), k = pl > 1e-9 ? 1 / Math.max(pl, 0.5) : 0;
+  return { x: m.dx * fx + m.dz * px * k, z: m.dx * fz + m.dz * pz * k };
+}
+/** folkAt's plan cache: its size cap (entries, least-recently-used out) — the busiest frame (&force=bus) touches ~95, the warm-ahead as many */
+export const FOLK_CACHE = 320;
 /**
  * EVERYONE ON THE PROMENADE at t (PURE given the caches): → { visits: [visit], members: [{ vid, m (member), s (its state), look, kind }],
  * buses: [bus on screen + its x] }. world: { L, M, ctx } — the caller passes `cache` (a Map) so the blocks are planned once.
  */
 export function folkAt(t, world, cache = new Map()) {
   const { M, ctx = {} } = world, L = world.L, B = FOLK.block, cx0 = {};
-  const get = (key, make) => { if (!cache.has(key)) { cache.set(key, make()); if (cache.size > 80) cache.delete(cache.keys().next().value); } return cache.get(key); };   // (PEO: 80 — the next block is warmed 70 s ahead; it must not evict the current one)
+  // (HOTFIX Oct 29 — THE FORCED BUS AT 5 FPS: this was first-in-first-out at 80 entries; &force=bus (a bus every ~47 s) touches ~95
+  // keys a frame, so every frame evicted what it was about to read and re-planned the whole promenade (~4 800 busBlocked checks, 200 ms
+  // on the iPhone). Now LEAST-RECENTLY-USED (a hit moves to the back) with room for the frame + the plan warmed 70 s ahead: FOLK_CACHE.)
+  const get = (key, make) => {
+    if (cache.has(key)) { const v = cache.get(key); cache.delete(key); cache.set(key, v); return v; }
+    const v = make(); cache.set(key, v); while (cache.size > FOLK_CACHE) cache.delete(cache.keys().next().value); return v;
+  };
   // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: core/harbor-legend.js#trafficHold from ctx.legend { kind, t0 } — a bus, a cab or a car
   // that would ENTER inside the hold never comes; one already on screen when it starts finishes its business)
   // 11a-1 — THE PROCESSION (Nov 2 at dusk, or &force=procession): its window near t; while it's in the street NO car, bus or cab enters
@@ -1133,7 +1170,19 @@ export function folkAt(t, world, cache = new Map()) {
         } else hd = s.pose === 'chat' ? poseHd : s.hd;
       }
       let sniffK = 0;
-      if (m.role === 'dog') { const dd = s.dir === 1 || s.dir === -1 ? s.dir : 1, ang = s.dir === 1 || s.dir === -1 ? 0 : 1; off = ang ? { x: m.dz, z: -m.dx * (s.dir === 2 ? -1 : 1) } : { x: m.dx * dd, z: m.dz };
+      if (m.role === 'dog') {
+        // (HOTFIX Oct 29 — THE DOG's TURN (the owner: jittery when it turns away from an obstacle): its place by the walker came from the
+        // 4-way facing — a heading near a threshold (the walker's chord turning off a bench, a kerb) jumped it up to 1.8 u a frame from one
+        // side to the other and back, mirrored. Now ONE EASED TURN: the heading is the walker's path over the last DOG_EASE s (dogHeading),
+        // and the place beside them a continuous function of it (dogOffset: the same four places as before on the four headings, in line
+        // behind / ahead as it crosses over) — the leash follows the collar)
+        const dg = dogPlace(v, m, t, s); hd = dg.hd; off = dg.off;
+        // (`turn` (rad / s, its eased heading's rate) lets folk.js#drawDog squash its mirror-flip through zero width only while it really
+        // turns; swinging round a walker who turns in place, it trots — never slides with its legs still)
+        const pg = visitAt(v, t - DOG_DT - m.lag);
+        if (pg) { const dp = dogPlace(v, m, t - DOG_DT, pg), sp = Math.hypot(s.x + off.x - pg.x - dp.off.x, s.z + off.z - pg.z - dp.off.z) / DOG_DT;
+          st = { ...st, turn: Math.abs(((hd - dp.hd) % (2 * PI) + 3 * PI) % (2 * PI) - PI) / DOG_DT };
+          if (s.pose !== 'walk' && !s.sniff && sp > 0.3) st = { ...st, v: sp, dist: (m.seed % 97) + (s.since || 0) * 1.4 }; }
         // (POLISH 5 — THE SNIFF: the dog trots forward on its leash off the floor's edge to the hydrant, its nose at it, and back — 0.9 s each way)
         if (s.sniff && M.hydrantSpot) { sniffK = Math.max(0, Math.min(1, (s.since || 0) / 0.9, (s.left == null ? 1 : s.left) / 0.9)); const tx = M.hydrantSpot.x + 0.62 - s.x, tz = M.hydrantSpot.z + 0.1 - s.z, e = sniffK * sniffK * (3 - 2 * sniffK);
           off = { x: off.x + (tx - off.x) * e, z: off.z + (tz - off.z) * e }; if (sniffK < 1) st = { ...st, v: 1.4, dist: (m.seed % 97) + (s.since || 0) * 1.4 }; } }

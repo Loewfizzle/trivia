@@ -7,7 +7,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   ~400–600 a day when this ran on every push) only a pass's FINAL push runs it**: a push with **`[ci]`** (a game / app pass) or **`[harbor]`** (a City 2.0
   pass) in one of its commit messages; pull requests and `gh workflow run tests` always run; any other push shows a skipped run (0 minutes; it never
   cancels a full run in flight — a newer full run cancels an older one). The laptop runs `node --test tests/*.test.mjs` before every push. Budget
-  ≈ 30–40 cloud minutes a pass (this workflow ≈ 10, the harbor's 7 jobs ≈ 25–30). It runs the unit tests,
+  ≈ 30–40 cloud minutes a pass (this workflow ≈ 10, the harbor's 8 jobs ≈ 28–34). It runs the unit tests,
   then the rules tests, the `/api` tests and the smoke test on the emulators with headless Chrome. They run **next to** the Vercel
   deploy, never in front of it; a failure is a red ✗ on the commit (and an email). (Since Oct 27 Vercel itself deploys only a push whose LAST
   commit carries `[harbor]`, `[ci]` or `[deploy]` — `vercel.json#ignoreCommand`, CLAUDE.md → Testing.) The smoke
@@ -234,6 +234,12 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   pass's log: `docs/harbor/passes/<id>.md`). `pixdiff.mjs` shoots both sides AT REST (the title's `nd-idle`). On THIS Windows laptop
   (headless Chromium 149) the `perf` group's three BATTERY checks fail the same on older commits (no animation frame for 0.6 s after
   "visible again") — the cloud's Linux Chrome is the judge for them.
+- HOTFIX Oct 29 — THE BASELINE GUARD (`ONLY=perf`; docs/harbor/passes/hotfix-oct29.md): the mean scene work a frame on a plain night, the
+  forced bus at its stop + the forced dog walk (tier 0, `CPU`× throttle) divided by a fixed JS loop timed in the same page, FAILS above 2× the
+  baseline in `tests/integration/perf-baseline.json` (CI without its own `ci` baseline: a warning from 2×, a failure from 4×). `PERF_GUARD=only
+  ONLY=perf` = just the guard (≈ 1.5 min); `PERF_BASELINE=write` re-writes the baseline — only when a pass changes the cost ON PURPOSE (a CI
+  run's numbers go into the file's `ci` by hand from its log). `title-perf.mjs --scenes bus,dog` (the owner's forced-bus link, the forced dog
+  walk); `shots.mjs --scenes dogwalk,dogwalk-day --cast <ms>` (the dog's turn).
 - THE MUSIC ON AN iPHONE (docs/audio.md#m2 / #m3 / #m4): `ONLY=music node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 90 s, the emulators) — §6 the
   M2 scenarios (leave + come back, stuck, the music button, a network error, the OS pause, bfcache, a dead voice), §7 iOS's gesture rule
   emulated (play() / resume() refused outside touchend / click; a frozen clock → the direct element, the rebuild cap), §8 THE EVIDENCE

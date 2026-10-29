@@ -73,7 +73,7 @@ const SCENE = {
   // THE STREET (lamps + trees through the year, buses, the stop light, plows, shadows, the street's party night)
   blossom: ['2026-04-05T20:30'], summer: ['2026-07-10T22:15'], autumn: ['2026-10-24T16:30', { qs: 'wind=11&force=gust' }],
   'autumn-night': ['2026-10-24T22:00'], winter: ['2026-12-18T19:00'], plow: ['2027-01-15T19:00', { qs: 'wx=snow&force=plow' }],
-  owl: ['2026-10-22T01:10', { qs: 'force=owl' }], 'day-bus': ['2026-10-20T11:00', { qs: 'force=bus' }], golden: ['2026-10-20T18:15'],
+  owl: ['2026-10-22T01:10', { qs: 'force=owl' }], 'day-bus': ['2026-10-20T11:00', { qs: 'force=bus' }], dogwalk: ['2026-10-30T19:12', { qs: 'wx=clear&force=dogwalk' }], 'dogwalk-day': ['2026-10-30T11:00', { qs: 'wx=clear&force=dogwalk' }], golden: ['2026-10-20T18:15'],   // (HOTFIX Oct 29: dogwalk + dogwalk-day — the dog's eased turn, --cast)
   'street-party': ['2026-10-23T23:00', { qs: 'force=partybus,chase' }], 'street-rain': ['2026-10-23T23:00', { qs: 'wx=rain&force=partybus' }],
   // THE STREET, Part 2 (the people)
   umbrellas: ['2026-10-21T21:30', { qs: 'wx=rain&force=peds,umbrellas' }], 'party-line': ['2026-10-23T23:15', { qs: 'force=line,door' }],

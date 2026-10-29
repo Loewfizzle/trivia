@@ -58,6 +58,8 @@ const SCENES = {
   'n4-race': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race', 'n4-punch': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-punch', 'n4-shim': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-shimmer',
   'n4-beams': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-beams', 'n4-str': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-strings', 'n4-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race,no-punch,no-shimmer,no-beams,no-strings',
   'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
+  // HOTFIX Oct 29: the owner's forced-bus link (5 fps on his iPhone: the people's plan cache re-planned every frame) + the forced dog walk
+  bus: 'when=2026-10-30T11:00&wx=clear&force=bus', dog: 'when=2026-10-30T19:12&wx=clear&force=dogwalk',
   // PROM: the promenade pass's A/B — a snowy night + Halloween night (the giant on the bigger compass, the re-anchored dressing)
   'np-snow': 'when=2027-01-14T21:30&snow=fresh&wx=snow&temp=-6&force=no-planes', 'np-halloween': 'when=2026-10-31T21:30&wx=clear&force=no-planes',
   // (11a-2's speed round: the parade at its peak (balloons + the band + the crowd), Halloween night with the giant, an ordinary November day)

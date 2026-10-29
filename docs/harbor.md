@@ -696,3 +696,4 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | C4b | Oct 28–29 | [passes/c4b.md](harbor/passes/c4b.md) | THE PEOPLE + THE LAYOUT |
 | C4c | Oct 29 | [passes/c4c.md](harbor/passes/c4c.md) | THE OWNER'S BUGS + THE MEASURING TOOLS |
 | C4d | Oct 29 | [passes/c4d.md](harbor/passes/c4d.md) | THE CODE, THE TESTS, THE DOCS + the bus's dwell, the forced dog walk, the harvest model's load told |
+| HOTFIX | Oct 29 | [passes/hotfix-oct29.md](harbor/passes/hotfix-oct29.md) | THE FORCED BUS AT 5 FPS (the plan cache) + THE BASELINE GUARD, the harvest model's readout row + iOS fallbacks, THE DOG's TURN |

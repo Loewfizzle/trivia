@@ -45,7 +45,7 @@ on:
         description: 'One job only (its groups: tests/integration/harbor-jobs.mjs), or all'
         type: choice
         default: all
-        options: [all, audio, show, city, street, wild, holiday, windows]
+        options: [all, audio, show, city, perf, street, wild, holiday, windows]
 
 concurrency:
   group: harbor-${{ github.ref }}-${{ (github.event_name == 'workflow_dispatch' || contains(join(github.event.commits.*.message, ' '), '[harbor]')) && 'full' || 'skip' }}
@@ -63,7 +63,7 @@ jobs:
       matrix:
         # THE JOBS — the same names as CI_JOBS in tests/integration/harbor-jobs.mjs (tests/harbor-jobs.test.mjs checks the two match;
         # a new job goes in both + in the options above). A new GROUP needs no change here: it goes in a job in harbor-jobs.mjs.
-        job: ${{ fromJSON(inputs.job && inputs.job != 'all' && format('["{0}"]', inputs.job) || '["audio","show","city","street","wild","holiday","windows"]') }}
+        job: ${{ fromJSON(inputs.job && inputs.job != 'all' && format('["{0}"]', inputs.job) || '["audio","show","city","perf","street","wild","holiday","windows"]') }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-node@v5

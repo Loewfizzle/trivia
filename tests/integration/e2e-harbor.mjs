@@ -54,6 +54,12 @@ const okT = soft('timing'), okF = soft('flaky');
 const ON_CI = !!process.env.CI && process.env.TIMING !== 'strict';
 const skipCI = (what, why) => { checks.push({ what, ok: true, warn: 'skipped' }); warnings.push(`[skipped] ${what} — on CI: ${why}`); log('SKIP', `${what} (on CI: ${why})`); };
 const GR = '&tz=America/Detroit&at=42.96,-85.67';
+// (HOTFIX Oct 29: THE BASELINE GUARD's scenes — the perf group; the owner's forced-bus link at its stop, a plain night, the forced dog walk)
+const GUARD_SCENES = {
+  night: { label: 'a plain night', qs: 'when=2026-10-22T21:30&wx=clear' },
+  bus: { label: 'the forced bus (&force=bus, at its stop)', qs: 'when=2026-10-30T11:00&wx=clear&force=bus', wait: 'window.__district.harbor().people.buses.some(b => b.door)', waitWhat: 'a bus at the stop' },
+  dog: { label: 'the forced dog walk (&force=dogwalk)', qs: 'when=2026-10-30T19:12&wx=clear&force=dogwalk' },
+};
 const NIGHT = `when=2026-10-21T22:00${GR}`;
 
 let browser = null;               // (launched when this process first runs a group itself: a parent that only shards never opens one)
@@ -1233,7 +1239,7 @@ G('perf', async () => {
   // ---- WIN2 — THE QUALITY STEP: a CALM LOAD on a mid phone profile (2x CPU) — 30 s after the reveal, NO tier step: nothing is judged in
   // the first 15 s, in a bake, the crossfade or the sign's surge, and only SUSTAINED slowness steps (the effects first, live — never the
   // full-city crossfade the owner saw ~9.5 s after the reveal); what the judge measured is in tiering().judge + the readout's tier line
-  { const C2 = await open({ slot: 'calm', qs: `when=2026-10-22T21:30${GR}&debug=1`, view: [402, 874] });
+  if (process.env.PERF_GUARD !== 'only') { const C2 = await open({ slot: 'calm', qs: `when=2026-10-22T21:30${GR}&debug=1`, view: [402, 874] });
     await C2.page.bringToFront();
     const cd = await C2.page.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: 2 });
     await harborUp(C2.page);
@@ -1244,6 +1250,41 @@ G('perf', async () => {
     if (ON_CI) { ok(ti.grace >= 15000, `A CALM LOAD: nothing judged in the first ${ti.grace / 1000} s (≥ 15)`); skipCI('A CALM LOAD STEPS NOTHING', `the runner's p75 ${ti.judge ? ti.judge.p75 : '?'} ms can't hold 60 fps`); }
     else (machine ? okT : ok)(calm && ti.grace >= 15000, `A CALM LOAD STEPS NOTHING (2x CPU, 30 s): tier ${ti.tier}/${ti.dprTier}, steps ${ti.hist.join('->')}${ti.why.length ? ` (${ti.why.join(' | ')})` : ''}, judged from ${ti.grace / 1000} s${ti.judge ? `; the judge: ${ti.judge.text}` : ''}`);
     await cd.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await C2.ctx.close(); }
+  // ---- HOTFIX Oct 29 — THE BASELINE GUARD (the owner's iPhone: &force=bus at 5 fps, 200 ms of work a frame — the people's plan cache
+  // re-planned the whole promenade every frame; no check saw it, C4d's "slow headless departure" was this): the mean scene work a frame
+  // on a plain night + the forced-event links, at tier 0 and CPU× throttle, divided by a fixed JS loop timed in the same page (the
+  // machine's speed: one baseline serves the laptop + the runner) — it FAILS above 2× tests/integration/perf-baseline.json (on CI with
+  // no runner baseline of its own: a warning from 2×, a failure from 4× — the laptop's ratio of draw to JS isn't the runner's).
+  // A pass that changes the cost ON PURPOSE re-writes the file at its end: PERF_BASELINE=write PERF_GUARD=only ONLY=perf.
+  { const file = new URL('./perf-baseline.json', import.meta.url), BL = existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : { scenes: {} }, got = {};
+    const own = ON_CI ? BL.ci : null; let base = own || BL.scenes;
+    const CAL = `(() => { const cal = []; for (let k = 0; k < 5; k++) { const t0 = performance.now(); let x = 0; for (let i = 0; i < 2e6; i++) x += Math.sin(i * 0.001) * (i & 7); window.__calSink = x; cal.push(performance.now() - t0); } cal.sort((a, b) => a - b); return cal[2]; })()`;
+    for (const [id, sc] of Object.entries(GUARD_SCENES)) {
+      const G2 = await open({ slot: `pg-${id}`, qs: `${sc.qs}${GR}`, view: [402, 660] });
+      await G2.page.bringToFront();
+      const cd = await G2.page.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: CPU });
+      await harborUp(G2.page);
+      await ev(G2.page, 'window.__district.setTier(0)');
+      await waitFor(G2.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 30000).catch(() => log(`perf guard: ${id} — not settled in 30 s; measured anyway`));
+      if (sc.wait) await waitFor(G2.page, sc.wait, sc.waitWhat, 60000).catch(() => log(`perf guard: ${id} — ${sc.waitWhat} not seen; measured anyway`));
+      await sleep(4000);   // (the measuring window: cost() keeps the last 90 frames)
+      const r = await ev(G2.page, '(() => { const c = window.__district.cost(); return { work: c.reduce((a, b) => a + b, 0) / Math.max(1, c.length), n: c.length }; })()');
+      const cal = await ev(G2.page, CAL);
+      got[id] = { work: +r.work.toFixed(2), cal: +cal.toFixed(1), norm: +(r.work / cal).toFixed(4), frames: r.n };
+      await cd.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await G2.ctx.close();
+    }
+    if (process.env.PERF_BASELINE === 'write') {
+      const out = ON_CI ? { ...BL, ci: got } : { ...BL, scenes: got, at: new Date().toISOString().slice(0, 10), cpu: CPU };
+      writeFileSync(file, JSON.stringify(out, null, 1) + '\n'); log('perf guard: the baseline written', JSON.stringify(got)); base = got;
+    }
+    for (const [id, g] of Object.entries(got)) {
+      const b = base[id], k = b ? g.norm / b.norm : 0, txt = `THE BASELINE GUARD — ${GUARD_SCENES[id].label}: work ${g.work} ms a frame (${g.frames} frames, the machine's loop ${g.cal} ms) = ${k ? `${k.toFixed(2)}× the baseline` : 'no baseline'} (≤ 2×)`;
+      if (!b) okT(false, `${txt} — run PERF_BASELINE=write ONLY=perf`);
+      else if (ON_CI && !own) (k > 4 ? ok : okT)(k <= 2, `${txt} (the laptop's baseline on the runner)`);
+      else ok(k <= 2, txt);
+    }
+  }
+  if (process.env.PERF_GUARD === 'only') return;   // (PERF_GUARD=only ONLY=perf: just the guard, ~1.5 min — a baseline re-write, a quick check)
   // ================================================================ 5. frame pacing at 4× CPU, memory over 20 cycles, a hidden tab
   const Q = await open({ slot: 'hq', qs: `when=2026-10-24T23:00${GR}` });   // a Saturday at the party's peak
   await harborUp(Q.page);
@@ -2779,6 +2820,17 @@ G('people', async () => {
     const t0 = Date.now();
     await waitFor(Q.page, `${P}.people.dogs > 0 && ${P}.people.rigs().some(r => r.kind === 'dogwalker' && /^dw\./.test(r.id) && r.fx > 20 && r.fx < 382)`, 'a forced dog walk on screen', 20000);
     okT(Date.now() - t0 < 12000, `&force=dogwalk (C4d): a walker + dog on screen ${((Date.now() - t0) / 1000).toFixed(1)} s after the reveal`);
+    // HOTFIX Oct 29 — THE DOG's TURN in the real page: every frame for 20 s — it never moves faster than a scamper round its walker
+    // (~8 u / s; the old side-to-side jump was 1.85 u in one frame ≈ 110 u / s), its facing never flips back within ½ s
+    const tr = await ev(Q.page, `new Promise(res => { const out = [], t0 = performance.now(); const f = () => { const p = window.__district.harbor().people; out.push({ t: performance.now(), d: p.dogAt || [] }); if (performance.now() - t0 < 20000) requestAnimationFrame(f); else res(out); }; requestAnimationFrame(f); })`);
+    let fast = 0, back = 0, n = 0, worst = 0; const last = new Map(), flip = new Map();
+    for (const fr of tr) for (const d of fr.d) {
+      const q = last.get(d.id), sg = Math.cos(d.hd) < 0 ? -1 : 1;
+      if (q && fr.t - q.t < 120) { const v = Math.hypot(d.x - q.x, d.z - q.z) / Math.max(1 / 60, (fr.t - q.t) / 1000); n++; worst = Math.max(worst, v); if (v > 11) fast++;
+        if (q.sg !== sg) { if (fr.t - (flip.get(d.id) || -1e9) < 500) back++; flip.set(d.id, fr.t); } }
+      last.set(d.id, { t: fr.t, x: d.x, z: d.z, sg });
+    }
+    ok(n > 100 && fast === 0 && back === 0, `THE DOG's TURN (HOTFIX Oct 29) in the page, 20 s: ${n} dog frames, the fastest ${worst.toFixed(1)} u/s (≤ 11), ${fast} faster, ${back} facing flips back within ½ s`);
     await Q.ctx.close(); }
   // ---- THE ROOF on a party night: guests up there (through the hatch), the promenade's party guests
   { const Q = await open({ slot: 'pp5', qs: `when=2026-10-24T21:45${GR}`, view: [402, 874] });
@@ -3160,6 +3212,19 @@ G('thanks', async () => {
     const h1 = await ev(Q2.page, `${P}.hprops && ${P}.hprops.harvest`);
     ok(h0 && h0.drawn > 0 && !h0.model && !h0.modelAsked && h1 && h1.model && h1.modelIn && h1.bulbs >= 20 && h1.rect && h1.rect.w > 40, `THE HARVEST DISPLAY's 3D MODEL behind its switch: drawn by default (model ${h0 && h0.model}, its sprites asked ${h0 && h0.modelAsked}); &prop=model → the model (${h1 && h1.model}, ${h1 && h1.rect ? Math.round(h1.rect.w) : 0} pt wide), its ${h1 && h1.bulbs} bulbs lit`);
     await Q2.ctx.close(); }
+  // ---- HOTFIX Oct 29 — THE HARVEST MODEL HARDENED FOR iOS (the owner's iPhone drew the hand-made display on both links): its WebPs
+  // made to fail (every harvest .webp's src pointed at a missing file — what an iPhone whose WebP decode fails sees) → it loads the PNGs
+  // and draws the model; &debug=1's readout names the build on its first line + a `harvest: MODEL (loaded … png (webp error) …)` row
+  { const noWebp = () => { const d = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src'); Object.defineProperty(HTMLImageElement.prototype, 'src', { configurable: true, get() { return d.get.call(this); }, set(v) { d.set.call(this, /\/city\/harvest\/[a-z]+\.webp/.test(String(v)) ? String(v).replace('.webp', '.gone.webp') : v); } }); };
+    const Q = await open({ slot: 'tg-mdl2', qs: `when=2026-11-19T21:00${GR}&wx=clear&prop=model&debug=1`, view: [402, 660], init: { fn: noWebp } });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.hprops && ${P}.hprops.harvest && ${P}.hprops.harvest.model`, 'the model drawn from its PNGs', 25000).catch(() => {});
+    await waitFor(Q.page, `/harvest: MODEL/.test((document.querySelector('.dbg-s[data-id="readout"]') || {}).textContent || '')`, 'the readout row', 8000).catch(() => {});
+    const h = await ev(Q.page, `${P}.hprops && ${P}.hprops.harvest`), ro = await ev(Q.page, `(() => { const b = document.querySelector('.dbg-s[data-id="readout"]'); return b ? { head: b.querySelector('.dbg-h').textContent, rows: [...b.querySelectorAll('.dbg-b > div')].map(x => x.textContent) } : null; })()`);
+    const row = ro && ro.rows.find(r => r.startsWith('harvest:'));
+    ok(h && h.model && h.modelState && /png \(webp error\)/.test(h.modelState.why) && ro && /^(local|[0-9a-f]{7}) · t\d/.test(ro.head) && row && /^harvest: MODEL \(loaded .*png \(webp error\)/.test(row),
+      `THE HARVEST MODEL WITHOUT ITS WEBPS (an iPhone's failed decode): drawn from the PNGs (model ${h && h.model}, ${h && h.modelState ? `${h.modelState.state}: ${h.modelState.why}` : 'no state'}); the readout's first line "${ro ? ro.head.slice(0, 28) : 'none'}…", its row "${row || 'none'}"`);
+    await Q.ctx.close(); }
   // ---- NOV 10: a third of the way — bales, corn stalks round the lamp posts, the spots' pumpkins; no harvest display, no wreath yet
   { const Q = await page('tg-n10', '2026-11-10T21:00');
     const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`);

@@ -72,6 +72,9 @@ export async function run({ page, out, look, save, dataUrlToBuf }) {
   for (const which of ['day', 'night']) {
     const r = await page.evaluate(o => window.shoot(o), { yaw: BAKE.yaw, which });
     console.log(`${which}.webp`, save(`${which}.webp`, dataUrlToBuf(r.url)), 'bytes', r.w, '×', r.h);
+    // (HOTFIX Oct 29: + a PNG of the same frame — harvest.js falls back to it when an iPhone's WebP decode fails)
+    const p = await page.evaluate(o => window.shoot(o), { yaw: BAKE.yaw, which, png: true });
+    console.log(`${which}.png`, save(`${which}.png`, dataUrlToBuf(p.url)), 'bytes');
     Object.assign(meta, { w: r.w, h: r.h, footX: r.footX, footY: r.footY });
   }
   save('harvest.json', Buffer.from(JSON.stringify(meta, null, 1)));

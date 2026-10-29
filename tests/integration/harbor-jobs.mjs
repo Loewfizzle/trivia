@@ -15,7 +15,7 @@
 export const SECONDS = {
   core: 27, flags: 7, skyline: 12, water: 27, harbor: 8, speakeasy: 45, promenade: 30,
   neon: 95, dock: 15, sky: 27, party: 66, music: 161, sounds: 51, windows: 165,   // (WIN3: the windows grew — the late flicker's read, the quiet night, the raid's cut, the party's stagger)
-  panel: 55, perf: 79,
+  panel: 55, perf: 140,   // (HOTFIX Oct 29: + THE BASELINE GUARD, ~60 s)
   people: 70,          // (8P: measured on the laptop — refine from the first cloud run)
   life: 90,            // (FP3b: real doors + the dance circle — a circle forming ~40 s after the page opens)
   load: 30,            // (FP3a: the load gate — measured on the laptop)
@@ -41,7 +41,10 @@ export const SECONDS = {
 export const CI_JOBS = {
   audio: ['music', 'flags', 'harbor', 'dock', 'tape'],   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life'],
-  city: ['core', 'skyline', 'water', 'load', 'promenade', 'tower', 'panel', 'perf'],   // (9e: tower — before the serial pair)   // (PEO: promenade moved here from street — motion took its room)
+  city: ['core', 'skyline', 'water', 'load', 'promenade', 'panel'],
+  // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)
+  perf: ['tower', 'perf'],
+  // (city's history: 9e — tower before the serial pair (now in perf); PEO — promenade moved here from street, motion took its room)
   street: ['speakeasy', 'sounds', 'people', 'motion', 'freeze'],   // (HOTFIX Oct 27: freeze — the lightest job)   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room; WIN3: windows → its own job)
   // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
   windows: ['windows', 'snow', 'doors', 'blackout'],   // (9d: doors)   // (9b: WINTER — the lightest job by its seconds)

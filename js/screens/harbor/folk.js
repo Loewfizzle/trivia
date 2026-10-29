@@ -895,7 +895,10 @@ function carry(c, what, [hx, hy], H, f, d) {
 export function drawDog(c, cam, st, L, env, yUp = 0) {
   // (FP3b: the dog foreshortened by its heading — side-on crossing the screen, shorter on a diagonal, never a flat profile toward us)
   const hc = st.hd != null ? Math.cos(st.hd) : st.dir === -1 ? -1 : 1, fs = Math.max(0.42, Math.abs(hc));
-  const [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 0.62 * FOLK_SCALE * L.dogSize * s, d = hc < 0 ? -1 : 1, X = u => fx + u * H * d * fs, Y = v => fy - v * H;
+  // (HOTFIX Oct 29 — THE DOG's TURN: while it really turns (st.turn rad / s, core/harbor-people.js) its mirror-flip squashes through zero
+  // width — one turn — instead of jumping from 42 % one way to 42 % the other; walking straight it keeps its 42 % floor)
+  const tk = Math.max(0, Math.min(1, ((st.turn || 0) - 0.8) / 1.6)), sx0 = (hc < 0 ? -1 : 1) * fs, sx = sx0 + (Math.max(-1, Math.min(1, hc / 0.42)) * fs - sx0) * tk;
+  const [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 0.62 * FOLK_SCALE * L.dogSize * s, X = u => fx + u * H * sx, Y = v => fy - v * H;
   if (fx + H < 0 || fx - H > cam.W) return [fx, fy];
   const lampK = clamp01(env.dark || 0), dark = Math.max(lampK, clamp01((env.T && env.T.night) || 0)), lt = env.lightAt ? env.lightAt(st.x, st.z) : null;
   // (C4c — THE DOGS AT NIGHT (the owner, Oct 29: "a dog walker with no dog" + "I haven't seen a dog in a while"): every walk after dark

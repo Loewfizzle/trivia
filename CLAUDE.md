@@ -261,7 +261,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **GitHub checks** (unit → rules → /api → smoke, on the emulators) run **only on a pass's FINAL push** (SP6, the owner's CLOUD MINUTES, Oct 27):
   a game / app pass tags that push's commit **`[ci]`**, a City 2.0 pass **`[harbor]`** (which runs both workflows); pull requests + `gh workflow run tests`
   always run; every other push shows a skipped run (0 minutes) — run the unit suite on the laptop before every push. Next to the Vercel deploy, never
-  blocking it. Budget: ≈ 30–40 cloud minutes a pass (tests ≈ 10, the harbor's 7 jobs ≈ 25–30). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
+  blocking it. Budget: ≈ 30–40 cloud minutes a pass (tests ≈ 10, the harbor's 8 jobs ≈ 28–34; HOTFIX Oct 29: + perf). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
 - **VERCEL DEPLOYS ONLY TAGGED PUSHES** (the owner's DEPLOYMENT STORAGE, Oct 27: Hobby's 10 GB went at ~300 MB a deploy on every push):
   `vercel.json#ignoreCommand` builds only when the push's **LAST commit message** carries **`[harbor]`**, **`[ci]`** or **`[deploy]`**
   (unlike the GitHub checks, which read every commit of the push) — so a pass makes ONE deployment: its FINAL push carries its tag (as above)
@@ -273,13 +273,16 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`): the FULL `e2e-harbor` suite runs on GitHub **only on a pass's FINAL push** —
   put **`[harbor]`** in a commit message of that push (and it must touch a City 2.0 file: the `paths:` list) — or by hand: `gh workflow run harbor`
   (`-f job=street` = one job). Mid-pass pushes show skipped runs and cost nothing (both workflows: a newer full run cancels an older one).
-  It runs as **4 parallel jobs** (`audio` `show` `city` `street`, ≈ 4 min each); a red job → **"Re-run failed jobs"** re-runs that job only.
+  It runs as **8 parallel jobs** (`audio` `show` `city` `perf` `street` `windows` `wild` `holiday`, ≈ 4 min each); a red job → **"Re-run failed jobs"** re-runs that job only.
   **A new test group goes in exactly one job in `tests/integration/harbor-jobs.mjs`** (e2e-harbor.mjs refuses to run and the unit test fails
   until it does). Timing checks (`okT`) and known-flaky pixel probes (`okF`) are WARNINGS on CI, listed in each job's summary page.
   City 2.0 passes never run the whole suite on the laptop (it runs out of memory): the unit suite + the touched groups (`ONLY=…`) locally,
   then the final `[harbor]` push and read `gh run list --workflow harbor`.
   **CI minutes (the owner, Oct 24): at most TWO cloud runs per pass.** Never re-run the cloud suite to confirm a flake: a failed check in
   code the pass didn't touch that is a known flake goes in the pass's "Known issues" and the pass finishes.
+- **THE BASELINE GUARD** (HOTFIX Oct 29 — the forced bus ran at 5 fps on the owner's iPhone: a plan cache smaller than its frame's working set
+  re-planned everything every frame): `ONLY=perf` FAILS when a plain night / the forced bus / the forced dog walk costs > 2× `tests/integration/perf-baseline.json`
+  (`PERF_GUARD=only` = just it, ≈ 1.5 min; `PERF_BASELINE=write` only when a pass changes the cost on purpose). A cache keyed per frame must hold its whole working set.
 - `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
 - `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
 - Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;

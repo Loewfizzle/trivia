@@ -2189,21 +2189,35 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // a tap on its title folds it to ONE line: `t2 · 60 fps · 1% slow · beat grid`, remembered on this device)
   let roAt = 0, roN = 0, roT0 = 0, roStrip = null;
   let roMem = null;
+  // (HOTFIX Oct 29 — the owner's harvest model never showed on his iPhone: the readout's FIRST line names the DEPLOYED build (GET
+  // /api/log → the commit; 'local' without /api) and a row says what the harvest display drew + why — read off the phone, no guessing)
+  let buildId = '';
+  function askBuild() { buildId = '…'; try { fetch('/api/log', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(j => { buildId = j && j.v ? String(j.v).slice(0, 7) : 'local'; }).catch(() => { buildId = 'local'; }); } catch { buildId = 'local'; } }
+  /** `harvest: MODEL | drawn (why: not asked · loading · loaded … · failed: <error>)` — only while the display stands or the model is asked */
+  function harvestLine() {
+    const want = qp.get('prop') === 'model' || clock.force.has('harvest-model');
+    let hv = null; try { hv = hprops && hprops.debug ? hprops.debug().harvest : null; } catch { hv = null; }
+    if (!want && !(hv && hv.drawn)) return [];
+    if (!hv) return [`harvest: none yet (the holiday props not loaded)${want ? ' · model asked' : ''}`];
+    const st = hv.modelState || {}, why = !want ? 'not asked' : st.state === 'in' ? `loaded ${st.why} in ${st.ms} ms` : st.state === 'failed' ? `failed: ${st.why}` : st.state === 'loading' ? `loading (${st.why})` : 'asked, not started';
+    return [`harvest: ${hv.model ? 'MODEL' : 'drawn'} (${why})${hv.drawn ? '' : ' · not on screen'}`];
+  }
   function readout(now) {
     roN++;
     if (now - roAt <= 500) return;
+    if (!buildId) askBuild();
     const fps = roT0 ? Math.round(roN * 1000 / (now - roT0)) : 0; roN = 0; roT0 = now; roAt = now;
     const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);
     const mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0, p95 = cs.length ? cs[Math.floor(cs.length * 0.95)] : 0;
     const p50f = fr.length ? fr[fr.length >> 1] : 0, slow = fr.length ? Math.round(100 * fr.filter(v => v > 20).length / fr.length) : 0;
-    const head = `t${tier}${dprTier !== tier ? `/${dprTier}` : ''} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`;
+    const head = `${buildId} · t${tier}${dprTier !== tier ? `/${dprTier}` : ''} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`;
     const hv = heavyNow(now), sinceR = shownAt < 0 ? -1 : (now - shownAt) / 1000;
     const tierLine = lastJudge ? `tier ${lastJudge.text}` : `tier: no step${sinceR >= 0 && sinceR < TIER_GRACE / 1000 ? ` · not judged until ${TIER_GRACE / 1000} s (${sinceR.toFixed(0)} s)` : hv ? ` · not judged now (${hv})` : slowN ? ` · slow ${slowN}/4 looks` : ''} · effects first, resolution last`;
     // (C4c: the honest canvas total + the memory guard's verdict, refreshed every 2 s)
     if (!roMem || now - roMem.at > 2000) { const m = memAll(), g = m.guard; roMem = { at: now, text: `canvases ${m.tracked} MB live (${m.canvases}) · bakes ${m.mb} · guard ${g && g.stepped.length ? `STEPPED ${g.stepped.map(x => x.name).join(',')}` : 'ok'} of ${m.budget} MB${BAKE_CAP > 2 ? ' · &dpr=3' : ''}` }; }
-    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, tierLine, roMem.text, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
+    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, tierLine, roMem.text, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...harvestLine(), ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
     if (!roStrip) roStrip = createDebugStrip('readout');
-    roStrip.set({ head: `${head} ▾`, line: `t${tier} · ${fps} fps · ${slow}% slow${PT.on > 0 ? ` · beat ${hbeat.src}` : ''} ▸`, rows });
+    roStrip.set({ head: `${head} ▾`, line: `${buildId} · t${tier} · ${fps} fps · ${slow}% slow${PT.on > 0 ? ` · beat ${hbeat.src}` : ''} ▸`, rows });
   }
   /** the readout's weather lines (FP3a, FREV B2): where the weather came from, how old, the raw answer, and what the city made of it */
   //   `wx open-meteo/best_match · 43,-85.5 · slot 11:15 · 9 min old · WMO 3 · cc 100 (lo 100 mid 0 hi 4) · vis 12.2 km`

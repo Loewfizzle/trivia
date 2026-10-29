@@ -6,7 +6,7 @@ import { cameraFor, harborLayout, project } from '../js/core/harbor-layout.js';
 import { wallPlan, hushState, strikeLevel, darkLevel } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
 import { standSpots } from '../js/core/harbor-cabs.js';
-import { BUS, DOOR, busDoorAt, CART_IN_Z, FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
+import { BUS, DOOR, busDoorAt, CART_IN_Z, FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, FOLK_CACHE, dogOffset, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
 import { signalAt, centreK } from '../js/core/harbor-promenade.js';
 
 const SIZES = {
@@ -176,6 +176,60 @@ test('8P — JOIN MID-WAY: the promenade at any moment is the same on every phon
     const a = folkAt(t, { L, M, ctx: { off: OFF } }, warm), b = folkAt(t, { L, M, ctx: { off: OFF } }, new Map());
     assert.deepEqual(b.members.map(m => [m.vid, m.m.role, m.s.x.toFixed(4), m.s.z.toFixed(4), m.s.pose]), a.members.map(m => [m.vid, m.m.role, m.s.x.toFixed(4), m.s.z.toFixed(4), m.s.pose]));
     assert.ok(a.members.length >= 1, 'people already there, mid-stroll');
+  }
+});
+test('HOTFIX Oct 29 — THE FORCED BUS NEVER RE-PLANS EVERY FRAME (it ran at 5 fps on the owner\'s iPhone: an 80-entry FIFO plan cache, a working set of ~95): frames replayed as people.js calls them (+ the 70 s warm-ahead) plan almost nothing new once warm — a plain day, a plain night, &force=bus, &force=dogwalk', () => {
+  const { L } = setup('402x874'), M = folkMap(L), off = -240;
+  const cases = [
+    ['day (a real bus stops)', '2026-10-30T15:00:00Z', {}],
+    ['night', '2026-10-31T03:00:00Z', {}],
+    ['&force=bus', '2026-10-30T15:00:00Z', { forceBus: true }],
+    ['&force=dogwalk', '2026-10-30T23:12:00Z', { dog: true }],
+  ];
+  for (const [label, when, f] of cases) {
+    const t0 = Date.parse(when) / 1000, cache = new Map();
+    // (a plan made = a set of a key not just taken out for the least-recently-used move to the back)
+    let fresh = 0, moved; const set = cache.set.bind(cache), del = cache.delete.bind(cache);
+    cache.delete = k => { moved = k; return del(k); };
+    cache.set = (k, v) => { if (!cache.has(k) && k !== moved) fresh++; moved = undefined; return set(k, v); };
+    const ctx = { off, seed: 1924, budget: 1, shopOpen: () => true, forceBus: !!f.forceBus, forceBusAt: f.forceBus ? t0 : null, forceDogAt: f.dog ? t0 : null };
+    folkAt(t0, { L, M, ctx }, cache); folkAt(t0 + 70, { L, M, ctx }, cache);
+    const frames = 20 * 120; let warmAt = t0, n0 = fresh, worst = 0;
+    // (two minutes at 20 fps; the warm-ahead every 5 s like people.js#warm — a whole bus cycle + more)
+    for (let i = 1; i <= frames; i++) {
+      const t = t0 + i / 20, before = fresh;
+      folkAt(t, { L, M, ctx }, cache);
+      worst = Math.max(worst, fresh - before);
+      if (t - warmAt >= 5) { warmAt = t; folkAt(t + 70, { L, M, ctx }, cache); }
+    }
+    const per = (fresh - n0) / frames;
+    assert.ok(cache.size <= FOLK_CACHE, `${label}: within the cap`);
+    assert.ok(per < 1, `${label}: ${per.toFixed(2)} new plans a frame once warm (a thrashing cache re-plans hundreds)`);
+  }
+});
+test('HOTFIX Oct 29 — THE DOG TURNS IN ONE EASED TURN (the owner: jittery turning away from an obstacle — it jumped up to 1.8 u a frame from one side of its walker to the other): on the forced dog walks it never moves more than ~0.15 u a 60 fps frame, its heading never more than 0.13 rad a frame, its facing never flips back within half a second; its place beside the walker is the old one on the four headings + continuous between', () => {
+  // (the old four places: across → { dx·dir, dz }; in / out → { dz, ±dx })
+  const m = { dx: 1.05, dz: -0.25 }, near = (a, b) => Math.abs(a.x - b.x) < 1e-9 && Math.abs(a.z - b.z) < 1e-9;
+  assert.ok(near(dogOffset(m, 0), { x: 1.05, z: -0.25 }) && near(dogOffset(m, Math.PI), { x: -1.05, z: -0.25 }) && near(dogOffset(m, Math.PI / 2), { x: -0.25, z: 1.05 }) && near(dogOffset(m, -Math.PI / 2), { x: -0.25, z: -1.05 }), 'the four headings: the old places');
+  for (let h = -Math.PI; h < Math.PI; h += 0.002) { const a = dogOffset(m, h), b = dogOffset(m, h + 0.002); assert.ok(Math.hypot(a.x - b.x, a.z - b.z) < 0.02, `continuous at ${h.toFixed(3)}`); }
+  const { L } = setup('402x874'), M = folkMap(L), off = -240, t0 = Date.parse('2026-10-30T23:12:00Z') / 1000, cache = new Map();
+  const ctx = { off, seed: 1924, budget: 1, shopOpen: () => true, forceDogAt: t0 }, tr = new Map();
+  for (let i = 0; i < 60 * 200; i++) {
+    const t = t0 + i / 60;
+    for (const x of folkAt(t, { L, M, ctx }, cache).members) if (x.kind === 'dogwalker' && x.m.role === 'dog') { if (!tr.has(x.vid)) tr.set(x.vid, []); tr.get(x.vid).push({ t, ...x.s }); }
+  }
+  assert.ok(tr.size >= 3, `${tr.size} dog walks in 200 s`);
+  for (const [id, a] of tr) {
+    let step = 0, turn = 0, lastFlip = -9, sign = null, back = 0;
+    for (let i = 1; i < a.length; i++) {
+      if (a[i].t - a[i - 1].t > 0.02) { sign = null; continue; }
+      step = Math.max(step, Math.hypot(a[i].x - a[i - 1].x, a[i].z - a[i - 1].z));
+      turn = Math.max(turn, Math.abs(((a[i].hd - a[i - 1].hd) % (2 * Math.PI) + 3 * Math.PI) % (2 * Math.PI) - Math.PI));
+      const sg = Math.cos(a[i].hd) < 0 ? -1 : 1; if (sign != null && sg !== sign) { if (a[i].t - lastFlip < 0.5) back++; lastFlip = a[i].t; } sign = sg;
+    }
+    assert.ok(step < 0.16, `${id}: the dog's biggest move in a frame ${step.toFixed(3)} u`);
+    assert.ok(turn < 0.13, `${id}: its biggest turn in a frame ${turn.toFixed(3)} rad`);
+    assert.equal(back, 0, `${id}: its facing flipped back within ½ s ${back} times`);
   }
 });
 test('8P — THE BUS: a few an hour by day, none in the small hours; it stops short of the crossing, pulls away only on green, never stands on the crosswalk', () => {

@@ -1557,3 +1557,14 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   frost pane freed; H1 lampposts out, H12, H13, `?season=`, the facade key's month, H5 (154 un-exported, 11 deleted); AB_FLAGS + the grep test.
 - Group 3: docs/harbor.md split (63 pass files, an INDEX, one open Known issues list, the file map from CLAUDE.md); check-doc-links +
   its unit test; CLAUDE.md 57 → 39 KB; A4's stale lines.
+
+## CITY 2.0 — HOTFIX: THE FORCED BUS, THE HARVEST MODEL'S READOUT, THE DOG's TURN (Oct 29 2026) — docs/harbor/passes/hotfix-oct29.md
+- THE FORCED BUS AT 5 FPS: folkAt's plan cache was first-in-first-out at 80 entries and `&force=bus` touches ~95 a frame — every frame
+  re-planned the promenade (200 ms on the iPhone, 1 083 ms at 4× CPU, 5 s in WebKit); now least-recently-used, FOLK_CACHE 320 → 0.13 ms in
+  node, 16–20 ms at 4× CPU (plain night 21–23); the real bus never had it. THE BASELINE GUARD (e2e perf: > 2× perf-baseline.json fails;
+  the C4d build fails at 70.7×) + a unit test (< 1 new plan a frame once warm).
+- THE HARVEST MODEL: the readout's first line = the deployed build (GET /api/log), a `harvest: MODEL | drawn (why)` row; the loader: WebP →
+  PNG on an error / a timeout / a blank decode, decode() a hint, harvest.json built in (MODEL_META); the bake tool writes the PNGs.
+- THE DOG's TURN: its heading eased over 0.6 s (dogHeading), its place a continuous function of it (dogOffset), the dock clamp before the
+  sniff (dogPlace), a squash-through flip while it turns (drawDog): the biggest move a frame 1.85 → 0.13 u.
+

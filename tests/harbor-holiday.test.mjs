@@ -179,3 +179,13 @@ test('11a-2 — THE HOMECOMING: the night before Thanksgiving is a party night (
   assert.equal(partyAtT(at(26, 22), off), false); assert.equal(partyAtT(at(18, 22), off), false); assert.equal(partyAtT(at(27, 22), off), true);
   assert.equal(partyAt(3, 22, '2026-11-25'), true); assert.equal(partyAt(3, 22), false);
 });
+
+test('HOTFIX Oct 29 — THE HARVEST MODEL hardened for iOS: its built-in numbers (harvest.js#MODEL_META, used when harvest.json fails) equal harvest.json; a PNG beside each WebP (the fallback when the WebP fails) of the same size', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../js/screens/harbor/harvest.js', import.meta.url), 'utf8'), lit = src.match(/const MODEL_META = Object\.freeze\((\{[^}]*\})\)/);
+  assert.ok(lit, 'MODEL_META in harvest.js');
+  const meta = Function(`return (${lit[1]})`)(), json = JSON.parse(readFileSync(new URL('../assets/city/harvest/harvest.json', import.meta.url), 'utf8'));
+  assert.deepEqual(meta, json);
+  // (a PNG's size: its IHDR at bytes 16–24; the WebPs are the bake's w × h)
+  for (const n of ['day', 'night']) { const b = readFileSync(new URL(`../assets/city/harvest/${n}.png`, import.meta.url)); assert.equal(b.toString('latin1', 1, 4), 'PNG'); assert.deepEqual([b.readUInt32BE(16), b.readUInt32BE(20)], [json.w, json.h], `${n}.png ${json.w}×${json.h}`); }
+});

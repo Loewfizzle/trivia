@@ -99,7 +99,9 @@ export async function logErrors(body, { ip = '', ua = '', now = Date.now() } = {
   return n;
 }
 
-export default route(['POST'], async (req, res) => {
+export default route(['POST', 'GET'], async (req, res) => {
+  // (HOTFIX Oct 29: GET = THE BUILD ID — the deployed commit, for City 2.0's &debug=1 readout's first line; nothing stored, nothing read)
+  if (req.method === 'GET') { send(res, 200, { v: str(process.env.VERCEL_GIT_COMMIT_SHA, 7) || 'local' }, { 'Cache-Control': 'public, max-age=0, s-maxage=60' }); return; }
   if (Number(req.headers['content-length'] || 0) > LOG_LIMITS.maxBody) { send(res, 413, { error: 'too_large' }); return; }
   const body = await readBody(req);
   const meta = { ip: clientIp(req), ua: String(req.headers['user-agent'] || ''), now: Date.now() };

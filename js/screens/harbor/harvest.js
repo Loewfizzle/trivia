@@ -171,19 +171,48 @@ const mSet = (state, why = '', t0 = 0) => { mState.state = state; mState.why = w
 /** the model's load state ({ state: idle | loading | in | failed, ms, why }) + a watcher for its changes (→ an unsubscribe) */
 const harvestModelState = () => ({ ...mState, tries: mTries });
 export const onHarvestModel = fn => { mWatch.add(fn); return () => mWatch.delete(fn); };
+// HOTFIX Oct 29 (the owner's iPhone 16 Pro still drew the hand-made display on both links, in a private tab too): HARDENED FOR iOS —
+// each sprite the WebP first, then the PNG of the same frame (scripts/bake/harvest.mjs writes both) when the WebP errors, times out
+// (IMG_MS), or loads but draws NOTHING (a 16 × 16 read-back with no opaque pixel — a decode that "worked" into an empty bitmap);
+// decode() is only a hint (a rejection is ignored; it never holds the load: DECODE_MS); harvest.json's numbers have a copy here
+// (MODEL_META, a unit test keeps them equal) if its fetch fails; the sprites are 254 × 229 — far inside iOS's canvas limits. What
+// happened is in the state's `why` → &debug=1's readout row `harvest: MODEL / drawn (…)` + the LOAD LOG; a failure → /admin.
+const MODEL_META = Object.freeze({ z: 42.6, F: 600, dpr: 3, ppu: 14.0845, width: 4.4, yaw: 0, w: 254, h: 229, footX: 127, footY: 169.01 });
+const IMG_MS = 8000;
+/** one image → it (loaded, decoded or not, with pixels), or a rejection saying why (error · timed out · empty · blank) */
+const loadImg = src => new Promise((res, rej) => {
+  const i = new Image(); let done = false;
+  const end = (f, v) => { if (done) return; done = true; clearTimeout(to); f(v); };
+  const to = setTimeout(() => end(rej, new Error('timed out')), IMG_MS);
+  i.onload = () => {
+    const d = typeof i.decode === 'function' ? i.decode().catch(() => {}) : Promise.resolve();
+    Promise.race([d, new Promise(r => setTimeout(r, DECODE_MS))]).then(() => {
+      if (!(i.naturalWidth > 0)) { end(rej, new Error('empty')); return; }
+      let lit = true;
+      try { const cv = document.createElement('canvas'); cv.width = cv.height = 16; const x = safeCtx(cv, { willReadFrequently: true }); x.drawImage(i, 0, 0, 16, 16); const px = x.getImageData(0, 0, 16, 16).data; lit = false; for (let k = 3; k < px.length; k += 4) if (px[k] > 8) { lit = true; break; } cv.width = cv.height = 0; } catch { /* can't read back: trust the load */ }
+      if (lit) end(res, i); else end(rej, new Error('blank'));
+    });
+  };
+  i.onerror = () => end(rej, new Error('error'));
+  i.src = src;
+});
+/** a sprite: the WebP, else the PNG → { img, fmt } (fmt says which + why the WebP didn't do) */
+async function modelSprite(name) {
+  try { return { img: await loadImg(new URL(`${name}.webp`, MODEL_BASE).href), fmt: 'webp' }; } catch (e) {
+    try { return { img: await loadImg(new URL(`${name}.png`, MODEL_BASE).href), fmt: `png (webp ${e.message})` }; } catch (e2) { throw new Error(`${name}: webp ${e.message}, png ${e2.message}`); }
+  }
+}
 function harvestModel() {
   if (mModel || mFailed) return mModel;
   if (!mLoading) {
     const t0 = performance.now(); mTries++;
-    const img = name => new Promise((res, rej) => { const i = new Image(); i.decoding = 'async';
-      i.onload = () => Promise.race([i.decode ? i.decode().catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, DECODE_MS))]).then(() => res(i));
-      i.onerror = () => rej(new Error(`harvest sprite ${name} didn't load`)); i.src = new URL(name, MODEL_BASE).href; });
     mSet('loading', `try ${mTries}`, t0);
     mLoading = (async () => {
-      const r = await fetch(new URL('harvest.json', MODEL_BASE).href); if (!r.ok) throw new Error(`harvest.json ${r.status}`);
-      const meta = await r.json(), [day, night] = await Promise.all([img('day.webp'), img('night.webp')]);
-      if (!(day.naturalWidth > 0 && night.naturalWidth > 0)) throw new Error('harvest sprites empty after load');
-      mModel = { ...meta, day, night }; mSet('in', `${meta.w}×${meta.h}`, t0); return mModel;
+      let meta = MODEL_META, metaWhy = '';
+      try { const r = await fetch(new URL('harvest.json', MODEL_BASE).href); if (!r.ok) throw new Error(String(r.status)); meta = await r.json(); } catch (e) { metaWhy = ` · harvest.json ${String((e && e.message) || e).slice(0, 40)}: built-in numbers`; }
+      const [day, night] = await Promise.all([modelSprite('day'), modelSprite('night')]);
+      mModel = { ...meta, day: day.img, night: night.img };
+      mSet('in', `${meta.w}×${meta.h} ${day.fmt === night.fmt ? day.fmt : `day ${day.fmt}, night ${night.fmt}`}${metaWhy}`, t0); return mModel;
     })();
     mLoading.catch(e => {
       mFailed = true; mSet('failed', String((e && e.message) || e).slice(0, 120), t0);
