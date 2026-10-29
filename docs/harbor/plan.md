@@ -78,7 +78,10 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | C4b | ✅ (Oct 29 — docs/harbor/passes/c4b.md) THE PEOPLE + THE COMPASS + THE GIANT OFF: the giant ₿ pumpkin disabled (first), the compass + the water bench + the cart re-placed (re-measured first), the sitters, the doorman who opens the door, &force=waterbench, THE PEOPLE RULE after the UFO | Opus 5.5 high | ~3 h |
 | C4c | ✅ (Oct 29 — docs/harbor/passes/c4c.md) THE OWNER'S BUGS + THE MEASURING TOOLS: the blackout for real (the benches, the props, the maple; tested at 3× on four holiday nights), the bus door eased, the dogs after dark, the hay bale off the wall, the hydrant corner's lamp, the maple's edge, the solid benches, the side door swinging out toward the doorman; &dpr=3, THE PHONE BENCH (&bench=1), the memory guard measured (nothing ever stepped down) + raised, the climb re-armed; the harvest display's 3D model test (&prop=model) | Opus 5.5 high | done |
 | C4d | ✅ (Oct 29 — docs/harbor/passes/c4d.md) THE CODE, THE TESTS, THE DOCS: the bus away 1–2 s after its door shuts, &force=dogwalk, the harvest model's load told + the panel's override told, the cloud's flakes fixed (F12 hard), Firebase Auth's polling gone, the dead code out, the A/B switches listed, harbor.md split into docs/harbor/passes/, CLAUDE.md 57 → 39 KB. Was: review-4's code / tests / docs (§E items 12–16 + 18: Firebase Auth's polling, the cloud's five test fixes, the readout's honest total, dead code, the A/B flags list, the docs + CLAUDE.md trims, harbor.md's split, the flaky checks) | Opus 5.5 high | ~2.5 h |
-| SKY | ← NEXT: THE LEGENDS: THE BLACKBIRD (one flyby animation — the static tell, the vapor cone + shock ring + the late double boom, the Mach-diamond plumes, above the sign — its rare solo sightings, the hour-watcher's reward, joining every TR-3B chase once the jets are ~⅓ across), THE F-22 MODELS everywhere (the tight triangle + the bank), THE TR-3B AT FULL RESOLUTION (one solid body, no shadow on the backdrop), THE MOTHMAN on the needle (Grok's model, standing, wings spread, red eyes), THE SHADOWBOXER (9–11 pm, 3-min rounds + 1-min breaks, the full two hours; THE WINDOW RULE II), the upper windows on the crisp layer — "OWNER'S NOTES — OCT 28 (PROM's review)" | Opus 5.5 high | ~4–5 h |
+| HOTFIX | ✅ (Oct 29 — 48df906; docs/harbor/passes/hotfix-oct29.md) THE FORCED BUS AT 5 FPS: folkAt's plan cache least-recently-used at 320, THE BASELINE GUARD (`ONLY=perf` fails above 2× perf-baseline.json), the harvest model told on the readout, the dog's turn eased | Opus 5.5 high | done |
+| NIGHT-A | ← NEXT: THE NIGHT LIGHT — the error log from the owner's iPhone (the party stall, the bad time zone, stored forces vs links, the debug strips scroll), THE NIGHT LIGHTING REWORK behind `&light=new|old` (an even base, ONE warm wash, the shopfront + the cab stand the only sources, people lit + soft shadows, THE BRIGHTNESS LADDER as a test), JOIN = HOST at night + the corner buttons lit, the harvest model re-baked in the city's light, the TAXI STAND plate — "OWNER'S NOTES — OCT 29 (the afternoon)" | Opus 5.5 high | ~3–4 h |
+| NIGHT-B | THE STREET PARTY: the party night's crowd for the whole night (clusters mingling + dancing, more people by tier), a DANCE BREAK ~every 20 min on a song's start (seeded, the same on every phone), the cart packs up, the crowd sounds — "OWNER'S NOTES — OCT 29 (the afternoon)" | Opus 5.5 high | ~3 h |
+| SKY | THE LEGENDS: THE BLACKBIRD (one flyby animation — the static tell, the vapor cone + shock ring + the late double boom, the Mach-diamond plumes, above the sign — its rare solo sightings, the hour-watcher's reward, joining every TR-3B chase once the jets are ~⅓ across), THE F-22 MODELS everywhere (the tight triangle + the bank), THE TR-3B AT FULL RESOLUTION (one solid body, no shadow on the backdrop), THE MOTHMAN on the needle (Grok's model, standing, wings spread, red eyes), THE SHADOWBOXER (9–11 pm, 3-min rounds + 1-min breaks, the full two hours; THE WINDOW RULE II), the upper windows on the crisp layer — "OWNER'S NOTES — OCT 28 (PROM's review)" | Opus 5.5 high | ~4–5 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | PERF | a SHORT SPEED PASS set by C4c's phone bench (`&bench=1`): the cheap wins FR4 listed (one glow-sprite cache, the still 'lighter' pools baked, the bar's day repaint), the spectacle cap + the budgets from the bench — "OWNER'S NOTES — OCT 28 (C4a's review)" | Opus 5.5 high | ~1–1.5 h |
 | 10 | party nights + fireworks (the "Part 11" section below) | Opus 5.5 high | 60–90 min |
@@ -3976,3 +3979,99 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   TR-3B, the Blackbird, the F-22s, the UFO (if still 2×) — + THE MOTHMAN (SKY), (3) the shopfront: the barbershop glass + the awning's
   valance + the BARBER POLE (a later pass, with the people redrawn over it like the benches), (4) the WAIT / WALK signal boxes, (5) THE MOON
   via the sky layer. Everything else stays 2×. The owner judges each when it lands.
+
+## OWNER'S NOTES — OCT 29 (the afternoon)
+- THE MOTHMAN IN SKY — A STAND-IN FIRST (the owner, Oct 29 3:08 pm — DECIDED): Grok is out of usage until ~11:30 pm, so SKY builds the
+  Mothman with a CODE-DRAWN stand-in like Claude's moth3 mock (crouched on the spire's very tip, the wings folded like a cloak with the two
+  hooked peaks above the head, the ragged hem, thin bent legs + talons on the point, near-black + the needle's pink rim light from below +
+  a cool moon edge, the red eyes in front of SPEAKEASY) — but BETTER drawn than the mock + on the crisp 3× layer; built with ONE ART
+  SWITCH (drawn → Grok's flat PNG → a baked model) so the real art drops in later without touching the behaviour (the eyes, the blinks out
+  of sync, the slow head tilt — a separate head piece, the needle's stutter, the nights 2 am → ~5 am, the leaving).
+- NOTES FOR FUTURE PROMPTS (the owner, Oct 29 3:32 pm, iPhone screenshot at night): (1) THE HOST BUTTON must be as BRIGHT as JOIN — lit
+  like the main NEON sign: the ring + the HOST letters as hot pink neon tubes (a near-white core, the pink glow around it, the sign's
+  flicker / surge vocabulary), not today's dim pink-on-pink text; JOIN + HOST read as an equal pair (white / pink). Claude also saw in the
+  same shot: the green DOT on ☰ = a preview is still ON (setMenuCue) — may explain the harvest pair looking the same.
+- THE NIGHT LIGHTING REWORK — DECIDED (the owner, Oct 29 3:43–3:50 pm; the screenshot mock couldn't show it — "run with your
+  recommendation, I'll tweak from there"): a short pass NIGHT, after the hotfix, BEFORE SKY: (1) an even BASE night level over the whole
+  promenade + the street under the dock (dim, cool, moonlit / city-glow — the cobbles + every walker always readable, never a dark lot);
+  (2) the implied lamps behind the viewer become a DIRECTION, not lamp positions — one broad, soft, warm wash across the full width,
+  warmest at the bottom edge, fading toward the railing; NO discrete pools anywhere, NOT "two light poles at two spots" — the street under
+  the dock especially must show NO spotlight patches (the owner); (3) only two places stand out, each with a visible source: the shopfront
+  (awning + door lamp) + the cab stand (its lamp); the crossing stays its dim patch; the hydrant corner's fill folds into the wash; (4)
+  PEOPLE lit by it: their fronts (facing us) catch the warm light, soft, long, faint shadows fall UP the screen behind them — never hard
+  black blobs (the dark oval by the right maple GONE); (5) THE BRIGHTNESS LADDER, measured by a test: the neon sign + the skyline neon >
+  the speakeasy windows > the shopfront > the promenade wash > the base; (6) wet nights reflect it softly, party nights tint the wash
+  faintly with the neon's colours; the blackout takes it all down. Built behind a switch (&light=new|old + a panel row), the owner flips
+  it on his phone; it becomes the default on his OK. + the HOST button lit like the main sign + the panel's party mode → a party song + the
+  pulse locked to it (his 3:41 pm note: "beat grid", no pulse with the music).
+- FOR THE NIGHT PASS (the owner, Oct 29 3:55–3:57 pm): (1) JOIN + HOST an EXACT PAIR at night — equal brightness + intensity (measured,
+  not eyeballed; only the colour differs, white / pink); if HOST reads weaker it's a bug or the pink's luminance → match it; (2) the ☰ +
+  MUSIC corner buttons LIGHT UP at night too — the same neon-ring treatment at ~⅔ of the dock's intensity (option 2: clearly ON, never
+  competing with the NEON sign beside them); (3) TAXI on the bench's backboard — NO (~5 pt letters won't read); instead OPTIONAL: a small
+  1920s yellow enamel TAXI STAND plate on a short post beside the cab bench (black letters ≥ ~8 pt at 402, lit by the stand's lamp at
+  night) — kept only if it reads unzoomed, else left implied; (4) THE MAPLE stays where C4c left it (~6 pt inside the edge) — the owner (3:59 pm): "keep it", the WIND SWAY matters (windy days must
+  read); no damping.
+- THE PARTY DANCE vs THE CROWD (the owner, Oct 29 3:59 pm — to discuss): on a party night with a piece on the compass the dance ring
+  formed round it (as designed) but BLOCKED the walking path. His ideas: the compass a little to the RIGHT (not blocking the crosswalk);
+  the dance in the MIDDLE of the promenade when the compass is EMPTY, ROUND the piece when one stands; make room for the crowd.  + (4:02 pm, two iPhone screenshots of the party dance on the BARE compass): the ring + the door's crowd + the doorman pile up in the
+  LEFT half (over the water bench + the crabapple), the right half nearly empty → crowded + blocking. The owner: with the bench's headroom,
+  ADD MORE PEOPLE on party nights + busy times — for the dance, more dancers SPREAD ACROSS THE WHOLE PROMENADE.
+  CLAUDE's PROPOSAL (pending his OK): THE STREET PARTY — at the party's dance hours the dance becomes loose CLUSTERS (2–5 dancers each,
+  wands, on the beat) spread across the whole promenade (left, the compass, the open middle, by the cab bench), not one tight ring; with a
+  piece on the compass: one ring round it + clusters elsewhere. COUNTS BY TIER (the bench: the 16 Pro has ~2× headroom; people are part of
+  the foreground's cost): tier 2 ~18–24 dancers + watchers, tier 1 ~10–12, tier 0 ~6–8. ALWAYS CLEAR: the side door's landing + the
+  doorman's swing + the guests' approach + the lobby line, the back sidewalk (the crosswalk's landing), the cab stand's bench; walkers
+  thread between the clusters (a test: a route left ↔ right always exists). BUSY TIMES (Sat afternoon, the evening rush, party warm-ups):
+  the walkers' cap up (~12 → ~18–20 at tier 2, scaled down by tier). The cart packs up for the dance hours. Re-run the phone bench's party
+  peak after (60 fps on the 16 Pro, the tier steps on weaker phones). SLOT: the NIGHT pass (lighting the crowd is the same job) or SKY.
+  + DECIDED (the owner, 4:06 pm): THE STREET PARTY is a GO — "how it is outside a bar on a party night": CLUSTERS of people on the street —
+  dancing groups (wands, on the beat) AND talking groups (standing, chatting, laughing, toasting — big readable gestures), even more people
+  than proposed on party nights if the bench allows; the CART packs up before the party's dance hours. SOUND: party-night crowd ambience —
+  distant chatter, bursts of laughter, cheers + whoops, glasses clinking, from the groups (positioned, quiet, felt not heard) → Grok brief
+  (Oct 29) → ~/Downloads/city-sfx/party-crowd/. SLOT: the NIGHT pass.
+  + THE PARTY NIGHT's SHAPE (the owner, 4:08 pm — DECIDED, supersedes SP5's "every hour on the hour, two songs"): the STREET PARTY crowd
+  is there for the WHOLE party night (Fri + Sat), following the party's curve — it grows through the warm-up (8:30 pm), fullest at the
+  peak, thins after 1 am, gone by 2 am — mostly MINGLING groups (talking, laughing, toasting, a few dancing a little). A DANCE BREAK breaks
+  out ~every 20 minutes: ONE SONG where almost everyone dances (the wands up, on the beat), then back to normal life. Claude's rules: the
+  breaks start ON A SONG's START (the beat clock knows it), seeded so every phone gets the same breaks (joined mid-way), ~every 20 min
+  (e.g. the first song to start after :00 / :20 / :40, ± a few minutes so it isn't clockwork); visitors with the music OFF still see it
+  (it follows the party's own song clock); the MIDNIGHT FIREWORKS = the biggest break (everyone out, cheering); the crowd + the breaks
+  scale by tier; the window party (rooms) can echo the break (the rooms dance harder in it). SOUND: the cheers rise as a break starts.
+  + THE FIREWORKS MOVE TO 10 PM (the owner, 4:10 pm — DECIDED, supersedes "the midnight fireworks finale"): too few people are up at
+  midnight → the party night's fireworks at 10 PM, the peak's big moment (+ its biggest dance break, everyone out cheering). Claude's
+  rule: 10 pm local, or once the sky is dark enough if later (a northern summer's twilight — e.g. ≥ ~30 min after sunset); the party
+  timeline: warm-up 8:30, the peak ~9:30–11, FIREWORKS 10:00, thinning after 1, back to normal at 2. Midnight keeps a small "last call"
+  moment at most (a cheer, the windows' toast) — no second show. → Part 10 + the NIGHT pass's party shape.
+  + MIDNIGHT GETS A SMALL BURST (the owner, 4:12 pm — DECIDED): on party nights a short burst of fireworks at midnight (~20–30 s, a handful
+  of shells — a "last call" salute), the full show stays at 10 pm. → Part 10.
+- THE HELICOPTER (the owner asked, 4:12 pm, "do we even have it anymore?"): read-only — YES, still live: a DAILY event (core/harbor-events.js
+  `helicopter`, rarity 'daily', ONE slot a day at a seeded time — in, a hover over the harbor, out; its searchlight after dark), skipped in
+  storms or wind ≥ 14 → easy to miss. Claude's suggestion (pending): 2–3 a day at times people look (the evening commute, prime evening
+  with the searchlight on the water, a party night's harbor patrol) — for SCHED (the schedule review) or SKY.
+  + THE HELICOPTER PATROL — DECIDED (the owner, 4:13–4:15 pm): an HOURLY patrol (Claude's tweak, accepted: hourly from dusk → ~2 am, every
+  2–3 h by day), the searchlight sweeping the water at night; on PARTY NIGHTS its searchlight takes the party's neon colours + sweeps on
+  the beat (NO strobe — photosensitivity; the anti-collision lights blink at their real slow pace); AND during EVERY DANCE BREAK (the one
+  song ~every 20 min) the helicopter is up for the WHOLE song, its beam over the dancing crowd. → SKY. NOTE: the owner wants to DISCUSS
+  the SKY prompt before it's written / run.
+- HOTFIX REVIEW + POLISH LATER (the owner, Oct 29 4:20 pm): ✔ THE BUS "looks good"; THE DOG's turn smoother. FOR A LATER POLISH PASS (not
+  now — "I don't want to nitpick everything to death, we're trying to get this up and running"): (1) THE WINDOW WASHERS — their washing
+  arms are JITTERY, SNAP back + forth, PERFECTLY IN SYNC (make each arm its own eased stroke, the two washers out of phase + varied), and
+  they LOOK CHEAP (a better figure + gear: the platform, the squeegee, the bucket — readable at phone size); (2) THE DOG WALK looks cheap
+  (the dog + the walker's look and gait). → a people + workers polish pass near the end (with the holiday polish / C3), or SCHED.
+- /admin ERRORS FROM PHONES (the owner's screenshot, Oct 29 4:27 pm) — for the NIGHT pass's Group 0: (1) "harbor stall: the city stalled
+  ≥ 1.5 s — the loop restarted (watchdog) (t2 · party · party)" scene.js:1534 frameGap ← wakeLoop, HIS iPhone, 3:38 pm, build 2808ff8
+  (C4d, before the hotfix) — the panel's PARTY MODE test (the same time the lights didn't pulse to the beat) → reproduce the panel's
+  party on the hotfix build; if it still stalls, find it (the hotfix's plan-cache size? the party crowd's working set?); (2) "RangeError:
+  invalid time zone: America/Detroit" district/sun.js:457 (DateTimeFormat ← moments ← title.js#neonNow:771 ← mount) on HIS iPhone Safari,
+  3:34 pm — a valid IANA zone rejected → find the real string (a stray space / an encoded char from a link's &tz=? a panel value?),
+  sanitise + validate every tz before Intl (fall back to the device's zone, log once), a unit test with the bad inputs; (3) the other
+  stalls (bus — fixed by the hotfix; "Mac Safari" = likely the test runner's WebKit) → confirm gone on 48df906. + THE DEBUG STRIPS on iPhone:
+  the readout + the LOAD log are cut off at a fixed height and DON'T SCROLL on iOS → make them scroll (touch) / grow, and put the key rows
+  (build, harvest, tier) at the top.
+- THE HUNYUAN LICENSE — THE OWNER's CALL (Oct 29 4:34 pm): "we don't care about those few countries — it's a hobby project" → Hunyuan3D
+  models MAY SHIP (supersedes "tests only"), with the AI-generated label in ☰ → CREDITS (the license's ask). Claude's flag kept: before any
+  MONEY (the app stores, payments, a paid pack) re-check every Hunyuan asset's terms + swap any that don't fit (they're swappable sprites).
+  THE HARVEST MODEL (the owner, 4:33 pm): "the hand-drawn looks cheap but is lit better; the 3D looks more real but its lighting is
+  crappy" → RE-BAKE it with the CITY's night light (warm key from the front + below = the implied lamps; each Edison bulb a real point
+  light glowing onto the bales + pumpkins; the compass floods' rim; a golden-hour sprite between day + night) — in the NIGHT pass; if it
+  clearly beats the drawn display it becomes the default + the template for the key holiday pieces.
