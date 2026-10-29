@@ -1,4 +1,4 @@
-// CITY 2.0 — NEON PASS 2: THE WATERFRONT STRIP (docs/harbor.md#neon-pass-2). The far shore's ground floor — bars, a diner, a
+// CITY 2.0 — NEON PASS 2: THE WATERFRONT STRIP (docs/harbor/passes/neon-pass-2.md). The far shore's ground floor — bars, a diner, a
 // theatre, cafés, an oyster bar — as a RIBBON OF WARM, VARIED STOREFRONT GLOW along the water's edge. On a phone it is only a few
 // pt tall, so it reads by COLOUR + SHAPE + REFLECTION (the owner's add-on), never by small text:
 //   each shop     a striped AWNING over its SHOP WINDOW (by day dark glass catching the sky; at night its own warm light —

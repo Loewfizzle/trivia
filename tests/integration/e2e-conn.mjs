@@ -1,4 +1,4 @@
-// CONN — THE DATABASE CONNECTIONS: how many Realtime Database sockets each phone holds, state by state (docs/testing.md#conn).
+// CONN — THE DATABASE CONNECTIONS: how many Realtime Database sockets each phone holds, state by state (docs/testing.md — CONN; CLAUDE.md → Multiplayer mechanics).
 //   node e2e-conn.mjs "<browser path>" ./shots-conn            (emulators + `node scripts/serve.mjs --emu`; ≈ 2 min)
 //   MEASURE=1  only print the table (no pass / fail) — the BEFORE run against an older commit
 // Every page's WebSockets are watched through the DevTools protocol (Network.webSocketCreated / Closed): an open socket to the

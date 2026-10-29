@@ -26,7 +26,6 @@ export const INLAY = Object.freeze({
   soldierW: 0.25,            // a soldier brick's width along the circle
   star: { long: 0.76, short: 0.52, wl: 0.15, ws: 0.115 },   // the star: the cardinal + intercardinal points' reach + half-widths (× R)
 });
-export const TONES = Object.freeze(['red', 'buff', 'dark']);
 
 /**
  * The inlay's bricks for a medallion m = { x, z, ring } (world units): { R, soldier: { r0, r1, n }, header: { r0, r1, n }, courses:

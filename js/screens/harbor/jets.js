@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 6b → Oct 25: THE JETS — ONE stealth fighter shared by the TR-3B's CHASE, THE AIR SHOW (a diamond of four,
-// smoke on), THE MISSING MAN (a finger-four, #3 pulling up and away) and THE SURPRISE FLYBY (docs/harbor.md#the-f-22; plan.md "THE JETS →
+// smoke on), THE MISSING MAN (a finger-four, #3 pulling up and away) and THE SURPRISE FLYBY (docs/harbor/passes/the-tr-3bs-music-the-f-22-no-traffic.md; plan.md "THE JETS →
 // AN F-22 RAPTOR-STYLE STEALTH FIGHTER": the F-16s "look too cartoonish — they need to look like modern, real, menacing flying death
 // machines"). Seen from below + the side as they cross. Realism at phone size comes from SILHOUETTE + SHADING:
 //   THE AIRFRAME   the angular FACETED body — a chined forebody with a hard light / dark edge along it, the long gold-tinted bubble canopy,
@@ -198,7 +198,7 @@ function roundel(x, cx, cy, r, sq, lit, lowVis = false) {
 }
 
 /** a jet sprite: len pt long, nose toward +x (mirrored when drawn) → { cv, w, h, ox, oy (the nozzle's place in the sprite, pt) } */
-export function jetSprite(len, look, dpr) {
+function jetSprite(len, look, dpr) {
   const W = len * 1.14, H = len * 0.64, d = 3;                  // (3× always: a small sprite — the detail needs the pixels)
   const cv = mk(W * d, H * d), x = safeCtx(cv);
   const ox = len * 0.08, oy = len * 0.36;
@@ -231,7 +231,7 @@ function tinted(col) {
  * k (0..1 its burn), o = { night (0..1), t (s, the flicker), dir }. Additive. HEAT HAZE first: a shimmer of pale blobs wavering behind
  * the engines, beyond the diamonds (the air boiling — no refraction on a canvas, but the eye reads the flutter).
  */
-export function drawBurner(c, nx, ny, ang, len, k, o = {}) {
+function drawBurner(c, nx, ny, ang, len, k, o = {}) {
   if (k <= 0.01) return;
   const night = o.night || 0, t = o.t || 0, fl = 0.92 + 0.08 * Math.sin(t * 61 + nx) * Math.sin(t * 37);
   const L = len * (0.82 + 0.1 * k) * fl, w = len * 0.05;
@@ -269,7 +269,7 @@ export function drawBurner(c, nx, ny, ang, len, k, o = {}) {
 
 /** the jet's lights at night (formation strips, nav, tail, beacon), in the jet's own frame (the nozzle at 0, the nose at +len); navDir:
  *  its real direction on the screen (green flying right: its starboard side faces us; red flying left) */
-export function drawJetLights(c, len, navDir, night, t, i = 0) {
+function drawJetLights(c, len, navDir, night, t, i = 0) {
   if (night < 0.05) return;
   const G = [150, 255, 160];
   const strip = (x0, y0, x1, y1) => { c.strokeStyle = rgb(G, 0.9 * night); c.lineWidth = Math.max(0.7, len * 0.011); c.beginPath(); c.moveTo(x0 * len, y0 * len); c.lineTo(x1 * len, y1 * len); c.stroke(); };
@@ -389,7 +389,7 @@ export function showJets(kind, s, box, len, flip = 1, n = 4) {
 }
 
 /** a jet's nose-up angle for jets.draw from its screen heading θ and its leg's mirror direction */
-export const climbOf = (theta, dir) => (dir > 0 ? -theta : theta - Math.PI);
+const climbOf = (theta, dir) => (dir > 0 ? -theta : theta - Math.PI);
 
 /** THE AIR SHOW / THE MISSING MAN on the screen: start(kind, at) · draw(c, s, box) · on() · listen() (the sound's moment) */
 export function createAirShow() {

@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, WIN add-on: THE DRESSING SPOTS (PURE — tests/harbor-spots.test.mjs; docs/harbor.md#win). The owner (Oct 26):
+// CITY 2.0 — THE HARBOR, WIN add-on: THE DRESSING SPOTS (PURE — tests/harbor-spots.test.mjs; docs/harbor/passes/win.md). The owner (Oct 26):
 // "named DRESSING SPOTS in the holiday system (bench, lamp posts, hydrant, planters, quay railing, open corners clear of the dock / paths /
 // lobby line), so every later holiday fills them with its own big readable set pieces." Every spot comes from the LAYOUT
 // (core/harbor-layout.js#harborLayout) — where a set piece may STAND, how big its footprint may be (r, world units), which draw pass
@@ -11,12 +11,12 @@ import { project } from './harbor-layout.js';
 import { linePlaces, FOLK } from './harbor-people.js';
 
 /** the pad under a piece's foot to the dock's top (pt) + the screen's side margin for its footprint (pt) */
-export const SPOT_PAD = Object.freeze({ dock: 3, side: 2 });
+const SPOT_PAD = Object.freeze({ dock: 3, side: 2 });
 
 /** every dressing spot of a layout → [{ id, kind ('bench' | 'lamp' | 'globe' | 'hydrant' | 'rail' | 'corner' | 'planter'), x, z, y, r, face
  *  (−1 / 1: which side of its furniture it sits on), pass ('near' | 'top' | 'far'), by (the furniture's id) }] */
 /** C4c: how far a spot's centre keeps off the speakeasy's side wall (the Christmas-tree stand 2.3 u, a 1.8 u bale + its pumpkin, + a margin) */
-export const WALL_CLEAR = 1.3;
+const WALL_CLEAR = 1.3;
 export function dressingSpots(L) {
   const out = [], s = L.speakeasy, cw = L.crosswalk, cx = (cw.x0 + cw.x1) / 2;
   // THE BENCH's two ends (a piece beside the armrest, on the paving)
@@ -48,7 +48,7 @@ export function dressingSpots(L) {
   (L.planters || []).forEach((p, i) => out.push({ id: `planter-${i}`, kind: 'planter', x: p.x + p.w / 2 + 0.8, z: p.z, y: 0, r: 0.7, face: 1, pass: 'near', by: `planter-${i}` }));
   // (a desktop PANORAMA keeps the phone's stage beside the speakeasy — its front strip's lamps can fall off the left edge: a spot the
   // screen cuts is dropped there, never on a phone)
-  void s; return L.cam.wide ? out.filter(sp => !spotProblems(L, sp).some(m => m.startsWith('off screen'))) : out;
+  return L.cam.wide ? out.filter(sp => !spotProblems(L, sp).some(m => m.startsWith('off screen'))) : out;
 }
 export const spotById = (L, id) => dressingSpots(L).find(sp => sp.id === id) || null;
 

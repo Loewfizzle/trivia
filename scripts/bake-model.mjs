@@ -1,6 +1,6 @@
 // THE BAKE TOOL — any 3D model (art/models/<name>/, SOURCE files only, never shipped) rendered OFFLINE into the sprites the city
 // draws in Canvas 2D. three.js lives only in the bake's page (from the jsDelivr CDN, pinned), never on the site. One harness, one
-// RECIPE per model (scripts/bake/<recipe>.mjs: what to load, what to render, where it goes). docs/harbor.md#the-bake-tool.
+// RECIPE per model (scripts/bake/<recipe>.mjs: what to load, what to render, where it goes). docs/harbor/passes/bname.md#the-bake-tool.
 //
 //   node scripts/bake-model.mjs "<chromium>" <recipe> [--look DIR] [--model art/models/…/x.glb] [--out DIR]
 //     ufo    → assets/city/ufo/   (the abduction's craft: "UFO" by sebslom; js/screens/harbor/ufo-model.js) — BNAME: generalised from

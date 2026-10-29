@@ -10,7 +10,7 @@ import { STREET } from '../../core/harbor-promenade.js';
 
 /** the scene's numbers (s): the drive in (decelerating), the boarding, the drive out (accelerating); `rest` the dock's rest before it may
  *  start, `sat` how long the waiter has sat, `left` how long their sitting has left at least (so the planned plan never ends mid-scene) */
-export const CABSTAND = Object.freeze({ inS: 4.2, walkS: 1.7, board: 0.7, wait: 1.1, outS: 4.6, rest: 1.2, sat: 3.5, left: 14, gap: 40 });
+const CABSTAND = Object.freeze({ inS: 4.2, walkS: 1.7, board: 0.7, wait: 1.1, outS: 4.6, rest: 1.2, sat: 3.5, left: 14, gap: 40 });
 const ease = u => (u < 0 ? 0 : u > 1 ? 1 : 1 - (1 - u) * (1 - u));
 const easeIn = u => (u < 0 ? 0 : u > 1 ? 1 : u * u);
 

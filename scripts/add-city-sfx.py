@@ -83,7 +83,7 @@ CEIL_DB = -2.0
 BITRATE = '64k'
 
 # THE CUTS (Part 8a, the owner's first recordings — measured: per-second band energies, onsets, narrow-band peaks for horns /
-# bells / voices; docs/audio.md#the-first-recordings has the why). Times in the SOURCE file's seconds.
+# bells / voices; docs/audio.md#the-city-sounds has the why). Times in the SOURCE file's seconds.
 #   loop: (start, length) + xf (the tail crossfaded at runtime) · cut: (start, end) for a one-shot · fin / fout: its fades (s)
 #   hp: the low cut (Hz) · lift: + dB at 2.5 kHz · w: the take's weight (default 1) · also: more slots that share this take
 #   rate: the sample rate the PLAYER decodes it at (r in the registry; default 32 kHz) — a hum with nothing above ~6 kHz
@@ -352,7 +352,7 @@ CUTS = {
     # to; his notes named no trims for this set, so every cut here is from the analysis: the 0.1–1 s RMS envelope per band (< 120 Hz,
     # 120–400, 400–1500, 1.5–4 k, 4–15 k), onsets, VOICING (the 300–3400 Hz signal's autocorrelation peak at 2.5–12 ms lags > 0.6 = a
     # voiced frame: a talker's vowels, a whoop, a coo), held tonal lines (music: ≥ 0.45 s within ±1.5 %), the 2–8 Hz speech
-    # modulation; docs/audio.md#6b-life has the table)
+    # modulation; docs/audio.md#6b-the-life has the table)
     # (22.7 s Sonniss, a house's front door opened + closed FAR + SOFT, four times (peaks −21 dBFS): the opens' latch at 0.9 / 4.75 /
     # 10.0 s (a rattly fourth 15.0–16.2 s: left out), the closes' thud at 2.1 / 7.1 / 12.9 / 19.3 s — mostly < 120 Hz, so low-mids +
     # presence lifted where a phone plays; the room's hiss between gated; `mark` = the latch / the thud)

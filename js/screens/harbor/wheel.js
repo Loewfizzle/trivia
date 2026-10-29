@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 5: THE FERRIS WHEEL (docs/harbor.md#the-wheel). A real steel wheel on its pier, turning slowly on
+// CITY 2.0 — THE HARBOR, Part 5: THE FERRIS WHEEL (docs/harbor/passes/part-5.md). A real steel wheel on its pier, turning slowly on
 // the real clock (one turn in 150 s — every phone shows it at the same angle):
 //
 //   the steel (a sprite, rotated)   the rim (two rings + the zigzag truss between them), 16 pairs of tension spokes crossing
@@ -37,7 +37,7 @@ const TURN_S = 150;                         // one turn (s)
 const CARS = 16, RIM_BULBS = 48, SPOKE_RINGS = [0.24, 0.35, 0.46, 0.57, 0.68, 0.79, 0.89], HUB_BULBS = 10, NR = SPOKE_RINGS.length;
 const SHOW_S = 48;
 // the bulbs' colours per scheme: rim sets A/B/C, the spoke rings 0..3, the hub
-export const WHEEL_SCHEMES = {
+const WHEEL_SCHEMES = {
   // (Part 6a, the owner's review: the city's own bulbs are a crisp near-white — the skyline's windows behind are warm tungsten, so
   // warm bulbs melted into them; a soft glow ring traces the rim: the wheel reads as the wheel, still elegant)
   city: { rim: [[255, 248, 236], [255, 248, 236], [246, 246, 255]], rings: [[255, 232, 196], [255, 244, 226], [255, 232, 196], [255, 248, 236]], hub: [255, 252, 246], ring: [232, 238, 255] },

@@ -214,7 +214,6 @@ export function createWetGround() {
         c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(cx - H2.w * 0.42, y0, H2.w * 0.84, len);
       }
       c.restore();
-      void sec;
     },
     debug: () => ({ puddles: pud.length, shown: pud.filter(p => p.thr < 1).length, rings: rings.length, drips: drips.length, dripRate: +lastRate.toFixed(2), baked: !!cv }),
     destroy() { if (cv) cv.width = 0; cv = null; },

@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: THE LIT WINDOWS (Part 2) — their own layer, never the facade's bake (docs/harbor.md#windows).
+// CITY 2.0 — THE HARBOR: THE LIT WINDOWS (Part 2) — their own layer, never the facade's bake (docs/harbor/passes/part-2.md).
 //
 //  - litSteps(): the lit windows of a skyline group, baked on the LIGHT KEY (City 1.0's timeline: the hour's share P.win in
 //    1/60 steps + the warmth), over the same items in the same order as the facades — each building first erases what it hides
@@ -34,7 +34,7 @@ const strs = new Map();
 const rgba = (c, a) => { const k = `${c[0] | 0},${c[1] | 0},${c[2] | 0},${Math.round(a * 50)}`; let s = strs.get(k); if (!s) { s = `rgba(${k.split(',').slice(0, 3).join(',')},${Math.round(a * 50) / 50})`; if (strs.size > 4000) strs.clear(); strs.set(k, s); } return s; };
 
 /** a window's colour (the season's warmth leans tungsten further amber, as City 1.0) */
-export function colourOf(tr, warm = 0) {
+function colourOf(tr, warm = 0) {
   let c = tr.cls === 'cool' ? COOL[Math.floor(tr.tone * 3)] : tr.cls === 'tv' ? TV : tr.cls === 'neon' ? NEONW[Math.floor(tr.tone * NEONW.length)] : WARM[Math.floor(tr.tone * 5)];
   if (warm > 0.05 && (tr.cls === 'warm' || tr.cls === 'curtain')) c = mixc(c, AMBER, warm * 0.6);
   return c;
@@ -179,7 +179,7 @@ function finish(meta) {
 export const newMeta = () => ({ twinkle: [], tv: [], cands: [], boxes: [], wave: { list: [], bins: new Map() }, done: false });
 
 /** the word towers' faces on screen: { id: { cols, rows, cell(col, rowFromTop) → rect } } */
-export function wordFaces(L) {
+function wordFaces(L) {
   const out = {};
   for (const t of L.towers) if (t.word && t.face) {
     const tr = t.tiers[0], g = tr.win, box = { ...tr, mat: t.mat };

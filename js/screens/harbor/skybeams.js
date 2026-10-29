@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, NEON PASS 4: THE SKY BEAMS (the owner's idea — the Luxor sky-beam look; docs/harbor.md#neon-pass-4).
+// CITY 2.0 — THE HARBOR, NEON PASS 4: THE SKY BEAMS (the owner's idea — the Luxor sky-beam look; docs/harbor/passes/neon-pass-4.md).
 // On party nights EVERY hero + word tower shoots a STATIONARY VERTICAL BEAM straight up from the crown, in that tower's colour
 // (on a party night its colour in the rotating palette: it changes with the show): the clearest "it's a party" sign in a single
 // frame. A soft volumetric beam (a bright core + a wide soft glow, brighter on a hazy night), fading out with height, rising to the

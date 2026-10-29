@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, PART 11a-1: THE GHOST SHIP — Halloween night's LEGENDARY (docs/harbor.md#part-11a-1). WHEN + WHERE is pure:
+// CITY 2.0 — THE HARBOR, PART 11a-1: THE GHOST SHIP — Halloween night's LEGENDARY (docs/harbor/passes/part-11a-1.md). WHEN + WHERE is pure:
 // core/harbor-holiday.js#ghostShipAt (two crossings on the night) + core/harbor-ghost.js#ghostCrossing (its drift, its fade);
 // &force=ghost-ship loops a crossing (#ghostForced). This module DRAWS it:
 //   a translucent spectral-green three-masted galleon — the high stern castle with its lit gallery, the gun ports burning green,

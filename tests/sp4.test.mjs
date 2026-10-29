@@ -1,4 +1,4 @@
-// SP4 — the pure parts of the pass (docs/harbor.md#sp4): the JAZZ hush sign inside its pane at the SP3 window sizes, the seeded
+// SP4 — the pure parts of the pass (docs/harbor/passes/sp4.md): the JAZZ hush sign inside its pane at the SP3 window sizes, the seeded
 // weather's CALM wind, the clouds' screen speed (minutes to cross, never seconds), the awning's drips by the rain, the window people's
 // looks table (lit / shadow / silhouette / ghost — every moment has one), the web's build-up by date (tests/signdress.test.mjs has it).
 import { test } from 'node:test';

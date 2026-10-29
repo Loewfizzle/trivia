@@ -140,7 +140,7 @@ export function eventText(id) {
  *  so every phone starts on the same beat) — NOW / 3 S / 5 S; the server takes 0–10 */
 export const DELAYS = [0, 3, 5];
 export const DEFAULT_DELAY = 3;
-export const MAX_DELAY = 10;
+const MAX_DELAY = 10;
 /** a requested delay → whole seconds 0–MAX_DELAY, or null (not a delay) */
 export const cleanDelay = v => { if (v == null || v === '') return 0; const n = Number(v); return Number.isInteger(n) && n >= 0 && n <= MAX_DELAY ? n : null; };
 
@@ -250,10 +250,10 @@ export const EVENTS = [
   { id: 'season-spring', label: 'SPRING', cat: 'promenade', group: 'THE SEASON', hint: 'the crabapple in blossom, fresh light-green maples, tulips' },
   { id: 'season-summer', label: 'SUMMER', cat: 'promenade', group: 'THE SEASON', hint: 'full green trees, geraniums' },
   { id: 'season-autumn', label: 'AUTUMN', cat: 'promenade', group: 'THE SEASON', hint: 'the maples red / orange / gold, leaves falling, mums' },
-  { id: 'season-winter', label: 'WINTER', cat: 'promenade', group: 'THE SEASON', hint: 'bare branches, evergreen boughs (snow comes with Part 9)' },
+  { id: 'season-winter', label: 'WINTER', cat: 'promenade', group: 'THE SEASON', hint: 'bare branches, evergreen boughs (the snow itself: the WINTER rows)' },
   { id: 'no-implied-road', label: 'IMPLIED ROAD OFF', cat: 'promenade', sec: 'tools', group: 'COMPARE — OFF SWITCHES', hint: 'the curb + the passing cars’ light gone — compare' },
   { id: 'road-pass', label: 'A CAR PASSING', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'a car every ~13 s: headlights at night, a shadow by day, its sound — seen on the street while the dock rests' },
-  { id: 'wet-street', label: 'WET STREET', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the street under the dock after rain: puddles, the lamps’ reflections (Part 9’s hook)' },
+  { id: 'wet-street', label: 'WET STREET', cat: 'promenade', group: 'THE IMPLIED ROAD', hint: 'the street under the dock after rain: puddles, the lamps’ reflections' },
   // (PF: the centrepiece spot's EVENT RIG at work — a placeholder obelisk on the brick inlay, lit from below by its floor spots at night)
   { id: 'centrepiece-test', label: 'CENTREPIECE TEST', cat: 'promenade', sec: 'tools', group: 'DEBUG PIECES', hint: 'a test obelisk on the brick inlay, lit by its floor spots after dark (the holidays’ pieces stand here)' },
   { id: 'strings-party', label: 'CAFÉ LIGHTS · PARTY', cat: 'speakeasy', group: 'THE SIGNS + LIGHTS', night: true, hint: 'the speakeasy roof’s café-light canopy in party mode' },
@@ -354,8 +354,31 @@ export const EVENTS = [
   ...MOMENTS.map(m => ({ id: `window-${m.id}`, label: m.label.replace(' (LEGENDARY)', ''), cat: 'windows', sec: m.rarity === 'legendary' ? 'legendary' : undefined, group: m.holiday === 'thanksgiving' ? 'THANKSGIVING' : m.starter === false ? 'THE MIRROR DOOR' : m.rarity === 'routine' ? 'ROUTINES' : m.rarity.toUpperCase(), night: m.light === 'night' || m.id === 'lights-out' || undefined, hint: `${m.kind}${m.at != null ? ` — ~${m.at}:00 every day` : ''}` })),
   { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', sec: 'tools', group: 'DEBUG PIECES', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
 ];
-export const EVENT_GROUPS = [...new Set(EVENTS.map(e => e.group))];
 /** the rows the panel shows (not the ones a later part still has to build) */
+// C4d — THE A/B SWITCHES LISTED (FR4 H4: 47 force flags were read in the Harbor's code with no row — undiscoverable, and refused by
+// cleanRemote, so the panel + city2/live couldn't carry them): every flag the code reads is a row now. These are the COMPARE tools —
+// one piece of the city off (or a debug toggle) for an A/B look or a speed check — in a HIDDEN TOOLS group (ready: false: accepted from
+// a link + the panel's state, never listed). tests/harbor-remote.test.mjs greps every `force.has('…')` in the Harbor's code against
+// EVENTS: a new flag without a row fails the unit suite.
+const AB = (id, hint) => ({ id, label: id.toUpperCase().replace(/-/g, ' '), cat: 'tools', sec: 'tools', group: 'A/B SWITCHES', ready: false, ab: true, hint });
+export const AB_FLAGS = Object.freeze([
+  AB('demo', 'the sky scheduler\'s demo event in the low sky lane (harbor-events.js)'), AB('sat', 'a satellite crossing now (air.js)'),
+  AB('no-awning-light', 'the awning\'s light off'), AB('no-beam', 'the lighthouse beam off'), AB('no-beams', 'the party\'s sky beams off'),
+  AB('no-birds', 'no birds'), AB('no-boats', 'no boats'), AB('no-climate', 'no climate fallback (a failed weather ask = the default sky)'),
+  AB('no-clouds', 'no clouds'), AB('no-crisp', 'no crisp layer (the lettering at the bake\'s 2×)'), AB('no-dayfx', 'no flags in the wind, no sun glints'),
+  AB('no-fog', 'no fog on the water'), AB('no-ghost-ship', 'no ghost ship (Halloween)'), AB('no-glasswx', 'no weather on the neon + the buttons\' glass'),
+  AB('no-holiday-props', 'no holiday pieces on the ground'), AB('no-lamp-light', 'the lamps\' light off'), AB('no-leaves', 'no falling leaves'),
+  AB('no-legends', 'no legendaries tonight'), AB('no-lightning', 'no lightning'), AB('no-merge', 'the bands drawn one by one (no merged layers)'),
+  AB('no-party', 'a party night without its party'), AB('no-planes', 'no airliners + contrails'), AB('no-promenade', 'the promenade empty of its pieces'),
+  AB('no-punch', 'the neon\'s beat punch off'), AB('no-race', 'the roof signs never race'), AB('no-raid', 'no raid tonight'),
+  AB('no-rain', 'no rain drawn'), AB('no-rainbow', 'no rainbow'), AB('no-rays', 'no sun rays'), AB('no-road-light', 'the implied road\'s light off'),
+  AB('no-roofmodes', 'the roof signs\' hourly modes off'), AB('no-shimmer', 'the neon\'s shimmer off'), AB('no-snow', 'no snow anywhere'),
+  AB('no-snowcaps', 'no snow on the tops'), AB('no-snowfall', 'no falling snow'), AB('no-snowman', 'no snowman'), AB('no-speakeasy', 'no speakeasy layer'),
+  AB('no-still-crisp', 'the benches baked (no full-dpr overlays)'), AB('no-strings', 'no café lights on the roof'), AB('no-sway', 'nothing sways in the wind'),
+  AB('no-tower', 'no construction tower'), AB('no-wakes', 'no wakes behind the boats'), AB('no-water', 'no live water'),
+  AB('no-waterfront', 'no waterfront strip'), AB('no-wet', 'the ground never wet'), AB('no-wheel', 'no Ferris wheel'), AB('no-witch', 'no witch (Halloween)'),
+]);
+EVENTS.push(...AB_FLAGS);
 export const PANEL_EVENTS = EVENTS.filter(e => e.ready !== false);
 const EV = Object.fromEntries(EVENTS.map(e => [e.id, e]));
 export const eventDef = id => EV[id] || null;
@@ -502,7 +525,7 @@ export function playlistOf(kind) {
 /** WIN3 — a WINDOW ROW's own wall time (the owner: the panel's window rows did nothing — a day moment by day, or a night moment while a
  *  chosen time held the clock by day): a `window-<id>` force id → that moment's own hour on the day (momentHour: a routine's `at`, else
  *  the middle of its hours; the small hours on the next day), or null for anything else. forceOn() jumps JUST ME's clock to it. */
-export const PARTY_HOUR = 22.5;   // (WIN3: the window party's row + PLAY ALL item play at the peak)
+const PARTY_HOUR = 22.5;   // (WIN3: the window party's row + PLAY ALL item play at the peak)
 export function momentWhen(id, day) {
   if (id === 'window-party') return itemWhen({ hour: PARTY_HOUR, night: true }, day);
   const m = typeof id === 'string' && id.startsWith('window-') ? MOMENTS.find(x => x.id === id.slice(7)) : null;
@@ -555,7 +578,7 @@ const TEXT_RE = /[^A-Z0-9 !?.,'&+\-#@:♥★⚑|]/g;
 export const cleanText = (t, max = 74) => String(t == null ? '' : t).toUpperCase().replace(/[‘’]/g, "'").replace(/<3|\[HEART\]/g, '♥').replace(/\*|\[STAR\]/g, '★').replace(/\[FLAG\]/g, '⚑').replace(TEXT_RE, '').replace(/\s+/g, ' ').trim().slice(0, max);
 /** the longest text the state's text events all accept (the shortest of their limits) */
 export const textMax = force => Math.min(74, ...force.map(id => (EV[id] && EV[id].text) || 74));
-export function validWhen(s) {
+function validWhen(s) {
   const m = WHEN_RE.exec(String(s || ''));
   if (!m) return false;
   const [y, mo, d, h, mi] = m.slice(1).map(Number);

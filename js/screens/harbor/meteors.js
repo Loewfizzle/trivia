@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, PART 6b: SHOOTING STARS (plan.md "SHOOTING STARS RARER"; docs/harbor.md#part-6b). City 1.0 keeps its own
+// CITY 2.0 — THE HARBOR, PART 6b: SHOOTING STARS (plan.md "SHOOTING STARS RARER"; docs/harbor/passes/part-6b.md). City 1.0 keeps its own
 // (district/fx.js); the Harbor passes s.meteorArt.
 //   RARER       a normal clear night ~1 every 38 min · a shower's PEAK night ~1 every 2.5 min · ±1 day ~1 every 9 min (core/sky.js#meteorsOf
 //               names the shower) · a rare bright FIREBALL a few times a year (a big slow green-white streak that breaks up)
@@ -13,11 +13,11 @@ const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const TINTS = [[200, 255, 214], [214, 232, 255], [236, 244, 255], [255, 214, 170]];
 /** meteors a minute on the Harbor (y, m, d = the evening's date): { rate, shower } */
-export function harborMeteorRate(y, m, d) {
+function harborMeteorRate(y, m, d) {
   const o = meteorsOf(y, m, d);
   return { rate: o.rate >= 3 ? 0.4 : o.rate >= 1 ? 0.11 : 1 / 38, shower: o.shower };
 }
-export const FIREBALL_PER_MIN = 3 / (365 * 8 * 60);       // (a few a year over the night's hours)
+const FIREBALL_PER_MIN = 3 / (365 * 8 * 60);       // (a few a year over the night's hours)
 
 export function createMeteors() {
   let list = [], W = 1, H = 1, dotC = null, rateKey = '', rate = { rate: 0, shower: null }, forcedAt = 0;

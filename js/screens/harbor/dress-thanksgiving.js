@@ -21,7 +21,7 @@ export const WREATH = Object.freeze({ cx: 208, cy: 50, rx: 44, ry: 58 });
 const SWAGS = [[[-4, 5], [64, -1], 10], [[92, -1], [154, -1], 9], [[268, -1], [334, 5], 10]];
 const ringAt = (a, k = 1) => [WREATH.cx + Math.cos(a) * WREATH.rx * k, WREATH.cy + Math.sin(a) * WREATH.ry * k];
 /** PURE: the wreath's + the swags' pieces: { vine: [[x, y]…]×3, wheat: [{ x, y, a, len }], leaves: [{ x, y, a, s, col }], gourds, bow, bulbs } */
-export function wreathPieces() {
+function wreathPieces() {
   const R = rngFrom(hashString('thanks|wreath')), wheat = [], leaves = [], bulbs = [], gourds = [];
   // the vine: three strands twisting round the ring
   const vine = [0, 1, 2].map(j => { const pts = []; for (let i = 0; i <= 96; i++) { const a = i / 96 * TAU, tw = Math.sin(a * 9 + j * 2.1) * 0.035; pts.push(ringAt(a, 1 + tw)); } return pts; });
@@ -59,7 +59,7 @@ export function createThanksgivingDress() {
   /** the static pieces (the caches). o = { layer ('silk' | 'glow'), day (0..1), light (x, y) → { i, … } — the tubes' light there } */
   function paint(x, k, o) {
     lastK = k;
-    const glow = o.layer === 'glow', day = o.day > 0.5, dk = day ? 1 : 0.62, r = rngFrom(hashString('thanks|paint'));
+    const glow = o.layer === 'glow', day = o.day > 0.5, dk = day ? 1 : 0.62;
     x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
     const C = (c, m = 1) => `rgb(${c.map(v => Math.round(Math.min(255, v * dk * m))).join(',')})`;
     if (glow) {
@@ -117,7 +117,7 @@ export function createThanksgivingDress() {
     }
     // ---- the bulbs' bodies (glass + a brass cap; their glow is dyn)
     if (k > 0.9) for (const b of G.bulbs) { x.fillStyle = C([120, 100, 60]); x.fillRect(b.x - 0.8, b.y - 2.6, 1.6, 1.2); x.fillStyle = day ? 'rgba(250,240,214,0.9)' : 'rgba(120,96,60,0.9)'; x.beginPath(); x.ellipse(b.x, b.y, 1.5, 1.9, 0, 0, TAU); x.fill(); }
-    void r; x.restore();
+    x.restore();
   }
   /** the bulbs lit after dark: a warm filament core + a tight halo (steady — Edison bulbs don't twinkle) */
   function dyn(x, k, o) {

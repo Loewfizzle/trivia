@@ -108,7 +108,7 @@ const PIGEON_MORPHS = [
   { body: [216, 212, 208], wing: [226, 222, 218], head: [206, 202, 200], bar: [176, 172, 172], tail: [210, 206, 204], neck: [[196, 206, 200], [210, 196, 206]] },   // a white one
   { body: [72, 72, 84], wing: [80, 80, 92], head: [60, 60, 72], bar: [28, 28, 34], tail: [56, 56, 66], neck: [[70, 130, 100], [120, 80, 130]] },          // a dark one
 ];
-export const pigeonMorph = seed => { const r = rngFrom(seed * 13 + 5)(); return PIGEON_MORPHS[r < 0.5 ? 0 : r < 0.72 ? 1 : r < 0.84 ? 2 : r < 0.92 ? 4 : 3]; };
+const pigeonMorph = seed => { const r = rngFrom(seed * 13 + 5)(); return PIGEON_MORPHS[r < 0.5 ? 0 : r < 0.72 ? 1 : r < 0.84 ? 2 : r < 0.92 ? 4 : 3]; };
 const GULL_LOOK = { body: [244, 244, 240], wing: [168, 178, 192], tip: [24, 24, 30], bill: [236, 196, 60], leg: [226, 170, 150], eye: [230, 210, 120] };
 
 /**

@@ -9,7 +9,7 @@
 // the water; never a squashed picture. ROSIE now comes home BOW-FIRST from the right, swings round in the open water right of
 // her berth (her bow toward us), then eases the last half length ASTERN into her landing — bow-out as before, at the same times.
 // Which boats sail is decided per CYCLE from the hour at the cycle's start (the tug at night, the sailboats by day) — a boat
-// never pops in or out while you watch. docs/harbor.md#the-boats.
+// never pops in or out while you watch. docs/harbor/passes/part-5.md#the-boats.
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const PI = Math.PI;
@@ -28,7 +28,7 @@ const hdOf = face => (face >= 0 ? 0 : PI);
  *  us (a paddle steamer turns nearly in place: her centre drifts a couple of units, nearer at the middle of the swing), 140° round
  *  to a heading 40° off her berth's line; C — ASTERN the last half length into her landing on a gentle curve, straightening to
  *  bow-out as she stops. Times in s. */
-export const ROSIE_ARRIVE = Object.freeze({ A: 58, B: 62, C: 34, lane: 6, dip: 2.4, turnAt: 13, endAt: 11, endZ: 6.5, ctl: 4.6, v0: 0.85, v1: 0.15 });
+const ROSIE_ARRIVE = Object.freeze({ A: 58, B: 62, C: 34, lane: 6, dip: 2.4, turnAt: 13, endAt: 11, endZ: 6.5, ctl: 4.6, v0: 0.85, v1: 0.15 });
 /** the arrival's plan for a layout (berth x xB at depth zB; x0 = where she comes in from, off the right edge) */
 function arrivePlan(xB, zB, x0) {
   const P = ROSIE_ARRIVE, zL = zB - P.lane, zE = zB - P.endZ, xT = xB + P.turnAt, xE = xB + P.endAt, c1 = xB + P.ctl;
@@ -36,7 +36,7 @@ function arrivePlan(xB, zB, x0) {
   return { x0, xT, xE, zL, zE, xB, zB, c1, phi };
 }
 /** where she is s seconds into her homecoming (PURE) → { x, z, hd, astern, phase } */
-export function arriveAt(a, s) {
+function arriveAt(a, s) {
   const P = ROSIE_ARRIVE;
   if (s < P.A) { const k = clamp01(s / P.A); return { x: herm(a.x0, a.xT, -P.v0 * P.A, -P.v1 * P.A, k), z: a.zL, hd: PI, astern: false, phase: 'in' }; }
   if (s < P.A + P.B) {
@@ -172,7 +172,7 @@ export function boatRoutes(L, { taxi = false } = {}) {
  *  through her service day (7 am → 11 pm, none in the small hours) she comes in — from off screen ~4 min before, gliding in bow-first
  *  + turning to her pier (her 3D swing) — DOCKS AT :00 (the ship's bell), boards for ~3 min, casts off (her horn; the 7 pm one = the
  *  DINNER CRUISE's long blast) and steams away, gone off screen by ~:06. In motion the whole visit. */
-export const ROSIE_SERVICE = Object.freeze({ first: 7, last: 23, stretch: 1.6, dwell: 180, out: 200, dinner: 19 });
+const ROSIE_SERVICE = Object.freeze({ first: 7, last: 23, stretch: 1.6, dwell: 180, out: 200, dinner: 19 });
 /** her departures as a table (the hours she casts off at :03 — one horn each) */
 export const ROSIE_TABLE = Object.freeze(Array.from({ length: ROSIE_SERVICE.last - ROSIE_SERVICE.first + 1 }, (_, i) => { const h = ROSIE_SERVICE.first + i; return { dock: h, dep: h + ROSIE_SERVICE.dwell / 3600, horn: h === ROSIE_SERVICE.dinner ? 'dinner' : 'day' }; }));
 /** the fishing tug: out at dawn (FISH.out — a fixed early hour, its bow lantern lit while it's dark), back in the late afternoon */

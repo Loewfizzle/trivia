@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: THE CLOUDS (DT2 — a full rework; docs/harbor.md#dt2). One cloud system for every hour, replacing City
+// CITY 2.0 — THE HARBOR: THE CLOUDS (DT2 — a full rework; docs/harbor/passes/dt2.md). One cloud system for every hour, replacing City
 // 1.0's cloud art on the Harbor (district/weather-fx.js still runs the lightning; City 1.0 keeps its own clouds untouched).
 // WHAT + WHERE + THE LIGHT are PURE (core/harbor-clouds.js: the real weather's kinds, the perspective layout, the light); this file
 // BAKES each cloud into a shaded sprite and moves it by offset only.
@@ -314,7 +314,7 @@ function* layerField(d, F, N, box) {
   }
 }
 
-/** the shape builders: Part 9 adds its own (a 'nimbus' heap with a dark flat base, 'fog' banks …) */
+/** the shape builders: ATM adds its own (a 'nimbus' heap with a dark flat base, 'fog' banks …) */
 export const KINDS = { cumulus: heapField, scud: heapField, strato: heapField, alto: layerField, cirrus: layerField, deck: layerField };
 // per kind: the edge softness (σ soft / σ on the sunlit side: crisper), how solid it reads, how much it self-shades
 const LOOK = {
@@ -543,7 +543,7 @@ export function bakeCloud(d, G, box, res = 2, seed = 'pv', flip = false) {
 // ------------------------------------------------------------------ THE SKY'S CLOUDS
 export function createClouds() {
   let W = 1, top = 0, roof = 200, HZ = 300, box = null, list = [], old = null, oldK = 0, planKey = '', jobs = [], born = 0, G = null, gKey = '';
-  let extra = { grey: 0, dark: 0, base: 0 };              // (Part 9: set())
+  let extra = { grey: 0, dark: 0, base: 0 };              // (the weather's set() — 9a)
   let res = 1.8, N = null, epoch = 0, rr = 0, lastA = 0, lastT = 0, mix = null, t0Clock = 0, e0 = 0, windSgn = 1;
   // (POLISH 5 — THE LOAD: the plans made (the load log names each), the new set's fade (1.6 s; SLOW_MS once the city has shown —
   // the weather landing, a new block: a slow blend, never a pop) and whether the scene has settled the first set (settle()))
@@ -784,7 +784,7 @@ export function createClouds() {
     },
     /** POLISH 5: thin the clouds over a box (a sky message) by k 0..1 (null: none) */
     thin(b, k) { thinB = b; thinK = k; },
-    /** Part 9: grey 0..1 (rain / snow skies), dark 0..1 (a storm), base (pt: a lower cloud base) — re-lit at once */
+    /** the weather (9a): grey 0..1 (rain / snow skies), dark 0..1 (a storm), base (pt: a lower cloud base) — re-lit at once */
     set(o) { extra = { ...extra, ...o }; gKey = ''; },
     /** part: undefined = every cloud (the update + all of them); PART 6b's hook — 'back' (the update + the far half) then the sky
      *  messages, then 'front' (the near half only): skywriting drifting between the cloud layers */

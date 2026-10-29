@@ -1,5 +1,5 @@
 // CITY 2.0 — BNAME (Oct 28): THE CONSTRUCTION TOWER's CRANE FROM A REAL MODEL — "Crane" by J-Toastie (CC BY 3.0; ☰ → CREDITS), baked
-// OFFLINE by scripts/bake-model.mjs crane into assets/city/crane/ (docs/harbor.md#bname). No three.js here:
+// OFFLINE by scripts/bake-model.mjs crane into assets/city/crane/ (docs/harbor/passes/bname.md). No three.js here:
 //   TOP   the slewing part (the jib, the counter-jib + its weight, the cab, the tower head, the hook block) in 133 SLEW frames (±66°
 //         about broadside, 1° a step) as DAY + NIGHT atlases — the NEAREST frame drawn whole (9g, the owner: by day "it almost looks
 //         like it's pulsing": BNAME laid the next frame over the current one at the blend, so the thin lattice thickened through each
@@ -42,7 +42,7 @@ export function craneModel() {
 }
 
 /** the frame pair at a slew (°): [i, j, u] (j = i + 1, u how far towards it) — drawCrane draws the nearer one */
-export function slewFrames(top, deg) {
+function slewFrames(top, deg) {
   const p = Math.max(0, Math.min(top.n - 1, (deg - top.slews[0]) / (top.slews[1] - top.slews[0])));
   const i = Math.floor(p), j = Math.min(top.n - 1, i + 1);
   return [i, j, p - i];

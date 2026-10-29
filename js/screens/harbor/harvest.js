@@ -39,7 +39,7 @@ export const HARVEST = Object.freeze({
   box: Object.freeze({ x: 4.3, y1: 4.2, z0: -2.0, z1: 1.9 }),
 });
 /** the bulbs' places (world, round the inlay's centre) */
-export function harvestBulbs() {
+function harvestBulbs() {
   const out = [];
   for (const s of HARVEST.swags) for (let k = 0; k < s.n; k++) { const a = s.x0 + (s.x1 - s.x0) * k / s.n, b = s.x0 + (s.x1 - s.x0) * (k + 1) / s.n; for (let i = 0; i < s.per; i++) { const u = (i + 0.5) / s.per; out.push({ x: a + (b - a) * u, y: s.y - Math.sin(Math.PI * u) * s.sag, z: s.z, ph: out.length * 1.7 }); } }
   return out;
@@ -169,7 +169,7 @@ let mLoading = null, mModel = null, mFailed = false, mTries = 0, mReported = fal
 const mState = { state: 'idle', ms: 0, why: '' }, mWatch = new Set();
 const mSet = (state, why = '', t0 = 0) => { mState.state = state; mState.why = why; mState.ms = t0 ? Math.round(performance.now() - t0) : 0; for (const fn of mWatch) { try { fn({ ...mState }); } catch { /* a watcher's own problem */ } } };
 /** the model's load state ({ state: idle | loading | in | failed, ms, why }) + a watcher for its changes (→ an unsubscribe) */
-export const harvestModelState = () => ({ ...mState, tries: mTries });
+const harvestModelState = () => ({ ...mState, tries: mTries });
 export const onHarvestModel = fn => { mWatch.add(fn); return () => mWatch.delete(fn); };
 function harvestModel() {
   if (mModel || mFailed) return mModel;
@@ -195,9 +195,9 @@ function harvestModel() {
 }
 /** the model's Edison bulbs (CODE, on top): swags along its two lower ledges' front edges, in the sprite's fractions (measured on the
  *  4.4 u bake: the bottom tier's top at 0.74 of its height, the next at 0.555) — { y, x0, x1, sag, n (swags), per (bulbs a swag) } */
-export const MODEL_SWAGS = Object.freeze([{ y: 0.742, x0: 0.142, x1: 0.866, sag: 0.02, n: 3, per: 5 }, { y: 0.555, x0: 0.205, x1: 0.803, sag: 0.016, n: 2, per: 5 }]);
+const MODEL_SWAGS = Object.freeze([{ y: 0.742, x0: 0.142, x1: 0.866, sag: 0.02, n: 3, per: 5 }, { y: 0.555, x0: 0.205, x1: 0.803, sag: 0.016, n: 2, per: 5 }]);
 /** whether the model's sprites were ever asked for (the tests: never without the switch) */
-export const harvestModelAsked = () => !!mLoading;
+const harvestModelAsked = () => !!mLoading;
 
 export function createHarvest(deps) {
   const cache = new Map(); let last = null;
@@ -247,7 +247,7 @@ export function createHarvest(deps) {
     c.restore();
     stat.drawn++; stat.bulbs = n; stat.rect = { x: sp.x, y: sp.y, w: sp.w, h: sp.h };
   }
-  return { draw, lastSprite: () => last, debug: () => ({ ...stat, sprites: cache.size, modelAsked: harvestModelAsked(), modelIn: !!mModel, modelState: harvestModelState() }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); if (mCv) mCv.width = mCv.height = 0; mCv = null; last = null; void last; } };
+  return { draw, lastSprite: () => last, debug: () => ({ ...stat, sprites: cache.size, modelAsked: harvestModelAsked(), modelIn: !!mModel, modelState: harvestModelState() }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); if (mCv) mCv.width = mCv.height = 0; mCv = null; last = null; } };
 }
 
 // ------------------------------------------------------------------ 11a-2 — THE NOVEMBER SPOT DRESSINGS (core/harbor-spots.js's spots)

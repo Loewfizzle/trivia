@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, PART 11a-1: THE WITCH (docs/harbor.md#part-11a-1) — replaces City 1.0's district witch on the Harbor.
+// CITY 2.0 — THE HARBOR, PART 11a-1: THE WITCH (docs/harbor/passes/part-11a-1.md) — replaces City 1.0's district witch on the Harbor.
 // WHEN is pure (core/harbor-ghost.js#witchAt: a pass every ~7 min on Halloween night, ~25 min on the last week's nights — the same
 // moment on every phone); &force=witch loops a pass. A crafted silhouette ~40–46 pt long on a phone: the tall pointed hat with its
 // tip bent back by the wind + a wide brim, the long hooked profile, hair streaming, a CLOAK billowing behind her in travelling

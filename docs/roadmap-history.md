@@ -4,7 +4,7 @@ Everything that shipped, with its checklists, newest work near the top of the Oc
 Oct 20, 2026, so the roadmap stays short; add new detail here when a feature ships).
 
 
-### ✅ CITY 2.0 — POLISH 5: THE LOAD, THE SPEAKEASY'S GLASS, THE COLOURS, THE HYDRANT, THE SKY'S MESSAGES (Oct 25, 2026) — `docs/harbor.md#polish-5`
+### ✅ CITY 2.0 — POLISH 5: THE LOAD, THE SPEAKEASY'S GLASS, THE COLOURS, THE HYDRANT, THE SKY'S MESSAGES (Oct 25, 2026) — `docs/harbor/passes/polish-5.md`
 - [x] THE LOAD: the LOAD LOG (&debug=1, folded; harbor().loadLog; tests/integration/load-log.mjs); the causes measured + fixed — the screen's
       entrance transform under the title's rects, the late fonts, the live weather after the reveal (now kept per device + waited for +
       blended slowly), the clouds + the weather's modules in the dark, a load tier step before the reveal, the canvas at 100lvh; `load` +5
@@ -18,14 +18,14 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
       drones crisper, the banner plane a 1920s biplane on a slack tow line (lagging, gusting, fluttering), the periscope's sonar ping
 - [x] The owner's add-on: the slanted glass tower's crown in ice neon; the lobby-line feasibility shots (docs/harbor/refs/lobby-line/)
 
-### ✅ CITY 2.0 — PEO: THE PEOPLE'S MOTION (Oct 25, 2026) — `docs/harbor.md#peo`
+### ✅ CITY 2.0 — PEO: THE PEOPLE'S MOTION (Oct 25, 2026) — `docs/harbor/passes/peo.md`
 - **Measured first** (`harbor().people.rigs()` + `people.cost()`: every drawn figure's rig on screen per frame; Chrome with the GPU at 60 Hz, 402×874, tiers 2 / 1 / 0 + 4× CPU): the city at 30 fps ("calm") 9–15 % of an afternoon with 1–3 flips to 60 per 30 s as the sky changed (walkers were no 60-fps reason); a partner's feet 27–29 px/s of slide round the lead at turns (3× its speed); the planner's new block 3–6 ms (13–33 ms slow) inside one frame; positions even, never pixel-snapped; the work 3 ms a frame.
 - **Fixed:** `people.moving()` → `'people'` in `scene.js#fastNow`; `people.js#gait` integrates each member's own path into its stride phase (`folk.js#strideLen`); `people.js#warm` plans 70 s ahead in `requestIdleCallback` (the cache cap 40 → 80).
 - **Real walking:** `FOLK.speed` walk 1.57 (1.3 m/s) · stroll 1.2 (1.0) · brisk 1.8 (1.5) · kid 1.57 · jog 3.1 (2.6); `STEP(L, v)` ≈ 0.65 m · √v (a stroll 92 steps a minute, a walk 105, brisk 112, a jog 150; ± 6 % `L.stride`); the ladder carriers' common stride.
 - **The dancers** (`wands.js`): periodic + continuous poses (the wave's one-beat hand-over, the point's 2-beat arm cycles landing on the beat, the spin's blended arms, the swing without the whip, a one-beat crossfade, the follow-through through the boundary, the bend capped at 1.15, the lag in every phrase, no wand twitch): max 0.10 rad a 120-Hz sample, 0 browser-frame jumps (was 2.3–2.6 rad every bar).
 - **Tests:** e2e-harbor `motion` (the `street` job; `promenade` → `city`), `tests/harbor-people.test.mjs` +2 (the arms at 120 Hz, the step vs the speed), the pace test re-based.
 
-### ✅ CITY 2.0 — C2: CLEANUP 2 + THE OWNER'S REVIEW FIXES (Oct 25, 2026) — `docs/harbor.md#c2`
+### ✅ CITY 2.0 — C2: CLEANUP 2 + THE OWNER'S REVIEW FIXES (Oct 25, 2026) — `docs/harbor/passes/c2.md`
 - **The TR-3B**: `CHASE` t0 34 → 29.2 + dur 3.4 → 2.72, `JETS_GONE` drives everything after (the run 50 → 44 s); the chase's F-22s 0.2 W; the sign + the promenade's lamps stutter shallow then rise as the power returns; the far drain strips drawn after the far layer only.
 - **The raid**: `spotTargets` / `spotTour` / `spotOn` (only windows + doors, seeded, linger / glance / sweep / dart); the officer walks onto the promenade in front of the facade; his sweep stretches to the green (70 → ~59 s).
 - **Rosie + the boats**: two cached headings blended every frame; `churn()` + the stern's wake; `openAt` (the turns in open water); the second sloop out on a phone.
@@ -34,7 +34,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
 - **The preview panel** (full screen, START NOW / 3 S / 5 S + the 3-2-1 chip, search, RECENT, `R.SECTIONS`; `cityLive` `delay`).
 - **Cleanup**: the harness (90 s launch + one retry on CI, `[net]` warnings), `STRINGS_ON` + `CART_SHOWN` gone, `shots.mjs --cast`; the Firebase upgrades on `deps/firebase-upgrade` (b2487bf: admin 14.5, SDK 13.0.0; CI green; not merged).
 
-### ✅ CITY 2.0 — THE TR-3B's MUSIC, THE F-22, NO TRAFFIC DURING THE LEGENDARIES (Oct 25, 2026) — `docs/harbor.md#the-tr-3bs-music-the-f-22-no-traffic`, `docs/audio.md#the-tape-stop-in-web-audio`
+### ✅ CITY 2.0 — THE TR-3B's MUSIC, THE F-22, NO TRAFFIC DURING THE LEGENDARIES (Oct 25, 2026) — `docs/harbor/passes/the-tr-3bs-music-the-f-22-no-traffic.md`, `docs/audio.md#the-tape-stop-in-web-audio`
 - [x] THE TAPE STOP IN WEB AUDIO: the owner's panel proved the bend alone killed the song (iOS Safari stalls a media element whose
       playbackRate changes; a reload keeps the bent rate) — now `audio/tape-stop.js`: the song's MP3 frames walked (`core/mp3-slice.js`,
       all 91 files CBR + a Xing frame) and ~42 s decoded from where the element is, a buffer source crossfaded in while the element pauses,
@@ -57,7 +57,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
 - [ ] Known: WebKit not run here (Playwright's download stalled twice); the panel's forced run doesn't postpone a worker's truck already
       scheduled in that minute (seeded nights avoid it)
 
-### ✅ CITY 2.0 — PART 8b2: THE LIFE, PART 2 (Oct 25, 2026) — `docs/harbor.md#part-8b2`, `docs/audio.md` 8b2
+### ✅ CITY 2.0 — PART 8b2: THE LIFE, PART 2 (Oct 25, 2026) — `docs/harbor/passes/part-8b2.md`, `docs/audio.md` 8b2
 - [x] Step 0 — the owner's Oct 25 notes in plan.md
 - [x] Group 0 — the TR-3B's frame cost (60 fps only during the F-16s; `legends.active()` for everything else a legendary does), THE DRAIN
       AUDIBLE (`DRAIN_M`: 0.58 × floor, ±2 % wow + ±0.7 % flutter, 2.6 kHz, a −3 dB duck; `BEND_FLOOR` 0.55), the boat whistle + horn +1 dB,
@@ -80,7 +80,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
       smoke, running lights, wakes, reflections, the heading-keyed sprite cache, the bulbs' CHASE hook (Part 10), `&force=rosie-turn`
 - [x] One A-B-B-A round (TR-3B dark / dying / + party, the raid, Rosie by day + mid-turn at night): same or faster everywhere (docs/harbor.md)
 
-### ✅ CITY 2.0 — PART 8b1: THE LIFE, PART 1 (Oct 25, 2026) — `docs/harbor.md#part-8b1`, `docs/audio.md#8b1`
+### ✅ CITY 2.0 — PART 8b1: THE LIFE, PART 1 (Oct 25, 2026) — `docs/harbor/passes/part-8b1.md`, `docs/audio.md#8b1`
 - [x] Group 0 — Polish 4's fixes: THE SURPRISE FLYBY ~twice a month (never on a legendary night; 3–4 jets), the signal heads face their own
       traffic, wordA's real limits (a 5-letter word already in the biggest font that fits), a billboard swap shows at once by day, the van's
       night paint; THE BEAT's SAFETY RULE (punch only when the heard offset is confirmed within 45 ms, else a breathing pulse; the readout says
@@ -93,12 +93,12 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
       (folk.js, gear.js) + their props + the billboard's sheets + the blade's Monday repaint (workers.js) + the dump + stake trucks; the roof
       board keeps yesterday's poster until the billposter, the blade is the week's; a dead bulb / a lamp's bad night / a dead gooseneck fixed
       next visit; the WORKERS panel rows; tests + the `workers` E2E group
-- [x] Group 2 — THE WILDLIFE (`core/harbor-wildlife.js`, `screens/harbor/wildlife.js` + `fauna.js`): docs/harbor.md#group-2
+- [x] Group 2 — THE WILDLIFE (`core/harbor-wildlife.js`, `screens/harbor/wildlife.js` + `fauna.js`): docs/harbor/passes/part-8b1.md#group-2
 - [x] Group 3 — THE WITNESSES (`core/harbor-witness.js`: look up → run → the promenade empty → people + the regulars back; the TR-3B's stare)
       + THE HARBOR's TIMETABLE (Rosie's day, the fishing tug, the hourly bell, the noon whistle + its plume, the dinner cruise's horn — the
       big ones dip the music); the hour-by-week planning table; one A-B-B-A round (a natural busy noon: same; a party night: same)
 
-### ✅ CITY 2.0 — POLISH 4: THE OWNER'S FP3b + 6b REVIEWS (Oct 25, 2026) — `docs/harbor.md#polish-4`, `docs/audio.md#polish-4`
+### ✅ CITY 2.0 — POLISH 4: THE OWNER'S FP3b + 6b REVIEWS (Oct 25, 2026) — `docs/harbor/passes/polish-4.md`, `docs/audio.md#polish-4`
 - [x] Group 1 — THE TR-3B: the lag found (the tier stepping mid-event = two full rebakes; the sprites baked on the frame it came on screen)
       → a legendary holds the tier, the sprites baked ahead; THE TOTAL BLACKOUT (`blackAt` pure: dying from the entry side, dark through the
       crossing + the jets, back far skyline → near rows → the sign → the harbor → the promenade, stuttering) + THE DARK CITY bake (no
@@ -125,7 +125,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
 - [x] Perf (A-B-B-A vs 3637716): the TR-3B arriving the same, the blackout FASTER (−2.8 ms t2), a party night + the dance the same after
       one fix (tier 0's cap)
 
-### ✅ CITY 2.0 — PART 6b: THE SPECIAL SKY (Oct 24, 2026) — `docs/harbor.md#part-6b`, `docs/audio.md#6b`
+### ✅ CITY 2.0 — PART 6b: THE SPECIAL SKY (Oct 24, 2026) — `docs/harbor/passes/part-6b.md`, `docs/audio.md#6b`
 - [x] Group 0: the FP3b flaky probes (tier pinned, polled, the far reading a warning); Grok's life + workers + wildlife sounds (28 slots)
 - [x] THE UFO ABDUCTION + THE TR-3B (the power drain in columns, the sign's glitch, the tape stop) + THE F-16 CHASE (Mach diamonds); seeded
       ~1.5 nights a month each, never two in a row; lazily loaded; &force=ufo / tr3b (+ &lgs=); the `legends` E2E group
@@ -138,7 +138,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
 - [x] The clouds (high first, solid cumulus at night, no puffs under a deck, longer softer cirrus, evolving, the veil + the 22° halo),
       the arch higher + seasonal (pow 0.75), the lighthouse beam + the beacons in fog
 
-### ✅ CITY 2.0 — FP3b: THE PEOPLE WALK RIGHT + REAL DOORS + THE DANCE CIRCLE + THE FACADE (Oct 24, 2026) — `docs/harbor.md#fp3b`, `docs/harbor/review-3.md` §C 7–13
+### ✅ CITY 2.0 — FP3b: THE PEOPLE WALK RIGHT + REAL DOORS + THE DANCE CIRCLE + THE FACADE (Oct 24, 2026) — `docs/harbor/passes/fp3b.md`, `docs/harbor/review-3.md` §C 7–13
 - [x] THE FACING: one 2.5-D rig from the heading (side / 3/4 / front / back), turns blended at corners + poses (through the front),
       partners in the lead's frame stepping into a chat; the walk cycle with straight stance legs + a pendulum hip, the swing knee, the
       counter-swing; a run cycle for joggers; no skating on a diagonal (x + y); the pace +12 %, shorter steps; sitters in cloth away
@@ -155,7 +155,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
 - [x] Tests: the diagonal stride, straight legs, no heading snap, no fades, the dance circle, the vendor spot; the `life` E2E group;
       the NO SMOKE probe gated; docs-only pushes skip the quick workflow
 
-### ✅ CITY 2.0 — FP3a: THE FIXES EVERYONE SEES + THE CLEANUP + THE PEOPLE'S COLOURS (Oct 24, 2026) — `docs/harbor.md#fp3a`, `docs/harbor/review-3.md` §C 1–6
+### ✅ CITY 2.0 — FP3a: THE FIXES EVERYONE SEES + THE CLEANUP + THE PEOPLE'S COLOURS (Oct 24, 2026) — `docs/harbor/passes/fp3a.md`, `docs/harbor/review-3.md` §C 1–6
 - [x] The barber pole's party check off the glass's LED core (a test bug — the pole was right), a hard check again
 - [x] THE SURGE on every music start (the first tap, the music button back ON, a rescue): one start detector, a 10 s cooldown, pending
       instead of lost (the intro, a race), lit vs unlit from the sign on screen, the day's peak + bloom held ~300 ms longer
@@ -175,7 +175,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
 - [x] Tests: unit 601; e2e — `neon` (the music starting ×6), `core` (the strips ×8), `load` ×8 (new, `city` job), the pole + the night
       bed's race fixed; smoke `GAMES=cipher` green
 
-### ✅ CITY 2.0 — PART 8P: THE PEOPLE + THE SPEAKEASY POLISH CARRY-OVER (Oct 24, 2026) — `docs/harbor.md#part-8p`, `docs/audio.md` 8P
+### ✅ CITY 2.0 — PART 8P: THE PEOPLE + THE SPEAKEASY POLISH CARRY-OVER (Oct 24, 2026) — `docs/harbor/passes/part-8p.md`, `docs/audio.md` 8P
 - [x] Section 0 (its own commit, 7dc3a8d): the barbershop front crisp (the gilt arch rebuilt, the glass's haze + the door card gone), THE HUSH WORD
       SIGN (Ben's add-on: bare neon tubes in the lower-right upstairs window, only while a lobby is open — 2 × 2, 11.1 pt at 390;
       `&force=hushsign&hush=JAZZ`), three awning lamps, crisp lamp globes, the TV bluer, SLIP / STREAM (+ RUM / RUNNER, OVER / CLOCK) stacked,
@@ -186,7 +186,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
       the lobby line (`&force=line&n=6`)
 - [x] Tests: unit 590 (`harbor-people.test.mjs` 12), e2e `people` 10/10 (in the `street` cloud job)
 
-### ✅ CITY 2.0 — SPEAKEASY POLISH (Oct 24, 2026) — `docs/harbor.md#sp2` (the owner's 7b review on her iPhone)
+### ✅ CITY 2.0 — SPEAKEASY POLISH (Oct 24, 2026) — `docs/harbor/passes/sp2.md` (the owner's 7b review on her iPhone)
 - [x] THE BLADE: dark enamel for every game, the name in big bold letters filling the width (cream + gold by day, self-lit warm-white at night,
       a tight baked glow), one column a word, the bulbs on the crest + foot only, a little wider + up to the parapet; `&ad=<game>` previews
 - [x] THE WINDOWS: a slim one-over-one sash with the rail high, less inside (one light + one or two shapes a room), the TV window upper-right
@@ -197,7 +197,7 @@ Oct 20, 2026, so the roadmap stays short; add new detail here when a feature shi
       from beneath at night (the cream stripes glowing, a warm rim on the scallops)
 - [x] The sky sounds louder (+6 / +3.5 dB); the placeholder people hidden until 8b (`&force=placeholders`)
 
-### ✅ CITY 2.0 — PART 7b: THE SPEAKEASY'S LIFE (Oct 24, 2026) — `docs/harbor.md#part-7b` (built overnight, unattended)
+### ✅ CITY 2.0 — PART 7b: THE SPEAKEASY'S LIFE (Oct 24, 2026) — `docs/harbor/passes/part-7b.md` (built overnight, unattended)
 - [x] THE MOMENTS CATALOGUE (`core/harbor-moments.js`, PURE + `tests/harbor-moments.test.mjs`): one entry a moment (windows, hours, light, rarity, length,
       cooldown, party weight), routines on the clock (seeded minutes) that move their room on, a legendary calendar (4 nights a year × 3 plays), the schedule
       in HOUR BLOCKS seeded by the date (~1 ms an hour; every phone the same; joined mid-way), rarity as a chance a slot (rare stays rare by day)
@@ -546,7 +546,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The owner's two lo-fi songs (late1, late2) as KEEPERS; every other track analysed (tempo, loudness, brightness, busyness, key)
       and sorted into a mood as TEMPORARY in data/mood-music.json; MENU MUSIC: TIME OF DAY / CLASSIC in settings
 
-### ✅ CITY 2.0 — THE HARBOR, NEON PASS 6: NIGHT TOUCH-UPS (Oct 22, 2026) — `docs/harbor.md#neon-pass-6`
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 6: NIGHT TOUCH-UPS (Oct 22, 2026) — `docs/harbor/passes/neon-pass-6.md`
 - [x] THE RACING FLOWS: the party racers' speed came from the beat phase (a quarter speed between beats + the beat clock's jitter) →
       a steady speed from the tempo (eased to a new song's), the dt of the frame (30 Hz the same), the punch only brightens + lengthens
       the tail; no reversals. iOS: the song's coarse `currentTime` carried forward between its steps; the readout says why it's calm
@@ -566,7 +566,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Tests: harbor.test (signs without icons, the billboard covering every game), E2E "THE RACING FLOWS" + "THE NEON LOGO RACES";
       the A-B-B-A (night cheaper; party noisy, tier 0 equal) — the owner's iPhone decides
 
-### ✅ CITY 2.0 — THE HARBOR, NEON PASS 5: SAFARI, THE REAL BEAT + THE PARTY POLISHED (Oct 22, 2026) — `docs/harbor.md#neon-pass-5`
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 5: SAFARI, THE REAL BEAT + THE PARTY POLISHED (Oct 22, 2026) — `docs/harbor/passes/neon-pass-5.md`
 - [x] Faster harbor tests, nothing dropped: e2e-harbor in GROUPS (`ONLY=…`), three parallel shards + panel + perf alone, the fixed
       sleeps → waits for the real condition (223 s → ~190–200 s, 87 → 99 checks)
 - [x] THE iPHONE SHOWED LESS: a 30 Hz frame rate (Low Power Mode) stepped the city to tier 0 (no racing) — a step down is a probe now
@@ -585,7 +585,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The panel: every sky event fired from it appears (forced pieces override the lane + cooldown gates; the satellite train repeats
       + jumps to dusk; ☾ events + PARTY ON by day jump to tonight; the sheet peeks); tests per event
 
-### ✅ CITY 2.0 — THE HARBOR, NEON PASS 4: THE NEON IN MOTION (Oct 22, 2026) — `docs/harbor.md#neon-pass-4`
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 4: THE NEON IN MOTION (Oct 22, 2026) — `docs/harbor/passes/neon-pass-4.md`
 - [x] A party night obvious in one frame: the outlines re-lit in the bold PARTY SCHEME (rolling in left → right), a warmer pink-violet
       city glow, SKY BEAMS from the tall towers (2–3 on a phone, 4–5 on desktop; fading under the tagline, free ones to the top;
       pulsing, swapping colour, one by one from 9 pm, taking turns with the searchlights; reusable for holidays + the tribute)
@@ -618,7 +618,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Tests: harbor.test (registry ↔ code, validation, flags, sun times, holidays), server.test + rules.test (CITY 2.0), e2e-harbor
       (`ONLY=panel`: JUST ME live + refresh + clear; EVERYONE on two phones in sync incl. a late arrival, until, clear); shots: panel scenes
 
-### ✅ CITY 2.0 — THE HARBOR, NEON PASS 3: THE WOW PASS (Oct 22, 2026) — `docs/harbor.md#neon-pass-3`
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 3: THE WOW PASS (Oct 22, 2026) — `docs/harbor/passes/neon-pass-3.md`
 - The review's fixes: the wheel SEE-THROUGH (no veil; lit struts, a haze ring), THE GAME BLADE readable (bulbs on an outer frame, a dark
   gap, bigger brighter letters on a near-black panel, a calm chase), THE DRONE SHOW in open sky (under the word, over the tallest crown).
 - The night city spectacular: neon on ALMOST EVERY building (outlines, ledge bands, pilasters, fins, sunbursts, chevrons, trims; setback
@@ -637,7 +637,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - The neon sounds retuned: a silent warm-up + dawn (the last dropout only), the lit sign's flickers sound, the hum fades out 10 s after
   the catch, a tap on the sign sounds (dropout / power-on).
 
-### ✅ CITY 2.0 — THE HARBOR, NEON PASS 2 (Oct 21, 2026) — `docs/harbor.md#neon-pass-2`
+### ✅ CITY 2.0 — THE HARBOR, NEON PASS 2 (Oct 21, 2026) — `docs/harbor/passes/neon-pass-2.md`
 - The building neon fixed from the owner's zoomed iPhone review: each line cut at its own depth against the nearer buildings (a tower's
   contour against a dilated envelope: no tube down a sun corridor), every run ending at an electrode cap, stubs dropped, nothing
   within 2.5 pt of the screen's edge; contours from the foot over the main setbacks only (`MIN_STEP`), one-step crowns, filleted
@@ -995,7 +995,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] **Setup:** a Firebase service-account key + Vercel environment variables, and **re-publish `database.rules.json`** (docs/profiles.md)
 
 
-### ✅ CITY 2.0 — THE BEAT-SYNC PASS (Oct 24, 2026) — `docs/audio.md#the-beat-sync-pass`, `docs/harbor.md#bs` (the owner after three patches: "all over the place … a slower rhythm … gets lost again"; "losing hope on it")
+### ✅ CITY 2.0 — THE BEAT-SYNC PASS (Oct 24, 2026) — `docs/audio.md#the-beat-sync-pass`, `docs/harbor/passes/bs.md` (the owner after three patches: "all over the place … a slower rhythm … gets lost again"; "losing hope on it")
 - [x] The causes from her readouts: two sources mixed (grid punches + off-beat kick hits + a calm-on-miss), the SKEW flag flipping on every
       song-clock re-anchor (the "slower rhythm" = the half-time grid alone; "lost" = the kicks back in); FP2's gathering window (±0.4 beat =
       ±226 ms at 106 BPM) could never measure her +237 ms; the tier judged the return's frames
@@ -1015,7 +1015,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Tests: `harbor.test.mjs` 157 (+ THE BEAT-SYNC PASS ×5 incl. THE WHOLE CHAIN through a +237 ms return; the lead's basics rewritten; the
       mailbox gone); the unit suite 560; e2e-harbor `music` (+ RETURN never costs a tier)
 
-### ✅ CITY 2.0 — PROMENADE FINAL TOUCHES (Oct 24, 2026) — `docs/harbor.md#pf`, `docs/audio.md` (FP3 + THE SKY SOUNDS) (the owner on FP2: the promenade is filled out — lock its final layout)
+### ✅ CITY 2.0 — PROMENADE FINAL TOUCHES (Oct 24, 2026) — `docs/harbor/passes/pf.md`, `docs/audio.md` (FP3 + THE SKY SOUNDS) (the owner on FP2: the promenade is filled out — lock its final layout)
 - **The cloud test job** (`.github/workflows/harbor.yml`): the whole e2e-harbor suite on GitHub after a City 2.0 push (≈ 7–9 min; a newer push cancels; cached); its slow-machine flakes made to wait for their conditions.
 - **The final layout:** the cart HIDDEN (`CART_SHOWN`, back in 8b), the bench + a bigger crabapple just left of the crossing (the DOUBLE AGENT blade free), the tall lamps a matched pair FLANKING the crossing, the globes at the front corners, a 1920s OLIVE-GREEN PILLAR MAILBOX by the right curb.
 - **The centrepiece:** a flush BRICK COMPASS-ROSE INLAY (red + buff + dark brick, worn where feet go, lit by the pools) + an EVENT LIGHTING RIG (four flush brass floor spots, `harbor().centrepiece.set()` for 11a–c, `&force=centrepiece-test`: a lit obelisk).
@@ -1024,7 +1024,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - **Sound:** the car's sound placed on the clock (its peak on the car's mid-crossing, prefetched, panned — it came 5–6 s late); THE SKY SOUNDS (12 files → 16 takes, 3.2 MB) wired to the helicopter, airliners, banner plane, geese, drone show, balloons (UFO / TR-3B / jets filled for 6b).
 - Neon by depth verified at 402 (normal + party): clean.
 
-### ✅ CITY 2.0 — FOREGROUND POLISH 2 (Oct 24, 2026) — `docs/harbor.md#fp2`, `docs/audio.md#fp2` (the owner on FP: "a big jump", ~8 / 10)
+### ✅ CITY 2.0 — FOREGROUND POLISH 2 (Oct 24, 2026) — `docs/harbor/passes/fp2.md`, `docs/audio.md#fp2` (the owner on FP: "a big jump", ~8 / 10)
 - [x] The beat after returning: the lead RE-MEASURED on every resume / rebuild / page return / route change + on a SKEW alone (`leadRefresh`, `leadKick`); +100–146 ms in ~10 kicks; the readout shows it converging
 - [x] The promenade: the corner maple + the urn removed; the medallion at 273 pt (in front of the crossing) + `centrepieceCap`; the cart at 213 + `L.cart.route` / `stopX` / `EVENT_CLEAR` (8b); the bench at 158 under a FLOWERING CRABAPPLE; the parked bus + cars off (`PARKED_TRAFFIC`); the lantern on a far kerb + a cast-iron post; the framing maple rebuilt (`deepen`, a bounce light, five limbs, a fuller crown)
 - [x] The cobbles at night: a packed-sand grout lit by the pools, soft rounded stones (`street.js#paintSett`, shared with the street)
@@ -1035,16 +1035,16 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] NEON BY DEPTH (the owner's add-on): `DEPTH_HUE` 60°, the pairs by contact + "directly behind", `fixDepth`, `partyPlan` on the hue ring, the keyline gap (`eraseFront`), near / far ±6 % — 10 → 0 city clashes, 18 → 0 party clashes at 402
 - [x] Tests: harbor.test 131 → 144, the unit suite 539; e2e-harbor groups party, music, promenade, core, speakeasy, neon (all green); the smoke check 3 / 3
 
-### ✅ CITY 2.0 — FOREGROUND POLISH (Oct 23, 2026) — `docs/harbor.md#fp`, `docs/audio.md#fp`
+### ✅ CITY 2.0 — FOREGROUND POLISH (Oct 23, 2026) — `docs/harbor/passes/fp.md`, `docs/audio.md#fp`
 - [x] §0 the beat after returning: a pure SONG CLOCK on the element's currentTime (re-anchored on every element event, visibility, rebuild; > 30 ms drift), the song's own bar + beat + `drift` on the readout, the HEARD OFFSET (`SKEW`: the kicks ignored, never applied)
 - [x] The promenade re-layout: the back row (maple · tall lamp · maple + bench · [the crossing] · tall lamp), the open floor (the medallion, the cart, the corner urn), the front edge (two corner globes + the framing maple); the sketch's curb planter + the phone's crabapple dropped (hidden / not in the row)
 - [x] THE URN (a Deco cream-terracotta urn: gadroons, chevron frieze, rolled lip, lathe shading; thriller / fillers / spillers by the season); the night light plan (wider cool pools, the cart's glow, a bounce light on the props); the blade baked after the trees beside it
 - [x] The billboard on a short dark frame (⅛ open, its foot 3.4 pt over the string lights); the barber pole a helix strip slid sub-pixel (60 = 30 Hz), white + the hero light, the sconce + the shop lamp softer; the blade dimmer at night
 - [x] The stop lights side-on (two-way 1920s heads), the WALK / WAIT lantern across the road, one 46 s cycle on the city's clock (`signalAt`)
 - [x] Sounds: the water 0.07 + a 1.6 kHz low-pass (≈ −9.8 dB), the bed × 0.71 under the music + waiting for the song, varied gull runs, cars 0.1; PULSE_DEFAULT 1.75; the panel's TOOLS: READOUT + AUDIO PANEL (`js/ui/debug-tools.js`)
-- [x] Tests: harbor.test 131, city-sounds, e2e-harbor 260 / 261 (the water seam on its limit — docs/harbor.md#fp), unit 525, smoke 3 / 3; two review passes (402 noon / golden / night / party, the corner, 390 + 430); A/B perf same
+- [x] Tests: harbor.test 131, city-sounds, e2e-harbor 260 / 261 (the water seam on its limit — docs/harbor/passes/fp.md), unit 525, smoke 3 / 3; two review passes (402 noon / golden / night / party, the corner, 390 + 430); A/B perf same
 
-### ✅ CITY 2.0 — PART 8a: THE PROMENADE'S LOOK (Oct 23, 2026) — `docs/harbor.md#part-8a`, `docs/audio.md#the-city-sounds`
+### ✅ CITY 2.0 — PART 8a: THE PROMENADE'S LOOK (Oct 23, 2026) — `docs/harbor/passes/part-8a.md`, `docs/audio.md#the-city-sounds`
 - [x] Section 0: the billboard onto the speakeasy's roof (its own baked group, a dunnage platform so its feet show over the parapet); the blade's name bigger (taller board, wide letters, the two-word split fixed); the corner-turn preview removed
 - [x] The first-tap surge whenever the NEON sign is off (`neon-ramp.js#firstTapAnswer`); the pulse after returning (a frame-loop watchdog, `pulse` on the readout, the AUDIO panel's `city` row); PULSE STRENGTH 50–250 % (default 130 %); the neon tap sounds × 0.75
 - [x] THE CITY SOUNDS: 65 named slots (`core/city-sounds.js`), the player (`audio/city-sound.js`), the events wired (`screens/harbor/sounds.js`), `scripts/add-city-sfx.py`, the panel's SOUNDS; water-lapping, city-hum-day / -night, car-1920s-pass (4 takes), gulls (4 takes) imported (church bells + rumbles cut, levels by analysis)
@@ -1054,7 +1054,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The panel's PROMENADE category (four seasons, the implied road off, a car passing); `&season=`, `&force=no-lamp-light`
 - [x] Tests: harbor.test (+ the billboard, the promenade, the seasons, the passes, the trees, the props, the slots), e2e-harbor `promenade` + `sounds` + `music` §10; three review passes (402 day / golden / night / party, the seasons, 390 / 430 / desktop); the A/B perf: same
 
-### ✅ CITY 2.0 — PART 7a: THE SPEAKEASY'S LOOK (Oct 23, 2026) — `docs/harbor.md#part-7a`, `docs/audio.md#7a`, `docs/title.md`
+### ✅ CITY 2.0 — PART 7a: THE SPEAKEASY'S LOOK (Oct 23, 2026) — `docs/harbor/passes/part-7a.md`, `docs/audio.md#7a`, `docs/title.md`
 - [x] §0 the layout: corner buttons 36 pt (44 pt tap areas) everywhere, the corners split on the title + the lobby (☰ left, ♪ right), the
       NEON sign ~24 pt higher (both cities), the lanes clear of the ☰
 - [x] §0 the music's first tap: the NEON sign's surge by day / a brighter race at night, once a visit, only when the music really starts
@@ -1088,7 +1088,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] e2e-harbor music §8 THE EVIDENCE (the frozen fresh contexts + the session, emulated) + §7 reworked: 76/76; audio-resume; smoke;
       units 491. e2e-lobbysong's STUCK check fails the same on the previous commit (Known issues)
 
-### ✅ CITY 2.0 — FIX PASS M3 (Oct 23, 2026) — `docs/harbor.md#m3-fix-pass`, `docs/audio.md#m3` (the owner's iPhone: the music still dies; the billboard dark; the brick flat; the small clouds cheap)
+### ✅ CITY 2.0 — FIX PASS M3 (Oct 23, 2026) — `docs/harbor/passes/m3.md`, `docs/audio.md#m3` (the owner's iPhone: the music still dies; the billboard dark; the brick flat; the small clouds cheap)
 - [x] The music bug made visible: THE AUDIO PANEL (`&debug=1`, both cities, any screen — the context + its clock, the song element, what should
       play, the last 8 events with times: visibility, page show / hide, taps, every resume + play with its result or error)
 - [x] Reproduced on this machine by emulating iOS's gesture rule in e2e-harbor (M2 failed 3 of 3), then fixed: gestures = touchend / click /
@@ -1101,7 +1101,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       wisps (≤ 4), near small ones grown to heaps, soft scud melting into the deck
 - [x] harbor.test 105, units 491, e2e-harbor music §7, e2e-lobbysong, audio-resume, smoke
 
-### ✅ CITY 2.0 — MUSIC FIXES + DAY BUILDINGS (Oct 23, 2026) — `docs/harbor.md#m2`, `docs/audio.md` (the owner: the music dies after leaving Safari; the day "a little flat")
+### ✅ CITY 2.0 — MUSIC FIXES + DAY BUILDINGS (Oct 23, 2026) — `docs/harbor/passes/m2.md`, `docs/audio.md` (the owner: the music dies after leaving Safari; the day "a little flat")
 - [x] City 2.0's EVENING without City 1.0's slip8 (the importer skips it for good; `--reuse` refuses City 1.0 songs); a unit test
 - [x] THE MUSIC COMES BACK (both cities): every resume checked after 1.5 s, a stuck context REBUILT in the next tap (music re-made in the same
       tap, the lobby's song re-placed on the room clock, PULSE's clock re-sampled, the SFX chain rebuilt); errored / stalled songs reloaded at
@@ -1115,7 +1115,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] pixdiff (night / party / dusk / golden = the lamps only), harbor.test 104, city-music 16, e2e-harbor 169/169, e2e-lobbysong 12/12,
       audio-resume, smoke, units 490; perf A/B `np-day` / `np-night` / `np-party`: same
 
-### ✅ CITY 2.0 — SKY POLISH (Oct 23, 2026) — `docs/harbor.md#sp` (the owner: the clouds a 7/10)
+### ✅ CITY 2.0 — SKY POLISH (Oct 23, 2026) — `docs/harbor/passes/sp.md` (the owner: the clouds a 7/10)
 - [x] CIRRUS drawn as groups of wisps (fibratus, mares' tails, tufts) over a soft body, never straight / parallel / evenly spaced; a
       cirrostratus veil on a hazy high day; lit first + last at sunset; above the tagline's band; `&wx=cirrus|veil` + the panel
 - [x] The cumulus: soft uneven bases with rounded ends, lighter at the edges; the self-shadow on a smooth thickness field (no seams);
@@ -1128,7 +1128,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Buildings by day one small step; pixdiff (`night-nc`, `dusk-nc` identical; `golden-nc` the sun only); harbor.test 102,
       e2e-harbor 112/112, units 472, smoke; perf A/B `np-pclouds` / `np-clouds` / `np-party`: same
 
-### ✅ CITY 2.0 — THE DAY LOOK (Oct 23, 2026) — `docs/harbor.md#dt2` (Day touch-up part 2)
+### ✅ CITY 2.0 — THE DAY LOOK (Oct 23, 2026) — `docs/harbor/passes/dt2.md` (Day touch-up part 2)
 - [x] THE CLOUDS, a full rework: `core/harbor-clouds.js` (PURE + tested: the kinds from the real weather + the cover by height,
       the perspective layout with clusters and the row rule, the light for the hour + per cloud) + `screens/harbor/clouds.js`
       (cumulus as smooth unions of billowed 3D lobes, stratocumulus as merged heaps, altocumulus + the overcast deck as perspective
@@ -1142,7 +1142,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] pixdiff: `dusk` + the no-cloud twins (`night-nc`, `party-nc`, `dusk-nc`, `golden-nc`) — the night, the party, the blue hour
       and golden hour unchanged except the clouds
 
-### ✅ CITY 2.0 — THE LIGHTS + SIGNS PASS (Oct 23, 2026) — `docs/harbor.md#dt1` (Day touch-up part 1)
+### ✅ CITY 2.0 — THE LIGHTS + SIGNS PASS (Oct 23, 2026) — `docs/harbor/passes/dt1.md` (Day touch-up part 1)
 - [x] THE BLUE-HOUR POWER-UP on the one darkness input: the dusk curve on the sun's elevation (golden hour's flat 0.35 gone), the
       power-up sunset → −7° with tonight's seeded order (outlines cluster by cluster in a sweep, signs one by one), the ramps re-cut
       (the billboard's lamps first, the lamps at sunset, floodlights mid blue hour), the windows (~5 % in golden hour, lower floors
@@ -1157,7 +1157,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       the moon dimmed behind the tagline; load hitches never cost a tier (8 s grace), the session's after-10 s line, the readout at
       the bottom; the panel's LIGHTS group + POWER-UP / POWER-DOWN times
 
-### ✅ CITY 2.0 — CLEANUP C1.5 + SPEED (Oct 22, 2026) — `docs/harbor.md#cleanup-c15` (from `docs/harbor/review-2.md`; no visual change)
+### ✅ CITY 2.0 — CLEANUP C1.5 + SPEED (Oct 22, 2026) — `docs/harbor/passes/cleanup-c15.md` (from `docs/harbor/review-2.md`; no visual change)
 - [x] The O's white core: the holiday O's rules scoped to the swapped O (`[data-kind]`) with fallbacks; the flutter by a class
       (`is-flut`), never an inline style that left `style=""` behind; E2E: the flutter forced onto the O, the Halloween + St Patrick's O
 - [x] The wheel's backdrop: the owner's pick d (floodlit stone, dark windows) for everyone; variants a / b / c and `&wheelbg` removed
@@ -1175,7 +1175,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       boatSpeed, LIT_GROUPS, skyPos), the searchlights' warm-up per 60 Hz frame; `tests/integration/pixdiff.mjs` (A/B pixel diff +
       bursts) — night / party / noon / golden / Halloween / St Patrick's: nothing beyond the run-to-run noise
 
-### ✅ CITY 2.0 — THE HARBOR, THE DAY PASS (Oct 22, 2026) — `docs/harbor.md#the-day-pass`
+### ✅ CITY 2.0 — THE HARBOR, THE DAY PASS (Oct 22, 2026) — `docs/harbor/passes/the-day-pass.md`
 - [x] §0 night touch-ups: behind the wheel four versions (`&wheelbg=a` more warm windows, `b` lighter + bluer, `c` a little of each —
       the default —, `d` architectural floodlighting: warm uplights washing up the stone, the windows dark); the dark corner right of
       the lighthouse lit again (a warm roofline + one ledge band, its windows; `core/harbor-neon.js#lhEdgeBlocks`, tested)
@@ -1198,7 +1198,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       suite 456; the default city pixel-compared against the commit before (the same as its own run-to-run noise)
 - [x] Perf (A-B-B-A, 4× CPU): day t2 5.84 → 6.11, a cloudy day 5.78 → 6.36, golden 7.83 → 7.67, night 8.24 → 8.18 ms
 
-## CITY 2.0 — PART 9a: THE WEATHER + THE POLISH 5 REVIEW FIXES (Oct 25 2026) — docs/harbor.md#part-9a
+## CITY 2.0 — PART 9a: THE WEATHER + THE POLISH 5 REVIEW FIXES (Oct 25 2026) — docs/harbor/passes/part-9a.md
 - [x] Group 0: the wheel dark in the TR-3B blackout + the LIGHT AUDIT; the promenade's lamps restored (a POLISH 5 rename slip); Rosie's
       navy boot-top + gold pinstripe; the balloons stay up (45–90 min, joined mid-way, the burner rare) + the festival's line-up (orange ₿,
       alien, black ₿, a violet / teal bullseye, a smiley, the American flag) painted on the sphere; the dancers' own clock; the drone
@@ -1211,7 +1211,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Group 4: glasswx.js — beads + drips + glaze + icicles on the NEON tubes, rain + frost on the dock's + the corner buttons' glass
 - [x] Group 5: ten weather sounds + the mix + thunder; the `weather` e2e group; docs
 
-## CITY 2.0 — SP3: THE SPEAKEASY + CRISP NEON (Oct 26 2026) — docs/harbor.md#sp3
+## CITY 2.0 — SP3: THE SPEAKEASY + CRISP NEON (Oct 26 2026) — docs/harbor/passes/sp3.md
 - [x] 9a's review: the NEON logo lights with the city on a dark storm afternoon; the tree crowns sway in the real wind; the festival's six
       drift together (no overlap at 402); the weather's source decided before the reveal + held after it (the owner's "+0.48 s seeded")
 - [x] The rain on the sign + the rain lit by the signs follow each light's live level (the blackout: dark clear beads); in the light audit
@@ -1225,7 +1225,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] The promenade's people + the animals ~9 % bigger
 - [x] The roof signs' hourly modes (spell / race / breath, one big move at a time, the restart flicker); HIGH STAKES's five lamps (+14 %)
 
-## CITY 2.0 — 11a-1: HALLOWEEN + DAY OF THE DEAD (+ the holiday system + the window figures) (Oct 26 2026) — docs/harbor.md#part-11a-1
+## CITY 2.0 — 11a-1: HALLOWEEN + DAY OF THE DEAD (+ the holiday system + the window figures) (Oct 26 2026) — docs/harbor/passes/part-11a-1.md
 - [x] The window figure kit redrawn (real shoulders + neck, a profile that grows with a CONTINUOUS head turn, tapered arms + hands, the bob /
       bun / short / long hair, the pinched fedora, the cloche + feather) + THE RIM (each room's lamp round its silhouettes; figures() for groups)
 - [x] Costume pieces on the kit (witch hat, horns, ears, a flower crown, a sombrero, a cape, a sheet ghost, bones, wraps)
@@ -1242,7 +1242,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       picado in the real wind; the ofrendas in the windows; monarchs; Nov 2's candlelight procession (Catrinas, the mariachi trio)
 - [x] The sounds: the witch, the ghost ship's creak + bell, the haunted wind, a synthesized cat hiss; a new CI job (holiday)
 
-## CITY 2.0 — SP4: THE SPIDER + WEB FUTURISTIC, THE WINDOW PEOPLE LIT, THE WEATHER SOURCE FIXED FOR GOOD (Oct 26 2026) — docs/harbor.md#sp4
+## CITY 2.0 — SP4: THE SPIDER + WEB FUTURISTIC, THE WINDOW PEOPLE LIT, THE WEATHER SOURCE FIXED FOR GOOD (Oct 26 2026) — docs/harbor/passes/sp4.md
 - [x] THE WEB: a perfect geometric web of laser-thin filaments (ice-white core, violet halo, an Archimedean spiral, nodes of light at the
       crossings, a shimmer travelling along the threads), still spun day by day through October
 - [x] THE SPIDER: bio-mechanical — black-chrome plates with violet seams, glowing eyes, the NEON reflected on its shell, precisely
@@ -1261,7 +1261,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE WINDOW PEOPLE IN 3D: every lit form shaded round from the room's lamp (lit side → core shadow → reflected edge), hair sheen, folds, joint occlusion, a cast shadow on the wall, the far arm of a ¾ turn
 - [x] THE BLUE TV ROOM: the set on the back wall, a couch seen from behind with a head (sometimes two) rimmed by the screen's blue, a tilt / a nod / leaning / an arm reaching for the drink, the cigarette's smoke; off at 3 am as before
 
-## CITY 2.0 — WIN: THE WINDOWS PASS (Oct 26 2026) — docs/harbor.md#win
+## CITY 2.0 — WIN: THE WINDOWS PASS (Oct 26 2026) — docs/harbor/passes/win.md
 - [x] THE WINDOW BUGS: the spider's tap on iOS (the scene asked before the logo's letter buzz), the stale hush sign (one value a frame, never
       outliving its force), one window at a time (SLOW LIFE's passers one at a time, measured: the tango never mirrored), the toast at 60 fps
       (a window moment a 60-fps reason; the shake + the drink eased), the ghost's big eyes + mouth
@@ -1277,7 +1277,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE PANEL: PLAY ALL (scenes / holiday moments / animals / workers — a chip beside the pill: skip, pause, stop) + the tidy (a SPEAKEASY
       section, the weather in groups, the off-switches + debug pieces in TOOLS)
 
-## CITY 2.0 — SP5: THE SPEAKEASY FOLLOW-UPS — THE SPIDERS, THE BOSS'S ROOM, THE WINDOWS, THE PARTY, THE PROMENADE DANCE, THE BLADE, CLEAR ALL (Oct 26 2026) — docs/harbor.md#sp5
+## CITY 2.0 — SP5: THE SPEAKEASY FOLLOW-UPS — THE SPIDERS, THE BOSS'S ROOM, THE WINDOWS, THE PARTY, THE PROMENADE DANCE, THE BLADE, CLEAR ALL (Oct 26 2026) — docs/harbor/passes/sp5.md
 - [x] THE SPIDERS: the drop's feet LET GO (the hanging feet were placed in the hub's frame — they stayed pinned to the web and the legs
       stretched; every foot follows the drawn, hanging body now, the leg lengths constant through the drop); fully INDEPENDENT (their own
       leg-lift grids, reaction times, dash directions + distances); a ROAM of at least a letter's length — out a spun radial to its anchor on
@@ -1312,7 +1312,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       enamel; the bulbs stay warm white; &blade=<font>-<ink>-<panel> previews
 - [x] shots.mjs --until "<expr>" (wait for a page condition before the shot)
 
-## CITY 2.0 — WIN3: THE SPIDERS RIGHT FOR HALLOWEEN, THE PANEL'S SCENE BUTTONS, THE BOSS'S TV ROOM, THE CASH COUNT, THE PARTY IN THE WINDOWS (Oct 26 2026) — docs/harbor.md#win3
+## CITY 2.0 — WIN3: THE SPIDERS RIGHT FOR HALLOWEEN, THE PANEL'S SCENE BUTTONS, THE BOSS'S TV ROOM, THE CASH COUNT, THE PARTY IN THE WINDOWS (Oct 26 2026) — docs/harbor/passes/win3.md
 - [x] THE SPIDERS: the second spider arrives Oct 29 by date (the build-up: the 30th + the 31st have two); both walk ON TOP of the SPEAKEASY
       tubes (the dressing canvas above the word); THE DROP a dangle — the legs gather into a tuck, it hangs below the thread swaying + slowly
       turning, lands FEET FIRST with the legs unfolding as it settles onto the word; the climb home head-up reeling the line, legs gathered
@@ -1334,7 +1334,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
       pooled on the cobbles; down room by room over the last minute; the edge windows light only; the boss's room never; a raid cuts it (the
       lights snap off, the dancers scatter, the blinds drop); `&force=window-party`, a panel row + a PLAY ALL item
 
-## CITY 2.0 — WIN2: THE SPIDERS' TRIP + NERVES, THE WINDOWS THAT READ AS-IS, THE QUALITY STEP (Oct 26 2026) — docs/harbor.md#win2
+## CITY 2.0 — WIN2: THE SPIDERS' TRIP + NERVES, THE WINDOWS THAT READ AS-IS, THE QUALITY STEP (Oct 26 2026) — docs/harbor/passes/win2.md
 - [x] THE SPIDERS: a tap drops either spider on its glowing thread down to the SPEAKEASY word, a 10–15 s stop-start crawl along the tubes,
       the climb home reeling the thread; a second tap consumed; SCARED by the flickers / blinks / the race / the blackout / lightning near
       them (freeze, crouch, a skitter, the eyes flaring, calm after); a second spider on the last N's web, never in sync; the hydrant's
@@ -1357,7 +1357,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] THE QUALITY STEP: never judged in the first 15 s, in a bake, the crossfade or the sign's surge; sustained slowness only (four looks);
       the EFFECTS tier first (live, no re-bake — invisible), the canvas resolution last; what the judge measured in the readout's tier line
 
-## CITY 2.0 — 9d: THE FIXES II (Oct 27 2026) — docs/harbor.md#9d
+## CITY 2.0 — 9d: THE FIXES II (Oct 27 2026) — docs/harbor/passes/9d.md
 - The owner's TR-3B + snow + party link measured (DPR 3, 4× CPU): healthy on Chrome; the held preview (&lgs) left the song tape-stopped at half speed
   + crackling forever — a held preview is a still now; a city stall (> 1.5 s with the page visible) reports itself to /admin once with what was on.
 - `&temp=` read once (tempNow) — the snowman followed the live October temperature on a −6 °C link.
@@ -1369,7 +1369,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE ADMIN PANEL: ☰ → ADMIN + a cue dot; the NOW bar (TIME first, the weather's chips, the date's holidays), the sections by use, WINTER, hints
   under the labels.
 
-## CITY 2.0 — 9c: THE FIXES BEFORE THE TOWER (Oct 27 2026) — docs/harbor.md#9c
+## CITY 2.0 — 9c: THE FIXES BEFORE THE TOWER (Oct 27 2026) — docs/harbor/passes/9c.md
 - The sign's snow follows the power (a moonlit grey in the TR-3B's blackout) and glows from within by each letter's own light (the boot
   flicker lights it letter by letter).
 - &force=plow / salt: backdated past the speakeasy's corner + started at the reveal, never dropped for a bus — in view ~1 s after the reveal,
@@ -1383,7 +1383,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - The boss's day blind in the building's cream linen; WINDOW SCENES NEVER POP IN (a walk-up or the blind cycle, every moment).
 - The UFO hovers above the Ferris wheel (same size); its two view angles hand off over ±2.5°, its sheets pre-decoded.
 
-## CITY 2.0 — 9f: THE FIXES IV (Oct 28 2026) — docs/harbor.md#9f
+## CITY 2.0 — 9f: THE FIXES IV (Oct 28 2026) — docs/harbor/passes/9f.md
 - LOAD WEATHER (red on every harbor run since 9e): a weather answer landing after the reveal re-baked the lit windows with a 1.2 s
   crossfade — they ride the weather's 6 s blend now; the party windows + the roof board are decided before the reveal.
 - THE TR-3B's TAPE STOP: measured 2 s behind the lights (the sag a second late, the first bend waiting for 2 %, ramps aimed at the
@@ -1409,7 +1409,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - BEFORE → AFTER (open sockets): title idle 1 → 0 · City 2.0 title 1 → 0 · title after QUIT 1 → 0 (after the grace) · hidden title tab
   1 → 0 · /admin 1 → 0 · /board 0 → 0 · lobby / game 1 → 1 · an admin on City 2.0 1 → 1.
 
-## CITY 2.0 — 9e: THE FIXES III + THE CITY LIFE + THE CONSTRUCTION TOWER + THE SAX (Oct 28 2026) — docs/harbor.md#9e
+## CITY 2.0 — 9e: THE FIXES III + THE CITY LIFE + THE CONSTRUCTION TOWER + THE SAX (Oct 28 2026) — docs/harbor/passes/9e.md
 - SEND REPORT (&debug=1) + THE HANG WATCH (a worker that posts the last snapshot when the main thread stops answering) → /api/log → /admin.
 - The TR-3B freeze investigated on WebKit 18 at last (installed by hand): not reproduced; a crawl under a legendary now steps the effects down.
 - The frost pane bold + over the vignette + already formed on a frozen open; the snowman (any centrepiece) sorted with the walkers; the
@@ -1423,7 +1423,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE SAX REWORK: the shade up, one lit musician with a gold horn, the sway on the beat, the solo at the glass.
 - Cut: the two vehicle models (the taxi + the police car bakes).
 
-## CITY 2.0 — THE UFO BAKE (Oct 27 2026) — docs/harbor.md#the-ufo-bake
+## CITY 2.0 — THE UFO BAKE (Oct 27 2026) — docs/harbor/passes/the-ufo-bake.md
 - The abduction's craft is "UFO" by sebslom (CC BY 4.0) — art/models/ufo/ (source only, never deployed) baked offline by
   scripts/bake-ufo.mjs (three.js in Playwright's Chromium) into assets/city/ufo/: 24-frame turntables over the model's 30° symmetry at the
   camera's two real view angles (6° hovering, 19° on the approach + the exit), the body lit as night + the model's own green lights + every
@@ -1431,7 +1431,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - The city: the rows stretched to the true angle + handed off at their midpoint, the turntable spinning (faster as it lifts him), the ports
   chased at the ring's pace; the beam, the pose + the timing untouched; &ufo=classic; ☰ → CREDITS → 3D MODELS. Speed: same as the classic.
 
-## CITY 2.0 — 9b: WINTER (Oct 27 2026) — docs/harbor.md#part-9b
+## CITY 2.0 — 9b: WINTER (Oct 27 2026) — docs/harbor/passes/part-9b.md
 - THE CLIMATE-AWARE FALLBACK (core/climate.js): when the live ask fails, the weather from the date + the place + the nearest of 48 cities'
   monthly normals, seeded, gentle through the day; the readout names it; &force=climate.
 - THE SNOWPACK (core/harbor-snow.js): /api/sky adds the snow depth + 30 days; a daily model (sticks only when cold, settles, melts only
@@ -1446,7 +1446,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - CREDITS opened on desktop but not on the iPhone (the title rested under the open menu, swallowing the tap) — fixed + tested; CLAUDE.md:
   the phone-first rule.
 
-## CITY 2.0 — SP6: THE FIXES BEFORE WINTER (Oct 27 2026) — docs/harbor.md#sp6
+## CITY 2.0 — SP6: THE FIXES BEFORE WINTER (Oct 27 2026) — docs/harbor/passes/sp6.md
 - The cloud minutes: `tests` runs only on a `[ci]` / `[harbor]` push, pull requests + by hand; ≈ 30–40 cloud minutes a pass.
 - 11a-2's holiday failures: the giant check waits for its own first frame; both spiders' taps wait still + read live + retry.
 - THE BLUE TV WINDOW: the owner's picked palette (B home, A, H, N, F, a warm W) cut like scenes on a seeded per-minute clock; the whole pane washed,
@@ -1457,7 +1457,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - Vehicles: words sized to their panels + outlined, never mirrored, SANITATION, a bigger TAXI sign; the patrol car, the van + the sanitation truck in the
   foreground street's random traffic. Pies + bags bigger; chimney smoke shaded against a pink sky.
 
-## CITY 2.0 — 11a-2: THANKSGIVING + THE PARADE (+ Halloween's last touches, Black Friday) (Oct 26–27 2026) — docs/harbor.md#part-11a-2
+## CITY 2.0 — 11a-2: THANKSGIVING + THE PARADE (+ Halloween's last touches, Black Friday) (Oct 26–27 2026) — docs/harbor/passes/part-11a-2.md
 - [x] THE GIANT BITCOIN PUMPKIN on the compass (ray-marched, the ₿ carved + lit by fire, Oct 20 → 31) + the dance RINGING it
 - [x] BIG HOLIDAY PIECES CHANGE OFF-CAMERA (latchBig: a load, a return from the background, a clock jump)
 - [x] The letter tap's hum ≤ 1.5 s, never stacked; the boss's shadow walks up / stays / away at the party; a bolder spade; a bluer TV
@@ -1476,7 +1476,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - [x] Vercel's Hobby DEPLOYMENT STORAGE was ~49 GB / 10 GB (~300 MB a deploy, one on every push): `vercel.json#ignoreCommand` now builds only when the push's last commit message carries `[harbor]`, `[ci]` or `[deploy]` (exit 1 = build, 0 = skip) — one deployment a pass
 - [x] `.vercelignore`: `/docs`, `/screenshots`, `/art`, `/shots*`, `/.github`, `node_modules` added (checked: no page, the service worker or `/api` loads them; `/api` reads only `js/` + `data/`) — a deploy 299 → ≈ 264 MB; every audio file is still referenced, so the music (~255 MB) is the floor
 
-## BNAME — THE BOARD's PUBLIC NAMES + THE CRANE + THE SHORTER CYCLE (Oct 28 2026) — docs/profiles.md, docs/harbor.md#bname
+## BNAME — THE BOARD's PUBLIC NAMES + THE CRANE + THE SHORTER CYCLE (Oct 28 2026) — docs/profiles.md, docs/harbor/passes/bname.md
 - THE BOARD: public rows carry an opaque board id (HMAC of the pid) + a HOUSE NICKNAME (208, filtered), never the typed name or the pid
   (the cached GET + the CDN too); your own row swaps in your name + YOU on your device; the title's top-3 too.
 - The rules: `profiles/{pid}` one at a time for signed-in users (it was readable by anyone, as a whole list). Re-publish.
@@ -1486,7 +1486,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   day + night, a seamless mast tile, 180 KB, lazy; `&crane=classic`). THE SHORTER CYCLE (rise June 1 → Sept 1, opening the first
   Saturday of October).
 
-## CITY 2.0 — 9g: THE FIXES V + THE UFO's SOUND (Oct 28 2026) — docs/harbor.md#9g, docs/audio.md#9g
+## CITY 2.0 — 9g: THE FIXES V + THE UFO's SOUND (Oct 28 2026) — docs/harbor/passes/9g.md, docs/audio.md#9g
 - A legendary forced from a LINK (`&force=ufo|tr3b|implosion`) waits for the reveal + the first tap, then starts 4 s later (`&lgnow=1` =
   the old start at the load); opened while a TR-3B drains, the first tap starts the song silent until the lights come back.
 - THE UFO ABDUCTION's real recordings (Grok's brief): the hover (A / B) + its spin-up / down, the beam on / idle / off, the lift, the
@@ -1496,7 +1496,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE CRANE: the nearest of 133 one-degree frames (BNAME's blend thickened the lattice through each 3° step — measured, gone).
 - THE JOGGERS: a runner's leg (the heel tucked, the foot landing under the hips). THE DOCK FADE: 10 s first visit, 5 s after.
 
-## CITY 2.0 — PROM: THE PROMENADE, FINAL + the 9g follow-ups (Oct 28 2026) — docs/harbor.md#prom, docs/audio.md#prom
+## CITY 2.0 — PROM: THE PROMENADE, FINAL + the 9g follow-ups (Oct 28 2026) — docs/harbor/passes/prom.md, docs/audio.md#prom
 - NO LAMPPOSTS: the implied lamps below the screen light the promenade (core/harbor-light.js#impliedAt); the shadows climb up the screen;
   the lamps' life on the implied pools; the lampman retired.
 - The crosswalk lit at night (the back road's implied lamps + the crossing's pool, the signals tinting the asphalt); the wet reflections of
@@ -1512,7 +1512,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - Group 0: the legendaries' sounds fetched + pinned ahead; the implosion's new timeline + HORN B + the siren +10 %; HUM A + DEPART LAYERED
   defaults; the joggers in shorts + singlets / grey sweatsuits, their arms tucked.
 
-## CITY 2.0 — C4a: THE SHOPFRONT + THE GROUND (Oct 28 2026) — docs/harbor.md#c4a (review-4.md §E items 1–6)
+## CITY 2.0 — C4a: THE SHOPFRONT + THE GROUND (Oct 28 2026) — docs/harbor/passes/c4a.md (review-4.md §E items 1–6)
 - Group 0: windows.js split into windows.js (the life) + window-rooms.js + window-figure.js + window-paint.js + window-holiday.js (pure
   moves; pixdiff identical).
 - THE BARBERSHOP a 2.5D room on the rooms' box (window-rooms.js#paintShopRoom — the bake, the night's lit canvas + the live barber share
@@ -1524,7 +1524,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE CROSSWALK: one soft radial per pool, feathered at the curb + the rail, wider; THE CARS sampled tail / middle / nose → a gradient,
   the wheels lit, the signal's colour at the crossing. New: shots --crop crossing, the crossing unit test, e2e `weather` + `people` probes.
 
-## CITY 2.0 — C4b: THE PEOPLE + THE LAYOUT (Oct 28–29 2026) — docs/harbor.md#c4b (review-4.md §E items 7–11 + the owner's Oct 28 notes)
+## CITY 2.0 — C4b: THE PEOPLE + THE LAYOUT (Oct 28–29 2026) — docs/harbor/passes/c4b.md (review-4.md §E items 7–11 + the owner's Oct 28 notes)
 - Group 0: THE GIANT OFF (core/harbor-holiday.js#GIANT_ON; &force=giant + a panel row) — the planted-foot check 0.29 → 0.06.
 - Group 1: THE LAYOUT — the compass f 0.6675 → 0.515 (the crossing clear), the water bench 0.515 → 0.42, the framing maple 0.875 → 0.9 +
   the cab bench → 0.9025 (the crown kept: seedX), the cart 0.47 → 0.69 from below the dock; THE CAB STAND's OWN LAMP (core/harbor-light.js
@@ -1536,7 +1536,7 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   power (road.js#createCrossLight); the mirror door's first-frame jump gone; the benches' overlays out while it rains / snows; HARBOR
   BARBERS removed (speakeasy.js#glassOver); every baked pool + the benches' overlays dark in the blackout + the luminance test.
 
-## CITY 2.0 — C4c: THE OWNER'S BUGS + THE MEASURING TOOLS (Oct 29 2026) — docs/harbor.md#c4c (plan.md "OWNER'S NOTES — OCT 29 (C4b's review)")
+## CITY 2.0 — C4c: THE OWNER'S BUGS + THE MEASURING TOOLS (Oct 29 2026) — docs/harbor/passes/c4c.md (plan.md "OWNER'S NOTES — OCT 29 (C4b's review)")
 - Group 0: THE BLACKOUT, FOR REAL — the lamps' light painted into the benches' + the props' sprites follows the drain in steps (scene.js#stepPow);
   the props' top pass before the veil; the front row darkened through its own alpha (veilFront); the test at 3× on four dates (e2e `blackout`);
   the rain-signs flake fixed.

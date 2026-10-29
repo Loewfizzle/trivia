@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: how the birds fly (PURE; drawn by screens/harbor/birds.js — docs/harbor.md#part-6a).
+// CITY 2.0 — THE HARBOR: how the birds fly (PURE; drawn by screens/harbor/birds.js — docs/harbor/passes/part-6a.md).
 // Every path here is a function of (the flight's seed, the seconds since it began): no per-frame randomness, nothing that
 // depends on the frame's dt — so 30 fps and 60 fps sample the same curve, and the same seed draws the same flock on every phone.
 //   smoothRoof / roofAt   the roofline (a STEP function: the highest roof per 4 pt — a tower's edge jumps 50–90 pt) smoothed
@@ -99,7 +99,7 @@ export function batAt(p, t, out) {
 
 // ---------------------------------------------------------------- the geese
 /** the wingbeat (rad/s) — the V's base; each bird a few % off it, a straggler 30–45 % faster */
-export const GOOSE_BEAT = 5.2;
+const GOOSE_BEAT = 5.2;
 
 /**
  * A V of n geese (7–13), seeded; flightS = about how long it takes to cross (so the events land on screen).

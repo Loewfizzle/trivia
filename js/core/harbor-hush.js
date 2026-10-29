@@ -16,28 +16,10 @@ import { flattenPath } from './tube-path.js';
 // the frame — the margin now leaves room for the halo (the letters ~12 % smaller), and hushsign.js clips the overlay to the glass)
 export const HUSH = Object.freeze({ lw: 0.84, gap: 0.1, row: 0.13, tube: 0.17, margin: 0.2, col: [96, 232, 255] });
 
-/** the window's glass (wall units) for the window [a, b] × [r0, r1] — the same insets as the speakeasy's sash (speakeasy.js#paintWindow) */
-export const hushGlass = (a, b, r0, r1) => [a + 0.18, b - 0.05, r0 + 0.12, r1 - 0.06];
 
 /** the rows a word splits into: 4 → 2 + 2, 5 → 3 + 2, 3 → 2 + 1 (top row the longer), ≤ 2 → one row */
-export const hushRows = s => (s.length <= 2 ? [s] : [s.slice(0, Math.ceil(s.length / 2)), s.slice(Math.ceil(s.length / 2))]);
+const hushRows = s => (s.length <= 2 ? [s] : [s.slice(0, Math.ceil(s.length / 2)), s.slice(Math.ceil(s.length / 2))]);
 
-/**
- * The sign's layout in WALL UNITS (u across, v up) inside the glass [g0, g1, h0, h1] → { text, cap, rows: [{ letters: [{ ch, u0, w, polys
- * }] }], tube } — every row centred; the cap as big as the glass allows for the word (4 letters: the full 2 × 2 block).
- */
-export function hushPlan(text, glass) {
-  const H = HUSH, [g0, g1, h0, h1] = glass, s = String(text || '').toUpperCase().replace(/[^A-Z]/g, '').slice(0, 6);
-  const rows = hushRows(s), n = Math.max(1, ...rows.map(r => r.length)), W = g1 - g0 - 2 * H.margin, Hh = h1 - h0 - 2 * H.margin;
-  const capW = W / (n * H.lw + (n - 1) * H.gap), capH = Hh / (rows.length + (rows.length - 1) * H.row), cap = Math.min(capW, capH);
-  const lw = H.lw * cap, totalH = rows.length * cap + (rows.length - 1) * H.row * cap, top = (h0 + h1) / 2 + totalH / 2;
-  const out = rows.map((word, ri) => {
-    const rowW = word.length * lw + (word.length - 1) * H.gap * cap, u0 = (g0 + g1) / 2 - rowW / 2, base = top - (ri + 1) * cap - ri * H.row * cap;
-    return { word, letters: [...word].map((ch, i) => { const lu = u0 + i * (lw + H.gap * cap), d = LETTERS[ch];
-      return { ch, u0: lu, w: lw, base, polys: d ? flattenPath(d, 1, 0, 0, 0.6).map(p => ({ ...p, pts: p.pts.map(([x, y]) => [lu + x * lw / 10, base + cap - y * cap / 14]) })) : [] }; }) };
-  });
-  return { text: s, cap, rows: out, tube: H.tube * cap };
-}
 
 /** What the sign shows (PURE): a lobby's word → { text, lit: 1 }; no lobby → { text: null, lit: 0 } (absent — no unlit tubes) */
 export function hushState({ word = null } = {}) {
@@ -63,7 +45,7 @@ export const darkLevel = dt => (dt < 0 ? 1 : dt < 0.08 ? 0.35 : dt < 0.16 ? 0.9 
  * THE DOOR'S PASSWORD SIGN: a vertical neon sign mounted FLAT on the brick PIER right of the right window column (core/harbor-speakeasy.js
  * SPEAK_PIERS[3] — the corner pier the blade hangs beside), the letters STACKED top to bottom, in a thin dark door-plate mount —
  * from above the side door's sconce (its top 3.43) up to under the right wall-washer's hood (its lamp at 9.13; the sign's top 8.95).
- * FEASIBILITY (checked before building — docs/harbor.md#win): the run is 5.4 units ≈ 74 pt at 402; a 4-letter word gets ~1.09-unit caps
+ * FEASIBILITY (checked before building — docs/harbor/passes/win.md): the run is 5.4 units ≈ 74 pt at 402; a 4-letter word gets ~1.09-unit caps
  * ≈ 14.8 pt (14.4 at 390, 15.8 at 430), five letters ~0.87 ≈ 11.9 pt — not the owner's 18–22 pt (that needs the right washer gone:
  * +0.65 units of run → ~17 pt). minN: a 3-letter word is sized as four (never huge). The plate hugs the word (margin + plate), centred in
  * the pier's run; its right edge ~3 pt from the corner, ~7 pt from the blade's board. ALL FOUR WINDOWS stay free for the moments.

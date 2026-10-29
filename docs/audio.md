@@ -61,7 +61,7 @@ loading) — the city then breathes slowly on its own. The title's scene polls i
   why (`beatWhy()`: `beat calm — music off` / `muted` / `tap for sound` / `classic music` / `songs loading` / `no song`), and
   `· kick unheard` when a song is followed but the analyser hears nothing. **iOS**: an `<audio>` element's `currentTime` may move in
   coarse steps — `beatSource` carries the position forward on the frame clock between its steps (`dequantize`), so the clock never
-  jerks with them. The racing lights take only the TEMPO from it (their speed), never the phase (docs/harbor.md#neon-pass-6).
+  jerks with them. The racing lights take only the TEMPO from it (their speed), never the phase (docs/harbor/passes/neon-pass-6.md).
 **THE NEON BUZZ** (`ambience.js#neonBuzz({ on, dur, level })`, City 2.0 only — docs/harbor.md cleanup pass 1): the main sign's
 sputters at the dusk warm-up and the morning fade, one per flicker — a tube striking: a crisp tick (a 25–75 ms band-passed click + a
 sine zap 3.6 → 0.9 kHz in 18 ms) then the gas's buzz (120 Hz saw + 240 square + 60 saw through a 1.4 kHz bandpass and a 220 Hz
@@ -864,7 +864,7 @@ files — the two long police passes 0.5 MB of it).** Importer: `--only <the new
   the lossy Pixabay copies (the lossless CC0 originals: credits.txt's Freesound links — drop them in under the same names and re-run).
 
 ## 6b — THE LEGENDARY SKY, HEARD + THE TAPE STOP (Oct 24 2026; City 2.0's title) — `screens/harbor/sounds.js#legendSounds`, `audio/music.js#bendMusic`
-The legendary events (docs/harbor.md#part-6b) report their state through `legends.listen()` (the scene hands it to `snd.tick` as `legend`):
+The legendary events (docs/harbor/passes/part-6b.md) report their state through `legends.listen()` (the scene hands it to `snd.tick` as `legend`):
 - **THE ABDUCTION:** `ufo-hum` (a bed, panned with the saucer, up as it comes in, out as it leaves), `ufo-beam` once (its riser's peak —
   6.65 s into the take — lands as he leaves the ground, ~10.6 s in). The music DIPS (to ~0.42) and is MUFFLED (a low-pass down to ~900 Hz)
   while it's here, eased back after (`ufoAt().music`).
@@ -892,11 +892,11 @@ The legendary events (docs/harbor.md#part-6b) report their state through `legend
   own right → left sweep; the music's duck round the same peak (`duckAt` on the take with `peak: JET_SYNC.at`).
 - **THE DRONE SHOW's HUM** (`drone-swarm`, "a soft swarm hum, five quadcopters layered + detuned, low-passed"): it was wired (`keep('drone-
   swarm', …)`) but ~51.5 LUFS down and under the bed's duck — never heard; its gain 0.064 → 0.15 (+7.4 dB), still under the helicopter;
-  plays while the show flies (now a message — docs/harbor.md#polish-4).
+  plays while the show flies (now a message — docs/harbor/passes/polish-4.md).
 - **THE BARNSTORMER's prop** (`prop-plane`) follows the plane's own flight (`barn.flying()`), not its smoke lingering ~10 s after.
 - **THE TR-3B's TAPE STOP, HEARD** (the owner's iPhone): the sag now happens while the music is LOUD (never under 0.5 × — iOS mutes a media
   element below half speed), the fade after it; coming back, the volume first, then a slow spin-up; the lost time made up by a seek while
-  silent (`musicCatchUp()`, new) + the rest drained at 1.05 × with the pitch kept (`bendMusic`: no end-of-bend skip) — docs/harbor.md#polish-4.
+  silent (`musicCatchUp()`, new) + the rest drained at 1.05 × with the pitch kept (`bendMusic`: no end-of-bend skip) — docs/harbor/passes/polish-4.md.
 
 ## Weather sounds (LIVE WEATHER, Oct 19 2026) — `js/audio/ambience.js`
 - **Rain** (`startRain(level)` → `stop(fade)`, `stop.level(l)`): only while it really rains on the title (`title.js#rainSound`,
@@ -1053,9 +1053,9 @@ Files: `core/city.js` (which city is showing + the clock it runs on), `core/city
   another mood: add its id to `city2.moods[mood]` by hand (and `city2.shared`). A file that IS an existing repo song: `--reuse evening/evening3.mp3=slip8`. Interrupted: `--resume`.
   `--regrid [--only a,b]` / `--retrust` redo the beat numbers. Then `node --test tests/city-music.test.mjs` (the decks, files, levels, trust list in this doc) and commit `audio/music/` + the JSON.
 - **Hook, not built:** once a deck reaches ~30 songs, play one half of it each week (`mood.js#deckForNow`, `HALVES_FROM`). Seasonal songs later.
-- **Size:** +144.5 MB in git (the repo's music was 97 MB) — see the owner's decision in the Oct 23 handoff (docs/harbor.md#m).
+- **Size:** +144.5 MB in git (the repo's music was 97 MB) — see the owner's decision in the Oct 23 handoff (docs/harbor/passes/m.md).
 
-## 8b1 — Grok's second-try sounds + the TR-3B heard on a phone (Oct 25 2026; docs/harbor.md#part-8b1)
+## 8b1 — Grok's second-try sounds + the TR-3B heard on a phone (Oct 25 2026; docs/harbor/passes/part-8b1.md)
 - **Imported** (`scripts/add-city-sfx.py` CUTS; analysed, not heard — per-second loudness, voiced frames, tonal peaks, the low-end share):
   `tv-murmur` ← tv-murmur-2 (an indistinct walla: ≤ 20 % voiced frames in any second, no held tone; 16.3–31.3 s loop + 2 s tail, 300 Hz–1.8 kHz
   "through glass", 16 kHz — the first cut 3–31 s had a 5.5 dB seam) · `trash-truck-arrive` (the old truck's pull-out 80–96.5 s REVERSED —
@@ -1072,9 +1072,9 @@ Files: `core/city.js` (which city is showing + the clock it runs on), `core/city
 - **THE DRAIN** (`core/harbor-legend.js#tr3bAt` music + `DRAIN_M`; `screens/harbor/sounds.js#legendSounds`): deep (~0.56 ×, the pitch with it)
   + a heavy warble (a wow ± 5.5 % at 0.55 Hz + a flutter ± 2.2 % at 1.9 Hz, never under 0.5 × — iOS's floor), a 900 Hz low-pass, held at ½
   volume overhead, near silent under the jets (31 → 38.6 s: the catch-up seek), then the volume back, the slow spin-up, the filter open.
-- **THE BEAT's SAFETY RULE** + **a forced show plays a party song**: docs/harbor.md#part-8b1 (Group 0).
+- **THE BEAT's SAFETY RULE** + **a forced show plays a party song**: docs/harbor/passes/part-8b1.md (Group 0).
 
-## 8b1 — the workers, the wildlife + the harbor's timetable, heard (Oct 25 2026; docs/harbor.md#part-8b1)
+## 8b1 — the workers, the wildlife + the harbor's timetable, heard (Oct 25 2026; docs/harbor/passes/part-8b1.md)
 Every one through its slot (silent while empty), quiet — felt more than heard:
 - **THE WORKERS** (`screens/harbor/people.js#workSounds`, by pose change): `milk-bottles` (the milkman sets his carrier down, the barber takes
   it in), `newspaper-rustle` (the bundles dropped, a paper sold), `trash-can-lid` (the lid off, the can tipped into the truck), `crates-clink`
@@ -1082,14 +1082,14 @@ Every one through its slot (silent while empty), quiet — felt more than heard:
   platform), `ladder-clank` (a ladder raised against the wall, taken down), `police-whistle` (the beat cop, now + then at the crossing), the
   trucks — `trash-truck-arrive` / `trash-truck-depart` (the dump truck: Group 0's cuts of trash-truck-2), `truck-delivery` (the vans; the
   bootleggers' stake truck at a quarter level — a quiet truck).
-- **THE WILDLIFE** (Group 2 — docs/harbor.md#group-2): pigeon-coo, pigeon-flutter, gulls, squirrel-chatter, coyote-yip / -howl, trash-can-lid
+- **THE WILDLIFE** (Group 2 — docs/harbor/passes/part-8b1.md#group-2): pigeon-coo, pigeon-flutter, gulls, squirrel-chatter, coyote-yip / -howl, trash-can-lid
   (the raccoon — 8b2: the raccoon + the ducks removed, their slots too), cat-meow, dog-bark.
 - **THE HARBOR'S TIMETABLE** (`scene.js#harborClock`, on the city clock — a jump never fires a burst): `ships-bell` every hour (one ring, under the
   music, no dip; not at noon), `steam-whistle` at noon and `ship-horn` for the 7 pm dinner cruise WITH THE MUSIC DIPPED (`sounds.js#ducked`: to
   0.5 / 0.55 over 0.6 s, held 3.5 s, eased back over 5 s — plan.md's "the big moments duck the music"; a few a day), `ship-horn` at 0.7 with no
   dip as Rosie casts off at 10, 2 + 6. Previews: `&force=ships-bell / steam-whistle / dinner-horn` (every 30 s).
 
-## 8b2 — the drain you can hear, the raid + the cabs heard (Oct 25 2026; docs/harbor.md#part-8b2)
+## 8b2 — the drain you can hear, the raid + the cabs heard (Oct 25 2026; docs/harbor/passes/part-8b2.md)
 - **THE TR-3B's DRAIN, AUDIBLE** (the owner's iPhone: the AUDIO panel read NOT SOUNDING through it): `core/harbor-legend.js#DRAIN_M` — the speed
   + pitch sag to ~0.6 × (never under `floor` 0.58; `audio/music.js#bendMusic` floors any bend at `BEND_FLOOR` 0.55 — iOS Safari mutes a media
   element near half speed), a gentle warped-record WARBLE (a 0.55 Hz wow ± 2 % + a 1.9 Hz flutter ± 0.7 %), a LIGHT duck (0.72 ≈ −3 dB overhead;
@@ -1144,7 +1144,7 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   prepare retries until the song is playing (a load-forced run's only try used to come before the first tap). Lights 2.67 s → the tape
   2.88 s (was 4.71); e2e `tape`: `9f — THE TAPE ON THE DRAIN` / `ON TIME`.
 
-## 11a-1 — THE HOLIDAY SOUNDS (Oct 26 2026; City 2.0 — docs/harbor.md#part-11a-1)
+## 11a-1 — THE HOLIDAY SOUNDS (Oct 26 2026; City 2.0 — docs/harbor/passes/part-11a-1.md)
 - **Imported** from ~/Downloads/city-sfx (credits.txt "Weather + party + holiday sounds"; the importer's levels): `witch-cackle` (4.65 s,
   −20.4 LUFS — once as the witch crosses the moon: witch.js), `ghost-bell` (3.1 s, −20.5 LUFS — twice a crossing), `ghost-ship-creak`
   (a 28.5 s loop + its 2.5 s seam, −24.3 LUFS, 22 kHz / 40 kbps, a low-pass at 7 kHz — as the ship materialises), `haunted-wind` (a 24 s
@@ -1203,7 +1203,7 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   - `geese-v` — one take a V (`chain: false`), its pan following the V's x (with the older `geese` flyover under it).
 
 
-## 9g — THE UFO's REAL SOUNDS, THE IMPLOSION's ONE CRASH, THE RIVET BURSTS (Oct 28 2026; City 2.0 — docs/harbor.md#9g) — `scripts/add-city-sfx.py` CUTS, `core/city-sounds.js`
+## 9g — THE UFO's REAL SOUNDS, THE IMPLOSION's ONE CRASH, THE RIVET BURSTS (Oct 28 2026; City 2.0 — docs/harbor/passes/9g.md) — `scripts/add-city-sfx.py` CUTS, `core/city-sounds.js`
 - **From** ~/Downloads/city-sfx (credits.txt "UFO sounds" + "UFO sounds - Ben's extra picks"; the originals untouched), processed per
   Grok's brief — **MEASURED, NOT LISTENED TO** (by anyone). Before: `ufo-hum` at 0.06 ≈ −56 dB into the bus in a phone's band (its energy
   under 150 Hz — inaudible on a phone) + one riser.
@@ -1237,7 +1237,7 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   imports); `cityLoop(slot, { take })` (a loop's take; by default the first that isn't a BACKUP); the panel's inputs `horn` / `hum` /
   `depart` (core/harbor-remote.js: validated server-side too).
 
-## PROM — THE LEGENDARIES' SOUNDS LOADED AHEAD, THE IMPLOSION's NEW TIMELINE, THE PICKS' DEFAULTS (Oct 28 2026; City 2.0 — docs/harbor.md#prom)
+## PROM — THE LEGENDARIES' SOUNDS LOADED AHEAD, THE IMPLOSION's NEW TIMELINE, THE PICKS' DEFAULTS (Oct 28 2026; City 2.0 — docs/harbor/passes/prom.md)
 - **Loaded ahead** (the owner: the UFO's first spin-up was silent after opening the link): `screens/harbor/sounds.js#prefetchLegend` +
   `legendReady`, `audio/city-sound.js#cityPrefetch(slot, i, { hold })` (PINNED out of the one-shots' LRU for the legendary's span) +
   `cityReady(slot, i)`; scene.js#legendSoundsWarm asks every ½ s for a held link, tonight's due / running legendary + the implosion's

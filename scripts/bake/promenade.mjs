@@ -1,6 +1,6 @@
 // THE PROMENADE's STILL PIECES BAKE (PROM, Oct 28) — Grok's bench + hydrant candidates (art/models/promenade/, CC BY 4.0 — credits.txt
 // in each folder) rendered OFFLINE at the city camera's REAL view + REAL size, for the owner's side-by-side against the hand-drawn pieces
-// (docs/harbor.md#prom). Not shipped unless a model wins the side-by-side (the hand-drawn pieces stayed — see the doc).
+// (docs/harbor/passes/prom.md). Not shipped unless a model wins the side-by-side (the hand-drawn pieces stayed — see the doc).
 //
 //   node scripts/bake-model.mjs "<chromium>" promenade --model art/models/promenade/bench/park_bench.glb --look DIR [--kind bench|hydrant]
 //

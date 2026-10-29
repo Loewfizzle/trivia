@@ -142,11 +142,11 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, r
 /** C4b — the cart's start when it comes from BELOW THE DOCK (L.cart.from 'below'): on the front street (world z), hidden by the dock
  *  unless it rests — it crosses the street + rolls up over the curb to its spot */
 /** C4b — &force=waterbench's preview: a cycle every `every` s; the sitter sets off `lead` s before it (seated within ~10 s); sit + watch s */
-export const WATERBENCH = Object.freeze({ every: 100, lead: 5.5, sit: 70, watch: 55 });
+const WATERBENCH = Object.freeze({ every: 100, lead: 5.5, sit: 70, watch: 55 });
 /** C4d — &force=dogwalk's preview (the owner, Oct 29: his 19:12 link showed no dog walker — one came 40 s later): a walker + dog every
  *  `every` s, in from alternate edges along the FRONT of the promenade (the lamps' side — the dog in good light), a stop mid-screen,
  *  every other one sniffing the hydrant on the way; the first on screen within ~10 s of the link (it sets off `lead` s early) */
-export const DOGWALK = Object.freeze({ every: 45, lead: 2, stop: 7 });   // (C4c: lead 3 → 5.5 — the solid bench's walk round its right end is ~2 u longer)
+const DOGWALK = Object.freeze({ every: 45, lead: 2, stop: 7 });   // (C4c: lead 3 → 5.5 — the solid bench's walk round its right end is ~2 u longer)
 export const CART_IN_Z = 30.4;
 
 export function folkMap(L, { event = false, line = null, cart = false, ring = false } = {}) {
@@ -212,7 +212,6 @@ export function folkMap(L, { event = false, line = null, cart = false, ring = fa
   ];
   if (line) rects.push({ id: 'line', ...line });
   const circles = [];
-  for (const l of L.lamps || []) if (l.kind === 'tall') circles.push({ x: l.x, z: l.z, r: 0.5 });
   // (8b1 wildlife: the trash can by the front-left globe stands IN FRONT of the walkable floor — z ≤ FOLK.zMin − 0.55, the layout's
   // CAN — so no route can reach it; a circle here only added way points under the dock: none)
   // (the cart, only while it's OUT — FP3b's vendor spot is shared by time: nobody walks through it or behind its handles; the vendor's
@@ -309,7 +308,7 @@ const crossV = v => Math.max(v, FOLK.speed.brisk * 0.85);
 export const BUS = Object.freeze({ len: 7.8, v: 6.5, brake: 2.2, go: 1.4, offAt: 2.2, offGap: 1.5, board: 6, shut: [1.1, 1.6], go0: [1, 2], emptyShut: 3, onLag: 5, greenIn: 7, perHour: { day: [2, 4], late: [1, 1], night: [0, 0] }, doorOpen: 0.7, doorClose: 0.85 });
 /** the riders' expected last moment through the door after it stops (s; measured on the planner: the boarders ~onLag after the
  *  boarders' window opens, the last off rider ~0.2 s before their own step) — busesOf aims the departure with it */
-export const busEstLast = (off, on) => (on ? BUS.offAt + off * BUS.offGap + BUS.onLag : off ? BUS.offAt + (off - 1) * BUS.offGap - 0.2 : 1);
+const busEstLast = (off, on) => (on ? BUS.offAt + off * BUS.offGap + BUS.onLag : off ? BUS.offAt + (off - 1) * BUS.offGap - 0.2 : 1);
 /** C4c — THE BUS DOOR NEVER SNAPS (the owner, Oct 29 7:40 am: it closed by snapping into place): its open amount 0..1 at t — one eased
  *  fold out from tA + 0.8 over BUS.doorOpen, held, one eased fold back that ENDS at the shut time (it starts BUS.doorClose before it — the
  *  last rider is 6–9 s clear by then); a short stop opens part-way and folds straight back, never a jump. → { k, phase } */
@@ -407,9 +406,9 @@ export const KINDS = {
 // hinge, so whoever opens it stands OUTSIDE that arc — stepSide 0.95 -> 1.55 (every side-door user: guests, the line, the crew, the raid,
 // the witnesses) — and one coming out is past it (out of the arc) before it starts to close)
 export const DOOR = Object.freeze({ open: 0.8, close: 1.3, pace: 0.75, step: 0.45, stepSide: 1.55, approach: 1.4, clear: 0.8, inside: 1.3, bus: { open: 0.15, floor: 0.6 } });
-export const SIDE_STEPS = Object.freeze([[-0.75, 0.13], [-0.4, 0.26]]);
+const SIDE_STEPS = Object.freeze([[-0.75, 0.13], [-0.4, 0.26]]);
 /** the ground's height at z (world) in front of + through the side door: the two steps up, the stair going down inside (PURE) */
-export function sideStepY(z, face) {
+function sideStepY(z, face) {
   const d = z - face, ease = (a, w) => smooth01((d - a + w) / (2 * w));
   const up = 0.13 * ease(SIDE_STEPS[0][0], 0.06) + 0.13 * ease(SIDE_STEPS[1][0], 0.06);
   return up - Math.max(0, d - 0.35) * 0.45;                    // (inside: down the stair to the club)
@@ -679,7 +678,7 @@ function streamOf(k, t0, ctx, party) {
  * → { visits (each guest + the doorman), admits: [t] } — the same on every phone, joined mid-way.
  */
 export const LINE = Object.freeze({ from: 20.6, to: 25.4, arrive: [55, 95], admit: [70, 105], batch: 3, max: 7, slots: 12, step: 0.85 });
-export function lineNight(day0, key, M, L, ctx = {}) {
+function lineNight(day0, key, M, L, ctx = {}) {
   const r = rngFrom(hashString(`line|${ctx.seed || 1924}|${key}`)), T0 = day0 + LINE.from * 3600, T1 = day0 + LINE.to * 3600;
   const P = linePlaces(L, LINE.slots), D = M.nodes.sideDoor;
   const groups = [];
@@ -766,7 +765,7 @@ function planSeated(spec, start, M, vctx, vseed, taken, order) {
   }
   return null;
 }
-export const seatsOf = vs => vs.filter(v => v.seat).map(v => v.seat);
+const seatsOf = vs => vs.filter(v => v.seat).map(v => v.seat);
 function membersOf(spec, r) {
   const m = [{ role: 'lead', dx: 0, dz: 0, lag: 0, seed: Math.floor(r() * 1e6) }];
   if (spec.pair) m.push({ role: spec.pair === 'meet' ? 'friend' : 'partner', dx: 0, dz: 0.55, lag: spec.pair === 'meet' ? 0 : 0.05, seed: Math.floor(r() * 1e6), arm: spec.pair !== 'meet' });
@@ -1391,7 +1390,7 @@ export function roofCrowd({ h = 12, dow = 3, month = 10, party = false, rain = 0
 }
 /** the roof's map (world x / z on the deck): the hatch (the stair house's door), the front parapet's spots, the dance floor, the bar
  *  cart, the garden beds; R.y: the deck's height */
-export function roofMap(L) {
+function roofMap(L) {
   const s = L.speakeasy, rf = L.roof, bk = rf.bulkhead, y = s.h;
   return {
     y, hatch: { x: (bk.x0 + bk.x1) / 2, z: bk.z0 - 0.3 },

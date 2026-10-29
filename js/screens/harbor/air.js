@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 6a: THE AIR — the airliners, the satellites, the helicopter (docs/harbor.md#part-6a).
+// CITY 2.0 — THE HARBOR, Part 6a: THE AIR — the airliners, the satellites, the helicopter (docs/harbor/passes/part-6a.md).
 // The district's behaviour (district/aircraft.js: the traffic by the hour, paths that climb or descend a little, approaches
 // with landing lights, contrails only high + dry + by day, the Starlink evenings + lone satellites at twilight) on the Harbor's
 // SKY LANES (sky-high: over the sign; sky-low: under the tagline, behind the taller towers) — never across the NEON sign or the
@@ -29,7 +29,7 @@ const LIVERIES = [{ tail: [28, 52, 118], line: [214, 170, 70] }, { tail: [176, 3
 const CAP = 260;                                       // contrail samples per plane (every 0.1 s: the path; the puffs drawn are capped by their spacing)
 
 /** the hour's light on an aircraft: { day, golden, dawn, dark, warm (0..1 golden side), haze } from the look */
-export function airLook(L) {
+function airLook(L) {
   return { dark: clamp01(L.w.night + L.w.late), golden: L.w.golden, dawn: L.w.dawn, day: L.w.day, wet: (L.rain || 0) > 0.1, fog: L.fog || 0, overcast: (L.cloud || 0) > 0.78 };
 }
 

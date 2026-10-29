@@ -128,7 +128,7 @@ export function anatomy(id) {
 }
 
 /** a model's doors on our side: [[u0, u1]] (from the tail) — the seams the body bakes; the last one is the one that opens (C2: the cab) */
-export function doorsOf(id) {
+function doorsOf(id) {
   const M = MODELS[id] || MODELS.modelA;
   return M.roof === 'van' || M.roof === 'cab' ? [[M.cab[0] + 0.0, M.cowl - 0.04]] : M.roof === 'none' || M.deck ? [[M.cab[0] + 0.02, M.cowl - 0.06]] : M.roof === 'box' ? [[1.38, M.cowl - 0.06]] : id === 'packard' ? [[0.96, 2.0], [2.1, M.cowl - 0.06]] : [[1.8, M.cowl - 0.06]];
 }
@@ -192,7 +192,7 @@ function letter(x, word, cx, cy, w, h, o) {
 /** the body (everything but the turning wheels) at s px a unit, facing right; o: { trade, rumble, mir } → canvas (SP6 — o.mir: the
  *  lettering baked mirrored, for a trip to the LEFT: draw() flips the whole sprite, so the words read right — the milk van read
  *  "YRIAD ROBRAH") */
-export function bodySprite(id, s, K, o = {}) {
+function bodySprite(id, s, K, o = {}) {
   const M = MODELS[id] || MODELS.modelA, A = anatomy(id), PAD = A.pad, TOP = A.top + 0.06;
   const W = Math.ceil((M.len + PAD * 2) * s), H = Math.ceil((TOP + 0.12) * s), cv = document.createElement('canvas');
   cv.width = W; cv.height = H;
@@ -530,7 +530,7 @@ function fender(x, X, Y, s, K, u, R, front, M) {
 
 // ------------------------------------------------------------------ THE WHEELS (baked: the still tyre + the turning part)
 /** a wheel at s px a unit: kind 'wood' (12 artillery spokes) | 'wire' (laced chrome spokes, a big hub cap) → { tyre, spin, N } */
-export function wheelSprite(id, s, K) {
+function wheelSprite(id, s, K) {
   const M = MODELS[id] || MODELS.modelA, R = M.r * s, N = Math.ceil(R * 2 + 4);
   const mk = () => { const c = document.createElement('canvas'); c.width = c.height = N; return c; };
   const tyre = mk(), spin = mk(), t = safeCtx(tyre), x = safeCtx(spin), m = N / 2;

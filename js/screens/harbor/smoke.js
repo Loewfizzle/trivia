@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: SKYTYPING (Part 6a; rebuilt in 6b — docs/harbor.md#part-6b). SKYWRITING IS CUT (the owner, Oct 23: "if
+// CITY 2.0 — THE HARBOR: SKYTYPING (Part 6a; rebuilt in 6b — docs/harbor/passes/part-6b.md). SKYWRITING IS CUT (the owner, Oct 23: "if
 // we're already doing the dot-matrix thing, let's not double up") — every sky text message is skytyped (or the banner, or the drones).
 //   THE MESSAGE  6b's ONE LAYOUT for every sky message (core/harbor-sky.js#messagePages): up to 3 lines (~16 letters) a PAGE, up to
 //                3 pages, each page wrapped for the BIGGEST letters in the open sky — from just above the crowns up to the top safe

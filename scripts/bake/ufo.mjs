@@ -1,6 +1,6 @@
 // THE UFO BAKE — "UFO" by sebslom (art/models/ufo/, CC BY 4.0) rendered OFFLINE into the sprites the Harbor's abduction draws
 // (js/screens/harbor/ufo-model.js). The city is Canvas 2D: three.js lives only in this script's page (from the jsDelivr CDN, pinned),
-// never on the site. docs/harbor.md#the-ufo-bake (how to re-bake, how to swap the model).
+// never on the site. docs/harbor/passes/the-ufo-bake.md (how to re-bake, how to swap the model).
 //
 //   node scripts/bake-model.mjs "<chromium>" ufo            → assets/city/ufo/{body-hi,lights-hi,body-lo,lights-lo}.webp + ufo.json
 //   node scripts/bake-model.mjs "<chromium>" ufo --look DIR → the bake into DIR instead (assets untouched) + a studio / night render at

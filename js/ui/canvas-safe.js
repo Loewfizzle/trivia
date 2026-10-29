@@ -1,4 +1,4 @@
-// SAFARI-SAFE CANVAS (City 2.0, NEON PASS 5 — the owner's iPhone showed less than Chromium; docs/harbor.md#neon-pass-5).
+// SAFARI-SAFE CANVAS (City 2.0, NEON PASS 5 — the owner's iPhone showed less than Chromium; docs/harbor/passes/neon-pass-5.md).
 // What Safari / WebKit does differently, and the safe path every effect takes instead of depending on it:
 //   ctx.filter       Safari before 18 has no canvas filters: `x.filter = 'blur(…)'` just sets a plain property and draws
 //                    unblurred. blurWorks() tests it once by its pixels (reading the property back can't tell); the callers draw a

@@ -71,7 +71,7 @@ function rigOf(T, ctx, t) {
 
 /** PF — THE TREES' UPLIGHTS: where the fixture sits in the grate (u across, dz toward us — world units from the trunk), its warm
  *  colour (× the base: ~2700 K), its strength, its reach (a lamp's falloff distance: 3; this one 2.2 — the crown's top fades out) */
-export const UPLIGHT = Object.freeze({ u: -0.26, dz: -0.5, col: [1.3, 0.9, 0.52], k: 0.62, fall: 2.2, kind: { crab: 1.4, maple: 1.15 } });
+const UPLIGHT = Object.freeze({ u: -0.26, dz: -0.5, col: [1.3, 0.9, 0.52], k: 0.62, fall: 2.2, kind: { crab: 1.4, maple: 1.15 } });
 
 /** the lamps' light at a local point: [[dirX, dirY, dirW, strength, col], …] (a cluster computes it once for all its leaves) */
 function lampsAt(rig, px, py, pw) {

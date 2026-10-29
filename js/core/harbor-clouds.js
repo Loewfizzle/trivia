@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: THE CLOUDS, PURE (DT2 — the day look; docs/harbor.md#dt2). No DOM: what the sky holds, where, and in
+// CITY 2.0 — THE HARBOR: THE CLOUDS, PURE (DT2 — the day look; docs/harbor/passes/dt2.md). No DOM: what the sky holds, where, and in
 // what light. The renderer (screens/harbor/clouds.js) bakes each cloud from this into a shaded sprite and moves it by offset.
 //   cloudMix(L, seed)        the real weather → the kinds in the sky now (shares 0..1): CUMULUS (fair-weather heaps: humilis →
 //                            mediocris → congestus), STRATOCUMULUS patches (a greyer day), ALTOCUMULUS (a mid layer of small
@@ -65,7 +65,7 @@ export const SMALL_MAX = 4;
 /** up to this a cumulus is never a heap: a FRAGMENT (frag) or a soft WISP — irregular, partly see-through, no flat base */
 export const SMALL_FRAG = 130;     // (a heap's sprite is wider than the cloud you see: under ~130 pt it read as a little puff)
 /** decide a small cumulus's form (sets d.form + d.k, its opacity): 'drop' | 'frag' | 'wisp' | null (a full heap, as before) */
-export function smallForm(d, R, room = Infinity) {
+function smallForm(d, R, room = Infinity) {
   // (a NEAR one is never small — it grows to a full heap: the small slots are the middle distance's + the far ones')
   if (d.s > 0.5 && d.w < SMALL_FRAG && d.kind === 'cumulus') { const k = SMALL_FRAG / d.w; d.w = SMALL_FRAG; d.h *= k; return null; }
   if (d.w < SMALL_DROP) return 'drop';
@@ -240,7 +240,7 @@ const AMB = {
 };
 const CITY_GLOW = [168, 86, 226];
 /** the look's shares by the real sun's elevation (the same at dusk + dawn): { day, gold, blue, night } summing to 1 */
-export function lookShares(el) {
+function lookShares(el) {
   const day = smooth(4, 13, el), gold = (1 - day) * smooth(-2.5, 1.5, el), blue = (1 - day - gold) * smooth(-12, -5.5, el);
   return { day, gold, blue, night: Math.max(0, 1 - day - gold - blue) };
 }

@@ -52,7 +52,7 @@ const grad = (x, y, z, k) => { const h = 0.004 * DS; return norm([field(x + h, y
 // THE CARVING: the BITCOIN LOGO — a shaved COIN + the ₿ cut through, laid out as the eye sees it from the front (the view's x, the height)
 // so the coin reads round on the curve; the letter tilted 14° like the logo; the knife's line not quite clean (a carver's hand)
 const TILT = 14 * Math.PI / 180, CT = Math.cos(TILT), ST = Math.sin(TILT);
-export const COIN = Object.freeze({ cy: 0.16 * DS, r: 0.62 * S.R, rim: 0.045 * DS, glyph: 0.86 * S.R, rough: 0.02 * DS });   // (the coin ~60 % of the girth: the orange shows round it)
+const COIN = Object.freeze({ cy: 0.16 * DS, r: 0.62 * S.R, rim: 0.045 * DS, glyph: 0.86 * S.R, rough: 0.02 * DS });   // (the coin ~60 % of the girth: the orange shows round it)
 const box = (x, y, x0, y0, x1, y1) => { const dx = Math.max(x0 - x, 0, x - x1), dy = Math.max(y0 - y, 0, y - y1); if (dx > 0 || dy > 0) return Math.hypot(dx, dy); return -Math.min(x - x0, x1 - x, y - y0, y1 - y); };
 const circ = (x, y, cx, cy, r) => Math.hypot(x - cx, y - cy) - r;
 /** the ₿ as a signed distance in its own units (height 1; < 0 inside the cut): the stem, two bowls (their counters left standing), the
@@ -68,7 +68,7 @@ function glyphSd(x, y) {
 const knife = (u, v) => COIN.rough * (0.55 * Math.sin(u * 9.3 / DS + v * 2.1 / DS) + 0.3 * Math.sin(u * 3.7 / DS - v * 11.3 / DS + 1.3) + 0.15 * Math.sin(v * 23 / DS + u * 1.7 / DS));
 /** the carving at a point of the skin (su, sv: world units from the coin's centre) → { sd (the ₿, < 0 cut through), disc (to the coin's
  *  edge), rim (the groove 0..1) } */
-export function carveAt(su, sv) {
+function carveAt(su, sv) {
   const g = COIN.glyph, x = (su * CT - sv * ST) / g, y = (su * ST + sv * CT) / g;
   const disc = Math.hypot(su, sv) - COIN.r + knife(sv, su) * 0.5;
   return { sd: glyphSd(x, y) * g + knife(su, sv), disc, rim: clamp01(1 - Math.abs(disc + COIN.rim * 1.2) / COIN.rim) };
@@ -107,7 +107,7 @@ export function geometry(Sx, k, carved) {
   return G;
 }
 /** the geometry's next rows within `budget` ms → true once done */
-export function geometryStep(G, budget = 4) {
+function geometryStep(G, budget = 4) {
   if (G.done) return true;
   const { w, h, Sx, k, carved } = G, X0 = GIANT.box.x, U1 = GIANT.box.top;
   const dl = Math.hypot(1, k), dy = -k / dl, dz = 1 / dl;
@@ -175,7 +175,7 @@ const hash = (a, b) => { let x = Math.imul((a * 73856093) ^ (b * 19349663), 0x85
 // the far side turns into shadow; a waxy highlight runs down the ribs facing the key. Baked once per light as its own pass (`flood`);
 // floods.js lays it on by the floods' level instead of a wash over the silhouette.
 const dot3 = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
-export const GFLOOD = Object.freeze({ key: norm([-0.78, 0.2, -0.6]), fill: norm([0.8, 0.16, -0.58]), kKey: 1.38, kFill: 0.5, amb: 0.06, spec: 0.3, foot: 0.45, col: [255, 212, 156] });
+const GFLOOD = Object.freeze({ key: norm([-0.78, 0.2, -0.6]), fill: norm([0.8, 0.16, -0.58]), kKey: 1.38, kFill: 0.5, amb: 0.06, spec: 0.3, foot: 0.45, col: [255, 212, 156] });
 const GF_H = norm([GFLOOD.key[0], GFLOOD.key[1] + 0.3, GFLOOD.key[2] - 1]);
 /** the shading job for this light: the body + the fire's three glow states (sliced: shadeStep) + the floods' pass at night */
 function shadeJob(G, Lt, seed) {

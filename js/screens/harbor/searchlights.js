@@ -22,7 +22,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** what stands in front of a world point at depth z (its host building left out): [{ x0, x1, y }] screen rects reaching down
  *  from y — the nearer buildings (each tier) and the nearer signs' + billboards' cabinets */
-export function occludersAt(L, z, host = null) {
+function occludersAt(L, z, host = null) {
   const out = [];
   for (const b of screenBoxes(L)) if (b.kind === 'sky' && b.z < z - 0.01 && b.id !== host) out.push({ x0: b.x, x1: b.x + b.w, y: b.y });
   for (const sp of signSpots(L)) if (sp.w && sp.rect && sp.w.z < z - 0.01) out.push({ x0: sp.rect.x - 0.5, x1: sp.rect.x + sp.rect.w + 0.5, y: sp.rect.y - 0.5, sign: sp.id });
@@ -42,7 +42,7 @@ export function envelope(occ, W) {
   return out;
 }
 /** the envelope's top over [x0, x1] */
-export const envTop = (env, x0, x1) => env.reduce((m, e) => (e.x1 > x0 && e.x0 < x1 && e.y < m ? e.y : m), Infinity);
+const envTop = (env, x0, x1) => env.reduce((m, e) => (e.x1 > x0 && e.x0 < x1 && e.y < m ? e.y : m), Infinity);
 
 /** where the lights stand: world points on three roofs (from the layout) + their sweep */
 const SPOTS_OF = new WeakMap();           // (per layout: the same three roofs every frame)

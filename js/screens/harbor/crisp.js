@@ -8,7 +8,7 @@
 //   What goes here: things with letters that NOTHING passes in front of (above the walkers' heads): the speakeasy's BLADE (its board, its
 //   lit letters, its marquee bulbs), the EST. 1924 DATE STONE, the speakeasy's ROOF BILLBOARD's poster face by day. NOT here: the windows,
 //   people, vehicles, bricks, textures (the owner's DECIDED list), and anything a walker crosses in front of (the barber's gilt, the
-//   promenade's set pieces — a layer over the city can't go behind a person; see docs/harbor.md#9c).
+//   promenade's set pieces — a layer over the city can't go behind a person; see docs/harbor/passes/9c.md).
 //   Memory: only the items' boxes (the blade ~25 × 115 pt → 75 × 345 px ≈ 0.1 MB, two while it crossfades).
 import { ctx2d, cssWidth } from '../../ui/canvas-safe.js';
 

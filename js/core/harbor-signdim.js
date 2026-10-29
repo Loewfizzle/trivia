@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: THE SIGN-DIM HOOK (cleanup C1.5; plan.md depth rule 2; docs/harbor.md#the-sign-dim-hook). PURE.
+// CITY 2.0 — THE HARBOR: THE SIGN-DIM HOOK (cleanup C1.5; plan.md depth rule 2; docs/harbor/passes/cleanup-c15.md). PURE.
 // The sky's MESSAGES (the drone show, skywriting, skytyping, the banner plane — Part 6b) fly IN FRONT of the logo, which dims while
 // they play, and the tagline fades (the banner flies under SPEAKEASY through the tagline's band). Any piece asks with an id and
 // lets go with the same id; several at once resolve to the dimmest; when the last one lets go the sign comes back. The scene owns

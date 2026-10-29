@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: ONE "HOW DARK IS IT" INPUT (cleanup C1.5; docs/harbor.md#how-dark-is-it) + THE BLUE-HOUR POWER-UP
+// CITY 2.0 — THE HARBOR: ONE "HOW DARK IS IT" INPUT (cleanup C1.5; docs/harbor/passes/cleanup-c15.md) + THE BLUE-HOUR POWER-UP
 // (DT1). PURE.
 // Every lighting decision in the Harbor reads ONE value a frame — darkness() — through a NAMED ramp (LIT) or the power-up's
 // stagger: the windows, the neon + signs, the lamps (quay, pier, waterfront, the street, the wheel's + the boats' lights), the

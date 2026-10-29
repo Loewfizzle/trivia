@@ -1,4 +1,4 @@
-// The Safari floor (docs/harbor.md#the-safari-floor): what must stay parseable / guarded on older iPhones.
+// The Safari floor (docs/harbor/passes/cleanup-c15.md): what must stay parseable / guarded on older iPhones.
 // - No top-level await anywhere in js/ (iOS 14 can't parse one: the whole app would die at module load, every game included).
 // - City 2.0 (js/screens/harbor/) gets its 2D contexts through canvas-safe.js#ctx2d (a null context out of iOS canvas memory
 //   must skip a layer, never throw every frame).

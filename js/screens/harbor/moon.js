@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 6a: THE MOON, THE SUN'S HAZE, THE AURORA — the art (the real timing, path and phase are core/sky.js's
-// + the framing district/fx.js#moonPlace with the Harbor's arch: unchanged). docs/harbor.md#part-6a.
+// + the framing district/fx.js#moonPlace with the Harbor's arch: unchanged). docs/harbor/passes/part-6a.md.
 //   THE MOON    THE REAL MOON (the owner: "the craters look off"): a PHOTOGRAPHIC map of the near side — assets/moon-near.jpg, an
 //               orthographic disc made from NASA's CGI Moon Kit (LRO LROC WAC colour mosaic, lroc_color_poles_2k; NASA Scientific
 //               Visualization Studio, svs.gsfc.nasa.gov/4720, public domain), 256 px grayscale. The maria (the man in the moon),

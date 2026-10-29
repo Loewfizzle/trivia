@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 3: THE SIGNS, built like real sign-shop neon (docs/harbor.md#signs). Each sign is a few sprites:
+// CITY 2.0 — THE HARBOR, Part 3: THE SIGNS, built like real sign-shop neon (docs/harbor/passes/part-3.md). Each sign is a few sprites:
 //   the HOUSING (per look: the cabinet with its depth, enamel and trim, brackets to the wall or a scaffold to the roof, the
 //   unlit glass tubes — by day weathered paint, sunlit glass, a cast shadow; at night a dark cabinet) and its LIT PARTS (the
 //   border tube, the game's mark, the name — each its own sprite so they buzz on one by one), drawn additively with the power.
@@ -18,7 +18,7 @@ export const SIGN_ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627
  * marks' blade word: SIGNAL, CIPHER, BLUFF, PRISM — the city's names the owner lists as one-word). A new game without a mark:
  * its name, spaces kept. Where it may hang: core/harbor-neon.js#fitsSpot (the slot rule).
  */
-export const SIGN_NAMES = Object.freeze({ stakes: 'HIGH STAKES', agent: 'DOUBLE AGENT', golf: 'NEON PAR' });
+const SIGN_NAMES = Object.freeze({ stakes: 'HIGH STAKES', agent: 'DOUBLE AGENT', golf: 'NEON PAR' });
 export const signName = g => SIGN_NAMES[g.id] || (MARKS[g.id] ? bladeWord(g) : String(g.name || g.id).toUpperCase().replace(/[^A-Z ]/g, '').replace(/\s+/g, ' ').trim());
 const accOf = g => hexRgb(SIGN_ACC[g.id] || (markFor(g).tubes[0] || {}).col || '#9fd8ff');
 const ICE = [214, 240, 255];
@@ -48,7 +48,7 @@ export const DAY_PAINT = {
 // stand on a warm orange / amber / gold field — under those lamps it blends; each game's poster gets a field that CONTRASTS with warm
 // light (DOUBLE AGENT's navy + cream-gold is the bar) — only the posters change (the day signs keep DAY_PAINT). `mark`: the icon's own
 // bright accent (else the mark's tube colours toward the ink)
-export const POSTER_PAINT = {
+const POSTER_PAINT = {
   overclock: { face: [10, 70, 104], ink: [250, 238, 210], edge: [12, 14, 26], mark: [255, 150, 44] },       // cream on electric teal-blue, the orange icon
   slip: { face: [30, 34, 72], ink: [246, 206, 110], edge: [10, 12, 26], mark: [92, 226, 255] },             // gold on midnight, the cyan icon
   // (its deep red / oxblood read ORANGE-brown under the lamps at night)
@@ -110,7 +110,7 @@ function paintFace(x, sg, pt, day, sd, P) {
 // NEON PASS 4 (the owner: "the SIGNAL / CIPHER roof signs are clipped at the right edge"): the row FITS its box — its letters'
 // real ink + half a tube inside [x0, x0 + w], centred (it used to run ~8 % past the box on each side: the last letter sat on the
 // cabinet's edge, over the border tube, its glow out at the screen's edge). Letters keep ≥ 5 % of a cell between them (+ their own side bearings).
-export const tubeWidthFor = lh => Math.max(0.55, Math.min(1.25, lh * 0.13));
+const tubeWidthFor = lh => Math.max(0.55, Math.min(1.25, lh * 0.13));
 function lettersRow(text, x0, y0, w, h, { skew = 0 } = {}) {
   const ch = [...text], n = Math.max(1, ch.length);
   const lay = lh => {
@@ -284,7 +284,7 @@ export function cabinetCut(L, group, meta = null, hung = null) {
  * ends) with its RAILING (posts, a top + a mid rail) up to the cabinet's foot, the beacon's post. style(kind) → [colour, width]
  * for 'main' | 'lit' | 'lace' | 'deck' | 'rail' (by day the steel in the sun; at night the sign's own light on it: frameLight).
  */
-export function frameGeom(x, R, fr, sd, style) {
+function frameGeom(x, R, fr, sd, style) {
   const gy = R.y + R.h, foot = Math.max(gy + 3, fr.roofY), k = Math.max(0.5, R.h / 18), span = foot - gy;
   const [l0, l1] = fr.legs, tops = [R.x + R.w * 0.1, R.x + R.w * 0.9];
   const deckY = gy + Math.min(3 * k, span * 0.42), railTop = gy + 0.35 * k;
@@ -435,7 +435,7 @@ export function billboardContent(show, games) {
   return { title: (show && show.title) || 'NEON SPEAKEASY', sub: (show && show.sub) || 'YOUR FRIENDS ARE ALREADY INSIDE', game: null, bg: (show && show.bg) || [40, 22, 48], ink: (show && show.ink) || [255, 214, 120], acc: (show && show.acc) || [255, 46, 151] };
 }
 /** THE GOOSENECK LAMPS' warm incandescent light (~2700 K amber-gold) */
-export const LAMP_C = [255, 196, 122];
+const LAMP_C = [255, 196, 122];
 /**
  * THE GOOSENECK LAMPS (DT1 — reusable: Part 7's ghost ad on the speakeasy's wall takes the same): where a board's lamps stand —
  * FOUR over its top edge, TWO EACH SIDE of the game's mark at top centre (the mark between them, the name below). Each lamp: its

@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 6a: HOT AIR BALLOONS (docs/harbor.md#part-6a; re-rendered PREMIUM in 6b). On calm, clear mornings and
+// CITY 2.0 — THE HARBOR, Part 6a: HOT AIR BALLOONS (docs/harbor/passes/part-6a.md; re-rendered PREMIUM in 6b). On calm, clear mornings and
 // summer evenings (only when the real wind is low: core/harbor-sky.js#balloonWeather + #balloonTime) a crafted balloon drifts slowly
 // across THE WHOLE SKY (6b: from under the corner buttons down to the crowns, behind the NEON sign, in front of the sun + the moon;
 // nearer = bigger + lower) — rarely a FESTIVAL of several spread over it at different heights + distances.
@@ -75,7 +75,6 @@ export const BALLOON_KINDS = ['vstripes', 'pinstripes', 'bullseye', 'smiley'];
 export const FESTIVAL_ORDER = ['btc-orange', 'alien', 'bitcoin', 'bullseye', 'smiley', 'flag'];
 /** Old Glory: red #B22234, navy #3C3B6E, white */
 export const FLAG = { red: [178, 34, 52], navy: [60, 59, 110], white: [246, 244, 240] };
-export const BTC_ORANGE = [247, 147, 26];
 /** the schemes per kind (POLISH 5's two-colour gores kept as PINSTRIPES: red / gold, blue / cream) */
 export const BALLOON_SCHEMES = {
   pinstripes: [[[214, 40, 48], [250, 204, 60]], [[40, 92, 196], [246, 244, 236]]],
@@ -130,8 +129,6 @@ function fabric(x, R, kind, scheme, lit, light) {
   for (let i = 0; i < n; i++) {
     const a0 = -Math.PI / 2 + i * Math.PI / (n / 2) - Math.PI / n, a1 = a0 + Math.PI / (n / 2);
     if (a1 < -Math.PI / 2 - 0.01 || a0 > Math.PI / 2 + 0.01) continue;
-    const x0 = Math.sin(Math.max(-Math.PI / 2, a0)) * R * 1.08, x1 = Math.sin(Math.min(Math.PI / 2, a1)) * R * 1.08;
-    void x0; void x1;
     goreFill(x, R, Math.max(-Math.PI / 2, a0), Math.min(Math.PI / 2, a1), kind === 'flag' ? [L(FLAG.red), L(FLAG.white)] : [goreCol(i)]);
   }
   // BULLSEYE: rings of equal angle round the point facing us — on the sphere they crowd toward the limb (radius R·sin θ)

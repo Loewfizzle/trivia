@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 3: THE NEON — the city's signs and the neon outlines on its buildings (docs/harbor.md#neon).
+// CITY 2.0 — THE HARBOR, Part 3: THE NEON — the city's signs and the neon outlines on its buildings (docs/harbor/passes/neon-pass-2.md).
 //
 //   layout(L)   the spots + tonight's games (core/harbor-neon.js), the signs (signs.js), the outlines projected and CUT where a
 //               nearer building stands in front (the occluders' top envelope, per group), all queued as small build steps

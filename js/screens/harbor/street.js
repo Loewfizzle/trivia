@@ -279,7 +279,7 @@ function grate(x, cam, d, K, lit, day) {
   x.fillStyle = rgb(shade(ir, 0.3 + 0.2 * day), 0.7); x.fillRect(ax - 0.7, ay - 0.4, bx - ax + 1.4, 0.5);
 }
 function gutterSeason(x, cam, st, season, r, night) {
-  const [z0, z1] = st.gutter, zv = z0 + 0.25, yv = groundY(cam, zv), dim = 1 - 0.6 * night;
+  const [z0] = st.gutter, zv = z0 + 0.25, yv = groundY(cam, zv), dim = 1 - 0.6 * night;
   const cols = season === 'autumn' ? [[196, 64, 38], [222, 120, 40], [214, 168, 58], [150, 52, 40], [176, 98, 44]] : season === 'spring' ? [[250, 222, 230], [244, 196, 210]] : season === 'winter' ? [[210, 210, 214], [168, 160, 150]] : null;
   if (!cols) return;
   const n = season === 'autumn' ? 46 : season === 'spring' ? 18 : 60;
@@ -290,7 +290,6 @@ function gutterSeason(x, cam, st, season, r, night) {
     if (season === 'winter') { x.fillStyle = rgb(c, 0.5); x.fillRect(sx, sy, 0.8, 0.6); continue; }
     x.fillStyle = rgb(c, 0.9); x.beginPath(); x.ellipse(sx, sy, 1.3 + r() * 1.1, 0.6 + r() * 0.4, (r() - 0.5) * 1.2, 0, Math.PI * 2); x.fill();
   }
-  void z1;
 }
 function wetPass(x, L, st, K, T, wet) {
   const cam = L.cam, r = rngFrom(2027), y0 = groundY(cam, st.z0), night = T.night || 0;
@@ -305,22 +304,14 @@ function wetPass(x, L, st, K, T, wet) {
       x.save(); x.translate(sx + w * ox, y + h * oy); x.scale(w * kw, h * kh); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, Math.PI * 2); x.fill(); x.restore();
     }
   }
-  // the lamps' reflections: a long broken streak straight down from each lamp's foot — C4a (the owner: two dotted streaks "going their
-  // own ways"): never the IMPLIED lamps (they stand BEHIND us, below the screen: a wet floor can't mirror them) — their light comes back
+  // the lamps' reflections — C4a (the owner: two dotted streaks "going their own ways"; C4d — H1: the posts' streaks gone with them):
+  // never the IMPLIED lamps (they stand BEHIND us, below the screen: a wet floor can't mirror them) — their light comes back
   // as THE SHEEN below: the whole wet street glazed by their pools, brightest at the screen's foot (nearest them), the puddles bright
   const k = (T.lamps || 0) * wet;
   if (k > 0.02) {
     const g = x.createLinearGradient(0, y0, 0, cam.H);
     g.addColorStop(0, 'rgba(240,190,130,0)'); g.addColorStop(0.55, `rgba(240,190,130,${(0.05 * k).toFixed(3)})`); g.addColorStop(1, `rgba(240,190,130,${(0.16 * k).toFixed(3)})`);
     x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.fillRect(0, y0, cam.W, cam.H - y0);
-    for (const l of L.lamps) {
-      if (l.z > 40 || l.implied) continue;
-      const [sx] = project(cam, l.x, 0, l.z), col = l.kind === 'tall' ? [150, 166, 196] : [236, 160, 80];
-      for (let yy = y0 + 2; yy < cam.H; yy += 2.2 + r() * 2.4) {
-        const f = 1 - (yy - y0) / (cam.H - y0 + 1), w = 2 + (1 - f) * 5 + r() * 2;
-        x.fillStyle = rgb(col, 0.85 * k * (0.35 + 0.65 * f) * (0.5 + r() * 0.5)); x.fillRect(sx - w / 2 + (r() - 0.5) * 2, yy, w, 1.1);
-      }
-    }
     x.globalCompositeOperation = 'source-over';
   }
   // the whole street's sheen: the sky's light along the far edge of every course (a glaze)

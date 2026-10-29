@@ -93,7 +93,7 @@ const BLADE_FONT = {
 const BLADE_WIDE = { block: LETTER.wide, condensed: 1.08, slab: 1.55, inline: 1.45 };
 const lum3 = c => (c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722);
 /** the week's ink colour for a game (the game's painted colour lifted toward white until it reads lit) */
-export function bladeInk(game) {
+function bladeInk(game) {
   const S = game.style || { ink: 'warm' };
   if (S.ink === 'warm') return INK_COLS.warm;
   if (S.ink === 'amber') return INK_COLS.amber;
@@ -101,7 +101,7 @@ export function bladeInk(game) {
   for (let i = 0; i < 6 && lum3(c) < 150; i++) c = mix(c, [255, 255, 255], 0.22);
   return c;
 }
-export const bladePanel = game => BLADE_PANELS[(game.style && game.style.panel) || 'navy'] || BLADE_PANELS.navy;
+const bladePanel = game => BLADE_PANELS[(game.style && game.style.panel) || 'navy'] || BLADE_PANELS.navy;
 export function paintLetters(x, game, style, M) {
   const L = bladeLetters(game.name || game.id), S = game.style || { font: 'block', ink: 'warm', panel: 'navy' }, font = BLADE_FONT[S.font] || FONT, wide = BLADE_WIDE[S.font] || LETTER.wide;
   const ink = bladeInk(game), panel = bladePanel(game);

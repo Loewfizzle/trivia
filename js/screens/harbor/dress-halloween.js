@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, SP4 (after 11a-1): HALLOWEEN ON THE NEON SIGN — THE WEB + THE SPIDER, FUTURISTIC (drawn by the sign's
-// dressing: screens/harbor/signdress.js; docs/harbor.md#sp4). Everything here is in LOGO UNITS (the letters in 0..332 × 0..100, y down).
+// dressing: screens/harbor/signdress.js; docs/harbor/passes/sp4.md). Everything here is in LOGO UNITS (the letters in 0..332 × 0..100, y down).
 // The owner's verdict (plan.md, Oct 26): the realistic pair looked cheap → a deliberate FUTURISTIC NEON design, premium + menacing-cool.
 //
 //   THE WEB      a fine GEOMETRIC web of thin glowing filaments: laser-thin threads of light (an ice-white core, a cool violet halo),
@@ -26,7 +26,7 @@ const snap = u => 1 - Math.pow(1 - u, 3);                   // (a mechanical ste
 const seg01 = (g, a, b) => clamp01((g - a) / (b - a));
 
 /** the web's light: the ice-white core, the violet halo (the owner's cool violet / ice white) */
-export const WEB_COL = Object.freeze({ core: [236, 240, 255], halo: [150, 112, 255], node: [255, 255, 255], nodeHalo: [176, 150, 255] });
+const WEB_COL = Object.freeze({ core: [236, 240, 255], halo: [150, 112, 255], node: [255, 255, 255], nodeHalo: [176, 150, 255] });
 
 // ------------------------------------------------------------------ THE WEBS (the anchors are ON the tubes)
 /** the webs: hub, the frame's support points (on the letters' tubes, in order round the hub), the radials' count, the spiral's
@@ -291,7 +291,7 @@ const SPIDER_LEN = 13.2 * SC;
  *  MUST step (soft: with its group; hard: at once; a step in flight follows the body) — the neighbouring sectors are ≥ 0.62 rad
  *  apart, so two feet within ±0.26 can never cross. The body turns at a fixed mechanical rate (TURN_RATE) the feet keep up with. */
 export const SECTOR = Object.freeze({ soft: 0.16, hard: 0.26 });
-export const TURN_RATE = 1.5;                                 // rad/s (a π turn ≈ 2.1 s: precise, never a whip)
+const TURN_RATE = 1.5;                                 // rad/s (a π turn ≈ 2.1 s: precise, never a whip)
 /** WIN3 — THE LEG POSES ON THE THREAD (the owner: it DANGLES — body below the thread, legs tucked / relaxed round it, never stretched to
  *  the letters): each foot a FRACTION of its leg's rest reach ALONG ITS OWN SECTOR (the sectors never move, so a tucked foot can never
  *  cross a leg — legCheck holds). tuck = hanging, the legs folded in (knees out, feet in) · reach = the touch-down, the front legs

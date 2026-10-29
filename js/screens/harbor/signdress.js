@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, PART 11a-1: THE SIGN DECORATION SYSTEM (docs/harbor.md#part-11a-1) — every holiday's + special event's
+// CITY 2.0 — THE HARBOR, PART 11a-1: THE SIGN DECORATION SYSTEM (docs/harbor/passes/part-11a-1.md) — every holiday's + special event's
 // dressing on the NEON sign, hung on the logo's own geometry (ui/logo.js: LOGO_LETTERS, LOGO_ANCHORS — logo units, the letters in
 // 0..332 × 0..100, y down).
 //
@@ -32,7 +32,7 @@ const PINK = [255, 46, 151];
 // ------------------------------------------------------------------ THE LIGHT FIELD (PURE)
 /** the tubes' sample points per letter (logo units, ~2 apart) */
 let SAMPLES = null;
-export function tubeSamples() {
+function tubeSamples() {
   if (SAMPLES) return SAMPLES;
   // (evenly every ~2 units: a straight stroke comes out of flattenPath as its two ends only)
   SAMPLES = LOGO_LETTERS.map(L => {
@@ -79,7 +79,7 @@ function fieldInit() {
 }
 /** the field's cells over a box (logo units) computed ahead, until performance.now() passes `until` → true when the box is done
  *  (the dressing warms what it will read over a few frames — never one long frame) */
-export function warmField(b, until) {
+function warmField(b, until) {
   const F = fieldInit(), i0 = Math.max(0, Math.floor((b[0] - BOX.x0) / F.step)), i1 = Math.min(F.nx - 1, Math.ceil((b[2] - BOX.x0) / F.step));
   const j0 = Math.max(0, Math.floor((b[1] - BOX.y0) / F.step)), j1 = Math.min(F.ny - 1, Math.ceil((b[3] - BOX.y0) / F.step));
   for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) { if (F.done[j * F.nx + i]) continue; cellAt(i, j); if (performance.now() > until) return false; }

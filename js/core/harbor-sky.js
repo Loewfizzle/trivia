@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, Part 6a: THE EVERYDAY SKY, the rules (PURE: no DOM, no clock of its own; tests/harbor.test.mjs).
-// docs/harbor.md#part-6a. What the sky's art modules (screens/harbor/air, banner, smoke, birds, balloons, moon) ask:
+// docs/harbor/passes/part-6a.md. What the sky's art modules (screens/harbor/air, banner, smoke, birds, balloons, moon) ask:
 //   THE AURORA     a rare timed event for everyone (~2 nights a month, seeded, never two in a row) + a bonus night on a real
 //                  strong geomagnetic storm (NOAA planetary Kp ≥ 7 through /api/sky), wherever the player is
 //   THE MOON       its look tonight: the big amber moonrise (bigger + amber low, silver as it climbs), the harvest moon, a
@@ -185,9 +185,9 @@ export function bannerPanels(msg, max = 24) {
   return p.map(s => s.trim().toUpperCase().slice(0, max)).filter(Boolean).slice(0, 3);
 }
 /** what the random sky events carry (in-world: the city's own little ads and greetings — never anything about the player) */
-export const BANNER_POOL = [['FRESH LEMONADE', 'AT THE PIER'], ['RIDE THE WHEEL'], ['ROSIE SAILS AT SIX'], ['JAZZ TONIGHT', "NINE O'CLOCK"], ['HELLO DOWN THERE!'],
+const BANNER_POOL = [['FRESH LEMONADE', 'AT THE PIER'], ['RIDE THE WHEEL'], ['ROSIE SAILS AT SIX'], ['JAZZ TONIGHT', "NINE O'CLOCK"], ['HELLO DOWN THERE!'],
   ['ICE COLD ROOT BEER', '5¢ A GLASS'], ['WATCH THE SKIES'], ['HARBOR DAYS', 'THIS WEEKEND']];
-export const SKYTYPE_POOL = ['HAVE A NICE DAY', 'LOOK UP!', 'SEE YOU AT THE PIER', 'HELLO DOWN THERE', 'JAZZ TONIGHT AT NINE', 'WHAT A DAY'];
+const SKYTYPE_POOL = ['HAVE A NICE DAY', 'LOOK UP!', 'SEE YOU AT THE PIER', 'HELLO DOWN THERE', 'JAZZ TONIGHT AT NINE', 'WHAT A DAY'];
 /** a random event's message: from its pool by its seed (the same for everyone) — the banner may carry a game's name */
 /** 11a-1 — THE BANNER PLANE's HOLIDAY MESSAGES: through a holiday's build-up + its days, two of three daily banners carry its own lines
  *  (core/harbor-holiday.js decides the holiday — the scene passes its id); Thanksgiving + Christmas add rows here */

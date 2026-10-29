@@ -19,7 +19,7 @@ const mk = (w, h) => { const c = document.createElement('canvas'); c.width = w; 
 /** the sprite: AL along (the lamp at x 0 → the far end at AL), AC across; it spans ±SPAN of the cone's far half-width across */
 const AL = 256, AC = 64, SPAN = 1.7;
 /** how fast it dims along its length (exp(−ATT·v)): at its far end ~7 % of the light at the lamp */
-export const FOG_ATT = 2.7;
+const FOG_ATT = 2.7;
 
 let base = null;
 const tints = new Map(), glows = new Map();
@@ -104,4 +104,3 @@ export function fogGlow(c, x, y, r, col, a) {
   c.globalAlpha = Math.min(1, a); c.drawImage(glowOf(col), x - r, y - r, r * 2, r * 2);
 }
 
-export function fogBeamFree() { if (base) base.width = 0; base = null; for (const m of [tints, glows]) { for (const cv of m.values()) cv.width = 0; m.clear(); } }

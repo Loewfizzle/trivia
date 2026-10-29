@@ -106,3 +106,19 @@ test('WIN3 — A WINDOW ROW JUMPS THE CLOCK: momentWhen gives every window-<id> 
   assert.equal(momentWhen('window-party', '2026-10-26'), '2026-10-26T22:30', 'the window party at the peak');
   assert.equal(momentWhen('smoke', '2026-10-26'), null); assert.equal(momentWhen('raid', '2026-10-26'), null); assert.equal(momentWhen('window-nope', '2026-10-26'), null);
 });
+
+test('C4d — THE A/B SWITCHES LISTED (FR4 H4): every force flag the Harbor\'s code reads (`force.has(\'…\')`, `off.has`, `f.has`…) is a registry row — the panel + city2/live carry it, a new one without a row fails here; the A/B rows stay hidden (ready: false) in TOOLS', async () => {
+  const { readdirSync, readFileSync } = await import('node:fs');
+  const { AB_FLAGS, cleanRemote } = await import('../js/core/harbor-remote.js');
+  const root = new URL('../js/', import.meta.url), files = [];
+  for (const f of readdirSync(new URL('screens/harbor/', root))) if (f.endsWith('.js')) files.push(new URL(`screens/harbor/${f}`, root));
+  for (const f of readdirSync(new URL('core/', root))) if (/^harbor-.*\.js$/.test(f)) files.push(new URL(`core/${f}`, root));
+  const ids = new Set(EVENTS.map(e => e.id)), seen = new Map();
+  const re = /(?:\bclock\.force|\bforce|\boff|\bf|\bff)\.has\('([a-z0-9-]+)'\)/g;
+  for (const u of files) for (const m of readFileSync(u, 'utf8').matchAll(re)) if (!seen.has(m[1])) seen.set(m[1], u.pathname.split('/').pop());
+  const missing = [...seen].filter(([id]) => !ids.has(id) && id !== 'party').map(([id, f]) => `${id} (${f})`);   // ('party': the panel's own PARTY switch — state.party, not a force row)
+  assert.deepEqual(missing, [], `flags read with no registry row: ${missing.join(', ')}`);
+  assert.ok(seen.size > 150, `${seen.size} flags read`);
+  for (const a of AB_FLAGS) { assert.ok(a.ready === false && a.sec === 'tools' && a.hint, `${a.id}: hidden in TOOLS with a hint`); assert.ok(!PANEL_EVENTS.includes(a), `${a.id}: not listed`); }
+  assert.deepEqual(cleanRemote({ force: ['no-clouds', 'no-wheel'] }).state.force, ['no-clouds', 'no-wheel'], 'the panel\'s state carries them');
+});

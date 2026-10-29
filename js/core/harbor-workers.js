@@ -79,7 +79,7 @@ export const SHOWS = Object.freeze({
 /** the hydrant's day: the real temperature at least this (°C: ~85 °F) */
 export const HOT_C = 29;
 /** windowed shows may slide this far past their window's end to dodge another show (s) */
-export const SLACK = 60 * 60;
+const SLACK = 60 * 60;
 
 /** THE REGULARS (may overlap a show): kind → { days, at | win, len } — evening ones in the evening's hours (25 = 1 am) */
 export const REGULARS = Object.freeze({
@@ -247,19 +247,6 @@ export function forcedWork(kind, t, ctx = {}) {
   return out;
 }
 
-/** the workers out at t (both the day's and the previous evening's — the 2 am staff, the doorman past midnight) → items active at t */
-export function workAt(t, ctx = {}, cache = new Map()) {
-  const off = ctx.off || 0, d = dayOf(t, off);
-  if (ctx.force) return forcedWork(ctx.force, t, ctx).filter(w => t >= w.t0 - 60 && t < w.t1 + 60);
-  const days = [[d.key, d.day0], [prevKey(d.key), d.day0 - 24 * H]];
-  const out = [];
-  for (const [key, day0] of days) {
-    let plan = cache.get(key);
-    if (!plan) { plan = workDay(key, { ...ctx, day0 }); cache.set(key, plan); if (cache.size > 6) cache.delete(cache.keys().next().value); }
-    for (const w of plan) if (t >= w.t0 - 60 && t < w.t1 + 60) out.push(w);
-  }
-  return out;
-}
 
 // ------------------------------------------------------------------ THE PROPS' STATES (PURE, on the clock)
 /** THE MILK BOTTLES on the barbershop's step: set down by the milkman at `drop`, taken in by the barber at `take` (abs s) → 0 | 1 */

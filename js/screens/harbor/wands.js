@@ -32,7 +32,7 @@ const shash = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h 
 const rng = seed => { let a = seed >>> 0 || 1; return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; };
 const styles = new Map();
 /** a dancer's style (seeded by their id — the same on every phone) */
-export function danceStyle(key) {
+function danceStyle(key) {
   let s = styles.get(key);
   if (s) return s;
   const r = rng(shash(String(key))), pool = MOVES.slice();
@@ -133,7 +133,7 @@ export function danceMoves(idx, beatsF, key = idx, en = null) {
 }
 
 /** a seeded glitch: is dancer idx's wand i flickering at t (s)? → 0 (off) .. 1 (fine) + a twitch (rad) */
-export function glitchOf(idx, i, t) {
+function glitchOf(idx, i, t) {
   const w = Math.floor(t / WAND.win), h = hh(idx * 7 + i, w);
   if (h > WAND.glitch) return { k: 1, tw: 0 };
   const u = (t / WAND.win) % 1;

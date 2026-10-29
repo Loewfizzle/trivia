@@ -5,7 +5,7 @@
 // edge (cars only as light: harbor/roadlight.js). No flagpole (the owner: flags only on holidays — a later part dresses the posts).
 // This file: THE GROUND (granite setts whose tops catch the light, the curb band's pavers, the front curb, the asphalt) with the
 // lamps' POOLS baked into the stones at night (T.lamps — the lamps' ramp in sixths: no haze, no per-frame cost), the cast shadows
-// by day, THE LAMPS (crafted Deco ironwork + opal glass; their glass lit live: drawLampLight); the trees (trees.js) and the props
+// by day (PROM — no lampposts: C4d took their painters out; the lamps are the IMPLIED row below the screen); the trees (trees.js) and the props
 // (props.js) are drawn from here; the people are 8P's (people.js + folk.js, drawn live by the scene).
 import { project, groundY } from '../../core/harbor-layout.js';
 import { rngFrom } from '../../core/rng.js';
@@ -17,7 +17,7 @@ import { pieceCtx, LIGHT, REACH, lightSources, lightField, sunShadow, IMPLIED_LI
 
 /** PROM — an implied lamp's light as a ground ellipse (the baked low glow in the joints + the dusk's dimming): its centre well up the
  *  promenade from the lamp (below the screen), rx across, rz along (world units) */
-export const impliedEll = s => ({ x: s.x, z: s.z + IMPLIED_LIGHT.ell.dz, rx: IMPLIED_LIGHT.ell.rx, rz: IMPLIED_LIGHT.ell.rz });
+const impliedEll = s => ({ x: s.x, z: s.z + IMPLIED_LIGHT.ell.dz, rx: IMPLIED_LIGHT.ell.rx, rz: IMPLIED_LIGHT.ell.rz });
 import { paintSett, streetSteps, streetOver } from './street.js';
 
 const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.gold || 0) + n[i] * (T.night || 0));
@@ -138,7 +138,6 @@ export function promenadeSteps(L, T) {
   steps.push(x => {
     const cx = pieceCtx(L);
     drawMedallion(x, cam, L.medallion, T, { ...cx, lightAt });
-    lampShadows(x, L, T);
     L.trees.forEach((t, i) => treeShadow(x, cam, t, T, { ...cx, i }));
     for (const b of benchesOf(L)) propShadow(x, cam, b, 'bench', T, cx);
     if (L.cart.shown !== false && !L.cart.live) propShadow(x, cam, L.cart, 'cart', T, cx);   // (FP3b: the live cart draws its own)
@@ -152,7 +151,6 @@ export function shadowsStep(L, T) {
   return x => {
     const cam = L.cam, cx = pieceCtx(L);
     x.globalAlpha = 0.55;                    // (softer on the snow: a pale blue shadow, never the stones' dark one)
-    lampShadows(x, L, T);
     L.trees.forEach((t, i) => treeShadow(x, cam, t, T, { ...cx, i }));
     for (const b of benchesOf(L)) propShadow(x, cam, b, 'bench', T, cx);
     if (L.cart.shown !== false && !L.cart.live) propShadow(x, cam, L.cart, 'cart', T, cx);
@@ -161,95 +159,13 @@ export function shadowsStep(L, T) {
   };
 }
 /** PROM — every bench of a layout: the water bench, the cab stand, a panorama's extras */
-export const benchesOf = L => [L.bench, ...(L.cabStand ? [L.cabStand] : []), ...((L.bench && L.bench.more) || [])].filter(Boolean);
-function lampShadows(x, L, T) {
-  const cam = L.cam;
-  for (const l of L.lamps) {
-    if (l.implied) continue;                       // (PROM: behind the viewer — nothing stands on the promenade)
-    const sh = sunShadow(T, l.h);
-    if (!sh) return;
-    const w = l.kind === 'tall' ? 0.17 : 0.12, [a0, ya0] = project(cam, l.x - w, 0, l.z), [b0] = project(cam, l.x + w, 0, l.z), [a1, ya1] = project(cam, l.x + sh.dx, 0, l.z + sh.dz);
-    const tw = (b0 - a0) * 0.45;
-    x.fillStyle = `rgba(28,22,44,${sh.a})`; x.beginPath(); x.moveTo(a0, ya0); x.lineTo(b0, ya0); x.lineTo(a1 + tw, ya1); x.lineTo(a1 - tw, ya1); x.closePath(); x.fill();
-    const r = cam.F * (l.kind === 'tall' ? 0.42 : 0.36) / (l.z + sh.dz);   // the heads' blot at the shadow's end
-    x.beginPath(); x.ellipse(a1, ya1, r * (l.kind === 'tall' ? 2.6 : 1.1), r * 0.36, 0, 0, Math.PI * 2); x.fill();
-  }
-}
-
-// ------------------------------------------------------------------ THE LAMPS (crafted, baked; their glass lit live)
-// painted cast iron (a deep green-black, its sun side catching the light), brass collars, opal glass. Screen-space drawing round the
-// post's projected axis (s = pt a unit at its depth): a stepped Deco plinth, a fluted tapering post with collars, a stepped capital;
-// the TALL lamp's crossarm on scrolled brackets with an opal globe at each end + a centre finial; the GLOBE lamp's bell base and one
-// big opal globe in a Deco cup. l.heads: the globes on screen (the live glow draws them lit).
-function lampLook(T, sd) {
-  const iron = tri(T, [40, 52, 48], [50, 38, 46], [16, 16, 26]), ironLit = tri(T, [124, 138, 126], [214, 150, 106], [34, 34, 52]);
-  const brass = tri(T, [192, 156, 90], [236, 172, 100], [62, 52, 50]), brassLit = tri(T, [246, 222, 160], [255, 214, 150], [96, 82, 72]);
-  const glass = tri(T, [226, 232, 238], [250, 214, 186], [52, 50, 70]), glassSh = tri(T, [168, 180, 198], [196, 150, 140], [34, 32, 50]);
-  return { iron, ironLit, brass, brassLit, glass, glassSh, sd: sd || 0.6 };
-}
-function drawLamp(x, cam, l, T) {
-  const s = cam.F / l.z, [cx, gy] = project(cam, l.x, 0, l.z), Y = v => gy - v * s, M = lampLook(T, T.sunDir), lk = Math.min(1, (T.lamps || 0) * 1.2);
-  const litSide = M.sd >= 0 ? 1 : -1;
-  // a vertical piece: a trapezoid from v0 (w0 wide) to v1 (w1 wide) — the body, its lit side, a dark edge
-  const seg = (v0, v1, w0, w1, col, lit, k = 0.3) => {
-    const a = w0 * s / 2, b = w1 * s / 2;
-    x.fillStyle = rgb(col); x.beginPath(); x.moveTo(cx - a, Y(v0)); x.lineTo(cx + a, Y(v0)); x.lineTo(cx + b, Y(v1)); x.lineTo(cx - b, Y(v1)); x.closePath(); x.fill();
-    x.fillStyle = rgb(lit); x.beginPath(); x.moveTo(cx + litSide * a, Y(v0)); x.lineTo(cx + litSide * a * (1 - k * 2), Y(v0)); x.lineTo(cx + litSide * b * (1 - k * 2), Y(v1)); x.lineTo(cx + litSide * b, Y(v1)); x.closePath(); x.fill();
-  };
-  const band = (v, w, hgt, col, lit) => { x.fillStyle = rgb(col); x.fillRect(cx - w * s / 2, Y(v + hgt), w * s, hgt * s); x.fillStyle = rgb(lit); x.fillRect(cx - w * s / 2, Y(v + hgt), w * s, Math.max(0.4, hgt * s * 0.35)); };
-  // the light the globes throw on the ironwork right under them at night (a warm / cool rim on the tops of the capital + the arm)
-  const glow = l.kind === 'tall' ? [200, 214, 236] : [255, 206, 140];
-  const lit2 = c => (lk > 0 ? mix(c, glow, 0.45 * lk) : c);
-  if (l.kind === 'tall') {
-    // the stepped plinth, the fluted post (a brass collar low + a band at the top third), the stepped capital
-    seg(0, 0.28, 0.86, 0.86, M.iron, M.ironLit); band(0.28, 0.72, 0.16, M.iron, M.ironLit); band(0.44, 0.56, 0.12, M.iron, M.ironLit);
-    seg(0.56, 1.25, 0.34, 0.26, M.iron, M.ironLit, 0.22);
-    band(1.25, 0.36, 0.1, M.brass, M.brassLit);
-    seg(1.35, l.h - 1.05, 0.24, 0.16, M.iron, M.ironLit, 0.2);
-    x.fillStyle = rgb(shade(M.iron, -0.3), 0.8);                                  // the flutes
-    for (const f of [-0.25, 0.25]) { x.fillRect(cx + f * 0.2 * s - 0.25, Y(l.h - 1.1), 0.5, (l.h - 2.5) * s); }
-    band(l.h * 0.62, 0.22, 0.08, M.brass, M.brassLit);
-    band(l.h - 1.05, 0.22, 0.08, M.iron, lit2(M.ironLit)); band(l.h - 0.97, 0.3, 0.08, M.iron, lit2(M.ironLit)); band(l.h - 0.89, 0.38, 0.09, M.brass, lit2(M.brassLit));
-    // the crossarm on two scrolled brackets, the finial
-    const armY = l.h - 0.8, A = l.arm * s;
-    x.fillStyle = rgb(M.iron); x.fillRect(cx - A, Y(armY + 0.05), A * 2, Math.max(1, 0.1 * s));
-    x.fillStyle = rgb(lit2(M.ironLit)); x.fillRect(cx - A, Y(armY + 0.05), A * 2, Math.max(0.4, 0.035 * s));
-    x.strokeStyle = rgb(M.iron); x.lineWidth = Math.max(0.6, 0.06 * s); x.lineCap = 'round';
-    for (const d of [-1, 1]) { x.beginPath(); x.moveTo(cx + d * 0.08 * s, Y(armY - 0.75)); x.quadraticCurveTo(cx + d * A * 0.2, Y(armY - 0.1), cx + d * A * 0.72, Y(armY - 0.02)); x.stroke(); x.beginPath(); x.arc(cx + d * A * 0.3, Y(armY - 0.38), 0.07 * s, 0, Math.PI * 2); x.stroke(); }
-    seg(armY + 0.05, armY + 0.32, 0.16, 0.08, M.iron, lit2(M.ironLit)); x.fillStyle = rgb(M.brass); x.beginPath(); x.arc(cx, Y(armY + 0.38), 0.07 * s, 0, Math.PI * 2); x.fill();
-    l.heads = [-1, 1].map(d => globe(x, cx + d * A, Y(armY + 0.06), s, 0.5, 0.6, M, lit2, d));
-  } else {
-    // the bell base (flaring), the slim fluted post, the brass collar, the Deco cup, ONE big opal globe
-    seg(0, 0.14, 0.62, 0.62, M.iron, M.ironLit); seg(0.14, 0.62, 0.5, 0.2, M.iron, M.ironLit, 0.24);
-    band(0.62, 0.24, 0.08, M.brass, M.brassLit);
-    seg(0.7, l.h - 0.3, 0.16, 0.12, M.iron, M.ironLit, 0.2);
-    band(l.h * 0.6, 0.18, 0.07, M.brass, M.brassLit);
-    band(l.h - 0.3, 0.2, 0.08, M.iron, lit2(M.ironLit)); band(l.h - 0.22, 0.3, 0.08, M.iron, lit2(M.ironLit)); band(l.h - 0.14, 0.38, 0.1, M.brass, lit2(M.brassLit));
-    l.heads = [globe(x, cx, Y(l.h - 0.04), s, 0.66, 0.7, M, lit2, 0)];
-  }
-  l.head = l.heads[0];
-}
-/** an opal glass globe sitting on (sx, footY): its body (the sky / sun on one side, shade on the other by day; unlit at night — the
- *  live glow lights it), the brass ring at its foot, a small cap + finial; → the head for the live glow */
-function globe(x, sx, footY, s, w, h, M, lit2, d) {
-  const rw = w * s / 2, rh = h * s / 2, gcy = footY - rh;
-  const g = x.createLinearGradient(sx - rw, 0, sx + rw, 0), lf = M.sd >= 0;
-  g.addColorStop(0, rgb(lf ? M.glassSh : M.glass)); g.addColorStop(0.55, rgb(mix(M.glass, M.glassSh, 0.3))); g.addColorStop(1, rgb(lf ? M.glass : M.glassSh));
-  x.fillStyle = g; x.beginPath(); x.ellipse(sx, gcy, rw, rh, 0, 0, Math.PI * 2); x.fill();
-  x.fillStyle = rgb(shade(M.glass, 0.25), 0.7); x.beginPath(); x.ellipse(sx + (lf ? 0.32 : -0.32) * rw, gcy - rh * 0.4, rw * 0.22, rh * 0.18, 0, 0, Math.PI * 2); x.fill();   // the glint
-  x.fillStyle = rgb(M.brass); x.fillRect(sx - rw * 0.55, footY - Math.max(0.6, 0.06 * s), rw * 1.1, Math.max(0.8, 0.08 * s));
-  x.fillStyle = rgb(lit2(M.brassLit)); x.fillRect(sx - rw * 0.55, footY - Math.max(0.6, 0.06 * s), rw * 1.1, Math.max(0.35, 0.03 * s));
-  x.fillStyle = rgb(M.iron); x.beginPath(); x.ellipse(sx, gcy - rh * 0.97, rw * 0.36, Math.max(0.6, rh * 0.12), 0, Math.PI, 0); x.fill();
-  x.fillStyle = rgb(M.brass); x.beginPath(); x.arc(sx, gcy - rh * 1.12, Math.max(0.5, 0.045 * s), 0, Math.PI * 2); x.fill();
-  return { x: sx, y: gcy, rw, rh, s, d };
-}
+const benchesOf = L => [L.bench, ...(L.cabStand ? [L.cabStand] : []), ...((L.bench && L.bench.more) || [])].filter(Boolean);
 
 /** the stage's still pieces, far first (PART 7a: keep(item) picks a share by depth — the scene bakes the ones behind / beside the
  *  speakeasy into 'stage' and the front row into 'front', over the speakeasy's live layer) */
 export function furnitureSteps(L, T, keep = null, crownOf = null) {
   const cam = L.cam, cx = pieceCtx(L);
   const items = [
-    ...L.lamps.filter(l => !l.implied).map(l => ({ z: l.z, f: x => drawLamp(x, cam, l, T) })),
     // (PROM — a tree out on the FLOOR (the framing maple, z 42): crownOf(item) → a screen y: only the part ABOVE it is drawn (the crown —
     // the front layer lays it over the walkers behind it, while anyone in front walks over its trunk in the stage layer))
     ...L.trees.map((t, i) => ({ z: t.z, heavy: true, tree: t, f: x => { const cy = crownOf ? crownOf({ tree: t, z: t.z }) : null; if (cy != null) { x.save(); x.beginPath(); x.rect(-50, -50, cam.W + 100, cy + 50); x.clip(); } drawTree(x, cam, t, T, { ...cx, i }); if (cy != null) x.restore(); } })),
@@ -268,39 +184,6 @@ export function furnitureSteps(L, T, keep = null, crownOf = null) {
   return steps;
 }
 
-/**
- * THE LAMPS' GLASS, LIT (live, every frame; the pools are baked into the stones): each opal globe glowing from inside — a white-hot
- * heart, the warm (globe) / cool-white (street lamp) glass — and a small soft halo round it (never a screen-wide wash). k: the
- * lamps' ramp now. The sprites are cached per kind + size.
- */
-/** FP2: the lamps' halos in globe radii (tight: the outer glow, the inner bloom). 8P — CRISP GLOBES (the owner: "no soft blob"): tighter
- *  still, and the glass drawn as a vector ellipse every frame (a sprite stretched over it softened its edge) */
-export const LAMP_HALO = Object.freeze({ globe: 1.75, tall: 1.6, inner: 1.18 });
-const GLASS_STOPS = { tall: ['236,244,255', '196,214,246'], globe: ['255,236,196', '255,190,110'] };
-/**
- * levels: each lamp's own level (8P — THE LAMPS' LIFE: core/harbor-lamps.js — the switch-on one by one, the rare stutter / outage),
- * 1 when absent. The glass: a white-hot heart, the warm (globe) / cool-white (street lamp) opal, a crisp rim; a TIGHT halo.
- */
-export function drawLampLight(c, L, k, glow, cool = glow, dpr = 2, levels = null) {
-  if (k < 0.02) return;
-  L.lamps.forEach((l, li) => {
-    const lv = levels ? levels[li] : 1;
-    if (!l.heads || lv <= 0.01) return;
-    const tall = l.kind === 'tall', st = GLASS_STOPS[tall ? 'tall' : 'globe'], a = Math.min(1, k * 1.1 * lv);
-    for (const h of l.heads) {
-      if (h.rw == null) continue;
-      c.globalCompositeOperation = 'source-over'; c.globalAlpha = a;
-      const g = c.createRadialGradient(h.x, h.y + h.rh * 0.1, 0, h.x, h.y, Math.max(h.rw, h.rh));
-      g.addColorStop(0, 'rgb(255,255,250)'); g.addColorStop(0.45, `rgb(${st[0]})`); g.addColorStop(0.92, `rgb(${st[1]})`); g.addColorStop(1, `rgba(${st[1]},0.85)`);
-      c.fillStyle = g; c.beginPath(); c.ellipse(h.x, h.y, h.rw, h.rh, 0, 0, Math.PI * 2); c.fill();
-      c.globalCompositeOperation = 'lighter';
-      const r = Math.max(h.rw, h.rh) * (tall ? LAMP_HALO.tall : LAMP_HALO.globe);
-      c.globalAlpha = (tall ? 0.4 : 0.46) * k * lv; c.drawImage(tall ? cool : glow, h.x - r, h.y - r, r * 2, r * 2);
-      const r2 = Math.max(h.rw, h.rh) * LAMP_HALO.inner; c.globalAlpha = 0.55 * k * lv; c.drawImage(tall ? cool : glow, h.x - r2, h.y - r2, r2 * 2, r2 * 2);
-    }
-  });
-  c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-}
 /** 8P — a lamp that is OFF (not caught yet at dusk, or out for a moment) while its pool is baked lit: its pool taken back down (a
  *  multiply over the pool's ellipse on the paving). off: each lamp's 0..1 darkness; baked: the bake's T.lamps */
 export function dimPools(c, L, off, baked, all = 0) {

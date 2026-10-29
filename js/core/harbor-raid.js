@@ -205,7 +205,7 @@ export function raidPlan(raid, L) {
   };
 }
 /** the front car at t → { x, z, dir, speed, dist, stopped } | null (off the street) */
-export function frontCarAt(f, t) {
+function frontCarAt(f, t) {
   if (!f || t < f.tEnter || t > f.tOut) return null;
   const F = RAID.front, dB = F.v * F.v / (2 * F.brake);
   let x, v;

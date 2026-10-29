@@ -33,12 +33,13 @@ export const IMPLIED = Object.freeze({ z: 21.5, h: 5.6, gap: 9 });
 /** PROM — the centrepieces keep TODAY's on-screen size (the owner, Oct 28 2:32 pm): the compass came forward from z 44.8 to 42.6, so a piece
  *  standing on it is drawn × centreK(L) about its foot (screens/harbor: centre.js, giant + harvest in holidayprops.js) — "unless noted
  *  otherwise": a piece may be marked bigger case by case */
-export const CENTRE_Z0 = 44.8;
+const CENTRE_Z0 = 44.8;
 export const centreK = L => (L && L.medallion ? Math.min(1, L.medallion.z / CENTRE_Z0) : 1);
 
 /** the pieces' sizes (world units — a person is 2.1 since the owner's 8a scale, ~⅔ of the speakeasy's door; ~0.85 m a unit) */
 export const PIECE = Object.freeze({
-  tall: { h: 6.1, arm: 0.95 },            // the tall double-head Deco lamp: two lanterns on a crossarm (≈ 70 pt at the curb)
+  // (C4d — H1: the lampposts' pieces (tall 6.1 + its arm) went with PROM's posts; `globe` stays — its height is the light height the
+  // speakeasy's spill + the cart lend a tree's crown: core/harbor-light.js#treeLamps)
   globe: { h: 3.7 },                      // the short warm globe lamp (≈ 60 pt on the front walk)
   maple: { trunk: 2.9, w: 4.9, h: 4.6 },  // a sugar maple in an iron grate (≈ 56 pt across at the curb, ≈ 78 on the front walk)
   crab: { trunk: 1.7, w: 3.3, h: 2.8 },   // a flowering crabapple — a smaller ACCENT (the owner), never the biggest tree
@@ -92,10 +93,8 @@ export const PHONE = Object.freeze({
   // pt inside the screen's edge at 390 / 402 / 430; the bench the same 0.70 u: f 0.9025; the maple keeps its crown — `seedF`, the plan's
   // seed from its old spot), THE CART in the middle (f 0.69 — between the compass + the cab bench), wheeled up from BELOW THE DOCK
   // (`from: 'below'`: across the front street + over the curb at its spot)
-  tall: [],
   maples: [{ f: 0.888, z: 42.0, big: true, v: 1, seedF: 0.875 }],   // (C4c: 0.9 → 0.888 — the owner saw its crown cut at the edge: its leaves ended 1 pt inside + the wind's sway leaned it out; now ~6 pt in, every season)
   crabs: [{ f: 0.42, z: 50.9, k: 1.4 }],    // (POLISH 5: 0.45 / k 1.45 → 0.42 / 1.4 — the cab at its stop no longer half behind it at 402; PF: 0.405 / z 52.9 / k 1.25 → its crown 153–209 pt at 402: right of the blade, left of the lamp's arm)
-  globes: [],
   medallion: { f: 0.515, z: 42.6 },         // (PROM: forward from 44.8 — on the crossing's axis; C4b: LEFT, 0.6675 → 0.515 — the crossing clear)
   bench: { f: 0.42, z: 47.8, face: 'water' },   // (C4b: 0.515 → 0.42 — back in front of the crabapple: the compass's pieces never hide it)
     // (PROM: THE WATER BENCH — the old spot in front of the crabapple, turned to face the harbor: its sitters seen from behind)
@@ -151,7 +150,7 @@ export const LANTERN = Object.freeze({ at: 0.5, z: 63.4, h: 2.6, w: 2.3, bh: 2.4
 export const SIGNAL_CYCLE = Object.freeze({ go: 24, amber: 3, clear: 1.5, walk: 11, blink: 5, hold: 1.5 });
 export const SIGNAL_PERIOD = Object.values(SIGNAL_CYCLE).reduce((a, b) => a + b, 0);
 /** the blink: on for BLINK_ON of each BLINK_S */
-export const BLINK_S = 1, BLINK_ON = 0.55;
+const BLINK_S = 1, BLINK_ON = 0.55;
 /**
  * The crossing at ms → { road: 'green' | 'amber' | 'red', walk: 'walk' | 'wait', blink (WAIT blinking: the last BLINK s before the
  * road turns green), lit (the lantern's lit pane is showing right now — false only in a blink's off half), phase, left (s to the next
@@ -185,16 +184,12 @@ export function promenadeLayout(cam, { seed = 1924, wide = false, stopH = 4.9, f
   // every upright phone)
   const X = wide && face != null ? (f, z) => face + 5.6 + (f - 0.5) * (402 / 600) * z : (f, z) => xOfF(cam, f, z), P = PIECE;
   const lamps = [], trees = [], planters = [], more = [];
-  const tall = (x, i) => lamps.push({ x, z: PROM.curb, h: P.tall.h, kind: 'tall', dir: i % 2 ? -1 : 1, arm: P.tall.arm });
   const maple = (x, z = PROM.curb + 0.15) => trees.push({ x, z, kind: 'maple', trunk: P.maple.trunk, w: P.maple.w, h: P.maple.h, r: P.maple.w / 2, grate: true });
   const crab = (x, z = PROM.front, k = 1) => trees.push({ x, z, kind: 'crab', trunk: P.crab.trunk * (0.6 + 0.4 * k), w: P.crab.w * k, h: P.crab.h * k, r: P.crab.w * k / 2, grate: true });
-  const globe = (x, z = PROM.globes) => lamps.push({ x, z, h: P.globe.h, kind: 'globe', dir: 1 });
   const S = PHONE;
   const signals = S.signals.map(s => ({ id: s.id, x: X(s.f, 54.6), z: 54.6, dir: s.dir, arm: s.arm, h: stopH, state: 'green' }));
-  S.tall.forEach((t, i) => tall(X(t.f, t.z), i));
   // (FP2: the framing maple's crown a little rounder — h 1.1 → 1.14 × — its trunk sturdier: core/harbor-trees.js#treePlan's big; v: its colour mix)
   S.maples.forEach(m => { maple(X(m.f, m.z), m.z); const t = trees[trees.length - 1]; if (m.v != null) t.v = m.v; if (m.seedF != null) t.seedX = X(m.seedF, m.z); if (m.big) Object.assign(t, { big: true, w: P.maple.w * 1.12, r: P.maple.w * 0.56, h: P.maple.h * 1.14, trunk: P.maple.trunk * 1.02 }); });
-  S.globes.forEach(f => globe(X(f, PROM.globes)));
   // PROM — THE IMPLIED LAMPS: a row along our side of the front street, below the screen (never drawn: kind 'implied'); enough of them for
   // the widest view (their light fans out — the outer ones spill in from the edges)
   { const span = (wide ? cam.hw(PROM.curb) * 1.4 : cam.hw(50)) + IMPLIED.gap, n = Math.ceil(span / IMPLIED.gap), cx0 = wide && face != null ? X(0.5, IMPLIED.z) : 0;

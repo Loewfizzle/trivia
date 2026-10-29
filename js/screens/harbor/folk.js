@@ -166,10 +166,10 @@ export const GAIT = Object.freeze({
 });
 /** 9g — THE RUNNING LEG through its swing (u 0 = toe-off … 1 = the foot down): [u, the thigh's angle from straight down (° + forward),
  *  the knee's fold (°)] — a jogger's (the heel nearest the seat at ~0.3, the thigh furthest forward at ~0.75, nearly straight to land) */
-export const RUN_KEYS = Object.freeze([[0, -22, 28], [0.3, -6, 104], [0.55, 24, 112], [0.78, 36, 44], [1, 21, 6]]);
+const RUN_KEYS = Object.freeze([[0, -22, 28], [0.3, -6, 104], [0.55, 24, 112], [0.78, 36, 44], [1, 21, 6]]);
 const D2R = Math.PI / 180;
 /** the swing foot by the runner's own leg (forward kinematics from a hip at height hy) → { a (forward of the hip), y } */
-export function runSwing(u, hy) {
+function runSwing(u, hy) {
   const K = RUN_KEYS;
   let k = 0; while (k < K.length - 2 && u > K[k + 1][0]) k++;
   const [u0, t0, f0] = K[k], [u1, t1, f1] = K[k + 1], w = smooth(Math.min(1, Math.max(0, (u - u0) / (u1 - u0))));

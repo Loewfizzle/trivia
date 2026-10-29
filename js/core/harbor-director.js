@@ -1,11 +1,11 @@
-// CITY 2.0 — THE HARBOR, PART 6b: THE DIRECTOR (plan.md "THE DIRECTOR — can a phone handle the whole plan?"; docs/harbor.md#part-6b).
+// CITY 2.0 — THE HARBOR, PART 6b: THE DIRECTOR (plan.md "THE DIRECTOR — can a phone handle the whole plan?"; docs/harbor/passes/part-6b.md).
 // PURE. ONE arbiter every HEAVY moment asks before it STARTS (the party show, a drone show, the air show, a legendary, the balloon
 // festival — Part 10's fireworks, the raid, storms + the holidays join the same way): a per-tier SPECTACLE BUDGET (at most N heavy
 // effects at once) and the owner's PRIORITIES (holidays > party > legendary > rare > routine). A heavy thing already running keeps its
 // slot; a new one starts only while there's room, or by displacing nothing (it never stops what's on screen — it waits / is skipped).
 // Previews (&force=, THE PREVIEW PANEL) bypass it: the owner asked for them. Every phone of a tier decides the same from the same
 // inputs (the clock's plan), so a room's phones agree.
-export const PRIO = Object.freeze({ holiday: 5, party: 4, legendary: 3, rare: 2, routine: 1 });
+const PRIO = Object.freeze({ holiday: 5, party: 4, legendary: 3, rare: 2, routine: 1 });
 /** heavy effects at once, per tier (0 = the slow phone) */
 export const SPECTACLE = Object.freeze([1, 2, 2]);
 

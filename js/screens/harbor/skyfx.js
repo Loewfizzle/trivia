@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 6a: THE EVERYDAY SKY — the manager (docs/harbor.md#part-6a). It owns the sky's pieces and decides
+// CITY 2.0 — THE HARBOR, Part 6a: THE EVERYDAY SKY — the manager (docs/harbor/passes/part-6a.md). It owns the sky's pieces and decides
 // what flies:
 //   the scheduler's events   banner (daily, by day), helicopter (daily), balloons (calm clear mornings / summer evenings), the
 //                            balloon festival (rare, heavy) — each piece's flight is a function of the event's start (every

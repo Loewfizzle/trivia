@@ -45,7 +45,7 @@ export const GROUND = Object.freeze([{ id: 'shop', room: 'shop', mirror: true },
  * the apartment's lamp until 1:30 (then its TV glow is 7b's), the edge windows' curtains until 1. `hour` local 0–24 (null: lit).
  */
 /** SP3: the edge window's lamp left on low through the small hours */
-export const EDGE_NIGHT = 0.4;
+const EDGE_NIGHT = 0.4;
 export function roomLight(id, hour) {
   if (hour == null) return 1;
   const h = hour < 12 ? hour + 24 : hour;                     // (the night as one run: 12 → 36)
@@ -110,7 +110,7 @@ export function ghostAdGame(ms, ids, avoid = null) {
 // HOURS (the owner asked Claude to pick): ON AT DUSK by the PHOTOCELL (the darkness input — earlier on a dark overcast evening), OFF at
 // 1:00 am Sun–Thu + 2:00 am Fri / Sat + the holiday party nights (last call), a short warm fade (FADE_H of clock time), never a snap.
 // The TR-3B's blackout takes it with everything else (the scene's power); after it goes off the shop keeps its faint night lamp.
-export const AWNING_LIGHT = Object.freeze({ dk: [0.16, 0.34], off: 1, offLate: 2, fadeH: 0.01 });   // (fadeH: 36 s of clock time)
+const AWNING_LIGHT = Object.freeze({ dk: [0.16, 0.34], off: 1, offLate: 2, fadeH: 0.01 });   // (fadeH: 36 s of clock time)
 /** the awning's light 0..1 at a local moment (PURE): local { h, mi, s?, dow }, dk (the darkness 0..1), lateNight (a party night: the
  *  later switch-off) */
 export function awningLight(local, dk, lateNight = false) {

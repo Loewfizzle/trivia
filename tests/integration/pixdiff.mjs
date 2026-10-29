@@ -59,6 +59,10 @@ async function shoot(base, q, still) {
   await page.evaluate("window.__district.setTier && window.__district.setTier(2)");
   const end2 = Date.now() + 15000;
   while (Date.now() < end2 && !(await page.evaluate(ready).catch(() => false))) await sleep(200);
+  // (C4d: both sides AT REST before the shot — the title hides its dock + tagline ~7 s after the load (nd-idle); a side shot a moment
+  // before it vs one after showed the whole dock as a 7 % "look change" at night)
+  const end3 = Date.now() + 20000;
+  while (still && Date.now() < end3 && !(await page.evaluate("document.body.classList.contains('nd-idle') || !document.body.classList.contains('nd-on')").catch(() => false))) await sleep(200);
   await sleep(1500);
   return page;
 }

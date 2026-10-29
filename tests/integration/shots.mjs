@@ -101,7 +101,7 @@ const SCENE = {
   'd-clouds': ['2026-10-22T13:00', { qs: 'wx=clouds' }], 'd-overcast': ['2026-10-22T13:00', { qs: 'wx=overcast' }],
   'd-night': ['2026-10-22T22:00'], 'd-party': ['2026-10-24T23:00'],
   // FP2 (Oct 24): the party's earlier night (the warm-up from 8:30, the peak from 9:30) + spring noon (the crabapple's blossom)
-  'fp-warm': ['2026-10-24T20:45'], 'fp-peak': ['2026-10-24T21:45'], 'fp-spring': ['2026-10-22T12:30', { qs: 'season=spring' }],
+  'fp-warm': ['2026-10-24T20:45'], 'fp-peak': ['2026-10-24T21:45'], 'fp-spring': ['2026-10-22T12:30', { qs: 'force=season-spring' }],
   // (8a — the trees through a season, by the real date: the crabapple's buds, its full blossom, the maples' late autumn thinning)
   'tr-bud': ['2026-04-16T11:00'], 'tr-bloom': ['2026-05-05T11:00'], 'tr-early': ['2026-10-01T11:00'], 'tr-late': ['2026-11-15T11:00'],
   // (7a §0: the title's ☰ menu open — the split corners: it drops from the top-left)

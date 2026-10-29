@@ -6,7 +6,7 @@
 // honest total: canvas-safe.js#canvasMb) and the memory guard's verdict. At the end THE REPORT shows ON SCREEN with a COPY button (the
 // owner pastes it into the next pass) AND goes to /admin's "Reports from phones" as kind 'bench' (a friend's older phone's run lands
 // there too). Never runs without the flag; never starts without a tap (START). Lazy: imported only under `&bench=1`.
-// docs/harbor.md#c4c (what it measures, the memory guard's table) · docs/testing.md (ONLY=bench, MEASURE=1).
+// docs/harbor/passes/c4c.md (what it measures, the memory guard's table) · docs/testing.md (ONLY=bench, MEASURE=1).
 
 /** the scenes, in order (each a preview state: the panel's REMOTE_KEYS) */
 export const BENCH_SCENES = Object.freeze([

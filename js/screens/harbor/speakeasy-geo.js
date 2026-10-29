@@ -33,10 +33,6 @@ export const AWNING_LAMP = Object.freeze({ us: [2.6, 5.6, 7.85], k: 0.72, reach:
 export const VAL = 0.34;
 export const awningBulbs = aw => AWNING_LAMP.us.map(u => ({ u, y: aw.y1 - VAL - AWNING_LAMP.drop, z: aw.z + 0.05 }));
 export const SHOP_GLOW = Object.freeze({ lamp: 0.2, sconce: 0.34, landR: 1.3 });   // (SP2: tighter — a few pt; POL4: the door lamps brighter — a bigger halo + landing)
-/** POL4 — THE DOORS FLOODED (the owner: "brighter, so the light FLOODS each speakeasy door and the door is clearly noticeable"): each
- *  door's lamp throws a warm wash down over its door + its step(s) — live (× the facade's power: the TR-3B's blackout, 8b's raid).
- *  k: its strength; w / h: the wash's half width + its height (× the door's own) */
-export const DOOR_FLOOD = Object.freeze({ k: 0.42, w: 0.85, h: 1.15, col: [255, 196, 128] });
 
 // ------------------------------------------------------------------ geometry
 /** the building on screen: the front's affine map, the side wall's perspective, the inverse for the strips */

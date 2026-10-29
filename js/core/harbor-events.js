@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR: lanes + events (PURE: no DOM, no clock of its own; tests/harbor.test.mjs). docs/harbor.md#events.
+// CITY 2.0 — THE HARBOR: lanes + events (PURE: no DOM, no clock of its own; tests/harbor.test.mjs). docs/harbor.md#lanes-events.
 //
 // The city's occasional moments (a banner plane, a parade, a yacht, an easter egg…) are EVENTS. Each one runs in one or more
 // LANES (the parts of the picture it uses; their screen rects: core/harbor-layout.js#laneRects) for a while. The scheduler is
@@ -44,7 +44,7 @@ export const startChance = e => Math.min(1, SLOT_MS / RARITY[e.rarity]);
 /** the slot a moment falls in */
 export const slotOf = ms => Math.floor(ms / SLOT_MS);
 /** the longest replay: two days of slots (a fresh scheduler replays from the local midnight one day back: ≤ 1920 slots) */
-export const REPLAY_SLOTS = 2 * DAY / SLOT_MS;
+const REPLAY_SLOTS = 2 * DAY / SLOT_MS;
 
 /**
  * THE SCHEDULER — state, advanced one slot at a time. What slot n admits depends on what still runs from the slots before

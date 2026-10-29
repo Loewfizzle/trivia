@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR: THE PARTY SHOW's director + THE EVERYDAY MOTION's pick (PURE: no DOM; tests/harbor.test.mjs).
-// docs/harbor.md#neon-pass-3 + #neon-pass-4.
+// docs/harbor/passes/neon-pass-3.md + #neon-pass-4.
 //
 // A party night is a CHOREOGRAPHED LIGHT SHOW across the skyline on the party beat (core/party.js's beat clock). NEON PASS 4 (the
 // owner: "the neon needs to be racing around the tubes — motion, flashes, shimmer; it has to look impressive"):
@@ -447,7 +447,7 @@ export function signMotion(kind, t, seed = 0) {
 // on the city's clock (every phone the same). A party night: BETWEEN the show's scenes — from the last bar of a scene (its effects
 // fading out) into the first of the next (fading in), every other scene change, the turns as above. &force=spell-on: a quick cycle.
 export const SPELL_DUR = 3.4;                    // s: dark over 0.35 s, the letters 0.6 → 3.0 s (scaled when shorter), then on
-export const SPELL_EVERY = 180, SPELL_JITTER = 60;
+const SPELL_EVERY = 180, SPELL_JITTER = 60;
 /** a spell-on u s after it started (dur: its length) → { a (the name's alpha ×), reveal (0..1 of its letters) } */
 export function spellMotion(u, dur = SPELL_DUR) {
   const k = dur / SPELL_DUR, v = u / k;

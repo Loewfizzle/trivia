@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 11a-1: THE HOLIDAY DRESSINGS ON THE GROUND — drawn (the places: core/harbor-holidayprops.js, PURE; what
-// shows when: core/harbor-holiday.js). docs/harbor.md#part-11a-1. Three passes, each where it really stands (scene.js):
+// shows when: core/harbor-holiday.js). docs/harbor/passes/part-11a-1.md. Three passes, each where it really stands (scene.js):
 //   'ground'  after the speakeasy's live layer + the centrepiece, before the people: the marigold petal path to the side door, the
 //             marigolds (the door's pots, the back half of a tree's ring, the back lamps' feet), the back lamps' garlands, THE
 //             JACK-O'-LANTERNS on the side door's steps (their candle glow flickering through the carved faces, spilling on the steps)

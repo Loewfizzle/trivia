@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, PART 6b: THE LEGENDARY SKY, drawn (docs/harbor.md#part-6b; when + how: core/harbor-legend.js). Lazily
+// CITY 2.0 — THE HARBOR, PART 6b: THE LEGENDARY SKY, drawn (docs/harbor/passes/part-6b.md; when + how: core/harbor-legend.js). Lazily
 // loaded by the scene (only on a legendary night, a preview or the API). The two best-looking moments in the whole city:
 //
 // THE UFO ABDUCTION (~30 s, the owner's reference: docs/harbor/refs/abduction.jpeg) — a short film over the promenade's compass:
@@ -101,7 +101,7 @@ function saucerSprite(sw, dpr) {
   const bot = u => (u >= 1 ? 1 : -hl * Math.pow(1 - u * u, 0.62));
   const inside = (p) => { const u = Math.hypot(p[0], p[2]); if (u > 1) return false; const yt = Math.max(top(u), u > 0.955 ? band : -1), yb = Math.min(bot(u), u > 0.955 ? -band : 1); return p[1] <= yt && p[1] >= yb; };
   const inDome = p => Math.hypot(p[0] - dc[0], p[1] - dc[1], p[2] - dc[2]) < rd && p[1] > dc[1] - rd * 0.2;
-  const nTop = (px, pz) => { const e = 0.002, u = Math.hypot(px, pz), f = (a, b) => top(Math.hypot(a, b)); const dx = (f(px + e, pz) - f(px - e, pz)) / (2 * e), dz = (f(px, pz + e) - f(px, pz - e)) / (2 * e); void u; const l = Math.hypot(dx, 1, dz); return [-dx / l, 1 / l, -dz / l]; };
+  const nTop = (px, pz) => { const e = 0.002, f = (a, b) => top(Math.hypot(a, b)); const dx = (f(px + e, pz) - f(px - e, pz)) / (2 * e), dz = (f(px, pz + e) - f(px, pz - e)) / (2 * e); const l = Math.hypot(dx, 1, dz); return [-dx / l, 1 / l, -dz / l]; };
   const KEY = (() => { const k = [-0.5, 0.75, -0.45], l = Math.hypot(...k); return k.map(v => v / l); })();
   const F0 = [0.62, 0.65, 0.7], KEY2 = (() => { const k = [-0.22, 0.9, -0.38], l = Math.hypot(...k); return k.map(v => v / l); })();
   for (let j = 0; j < h; j++) {

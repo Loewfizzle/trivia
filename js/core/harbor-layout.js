@@ -30,7 +30,7 @@ export const SIZE = {
 export const units = (name, pt = SIZE[name].pt) => pt * SIZE[name].z / REF.F;
 /** a 1920s city coach's height (world units) — the road lane's band reaches up to it (FP3a: the parked placeholder bus is gone; the
  *  moving one is 8P's bus.js) */
-export const BUS_H = () => units('bus') * 0.28;
+const BUS_H = () => units('bus') * 0.28;
 /** world units → pt on a given camera, at depth z */
 export const ptAt = (cam, u, z) => u * cam.F / z;
 
@@ -253,7 +253,7 @@ function clip(cam, b, cuts) {
 }
 
 /** a tower's tiers (each narrower and a little further back, standing on the one below) and the window grid of each */
-export function tiersOf(t) {
+function tiersOf(t) {
   const f = FORMS[t.form] || FORMS.block;
   const out = [];
   let y = 0, x0 = t.x0, x1 = t.x1, z = t.z0;
@@ -448,7 +448,7 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   const prom = { z0: Z.prom[0], z1: Z.prom[1] };
   const { lamps, trees, bench, cabStand, planters, cart, medallion, crosswalk, edge, impliedRoad, zones, mailbox, hydrant } = PR;   // (PROM: + the cab stand; the lamps are the IMPLIED row now — never drawn)   // (POLISH 5: the fire hydrant — the can's old spot)
   // the rooftop (7a): the string lights' POSTS on the parapet (each pier) + their tall POLE at the back, the stair BULKHEAD, the
-  // CHIMNEY; the deck between them is left open for 7b's parties + the seasonal garden (planters: where its beds go)
+  // CHIMNEY; the deck between them is left open for the roof's party guests + the seasonal garden (planters: where its beds go)
   const roofBack = Math.min(side.z, 56);
   const roof = { planters: [4.4, 5.8, 7.2].map(u => ({ x: sx0 + u, z: 47.2 })), pole: { x: sx1 - 1.4, z: roofBack - 3.2, h: 2.9 },
     posts: [3.55, 6.75, 9.95, 11.2].map(u => sx0 + u), bulkhead: { x0: sx0 + 8.1, x1: sx0 + 9.9, z0: roofBack - 4.6, z1: roofBack - 1.8, h: 2.1 },
@@ -497,7 +497,7 @@ function towerStage(L, st) {
 }
 
 /** the speakeasy's door on screen: { x, y (its foot), w, h, rect (the ≥ 44 pt tap target) } */
-export function doorRect(L) {
+function doorRect(L) {
   const c = L.cam, s = L.speakeasy;
   const [a, y0] = project(c, s.x0 + s.door.u0, 0, s.z0), [b, y1] = project(c, s.x0 + s.door.u1, s.door.h, s.z0);
   const w = b - a, h = y0 - y1, cx = (a + b) / 2, cy = (y0 + y1) / 2;

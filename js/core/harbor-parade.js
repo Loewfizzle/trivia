@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, 11a-2 Group 2: THE PARADE SYSTEM (PURE — tests/harbor-parade.test.mjs; docs/harbor.md#11a-2). A REUSABLE parade:
+// CITY 2.0 — THE HARBOR, 11a-2 Group 2: THE PARADE SYSTEM (PURE — tests/harbor-parade.test.mjs; docs/harbor/passes/part-11a-2.md). A REUSABLE parade:
 // a procession of UNITS (a marching band, a giant balloon with its handlers on ropes, a float…) in a fixed seeded ORDER, each its own
 // length along the road + a gap, at the parade's slow marching pace, down a ROUTE (the waterside road's near lane, out from behind the
 // speakeasy, off the right edge — the procession's route; 'front' = the street under the dock, only while the dock rests — THE STREET
@@ -65,8 +65,6 @@ export function paradeUnits(w) {
   }
   return out;
 }
-/** where a unit's head is at t on a route from x0 (abs s → world x), or null before it enters */
-export const unitHead = (u, t, x0) => (t < u.t ? null : x0 + (t - u.t) * PARADE.v);
 /** the units in view at t (their head past x0, their tail not yet past x1): [{ ...u, head, mid }] */
 export function unitsAt(units, t, x0, x1) {
   const out = [];

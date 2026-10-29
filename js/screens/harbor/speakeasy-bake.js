@@ -16,12 +16,12 @@ import { BLADE, BLADE_GLOW, bladeGeo, bladeOutline, MARQUEE, marqueeBulbs, marqu
 
 // ------------------------------------------------------------------ THE WALLS (flat paintings)
 /** FP3b — THE STONE's texture: a fine speckle of lighter + darker flecks over a trim band (limestone's grain, a terracotta's firing) */
-export function stoneTex(x, u0, v0, u1, v1, col, r) {
+function stoneTex(x, u0, v0, u1, v1, col, r) {
   const n = Math.round((u1 - u0) * (v1 - v0) * 70);
   for (let i = 0; i < n; i++) { const lt = r() < 0.5; x.fillStyle = rgb(lt ? mix(col, [255, 250, 236], 0.4) : shade(col, -0.28), 0.18 + r() * 0.16); x.fillRect(u0 + r() * (u1 - u0), v0 + r() * (v1 - v0), 0.025 + r() * 0.04, 0.02 + r() * 0.025); }
 }
 /** FP3b — SOOT streaking down the brick from a ledge at v: irregular thin streaks, darker at the ledge, fading as they run (k: how many) */
-export function sootUnder(x, M, u0, u1, v, r, k = 1) {
+function sootUnder(x, M, u0, u1, v, r, k = 1) {
   const a = (0.16 + 0.1 * (M.day + M.gold)) * (1 - 0.4 * M.night), n = Math.round((u1 - u0) * 1.1 * k);
   for (let i = 0; i < n; i++) streak(x, u0 + r() * (u1 - u0), v, 0.04 + r() * 0.1, 0.3 + r() * 1.1, M.soot, a * (0.5 + r() * 0.7));
 }
@@ -251,7 +251,7 @@ export function paintWindow(x, M, a, b, r0, r1, o) {
 // + the sconce's light on its upper planks) onto the swinging door — so the door that swings shut IS the baked door (the owner: "it
 // still just kind of snaps at the end"; the live leaf was a plain amber-tinted board that turned into the detailed bake at the latch)
 /** the sconce's lamp level on the side door (0..1) — the bake's own reading of the tones */
-export const sideLampK = M => clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
+const sideLampK = M => clamp01(M.T.lamps == null ? M.night : M.T.lamps) * clamp01((M.night - 0.3) / 0.5);
 /** THE UNMARKED SIDE DOOR's leaf (wall units, v up; d = s.door): heavy oak planks, iron strap hinges, the grille (the peephole), a brass knob */
 export function paintSideLeaf(x, M, d) {
   const oak = tri(M.T, [66, 40, 28], [80, 44, 30], [16, 11, 16]);
@@ -406,7 +406,7 @@ export function paintLight(x, M, u0, u1, side, seed) {
  * The speakeasy's baked steps (into 'stage'), far → near: the rooftop's pieces behind the parapet (the stair bulkhead, the
  * chimney, the string lights' pole), the side wall (painted flat, projected in strips), the front (the structure, the Deco, the
  * windows, the ground floor, the light + weather, the ivy), then what stands out from the walls (the awning, the door's steps,
- * the parapet's posts, the ad's lamps' hardware). ctx: { game (this week's ghost ad), month }
+ * the parapet's posts, the ad's lamps' hardware). ctx: { game (this week's ghost ad), hushLit }
  */
 /** THE BLADE's bake step on its own (FP — the owner: the blade hangs off the building, nearer to us than the curb trees beside the side
  *  wall: the scene bakes it AFTER them — scene.js#rebake) */
@@ -483,14 +483,13 @@ export function speakeasySteps(L, T, ctx = {}, { blade = true } = {}) {
     // the upper windows (by day: the sky in the glass, shades at their heights, curtains, the plant)
     x => {
       x.save(); frontMap(x);
-      const r = rngFrom(23), curtains = [tri(T, [140, 40, 44], [150, 50, 44], [20, 10, 18]), tri(T, [70, 92, 58], [90, 80, 50], [12, 14, 16]), tri(T, [196, 168, 110], [200, 150, 100], [26, 22, 30])];
+      const r = rngFrom(23);
       ROOMS.forEach(rm => {
         const [a, b] = s.windows[rm.col], [r0, r1] = s.rows[rm.floor - 2];
         // (SP4 — the owner: the panes rendered NON-UNIFORM by day — the apartment's + the edge windows' day curtains covered 0.2 units of
         // glass each side and read as frame: the upper-right pane ~22 % narrower than its neighbour. No day curtains: every pane the
         // same glass; the night rooms keep their own tied-back curtains inside the room's paint)
         const o = { blind: rm.clear ? 0.12 : 0.25 + r() * 0.45, curtain: null, plant: rm.id === 'edge2' };
-        void curtains;
         paintWindow(x, M, a, b, r0, r1, o);
       });
       x.restore();

@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 6b: THE AURORA, BACK TO CITY 1.0's (plan.md "THE AURORA: BACK TO CITY 1.0's" + "THE AURORA BLENDS MORE";
-// docs/harbor.md#part-6b). 6a's curtain of rays read jittery, slowed-down, with hard vertical shafts; City 1.0's "looked really good":
+// docs/harbor/passes/part-6b.md). 6a's curtain of rays read jittery, slowed-down, with hard vertical shafts; City 1.0's "looked really good":
 // many WIDE, OVERLAPPING, feathered strands (each a soft column of colour — a pink fringe at its foot, green, violet, a deep red up top — feathered to
 // nothing at both sides) summed additively into ONE smooth glowing curtain that ripples + drifts. Re-fitted to the Harbor: the whole
 // sky from under the corner buttons down to the crowns (behind the NEON sign — the page draws over it), taller + brighter on a storm

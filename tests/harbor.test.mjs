@@ -1085,7 +1085,7 @@ import { skyClock, holidayOf, sunTimes, localParts } from '../js/core/sky.js';
 
 test('the preview panel: one registry — every &force= preview the Harbor runs is on it, and every row is a real preview', () => {
   // the modules City 2.0 runs (its own + the district's sky modules it reuses): every id they test with force.has(...)
-  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), ...['fx', 'sun', 'weather-fx', 'frost'].map(f => `js/screens/district/${f}.js`), 'js/screens/title.js'];
+  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), ...['fx', 'sun', 'weather-fx', 'frost'].map(f => `js/screens/district/${f}.js`), 'js/screens/title.js', ...readdirSync('js/core').filter(f => /^harbor-.*\.js$/.test(f)).map(f => `js/core/${f}`)];   // (C4d: + the pure modules — harbor-events.js reads 'demo')
   const src = files.map(f => readFileSync(f, 'utf8')).join('\n');
   const used = new Set([...src.matchAll(/(?:(?:force|f|off|clock\.force)\.has|scene\.forced)\('([a-z0-9-]+)'\)/g)].map(m => m[1]));
   for (const m of src.matchAll(/again\('([a-z0-9-]+)'/g)) used.add(m[1]);
@@ -1834,7 +1834,7 @@ test('THE DAY PASS §0 — the dark corner: the block right of the lighthouse is
 
 test('the panel: rows a later part still has to build stay hidden (ready: false), their ids stay valid', async () => {
   const { EVENTS, PANEL_EVENTS, cleanRemote } = await import('../js/core/harbor-remote.js');
-  const hidden = EVENTS.filter(e => !PANEL_EVENTS.includes(e)).map(e => e.id);
+  const hidden = EVENTS.filter(e => !PANEL_EVENTS.includes(e) && !e.ab).map(e => e.id);   // (C4d: + the A/B switches, hidden by design — their own test: harbor-remote.test.mjs)
   assert.deepEqual(hidden.sort(), ['cat', 'skywrite', 'window']);   // (7b: 'window' needs &moment= — the links; the panel has a row per moment; 6b showed the UFO)
   assert.deepEqual(cleanRemote({ force: ['cat', 'ufo', 'tr3b'] }).bad, []);
 });
@@ -2860,7 +2860,6 @@ test("FP2 — THE CURB CRABAPPLE through the year (white-pink blossom → green 
 
 // ---------------------------------------------------------------- FP2 — CRISP LIGHTS + THE POLE (the owner: "looks smoky"; the pole "still jittery")
 import { polePhase, poleAnchor, poleRate, poleStripe, poleColours, poleHalo, POLE_HALO, POLE_LIT, POLE_PAINT, SHOP_GLOW } from '../js/screens/harbor/speakeasy.js';
-import { LAMP_HALO } from '../js/screens/harbor/stage.js';
 import { rngFrom as fp2Rng } from '../js/core/rng.js';
 test('FP2 — THE POLE BY REAL TIME: the phase a pure function of the frame timestamp — the same at 60 / 30 / irregular frames, never snapped', () => {
   for (const lit of [0, 1]) {
@@ -2922,7 +2921,7 @@ test('FP2 — CRISP LIGHTS, NEVER SMOKE: every halo tight + bounded (the pole, t
   assert.ok(poleHalo(3 * r, r) < 0.04, `a patch of brick ~7 pt from the glass gets little: ${poleHalo(3 * r, r).toFixed(3)}`);
   // (wall units × G.K ≈ 13.8 pt at 402: the shop lamp's halo ≈ 4.7 pt — FP's cloud 13.8; the sconce's ≈ 5.8 — FP's wash 23.5)
   assert.ok(SHOP_GLOW.lamp <= 0.4 && SHOP_GLOW.sconce <= 0.5 && SHOP_GLOW.landR <= 1.5, JSON.stringify(SHOP_GLOW));
-  assert.ok(LAMP_HALO.globe <= 2.5 && LAMP_HALO.tall <= 2.5 && LAMP_HALO.inner < LAMP_HALO.tall, `the lamps' halos ${JSON.stringify(LAMP_HALO)} globe radii (FP: 3.2–3.6)`);
+  // (C4d — H1: the lampposts' halos went with their painters: PROM's lamps are implied, never drawn)
 });
 
 // ---------------------------------------------------------------- FP2 — THE STREET UNDER THE DOCK (full-bleed) + THE MOTORCAR

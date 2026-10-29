@@ -62,7 +62,7 @@ export function crossLightOf(L) {
 }
 
 /** the crosswalk's nine stripes on screen (pt): [{ a, b, a2, b2, ya, yb, x, z }] — the near edge (a → b at ya), the far (a2 → b2 at yb) */
-export function stripeQuads(L) {
+function stripeQuads(L) {
   const cam = L.cam, cw = L.crosswalk, n = 9, out = [];
   for (let i = 0; i < n; i++) {
     const z0 = cw.z0 + (cw.z1 - cw.z0) * i / n, z1 = z0 + (cw.z1 - cw.z0) / n * 0.55;

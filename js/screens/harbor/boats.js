@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 5: THE BOATS (docs/harbor.md#the-boats). Each sails on the clock (core/harbor-boats.js: the
+// CITY 2.0 — THE HARBOR, Part 5: THE BOATS (docs/harbor/passes/part-5.md#the-boats). Each sails on the clock (core/harbor-boats.js: the
 // routes, pure + tested). 8b2 Group 3 — THE BOATS IN 3D: every boat is a real MODEL now (boat-models.js on boat3d.js's kit) in
 // the Harbor's own camera, posed by its heading, so it TURNS on the water (bow, three-quarter, side and stern views all true):
 //

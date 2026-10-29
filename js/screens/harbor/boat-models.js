@@ -32,8 +32,8 @@ function crown(P, a, s, r, u0, u1, c) {
 }
 
 // ------------------------------------------------------------------ ROSIE (len 24): the riverboat
-export const ROSIE_STACKS = [[16.4, 0.95], [17.6, -0.95]];            // [a, s] — staggered abreast: two stacks from the side AND head-on
-export const ROSIE_WHEEL = Object.freeze({ a: -0.45, u: 1.3, r: 1.55, hw: 1.95, n: 10 });
+const ROSIE_STACKS = [[16.4, 0.95], [17.6, -0.95]];            // [a, s] — staggered abreast: two stacks from the side AND head-on
+const ROSIE_WHEEL = Object.freeze({ a: -0.45, u: 1.3, r: 1.55, hw: 1.95, n: 10 });
 export function rosieModel() {
   const parts = [], dots = [];
   // THE HULL: white, the red boot stripe, the dark bottom, the rub rail; the sheer rising to a raked stem

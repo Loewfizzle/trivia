@@ -1,5 +1,5 @@
 // THE CRANE BAKE (BNAME, Oct 28) — "Crane" by J-Toastie (art/models/crane/, CC BY 3.0, poly.pizza) rendered OFFLINE into the sprites
-// the construction tower's crane draws (js/screens/harbor/crane-model.js). docs/harbor.md#bname.
+// the construction tower's crane draws (js/screens/harbor/crane-model.js). docs/harbor/passes/bname.md.
 //
 //   node scripts/bake-model.mjs "<chromium>" crane            → assets/city/crane/{top,mast}.webp + crane.json
 //   node scripts/bake-model.mjs "<chromium>" crane --look DIR → the bake into DIR + look renders (the whole crane, day + night, big)

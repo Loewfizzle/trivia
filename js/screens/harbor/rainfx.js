@@ -10,7 +10,7 @@
 import { safeCtx } from '../../ui/canvas-safe.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
-export const RAIN_CAP = [150, 280, 440];
+const RAIN_CAP = [150, 280, 440];
 /** SP3 — DRIZZLE vs RAIN vs HEAVY, clearly apart at a glance (the owner: RAIN as it is = the anchor; drizzle clearly LESS, heavy clearly
  *  MORE): the share of RAIN_CAP drawn (rain 0.55 → 0.74 as before; drizzle ~⅙ of it; heavy ~3×) + each streak's speed / length / width /
  *  brightness (× 1 at rain) */
@@ -21,7 +21,7 @@ export function rainLook(rain) {
   return { n, v: 1 - 0.42 * dz + 0.3 * hv, len: 1 - 0.55 * dz + 0.6 * hv, w: 1 - 0.28 * dz + 0.15 * hv, a: 1 - 0.38 * dz + 0.28 * hv, heavy: hv, drizzle: dz };
 }
 /** the depths: share, speed (pt/s), length (pt), width, alpha, landing (null / water / ground) */
-export const RAIN_DEPTH = [
+const RAIN_DEPTH = [
   { k: 0.46, v: [520, 640], len: [8, 13], w: 0.75, a: 0.34, land: null },
   { k: 0.34, v: [780, 920], len: [16, 26], w: 1.05, a: 0.48, land: 'water' },
   { k: 0.2, v: [1080, 1300], len: [34, 58], w: 1.6, a: 0.56, land: 'ground' },

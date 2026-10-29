@@ -250,7 +250,7 @@ PLAN.trash = (w, M, P, r, L) => truckShow(L, w, M, P, r, T => {
 /** POLISH 5 — THE HYDRANT ON A HOT DAY (the owner: ~85 °F+ / 29 °C+, the afternoon): a city worker in from the left with his hydrant wrench,
  *  the cap off + the stem turned (the SPRAY: a sparkling arc onto the cobbles, its wet patch spreading), he stands back while it runs,
  *  a kid runs through it, shut + capped, away; the patch dries over HYD.dry (core/harbor-crew.js#tracesAt → hydrant) */
-export const HYD = Object.freeze({ open: 3.2, spray: 150, close: 3.4, dry: 12 * 60, kidAt: 52 });
+const HYD = Object.freeze({ open: 3.2, spray: 150, close: 3.4, dry: 12 * 60, kidAt: 52 });
 PLAN.hydrant = (w, M, P, r) => {
   const c = crewOf(M, P, r, 'walk', w.t0).edge('left', P.hydStand.z).hold('wrench').go(P.hydStand);
   const t0 = c.now; c.pose('pick', HYD.open, { hd: PI + 0.5 });
@@ -774,7 +774,7 @@ export function crewAt(t, world, cache = new Map()) {
 }
 /** the day's plan + its marks (the things that outlast a show — the milk on the step until the barber, the bundles until the
  *  newsboy, the billboard's game, the blade's week — read from it) */
-export function crewDay(key, day0, world, cache = new Map()) {
+function crewDay(key, day0, world, cache = new Map()) {
   let v = cache.get(`D|${key}`);
   if (!v) { const ctx = world.ctx || {}; let plan = cache.get(`P|${key}`); if (!plan) { plan = workDay(key, { ...ctx, day0 }); cache.set(`P|${key}`, plan); } v = { plan, marks: resultsOf(plan, world, cache).marks }; cache.set(`D|${key}`, v); }
   return v;
@@ -783,7 +783,7 @@ export function crewDay(key, day0, world, cache = new Map()) {
 export const FLICK = u => (u < 0 ? 0 : u < 0.25 ? 0.8 : u < 0.5 ? 0.1 : u < 0.8 ? 0.9 : u < 1.05 ? 0.25 : 1);
 /** POLISH 5 — the hydrant at t: spray 0..1 (the stem turned up over ~1.2 s, down over ~1 s), wet 0..1 (the patch: it spreads over the
  *  first ~40 s of the spray, dries over HYD.dry after), u (s since it opened) — or null */
-export function hydrantTrace(mk, t) {
+function hydrantTrace(mk, t) {
   if (!mk || !mk.spray) return null;
   const [a, b] = mk.spray;
   if (t < a - 1 || t > b + HYD.dry) return null;

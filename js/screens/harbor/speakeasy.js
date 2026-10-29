@@ -10,7 +10,7 @@
 // side wall recedes (perspective, one source column per device pixel — exact for a vertical wall). Baked per look into 'stage'
 // (speakeasySteps, in small steps); what changes at night is LIVE (createSpeakeasy): the windows' rooms lit (one cached canvas,
 // re-rendered only when a window's light changes), their glow on the brick, the shop's one lamp, the sconce, the basement's amber,
-// the ad's lamps, the barber pole turning. HOOKS for 7b: windows() (each window's rect + room), light(id, k), mirror(k).
+// the ad's lamps, the barber pole turning. Its HOOKS (the window life — windows.js — reads them): windows() (each window's rect + room), light(id, k), mirror(k).
 import { drawDoor } from './doors.js';
 import { project } from '../../core/harbor-layout.js';
 import { SPEAK_V, ROOMS, roomLight } from '../../core/harbor-speakeasy.js';
@@ -107,8 +107,8 @@ export function poleHalo(d, r) {
  * createSpeakeasy(): what changes at night (and the pole by day). layout(L, { dpr }) → the windows on screen; draw(c, f) with
  * f = { k (the windows' light 0..1), lamp (the ad's lamps), sconce, day, night, t (the frame's timestamp, s), motion, fade, hour, game,
  * party: { ramp, punch, pal } | null (FP2: the barber pole's party neon + the beat) }.
- * HOOKS (7b): windows() → [{ id, room, floor, col, edge, rect }], light(id, k|null) (a window's own level, null = the
- * timeline's), mirror(k) (the hidden door's opening 0..1 — 7b animates it; today a hook only), roomDraw(id, fn) (a moment's own
+ * HOOKS (the window life, windows.js): windows() → [{ id, room, floor, col, edge, rect }], light(id, k|null) (a window's own level, null = the
+ * timeline's), mirror(k) (the hidden door's opening 0..1 — the window life animates it), roomDraw(id, fn) (a moment's own
  * painter over a window).
  */
 export function createSpeakeasy() {
@@ -453,11 +453,11 @@ export function createSpeakeasy() {
     c.globalCompositeOperation = 'color-dodge'; c.globalAlpha = Math.min(1, a * AWN.wash);
     c.drawImage(awnMask.cv, awnMask.X, awnMask.Y, awnMask.w, awnMask.h);
     // 4. the pool on the pavement: long under the awning's width, the same dodge (the setts lit as setts)
-    { const P = AWN.pool, uc = (aw.u0 + aw.u1) / 2, [px, pyc] = at(uc, 0, s.z0 - P.dz), [, pn] = at(uc, 0, s.z0 - P.dz - P.rz), [, pf] = at(uc, 0, s.z0 - P.dz + P.rz);
+    { const P = AWN.pool, uc = (aw.u0 + aw.u1) / 2, [px] = at(uc, 0, s.z0 - P.dz), [, pn] = at(uc, 0, s.z0 - P.dz - P.rz), [, pf] = at(uc, 0, s.z0 - P.dz + P.rz);
       const rx = (aw.u1 - aw.u0) * 0.62 * cam.F / (s.z0 - P.dz), ry = Math.max(1, (pn - pf) / 2), col = DLIGHT.col;
       c.globalAlpha = Math.min(1, a * P.k); c.save(); c.translate(px, (pn + pf) / 2); c.scale(1, ry / rx);
       const g = c.createRadialGradient(0, -rx * 0.15, 0, 0, 0, rx); for (const [t, k] of [[0, 0.9], [0.4, 0.6], [0.75, 0.2], [1, 0]]) g.addColorStop(t, `rgba(${col[0]},${col[1]},${col[2]},${k})`);
-      c.fillStyle = g; c.fillRect(-rx, -rx, rx * 2, rx * 2); c.restore(); void pyc; }
+      c.fillStyle = g; c.fillRect(-rx, -rx, rx * 2, rx * 2); c.restore(); }
     c.restore();
     // (the wet ground's reflections: where the strip's light falls — scene.js#wetReflect)
     glowAt.awning = { k: a, xs: [0.2, 0.5, 0.8].map(t => at(aw.u0 + (aw.u1 - aw.u0) * t, 0, s.z0)[0]) };
@@ -552,7 +552,7 @@ export function createSpeakeasy() {
       else doorRects.shop = null; }
     bedsNow = { ...life.bedLevels(k, !!(f.party && (f.party.ramp == null ? 1 : f.party.ramp) > 0.3)), fr, k, motion: f.motion !== false };   // (8P: the moments' + the shop's sound cues read the frame — sounds.js)
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
-    // for 7b: a moment's own painter over its window
+    // a moment's own painter over its window (windows.js)
     for (const [id, fn] of drawers) { const w = wins.find(o => o.id === id); if (w) fn(c, w, f); }
     c.globalCompositeOperation = 'lighter';
     // the sconce by the side door (warm, from dusk). FP2 — no smoke: the SOURCE (its glass lit: a warm bright pane), a small TIGHT halo,

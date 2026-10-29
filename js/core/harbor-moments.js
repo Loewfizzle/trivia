@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 7b: THE SPEAKEASY'S LIFE — the WINDOW MOMENTS catalogue, the day's schedule and the rooms' states
-// by the hour (PURE — tested in tests/harbor-moments.test.mjs; drawn by screens/harbor/windows.js; docs/harbor.md#part-7b).
+// by the hour (PURE — tested in tests/harbor-moments.test.mjs; drawn by screens/harbor/windows.js; docs/harbor/passes/part-7b.md).
 //
 // THE CATALOGUE: every moment is ONE entry — its window(s), when it may happen, its rarity, its length + cooldown, and the name of
 // its painter in screens/harbor/windows.js (PAINT[id]). ADDING A MOMENT LATER = one entry here + one painter there (+ its row
@@ -193,7 +193,7 @@ export function fixedPlan(key, only = null, ctx = {}) {
   return out;
 }
 /** 11a-2 — the fourth Thursday of November (Thanksgiving) of year y → its day of the month */
-export const thanksgivingOf = y => { const dow = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return 1 + ((4 - dow + 7) % 7) + 21; };
+const thanksgivingOf = y => { const dow = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return 1 + ((4 - dow + 7) % 7) + 21; };
 /** is local day `key` ('YYYY-MM-DD') the holiday a calendar names? (11a-2: 'thanksgiving') */
 export function holidayDay(cal, key) {
   const [y, m, d] = String(key).split('-').map(Number);
@@ -437,11 +437,6 @@ export function tvScene(t, seed = 7) {
   let sc = list[0];
   for (const s of list) if (el >= s.t0) sc = s;
   return { id: sc.id, col: TV_PAL[sc.id], ceil: sc.id === 'H' ? 1 : 0, el: el - sc.t0 };
-}
-/** a TV's light colour now, one call (the near colour, toward the far by `far` 0..1) — every TV in the city reads its blue here */
-export function tvColour(t, seed = 7, far = 0) {
-  const s = tvScene(t, seed), a = s.col[0], b = s.col[1];
-  return [a[0] + (b[0] - a[0]) * far, a[1] + (b[1] - a[1]) * far, a[2] + (b[2] - a[2]) * far];
 }
 /** WIN3 — a SHADOW across the ceiling's glow now and then (someone shifting, getting up for a snack — only ever a shadow): every ~2–3 min
  *  a soft dark shape crosses the back wall over ~2.6 s → { u (0..1 across, the direction in dir), a (0..1) } | null */

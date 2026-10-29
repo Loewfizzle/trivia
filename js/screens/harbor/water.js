@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 4: THE WATER (docs/harbor.md#the-water). The harbor between the far quay (z 230) and the railing
+// CITY 2.0 — THE HARBOR, Part 4: THE WATER (docs/harbor/passes/part-4.md#the-water). The harbor between the far quay (z 230) and the railing
 // (z 64) is a real, deep body of water: a MIRROR of everything above it, in perspective, broken by ripples from the real wind.
 //
 //   the base (baked: waterSteps)   the water's own colour + depth — blue-green and paler where it meets the far quay by day,
@@ -24,7 +24,7 @@
 // "stubs"): reflect(fn, axisY) — an object standing in the water drawn flipped about its own waterline (the wheel + the
 // lighthouse use it now; Part 5's boats, Rosie, the train, the beam) · light(x, y, col, a, w) — a light that is not in the frame
 // above the waterline (fireworks high in the sky, Part 10; the ghost ship's glow, 11a) as a column in the water · wake(o) — Part 5
-// draws boat wakes · set({ rain, fog }) — Part 9 (rain roughens the mirror now; the rings + the fog over the water: Part 9).
+// draws boat wakes · set({ rain, fog }) — the weather (rain roughens the mirror; the fog over the water is waterfog.js, 9a; the rain's rings: ATM).
 import { rgb, mix } from './shapes.js';
 import { blit, safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { groundY, project } from '../../core/harbor-layout.js';
@@ -51,7 +51,7 @@ const TINT = {
   gold: [[226, 146, 108], [150, 76, 82], [58, 28, 56]],
   night: [[22, 18, 46], [9, 9, 26], [3, 3, 11]],
 };
-export function waterTint(T) {
+function waterTint(T) {
   const out = [0, 1, 2].map(i => [0, 1, 2].map(c => TINT.day[i][c] * T.day + TINT.gold[i][c] * T.gold + TINT.night[i][c] * T.night));
   return out;
 }
@@ -194,7 +194,7 @@ export function createWater() {
   // BUILD: the mirror (R) from the frame above the waterline, the objects in the water, the light columns
   function build(main, f, t, still) {
     const md = main.width / W;
-    // ROUGHNESS from the real wind (m/s): glassy under ~1.5, choppy past ~11; real rain roughens it too (Part 9 adds the rings)
+    // ROUGHNESS from the real wind (m/s): glassy under ~1.5, choppy past ~11; real rain roughens it too (the rings: ATM)
     const rough = roughOf(f);
     stats.rough = +rough.toFixed(2);
     // 1. the frame above the waterline, as drawn (one copy, at the mirror's resolution)
@@ -400,7 +400,7 @@ export function createWater() {
     light(x, y, col, a = 1, w = 3, len = 0) { if (queue.length < 400) queue.push({ x, y, col, a, w, len }); },
     /** HOOK (Part 5): a boat's wake — { x, z, len, dir, k } world units; stored, not yet drawn */
     wake(o) { wakes.push(o); if (wakes.length > 16) wakes.shift(); },
-    /** HOOK (Part 9): { rain: 0..1 (roughens the mirror now; the rings: Part 9), fog: 0..1 (the fog over the water: Part 9) } */
+    /** the weather (9a): { rain: 0..1 (roughens the mirror; the rings: ATM), fog: 0..1 (the fog over the water itself: waterfog.js) } */
     set(o) { Object.assign(set0, o || {}); },
     band: () => ({ y0, y1 }),
     mem: () => +([src, bright, sm, R, wc, ...tex, ...cols.values()].reduce((s, cv) => s + cv.width * cv.height * 4, 0) / 1e6).toFixed(2),

@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 3: NEON (PURE: no DOM; tests/harbor.test.mjs). docs/harbor.md#neon.
+// CITY 2.0 — THE HARBOR, Part 3: NEON (PURE: no DOM; tests/harbor.test.mjs). docs/harbor/passes/neon-pass-2.md.
 //
 //  - flattenPath(): an SVG path (absolute M L H V Q C A Z — the marks' and the tube letters' language) → polylines, so a tube
 //    can be lit unevenly along its length (hotter on the bends, dimmer at the electrodes) and its ends + clips found.
@@ -483,7 +483,7 @@ const dedupe = pts => pts.filter((p, i) => !i || Math.hypot(p[0] - pts[i - 1][0]
 /** a setback narrower than this (world units, ~2–3 pt on a phone) is skipped: the tube runs straight up the inner edge */
 export const MIN_STEP = 1.1;
 /** the radius of a bend (world units): every corner of a contour is rounded, like bent glass */
-export const FILLET = 0.8;
+const FILLET = 0.8;
 /**
  * NEON PASS 6 (the owner: "ledge bands must sit on the ledges"): a band's height snapped to the nearest FLOOR LINE of the building's
  * window grid (the spandrel between two rows of windows — never across glass); a fin's x to the nearest PIER between two columns.
@@ -494,7 +494,7 @@ export function floorY(b, y) {
   const base = (b.y0 || 0) + g.v0, pv = g.pitch[1], k = Math.max(0, Math.min(g.rows, Math.round((y - base) / pv)));
   return base + k * pv;
 }
-export function pierX(b, x) {
+function pierX(b, x) {
   const g = b && b.win; if (!g || !(g.cols > 0) || !g.pitch) return x;
   const base = b.x0 + g.u0, pu = g.pitch[0], k = Math.max(0, Math.min(g.cols, Math.round((x - base) / pu)));
   return base + k * pu;
@@ -506,7 +506,7 @@ const uniq = (vs, eps = 0.05) => [...vs].sort((a, b) => a - b).filter((v, i, a) 
  * face when it stands left of the camera, its left face when right) — { x (its edge), zb (the back), w (its width on screen, pt) };
  * null when no side shows or it is too thin to trace (< 1.6 pt)
  */
-export function sideFace(cam, x0, x1, y, z0, z1) {
+function sideFace(cam, x0, x1, y, z0, z1) {
   if (!cam || !(z1 > z0)) return null;
   const x = x1 < 0 ? x1 : x0 > 0 ? x0 : null;
   if (x == null) return null;
@@ -518,7 +518,7 @@ export function sideFace(cam, x0, x1, y, z0, z1) {
  * of nearer buildings doesn't know it — an abutting block of the same band) hides its lower part. → the world height its far edge
  * may come down to, or null when the neighbour hides it all. all: every box ({ x0, x1, z0, y0?, h }); self: the boxes to skip.
  */
-export function sideFloor(cam, all, self, sf, zf, yTop, yb) {
+function sideFloor(cam, all, self, sf, zf, yTop, yb) {
   const fx = project(cam, sf.x, yTop, sf.zb)[0], nx = project(cam, sf.x, yTop, zf)[0];
   for (const c of all) {
     if (self.has(c) || !(c.z0 >= zf - 0.06 && c.z0 < sf.zb)) continue;
@@ -612,7 +612,7 @@ export const roleClash = (r1, r2, scheme = 'city') => neonClash(roleColour(r1, s
  * Every building's screen silhouette as the neon's cut sees it (neon.js#silhouette: the top edge + the side face the camera sees,
  * the crown's middle) + the lighthouse (it stands in front of the skyline): [{ key (block / tower / hero id), z, segs: [[x0, x1, top]] }]
  */
-export function depthPieces(L) {
+function depthPieces(L) {
   const cam = L.cam, out = [];
   const sil = b => {
     const y0 = b.y0 || 0, y1 = y0 + b.h, [a, ty] = project(cam, b.x0, y1, b.z0), [c] = project(cam, b.x1, y0, b.z0);
@@ -788,7 +788,7 @@ export const SPOTS = [
 let refCam = null;
 const ref = () => refCam || (refCam = cameraFor(REF_TITLE.W, REF_TITLE.H, { tag: REF_TITLE.tag, dock: REF_TITLE.dock }, REF_TITLE.safe));
 /** a spot in world units: { x0, x1, y0 (bottom), y1 (top), z } */
-export function spotWorld(sp) {
+function spotWorld(sp) {
   const c = ref(), X = sx => (sx - c.VPX) * sp.z / c.F, Y = sy => c.CAMH - (sy - c.VPY) * sp.z / c.F;
   return { x0: X(sp.x[0]), x1: X(sp.x[1]), y0: Y(sp.y[1]), y1: Y(sp.y[0]), z: sp.z };
 }
@@ -834,7 +834,7 @@ export function signSpots(L, { all = false } = {}) {
 const groundOf = (cam, z) => cam.VPY + cam.F * cam.CAMH / z;
 const ovr = (a, b, m = 0) => a.x < b.x + b.w + m && b.x < a.x + a.w + m && a.y < b.y + b.h + m && b.y < a.y + a.h + m;
 /** the margin (pt) a roof sign keeps from a sun corridor's edge */
-export const CORRIDOR_PAD = 3;
+const CORRIDOR_PAD = 3;
 /**
  * A NAMED ROOF SIGN on a tower's top roof (Part 5): its cabinet in world units { x0, x1, y0, y1, z, roof, legs: [x0, x1],
  * beacon: [x, y] } — centred over the roof, in the open sky above the crown (a clearance over the crown's tip for the frame),

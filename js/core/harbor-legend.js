@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 6b: THE LEGENDARY SKY — WHEN + HOW (PURE: no DOM, no clock of its own; tests/harbor-legend.test.mjs).
-// docs/harbor.md#part-6b. The two legendary events — THE UFO ABDUCTION and THE TR-3B (+ its jet chase) — and the rarer everyday
+// docs/harbor/passes/part-6b.md. The two legendary events — THE UFO ABDUCTION and THE TR-3B (+ its jet chase) — and the rarer everyday
 // stunts on the clock: THE BARNSTORMER (a few times a week). Everything is a function of the date (the same nights for everyone,
 // seeded) and of the seconds since an event began (a phone that joins mid-way lands mid-way; a refresh never re-rolls).
 //   legendNight(y, m, d)   tonight's legendary (the EVENING's date): { kind: 'ufo' | 'tr3b', h } or null — ~1.5 a month each,
@@ -17,7 +17,7 @@ const dateKey = (y, m, d) => `${y}-${m}-${d}`;
 const prevDay = (y, m, d) => { const p = new Date(Date.UTC(y, m - 1, d) - DAY); return [p.getUTCFullYear(), p.getUTCMonth() + 1, p.getUTCDate()]; };
 
 /** each legendary's share of the nights: ~1.5 a month each (the owner: "~1–2 a month") */
-export const LEGEND_P = 0.05;
+const LEGEND_P = 0.05;
 /** how long each runs (s): the abduction's short film, the TR-3B's crossing + the chase + the power coming back */
 /** THE CHASE's pass (s into the event): three F-22s a few seconds behind the TR-3B, across the screen in `dur` s — the lead's x
  *  (fraction of W) goes −0.25 → 1.25 over u 0..1 (each jet `back` jet lengths behind it); `uOff` — the last plume is off the screen.
@@ -29,14 +29,14 @@ export const CHASE = Object.freeze({ t0: 29.2, dur: 2.72, uOff: 1.45 });
 export const JETS_GONE = CHASE.t0 + CHASE.dur * CHASE.uOff;
 export const UFO_LEN = 30, TR3B_LEN = Math.round(JETS_GONE + 11);
 /** the legendary hours (local, the evening's clock: 24.5 = 00:30 the next morning) */
-export const LEGEND_HOURS = [21.5, 24.75];
+const LEGEND_HOURS = [21.5, 24.75];
 
 /** 9e — THE TR-3B ONLY ON PARTY NIGHTS (the owner, Oct 26 — DECIDED): a Friday / Saturday evening (or the homecoming), its own roll
  *  (~1.5 a month: TR3B_PARTY_P of ~8.6 party nights), at the PEAK — the whole lit party blacking out is the drama — in the peak's hours
  *  but never inside the midnight finale's minutes or the first minutes of an hourly dance (TR3B_HOURS: the windows' starts + ends);
  *  never on a fireworks night (July 4th, New Year's Eve); the UFO keeps its any-night roll (LEGEND_P); never two legendary nights running
  *  (legendNight); a raid never shares its night (harbor-raid.js#raidEvening skips legendary nights) */
-export const TR3B_PARTY_P = 0.17;
+const TR3B_PARTY_P = 0.17;
 export const TR3B_HOURS = [[22.15, 22.85], [23.15, 23.85], [24.15, 24.5]];
 const FIREWORKS = (m, d) => (m === 7 && d === 4) || (m === 12 && d === 31) || (m === 1 && d === 1);
 const partyEvening = (y, m, d) => { const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(), pd = partyDow(y, m, d, dow); return pd === 5 || pd === 6; };
@@ -86,7 +86,7 @@ export function legendAt(lc) {
  */
 // (8b1, the owner's decision: ~TWICE A MONTH on random days — POLISH 4 shipped ~2 evenings a week — and NEVER on a legendary night:
 // the UFO / the TR-3B own that sky. 0.073 × the nights that aren't legendary ≈ 2.0 a month.)
-export const FLYBY_P = 0.073;
+const FLYBY_P = 0.073;
 export function flybyDay(y, m, d, duskH = 19) {
   const r = rngFrom(hashString(`flyby|${dateKey(y, m, d)}`));
   if (r() >= FLYBY_P || legendNight(y, m, d)) return null;
@@ -128,7 +128,7 @@ export function ufoAt(s) {
 
 // ------------------------------------------------------------------ THE TR-3B + THE JET CHASE (~50 s)
 /** where the TR-3B is: x across the screen (fraction: −0.45 → 1.45 over its crossing), its direction (seeded) */
-export const TR3B_CROSS = 30;
+const TR3B_CROSS = 30;
 /**
  * The TR-3B s seconds in (dir ±1: left → right or right → left) → {
  *   phase  'cross' | 'gap' | 'chase' | 'restore' | 'gone'
@@ -182,7 +182,7 @@ export function tr3bAt(s, dir = 1) {
 /** 8b1 → Oct 25 (THE TAPE STOP IN WEB AUDIO) — the drain's numbers: the base speed it sags to, a floor (a sanity clamp: the tape has no
  *  iOS floor any more), the wow + the flutter (the oscillators' depths, fractions of the speed), the low-pass it closes to (Hz), the
  *  level it holds while the craft is overhead, the level under the jets' roar */
-export const DRAIN_M = Object.freeze({ rate: 0.5, floor: 0.4, wow: 0.025, flutter: 0.008, hz: 2200, held: 0.72, jets: 0.55 });
+const DRAIN_M = Object.freeze({ rate: 0.5, floor: 0.4, wow: 0.025, flutter: 0.008, hz: 2200, held: 0.72, jets: 0.55 });
 /** the chase's lead x (fraction of W, as if flying right) u into its pass, a jet `back` lengths behind (len: a jet's length as a fraction of W) */
 export const chaseX = (u, back = 0, len = 0.2) => lerp(-0.25, 1.25, u) + back * len;
 /** when (s into the event) the chase formation's middle crosses the screen's centre — the roar's peak lands there */

@@ -15,9 +15,9 @@ const tri = (T, d, g, n) => [0, 1, 2].map(i => d[i] * (T.day || 0) + g[i] * (T.g
 const rr = (c, x, y, w, h, r) => { c.beginPath(); if (c.roundRect) c.roundRect(x, y, w, h, r); else c.rect(x, y, w, h); };
 
 /** the coach's proportions (world units, along its length from the rear 0 → the front len; up from the road) */
-export const COACH = Object.freeze({ h: 2.95, floor: 0.62, belt: 1.45, win: [1.58, 2.38], roof: 2.62, wheel: 0.52, wheels: [0.17, 0.78], door: [0.8, 0.95] });
+const COACH = Object.freeze({ h: 2.95, floor: 0.62, belt: 1.45, win: [1.58, 2.38], roof: 2.62, wheel: 0.52, wheels: [0.17, 0.78], door: [0.8, 0.95] });
 /** the livery (day / golden hour / night): cream over DEEP NAVY BLUE (POL4 — the maroon read as a fire truck at phone size), gold lining + lettering, a silver roof */
-export const LIVERY = Object.freeze({
+const LIVERY = Object.freeze({
   cream: [[234, 224, 196], [246, 210, 164], [60, 56, 70]], navy: [[24, 38, 78], [44, 46, 82], [10, 14, 32]], gold: [[212, 168, 80], [238, 182, 98], [84, 66, 46]],
   roof: [[188, 186, 180], [214, 180, 142], [38, 38, 50]],
 });

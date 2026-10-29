@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 11a-1: DAY OF THE DEAD ON THE NEON SIGN (drawn by the sign's dressing: screens/harbor/signdress.js;
-// docs/harbor.md#part-11a-1) — warm + colourful remembrance, never spooky. In LOGO UNITS (the letters 0..332 × 0..100, y down).
+// docs/harbor/passes/part-11a-1.md) — warm + colourful remembrance, never spooky. In LOGO UNITS (the letters 0..332 × 0..100, y down).
 //   THE MARIGOLD GARLAND   cempasúchil pompoms (dense ruffled petals: deep orange at the rim, gold toward the heart, a shadow under
 //                          each) on a rope of dark leaves, draped along the letters' tops + swagging into the gaps, strands of
 //                          VARYING lengths hanging at the gaps + the ends, each finished with a bigger bloom

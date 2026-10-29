@@ -28,7 +28,7 @@ const R = (...k) => rngFrom(hashString(k.join('|')));
  *  ~5 pt, a squirrel ~4 — they read only by motion + silhouette, so every small one is drawn bigger (the owner's squirrel note: ~1.5×) */
 /** SP3 (the owner): the animals scale with the promenade's people (+9 %, screens/harbor/folk.js#FOLK_SCALE) — a dog on a lead, the cat
  *  by the door keep their size next to them */
-export const WILD_SCALE = 1.09;
+const WILD_SCALE = 1.09;
 const grow = o => Object.freeze(Object.fromEntries(Object.entries(o).map(([k, v]) => [k, Object.freeze(Object.fromEntries(Object.entries(v).map(([q, n]) => [q, q === 'k' ? n : +(n * WILD_SCALE).toFixed(4)])))])));
 export const SIZE = grow({
   pigeon: { len: 0.7, k: 1.85 },         // (0.32 m true → ~9–10 pt on the floor, ~8 on the blade's top: they read as a flock in motion)
@@ -76,11 +76,7 @@ export function wildSpots(L) {
     add({ id: 'billL', kind: 'ledge', x0: B.x0 + 0.3, x1: B.x0 + 0.6, y: B.y1 + 0.03, z: B.z, cap: 1, who: ['owl'] });
     add({ id: 'billR', kind: 'ledge', x0: B.x1 - 0.6, x1: B.x1 - 0.3, y: B.y1 + 0.03, z: B.z, cap: 1, who: ['owl'] });
   }
-  // the tall lamps' crossarms (either side of the finial), the café-light posts' caps
-  (L.lamps || []).filter(l => l.kind === 'tall').forEach((l, i) => {
-    for (const d of [-1, 1]) add({ id: `lamp${i}${d < 0 ? 'a' : 'b'}`, kind: 'rail', x0: l.x + d * 0.42 - 0.08, x1: l.x + d * 0.42 + 0.08, y: l.h - 0.66, z: l.z, cap: 1, who: ['pigeon'] });
-    add({ id: `lampTop${i}`, kind: 'ledge', x0: l.x - 0.02, x1: l.x + 0.02, y: l.h - 0.32, z: l.z, cap: 1, who: ['owl'] });
-  });
+  // the café-light posts' caps (C4d — H1: the tall lamps' crossarms went with the posts)
   CANOPY.posts.forEach((u, i) => add({ id: `post${i}`, kind: 'ledge', x0: s.x0 + u - 0.02, x1: s.x0 + u + 0.02, y: CANOPY.top + 0.1, z: s.z0 + CANOPY.back, cap: 1, who: ['pigeon'] }));
   // the waterside railing (gulls): either side of the WALK / WAIT lantern, behind the crosswalk (open water behind them)
   const rz = 64, cw = L.crosswalk;
@@ -321,8 +317,8 @@ export function pathAt(plan, t) {
   }
   return null;
 }
-export const polyLen = p => { let s = 0; for (let i = 1; i < p.length; i++) s += Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z); return s; };
-export function polyAt(p, d) {
+const polyLen = p => { let s = 0; for (let i = 1; i < p.length; i++) s += Math.hypot(p[i].x - p[i - 1].x, p[i].z - p[i - 1].z); return s; };
+function polyAt(p, d) {
   let c = 0;
   for (let i = 1; i < p.length; i++) {
     const a = p[i - 1], b = p[i], l = Math.hypot(b.x - a.x, b.z - a.z);

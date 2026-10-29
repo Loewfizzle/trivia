@@ -531,6 +531,12 @@ G('core', async () => {
   ok(hb.mem.mb <= hb.mem.budget, `MEMORY BUDGET: the baked layers fit the tier's budget (${hb.mem.mb} ≤ ${hb.mem.budget} MB; main canvas ${hb.main.mb} MB)`);
   ok(hb.mem.layers.every(l => l.dpr <= 2), 'MEMORY: baked layers capped at DPR 2 on a phone');
   ok(A.files.some(u => /\/js\/screens\/harbor\/scene\.js/.test(u)), 'CITY 2: the harbor modules load with the flag');
+  // C4d — FIREBASE AUTH's POLLING GONE (FR4 B2): with IndexedDB first, auth polled it every 800 ms on every page (~18 transactions in
+  // 15 s); localStorage first (js/firebase.js) → none. Counted on this (parked) title over 15 s
+  { await ev(A.page, `(() => { window.__idbTx = 0; const T = IDBDatabase.prototype.transaction; if (!T.__c4d) { IDBDatabase.prototype.transaction = function (...a) { window.__idbTx++; return T.apply(this, a); }; IDBDatabase.prototype.transaction.__c4d = true; } return true; })()`);
+    await sleep(15000);   // (a measurement window: the count over a fixed span is the check)
+    const n = await ev(A.page, 'window.__idbTx');
+    ok(n < 3, `NO IndexedDB POLLING on a parked title: ${n} transactions in 15 s (Firebase Auth's IndexedDB-first persistence: ~18)`); }
   if (SHOTS) for (const [w, h] of [[390, 844], [402, 874], [412, 915], [430, 932], [874, 402], [1440, 900]]) {
     await A.page.setViewport({ width: w, height: h, deviceScaleFactor: w < 1000 ? 2 : 1, isMobile: w < 1000, hasTouch: w < 1000 });
     await waitFor(A.page, `window.__district.harbor().cam.W === ${w}`, 'the re-layout', 8000); await settled(A.page);
@@ -1968,7 +1974,7 @@ G('speakeasy', async () => {
     await Q.ctx.close(); }
 });
 
-// ================================================================ PART 7b — THE SPEAKEASY'S LIFE (ONLY=windows; docs/harbor.md#part-7b)
+// ================================================================ PART 7b — THE SPEAKEASY'S LIFE (ONLY=windows; docs/harbor/passes/part-7b.md)
 G('windows', async () => {
   const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
   // a region's mean colour over a grid of 5 × 5 points (pt rect, fractions of it)
@@ -2933,7 +2939,7 @@ G('weather', async () => {
     await Q.ctx.close(); }
 });
 // 11a-1 — THE HOLIDAYS: Halloween's build-up by date (Oct 10 / Oct 27), Halloween night, the come-down into Day of the Dead (Nov 1), the
-// procession (Nov 2 at dusk), all gone (Nov 3 evening); the forced moments; reduced motion (docs/harbor.md#part-11a-1)
+// procession (Nov 2 at dusk), all gone (Nov 3 evening); the forced moments; reduced motion (docs/harbor/passes/part-11a-1.md)
 G('holiday', async () => {
   const P = 'window.__district.harbor()';
   const page = async (slot, when, extra = '', init = null) => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874], init }); await harborUp(Q.page); await sleep(1500); return Q; };

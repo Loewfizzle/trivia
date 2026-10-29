@@ -47,7 +47,7 @@ const LEGEND_SET = {
 const LEGEND_KEY = { ufo: 3, tr3b: 3, implosion: 2 };
 const LEGEND_HOLD = { ufo: 150000, tr3b: 200000, implosion: 420000 };
 /** a legendary's takes: [[slot, index] …] (empty slots dropped) */
-export function legendTakes(kind, picks = {}) {
+function legendTakes(kind, picks = {}) {
   const f = LEGEND_SET[kind]; if (!f) return [];
   const out = [];
   for (const [slot, i] of f(picks)) {

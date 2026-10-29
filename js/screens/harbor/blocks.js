@@ -30,7 +30,7 @@ const SUNLIT = [255, 168, 96];         // … and the faces toward the sun to th
 const GLASS_D = [44, 58, 82], GLASS_N = [7, 7, 18];
 
 /** a pane's share of its bay (width: a Deco tower's / a plain block's) and of its floor */
-export const WIN_W = { deco: 0.56, plain: 0.5 }, WIN_H = 0.6;
+const WIN_W = { deco: 0.56, plain: 0.5 }, WIN_H = 0.6;
 /** is a building drawn as a Deco tower (piers + recessed spandrels)? */
 export const isDeco = rank => !!rank && rank !== 'band' && rank !== 'quay' && rank !== 'modern';
 /** a window's pane on screen: [x, y, w, h] (pt) — the facade's glass and the lit layer use the same */
@@ -96,9 +96,9 @@ function wheelBackdrop(F, T, seed) {
 const FLOOD_C = [255, 186, 120];
 /** DT1: the floodlights' strength (the darkness's flood ramp, scene.js#lookTones — they fade up through the blue hour); the tone
  *  weights only where no scene passed it (tests, previews) */
-export const floodK = T => (T.flood != null ? T.flood : T.night);
+const floodK = T => (T.flood != null ? T.flood : T.night);
 /** DT1 — the blocks standing right behind the lighthouse (the wall it pops against): cam.lhWall = { x, ty, hw, z } (scene.js) */
-export function behindLighthouse(cam, b) {
+function behindLighthouse(cam, b) {
   const l = cam.lhWall;
   if (!l || !(b.z0 > l.z) || (b.band !== 'near' && b.band !== 'mid')) return false;
   const [a, ty] = project(cam, b.x0, (b.y0 || 0) + b.h, b.z0), [c] = project(cam, b.x1, 0, b.z0);
@@ -388,7 +388,7 @@ export const brickCourse = s => (s >= 1.9 ? 3 : 2);
  * A wall of brick on a front: b = { seed, win? } (win = the window grid: the batches follow its bays + floors), F = faces() (F.front
  * the brick's tone), o = { tierIndex }, the rect a, ty, w, h (pt), s = scale (pt a world unit), dk = the day's strength (0..1).
  */
-export function brickFace(x, b, T, F, o, a, ty, w, h, s, dk) {
+function brickFace(x, b, T, F, o, a, ty, w, h, s, dk) {
   const nk = noonK(T), k = dk * (0.8 + 0.2 * nk), by = ty + h, H = (i, j, n) => winHash(b.seed, ((o && o.tierIndex) || 0) + 40, i, j, n);
   const G = pxGrid(x), px = G.px, p = brickCourse(s), cp = p * px, vis = sm01(1.3, 2.1, s), g = b.win;
   const x0 = G.sx(a), x1 = G.sx(a + w), yB = G.sy(by), yT = ty;
@@ -440,7 +440,7 @@ export function brickFace(x, b, T, F, o, a, ty, w, h, s, dk) {
 }
 /** STONE QUOINS up both corners of a brick front (long / short, a joint between, each lit on top); foot = the stone base's height
  *  (they stop on it) */
-export function brickQuoins(x, b, T, F, a, ty, w, h, s, dk, foot = 0) {
+function brickQuoins(x, b, T, F, a, ty, w, h, s, dk, foot = 0) {
   if (w < 5 || h < 6 || dk <= 0.05) return;
   const G = pxGrid(x), px = G.px, nk = noonK(T), k = dk * (0.8 + 0.2 * nk), p = brickCourse(s);
   const qh = 2 * p * px, long = G.sx(a + Math.max(4 * px, Math.min(w * 0.1, 1.15 * s))) - G.sx(a), short = Math.max(2 * px, G.sx(a + long * 0.6) - G.sx(a));
@@ -459,7 +459,7 @@ export function brickQuoins(x, b, T, F, a, ty, w, h, s, dk, foot = 0) {
   x.fill();
 }
 /** a brick block's STONE CORNICE (the top of a front: a band, a row of dentils, its shadow on the brick, a soldier-course frieze) */
-export function brickCornice(x, T, F, a, ty, w, h, s, dk) {
+function brickCornice(x, T, F, a, ty, w, h, s, dk) {
   if (dk <= 0.05 || h < 8) return;
   const G = pxGrid(x), px = G.px, nk = noonK(T), k = dk * (0.8 + 0.2 * nk);
   const x0 = G.sx(a - 0.3), x1 = G.sx(a + w + 0.3), y0 = G.sy(ty), band = Math.max(3, Math.round(0.55 * s * G.D)) * px;
@@ -490,7 +490,7 @@ function soldiers(x, F, G, u, v, w, hh, k) {
 }
 /** the openings' stone + brick: a SOLDIER-COURSE head over each window, a stone sill under it catching the light (its shadow on the
  *  brick below, longer with the sun high), faint WEATHERING streaks running down from the sills. F (7a) optional: the faces. */
-export function brickTrim(x, b, T, g, xOf, yOf, cw, rh, ww, wh, s, dk, F = null) {
+function brickTrim(x, b, T, g, xOf, yOf, cw, rh, ww, wh, s, dk, F = null) {
   const hi = noonK(T), k = dk * (0.6 + 0.4 * hi), stone = [226, 212, 186], G = pxGrid(x), px = G.px;
   const sh = Math.max(2 * px, G.sy(rh * 0.1) - G.sy(0) || 2 * px), ov = Math.max(px, Math.round(ww * 0.14 * G.D) * px);
   const px0 = col => G.sx(xOf(col) + (cw - ww) / 2), pw = G.sx(ww) - G.sx(0) || px, py = row => G.sy(yOf(row) + (rh - wh) / 2), ph = G.sy(wh) - G.sy(0) || px;
@@ -521,7 +521,7 @@ export function brickTrim(x, b, T, g, xOf, yOf, cw, rh, ww, wh, s, dk, F = null)
 }
 /** a block's RETURN (its side face, near blocks by day): brick courses in perspective (brick only — the same rhythm as the front's,
  *  converging to the back) + the face turning away from us a touch darker toward the back, a fine shadow down the corner */
-export function brickSide(x, cam, b, xs, y0, y1, T, F, brick) {
+function brickSide(x, cam, b, xs, y0, y1, T, F, brick) {
   const G = pxGrid(x), s = cam.F / b.z0, dk = T.day * (1 - (T.ovc || 0) * 0.5) * (1 - F.fz * 0.8);
   const [fx, fy0] = P(cam, xs, y0, b.z0), [bx, by0] = P(cam, xs, y0, b.z1), [, fy1] = P(cam, xs, y1, b.z0), [, by1] = P(cam, xs, y1, b.z1);
   if (Math.abs(fx - bx) < 0.8 || dk <= 0.05) return;
@@ -545,7 +545,7 @@ export function brickSide(x, cam, b, xs, y0, y1, T, F, brick) {
 // the near ones, the odd sun glint on the sunny side. Quiet enough that the building reads first. All of it by the day's share:
 // golden hour, dusk + the night never see it (the lit windows keep their panes exactly).
 const CURTAINS = [[214, 196, 168], [196, 132, 120], [150, 168, 132], [214, 172, 96], [168, 120, 140]];
-export function windowStyle(b, deco) {
+function windowStyle(b, deco) {
   const r = winHash(b.seed, 9, 9, 9, 9);
   if (deco) return r < 0.5 ? 'tall' : 'deco';
   return b.mat === 'brick' || b.mat === 'red' ? (r < 0.25 ? 'office' : 'flat') : (r < 0.55 ? 'office' : r < 0.8 ? 'flat' : 'wide');

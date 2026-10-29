@@ -26,7 +26,7 @@ function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>>
 // the logo's mounting clips (ui/logo.js#CLIPS — the brackets the icicles hang from), in its 332 × 100 box
 const CLIPS = [[0, 30], [64, 70], [92, 30], [92, 76], [176, 50], [240, 50], [268, 30], [332, 70]];
 /** the numbers (pt) — the beads' sizes, the drip's weight, the rates */
-export const BEAD = Object.freeze({ r0: 0.8, rStick: 1.55, rDrip: 2.35, max: 120, land: 26, g: 1250 });
+const BEAD = Object.freeze({ r0: 0.8, rStick: 1.55, rDrip: 2.35, max: 120, land: 26, g: 1250 });
 
 /** PURE: a polyline resampled every `step` pt → [{ x, y, tx, ty (the tangent), s (the length so far) }] */
 export function resample(pts, step) {
@@ -43,7 +43,7 @@ export function resample(pts, step) {
 }
 
 /** PURE: the logo's tubes on screen from its rect (title.js#logoRect: the letters' inset box) — the same mapping as the scene's dark halo */
-export function signGeometry(nr, step = 1.6) {
+function signGeometry(nr, step = 1.6) {
   const w0 = nr.w / 0.86, h0 = nr.h / 0.64, x0 = nr.x - w0 * 0.07, y0 = nr.y - h0 * 0.18, k = w0 / (LOGO_W + 52);
   const ox = x0 + 26 * k, oy = y0 + 30 * k, tubes = [];
   LOGO_LETTERS.forEach((L, li) => { for (const poly of flattenPath(L.d, k, ox + L.x * k, oy, 1.5)) {

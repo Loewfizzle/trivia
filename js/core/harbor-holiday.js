@@ -1,5 +1,5 @@
 // CITY 2.0 — THE HARBOR, PART 11a-1: THE HOLIDAY CALENDAR (PURE: no DOM, no clock of its own — tests/harbor-holiday.test.mjs).
-// docs/harbor.md#part-11a-1. ONE answer for "what holiday is the city dressed for right now, how far along is its build-up, what is
+// docs/harbor/passes/part-11a-1.md. ONE answer for "what holiday is the city dressed for right now, how far along is its build-up, what is
 // up, what is coming down" — every holiday piece (the sign's dressing, the steps, the windows, the promenade, the people, the light
 // rules, the sky) reads it; none keeps its own dates.
 //
@@ -22,7 +22,7 @@ const DAYMS = 864e5;
 const dn = (y, m, d) => Math.floor(Date.UTC(y, m - 1, d) / DAYMS);
 /** a local moment as fractional days since the epoch (the calendar's own clock — no time zone: lc is already local) */
 const at = (y, m, d, h = 0) => dn(y, m, d) + h / 24;
-export const lcDays = lc => at(lc.y, lc.m, lc.d, lc.h + (lc.mi || 0) / 60 + (lc.s || 0) / 3600);
+const lcDays = lc => at(lc.y, lc.m, lc.d, lc.h + (lc.mi || 0) / 60 + (lc.s || 0) / 3600);
 
 /** the holidays (the year of the moment asked): build = when the build-up starts, day = the day itself [from, to) in local days,
  *  night = the holiday's own night [from, to) (hours on the day's clock: 26 = 2 am the next morning), down = the come-down [from, to) */
@@ -96,7 +96,7 @@ export const SPIDER2_DAY = 29;
 /** 11a-2 — THE GIANT JACK-O'-LANTERN on the centre circle (the owner, Oct 26 6:52 pm): the farm's biggest pumpkin arrives on its straw-bale
  *  plinth on Oct 20 (uncarved), is CARVED OVERNIGHT into Oct 28 (by 4 am — the carvers come in the small hours; the city wakes to it),
  *  lit every night from then (its candle from dusk), brightest on Halloween night; gone with the rest at 4 am Nov 1 */
-export const GIANT_DAYS = Object.freeze({ arrive: 20, carve: 28, carveH: 4 });
+const GIANT_DAYS = Object.freeze({ arrive: 20, carve: 28, carveH: 4 });
 /** C4b — THE GIANT OFF (the owner, Oct 28 8:43 pm — "Halloween's almost done, no one's going to see it"): DISABLED from now on — the
  *  code + its bake stay for next October's decision. `&force=giant` (o.giant) still shows it on its dates (a preview + its e2e). With it
  *  off go its closed floor, its floods + the dance's ring round it (they all read `pieces.giant`). */
@@ -167,7 +167,7 @@ export function latchBig(held, now, relatch = false) {
  * day; the BIG pieces are latched — latchBig — so a new one only appears at a load / a return):
  *   mums     0..4 how many dressing spots have their potted mums (from Nov 4)
  *   bales    straw bales on the spots (from ~Nov 6) · spots: 0..3 the set pieces on them (1 a pumpkin, 2 + gourds, 3 + a second pumpkin)
- *   stalks   cornstalk bundles tied to the lamp posts (from ~Nov 8)
+ *   stalks   cornstalk bundles round the compass (PROM: no lampposts) (from ~Nov 8)
  *   harvest  THE HARVEST DISPLAY on the centre circle (from ~Nov 13)
  *   wreath   0..1 the NEON sign's harvest wreath + garland going up (wheat → oak leaves → gourds → the bulbs; from ~Nov 15)
  *   amber    the sign's tubes amber (the day itself)
@@ -231,7 +231,7 @@ export function dotdPieces(H, o = {}) {
   return {
     up,
     marigolds: piece(0, 0.35),       // in the planters
-    garlands: piece(0.15, 0.55),     // on the lamp posts
+    garlands: piece(0.15, 0.55),     // round the trees' trunks + the side door's jambs (PROM: no lampposts)
     papel: piece(0.3, 0.75),         // papel picado across the promenade (fluttering in the real wind)
     petals: piece(0.55, 0.9),        // the marigold petal path to the speakeasy's door
     sign: piece(0.1, 0.6),           // the NEON sign: the marigold garland, papel picado between the letters, candles at its base

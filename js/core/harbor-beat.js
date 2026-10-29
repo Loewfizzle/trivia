@@ -43,16 +43,6 @@ export function beatPunch(b, T = 0.5) {
   if (v > 1 - a) { const y = (v - (1 - a)) / a; env = y * y * (3 - 2 * y); unit = k + 1; } else { env = Math.exp(-v * Tb / DECAY_S); unit = k; }
   return { env, strong: BEAT_WEIGHT[((unit % 4) + 4) % 4], unit, v };
 }
-/**
- * (NEON PASS 5's half-time envelope — beats 1 + 3 only — kept for the harbor-show's older previews / tests; the city's lights
- * use beatPunch since the beat-sync pass)
- */
-export function halfTime(b, T = 0.5) {
-  const x = b / 2, k = Math.floor(x), v = x - k, T2 = 2 * Math.max(0.1, T), a = Math.min(0.3, ATTACK_S / T2);
-  let env, unit;
-  if (v > 1 - a) { const y = (v - (1 - a)) / a; env = y * y * (3 - 2 * y); unit = k + 1; } else { env = Math.exp(-v * T2 / DECAY_S); unit = k; }
-  return { env, strong: ((unit % 2) + 2) % 2 === 0 ? 1 : 0.72, unit, v };
-}
 
 /**
  * WHAT THE BEAT FOLLOWS (7a, simplified in the beat-sync pass — docs/audio.md#the-beat-sync-pass). One of:

@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, Part 6a: THE BIRDS (docs/harbor.md#part-6a). Who is up comes from core/harbor-sky.js#birdsNow (the
+// CITY 2.0 — THE HARBOR, Part 6a: THE BIRDS (docs/harbor/passes/part-6a.md). Who is up comes from core/harbor-sky.js#birdsNow (the
 // hour, the month, the weather); every bird is a crafted silhouette drawn live (a few paths each — no sprite to tint), lit by
 // the hour: by day the gulls' white undersides against the city, at dusk dark shapes against the glowing sky.
 //   GULLS   harbor(c)  a few wheeling over the water in front of the skyline by day — long glides on bent "M" wings (white

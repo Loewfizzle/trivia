@@ -11,7 +11,7 @@ const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const BULBS = [[255, 52, 44], [40, 214, 92], [255, 190, 52], [64, 120, 255], [255, 128, 36]];
 /** the bulbs' size (wall units: exaggerated a little so they read on a phone) + the halo's reach after dark */
-export const XL = Object.freeze({ r: 0.085, len: 0.15, halo: 0.42, hook: 1.05 });
+const XL = Object.freeze({ r: 0.085, len: 0.15, halo: 0.42, hook: 1.05 });
 
 let segCache = null, segKey = '';
 function segsOf(s) {

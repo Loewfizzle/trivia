@@ -27,7 +27,7 @@ export const COSTUMES = Object.freeze(['ghost', 'witch', 'skeleton', 'pumpkin', 
 export const TOT = Object.freeze({ block: 600, gap: [42, 88], kids: [2, 4], side: 0.78, treat: [7.5, 10], chapHat: 0.35, torch: 0.45, glow: 0.3 });
 /** zombies: a group of 2–4 every `gap` s, 8 pm → 2 am (halloweenPieces#zombies); `inside` share go in at the side door (the party) */
 export const ZOMBIE = Object.freeze({ block: 600, gap: [120, 230], n: [2, 4], inside: 0.6, notice: 1.7 });
-export const ZOMBIE_LOOKS = Object.freeze(['suit', 'dress', 'worker', 'bride', 'suit', 'dress']);
+const ZOMBIE_LOOKS = Object.freeze(['suit', 'dress', 'worker', 'bride', 'suit', 'dress']);
 
 /** is it trick-or-treat / zombie time at absolute second t (the calendar's own hours) */
 export function halloweenAt(t, off) {
@@ -72,7 +72,7 @@ export function zombieGroups(k, ctx = {}) {
  *  of the chunks it is planned in (s), the walkers' kinds (weights), how often the trio + the ofrenda pass; its traffic hold */
 export const PROC = Object.freeze({ v: 0.62, files: [55.55, 56.85], gap: [1.25, 2.3], chunk: 60, len: 70 * 60, lead: 40, roles: { candle: 5, catrina: 2.4, marigolds: 1.5, photo: 1.1, child: 0.9 }, trio: 210, ofrenda: 280 });
 /** the sunset hour (local) for a day key from the people's dusk (duskFor: sunset + 0.42 h) — 17.6 without one */
-export const sunsetOf = (dusk, key) => { const d = typeof dusk === 'function' ? dusk(key) : null; return d == null ? 17.6 : d - 0.42; };
+const sunsetOf = (dusk, key) => { const d = typeof dusk === 'function' ? dusk(key) : null; return d == null ? 17.6 : d - 0.42; };
 /** the procession's window [T0, T1) (abs s) near t — Nov 2 from 10 min after sunset (core/harbor-holiday.js#processionAt), or the
  *  &force=procession preview's own (from forceAt + 1.5 s) — or null */
 export function procWindow(t, ctx = {}) {

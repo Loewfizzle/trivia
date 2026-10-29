@@ -1,12 +1,12 @@
 // CITY 2.0 — THE HARBOR, PART 11a-1: THE HOLIDAY DRESSINGS ON THE GROUND — WHERE (PURE: no DOM — tests/harbor-holidayprops.test.mjs).
-// docs/harbor.md#part-11a-1. Every place in world units from the layout (core/harbor-layout.js#harborLayout): the speakeasy's side door
+// docs/harbor/passes/part-11a-1.md. Every place in world units from the layout (core/harbor-layout.js#harborLayout): the speakeasy's side door
 // + its two granite steps, the promenade's lamps + trees. The painters + the live manager: screens/harbor/holidayprops.js.
 //   pumpkinSlots(L)     HALLOWEEN — the jack-o'-lanterns' places on + round the side door's steps (slot i = the i-th pumpkin to
 //                       arrive — core/harbor-holiday.js#PUMPKIN_DAYS — the first ones take the best spots), their kind + size + face
 //   bigPumpkins(L)      WIN — the farm delivery's three BIG jack-o'-lanterns on the promenade's DRESSING SPOTS (core/harbor-spots.js)
 //   marigoldSpots(L)    DAY OF THE DEAD — the marigold pots by the door, the rings round the trees' grates, the clumps at the lamps'
 //                       feet + the planters (wide layouts)
-//   garlandPosts(L)     the lamp posts the marigold garlands wind up
+//   garlandPosts(L)     the posts the marigold garlands wind up (PROM: the trees' trunks + the side door's jambs — no lampposts)
 //   petalPath(L)        the marigold petal path from the promenade to the side door: [{ x, z, r, hue, rot, s }] (seeded, denser at the
 //                       door) — a curve, its petals
 //   papelRuns(L)        the papel picado strings across the promenade: [{ a: {x,y,z}, b: {x,y,z}, sag, n (flags), front }]
@@ -111,7 +111,7 @@ export function giantDecor(L) {
 /** what stands on the DRESSING SPOTS through the November build-up (P: core/harbor-holiday.js#thanksgivingPieces — mums 0..4, bales, spots
  *  0..3, stalks) → [{ id, x, z (its foot), pass ('near' | 'top'), parts (screens/harbor/harvest.js#paintSpotPiece), seed, ext, shadow }]:
  *  the bench's far end a straw bale with pumpkins + gourds + a pot of mums beside it, the hydrant's mums + a squat pumpkin, CORN-STALK
- *  BUNDLES tied round the two tall lamp posts (a pot of mums / a pumpkin at a foot), a smaller bundle round the front globe post */
+ *  BUNDLES (PROM — no lampposts: clumps at the compass's four diagonals, a pot of mums / a pumpkin at a foot) */
 export function thanksgivingSpots(L, P) {
   if (!P) return [];
   const spots = dressingSpots(L), at = id => spots.find(q => q.id === id), out = [];
@@ -213,7 +213,6 @@ export function papelRuns(L) {
     const segs = [[-hw - 0.5, cut0], [cut1, hw + 0.5]];
     for (const [x0, x1] of segs) { const n = Math.max(1, Math.round((x1 - x0) / 7)); for (let i = 0; i < n; i++) { const a = x0 + (x1 - x0) * i / n, b = x0 + (x1 - x0) * (i + 1) / n; run({ x: a, y, z: rz }, { x: b, y, z: rz }, false, { rail: true, sag: 0.32, gap: 0.62 }); } }
   }
-  void s;
   return out;
 }
 

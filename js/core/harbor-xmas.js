@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR, PART 11a-2: BLACK FRIDAY + THE FIRST OF CHRISTMAS (PURE — tests/harbor-xmas.test.mjs; docs/harbor.md#part-11a-2).
+// CITY 2.0 — THE HARBOR, PART 11a-2: BLACK FRIDAY + THE FIRST OF CHRISTMAS (PURE — tests/harbor-xmas.test.mjs; docs/harbor/passes/part-11a-2.md).
 // Thanksgiving's dressing is gone overnight (core/harbor-holiday.js ends it at 4 am, the big pieces at the next load); the day after is
 // a busy SHOPPING DAY — more people out, walking faster, with bags + boxes; the banner plane flies a SALE; the CHRISTMAS-TREE VENDOR sets
 // up his stand by the bench; and late morning the FIRST CHRISTMAS CREW comes in the electrician's van: two men take the window washers'

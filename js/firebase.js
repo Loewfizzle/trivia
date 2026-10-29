@@ -60,7 +60,11 @@ export async function initFirebase(onConnectedChange) {
   ]);
   sdk = { ...appMod, ...authMod, ...dbMod };
   app = sdk.initializeApp(config, slot === '1' ? '[DEFAULT]' : `slot-${slot}`);
-  auth = sdk.initializeAuth(app, { persistence: [sdk.indexedDBLocalPersistence, sdk.browserLocalPersistence] });
+  // C4d (FR4 B2): localStorage FIRST. With IndexedDB first, Firebase Auth polled it every 800 ms for the life of every tab — 75 storage
+  // transactions a minute, a parked title too (a storage-process wake every 0.8 s on a phone). The IndexedDB persistence stays in the
+  // list so a player saved there before is MIGRATED (Firebase reads it once, moves the user to localStorage, removes it there): the
+  // same uid, the same seat + profile — proven in Chromium + WebKit on the emulators (C4d), each slot's named app keeping its own user.
+  auth = sdk.initializeAuth(app, { persistence: [sdk.browserLocalPersistence, sdk.indexedDBLocalPersistence] });
   db = sdk.getDatabase(app);
   if (useEmulator) {
     sdk.connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });

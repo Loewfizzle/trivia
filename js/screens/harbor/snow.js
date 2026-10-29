@@ -44,7 +44,7 @@ export const releaseSnow = () => { if (scratch) { scratch.width = scratch.height
  * A bake step: the snow on every top of the layer baked so far. o: { pt (the band's thickness, pt), col ([r,g,b]), a (alpha), up (the
  * share of the band lifted above the edge: the snow sits ON the roof) }
  */
-export function capStep(o) {
+function capStep(o) {
   return x => {
     const cv = x.canvas;
     if (!cv || !cv.width || !cv.height || !(o.pt > 0.05) || !(o.a > 0.01)) return;
@@ -85,7 +85,7 @@ const fbm = (x, y) => 0.6 * vnoise(x, y) + 0.3 * vnoise(x * 2.1 + 7, y * 2.1 + 3
 /** PURE-ish: the walkers' worn routes on the promenade (0..1 at x, z) — 9c (the owner: "you can't really tell what that is"): WIDE
  *  trodden LANES along the routes people really take — the crossing → the speakeasy's door (the diagonal), along the railing, round the
  *  compass inlay, the front walk + the door's own short path. 1 = the lane's middle (the cobbles show through), soft at the edges. */
-export function pathsOf(L) {
+function pathsOf(L) {
   const e = L.edge, ir = L.impliedRoad, on = L.impliedOn !== false;
   const zF = on ? e.z + e.curbW : ir.z0;
   const s = L.speakeasy, door = s ? s.x0 + (s.door.u0 + s.door.u1) / 2 : null, cw = L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : null;
@@ -176,7 +176,7 @@ export function groundSteps(L, T, SN) {
 
 /** PURE-ish: the worn routes as world polylines [{ pts: [[x, z], …], hw (half-width) }] — 9c: the crossing → the speakeasy's door, along
  *  the railing, round the compass, the front walk, the door's own short path, the crosswalk's landing (what pathsOf describes) */
-export function pathRoutes(L) {
+function pathRoutes(L) {
   const e = L.edge, ir = L.impliedRoad, on = L.impliedOn !== false, cam = L.cam;
   const zF = on ? e.z + e.curbW : ir.z0, H = cam.hw(zF) * 1.05 + 2;
   const s = L.speakeasy, door = s ? s.x0 + (s.door.u0 + s.door.u1) / 2 : null, cw = L.crosswalk ? (L.crosswalk.x0 + L.crosswalk.x1) / 2 : null, m = L.medallion;

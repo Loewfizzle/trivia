@@ -15,7 +15,7 @@ export const ROOM_DEPTH = 0.78;
 /** how far each room's own vanishing point is pulled from its glass's centre toward the scene's (0 = a frontal box, 1 = the true
  *  oblique view through a 30-pt pane: mostly side wall + floor, the back wall past the right jamb — unreadable): the back wall shifts a
  *  little up + right, a floor + a left-wall sliver show, the right wall + the ceiling stay hidden */
-export const ROOM_PULL = 0.12;
+const ROOM_PULL = 0.12;
 
 /**
  * roomBox(G, vp, kBack, pull) → { back { g0, g1, h0, h1 }, faces { floor, ceiling, left, right } (each a quad [[u, v] × 4] or null), vp (the

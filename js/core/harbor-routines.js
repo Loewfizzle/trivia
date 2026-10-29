@@ -2,7 +2,7 @@
 // A2 row 8). A routine is a set piece on the CLOCK: planned once per slot from a seed (the local date + the slot), so every phone sees
 // the same one and a page opened mid-way joins it mid-way; it reserves its people (the blocks plan around its occupancy) and its
 // floor (the walkers route round it). FP3b builds the SKELETON with ONE routine — THE GLOW-WAND DANCE CIRCLE (the owner's 8P note 5);
-// 8b adds the workers' day (the newsboy, the barber, the window washers…) as more entries of the same shape. PURE (tests: harbor-
+// (the workers' day became its own timetable: core/harbor-workers.js, 8b1.) PURE (tests: harbor-
 // people.test.mjs).
 //
 // THE DANCE CIRCLE: on a party night at its PEAK (22:00 → 00:45), in most quarter hours, a circle FORMS on the brick compass inlay —
@@ -94,7 +94,7 @@ export function danceLevel(sess, t) {
 // ------------------------------------------------------------------ THE VENDOR SPOT (FP3b item 11b — the owner + Claude, Oct 24)
 // The front curb in the middle, just in front of the compass inlay (right of it on screen, so it never covers the inlay — FP3b's
 // numbers: a cart centred in front of the compass would cover its front half at every phone size), SHARED BY TIME: the NEWSBOY's
-// small stand in the morning + for the evening edition (8b builds him — `newsboy` here is the hook), the CHESTNUT CART from ~6:30 to
+// small stand in the morning + for the evening edition (the hook — the morning paper is core/harbor-workers.js's), the CHESTNUT CART from ~6:30 to
 // ~9:30 pm in the COLD months only (October → March: roasted chestnuts are a cold-weather treat), empty in between (people walk
 // through). Whenever the inlay is in use — the dance circle, a holiday centrepiece — nothing sets up there.
 // The cart is WHEELED IN by its vendor from the right edge (and out again): cartAt(t) is where it is, pure, on the clock.
