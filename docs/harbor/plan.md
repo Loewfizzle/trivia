@@ -77,7 +77,7 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | C4a | ✅ (Oct 28 — docs/harbor.md#c4a) THE SHOPFRONT + THE GROUND (review-4 §E items 1–6, the windows.js split first): the barbershop as a real 2.5D room (dim at night, the mirror door), the awning lit from below + brighter, the lit blind, the wet sheen (no implied-lamp streaks), the crosswalk's soft light, the cars lit through it | Opus 5.5 high | ~3 h |
 | C4b | ✅ (Oct 29 — docs/harbor.md#c4b) THE PEOPLE + THE COMPASS + THE GIANT OFF: the giant ₿ pumpkin disabled (first), the compass + the water bench + the cart re-placed (re-measured first), the sitters, the doorman who opens the door, &force=waterbench, THE PEOPLE RULE after the UFO | Opus 5.5 high | ~3 h |
 | C4c | ✅ (Oct 29 — docs/harbor.md#c4c) THE OWNER'S BUGS + THE MEASURING TOOLS: the blackout for real (the benches, the props, the maple; tested at 3× on four holiday nights), the bus door eased, the dogs after dark, the hay bale off the wall, the hydrant corner's lamp, the maple's edge, the solid benches, the side door swinging out toward the doorman; &dpr=3, THE PHONE BENCH (&bench=1), the memory guard measured (nothing ever stepped down) + raised, the climb re-armed; the harvest display's 3D model test (&prop=model) | Opus 5.5 high | done |
-| C4d | ← NEXT: review-4's code / tests / docs (§E items 12–16 + 18: Firebase Auth's polling, the cloud's five test fixes, the readout's honest total, dead code, the A/B flags list, the docs + CLAUDE.md trims, harbor.md's split, the flaky checks) | Opus 5.5 high | ~2.5 h |
+| C4d | (this pass) ← NEXT: review-4's code / tests / docs (§E items 12–16 + 18: Firebase Auth's polling, the cloud's five test fixes, the readout's honest total, dead code, the A/B flags list, the docs + CLAUDE.md trims, harbor.md's split, the flaky checks) | Opus 5.5 high | ~2.5 h |
 | SKY | THE LEGENDS: THE BLACKBIRD (one flyby animation — the static tell, the vapor cone + shock ring + the late double boom, the Mach-diamond plumes, above the sign — its rare solo sightings, the hour-watcher's reward, joining every TR-3B chase once the jets are ~⅓ across), THE F-22 MODELS everywhere (the tight triangle + the bank), THE TR-3B AT FULL RESOLUTION (one solid body, no shadow on the backdrop), THE MOTHMAN on the needle (Grok's model, standing, wings spread, red eyes), THE SHADOWBOXER (9–11 pm, 3-min rounds + 1-min breaks, the full two hours; THE WINDOW RULE II), the upper windows on the crisp layer — "OWNER'S NOTES — OCT 28 (PROM's review)" | Opus 5.5 high | ~4–5 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | PERF | a SHORT SPEED PASS set by C4c's phone bench (`&bench=1`): the cheap wins FR4 listed (one glow-sprite cache, the still 'lighter' pools baked, the bar's day repaint), the spectacle cap + the budgets from the bench — "OWNER'S NOTES — OCT 28 (C4a's review)" | Opus 5.5 high | ~1–1.5 h |
@@ -3941,3 +3941,38 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   blackout leaks, the bus door, the dogs, the hay bale, the hydrant's light, the maple's edge, the solid benches, the door's outward swing,
   &dpr=3, the phone bench, the memory budget, the tier's climb) ~3 h; C4d = review-4's code / tests / docs (items 12–16 + 18, harbor.md's
   split, the flaky checks) ~2.5 h; then SKY.
+
+## OWNER'S NOTES — OCT 29 (C4c's review + the phone bench)
+- THE SUN LOOKS WRONG (the owner, Oct 29 9:35 am, iPhone screenshot, a clear autumn morning): it reads as a flat pale CREAM DISC with a hard
+  edge sitting inside an even white glow — like a paper plate or a daytime moon, not the sun. Claude: a real sun at that height is a
+  near-WHITE core that BLOWS OUT into its glow (no flat coloured disc, no visible rim), warmer only near the horizon (sunrise / sunset);
+  the glow brightest at the core, falling off smoothly + a wide faint bloom; maybe a subtle glint / a few soft rays in clear air (never a
+  cartoon starburst); the sky around it lighter. → ATM (the atmosphere pass owns the sky's light) — district/sun.js's disc + the Harbor's
+  haze; judged at 390 / 402 / 430 at 9 am, noon, golden hour, through a thin veil + broken cloud.
+- C4c REVIEW (the owner, Oct 29 11:32 am): ✔ the TR-3B blackout "good", ✔ the bus doors "good", ✔ the hay bale "looks good", ✔ the hydrant
+  corner ("a little dark but that's ok"). FIX (C4d): (1) THE BUS WAITS TOO LONG after the riders are on / off → it pulls away soon after
+  the last rider clears + the door folds shut (a short real-life beat, ~1–2 s, not a long idle; check the timetable's dwell); (2) THE DOG
+  WALKER link (…when=2026-10-29T19:12) showed NO dog walker → a `&force=dogwalk` (+ a panel row) that sends a walker + dog within ~10 s,
+  day + night, so the owner can judge the dog; check the dog walkers' schedule actually puts one on screen at that hour.
+- THE PHONE BENCH — THE OWNER's iPHONE 16 PRO (Oct 29 11:40 am, iOS 18.7 Safari, 402×660 pt, the city at 2×): every scene held tier 2/2,
+  nothing stepped down; fps 59.8 party · 59.9 party + snow · 55.4 HALLOWEEN PROPS (p95 26 ms, 14 % slow, bakes 36 %) · 58.3 UFO over a crowd
+  (p95 21, 6 % slow) · 59.3 TR-3B + chase (one 100 ms hitch) · 59.7 storm; the city's own WORK 3–9 ms a frame of 16.7 (mean 5.9 at a party
+  peak, 8.7 Halloween); canvases 76–86 MB. READ (Claude): (1) the 16 Pro has ~2× headroom at 2× → the spectacle cap can rise for Part 10 /
+  11b on strong phones (older phones keep stepping down — one run on an older iPhone still wanted); (2) the full city at 3× would cost
+  ~×2.25 the fill → Halloween's ~8.7 ms → ~19–20 ms = dropped frames even on the 16 Pro → 3× stays for still pieces only (confirms FR4);
+  (3) PERF's targets: the HALLOWEEN PROPS night (re-bakes mid-scene = the slow frames — chunk / pre-bake / move off the moment), the
+  UFO-over-a-crowd p95, the TR-3B's single 100 ms hitch at its start (a load / decode → pre-warm).
+- THE HARVEST MODEL DOESN'T SHOW ON HIS PHONE (the owner, Oct 29 11:36 am): the &prop=model vs drawn links (Nov 19 21:00 + 14:00) look
+  IDENTICAL on his iPhone → the model most likely doesn't load on the live site / iOS Safari + the drawn display stands in silently →
+  C4d: check the LIVE site in WebKit + Chromium (the three files return 200 from Vercel, harvestModel() resolves, the stat says model:
+  true), fix the cause, make a failed load visible (&debug=1's load strip + a report to /admin), give a fresh proven link pair.
+- THE HUNYUAN3D LICENSE (Claude's call, the owner deferred, Oct 29): Hunyuan3D 2.1's community license excludes the EU / UK / South Korea +
+  asks for AI-generated labelling → its models stay TESTS (never shipped as-is). Grok's next model runs (the Mothman, the rest of the
+  holiday props) go through MESHY or TRIPO instead — only after Grok confirms their free-tier terms allow commercial use worldwide (else:
+  CC0 / CC BY libraries, or Claude Code's hand-drawn pieces). The Mothman's flat PNG (Grok Imagine — the owner's subscription; xAI's terms
+  to confirm) stays a valid fallback.
+- THE 3× PIECES — DECIDED (the owner, Oct 29 11:47 am: "go with your gut", skipping the 2×/3× pairs; the bench showed the full city at 3×
+  would drop frames even on the 16 Pro): sharp at the device's 3× = (1) the upper speakeasy windows (SKY), (2) the legends' craft — the
+  TR-3B, the Blackbird, the F-22s, the UFO (if still 2×) — + THE MOTHMAN (SKY), (3) the shopfront: the barbershop glass + the awning's
+  valance + the BARBER POLE (a later pass, with the people redrawn over it like the benches), (4) the WAIT / WALK signal boxes, (5) THE MOON
+  via the sky layer. Everything else stays 2×. The owner judges each when it lands.
