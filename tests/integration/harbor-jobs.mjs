@@ -34,7 +34,7 @@ export const SECONDS = {
   doors: 20,           // (9d: THE DOORS NEVER SNAP — two pages one after the other, a forced pass each; 13 s on the laptop)
   tower: 37,           // (9e: THE CONSTRUCTION TOWER — four pages one after the other; 9f: + the site at night — 18 s on the laptop; BNAME: + the classic crane page — 21 s)
   citylife: 40,        // (9e: THE CITY LIFE — the night shift, the water wagon, the morning paper; three pages)
-  light: 40,           // (NIGHT-A: THE BRIGHTNESS LADDER — four pages at 3×; a guess from the laptop)
+  light: 30,           // (NIGHT-A: THE BRIGHTNESS LADDER + THE BUTTONS AT NIGHT — four pages at 3×; 28 s on the laptop)
   thanks: 70,          // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
 };
 

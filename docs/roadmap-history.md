@@ -1547,6 +1547,19 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   64 / 96 / 160 counting every live canvas (canvasMb); the readout's canvases row; the climb re-armed after heavy moments + a 3-min retry.
 - Group 3: the harvest display's 3D model test (recipe `harvest`, assets/city/harvest/, &prop=model + a HOLIDAYS row; its credit ready).
 
+## CITY 2.0 — NIGHT-A: THE NIGHT LIGHT (Oct 29 2026) — docs/harbor/passes/night-a.md (plan.md "OWNER'S NOTES — OCT 29 (the afternoon)")
+- Group 0: sky.js#cleanZone (a &tz= / panel zone cleaned + checked before Intl, the raw string to /admin once); audio/mood.js — a forced party
+  show beats a saved MUSIC MOOD (the panel's PARTY plays a party song, the pulse on its grid); the party stall not reproduced on 48df906
+  (Chromium 4× + WebKit); CLEAR ALL in EVERYONE mode clears JUST ME too, a kept JUST ME state yields to the link's own flags, &prop + &light
+  are preview keys, the readout's `panel:` row; the debug strips scroll by touch on iOS.
+- Group 1: THE NIGHT LIGHTING REWORK in core/harbor-light.js behind `&light=new|old` + TOOLS rows (default old): an even cool base + ONE warm
+  wash by depth (no pools), the shopfront + the cab stand + the cart the only local light, faces + crowns lit from the front, people keep
+  their colours, soft long faint shadows from one direction, the trees' night shadow short (the owner's add-on), the dusk / outages /
+  blackout full-width, the party's faint tint, the window party's pools tint instead of adding. e2e `light`: THE BRIGHTNESS LADDER.
+- Group 2: JOIN = HOST at night (measured: ring luma 170 / 154, words 255 / 252), the corner buttons' white rings at night.
+- Group 3: the harvest model re-baked (the bulbs as point lights, the wash key, the floods' rim, a golden-hour sprite), its credit live; the
+  TAXI STAND plate left implied (8-pt letters need a 2.3 × 1.5 u plate); the boss's window strip glass by day (the owner's add-on).
+
 ## CITY 2.0 — C4d: THE CODE, THE TESTS, THE DOCS (Oct 29 2026) — docs/harbor/passes/c4d.md (plan.md "OWNER'S NOTES — OCT 29 (C4c's review + the phone bench)")
 - Group 0: THE BUS's DWELL (busLive: away go0 1–2 s after the real shut; the door shut 1.1–1.6 s after the last rider; arrivals on the signal's
   clock); `&force=dogwalk` + A DOG WALK (DOGWALK); the harvest model on the live site checked in WebKit + Chromium (it loads): its state in the

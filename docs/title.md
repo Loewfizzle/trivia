@@ -555,6 +555,11 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
   under Reduced effects); a night load flickers them on with the letters in the power-on (`ringOn`), a daytime load leaves them
   glass (`title.js#ringsWanted`, followed in `applyNeon`). Unlit, the label stays crisp (≥ 4.5:1), and a tap gives the dark ring a
   brief glow (`.is-flash`, `title-dock.js`) so it plainly reads as a button. JOIN's panel open: the ring a touch brighter and a small cyan light under it (`.nd-tab-ind`).
+- **NIGHT-A — JOIN = HOST at night** (css/title.css, `.nd-actions:not(.is-daylit) .nd-hostbtn`): HOST's tube in the sign's language — a
+  wider white-hot core in a lighter pink body, its glow tubes lifted toward white, the letters a near-white core in the pink glow — so the
+  pair measures equal (luma: rings 170 / 154, words 255 / 252 at 402×660, e2e `light`); by day unchanged. **The corner buttons at night**:
+  a white neon ring round each disc (`::before`, opacity 0.67 — ~⅔ of the dock's), on with the icons' catch (`.nd-cl-lit`) while the dock
+  isn't daylit; red-pink with the music off.
 - **The small icons** (BOARD·N, GAMES·E, YOU·O) and **the title's corner buttons** (☰ + music·N) are tubes of the sign
   (`dockLight` / `dockAll`): dark through the day and the sunset ramp, lit at the catch with the logo, lit all night (catching the
   logo's rare flicker), dark at dawn when the last letter dies. Unlit: empty glass with a slightly brighter outline than the old

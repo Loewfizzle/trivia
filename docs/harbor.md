@@ -697,3 +697,4 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | C4c | Oct 29 | [passes/c4c.md](harbor/passes/c4c.md) | THE OWNER'S BUGS + THE MEASURING TOOLS |
 | C4d | Oct 29 | [passes/c4d.md](harbor/passes/c4d.md) | THE CODE, THE TESTS, THE DOCS + the bus's dwell, the forced dog walk, the harvest model's load told |
 | HOTFIX | Oct 29 | [passes/hotfix-oct29.md](harbor/passes/hotfix-oct29.md) | THE FORCED BUS AT 5 FPS (the plan cache) + THE BASELINE GUARD, the harvest model's readout row + iOS fallbacks, THE DOG's TURN |
+| NIGHT-A | Oct 29 | [passes/night-a.md](harbor/passes/night-a.md) | THE NIGHT LIGHT (`&light=new\|old`: one warm wash, an even base, no pools; THE BRIGHTNESS LADDER), JOIN = HOST at night + the corner rings, the harvest model re-baked in the city's light + golden hour, the bad time zone, the panel's party song, stored forces vs links, the strips scroll on iOS, the trees' night shadow, the boss's window by day |
