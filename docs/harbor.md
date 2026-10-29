@@ -694,3 +694,4 @@ handoff live in its own file below (newest last). A link to a pass: `docs/harbor
 | C4a | Oct 28 | [passes/c4a.md](harbor/passes/c4a.md) | THE SHOPFRONT + THE GROUND |
 | C4b | Oct 28–29 | [passes/c4b.md](harbor/passes/c4b.md) | THE PEOPLE + THE LAYOUT |
 | C4c | Oct 29 | [passes/c4c.md](harbor/passes/c4c.md) | THE OWNER'S BUGS + THE MEASURING TOOLS |
+| C4d | Oct 29 | [passes/c4d.md](harbor/passes/c4d.md) | THE CODE, THE TESTS, THE DOCS + the bus's dwell, the forced dog walk, the harvest model's load told |

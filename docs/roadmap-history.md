@@ -1547,3 +1547,13 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   64 / 96 / 160 counting every live canvas (canvasMb); the readout's canvases row; the climb re-armed after heavy moments + a 3-min retry.
 - Group 3: the harvest display's 3D model test (recipe `harvest`, assets/city/harvest/, &prop=model + a HOLIDAYS row; its credit ready).
 
+## CITY 2.0 — C4d: THE CODE, THE TESTS, THE DOCS (Oct 29 2026) — docs/harbor/passes/c4d.md (plan.md "OWNER'S NOTES — OCT 29 (C4c's review + the phone bench)")
+- Group 0: THE BUS's DWELL (busLive: away go0 1–2 s after the real shut; the door shut 1.1–1.6 s after the last rider; arrivals on the signal's
+  clock); `&force=dogwalk` + A DOG WALK (DOGWALK); the harvest model on the live site checked in WebKit + Chromium (it loads): its state in the
+  LOAD LOG + a failure to /admin + a retry; a panel state replacing a link's own flags now says so; floor() a step clear of every obstacle.
+- Group 1: F7 / F8 / F10 / F11 / F12 (hard) / F14 + F15 (skipped on CI) / F17 — each with its cause; F6 closed; the perf group's "Promise was
+  collected" (the harness) → it caught a real leak (fixed); pixdiff at rest.
+- Group 2: Firebase Auth localStorage-first (the IndexedDB user migrated; polling 12 → 0 / 10 s); the dressing at the resolution tier, the
+  frost pane freed; H1 lampposts out, H12, H13, `?season=`, the facade key's month, H5 (154 un-exported, 11 deleted); AB_FLAGS + the grep test.
+- Group 3: docs/harbor.md split (63 pass files, an INDEX, one open Known issues list, the file map from CLAUDE.md); check-doc-links +
+  its unit test; CLAUDE.md 57 → 39 KB; A4's stale lines.

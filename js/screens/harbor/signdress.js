@@ -131,7 +131,9 @@ export function createSignDress() {
   function detach() { if (ro) { ro.disconnect(); ro = null; } if (cv) cv.remove(); cv = null; x = null; host = null; free(); }
   function free() { if (job) { job.silk.width = job.silk.height = 0; job.glow.width = job.glow.height = 0; job = null; } for (const k of ['silk', 'glow']) if (cache[k]) { cache[k].width = cache[k].height = 0; cache[k] = null; } staticKey = ''; }
   function size() {
-    dpr = Math.min(3, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
+    // (C4d — FR4 H17: at the scene's RESOLUTION tier — 3 / 2 / 1.5 (env.dressDpr); it was the device's full 3× at tier 0 too, where this
+    // canvas was the single biggest consumer (8.8 of 36 MB). The top tier is unchanged: no look change on a phone that holds it)
+    dpr = Math.min((lastEnv && lastEnv.dressDpr) || 3, (typeof window !== 'undefined' && window.devicePixelRatio) || 1);
     const k = wpx / VB.w; sc = k * dpr;                       // device px per logo unit
     PW = Math.ceil((BOX.x1 - BOX.x0) * sc); PH = Math.ceil((BOX.y1 - BOX.y0) * sc);
     if (cv.width !== PW || cv.height !== PH) { cv.width = PW; cv.height = PH; x = safeCtx(cv); }
@@ -171,7 +173,7 @@ export function createSignDress() {
     const ck = lfKey;
     const P = env.pieces || {};
     const stageQ = ids.includes('web') ? Math.round(P.web * 400) : 0, dotQ = ids.includes('dotd') ? Math.round(P.sign * 40) : ids.includes('thanks') ? Math.round(P.wreath * 40) : 0;
-    const key = `${ids.join(',')}|${stageQ}|${dotQ}|${dayB}|${ck}|${wpx.toFixed(1)}|${env.tier}`;
+    const key = `${ids.join(',')}|${stageQ}|${dotQ}|${dayB}|${ck}|${wpx.toFixed(1)}|${env.tier}|${env.dressDpr || 3}`;
     const lightAt = (px, py) => LF.at(px, py);
     let rebaked = false;
     // ---- THE BAKE, in slices (never one long frame): warm the light field over what will be drawn, then each piece into fresh caches

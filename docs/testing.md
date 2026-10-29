@@ -228,6 +228,12 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   `MEASURE=1 ONLY=bench` adds THE MEMORY GUARD's table (390 / 402 / 430 × the three tiers at a 3× phone + `&dpr=3`: what the bakes want,
   whether the old 24 / 40 / 64 MB budgets would have stepped a layer down, every live canvas). On a phone: `?city=2&bench=1` → START
   (≈ 3 min, keep the screen on) → the report on screen (COPY) + /admin → Reports from phones (BENCH). `&dpr=3` = the city at 3× for a look.
+- C4d — THE CLOUD's NAMED SKIPS: a speed check the 2-core runner can never answer (A CALM LOAD STEPS NOTHING, BATTERY's frame counts) is
+  `skipCI(what, why)` on CI — listed in the job's summary as `skipped` with its reason; `TIMING=strict` runs them anyway. THE DOCS' LINKS:
+  `node scripts/check-doc-links.mjs` (+ `tests/doc-links.test.mjs` in the unit suite) — every `docs/….md(#anchor)` in the repo resolves (a
+  pass's log: `docs/harbor/passes/<id>.md`). `pixdiff.mjs` shoots both sides AT REST (the title's `nd-idle`). On THIS Windows laptop
+  (headless Chromium 149) the `perf` group's three BATTERY checks fail the same on older commits (no animation frame for 0.6 s after
+  "visible again") — the cloud's Linux Chrome is the judge for them.
 - THE MUSIC ON AN iPHONE (docs/audio.md#m2 / #m3 / #m4): `ONLY=music node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 90 s, the emulators) — §6 the
   M2 scenarios (leave + come back, stuck, the music button, a network error, the OS pause, bfcache, a dead voice), §7 iOS's gesture rule
   emulated (play() / resume() refused outside touchend / click; a frozen clock → the direct element, the rebuild cap), §8 THE EVIDENCE

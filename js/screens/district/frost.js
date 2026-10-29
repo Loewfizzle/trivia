@@ -95,7 +95,8 @@ export function createFrost(opts = {}) {
     setClear(rects) { const k2 = (rects || []).map(r => `${Math.round(r.x / 6)},${Math.round(r.y / 6)},${Math.round(r.w / 6)},${Math.round(r.h / 6)}`).join(';'); if (k2 !== (clearRects && clearRects.key)) { clearRects = rects || null; if (clearRects) clearRects.key = k2; key = ''; } },
     pane(c, s) {
       const k = s.L.freeze || (s.force.has('freeze') ? 1 : 0);
-      if (k <= 0.01) { grown = 0; wasCold = false; return; }
+      // (C4d — FR4 H18: the whole-screen pane (5.3 MB at 2×) was kept for the rest of the visit once a frost had formed — freed with the thaw)
+      if (k <= 0.01) { grown = 0; wasCold = false; if (cv) { cv.width = cv.height = 0; cv = null; key = ''; } return; }
       // (9e: s.joined — a city OPENED on a frozen night already has its frost; it creeps in slowly only when the cold arrives while you look)
       if (!wasCold) { wasCold = true; grown = s.joined ? 1 : 0; }
       // it forms slowly: a few seconds to creep in from the edges

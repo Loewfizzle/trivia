@@ -188,7 +188,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (S.dressHost) dress.setHost(S.dressHost);
     { const lv = signLive(); if (lastSignLv >= 0 && Math.abs(lv - lastSignLv) > 0.3) pokeDress({ kind: lv < lastSignLv ? 'dim' : 'flash', k: Math.min(1, 0.4 + Math.abs(lv - lastSignLv)) }); lastSignLv = lv;
       if (zap.flash() > 0.35) pokeDress({ kind: 'lightning', k: 0.85 }); }
-    dress.frame({ holiday: H, pieces: P, t, motion: !!S.motion, tier, dpr, signLit: signLive(), word: wordLogo(), letterCols: HR && HR.sign && H === HS ? DRESS_COLS[HR.sign] || null : null,
+    dress.frame({ holiday: H, pieces: P, t, motion: !!S.motion, tier, dpr, dressDpr: [1.5, 2, 3][dprTier] || 3, signLit: signLive(), word: wordLogo(), letterCols: HR && HR.sign && H === HS ? DRESS_COLS[HR.sign] || null : null,
       dark: clamp01(1 - (LK.w.day || 0) - 0.5 * (LK.w.golden || 0)), wind: WXS ? WXS.gust || 0 : (LK.wind == null ? 3 : LK.wind) });
   }
   const dressDebug = () => (dress ? dress.debug() : null);
