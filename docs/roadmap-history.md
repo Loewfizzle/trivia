@@ -1511,3 +1511,15 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   compared — the hand-drawn pieces stay.
 - Group 0: the legendaries' sounds fetched + pinned ahead; the implosion's new timeline + HORN B + the siren +10 %; HUM A + DEPART LAYERED
   defaults; the joggers in shorts + singlets / grey sweatsuits, their arms tucked.
+
+## CITY 2.0 — C4a: THE SHOPFRONT + THE GROUND (Oct 28 2026) — docs/harbor.md#c4a (review-4.md §E items 1–6)
+- Group 0: windows.js split into windows.js (the life) + window-rooms.js + window-figure.js + window-paint.js + window-holiday.js (pure
+  moves; pixdiff identical).
+- THE BARBERSHOP a 2.5D room on the rooms' box (window-rooms.js#paintShopRoom — the bake, the night's lit canvas + the live barber share
+  it): the mirror wall + the hidden door at the back, the tiles, the chair, one shaded lamp; closed + dim at night through lampFall; the
+  veil, the oval, the halo + the glow over the glass gone; the glass's reflection in front; the gilt lit by the awning only.
+- THE AWNING brighter from below (cream 1, red 0.55), the dodge kept off the glass. THE LIT BLIND (litBlind) on the boss's shade, the edge
+  windows + the blind cycle; the edge moods lit by lampFall.
+- THE WET STREET: no implied-lamp streaks — a sheen brightest at the foot; the back reflections 0.42 / 0.2 + broken + rippling in rain.
+- THE CROSSWALK: one soft radial per pool, feathered at the curb + the rail, wider; THE CARS sampled tail / middle / nose → a gradient,
+  the wheels lit, the signal's colour at the crossing. New: shots --crop crossing, the crossing unit test, e2e `weather` + `people` probes.
