@@ -454,7 +454,8 @@ export function createSun(opts = {}) {
     /** the day's moments for the neon (sunMoments), cached per local day and layout */
     moments(ms, tz, lat, lon) {
       if (lat == null || lon == null) return null;
-      const day = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(ms));
+      let day;   // (NIGHT-A: a zone Intl rejects never throws out of the title's mount — the clock's tz is cleaned (sky.js#cleanZone); this is the last guard)
+      try { day = new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(new Date(ms)); } catch { day = new Date(ms).toISOString().slice(0, 10); }
       const lk = layout ? `${W}|${H}|${Math.round(layout.block.y)}|${Math.round(layout.block.h)}|${layout.sky.length}|${Math.round(layout.sky[Math.floor(layout.sky.length / 2)])}|${layout.word ? Math.round(layout.word.y) : '-'}` : 'none';
       const key = `${day}|${tz}|${lat.toFixed(2)}|${lon.toFixed(2)}|${lk}`;
       if (key !== momentsKey) { momentsKey = key; momentsVal = sunMoments({ lat, lon, tz, ms, layout }); }

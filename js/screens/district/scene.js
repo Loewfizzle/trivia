@@ -55,6 +55,7 @@ const LAYERS = [
 
 export function createDistrict(canvas, { seed = 1984, tier: tier0 = 2, games = [], signs: withSigns = true, clock = skyClock() } = {}) {
   const ctx = canvas.getContext('2d', { alpha: false });
+  if (clock.tzNote) { const z = clock.tzNote; reportError(new Error(`a time zone Intl would reject (${z.bad}): "${z.shown}" → ${z.tz}`), 'bad tz'); }   // (NIGHT-A: sky.js#cleanZone)
   let tier = tier0;
   let W = 0, H = 0, dpr = 1, HZ = 0;
   let sky = null, skyLit = null, street = null, refl = null, reflLit = null, vignette = null;

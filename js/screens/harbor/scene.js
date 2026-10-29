@@ -206,7 +206,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let hprops = null, hpropsLoading = false, hpropsMs = 0;
   const hpropsEnv = (fadeIn, lit, mon) => { const wd = LK.windDir == null ? 250 : LK.windDir; return { L, HS, HP, tree: !!treeHeld, T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * PWQ /* (C4c: the lamps' light painted into the props dies with the drain) */, t: performance.now() / 1000, ms: clock.now(), motion: S.motion, tier, dpr, fade: fadeIn,
     wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), gust: WXS ? WXS.gust || 0 : 0, power: LB ? legendPow(W * 0.3, 'near', 211) : 1, monarchAt: mon ? forceAtOf('monarchs') * 1000 : null,
-    propModel: qp.get('prop') === 'model' || clock.force.has('harvest-model') /* (C4c: THE HARVEST DISPLAY's 3D model test — &prop=model + its panel row) */ }; };
+    propModel: propModelNow() /* (C4c: THE HARVEST DISPLAY's 3D model test — &prop=model + its panel row) */ }; };
   // 11a-2 — THE PARADE (screens/harbor/parade.js, LAZY: its morning or &force=parade): its balloons + the float in the FAR pass with the
   // marchers (core/harbor-people.js plans them); the window + the units are pure (core/harbor-parade.js) — every phone the same
   let parade = null, paradeLoading = false, paraKey = '', paraUnits = null;
@@ -243,6 +243,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let pierLampsAt = [];
   let litFadeFrom = -1, litFadeMs = 1200, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
+  // (NIGHT-A: a link's own &prop wins over a forced row — &prop=drawn shows the drawn display whatever the panel kept)
+  const propModelNow = () => (qp.has('prop') ? qp.get('prop') === 'model' : clock.force.has('harvest-model'));
   // 9g — A LEGENDARY FROM A LINK WAITS (the owner: the TR-3B "worked perfectly" from ☰ → ADMIN, glitched from &force=tr3b): a link used
   // to start it AT THE LOAD — under the bake + the reveal, before the first tap unlocked the music (no song for the tape to slow). Now
   // &force=ufo / tr3b / implosion from the page's own URL wait for THE REVEAL + THE FIRST TAP, then start LINK_LEAD ms later — a link
@@ -486,6 +488,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the first frame to 15 s after the reveal, each with its cause (a resize's sizes before → after, a re-layout, a bake, a tier step,
   // the weather landing, the clouds, the sky, the fonts, the dock's rects)
   const LOADLOG = createLoadLog(t0);
+  // (NIGHT-A: a &tz= Intl would reject — cleaned or replaced by the device's zone (sky.js#cleanZone) — told once: the load strip + /admin
+  // with the raw string's invisible characters spelled out)
+  if (clock.tzNote) { const z = clock.tzNote; LOADLOG.add('note', `&tz= ${z.bad}: "${z.shown}" → ${z.tz}`); reportError(new Error(`a time zone Intl would reject (${z.bad}): "${z.shown}" → ${z.tz}`), 'bad tz'); }
   const vpSize = () => { const vv = window.visualViewport; return `win ${innerWidth}×${innerHeight}${vv ? ` vv ${Math.round(vv.width)}×${Math.round(vv.height)}@${Math.round(vv.offsetTop)}` : ''} scr ${screen.width}×${screen.height}`; };
   let vpLast = '', wxSig = '', wxKindLast = '', wxChangedAt = -1e9, extrasIn = false, cloudPlans = 0;
   // (a change the weather brought after the reveal blends SLOWLY: the bakes, the sky + the clouds over WX_BLEND ms — never a jump)
@@ -2195,12 +2200,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function askBuild() { buildId = '…'; try { fetch('/api/log', { cache: 'no-store' }).then(r => (r.ok ? r.json() : null)).then(j => { buildId = j && j.v ? String(j.v).slice(0, 7) : 'local'; }).catch(() => { buildId = 'local'; }); } catch { buildId = 'local'; } }
   /** `harvest: MODEL | drawn (why: not asked · loading · loaded … · failed: <error>)` — only while the display stands or the model is asked */
   function harvestLine() {
-    const want = qp.get('prop') === 'model' || clock.force.has('harvest-model');
+    const want = propModelNow();
     let hv = null; try { hv = hprops && hprops.debug ? hprops.debug().harvest : null; } catch { hv = null; }
     if (!want && !(hv && hv.drawn)) return [];
     if (!hv) return [`harvest: none yet (the holiday props not loaded)${want ? ' · model asked' : ''}`];
     const st = hv.modelState || {}, why = !want ? 'not asked' : st.state === 'in' ? `loaded ${st.why} in ${st.ms} ms` : st.state === 'failed' ? `failed: ${st.why}` : st.state === 'loading' ? `loading (${st.why})` : 'asked, not started';
     return [`harvest: ${hv.model ? 'MODEL' : 'drawn'} (${why})${hv.drawn ? '' : ' · not on screen'}`];
+  }
+  /** NIGHT-A — `panel: JUST ME (kept in this tab) · force harvest-model · when …` — what a panel state forces on this phone (the owner's
+   *  stored 'harvest-model' row stayed on, unseen) — or `panel: none` */
+  function panelLine() {
+    if (!remoteWho) return `panel: none${[...clock.force].length ? ` · the link forces ${[...clock.force].join(',')}` : ''}`;
+    const who = remoteWho.who === 'all' ? 'EVERYONE’s' : remoteWho.who === 'me-stored' ? 'JUST ME (kept in this tab)' : 'JUST ME';
+    return `panel: ${who} · ${Object.entries(remoteWho.params).map(([k, v]) => `${k} ${v}`).join(' · ').slice(0, 160)}`;
   }
   function readout(now) {
     roN++;
@@ -2215,7 +2227,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const tierLine = lastJudge ? `tier ${lastJudge.text}` : `tier: no step${sinceR >= 0 && sinceR < TIER_GRACE / 1000 ? ` · not judged until ${TIER_GRACE / 1000} s (${sinceR.toFixed(0)} s)` : hv ? ` · not judged now (${hv})` : slowN ? ` · slow ${slowN}/4 looks` : ''} · effects first, resolution last`;
     // (C4c: the honest canvas total + the memory guard's verdict, refreshed every 2 s)
     if (!roMem || now - roMem.at > 2000) { const m = memAll(), g = m.guard; roMem = { at: now, text: `canvases ${m.tracked} MB live (${m.canvases}) · bakes ${m.mb} · guard ${g && g.stepped.length ? `STEPPED ${g.stepped.map(x => x.name).join(',')}` : 'ok'} of ${m.budget} MB${BAKE_CAP > 2 ? ' · &dpr=3' : ''}` }; }
-    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, tierLine, roMem.text, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...harvestLine(), ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
+    const rows = [...harvestLine(), panelLine(), `work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, tierLine, roMem.text, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
     if (!roStrip) roStrip = createDebugStrip('readout');
     roStrip.set({ head: `${head} ▾`, line: `${buildId} · t${tier} · ${fps} fps · ${slow}% slow${PT.on > 0 ? ` · beat ${hbeat.src}` : ''} ▸`, rows });
   }
@@ -2453,6 +2465,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     remoteKey = '~'; applyRemote(null, {});
     return gone;
   }
+  let remoteWho = null;   // (NIGHT-A: what the panel forces here + whose — the readout's `panel:` row)
   let remoteKey = '', remoteApplied = false, realLive = false;   // (SP5: realLive — after CLEAR ALL a place-only link keeps the LIVE weather on its 'preview' clock)
   // (SP4: a JUST ME state the panel kept for this tab — sessionStorage, remote.js#ME_KEY — is applied before the reveal: the gate waits)
   const remoteStored = (() => { try { return !!sessionStorage.getItem('nd:hr-me'); } catch { return false; } })();
@@ -2462,6 +2475,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     remoteApplied = true;
     if (key === remoteKey) return false;
     remoteKey = key;
+    remoteWho = params ? { who: o.who || 'me', params } : null;
     LOADLOG.add('panel', params ? `the preview panel's state applied (${Object.keys(params).join(', ')})${shownAt < 0 ? ' before the reveal' : ''}` : 'the preview panel cleared — the real city');
     const sp = new URLSearchParams(pageQ);
     if (params) { for (const k of REMOTE_KEYS) sp.delete(k); for (const [k, v] of Object.entries(params)) sp.set(k, v); }

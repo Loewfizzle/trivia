@@ -7,7 +7,7 @@ import { debugFold, setDebugFold } from './debug-tools.js';
 
 const CSS = `
 .dbg-col { position: fixed; z-index: 39; left: calc(var(--safe-l, 0px) + 8px); right: calc(var(--safe-r, 0px) + 56px);
-  top: calc(var(--safe-t, env(safe-area-inset-top, 0px)) + 6px + 44px + 10px); max-width: 460px; max-height: calc(40vh - 56px - var(--safe-t, env(safe-area-inset-top, 0px))); max-height: calc(40svh - 56px - var(--safe-t, env(safe-area-inset-top, 0px)));
+  top: calc(var(--safe-t, env(safe-area-inset-top, 0px)) + 6px + 44px + 10px); max-width: 460px; max-height: calc(64vh - 56px - var(--safe-t, env(safe-area-inset-top, 0px))); max-height: calc(64svh - 56px - var(--safe-t, env(safe-area-inset-top, 0px)));
   display: flex; flex-direction: column; gap: 4px; pointer-events: none; overflow: hidden; }
 /* SP4 (the owner: the readouts drew on top of the open PREVIEW PANEL): hidden while its sheet is open (remote.js toggles the class) */
 body.hr-sheet-open .dbg-col { visibility: hidden; }
@@ -15,8 +15,12 @@ body.hr-sheet-open .dbg-col { visibility: hidden; }
    (z-index under the pill's 40); every strip starts FOLDED on every load; one tap on the READOUT's title hides every other strip (and
    folds it); the open LOAD log is capped + scrolls inside itself, its FIRST lines on top */
 .dbg-col.dbg-min .dbg-s:not([data-id='readout']) { display: none; }
-.dbg-s[data-id='load']:not(.dbg-fold) .dbg-b { max-height: min(26vh, 220px); overflow-y: auto; -webkit-overflow-scrolling: touch; justify-content: flex-start; pointer-events: auto; }
-.dbg-s { align-self: flex-start; max-width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.72); color: #c9f7de; border-radius: 7px; padding: 2px 7px 3px; min-height: 0;
+/* NIGHT-A (the owner's iPhone: the readout + the LOAD log were cut at a fixed height and didn't scroll): every OPEN strip's body
+   scrolls by touch inside itself (a cap each, the column's cap ~⅔ of the screen), its key rows first; the scroll never moves the page */
+.dbg-s:not(.dbg-fold) .dbg-b { max-height: min(38vh, 330px); max-height: min(38svh, 330px); overflow-y: auto; overflow-x: hidden; -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain; touch-action: pan-y; pointer-events: auto; }
+.dbg-s[data-id='load']:not(.dbg-fold) .dbg-b { max-height: min(30vh, 260px); max-height: min(30svh, 260px); }
+.dbg-s { display: flex; flex-direction: column; align-self: flex-start; max-width: 100%; box-sizing: border-box; background: rgba(0, 0, 0, 0.72); color: #c9f7de; border-radius: 7px; padding: 2px 7px 3px; min-height: 0;
   font: 600 9px/12px ui-monospace, "JetBrains Mono", monospace; white-space: pre-wrap; word-break: break-all; overflow: hidden; }
 .dbg-s .dbg-h { pointer-events: auto; display: block; width: 100%; text-align: left; background: none; border: 0; margin: 0;
   padding: 3px 0; color: #fff; font: inherit; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
@@ -25,9 +29,9 @@ body.hr-sheet-open .dbg-col { visibility: hidden; }
 /* SP3 (the owner: the open LOAD log covered the fps + AUDIO strips): the LOAD log goes LAST and gives way first (every title stays in
    view, tappable) — its body clipped from the top, the newest lines kept */
 .dbg-s { flex-shrink: 1; min-height: 19px; }
-.dbg-s[data-id='load'] { flex-shrink: 6; display: flex; flex-direction: column; }
-.dbg-s[data-id='load'] .dbg-b { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
-.dbg-s[data-id='load'] .dbg-b > div { flex-shrink: 0; }
+.dbg-s[data-id='load'] { flex-shrink: 6; }
+.dbg-s .dbg-b { flex: 0 1 auto; min-height: 0; }
+.dbg-s .dbg-h { flex-shrink: 0; }
 /* (9e: a FOLDED load log shows its title only — the rule above out-ranked the fold) */
 .dbg-s.dbg-fold[data-id='load'] .dbg-b { display: none; }
 /* 9e — SEND REPORT: one big-enough button on top of the column (44 pt tall tap area), never hidden by the readout's fold */

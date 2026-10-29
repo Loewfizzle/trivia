@@ -68,6 +68,28 @@ export function placeOf(tz, offMin = 0) {
   return { lat, lon: Math.max(-180, Math.min(180, (offMin / 60) * 15)), known: false };
 }
 export const deviceZone = () => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC'; } catch { return 'UTC'; } };
+/** NIGHT-A — A TIME ZONE IS CHECKED BEFORE Intl EVER SEES IT (the owner's iPhone, Oct 29: "RangeError: invalid time zone: America/Detroit"
+ *  from district/sun.js — the name looked right, so the string carried something invisible: a zero-width space, a no-break space, a
+ *  stray quote or bracket from a pasted link, a %-escape left over). The raw value is cleaned (invisible + control characters out, the
+ *  compatibility forms folded — a no-break space, a full-width slash — whitespace inside → '_', wrapping quotes / brackets / trailing
+ *  punctuation off, a leftover %-escape decoded, a case slip fixed), then tried on Intl; a zone Intl still rejects falls back to the
+ *  device's. → { tz, raw, bad: null | 'fixed' | 'invalid', shown } — `shown` = the raw string with every non-ASCII character as \uXXXX
+ *  (what /admin needs to see what really arrived). */
+const zoneOk = tz => { try { return new Intl.DateTimeFormat('en-US', { timeZone: tz }).resolvedOptions().timeZone || tz; } catch { return null; } };
+export const zoneShown = s => String(s).replace(/[^\x20-\x7e]/g, c => '\\u' + c.charCodeAt(0).toString(16).padStart(4, '0'));
+export function cleanZone(raw, fallback = deviceZone) {
+  if (raw == null || raw === '') return { tz: fallback(), raw: null, bad: null, shown: '' };
+  let s = String(raw);
+  if (/%[0-9a-f]{2}/i.test(s)) { try { s = decodeURIComponent(s); } catch {} }
+  s = s.normalize('NFKC').replace(/[\u0000-\u001f\u007f-\u009f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff]/g, '')
+    .trim().replace(/\s+/g, '_').replace(/^["'`<(\[{\u2018-\u201f]+/, '').replace(/["'`>)\]}.,;:!?\u2018-\u201f]+$/, '');
+  const ok = s ? zoneOk(s) : null;
+  if (ok) {
+    const tz = ok !== s && ok.toLowerCase() === s.toLowerCase() ? ok : s;   // (a case slip → Intl's spelling; an alias like US/Eastern kept as typed)
+    return { tz, raw, bad: tz === raw ? null : 'fixed', shown: zoneShown(raw) };
+  }
+  return { tz: fallback(), raw, bad: 'invalid', shown: zoneShown(raw) };
+}
 
 // ---------------------------------------------------------------- the sun (NOAA's solar position algorithm)
 const julian = ms => ms / 86_400_000 + 2440587.5;
@@ -525,7 +547,7 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
  *  moonbow,neonbow show one at once); &wind=<m/s> sets the wind (THE STREET). Normal players never pass these. */
 export function skyClock(search = (typeof location !== 'undefined' ? location.search : '')) {
   const q = new URLSearchParams(search || '');
-  const tz = q.get('tz') || deviceZone();
+  const zone = cleanZone(q.get('tz')), tz = zone.tz;   // (NIGHT-A: never a raw &tz= into Intl)
   const when = q.get('when');
   const force = new Set((q.get('force') || '').split(',').filter(Boolean));
   const at = /^(-?\d+(?:\.\d+)?),(-?\d+(?:\.\d+)?)$/.exec(q.get('at') || '');
@@ -554,5 +576,5 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
   const speed = Math.max(1, Math.min(3600, Number(q.get('speed')) || 1));
   const start = base == null ? t0 : base;
   if (wx && rained != null) wx.wetAt = start - rained * 60_000;
-  return { tz, force, wx, speed, preview: !!(when || q.get('tz') || force.size || wx || speed > 1), now: () => (base == null && speed === 1 ? Date.now() : start + (Date.now() - t0) * speed) };
+  return { tz, tzNote: zone.bad ? zone : null, force, wx, speed, preview: !!(when || q.get('tz') || force.size || wx || speed > 1), now: () => (base == null && speed === 1 ? Date.now() : start + (Date.now() - t0) * speed) };
 }

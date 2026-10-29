@@ -25,7 +25,9 @@ export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
  *  &emu, &slot, &panel stay: they are where + how you look, not what is forced. */
-export const PREVIEW_KEYS = Object.freeze([...REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid'), 'moment', 'hush', 'letter', 'ad', 'season', 'n', 'wind', 'rained', 'tagms', 'at']);
+// (NIGHT-A: + &prop (the harvest display's model / drawn) + &light (the night light's old / new) — CLEAR ALL took neither off: the owner's
+// &prop=model stayed after it)
+export const PREVIEW_KEYS = Object.freeze([...REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid'), 'moment', 'hush', 'letter', 'ad', 'season', 'n', 'wind', 'rained', 'tagms', 'at', 'prop', 'light']);
 /** the page's search without its preview flags ('?city=2&debug=1' | '' ) + which flags were stripped */
 export function realCitySearch(search) {
   const q = new URLSearchParams(search || ''), gone = [];

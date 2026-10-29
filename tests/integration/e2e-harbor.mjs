@@ -1489,6 +1489,23 @@ G('music', async () => {
     ok(deck('day').includes(await ev(P.page, NOW)), 'PANEL: clearing the mood goes back to the time of day (DAY)');
     await P.ctx.close(); }
 
+  // ---- 5b. NIGHT-A — THE PANEL's PARTY PLAYS A PARTY SONG + THE PULSE LOCKS TO IT (the owner's test: "beat grid", no pulse with the
+  // music): a MUSIC MOOD saved on the device (EVENING) used to win over the forced show — the party's lights then ran on a calm song
+  { const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&panel=1`, view: [402, 660] });
+    await waitFor(P.page, '!!window.__district.remote()', 'the panel', 10000);
+    await setMood(P.page, 'evening'); await unlock(P.page);
+    await waitFor(P.page, `(${NOW}) && ${JSON.stringify(deck('evening'))}.includes(${NOW})`, 'an EVENING song (the saved setting)', 25000);
+    const first = await ev(P.page, NOW);
+    await ev(P.page, "window.__district.remote().setMine({ party: 'on' })");
+    if (!deck('party').includes(first)) await changed(P.page, first, 'PARTY ON');
+    const now = await ev(P.page, NOW);
+    ok(deck('party').includes(now), `PANEL PARTY ON plays a PARTY song over a saved MUSIC MOOD (EVENING: ${first} → ${now})`);
+    await waitFor(P.page, "window.__district.party().on > 0.9 && window.__district.party().src === 'grid'", 'the pulse on the song’s grid', 15000);
+    const pk = []; for (let i = 0; i < 24; i++) { pk.push(await ev(P.page, 'window.__district.party().punch')); await new Promise(r => setTimeout(r, 90)); }
+    okT(Math.max(...pk) - Math.min(...pk) > 0.25, `PANEL PARTY ON: the pulse beats on ${now}'s grid (punch ${Math.min(...pk).toFixed(2)} → ${Math.max(...pk).toFixed(2)}, src ${await ev(P.page, 'window.__district.party().src')})`);
+    await ev(P.page, 'window.__district.remote().setMine({})'); await setMood(P.page, 'auto');
+    await P.ctx.close(); }
+
   // ---- 6. THE MUSIC COMES BACK (the owner's iPhone: leaving Safari killed it; the music button didn't help; only a reload did)
   { const els = { fn: () => { window.__els = new Set(); const o = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__els.add(this); return o.call(this); }; } };
     const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}`, view: [402, 874], init: els });

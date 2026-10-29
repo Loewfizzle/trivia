@@ -52,17 +52,22 @@ export function cityMoodNow(ms, tz, wx) {
  *  City 1.0's rule (sunrise / 11 am / sunset / midnight, party Fri + Sat 8 pm → 2 am) or, in City 2.0, the Harbor's (cityMoodNow). */
 export function moodNow(clock, ms, tz) {
   if (globalThis.__moodOverride) return globalThis.__moodOverride;   // test hook
-  const chosen = fixedMood();
-  if (chosen) return chosen;
+  const ch = fixedMoodFrom(), chosen = ch ? ch.mood : null;
+  if (ch && ch.from === 'panel') return chosen;
   if (isCity2()) {
     const cc = clock ? null : cityClock();
     // (8b1: a forced party SHOW — the preview panel's PARTY, &force=party / neon-party / finale / fireworks / drones / dance — plays a
     // party song over AUTO, so the show's lights follow a party song's grid; app.js#moodWatch switches to it at once)
+    // (NIGHT-A — the owner's PARTY MODE test, "beat grid", no pulse with the music: a MUSIC MOOD saved on the device (EVENING…) won
+    // over the forced show, so the party's lights ran on a calm song. The show now beats the saved setting; a mood the panel / a link
+    // names (&mood=) still wins over everything.)
     { const sh = cc && cc.show ? cc.show() : null; if (sh && MOODS.includes(sh)) return sh; }
+    if (chosen) return chosen;
     if (cc) return cityMoodNow(cc.now(), cc.tz(), cc.wx ? cc.wx() : null);
     const c = clock || pageClock || (pageClock = skyClock());
     return cityMoodNow(ms != null ? ms : c.now(), tz || c.tz, c.wx || null);
   }
+  if (chosen) return chosen;
   return autoMood(clock || skyClock(), ms, tz);
 }
 

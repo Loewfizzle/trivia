@@ -35,7 +35,7 @@
 import { h } from '../../ui/dom.js';
 import { toast } from '../../ui/toast.js';
 import { serverNow, firebaseReady, onValue, dbRef, want, release } from '../../firebase.js';
-import { localParts, deviceZone } from '../../core/sky.js';
+import { localParts, cleanZone } from '../../core/sky.js';
 import { api as apiCall } from '../../profile/api.js';
 import * as R from '../../core/harbor-remote.js';
 import { fitText, towerCapacity, WORD_FACES, FONT_ALIASES } from '../../core/harbor-windows.js';
@@ -112,6 +112,15 @@ export function createRemote({ scene, api = apiCall }) {
     if (stored && linkFlags().length && navType() !== 'reload') { ss.set(ME_KEY, null); stored = null; }
   }
   const mine = { state: R.cleanRemote(stored && stored.state).state, ui: (stored && stored.ui) || {}, at: serverNow() };
+  // NIGHT-A — A STORED STATE NEVER SILENTLY BEATS A LINK (the owner's 'harvest-model' row stayed on his phone + showed the model on the
+  // plain link): a JUST ME state kept in this tab (a reload keeps it) gives way to the link's OWN flags for the keys the link names —
+  // until the panel sets a new state (mine.at moves). A link's &prop / &light are not panel keys: the scene reads the link's first.
+  const storeAt = mine.at, linkOwn = !R.isEmpty(mine.state) ? linkFlags() : [];
+  function mineParams() {
+    const p = R.toParams(mine.state);
+    if (mine.at === storeAt && linkOwn.length) { const lq = new URLSearchParams(location.search); for (const k of linkOwn) if (lq.has(k)) p[k] = lq.get(k); }
+    return p;
+  }
   let pend = null;                 // JUST ME's queued state while the sheet is open (null = nothing queued)
   const restart = new Set();       // events already on that a RECENT tap fires again (they start over)
   let draft = { state: {}, ui: {} }, mins = R.DEFAULT_MINS, delay = loadDelay(), query = '', recent = loadRecent();
@@ -143,8 +152,8 @@ export function createRemote({ scene, api = apiCall }) {
     const sc = scene();
     if (liveNext && liveNext.startAt <= serverNow()) { live = liveNext; liveNext = null; }
     if (destroyed || !sc || !sc.remote) return;
-    if (!R.isEmpty(mine.state)) { sc.remote(R.toParams(mine.state), { at: mine.at, srv: serverNow }); noteOver('me', mine.at); }
-    else if (liveOn() && live.startAt !== ignoreLiveAt) { sc.remote(R.toParams(live.state), { at: live.startAt, srv: serverNow }); noteOver('all', live.startAt); }
+    if (!R.isEmpty(mine.state)) { sc.remote(mineParams(), { at: mine.at, srv: serverNow, who: mine.at === storeAt ? 'me-stored' : 'me' }); noteOver('me', mine.at); }
+    else if (liveOn() && live.startAt !== ignoreLiveAt) { sc.remote(R.toParams(live.state), { at: live.startAt, srv: serverNow, who: 'all' }); noteOver('all', live.startAt); }
     else sc.remote(null, { srv: serverNow });
     paintChip();
   }
@@ -332,7 +341,7 @@ export function createRemote({ scene, api = apiCall }) {
   const dirtyMe = () => !!pend && (!same(R.cleanRemote(pend.state).state, mine.state) || restart.size > 0);
   const liveBase = () => (liveNext ? liveNext.state : liveOn() ? live.state : {});
   const draftDirty = () => !same(R.cleanRemote(draft.state).state, liveBase());
-  const tz = () => new URLSearchParams(location.search).get('tz') || deviceZone();
+  const tz = () => cleanZone(new URLSearchParams(location.search).get('tz')).tz;
   function today() { const lp = localParts(Date.now(), tz()); return { y: lp.y, m: lp.m, d: lp.d }; }
   const place = () => { const sc = scene(), L = sc && sc.look ? sc.look() : null; return L ? { lat: L.lat, lon: L.lon } : { lat: 42.96, lon: -85.67 }; };
   const ymd = t => `${t.y}-${String(t.m).padStart(2, '0')}-${String(t.d).padStart(2, '0')}`;
@@ -458,6 +467,8 @@ export function createRemote({ scene, api = apiCall }) {
       toast(`BACK TO THE REAL CITY${cleared.length ? ` — CLEARED: ${cleared.join(' · ')}` : ' — NOTHING WAS FORCED HERE'}${liveOn() ? ' · EVERYONE’S STATE IS STILL ON' : ''}`, 'info', cleared.length ? 4200 : 2600);
       return;
     }
+    // (NIGHT-A: CLEAR ALL in EVERYONE mode left a JUST ME state on — and JUST ME wins on this phone, so the city stayed forced. It goes too.)
+    if (!R.isEmpty(mine.state)) { if (cd && cd.mode === 'me') stopCd(); pend = null; restart.clear(); mine.state = {}; mine.ui = {}; mine.at = serverNow(); saveMine(); apply(); }
     await clearEveryone();
   }
   async function clearEveryone() {

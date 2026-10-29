@@ -1,7 +1,7 @@
 // LIVING CITY — the sky: the sun against real sunrise / sunset, the moon against real phases, the calendar.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { moonArc, sunTimes, placeOf, localParts, moonPhase, easter, thanksgiving, holidayOf, seasonOf, look, meteorsOf, auroraNight, skyClock } from '../js/core/sky.js';
+import { moonArc, sunTimes, placeOf, localParts, moonPhase, easter, thanksgiving, holidayOf, seasonOf, look, meteorsOf, auroraNight, skyClock, cleanZone } from '../js/core/sky.js';
 
 const at = (tz, y, m, d, h = 12, mi = 0) => { const c = skyClock(`?when=${y}-${String(m).padStart(2, '0')}-${String(d).padStart(2, '0')}T${String(h).padStart(2, '0')}:${String(mi).padStart(2, '0')}&tz=${tz}`); return c.now(); };
 const hm = (ms, tz) => { const p = localParts(ms, tz); return p.h * 60 + p.mi; };
@@ -110,4 +110,28 @@ test('the night sky: real star positions turn with the sky', async () => {
   const jul = altAz(5.919 * 15, 7.41, lat, lst(Date.parse('2026-07-15T03:00:00Z'), lon));
   assert.ok(jan.alt > 40 && jan.az > 140 && jan.az < 220, `January: alt ${jan.alt.toFixed(0)} az ${jan.az.toFixed(0)}`);
   assert.ok(jul.alt < 0, 'July evening: below the horizon');
+});
+
+test('NIGHT-A — a time zone is cleaned + checked before Intl sees it (the owner: "invalid time zone: America/Detroit")', () => {
+  const dev = () => 'Europe/Paris';
+  for (const raw of ['America/Detroit\u200b', '\u200bAmerica/Detroit', 'America/Detroit ', ' America/Detroit', 'America/Detroit\u00a0', 'America\uff0fDetroit',
+    'America%2FDetroit', '"America/Detroit"', 'America/Detroit)', 'America/Detroit.', 'america/detroit', 'America/Detroit\ufeff', 'America/Detroit\u2060', 'America/Detroit\n']) {
+    const z = cleanZone(raw, dev);
+    assert.equal(z.tz, 'America/Detroit', JSON.stringify(raw));
+    assert.equal(z.bad, 'fixed');
+    assert.doesNotThrow(() => new Intl.DateTimeFormat('en-CA', { timeZone: z.tz }));
+  }
+  assert.deepEqual(cleanZone('America/Detroit', dev), { tz: 'America/Detroit', raw: 'America/Detroit', bad: null, shown: 'America/Detroit' });
+  assert.equal(cleanZone('America/New York', dev).tz, 'America/New_York');
+  for (const raw of ['Mars/Olympus', 'America/Detroitx', '<script>', '\u200b', '%E0%A4%A']) {
+    const z = cleanZone(raw, dev);
+    assert.equal(z.tz, 'Europe/Paris', JSON.stringify(raw)); assert.equal(z.bad, 'invalid');
+  }
+  assert.equal(cleanZone('America/Detroit\u200b', dev).shown, 'America/Detroit' + String.fromCharCode(92) + 'u200b');
+  assert.equal(cleanZone(null, dev).tz, 'Europe/Paris'); assert.equal(cleanZone('', dev).bad, null);
+  // the clock carries the cleaned zone + a note for /admin
+  const c = skyClock('?tz=America/Detroit%E2%80%8B&when=2026-10-29T21:00');
+  assert.equal(c.tz, 'America/Detroit'); assert.equal(c.tzNote.bad, 'fixed');
+  assert.equal(localParts(c.now(), c.tz).h, 21);
+  assert.equal(skyClock('?tz=America/Detroit').tzNote, null);
 });

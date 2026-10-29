@@ -122,3 +122,10 @@ test('C4d — THE A/B SWITCHES LISTED (FR4 H4): every force flag the Harbor\'s c
   for (const a of AB_FLAGS) { assert.ok(a.ready === false && a.sec === 'tools' && a.hint, `${a.id}: hidden in TOOLS with a hint`); assert.ok(!PANEL_EVENTS.includes(a), `${a.id}: not listed`); }
   assert.deepEqual(cleanRemote({ force: ['no-clouds', 'no-wheel'] }).state.force, ['no-clouds', 'no-wheel'], 'the panel\'s state carries them');
 });
+
+test('NIGHT-A — CLEAR ALL takes a link’s &prop + &light off too (the owner’s &prop=model stayed after it); &tz / &city / &debug stay', async () => {
+  const { realCitySearch } = await import('../js/core/harbor-remote.js');
+  const r = realCitySearch('?city=2&tz=America/Detroit&at=42.96,-85.67&when=2026-11-19T21:00&prop=model&light=new&debug=1');
+  assert.equal(r.search, '?city=2&tz=America%2FDetroit&debug=1');
+  for (const k of ['prop', 'light', 'when', 'at']) assert.ok(r.gone.includes(k), k);
+});
