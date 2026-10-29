@@ -79,8 +79,9 @@ The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) li
 | C4c | ✅ (Oct 29 — docs/harbor/passes/c4c.md) THE OWNER'S BUGS + THE MEASURING TOOLS: the blackout for real (the benches, the props, the maple; tested at 3× on four holiday nights), the bus door eased, the dogs after dark, the hay bale off the wall, the hydrant corner's lamp, the maple's edge, the solid benches, the side door swinging out toward the doorman; &dpr=3, THE PHONE BENCH (&bench=1), the memory guard measured (nothing ever stepped down) + raised, the climb re-armed; the harvest display's 3D model test (&prop=model) | Opus 5.5 high | done |
 | C4d | ✅ (Oct 29 — docs/harbor/passes/c4d.md) THE CODE, THE TESTS, THE DOCS: the bus away 1–2 s after its door shuts, &force=dogwalk, the harvest model's load told + the panel's override told, the cloud's flakes fixed (F12 hard), Firebase Auth's polling gone, the dead code out, the A/B switches listed, harbor.md split into docs/harbor/passes/, CLAUDE.md 57 → 39 KB. Was: review-4's code / tests / docs (§E items 12–16 + 18: Firebase Auth's polling, the cloud's five test fixes, the readout's honest total, dead code, the A/B flags list, the docs + CLAUDE.md trims, harbor.md's split, the flaky checks) | Opus 5.5 high | ~2.5 h |
 | HOTFIX | ✅ (Oct 29 — 48df906; docs/harbor/passes/hotfix-oct29.md) THE FORCED BUS AT 5 FPS: folkAt's plan cache least-recently-used at 320, THE BASELINE GUARD (`ONLY=perf` fails above 2× perf-baseline.json), the harvest model told on the readout, the dog's turn eased | Opus 5.5 high | done |
-| NIGHT-A | ✅ (Oct 29 — docs/harbor/passes/night-a.md) THE NIGHT LIGHT — the error log from the owner's iPhone (the party stall, the bad time zone, stored forces vs links, the debug strips scroll), THE NIGHT LIGHTING REWORK behind `&light=new|old` (an even base, ONE warm wash, the shopfront + the cab stand the only sources, people lit + soft shadows, THE BRIGHTNESS LADDER as a test), JOIN = HOST at night + the corner buttons lit, the harvest model re-baked in the city's light, the TAXI STAND plate — "OWNER'S NOTES — OCT 29 (the afternoon)" | Opus 5.5 high | ~3–4 h |
-| NIGHT-B | ← NEXT: THE STREET PARTY: the party night's crowd for the whole night (clusters mingling + dancing, more people by tier), a DANCE BREAK ~every 20 min on a song's start (seeded, the same on every phone), the cart packs up, the crowd sounds — "OWNER'S NOTES — OCT 29 (the afternoon)" | Opus 5.5 high | ~3 h |
+| NIGHT-A | ✅ (Oct 29 — 7a8f236; docs/harbor/passes/night-a.md) THE NIGHT LIGHT — the error log from the owner's iPhone (the party stall, the bad time zone, stored forces vs links, the debug strips scroll), THE NIGHT LIGHTING REWORK behind `&light=new|old` (an even base, ONE warm wash, the shopfront + the cab stand the only sources, people lit + soft shadows, THE BRIGHTNESS LADDER as a test), JOIN = HOST at night + the corner buttons lit, the harvest model re-baked in the city's light, the TAXI STAND plate — "OWNER'S NOTES — OCT 29 (the afternoon)" | Opus 5.5 high | ~3–4 h |
+| NIGHT-A2 | ← NEXT (before NIGHT-B; live for the weekend — Fri Oct 30 a party night, Sat Oct 31 Halloween + a party night): THE WEEKEND FIXES — the new night light the DEFAULT, the mirror door silent, the trees' night shadow darker, the boss's blind fully down by day, the drawn harvest display the default + a SOLID OBSTACLE, THE BEAT (a trusted grid always punches; the saved lead per output; the kick listener on every party song), Halloween + party speed, the cloud's Firebase read check — "OWNER'S NOTES — OCT 29 (the evening)" | Opus 5.5 high | ~3 h |
+| NIGHT-B | after NIGHT-A2: THE STREET PARTY: the party night's crowd for the whole night (clusters mingling + dancing, more people by tier), a DANCE BREAK ~every 20 min on a song's start (seeded, the same on every phone), the cart packs up, the crowd sounds — "OWNER'S NOTES — OCT 29 (the afternoon)" | Opus 5.5 high | ~3 h |
 | SKY | THE LEGENDS: THE BLACKBIRD (one flyby animation — the static tell, the vapor cone + shock ring + the late double boom, the Mach-diamond plumes, above the sign — its rare solo sightings, the hour-watcher's reward, joining every TR-3B chase once the jets are ~⅓ across), THE F-22 MODELS everywhere (the tight triangle + the bank), THE TR-3B AT FULL RESOLUTION (one solid body, no shadow on the backdrop), THE MOTHMAN on the needle (Grok's model, standing, wings spread, red eyes), THE SHADOWBOXER (9–11 pm, 3-min rounds + 1-min breaks, the full two hours; THE WINDOW RULE II), the upper windows on the crisp layer — "OWNER'S NOTES — OCT 28 (PROM's review)" | Opus 5.5 high | ~4–5 h |
 | ATM | a FABLE ATMOSPHERE pass: THE CLOUDS (kinds, motion from the real wind at their height, cumulonimbus storm decks, the veil / overcast layers, the light through the day, lightning inside them) + WIND as one system (crowns, leaves, flags, smoke, rain slant, coats, chop, balloons) + FOG as depth (halos, the lighthouse cone, banks drifting) + THE STORM (thick branching bolts, the needle struck, the louder thunder) + FREEZING RAIN as ice (icicles on the speakeasy + the signs, the ice sheen) — "OWNER'S NOTES — OCT 26" | Fable high | ~3 h |
 | PERF | a SHORT SPEED PASS set by C4c's phone bench (`&bench=1`): the cheap wins FR4 listed (one glow-sprite cache, the still 'lighter' pools baked, the bar's day repaint), the spectacle cap + the budgets from the bench — "OWNER'S NOTES — OCT 28 (C4a's review)" | Opus 5.5 high | ~1–1.5 h |
@@ -4075,3 +4076,115 @@ what its own groups name (the giant jack-o'-lantern, the letter-tap hum, the bos
   crappy" → RE-BAKE it with the CITY's night light (warm key from the front + below = the implied lamps; each Edison bulb a real point
   light glowing onto the bales + pumpkins; the compass floods' rim; a golden-hour sprite between day + night) — in the NIGHT pass; if it
   clearly beats the drawn display it becomes the default + the template for the key holiday pieces.
+
+## OWNER'S NOTES — OCT 29 (the evening)
+- THE PARTY CROWD SOUNDS ARE IN (Grok via the owner, Oct 29 4:51 pm) — for NIGHT-B: C:\Users\benja\Downloads\Grok\city-sfx\party-crowd\ —
+  29 files (walla-1..7 beds, laugh-1..10, cheer-1..6, clink-1..4, group-1..2) + credits.txt + party-crowd-claude-prompt.txt (READ IT FIRST:
+  each file's details, which to trim / skip / listen-check, gain notes, a suggested Web Audio setup; the beds' priority walla-5 then walla-1).
+  RULES (Grok's note): never edit / trim / convert / rename / delete anything in that folder — copy what's used into the project + work on
+  the copies (scripts/add-city-sfx.py's import path); licences CC0 (Freesound), Sonniss GDC, Pixabay — commercial use fine, no attribution
+  required, but add a "Sound effects" section to ☰ → CREDITS from credits.txt. THE MIX: a looped, low-passed walla bed under the crowd
+  (its level following the crowd's size + the party's curve, positioned across the promenade) + random one-shots (laughs, cheers, clinks)
+  from the groups' positions, quiet, felt not heard; the cheers rise as a dance break starts; the closer "group" takes from the nearest
+  talking cluster. NIGHT-B's sound group writes its file choices + the mix into its pass log (what's used, what's dropped + why).
+- THE HELICOPTER MOVES TO NIGHT-B (Claude, Oct 29 4:52 pm, the owner confirmed it's wanted): the dance breaks are built in NIGHT-B, so the
+  helicopter's party role ships with them — during EVERY dance break it flies for the whole song (its party-coloured searchlight sweeping
+  the dancing crowd on the beat, no strobe) + the hourly patrol (dusk → ~2 am hourly, every 2–3 h by day). SKY keeps only the legends.
+- ONE PLACE FOR THE CITY's SCHEDULE (the owner, Oct 29 4:54 pm: "is there one module where we tweak when things happen, or does it take a
+  ton of code? are we future-proof for the schedule work?"). TODAY (read-only): the timing is PURE but SCATTERED across ~20 core/harbor-*.js
+  planners in different shapes (harbor-events.js's sky scheduler with rarity tiers, harbor-legend.js's seeded nights, harbor-workers.js's
+  timetable, harbor-people.js's who's-out-when, harbor-moments.js's window day, harbor-holiday.js's calendar, boats, traffic, raid, cabs,
+  wildlife, routines, tower, parade, xmas) — a change is usually a few numbers in ONE file, not "a ton of code", but there's no single
+  table to SEE or TUNE it all. DECIDED (Claude's proposal): THE CITY TIMETABLE — `core/harbor-schedule.js`: every system's tunable timing
+  KNOBS as one plain data table (when, how often, which days, its window, rarity, priority, what it must never overlap) that each planner
+  READS (behaviour stays in the planners) + a generator that exports a readable timetable + a "what you'd see" sample week (the SCHED
+  debate's input) + a panel view. FROM NOW ON every new timed thing registers there (NIGHT-B: the crowd's curve, the dance breaks, the
+  helicopter patrol; SKY: the legends' registry FR4 asked for); the older systems MIGRATE into it at SCHED (the migration = the first
+  step of the schedule review). A unit test: every timed system has an entry; nothing hard-codes a time outside it.
+  + A SIZE BUDGET (the owner, 4:56 pm — free accounts, "not getting crazy"): NIGHT-B SHIPS ONLY WHAT IT USES — ~2 beds + ~10–14 one-shots
+  of the 29, each PROCESSED through scripts/add-city-sfx.py (trimmed, mono, compressed — ~64–96 kbps MP3 / AAC), the whole party-crowd set
+  ≤ ~1.5 MB; the originals stay in Downloads (never committed); the unused files are listed in the pass log with why. Rule for every future
+  sound drop: the same — pick, process, budget.
+- THE DEPLOY's WEIGHT (the owner asked, Oct 29 4:57 pm): ~255 of ~264 MB is music; visitors stream only the song playing (~2–4 MB each);
+  bandwidth (Vercel Hobby's monthly transfer) is the number to watch as traffic grows → at the SWITCH-OVER (Part 12) remove City 1.0-only
+  music (obsolete) + the dropped games' songs; later options: a lower music bitrate, or music on a host built for it.
+- THE DANCES — A REPERTOIRE (the owner, Oct 29 5:06 pm — for NIGHT-B): not always the same dance → each DANCE BREAK picks a style (seeded,
+  every phone the same), matched to the song's tempo + energy (the beat clock), never the same twice in a row: (1) THE CHARLESTON (the 1920s
+  one — swivel + kicks, arms swinging); (2) SWING / LINDY PAIRS (couples, a twirl now + then); (3) THE CONGA LINE (a snaking line weaving
+  across the promenade, hands on shoulders — the most readable at phone size); (4) WANDS UP (the neon wands overhead, swaying on the beat);
+  (5) THE BOUNCE (the whole crowd hopping on the downbeat — fast songs); (6) THE SWAY (slow songs, pairs + groups rocking side to side). Only
+  BIG motions that read unzoomed (no footwork detail); a break may mix two (pairs + a conga). The midnight burst / the 10 pm fireworks break =
+  WANDS UP + cheering.
+  + REVISED (the owner, 5:08 pm — supersedes the list above): NOT period-bound — whatever looks best; EVERY dancer holds a NEON WAND; no slow
+  songs on party nights (all upbeat) → NO sway. THE SET: (1) THE CONGA LINE — one hand on the shoulder in front, the other hand UP waving
+  its wand back + forth, the line snaking across the promenade; (2) THE BOUNCE — jumping / hopping on the beat, FISTS PUMPING with the wands;
+  (3) WANDS UP — wands overhead swaying on the beat (merged with (2)'s family: big arm moves); (4) SWING PAIRS — couples, a twirl, the wands
+  tracing the spin; (5) the CHARLESTON-style kicks only if they read (optional). Each break picks one (or two mixed), by tempo + energy,
+  never the same twice in a row, every phone the same.
+  + THE BIG CONGA + THE STREET (the owner, 5:09 pm — DECIDED, for NIGHT-B): (1) a CONGA LINE that enters from the RIGHT EDGE and snakes
+  across the whole promenade + off the LEFT edge (a long line — length by tier: ~20 on strong phones, ~12 / ~8 lower; the PEOPLE RULE holds:
+  in + out off-screen), one hand on the shoulder, the other waving its wand; (2) AN EXCEPTION for the street under the dock: during a
+  DANCE BREAK the party SPILLS into the STREET's UPPER BAND (just below the curb) — a block party: the front street's traffic HOLDS for the
+  break (the taxi + the sedan wait / reroute; the trafficHold pattern), dancers step down from the curb by their own motion + back up after.
+  Claude's guard: JOIN + HOST stay readable over the dancers (the dock's glass a touch darker behind them during a break; the dock at rest
+  shows them fully); never dancers in the street outside a break; the bench re-checks 60 fps at the party peak.
+  + THE CROWD's TEXTURE (the owner, 5:11 pm — DECIDED): with the extra space (the promenade + the street's upper band in a break) the party
+  is POCKETS of different sizes — big groups, small groups, pairs, the odd loner — scattered unevenly (never a grid), ALWAYS slightly moving
+  (a weight shift, a laugh with the head back, a gesture, a sip, someone joining / leaving a group) — never frozen statues; AND ordinary
+  WALKERS keep passing through, going about their night (threading between the pockets — the lanes test).
+  + DANCERS ON THE BENCH (the owner, 5:12 pm — DECIDED): in a dance break, up to THREE people CLIMB onto the cab-stand bench (it's ~3 seats
+  wide) + dance standing on it, wands up — raised above the crowd, a great readable silhouette; they step up + hop down by their own motion
+  (the PEOPLE RULE), never outside a break; the bench's crisp overlay redraws them; the cab-stand waiters + the taxi pause for the break.
+- ROSIE ON THE HOUR — NO CHANGE (the owner, Oct 29 5:20 pm): what he hears + loves at the top of every hour is her SHIP's BELL as she docks
+  at :00 (the horn follows at ~:03 as she casts off) — "the bell's fine, that's what I liked" → keep her timetable exactly as it is; the
+  bell at :00 is a FIXED point (THE CITY TIMETABLE records `rosie.bell = :00` as untouchable when it's built).
+- THE ROOF SIGNS AT 3× — BACK ON (the owner, Oct 29 5:33 pm — DECIDED, reverses Oct 28's drop): every skyscraper roof sign (SIGNAL, BLUFF,
+  CIPHER, HIGH STAKES, PULSE, NEON PAR, DOUBLE AGENT… whichever stand tonight) + the PRISM blade on the CRISP LAYER at the device's 3× —
+  THE WHOLE SIGN: the lettering, the border / frame, AND THE STAND (the steel legs down to the roof; its foot meets the 2× building at the
+  roof line — keep that join clean). Every effect routes through: the hourly modes (spell / race / breath), the party pulse + colours, the
+  tired / burnt-out letter, the restart flicker, the TR-3B drain + the blackout, the rain / ice on the tubes, the planes passing BEHIND
+  them (the whole-sky rule). Judged unzoomed at 402 (+ 402×660); the BASELINE GUARD + the bench's party peak hold. → NIGHT-B.
+  + FINAL CALL (Claude, the owner asked, 5:35 pm): THE ROOF SIGNS — YES (their game names are read + were hard to read before; small + cheap);
+  THE PRISM / skyline BLADE — NO (big letters, already reads sharp to the owner) → drop it from the list.
+- THE HERO BUILDINGS' NEON OUTLINES AT 3× — MEASURE IN PERF (the owner agreed, 5:35 pm): they're woven into the skyline (the wheel, the
+  lighthouse, the signs, the speakeasy, fog sit in front) → only as the whole SKYLINE BAND at 3×; PERF measures its cost on the phone bench
+  (a party peak, + snow); if it fits → ON for the top tier only (strong phones), 2× below; if not → recorded + dropped.
+- THE SHADOWBOXER's SCHEDULE — REVISED (the owner, Oct 29 5:39 pm — supersedes "2–3 seeded nights, 9–11 pm"; few events yet → make them
+  LONG, tune the cycles later): MONDAY, WEDNESDAY, FRIDAY, 7 → 11 pm; a SET = 10 ROUNDS of 3 min with 1-min breaks (40 min) → a 10-MIN
+  BREAK → again (a 50-min cycle, ~4.8 a night: he walks in at 7, the last set cut short to walk out at 11). OPEN QUESTION (asked): FRIDAY is
+  a PARTY NIGHT (warm-up 8:30) — the old rule said never on a party night.
+  + FRIDAY DECIDED (the owner, 5:41 pm): KEEP Friday — and HE DECIDES: each Friday (seeded by the date, every phone the same) he either
+  WRAPS UP when the party warms up (~8:30 — finishes the round he's in, towels off, walks out) or STAYS + finishes his whole evening to 11
+  pm, training right through the party (his window then sits out of the window party). A ~50/50 pick.
+  + THE END OF HIS NIGHT (the owner, 5:41 pm): no hard cut at 11 — when 11 pm hits he FINISHES the set he's in (all its rounds), then he's
+  done (towels off, walks out); the same for the Friday 8:30 wrap-up option (he finishes the current ROUND there, then leaves).
+  + HIS LOOK CONFIRMED (the owner, 5:43 pm): the BLIND UP — straight into the room: one bare bulb near the top (it sways when he hits the
+  bag), a warm amber back wall, HIM a solid black silhouette in profile (~70 % of the window's height), the heavy bag a second dark shape;
+  no blind trick.
+
+## THE QUIET BUILDING (the owner, Oct 29, 5:52 pm) → NIGHT-B
++ At NIGHT only a few windows stay live: the BOSS's TV room; the two CUT-OFF side windows on the left edge (top floor + the floor below: the candle / flicker / ambience rooms); and the UPPER MIDDLE window ONLY while the shadowboxer is active (his room, built in SKY).
++ Every other window is PARKED, not deleted: a drawn blind, a mix of warm-lit and dark, the lights going out one by one as the night gets later. The parked scenes stay reachable from the admin panel; they get rebuilt properly later.
++ PARTY NIGHTS unchanged: the windows still join the party (WIN3), dancing and all.
++ THE BOXER's ROOM OFF-NIGHTS: the blind down, looking exactly like its neighbours (no bulb hint). On his nights the blind going UP is his entrance (window rule); after his last set past 11 it comes down warm-lit, then goes dark like the rest.
++ (5:54 pm) The two cut-off side rooms: ALWAYS ON at night, like the boss's room. Every live window (the boss, the two side rooms, the boxer) is PREMIUM: 3×, on the lit 2.5D room kit with real light — the parked blinds don't need it.
++ THE BOXER's ROOM = the premium piece: a 2.5D room at 3×, the bare bulb the REAL light source — it swings when he hits the bag, and the light pool + his and the bag's shadows on the amber back wall swing with it; his silhouette gets a warm rim from the bulb (not flat black paper).
++ (6:48 pm) Two add-ons went into NIGHT-A (not NIGHT-B): the tree's night shadow (short + soft, the crown on the cobbles, under &light=new) and the boss's window glass under his blind (the strip was flat near-black, read as an open hole).
+
+## NIGHT-A DONE (Oct 29, 7 pm — build 7a8f236, live)
++ The new night light is behind &light=new (TOOLS → THE NIGHT LIGHT · NEW); the old stays the default until the owner judges it. Flipping it is one line.
++ TAXI STAND plate DROPPED: a readable plate would be billboard-sized; the stand stays implied.
++ OPEN → NIGHT-B Group 0: the cloud's Firebase read count (4–5 reads in 15 s against a limit of 3) failed in BOTH cloud runs: a real signal, not a flake; find out what reads the database on a parked title on CI (CONN / the free plan's connections). The flaky LOAD WEATHER check stays under Known issues. The party stall didn't reproduce; reports now carry the build id.
+
+## NIGHT-A REVIEW (the owner, Oct 29, 7:12 pm) → a small fix pass (NIGHT-A2) before the weekend, or NIGHT-B
++ THE NEW NIGHT LIGHT: approved, "looks good" → make &light=new the DEFAULT (OLD stays in TOOLS).
++ THE MIRROR DOOR's creak: NO SOUND — it's inside the barbershop, we couldn't hear it from the street.
++ THE TREES' NIGHT SHADOW (new light): too faint to see — darker, so it clearly reads (still soft, still no limb lines in leaf).
++ JOIN = HOST: "look great". (They're HTML buttons: already drawn at the phone's full resolution; no 3× work needed.)
++ THE BOSS's WINDOW BY DAY: the blind FULLY DOWN all day (no gap, no strip) — he's the night owl; the tap-peek may still lift it a hair. The spade tell the night before the bootleggers is unchanged.
++ THE HARVEST DISPLAY: the DRAWN one is the default (the model stays behind &prop=model). It's a SOLID OBSTACLE: people walk AROUND it, never through it (the owner thought he saw people clipping through it) — a test that no walker's path crosses its footprint.
++ (7:13 pm) CONFIRMED: switch the default to the NEW night light.
++ THE BEAT TAKES A WHILE TO START PUNCHING (the owner's iPhone, party mode, c2-party4): by design a new song BREATHES (8b1's safety rule) until LEAD_N kicks confirm the lead, unless the device has a SAVED lead. → measure the time to the first punch on the iPhone; if it's more than ~2 bars, shorten it (e.g. a half-strength punch on the platform default lead from the start, full once confirmed); and check NIGHT-A's CLEAR ALL / stored-preview fix didn't wipe the device's SAVED LEAD (that would make every visit start from scratch).
++ (7:17 pm) THE BEAT LEAD — the owner's readouts (party mode, iPhone SPEAKER, no Bluetooth; Ray-Ban Meta glasses were used ~15 min before, then taken off): saved −21 ms, the kicks settled it to +156 ms, then "lights PUNCH · lead confirmed · 24 kicks"; anchors 8 (jump); restarts 1 (last: focus). +156 is past the SAVED range (LEAD_MAX +120 ms), so it can never be remembered → every visit starts off and re-settles. → the fix pass: reproduce on the speaker; find out why the speaker reads +156 (after a focus restart? a stale output route from the glasses?); widen the saved range if the value is real; key the saved lead by the output (speaker vs Bluetooth: AudioContext.outputLatency / baseLatency when the browser gives it) so a Bluetooth visit doesn't poison the speaker's value; start with a half-strength punch at once; SEND REPORT + /admin carry the lead history.
++ (7:16 pm) HALLOWEEN + PARTY on the iPhone (force=party, Oct 29 with the Halloween props): session 14.5 % slow, frames up to 100 ms, a tier step 2→1/2→2; 577 canvases, 60.5 MB live. Saturday Oct 31 is BOTH → the fix pass finds the heaviest part and fixes it if it's quick; the rest stays in PERF.
++ (7:20 pm) FRESH LOAD, no app switch (party mode, c2-party9, 100 BPM, grid trusted): "lead +120 → +120 (settling · resume · 0 kicks)", "lights BREATHE · settling after resume (bar 21)": NO PULSE the owner can see. Two bugs: (1) the saved lead is the CLAMPED +120 (last visit's +156 hit LEAD_MAX); (2) the kick listener heard 0 kicks in 21 bars on party9 (party4 at 125 BPM confirmed with 24 kicks): a song the listener can't hear leaves the city BREATHING FOREVER. → THE RULE CHANGES: a TRUSTED GRID always PUNCHES (half strength until the kicks confirm, full once they do); the kicks only refine the lead, they never gate the pulse. Check the kick listener on every party song (which ones it hears; why party9 reads 0).
