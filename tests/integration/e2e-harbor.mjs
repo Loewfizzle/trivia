@@ -3099,6 +3099,17 @@ G('thanks', async () => {
   const P = 'window.__district.harbor()';
   const page = async (slot, when, extra = '') => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874] }); await harborUp(Q.page); await sleep(1500); return Q; };
   const sign = Q => ev(Q.page, `[...document.querySelector('.nd-sign').classList].filter(c => c.startsWith('sg-')).join(',')`);
+  // ---- C4c — THE HARVEST DISPLAY AS A 3D MODEL (a test behind its switch): a normal Nov 19 night never fetches the model's sprites (the
+  // drawn display); &prop=model draws the baked model on the compass with its Edison bulbs (code) on its ledges
+  { const Q = await page('tg-mdl0', '2026-11-19T21:00');
+    await waitFor(Q.page, `${P}.hprops && ${P}.hprops.harvest && ${P}.hprops.harvest.drawn > 0`, 'the display drawn', 15000).catch(() => {});
+    const h0 = await ev(Q.page, `${P}.hprops && ${P}.hprops.harvest`);
+    await Q.ctx.close();
+    const Q2 = await page('tg-mdl1', '2026-11-19T21:00', '&prop=model');
+    await waitFor(Q2.page, `${P}.hprops && ${P}.hprops.harvest && ${P}.hprops.harvest.model`, 'the model drawn', 20000).catch(() => {});
+    const h1 = await ev(Q2.page, `${P}.hprops && ${P}.hprops.harvest`);
+    ok(h0 && h0.drawn > 0 && !h0.model && !h0.modelAsked && h1 && h1.model && h1.modelIn && h1.bulbs >= 20 && h1.rect && h1.rect.w > 40, `THE HARVEST DISPLAY's 3D MODEL behind its switch: drawn by default (model ${h0 && h0.model}, its sprites asked ${h0 && h0.modelAsked}); &prop=model → the model (${h1 && h1.model}, ${h1 && h1.rect ? Math.round(h1.rect.w) : 0} pt wide), its ${h1 && h1.bulbs} bulbs lit`);
+    await Q2.ctx.close(); }
   // ---- NOV 10: a third of the way — bales, corn stalks round the lamp posts, the spots' pumpkins; no harvest display, no wreath yet
   { const Q = await page('tg-n10', '2026-11-10T21:00');
     const h = await ev(Q.page, `${P}.holiday`), d = await ev(Q.page, `${P}.dress`);

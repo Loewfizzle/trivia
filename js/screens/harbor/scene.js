@@ -205,7 +205,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // on the side door's steps; Day of the Dead's petal path, marigolds, garlands, papel picado + the monarchs — three passes (ground · air · top)
   let hprops = null, hpropsLoading = false, hpropsMs = 0;
   const hpropsEnv = (fadeIn, lit, mon) => { const wd = LK.windDir == null ? 250 : LK.windDir; return { L, HS, HP, tree: !!treeHeld, T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * PWQ /* (C4c: the lamps' light painted into the props dies with the drain) */, t: performance.now() / 1000, ms: clock.now(), motion: S.motion, tier, dpr, fade: fadeIn,
-    wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), gust: WXS ? WXS.gust || 0 : 0, power: LB ? legendPow(W * 0.3, 'near', 211) : 1, monarchAt: mon ? forceAtOf('monarchs') * 1000 : null }; };
+    wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1), gust: WXS ? WXS.gust || 0 : 0, power: LB ? legendPow(W * 0.3, 'near', 211) : 1, monarchAt: mon ? forceAtOf('monarchs') * 1000 : null,
+    propModel: qp.get('prop') === 'model' || clock.force.has('harvest-model') /* (C4c: THE HARVEST DISPLAY's 3D model test — &prop=model + its panel row) */ }; };
   // 11a-2 — THE PARADE (screens/harbor/parade.js, LAZY: its morning or &force=parade): its balloons + the float in the FAR pass with the
   // marchers (core/harbor-people.js plans them); the window + the units are pure (core/harbor-parade.js) — every phone the same
   let parade = null, paradeLoading = false, paraKey = '', paraUnits = null;

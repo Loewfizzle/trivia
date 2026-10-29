@@ -152,10 +152,64 @@ export function mum(x, sx, sy, d, cols, Lt, r) {
     x.fillStyle = rgb(lit(Lt, mix(cols[1], cols[0], clamp01(up + (r() - 0.5) * 0.3)), [0, 0.7, -0.7], 0.05)); x.beginPath(); x.arc(fx, fy, Math.max(0.45, R * 0.12), 0, TAU); x.fill(); }
 }
 
+// ------------------------------------------------------------------ C4c — THE 3D MODEL TEST (the owner's Oct 28 note; `&prop=model`)
+// Grok's test model (a Grok Imagine reference → Tencent Hunyuan3D 2.1, AI-generated — art/models/harvest/credits.txt) baked OFFLINE by
+// scripts/bake-model.mjs harvest at the city camera's real view of the compass into assets/city/harvest/{day,night}.webp (+ harvest.json:
+// its foot in the sprite, its pt per unit at the bake's depth). LAZY: fetched only once the switch is on (&prop=model or the HOLIDAYS row
+// THE HARVEST DISPLAY · 3D MODEL); the hand-drawn display stands in until it's in, or if it fails. Night blended over day by the
+// darkness; its lamp light taken down with the lamps (the TR-3B's blackout: o.dark carries the drain). Not the default until the owner picks it.
+const MODEL_BASE = new URL('../../../assets/city/harvest/', import.meta.url);
+let mLoading = null, mModel = null, mFailed = false;
+function harvestModel() {
+  if (mModel || mFailed) return mModel;
+  if (!mLoading) {
+    const img = name => new Promise((res, rej) => { const i = new Image(); i.decoding = 'async'; i.onload = () => (i.decode ? i.decode().catch(() => {}) : Promise.resolve()).then(() => res(i)); i.onerror = () => rej(new Error(`harvest sprite ${name}`)); i.src = new URL(name, MODEL_BASE).href; });
+    mLoading = (async () => {
+      const r = await fetch(new URL('harvest.json', MODEL_BASE).href); if (!r.ok) throw new Error(`harvest.json ${r.status}`);
+      const meta = await r.json(), [day, night] = await Promise.all([img('day.webp'), img('night.webp')]);
+      mModel = { ...meta, day, night }; return mModel;
+    })();
+    mLoading.catch(() => { mFailed = true; });
+  }
+  return mModel;
+}
+/** the model's Edison bulbs (CODE, on top): swags along its two lower ledges' front edges, in the sprite's fractions (measured on the
+ *  4.4 u bake: the bottom tier's top at 0.74 of its height, the next at 0.555) — { y, x0, x1, sag, n (swags), per (bulbs a swag) } */
+export const MODEL_SWAGS = Object.freeze([{ y: 0.742, x0: 0.142, x1: 0.866, sag: 0.02, n: 3, per: 5 }, { y: 0.555, x0: 0.205, x1: 0.803, sag: 0.016, n: 2, per: 5 }]);
+/** whether the model's sprites were ever asked for (the tests: never without the switch) */
+export const harvestModelAsked = () => !!mLoading;
+
 export function createHarvest(deps) {
   const cache = new Map(); let last = null;
-  const bulbs = harvestBulbs(), stat = { drawn: 0, rect: null, bulbs: 0 };
+  const bulbs = harvestBulbs(), stat = { drawn: 0, rect: null, bulbs: 0, model: false };
+  let mCv = null;   // (the model's sprite composed for this light: day / night + the lamps' level — also the floods' rim source)
+  /** the 3D model's sprite at the display's place → true when drawn (false: not loaded yet — the drawn display stands in) */
+  function drawModel(c, o) {
+    const M = harvestModel(); if (!M) return false;
+    const { L, m } = o, cam = L.cam, T = o.T || {}, n = clamp01(Math.max(T.night || 0, (o.dark || 0) > 0.5 ? (o.dark || 0) : 0, 1 - clamp01((T.day || 0) + (T.gold || 0)))), lamp = clamp01(o.dark || 0);
+    if (!mCv) mCv = document.createElement('canvas');
+    if (mCv.width !== M.w || mCv.height !== M.h) { mCv.width = M.w; mCv.height = M.h; }
+    const x = safeCtx(mCv); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, M.w, M.h);
+    if (n < 0.999) x.drawImage(M.day, 0, 0);
+    if (n > 0.001) { x.globalAlpha = n; x.drawImage(M.night, 0, 0); x.globalAlpha = 1; }
+    // (the night sprite carries the lamps' light: with the lamps down — the dusk before they catch, the blackout — it darkens on its own pixels)
+    const dim = n * (1 - lamp) * 0.72; if (dim > 0.01) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(10,8,22,${dim.toFixed(3)})`; x.fillRect(0, 0, M.w, M.h); x.globalCompositeOperation = 'source-over'; }
+    const [fx, fy] = project(cam, m.x, 0, m.z), k = (cam.F / m.z) / M.ppu / M.dpr, w = M.w * k, h = M.h * k, sx = fx - M.footX * k, sy = fy - M.footY * k;
+    c.save(); c.globalAlpha = o.fade == null ? 1 : o.fade; c.drawImage(mCv, sx, sy, w, h);
+    // THE BULBS (as the drawn display's): a warm Edison bulb each (by day a pale glass bead), after dark a warm core + a tight halo
+    const nk = clamp01(o.lit || 0) * (o.power == null ? 1 : o.power), s = cam.F / m.z; let nb = 0;
+    for (const sw of MODEL_SWAGS) for (let q = 0; q < sw.n; q++) { const a = sw.x0 + (sw.x1 - sw.x0) * q / sw.n, b = sw.x0 + (sw.x1 - sw.x0) * (q + 1) / sw.n;
+      for (let i = 0; i < sw.per; i++) { const u = (i + 0.5) / sw.per, bx = sx + (a + (b - a) * u) * w, by = sy + (sw.y + Math.sin(Math.PI * u) * sw.sag) * h;
+        c.globalCompositeOperation = 'source-over'; c.fillStyle = nk > 0.05 ? `rgba(255,236,190,${(0.6 + 0.4 * nk).toFixed(2)})` : 'rgba(236,226,200,0.85)'; c.beginPath(); c.arc(bx, by, Math.max(0.6, 0.05 * s), 0, TAU); c.fill();
+        if (nk > 0.05) { c.globalCompositeOperation = 'lighter'; const R = 0.32 * s, g = c.createRadialGradient(bx, by, 0, bx, by, R); g.addColorStop(0, `rgba(255,200,120,${(0.65 * nk).toFixed(3)})`); g.addColorStop(1, 'rgba(255,170,80,0)'); c.fillStyle = g; c.fillRect(bx - R, by - R, R * 2, R * 2); nb++; } } }
+    c.restore();
+    last = { cv: mCv, x: sx, y: sy, w, h };
+    stat.drawn++; stat.model = true; stat.bulbs = nb; stat.rect = { x: sx, y: sy, w, h };
+    return true;
+  }
   function draw(c, o) {
+    if (o.model && drawModel(c, o)) return;
+    stat.model = false;
     const { L, m } = o, dpr = Math.min(BAKE_CAP, o.dpr || 2), key = `${L.cam.W}x${L.cam.H}|${dpr}|${o.lightKey || ''}`;
     let sp = cache.get(key);
     if (!sp) { sp = paint(L, m, o.T, o.dark || 0, dpr, { ...deps, col: o.col }); if (!sp) return; cache.set(key, sp); if (cache.size > 6) { const k0 = cache.keys().next().value; const v = cache.get(k0); if (v && v.cv) v.cv.width = v.cv.height = 0; cache.delete(k0); } }
@@ -173,7 +227,7 @@ export function createHarvest(deps) {
     c.restore();
     stat.drawn++; stat.bulbs = n; stat.rect = { x: sp.x, y: sp.y, w: sp.w, h: sp.h };
   }
-  return { draw, lastSprite: () => last, debug: () => ({ ...stat, sprites: cache.size }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); last = null; void last; } };
+  return { draw, lastSprite: () => last, debug: () => ({ ...stat, sprites: cache.size, modelAsked: harvestModelAsked(), modelIn: !!mModel }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); if (mCv) mCv.width = mCv.height = 0; mCv = null; last = null; void last; } };
 }
 
 // ------------------------------------------------------------------ 11a-2 — THE NOVEMBER SPOT DRESSINGS (core/harbor-spots.js's spots)

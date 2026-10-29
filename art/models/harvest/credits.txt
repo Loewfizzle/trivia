@@ -1,0 +1,36 @@
+HARVEST DISPLAY - Neon Speakeasy Thanksgiving prop
+Made 2026-10-28 (EDT)
+
+FILES
+- textured_mesh.glb : textured 3D model (8,117,584 bytes), original file name kept, not edited
+- screenshot-front.png / screenshot-back.png : viewer captures (angles approximate)
+- harvest-ref-1/2/3.png : reference images made with Grok Imagine. Ref 3 was used.
+
+REFERENCE IMAGE PROMPT (Grok Imagine, 4:3)
+A three-tier stepped straw hay-bale pyramid tied with twine, orange pumpkins plus one white pumpkin,
+small gourds, potted chrysanthemums in rust, gold and burgundy in terracotta pots, and a wicker
+cornucopia on top spilling grapes, red apples and gourds. 1920s rustic harvest display, viewed about
+20 degrees from above, plain light-grey background, soft even light, no text, no ground, no lights.
+
+IMAGE-TO-3D
+Tool: Tencent Hunyuan3D-2.1, official free Hugging Face Space
+https://huggingface.co/spaces/tencent/Hunyuan3D-2.1
+Account: free Hugging Face account neonspeakeasy-grok (no paid plan, no payment details)
+Settings: Gen Textured Shape, Remove Background on, 30 steps, octree resolution 256,
+guidance scale 5, chunks 8000, seed 6463343 (randomized)
+
+LICENCE (Tencent Hunyuan 3D 2.1 Community License)
+https://huggingface.co/tencent/Hunyuan3D-2.1/blob/main/LICENSE
+- Tencent claims no rights in the generated output (section 6d).
+- Licence territory excludes the EU, UK and South Korea (section 5c): use or display there is not covered.
+- A separate licence is needed above 1 million monthly active users.
+- Acceptable Use Policy item 12: AI-generated content shown publicly should be identified as AI-generated.
+
+CREDIT LINE
+Harvest display 3D model generated with Tencent Hunyuan3D 2.1 (AI-generated) from a Grok Imagine reference image.
+
+QUALITY NOTES
+- Front: reads well. Bales, orange pumpkins, white pumpkin, gourds, mums and cornucopia all clear.
+  Pumpkins are slightly faceted; bale edges are a little lumpy.
+- Back: plain hay wall, most pumpkins/mums missing, cornucopia becomes a smooth brown lump.
+  Place it against a wall or facing the camera so the back is never seen.

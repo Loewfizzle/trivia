@@ -6,6 +6,7 @@
 //     ufo    → assets/city/ufo/   (the abduction's craft: "UFO" by sebslom; js/screens/harbor/ufo-model.js) — BNAME: generalised from
 //              scripts/bake-ufo.mjs with its page + steps moved over VERBATIM; the re-bake is byte-for-byte the same (proved Oct 28)
 //     crane  → assets/city/crane/ (the construction tower's crane; js/screens/harbor/crane-model.js)
+//     harvest → assets/city/harvest/ (C4c: Thanksgiving's harvest display as a 3D model TEST — &prop=model; js/screens/harbor/harvest.js)
 //   --look DIR: the recipe's look renders + the bake into DIR (assets untouched). --model: another model file (a recipe's look of a
 //   candidate). --out DIR: the bake into DIR (assets untouched, no look renders).
 //

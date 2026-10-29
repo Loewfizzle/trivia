@@ -432,7 +432,7 @@ export function createHolidayProps() {
     if (pass === 'near' && HP.harvest && L.medallion) { const m = L.medallion, night = clamp01((E.dark - 0.25) / 0.5);
       // (9c: floodlit at night; its own Edison bulbs make it a lit display — the floods ease to a fill as they come on)
       const fo = { cam: L.cam, m: { x: m.x, z: m.z, r: (m.r || 1.55) * 1.3 }, h: 2.2, lamps: E.dark, self: night * 0.8, t: env.t || 0, fade: env.fade, tier: env.tier, power: env.power };
-      out.push({ z: m.z, draw: c => atCentreScale(c, L.cam, m.x, m.z, centreK(L), () => { floods.under(c, fo); harvest.draw(c, { L, m, T: E.T, dark: E.dark, dpr: env.dpr || 2, lightKey, col: (x, z) => colAt(E, x, z, 1.0), lit: night, power: env.power, fade: env.fade }); floods.over(c, { ...fo, sprite: harvest.lastSprite() }); }) }); }
+      out.push({ z: m.z, draw: c => atCentreScale(c, L.cam, m.x, m.z, centreK(L), () => { floods.under(c, fo); harvest.draw(c, { L, m, T: E.T, dark: E.dark, dpr: env.dpr || 2, lightKey, col: (x, z) => colAt(E, x, z, 1.0), lit: night, power: env.power, fade: env.fade, model: !!env.propModel }); floods.over(c, { ...fo, sprite: harvest.lastSprite() }); }) }); }
     return out;
   }
 
