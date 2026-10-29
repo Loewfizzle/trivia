@@ -84,3 +84,23 @@ test('11a-1 — THE BLACK CAT: Halloween evenings on the side door\'s step from 
   assert.ok(Math.abs(hr(p.t1, day0) - BLACK_CAT.until) < 0.1, `in by 11:45 pm (${hr(p.t1, day0).toFixed(2)})`);
   assert.ok(Math.abs(hr(q.t1, day0 + 4 * 86400) - BLACK_CAT.untilEve) < 0.1, 'Halloween night: until 1:30 am');
 });
+
+test('C4c — NO HOLIDAY PIECE INSIDE A BUILDING (the owner, Oct 29: the hay bale ran through the speakeasy\'s wall): every dressing spot obeys the rule, and every piece — Halloween\'s big jack-o\'-lanterns (+ their bales), Thanksgiving\'s bales / mums / pumpkins / corn stalks, the Christmas-tree stand — stands clear of the speakeasy\'s side wall at 390 / 402 / 430', async () => {
+  const { bigPumpkins, thanksgivingSpots, BALE } = await import('../js/core/harbor-holidayprops.js');
+  const { dressingSpots, spotProblems, spotById } = await import('../js/core/harbor-spots.js');
+  const { STAND } = await import('../js/screens/harbor/treestand.js');
+  for (const k of ['390x844', '402x874', '430x932']) {
+    const { L } = setup(k), s = L.speakeasy;
+    for (const sp of dressingSpots(L)) assert.ok(!spotProblems(L, sp).some(p => p.startsWith('in the speakeasy')), `${k}: ${sp.id} outside the speakeasy`);
+    const pieces = [];
+    for (const b of bigPumpkins(L)) pieces.push({ id: `halloween ${b.spot}`, x0: b.x - Math.max(b.bale ? BALE.w / 2 : 0, b.d / 2), z: b.z });
+    for (const pc of thanksgivingSpots(L, { mums: 4, bales: true, spots: 3, stalks: true })) for (const pt of pc.parts) {
+      const [kind] = pt;
+      const half = kind === 'bale' ? (pt[1] || 1.6) / 2 : kind === 'stalks' ? 0.45 : kind === 'gourds' ? pt[1] / 2 - pt[2] : kind === 'mum' ? pt[2] / 2 - pt[3] : pt[2] / 2 - pt[3];
+      pieces.push({ id: `thanksgiving ${pc.id} ${kind}`, x0: pc.x - half, z: pc.z });
+    }
+    const st = spotById(L, 'bench-left'); if (st) pieces.push({ id: 'the tree stand', x0: st.x - STAND.w / 2 - 0.1, z: st.z });
+    for (const p of pieces) if (p.z > s.z0 - 0.4 && p.z < s.z1) assert.ok(p.x0 > s.x1 + 0.05, `${k}: ${p.id} clear of the speakeasy's side wall (its left edge ${p.x0.toFixed(2)} vs the wall ${s.x1.toFixed(2)})`);
+    assert.ok(pieces.length >= 8, `${k}: ${pieces.length} pieces checked`);
+  }
+});

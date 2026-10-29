@@ -27,8 +27,8 @@ export const pieceCtx = L => ({ season: L.season || 'autumn', phase: L.seasonPha
 // units: dx left, dz behind), its height; its light is baked like every lamp's (the pools, the trees' rig, the props' faces).
 export const HIDDEN = Object.freeze({ dx: -3.2, dz: 1.5, h: 4.0, k: 1 });
 export function hiddenLamps(L) {
-  const t = (L.trees || []).find(o => o.kind === 'crab'), cab = cabLamp(L);
-  return [...(t ? [{ x: t.x + HIDDEN.dx, z: t.z + HIDDEN.dz, h: HIDDEN.h, kind: 'hidden', k: HIDDEN.k, pool: { dx: 1.6, dz: -0.8, k: 0.5 } }] : []), ...(cab ? [cab] : [])];
+  const t = (L.trees || []).find(o => o.kind === 'crab'), cab = cabLamp(L), cor = cornerLamp(L);
+  return [...(t ? [{ x: t.x + HIDDEN.dx, z: t.z + HIDDEN.dz, h: HIDDEN.h, kind: 'hidden', k: HIDDEN.k, pool: { dx: 1.6, dz: -0.8, k: 0.5 } }] : []), ...(cab ? [cab] : []), ...(cor ? [cor] : [])];
 }
 // C4b — THE CAB STAND's OWN LAMP (the owner, Oct 28 10:03 + 10:37 pm — DECIDED): the cab-stand bench in front of the framing maple
 // blocks the light that lit it → one more lamp nobody sees, just OFF-SCREEN RIGHT at the front curb, high (on every upright phone ~2
@@ -38,6 +38,15 @@ export function hiddenLamps(L) {
 // light, the pool), a soft pool on the cobbles; the bench's + the waiters' shadows fall LEFT (lampShadow: within `shadowR`). Kind
 // 'hidden' like POL4's: baked with the lamps' ramp, so its hours + the blackout are the implied lamps'. dx / dz from the cab bench.
 export const CAB_LAMP = Object.freeze({ dx: 4.0, dz: -1.3, h: 4.8, k: 0.9, pool: { dx: -3.1, dz: 1.2, k: 0.42 }, shadowR: 7.5 });
+// C4c — THE HYDRANT CORNER's LAMP (the owner, Oct 29 7:47 am: "you can't even tell it's a hydrant" — the bottom-left corner the darkest
+// spot of the promenade, its holiday pieces unread): the cab stand's twin on the LEFT — a lamp nobody sees ~3 u past the left edge at the
+// front curb, a little dimmer (k 0.7 vs 0.9: never brighter than the shopfront), its soft spill on the hydrant + the pieces beside it,
+// a pool on the cobbles, the shadows falling RIGHT. Kind 'hidden': baked with the lamps' ramp — their hours + the blackout. dx / dz from the hydrant.
+export const CORNER_LAMP = Object.freeze({ dx: -3.4, dz: -1.2, h: 4.8, k: 0.7, pool: { dx: 2.9, dz: 1.3, k: 0.27 }, shadowR: 6.5 });
+export function cornerLamp(L) {
+  const h = L.hydrant;
+  return h ? { x: h.x + CORNER_LAMP.dx, z: h.z + CORNER_LAMP.dz, h: CORNER_LAMP.h, kind: 'hidden', corner: true, k: CORNER_LAMP.k, pool: CORNER_LAMP.pool } : null;
+}
 export function cabLamp(L) {
   const c = L.cabStand;
   return c ? { x: c.x + CAB_LAMP.dx, z: c.z + CAB_LAMP.dz, h: CAB_LAMP.h, kind: 'hidden', cab: true, k: CAB_LAMP.k, pool: CAB_LAMP.pool } : null;
@@ -117,7 +126,7 @@ export const LAMP_SHADOW = Object.freeze({ len: 0.95, a: 0.42 });
 export function lampShadow(lamps, h, x, z, k) {
   if (!(k > 0.05) || x == null || z == null) return null;
   let best = null, bd = 1e9;
-  for (const l of lamps || []) { if (!l.implied && l.kind !== 'implied' && !l.cab) continue; const d = Math.hypot(l.x - x, l.z - z); if (l.cab && d > CAB_LAMP.shadowR) continue; if (d < bd) { bd = d; best = l; } }   // (C4b: the cab stand's lamp near it — the bench's shadow falls LEFT)
+  for (const l of lamps || []) { if (!l.implied && l.kind !== 'implied' && !l.cab && !l.corner) continue; const d = Math.hypot(l.x - x, l.z - z); if ((l.cab && d > CAB_LAMP.shadowR) || (l.corner && d > CORNER_LAMP.shadowR)) continue; if (d < bd) { bd = d; best = l; } }   // (C4b: the cab stand's lamp near it — the bench's shadow falls LEFT)
   if (!best) return null;
   const ux = (x - best.x) / bd, uz = (z - best.z) / bd, len = LAMP_SHADOW.len * h * (0.8 + 0.4 * Math.min(1, bd / 26));
   return { dx: ux * len, dz: uz * len, a: LAMP_SHADOW.a * Math.min(1, k) * (1 - 0.45 * Math.min(1, Math.max(0, (bd - 16) / 18))) };

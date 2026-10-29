@@ -7,7 +7,11 @@
 // tier. Baked layers are capped at DPR 2 on phones; if the budget is still exceeded the biggest layers step down to DPR 1.5,
 // then 1. The main canvas is the scene's (its own DPR per tier) and is reported next to the budget. &debug=1 logs it all.
 import { safeCtx } from '../../ui/canvas-safe.js';
-export const MEM_BUDGET_MB = [24, 40, 64];   // tier 0, 1, 2: all baked layers (both sets)
+// C4c — THE MEMORY GUARD RAISED (the owner, Oct 28: "are we throttling ourselves on memory?"): set in Part 1 when Safari's limit was
+// believed ~224-384 MB; review-4 measured the real iOS canvas ceiling at >= ~1 GB (a quarter of RAM) and the whole city at 70-83 MB in
+// every state (tier 2). 24 / 40 / 64 -> 64 / 96 / 160 (~2-3x today's real total, still < 20 % of the ceiling): softness only ever comes
+// from the SPEED tier. The budget now counts what is REALLY there (usedMb = every other live canvas: canvas-safe.js#canvasMb)
+export const MEM_BUDGET_MB = [64, 96, 160];   // tier 0, 1, 2: every live canvas of the scene (the bakes' both sets + the rest)
 
 const mk = () => document.createElement('canvas');
 
@@ -15,19 +19,21 @@ export function createBaker() {
   let groups = [];            // [{ name, y0, h, dpr, cur, next }]
   let queue = [], key = '', pendingKey = '', W = 0, tier = 2;
   let doneAt = -1, bakes = 0, busyMs = 0, planned = 0;
+  let stepped = [], wantMb = 0, usedAt = 0;   // (C4c: what the guard stepped down on the last plan, what the layers wanted at full dpr, what else was live)
 
   /** (re)plan the canvases for a screen: groups = [{ name, y0, h }] in pt; maxDpr from the tier; usedMb: what another baker
    *  of the same scene already holds (the budget is the scene's, shared) */
   function plan(w, gs, maxDpr, t, usedMb = 0) {
-    W = w; tier = t;
+    W = w; tier = t; stepped = [];
     const budget = (MEM_BUDGET_MB[tier] - usedMb) * 1e6;
     const want = gs.map(g => ({ ...g, y0: Math.floor(g.y0), h: Math.max(1, Math.ceil(g.h)), dpr: maxDpr }));
     const bytes = () => want.reduce((s, g) => s + 2 * Math.ceil(W * g.dpr) * Math.ceil(g.h * g.dpr) * 4, 0);
+    wantMb = bytes() / 1e6; usedAt = usedMb;
     // over budget: the biggest layers come down a step at a time
     for (let guard = 0; bytes() > budget && guard < 20; guard++) {
       const big = want.filter(g => g.dpr > 1).sort((a, b) => b.h - a.h)[0];
       if (!big) break;
-      big.dpr = big.dpr > 1.5 ? 1.5 : 1;
+      const was = big.dpr; big.dpr = big.dpr > 1.5 ? 1.5 : 1; stepped.push({ name: big.name, from: was, to: big.dpr });
     }
     // A re-plan never blanks the city: a group that was baked keeps its current canvas (and `ready`) and goes on drawing it
     // until the new bake swaps in — ALWAYS in the band it was baked for (FP3a, FREV B1: it used to be stretched into the new band
@@ -71,7 +77,7 @@ export function createBaker() {
   const mem = () => {
     const per = groups.map(g => ({ name: g.name, dpr: g.dpr, w: g.cur.width, h: g.cur.height, mb: +(((g.cur.width * g.cur.height) + (g.next.width * g.next.height)) * 4 / 1e6).toFixed(2) }));
     const mb = +per.reduce((s, g) => s + g.mb, 0).toFixed(2);
-    return { mb, budget: MEM_BUDGET_MB[tier], tier, layers: per };
+    return { mb, budget: MEM_BUDGET_MB[tier], tier, layers: per, want: +wantMb.toFixed(1), others: +usedAt.toFixed(1), stepped: stepped.slice() };
   };
 
   /** after the crossfade: the spare canvas (the old layer) takes its group's size again, so the steady state is always two

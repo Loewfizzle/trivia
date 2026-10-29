@@ -898,7 +898,11 @@ export function drawDog(c, cam, st, L, env, yUp = 0) {
   const [fx, fy] = project(cam, st.x, yUp, st.z), s = cam.F / st.z, H = 0.62 * FOLK_SCALE * L.dogSize * s, d = hc < 0 ? -1 : 1, X = u => fx + u * H * d * fs, Y = v => fy - v * H;
   if (fx + H < 0 || fx - H > cam.W) return [fx, fy];
   const lampK = clamp01(env.dark || 0), dark = Math.max(lampK, clamp01((env.T && env.T.night) || 0)), lt = env.lightAt ? env.lightAt(st.x, st.z) : null;
-  let col = L.dog; if (dark > 0.01) { col = mix(col, [18, 16, 28], 0.74 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); col = col.map((v, i) => Math.min(255, v + lt[i] * q * 0.17 * lampK)); } }
+  // (C4c — THE DOGS AT NIGHT (the owner, Oct 29: "a dog walker with no dog" + "I haven't seen a dog in a while"): every walk after dark
+  // had its dog mixed 74 % to the night's near-black + a sliver of the lamps — a black blob on the dark cobbles beside a lit walker, the
+  // leash running to nothing. Now the coat keeps its colour in the lamps' light like the people's (SP4's lit figures): 0.5 to the night,
+  // the lamps' light 0.45 back off it, a LIT EDGE along its back + head (the lamps above) and a red COLLAR — one clear silhouette + one accent)
+  let col = L.dog, rim = null; if (dark > 0.01) { col = mix(col, [18, 16, 28], 0.5 * dark); if (lt) { const q = Math.min(1, 160 / Math.max(1, lt[0], lt[1], lt[2])); col = col.map((v, i) => Math.min(255, v + lt[i] * q * 0.45 * lampK)); rim = mix(col, [255, 214, 160], 0.55 * lampK); } else rim = mix(col, [150, 150, 190], 0.35 * dark); }
   c.fillStyle = `rgba(8,6,16,${(0.3 + 0.15 * dark).toFixed(3)})`; c.beginPath(); c.ellipse(fx, fy, H * 0.65, H * 0.08, 0, 0, TAU); c.fill();
   const p = st.v > 0.05 ? (st.dist / 0.9) % 1 : 0, trot = st.v > 0.05 ? 1 : 0;
   // (8b1 wildlife — THE LUNGE at the pigeons, st.lunge 0..1: the body stretched + low, the front legs reaching, the head down + out)
@@ -914,7 +918,12 @@ export function drawDog(c, cam, st, L, env, yUp = 0) {
   c.beginPath(); c.moveTo(X(0.5 + fwd * 1.1 + hfw), Y(0.82 - low * 2 - hdn)); c.lineTo(X(0.46 + fwd + hfw), Y(0.98 - low * 2.6 - hdn)); c.lineTo(X(0.58 + fwd * 1.1 + hfw), Y(0.84 - low * 2 - hdn)); c.fill();   // an ear (flat back in the lunge)
   const wag = env.mo !== false ? Math.sin((env.t || 0) * (11 + 7 * sn) + st.x) * (0.08 + 0.05 * sn) : 0;
   c.strokeStyle = rgb(col); c.lineWidth = Math.max(0.6, H * 0.07); c.beginPath(); c.moveTo(X(-0.48), Y(0.58)); c.quadraticCurveTo(X(-0.66), Y(0.78 + wag), X(-0.62), Y(0.92 + wag)); c.stroke();
-  return [X(0.48 + fwd * 1.1), Y(0.62 - low * 2)];
+  if (rim) { c.strokeStyle = rgb(rim); c.lineWidth = Math.max(0.5, H * 0.06); c.beginPath(); c.moveTo(X(-0.4), Y(0.67 - low)); c.quadraticCurveTo(X(fwd * 0.5), Y(0.71 - low), X(0.4 + fwd), Y(0.66 - low)); c.stroke();
+    c.beginPath(); c.arc(X(0.55 + fwd * 1.1 + hfw), Y(0.72 - low * 2 - hdn), H * 0.14, Math.PI * 1.15, Math.PI * 1.85); c.stroke(); }
+  c.strokeStyle = dark > 0.3 ? 'rgb(214,58,52)' : 'rgb(170,40,40)'; c.lineWidth = Math.max(0.6, H * 0.07); c.beginPath(); c.moveTo(X(0.44 + fwd * 1.1), Y(0.56 - low * 2 - hdn * 0.6)); c.lineTo(X(0.5 + fwd * 1.1), Y(0.7 - low * 2 - hdn * 0.6)); c.stroke();   // (the collar)
+  const out = [X(0.48 + fwd * 1.1), Y(0.62 - low * 2)];
+  out.box = { x: fx - H * 0.9, y: fy - H * 1.05, w: H * 1.8, h: H * 1.15 };   // (C4c: the benches' sharp overlays re-draw a dog in front of them)
+  return out;
 }
 /** the leash: a gently sagging line from the hand to the collar (taut: straight — 8b1 wildlife, the owner tugging a lunging dog) */
 export function drawLeash(c, a, b, env, taut = false) {

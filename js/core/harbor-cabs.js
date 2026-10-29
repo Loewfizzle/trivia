@@ -81,7 +81,7 @@ export function standEvents(k, ctx = {}) {
 /** the cab stand's seat + where a waiter steps up to it (world) */
 export function standSpots(L) {
   const b = L.cabStand; if (!b) return null;
-  return { seats: [{ x: b.x - 0.8, z: b.z - 0.2 }, { x: b.x + 0.75, z: b.z - 0.2 }], up: { x: b.x - b.w / 2 - 0.85, z: FOLK.zMin + 0.05 }, kerb: { x: b.x, z: (L.edge ? L.edge.z : 35.6) + 0.2 } };
+  return { seats: [{ x: b.x - 0.8, z: b.z - 0.2 }, { x: b.x + 0.75, z: b.z - 0.2 }], up: { x: b.x - b.w / 2 - 0.5, z: b.z - 0.2 } /* (C4c: at the bench's front-left corner — reached round its END, never through it) */, kerb: { x: b.x, z: (L.edge ? L.edge.z : 35.6) + 0.2 } };
 }
 /** a waiter planned (PURE): → { id, rider (the visit: walk up, sit `sit` s, then walk off), cab: cabPlan | null (a hail: the rider's
  *  legs continue to the back road's curb + into its cab) } | null */

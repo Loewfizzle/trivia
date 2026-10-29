@@ -2381,7 +2381,7 @@ test('PROM — THE PROMENADE, FINAL (LOCKED Oct 28): no lampposts; the back row 
     assert.deepEqual(floor.map(t => t.kind), ['maple'], `${k}: the floor holds only the framing maple`);
     const s = L.speakeasy, big = floor[0];
     assert.equal(L.planters.length, 0, `${k}: no planter (FP2)`);
-    assert.ok(Math.abs(big.z - 42) < 0.01 && sx(big) - crown(big) > 0 && sx(big) + crown(big) <= cam.W && P(big.x, big.z, big.trunk + big.h)[1] > 0, `${k}: the maple's whole crown shows`);
+    assert.ok(Math.abs(big.z - 42) < 0.01 && sx(big) - crown(big) > 0 && sx(big) + crown(big) <= cam.W - 4 && P(big.x, big.z, big.trunk + big.h)[1] > 0, `${k}: the maple's whole crown shows — C4c: its box ≥ 4 pt inside the edge (${(cam.W - sx(big) - crown(big)).toFixed(1)}; every season's leaves are clamped to the box, the sway leans it ~2 pt)`);
     const inR = sx(L.medallion) + cam.F * L.medallion.ring / L.medallion.z; assert.ok(sx(big) - crown(big) >= inR - 2, `${k}: the maple clear of the compass's ring (${(sx(big) - crown(big)).toFixed(0)} vs ${inR.toFixed(0)})`);
     // THE COMPASS: bigger (r 1.8, ring 3.05) + forward (z 42.6)
     assert.ok(L.medallion.r === 1.8 && L.medallion.ring === 3.05 && L.medallion.z === 42.6, `${k}: the bigger compass, brought forward`);

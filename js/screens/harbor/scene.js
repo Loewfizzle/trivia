@@ -91,7 +91,7 @@ import { createWetGround } from './wetground.js';
 import { createStill } from './still.js';
 import { createCabStand } from './cabstand.js';
 import { createGlassWeather } from './glasswx.js';
-import { safeCtx, starvedCount, blurWorks, BAKE_CAP } from '../../ui/canvas-safe.js';
+import { safeCtx, starvedCount, blurWorks, BAKE_CAP, canvasMb } from '../../ui/canvas-safe.js';
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
 import { createReporter } from './report.js';
@@ -424,6 +424,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // every frame of the stutter)
   let PWQ = 1;
   const stepPow = () => { if (!LB) return (PWQ = 1); const p = legendPow(W * 0.5, 'near', 210); if (p <= 0.05) PWQ = 0; else if (p >= 0.95) PWQ = 1; else if (Math.abs(p - PWQ) >= 0.3) PWQ = Math.round(p * 4) / 4; return PWQ; };
+  let memGuard = null;   // (C4c: the memory guard's last verdict — memAll().guard, the LOAD log, the phone bench)
   let LB = null, speakPw = false, raidPole = false, raidLit = new Set(), raidCue = new Set(), raidFrame = { R: null, spotAt: null };
   // 8b2 — THE RAID (core/harbor-raid.js): the night's raid (seeded by the date: the night after the bootleggers' delivery, a rare party
   // night) or the preview (&force=raid: one every 2½ min from the moment it's on) → its plan for this layout, kept 4 h after (the people's
@@ -721,6 +722,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const s = L.speakeasy, w = L.wheel, l = L.lighthouse;
     const yOf = (y, z) => project(cam, 0, y, z)[1];
     const top = cam.limitY - 6;
+    // (C4c — THE MEMORY GUARD COUNTS WHAT'S THERE: every other live canvas of the page — the sky pair, the stars, the dressing, the main
+    // canvas, the tubes … (canvas-safe.js#canvasMb) — minus the two bakers' own sets, which this plan replaces)
+    const others9 = Math.max(0, canvasMb().mb - baker.mem().mb - litBaker.mem().mb);
     baker.plan(W, [
       { name: 'far', y0: top, h: groundY(cam, Z.mid[0]) + 3 - top },
       { name: 'near', y0: top, h: yOf(L.quay.foot, Z.quay) + 3 - top },
@@ -733,9 +737,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (PART 7a: the front row — the furniture nearer than the speakeasy's face — bakes on its own, drawn OVER the speakeasy's lit
       // rooms: a tree in front of a window stays in front of its light)
       { name: 'front', y0: frontTop() - 4, h: H - frontTop() + 4 },
-    ], Math.min(BAKE_CAP, dpr), tier);
+    ], Math.min(BAKE_CAP, dpr), tier, others9);
     // the lit windows: the same bands as the skyline's two groups (their budget is the rest of the tier's: bake.js#MEM_BUDGET_MB)
-    litBaker.plan(W, [{ name: 'farLit', y0: top, h: groundY(cam, Z.mid[0]) + 3 - top }, { name: 'nearLit', y0: top, h: yOf(L.quay.foot, Z.quay) + 3 - top }], Math.min(BAKE_CAP, dpr), tier, baker.planned);
+    litBaker.plan(W, [{ name: 'farLit', y0: top, h: groundY(cam, Z.mid[0]) + 3 - top }, { name: 'nearLit', y0: top, h: yOf(L.quay.foot, Z.quay) + 3 - top }], Math.min(BAKE_CAP, dpr), tier, baker.planned + others9);
+    // (C4c: the guard's verdict in the LOAD log — did any baked layer step down for MEMORY (never for speed) on this plan?)
+    { const st9 = [...baker.mem().stepped, ...litBaker.mem().stepped]; memGuard = { at: Math.round(performance.now()), tier, dpr: Math.min(BAKE_CAP, dpr), others: +others9.toFixed(1), want: +(baker.mem().want + litBaker.mem().want).toFixed(1), budget: baker.mem().budget, stepped: st9 };
+      LOADLOG.add('memory', st9.length ? `the guard STEPPED DOWN ${st9.map(g => `${g.name} ${g.from}→${g.to}`).join(', ')} (the bakes want ${memGuard.want} MB + ${memGuard.others} MB else live, budget ${memGuard.budget})` : `the guard: nothing stepped (the bakes ${memGuard.want} MB + ${memGuard.others} MB else live of ${memGuard.budget})`); }
     if (DEBUG) console.info('[harbor] layout', { W, H, F: +cam.F.toFixed(1), CAMH: +cam.CAMH.toFixed(2), VPY: +cam.VPY.toFixed(1), limitY: cam.limitY, squeeze: +L.squeeze.toFixed(2), mem: memAll() });
     skyGlowY = Array.from(skyline).sort((a, b) => a - b)[Math.floor(skyline.length * 0.35)];
     paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK), dark: DK });
@@ -1622,7 +1629,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (sky.busy()) return 'sky';
     if (legends && legends.busy()) return 'legend';
     if (roadLight.busy() || cabStand.busy()) return 'car';              // (FP2: the motorcar crossing the street while the dock rests — its wheels at 60; PROM: the cab stand's taxi)
-    { const d = people.doors(); if ((d.side > 0.002 && d.side < 0.998) || (d.shop > 0.002 && d.shop < 0.998)) return 'door'; }   // (POL4: a door swinging — every frame, never a stepped swing)
+    { const d = people.doors(); if ((d.side > 0.002 && d.side < 0.998) || (d.shop > 0.002 && d.shop < 0.998) || (people.busDoorMoving && people.busDoorMoving())) return 'door'; }   // (C4c: + the bus's folding door)   // (POL4: a door swinging — every frame, never a stepped swing)
     if (people.driving()) return 'traffic';          // (POL4: a motorcar rolling on the back road — its wheels + its glide at 60)
     if (people.moving()) return 'people';            // (PEO: anyone walking on screen — a walker held at 30 fps judders, and the 30 ↔ 60 flips were the afternoon's stutter)
     if (!clock.force.has('no-speakeasy') && speak.busy()) return 'window';   // (WIN: a window moment, a tap's answer, a passer-by — the owner's "choppy toast" was the saver's 30 fps + its 30 ↔ 60 flips with nobody walking)
@@ -1895,7 +1902,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // near water + the heron, the fish jumping — before the road layer (the railing stands in front of them)
     const wlLive = !off.has('no-wildlife') && !!L.hydrant, wlOn = wlLive && fadeIn > 0 && !!bakeTones;
     if (wlLive) wild.frame(wildFrame());
-    const wlEnv = wlOn ? { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), fade: fadeIn, tier } : null;
+    const wlEnv = wlOn ? { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * PWQ /* (C4c: the lamps' light on the animals + the hydrant dies with the drain) */, fade: fadeIn, tier } : null;
     if (wlOn) wild.draw(c, 'water', wlEnv);
     layer('road');
     // 9b — THE PLOWED LANE appearing behind the plow (the road baked white while it snows): from where it came in to its tail; held across
@@ -2182,6 +2189,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // text is still made HERE, in the frame — a stopped loop freezes it, as the AUDIO panel's `city` row expects — twice a second;
   // a tap on its title folds it to ONE line: `t2 · 60 fps · 1% slow · beat grid`, remembered on this device)
   let roAt = 0, roN = 0, roT0 = 0, roStrip = null;
+  let roMem = null;
   function readout(now) {
     roN++;
     if (now - roAt <= 500) return;
@@ -2192,7 +2200,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const head = `t${tier}${dprTier !== tier ? `/${dprTier}` : ''} · dpr ${dpr} · ${fps} fps${tierHist.length > 1 ? ` · ${tierHist.join('→')}` : ''}${capped ? ` · capped ${capped} Hz` : ''}`;
     const hv = heavyNow(now), sinceR = shownAt < 0 ? -1 : (now - shownAt) / 1000;
     const tierLine = lastJudge ? `tier ${lastJudge.text}` : `tier: no step${sinceR >= 0 && sinceR < TIER_GRACE / 1000 ? ` · not judged until ${TIER_GRACE / 1000} s (${sinceR.toFixed(0)} s)` : hv ? ` · not judged now (${hv})` : slowN ? ` · slow ${slowN}/4 looks` : ''} · effects first, resolution last`;
-    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, tierLine, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
+    // (C4c: the honest canvas total + the memory guard's verdict, refreshed every 2 s)
+    if (!roMem || now - roMem.at > 2000) { const m = memAll(), g = m.guard; roMem = { at: now, text: `canvases ${m.tracked} MB live (${m.canvases}) · bakes ${m.mb} · guard ${g && g.stepped.length ? `STEPPED ${g.stepped.map(x => x.name).join(',')}` : 'ok'} of ${m.budget} MB${BAKE_CAP > 2 ? ' · &dpr=3' : ''}` }; }
+    const rows = [`work ${mean.toFixed(1)} / ${p95.toFixed(1)} ms (mean / p95)`, `frame ${p50f.toFixed(1)} ms · ${slow}% slow`, tierLine, roMem.text, sessLine('session', sess, now), sessLine(`after ${LOAD_SKIP / 1000} s`, sess.after, now), `last 10 min ${tenMinSlow().toFixed(1)}% slow · heavy ${director.state().running.length}/${director.budget(tier)}`, `${fastWhy || 'calm'}${waterQuiet ? ' · water quiet' : ''}`, ...wxLines(), ...(S.musicLine ? [].concat(S.musicLine()) : []), ...(PT.on > 0 ? [beatLine(), safeLine()] : [])];
     if (!roStrip) roStrip = createDebugStrip('readout');
     roStrip.set({ head: `${head} ▾`, line: `t${tier} · ${fps} fps · ${slow}% slow${PT.on > 0 ? ` · beat ${hbeat.src}` : ''} ▸`, rows });
   }
@@ -2592,6 +2602,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   function perf(dt) {
     session(dt);
+    // (C4c — THE CLIMB RE-ARMED (the owner, Oct 28: "are we too careful?"): the way back up used to be spent for the visit — twice a
+    // session, never after a step down that followed a step up (upLock) — so one party peak could leave the city lower until the next
+    // load. Now the END of a heavy moment (a legendary, the party, the fireworks) re-arms it, and a lock lifts after UP_RETRY anyway)
+    { const hv9 = !!(legends && legends.active()) || PT.on > 0.5 || fw.busy(); if (wasHeavy9 && !hv9 && (upLock || ups >= 2)) { upLock = false; ups = 0; tierNote('re-armed', 'a heavy moment ended: the climb back may try again'); } wasHeavy9 = hv9; }
     frames.push(dt);
     if (frames.length > 90) frames.shift();
     if (cool > 0) { cool--; return; }
@@ -2640,12 +2654,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (slowN >= 4 && (tier > 0 || dprTier > 0) && !probe) {
       const cs = costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : 0;
       if (capped && cs <= 12) return;
-      if (upAt) upLock = true;
+      if (upAt) { upLock = true; lockAt = performance.now(); }
       if (!capped) probe = { from: { tier, dprTier }, p50: s[45], at: now };
       const why = judge(now, 'the frame rate', 'down');
       slowN = 0; stepDown(why); cool = 150; frames.length = 0; return;
     }
-    if ((tier < TOP_TIER || dprTier < TOP_TIER) && !manualTier && !upLock && ups < 2 && now - tierAt > 20000 && costs.length >= 60) {
+    if ((tier < TOP_TIER || dprTier < TOP_TIER) && !manualTier && (!upLock || now - lockAt > UP_RETRY) && (ups < 2 || now - upAt > UP_RETRY) && now - tierAt > 20000 && costs.length >= 60) {
       const cs = [...costs].sort((a, b) => a - b), mean = cs.reduce((a, b) => a + b, 0) / cs.length, slow = s.filter(v => v > 20).length / s.length;
       if (s[67] <= 17.5 && slow <= 0.05 && mean <= 4.5 && cs[Math.floor(cs.length * 0.95)] <= 8) { ups++; upAt = now; judge(now, 'steady 60 fps', 'up'); stepUp(); cool = 150; frames.length = 0; }
     }
@@ -2670,6 +2684,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return text;
   }
   let tierHold = 0, perfN = 0, tierAt = performance.now(), ups = 0, upAt = 0, upLock = false, manualTier = false, probe = null, capped = 0;
+  // (C4c: the climb's retry + its log — every step with its time + why, for the readout + THE PHONE BENCH (the LOAD log stops 15 s after
+  // the reveal); UP_RETRY: a locked or spent climb tries again after 3 min)
+  const UP_RETRY = 180000, tierLog = [];
+  let lockAt = 0, wasHeavy9 = false;
+  function tierNote(dir, text) { tierLog.push({ at: +((performance.now() - (shownAt < 0 ? performance.now() : shownAt)) / 1000).toFixed(1), dir, tier, dprTier, text }); if (tierLog.length > 60) tierLog.shift(); }
   const tierHist = [tier];                      // (the readout shows the steps: 2→1→2)
   const applyFx = () => { wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); if (legends) legends.setTier(tier); if (bow) bow.setTier(tier); if (fw) fw.setTier(tier); };
   const histPush = () => { tierHist.push(dprTier === tier ? tier : `${tier}/${dprTier}`); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); };
@@ -2685,17 +2704,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (tier > 0) { tier--; applyFx(); kind = 'effects — live, no re-bake'; }
     else if (dprTier > 0) { dprTier--; kind = 'resolution — a re-bake'; }
     else return false;
-    stepWhy.push(why); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (${kind}; ${why})`, { applied: true }); histPush();
+    stepWhy.push(why); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (${kind}; ${why})`, { applied: true }); tierNote('down', `${was} → ${tier}/${dprTier} (${kind}; ${why})`); histPush();
     if (kind[0] === 'r') build('a tier step'); if (DEBUG) console.info('[harbor] tier', tier, dprTier);
     return true;
   }
   /** a step UP after a step down: the resolution back first, then the effects */
   function stepUp() {
     const was = `${tier}/${dprTier}`; fastUntil = Math.max(fastUntil, performance.now() + 1500);
-    if (dprTier < TOP_TIER) { dprTier++; LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (resolution back)`, { applied: true }); histPush(); build('a tier step up'); }
-    else if (tier < TOP_TIER) { tier++; applyFx(); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (effects back)`, { applied: true }); histPush(); }
+    if (dprTier < TOP_TIER) { dprTier++; LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (resolution back)`, { applied: true }); tierNote('up', `${was} → ${tier}/${dprTier} (resolution back)`); histPush(); build('a tier step up'); }
+    else if (tier < TOP_TIER) { tier++; applyFx(); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (effects back)`, { applied: true }); tierNote('up', `${was} → ${tier}/${dprTier} (effects back)`); histPush(); }
   }
-  function stepTo(t, d, why) { const was = `${tier}/${dprTier}`, rb = d !== dprTier; tier = t; dprTier = d; applyFx(); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (${why})`, { applied: true }); histPush(); if (rb) build('a tier step'); }
+  function stepTo(t, d, why) { const was = `${tier}/${dprTier}`, rb = d !== dprTier; tier = t; dprTier = d; applyFx(); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (${why})`, { applied: true }); tierNote('to', `${was} → ${tier}/${dprTier} (${why})`); histPush(); if (rb) build('a tier step'); }
   function setTier(t) { manualTier = true; stepTier(t); }
 
   // 8a — THE LOOP COMES BACK (the owner's iPhone after 7a: back from the home screen the music + Web Audio recovered — the DOM AUDIO
@@ -2899,7 +2918,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     safeBottom: v => { const n = v || 0; if (n !== safeBotV) { LOADLOG.add('note', `the safe area's bottom ${safeBotV} → ${n}`); safeBotV = n; if (W) layout('the safe area'); } },
     get state() { return S; },
     setTier,
-    tier: () => tier,
+    tier: () => tier, tierLog: () => tierLog.slice(),   // (C4c: every quality step + its why — the phone bench)
     sun: () => sun.debug(),
     /** the moon on screen ({ x, y, r } or null) — the title's tagline shade (NEON PASS 2) */
     moonAt: () => (moonNow ? { ...moonNow } : null),
@@ -2995,7 +3014,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },
       neon: neon.debug(), neonRuns: () => neon.runs(), show: neon.show(), daily: neon.daily(), roofModes: neon.roofModes(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => { boardHeld = performance.now() + 60000; return neon.billboard(id, v); } /* (C2: a manual / preview board holds a minute over the workers' sync) */, reflections: () => neon.reflections(), beacons: lights.beaconList(),
       dark: +DK.toFixed(3), power: +power(DK).toFixed(3), powerUp: neon.power(), lamps: +(litK(DK, 'bill')).toFixed(3),     // C1.5: the one darkness input (core/harbor-dark.js); DT1: the power-up's progress
-      spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(),
+      spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(), tierLog: tierLog.slice(), upLock: { lock: upLock, ups, retryIn: upLock ? Math.max(0, Math.round((UP_RETRY - (performance.now() - lockAt)) / 1000)) : 0 },
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
@@ -3034,5 +3053,5 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   };
   function T0() { return isNight(DK); }
   /** every baked canvas of the scene (the city's layers + the lit windows) against the tier's one budget */
-  function memAll() { const a = baker.mem(), b = litBaker.mem(), w = water.mem(), h = wheel.debug().mb + boats.debug().mb; const mm = mergedMb(); return { mb: +(a.mb + b.mb + w + h + mm).toFixed(2), budget: a.budget, tier: a.tier, merges: fillStats.merges, layers: [...a.layers, ...b.layers, { name: 'water (the mirror, live)', dpr: 1, mb: w }, { name: 'harbor sprites (the wheel, the boats)', dpr, mb: +h.toFixed(2) }, { name: 'the merged bands (band + its lights: FILL)', dpr, mb: mm }] }; }
+  function memAll() { const a = baker.mem(), b = litBaker.mem(), w = water.mem(), h = wheel.debug().mb + boats.debug().mb; const mm = mergedMb(), tr = canvasMb(); return { mb: +(a.mb + b.mb + w + h + mm).toFixed(2), tracked: tr.mb, canvases: tr.n, guard: memGuard, budget: a.budget, tier: a.tier, merges: fillStats.merges, layers: [...a.layers, ...b.layers, { name: 'water (the mirror, live)', dpr: 1, mb: w }, { name: 'harbor sprites (the wheel, the boats)', dpr, mb: +h.toFixed(2) }, { name: 'the merged bands (band + its lights: FILL)', dpr, mb: mm }] }; }
 }

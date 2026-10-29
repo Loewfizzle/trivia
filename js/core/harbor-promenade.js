@@ -93,13 +93,13 @@ export const PHONE = Object.freeze({
   // seed from its old spot), THE CART in the middle (f 0.69 — between the compass + the cab bench), wheeled up from BELOW THE DOCK
   // (`from: 'below'`: across the front street + over the curb at its spot)
   tall: [],
-  maples: [{ f: 0.9, z: 42.0, big: true, v: 1, seedF: 0.875 }],
+  maples: [{ f: 0.888, z: 42.0, big: true, v: 1, seedF: 0.875 }],   // (C4c: 0.9 → 0.888 — the owner saw its crown cut at the edge: its leaves ended 1 pt inside + the wind's sway leaned it out; now ~6 pt in, every season)
   crabs: [{ f: 0.42, z: 50.9, k: 1.4 }],    // (POLISH 5: 0.45 / k 1.45 → 0.42 / 1.4 — the cab at its stop no longer half behind it at 402; PF: 0.405 / z 52.9 / k 1.25 → its crown 153–209 pt at 402: right of the blade, left of the lamp's arm)
   globes: [],
   medallion: { f: 0.515, z: 42.6 },         // (PROM: forward from 44.8 — on the crossing's axis; C4b: LEFT, 0.6675 → 0.515 — the crossing clear)
   bench: { f: 0.42, z: 47.8, face: 'water' },   // (C4b: 0.515 → 0.42 — back in front of the crabapple: the compass's pieces never hide it)
     // (PROM: THE WATER BENCH — the old spot in front of the crabapple, turned to face the harbor: its sitters seen from behind)
-  cabStand: { f: 0.9025, z: 38.0, face: 'street' },   // (C4b: 0.875 → 0.9025 — the maple's 0.70 u to the right edge)
+  cabStand: { f: 0.889, z: 38.0, face: 'street' },   // (C4b: 0.875 → 0.9025 — the maple's 0.70 u to the right edge; C4c: → 0.889 — with the maple, 0.34 u back in)
     // (PROM: THE CAB STAND — at the front curb in front of the framing maple, facing us + the street; ~13 pt above the dock at 390 / 402 / 430)
   hydrant: { f: 0.035 },                    // (PROM: at the LEFT CURB, framing the corner)
   // (FP3b — THE VENDOR SPOT, the owner, Oct 24: the cart moves to the FRONT CURB in the MIDDLE, just in front of the compass inlay —

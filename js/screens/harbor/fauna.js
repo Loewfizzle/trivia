@@ -408,7 +408,7 @@ export function drawQuad(c, cam, q, env) {
 export function drawHydrant(c, cam, h, env, o = {}) {
   const s = cam.F / h.z, [gx, gy] = project(cam, h.x, 0, h.z), H = h.h * s, R = h.r * s;
   const nk = clamp01(((env.T && env.T.night) || 0)) * 0.32;   // (at night it keeps some of its red: the lamp right beside it)
-  const col = (rgb3, k = 1) => mix(litCol(rgb3, env, h.x, h.z, 3.2 * k), [rgb3[0] * 0.62, rgb3[1] * 0.4, rgb3[2] * 0.4], nk), sun = sunOf(env), lit = sun.s > 0 ? 1 : -1;   // (3.2: the lamp beside it lights the red at night)   // (lit: the sun's side, +1 = right)
+  const col = (rgb3, k = 1) => mix(litCol(rgb3, env, h.x, h.z, 3.2 * k), [rgb3[0] * 0.62, rgb3[1] * 0.4, rgb3[2] * 0.4], nk), sun = sunOf(env), lampK9 = clamp01(env.dark || 0), lit = lampK9 > 0.3 ? -1 : sun.s > 0 ? 1 : -1;   // (C4c: at night the corner lamp, off-screen LEFT, lights it)   // (3.2: the lamp beside it lights the red at night)   // (lit: the sun's side, +1 = right)
   contact(c, cam, h.x, 0, h.z, h.r * 1.9, 0.42); cast(c, cam, h.x, 0, h.z, h.h, h.r * 1.2, env);
   const red = [196, 28, 30], redD = col([112, 14, 20]), redM = col(red), redL = col([240, 92, 76]), hot = col([255, 196, 170]);
   const iron = col([40, 34, 36]), brass = col([214, 168, 70]);
@@ -444,8 +444,8 @@ export function drawHydrant(c, cam, h, env, o = {}) {
   c.fillStyle = rgb(mix(redD, iron, 0.4)); c.beginPath(); for (let i = 0; i < 5; i++) { const a = -PI / 2 + i * TAU / 5; c[i ? 'lineTo' : 'moveTo'](Math.cos(a) * R * 0.34, Math.sin(a) * R * 0.3); } c.closePath(); c.fill();
   c.restore();
   // the crisp HIGHLIGHT: a bright stripe down the lit side of the barrel + the bonnet's shine (by day; a lamp's warmth at night)
-  const day = clamp01(((env.T && env.T.day) || 0) + 0.7 * ((env.T && env.T.gold) || 0)), hk = 0.35 + 0.6 * day;
-  c.fillStyle = rgb(hot, hk); c.fillRect(lit * R * 0.5 - R * 0.09, top + R * 0.1, R * 0.18, (-R * 0.5) - top - R * 0.1);
+  const day = clamp01(((env.T && env.T.day) || 0) + 0.7 * ((env.T && env.T.gold) || 0)), hk = 0.35 + 0.6 * day + 0.3 * lampK9 * (1 - day);
+  c.fillStyle = rgb(lampK9 > 0.05 ? mix(hot, [255, 186, 128], 0.6 * lampK9 * (1 - day)) : hot, Math.min(1, hk));   // (C4c: the corner lamp's warm stripe at night) c.fillRect(lit * R * 0.5 - R * 0.09, top + R * 0.1, R * 0.18, (-R * 0.5) - top - R * 0.1);
   c.beginPath(); c.ellipse(lit * R * 0.38, top - R * 0.62, R * 0.3, R * 0.16, -0.5 * lit, 0, TAU); c.fill();
   // a brass ring at the bonnet's foot (it reads as a glint)
   c.fillStyle = rgb(brass, 0.85); c.fillRect(-R * 1.1, top - R * 0.02, R * 2.2, Math.max(0.5, R * 0.1));

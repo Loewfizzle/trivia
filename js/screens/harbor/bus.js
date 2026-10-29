@@ -87,7 +87,17 @@ export function drawBus(c, cam, b, env) {
   // ---- the folding door (front, our side): closed — two glazed leaves; open — the doorway (lit warm at night), the folded leaves
   { const [p] = P(K(C.door[0]), 0), [q] = P(K(C.door[1]), 0), [, yd0] = P(0, C.win[1] + 0.05), [, yd1] = P(0, C.floor * 0.6);
     doorBox = { x: p, y: yd0, w: q - p, h: yd1 - yd0 };
-    if (b.door) { c.fillStyle = rgb(night ? mix([120, 84, 52], lit, 0.35 * dark) : [30, 28, 32]); c.fillRect(p, yd0, q - p, yd1 - yd0); c.fillStyle = rgb(chrome); c.fillRect(p, yd0, Math.max(0.6, (q - p) * 0.12), yd1 - yd0); c.fillRect(q - Math.max(0.6, (q - p) * 0.12), yd0, Math.max(0.6, (q - p) * 0.12), yd1 - yd0); }
+    // (C4c — THE DOOR NEVER SNAPS: b.door is its open amount 0..1, eased (core/harbor-people.js#busDoorAt): the doorway opens from the
+    // middle as the two leaves FOLD back to the frame — each a navy leaf with its pane, narrowing, its fold a dark crease + a lit edge,
+    // turning its chrome edge to us as it folds flat)
+    const dk2 = Math.max(0, Math.min(1, +b.door || 0));
+    if (dk2 > 0.002) { c.fillStyle = rgb(night ? mix([120, 84, 52], lit, 0.35 * dark) : [30, 28, 32]); c.fillRect(p, yd0, q - p, yd1 - yd0);
+      const lw = (q - p) * (0.5 - 0.38 * dk2), fold = dk2;
+      for (const sd of [0, 1]) { const x0 = sd ? q - lw : p;
+        c.fillStyle = rgb(mix(navy, chrome, 0.75 * fold)); c.fillRect(x0, yd0, lw, yd1 - yd0);
+        if (lw > 1.2) { c.fillStyle = rgb(night ? mix(glass, [255, 206, 140], 0.6 * dark) : glass, 1 - fold); c.fillRect(x0 + lw * 0.16, yd0 + (yd1 - yd0) * 0.06, lw * 0.68, (yd1 - yd0) * 0.48); }
+        c.fillStyle = rgb(dk, 0.55 * Math.sin(Math.PI * fold)); c.fillRect(x0 + lw / 2 - 0.25, yd0, 0.5, yd1 - yd0);   // (the crease while it folds)
+        c.fillStyle = rgb(chrome); c.fillRect(sd ? x0 : x0 + lw - Math.max(0.4, lw * 0.08), yd0, Math.max(0.4, lw * 0.08), yd1 - yd0); } }
     else { c.fillStyle = rgb(navy); c.fillRect(p, yd0, q - p, yd1 - yd0); c.fillStyle = rgb(night ? mix(glass, [255, 206, 140], 0.6 * dark) : glass); for (const k of [0, 0.5]) c.fillRect(p + (q - p) * (k + 0.08), yd0 + (yd1 - yd0) * 0.06, (q - p) * 0.34, (yd1 - yd0) * 0.48); c.fillStyle = rgb(dk); c.fillRect((p + q) / 2 - 0.3, yd0, 0.6, yd1 - yd0); }
     c.fillStyle = rgb(chrome); c.fillRect(p, yd1, q - p, Math.max(0.6, s * 0.05)); }   // (the step's chrome kick plate)
   // the GOLD LETTERING on the navy: HARBOR LINE, shaded (a darker drop under the gilt)
@@ -131,5 +141,5 @@ export function drawBus(c, cam, b, env) {
     }
     const [tx, ty] = P(0.02, C.floor + 0.25); c.fillStyle = night ? 'rgb(255,90,70)' : 'rgb(170,40,40)'; c.fillRect(tx - 0.6, ty - s * 0.08, Math.max(1, s * 0.08), s * 0.16); }
   c.restore();
-  return { x: ax, y: yt, w: W, h: ay - yt, door: b.door ? doorBox : null };
+  return { x: ax, y: yt, w: W, h: ay - yt, door: b.door > 0.002 ? doorBox : null };
 }

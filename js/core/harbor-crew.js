@@ -33,7 +33,9 @@ export const doormanWall = L => { const s = L.speakeasy; return { x: s.x0 + Math
  * close), tip [from, len] (s after the guest's opening), merge (s), close (the leaf's own close after he lets go)
  */
 export const DOORMAN = Object.freeze({ off: 0.62, step: 0.85, pre: 0.9, post: 0.55, tip: [0.15, 1.15], merge: 6, close: 0.4, hd: { post: -PI / 2, hold: -2.55 } });
-export const doormanHoldSpot = L => { const s = L.speakeasy; return { x: s.x0 + s.door.u1 + 0.24, z: s.z0 - 0.36 }; };
+// (C4c: the door hinged on HIS side swings OUT toward him — he stands just right of its open FREE EDGE (at 77°: u1 − 0.34, z0 − 1.46), pulls it
+// to him + holds it against himself while the guest passes on its left; never inside the leaf's sweep — every point it sweeps is left of u1)
+export const doormanHoldSpot = L => { const s = L.speakeasy; return { x: s.x0 + s.door.u1 + 0.12, z: s.z0 - 1.5 }; };
 /** the guests' side-door legs (each { tOpen, tClose } with the group's lags) → the doorman's holds [{ a, b, tips: [t] }] (merged) */
 export function doormanHolds(legs) {
   const L2 = [...legs].sort((p, q) => p.tOpen - q.tOpen), out = [];
@@ -203,7 +205,7 @@ const PLAN = {
   sweeper(w, M, P, r) {
     // a "white wing" pushing his can cart along the promenade in slow passes (sweeping in place now + then), leaving a wet streak
     const c = crewOf(M, P, r, 'stroll', w.t0).edge('right', 44.5).hold('sweepcart'), pts = [], vS = 0.42;
-    const passes = [[44.6, -1], [41.2, 1], [47.6, -1], [39.6, 1]].map(([z, dir]) => ({ z, dir }));
+    const passes = [[44.6, -1], [41.2, 1], [47.6, -1], [40.1, 1]].map(([z, dir]) => ({ z, dir }));
     c.go({ x: 10.5, z: 44.6 });
     for (const [i, p] of passes.entries()) {
       const xa = p.dir < 0 ? 10.5 : -3.8, xb = p.dir < 0 ? -3.8 : 10.5;

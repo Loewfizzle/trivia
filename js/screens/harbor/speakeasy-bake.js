@@ -257,11 +257,12 @@ export function paintSideLeaf(x, M, d) {
   const oak = tri(M.T, [66, 40, 28], [80, 44, 30], [16, 11, 16]);
   R(x, d.u0, 0.12, d.u1, d.h, oak);
   x.fillStyle = rgb(shade(oak, -0.3)); for (let u = d.u0 + 0.25; u < d.u1; u += 0.25) x.fillRect(u, 0.12, 0.02, d.h - 0.12);
-  x.fillStyle = rgb(shade(oak, 0.12)); for (let u = d.u0 + 0.05; u < d.u1; u += 0.25) x.fillRect(u, 0.12, 0.02, d.h - 0.12);
-  for (const v of [0.6, d.h - 0.55]) { R(x, d.u0, v, d.u0 + 0.75, v + 0.09, M.iron); x.fillStyle = rgb(M.iron); x.beginPath(); x.arc(d.u0 + 0.75, v + 0.045, 0.07, 0, Math.PI * 2); x.fill(); }
+  x.fillStyle = rgb(shade(oak, 0.12)); for (let u = d.u0 + 0.05; u < d.u1; u += 0.25) x.fillRect(u, 0.12, 0.02, d.h - 0.12);   // (C4c: the bake's sill covers its foot to 0.27; the live leaf crops there)
+  // (C4c: the strap hinges on the RIGHT — the door is hinged on the doorman's side + swings out: screens/harbor/doors.js)
+  for (const v of [0.6, d.h - 0.55]) { R(x, d.u1 - 0.75, v, d.u1, v + 0.09, M.iron); x.fillStyle = rgb(M.iron); x.beginPath(); x.arc(d.u1 - 0.75, v + 0.045, 0.07, 0, Math.PI * 2); x.fill(); }
   const gu = (d.u0 + d.u1) / 2; R(x, gu - 0.2, 1.62, gu + 0.2, 1.98, M.iron); R(x, gu - 0.15, 1.67, gu + 0.15, 1.93, tri(M.T, [20, 16, 18], [24, 16, 18], [4, 4, 8]));
   x.fillStyle = rgb(M.iron); for (let u = gu - 0.1; u <= gu + 0.11; u += 0.1) x.fillRect(u - 0.015, 1.67, 0.03, 0.26);
-  x.fillStyle = rgb(M.gilt); x.beginPath(); x.arc(d.u1 - 0.22, 1.18, 0.06, 0, Math.PI * 2); x.fill();
+  x.fillStyle = rgb(M.gilt); x.beginPath(); x.arc(d.u0 + 0.22, 1.18, 0.06, 0, Math.PI * 2); x.fill();   // (the knob on the free edge, the LEFT)
 }
 /** THE SHOP DOOR's leaf (wall units): the glazed wood door — the wood, the glass (the shop inside at night), the lower panel, the knob */
 export function paintShopLeaf(x, M, sh) {
@@ -306,7 +307,9 @@ export function paintGround(x, M, s, vp = null) {
     R(x, d.u0 - 0.2, d.h + 0.2, d.u1 + 0.2, d.h + 0.28, mix(g, [255, 250, 240], 0.2 * (1 - M.night)));
     R(x, d.u0 - 0.2, 0, d.u0 - 0.17, d.h + 0.2, shade(g, -0.3));
     paintSideLeaf(x, M, d);
-    R(x, d.u0 - 0.1, 0, d.u1 + 0.1, 0.12, shade(g, 0.1)); }
+    // (C4c: the granite SILL up to the top step's tread, 0.27 — the door swings OUT over the steps now, so its leaf stands on the sill;
+    // the live doorway + leaf stop at the same line: screens/harbor/doors.js DOORS.side.sill)
+    R(x, d.u0 - 0.1, 0, d.u1 + 0.1, 0.27, shade(g, 0.1)); R(x, d.u0 - 0.1, 0.25, d.u1 + 0.1, 0.27, mix(g, [255, 250, 240], 0.12 * (1 - M.night))); }
   // THE BASEMENT WINDOW in the plinth: a dark opening, its iron bars (the amber glow inside is live: day + night)
   { const [b0, b1, bv0, bv1] = sh.basement;
     R(x, b0 - 0.06, bv0 - 0.04, b1 + 0.06, bv1 + 0.05, shade(M.stone, -0.3));

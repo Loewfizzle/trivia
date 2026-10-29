@@ -121,7 +121,7 @@ export function thanksgivingSpots(L, P) {
     const parts = [];
     if (P.bales) { parts.push(['bale', 1.6, 0.85]); if (P.spots >= 1) parts.push(['pumpkin', 'classic', 0.92, -0.28, 0, true]); if (P.spots >= 2) parts.push(['gourds', 0.52, 0.42, -0.06, true]); }
     if (P.spots >= 3) parts.push(['pumpkin', 'white', 0.72, 0.55, -0.62, false]);
-    if (P.mums >= 2) parts.push(['mum', 'rust', 0.78, -1.1, -0.4]);
+    if (P.mums >= 2) parts.push(['mum', 'rust', 0.78, 1.2, -0.3]);   // (C4c: on the bale's RIGHT — its left is the speakeasy's wall)
     add('bench-left', bl.x, bl.z, 'near', parts, { shadow: 1.2 });
   }
   const hy = at('hydrant');

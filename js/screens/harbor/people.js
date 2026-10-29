@@ -205,7 +205,7 @@ export function createPeople() {
     return v;
   };
   // (C4b: the implied lamps + the cab stand's own lamp — a waiter's shadow falls LEFT, away from it)
-  let shLamps = null, shKey = null; const shadowLamps = () => { if (shKey !== L) { shKey = L; shLamps = [...L.lamps, ...hiddenLamps(L).filter(h => h.cab)]; } return shLamps; };
+  let shLamps = null, shKey = null; const shadowLamps = () => { if (shKey !== L) { shKey = L; shLamps = [...L.lamps, ...hiddenLamps(L).filter(h => h.cab || h.corner)]; } return shLamps; };
   const envOf = env => { const dark = clamp01(env.dark || 0) * (env.power == null ? 1 : clamp01(env.power)), base = lights(dark), pls = env.pointLights && env.pointLights.length ? env.pointLights : null;
     // (PROM: by day the sun's shadow; at night the IMPLIED LAMPS' — up the screen, away from us: core/harbor-light.js#castShadow)
     return { t: env.t, mo: env.mo, T: env.T, dark, tier: env.tier, lightAt: pls ? withPoints(base, pls) : base, rimSide, shadow: (h, x, z) => castShadow(env.T || {}, h, x, z, shadowLamps(), dark * clamp01(((env.T && env.T.night) || 0) * 1.4)) }; };
@@ -243,7 +243,7 @@ export function createPeople() {
     const cartNow = pass === 'near' && now.cart && now.cart.on ? now.cart : null;
     // (8b1 wildlife: the animals on this pass — env.extra: [{ z, draw(c) }] from wildlife.js#items — sorted in by depth with everyone)
     const list = [...items.map(m => ({ z: m.s.z, m })), ...buses.map(b => ({ z: b.z, b })), ...cars.map(car => ({ z: car.z, car })), ...(cartNow ? [{ z: cartNow.z, cart: cartNow }] : []), ...props.map(p => ({ z: p.z, prop: p })), ...(env.extra || []).map(x => ({ z: x.z, x }))].sort((a, b) => b.z - a.z);
-    const hands = new Map(), collars = new Map(), taut = new Set(), pins = [], bearers = new Map();
+    const hands = new Map(), collars = new Map(), taut = new Set(), pins = [], bearers = new Map(), dogZ = new Map(), walkZ = new Map();
     // THE DANCE CIRCLE (FP3b item 9): the beat (the party's song clock — or a steady 120 bpm when there is none: a preview by day)
     const bt = env.beat, beatsF = danceBeat(bt && bt.beatsF != null ? bt.beatsF : (env.t || 0) * 2, env.t || 0), advance = pass === 'near' && env.t !== wandT;
     if (pass === 'near') { stepDanceClock(PD, pdT == null ? 0 : Math.max(0, (env.t || 0) - pdT), bt && bt.beatsF != null ? { beatsF: bt.beatsF, gap: !!bt.gap, left: bt.left == null ? null : bt.left, id: bt.id || null } : null); pdT = env.t || 0; }
@@ -280,7 +280,10 @@ export function createPeople() {
       else if (mem.kind === 'watcher') st = { ...st, beatF: beatsF };
       // (8b1 wildlife: a dog LUNGING at the pigeons — env.dogLunge(vid) 0..1 — its owner's leash taut)
       const lunge = env.dogLunge ? env.dogLunge(mem.vid) : 0;
-      if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { collars.set(mem.vid, drawDog(c, cam, { ...st, dist: st.dist * 1.6, lunge }, look, E, pass === 'roof' ? roofY() : 0)); if (lunge > 0.2) taut.add(mem.vid); continue; }
+      if (mem.kind === 'dogwalker' && mem.m.role === 'dog') { const ds = { ...st, dist: st.dist * 1.6, lunge }, dy = pass === 'roof' ? roofY() : 0, cl = drawDog(c, cam, ds, look, E, dy); collars.set(mem.vid, cl); if (lunge > 0.2) taut.add(mem.vid);
+        // (C4c: the dog too — the benches' 3× overlays re-drew the walker in front of them but not the dog: "a leash to nothing" on the iPhone)
+        if (cl.box && pass === 'near') { dogZ.set(mem.vid, st.z); drawnNear.push({ z: st.z, box: cl.box, key: `${mem.vid}|dog|${st.x.toFixed(2)}|${st.z.toFixed(2)}|${(st.dist || 0).toFixed(2)}|${lunge.toFixed(2)}`, redo: cc => drawDog(cc, cam, ds, look, E, dy) }); }
+        continue; }
       // (arm in arm: the partner walks on the lead's +b side — core/harbor-people.js#folkAt — so the lead's +b arm + the partner's −b arm hook)
       const link = (mem.kind === 'couple' || mem.kind === 'leaving') && st.pose === 'walk' ? (mem.m.role === 'lead' ? 1 : -1) : null;
       // (9a — FOG: the far ones fade into it — walking away they melt, walking in they come out of it)
@@ -297,10 +300,12 @@ export function createPeople() {
       if (box && mv) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false); drawWands(c, J, fx, fy, H, { idx: mem.idx || 0, n: nDancers, beatsF, punch: bt ? bt.punch || 0 : (1 - (beatsF % 1)) ** 3, pal: bt && bt.pal, move: mv.move, t: env.t || 0, tier: env.tier, k: now.dance ? Math.max(0.35, now.dance.k) : 1, trails: env.mo === false ? null : trails, key: mem.vid, advance }); }
       if (box && mem.kind === 'dogwalker' && mem.m.role === 'lead') {
         const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near];
-        hands.set(mem.vid, [fx + h[0] * H, fy - h[1] * H]);
+        hands.set(mem.vid, [fx + h[0] * H, fy - h[1] * H]); walkZ.set(mem.vid, st.z);
       }
     }
-    for (const [vid, a] of hands) { const b = collars.get(vid); if (b) drawLeash(c, a, b, E, taut.has(vid)); }
+    for (const [vid, a] of hands) { const b = collars.get(vid); if (!b) continue; drawLeash(c, a, b, E, taut.has(vid));
+      // (C4c: the leash re-drawn over a bench's overlay with the walker + the dog — at the nearer of the two)
+      if (pass === 'near') { const z = Math.min(walkZ.get(vid) ?? 99, dogZ.get(vid) ?? 99), tt = taut.has(vid); drawnNear.push({ z: z - 0.01, box: { x: Math.min(a[0], b[0]) - 1, y: Math.min(a[1], b[1]) - 1, w: Math.abs(a[0] - b[0]) + 2, h: Math.abs(a[1] - b[1]) + 4 }, key: `${vid}|leash|${a[0].toFixed(1)},${a[1].toFixed(1)}|${b[0].toFixed(1)},${b[1].toFixed(1)}`, redo: cc => drawLeash(cc, a, b, E, tt) }); } }
     // (the prototype's pins: over everyone, in the player's colour — light reads at ~20 pt where an outfit doesn't)
     for (const [px, py, pn, h] of pins.splice(0)) {
       const pulse = pn.you && env.mo !== false ? 0.5 + 0.5 * Math.sin((env.t || 0) * 3.2) : 0.6, r = Math.max(1.8, h * 0.075) * (pn.you ? 1.25 : 1), k = pn.you ? 1 : 0.78;
@@ -554,7 +559,7 @@ export function createPeople() {
       if (!st.phase && t < b.tA - 1) { snd.bus('arrive', { pan, stopIn: b.tA - t }); st.phase = 'arrive'; }
       if (t >= b.tA && t < b.tD && st.phase !== 'idle' && st.phase !== 'door' && st.phase !== 'shut') { snd.bus('idle', { pan }); st.phase = 'idle'; }
       if (b.door && st.phase === 'idle') { snd.bus('door', { pan }); st.phase = 'door'; }
-      if (!b.door && st.phase === 'door' && t < b.tD) { snd.bus('door', { pan }); st.phase = 'shut'; }
+      if (b.doorPhase === 'closing' && st.phase === 'door' && t < b.tD) { snd.bus('door', { pan }); st.phase = 'shut'; }   // (C4c: the sound as the fold back starts)
       if (t >= b.tD && st.phase !== 'depart') { snd.bus('depart', { pan }); st.phase = 'depart'; }
       if (!st.panAt || t - st.panAt > 0.25) { snd.bus('pan', { pan }); st.panAt = t; }
       busSt.set(b.id, st);
@@ -600,6 +605,8 @@ export function createPeople() {
     layout, frame, draw, tick, drawInside,
     /** FP3b — REAL DOORS: how open each speakeasy door is now ({ side, shop }: 0..1 — the speakeasy draws the leaf) */
     doors: () => ({ ...(now.doors || { side: 0, shop: 0 }) }),
+    /** C4c: a bus's door folding right now (the frame rate: every frame while it moves) */
+    busDoorMoving: () => !!(now.buses && now.buses.some(b => b.doorPhase === 'opening' || b.doorPhase === 'closing')),
     /** POL4: a motorcar rolling on the back road now (the scene keeps 60 fps for it) */
     driving: () => (now.cars || []).some(c => c.speed > 0.3),
     /** PEO: anyone WALKING on screen now (the scene keeps 60 fps for them — a walker at the battery saver's 30 fps judders, and the
@@ -643,7 +650,7 @@ export function createPeople() {
     /** 9g — how many on the promenade are reacting to a legendary now (the crowd's fleeing sound: none without people) */
     witnessN: () => (now.witness ? now.witness.n || 0 : 0),
     /** what's on the promenade now (tests, the readout) */
-    debug: () => ({ hol: { trick: now.members.filter(m => m.kind === 'trick').length, zombies: now.members.filter(m => m.kind === 'zombie').length, proc: now.members.filter(m => m.kind === 'proc').length, costumed: now.members.filter(m => m.m && m.m.costume).length }, witness: now.witness || null, running: now.members.filter(m => m.s.run).length, n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
+    debug: () => ({ hol: { trick: now.members.filter(m => m.kind === 'trick').length, zombies: now.members.filter(m => m.kind === 'zombie').length, proc: now.members.filter(m => m.kind === 'proc').length, costumed: now.members.filter(m => m.m && m.m.costume).length }, witness: now.witness || null, running: now.members.filter(m => m.s.run).length, n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: +(b.door || 0).toFixed(3), doorPhase: b.doorPhase, stop: +b.xc.toFixed(2) })),
       guard: { hidden: guardHide.size, total: guarded, log: guardLog.slice() },   // (C4b: THE PEOPLE RULE's safety net — who it kept off screen)
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
       doors: { ...(now.doors || {}) }, cart: now.cart ? { on: !!now.cart.on, parked: !!now.cart.parked, x: +(now.cart.x || 0).toFixed(2) } : null, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,

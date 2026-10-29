@@ -3,7 +3,11 @@
 // fade"). The plan (who passes when, how open the door is) is PURE: core/harbor-people.js#doorLeg / doorOpenK / folkAt().doors.
 // Drawn in this order, over the bake: THE DOORWAY (its dark reveal — at night the side door's stairwell glowing amber), THE PEOPLE
 // INSIDE it (clipped to the opening, dimming as they go deeper — people.js#drawInside), THE LEAF (oak, hinged on its strap-hinge side,
-// swung INTO the building — so a closing door sweeps over whoever just went in), and at night THE SPILL: the side door's light out
+// swung INTO the building — so a closing door sweeps over whoever just went in), and at night THE SPILL:
+// [C4c — THE SIDE DOOR SWINGS OUT (the owner, Oct 29 7:53 am: the doorman stands on its RIGHT — the barber pole is on its left — so it
+// is HINGED ON HIS SIDE and swings OUT toward him: he pulls it open + holds it against himself): DOORS.side.out — the hinge at u1, the
+// leaf swung toward the street (its outer face turning to the camera on the right), its bottom over the top step (sill 0.27); the shop
+// door still swings in from u0. Every user of the side door stands outside its arc (core/harbor-people.js#DOOR.stepSide).] the side door's light out
 // onto its two granite steps + the cobbles — a crisp warm pool like the sconce's, never a glow or a haze.
 import { project } from '../../core/harbor-layout.js';
 
@@ -16,9 +20,17 @@ const rgb = (c, a = 1) => (a >= 1 ? `rgb(${c[0] | 0},${c[1] | 0},${c[2] | 0})` :
  *  away from the street's light by up to TURN (a multiply toward black at full swing) */
 export const DOORS = Object.freeze({
   swing: 1.35, spill: 2.3, hand: 0.07, strips: 12, turn: 0.42,
-  side: { oak: [[60, 38, 27], [74, 42, 30], [15, 11, 16]], dark: [20, 14, 15], amberTop: [96, 44, 20], amberLow: [255, 168, 88], glass: false },
+  side: { oak: [[60, 38, 27], [74, 42, 30], [15, 11, 16]], dark: [20, 14, 15], amberTop: [96, 44, 20], amberLow: [255, 168, 88], glass: false, out: true, sill: 0.27 },
   shop: { oak: [[86, 52, 34], [96, 56, 36], [20, 14, 18]], dark: [92, 78, 66], amberTop: [96, 80, 66], amberLow: [180, 150, 120], glass: true },
 });
+
+/** C4c: the leaf's quad on screen at open k — [bottom at the hinge, top at the hinge, top at the free edge, bottom at the free edge]:
+ *  the shop door hinged at u0 swinging IN (+z), the side door hinged at u1 swinging OUT (-z) with its bottom at the top step's tread */
+function leafQuad(d, k, S, at) {
+  const th = k * DOORS.swing, W = d.u1 - d.u0, hu = S.out ? d.u1 : d.u0, sg = S.out ? -1 : 1, vb = S.out ? Math.max(d.v0, S.sill) : d.v0;
+  const cu = hu + sg * W * Math.cos(th), dz = sg * W * Math.sin(th);
+  return [at(hu, vb), at(hu, d.v1), at(cu, d.v1, dz), at(cu, vb, dz)];
+}
 
 /**
  * One door's live layer. c: the canvas; G: speakGeo; d: { u0, u1, v0, v1 } (the opening in wall units); id 'side' | 'shop'; k: how
@@ -27,6 +39,8 @@ export const DOORS = Object.freeze({
  */
 export function drawDoor(c, G, d, id, k, f, inside, leaf = null) {
   if (k <= 0.002) return null;
+  const v0o = d.v0;   // (the leaf sprite's own foot — C4c: the out-swung side door's doorway + leaf stop at its sill instead)
+  if (DOORS[id].out) d = { ...d, v0: Math.max(d.v0, DOORS[id].sill) };
   const S = DOORS[id], s = G.s, cam = G.cam, day = clamp01(f.day || 0), night = clamp01(f.night || 0), P = f.power == null ? 1 : f.power;
   // (9d — THE HAND-OFF: over the last HAND of the swing the LEAF alone fades into the baked door under it — the leaf is the bake's own
   // paint, so only a resampling's softness is left to hide, never a jump. The doorway + whoever is in it are drawn only while the leaf
@@ -43,32 +57,34 @@ export function drawDoor(c, G, d, id, k, f, inside, leaf = null) {
   g.addColorStop(0, rgb(mix(S.dark, S.amberTop, lit))); g.addColorStop(1, rgb(mix(S.dark, S.amberLow, lit * 0.95)));
   c.fillStyle = g; c.fillRect(x0, y0, x1 - x0, y1 - y0);
   // the jamb's depth: a thin shadowed reveal on the hinge side
-  c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(x0, y0, Math.max(0.6, (x1 - x0) * 0.08), y1 - y0);
+  { const jw = Math.max(0.6, (x1 - x0) * 0.08); c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(S.out ? x1 - jw : x0, y0, jw, y1 - y0); }
   // ---- THE PEOPLE INSIDE the doorway (people.js — each clipped here, dimming with depth)
   if (inside) { c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.clip(); inside(c, rect); c.restore(); }
   } else {
     // (the hand-off: the doorway only in the SLIVER the leaf leaves open — the opening minus the leaf — fading with the leaf, so the
     // last point of dark beside its free edge closes smoothly instead of flicking to the bake when the hand-off begins)
-    const th = k * DOORS.swing, W = d.u1 - d.u0, cu = d.u0 + W * Math.cos(th), dz = W * Math.sin(th);
-    const q = [at(d.u0, d.v0), at(d.u0, d.v1), at(cu, d.v1, dz), at(cu, d.v0, dz)];
+    const q = leafQuad(d, k, S, at);
     c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.moveTo(q[0][0], q[0][1]); for (const p of q.slice(1)) c.lineTo(p[0], p[1]); c.closePath(); c.clip('evenodd');
     const g = c.createLinearGradient(0, y0, 0, y1);
     g.addColorStop(0, rgb(mix(S.dark, S.amberTop, lit))); g.addColorStop(1, rgb(mix(S.dark, S.amberLow, lit * 0.95)));
     c.fillStyle = g; c.fillRect(x0, y0, x1 - x0, y1 - y0); c.restore();
   }
-  // ---- THE LEAF: hinged at u0, swung in by k × SWING — its OUTER face still toward us (the camera stands right of the door)
+  // ---- THE LEAF: the shop's hinged at u0, swung IN; the side door's hinged at u1, swung OUT (C4c) — by k × SWING, its OUTER face toward
+  // us either way (the camera stands right of the door)
   c.globalAlpha = fade;
-  { const th = k * DOORS.swing, W = d.u1 - d.u0, cu = d.u0 + W * Math.cos(th), dz = W * Math.sin(th);
-    const q = [at(d.u0, d.v0), at(d.u0, d.v1), at(cu, d.v1, dz), at(cu, d.v0, dz)];
+  { const th = k * DOORS.swing, W = d.u1 - d.u0, hu = S.out ? d.u1 : d.u0, sg = S.out ? -1 : 1, vb = S.out ? Math.max(d.v0, S.sill) : d.v0;
+    const q = leafQuad(d, k, S, at);
     if (leaf && leaf.cv && leaf.cv.width > 1) {
       // 9d: THE BAKED DOOR SWINGING — the leaf's sprite (the bake's own paint: planks, strap hinges, the grille, the knob, the lamp's
       // light) laid into the turning quad in thin strips (each an affine: together the perspective), then darkened as it turns away
       // from the street's light; its free edge catches the light (amber from the passage at night on the side door)
-      const cv = leaf.cv, cw = cv.width, ch = cv.height, n = DOORS.strips;
-      const pt = (t, v) => at(d.u0 + W * t * Math.cos(th), v, W * t * Math.sin(th));
+      // (C4c: the out-swung side door — t runs from the hinge at u1 leftward, so the sprite's column is (1 - t) of its width; its rows
+      // below the top step's tread (vb) cut off: the leaf clears the step as it swings out over it)
+      const cv = leaf.cv, cw = cv.width, ch = cv.height * (d.v1 - vb) / (d.v1 - v0o), n = DOORS.strips;
+      const pt = (t, v) => at(hu + sg * W * t * Math.cos(th), v, sg * W * t * Math.sin(th));
       for (let i = 0; i < n; i++) {
-        const t0 = i / n, t1 = (i + 1) / n, a = pt(t0, d.v1), b = pt(t1, d.v1), e = pt(t0, d.v0);
-        const sx = t0 * cw, sw = (t1 - t0) * cw, ow = Math.min(cw - sx, sw + 0.75);
+        const s0 = i / n, s1 = (i + 1) / n, ta = S.out ? 1 - s0 : s0, tb = S.out ? 1 - s1 : s1, a = pt(ta, d.v1), b = pt(tb, d.v1), e = pt(ta, vb);
+        const sx = s0 * cw, sw = (s1 - s0) * cw, ow = Math.min(cw - sx, sw + 0.75);
         c.save(); c.transform((b[0] - a[0]) / sw, (b[1] - a[1]) / sw, (e[0] - a[0]) / ch, (e[1] - a[1]) / ch, a[0], a[1]);
         c.drawImage(cv, sx, 0, ow, ch, 0, 0, ow, ch); c.restore();
       }

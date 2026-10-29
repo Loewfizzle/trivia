@@ -32,7 +32,23 @@ export function blit(c, img, sx, sy, sw, sh, dx, dy, dw, dh) {
 }
 /** a canvas's 2D context, or null (iOS out of canvas memory) — never throws */
 export function ctx2d(cv, o) {
+  track(cv);
   try { return cv.getContext('2d', o) || null; } catch { return null; }
+}
+
+// C4c — THE HONEST TOTAL (review-4 H19: the readout counted the bakes, the water, the wheel + the boats, and missed 32-43 MB of live
+// canvases): every canvas that takes a context through ctx2d / safeCtx is remembered (a WeakRef: never kept alive by this list), and
+// canvasMb() sums the pixels of the live ones (width x height x 4) — what the memory guard + the readout + the phone bench count.
+const tracked = new Set(), seen = typeof WeakSet === 'function' ? new WeakSet() : null;
+function track(cv) {
+  if (!cv || !seen || typeof WeakRef !== 'function' || seen.has(cv)) return;
+  seen.add(cv); tracked.add(new WeakRef(cv));
+}
+/** the live canvases' pixel memory now (MB) + their count — the honest total */
+export function canvasMb() {
+  let b = 0, n = 0;
+  for (const r of tracked) { const cv = r.deref(); if (!cv) { tracked.delete(r); continue; } const px = (cv.width || 0) * (cv.height || 0); if (px > 1) { b += px * 4; n++; } }
+  return { mb: +(b / 1e6).toFixed(1), n };
 }
 
 // A context that draws nothing: what safeCtx() hands back when iOS refuses one, so a starved layer comes out blank instead of
@@ -60,6 +76,7 @@ function nullCtx(cv) {
 /** a canvas's 2D context — or, when iOS has no canvas memory left (getContext returns null / throws), a stand-in that draws
  *  nothing and counts the miss (starvedCount(): the scene steps its tier down to free memory). Never null, never throws. */
 export function safeCtx(cv, o) {
+  track(cv);
   let x = null;
   try { x = cv.getContext('2d', o) || null; } catch { x = null; }
   if (x) return x;

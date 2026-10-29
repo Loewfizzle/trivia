@@ -5,7 +5,8 @@ import assert from 'node:assert/strict';
 import { cameraFor, harborLayout, project } from '../js/core/harbor-layout.js';
 import { wallPlan, hushState, strikeLevel, darkLevel } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
-import { CART_IN_Z, FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
+import { standSpots } from '../js/core/harbor-cabs.js';
+import { DOOR, busDoorAt, CART_IN_Z, FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
 import { signalAt, centreK } from '../js/core/harbor-promenade.js';
 
 const SIZES = {
@@ -214,6 +215,53 @@ test('FP3a + POL4 — THE BUS DOOR shuts 6–9 s after the LAST rider (off or on
     assert.ok(b.shut < b.tD, `${id}: shut before it pulls away`);
   }
   assert.ok(n >= 20, `${n} buses with riders over the day`);
+});
+test('C4c — EVERY LEASH HAS ITS DOG (the owner, Oct 29: "a dog walker with no dog"): every dog walker has a dog member, on screen whenever the walker is (390 / 402 / 430, a late-October day), the sniff at the hydrant with both of them on the screen; dogs come by every day + evening', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { cam, L } = setup(k), M = folkMap(L), cache = new Map(), on = x => x > 2 && x < cam.W - 2;
+    let walkers = 0, missing = 0, sniffs = 0, evening = 0;
+    for (let t = DAY + 6 * 3600; t < DAY + 23 * 3600; t += 3) {
+      const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
+      for (const v of f.visits) if (v.kind === 'dogwalker') assert.ok(v.members.some(m => m.role === 'dog'), `${k}: visit ${v.id} has its dog`);
+      const leads = f.members.filter(m => m.kind === 'dogwalker' && m.m.role === 'lead' && m.s.z < 44 && m.s.a !== 0);
+      for (const w of leads) {
+        const [wx] = project(cam, w.s.x, 0, w.s.z);
+        if (!on(wx)) continue;
+        walkers++;
+        if ((t - DAY) / 3600 >= 18) evening++;
+        const d = f.members.find(m => m.vid === w.vid && m.m.role === 'dog');
+        const dx = d ? project(cam, d.s.x, 0, d.s.z)[0] : null;
+        if (!d || dx < -4 || dx > cam.W + 4) missing++;
+        if (w.s.sniff) { sniffs++; assert.ok(d && on(dx) && on(wx), `${k}: the sniff at the hydrant on screen (walker ${wx.toFixed(1)}, dog ${dx && dx.toFixed(1)})`); }
+      }
+    }
+    assert.ok(walkers > 40 && missing / walkers < 0.03, `${k}: ${missing} of ${walkers} on-screen dog-walker frames without the dog on screen`);
+    assert.ok(evening > 10, `${k}: dogs out in the evening too (${evening} frames after 6 pm)`);
+    assert.ok(sniffs > 0, `${k}: a sniff at the hydrant through the day (${sniffs})`);
+  }
+});
+test('C4c — THE BUS DOOR NEVER SNAPS: its open amount eases 0 → 1 → 0 (never more than a small step a 60 fps frame), opens fully at a stop, starts folding back only after the last rider is clear, shut at the shut time', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), seen = new Map(), last = new Map();
+  for (let t = DAY + 7 * 3600; t < DAY + 10 * 3600; t += 2) {
+    const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
+    for (const b of f.buses) seen.set(b.id, b);
+    for (const v of f.visits) for (const lg of v.legs) if (lg.k === 'door' && lg.bus) last.set(lg.bus, Math.max(last.get(lg.bus) || 0, lg.tClose + Math.max(0, ...v.members.map(m => m.lag))));
+  }
+  let n = 0;
+  for (const [id, b] of seen) {
+    let prev = 0, maxStep = 0, peak = 0, closeAt = null;
+    for (let t = b.tA; t <= b.shut + 0.5; t += 1 / 60) {
+      const d = busDoorAt(t, b, b.shut);
+      maxStep = Math.max(maxStep, Math.abs(d.k - prev)); prev = d.k; peak = Math.max(peak, d.k);
+      if (closeAt == null && d.phase === 'closing') closeAt = t;
+    }
+    assert.ok(maxStep <= 0.045, `${id}: the door moves at most ${maxStep.toFixed(3)} a frame (no snap)`);
+    assert.equal(busDoorAt(b.shut, b, b.shut).k, 0, `${id}: shut at its shut time`);
+    if (b.shut - b.tA > 3) assert.ok(peak > 0.999, `${id}: fully open at the stop (${peak.toFixed(3)})`);
+    const l = last.get(id);
+    if (l != null && closeAt != null) { n++; assert.ok(closeAt >= l + 1, `${id}: the fold back starts ${(closeAt - l).toFixed(2)} s after the last rider is through`); }
+  }
+  assert.ok(n >= 5, `${n} buses with riders checked`);
 });
 
 test('FP3b → PEO — THE PACE, judged against real walking (1 unit = 0.83 m): a walk ~1.3 m/s, a stroll ~1.0, the commuter’s brisk ~1.5, a jog ~2.6; strollers + couples slowest, commuters brisker, joggers clearly faster', () => {
@@ -681,4 +729,44 @@ test("C4b — THE PEOPLE RULE: across a UFO night + a TR-3B night nobody appears
       assert.ok(back >= 2, `${k} ${kind}: the promenade refills after the empty spell (${back} walked in)`);
     }
   }
+});
+
+test('C4c — THE BENCHES ARE SOLID (the owner, Oct 29: a cab-stand waiter from behind walked THROUGH the bench, then sat): at 390 / 402 / 430 over a day + forced cab-stand waiters, nobody\'s feet are ever inside either bench\'s footprint except a sitter on it (seated, or stepping into a seat of the water bench from its water side); a waiter reaches the cab bench round its END', () => {
+  for (const k of Object.keys(SIZES)) {
+    const { L } = setup(k), M = folkMap(L), cache = new Map(), bad = [];
+    const fp = [L.bench, L.cabStand].filter(Boolean).map(b => ({ id: b.face, b, x0: b.x - b.w / 2, x1: b.x + b.w / 2, z0: b.z, z1: b.z + 1.62 }));
+    const seatOK = (m, q) => q.id === 'water' && (m.kind === 'bench' || m.kind === 'lunch' || m.kind === 'waterbench') && m.m.role === 'lead' && Math.abs(m.s.z - (q.b.z + 0.95)) < 1.15;
+    const step = k === '402x874' ? 1 : 3;
+    for (const [from, to, ctx] of [[DAY + 6 * 3600, DAY + 24 * 3600, { off: OFF }], [DAY + 20 * 3600, DAY + 20.6 * 3600, { off: OFF, forceStandAt: DAY + 20 * 3600 }]]) {
+      for (let t = from; t < to; t += step) {
+        const f = folkAt(t, { L, M, ctx }, cache);
+        for (const m of f.members) { if (m.m.role === 'dog' || m.s.pose === 'sit') continue;
+          for (const q of fp) if (m.s.x > q.x0 && m.s.x < q.x1 && m.s.z > q.z0 && m.s.z < q.z1 && !seatOK(m, q)) bad.push(`${q.id} ${m.kind}/${m.m.role} ${m.s.pose} @${((t - DAY) / 3600).toFixed(3)} h (${m.s.x.toFixed(2)}, ${m.s.z.toFixed(2)})`); }
+      }
+    }
+    assert.equal(bad.length, 0, `${k}: inside a bench — ${bad.slice(0, 5).join(' · ')}`);
+    // the forced waiter: seated on the cab bench, having come round its end (his path never crosses the bench's x-span behind its front)
+    const S = standSpots(L);
+    assert.ok(S.up.x < L.cabStand.x - L.cabStand.w / 2 && S.up.z < L.cabStand.z, `${k}: the waiter steps up at the bench's front-left corner`);
+  }
+});
+
+test('C4c — THE SIDE DOOR SWINGS OUT toward the doorman (hinged at its right): over a Saturday night\'s guests at 402 the moving leaf never passes through anyone (nobody within its 1.5 u reach at its own angle ±12°), the doorman holds it from just right of its free edge, everyone who opens it stands outside its arc', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), s = L.speakeasy, hx = s.x0 + s.door.u1, hz = s.z0, W = s.door.u1 - s.door.u0;
+  const SWING = 1.35, hits = []; let moving = 0, guests = 0;
+  for (let t = DAY + 2 * 86400 + 21 * 3600; t < DAY + 2 * 86400 + 22.5 * 3600; t += 0.25) {
+    const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache), k = f.doors ? f.doors.side : 0;
+    if (!(k > 0.02)) continue;
+    moving++;
+    const th = k * SWING;
+    for (const m of f.members) {
+      if (m.m.role === 'dog' || m.s.z >= hz - 0.05 || m.s.x >= hx) continue;
+      const dx = hx - m.s.x, dz = hz - m.s.z, r = Math.hypot(dx, dz), phi = Math.atan2(dz, dx);
+      if (r < W - 0.05 && Math.abs(phi - th) < 0.21) hits.push(`${m.kind} @${((t - DAY) / 3600 % 24).toFixed(3)} h k ${k.toFixed(2)} (r ${r.toFixed(2)}, ${(phi * 180 / Math.PI).toFixed(0)}° vs the leaf ${(th * 180 / Math.PI).toFixed(0)}°)`);
+      if (m.s.door && m.s.door.id === 'side') guests++;
+    }
+  }
+  assert.ok(moving > 40, `${moving} frames of the side door open`);
+  assert.equal(hits.length, 0, `the leaf through someone: ${hits.slice(0, 4).join(' · ')}`);
+  assert.ok(DOOR.stepSide >= W + 0.03, `whoever opens it stands outside its arc (${DOOR.stepSide} ≥ ${W})`);
 });

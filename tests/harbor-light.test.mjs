@@ -3,7 +3,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
-import { lightSources, lightField, sunShadow, lampOn, treeLamps, roadLampAt, pieceCtx, REACH, FACE, impliedAt, lampShadow, castShadow } from '../js/core/harbor-light.js';
+import { cornerLamp, CORNER_LAMP, lightSources, lightField, sunShadow, lampOn, treeLamps, roadLampAt, pieceCtx, REACH, FACE, impliedAt, lampShadow, castShadow } from '../js/core/harbor-light.js';
 import { project } from '../js/core/harbor-layout.js';
 
 const setup = (W = 402, H = 874) => { const cam = cameraFor(W, H, {}, { top: 59, bottom: 34 }); return harborLayout(cam, 'gr'); };
@@ -82,4 +82,21 @@ test("C4b — THE CAB STAND's OWN LAMP: just off-screen right at the front curb,
     const sh = lampShadow([...L.lamps, c], 1, L.cabStand.x, L.cabStand.z, 1);
     assert.ok(sh && sh.dx < -0.5, `${k}: the shadow falls left (${sh && sh.dx.toFixed(2)})`);
   }
+});
+
+test('C4c — THE HYDRANT CORNER\'s LAMP: unseen just past the LEFT edge at 390 / 402 / 430; the ground at the hydrant + its holiday spot lit (≥ 1.4× without it), never brighter than the shopfront\'s spill; the hydrant\'s shadow falls RIGHT', () => {
+  for (const [W, H] of [[390, 844], [402, 874], [430, 932]]) {
+    const L = setup(W, H), cam = L.cam, cl = cornerLamp(L);
+    assert.ok(cl && cl.kind === 'hidden', `${W}: a hidden lamp`);
+    const [sx] = project(cam, cl.x, 0, cl.z); assert.ok(sx < -8, `${W}: off the left edge (${sx.toFixed(1)} pt)`);
+    const at = lightField(L, { lamps: 1 }), sum = v => (v ? v[0] + v[1] + v[2] : 0);
+    const without = lightField({ ...L, hydrant: null }, { lamps: 1 });
+    const hx = L.hydrant.x, hz = L.hydrant.z, spotX = hx + 2.1;
+    for (const x of [hx + 0.3, spotX]) assert.ok(sum(at(x, hz)) >= 1.4 * sum(without(x, hz)), `${W}: x ${x.toFixed(1)} lit by it: ${sum(at(x, hz)).toFixed(0)} vs ${sum(without(x, hz)).toFixed(0)} without`);
+    const s = L.speakeasy, shopX = s.x0 + (s.shop.win[0] + s.shop.win[1]) / 2;
+    assert.ok(sum(at(hx + 0.3, hz)) <= sum(at(shopX, s.z0 - 1.2)) * 1.05, `${W}: the hydrant (${sum(at(hx + 0.3, hz)).toFixed(0)}) never brighter than the shopfront (${sum(at(shopX, s.z0 - 1.2)).toFixed(0)})`);
+    const sh = lampShadow([...L.lamps, cl], 1, hx, hz, 1);
+    assert.ok(sh && sh.dx > 0, `${W}: its shadow falls right (${sh && sh.dx.toFixed(2)})`);
+  }
+  assert.ok(CORNER_LAMP.k < 0.9, 'dimmer than the cab stand\'s');
 });
