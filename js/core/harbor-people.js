@@ -22,8 +22,8 @@ import { carsAt } from './harbor-traffic.js';
 import { workSpawns, workKey } from './harbor-snowwork.js';
 import { trafficHold, inHold } from './harbor-legend.js';
 import { DANCE, RING, ringAt, danceSlot, danceSlotsNear, danceSpot, watchSpot, danceLevel, VENDOR, cartEvening, cartAt } from './harbor-routines.js';
-import { crewSpan, crewAt, tracesAt } from './harbor-crew.js';
-import { witnessWindow, suppressed, reactVisit, hiderOf, WITNESS } from './harbor-witness.js';
+import { crewSpan, crewAt, tracesAt, doormanWall, doormanHoldSpot, doormanHolds, doormanAt } from './harbor-crew.js';
+import { witnessWindow, suppressed, reactVisit, hiderOf, rejoinVisits, WITNESS } from './harbor-witness.js';
 import { raidAt, raidHold } from './harbor-raid.js';
 import { cabEvents, cabPlan, standEvents, standPlan } from './harbor-cabs.js';
 import { totGroups, zombieGroups, procWindow, procWalkers, procHold, PROC, ZOMBIE, halloweenAt } from './harbor-holidayfolk.js';
@@ -141,6 +141,8 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, r
  */
 /** C4b — the cart's start when it comes from BELOW THE DOCK (L.cart.from 'below'): on the front street (world z), hidden by the dock
  *  unless it rests — it crosses the street + rolls up over the curb to its spot */
+/** C4b — &force=waterbench's preview: a cycle every `every` s; the sitter sets off `lead` s before it (seated within ~10 s); sit + watch s */
+export const WATERBENCH = Object.freeze({ every: 100, lead: 3, sit: 70, watch: 55 });
 export const CART_IN_Z = 30.4;
 
 export function folkMap(L, { event = false, line = null, cart = false, ring = false } = {}) {
@@ -691,10 +693,10 @@ export function lineNight(day0, key, M, L, ctx = {}) {
       const legs = [...out.legs]; let now = out.t1;
       // (PROM: between admissions he leans at the wall right of the door (people.js turns his head after the guests); at each admission he
       // steps out to beckon them in, then back to the brick)
-      const wall = { x: L.speakeasy.x0 + Math.min(L.speakeasy.door.u1 + 0.5, (L.speakeasy.door.u1 + (L.speakeasy.x1 - L.speakeasy.x0)) / 2 + 0.05), z: L.speakeasy.z0 - 0.24 };
+      const wall = doormanWall(L);   // (C4b: his post a step off the wall, facing us — 'attend')
       const step = (a, b, t) => { const d = Math.hypot(b.x - a.x, b.z - a.z), t1 = t + d / 1.1; legs.push({ k: 'walk', pts: [a, b], t0: t, t1, v: 1.1 }); return t1; };
       for (const a of admits) {
-        if (a - 4.5 > now) { now = step(spot, wall, now); legs.push({ k: 'pose', pose: 'wall', x: wall.x, z: wall.z, t0: now, t1: a - 2.2, hd: -PI / 2 }); now = step(wall, spot, a - 2.2); }
+        if (a - 4.5 > now) { now = step(spot, wall, now); legs.push({ k: 'pose', pose: 'attend', x: wall.x, z: wall.z, t0: now, t1: a - 2.2, hd: -PI / 2 }); now = step(wall, spot, a - 2.2); }
         const e = Math.max(now, a - 0.6); if (e > now) legs.push({ k: 'pose', pose: 'watch', x: spot.x, z: spot.z, t0: now, t1: e, hd: PI }); legs.push({ k: 'pose', pose: 'wave', x: spot.x, z: spot.z, t0: e, t1: e + 2.4, hd: PI }); now = e + 2.4;
       }
       const back = planVisit({ look: 'doorman', gait: 'walk', goals: [{ door: 'side' }] }, now + 12, M, { r: rr, start: spot });
@@ -765,7 +767,7 @@ function blockVisits(phase, k, M, ctx = {}) {
     const members = membersOf(e.spec, rngFrom(e.seed + 1)), n = heads(members);
     if (load(vis.t0, vis.t1) + n > cap) continue;
     occ.push({ t0: vis.t0, t1: vis.t1 + tailOf(members), n });
-    out.push({ id: `${phase}.${k}.${out.length}`, kind: e.kind, look: e.spec.look, gait: e.spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members, party });
+    out.push({ id: `${phase}.${k}.${out.length}`, kind: e.kind, look: e.spec.look, gait: e.spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members, party, spec: e.spec });
     spent += n * (vis.t1 - vis.t0);
   }
   for (let tries = 0; tries < 140 && spent < want; tries++) {
@@ -794,7 +796,7 @@ function blockVisits(phase, k, M, ctx = {}) {
     if (vis.t1 + tailOf(members) > t1 - 0.5) continue;
     occ.push({ t0: vis.t0, t1: vis.t1 + tailOf(members), n });
     if (vis.seat) taken.push(vis.seat);
-    out.push({ id: `${phase}.${k}.${out.length}`, kind, look: spec.look, gait: spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members, party });
+    out.push({ id: `${phase}.${k}.${out.length}`, kind, look: spec.look, gait: spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members, party, spec });   // (C4b: spec — THE PEOPLE RULE replans it from its own way in)
     spent += n * (vis.t1 - vis.t0);
   }
   return out;
@@ -981,6 +983,21 @@ export function folkAt(t, world, cache = new Map()) {
     const st0 = k * 24 + (spec.goals[0].from === 'right' ? -9 : 1), vis = planVisit(spec, st0, M, { r, shopOpen: true });
     if (!vis) return null; const members = membersOf(spec, r); return { id: `door.${k}`, kind: spec.group ? 'guests' : spec.pair ? 'leaving' : 'customer', look: spec.look, gait: spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members };
   })).filter(Boolean) : [];
+  // C4b — &force=waterbench (the owner's see-through check): a SITTER walks in from the left edge to the water bench (seated within ~10 s
+  // of the link) + a COUPLE stops beside it to watch the skyline; again every WATERBENCH.every s — on the clock from the flag's start
+  if (ctx.forceBenchAt != null && t >= ctx.forceBenchAt) for (const o of [-1, 0]) {
+    const k = Math.floor((t - ctx.forceBenchAt) / WATERBENCH.every) + o; if (k < 0) continue;
+    forced.push(...get(`WB|${Math.round(ctx.forceBenchAt)}|${k}`, () => {
+      const t0 = ctx.forceBenchAt + k * WATERBENCH.every, out = [], r = rngFrom(hashString(`waterbench|${k}`));
+      const sit = { look: 'walker', gait: 'walk', sit: true, goals: [{ from: 'left' }, { at: M.nodes.benchFront }, { at: M.nodes.bench, seat: true }, { pose: 'sit', dur: WATERBENCH.sit, face: M.nodes.benchFace || 0 }, { at: M.nodes.benchFront }, { exit: 'left' }] };
+      const pair = { look: 'couple', gait: 'stroll', pair: true, goals: [{ from: 'right' }, { at: M.nodes.skyline }, { pose: 'watch', dur: WATERBENCH.watch, face: 2 }, { exit: 'right' }] };
+      for (const [spec, ts, kind] of [[sit, t0 - WATERBENCH.lead, 'bench'], [pair, t0 + 2, 'skyline']]) {
+        const vis = planVisit(spec, ts, M, { r }); if (!vis) continue; const members = membersOf(spec, r);
+        out.push({ id: `wb.${k}.${kind}`, kind, look: spec.look, gait: spec.gait, ...vis, tEnd: vis.t1 + tailOf(members), members });
+      }
+      return out;
+    }));
+  }
   const crewNow = ctx.noWork ? { visits: [], roof: [], trucks: [], props: [], marks: {} } : crewAt(t, crewW, cache.crew);
   const evNow = cartEv(t), nowSess = sessionsNear(t - 120, t + 10), routine = [...nowSess.flatMap(danceVisits), ...(evNow && t >= evNow.t0 && t < evNow.t1 ? [vendorVisit(evNow)] : []), ...lineVisits(t - 2, t + 2), ...crewNow.visits];
   // 8b2 — THE RAID (ctx.raid: core/harbor-raid.js#raidPlan): its officer is a routine visit while he's out; the crowd reacts (the witnesses'
@@ -1003,7 +1020,14 @@ export function folkAt(t, world, cache = new Map()) {
       return cand.map(v => reactVisit(v, LG, M, { hide })).filter(Boolean);
     });
     const ids = new Set(reacted.map(v => v.id));
-    all = [...reacted.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...all.filter(v => !ids.has(v.id) && (!inWin || v.t0 < LG.t0 + 1 || !suppressed(LG, v) || v.kind === 'officer'))];   // (someone out of reach — on the road, in a doorway — carries on)
+    // C4b — THE PEOPLE RULE: the visits held back stay away for good (never back at visitAt mid-route once the window ends — the owner saw
+    // the snap after the UFO); the ones that would still be out are planned again from their own way in, staggered (harbor-witness.js)
+    const rejoined = get(`RJ|${LG.kind}|${LG.t0}`, () => {
+      const end = LG.t0 + 600, cands = [];
+      for (let k = Math.floor(LG.t0 / B) - 1; k <= Math.floor(end / B) + 1; k++) cands.push(...A(k), ...Bv(k));
+      return rejoinVisits(cands.filter((v, i, arr) => arr.findIndex(o => o.id === v.id) === i), LG, (spec, ts, r) => { const Mx = mapAt(ts, ts + 120, M); return spec.sit ? planVisit(spec, ts, Mx, { r, rain: ctx.rain || 0, fog: ctx.fog || 0 }) : planVisit(spec, ts, Mx, { r, rain: ctx.rain || 0, fog: ctx.fog || 0, shopOpen: ctx.shopOpen ? ctx.shopOpen(ts) : true }); });
+    });
+    all = [...reacted.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...rejoined.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...all.filter(v => !ids.has(v.id) && (v.t0 < LG.t0 + 1 || !suppressed(LG, v) || v.kind === 'officer'))];   // (someone out of reach — on the road, in a doorway — carries on)
   }
   const members = [];
   // (11a-1: on Halloween night the speakeasy's own guests come in costume — its costume party: the side door's pairs, THE LINE)
@@ -1077,8 +1101,20 @@ export function folkAt(t, world, cache = new Map()) {
     x.s = { ...x.s, startle: k, startleDir: best.s.x < x.s.x ? -1 : 1 };
     best.s = { ...best.s, reach: Math.max(best.s.reach || 0, k) };
   }
+  // C4b — THE DOORMAN OPENS THE DOOR: while he attends his post (the crew's shift, the line's spells between admissions) every guest's
+  // side-door leg near now gets his hold (core/harbor-crew.js#doormanAt) — his state laid over the plan, his window added to the door's
+  const dmHolds = [];
+  { const dms = members.filter(x => x.kind === 'doorman' && x.s.pose === 'attend');
+    if (dms.length) {
+      const legs = [];
+      for (const v of all) { if (v.kind === 'doorman') continue; for (const lg of v.legs) if (lg.k === 'door' && lg.door === 'side' && lg.tOpen < t + 4 && lg.tClose + DOOR.close > t - 4) { const lag = Math.max(0, ...v.members.map(m => m.lag || 0)); legs.push({ tOpen: lg.tOpen, tClose: lg.tClose + lag }); } }
+      const holds = doormanHolds(legs), post = doormanWall(L), hold = doormanHoldSpot(L);
+      for (const x of dms) { const d = doormanAt(post, hold, holds, t); x.s = { ...x.s, x: d.x, z: d.z, pose: d.pose, hd: d.hd, dir: dirOfHd(d.hd), v: d.v, tip: d.tip, dist: d.dist != null ? d.dist : x.s.dist }; if (d.swing) dmHolds.push(d.swing); }
+    }
+  }
   // THE DOORS' openness now (FP3b: the leaf's swing — every member through it, each on its own lag, the closing tail included)
   const doors = { side: 0, shop: 0 };
+  for (const w of dmHolds) doors.side = Math.max(doors.side, doorOpenK(w, t));
   for (const v of LG ? all : [...A(ka), ...Bv(kb), ...forced, ...routine, ...hol]) {
     if (t < v.t0 - 1 || t > (v.tEnd || v.t1) + 2) continue;
     for (const lg of v.legs) {

@@ -3461,6 +3461,22 @@ G('legends', async () => {
       ok(s2.model === 'ready' && !s2.saucer && s2.frame >= 0 && s2.elev > 2 && s2.elev < 25 && got >= 5, `THE UFO BAKE: the model's craft (${s2.model}, frame ${s2.frame}, seen ${s2.elev}° from below, ${got} sprite files), no hand-drawn bake (${s2.saucer})`); }
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-ufo-402x874.png` });
     await Q.ctx.close(); }
+  // ---- C4b — THE PEOPLE RULE (the owner saw everyone snap back after the abduction): the UFO at 8× — the witnesses flee, the promenade
+  // stays empty, then refills; every walker's FIRST frame after the page's first is at a way in (off a screen edge, a doorway, the back
+  // road / the far kerb, the front street under the dock); nobody walks in before the empty spell ends
+  { const Q = await open({ slot: 'lgrule', qs: `when=2026-11-04T21:40${GR}&wx=clear&force=ufo&lgnow=1&speed=8`, view: [402, 874] });
+    await harborUp(Q.page);
+    await ev(Q.page, `(() => { const H = () => window.__district.harbor(), seen = new Map(); window.__rule = { firsts: [], t0: null };
+      const tick = () => { try { const h = H(), cam = h.cam, lg = h.legend.state, ms = (h.people && h.people.members) || [], now = h.clock ? h.clock.now : Date.now();
+        if (window.__rule.t0 == null && lg && lg.t0) window.__rule.t0 = lg.t0; const first = !window.__rule.started; window.__rule.started = true;
+        for (const m of ms) { if (m.role !== 'lead' || seen.has(m.id)) continue; seen.set(m.id, 1); if (first) continue;
+          const hw = m.z * cam.W / 2 / cam.F, way = Math.abs(m.x) >= hw + 0.9 || !!m.door || m.z >= 53.5 || m.z < 38.35 || m.a < 0.2;
+          window.__rule.firsts.push({ id: m.id, kind: m.kind, x: m.x, z: m.z, way, lgT: lg && lg.t != null ? lg.t : null }); }
+        window.__rule.guard = h.people.guard; } catch { /* next frame */ } requestAnimationFrame(tick); }; requestAnimationFrame(tick); })()`);
+    await sleep(52000);
+    const R = await ev(Q.page, 'window.__rule'), bad = R.firsts.filter(f => !f.way);
+    ok(R.firsts.length >= 2 && !bad.length, `C4b THE PEOPLE RULE after the UFO: ${R.firsts.length} walked in, all at a way in${bad.length ? ` — NOT: ${bad.map(b => `${b.kind} at ${b.x.toFixed(1)}, ${b.z.toFixed(1)}`).join('; ')}` : ''} (the safety net kept ${R.guard ? R.guard.total : '?'} off screen)`);
+    await Q.ctx.close(); }
   // ---- THE UFO BAKE: &ufo=classic = the hand-drawn saucer (no sprites fetched)
   { const Q = await open({ slot: 'lg1c', qs: `when=2026-11-04T22:00${GR}&force=ufo&lgs=7&ufo=classic&force=no-people`, view: [402, 874] });
     await harborUp(Q.page);
@@ -3865,9 +3881,10 @@ G('doors', async () => {
         if (R.prev) for (let i = 0; i < px.length; i += 4) if (Math.abs(px[i] - R.prev[i]) + Math.abs(px[i + 1] - R.prev[i + 1]) + Math.abs(px[i + 2] - R.prev[i + 2]) > 40) n++;
         R.prev = px; R.rows.push([k, n]); };
       requestAnimationFrame(tick); })()`);
-    await waitFor(P.page, `(() => { const r = window.__dr.rows; let n = 0; for (let i = 1; i < r.length; i++) if (r[i - 1][0] > 0 && r[i][0] === 0) n++; return n >= 1 && r.length > 0 && r[r.length - 1][0] === 0 && r.slice(-12).every(q => q[0] === 0); })()`, `${L.id}: a door swung shut`, 60000);
+    await waitFor(P.page, `(() => { const r = window.__dr.rows; let n = 0; for (let i = 30; i < r.length; i++) if (r[i - 1][0] > 0 && r[i][0] === 0) n++; return n >= 1 && r.length > 0 && r[r.length - 1][0] === 0 && r.slice(-12).every(q => q[0] === 0); })()`, `${L.id}: a door swung shut`, 60000);
     const rows = await ev(P.page, '(() => { const r = window.__dr.rows; window.__dr = null; return r; })()');
-    const ends = []; for (let i = 1; i < rows.length; i++) if (rows[i - 1][0] > 0 && rows[i][0] === 0) ends.push(i);
+    // (C4b: only a close watched from its swing — the doorman's hold may be under way when the page opens: the first 30 frames skipped)
+    const ends = []; for (let i = 30; i < rows.length; i++) if (rows[i - 1][0] > 0 && rows[i][0] === 0) ends.push(i);
     // (the baseline: what moves there anyway — the frames before the latch AND after it (a guest walking off in front of the shop door
     // keeps changing ~100 px a frame on its own); a snap is a one-frame spike far above both)
     const medOf = a => { const v = a.map(q => q[1]).sort((x, y) => x - y); return v[v.length >> 1] || 0; };

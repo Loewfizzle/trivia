@@ -103,7 +103,8 @@ export function lookOf(name, seed, o = {}) {
   }
   if (name === 'night') { L.cols.coat = pick(r, [[58, 58, 70], [74, 66, 60], [52, 62, 84]]); L.coat = 'long'; if (!L.woman) L.hat = 'fedora'; }
   // (POLISH 4 — THE DOORMAN at the side door on party nights: a big man in a long dark overcoat, a dark fedora, gloves — broad, still)
-  if (name === 'doorman') { L.woman = false; L.dress = null; L.coat = 'long'; L.hat = 'fedora'; L.carry = null; L.cols.coat = [52, 58, 96]; L.cols.legs = [30, 30, 40]; L.cols.hat = [26, 26, 34]; L.cols.scarf = null; L.scarf = null; }
+  // (C4b — the owner: a PEAKED CAP + the long doorman's coat + ONE bright accent: the brass buttons down the front read as one light stripe)
+  if (name === 'doorman') { L.woman = false; L.dress = null; L.coat = 'long'; L.hat = 'peaked'; L.carry = null; L.cols.coat = [52, 58, 96]; L.cols.legs = [30, 30, 40]; L.cols.hat = [34, 38, 62]; L.cols.scarf = null; L.scarf = null; L.trim = [226, 186, 104]; L.trimLine = true; }
   // 8b1 — THE WORKERS' CLOTHES (period uniforms that read by colour + shape at ~27 pt): the white-wing sweeper all in white, the milkman's
   // white jacket + cap, the beat cop's navy tunic + peaked cap, the mailman's grey-blue, the barber's white jacket, the painters' white
   // overalls, the iceman's leather apron, the bootleggers in dark caps, the bar staff in shirt-sleeves + waistcoats
@@ -213,6 +214,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const Ss = 0.338 * Math.sqrt(vS > 0.3 ? vS : 1.3);   // (the carriers' COMMON stride — not either man's own: they must stay in step)
   const p = !walking ? 0 : back ? wrap(-(st.since || 0) * LADDER.vUp / SL) : sync ? wrap((cx < 0 ? -1 : 1) * (st.x - (cr0 === 'ladderB' ? LADDER.gap : 0)) / (2 * Ss * BODY_H)) : wrap(st.dist / SL);
   const breath = mo ? 0.004 * Math.sin(t * 1.7 + L.h * 37) : 0;
+  let wShift = 0;   // (C4b: the doorman's weight shift — the hips + shoulders sway a touch toward the standing leg)
   const sg = [-1, 1], A = G.stance * S;
   // 8b2 — THE WORKERS MOVE RIGHT: a LIFT with the knees ('pick' — down empty, up with it; 'set' — down with it, up empty; 'raise' — a
   // ladder hoisted from a squat to arms overhead): the knees bend, the back stays near straight, down over ~0.55 s, a beat, up over ~0.6
@@ -281,13 +283,12 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
     }
   }
   if (pose === 'sit') hipY = 0.27;
-  // PROM — THE DOORMAN AGAINST THE WALL ('wall'): his back flat to the brick, facing us — one boot up flat against the wall behind him (that
-  // knee bent forward), his weight on the other leg; `st.off` 0..1 pushes him off the wall (both feet down, a step out) for the nod
-  if (pose === 'wall') {
-    const off = clamp01(st.off || 0), up = 1 - off;
-    foot[0] = { a: 0.01, b: sg[0] * 0.075, y: ANKLE };
-    foot[1] = { a: -0.07 * up + 0.01 * off, b: sg[1] * 0.05, y: ANKLE + 0.2 * up };
-    hipY = HIP0 - 0.008;
+  // C4b — THE DOORMAN ATTENDING ('attend'): standing at his post facing us, feet a little apart, hands clasped at the belt; now + then he
+  // SHIFTS HIS WEIGHT (a slow sway onto one leg, ~every 9 s); 'holdDoor': planted at the door's handle side, the far arm out on the leaf
+  if (pose === 'attend' || pose === 'holdDoor') {
+    const w = mo && pose === 'attend' ? Math.sin(t * 0.7 + L.h * 23) : 0, sh = Math.sign(w) * smooth(clamp01((Math.abs(w) - 0.55) / 0.4));
+    foot[0] = { a: 0.005, b: sg[0] * 0.08, y: ANKLE }; foot[1] = { a: -0.005, b: sg[1] * 0.08, y: ANKLE };
+    hipY = HIP0 - 0.006 - 0.006 * Math.abs(sh); wShift = sh;
   }
   if (pose === 'garden') hipY = 0.36;
   if (lift) { foot[0] = { a: 0.075, b: -0.06, y: ANKLE }; foot[1] = { a: -0.05, b: 0.06, y: ANKLE + 0.012 * sq }; hipY = HIP0 - 0.215 * sq * deep; }
@@ -315,11 +316,14 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const bph = st.beatF != null ? ((st.beatF % 1) + 1) % 1 : mo ? (t * (st.bps || 2)) % 1 : 0.5;
   const dip = pose === 'wands' && st.moves ? st.moves.dip || 0 : pose === 'bob' ? 0.022 * (1 - bph) * (1 - bph) : 0;
   hipY -= dip;
-  for (let i = 0; i < 2; i++) hipJ.push({ a: (walking ? G.hip * (foot[i].a - mid0) : 0) + (pose === 'garden' ? -0.04 : 0), b: sg[i] * 0.045, y: hipY });
+  for (let i = 0; i < 2; i++) hipJ.push({ a: (walking ? G.hip * (foot[i].a - mid0) : 0) + (pose === 'garden' ? -0.04 : 0), b: sg[i] * 0.045 + 0.018 * wShift, y: hipY - (wShift ? 0.008 * wShift * sg[i] : 0) });
   // the knees: two-segment IK in each leg's own plane, always bending FORWARD; sitting: the thighs forward along the seat
   const knee = [];
   for (let i = 0; i < 2; i++) {
-    if (pose === 'sit') { foot[i] = { a: 0.25, b: sg[i] * 0.065, y: ANKLE }; knee.push({ a: 0.235, b: sg[i] * 0.06, y: 0.28 }); continue; }
+    // (C4b — SEATED FACING US / AWAY (review-4 §C4): the side rig's thighs run along the heading, so from the front they collapsed onto the
+    // hips' line — a short standing figure on sticks; now the knees go FORWARD + OUT, the feet planted wider, so the knees land below the
+    // seat's front edge and the shins stand apart + solid down to the cobbles)
+    if (pose === 'sit') { const fr = Math.abs(cz) > 0.5; foot[i] = fr ? { a: 0.275, b: sg[i] * 0.105, y: ANKLE } : { a: 0.25, b: sg[i] * 0.065, y: ANKLE }; knee.push(fr ? { a: 0.27, b: sg[i] * 0.1, y: 0.3 } : { a: 0.235, b: sg[i] * 0.06, y: 0.28 }); continue; }
     const h = hipJ[i], f = foot[i], dx = f.a - h.a, dy = f.y - h.y, dl = Math.hypot(dx, dy), l = Math.min(dl, LEG - 1e-4);
     // (11a-1: the zombie's stiff leg never bends — the knee on the straight line, swung from the hip)
     if (L.zombie && i === 1 && walking) { knee.push({ a: (h.a + f.a) / 2, b: (h.b + f.b) / 2, y: (h.y + f.y) / 2 }); continue; }
@@ -362,13 +366,15 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'chat') { const g = mo ? Math.sin(t * 2.3 + L.h * 5) : 0; arm(N, 0.7 + 0.25 * g, 1.1); }
   if (pose === 'lean') { arm(0, 1.3, 0.3); arm(1, 1.25, 0.35); headA += 0.03; }
   // (PROM: arms CROSSED high on the chest — the forearms folded across each other; pushed off the wall they drop to his sides for the nod)
-  if (pose === 'wall') { const off = clamp01(st.off || 0); if (off < 0.5) { arm(0, 0.42, 1.95, -0.32); arm(1, 0.36, 2.05, -0.36); } else { arm(0, 0.12, 0.2); arm(1, 0.1, 0.2); } shA -= 0.035 * (1 - off); headA += st.nod ? -0.05 * st.nod : 0; }
+  // (C4b: hands CLASPED at the belt (attend); holding the door — the far arm out on the leaf at chest height, the near hand TIPS THE CAP: st.tip 0..1)
+  if (pose === 'attend') { arm(0, 0.3, 1.3, -0.62); arm(1, 0.3, 1.3, -0.62); shJ.forEach(q => { q.b -= 0.01 * wShift; }); head.b -= 0.012 * wShift; }
+  if (pose === 'holdDoor') { const k = clamp01(st.tip || 0); arm(Fa, 1.5, 0.15, 0.12); if (k > 0.01) arm(N, 0.3 + 2.45 * k, 0.4 + 1.25 * k, 0.1); else arm(N, 0.12, 0.2); head.a -= 0.03 * k; }
   // 9b — THE SNOWBALL THROW: the arm winds up over the head + back (0.55 s, leaning back), then snaps forward (the release ~0.6 s in)
   if (pose === 'throw') { const sN0 = st.since == null ? 0 : st.since, k = sN0 < 0.55 ? smooth(clamp01(sN0 / 0.55)) : 1 - smooth(clamp01((sN0 - 0.55) / 0.18)); shJ.forEach(q => { q.a -= 0.05 * k; }); head.a -= 0.06 * k; arm(N, 1.1 + 2.5 * k, 0.5, 0.2); arm(Fa, 0.9 - 0.3 * k, 0.4); }
   // 9b — THE SLIP on the thaw's ice: the arms fly out wide, a lurch back, then caught (over ~1.1 s)
   if (pose === 'slip') { const sN0 = st.since == null ? 0 : st.since, k = Math.sin(Math.PI * clamp01(sN0 / 1.1)); shJ.forEach(q => { q.a -= 0.1 * k; }); head.a -= 0.13 * k; arm(0, 1.4 + 0.6 * k, 0.2, 0.3 + 0.9 * k); arm(1, 1.3 + 0.7 * k, 0.25, 0.3 + 0.9 * k); }
   if (pose === 'cart' || pose === 'shop') arm(N, 0.55, 0.9);
-  if (pose === 'sit') { arm(0, 0.5, 0.9); arm(1, 0.4, 0.9); }
+  if (pose === 'sit') { if (Math.abs(cz) > 0.5) { shJ.forEach(q => { q.a += 0.05; }); head.a += 0.05; arm(0, 0.66, 0.2, 0.02); arm(1, 0.6, 0.22, 0.02); } else { arm(0, 0.5, 0.9); arm(1, 0.4, 0.9); } }   // (C4b: facing us — a little slumped, the hands on the knees)
   // (the watchers — FP3b item 9: CLAP on the beat — the hands meet on it, part between; BOB — a dip on the beat, the arms loose)
   if (pose === 'clap') { const k = Math.min(1, bph * 2.2); for (let i = 0; i < 2; i++) arm(i, 1.2, 1.0, 0.06 + 0.3 * k); }
   if (pose === 'bob') { const k = Math.sin(bph * Math.PI * 2); arm(0, 0.3 + 0.12 * k, 0.7); arm(1, 0.3 - 0.12 * k, 0.7); }
@@ -604,7 +610,14 @@ function body(c, J, L, X, Y, H, lit, env) {
   const behind = cz < 0.3;
   if (L.cape && behind) cape(c, J, L, X, Y, H, f);
   if (L.tail && behind) tail(c, J, X, Y, H, f, env);
-  leg(lo[0], lgap ? far(legCol) : legCol, legW); leg(lo[1], legCol, legW);
+  // (C4b — THE FRONT-FACING SITTER: the shins thicker + the gap between them filled with the seat's shadow — nothing of the bench shows
+  // through or between the legs; the lap is drawn over the torso's foot below)
+  const sitFront = J.pose === 'sit' && cz < -0.5;
+  if (sitFront) {
+    const [k0, k1] = J.knees, [f0, f1] = J.feet;
+    c.fillStyle = f([20, 16, 20], 0.7); c.beginPath(); c.moveTo(X(k0[0]), Y(k0[1])); c.lineTo(X(k1[0]), Y(k1[1])); c.lineTo(X(f1[0]), Y(f1[1])); c.lineTo(X(f0[0]), Y(f0[1])); c.closePath(); c.fill();
+  }
+  leg(lo[0], lgap ? far(legCol) : legCol, sitFront ? legW * 1.3 : legW); leg(lo[1], legCol, sitFront ? legW * 1.3 : legW);
   if (L.bones) for (const i of lo) bones(c, [J.hips[i], J.knees[i], J.feet[i]], X, Y, H, f, L);
   // (11a-1: THE SHEET GHOST — the whole kid under one white sheet: no arms, the feet under its swaying hem, the eye holes)
   if (L.costume === 'ghost') { ghostSheet(c, J, L, X, Y, H, f, env); holidayCarry(c, J, L, X, Y, H, f, env, [X(J.hands[J.near][0]), Y(J.hands[J.near][1])]); return; }
@@ -624,6 +637,17 @@ function body(c, J, L, X, Y, H, lit, env) {
     c.closePath();
   };
   c.fillStyle = f(torsoCol); torso(); c.fill();
+  // (C4b: THE LAP — the coat's skirt over both thighs from the hips out to the knees, a solid mass over the seat's front edge)
+  if (sitFront) {
+    const [h0, h1] = J.hips, [k0, k1] = J.knees, w = 0.055, l = k0[0] < k1[0] ? [k0, k1] : [k1, k0], hs = h0[0] < h1[0] ? [h0, h1] : [h1, h0];
+    c.fillStyle = f(torsoCol); c.beginPath();
+    c.moveTo(X(hs[0][0] - sx * 0.9), Y(hipY + 0.05)); c.lineTo(X(hs[1][0] + sx * 0.9), Y(hipY + 0.05));
+    c.lineTo(X(l[1][0] + w), Y(l[1][1] + 0.01)); c.lineTo(X(l[1][0] + w * 0.6), Y(l[1][1] - 0.035)); c.lineTo(X(l[0][0] - w * 0.6), Y(l[0][1] - 0.035)); c.lineTo(X(l[0][0] - w), Y(l[0][1] + 0.01));
+    c.closePath(); c.fill();
+    // (the thighs' tops catch the light from above — a lit band across the lap: it reads as a seat, not a standing coat)
+    c.fillStyle = f(torsoCol, 1.35); c.fillRect(X(l[0][0] - w * 0.7), Y(Math.max(l[0][1], l[1][1]) + 0.012), Math.max(0.6, (l[1][0] - l[0][0] + w * 1.4) * H), Math.max(0.6, 0.02 * H));
+    c.fillStyle = 'rgba(0,0,0,0.22)'; c.fillRect(X(l[0][0] - w * 0.6), Y(l[0][1] - 0.02), Math.max(0.5, (l[1][0] - l[0][0] + w * 1.2) * H), Math.max(0.5, 0.015 * H));   // (the hem's shadow on the shins)
+  }
   // a dress showing under a coat; the flapper's fringe + sash; a tux's white shirt front (from the front + 3/4); the coat's seam in profile
   if (L.dress && L.coat !== 'none' && L.dress !== 'flapper' && J.pose !== 'sit') { c.fillStyle = f(cols.dress); c.fillRect(X(hX - sx * 0.85), Y(hem), (sx * 1.7) * H, Math.max(0.6, 0.035 * H)); }
   if (L.dress === 'flapper' && L.coat === 'none') {
@@ -647,6 +671,8 @@ function body(c, J, L, X, Y, H, lit, env) {
   }
   if (L.trim && cz < 0.35) {
     const bx = tX + cx * sx * 0.12; c.fillStyle = f(L.trim, 1.3);
+    // (C4b — the doorman's row of brass buttons as ONE light stripe down his coat's front: a fine line under the buttons, one accent)
+    if (L.trimLine) { c.globalAlpha *= 0.55; c.fillRect(X(bx) - Math.max(0.3, H * 0.006), Y(top - 0.03), Math.max(0.6, H * 0.012), (top - 0.03 - hipY - 0.04) * H); c.globalAlpha /= 0.55; }
     for (let i = 0; i < 4; i++) { const by = top - 0.05 - i * (top - hipY - 0.02) / 4; c.beginPath(); c.arc(X(bx), Y(by), Math.max(0.35, H * 0.009), 0, TAU); c.fill(); }
     if (L.badge) { c.beginPath(); c.arc(X(tX - cx * sx * 0.35 - sx * 0.35 * (1 - ax)), Y(top - 0.06), Math.max(0.45, H * 0.014), 0, TAU); c.fill(); }
   }

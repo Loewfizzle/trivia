@@ -329,6 +329,7 @@ test('FP3b — THEY FACE WHERE THEY GO: the heading follows the route, turns at 
 });
 test('FP3b — REAL DOORS: nobody fades on the promenade — through the speakeasy\'s side door, the barbershop\'s + the bus\'s they WALK (a door leg); the door swings open only while someone passes, shut again within a second after', async () => {
   const { DOOR, doorLeg, doorOpenK } = await import('../js/core/harbor-people.js');
+  const { DOORMAN } = await import('../js/core/harbor-crew.js');
   // a leg in: waits for the swing, walks through, the door shuts behind them while they walk on
   const lg = doorLeg('side', 'in', -8, 100, 1.2, 44);
   assert.ok(lg.z0 < 44 && lg.z1 > 44 + DOOR.clear, 'from the step to inside');
@@ -340,7 +341,8 @@ test('FP3b — REAL DOORS: nobody fades on the promenade — through the speakea
     const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
     for (const m of f.members) { assert.equal(m.s.a == null ? 1 : m.s.a, 1, `${m.kind} fading at ${m.s.x.toFixed(1)}, ${m.s.z.toFixed(1)}`); if (m.s.door) through++; }
     if (f.doors.side > 0.5) sideOpen++; if (f.doors.shop > 0.5) shopOpen++;
-    const passing = id => f.visits.some(v => v.legs.some(lg => lg.k === 'door' && lg.door === id && t >= lg.tOpen - 0.01 && t <= lg.tClose + DOOR.close + 4));
+    // (C4b: the doorman opens the side door a moment BEFORE the guest reaches it + holds it a moment after — DOORMAN.pre / post)
+    const passing = id => f.visits.some(v => v.legs.some(lg => lg.k === 'door' && lg.door === id && t >= lg.tOpen - (id === 'side' ? DOORMAN.pre + DOORMAN.step : 0) - 0.01 && t <= lg.tClose + DOOR.close + 4));
     if (f.doors.side > 0.01) assert.ok(passing('side'), 'the side door opens only for someone');
     if (f.doors.shop > 0.01) assert.ok(passing('shop'), 'the shop door opens only for someone');
   }
@@ -620,4 +622,62 @@ test('PROM — THE BARBERSHOP AWNING LIT FROM UNDERNEATH: on at dusk by the phot
   assert.equal(awningLight(at(6, 2, 5), 1), 0, 'Fri night (Sat 2:05 am): off');
   assert.equal(awningLight(at(4, 1, 30), 1, true), 1, 'a holiday party night: the late switch-off');
   assert.equal(awningLight(at(4, 6, 0), 1), 0, 'before dawn: off');
+});
+
+test('C4b — &force=waterbench: a sitter seated on the water bench within ~10 s of the link (facing the harbor) + a couple stopped beside it watching the skyline', () => {
+  const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), t0 = DAY + 15 * 3600 + 120;
+  let sat = null, watched = false;
+  for (let t = t0; t < t0 + 40; t += 0.5) {
+    const f = folkAt(t, { L, M, ctx: { off: OFF, forceBenchAt: t0 } }, cache);
+    for (const x of f.members) {
+      if (x.vid && x.vid.startsWith('wb.0.bench') && x.s.pose === 'sit' && sat == null) { sat = t - t0; assert.ok(Math.abs(x.s.z - M.nodes.bench.z) < 0.3, 'on the bench'); }
+      if (x.vid && x.vid.startsWith('wb.0.skyline') && x.s.pose === 'watch') watched = true;
+    }
+  }
+  assert.ok(sat != null && sat <= 12, `seated ${sat} s after the link`);
+  assert.ok(watched, 'a couple watching the skyline beside it');
+});
+
+test("C4b — THE DOORMAN OPENS THE DOOR: at rest at his post facing us (attend); for each guest he steps to the door's handle side, holds it open over the guest's whole passage, tips his cap, steps back; two guests close together share one hold; never inside the door", async () => {
+  const { DOORMAN, doormanHolds, doormanAt, doormanWall, doormanHoldSpot } = await import('../js/core/harbor-crew.js');
+  const { doorOpenK, DOOR } = await import('../js/core/harbor-people.js');
+  const { L } = setup('402x874'), post = doormanWall(L), hold = doormanHoldSpot(L), s = L.speakeasy;
+  const g = { tOpen: 100, tClose: 102.4 }, H = doormanHolds([g, { tOpen: 104, tClose: 106 }, { tOpen: 130, tClose: 132 }]);
+  assert.equal(H.length, 2, 'two guests 4 s apart share one hold');
+  assert.equal(doormanAt(post, hold, H, 90).pose, 'attend');
+  const atOpen = doormanAt(post, hold, H, g.tOpen);
+  assert.ok(atOpen.pose === 'holdDoor' && Math.hypot(atOpen.x - hold.x, atOpen.z - hold.z) < 1e-9, 'at the door when the guest arrives');
+  assert.ok(atOpen.swing.tOpen <= g.tOpen && atOpen.swing.tClose >= g.tClose, "his swing contains the guest's");
+  // the door through his hold: open as the guest steps through, monotone (never snaps shut + open again between the two guests)
+  let prev = -1, closedMid = false; for (let t = H[0].a; t < H[0].b; t += 0.05) { const k = doorOpenK(atOpen.swing, t); if (prev > 0.99 && k < 0.5) closedMid = true; prev = k; }
+  assert.ok(!closedMid && doorOpenK(atOpen.swing, g.tOpen + 0.5) > 0.99, 'held open');
+  let tipped = 0; for (let t = 99; t < 108; t += 0.1) tipped = Math.max(tipped, doormanAt(post, hold, H, t).tip);
+  assert.ok(tipped > 0.9, 'he tips his cap');
+  assert.equal(doormanAt(post, hold, H, H[0].b + DOORMAN.step + 0.1).pose, 'attend', 'back at his post');
+  // never inside the door's rect (the opening u0..u1 at the facade)
+  for (const p of [post, hold]) assert.ok(p.x > s.x0 + s.door.u1 && p.z < s.z0, 'outside the doorway, right of it');
+  void DOOR;
+});
+
+test("C4b — THE PEOPLE RULE: across a UFO night + a TR-3B night nobody appears in view — every walker's first frame after the start is at a way in (off a screen edge, in a doorway, the back road / the crossing's far kerb, the front street under the dock); the promenade refills after the empty spell, staggered", async () => {
+  const { WITNESS, REJOIN } = await import('../js/core/harbor-witness.js');
+  for (const k of ['390x844', '402x874']) {
+    const { cam, L } = setup(k), M = folkMap(L);
+    for (const [kind, t0] of [['ufo', DAY + 21.5 * 3600 + 17], ['tr3b', DAY + 22 * 3600 + 400]]) {
+      const lg = { kind, t0 }, end = t0 + WITNESS[kind].len + WITNESS[kind].empty, cache = new Map(), seen = new Set(), arrivals = [];
+      let back = 0;
+      for (let t = t0 - 6; t < end + REJOIN.stagger[1] + 90; t += 0.25) {
+        const f = folkAt(t, { L, M, ctx: { off: OFF, legend: lg } }, cache), first = t === t0 - 6;
+        for (const x of f.members) {
+          if (x.m.role === 'dog') continue;
+          const id = `${x.vid}|${x.m.seed}`; if (seen.has(id)) continue; seen.add(id);
+          if (first) continue;
+          const s = x.s, edge = Math.abs(s.x) >= cam.hw(s.z) + 0.9, way = edge || !!s.door || s.z >= FOLK.roadZ - 0.1 || s.z < FOLK.zMin - 0.4 || (s.a != null && s.a < 0.2);
+          assert.ok(way, `${k} ${kind}: ${x.kind} (${x.vid}) appeared at ${s.x.toFixed(2)}, ${s.z.toFixed(2)} (${s.pose}) ${(t - t0).toFixed(1)} s in`);
+          arrivals.push(t); if (t > end) back++;
+        }
+      }
+      assert.ok(back >= 2, `${k} ${kind}: the promenade refills after the empty spell (${back} walked in)`);
+    }
+  }
 });

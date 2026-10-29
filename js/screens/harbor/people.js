@@ -84,8 +84,8 @@ export function createPeople() {
     if (!L) return;
     ensureMap(!!f.event, !!f.ring);
     const hf = hforceOf(f);
-    const fk = `${f.forceJog ? 1 : 0}${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${f.forceStandAt == null ? '' : Math.round(f.forceStandAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
-    const t = f.ms / 1000, ctx = { snowWork: f.snowWork || null, off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceJog: !!f.forceJog, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, forceStandAt: f.forceStandAt == null ? null : f.forceStandAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
+    const fk = `${f.forceJog ? 1 : 0}${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${f.forceStandAt == null ? '' : Math.round(f.forceStandAt)}|${f.forceBenchAt == null ? '' : Math.round(f.forceBenchAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
+    const t = f.ms / 1000, ctx = { snowWork: f.snowWork || null, off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceJog: !!f.forceJog, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, forceStandAt: f.forceStandAt == null ? null : f.forceStandAt, forceBenchAt: f.forceBenchAt == null ? null : f.forceBenchAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
@@ -94,12 +94,31 @@ export function createPeople() {
       hforce: hf };
     const p0 = pnow();
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
+    guard(now, t);
     roofNow = roofAt(t, L, ctx, roofCache);
     frameMs = pnow() - p0; if (frameMs > frameMsMax) frameMsMax = frameMs;
     lastT = t;
     gait(now.members, f);
     movingNow = now.members.some(m => m.s.pose === 'walk' && m.s.v > 0.1 && m.m.role !== 'dog' && onScreen(m.s)) || roofNow.members.some(m => m.s.pose === 'walk' && m.s.v > 0.1);
     if (f.off != null) warm(t, ctx);
+  }
+  // C4b — THE PEOPLE RULE's SAFETY NET (the planner keeps it on the clock: core/harbor-witness.js#rejoinVisits; this catches the rest — a
+  // holiday's visits switching on while watched, a preview row toggled): someone whose FIRST frame on this device is not at a way in (off a
+  // screen edge, in a doorway, the back road / the far kerb, the front street under the dock) is never drawn for that visit. The first
+  // frame + a clock jump (a link, the panel's time, back from the background) show everyone where they are — joined mid-way, like a load.
+  const guardSeen = new Set(), guardHide = new Set(); let guardT = null, guarded = 0;
+  const atWayIn = s => Math.abs(s.x) >= L.cam.hw(s.z) + 0.9 || !!s.door || s.z >= FOLK.roadZ - 0.1 || s.z < FOLK.zMin - 0.4 || (s.a != null && s.a < 0.2);
+  function guard(n, t) {
+    const fresh = guardT == null || Math.abs(t - guardT) > 5, present = new Set(); guardT = t;
+    if (fresh) { guardSeen.clear(); guardHide.clear(); }
+    for (const m of n.members) {
+      const id = m.vid; present.add(id);
+      if (guardSeen.has(id) || m.m.role !== 'lead') continue;   // (a visit as one: its lead's first frame — a group, a dog walker hide together)
+      guardSeen.add(id);
+      if (!fresh && !atWayIn(m.s)) { guardHide.add(id); guarded++; }
+    }
+    for (const id of guardSeen) if (!present.has(id)) { guardSeen.delete(id); guardHide.delete(id); }
+    if (guardHide.size) n.members = n.members.filter(m => !guardHide.has(m.vid));
   }
   // 11a-1 — the holidays' previews from the scene's force set (f.forceHoliday: a Set of ids, f.forceAt(id): when it was switched on — the
   // clock in s, or ms; null → the top of the hour, so the loop is stable while it's on)
@@ -547,30 +566,26 @@ export function createPeople() {
   const drawnNear = [];
   const hits = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   const frontOf = (box, z) => drawnNear.filter(d => d.z < z && hits(d.box, box));
-  // PROM — THE DOORMAN AGAINST THE WALL follows each guest with his HEAD (his hat's brim turning left / front / right — the body stays on
-  // the brick), and PUSHES OFF the wall + nods as one reaches the side door, then leans back. Live, from whoever is near him now
-  const DOORMAN = Object.freeze({ near: 6.5, door: [0.8, 2.2], turn: 3.2 });
-  let dmLook = null, dmT = 0, dmOff = 0;
+  // PROM → C4b — THE DOORMAN AT HIS POST follows each guest with his HEAD (his cap's peak turning left / front / right — the body facing
+  // us); for the door itself he steps over + holds it (core/harbor-crew.js#doormanAt). Live, from whoever is near him now
+  const DOORMAN = Object.freeze({ near: 6.5, turn: 3.2 });
+  let dmLook = null, dmT = 0;
   function doormanWatch(items, t) {
-    const dm = items.find(m => m.kind === 'doorman' && m.s.pose === 'wall' && m.m.role === 'lead');
+    // (C4b: at his post ('attend') his head follows the guests; no more push-off the wall — he steps to the door himself: core/harbor-crew.js#doormanAt)
+    const dm = items.find(m => m.kind === 'doorman' && m.s.pose === 'attend' && m.m.role === 'lead');
     if (!dm) { dmLook = null; return items; }
-    const s = L.speakeasy, door = { x: s.x0 + (s.door.u0 + s.door.u1) / 2, z: FOLK.doorZ };
-    let best = null, bd = 1e9, dmin = 1e9;
+    let best = null, bd = 1e9;
     for (const g of items) {
       if (g === dm || g.m.role === 'dog' || g.kind === 'doorman') continue;
       const d = Math.hypot(g.s.x - dm.s.x, g.s.z - dm.s.z);
       if (d < DOORMAN.near && d < bd) { bd = d; best = g; }
-      if (g.s.door || d < DOORMAN.near) dmin = Math.min(dmin, g.s.door ? 0 : Math.hypot(g.s.x - door.x, g.s.z - door.z));
     }
     // (his head toward the guest — never round behind him: from his left (π) through the front (−π / 2) to his right (0))
     let want = -Math.PI / 2;
     if (best) { const a = Math.atan2(best.s.z - dm.s.z, best.s.x - dm.s.x); want = Math.max(-Math.PI + 0.25, Math.min(-0.25, a > Math.PI / 2 ? a - 2 * Math.PI : a)); }
     const dt = Math.max(0, Math.min(0.1, t - dmT)); dmT = t;
     if (dmLook == null) dmLook = want; else dmLook += (want - dmLook) * Math.min(1, dt * DOORMAN.turn);
-    const offWant = dmin < DOORMAN.door[1] ? 1 - Math.max(0, Math.min(1, (dmin - DOORMAN.door[0]) / (DOORMAN.door[1] - DOORMAN.door[0]))) : 0;
-    dmOff += (offWant - dmOff) * Math.min(1, dt * 2.6);
-    const nod = dmOff > 0.6 ? Math.max(0, Math.sin((t * 2.2) % Math.PI)) * (dmOff - 0.6) * 2.5 : 0;
-    return items.map(m => (m === dm ? { ...m, s: { ...m.s, look: dmLook, off: dmOff, nod, z: m.s.z - 0.12 * dmOff } } : m));
+    return items.map(m => (m === dm ? { ...m, s: { ...m.s, look: dmLook } } : m));
   }
   return {
     /** PROM: the figures in front of a still piece's box this frame — a key (redraw when it changes) + their redraw into another context */
@@ -627,6 +642,7 @@ export function createPeople() {
     witnessN: () => (now.witness ? now.witness.n || 0 : 0),
     /** what's on the promenade now (tests, the readout) */
     debug: () => ({ hol: { trick: now.members.filter(m => m.kind === 'trick').length, zombies: now.members.filter(m => m.kind === 'zombie').length, proc: now.members.filter(m => m.kind === 'proc').length, costumed: now.members.filter(m => m.m && m.m.costume).length }, witness: now.witness || null, running: now.members.filter(m => m.s.run).length, n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: b.door, stop: +b.xc.toFixed(2) })),
+      guard: { hidden: guardHide.size, total: guarded },   // (C4b: THE PEOPLE RULE's safety net — who it kept off screen)
       members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
       doors: { ...(now.doors || {}) }, cart: now.cart ? { on: !!now.cart.on, parked: !!now.cart.parked, x: +(now.cart.x || 0).toFixed(2) } : null, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
       roofMembers: roofNow.members.map(m => ({ kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })), map: M ? { nodes: M.nodes, rects: M.rects.length } : null }),

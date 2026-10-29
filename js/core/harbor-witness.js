@@ -37,6 +37,26 @@ export function suppressed(lg, v) {
   return v.t0 >= lg.t0 - 0.5 && v.t0 < lg.t0 + lenOf(lg) + W.empty;
 }
 
+/**
+ * C4b — THE PEOPLE RULE (the owner, Oct 28 7:49 pm: after the UFO "everyone snapped back"): nobody appears or vanishes in view. The visits
+ * held back while a legendary / a raid emptied the promenade never pop back in mid-route when it ends: the ones that would still be out
+ * then are PLANNED AGAIN from their own way in (an edge, behind the speakeasy, the crossing, the side door …), each REJOIN.stagger s after
+ * the window — the promenade refills over ~2 min; the rest simply never came. cands: the blocks' visits (with their `spec`); plan(spec, t,
+ * r) → a planned visit | null (core/harbor-people.js#folkAt's planner on the right map) → the rejoined visits (ids `<id>.rj`)
+ */
+export const REJOIN = Object.freeze({ stagger: [8, 120] });
+export function rejoinVisits(cands, lg, plan) {
+  const W = lg && WITNESS[lg.kind]; if (!W) return [];
+  const end = lg.t0 + lenOf(lg) + W.empty, out = [];
+  for (const v of cands) {
+    if (!v.spec || !suppressed(lg, v) || (v.tEnd || v.t1) <= end) continue;
+    const r = rngFrom(hashString(`rejoin|${lg.t0}|${v.id}`)), ts = end + REJOIN.stagger[0] + r() * (REJOIN.stagger[1] - REJOIN.stagger[0]);
+    const vis = plan(v.spec, ts, r);
+    if (vis) out.push({ ...v, ...vis, id: `${v.id}.rj`, rejoin: true, tEnd: vis.t1 + Math.max(0, (v.tEnd || v.t1) - v.t1) });
+  }
+  return out;
+}
+
 /** the nearest way out for someone running from (x, z): a screen edge (by side), the side door (when close), across the road (from the kerb) */
 function wayOut(M, p, r) {
   const side = M.nodes.sideDoor, dDoor = Math.hypot(p.x - side.x, p.z - side.z);

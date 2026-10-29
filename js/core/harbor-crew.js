@@ -21,8 +21,46 @@ export const TRUCK = Object.freeze({ len: { van: 5.05, dump: 6.0, stake: 6.25 },
 /** the blade on the speakeasy's side wall (screens/harbor/speakeasy-blade.js#BLADE: w along the wall, out from it, v0 → v1 up) */
 const BLADE_AT = Object.freeze({ w: 0.42, outer: 0.22 + 1.86, v0: 2.75, v1: 11.0 });
 
-/** PROM — the doorman's post: his back to the wall right of the side door (between the door + the corner, under the blade) */
-export const doormanWall = L => { const s = L.speakeasy; return { x: s.x0 + Math.min(s.door.u1 + 0.5, (s.door.u1 + (s.x1 - s.x0)) / 2 + 0.05), z: s.z0 - 0.24 }; };
+/** PROM — the doorman's post right of the side door (between the door + the corner, under the blade); C4b — a step OFF the wall now,
+ *  standing facing us (`attend`: hands clasped, a weight shift now + then) — no more leaning */
+export const doormanWall = L => { const s = L.speakeasy; return { x: s.x0 + Math.min(s.door.u1 + 0.5, (s.door.u1 + (s.x1 - s.x0)) / 2 + 0.05), z: s.z0 - DOORMAN.off }; };
+/**
+ * C4b — THE DOORMAN OPENS THE DOOR (the owner, Oct 28 7:29 pm — review-4 §C4): for every guest through the side door he steps from his
+ * post to the door's handle side (`hold` — just right of its frame, a step out), swings it open (his window is the door's: core/harbor-
+ * people.js#folkAt takes the MAX of every leg's swing, so his wider hold IS the door's motion — nothing double-swings), holds it, TIPS HIS
+ * CAP to them, lets it close and steps back. Guests < DOORMAN.merge s apart share one hold. PURE: the same on every phone.
+ * DOORMAN: off (his post off the brick), step (s to the door + back), pre / post (s held before the guest's own opening / after their
+ * close), tip [from, len] (s after the guest's opening), merge (s), close (the leaf's own close after he lets go)
+ */
+export const DOORMAN = Object.freeze({ off: 0.62, step: 0.85, pre: 0.9, post: 0.55, tip: [0.15, 1.15], merge: 6, close: 0.4, hd: { post: -PI / 2, hold: -2.55 } });
+export const doormanHoldSpot = L => { const s = L.speakeasy; return { x: s.x0 + s.door.u1 + 0.24, z: s.z0 - 0.36 }; };
+/** the guests' side-door legs (each { tOpen, tClose } with the group's lags) → the doorman's holds [{ a, b, tips: [t] }] (merged) */
+export function doormanHolds(legs) {
+  const L2 = [...legs].sort((p, q) => p.tOpen - q.tOpen), out = [];
+  for (const g of L2) {
+    const a = g.tOpen - DOORMAN.pre, b = g.tClose + DOORMAN.post, last = out[out.length - 1];
+    if (last && a - last.b < DOORMAN.merge) { last.b = Math.max(last.b, b); last.tips.push(g.tOpen + DOORMAN.tip[0]); }
+    else out.push({ a, b, tips: [g.tOpen + DOORMAN.tip[0]] });
+  }
+  return out;
+}
+/** where the doorman is at t during his shift (post, hold: world spots; holds: doormanHolds) → { x, z, pose, hd, v, tip (0..1: the cap
+ *  raised), swing ({ tOpen, tClose } for the door) | null } */
+export function doormanAt(post, hold, holds, t) {
+  const at = (p, pose, hd, extra = {}) => ({ x: p.x, z: p.z, pose, hd, v: 0, tip: 0, swing: null, ...extra });
+  const S = DOORMAN.step, d = Math.hypot(hold.x - post.x, hold.z - post.z);
+  for (const h of holds) {
+    if (t < h.a - S || t > h.b + S) continue;
+    const swing = { tOpen: h.a, tClose: h.b - DOORMAN.post + DOORMAN.close };
+    const walk = (u, from, to) => { const e = u * u * (3 - 2 * u); return { x: from.x + (to.x - from.x) * e, z: from.z + (to.z - from.z) * e, pose: 'walk', hd: Math.atan2(to.z - from.z, to.x - from.x), v: d / S * 1.5 * (1 - Math.abs(2 * u - 1)), dist: e * d, tip: 0, swing: t >= h.a ? swing : null }; };
+    if (t < h.a) return walk((t - (h.a - S)) / S, post, hold);
+    if (t > h.b) return { ...walk((t - h.b) / S, hold, post), swing };
+    let tip = 0;
+    for (const t0 of h.tips) { const u = (t - t0) / DOORMAN.tip[1]; if (u > 0 && u < 1) tip = Math.max(tip, Math.sin(Math.PI * u)); }
+    return at(hold, 'holdDoor', DOORMAN.hd.hold, { tip, swing });
+  }
+  return at(post, 'attend', DOORMAN.hd.post);
+}
 /** where the crew works (world x, z; y up) for a layout + the people's map */
 export function crewSpots(L, M) {
   const s = L.speakeasy, cw = L.crosswalk, F = FOLK;
@@ -672,7 +710,7 @@ PLAN.doorman = (w, M, P, r) => {
   // of the night he walks off home
   // (PROM: his post is the wall right of the door — back to the brick, a boot up, arms crossed, facing the street; people.js turns his
   // head to follow each guest + pushes him off the wall for the nod as one reaches the door)
-  const c = crewOf(M, P, r, 'walk', w.t0).at(P.sideDoor).door('side', 'out').go(P.doorman).line([P.doormanWall]).until(w.t1 - 2.5, 'wall', { hd: -PI / 2 }).line([P.doorman]).exit(r() < 0.5 ? 'left' : 'right', 42);
+  const c = crewOf(M, P, r, 'walk', w.t0).at(P.sideDoor).door('side', 'out').go(P.doorman).line([P.doormanWall]).until(w.t1 - 2.5, 'attend', { hd: -PI / 2 }).line([P.doorman]).exit(r() < 0.5 ? 'left' : 'right', 42);
   return { visits: [c.out(w.id, 'doorman', 'doorman')], marks: { doorman: [w.t0 + 12, w.t1] } };
 };
 PLAN.flowers = (w, M, P, r) => {

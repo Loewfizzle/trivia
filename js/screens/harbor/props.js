@@ -120,7 +120,9 @@ export function drawBenchBack(x, cam, b, T, ctx = {}) {
   const ends = [X - hw + 0.2, X + hw - 0.2], lw = v => Math.max(0.45, v * s);
   x.save(); x.lineCap = 'round'; x.lineJoin = 'round';
   const iron = n => lit(Lt, IRON_B, n, 0.5), ironHi = rimCol(Lt, IRON_B, [Lt.sd >= 0 ? 0.6 : -0.6, 0.5, -0.6]);
-  const back = t => [0.7 + 0.18 * t, 0.7 + 0.62 * t];          // (the back's plane in the bench's own depth — mirrored by P)
+  // (C4b: LOWER + SOLID from behind — the owner's check: the sitters' head + shoulders + hat clearly above it, no slats over their bodies
+  // (the gaps between three slats showed the body in strips): the top 1.32 → 1.12, the three boards edge to edge, their joints grooves)
+  const back = t => [0.7 + 0.18 * t, 0.7 + 0.42 * t];          // (the back's plane in the bench's own depth — mirrored by P)
   // 1. the seat: four oak slats seen from above (the far ones first — now the seat's FRONT edge is the far one)
   for (let i = 0; i <= 3; i++) {
     const d0 = 0.04 + i * 0.165, d1 = d0 + 0.13, y = 0.6, c = shade(OAK, (r() - 0.5) * 0.1 + 0.03), x0 = X - hw, x1 = X + hw;
@@ -150,7 +152,7 @@ export function drawBenchBack(x, cam, b, T, ctx = {}) {
   // 5. the back's three slats, their REAR faces toward us (leaning toward us: the face points a little down), grain, a lit top edge
   const nb = norm([0, -0.25, -0.97]);
   for (let i = 0; i < 3; i++) {
-    const t0 = 0.12 + i * 0.3, t1 = t0 + 0.22, [da, ya] = back(t0), [db, yb] = back(t1);
+    const t0 = 0.08 + i * 0.307, t1 = t0 + 0.307, [da, ya] = back(t0), [db, yb] = back(t1);
     const c = shade(OAK, (r() - 0.5) * 0.12 - 0.04), x0 = X - hw + 0.04, x1 = X + hw - 0.04;
     fillPts(x, [P(x0, ya, da), P(x1, ya, da), P(x1, yb, db), P(x0, yb, db)], lit(Lt, c, nb));
     grain(x, P0, Lt, c, nb, x0, x1, (u, f) => { const [d, y] = back(t0 + (t1 - t0) * f); return P(u, y, d); }, r);

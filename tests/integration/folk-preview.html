@@ -18,6 +18,7 @@
 import { lookOf, drawFolk, drawDog, drawLeash, jointsOf, rigOf, drawOfrenda } from '/js/screens/harbor/folk.js';
 import { propItems } from '/js/screens/harbor/workers.js';
 import { LADDER, STEPS } from '/js/core/harbor-crew.js';
+import { drawBench, drawBenchBack } from '/js/screens/harbor/props.js';
 const qs = new URLSearchParams(location.search);
 const ONLY = (qs.get('only') || '').split(',').filter(Boolean), show = k => !ONLY.length || ONLY.includes(k);
 const LIGHT = qs.get('light') || 'day', SCALE = Number(qs.get('scale') || 2), season = qs.get('season') || 'autumn', party = qs.get('party') === '1', rain = qs.get('rain') === '1' ? 1 : 0;
@@ -86,6 +87,32 @@ label('poses: wait · watch · chat · point · wave · shop · cart · sit · l
 const poses = [['wait', 0], ['watch', 1], ['chat', 1], ['point', 1], ['wave', 0], ['shop', 2], ['cart', 1], ['sit', 0], ['lean', 2], ['dance', 1], ['toast', -1], ['garden', 1], ['walk', 2], ['walk', 0]];
 poses.forEach(([p, dir], i) => draw(20 * SCALE / 2 + i * 28 * SCALE / 2, y + (i > 6 ? 34 * SCALE + 10 : 0), { pose: p, dir, dist: 0.3, v: p === 'walk' ? 1.4 : 0 }, i % 2 ? 'lady' : 'guest', 30 + i));
 y += 2 * (34 * SCALE + 10) + 14;
+}
+// C4b — THE SITTERS (?only=sit): the cab stand's (facing us, on the bench facing the street: the knees forward + out, the thighs a solid
+// mass over the seat's front edge, the hands on the knees), the water bench's (seen from behind: the back drawn over the legs — the head,
+// shoulders + hat above the backrest), one from the side; each at the phone's size × SCALE, on a real bench
+if (show('sit')) {
+  label('C4b sitters: the cab stand (facing us) · the water bench (from behind) · from the side', 4, y - 70);
+  const lit = { lamps: dark ? 1 : 0 }, cx0 = { lights: dark ? [{ x: 3, z: 45.6, kind: 'hidden', h: 4.8, k: 0.9 }] : [], lampK: dark ? 1 : 0 };
+  const bench = (sx, face, sitters) => {
+    const bx = sx * z / cam.F, b = { x: bx, z: face === 'water' ? z - 0.95 : z + 0.2, w: 3.3, face }, Tb = { ...T, ...lit };   // (the planner's seats: core/harbor-people.js#folkMap bench, harbor-cabs.js#standSeats)
+    c.save(); c.translate(0, y);
+    if (face === 'water') { for (const [dx, look, seed] of sitters) drawFolk(c, cam, { s: { x: bx + dx, z, a: 1, pose: 'sit', dir: 2 }, L: lookOf(look, seed, { season }) }, env); drawBenchBack(c, cam, b, Tb, cx0); }
+    else { drawBench(c, cam, b, Tb, cx0); for (const [dx, look, seed] of sitters) drawFolk(c, cam, { s: { x: bx + dx, z, a: 1, pose: 'sit', dir: 0 }, L: lookOf(look, seed, { season }) }, env); }
+    c.restore();
+  };
+  bench(60 * SCALE, 'street', [[-0.8, 'commuter', 51], [0.75, 'lady', 52]]);
+  bench(190 * SCALE, 'water', [[-0.8, 'walker', 53], [0.75, 'lady', 54]]);
+  draw(300 * SCALE, y, { pose: 'sit', dir: 1 }, 'commuter', 55); draw(350 * SCALE, y, { pose: 'sit', dir: -1 }, 'lady', 56);
+  y += 34 * SCALE + 30;
+}
+// C4b — THE DOORMAN (?only=doorman): at his post (attend: hands clasped, the weight shift), holding the door (the far arm on the leaf),
+// tipping his peaked cap (0 · ½ · 1), stepping over
+if (show('doorman')) {
+  label('C4b doorman: attend · attend (t+6 s: the weight shift) · holdDoor · tip ½ · tip 1 · stepping over', 4, y - 70);
+  const dms = [[{ pose: 'attend', hd: -Math.PI / 2 }, 1.3], [{ pose: 'attend', hd: -Math.PI / 2 }, 4.2], [{ pose: 'holdDoor', hd: -2.55, tip: 0 }, 1.3], [{ pose: 'holdDoor', hd: -2.55, tip: 0.5 }, 1.3], [{ pose: 'holdDoor', hd: -2.55, tip: 1 }, 1.3], [{ pose: 'walk', hd: 2.0, v: 1, dist: 0.3 }, 1.3]];
+  dms.forEach(([st, tt], i) => { const L = lookOf('doorman', 7, { season }); c.save(); c.translate(0, y); drawFolk(c, cam, { s: { x: (40 + i * 60) * SCALE / 2 * z / cam.F, z, a: 1, ...st }, L }, { ...env, t: tt }); c.restore(); });
+  y += 34 * SCALE + 14;
 }
 // a couple arm in arm + a dog walker
 if (show('couple')) {
