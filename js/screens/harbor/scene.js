@@ -1880,7 +1880,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (FP3a, FREV H3: the people's clock + their sounds run every frame — tick() — whether or not they're drawn; drawn only over a baked stage)
     mk9('the stage + people');
     const pplLive = !off.has('no-people'), pplOn = pplLive && fadeIn > 0 && !!bakeTones && !!(baker.group('stage') || {}).ready;
-    const pplEnv = pplLive ? peopleEnv(lit, fadeIn) : null;
+    const pplEnv = pplLive ? { ...peopleEnv(lit, fadeIn), sig: sigSt.road } : null;   // (C4a: the signal's colour on a car at the crossing)
     if (pplLive) people.frame(peopleFrame());
     // 8b2 — THE RAID now: its red + blue wash on the wet road, the kerb + the near water — under the patrol cars (drawn in the far pass)
     const RP = raidPlanNow(), nowRS = clock.now() / 1000, RR = RP ? raidAt(RP, nowRS) : null;
@@ -2947,7 +2947,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       promenade: L ? (() => { const P = (x, z, y = 0) => project(cam, x, y, z).map(v => +v.toFixed(1));
         return { season: L.season, phase: L.seasonPhase, impliedOn: L.impliedOn !== false, lampK: L.lampK, flag: !!L.flag,
           lamps: L.lamps.map(l => ({ kind: l.kind, at: P(l.x, l.z), heads: (l.heads || []).length })), trees: L.trees.map(t => ({ kind: t.kind, at: P(t.x, t.z), r: +(cam.F * t.w / 2 / t.z).toFixed(1) })),
-          medallion: P(L.medallion.x, L.medallion.z), bench: P(L.bench.x, L.bench.z), cart: P(L.cart.x, L.cart.z), planters: L.planters.map(p => P(p.x, p.z)),
+          medallion: P(L.medallion.x, L.medallion.z), crossing: L.crosswalk && L.road ? [P(L.crosswalk.x0 - 8, L.road.z1 + 1), P(L.crosswalk.x1 + 8, L.road.z0 - 1)] : null /* (C4a: the crossing's box for shots.mjs --crop crossing) */, crossX: L.crosswalk ? +((L.crosswalk.x0 + L.crosswalk.x1) / 2).toFixed(2) : null, bench: P(L.bench.x, L.bench.z), cart: P(L.cart.x, L.cart.z), planters: L.planters.map(p => P(p.x, p.z)),
           pool: (() => { const g = L.lamps.filter(l => l.implied).sort((a, b) => Math.abs(a.x - L.medallion.x) - Math.abs(b.x - L.medallion.x))[0]; return g ? { lit: P(g.x, 37.4) } : null; })(), cabStand: L.cabStand ? P(L.cabStand.x, L.cabStand.z) : null, hydrant: L.hydrant ? P(L.hydrant.x, L.hydrant.z) : null, still: still.debug(), cabTaxi: cabStand.debug() /* (PROM: cabStand = the bench on screen, cabTaxi = its taxi) */ }; })() : null,   // (FP: the open floor beside the left corner globe)      // (8a: THE IMPLIED ROAD — the pass now; wash({ col, k }) for 7b's raid)      // (PART 8a: the city's sound slots — play('car-1920s-pass', { pan, gain }))
       gaps: L.gaps, arch: ARCH ? { peak: ARCH.peak, low: ARCH.low, top: ARCH.top } : null, moonArch: MOON, rays: rayStrength(LK, sun.debug()), beams: +beamK.toFixed(3),
       water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },

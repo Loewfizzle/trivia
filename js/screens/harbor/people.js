@@ -25,7 +25,7 @@ import { drawCart, propShadow } from './props.js';
 import { pieceCtx, LIGHT } from '../../core/harbor-light.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { lightField, lightSources, castShadow } from '../../core/harbor-light.js';
-import { crossLightOf, CROSS } from './road.js';
+import { crossLightOf, crossPools, poolFall, CROSS, LENS } from './road.js';
 import { frontProfile } from './strings.js';
 import { SPEAK_V } from '../../core/harbor-speakeasy.js';
 import { propItems } from './workers.js';
@@ -307,10 +307,15 @@ export function createPeople() {
       c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.32 * lit; c.drawImage(carPool, fx - rw, gy - rh, rw * 2, rh * 2); c.restore();
     }
     // (PROM: no lampposts — a car on the back road lit by the back road's own light: brightest over the crossing, the edges' spill)
-    const lampK = Math.min(1, backLight(car.x, CROSS.z));
+    // C4a — THE CARS LIT THROUGH IT (the owner): the light SAMPLED along the body — the tail, the middle, the nose (in the car's own
+    // order) — so a car brightens ACROSS the crossing from the nose back (vehicles.js draws the lit body through that gradient); inside
+    // the centre pool the signal's colour on its flank
+    const half = car.len * 0.4, kAt = dx => Math.min(1, backLight(car.x + dx, CROSS.z)), lampK = [kAt(-car.dir * half), kAt(0), kAt(car.dir * half)];
+    const P0 = crossPools(L)[0], sigI = env.sig === 'red' ? 0 : env.sig === 'amber' ? 1 : env.sig ? 2 : -1;
+    const sig = sigI >= 0 && P0 ? { col: LENS[sigI], k: poolFall(((car.x - P0.x) / P0.rx) ** 2) * night * pw } : null;
     const bob = env.mo === false ? 0 : 0.01 * sp * Math.sin((env.t || 0) * 15.1 + car.n);
     if (car.work === 'salter') workFx(c, 'salter', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, xEnd: car.dir > 0 ? -10 : cam.W + 10, fade: env.fade });   // (9b: its wet salted lane, under it)
-    kit.draw(c, { plowing: car.work === 'plow' ? clamp01((car.speed || 0) / 1.5) : 0, door: car.door || 0, inside, id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK * night * 0.8 * pw, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
+    kit.draw(c, { plowing: car.work === 'plow' ? clamp01((car.speed || 0) / 1.5) : 0, door: car.door || 0, inside, id: car.model, paint: car.paint, trade: car.trade, word: car.word || null, rumble: car.rumble, sign: car.sign != null ? car.sign : car.model === 'taxi' ? (car.n % 3 ? 1 : 0) : null, x: cx, y: gy, sp, dir: car.dir, dist: car.dist, speed: car.speed, look, lampK: lampK.map(v => v * night * 0.85 * pw), sig, lit, underglow: car.glow >= 0 && env.party ? UNDERGLOW[car.glow % UNDERGLOW.length] : null, glowK: night * pw, dpr: Math.min(2, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 1), bob, k: env.fade == null ? 1 : env.fade });
     if (car.work === 'flusher') workFx(c, 'flusher', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, xEnd: car.dir > 0 ? -10 : cam.W + 10, fade: env.fade });   // (9e: the water wagon's spray fans + its wet lane)
     if (car.work === 'plow') workFx(c, 'plow', { x: cx, y: gy, sp, dir: car.dir, len: car.len, speed: car.speed, t: env.t || 0, night, fade: env.fade });   // (9b: the spray off the blade)
     // 8b2 — THE PATROL CAR's BEACON: red, then blue, each a hard double flash (the raid's wash comes from it: raid.js)
@@ -583,7 +588,7 @@ export function createPeople() {
     moving: () => movingNow,
     /** 8b2 — THE RAID: the officer's flashlight hand as last drawn ({ hand: [x, y], dir, H, t }) or null */
     officer: () => officerAt,
-    cars: () => (now.cars || []).map(c => ({ id: c.id, model: c.model, lane: c.lane, x: +c.x.toFixed(2), speed: +c.speed.toFixed(2), glow: c.glow })),
+    cars: () => (now.cars || []).map(c => ({ id: c.id, model: c.model, lane: c.lane, x: +c.x.toFixed(2), speed: +c.speed.toFixed(2), glow: c.glow, at: L && c.z ? project(L.cam, c.x, 0.75, c.z).map(v => +v.toFixed(1)) : null })),   // (C4a: at — the body's middle on screen, the e2e's light probe)
     /** Oct 25 — the vehicles on screen + when each ENTERED (abs s): the test of NO TRAFFIC DURING THE LEGENDARIES */
     traffic: (() => { const at = v => (typeof v === 'number' && isFinite(v) ? +v.toFixed(1) : null);   // (never throw inside harbor(): the panel reads it too)
       return () => ({ cars: (now.cars || []).map(c => ({ id: c.id, ts: at(c.ts), cab: !!c.cab })), buses: (now.buses || []).map(b => ({ id: b.id, tE: at(b.tE) })), trucks: ((now.crew && now.crew.trucks) || []).map(T => ({ id: T.id, tE: at(T.tE != null ? T.tE : T.tA) })) }); })(),

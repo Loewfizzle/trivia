@@ -331,9 +331,11 @@ export function paintGilt(x, M, sh) {
   // point — at phone size that read as a double image, a smear. Now bigger, ONE crisp dark keyline round a clean gold fill, no offset
   // shade; the arch flatter + higher (THE HUSH WORD SIGN hangs under it); "SHAVE & HAIRCUT" gone — the sign has that spot. At night
   // the leaf catches the awning's lamps: a warm lit gold, never the murky brown it was.)
+  // (C4a: lit ONLY by the awning's strip right over it — M.lamps = the awning's level — at 0.85 now the dodge no longer lifts it; dark
+  // gilt after the strip goes off at 1 am / 2 am)
   const cx = (w0 + w1) / 2, R0 = G0.R, word = 'HARBOR BARBERS', size = G0.size, cy = wv1 - G0.top - R0;
   const lampK = clamp01(M.lamps != null ? M.lamps : M.T && M.T.lamps != null ? M.T.lamps : M.night) * clamp01(M.night || 0);
-  const gi = mix(mix(M.gilt, M.giltHi, 0.3 * (1 - M.night)), G0.lit, 0.62 * lampK), key = rgb(mix([20, 12, 10], [8, 6, 10], M.night || 0), 0.92);
+  const gi = mix(mix(M.gilt, M.giltHi, 0.3 * (1 - M.night)), G0.lit, 0.85 * lampK), key = rgb(mix([20, 12, 10], [8, 6, 10], M.night || 0), 0.92);
   const span = (w1 - w0) * G0.span / R0, step = span / (word.length - 1);
   for (let i = 0; i < word.length; i++) {
     const a = -span / 2 + i * step, u = cx + Math.sin(a) * R0, v = cy + Math.cos(a) * R0;

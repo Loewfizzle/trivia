@@ -21,7 +21,7 @@
 //
 // Scenes (built in; or name=YYYY-MM-DDTHH:MM for any moment): night day ramp catch dawn first join halloween christmas
 // valentine rejoin sun rain rainbow rainbow2 moonbow neonbow blossom summer autumn autumn-night winter plow owl day-bus golden
-// street-party street-rain umbrellas party-line hail small-hours halloween-kids nye-sparklers door door-day party snow. --crop street: the street strip (the towers' feet down to the dock). "first" has no profile; --guest makes every scene a first-time visitor.
+// street-party street-rain umbrellas party-line hail small-hours halloween-kids nye-sparklers door door-day party snow. --crop street: the street strip (the towers' feet down to the dock).  --crop crossing: the crosswalk close up (C4a). --crop shop: the barbershop front. "first" has no profile; --guest makes every scene a first-time visitor.
 // --idle: the screen AT REST before the shot (the dock + the tagline faded away: title.js#goIdle, then the 1.8 s fade) — FP2's
 //   street under the dock. --crop band = the band under the dock (the promenade's front edge down to the screen's foot).
 // --load: FP3a — THE LOAD GATE's burst: the shots start at the navigation itself (--every ms --count n from t = 0, no wait for the
@@ -236,6 +236,10 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
         if (cc === 'cart') { const [x, y] = pr.cart; return { x: Math.max(0, x - 75), y: Math.max(0, y - 80), width: Math.min(150, innerWidth - Math.max(0, x - 75)), height: 100 }; }
         const t = [...pr.trees].sort((a, b) => a.at[0] - b.at[0])[0]; if (!t) return null; const [x, y] = t.at, r = t.r;
         return { x: Math.max(0, x - r * 1.6), y: Math.max(0, y - r * 3.4), width: Math.min(innerWidth, r * 3.6), height: r * 4 }; }, c);
+    } else if (c === 'crossing') {
+      // CITY 2.0 (C4a): THE CROSSWALK close up — the back road from the railing to the curb, the crossing's pools + the stop lights over it
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); const cr = hb && hb.promenade && hb.promenade.crossing; if (!cr) return null; const k = hb.cam.F / 600;
+        const x0 = Math.max(0, cr[0][0]), x1 = Math.min(innerWidth, cr[1][0]), y0 = Math.max(0, cr[0][1] - 46 * k), y1 = Math.min(innerHeight, cr[1][1] + 10 * k); return { x: x0, y: y0, width: x1 - x0, height: y1 - y0 }; });
     } else if (c === 'ufo') {
       // CITY 2.0 (the UFO bake): the craft close up at its real size — 3.4 hull radii wide (min 220 pt), from above its dome to under its belly
       clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(); const lg = hb && hb.legend && hb.legend.state; const cr = lg && lg.craft; if (!cr) return null;
@@ -307,7 +311,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
     if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper', 'crest', 'cart', 'treel', 'compass'].includes(c)) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass'].includes(c) || c.startsWith('boat-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'crossing', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass'].includes(c) || c.startsWith('boat-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

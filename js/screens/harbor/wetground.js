@@ -65,11 +65,17 @@ export function createWetGround() {
       if (lv < 0.05 || R.x < -20 || R.x > W + 20) continue;
       const len = (R.len || 40) * (0.45 + 0.55 * wet), w0 = Math.max(1.2, R.w || 2.4), c = R.col || [255, 214, 150], by = R.y;
       const g = x.createLinearGradient(0, by, 0, by + len);
-      g.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${(0.55 * lv * wet).toFixed(3)})`); g.addColorStop(0.4, `rgba(${c[0]},${c[1]},${c[2]},${(0.28 * lv * wet).toFixed(3)})`); g.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
+      // (C4a — the owner likes these, "a touch softer": 0.55 → 0.42 at the light, 0.28 → 0.2 down the stones)
+      g.addColorStop(0, `rgba(${c[0]},${c[1]},${c[2]},${(0.42 * lv * wet).toFixed(3)})`); g.addColorStop(0.4, `rgba(${c[0]},${c[1]},${c[2]},${(0.2 * lv * wet).toFixed(3)})`); g.addColorStop(1, `rgba(${c[0]},${c[1]},${c[2]},0)`);
       x.fillStyle = g; x.globalCompositeOperation = 'lighter';
-      // broken: a few dashes, wider near the light, a little wobble
-      const rr = rngFrom(i * 97 + 13 + Math.round(R.x));
-      for (let k = 0; k < 7; k++) { const t0 = k / 7, t1 = t0 + 0.09 + rr() * 0.05, ww = w0 * (1.4 - 0.7 * t0) * (0.7 + rr() * 0.5); x.fillRect(R.x - ww / 2 + (rr() - 0.5) * 1.2, by + 2 + len * t0, ww, len * (t1 - t0)); }
+      // BROKEN by the cobbles (C4a: never ruler-straight): short dashes at uneven gaps, each a little off the line, wider near the light;
+      // while it rains the rain's ripples move them — each dash's lateral wobble re-drawn every 0.4 s (wob: the rain's slot, bake key)
+      const rr = rngFrom(i * 97 + 13 + Math.round(R.x)), ws = o.wob != null ? rngFrom(o.wob * 31 + i * 7 + 5) : null;
+      for (let t0 = rr() * 0.06; t0 < 0.96;) {
+        const dl = 0.05 + rr() * 0.06, ww = w0 * (1.4 - 0.7 * t0) * (0.7 + rr() * 0.5), dx = (rr() - 0.5) * 1.6 + (ws ? (ws() - 0.5) * 2.4 * o.rainK : 0);
+        x.fillRect(R.x - ww / 2 + dx, by + 2 + len * t0, ww, len * Math.min(dl, 1 - t0));
+        t0 += dl + 0.04 + rr() * 0.09;
+      }
       x.globalCompositeOperation = 'source-over';
     }
     // THE PUDDLES: the deep ones keep longest (thr); a puddle's size grows with how far the wetness is past its own threshold
@@ -124,8 +130,9 @@ export function createWetGround() {
       if (!L || o.fade <= 0) return;
       const wet = clamp01(o.wet);
       if (wet > 0.02) {
-        const k = `${Math.round(wet * 20)}|${Math.round(o.day * 6)}|${Math.round(o.night * 10)}|${(o.reflect || []).map(R => `${Math.round(R.x)}.${Math.round((R.k ?? 1) * 4)}.${(R.col || []).join('')}`).join(',')}|${W}x${H}|${o.lightKey || ''}`;
-        if (k !== key) { key = k; bake({ ...o, wet }); }
+        const rainK = clamp01(o.rain || 0), wob = rainK > 0.03 && o.motion ? Math.floor((o.t || 0) * 2.5) : null;   // (C4a: the reflections' ripple while it rains)
+        const k = `${wob == null ? '' : wob}|${Math.round(wet * 20)}|${Math.round(o.day * 6)}|${Math.round(o.night * 10)}|${(o.reflect || []).map(R => `${Math.round(R.x)}.${Math.round((R.k ?? 1) * 4)}.${(R.col || []).join('')}`).join(',')}|${W}x${H}|${o.lightKey || ''}`;
+        if (k !== key) { key = k; bake({ ...o, wet, wob, rainK }); }
         if (cv && box) { c.save(); c.globalAlpha = o.fade; c.drawImage(cv, 0, box.y0, W, box.h); c.restore(); }
       }
       if (!o.motion) return;

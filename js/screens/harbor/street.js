@@ -301,17 +301,20 @@ function wetPass(x, L, st, K, T, wet) {
     // (a soft-edged pool: the sky mirrored, brighter toward its far edge, fading out at its rim — two lobes, never an oval sticker)
     for (const [ox, oy, kw, kh] of [[0, 0, 1, 1], [0.6, 0.3, 0.55, 0.75]]) {
       const g = x.createRadialGradient(0, -0.25, 0, 0, 0, 1);
-      g.addColorStop(0, rgb(addc(K.sky, [26, 26, 26]), 0.62 * wet)); g.addColorStop(0.7, rgb(K.sky, 0.42 * wet)); g.addColorStop(1, rgb(K.sky, 0));
+      g.addColorStop(0, rgb(addc(K.sky, [26, 26, 26]), 0.78 * wet)); g.addColorStop(0.7, rgb(K.sky, 0.42 * wet)); g.addColorStop(1, rgb(K.sky, 0));
       x.save(); x.translate(sx + w * ox, y + h * oy); x.scale(w * kw, h * kh); x.fillStyle = g; x.beginPath(); x.arc(0, 0, 1, 0, Math.PI * 2); x.fill(); x.restore();
     }
   }
-  // the lamps' reflections: a long broken streak straight down from each lamp's foot (warm globes, the cool tall lamps), the
-  // speakeasy's windows' amber — lit by the lamps' ramp (T.lamps)
+  // the lamps' reflections: a long broken streak straight down from each lamp's foot — C4a (the owner: two dotted streaks "going their
+  // own ways"): never the IMPLIED lamps (they stand BEHIND us, below the screen: a wet floor can't mirror them) — their light comes back
+  // as THE SHEEN below: the whole wet street glazed by their pools, brightest at the screen's foot (nearest them), the puddles bright
   const k = (T.lamps || 0) * wet;
   if (k > 0.02) {
-    x.globalCompositeOperation = 'lighter';
+    const g = x.createLinearGradient(0, y0, 0, cam.H);
+    g.addColorStop(0, 'rgba(240,190,130,0)'); g.addColorStop(0.55, `rgba(240,190,130,${(0.05 * k).toFixed(3)})`); g.addColorStop(1, `rgba(240,190,130,${(0.16 * k).toFixed(3)})`);
+    x.globalCompositeOperation = 'lighter'; x.fillStyle = g; x.fillRect(0, y0, cam.W, cam.H - y0);
     for (const l of L.lamps) {
-      if (l.z > 40) continue;
+      if (l.z > 40 || l.implied) continue;
       const [sx] = project(cam, l.x, 0, l.z), col = l.kind === 'tall' ? [150, 166, 196] : [236, 160, 80];
       for (let yy = y0 + 2; yy < cam.H; yy += 2.2 + r() * 2.4) {
         const f = 1 - (yy - y0) / (cam.H - y0 + 1), w = 2 + (1 - f) * 5 + r() * 2;

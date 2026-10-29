@@ -3,6 +3,7 @@
 // 8P's (bus.js, through people.js), the motorcar FP2's (motorcar.js); 8b's traffic plugs in beside them.
 import { project, groundY } from '../../core/harbor-layout.js';
 import { rgb, shade, mix } from './shapes.js';
+import { safeCtx } from '../../ui/canvas-safe.js';
 
 export function roadSteps(L, T) {
   const cam = L.cam, r = L.road, rail = L.rail;
@@ -27,18 +28,28 @@ export function roadSteps(L, T) {
     // their pools ONTO the road — overlapping across the stripes, so at night the crossing is the brightest strip of ground on the
     // promenade; crisp pools with a soft edge (no haze), the asphalt warmed a little, the painted stripes catching more (pale, a glossy
     // near edge). Baked with the road (T.lamps: the lamps' ramp). crossLight(x, z) — the light there, 0..~1.2.
+    // C4a (the owner: "spotlights / stage pools"): ONE soft radial per pool — a lamp's spill across the asphalt, wider, its tail long
+    // (poolFall to d 1.25) — painted on a pool layer FEATHERED ~6 pt at the curb + the rail (no hard clip line), then added to the road
     const lk = T.lamps || 0, crossLight = crossLightOf(L);
     if (lk > 0.01 && L.crosswalk) {
-      x.save(); x.globalCompositeOperation = 'lighter';
-      for (const p of crossPools(L)) {
-        const [cx] = project(cam, p.x, 0, p.z), ya = groundY(cam, p.z + p.rz), yb = groundY(cam, p.z - p.rz), rw = cam.F * p.rx / p.z;
-        x.save(); x.beginPath(); x.rect(0, yRail, cam.W, yCurb - yRail); x.clip();
-        // (concentric rings, each adding a little: a clear pool with a soft edge — (1 − d²)² summed in 9 steps)
-        x.translate(cx, (ya + yb) / 2); x.scale(rw, (yb - ya) / 2);
-        for (let q = 9; q >= 1; q--) { const r0 = q / 9, f = (1 - (r0 - 1 / 9) ** 2) ** 2 - (1 - r0 * r0) ** 2; x.fillStyle = rgb(CROSS.col, Math.min(1, Math.max(0, f) * CROSS.k * (p.k ?? 1) * lk)); x.beginPath(); x.arc(0, 0, r0, 0, Math.PI * 2); x.fill(); }
-        x.restore();
+      const m = x.getTransform(), k = Math.max(1, Math.abs(m.a) || 1), bh = yCurb - yRail, cv = document.createElement('canvas');
+      cv.width = Math.max(1, Math.ceil(cam.W * k)); cv.height = Math.max(1, Math.ceil(bh * k));
+      const pc = safeCtx(cv);
+      if (pc) {
+        pc.setTransform(k, 0, 0, k, 0, -yRail * k); pc.globalCompositeOperation = 'lighter';
+        for (const p of crossPools(L)) {
+          const [cx] = project(cam, p.x, 0, p.z), ya = groundY(cam, p.z + p.rz), yb = groundY(cam, p.z - p.rz), rw = cam.F * p.rx / p.z;
+          pc.save(); pc.translate(cx, (ya + yb) / 2); pc.scale(rw, (yb - ya) / 2);
+          const g = pc.createRadialGradient(0, 0, 0, 0, 0, POOL_R);
+          for (const d of [0, 0.25, 0.5, 0.75, 1, POOL_R]) g.addColorStop(d / POOL_R, rgb(CROSS.col, Math.min(1, poolFall(d * d) * CROSS.k * (p.k ?? 1) * lk)));
+          pc.fillStyle = g; pc.fillRect(-POOL_R, -POOL_R, POOL_R * 2, POOL_R * 2); pc.restore();
+        }
+        const fe = Math.min(6, bh * 0.3), f = pc.createLinearGradient(0, yRail, 0, yCurb);
+        f.addColorStop(0, 'rgba(0,0,0,0)'); f.addColorStop(fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1 - fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1, 'rgba(0,0,0,0)');
+        pc.globalCompositeOperation = 'destination-in'; pc.fillStyle = f; pc.fillRect(0, yRail, cam.W, bh);
+        x.save(); x.globalCompositeOperation = 'lighter'; x.drawImage(cv, 0, yRail, cam.W, bh); x.restore();
       }
-      x.restore();
+      cv.width = cv.height = 0;
     }
     // THE CROSSWALK (8a) between the two stop lights: wide white bars across the road, worn
     if (L.crosswalk) {
@@ -64,16 +75,20 @@ export function roadSteps(L, T) {
  *  PROM — NO LAMPPOSTS (the owner, Oct 28: the crosswalk "must READ at night — today it's a vague dark band"): the back road's IMPLIED
  *  LAMPS just past the screen's left + right edges spill their light along the asphalt, and the crossing is the brightest strip in the
  *  middle (its own pool, the paint catching the most) — warm, like the implied lamps on our side */
-export const CROSS = Object.freeze({ z: 57, rx: 7.2, rz: 5.0, k: 1.15, col: [236, 214, 182], paint: [250, 246, 236], edge: { dx: 2.5, rx: 10, rz: 5.2, k: 0.7 } });
+// (C4a: wider + softer — the centre rx 7.2 → 9.5, rz 5.0 → 6.2, the edges rx 10 → 13 + k 0.7 → 0.5 (the crossing stays the brightest); the falloff's tail to d 1.25: poolFall)
+export const CROSS = Object.freeze({ z: 57, rx: 9.5, rz: 6.2, k: 1.15, col: [236, 214, 182], paint: [250, 246, 236], edge: { dx: 2.5, rx: 13, rz: 5.2, k: 0.5 } });
+/** a pool's light at d² (d: the distance in its own radii) — (1 − d²/R²)² out to R = POOL_R (PURE: the road's paint + the cars' light) */
+export const POOL_R = 1.25;
+export const poolFall = d2 => (d2 < POOL_R * POOL_R ? (1 - d2 / (POOL_R * POOL_R)) ** 2 : 0);
 export const crossPools = L => {
   if (!L.crosswalk) return [];
   const cw = L.crosswalk, cx = (cw.x0 + cw.x1) / 2, hw = L.cam && L.cam.hw ? L.cam.hw(CROSS.z) : 19, E = CROSS.edge;
   return [{ x: cx, z: CROSS.z, rx: CROSS.rx, rz: CROSS.rz, k: 1 }, { x: -hw - E.dx, z: CROSS.z, rx: E.rx, rz: E.rz, k: E.k }, { x: hw + E.dx, z: CROSS.z, rx: E.rx, rz: E.rz, k: E.k }];
 };
-/** the light at (x, z) on the road from the crossing's pools (PURE): the sum of each pool's (1 − d²)² × its k */
+/** the light at (x, z) on the road from the crossing's pools (PURE): the sum of each pool's poolFall(d²) × its k */
 export function crossLightOf(L) {
   const P = crossPools(L);
-  return (x, z) => P.reduce((s, p) => { const d2 = ((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2; return d2 < 1 ? s + (p.k ?? 1) * (1 - d2) ** 2 : s; }, 0);
+  return (x, z) => P.reduce((s, p) => s + (p.k ?? 1) * poolFall(((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2), 0);
 }
 
 // ---- FP — THE STOP LIGHTS + THE CROSSING (the owner: "both face the camera, but the cars drive left ↔ right")
@@ -188,7 +203,7 @@ export function drawSignalLamps(c, L, st, o) {
       c.globalAlpha = o.fade * (0.22 + 0.26 * lk); c.drawImage(g, sd.x - r2, ln.y - r2, r2 * 2, r2 * 2);
       // (PROM — THE SIGNALS TINT THE ASPHALT (the owner: "the crosswalk must READ at night"): a clear red / amber / green pool on the road
       // under each head, spread ALONG the road (the light falls to both sides), changing with the light — read at phone size)
-      if (lk > 0.05) { const [, gy] = project(L.cam, sg.x, 0, sg.z), [, gy2] = project(L.cam, sg.x, 0, sg.z + 2.2), gw = ln.r * 7.5, gh = Math.max(3, (gy - gy2) * 1.6); c.globalAlpha = o.fade * 0.2 * lk; c.drawImage(g, sd.x - gw, gy - gh * 0.75, gw * 2, gh); c.globalAlpha = o.fade * 0.12 * lk; c.drawImage(g, sd.x - gw * 0.45, gy - gh * 0.35, gw * 0.9, gh * 0.5); }
+      if (lk > 0.05) { const [, gy] = project(L.cam, sg.x, 0, sg.z), [, gy2] = project(L.cam, sg.x, 0, sg.z + 2.2), gw = ln.r * 12, gh = Math.max(3, (gy - gy2) * 1.6); c.globalAlpha = o.fade * 0.2 * lk; c.drawImage(g, sd.x - gw, gy - gh * 0.75, gw * 2, gh); c.globalAlpha = o.fade * 0.08 * lk; c.drawImage(g, sd.x - gw * 0.5, gy - gh * 0.4, gw, gh * 0.6); }   // (C4a: 1.6× wider along the road, the hot core softer)
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     }
   }

@@ -96,6 +96,22 @@ test('8P → PROM — THE CROSSWALK LIT (no lampposts): the back road’s implie
     assert.ok(f(mid, 63.9) < 0.2, `${k}: fading by the far kerb`);
   }
 });
+test('C4a — THE CROSSING’S LIGHT IS A SPILL, NOT A STAGE POOL: smooth along the road (no step > 0.08 per 0.2 u), rising to the crossing, the crossing the brightest; a car sampled at its tail / middle / nose brightens ACROSS it', async () => {
+  const { crossLightOf, poolFall, POOL_R } = await import('../js/screens/harbor/road.js');
+  assert.equal(poolFall(0), 1); assert.equal(poolFall(POOL_R * POOL_R), 0);
+  for (let d2 = 0; d2 < POOL_R * POOL_R; d2 += 0.01) assert.ok(poolFall(d2 + 0.01) <= poolFall(d2) + 1e-12, 'monotone falloff');
+  for (const k of Object.keys(SIZES)) {
+    const { L, cam } = setup(k), cw = L.crosswalk, f = crossLightOf(L), mid = (cw.x0 + cw.x1) / 2, hw = cam.hw(57);
+    let worst = 0;
+    for (let x = -hw; x < hw; x += 0.2) worst = Math.max(worst, Math.abs(f(x + 0.2, 57) - f(x, 57)));
+    assert.ok(worst <= 0.08, `${k}: no step along the road (${worst.toFixed(3)})`);
+    for (let x = mid - 6; x < mid; x += 0.2) assert.ok(f(x + 0.2, 57) >= f(x, 57) - 1e-9, `${k}: rising toward the crossing at x ${x.toFixed(1)}`);
+    assert.ok(f(mid, 57) > 1.5 * f(mid - 12, 57), `${k}: the crossing clearly the brightest (${f(mid, 57).toFixed(2)} vs ${f(mid - 12, 57).toFixed(2)})`);
+    // a 4.4-u car whose nose reaches the crossing: its nose lit well before its tail (the gradient, never all at once)
+    const car = mid - 4, nose = f(car + 1.76, 57), tail = f(car - 1.76, 57);
+    assert.ok(nose > tail + 0.1, `${k}: the nose ahead of the tail (${nose.toFixed(2)} > ${tail.toFixed(2)})`);
+  }
+});
 
 // ------------------------------------------------------------------ THE PEOPLE (section 1)
 const OFF = -240, DAY = Date.UTC(2026, 9, 22, 4) / 1000;     // (Thu Oct 22 2026, local midnight in Grand Rapids)

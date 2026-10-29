@@ -112,7 +112,8 @@ export function lookOf(name, paint) {
   if (name === 'day') return { name, p: paint, hi: [206, 224, 246], hiA: 0.42, sun: [255, 250, 236], glassT: [150, 172, 200], glassB: [52, 62, 84], bk: BLACK, bkHi: [170, 186, 210], chrome: [218, 224, 234], chromeLo: [92, 98, 112], spoke: [226, 206, 160], tyre: [18, 18, 22], white: [232, 232, 226] };
   if (name === 'golden') return { name, p: mix(paint, [255, 160, 110], 0.12), hi: [255, 196, 150], hiA: 0.42, sun: [255, 214, 160], glassT: [236, 170, 140], glassB: [70, 50, 60], bk: [26, 20, 24], bkHi: [236, 160, 120], chrome: [246, 206, 166], chromeLo: [110, 80, 76], spoke: [236, 192, 140], tyre: [20, 16, 18], white: [244, 214, 182] };
   const lit = name === 'lamp';
-  return { name, p: mix(shade(paint, lit ? -0.36 : -0.58), [40, 44, 80], lit ? 0.08 : 0.22), hi: lit ? [255, 200, 140] : [96, 104, 150], hiA: lit ? 0.42 : 0.32, sun: lit ? [255, 214, 160] : [120, 128, 170], glassT: lit ? [96, 76, 70] : [40, 44, 70], glassB: [10, 11, 20], bk: [10, 10, 16], bkHi: lit ? [230, 170, 110] : [84, 92, 136], chrome: lit ? [224, 186, 140] : [104, 108, 140], chromeLo: [30, 30, 44], spoke: lit ? [150, 120, 90] : [70, 66, 80], tyre: [8, 8, 12], white: lit ? [170, 150, 130] : [80, 82, 100] };
+  return { name, p: mix(shade(paint, lit ? -0.12 : -0.58), [40, 44, 80], lit ? 0.06 : 0.22), hi: lit ? [255, 200, 140] : [96, 104, 150], hiA: lit ? 0.6 : 0.32,   // (C4a: a lamp-lit car brighter — the hood + roof's gloss stronger)
+    sun: lit ? [255, 214, 160] : [120, 128, 170], glassT: lit ? [96, 76, 70] : [40, 44, 70], glassB: [10, 11, 20], bk: [10, 10, 16], bkHi: lit ? [230, 170, 110] : [84, 92, 136], chrome: lit ? [224, 186, 140] : [104, 108, 140], chromeLo: [30, 30, 44], spoke: lit ? [150, 120, 90] : [70, 66, 80], tyre: [8, 8, 12], white: lit ? [170, 150, 130] : [80, 82, 100] };
 }
 
 /** where a model's lamps are (u from the tail, v up — world units) + the wheels' centres (u) + the sprite's extent */
@@ -565,6 +566,9 @@ export function wheelSprite(id, s, K) {
 
 // ------------------------------------------------------------------ THE KIT (a cache of sprites + one call that draws a vehicle)
 let glowW = null, glowR = null, glowAny = new Map();
+// (C4a: one scratch canvas for a lamp-lit body's gradient — grown, never shrunk; the cars are drawn one at a time)
+let litSc = null;
+const litScratch = (w, h) => { if (typeof document === 'undefined') return null; if (!litSc) litSc = document.createElement('canvas'); if (litSc.width < w) litSc.width = w; if (litSc.height < h) litSc.height = h; return litSc; };
 const glowSprite = (col, soft) => {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const x = safeCtx(c);
@@ -619,6 +623,13 @@ export function createVehicles() {
       c.drawImage(wh.tyre, wx - wn / 2, wy - wn / 2, wn, wn);
       for (const [da, a] of [[0, 1], [-step * 0.5, 0.45]]) { c.save(); c.translate(wx, wy); c.rotate(roll + da); c.globalAlpha = k * a; c.drawImage(wh.spin, -wn / 2, -wn / 2, wn, wn); c.restore(); }
     }
+    // (C4a: the light on the wheels where they are — the spokes catch it: the rear at the tail's sample, the front at the nose's)
+    const LK = Array.isArray(v.lampK) ? v.lampK : [v.lampK || 0, v.lampK || 0, v.lampK || 0], lkMax = Math.max(LK[0], LK[1], LK[2]);
+    if (lkMax > 0.03 && look === 'night') {
+      const wl = wheel(id, 'lamp', s);
+      A.wheels.forEach((u, j) => { const kw = j ? (LK[1] + LK[2]) / 2 : (LK[0] + LK[1]) / 2; if (kw < 0.03) return; const wx = (u - M.len / 2) * sp, wy = -M.r * sp;
+        c.globalAlpha = k * kw; c.drawImage(wl.tyre, wx - wn / 2, wy - wn / 2, wn, wn); c.save(); c.translate(wx, wy); c.rotate(roll); c.drawImage(wl.spin, -wn / 2, -wn / 2, wn, wn); c.restore(); });
+    }
     c.globalAlpha = k;
     // (8b1 — POL4's known issue "the cream van reads grey at night": a big pale panel at night is a flat grey box. The cream DAIRY livery
     // is a daytime van — after dark its slot wears one of the van's deep paints (forest / navy / maroon, cream lettering), which keep
@@ -626,7 +637,20 @@ export function createVehicles() {
     const pnt = look === 'night' ? nightPaint(id, v.paint || 0) : v.paint || 0;
     const b = body(id, look, pnt, s, v), bw = b.width / dpr, bh = b.height / dpr, bx = (-A.pad - M.len / 2) * sp, by = -(A.top + 0.06) * sp + (v.bob || 0);
     c.drawImage(b, bx, by, bw, bh);
-    if ((v.lampK || 0) > 0.03 && look === 'night') { c.globalAlpha = k * v.lampK; c.drawImage(body(id, 'lamp', pnt, s, v), bx, by, bw, bh); c.globalAlpha = k; }
+    // (C4a: the lamp-lit body through a GRADIENT along the car — tail → middle → nose — so it brightens across the crossing's light, never
+    // all at once; inside the centre pool the signal's colour cast over it)
+    if (lkMax > 0.03 && look === 'night') {
+      const lb = body(id, 'lamp', pnt, s, v), sc = litScratch(lb.width, lb.height), x = sc && safeCtx(sc);
+      if (x) {
+        x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, sc.width, sc.height); x.drawImage(lb, 0, 0);
+        if (v.sig && v.sig.k > 0.02) { x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(${v.sig.col.join(',')},${(0.25 * Math.min(1, v.sig.k)).toFixed(3)})`; x.fillRect(0, 0, sc.width, sc.height); }
+        const g = x.createLinearGradient(0, 0, lb.width, 0), f = u => (u + A.pad) / (M.len + 2 * A.pad);
+        g.addColorStop(0, `rgba(0,0,0,${LK[0]})`); g.addColorStop(f(M.len * 0.1), `rgba(0,0,0,${LK[0]})`); g.addColorStop(f(M.len * 0.5), `rgba(0,0,0,${LK[1]})`); g.addColorStop(f(M.len * 0.9), `rgba(0,0,0,${LK[2]})`); g.addColorStop(1, `rgba(0,0,0,${LK[2]})`);
+        x.globalCompositeOperation = 'destination-in'; x.fillStyle = g; x.fillRect(0, 0, lb.width, lb.height); x.globalCompositeOperation = 'source-over';
+        c.globalAlpha = k; c.drawImage(sc, 0, 0, lb.width, lb.height, bx, by, bw, bh);
+      } else { c.globalAlpha = k * LK[1]; c.drawImage(lb, bx, by, bw, bh); }
+      c.globalAlpha = k;
+    }
     // C2 — THE DOOR OPEN (the cab's fares step out / in through it): v.door 0..1; v.inside(c, rect) draws whoever's in the doorway
     // (screen coords, clipped to it) between the doorway + the door
     let doorBox = null;

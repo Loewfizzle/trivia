@@ -2639,6 +2639,24 @@ G('sounds', async () => {
 G('people', async () => {
   const P = 'window.__district.harbor()';
   let hushRect = null, hushRed = 0;
+  // ---- C4a — THE CARS LIT THROUGH THE CROSSING (the owner: they passed through its light unlit): ONE car followed — its body's
+  // brightness 8 u before the crossing vs on it ≥ 1.6× (the lamp-lit body through its tail → nose gradient: vehicles.js)
+  { const Q = await open({ slot: 'pp-carlit', qs: `when=2026-09-16T22:30${GR}&wx=clear`, view: [402, 874] });   // (September: no holiday piece stands in front of the crossing — Halloween's giant hides it)
+    await harborUp(Q.page);
+    const lum = id => ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const h = ${P}, c = h.people.cars.find(o => o.id === ${JSON.stringify(id)}); if (!c || !c.at) return res(null);
+      const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round((c.at[0] - 6) * k), Math.round((c.at[1] - 3) * k), Math.round(12 * k), Math.round(6 * k)).data;
+      let s = 0; for (let i = 0; i < d.length; i += 4) s += 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; res({ l: s / (d.length / 4), dx: +(c.x - h.promenade.crossX).toFixed(2) }); }))`);
+    let far = null, near = null, id = null;
+    for (let tries = 0; tries < 3 && !(far && near); tries++) {
+      id = null;
+      for (const end = Date.now() + 60000; !id && Date.now() < end;) { id = await ev(Q.page, `(() => { const h = ${P}; const c = h.people.cars.find(o => { const dx = o.x - h.promenade.crossX; return Math.abs(dx) > 7.4 && Math.abs(dx) < 9 && dx * (o.lane === 'near' ? 1 : -1) < 0 && o.at; }); return c ? c.id : null; })()`).catch(() => null); if (!id) await sleep(60); }
+      if (!id) break;
+      far = await lum(id);
+      await waitFor(Q.page, `(() => { const h = ${P}, c = h.people.cars.find(o => o.id === ${JSON.stringify(id)}); return !!c && Math.abs(c.x - h.promenade.crossX) < 0.6; })()`, 'the same car on the crossing', 20000).catch(() => {});
+      near = await lum(id);
+    }
+    okT(far && near && near.l >= 1.6 * far.l, `C4a THE CARS LIT THROUGH IT: car ${id} — ${far ? far.l.toFixed(0) : '—'} at ${far ? far.dx : '—'} u → ${near ? near.l.toFixed(0) : '—'} on the crossing (${near ? near.dx : '—'} u): × ${far && near ? (near.l / far.l).toFixed(2) : '—'} (≥ 1.6)`);
+    await Q.ctx.close(); }
   const settle = p => waitFor(p, `!${P}.pending && !${P}.fading`, 'settled', 20000);
   // the stage band's pixels, as one fingerprint (the A/B against &force=no-people)
   const band = p => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, c = ${P}.cam, y0 = Math.round((c.dock.y - 130) * k), h = Math.round(120 * k);
@@ -2848,6 +2866,19 @@ G('weather', async () => {
     const w = await ev(Q.page, W);
     ok(w.rain === 0 && w.wet > 0.6 && w.wet < 0.85 && w.ground.puddles >= 5, `THE WET STREET DRYING: wet ${w.wet} 12 min after the rain, ${w.ground.puddles} puddles (drying one by one), no rain`);
     await Q.ctx.close(); }
+  // ---- C4a — THE WET STREET UNDER THE DOCK (the owner: two dotted streaks "going their own ways" = the IMPLIED lamps, behind us): with the
+  // dock at rest on a wet night, no column at an implied lamp's x brighter than its neighbours by > 12 %; the sheen brightest at the foot
+  { const probe = async wet => {
+      const Q = await open({ slot: `wx-sheen${wet ? 'w' : 'd'}`, qs: `when=2026-10-21T22:30${GR}&wx=clear${wet ? '&force=wet-street' : ''}`, view: [402, 874] });
+      await harborUp(Q.page);
+      await ev(Q.page, 'window.__district.idle()'); await waitFor(Q.page, 'window.__district.isIdle()', 'the dock at rest', 8000).catch(() => {}); await sleep(2600);
+      const r = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, x2 = cv.getContext('2d'), H = cv.clientHeight, W = cv.clientWidth;
+        const lum = (x, y0, y1, w = 2) => { const d = x2.getImageData(Math.round(x * k), Math.round(y0 * k), Math.max(1, Math.round(w * k)), Math.max(1, Math.round((y1 - y0) * k))).data; let s = 0; for (let i = 0; i < d.length; i += 4) s += 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2]; return s / (d.length / 4); };
+        const xs = ${P}.promenade.lamps.filter(l => l.kind === 'implied').map(l => l.at[0]).filter(x => x > 14 && x < W - 14), y0 = H - 70, y1 = H - 6;
+        res({ cols: xs.map(x => ({ x: Math.round(x), r: +(lum(x, y0, y1) / Math.max(1, (lum(x - 9, y0, y1) + lum(x + 9, y0, y1)) / 2)).toFixed(3) })), foot: lum(8, H - 10, H - 4, W - 16), up: lum(8, H - 50, H - 44, W - 16) }); }))`);
+      await Q.ctx.close(); return r; };
+    const w = await probe(true), d = await probe(false), worst = Math.max(1, ...w.cols.map(c => c.r)), addFoot = w.foot - d.foot, addUp = w.up - d.up;
+    ok(worst <= 1.12 && addFoot >= addUp - 0.5, `C4a THE WET SHEEN: no implied lamp's streak under the dock (worst column ${worst.toFixed(2)} × its neighbours: ${w.cols.map(c => `${c.x}:${c.r}`).join(' ') || 'none on screen'}); the sheen adds ${addFoot.toFixed(1)} at the foot vs ${addUp.toFixed(1)} 40 pt up`); }
   // ---- THE BALLOON FESTIVAL's LINE-UP (the owner's order) + the long flight
   { const Q = await open({ slot: 'wx-bal', qs: `when=2026-10-24T09:30${GR}&wind=1&force=balloon-festival`, view: [402, 874] });
     await harborUp(Q.page);
