@@ -3668,6 +3668,47 @@ G('blackout', async () => {
   }
 });
 
+G('bench', async () => {
+  const P = 'window.__district.harbor()';
+  // C4c — THE PHONE BENCH (&bench=1): never without the flag (a normal page has none); with it a START card waits for a tap; once started it
+  // plays its scenes through the panel's switch (the panel's re-apply held off), measures, and on STOP the report shows on screen (COPY)
+  // + goes to /admin (kind 'bench'); the page goes back to its own state
+  { const Q = await open({ slot: 'bnc0', qs: `${NIGHT}&wx=clear`, view: [402, 874] });
+    await harborUp(Q.page);
+    ok((await ev(Q.page, `${P}.phoneBench`)) == null && !(await ev(Q.page, `!!document.querySelector('.hb-bench')`)), 'THE PHONE BENCH: nothing without the flag');
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'bnc1', qs: `${NIGHT}&wx=clear&bench=1&benchfast=1`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!(${P}.phoneBench) && !!document.querySelector('.hb-bench')`, 'the bench card', 15000);
+    const b0 = await ev(Q.page, `(() => { const b = ${P}.phoneBench; return { running: b.running, text: document.querySelector('.hb-bench').textContent }; })()`);
+    ok(!b0.running && /START/.test(b0.text), `THE PHONE BENCH waits for a tap: a START card (${b0.text.slice(0, 60)}…)`);
+    await ev(Q.page, `${P}.phoneBench.start()`);
+    await waitFor(Q.page, `${P}.phoneBench.rows >= 2`, 'two scenes measured', 30000);
+    const mid = await ev(Q.page, `({ b: ${P}.phoneBench, when: ${P}.harbor ? null : null })`);
+    ok(mid.b.running && mid.b.i >= 1, `THE PHONE BENCH plays its scenes in order (scene ${mid.b.i + 1}, ${mid.b.rows} measured)`);
+    await ev(Q.page, `${P}.phoneBench.stop()`);
+    await waitFor(Q.page, `${P}.phoneBench.done && ${P}.phoneBench.sent !== null`, 'the report sent (or refused)', 15000).catch(() => {});
+    const end = await ev(Q.page, `(() => { const b = ${P}.phoneBench, ta = document.querySelector('.hb-bench textarea'), btns = [...document.querySelectorAll('.hb-bench button')].map(x => x.textContent); return { b, report: ta ? ta.value : '', btns }; })()`);
+    ok(end.b.done && /THE PHONE BENCH/.test(end.report) && /a party peak/.test(end.report) && /memory guard:/.test(end.report) && end.btns.includes('COPY'), `THE PHONE BENCH's REPORT on screen with COPY (${end.report.split('\n').length} lines) + sent to /admin: ${end.b.sent}`);
+    console.log(end.report);
+    await Q.ctx.close(); }
+  // C4c — THE MEMORY GUARD's VERDICT, then + now (MEASURE=1 only — a measurement for the docs, not a check): at 390 / 402 / 430 on a 3×
+  // phone, at every tier, what the baked layers want at full dpr — and whether the OLD budgets (24 / 40 / 64 MB, the bakes only) would
+  // have stepped any of them down (softer) — vs the new guard (64 / 96 / 160 MB, every live canvas counted)
+  if (process.env.MEASURE) for (const [w, h, q3] of [[390, 844, ""], [402, 874, ""], [430, 932, ""], [402, 874, "&dpr=3"]]) {
+    const Q = await open({ slot: `bnm${w}${q3 ? "d3" : ""}`, qs: `${NIGHT}&wx=clear${q3}`, view: [w, h], dpr: 3 });
+    await harborUp(Q.page);
+    for (const t of q3 ? [2] : [2, 1, 0]) {
+      await ev(Q.page, `window.__district.setTier(${t})`);
+      await waitFor(Q.page, `${P}.mem.guard && ${P}.mem.guard.tier === ${t} && !${P}.fading`, `tier ${t} baked`, 20000).catch(() => {});
+      const m = await ev(Q.page, `${P}.mem`), g = m.guard || {}, OLD = [24, 40, 64][t];
+      const oldStep = (g.wantBake > OLD ? 'the skyline + stage bakes' : '') + (g.wantLit > Math.max(0, OLD - Math.min(g.wantBake, OLD)) ? `${g.wantBake > OLD ? ' + ' : ''}the lit windows` : '');
+      console.log(`MEMORY GUARD ${w}x${h} @3${q3} tier ${t} (city ${g.dpr}x): bakes want ${g.wantBake} + lit ${g.wantLit} MB · old budget ${OLD} -> ${oldStep ? `WOULD STEP DOWN ${oldStep}` : 'nothing stepped'} · new ${g.budget} (+ ${g.others} else live) -> ${g.stepped && g.stepped.length ? 'STEPPED' : 'nothing stepped'} · every live canvas ${m.tracked} MB`);
+    }
+    await Q.ctx.close();
+  }
+});
+
 G('snow', async () => {
   const P = 'window.__district.harbor()', SNW = `${P}.snow`;
   // the plaza's mean brightness (an 8-pt patch average at a few points in front of the shop + by the inlay): snow reads as light

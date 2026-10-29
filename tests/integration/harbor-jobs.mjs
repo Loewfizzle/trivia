@@ -21,6 +21,7 @@ export const SECONDS = {
   load: 30,            // (FP3a: the load gate — measured on the laptop)
   legends: 40,         // (6b: the legendary sky — three pages, a guess)
   blackout: 30,        // (C4c: the TR-3B's blackout on four holiday nights at 3× — 24 s on the laptop)
+  bench: 15,           // (C4c: THE PHONE BENCH — the card, two scenes measured at &benchfast=1, the report)
   workers: 75,         // (8b1: the workers — four pages, measured on the laptop)
   wildlife: 85,        // (8b1: the animals — eight pages incl. the panel rows; 81 s on the laptop)
   tape: 85,            // (Oct 25: THE TAPE STOP — one page, a whole TR-3B in real time + a second run; measured on the laptop)
@@ -45,7 +46,7 @@ export const CI_JOBS = {
   // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
   windows: ['windows', 'snow', 'doors', 'blackout'],   // (9d: doors)   // (9b: WINTER — the lightest job by its seconds)
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
-  wild: ['wildlife', 'workers', 'legends', 'weather'],
+  wild: ['wildlife', 'workers', 'legends', 'weather', 'bench'],
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
   holiday: ['holiday', 'thanks', 'panelrows', 'citylife'],   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };

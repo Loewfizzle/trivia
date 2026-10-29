@@ -63,6 +63,11 @@ export function createReporter(o) {
     mark(m) { if (!o.marks || !worker || m === lastMark) return; lastMark = m; try { worker.postMessage({ t: 'mark', m }); } catch { /* polish */ } },
     /** SEND REPORT (the button): → Promise<bool> kept by the server */
     send(kind = 'tap') { const now = Date.now(); if (now - lastSend < 4000) return Promise.resolve(false); lastSend = now; return send(kind); },
+    /** C4c — THE PHONE BENCH: a report of its own (kind 'bench', the text given) → Promise<bool> kept by the server */
+    sendText(kind, text) {
+      return fetch('/api/log', { method: 'POST', headers: { 'Content-Type': 'text/plain' }, keepalive: text.length < 60000, body: JSON.stringify({ p: 'report', r: { kind, text } }) })
+        .then(r => r.json().catch(() => ({}))).then(j => !!(j && j.kept)).catch(() => false);
+    },
     /** a stall the page itself noticed (once a session) */
     stall() { if (stallSent) return; stallSent = true; send('stall'); },
     destroy() { clearInterval(beatT); document.removeEventListener('visibilitychange', onVis); try { if (worker) worker.terminate(); } catch { /* */ } if (url) URL.revokeObjectURL(url); worker = null; },

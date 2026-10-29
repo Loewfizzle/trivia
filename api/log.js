@@ -16,7 +16,7 @@ export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody
 // js/hangwatch.js): POST /api/log { p: 'report', r: { kind: 'tap' | 'hang' | 'stall', text } } → phonelog/{push} { at, kind, text, ua, d,
 // b, v } — plain text the owner reads (+ screenshots) on /admin. 8 an hour per IP, 120 a day in all, the newest 40 kept.
 export const REPORT_LIMITS = { ipPerHour: 8, perDay: 120, keep: 40, text: 24_000 };
-const REPORT_KINDS = ['tap', 'hang', 'stall'];
+const REPORT_KINDS = ['tap', 'hang', 'stall', 'bench'];   // (C4c: 'bench' — THE PHONE BENCH's report, &bench=1)
 
 /** PURE: a report body → { kind, text } to store, or null */
 export function cleanReport(r) {

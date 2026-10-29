@@ -425,6 +425,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let PWQ = 1;
   const stepPow = () => { if (!LB) return (PWQ = 1); const p = legendPow(W * 0.5, 'near', 210); if (p <= 0.05) PWQ = 0; else if (p >= 0.95) PWQ = 1; else if (Math.abs(p - PWQ) >= 0.3) PWQ = Math.round(p * 4) / 4; return PWQ; };
   let memGuard = null;   // (C4c: the memory guard's last verdict — memAll().guard, the LOAD log, the phone bench)
+  let bench = null, benchHook = null, benchHold = false;   // (C4c: THE PHONE BENCH — &bench=1)
   let LB = null, speakPw = false, raidPole = false, raidLit = new Set(), raidCue = new Set(), raidFrame = { R: null, spotAt: null };
   // 8b2 — THE RAID (core/harbor-raid.js): the night's raid (seeded by the date: the night after the bootleggers' delivery, a rare party
   // night) or the preview (&force=raid: one every 2½ min from the moment it's on) → its plan for this layout, kept 4 h after (the people's
@@ -741,7 +742,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the lit windows: the same bands as the skyline's two groups (their budget is the rest of the tier's: bake.js#MEM_BUDGET_MB)
     litBaker.plan(W, [{ name: 'farLit', y0: top, h: groundY(cam, Z.mid[0]) + 3 - top }, { name: 'nearLit', y0: top, h: yOf(L.quay.foot, Z.quay) + 3 - top }], Math.min(BAKE_CAP, dpr), tier, baker.planned + others9);
     // (C4c: the guard's verdict in the LOAD log — did any baked layer step down for MEMORY (never for speed) on this plan?)
-    { const st9 = [...baker.mem().stepped, ...litBaker.mem().stepped]; memGuard = { at: Math.round(performance.now()), tier, dpr: Math.min(BAKE_CAP, dpr), others: +others9.toFixed(1), want: +(baker.mem().want + litBaker.mem().want).toFixed(1), budget: baker.mem().budget, stepped: st9 };
+    { const st9 = [...baker.mem().stepped, ...litBaker.mem().stepped]; memGuard = { at: Math.round(performance.now()), tier, dpr: Math.min(BAKE_CAP, dpr), others: +others9.toFixed(1), want: +(baker.mem().want + litBaker.mem().want).toFixed(1), wantBake: baker.mem().want, wantLit: litBaker.mem().want, budget: baker.mem().budget, stepped: st9 };
       LOADLOG.add('memory', st9.length ? `the guard STEPPED DOWN ${st9.map(g => `${g.name} ${g.from}→${g.to}`).join(', ')} (the bakes want ${memGuard.want} MB + ${memGuard.others} MB else live, budget ${memGuard.budget})` : `the guard: nothing stepped (the bakes ${memGuard.want} MB + ${memGuard.others} MB else live of ${memGuard.budget})`); }
     if (DEBUG) console.info('[harbor] layout', { W, H, F: +cam.F.toFixed(1), CAMH: +cam.CAMH.toFixed(2), VPY: +cam.VPY.toFixed(1), limitY: cam.limitY, squeeze: +L.squeeze.toFixed(2), mem: memAll() });
     skyGlowY = Array.from(skyline).sort((a, b) => a - b)[Math.floor(skyline.length * 0.35)];
@@ -1510,6 +1511,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (starvedCount() !== starvedSeen && now - starvedAt > 2000) { starvedSeen = starvedCount(); starvedAt = now; if (tier > 0) { if (loadFrozen(now)) { wantStep = wantStep || 'starved'; LOADLOG.add('tier', 'a starved canvas: a step recorded for later'); } else stepTier(tier - 1, 'starved'); } }
     drawn++;
     costs.push(performance.now() - c0); if (costs.length > 90) costs.shift();
+    if (benchHook) benchHook(dt, costs[costs.length - 1]);   // (C4c: THE PHONE BENCH's samples)
   }
   // 9d — A STALL NAMES ITSELF (the owner's iPhone: the TR-3B + snow + party link "froze up … very glitching" with no error sent; Chrome
   // never reproduced it): the page visible, yet no frame for over GAP_MS (a frame that came late — or the loop watchdog below restarting
@@ -2870,6 +2872,21 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   start();
   // 9e — THE HANG WATCH + SEND REPORT (report.js): the worker beats from now; &debug=1 also names the frame's parts
   try { reporter = createReporter({ text: reportText, marks: DEBUG }); } catch { reporter = null; }
+  // C4c — THE PHONE BENCH (`&bench=1`, LAZY: bench.js): the heaviest scenes ~20 s each through the panel's own switch, measured; the report
+  // on screen (COPY) + to /admin. Never without the flag; it starts on a tap. While it runs the panel's re-apply is held off (benchHold)
+  if (qp.get('bench') === '1') import('./bench.js').then(m => {
+    if (destroyed) return;
+    bench = m.createBench({
+      apply: p => applyRemote(p, {}),
+      legend: kind => { const w = { kind, at: clock.now(), dir: 1 }; if (legends) legends.start(kind, w.at, w); else { legendWant = w; needLegends(); } },
+      clear: () => { try { legendWant = null; if (legends) legends.stop(); } catch { /* */ } remoteKey = '~'; applyRemote(null, {}); },
+      hold: on => { benchHold = !!on; },
+      hook: f => { benchHook = f; },
+      snap: () => ({ tier, dprTier, dpr, cap: BAKE_CAP, W, H, mem: memAll(), tierLog: tierLog.slice(), fast: fastWhy }),
+      send: text => (reporter && reporter.sendText ? reporter.sendText('bench', text) : Promise.resolve(false)),
+      fast: qp.get('benchfast') === '1',
+    });
+  }).catch(e => console.warn('[harbor] bench', e));
 
   return {
     set(v) {
@@ -2929,7 +2946,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     signCount: () => neon.count(),            // the neon plan's items: the signs, the billboards, each building's outline
     now: () => clock.now(),
     /** THE PREVIEW PANEL (City 2.0): the preview flags swapped live — params { key: value } or null (the page's own); o: { at, srv } */
-    remote: (params, o) => applyRemote(params, o),
+    remote: (params, o) => (benchHold ? false : applyRemote(params, o)),   // (C4c: held while THE PHONE BENCH plays its scenes)
     realCity,   // (SP5: CLEAR ALL — the link's own flags dropped too → the stripped keys)
     speed: () => clock.speed || 1,
     skyline: () => (skyline ? Array.from(skyline) : null),
@@ -3014,7 +3031,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       water: { ...water.debug(), band: water.band(), reflect: (fn, y) => water.reflect(fn, y), light: (...a) => water.light(...a), wake: o => water.wake(o), set: o => water.set(o) },
       neon: neon.debug(), neonRuns: () => neon.runs(), show: neon.show(), daily: neon.daily(), roofModes: neon.roofModes(), moment: (n, v) => neon.moment(n, v), billboard: (id, v) => { boardHeld = performance.now() + 60000; return neon.billboard(id, v); } /* (C2: a manual / preview board holds a minute over the workers' sync) */, reflections: () => neon.reflections(), beacons: lights.beaconList(),
       dark: +DK.toFixed(3), power: +power(DK).toFixed(3), powerUp: neon.power(), lamps: +(litK(DK, 'bill')).toFixed(3),     // C1.5: the one darkness input (core/harbor-dark.js); DT1: the power-up's progress
-      spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(), tierLog: tierLog.slice(), upLock: { lock: upLock, ups, retryIn: upLock ? Math.max(0, Math.round((UP_RETRY - (performance.now() - lockAt)) / 1000)) : 0 },
+      spell: (text, o) => lights.spell(text, o), clearSpell: () => lights.clear(false), setWindow: (...a) => lights.set(...a), boxes: screenBoxes(L), door: L.door, lanes: L.lanes, density, sched: sched ? { slot: sched.slot, decided: sched.decided } : null, fading: fadeFrom >= 0 || litFadeFrom >= 0, mem: memAll(), phoneBench: bench ? { ...bench.state(), start: () => bench.start(), stop: () => bench.stop() } : null, tierLog: tierLog.slice(), upLock: { lock: upLock, ups, retryIn: upLock ? Math.max(0, Math.round((UP_RETRY - (performance.now() - lockAt)) / 1000)) : 0 },
       // (BATTERY — rate: the frames drawn so far, what keeps 60 fps right now; '' = calm, every other frame)
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
@@ -3047,6 +3064,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (llStrip) { llStrip.remove(); llStrip = null; }
       if (repBtn) { repBtn.remove(); repBtn = null; }
       if (reporter) { reporter.destroy(); reporter = null; }
+      if (bench) { bench.destroy(); bench = null; } benchHook = null; benchHold = false;
       for (const c of [skyCv, skyPrev, pxCv, vignette, glow, coolGlow, ...sigGlow, ...Object.values(bulbGlow), canvas, quayLamps && quayLamps.cv, pierLampCv && pierLampCv.cv, ...Object.values(merged).map(m => m.cv), skyMix.cv]) if (c) { c.width = 0; c.height = 0; }
       L = null;
     },
