@@ -13,6 +13,7 @@ import { lightFor, lit, norm } from './props-light.js';
 import { pieceCtx } from '../../core/harbor-light.js';
 import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { rngFrom } from '../../core/rng.js';
+import { reportError } from '../../errlog.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -158,18 +159,37 @@ export function mum(x, sx, sy, d, cols, Lt, r) {
 // its foot in the sprite, its pt per unit at the bake's depth). LAZY: fetched only once the switch is on (&prop=model or the HOLIDAYS row
 // THE HARVEST DISPLAY · 3D MODEL); the hand-drawn display stands in until it's in, or if it fails. Night blended over day by the
 // darkness; its lamp light taken down with the lamps (the TR-3B's blackout: o.dark carries the drain). Not the default until the owner picks it.
+// C4d (the owner, Oct 29: the model + drawn links looked IDENTICAL on his iPhone — the live site loads it in WebKit + Chromium, so a
+// failure there was SILENT): the load's state is told — `mState` (asked / in / failed + why, in ms since asked), every change to the
+// watchers (scene.js writes it into the LOAD LOG: &debug=1's load strip), a failure reported to /admin (errlog) once a page; a decode()
+// that never settles can't hold it (DECODE_MS); a failed load tries once more after RETRY_MS.
 const MODEL_BASE = new URL('../../../assets/city/harvest/', import.meta.url);
-let mLoading = null, mModel = null, mFailed = false;
+const DECODE_MS = 2500, RETRY_MS = 15000;
+let mLoading = null, mModel = null, mFailed = false, mTries = 0, mReported = false;
+const mState = { state: 'idle', ms: 0, why: '' }, mWatch = new Set();
+const mSet = (state, why = '', t0 = 0) => { mState.state = state; mState.why = why; mState.ms = t0 ? Math.round(performance.now() - t0) : 0; for (const fn of mWatch) { try { fn({ ...mState }); } catch { /* a watcher's own problem */ } } };
+/** the model's load state ({ state: idle | loading | in | failed, ms, why }) + a watcher for its changes (→ an unsubscribe) */
+export const harvestModelState = () => ({ ...mState, tries: mTries });
+export const onHarvestModel = fn => { mWatch.add(fn); return () => mWatch.delete(fn); };
 function harvestModel() {
   if (mModel || mFailed) return mModel;
   if (!mLoading) {
-    const img = name => new Promise((res, rej) => { const i = new Image(); i.decoding = 'async'; i.onload = () => (i.decode ? i.decode().catch(() => {}) : Promise.resolve()).then(() => res(i)); i.onerror = () => rej(new Error(`harvest sprite ${name}`)); i.src = new URL(name, MODEL_BASE).href; });
+    const t0 = performance.now(); mTries++;
+    const img = name => new Promise((res, rej) => { const i = new Image(); i.decoding = 'async';
+      i.onload = () => Promise.race([i.decode ? i.decode().catch(() => {}) : Promise.resolve(), new Promise(r => setTimeout(r, DECODE_MS))]).then(() => res(i));
+      i.onerror = () => rej(new Error(`harvest sprite ${name} didn't load`)); i.src = new URL(name, MODEL_BASE).href; });
+    mSet('loading', `try ${mTries}`, t0);
     mLoading = (async () => {
       const r = await fetch(new URL('harvest.json', MODEL_BASE).href); if (!r.ok) throw new Error(`harvest.json ${r.status}`);
       const meta = await r.json(), [day, night] = await Promise.all([img('day.webp'), img('night.webp')]);
-      mModel = { ...meta, day, night }; return mModel;
+      if (!(day.naturalWidth > 0 && night.naturalWidth > 0)) throw new Error('harvest sprites empty after load');
+      mModel = { ...meta, day, night }; mSet('in', `${meta.w}×${meta.h}`, t0); return mModel;
     })();
-    mLoading.catch(() => { mFailed = true; });
+    mLoading.catch(e => {
+      mFailed = true; mSet('failed', String((e && e.message) || e).slice(0, 120), t0);
+      if (!mReported) { mReported = true; reportError(e instanceof Error ? e : new Error(String(e)), 'harvest-model'); }
+      if (mTries < 2) setTimeout(() => { mFailed = false; mLoading = null; }, RETRY_MS);
+    });
   }
   return mModel;
 }
@@ -227,7 +247,7 @@ export function createHarvest(deps) {
     c.restore();
     stat.drawn++; stat.bulbs = n; stat.rect = { x: sp.x, y: sp.y, w: sp.w, h: sp.h };
   }
-  return { draw, lastSprite: () => last, debug: () => ({ ...stat, sprites: cache.size, modelAsked: harvestModelAsked(), modelIn: !!mModel }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); if (mCv) mCv.width = mCv.height = 0; mCv = null; last = null; void last; } };
+  return { draw, lastSprite: () => last, debug: () => ({ ...stat, sprites: cache.size, modelAsked: harvestModelAsked(), modelIn: !!mModel, modelState: harvestModelState() }), destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); if (mCv) mCv.width = mCv.height = 0; mCv = null; last = null; void last; } };
 }
 
 // ------------------------------------------------------------------ 11a-2 — THE NOVEMBER SPOT DRESSINGS (core/harbor-spots.js's spots)

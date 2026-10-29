@@ -10,7 +10,7 @@
 // flags' transforms, the candles' flicker, a monarch's wings). Reduced motion: the flags still, the candles steady, no monarchs.
 import { project } from '../../core/harbor-layout.js';
 import { pumpkinSlots, PUMPKIN_KINDS, marigoldSpots, garlandPosts, petalPath, papelRuns, monarchSlot, monarchAt, bigPumpkins, BALE, giantPiece, giantDecor, thanksgivingSpots } from '../../core/harbor-holidayprops.js';
-import { createHarvest, paintSpotPiece } from './harvest.js';
+import { createHarvest, paintSpotPiece, onHarvestModel } from './harvest.js';
 import { createGiant } from './giant.js';
 import { createFloods, atCentreScale } from './floods.js';
 import { centreK } from '../../core/harbor-promenade.js';
@@ -647,6 +647,7 @@ export function createHolidayProps() {
     /** 11a-2: the giant jack-o'-lantern's light this frame (people.js lights the dancers + walkers by it) + whether it stands */
     giantLight: () => giant.pointLight(),
     giantOn: (HS, HP) => !!(HP && (HP.giant || HP.harvest)),   // (a centrepiece the hourly dance RINGS: the giant pumpkin, the harvest display)
+    onHarvestModel,   // (C4d: the harvest model's load state → the scene's LOAD LOG)
     debug: () => ({ giant: giant.debug(), harvest: harvest.debug(), floods: floods.debug(), tg: tgList.map(p => p.id), stat: { ...stat, rects: (stat.rects || []).slice() }, bigs: bigs.map(b => ({ spot: b.spot, pass: b.pass, d: b.d })), slots: slots.length, spots: spots.length, posts: posts.length, runs: runs.map(r => r.n), petals: path ? path.pts.length : 0, sprites: cache.size }),
     destroy() { for (const v of cache.values()) if (v && v.cv) v.cv.width = v.cv.height = 0; cache.clear(); giant.destroy(); harvest.destroy(); },
   };

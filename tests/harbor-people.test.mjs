@@ -6,7 +6,7 @@ import { cameraFor, harborLayout, project } from '../js/core/harbor-layout.js';
 import { wallPlan, hushState, strikeLevel, darkLevel } from '../js/core/harbor-hush.js';
 import { lampThresholds, warmUp, lampMoment, LAMP_LIFE } from '../js/core/harbor-lamps.js';
 import { standSpots } from '../js/core/harbor-cabs.js';
-import { DOOR, busDoorAt, CART_IN_Z, FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
+import { BUS, DOOR, busDoorAt, CART_IN_Z, FOLK, MIX, mixNow, folkMap, folkAt, jogHour, JOG, busesOf, busStopX, linePlaces, roofAt, roofCrowd, KINDS, TIER_CAP, capByTier } from '../js/core/harbor-people.js';
 import { signalAt, centreK } from '../js/core/harbor-promenade.js';
 
 const SIZES = {
@@ -198,7 +198,7 @@ test('8P — THE BUS: a few an hour by day, none in the small hours; it stops sh
   }
   assert.ok(day >= 30 && day <= 60, `${day} buses through the day`);
 });
-test('FP3a + POL4 — THE BUS DOOR shuts 6–9 s after the LAST rider (off or on) — never open long with nobody coming; nobody steps on after it shuts', () => {
+test('FP3a + POL4 + C4d — THE BUS DOOR folds shut a beat after the LAST rider (off or on) and the bus pulls away 1–2 s later (the owner, Oct 29: "it waits too long") — never open long with nobody coming; away on green, over the crossing only on green / amber', () => {
   const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), buses = new Map(), last = new Map();
   for (let t = DAY + 6 * 3600; t < DAY + 30 * 3600; t += 2) {
     const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
@@ -206,15 +206,23 @@ test('FP3a + POL4 — THE BUS DOOR shuts 6–9 s after the LAST rider (off or on
     // (FP3b: a rider is through the bus's door once past its threshold — the door leg's tClose, the group's last member lagging)
     for (const v of f.visits) for (const lg of v.legs) if (lg.k === 'door' && lg.bus) last.set(lg.bus, Math.max(last.get(lg.bus) || 0, lg.tClose + Math.max(0, ...v.members.map(m => m.lag))));
   }
-  let n = 0;
+  let n = 0, prompt = 0, idle = 0;
+  const { L: L2 } = setup('402x874'), cw = L2.crosswalk;
   for (const [id, b] of buses) {
     const l = last.get(id);
-    if (l == null) { assert.ok(b.shut - (b.tA + 1) >= 6 - 1e-6 && b.shut - (b.tA + 1) <= 9 + 1e-6, `${id}: nobody — shut soon after it stops`); continue; }
-    n++;
-    assert.ok(b.shut - l >= 6 - 1e-6 && b.shut - l <= 9 + 1e-6, `${id}: shut ${(b.shut - l).toFixed(2)} s after the last rider`);
     assert.ok(b.shut < b.tD, `${id}: shut before it pulls away`);
+    assert.equal(signalAt(b.tD * 1000).road, 'green', `${id}: away on green`);
+    for (let t = b.tD; t < b.tX; t += 0.25) { const x = b.x(t); if (x + b.len / 2 > cw.x0 && x - b.len / 2 < cw.x1) assert.ok(['green', 'amber'].includes(signalAt(t * 1000).road), `${id}: over the crosswalk only while the road is green`); }
+    // (away BUS.go0 s after the door is shut — later only when the light holds it)
+    const go = b.tD - b.shut; idle += go;
+    if (go <= BUS.go0[1] + 1e-6) { prompt++; assert.ok(go >= BUS.go0[0] - 1e-6, `${id}: a beat after the door shuts (${go.toFixed(2)} s)`); }
+    else assert.ok(go < 30, `${id}: held by the light ${go.toFixed(1)} s`);
+    if (l == null) { assert.ok(Math.abs(b.shut - (b.tA + BUS.emptyShut)) < 1e-6, `${id}: nobody — shut soon after it stops`); continue; }
+    n++;
+    assert.ok(b.shut - l >= BUS.shut[0] - 1e-6 && b.shut - l <= BUS.shut[1] + 1e-6, `${id}: shut ${(b.shut - l).toFixed(2)} s after the last rider`);
   }
   assert.ok(n >= 20, `${n} buses with riders over the day`);
+  assert.ok(prompt / buses.size >= 0.8 && idle / buses.size < 3.5, `${prompt} of ${buses.size} away within ${BUS.go0[1]} s of the shut; a mean ${(idle / buses.size).toFixed(1)} s from shut to away (C4c's: 12.9)`);
 });
 test('C4c — EVERY LEASH HAS ITS DOG (the owner, Oct 29: "a dog walker with no dog"): every dog walker has a dog member, on screen whenever the walker is (390 / 402 / 430, a late-October day), the sniff at the hydrant with both of them on the screen; dogs come by every day + evening', () => {
   for (const k of Object.keys(SIZES)) {
@@ -259,7 +267,7 @@ test('C4c — THE BUS DOOR NEVER SNAPS: its open amount eases 0 → 1 → 0 (nev
     assert.equal(busDoorAt(b.shut, b, b.shut).k, 0, `${id}: shut at its shut time`);
     if (b.shut - b.tA > 3) assert.ok(peak > 0.999, `${id}: fully open at the stop (${peak.toFixed(3)})`);
     const l = last.get(id);
-    if (l != null && closeAt != null) { n++; assert.ok(closeAt >= l + 1, `${id}: the fold back starts ${(closeAt - l).toFixed(2)} s after the last rider is through`); }
+    if (l != null && closeAt != null) { n++; assert.ok(closeAt >= l + BUS.shut[0] - BUS.doorClose - 0.02, `${id}: the fold back starts ${(closeAt - l).toFixed(2)} s after the last rider is through`); }
   }
   assert.ok(n >= 5, `${n} buses with riders checked`);
 });
@@ -561,7 +569,7 @@ test('8b2 — THE BENCH\'S SEATS: reserved — two sitters never share a seat (n
 });
 
 // ---------------------------------------------------------------- Oct 25 — NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold)
-test('NO TRAFFIC DURING THE LEGENDARIES: a bus due under the hold never comes; one already at the curb finishes; no car enters the back road under it', () => {
+test('NO TRAFFIC DURING THE LEGENDARIES: a bus due under the hold never comes; one already at the curb finishes; no car enters the back road under it', async () => {
   const { L } = setup('402x874'), M = folkMap(L);
   let b = null;
   for (let h = 8; h < 23 && !b; h++) { const bs = busesOf(L, '2026-10-22', h, DAY + h * 3600); if (bs.length) b = bs[0]; }
@@ -574,8 +582,11 @@ test('NO TRAFFIC DURING THE LEGENDARIES: a bus due under the hold never comes; o
   const before = folkAt(t, { L, M, ctx: { off: OFF, legend: { kind: 'tr3b', t0: b.tE + 6 } } }, new Map());
   assert.ok(before.buses.some(x => x.id === b.id), 'already there when the hold starts: it finishes its stop');
   // the back road over a whole TR-3B: no car ENTERS inside the hold (one from before may still be finishing)
-  const t0 = b.tE - 1, hold = [t0 - 4, t0 + 41.7], cache = new Map();
-  let entered = 0, seen = 0, lg = { kind: 'tr3b', t0 };
+  // (C4d: the hold from trafficHold itself — the literal 41.7 s outlived the TR-3B's 35.9 s hold, and a car entering legitimately at 41.5 s
+  // failed it once C4d's bus timetable moved the scene)
+  const { trafficHold } = await import('../js/core/harbor-legend.js');
+  const t0 = b.tE - 1, lg = { kind: 'tr3b', t0 }, hold = trafficHold(lg), cache = new Map();
+  let entered = 0, seen = 0;
   for (let s = hold[0] - 30; s < hold[1] + 60; s += 1) { const f = folkAt(s, { L, M, ctx: { off: OFF, legend: lg } }, cache); for (const c of f.cars) { seen++; if (c.ts != null && c.ts >= hold[0] && c.ts < hold[1]) entered++; } }
   assert.equal(entered, 0, `no car entered under the hold (${seen} car-seconds seen round it)`);
 });
@@ -685,6 +696,25 @@ test('C4b — &force=waterbench: a sitter seated on the water bench within ~10 s
   }
   assert.ok(sat != null && sat <= 12, `seated ${sat} s after the link`);
   assert.ok(watched, 'a couple watching the skyline beside it');
+});
+
+test('C4d — &force=dogwalk: a walker + their dog on screen within ~10 s of the link, again every ~45 s from the other side; the dog beside the walker; every other one sniffs the hydrant — by day + at night', () => {
+  for (const hr of [15, 21]) {
+    const { cam, L } = setup('402x874'), M = folkMap(L), cache = new Map(), t0 = DAY + hr * 3600 + 120, on = x => x > 4 && x < cam.W - 4;
+    let first = null, sniff = false, ks = new Set();
+    for (let t = t0; t < t0 + 100; t += 0.5) {
+      const f = folkAt(t, { L, M, ctx: { off: OFF, forceDogAt: t0 } }, cache);
+      for (const w of f.members.filter(m => m.vid && m.vid.startsWith('dw.') && m.m.role === 'lead')) {
+        const d = f.members.find(m => m.vid === w.vid && m.m.role === 'dog'), [wx] = project(cam, w.s.x, 0, w.s.z);
+        if (!on(wx)) continue;
+        if (wx > 40 && wx < cam.W - 40) assert.ok(d && on(project(cam, d.s.x, 0, d.s.z)[0]), `${hr}h: ${w.vid}'s dog on screen beside them`);   // (the dog a step ahead: at an edge it leaves first)
+        ks.add(w.vid); if (first == null) first = t - t0;
+        if (w.s.sniff) sniff = true;
+      }
+    }
+    assert.ok(first != null && first <= 10, `${hr}h: on screen ${first} s after the link`);
+    assert.ok(ks.size >= 2 && sniff, `${hr}h: ${ks.size} dog walks in 100 s, a sniff at the hydrant ${sniff}`);
+  }
 });
 
 test("C4b — THE DOORMAN OPENS THE DOOR: at rest at his post facing us (attend); for each guest he steps to the door's handle side, holds it open over the guest's whole passage, tips his cap, steps back; two guests close together share one hold; never inside the door", async () => {

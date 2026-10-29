@@ -2740,8 +2740,18 @@ G('people', async () => {
     await waitFor(Q.page, `${P}.people.buses.some(b => b.door)`, 'a bus at the stop, its door open', 60000);
     const pp = await ev(Q.page, `${P}.people`), cw = await ev(Q.page, `${P}.crossing`), b = pp.buses.find(x => x.door);
     ok(b && Math.abs(b.x - b.stop) < 0.05, `THE BUS stopped at the curb (x ${b && b.x}, its stop ${b && b.stop}), door open`);
-    await waitFor(Q.page, `!${P}.people.buses.some(b => b.door)`, 'the door shut, away', 45000);
+    // (C4d — THE DWELL: the owner, Oct 29 "it waits too long" — away 1–2 s after the door is shut, never a long idle at the stop)
+    const shutAt = await ev(Q.page, `new Promise(res => { const t0 = performance.now(), iv = setInterval(() => { const b = ${P}.people.buses.find(x => Math.abs(x.x - x.stop) < 0.05); if (!b || b.doorPhase === 'shut' || performance.now() - t0 > 30000) { clearInterval(iv); res(performance.now()); } }, 50); })`);
+    const goneAt = await ev(Q.page, `new Promise(res => { const t0 = performance.now(), iv = setInterval(() => { const b = ${P}.people.buses.find(x => Math.abs(x.x - x.stop) < 0.05); if (!b || performance.now() - t0 > 40000) { clearInterval(iv); res(performance.now()); } }, 50); })`);
+    ok((goneAt - shutAt) / 1000 < 3, `THE BUS's DWELL (C4d): away ${((goneAt - shutAt) / 1000).toFixed(1)} s after its door is shut (C4c's: ~13 s on average)`);
     void cw; await Q.ctx.close(); }
+  // ---- C4d — &force=dogwalk (the owner's dog check): a walker + dog on screen within ~10 s of the scene, by night
+  { const Q = await open({ slot: 'pp-dog', qs: `when=2026-10-29T19:12${GR}&wx=clear&force=dogwalk`, view: [402, 874] });
+    await harborUp(Q.page);
+    const t0 = Date.now();
+    await waitFor(Q.page, `${P}.people.dogs > 0 && ${P}.people.rigs().some(r => r.kind === 'dogwalker' && /^dw\./.test(r.id) && r.fx > 20 && r.fx < 382)`, 'a forced dog walk on screen', 20000);
+    okT(Date.now() - t0 < 12000, `&force=dogwalk (C4d): a walker + dog on screen ${((Date.now() - t0) / 1000).toFixed(1)} s after the reveal`);
+    await Q.ctx.close(); }
   // ---- THE ROOF on a party night: guests up there (through the hatch), the promenade's party guests
   { const Q = await open({ slot: 'pp5', qs: `when=2026-10-24T21:45${GR}`, view: [402, 874] });
     await harborUp(Q.page);

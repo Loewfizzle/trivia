@@ -131,12 +131,20 @@ export function createRemote({ scene, api = apiCall }) {
     apply();
     if (sheet) render();
   }
+  // C4d (the owner's harvest-model links looked identical on his iPhone; a clean load draws the model): a panel state REPLACES every
+  // preview flag of the page's own link (&when, &wx, &force… — scene.js#applyRemote), silently. Now it says so, once per state a page
+  let overNote = '';
+  function noteOver(who, at) {
+    const own = linkFlags(); if (!own.length) return;
+    const k = who === 'me' ? 'me' : `all|${at}`; if (k === overNote || (k === 'me' && overNote.startsWith('me'))) return; overNote = k;   // (JUST ME: once a page — the owner taps rows; EVERYONE: once a state)
+    toast(`${who === 'all' ? 'EVERYONE’S' : 'YOUR JUST ME'} PREVIEW IS ON — IT REPLACES THIS LINK’S &${own.join(' &').toUpperCase()}${admin ? ' · ☰ → ADMIN → CLEAR ALL FOR THE LINK' : ''}`, 'warn', 5200);
+  }
   function apply() {
     const sc = scene();
     if (liveNext && liveNext.startAt <= serverNow()) { live = liveNext; liveNext = null; }
     if (destroyed || !sc || !sc.remote) return;
-    if (!R.isEmpty(mine.state)) sc.remote(R.toParams(mine.state), { at: mine.at, srv: serverNow });
-    else if (liveOn() && live.startAt !== ignoreLiveAt) sc.remote(R.toParams(live.state), { at: live.startAt, srv: serverNow });
+    if (!R.isEmpty(mine.state)) { sc.remote(R.toParams(mine.state), { at: mine.at, srv: serverNow }); noteOver('me', mine.at); }
+    else if (liveOn() && live.startAt !== ignoreLiveAt) { sc.remote(R.toParams(live.state), { at: live.startAt, srv: serverNow }); noteOver('all', live.startAt); }
     else sc.remote(null, { srv: serverNow });
     paintChip();
   }

@@ -232,7 +232,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function hpropsDraw(c, pass, fadeIn, lit) {
     const mon = clock.force.has('monarchs');
     if (!hprops) {
-      if (!hpropsLoading && (HS.id || mon || treeHeld)) { hpropsLoading = true; import('./holidayprops.js').then(m => { if (!destroyed) hprops = m.createHolidayProps(); }).catch(e => { hpropsLoading = false; console.warn('[harbor] holiday props', e); }); }
+      if (!hpropsLoading && (HS.id || mon || treeHeld)) { hpropsLoading = true; import('./holidayprops.js').then(m => { if (destroyed) return; hprops = m.createHolidayProps(); if (hprops.onHarvestModel) hprops.onHarvestModel(e => LOADLOG.add('note', `THE HARVEST MODEL (&prop=model): ${e.state}${e.why ? ` — ${e.why}` : ''}${e.ms ? ` (${e.ms} ms)` : ''}`)); }).catch(e => { hpropsLoading = false; console.warn('[harbor] holiday props', e); }); }
       return;
     }
     if ((!HS.id && !mon) || clock.force.has('no-holiday-props') || !bakeTones || !L) return;
@@ -1142,7 +1142,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (bladeV) drawBlade(c, bladeV, tr.blade, performance.now() / 1000);
   }
   // 8P — THE PEOPLE's inputs: the clock + the place (every phone the same), the rain (Part 9: only when real), an event on the inlay,
-  // the shop's hours; the previews: &force=line&n=6 (the lobby line), &force=bus (a bus every 90 s), &force=no-people
+  // the shop's hours; the previews: &force=line&n=6 (the lobby line), &force=bus (a bus each signal cycle, ~47 s), &force=dogwalk (a dog walk every ~45 s), &force=no-people
   // 8b1 — THE WITNESSES (core/harbor-witness.js): the legendary's start for the people — live (legends.state()), REMEMBERED after it ends
   // (they stay off the promenade through the empty spell, the routines walk back on their new paths), or a scheduled one's tail for a page
   // opened mid-way (tonight's legendNight + the same weather gates as legends.js#tick); the pigeons burst up as the beam opens
@@ -1193,7 +1193,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const giantUp = () => !!(hprops && hprops.giantOn && !clock.force.has('no-holiday-props') && hprops.giantOn(HS, HP));
   const peopleFrame = () => ({ snowWork: snowWorkNow(), ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, snow: LK.snow || 0, temp: (() => { const tc = tempNow(); return tc != null ? tc : SN.stage !== 'none' ? -2 : null; })(), wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active() || giantUp(), ring: !centre.active() && giantUp() /* (11a-2: the dance RINGS the giant jack-o'-lantern) */, season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(), holiday: HS, hpieces: HP, local: LK.local, forceHoliday: clock.force, forceAt: id => (clock.force.has(id) ? forceAtOf(id) * 1000 : null) /* (the clock ms the flag came on) */,
     forceWork: workForced(), forceWorkAt: workForceAt(), noWork: clock.force.has('no-work'), dusk: duskFor, hot: hotDay, flush: () => flushOk(), rush: clock.force.has('shoppers') ? () => 1 : XP.bf ? tt => rushAtT(tt, LK.local ? LK.local.off : 0) : null,
-    forceJog: clock.force.has('joggers'), forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), forceStandAt: clock.force.has('cabstand') ? forceAtOf('cabstand') : null, forceBenchAt: clock.force.has('waterbench') ? forceAtOf('waterbench') : null, noDance: clock.force.has('no-dance'), blocked: danceBlocked, shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
+    forceJog: clock.force.has('joggers'), forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), forceStandAt: clock.force.has('cabstand') ? forceAtOf('cabstand') : null, forceBenchAt: clock.force.has('waterbench') ? forceAtOf('waterbench') : null, forceDogAt: clock.force.has('dogwalk') ? forceAtOf('dogwalk') : null, noDance: clock.force.has('no-dance'), blocked: danceBlocked, shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
   // life's dusk (the outside cat never with the window cat), the previews (&force=pigeons, coyote, … — wildlife.js#WILD_FORCES)
   let moonK = 0, moonAt = -1e12, winDark = null, winDarkAt = -1e12;
