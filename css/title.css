@@ -653,6 +653,34 @@ body.reduced-fx .nd-xb-tw { animation: none; }
 .nd-ringbtn.is-flash:not(.is-lit) .nd-hglow { opacity: 0.4; transition: opacity 0.06s ease; }
 .nd-ringbtn.is-lit .nd-host-label { color: var(--hc1);
   text-shadow: 0 0 2px var(--hb1), 0 0 7px var(--hg1), 0 0 15px color-mix(in srgb, var(--hg1) 60%, transparent); }
+/* NIGHT-A — JOIN + HOST AN EXACT PAIR AT NIGHT (the owner, Oct 29: HOST "as bright as JOIN — lit like the main NEON sign: the ring + the
+   letters as hot pink neon tubes, a near-white core in the pink glow"; measured at 402×660 at 3×: the ring band's luma was JOIN 169 / HOST
+   107 — the pink body tube, ~⅓ the luma of JOIN's white): at night HOST's core is white-hot + wider (the sign's own core is near-white
+   in its tubes), its body a lighter pink, its glow a touch stronger; the letters a near-white core in a pink glow. Its colours stay the
+   sign's (a holiday's four too). e2e light: the two rings + the two words within 12 % of each other */
+.nd-actions:not(.is-daylit) .nd-hostbtn.is-lit .nd-hring .c { stroke-width: 3.3px; }
+.nd-actions:not(.is-daylit) .nd-hostbtn.is-lit .nd-hring .b { stroke-width: 6.2px; }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .u.c, .nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .r1.c { stroke: color-mix(in srgb, var(--hc1) 30%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .r2.c { stroke: color-mix(in srgb, var(--hc2) 30%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .r3.c { stroke: color-mix(in srgb, var(--hc3) 30%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .r4.c { stroke: color-mix(in srgb, var(--hc4) 30%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .u.b, .nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .r1.b { stroke: color-mix(in srgb, var(--hb1) 35%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .r2.b { stroke: color-mix(in srgb, var(--hb2) 35%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .r3.b { stroke: color-mix(in srgb, var(--hb3) 35%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .r4.b { stroke: color-mix(in srgb, var(--hb4) 35%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g2 { opacity: 0.8; }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g2 .u.g { stroke: color-mix(in srgb, var(--hg1) 80%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g2 .r1.g { stroke: color-mix(in srgb, var(--hg1) 80%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g2 .r2.g { stroke: color-mix(in srgb, var(--hg2) 80%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g2 .r3.g { stroke: color-mix(in srgb, var(--hg3) 80%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g2 .r4.g { stroke: color-mix(in srgb, var(--hg4) 80%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g1 .u.g { stroke: color-mix(in srgb, var(--hg1) 50%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g1 .r1.g { stroke: color-mix(in srgb, var(--hg1) 50%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g1 .r2.g { stroke: color-mix(in srgb, var(--hg2) 50%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g1 .r3.g { stroke: color-mix(in srgb, var(--hg3) 50%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn .nd-hring .hr-g1 .r4.g { stroke: color-mix(in srgb, var(--hg4) 50%, #ffffff); }
+.nd-actions:not(.is-daylit) .nd-hostbtn.is-lit .nd-host-label { color: color-mix(in srgb, var(--hc1) 25%, #ffffff);
+  text-shadow: 0 0 1px #ffffff, 0 0 3px var(--hb1), 0 0 8px var(--hg1), 0 0 16px color-mix(in srgb, var(--hg1) 65%, transparent); }
 /* JOIN: the same ring in white neon — a white-hot core in a soft cool-white glow, all year (holidays too) */
 .nd-rslot-join { --hg1: #cddcff; --hg2: #cddcff; --hg3: #cddcff; --hg4: #cddcff; --hb1: #eef3ff; --hb2: #eef3ff; --hb3: #eef3ff; --hb4: #eef3ff;
   --hc1: #ffffff; --hc2: #ffffff; --hc3: #ffffff; --hc4: #ffffff; }
@@ -715,6 +743,14 @@ body.nd-on .nd-cic svg { width: 19px; height: 19px; }
 body.nd-on :not(.nd-cl-lit) > .nd-cic svg { filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4)); }
 body.nd-on :not(.nd-cl-lit) > .nd-cic .t { stroke: rgba(196, 194, 222, 0.7); }
 body.nd-on :not(.nd-cl-lit) > .nd-cic .c { stroke: rgba(255, 255, 255, 0.42); opacity: 1; }
+/* NIGHT-A (the owner, Oct 29: "the ☰ + MUSIC corner buttons LIGHT UP at night too — the same neon-ring treatment at ~⅔ of the dock's
+   intensity, never competing with the NEON sign beside them; by day unchanged"): a white neon tube round each disc (JOIN's colours: a
+   white-hot core, a soft cool-white glow), on with the icons' catch (.nd-cl-lit) while the dock isn't daylit; static (opacity only) */
+body.nd-on .menu-btn::before, body.nd-on .music-btn::before { content: ''; position: absolute; inset: 1.5px; border-radius: 50%; pointer-events: none;
+  border: 1.6px solid #f4f7ff; box-shadow: 0 0 1.5px #ffffff, 0 0 4px #cddcff, 0 0 10px rgba(205, 220, 255, 0.5), inset 0 0 4px rgba(205, 220, 255, 0.4);
+  opacity: 0; transition: opacity 0.6s ease; }
+body.nd-on:has(.nd-actions:not(.is-daylit)) .nd-cl-lit::before { opacity: 0.67; }
+body.nd-on .music-btn.is-off::before { border-color: #ffd6e0; box-shadow: 0 0 1.5px #ffffff, 0 0 4px #ff9db4, 0 0 10px rgba(255, 140, 170, 0.45), inset 0 0 4px rgba(255, 140, 170, 0.35); }
 .nd-cic .x { opacity: 0; }
 .menu-btn.is-open .nd-cic .bars { opacity: 0; } .menu-btn.is-open .nd-cic .x { opacity: 1; }
 .nd-cic .sl { opacity: 0; }

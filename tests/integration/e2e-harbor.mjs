@@ -3798,7 +3798,13 @@ G('light', async () => {
         const a = x.getImageData(X0, Y0, X1 - X0, Y1 - Y0).data, v = []; for (let i = 0; i < a.length; i += 4) v.push(Math.max(a[i], a[i + 1], a[i + 2])); v.sort((p, q2) => p - q2);
         return +(q == null ? v.reduce((s, y) => s + y, 0) / v.length : v[Math.min(v.length - 1, Math.floor(v.length * q))]).toFixed(1); };
       const wins = (lad.windows || []).map(r => stat(r, 0.97)).filter(v => v != null).sort((p, q) => q - p).slice(0, 3);
-      res({ sign: stat(lad.sign, 0.97), skyline: stat(lad.skyline, 0.995), windows: wins.length ? +(wins.reduce((s, v) => s + v, 0) / wins.length).toFixed(1) : null, shop: stat(lad.shop), wash: stat(lad.wash), base: stat(lad.base) }); };
+      // (the buttons: the ring band 0.6–0.9 of a dock ring's radius / 0.8–1.05 of a corner disc's — the mean LUMA; a word's p90 luma)
+      const all = x.getImageData(0, 0, o.width, o.height).data, Yi = i => 0.2126 * all[i] + 0.7152 * all[i + 1] + 0.0722 * all[i + 2];
+      const ann = (r, f0, f1) => { if (!r) return null; const cx = (r.x + r.w / 2) * d, cy = (r.y + r.h / 2) * d, R = r.w / 2 * d; let s = 0, n = 0; for (let yy = Math.floor(cy - R * f1); yy < cy + R * f1; yy++) for (let xx = Math.floor(cx - R * f1); xx < cx + R * f1; xx++) { const q = Math.hypot(xx - cx, yy - cy) / R; if (q < f0 || q > f1 || xx < 0 || yy < 0 || xx >= o.width || yy >= o.height) continue; s += Yi((yy * o.width + xx) * 4); n++; } return n ? +(s / n).toFixed(1) : null; };
+      const word = r => { if (!r) return null; const v = []; for (let yy = Math.round(r.y * d); yy < (r.y + r.h) * d; yy++) for (let xx = Math.round(r.x * d); xx < (r.x + r.w) * d; xx++) v.push(Yi((yy * o.width + xx) * 4)); v.sort((a, b) => a - b); return v.length ? +v[Math.floor(v.length * 0.9)].toFixed(1) : null; };
+      const B = lad.btns || {};
+      const btn = B.join ? { join: { ring: ann(B.join, 0.6, 0.9), word: word(B.jl) }, host: { ring: ann(B.host, 0.6, 0.9), word: word(B.hl) }, menu: ann(B.menu, 0.8, 1.05), music: ann(B.music, 0.8, 1.05) } : null;
+      res({ btn, sign: stat(lad.sign, 0.97), skyline: stat(lad.skyline, 0.995), windows: wins.length ? +(wins.reduce((s, v) => s + v, 0) / wins.length).toFixed(1) : null, shop: stat(lad.shop), wash: stat(lad.wash), base: stat(lad.base) }); };
       im.src = 'data:image/png;base64,' + b64; }), b64, lad);
   };
   // (plain September nights: no holiday dressing — Halloween week's glowing jack-o'-lanterns stand on the side door's steps, inside the
@@ -3811,12 +3817,15 @@ G('light', async () => {
       await waitFor(Q.page, `${P}.speakeasy.k > 0.9 && !${P}.pending && !${P}.fading`, 'the rooms lit + settled', 25000).catch(() => {});
       await sleep(700);
       const lad = await ev(Q.page, `(() => { const l = ${P}.ladder; return l ? { ...l, windows: ${P}.speakeasy.windows().map(q => q.rect) } : null; })()`);
+      if (lad) lad.btns = await ev(Q.page, `(() => { const r = s => { const e = document.querySelector(s); if (!e) return null; const b = e.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; }; return { join: r('.nd-joinring'), host: r('.nd-hostbtn'), jl: r('.nd-joinring .nd-host-label'), hl: r('.nd-hostbtn .nd-host-label'), menu: r('.menu-btn'), music: r('.music-btn') }; })()`);
       got[mode] = lad ? { mode: lad.mode, ...(await measure(Q.page, lad)) } : null;
       if (SHOTS) await Q.page.screenshot({ path: `${OUT}light-ladder-${tag}-${mode}-402x660.png` });
       await Q.ctx.close();
     }
     const n = got.new || {}, o = got.old || {}, top = Math.min(n.sign ?? 0, n.skyline ?? 0), row = v => `sign ${v.sign} · skyline ${v.skyline} · windows ${v.windows} · shop ${v.shop} · wash ${v.wash} · base ${v.base}`;
     ok(n.mode === 'new' && o.mode === 'old', `NIGHT-A THE LIGHT's SWITCH: &light=old → ${o.mode}, &light=new → ${n.mode} (${tag})`);
+    if (tag === 'night') ok(n.btn && n.btn.host.ring >= n.btn.join.ring * 0.88 && n.btn.host.word >= n.btn.join.word * 0.88 && n.btn.menu >= n.btn.join.ring * 0.4 && n.btn.menu <= n.btn.join.ring * 0.8 && n.btn.music >= n.btn.join.ring * 0.4 && n.btn.music <= n.btn.join.ring * 0.8,
+      `NIGHT-A THE BUTTONS AT NIGHT (402×660 at 3×, luma): JOIN ring ${n.btn && n.btn.join.ring} / word ${n.btn && n.btn.join.word} = HOST ring ${n.btn && n.btn.host.ring} / word ${n.btn && n.btn.host.word} (within 12 %); the corner rings ☰ ${n.btn && n.btn.menu} · ♫ ${n.btn && n.btn.music} at ~⅔ of the dock's`);
     ok(top > n.windows && n.windows > n.shop && n.shop > n.wash && n.wash > n.base, `NIGHT-A THE BRIGHTNESS LADDER (${tag}, 402×660 at 3×, the new light): ${row(n)} — the sign + the skyline > the windows > the shopfront > the wash > the base (the old light: ${row(o)})`);
   }
 });
