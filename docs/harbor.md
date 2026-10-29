@@ -579,7 +579,8 @@ one room), the banner's colour + passes, the words in the windows for a time win
   half-drawn frame (not seen in a single capture).
 - The cloud's remaining WARNINGS, each with its cause: F3 the perf group's re-bake timeout (dormant since SP6 — if it returns: why
   `litBaker.key` stays `''` after `setTier(2)`); F9 THE SURGE ON THE BEAT ~55 ms late on the 2-core runner (`okT`); F13 LOAD WEATHER on
-  a JUST ME holiday jump (`okT`, a neon re-bake 1.2 s after the reveal on the slow runner); F16 THE TOAST'S BIGGEST ARM STEP (`okT`, as
+  a stored JUST ME holiday jump (`okT`: the panel's state lands after the reveal and the roof billboard's content is re-picked then —
+  `neon.rev` → one 1.2 s crossfade; a fix: hold the board's re-pick to the reveal on that path); F16 THE TOAST'S BIGGEST ARM STEP (`okT`, as
   designed); F14 + F15 skipped on CI (no speed answer on 2 cores).
 
 **Closed since FR4** (the entries in the pass logs that repeat them are history): F1 LOAD WEATHER after 6 s (9f, 04eb891) + F2 the panel's

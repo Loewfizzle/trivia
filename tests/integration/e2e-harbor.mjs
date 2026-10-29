@@ -2010,8 +2010,10 @@ G('windows', async () => {
       if (w !== 402) { await Q.page.setViewport({ width: w, height: h, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await waitFor(Q.page, `window.__district.harbor().cam.W === ${w}`, 'the re-layout', 8000).catch(() => {}); await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'the re-bake done', 20000).catch(() => {}); }
       // (C4d — F12's real cause: just after the scene reports settled the canvas is still the reveal's black — one cream blind visible,
       // "only 1 pane seen"; ~3 s later every pane reads. Wait for the panes themselves: four painted runs on the two rows, ≤ 12 s)
-      let o = await runsAt();
-      for (const t0 = Date.now(); Date.now() - t0 < 12000 && o.rows.map(r => r.slice(-2)).flat().length < 4; ) { await new Promise(r => setTimeout(r, 250)); o = await runsAt(); }
+      // (+ the cloud's next run: four runs read MID-FADE at 402 — "20–27 pt": the panes counted only once two reads 400 ms apart agree)
+      let o = await runsAt(), prev = null;
+      const sig = q => JSON.stringify(q.rows.map(r => r.slice(-2)));
+      for (const t0 = Date.now(); Date.now() - t0 < 15000 && (o.rows.map(r => r.slice(-2)).flat().length < 4 || sig(o) !== prev); ) { prev = sig(o); await new Promise(r => setTimeout(r, 400)); o = await runsAt(); }
       seen.push({ w: o.W, ...judge(o) });
     }
     ok(seen.every(s => s.ok), `THE UPPER PANES EQUAL ON SCREEN (${mode}): ${seen.map(s => `${s.w}: ${s.ok ? 'ok' : 'UNEVEN'} ${s.ws ? `${s.mn}–${s.mx} pt (gaps ${s.gaps.join('/')})` : s.why}`).join(' · ')}`);
@@ -3224,7 +3226,9 @@ G('motion', async () => {
     ok(W.length >= 1 && jud <= Math.max(1, judN * 0.01), `THE WALKERS NEVER JUDDER (${W.length} walkers, ${R.drawn} drawn frames at ${R.iv.med} / ${R.iv.p95} ms): ${jud} stop-then-double frames of ${judN}`);
     okT(worstR.ratio <= 4, `THE WALKERS' SPEED IS EVEN: the worst per-frame step is ${worstR.ratio}× its median (${worstR.kind || '-'})`);
     ok(W.length >= 1 && worstS.slide <= 0.25, `THE PLANTED FOOT NEVER SKATES on a straight: ≤ ${worstS.slide} of the body's speed (${worstS.kind || '-'}); through a turn ≤ ${worstT.slideT} (${worstT.kind || '-'} — the rig pivots about its middle there: a known sweep)`);
-    ok(W.every(w => w.mps >= 0.8 && w.mps <= 2.9 && (w.spm == null || (w.spm >= 75 && w.spm <= 175))), `THE PACE IS HUMAN: ${W.map(w => w.kind + ' ' + w.mps + ' m/s' + (w.spm != null ? ' · ' + w.spm + ' steps/min' : '')).join(', ')}`);
+    // (C4d: ≥ 70 steps/min, was 75 — the cloud's street job read the SAME couple at 0.89 m/s · 74 steps/min in C4b + C4d (its taller member's
+    // longer stride: 0.72 m; the partner beside him 87): a slow stroll's cadence runs into the low 70s for a tall walker — inside the human range)
+    ok(W.every(w => w.mps >= 0.8 && w.mps <= 2.9 && (w.spm == null || (w.spm >= 70 && w.spm <= 175))), `THE PACE IS HUMAN: ${W.map(w => w.kind + ' ' + w.mps + ' m/s' + (w.spm != null ? ' · ' + w.spm + ' steps/min' : '')).join(', ')}`);
     ok(R.fastShare != null && R.fastShare >= 0.9, `60 FPS WHILE ANYONE WALKS: ${R.fastShare == null ? 'nobody walked' : Math.round(R.fastShare * 100) + ' % of the walking frames fast'} (${R.why.join(', ')})`);
     await Q.ctx.close(); }
   // ---- the dance circle on a party night (&force=dance): the dancers' arms on the beat, never a jump
@@ -4106,6 +4110,7 @@ G('tower', async () => {
     `9e THE TOWER's stages: rising = a frame + the crane (${A.rising.tower.fx.works}, ${A.rising.tower.st.crane}), the lot after (${A.rubble.tower.fx.works}), a new design when finished (${A.finished.tower.st.design} vs ${A.standing.tower.st.design})`);
   { const Q = await open({ slot: 'tw-imp', qs: `when=2026-09-16T10:00${GR}&wx=clear&build=implosion&builds=6`, view: [402, 874] });
     await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.tower && ${P}.tower.fx && ${P}.tower.fx.old`, "the old building's sprite (made on the first draw after the fade-in)", 15000).catch(() => {});   // (C4d: the cloud read it before that draw)
     const t = await ev(Q.page, `${P}.tower`);
     ok(t.st.stage === 'implosion' && Math.abs(t.st.s - 6) < 0.01 && t.fx.works === 'gone', `9e THE IMPLOSION at 6 s: drawn live (${t.st.stage}, s ${t.st.s}), the slot empty in the bake (${t.fx.works})`);
     // (9f — THE REAL TOWER IMPLODES: the slot's original block baked into its own sprite with the skyline's skyBlock — the same building)

@@ -1330,8 +1330,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function rebakeLights() {
     // (9f — LOAD WEATHER: a weather answer that lands after the reveal darkens the sky → the windows' share / bias / night step with
     // it; those ride the weather's own slow blend (WX_BLEND, like the bakes + the sky), never a 1.2 s crossfade the eye catches)
-    { const d = keyDiff(litBaker.key, lightKey(), ['share', 'bias', 'warm', 'night', 'W', 'H', 'dock', 'limit', 'tier', 'party']), fade = shownAt >= 0 && litBaker.bakes >= 1;
-      const slow = fade && wxRecent() && /^(share|bias|warm|night)(, (share|bias|warm|night))*$/.test(d);
+    // (C4d — the cloud's LOAD WEATHER failed again in Halloween week: the key's 11th part, the HOLIDAY TINT (holLit — its quarter steps
+    // follow the darkness too), was unnamed ('#10') so a late answer's re-bake crossfaded in 1.2 s; it rides the slow blend like the rest)
+    { const d = keyDiff(litBaker.key, lightKey(), ['share', 'bias', 'warm', 'night', 'W', 'H', 'dock', 'limit', 'tier', 'party', 'hol']), fade = shownAt >= 0 && litBaker.bakes >= 1;
+      const slow = fade && wxRecent() && /^(share|bias|warm|night|hol)(, (share|bias|warm|night|hol))*$/.test(d);
       litFadeMs = slow ? WX_BLEND : 1200;
       LOADLOG.add('lit', `${fade ? `crossfade ${litFadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: fade && !slow }); }
     litLook = { share: Math.round(winShare() * 60) / 60, bias: winBias(), warm: P.winWarm || 0, night: DK, party: partyLit(), hol: holLit() };

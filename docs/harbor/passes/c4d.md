@@ -77,6 +77,21 @@ bible + an index; CLAUDE.md 57 → 39 KB).
   `windows` 58/58 (F12 hard), `party,harbor,windows,holiday,motion` 114/115 → 115 with F12, `perf` to its end (MEMORY 3.9 MB; the laptop's
   BATTERY trio as above), `core` 18/18 (no IDB polling), `e2e-conn` 18/18, the smoke 14/14; the end's run: see Group 4.
 
+### The cloud — run 1 (harbor 40926453282, tests 40926453584 — the pass's first of two)
+tests green; harbor 4 of 7 jobs green (audio, show, holiday, wild). Red, each with its cause + fix:
+- city · LOAD WEATHER answered after 6 s — A REAL BUG (F1 back in Halloween week): the lit windows' key has an 11th part, THE HOLIDAY TINT
+  (`holLit`, its quarter steps follow the darkness), unnamed in the slow-blend list ('#10') → a late answer's re-bake crossfaded in 1.2 s.
+  Named `hol`, it rides the weather's slow blend (scene.js#rebakeLights). The cloud runs on the REAL date — it only shows near a holiday.
+- city · 9f THE REAL BUILDING — a test race: the old building's sprite is made on the first draw after the fade-in; the slow runner read
+  it before (the check waits for it now).
+- windows · F12 by day at 402 read MID-FADE ("20–27 pt") — the panes are counted once two reads 400 ms apart agree.
+- street · THE PACE IS HUMAN — the SAME couple at 0.89 m/s · 74 steps/min as C4b's run (its taller member's 0.72 m stride; the partner 87):
+  the floor 75 → 70 steps/min (a slow stroll's cadence for a tall walker).
+- Warnings, each named: the three CI skips (A CALM LOAD, BATTERY ×2 — the runner's 29 fps / p75 66.7 ms); F13 LOAD WEATHER on a stored
+  JUST ME holiday jump (`okT`) — the panel's state lands after the reveal and the roof billboard's content is re-picked then (`neon.rev`
+  → one 1.2 s crossfade); F16 THE TOAST'S ARM STEP 0.264 rad (`okT`, as designed); the PERF numbers (informational on the runner).
+- Local re-run of load, tower, motion, windows: 91/91.
+
 ### Decisions made (unattended)
 - A preview link does NOT win over an active EVERYONE state (the late-arrival design + its e2e); the override is told instead (a toast).
 - The bus aims its departure ~7 s into a green (measured best: every bus of two days away within 2 s of its shut).
