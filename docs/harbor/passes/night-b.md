@@ -144,7 +144,9 @@ SOUND EFFECTS (15 lines). e2e: the walla sounding + a one-shot after the first t
   Group 5's numbers; the iPhone's readout on Saturday is the judge.
 - The party's song clock vs the phone's song: a break may begin mid-song on a phone (see Decisions).
 - e2e `holiday` on the laptop: ITS NERVES ("calm again within 18 s") fails here — the SAME on 699ed5a (the commit before this pass, served
-  from a worktree): not this pass's code; the cloud run is the judge.
+  from a worktree): not this pass's code. THE CLOUD: run 1 (3595786) holiday GREEN, its audio job red on the e2e SYNC regex (this pass's
+  label change — fixed, 9c9e813); run 2 (9c9e813) audio GREEN, holiday red on ITS NERVES alone → a FLAKE (green in run 1, red on the old
+  code locally); the two-run cap reached — left here. tests workflow green both runs; Vercel deployed 9c9e813.
 - The retired circle's preview (`&force=circle`) keeps its dancers on their own ring (`solidsOk`): with the giant up + the cart parked one
   stands in the cart's footprint, as before THE SOLIDS (the giant is off since C4b).
 
