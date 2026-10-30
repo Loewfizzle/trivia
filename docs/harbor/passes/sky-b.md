@@ -103,7 +103,13 @@ THE CUTS (no look change):
   bends the own element; on a station the legendary's hold hands the song to it). NOT FROM THIS PASS: the dog's turn (one frame 11.4 u/s
   vs ≤ 11) fails identically on SKY-A's build (06e431d, a worktree A/B: 11.5) — left as it was, a known issue; the 20-cycle MEMORY +6.6 MB
   (FR5's item; +4.6 locally) — not re-run.
-- Run 2 (the top commit): see `gh run list`.
+- Run 2 (863c30c): tests ✓; harbor 6/9 — not re-run (the cap). Left: (a) THE SIGN's FIRST-TAP SURGE with a station on the cloud's slow
+  machines — the station's first song decodes late (the surge lands at ~20 s instead of the first seconds: `neon` "the music starting"
+  null, then the music button's checks shifted by one), or this phone's own player covers after PARTY_WAIT_MS and the station's hand-off
+  reads as a second start (`music` FIRST TAP day: skip:cool; SETTING "AUTO again" timed out the same way) — locally every one of these
+  passes (music 112/112, neon green); on the iPhone the decode is fast. NEXT PASS: make the surge detector treat the own-player → synced
+  hand-off as ONE start + give the e2e's first tap the station's decode time. (b) `windows` 9c THE CRISP LAYER by day (the roof signs'
+  crisp copies missing) — the same check SKY-A's run 2 flagged; not this pass's code.
 
 ### Decisions (Claude Code's calls — the owner may overrule)
 - The patrol's near pass flies over the near water BEHIND the near-layer pieces (OVERCLOCK, the lantern, the trees) — they're nearer the
