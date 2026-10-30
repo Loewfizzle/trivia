@@ -1608,6 +1608,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE DOG's TURN: its heading eased over 0.6 s (dogHeading), its place a continuous function of it (dogOffset), the dock clamp before the
   sniff (dogPlace), a squash-through flip while it turns (drawDog): the biggest move a frame 1.85 → 0.13 u.
 
+## CITY 2.0 — SKY-B: THE PARTY's SPEED, THE PATROL + THE BLACKBIRD, THE SHADOWBOXER, THE RADIO STATIONS (Oct 30 2026) — docs/harbor/passes/sky-b.md (plan.md "OWNER'S NOTES — OCT 30 (midday)")
+- THE PARTY's SPEED: the phone bench rebuilt to tell the truth (every scene a fresh page, its bakes finished, a cool-down, the frame side,
+  the pixels painted, the CPU speed + low power hints; WHAT COSTS THE PARTY: the dance break with one piece off at a time); the vignette a
+  page layer (−12 % of a break's pixels); the break helicopter OFF (`&force=break-heli`); the sky beams' feet freed (a 10-minute party night
+  flat at ~633 canvases); Safari's engine on the laptop: the crowd's figures ~37 % of the frame — the owner's bench run decides the next cut.
+- THE PATROL: a slow circle round the city — a closer near pass over the water, behind the towers, back; 1–2 stops a pass where the
+  searchlight fixes on a boat, the far quay's roofs, the water or the promenade.
+- THE BLACKBIRD: the radio crackle heard (its level + loaded ahead + the music dips), the vapor cone centre stage, bigger, lingering ~2 s,
+  a longer needle body.
+- THE SHADOWBOXER: Mon / Wed / Fri 7–11 pm in the upper middle window — sets of 10 rounds, the bag, the swinging bulb + the shadows, his
+  blind his entrance; Friday's wrap-up or stay; his sounds wired (the files to come).
+- MUSIC AS RADIO STATIONS: every City 2.0 mood on the server clock — the same song on every phone, joining mid-song with a fade-in; the
+  synced player no longer restarts when the server offset settles.
+
 ## CITY 2.0 — SKY-A: THE HELICOPTER, THE F-22s, THE BLACKBIRD, THE TR-3B (Oct 30 2026) — docs/harbor/passes/sky-a.md (plan.md "OWNER'S NOTES — OCT 30 (morning)")
 - THE HELICOPTER REWORKED: the dance-break flight a 54-pt craft low over the water in front of the skyline, in a band clear of every sign,
   drifting back and forth over the crowd + turning to face where it flies, lit by the city; the beam a soft wide cone + a soft pool, baked

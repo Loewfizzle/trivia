@@ -246,6 +246,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
 - C4c — THE BLACKOUT, FOR REAL: `ONLY=blackout node e2e-harbor.mjs "<browser>" ./shots-harbor` (≈ 25 s) — the TR-3B at the blackout's depth on a
   late-October, a Thanksgiving, a December + a September night AT 3× (the benches' sharp overlays exist only above the city's 2×), every holiday
   piece drawn + both benches + every tree's crown (its brightest tenth too) + the hydrant vs the dark city round them. THE PHONE BENCH:
+  SKY-B: `ONLY=boxer` (≈ 45 s: Mon 8:05 pm in his room + on the crisp layer, a Tuesday parked, the panel's preview on the bag, a Friday wrap-up) · `ONLY=stations` (≈ 60 s: two phones on one station in step, a station change, a late joiner) · THE PHONE BENCH now loads a FRESH PAGE per scene (sessionStorage), cools down, reports the frame side + WHAT COSTS THE PARTY (the PROFILE).
   `ONLY=bench` (≈ 15 s: no bench without the flag, the START card, two scenes at `&benchfast=1`, the report + its COPY + the send);
   `MEASURE=1 ONLY=bench` adds THE MEMORY GUARD's table (390 / 402 / 430 × the three tiers at a 3× phone + `&dpr=3`: what the bakes want,
   whether the old 24 / 40 / 64 MB budgets would have stepped a layer down, every live canvas). On a phone: `?city=2&bench=1` → START

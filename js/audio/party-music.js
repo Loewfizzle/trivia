@@ -72,7 +72,7 @@ function timeline() {
   let tl = mood === 'party' && cc.partyLine ? cc.partyLine() : null, deck = tl ? (cc.partyDeck && cc.partyDeck()) || stationDeck('party') : null;
   if (tl && cityMs / 1000 < tl.anchor) tl = null;          // (before its first song — the evening's 8 pm: the party's station meanwhile)
   if (!tl || !deck) {
-    if (cc.q && /(^|,)no-stations(,|$)/.test(cc.q('force') || '')) return null;
+    if (cc.stationsOff && cc.stationsOff()) return null;
     if (leftMood != null) { if (leftMood === mood) return null; leftMood = null; }
     const st = stationOf(mood);
     if (!st) return null;

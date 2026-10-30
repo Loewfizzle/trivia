@@ -628,7 +628,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (NIGHT-C — THE PARTY SONG IN SYNC: partyLine() = the party's timeline now (core/harbor-streetparty.js#partyTimeline — the deck, its
   // anchor + seed: the same the dance breaks are planned on), partyDeck() its songs; speed: the clock's rate (a sped-up preview can't sync)
   setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k), show: () => (!clock.force.has('no-party') && SHOW_FORCES.some(f => clock.force.has(f)) ? 'party' : null),
-    speed: () => clock.speed || 1, partyDeck: () => partyDeckNow(), partyLine: () => partyLineNow(),
+    speed: () => clock.speed || 1, partyDeck: () => partyDeckNow(), partyLine: () => partyLineNow(), stationsOff: () => clock.force.has('no-stations'),   // (SKY-B: the radio stations' A/B)
     streetParty: () => { const sp = people && people.party ? people.party() : null; return sp ? { brk: sp.brk ? { id: sp.brk.id, kind: sp.brk.kind, s0: sp.brk.s0, s1: sp.brk.s1, song: sp.brk.song || null } : null, k: sp.k || 0 } : null; },
     // (the TR-3B's TAPE STOP bends THIS phone's own song element: while a legendary is due or heard, the party's song stays on it)
     musicHold: () => { try { const o = legends ? legends.listen() : null; return !!(o && o.kind === 'tr3b') || legendSoon(); } catch { return false; } } });

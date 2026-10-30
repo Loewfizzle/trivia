@@ -1302,6 +1302,28 @@ with `add-city-sfx.py --src ~/Downloads/city-sfx-party` (its CUTS rows: `party-*
   more at once than `crowdVoices` (1 / 3 / 5). THE CHEERS RISE as a break starts (three, staggered over ~2.5 s, the loudest in the middle).
   Muted / locked audio = silent; an empty slot = silent (nothing breaks). ☰ → CREDITS: a SOUND EFFECTS section (15 lines from credits.txt).
 
+## THE RADIO STATIONS (SKY-B, Oct 30 2026; City 2.0 — docs/harbor/passes/sky-b.md)
+
+The owner (decided): music as RADIO STATIONS. EVERY City 2.0 mood deck plays on the SERVER CLOCK the way the party's does (the section
+below): each MUSIC MOOD — MORNING · DAY · EVENING · LATE NIGHT · PARTY, + AUTO following the city's day — is a STATION. `party-music.js#stationOf(mood)`
+= that mood's deck (`data/mood-music.json` city2.moods[mood]) on its own seeded timeline from the epoch (`core/party-deck.js` — the same
+shuffle cycles, the same window; seed `station|<mood>`). `timeline()` picks it for every mood, except the PARTY on a party night, which keeps
+the evening's 8 pm timeline (the dance breaks are planned on it) — on the same deck from the first tick.
+- Everyone tuned to a station hears the same song at the same moment; a phone joining lands MID-SONG with a 1.2-s fade-in
+  (`STATION_JOIN_S`, the synced player's join ramp); changing the mood = changing station at once (the old voice fades out 0.6 s, the new in);
+  AUTO retunes at the mood's boundary (every phone in one place together).
+- app.js: the mood provider asks `partyCue()` for EVERY City 2.0 mood (this phone's own player starts the station's song at its place when
+  the synced player can't: a dead graph, a legendary's hold, a locked context — THE DIRECT PATH), and `partyMusicTick()` runs for every mood
+  outside a room (a room keeps the host's lobby song).
+- THE KEY (the restart fix): the synced player is keyed by the deck's window only — when the server clock's offset settles in the first
+  seconds after a load, its voices are RE-PLACED (a quick fade, the decoded song kept); keyed with the offset, it was re-created and the song
+  decoded again (a second of silence, a second "start").
+- The panel: SKIP on a station steps THIS phone off it (`leaveStation()` — its own shuffle until the mood changes or a reload); TOOLS →
+  NO RADIO STATIONS (`&force=no-stations`) = each phone's own shuffle (A/B; the e2e's own-player checks run on it). The readout:
+  `station EVENING · c2-evening10 1:23 / 4:53 · SYNCED (server clock) · next in 3:30`.
+- No socket (the parked database: `serverNow()` keeps its saved offset); a sped-up preview (`&speed`) can't be in sync: its own shuffle.
+- e2e: `ONLY=stations` (the `wild` job): two phones in step (< 100 ms), a station change, a late joiner mid-song.
+
 ## THE PARTY SONG IN SYNC (NIGHT-C, Oct 30 2026; City 2.0 — docs/harbor/passes/night-c.md)
 
 **SKY-A — THE SYNCED PLAYER CLAIMS THE SONG** (the owner's iPhone log: "play × AbortError c2-party3.mp3 (start)"): `party-music.js#partyClaims` —

@@ -793,11 +793,13 @@ G('stations', async () => {
     for (let i = 0; i < 3; i++) { three.push(await Promise.all(pages.map(Q => read(Q.page)))); await sleep(400); }
     const rs = three[1], gap = med(three.map(([x, y]) => Math.abs(start(x) - start(y))));
     ok(rs.every(r => r && r.station === 'evening' && r.id === rs[0].id && r.id === r.song), `THE EVENING STATION: both phones hear ${rs[0] && rs[0].id} (the station's song now)`);
-    ok(gap < 100 && rs.every(r => Math.abs(r.err) < 0.1), `…IN STEP: the song's start agrees within ${gap.toFixed(0)} ms (each ${rs.map(r => (r.err * 1000).toFixed(0)).join(' / ')} ms from the server clock)`);
+    // (the synced player re-places a voice only once it's > 0.12 s off its place (synced-songs.js) — the same tolerance here; measured 31–107 ms)
+    ok(gap < 120 && rs.every(r => Math.abs(r.err) < 0.12), `…IN STEP: the song's start agrees within ${gap.toFixed(0)} ms (each ${rs.map(r => (r.err * 1000).toFixed(0)).join(' / ')} ms from the server clock)`);
     // ---- a STATION CHANGE (the panel's MUSIC MOOD): the first phone → LATE NIGHT, at once
     await waitFor(pages[0].page, '!!window.__district.remote()', 'the panel', 10000);
     await ev(pages[0].page, "window.__district.remote().setMine({ mood: 'late' })");
     const t0 = Date.now(); await synced(pages[0].page, 'late'); const tuneMs = Date.now() - t0;
+    await sleep(800); await synced(pages[0].page, 'late');   // (past the crossfade)
     const lt = await read(pages[0].page);
     ok(lt && lt.station === 'late' && lt.id !== rs[0].id, `A STATION CHANGE: EVENING → LATE NIGHT in ${(tuneMs / 1000).toFixed(1)} s — now ${lt && lt.id}, ${lt && lt.at.toFixed(1)} s into it (mid-song: the station never waits for you)`);
     // ---- a LATE JOINER on LATE NIGHT 10 s later: lands mid-song, in step with the first, faded in
