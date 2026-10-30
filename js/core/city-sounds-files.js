@@ -20,6 +20,17 @@ export const FILES = /*FILES*/{
   "bar-open": [
     {"f": "bar-open.mp3", "v": "18a43fd0", "d": 8.0, "lufs": -20.4, "peak": 0.8, "sw": [0.35, 7.25], "from": [62.0, 70.0], "src": "bar-ambience-close", "r": 16000}
   ],
+  "bb-boom": [
+    {"f": "sonic-boom.mp3", "v": "aa913bdd", "d": 4.35, "lufs": -22.2, "peak": 0.35, "sw": [0.15, 0.8], "from": [0.65, 5.0], "src": "sonic-boom", "r": 22050}
+  ],
+  "bb-scream": [
+    {"f": "jet-scream.mp3", "v": "88648294", "d": 5.6, "lufs": -20.4, "peak": 2.4, "sw": [0.55, 4.3], "from": [1.5, 8.5], "src": "jet-scream", "r": 24000}
+  ],
+  "bb-static": [
+    {"f": "radio-static_1.mp3", "v": "0356928a", "d": 2.15, "lufs": -20.5, "peak": 0.25, "sw": [0.15, 1.95], "from": [0.15, 2.3], "src": "radio-static", "r": 22050},
+    {"f": "radio-static_2.mp3", "v": "29b7372c", "d": 2.3, "lufs": -20.4, "peak": 0.8, "sw": [0.15, 2.15], "from": [6.7, 9.0], "src": "radio-static", "r": 22050},
+    {"f": "radio-static_3.mp3", "v": "d0eeb446", "d": 2.2, "lufs": -20.4, "peak": 1.15, "sw": [0.15, 2.05], "from": [10.8, 13.0], "src": "radio-static", "r": 22050}
+  ],
   "birdsong-morning": [
     {"f": "birdsong-morning.mp3", "v": "ff3796a0", "d": 28.0, "lufs": -24.4, "loop": 26.0, "xf": 2.0, "from": [1.0, 29.0], "src": "birdsong-morning", "r": 22050}
   ],

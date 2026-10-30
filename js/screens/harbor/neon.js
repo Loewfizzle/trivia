@@ -46,6 +46,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   // NEON PASS 3: THE PARTY SHOW (core/harbor-show.js) — the cast (the items' descriptors, per layout), this frame's plan; THE
   // EVERYDAY MOTION (tonight's blinking / spelling signs, the colour-cycling sign, the slow chasers)
   let castOf = null, cast = [], showOut = newShowOut(0), showOn = false, daily = null, dailyKey = '';
+  let joltQ = false;   // (SKY-A: the Blackbird's boom — the roof signs flicker once)
   let rmNow = null, rmKey = '', rmModes = null, rmMot = null;   // (SP3: THE ROOF SIGNS' HOURLY MODES — this frame's { modes, move, restart })
   let showFr = null, spellSt = null;        // (7a: the show's frame this frame; THE SPELL-ON ROUND's sign now — { id, u, dur } | null)
   // A BURNT-OUT LETTER (core/harbor-show.js#burnout): tonight's dead letter, picked from the night's date (or &force=burnout)
@@ -519,6 +520,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     });
     lastOn = items.some(it => it.pw.on);
     if (S.motion && tier > 0) for (const it of items) if (t > it.fl) { if (it.fl) it.flick = t; it.fl = t + 25 + Math.random() * 45; }
+    if (joltQ) { joltQ = false; if (S.motion) for (const it of items) if (isRoofSign(it)) it.flick = t; }
   }
   // City 1.0's segAlpha: tube by tube at dusk (and at the boot), all off together at dawn, a rare small flicker
   function alpha(it, i, t, motion) {
@@ -1087,6 +1089,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
      * roof — the beacon's post above the cabinet stays the city's: the live beacon blinks there), key (its look) }]; hd: the crisp dpr (its
      * sprites are built at it — 0 frees them)
      */
+    /** SKY-A — THE BLACKBIRD's BOOM: the roof signs flicker once (their own rare-flicker dip, on the next frame) — never the NEON logo */
+    jolt() { joltQ = true; },
     roofSigns(hd) {
       if (hd !== hiDpr) { hiDpr = hd || 0; for (const it of items) if (it.litHi) freeHi(it); }
       const out = [];

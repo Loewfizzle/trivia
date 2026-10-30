@@ -472,3 +472,65 @@ G('bench', async () => {
     await Q.ctx.close();
   }
 });
+
+// ================================================================ SKY-A — THE BLACKBIRD (ONLY=blackbird; the `legend` cloud job): ONE flyby —
+// the tell, the crossing above the lit sign under the corner buttons (its own full-dpr overlay, gone after), the vapor cone + the shock
+// ring, the late double boom; its triggers: a preview, EVERY TR-3B chase (across the dark sign, the chase's direction), THE WATCHER's
+// reward (60 visible minutes, this device), a SOLO sighting on its timetable
+G('blackbird', async () => {
+  const B = 'window.__district.harbor().blackbird';
+  // ---- 1. THE FLYBY (&force=blackbird): the tell first, then across the strip above the sign; the cone, the ring, the boom; its overlay
+  { const Q = await open({ slot: 'bb1', qs: `when=2026-10-21T22:00${GR}&wx=clear&force=blackbird`, view: [402, 874], dpr: 3 });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!(${B}.kind)`, 'the Blackbird planned', 15000);
+    const t0 = await ev(Q.page, B);
+    ok(t0.kind === 'forced' && (t0.tell || t0.e < 0.2), `THE TELL FIRST: the flyby planned ${t0.e != null ? `${t0.e} s` : ''} — the radio static ~${3} s before it enters`);
+    const seen = { cone: 0, ring: 0, on: 0, ys: [], overlay: 0, dpr: 0 };
+    const end = Date.now() + 9000;
+    while (Date.now() < end) {
+      const d = await ev(Q.page, `(() => { const b = ${B}, c = document.querySelector('canvas.hb-bb'); return { ...b, ov: !!(c && c.width > 0), ovd: c && c.width ? +(c.width / parseFloat(c.style.width)).toFixed(2) : 0 }; })()`);
+      if (d.on) { seen.on++; seen.ys.push(d.y); if (d.ov) { seen.overlay++; seen.dpr = d.ovd; } }
+      if (d.cone > 0.3) seen.cone++; if (d.ring != null) seen.ring++;
+      if (d.e > 3) break;
+      await sleep(40);
+    }
+    const tr = await ev(Q.page, 'window.__district.harbor().ladder.sign'), cb = await ev(Q.page, `Math.max(...[...document.querySelectorAll('.menu-btn, .music-btn')].map(e => e.getBoundingClientRect().bottom))`);
+    ok(seen.on >= 5 && seen.ys.every(y => y > cb && y < tr.y), `ACROSS ABOVE THE LIT SIGN, under the corner buttons: y ${Math.round(Math.min(...seen.ys))}–${Math.round(Math.max(...seen.ys))} (the buttons end at ${Math.round(cb)}, the sign starts at ${Math.round(tr.y)}; ${seen.on} frames)`);
+    ok(seen.cone >= 1 && seen.ring >= 2, `IT BREAKS THE SOUND BARRIER: the vapor cone (${seen.cone} frames) + the shock ring (${seen.ring})`);
+    ok(seen.overlay >= 3 && seen.dpr >= 2.9, `ITS OWN OVERLAY at the phone's full dpr (${seen.dpr}×) above the sign while it flies`);
+    await waitFor(Q.page, `!document.querySelector('canvas.hb-bb')`, 'the overlay gone', 6000).catch(() => {});
+    ok(!(await ev(Q.page, `!!document.querySelector('canvas.hb-bb')`)), 'GONE AFTER: its overlay removed (no memory held between flybys)');
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}blackbird-solo-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- 2. THE CHASE: every TR-3B — the Blackbird once the F-22s are ~⅓ across, the same direction, ACROSS the dark sign
+  { const Q = await open({ slot: 'bb2', qs: `when=2026-10-24T23:00${GR}&wx=clear&force=tr3b&lgs=29`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(() => { const b = ${B}; return !!(b && b.kind === 'chase'); })()`, 'the chase\'s Blackbird', 25000).catch(() => {});
+    const d = await ev(Q.page, B), run = await ev(Q.page, 'window.__district.harbor().legend.state.run'), tr = await ev(Q.page, 'window.__district.harbor().ladder.sign');
+    ok(d && d.kind === 'chase' && run && d.dir === (run.dir || 1), `THE CHASE GETS THE BLACKBIRD: ${d && d.kind}, flying ${d && d.dir > 0 ? 'right' : 'left'} like the jets (${run && run.dir})`);
+    ok(d && tr && d.y > tr.y && d.y < tr.y + tr.h, `…ACROSS THE DARK SIGN: y ${d && d.y} inside the sign's ${Math.round(tr.y)}–${Math.round(tr.y + tr.h)} (in front of it: its overlay sits above the sign)`);
+    if (SHOTS) { await waitFor(Q.page, `(() => { const b = ${B}; return !!(b && b.on && b.e > 0.4); })()`, 'mid-pass', 8000).catch(() => {}); await Q.page.screenshot({ path: `${OUT}blackbird-chase-402x874.png` }); }
+    await Q.ctx.close(); }
+  // ---- 3. THE WATCHER's REWARD: 59 m 55 s watched today (this device's clock) → one flyby within a few seconds, once (got = today)
+  { const init = { fn: () => { try { localStorage.setItem('na:bbwatch', JSON.stringify({ day: '2026-10-21', acc: 3595, last: Date.now() / 1000 - 2, got: null })); } catch { /* */ } } };
+    const Q = await open({ slot: 'bb3', qs: `when=2026-10-21T21:00${GR}&wx=clear`, view: [402, 874], init });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(() => { const b = ${B}; return !!(b && b.kind === 'watcher'); })()`, 'the watcher\'s reward', 20000).catch(() => {});
+    const d = await ev(Q.page, B);
+    ok(d && d.kind === 'watcher' && d.watch && d.watch.got === '2026-10-21', `THE WATCHER's REWARD: 60 visible minutes → a flyby (${d && d.kind}; given today: ${d && d.watch && d.watch.got})`);
+    await Q.ctx.close(); }
+  // ---- 4. A SOLO SIGHTING on its timetable (core/harbor-blackbird.js#soloDay): open a few seconds before one — it flies at its time
+  { const M = await import('../../../js/core/harbor-blackbird.js');
+    let f = null; for (let d = 0; d < 120 && !f; d++) { const L = M.soloDay(Date.parse('2026-11-01T12:00:00-04:00') / 1000 + d * 86400, -300, 1924); if (L.length) f = L[0]; }
+    ok(!!f, `a solo sighting on the timetable (${f && new Date(f.t * 1000).toISOString()})`);
+    if (f) {
+      const when = new Date((f.t - 6) * 1000 - 5 * 3600e3).toISOString().slice(0, 19);
+      const Q = await open({ slot: 'bb4', qs: `when=${when}&tz=America/Detroit&at=42.96,-85.67&wx=clear`, view: [402, 874] });
+      await harborUp(Q.page);
+      await waitFor(Q.page, `(() => { const b = ${B}; return !!(b && b.kind === 'solo'); })()`, 'the solo sighting', 20000).catch(() => {});
+      const d = await ev(Q.page, B);
+      ok(d && d.kind === 'solo' && Math.abs(d.at / 1000 - f.t) < 1 && d.dir === f.dir, `THE SOLO SIGHTING at its time (${d && d.kind}, ${d && d.dir > 0 ? 'right' : 'left'})`);
+      await Q.ctx.close();
+    }
+  }
+});

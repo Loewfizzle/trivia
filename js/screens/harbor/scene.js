@@ -130,6 +130,9 @@ import { trafficLanes } from '../../core/harbor-traffic.js';
 import { createWinterFolk, doorCleared, winterActs } from './winterfolk.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 import { paradeWindow, paradeUnits } from '../../core/harbor-parade.js';
+import { createBlackbird } from './blackbird.js';
+import { BB, bbChaseAt, soloNear, watcherStep } from '../../core/harbor-blackbird.js';
+import { jetLook } from './jets.js';
 import { latchBig, holidayAt, halloweenPieces, dotdPieces, thanksgivingPieces, holidaySeason, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
 
 // (C4c: the top tier's dpr is BAKE_CAP — 2, or the device's 3 under `&dpr=3`, the owner's look judgement only)
@@ -173,6 +176,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const centre = createCentre();                   // PF: THE CENTREPIECE on the inlay + its event lighting rig (harbor().centrepiece; 11a–c)
   const people = createPeople();                   // 8P: THE PEOPLE — the promenade's visitors, the bus, the line, the roof (harbor().people)
   const raidFx = createRaid();                     // 8b2: THE RAID's light — the wash, the shades, the flashlight (harbor().raid)
+  // SKY-A — THE BLACKBIRD (screens/harbor/blackbird.js on its own full-dpr overlay above the sign; its triggers: core/harbor-blackbird.js)
+  const bb = createBlackbird();
   const wild = createWildlife();                   // 8b1: THE WILDLIFE — pigeons, gulls, the owl, the squirrel, the coyote, the trash can, the cat, fish, the heron, fireflies (harbor().wildlife)
   const strings = createStrings();
   // 11a-1 — THE SIGN DECORATION SYSTEM (screens/harbor/signdress.js, LAZY: loaded on a dressed day or a preview): the holiday's dressing
@@ -1346,6 +1351,63 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     crowdMemo = { key, v };
     return v;
   }
+  // ---------------------------------------------------------------- SKY-A — THE BLACKBIRD's TRIGGERS + HEIGHTS (core/harbor-blackbird.js)
+  // the strip ABOVE the lit sign, under the corner buttons (≥ 28 pt — else, a short screen, the open sky under the tagline); in the
+  // TR-3B's chase ACROSS the dark sign (its middle) while the drain holds it
+  let bbSoloAt = 0, bbChaseKey = '', bbSoloKey = '', bbWatchAt = 0, bbWatchPend = 0, bbForcedAt = -1e9, bbForcedN = 0, bbCbKey = '', bbCb = 0;
+  const bbCorner = () => { const k = `${cam ? cam.W : 0}x${cam ? cam.H : 0}|${laneKey}`; if (k !== bbCbKey) { bbCbKey = k; let b = 0; try { for (const e of document.querySelectorAll('.menu-btn, .music-btn')) { const r = e.getBoundingClientRect(); if (r.height) b = Math.max(b, r.bottom); } } catch { /* tests */ } bbCb = b || safeTopV + 52; } return bbCb; };
+  function bbStrip() {
+    const tr = S.textRects, cb = bbCorner();
+    if (!tr || !tr.neon) return { y: cb + 30, clip: cb + 2 };
+    const top = Math.max(safeTopV + 8, cb + 6), bot = tr.neon.y - 4;
+    if (bot - top >= 28) return { y: (top + bot) / 2, clip: cb + 2 };
+    const tg = tr.tag || tr.neon;
+    return { y: tg.y + tg.h + 24, clip: tg.y + tg.h + 4 };
+  }
+  function bbTick(fs, now) {
+    if (!S.motion) { if (bb.on()) bb.stop(); return; }
+    const nowMs = clock.now(), nowS = nowMs / 1000, W = cam ? cam.W : 402, busy = bb.on();
+    if (qp.get('bbart')) bb.setArt(qp.get('bbart'));
+    // THE CHASE: every TR-3B — once the F-22s are ~⅓ across, the same direction (the tell first: it starts BB.tell s before)
+    if (legends && legends.active()) {
+      const d = legends.debug(), r = d && d.run, sAt = bbChaseAt();
+      if (r && r.kind === 'tr3b' && d.s >= sAt - BB.tell - 0.2 && d.s < sAt + 1) {
+        const key = `${r.kind}|${r.at || ''}|${r.dir}`;
+        if (key !== bbChaseKey && !busy) {
+          bbChaseKey = key;
+          const dark = !!(LB && LB.k > 0.5), tr = S.textRects, hy = dark && tr && tr.neon ? { y: tr.neon.y + tr.neon.h * 0.55, clip: bbCorner() + 2 } : bbStrip();
+          bb.start('chase', nowMs + (sAt - d.s) * 1000, r.dir || 1, hy.y, { clipTop: hy.clip });
+        }
+      }
+    } else if (!busy && fs.now - bbForcedAt > 0) {
+      // A PREVIEW (&force=blackbird + the panel's row): a solo flyby now, again every ~8 s while it's on (the tell first)
+      if (clock.force.has('blackbird')) { const hy = bbStrip(); bbForcedN++; if (bb.start('forced', nowMs + BB.tell * 1000, bbForcedN % 2 ? 1 : -1, hy.y, { clipTop: hy.clip })) bbForcedAt = fs.now + 8000; }
+      // THE SOLO SIGHTINGS (the timetable's blackbird.solo: every phone the same; a late load joins it mid-way)
+      else if (now - bbSoloAt > 1000) {
+        bbSoloAt = now;
+        const f = soloNear(nowS, LK.local ? LK.local.off : 0, L ? L.seed || 1924 : 1924);
+        if (f && f.id !== bbSoloKey) { bbSoloKey = f.id; const hy = bbStrip(); bb.start('solo', f.t * 1000, f.dir, hy.y, { clipTop: hy.clip }); }
+      }
+    }
+    // THE WATCHER's REWARD (this device's own clock, never announced: 60 visible minutes → one flyby, once a day)
+    if (now - bbWatchAt > 5000) {
+      bbWatchAt = now;
+      try {
+        const lc = LK.local, day = lc ? `${lc.y}-${lc.m}-${lc.d}` : '', key = 'na:bbwatch', st0 = JSON.parse(localStorage.getItem(key) || 'null');
+        const r = watcherStep(st0, Date.now() / 1000, document.visibilityState === 'visible', day);
+        localStorage.setItem(key, JSON.stringify(r.state));
+        if (r.fire) bbWatchPend = 1;
+      } catch { /* private mode: no reward */ }
+    }
+    if (bbWatchPend && !bb.on() && !(legends && legends.active())) { const hy = bbStrip(); if (bb.start('watcher', nowMs + BB.tell * 1000, Math.random() < 0.5 ? 1 : -1, hy.y, { clipTop: hy.clip })) bbWatchPend = 0; }
+    // THE FLYBY this frame (on its overlay) — the boom shakes the city a touch: the roof signs flicker, a few pigeons lift, the glass glints
+    const dev = (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 2;
+    if (bb.frame({ now: nowMs, W, H: cam ? cam.H : 874, dpr: dev, look: jetLook(LK), t: fs.t, motion: S.motion }, { onShake: () => {
+      try { neon.jolt(); } catch { /* fine */ }
+      try { if (L && L.medallion) wild.scare(L.medallion.x, L.medallion.z, 3.2); } catch { /* fine */ }
+      if (S.onFlash) S.onFlash({ near: 0.12, boom: true });
+    } })) fastUntil = Math.max(fastUntil, performance.now() + 300);
+  }
   /** SKY-A — the signs the break helicopter never flies in front of (screen pt): the SIGNAL blade + the roof signs, OVERCLOCK, the WAIT /
    *  WALK lantern, the NEON sign — cached per camera */
   let avoidMemo = null;
@@ -1850,6 +1912,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }
     // POLISH 4 — THE TR-3B's BLACKOUT this frame: { k (how dark the city is), dead: { far, city, harbor, near } } or null
     LB = legends && legends.active() ? legends.blackout() : null; stepPow(); if (!LB && fv.cv) freeFront();
+    if (shownAt >= 0) bbTick(fs, now);   // (SKY-A: the Blackbird — once the city shows)
     const deadFar = !!(LB && LB.dead.far), deadCity = !!(LB && LB.dead.city), dk0 = LB ? LB.k : 0;
     // ---- the sky
     c.globalAlpha = 1;
@@ -3252,11 +3315,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
       roofCrisp: roofCrispDebug(), liveCrisp: liveCrispDebug(),   // (NIGHT-C: the live windows' crisp share each)   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
+      blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip }); } },
       heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), ms: sky.heliMs ? sky.heliMs() : null, crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {
+      try { bb.destroy(); } catch { /* fine */ }
       if (dress) { try { dress.destroy(); } catch { /* fine */ } }
       if (hsky && hsky.destroy) { try { hsky.destroy(); } catch { /* fine */ } }
       if (hprops && hprops.destroy) { try { hprops.destroy(); } catch { /* fine */ } }

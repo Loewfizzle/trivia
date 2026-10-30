@@ -20,7 +20,8 @@ export const SECONDS = {
   people: 70,          // (8P: measured on the laptop — refine from the first cloud run)
   life: 90,            // (FP3b: real doors + the dance circle — a circle forming ~40 s after the page opens)
   load: 30,            // (FP3a: the load gate — measured on the laptop)
-  legends: 40,         // (6b: the legendary sky — three pages, a guess)
+  legends: 55,         // (6b: the legendary sky — three pages, a guess; SKY-A: + the F-22 chase page)
+  blackbird: 50,       // (SKY-A: THE BLACKBIRD — four pages: forced, the chase, the watcher, a solo sighting)
   blackout: 30,        // (C4c: the TR-3B's blackout on four holiday nights at 3× — 24 s on the laptop)
   bench: 15,           // (C4c: THE PHONE BENCH — the card, two scenes measured at &benchfast=1, the report)
   workers: 75,         // (8b1: the workers — four pages, measured on the laptop)
@@ -52,7 +53,9 @@ export const CI_JOBS = {
   // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
   windows: ['windows', 'snow', 'doors', 'blackout'],   // (9d: doors)   // (9b: WINTER — the lightest job by its seconds)
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
-  wild: ['wildlife', 'workers', 'legends', 'weather', 'bench'],
+  wild: ['wildlife', 'workers', 'weather'],
+  // (SKY-A: THE LEGENDS' own job — the TR-3B + the F-22s, THE BLACKBIRD, the phone bench: wild was at its cap)
+  legend: ['legends', 'blackbird', 'bench'],
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
   holiday: ['holiday', 'thanks', 'panelrows', 'citylife'],   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };

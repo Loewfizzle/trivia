@@ -763,6 +763,23 @@
   ],
   "note": null
  },
+ "jet-scream": {
+  "file": "jet-scream.wav",
+  "md5": "0effe566921bd4374fe3b9277e80a425",
+  "slots": [
+   "bb-scream"
+  ],
+  "credit": [
+   "jet-scream.wav",
+   "  Title:   F-16 Jet Fighter passing by overhead and vanishing into the horizon 03.wav",
+   "  Author:  Sound Ex Machina (Sonniss #GameAudioGDC 2020 bundle, pack \"F16 Maneuvers\")",
+   "  Source:  https://archive.org/download/game-audio-gdcpart-6/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle/Sound%20Ex%20Machina%20-%20F16%20Maneuvers/F-16%20Jet%20Fighter%20passing%20by%20overhead%20and%20vanishing%20into%20the%20horizon%2003.wav",
+   "           (archive.org mirror of the free Sonniss GDC 2020 bundle; official bundle: https://sonniss.com/gameaudiogdc)",
+   "  Licence: Sonniss #GameAudioGDC Bundle Licence - https://sonniss.com/gdc-bundle-license/",
+   "  Credit:  not required"
+  ],
+  "note": null
+ },
  "jets-formation": {
   "file": "jets-formation.wav",
   "md5": "de51139e0abe0eaa8471a5e1c3f6a97c",
@@ -1315,6 +1332,23 @@
   ],
   "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
  },
+ "radio-static": {
+  "file": "radio-static.wav",
+  "md5": "75854b63e2b61bdb844841f2cb8590de",
+  "slots": [
+   "bb-static"
+  ],
+  "credit": [
+   "radio-static.wav",
+   "  Title:   OldRadioTuningStaticNoise_001.wav",
+   "  Author:  MatiasMacSD (Sonniss #GameAudioGDC 2016 bundle, pack \"MatiasMacSD - NOISE\")",
+   "  Source:  https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/MatiasMacSD%20-%20NOISE/OldRadioTuningStaticNoise_001.wav",
+   "           (archive.org mirror of the free Sonniss GDC 2016 bundle; official bundle: https://sonniss.com/gameaudiogdc)",
+   "  Licence: Sonniss #GameAudioGDC Bundle Licence (royalty-free, commercial use, no attribution required) - https://sonniss.com/gdc-bundle-license/",
+   "  Credit:  not required"
+  ],
+  "note": null
+ },
  "rain-awning": {
   "file": "rain-awning.mp3",
   "md5": "f61caa24c2addc1aa68fdad997cb5b03",
@@ -1529,6 +1563,23 @@
    "  Original: Freesound user Tompalompa, \"Snow shovel\" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)"
   ],
   "note": "The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade)."
+ },
+ "sonic-boom": {
+  "file": "sonic-boom.wav",
+  "md5": "0f587d6d461d523aef42b1a5130e067f",
+  "slots": [
+   "bb-boom"
+  ],
+  "credit": [
+   "sonic-boom.wav   (stand-in for a distant sonic boom; it's a single distant explosion)",
+   "  Title:   Tank Mine - EXPLOSION - Mounted on Metal Beam - DISTANT - AMBEO BLD.wav",
+   "  Author:  Pole Position (Sonniss #GameAudioGDC 2024 bundle, pack \"The Warfare 2 Library\")",
+   "  Source:  https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Pole%20Position%20-%20The%20Warfare%202%20Library/Tank%20Mine%20-%20EXPLOSION%20-%20Mounted%20on%20Metal%20Beam%20-%20DISTANT%20-%20AMBEO%20BLD.wav",
+   "           (archive.org \"normalized\" mirror of the free Sonniss GDC 2024 bundle; official bundle: https://sonniss.com/gameaudiogdc)",
+   "  Licence: Sonniss #GameAudioGDC Bundle Licence - https://sonniss.com/gdc-bundle-license/",
+   "  Credit:  not required"
+  ],
+  "note": null
  },
  "squeegee": {
   "file": "squeegee.mp3",

@@ -479,6 +479,17 @@ CUTS = {
     'squirrel-chatter': [{'cut': (7.4, 10.4), 'fin': 0.05, 'fout': 0.5, 'hp': 400}],
     # (3.65 s Sonniss, an electric arc with its reverb: crackle from the start, energy mostly < 400 Hz — presence lifted for a phone)
     'tr3b-crackle': [{'cut': (0.0, 3.6), 'fin': 0.005, 'fout': 1.0, 'hp': 60, 'presence': (3.0, 2000)}],
+    # SKY-A — THE BLACKBIRD (Sonniss; plan.md "THE BLACKBIRD's SOUNDS ARE IN"): radio-static.wav (15 s, three takes split by silence: 0.1–2.4,
+    # 6.2–9.7, 10.7–14.1 s) → three tells; jet-scream.wav (25 s, an F-16 pass, its peak ~4.6 s) → 1.5–8.5 s SPED UP 1.25× (a higher, tearing
+    # whine: the Blackbird's, not the F-22s' roar; its peak ~2.5 s into the take); sonic-boom.wav (17 s, one hit at 0.8 s) → 0.65–5.0 s,
+    # its low-mid lifted (a phone's speaker still feels it)
+    'radio-static': [
+        {'cut': (0.15, 2.3), 'fin': 0.02, 'fout': 0.4, 'hp': 300, 'presence': (3.0, 1800), 'rate': 22050},
+        {'cut': (6.7, 9.0), 'fin': 0.05, 'fout': 0.4, 'hp': 300, 'presence': (3.0, 1800), 'rate': 22050},
+        {'cut': (10.8, 13.0), 'fin': 0.02, 'fout': 0.4, 'hp': 300, 'presence': (3.0, 1800), 'rate': 22050},
+    ],
+    'jet-scream': [{'cut': (1.5, 8.5), 'speed': 1.25, 'fin': 0.3, 'fout': 1.5, 'hp': 150, 'presence': (4.0, 2600), 'rate': 24000}],
+    'sonic-boom': [{'cut': (0.65, 5.0), 'fin': 0.005, 'fout': 1.6, 'hp': 35, 'lowmid': 3.0, 'rate': 22050}],
     # (30 s Pixabay MP3, a crowd cheering + clapping: no voiced frames (≤ 0.07: no chant, no words), no held line; three 6 s stretches
     # of the steady middle, low-passed 3 kHz (across the promenade) — a burst of clapping round the dance circle)
     'crowd-clap': [
@@ -572,7 +583,7 @@ CUTS = {
     'leaves-rake': [{'loop': (2.4, 18.3), 'xf': 1.0, 'search': 0.05, 'hp': 150, 'deess': (4.0, 2000, 5000), 'lp': 7000, 'verb': (0.15, 0.015, 0.6, 5000), 'rate': 16000, 'kbps': 48}],
 }
 # source files named after what they are, not their slot (the folder's names) → the slot
-ALIAS = {'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-formation': 'jet-flyby', 'tr3b-powerdown': 'tr3b-power-down',
+ALIAS = {'radio-static': 'bb-static', 'jet-scream': 'bb-scream', 'sonic-boom': 'bb-boom', 'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-formation': 'jet-flyby', 'tr3b-powerdown': 'tr3b-power-down',
          'club-murmur': 'club-murmur-calm', 'mirror-door': 'door-heavy', 'bar-ambience-close': 'bar-open', 'window-sash': 'window-sash-up',
          'secret-knock': 'door-knock', 'marching-band-far': 'parade-band',
          'crane-work': 'crane', 'hammering-far': 'hammering', 'implosion': 'implosion-rumble', 'warning-horn': 'tower-horn'}   # (9e: the tower's)

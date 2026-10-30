@@ -61,6 +61,13 @@ export const SCHEDULE = Object.freeze([
   // beam DIFFUSED. sweepPeriod: one back-and-forth of the craft (s); ease: its drift easing in after it arrives + out before it leaves (s))
   { id: 'helicopter.break', trigger: 'event', status: 'live', src: 'core/harbor-heli.js#breakFlight + screens/harbor/air.js', what: 'THE HELICOPTER UP FOR EVERY DANCE BREAK: in from a side `lead` s before the song, LOW over the water in front of the skyline (never in front of a sign), drifting BACK AND FORTH over the dancing crowd + the street spill for the WHOLE song, its soft wide beam on them (the pool swept on the beat, `sweepBeats` beats a side — never a strobe), off the other side',
     knobs: { lead: 16, trail: 18, sweepBeats: 8, sweepPeriod: 22, ease: 5 } },
+  // SKY-A — THE BLACKBIRD (core/harbor-blackbird.js; screens/harbor/blackbird.js): ONE flyby, its triggers here. chase: it enters when the
+  // F-22s' lead is `jetsAcross` of the way across; solo: ~perMonth a month (a seeded day, from → to local hours), July 4: `july4` passes
+  // between july4From → july4To; watcher: `minutes` of visible watching (a gap under pauseMin only pauses the count; longer resets it),
+  // counted every `step` s, once a device a day
+  { id: 'blackbird.chase', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#bbChaseAt + screens/harbor/blackbird.js', what: 'THE BLACKBIRD IN EVERY TR-3B CHASE: once the F-22s are ~⅓ across, the same direction, faster — across the dark NEON sign while the drain holds it (above it if it’s powering back)', knobs: { jetsAcross: 1 / 3 } },
+  { id: 'blackbird.solo', trigger: 'calendar', status: 'live', src: 'core/harbor-blackbird.js#soloDay', what: 'THE BLACKBIRD’s SOLO SIGHTINGS: rare (~2 a month, a seeded day + time), ~5 passes on July 4 — above the lit sign; never on a legendary night', knobs: { perMonth: 2, from: 11, to: 23, july4: 5, july4From: 12, july4To: 21.5 }, conflicts: ['legendaries'] },
+  { id: 'blackbird.watcher', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#watcherStep', what: 'THE WATCHER’s REWARD: after 60 visible minutes on the city (a gap under 5 min pauses the count, longer resets it) — this device only, once a day, never announced', knobs: { minutes: 60, pauseMin: 5, step: 5 } },
   { id: 'boxer', trigger: 'calendar', status: 'planned', src: 'SKY', what: 'THE SHADOWBOXER: Mon / Wed / Fri 7 → 11 pm, sets of 10 rounds (Friday: he wraps up at 8:30 or trains on, seeded)', conflicts: ['window.party'] },
   { id: 'legendaries', trigger: 'event', status: 'live', src: 'core/harbor-legend.js', what: 'the legendaries (the UFO, the TR-3B…) — their seeded nights', conflicts: ['traffic'] },
   { id: 'blackout', trigger: 'event', status: 'live', src: 'core/harbor-dark.js', what: 'THE BLACKOUT (the TR-3B\'s drain): every light down, back on in turn' },
@@ -77,6 +84,8 @@ export const CONFLICTS = Object.freeze([
   { a: 'helicopter.break', b: 'party.break', rule: 'the helicopter is UP for every dance break — the whole song, over the crowd', where: 'core/harbor-heli.js#breakFlight · screens/harbor/air.js#breakFly' },
   { a: 'helicopter.patrol', b: 'party.break', rule: 'no patrol over a dance break (the break has the helicopter)', where: 'core/harbor-heli.js#patrolsNear (ctx.blocked)' },
   { a: 'helicopter.patrol', b: 'legendaries', rule: 'no patrol near tonight’s legendary (its window: legendGap before → legendLen after)', where: 'core/harbor-heli.js#legendWindow' },
+  { a: 'blackbird.solo', b: 'legendaries', rule: 'no solo Blackbird on a legendary night (that night has its own sky; the TR-3B brings its own Blackbird)', where: 'core/harbor-blackbird.js#soloDay' },
+  { a: 'blackbird', b: 'traffic', rule: 'nothing new crosses the sky strip while it flies (one flyby at a time, a forced one waits)', where: 'screens/harbor/blackbird.js#start' },
   { a: 'party.fireworks', b: 'storm', rule: 'no fireworks in a storm (Part 10)', where: 'Part 10' },
   { a: 'boxer', b: 'window.party', rule: 'the boxer\'s window sits out of the window party when he trains on a party night (SKY)', where: 'SKY' },
 ]);

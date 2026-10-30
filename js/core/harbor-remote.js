@@ -198,7 +198,8 @@ export const EVENTS = [
   { id: 'monarchs', label: 'MONARCH BUTTERFLIES', cat: 'holidays', group: 'DAY OF THE DEAD', kw: 'butterfly', hint: 'the rare monarchs of Nov 1 + 2, by day' },
   // (PART 6b — THE LEGENDARY SKY: ~1–2 nights a month each for everyone; here on demand, repeating while on — JUST ME or EVERYONE, the same moment)
   { id: 'ufo', label: 'UFO ABDUCTION', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'alien saucer beam sound hum depart', oneShot: true, night: true, inputs: ['hum', 'depart'], hint: 'the saucer, the beam, someone lifted off the compass (~30 s) — sound on: HUM A / B, DEPART A / B / LAYERED' },
-  { id: 'tr3b', label: 'TR-3B + JET CHASE', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'triangle ufo blackout power drain f-16 jets tape stop', oneShot: true, night: true, hint: 'the black triangle drains the city’s power, then F-16s chase it (~50 s)' },
+  { id: 'tr3b', label: 'TR-3B + JET CHASE', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'triangle ufo blackout power drain f-22 jets blackbird sr-71 tape stop', oneShot: true, night: true, hint: 'the black triangle drains the city’s power, then a vic of F-22s chases it — and THE BLACKBIRD screams past them (~50 s)' },
+  { id: 'blackbird', label: 'THE BLACKBIRD', cat: 'sky', sec: 'legendary', group: 'IN THE SKY', kw: 'sr-71 blackbird sonic boom mach diamonds vapor cone jet fast solo sighting watcher', hint: 'SKY-A: the SR-71 screams across above the sign — the radio static, the vapor cone + the shock ring, the late double boom (again every ~8 s while on)' },
   { id: 'cat', label: 'THE MOON CAT', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, ready: false },  // (ready: false — not on the Harbor yet; still a valid id)
   { id: 'geese', sec: 'wildlife', label: 'GEESE', cat: 'sky', group: 'FLYING OVER' },
   { id: 'swifts', sec: 'wildlife', label: 'SWIFTS', cat: 'sky', group: 'FLYING OVER' },
