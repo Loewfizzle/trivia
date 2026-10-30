@@ -23,10 +23,10 @@ import { rideDecision, JOIN_FADE_S } from '../core/lobby-song.js';
 import { nowPlaying, handoffFade, musicInput, onMusicDuck, musicDuckLevel, setMusicClocked } from './music.js';
 
 // (the party's songs must agree to the beat, so this phone's own player only RIDES along when it is within PARTY_RIDE_S of the timeline —
-// the lobby's 2.5 s is for a room's background song; otherwise the synced player joins: the same song a hair off → a short PARTY_JOIN_S
-// fade, another song → the lobby's JOIN_FADE_S crossfade)
-export const PARTY_RIDE_S = 0.12, PARTY_JOIN_S = 0.35;
-let player = null, playingId = null, handed = false, outGain = null, offMs = null, clocked = false, last = null;
+// the lobby's 2.5 s is for a room's background song; the synced player is the exact one, so almost always it joins: the same song a hair
+// off → a short PARTY_JOIN_S fade, another song → the lobby's JOIN_FADE_S crossfade)
+export const PARTY_RIDE_S = 0.05, PARTY_JOIN_S = 0.35;
+let player = null, playingId = null, handed = false, outGain = null, offMs = null, clocked = false, last = null, rideKey = '', rideOn = false;
 const urlFor = id => musicUrl(id);
 onMusicDuck((lv, s) => { try { if (outGain) outGain.gain.setTargetAtTime(lv, outGain.context.currentTime, Math.max(0.02, s / 3)); } catch { /* gone */ } });
 
@@ -77,19 +77,23 @@ export function partyMusicTick(active, hold = false) {
   }
   const now = serverNow(), lm = { t0: game.songStartAt, songs: game.songs, sd: game.sd }, np = nowPlaying();
   const d0 = rideDecision(np, lm, now), same = !!(np && np.id === game.songs[d0.cur]);
-  const d = { ...d0, riding: d0.riding && Math.abs(np.at - d0.expected) <= PARTY_RIDE_S };
+  // (THE RIDE is decided ONCE a song — sticky, so an element's jitter never flips it back + forth — and never once the synced player
+  // sounds: from then on it keeps the song, this phone's own player resting)
+  const key = `${game.matchId}|${d0.cur}`;
+  if (rideKey !== key) { rideKey = key; rideOn = !handed && d0.riding && Math.abs(np.at - d0.expected) <= PARTY_RIDE_S; }
+  const d = { ...d0, riding: rideOn && !handed && d0.riding };
   if (d.riding) player.setMinIndex(d.cur + 1);
   player.setGame(game);
   player.tick();
   last = { cur: d.cur, expected: d.expected, riding: d.riding, kind: T.tl.kind, id: game.songs[d.cur] };
   if (d.riding) { handed = false; return false; }
-  if (player.now()) { if (!handed) { handed = true; handoffFade(d.cur > 0 && d.expected < XF_MS / 1000 ? XF_MS / 1000 : same ? PARTY_JOIN_S : JOIN_FADE_S); } return true; }
+  if (player.now() || (handed && player.playing())) { if (!handed) { handed = true; handoffFade(d.cur > 0 && d.expected < XF_MS / 1000 ? XF_MS / 1000 : same ? PARTY_JOIN_S : JOIN_FADE_S); } return true; }
   return false;
 }
 
 /** the party song sounding from the synced player right now: { id, at } or null (the beat follows it like the lobby's) */
 export function partyNow() { const n = player ? player.now() : null; return n ? { id: n.id, at: n.at } : null; }
-export function stopPartyMusic(fade) { handed = false; if (player) { player.stop(fade); player = null; playingId = null; } }
+export function stopPartyMusic(fade) { handed = false; rideKey = ''; rideOn = false; if (player) { player.stop(fade); player = null; playingId = null; } }
 /** the &debug=1 readout + the tests: what the party's music is doing — { kind (night / party / dance), song (the timeline's now), at (s
  *  into it), riding (this phone's own player on it), synced (the synced player sounding), player (its debug) } or null */
 export function partyMusicDebug() {
@@ -97,5 +101,5 @@ export function partyMusicDebug() {
   if (!T) return null;
   const s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
   return { kind: T.tl.kind, song: s ? s.id : null, at: s ? +(T.cityMs / 1000 - s.t0).toFixed(2) : null, dur: s ? s.dur : null, left: s ? +(s.t1 - T.cityMs / 1000).toFixed(1) : null,
-    riding: !!(last && last.riding), synced: !!(player && player.now()), heard: partyNow(), player: player ? player.debug() : null };
+    riding: !!(last && last.riding), synced: !!(player && player.now()), heard: partyNow(), own: (() => { const n = nowPlaying(); return n ? { id: n.id, at: n.at } : null; })(), player: player ? player.debug() : null };
 }

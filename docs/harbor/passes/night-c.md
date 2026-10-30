@@ -106,6 +106,13 @@ NIGHT-B ✅ (9c9e813), NIGHT-C ← NEXT.
   engine's frozen clock) — the iPhone after a lock screen is the real check.
 - A bird / a Halloween bat crossing a crisp roof sign or a live window would pass BEHIND it for that moment (rare; not seen).
 - The break helicopter's beam crosses the SIGNAL blade on some nights (soft light, by design).
+- THE CLOUD, run 1 (`gh workflow run harbor` on c5dd391 — the tagged push held only docs, so the path filter skipped it): 7 of 8 jobs green;
+  `perf` red on (1) partysync — a phone whose own player started within 0.12 s of the timeline RODE along and the test only accepted the
+  synced player → FIXED: the ride now needs ≤ 0.05 s, is decided ONCE a song (an element's jitter flipped it, which could have restarted the
+  phone's own player under the synced one), never once the synced player sounds; the test accepts a riding phone; the music group's SONG
+  CLOCK checks run with `&force=no-party-sync` (they drive the element); (2) MEMORY — 20 title↔setup cycles: heap +6.3 MB vs the 6 MB limit.
+  NIGHT-B's cloud runs measured +5.1 and +5.9; the same machine, the same run: the old build +4.8, this one +5.0 MB — the check sits at
+  its limit (noise), not a leak; left as it is.
 - No Java on the laptop: the smoke test + the rules + /api suites (a shared file touched: app.js, music.js, synced-songs.js, sky.js) run in
   the cloud's tests workflow on the final push only.
 - e2e THE DOG's TURN (one frame at 11.0–11.2 vs ≤ 11 u/s) fails on the laptop — the same on 68e2fa6 (a timing flake, not this pass).

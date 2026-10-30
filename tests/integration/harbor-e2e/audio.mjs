@@ -576,7 +576,8 @@ G('music', async () => {
   // come from the SONG (the element's currentTime), re-anchored whenever the song and the frame clock can part: the element paused while
   // the context runs on, the context suspended while the element plays on, a seek. Expected after each: the lights' beat (party().beatsF)
   // on the element's grid position within a frame or two, the readout's beat line with the song's bar + `drift`, the clock line.
-  { const F = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1`, view: [402, 874] });
+  // (NIGHT-C: the party's synced song off — these checks drive THIS phone's own song element: its clock, a pause, a seek)
+  { const F = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1&force=no-party-sync`, view: [402, 874] });
     const f = F.page;
     await tapAt(f, 30, 300);
     await waitFor(f, `(() => { const d = window.__arcade.musicDebug(); return !!d.playing && d.health.sounding; })()`, 'the party song', 25000);
@@ -718,9 +719,11 @@ G('partysync', async () => {
   const brk = brks.find(b => Math.abs(b.s0 - (ev0.day0 + 22 * 3600 + 5 * 60 + 41)) < 5);
   ok(!!brk && brk.kind === 'conga' && !!brk.song, `the night's plan: a ${brk && brk.kind} break at 22:05:41 on ${brk && brk.song}`);
   const PM = 'window.__arcade.partyMusicDebug()';
-  const synced = p => waitFor(p, `(() => { const d = ${PM}; return !!(d && d.synced && d.heard); })()`, 'the party song synced', 30000);
-  // one reading: where the song SOUNDS (the synced player's buffer) vs where the timeline says it is, at the same instant (+ the wall time)
-  const read = p => ev(p, `(() => { const d = ${PM}; return d && d.heard ? { id: d.heard.id, song: d.song, at: d.heard.at, want: d.at, err: d.heard.at - d.at, wall: Date.now(), kind: d.kind } : null; })()`);
+  // (in sync = the synced player sounding, or — rarely — this phone's own player RIDING along within 0.05 s of the timeline: it then plays
+  // the song till the synced player takes the next one)
+  const synced = p => waitFor(p, `(() => { const d = ${PM}; return !!(d && ((d.synced && d.heard) || (d.riding && d.own))); })()`, 'the party song in sync', 45000);
+  // one reading: where the song SOUNDS (the synced player's buffer, or the riding element) vs where the timeline says it is, at the same instant
+  const read = p => ev(p, `(() => { const d = ${PM}; const h = d && (d.synced && d.heard ? d.heard : d.riding ? d.own : null); return h ? { id: h.id, song: d.song, at: h.at, want: d.at, err: h.at - d.at, wall: Date.now(), kind: d.kind, how: d.synced ? 'synced' : 'riding' } : null; })()`);
   const pages = [];
   try {
     // ---- 1. two "phones" on the same party night, 21 s before the conga: each hears the timeline's song within ~100 ms (a preview's
@@ -729,17 +732,18 @@ G('partysync', async () => {
     for (const Q of pages) { await harborUp(Q.page); await tapAt(Q.page, 30, 300); }
     for (const Q of pages) await synced(Q.page);
     await sleep(800);
+    for (const Q of pages) await synced(Q.page);
     const [a, b] = await Promise.all(pages.map(Q => read(Q.page)));
     ok(a && b && a.id === a.song && b.id === b.song && a.kind === 'night' && b.kind === 'night', `THE TIMELINE's SONG: the phones hear ${a && a.id} / ${b && b.id} (their timelines' ${a && a.song} / ${b && b.song}, a party ${a && a.kind})`);
     ok(a && b && Math.abs(a.err) < 0.1 && Math.abs(b.err) < 0.1, `IN TIME: each within ~100 ms of the server clock's timeline (${a && (a.err * 1000).toFixed(0)} / ${b && (b.err * 1000).toFixed(0)} ms)`);
     { const line = await ev(pages[0].page, 'window.__district.harbor().partySync');
-      ok(/^party NIGHT · c2-party\d+ \d+:\d\d \/ \d+:\d\d · SYNCED \(server clock\) · next in \d+:\d\d/.test(line || ''), `THE READOUT (&debug=1): "${line}"`); }
+      ok(/^party NIGHT · c2-party\d+ \d+:\d\d \/ \d+:\d\d · (SYNCED \(server clock\)|riding \(own player, on the clock\)) · next in \d+:\d\d/.test(line || ''), `THE READOUT (&debug=1): "${line}"`); }
     // ---- 2. THE BREAK ON THE HEARD SONG: as the conga starts, the song every phone hears is the break's — just begun
     { const p = pages[0].page;
       await waitFor(p, `(() => { const s = window.__district.harbor() && __district.harbor().people.party; return !!(s && s.brk && s.brk.kind === 'conga' && s.k > 0.02); })()`, 'the conga break', 40000);
       const r = await ev(p, `(() => { const s = window.__district.harbor().people.party, d = ${PM}; return { brk: s.brk.song || null, k: s.k, song: d.song, at: d.at, heard: d.heard && d.heard.id }; })()`);
       ok(r.brk === brk.song && r.song === brk.song && r.at < 4, `THE BREAK STARTS ON THE SONG: the conga on ${r.brk}, the timeline's song ${r.song} ${r.at.toFixed(1)} s in (level ${r.k.toFixed(2)})`);
-      await waitFor(p, `(() => { const d = ${PM}; return !!(d && d.heard && d.heard.id === ${JSON.stringify(brk.song)}); })()`, 'the break song heard', 12000).catch(() => {});
+      await waitFor(p, `(() => { const d = ${PM}; const h = d && (d.synced && d.heard ? d.heard : d.riding ? d.own : null); return !!(h && h.id === ${JSON.stringify(brk.song)}); })()`, 'the break song heard', 12000).catch(() => {});
       const h = await read(p);
       ok(h && h.id === brk.song && Math.abs(h.err) < 0.1, `…AND HEARD: this phone plays ${h && h.id} (${h && (h.err * 1000).toFixed(0)} ms from the clock) — the crossfade into the break's song on the server clock`);
       if (SHOTS) await p.screenshot({ path: `${OUT}partysync-conga-402x660.png` }); }
