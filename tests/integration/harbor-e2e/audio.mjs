@@ -201,8 +201,10 @@ G('music', async () => {
     await waitFor(P.page, `(${NOW}) && ${JSON.stringify(deck('evening'))}.includes(${NOW})`, 'an EVENING song (the saved setting)', 25000);
     const first = await ev(P.page, NOW);
     await ev(P.page, "window.__district.remote().setMine({ party: 'on' })");
-    if (!deck('party').includes(first)) await changed(P.page, first, 'PARTY ON');
-    const now = await ev(P.page, NOW);
+    // (SKY-A: the party's song now plays from the SYNCED player — this phone's own player starts nothing first: the song heard is either)
+    const HEARD = `(() => { const pm = window.__arcade.partyMusicDebug && window.__arcade.partyMusicDebug(); return (pm && pm.synced && pm.heard && pm.heard.id) || (${NOW}); })()`;
+    if (!deck('party').includes(first)) await waitFor(P.page, `${JSON.stringify(deck('party'))}.includes(${HEARD})`, 'PARTY ON: a party song heard', 25000).catch(() => {});
+    const now = await ev(P.page, HEARD);
     ok(deck('party').includes(now), `PANEL PARTY ON plays a PARTY song over a saved MUSIC MOOD (EVENING: ${first} → ${now})`);
     await waitFor(P.page, "window.__district.party().on > 0.9 && window.__district.party().src === 'grid'", 'the pulse on the song’s grid', 15000);
     const pk = []; for (let i = 0; i < 24; i++) { pk.push(await ev(P.page, 'window.__district.party().punch')); await new Promise(r => setTimeout(r, 90)); }

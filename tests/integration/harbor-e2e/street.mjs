@@ -492,7 +492,8 @@ G('freeze', async () => {
   const SNAP = `(() => { const h = window.__district.harbor(), l = window.__district.loop(), cv = document.querySelector('canvas');
     const x = document.createElement('canvas'); x.width = 100; x.height = 218; const c = x.getContext('2d'); c.drawImage(cv, 0, 0, 100, 218);
     const px = Array.from(c.getImageData(0, 0, 100, 218).data.filter((v, i) => i % 4 !== 3)); x.width = 0;
-    return { running: l.running, failStop: l.failStop, drawn: l.drawn, canvases: document.querySelectorAll('canvas').length,
+    return { running: l.running, failStop: l.failStop, drawn: l.drawn, canvases: [...document.querySelectorAll('canvas')].filter(c => !/hc-crisp|hl-tri|hb-bb/.test(c.className)).length,   // (SKY-A: the LASTING canvases — the crisp layer's items come + go by design (freed 2 s unseen: the old build failed this count too once they came back after the blackout), the legends' full-res overlays live only while they fly)
+      cls: [...document.querySelectorAll('canvas')].map(c => c.className || (c.parentElement && c.parentElement.className) || '-').join(' '),
       heap: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1e6) : 0, dropped: h.speakeasy.life.dropped || [],
       failed: ((h.loadLog && h.loadLog.lines) || []).filter(s => /frame failed|loop stopped/.test(s)), px,
       lg: h.legend && h.legend.state && h.legend.state.run ? +h.legend.state.s.toFixed(2) : null, at: performance.now(), watch: !!(window.__district.report() || {}).watching }; })()`;
@@ -524,7 +525,7 @@ G('freeze', async () => {
       const rate = pairs.reduce((a, q) => a + q[0], 0) / Math.max(1e-6, pairs.reduce((a, q) => a + q[1], 0));
       ok(pairs.length >= 12 && pairs.every(q => q[0] > 0.05) && rate > 0.8 && rate < 1.2, `9e THE TR-3B's WHOLE RUN never sticks: its clock moved on all ${pairs.length} looks, ${rate.toFixed(2)} × real time over the run (${runs.filter(v => v != null).length} looks with the run on)`);
     }
-    ok(z.canvases <= s[3].canvases + 2 && (!h0 || h1 <= h0 * 1.5 + 25), `NEVER FREEZE (${L.id}): no climb (from 6 s in: the power-on adds its overlays first) — canvases ${s[3].canvases} → ${z.canvases}, JS heap ${h0} → ${h1} MB`);
+    ok(z.canvases <= s[3].canvases + 2 && (!h0 || h1 <= h0 * 1.5 + 25), `NEVER FREEZE (${L.id}): no climb (from 6 s in: the power-on adds its overlays first) — canvases ${s[3].canvases} → ${z.canvases} (${s[3].cls} → ${z.cls}), JS heap ${h0} → ${h1} MB`);
     if (L.held) {
       // 9d: a HELD preview (&lgs=) is a still — the song never stuck at half speed, no crackle repeating forever; the &temp= override
       // reaches the snowman (the owner's log read "slumping · 12 °C" on this −6 °C link)

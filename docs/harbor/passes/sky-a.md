@@ -102,6 +102,15 @@ All on the laptop (Chrome headless + GPU, 402×660 at 3×; the phone-like 4× CP
   difference); the phone bench (`&bench=1`) has `party-break` (with the helicopter), `tr3b` (the full-res craft, its lights, the F-22 vic, the
   Blackbird) + a new `blackbird` scene for him to confirm.
 
+### The cloud runs (two, the cap)
+- Run 1 (15d63b1): tests ✓; harbor 6/9 — `audio` (music 5b: the panel's PARTY now plays from the SYNCED player, the check read only this
+  phone's own player → it accepts the synced song), `street` (freeze's "no climb" counted every DOM canvas — the crisp layer's items come +
+  go by design (the old build fails it locally too once they return after the blackout) + the legends' overlays live only while they fly →
+  it counts the lasting canvases; the JS-heap check unchanged), `windows` (THE TV ROOM FLICKERS: a swing of 6 in the cloud vs 22 + 9 jumps
+  on the laptop — a flake, not re-run). Locally after the fixes: freeze 36/36, music 111/112 (a laptop timing check, passed in the cloud),
+  windows 59/59.
+- Run 2: the fix push.
+
 ### Decisions (Claude Code's calls — the owner may overrule)
 - The break helicopter's band: as LOW as the signs allow over the near water's bright reflections (y ≈ 610 at 402×874), clear of OVERCLOCK on
   the left; it TURNS at each end of its drift (a helicopter faces where it flies) rather than flying backward.
