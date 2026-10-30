@@ -803,3 +803,30 @@ G('heli', async () => {
     ok(gone && lastX != null && (lastX < -10 || lastX > W + 10), `OFF AFTER THE SONG: it flew out (last seen at x ${lastX} of ${W}) — never vanished in view`);
     await Q.ctx.close(); }
 });
+
+// ================================================================ NIGHT-C — THE ROOF SIGNS AT 3× (ONLY=roofcrisp; the `audio` cloud job — the
+// lightest by its seconds). On a 3× phone the tower roof signs stand on the crisp layer at full dpr (the housing + the light, added like the
+// city's neon); they look the same as the city's own copy (the luma over each sign within ~12 %); rain makes them yield (the city's copy).
+G('roofcrisp', async () => {
+  const P = 'window.__district.harbor()';
+  const lumaOf = async (page, boxes) => { const b64 = await page.screenshot({ encoding: 'base64' }); return page.evaluate((b64, boxes) => new Promise(res => { const im = new Image(); im.onload = () => {
+    const o = document.createElement('canvas'); o.width = im.width; o.height = im.height; const x = o.getContext('2d'); x.drawImage(im, 0, 0); const d = im.width / innerWidth;
+    res(boxes.map(b => { const a = x.getImageData(b.x * d, b.y * d, b.w * d, b.h * d).data; let s = 0; for (let i = 0; i < a.length; i += 4) s += 0.2126 * a[i] + 0.7152 * a[i + 1] + 0.0722 * a[i + 2]; return s / (a.length / 4); })); }; im.src = 'data:image/png;base64,' + b64; }), b64, boxes); };
+  const got = {};
+  for (const [tag, qs] of [['crisp', 'wx=clear&force=no-people'], ['soft', 'wx=clear&force=no-people,no-roof-crisp'], ['rain', 'wx=rain&force=no-people']]) {
+    const Q = await open({ slot: `rc${tag}`, qs: `when=2026-10-27T22:10${GR}&${qs}`, view: [402, 874], dpr: 3 });
+    await harborUp(Q.page);
+    if (tag === 'crisp') await waitFor(Q.page, `(${P}.roofCrisp || []).length === 2 && ${P}.roofCrisp.every(r => r.k === 1)`, 'the roof signs crisp', 20000).catch(() => {});
+    else await sleep(4000);
+    const rc = await ev(Q.page, `${P}.roofCrisp`), cv = await ev(Q.page, `[...document.querySelectorAll('canvas.hc-crisp')].filter(c => c.style.display !== 'none' && +c.style.opacity > 0.5).map(c => ({ w: c.width, cw: parseFloat(c.style.width), blend: c.style.mixBlendMode }))`);
+    const boxes = (await ev(Q.page, `(window.__district.scene().signs || []).filter(s => /n-roof/.test(s.id)).map(s => s.rect)`)) || [];
+    got[tag] = { rc, cv, lum: boxes.length ? await lumaOf(Q.page, boxes) : [] };
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}roofcrisp-${tag}-402x874.png` });
+    await Q.ctx.close();
+  }
+  const c = got.crisp, s = got.soft, r = got.rain;
+  const lit = c.cv.filter(x => x.blend === 'plus-lighter');
+  ok(c.rc.length === 2 && c.rc.every(x => x.k === 1) && lit.length >= 2 && lit.every(x => Math.abs(x.w / x.cw - 3) < 0.05), `THE ROOF SIGNS AT 3×: both on the crisp layer (${c.rc.map(x => `${x.id} ${x.k}`).join(', ')}), their light at the full dpr (${lit.map(x => (x.w / x.cw).toFixed(2)).join(' / ')}×) added like the city's neon`);
+  ok(c.lum.length === 2 && s.lum.length === 2 && c.lum.every((v, i) => Math.abs(v - s.lum[i]) <= s.lum[i] * 0.12 + 2), `…THE SAME SIGN, SHARPER: the luma over each sign ${c.lum.map(v => v.toFixed(0)).join(' / ')} crisp vs ${s.lum.map(v => v.toFixed(0)).join(' / ')} the city's own (within ~12 %)`);
+  ok(r.rc.every(x => x.k === 0), `RAIN IN FRONT: the crisp copies yield to the city's own (the drops fall over the sign) — ${r.rc.map(x => `${x.id} ${x.k}`).join(', ')}`);
+});

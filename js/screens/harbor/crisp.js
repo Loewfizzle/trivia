@@ -32,7 +32,8 @@ export function createCrisp() {
   /**
    * show one item this frame: { id, box: { x, y, w, h } (pt, in the city context's coordinates), key (redraw when it changes), draw(x)
    * (in pt — x is set up so the city's own drawing code paints the same thing at full dpr), alpha (0..1), z (stacking among the items),
-   * xfade (ms: a key change crossfades over it; 0 = at once) } → true when it is shown here (the caller may skip its own canvas draw)
+   * xfade (ms: a key change crossfades over it; 0 = at once), blend? (NIGHT-C: a CSS mix-blend-mode — 'plus-lighter' for light) } → true when
+ * it is shown here (the caller may skip its own canvas draw)
    */
   function show(c, it) {
     if (!on || !it.box || !(it.box.w > 0) || !(it.box.h > 0)) return false;
@@ -69,6 +70,10 @@ export function createCrisp() {
     if (opA !== I.op) { I.op = opA; I.a.style.opacity = String(opA); }
     if (I.b && opB !== I.opB) { I.opB = opB; I.b.style.opacity = String(opB); }
     I.a.style.display = ''; if (I.b) I.b.style.display = '';
+    // (NIGHT-C — blend: a LIGHT item (the roof signs' tubes) adds onto the city like the city's own neon ('lighter'): CSS plus-lighter)
+    const bl = it.blend || '';
+    if (I.a.style.mixBlendMode !== bl) I.a.style.mixBlendMode = bl;
+    if (I.b && I.b.style.mixBlendMode !== bl) I.b.style.mixBlendMode = bl;
     I.seen = frameN;
     return true;
   }

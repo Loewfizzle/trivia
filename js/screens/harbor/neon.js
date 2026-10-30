@@ -304,7 +304,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       frameLight(x, sg, col);
     });
   }
-  function freeItem(it) { free(it.spill); it.spill = undefined; if (it.lit) it.lit.forEach(free); free(it.night); if (it.b) free(it.b.nightS); free(it.alt); if (it.swp) it.swp.forEach(free); it.swp = null; it.swpQ = false; if (it.cyc) it.cyc.forEach(free); if (it.vars) for (const v of it.vars.values()) free(v); freePal(it); it.lit = null; it.night = null; it.alt = null; it.cyc = null; it.vars = null; }
+  function freeItem(it) { freeHi(it); free(it.spill); it.spill = undefined; if (it.lit) it.lit.forEach(free); free(it.night); if (it.b) free(it.b.nightS); free(it.alt); if (it.swp) it.swp.forEach(free); it.swp = null; it.swpQ = false; if (it.cyc) it.cyc.forEach(free); if (it.vars) for (const v of it.vars.values()) free(v); freePal(it); it.lit = null; it.night = null; it.alt = null; it.cyc = null; it.vars = null; }
   function freePal(it) { if (it.ps) for (const v of it.ps.values()) free(v); it.ps = null; }
   // a tube's colour at its building's depth: the far ones sink toward the night haze (aerial perspective)
   const colOf = (role, o2) => { const c = roleColour(role, scheme); return o2 && o2.st && o2.st.haze ? mix(c, HAZE, o2.st.haze) : c; };
@@ -330,6 +330,19 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   // a building's party colour: its tubes in one bright colour that contrasts with its own (built a few a frame while the party runs)
   // SP6 — TWO-TONE's set for a roof sign (the border + the letters' colours traded; built ahead of its turn, the hour it takes the mode)
   function buildSwap(it) { it.swpQ = false; if (it.swp || !it.lit || !it.sg.litSwap) return; it.swp = it.sg.litSwap(dpr); }
+  // NIGHT-C — THE ROOF SIGNS AT 3× (the owner, Oct 29 5:33–5:35 pm; scene.js#crispTick): the tower roof signs' lit sprites again at the
+  // phone's full dpr (+ two-tone's swap set), built a sign a step, freed with the item — only while the crisp layer draws them
+  const crispK = new Map();          // sign id → the crisp copy's share (0..1): the city's own copy draws 1 − it (drawOne's kMul)
+  const crispMasks = new Map();      // sign id → { mask (its housing's pixels at the crisp canvas), tmp (the outline over it) }
+  const lastArgs = {};               // group → its last drawItems' frame args (the crisp copy draws with the same, after the city's)
+  let hiDpr = 0;
+  function freeHi(it) { if (it.litHi) it.litHi.forEach(free); if (it.swpHi) it.swpHi.forEach(free); it.litHi = null; it.swpHi = null; it.hiQ = false;
+    const m = it.sg && crispMasks.get(it.sg.id); if (m) { m.mask.width = m.mask.height = 0; m.tmp.width = m.tmp.height = 0; crispMasks.delete(it.sg.id); } }
+  function buildHi(it) { it.hiQ = false; if (!it.lit || it.litHi || !hiDpr) return; it.litHi = it.sg.lit(hiDpr); if (it.sg.litSwap) it.swpHi = it.sg.litSwap(hiDpr); }
+  const isRoofSign = it => it.kind === 'sign' && it.sg && it.sg.spot && it.sg.spot.mount === 'tower';
+  // (the crisp stand stops just above its tower's neon crown line — the city draws that tube IN FRONT of the legs' last ~2 pt; the city's
+  // own legs finish the join to the roof under the tube's glow, so the outline never sits behind a crisp leg)
+  const crispFoot = sg => roofUnder(sg.spot) - 2.4 * (cam ? cam.F / 600 : 1);
   function buildAlt(it) {
     if (!it.tubes || it.alt) return;
     const own = roleColour(it.o.roles[0], scheme), k = cam.F / 600, o2 = it.o;
@@ -590,113 +603,126 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     for (const r of rs) c.rect(r.x - 0.5, r.y - 0.5, r.w + 1, r.h + 1);
     c.clip('evenodd');
   }
+  /**
+   * ONE item's light this frame (NIGHT-C: one function for the city's canvas AND THE CRISP ROOF SIGNS — crispSign below — so every effect
+   * routes through both: the hourly modes, a burnt-out letter, the restart flicker, the party's punch + colours, the spill on the frame).
+   * dimK: dimOf's level (stepped once a frame by the caller); kMul: the share drawn here (the city's copy fades as its crisp copy shows);
+   * hi: the full-dpr sprites (it.litHi / it.swpHi — built for the crisp layer) where they exist
+   */
+  function drawOne(c, it, f, t, motion, flutter, partyK, noPunch, dimK, kMul = 1, hi = false) {
+    const lit = hi && it.litHi ? it.litHi : it.lit, swp = hi && it.swpHi ? it.swpHi : it.swp;
+    const base = f.fade * (flutter ? 0.965 + 0.035 * Math.sin(t * 11 + it.i * 2.3) * Math.sin(t * 3.1 + it.i) : 1) * dimK * kMul;
+    if (base <= 0.002) return;
+    if (it.kind === 'board') {
+      // (DT1: the board is LAMP-LIT — its gooseneck lamps' level: on from late golden hour, a dim wash once the neon is up)
+      const a = alpha(it, 0, t, motion) * base * (f.bill != null ? f.bill : f.night);
+      if (a > 0.01 && it.night) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(it.night.c, it.night.x, it.night.y, it.night.w, it.night.h); c.globalCompositeOperation = 'lighter'; }
+      return;
+    }
+    // THE PARTY SHOW: the building's tubes × the plan (the beat, call-and-response), its party colour crossfaded in by a sweep;
+    // under a live effect (a climb, the fins, a chase) the tubes sink back a little so the running light reads
+    let beat = 1, alt = 0;
+    // (NEON PASS 4: the signs + icons punch on the beat too — their light and glow, never the billboards' paint)
+    if (it.kind === 'sign' && showOn) beat = 0.9 + 0.72 * showState.punch;   // (7a: 0.55 → 0.72)
+    if (it.kind === 'outline' && showOn) {
+      const fx = showOut.fx[it.i];
+      beat = showOut.a[it.i] * (showOut.race[it.i] > 0.05 ? 0.68 : 1) * (fx === FX.ledges || fx === FX.fins ? 0.72 : 1);   // (NEON PASS 5: the tubes sink a little more under the racing light: it reads as colour, not a white wash)
+      alt = showOut.alt[it.i];
+      if (usePal() && it.tubes) {
+        // THE ROTATING PALETTE (NEON PASS 5): scene n's pair, crossfading to the next as the sweep front passes (or a colour sweep /
+        // a strobe flashes it early); the building's own colours until its pair is built (then a 1 s fade into it)
+        const pl = palOf(it), kA = m6(pl.A), kB = m6(pl.B);
+        const A = partySprite(it, pl.A, [kA, kB]), B = partySprite(it, pl.B, [kA, kB]);
+        const s0 = lit[0], SA = A || s0, SB = B || SA, fa = A ? clamp01((performance.now() - A.at) / 1000) : 0;
+        const m = Math.max(pl.m, alt), a = alpha(it, 0, t, motion) * base * beat;
+        if (a > 0.01) {
+          const draw2 = (S2, k2) => { if (k2 > 0.004) { c.globalAlpha = Math.min(1, k2); c.drawImage(S2.c, S2.x, S2.y, S2.w, S2.h); } };
+          // (now = its own colours → scene n's pair as the pair comes in; → scene n + 1's by m)
+          draw2(s0, a * (1 - fa) * (1 - m));
+          if (A) draw2(SA, a * fa * (1 - m));
+          draw2(SB, a * m);
+          if (a > 1.01 && !noPunch) draw2(m > 0.5 ? SB : fa > 0.5 ? SA : s0, a - 1);     // (THE PUNCH: brighter than lit)
+        }
+        return;
+      }
+      if (alt > 0.02 && !it.alt && !it.altQ) { it.altQ = true; queue.push(() => buildAlt(it)); }
+      if (!it.alt) alt = 0;
+    }
+    // COLOURS THROUGH THE NIGHT (not during the party's show): a slow ROTATION to the building's second colour and back, or
+    // the building's SCHEME for the night's stage (evening → late night → the small hours), crossfaded over 20 s
+    let vk = null;
+    if (it.kind === 'outline' && !showOn && daily && tier > 0 && it.tubes) {
+      if (daily.rotate.has(it.i) && motion) { const m = rotateMix(t, it.i); if (m > 0.004) { if (!it.alt && !it.altQ) { it.altQ = true; queue.push(() => buildAlt(it)); } if (it.alt) { alt = m; } } }
+      else if (daily.stages.has(it.i) && f.hour != null) {
+        const ci = daily.stages.get(it.i)[nightStage(f.hour)], key = ci < 0 ? 'base' : `v${ci}`;
+        if (it.stCur !== key) { it.stPrev = it.stCur || 'base'; it.stCur = key; it.stT0 = it.stT0 == null || !motion ? -1e9 : t; }
+        const k2 = motion ? Math.min(1, Math.max(0, (t - it.stT0) / 20)) : 1;
+        vk = { from: varSprite(it, it.stPrev), to: varSprite(it, it.stCur), k: k2 * k2 * (3 - 2 * k2) };
+      }
+    }
+    // THE EVERYDAY MOTION on the signs: a name that blinks or spells itself on, the colour-cycling sign
+    // (SP3: a roof sign in its hourly mode — the mode's level (the restart flicker, the breath) + its turn (the spell, the race))
+    const rmM = it.kind === 'sign' && rmNow ? rmNow.modes.get(it.sg.id) : null, rmMv = rmM && rmNow.move && rmNow.move.id === it.sg.id ? rmNow.move : null;
+    const rmLv = rmM ? rmNow.restart * (rmM === 'breath' ? breathLevel(t, it.i) : 1) : 1;
+    rmMot = rmMv && rmMv.kind === 'spell' ? spellLevel(rmMv.u) : null;
+    // (SP6 — WORD FLASH / LAYERS / TWO-TONE: each part's level now — the border, the letters (word by word), the icon; or the colours traded)
+    if (rmM === 'twotone' && !it.swp && !it.swpQ && it.sg.litSwap) { it.swpQ = true; queue.push(() => buildSwap(it)); }
+    const rmP = !rmMv ? null : rmMv.kind === 'layers' ? layersAt(rmMv.u) : rmMv.kind === 'twotone' ? twoToneAt(rmMv.u) : rmMv.kind === 'wordflash' ? wordFlashAt(rmMv.u, (lit.find(q => q.role === 'text') || {}).lines === 2 ? 2 : 1) : null;
+    const burnHere = !!(burn && it.kind === 'sign' && burn.id === it.sg.id);
+    const dm = rmM ? (rmMot ? 'roofspell' : null) : it.kind === 'sign' && daily && motion && tier > 0 ? (spellSt && spellSt.id === it.sg.id ? 'spell' : daily.blink.has(it.sg.id) ? 'blink' : daily.cycle === it.sg.id ? 'cycle' : null) : null;
+    lit.forEach((s, i) => {
+      let a = alpha(it, i, t, motion) * base * beat * rmLv;
+      if (a <= 0.01) return;
+      if (rmP) {
+        const role = s.role || 'border';
+        if (rmP.words) {
+          if (role === 'text' && rmP.words.length === 2) { roofWords(c, it, s, a, rmP.words, dm, t, burnHere); return; }
+          a *= role === 'text' ? rmP.words[0] : role === 'mark' ? rmP.mark : rmP.border;
+        } else if (rmP.swap != null) {
+          const S2 = swp && swp[i];
+          if (rmP.swap > 0.001 && S2 && !(burnHere && role === 'text')) { if (rmP.swap < 0.999) { c.globalAlpha = Math.min(1, a * (1 - rmP.swap)); c.drawImage(s.c, s.x, s.y, s.w, s.h); } c.globalAlpha = Math.min(1, a * rmP.swap); c.drawImage(S2.c, S2.x, S2.y, S2.w, S2.h); return; }
+        } else a *= role === 'text' ? rmP.text : role === 'mark' ? rmP.mark : rmP.border;
+        if (a <= 0.01) return;
+      }
+      // (a BURNT-OUT LETTER: the sign's text drawn with that letter cut out — dark glass — and a weak sputter now and then)
+      if (s.role === 'text' && burn && burn.id === it.sg.id) { deadText(c, it, s, a, dm, t); return; }
+      if (dm && s.role === 'text' && (dm === 'spell' || dm === 'blink' || dm === 'roofspell')) { signText(c, it, s, a, dm, t); return; }
+      if (dm === 'cycle' && (s.role === 'mark' || it.sg.type === 'icon')) { if (!it.cyc) buildCycle(it); if (it.cyc) { cycleDraw(c, it, a, t); return; } }
+      if (alt > 0) { c.globalAlpha = Math.min(1, a * (1 - alt)); c.drawImage(s.c, s.x, s.y, s.w, s.h); c.globalAlpha = Math.min(1, a * alt * 1.1); c.drawImage(it.alt.c, it.alt.x, it.alt.y, it.alt.w, it.alt.h); if (a > 1.01) { const A = alt > 0.5 ? it.alt : s; c.globalAlpha = Math.min(1, a - 1); c.drawImage(A.c, A.x, A.y, A.w, A.h); } return; }
+      if (vk && i === 0) { const A = vk.from || s, B = vk.to || s; if (vk.k < 1) { c.globalAlpha = Math.min(1, a * (1 - vk.k)); c.drawImage(A.c, A.x, A.y, A.w, A.h); } c.globalAlpha = Math.min(1, a * vk.k); c.drawImage(B.c, B.x, B.y, B.w, B.h); return; }
+      c.globalAlpha = Math.min(1, a); c.drawImage(s.c, s.x, s.y, s.w, s.h);
+      // THE PUNCH: brighter than lit — the sprite again, additive (its core + glow swell together)
+      if (a > 1.01 && !noPunch) { c.globalAlpha = Math.min(1, a - 1); c.drawImage(s.c, s.x, s.y, s.w, s.h); }
+    });
+    // NEON PASS 6 (the owner): a ROOF SIGN spills a soft glow of its colour down onto the roof's steps and its steel frame — the
+    // frame reads as structure in the sign's light, never a black blob (one cached sprite a sign; additive like the rest)
+    if (rmM === 'race') roofRace(c, it, alpha(it, 0, t, motion) * base * rmLv, rmMv);
+    if (it.kind === 'sign' && it.sg.frame) {
+      const a = alpha(it, 0, t, motion) * base * beat * rmLv;
+      if (a > 0.02) { if (it.spill === undefined) it.spill = spillSprite(it.sg); if (it.spill) { c.globalAlpha = Math.min(1, a * 0.95); c.drawImage(it.spill.c, it.spill.x, it.spill.y, it.spill.w, it.spill.h); } }
+    }
+    // the game blade's chaser bulbs (Part 6a; the HOTEL's before)
+    if (it.kind === 'sign' && it.sg.bulbs) {
+      const a = alpha(it, 0, t, motion) * base;
+      // (NEON PASS 3: a CALM chase on the outer frame — one bulb in four, a step every 0.42 s, a soft hand-off between them; never a
+      // flash across the letters)
+      // (NEON PASS 4, the party: a MARQUEE — a step every beat, one bulb in three, the lit ones punching)
+      const pt = showOn && f.party ? f.party : null, pp = pt ? showState.punch : 0;
+      // (DT1 — the owner: "its marquee chase bulbs a touch bigger, brighter, more prominent": bigger dots, the unlit ones warmer,
+      // the lit ones a white-hot heart)
+      if (a > 0.02) { const D = warmDot(), u = !motion ? 0 : pt ? (pt.beats || 0) + Math.min(1, (pt.beatU || 0) * 4) : t / 0.42, step = Math.floor(u), fr = u - step, m = pt ? 3 : 4; it.sg.bulbs.forEach(([bx, by], i) => { const ph = (i + step) % m, lit = ph === 0 ? 1 - fr * 0.6 : ph === m - 1 ? 0.4 + fr * 0.6 : 0; c.globalAlpha = Math.min(1, a * (0.42 + 0.58 * lit) * (1 + 0.6 * pp * lit)); const r = 1.75 + 1.05 * lit + 0.9 * pp * lit; c.drawImage(D, bx - r, by - r, r * 2, r * 2); if (lit > 0.3) { c.globalAlpha = Math.min(1, a * lit * 0.9); const r2 = r * 0.42; c.drawImage(D, bx - r2, by - r2, r2 * 2, r2 * 2); } }); }
+    }
+  }
   function drawItems(c, group, f, t, motion, flutter, partyK, outlinesPass) {
     const noPunch = !!(f.force && f.force.has('no-punch'));        // (&force=no-punch: the perf A/B of the punch's second draw)
+    if (!outlinesPass) lastArgs[group] = { f, t, motion, flutter, partyK, noPunch };
     for (const it of items) {
       if (!it.ready || (!it.lit && it.kind !== 'board')) continue;
       if ((it.kind === 'outline') !== outlinesPass) continue;
       if (it.kind === 'outline') { if (it.o.group !== group) continue; }
       else if (groupOf(it.kind === 'sign' ? it.sg.spot : it.b.spot) !== group) continue;
-      const base = f.fade * (flutter ? 0.965 + 0.035 * Math.sin(t * 11 + it.i * 2.3) * Math.sin(t * 3.1 + it.i) : 1) * dimOf(it, f);
-      if (it.kind === 'board') {
-        // (DT1: the board is LAMP-LIT — its gooseneck lamps' level: on from late golden hour, a dim wash once the neon is up)
-        const a = alpha(it, 0, t, motion) * base * (f.bill != null ? f.bill : f.night);
-        if (a > 0.01 && it.night) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(it.night.c, it.night.x, it.night.y, it.night.w, it.night.h); c.globalCompositeOperation = 'lighter'; }
-        continue;
-      }
-      // THE PARTY SHOW: the building's tubes × the plan (the beat, call-and-response), its party colour crossfaded in by a sweep;
-      // under a live effect (a climb, the fins, a chase) the tubes sink back a little so the running light reads
-      let beat = 1, alt = 0;
-      // (NEON PASS 4: the signs + icons punch on the beat too — their light and glow, never the billboards' paint)
-      if (it.kind === 'sign' && showOn) beat = 0.9 + 0.72 * showState.punch;   // (7a: 0.55 → 0.72)
-      if (it.kind === 'outline' && showOn) {
-        const fx = showOut.fx[it.i];
-        beat = showOut.a[it.i] * (showOut.race[it.i] > 0.05 ? 0.68 : 1) * (fx === FX.ledges || fx === FX.fins ? 0.72 : 1);   // (NEON PASS 5: the tubes sink a little more under the racing light: it reads as colour, not a white wash)
-        alt = showOut.alt[it.i];
-        if (usePal() && it.tubes) {
-          // THE ROTATING PALETTE (NEON PASS 5): scene n's pair, crossfading to the next as the sweep front passes (or a colour sweep /
-          // a strobe flashes it early); the building's own colours until its pair is built (then a 1 s fade into it)
-          const pl = palOf(it), kA = m6(pl.A), kB = m6(pl.B);
-          const A = partySprite(it, pl.A, [kA, kB]), B = partySprite(it, pl.B, [kA, kB]);
-          const s0 = it.lit[0], SA = A || s0, SB = B || SA, fa = A ? clamp01((performance.now() - A.at) / 1000) : 0;
-          const m = Math.max(pl.m, alt), a = alpha(it, 0, t, motion) * base * beat;
-          if (a > 0.01) {
-            const draw2 = (S2, k2) => { if (k2 > 0.004) { c.globalAlpha = Math.min(1, k2); c.drawImage(S2.c, S2.x, S2.y, S2.w, S2.h); } };
-            // (now = its own colours → scene n's pair as the pair comes in; → scene n + 1's by m)
-            draw2(s0, a * (1 - fa) * (1 - m));
-            if (A) draw2(SA, a * fa * (1 - m));
-            draw2(SB, a * m);
-            if (a > 1.01 && !noPunch) draw2(m > 0.5 ? SB : fa > 0.5 ? SA : s0, a - 1);     // (THE PUNCH: brighter than lit)
-          }
-          continue;
-        }
-        if (alt > 0.02 && !it.alt && !it.altQ) { it.altQ = true; queue.push(() => buildAlt(it)); }
-        if (!it.alt) alt = 0;
-      }
-      // COLOURS THROUGH THE NIGHT (not during the party's show): a slow ROTATION to the building's second colour and back, or
-      // the building's SCHEME for the night's stage (evening → late night → the small hours), crossfaded over 20 s
-      let vk = null;
-      if (it.kind === 'outline' && !showOn && daily && tier > 0 && it.tubes) {
-        if (daily.rotate.has(it.i) && motion) { const m = rotateMix(t, it.i); if (m > 0.004) { if (!it.alt && !it.altQ) { it.altQ = true; queue.push(() => buildAlt(it)); } if (it.alt) { alt = m; } } }
-        else if (daily.stages.has(it.i) && f.hour != null) {
-          const ci = daily.stages.get(it.i)[nightStage(f.hour)], key = ci < 0 ? 'base' : `v${ci}`;
-          if (it.stCur !== key) { it.stPrev = it.stCur || 'base'; it.stCur = key; it.stT0 = it.stT0 == null || !motion ? -1e9 : t; }
-          const k2 = motion ? Math.min(1, Math.max(0, (t - it.stT0) / 20)) : 1;
-          vk = { from: varSprite(it, it.stPrev), to: varSprite(it, it.stCur), k: k2 * k2 * (3 - 2 * k2) };
-        }
-      }
-      // THE EVERYDAY MOTION on the signs: a name that blinks or spells itself on, the colour-cycling sign
-      // (SP3: a roof sign in its hourly mode — the mode's level (the restart flicker, the breath) + its turn (the spell, the race))
-      const rmM = it.kind === 'sign' && rmNow ? rmNow.modes.get(it.sg.id) : null, rmMv = rmM && rmNow.move && rmNow.move.id === it.sg.id ? rmNow.move : null;
-      const rmLv = rmM ? rmNow.restart * (rmM === 'breath' ? breathLevel(t, it.i) : 1) : 1;
-      rmMot = rmMv && rmMv.kind === 'spell' ? spellLevel(rmMv.u) : null;
-      // (SP6 — WORD FLASH / LAYERS / TWO-TONE: each part's level now — the border, the letters (word by word), the icon; or the colours traded)
-      if (rmM === 'twotone' && !it.swp && !it.swpQ && it.sg.litSwap) { it.swpQ = true; queue.push(() => buildSwap(it)); }
-      const rmP = !rmMv ? null : rmMv.kind === 'layers' ? layersAt(rmMv.u) : rmMv.kind === 'twotone' ? twoToneAt(rmMv.u) : rmMv.kind === 'wordflash' ? wordFlashAt(rmMv.u, (it.lit.find(q => q.role === 'text') || {}).lines === 2 ? 2 : 1) : null;
-      const burnHere = !!(burn && it.kind === 'sign' && burn.id === it.sg.id);
-      const dm = rmM ? (rmMot ? 'roofspell' : null) : it.kind === 'sign' && daily && motion && tier > 0 ? (spellSt && spellSt.id === it.sg.id ? 'spell' : daily.blink.has(it.sg.id) ? 'blink' : daily.cycle === it.sg.id ? 'cycle' : null) : null;
-      it.lit.forEach((s, i) => {
-        let a = alpha(it, i, t, motion) * base * beat * rmLv;
-        if (a <= 0.01) return;
-        if (rmP) {
-          const role = s.role || 'border';
-          if (rmP.words) {
-            if (role === 'text' && rmP.words.length === 2) { roofWords(c, it, s, a, rmP.words, dm, t, burnHere); return; }
-            a *= role === 'text' ? rmP.words[0] : role === 'mark' ? rmP.mark : rmP.border;
-          } else if (rmP.swap != null) {
-            const S2 = it.swp && it.swp[i];
-            if (rmP.swap > 0.001 && S2 && !(burnHere && role === 'text')) { if (rmP.swap < 0.999) { c.globalAlpha = Math.min(1, a * (1 - rmP.swap)); c.drawImage(s.c, s.x, s.y, s.w, s.h); } c.globalAlpha = Math.min(1, a * rmP.swap); c.drawImage(S2.c, S2.x, S2.y, S2.w, S2.h); return; }
-          } else a *= role === 'text' ? rmP.text : role === 'mark' ? rmP.mark : rmP.border;
-          if (a <= 0.01) return;
-        }
-        // (a BURNT-OUT LETTER: the sign's text drawn with that letter cut out — dark glass — and a weak sputter now and then)
-        if (s.role === 'text' && burn && burn.id === it.sg.id) { deadText(c, it, s, a, dm, t); return; }
-        if (dm && s.role === 'text' && (dm === 'spell' || dm === 'blink' || dm === 'roofspell')) { signText(c, it, s, a, dm, t); return; }
-        if (dm === 'cycle' && (s.role === 'mark' || it.sg.type === 'icon')) { if (!it.cyc) buildCycle(it); if (it.cyc) { cycleDraw(c, it, a, t); return; } }
-        if (alt > 0) { c.globalAlpha = Math.min(1, a * (1 - alt)); c.drawImage(s.c, s.x, s.y, s.w, s.h); c.globalAlpha = Math.min(1, a * alt * 1.1); c.drawImage(it.alt.c, it.alt.x, it.alt.y, it.alt.w, it.alt.h); if (a > 1.01) { const A = alt > 0.5 ? it.alt : s; c.globalAlpha = Math.min(1, a - 1); c.drawImage(A.c, A.x, A.y, A.w, A.h); } return; }
-        if (vk && i === 0) { const A = vk.from || s, B = vk.to || s; if (vk.k < 1) { c.globalAlpha = Math.min(1, a * (1 - vk.k)); c.drawImage(A.c, A.x, A.y, A.w, A.h); } c.globalAlpha = Math.min(1, a * vk.k); c.drawImage(B.c, B.x, B.y, B.w, B.h); return; }
-        c.globalAlpha = Math.min(1, a); c.drawImage(s.c, s.x, s.y, s.w, s.h);
-        // THE PUNCH: brighter than lit — the sprite again, additive (its core + glow swell together)
-        if (a > 1.01 && !noPunch) { c.globalAlpha = Math.min(1, a - 1); c.drawImage(s.c, s.x, s.y, s.w, s.h); }
-      });
-      // NEON PASS 6 (the owner): a ROOF SIGN spills a soft glow of its colour down onto the roof's steps and its steel frame — the
-      // frame reads as structure in the sign's light, never a black blob (one cached sprite a sign; additive like the rest)
-      if (rmM === 'race') roofRace(c, it, alpha(it, 0, t, motion) * base * rmLv, rmMv);
-      if (it.kind === 'sign' && it.sg.frame) {
-        const a = alpha(it, 0, t, motion) * base * beat * rmLv;
-        if (a > 0.02) { if (it.spill === undefined) it.spill = spillSprite(it.sg); if (it.spill) { c.globalAlpha = Math.min(1, a * 0.95); c.drawImage(it.spill.c, it.spill.x, it.spill.y, it.spill.w, it.spill.h); } }
-      }
-      // the game blade's chaser bulbs (Part 6a; the HOTEL's before)
-      if (it.kind === 'sign' && it.sg.bulbs) {
-        const a = alpha(it, 0, t, motion) * base;
-        // (NEON PASS 3: a CALM chase on the outer frame — one bulb in four, a step every 0.42 s, a soft hand-off between them; never a
-        // flash across the letters)
-        // (NEON PASS 4, the party: a MARQUEE — a step every beat, one bulb in three, the lit ones punching)
-        const pt = showOn && f.party ? f.party : null, pp = pt ? showState.punch : 0;
-        // (DT1 — the owner: "its marquee chase bulbs a touch bigger, brighter, more prominent": bigger dots, the unlit ones warmer,
-        // the lit ones a white-hot heart)
-        if (a > 0.02) { const D = warmDot(), u = !motion ? 0 : pt ? (pt.beats || 0) + Math.min(1, (pt.beatU || 0) * 4) : t / 0.42, step = Math.floor(u), fr = u - step, m = pt ? 3 : 4; it.sg.bulbs.forEach(([bx, by], i) => { const ph = (i + step) % m, lit = ph === 0 ? 1 - fr * 0.6 : ph === m - 1 ? 0.4 + fr * 0.6 : 0; c.globalAlpha = Math.min(1, a * (0.42 + 0.58 * lit) * (1 + 0.6 * pp * lit)); const r = 1.75 + 1.05 * lit + 0.9 * pp * lit; c.drawImage(D, bx - r, by - r, r * 2, r * 2); if (lit > 0.3) { c.globalAlpha = Math.min(1, a * lit * 0.9); const r2 = r * 0.42; c.drawImage(D, bx - r2, by - r2, r2 * 2, r2 * 2); } }); }
-      }
+      const ck = it.kind === 'sign' ? crispK.get(it.sg.id) || 0 : 0;
+      drawOne(c, it, f, t, motion, flutter, partyK, noPunch, dimOf(it, f), 1 - ck);
     }
   }
   // (8a: the billboard on the speakeasy's roof is its own group, 'bill' — baked + drawn just before the speakeasy)
@@ -1055,6 +1081,64 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       return false;
     },
     setTier(t) { tier = t; dropComp(); applyScheme(); },
+    /**
+     * NIGHT-C — THE ROOF SIGNS AT 3× (scene.js#crispTick): the tower roof signs standing tonight → [{ id, group, ready (its full-dpr sprites
+     * built), lit (the box its light reaches: the tubes' glow + the spill down the frame, pt), body (its cabinet + frame + stand down to the
+     * roof — the beacon's post above the cabinet stays the city's: the live beacon blinks there), key (its look) }]; hd: the crisp dpr (its
+     * sprites are built at it — 0 frees them)
+     */
+    roofSigns(hd) {
+      if (hd !== hiDpr) { hiDpr = hd || 0; for (const it of items) if (it.litHi) freeHi(it); }
+      const out = [];
+      for (const it of items) {
+        if (!isRoofSign(it) || !it.ready || !it.lit) continue;
+        if (hiDpr && !it.litHi && !it.hiQ) { it.hiQ = true; queue.push(() => buildHi(it)); }
+        const R = it.sg.rect, roofY = roofUnder(it.sg.spot), sp = it.spill === undefined ? (it.spill = spillSprite(it.sg)) : it.spill;
+        let x0 = R.x, y0 = R.y, x1 = R.x + R.w, y1 = R.y + R.h;
+        for (const s of [...it.lit, ...(sp ? [sp] : [])]) { x0 = Math.min(x0, s.x); y0 = Math.min(y0, s.y); x1 = Math.max(x1, s.x + s.w); y1 = Math.max(y1, s.y + s.h); }
+        const bw = R.w * 0.45, foot = crispFoot(it.sg);
+        out.push({ id: it.sg.id, group: groupOf(it.sg.spot), ready: !!it.litHi, game: it.sg.game, lit: { x: x0, y: y0, w: x1 - x0, h: y1 - y0 },
+          body: { x: R.x - bw, y: R.y - 1, w: R.w + bw * 2, h: Math.max(R.h + 2, foot - R.y + 1) } });
+      }
+      return out;
+    },
+    /** the crisp copy's share of a roof sign (0 = the city draws it all; the city's copy fades as it rises — never a pop) */
+    setCrisp(id, k) { if (k > 0.002) crispK.set(id, Math.min(1, k)); else crispK.delete(id); },
+    /** draw a roof sign's LIGHT this frame into x (the crisp layer's canvas — the city's own frame args, its full-dpr sprites, added
+     *  like the city adds its neon) + its tower's crown outline where the crisp stand stands over it (T: the bake's tones, bk: its key) */
+    crispLit(x, id, T, bk) {
+      const it = items.find(i => isRoofSign(i) && i.sg.id === id), A = it && lastArgs[groupOf(it.sg.spot)];
+      if (!it || !A || !it.lit) return;
+      x.globalCompositeOperation = 'lighter';
+      drawOne(x, it, A.f, A.t, A.motion, A.flutter, A.partyK, A.noPunch, it.dim == null ? 1 : it.dim, 1, true);
+      // (the city draws the tower's neon outline IN FRONT of the stand's legs; the crisp stand (the body overlay) covers the city's copy
+      // there — so the outline is added again here, masked to the housing's own pixels: the same light, in front, nowhere twice)
+      const host = items.find(i => i.kind === 'outline' && i.o.id === it.sg.spot.host && i.ready && i.lit);
+      if (!host || !T) return;
+      const cv = x.canvas, M = x.getTransform(), key = `${cv.width}x${cv.height}|${M.a.toFixed(3)},${M.d.toFixed(3)},${M.e.toFixed(1)},${M.f.toFixed(1)}|${bk}|${it.sg.game}`;
+      let m = crispMasks.get(id);
+      if (!m) { m = { mask: document.createElement('canvas'), tmp: document.createElement('canvas'), key: '' }; crispMasks.set(id, m); }
+      if (m.key !== key) {
+        for (const c2 of [m.mask, m.tmp]) { c2.width = cv.width; c2.height = cv.height; }
+        const mx = safeCtx(m.mask); if (!mx) return;
+        mx.setTransform(M); this.crispBody(mx, id, T); m.key = key;
+      }
+      const tx = safeCtx(m.tmp); if (!tx) return;
+      tx.setTransform(1, 0, 0, 1, 0, 0); tx.globalCompositeOperation = 'source-over'; tx.clearRect(0, 0, cv.width, cv.height);
+      tx.setTransform(M); tx.globalCompositeOperation = 'lighter';
+      drawOne(tx, host, A.f, A.t, A.motion, A.flutter, A.partyK, A.noPunch, 1, 1, false);
+      tx.setTransform(1, 0, 0, 1, 0, 0); tx.globalCompositeOperation = 'destination-in'; tx.globalAlpha = 1; tx.drawImage(m.mask, 0, 0);
+      x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = 'lighter'; x.drawImage(m.tmp, 0, 0); x.restore();
+    },
+    /** draw a roof sign's HOUSING (cabinet + frame + stand) into x — the bake's own drawing (signs.js#drawHousing) with its tones */
+    crispBody(x, id, T) {
+      const it = items.find(i => isRoofSign(i) && i.sg.id === id);
+      if (!it) return;
+      const sg = it.sg, R = sg.rect;
+      x.save(); x.beginPath(); x.rect(R.x - R.w, R.y - 1, R.w * 3, crispFoot(sg) - (R.y - 1)); x.clip();
+      drawHousing(x, sg, T, { roofY: roofUnder(sg.spot), frame: sg.frame });
+      x.restore();
+    },
     /** tonight's pick changes only while the neon is dark (never while you watch); key: nightKey(local) */
     // (THE DAY PASS: by day the painted faces show, so never then — painted: the day's share of the look)
     night(k, painted = 0) { if (k !== assignKey && painted < 0.02 && !items.some(it => it.pw && it.pw.on)) { assignKey = k; return true; } return false; },

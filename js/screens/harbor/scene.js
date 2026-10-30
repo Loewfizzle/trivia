@@ -22,6 +22,7 @@ import { deckSpec } from '../../core/party-deck.js';
 import { partyTimeline, danceBreaks, partyNight, eveningOf as spEveningOf } from '../../core/harbor-streetparty.js';
 import { breakFlight, patrolInSlot } from '../../core/harbor-heli.js';
 import { knob } from '../../core/harbor-schedule.js';
+import { tierVal } from '../../core/harbor-tiers.js';
 import { SLOT_MS } from '../../core/harbor-events.js';
 import { paletteFor } from '../district/palette.js';
 import { createStars } from '../district/stars.js';
@@ -938,7 +939,48 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // letters + the bulbs are speakeasy.js's), the EST. 1924 DATE STONE and the speakeasy's ROOF BILLBOARD's poster by day — each crossfading
   // with the city's re-bake. Off while a worker is at it (the painters, the billposter, the bulb man: a layer over the city can't go behind
   // them), &force=no-crisp, a desktop at DPR ≤ 2; tier 0 (the low-power state).
-  function crispTick(c, off, fadeIn, pplLive, crispOn) {
+  // NIGHT-C — THE ROOF SIGNS AT 3× (the owner, Oct 29 5:33–5:35 pm — DECIDED; decisions.md §13): the tower roof signs (the game names on
+  // the word towers — whichever stand tonight) on the crisp layer at the phone's full dpr — THE WHOLE SIGN: its HOUSING (the cabinet, the
+  // frame, the stand down to the roof — signs.js#drawHousing, the bake's own drawing; the beacon's post above the cabinet stays the city's,
+  // the live beacon blinks there) and its LIGHT (neon.js#drawOne — the SAME code the city draws it with, so every effect routes through:
+  // the hourly modes, a burnt-out letter, the restart flicker, the party's punch + colours, the spill down its frame — added onto the city
+  // like the city's own neon, CSS plus-lighter). The city's own copy fades as the crisp one shows (neon.setCrisp — additive, so the sum
+  // stays the sign). THE WHOLE-SKY RULE: whatever passes IN FRONT of the skyline makes the crisp copy yield to the city's (a crossfade,
+  // never a pop): rain / snow falling, fog, a storm, a legendary (its drain + the blackout), the drone show, a helicopter or its beam over
+  // the sign. Tier ≥ 1 (THE TIER TABLE's roofCrisp — tier 0's neon is one baked image); &force=no-roof-crisp = the A/B.
+  const roofK = new Map();
+  let roofFrameN = 0;
+  function roofCrisp(c, off, fadeIn, on, dt) {
+    roofFrameN++;
+    const want0 = on && tierVal('roofCrisp', tier) > 0 && !off.has('no-roof-crisp') && !!bakeTones && !!baker.key;
+    const list = neon.roofSigns(want0 ? crisp.dpr : 0);
+    let yieldK = 0, boxes = [];
+    if (want0) {
+      const wet = 1 - smooth(0.03, 0.15, Math.max(LK.rain || 0, LK.snow || 0, WXS ? WXS.snow || 0 : 0));
+      const veil = (LB || (legends && legends.active())) ? 0 : 1, fogK = 1 - smooth(0.3, 0.55, LK.fog || 0), storm = LK.storm ? 0 : 1;
+      let dr = 0; try { const ls = sky.listen(); dr = ls && ls.drones ? 1 : 0; const h = ls && ls.air && ls.air.heli; if (h) { const r = 26 * cam.F / 600; boxes.push({ x: h.x - r * 1.4, y: h.y - r, w: r * 2.8, h: r * 1.8 }); } } catch { /* fine */ }
+      const bm = sky.heliBeam ? sky.heliBeam() : null, hb = sky.heliBreakOn && sky.heliBreakOn() ? (sky.listen().air || {}).heli : null;
+      if (bm && hb) for (let i = 1; i <= 10; i++) { const u = i / 10, x = hb.x + (bm.x - hb.x) * u, y = hb.y + (bm.y - hb.y) * u, r = 4 + 30 * u; boxes.push({ x: x - r, y: y - 4, w: r * 2, h: 8 }); }
+      yieldK = fadeIn * wet * veil * fogK * storm * (1 - dr);
+    }
+    const hit = b => boxes.some(q => q.x < b.x + b.w && q.x + q.w > b.x && q.y < b.y + b.h && q.y + q.h > b.y);
+    const step = Math.min(1, (dt || 16) / 450);
+    const seen = new Set();
+    for (const s of list) {
+      seen.add(s.id);
+      const want = want0 && s.ready && !hit(s.lit) && !hit(s.body) ? yieldK : 0;
+      let k = roofK.get(s.id) || 0;
+      k += (want - k) * step; if (Math.abs(want - k) < 0.01) k = want;
+      roofK.set(s.id, k); neon.setCrisp(s.id, k);
+      if (k <= 0.002) continue;
+      crisp.show(c, { id: `rs-body-${s.id}`, z: 2, box: s.body, key: `${baker.key}|${s.game}`, xfade: 0, alpha: k, draw: x => neon.crispBody(x, s.id, bakeTones) });
+      crisp.show(c, { id: `rs-lit-${s.id}`, z: 3, box: { x: Math.min(s.lit.x, s.body.x), y: Math.min(s.lit.y, s.body.y), w: Math.max(s.lit.x + s.lit.w, s.body.x + s.body.w) - Math.min(s.lit.x, s.body.x), h: Math.max(s.lit.y + s.lit.h, s.body.y + s.body.h) - Math.min(s.lit.y, s.body.y) }, key: `f${roofFrameN}`, xfade: 0, alpha: k, blend: 'plus-lighter', draw: x => neon.crispLit(x, s.id, bakeTones, baker.key) });
+    }
+    for (const id of [...roofK.keys()]) if (!seen.has(id)) { roofK.delete(id); neon.setCrisp(id, 0); }
+  }
+  const roofCrispDebug = () => [...roofK].map(([id, k]) => ({ id, k: +k.toFixed(3) }));
+  function crispTick(c, off, fadeIn, pplLive, crispOn, dt) {
+    roofCrisp(c, off, fadeIn, crispOn, dt);
     if (!crispOn) { crisp.end(); return; }
     const crew = pplLive ? people.crew() : null, busy = !!(crew && crew.works && crew.works.some(w => /paint|billpost|bulb|lamp|wash|repair|sign/.test(w))) ||   // (the works up on the facade / the board; never the doorman at his post)
        !!(crew && crew.traces && (crew.traces.blade || (crew.traces.board && crew.traces.board.pasting)));
@@ -2229,7 +2271,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       }
     }
     mk9('the crisp layer');
-    crispTick(c, off, fadeIn, pplLive, crispOn);
+    crispTick(c, off, fadeIn, pplLive, crispOn, dt);
     if (GRID) drawGrid(c, L, S, skyline, sun.debug());
     // (FP: or THE PREVIEW PANEL → TOOLS → READOUT on this device — ui/debug-tools.js, live, remembered; &debug=1 still shows it)
     if (debugTool('readout', DEBUG)) { readout(now); loadStrip(now); pixWatch(now); if (!repBtn && reporter) repBtn = createDebugButton('SEND REPORT', () => reporter.send('tap')); } else { if (roStrip) { roStrip.remove(); roStrip = null; } if (llStrip) { llStrip.remove(); llStrip = null; } if (repBtn) { repBtn.remove(); repBtn = null; } }
@@ -3170,6 +3212,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
+      roofCrisp: roofCrispDebug(),   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
       heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),

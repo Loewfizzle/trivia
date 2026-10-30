@@ -27,6 +27,9 @@ export const TIERS = Object.freeze({
   // NIGHT-C — THE HELICOPTER's BEAM on a dance break's crowd (screens/harbor/air.js#breakDraw): its layers — 1 the pool on the dancers,
   // 2 + the cone from the lamp, 3 + the lamp's glare (the patrol's beam over the water is one cheap wedge at every tier)
   heliBeam: Object.freeze([1, 2, 3]),
+  // NIGHT-C — THE ROOF SIGNS AT 3× (scene.js#roofCrisp): on the crisp layer at the phone's full dpr (1) or the city's own (0) — tier 0's
+  // neon is one baked image per group, so its roof signs stay in it
+  roofCrisp: Object.freeze([0, 1, 1]),
 });
 
 /** the knob's value at a tier (clamped 0..2; an unknown tier = 2) */
