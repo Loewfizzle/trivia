@@ -9,6 +9,9 @@
 // clock sits against the sound: core/harbor-beat.js#leadKick) and reports the music's loudness (how hard the city punches).
 import { nowPlaying, musicOut } from './music.js';
 import { lobbyNow } from './lobby-music.js';
+import { partyNow } from './party-music.js';
+// (NIGHT-C: a song on a synced player — the lobby's, or the party's on the server clock — is a decoded buffer: its own lead + no direct path)
+const bufNow = () => lobbyNow() || partyNow();
 import { moodData } from './mood.js';
 import { settings } from './settings.js';
 import { getContext, getMusicBus, clockFrozen, onRebuild, onResume } from './engine.js';
@@ -143,7 +146,7 @@ export const beatWhy = () => why;
 export function beatSource(nowMs = performance.now()) {
   if (settings.musicOff) { why = 'music off'; return null; }
   if (settings.muted) { why = 'muted'; return null; }
-  const lob = lobbyNow(), np = lob || nowPlaying();
+  const lob = bufNow(), np = lob || nowPlaying();
   if (!np || !np.id) { if (sclock.id) songClockStep(sclock, null, nowMs); const c = getContext(); why = !c || c.state !== 'running' ? 'tap for sound' : settings.menuMusic === 'classic' ? 'classic music' : 'no song'; return null; }
   const d = moodData();
   if (!d) { why = 'songs loading'; return null; }
@@ -169,7 +172,7 @@ const DIRECT_OUT = 0;              // the direct element's output estimate (s): 
 /** the song sounding on this phone and what the beat knows of it (the preview panel's MUSIC row, the readout): { id, at, dur, bpm, grid:
  *  'trusted' | 'NOT TRUSTED' | 'none', lock } or null when no mood song is sounding */
 export function songInfo() {
-  const np = lobbyNow() || nowPlaying();
+  const np = bufNow() || nowPlaying();
   if (!np || !np.id) return null;
   const d = moodData(), s = d && d.songs && d.songs[np.id];
   const g = s && s.grid && s.grid.bpm > 0 ? s.grid : null;
@@ -209,9 +212,9 @@ function analyser() {
 let lastRms = -1, sameN = 0;
 let leadId = null, leadAnch = 0;
 export function beatKick(nowMs = performance.now()) {
-  if (settings.musicOff || settings.muted || !(lobbyNow() || nowPlaying())) return null;
+  if (settings.musicOff || settings.muted || !(bufNow() || nowPlaying())) return null;
   // (the song on THE DIRECT ELEMENT or the graph frozen: the listener can't hear it — not live; the grid leads: 'direct-grid')
-  if ((!lobbyNow() && musicOut() === 'direct') || clockFrozen()) { heardAt = -1e9; sameN = 0; return { hit: 0, live: false, deaf: true, energy: 0 }; }
+  if ((!bufNow() && musicOut() === 'direct') || clockFrozen()) { heardAt = -1e9; sameN = 0; return { hit: 0, live: false, deaf: true, energy: 0 }; }
   const A = analyser();
   if (!A || A.ctx.state !== 'running') return null;
   let s = 0, n;
@@ -234,7 +237,7 @@ export function beatKick(nowMs = performance.now()) {
   const hit = onsetStep(ons, rms, nowMs / 1000);
   // a strong kick on a song whose kicks land on its trusted grid: how far the sound sits from where the lights land → the lead
   if (hit >= 0.6) {
-    const lob = lobbyNow(), np = lob || nowPlaying(), d = moodData();
+    const lob = bufNow(), np = lob || nowPlaying(), d = moodData();
     const g = np && d && d.songs && d.songs[np.id] && d.songs[np.id].grid;
     if (g && g.bpm > 0 && g.trusted !== false && (g.agree == null || g.agree >= 0.5)) {
       const kind = lob ? 'buf' : 'el', c = cal[kind];
@@ -249,12 +252,12 @@ export function beatKick(nowMs = performance.now()) {
 /** 8b1 — THE SAFETY RULE's input (core/harbor-beat.js#stepSafety): the lead's calibration for the song sounding — the agreed residual,
  *  settling, the kicks behind it — the song clock's identity + re-anchors, and whether this device had a lead saved from a visit before */
 export function beatCal() {
-  const c = lobbyNow() ? cal.buf : cal.el;
+  const c = bufNow() ? cal.buf : cal.el;
   // (NIGHT-A2: deafSong — the song's grid is trusted but its kicks land off its beats (agree < 0.5): the listener never feeds the lead on
   // it, so it can't confirm — the safety rule keeps the half punch on the grid and says why)
-  const np = lobbyNow() || nowPlaying(), d = moodData(), g = np && d && d.songs && d.songs[np.id] && d.songs[np.id].grid;
+  const np = bufNow() || nowPlaying(), d = moodData(), g = np && d && d.songs && d.songs[np.id] && d.songs[np.id].grid;
   const deafSong = !!(g && g.bpm > 0 && g.trusted !== false && g.agree != null && g.agree < 0.5);
-  return { res: c.res, fast: c.fast ? { why: c.fast.why } : null, n: c.n, seen: c.seen, errs: c.errs.length, song: sclock.id, anchors: sclock.anchors, saved: lobbyNow() ? savedBuf : savedEl, deafSong, route, visit: c.visit };
+  return { res: c.res, fast: c.fast ? { why: c.fast.why } : null, n: c.n, seen: c.seen, errs: c.errs.length, song: sclock.id, anchors: sclock.anchors, saved: bufNow() ? savedBuf : savedEl, deafSong, route, visit: c.visit };
 }
 /** NIGHT-A2 — the beat for SEND REPORT + /admin: the output's bucket, the saved leads per output, the lead's state now, whether it may be
  *  saved, the kicks heard, the last 40 events (the lead's values + why, the routes, the saves, the songs) */
@@ -267,7 +270,7 @@ export function beatDebug() {
   const c = getContext(), now = performance.now();
   return { analyser: !!an, peak: +ons.peak.toFixed(4), level: +ons.level.toFixed(4), energy: +onsetEnergy(ons).toFixed(3), latency: +outLatency().toFixed(3),
     reported: c ? +(c.outputLatency || 0).toFixed(3) : 0, base: c ? +(c.baseLatency || 0).toFixed(3) : 0, stamp: +stamp.v.toFixed(3), lead: +cal.el.v.toFixed(3), leadN: cal.el.n, buf: +cal.buf.v.toFixed(3), bufN: cal.buf.n,
-    cal: leadState(lobbyNow() ? cal.buf : cal.el, now), res: cal.el.res == null ? null : +cal.el.res.toFixed(3), seen: cal.el.seen,
+    cal: leadState(bufNow() ? cal.buf : cal.el, now), res: cal.el.res == null ? null : +cal.el.res.toFixed(3), seen: cal.el.seen,
     lag: +kickLag(frameS).toFixed(3), fps: Math.round(1 / frameS),
     clock: { id: sclock.id, pos: +sclock.pos.toFixed(3), err: +sclock.err.toFixed(3), stuck: sclock.stuck, anchors: sclock.anchors, why: sclock.why } };
 }

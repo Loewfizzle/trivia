@@ -1176,7 +1176,7 @@ export function folkAt(t, world, cache = new Map()) {
   // the bench dancers — on top of the everyday crowd (the tier table decides how much a phone draws: capByTier); the pockets are SOLIDS
   // while they stand (the walkers thread between them); a break pauses the cab stand (no waiter sits down in it)
   const spW = get(`SPWorld|${ctx.solidsKey || ''}`, () => ({ L, M, route, solids: (ctx.solids || []).filter(q => q.t0 == null), line: lineRect(L, LINE.max) }));
-  const spCtx = { off: ctx.off, seed: ctx.seed, party: ctx.party, partyForced: !!ctx.partyForced, forceDanceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, danceKind: ctx.danceKind || null, noDance: !!ctx.noDance, blocked: ctx.blocked || null, event: !!ctx.event, rain: ctx.rain || 0 };
+  const spCtx = { off: ctx.off, seed: ctx.seed, party: ctx.party, partyForced: !!ctx.partyForced, forceDanceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, danceKind: ctx.danceKind || null, noDance: !!ctx.noDance, blocked: ctx.blocked || null, event: !!ctx.event, rain: ctx.rain || 0, deck: ctx.deck || null };
   const sp = ctx.noStreetParty ? null : streetPartyAt(t, spCtx, spW, get);
   const standOK = pl => (!sp || !sp.busy(pl.rider.t0, pl.rider.tEnd || pl.rider.t1)) && !closed(pl.rider.t0, pl.rider.tEnd || pl.rider.t1);   // (a dance — a break or the old circle's preview — pauses the cab stand)
   let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...standsNear(t - 400, t + 10).filter(standOK).map(pl => pl.rider), ...forced, ...routine, ...hol, ...(sp ? sp.visits : [])].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));

@@ -20,6 +20,7 @@ import { rngFrom, hashString } from './rng.js';
 import { partyAtT } from './harbor-moments.js';
 import { knob } from './harbor-schedule.js';
 import { TIERS } from './harbor-tiers.js';
+import { deckSongs, deckSongAt, EPOCH_ANCHOR } from './party-deck.js';
 
 /** the street party's SHAPES (world units, s) — never a time of day (the timetable) nor a per-phone count (the tier table) */
 export const SP = Object.freeze({
@@ -70,12 +71,32 @@ export function crowdK(h) {
 /** is the evening at day0 a party night? (ctx.party(t) when the scene says so — the preview — else the calendar: core/harbor-moments.js) */
 export const partyNight = (day0, ctx = {}) => { const at = day0 + knob('party.night').probe * 3600; return !!(ctx.party ? ctx.party(at) : partyAtT(at, ctx.off)); };
 
-// ------------------------------------------------------------------ THE PARTY's OWN SONG CLOCK + THE DANCE BREAKS
-/** the party's songs from `from` to `to` (abs s), seeded: [{ i, t0, t1, fast }] — back to back */
-export function partySongs(from, to, seedKey) {
-  const S = knob('party.songs'), r = rngFrom(hashString(`songs|${seedKey}`)), out = [];
+// ------------------------------------------------------------------ THE PARTY's SONG CLOCK + THE DANCE BREAKS
+/** the party's songs from `from` to `to` (abs s), seeded: [{ i, id?, t0, t1, fast }] — back to back. NIGHT-C: with the deck (ctx.deck —
+ *  core/party-deck.js#deckSpec of the City 2.0 PARTY songs) THE REAL SONGS the music plays on the server clock, from `from` (its anchor):
+ *  t1 = the next song's start (a crossfade before its end), fast = its tempo ≥ fastBpm; without one (the songs not loaded — the tests,
+ *  an offline first load) NIGHT-B's seeded stand-in lengths */
+export function partySongs(from, to, seedKey, deck = null, lo = from) {
+  const S = knob('party.songs');
+  if (deck) return deckSongs(deck, from, seedKey, Math.max(from, lo), to).filter(s => s.t0 < to).map(s => ({ i: s.k, id: s.id, t0: s.t0, t1: s.t1, fast: s.bpm >= S.fastBpm }));
+  const r = rngFrom(hashString(`songs|${seedKey}`)), out = [];
   for (let t = from, i = 0; t < to && i < 400; i++) { const len = S.len[0] + r() * (S.len[1] - S.len[0]); out.push({ i, t0: t, t1: t + len, fast: r() < S.fast }); t += len; }
   return out;
+}
+/**
+ * NIGHT-C — THE PARTY's TIMELINE at t (PURE): which deck the party plays — { anchor (abs s), seed, kind } or null. The music
+ * (audio/party-music.js, through the city clock) and the breaks read the SAME one:
+ *   'dance'  &force=dance — a fresh deck from the force moment (its first break starts on its first song, `first` s after the force)
+ *   'party'  the panel's PARTY (or a forced show) — the epoch's deck (every phone the same, any day)
+ *   'night'  a real party night — the evening's deck from its 8 pm (THE CITY TIMETABLE's party.songs.from), seeded by the evening
+ */
+export function partyTimeline(t, ctx = {}) {
+  const seed = ctx.seed || 1924;
+  if (ctx.forceDanceAt != null && !ctx.noDance) return { anchor: ctx.forceDanceAt + knob('party.break.force').first, seed: `F${Math.round(ctx.forceDanceAt)}|${seed}`, kind: 'dance' };
+  if (ctx.partyForced) return { anchor: EPOCH_ANCHOR, seed: `P|${seed}`, kind: 'party' };
+  const ev = eveningOf(t, ctx.off);
+  if (!partyNight(ev.day0, ctx)) return null;
+  return { anchor: ev.day0 + knob('party.songs').from * 3600, seed: `${seed}|${ev.key}`, kind: 'night' };
 }
 const pickKind = (r, fast, prev, want) => {
   if (want && KINDS.includes(want)) return want;
@@ -89,14 +110,16 @@ const pickKind = (r, fast, prev, want) => {
  */
 export function danceBreaks(day0, key, ctx = {}) {
   const B = knob('party.break'), S = knob('party.songs'), seed = ctx.seed || 1924;
-  const songs = partySongs(day0 + S.from * 3600, day0 + S.to * 3600, `${seed}|${key}`), r = rngFrom(hashString(`breaks|${seed}|${key}`));
+  // (the panel's PARTY on the epoch's deck: ctx.anchor + ctx.songSeed; a party night: the evening's own from its 8 pm)
+  const from = ctx.anchor != null ? ctx.anchor : day0 + S.from * 3600;
+  const songs = partySongs(from, Math.max(from, day0 + S.to * 3600), ctx.songSeed || `${seed}|${key}`, ctx.deck || null, day0 + B.from * 3600 - 3600), r = rngFrom(hashString(`breaks|${seed}|${key}`));
   const out = []; let prev = null, last = -1e12;
   for (let aim = B.from; aim <= B.to; aim += B.every_min / 60) {
     const at = day0 + (aim + (r() - 0.5) * 2 * B.jitter_min / 60) * 3600, song = songs.find(s => s.t0 >= at);
     if (!song || song.t1 > day0 + (B.to + 0.25) * 3600 || song.t0 - last < B.minGap_min * 60) continue;
     if (ctx.blocked && ctx.blocked(song.t0 - 30, song.t1 + 30)) continue;
     const kind = pickKind(r, song.fast, prev, ctx.danceKind);
-    out.push({ id: `brk.${key}.${out.length}`, s0: song.t0, s1: song.t1, kind, fast: song.fast, n: out.length });
+    out.push({ id: `brk.${key}.${out.length}`, s0: song.t0, s1: song.t1, kind, fast: song.fast, n: out.length, ...(song.id ? { song: song.id } : {}) });
     prev = kind; last = song.t0;
   }
   return out;
@@ -105,6 +128,21 @@ export function danceBreaks(day0, key, ctx = {}) {
  *  ctx.danceKind) → the breaks near [a, b] */
 export function forcedBreaks(forceAt, a, b, ctx = {}) {
   const F = knob('party.break.force'), out = [];
+  // NIGHT-C: with the deck the preview plays its own deck from the force moment (partyTimeline 'dance') — the first break on its first song
+  // (`first` s after the force), each next on the first song starting `every` s after the last began AND a mingling gap (every − song)
+  // after it ended — so every other song or so; one song each, every phone that forced it at the same moment the same
+  if (ctx.deck) {
+    const anchor = forceAt + F.first, seed = `F${Math.round(forceAt)}|${ctx.seed || 1924}`, fast = knob('party.songs').fastBpm;
+    let s = deckSongAt(ctx.deck, anchor, seed, anchor), j = 0;
+    while (s && s.t0 <= b + F.every) {
+      if (s.t1 > a - F.every) out.push({ id: `brk.f${Math.round(forceAt)}.${s.k}`, s0: s.t0, s1: s.t1, kind: ctx.danceKind && KINDS.includes(ctx.danceKind) ? ctx.danceKind : KINDS[j % KINDS.length], fast: s.bpm >= fast, n: j, forced: true, song: s.id });
+      const want = Math.max(s.t0 + F.every, s.t1 + F.every - F.song), prev = s;
+      s = deckSongs(ctx.deck, anchor, seed, want, want + 1200).find(x => x.t0 >= want - 1e-6) || null;
+      if (s && s.k <= prev.k) break;
+      j++;
+    }
+    return out;
+  }
   for (let j = Math.max(0, Math.floor((a - forceAt - F.first - F.song) / F.every)); j <= Math.floor((b - forceAt - F.first) / F.every) + 1; j++) {
     const s0 = forceAt + F.first + j * F.every;
     out.push({ id: `brk.f${Math.round(forceAt)}.${j}`, s0, s1: s0 + F.song, kind: ctx.danceKind && KINDS.includes(ctx.danceKind) ? ctx.danceKind : KINDS[j % KINDS.length], fast: j % 2 === 0, n: j, forced: true });
@@ -303,9 +341,11 @@ export function streetPartyAt(t, ctx, W, get) {
   // the breaks near t: the night's (a party night), or the preview's (&force=dance — any night, its own crowd-free floor if no party)
   const brksNear = (a, b) => {
     if (ctx.noDance) return [];
-    if (forceAt != null) return get(`SPF|${Math.round(forceAt)}|${Math.floor(a / 600)}|${ctx.danceKind || ''}`, () => forcedBreaks(forceAt, a - 600, b + 600, ctx)).filter(x => x.s1 + 60 > a && x.s0 - 60 < b);
-    if (forced) { const fk = Math.floor(t / 7200); return get(`SPFB|${fk}|${ctx.danceKind || ''}`, () => danceBreaks(fk * 7200 - knob('party.break').from * 3600, `F${fk}`, ctx)).filter(x => x.s1 + 60 > a && x.s0 - 60 < b); }
-    return get(`SPB|${ev.key}|${ctx.danceKind || ''}`, () => danceBreaks(ev.day0, ev.key, ctx)).filter(x => x.s1 + 60 > a && x.s0 - 60 < b);
+    const dk = ctx.deck ? ctx.deck.sig : '-';
+    if (forceAt != null) return get(`SPF|${Math.round(forceAt)}|${Math.floor(a / 600)}|${ctx.danceKind || ''}|${dk}`, () => forcedBreaks(forceAt, a - 600, b + 600, ctx)).filter(x => x.s1 + 60 > a && x.s0 - 60 < b);
+    // (the panel's PARTY: two-hour blocks of the epoch's deck — partyTimeline 'party' — the breaks aimed in each block)
+    if (forced) { const fk = Math.floor(t / 7200), B = knob('party.break'); return get(`SPFB|${fk}|${ctx.danceKind || ''}|${dk}`, () => danceBreaks(fk * 7200 - B.from * 3600, `F${fk}`, { ...ctx, ...(ctx.deck ? { anchor: EPOCH_ANCHOR, songSeed: `P|${ctx.seed || 1924}` } : {}) }).filter(x => x.s0 >= fk * 7200 && x.s0 < (fk + 1) * 7200)).filter(x => x.s1 + 60 > a && x.s0 - 60 < b); }
+    return get(`SPB|${ev.key}|${ctx.danceKind || ''}|${dk}`, () => danceBreaks(ev.day0, ev.key, ctx)).filter(x => x.s1 + 60 > a && x.s0 - 60 < b);
   };
   const near = brksNear(t - 300, t + 300), brk = near.find(x => t >= x.s0 - knob('party.spill').lead && t < x.s1 + knob('party.spill').trail) || null;
   const routeOf = (k, a, b) => get(`SPR|${k}|${ev.key}`, () => (W.route ? W.route(W.M, a, b) : [a, b]));

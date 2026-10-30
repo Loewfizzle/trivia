@@ -94,7 +94,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     }
     src.onended = () => { if (voices.get(i) && voices.get(i).src === src) { voices.delete(i); done.add(i); } };
     src.start(at, off);
-    voices.set(i, { src, gain, origin, startedAt: ctx.currentTime });
+    voices.set(i, { src, gain, origin, startedAt: ctx.currentTime, startAt: at });
   }
 
   function stopVoice(ctx, i, fade = 0.12) {
@@ -160,7 +160,9 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       const ctx = getContext();
       if (!ctx || !game || !voices.size) return null;
       let best = null;
-      for (const [i, v] of voices) { const g = v.gain.gain.value; if (!best || g > best.g) best = { i, g, at: ctx.currentTime - v.origin }; }
+      // (NIGHT-C: a song scheduled to START LATER — the next one, decoded + queued ahead of its crossfade — isn't sounding yet: its gain
+      // node reads its intrinsic 1 before its first scheduled value, which made it "the loudest" (the beat followed the wrong song))
+      for (const [i, v] of voices) { if (ctx.currentTime < v.origin - 0.01 && ctx.currentTime < v.startAt) continue; const g = v.gain.gain.value; if (!best || g > best.g) best = { i, g, at: ctx.currentTime - v.origin }; }
       return best && best.g > 0.05 ? { i: best.i, id: game.songs[best.i], at: Math.max(0, best.at) } : null;
     },
     /** is song i decoded and ready? */

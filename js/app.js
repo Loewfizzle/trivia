@@ -15,7 +15,9 @@ import { createTitle, harborReady, harborPending } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { createLobby } from './screens/lobby.js';
 import { installAudio } from './audio/engine.js';
-import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying } from './audio/music.js';
+import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying, cueMusic } from './audio/music.js';
+import { partyMusicTick, partyCue, partyMusicDebug } from './audio/party-music.js';
+import { cityClock } from './core/city.js';
 import { loadMoodMusic, moodNow, fixedMood, songsFor, nextForDevice } from './audio/mood.js';
 import { isCity2 } from './core/city.js';
 import { lobbyMusicTick, lobbyMusicDebug } from './audio/lobby-music.js';
@@ -71,7 +73,12 @@ const moodOn = () => settings.menuMusic !== 'classic';
 loadMoodMusic().then(d => {
   if (!d) return;
   registerTracks(Object.fromEntries(Object.keys(d.songs).map(id => [`m:${id}`, id])));
-  setListProvider('mood', prev => { const id = nextForDevice(moodNow(), prev && prev.replace(/^m:/, '')); return id ? `m:${id}` : null; });
+  setListProvider('mood', prev => {
+    // (NIGHT-C — THE PARTY SONG IN SYNC: on the party's timeline this phone's own player starts the song EVERY phone hears, at its place)
+    const m = moodNow(), c = m === 'party' && moodOn() ? partyCue(prev && prev.replace(/^m:/, '')) : null;
+    if (c) { cueMusic(`m:${c.id}`, c.at); return `m:${c.id}`; }
+    const id = nextForDevice(m, prev && prev.replace(/^m:/, '')); return id ? `m:${id}` : null;
+  });
   moodWatch();            // (the baseline reading now, not 2 s later: a mood picked in the first seconds still counts as a change)
   render(state);
 });
@@ -82,21 +89,29 @@ let moodSeen = null, choiceSeen = null;
 function moodWatch() {
   if (!moodOn()) { moodSeen = null; return; }
   const m = moodNow(), c = fixedMood();
-  if (moodSeen !== null && m !== moodSeen && !lobbySynced && (c !== choiceSeen || (m === 'party' && isCity2()))) {
+  if (moodSeen !== null && m !== moodSeen && !lobbySynced && !partySynced && (c !== choiceSeen || (m === 'party' && isCity2()))) {
     const np = nowPlaying();
     if (!(np && songsFor(m).includes(np.id))) switchNow(4);
   }
   moodSeen = m; choiceSeen = c;
 }
 setInterval(moodWatch, 2000);
-let lobbySynced = false;
+let lobbySynced = false, partySynced = false;
 const inLobby = st => !!(st.code && st.meta && (st.meta.status !== 'playing' || !st.game || st.quit === st.game.matchId));
-setInterval(() => { const was = lobbySynced; const lob = inLobby(state) && state.ready; lobbySynced = lobbyMusicTick(state, moodOn() && lob, lob); if (was !== lobbySynced) render(state); }, 250);
+setInterval(() => {
+  const was = lobbySynced, wasP = partySynced; const lob = inLobby(state) && state.ready; lobbySynced = lobbyMusicTick(state, moodOn() && lob, lob);
+  // NIGHT-C — THE PARTY SONG IN SYNC (audio/party-music.js): City 2.0's menus outside a room, the PARTY mood — the party's timeline on the
+  // server clock (a legendary's tape stop holds it on this phone's own player: the city clock's musicHold)
+  const cc = isCity2() ? cityClock() : null;
+  partySynced = partyMusicTick(!!cc && moodOn() && !state.code && moodNow() === 'party', !!(cc && cc.musicHold && cc.musicHold()));
+  if (was !== lobbySynced || wasP !== partySynced) render(state);
+}, 250);
 
 // Which music track a state should hear. [track, fallbackIfMissing]
 function musicFor(st) {
   if (moodOn() && !(st.code && st.meta && st.meta.status === 'playing' && st.game && st.quit !== st.game.matchId)) {
     if (lobbySynced && inLobby(st)) return [null];          // the room's synced song is playing (lobby-music.js)
+    if (partySynced && !st.code) return [null];             // (NIGHT-C) the party's synced song is playing (party-music.js)
     return ['mood', 'menu'];
   }
   if (!st.code && st.view === 'board') return ['menu3', 'menu'];     // THE BOARD's hall: menu3.mp3
@@ -234,7 +249,7 @@ async function boot() {
     if (b && !b.closest('[data-sfx="none"]') && !b.disabled) sfx('tap');
   }, { capture: true, passive: true });
   // Music is lazy: tracks download only after the first tap unlocks audio (see audio/music.js).
-  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, beat: beatSource, mood: () => moodNow(), state, serverNow, line: lineInfo };
+  window.__arcade = { musicDebug, musicSeek, lobbyMusicDebug, partyMusicDebug, beat: beatSource, mood: () => moodNow(), state, serverNow, line: lineInfo };
   // Escape closes the top-most sheet (its backdrop click handler does the closing).
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;

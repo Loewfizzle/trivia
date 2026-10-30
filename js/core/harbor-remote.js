@@ -270,6 +270,7 @@ export const EVENTS = [
   { id: 'circle', sec: 'tools', label: 'THE OLD DANCE CIRCLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'SP5’s hourly glow-wand circle on the compass — retired by NIGHT-B’s dance breaks — compare' },
   { id: 'doors', sec: 'speakeasy', label: 'THE DOORS', cat: 'promenade', group: 'THE DOOR', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
   { id: 'no-dance', sec: 'tools', label: 'NO DANCE BREAKS', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without its dance breaks — compare (their cost)' },
+  { id: 'no-party-sync', sec: 'tools', label: 'NO PARTY SYNC', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', kw: 'party music song server clock sync same song every phone own player', hint: 'NIGHT-C: the party songs on THIS phone’s own player again (each phone its own song, as before) — the dance breaks still follow the shared party deck; compare' },
   { id: 'no-street-party', sec: 'tools', label: 'NO STREET PARTY', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without THE STREET PARTY’s crowd + breaks — compare (its cost)' },
   { id: 'no-people', sec: 'tools', label: 'NO PEOPLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'the promenade + the roof empty — compare' },
   // PART 8b1 — THE WORKERS' SCHEDULE: each one on a loop (its own clock: a few minutes, the long shows joined mid-way); NO WORKERS: compare

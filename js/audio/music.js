@@ -509,7 +509,17 @@ export function duckMusic(level, seconds = 0.6) {
   duckLevel = to;
   if (current && getContext()) fade(current.voice, duckLevel, seconds);
   applyDirectVolume();
+  for (const fn of duckers) { try { fn(duckLevel, seconds); } catch { /* a player gone */ } }
 }
+// NIGHT-C — THE PARTY SONG IN SYNC (audio/party-music.js): its songs play on their own buffer voices, so the city's dips (duckMusic) reach
+// them through onMusicDuck, its low-pass (filterMusic) by plugging into musicInput() — the same node every song voice here plugs into
+const duckers = new Set();
+export function onMusicDuck(fn) { duckers.add(fn); return () => duckers.delete(fn); }
+export const musicDuckLevel = () => duckLevel;
+/** the node the music's voices plug into (the low-pass → the music bus) — null before the audio runs */
+export function musicInput() { return getContext() && getMusicBus() ? tone() : null; }
+/** the next start of `id` begins `at` s in (the party's timeline: a song cued at its place on the server clock) */
+export function cueMusic(id, at) { if (id) positions[id] = Math.max(0, at || 0); }
 
 /**
  * THE TAPE STOP (City 2.0, 6b → Oct 25 — the TR-3B "bends the music"; docs/audio.md#the-tape-stop-in-web-audio): the song's speed to

@@ -545,6 +545,11 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
  *  over that place instead of the time zone's city (with clear weather unless &wx= says otherwise); &rained=12 says the rain
  *  stopped 12 minutes before the clock's start (RAINBOWS: the real after-rain path, core/rainbow.js; &force=rainbow,rainbow2,
  *  moonbow,neonbow show one at once); &wind=<m/s> sets the wind (THE STREET). Normal players never pass these. */
+// NIGHT-C — a LIVE clock (the real time, speed 1) reads REAL_NOW at every call: Date.now by default; City 2.0 sets the SERVER clock
+// (firebase.js#serverNow — the saved offset while parked, no socket opened for it), so the party's songs + its dance breaks agree on every
+// phone, whatever its own clock says (the music plays them on the server clock: audio/party-music.js)
+let REAL_NOW = () => Date.now();
+export function setRealNow(fn) { REAL_NOW = typeof fn === 'function' ? fn : () => Date.now(); }
 export function skyClock(search = (typeof location !== 'undefined' ? location.search : '')) {
   const q = new URLSearchParams(search || '');
   const zone = cleanZone(q.get('tz')), tz = zone.tz;   // (NIGHT-A: never a raw &tz= into Intl)
@@ -576,5 +581,6 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
   const speed = Math.max(1, Math.min(3600, Number(q.get('speed')) || 1));
   const start = base == null ? t0 : base;
   if (wx && rained != null) wx.wetAt = start - rained * 60_000;
-  return { tz, tzNote: zone.bad ? zone : null, force, wx, speed, preview: !!(when || q.get('tz') || force.size || wx || speed > 1), now: () => (base == null && speed === 1 ? Date.now() : start + (Date.now() - t0) * speed) };
+  // (live: the real time at the real speed — City 2.0 runs that on the SERVER clock, so the party's songs + breaks agree on every phone)
+  return { tz, tzNote: zone.bad ? zone : null, force, wx, speed, live: base == null && speed === 1, preview: !!(when || q.get('tz') || force.size || wx || speed > 1), now: () => (base == null && speed === 1 ? REAL_NOW() : start + (Date.now() - t0) * speed) };
 }

@@ -61,9 +61,9 @@ const SCENES = {
   // NIGHT-A: THE NEW NIGHT LIGHT (&light=new: an older build ignores the flag — its own light): a plain night, a party night, a rainy night
   // NIGHT-A2: SATURDAY OCT 31 — Halloween AND a party night (the owner's iPhone: 14.5 % slow, frames to 100 ms); -noprops = the same
   // night without the holiday's props (the props' share of it); np-* / w-rain run the DEFAULT light (NEW since NIGHT-A2)
-  // NIGHT-B — THE STREET PARTY: Saturday Oct 24 at 22:15 (the pockets mingling between breaks) + 21:44:45 (its conga break ~55 s in:
+  // NIGHT-B — THE STREET PARTY: Saturday Oct 24 at 22:15 (the pockets mingling between breaks) + 22:06:36 (its conga break ~55 s in — NIGHT-C: on the deck's real songs:
   // the pockets bouncing, the 20-strong conga, the spill in the street, the bench dancers — the heaviest moment) + the stage light on
-  'sp-peak': 'when=2026-10-24T22:15&wx=clear&force=no-planes', 'sp-break': 'when=2026-10-24T21:44:45&wx=clear&force=no-planes', 'sp-break-stage': 'when=2026-10-24T21:44:45&wx=clear&force=no-planes&stage=1',
+  'sp-peak': 'when=2026-10-24T22:15&wx=clear&force=no-planes', 'sp-break': 'when=2026-10-24T22:06:36&wx=clear&force=no-planes', 'sp-break-stage': 'when=2026-10-24T22:06:36&wx=clear&force=no-planes&stage=1',
   'hw-party': 'when=2026-10-31T22:00&wx=clear&force=no-planes', 'hw-party-noprops': 'when=2026-10-31T22:00&wx=clear&force=no-planes,no-holiday-props',
   'na-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes&light=new', 'na-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes&light=new', 'na-rain': 'when=2026-10-14T21:30&wx=rain&force=no-planes&light=new',
   // HOTFIX Oct 29: the owner's forced-bus link (5 fps on his iPhone: the people's plan cache re-planned every frame) + the forced dog walk

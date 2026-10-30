@@ -31,9 +31,12 @@ import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonRaceCrackle, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
 import { beatSource, beatKick, beatWhy, beatCal, beatReport, songInfo, syncLine, clockLine } from '../audio/beat.js';
+import { partyMusicDebug, partyNow } from '../audio/party-music.js';
+// (NIGHT-C: the song's clock = the party's synced song when it sounds — its own buffer voice — else this phone's song element)
+const songClock = () => { const p = partyNow(); return p ? p.at : musicClock(); };
 import { beatMode } from '../core/harbor-beat.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
-import { cityFailed } from '../core/city.js';
+import { cityFailed, cityClock } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { musicClock } from '../audio/music.js';
@@ -57,7 +60,20 @@ function musicLine() {
   // (the mood + the party show read the SAME clock — the Harbor's, the preview's &when= included; a mood that doesn't follow it is
   // a CHOICE, and the line says whose: `music DAY (setting)` / `(panel)` — then the party may pulse to a non-party song, by design)
   const m = `music ${MOOD_LABEL[moodNow()]}${fx ? ` (${fx.from})` : ''}${i ? ` · ${i.id}${i.bpm ? ` ${i.bpm.toFixed(1)}` : ''} · grid ${i.grid}${i.lock != null ? ` (lock ${i.lock})` : ''}` : ' · no song'}`;
-  return i ? [m, syncLine(), clockLine()] : [m];
+  const p = partyLine();
+  return i ? [m, syncLine(), clockLine(), ...(p ? [p] : [])] : p ? [m, p] : [m];
+}
+/** NIGHT-C — THE PARTY SONG IN SYNC (audio/party-music.js): `party NIGHT · c2-party4 1:23 / 4:53 · SYNCED (server clock) · next in 3:30 ·
+ *  break CONGA` — the timeline's song + where it is, who plays it here (SYNCED = the synced player, sample-accurate on the server clock;
+ *  riding = this phone's own player, on the timeline within 0.12 s; own player = not in sync yet — decoding, a locked context, the
+ *  direct path, a legendary's hold) */
+const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+function partyLine() {
+  let d = null; try { d = partyMusicDebug(); } catch { d = null; }
+  if (!d || !d.song) return null;
+  const cc = cityClock(), b = cc && cc.streetParty ? cc.streetParty() : null, brk = b && b.brk && b.k > 0 ? b.brk : null;
+  const who = d.synced ? 'SYNCED (server clock)' : d.riding ? 'riding (own player, on the clock)' : settings.musicOff || settings.muted ? 'music off — the clock runs' : 'own player (not synced yet)';
+  return `party ${String(d.kind).toUpperCase()} · ${d.song} ${mmss(d.at)} / ${mmss(d.dur)} · ${who} · next in ${mmss(Math.max(0, d.left))}${brk ? ` · break ${String(brk.kind).toUpperCase()}${brk.song === d.song ? ' (this song)' : ''}` : ''}`;
 }
 
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };
@@ -1044,7 +1060,7 @@ export function createTitle() {
   }
   // (a tap that should start the music — the music on, not muted, its clock still — arms the fallback; read after the tap's own
   // handlers have run: the music button's toggle first)
-  const armTap = () => setTimeout(() => { if (!destroyed && !settings.musicOff && !settings.muted && settings.music > 0 && musicClock() < 0) armedAt = performance.now(); }, 0);
+  const armTap = () => setTimeout(() => { if (!destroyed && !settings.musicOff && !settings.muted && settings.music > 0 && songClock() < 0) armedAt = performance.now(); }, 0);
   if (createHarbor) document.addEventListener('pointerup', armTap, true);
   if (createHarbor) {
     // the detector + &force=first-tap — from the URL or THE PREVIEW PANEL (live: the scene's force set): 2.4 s after the intro
@@ -1053,8 +1069,8 @@ export function createTitle() {
     const watch = () => {
       if (destroyed) return;
       const now = performance.now();
-      if (surgeStart.feed(musicClock(), now)) surgeOnBeat('music');
-      else if (armedAt && now - armedAt > ONBEAT.wait) { armedAt = 0; if (!beatT && musicClock() < 0) signSurge('music'); }
+      if (surgeStart.feed(songClock(), now)) surgeOnBeat('music');
+      else if (armedAt && now - armedAt > ONBEAT.wait) { armedAt = 0; if (!beatT && songClock() < 0) signSurge('music'); }
       const on = !!(scene && scene.forced && scene.forced('first-tap')) && !!(tl && tl.done);
       if (on && !surgeOn) surgeNext = now + 2400;
       surgeOn = on;

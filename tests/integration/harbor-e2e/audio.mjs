@@ -91,7 +91,8 @@ G('dock', async () => {
 G('music', async () => {
   const songs = await (await fetch(`${BASE}/data/mood-music.json`)).json();
   const deck = m => songs.city2.moods[m];
-  const NOW = `(() => { const d = window.__arcade.musicDebug(); return d.list === 'mood' && d.playing ? String(d.playing).replace(/^m:/, '') : null; })()`;
+  // (NIGHT-C: a party song may sound on the party's SYNCED player — the server clock's — not this phone's own: both count as "the song")
+  const NOW = `(() => { const p = window.__arcade.partyMusicDebug && window.__arcade.partyMusicDebug(); if (p && p.synced && p.heard) return p.heard.id; const d = window.__arcade.musicDebug(); return d.list === 'mood' && d.playing ? String(d.playing).replace(/^m:/, '') : null; })()`;
   const unlock = p => tapAt(p, 30, 300);
   const start = async p => { await unlock(p); await waitFor(p, NOW, 'a mood song playing', 25000); return ev(p, NOW); };
   const setMood = (p, v) => ev(p, `import('/js/audio/settings.js').then(m => m.updateSettings({ musicMood: '${v}' }))`);
@@ -444,7 +445,9 @@ G('music', async () => {
       const AN = AnalyserNode.prototype, gf = AN.getFloatTimeDomainData, last = new WeakMap();
       AN.getFloatTimeDomainData = function (a) { const s = last.get(this); if (window.__deadGraph && s) { a.set(s); return; } gf.call(this, a); if (!window.__deadGraph) last.set(this, Float32Array.from(a)); };
     } };
-    const Q = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1`, view: [402, 874], init: { fn: new Function(`(${evidence.fn})(); (${stale.fn})();`) } });
+    // (NIGHT-C: the party's synced song off for this one — the test drives THIS phone's own player onto the direct path; with the sync on a
+    // dead graph hands the song to the same player: audio/party-music.js)
+    const Q = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1&force=no-party-sync`, view: [402, 874], init: { fn: new Function(`(${evidence.fn})(); (${stale.fn})();`) } });
     const q = Q.page;
     const PUNCH = ms => ev(q, `new Promise(res => { let lo = 9, hi = 0; const t0 = performance.now(); const tick = () => { const v = window.__district.party().punch; lo = Math.min(lo, v); hi = Math.max(hi, v); if (performance.now() - t0 < ${ms}) requestAnimationFrame(tick); else res({ lo: +lo.toFixed(3), hi: +hi.toFixed(3), src: window.__district.party().src, level: window.__district.party().level, live: window.__district.party().live, line: window.__district.harbor().beatLine, out: window.__arcade.musicDebug().out }); }; requestAnimationFrame(tick); })`);
     const qvis = v => ev(q, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
@@ -703,3 +706,56 @@ G('tape', async () => {
   if (SHOTS) await p.screenshot({ path: `${OUT}tape-402x874.png` });
   await Q.ctx.close();
 });
+
+// ================================================================ NIGHT-C — THE PARTY SONG IN SYNC (ONLY=partysync; the `perf` cloud job,
+// before the serial perf group). audio/party-music.js: on a party night the PARTY deck plays on the server clock — every phone the same song
+// at the same moment, a phone joining late lands mid-song in place, the dance break starts ON the song the phone hears (core/party-deck.js).
+G('partysync', async () => {
+  const D = await import('../../../js/core/party-deck.js'), SPm = await import('../../../js/core/harbor-streetparty.js');
+  const songs = await (await fetch(`${BASE}/data/mood-music.json`)).json(), deck = D.deckSpec(songs);
+  // (Saturday Oct 24's 22:05:41 break — a CONGA on the deck's real songs: tests/party-deck.test.mjs lists the night)
+  const OFF = -240, ev0 = SPm.eveningOf(Date.UTC(2026, 9, 25, 2, 5) / 1000, OFF), brks = SPm.danceBreaks(ev0.day0, ev0.key, { off: OFF, seed: 1924, deck });
+  const brk = brks.find(b => Math.abs(b.s0 - (ev0.day0 + 22 * 3600 + 5 * 60 + 41)) < 5);
+  ok(!!brk && brk.kind === 'conga' && !!brk.song, `the night's plan: a ${brk && brk.kind} break at 22:05:41 on ${brk && brk.song}`);
+  const PM = 'window.__arcade.partyMusicDebug()';
+  const synced = p => waitFor(p, `(() => { const d = ${PM}; return !!(d && d.synced && d.heard); })()`, 'the party song synced', 30000);
+  // one reading: where the song SOUNDS (the synced player's buffer) vs where the timeline says it is, at the same instant (+ the wall time)
+  const read = p => ev(p, `(() => { const d = ${PM}; return d && d.heard ? { id: d.heard.id, song: d.song, at: d.heard.at, want: d.at, err: d.heard.at - d.at, wall: Date.now(), kind: d.kind } : null; })()`);
+  const pages = [];
+  try {
+    // ---- 1. two "phones" on the same party night, 21 s before the conga: each hears the timeline's song within ~100 ms (a preview's
+    // &when= clock starts at each page's own load — the two sit a second or two apart; the same moment on every phone: LIVE, below)
+    for (const s of ['psa', 'psb']) { const Q = await open({ slot: s, qs: `when=2026-10-24T22:05:20${GR}&wx=clear&debug=1`, view: [402, 660] }); pages.push(Q); }
+    for (const Q of pages) { await harborUp(Q.page); await tapAt(Q.page, 30, 300); }
+    for (const Q of pages) await synced(Q.page);
+    await sleep(800);
+    const [a, b] = await Promise.all(pages.map(Q => read(Q.page)));
+    ok(a && b && a.id === a.song && b.id === b.song && a.kind === 'night' && b.kind === 'night', `THE TIMELINE's SONG: the phones hear ${a && a.id} / ${b && b.id} (their timelines' ${a && a.song} / ${b && b.song}, a party ${a && a.kind})`);
+    ok(a && b && Math.abs(a.err) < 0.1 && Math.abs(b.err) < 0.1, `IN TIME: each within ~100 ms of the server clock's timeline (${a && (a.err * 1000).toFixed(0)} / ${b && (b.err * 1000).toFixed(0)} ms)`);
+    { const line = await ev(pages[0].page, 'window.__district.harbor().partySync');
+      ok(/^party NIGHT · c2-party\d+ \d+:\d\d \/ \d+:\d\d · SYNCED \(server clock\) · next in \d+:\d\d/.test(line || ''), `THE READOUT (&debug=1): "${line}"`); }
+    // ---- 2. THE BREAK ON THE HEARD SONG: as the conga starts, the song every phone hears is the break's — just begun
+    { const p = pages[0].page;
+      await waitFor(p, `(() => { const s = window.__district.harbor() && __district.harbor().people.party; return !!(s && s.brk && s.brk.kind === 'conga' && s.k > 0.02); })()`, 'the conga break', 40000);
+      const r = await ev(p, `(() => { const s = window.__district.harbor().people.party, d = ${PM}; return { brk: s.brk.song || null, k: s.k, song: d.song, at: d.at, heard: d.heard && d.heard.id }; })()`);
+      ok(r.brk === brk.song && r.song === brk.song && r.at < 4, `THE BREAK STARTS ON THE SONG: the conga on ${r.brk}, the timeline's song ${r.song} ${r.at.toFixed(1)} s in (level ${r.k.toFixed(2)})`);
+      await waitFor(p, `(() => { const d = ${PM}; return !!(d && d.heard && d.heard.id === ${JSON.stringify(brk.song)}); })()`, 'the break song heard', 12000).catch(() => {});
+      const h = await read(p);
+      ok(h && h.id === brk.song && Math.abs(h.err) < 0.1, `…AND HEARD: this phone plays ${h && h.id} (${h && (h.err * 1000).toFixed(0)} ms from the clock) — the crossfade into the break's song on the server clock`);
+      if (SHOTS) await p.screenshot({ path: `${OUT}partysync-conga-402x660.png` }); }
+    for (const Q of pages.splice(0)) await Q.ctx.close();
+    // ---- 3. LIVE (no &when: the real time on the server clock) — the panel's PARTY: two phones + a LATE JOINER 15 s later, all on the
+    // same song at the same wall moment (the song's start in wall time agrees within ~100 ms)
+    for (const s of ['psc', 'psd']) { const Q = await open({ slot: s, qs: `force=party&wx=clear${GR}`, view: [402, 660] }); pages.push(Q); }
+    for (const Q of pages) { await harborUp(Q.page); await tapAt(Q.page, 30, 300); }
+    for (const Q of pages) await synced(Q.page);
+    await sleep(15000);
+    { const Q = await open({ slot: 'pse', qs: `force=party&wx=clear${GR}`, view: [402, 660] }); pages.push(Q); await harborUp(Q.page); await tapAt(Q.page, 30, 300); await synced(Q.page); }
+    await sleep(800);
+    const rs = await Promise.all(pages.map(Q => read(Q.page))), start = r => r.wall - r.at * 1000;
+    const spread = Math.max(...rs.map(start)) - Math.min(...rs.map(start));
+    ok(rs.every(r => r && r.id === rs[0].id && r.kind === 'party'), `LIVE: all three phones hear ${rs[0] && rs[0].id} (the panel's PARTY: ${rs.map(r => r && r.kind).join(' / ')})`);
+    ok(spread < 100, `LIVE + THE LATE JOINER: the song's start agrees within ${spread.toFixed(0)} ms on all three (the joiner ${(rs[2].at).toFixed(1)} s into it)`);
+  } finally { for (const Q of pages) await Q.ctx.close().catch(() => {}); }
+});
+

@@ -13,7 +13,7 @@ export const BENCH_SCENES = Object.freeze([
   { id: 'party', label: 'a party peak (Sat 11 pm)', q: { when: '2026-10-24T23:00', wx: 'clear' } },
   // (NIGHT-B: THE STREET PARTY's heaviest moment — Sat Oct 24's 9:43:50 conga break ~40 s in: the pockets bouncing, the 20-strong conga,
   // the spill in the street, the bench dancers)
-  { id: 'party-break', label: 'a dance break: the conga + the street spill (Sat 9:44 pm)', q: { when: '2026-10-24T21:44:30', wx: 'clear' } },
+  { id: 'party-break', label: 'a dance break: the conga + the street spill (Sat 10:06 pm)', q: { when: '2026-10-24T22:06:20', wx: 'clear' } },
   { id: 'party-snow', label: 'a party in snow (Sat Jan 16, 11 pm)', q: { when: '2027-01-16T23:00', wx: 'snow' } },
   { id: 'halloween', label: "Halloween's props night (Oct 31, 9 pm)", q: { when: '2026-10-31T21:00', wx: 'clear' } },
   { id: 'ufo', label: 'the UFO over a crowd (Sat 10 pm)', q: { when: '2026-10-24T22:00', wx: 'clear' }, legend: 'ufo' },

@@ -795,11 +795,11 @@ G('light', async () => {
 
 // ================================================================ NIGHT-B — THE STREET PARTY (ONLY=streetparty; the `city` cloud job)
 // core/harbor-streetparty.js: the party night's pockets, the dance breaks (a seeded party song clock — every phone the same), the conga,
-// the spill into the street (the front street holds), the bench dancers. Saturday Oct 24's 21:43:50 break is a CONGA (the unit test
+// the spill into the street (the front street holds), the bench dancers. Saturday Oct 24's 22:05:41 break is a CONGA (NIGHT-C: on the party deck's real songs — tests/party-deck.test.mjs; the unit test
 // lists the night); the page joins it ~55 s in.
 G('streetparty', async () => {
   const P = 'window.__district.harbor()';
-  { const Q = await open({ slot: 'sp1', qs: `when=2026-10-24T21:44:45${GR}&wx=clear`, view: [402, 660] });
+  { const Q = await open({ slot: 'sp1', qs: `when=2026-10-24T22:06:36${GR}&wx=clear`, view: [402, 660] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.people.party && ${P}.people.party.brk && ${P}.people.members.some(m => m.kind === 'conga')`, 'the conga break on', 30000);
     const pp = await ev(Q.page, `${P}.people`), ms = pp.members, br = pp.party.brk;

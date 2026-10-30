@@ -15,7 +15,11 @@
 // The camera + every position come from core/harbor-layout.js (pure, tested); the static layers are baked per look key in
 // small chunks into a second set of canvases and crossfaded in (bake.js: the memory budget); only lights and moving things
 // draw every frame. Progressive start: the sky first, the city fades in when its first bake is done.
-import { look as skyLook, skyClock, sunPosition, moonPhase, sunTimes, localParts } from '../../core/sky.js';
+import { look as skyLook, skyClock, sunPosition, moonPhase, sunTimes, localParts, setRealNow } from '../../core/sky.js';
+import { serverNow } from '../../firebase.js';
+import { moodData, loadMoodMusic } from '../../audio/mood.js';
+import { deckSpec } from '../../core/party-deck.js';
+import { partyTimeline } from '../../core/harbor-streetparty.js';
 import { paletteFor } from '../district/palette.js';
 import { createStars } from '../district/stars.js';
 import { createFx } from '../district/fx.js';
@@ -134,6 +138,13 @@ const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t
 const GROUPS = ['far', 'near', 'water', 'harbor', 'road', 'bill', 'stage', 'front'];
 
 export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = skyClock(), games = [] } = {}) {
+  // NIGHT-C — THE PARTY SONG IN SYNC: the live city runs on the SERVER clock (core/sky.js#setRealNow — the saved offset while parked, no
+  // socket for it), so its party songs + dance breaks agree with the music every phone hears (audio/party-music.js)
+  setRealNow(serverNow);
+  // (the PARTY deck: the songs the breaks are planned on — loaded at boot by app.js; asked here too so the first plan has them)
+  try { loadMoodMusic(); } catch { /* tests */ }
+  let deckSrc = null, deckV = null;
+  const partyDeckNow = () => { const d = moodData(); if (d !== deckSrc) { deckSrc = d; deckV = d ? deckSpec(d) : null; } return deckV; };
   const ctx = safeCtx(canvas, { alpha: false });
   const q = typeof location !== 'undefined' ? location.search : '';
   let GRID = /[?&]grid=1(?:&|$)/.test(q), DEBUG = /[?&]debug=1(?:&|$)/.test(q);
@@ -603,7 +614,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (8b1 — THE BEAT, the owner: the panel's PARTY and every forced SHOW drive the MUSIC MOOD too — a party show plays a party song, so
   // the lights' grid is a party song's; audio/mood.js#moodNow asks show() over AUTO — an explicit MUSIC MOOD choice still wins)
   const SHOW_FORCES = ['party', 'neon-party', 'finale', 'fireworks', 'drones', 'dance', 'strings-party', 'beams'];
-  setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k), show: () => (!clock.force.has('no-party') && SHOW_FORCES.some(f => clock.force.has(f)) ? 'party' : null) });
+  // (NIGHT-C — THE PARTY SONG IN SYNC: partyLine() = the party's timeline now (core/harbor-streetparty.js#partyTimeline — the deck, its
+  // anchor + seed: the same the dance breaks are planned on), partyDeck() its songs; speed: the clock's rate (a sped-up preview can't sync)
+  setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k), show: () => (!clock.force.has('no-party') && SHOW_FORCES.some(f => clock.force.has(f)) ? 'party' : null),
+    speed: () => clock.speed || 1, partyDeck: () => partyDeckNow(), partyLine: () => partyLineNow(),
+    streetParty: () => { const sp = people && people.party ? people.party() : null; return sp ? { brk: sp.brk ? { id: sp.brk.id, kind: sp.brk.kind, s0: sp.brk.s0, s1: sp.brk.s1, song: sp.brk.song || null } : null, k: sp.k || 0 } : null; },
+    // (the TR-3B's TAPE STOP bends THIS phone's own song element: while a legendary is due or heard, the party's song stays on it)
+    musicHold: () => { try { const o = legends ? legends.listen() : null; return !!(o && o.kind === 'tr3b') || legendSoon(); } catch { return false; } } });
+  function partyLineNow() {
+    if (clock.force.has('no-party-sync')) return null;   // (A/B: each phone's own party songs, as before NIGHT-C — the breaks keep the deck)
+    const dance = clock.force.has('dance') && !clock.force.has('no-dance');
+    return partyTimeline(clock.now() / 1000, { off: LK && LK.local ? LK.local.off : 0, seed: (L && L.seed) || 1924, partyForced: !clock.force.has('no-party') && (clock.force.has('party') || clock.force.has('dance')),
+      forceDanceAt: dance ? forceAtOf('dance') : null, noDance: clock.force.has('no-dance') });
+  }
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() }), lkMs = clock.now();
   // PART 11a-1 — THE HOLIDAY (core/harbor-holiday.js, PURE): what the city is dressed for now (HS), what of it shows (HP), the holiday
   // light rules (HR) — refreshed with the look; every holiday piece reads these (the sign's dressing, the steps, the windows, the people)
@@ -1217,7 +1240,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const giantUp = () => !!(hprops && hprops.giantOn && !clock.force.has('no-holiday-props') && hprops.giantOn(HS, HP));
   const peopleFrame = () => ({ snowWork: snowWorkNow(), ms: clock.now(), off: LK.local ? LK.local.off : null, rain: LK.rain || 0, fog: LK.fog || 0, snow: LK.snow || 0, temp: (() => { const tc = tempNow(); return tc != null ? tc : SN.stage !== 'none' ? -2 : null; })(), wind: WXS ? WXS.gust : LK.wind || 0, event: centre.active() || giantUp(), ring: !centre.active() && giantUp() /* (11a-2: the dance RINGS the giant jack-o'-lantern) */, season: L.season, seed: L.seed || 1924, legend: legendForPeople(), raid: raidPlanNow(), holiday: HS, hpieces: HP, solids: clock.force.has('no-holiday-props') ? null : HP /* (NIGHT-A2: the standing props' footprints — people.js) */, local: LK.local, forceHoliday: clock.force, forceAt: id => (clock.force.has(id) ? forceAtOf(id) * 1000 : null) /* (the clock ms the flag came on) */,
     forceWork: workForced(), forceWorkAt: workForceAt(), noWork: clock.force.has('no-work'), dusk: duskFor, hot: hotDay, flush: () => flushOk(), rush: clock.force.has('shoppers') ? () => 1 : XP.bf ? tt => rushAtT(tt, LK.local ? LK.local.off : 0) : null,
-    forceJog: clock.force.has('joggers'), forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), forceCircle: clock.force.has('circle'), forceCircleAt: forceAtOf('circle'), danceKind: qp.get('dance') || null, noStreetParty: clock.force.has('no-street-party'), partyForced: !clock.force.has('no-party') && (clock.force.has('party') || clock.force.has('dance')), /* (NIGHT-B: THE STREET PARTY — its crowd at the peak under the PARTY preview; &force=dance a break every 5 min) */ forceStandAt: clock.force.has('cabstand') ? forceAtOf('cabstand') : null, forceBenchAt: clock.force.has('waterbench') ? forceAtOf('waterbench') : null, forceDogAt: clock.force.has('dogwalk') ? forceAtOf('dogwalk') : null, noDance: clock.force.has('no-dance'), blocked: danceBlocked, shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
+    forceJog: clock.force.has('joggers'), forceBus: clock.force.has('bus'), forceBusAt: forceAtOf('bus'), forceDoors: clock.force.has('doors'), forceDance: clock.force.has('dance'), forceDanceAt: forceAtOf('dance'), deck: partyDeckNow(), forceCircle: clock.force.has('circle'), forceCircleAt: forceAtOf('circle'), danceKind: qp.get('dance') || null, noStreetParty: clock.force.has('no-street-party'), partyForced: !clock.force.has('no-party') && (clock.force.has('party') || clock.force.has('dance')), /* (NIGHT-B: THE STREET PARTY — its crowd at the peak under the PARTY preview; &force=dance a break every 5 min) */ forceStandAt: clock.force.has('cabstand') ? forceAtOf('cabstand') : null, forceBenchAt: clock.force.has('waterbench') ? forceAtOf('waterbench') : null, forceDogAt: clock.force.has('dogwalk') ? forceAtOf('dogwalk') : null, noDance: clock.force.has('no-dance'), blocked: danceBlocked, shopOpen: t => { const h = ((((t + (LK.local ? LK.local.off : 0) * 60) / 3600) % 24) + 24) % 24; return h >= 9 && h < 18; } });
   // 8b1 — THE WILDLIFE's inputs: the clock + the place, the weather, the moon, the people now (their positions: the scares), the window
   // life's dusk (the outside cat never with the window cat), the previews (&force=pigeons, coyote, … — wildlife.js#WILD_FORCES)
   let moonK = 0, moonAt = -1e12, winDark = null, winDarkAt = -1e12;
@@ -2857,8 +2880,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const wx = clock.preview || clock.wx || weatherSettled() || now - t0 > WX_WAIT;
     const cs = clouds.stats(), sky = extrasIn && (cs.ready || clock.force.has('no-clouds'));
     const panel = !remoteStored || remoteApplied || now - t0 > WX_WAIT + 1500;   // (SP4: a stored JUST ME state lands before the reveal)
+    // (NIGHT-C: the party's SONGS — the dance breaks are planned on them (core/party-deck.js): in before the reveal, so a break never shifts
+    // after it; a failed load gives up at REVEAL_MAX like everything else — the stand-in song clock then)
+    const songs = !!partyDeckNow() || now - t0 > REVEAL_MAX - 500;
     const late = now - t0 > REVEAL_MAX;
-    if (!(ready && fonts && wx && sky && panel) && !late) return;
+    if (!(ready && fonts && wx && sky && panel && songs) && !late) return;
     // (the look the weather brought must be IN the bake that shows: an answer that landed since the last look (read every 2.5 s) is
     // read now, and a changed look re-bakes once more, still dark)
     { const w = wxNow(), sig = w ? `${w.kind}|${w.at}` : 'none'; if (!late && sig !== wxSig) { lookAt = 0; return; } }
@@ -2868,7 +2894,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!late && L && S.measure) { const mv = rectsMoved(); if (mv) { LOADLOG.add('dock', `measured before the reveal: ${mv}`); layout('measured before the reveal'); return; } }
     shownAt = now; shownClock = clock.now() / 1000; revealWhy = ready && fonts && wx && sky && panel ? 'ready' : 'late';
     clouds.settle();                              // (the clouds baked in the dark show at once with the city — no fade of their own)
-    const waits = [!ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds', !panel && "the panel's stored state"].filter(Boolean);
+    const waits = [!ready && 'the bake', !fonts && 'the fonts', !wx && 'the weather', !sky && 'the clouds', !panel && "the panel's stored state", !songs && 'the party songs'].filter(Boolean);
     wxRevealed = true; wxHeld = wxNow() || wxHeld;
     { const a = weatherAsk(); if (a) LOADLOG.add('note', `wx asked: ${a.status ? `HTTP ${a.status}` : `failed (${a.err})`} in ${a.ms} ms`); }
     LOADLOG.reveal(revealWhy, `t${tier} dpr ${dpr} · ${Math.round(W)}×${Math.round(H)} · wx ${LK.wxKind || 'seeded'} (${wxSourceNow()})${waits.length ? ` · still waiting for ${waits.join(', ')}` : ''}`, now);
@@ -3022,6 +3048,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     speakCtx: () => { const v = speakCtx(); return { key: v.key, hushLit: !!v.hushLit }; },   // (WIN2: the facade's bake context — the washer swap)
     tiering: () => ({ tier, dprTier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())), grace: TIER_GRACE, heavy: heavyNow(performance.now()), judge: lastJudge, slowN, sinceReveal: shownAt < 0 ? null : +((performance.now() - shownAt) / 1000).toFixed(1) }),
     cost: () => costs.slice(),
+    // (NIGHT-C: the street party now — its break { kind, s0, s1, song } + level k — for the &debug=1 readout's party line, cheap)
+    streetParty: () => { const sp = people && people.party ? people.party() : null; return sp ? { brk: sp.brk ? { id: sp.brk.id, kind: sp.brk.kind, s0: sp.brk.s0, s1: sp.brk.s1, song: sp.brk.song || null } : null, k: sp.k || 0, crowd: sp.crowd || 0 } : null; },
     party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, safe: PT.safe || null, safeK: PT.safeK == null ? null : +PT.safeK.toFixed(3), pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
     finale: () => startFinale(),
     /** 8a — THE LOOP: running, ms since its last frame, frames drawn, the watchdog's restarts (stalls: 'running' with no frame) + why */
@@ -3111,6 +3139,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
+      partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),

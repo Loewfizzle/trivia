@@ -17,11 +17,13 @@ export const SCHEDULE = Object.freeze([
     knobs: { days: ['fri', 'sat'], from: 20, to: 26, probe: 22 } },   // (probe: the hour a night is asked "is it a party?")
   { id: 'party.crowd', trigger: 'clock', status: 'live', src: 'core/harbor-streetparty.js#crowdK', what: 'THE STREET PARTY crowd: grows through the warm-up, fullest at the peak, thins after 1 am, gone by 2',
     knobs: { warm: 20.5, full: 21.75, thin: 25.0, gone: 26.0, scan: [19.5, 26.5] } },   // (scan: the span its pockets' windows are read over)
-  { id: 'party.songs', trigger: 'beat', status: 'live', src: 'core/harbor-streetparty.js#partySongs', what: 'THE PARTY\'S OWN SONG CLOCK: seeded songs back to back from 8 pm (every phone the same; a phone\'s own music may differ — the moves follow its beat)',
-    knobs: { from: 20, to: 26.6, len: [185, 250], fast: 0.55 } },
-  { id: 'party.break', trigger: 'beat', status: 'live', src: 'core/harbor-streetparty.js#danceBreaks', what: 'A DANCE BREAK ~every 20 min: ONE SONG where almost everyone dances, starting ON a party song\'s start (seeded)',
+  // (NIGHT-C — THE SAME PARTY SONG ON EVERY PHONE, the owner Oct 30: the City 2.0 PARTY deck itself on the server clock — core/party-deck.js,
+  // audio/party-music.js; fastBpm: a song at or above it is a FAST one for the dance kinds; len + fast: the stand-in when the songs aren't loaded)
+  { id: 'party.songs', trigger: 'beat', status: 'live', src: 'core/party-deck.js + core/harbor-streetparty.js#partyTimeline', what: 'THE PARTY SONGS ON THE SERVER CLOCK: the PARTY deck seeded by the evening, back to back from 8 pm — every phone hears the same song at the same moment (a phone joining mid-song lands in place); the panel\'s PARTY plays the epoch\'s deck, &force=dance a deck from the force moment',
+    knobs: { from: 20, to: 26.6, fastBpm: 110, len: [185, 250], fast: 0.55 } },
+  { id: 'party.break', trigger: 'beat', status: 'live', src: 'core/harbor-streetparty.js#danceBreaks', what: 'A DANCE BREAK ~every 20 min: ONE SONG where almost everyone dances, starting ON the start of the party song every phone hears (seeded)',
     knobs: { from: 21.0, to: 25.4, every_min: 20, jitter_min: 3, minGap_min: 12 }, conflicts: ['traffic.front', 'cabstand'] },
-  { id: 'party.break.force', trigger: 'event', status: 'live', src: 'core/harbor-streetparty.js#danceBreaks', what: '&force=dance — a dance break every 5 min (any night; &dance=conga|bounce|wands|swing|mix picks the kind)',
+  { id: 'party.break.force', trigger: 'event', status: 'live', src: 'core/harbor-streetparty.js#forcedBreaks', what: '&force=dance — a deck from the force moment: a break on its first song (`first` s in), then on the first song starting each 5 min (any night; &dance=conga|bounce|wands|swing|mix picks the kind)',
     knobs: { every: 300, first: 6, song: 210 } },
   { id: 'party.spill', trigger: 'event', status: 'live', src: 'core/harbor-streetparty.js#spillPlan', what: 'INTO THE STREET: in a break the party steps down into the street\'s upper band; the front street\'s traffic holds',
     knobs: { lead: 14, trail: 16 }, conflicts: ['traffic.front'] },
