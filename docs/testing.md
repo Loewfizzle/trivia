@@ -27,6 +27,9 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - **THE FILES** (NIGHT-B Group 0): `e2e-harbor.mjs` is the entry point + the runner (the same CLI + env); the shared harness (`ok` /
     `okT` / `okF` / `skipCI`, `open`, `waitFor`, `tap`, `harborUp`, `G()` + `GROUPS`…) is `harbor-e2e/kit.mjs`; each cloud job's groups
     live in `harbor-e2e/<job>.mjs` (a helper only one job uses stays in its file; one a second job needs moves to the kit).
+  - **THE STREET PARTY** (NIGHT-B): `ONLY=streetparty` (the `city` job, ~60 s — Sat Oct 24's conga break joined ~55 s in, `&force=dance&dance=bounce`,
+    a Thursday without, THE STAGE LIGHT's falloff, the crowd's sounds); unit `tests/harbor-streetparty.test.mjs` + `harbor-tables.test.mjs` +
+    `harbor-solids.test.mjs`; title-perf's `sp-peak` / `sp-break` / `sp-break-stage` scenes; the phone bench's `party-break` scene.
   - **A NEW GROUP** (`G('people', …)` in its job's file, `harbor-e2e/<job>.mjs`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
     `e2e-harbor.mjs` refuses to run (even with `ONLY=`) and `tests/harbor-jobs.test.mjs` fails in the quick workflow, so no group is ever
     skipped silently. A new JOB: a key in `CI_JOBS` + the same name in harbor.yml's matrix list + the Run-workflow options (the test checks).

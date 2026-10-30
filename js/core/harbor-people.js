@@ -1417,11 +1417,12 @@ function planDance(sess, M, L) {
     const a = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: 'side' }, { at: spot }] }, start, M, { r });
     const tEnd = sess.s1 + i * 1.3;
     if (!a || a.t1 >= tEnd - 20) continue;
+  // (NIGHT-B: the retired circle — now only the &force=circle preview — keeps its dancers on their own ring: solidsOk, as before THE SOLIDS)
     // (facing mostly toward us — the moves read — turned a little toward the compass's centre)
     const hd = lerpHd(-PI / 2, Math.atan2(m.z - spot.z, m.x - spot.x), 0.3);
     const b = planVisit({ look: 'guest', gait: 'walk', goals: [{ door: 'side' }] }, tEnd, M, { r, start: spot });
     if (!b) continue;
-    out.push({ id: `${sess.id}.d${i}`, kind: 'dancer', routine: 'dance', idx: i, look: 'guest', gait: 'walk', party: true,
+    out.push({ id: `${sess.id}.d${i}`, kind: 'dancer', routine: 'dance', solidsOk: true, idx: i, look: 'guest', gait: 'walk', party: true,
       legs: [...a.legs, { k: 'pose', pose: 'wands', x: spot.x, z: spot.z, t0: a.t1, t1: tEnd, hd }, ...b.legs], t0: a.t0, t1: b.t1, tEnd: b.t1, members: lead() });
   }
   for (let k = 0; k < sess.watchers; k++) {
@@ -1473,7 +1474,7 @@ function planRing(sess, M, L) {
     const last = legs[legs.length - 1], end = { x: last.x, z: last.z };
     const b = planVisit({ look: 'guest', gait: 'walk', goals: [{ door: 'side' }] }, tEnd, M, { r, start: end });
     if (!b) continue;
-    out.push({ id: `${sess.id}.d${i}`, kind: 'dancer', routine: 'dance', idx: i, look: 'guest', gait: 'walk', party: true, ring: true, legs: [...legs, ...b.legs], t0: a.t0, t1: b.t1, tEnd: b.t1, members: lead() });
+    out.push({ id: `${sess.id}.d${i}`, kind: 'dancer', routine: 'dance', solidsOk: true, idx: i, look: 'guest', gait: 'walk', party: true, ring: true, legs: [...legs, ...b.legs], t0: a.t0, t1: b.t1, tEnd: b.t1, members: lead() });
   }
   // (the watchers: the circle's own — behind + beside, further out than the ring)
   const base = planDance({ ...sess, ring: false, dancers: 0 }, M, L);

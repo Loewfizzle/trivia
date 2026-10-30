@@ -5,7 +5,7 @@ import { BENCH_SCENES, BENCH, benchStats, benchText } from '../js/screens/harbor
 import { REMOTE_KEYS } from '../js/core/harbor-remote.js';
 
 test('C4c — THE PHONE BENCH: six heavy scenes (a party peak, party + snow, Halloween, the UFO, the TR-3B, a storm) as preview states the panel knows; ~3 min in all', () => {
-  assert.deepEqual(BENCH_SCENES.map(s => s.id), ['party', 'party-snow', 'halloween', 'ufo', 'tr3b', 'storm']);
+  assert.deepEqual(BENCH_SCENES.map(s => s.id), ['party', 'party-break', 'party-snow', 'halloween', 'ufo', 'tr3b', 'storm']);   // (NIGHT-B: + the street party's conga break)
   for (const s of BENCH_SCENES) for (const k of Object.keys(s.q)) assert.ok(REMOTE_KEYS.includes(k), `${s.id}: ${k} is a preview key`);
   const ms = BENCH_SCENES.reduce((a, s) => a + BENCH.settle + (s.measure || BENCH.measure), 0);
   assert.ok(ms > 120000 && ms < 240000, `${(ms / 60000).toFixed(1)} min`);

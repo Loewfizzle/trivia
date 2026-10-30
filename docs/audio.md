@@ -1272,3 +1272,26 @@ The owner's iPhone (party mode, the SPEAKER): c2-party4 punched only after 24 ki
 - **THE KICK TABLE** (`tests/integration/kick-table.mjs "<browser>" [--deck party|evening…] [--songs id,id]`): the listener's exact chain
   (decode → the 150 Hz biquad → a 1024-sample RMS at 60 fps → onsetStep) + the lead learner replayed on every song of a deck — the table
   in docs/harbor/passes/night-a2.md.
+
+## THE STREET PARTY's CROWD (NIGHT-B, Oct 29 2026; City 2.0 — docs/harbor/passes/night-b.md)
+The owner's party-crowd folder (`~/Downloads/Grok/city-sfx/party-crowd/`: 29 files + `credits.txt` + Grok's brief — READ, never edited) →
+the files used COPIED into `~/Downloads/city-sfx-party/` under their slot names (+ a `credits.txt` naming each copy's original), imported
+with `add-city-sfx.py --src ~/Downloads/city-sfx-party` (its CUTS rows: `party-*`). **1.1 MB** shipped (the budget ≤ 1.5 MB):
+- **THE BEDS** (loops, 16 kHz, 40 kbps, high-passed 110 Hz, low-passed 2.8 kHz — across the street, no word readable): `party-walla` =
+  walla-5 (a real outdoor patio party, CC0) 92–154 s (steady −37…−46 dB; its German phrase at ~1:07 left out; seam −0.4 dB);
+  `party-walla-b` = walla-1 (Sonniss, an exterior crowd of adults) 3–61 s (seam +2.9 dB — crossfaded).
+- **THE ONE-SHOTS**: `party-laugh` ×6 (laugh-1, -2, -3, -4, -6, laugh-8's 0–3.6 s; 4 kHz), `party-cheer` ×2 (cheer-1; cheer-2's crescendo
+  16–20.5 s; 4 kHz), `party-clink` ×3 (clink-1, -3, -2; bright, 7 kHz), `party-group` ×2 (group-1 4–11 s, group-2 2–10 s — the closer
+  talk; 3 kHz so no word reads). Levelled like every city sound (one-shots −20 LUFS, loops −24) × the slot's gain (0.035–0.06).
+- **NOT USED** (and why): walla-2 (indoors, possible music — unchecked), walla-3 (the loudest, possible clear English), walla-4 (city rumble,
+  maybe a car), walla-6 (through a wall — an "inside" sound, the street can't hear it), walla-7 (UK English, Christmas talk possible),
+  laugh-5 (very quiet, −36 LUFS), laugh-7 (9 s, a near duplicate of the kept laughs), laugh-9 (clapping, theatrical), laugh-10 (performed
+  for a play), cheer-3 (a close whistle), cheer-4 ("woo-hoo": modern), cheer-5 (a spoken "Cheers!": one clear word), cheer-6 (a stage
+  show's applause), clink-4 (18 s of shot glasses — three clinks were enough). **Not listen-checked here** (no speakers on this machine —
+  the cuts were chosen by their loudness envelopes): the group takes are the ones to judge by ear first.
+- **THE MIX** (`screens/harbor/people.js#crowdSounds` → `sounds.js#crowd`): the WALLA under the pockets — its level the mingling heads
+  drawn (÷ 16) × the party's curve, panned to their centre, the second bed at the peak only where the tier table gives `crowdBeds` 2;
+  ducked under the music like every bed. ONE-SHOTS from the pockets' own places (pan by x, louder nearer): a laugh every ~4–12 s (6–14 s
+  in a break), clinks in clusters of 1–3 from a drinker (~8–22 s), the nearest pocket's group take (~26–48 s, not in a break); never
+  more at once than `crowdVoices` (1 / 3 / 5). THE CHEERS RISE as a break starts (three, staggered over ~2.5 s, the loudest in the middle).
+  Muted / locked audio = silent; an empty slot = silent (nothing breaks). ☰ → CREDITS: a SOUND EFFECTS section (15 lines from credits.txt).

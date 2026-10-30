@@ -1560,6 +1560,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - Group 2: Saturday (Halloween + a party): the props cost nothing measurable, the party +22 ms at 4×; no canvas leak; the party's canvas churn
   (sky beams, the clouds' glows, the pole's halo) 24 → 3 a second; the rest of the party frame → PERF.
 
+
+## CITY 2.0 — NIGHT-B: THE STREET PARTY (Oct 29 2026) — docs/harbor/passes/night-b.md (plan.md "OWNER'S NOTES — OCT 29 (the afternoon)" + "(the evening)" + "(late)")
+- Group 0: tests/integration/e2e-harbor.mjs split into harbor-e2e/kit.mjs + one file per cloud job (byte-identical bodies); docs/harbor/decisions.md
+  (the current decisions; plan.md the archive); CLAUDE.md trimmed (the City 2.0 paragraphs moved verbatim to docs/harbor.md); core/harbor-solids.js
+  (one registry of every solid on the promenade; aroundSolids per leg with time windows, the map's furniture kept, never round the cart's front);
+  the beat's output label (speaker/wired).
+- Group 1: core/harbor-schedule.js (THE CITY TIMETABLE: rows by trigger, knobs, THE CONFLICTS, timetableText) + core/harbor-tiers.js (THE TIER TABLE;
+  TIER_CAP reads it); tests/harbor-tables.test.mjs (the new code reads both).
+- Group 2: core/harbor-streetparty.js (the crowd's curve, the party song clock, the breaks, the pockets + their tenured occupants, the conga, the
+  spill, the bench crew) wired into folkAt (solids, the cab stand paused, the front street held, the cart packed up, the witnesses); folk.js
+  'mingle' + the conga's arms; wands.js KIND_SETS + the hop; people.js#streetDance; &force=dance / &dance= / &force=circle / NO STREET PARTY.
+- Group 3: the crowd's sounds (2 beds + 13 one-shots, 1.1 MB; people.js#crowdSounds, sounds.js#crowd); ☰ → CREDITS → SOUND EFFECTS.
+- Group 4: core/harbor-light.js#STAGE + setStageMode (&stage=1|0, a TOOLS row, OFF by default) + scene.js's party dim; the ladder at 3× with it.
+- Group 5: the guard 0.41–0.50×; --ab: a plain night + the peak the same, the conga break +8.9 ms at 4× (trails to tier 2 only); the bench's 7th scene.
 ## CITY 2.0 — NIGHT-A: THE NIGHT LIGHT (Oct 29 2026) — docs/harbor/passes/night-a.md (plan.md "OWNER'S NOTES — OCT 29 (the afternoon)")
 - Group 0: sky.js#cleanZone (a &tz= / panel zone cleaned + checked before Intl, the raw string to /admin once); audio/mood.js — a forced party
   show beats a saved MUSIC MOOD (the panel's PARTY plays a party song, the pulse on its grid); the party stall not reproduced on 48df906
