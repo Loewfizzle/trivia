@@ -17,6 +17,7 @@ import { PIECE } from '../../core/harbor-promenade.js';
 import { treePlan, envelopeOf, treeMix, BARK, FRUIT, LEAF } from '../../core/harbor-trees.js';
 import { rgb, mix } from './shapes.js';
 import { treeLamps, lampShadow, lightMode, NIGHT_LIGHT } from '../../core/harbor-light.js';
+import { soft } from './props-light.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -389,11 +390,26 @@ export function treeShadow(x, cam, t, T, ctx = {}) {
   // the trunk (+ its root flare)
   const s0 = plan.segs[0], [b0x, b0z] = G(0, 0), [f0x, f0z] = G(s0.x1, s0.y1);
   const P = (wx, wz) => project(cam, wx, 0, Math.max(cam.F * 0.02, wz));
-  x.beginPath();
   const q = [P(b0x - s0.w0 * 0.9, b0z), P(f0x - s0.w1 / 2, f0z), P(f0x + s0.w1 / 2, f0z), P(b0x + s0.w0 * 0.9, b0z)];
-  x.moveTo(q[0][0], q[0][1]); for (const p of q.slice(1)) x.lineTo(p[0], p[1]); x.closePath(); x.fill();
+  // NIGHT-A2 (the owner, Oct 29 7:12 pm: "so faint you can't even see it"): under the NEW light the crown's dapple is DARKER — the
+  // same strength as the benches' night shadows (props.js#propShadow: the shadow's a × 1.7, capped) — and SOFT: drawn through
+  // props-light.js#soft (a blurred fill, baked once with the ground: no per-frame cost); the trunk + the crown each one union
+  if (nl) {
+    const A = Math.min(TS.cap, a), sc = cam.F / Math.max(1, t.z);
+    soft(x, () => { x.moveTo(q[0][0], q[0][1]); for (const p of q.slice(1)) x.lineTo(p[0], p[1]); x.closePath(); }, col, A, Math.max(0.6, 0.08 * sc));
+    if (plan.clusters.length) soft(x, () => {
+      for (const cl of plan.clusters) {
+        const [gx, gz] = G(cl.u, cl.v), [px, py] = P(gx, gz), z = Math.max(1, gz), rx = cl.r * 0.8 * cam.F / z, ry = cl.r * 0.8 * cam.F * cam.CAMH / (z * z);
+        x.moveTo(px + rx, py); x.ellipse(px, py, rx, ry, 0, 0, TAU);
+      }
+    }, col, A, Math.max(0.8, TS.blur * sc));
+    if (plan.clusters.length) return;
+  } else {
+    x.beginPath();
+    x.moveTo(q[0][0], q[0][1]); for (const p of q.slice(1)) x.lineTo(p[0], p[1]); x.closePath(); x.fill();
+  }
   // the crown: one union of discs (overlaps don't darken twice; the gaps between them are the dapples)
-  if (plan.clusters.length) {
+  if (plan.clusters.length && !nl) {
     x.beginPath();
     for (const cl of plan.clusters) {
       const [gx, gz] = G(cl.u, cl.v), [px, py] = P(gx, gz), z = Math.max(1, gz), rx = cl.r * 0.8 * cam.F / z * (1 + (stretch - 1) * Math.abs(hx) * 0.4);

@@ -25,9 +25,10 @@ const norm = v => { const l = Math.hypot(v[0], v[1], v[2]) || 1; return [v[0] / 
 // stand (its lamp); the POL4 lamp behind the blade + the hydrant corner's lamp fold into the wash; (4) people lit by it — their fronts
 // (facing us) catch it, a soft long faint shadow UP the screen (never a hard blob); (6) the blackout takes it all down. One switch for
 // every painter (the stage's bake, the street, the people, the props, the trees, the road's cars, the snow, the wildlife, the holiday
-// pieces); the scene sets it (scene.js#lightModeNow) and re-bakes on a change. OLD = today's light, unchanged, until the owner's OK.
+// pieces); the scene sets it (scene.js#lightModeNow) and re-bakes on a change. OLD = the light before NIGHT-A, unchanged (A/B only).
 export const LIGHT_MODES = Object.freeze(['old', 'new']);
-export const LIGHT_DEFAULT = 'old';
+// NIGHT-A2 (the owner, Oct 29 7:13 pm: "I like it, switch it over"): NEW is the default; OLD stays a TOOLS row + &light=old (A/B)
+export const LIGHT_DEFAULT = 'new';
 let MODE = LIGHT_DEFAULT;
 export const lightMode = () => MODE;
 /** → true when it changed (the caller re-bakes) */
@@ -41,7 +42,7 @@ const NEW = () => MODE === 'new';
 // shadow far further; it fades out along its length) + faint; lift: the figures' cloth lit by it
 // (× folk.js's 0.1 — mostly silhouette before; facing us, every visible side faces the wash)
 export const NIGHT_LIGHT = Object.freeze({ base: [13, 17, 32], wash: [242, 158, 76], washK: 0.95, z0: 24, fall: 15, lampZ: 21.5, lampY: 5.6,
-  shadow: { len: 3.4, a: 0.36, back: 30, fan: 0.4, side: 7 }, lift: 2.6, keep: 0.42, treeShadow: { throw: 0.34, a: 0.5 }, face: 0.8, tree: { k: 0.55, fall: 24 }, road: 0.7 });
+  shadow: { len: 3.4, a: 0.36, back: 30, fan: 0.4, side: 7 }, lift: 2.6, keep: 0.42, treeShadow: { throw: 0.34, a: 2, cap: 0.55, blur: 0.12 }, face: 0.8, tree: { k: 0.55, fall: 24 }, road: 0.7 });
 /** the wash's strength at depth z (0..washK) — the same at every x */
 export function washAt(z) { const d = z - NIGHT_LIGHT.z0; return NIGHT_LIGHT.washK * (d <= 0 ? 1 : 1 / (1 + (d / NIGHT_LIGHT.fall) ** 2)); }
 

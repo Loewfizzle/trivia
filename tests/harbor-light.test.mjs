@@ -5,6 +5,9 @@ import { readFileSync } from 'node:fs';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
 import { cornerLamp, CORNER_LAMP, lightSources, lightField, sunShadow, lampOn, treeLamps, roadLampAt, pieceCtx, REACH, FACE, impliedAt, lampShadow, castShadow } from '../js/core/harbor-light.js';
 import { project } from '../js/core/harbor-layout.js';
+import { setLightMode } from '../js/core/harbor-light.js';
+// (NIGHT-A2: NEW is the default now — this file's FP3a / C4c tests are the OLD light's: pin it; the NIGHT-A test flips to new + back)
+setLightMode('old');
 
 const setup = (W = 402, H = 874) => { const cam = cameraFor(W, H, {}, { top: 59, bottom: 34 }); return harborLayout(cam, 'gr'); };
 
@@ -122,7 +125,13 @@ test('NIGHT-A — THE NEW NIGHT LIGHT (&light=new): an even base + ONE warm wash
     assert.ok(sh.soft && sh.dz > 3 && sh.a < 0.4 && sh.dx < 0 && sh2.dx < 0, 'long, faint, soft, up the screen, all leaning one way');
     const f = lampOn(L.lamps, 0, 40, 1); assert.ok(f.ld[2] < -0.5 && f.lk > 0.3, 'a face lit from the front');
     assert.equal(roadLampAt(L.lamps, 0.1), roadLampAt(L.lamps, 0.37), 'the road: even');
-    assert.ok(M.NIGHT_LIGHT.treeShadow.throw < 0.5 && M.NIGHT_LIGHT.treeShadow.a < 1, 'the tree\'s night shadow short + gentle');
+    assert.ok(M.NIGHT_LIGHT.treeShadow.throw < 0.5 && M.NIGHT_LIGHT.treeShadow.cap <= 0.6 && M.NIGHT_LIGHT.treeShadow.blur > 0, 'the tree\'s night shadow short, soft, never a black cut-out (NIGHT-A2: darker — it reads)');
   } finally { M.setLightMode('old'); }
   assert.deepEqual([-4.5, 0, 4.5].map(x => lum(lightField(L, { lamps: 1 })(x, 27))), oldStreet, 'back to old: the same light as before');
+});
+
+test('NIGHT-A2 — THE NEW NIGHT LIGHT IS THE DEFAULT (the owner, Oct 29 7:13 pm); OLD stays a TOOLS row + &light=old', async () => {
+  const M = await import('../js/core/harbor-light.js');
+  assert.equal(M.LIGHT_DEFAULT, 'new');
+  assert.ok(/light-old/.test(readFileSync(new URL('../js/core/harbor-remote.js', import.meta.url), 'utf8')), 'the OLD row stays in TOOLS');
 });

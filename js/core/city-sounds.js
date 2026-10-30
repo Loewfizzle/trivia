@@ -423,9 +423,10 @@ export const MOMENT_CUES = Object.freeze({
   wake: [{ slot: 'roller-blind', p: 0.02, gain: 0.8, pan: -0.58 }],
   // the leap up lands on the sill (p 0.07); the hop down lands behind it (p 0.98), softer
   cat: [{ slot: 'cat-meow', p: 0.01, gain: 0.7, pan: -0.6 }, { slot: 'cat-land', p: 0.07, hit: true, gain: 0.7, pan: -0.6 }, { slot: 'cat-land', p: 0.98, hit: true, gain: 0.45, pan: -0.6 }],
-  // the bar heard while the mirror stands open (from p 0.06, its own fades), the door's thud as it shuts (p 0.95)
-  // (FP3a: + the heavy door as the mirror swings open + the cat's meow as it appears — they were played from windows.js's painter)
-  mirror: [{ slot: 'door-heavy', p: 0.01, gain: 0.8, pan: -0.55 }, { slot: 'bar-open', p: 0.06, gain: 1, pan: -0.5 }, { slot: 'door-heavy-close', p: 0.95, hit: true, gain: 0.9, pan: -0.5 }],
+  // NIGHT-A2 (the owner, Oct 29 7:12 pm): THE MIRROR DOOR IS SILENT — it swings INSIDE the barbershop, behind its glass: the street
+  // can't hear its creak, its thud or the bar beyond it (FP3a's door-heavy open + 8P's bar burst + the close's thud — all gone; the
+  // motion stays). The slots stay filled (door-heavy*, bar-open: the speakeasy's SIDE door onto the street still uses bar-open)
+  mirror: [],
   // the opening: the first customer through the door (p 0.48), the first snips (from p 0.74)
   'shop-open': [{ slot: 'shop-bell', p: 0.48, gain: 0.9, pan: -0.45 }, { slot: 'scissors-snip', p: 0.77, gain: 0.8, pan: -0.45 },
     { slot: 'scissors-snip', p: 0.9, gain: 0.7, pan: -0.45 }],

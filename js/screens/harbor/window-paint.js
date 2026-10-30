@@ -12,7 +12,9 @@ const TV_END_S = 3 * 3600;
 
 // SP6 — THE BOSS's TV (the owner: "it's got to be more blue"): 11a-2's lighter blue added WHITE (paler + greyer); the colours are now the
 // owner's picked set (core/harbor-moments.js#TV_PAL — deep, saturated, cut between like scenes: tvCols below); a little brighter (× TV_LIFT)
-const TV_LIFT = 1.18, HOT = [170, 205, 255];   // (HOT: a rim / hot core's lift — only on edges, never the wash)
+const TV_LIFT = 1.18, HOT = [170, 205, 255];
+/** NIGHT-A2: the boss's blind by the daylight (0..1): fully down by day (1), the evening's gap at the sill at night (0.9) */
+export const BOSS_COVER = day => 0.9 + 0.1 * Math.max(0, Math.min(1, (+day || 0) * 1.5));   // (HOT: a rim / hot core's lift — only on edges, never the wash)
 
 export function createPaint(life) {
   const { taps, glow, litP } = life;
@@ -29,10 +31,13 @@ export function createPaint(life) {
     // (SP3 — the owner's 3 am bug: the TV room went ORANGE; now the TV gives a last flicker, the picture shrinks away, the room DARK)
     if (st === 'tvoff') { const el = (life.last.sec - TV_END_S + 86400) % 86400, on = el < 0.35 ? 1 : el < 0.5 ? 0.25 : el < 0.8 ? 0.95 : Math.max(0, 1 - (el - 0.8) / (TV_OFF - 0.8)) ** 1.6; if (k > 0.01 && on > 0.01) { if (life.last.tvOff) tvDark(E); else tvRoom(E, on); return true; } return false; }
     // SP5 — BY DAY + THE EVENING: THE DRAWN SHADE (the one window that never opens to the daylight) with its rare life + the tell
-    bossShade(E, { glow: st === 'lamp' && k > 0.02 ? 'lamp' : 'dark', day: bs.day, signal: bs.signal, tap: tp });
+    // (NIGHT-A2 — the owner, Oct 29 7:12 pm: "he's a night owl, up all night" — BY DAY the blind is FULLY DOWN: no gap, no strip at the
+    // sill (cover 1 × the daylight; the evening's 0.9 gap — the lamp's glow under the hem — returns as the day goes); the peek still
+    // lifts it a hair, the tell + his night states unchanged)
+    bossShade(E, { glow: st === 'lamp' && k > 0.02 ? 'lamp' : 'dark', cover: BOSS_COVER(E.day), day: bs.day, signal: bs.signal, tap: tp });
     return true;
   }
-  /** SP5 — THE BOSS's SHADE: a plain 1920s roller blind drawn down the pane (o.cover of it; 0.9 by day: a dark gap at the sill), its ring
+  /** SP5 — THE BOSS's SHADE: a plain 1920s roller blind drawn down the pane (o.cover of it; NIGHT-A2: 1 by day — fully down, BOSS_COVER — 0.9 at night: the lamp's glow at the sill), its ring
    *  pull; by DAY it reads DARK against the sunlit facade (a dull olive cloth, the daylight only on its top edge); at dusk it glows WARM
    *  from the lamp behind (o.glow 'lamp'), on a party night cool BLUE from the set (o.glow 'tv', core#tvLight); the TELL: VIOLET with a
    *  dark SPADE cut-out (o.signal); its life: the PEEK (the hem lifts an inch + drops — o.day / a tap), the CIGAR SMOKE out of the sash

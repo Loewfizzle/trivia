@@ -2494,7 +2494,7 @@ test('8a — THE TREES draw in every season + look with finite colours; cast sha
   const s = SIZES['402x874'], cam = cameraFor(s.W, s.H, { tag: s.tag, dock: s.dock }, s.safe), L = { ...promenadeLayout(cam), cam };
   { const { PIECE: PC } = await import('../js/core/harbor-promenade.js'); L.trees = [...L.trees, { x: 0, z: 49, kind: 'crab', trunk: PC.crab.trunk, w: PC.crab.w, h: PC.crab.h, r: PC.crab.w / 2, grate: true }]; }   // (FP: a crabapple — the panorama's)
   const rec = () => {
-    const grad = { addColorStop: () => {} }, o = { bad: [], fills: 0 }, base = { fill: () => { o.fills++; }, createLinearGradient: () => grad, createRadialGradient: () => grad };
+    const grad = { addColorStop: () => {} }, o = { bad: [], fills: 0 }, base = { fill: () => { o.fills++; }, createLinearGradient: () => grad, createRadialGradient: () => grad, getTransform: () => ({ a: 1, b: 0 }) };   // (NIGHT-A2: the tree's night shadow draws through props-light.js#soft)
     const chk = v => { if (typeof v === 'string' && /NaN|undefined|Infinity/.test(v)) o.bad.push(v); };
     const num = (...a) => { if (a.some(v => typeof v === 'number' && !Number.isFinite(v))) o.bad.push('a NaN point'); };
     return { o, x: new Proxy(base, { get: (t, k) => (k in t ? t[k] : num), set: (t, k, v) => { if (k === 'fillStyle' || k === 'strokeStyle') chk(v); t[k] = v; return true; } }) };

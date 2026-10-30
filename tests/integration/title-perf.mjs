@@ -59,6 +59,9 @@ const SCENES = {
   'n4-beams': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-beams', 'n4-str': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-strings', 'n4-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race,no-punch,no-shimmer,no-beams,no-strings',
   'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
   // NIGHT-A: THE NEW NIGHT LIGHT (&light=new: an older build ignores the flag — its own light): a plain night, a party night, a rainy night
+  // NIGHT-A2: SATURDAY OCT 31 — Halloween AND a party night (the owner's iPhone: 14.5 % slow, frames to 100 ms); -noprops = the same
+  // night without the holiday's props (the props' share of it); np-* / w-rain run the DEFAULT light (NEW since NIGHT-A2)
+  'hw-party': 'when=2026-10-31T22:00&wx=clear&force=no-planes', 'hw-party-noprops': 'when=2026-10-31T22:00&wx=clear&force=no-planes,no-holiday-props',
   'na-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes&light=new', 'na-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes&light=new', 'na-rain': 'when=2026-10-14T21:30&wx=rain&force=no-planes&light=new',
   // HOTFIX Oct 29: the owner's forced-bus link (5 fps on his iPhone: the people's plan cache re-planned every frame) + the forced dog walk
   bus: 'when=2026-10-30T11:00&wx=clear&force=bus', dog: 'when=2026-10-30T19:12&wx=clear&force=dogwalk',

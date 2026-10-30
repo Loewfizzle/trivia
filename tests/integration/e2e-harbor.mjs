@@ -539,10 +539,16 @@ G('core', async () => {
   ok(A.files.some(u => /\/js\/screens\/harbor\/scene\.js/.test(u)), 'CITY 2: the harbor modules load with the flag');
   // C4d — FIREBASE AUTH's POLLING GONE (FR4 B2): with IndexedDB first, auth polled it every 800 ms on every page (~18 transactions in
   // 15 s); localStorage first (js/firebase.js) → none. Counted on this (parked) title over 15 s
-  { await ev(A.page, `(() => { window.__idbTx = 0; const T = IDBDatabase.prototype.transaction; if (!T.__c4d) { IDBDatabase.prototype.transaction = function (...a) { window.__idbTx++; return T.apply(this, a); }; IDBDatabase.prototype.transaction.__c4d = true; } return true; })()`);
+  // (NIGHT-A2 — the cloud read 4–5 in both of NIGHT-A's runs, 0 here: a RACE, not polling. Firebase starts AFTER the title's first paint
+  // for a first-time visitor (app.js) from gstatic with a cold cache, and its start writes once — the auth persistence's probe + migration
+  // check on firebaseLocalStorageDb (4) + the once-a-day heartbeat (firebase-heartbeat-database, 5 on a fresh profile) in one ~20 ms burst;
+  // on GitHub's slower runner that burst landed inside the window. The window now opens after Firebase has started (state.ready — set on a
+  // sign-in AND on a failure) and counts the AUTH store only, the one polling would hit; every database's count is in the message)
+  { await waitFor(A.page, '!!(window.__arcade && window.__arcade.state && window.__arcade.state.ready)', 'Firebase started (signed in or failed)', 25000);
+    await ev(A.page, `(() => { window.__idbTx = {}; const T = IDBDatabase.prototype.transaction; if (!T.__c4d) { IDBDatabase.prototype.transaction = function (...a) { window.__idbTx[this.name] = (window.__idbTx[this.name] || 0) + 1; return T.apply(this, a); }; IDBDatabase.prototype.transaction.__c4d = true; } return true; })()`);
     await sleep(15000);   // (a measurement window: the count over a fixed span is the check)
-    const n = await ev(A.page, 'window.__idbTx');
-    ok(n < 3, `NO IndexedDB POLLING on a parked title: ${n} transactions in 15 s (Firebase Auth's IndexedDB-first persistence: ~18)`); }
+    const by = await ev(A.page, 'window.__idbTx'), n = (by && by.firebaseLocalStorageDb) || 0;
+    ok(n < 3, `NO IndexedDB POLLING on a parked title: ${n} auth-store transactions in 15 s after Firebase's start (all: ${JSON.stringify(by)}; IndexedDB-first persistence: ~18)`); }
   if (SHOTS) for (const [w, h] of [[390, 844], [402, 874], [412, 915], [430, 932], [874, 402], [1440, 900]]) {
     await A.page.setViewport({ width: w, height: h, deviceScaleFactor: w < 1000 ? 2 : 1, isMobile: w < 1000, hasTouch: w < 1000 });
     await waitFor(A.page, `window.__district.harbor().cam.W === ${w}`, 'the re-layout', 8000); await settled(A.page);
@@ -2357,6 +2363,10 @@ G('windows', async () => {
     const W = await wins(Q.page), apt = lum(await area(Q.page, W.apartment, 0.2, 0.8, 0.25, 0.85)), back = lum(await area(Q.page, W.back, 0.2, 0.8, 0.25, 0.85));
     const B = await ev(Q.page, 'window.__district.harbor().speakeasy.life.boss'), fr = await ev(Q.page, winTrace(2)), inApt = fr.reduce((n, f) => n + ((f.figs || []).filter(g => g.w === 'apartment').length), 0);
     ok(B && B.signal === 0 && !B.party && apt > back + 12 && inApt === 0, `THE BOSS's ROOM BY DAY: the shade drawn (its pane ${apt.toFixed(0)} vs the back room's ${back.toFixed(0)}), no tell on a Tuesday (${B && B.signal}), nobody in it (${inApt} figures over ${fr.length} frames)`);
+    // NIGHT-A2 (the owner: "he's a night owl" — the blind FULLY DOWN all day): the pane's foot, just above the sill, is the same linen —
+    // no dark strip (C4a … NIGHT-A: a 10 % gap at the sill read as an open hole)
+    { const sill = lum(await area(Q.page, W.apartment, 0.2, 0.8, 0.84, 0.9));   // (the pane runs 0.05–0.93 of the box; the old strip: its bottom 10 %)
+      ok(sill > back + 12 && sill > apt - 45, `THE BOSS's BLIND FULLY DOWN BY DAY: the pane's foot ${sill.toFixed(0)} — the linen (the blind's middle ${apt.toFixed(0)}), never the dark strip (the back room's glass ${back.toFixed(0)})`); }
     await Q.ctx.close(); }
   // ---- SP5 — THE BOOTLEGGERS' TELL: Saturday 5:30 pm (the big delivery at ~6:30) — the violet lamp + the spade behind the shade (the pane
   // VIOLET: blue over red over green), the pane's middle darker than its sides (the spade); the same hour on a Tuesday: no violet
@@ -2421,7 +2431,11 @@ G('windows', async () => {
     for (const q of pools) { if (seen.some(x => Math.abs(x - q.x) < 12)) continue; seen.push(q.x);
       const c = await area(Q.page, { x: q.x - 8, y: q.y - 3, w: 16, h: 6 }, 0, 1, 0, 1), o = await area(Q.page, { x: q.x + q.r * 1.6, y: q.y - 3, w: 16, h: 6 }, 0, 1, 0, 1);
       const d = c.map((v, i) => v - o[i]), dom = q.col.indexOf(Math.max(...q.col)), dim = q.col.indexOf(Math.min(...q.col));
-      reads.push({ id: q.id, ok: d[dom] > 6 && d[dom] >= d[dim] + 4, c, d }); }
+      // (NIGHT-A2 — the new light is the default: its pools TINT the brighter lit cobbles (source-over) instead of adding — a magenta
+      // tint over warm cobbles lowers green a lot + red a little; the proof is then the SHIFT's direction: toward the room's colour from
+      // the surround (cosine > 0.5, > 8 levels) — the old light's additive rule kept as the other way to pass)
+      const to = q.col.map((v, i) => v - o[i]), dot = d.reduce((s, v, i) => s + v * to[i], 0), nd = Math.hypot(...d), nt = Math.hypot(...to) || 1;
+      reads.push({ id: q.id, ok: (d[dom] > 6 && d[dom] >= d[dim] + 4) || (nd > 8 && dot / (nd * nt) > 0.5), c, d }); }
     ok(reads.length >= 2 && reads.every(r => r.ok), `THE COLOUR ON THE COBBLES: ${pools.length} pools (${reads.length} spots) in front of the windows — ${reads.map(r => `${r.id} rgb ${r.c.map(v => v.toFixed(0)).join(',')} (shift ${r.d.map(v => (v > 0 ? '+' : '') + v.toFixed(0)).join(',')} vs the cobbles beside it)`).join(' · ')} — each shifted toward its room's colour`);
     await Q.ctx.close(); }
   // ---- WIN3 — A RAID CUTS THE WINDOW PARTY: the lights snap off, the dancers scatter, the blinds drop (a 1.6-s tail), dead for the night

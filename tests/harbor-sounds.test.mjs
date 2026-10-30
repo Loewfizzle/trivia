@@ -200,12 +200,9 @@ test('8P — THE SPEAKEASY + PEOPLE SOUNDS: each slot holds its cut; marks where
 test('8P — THE MOMENTS HEARD: each cue where its painter shows it; cues already past are dropped; the barbershop\'s bells in + out', () => {
   // the cues name filled slots + moments that exist
   for (const [id, cs] of Object.entries(MOMENT_CUES)) for (const c of cs) { assert.ok(takesOf(c.slot).length, `${id}: ${c.slot} filled`); assert.ok(c.p > 0 && c.p < 1); }
-  // (FP3a: + the heavy door as the mirror swings open — it was played from windows.js's painter; the cat's meow likewise)
-  const m = momentCues('mirror', 0, 8.5);
-  assert.deepEqual(m.map(c => c.slot), ['door-heavy', 'bar-open', 'door-heavy-close']);
-  assert.ok(Math.abs(m[2].in - 0.95 * 8.5) < 1e-6 && m[2].mark === 'hit', 'the thud on the shut (p 0.95)');
+  // (NIGHT-A2: THE MIRROR DOOR IS SILENT — inside the barbershop, the street can't hear it: no creak, no bar, no thud)
+  assert.deepEqual(momentCues('mirror', 0, 8.5), [], 'the mirror door: silent');
   assert.equal(momentCues('cat', 0, 12)[0].slot, 'cat-meow', 'the cat meows as it appears');
-  assert.deepEqual(momentCues('mirror', 4, 8.5).map(c => c.slot), ['door-heavy-close'], 'the bar\'s burst is past 4 s in');
   assert.deepEqual(momentCues('toast', 0, 7)[0], { slot: 'glasses-clink', in: 2.66, mark: 'hit', gain: 0.9, pan: -0.5 });
   assert.deepEqual(momentCues('dance', 0, 9), [], 'no sound');
   // (POLISH 5: the wake's one cue now — the blind; the sash went with the window box)

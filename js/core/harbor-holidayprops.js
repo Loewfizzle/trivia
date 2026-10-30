@@ -14,6 +14,7 @@
 //   monarchSlot(ms, o)  is a monarch flying now (rare: about one every ~13 minutes by day) → { n, u } | null
 import { rngFrom, hashString } from './rng.js';
 import { dressingSpots } from './harbor-spots.js';
+import { centreK } from './harbor-promenade.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -240,4 +241,32 @@ export function monarchAt(n, u, L) {
   // the wingbeat: bursts of flapping (~7 Hz) with short glides (wings held open, a little up)
   const glide = Math.sin(u * 13 + ph * 3) > 0.55;
   return { x, y: Math.max(0.6, y), z: z + dz, hd: dir > 0 ? 0 : Math.PI, dir, glide };
+}
+
+// ------------------------------------------------------------------ NIGHT-A2 — THE STANDING PROPS ARE SOLID (the owner, Oct 29 7:12 pm)
+// "people walk AROUND it, never through it" — the harvest display (+ every standing set piece the holidays put on the floor): their
+// GROUND FOOTPRINTS (world rects, a person's half-width + a step of margin included) for core/harbor-people.js#aroundSolids, which bends
+// every walk leg that would cross one round its corners (whoever planned it — the crowd, the cart, the dog walker, the line, a stargazer)
+// and moves a stop inside one out to its edge. The harvest display's base: its bottom tier ±2.5 × −1.1…1.1, the foot pieces out to x ±4.1
+// and z −2.15 (screens/harbor/harvest.js#HARVEST — tests/harbor-people.test.mjs keeps the two in step), drawn × centreK about the inlay.
+export const HARVEST_FOOT = Object.freeze({ x: 4.15, z0: -2.2, z1: 1.15 });
+/** a person's half-width + a step: how far outside a piece's own base a walker's foot stays */
+export const SOLID_PAD = 0.45;
+/**
+ * the standing pieces' footprints now → [{ id, x0, x1, z0, z1 }] (world, padded). HP: the holiday's pieces (scene.js's HP — the latched
+ * BIG pieces). Covered: THE HARVEST DISPLAY (HP.harvest), THE GIANT jack-o'-lantern (HP.giant), Halloween's BIG pumpkins on their
+ * dressing spots (HP.bigs — the bench's bale; the hydrant's stands on the front strip, nearer than the walkers' floor), Thanksgiving's
+ * spot pieces (HP.bales / mums / stalks: the bench's bale + mums, the hydrant's mums, the stalk bundles round the two trunks).
+ * Not here: the pumpkins on the speakeasy's steps (they flank the door — the guests pass between them by design), the snowman + the
+ * Christmas-tree stand (their builders + sellers work AT them; 11b's pieces register here when they're built).
+ */
+export function standingFootprints(L, HP) {
+  if (!L || !HP) return [];
+  const out = [], P = SOLID_PAD, box = (id, x, z, hw, hd, hd1 = hd) => out.push({ id, x0: +(x - hw - P).toFixed(3), x1: +(x + hw + P).toFixed(3), z0: +(z - hd - P).toFixed(3), z1: +(z + hd1 + P).toFixed(3) });
+  const m = L.medallion, k = centreK(L);
+  if (m && HP.harvest) box('harvest', m.x, m.z, HARVEST_FOOT.x * k, -HARVEST_FOOT.z0 * k, HARVEST_FOOT.z1 * k);
+  else if (m && HP.giant) box('giant', m.x, m.z, GIANT.body.R * k, GIANT.body.R * k * 0.8);
+  if (HP.bigs) for (const b of bigPumpkins(L)) if (b.pass !== 'top') box(`big-${b.spot}`, b.x, b.z, b.bale ? BALE.w / 2 : b.d / 2, b.bale ? BALE.d / 2 : b.d / 2);
+  if (HP.bales || HP.mums || HP.stalks) for (const sp of thanksgivingSpots(L, HP)) if (sp.pass !== 'top') box(`tg-${sp.id}`, sp.x, sp.z, sp.id.startsWith('stalks') ? 0.55 : 0.95, 0.55);
+  return out;
 }

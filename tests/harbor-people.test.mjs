@@ -854,3 +854,34 @@ test('C4c — THE SIDE DOOR SWINGS OUT toward the doorman (hinged at its right):
   assert.equal(hits.length, 0, `the leaf through someone: ${hits.slice(0, 4).join(' · ')}`);
   assert.ok(DOOR.stepSide >= W + 0.03, `whoever opens it stands outside its arc (${DOOR.stepSide} ≥ ${W})`);
 });
+
+test('NIGHT-A2 — THE STANDING PROPS ARE SOLID (the owner: people CLIPPING THROUGH the harvest display): over a seeded Thanksgiving evening, a Thanksgiving party night + a Halloween party night nobody\'s drawn position falls inside a standing piece\'s base (the harvest display, the bench\'s bale + mums, the hydrant\'s, the corn-stalk bundles, Halloween\'s big pumpkin on its bale); a detoured leg keeps its timing at a sane pace; a way left ↔ right still exists', async () => {
+  const { standingFootprints, SOLID_PAD, HARVEST_FOOT } = await import('../js/core/harbor-holidayprops.js');
+  const { aroundSolids, route } = await import('../js/core/harbor-people.js');
+  const { HARVEST } = await import('../js/screens/harbor/harvest.js');
+  // (the footprint covers the drawn display's base: its bottom tier + every foot piece, by its radius)
+  for (const [x, y, z, , d] of HARVEST.pieces) if (y === 0) assert.ok(Math.abs(x) + d / 2 <= HARVEST_FOOT.x + 0.05 && z - d / 2 >= HARVEST_FOOT.z0 - 0.05 && z + d / 2 <= HARVEST_FOOT.z1 + 0.05, `the foot piece at ${x},${z} inside HARVEST_FOOT`);
+  assert.ok(HARVEST.tiers[0].x <= HARVEST_FOOT.x && HARVEST.tiers[0].z0 >= HARVEST_FOOT.z0 && HARVEST.tiers[0].z1 <= HARVEST_FOOT.z1, 'the bottom tier inside it');
+  const { L } = setup('402x874');
+  const HPS = { tg: { harvest: true, bales: true, mums: 4, spots: 3, stalks: true }, hw: { bigs: true } };
+  { const ids = standingFootprints(L, HPS.tg).map(q => q.id); for (const id of ['harvest', 'tg-bench-left', 'tg-stalks-0', 'tg-stalks-1']) assert.ok(ids.includes(id), `${id} covered (${ids})`); }
+  assert.ok(standingFootprints(L, HPS.hw).some(q => q.id === 'big-bench-left'), 'Halloween\'s big pumpkin on its bale covered');
+  assert.deepEqual(standingFootprints(L, null), [], 'no pieces, no footprints');
+  let worst = 1;
+  for (const [hp, when, party] of [['tg', '2026-11-20T01:00:00Z', false], ['tg', '2026-11-26T03:30:00Z', true], ['hw', '2026-11-01T02:30:00Z', true]]) {
+    const S = standingFootprints(L, HPS[hp]), base = S.map(q => ({ ...q, x0: q.x0 + SOLID_PAD, x1: q.x1 - SOLID_PAD, z0: q.z0 + SOLID_PAD, z1: q.z1 - SOLID_PAD }));
+    const ring = hp === 'tg', M = folkMap(L, { event: ring, ring }), t0 = Date.parse(when) / 1000, cache = new Map();
+    const ctx = { off: -300, seed: 1924, budget: 1, shopOpen: () => true, event: ring, ring, solids: S, solidsKey: hp, ...(party ? { party: () => ({ mode: 'party', peak: 1 }) } : {}) };
+    for (let i = 0; i < 1200; i++) {
+      const f = folkAt(t0 + i * 1.5, { L, M, ctx }, cache);
+      for (const x of f.members) for (const q of base) assert.ok(!(x.s.x > q.x0 && x.s.x < q.x1 && x.s.z > q.z0 && x.s.z < q.z1), `${hp} ${when} +${i * 1.5} s: ${x.kind} ${x.m.role} at ${x.s.x.toFixed(2)},${x.s.z.toFixed(2)} inside ${q.id}`);
+    }
+    // (a detour's pace: a straight crossing through the display → round it, in the same time)
+    const m = L.medallion, v = { legs: [{ k: 'walk', pts: [{ x: m.x - 14, z: m.z - 0.5 }, { x: m.x + 14, z: m.z + 0.3 }], t0: 0, t1: 20, v: 28 / 20 }] }, o = aroundSolids(v, S, 'pace');
+    if (hp === 'tg') { assert.ok(o.legs[0].pts.length > 2, 'bent round the display'); worst = Math.max(worst, o.legs[0].v / v.legs[0].v); }
+    // (left ↔ right along the promenade's middle: a way exists round every piece)
+    const MS = { rects: [...M.rects, ...S.map(q => ({ ...q, front: true }))], circles: M.circles }, w = route(MS, { x: -12, z: 42 }, { x: 14, z: 42 });
+    assert.ok(w.length > 2 || !S.some(q => q.z0 < 42 && q.z1 > 42), `${hp}: a way left ↔ right (${w.length} points)`);
+  }
+  assert.ok(worst < 1.35, `a detoured crossing at most ${worst.toFixed(2)}× its pace`);
+});

@@ -890,6 +890,46 @@ export const FOLK_CACHE = 320;
  * EVERYONE ON THE PROMENADE at t (PURE given the caches): → { visits: [visit], members: [{ vid, m (member), s (its state), look, kind }],
  * buses: [bus on screen + its x] }. world: { L, M, ctx } — the caller passes `cache` (a Map) so the blocks are planned once.
  */
+// NIGHT-A2 — THE STANDING PROPS ARE SOLID (the owner: people CLIPPING THROUGH the harvest display): several planners build their own
+// straight legs (the chestnut cart's roll, the dog walker's beat, the line's guests, a stargazer's stroll) — so the guard sits HERE, on
+// every visit as it reaches the frame: a stop (a pose / a walk's end) inside a footprint moves out to its nearest edge; a walk segment
+// that crosses one is routed round its corners (route() on a map of the footprints alone); the leg keeps its t0 / t1 (its pace a little
+// quicker for the detour — the rest of the visit, its doors, its bus, unchanged). PURE + cached per visit (a WeakMap by the footprints' key).
+const SOLID_SEEN = new WeakMap();
+const inFoot = (p, q) => p.x > q.x0 && p.x < q.x1 && p.z > q.z0 && p.z < q.z1;
+function outOf(p, S) {
+  for (const q of S) if (inFoot(p, q)) {
+    const c = [[q.x0 - 0.02, p.z, p.x - q.x0], [q.x1 + 0.02, p.z, q.x1 - p.x], [p.x, q.z0 - 0.02, p.z - q.z0], [p.x, q.z1 + 0.02, q.z1 - p.z]].sort((a, b) => a[2] - b[2]);
+    for (const [x, z] of c) if (!S.some(o => inFoot({ x, z }, o)) && z >= FOLK.zMin - 0.3) return { ...p, x, z };
+    return { ...p, x: c[0][0], z: c[0][1] };
+  }
+  return p;
+}
+export function aroundSolids(vis, S, key = '') {
+  if (!vis || !vis.legs || !S || !S.length) return vis;
+  let seen = SOLID_SEEN.get(vis); if (seen && seen.key === key) return seen.out;
+  const MS = { rects: S.map(q => ({ ...q, front: true })), circles: [] };
+  let changed = false;
+  const legs = vis.legs.map(lg => {
+    if (lg.k === 'walk' && lg.pts && lg.pts.length > 1) {
+      let pts = lg.pts.map(p => outOf(p, S));
+      const out = [pts[0]];
+      for (let i = 1; i < pts.length; i++) { const a = out[out.length - 1], b = pts[i]; if (S.some(q => segRect(a, b, q))) out.push(...route(MS, a, b).slice(1)); else out.push(b); }
+      if (out.length === lg.pts.length && out.every((p, i) => p.x === lg.pts[i].x && p.z === lg.pts[i].z)) return lg;
+      changed = true; pts = out;
+      const l0 = pathLen(lg.pts), l1 = pathLen(pts);
+      return { ...lg, pts, v: l0 > 1e-3 ? lg.v * l1 / l0 : lg.v };
+    }
+    if (lg.k === 'pose' && lg.x != null && S.some(q => inFoot(lg, q) || (lg.x1 != null && inFoot({ x: lg.x1, z: lg.z1 }, q)))) {
+      changed = true; const p = outOf({ x: lg.x, z: lg.z }, S), p1 = lg.x1 != null ? outOf({ x: lg.x1, z: lg.z1 }, S) : null;
+      return { ...lg, x: p.x, z: p.z, ...(p1 ? { x1: p1.x, z1: p1.z } : {}) };
+    }
+    return lg;
+  });
+  const out = changed ? { ...vis, legs } : vis;
+  SOLID_SEEN.set(vis, { key, out });
+  return out;
+}
 export function folkAt(t, world, cache = new Map()) {
   const { M, ctx = {} } = world, L = world.L, B = FOLK.block, cx0 = {};
   // (HOTFIX Oct 29 — THE FORCED BUS AT 5 FPS: this was first-in-first-out at 80 entries; &force=bus (a bus every ~47 s) touches ~95
@@ -1125,6 +1165,9 @@ export function folkAt(t, world, cache = new Map()) {
     });
     all = [...reacted.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...rejoined.filter(v => t >= v.t0 && t < (v.tEnd || v.t1)), ...all.filter(v => !ids.has(v.id) && (v.t0 < LG.t0 + 1 || !suppressed(LG, v) || v.kind === 'officer'))];   // (someone out of reach — on the road, in a doorway — carries on)
   }
+  // NIGHT-A2 — THE STANDING PROPS ARE SOLID (ctx.solids: core/harbor-holidayprops.js#standingFootprints — the harvest display + the
+  // holidays' set pieces): whoever planned a visit, a walk leg that would cross one goes round it, a stop inside one moves to its edge
+  if (ctx.solids && ctx.solids.length) { const sk = ctx.solidsKey || ''; all = all.map(v => aroundSolids(v, ctx.solids, sk)); }
   const members = [];
   // (11a-1: on Halloween night the speakeasy's own guests come in costume — its costume party: the side door's pairs, THE LINE)
   const hween = halloweenAt(t, ctx.off).zombies || halloweenAt(t, ctx.off).tot || HF.zombies != null, HWK = { guests: 1, leaving: 1, liner: 1, straggler: 1 };
@@ -1193,7 +1236,8 @@ export function folkAt(t, world, cache = new Map()) {
         const dn = Math.min(Math.abs(s.x - M.nodes.sideDoor.x), Math.abs(s.x - M.nodes.shopDoor.x)); if (dn < 1.8) { const k = Math.max(0, Math.min(1, (M.face - 0.6 - s.z) / 1.8)); off = { x: off.x * k, z: off.z * k }; } }
       // (C4c — THE BENCHES ARE SOLID for a group too: a partner's offset that would stand them inside a bench's footprint — the lead
       // routed round it — pulls in toward the lead, as at a doorway, until clear)
-      if (m.role !== 'lead' && m.role !== 'dog' && (off.x || off.z) && M.solid) for (const q of M.solid) {
+      // (NIGHT-A2: the standing props too — the dog included: it walks beside its walker, who goes round the piece)
+      if (m.role !== 'lead' && (off.x || off.z) && (M.solid || ctx.solids)) for (const q of [...(m.role === 'dog' ? [] : M.solid || []), ...(ctx.solids || [])]) {
         const inQ = (x, z) => x > q.x0 && x < q.x1 && z > q.z0 && z < q.z1;
         if (inQ(s.x + off.x, s.z + off.z) && !inQ(s.x, s.z) && st.pose !== 'sit') { let k = 1; while (k > 0 && inQ(s.x + off.x * k, s.z + off.z * k)) k -= 0.125; off = { x: off.x * Math.max(0, k), z: off.z * Math.max(0, k) }; }
       }

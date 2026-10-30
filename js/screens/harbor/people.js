@@ -14,6 +14,7 @@
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier } from '../../core/harbor-people.js';
+import { standingFootprints } from '../../core/harbor-holidayprops.js';
 import { workFx } from './snowfx.js';
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen, drawOfrenda } from './folk.js';
 import { drawBus } from './bus.js';
@@ -60,7 +61,7 @@ export function createPeople() {
   const PD = createDanceClock(); let pdT = null;   // (SP5: the promenade dancers' energy — core/harbor-dance.js)
   const pnow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   let backLight = () => 0;   // (PROM: the back road's light at x, z — road.js#crossLightOf)
-  function layout(l) { L = l; mapKey = ''; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
+  function layout(l) { L = l; mapKey = ''; solidsHP = undefined; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
   function ensureMap(event, ring = false) {
     const key = `${event ? 1 : 0}${ring ? 1 : 0}|${lineN}`;
     if (key === mapKey && M) return;
@@ -80,6 +81,12 @@ export function createPeople() {
    * frame(f): once a frame, before the passes. f = { ms (the city clock), off (minutes from UTC), rain, event (a piece on the inlay),
    * season, seed, party(t) | null, shopOpen(t) }
    */
+  let solidsK = '', solidsV = [], solidsHP;
+  function solidsOf(HP) {
+    if (HP === solidsHP && solidsV) return solidsV;
+    solidsHP = HP; solidsV = L ? standingFootprints(L, HP) : []; solidsK = solidsV.map(q => `${q.id}:${q.x0},${q.x1},${q.z0},${q.z1}`).join('|');
+    return solidsV;
+  }
   function frame(f) {
     if (!L) return;
     ensureMap(!!f.event, !!f.ring);
@@ -90,6 +97,8 @@ export function createPeople() {
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
       // 8b2 — THE RAID's plan (core/harbor-raid.js): its patrol cars on the road, its officer, the crowd's reaction
       raid: f.raid || null,
+      // NIGHT-A2 — THE STANDING PROPS ARE SOLID (core/harbor-holidayprops.js#standingFootprints → harbor-people.js#aroundSolids)
+      solids: solidsOf(f.solids), solidsKey: solidsK,
       // 11a-1 — the holidays' previews (&force=trick-or-treat / zombies / procession: the clock s each was switched on)
       hforce: hf };
     const p0 = pnow();
