@@ -24,6 +24,9 @@ export const TIERS = Object.freeze({
   // THE CROWD's SOUNDS (core/city-sounds + screens/harbor/crowd-sound.js): one-shots at once (laughs, cheers, clinks) + the walla beds
   crowdVoices: Object.freeze([1, 3, 5]),
   crowdBeds: Object.freeze([1, 2, 2]),
+  // NIGHT-C — THE HELICOPTER's BEAM on a dance break's crowd (screens/harbor/air.js#breakDraw): its layers — 1 the pool on the dancers,
+  // 2 + the cone from the lamp, 3 + the lamp's glare (the patrol's beam over the water is one cheap wedge at every tier)
+  heliBeam: Object.freeze([1, 2, 3]),
 });
 
 /** the knob's value at a tier (clamped 0..2; an unknown tier = 2) */

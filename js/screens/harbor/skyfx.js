@@ -295,6 +295,15 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     harbor(c, s) { if (aurNow > 0.02) { aur.reflect(c, aurNow, { y0: waterTop, y1: waterY1 }, s.t, s.motion); aurNow = 0; } drones.barge(c, s); drones.draw(c, s, 'low'); air.beam(c, s, waterTop + (waterY1 - waterTop) * 0.35, 'lower', waterTop); },
     /** after the near boats: the helicopter's searchlight down to the water */
     beam() { /* (6b: the searchlight draws with the helicopter now — city() + harbor()) */ },
+    /** NIGHT-C — THE HELICOPTER UP FOR THE DANCE BREAK (after the people — screens/harbor/air.js#breakFly + breakDraw): f = the break's flight
+     *  (core/harbor-heli.js#breakFlight) or null once it's over (it flies off); crowd: the dancers' span on the floor (scene.js) */
+    heliBreak(c, s, f, crowd) {
+      const lane = lanes && lanes['sky-low'];
+      if (f && lane && crowd) { const x = Math.max(W * 0.3, Math.min(W * 0.78, (crowd.x0 + crowd.x1) / 2 + W * 0.04)); air.breakFly(s, f, { x, y: lane.y + lane.h * 0.55 }); }
+      air.breakDraw(c, s, crowd);
+    },
+    heliBreakOn: () => air.breakOn(),
+    heliBeam: () => air.beamNow(),
     /** 6b: the shooting stars (district/fx.js's hook: rarer on the Harbor, their own art) */
     meteors: (c, s) => met.draw(c, s),
     /** the moon (district/fx.js's hook) */

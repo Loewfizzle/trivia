@@ -19,7 +19,10 @@ import { look as skyLook, skyClock, sunPosition, moonPhase, sunTimes, localParts
 import { serverNow } from '../../firebase.js';
 import { moodData, loadMoodMusic } from '../../audio/mood.js';
 import { deckSpec } from '../../core/party-deck.js';
-import { partyTimeline } from '../../core/harbor-streetparty.js';
+import { partyTimeline, danceBreaks, partyNight, eveningOf as spEveningOf } from '../../core/harbor-streetparty.js';
+import { breakFlight, patrolInSlot } from '../../core/harbor-heli.js';
+import { knob } from '../../core/harbor-schedule.js';
+import { SLOT_MS } from '../../core/harbor-events.js';
 import { paletteFor } from '../district/palette.js';
 import { createStars } from '../district/stars.js';
 import { createFx } from '../district/fx.js';
@@ -1263,7 +1266,20 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
       wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
   }
-  let lobbyLine = 0, spillCls = false, partyDim = null;
+  let lobbyLine = 0, spillCls = false, partyDim = null, crowdMemo = null;
+  /** NIGHT-C — the dancers' span on screen for the helicopter's beam: the pockets standing (their rings), the floor's back / middle / front,
+   *  the pool's radius — cached per pockets + camera */
+  function crowdSpan(sp) {
+    if (!cam) return null;
+    const pk = sp && Array.isArray(sp.list) ? sp.list : [], key = `${pk.length ? pk[0].id : '-'}|${pk.length}|${cam.W}x${cam.H}`;
+    if (crowdMemo && crowdMemo.key === key) return crowdMemo.v;
+    let x0 = Infinity, x1 = -Infinity;
+    for (const p of pk) { const [sx] = project(cam, p.x, 0, p.z), r = 1.4 * cam.F / p.z; x0 = Math.min(x0, sx - r); x1 = Math.max(x1, sx + r); }
+    if (!(x1 > x0)) { x0 = cam.W * 0.35; x1 = cam.W * 0.85; }
+    const v = { x0: Math.max(cam.W * 0.08, x0), x1: Math.min(cam.W * 0.95, x1), y: groundY(cam, 44.5), y0: groundY(cam, 50), y1: groundY(cam, 39.5), r: 2.3 * cam.F / 44.5 };
+    crowdMemo = { key, v };
+    return v;
+  }
   /** SP5 — the hourly dance never during a raid or a legendary (the TR-3B / the abduction): the evening's raid plan + the traffic hold */
   function danceBlocked(a, b) {
     try { const P = raidPlanNow(); if (P && b > P.t0 - 90 && a < P.tEnd + 60) return true; const H = trafficHoldNow(); return !!(H && H.on !== false && H.t1 > a - 60 && H.t0 < b + 60); } catch { return false; }
@@ -1428,7 +1444,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // ctx: a function of ms only (the replay asks about the past): the night there and then from the real sun
       const lat = LK.lat, lon = LK.lon, an = !!settings.alwaysNight;
       // (Part 6a: + the sun's elevation + azimuth, the month, the hemisphere: the sky events' windows)
-      sched = createScheduler(HARBOR_EVENTS, t => { const sp = sunPosition(t, lat, lon); return { ms: t, force: clock.force, night: an || sp.el < -6, el: an ? -30 : sp.el, az: sp.az, month: new Date(t).getUTCMonth() + 1, south: lat < 0 }; }, { seed, forced: ['demo', 'searchlights'].filter(id => clock.force.has(id)), anchor: anchorFor(ms, LK.local) });
+      // (NIGHT-C — THE HELICOPTER PATROL on its timetable — core/harbor-heli.js: ctx.heli(ms) = a patrol starts in this slot; never near
+      // tonight's legendary, never over a dance break: the evening's breaks on the party deck, memoized per evening)
+      const heliOff = LK.local ? LK.local.off : 0, brkMemo = new Map(), heliMemo = new Map(), Bk = knob('helicopter.break');
+      const brksOf = tt => { const ev = spEveningOf(tt, heliOff), dk = partyDeckNow(), key = `${ev.key}|${dk ? dk.sig : '-'}`;
+        if (!brkMemo.has(key)) { if (brkMemo.size > 8) brkMemo.clear(); brkMemo.set(key, partyNight(ev.day0, { off: heliOff }) ? danceBreaks(ev.day0, ev.key, { off: heliOff, seed, deck: dk }) : []); }
+        return brkMemo.get(key); };
+      const heliCtx = { off: heliOff, seed, memo: heliMemo, elAt: tt => (an ? -30 : sunPosition(tt * 1000, lat, lon).el),
+        blocked: (a, b) => [a, b].some(tt => brksOf(tt).some(x => b > x.s0 - Bk.lead && a < x.s1 + Bk.trail)) };
+      sched = createScheduler(HARBOR_EVENTS, t => { const sp = sunPosition(t, lat, lon); return { ms: t, force: clock.force, night: an || sp.el < -6, el: an ? -30 : sp.el, az: sp.az, month: new Date(t).getUTCMonth() + 1, south: lat < 0, heli: ms => !!patrolInSlot(ms, SLOT_MS, heliCtx) }; }, { seed, forced: ['demo', 'searchlights'].filter(id => clock.force.has(id)), anchor: anchorFor(ms, LK.local) });
     }
     // (NEON PASS 4: the party's warmer glow over the skyline — repainted when the party starts / ends)
     if (skyKeyNow() !== skyKey || (partyLit() ? 1 : 0) !== skyParty) { holdSky(now); skyKey = skyKeyNow(); skyParty = partyLit() ? 1 : 0; skyMix.sky = null; paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK), dark: DK }); }
@@ -2095,6 +2119,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const sx = !off.has('no-promenade') && bakeTones ? still.items(L, bakeTones, { dpr: (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 2, fade: fadeIn, pw: PWQ }) : [];   // (PROM: the benches)
       if (pplOn) { people.draw(c, 'near', { ...pplEnv, extra: [...(wlOn ? wild.items('near', wlEnv) : []), ...hx, ...wx9, ...sx, ...(centreItem ? [centreItem] : [])], dogLunge: vid => wild.dogLunge(vid) }); people.draw(c, 'roof', pplEnv); }
       else { for (const it of sx.sort((a, b) => b.z - a.z)) it.draw(c); if (centreItem) centreItem.draw(c); if (wlOn) wild.draw(c, 'near', wlEnv); for (const it of hx) { c.save(); it.draw(c); c.restore(); } } }
+    // NIGHT-C — THE HELICOPTER UP FOR EVERY DANCE BREAK (core/harbor-heli.js#breakFlight → skyfx.heliBreak → air.js#breakDraw): over the
+    // dancing crowd for the whole song, its beam on them (after the people: they stand in its light), the dock's top the light's end
+    if (fadeIn > 0 && !off.has('no-heli')) {
+      const sp9 = pplLive ? people.party() : null, f9 = sp9 && sp9.brk && !(LK.storm) && (LK.wind || 0) < 14 ? breakFlight(sp9.brk) : null;
+      if (f9 || sky.heliBreakOn()) sky.heliBreak(c, fs, f9, crowdSpan(sp9));
+    }
     mk9('the front row + weather');
     if (wlOn) wild.draw(c, 'front', wlEnv);
     if (pplLive) people.tick(pplEnv);
@@ -3140,6 +3170,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
+      heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),

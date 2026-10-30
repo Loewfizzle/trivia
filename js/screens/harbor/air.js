@@ -17,6 +17,10 @@
 //               nav lights. fly(route) is the hook for Part 10's party yacht landing.
 import { trafficRate, planPath, navLights, starlinkNight, satTwilight } from '../district/aircraft.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { knob } from '../../core/harbor-schedule.js';
+import { tierVal } from '../../core/harbor-tiers.js';
+import { beatSweep, beamColour } from '../../core/harbor-heli.js';
+import { hashString } from '../../core/rng.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -338,7 +342,8 @@ export function createAir() {
     // in front of them. Now it flies OVER THE HARBOR — in front of the skyline, between the far quay and the pier — a little above the
     // waterline, drawn after the city (skyfx.city), so it never slips behind a tower and its beam drops straight to the water under it)
     const wl = s.lanes && s.lanes.water, hy = wl ? wl.y - 58 * K : Math.max(lane.y + 16 * K, Math.min(lane.y + lane.h * 0.42, (low > 0 ? low : lane.y + lane.h) - 40 * K));
-    const route = [[dir > 0 ? -50 : W + 50, hy - 8 * K, 0], [best, hy, 22], [dir > 0 ? W + 60 : -60, hy - 26 * K, 0]];
+    // (NIGHT-C — THE PATROL: a long look over the harbor — THE CITY TIMETABLE's helicopter.patrol hover — its searchlight sweeping the water)
+    const route = [[dir > 0 ? -50 : W + 50, hy - 8 * K, 0], [best, hy, knob('helicopter.patrol').hover], [dir > 0 ? W + 60 : -60, hy - 26 * K, 0]];
     return { start, route, dir, spr: null, sprKey: '', len: 28 * K, own: false };
   }
   /** where the helicopter is at time e (s since its start): { x, y, dir, hover (0..1), done } */
@@ -395,7 +400,7 @@ export function createAir() {
     return { x: p.x, y: p.y + L * 0.12, dir: p.dir, hover: p.hover, e };
   }
 
-  let heliNow = null;
+  let heliNow = null, heliBeamNow = null;
   return {
     resize(w, h, hz) { if (w === W && h === H && hz === HZ) return; W = w; H = h; HZ = hz; K = Math.max(0.9, Math.min(1.35, w / 402)); for (const p of planes) if (p.spr) p.spr.cv.width = 0; planes = []; train = null; sat = null; },
     setDpr(d) { dpr = d; },
@@ -458,26 +463,81 @@ export function createAir() {
       if (sat) { sat.k += sec / sat.dur; const u = sat.k; satPoint(c, sat.x0 + (sat.x1 - sat.x0) * u, sat.y0 + (sat.y1 - sat.y0) * u, sat.b * satVis * satAlpha(u, sat.mode, sat.shadow) * Math.min(1, u / 0.04, (1 - u) / 0.04), s.moonAt); if (sat.k >= 1) sat = null; }
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
     },
-    /** 6b: the helicopter, over the harbor in front of the skyline (skyfx.city: after the city's layers, before the water) */
-    heliDraw(c, s) { heliNow = drawHeli(c, s, airLook(s.L)); },
+    /** 6b: the helicopter, over the harbor in front of the skyline (skyfx.city: after the city's layers, before the water) — not while it
+     *  flies a DANCE BREAK (NIGHT-C: then it's over the crowd, drawn after the people: breakDraw) */
+    heliDraw(c, s) { if (heli && heli.mode === 'break') return; heliNow = drawHeli(c, s, airLook(s.L)); },
+    /**
+     * NIGHT-C — THE HELICOPTER UP FOR THE DANCE BREAK (core/harbor-heli.js#breakFlight; the owner, Oct 29): in from a side so it is over the
+     * crowd as the song starts, hovering there the WHOLE song, off the other side after it — it arrives + leaves by flying (a patrol up at
+     * the time flies over from where it is). f: the break's flight { id, arrive, leave } (abs s); aim: { x, y } its hover point (pt).
+     */
+    breakFly(s, f, aim) {
+      if (!f || !aim) return;
+      if (heli && heli.brkId === f.id) return;
+      const sp = 52 * K, len = 34 * K, from = heli && !heli.own && heli.mode !== 'break' && heliNow ? { x: heliNow.x, y: heliNow.y - len * 0.12 } : null;
+      const dir = from ? (aim.x >= from.x ? 1 : -1) : hashString(f.id) % 2 ? 1 : -1;
+      const entry = from ? [from.x, from.y] : [dir > 0 ? -60 : W + 60, aim.y - 10 * K];
+      const travel = Math.hypot(aim.x - entry[0], aim.y - entry[1]) / sp, arriveMs = f.arrive * 1000;
+      const start = from ? s.now : arriveMs - travel * 1000, hold = Math.max(1, f.leave - Math.max(f.arrive, start / 1000 + travel));
+      if (heli && heli.spr) heli.spr.cv.width = 0;
+      heli = { start, route: [[entry[0], entry[1], 0], [aim.x, aim.y, hold], [dir > 0 ? W + 70 : -70, aim.y - 22 * K, 0]], dir, spr: null, sprKey: '', len, own: false, mode: 'break', brkId: f.id };
+    },
+    /** the break's helicopter + its BEAM ON THE CROWD (after the people: they stand in its light) — crowd: { x0, x1 (the dancers' span, pt),
+     *  y (the floor's middle), y0 / y1 (the floor's back / front), r (the pool's radius, pt) }; s.party: the party's palette + beat */
+    breakDraw(c, s, crowd) {
+      if (!heli || heli.mode !== 'break') return;
+      const look = airLook(s.L);
+      heliNow = drawHeli(c, s, look);
+      const h = heliNow;
+      if (!h || !crowd) return;
+      const k = clamp01((look.dark - 0.35) * 2) * (s.L.fog > 0.6 ? 0.6 : 1) * clamp01(Math.min(h.e / 4, 1)), lv = tierVal('heliBeam', tier);
+      if (k < 0.02) return;
+      // THE SWEEP ON THE BEAT: across the dancers, a turn on every `sweepBeats`th downbeat; a slow drift between the floor's back + front
+      const P = s.party || {}, bf = Number.isFinite(P.beatsF) ? P.beatsF : s.t * 2;
+      const u = h.hover ? beatSweep(bf) : -h.dir * 0.6, mid = (crowd.x0 + crowd.x1) / 2, half = Math.max(12, (crowd.x1 - crowd.x0) / 2);
+      const px = mid + u * half, py = crowd.y + Math.sin(Math.PI * bf / (2 * knob('helicopter.break').sweepBeats)) * (crowd.y1 - crowd.y0) * 0.35;
+      const col = (P.on > 0.3 && beamColour(P.palette, bf)) || [226, 236, 255], rx = crowd.r, ry = crowd.r * 0.32;
+      c.save(); c.globalCompositeOperation = 'lighter';
+      // (never over the dock: JOIN + HOST stay clean — the light stops at its top)
+      c.beginPath(); c.rect(0, 0, W, s.dockTop || H); c.clip();
+      if (lv >= 2) {   // THE CONE: a searchlight — narrow at the lamp, opening to the pool; brightest near the lamp, a soft core down its middle
+        const g = c.createLinearGradient(h.x, h.y, px, py), wb = rx * 0.78;
+        g.addColorStop(0, rgb(col, 0.55 * k)); g.addColorStop(0.3, rgb(col, 0.24 * k)); g.addColorStop(1, rgb(col, 0.17 * k));
+        c.fillStyle = g; c.beginPath(); c.moveTo(h.x - 1.4, h.y); c.lineTo(h.x + 1.4, h.y); c.lineTo(px + wb, py); c.lineTo(px - wb, py); c.closePath(); c.fill();
+        c.fillStyle = g; c.globalAlpha = 0.6; c.beginPath(); c.moveTo(h.x - 0.5, h.y); c.lineTo(h.x + 0.5, h.y); c.lineTo(px + wb * 0.35, py); c.lineTo(px - wb * 0.35, py); c.closePath(); c.fill(); c.globalAlpha = 1;
+      }
+      // THE POOL on the dancers: a bright ellipse on the floor + its glow up through the people drawn before it (they stand in it)
+      { c.globalAlpha = 0.85 * k; c.drawImage(glow(...col), px - rx * 1.2, py - ry * 1.2, rx * 2.4, ry * 2.4);
+        c.globalAlpha = 0.5 * k; c.drawImage(glow(255, 255, 255), px - rx * 0.55, py - ry * 0.55, rx * 1.1, ry * 1.1);
+        c.globalAlpha = 0.3 * k; c.drawImage(glow(...col), px - rx * 0.85, py - rx * 1.15, rx * 1.7, rx * 1.45); }
+      if (lv >= 3) { c.globalAlpha = 0.9 * k; c.drawImage(glow(255, 255, 255), h.x - 3.5, h.y - 3.5, 7, 7); c.globalAlpha = 0.35 * k; c.drawImage(glow(...col), h.x - 9, h.y - 9, 18, 18); }
+      c.restore();
+      heliBeamNow = { x: Math.round(px), y: Math.round(py), col, k: +k.toFixed(2), u: +u.toFixed(3) };
+    },
+    breakOn: () => !!(heli && heli.mode === 'break'),
+    beamNow: () => heliBeamNow,
     /** the helicopter's SEARCHLIGHT at night: part 'upper' (with the helicopter, above the waterline) · 'lower' (after the water: the
      *  rest of the cone + its pool on the water) — waterTop: the water's top line */
     beam(c, s, waterY, part = 'all', waterTop = 0) {
       const h = heliNow;
-      if (!h || !heli) return;
+      if (!h || !heli || heli.mode === 'break') return;   // (NIGHT-C: a break's beam is breakDraw's — on the crowd)
       const look = airLook(s.L), k = clamp01((look.dark - 0.35) * 2) * (s.L.fog > 0.6 ? 0.6 : 1);
       if (k < 0.02) return;
-      // the beam: from the belly, sweeping slowly over the harbor while it hovers, ahead + down while it flies
-      const sw = s.motion ? Math.sin(h.e * 0.45) * 0.32 : 0.1;
+      // the beam: from the belly, sweeping slowly over the harbor while it hovers, ahead + down while it flies — NIGHT-C: on a PARTY
+      // night the party's neon colour (cross-faded bar by bar) swept ON THE BEAT (core/harbor-heli.js — a smooth swing, never a strobe)
+      const PT = s.party || {}, party = PT.on > 0.3 && s.motion, bf = Number.isFinite(PT.beatsF) ? PT.beatsF : 0;
+      const sw = party ? beatSweep(bf) * 0.32 : s.motion ? Math.sin(h.e * 0.45) * 0.32 : 0.1;
+      const pc = party ? beamColour(PT.palette, bf) : null;
       const ang = Math.PI / 2 + (h.hover ? sw : -0.5 * h.dir);
       const len = Math.max(40, waterY - h.y), ex = h.x + Math.cos(ang) * len / Math.max(0.3, Math.sin(ang)), ey = waterY;
       const spread = len * 0.16;
       c.save(); c.globalCompositeOperation = 'lighter';
       if (part !== 'all') { c.beginPath(); if (part === 'upper') c.rect(0, 0, W, waterTop); else c.rect(0, waterTop, W, H); c.clip(); }
       const g = c.createLinearGradient(h.x, h.y, ex, ey);
-      g.addColorStop(0, `rgba(235,242,255,${0.42 * k})`); g.addColorStop(0.5, `rgba(220,232,255,${0.14 * k})`); g.addColorStop(1, `rgba(220,232,255,${0.06 * k})`);
+      const bc = pc || [235, 242, 255], bc2 = pc || [220, 232, 255];
+      g.addColorStop(0, rgb(bc, 0.42 * k)); g.addColorStop(0.5, rgb(bc2, 0.14 * k)); g.addColorStop(1, rgb(bc2, 0.06 * k));
       c.fillStyle = g; c.beginPath(); c.moveTo(h.x - 1, h.y); c.lineTo(h.x + 1, h.y); c.lineTo(ex + spread, ey); c.lineTo(ex - spread, ey); c.closePath(); c.fill();
-      if (part !== 'upper') { c.globalAlpha = 0.5 * k; c.drawImage(glow(230, 238, 255), ex - spread * 1.6, ey - spread * 0.35, spread * 3.2, spread * 0.7); }
+      if (part !== 'upper') { c.globalAlpha = 0.5 * k; c.drawImage(glow(...(pc || [230, 238, 255])), ex - spread * 1.6, ey - spread * 0.35, spread * 3.2, spread * 0.7); }
       if (part !== 'lower') { c.globalAlpha = 0.9 * k; c.drawImage(glow(255, 255, 255), h.x - 3, h.y - 3, 6, 6); }
       c.restore();
     },
@@ -489,7 +549,7 @@ export function createAir() {
     /** anything crossing the sky right now (the calm frame rate: a plane, the train, a satellite, the helicopter keep 60 fps) */
     busy: () => planes.some(p => p.k < 1) || !!train || !!sat || !!heli,
     lanesInUse: () => new Set(planes.filter(p => p.k < 1).map(p => p.lane)),
-    debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ lane: p.lane, x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, len: +p.len.toFixed(1), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), cap: CAP, train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, heli: heliNow ? { x: Math.round(heliNow.x), y: Math.round(heliNow.y), hover: heliNow.hover } : null, nextPlane: Math.round(nextPlane) }),
+    debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ lane: p.lane, x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, len: +p.len.toFixed(1), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), cap: CAP, train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, heli: heliNow ? { x: Math.round(heliNow.x), y: Math.round(heliNow.y), hover: heliNow.hover, mode: heli && heli.mode === 'break' ? 'break' : 'patrol' } : null, nextPlane: Math.round(nextPlane) }),
     destroy() { for (const p of planes) if (p.spr) p.spr.cv.width = 0; if (heli && heli.spr) heli.spr.cv.width = 0; for (const c of glows.values()) c.width = 0; glows.clear(); planes = []; heli = null; },
   };
 }

@@ -759,3 +759,47 @@ G('partysync', async () => {
   } finally { for (const Q of pages) await Q.ctx.close().catch(() => {}); }
 });
 
+// ================================================================ NIGHT-C — THE HELICOPTER (ONLY=heli; the `perf` cloud job): THE PATROL on its
+// timetable (core/harbor-heli.js — Tuesday Oct 27: 13:07 by day, 22:32 at night) + UP FOR THE DANCE BREAK (Saturday's 22:05:41 conga): over
+// the crowd by the song's start, its beam's pool on the dancers swept on the beat, off the screen's edge after the song (never a pop)
+G('heli', async () => {
+  const H = 'window.__district.harbor().heli';
+  // ---- 1. THE PATROL — at night (its searchlight over the water) + by day: each page opened ~30 s into its patrol's sky slot (the
+  // scheduler starts a timed event at its slot's start — core/harbor-events.js)
+  const Hm = await import('../../../js/core/harbor-heli.js'), Km = await import('../../../js/core/sky.js'), slot = 90e3;
+  const flights = Hm.patrolsNear(Date.parse('2026-10-27T06:30:00-04:00') / 1000, Date.parse('2026-10-28T02:00:00-04:00') / 1000, { off: -240, seed: 1924, elAt: t => Km.sunPosition(t * 1000, 42.96, -85.67).el });
+  const into = f => new Date(Math.floor(f.t0 * 1000 / slot) * slot + 30e3 - 4 * 3600e3).toISOString().slice(0, 19);
+  const nightF = flights.find(f => f.night && f.t0 > Date.parse('2026-10-27T22:00:00-04:00') / 1000), dayF = flights.find(f => !f.night && f.t0 > Date.parse('2026-10-27T12:00:00-04:00') / 1000);
+  for (const [when, what] of [[into(nightF), 'night'], [into(dayF), 'day']]) {
+    const Q = await open({ slot: `hp${what}`, qs: `when=${when}${GR}&wx=clear`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!(${H}.up)`, `the ${what} patrol up`, 25000).catch(() => {});
+    const h = await ev(Q.page, H), wl = await ev(Q.page, 'window.__district.harbor().lanes && window.__district.harbor().lanes.water ? window.__district.harbor().lanes.water.y : null');
+    ok(h.up && h.up.mode === 'patrol' && (wl == null || h.up.y < wl), `THE PATROL (${what}, Tue 27 ${when.slice(11, 16)}): up over the harbor (${h.up ? `${h.up.x}, ${h.up.y}${h.up.hover ? ', hovering' : ''}` : 'nothing'}${wl != null ? ` — the water at ${Math.round(wl)}` : ''})`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}heli-patrol-${what}-402x874.png` });
+    await Q.ctx.close();
+  }
+  // ---- 2. UP FOR THE DANCE BREAK: in before the conga's song, hovering over the crowd as it starts, the pool on the dancers, swept on the beat
+  { const Q = await open({ slot: 'hbrk', qs: `when=2026-10-24T22:05:28${GR}&wx=clear`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${H}.breakOn`, 'the helicopter flying in for the break', 20000);
+    await waitFor(Q.page, `(() => { const p = window.__district.harbor().people.party; return !!(p && p.brk && p.k > 0.3); })()`, 'the conga song started', 30000);
+    const h = await ev(Q.page, H), us = [];
+    ok(h.up && h.up.mode === 'break' && h.up.hover && h.beam && h.crowd && h.beam.x >= h.crowd.x0 - 4 && h.beam.x <= h.crowd.x1 + 4 && h.beam.y > h.crowd.y0 - 4 && h.beam.y < h.crowd.y1 + 4,
+      `UP FOR THE BREAK: hovering over the crowd as the song starts (${h.up && `${h.up.x}, ${h.up.y}`}), its pool on the dancers (${h.beam && `${h.beam.x}, ${h.beam.y}`} in ${h.crowd && `${Math.round(h.crowd.x0)}–${Math.round(h.crowd.x1)}`})`);
+    for (let i = 0; i < 26; i++) { const b = await ev(Q.page, `${H}.beam`); if (b) us.push(b.u); await sleep(250); }
+    ok(Math.max(...us) > 0.6 && Math.min(...us) < -0.6, `THE SWEEP ON THE BEAT: across the dancers side to side (u ${Math.min(...us).toFixed(2)} … ${Math.max(...us).toFixed(2)} in 6.5 s — a turn each 8 beats)`);
+    let jump = 0; for (let i = 1; i < us.length; i++) jump = Math.max(jump, Math.abs(us[i] - us[i - 1]));
+    ok(jump < 0.9, `…A SMOOTH SWING, NEVER A JUMP (the largest step between two ¼-s samples ${jump.toFixed(2)})`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}heli-break-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- 3. …AND OFF AFTER THE SONG — by flying: out past the screen's edge, never gone in view
+  { const Q = await open({ slot: 'hout', qs: `when=2026-10-24T22:08:48${GR}&wx=clear`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${H}.breakOn`, 'the break helicopter', 15000);
+    let lastX = null, W = await ev(Q.page, 'innerWidth'); const t0 = Date.now();
+    while (Date.now() - t0 < 50000) { const h = await ev(Q.page, H); if (!h.breakOn) break; if (h.up) lastX = h.up.x; await sleep(200); }
+    const gone = !(await ev(Q.page, `${H}.breakOn`));
+    ok(gone && lastX != null && (lastX < -10 || lastX > W + 10), `OFF AFTER THE SONG: it flew out (last seen at x ${lastX} of ${W}) — never vanished in view`);
+    await Q.ctx.close(); }
+});

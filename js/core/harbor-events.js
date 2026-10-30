@@ -13,8 +13,10 @@ export const LANES = ['sky-high', 'sky-low', 'skyline', 'water', 'road', 'promen
 export const SLOT_MS = 90 * 1000;
 const DAY = 864e5;
 /** how often, on average, an eligible event starts (the period in ms): common = every few slots … legendary = once a year */
-export const RARITY = { common: 4 * SLOT_MS, daily: DAY / 3, weekly: 7 * DAY, rare: 30 * DAY, legendary: 365 * DAY };
-const ORDER = { legendary: 0, rare: 1, weekly: 2, daily: 3, common: 4 };
+// (NIGHT-C: 'timed' = on a TIMETABLE — its when() is true only in its own slot, and then it always starts (first, after the forced ones):
+// the helicopter's patrol, core/harbor-heli.js)
+export const RARITY = { timed: SLOT_MS, common: 4 * SLOT_MS, daily: DAY / 3, weekly: 7 * DAY, rare: 30 * DAY, legendary: 365 * DAY };
+const ORDER = { timed: -1, legendary: 0, rare: 1, weekly: 2, daily: 3, common: 4 };
 /** the frame budget (ms of drawing per frame) all running events share, and each lane's own share */
 export const BUDGET = { total: 2.5, lane: 1.5 };
 /** what a quiet lane keeps of its usual traffic while a heavy event runs elsewhere (fs.density) */
@@ -139,8 +141,9 @@ export const HARBOR_EVENTS = [
   // Part 6a — THE EVERYDAY SKY (sky messages — skywriting, skytyping, the drone show — are NOT random: holidays + the API only)
   //   the banner plane: a pass or two a day by daylight (its message: the city's own little ads + game announcements)
   defineEvent({ id: 'banner', lanes: ['sky-high'], rarity: 'daily', duration: 2 * SLOT_MS, cost: 0.4, when: ctx => ctx.el != null && ctx.el > 5 }),
-  //   the helicopter: in, a hover over the harbor, out — day or night (its searchlight after dark)
-  defineEvent({ id: 'helicopter', lanes: ['sky-low'], rarity: 'daily', duration: SLOT_MS, cost: 0.3, when: ctx => ctx.el != null }),
+  //   the helicopter: in, a hover over the harbor, out — day or night (its searchlight after dark). NIGHT-C — THE PATROL on its timetable
+  //   (core/harbor-heli.js: hourly from dusk → ~2 am, every 2–3 h by day): ctx.heli(ms) says whether a patrol starts in this slot
+  defineEvent({ id: 'helicopter', lanes: ['sky-low'], rarity: 'timed', duration: 2 * SLOT_MS, cost: 0.3, when: ctx => ctx.el != null && !!(ctx.heli && ctx.heli(ctx.ms)) }),
   //   hot air balloons: calm, clear mornings (Apr–Oct) + summer evenings (Jun–Aug); the weather is checked when it starts
   defineEvent({ id: 'balloons', lanes: ['sky-low'], rarity: 'daily', duration: 8 * SLOT_MS, cost: 0.3, long: true, when: ctx => ctx.el != null && !!balloonTime(ctx.el, ctx.az, ctx.month, ctx.south) }),
   //   rarely a small festival of several, both sky lanes (heavy: the rest of the city calms)

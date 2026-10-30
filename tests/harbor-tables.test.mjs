@@ -9,6 +9,8 @@ import { TIER_CAP } from '../js/core/harbor-people.js';
 
 // the code this pass wrote that must READ the tables (never a time of day or a per-phone count of its own)
 const NEW_CODE = ['js/core/harbor-streetparty.js'];
+// (NIGHT-C: the new TIMED code — the helicopter's planner — reads THE CITY TIMETABLE + has no time of its own; its per-phone numbers are air.js's)
+const NEW_TIMED = ['js/core/harbor-heli.js', 'js/core/harbor-streetparty.js'];
 const src = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8').replace(/\/\/.*$/gm, '').replace(/\/\*[\s\S]*?\*\//g, '');
 
 test('NIGHT-B — THE TIER TABLE: every knob has a value for tier 0 / 1 / 2, never fewer at a stronger tier; tierVal clamps; the walkers\' cap reads it', () => {
@@ -57,5 +59,14 @@ test('NIGHT-B — THE RULE: the new code READS the tables — no time of day, no
     // (a tier's own number: `tier === 0`, `tt < 2`, or a [a, b, c] triplet)
     assert.equal((s.match(/\b(?:tier|tt)\s*[<>=!]=?=?\s*\d/g) || []).length, 0, `${f}: a tier compared with a literal`);
     assert.equal((s.match(/\[\s*\d+\s*,\s*\d+\s*,\s*\d+\s*\]/g) || []).length, 0, `${f}: a [t0, t1, t2]-looking triplet`);
+  }
+});
+
+test('NIGHT-C — THE RULE for the new timed code (the helicopter): reads THE CITY TIMETABLE, no hour of its own', () => {
+  for (const f of NEW_TIMED) {
+    const s = src(f);
+    assert.match(s, /from '\.\/harbor-schedule\.js'/, `${f} reads THE CITY TIMETABLE`);
+    assert.equal((s.match(/(?<![\w.])\d+(?:\.\d+)?\s*\*\s*(?:3600|HOUR)\b/g) || []).length, 0, `${f}: an hour literal × 3600`);
+    assert.equal((s.match(/\b(?:h|hour|hh|eh)\s*[<>]=?\s*\d/g) || []).length, 0, `${f}: an hour compared with a literal`);
   }
 });
