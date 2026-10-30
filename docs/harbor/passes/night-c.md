@@ -113,6 +113,10 @@ NIGHT-B ✅ (9c9e813), NIGHT-C ← NEXT.
   CLOCK checks run with `&force=no-party-sync` (they drive the element); (2) MEMORY — 20 title↔setup cycles: heap +6.3 MB vs the 6 MB limit.
   NIGHT-B's cloud runs measured +5.1 and +5.9; the same machine, the same run: the old build +4.8, this one +5.0 MB — the check sits at
   its limit (noise), not a leak; left as it is.
+- THE CLOUD, run 2 (2f037ba — the ride fix): tests GREEN; harbor 7 of 8 green (perf now green: partysync + the memory check); `windows`
+  red on ONE check: 9c's crisp items by day listed exactly blade-board / datestone / roofboard (+ the benches) — the roof signs' two new
+  items (rs-body / rs-lit, by design) weren't in its list → the expectation updated (a test-only commit after the cap: e2e snow + blackout
+  30/30 locally). The two-run cap reached — not re-run in the cloud.
 - No Java on the laptop: the smoke test + the rules + /api suites (a shared file touched: app.js, music.js, synced-songs.js, sky.js) run in
   the cloud's tests workflow on the final push only.
 - e2e THE DOG's TURN (one frame at 11.0–11.2 vs ≤ 11 u/s) fails on the laptop — the same on 68e2fa6 (a timing flake, not this pass).
