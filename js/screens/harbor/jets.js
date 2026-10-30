@@ -17,6 +17,7 @@
 //   VAPOUR + SMOKE a vapour cone round the wing on a hard pull (the air show), a white smoke trail by day (the air show's smoke on)
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { FORMATIONS } from '../../core/harbor-legend.js';
+import { loadF22Model, f22Ready, f22Sprite } from './f22-model.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -269,7 +270,7 @@ function drawBurner(c, nx, ny, ang, len, k, o = {}) {
 
 /** the jet's lights at night (formation strips, nav, tail, beacon), in the jet's own frame (the nozzle at 0, the nose at +len); navDir:
  *  its real direction on the screen (green flying right: its starboard side faces us; red flying left) */
-function drawJetLights(c, len, navDir, night, t, i = 0) {
+function drawJetLights(c, len, navDir, night, t, i = 0, model = false) {
   if (night < 0.05) return;
   const G = [150, 255, 160];
   const strip = (x0, y0, x1, y1) => { c.strokeStyle = rgb(G, 0.9 * night); c.lineWidth = Math.max(0.7, len * 0.011); c.beginPath(); c.moveTo(x0 * len, y0 * len); c.lineTo(x1 * len, y1 * len); c.stroke(); };
@@ -280,9 +281,9 @@ function drawJetLights(c, len, navDir, night, t, i = 0) {
   c.globalAlpha = 1;
   // the F-22's strips: along the forebody's chine, the aft fuselage, the fin's tip
   strip(0.92, 0.01, 0.8, 0.018); strip(0.28, -0.04, 0.12, -0.036); strip(0.17, -0.24, 0.1, -0.24);
-  const nav = navDir > 0 ? [90, 255, 140] : [255, 60, 60];
-  c.globalAlpha = 0.85 * night; c.drawImage(tinted(nav), 0.295 * len - gs * 0.6, 0.168 * len - gs * 0.6, gs * 1.2, gs * 1.2);
-  c.globalAlpha = night; c.fillStyle = rgb(nav); c.beginPath(); c.arc(0.295 * len, 0.168 * len, Math.max(0.6, len * 0.011), 0, TAU); c.fill();
+  const nav = navDir > 0 ? [90, 255, 140] : [255, 60, 60], [nx, ny] = model ? [0.33, 0.072] : [0.295, 0.168];   // (SKY-A: the model's near wingtip)
+  c.globalAlpha = 0.85 * night; c.drawImage(tinted(nav), nx * len - gs * 0.6, ny * len - gs * 0.6, gs * 1.2, gs * 1.2);
+  c.globalAlpha = night; c.fillStyle = rgb(nav); c.beginPath(); c.arc(nx * len, ny * len, Math.max(0.6, len * 0.011), 0, TAU); c.fill();
   c.fillStyle = 'rgb(255,250,240)'; c.beginPath(); c.arc(-0.04 * len, 0.0, Math.max(0.5, len * 0.008), 0, TAU); c.fill();        // the tail light
   const bk = Math.sin(t * 7.5 + i * 1.3) > 0.55 ? 1 : 0.15;
   c.globalAlpha = night * bk; c.drawImage(tinted([255, 40, 30]), 0.47 * len - gs * 0.5, -0.06 * len - gs * 0.5, gs, gs);          // the beacon on the spine
@@ -295,15 +296,19 @@ function drawJetLights(c, len, navDir, night, t, i = 0) {
  */
 export function createJets() {
   const cache = new Map();
-  let dpr = 2;
-  function sprite(len, look) {
-    const key = `${Math.round(len)}|${Math.round(look.day * 8)}|${Math.round(look.golden * 8)}|${Math.round(look.dark * 8)}`;
+  let dpr = 2, drawn = false;
+  // SKY-A — THE F-22 MODEL (f22-model.js: the baked sprites) for EVERY F-22, the hand-drawn Raptor until it's in (&f22=drawn: always —
+  // the A/B); a sprite per (size, light, bank — 1.5° steps), cached (a bank's steps + its lights: ≤ 28)
+  try { drawn = new URLSearchParams(location.search).get('f22') === 'drawn'; } catch { /* tests */ }
+  function sprite(len, look, roll = 0) {
+    const M = !drawn && f22Ready(), rq = M ? Math.round(Math.max(0, roll) / 1.5) * 1.5 : 0;
+    const key = `${M ? 'm' : 'd'}|${Math.round(len)}|${Math.round(look.day * 8)}|${Math.round(look.golden * 8)}|${Math.round(look.dark * 8)}|${rq}`;
     let s = cache.get(key);
-    if (!s) { if (cache.size > 12) { for (const v of cache.values()) v.cv.width = 0; cache.clear(); } s = jetSprite(len, look, dpr); cache.set(key, s); }
+    if (!s) { if (cache.size > 36) { for (const v of cache.values()) v.cv.width = 0; cache.clear(); } s = (M && f22Sprite(len, look, rq, 3, mk)) || jetSprite(len, look, dpr); cache.set(key, s); }
     return s;
   }
   function draw(c, j) {
-    const s = sprite(j.len, j.look), night = j.look.dark, L = j.len;
+    const s = sprite(j.len, j.look, j.roll || 0), night = j.look.dark, L = j.len;
     c.save(); c.translate(j.x, j.y); c.scale(j.dir < 0 ? -1 : 1, 1); c.rotate(-(j.ang || 0));
     c.translate(-L * 0.5, 0);                                   // (the jet's own frame: the nozzle at 0, the nose at +L)
     // the afterburner first (behind the tail), then the airframe (streaked on full burn — a hint of motion blur), the vapour, the lights
@@ -316,13 +321,20 @@ export function createJets() {
     }
     c.drawImage(s.cv, -s.ox, -s.oy, s.w, s.h);
     if (j.vapour > 0.02) { c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.5 * j.vapour; c.drawImage(tinted([236, 240, 248]), L * 0.12, -L * 0.12, L * 0.56, L * 0.34); c.globalAlpha = 1; c.globalCompositeOperation = 'source-over'; }
-    if (night > 0.05) drawJetLights(c, L, j.dir, night, j.t, j.i || 0);
+    if (night > 0.05) drawJetLights(c, L, j.dir, night, j.t, j.i || 0, !!s.model);
     c.restore();
   }
   return {
     draw,
-    /** bake a jet's sprite ahead of its pass (never on the frame it screams in) */
-    warm(len, look) { sprite(len, look); },
+    /** bake a jet's sprite ahead of its pass (never on the frame it screams in) — SKY-A: the model's load first, then every bank step
+     *  up to maxRoll (the chase's unison bank) in this light */
+    warm(len, look, maxRoll = 0) {
+      if (!drawn && !f22Ready()) { loadF22Model().then(() => { for (let r = 0; r <= maxRoll + 1e-6; r += 1.5) sprite(len, look, r); }).catch(() => {}); }
+      for (let r = 0; r <= maxRoll + 1e-6; r += 1.5) sprite(len, look, r);
+    },
+    /** the model's sprites on their way (a legendary / a show due): fetched + decoded ahead */
+    load() { if (!drawn) loadF22Model().catch(() => {}); },
+    model: () => !drawn && !!f22Ready(),
     setDpr(d) { if (d !== dpr) { dpr = d; for (const v of cache.values()) v.cv.width = 0; cache.clear(); } },
     destroy() { for (const v of cache.values()) v.cv.width = 0; cache.clear(); },
   };
@@ -424,7 +436,7 @@ export function createAirShow() {
   }
   return {
     /** o (the surprise flyby): { dir (±1), n (2–4 jets) } */
-    start(kind, at, o = {}) { if (!SHOW_LEN[kind]) return false; cur = { kind, at, flip: o.dir === -1 ? -1 : 1, n: o.n || 4 }; return true; },
+    start(kind, at, o = {}) { if (!SHOW_LEN[kind]) return false; jets.load(); cur = { kind, at, flip: o.dir === -1 ? -1 : 1, n: o.n || 4 }; return true; },
     on: () => !!cur,
     kind: () => (cur ? cur.kind : null),
     stop() { cur = null; },

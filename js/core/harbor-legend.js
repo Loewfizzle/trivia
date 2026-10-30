@@ -287,13 +287,18 @@ export function drainAt(x, cx, drain, band = 'city', dir = 1, lag = 0, flick = 0
 
 // ------------------------------------------------------------------ THE JETS (shared: the TR-3B's chase, the air show, the missing man)
 /**
- * A formation's slots (in jet lengths, x back along the flight, y down on the screen) — 'chase' (three in a tight echelon), 'diamond'
+ * A formation's slots (in jet lengths, x back along the flight, y down on the screen) — 'chase' (SKY-A, the owner Oct 28: a TIGHT VIC —
+ * the lead + two wingmen tucked behind either side: the far one a touch higher on the screen, the near one lower), 'diamond'
  * (four: lead, two wings, the slot), 'finger' (the missing man's finger-four: lead, #2, #3 (the one who pulls up), #4).
  */
 export const FORMATIONS = Object.freeze({
-  chase: [[0, 0], [-1.25, 0.42], [-2.5, 0.84]],
+  chase: [[0, 0], [-1.05, -0.5], [-1.05, 0.5]],
   diamond: [[0, 0], [-1.1, -0.5], [-1.1, 0.5], [-2.2, 0]],
   finger: [[0, 0], [-1.1, 0.45], [-1.1, -0.45], [-2.2, -0.9]],
 });
+/** SKY-A — THE CHASE's UNISON BANK (the owner, Oct 28: "mid-screen a small, slow BANK — the wings tilt a few degrees together, then level
+ *  back"): the roll (°, the jets' tops toward the viewer) u into the pass — 0 at both ends, CHASE_BANK at its middle, eased */
+export const CHASE_BANK = 12;
+export function chaseBank(u) { const k = Math.max(0, Math.min(1, (u - 0.28) / 0.5)); return CHASE_BANK * Math.sin(Math.PI * k) ** 2; }
 /** the missing man's #3 pulls up and away: its climb (rad) and its own path's offset u seconds into the pass (0..1) */
 export function missingManAt(u) { const k = smooth(0.42, 0.7, u); return { climb: k * 0.9, rise: k * k * 2.6, slow: 1 - 0.18 * k }; }

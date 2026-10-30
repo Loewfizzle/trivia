@@ -155,6 +155,7 @@ export function createSmoke() {
     setTier(t) { tier = t; },
     /** type a message at clock ms `at` in the box (the open sky: skyfx.js#msgBox) → true if it could be laid out */
     start(kind, text, box, at, o = {}) {
+      jets.load();   // (SKY-A: the F-22 model's sprites on their way — the skytypers fly it)
       const p = planType(text, box, at);
       if (!p) return false;
       p.gust = o.gust || 1;

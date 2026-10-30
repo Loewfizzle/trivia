@@ -237,6 +237,7 @@ G('legends', async () => {
     // (jets.js is shared with skytyping + the air show — the legendary module itself, legends.js, is the lazy one)
     ok(!Q.files.some(f => /harbor\/legends\.js/.test(f)) && !st.run, `THE LEGENDARY SKY: a normal night never loads its module (${Q.files.filter(f => /legends\.js/.test(f)).length} files)`);
     ok(!Q.files.some(f => /assets\/city\/ufo\//.test(f)), `THE UFO BAKE: a normal night never fetches the craft's sprites (${Q.files.filter(f => /city\/ufo\//.test(f)).length} files)`);
+    ok(!Q.files.some(f => /assets\/city\/f22\//.test(f)), `THE F-22 BAKE (SKY-A): a normal night never fetches the jet's sprites (${Q.files.filter(f => /city\/f22\//.test(f)).length} files)`);
     await Q.ctx.close(); }
   // ---- THE UFO ABDUCTION held mid-lift (&lgs=14): the module loaded on demand, the beam a bright pale column over the compass
   // (11a-2: a NOVEMBER night — from Oct 20 the giant pumpkin stands on the compass, and no abduction is scheduled over a centrepiece)
@@ -309,6 +310,18 @@ G('legends', async () => {
     await waitFor(Q.page, `${P}.legend.state.phase === 'cross'`, 'the TR-3B loaded + arriving', 20000);
     const d = (await ev(Q.page, `${P}.legend.drain('city')`)) || [], span = d.reduce((a, cl) => a + cl.x1 - cl.x0, 0);
     ok(span >= 60 && span < 402, `THE TR-3B ARRIVING: ${Math.round(span)} pt of the city flickering out (${d.length} strips) — not all of it yet`);
+    await Q.ctx.close(); }
+  // ---- SKY-A — THE F-22 MODEL in the chase (&lgs=30.4: mid-pass): the baked jets (assets/city/f22/), a TIGHT VIC (the lead + a wingman
+  // tucked behind either side: one above, one below it) BANKING together mid-screen
+  { const Q = await open({ slot: 'lg2j', qs: `${NIGHT}&wx=clear&force=tr3b&lgs=30.4`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(() => { const c = ${P}.legend.state.chase; return !!(c && c.model); })()`, 'the chase on the F-22 model', 20000).catch(() => {});
+    const ch = (await ev(Q.page, `${P}.legend.state`)).chase, got = Q.files.filter(f => /assets\/city\/f22\//.test(f)).length;
+    const lead = ch && ch.jets.find(j => j.i === 0), w = ch ? ch.jets.filter(j => j.i !== 0) : [], dir = (await ev(Q.page, `${P}.legend.state.run.dir`)) || 1;
+    ok(ch && ch.model && got >= 4, `THE F-22 MODEL: the chase flies the baked jet (${got} sprite files${ch ? `, model ${ch.model}` : ''})`);
+    ok(ch && lead && w.length === 2 && w.every(j => (lead.x - j.x) * dir > 20) && Math.min(...w.map(j => j.y)) < lead.y && Math.max(...w.map(j => j.y)) > lead.y, `…A TIGHT VIC: the lead at ${lead && `${lead.x}, ${lead.y}`}, the wingmen behind it either side (${w.map(j => `${j.x}, ${j.y}`).join(' · ')})`);
+    ok(ch && ch.roll > 8, `…BANKING TOGETHER mid-screen: ${ch && ch.roll}° at u ${ch && ch.u}`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-f22-chase-402x874.png` });
     await Q.ctx.close(); }
   // ---- THE TR-3B over the city (&lgs=15) — POLISH 4: THE TOTAL BLACKOUT: every depth dead (its lights not drawn at all), the dark
   // city's bake in place (no floodlit crowns), the lit windows gone from the skyline

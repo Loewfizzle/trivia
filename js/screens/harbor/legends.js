@@ -23,7 +23,7 @@
 //   (sounds.js), then THE CHASE: three F-16s screaming across after it in an echelon, afterburners with MACH DIAMONDS (jets.js)
 import { project } from '../../core/harbor-layout.js';
 import { GIANT } from '../../core/harbor-holidayprops.js';
-import { ufoAt, tr3bAt, legendAt, legendNight, tr3bDir, eveningOf, drainAt, blackAt, blackAll, CHASE, chaseX, chasePeakS, FORMATIONS, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { ufoAt, tr3bAt, legendAt, legendNight, tr3bDir, eveningOf, drainAt, blackAt, blackAll, CHASE, chaseX, chasePeakS, chaseBank, CHASE_BANK, FORMATIONS, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
 import { lookOf, drawFolk } from './folk.js';
 import { createJets, jetLook } from './jets.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -557,7 +557,7 @@ export function createLegends({ clock, qp } = {}) {
         st = run.kind === 'ufo' ? ufoAt(Math.max(0, sNow)) : tr3bAt(Math.max(0, sNow), run.dir);
         warm(run.kind);
         // (the chase's jets: their sprite baked long before they scream across)
-        if (run.kind === 'tr3b' && sNow > 6 && sNow < CHASE.t0 - 2) { const lk = jetLook(fs.L), key = `${Math.round(chaseLen())}|${Math.round(lk.dark * 8)}`; if (key !== jetsWarm) { jetsWarm = key; setTimeout(() => jets.warm(chaseLen(), lk), 0); } }
+        if (run.kind === 'tr3b' && sNow > 6 && sNow < CHASE.t0 - 2) { const lk = jetLook(fs.L), key = `${Math.round(chaseLen())}|${Math.round(lk.dark * 8)}`; if (key !== jetsWarm) { jetsWarm = key; setTimeout(() => { for (const sc of [0.94, 1, 1.06]) jets.warm(chaseLen() * sc, lk, CHASE_BANK); }, 0); } }
       }
     } else {
       st = null;
@@ -700,18 +700,23 @@ export function createLegends({ clock, qp } = {}) {
     c.restore();
     drawChase(c, fs);
   }
-  /** the chase's jets on the screen u into their pass: [{ x, y, i }] (the lead first) */
+  /** the chase's jets on the screen u into their pass: [{ x, y, i, sc (its depth: the vic's near wingman a touch bigger) }] (the lead first) */
   function chaseJets(u) {
     const len = chaseLen(), dir = run.dir, y0 = lerp(bandY0, crown, 0.48);
     return FORMATIONS.chase.map(([fx, fy], i) => {
       const xu = chaseX(u, fx, len / W);
-      return { x: dir > 0 ? xu * W : (1 - xu) * W, y: y0 + fy * len * 0.62 - u * len * 0.3, i };
+      return { x: dir > 0 ? xu * W : (1 - xu) * W, y: y0 + fy * len * 0.62 - u * len * 0.3, i, sc: 1 + fy * 0.12 };
     });
   }
+  let chaseNow = null;
   function drawChase(c, fs) {
     if (!st || run.kind !== 'tr3b' || !st.chase.on) return;
-    const look = jetLook(fs.L), len = chaseLen(), dir = run.dir;
-    for (const J of chaseJets(st.chase.u)) jets.draw(c, { x: J.x, y: J.y, dir, ang: 0.05, len, look, burn: 1, t: performance.now() / 1000 + J.i * 0.37, i: J.i });
+    const look = jetLook(fs.L), len = chaseLen(), dir = run.dir, roll = chaseBank(st.chase.u);
+    if (!jets.model()) jets.load();   // (a held frame / a late load: the model's sprites on their way — the warm-up is before the chase)
+    // (SKY-A: THE VIC — the far wingman first, the lead, the near one last; all three BANK together mid-screen)
+    const js = chaseJets(st.chase.u).sort((a, b) => a.sc - b.sc);
+    chaseNow = { u: +st.chase.u.toFixed(3), roll: +roll.toFixed(2), model: jets.model(), jets: js.map(J => ({ i: J.i, x: Math.round(J.x), y: Math.round(J.y), sc: J.sc })) };
+    for (const J of js) jets.draw(c, { x: J.x, y: J.y, dir, ang: 0.05, len: len * J.sc, look, burn: 1, roll, t: performance.now() / 1000 + J.i * 0.37, i: J.i });
   }
 
   // ---------------------------------------------------------------- THE ABDUCTION (before the front row)
@@ -977,7 +982,7 @@ export function createLegends({ clock, qp } = {}) {
     active: () => !!run,
     /** POLISH 4: the scene's dark city bake is wanted (a TR-3B due within the minute, or running) */
     darkWanted: () => (run ? run.kind === 'tr3b' : warmFor === 'tr3b'),
-    debug: () => ({ wheelTop: wheelTop == null ? null : +wheelTop.toFixed(1), craft: lastCraft, run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, model: modelState, elev: +lastElev.toFixed(1), frame: lastFrame, craft: run && run.kind === 'ufo' ? lastCraft : null, warm: warmFor, ring: { w: +ringW.toFixed(2), taken: +ringTaken.toFixed(2) } }),
+    debug: () => ({ wheelTop: wheelTop == null ? null : +wheelTop.toFixed(1), craft: lastCraft, run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, model: modelState, elev: +lastElev.toFixed(1), frame: lastFrame, craft: run && run.kind === 'ufo' ? lastCraft : null, warm: warmFor, ring: { w: +ringW.toFixed(2), taken: +ringTaken.toFixed(2) }, chase: chaseNow }),
     destroy() { for (const s of [saucer, beam, tri]) if (s) s.cv.width = 0; jets.destroy(); },
   };
 }

@@ -1,0 +1,4 @@
+f22_raptor_free.glb
+"F22 Raptor FREE" by NLM (@NLM-Group) - https://sketchfab.com/3d-models/f22-raptor-free-2a64abf0866a405c865466c7642ca689
+Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). Credit required on the site's credits sheet.
+Notes: grey PBR textures; it's animated and the gear is down in the preview, so use the retracted pose; check the textures for small stencils.
