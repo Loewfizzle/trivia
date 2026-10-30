@@ -143,7 +143,7 @@ export const HARBOR_EVENTS = [
   defineEvent({ id: 'banner', lanes: ['sky-high'], rarity: 'daily', duration: 2 * SLOT_MS, cost: 0.4, when: ctx => ctx.el != null && ctx.el > 5 }),
   //   the helicopter: in, a hover over the harbor, out — day or night (its searchlight after dark). NIGHT-C — THE PATROL on its timetable
   //   (core/harbor-heli.js: hourly from dusk → ~2 am, every 2–3 h by day): ctx.heli(ms) says whether a patrol starts in this slot
-  defineEvent({ id: 'helicopter', lanes: ['sky-low'], rarity: 'timed', duration: 2 * SLOT_MS, cost: 0.3, when: ctx => ctx.el != null && !!(ctx.heli && ctx.heli(ctx.ms)) }),
+  defineEvent({ id: 'helicopter', lanes: ['sky-low'], rarity: 'timed', duration: 3 * SLOT_MS, cost: 0.3, when: ctx => ctx.el != null && !!(ctx.heli && ctx.heli(ctx.ms)) }),
   //   hot air balloons: calm, clear mornings (Apr–Oct) + summer evenings (Jun–Aug); the weather is checked when it starts
   defineEvent({ id: 'balloons', lanes: ['sky-low'], rarity: 'daily', duration: 8 * SLOT_MS, cost: 0.3, long: true, when: ctx => ctx.el != null && !!balloonTime(ctx.el, ctx.az, ctx.month, ctx.south) }),
   //   rarely a small festival of several, both sky lanes (heavy: the rest of the city calms)

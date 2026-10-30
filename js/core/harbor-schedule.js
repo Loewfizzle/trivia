@@ -48,14 +48,19 @@ export const SCHEDULE = Object.freeze([
   { id: 'holidays', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js', what: 'the holidays, their build-ups day by day + the sign dressings' },
   { id: 'workers', trigger: 'clock', status: 'live', src: 'core/harbor-workers.js', what: 'the workers\' day (milk 6:00, newsboy 7:00, barber 8:30, the beat cop 9 am + 9 pm…)' },
   { id: 'sky.events', trigger: 'clock', status: 'live', src: 'core/harbor-events.js', what: 'the everyday sky: planes, the helicopter (daily), balloons, birds… by rarity' },
-  // (NIGHT-C — THE HELICOPTER, the owner Oct 29 4:13 pm: hourly from dusk → ~2 am, every 2–3 h by day — core/harbor-heli.js. dayStarts: the
-  // hour a day's list begins (the small hours belong to the evening before); dayEl / nightEl: the sun's elevation (°) that makes a slot a day /
-  // a night one; minute: the seeded minute of each night hour; dur: a flight's event (s, ≤ 2 sky slots); hover: its time over the harbor;
-  // legendGap / legendLen: the window round tonight's legendary it keeps clear of)
-  { id: 'helicopter.patrol', trigger: 'clock', status: 'live', src: 'core/harbor-heli.js#patrolDay + screens/harbor/air.js', what: 'THE HELICOPTER PATROL: hourly from dusk → ~2 am (a seeded minute), every 2–3 h by day — its searchlight sweeping the water at night (party nights: the party’s colours on the beat); skipped in a storm / wind ≥ 14',
-    knobs: { dayStarts: 6, firstDay: 8, dayJitter: 1.5, dayEvery: [2, 3], dayTo: 23, dayEl: 0, nightFrom: 12, nightEl: -4, lastNight: 25, minute: [4, 40], dur: 180, hover: 120, legendGap: 600, legendLen: 1500 }, conflicts: ['legendaries', 'party.break'] },
-  { id: 'helicopter.break', trigger: 'event', status: 'live', src: 'core/harbor-heli.js#breakFlight + screens/harbor/air.js', what: 'THE HELICOPTER UP FOR EVERY DANCE BREAK: in from a side `lead` s before the song, hovering over the dancing crowd + the street spill for the WHOLE song, its beam on them (swept on the beat, `sweepBeats` beats a side — never a strobe), off the other side',
-    knobs: { lead: 16, trail: 18, sweepBeats: 8 } },
+  // (NIGHT-C — THE HELICOPTER, the owner Oct 29 4:13 pm; SKY-A — REWORKED, the owner Oct 30 8:19–8:35 am: the ORIGINAL route back — round
+  // the harbor + back around — TWO LOOPS a patrol, every ~30 min at night (3–4 min), hourly by day (2–3 min) — core/harbor-heli.js.
+  // dayStarts: the hour a day's list begins (the small hours belong to the evening before); dayEl / nightEl: the sun's elevation (°) that
+  // makes a slot a day / a night one; dayEvery: the day chain's gap (h); nightEvery: the night's step (h) + minute: the seeded minute in
+  // each step; durDay / durNight: a flight's length (s — the sky lane's hold: ≤ 3 sky slots); loops: passes round the harbor; nearHover /
+  // farHover: its look over the harbor on the near pass + the far one (s, [day, night]); turn: off-screen between passes (s, turning round
+  // behind the city); legendGap / legendLen: the window round tonight's legendary it keeps clear of)
+  { id: 'helicopter.patrol', trigger: 'clock', status: 'live', src: 'core/harbor-heli.js#patrolDay + screens/harbor/air.js', what: 'THE HELICOPTER PATROL: every ~30 min from dusk → ~2 am (a seeded minute, 3–4 min each), hourly by day (2–3 min) — TWO LOOPS of the harbor (in low over the water, a look, out; back round the far side), its searchlight sweeping the water at night (party nights: the party’s colours on the beat); skipped in a storm / wind ≥ 14',
+    knobs: { dayStarts: 6, firstDay: 8, dayJitter: 0.6, dayEvery: [0.85, 1.15], dayTo: 23, dayEl: 0, nightFrom: 12, nightEvery: 0.5, nightEl: -4, lastNight: 25.5, minute: [2, 14], durDay: 150, durNight: 225, loops: 2, nearHover: [24, 46], farHover: [5, 12], turn: [9, 11], legendGap: 600, legendLen: 1500 }, conflicts: ['legendaries', 'party.break'] },
+  // (SKY-A — the owner, Oct 30 8:19 am: LOWER + CLOSER over the water, never in front of a sign, sweeping BACK AND FORTH over the crowd; the
+  // beam DIFFUSED. sweepPeriod: one back-and-forth of the craft (s); ease: its drift easing in after it arrives + out before it leaves (s))
+  { id: 'helicopter.break', trigger: 'event', status: 'live', src: 'core/harbor-heli.js#breakFlight + screens/harbor/air.js', what: 'THE HELICOPTER UP FOR EVERY DANCE BREAK: in from a side `lead` s before the song, LOW over the water in front of the skyline (never in front of a sign), drifting BACK AND FORTH over the dancing crowd + the street spill for the WHOLE song, its soft wide beam on them (the pool swept on the beat, `sweepBeats` beats a side — never a strobe), off the other side',
+    knobs: { lead: 16, trail: 18, sweepBeats: 8, sweepPeriod: 22, ease: 5 } },
   { id: 'boxer', trigger: 'calendar', status: 'planned', src: 'SKY', what: 'THE SHADOWBOXER: Mon / Wed / Fri 7 → 11 pm, sets of 10 rounds (Friday: he wraps up at 8:30 or trains on, seeded)', conflicts: ['window.party'] },
   { id: 'legendaries', trigger: 'event', status: 'live', src: 'core/harbor-legend.js', what: 'the legendaries (the UFO, the TR-3B…) — their seeded nights', conflicts: ['traffic'] },
   { id: 'blackout', trigger: 'event', status: 'live', src: 'core/harbor-dark.js', what: 'THE BLACKOUT (the TR-3B\'s drain): every light down, back on in turn' },

@@ -305,6 +305,11 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
         // (8b2 Group 3: any other boat, close — boat-taxi / boat-tug / boat-fish / boat-sail / boat-sail2: a box round it wherever it is)
         if (cc.startsWith('boat-')) { const b = hb.boats.boats.find(o => o.id === cc.slice(5)); return b && b.y != null ? box(b.x - 40 * k, b.y - 44 * k, 80 * k, 56 * k) : null; }
         return box(0, w.y - w.r - 12, innerWidth, hb.water.y1 + 10 - (w.y - w.r - 12)); }, c);
+    } else if (c === 'heli') {
+      // SKY-A: the helicopter + its beam down to its pool (the break's) or the water (the patrol's) — 240 × 220 pt round it, where it is now
+      clip = await p.evaluate(() => { const hb = window.__district.harbor && window.__district.harbor(), h = hb && hb.heli, u = h && h.up; if (!u || u.off) return null;
+        const b = h.beam, y1 = b ? Math.max(u.y, b.y) + 30 : u.y + 150, x0 = Math.max(0, Math.min(u.x, b ? b.x : u.x) - 90);
+        return { x: x0, y: Math.max(0, u.y - 60), width: Math.min(innerWidth - x0, 240), height: Math.min(innerHeight - Math.max(0, u.y - 60), y1 - u.y + 60) }; });
     } else if (PRESET[c]) {
       clip = await p.evaluate(([sel, pad]) => {
         const rs = [...document.querySelectorAll(sel)].map(e => e.getBoundingClientRect()).filter(r => r.width);
@@ -316,7 +321,7 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
     if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper', 'crest', 'cart', 'treel', 'compass'].includes(c)) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'crossing', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass'].includes(c) || c.startsWith('boat-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'crossing', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass', 'heli'].includes(c) || c.startsWith('boat-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
     n++;
   }

@@ -26,6 +26,12 @@ import { nowPlaying, handoffFade, musicInput, onMusicDuck, musicDuckLevel, setMu
 // the lobby's 2.5 s is for a room's background song; the synced player is the exact one, so almost always it joins: the same song a hair
 // off → a short PARTY_JOIN_S fade, another song → the lobby's JOIN_FADE_S crossfade)
 export const PARTY_RIDE_S = 0.05, PARTY_JOIN_S = 0.35;
+// (SKY-A — the owner's iPhone, Oct 30 8:21 am: "play × AbortError c2-party3.mp3 (start)" — on a synced night this phone's own player started
+// the timeline's song, then the synced player took it over mid-load: a wasted download + an error in the log. Now the synced player CLAIMS
+// the song while it loads: this phone's own player starts nothing — unless the synced one can't (a dead graph, a legendary's hold, its song
+// failed to load) or hasn't sounded PARTY_WAIT_MS after the graph could play (a stuck load: the own player covers, as before))
+export const PARTY_WAIT_MS = 8000;
+let pendingAt = 0;
 let player = null, playingId = null, handed = false, outGain = null, offMs = null, clocked = false, last = null, rideKey = '', rideOn = false;
 const urlFor = id => musicUrl(id);
 onMusicDuck((lv, s) => { try { if (outGain) outGain.gain.setTargetAtTime(lv, outGain.context.currentTime, Math.max(0.02, s / 3)); } catch { /* gone */ } });
@@ -44,6 +50,22 @@ function timeline() {
   // read-to-read wobble never re-keys the player; a panel time jump moves it → the songs are placed again)
   if (offMs == null || Math.abs(off - offMs) > 400) offMs = off;
   return { tl, deck, cityMs, off: offMs };
+}
+
+/** SKY-A — does the SYNCED player claim the party song here right now (app.js's mood provider then starts nothing on this phone's own
+ *  player)? true while the timeline runs, the graph lives, no legendary holds the music, its song hasn't failed and it hasn't been waiting
+ *  PARTY_WAIT_MS since the graph could play. Never while this phone's own player already sounds (it plays on until the hand-off). */
+export function partyClaims() {
+  const T = timeline();
+  if (!T) { pendingAt = 0; return false; }
+  const ac = getContext(), cc = cityClock();
+  if (ac && (ac.state === 'closed' || clockFrozen())) return false;
+  if (cc && cc.musicHold && cc.musicHold()) return false;
+  if (player && player.now()) return true;
+  if (nowPlaying()) return false;
+  if (player && last && player.failed && player.failed(last.cur)) return false;
+  if (ac && ac.state === 'running') { if (!pendingAt) pendingAt = performance.now(); if (performance.now() - pendingAt > PARTY_WAIT_MS) return false; }
+  return true;
 }
 
 /** THIS PHONE's OWN PLAYER on the timeline (app.js's mood provider): the song to start now + where in it (s) — { id, at } or null (no
@@ -87,13 +109,15 @@ export function partyMusicTick(active, hold = false) {
   player.tick();
   last = { cur: d.cur, expected: d.expected, riding: d.riding, kind: T.tl.kind, id: game.songs[d.cur] };
   if (d.riding) { handed = false; return false; }
+  if (player.now()) pendingAt = 0;
   if (player.now() || (handed && player.playing())) { if (!handed) { handed = true; handoffFade(d.cur > 0 && d.expected < XF_MS / 1000 ? XF_MS / 1000 : same ? PARTY_JOIN_S : JOIN_FADE_S); } return true; }
-  return false;
+  // (SKY-A: still loading — the synced player claims the song: this phone's own player starts nothing meanwhile)
+  return partyClaims();
 }
 
 /** the party song sounding from the synced player right now: { id, at } or null (the beat follows it like the lobby's) */
 export function partyNow() { const n = player ? player.now() : null; return n ? { id: n.id, at: n.at } : null; }
-export function stopPartyMusic(fade) { handed = false; rideKey = ''; rideOn = false; if (player) { player.stop(fade); player = null; playingId = null; } }
+export function stopPartyMusic(fade) { handed = false; rideKey = ''; rideOn = false; pendingAt = 0; if (player) { player.stop(fade); player = null; playingId = null; } }
 /** the &debug=1 readout + the tests: what the party's music is doing — { kind (night / party / dance), song (the timeline's now), at (s
  *  into it), riding (this phone's own player on it), synced (the synced player sounding), player (its debug) } or null */
 export function partyMusicDebug() {
@@ -101,5 +125,5 @@ export function partyMusicDebug() {
   if (!T) return null;
   const s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
   return { kind: T.tl.kind, song: s ? s.id : null, at: s ? +(T.cityMs / 1000 - s.t0).toFixed(2) : null, dur: s ? s.dur : null, left: s ? +(s.t1 - T.cityMs / 1000).toFixed(1) : null,
-    riding: !!(last && last.riding), synced: !!(player && player.now()), heard: partyNow(), own: (() => { const n = nowPlaying(); return n ? { id: n.id, at: n.at } : null; })(), player: player ? player.debug() : null };
+    riding: !!(last && last.riding), synced: !!(player && player.now()), claims: partyClaims(), heard: partyNow(), own: (() => { const n = nowPlaying(); return n ? { id: n.id, at: n.at } : null; })(), player: player ? player.debug() : null };
 }

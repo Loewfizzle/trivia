@@ -2,7 +2,7 @@
 // scheduler's 'timed' event. PURE — no DOM.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { patrolDay, patrolsNear, patrolInSlot, legendWindow, breakFlight, beatSweep, beamColour, localDay } from '../js/core/harbor-heli.js';
+import { patrolDay, patrolsNear, patrolInSlot, legendWindow, breakFlight, beatSweep, beamColour, beamPair, breakDrift, localDay } from '../js/core/harbor-heli.js';
 import { sunPosition } from '../js/core/sky.js';
 import { knob } from '../js/core/harbor-schedule.js';
 import { createScheduler, HARBOR_EVENTS, SLOT_MS } from '../js/core/harbor-events.js';
@@ -13,15 +13,19 @@ const elAt = t => sunPosition(t * 1000, LAT, LON).el;
 const at = (iso) => Date.parse(iso) / 1000;
 const hourOf = t => { const lt = t + OFF * 60; return ((lt / 3600) % 24 + 24) % 24; };
 
-test('THE PATROL: HOURLY from dusk → ~2 am (a seeded minute each hour), every 2–3 h by day — the same on every phone', () => {
+test('THE PATROL (SKY-A, the owner Oct 30 8:35 am): every ~30 MIN from dusk → ~2 am (3–4 min each), HOURLY by day (2–3 min) — the same on every phone', () => {
   const P = knob('helicopter.patrol'), day = patrolDay(at('2026-10-27T12:00:00-04:00'), OFF, elAt, 1924);
   const night = day.filter(f => f.night), dayF = day.filter(f => !f.night);
-  assert.ok(night.length >= 7, `${night.length} night flights (dusk ~7 pm → 1 am)`);
-  for (let i = 1; i < night.length; i++) { const gap = (night[i].t0 - night[i - 1].t0) / 3600; assert.ok(gap > 0.3 && gap < 1.7, `hourly: ${gap.toFixed(2)} h`); }
-  for (const f of night) assert.ok(elAt(f.t0) < P.nightEl, 'a night flight is after dusk');
-  const last = night[night.length - 1]; assert.ok(hourOf(last.t0) < 2 && hourOf(last.t0) >= 1, `the last at ${hourOf(last.t0).toFixed(2)} (1 am — down by ~2)`);
-  assert.ok(dayF.length >= 3 && dayF.length <= 6, `${dayF.length} by day`);
-  for (let i = 1; i < dayF.length; i++) { const gap = (dayF[i].t0 - dayF[i - 1].t0) / 3600; assert.ok(gap >= 1.99 && gap <= 3.01, `every 2–3 h by day: ${gap.toFixed(2)}`); }
+  assert.ok(night.length >= 13, `${night.length} night flights (dusk ~7 pm → 1:30 am, half-hourly)`);
+  for (let i = 1; i < night.length; i++) { const gap = (night[i].t0 - night[i - 1].t0) / 60; assert.ok(gap > 15 && gap < 45, `every ~30 min: ${gap.toFixed(1)} min`); }
+  for (const f of night) { assert.ok(elAt(f.t0) < P.nightEl, 'a night flight is after dusk'); assert.ok(f.dur >= 180 && f.dur <= 240, `3–4 min at night (${f.dur} s)`); }
+  const last = night[night.length - 1]; assert.ok(hourOf(last.t0) < 2 && hourOf(last.t0) >= 1, `the last at ${hourOf(last.t0).toFixed(2)} (1:30 am — down by ~2)`);
+  assert.ok(dayF.length >= 7 && dayF.length <= 12, `${dayF.length} by day (hourly)`);
+  for (const f of dayF) assert.ok(f.dur >= 120 && f.dur <= 180, `2–3 min by day (${f.dur} s)`);
+  for (let i = 1; i < dayF.length; i++) { const gap = (dayF[i].t0 - dayF[i - 1].t0) / 3600; assert.ok(gap >= 0.84 && gap <= 1.16, `hourly by day: ${gap.toFixed(2)} h`); }
+  // (each patrol is over before the next — the sky lane's hold covers it: 3 sky slots)
+  for (let i = 1; i < day.length; i++) assert.ok(day[i].t0 >= day[i - 1].t0 + day[i - 1].dur, 'never two patrols at once');
+  assert.ok(P.durNight <= 3 * SLOT_MS / 1000, 'the lane holds the whole night patrol');
   assert.deepEqual(patrolDay(at('2026-10-27T12:00:00-04:00'), OFF, elAt, 1924), day, 'every phone the same');
   assert.notDeepEqual(patrolDay(at('2026-10-28T12:00:00-04:00'), OFF, elAt, 1924).map(f => f.t0 % 3600), day.map(f => f.t0 % 3600), 'another day, other minutes');
   // (the small hours belong to the evening before: at 12:30 am the list is still yesterday's)
@@ -59,6 +63,20 @@ test('THE BREAK FLIGHT: in before the song, over the crowd the whole song, off a
   assert.equal(breakFlight(null), null);
 });
 
+test('SKY-A — THE BREAK FLIGHT DRIFTS BACK AND FORTH over the crowd (the owner, Oct 30 8:19 am): the whole band, smooth, 0 at both ends', () => {
+  const B = knob('helicopter.break'), f = breakFlight({ id: 'brk.x.2', s0: 1000, s1: 1190 });
+  assert.equal(breakDrift(f.arrive, f), 0); assert.equal(breakDrift(f.leave, f), 0); assert.equal(breakDrift(f.arrive - 5, f), 0);
+  let lo = 0, hi = 0, jump = 0, turns = 0, prev = 0, prevV = 0;
+  for (let t = f.arrive; t <= f.leave; t += 0.02) {
+    const u = breakDrift(t, f); lo = Math.min(lo, u); hi = Math.max(hi, u); jump = Math.max(jump, Math.abs(u - prev));
+    const v = u - prev; if (prevV && v && Math.sign(v) !== Math.sign(prevV)) turns++; if (v) prevV = v; prev = u;
+  }
+  assert.ok(hi > 0.95 && lo < -0.95, `across the whole band (${lo.toFixed(2)} … ${hi.toFixed(2)})`);
+  assert.ok(jump < 0.02, `never a jump (${jump.toFixed(4)} per 1/50 s)`);
+  assert.ok(turns >= 2 * Math.floor(190 / B.sweepPeriod) - 1, `back and forth the whole song (${turns} turns)`);
+  assert.equal(breakDrift(1100, null), 0);
+});
+
 test('THE BEAM ON THE BEAT — a smooth swing (never a jump: NO STROBE), its turns on the downbeats; the party colour cross-fades bar to bar', () => {
   const n = knob('helicopter.break').sweepBeats;
   assert.equal(beatSweep(0), 1); assert.ok(Math.abs(beatSweep(n) + 1) < 1e-9, 'the far side after sweepBeats beats');
@@ -69,4 +87,12 @@ test('THE BEAM ON THE BEAT — a smooth swing (never a jump: NO STROBE), its tur
   let jump = 0; for (let b = 0; b < 24; b += 0.02) { const a = beamColour(pal, b), c = beamColour(pal, b + 0.02); jump = Math.max(jump, ...a.map((v, i) => Math.abs(v - c[i]))); }
   assert.ok(jump < 12, `the colour never cuts (${jump} per 0.02 beat)`);
   assert.equal(beamColour(null, 3), null);
+  // SKY-A — THE PAIR (a sprite per palette colour, the in-between shade = the two ADDED — never a canvas per shade: NIGHT-C's leak):
+  // the pair's weighted sum IS beamColour's shade, and only the palette's own colours ever appear in it
+  for (let b = 0; b < 24; b += 0.05) {
+    const pr = beamPair(pal, b), mixC = pr.a.map((v, i) => v * (1 - pr.e) + pr.b[i] * pr.e), c = beamColour(pal, b);
+    assert.ok(mixC.every((v, i) => Math.abs(v - c[i]) <= 1), `the pair adds up to the shade at beat ${b.toFixed(2)}`);
+    assert.ok(pal.includes(pr.a) && pal.includes(pr.b), 'only the palette' + "'" + 's own colours');
+  }
+  assert.equal(beamPair(null, 1), null);
 });

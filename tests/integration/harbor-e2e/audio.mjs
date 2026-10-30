@@ -522,7 +522,8 @@ G('music', async () => {
     const nudge = () => r.screenshot({ type: 'jpeg', quality: 10, clip: { x: 0, y: 0, width: 8, height: 8 } }).catch(() => {});
     const fire = async t => { await ev(r, t === 'pageshow' ? `window.dispatchEvent(new PageTransitionEvent('pageshow', { persisted: true }))` : `document.dispatchEvent(new Event('visibilitychange'))`); await nudge(); };
     await tapAt(r, 30, 300);
-    await waitFor(r, `(() => { const d = window.__arcade.musicDebug(); return !!d.playing && d.health.sounding; })()`, 'the party song', 25000);
+    // (SKY-A: a synced party night — the party song plays from the SYNCED player now; this phone's own player starts nothing first)
+    await waitFor(r, `(() => { const d = window.__arcade.musicDebug(), pm = window.__arcade.partyMusicDebug(); return (!!d.playing && d.health.sounding) || !!(pm && pm.synced && pm.heard); })()`, 'the party song', 25000);
     await waitFor(r, 'window.__district.party().on > 0.5', 'the party on', 25000);
     await sleep(800);
     const p0 = await PUNCH(2600);
@@ -730,6 +731,11 @@ G('partysync', async () => {
     // &when= clock starts at each page's own load — the two sit a second or two apart; the same moment on every phone: LIVE, below)
     for (const s of ['psa', 'psb']) { const Q = await open({ slot: s, qs: `when=2026-10-24T22:05:20${GR}&wx=clear&debug=1`, view: [402, 660] }); pages.push(Q); }
     for (const Q of pages) { await harborUp(Q.page); await tapAt(Q.page, 30, 300); }
+    // (SKY-A — the owner's iPhone log: "play × AbortError c2-party3.mp3 (start)": this phone's own player started the song, then the synced
+    // one took it over mid-load. Now the synced player CLAIMS it while it loads: until it sounds, this phone's own player starts NOTHING)
+    { const owns = [];
+      for (const Q of pages) { const end = Date.now() + 45000; while (Date.now() < end) { const d = await ev(Q.page, PM); if (d && d.own) owns.push(d.own.id); if (d && d.synced && d.heard) break; await sleep(100); } }
+      ok(!owns.length, `THE SYNCED NIGHT's OWN PLAYER: nothing started on this phone's own player before the synced player sounded (${owns.length ? `own: ${[...new Set(owns)].join(', ')}` : 'none — no wasted download, no AbortError'})`); }
     for (const Q of pages) await synced(Q.page);
     await sleep(800);
     for (const Q of pages) await synced(Q.page);
@@ -779,6 +785,7 @@ G('heli', async () => {
     await harborUp(Q.page);
     await waitFor(Q.page, `!!(${H}.up)`, `the ${what} patrol up`, 25000).catch(() => {});
     const h = await ev(Q.page, H), wl = await ev(Q.page, 'window.__district.harbor().lanes && window.__district.harbor().lanes.water ? window.__district.harbor().lanes.water.y : null');
+    ok(h.up && h.up.dur >= (what === 'night' ? 180 : 120) && h.up.dur <= (what === 'night' ? 250 : 180), `SKY-A — TWO LOOPS of the original route (${what}): the patrol's flight ${h.up && h.up.dur} s (night 3–4 min, day 2–3 min)`);
     ok(h.up && h.up.mode === 'patrol' && (wl == null || h.up.y < wl), `THE PATROL (${what}, Tue 27 ${when.slice(11, 16)}): up over the harbor (${h.up ? `${h.up.x}, ${h.up.y}${h.up.hover ? ', hovering' : ''}` : 'nothing'}${wl != null ? ` — the water at ${Math.round(wl)}` : ''})`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}heli-patrol-${what}-402x874.png` });
     await Q.ctx.close();
@@ -796,6 +803,25 @@ G('heli', async () => {
     let jump = 0; for (let i = 1; i < us.length; i++) jump = Math.max(jump, Math.abs(us[i] - us[i - 1]));
     ok(jump < 0.9, `…A SMOOTH SWING, NEVER A JUMP (the largest step between two ¼-s samples ${jump.toFixed(2)})`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}heli-break-402x874.png` });
+    // SKY-A (the owner, Oct 30 8:19 am): LOWER + CLOSER over the water, NEVER in front of a sign (the SIGNAL blade, the roof signs, OVERCLOCK,
+    // the WAIT / WALK lantern, the NEON sign) or JOIN / HOST, DRIFTING BACK AND FORTH over the crowd; the canvases never pile up (NIGHT-C's
+    // beam made a canvas per in-between colour: the owner's 949)
+    { const signs = await ev(Q.page, `(() => { const H = window.__district.harbor(), r = []; for (const s of (H.neon.signs || [])) if (s.rect) r.push({ id: s.id, ...s.rect });
+        const ln = H.crossing && H.crossing.lantern; if (ln) r.push({ id: 'lantern', x: ln.x, y: ln.y, w: ln.w, h: ln.h }); const tr = H.ladder && H.ladder.sign; if (tr) r.push({ id: 'neon', ...tr });
+        const d = document.querySelector('.nd-actions'); const b = d && d.getBoundingClientRect(); if (b) r.push({ id: 'dock', x: b.left, y: b.top, w: b.width, h: b.height }); return r; })()`);
+      const wl = await ev(Q.page, 'window.__district.harbor().lanes.water'), c0 = await ev(Q.page, 'window.__district.harbor().mem.canvases');
+      let hit = null, xs = [], ys = [], len = 0;
+      for (let i = 0; i < 60; i++) {
+        const u = (await ev(Q.page, H)).up; if (u && !u.off) { xs.push(u.x); ys.push(u.y); len = u.len;
+          const bx = { x: u.x - u.len * 0.66, y: u.y - u.len * 0.46, w: u.len * 1.32, h: u.len * 0.58 };
+          for (const r of signs) if (bx.x < r.x + r.w && bx.x + bx.w > r.x && bx.y < r.y + r.h && bx.y + bx.h > r.y) hit = hit || `${r.id} at ${Math.round(u.x)}, ${Math.round(u.y)}`; }
+        await sleep(250);
+      }
+      ok(!hit && ys.length > 40, `SKY-A — NEVER IN FRONT OF A SIGN: the craft (${len} pt) clear of ${signs.map(r => r.id).join(', ')} for 15 s${hit ? ` — HIT ${hit}` : ''}`);
+      ok(Math.min(...ys) > wl.y && Math.max(...ys) < wl.y + wl.h, `…LOW OVER THE WATER: its belly at y ${Math.round(Math.min(...ys))}–${Math.round(Math.max(...ys))} (the water ${Math.round(wl.y)}–${Math.round(wl.y + wl.h)})`);
+      ok(Math.max(...xs) - Math.min(...xs) > 60, `…DRIFTING BACK AND FORTH over the crowd: x ${Math.round(Math.min(...xs))} … ${Math.round(Math.max(...xs))} in 15 s`);
+      const c1 = await ev(Q.page, 'window.__district.harbor().mem.canvases'), a = await ev(Q.page, 'window.__district.harbor().sky.state.air');
+      ok(c1 - c0 < 30 && a.beamArts <= 16 && a.glows <= 40, `…THE CANVASES HOLD: ${c0} → ${c1} over 15 s of the break (the beam's sprites ${a.beamArts}, glows ${a.glows} — one per palette colour, never per shade)`); }
     await Q.ctx.close(); }
   // ---- 3. …AND OFF AFTER THE SONG — by flying: out past the screen's edge, never gone in view
   { const Q = await open({ slot: 'hout', qs: `when=2026-10-24T22:08:48${GR}&wx=clear`, view: [402, 874] });

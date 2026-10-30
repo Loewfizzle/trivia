@@ -1,12 +1,14 @@
 // CITY 2.0 — THE HELICOPTER (NIGHT-C Group 2; the owner, Oct 29 4:13–4:15 pm — THE HELICOPTER PATROL, DECIDED; decisions.md §9). PURE
 // (tests/harbor-heli.test.mjs). WHEN it flies — every time is a knob in THE CITY TIMETABLE (core/harbor-schedule.js: helicopter.patrol,
 // helicopter.break); what it looks like + how it moves: screens/harbor/air.js; its beam's cost per phone: THE TIER TABLE (heliBeam).
-//   THE PATROL   HOURLY from dusk → ~2 am (a seeded minute each hour), every 2–3 h by day (a seeded chain) — every phone the same; over the
-//                harbor, its SEARCHLIGHT sweeping the water at night. Skipped in a storm / wind ≥ 14 (screens/harbor/skyfx.js checks the
+//   THE PATROL   (SKY-A, the owner Oct 30 8:35 am) every ~30 MIN from dusk → ~2 am (a seeded minute in each half hour; 3–4 min), HOURLY
+//                by day (a seeded chain; 2–3 min) — every phone the same; TWO LOOPS of the ORIGINAL route (in low over the harbor, a look,
+//                out; back round the far side, smaller + higher), its SEARCHLIGHT sweeping the water at night. Skipped in a storm / wind ≥ 14 (screens/harbor/skyfx.js checks the
 //                live weather as it starts, as before), never near a LEGENDARY (the timetable's conflict: tonight's legend window), never
 //                over a DANCE BREAK (the break has the helicopter).
-//   THE BREAKS   up for EVERY dance break's WHOLE song (core/harbor-streetparty.js): in from a side before the song starts, hovering over
-//                the dancing crowd + the street spill, its beam on them (party nights: the party's neon colours, swept ON THE BEAT —
+//   THE BREAKS   up for EVERY dance break's WHOLE song (core/harbor-streetparty.js): in from a side before the song starts, LOW over the
+//                water in front of the skyline (SKY-A: never in front of a sign), drifting BACK AND FORTH over the crowd (breakDrift), its soft
+//                wide beam on them (party nights: the party's neon colours, swept ON THE BEAT —
 //                never a strobe), off the other side after the song — it arrives + leaves by flying (the people + window rules' spirit).
 // The sky scheduler (core/harbor-events.js) keeps the sky-low lane for the patrol: the 'helicopter' event fires only in a patrol's slot.
 import { knob } from './harbor-schedule.js';
@@ -22,8 +24,8 @@ export function localDay(t, off = 0) {
 
 /**
  * THE PATROL's flights on the local day of t → [{ id, t0 (abs s), dur (s), night }]. elAt(absS) → the sun's elevation there (°). By day
- * (the sun above dayEl): a chain from `firstDay` h, each next 2–3 h later (seeded); at night (the sun below nightEl): every hour from
- * dusk to `lastNight` h (25 = 1 am — the last flight lands ~2 am) at a seeded minute. The small hours after midnight belong to the day
+ * (the sun above dayEl): a chain from `firstDay` h, each next `dayEvery` h later (seeded — about hourly); at night (the sun below nightEl):
+ * every `nightEvery` h (half-hourly) from dusk to `lastNight` h (25.5 = 1:30 am — the last flight is down by ~2 am) at a seeded minute. The small hours after midnight belong to the day
  * BEFORE (an evening's patrol runs on past midnight): a day's list = its own daytime + its evening → `lastNight`.
  */
 export function patrolDay(t, off, elAt, seed = 1924, memo = null) {
@@ -34,12 +36,12 @@ export function patrolDay(t, off, elAt, seed = 1924, memo = null) {
   // by day: the chain
   for (let h = P.firstDay + r() * P.dayJitter; h < P.dayTo; h += P.dayEvery[0] + r() * (P.dayEvery[1] - P.dayEvery[0])) {
     const el = elAt(at(h));
-    if (el > P.dayEl) out.push({ id: `heli.${D.key}.d${out.length}`, t0: Math.round(at(h)), dur: P.dur, night: false });
+    if (el > P.dayEl) out.push({ id: `heli.${D.key}.d${out.length}`, t0: Math.round(at(h)), dur: P.durDay, night: false });
   }
-  // at night: hourly from the first hour after dusk to lastNight
-  for (let h = P.nightFrom; h <= P.lastNight; h++) {
+  // at night: every nightEvery h from the first step after dusk to lastNight
+  for (let i = 0, h = P.nightFrom; h <= P.lastNight + 1e-9; i++, h = P.nightFrom + i * P.nightEvery) {
     const m = P.minute[0] + r() * (P.minute[1] - P.minute[0]), tt = at(h + m / 60);
-    if (elAt(tt) < P.nightEl) out.push({ id: `heli.${D.key}.n${h}`, t0: Math.round(tt), dur: P.dur, night: true });
+    if (elAt(tt) < P.nightEl) out.push({ id: `heli.${D.key}.n${i}`, t0: Math.round(tt), dur: P.durNight, night: true });
   }
   out.sort((a, b) => a.t0 - b.t0);
   if (mk) { if (memo.size > 16) memo.clear(); memo.set(mk, out); }
@@ -95,6 +97,23 @@ export function breakFlight(brk) {
 export function beatSweep(beatsF) {
   const n = knob('helicopter.break').sweepBeats;
   return Math.cos(Math.PI * (beatsF || 0) / n);
+}
+/** THE BREAK FLIGHT's DRIFT (SKY-A — the owner: "back and forth, sweeping the crowd"): where the craft is across its band (−1 … 1) at abs
+ *  s t — one smooth back-and-forth each `sweepPeriod` s, eased in after it arrives + out before it leaves (0 at both ends: no jump into
+ *  or out of the hover). The clock's own time, so every phone shows the same flight. */
+export function breakDrift(t, f) {
+  if (!f) return 0;
+  const B = knob('helicopter.break'), a = t - f.arrive, l = f.leave - t;
+  if (a <= 0 || l <= 0) return 0;
+  const sm = v => { const k = v <= 0 ? 0 : v >= 1 ? 1 : v; return k * k * (3 - 2 * k); };
+  return Math.sin(2 * Math.PI * a / B.sweepPeriod) * sm(a / B.ease) * sm(l / B.ease);
+}
+/** the beam's colour as a PAIR to add (SKY-A: a sprite per palette colour, never one per in-between shade — the canvas leak NIGHT-C's
+ *  beam had): { a, b, e } — the bar's colour + the next one, e = the next one's weight (0 for the bar's first ¾) */
+export function beamPair(palette, beatsF) {
+  if (!palette || !palette.length) return null;
+  const bar = Math.floor((beatsF || 0) / 4), u = ((beatsF || 0) / 4) % 1, k = u < 0.75 ? 0 : (u - 0.75) / 0.25;
+  return { a: palette[bar % palette.length], b: palette[(bar + 1) % palette.length], e: k * k * (3 - 2 * k) };
 }
 /** the beam's colour on a party night: the palette's colour of the bar, cross-faded into the next over the bar's last beat (never a cut) */
 export function beamColour(palette, beatsF) {

@@ -16,7 +16,7 @@ import { createSetup } from './screens/setup.js';
 import { createLobby } from './screens/lobby.js';
 import { installAudio } from './audio/engine.js';
 import { playMusic, musicDebug, musicSeek, registerTracks, setListProvider, switchNow, nowPlaying, cueMusic } from './audio/music.js';
-import { partyMusicTick, partyCue, partyMusicDebug } from './audio/party-music.js';
+import { partyMusicTick, partyCue, partyMusicDebug, partyClaims } from './audio/party-music.js';
 import { cityClock } from './core/city.js';
 import { loadMoodMusic, moodNow, fixedMood, songsFor, nextForDevice } from './audio/mood.js';
 import { isCity2 } from './core/city.js';
@@ -76,6 +76,8 @@ loadMoodMusic().then(d => {
   setListProvider('mood', prev => {
     // (NIGHT-C — THE PARTY SONG IN SYNC: on the party's timeline this phone's own player starts the song EVERY phone hears, at its place)
     const m = moodNow(), c = m === 'party' && moodOn() ? partyCue(prev && prev.replace(/^m:/, '')) : null;
+    // (SKY-A: …unless the synced player claims it — loading, it plays in a moment: nothing started here, no wasted download, no AbortError)
+    if (c && !state.code && partyClaims()) return null;
     if (c) { cueMusic(`m:${c.id}`, c.at); return `m:${c.id}`; }
     const id = nextForDevice(m, prev && prev.replace(/^m:/, '')); return id ? `m:${id}` : null;
   });

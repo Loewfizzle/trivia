@@ -66,6 +66,8 @@ const SCENES = {
   'sp-peak': 'when=2026-10-24T22:15&wx=clear&force=no-planes', 'sp-break': 'when=2026-10-24T22:06:36&wx=clear&force=no-planes', 'sp-break-stage': 'when=2026-10-24T22:06:36&wx=clear&force=no-planes&stage=1',
   // NIGHT-C: a plain Tuesday night (THE QUIET BUILDING + the roof signs + the live windows on the crisp layer at 3×) + a forced dance break
   // on a Thursday (B: on the party deck WITH the helicopter over the crowd; an older build: its own forced break, no helicopter)
+  // SKY-A: the conga break WITHOUT the helicopter (--vs sp-break: the helicopter's own cost) + a night patrol at its look over the harbor
+  'sa-break-noheli': 'when=2026-10-24T22:06:36&wx=clear&force=no-planes,no-heli', 'sa-patrol': 'when=2026-10-21T22:00&wx=clear&force=no-planes,helicopter',
   'nc-night': 'when=2026-10-27T21:30&wx=clear&force=no-planes', 'nc-break': 'when=2026-10-22T22:00&wx=clear&force=no-planes,dance',
   'hw-party': 'when=2026-10-31T22:00&wx=clear&force=no-planes', 'hw-party-noprops': 'when=2026-10-31T22:00&wx=clear&force=no-planes,no-holiday-props',
   'na-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes&light=new', 'na-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes&light=new', 'na-rain': 'when=2026-10-14T21:30&wx=rain&force=no-planes&light=new',

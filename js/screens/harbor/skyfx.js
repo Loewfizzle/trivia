@@ -45,6 +45,30 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
   const firstAt = new Map();
   const force = clock ? clock.force : new Set();
 
+  // SKY-A — THE BREAK HELICOPTER's BAND (the owner, Oct 30 8:19 am: it flew in front of a billboard): LOW over the water, in front of the
+  // skyline — just under every sign above it (the SIGNAL blade, the roof signs), clear of every sign beside it (OVERCLOCK) — and the span it
+  // drifts back and forth over the crowd. avoid: the signs' screen boxes (scene.js); → { aim: { x, y }, band: { x0, x1 } } or null
+  function breakBand(crowd, avoid) {
+    const wl = lanes && lanes.water;
+    if (!wl || !crowd) return null;
+    const len = air.breakLen(), w2 = len * 0.66, top = len * 0.34, bot = len * 0.24, boxes = (avoid || []).filter(r => r && r.w > 0 && r.h > 0);
+    let x0 = Math.max(crowd.x0, w2 + 8), x1 = Math.min(crowd.x1, W - w2 - 8), y = wl.y + top + 2;
+    // (under every sign above the band, over every sign below it — then as LOW as that allows, over the near water's bright reflections:
+    // the craft reads as a silhouette close to the people, never one more dark shape on the far quay)
+    for (let pass = 0; pass < 3; pass++) for (const r of boxes) if (r.x < x1 + w2 && r.x + r.w > x0 - w2 && r.y < y - top && r.y + r.h > y - top - 3) y = r.y + r.h + top + 3;
+    // (a sign BELOW = one that starts under the craft's skids at its highest; one beside it — OVERCLOCK — shrinks the band instead)
+    let yMax = Math.min(crowd.y0 - bot - 24, wl.y + wl.h * 0.5);
+    for (const r of boxes) if (r.x < x1 + w2 && r.x + r.w > x0 - w2 && r.y > y + bot) yMax = Math.min(yMax, r.y - bot - 3);
+    y = Math.max(y, yMax);
+    // (…and clear of every sign beside it: the band shrinks away from it)
+    const mid0 = (crowd.x0 + crowd.x1) / 2;
+    for (const r of boxes) if (r.y < y + bot + 3 && r.y + r.h > y - top - 3 && r.x < x1 + w2 + 4 && r.x + r.w > x0 - w2 - 4) {
+      if (r.x + r.w / 2 < mid0) x0 = Math.max(x0, r.x + r.w + w2 + 4); else x1 = Math.min(x1, r.x - w2 - 4);
+    }
+    if (x1 < x0) { const m = Math.max(w2, Math.min(W - w2, (x0 + x1) / 2)); x0 = x1 = m; }
+    return { aim: { x: (x0 + x1) / 2, y }, band: { x0, x1 } };
+  }
+
   // ---- the pieces' lanes (what a plane may not use; what a scheduled event finds taken)
   function used() {
     const u = new Set();
@@ -297,13 +321,14 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     beam() { /* (6b: the searchlight draws with the helicopter now — city() + harbor()) */ },
     /** NIGHT-C — THE HELICOPTER UP FOR THE DANCE BREAK (after the people — screens/harbor/air.js#breakFly + breakDraw): f = the break's flight
      *  (core/harbor-heli.js#breakFlight) or null once it's over (it flies off); crowd: the dancers' span on the floor (scene.js) */
-    heliBreak(c, s, f, crowd) {
-      const lane = lanes && lanes['sky-low'];
-      if (f && lane && crowd) { const x = Math.max(W * 0.3, Math.min(W * 0.78, (crowd.x0 + crowd.x1) / 2 + W * 0.04)); air.breakFly(s, f, { x, y: lane.y + lane.h * 0.55 }); }
+    heliBreak(c, s, f, crowd, avoid) {
+      if (f && lanes && crowd) { const b = breakBand(crowd, avoid); if (b) air.breakFly(s, f, b.aim, b.band); }
       air.breakDraw(c, s, crowd);
     },
+    breakBand: (crowd, avoid) => breakBand(crowd, avoid),
     heliBreakOn: () => air.breakOn(),
     heliBeam: () => air.beamNow(),
+    heliMs: () => air.heliMs(),
     /** 6b: the shooting stars (district/fx.js's hook: rarer on the Harbor, their own art) */
     meteors: (c, s) => met.draw(c, s),
     /** the moon (district/fx.js's hook) */

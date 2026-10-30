@@ -1346,6 +1346,21 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     crowdMemo = { key, v };
     return v;
   }
+  /** SKY-A — the signs the break helicopter never flies in front of (screen pt): the SIGNAL blade + the roof signs, OVERCLOCK, the WAIT /
+   *  WALK lantern, the NEON sign — cached per camera */
+  let avoidMemo = null;
+  function heliAvoid() {
+    if (!cam) return [];
+    const key = `${cam.W}x${cam.H}|${laneKey}`;
+    if (avoidMemo && avoidMemo.key === key) return avoidMemo.v;
+    const v = [];
+    try { for (const r of neon.signRects()) v.push(r); } catch { /* fine */ }
+    try { const br = speak.bladeRect ? speak.bladeRect() : null; if (br) v.push(br); } catch { /* fine */ }
+    const ln = L && L.crosswalk && L.crosswalk.lantern; if (ln && ln.box) v.push({ x: ln.box.x, y: ln.box.y, w: ln.box.w, h: ln.box.h });
+    if (S.textRects && S.textRects.neon) v.push(S.textRects.neon);
+    avoidMemo = { key, v };
+    return v;
+  }
   /** SP5 — the hourly dance never during a raid or a legendary (the TR-3B / the abduction): the evening's raid plan + the traffic hold */
   function danceBlocked(a, b) {
     try { const P = raidPlanNow(); if (P && b > P.t0 - 90 && a < P.tEnd + 60) return true; const H = trafficHoldNow(); return !!(H && H.on !== false && H.t1 > a - 60 && H.t0 < b + 60); } catch { return false; }
@@ -2189,7 +2204,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // dancing crowd for the whole song, its beam on them (after the people: they stand in its light), the dock's top the light's end
     if (fadeIn > 0 && !off.has('no-heli')) {
       const sp9 = pplLive ? people.party() : null, f9 = sp9 && sp9.brk && !(LK.storm) && (LK.wind || 0) < 14 ? breakFlight(sp9.brk) : null;
-      if (f9 || sky.heliBreakOn()) sky.heliBreak(c, fs, f9, crowdSpan(sp9));
+      if (f9 || sky.heliBreakOn()) sky.heliBreak(c, fs, f9, crowdSpan(sp9), f9 ? heliAvoid() : null);
     }
     mk9('the front row + weather');
     if (wlOn) wild.draw(c, 'front', wlEnv);
@@ -3237,7 +3252,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
       roofCrisp: roofCrispDebug(), liveCrisp: liveCrispDebug(),   // (NIGHT-C: the live windows' crisp share each)   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
-      heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
+      heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), ms: sky.heliMs ? sky.heliMs() : null, crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),

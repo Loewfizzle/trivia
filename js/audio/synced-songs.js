@@ -167,6 +167,8 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     },
     /** is song i decoded and ready? */
     ready(i = 0) { const e = game && bufs.get(keyOf(i)); return !!(e && e.buf); },
+    /** did song i fail to load / decode? (SKY-A: the party's own player then covers) */
+    failed(i = 0) { const e = game && bufs.get(keyOf(i)); return !!(e && e.failed); },
     debug() {
       const ctx = getContext();
       return {
