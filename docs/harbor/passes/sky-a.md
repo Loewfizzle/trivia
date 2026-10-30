@@ -109,7 +109,10 @@ All on the laptop (Chrome headless + GPU, 402×660 at 3×; the phone-like 4× CP
   it counts the lasting canvases; the JS-heap check unchanged), `windows` (THE TV ROOM FLICKERS: a swing of 6 in the cloud vs 22 + 9 jumps
   on the laptop — a flake, not re-run). Locally after the fixes: freeze 36/36, music 111/112 (a laptop timing check, passed in the cloud),
   windows 59/59.
-- Run 2: the fix push.
+- Run 2 (2d30ae6): tests ✓; harbor 7/9 — the two fixed checks + the TV-room flicker passed; two OTHER checks failed at their limits, not
+  re-run (the cap): `perf` MEMORY (20 title↔setup cycles: the heap +6.1 MB vs a 6-MB limit — NIGHT-C logged the same +6.3 as noise) and
+  `windows` 9c THE CRISP LAYER by day (the roof signs' crisp copies missing: the page took the LIVE weather — they yield in rain / fog by
+  design; run 1 passed it) → the page pinned to `wx=clear` (a test-only push, no cloud run).
 
 ### Decisions (Claude Code's calls — the owner may overrule)
 - The break helicopter's band: as LOW as the signs allow over the near water's bright reflections (y ≈ 610 at 402×874), clear of OVERCLOCK on

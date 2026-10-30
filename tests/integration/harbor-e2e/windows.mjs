@@ -584,7 +584,8 @@ G('snow', async () => {
     await Q.ctx.close(); }
   // ---- 9c — THE CRISP LAYER (the owner: the blade blurry next to the logo): on an iPhone-like DPR 3 by day the blade's board, the date
   // stone + the roof poster ride full-dpr overlays; at night the blade's lit letters + bulbs; at DPR 2 (the canvas's own) none at all
-  { const D = await open({ slot: 'cr-d', qs: `when=2026-10-27T13:00${GR}`, view: [402, 874], dpr: 3 });
+  // (SKY-A: wx=clear — the roof signs' crisp copies yield to the city's in rain / fog by design; the live weather made this a coin toss)
+  { const D = await open({ slot: 'cr-d', qs: `when=2026-10-27T13:00${GR}&wx=clear`, view: [402, 874], dpr: 3 });
     await harborUp(D.page); await waitFor(D.page, `${SNW}.crisp.items.length >= 3`, 'the crisp items', 10000).catch(() => {});
     const a = await ev(D.page, `${SNW}.crisp`), ids = a.items.map(i => i.id).sort().join(',');
     ok(a.on && a.dpr === 3 && ids.replace(/,?still-(street|water)/g, '').replace(/,?rs-(body|lit)-n-roof[AB]/g, '') === 'blade-board,datestone,roofboard' && ['still-street', 'still-water'].every(id => ids.includes(id)) && ['rs-body-n-roofA', 'rs-lit-n-roofA', 'rs-body-n-roofB', 'rs-lit-n-roofB'].every(id => ids.includes(id)) &&   /* (PROM: + the two benches; NIGHT-C: + the two roof signs — housing + light — at 3×) */ a.items.every(i => i.w > 20), `9c THE CRISP LAYER by day at DPR 3: ${ids} (${a.items.map(i => `${i.w}×${i.h}`).join(', ')})`);
