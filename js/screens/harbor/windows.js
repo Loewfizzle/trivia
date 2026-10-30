@@ -26,6 +26,9 @@ import { clamp01, rgb, tri, glassOf, R, boxOf, deepAt, hsh, mixc, TAU, landing }
 import { reportError } from '../../errlog.js';
 import { createPaint } from './window-paint.js';
 import { createHoliday } from './window-holiday.js';
+import { boxerNight, boxerPlan, boxerForced, boxerAt } from '../../core/harbor-boxer.js';
+import { legendNight } from '../../core/harbor-legend.js';
+import { boxerRoom } from './boxer.js';
 export { paintRoom, lateOf, ROOM_TINT, LATE_TINT } from './window-rooms.js';
 
 export function createWindowLife() {
@@ -91,11 +94,30 @@ export function createWindowLife() {
     const ekd = nightKey.split('-').map(Number), eveDow = new Date(Date.UTC(ekd[0], ekd[1] - 1, ekd[2])).getUTCDay();
     const parkOn = !L.noPark && !(L.moment && MOMENT[L.moment]) && darkAtNow(h, ctx.dark) && !ctx.party && !partyAt(eveDow, 22, nightKey);
     const PN = parkOn ? parkedNight(nightKey, { seed: L.seed }) : null, park = {}, pdt = parkT == null ? 1e9 : Math.max(0, f.t - parkT); parkT = f.t;
+    // SKY-B — THE SHADOWBOXER (core/harbor-boxer.js): his evening on the city clock (the small hours belong to the evening before) — or the
+    // panel's preview (&force=boxer + &round=N: now, any day); a raid ends his night
+    let bx = null, bxInfo = null;
+    if (L.boxer) {
+      // (the preview: the blind down first, then up over its own time — he comes in at round 1, or is resting before round n — then the bell)
+      if (boxT0 == null || boxRound !== L.boxer.round) { boxT0 = f.t; boxRound = L.boxer.round; boxForced = boxerForced(L.boxer.round, BOXER_LEAD); }
+      const s = f.t - boxT0;
+      bx = L.boxer.round > 1 && s < BOXER_LEAD - 1 ? { phase: 'blind-up', blind: Math.min(1, 1 - (s - 0.8) / (BOXER_LEAD - 1.8)), lamp: 1, inView: false, set: 0, round: L.boxer.round, t: s } : boxerAt(s, boxForced, 'forced', L.seed);
+      if (bx.phase === 'off') bx = { phase: 'blind-up', blind: 1, lamp: 1, inView: false, set: 0, round: 1, t: s };
+      bxInfo = { sec: s, plan: boxForced, key: 'forced', seed: L.seed || 1924 };
+    } else {
+      boxT0 = null;
+      if (boxKey !== nightKey) { boxKey = nightKey; boxPlanNow = boxerPlan(boxerNight(nightKey, { seed: L.seed, legend: k => { const [y, m, d] = k.split('-').map(Number); return legendNight(y, m, d); } })); }
+      const evSec = h < 6 ? loc.sec + 86400 : loc.sec;
+      if (boxPlanNow && !(L.raidS != null && L.raidS >= 0 && L.raidS < 7200)) { bx = boxerAt(evSec, boxPlanNow, nightKey, L.seed); bxInfo = { sec: evSec, plan: boxPlanNow, key: nightKey, seed: L.seed || 1924 }; }
+    }
+    if (bx && bx.phase === 'off') { bx = null; bxInfo = null; }
     for (const id of PARKED_ROOMS) {
       const want = parkOn ? 1 : 0, b0 = parkB[id], b = b0 == null || pdt > 2 ? want : b0 + Math.sign(want - b0) * Math.min(Math.abs(want - b0), pdt / BLIND.down);
       parkB[id] = b; park[id] = b;
       if (parkOn) bedK[id] = Math.min(bedK[id] == null ? 1 : bedK[id], parkedLevel(PN, id, sMid));
     }
+    // (SKY-B: his blind is HIS — up as he comes in (the window rule), down warm-lit after his last set, the bulb out after; on a party
+    // night after he has gone the party may take the room)
     // WIN3 — THE PARTY IN THE WINDOWS (core#windowParty): at the party's PEAK the rooms go up one by one in a seeded order, each its own
     // colour; forced (&force=window-party) from the page's start; a raid CUTS it (the lights off, the dancers scatter, the blinds drop —
     // a 1.6-s tail from partyKeep) and it stays dead for the night
@@ -110,6 +132,8 @@ export function createWindowLife() {
       if (partyDead === nightKey && partyCutT != null && f.t - partyCutT < 1.6 && partyKeep) party = { on: true, k: partyKeep.k, col: partyKeep.col, order: partyKeep.order, cut: true, scatter: f.t - partyCutT, beat: L.beat || null };
       if (partyDead !== nightKey) { partyCutT = null; partyKeep = null; }
     }
+    if (bx && bx.phase === 'out' && bx.lamp <= 0 && party && party.on) { bx = null; bxInfo = null; }
+    if (bx) { parkB.back = bx.blind; park.back = bx.blind; bedK.back = bx.lamp; if (party && party.k && party.k.back) party = { ...party, k: { ...party.k, back: 0 } }; }
     let on, blinds = {};
     const forced = L.moment && MOMENT[L.moment] ? L.moment : null;
     if (forced) {
@@ -136,6 +160,7 @@ export function createWindowLife() {
       if (parkOn) { on = on.filter(e => e.win === 'all' || !PARKED_ROOMS.includes(e.win) || !!(MOMENT[e.id] && MOMENT[e.id].rarity === 'routine'));
         for (const id of PARKED_ROOMS) if (!on.some(e => e.win === id)) delete blinds[id]; }
       if (party && party.on) on = on.filter(e => e.win !== 'all' && !(party.k[e.win] > 0.01));   // (WIN3: a room at the party has no other moment)
+      if (bx) { on = on.filter(e => e.win !== 'back'); delete blinds.back; }   // (SKY-B: his room is his while he's in it)
       // (Reduced motion: no moving moments — the rooms keep their states: the TV's light steady, the night lamp, the shop's barber still)
       if (f.motion === false || f.motion === 0) { on = []; blinds = {}; }   // (11a-1: the title passes motion 0 — the old === false never caught it)
     }
@@ -152,6 +177,7 @@ export function createWindowLife() {
     if (states.bar === 'last') full.add('bar');
     for (const e of on) if (e.id === 'lights-out') full.add('apartment'); else if (e.id === 'wake') full.add(e.win); else if (e.id === 'bartender') full.add('bar'); else if (e.id === 'eyes') full.add(e.win);   // (WIN2: the eyes' dark room; SP5: the wake in its own window)
     if (party && party.on) for (const id of party.order) if (party.k[id] > 0.001 || party.cut) full.add(id);   // (WIN3: a party room is drawn whole here)
+    if (bx && bx.blind < 0.999) full.add('back');   // (SKY-B: his room drawn whole here)
     // WIN2 — THE EDGE WINDOWS' MOOD LIGHTS: at night the two edge windows are the live layer's (their mood seeded by the night's date)
     if (darkAtNow(h, ctx.dark)) { full.add('edge2'); full.add('edge3'); }
     const moods = edgeMoods(nightKey, { hol: ctx.hol ? ctx.hol.id : null, party: ctx.party });
@@ -160,7 +186,7 @@ export function createWindowLife() {
     const shades = edgeShades(nightKey, { seed: L.seed });
     stepDanceClock(wd, wdT == null ? 0 : Math.max(0, f.t - wdT), L.beat ? { beatsF: L.beat.beatsF, gap: !!L.beat.gap, left: L.beat.left == null ? null : L.beat.left, id: L.beat.id || null } : null); wdT = f.t;
     const cur = block(loc.key, Math.floor(h), ctx), nx = cur.find(e => e.t0 > loc.sec);
-    last = { on, blinds, park, parkOn, parked: PN, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
+    last = { on, blinds, park, parkOn, parked: PN, boxer: bx ? { ...bx, ...bxInfo } : null, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
     return last;
   }
 
@@ -208,6 +234,14 @@ export function createWindowLife() {
         cycleBlind(E0, 1);
         if (dress === 'pumpkin') sillPumpkin(E0);
         c.restore(); for (const fn of E0.after) fn(); continue;
+      }
+      // SKY-B — THE SHADOWBOXER's ROOM (boxer.js): the bulb, the amber wall, the bag, him — his blind over it while it rolls
+      if (w.id === 'back' && fr.boxer && pk < 0.999) {
+        const Eb = { c, G, w, k, kl: k * (fr.boxer.lamp == null ? 1 : fr.boxer.lamp), day, t, mo, T, glints, f, env, frameC, after: [], B: boxOf(G, env.vp) };
+        busyNow = busyNow || fr.boxer.inView || pk > 0.002;
+        sceneSafe(c, 'boxer', () => { lastBoxer = boxerRoom(Eb, fr.boxer, { key: fr.boxer.key, seed: fr.boxer.seed }); });
+        if (pk > 0.002) cycleBlind(Eb, pk);
+        c.restore(); continue;
       }
       if (bedk < 0.02 && !list.length && !tap && pk < 0.002) { R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(7,8,15)'); c.restore(); continue; }
       // WIN3 — THE PARTY IN THE WINDOWS: a room at the party is painted whole here (the colour, the crowd, the blind); the edge windows
@@ -304,7 +338,9 @@ export function createWindowLife() {
   }
 
   let tvDead = null;   // (tvDead: the night key the TV snapped off on — a raid)
-  const parkB = {}; let parkT = null;   // (NIGHT-C: each parked room's blind 0 up … 1 down, eased over the blind's own BLIND.down)
+  const parkB = {}; let parkT = null;
+  const BOXER_LEAD = 5.5;
+  let boxT0 = null, boxRound = null, boxForced = null, boxKey = '', boxPlanNow = null, lastBoxer = null;   // (SKY-B: the shadowboxer — the preview's anchor, tonight's plan)   // (NIGHT-C: each parked room's blind 0 up … 1 down, eased over the blind's own BLIND.down)
   let bossKey = '', bossPlan = [];   // (SP5: the boss's day plan, rebuilt per day / overcast)
   const wd = createDanceClock(); let wdT = null;   // (SP5: the building's dance clock)
   let partyT0 = null, partyDead = null, partyCutT = null, partyKeep = null;   // (WIN3: the window party — forced from t0; dead after a raid's cut)
@@ -357,6 +393,8 @@ export function createWindowLife() {
 
   return {
     frame, draw, hit, bedLevels,
+    /** SKY-B — the shadowboxer now (null: not in tonight / not yet / gone): his state + the evening's clock (sounds.js#life's cues) */
+    boxerNow: () => last.boxer,
     /** WIN3 — the window party's colour spilling out: [{ id, u (the pane's middle along the facade), col, k }] for the rooms up now (the full windows) */
     partySpill: wins => { const P = last.party; if (!P || !P.on || P.cut) return []; return (wins || []).filter(w => !w.edge && P.k[w.id] > 0.01).map(w => ({ id: w.id, u: (w.u[0] + w.u[1]) / 2, col: P.col[w.id], k: P.k[w.id] })); },
     paint: PAINT,
@@ -364,7 +402,7 @@ export function createWindowLife() {
     catReset() { catTap = -1; },
     /** WIN: something in a window is MOVING (a moment, a tap's answer, a passer-by) — a 60-fps reason (scene.js#fastNow) */
     busy: () => busyNow,
-    debug: () => ({ dropped: [...droppedScenes], blinds: last.blinds || {}, park: last.park || {}, parkOn: !!last.parkOn, parked: last.parked || null, shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: S.lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: S.cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
+    debug: () => ({ dropped: [...droppedScenes], blinds: last.blinds || {}, park: last.park || {}, parkOn: !!last.parkOn, parked: last.parked || null, shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: S.lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: S.cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, boxer: last.boxer ? { phase: last.boxer.phase, set: last.boxer.set, round: last.boxer.round, t: last.boxer.t == null ? null : +last.boxer.t.toFixed(1), kind: last.boxer.kind || null, blind: +(last.boxer.blind || 0).toFixed(2), lamp: last.boxer.lamp, inView: !!last.boxer.inView, beat: last.boxer.beat ? last.boxer.beat.act : null, x: lastBoxer ? +lastBoxer.fx.toFixed(2) : null, face: lastBoxer ? lastBoxer.face : null, hit: lastBoxer && lastBoxer.hit != null ? +lastBoxer.hit.toFixed(2) : null } : null, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
     destroy() { for (const cv of sprites.values()) cv.width = cv.height = 0; sprites.clear(); blocks.clear(); },
   };
 }

@@ -76,7 +76,12 @@ export const SCHEDULE = Object.freeze([
   { id: 'blackbird.chase', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#bbChaseAt + screens/harbor/blackbird.js', what: 'THE BLACKBIRD IN EVERY TR-3B CHASE: once the F-22s are ~⅓ across, the same direction, faster — across the dark NEON sign while the drain holds it (above it if it’s powering back)', knobs: { jetsAcross: 1 / 3 } },
   { id: 'blackbird.solo', trigger: 'calendar', status: 'live', src: 'core/harbor-blackbird.js#soloDay', what: 'THE BLACKBIRD’s SOLO SIGHTINGS: rare (~2 a month, a seeded day + time), ~5 passes on July 4 — above the lit sign; never on a legendary night', knobs: { perMonth: 2, from: 11, to: 23, july4: 5, july4From: 12, july4To: 21.5 }, conflicts: ['legendaries'] },
   { id: 'blackbird.watcher', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#watcherStep', what: 'THE WATCHER’s REWARD: after 60 visible minutes on the city (a gap under 5 min pauses the count, longer resets it) — this device only, once a day, never announced', knobs: { minutes: 60, pauseMin: 5, step: 5 } },
-  { id: 'boxer', trigger: 'calendar', status: 'planned', src: 'SKY', what: 'THE SHADOWBOXER: Mon / Wed / Fri 7 → 11 pm, sets of 10 rounds (Friday: he wraps up at 8:30 or trains on, seeded)', conflicts: ['window.party'] },
+  // (SKY-B — THE SHADOWBOXER, core/harbor-boxer.js + screens/harbor/boxer.js: days (0 = Sun); from / to / wrapAt (local hours); stayChance (a
+  // Friday he trains on through the party); round / rest / brk (s) + rounds a set; walkIn / outWalk (s: in at a set's start, the towel +
+  // out at the end); blindLead / blindDown (s: the blind up before him, down after); lampOff (s: the bulb out after the blind is down);
+  // height (his share of the window's height); bagKick / bulbKick (rad a full hit); ropeBursts (the rope heard in a long break))
+  { id: 'boxer', trigger: 'calendar', status: 'live', src: 'core/harbor-boxer.js + screens/harbor/boxer.js', what: 'THE SHADOWBOXER: Mon / Wed / Fri 7 → 11 pm in the upper middle window (the blind up = his entrance), SETS of 10 ROUNDS (3 min) + 1-min rests → a 10-min break → again; at 11 he finishes the set; FRIDAY (seeded ~50/50) he wraps up at 8:30 (the round he is in) or trains on through the party; never on a legendary night',
+    knobs: { days: [1, 3, 5], from: 19, to: 23, wrapAt: 20.5, stayChance: 0.5, round: 180, rest: 60, rounds: 10, brk: 600, walkIn: 3.5, outWalk: 7, blindLead: 3.5, blindDown: 3.5, lampOff: 90, height: 0.7, bagKick: 0.16, bulbKick: 0.07, ropeBursts: 5 }, conflicts: ['window.party', 'raid', 'legendaries'] },
   { id: 'legendaries', trigger: 'event', status: 'live', src: 'core/harbor-legend.js', what: 'the legendaries (the UFO, the TR-3B…) — their seeded nights', conflicts: ['traffic'] },
   { id: 'blackout', trigger: 'event', status: 'live', src: 'core/harbor-dark.js', what: 'THE BLACKOUT (the TR-3B\'s drain): every light down, back on in turn' },
   { id: 'raid', trigger: 'event', status: 'live', src: 'core/harbor-raid.js', what: 'THE RAID: the night after a bootlegger delivery (~50 %), 9–11 pm', conflicts: ['party.break'] },
@@ -95,7 +100,9 @@ export const CONFLICTS = Object.freeze([
   { a: 'blackbird.solo', b: 'legendaries', rule: 'no solo Blackbird on a legendary night (that night has its own sky; the TR-3B brings its own Blackbird)', where: 'core/harbor-blackbird.js#soloDay' },
   { a: 'blackbird', b: 'traffic', rule: 'nothing new crosses the sky strip while it flies (one flyby at a time, a forced one waits)', where: 'screens/harbor/blackbird.js#start' },
   { a: 'party.fireworks', b: 'storm', rule: 'no fireworks in a storm (Part 10)', where: 'Part 10' },
-  { a: 'boxer', b: 'window.party', rule: 'the boxer\'s window sits out of the window party when he trains on a party night (SKY)', where: 'SKY' },
+  { a: 'boxer', b: 'window.party', rule: 'the boxer\'s window sits out of the window party when he trains on a party night', where: 'screens/harbor/windows.js (party.k.back = 0 while he is in)' },
+  { a: 'boxer', b: 'raid', rule: 'a raid ends his night (the blinds come down)', where: 'screens/harbor/windows.js (boxer off once raidS ≥ 0)' },
+  { a: 'boxer', b: 'legendaries', rule: 'no training on a legendary’s night', where: 'core/harbor-boxer.js#boxerNight (o.legend)' },
 ]);
 
 const byId = new Map(SCHEDULE.map(r => [r.id, r]));

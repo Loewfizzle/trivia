@@ -27,6 +27,7 @@ import { isFilled, takesOf, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FA
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { CHASE, BLACK, tr3bAt } from '../../core/harbor-legend.js';
 import { isUnlocked } from '../../audio/engine.js';
+import { boxerCues } from '../../core/harbor-boxer.js';
 import { musicSounding, duckMusic, filterMusic, bendMusic, musicCatchUp, prepareBend } from '../../audio/music.js';
 import { settings } from '../../audio/settings.js';
 
@@ -68,7 +69,7 @@ export function createCitySounds() {
   let unlockedAt = 0, bedOn = false, bedK = -1, speakBeds = { club: 0, tv: 0, party: false };
   // 8P: the speakeasy's moments (cues waiting for their time), the barbershop's last look, the people's beds, the bus, the ducks
   const seen = new Set(), pending = [];
-  let barberLast = null, nextSnip = 0, cartNext = 0, cartOn = false, cartPan = -0.2, lastLaugh = 0;
+  let boxLast = null, barberLast = null, nextSnip = 0, cartNext = 0, cartOn = false, cartPan = -0.2, lastLaugh = 0;
   const lastStep = { cobble: 0, heels: 0 };
   const people = { line: 0, linePan: -0.45, roof: 0, roofPan: -0.5, crowd: 0, crowdB: 0, crowdPan: 0.2 };   // (NIGHT-B: + the street party's walla)
   const bus = { arrive: null, idle: null, depart: null, pan: 0, gain: 1 };
@@ -281,6 +282,14 @@ export function createCitySounds() {
         barberLast = now;
       } else { barberLast = null; nextSnip = 0; }
     }
+    // SKY-B — THE SHADOWBOXER's window cracked open (core/harbor-boxer.js#boxerCues on his clock): the round bell, a muffled thud on every
+    // bag hit, the chain after a hard one, the rope off in the room in his long break — quiet, panned to his window, lower under the music
+    { const B = fr && b.motion !== false && fr.boxer && fr.boxer.plan ? fr.boxer : null;
+      if (B && boxLast && boxLast.key === B.key && B.sec > boxLast.sec && B.sec - boxLast.sec < 5) {
+        const mus = musicSounding() ? 0.55 : 1;
+        for (const q of boxerCues(boxLast.sec, B.sec, B.plan, B.key, B.seed)) play(q.slot, { gain: q.gain * mus, pan: -0.38, ...(q.rate ? { rate: q.rate } : {}) });
+      }
+      boxLast = B ? { sec: B.sec, key: B.key } : null; }
     for (let i = pending.length - 1; i >= 0; i--) {
       const c = pending[i];
       if (c.at - t > 2500) continue;

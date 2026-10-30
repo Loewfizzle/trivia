@@ -203,6 +203,12 @@ export const SLOTS = [
   // SKY-A — THE BLACKBIRD (Grok's Sonniss takes, Oct 27; plan.md "THE BLACKBIRD's SOUNDS ARE IN"): the radio-static TELL ~3 s before it
   // crosses, the SONIC BOOM played twice ("ba-BOOM") ~0.8–1 s after its vapor cone, then its SCREAM (an F-16 pass sped up: a higher,
   // tearing whine — never the F-22s' roar) — screens/harbor/sounds.js#blackbird
+  // SKY-B — THE SHADOWBOXER (his window cracked open — a hot 3rd-floor gym: MUFFLED + DISTANT, felt not heard, panned to his window,
+  // never over the music; core/harbor-boxer.js#boxerCues on his clock — files: ~/Downloads/Grok/city-sfx/boxer/ when they arrive)
+  S('boxer-bag', '7', 'once', 0.1, 'a heavy bag hit, muffled + distant (a few takes)', 'the shadowboxer: every hit on the bag (SKY-B)'),
+  S('boxer-chain', '7', 'once', 0.06, 'a heavy bag’s chain creaking after a hard hit', 'the shadowboxer: after a hard one (SKY-B)'),
+  S('boxer-bell', '7', 'once', 0.08, 'a boxing round bell — ONE ding (played ×3 to start a round, once to end it)', 'the shadowboxer’s rounds (SKY-B)'),
+  S('boxer-rope', '7', 'once', 0.05, 'a skipping rope (or a speed bag) burst, off in the room', 'the shadowboxer’s long break, out of view (SKY-B)'),
   S('bb-static', 'sky', 'once', 0.22, 'an old radio tuning warble + static (three takes)', 'the Blackbird’s tell, ~3 s before it crosses'),
   S('bb-boom', 'sky', 'once', 0.24, 'a distant explosion standing in for the sonic boom — played TWICE 0.15–0.3 s apart', 'the Blackbird’s double boom, ~0.8–1 s after its vapor cone (the city shakes a touch)'),
   S('bb-scream', 'sky', 'once', 0.17, 'an F-16 overhead pass sped up 1.25× (a higher, tearing whine)', 'the Blackbird crossing, after the boom'),

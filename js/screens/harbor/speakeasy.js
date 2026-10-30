@@ -668,6 +668,8 @@ export function createSpeakeasy() {
      *  the same painters); setCrispWins(Set) = the windows the city's canvas skips while their crisp copy covers them */
     drawWindow(x, id) { if (lifeEnv) life.draw(x, { ...lifeEnv, only: id }); },
     setCrispWins(s) { crispWins = s && s.size ? s : null; },
+    /** SKY-B — the shadowboxer's room is open (his blind not all the way down): the crisp layer's live rooms take it at night */
+    boxerRoom: () => { const b = life.boxerNow(); return !!(b && b.blind < 0.999); },
     /** 8b2 — THE RAID's wash: the side wall (the face toward the road) on screen → [[x, y] × 4] | null */
     sidePoly: () => (G ? [G.side(0, -0.05), G.side(0, V.parapet), G.side(G.len, V.parapet), G.side(G.len, -0.05)] : null),
     light(id, k) { if (k == null) own.delete(id); else own.set(id, clamp01(k)); },

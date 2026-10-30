@@ -20,7 +20,7 @@ import { PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_STEP } from './harbor-beat.j
 import { MOMENTS } from './harbor-moments.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'horn', 'hum', 'depart'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'horn', 'hum', 'depart', 'round'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
@@ -57,6 +57,8 @@ export const INPUTS = {
   horn: { kind: 'select', label: 'HORN', options: ['', 'a', 'c'], labels: { '': 'B · THE OLD HORN', a: 'A · DESTROYER', c: 'C · SYNTHESIZED' } },
   hum: { kind: 'select', label: 'HUM', options: ['', 'b'], labels: { '': 'A · HOVER ENGINE', b: 'B · DEEP THROB' } },
   depart: { kind: 'select', label: 'DEPART', options: ['', 'a', 'b'], labels: { '': 'A + B LAYERED', a: 'A · FALLING FLYBY', b: 'B · FAST WHOOSH' } },
+  // (SKY-B: THE SHADOWBOXER — skip to a round of his set)
+  round: { kind: 'select', label: 'ROUND', options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], default: '1' },
 };
 
 /** THE PANEL'S CATEGORIES (PART 7a §0 — the owner: "it's getting so cluttered"): collapsible sections, in this order, collapsed by
@@ -358,6 +360,7 @@ export const EVENTS = [
   // ---- PART 7b — THE WINDOWS: &force=window&moment=<id> (the links; hidden: the panel can't type a moment) + one row per moment
   // (&force=window-<id>), grouped by rarity — the catalogue's own list (core/harbor-moments.js#MOMENTS), so a new moment is a new row
   { id: 'window', label: 'WINDOW MOMENT', cat: 'windows', group: 'ROUTINES', ready: false, hint: 'with &moment=<id>' },
+  { id: 'boxer', sec: 'speakeasy', label: 'THE SHADOWBOXER', cat: 'windows', group: 'ROUTINES', kw: 'boxer boxing heavy bag bulb gym training upper window bell rounds', inputs: ['round'], hint: 'SKY-B: his room in the upper middle window NOW (any day, any hour): the blind up, then ROUND n of his set (1–10) — the bag + the bulb swinging on his hits, the bell + the thuds; his real nights are Mon / Wed / Fri 7–11 pm' },
   // WIN3 — THE PARTY IN THE WINDOWS (&force=window-party): the peak's window party from the start, the rooms up one by one
   { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', cat: 'windows', group: 'PARTY NIGHTS', kw: 'dance blinds neon crowd jump wands party', night: true, hint: 'the party’s peak in the windows: the blinds go up one room at a time (~every 10 s), each room a dance party in its own neon colour — silhouettes jumping on the beat, a few glow wands, the colour spilling onto the cobbles; the boss’s TV room never joins; a raid cuts it' },
   // SP5 — THE BOSS's ROOM: the bootleggers' tell (the violet lamp + the spade behind his drawn shade, lit the afternoon before a delivery
@@ -636,6 +639,7 @@ export function cleanRemote(raw) {
   sel('by', ['word', 'letter']); sel('style', INPUTS.style.options); sel('tower', TOWER_CHOICES.filter(Boolean));
   sel('scheme', INPUTS.scheme.options); sel('game', GAME_IDS);
   sel('horn', ['b', 'c']); sel('hum', ['b']); sel('depart', ['b', 'layered']);   // (9g: the sounds' A / B / C — A is the default, never sent)
+  sel('round', INPUTS.round.options);   // (SKY-B: the shadowboxer's round)
   if (r.cycle) out.cycle = true;
   sel('scene', SHOW_SCENE_LIST.map(s => s.id));
   sel('party', ['on', 'off']);
@@ -671,7 +675,7 @@ export function toParams(st) {
   if (st.party === 'on') force.push('party');
   if (st.party === 'off') force.push('no-party');
   if (force.length) p.force = force.join(',');
-  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'horn', 'hum', 'depart']) if (st[k] != null) p[k] = String(st[k]);
+  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'horn', 'hum', 'depart', 'round']) if (st[k] != null) p[k] = String(st[k]);
   if (st.cycle) p.cycle = '1';
   if (st.speed && st.speed !== 1) p.speed = String(st.speed);
   if (st.debug) p.debug = '1';

@@ -701,12 +701,12 @@ G('quietbuilding', async () => {
     const L = await ev(Q.page, LIFE), outs = Object.values(L.parked ? L.parked.out : {});
     ok(L.parkOn && PARKED.every(id => L.bed[id] === 0) && outs.length >= 1 && outs.every(s => s < 1.6 * 3600), `THE LIGHTS GO OUT ONE BY ONE: at 1:40 every parked lamp out (${JSON.stringify(L.bed)}; their times ${outs.map(s => `${Math.floor((s / 3600 + 24) % 24)}:${String(Math.floor(((s / 60) % 60 + 60) % 60)).padStart(2, '0')}`).join(', ')})`);
     await Q.ctx.close(); }
-  // ---- 3. unchanged: a PARTY night (the window party) + the DAY; 4. Monday 8 pm — the boxer's window parked (until SKY)
-  for (const [when, what, want] of [['2026-10-24T22:30', 'a party night', false], ['2026-10-27T13:00', 'the day', false], ['2026-10-26T20:00', 'Monday 8 pm', true]]) {
+  // ---- 3. unchanged: a PARTY night (the window party) + the DAY; 4. a Thursday 8 pm — not the boxer's night: his window parked (SKY-B)
+  for (const [when, what, want] of [['2026-10-24T22:30', 'a party night', false], ['2026-10-27T13:00', 'the day', false], ['2026-10-29T20:00', 'Thursday 8 pm (not his night)', true]]) {
     const Q = await open({ slot: `qb-${want ? 'p' : 'u'}`, qs: `when=${when}${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page); await sleep(1500);
     const L = await ev(Q.page, LIFE);
-    ok(!!L.parkOn === want && (want ? L.park.back === 1 : PARKED.every(id => !L.park[id])), `${what}: ${want ? 'the upper middle (the boxer’s, until SKY) parked like its neighbours' : 'unchanged — nothing parked'} (${JSON.stringify(L.park)})`);
+    ok(!!L.parkOn === want && (want ? L.park.back === 1 : PARKED.every(id => !L.park[id])), `${what}: ${want ? 'the upper middle (the boxer’s) parked like its neighbours' : 'unchanged — nothing parked'} (${JSON.stringify(L.park)})`);
     await Q.ctx.close();
   }
   // ---- 5. THE LIVE WINDOWS AT 3× (a 3× phone at night): the boss's room + the two side rooms on the crisp layer
@@ -714,5 +714,43 @@ G('quietbuilding', async () => {
     await harborUp(Q.page); await waitFor(Q.page, `(window.__district.harbor().liveCrisp || []).length === 3 && window.__district.harbor().liveCrisp.every(w => w.k === 1)`, 'the live windows crisp', 20000).catch(() => {});
     const lc = await ev(Q.page, 'window.__district.harbor().liveCrisp'), cv = await ev(Q.page, `[...document.querySelectorAll('canvas.hc-crisp')].filter(c => c.style.display !== 'none' && +c.style.opacity > 0.5 && !c.style.mixBlendMode).map(c => +(c.width / parseFloat(c.style.width)).toFixed(2))`);
     ok(lc.length === 3 && lc.every(w => w.k === 1) && cv.filter(r => Math.abs(r - 3) < 0.05).length >= 3, `THE LIVE WINDOWS AT 3×: ${lc.map(w => `${w.id} ${w.k}`).join(', ')} — on the crisp layer at ${cv.join(' / ')}×`);
+    await Q.ctx.close(); }
+});
+
+// ================================================================ SKY-B — THE SHADOWBOXER (ONLY=boxer; the `show` cloud job): Mon / Wed / Fri
+// 7 → 11 pm in the upper middle window — the blind up, the amber room, the bulb, the bag; a Tuesday stays parked; the panel's preview on the
+// bag (hits that swing it); a Friday wrap-up walks out at 8:30; on a 3× phone his room is on the crisp layer
+G('boxer', async () => {
+  const LIFE = 'window.__district.harbor().speakeasy.life';
+  // ---- 1. a Monday at 8:05 pm: he's in (a round or a rest), the blind up — at 3× his room on the crisp layer
+  { const Q = await open({ slot: 'bx1', qs: `when=2026-10-26T20:05${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874], dpr: 3 });
+    await harborUp(Q.page); await waitFor(Q.page, `!!(${LIFE}.boxer)`, 'the boxer in', 20000).catch(() => {});
+    const B = await ev(Q.page, `${LIFE}.boxer`);
+    ok(B && ['round', 'rest'].includes(B.phase) && B.blind === 0 && B.lamp === 1, `THE SHADOWBOXER (Mon 8:05 pm): in his room — ${B ? `${B.phase} ${B.round} of set ${B.set + 1}, ${B.kind || ''} (the blind up)` : 'nobody'}`);
+    await waitFor(Q.page, `(window.__district.harbor().snow.crisp.items || []).some(i => i.id === 'win-back')`, 'his room on the crisp layer', 8000).catch(() => {});
+    const cr = await ev(Q.page, `window.__district.harbor().snow.crisp.items || []`);
+    ok(cr.some(i => i.id === 'win-back'), `…HIS ROOM AT 3× on the crisp layer (${cr.map(i => i.id).join(', ')})`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}boxer-mon-8pm-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- 2. a Tuesday at 8:05 pm: not his night — the upper middle parked like its neighbours
+  { const Q = await open({ slot: 'bx2', qs: `when=2026-10-27T20:05${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1500);
+    const L = await ev(Q.page, LIFE);
+    ok(!L.boxer && L.park && L.park.back > 0.9, `NOT HIS NIGHT (Tue 8:05 pm): the upper middle parked (blind ${L.park && L.park.back})`);
+    await Q.ctx.close(); }
+  // ---- 3. THE PREVIEW (&force=boxer&round=2 — a bag round): the blind up first, then his hits swing the bag
+  { const Q = await open({ slot: 'bx3', qs: `when=2026-10-27T13:00${GR}&wx=clear&force=boxer,no-people,no-wildlife&round=2`, view: [402, 874] });
+    await harborUp(Q.page);
+    let up = 0, hits = 0, kinds = new Set(), t0 = Date.now();
+    while (Date.now() - t0 < 14000) { const B = await ev(Q.page, `${LIFE}.boxer`); if (B) { if (B.phase === 'blind-up') up++; if (B.kind) kinds.add(B.kind); if (B.hit != null && B.hit < 0.4) hits++; } await sleep(120); }
+    ok(up > 0 && kinds.has('bag') && hits > 0, `THE PREVIEW (WINDOWS → THE SHADOWBOXER, ROUND 2): the blind up first (${up}), then on the heavy bag — ${hits} hits seen landing (any day, any hour)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}boxer-preview-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- 4. a FRIDAY he wraps up (Nov 6): out at 8:30 as the party warms up — the towel, the walk out, his blind down
+  { const Q = await open({ slot: 'bx4', qs: `when=2026-11-06T20:30:02${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page);
+    const seen = new Set(); const t0 = Date.now();
+    while (Date.now() - t0 < 14000) { const B = await ev(Q.page, `${LIFE}.boxer`); seen.add(B ? B.phase : 'gone'); await sleep(200); }
+    ok(seen.has('done') && seen.has('out'), `A FRIDAY HE WRAPS UP (Nov 6, 8:30 pm): he finishes, towels off + walks out, the blind comes down (${[...seen].join(' → ')})`);
     await Q.ctx.close(); }
 });

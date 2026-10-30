@@ -37,7 +37,8 @@ export const SECONDS = {
   tower: 37,           // (9e: THE CONSTRUCTION TOWER — four pages one after the other; 9f: + the site at night — 18 s on the laptop; BNAME: + the classic crane page — 21 s)
   citylife: 40,        // (9e: THE CITY LIFE — the night shift, the water wagon, the morning paper; three pages)
   light: 45,           // (NIGHT-B: + the stage light's ladder, ~45 s; NIGHT-A: THE BRIGHTNESS LADDER + THE BUTTONS AT NIGHT — four pages at 3×; 28 s on the laptop)
-  thanks: 70, streetparty: 60, partysync: 55, heli: 57, roofcrisp: 28, quietbuilding: 20,   // (NIGHT-C: partysync — five pages, ~50 s on the laptop; heli — four pages, a guess)
+  boxer: 45,           // (SKY-B: THE SHADOWBOXER — four pages)
+  thanks: 70, streetparty: 60, partysync: 55, heli: 90, roofcrisp: 28, quietbuilding: 20,   // (NIGHT-C: partysync — five pages, ~50 s on the laptop; heli — four pages, a guess)
            // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
 };
 
@@ -47,7 +48,7 @@ export const CI_JOBS = {
   show: ['neon', 'party', 'sky', 'life', 'quietbuilding'],   // (NIGHT-C: quietbuilding — the lightest)
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'streetparty', 'panel'],   // (NIGHT-B: streetparty)   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)
-  perf: ['tower', 'partysync', 'heli', 'flags', 'perf'],   // (NIGHT-C: partysync + heli + flags — before the serial perf)
+  perf: ['tower', 'partysync', 'flags', 'perf'],   // (SKY-B: heli → legend: its circle page)   // (NIGHT-C: partysync + heli + flags — before the serial perf)
   // (city's history: 9e — tower before the serial pair (now in perf); PEO — promenade moved here from street, motion took its room)
   street: ['speakeasy', 'sounds', 'people', 'motion', 'freeze'],   // (HOTFIX Oct 27: freeze — the lightest job)   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room; WIN3: windows → its own job)
   // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
@@ -55,7 +56,7 @@ export const CI_JOBS = {
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
   wild: ['wildlife', 'workers', 'weather'],
   // (SKY-A: THE LEGENDS' own job — the TR-3B + the F-22s, THE BLACKBIRD, the phone bench: wild was at its cap)
-  legend: ['legends', 'blackbird', 'bench'],
+  legend: ['legends', 'blackbird', 'bench', 'heli', 'boxer'],   // (SKY-B: + the patrol's circle (heli, ~90 s) + the shadowboxer)
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
   holiday: ['holiday', 'thanks', 'panelrows', 'citylife'],   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };
