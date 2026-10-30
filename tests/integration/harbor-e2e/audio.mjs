@@ -787,13 +787,31 @@ G('heli', async () => {
     await harborUp(Q.page);
     await waitFor(Q.page, `!!(${H}.up)`, `the ${what} patrol up`, 25000).catch(() => {});
     const h = await ev(Q.page, H), wl = await ev(Q.page, 'window.__district.harbor().lanes && window.__district.harbor().lanes.water ? window.__district.harbor().lanes.water.y : null');
-    ok(h.up && h.up.dur >= (what === 'night' ? 180 : 120) && h.up.dur <= (what === 'night' ? 250 : 180), `SKY-A — TWO LOOPS of the original route (${what}): the patrol's flight ${h.up && h.up.dur} s (night 3–4 min, day 2–3 min)`);
-    ok(h.up && h.up.mode === 'patrol' && (wl == null || h.up.y < wl), `THE PATROL (${what}, Tue 27 ${when.slice(11, 16)}): up over the harbor (${h.up ? `${h.up.x}, ${h.up.y}${h.up.hover ? ', hovering' : ''}` : 'nothing'}${wl != null ? ` — the water at ${Math.round(wl)}` : ''})`);
+    ok(h.up && h.up.dur >= (what === 'night' ? 180 : 120) && h.up.dur <= (what === 'night' ? 250 : 180), `SKY-B — A SLOW CIRCLE ROUND THE CITY (${what}): the patrol's flight ${h.up && h.up.dur} s (night 3–4 min, day 2–3 min)`);
+    ok(h.up && h.up.mode === 'patrol' && (wl == null || (h.up.behind ? h.up.y < wl : h.up.y > wl - 60)), `THE PATROL (${what}, Tue 27 ${when.slice(11, 16)}): up — ${h.up ? `${h.up.behind ? 'BEHIND the towers' : 'low over the harbor'} (${h.up.x}, ${h.up.y}${h.up.hover ? ', stopped' : ''})` : 'nothing'}${wl != null ? ` — the water at ${Math.round(wl)}` : ''}`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}heli-patrol-${what}-402x874.png` });
     await Q.ctx.close();
   }
+  // ---- 1b. SKY-B — THE CIRCLE (the owner's SKY-A review: "too far away + hovers too much"): a forced night patrol at 4× — CLOSER (~1.6× the
+  // old craft), round BEHIND the towers + back, MOVING most of the time, and now + then a STOP where its searchlight FIXES on a spot
+  { const Q = await open({ slot: 'hpcirc', qs: `when=2026-10-21T22:00${GR}&wx=clear&force=helicopter&speed=4`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `!!(${H}.up)`, 'the forced patrol up', 20000).catch(() => {});
+    const seen = { near: 0, behind: 0, hover: 0, n: 0, looks: new Set(), fixed: 0, len: 0 };
+    const t0 = Date.now();
+    while (Date.now() - t0 < 30000) {
+      const u = (await ev(Q.page, H)).up;
+      if (u && !u.off) { seen.n++; if (u.behind) seen.behind++; else seen.near++; if (u.hover) seen.hover++; if (u.look) seen.looks.add(u.look); if (u.lk > 0.95) seen.fixed++; seen.len = u.len; }
+      await sleep(200);
+    }
+    ok(seen.len >= 40, `SKY-B — CLOSER: the near craft ${seen.len} pt (SKY-A's 28)`);
+    ok(seen.near > 10 && seen.behind > 5, `…ROUND THE CITY: the near pass (${seen.near} samples) + BEHIND THE TOWERS (${seen.behind})`);
+    ok(seen.hover / Math.max(1, seen.n) < 0.4, `…MOVING MOST OF THE TIME: stopped ${Math.round(100 * seen.hover / Math.max(1, seen.n))} % of what's on screen`);
+    ok(seen.looks.size >= 1 && seen.fixed > 0, `…A STOP WHEN IT "SEES" SOMETHING: its searchlight fixed on ${[...seen.looks].join(', ')} (${seen.fixed} samples locked on)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}heli-circle-402x874.png` });
+    await Q.ctx.close(); }
   // ---- 2. UP FOR THE DANCE BREAK: in before the conga's song, hovering over the crowd as it starts, the pool on the dancers, swept on the beat
-  { const Q = await open({ slot: 'hbrk', qs: `when=2026-10-24T22:05:28${GR}&wx=clear`, view: [402, 874] });
+  { const Q = await open({ slot: 'hbrk', qs: `when=2026-10-24T22:05:28${GR}&wx=clear&force=break-heli`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${H}.breakOn`, 'the helicopter flying in for the break', 20000);
     await waitFor(Q.page, `(() => { const p = window.__district.harbor().people.party; return !!(p && p.brk && p.k > 0.3); })()`, 'the conga song started', 30000);
@@ -826,7 +844,7 @@ G('heli', async () => {
       ok(c1 - c0 < 30 && a.beamArts <= 16 && a.glows <= 40, `…THE CANVASES HOLD: ${c0} → ${c1} over 15 s of the break (the beam's sprites ${a.beamArts}, glows ${a.glows} — one per palette colour, never per shade)`); }
     await Q.ctx.close(); }
   // ---- 3. …AND OFF AFTER THE SONG — by flying: out past the screen's edge, never gone in view
-  { const Q = await open({ slot: 'hout', qs: `when=2026-10-24T22:08:48${GR}&wx=clear`, view: [402, 874] });
+  { const Q = await open({ slot: 'hout', qs: `when=2026-10-24T22:08:48${GR}&wx=clear&force=break-heli`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${H}.breakOn`, 'the break helicopter', 15000);
     let lastX = null, W = await ev(Q.page, 'innerWidth'); const t0 = Date.now();

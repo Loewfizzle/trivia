@@ -69,7 +69,9 @@ export function createSkyBeams() {
     }
     x.putImageData(img, 0, 0);
     cv._col = [r, g, b];
-    if (sprites.size >= CACHE) { const [k0, s0] = sprites.entries().next().value; s0.width = 0; sprites.delete(k0); }
+    // (SKY-B — THE CANVAS CLIMB: an evicted sprite's FOOT stayed alive in the WeakMap until a GC — on the iPhone the live count crept up
+    // through a party night; the foot now goes with its sprite)
+    if (sprites.size >= CACHE) { const [k0, s0] = sprites.entries().next().value; const f0 = feet.get(s0); if (f0) f0.width = f0.height = 0; feet.delete(s0); s0.width = 0; sprites.delete(k0); }
     sprites.set(key, cv);
     return cv;
   }
@@ -207,6 +209,6 @@ export function createSkyBeams() {
     /** holidays / CITY CONTROL / the tribute: { count, colours: [[r,g,b]…], ids: [tower ids], width } (null resets each) */
     set(o = {}) { for (const k of ['count', 'colours', 'ids', 'width']) if (k in o) cfg[k] = o[k] == null ? (k === 'width' ? 1 : null) : o[k]; pick(); },
     debug: () => ({ beams: beams.map(b => ({ id: b.id, x: Math.round(b.x), y: Math.round(b.y), top: Math.round(b.top), under: b.under })), cand: cand.length, cfg: { ...cfg } }),
-    destroy() { for (const s of sprites.values()) s.width = 0; sprites.clear(); if (flare) flare.width = 0; flare = null; },
+    destroy() { for (const s of sprites.values()) { const f0 = feet.get(s); if (f0) f0.width = 0; s.width = 0; } sprites.clear(); if (flare) flare.width = 0; flare = null; },
   };
 }

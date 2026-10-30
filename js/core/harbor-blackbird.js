@@ -13,18 +13,32 @@ import { knob } from './harbor-schedule.js';
 import { hashString, rngFrom } from './rng.js';
 import { legendNight, CHASE } from './harbor-legend.js';
 
+// SKY-B — the owner's review (Oct 30 12:32 pm): THE VAPOR CONE in the MIDDLE of the screen ("the sound barrier breaks at centre stage"),
+// MUCH more noticeable — bigger + brighter — and it LINGERS: it forms round the craft, stays where it broke through as the craft tears on
+// out of it, holds ~0.5 s, then dissipates slowly (~1.4 s); the shock ring with it. A LONGER body (a long, needle-nosed SR-71 that reads
+// at phone size). The boom keeps its place after the cone.
 export const BB = Object.freeze({
   tell: 3,            // the static's lead (s before it enters)
   cross: 1.0,         // across the screen (its nose from one edge to the other), s — ~1.8× the F-22s: it passes them + is gone first
-  cone: 0.18,         // the vapor cone forms (s after it enters) …
-  coneLen: 0.4,       // … and holds this long
-  ring: 0.8,          // the shock ring's life
+  cone: 0.6,          // the vapor cone forms (s after it enters) — the craft's middle at the screen's centre …
+  coneIn: 0.08,       // … blooms in this fast …
+  coneHold: 0.5,      // … holds full this long (the craft tears on out of it) …
+  coneFade: 1.4,      // … then dissipates slowly: ~2 s in all
+  ring: 1.8,          // the shock ring's life (it expands + fades with the cone, where it formed)
   boom: 0.9,          // the double boom: s after the cone
   boomGap: 0.22,      // the second hit after the first (0.15–0.3)
   streak: 1.0,        // the speed streak's fade
-  len: 0.17,          // its body: a fraction of the screen's width (~68 pt at 402) — clamped 60–75 pt by the drawer
-  plume: 1.75,        // the plumes: body lengths at full burn
+  len: 0.24,          // its body: a fraction of the screen's width (~96 pt at 402) — clamped 84–110 pt by the drawer
+  plume: 1.3,         // the plumes: body lengths at full burn
 });
+/** the cone's strength s after it formed: a fast bloom, a hold, a slow dissipating fade (0 outside) */
+export function coneK(cs) {
+  if (cs < 0) return 0;
+  if (cs < BB.coneIn) return Math.sin((Math.PI / 2) * (cs / BB.coneIn));
+  if (cs < BB.coneIn + BB.coneHold) return 1;
+  const f = (cs - BB.coneIn - BB.coneHold) / BB.coneFade;
+  return f >= 1 ? 0 : (1 - f) ** 1.6;
+}
 
 const sm = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 
@@ -34,18 +48,18 @@ const sm = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a)));
  * u (where it formed) } | null, burn (0..1: the plumes, full Mach diamonds from the cone), streak (0..1), boom (s since the first hit,
  * or null), done }
  */
-export function bbAt(s, wPt = 402, lenPt = 68) {
+export function bbAt(s, wPt = 402, lenPt = 96) {
   const span = 1 + (lenPt * (1 + BB.plume)) / Math.max(1, wPt);           // (until the plumes' end is off the far edge)
   const u = s / BB.cross, coneS = s - BB.cone;
-  const cone = coneS < 0 ? 0 : coneS < BB.coneLen ? Math.sin(Math.PI * Math.min(1, coneS / BB.coneLen)) ** 0.6 : 0;
+  const cone = coneK(coneS);
   const ring = coneS >= 0 && coneS < BB.ring ? { k: coneS / BB.ring, u: BB.cone / BB.cross } : null;
   const burn = s < 0 ? 0 : 0.55 + 0.45 * sm(BB.cone - 0.05, BB.cone + 0.12, s);
   const boomS = s - BB.cone - BB.boom;
-  return { on: s >= 0 && u < span, u, cone, ring, burn, streak: s < 0 ? 0 : Math.max(0, 1 - Math.max(0, s - BB.cross * 0.3) / BB.streak), boom: boomS >= 0 ? boomS : null,
-    tell: s >= -BB.tell && s < 0, done: u >= span && boomS > 2.5 };
+  return { on: s >= 0 && u < span, u, cone, coneS, coneU: BB.cone / BB.cross, ring, burn, streak: s < 0 ? 0 : Math.max(0, 1 - Math.max(0, s - BB.cross * 0.3) / BB.streak), boom: boomS >= 0 ? boomS : null,
+    tell: s >= -BB.tell && s < 0, done: u >= span && boomS > 2.5 && coneS > BB.coneIn + BB.coneHold + BB.coneFade };
 }
 /** the flyby's whole life after it enters (s): its crossing + the plumes off the edge + the boom + the scream's tail */
-export const bbLife = (wPt = 402, lenPt = 68) => Math.max(BB.cross * (1 + (lenPt * (1 + BB.plume)) / Math.max(1, wPt)), BB.cone + BB.boom + 2.6);
+export const bbLife = (wPt = 402, lenPt = 96) => Math.max(BB.cross * (1 + (lenPt * (1 + BB.plume)) / Math.max(1, wPt)), BB.cone + BB.boom + 2.6, BB.cone + BB.coneIn + BB.coneHold + BB.coneFade + 0.2);
 
 /** THE CHASE's BLACKBIRD: it enters when the F-22s' lead is ~⅓ across (core/harbor-legend.js#chaseX: x = lerp(−0.25, 1.25, u)) — s into
  *  the TR-3B, the same direction as the chase */

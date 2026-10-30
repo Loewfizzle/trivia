@@ -461,14 +461,22 @@ G('bench', async () => {
     await waitFor(Q.page, `!!(${P}.phoneBench) && !!document.querySelector('.hb-bench')`, 'the bench card', 15000);
     const b0 = await ev(Q.page, `(() => { const b = ${P}.phoneBench; return { running: b.running, text: document.querySelector('.hb-bench').textContent }; })()`);
     ok(!b0.running && /START/.test(b0.text), `THE PHONE BENCH waits for a tap: a START card (${b0.text.slice(0, 60)}…)`);
-    await ev(Q.page, `${P}.phoneBench.start()`);
-    await waitFor(Q.page, `${P}.phoneBench.rows >= 2`, 'two scenes measured', 30000);
-    const mid = await ev(Q.page, `({ b: ${P}.phoneBench, when: ${P}.harbor ? null : null })`);
-    ok(mid.b.running && mid.b.i >= 1, `THE PHONE BENCH plays its scenes in order (scene ${mid.b.i + 1}, ${mid.b.rows} measured)`);
+    await ev(Q.page, `${P}.phoneBench.start()`).catch(() => {});
+    // (SKY-B: EVERY SCENE ON A FRESH PAGE — the bench loads each scene's link: its bakes finished, a cool-down with the city paused, settle, measure)
+    const seen = new Set(), phases = new Set(); let loads = 0, lastUrl = '';
+    const tB = Date.now();
+    while (Date.now() - tB < 90000) {
+      const r = await ev(Q.page, `(() => { const h = window.__district && window.__district.harbor && window.__district.harbor(), b = h && h.phoneBench; return b ? { rows: b.rows, i: b.i, phase: b.phase, running: b.running, url: location.search } : null; })()`).catch(() => null);
+      if (r) { if (r.url !== lastUrl) { loads++; lastUrl = r.url; seen.add(new URLSearchParams(r.url).get('when')); } if (r.phase) phases.add(r.phase); if (r.rows >= 2 && r.i >= 2) break; }
+      await sleep(150);
+    }
+    const mid = await ev(Q.page, `({ b: ${P}.phoneBench, q: location.search })`);
+    ok(mid.b.running && mid.b.i >= 2 && /benchrun=1/.test(mid.q) && loads >= 3 && seen.size >= 2, `THE PHONE BENCH: every scene on a FRESH PAGE, in order (${mid.b.rows} measured, ${loads} pages: ${[...seen].join(' · ')})`);
+    ok(['ready', 'cool', 'settle', 'measure'].every(p => phases.has(p)), `THE PHONE BENCH: its bakes finished, then a COOL-DOWN (the city paused), settle, measure (${[...phases].join(' → ')})`);
     await ev(Q.page, `${P}.phoneBench.stop()`);
     await waitFor(Q.page, `${P}.phoneBench.done && ${P}.phoneBench.sent !== null`, 'the report sent (or refused)', 15000).catch(() => {});
     const end = await ev(Q.page, `(() => { const b = ${P}.phoneBench, ta = document.querySelector('.hb-bench textarea'), btns = [...document.querySelectorAll('.hb-bench button')].map(x => x.textContent); return { b, report: ta ? ta.value : '', btns }; })()`);
-    ok(end.b.done && /THE PHONE BENCH/.test(end.report) && /a party peak/.test(end.report) && /memory guard:/.test(end.report) && end.btns.includes('COPY'), `THE PHONE BENCH's REPORT on screen with COPY (${end.report.split('\n').length} lines) + sent to /admin: ${end.b.sent}`);
+    ok(end.b.done && /THE PHONE BENCH/.test(end.report) && /a party peak/.test(end.report) && /memory guard:/.test(end.report) && /painted a frame: [\d.]+ MP/.test(end.report) && /outside/.test(end.report) && /CPU speed/.test(end.report) && end.btns.includes('COPY'), `THE PHONE BENCH's REPORT on screen with COPY (${end.report.split('\n').length} lines: the frame side, the pixels painted, the CPU speed) + sent to /admin: ${end.b.sent}`);
     console.log(end.report);
     await Q.ctx.close(); }
   // C4c — THE MEMORY GUARD's VERDICT, then + now (MEASURE=1 only — a measurement for the docs, not a check): at 390 / 402 / 430 on a 3×

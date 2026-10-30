@@ -74,12 +74,12 @@ function paintSR71(x, look) {
 }
 /** the craft's sprite at len pt, d px a pt (the device's) → { cv, w, h, ox (the tail's x in the sprite), oy (the nacelle line) } */
 function sr71Sprite(len, look, d) {
-  // (SKY-A refine: drawn a third DEEPER than true — at 60–75 pt a true-proportioned SR-71 is a needle; the deeper body, nacelle + fins
-  // keep its silhouette readable unzoomed)
-  const W = len * 1.06, H = len * 0.27, ox = len * 0.03, oy = len * 0.19;
+  // (SKY-A refine: drawn a third DEEPER than true — at 60–75 pt a true-proportioned SR-71 is a needle. SKY-B — the owner: LONGER, a long
+  // needle-nosed SR-71: at ~96 pt it reads with far less exaggeration — 15 % deeper than true)
+  const W = len * 1.06, H = len * 0.25, ox = len * 0.03, oy = len * 0.18;
   const cv = mk(W * d, H * d), x = ctx2d(cv);
   if (!x) return null;
-  x.setTransform(d, 0, 0, d, ox * d, oy * d); x.scale(len, len * 1.3);
+  x.setTransform(d, 0, 0, d, ox * d, oy * d); x.scale(len, len * 1.15);
   paintSR71(x, look);
   return { cv, w: W, h: H, ox, oy };
 }
@@ -124,28 +124,38 @@ export function createBlackbird() {
    *  height, pt), W (the screen's width) — one at a time (a second waits: false) */
   function start(kind, at, dir, y, o = {}) {
     if (fl && !fl.done) return false;
-    fl = { kind, at, dir: dir < 0 ? -1 : 1, y, cues: new Set(), clip: o.clipTop || 0, done: false };
-    for (const [slot, n] of [['bb-static', 3], ['bb-boom', 1], ['bb-scream', 1]]) for (let i = 0; i < n; i++) cityPrefetch(slot, i, { hold: 20000 });
+    fl = { kind, at, dir: dir < 0 ? -1 : 1, y, cues: new Set(), clip: o.clipTop || 0, clipBot: o.clipBot || null, done: false };
+    prefetch();
     return true;
   }
+  /** SKY-B — every Blackbird sound fetched + decoded AHEAD (the scene asks ~20 s before a solo sighting + at a TR-3B's start): the radio
+   *  crackle then plays on its cue, never late or lost to the fetch */
+  function prefetch() { for (const [slot, n] of [['bb-static', 3], ['bb-boom', 1], ['bb-scream', 1]]) for (let i = 0; i < n; i++) cityPrefetch(slot, i, { hold: 30000 }); }
   /** per frame: s = { now (clock ms), W, H, dpr, look, t, motion }, cb = { onShake() } → true while it's up (the calm frame rate keeps 60) */
   function frame(s, cb = {}) {
     if (!fl) return false;
-    const len = Math.max(60, Math.min(75, s.W * BB.len)), e = (s.now - fl.at) / 1000, st = bbAt(e, s.W, len);
-    // THE SOUND, on the clock (a late page joins without the cues it missed)
+    const len = Math.max(84, Math.min(110, s.W * BB.len)), e = (s.now - fl.at) / 1000, st = bbAt(e, s.W, len);
+    // THE SOUND, on the clock (a late page joins without the cues it missed). SKY-B — the owner: the RADIO CRACKLE must be CLEARLY heard
+    // before it crosses, the music on or off: an EFFECT (the effects bus — the music button never mutes it), its level up with the boom's,
+    // and with the music on the music DIPS under it (cb.duck: the city's own duck, like the noon whistle) — the boom the same
     const cue = (id, when, fn) => { if (!fl.cues.has(id) && e >= when) { fl.cues.add(id); if (e - when < 0.5) fn(); } };
     const pan = Math.max(-0.9, Math.min(0.9, (st.u - 0.5) * 1.6 * fl.dir));
-    cue('tell', -BB.tell, () => citySound('bb-static', { gain: 1, pan: -0.6 * fl.dir, jitter: 0 }));
-    cue('boom1', BB.cone + BB.boom, () => { citySound('bb-boom', { gain: 1, pan: pan * 0.4, jitter: 0 }); if (cb.onShake) cb.onShake(); });
+    const play = (slot, o, duck) => (cb.duck && duck ? cb.duck(slot, { ...o, ...duck }) : citySound(slot, { ...o, jitter: 0 }));
+    cue('tell', -BB.tell, () => play('bb-static', { gain: 1, pan: -0.6 * fl.dir }, { depth: 0.45, hold: 2.4, release: 1.2 }));
+    cue('boom1', BB.cone + BB.boom, () => { play('bb-boom', { gain: 1, pan: pan * 0.4 }, { depth: 0.5, hold: 1.2, release: 2.5 }); if (cb.onShake) cb.onShake(); });
     cue('boom2', BB.cone + BB.boom + BB.boomGap, () => citySound('bb-boom', { gain: 0.8, pan: pan * 0.4, rate: 0.94, jitter: 0 }));
     cue('scream', BB.cone + BB.boom + BB.boomGap + 0.12, () => citySound('bb-scream', { gain: 1, pan: 0.7 * fl.dir, jitter: 0 }));
     if (e > bbLife(s.W, len) + 0.2) { fl.done = true; fl = null; free(); lastDbg = null; return false; }
-    if (!st.on && !st.ring && st.streak <= 0) { if (cv) x.clearRect(0, 0, cv.width, cv.height); lastDbg = { e: +e.toFixed(2), on: false, tell: st.tell }; return e < 0 || st.boom == null || st.boom < 3; }
+    if (!st.on && !st.ring && !(st.cone > 0) && st.streak <= 0) { if (cv) x.clearRect(0, 0, cv.width, cv.height); lastDbg = { e: +e.toFixed(2), on: false, tell: st.tell }; return e < 0 || st.boom == null || st.boom < 3; }
     // THE OVERLAY: the strip round its path (the ring's room), at the device's dpr, clipped under the corner buttons
     const d = Math.min(3, s.dpr || 2), bandH = len * 1.9, top = Math.max(fl.clip, fl.y - bandH / 2);
     if (!overlay(s.W, top, fl.y + bandH / 2 - top, d)) return true;
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
     x.setTransform(d, 0, 0, d, 0, -top * d);
+    // (SKY-B: above the LIT sign the cone + the ring keep to the strip — never over the letters; in the chase, across the dark sign, full size)
+    x.save();
+    if (fl.clipBot != null) { x.beginPath(); x.rect(0, top, s.W, Math.max(1, fl.clipBot - top)); x.clip(); }
+    const room = Math.max(10, Math.min(fl.y - fl.clip, fl.clipBot != null ? fl.clipBot - fl.y : 1e9));
     const look = s.look, night = look.dark, span = s.W + len * (1 + BB.plume);
     const noseX = u => (fl.dir > 0 ? -len * 0.2 + u * (s.W + len * 0.2) : s.W + len * 0.2 - u * (s.W + len * 0.2));
     const nx = noseX(st.u), tailX = nx - fl.dir * len, y = fl.y;
@@ -155,10 +165,31 @@ export function createBlackbird() {
       g.addColorStop(0, `rgba(230,236,255,0)`); g.addColorStop(1, `rgba(240,244,255,${(0.28 + 0.25 * night) * st.streak})`);
       x.globalCompositeOperation = 'lighter'; x.strokeStyle = g; x.lineWidth = 1.1; x.beginPath(); x.moveTo(x0, y + len * 0.01); x.lineTo(tailX, y + len * 0.01); x.stroke(); x.globalCompositeOperation = 'source-over';
     }
-    // THE SHOCK RING: where it broke through — a thin bright ring seen edge-on (a tall ellipse), expanding + fading; it stays there
+    // SKY-B — THE VAPOR CONE, CENTRE STAGE: it forms round the craft's tail half as its middle crosses the screen's centre, then STAYS where
+    // the barrier broke as the craft tears on out of it — a big bright white bell (bigger + brighter than SKY-A's, ~0.6 × the body tall),
+    // its sharp leading edge, the shock's striations, a wide soft bloom; it holds, then DISSIPATES slowly — swelling, softening, fading
+    if (st.cone > 0.004) {
+      const cx = noseX(st.coneU) - fl.dir * len * 0.42, age = Math.max(0, st.coneS), sw = 1 + 0.32 * Math.min(1, Math.max(0, age - BB.coneIn - BB.coneHold) / BB.coneFade) + 0.04 * Math.min(1, age / 0.3);
+      const k = st.cone, soft = 1 - k, L0 = len * 0.62 * sw, R1 = Math.min(len * 0.3, room + 6) * sw, R0 = len * 0.05 * sw, f0 = cx + fl.dir * L0 * 0.42, f1 = cx - fl.dir * L0 * 0.58;
+      x.save(); x.globalCompositeOperation = 'lighter';
+      x.globalAlpha = (0.32 + 0.18 * night) * k; const gb = Math.min(len * 0.85, room * 2.4) * sw; x.drawImage(glow([235, 242, 255]), cx - gb, y - gb * 0.6, gb * 2, gb * 1.2);   // (the bloom)
+      x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
+      const bell = (rs, a) => { const g = x.createLinearGradient(f0, 0, f1, 0); g.addColorStop(0, `rgba(250,252,255,${a})`); g.addColorStop(0.22, `rgba(240,246,255,${a * 0.72})`); g.addColorStop(0.65, `rgba(228,236,250,${a * 0.28})`); g.addColorStop(1, 'rgba(225,235,250,0)');
+        x.fillStyle = g; x.beginPath(); x.moveTo(f0, y - R0 * rs); x.quadraticCurveTo(f0 - fl.dir * L0 * 0.18, y - R1 * rs * 0.92, f1, y - R1 * rs); x.lineTo(f1, y + R1 * rs); x.quadraticCurveTo(f0 - fl.dir * L0 * 0.18, y + R1 * rs * 0.92, f0, y + R0 * rs); x.closePath(); x.fill(); };
+      bell(Math.min(1.25 + 0.3 * soft, (room + 8) / Math.max(1, R1)), 0.22 * k);   // (a soft outer veil — wider as it dissipates, kept to the strip)
+      bell(1, (0.62 + 0.2 * night) * k ** 1.2);          // (the cone itself)
+      x.globalCompositeOperation = 'lighter';
+      // the leading edge: a crisp bright ring where the shock sits + two fainter striations behind it
+      for (const [o, a, wd] of [[0, 0.95, 1.6], [0.2, 0.35, 1], [0.42, 0.2, 0.8]]) {
+        const ex = f0 - fl.dir * L0 * o, er = R0 * 1.3 + (R1 - R0 * 1.3) * Math.min(1, o * 1.4);
+        x.strokeStyle = `rgba(255,255,255,${a * k * (o ? 1 - 0.5 * soft : 1)})`; x.lineWidth = wd; x.beginPath(); x.ellipse(ex, y, Math.max(0.6, er * 0.16), er, 0, 0, TAU); x.stroke();
+      }
+      x.restore();
+    }
+    // THE SHOCK RING: where it broke through — a thin bright ring seen edge-on (a tall ellipse), expanding + fading with the cone; it stays there
     if (st.ring && s.motion) {
-      const rx0 = noseX(st.ring.u) - fl.dir * len * 0.55, r = len * (0.12 + 0.75 * Math.sqrt(st.ring.k)), a = (1 - st.ring.k) ** 1.4;
-      x.globalCompositeOperation = 'lighter'; x.strokeStyle = `rgba(235,242,255,${0.85 * a})`; x.lineWidth = 1.3 * (1 - 0.5 * st.ring.k);
+      const rx0 = noseX(st.ring.u) - fl.dir * len * 0.16, r = Math.min(len, room * 1.5 + 14) * (0.16 + 0.85 * Math.sqrt(st.ring.k)), a = (1 - st.ring.k) ** 1.3;
+      x.globalCompositeOperation = 'lighter'; x.strokeStyle = `rgba(235,242,255,${0.9 * a})`; x.lineWidth = 1.7 * (1 - 0.5 * st.ring.k);
       x.beginPath(); x.ellipse(rx0, y, r * 0.3, r, 0, 0, TAU); x.stroke(); x.globalCompositeOperation = 'source-over';
     }
     if (st.on) {
@@ -172,25 +203,17 @@ export function createBlackbird() {
       const key = `${art}|${Math.round(len)}|${Math.round(look.day * 8)}|${Math.round(look.golden * 8)}|${Math.round(night * 8)}|${d}`;
       if (!spr || key !== sprKey) { if (spr) spr.cv.width = 0; spr = sr71Sprite(len, look, d); sprKey = key; }
       if (spr) x.drawImage(spr.cv, -spr.ox, -spr.oy - len * 0.029, spr.w, spr.h);
-      // THE VAPOR CONE: a bright white bell round its tail half — sharp at its front, soft behind (additive)
-      if (st.cone > 0.01) {
-        x.globalCompositeOperation = 'lighter';
-        const c0 = len * 0.62, c1 = -len * 0.05, R0 = len * 0.035, R1 = len * 0.16, g = x.createLinearGradient(c0, 0, c1, 0);
-        g.addColorStop(0, `rgba(255,255,255,${0.95 * st.cone})`); g.addColorStop(0.18, `rgba(240,246,255,${0.6 * st.cone})`); g.addColorStop(1, 'rgba(230,240,255,0)');
-        x.fillStyle = g; x.beginPath(); x.moveTo(c0, -R0); x.quadraticCurveTo(c0 - len * 0.12, -R1 * 0.95, c1, -R1); x.lineTo(c1, R1); x.quadraticCurveTo(c0 - len * 0.12, R1 * 0.95, c0, R0); x.closePath(); x.fill();
-        x.strokeStyle = `rgba(255,255,255,${0.9 * st.cone})`; x.lineWidth = 0.9; x.beginPath(); x.ellipse(c0 - len * 0.01, 0, len * 0.012, R0 * 1.2, 0, 0, TAU); x.stroke();
-        x.globalCompositeOperation = 'source-over';
-      }
       // at night its lights: a red beacon on the spine, the tail's white
       if (night > 0.2) { x.globalCompositeOperation = 'lighter'; x.globalAlpha = night * (Math.sin(s.t * 9) > 0.4 ? 0.9 : 0.2); x.drawImage(glow([255, 40, 40]), len * 0.5 - 4, -len * 0.04 - 4, 8, 8); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; }
       x.restore();
     }
-    lastDbg = { e: +e.toFixed(2), on: st.on, u: +st.u.toFixed(3), x: Math.round(nx), y: Math.round(y), len: Math.round(len), cone: +st.cone.toFixed(2), ring: st.ring ? +st.ring.k.toFixed(2) : null, burn: +st.burn.toFixed(2),
+    x.restore();
+    lastDbg = { e: +e.toFixed(2), coneX: st.cone > 0 ? Math.round(noseX(st.coneU) - fl.dir * len * 0.42) : null, on: st.on, u: +st.u.toFixed(3), x: Math.round(nx), y: Math.round(y), len: Math.round(len), cone: +st.cone.toFixed(2), ring: st.ring ? +st.ring.k.toFixed(2) : null, burn: +st.burn.toFixed(2),
       box: { x: Math.round(Math.min(nx, tailX - fl.dir * len * BB.plume)), y: Math.round(y - len * 0.14), w: Math.round(len * (1 + BB.plume)), h: Math.round(len * 0.24) }, top: Math.round(top), d };
     return true;
   }
   return {
-    start, frame,
+    start, frame, prefetch,
     on: () => !!fl,
     /** THE ART SWITCH: 'drawn' (the default) | 'model' (a baked sprite — once a bake exists; else the drawing stays) */
     setArt(a) { art = a === 'model' ? 'model' : 'drawn'; },

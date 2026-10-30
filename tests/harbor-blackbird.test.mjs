@@ -10,10 +10,17 @@ const OFF = -240, at = iso => Date.parse(iso) / 1000;
 test('THE FLYBY: the tell before it, the cone just after it enters, the ring, full Mach diamonds from the cone, the double boom late', () => {
   assert.ok(bbAt(-2).tell && !bbAt(-2).on, 'the static tell before it enters');
   assert.ok(bbAt(0.05).on && bbAt(0.05).cone === 0 && bbAt(0.05).burn < 0.7, 'enters on a partial burn');
-  const c = bbAt(BB.cone + BB.coneLen / 2);
-  assert.ok(c.cone > 0.9 && c.ring && c.ring.k > 0 && c.burn > 0.95, `the vapor cone (${c.cone.toFixed(2)}) + the ring + full burn`);
-  assert.equal(bbAt(BB.cone + BB.coneLen + 0.01).cone, 0, 'the cone ~0.4 s');
-  assert.equal(bbAt(BB.cone + BB.ring + 0.01).ring, null, 'the ring ~0.8 s');
+  const c = bbAt(BB.cone + BB.coneIn + 0.1);
+  assert.ok(c.cone > 0.99 && c.ring && c.ring.k > 0 && c.burn > 0.95, `the vapor cone (${c.cone.toFixed(2)}) + the ring + full burn`);
+  // SKY-B — CENTRE STAGE + IT LINGERS (the owner): it forms with the craft's middle near the screen's centre (402 pt, a 96-pt body), holds,
+  // then dissipates slowly — ~1.5–2 s in all; the ring with it
+  const noseAt = u => -0.2 * 96 + u * (402 + 0.2 * 96), mid = noseAt(c.coneU) - 48;
+  assert.ok(Math.abs(mid - 201) < 40, `the barrier breaks centre stage (the craft's middle at ${mid.toFixed(0)} of 402)`);
+  assert.ok(bbAt(BB.cone + 1.4).cone > 0.05 && bbAt(BB.cone + 1.4).cone < 0.6, `still there + fading at 1.4 s (${bbAt(BB.cone + 1.4).cone.toFixed(2)})`);
+  const gone = BB.coneIn + BB.coneHold + BB.coneFade;
+  assert.ok(gone >= 1.5 && gone <= 2.2 && bbAt(BB.cone + gone + 0.01).cone === 0, `the cone's whole life ${gone.toFixed(2)} s (~1.5–2)`);
+  for (let s = 0; s < gone; s += 0.05) assert.ok(bbAt(BB.cone + s + 0.05).cone <= bbAt(BB.cone + s).cone + 1e-9 || s < BB.coneIn, 'it only fades once it has bloomed');
+  assert.ok(BB.ring >= 1.5 && bbAt(BB.cone + BB.ring + 0.01).ring === null, 'the ring fades with it');
   assert.equal(bbAt(BB.cone + BB.boom - 0.01).boom, null);
   assert.ok(Math.abs(bbAt(BB.cone + BB.boom + 0.1).boom - 0.1) < 1e-9, 'the boom ~0.9 s after the cone');
   assert.ok(BB.boomGap >= 0.15 && BB.boomGap <= 0.3, '"ba-BOOM": the second hit 0.15–0.3 s later');
@@ -74,4 +81,10 @@ test('THE WATCHER\'s REWARD: 60 visible minutes — a short break only pauses it
   run(50 * 60); assert.equal(fired, 1);
   // the next day: again
   const r = watcherStep(st, t + 5, true, 'd2'); assert.ok(r.state.acc <= W.step, 'a new day starts over');
+});
+
+test('SKY-B — THE RADIO CRACKLE IS HEARD (the owner: "missing / too quiet", music on or off): an EFFECT on the effects bus, its level up with the boom + the scream (the files are all normalized alike)', async () => {
+  const { slotOf } = await import('../js/core/city-sounds.js');
+  const st = slotOf('bb-static'), sc = slotOf('bb-scream'), bm = slotOf('bb-boom');
+  assert.ok(st.gain >= 0.8 * sc.gain && st.gain >= 0.6 * bm.gain, `the crackle ${st.gain} vs the scream ${sc.gain} + the boom ${bm.gain}`);
 });

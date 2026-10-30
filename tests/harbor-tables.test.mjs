@@ -33,7 +33,7 @@ test('NIGHT-B — THE CITY TIMETABLE: one row per timed thing (a trigger each, l
   for (const r of SCHEDULE) {
     assert.ok(TRIGGERS.includes(r.trigger), `${r.id}: trigger ${r.trigger}`);
     assert.ok(r.src && r.what, `${r.id}: where it lives + what it is`);
-    assert.ok(['live', 'planned'].includes(r.status), `${r.id}: status`);
+    assert.ok(['live', 'planned', 'off'].includes(r.status), `${r.id}: status`);
     for (const c of r.conflicts || []) assert.ok(CONFLICTS.some(x => (x.a === r.id && x.b === c) || (x.b === r.id && x.a === c)) || ids.includes(c) || /^(traffic|traffic\.front|cabstand|storm|window\.party)$/.test(c), `${r.id}: its conflict ${c} is in the table`);
   }
   for (const id of ['party.night', 'party.crowd', 'party.songs', 'party.break', 'party.spill', 'party.bench', 'party.conga', 'cart.party', 'rosie.bell']) assert.ok(scheduleRow(id), `${id} registered`);

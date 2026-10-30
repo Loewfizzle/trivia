@@ -298,6 +298,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       const u = used(), inUse = air.lanesInUse();
       const free = { 'sky-high': !u.has('sky-high'), 'sky-low': !u.has('sky-low') };
       if (!s.force.has('no-planes')) air.draw(c, s, free);
+      air.heliSky(c, s);                                           // (SKY-B: the patrol's far pass — BEHIND the towers)
       balloons.draw(c, s);
       if (lanes) banner.draw(c, s, bannerLane(s));
       smoke.draw(c, s, lastSun);                                   // (POLISH 4: the sun, so the sky letters' dark halo firms up in front of its glare)
@@ -311,14 +312,17 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     /** after the near city (before the water: the mirror doubles them): the drones up in the sky, the gulls over the harbor */
     city(c, s) {
       // (6b: the helicopter over the harbor, in front of the skyline — never behind a tower; its searchlight down to the waterline)
-      air.heliDraw(c, s); air.beam(c, s, waterTop + (waterY1 - waterTop) * 0.35, 'upper', waterTop);
+      air.heliDraw(c, s);
       drones.draw(c, s, 'sky');
       if (!s.force.has('no-birds') && lanes) birds.harbor(c, s, { x0: 0, x1: W, y0: lanes.skyline.y + lanes.skyline.h * 0.45, y1: waterTop - 6 });
     },
     /** after the harbor layer: the barge + the drones still low by it, the helicopter's searchlight down to the water */
-    harbor(c, s) { if (aurNow > 0.02) { aur.reflect(c, aurNow, { y0: waterTop, y1: waterY1 }, s.t, s.motion); aurNow = 0; } drones.barge(c, s); drones.draw(c, s, 'low'); air.beam(c, s, waterTop + (waterY1 - waterTop) * 0.35, 'lower', waterTop); },
-    /** after the near boats: the helicopter's searchlight down to the water */
-    beam() { /* (6b: the searchlight draws with the helicopter now — city() + harbor()) */ },
+    harbor(c, s) { if (aurNow > 0.02) { aur.reflect(c, aurNow, { y0: waterTop, y1: waterY1 }, s.t, s.motion); aurNow = 0; } drones.barge(c, s); drones.draw(c, s, 'low'); },
+    /** after the near boats: SKY-B — the patrol's NEAR pass, low over the near water, + its searchlight down to the water / onto its spot */
+    beam(c, s) { air.heliNear(c, s, waterY1 - 6, waterTop); },
+    /** SKY-B — after the people: the patrol's searchlight on the PROMENADE (a stop that looks at it) */
+    heliFront(c, s) { air.heliFront(c, s, waterY1 - 6, waterTop); },
+    heliLook: () => air.lookNow(),
     /** NIGHT-C — THE HELICOPTER UP FOR THE DANCE BREAK (after the people — screens/harbor/air.js#breakFly + breakDraw): f = the break's flight
      *  (core/harbor-heli.js#breakFlight) or null once it's over (it flies off); crowd: the dancers' span on the floor (scene.js) */
     heliBreak(c, s, f, crowd, avoid) {

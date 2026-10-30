@@ -574,6 +574,8 @@ export function createBoats() {
     },
     /** anything fast on the water (the taxi crossing): the scene keeps 60 fps */
     busy: () => states.some(s => s.on && s.moving && s.r.kind === 'taxi'),
+    /** SKY-B: where each boat on the water is on screen (the patrol's searchlight picks one to look at) */
+    spots: () => (cam ? states.filter(s => s.on).map(s => ({ id: s.r.id, x: project(cam, s.x, 0, s.z)[0], y: project(cam, s.x, LEVEL, s.z)[1] })) : []),
     /** HOOKS: { rosie: 'city' | 'valentine' | 'parade' | 'party' | 'halloween' | 'christmas' } — her bulb strings (11b/11c, 10);
      *  { chase: { rate (bulbs a second, 8), k (0..1, the band's depth), span (bulbs between bands, 6) } | null } — PART 10's chase */
     set(o) {

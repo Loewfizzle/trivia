@@ -23,7 +23,7 @@ export const SECONDS = {
   legends: 55,         // (6b: the legendary sky — three pages, a guess; SKY-A: + the F-22 chase page)
   blackbird: 50,       // (SKY-A: THE BLACKBIRD — four pages: forced, the chase, the watcher, a solo sighting)
   blackout: 30,        // (C4c: the TR-3B's blackout on four holiday nights at 3× — 24 s on the laptop)
-  bench: 15,           // (C4c: THE PHONE BENCH — the card, two scenes measured at &benchfast=1, the report)
+  bench: 25,           // (C4c: THE PHONE BENCH — the card, two scenes measured at &benchfast=1, the report; SKY-B: a fresh page per scene — 22 s on the laptop)
   workers: 75,         // (8b1: the workers — four pages, measured on the laptop)
   wildlife: 85,        // (8b1: the animals — eight pages incl. the panel rows; 81 s on the laptop)
   tape: 85,            // (Oct 25: THE TAPE STOP — one page, a whole TR-3B in real time + a second run; measured on the laptop)
