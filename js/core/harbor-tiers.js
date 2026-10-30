@@ -30,6 +30,9 @@ export const TIERS = Object.freeze({
   // NIGHT-C — THE ROOF SIGNS AT 3× (scene.js#roofCrisp): on the crisp layer at the phone's full dpr (1) or the city's own (0) — tier 0's
   // neon is one baked image per group, so its roof signs stay in it
   roofCrisp: Object.freeze([0, 1, 1]),
+  // SKY-A — THE LEGENDS' CRAFT AT FULL RES (legends.js#triOverlay: the TR-3B on its own overlay at the phone's dpr, the crowns clipped in
+  // front of it) — 1 = on (tier 2), 0 = the city's own 2× canvas
+  legendCrisp: Object.freeze([0, 0, 1]),   // (the top tier only: moving a 3× canvas a frame costs compositing — the laptop's p95 17.6 → 33 ms at 1×)
   // NIGHT-C — THE LIVE WINDOWS AT 3× (scene.js#liveWinCrisp): the boss's TV room + the two cut-off side rooms on the crisp layer at night (1)
   // or in the city's canvas (0) — three small panes repainted a frame
   liveWin3x: Object.freeze([0, 1, 1]),

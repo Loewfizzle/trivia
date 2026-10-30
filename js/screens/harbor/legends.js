@@ -26,7 +26,8 @@ import { GIANT } from '../../core/harbor-holidayprops.js';
 import { ufoAt, tr3bAt, legendAt, legendNight, tr3bDir, eveningOf, drainAt, blackAt, blackAll, CHASE, chaseX, chasePeakS, chaseBank, CHASE_BANK, FORMATIONS, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
 import { lookOf, drawFolk } from './folk.js';
 import { createJets, jetLook } from './jets.js';
-import { safeCtx } from '../../ui/canvas-safe.js';
+import { safeCtx, ctx2d } from '../../ui/canvas-safe.js';
+import { tierVal } from '../../core/harbor-tiers.js';
 import { loadUfoModel, rowsAt, frameAt, drawBody, drawLights, portsAt } from './ufo-model.js';
 
 const TAU = Math.PI * 2;
@@ -217,8 +218,8 @@ function noiseTile() {
   x.putImageData(img, 0, 0);
   return (noiseC = cv);
 }
-function tr3bSprite(len, dpr) {
-  const W = len * 1.2, H = len * 0.62, d = Math.min(2.5, Math.max(1.5, dpr));
+function tr3bSprite(len, dpr, hi = false) {
+  const W = len * 1.2, H = len * 0.62, d = hi ? dpr : Math.min(2.5, Math.max(1.5, dpr));   // (SKY-A: hi = its full-res overlay: the phone's own dpr)
   const cv = mk(W * d, H * d), x = safeCtx(cv);
   x.setTransform(d, 0, 0, d, (W * 0.45) * d, (H * 0.47) * d);      // (the origin = the triangle's CENTRE: the hub + the red orb sit there)
   // seen from below as it crosses: the nose toward +x (the flight), the far rear corner up, the near one down (flattened by the view)
@@ -242,11 +243,13 @@ function tr3bSprite(len, dpr) {
     x.save(); x.translate(0, lw * 1.1); x.strokeStyle = `rgba(150,140,180,${0.16 * a})`; x.lineWidth = lw * 0.8; x.beginPath(); draw(); x.stroke(); x.restore();
   };
   // ITS THICKNESS: the hull's side wall along the near edges (gunmetal, darker down its face) + the bevel's lit lip
-  x.save(); x.translate(0, len * 0.034); path();
-  let g = x.createLinearGradient(0, -len * 0.1, 0, len * 0.26); g.addColorStop(0, 'rgb(30,28,38)'); g.addColorStop(1, 'rgb(14,13,19)');
+  // (SKY-A — THE OWNER: "it read as a flat cut-out CASTING A SHADOW": the side wall was darker than the belly, offset under the near edges
+  // — a drop shadow. Now it's a SURFACE: a gunmetal face a touch LIGHTER than the belly (the city's glow on it), thinner, its lower lip lit)
+  x.save(); x.translate(0, len * 0.024); path();
+  let g = x.createLinearGradient(0, -len * 0.1, 0, len * 0.26); g.addColorStop(0, 'rgb(40,37,50)'); g.addColorStop(1, 'rgb(30,27,38)');
   x.fillStyle = g; x.fill(); x.restore();
-  x.save(); x.translate(0, len * 0.017); path(); x.fillStyle = 'rgb(20,18,26)'; x.fill(); x.restore();
-  x.save(); x.translate(0, len * 0.034); x.strokeStyle = 'rgba(120,112,140,0.28)'; x.lineWidth = lw; x.beginPath(); x.moveTo(P[0][0] - len * 0.03, P[0][1] + len * 0.006); x.lineTo(P[2][0] + len * 0.02, P[2][1] - len * 0.004); x.stroke(); x.restore();
+  x.save(); x.translate(0, len * 0.012); path(); x.fillStyle = 'rgb(28,25,35)'; x.fill(); x.restore();
+  x.save(); x.translate(0, len * 0.024); x.strokeStyle = 'rgba(150,140,175,0.42)'; x.lineWidth = lw; x.beginPath(); x.moveTo(P[0][0] - len * 0.03, P[0][1] + len * 0.006); x.lineTo(P[2][0] + len * 0.02, P[2][1] - len * 0.004); x.stroke(); x.restore();
   // THE BELLY: matte near-black (radar-absorbent), a little lighter toward the near edge
   path();
   g = x.createLinearGradient(0, -len * 0.22, 0, len * 0.24);
@@ -505,10 +508,45 @@ export function createLegends({ clock, qp } = {}) {
   const triLen = () => Math.max(200, Math.min(W * 0.66, 420));
   let triKey = '';
   function triSizes() {
-    const key = `${Math.round(triLen())}|${dpr}`;
+    const d = triHi() ? devDpr() : dpr, key = `${Math.round(triLen())}|${d}`;
     if (key === triKey && tri) return;
     triKey = key; if (tri) tri.cv.width = 0;
-    tri = tr3bSprite(triLen(), dpr);
+    tri = tr3bSprite(triLen(), d, triHi());
+  }
+  // ---------------------------------------------------------------- SKY-A — THE TR-3B AT FULL RES (the owner, Oct 28: "make it the best")
+  // The craft on its OWN overlay at the phone's dpr (a canvas the size of its sprite, moved with it — ~2.6 MB at 3×, only while it flies),
+  // over the city's canvas + under the sign; the ROOFLINE is clipped out of it, so the crowns still stand in front of its belly (the depth
+  // it always had). It YIELDS to the city's own 2× copy whenever something would pass in front: rain / snow, fog, a storm.
+  const devDpr = () => Math.min(3, (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 2);
+  let triOv = null, triOvX = null, triOvKey = '', triHiNow = false, ovBox = null, triLightsNow = null;
+  const triHi = () => triHiNow;
+  function triOverlayWanted(fs, host) {
+    const Lk = fs.L || {}, wet = (Lk.rain || 0) > 0.03 || (Lk.snow || 0) > 0.03, fog = (Lk.fog || 0) > 0.3;
+    return !!host && tierVal('legendCrisp', tier) > 0 && devDpr() > dpr + 0.2 && !wet && !fog && !Lk.storm && !(fs.force && fs.force.has('no-legend-crisp'));
+  }
+  function triOverlayFree() { if (triOv) { triOv.width = triOv.height = 0; triOv.remove(); } triOv = null; triOvX = null; triOvKey = ''; }
+  /** this frame's overlay context, placed so the craft's centre (p) maps to its middle — or null (the city's own canvas) */
+  function triOverlay(c, fs, p) {
+    const host = c && c.canvas && c.canvas.parentElement, want = triOverlayWanted(fs, host);
+    if (want !== triHiNow) { triHiNow = want; triKey = ''; }
+    if (!want) { if (triOv) triOverlayFree(); return null; }
+    triSizes();
+    const d = devDpr(), pad = 24, w = tri.w + pad * 2, h = tri.h + pad * 2, key = `${Math.round(w)}|${Math.round(h)}|${d}`;
+    if (!triOv || key !== triOvKey || triOv.parentElement !== host) {
+      triOverlayFree();
+      triOv = document.createElement('canvas'); triOv.className = 'hl-tri'; triOv.setAttribute('aria-hidden', 'true');
+      Object.assign(triOv.style, { position: 'absolute', left: '0px', top: '0px', pointerEvents: 'none', width: `${w}px`, height: `${h}px`, willChange: 'transform' });
+      triOv.width = Math.ceil(w * d); triOv.height = Math.ceil(h * d); host.appendChild(triOv); triOvX = ctx2d(triOv); triOvKey = key;
+      if (!triOvX) { triOverlayFree(); return null; }
+    }
+    const left = Math.round(p.x - w / 2), top = Math.round(p.y - h / 2);
+    triOv.style.transform = `translate(${left}px, ${top}px)`;
+    const x = triOvX;
+    x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, triOv.width, triOv.height);
+    x.setTransform(d, 0, 0, d, -left * d, -top * d);
+    // (the CROWNS in front: after the craft is drawn, the city's own skyline bitmaps cut it out — fs.cityCut — exactly their silhouettes)
+    ovBox = { left, top, w, h };
+    return x;
   }
   // PRE-BAKE (POLISH 4 — the owner's iPhone: "jaggy / laggy when it comes on screen"): the craft's sprite + the jets' are baked in
   // their own tasks as soon as a run is due (a minute ahead on a legendary night, at once for a preview), never on the frame the
@@ -613,10 +651,12 @@ export function createLegends({ clock, qp } = {}) {
     const y0 = bandY0, y1 = crown, yc = lerp(y0, y1, 0.6) + (y1 - y0) * 0.14 * st.dip;   // (low: against the city's glow, the tallest crowns in front of its belly)
     return { x: st.x * W, y: yc };
   }
-  function drawTr3b(c, fs) {
-    if (!st || run.kind !== 'tr3b') return;
+  function drawTr3b(c0, fs) {
+    if (!st || run.kind !== 'tr3b') { triLightsNow = null; if (triOv) triOverlayFree(); return; }
     const p = triPos(), len = triLen(), dir = run.dir, t = sNow;
-    if (p.x + len < -20 || p.x - len > W + 20) { drawChase(c, fs); return; }
+    if (p.x + len < -20 || p.x - len > W + 20) { triLightsNow = null; if (triOv) triOverlayFree(); drawChase(c0, fs); return; }
+    // (SKY-A: on its full-res overlay when it may be — else on the city's canvas as before)
+    const ov = triOverlay(c0, fs, p), c = ov || c0;
     triSizes();                                    // (baked ahead by warm(); a no-op here unless the size changed)
     const mo = fs.motion !== false && fs.motion !== 0;
     const lit = 1 - blackAll(Math.max(0, sNow), 'city').k;      // (the city's glow under it — gone in the blackout)
@@ -684,11 +724,26 @@ export function createLegends({ clock, qp } = {}) {
     }
     // the corner orbs (pale, a faint amber; pulsing slowly in turn) + the hub: a ring of lamps round it chasing, the red-orange
     // centre's slow heavy pulse
+    // SKY-A — THE LIGHTS ARE LIGHT (the owner: "it looks like a painted-on glow — make it stunning"), every one a cached sprite ADDED:
+    // (1) THEY LIGHT THE CRAFT — clipped to the hull: each corner light washes the metal round it (a falloff: the panels near it catch it),
+    // the red orb washes the belly's middle, pulsing with it; (3) REAL GLOW — a wide soft bloom + a hot core round each light, a faint
+    // horizontal FLARE on the brightest
+    const kc = P.map((q, i) => 0.65 + 0.35 * Math.sin(t * 1.6 + i * 2.1)), lv = tier > 0;
+    c.save(); c.beginPath(); P.forEach((q, i) => (i ? c.lineTo(q[0] * 0.97, q[1] * 0.97) : c.moveTo(q[0] * 0.97, q[1] * 0.97))); c.closePath(); c.clip();
+    P.forEach((q, i) => glow(c, [196, 204, 232], q[0] * 0.8, q[1] * 0.8, len * 0.36, len * 0.15, 0.2 * kc[i]));
+    glow(c, [255, 40, 18], 0, 0, len * 0.62, len * 0.25, 0.1 + 0.14 * pulse);
+    c.restore();
     P.forEach((q, i) => {
-      const k = 0.65 + 0.35 * Math.sin(t * 1.6 + i * 2.1);
-      glow(c, [255, 236, 210], q[0] * 0.8, q[1] * 0.8, len * 0.085, len * 0.045, 0.5 * k);
-      glow(c, [255, 252, 244], q[0] * 0.8, q[1] * 0.8, len * 0.026, len * 0.016, 0.95 * k);
+      const k = kc[i], x0 = q[0] * 0.8, y0 = q[1] * 0.8;
+      if (lv) glow(c, [214, 222, 255], x0, y0, len * 0.2, len * 0.11, 0.26 * k);
+      glow(c, [255, 236, 210], x0, y0, len * 0.085, len * 0.045, 0.55 * k);
+      glow(c, [255, 252, 244], x0, y0, len * 0.026, len * 0.016, 0.95 * k);
     });
+    if (lv) { const ib = kc.indexOf(Math.max(...kc)), q = P[ib]; glow(c, [226, 234, 255], q[0] * 0.8, q[1] * 0.8, len * 0.34, len * 0.0075, 0.4 * kc[ib]); }
+    // (2) THEY LIGHT THE WORLD — their places on the screen this frame for the scene (scene.js#triWorldLight: a glow sliding over the
+    // drained rooftops + their reflections in the harbor)
+    { const cs = Math.cos(-0.02), sn = Math.sin(-0.02), S = (lx, ly) => ({ x: p.x + dir * (lx * cs - ly * sn), y: p.y + (lx * sn + ly * cs) });
+      triLightsNow = [...P.map((q, i) => ({ ...S(q[0] * 0.8, q[1] * 0.8), col: [236, 240, 255], k: kc[i] })), { ...S(0, 0), col: [255, 60, 30], k: 0.75 + 0.25 * pulse, orb: true }]; }
     { const rx = len * HUB_R * 0.83, ry = rx * 0.4, n = 12;
       for (let i = 0; i < n; i++) {
         const a = (i / n) * TAU, w = mo ? Math.pow(0.5 + 0.5 * Math.cos(a - t * 2.2), 4) : 0.4;
@@ -698,7 +753,8 @@ export function createLegends({ clock, qp } = {}) {
     glow(c, [255, 140, 70], 0, 0, len * 0.055, len * 0.024, 0.75 + 0.25 * pulse);
     glow(c, [255, 236, 210], 0, 0, len * 0.02, len * 0.01, 0.9);
     c.restore();
-    drawChase(c, fs);
+    if (ov && fs.cityCut && ovBox) { c.save(); c.globalCompositeOperation = 'destination-out'; c.globalAlpha = 1; fs.cityCut(c, ovBox); c.restore(); }
+    drawChase(c0, fs);
   }
   /** the chase's jets on the screen u into their pass: [{ x, y, i, sc (its depth: the vic's near wingman a touch bigger) }] (the lead first) */
   function chaseJets(u) {
@@ -931,6 +987,8 @@ export function createLegends({ clock, qp } = {}) {
     power, drainCols,
     /** the sky pass (after the clouds, before the city's layers): the TR-3B + the chase */
     sky: (c, fs) => drawTr3b(c, fs),
+    /** SKY-A: the TR-3B's lights on the screen this frame ([{ x, y, col, k, orb? }]) or null — the scene lights the world with them */
+    triLights: () => triLightsNow,
     /** the near pass (after the people on the promenade, before the front row): the abduction */
     near: (c, fs, env) => drawUfo(c, fs, env),
     /** the API: start one now (or at `at`) */
@@ -982,7 +1040,7 @@ export function createLegends({ clock, qp } = {}) {
     active: () => !!run,
     /** POLISH 4: the scene's dark city bake is wanted (a TR-3B due within the minute, or running) */
     darkWanted: () => (run ? run.kind === 'tr3b' : warmFor === 'tr3b'),
-    debug: () => ({ wheelTop: wheelTop == null ? null : +wheelTop.toFixed(1), craft: lastCraft, run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, model: modelState, elev: +lastElev.toFixed(1), frame: lastFrame, craft: run && run.kind === 'ufo' ? lastCraft : null, warm: warmFor, ring: { w: +ringW.toFixed(2), taken: +ringTaken.toFixed(2) }, chase: chaseNow }),
-    destroy() { for (const s of [saucer, beam, tri]) if (s) s.cv.width = 0; jets.destroy(); },
+    debug: () => ({ wheelTop: wheelTop == null ? null : +wheelTop.toFixed(1), craft: lastCraft, run: run ? { ...run } : null, s: +sNow.toFixed(2), phase: st ? st.phase : null, tri: !!tri, saucer: !!saucer, model: modelState, elev: +lastElev.toFixed(1), frame: lastFrame, craft: run && run.kind === 'ufo' ? lastCraft : null, warm: warmFor, ring: { w: +ringW.toFixed(2), taken: +ringTaken.toFixed(2) }, chase: chaseNow, triHi: !!triOv, triDpr: triOv ? +(triOv.width / parseFloat(triOv.style.width)).toFixed(2) : null }),
+    destroy() { for (const s of [saucer, beam, tri]) if (s) s.cv.width = 0; triOverlayFree(); jets.destroy(); },
   };
 }

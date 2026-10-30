@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BB, bbAt, bbLife, bbChaseAt, soloDay, soloNear, watcherStep } from '../js/core/harbor-blackbird.js';
-import { CHASE, chaseX, legendNight, TR3B_LEN } from '../js/core/harbor-legend.js';
+import { CHASE, chaseX, legendNight, TR3B_LEN, TR3B_HOURS } from '../js/core/harbor-legend.js';
 import { knob } from '../js/core/harbor-schedule.js';
 
 const OFF = -240, at = iso => Date.parse(iso) / 1000;
@@ -23,6 +23,11 @@ test('THE FLYBY: the tell before it, the cone just after it enters, the ring, fu
   // (it enters as the jets' lead is ⅓ across + leaves the far edge before that lead does)
   assert.ok(BB.cross < (1 - knob('blackbird.chase').jetsAcross) / (1.5 / CHASE.dur), 'gone before the jets');
   const life = bbLife(402, 68); assert.ok(bbAt(life + 0.1, 402, 68).done && !bbAt(1, 402, 68).done, `gone after its life (${life.toFixed(1)} s)`);
+});
+
+test('THE LEGENDS’ REGISTRY (THE CITY TIMETABLE): every legendary has its row, its numbers agree with the code that rolls them', () => {
+  for (const id of ['legend.ufo', 'legend.tr3b', 'legend.ghostship', 'legend.flyby', 'legend.mothman', 'legend.rule', 'blackbird.chase', 'blackbird.solo', 'blackbird.watcher']) assert.ok(knob(id), id);
+  assert.deepEqual(knob('legend.tr3b').hours, TR3B_HOURS);
 });
 
 test('THE CHASE: the Blackbird enters once the F-22s are ~⅓ across, before the power comes back', () => {

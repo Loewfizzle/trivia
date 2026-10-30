@@ -100,7 +100,7 @@ import { createWetGround } from './wetground.js';
 import { createStill } from './still.js';
 import { createCabStand } from './cabstand.js';
 import { createGlassWeather } from './glasswx.js';
-import { safeCtx, starvedCount, blurWorks, BAKE_CAP, canvasMb } from '../../ui/canvas-safe.js';
+import { safeCtx, ctx2d, starvedCount, blurWorks, BAKE_CAP, canvasMb } from '../../ui/canvas-safe.js';
 import { debugTool } from '../../ui/debug-tools.js';
 import { createDebugStrip, createDebugButton } from '../../ui/debug-strip.js';
 import { createReporter } from './report.js';
@@ -1408,6 +1408,54 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (S.onFlash) S.onFlash({ near: 0.12, boom: true });
     } })) fastUntil = Math.max(fastUntil, performance.now() + 300);
   }
+  // ---------------------------------------------------------------- SKY-A — THE TR-3B's LIGHTS LIGHT THE WORLD (the owner, Oct 30): the city
+  // is DRAINED dark while it passes, so its corner lights + the red orb are nearly the only light — a soft white / red glow slides across
+  // the ROOFTOPS + tower tops under it (masked to the buildings' own silhouettes: the far + near bakes, a mask built once per skyline) and
+  // shows as moving REFLECTIONS on the harbor (water.light). Cached sprites only, at half resolution (a glow is soft).
+  let wlCv = null, wlX = null, wlMask = null, wlMaskKey = '', wlDbg = null, wlFailed = false;
+  const wlSpr = new Map();
+  const wlSprite = col => { const k = col.join(','); let cv = wlSpr.get(k); if (!cv) { cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = ctx2d(cv); if (x) { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, `rgba(${k},0.9)`); g.addColorStop(0.35, `rgba(${k},0.4)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 64, 64); } wlSpr.set(k, cv); } return cv; };
+  function triWorldLight(c, lights, sk) {
+    if (!sk || !sk.length || !cam) return;
+    let mn = Infinity; for (const v of sk) if (Number.isFinite(v) && v < mn) mn = v;
+    for (const n of ['far', 'near']) { const g = baker.group(n); if (g && g.ready && g.show) mn = Math.min(mn, g.show.y0 + 30); }   // (the tallest crowns too)
+    const top = Math.max(0, mn - 30), bot = L.lanes && L.lanes.water ? L.lanes.water.y : HZ, h = bot - top, s = 0.5;
+    if (!(h >= 10)) { wlDbg = { why: 'h', top, bot, mn }; return; }
+    const cw = Math.ceil(W * s), ch = Math.ceil(h * s), mk = `${baker.key}|${cw}x${ch}|${Math.round(top)}`;
+    if (!wlCv || wlCv.width !== cw || wlCv.height !== ch) { if (!wlCv) wlCv = document.createElement('canvas'); wlCv.width = cw; wlCv.height = ch; wlX = ctx2d(wlCv); }
+    if (!wlX) return;
+    if (mk !== wlMaskKey) {
+      wlMaskKey = mk; if (!wlMask) wlMask = document.createElement('canvas'); wlMask.width = cw; wlMask.height = ch;
+      const m = ctx2d(wlMask); if (m) { m.setTransform(s, 0, 0, s, 0, -top * s); for (const n of ['far', 'near']) { const g = baker.group(n); if (g && g.ready && g.cur) m.drawImage(g.cur, 0, g.show.y0, W, g.show.h); } }
+    }
+    const x = wlX;
+    x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, cw, ch);
+    x.setTransform(s, 0, 0, s, 0, -top * s); x.globalCompositeOperation = 'lighter';
+    let any = false;
+    for (const l of lights) {
+      // (the light falls DOWN from the craft: a tall soft pool below it — the nearest crowns under it catch the most, the masks keep it on
+      // the buildings; the orb's red wider + stronger)
+      const k = l.k * (l.orb ? 0.52 : 0.38), r = l.orb ? 165 : 120;
+      if (k < 0.02) continue;
+      any = true;
+      x.globalAlpha = Math.min(1, k); x.drawImage(wlSprite(l.col), l.x - r * 0.75, l.y - r * 0.25, r * 1.5, r * 1.7);
+      try { water.light(l.x, l.y, l.col, k * (l.orb ? 0.8 : 0.6), l.orb ? 5 : 3.5); } catch { /* fine */ }
+    }
+    wlDbg = { n: lights.length, any, top: Math.round(top), bot: Math.round(bot), lights: lights.map(l => ({ x: Math.round(l.x), y: Math.round(l.y), roof: Math.round(sk[Math.max(0, Math.min(sk.length - 1, Math.round(l.x / 4)))]) })) };
+    if (!any) return;
+    x.globalAlpha = 1; x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'destination-in'; x.drawImage(wlMask, 0, 0);
+    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 1; c.drawImage(wlCv, 0, top, W, h); c.restore();
+  }
+  /** SKY-A — the TR-3B's full-res overlay: cut out exactly what stands in front of it (the skyline's own bitmaps: far, near, the harbor's
+   *  pieces, the billboards) — x already transformed to screen pt; box: the overlay's { left, top, w, h } */
+  function cityCut(x, box) {
+    for (const n of ['far', 'near', 'harbor', 'bill']) {
+      const g = baker.group(n); if (!g || !g.ready || !g.cur) continue;
+      const kx = g.cur.width / W, ky = g.cur.height / g.show.h, y0 = Math.max(box.top, g.show.y0), y1 = Math.min(box.top + box.h, g.show.y0 + g.show.h), x0 = Math.max(0, box.left), x1 = Math.min(W, box.left + box.w);
+      if (y1 <= y0 || x1 <= x0) continue;
+      x.drawImage(g.cur, x0 * kx, (y0 - g.show.y0) * ky, (x1 - x0) * kx, (y1 - y0) * ky, x0, y0, x1 - x0, y1 - y0);
+    }
+  }
   /** SKY-A — the signs the break helicopter never flies in front of (screen pt): the SIGNAL blade + the roof signs, OVERCLOCK, the WAIT /
    *  WALK lantern, the NEON sign — cached per camera */
   let avoidMemo = null;
@@ -1895,7 +1943,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the scheduler's first read is at once, the moment it exists)
     if (now - eventsAt > 500 || (sched && !schedRead)) { eventsAt = now; if (sched) { events = sched.at(clock.now()); schedRead = true; } density = densityOf([...events.quiet, ...sky.quiet()]); }
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
-    const fs = { centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
+    const fs = { cityCut, centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
     linkGate(now);
@@ -2041,6 +2089,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     lights.lateTv(LK.local ? lateTvK(LK.local.h + LK.local.mi / 60) * nightK : 0);
     if (!deadCity) lights.draw(c, 'near', now, nightK, S.motion);
     neon.draw(c, 'near', deadCity ? { ...nf, off: true } : nf);
+    if (legends && legends.active() && fadeIn > 0) { const tl = legends.triLights && legends.triLights(); if (tl) { try { triWorldLight(c, tl, skyline); } catch (e) { wlDbg = { err: String(e && e.message) }; if (!wlFailed) { wlFailed = true; reportError(e, 'harbor tr3b light'); } } } }
     // 9e — THE CONSTRUCTION TOWER's live layer (tower.js: the crane, the work lights, topping out, the implosion + its dust, the opening's
     // searchlights) — behind the roofs nearer than the slot (its own clip)
     if (TWS && !off.has('no-tower')) towerFx.draw(c, { st: TWS, T: bakeTones, dpr, bt: now / 1000, night: litK(DK, 'lamps'), t, motion: S.motion, power: LB ? legendPow(W * 0.3, 'city', 411) : 1, logo: S.logoRect, fade: fadeIn, wind: LK.wind == null ? 3 : LK.wind });
@@ -3315,7 +3364,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
       roofCrisp: roofCrispDebug(), liveCrisp: liveCrispDebug(),   // (NIGHT-C: the live windows' crisp share each)   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
-      blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip }); } },
+      tr3bLight: wlDbg, blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip }); } },
       heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), ms: sky.heliMs ? sky.heliMs() : null, crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
