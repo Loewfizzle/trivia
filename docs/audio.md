@@ -346,6 +346,12 @@ pulse any more".
   watchdog; a `pageshow` only; the punch swinging after each; the AUDIO panel's city row; 50 % vs 250 % live) + `panel` (the slider).
 
 ## THE CITY SOUNDS (PART 8a, Oct 23 2026; City 2.0's title) — `core/city-sounds.js`, `audio/city-sound.js`, `screens/harbor/sounds.js`, `scripts/add-city-sfx.py`
+
+**SKY-A — THE BLACKBIRD's sounds** (Grok's Sonniss takes — copied to a scratch folder, the originals untouched; `ALIAS` maps them to their
+slots): `bb-static` (radio-static.wav — three tells, 0.15–2.3 / 6.7–9.0 / 10.8–13.0 s), `bb-boom` (sonic-boom.wav 0.65–5.0 s, its low-mid
+lifted — played TWICE 0.22 s apart, the second a hair lower), `bb-scream` (jet-scream.wav 1.5–8.5 s sped up 1.25×: a higher, tearing whine,
+not the F-22s' roar). Cued on the clock by screens/harbor/blackbird.js (a late page joins without the cues it missed).
+
 ONE registry of every sound the city will ever make (the owner's CITY SOUNDS hunt list, docs/harbor/plan.md), each a named SLOT; the first
 recordings imported into theirs; every event that exists today calls its slot; an EMPTY slot is simply silent.
 - **The slots** (`core/city-sounds.js#SLOTS`, PURE): `{ id (kebab-case, stable), part, kind: 'loop' | 'once', gain (its mix level), what, by (what calls
@@ -1297,6 +1303,12 @@ with `add-city-sfx.py --src ~/Downloads/city-sfx-party` (its CUTS rows: `party-*
   Muted / locked audio = silent; an empty slot = silent (nothing breaks). ☰ → CREDITS: a SOUND EFFECTS section (15 lines from credits.txt).
 
 ## THE PARTY SONG IN SYNC (NIGHT-C, Oct 30 2026; City 2.0 — docs/harbor/passes/night-c.md)
+
+**SKY-A — THE SYNCED PLAYER CLAIMS THE SONG** (the owner's iPhone log: "play × AbortError c2-party3.mp3 (start)"): `party-music.js#partyClaims` —
+while the synced player loads, the mood provider (app.js) starts NOTHING on this phone's own player (no wasted download, no AbortError);
+the own player still covers on a dead graph, a legendary's hold, a failed decode (`synced-songs.js#failed`) or after `PARTY_WAIT_MS` (8 s)
+of a running context with the synced song still silent.
+
 The owner (Oct 30 12:36 am): "the same party song on every phone". On a PARTY NIGHT (+ the preview panel's PARTY and `&force=dance`) the
 City 2.0 PARTY deck plays as ONE timeline every phone computes the same way, on the SERVER clock:
 - **The timeline** (`core/party-deck.js`, PURE): seeded shuffle CYCLES of the deck (every song once a cycle, never the same song twice in a

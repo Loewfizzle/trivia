@@ -1433,12 +1433,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     x.setTransform(s, 0, 0, s, 0, -top * s); x.globalCompositeOperation = 'lighter';
     let any = false;
     for (const l of lights) {
-      // (the light falls DOWN from the craft: a tall soft pool below it — the nearest crowns under it catch the most, the masks keep it on
-      // the buildings; the orb's red wider + stronger)
-      const k = l.k * (l.orb ? 0.52 : 0.38), r = l.orb ? 165 : 120;
+      // (the light falls DOWN from the craft — the owner, Oct 30: the first pass "almost looks too bright", whole towers lit top to bottom like
+      // a floodlight. Now a SHALLOW pool just under each light: the crowns nearest it catch it, the walls below fade fast (the masks keep it
+      // on the buildings), a lower peak; the orb's red a warmer, less saturated red-orange — light on stone, not a red filter)
+      const k = l.k * (l.orb ? 0.34 : 0.24), rx = l.orb ? 125 : 90, ry = l.orb ? 82 : 66;
       if (k < 0.02) continue;
       any = true;
-      x.globalAlpha = Math.min(1, k); x.drawImage(wlSprite(l.col), l.x - r * 0.75, l.y - r * 0.25, r * 1.5, r * 1.7);
+      x.globalAlpha = Math.min(1, k); x.drawImage(wlSprite(l.orb ? [255, 120, 80] : l.col), l.x - rx, l.y + 26 - ry, rx * 2, ry * 2);
       try { water.light(l.x, l.y, l.col, k * (l.orb ? 0.8 : 0.6), l.orb ? 5 : 3.5); } catch { /* fine */ }
     }
     wlDbg = { n: lights.length, any, top: Math.round(top), bot: Math.round(bot), lights: lights.map(l => ({ x: Math.round(l.x), y: Math.round(l.y), roof: Math.round(sk[Math.max(0, Math.min(sk.length - 1, Math.round(l.x / 4)))]) })) };

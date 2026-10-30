@@ -1608,6 +1608,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE DOG's TURN: its heading eased over 0.6 s (dogHeading), its place a continuous function of it (dogOffset), the dock clamp before the
   sniff (dogPlace), a squash-through flip while it turns (drawDog): the biggest move a frame 1.85 → 0.13 u.
 
+## CITY 2.0 — SKY-A: THE HELICOPTER, THE F-22s, THE BLACKBIRD, THE TR-3B (Oct 30 2026) — docs/harbor/passes/sky-a.md (plan.md "OWNER'S NOTES — OCT 30 (morning)")
+- THE HELICOPTER REWORKED: the dance-break flight a 54-pt craft low over the water in front of the skyline, in a band clear of every sign,
+  drifting back and forth over the crowd + turning to face where it flies, lit by the city; the beam a soft wide cone + a soft pool, baked
+  per palette colour before the flight; THE CANVAS LEAK (a glow canvas per in-between colour: the owner's 949) fixed; the patrol's original
+  route as a circuit, two loops, every ~30 min at night (3–4 min), hourly by day (2–3 min).
+- THE SYNCED NIGHT: the synced player claims the party song while it loads — this phone's own player starts nothing first.
+- THE F-22 MODEL: NLM's CC BY Raptor baked (gear up, ladder off, stencils softened, gunmetal; 4 banks × 3 lights) — every F-22; the chase a
+  tight vic with a unison bank.
+- THE BLACKBIRD: one flyby (the static tell, the vapor cone + shock ring, the Mach diamonds, the late double boom, the scream; the city
+  shakes a touch) drawn on its own full-dpr overlay above the sign, one art switch; every TR-3B chase (across the dark sign), rare solo
+  sightings, the watcher's reward; its sounds imported (Sonniss).
+- THE TR-3B AT FULL RES on its own overlay (the skyline cut out of it; tier 2), no drop-shadow look; ITS LIGHTS ARE LIGHT — they light the
+  hull, bloom + flare, and light the drained city + the harbor below it. THE LEGENDS' REGISTRY in THE CITY TIMETABLE; a ninth cloud job.
+
 ## CITY 2.0 — NIGHT-C: THE HELICOPTER, THE ROOF SIGNS, THE QUIET BUILDING (Oct 30 2026) — docs/harbor/passes/night-c.md (plan.md "OWNER'S NOTES — OCT 30 (after midnight)")
 - The stage light ON by default (`&stage=0` + TOOLS for A/B); A REAL ZEBRA: five wide bars, each as deep as its gap, short of both kerbs.
 - THE PARTY SONG IN SYNC: the PARTY deck as one seeded timeline on the server clock (core/party-deck.js, audio/party-music.js) — every

@@ -268,25 +268,34 @@ function drawBurner(c, nx, ny, ang, len, k, o = {}) {
   c.restore();
 }
 
-/** the jet's lights at night (formation strips, nav, tail, beacon), in the jet's own frame (the nozzle at 0, the nose at +len); navDir:
- *  its real direction on the screen (green flying right: its starboard side faces us; red flying left) */
+/** the jet's lights at night, in the jet's own frame (the nozzle at 0, the nose at +len); navDir: its real direction on the screen.
+ *  SKY-A (the owner: "fewer dots" — the extra dots read as sparkle noise at phone size): its GREEN FORMATION STRIPS ("slime lights": soft
+ *  green strips along the forebody, the aft fuselage + the fin's tip — longer + softer, a strip's glow along each, never a dot), ONE slow RED
+ *  anti-collision BEACON blink on the spine, and its NAV LIGHT on the near wingtip by its direction, as a real plane seen side-on: flying
+ *  RIGHT we see its right wingtip → GREEN; flying LEFT its left → RED. No tail-light dot, no extra glow dots. */
 function drawJetLights(c, len, navDir, night, t, i = 0, model = false) {
   if (night < 0.05) return;
-  const G = [150, 255, 160];
-  const strip = (x0, y0, x1, y1) => { c.strokeStyle = rgb(G, 0.9 * night); c.lineWidth = Math.max(0.7, len * 0.011); c.beginPath(); c.moveTo(x0 * len, y0 * len); c.lineTo(x1 * len, y1 * len); c.stroke(); };
+  const G = [130, 255, 150];
   c.save(); c.lineCap = 'round';
   c.globalCompositeOperation = 'lighter';
-  c.globalAlpha = 0.45 * night; const gs = len * 0.13;
-  for (const [a, b] of [[0.86, 0.012], [0.2, -0.04], [0.135, -0.24]]) c.drawImage(tinted(G), a * len - gs, b * len - gs * 0.5, gs * 2, gs);
-  c.globalAlpha = 1;
-  // the F-22's strips: along the forebody's chine, the aft fuselage, the fin's tip
-  strip(0.92, 0.01, 0.8, 0.018); strip(0.28, -0.04, 0.12, -0.036); strip(0.17, -0.24, 0.1, -0.24);
-  const nav = navDir > 0 ? [90, 255, 140] : [255, 60, 60], [nx, ny] = model ? [0.33, 0.072] : [0.295, 0.168];   // (SKY-A: the model's near wingtip)
+  // the strips: a soft elongated glow along each + a thin soft line (a strip, not a dot)
+  const strip = (x0, y0, x1, y1) => {
+    const ax = x0 * len, ay = y0 * len, bx = x1 * len, by = y1 * len, L = Math.hypot(bx - ax, by - ay), w = len * 0.045;
+    c.save(); c.translate((ax + bx) / 2, (ay + by) / 2); c.rotate(Math.atan2(by - ay, bx - ax));
+    c.globalAlpha = 0.5 * night; c.drawImage(tinted(G), -L * 0.75, -w, L * 1.5, w * 2); c.restore();
+    c.globalAlpha = 0.7 * night; c.strokeStyle = rgb(G); c.lineWidth = Math.max(0.8, len * 0.012);
+    c.beginPath(); c.moveTo(ax, ay); c.lineTo(bx, by); c.stroke();
+  };
+  // (the fin's strip ON its tip: the model's fins are shorter than the hand-drawn Raptor's — at −0.24 it floated as a dash above them)
+  const fy = model ? -0.182 : -0.24;
+  strip(0.95, 0.008, 0.74, 0.02); strip(0.32, -0.042, 0.1, -0.036); strip(0.185, fy, 0.1, fy);
+  // the nav light on the near wingtip — by the direction it flies (green right, red left)
+  const nav = navDir > 0 ? [90, 255, 140] : [255, 60, 60], [nx, ny] = model ? [0.33, 0.072] : [0.295, 0.168], gs = len * 0.13;
   c.globalAlpha = 0.85 * night; c.drawImage(tinted(nav), nx * len - gs * 0.6, ny * len - gs * 0.6, gs * 1.2, gs * 1.2);
   c.globalAlpha = night; c.fillStyle = rgb(nav); c.beginPath(); c.arc(nx * len, ny * len, Math.max(0.6, len * 0.011), 0, TAU); c.fill();
-  c.fillStyle = 'rgb(255,250,240)'; c.beginPath(); c.arc(-0.04 * len, 0.0, Math.max(0.5, len * 0.008), 0, TAU); c.fill();        // the tail light
-  const bk = Math.sin(t * 7.5 + i * 1.3) > 0.55 ? 1 : 0.15;
-  c.globalAlpha = night * bk; c.drawImage(tinted([255, 40, 30]), 0.47 * len - gs * 0.5, -0.06 * len - gs * 0.5, gs, gs);          // the beacon on the spine
+  // ONE slow red beacon on the spine: a short flash about every 1.3 s, a soft rise + fall (never a strobe)
+  const ph = ((t + i * 0.43) % 1.3) / 1.3, bk = ph < 0.16 ? Math.sin(Math.PI * ph / 0.16) : 0;
+  if (bk > 0.01) { c.globalAlpha = night * bk; c.drawImage(tinted([255, 40, 30]), 0.47 * len - gs * 0.55, -0.06 * len - gs * 0.55, gs * 1.1, gs * 1.1); }
   c.restore();
 }
 

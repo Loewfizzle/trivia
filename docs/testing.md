@@ -39,6 +39,13 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     upper middle parked, the live windows at 3×; unit `tests/harbor-quiet.test.mjs`) · e2e `people`'s A REAL ZEBRA (five bars, each gap
     about a bar deep). The music group's direct-path checks run with `&force=no-party-sync` (they drive this phone's own player); title-perf
     `nc-night` (the quiet building + both crisp layers at 3×) + `nc-break` (a forced break with the helicopter).
+  - **SKY-A**: `ONLY=heli` adds the break flight's checks (never in front of a sign, low over the water, drifting, the canvases hold, the patrol's
+    two loops) · `ONLY=partysync` (no own-player start on a synced night) · `ONLY=legends` (the new `legend` cloud job: the F-22 chase on the
+    model — a vic + the bank; the TR-3B's full-res overlay at 3× + its lights on the world + TOOLS → TR-3B SOFT; a normal night never fetches
+    the jet) · `ONLY=blackbird` (`legend`, ~50 s — the tell, above the sign under the buttons, the cone + ring, the overlay gone after, the
+    chase across the dark sign, the watcher's reward, a solo sighting at its time); unit `tests/harbor-blackbird.test.mjs` (+ the legends'
+    registry) + `harbor-heli.test.mjs`; title-perf `sa-break-noheli` (`--vs sp-break`: the helicopter's own cost) + `sa-patrol`; the phone
+    bench's `blackbird` scene (+ `party-break` / `tr3b` now carry the helicopter / the chase's Blackbird). `shots.mjs --crop heli`.
   - **A NEW GROUP** (`G('people', …)` in its job's file, `harbor-e2e/<job>.mjs`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
     `e2e-harbor.mjs` refuses to run (even with `ONLY=`) and `tests/harbor-jobs.test.mjs` fails in the quick workflow, so no group is ever
     skipped silently. A new JOB: a key in `CI_JOBS` + the same name in harbor.yml's matrix list + the Run-workflow options (the test checks).

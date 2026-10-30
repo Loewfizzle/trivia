@@ -13,11 +13,14 @@ export const BENCH_SCENES = Object.freeze([
   { id: 'party', label: 'a party peak (Sat 11 pm)', q: { when: '2026-10-24T23:00', wx: 'clear' } },
   // (NIGHT-B: THE STREET PARTY's heaviest moment — Sat Oct 24's 9:43:50 conga break ~40 s in: the pockets bouncing, the 20-strong conga,
   // the spill in the street, the bench dancers)
-  { id: 'party-break', label: 'a dance break: the conga + the street spill (Sat 10:06 pm)', q: { when: '2026-10-24T22:06:20', wx: 'clear' } },
+  // (SKY-A: + the dance-break HELICOPTER over it — low over the water, drifting, its soft beam on the dancers)
+  { id: 'party-break', label: 'a dance break: the conga + the spill + the helicopter (Sat 10:06 pm)', q: { when: '2026-10-24T22:06:20', wx: 'clear' } },
   { id: 'party-snow', label: 'a party in snow (Sat Jan 16, 11 pm)', q: { when: '2027-01-16T23:00', wx: 'snow' } },
   { id: 'halloween', label: "Halloween's props night (Oct 31, 9 pm)", q: { when: '2026-10-31T21:00', wx: 'clear' } },
   { id: 'ufo', label: 'the UFO over a crowd (Sat 10 pm)', q: { when: '2026-10-24T22:00', wx: 'clear' }, legend: 'ufo' },
-  { id: 'tr3b', label: "the TR-3B's drain + the chase", q: { when: '2026-10-21T22:00', wx: 'clear' }, legend: 'tr3b', measure: 40000 },
+  // (SKY-A: the TR-3B at full res + its lights on the world, the F-22 vic on the model, THE BLACKBIRD passing them)
+  { id: 'tr3b', label: "the TR-3B's drain + the F-22 chase + the Blackbird", q: { when: '2026-10-21T22:00', wx: 'clear' }, legend: 'tr3b', measure: 40000 },
+  { id: 'blackbird', label: 'THE BLACKBIRD (a forced flyby every ~8 s)', q: { when: '2026-10-21T22:00', wx: 'clear', force: 'blackbird' } },
   { id: 'storm', label: 'a summer storm (9:30 pm)', q: { when: '2026-07-11T21:30', wx: 'storm' } },
 ]);
 export const BENCH = Object.freeze({ settle: 6000, measure: 20000 });
