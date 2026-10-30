@@ -3,15 +3,18 @@
 // quick `tests` workflow on every push, long before the full harbor suite does.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { readFileSync, readdirSync } from 'node:fs';
 import { CI_JOBS, SERIAL, SECONDS, jobProblems, localShards } from './integration/harbor-jobs.mjs';
 
 const root = new URL('../', import.meta.url);
-const suite = readFileSync(new URL('tests/integration/e2e-harbor.mjs', root), 'utf8');
+// (NIGHT-B Group 0: the suite is e2e-harbor.mjs — the entry + the runner — + harbor-e2e/kit.mjs + one file per cloud job)
+const dir = new URL('tests/integration/harbor-e2e/', root);
+const suite = [readFileSync(new URL('tests/integration/e2e-harbor.mjs', root), 'utf8'),
+  ...readdirSync(dir).filter(f => f.endsWith('.mjs')).sort().map(f => readFileSync(new URL(f, dir), 'utf8'))].join('\n');
 const groups = [...new Set([...suite.matchAll(/^G\('([\w-]+)'/gm)].map(m => m[1]))];
 
 test('every e2e-harbor group is in exactly one cloud job (add a new group to the lightest job in harbor-jobs.mjs)', () => {
-  assert.ok(groups.length >= 10, `found ${groups.length} groups in e2e-harbor.mjs`);
+  assert.ok(groups.length >= 10, `found ${groups.length} groups in e2e-harbor.mjs + harbor-e2e/`);
   assert.deepEqual(jobProblems(groups), []);
 });
 

@@ -14,7 +14,7 @@
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier } from '../../core/harbor-people.js';
-import { standingFootprints } from '../../core/harbor-holidayprops.js';
+import { promenadeSolids } from '../../core/harbor-solids.js';
 import { workFx } from './snowfx.js';
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen, drawOfrenda } from './folk.js';
 import { drawBus } from './bus.js';
@@ -81,10 +81,10 @@ export function createPeople() {
    * frame(f): once a frame, before the passes. f = { ms (the city clock), off (minutes from UTC), rain, event (a piece on the inlay),
    * season, seed, party(t) | null, shopOpen(t) }
    */
-  let solidsK = '', solidsV = [], solidsHP;
+  let solidsK = '', solidsV = null, solidsHP, solidsL;
   function solidsOf(HP) {
-    if (HP === solidsHP && solidsV) return solidsV;
-    solidsHP = HP; solidsV = L ? standingFootprints(L, HP) : []; solidsK = solidsV.map(q => `${q.id}:${q.x0},${q.x1},${q.z0},${q.z1}`).join('|');
+    if (HP === solidsHP && L === solidsL && solidsV) return solidsV;
+    solidsHP = HP; solidsL = L; solidsV = L ? promenadeSolids(L, HP) : []; solidsK = solidsV.map(q => `${q.id}:${q.x0},${q.x1},${q.z0},${q.z1}`).join('|');
     return solidsV;
   }
   function frame(f) {

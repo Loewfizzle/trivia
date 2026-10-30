@@ -16,7 +16,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/testing.md` | running / writing tests: emulators, smoke test, each game's E2E and its env flags, previews, Lighthouse |
 | `docs/audio.md` | music, playlists, SFX, the audio engine; loading, PWA, service worker, link previews |
 | `docs/title.md` | the title screen, the district scene, the logo, the menu, LIVING CITY (time of day, seasons, holidays, sky events, the real sun + solar eclipses; `?when=&tz=&at=&force=`), PARTY NIGHTS (Fri / Sat on the beat), RAINBOWS (after real rain), THE STREET (lamps, trees, buses, the stop light; the people, the speakeasy's door + the knock), the dock, the screen at rest, the easter eggs |
-| `docs/harbor.md` (+ `docs/harbor/passes/`, one log a pass — its INDEX) | **CITY 2.0 — THE HARBOR** (the title's new city, behind `?city=2`, 12 parts): the bible (the owner's decisions, size rules, hero pieces), the camera + layout numbers, baking + the memory budget, lanes + events, `&grid=1`, the performance budgets, what each part builds |
+| `docs/harbor.md` (+ `docs/harbor/passes/`, one log a pass — its INDEX) | **CITY 2.0 — THE HARBOR** (`?city=2`): the bible — size rules, camera + layout, bakes + memory, lanes, budgets, THE FILE MAP, KNOWN ISSUES, the standing rules' full text |
+| `docs/harbor/decisions.md` | the owner's CURRENT City 2.0 decisions (short; `docs/harbor/plan.md` = the dated archive) — **read first in a Harbor pass**; Step 0 updates it |
 | `docs/chat.md` | room chat (data, locks per game, system lines, profanity filter) |
 | `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
 | `docs/profiles.md` | profiles, name tags + keys, `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
@@ -54,21 +55,20 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   scene costs several times a 2D one, and a tilted 3D board on a phone fights readability and tap targets (GRIDLOCK Part 1 shipped
   on three.js, failed the play-test and was rebuilt flat in Canvas 2D a week later — straight-on, labels inside the frame, one board up).
 - **The title has one too:** `tests/integration/title-preview.html` (the real title; `shots.mjs --preview`).
-- **`&debug=1` (City 2.0):** the frame-time READOUT, the AUDIO panel + the LOAD log as DOM strips at the TOP (`ui/debug-strip.js`; every strip
-  starts FOLDED on each load) — never over the promenade or the dock; ☰ → ADMIN → TOOLS switches them without the link.
-- **A legendary from a link waits** for the reveal + the first tap (+4 s): `&force=ufo|tr3b|implosion`; `&lgnow=1` = at the load (tests),
-  `&lgs=` holds a still (docs/harbor/passes/9g.md).
-- **`&dpr=3`:** the whole Harbor at the device's 3× (every 2× cap via `ui/canvas-safe.js#BAKE_CAP`) — the owner's LOOK judgement only, never a
-  default. **`&bench=1` THE PHONE BENCH:** six heavy scenes measured → the report on screen + to /admin (`&benchfast=1` for tests; docs/harbor/passes/c4c.md).
-- **City 2.0's memory:** every canvas taking a context through `safeCtx` / `ctx2d` is counted (`canvasMb()`); the memory guard
-  (bake.js#MEM_BUDGET_MB 64 / 96 / 160) counts every live canvas — a new big canvas needs no registration.
-- **City 2.0's standing rules** (each pass's detail: docs/harbor.md's INDEX): THE WINDOW RULE — every window moment enters by its own motion
-  or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION); THE PEOPLE RULE — nobody appears or vanishes in view on the promenade
-  (core/harbor-witness.js#rejoinVisits, people.js#guard); NO LAMPPOSTS — the implied lamps below the screen, the light in ONE pure module
-  (core/harbor-light.js; NIGHT-A's NEW light — one warm wash + an even base, no pools — the DEFAULT since NIGHT-A2, `&light=old` + a TOOLS row for A/B: setLightMode, every painter reads it); NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold — every vehicle planner reads it); a 3D
-  model only ever as BAKED sprites (scripts/bake-model.mjs); lettering nothing passes in front of → THE CRISP LAYER (crisp.js, full dpr);
-  the lights follow the song's grid, the kicks only calibrate one lead — a TRUSTED GRID ALWAYS PUNCHES (half until the kicks confirm, full once they do; NIGHT-A2), the saved lead per output + never one learned after a return (core/harbor-beat.js); THE STANDING PROPS ARE SOLID (a holiday piece on the floor registers its footprint in core/harbor-holidayprops.js#standingFootprints — every walk goes round it); every force flag the code reads has a panel
-  row (core/harbor-remote.js — the A/B switches hidden in TOOLS; tests/harbor-remote.test.mjs greps for strays).
+- **City 2.0 (`?city=2`) — its standing rules, one line each** (the full text: docs/harbor.md#city-20-in-claudemd--the-full-text; the
+  owner's CURRENT decisions: **docs/harbor/decisions.md** — read it before a Harbor pass; plan.md is the archive):
+  - THE WINDOW RULE: every window moment enters by its own motion or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION).
+  - THE PEOPLE RULE: nobody appears or vanishes in view on the promenade (core/harbor-witness.js#rejoinVisits, people.js#guard).
+  - THE SOLIDS: every solid thing on the promenade is ONE registry (core/harbor-solids.js) — every walk goes round it.
+  - NO LAMPPOSTS: the implied lamps; the light in ONE pure module (core/harbor-light.js; NEW light default, `&light=old` for A/B).
+  - NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold); every vehicle planner reads it.
+  - THE BEAT: the lights follow the song's grid; a TRUSTED GRID ALWAYS PUNCHES; the kicks only calibrate the lead (core/harbor-beat.js).
+  - 3D only as BAKED sprites (scripts/bake-model.mjs); lettering nothing passes in front of → THE CRISP LAYER (crisp.js).
+  - Every force flag has a panel row (core/harbor-remote.js; tests/harbor-remote.test.mjs greps for strays).
+  - Every canvas through `safeCtx` / `ctx2d` (ui/canvas-safe.js) — counted by the memory guard; a new canvas needs no registration.
+  - THE CITY TIMETABLE (core/harbor-schedule.js) holds every NEW timed thing; THE TIER TABLE (core/harbor-tiers.js) every NEW per-phone number.
+  - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
+    from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
   map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js` (see gridlock-preview.html). Iterate screens there in
   seconds; run the E2E once the look is right.
@@ -129,13 +129,7 @@ js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood
 js/core/mp3-slice.js tape-math.js                        PURE: an MP3's frames → a byte slice in song time; the tape's rate schedule + its exact integral (docs/audio.md#the-tape-stop-in-web-audio)
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
 js/screens/ title.js title-dock.js setup.js lobby.js profile.js district/*.js   the front door, name/avatar, the lobby, the membership card; CITY 1.0 — the district (Canvas 2D: sky, signs, live weather, the street; docs/title.md)
-js/screens/harbor/*.js  js/core/harbor-*.js              CITY 2.0 — THE HARBOR (?city=2): one file per piece (the scene + its bakes, the skyline, neon, water, the hero
-                                                         pieces, the sky + the legends, the speakeasy + its windows, the promenade + its people, weather, snow, holidays);
-                                                         the pure logic in js/core/harbor-*.js — THE FILE MAP: docs/harbor.md#the-file-map; every pass: docs/harbor.md's INDEX
-js/core/climate.js harbor-loadlog.js                     PURE: the climate-aware weather fallback (48 cities' normals); THE LOAD LOG (&debug=1's load strip)
-js/core/city-sounds.js city-sounds-files.js js/audio/city-sound.js scripts/add-city-sfx.py audio/city/   THE CITY SOUNDS: 134 slots (116 filled) — docs/audio.md#the-city-sounds
-scripts/bake-model.mjs scripts/bake/ assets/city/ art/   THE BAKE TOOL: a 3D model → sprites at the city camera's real view, OFFLINE (three.js in Playwright, never on the site); art/ = sources (.vercelignore'd)
-js/ui/canvas-safe.js                                     Safari-safe canvas helpers (safeCtx / ctx2d / blit / cssWidth / BAKE_CAP / canvasMb) — every Harbor context goes through it
+js/screens/harbor/ js/core/harbor-*.js + its sounds, bakes, canvas helpers   CITY 2.0 — THE HARBOR (?city=2): every file in docs/harbor.md#the-file-map
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
 js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
 js/errlog.js                                             errors from players' phones → /api/log → /admin (first import of app.js + board/public.js)
@@ -148,7 +142,7 @@ audio/sfx/neon-*.wav  audio/weather/*.mp3                 City 2.0's recorded ne
 scripts/  serve.mjs build-*.{mjs,py} add-city2-music.py validate-holes.mjs sim-gridlock.mjs   local server (:5173, `--emu` also runs /api on the emulators), builders (build-synth-sfx.py: city sounds SYNTHESIZED — the hydrant's spray, the periscope's sonar ping — then imported by add-city-sfx.py; add-city2-music.py: the one command that imports the owner's mood folders), the NEON PAR hole bot, GRIDLOCK balance sim
 database.rules.json                                      RTDB rules — paste into the Firebase console after every change
 tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)
-tests/integration/  kit/harness.mjs e2e-*.mjs title-perf.mjs pixdiff.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
+tests/integration/  kit/harness.mjs e2e-*.mjs harbor-e2e/ (the Harbor suite: kit + one file per cloud job) title-perf.mjs pixdiff.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
 tests/fixtures/finals.mjs                                finished matches of every game (profile/board tests)
 ```
 
@@ -210,9 +204,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **MOOD MUSIC** (docs/audio.md): menu screens play the time-of-day mood (`audio/mood.js`, songs in `data/mood-music.json`, built by
   `scripts/build-mood-music.py`; the owner adds songs as late3/morn1/day1/eve1/party1… in ~/Downloads → "add the new mood songs");
   a lobby plays one synced song for the room (`audio/lobby-music.js`, `meta/lm`, the host's clock). CLASSIC in settings = the old playlist.
-  **CITY 2.0 MUSIC** (`?city=2`): its own day (`core/city-mood.js`: dawn / 11 am / golden hour / 11 pm / the party show) and its own decks (`city2` in
-  `data/mood-music.json`: the owner's ~50 songs, some in two moods); the MUSIC MOOD setting (AUTO / MORNING / DAY / EVENING / LATE NIGHT / PARTY) works in
-  both cities. New songs: drop them in ~/Downloads/{morning,day,evening,late,party}/ and run `scripts/add-city2-music.py` (docs/audio.md#city-20-music).
+  **CITY 2.0 MUSIC**: its own day + decks (`core/city-mood.js`, `city2` in `data/mood-music.json`); new songs → `scripts/add-city2-music.py` (docs/audio.md#city-20-music).
 - `playMusic(id, fallback)` is driven by `app.js` from state (mood / menu playlist on title/setup/lobby, `module.MUSIC` in a game, `'victory'` on
   the podium). Same track = no-op. `PLAYLISTS` (menu, victory, spy, gridlock…) play several tracks with crossfades; `setPlaylist(id, ids)`
   for a seeded per-room order; `duckMusic(level, s)` and `filterMusic(hz, s)` for moments. Songs on the server clock: `audio/synced-songs.js`.
@@ -270,19 +262,12 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   `.vercelignore` keeps everything no page or `/api` loads out of the deploy (docs, screenshots, tests, scripts, shots*, art) — a deploy ≈ 264 MB,
   ~255 MB of it the music; a new top-level folder the site loads must NOT match it. Never write a tag in square brackets in a message that
   isn't meant to fire it (a message that NAMES the tags fires them all — write "the ci / harbor / deploy tags").
-- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`): the FULL `e2e-harbor` suite runs on GitHub **only on a pass's FINAL push** —
-  put **`[harbor]`** in a commit message of that push (and it must touch a City 2.0 file: the `paths:` list) — or by hand: `gh workflow run harbor`
-  (`-f job=street` = one job). Mid-pass pushes show skipped runs and cost nothing (both workflows: a newer full run cancels an older one).
-  It runs as **8 parallel jobs** (`audio` `show` `city` `perf` `street` `windows` `wild` `holiday`, ≈ 4 min each); a red job → **"Re-run failed jobs"** re-runs that job only.
-  **A new test group goes in exactly one job in `tests/integration/harbor-jobs.mjs`** (e2e-harbor.mjs refuses to run and the unit test fails
-  until it does). Timing checks (`okT`) and known-flaky pixel probes (`okF`) are WARNINGS on CI, listed in each job's summary page.
-  City 2.0 passes never run the whole suite on the laptop (it runs out of memory): the unit suite + the touched groups (`ONLY=…`) locally,
-  then the final `[harbor]` push and read `gh run list --workflow harbor`.
-  **CI minutes (the owner, Oct 24): at most TWO cloud runs per pass.** Never re-run the cloud suite to confirm a flake: a failed check in
-  code the pass didn't touch that is a known flake goes in the pass's "Known issues" and the pass finishes.
-- **THE BASELINE GUARD** (HOTFIX Oct 29 — the forced bus ran at 5 fps on the owner's iPhone: a plan cache smaller than its frame's working set
-  re-planned everything every frame): `ONLY=perf` FAILS when a plain night / the forced bus / the forced dog walk costs > 2× `tests/integration/perf-baseline.json`
-  (`PERF_GUARD=only` = just it, ≈ 1.5 min; `PERF_BASELINE=write` only when a pass changes the cost on purpose). A cache keyed per frame must hold its whole working set.
+- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, 8 parallel jobs): the FULL `e2e-harbor` suite runs only on a pass's FINAL push
+  (the harbor tag in a commit message + a City 2.0 file touched) or `gh workflow run harbor` (`-f job=street`). **At most TWO cloud runs a pass**;
+  never re-run to confirm a flake. A new test group: its `G()` in `tests/integration/harbor-e2e/<job>.mjs` + its name in exactly one job in
+  `harbor-jobs.mjs`. Locally: the unit suite + the touched groups (`ONLY=…`), never the whole suite (out of memory). Full text: docs/harbor.md.
+- **THE BASELINE GUARD:** `ONLY=perf` fails above 2× `tests/integration/perf-baseline.json` (`PERF_GUARD=only` ≈ 1.5 min; `PERF_BASELINE=write`
+  only when a pass changes the cost on purpose — say so). A cache keyed per frame must hold its whole working set.
 - `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
 - `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
 - Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;

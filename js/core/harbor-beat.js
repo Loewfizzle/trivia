@@ -347,6 +347,11 @@ export function outputKey(outLat, baseLat = 0) {
   const l = (outLat > 0 ? outLat : 0) + (baseLat > 0 && outLat > 0 ? baseLat : 0);
   return !(outLat > 0) ? 'unknown' : l >= 0.09 ? 'bt' : 'wired';
 }
+/** NIGHT-B — THE LABEL, HONEST (the owner's iPhone speaker showed as `wired`): the bucket is only the LATENCY the browser reports — a
+ *  short one is the phone's own speaker OR wired headphones (iOS never says which), a long one is usually wireless. The saved key stays
+ *  (`wired` / `bt` / `unknown` — the saving is unchanged); the readout shows what it means */
+export const OUTPUT_LABEL = Object.freeze({ wired: 'speaker/wired (short)', bt: 'wireless? (long)', unknown: 'output unknown' });
+export const outputLabel = key => OUTPUT_LABEL[key] || String(key);
 /** the stored leads (localStorage na:beatlead) — { v: 2, out: { [outputKey]: { el, buf, at } }, last } — read safely: junk → empty;
  *  the old single value (na:beatcal) migrates only when it sits INSIDE the saved range (a value at the clamp's edge was a clamped one) */
 export function readLeads(raw, oldRaw = null) {

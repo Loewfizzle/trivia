@@ -12,7 +12,7 @@ import { lobbyNow } from './lobby-music.js';
 import { moodData } from './mood.js';
 import { settings } from './settings.js';
 import { getContext, getMusicBus, clockFrozen, onRebuild, onResume } from './engine.js';
-import { createOnsets, onsetStep, onsetEnergy, kickLag, createLead, leadKick, leadFast, leadAnchor, leadState, leadToSave, heardPos, createSongClock, songClockStep, kickErrWide, outputKey, readLeads, LEAD_N } from '../core/harbor-beat.js';
+import { createOnsets, onsetStep, onsetEnergy, kickLag, createLead, leadKick, leadFast, leadAnchor, leadState, leadToSave, heardPos, createSongClock, songClockStep, kickErrWide, outputKey, outputLabel, readLeads, LEAD_N } from '../core/harbor-beat.js';
 
 // ---- WHEN THE BEAT IS HEARD (M2, the owner: the party's sync "kind of — not perfect")
 // Two delays sit between a song's clock and the ear:
@@ -281,7 +281,7 @@ export function syncLine() {
     : c.state === 'locked' ? `lead ${sg(c.ms)} ms (locked · ${c.n} kicks)`
     : `lead ${sg(c.ms)} ms (default)`;
   // (NIGHT-A2: + the output's bucket, and when this visit's lead won't be saved — after a return / a restart / a route change)
-  return `sync out ${Math.round(d.latency * 1000)} ms${d.reported ? '' : d.stamp ? ' (stamp)' : ' (est)'} · ${leadTxt} · lag ${Math.round(d.lag * 1000)} ms · ${route}${cal.el.visit ? ` · not saved (after ${cal.el.visit})` : ''}`;
+  return `sync out ${Math.round(d.latency * 1000)} ms${d.reported ? '' : d.stamp ? ' (stamp)' : ' (est)'} · ${leadTxt} · lag ${Math.round(d.lag * 1000)} ms · ${outputLabel(route)}${cal.el.visit ? ` · not saved (after ${cal.el.visit})` : ''}`;
 }
 /** FP — the readout's song-clock line: the last element reading vs the run-forward clock, the re-anchors (+ the last why), and `heard`:
  *  where the strong kicks land against the lights (the agreed residual; `~` while the last kicks don't agree) */

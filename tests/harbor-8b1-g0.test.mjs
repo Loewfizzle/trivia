@@ -87,6 +87,7 @@ test('NIGHT-A2 — THE SAVED LEAD: never a clamped value, never one learned afte
   // outside the saved range: not saved, not clamped (a start at +156 on a slow Bluetooth route)
   const o = B.createLead(null); B.leadFast(o, 'start', 0); feed(o, 0.156); assert.equal(B.leadToSave(o), null, 'outside the range: not saved');
   // the outputs
+  assert.match(B.outputLabel('wired'), /speaker/, 'NIGHT-B: a short output reads as the speaker or wired — iOS never says which'); assert.match(B.outputLabel('bt'), /\?/, 'wireless only a guess');
   assert.equal(B.outputKey(0), 'unknown'); assert.equal(B.outputKey(undefined), 'unknown'); assert.equal(B.outputKey(0.012, 0.005), 'wired'); assert.equal(B.outputKey(0.18, 0.005), 'bt');
   // the store: per output; junk → empty; the old single value migrates only from INSIDE the range (+120 = the clamp's edge: dropped)
   const r1 = B.readLeads(JSON.stringify({ v: 2, out: { wired: { el: -0.03, buf: 0, at: 5 }, bt: { el: 0.5, buf: null } }, last: 'bt' }));

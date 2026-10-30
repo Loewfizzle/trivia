@@ -37,6 +37,7 @@ on:
       - 'api/admin.js'
       - 'database.rules.json'
       - 'tests/integration/e2e-harbor.mjs'
+      - 'tests/integration/harbor-e2e/**'
       - 'tests/integration/harbor-jobs.mjs'
       - '.github/workflows/harbor.yml'
   workflow_dispatch:

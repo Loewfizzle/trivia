@@ -589,6 +589,66 @@ C4b: 0.05 of the body's speed); F7 the dancers' arms, F8 half-time's margin, F10
 panes (HARD again), F17 NO SMOKE (hard) — C4d; the gilt after 1 am (C4a); the crisp overlays + the rain (C4b); the blackout's rain-sign
 read (C4c: `&wx=clear`); the perf group stopping on the laptop ("Promise was collected" — C4d's harness fix).
 
+## CITY 2.0 IN CLAUDE.md — THE FULL TEXT (moved from CLAUDE.md, NIGHT-B, Oct 29 2026 — CLAUDE.md keeps one line per rule)
+
+CLAUDE.md is loaded into every Claude Code session, so its City 2.0 paragraphs were cut to one line each; their full text, unchanged:
+
+**Ground rules — City 2.0** (as it stood in CLAUDE.md):
+
+- **`&debug=1` (City 2.0):** the frame-time READOUT, the AUDIO panel + the LOAD log as DOM strips at the TOP (`ui/debug-strip.js`; every strip
+  starts FOLDED on each load) — never over the promenade or the dock; ☰ → ADMIN → TOOLS switches them without the link.
+- **A legendary from a link waits** for the reveal + the first tap (+4 s): `&force=ufo|tr3b|implosion`; `&lgnow=1` = at the load (tests),
+  `&lgs=` holds a still (docs/harbor/passes/9g.md).
+- **`&dpr=3`:** the whole Harbor at the device's 3× (every 2× cap via `ui/canvas-safe.js#BAKE_CAP`) — the owner's LOOK judgement only, never a
+  default. **`&bench=1` THE PHONE BENCH:** six heavy scenes measured → the report on screen + to /admin (`&benchfast=1` for tests; docs/harbor/passes/c4c.md).
+- **City 2.0's memory:** every canvas taking a context through `safeCtx` / `ctx2d` is counted (`canvasMb()`); the memory guard
+  (bake.js#MEM_BUDGET_MB 64 / 96 / 160) counts every live canvas — a new big canvas needs no registration.
+- **City 2.0's standing rules** (each pass's detail: docs/harbor.md's INDEX): THE WINDOW RULE — every window moment enters by its own motion
+  or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION); THE PEOPLE RULE — nobody appears or vanishes in view on the promenade
+  (core/harbor-witness.js#rejoinVisits, people.js#guard); NO LAMPPOSTS — the implied lamps below the screen, the light in ONE pure module
+  (core/harbor-light.js; NIGHT-A's NEW light — one warm wash + an even base, no pools — the DEFAULT since NIGHT-A2, `&light=old` + a TOOLS row for A/B: setLightMode, every painter reads it); NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold — every vehicle planner reads it); a 3D
+  model only ever as BAKED sprites (scripts/bake-model.mjs); lettering nothing passes in front of → THE CRISP LAYER (crisp.js, full dpr);
+  the lights follow the song's grid, the kicks only calibrate one lead — a TRUSTED GRID ALWAYS PUNCHES (half until the kicks confirm, full once they do; NIGHT-A2), the saved lead per output + never one learned after a return (core/harbor-beat.js); THE STANDING PROPS ARE SOLID (a holiday piece on the floor registers its footprint in core/harbor-holidayprops.js#standingFootprints — every walk goes round it); every force flag the code reads has a panel
+  row (core/harbor-remote.js — the A/B switches hidden in TOOLS; tests/harbor-remote.test.mjs greps for strays).
+
+**Testing — THE HARBOR IN THE CLOUD + THE BASELINE GUARD** (as it stood in CLAUDE.md):
+
+- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`): the FULL `e2e-harbor` suite runs on GitHub **only on a pass's FINAL push** —
+  put **`[harbor]`** in a commit message of that push (and it must touch a City 2.0 file: the `paths:` list) — or by hand: `gh workflow run harbor`
+  (`-f job=street` = one job). Mid-pass pushes show skipped runs and cost nothing (both workflows: a newer full run cancels an older one).
+  It runs as **8 parallel jobs** (`audio` `show` `city` `perf` `street` `windows` `wild` `holiday`, ≈ 4 min each); a red job → **"Re-run failed jobs"** re-runs that job only.
+  **A new test group goes in exactly one job in `tests/integration/harbor-jobs.mjs`** (e2e-harbor.mjs refuses to run and the unit test fails
+  until it does). Timing checks (`okT`) and known-flaky pixel probes (`okF`) are WARNINGS on CI, listed in each job's summary page.
+  City 2.0 passes never run the whole suite on the laptop (it runs out of memory): the unit suite + the touched groups (`ONLY=…`) locally,
+  then the final `[harbor]` push and read `gh run list --workflow harbor`.
+  **CI minutes (the owner, Oct 24): at most TWO cloud runs per pass.** Never re-run the cloud suite to confirm a flake: a failed check in
+  code the pass didn't touch that is a known flake goes in the pass's "Known issues" and the pass finishes.
+- **THE BASELINE GUARD** (HOTFIX Oct 29 — the forced bus ran at 5 fps on the owner's iPhone: a plan cache smaller than its frame's working set
+  re-planned everything every frame): `ONLY=perf` FAILS when a plain night / the forced bus / the forced dog walk costs > 2× `tests/integration/perf-baseline.json`
+  (`PERF_GUARD=only` = just it, ≈ 1.5 min; `PERF_BASELINE=write` only when a pass changes the cost on purpose). A cache keyed per frame must hold its whole working set.
+
+**Docs table — the harbor row** (as it stood in CLAUDE.md):
+
+| `docs/harbor.md` (+ `docs/harbor/passes/`, one log a pass — its INDEX) | **CITY 2.0 — THE HARBOR** (the title's new city, behind `?city=2`, 12 parts): the bible (the owner's decisions, size rules, hero pieces), the camera + layout numbers, baking + the memory budget, lanes + events, `&grid=1`, the performance budgets, what each part builds |
+
+**Audio — CITY 2.0 MUSIC** (as it stood in CLAUDE.md):
+
+  **CITY 2.0 MUSIC** (`?city=2`): its own day (`core/city-mood.js`: dawn / 11 am / golden hour / 11 pm / the party show) and its own decks (`city2` in
+  `data/mood-music.json`: the owner's ~50 songs, some in two moods); the MUSIC MOOD setting (AUTO / MORNING / DAY / EVENING / LATE NIGHT / PARTY) works in
+  both cities. New songs: drop them in ~/Downloads/{morning,day,evening,late,party}/ and run `scripts/add-city2-music.py` (docs/audio.md#city-20-music).
+
+**File layout — the Harbor's lines** (as they stood in CLAUDE.md):
+
+```
+js/screens/harbor/*.js  js/core/harbor-*.js              CITY 2.0 — THE HARBOR (?city=2): one file per piece (the scene + its bakes, the skyline, neon, water, the hero
+                                                         pieces, the sky + the legends, the speakeasy + its windows, the promenade + its people, weather, snow, holidays);
+                                                         the pure logic in js/core/harbor-*.js — THE FILE MAP: docs/harbor.md#the-file-map; every pass: docs/harbor.md's INDEX
+js/core/climate.js harbor-loadlog.js                     PURE: the climate-aware weather fallback (48 cities' normals); THE LOAD LOG (&debug=1's load strip)
+js/core/city-sounds.js city-sounds-files.js js/audio/city-sound.js scripts/add-city-sfx.py audio/city/   THE CITY SOUNDS: 134 slots (116 filled) — docs/audio.md#the-city-sounds
+scripts/bake-model.mjs scripts/bake/ assets/city/ art/   THE BAKE TOOL: a 3D model → sprites at the city camera's real view, OFFLINE (three.js in Playwright, never on the site); art/ = sources (.vercelignore'd)
+js/ui/canvas-safe.js                                     Safari-safe canvas helpers (safeCtx / ctx2d / blit / cssWidth / BAKE_CAP / canvasMb) — every Harbor context goes through it
+```
+
 ## THE FILE MAP (moved from CLAUDE.md's File layout, C4d — every Harbor module + what it holds, as the passes described them)
 
 Read with docs/harbor.md#the-architecture. Each line names its pass (the detail: that pass's file in `docs/harbor/passes/`).

@@ -3,6 +3,8 @@
 **READ-ONLY REFERENCE. Build ONLY what your part's prompt asks.** This file is the big picture so each part leaves room for
 what comes later and never contradicts it. If your prompt and this file disagree, the prompt wins — then tell the owner.
 The rules (size rules, hero pieces, the floor-not-ceiling reference, budgets) live in `docs/harbor.md`; this file is the WHAT.
+**THE CURRENT DECISIONS, SHORT: `docs/harbor/decisions.md` (NIGHT-B, Oct 29) — read that first; this file is the ARCHIVE (the dated diary).**
+Step 0 of every pass appends the owner's notes HERE and updates decisions.md.
 
 ## The build order (model · estimate)
 | # | prompt | model | estimate |

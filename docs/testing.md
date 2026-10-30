@@ -24,7 +24,10 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     party, sky, life (FP3b: real doors + the dance circle) · city = core, skyline, water, load (FP3a: THE LOAD GATE — the reveal through two bar changes), then panel + perf (the
     two serial groups, last) · street = speakeasy, windows, sounds, people, motion (PEO: the people's motion — a 12-s rig trace of the afternoon + the dance circle); promenade sits in `city`. Each job has its own emulators + its own npm / emulator caches; a failed job attaches `harbor-results-<job>`. **A red job →
     "Re-run failed jobs"** re-runs that job alone (≈ 4 min), never the whole suite.
-  - **A NEW GROUP** (`G('people', …)`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
+  - **THE FILES** (NIGHT-B Group 0): `e2e-harbor.mjs` is the entry point + the runner (the same CLI + env); the shared harness (`ok` /
+    `okT` / `okF` / `skipCI`, `open`, `waitFor`, `tap`, `harborUp`, `G()` + `GROUPS`…) is `harbor-e2e/kit.mjs`; each cloud job's groups
+    live in `harbor-e2e/<job>.mjs` (a helper only one job uses stays in its file; one a second job needs moves to the kit).
+  - **A NEW GROUP** (`G('people', …)` in its job's file, `harbor-e2e/<job>.mjs`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
     `e2e-harbor.mjs` refuses to run (even with `ONLY=`) and `tests/harbor-jobs.test.mjs` fails in the quick workflow, so no group is ever
     skipped silently. A new JOB: a key in `CI_JOBS` + the same name in harbor.yml's matrix list + the Run-workflow options (the test checks).
     The laptop's no-ONLY run (`SHARDS=2|3`) spreads the same groups over its shards by `SECONDS` (`localShards`), then panel + perf.
