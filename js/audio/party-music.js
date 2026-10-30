@@ -18,7 +18,8 @@ import { getMusicBus, getContext, clockFrozen } from './engine.js';
 import { serverNow } from '../firebase.js';
 import { cityClock, isCity2 } from '../core/city.js';
 import { XF_MS } from '../core/playlist.js';
-import { deckWindow, deckSongAt } from '../core/party-deck.js';
+import { deckWindow, deckSongAt, deckSpec, EPOCH_ANCHOR } from '../core/party-deck.js';
+import { moodNow, moodData } from './mood.js';
 import { rideDecision, JOIN_FADE_S } from '../core/lobby-song.js';
 import { nowPlaying, handoffFade, musicInput, onMusicDuck, musicDuckLevel, setMusicClocked } from './music.js';
 
@@ -36,16 +37,47 @@ let player = null, playingId = null, handed = false, outGain = null, offMs = nul
 const urlFor = id => musicUrl(id);
 onMusicDuck((lv, s) => { try { if (outGain) outGain.gain.setTargetAtTime(lv, outGain.context.currentTime, Math.max(0.02, s / 3)); } catch { /* gone */ } });
 
-/** the party's timeline now: { tl, deck, cityMs, off (city ms − server ms) } or null (none tonight, no deck yet, a sped-up preview) */
+// SKY-B — MUSIC AS RADIO STATIONS (the owner, decided): EVERY City 2.0 mood deck plays on the server clock like the party's — each MUSIC
+// MOOD (MORNING / DAY / EVENING / LATE NIGHT / PARTY, + AUTO following the city's day) is a STATION: everyone tuned to it hears the same
+// song at the same moment; joining lands MID-SONG with a short fade-in; changing the mood = changing station (a crossfade). A station is
+// that mood's deck on its own seeded timeline from the epoch (core/party-deck.js — the same shuffle cycles, the same window); the PARTY on a
+// party night keeps the EVENING's timeline (8 pm — the dance breaks are planned on it). &force=no-stations = each phone its own shuffle again.
+const stationMemo = new Map();
+function stationDeck(mood) {
+  const d = moodData();
+  if (!d) return null;
+  let m = stationMemo.get(mood);
+  if (!m || m.src !== d) { m = { src: d, deck: deckSpec(d, mood) }; stationMemo.set(mood, m); }
+  return m.deck;
+}
+export const STATION_JOIN_S = 1.2;
+// (the panel's SKIP on a station: THIS phone steps off it — its own shuffle — until the mood changes or the page reloads)
+let leftMood = null;
+export function leaveStation() { const m = moodNow(); if (leftMood === m) return false; leftMood = m; return true; }   // (tuning in mid-song: the song fades up over this — "a short fade-in")
+/** the station a mood is on → { tl: { anchor, seed, kind: 'station', mood }, deck } or null (no songs for it) */
+export function stationOf(mood) {
+  const deck = stationDeck(mood);
+  return deck ? { tl: { anchor: EPOCH_ANCHOR, seed: `station|${mood}`, kind: 'station', mood }, deck } : null;
+}
+
+/** the timeline now: { tl, deck, cityMs, off (city ms − server ms) } or null (a sped-up preview, no songs yet, City 1.0) — the PARTY's
+ *  evening timeline on a party night (from its 8 pm anchor), else the mood's STATION */
 function timeline() {
   if (!isCity2()) return null;
   const cc = cityClock();
-  if (!cc || !cc.partyLine || !cc.partyDeck) return null;
+  if (!cc) return null;
   if (cc.speed && cc.speed() !== 1) return null;
-  const tl = cc.partyLine(), deck = tl ? cc.partyDeck() : null;
-  if (!tl || !deck) return null;
-  const cityMs = cc.now(), off = cityMs - serverNow();
-  if (cityMs / 1000 < tl.anchor) return null;              // (before its first song — the evening's 8 pm: this phone's own party songs)
+  const cityMs = cc.now(), off = cityMs - serverNow(), mood = moodNow();
+  // (the night's deck = the PARTY station's songs: the same deck from the very first tick — a page never starts on the station's song + jumps)
+  let tl = mood === 'party' && cc.partyLine ? cc.partyLine() : null, deck = tl ? (cc.partyDeck && cc.partyDeck()) || stationDeck('party') : null;
+  if (tl && cityMs / 1000 < tl.anchor) tl = null;          // (before its first song — the evening's 8 pm: the party's station meanwhile)
+  if (!tl || !deck) {
+    if (cc.q && /(^|,)no-stations(,|$)/.test(cc.q('force') || '')) return null;
+    if (leftMood != null) { if (leftMood === mood) return null; leftMood = null; }
+    const st = stationOf(mood);
+    if (!st) return null;
+    tl = st.tl; deck = st.deck;
+  }
   // (the offset is 0 on a live phone — the city runs on the server clock; a preview's &when= keeps one constant — sticky, so a 1 ms
   // read-to-read wobble never re-keys the player; a panel time jump moves it → the songs are placed again)
   if (offMs == null || Math.abs(off - offMs) > 400) offMs = off;
@@ -90,10 +122,13 @@ export function partyMusicTick(active, hold = false) {
   const ac = getContext(), dead = !!ac && (ac.state === 'closed' || clockFrozen());
   if (!T || hold || dead) { stopPartyMusic(hold || dead ? 0.25 : 0.6); return false; }
   const w = deckWindow(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
-  const game = { matchId: `${w.id}|${Math.round(T.off)}`, songs: w.songs, sd: w.sd, songStartAt: Math.round(w.startMs - T.off) };
+  // (SKY-B: the key is the deck's window only — when the server clock's offset settles (the first seconds after a load) the start moves and
+  // the synced player RE-PLACES its voices (a quick fade, the decoded song kept); a new key re-created the player + decoded the song again:
+  // a second of silence + a second "start" right after a station began)
+  const game = { matchId: w.id, songs: w.songs, sd: w.sd, songStartAt: Math.round(w.startMs - T.off) };
   if (!player || playingId !== game.matchId) {
     if (player) player.stop();
-    player = createSyncedSongs({ urlFor, label: 'party song', joinFade: PARTY_JOIN_S, connect: ctx => {
+    player = createSyncedSongs({ urlFor, label: T.tl.kind === 'station' ? `${T.tl.mood} station` : 'party song', joinFade: T.tl.kind === 'station' ? STATION_JOIN_S : PARTY_JOIN_S, connect: ctx => {
       outGain = ctx.createGain(); outGain.gain.value = musicDuckLevel(); outGain.connect(musicInput() || getMusicBus()); return outGain; } });
     playingId = game.matchId;
   }
@@ -124,6 +159,6 @@ export function partyMusicDebug() {
   const T = timeline();
   if (!T) return null;
   const s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
-  return { kind: T.tl.kind, song: s ? s.id : null, at: s ? +(T.cityMs / 1000 - s.t0).toFixed(2) : null, dur: s ? s.dur : null, left: s ? +(s.t1 - T.cityMs / 1000).toFixed(1) : null,
+  return { kind: T.tl.kind, station: T.tl.kind === 'station' ? T.tl.mood : null, song: s ? s.id : null, at: s ? +(T.cityMs / 1000 - s.t0).toFixed(2) : null, dur: s ? s.dur : null, left: s ? +(s.t1 - T.cityMs / 1000).toFixed(1) : null,
     riding: !!(last && last.riding), synced: !!(player && player.now()), claims: partyClaims(), heard: partyNow(), own: (() => { const n = nowPlaying(); return n ? { id: n.id, at: n.at } : null; })(), player: player ? player.debug() : null };
 }

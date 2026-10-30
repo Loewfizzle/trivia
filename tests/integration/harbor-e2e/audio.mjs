@@ -94,7 +94,8 @@ G('music', async () => {
   // (NIGHT-C: a party song may sound on the party's SYNCED player — the server clock's — not this phone's own: both count as "the song")
   const NOW = `(() => { const p = window.__arcade.partyMusicDebug && window.__arcade.partyMusicDebug(); if (p && p.synced && p.heard) return p.heard.id; const d = window.__arcade.musicDebug(); return d.list === 'mood' && d.playing ? String(d.playing).replace(/^m:/, '') : null; })()`;
   const unlock = p => tapAt(p, 30, 300);
-  const start = async p => { await unlock(p); await waitFor(p, NOW, 'a mood song playing', 25000); return ev(p, NOW); };
+  // (SKY-B: a station's synced player may take the song over from this phone's own player in the first second — read it once it holds)
+  const start = async p => { await unlock(p); await waitFor(p, NOW, 'a mood song playing', 25000); await sleep(1500); await waitFor(p, NOW, 'a mood song playing', 25000); return ev(p, NOW); };
   const setMood = (p, v) => ev(p, `import('/js/audio/settings.js').then(m => m.updateSettings({ musicMood: '${v}' }))`);
   const voices = p => ev(p, 'window.__arcade.musicDebug().voices.filter(v => v.gain > 0.03).length');
   const changed = (p, from, what, ms = 20000) => waitFor(p, `(() => { const id = ${NOW}; return !!id && id !== '${from}'; })()`, what, ms);
@@ -107,7 +108,7 @@ G('music', async () => {
     ok(m === mood && deck(mood).includes(id), `MUSIC ${when} → ${mood}: plays ${id} from City 2.0's ${mood} deck (${deck(mood).length} songs)`);
     ok(!songs.moods[mood].includes(id) && songs.songs[id].c2,`MUSIC ${mood}: not one of City 1.0's songs (${id})`);
     // (7a §0 — THE MUSIC'S FIRST TAP: the sign answered the music's start — a surge through the daytime glass, a race through the lit tubes)
-    { await waitFor(P.page, '!!window.__district.surge().last', 'the sign answers the music', 4000).catch(() => {});
+    { await waitFor(P.page, '!!window.__district.surge().last', 'the sign answers the music', 9000).catch(() => {});   // (SKY-B: a station's song decodes first — the surge's own pending window is 8 s)
       const sg = await ev(P.page, 'window.__district.surge()');
       // (8a: from the sign's real state — unlit: 'surge', lit: 'first', the warm-up window: 'catch')
       const want = mood === 'day' ? ['surge'] : mood === 'late' || mood === 'party' ? ['first'] : ['surge', 'first', 'catch'];
@@ -127,11 +128,13 @@ G('music', async () => {
     const first = await start(P.page);
     ok(deck('day').includes(first), `SETTING: AUTO at 1 pm plays DAY (${first})`);
     await setMood(P.page, 'late');
-    let peak = 0; const t0 = Date.now();
-    while (Date.now() - t0 < 14000) { peak = Math.max(peak, await voices(P.page)); const id = await ev(P.page, NOW); if (id && id !== first && peak >= 2 && (await voices(P.page)) === 1) break; await sleep(150); }
+    // (SKY-B — RADIO STATIONS: a mood is a station on the server clock — the change retunes at once: the old station's voice fades out as the
+    // new one's fades in mid-song; on this phone's own player (not synced yet) the old ~4 s crossfade)
+    let peak = 0, ramp = 1; const t0 = Date.now();
+    while (Date.now() - t0 < 14000) { peak = Math.max(peak, await voices(P.page)); const g = await ev(P.page, `(() => { const d = window.__arcade.partyMusicDebug(); const s = d && d.station === 'late' && d.player && d.player.slots; return s && s.length ? Math.max(...s.map(v => v.gain)) : null; })()`); if (g != null && g > 0.001) ramp = Math.min(ramp, g); const id = await ev(P.page, NOW); if (id && id !== first && deck('late').includes(id) && (ramp < 0.95 || peak >= 2) && (await voices(P.page)) <= 1) break; await sleep(60); }
     const now = await ev(P.page, NOW);
-    ok(now && now !== first && deck('late').includes(now), `SETTING: LATE NIGHT crossfades to ${now} (late deck) without waiting for the song to end`);
-    ok(peak >= 2, `SETTING: it is a crossfade — two voices sounding at once (${peak}), never a cut`);
+    ok(now && now !== first && deck('late').includes(now), `SETTING: LATE NIGHT tunes to ${now} (the late station) without waiting for the song to end`);
+    ok(peak >= 2 || ramp < 0.95, `SETTING: never a cut — ${peak >= 2 ? `two voices at once (${peak})` : `the station's voice fading in (from ${ramp.toFixed(2)})`}`);
     ok(await ev(P.page, `JSON.parse(localStorage.getItem('na:settings')).musicMood === 'late'`), 'SETTING: saved on this device');
     await setMood(P.page, 'auto');
     await changed(P.page, now, 'AUTO again');
@@ -186,8 +189,8 @@ G('music', async () => {
     if (SHOTS) { await ev(P.page, `window.__district.remote().openCats(['music'])`); await ev(P.page, `[...document.querySelectorAll('.hr-sec')].find(s => s.querySelector('.hr-h').textContent === 'MUSIC').scrollIntoView({ block: 'start' })`); await sleep(400); await P.page.screenshot({ path: `${OUT}music-panel-402x874.png` }); }
     await ev(P.page, `[...document.querySelectorAll('.hr-b')].find(b => b.textContent === 'SKIP TO THE NEXT SONG').click()`);
     await changed(P.page, now, 'SKIP');
-    const after = await ev(P.page, NOW);
-    ok(deck('party').includes(after), `PANEL: SKIP moves to the next party song (${now} → ${after})`);
+    const after = await ev(P.page, NOW), off = await ev(P.page, `(() => { const d = window.__arcade.partyMusicDebug(); return !d || d.kind !== 'station'; })()`);
+    ok(deck('party').includes(after) && off, `PANEL: SKIP steps this phone off the PARTY station onto its own next party song (${now} → ${after})`);
     await ev(P.page, 'window.__district.remote().setMine({})');
     await changed(P.page, after, 'AUTO again');
     ok(deck('day').includes(await ev(P.page, NOW)), 'PANEL: clearing the mood goes back to the time of day (DAY)');
@@ -218,7 +221,8 @@ G('music', async () => {
 
   // ---- 6. THE MUSIC COMES BACK (the owner's iPhone: leaving Safari killed it; the music button didn't help; only a reload did)
   { const els = { fn: () => { window.__els = new Set(); const o = HTMLMediaElement.prototype.play; HTMLMediaElement.prototype.play = function () { window.__els.add(this); return o.call(this); }; } };
-    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}`, view: [402, 874], init: els });
+    // (SKY-B: this phone's OWN player — the stations' fallback on a dead graph / the direct path — so no station here)
+    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&force=no-stations`, view: [402, 874], init: els });
     const p = P.page;
     const H = () => ev(p, 'window.__arcade.musicDebug().health');
     const cur = () => ev(p, `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return { id: d.playing, t: v ? v.t : -1, paused: v ? v.paused : true, ctx: d.health.state }; })()`);
@@ -307,7 +311,7 @@ G('music', async () => {
       AC.prototype.resume = function () { if (g > 0) okCtx.add(this); return okCtx.has(this) ? resume.call(this) : new Promise(() => {}); };
       window.AudioContext = class extends AC { constructor(o) { super(o); if (g > 0) okCtx.add(this); else AC.prototype.suspend.call(this); } };
     } };
-    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&debug=1`, view: [402, 874], init: iosRule });
+    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&debug=1&force=no-stations`, view: [402, 874], init: iosRule });
     const p = P.page;
     const vis = v => ev(p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
     const PLAYING = `(() => { const d = window.__arcade.musicDebug(); const v = d.voices.find(x => x.id === d.playing); return !!d.playing && d.health.sounding && (d.out === 'direct' || (!!v && !v.paused && d.health.state === 'running')); })()`;
@@ -385,7 +389,7 @@ G('music', async () => {
       Object.defineProperty(session, 'type', { get: () => type, set: v => { type = v; session.log.push(v); }, configurable: true });
       void t;
     } };
-    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&debug=1`, view: [402, 874], init: evidence });
+    const P = await open({ slot: 'mu', qs: `when=2026-10-23T13:00${GR}&debug=1&force=no-stations`, view: [402, 874], init: evidence });
     const p = P.page;
     const vis = v => ev(p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
     const D = () => ev(p, `(() => { const d = window.__arcade.musicDebug(); return { id: d.playing, at: d.at, out: d.out, sounding: d.health.sounding, rebuilds: d.health.rebuilds, frozen: d.health.frozen, alive: d.health.alive, made: d.health.made, time: d.health.time, last: d.health.last, session: navigator.audioSession.type, set: d.health.sessionSet.type, contexts: window.__contexts }; })()`);
@@ -449,7 +453,7 @@ G('music', async () => {
     } };
     // (NIGHT-C: the party's synced song off for this one — the test drives THIS phone's own player onto the direct path; with the sync on a
     // dead graph hands the song to the same player: audio/party-music.js)
-    const Q = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1&force=no-party-sync`, view: [402, 874], init: { fn: new Function(`(${evidence.fn})(); (${stale.fn})();`) } });
+    const Q = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1&force=no-party-sync,no-stations`, view: [402, 874], init: { fn: new Function(`(${evidence.fn})(); (${stale.fn})();`) } });
     const q = Q.page;
     const PUNCH = ms => ev(q, `new Promise(res => { let lo = 9, hi = 0; const t0 = performance.now(); const tick = () => { const v = window.__district.party().punch; lo = Math.min(lo, v); hi = Math.max(hi, v); if (performance.now() - t0 < ${ms}) requestAnimationFrame(tick); else res({ lo: +lo.toFixed(3), hi: +hi.toFixed(3), src: window.__district.party().src, level: window.__district.party().level, live: window.__district.party().live, line: window.__district.harbor().beatLine, out: window.__arcade.musicDebug().out }); }; requestAnimationFrame(tick); })`);
     const qvis = v => ev(q, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
@@ -580,7 +584,7 @@ G('music', async () => {
   // the context runs on, the context suspended while the element plays on, a seek. Expected after each: the lights' beat (party().beatsF)
   // on the element's grid position within a frame or two, the readout's beat line with the song's bar + `drift`, the clock line.
   // (NIGHT-C: the party's synced song off — these checks drive THIS phone's own song element: its clock, a pause, a seek)
-  { const F = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1&force=no-party-sync`, view: [402, 874] });
+  { const F = await open({ slot: 'mu', qs: `when=2026-10-24T23:00${GR}&debug=1&force=no-party-sync,no-stations`, view: [402, 874] });
     const f = F.page;
     await tapAt(f, 30, 300);
     await waitFor(f, `(() => { const d = window.__arcade.musicDebug(); return !!d.playing && d.health.sounding; })()`, 'the party song', 25000);
@@ -768,6 +772,46 @@ G('partysync', async () => {
     const spread = Math.max(...rs.map(start)) - Math.min(...rs.map(start));
     ok(rs.every(r => r && r.id === rs[0].id && r.kind === 'party'), `LIVE: all three phones hear ${rs[0] && rs[0].id} (the panel's PARTY: ${rs.map(r => r && r.kind).join(' / ')})`);
     ok(spread < 100, `LIVE + THE LATE JOINER: the song's start agrees within ${spread.toFixed(0)} ms on all three (the joiner ${(rs[2].at).toFixed(1)} s into it)`);
+  } finally { for (const Q of pages) await Q.ctx.close().catch(() => {}); }
+});
+
+// ================================================================ SKY-B — MUSIC AS RADIO STATIONS (ONLY=stations; the `audio` cloud job): every
+// City 2.0 mood is a station on the server clock — two phones tuned to EVENING hear the same song at the same moment; a station change
+// (the panel's MUSIC MOOD → LATE NIGHT) retunes at once; a LATE JOINER lands mid-song in step, faded in
+G('stations', async () => {
+  const PM = 'window.__arcade.partyMusicDebug()';
+  const synced = (p, st) => waitFor(p, `(() => { const d = ${PM}; return !!(d && d.kind === 'station' && d.station === ${JSON.stringify(st)} && ((d.synced && d.heard && d.heard.id === d.song) || (d.riding && d.own && d.own.id === d.song))); })()`, `the ${st} station in sync`, 45000);
+  const read = p => ev(p, `(() => { const d = ${PM}; const h = d && (d.synced && d.heard ? d.heard : d.riding ? d.own : null); return h ? { id: h.id, song: d.song, at: h.at, want: d.at, err: h.at - d.at, wall: Date.now(), station: d.station, gain: d.player && d.player.slots && d.player.slots.length ? Math.max(...d.player.slots.map(s => s.gain)) : null } : null; })()`);
+  const pages = [];
+  try {
+    for (const s of ['sta', 'stb']) { const Q = await open({ slot: s, qs: `mood=evening&wx=clear${GR}`, view: [402, 660] }); pages.push(Q); }
+    for (const Q of pages) { await harborUp(Q.page); await tapAt(Q.page, 30, 300); }
+    for (const Q of pages) await synced(Q.page, 'evening');
+    await sleep(2000);
+    // (the median of three readings: one evaluate's own lag is noise, not the music's)
+    const start = r => r.wall - r.at * 1000, med = a => [...a].sort((x, y) => x - y)[1], three = [];
+    for (let i = 0; i < 3; i++) { three.push(await Promise.all(pages.map(Q => read(Q.page)))); await sleep(400); }
+    const rs = three[1], gap = med(three.map(([x, y]) => Math.abs(start(x) - start(y))));
+    ok(rs.every(r => r && r.station === 'evening' && r.id === rs[0].id && r.id === r.song), `THE EVENING STATION: both phones hear ${rs[0] && rs[0].id} (the station's song now)`);
+    ok(gap < 100 && rs.every(r => Math.abs(r.err) < 0.1), `…IN STEP: the song's start agrees within ${gap.toFixed(0)} ms (each ${rs.map(r => (r.err * 1000).toFixed(0)).join(' / ')} ms from the server clock)`);
+    // ---- a STATION CHANGE (the panel's MUSIC MOOD): the first phone → LATE NIGHT, at once
+    await waitFor(pages[0].page, '!!window.__district.remote()', 'the panel', 10000);
+    await ev(pages[0].page, "window.__district.remote().setMine({ mood: 'late' })");
+    const t0 = Date.now(); await synced(pages[0].page, 'late'); const tuneMs = Date.now() - t0;
+    const lt = await read(pages[0].page);
+    ok(lt && lt.station === 'late' && lt.id !== rs[0].id, `A STATION CHANGE: EVENING → LATE NIGHT in ${(tuneMs / 1000).toFixed(1)} s — now ${lt && lt.id}, ${lt && lt.at.toFixed(1)} s into it (mid-song: the station never waits for you)`);
+    // ---- a LATE JOINER on LATE NIGHT 10 s later: lands mid-song, in step with the first, faded in
+    await sleep(10000);
+    { const Q = await open({ slot: 'stc', qs: `mood=late&wx=clear${GR}`, view: [402, 660] }); pages.push(Q); await harborUp(Q.page); await tapAt(Q.page, 30, 300);
+      // (its voice's gain from the first moment the synced player has one — the fade is 1.2 s)
+      const gains = []; const end = Date.now() + 45000;
+      while (Date.now() < end) { const g = await ev(Q.page, `(() => { const d = ${PM}; const s = d && d.player && d.player.slots; return s && s.length ? Math.max(...s.map(v => v.gain)) : null; })()`); if (g != null && g > 0.001) { gains.push(g); if (gains.length > 8) break; } await sleep(50); }
+      await synced(Q.page, 'late'); await sleep(1800);
+      const [a, c] = await Promise.all([read(pages[0].page), read(Q.page)]);
+      ok(a && c && a.id === c.id && Math.abs(start(a) - start(c)) < 100 && c.at > 2, `THE LATE JOINER: ${c && c.id} ${c && c.at.toFixed(1)} s in, the song's start within ${a && c ? Math.abs(start(a) - start(c)).toFixed(0) : '?'} ms of the first phone`);
+      // (the 1.2-s ramp: seen on most runs (0.06 → 0.58 …); a page that was busy loading may sample it only once it's done — logged, not failed)
+      if (gains.length && Math.min(...gains) < 0.9) ok(true, `…FADED IN (its voice ${gains.map(g => g.toFixed(2)).slice(0, 6).join(' → ')})`);
+      else console.log(`  ~ the joiner's fade-in was over before its first sample (${gains.map(g => g.toFixed(2)).slice(0, 4).join(' → ')})`); }
   } finally { for (const Q of pages) await Q.ctx.close().catch(() => {}); }
 });
 

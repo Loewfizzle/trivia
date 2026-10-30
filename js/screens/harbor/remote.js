@@ -41,6 +41,7 @@ import * as R from '../../core/harbor-remote.js';
 import { fitText, towerCapacity, WORD_FACES, FONT_ALIASES } from '../../core/harbor-windows.js';
 import { songInfo } from '../../audio/beat.js';
 import { switchNow } from '../../audio/music.js';
+import { partyMusicDebug, leaveStation } from '../../audio/party-music.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../../audio/mood.js';
 import { settings, updateSettings } from '../../audio/settings.js';
 import { SLOTS, PARTS, takesOf } from '../../core/city-sounds.js';
@@ -615,7 +616,9 @@ export function createRemote({ scene, api = apiCall }) {
         // (AUTO here means AUTO: it also puts this phone's MUSIC MOOD setting back to AUTO, so the city's clock really decides)
         opts(btn('AUTO', !st.mood, () => { autoSetting(); edit(s => { delete s.mood; }); }, { q: 'auto music mood' }), ...R.MUSIC_MOODS.map(m => btn(m.label, st.mood === m.id, () => edit(s => { s.mood = m.id; }), { q: `${m.label} music mood` }))),
         musicEl = h('div.hr-status.hr-music', { 'aria-live': 'off' }),
-        h('div.hr-row', btn('SKIP TO THE NEXT SONG', false, async () => { const ok = await switchNow(2); toast(ok ? 'NEXT SONG' : 'NOTHING TO SKIP — THE ROOM’S SONG IS THE HOST’S', ok ? 'info' : 'warn'); paintMusic(); }, { cls: 'hr-wide', title: 'this phone only — at once', q: 'skip next song music' }))],
+        // (SKY-B — RADIO STATIONS: on a station SKIP steps THIS phone off it — its own shuffle from the next song (the owner's audition tool);
+        // the station plays on for everyone else, and this phone tunes back in at a reload or a mood change)
+        h('div.hr-row', btn('SKIP TO THE NEXT SONG', false, async () => { const pd = (() => { try { return partyMusicDebug(); } catch { return null; } })(); if (pd && pd.kind === 'station' && leaveStation()) { await new Promise(r => setTimeout(r, 300)); await switchNow(2); toast('OFF THE STATION — THIS PHONE’S OWN SONGS', 'info'); paintMusic(); return; } const ok = await switchNow(2); toast(ok ? 'NEXT SONG' : 'NOTHING TO SKIP — THE ROOM’S SONG IS THE HOST’S', ok ? 'info' : 'warn'); paintMusic(); }, { cls: 'hr-wide', title: 'this phone only — at once', q: 'skip next song music' }))],
     },
     // 8a — PULSE STRENGTH (the owner dials it; the number she picks becomes the default: core/harbor-beat.js#PULSE_DEFAULT)
     lights: {

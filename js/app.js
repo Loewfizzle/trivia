@@ -75,7 +75,8 @@ loadMoodMusic().then(d => {
   registerTracks(Object.fromEntries(Object.keys(d.songs).map(id => [`m:${id}`, id])));
   setListProvider('mood', prev => {
     // (NIGHT-C — THE PARTY SONG IN SYNC: on the party's timeline this phone's own player starts the song EVERY phone hears, at its place)
-    const m = moodNow(), c = m === 'party' && moodOn() ? partyCue(prev && prev.replace(/^m:/, '')) : null;
+    // (SKY-B — RADIO STATIONS: every City 2.0 mood is a station on the server clock — its song started at its place; partyCue → null in City 1.0)
+    const m = moodNow(), c = moodOn() && !state.code ? partyCue(prev && prev.replace(/^m:/, '')) : null;
     // (SKY-A: …unless the synced player claims it — loading, it plays in a moment: nothing started here, no wasted download, no AbortError)
     if (c && !state.code && partyClaims()) return null;
     if (c) { cueMusic(`m:${c.id}`, c.at); return `m:${c.id}`; }
@@ -105,7 +106,7 @@ setInterval(() => {
   // NIGHT-C — THE PARTY SONG IN SYNC (audio/party-music.js): City 2.0's menus outside a room, the PARTY mood — the party's timeline on the
   // server clock (a legendary's tape stop holds it on this phone's own player: the city clock's musicHold)
   const cc = isCity2() ? cityClock() : null;
-  partySynced = partyMusicTick(!!cc && moodOn() && !state.code && moodNow() === 'party', !!(cc && cc.musicHold && cc.musicHold()));
+  partySynced = partyMusicTick(!!cc && moodOn() && !state.code, !!(cc && cc.musicHold && cc.musicHold()));   // (SKY-B: every mood a station)
   if (was !== lobbySynced || wasP !== partySynced) render(state);
 }, 250);
 

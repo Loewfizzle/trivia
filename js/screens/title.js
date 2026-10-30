@@ -71,9 +71,10 @@ const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2
 function partyLine() {
   let d = null; try { d = partyMusicDebug(); } catch { d = null; }
   if (!d || !d.song) return null;
+  // (SKY-B — RADIO STATIONS: `station EVENING · c2-eve3 1:23 / 4:53 · SYNCED (server clock) · next in 3:30`)
   const cc = cityClock(), b = cc && cc.streetParty ? cc.streetParty() : null, brk = b && b.brk && b.k > 0 ? b.brk : null;
   const who = d.synced ? 'SYNCED (server clock)' : d.riding ? 'riding (own player, on the clock)' : settings.musicOff || settings.muted ? 'music off — the clock runs' : 'own player (not synced yet)';
-  return `party ${String(d.kind).toUpperCase()} · ${d.song} ${mmss(d.at)} / ${mmss(d.dur)} · ${who} · next in ${mmss(Math.max(0, d.left))}${brk ? ` · break ${String(brk.kind).toUpperCase()}${brk.song === d.song ? ' (this song)' : ''}` : ''}`;
+  return `${d.kind === 'station' ? `station ${String(d.station || '').toUpperCase()}` : `party ${String(d.kind).toUpperCase()}`} · ${d.song} ${mmss(d.at)} / ${mmss(d.dur)} · ${who} · next in ${mmss(Math.max(0, d.left))}${brk ? ` · break ${String(brk.kind).toUpperCase()}${brk.song === d.song ? ' (this song)' : ''}` : ''}`;
 }
 
 const ACC = { rum: '#f0c75e', stakes: '#f2c869', overclock: '#ffb627', gridlock: '#7fb2ff', slip: '#ffc46b', prism: '#d6f0ff', golf: '#2ff5d2', agent: '#e6e9ef', pulse: '#a374ff', cipher: '#3dff8b', signal: '#ff4466', bluff: '#efe6d2' };

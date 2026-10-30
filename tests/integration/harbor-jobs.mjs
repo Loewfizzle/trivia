@@ -38,6 +38,7 @@ export const SECONDS = {
   citylife: 40,        // (9e: THE CITY LIFE — the night shift, the water wagon, the morning paper; three pages)
   light: 45,           // (NIGHT-B: + the stage light's ladder, ~45 s; NIGHT-A: THE BRIGHTNESS LADDER + THE BUTTONS AT NIGHT — four pages at 3×; 28 s on the laptop)
   boxer: 45,           // (SKY-B: THE SHADOWBOXER — four pages)
+  stations: 60,        // (SKY-B: MUSIC AS RADIO STATIONS — three pages, a station change)
   thanks: 70, streetparty: 60, partysync: 55, heli: 90, roofcrisp: 28, quietbuilding: 20,   // (NIGHT-C: partysync — five pages, ~50 s on the laptop; heli — four pages, a guess)
            // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
 };
@@ -54,7 +55,7 @@ export const CI_JOBS = {
   // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
   windows: ['windows', 'snow', 'doors', 'blackout'],   // (9d: doors)   // (9b: WINTER — the lightest job by its seconds)
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
-  wild: ['wildlife', 'workers', 'weather'],
+  wild: ['wildlife', 'workers', 'weather', 'stations'],   // (SKY-B: + the radio stations — the lightest job)
   // (SKY-A: THE LEGENDS' own job — the TR-3B + the F-22s, THE BLACKBIRD, the phone bench: wild was at its cap)
   legend: ['legends', 'blackbird', 'bench', 'heli', 'boxer'],   // (SKY-B: + the patrol's circle (heli, ~90 s) + the shadowboxer)
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
