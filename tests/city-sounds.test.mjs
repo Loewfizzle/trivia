@@ -36,6 +36,8 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     'birdsong-morning', 'crickets-night', 'foghorn', 'gutter-drip', 'rain-awning', 'rain-drizzle', 'rain-pavement', 'rain-water', 'thunder-far', 'wind-leaves',
     // (11a-1 — HALLOWEEN: the witch, the ghost ship, the haunted wind + the black cat's synthesized hiss)
     'cat-hiss', 'ghost-bell', 'ghost-ship-creak', 'haunted-wind', 'witch-cackle',
+    // (NIGHT-B — THE STREET PARTY's crowd: the two walla beds, the laughs, the cheers, the clinks, the closer group takes)
+    'party-cheer', 'party-clink', 'party-group', 'party-laugh', 'party-walla', 'party-walla-b',
     // (11a-2 — THANKSGIVING + THE PARADE: the crowd (kids + the adult murmur, one loop), the cheer, the band (a one-shot pass), the
     // balloon's fabric, the raker, a short V of geese)
     'parade-crowd', 'parade-cheer', 'parade-band', 'balloon-flap', 'leaves-rake', 'geese-v',
@@ -105,7 +107,8 @@ test('every take points at a real, small file whose content matches its cache ke
   // (9f: + the tower's CC0 alternates — the siren, the horn, the rivet gun's loop, the crane lift (16 kHz / 40 kbps) ~0.6 MB: ~15.85 MB)
   // (9g: + THE UFO SET — the hover A + B + its spin-up / down, the beam's three, the lift, the departure A + B, the crowd (24 kHz / 64 kbps)
   // ~1.1 MB, the brief's ~2 MB budget; the rivet's four bursts replace its loop; HORN C: ~16.8 MB)
-  assert.ok(total < 17.2e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (NIGHT-B: + THE STREET PARTY's crowd — two walla beds (16 kHz / 40 kbps) + 13 one-shots, 1.1 MB of the brief's ≤ 1.5 MB: ~17.8 MB)
+  assert.ok(total < 18.2e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');

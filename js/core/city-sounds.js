@@ -154,6 +154,15 @@ export const SLOTS = [
   S('glow-wand-swish', '10', 'once', 0.03, 'a glow wand swished through the air (four takes)', 'a few dancers’ big moves in the dance circle (people.js#danceSounds — on the beat, quiet)'),
   S('crowd-clap', '10', 'once', 0.04, 'a few people clapping + cheering round the dance circle (low-passed 3 kHz; three takes)', 'the circle’s watchers clapping (people.js#danceSounds — every ~18–40 s)'),
   S('crowd-whoop', '10', 'once', 0.04, 'a whoop + a little applause (low-passed 4 kHz)', 'the dance circle, rarely (people.js#danceSounds — a new phrase, ≥ 60 s apart)'),
+  // ---- NIGHT-B — THE STREET PARTY's CROWD (the owner's party-crowd folder, Oct 29: copies only — docs/audio.md#the-street-partys-crowd):
+  // the walla beds under the pockets (their level the crowd's size + the party's curve, panned where they stand: core/harbor-streetparty.js
+  // via people.js#crowdSounds), one-shots from the pockets' own places — quiet, felt not heard; the cheers rise as a dance break starts
+  S('party-walla', '10', 'loop', 0.06, 'the street party’s walla: a real outdoor patio party (German, no word readable), low-passed 2.8 kHz — across the street', 'the party night’s pockets (people.js#crowdSounds)'),
+  S('party-walla-b', '10', 'loop', 0.045, 'a second, denser walla (an exterior crowd of adults, Spanish) under it at the peak (tier 1 +)', 'the party’s peak (people.js#crowdSounds)'),
+  S('party-laugh', '10', 'once', 0.04, 'a burst of laughter from a group (six takes, low-passed 4 kHz)', 'a mingling pocket, every ~4–12 s (people.js#crowdSounds)'),
+  S('party-cheer', '10', 'once', 0.05, 'a small crowd cheering (two takes, low-passed 4 kHz)', 'a dance break starting (people.js#crowdSounds)'),
+  S('party-clink', '10', 'once', 0.035, 'glasses clinking in a toast (three takes)', 'a drinker in a pocket, in little clusters (people.js#crowdSounds)'),
+  S('party-group', '10', 'once', 0.04, 'a closer group talking + laughing (two takes, low-passed 3 kHz: no word readable)', 'the nearest talking pocket, now + then (people.js#crowdSounds)'),
   S('party-yacht-music', '10', 'loop', 0.1, 'the party yacht’s music across the water'),
   S('helicopter-landing', '10', 'once', 0.14, 'a helicopter landing (on the party yacht)'),
   // ---- 6b + THE SKY (Oct 24: filled. The aircraft are FLYBYS — one-shots with their own swell, chained take after take while

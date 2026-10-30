@@ -488,6 +488,26 @@ CUTS = {
     ],
     # (4.8 s Sonniss, an audience cheering: the whoops 0–1.5 s (voiced 0.67–0.92: "whoo"s, no words), applause after; low-passed 4 kHz)
     'crowd-whoop': [{'cut': (0.0, 4.6), 'fin': 0.05, 'fout': 1.2, 'hp': 200, 'lp': 4000}],
+    # ---- NIGHT-B — THE STREET PARTY's CROWD (~/Downloads/city-sfx-party/: COPIES of ~/Downloads/Grok/city-sfx/party-crowd/, renamed to
+    # their slots — the originals untouched; `--src ~/Downloads/city-sfx-party`). Measured (RMS per block, no listening here): walla-5's
+    # 92–154 s window steady −37…−46 dB (its German phrase at ~1:07 left out); walla-1 −32…−40 dB whole; cheer-2's loudest crescendo
+    # 16–20.5 s; laugh-8's laughs 0–3.6 s; the two group takes' liveliest 7–8 s. ACROSS THE STREET: the beds low-passed 2.8 kHz at 16 kHz +
+    # 40 kbps (no word readable), the laughs + cheers 4 kHz, the closer groups 3 kHz, the clinks kept bright (7 kHz)
+    'party-walla': [{'loop': (92.0, 62.0), 'xf': 2.5, 'search': 1.0, 'hp': 110, 'lp': 2800, 'rate': 16000, 'kbps': 40}],
+    'party-walla-b': [{'loop': (3.0, 58.0), 'xf': 2.5, 'search': 1.0, 'hp': 110, 'lp': 2800, 'rate': 16000, 'kbps': 40}],
+    'party-laugh': [{'cut': (0.0, 3.5), 'fin': 0.02, 'fout': 0.8, 'hp': 150, 'lp': 4000, 'rate': 22050}],
+    'party-laugh-2': [{'cut': (0.0, 3.3), 'fin': 0.02, 'fout': 0.8, 'hp': 150, 'lp': 4000, 'rate': 22050}],
+    'party-laugh-3': [{'cut': (0.0, 2.2), 'fin': 0.02, 'fout': 0.6, 'hp': 150, 'lp': 4000, 'rate': 22050}],
+    'party-laugh-4': [{'cut': (0.0, 2.3), 'fin': 0.02, 'fout': 0.6, 'hp': 150, 'lp': 4000, 'rate': 22050}],
+    'party-laugh-5': [{'cut': (0.0, 4.2), 'fin': 0.02, 'fout': 1.0, 'hp': 150, 'lp': 4000, 'rate': 22050}],
+    'party-laugh-6': [{'cut': (0.0, 3.6), 'fin': 0.02, 'fout': 0.9, 'hp': 150, 'lp': 4000, 'rate': 22050}],
+    'party-cheer': [{'cut': (0.0, 4.6), 'fin': 0.05, 'fout': 1.2, 'hp': 180, 'lp': 4000}],
+    'party-cheer-2': [{'cut': (16.0, 20.5), 'fin': 0.6, 'fout': 1.2, 'hp': 180, 'lp': 4000}],
+    'party-clink': [{'cut': (0.0, 0.7), 'fin': 0.003, 'fout': 0.2, 'hp': 400, 'lp': 7000, 'rate': 22050}],
+    'party-clink-2': [{'cut': (0.0, 2.1), 'fin': 0.003, 'fout': 0.5, 'hp': 400, 'lp': 7000, 'rate': 22050}],
+    'party-clink-3': [{'cut': (0.0, 3.0), 'fin': 0.003, 'fout': 0.6, 'hp': 400, 'lp': 7000, 'rate': 22050}],
+    'party-group': [{'cut': (4.0, 11.0), 'fin': 0.8, 'fout': 1.5, 'hp': 150, 'lp': 3000, 'rate': 16000}],
+    'party-group-2': [{'cut': (2.0, 10.0), 'fin': 0.8, 'fout': 1.5, 'hp': 150, 'lp': 3000, 'rate': 16000}],
     # ---- 8b1 — GROK'S SECOND-TRY SOUNDS (credits.txt "Second-try sounds"; analysed: tools in the 8b1 notes, docs/audio.md#8b1)
     # (38.6 s Pixabay MP3, a house party's walla: ≤ 20 % voiced frames in any second, no held tone (no music) — indistinct; heard
     # through an upstairs window: 300 Hz–1.8 kHz (the consonants a word needs live above 2 kHz — none readable), at 16 kHz)

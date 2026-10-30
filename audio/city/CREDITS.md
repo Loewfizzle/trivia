@@ -595,6 +595,171 @@ are kept anyway, with each source file's MD5.
 - Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
 - NOTE: Used inside parade-crowd (the adult murmur laid under the kids).
 
+## party-cheer.wav  →  party-cheer
+
+- MD5 `decb7e208593ca680f42af74ad4850dd`
+- party-cheer.wav  (copied from party-crowd/cheer-1.wav)
+- Title:   audience_cheers_13
+- Author:  Soundrangers (Sonniss GDC 2018 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20-%20Audience%20Reactions/audience_cheers_13.wav
+- Length/format: 4.8 s, WAV 96 kHz/24-bit stereo
+- Attribution line: "audience_cheers_13" by Soundrangers - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## party-cheer-2.wav  →  party-cheer
+
+- MD5 `2604842a97f31668af26badb9f5aec7c`
+- party-cheer-2.wav  (copied from party-crowd/cheer-2.wav)
+- Title:   GAF SFX03 - Audience Reactions - Small Crowd Men, Cheer Applause, Long, Decrescendo, Crescendo, EN - ORTF
+- Author:  Game Audio Factory (Sonniss GDC 2016 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdcpart-2/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle/Game%20Audio%20Factory%20-%20GAFSFX03%20-%20Small%20Crowds%20Outdoors/GAF%20SFX03%20-%20Audience%20Reactions%20-%20Small%20Crowd%20Men%2C%20Cheer%20Applause%2C%20Long%2C%20Decrescendo%2C%20Crescendo%2C%20EN%20-%20ORTF.wav
+- Length/format: 25.2 s, WAV 96 kHz/24-bit stereo
+- Attribution line: "GAF SFX03 - Audience Reactions - Small Crowd Men, Cheer Applause, Long, Decrescendo, Crescendo, EN - ORTF" by Game Audio Factory - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## party-clink.wav  →  party-clink
+
+- MD5 `72e09f573fb69082ff630fcde748ffda`
+- party-clink.wav  (copied from party-crowd/clink-1.wav)
+- Title:   drinks_glasses_touching_003
+- Author:  3maze - Kitchenware (Sonniss GDC 2019 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/3maze%20-%20Kitchenware/drinks_glasses_touching_003.wav
+- Length/format: 0.7 s, WAV 96 kHz/24-bit stereo
+- Attribution line: "drinks_glasses_touching_003" by 3maze - Kitchenware - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## party-clink-2.mp3  →  party-clink
+
+- MD5 `76fbca683df88df820d339be33395f52`
+- party-clink-2.mp3  (copied from party-crowd/clink-3.mp3)
+- Title:   Glass Clinking
+- Author:  esperri (Freesound) via Pixabay
+- Licence: Pixabay Content License (free, commercial use OK, no attribution required; https://pixabay.com/service/license-summary/)
+- Source:  https://pixabay.com/sound-effects/film-special-effects-glass-clinking-92385/
+- Length/format: 2.1 s, MP3 160 kbps 24 kHz stereo
+- Attribution line: "Glass Clinking" by esperri - Pixabay (no attribution required)
+
+## party-clink-3.mp3  →  party-clink
+
+- MD5 `fe0c77bf7dcc3b80afc9858318a9fe7a`
+- party-clink-3.mp3  (copied from party-crowd/clink-2.mp3)
+- Title:   Glasses Clank
+- Author:  HogantheLogan (Freesound) via Pixabay
+- Licence: Pixabay Content License (free, commercial use OK, no attribution required; https://pixabay.com/service/license-summary/)
+- Source:  https://pixabay.com/sound-effects/household-glasses-clank-14886/
+- Length/format: 3.7 s, MP3 160 kbps 24 kHz stereo
+- Attribution line: "Glasses Clank" by HogantheLogan - Pixabay (no attribution required)
+
+## party-group.mp3  →  party-group
+
+- MD5 `0859bafdb7bed38a99c663aed9ccdbfb`
+- party-group.mp3  (copied from party-crowd/group-1.mp3)
+- Title:   people talking at street market
+- Author:  andrebola (Freesound) via Pixabay
+- Licence: Pixabay Content License (free, commercial use OK, no attribution required; https://pixabay.com/service/license-summary/)
+- Source:  https://pixabay.com/sound-effects/people-people-talking-at-street-market-102974/
+- Length/format: 12.3 s, MP3 256 kbps 44.1 kHz mono
+- Attribution line: "people talking at street market" by andrebola - Pixabay (no attribution required)
+
+## party-group-2.mp3  →  party-group
+
+- MD5 `5b9f5df26fb9302a16a56179635636eb`
+- party-group-2.mp3  (copied from party-crowd/group-2.mp3)
+- Title:   people talking at bar
+- Author:  andrebola (Freesound) via Pixabay
+- Licence: Pixabay Content License (free, commercial use OK, no attribution required; https://pixabay.com/service/license-summary/)
+- Source:  https://pixabay.com/sound-effects/people-people-talking-at-bar-72249/
+- Length/format: 14.8 s, MP3 256 kbps 44.1 kHz mono
+- Attribution line: "people talking at bar" by andrebola - Pixabay (no attribution required)
+
+## party-laugh.wav  →  party-laugh
+
+- MD5 `d039cc38e35c690a2d445815b9006f4a`
+- party-laugh.wav  (copied from party-crowd/laugh-1.wav)
+- Title:   WALLA - Crowd laugh and shout - Interior - Louder - 14
+- Author:  Timothy McHugh (Sonniss GDC 2015 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Timothy%20McHugh%20-%20Crowd%20Laughter/WALLA%20-%20Crowd%20laugh%20and%20shout%20-%20Interior%20-%20Louder%20-%2014.wav
+- Length/format: 3.5 s, WAV 96 kHz/24-bit stereo
+- Attribution line: "WALLA - Crowd laugh and shout - Interior - Louder - 14" by Timothy McHugh - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## party-laugh-2.wav  →  party-laugh
+
+- MD5 `a9ddba0f0d2d8bb4575e9694d08c8eba`
+- party-laugh-2.wav  (copied from party-crowd/laugh-2.wav)
+- Title:   WALLA - Crowd laugh and shout - Interior - Louder - 9
+- Author:  Timothy McHugh (Sonniss GDC 2015 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Timothy%20McHugh%20-%20Crowd%20Laughter/WALLA%20-%20Crowd%20laugh%20and%20shout%20-%20Interior%20-%20Louder%20-%209.wav
+- Length/format: 3.3 s, WAV 96 kHz/24-bit stereo
+- Attribution line: "WALLA - Crowd laugh and shout - Interior - Louder - 9" by Timothy McHugh - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## party-laugh-3.wav  →  party-laugh
+
+- MD5 `9c39f149840cd02b8f2b67ae72881830`
+- party-laugh-3.wav  (copied from party-crowd/laugh-3.wav)
+- Title:   WALLA - Crowd laugh and shout - Interior - Medium - 22
+- Author:  Timothy McHugh (Sonniss GDC 2015 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Timothy%20McHugh%20-%20Crowd%20Laughter/WALLA%20-%20Crowd%20laugh%20and%20shout%20-%20Interior%20-%20Medium%20-%2022.wav
+- Length/format: 2.2 s, WAV 96 kHz/24-bit stereo
+- Attribution line: "WALLA - Crowd laugh and shout - Interior - Medium - 22" by Timothy McHugh - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## party-laugh-4.wav  →  party-laugh
+
+- MD5 `43daa8bcece4c606d66d1e69dbc4dfd8`
+- party-laugh-4.wav  (copied from party-crowd/laugh-4.wav)
+- Title:   WALLA - Crowd laugh and shout - Interior - Medium - 30
+- Author:  Timothy McHugh (Sonniss GDC 2015 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Timothy%20McHugh%20-%20Crowd%20Laughter/WALLA%20-%20Crowd%20laugh%20and%20shout%20-%20Interior%20-%20Medium%20-%2030.wav
+- Length/format: 2.3 s, WAV 96 kHz/24-bit stereo
+- Attribution line: "WALLA - Crowd laugh and shout - Interior - Medium - 30" by Timothy McHugh - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## party-laugh-5.wav  →  party-laugh
+
+- MD5 `56d69a1b3167f13da14ed0bd0aa61a5b`
+- party-laugh-5.wav  (copied from party-crowd/laugh-6.wav)
+- Title:   Crowd Laughter Interior, Traveling Circus Tent, Small STEREO
+- Author:  2496SoundEffects (Sonniss GDC 2019 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/2496SoundEffects%20-%20Surround%20at%20the%20Show%202%205.1%20-%20Stereo/Crowd%20Laughter%20Interior%2C%20Traveling%20Circus%20Tent%2C%20Small%20STEREO.wav
+- Length/format: 5.0 s, WAV 96 kHz/24-bit stereo
+- Attribution line: "Crowd Laughter Interior, Traveling Circus Tent, Small STEREO" by 2496SoundEffects - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## party-laugh-6.mp3  →  party-laugh
+
+- MD5 `ad1f92b9efe3f185856ebd58c47718c8`
+- party-laugh-6.mp3  (copied from party-crowd/laugh-8.mp3)
+- Title:   Laughter1
+- Author:  paulw2k (Freesound) via Pixabay
+- Licence: Pixabay Content License (free, commercial use OK, no attribution required; https://pixabay.com/service/license-summary/)
+- Source:  https://pixabay.com/sound-effects/people-laughter1-98297/
+- Length/format: 7.3 s, MP3 256 kbps 44.1 kHz mono
+- Attribution line: "Laughter1" by paulw2k - Pixabay (no attribution required)
+
+## party-walla.wav  →  party-walla
+
+- MD5 `859a860b87c00f681dee9e613825c6d8`
+- party-walla.wav  (copied from party-crowd/walla-5.wav)
+- Title:   Party-People outdoor 01 (german)
+- Author:  Pfannkuchn (Freesound)
+- Licence: CC0 1.0 Public Domain Dedication (https://creativecommons.org/publicdomain/zero/1.0/) - no attribution required
+- Source:  https://freesound.org/s/457606/
+- Length/format: 252.2 s (4:12), WAV 48 kHz/24-bit stereo
+- Attribution line: "Party-People outdoor 01 (german)" by Pfannkuchn - Freesound - CC0 (no attribution required)
+
+## party-walla-b.wav  →  party-walla-b
+
+- MD5 `93b0a67d5dcf86b015a842be2e0e28ba`
+- party-walla-b.wav  (copied from party-crowd/walla-1.wav)
+- Title:   CRWDWalla_Crowd, Walla, Dense Immersive Group of Adults, After or Befor a Show, Exterior, Spanish-Stereo_KSL_KS014
+- Author:  Sonik Sound Library (Sonniss GDC 2026 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/sonniss-gdc-2026-game-audio-bundle-normalized/Sonik%20Sound%20Library%20-%20Spanish%20Wallas/CRWDWalla_Crowd%2C%20Walla%2C%20Dense%20Immersive%20Group%20of%20Adults%2C%20After%20or%20Befor%20a%20Show%2C%20Exterior%2C%20Spanish-Stereo_KSL_KS014.wav
+- Length/format: 67.8 s, WAV 48 kHz/24-bit stereo
+- Attribution line: "CRWDWalla_Crowd, Walla, Dense Immersive Group of Adults, After or Befor a Show, Exterior, Spanish-Stereo_KSL_KS014" by Sonik Sound Library - Sonniss GDC Game Audio Bundle (no attribution required)
+
 ## periscope-ping.wav  →  periscope-ping
 
 - MD5 `69eff3a5fd2a4e4bf0293a435795d5da`

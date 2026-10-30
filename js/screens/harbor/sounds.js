@@ -70,7 +70,7 @@ export function createCitySounds() {
   const seen = new Set(), pending = [];
   let barberLast = null, nextSnip = 0, cartNext = 0, cartOn = false, cartPan = -0.2, lastLaugh = 0;
   const lastStep = { cobble: 0, heels: 0 };
-  const people = { line: 0, linePan: -0.45, roof: 0, roofPan: -0.5 };
+  const people = { line: 0, linePan: -0.45, roof: 0, roofPan: -0.5, crowd: 0, crowdB: 0, crowdPan: 0.2 };   // (NIGHT-B: + the street party's walla)
   const bus = { arrive: null, idle: null, depart: null, pan: 0, gain: 1 };
   const ducks = [];
   const cheered = new Set();          // (11a-2: the parade's balloons already cheered)                     // { h, take, depth, pan: [w, dir] | null } — the jets: the music dips round their peak
@@ -149,6 +149,10 @@ export function createCitySounds() {
       keep('broom-sweep', st && st.bar === 'last' && k > 0.3 && speakBeds.motion !== false ? 0.85 * k * bm.k : 0, -0.5, { ramp: 2, linger: 15 });
       keep('line-murmur', clamp(people.line, 0, 1) * bm.k, people.linePan, { ramp: 2.5, linger: 20, fadeIn: 3 });
       keep('rooftop-party', clamp(people.roof, 0, 1) * bm.k, people.roofPan, { ramp: 3, linger: 20, fadeIn: 4 });
+      // NIGHT-B — THE STREET PARTY's WALLA under its pockets (people.js#crowdSounds: the crowd's size × the party's curve, panned where
+      // they stand; the denser second bed only at the peak on a tier that has the voices for it) — ducked under the music like every bed
+      keep('party-walla', clamp(people.crowd, 0, 1) * bm.k, people.crowdPan, { ramp: 4, linger: 25, fadeIn: 5 });
+      keep('party-walla-b', clamp(people.crowdB, 0, 1) * bm.k, clamp(people.crowdPan * 0.6, -1, 1), { ramp: 5, linger: 25, fadeIn: 6 });
       // (9e — THE CONSTRUCTION TOWER across the harbor by day: the crane's hoist + the hammering, far + low)
       keep('crane', clamp(people.crane || 0, 0, 1) * bm.k, people.towerPan || -0.45, { ramp: 4, linger: 30, fadeIn: 5 });
       keep('hammering', clamp(people.hammer || 0, 0, 1) * bm.k, people.towerPan || -0.45, { ramp: 4, linger: 30, fadeIn: 5 });
@@ -523,6 +527,8 @@ export function createCitySounds() {
     tower({ crane = 0, hammer = 0, pan } = {}) { people.crane = +crane || 0; people.hammer = +hammer || 0; if (pan != null) people.towerPan = clamp(pan, -1, 1); },
     /** 8P — THE ROOFTOP PARTY: level 0..1 while the rooftop guests are up (0 = none), pan (default −0.5) */
     rooftop(level = 0, { pan } = {}) { people.roof = +level || 0; if (pan != null) people.roofPan = clamp(pan, -1, 1); },
+    /** NIGHT-B — THE STREET PARTY's walla: level 0..1 (0 = no crowd), its pan, `dense` the second bed's level (the peak) */
+    crowd(level = 0, { pan, dense = 0 } = {}) { people.crowd = +level || 0; people.crowdB = +dense || 0; if (pan != null) people.crowdPan = clamp(pan, -1, 1); },
     /** 8P — THE JETS' PASS (the air show): jets({ gain, dir, width }) → the handle; the music dips ~3.6 dB round its peak */
     jets,
     /** a one-shot from a slot (the road's cars: play('car-1920s-pass', { pan, gain }) → { peak, dur, stop } or null) */

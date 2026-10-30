@@ -14,6 +14,7 @@
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier } from '../../core/harbor-people.js';
+import { tierVal } from '../../core/harbor-tiers.js';
 import { promenadeSolids } from '../../core/harbor-solids.js';
 import { workFx } from './snowfx.js';
 import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen, drawOfrenda } from './folk.js';
@@ -507,6 +508,7 @@ export function createPeople() {
     busSounds(env);
     doorSounds(env);
     danceSounds(env);
+    crowdSounds(env);
     workSounds(env);
   }
   // 8b1 — THE WORKERS, HEARD (through their slots — silent while empty; quiet): the milk bottles set down + taken in, the newspaper
@@ -577,6 +579,36 @@ export function createPeople() {
     if (snd.line) snd.line(lineN ? Math.min(1, 0.35 + lineN / 10) : 0, {});
     if (snd.rooftop) snd.rooftop(roofNow.members.length >= 3 ? Math.min(1, roofNow.members.length / 5) : 0, {});
   }
+  // NIGHT-B — THE STREET PARTY, HEARD (docs/audio.md#the-street-partys-crowd; through its slots — silent while empty, quiet: felt, not
+  // heard): the WALLA bed under the pockets (its level the mingling heads drawn × the party's curve, panned to where they stand; the
+  // denser second bed at the peak where the tier table gives it a voice), ONE-SHOTS from the pockets' own places — a laugh every ~4–12 s,
+  // glasses clinking in little clusters from a drinker, now + then the closer GROUP take from the nearest talking pocket — never more
+  // at once than the tier's crowdVoices; the CHEERS RISE as a dance break starts (2–3, staggered, the louder in the middle)
+  const cz = { brk: null, q: [], laughAt: 0, clinkAt: 0, groupAt: 0, last: [] };
+  function crowdSounds(env) {
+    const snd = env.snd, t = env.t || 0, P = now.party, tt = env.tier == null ? 2 : env.tier;
+    if (!snd || env.mo === false) { if (snd && snd.crowd) snd.crowd(0); return; }
+    const ms = P ? capByTier(now.members, tt).filter(m => m.kind === 'mingler' && m.s.pose !== 'walk') : [];
+    const n = ms.length, cx = n ? ms.reduce((a, m) => a + m.s.x, 0) / n : 0;
+    if (snd.crowd) { const lv = P && n ? clamp01(n / 16) * (0.45 + 0.55 * clamp01(P.crowd)) : 0; snd.crowd(lv, { pan: panOf(cx) * 0.8, dense: tierVal('crowdBeds', tt) >= 2 && n >= 12 ? lv * 0.85 : 0 }); }
+    if (!snd.play || !n) { cz.q.length = 0; return; }
+    const voices = tierVal('crowdVoices', tt); cz.last = cz.last.filter(e => e > t);
+    const fire = (slot, m, g, dur) => { if (cz.last.length >= voices) return false; snd.play(slot, { pan: panOf(m ? m.s.x : cx), gain: g * (0.55 + 0.45 * clamp01((50 - (m ? m.s.z : 45)) / 10)) }); cz.last.push(t + dur); return true; };
+    const pick = arr => arr[Math.floor(Math.random() * arr.length)];
+    // (the cheers rise as a break starts: queued, fired in turn)
+    if (P.brk && P.k > 0.05 && P.brk.id !== cz.brk) { cz.brk = P.brk.id; cz.q.push([t + 0.15, 'party-cheer', 0.7], [t + 1.2, 'party-cheer', 1], [t + 2.6, 'party-cheer', 0.8]); }
+    while (cz.q.length && cz.q[0][0] <= t) { const [, s, g] = cz.q.shift(); snd.play(s, { pan: panOf(cx + (Math.random() - 0.5) * 6) * 0.8, gain: g }); cz.last.push(t + 3); }
+    const dancing = P.brk && P.k > 0.3;
+    if (!cz.laughAt) cz.laughAt = t + 2 + Math.random() * 5;
+    if (t > cz.laughAt) { if (fire('party-laugh', pick(ms), 0.5 + Math.random() * 0.4, 3)) cz.laughAt = t + (dancing ? 6 : 4) + Math.random() * 8; else cz.laughAt = t + 1.5; }
+    const drinkers = ms.filter(m => m.sp && m.sp.drink);
+    if (!cz.clinkAt) cz.clinkAt = t + 6 + Math.random() * 8;
+    if (t > cz.clinkAt && drinkers.length && !dancing) { const m = pick(drinkers), k = 1 + Math.floor(Math.random() * 3); for (let i = 0; i < k; i++) cz.q.push([t + i * (0.25 + Math.random() * 0.35), 'party-clink', 0.45 + Math.random() * 0.35]); void m; cz.clinkAt = t + 8 + Math.random() * 14; }
+    if (!cz.groupAt) cz.groupAt = t + 12 + Math.random() * 10;
+    if (t > cz.groupAt && !dancing) { const m = ms.reduce((a, b) => (b.s.z < a.s.z ? b : a)); if (fire('party-group', m, 0.6, 8)) cz.groupAt = t + 26 + Math.random() * 22; else cz.groupAt = t + 3; }
+    cz.q.sort((a, b) => a[0] - b[0]);
+  }
+
   function busSounds(env) {
     const snd = env.snd; if (!snd.bus || env.mo === false) return;
     const t = lastT, seen = new Set();

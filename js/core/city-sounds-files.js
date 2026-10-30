@@ -232,6 +232,33 @@ export const FILES = /*FILES*/{
   "parade-crowd": [
     {"f": "parade-crowd.mp3", "v": "67649432", "d": 29.3, "lufs": -24.4, "loop": 27.3, "xf": 2.0, "from": [0.5, 29.8], "src": "parade-crowd", "r": 16000}
   ],
+  "party-cheer": [
+    {"f": "party-cheer-2.mp3", "v": "9903d3a6", "d": 4.5, "lufs": -20.4, "peak": 2.65, "sw": [0.3, 3.95], "from": [16.0, 20.5], "src": "party-cheer-2"},
+    {"f": "party-cheer.mp3", "v": "bbdac73e", "d": 4.6, "lufs": -20.4, "peak": 1.25, "sw": [0.25, 3.95], "from": [0.0, 4.6], "src": "party-cheer"}
+  ],
+  "party-clink": [
+    {"f": "party-clink-2.mp3", "v": "3036c052", "d": 2.064, "lufs": -20.4, "peak": 0.35, "sw": [0.15, 0.65], "from": [0.0, 2.1], "src": "party-clink-2", "r": 22050},
+    {"f": "party-clink-3.mp3", "v": "00edf679", "d": 3.0, "lufs": -20.5, "peak": 1.35, "sw": [1.1, 1.4], "from": [0.0, 3.0], "src": "party-clink-3", "r": 22050},
+    {"f": "party-clink.mp3", "v": "463e4451", "d": 0.694, "lufs": -20.5, "peak": 0.15, "sw": [0.15, 0.25], "from": [0.0, 0.7], "src": "party-clink", "r": 22050}
+  ],
+  "party-group": [
+    {"f": "party-group-2.mp3", "v": "58904735", "d": 8.0, "lufs": -20.4, "peak": 5.7, "sw": [0.25, 7.5], "from": [2.0, 10.0], "src": "party-group-2", "r": 16000},
+    {"f": "party-group.mp3", "v": "c66216d6", "d": 7.0, "lufs": -20.4, "peak": 2.4, "sw": [0.5, 5.95], "from": [4.0, 11.0], "src": "party-group", "r": 16000}
+  ],
+  "party-laugh": [
+    {"f": "party-laugh-2.mp3", "v": "3ada876d", "d": 3.285, "lufs": -20.4, "peak": 0.9, "sw": [0.3, 2.0], "from": [0.0, 3.3], "src": "party-laugh-2", "r": 22050},
+    {"f": "party-laugh-3.mp3", "v": "afe04678", "d": 2.2, "lufs": -20.4, "peak": 0.75, "sw": [0.25, 1.85], "from": [0.0, 2.2], "src": "party-laugh-3", "r": 22050},
+    {"f": "party-laugh-4.mp3", "v": "8502beda", "d": 2.299, "lufs": -20.4, "peak": 1.0, "sw": [0.15, 1.75], "from": [0.0, 2.3], "src": "party-laugh-4", "r": 22050},
+    {"f": "party-laugh-5.mp3", "v": "7b21e8b9", "d": 4.2, "lufs": -20.4, "peak": 0.95, "sw": [0.35, 2.55], "from": [0.0, 4.2], "src": "party-laugh-5", "r": 22050},
+    {"f": "party-laugh-6.mp3", "v": "251bd4f5", "d": 3.6, "lufs": -20.4, "peak": 0.95, "sw": [0.15, 2.0], "from": [0.0, 3.6], "src": "party-laugh-6", "r": 22050},
+    {"f": "party-laugh.mp3", "v": "6e03c51f", "d": 3.456, "lufs": -20.4, "peak": 0.9, "sw": [0.35, 2.9], "from": [0.0, 3.5], "src": "party-laugh", "r": 22050}
+  ],
+  "party-walla": [
+    {"f": "party-walla.mp3", "v": "adf9c377", "d": 64.5, "lufs": -24.4, "loop": 62.0, "xf": 2.5, "from": [92.5, 157.0], "src": "party-walla", "r": 16000}
+  ],
+  "party-walla-b": [
+    {"f": "party-walla-b.mp3", "v": "2966628a", "d": 60.5, "lufs": -24.4, "loop": 58.0, "xf": 2.5, "from": [3.1, 63.6], "src": "party-walla-b", "r": 16000}
+  ],
   "periscope-ping": [
     {"f": "periscope-ping.mp3", "v": "991b4d4d", "d": 4.288, "lufs": -20.4, "peak": 0.15, "sw": [0.15, 1.95], "from": [0.0, 4.29], "src": "periscope-ping"}
   ],

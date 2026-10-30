@@ -1237,7 +1237,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
       wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
   }
-  let lobbyLine = 0;
+  let lobbyLine = 0, spillCls = false;
   /** SP5 — the hourly dance never during a raid or a legendary (the TR-3B / the abduction): the evening's raid plan + the traffic hold */
   function danceBlocked(a, b) {
     try { const P = raidPlanNow(); if (P && b > P.t0 - 90 && a < P.tEnd + 60) return true; const H = trafficHoldNow(); return !!(H && H.on !== false && H.t1 > a - 60 && H.t0 < b + 60); } catch { return false; }
@@ -1953,6 +1953,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const pplLive = !off.has('no-people'), pplOn = pplLive && fadeIn > 0 && !!bakeTones && !!(baker.group('stage') || {}).ready;
     const pplEnv = pplLive ? { ...peopleEnv(lit, fadeIn), sig: sigSt.road } : null;   // (C4a: the signal's colour on a car at the crossing)
     if (pplLive) people.frame(peopleFrame());
+    // (NIGHT-B — THE STREET SPILL: the dock's glass a touch darker behind JOIN + HOST while a break's dancers stand in the street — css/title.css)
+    { const pt = pplLive ? people.party() : null, on = !!(pt && pt.brk && pt.k > 0.02); if (on !== spillCls && typeof document !== 'undefined') { spillCls = on; document.body.classList.toggle('nd-spill', on); } }
     // 8b2 — THE RAID now: its red + blue wash on the wet road, the kerb + the near water — under the patrol cars (drawn in the far pass)
     const RP = raidPlanNow(), nowRS = clock.now() / 1000, RR = RP ? raidAt(RP, nowRS) : null;
     raidSounds(RP, nowRS);

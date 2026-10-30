@@ -809,6 +809,14 @@ G('streetparty', async () => {
     ok(street.length >= 2, `INTO THE STREET: ${street.length} dancing in the street's upper band`);
     ok(bench.length >= 1 && bench.length <= 3, `DANCERS ON THE BENCH: ${bench.length} up on the cab stand's bench`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}streetparty-conga-402x660.png` });
+    // ---- THE CROWD's SOUNDS (screens/harbor/sounds.js + people.js#crowdSounds): after the first tap, the walla bed under the pockets
+    // + one-shots from their places (a laugh every ~4–12 s; the cheers as a break starts) — through the city's own sound player
+    const SND = 'window.__district.harbor().sounds';
+    await tapAt(Q.page, 30, 300);
+    await waitFor(Q.page, `${SND}.player.loops.some(l => l.slot === 'party-walla' && l.voices > 0)`, 'the walla sounding', 25000).catch(() => {});
+    await waitFor(Q.page, "import('/js/audio/city-sound.js').then(m => m.cityLog.some(x => /^party-(laugh|cheer|clink|group)$/.test(x.slot)))", 'a crowd one-shot', 25000).catch(() => {});
+    const au = await ev(Q.page, `import('/js/audio/city-sound.js').then(m => ({ loops: ${SND}.player.loops.filter(l => /^party-walla/.test(l.slot)).map(l => l.slot + ' ' + l.voices + ' ' + (+l.gain).toFixed(3)), shots: m.cityLog.filter(x => /^party-/.test(x.slot)).map(x => x.slot) }))`);
+    okF(au.loops.some(l => l.startsWith('party-walla ')) && au.shots.length >= 1, `THE CROWD's SOUNDS: the walla (${au.loops.join(', ') || 'none'}) + ${au.shots.length} one-shots (${[...new Set(au.shots)].join(', ')})`);
     await Q.ctx.close(); }
   // ---- &force=dance&dance=bounce on a THURSDAY: the preview's own street party + a bounce break within ~10 s
   { const Q = await open({ slot: 'sp2', qs: `when=2026-10-22T21:30${GR}&wx=clear&force=dance&dance=bounce`, view: [402, 660] });
