@@ -15,6 +15,8 @@ export const CREDITS = [
   { group: '3D MODELS', title: '"UFO" by sebslom', by: 'https://sketchfab.com/3d-models/ufo-75655f43c4fc4c56ab60746caf7119fe', licence: 'Licensed under CC BY 4.0 (http://creativecommons.org/licenses/by/4.0/)', link: 'https://sketchfab.com/3d-models/ufo-75655f43c4fc4c56ab60746caf7119fe' },
   // BNAME: the construction tower's crane (art/models/crane/credits.txt: "Crane by J-Toastie, CC BY 3.0 (poly.pizza)")
   { group: '3D MODELS', title: 'Crane by J-Toastie', by: 'J-Toastie (poly.pizza)', licence: 'CC BY 3.0 (poly.pizza)', link: 'https://poly.pizza/m/gCcpjaxFdv' },
+  // NIGHT-A2: City 2.0's EVENING deck (c2-80s-retro-synthwave) — the Pixabay Content License asks no attribution; credited anyway
+  { group: 'THE MUSIC', title: '80s Retro Synthwave', by: 'Playsound, Pixabay', licence: 'Pixabay Content License', link: 'https://pixabay.com/music/synthwave-80s-retro-synthwave-186631/' },
   { group: 'THE CITY SOUNDS', title: 'Field recordings + effects', by: 'Freesound contributors (CC0), the Sonniss GDC Game Audio Bundles, Mixkit, Pixabay', licence: 'CC0 · royalty-free licences (edited, cut + re-encoded for the city)' },
   { group: 'THE TYPE', title: 'Orbitron', by: 'Matt McInerney', licence: 'SIL Open Font License 1.1', link: 'https://fonts.google.com/specimen/Orbitron' },
   { group: 'THE TYPE', title: 'Chakra Petch', by: 'Cadson Demak', licence: 'SIL Open Font License 1.1', link: 'https://fonts.google.com/specimen/Chakra+Petch' },

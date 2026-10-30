@@ -2126,7 +2126,7 @@ test('THE LEAD (M3 → the beat-sync pass): the sign is right (a kick heard → 
   assert.equal(leadToSave(createLead(null, -0.04)), null, 'nothing learned: nothing saved (the default is the platform\'s)');
   // (a shift is measured modulo one beat: +240 ms is more than half a beat at 128 BPM — on a slower song it is applied as is)
   const big = createLead(null, 0), rig2 = leadRig({ bpm: 100, t0: 0.1 }); leadFast(big, 'visible', 0); rig2.feed(big, 0, 40, 0.24);
-  assert.ok(Math.abs(big.v - 0.24) < 0.01 && leadToSave(big) === LEAD_MAX, `a return's +240 ms is applied live (${Math.round(big.v * 1000)}) but the device keeps ≤ ${LEAD_MAX * 1000} ms`);
+  assert.ok(Math.abs(big.v - 0.24) < 0.01 && leadToSave(big) === null, `a return's +240 ms is applied live (${Math.round(big.v * 1000)}) but NEVER saved (NIGHT-A2: it was saved clamped at ${LEAD_MAX * 1000} ms)`);
   // the listener's delay follows the frame rate: 60 Hz = KICK_LAG, 30 Hz ≈ +8 ms, never less at 120 Hz
   assert.equal(kickLag(1 / 60), KICK_LAG); assert.ok(Math.abs(kickLag(1 / 30) - KICK_LAG - 1 / 120) < 1e-9); assert.equal(kickLag(1 / 120), KICK_LAG);
 });

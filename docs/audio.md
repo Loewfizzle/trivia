@@ -1247,3 +1247,28 @@ the bent rate, so every heal stalled again. DECIDED (plan.md, Oct 25 part 2): **
   HORN B's three blasts → 5 s after the last one the charges + the ONE crash (−42.6 / −22.1 −15.9 −9.7 / 0 s).
 - **The picks' defaults** (`core/city-sounds.js#SOUND_PICKS.def`): HORN **B** (warning-horn — the owner's pick), HUM **A** (ufo-hum-2),
   DEPART **LAYERED** (Claude's picks — "your pick, they both sound good"); every other take stays a panel alternate.
+
+## NIGHT-A2 — A TRUSTED GRID ALWAYS PUNCHES + A SAVED LEAD PER OUTPUT (Oct 29 2026; City 2.0 — docs/harbor/passes/night-a2.md)
+The owner's iPhone (party mode, the SPEAKER): c2-party4 punched only after 24 kicks confirmed the lead; on a fresh load c2-party9 read
+`lead +120 → +120 (settling · resume · 0 kicks)` / `lights BREATHE · settling after resume (bar 21)` — no pulse for the whole song.
+- **THE RULE** (`core/harbor-beat.js#stepSafety`, `safePunch`): a TRUSTED GRID ALWAYS PUNCHES — from the song's first bar at HALF
+  strength (`SAFE.half` 0.5, eased in over ~0.4 s) on the best lead it has (the saved one, else the platform default), FULL once the
+  kicks confirm the lead (or within `SAFE.hold` 8 bars of it). A settle after a return, a song whose kicks are off its beats, a deaf
+  listener, a breakdown past the hold: HALF on the grid, never the breath. The kicks only refine the lead + lift it to full. THE BREATH
+  stays for 'tempo' (an untrusted grid) + the direct element; no song = the calm punch. The readout: `lights PUNCH HALF 50 % · half · the
+  saved lead · confirming (3/6 kicks, bar 2) · 1st punch bar 0` → `lights PUNCH FULL · lead confirmed · 14 kicks · 1st punch bar 0, full bar 5`.
+- **THE SAVED LEAD** (`leadToSave`): never a CLAMPED value (his +156 ms was saved as +120 = LEAD_MAX, so every later visit started 120 ms off);
+  never one learned after a return / a restart / a context rebuild / a route change / a skew (`leadFast(c, why)` marks `c.visit` for
+  any why but `'start'` — the page's first unlock: `beat.js` names its first context resume `'start'`); `pageshow` re-settles only when
+  the page came back from the back/forward cache (it fires on every load: before, every fresh load began "settling").
+- **PER OUTPUT** (`outputKey(outputLatency, baseLatency)`: `bt` ≥ 90 ms · `wired` (the speaker, wired headphones) · `unknown` — the browser
+  reports nothing: iOS Safari), stored as `na:beatlead` `{ v: 2, out: { bt | wired | unknown: { el, buf, at } }, last }` (`readLeads`): a
+  Bluetooth visit never poisons the speaker's value; a change of bucket loads that output's value at once (a named output learns + saves
+  its own; `unknown` keeps the confirm-before-save rule). The old `na:beatcal` migrates once, only from INSIDE the range (his clamped +120:
+  dropped). `sync` readout line: `… · wired` / `… · unknown · not saved (after resume)`.
+- **SEND REPORT + /admin** (`beat.js#beatReport`, scene.js#reportText): `beat:` the lights' rule + the clock, `beat lead:` the output, the
+  lead's state, saveable or why not, the kicks heard, the saved leads per output, then the last 40 events (load, song, settle + why, locked,
+  saved, route) with the lead at each.
+- **THE KICK TABLE** (`tests/integration/kick-table.mjs "<browser>" [--deck party|evening…] [--songs id,id]`): the listener's exact chain
+  (decode → the 150 Hz biquad → a 1024-sample RMS at 60 fps → onsetStep) + the lead learner replayed on every song of a deck — the table
+  in docs/harbor/passes/night-a2.md.

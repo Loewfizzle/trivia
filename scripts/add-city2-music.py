@@ -218,6 +218,9 @@ def main():
             ids = [i for i in ids if i in set(a.only.split(','))]
         with ProcessPoolExecutor(a.jobs) as ex:
             for i, g in zip(ids, ex.map(grid_job, [str(MUSIC / f'{i}.mp3') for i in ids])):
+                # (NIGHT-A2: a grid corrected by hand — its `phase` note says how + why — is kept; drop the note to recompute it)
+                if (songs[i].get('grid') or {}).get('phase'):
+                    print(f'  {i:18s} kept: {songs[i]["grid"]["phase"][:60]}…', flush=True); continue
                 songs[i]['grid'] = g; songs[i]['bpm'] = round(g['bpm'], 1)
                 print(f'  {i:18s} {g["bpm"]:8.3f} bpm  t0 {g["t0"]:.3f}  lock {g["lock"]:6.2f}  {"TRUSTED" if g["trusted"] else "NOT TRUSTED"}', flush=True)
         OUT.write_text(json.dumps(doc, indent=1), encoding='utf-8', newline='\n')

@@ -1421,7 +1421,7 @@ G('music', async () => {
     const s = songs.songs[id];
     ok(b && b.id === id && ((s.grid.trusted === false && b.untrusted && !b.grid) || (s.grid.trusted !== false && b.grid && Math.abs(b.grid.bpm - s.grid.bpm) < 0.01)), `MUSIC ${mood}: the beat follows ${id}'s ${s.grid.trusted === false ? 'kicks (grid not trusted)' : `grid (${s.grid.bpm} bpm)`}`);
     ok(/music/i.test(line) && line.includes(id), `MUSIC ${mood}: the readout names it ("${line}")`);
-    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead [+−-]?\d+( → [+−-]?\d+)? ms \([^)]*\) · lag \d+ ms$/.test(sl || ''), `SYNC: the readout says what the beat subtracts ("${sl}")`); }
+    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead [+−-]?\d+( → [+−-]?\d+)? ms \([^)]*\) · lag \d+ ms · (bt|wired|unknown)( · not saved \(after [^)]+\))?$/.test(sl || ''), `SYNC: the readout says what the beat subtracts + the output (NIGHT-A2) ("${sl}")`); }
     if (SHOTS && mood === 'party') await P.page.screenshot({ path: `${OUT}music-party-402x874.png` });
     await P.ctx.close();
   }
@@ -1511,6 +1511,10 @@ G('music', async () => {
     await waitFor(P.page, "window.__district.party().on > 0.9 && window.__district.party().src === 'grid'", 'the pulse on the song’s grid', 15000);
     const pk = []; for (let i = 0; i < 24; i++) { pk.push(await ev(P.page, 'window.__district.party().punch')); await new Promise(r => setTimeout(r, 90)); }
     okT(Math.max(...pk) - Math.min(...pk) > 0.25, `PANEL PARTY ON: the pulse beats on ${now}'s grid (punch ${Math.min(...pk).toFixed(2)} → ${Math.max(...pk).toFixed(2)}, src ${await ev(P.page, 'window.__district.party().src')})`);
+    // NIGHT-A2 — A TRUSTED GRID ALWAYS PUNCHES (the owner: party9 breathed a whole song; party4 punched only after 24 kicks): the lights
+    // punch from the song's first bar — half until the kicks confirm the lead, full once they do
+    { const sf = await ev(P.page, 'window.__district.harbor().safety'), line = await ev(P.page, 'window.__district.harbor().safeLine');
+      ok(sf && sf.mode === 'punch' && sf.punchAt != null && sf.punchAt <= 1 && sf.k > 0.5, `NIGHT-A2 A TRUSTED GRID PUNCHES FROM ITS FIRST BAR (${now}): ${line}`); }
     await ev(P.page, 'window.__district.remote().setMine({})'); await setMood(P.page, 'auto');
     await P.ctx.close(); }
 

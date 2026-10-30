@@ -159,44 +159,60 @@ export function advanceHarborBeat(hb, dt, song, kick) {
 // BREATHING pulse — one slow swell a bar, no attack — never a hard punch that may land off the beat. Once confirmed the punch holds
 // through a breakdown (kicks scattered or quiet) for SAFE.hold bars, then breathes again until the kicks confirm it anew.
 // The switch is a crossfade over ~a bar (k). PURE (tests/harbor.test.mjs).
-export const SAFE = Object.freeze({ grace: 4, tol: 0.045, hold: 8, fade: 1.2, breathe: 0.32 });
-export function createSafety() { return { mode: 'breathe', why: 'starting', k: 0, startBar: 0, okBar: null, key: '', n: 0 }; }
+// NIGHT-A2 — THE RULE CHANGES (the owner's iPhone, Oct 29: c2-party9 — "lights BREATHE · settling after resume (bar 21)": no pulse he
+// could see for a whole song; c2-party4 punched only after 24 kicks): A TRUSTED GRID ALWAYS PUNCHES — from the first bar, at HALF strength
+// (SAFE.half) on the best lead it has (the saved one, else the platform's default) while nothing confirms it (a new song, a settle after
+// a return, a song whose kicks the listener can't use, a breakdown past the hold); FULL once the kicks confirm the lead (or within
+// SAFE.hold bars of it). The kicks only REFINE the lead + lift it to full — they never gate the pulse. The BREATH stays for what has no
+// trusted grid to stand on: 'tempo' (an untrusted grid), the direct element (its listener is deaf), and nothing playing is the calm punch.
+// sf.k = the punch's share against the breath (1 on a trusted grid), sf.amp = the punch's strength (SAFE.half … 1), both eased.
+export const SAFE = Object.freeze({ grace: 4, tol: 0.045, hold: 8, fade: 1.2, breathe: 0.32, half: 0.5, kIn: 2.5, ampFade: 1.2 });
+export function createSafety() { return { mode: 'breathe', why: 'starting', k: 0, amp: SAFE.half, full: false, startBar: 0, okBar: null, key: '', n: 0, punchAt: null, fullAt: null }; }
 /**
  * One frame: x = { src (beatMode), bar (bars counted — hb.bar), song (its id | null), anchors (the song clock's re-anchors), live (the
  * listener hears the music), cal: { res (the agreed residual, s | null), fast (settling: { why } | null), n, seen, errs }, saved (this
  * device has a lead from an earlier visit) }, dt (ms) → sf (mutated): mode 'punch' | 'breathe', why (the readout), k (0..1 the punch's
- * share — eased), bars (bars since the song / the re-anchor / the settle began)
+ * share — eased), amp (the punch's strength: SAFE.half until confirmed, 1 once confirmed — eased), full (confirmed now), bars (bars since
+ * the song / the re-anchor / the settle began), punchAt / fullAt (the bar of this song's first punch / first full punch — the readout)
  */
 export function stepSafety(sf, x, dt = 16) {
   const cal = x.cal || {}, src = x.src, bar = x.bar || 0;
   // (a new song, a re-anchored song clock or a settle starting: what was confirmed before is history)
   const key = `${x.song || ''}|${x.anchors || 0}|${cal.fast ? cal.fast.why || 'fast' : ''}`;
+  const songKey = x.song || '';
+  if (songKey !== sf.songKey) { sf.songKey = songKey; sf.punchAt = null; sf.fullAt = null; sf.songBar = bar; }
   if (key !== sf.key) { sf.key = key; sf.startBar = bar; sf.okBar = null; }
   const bars = Math.max(0, bar - sf.startBar);
-  let mode = 'breathe', why = '';
-  if (src === 'calm') { mode = 'punch'; why = 'no song — the city’s own 120'; }
-  else if (src === 'tempo') why = 'no trusted grid — nothing to confirm';
+  let mode = 'breathe', why = '', full = false;
+  if (src === 'calm') { mode = 'punch'; full = true; why = 'no song — the city’s own 120'; }
+  else if (src === 'tempo') why = 'no trusted grid — nothing to stand on';
   else if (src === 'direct-grid') why = 'direct element — the listener can’t hear it';
   else if (src === 'grid') {
+    mode = 'punch';
     const confirmed = !cal.fast && cal.res != null && Math.abs(cal.res) <= SAFE.tol;
-    if (confirmed) { sf.okBar = bar; mode = 'punch'; why = `lead confirmed · ${cal.errs || cal.n || 0} kicks`; }
-    else if (!cal.fast && sf.okBar != null && bar - sf.okBar <= SAFE.hold) { mode = 'punch'; why = `confirmed ${bar - sf.okBar} bar${bar - sf.okBar === 1 ? '' : 's'} ago`; }
-    else if (!cal.fast && x.saved && bars < SAFE.grace) { mode = 'punch'; why = `the saved lead — confirming (bar ${bars + 1}/${SAFE.grace})`; }
-    else why = !x.live ? 'nothing heard (the listener is deaf)'
+    if (confirmed) { sf.okBar = bar; full = true; why = `lead confirmed · ${cal.errs || cal.n || 0} kicks`; }
+    else if (!cal.fast && sf.okBar != null && bar - sf.okBar <= SAFE.hold) { full = true; why = `confirmed ${bar - sf.okBar} bar${bar - sf.okBar === 1 ? '' : 's'} ago`; }
+    else why = `half · ${x.saved ? 'the saved lead' : 'the default lead'} · ` + (!x.live ? 'nothing heard (the listener is deaf)'
       : cal.fast ? `settling after ${cal.fast.why || 'a change'} (bar ${bars + 1})`
-      : (cal.errs || 0) < LEAD_N ? `no kicks confirmed yet (bar ${bars + 1})`
+      : x.deafSong ? 'this song’s kicks are off its beats — the grid alone'
+      : (cal.errs || 0) < LEAD_N ? `confirming (${cal.errs || 0}/${LEAD_N} kicks, bar ${bars + 1})`
       : cal.res == null ? 'the kicks don’t agree'
-      : `heard ${Math.round(cal.res * 1000)} ms off the lights`;
+      : `heard ${Math.round(cal.res * 1000)} ms off the lights`);
   } else why = 'no beat';
-  sf.mode = mode; sf.why = why; sf.bars = bars;
-  sf.k += ((mode === 'punch' ? 1 : 0) - sf.k) * Math.min(1, Math.max(0, dt / 1000) * SAFE.fade);
+  const rel = Math.max(0, bar - (sf.songBar || 0));
+  if (mode === 'punch' && sf.punchAt == null) sf.punchAt = rel;
+  if (full && sf.fullAt == null) sf.fullAt = rel;
+  sf.mode = mode; sf.why = why; sf.bars = bars; sf.full = full;
+  const s = Math.max(0, dt / 1000);
+  sf.k += ((mode === 'punch' ? 1 : 0) - sf.k) * Math.min(1, s * (mode === 'punch' ? SAFE.kIn : SAFE.fade));
+  sf.amp += ((full ? 1 : SAFE.half) - sf.amp) * Math.min(1, s * SAFE.ampFade);
   return sf;
 }
-/** the light's pulse now: the punch (the grid's) crossfaded with the breath — a gentle swell once a bar, peaking on its downbeat (a
- *  raised cosine: no attack, never a hard edge); b: hb.beats, level: hb.level */
+/** the light's pulse now: the punch (the grid's, × its strength sf.amp) crossfaded with the breath — a gentle swell once a bar, peaking
+ *  on its downbeat (a raised cosine: no attack, never a hard edge); b: hb.beats, level: hb.level */
 export function safePunch(sf, punch, b, level = 0.7) {
   const u = ((b / 4) % 1 + 1) % 1, breath = SAFE.breathe * level * (0.5 + 0.5 * Math.cos(2 * Math.PI * u));
-  return sf.k * punch + (1 - sf.k) * breath;
+  return sf.k * punch * (sf.amp == null ? 1 : sf.amp) + (1 - sf.k) * breath;
 }
 
 /**
@@ -256,10 +272,15 @@ const wrap = (e, p) => e - p * Math.round(e / p);
  */
 export function createLead(saved = null, def = 0) {
   const v = saved == null ? clampLive(def) : clampSaved(saved);
-  return { v, n: saved == null ? 0 : LEAD_N, errs: [], res: null, fast: null, last: null, def: clampLive(def), seen: 0 };
+  return { v, n: saved == null ? 0 : LEAD_N, errs: [], res: null, fast: null, last: null, def: clampLive(def), seen: 0, visit: null };
 }
-/** start SETTLING (why: 'resume' | 'rebuild' | 'visible' | 'pageshow' | 'route' | 'skew'; now: ms) — the kicks before it are history */
+/** NIGHT-A2: the settles that START a page's audio (the first unlock: beat.js names it 'start') — a lead learned after one of these is the
+ *  device's steady value; after any OTHER settle (a return from the home screen, a restart, a context rebuild, a route change, a skew) the
+ *  lead is THIS VISIT's (iOS re-buffers the element: +107 / +156 / +237 ms seen) and is never saved (leadToSave → null). */
+export const START_WHYS = Object.freeze(['start']);
+/** start SETTLING (why: 'start' | 'resume' | 'rebuild' | 'visible' | 'pageshow' | 'route' | 'skew'; now: ms) — the kicks before it are history */
 export function leadFast(c, why = '', now = 0) {
+  if (!START_WHYS.includes(why)) c.visit = why || 'a change';
   c.fast = { why, at: now, from: c.v };
   c.errs = []; c.res = null;
   return c;
@@ -293,7 +314,7 @@ export function leadKick(c, wide, grid, now = 0) {
   // SKEW_S from where the lights land, while the older residuals sit near 0. Settle on the new ones: the old are history)
   if (!c.fast && c.errs.length >= LEAD_N + 2) {
     const r = stats(c.errs.slice(-LEAD_N));
-    if (r.spread <= LEAD_SPREAD && Math.abs(r.med) > SKEW_S) { c.fast = { why: 'skew', at: now, from: c.v }; c.errs = c.errs.slice(-LEAD_N); }
+    if (r.spread <= LEAD_SPREAD && Math.abs(r.med) > SKEW_S) { c.fast = { why: 'skew', at: now, from: c.v }; c.visit = 'skew'; c.errs = c.errs.slice(-LEAD_N); }
   }
   const { med, spread } = stats(c.errs);
   if (spread > LEAD_SPREAD) { c.res = null; return 'scatter'; }
@@ -315,8 +336,27 @@ export function leadState(c, now = 0) {
   if (!c.n) return { state: 'default', ms: ms(c.v), n: 0 };
   return { state: 'locked', ms: ms(c.v), n: c.n };
 }
-/** the value to SAVE for this device (the steady-state lead, within the saved range) — or null while settling / with nothing learned */
-export const leadToSave = c => (c.fast || !c.n ? null : +clampSaved(c.v).toFixed(3));
+/** the value to SAVE for this device (the steady-state lead) — or null while settling, with nothing learned, after a return / a restart /
+ *  a route change this visit (c.visit: that lead is the visit's), or OUTSIDE the saved range (NIGHT-A2: it was CLAMPED to LEAD_MAX — the
+ *  owner's +156 ms after a focus restart was saved as +120, and every later visit started 120 ms off) */
+export const leadToSave = c => (c.fast || !c.n || c.visit || !(c.v >= LEAD_MIN - 1e-9 && c.v <= LEAD_MAX + 1e-9) ? null : +c.v.toFixed(3));
+/** NIGHT-A2 — A SAVED LEAD PER OUTPUT: the route's bucket from what the browser reports (AudioContext.outputLatency + baseLatency, s):
+ *  'bt' (a Bluetooth / wireless output — ~100 ms and more: the glasses, a car, a speaker), 'wired' (the phone's speaker, wired
+ *  headphones — reported, short), 'unknown' (the browser reports nothing: iOS Safari — the confirm-before-save rule is the guard there) */
+export function outputKey(outLat, baseLat = 0) {
+  const l = (outLat > 0 ? outLat : 0) + (baseLat > 0 && outLat > 0 ? baseLat : 0);
+  return !(outLat > 0) ? 'unknown' : l >= 0.09 ? 'bt' : 'wired';
+}
+/** the stored leads (localStorage na:beatlead) — { v: 2, out: { [outputKey]: { el, buf, at } }, last } — read safely: junk → empty;
+ *  the old single value (na:beatcal) migrates only when it sits INSIDE the saved range (a value at the clamp's edge was a clamped one) */
+export function readLeads(raw, oldRaw = null) {
+  let s = null; try { s = JSON.parse(raw || 'null'); } catch { s = null; }
+  const ok = v => typeof v === 'number' && Number.isFinite(v) && v > LEAD_MIN + 0.002 && v < LEAD_MAX - 0.002;
+  const out = {};
+  if (s && s.v === 2 && s.out && typeof s.out === 'object') { for (const [k, e] of Object.entries(s.out)) if (e && typeof e === 'object') out[k] = { el: ok(e.el) ? e.el : null, buf: ok(e.buf) ? e.buf : null, at: +e.at || 0 }; }
+  else { let o = null; try { o = JSON.parse(oldRaw || 'null'); } catch { o = null; } if (o && (ok(o.el) || ok(o.buf))) out.unknown = { el: ok(o.el) ? o.el : null, buf: ok(o.buf) ? o.buf : null, at: 0 }; }
+  return { v: 2, out, last: s && typeof s.last === 'string' ? s.last : 'unknown' };
+}
 /** the song's position AS HEARD: the element's clock − the output latency − the element's lead */
 export const heardPos = (at, out, lead) => Math.max(0, at - out - lead);
 

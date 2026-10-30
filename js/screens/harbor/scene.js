@@ -1475,7 +1475,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const pq = qp.get('pulse'); if (pq !== pulseQ) { pulseQ = pq; PT.pulse = pulseGain(pq); }
     // (8b1 — THE SAFETY RULE, core/harbor-beat.js#stepSafety: the punch only while the heard offset is confirmed — else a gentle breath;
     // the punch itself stays on the trusted grid)
-    if (ps.on > 0) { const cb = S.beatCal ? S.beatCal() : {}; stepSafety(safety, { src: hbeat.src, bar: hbeat.bar, song: cb.song || (song && song.id) || null, anchors: cb.anchors, live: hbeat.live, cal: cb, saved: !!cb.saved }, dt); }
+    if (ps.on > 0) { const cb = S.beatCal ? S.beatCal() : {}; stepSafety(safety, { src: hbeat.src, bar: hbeat.bar, song: cb.song || (song && song.id) || null, anchors: cb.anchors, live: hbeat.live, cal: cb, saved: !!cb.saved, deafSong: !!cb.deafSong }, dt); }
     const sp0 = safePunch(safety, hbeat.punch, hbeat.beats, hbeat.level);
     PT.safe = safety.mode; PT.safeK = safety.k;
     PT.punch = S.motion && ps.on > 0 ? pulseOut(sp0 * ps.on * (0.72 + 0.28 * Math.min(1, Math.max(0, (PT.energy - 0.55) / 0.45))), PT.pulse) : 0;
@@ -1620,6 +1620,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     part('bakes', () => `key ${String(baker.key).slice(0, 60)} · pending ${baker.pending} · lit pending ${litBaker.pending} · bakes ${baker.bakes}`);
     part('memory', () => { const m = memAll(); const pm = performance.memory; return `canvases ~${m.mb} MB (budget ${m.budget}) · main ${canvas.width}×${canvas.height} · ${document.querySelectorAll('canvas').length} canvas elements${pm ? ` · JS heap ${Math.round(pm.usedJSHeapSize / 1e6)} / ${Math.round(pm.jsHeapSizeLimit / 1e6)} MB` : ''}`; });
     part('audio', () => { const a = snd && snd.debug ? snd.debug() : null; return a ? JSON.stringify(a).slice(0, 300) : null; });
+    // (NIGHT-A2 — THE BEAT's history: the lights' rule now, the clock, the lead per output + why, the saves, the songs)
+    part('beat', () => `${PT.on > 0 ? safeLine() : 'no party'} · ${beatLine()}`);
+    try { const br = S.beatReport ? S.beatReport() : null; if (br) { out.push(`beat lead: ${br.route} · ${JSON.stringify(br.lead)} · saveable ${br.saveable}${br.visit ? ` (not: after ${br.visit})` : ''} · kicks ${br.kicks} · saved ${JSON.stringify(br.saved)}`); for (const l of br.hist) out.push(`  ${l}`); } } catch { /* polish */ }
     try { const er = recentErrors(); out.push(`errors (${er.length}, newest last):`); for (const e of er) out.push(`  ×${e.n} ${new Date(e.t).toISOString().slice(11, 19)} ${e.m} @ ${e.s}:${e.l}${e.k ? ` · ${e.k}` : ''}`); } catch { /* polish */ }
     try { out.push('load log:'); for (const l of LOADLOG.lines(40)) out.push(`  ${l}`); } catch { /* polish */ }
     return out.join('\n');
@@ -2202,8 +2205,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // is how hard it punches from the music's loudness, `level steady` when nothing is heard; the lead + its calibration are on the sync line)
   // (8b1 — THE SAFETY RULE on the readout: which light the beat drives now + why — `lights PUNCH · lead confirmed · 14 kicks`,
   // `lights BREATHE · no kicks confirmed yet (bar 3)`, `lights BREATHE → PUNCH 40 %` while the crossfade runs)
-  const safeLine = () => { const k = safety.k, m = safety.mode === 'punch' ? 'PUNCH' : 'BREATHE', tr = k > 0.03 && k < 0.97 ? ` (${safety.mode === 'punch' ? '→' : '←'} punch ${Math.round(k * 100)} %)` : '';
-    return `lights ${m}${tr} · ${safety.why}`; };
+  // (NIGHT-A2 — a trusted grid always punches: `lights PUNCH HALF 50 % · half · the saved lead · confirming (3/6 kicks, bar 2) · 1st punch
+  // bar 0` → `lights PUNCH FULL · lead confirmed · 14 kicks · 1st punch bar 0, full bar 5` — the song's bars from its start)
+  const safeLine = () => { const k = safety.k, m = safety.mode === 'punch' ? `PUNCH ${safety.full ? 'FULL' : `HALF ${Math.round((safety.amp || 0) * 100)} %`}` : 'BREATHE', tr = k > 0.03 && k < 0.97 ? ` (${safety.mode === 'punch' ? '→' : '←'} punch ${Math.round(k * 100)} %)` : '';
+    const first = safety.punchAt != null ? ` · 1st punch bar ${safety.punchAt}${safety.fullAt != null ? `, full bar ${safety.fullAt}` : ''}` : '';
+    return `lights ${m}${tr} · ${safety.why}${first}`; };
   const beatLine = () => `beat ${hbeat.src}${hbeat.src === 'calm' && S.beatWhy && S.beatWhy() ? ` — ${S.beatWhy()}` : ''}${hbeat.bpm ? ` ${hbeat.bpm.toFixed(1)}` : ''} · bar ${hbeat.songBar != null ? hbeat.songBar : hbeat.bar} · ${(hbeat.songIdx != null ? hbeat.songIdx : hbeat.idx) + 1}/4${hbeat.drift != null ? ` · drift ${hbeat.drift >= 0 ? '+' : '−'}${Math.abs(Math.round(hbeat.drift))} ms` : ''} · pulse ${roPulse.toFixed(2)}${PT.pulse && PT.pulse !== pulseGain(null) ? ` ×${PT.pulse.toFixed(2)}` : ''}${hbeat.live ? ` · level ${hbeat.level.toFixed(2)}` : hbeat.src === 'grid' ? ' · level steady' : ''}`;
   // (FP3a, FREV B4: a DOM strip at the TOP under the corner buttons — ui/debug-strip.js — never over the promenade or the dock: it
   // sat on the canvas over the promenade's middle (and ran measureText per line per frame inside the very `work` it reported). Its
@@ -3087,7 +3093,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
-      beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3) },
+      beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),

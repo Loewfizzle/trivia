@@ -30,7 +30,7 @@ import { GAME_MODULES } from '../games/registry.js';
 import { settings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
 import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout, neonCatch, neonHumFade, neonRaceCrackle, neonPreload, startRain, thunder, cityPowerOn, fireworkBurst, knock } from '../audio/ambience.js';
-import { beatSource, beatKick, beatWhy, beatCal, songInfo, syncLine, clockLine } from '../audio/beat.js';
+import { beatSource, beatKick, beatWhy, beatCal, beatReport, songInfo, syncLine, clockLine } from '../audio/beat.js';
 import { beatMode } from '../core/harbor-beat.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
 import { cityFailed } from '../core/city.js';
@@ -328,7 +328,7 @@ export function createTitle() {
     scene.set({ onFlash: e => { if (destroyed) return; if (!createHarbor) thunder(e); flashGlass(e.near); } });
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
-    scene.set({ beat: beatSource, song: createHarbor ? songInfo : null, kick: createHarbor ? beatKick : null, beatWhy: createHarbor ? beatWhy : null, beatCal: createHarbor ? beatCal : null, musicLine: createHarbor ? musicLine : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
+    scene.set({ beat: beatSource, song: createHarbor ? songInfo : null, kick: createHarbor ? beatKick : null, beatWhy: createHarbor ? beatWhy : null, beatCal: createHarbor ? beatCal : null, beatReport: createHarbor ? beatReport : null, musicLine: createHarbor ? musicLine : null, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
     // CITY 2.0 — THE TIRED TUBE (NEON PASS 5): one or two letters of the NEON logo look tired for ~3 hours (core/harbor-show.js
     // #tiredLetters — any letter, sometimes none, never the same twice running; it was always the O)
     // (and again once the scene has its clock: the first check can come before its look — then nothing showed for 30 s)

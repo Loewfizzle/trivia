@@ -44,3 +44,63 @@ Sat Oct 31 Halloween AND a party night. Not here: the street party, the quiet bu
   nobody's drawn position inside any base; a detoured crossing ≤ 1.35× its pace; a way left ↔ right exists. The scratch probe over 2 h ×
   4 nights: without the guard people inside the display, the bench's bale + the stalks (stargazers, couples, the dog walker, the cart, the
   watchers — 786 samples of one watcher at the bale); with it **none**.
+
+### Group 1 — THE BEAT (docs/audio.md, "NIGHT-A2 — A TRUSTED GRID ALWAYS PUNCHES")
+- **THE RULE CHANGES** (`core/harbor-beat.js#stepSafety` + `safePunch`): a TRUSTED GRID ALWAYS PUNCHES — HALF strength (`SAFE.half`) from the
+  song's first bar on the best lead it has, FULL once the kicks confirm the lead (+ `SAFE.hold` bars after); a settle, a deaf listener, a
+  song whose kicks are off its beats (`deafSong`: agree < 0.5), a breakdown: half on the grid, never the breath. The breath stays for
+  'tempo' + the direct element. The readout: `lights PUNCH HALF 50 % · half · the default lead · settling after start (bar 2) · 1st punch
+  bar 0` → `lights PUNCH FULL · lead confirmed · 7 kicks · 1st punch bar 0, full bar 8`.
+- **WHY +156 ms, AND WHY IT WAS SAVED AS +120**: his readout says the +156 was settled after `restarts 1 (last: focus)` — an engine restart
+  — on a phone whose fresh sessions read −21 … −42 ms (8b1's −34…−42; his saved −21): the same kind of post-return shift iOS showed before
+  (+107 / +237 ms after the home screen). So it was THIS VISIT's value, not the speaker's — and `leadToSave` CLAMPED it to LEAD_MAX (+120)
+  and saved it, so every later visit started 120 ms off and re-settled. It can't be reproduced here (headless WebKit / Chromium on Windows
+  have no iPhone output path: headless Chromium reports a fixed ~140 ms device), so the fix is the RULE: a lead is saved only when learned
+  after the page's own start, never after a return / a restart / a rebuild / a route change / a skew, and never outside the range (not
+  clamped) — the range stays −80 … +120 ms. Two more causes found on the way: `pageshow` fires on EVERY load (it marked every fresh load
+  "settling" — now only a back/forward-cache restore), and the context reporting no latency for a moment at its start flapped the output
+  bucket (wired → unknown → wired) on every reload — 'unknown' never replaces a named output now.
+- **PER OUTPUT** (`outputKey`, `readLeads`, `na:beatlead`): `bt` / `wired` / `unknown` (iOS reports nothing → the confirm-before-save
+  rule is its guard); his poisoned `na:beatcal` +120 is dropped on the migration (only values inside the range move over).
+- **THE TIME TO THE FIRST PUNCH** (Chromium, 402×660, a Saturday party — a git-excluded probe): a fresh load with nothing saved —
+  c2-party4: punch (k > 0.5) at **0.1 s** (bar 0), FULL at 15.4 s (bar 8, 7 kicks); c2-party9 (his song): punch at 0.1 s, HALF the whole
+  30 s (it never confirms — below); a reload with the saved lead — c2-party5: punch at **0.0 s**, full at 17.3 s (bar 7); a return
+  (visible): the punch never stops (a settle = half, then full again). Before: his iPhone breathed until 24 kicks (party4), or the whole
+  song (party9).
+- **SEND REPORT + /admin** carry `beat:` + `beat lead:` + the last 40 events (load / song / settle + why / locked / saved / route), e.g.
+  `0.0 s load unknown: saved null` · `2.5 s route unknown → wired` · `2.6 s song c2-party5` · `19.6 s locked after start (24 kicks)` ·
+  `19.6 s saved wired 0 ms` · `21.3 s settle visible`.
+- **THE KICK TABLE** (`tests/integration/kick-table.mjs "<browser>" [--deck party] [--songs …] [--shift id=beats]` — the listener's exact
+  chain over each song, decoded in Chromium; `strong` = the kicks ≥ 0.6 the lead learns from; on beat / half-beat = their share within
+  ±0.15 beat of the beat / of the half-beat; confirms = the learner's first confirmed bar from a cold start):
+
+  | song | bpm | grid | agree | kicks a bar (strong) | on beat | half-beat | confirms at bar | confirmed bars |
+  | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+  | c2-party1 | 100 | trusted | 0.63 | 4.6 (4.0) | 0.75 | 0.08 | 2 | 72 / 85 |
+  | c2-party2 | 117 | trusted | 0.90 | 3.4 (2.9) | 0.92 | 0.04 | 12 | 108 / 136 |
+  | c2-party3 | 106.9 | **untrusted → trusted** | 0.19 → 0.72 | 4.0 (3.6) | 0.15 → **0.72** | 0.72 → 0.15 | 21 (at −250 ms) → **4** (+10 ms) | 45 → 65 / 90 |
+  | c2-party4 | 125 | trusted | 0.71 | 4.1 (2.1) | 0.89 | 0.06 | 8 | 140 / 153 |
+  | c2-party5 | 106 | trusted | 0.90 | 3.7 (3.2) | 0.92 | 0.05 | 8 | 56 / 75 |
+  | c2-party6 | 111 | trusted | 0.82 | 4.2 (3.5) | 0.79 | 0.15 | 19 | 55 / 82 |
+  | c2-party7 | 140 | trusted | 0.59 | 3.4 (3.1) | 0.78 | 0.04 | 13 | 81 / 132 |
+  | c2-party8 | 140 | trusted | 0.85 | 3.3 (3.2) | 0.90 | 0.05 | 11 | 115 / 147 |
+  | **c2-party9** | 100 | trusted (lock 5.46) | 0.33 | **8.5 (8.0)** | 0.33 | 0.08 | **never** (991 scattered) | 0 / 124 |
+  | c2-80s-retro-synthwave (new, EVENING) | 110 | trusted | 0.57 | 4.7 (2.8) | 0.79 | 0.12 | 7 | 81 / 119 |
+
+  **party9 reads 0 kicks** because the listener feeds the lead only from a grid whose kicks land on its beats (agree ≥ 0.5) — and its low
+  end is a busy 16th-note bass line (8 hits a bar, a third on the beat, most between), no four-on-the-floor kick: no band or threshold
+  separates a kick that isn't there. Not fixable in the listener; its grid is strongly locked (5.46), so it now punches HALF all song.
+  **party3 FIXED**: 72 % of its kicks sat exactly on the HALF-BEAT — its grid's phase was half a beat off (M2 read "its kicks off the
+  beat" and left it untrusted, so it BREATHED on party nights). Its t0 moved half a beat (0.485 → 0.204, a `phase` note in its grid;
+  `add-city2-music.py --regrid` keeps a grid with a `phase` note): 72 % on the beat, the lead confirms by bar 4 at +10 ms, now TRUSTED.
+- Checks: unit 874 (the rule's tests rewritten — half from bar 0, full when confirmed, half after a settle / a deaf song / the hold; the
+  saved lead never after a return or clamped; per output; the old clamped value not migrated); e2e music + party 128/128 (+ A TRUSTED GRID
+  PUNCHES FROM ITS FIRST BAR; the SYNC line with its output).
+
+### Add-on — ONE NEW EVENING SONG (the owner, Oct 29 evening)
+`~/Downloads/Grok/city-sfx/night-music/80s-retro-synthwave.mp3` COPIED (the original untouched) into `~/Downloads/evening/`, the importer
+(`--dry-run`, then for real) → **`c2-80s-retro-synthwave`** (`audio/music/c2-80s-retro-synthwave.mp3`, **3.6 MB**, 4:19 after the silence
+trim, −16 LUFS, 112 kbps) in the EVENING deck (now 14 songs, 50 min). Its grid: **110.004 BPM, TRUSTED** (lock 1.19, agree 0.57 — the
+kick table: confirms at bar 7). The note beside the file said "the NIGHT category"; the owner's message said EVENING — EVENING it is.
+Credit: ☰ → CREDITS → THE MUSIC: "80s Retro Synthwave — Playsound, Pixabay — Pixabay Content License". Checked: MUSIC MOOD → EVENING at
+402×660 (the device's bag seeded so it's next): it plays (the element's time advancing, the graph sounding), the beat on its 110 grid.

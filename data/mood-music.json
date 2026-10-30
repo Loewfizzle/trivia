@@ -2358,7 +2358,7 @@
    "tp": -2.6,
    "grid": {
     "bpm": 106.904,
-    "t0": 0.485,
+    "t0": 0.204,
     "down": 1,
     "steady": true,
     "drift": [
@@ -2368,9 +2368,10 @@
      0
     ],
     "lock": 0.89,
-    "agree": 0.19,
+    "agree": 0.72,
     "kicks": 339,
-    "trusted": false
+    "trusted": true,
+    "phase": "NIGHT-A2: t0 moved half a beat (0.485 → 0.204) — the kick listener (tests/integration/kick-table.mjs) heard 72 % of its kicks on the half-beat; shifted: 72 % on the beat, the lead confirmed by bar 4 (+10 ms)"
    }
   },
   "c2-party4": {
@@ -2528,6 +2529,32 @@
     "kicks": 877,
     "trusted": true
    }
+  },
+  "c2-80s-retro-synthwave": {
+   "mood": "evening",
+   "keeper": true,
+   "c2": true,
+   "dur": 259.27,
+   "bpm": 110.0,
+   "loud": -16.0,
+   "srcLoud": -10.9,
+   "tp": -3.0,
+   "grid": {
+    "bpm": 110.004,
+    "t0": 0.013,
+    "down": 1,
+    "steady": true,
+    "drift": [
+     -3,
+     -2,
+     -1,
+     4
+    ],
+    "lock": 1.19,
+    "agree": 0.57,
+    "kicks": 555,
+    "trusted": true
+   }
   }
  },
  "city2": {
@@ -2571,7 +2598,8 @@
     "c2-evening11",
     "c2-evening12",
     "c2-evening13",
-    "c2-evening14"
+    "c2-evening14",
+    "c2-80s-retro-synthwave"
    ],
    "late": [
     "c2-late1",
@@ -2915,6 +2943,12 @@
     "id": "c2-party9",
     "files": [
      "party/party9.mp3"
+    ]
+   },
+   "02c1b2ad9fcd48fbb092cd7cfd681f6a": {
+    "id": "c2-80s-retro-synthwave",
+    "files": [
+     "evening/80s-retro-synthwave.mp3"
     ]
    }
   },

@@ -12,7 +12,7 @@ import { lobbyNow } from './lobby-music.js';
 import { moodData } from './mood.js';
 import { settings } from './settings.js';
 import { getContext, getMusicBus, clockFrozen, onRebuild, onResume } from './engine.js';
-import { createOnsets, onsetStep, onsetEnergy, kickLag, createLead, leadKick, leadFast, leadAnchor, leadState, leadToSave, heardPos, createSongClock, songClockStep, kickErrWide } from '../core/harbor-beat.js';
+import { createOnsets, onsetStep, onsetEnergy, kickLag, createLead, leadKick, leadFast, leadAnchor, leadState, leadToSave, heardPos, createSongClock, songClockStep, kickErrWide, outputKey, readLeads, LEAD_N } from '../core/harbor-beat.js';
 
 // ---- WHEN THE BEAT IS HEARD (M2, the owner: the party's sync "kind of — not perfect")
 // Two delays sit between a song's clock and the ear:
@@ -52,23 +52,39 @@ function outLatency() {
   if (!(l > 0)) l = WEBKIT ? IOS_OUT : 0;
   return Math.min(0.35, Math.max(0, l + (c.baseLatency || 0)));
 }
-const CAL_KEY = 'na:beatcal';
-let savedEl = false, savedBuf = false;   // (8b1: a lead learned on an earlier visit — the safety rule's grace)
+// NIGHT-A2 — A SAVED LEAD PER OUTPUT (the owner's iPhone, Oct 29: a +156 ms settled after a focus restart — 15 min after his Bluetooth
+// glasses — was saved CLAMPED as +120, and every later visit started 120 ms off): the leads are kept per OUTPUT (core/harbor-beat.js#
+// outputKey: 'bt' / 'wired' from the reported outputLatency — a Bluetooth visit never poisons the speaker's value, and switching back finds
+// the speaker's at once; 'unknown' where the browser reports nothing — iOS), and a lead is SAVED only when it is the device's steady
+// value (leadToSave: learned after the page's own start, never after a return / a restart / a route change, never outside the range).
+const CAL_KEY = 'na:beatcal';      // (the old single value: migrated once, only when it sits INSIDE the saved range — readLeads)
+const LEAD_KEY = 'na:beatlead';    // { v: 2, out: { [outputKey]: { el, buf, at } }, last }
+let savedEl = false, savedBuf = false;   // (8b1: a lead learned on an earlier visit — the readout: "the saved lead")
+let LEADS = { v: 2, out: {}, last: 'unknown' }, route = 'unknown';
 const cal = (() => {
-  let s = null;
-  try { s = JSON.parse(localStorage.getItem(CAL_KEY) || 'null'); } catch { /* private mode */ }
+  try { LEADS = readLeads(localStorage.getItem(LEAD_KEY), localStorage.getItem(CAL_KEY)); } catch { /* private mode */ }
+  route = LEADS.last || 'unknown';
+  const s = LEADS.out[route] || null;
   savedEl = !!(s && s.el != null); savedBuf = !!(s && s.buf != null);
   return { el: createLead(s ? s.el : null, WEBKIT ? IOS_LEAD : 0), buf: createLead(s ? s.buf : null, 0) };
 })();
+// THE BEAT's HISTORY (SEND REPORT + /admin): the lead's values + why, the routes, the saves, the songs — the last 40 events
+const HIST = [], T0 = typeof performance !== 'undefined' ? performance.now() : 0;
+function hist(ev, txt = '') { try { HIST.push(`${((performance.now() - T0) / 1000).toFixed(1)} s ${ev}${txt ? ` ${txt}` : ''} · lead ${Math.round(cal.el.v * 1000)} ms`); if (HIST.length > 40) HIST.shift(); } catch { /* polish */ } }
+hist('load', `${route}: saved ${JSON.stringify(LEADS.out[route] || null)}`);
 let calSaved = 0;
+function saveLeads() {
+  const e = LEADS.out[route] || { el: null, buf: null, at: 0 }, el = leadToSave(cal.el), buf = leadToSave(cal.buf);
+  if (el == null && buf == null) return;
+  LEADS.out[route] = { el: el ?? e.el, buf: buf ?? e.buf, at: Date.now() }; LEADS.last = route;
+  try { localStorage.setItem(LEAD_KEY, JSON.stringify(LEADS)); } catch { /* private mode */ }
+  if (el != null && el !== e.el) hist('saved', `${route} ${Math.round(el * 1000)} ms`);
+}
 function learn(kind, wide, grid, nowMs) {
   const r = leadKick(cal[kind], wide, grid, nowMs);
+  if (r === 'locked' && kind === 'el') hist('locked', `after ${cal.el.last ? cal.el.last.why : '?'} (${cal.el.errs.length} kicks)`);
   if (r !== 'learn' && r !== 'locked' && r !== 'ok') return;
-  if (performance.now() - calSaved > 10000) {
-    calSaved = performance.now();
-    // (the device value is the steady-state lead within the saved range — a return's shift is this visit's: leadToSave)
-    try { localStorage.setItem(CAL_KEY, JSON.stringify({ el: leadToSave(cal.el), buf: leadToSave(cal.buf) })); } catch { /* private mode */ }
-  }
+  if (performance.now() - calSaved > 10000) { calSaved = performance.now(); saveLeads(); }
 }
 // SETTLE THE LEAD AGAIN (core/harbor-beat.js#leadFast): on every resume / context rebuild / page return / output route change the lead
 // re-converges on the next kicks heard, within a few bars; the output latency is re-read fresh too (the smoothed timestamp estimate
@@ -77,7 +93,19 @@ function refresh(why) {
   const now = performance.now();
   for (const k of ['el', 'buf']) leadFast(cal[k], why, now);
   stamp.v = 0; stamp.at = -1e9;
+  hist('settle', why);
 }
+/** NIGHT-A2: the output changed bucket (outputKey) — its own saved lead at once (if it has one); a route the browser NAMES learns its own
+ *  value (the settle counts as a start); 'unknown' keeps the route rule (this visit's, never saved) */
+function switchRoute(key) {
+  const from = route; route = key; LEADS.last = key;
+  const s = LEADS.out[key];
+  for (const k of ['el', 'buf']) { const v = s && s[k]; if (v != null) { cal[k].v = v; cal[k].n = LEAD_N; } }
+  savedEl = !!(s && s.el != null); savedBuf = !!(s && s.buf != null);
+  hist('route', `${from} → ${key}${s && s.el != null ? ` (its saved ${Math.round(s.el * 1000)} ms)` : ''}`);
+  refresh(key === 'unknown' ? 'route' : 'start');
+}
+let started = false;           // (the first context resume = the page's audio STARTING — the unlock tap — not a return)
 let routeOut = null;           // the reported outputLatency last seen: a jump > 15 ms = a new route (speaker ↔ headphones ↔ Bluetooth)
 
 // FP — THE SONG CLOCK (core/harbor-beat.js#songClockStep): the beat's position always comes from the SONG — the element's
@@ -95,10 +123,11 @@ function wire(el) {
 }
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => { const v = document.visibilityState === 'visible'; reanchor(v ? 'visible' : 'hidden'); if (v) refresh('visible'); });
-  addEventListener('pageshow', () => { reanchor('pageshow'); refresh('pageshow'); });
-  try { if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', () => refresh('route')); } catch { /* unsupported */ }
+  // (NIGHT-A2: pageshow fires on EVERY load — only a page restored from the back/forward cache is a return)
+  addEventListener('pageshow', e => { reanchor('pageshow'); if (e && e.persisted) refresh('pageshow'); });
+  try { if (navigator.mediaDevices && navigator.mediaDevices.addEventListener) navigator.mediaDevices.addEventListener('devicechange', () => refresh(route === 'unknown' ? 'route' : 'start'));    /* (NIGHT-A2: a named output: switchRoute finds its value on the next kick) */ } catch { /* unsupported */ }
 }
-try { onRebuild(() => { reanchor('rebuild'); refresh('rebuild'); }); onResume(() => { reanchor('ctx resume'); refresh('resume'); }); } catch { /* no engine (tests) */ }
+try { onRebuild(() => { reanchor('rebuild'); refresh('rebuild'); }); onResume(() => { reanchor('ctx resume'); refresh(started ? 'resume' : 'start'); started = true; }); } catch { /* no engine (tests) */ }
 let stepAt = -1, stepPos = -1;
 /** the song's position on its own clock this frame (s), the same value for every caller in the frame */
 function songPos(np, nowMs) {
@@ -195,8 +224,12 @@ export function beatKick(nowMs = performance.now()) {
   if (lastFrame && nowMs - lastFrame < 100) frameS += ((nowMs - lastFrame) / 1000 - frameS) * 0.05;
   lastFrame = nowMs;
   const lag = kickLag(frameS);
-  { const ro = A.ctx.outputLatency > 0 ? A.ctx.outputLatency : null;
-    if (ro != null && routeOut != null && Math.abs(ro - routeOut) > 0.015) refresh('route');
+  { const ro = A.ctx.outputLatency > 0 ? A.ctx.outputLatency : null, key = outputKey(A.ctx.outputLatency, A.ctx.baseLatency);
+    // (a context reports no latency for a moment as it starts: 'unknown' never replaces an output the browser has named — a flap
+    // wired → unknown → wired re-settled the lead + marked it unsaveable on every reload)
+    if (key !== route && key !== 'unknown') switchRoute(key);
+    // (a jump inside a NAMED bucket: the same kind of output — settle, and the learned value is still that output's to keep)
+    else if (ro != null && routeOut != null && Math.abs(ro - routeOut) > 0.015) refresh(route === 'unknown' ? 'route' : 'start');
     if (ro != null) routeOut = ro; }
   const hit = onsetStep(ons, rms, nowMs / 1000);
   // a strong kick on a song whose kicks land on its trusted grid: how far the sound sits from where the lights land → the lead
@@ -207,7 +240,7 @@ export function beatKick(nowMs = performance.now()) {
       const kind = lob ? 'buf' : 'el', c = cal[kind];
       const at = songPos(np, nowMs);
       // (a new song, or the song clock re-anchored — a jump, a seek, a return: what was measured before it is history; the lead stays)
-      if (leadId !== np.id || leadAnch !== sclock.anchors) { leadId = np.id; leadAnch = sclock.anchors; leadAnchor(c); }
+      if (leadId !== np.id || leadAnch !== sclock.anchors) { if (leadId !== np.id) hist('song', np.id); leadId = np.id; leadAnch = sclock.anchors; leadAnchor(c); }
       learn(kind, kickErrWide(at, g, lag), g, nowMs);
     }
   }
@@ -217,7 +250,17 @@ export function beatKick(nowMs = performance.now()) {
  *  settling, the kicks behind it — the song clock's identity + re-anchors, and whether this device had a lead saved from a visit before */
 export function beatCal() {
   const c = lobbyNow() ? cal.buf : cal.el;
-  return { res: c.res, fast: c.fast ? { why: c.fast.why } : null, n: c.n, seen: c.seen, errs: c.errs.length, song: sclock.id, anchors: sclock.anchors, saved: lobbyNow() ? savedBuf : savedEl };
+  // (NIGHT-A2: deafSong — the song's grid is trusted but its kicks land off its beats (agree < 0.5): the listener never feeds the lead on
+  // it, so it can't confirm — the safety rule keeps the half punch on the grid and says why)
+  const np = lobbyNow() || nowPlaying(), d = moodData(), g = np && d && d.songs && d.songs[np.id] && d.songs[np.id].grid;
+  const deafSong = !!(g && g.bpm > 0 && g.trusted !== false && g.agree != null && g.agree < 0.5);
+  return { res: c.res, fast: c.fast ? { why: c.fast.why } : null, n: c.n, seen: c.seen, errs: c.errs.length, song: sclock.id, anchors: sclock.anchors, saved: lobbyNow() ? savedBuf : savedEl, deafSong, route, visit: c.visit };
+}
+/** NIGHT-A2 — the beat for SEND REPORT + /admin: the output's bucket, the saved leads per output, the lead's state now, whether it may be
+ *  saved, the kicks heard, the last 40 events (the lead's values + why, the routes, the saves, the songs) */
+export function beatReport() {
+  const c = cal.el, st = leadState(c, performance.now());
+  return { route, last: LEADS.last, saved: LEADS.out, lead: st, saveable: leadToSave(c) != null, visit: c.visit, kicks: c.seen, buf: Math.round(cal.buf.v * 1000), hist: HIST.slice() };
 }
 /** the debug view (window.__arcade.beat / the readout) */
 export function beatDebug() {
@@ -237,7 +280,8 @@ export function syncLine() {
     : c.state === 'settled' ? `lead ${sg(c.ms)} ms (${c.ok ? 'settled' : 'kept'} ${sg(c.from)} → ${sg(c.ms)} · ${c.ago} s ago)`
     : c.state === 'locked' ? `lead ${sg(c.ms)} ms (locked · ${c.n} kicks)`
     : `lead ${sg(c.ms)} ms (default)`;
-  return `sync out ${Math.round(d.latency * 1000)} ms${d.reported ? '' : d.stamp ? ' (stamp)' : ' (est)'} · ${leadTxt} · lag ${Math.round(d.lag * 1000)} ms`;
+  // (NIGHT-A2: + the output's bucket, and when this visit's lead won't be saved — after a return / a restart / a route change)
+  return `sync out ${Math.round(d.latency * 1000)} ms${d.reported ? '' : d.stamp ? ' (stamp)' : ' (est)'} · ${leadTxt} · lag ${Math.round(d.lag * 1000)} ms · ${route}${cal.el.visit ? ` · not saved (after ${cal.el.visit})` : ''}`;
 }
 /** FP — the readout's song-clock line: the last element reading vs the run-forward clock, the re-anchors (+ the last why), and `heard`:
  *  where the strong kicks land against the lights (the agreed residual; `~` while the last kicks don't agree) */
