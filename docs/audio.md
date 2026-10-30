@@ -1295,3 +1295,34 @@ with `add-city-sfx.py --src ~/Downloads/city-sfx-party` (its CUTS rows: `party-*
   in a break), clinks in clusters of 1–3 from a drinker (~8–22 s), the nearest pocket's group take (~26–48 s, not in a break); never
   more at once than `crowdVoices` (1 / 3 / 5). THE CHEERS RISE as a break starts (three, staggered over ~2.5 s, the loudest in the middle).
   Muted / locked audio = silent; an empty slot = silent (nothing breaks). ☰ → CREDITS: a SOUND EFFECTS section (15 lines from credits.txt).
+
+## THE PARTY SONG IN SYNC (NIGHT-C, Oct 30 2026; City 2.0 — docs/harbor/passes/night-c.md)
+The owner (Oct 30 12:36 am): "the same party song on every phone". On a PARTY NIGHT (+ the preview panel's PARTY and `&force=dance`) the
+City 2.0 PARTY deck plays as ONE timeline every phone computes the same way, on the SERVER clock:
+- **The timeline** (`core/party-deck.js`, PURE): seeded shuffle CYCLES of the deck (every song once a cycle, never the same song twice in a
+  row), back to back with the music's crossfade (`core/playlist.js#XF_MS`), from an ANCHOR — a party night's 8 pm (THE CITY TIMETABLE's
+  `party.songs.from`, seeded by the evening), the force moment for `&force=dance`, a fixed epoch for the panel's PARTY. A cycle's length is
+  the same for every cycle, so the song at any moment is found in O(n). The scene hands it to the audio through the city clock
+  (`cityClock().partyLine()` + `partyDeck()` — `core/harbor-streetparty.js#partyTimeline`), the SAME timeline its dance breaks are planned
+  on: one song = one break, its start the song's start.
+- **The live city runs on the server clock** (`core/sky.js#setRealNow(serverNow)` — the saved offset while parked: no socket is opened for
+  it, THE PARKED DATABASE holds), so the music and the breaks agree on every phone whatever its own clock says.
+- **Two players, one song** (`audio/party-music.js`): this phone's own player starts the timeline's song AT ITS PLACE (app.js's mood
+  provider asks `partyCue()` — so the music is right at once, on THE DIRECT PATH, with a locked context); the SYNCED player
+  (`audio/synced-songs.js`: decoded buffers, sample-accurate on the server clock — the lobby's) takes over: it rides along while this
+  phone's own player is within 0.12 s of the timeline (it takes the NEXT song), else it joins (0.35 s on the same song, the lobby's 1.8 s
+  crossfade from another). A late joiner lands mid-song in place. Its window is a block of 25 cycles (a party night is ~12) — it never
+  restarts mid-evening.
+- **When it yields** (the song goes back to this phone's own player at its place): a DEAD GRAPH (iOS after the lock screen — the context
+  frozen / closed: THE DIRECT PATH plays it); a LEGENDARY's TAPE STOP (`cityClock().musicHold()` — the TR-3B due or heard: the tape bends
+  the song element; its release lands where the song WOULD be: `setMusicClocked`); a sped-up preview (`&speed`). The city's dips + its
+  low-pass reach the synced voices (`music.js#onMusicDuck`, `musicInput()` — the same low-pass every song voice plugs into).
+- **The beat** follows the synced song like the lobby's (`beat.js`: lobby || party = a decoded buffer — its own lead, never the direct path).
+- `synced-songs.js` fix (the lobby's too): a song queued to start LATER (decoded ahead of its crossfade) no longer reports as sounding — its
+  gain read 1 before its first scheduled value, so `now()` named the wrong song and the beat followed it.
+- The &debug=1 readout's party line: `party NIGHT · c2-party4 1:23 / 4:53 · SYNCED (server clock) · next in 3:30 · break CONGA (this song)`
+  — SYNCED = the synced player; `riding (own player, on the clock)`; `own player (not synced yet)` = decoding / a locked context / the
+  direct path / a legendary's hold; `music off — the clock runs` (the breaks still follow the timeline).
+- TOOLS → NO PARTY SYNC (`&force=no-party-sync`): each phone its own party songs again (A/B) — the breaks keep the deck.
+- Checks: `tests/party-deck.test.mjs`; e2e `partysync` (each phone within ~100 ms of the clock, the break on the heard song, three live
+  phones + a late joiner within ~50 ms of each other).

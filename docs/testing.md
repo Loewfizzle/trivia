@@ -30,6 +30,15 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - **THE STREET PARTY** (NIGHT-B): `ONLY=streetparty` (the `city` job, ~60 s — Sat Oct 24's conga break joined ~55 s in, `&force=dance&dance=bounce`,
     a Thursday without, THE STAGE LIGHT's falloff, the crowd's sounds); unit `tests/harbor-streetparty.test.mjs` + `harbor-tables.test.mjs` +
     `harbor-solids.test.mjs`; title-perf's `sp-peak` / `sp-break` / `sp-break-stage` scenes; the phone bench's `party-break` scene.
+  - **NIGHT-C**: `ONLY=partysync` (the `perf` job, ~55 s — two phones on Saturday's party night each within ~100 ms of the server clock's
+    timeline, the conga break starting on the song the phone hears, three live phones (the panel's PARTY) + a late joiner within ~50 ms;
+    unit `tests/party-deck.test.mjs`) · `ONLY=heli` (`perf`, ~57 s — the night + the day patrol, up over the crowd as the conga starts, its
+    pool on the dancers swept on the beat, off past the edge after the song; unit `tests/harbor-heli.test.mjs`) · `ONLY=roofcrisp` (`audio`,
+    ~28 s — the roof signs at 3.00× on a 3× phone, their luma within ~12 % of the city's own, rain → the city's copy) · `ONLY=quietbuilding`
+    (`show`, ~20 s — the parked rooms + their mix, no moment in them, out one by one by 1:40, a party night / the day unchanged, Monday's
+    upper middle parked, the live windows at 3×; unit `tests/harbor-quiet.test.mjs`) · e2e `people`'s A REAL ZEBRA (five bars, each gap
+    about a bar deep). The music group's direct-path checks run with `&force=no-party-sync` (they drive this phone's own player); title-perf
+    `nc-night` (the quiet building + both crisp layers at 3×) + `nc-break` (a forced break with the helicopter).
   - **A NEW GROUP** (`G('people', …)` in its job's file, `harbor-e2e/<job>.mjs`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
     `e2e-harbor.mjs` refuses to run (even with `ONLY=`) and `tests/harbor-jobs.test.mjs` fails in the quick workflow, so no group is ever
     skipped silently. A new JOB: a key in `CI_JOBS` + the same name in harbor.yml's matrix list + the Run-workflow options (the test checks).

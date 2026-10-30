@@ -64,6 +64,9 @@ const SCENES = {
   // NIGHT-B — THE STREET PARTY: Saturday Oct 24 at 22:15 (the pockets mingling between breaks) + 22:06:36 (its conga break ~55 s in — NIGHT-C: on the deck's real songs:
   // the pockets bouncing, the 20-strong conga, the spill in the street, the bench dancers — the heaviest moment) + the stage light on
   'sp-peak': 'when=2026-10-24T22:15&wx=clear&force=no-planes', 'sp-break': 'when=2026-10-24T22:06:36&wx=clear&force=no-planes', 'sp-break-stage': 'when=2026-10-24T22:06:36&wx=clear&force=no-planes&stage=1',
+  // NIGHT-C: a plain Tuesday night (THE QUIET BUILDING + the roof signs + the live windows on the crisp layer at 3×) + a forced dance break
+  // on a Thursday (B: on the party deck WITH the helicopter over the crowd; an older build: its own forced break, no helicopter)
+  'nc-night': 'when=2026-10-27T21:30&wx=clear&force=no-planes', 'nc-break': 'when=2026-10-22T22:00&wx=clear&force=no-planes,dance',
   'hw-party': 'when=2026-10-31T22:00&wx=clear&force=no-planes', 'hw-party-noprops': 'when=2026-10-31T22:00&wx=clear&force=no-planes,no-holiday-props',
   'na-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes&light=new', 'na-party': 'when=2026-10-17T23:00&wx=clear&force=no-planes&light=new', 'na-rain': 'when=2026-10-14T21:30&wx=rain&force=no-planes&light=new',
   // HOTFIX Oct 29: the owner's forced-bus link (5 fps on his iPhone: the people's plan cache re-planned every frame) + the forced dog walk

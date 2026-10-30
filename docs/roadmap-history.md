@@ -1608,3 +1608,16 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE DOG's TURN: its heading eased over 0.6 s (dogHeading), its place a continuous function of it (dogOffset), the dock clamp before the
   sniff (dogPlace), a squash-through flip while it turns (drawDog): the biggest move a frame 1.85 → 0.13 u.
 
+## CITY 2.0 — NIGHT-C: THE HELICOPTER, THE ROOF SIGNS, THE QUIET BUILDING (Oct 30 2026) — docs/harbor/passes/night-c.md (plan.md "OWNER'S NOTES — OCT 30 (after midnight)")
+- The stage light ON by default (`&stage=0` + TOOLS for A/B); A REAL ZEBRA: five wide bars, each as deep as its gap, short of both kerbs.
+- THE PARTY SONG IN SYNC: the PARTY deck as one seeded timeline on the server clock (core/party-deck.js, audio/party-music.js) — every
+  phone the same song at the same moment, a late joiner in place, the dance breaks on the real songs (one song = one break); the live city on
+  the server clock; a dead graph / a TR-3B hands the song to the phone's own player at its place; synced-songs' "a queued song isn't
+  sounding" fix; the readout's party line.
+- THE HELICOPTER: the patrol on its timetable (hourly dusk → ~2 am, every 2–3 h by day; never near a legendary or over a break), party
+  colours on the beat; up over the crowd for every dance break, its beam's pool sweeping the dancers.
+- THE ROOF SIGNS AT 3×: the crisp layer (housing + light), neon.js's per-item drawing one function for both copies; yield to the city's copy
+  when something passes in front.
+- THE QUIET BUILDING: the bar, the jazz room + the upper middle parked behind blinds at night (a lit / dark mix, out one by one); the boss's
+  room + the two side rooms live — at 3× on the crisp layer.
+
