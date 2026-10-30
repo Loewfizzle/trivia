@@ -65,9 +65,9 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **City 2.0's standing rules** (each pass's detail: docs/harbor.md's INDEX): THE WINDOW RULE — every window moment enters by its own motion
   or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION); THE PEOPLE RULE — nobody appears or vanishes in view on the promenade
   (core/harbor-witness.js#rejoinVisits, people.js#guard); NO LAMPPOSTS — the implied lamps below the screen, the light in ONE pure module
-  (core/harbor-light.js; NIGHT-A's `&light=new` — one warm wash + an even base, no pools — is its switch: setLightMode, every painter reads it); NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold — every vehicle planner reads it); a 3D
+  (core/harbor-light.js; NIGHT-A's NEW light — one warm wash + an even base, no pools — the DEFAULT since NIGHT-A2, `&light=old` + a TOOLS row for A/B: setLightMode, every painter reads it); NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold — every vehicle planner reads it); a 3D
   model only ever as BAKED sprites (scripts/bake-model.mjs); lettering nothing passes in front of → THE CRISP LAYER (crisp.js, full dpr);
-  the lights follow the song's grid, the kicks only calibrate one lead (core/harbor-beat.js); every force flag the code reads has a panel
+  the lights follow the song's grid, the kicks only calibrate one lead — a TRUSTED GRID ALWAYS PUNCHES (half until the kicks confirm, full once they do; NIGHT-A2), the saved lead per output + never one learned after a return (core/harbor-beat.js); THE STANDING PROPS ARE SOLID (a holiday piece on the floor registers its footprint in core/harbor-holidayprops.js#standingFootprints — every walk goes round it); every force flag the code reads has a panel
   row (core/harbor-remote.js — the A/B switches hidden in TOOLS; tests/harbor-remote.test.mjs greps for strays).
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
   map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js` (see gridlock-preview.html). Iterate screens there in

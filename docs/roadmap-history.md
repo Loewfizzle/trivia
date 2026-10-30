@@ -1547,6 +1547,19 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
   64 / 96 / 160 counting every live canvas (canvasMb); the readout's canvases row; the climb re-armed after heavy moments + a 3-min retry.
 - Group 3: the harvest display's 3D model test (recipe `harvest`, assets/city/harvest/, &prop=model + a HOLIDAYS row; its credit ready).
 
+## CITY 2.0 — NIGHT-A2: THE WEEKEND FIXES (Oct 29 2026) — docs/harbor/passes/night-a2.md (plan.md "OWNER'S NOTES — OCT 29 (the evening)")
+- Group 0: LIGHT_DEFAULT 'new' (the old light's unit checks pin OLD); MOMENT_CUES.mirror empty (the street can't hear inside the barbershop);
+  the trees' night shadow through props-light.js#soft at the benches' strength (maple 23 % / crabapple 18 % darker); BOSS_COVER (the blind
+  fully down by day); core/harbor-holidayprops.js#standingFootprints + core/harbor-people.js#aroundSolids (every visit's walk legs bent round
+  the standing pieces at the same timing, stops moved out — a seeded test over three nights: nobody inside); the cloud's IndexedDB check after
+  Firebase's start, the auth store only (a start-up race on the runner); the window-party pools judged by their shift's direction.
+- Group 1: stepSafety — a trusted grid always punches (half → full once confirmed); leadToSave never clamped, never after a non-start settle;
+  outputKey + readLeads (na:beatlead per output; the old clamped +120 dropped); pageshow only on a bfcache restore; no 'unknown' flap;
+  beatReport → SEND REPORT; tests/integration/kick-table.mjs (party9: a 16th-note bass line — half punch; party3's grid half a beat off →
+  fixed + trusted). The time to the first punch: 0.1 s. + c2-80s-retro-synthwave (EVENING, 110 BPM trusted, 3.6 MB; credited).
+- Group 2: Saturday (Halloween + a party): the props cost nothing measurable, the party +22 ms at 4×; no canvas leak; the party's canvas churn
+  (sky beams, the clouds' glows, the pole's halo) 24 → 3 a second; the rest of the party frame → PERF.
+
 ## CITY 2.0 — NIGHT-A: THE NIGHT LIGHT (Oct 29 2026) — docs/harbor/passes/night-a.md (plan.md "OWNER'S NOTES — OCT 29 (the afternoon)")
 - Group 0: sky.js#cleanZone (a &tz= / panel zone cleaned + checked before Intl, the raw string to /admin once); audio/mood.js — a forced party
   show beats a saved MUSIC MOOD (the panel's PARTY plays a party song, the pulse on its grid); the party stall not reproduced on 48df906

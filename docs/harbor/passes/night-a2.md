@@ -128,3 +128,51 @@ Reproduced Saturday 10 pm at 402×660 (Chromium at 3×, 4× CPU, tier 1; title-p
 - **→ PERF** (written up, not done here): the party frame itself (+~22 ms at 4× over a plain night): `drawImage` count per frame (the
   beams' 2–4 draws each, the feet, the flares, the cloud patches, the window party's pools), the 100 sign-tube canvases, the crowd's
   rigs (folk.js 6 %); the tier step on his phone is the tiering doing its job under that load.
+
+### Group 3 — THE CLOUD's FIREBASE CHECK (failed in both of NIGHT-A's cloud runs: 4–5 IndexedDB transactions in 15 s, < 3 wanted)
+Not polling, and not ours: a RACE in the test. Firebase starts AFTER the title's first paint for a first-time visitor (app.js) — the SDK
+from gstatic with a cold cache in every fresh test context — and its start writes once in a ~20 ms burst: 4 transactions on
+`firebaseLocalStorageDb` (the auth persistence's availability probe + the migration check — `indexedDBLocalPersistence` is second in our
+list) + 5 on `firebase-heartbeat-database` (the once-a-day heartbeat; 1 on a reused profile). Measured with a scratch probe on Chromium
+(the runner's major version) against the emulators: fresh 9, reused 4, all inside ~20 ms, then 0 for 20–30 s; holding the SDK back 4 s
+(the runner's pace) put the whole burst inside the window. Our code never touches IndexedDB. **The check now** waits for Firebase's start
+(`state.ready` — set on a sign-in AND on a failure) and counts the AUTH store only (the one polling would hit; every database's count in the
+message): laptop **0** (`core` 18/18).
+
+### The side test — A BLENDER STILL vs TODAY's BAKE (the owner's add-on; nothing shipped, nothing committed)
+Blender 4.5 LTS (portable, outside the repo) rendered the harvest model in Cycles with the bake's exact camera (the shifted lens) + lights
+(the warm key, the floods' rim, the 25 bulbs as point lights, the sky ambient, the violet glow): silhouette overlap 0.9989 with
+night.png; ~40 s a still on 4 CPU threads (256 samples + denoise). Three stills at 402×660 (DRAWN / TODAY'S BAKE / BLENDER — the Blender
+sprite swapped in by request interception) sent to the owner. One deviation: the bake puts the bottom swag's bulbs INSIDE the bottom bale
+(fine in three.js, no shadows) — in Cycles they had to sit on the visible surface. It could become an option in scripts/bake-model.mjs
+(`blender -b -P <recipe>.py`; ~0.9 GB install outside the repo, ~2–3 min a day / gold / night bake; the bakes stay committed, never
+re-baked on CI).
+
+### Decisions
+- The new night light is the default; the old light's own checks keep running under `&light=old` / an OLD pin in their unit file.
+- The mirror door: all three of its sounds removed (the creak, the bar through it, the thud) — the street can't hear inside the barbershop.
+  The other inside-a-window sounds are listed above and kept (the scissors' snips are the one to drop next if the owner agrees).
+- The standing props: ONE guard where every visit reaches the frame (not a fix per planner) — a detoured leg keeps its timing (a little
+  quicker), so doors, buses and the crowd's counts stay as planned.
+- The beat: the saved range stays −80 … +120 ms (the +156 was a post-restart shift, not the speaker's value); a lead is saved only after
+  the page's own start; a NAMED output (Chrome's outputLatency) learns its own value after a route change, 'unknown' (iOS) never saves a
+  lead learned after a change.
+- party3's grid moved half a beat (its kicks say so: 72 % on the half-beat) and is trusted now — **the owner should listen once**: the
+  lights should now punch WITH its kick drum. A `phase` note in its grid keeps `--regrid` from undoing it.
+- party9 stays as it is: a song with no kick to hear punches at half strength on its strongly-locked grid.
+- Saturday's speed: only the quick churn fix here; the party frame's real cost goes to PERF.
+- The new song is in EVENING (the owner's message), not "NIGHT" (the note beside the file).
+
+### Known issues
+- The +156 ms can't be reproduced off an iPhone; the next SEND REPORT from his phone carries the lead's whole history (`beat lead:`).
+- headless Chromium reports a ~140 ms output (its fake device) → the `bt` bucket in tests; harmless (a bucket is only a storage key).
+- The party frame is still ~+22 ms over a plain night at 4× on the laptop (PERF); the churn fix's effect on the iPhone is unmeasured here.
+- LOAD WEATHER's known flake (NIGHT-A) stays listed.
+
+### Handoff → NIGHT-B (THE STREET PARTY)
+- Every new holiday or party piece that STANDS on the floor registers its footprint in `standingFootprints` (the harvest display's
+  pattern) — the crowd, the dancers, the conga line route round it automatically (`aroundSolids`); the cab-stand bench's dancers are the
+  exception NIGHT-B builds on purpose.
+- The crowd's sounds + the dance breaks will sit on a beat that always punches now: a dance break can start on the song's first bar.
+- Saturday's measurement scenes are in title-perf (`hw-party`, `hw-party-noprops`); the canvas census + the profile probes are scratch
+  (`tests/integration/_probe-canvases.mjs`, `_probe-prof.mjs`, git-excluded) — re-create them from this log if gone.
