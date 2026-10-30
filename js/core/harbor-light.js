@@ -44,7 +44,31 @@ const NEW = () => MODE === 'new';
 export const NIGHT_LIGHT = Object.freeze({ base: [13, 17, 32], wash: [242, 158, 76], washK: 0.95, z0: 24, fall: 15, lampZ: 21.5, lampY: 5.6,
   shadow: { len: 3.4, a: 0.36, back: 30, fan: 0.4, side: 7 }, lift: 2.6, keep: 0.42, treeShadow: { throw: 0.34, a: 2, cap: 0.55, blur: 0.12 }, face: 0.8, tree: { k: 0.55, fall: 24 }, road: 0.7 });
 /** the wash's strength at depth z (0..washK) — the same at every x */
-export function washAt(z) { const d = z - NIGHT_LIGHT.z0; return NIGHT_LIGHT.washK * (d <= 0 ? 1 : 1 / (1 + (d / NIGHT_LIGHT.fall) ** 2)); }
+export function washAt(z) {
+  const d = z - NIGHT_LIGHT.z0, w = NIGHT_LIGHT.washK * (d <= 0 ? 1 : 1 / (1 + (d / NIGHT_LIGHT.fall) ** 2));
+  return STAGE_ON && z < STAGE.curb[1] ? stageWash(z) : w;
+}
+// ------------------------------------------------------------------ NIGHT-B — THE STAGE LIGHT (`&stage=1|0` + the panel's row — OFF by default
+// until the owner picks; the owner, Oct 29 9:38–9:43 pm — "THE DARKER STREET + THE PARTY DIM", DECIDED): the implied lamps light the PROMENADE
+// (aimed at the walkway) — it stays lit like a stage; the FOREGROUND STREET (below the curb, under the dock) falls softly into shadow: ~⅓
+// darker than the promenade's front at the curb's foot (base + wash), a little more toward the screen's foot — NEVER black (the base stays:
+// still clearly a street; a wet night keeps its reflections), NO hard line at the curb (a smooth falloff across it, curb[0] → curb[1]); the
+// neon stays the brightest thing. Every painter reads washAt — the stage's bake, the people's fronts, the props, the trees, the road's cars.
+// THE PARTY DIM (scene.js#partyDim — a cheap overlay, never a re-bake): once the party warms up the wash eases down + the street a step darker
+// again (STAGE.party), back up as it thins — the neon, the beat, the wands + the street's dancers pop.
+// (tuned on the real screen, 402×660: street 0.6 / foot 0.5 read HALF the promenade's front — too dark; at 1.0 / 0.88 the front's wash goes on
+// across the curb instead of rising toward the screen's foot, falling a little toward the viewer: with the street's darker setts the street
+// reads ~⅓ darker (luma 0.62–0.64 of the promenade's front; × 0.71 against today's light — e2e streetparty), never black)
+export const STAGE = Object.freeze({ curb: Object.freeze([34.2, 37.4]), street: 1.0, foot: 0.88, party: Object.freeze({ wash: 0.12, street: 0.16 }) });
+let STAGE_ON = false;
+export const stageMode = () => STAGE_ON;
+/** → true when it changed (the caller re-bakes) */
+export function setStageMode(on) { const v = !!on; if (v === STAGE_ON) return false; STAGE_ON = v; return true; }
+function stageWash(z) {
+  const [c0, c1] = STAGE.curb, d1 = c1 - NIGHT_LIGHT.z0, wP = NIGHT_LIGHT.washK / (1 + (d1 / NIGHT_LIGHT.fall) ** 2);
+  if (z >= c0) { const u = clamp01((z - c0) / (c1 - c0)), e = u * u * (3 - 2 * u); return wP * (STAGE.street + (1 - STAGE.street) * e); }
+  const u = clamp01((c0 - z) / (c0 - NIGHT_LIGHT.z0)); return wP * (STAGE.street + (STAGE.foot - STAGE.street) * u);
+}
 
 /** what every piece's art gets (trees.js, props.js, centre.js): the season + how far into it, the lamps (their light at night: lampK =
  *  the lamps' ramp baked), Part 9's hooks (snow on the ground + branches, a wet sheen) */

@@ -67,7 +67,7 @@ import { createSkyFx } from './skyfx.js';
 import { createCitySounds } from './sounds.js';
 import { createRoadLight } from './roadlight.js';
 import { createLeaves, crownDiscs } from './trees.js';
-import { pieceCtx, setLightMode, lightMode, LIGHT_DEFAULT } from '../../core/harbor-light.js';
+import { pieceCtx, setLightMode, lightMode, LIGHT_DEFAULT, setStageMode, stageMode, STAGE } from '../../core/harbor-light.js';
 import { createWaterfront } from './waterfront.js';
 import { createSkyBeams } from './skybeams.js';
 import { createStrings } from './strings.js';   // (the roof's café-light canopy — SP2)
@@ -249,6 +249,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // NIGHT-A2) — set before every frame + the first bake; the bake key carries it, so a flip re-bakes the ground
   const lightModeNow = () => { const v = qp.get('light'); return v === 'new' || v === 'old' ? v : clock.force.has('light-new') ? 'new' : clock.force.has('light-old') ? 'old' : LIGHT_DEFAULT; };
   setLightMode(lightModeNow());
+  // NIGHT-B — THE STAGE LIGHT (core/harbor-light.js#STAGE): &stage=1|0 wins, else the panel's TOOLS row; OFF until the owner picks
+  const stageNow = () => { const v = qp.get('stage'); return v === '1' ? true : v === '0' ? false : clock.force.has('stage-on'); };
+  setStageMode(stageNow());
   // 9g — A LEGENDARY FROM A LINK WAITS (the owner: the TR-3B "worked perfectly" from ☰ → ADMIN, glitched from &force=tr3b): a link used
   // to start it AT THE LOAD — under the bake + the reveal, before the first tap unlocked the music (no song for the tape to slow). Now
   // &force=ufo / tr3b / implosion from the page's own URL wait for THE REVEAL + THE FIRST TAP, then start LINK_LEAD ms later — a link
@@ -1084,7 +1087,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   let cloudSetKey = '';
   // (POLISH 5: named parts — the load log says WHICH changed: bakeKey is their values joined, the same string as before)
-  const bakeParts = () => ({ light: (setLightMode(lightModeNow()), lightMode()), season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key, snow: snowNow() });
+  const bakeParts = () => ({ light: (setLightMode(lightModeNow()), setStageMode(stageNow()), lightMode() + (stageMode() ? '+stage' : '')), season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key, snow: snowNow() });
   const bakeKey = () => Object.values(bakeParts()).join('|');
   let bakeParts0 = null;
   const partsDiff = (a, b) => (a ? Object.keys(b).filter(k => String(a[k]) !== String(b[k])).join(', ') || 'same' : 'first');
@@ -1237,7 +1240,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
       wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
   }
-  let lobbyLine = 0, spillCls = false;
+  let lobbyLine = 0, spillCls = false, partyDim = null;
   /** SP5 — the hourly dance never during a raid or a legendary (the TR-3B / the abduction): the evening's raid plan + the traffic hold */
   function danceBlocked(a, b) {
     try { const P = raidPlanNow(); if (P && b > P.t0 - 90 && a < P.tEnd + 60) return true; const H = trafficHoldNow(); return !!(H && H.on !== false && H.t1 > a - 60 && H.t0 < b + 60); } catch { return false; }
@@ -2043,6 +2046,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const dn = pplLive ? people.dance() : null; centre.dance(dn && dn.on ? { k: dn.k, col: PT.palette && PT.palette.length ? PT.palette[Math.floor((PT.beatsF || 0) / 8) % PT.palette.length] : null } : null); }
     // (9e: the floor now; the PIECE (the snowman…) sorted in by depth with the near pass below — walkers behind it pass behind)
     const centreItem = fadeIn > 0 && bakeTones ? centre.draw(c, { T: bakeTones, lamps: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * (LB ? legendPow(W * 0.5, 'near', 207) : 1), fade: fadeIn, t, tier, defer: true }) : null;
+    // NIGHT-B — THE PARTY DIM (with THE STAGE LIGHT on — core/harbor-light.js#STAGE.party): once the street party warms up the wash eases down
+    // + the street a step darker again (the neon, the beat, the wands + the street's dancers pop), back up as it thins — the party's curve.
+    // A cheap gradient over the ground, the people + the pieces drawn after it (never a re-bake); cached by its level in 32 steps
+    if (stageMode() && fadeIn > 0 && bakeTones) { const sp = pplLive ? people.party() : null, pk = Math.round((sp ? Math.max(0, Math.min(1, sp.crowd || 0)) : 0) * litK(DK, 'lamps') * 32) / 32;
+      if (pk > 0) {
+        if (!partyDim || partyDim.pk !== pk || partyDim.cam !== cam) { const yR = groundY(cam, 63), y1 = groundY(cam, 46), yC = groundY(cam, STAGE.curb[1]), yS = groundY(cam, STAGE.curb[0]), H0 = cam.H, f = y => Math.max(0, Math.min(1, (y - yR) / Math.max(1, H0 - yR)));
+          const g = c.createLinearGradient(0, yR, 0, H0), aw = STAGE.party.wash * pk, as = (STAGE.party.wash + STAGE.party.street) * pk;
+          g.addColorStop(0, 'rgba(4,5,14,0)'); g.addColorStop(f(y1), `rgba(4,5,14,${aw.toFixed(3)})`); g.addColorStop(f(yC), `rgba(4,5,14,${aw.toFixed(3)})`); g.addColorStop(f(yS), `rgba(4,5,14,${as.toFixed(3)})`); g.addColorStop(1, `rgba(4,5,14,${as.toFixed(3)})`);
+          partyDim = { pk, cam, g, y: yR, h: H0 - yR }; }
+        c.fillStyle = partyDim.g; c.fillRect(0, partyDim.y, cam.W, partyDim.h); } }
     hpropsDraw(c, 'ground', fadeIn, lit);         // (11a-1: the petal path, the marigolds, the back garlands, the jack-o'-lanterns)
     // 8P — THE PEOPLE on the promenade (after the stage + the speakeasy's live layer, before the front row: the corner globes, the framing
     // maple, the cart stand nearer than anyone on the floor) + the ROOF's guests (clipped to the sky over the parapet)

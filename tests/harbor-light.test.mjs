@@ -135,3 +135,22 @@ test('NIGHT-A2 — THE NEW NIGHT LIGHT IS THE DEFAULT (the owner, Oct 29 7:13 pm
   assert.equal(M.LIGHT_DEFAULT, 'new');
   assert.ok(/light-old/.test(readFileSync(new URL('../js/core/harbor-remote.js', import.meta.url), 'utf8')), 'the OLD row stays in TOOLS');
 });
+
+test('NIGHT-B — THE STAGE LIGHT (&stage=1, OFF by default): the promenade keeps its wash, the street under the dock falls off toward the viewer (never black, no step at the curb); off = today\'s wash exactly', async () => {
+  const { washAt, setStageMode, stageMode, STAGE, NIGHT_LIGHT } = await import('../js/core/harbor-light.js');
+  setLightMode('new');
+  assert.equal(stageMode(), false, 'off by default');
+  const off = [24, 30, 34, 36, 38, 42, 50].map(washAt);
+  setStageMode(true);
+  try {
+    for (const z of [37.5, 40, 46, 52]) assert.equal(washAt(z), off[[24, 30, 34, 36, 38, 42, 50].indexOf(z)] ?? washAt(z), 'the promenade unchanged');
+    for (const z of [38, 42, 50]) { setStageMode(false); const a = washAt(z); setStageMode(true); assert.equal(washAt(z), a, `z ${z}: the promenade's wash unchanged`); }
+    const street = washAt(30), front = washAt(STAGE.curb[1]);
+    assert.ok(street < off[1] * 0.75, `the street darker than today (${street.toFixed(3)} vs ${off[1].toFixed(3)})`);
+    assert.ok(street > 0.25 * NIGHT_LIGHT.washK && washAt(NIGHT_LIGHT.z0 - 2) > 0.2, 'never black — still clearly a street');
+    assert.ok(street <= front + 1e-9 && washAt(26) <= washAt(32) + 1e-9, 'falling off toward the viewer');
+    // (no hard line at the curb: a smooth falloff — the largest step between two points 0.05 u apart stays tiny)
+    let worst = 0; for (let z = 30; z < 40; z += 0.05) worst = Math.max(worst, Math.abs(washAt(z + 0.05) - washAt(z)));
+    assert.ok(worst < 0.01, `no step at the curb (${worst.toFixed(4)})`);
+  } finally { setStageMode(false); setLightMode('old'); }
+});

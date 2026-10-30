@@ -772,8 +772,9 @@ G('light', async () => {
   // shopfront's probe)
   for (const [tag, when] of [['night', '2026-09-24T22:00'], ['party', '2026-09-26T23:00']]) {
     const got = {};
-    for (const mode of ['old', 'new']) {
-      const Q = await open({ slot: `lad${tag}${mode}`, qs: `when=${when}${GR}&wx=clear&light=${mode}&force=no-people,no-wildlife`, view: [402, 660], dpr: 3 });
+    // (NIGHT-B: + THE STAGE LIGHT — the new light with &stage=1: the neon must still be the brightest thing)
+    for (const mode of ['old', 'new', 'stage']) {
+      const Q = await open({ slot: `lad${tag}${mode}`, qs: `when=${when}${GR}&wx=clear&light=${mode === 'stage' ? 'new&stage=1' : mode}&force=no-people,no-wildlife`, view: [402, 660], dpr: 3 });
       await harborUp(Q.page);
       await waitFor(Q.page, `${P}.speakeasy.k > 0.9 && !${P}.pending && !${P}.fading`, 'the rooms lit + settled', 25000).catch(() => {});
       await sleep(700);
@@ -788,6 +789,7 @@ G('light', async () => {
     if (tag === 'night') ok(n.btn && n.btn.host.ring >= n.btn.join.ring * 0.88 && n.btn.host.word >= n.btn.join.word * 0.88 && n.btn.menu >= n.btn.join.ring * 0.4 && n.btn.menu <= n.btn.join.ring * 0.8 && n.btn.music >= n.btn.join.ring * 0.4 && n.btn.music <= n.btn.join.ring * 0.8,
       `NIGHT-A THE BUTTONS AT NIGHT (402×660 at 3×, luma): JOIN ring ${n.btn && n.btn.join.ring} / word ${n.btn && n.btn.join.word} = HOST ring ${n.btn && n.btn.host.ring} / word ${n.btn && n.btn.host.word} (within 12 %); the corner rings ☰ ${n.btn && n.btn.menu} · ♫ ${n.btn && n.btn.music} at ~⅔ of the dock's`);
     ok(top > n.windows && n.windows > n.shop && n.shop > n.wash && n.wash > n.base, `NIGHT-A THE BRIGHTNESS LADDER (${tag}, 402×660 at 3×, the new light): ${row(n)} — the sign + the skyline > the windows > the shopfront > the wash > the base (the old light: ${row(o)})`);
+    { const g = got.stage || {}, tg = Math.min(g.sign ?? 0, g.skyline ?? 0); ok(tg > g.windows && g.windows > g.shop && g.shop > g.wash && g.wash > g.base, `NIGHT-B THE BRIGHTNESS LADDER with THE STAGE LIGHT (${tag}, 402×660 at 3×): ${row(g)} — the neon still the brightest`); }
   }
 });
 
@@ -825,6 +827,16 @@ G('streetparty', async () => {
     const pp = await ev(Q.page, `${P}.people`);
     ok(pp.party.brk.kind === 'bounce' && pp.members.some(m => m.dance === 'bounce'), `&force=dance&dance=bounce: a ${pp.party.brk.kind} break, ${pp.members.filter(m => m.dance === 'bounce').length} bouncing`);
     await Q.ctx.close(); }
+  // ---- NIGHT-B — THE STAGE LIGHT (&stage=1; OFF by default): on a plain night the street under the dock ~⅓ darker than the promenade's
+  // front (luma means of the real screen — never black), today's light (&stage=0) about level
+  { const lum = async page => { const b64 = await page.screenshot({ encoding: 'base64' }); return page.evaluate(b64 => new Promise(res => { const im = new Image(); im.onload = () => {
+      const o = document.createElement('canvas'); o.width = im.width; o.height = im.height; const x = o.getContext('2d'); x.drawImage(im, 0, 0); const d = im.width / innerWidth;
+      const m = (x0, y0, x1, y1) => { const a = x.getImageData(x0 * d, y0 * d, (x1 - x0) * d, (y1 - y0) * d).data; let s = 0; for (let i = 0; i < a.length; i += 4) s += 0.2126 * a[i] + 0.7152 * a[i + 1] + 0.0722 * a[i + 2]; return s / (a.length / 4); };
+      res({ prom: m(150, 505, 260, 525), street: m(120, 628, 280, 656) }); }; im.src = 'data:image/png;base64,' + b64; }), b64); };
+    const r = {};
+    for (const v of ['0', '1']) { const Q = await open({ slot: `stg${v}`, qs: `when=2026-10-22T22:00${GR}&wx=clear&stage=${v}&force=no-people,no-wildlife`, view: [402, 660] }); await harborUp(Q.page); await settled(Q.page); await sleep(3500); r[v] = await lum(Q.page); await Q.ctx.close(); }
+    const k0 = r['0'].street / r['0'].prom, k1 = r['1'].street / r['1'].prom;
+    ok(k1 / k0 >= 0.55 && k1 / k0 <= 0.85 && r['1'].street > 25, `THE STAGE LIGHT: the street ~⅓ darker against the promenade's front — ${(k1 * 100).toFixed(0)} % with &stage=1 vs ${(k0 * 100).toFixed(0)} % today (×${(k1 / k0).toFixed(2)}; luma ${r['1'].street.toFixed(0)} — never black)`); }
   // ---- a plain Thursday: no street party
   { const Q = await open({ slot: 'sp3', qs: `when=2026-10-22T22:30${GR}&wx=clear`, view: [402, 660] });
     await harborUp(Q.page);

@@ -27,7 +27,7 @@ export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 
  *  &emu, &slot, &panel stay: they are where + how you look, not what is forced. */
 // (NIGHT-A: + &prop (the harvest display's model / drawn) + &light (the night light's old / new) — CLEAR ALL took neither off: the owner's
 // &prop=model stayed after it)
-export const PREVIEW_KEYS = Object.freeze([...REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid'), 'moment', 'dance', 'hush', 'letter', 'ad', 'season', 'n', 'wind', 'rained', 'tagms', 'at', 'prop', 'light']);
+export const PREVIEW_KEYS = Object.freeze([...REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid'), 'moment', 'dance', 'hush', 'letter', 'ad', 'season', 'n', 'wind', 'rained', 'tagms', 'at', 'prop', 'light', 'stage']);
 /** the page's search without its preview flags ('?city=2&debug=1' | '' ) + which flags were stripped */
 export function realCitySearch(search) {
   const q = new URLSearchParams(search || ''), gone = [];
@@ -359,6 +359,7 @@ export const EVENTS = [
   // NIGHT-A — THE NIGHT LIGHT (core/harbor-light.js#setLightMode): the owner flips it on his phone; a link's &light=new|old wins over both
   { id: 'light-new', label: 'THE NIGHT LIGHT · NEW', cat: 'lights', sec: 'tools', group: 'THE NIGHT LIGHT (NIGHT-A)', kw: 'lamps wash base promenade street shadows night lighting rework', hint: 'the night lighting rework: an even cool base + ONE warm wash from the lamps behind you (no pools), the shopfront + the cab stand the only lit places, people lit from the front with soft shadows up the screen — the DEFAULT since NIGHT-A2 (&light=new)' },
   { id: 'light-old', label: 'THE NIGHT LIGHT · OLD', cat: 'lights', sec: 'tools', group: 'THE NIGHT LIGHT (NIGHT-A)', kw: 'lamps pools promenade street shadows night lighting', hint: 'the night light before NIGHT-A (A/B only — NEW is the default since NIGHT-A2): the implied lamps’ pools, the hidden lamps (&light=old)' },
+  { id: 'stage-on', label: 'THE STAGE LIGHT · ON', cat: 'lights', sec: 'tools', group: 'THE STAGE LIGHT (NIGHT-B)', kw: 'darker street stage promenade lit party dim curb dock', hint: 'NIGHT-B: the promenade lit like a stage, the street under the dock ~⅓ darker (never black, a soft falloff across the curb); on a party night the wash eases down ~12 % + the street a step darker again — compare (&stage=1|0)' },
   { id: 'first-tap', label: 'FIRST-TAP SURGE', cat: 'signs', sec: 'tools', group: 'DEBUG PIECES', hint: 'the NEON sign’s first-tap surge, as on the first tap (by day: a surge through the glass; at night: a brighter race)' },
 ];
 /** the rows the panel shows (not the ones a later part still has to build) */
