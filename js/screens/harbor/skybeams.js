@@ -50,7 +50,10 @@ export function createSkyBeams() {
     }
     return (SHAPE = { A, HOT });
   }
-  const CACHE = 40;
+  // (NIGHT-A2 — Saturday's party speed: ~9 beams sweeping between colours built ~9 new 64×256 sprites (+ their feet) a SECOND with
+  // the old 40-entry cache + 8-level steps — new canvases, putImageData, the garbage after; 12-level steps + room for 96 (≈ 7 MB):
+  // the sweep's colours come back from the cache)
+  const CACHE = 96, STEP = 12;
   function spriteFor(col) {
     const key = col.join(',');
     const hit = sprites.get(key);
@@ -158,7 +161,7 @@ export function createSkyBeams() {
       let col = (cfg.colours && cfg.colours[i % cfg.colours.length]) || cols[i] || [255, 255, 255];
       if (b.far) col = col.map((v, j) => Math.round([224, 240, 255][j] * 0.72 + v * 0.28));      // (the glass tower's: ice-white, a touch of the sweep)
       if (b.site) col = [255, 238, 206];                                                              // (9f: the site's work light)
-      const sp = spriteFor(col.map(v => Math.round(v / 8) * 8)), gw = 64 * K * cfg.width * (0.9 + 0.3 * (f.punch || 0)) * (b.far ? 0.5 : b.site ? 0.72 : 1);   // (7a: the beam swells more on the beat)
+      const sp = spriteFor(col.map(v => Math.min(255, Math.round(v / STEP) * STEP))), gw = 64 * K * cfg.width * (0.9 + 0.3 * (f.punch || 0)) * (b.far ? 0.5 : b.site ? 0.72 : 1);   // (7a: the beam swells more on the beat)
       if (!sp) return;
       if (vol > 0.01) {
         const lv = (y0 - b.top) * (1 - 0.55 * heavy) * (1.05 - 0.2 * vol), hw = 30 * K * cfg.width * (1 + 1.3 * heavy) * (b.far ? 0.55 : 1), av = a * pulse * vol * (b.far ? 0.5 : 1);

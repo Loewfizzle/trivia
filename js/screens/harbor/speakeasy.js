@@ -475,7 +475,9 @@ export function createSpeakeasy() {
     c.save();
     // the TIGHT halo + the light on the brick beside it (FP2: no wide wash — poleHalo), cool white; tinted by a party night's neon
     if (lit > 0.01) {
-      const q = Math.round(partyK * 8) / 8, hc = mix([214, 232, 255], mix(C.r, C.b, 0.5), q * 0.6).map(Math.round), hs = poleHaloCv(m, gx, gy, gh, r, hc);
+      // (NIGHT-A2 — Saturday's party speed: the halo's colour moved with the beat's punch, so its sprite was RE-PAINTED pixel by pixel every
+      // frame of a party night; a step of 16 per channel — a faint tint on the brick, the steps unseen — re-paints it a few times a song)
+      const q = Math.round(partyK * 8) / 8, hc = mix([214, 232, 255], mix(C.r, C.b, 0.5), q * 0.6).map(v => Math.min(255, Math.round(v / 16) * 16)), hs = poleHaloCv(m, gx, gy, gh, r, hc);
       if (hs) { c.save(); c.setTransform(1, 0, 0, 1, 0, 0); c.globalCompositeOperation = 'lighter'; c.globalAlpha = Math.min(1, lit * fade * (f.tier === 0 ? 0.8 : 1) * (1 + 0.5 * punch)); c.drawImage(hs.cv, hs.X, hs.Y); c.restore(); }
     }
     c.globalAlpha = fade;

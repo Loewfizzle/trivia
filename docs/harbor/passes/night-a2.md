@@ -104,3 +104,27 @@ trim, −16 LUFS, 112 kbps) in the EVENING deck (now 14 songs, 50 min). Its grid
 kick table: confirms at bar 7). The note beside the file said "the NIGHT category"; the owner's message said EVENING — EVENING it is.
 Credit: ☰ → CREDITS → THE MUSIC: "80s Retro Synthwave — Playsound, Pixabay — Pixabay Content License". Checked: MUSIC MOOD → EVENING at
 402×660 (the device's bag seeded so it's next): it plays (the element's time advancing, the graph sounding), the beat on its 110 grid.
+
+### Group 2 — HALLOWEEN + PARTY SPEED (Saturday Oct 31 = both)
+His iPhone (party mode on Oct 29 with the Halloween props): 14.5 % slow, frames to 100 ms, a tier step 2 → 1/2 → 2, 577 canvases / 60.5 MB.
+Reproduced Saturday 10 pm at 402×660 (Chromium at 3×, 4× CPU, tier 1; title-perf's new `hw-party` + `hw-party-noprops` scenes):
+- **HALLOWEEN's PROPS COST NOTHING MEASURABLE**: hw-party vs the same night without the props: +1.5 ms against a ±11.5 ms noise ("same").
+- **THE PARTY IS THE WEIGHT**: a plain night vs Saturday's party: work 28.5 → 50.3 ms a frame (+21.8, SLOWER). The party is planned
+  heavy (the show, the beams, the crowd, the window party). The CPU profile of the party frame (6 s at 4×): native drawing + raster
+  ≈ 55 % (`drawImage` 10 %, `fill` 3 %, `(program)` 30 %), the people ≈ 6 % (folk.js), scene.js 5 %, the speakeasy 3 %, the spiders'
+  legs 1 % — spread out, no single hot spot except the one below.
+- **THE CANVAS COUNT — no leak**: a canvas census (every canvas by the module that made it, WeakRefs, a forced GC): ~450 live, flat over
+  a minute, the GC frees none (all in use: the sign tubes 100, the sky beams ~90, clouds 52, the wheel 28, the bakes 20 = 23 MB…) — a plain
+  night has ~250. **But a party night BUILT ~24 canvases a second** (2 178 in 58 s; a plain night: ~5 a minute): the sky beams' sprites
+  (a 64 × 256 sprite + its foot for nearly every colour step of the party's sweeps — the 40-entry cache kept evicting), the clouds' beam
+  glows (the same, 16 kept), the tubes, + the barber pole's halo RE-PAINTED pixel by pixel every frame (its colour followed the punch).
+  **FIXED (quick)**: the beams + the clouds' glows in 12-level colour steps with room for 96 / 48 sprites (+ ~4 MB), the pole's halo in
+  16-level steps → **the party builds ~3 canvases a second** (skybeams 262 → 16–24 in 30 s; clouds 42 → 28; the pole's halo and the
+  beams' sprite work gone from the profile's top 30). Live canvases ~450 → ~595 (the bigger caches), 67 → 72 MB, inside the 160 MB budget.
+- **A/B** (title-perf `--ab` vs 624158e on a worktree, 4× CPU, 402×660, tier 1): hw-party −1.3 ms, np-party −3.6 ms, np-night +9.8 ms
+  (this code isn't on a plain night — the noise of 2 + 2 windows) — all "same" (noise ±10.6 … ±11.1 ms). On the laptop the churn was real
+  but small; on an iPhone a new canvas + the garbage cost more (Safari) — the owner's readout (`&debug=1`) on Saturday says whether it
+  shows. THE BASELINE GUARD: plain night 0.95×, the forced bus 0.98×, the forced dog walk 0.96×. e2e party + sky + the guard 35/35.
+- **→ PERF** (written up, not done here): the party frame itself (+~22 ms at 4× over a plain night): `drawImage` count per frame (the
+  beams' 2–4 draws each, the feet, the flares, the cloud patches, the window party's pools), the 100 sign-tube canvases, the crowd's
+  rigs (folk.js 6 %); the tier step on his phone is the tiering doing its job under that load.

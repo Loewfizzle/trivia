@@ -653,10 +653,11 @@ export function createClouds() {
   // the beams' glow sprites: one per colour (cached)
   const glows = new Map();
   function glowOf(col) {
-    const key = col.map(v => v >> 3).join('.');
+    // (NIGHT-A2 — the party's colour sweeps: the skybeams' 12-level steps, room for 48 (64 × 64 each: 0.8 MB) — was a new sprite most frames of a fade)
+    const key = col.map(v => Math.round(v / 12)).join('.');
     let g = glows.get(key);
     if (!g) {
-      if (glows.size > 16) { const k0 = glows.keys().next().value; glows.get(k0).width = 0; glows.delete(k0); }
+      if (glows.size > 48) { const k0 = glows.keys().next().value; glows.get(k0).width = 0; glows.delete(k0); }
       g = document.createElement('canvas'); g.width = g.height = 64;
       const x = ctx2d(g);
       if (x) { const r = x.createRadialGradient(32, 32, 0, 32, 32, 32); r.addColorStop(0, `rgba(${col.map(v => Math.min(255, v + 40) | 0)},1)`); r.addColorStop(0.35, `rgba(${col.map(v => v | 0)},0.55)`); r.addColorStop(1, `rgba(${col.map(v => v | 0)},0)`); x.fillStyle = r; x.fillRect(0, 0, 64, 64); }
