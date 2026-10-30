@@ -263,7 +263,18 @@ G('people', async () => {
         const cx = Math.round((b[0][0] + b[1][0]) / 2 * k), y0 = Math.round(Math.min(b[0][1], b[1][1]) * k), y1 = Math.round(Math.max(b[0][1], b[1][1]) * k), d = x.getImageData(cx - 6, y0, 13, y1 - y0).data, rows = [];
         for (let r = 0; r < y1 - y0; r++) { let s = 0; for (let c = 0; c < 13; c++) { const i = (r * 13 + c) * 4; s += 0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]; } rows.push(s / 13); }
         const so = [...rows].sort((a, b) => a - b), n = so.length, t = Math.max(1, Math.floor(n / 3)), lo = so.slice(0, t).reduce((a, b) => a + b, 0) / t, hi = so.slice(-t).reduce((a, b) => a + b, 0) / t;
-        res({ lo: +lo.toFixed(1), hi: +hi.toFixed(1), max: +so[n - 1].toFixed(1) }); }))`);
+        // (the bars: the profile's peaks — a peak, then a valley under 70 % of the smaller neighbour before the next; each bar's depth = its
+        // rows above halfway between its peak + the deeper valley beside it, each gap's = the rows under halfway between the two)
+        const pk = []; for (let i = 0; i < rows.length; i++) { const v = rows[i]; if (v < lo * 1.5 + 20) continue; if ((i === 0 || v >= rows[i - 1]) && (i === rows.length - 1 || v >= rows[i + 1])) { const p = pk[pk.length - 1]; if (p && Math.min(...rows.slice(p, i + 1)) > 0.7 * Math.min(rows[p], v)) { if (v > rows[p]) pk[pk.length - 1] = i; } else pk.push(i); } }
+        const bars = [], gaps = [];
+        pk.forEach((p, j) => { const vl = j ? Math.min(...rows.slice(pk[j - 1], p + 1)) : Math.min(...rows.slice(0, p + 1)), vr = j < pk.length - 1 ? Math.min(...rows.slice(p, pk[j + 1] + 1)) : Math.min(...rows.slice(p)), th = (rows[p] + Math.max(vl, vr)) / 2;
+          let n = 0; for (let i = p; i >= 0 && rows[i] >= th; i--) n++; for (let i = p + 1; i < rows.length && rows[i] >= th; i++) n++; bars.push(n);
+          if (j < pk.length - 1) { const seg = rows.slice(p, pk[j + 1] + 1), v = Math.min(...seg), t2 = (v + Math.min(rows[p], rows[pk[j + 1]])) / 2; gaps.push(seg.filter(x => x < t2).length); } });
+        res({ lo: +lo.toFixed(1), hi: +hi.toFixed(1), max: +so[n - 1].toFixed(1), bars, gaps }); }))`);
+      // NIGHT-C — A REAL ZEBRA (the owner, Oct 30: ~8 thin stripes read as one grey block): FIVE bars down the crossing's middle, the dark gaps
+      // between them about as deep as the bars (each gap within ½–2× its neighbour bar's depth on screen, perspective and all)
+      { const ok5 = sr.bars.length === 5 && sr.gaps.length === 4 && sr.gaps.every((g, i) => g >= 0.5 * sr.bars[i + 1] && g <= 2 * sr.bars[i]);
+        ok(ok5, `NIGHT-C A REAL ZEBRA: ${sr.bars.length} bars (device px, near → far ${[...sr.bars].reverse().join(' / ')}) with gaps ${[...sr.gaps].reverse().join(' / ')} — five wide bars, each gap about a bar deep`); }
       ok(sr.hi >= 2 * sr.lo && sr.hi > 60 && sr.lo < 70 && sr.max < 235, `C4b THE CROSSWALK DIMMER: the stripes ${sr.hi} vs the gaps ${sr.lo} (× ${(sr.hi / Math.max(1, sr.lo)).toFixed(2)}, ≥ 2), the brightest ${sr.max} (< 235: never clipped white)`); }
     const lum = id => ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const h = ${P}, c = h.people.cars.find(o => o.id === ${JSON.stringify(id)}); if (!c || !c.at) return res(null);
       const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, d = cv.getContext('2d').getImageData(Math.round((c.at[0] - 6) * k), Math.round((c.at[1] - 3) * k), Math.round(12 * k), Math.round(6 * k)).data;

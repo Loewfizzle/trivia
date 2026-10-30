@@ -60,7 +60,9 @@ export function washAt(z) {
 // across the curb instead of rising toward the screen's foot, falling a little toward the viewer: with the street's darker setts the street
 // reads ~⅓ darker (luma 0.62–0.64 of the promenade's front; × 0.71 against today's light — e2e streetparty), never black)
 export const STAGE = Object.freeze({ curb: Object.freeze([34.2, 37.4]), street: 1.0, foot: 0.88, party: Object.freeze({ wash: 0.12, street: 0.16 }) });
-let STAGE_ON = false;
+// NIGHT-C — ON BY DEFAULT (the owner, Oct 30 12:30 am: "I like it" → keep it on); `&stage=0` + TOOLS → THE STAGE LIGHT · OFF for A/B
+export const STAGE_DEFAULT = true;
+let STAGE_ON = STAGE_DEFAULT;
 export const stageMode = () => STAGE_ON;
 /** → true when it changed (the caller re-bakes) */
 export function setStageMode(on) { const v = !!on; if (v === STAGE_ON) return false; STAGE_ON = v; return true; }

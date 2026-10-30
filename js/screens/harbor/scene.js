@@ -67,7 +67,7 @@ import { createSkyFx } from './skyfx.js';
 import { createCitySounds } from './sounds.js';
 import { createRoadLight } from './roadlight.js';
 import { createLeaves, crownDiscs } from './trees.js';
-import { pieceCtx, setLightMode, lightMode, LIGHT_DEFAULT, setStageMode, stageMode, STAGE } from '../../core/harbor-light.js';
+import { pieceCtx, setLightMode, lightMode, LIGHT_DEFAULT, setStageMode, stageMode, STAGE, STAGE_DEFAULT } from '../../core/harbor-light.js';
 import { createWaterfront } from './waterfront.js';
 import { createSkyBeams } from './skybeams.js';
 import { createStrings } from './strings.js';   // (the roof's café-light canopy — SP2)
@@ -249,8 +249,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // NIGHT-A2) — set before every frame + the first bake; the bake key carries it, so a flip re-bakes the ground
   const lightModeNow = () => { const v = qp.get('light'); return v === 'new' || v === 'old' ? v : clock.force.has('light-new') ? 'new' : clock.force.has('light-old') ? 'old' : LIGHT_DEFAULT; };
   setLightMode(lightModeNow());
-  // NIGHT-B — THE STAGE LIGHT (core/harbor-light.js#STAGE): &stage=1|0 wins, else the panel's TOOLS row; OFF until the owner picks
-  const stageNow = () => { const v = qp.get('stage'); return v === '1' ? true : v === '0' ? false : clock.force.has('stage-on'); };
+  // NIGHT-B — THE STAGE LIGHT (core/harbor-light.js#STAGE): &stage=1|0 wins, else the panel's TOOLS rows, else the default (ON since NIGHT-C)
+  const stageNow = () => { const v = qp.get('stage'); return v === '1' ? true : v === '0' ? false : clock.force.has('stage-off') ? false : clock.force.has('stage-on') ? true : STAGE_DEFAULT; };
   setStageMode(stageNow());
   // 9g — A LEGENDARY FROM A LINK WAITS (the owner: the TR-3B "worked perfectly" from ☰ → ADMIN, glitched from &force=tr3b): a link used
   // to start it AT THE LOAD — under the bake + the reveal, before the first tap unlocked the music (no song for the tape to slow). Now

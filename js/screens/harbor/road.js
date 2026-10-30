@@ -61,11 +61,23 @@ export function crossLightOf(L) {
   return (x, z) => P.reduce((s, p) => s + (p.k ?? 1) * poolFall(((x - p.x) / p.rx) ** 2 + ((z - p.z) / p.rz) ** 2), 0);
 }
 
-/** the crosswalk's nine stripes on screen (pt): [{ a, b, a2, b2, ya, yb, x, z }] — the near edge (a → b at ya), the far (a2 → b2 at yb) */
+// NIGHT-C — A REAL ZEBRA (the owner, Oct 30 12:32 am, iPhone close-up: "~8 thin stripes with thin gaps read as one grey block"): FIVE
+// WIDE bars with WIDE dark asphalt between them, each bar as deep as each gap (2n − 1 equal slots from the near curb to the far kerb, a
+// bar on every other one — a bar at both ends), so it reads as stripes at a glance unzoomed; the paint + its lift unchanged (C4b's
+// contrast: the bars pale, never clipped white; the gaps the asphalt's own dim pool). Like a real crossing it stops short of both kerbs
+// (`near` u in from the curb, `far` u in from the far side — clear of the far kerb's granite, FAR_KERB.d): the light's feather at the rail
+// + the curb softens the POOLS only, never the end bars
+export const ZEBRA = Object.freeze({ bars: 5, near: 0.45, far: 1.3 });
+/** the bars' depths (world z) across the crossing: [[z0, z1], …] near → far — PURE */
+export function zebraBars(z0, z1, n = ZEBRA.bars) {
+  const slot = (z1 - z0) / (2 * n - 1), out = [];
+  for (let i = 0; i < n; i++) out.push([z0 + 2 * i * slot, z0 + (2 * i + 1) * slot]);
+  return out;
+}
+/** the crosswalk's stripes on screen (pt): [{ a, b, a2, b2, ya, yb, x, z }] — the near edge (a → b at ya), the far (a2 → b2 at yb) */
 function stripeQuads(L) {
-  const cam = L.cam, cw = L.crosswalk, n = 9, out = [];
-  for (let i = 0; i < n; i++) {
-    const z0 = cw.z0 + (cw.z1 - cw.z0) * i / n, z1 = z0 + (cw.z1 - cw.z0) / n * 0.55;
+  const cam = L.cam, cw = L.crosswalk, out = [];
+  for (const [z0, z1] of zebraBars(cw.z0 + ZEBRA.near, cw.z1 - ZEBRA.far)) {
     const [a, ya] = project(cam, cw.x0, 0, z0), [b] = project(cam, cw.x1, 0, z0), [a2, yb] = project(cam, cw.x0, 0, z1), [b2] = project(cam, cw.x1, 0, z1);
     out.push({ a, b, a2, b2, ya, yb, x: (cw.x0 + cw.x1) / 2, z: (z0 + z1) / 2 });
   }
@@ -92,16 +104,18 @@ export function createCrossLight() {
       for (const d of [0, 0.25, 0.5, 0.75, 1, POOL_R]) g.addColorStop(d / POOL_R, rgb(CROSS.col, Math.min(1, poolFall(d * d) * CROSS.k * (p.k ?? 1))));
       pc.fillStyle = g; pc.fillRect(-POOL_R, -POOL_R, POOL_R * 2, POOL_R * 2); pc.restore();
     }
-    // (the stripes catch the light: pale paint added in proportion — the gaps between them only the asphalt's dim pool)
+    const fe = Math.min(6, bh * 0.3), f = pc.createLinearGradient(0, yRail, 0, yCurb);
+    f.addColorStop(0, 'rgba(0,0,0,0)'); f.addColorStop(fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1 - fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1, 'rgba(0,0,0,0)');
+    pc.globalCompositeOperation = 'destination-in'; pc.fillStyle = f; pc.fillRect(0, yRail, cam.W, bh);
+    // (the stripes catch the light: pale paint added in proportion — the gaps between them only the asphalt's dim pool; NIGHT-C: after the
+    // feather, so the zebra's end bars light like the middle ones)
+    pc.globalCompositeOperation = 'lighter';
     const crossLight = crossLightOf(L);
     for (const q of stripeQuads(L)) {
       const lt = Math.min(1.2, crossLight(q.x, q.z)) / CROSS.k;
       pc.fillStyle = rgb(CROSS.paint, Math.min(1, CROSS.stripe * lt)); pc.beginPath(); pc.moveTo(q.a, q.ya); pc.lineTo(q.b, q.ya); pc.lineTo(q.b2, q.yb); pc.lineTo(q.a2, q.yb); pc.closePath(); pc.fill();
       if (lt > 0.05) { const h = Math.max(0.35, (q.ya - q.yb) * 0.18); pc.fillStyle = rgb([250, 250, 255], CROSS.gloss * Math.min(1, lt)); pc.fillRect(Math.min(q.a, q.a2), q.ya - h, Math.abs(q.b - q.a), h); }
     }
-    const fe = Math.min(6, bh * 0.3), f = pc.createLinearGradient(0, yRail, 0, yCurb);
-    f.addColorStop(0, 'rgba(0,0,0,0)'); f.addColorStop(fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1 - fe / bh, 'rgba(0,0,0,1)'); f.addColorStop(1, 'rgba(0,0,0,0)');
-    pc.globalCompositeOperation = 'destination-in'; pc.fillStyle = f; pc.fillRect(0, yRail, cam.W, bh);
     return true;
   }
   return {

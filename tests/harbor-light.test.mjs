@@ -109,6 +109,7 @@ test('NIGHT-A — THE NEW NIGHT LIGHT (&light=new): an even base + ONE warm wash
   const L = setup(), lum = c => (c ? c[0] + c[1] + c[2] : 0);
   const old = lightField(L, { lamps: 1 }), oldStreet = [-4.5, 0, 4.5].map(x => lum(old(x, 27)));
   assert.ok(Math.max(...oldStreet) > Math.min(...oldStreet) * 1.4, 'the old light: the street shows pools (the owner\'s spotlight patches)');
+  M.setStageMode(false);   // (NIGHT-C: the stage is ON by default — this test describes NIGHT-A's wash itself; the stage: its own test below)
   try {
     assert.equal(M.setLightMode('new'), true); assert.equal(M.lightMode(), 'new'); assert.equal(M.setLightMode('new'), false, 'no change → false');
     const at = lightField(L, { lamps: 1 });
@@ -126,7 +127,7 @@ test('NIGHT-A — THE NEW NIGHT LIGHT (&light=new): an even base + ONE warm wash
     const f = lampOn(L.lamps, 0, 40, 1); assert.ok(f.ld[2] < -0.5 && f.lk > 0.3, 'a face lit from the front');
     assert.equal(roadLampAt(L.lamps, 0.1), roadLampAt(L.lamps, 0.37), 'the road: even');
     assert.ok(M.NIGHT_LIGHT.treeShadow.throw < 0.5 && M.NIGHT_LIGHT.treeShadow.cap <= 0.6 && M.NIGHT_LIGHT.treeShadow.blur > 0, 'the tree\'s night shadow short, soft, never a black cut-out (NIGHT-A2: darker — it reads)');
-  } finally { M.setLightMode('old'); }
+  } finally { M.setLightMode('old'); M.setStageMode(M.STAGE_DEFAULT); }
   assert.deepEqual([-4.5, 0, 4.5].map(x => lum(lightField(L, { lamps: 1 })(x, 27))), oldStreet, 'back to old: the same light as before');
 });
 
@@ -136,10 +137,12 @@ test('NIGHT-A2 — THE NEW NIGHT LIGHT IS THE DEFAULT (the owner, Oct 29 7:13 pm
   assert.ok(/light-old/.test(readFileSync(new URL('../js/core/harbor-remote.js', import.meta.url), 'utf8')), 'the OLD row stays in TOOLS');
 });
 
-test('NIGHT-B — THE STAGE LIGHT (&stage=1, OFF by default): the promenade keeps its wash, the street under the dock falls off toward the viewer (never black, no step at the curb); off = today\'s wash exactly', async () => {
-  const { washAt, setStageMode, stageMode, STAGE, NIGHT_LIGHT } = await import('../js/core/harbor-light.js');
+test('NIGHT-B — THE STAGE LIGHT (ON by default since NIGHT-C; &stage=0 for A/B): the promenade keeps its wash, the street under the dock falls off toward the viewer (never black, no step at the curb); off = today\'s wash exactly', async () => {
+  const { washAt, setStageMode, stageMode, STAGE, NIGHT_LIGHT, STAGE_DEFAULT } = await import('../js/core/harbor-light.js');
   setLightMode('new');
-  assert.equal(stageMode(), false, 'off by default');
+  assert.equal(STAGE_DEFAULT, true, 'ON by default (the owner, Oct 30)');
+  assert.equal(stageMode(), true, 'on at the load');
+  setStageMode(false);
   const off = [24, 30, 34, 36, 38, 42, 50].map(washAt);
   setStageMode(true);
   try {
@@ -152,5 +155,6 @@ test('NIGHT-B — THE STAGE LIGHT (&stage=1, OFF by default): the promenade keep
     // (no hard line at the curb: a smooth falloff — the largest step between two points 0.05 u apart stays tiny)
     let worst = 0; for (let z = 30; z < 40; z += 0.05) worst = Math.max(worst, Math.abs(washAt(z + 0.05) - washAt(z)));
     assert.ok(worst < 0.01, `no step at the curb (${worst.toFixed(4)})`);
-  } finally { setStageMode(false); setLightMode('old'); }
+  } finally { setStageMode(STAGE_DEFAULT); setLightMode('old'); }
+  assert.ok(/'stage-off'/.test(readFileSync(new URL('../js/core/harbor-remote.js', import.meta.url), 'utf8')), 'the OFF row stays in TOOLS for A/B');
 });
