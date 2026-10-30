@@ -93,6 +93,18 @@ THE CUTS (no look change):
 - THE CANVASES: a 10-minute party night 633 → 672 (the break) → 633, 75.5 MB flat.
 - THE STATIONS: two phones on one station in step within 22–107 ms over six laptop runs (the synced player re-places a voice once it's > 120 ms off — the e2e checks that tolerance); a late joiner within 1–70 ms; a station change in ~0.5 s.
 
+### The cloud runs (two, the cap)
+- Run 1 (6e8b7e7): tests ✓; harbor 4/9. FROM THIS PASS, fixed: (1) three probes read the CANVAS's pixels near the screen's edges (the
+  pole's colours, the crosswalk's never-clipped white, the ghost's dark eyes) — the vignette is a page layer now, so the canvas is brighter
+  there while the SCREEN is unchanged → they sample with `&force=vig-canvas` (the same picture they judged); (2) a forced window moment
+  (the panel's) now wins over the boxer in the upper middle; (3) the battery saver's "calm night" check ran on Wednesday — the boxer moving
+  keeps 60 fps → a Tuesday; (4) THE MUSIC BUTTON back ON didn't re-surge the sign on a station (its clock ran on while muted) →
+  title.js#songClock reads a muted station as silence; (5) the tape stop test starts on this phone's own player (`no-stations`: the tape
+  bends the own element; on a station the legendary's hold hands the song to it). NOT FROM THIS PASS: the dog's turn (one frame 11.4 u/s
+  vs ≤ 11) fails identically on SKY-A's build (06e431d, a worktree A/B: 11.5) — left as it was, a known issue; the 20-cycle MEMORY +6.6 MB
+  (FR5's item; +4.6 locally) — not re-run.
+- Run 2 (the top commit): see `gh run list`.
+
 ### Decisions (Claude Code's calls — the owner may overrule)
 - The patrol's near pass flies over the near water BEHIND the near-layer pieces (OVERCLOCK, the lantern, the trees) — they're nearer the
   camera; "never in front of a sign" read as the skyline's signs. The far pass is fully behind the city (the sky layer), lights only.
@@ -104,6 +116,10 @@ THE CUTS (no look change):
 - The bench's PROFILE uses the dance break; the cool-down is 8 s.
 
 ### Known issues
+- THE DOG's TURN check (street job) fails at 11.2–11.5 u/s (≤ 11) on this laptop + the cloud — on the PRE-pass build too (a worktree A/B):
+  pre-existing, not touched.
+- The 20-cycle MEMORY check at its limit (+6.6 MB in the cloud, +4.6 locally; FR5's item).
+- A station's song decodes on join (the synced player) — on the party nights the same; watch for a load-time hitch on the phone bench.
 - THE HEADROOM IS UNMEASURED on the iPhone — the owner's bench PROFILE run decides the next cut (likely the crowd's figures).
 - The boxer's sounds are silent until the owner's files arrive (the slots + cues are wired).
 - The joiner's 1.2-s fade-in is sometimes over before the e2e's first sample (logged, not failed); it was seen ramping on most runs.

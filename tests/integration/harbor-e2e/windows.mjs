@@ -204,7 +204,7 @@ G('windows', async () => {
     ok(gone, `THE HUSH SIGN CLEARS WITH ITS FORCE: forced JAZZ, then the force dropped → text ${hs.text}, overlay ${hs.overlay}`);
     await Q.ctx.close(); }
   // ---- THE GHOST'S EYES: two big hollow eyes + a mouth — dark holes inside the pale sheet, readable at 402
-  { const Q = await open({ slot: 'w-ghost', qs: `when=2026-10-22T22:00${GR}&force=window&moment=ghost`, view: [402, 874] });
+  { const Q = await open({ slot: 'w-ghost', qs: `when=2026-10-22T22:00${GR}&force=window,vig-canvas&moment=ghost`, view: [402, 874] }); // (SKY-B: these probes read the CANVAS's pixels — the vignette is a page layer now; vig-canvas puts it back in the canvas: the same picture they judged)
     await harborUp(Q.page); await lit(Q.page);
     await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'ghost' && e.el > 4.6 && e.el < 6.4)", 'the ghost at the glass', 30000);
     const win = (await ev(Q.page, 'window.__district.harbor().speakeasy.life.on[0].win')), r = (await wins(Q.page))[win];

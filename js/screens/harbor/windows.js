@@ -108,7 +108,8 @@ export function createWindowLife() {
       boxT0 = null;
       if (boxKey !== nightKey) { boxKey = nightKey; boxPlanNow = boxerPlan(boxerNight(nightKey, { seed: L.seed, legend: k => { const [y, m, d] = k.split('-').map(Number); return legendNight(y, m, d); } })); }
       const evSec = h < 6 ? loc.sec + 86400 : loc.sec;
-      if (boxPlanNow && !(L.raidS != null && L.raidS >= 0 && L.raidS < 7200)) { bx = boxerAt(evSec, boxPlanNow, nightKey, L.seed); bxInfo = { sec: evSec, plan: boxPlanNow, key: nightKey, seed: L.seed || 1924 }; }
+      // (a panel's forced window moment wins over him)
+      if (boxPlanNow && !(L.moment && MOMENT[L.moment]) && !(L.raidS != null && L.raidS >= 0 && L.raidS < 7200)) { bx = boxerAt(evSec, boxPlanNow, nightKey, L.seed); bxInfo = { sec: evSec, plan: boxPlanNow, key: nightKey, seed: L.seed || 1924 }; }
     }
     if (bx && bx.phase === 'off') { bx = null; bxInfo = null; }
     for (const id of PARKED_ROOMS) {

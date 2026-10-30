@@ -33,7 +33,8 @@ import { neonPowerOn, neonTick, neonFlicker, neonTwitch, NEON_GAINS, neonDropout
 import { beatSource, beatKick, beatWhy, beatCal, beatReport, songInfo, syncLine, clockLine } from '../audio/beat.js';
 import { partyMusicDebug, partyNow } from '../audio/party-music.js';
 // (NIGHT-C: the song's clock = the party's synced song when it sounds — its own buffer voice — else this phone's song element)
-const songClock = () => { const p = partyNow(); return p ? p.at : musicClock(); };
+// (SKY-B: a station's song with the music OFF / muted is silence to the sign — the music back on is a start again, the surge answers it)
+const songClock = () => { const p = partyNow(); return p && !settings.musicOff && !settings.muted && settings.music > 0 ? p.at : musicClock(); };
 import { beatMode } from '../core/harbor-beat.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
 import { cityFailed, cityClock } from '../core/city.js';

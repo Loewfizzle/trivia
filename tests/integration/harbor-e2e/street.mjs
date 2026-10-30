@@ -9,7 +9,7 @@ G('speakeasy', async () => {
   const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
   const settle = p => waitFor(p, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 20000);
   // ---- the night: the rooms lit, the edge windows half cut, the blade sign (the corner as it is), the knock's door unchanged
-  { const Q = await open({ slot: 'sp1', qs: `${NIGHT}&force=no-people`, view: [402, 874] });   // (8P: nobody walking through the light probes)
+  { const Q = await open({ slot: 'sp1', qs: `${NIGHT}&force=no-people,vig-canvas`, view: [402, 874] }); // (SKY-B: these probes read the CANVAS's pixels — the vignette is a page layer now; vig-canvas puts it back in the canvas: the same picture they judged)   // (8P: nobody walking through the light probes)
     await harborUp(Q.page); await settle(Q.page);
     // (6b, FP3b's Known issue: the light probes below read at ONE tier on every machine — the cloud's runner sat at a lower tier, where
     // the pole's halo + its light on the brick are drawn differently: its far point read +17 there, 0.0 here. setTier pins it: no auto steps)
@@ -254,7 +254,7 @@ G('people', async () => {
   // ---- C4a — THE CARS LIT THROUGH THE CROSSING (the owner: they passed through its light unlit): ONE car followed — its body's
   // brightness 8 u before the crossing vs on it ≥ 1.6× (the lamp-lit body through its tail → nose gradient: vehicles.js)
   const CARLIT = 1.12;   // (C4b: the crossing's light down hard — the car still brightens through it, gentler: was 1.6)
-  { const Q = await open({ slot: 'pp-carlit', qs: `when=2026-09-16T22:30${GR}&wx=clear`, view: [402, 874] });   // (September: no holiday piece stands in front of the crossing — Halloween's giant hides it)
+  { const Q = await open({ slot: 'pp-carlit', qs: `when=2026-09-16T22:30${GR}&wx=clear&force=vig-canvas`, view: [402, 874] }); // (SKY-B: these probes read the CANVAS's pixels — the vignette is a page layer now; vig-canvas puts it back in the canvas: the same picture they judged)   // (September: no holiday piece stands in front of the crossing — Halloween's giant hides it)
     await harborUp(Q.page);
     // C4b — THE CROSSWALK DIMMER (the owner: "you can see people and see the white stripes, just so you can see it's a crosswalk"): down the
     // crossing's middle, the stripes ≥ 2× the asphalt between them, the gaps dark (never washed grey), the stripes pale — never clipped white

@@ -652,7 +652,8 @@ G('tape', async () => {
     const play = HTMLMediaElement.prototype.play;
     HTMLMediaElement.prototype.play = function () { if (window.__swallowPlays > 0 && !String(this.src).startsWith('blob:')) { window.__swallowPlays--; window.__swallowed = (window.__swallowed || 0) + 1; return Promise.resolve(); } return play.call(this); };
   } };
-  const Q = await open({ slot: 'tp', qs: `${NIGHT}&debug=1&force=no-people`, view: [402, 874], init: trap });
+  // (SKY-B: the tape stop bends THIS phone's own song element — on a station the legendary's hold hands the song to it; the test starts there)
+  const Q = await open({ slot: 'tp', qs: `${NIGHT}&debug=1&force=no-people,no-stations`, view: [402, 874], init: trap });
   const p = Q.page;
   await harborUp(p);
   const D = 'window.__arcade.musicDebug()';
