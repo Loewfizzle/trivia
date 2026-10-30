@@ -116,7 +116,7 @@ G('music', async () => {
     const s = songs.songs[id];
     ok(b && b.id === id && ((s.grid.trusted === false && b.untrusted && !b.grid) || (s.grid.trusted !== false && b.grid && Math.abs(b.grid.bpm - s.grid.bpm) < 0.01)), `MUSIC ${mood}: the beat follows ${id}'s ${s.grid.trusted === false ? 'kicks (grid not trusted)' : `grid (${s.grid.bpm} bpm)`}`);
     ok(/music/i.test(line) && line.includes(id), `MUSIC ${mood}: the readout names it ("${line}")`);
-    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead [+−-]?\d+( → [+−-]?\d+)? ms \([^)]*\) · lag \d+ ms · (bt|wired|unknown)( · not saved \(after [^)]+\))?$/.test(sl || ''), `SYNC: the readout says what the beat subtracts + the output (NIGHT-A2) ("${sl}")`); }
+    if (mood === 'party') { const sl = await ev(P.page, 'window.__district.harbor().sync'); ok(/^sync out \d+ ms.* · lead [+−-]?\d+( → [+−-]?\d+)? ms \([^)]*\) · lag \d+ ms · (speaker\/wired \(short\)|wireless\? \(long\)|output unknown)( · not saved \(after [^)]+\))?$/.test(sl || ''), `SYNC: the readout says what the beat subtracts + the output (NIGHT-A2) ("${sl}")`); }
     if (SHOTS && mood === 'party') await P.page.screenshot({ path: `${OUT}music-party-402x874.png` });
     await P.ctx.close();
   }
