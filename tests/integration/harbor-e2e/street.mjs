@@ -452,8 +452,8 @@ G('motion', async () => {
     ok(W.every(w => w.mps >= 0.8 && w.mps <= 2.9 && (w.spm == null || (w.spm >= 70 && w.spm <= 175))), `THE PACE IS HUMAN: ${W.map(w => w.kind + ' ' + w.mps + ' m/s' + (w.spm != null ? ' · ' + w.spm + ' steps/min' : '')).join(', ')}`);
     ok(R.fastShare != null && R.fastShare >= 0.9, `60 FPS WHILE ANYONE WALKS: ${R.fastShare == null ? 'nobody walked' : Math.round(R.fastShare * 100) + ' % of the walking frames fast'} (${R.why.join(', ')})`);
     await Q.ctx.close(); }
-  // ---- the dance circle on a party night (&force=dance): the dancers' arms on the beat, never a jump
-  { const Q = await open({ slot: 'mo2', qs: `when=2026-10-24T22:30${GR}&force=dance`, view: [402, 874] });
+  // ---- the dance circle on a party night (&force=circle — NIGHT-B): the dancers' arms on the beat, never a jump
+  { const Q = await open({ slot: 'mo2', qs: `when=2026-10-24T22:30${GR}&force=circle`, view: [402, 874] });   // (NIGHT-B: the old circle is its own preview now)
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.people.dancers >= 4 && ${P}.people.dance.k > 0.9`, 'the circle formed', 90000);
     const R = motionReport(await ev(Q.page, motionTrace(15)));

@@ -1,4 +1,4 @@
-// CITY 2.0 — THE HARBOR end to end: the `city` cloud job's groups (core, skyline, water, load, promenade, light, panel) — tests/integration/harbor-jobs.mjs#CI_JOBS.
+// CITY 2.0 — THE HARBOR end to end: the `city` cloud job's groups (core, skyline, water, load, promenade, light, streetparty, panel) — tests/integration/harbor-jobs.mjs#CI_JOBS.
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=city, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { normalize as wxNormalize } from '../../../js/core/weather.js';
@@ -789,4 +789,38 @@ G('light', async () => {
       `NIGHT-A THE BUTTONS AT NIGHT (402×660 at 3×, luma): JOIN ring ${n.btn && n.btn.join.ring} / word ${n.btn && n.btn.join.word} = HOST ring ${n.btn && n.btn.host.ring} / word ${n.btn && n.btn.host.word} (within 12 %); the corner rings ☰ ${n.btn && n.btn.menu} · ♫ ${n.btn && n.btn.music} at ~⅔ of the dock's`);
     ok(top > n.windows && n.windows > n.shop && n.shop > n.wash && n.wash > n.base, `NIGHT-A THE BRIGHTNESS LADDER (${tag}, 402×660 at 3×, the new light): ${row(n)} — the sign + the skyline > the windows > the shopfront > the wash > the base (the old light: ${row(o)})`);
   }
+});
+
+// ================================================================ NIGHT-B — THE STREET PARTY (ONLY=streetparty; the `city` cloud job)
+// core/harbor-streetparty.js: the party night's pockets, the dance breaks (a seeded party song clock — every phone the same), the conga,
+// the spill into the street (the front street holds), the bench dancers. Saturday Oct 24's 21:43:50 break is a CONGA (the unit test
+// lists the night); the page joins it ~55 s in.
+G('streetparty', async () => {
+  const P = 'window.__district.harbor()';
+  { const Q = await open({ slot: 'sp1', qs: `when=2026-10-24T21:44:45${GR}&wx=clear`, view: [402, 660] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.party && ${P}.people.party.brk && ${P}.people.members.some(m => m.kind === 'conga')`, 'the conga break on', 30000);
+    const pp = await ev(Q.page, `${P}.people`), ms = pp.members, br = pp.party.brk;
+    const pockets = ms.filter(m => m.kind === 'mingler'), dancing = pockets.filter(m => m.pose === 'wands'), conga = ms.filter(m => m.kind === 'conga');
+    ok(br.kind === 'conga' && pp.party.crowd > 0.5, `THE STREET PARTY: a ${br.kind} break at the warm-up's end (crowd ${pp.party.crowd.toFixed(2)})`);
+    ok(pockets.length >= 8 && dancing.length >= pockets.length * 0.7, `ALMOST EVERYONE DANCES: ${dancing.length} of ${pockets.length} in the pockets on the beat`);
+    ok(conga.length >= 6, `THE BIG CONGA: ${conga.length} in the line`);
+    const street = ms.filter(m => m.kind === 'spiller' && m.z < 36), bench = ms.filter(m => m.kind === 'bencher' && m.y > 0.3);
+    ok(street.length >= 2, `INTO THE STREET: ${street.length} dancing in the street's upper band`);
+    ok(bench.length >= 1 && bench.length <= 3, `DANCERS ON THE BENCH: ${bench.length} up on the cab stand's bench`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}streetparty-conga-402x660.png` });
+    await Q.ctx.close(); }
+  // ---- &force=dance&dance=bounce on a THURSDAY: the preview's own street party + a bounce break within ~10 s
+  { const Q = await open({ slot: 'sp2', qs: `when=2026-10-22T21:30${GR}&wx=clear&force=dance&dance=bounce`, view: [402, 660] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${P}.people.party && ${P}.people.party.brk && ${P}.people.party.k > 0.9`, 'the forced break on', 30000);
+    const pp = await ev(Q.page, `${P}.people`);
+    ok(pp.party.brk.kind === 'bounce' && pp.members.some(m => m.dance === 'bounce'), `&force=dance&dance=bounce: a ${pp.party.brk.kind} break, ${pp.members.filter(m => m.dance === 'bounce').length} bouncing`);
+    await Q.ctx.close(); }
+  // ---- a plain Thursday: no street party
+  { const Q = await open({ slot: 'sp3', qs: `when=2026-10-22T22:30${GR}&wx=clear`, view: [402, 660] });
+    await harborUp(Q.page);
+    const pp = await ev(Q.page, `${P}.people`);
+    ok(!pp.members.some(m => m.sp) && !(pp.party && pp.party.crowd), `A THURSDAY: no street party (${pp.members.filter(m => m.sp).length})`);
+    await Q.ctx.close(); }
 });

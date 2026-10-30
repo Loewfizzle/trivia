@@ -182,7 +182,7 @@ G('holiday', async () => {
   // ---- 11a-2 — THE GIANT on the centre circle (the owner: HUGE, the BITCOIN LOGO carved + lit from within), carved overnight into Oct 28:
   // its ₿ lit at night (the light on the cobbles), ~55 pt across at 402, its top under the WAIT / WALK lantern, above the dock; the dance
   // (forced here) RINGS it — the dancers evenly round it, nobody walking through it
-  { const Q = await open({ slot: 'hol-giant', qs: `when=2026-10-28T21:00${GR}&wx=clear&force=dance,giant`, view: [402, 874] });
+  { const Q = await open({ slot: 'hol-giant', qs: `when=2026-10-28T21:00${GR}&wx=clear&force=circle,giant`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.hprops && ${P}.hprops.giant && ${P}.hprops.giant.lit > 0.3`, 'the giant lit', 15000).catch(() => {});
     const g = (await ev(Q.page, `${P}.hprops`)).giant, cam = await ev(Q.page, `${P}.cam`);

@@ -142,11 +142,13 @@ test('8P — THE PEOPLE over two days at 390 / 402 / 430: never past the cap, ne
     for (let t = DAY + 5 * 3600; t < DAY + 2 * 86400; t += 9) {
       const R = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
       const heads = R.members.filter(m => m.m.role !== 'dog');
-      maxN = Math.max(maxN, heads.filter(m => m.routine !== 'dance').length);   // (POLISH 4: the dance circle on top of the crowd's cap)
+      maxN = Math.max(maxN, heads.filter(m => m.routine !== 'dance' && m.routine !== 'street').length);   // (POLISH 4: the dance circle on top of the crowd's cap; NIGHT-B: the street party too)
       for (const m of heads) {
         const s = m.s; seenKinds.add(m.kind);
-        assert.ok(s.z >= FOLK.zMin - (m.kind === 'trash' ? 1.4 : m.kind === 'cabwait' ? 1.05 : m.kind === 'vendor' && L.cart.from === 'below' ? FOLK.zMin - CART_IN_Z + 0.6 : 0.6), `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);   // (C4b: the vendor wheels his cart up from the front street)   // (8b1: the collector at the can, beside the front-left globe; PROM: the cab stand's waiter on its bench at the front curb)
-        if (m.kind === 'cabwait') assert.ok(project(cam, s.x, 0, s.z)[1] < cam.dock.y - 6, `${k}: the cab stand's waiter above the dock (${project(cam, s.x, 0, s.z)[1].toFixed(0)})`);
+        // (NIGHT-B: INTO THE STREET — the spill dances in the street's upper band, ONLY in a break; the bench dancers step up at the bench's front)
+        if (m.kind === 'spiller' && s.z < FOLK.zMin - 0.6) { assert.ok(R.party && R.party.brk, `${k}: a spiller in the street outside a break`); assert.ok(s.z >= 33.5, `${k}: the spill below the street's upper band (${s.z.toFixed(2)})`); continue; }
+        assert.ok(s.z >= FOLK.zMin - (m.kind === 'trash' ? 1.4 : m.kind === 'cabwait' ? 1.05 : m.kind === 'bencher' ? 1.45 : m.kind === 'vendor' && L.cart.from === 'below' ? FOLK.zMin - CART_IN_Z + 0.6 : 0.6), `${k}: ${m.kind} under the dock (z ${s.z.toFixed(2)})`);   // (C4b: the vendor wheels his cart up from the front street)   // (8b1: the collector at the can, beside the front-left globe; PROM: the cab stand's waiter on its bench at the front curb)
+        if (m.kind === 'cabwait' || m.kind === 'bencher') assert.ok(project(cam, s.x, 0, s.z)[1] < cam.dock.y - 6, `${k}: the cab stand's waiter above the dock (${project(cam, s.x, 0, s.z)[1].toFixed(0)})`);
         if (s.a >= 0.999 && m.m.role === 'lead' && !s.door) for (const r of block) assert.ok(!inR(s, r), `${k}: ${m.kind} inside ${r.id} at ${s.x.toFixed(2)}, ${s.z.toFixed(2)} (${s.pose})`);
         if (s.z > FOLK.roadZ + 0.2 && s.z < FOLK.farZ - 0.35 && m.m.role === 'lead') {
           const nearBus = Math.abs(s.x - busStopX(L)) < 2.2, nearCab = (R.cars || []).some(c => c.cab && s.x > c.x - c.len / 2 - 0.6 && s.x < c.x + c.len / 2 + 1.4), nearTruck = m.routine === 'work' && (R.crew.trucks || []).some(T => s.x > T.x - T.len / 2 - 0.6 && s.x < T.x + T.len / 2 + 1.4);   // (8b1: a worker by his truck: round its nose, at its bed)
@@ -483,9 +485,13 @@ test('FP3b — THE DANCE CIRCLE (the routines layer): party nights only, at the 
   assert.equal(sessions, 5, `a circle every hour of the party (${sessions} / 5)`);
   assert.equal(danceSlot(Math.floor(sat / 3600), { off: OFF, event: true }), null, 'none under a holiday centrepiece');
   assert.equal(danceSlot(Math.floor(sat / 3600), { off: OFF, blocked: () => true }), null, 'none during a raid / a legendary');
+  // (NIGHT-B: the party nights' hourly circle is RETIRED in folkAt — THE STREET PARTY's dance breaks replace it; the circle lives on as the
+  // &force=circle preview, which this test now drives)
+  for (let t = sat; t < sat + 2 * 3600; t += 120) assert.ok(!folkAt(t, { L, M, ctx: { off: OFF } }, new Map()).dance.on, 'no hourly circle on a party night now');
   let formed = 0;
+  const cctx = { off: OFF, forceCircle: true, forceCircleAt: sat, noStreetParty: true };
   for (let t = sat; t < sat + 2 * 3600; t += 4) {
-    const f = folkAt(t, { L, M, ctx: { off: OFF } }, cache);
+    const f = folkAt(t, { L, M, ctx: cctx }, cache);
     // (POLISH 4: the dance circle is ON TOP of the crowd — the crowd itself stays within the cap)
     assert.ok(f.members.filter(x => x.m.role !== 'dog' && x.routine !== 'dance').length <= FOLK.cap, 'the crowd within the cap');
     if (!f.dance.on || f.dance.k < 1) continue;
@@ -503,8 +509,8 @@ test('11a-2 — THE RING round the GIANT JACK-O\'-LANTERN: on Halloween night (a
   const onRing = x => Math.hypot((x.s.x - m.x) / RING.rx, (x.s.z - m.z - RING.cz) / RING.rz);
   const { GIANT } = await import('../js/core/harbor-holidayprops.js');
   const { L } = setup('402x874'), M = folkMap(L, { event: true, ring: true }), cache = new Map(), m = L.medallion;   // (people.js#ensureMap: the event's map)
-  const sat = Date.parse('2026-10-31T22:00:00-04:00') / 1000, ctx = { off: OFF, event: true, ring: true };
-  assert.ok(danceSlot(Math.floor(sat / 3600), ctx), 'the hour still has its dance with the giant standing (ring)');
+  const sat = Date.parse('2026-10-31T22:00:00-04:00') / 1000, ctx = { off: OFF, event: true, ring: true, forceCircle: true, forceCircleAt: sat, noStreetParty: true };   // (NIGHT-B: the circle is a preview now — &force=circle)
+  assert.ok(danceSlot(Math.floor(sat / 3600), { off: OFF, event: true, ring: true }), 'the hour still has its dance with the giant standing (ring)');
   assert.equal(danceSlot(Math.floor(sat / 3600), { off: OFF, event: true }), null, 'a centrepiece that is not ringed still stops it');
   let posed = 0, moved = 0, prev = null, slides = 0;
   for (let t = sat + 70; t < sat + 400; t += 0.5) {
@@ -556,12 +562,16 @@ test('FP3b — THE VENDOR SPOT: the chestnut cart wheeled in ~6:30 pm + out ~9:3
 
 // ------------------------------------------------------------------ POLISH 4 — THE PEOPLE CALMER (the owner: "a little too chaotic")
 const onScreen = (cam, R) => R.members.filter(m => m.m.role !== 'dog' && m.routine !== 'dance' && m.s.z >= FOLK.zMin - 0.3 && Math.abs(m.s.x) < cam.hw(m.s.z));
-const bandMean = (cam, L, M, day, h0, h1, cache, step = 30) => { let n = 0, k = 0; for (let t = day + h0 * 3600; t < day + h1 * 3600; t += step) { n += onScreen(cam, folkAt(t, { L, M, ctx: { off: OFF } }, cache)).length; k++; } return n / k; };
+// (NIGHT-B: `keep` picks who counts — the everyday crowd by default; THE STREET PARTY's people are on top of it, counted on their own)
+const bandMean = (cam, L, M, day, h0, h1, cache, step = 30, keep = m => !m.sp) => { let n = 0, k = 0; for (let t = day + h0 * 3600; t < day + h1 * 3600; t += step) { n += onScreen(cam, folkAt(t, { L, M, ctx: { off: OFF } }, cache)).filter(keep).length; k++; } return n / k; };
 test('POLISH 4 — THE COUNTS ON SCREEN: a weekday daytime 4–5, lunch + after work 6–7, a normal night 3–4, a party night 8–12 (the dance circle on top), late at night 0–3', () => {
   const { cam, L } = setup('402x874'), M = folkMap(L), cache = new Map(), SAT = DAY + 2 * 86400;
   const bands = [['weekday daytime', DAY, 9.5, 11, 3.6, 5.4], ['weekday afternoon', DAY, 14.2, 16, 3.6, 5.4], ['lunch', DAY, 12, 13.5, 5.6, 7.4], ['after work', DAY, 16.6, 18.2, 5.6, 7.6],
-    ['a normal night', DAY, 19, 22, 2.8, 4.6], ['a party night', SAT, 21, 24, 7.6, 12], ['late at night', DAY + 86400, 0.25, 1.75, 0, 3]];
+    ['a normal night', DAY, 19, 22, 2.8, 4.6], ['a party night (the everyday crowd: the walkers, THE LINE, the side door)', SAT, 21, 24, 5, 12], ['late at night', DAY + 86400, 0.25, 1.75, 0, 3]];
   for (const [name, day, h0, h1, lo, hi] of bands) { const v = bandMean(cam, L, M, day, h0, h1, cache); assert.ok(v >= lo && v <= hi, `${name}: ${v.toFixed(2)} on screen (want ${lo}–${hi})`); }
+  // (NIGHT-B — THE STREET PARTY on top at the peak: its pockets ~18–26 people at tier 2 (the owner: "even more if the bench allows"))
+  const sp = bandMean(cam, L, M, SAT, 22, 24, cache, 60, m => m.sp && m.sp.pocket != null);
+  assert.ok(sp >= 16 && sp <= 28, `the street party's pockets at the peak: ${sp.toFixed(1)} on screen (want 16–28)`);
 });
 test('POLISH 4 — LINGER MORE: most of the day\'s people stay a while (a pose of 20 s or more) — the bench for minutes, the railing, a chat, the bus stop; few walk straight through', () => {
   const { L } = setup('402x874'), M = folkMap(L), cache = new Map(), seen = new Map();

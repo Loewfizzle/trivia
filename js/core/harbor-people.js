@@ -29,6 +29,8 @@ import { cabEvents, cabPlan, standEvents, standPlan } from './harbor-cabs.js';
 import { totGroups, zombieGroups, procWindow, procWalkers, procHold, PROC, ZOMBIE, halloweenAt } from './harbor-holidayfolk.js';
 import { PARADE, paradeWindow, paradeHold, paradeUnits, unitsAt, unitPeople, paradeCrowd } from './harbor-parade.js';
 import { usesSolid, cartSolids, solidsKeyOf } from './harbor-solids.js';
+import { TIERS, tierVal } from './harbor-tiers.js';
+import { streetPartyAt, crowdK } from './harbor-streetparty.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -47,9 +49,16 @@ export const FOLK = Object.freeze({
 /** FP3a (FREV A4) — THE PEOPLE DRAWN BY THE PHONE'S TIER: at most TIER_CAP[tier] heads on screen (the plan is the same on every
  *  phone; an older phone / Low Power draws fewer). Whole visits are kept (a couple, a dog walker + the dog), in a fixed order by
  *  their id — every phone at the same tier keeps the same people. The roof's guests are off at tier 0 (people.js). */
-export const TIER_CAP = Object.freeze([6, 9, 12]);
+export const TIER_CAP = TIERS.walkers;   // (NIGHT-B: THE TIER TABLE — core/harbor-tiers.js)
 export function capByTier(members, tier = 2) {
   const tt = Math.max(0, Math.min(2, tier | 0));
+  // NIGHT-B — THE STREET PARTY is ON TOP of the crowd: a phone draws the night's first pockets by rank, the conga's first n, the bench's +
+  // the spill's first n (THE TIER TABLE) — the same people on every phone of that tier; the everyday crowd keeps its own cap
+  if (members.some(m => m.sp)) {
+    const keep = m => (m.sp.pocket != null ? m.sp.pocket < tierVal('pockets', tt) : m.sp.conga != null ? m.sp.conga < tierVal('conga', tt)
+      : m.sp.bench != null ? m.sp.bench < tierVal('benchDancers', tt) : m.sp.spill != null ? m.sp.spill < tierVal('spill', tt) : true);
+    return [...capByTier(members.filter(m => !m.sp), tt), ...members.filter(m => m.sp && keep(m))];
+  }
   // (11a-1 — THE PROCESSION is on top of the crowd, like the dance circle: in the street, not on the promenade; an older phone draws
   // every other walker (tier 0) or two in three (tier 1) — the same ones on every phone of that tier: their running number)
   if (members.some(m => m.kind === 'proc')) {
@@ -97,7 +106,7 @@ export const MIX = Object.freeze([
   { id: 'night', from: 24, to: 26, n: [1.3, 1.9], mix: { lone: 2, couple: 1, straggler: 0.6, water: 0.5 } },
 ]);
 /** party nights: the guests' weight × this, the count × partyN; rain (0..1): the count × (1 − rainCut × rain), the gaits × (1 + rainFast) */
-export const MOOD = Object.freeze({ party: 3.2, partyN: 3.3, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2, stormCut: 0.4, fogSlow: 0.18 });
+export const MOOD = Object.freeze({ party: 3.2, partyN: 3.3, streetCut: 0.5, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2, stormCut: 0.4, fogSlow: 0.18 });
 
 /** the period at local hour h (0..24, a weekend shifts the evening on by MOOD.lateShift) */
 function periodAt(h, weekend = false) {
@@ -106,11 +115,13 @@ function periodAt(h, weekend = false) {
   return MIX.find(p => x >= p.from && x < p.to) || MIX[0];
 }
 /** how many people on average now + the kinds' weights (PURE). ctx: { h, dow, party, rain, budget } */
-export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, rush = 0 } = {}) {
+export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, rush = 0, street = 0 } = {}) {
   // (9a: a STORM — the heaviest rain — almost empties the promenade: on top of the rain's cut)
   const storm = Math.max(0, Math.min(1, (rain - 0.75) / 0.2));
   const weekend = dow === 0 || dow === 6 || (dow === 5 && h >= 17), p = periodAt(h, weekend);
-  let n = p.n[weekend ? 1 : 0] * (party ? MOOD.partyN : 1);
+  // (NIGHT-B: while THE STREET PARTY's crowd stands — street 0..1, its curve — the pockets ARE the party; the everyday crowd eases back to
+  // the walkers passing through: × (1 − streetCut × street))
+  let n = p.n[weekend ? 1 : 0] * (party ? MOOD.partyN : 1) * (1 - MOOD.streetCut * Math.max(0, Math.min(1, street)));
   n *= 1 - MOOD.rainCut * Math.max(0, Math.min(1, rain));
   n *= 1 - MOOD.stormCut * storm;
   // (11a-2 — BLACK FRIDAY's SHOPPING RUSH: more people out, most of them hurrying — core/harbor-xmas.js#xmasPrelude's rush)
@@ -602,7 +613,7 @@ export function visitAt(vis, t) {
         const d = (t - lg.t0) * lg.v, p = alongLeg(lg.pts, d, len);
         // (setting off after a pose / a door: turn from where they faced over the first steps)
         let hd = p.hd; if (lastHd != null && d < TURN.start) hd = lerpHd(lastHd, p.hd, d / TURN.start);
-        return out({ x: p.x, z: p.z, y: lg.y || 0, pose: 'walk', dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross, carry: lg.carry, run: !!lg.run, since: t - lg.t0, left: lg.t1 - t, prev, next }, hd);
+        return out({ x: p.x, z: p.z, y: lg.y || 0, pose: 'walk', conga: lg.conga, dist: dist + d, v: lg.v, a: 1, cross: !!lg.cross, carry: lg.carry, run: !!lg.run, since: t - lg.t0, left: lg.t1 - t, prev, next }, hd);
       }
       dist += len;
       // (the heading they really ended the leg with — a short leg may end mid-turn: the next leg turns on from there)
@@ -629,7 +640,7 @@ export function visitAt(vis, t) {
         let uu = (t - lg.t0) / Math.max(1e-3, lg.t1 - lg.t0), rung = null;
         if (lg.pose === 'climb' && lg.y0 != null) { const nR = Math.max(1, Math.round(Math.abs(lg.y1 - lg.y0) / CLIMB.rung)), w = uu * nR, n = Math.min(nR - 1, Math.floor(w)), q = w - n, e = q < CLIMB.move ? smooth01(q / CLIMB.move) : 1; uu = (n + e) / nR; rung = { n, q: Math.min(1, q / CLIMB.move), up: lg.y1 >= lg.y0 }; }
         const px = lg.x1 != null ? lg.x + (lg.x1 - lg.x) * uu : lg.x, pz = lg.z1 != null ? lg.z + (lg.z1 - lg.z) * uu : lg.z, py = lg.y0 != null ? lg.y0 + (lg.y1 - lg.y0) * uu : lg.y || 0;
-        return out({ x: px, z: pz, y: py, pose: lg.pose, dist, v: 0, a: 1, since, left: lg.t1 - t, from: lastHd == null ? want : lastHd, to: want, carry: lg.carry, plat: !!lg.plat, sniff: !!lg.sniff, prev, next, rung }, lastHd != null && since < TURN.pose ? lerpHd(lastHd, want, since / TURN.pose) : want);
+        return out({ x: px, z: pz, y: py, pose: lg.pose, dance: lg.dance, brk: lg.brk, dist, v: 0, a: 1, since, left: lg.t1 - t, from: lastHd == null ? want : lastHd, to: want, carry: lg.carry, plat: !!lg.plat, sniff: !!lg.sniff, prev, next, rung }, lastHd != null && since < TURN.pose ? lerpHd(lastHd, want, since / TURN.pose) : want);
       }
       const u = (t - lg.t0) / (lg.t1 - lg.t0);
       return out({ x: lg.x, z: lg.z, y: lg.y || 0, pose: 'walk', dist: dist + u * 0.6, v: 0.8, a: lg.out ? 1 - u : u, bus: lg.bus || null, carry: lg.carry }, lg.out ? PI / 2 : -PI / 2);
@@ -785,7 +796,7 @@ function blockVisits(phase, k, M, ctx = {}) {
   const B = FOLK.block, t0 = k * B + (phase ? B / 2 : 0), t1 = t0 + B, loc = localOf(t0 + B / 2, ctx.off);
   const r = rngFrom(hashString(`folk|${ctx.seed || 1924}|${loc.key}|${phase}|${k}`));
   const party = ctx.party ? ctx.party(t0 + B / 2) : partyAtT(t0 + B / 2, ctx.off);
-  const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: ctx.rain || 0, budget: ctx.budget == null ? 1 : ctx.budget, rush: ctx.rush ? ctx.rush(t0 + B / 2) : 0 });
+  const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: ctx.rain || 0, budget: ctx.budget == null ? 1 : ctx.budget, rush: ctx.rush ? ctx.rush(t0 + B / 2) : 0, street: party && !ctx.noStreetParty ? (ctx.partyForced ? 1 : crowdK(loc.h < 12 ? loc.h + 24 : loc.h)) : 0 });
   const rushK = ctx.rush ? ctx.rush(t0 + B / 2) : 0;
   // (×1.3: a phase's visits must fit inside its block, so its load falls off toward the block's end — the other phase fills in)
   const want = mn.n / 2 * B * 1.3, cap = phase === 0 ? Math.ceil(FOLK.cap * 0.65) : FOLK.cap, out = [];
@@ -1040,9 +1051,11 @@ export function folkAt(t, world, cache = new Map()) {
   };
   // THE ROUTINES (FP3b — core/harbor-routines.js): the dance circle's sessions near t, their people; while one runs the inlay is
   // CLOSED to the crowd (the blocks route round it: Mev) and its people count against the cap (the blocks plan around them)
-  const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceDance, forceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, event: !!ctx.event, ring: !!ctx.ring, blocked: ctx.blocked || null };   // (SP5: no circle under a centrepiece, during a raid or a legendary)
+  // (NIGHT-B: the party nights' hourly circle is RETIRED — THE STREET PARTY's dance breaks replace it (core/harbor-streetparty.js); the
+  // old circle stays only as a preview, &force=circle, for comparing)
+  const rctx = { off: ctx.off, seed: ctx.seed, party: ctx.party, force: !!ctx.forceCircle, forceAt: ctx.forceCircle && ctx.forceCircleAt != null ? ctx.forceCircleAt : null, event: !!ctx.event, ring: !!ctx.ring, blocked: ctx.blocked || null };   // (SP5: no circle under a centrepiece, during a raid or a legendary)
   const sess = j => get(`DS|${j}|${rctx.force ? 1 : 0}|${rctx.forceAt == null ? '' : Math.round(rctx.forceAt)}|${rctx.event ? 1 : 0}${rctx.ring ? 1 : 0}`, () => danceSlot(j, rctx));
-  const sessionsNear = (a, b) => (ctx.noDance ? [] : danceSlotsNear(a, b, rctx).map(sess).filter(x => x && x.s1 + 90 > a && x.s0 - 40 < b));
+  const sessionsNear = (a, b) => (ctx.noDance || !ctx.forceCircle ? [] : danceSlotsNear(a, b, rctx).map(sess).filter(x => x && x.s1 + 90 > a && x.s0 - 40 < b));
   const danceVisits = x => get(`DV|${x.id}|${x.ring ? 1 : 0}`, () => planDance(x, M, L));
   const Mev = get(`Mev|${ctx.ring ? 1 : 0}`, () => folkMap(L, { event: true, ring: !!ctx.ring }));
   const closed = (a, b) => sessionsNear(a, b).some(x => b > x.s0 - 30 && a < x.s1 + 60);
@@ -1055,7 +1068,9 @@ export function folkAt(t, world, cache = new Map()) {
   const cartX = L.cart ? (below ? L.cart.z : L.cart.x) : 0, cartHand = (L.cart && L.cart.hand) || 1, cartIn = cam => (below ? CART_IN_Z : cartHand * (cam ? cam.hw(L.cart.z) + 3.2 : Math.abs(cartX) + 12));
   // (Part 9's hook: in HEAVY rain — ctx.rain > 0.6 — the cart doesn't come out; in drizzle people.js puts its little hood up)
   const cartEv = tt => { if (!L.cart || L.cart.shown === false || (ctx.event && !ctx.ring) || ctx.forceDance || (ctx.rain || 0) > 0.6) return null; const loc = localOf(tt, ctx.off), day0 = tt - loc.h * 3600;
-    return get(`CE|${loc.key}`, () => cartEvening(loc.key, loc.month, day0, cartIn(L.cam), cartX, { seed: ctx.seed })); };
+    // (NIGHT-B: on a PARTY NIGHT it packs up before the street party's crowd — THE CITY TIMETABLE's cart.party)
+    const pty = !!(ctx.party ? ctx.party(day0 + 22 * 3600) : partyAtT(day0 + 22 * 3600, ctx.off));
+    return get(`CE|${loc.key}|${pty ? 1 : 0}`, () => cartEvening(loc.key, loc.month, day0, cartIn(L.cam), cartX, { seed: ctx.seed, party: pty })); };
   const cartOut = (a, b) => { for (const tt of [a, b]) { const e = cartEv(tt); if (e && b > e.t0 - 10 && a < e.t1 + 10) return true; } return false; };
   const cartParked = (a, b) => { const e = cartEv(a); return !!(e && a >= e.ta && b <= e.tb); };
   const Mc = get('Mc', () => folkMap(L, { cart: true }));
@@ -1157,7 +1172,14 @@ export function folkAt(t, world, cache = new Map()) {
   // 'raid' kind: freeze / casually away / look away, the doorman in at the side door) from the moment the first car shows
   const RP = ctx.raid && t >= ctx.raid.t0 - 20 && t < ctx.raid.tEnd + 4 * 3600 ? ctx.raid : null;
   if (RP && RP.officer && t >= RP.officer.t0 && t < RP.officer.t1) routine.push(RP.officer);
-  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...standsNear(t - 400, t + 10).map(pl => pl.rider), ...forced, ...routine, ...hol].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
+  // NIGHT-B — THE STREET PARTY (core/harbor-streetparty.js): the party night's pockets + their people, the dance breaks' conga, the spill +
+  // the bench dancers — on top of the everyday crowd (the tier table decides how much a phone draws: capByTier); the pockets are SOLIDS
+  // while they stand (the walkers thread between them); a break pauses the cab stand (no waiter sits down in it)
+  const spW = get(`SPWorld|${ctx.solidsKey || ''}`, () => ({ L, M, route, solids: (ctx.solids || []).filter(q => q.t0 == null), line: lineRect(L, LINE.max) }));
+  const spCtx = { off: ctx.off, seed: ctx.seed, party: ctx.party, partyForced: !!ctx.partyForced, forceDanceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, danceKind: ctx.danceKind || null, noDance: !!ctx.noDance, blocked: ctx.blocked || null, event: !!ctx.event, rain: ctx.rain || 0 };
+  const sp = ctx.noStreetParty ? null : streetPartyAt(t, spCtx, spW, get);
+  const standOK = pl => (!sp || !sp.busy(pl.rider.t0, pl.rider.tEnd || pl.rider.t1)) && !closed(pl.rider.t0, pl.rider.tEnd || pl.rider.t1);   // (a dance — a break or the old circle's preview — pauses the cab stand)
+  let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...standsNear(t - 400, t + 10).filter(standOK).map(pl => pl.rider), ...forced, ...routine, ...hol, ...(sp ? sp.visits : [])].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   // 8b1 — THE WITNESSES (core/harbor-witness.js): a legendary night (ctx.legend: { kind, t0 }) — everyone on the promenade when it comes
   // reacts (the UFO: they look up, then FLEE; the TR-3B: they stare up, a few hurry indoors); nobody new comes until the empty spell ends
   // (the reaction holds after the window too — a routine back at its post on its new path, never the old one popping back — for a few hours)
@@ -1166,7 +1188,7 @@ export function folkAt(t, world, cache = new Map()) {
   if (LG) {
     reacted = get(`WIT|${LG.kind}|${LG.t0}`, () => {
       const T = LG.t0 + 3, kA = Math.floor(T / B), kB = Math.floor((T - B / 2) / B), ev = cartEv(T);
-      const cand = [...A(kA), ...Bv(kB), ...busesNear(T - 400, T + 10).flatMap(b => riders(b)), ...cabsNear(T - 400, T + 10).flatMap(pl => pl.riders), ...standsNear(T - 400, T + 10).map(pl => pl.rider), ...sessionsNear(T - 120, T + 10).flatMap(danceVisits), ...(ev && T >= ev.t0 && T < ev.t1 ? [vendorVisit(ev)] : []), ...lineVisits(T - 30, T + 30), ...(ctx.noWork ? [] : crewAt(T, crewW, cache.crew).visits)]
+      const cand = [...A(kA), ...Bv(kB), ...busesNear(T - 400, T + 10).flatMap(b => riders(b)), ...cabsNear(T - 400, T + 10).flatMap(pl => pl.riders), ...standsNear(T - 400, T + 10).map(pl => pl.rider), ...sessionsNear(T - 120, T + 10).flatMap(danceVisits), ...(ev && T >= ev.t0 && T < ev.t1 ? [vendorVisit(ev)] : []), ...lineVisits(T - 30, T + 30), ...(ctx.noWork ? [] : crewAt(T, crewW, cache.crew).visits), ...(sp ? streetPartyAt(T, spCtx, spW, get).visits : [])]   // (NIGHT-B: the street party reacts like everyone)
         .filter((v, i, arr) => arr.findIndex(o => o.id === v.id) === i && v.t0 < LG.t0 + 1 && (v.tEnd || v.t1) > LG.t0);
       const hide = LG.kind === 'ufo' ? hiderOf(cand, LG, M) : null;
       if (LG.kind === 'raid') return cand.filter(v => v.kind !== 'officer').map(v => reactVisit(v, LG, M, {})).filter(Boolean);
@@ -1186,21 +1208,23 @@ export function folkAt(t, world, cache = new Map()) {
   // holidays' set pieces): whoever planned a visit, a walk leg that would cross one goes round it, a stop inside one moves to its edge
   // (NIGHT-B — THE SOLIDS: + the chestnut cart on its evening — parked its body + handles, rolling the corridor it rolls along)
   const evS = evNow || cartEv(t - 900) || cartEv(t + 900), cartS = evS ? get(`CS|${Math.round(evS.t0)}`, () => cartSolids(L, evS, { below, xIn: cartIn(L.cam) })) : [];
-  { const S = cartS.length ? [...(ctx.solids || []), ...cartS] : ctx.solids || [];
+  const spS = sp ? sp.solids : [];
+  { const S = cartS.length || spS.length ? [...(ctx.solids || []), ...cartS, ...spS] : ctx.solids || [];
     const circ = ctx.event || nowSess.length ? Mev.circles : [];
     // (+ the walkers' own map's furniture — the building, the benches, the door's leaf: a detour round one piece never cuts through another)
     const baseRects = get('SB', () => M.rects.filter(r => !/^(road|curb-)/.test(r.id)));
-    if (S.length) { const sk = `${ctx.solidsKey || ''}|${cartS.length ? solidsKeyOf(cartS) : ''}|${circ.length}`; all = all.map(v => aroundSolids(v, S, sk, circ, baseRects)); } }
+    // (the conga's line keeps ONE path — planned round the pockets + the solids already: solidsOk)
+    if (S.length) { const sk = `${ctx.solidsKey || ''}|${cartS.length ? solidsKeyOf(cartS) : ''}|${spS.length ? get(`SPK|${spS.map(q => q.id).join(',')}`, () => solidsKeyOf(spS)) : ''}|${circ.length}`; all = all.map(v => (v.solidsOk ? v : aroundSolids(v, S, sk, circ, baseRects))); } }
   const solidsNow = [...(ctx.solids || []), ...cartS.filter(q => t >= q.t0 && t < q.t1)];
   const members = [];
   // (11a-1: on Halloween night the speakeasy's own guests come in costume — its costume party: the side door's pairs, THE LINE)
-  const hween = halloweenAt(t, ctx.off).zombies || halloweenAt(t, ctx.off).tot || HF.zombies != null, HWK = { guests: 1, leaving: 1, liner: 1, straggler: 1 };
+  const hween = halloweenAt(t, ctx.off).zombies || halloweenAt(t, ctx.off).tot || HF.zombies != null, HWK = { guests: 1, leaving: 1, liner: 1, straggler: 1, mingler: 1, conga: 1, spiller: 1, bencher: 1 };   // (NIGHT-B: the street party in costume too)
   for (const v of all) {
     const hw = hween && HWK[v.kind] ? true : undefined;
     for (const m of v.members) {
       const s = visitAt(v, t - m.lag);
       if (!s) continue;
-      if (m.role === 'lead') { members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, routine: v.routine || null, idx: v.idx, m, s, plat: !!v.plat, hween: hw }); continue; }
+      if (m.role === 'lead') { members.push({ vid: v.id, kind: v.kind, look: v.look, gait: v.gait, party: !!v.party, routine: v.routine || null, idx: v.idx, m, s, plat: !!v.plat, hween: hw, ...(v.sp ? { sp: v.sp } : {}) }); continue; }
       // (FP3b: beside / behind the lead in the lead's OWN frame — forward along its heading, the lateral to its left — so the offset
       // turns smoothly with it, never jumping at a 4-way threshold; a dog keeps the old world offsets: it trots on the walker's right)
       // (in a pose: the walking offset of the heading they arrived with / will leave with — fixed, never the lead's turn in place)
@@ -1325,7 +1349,7 @@ export function folkAt(t, world, cache = new Map()) {
   const trucks = crewNow.trucks.map(T => { const x = T.x(t); return { id: T.id, model: T.model, word: T.word, trade: T.trade, paint: T.paint, dark: T.dark, len: T.len, z: T.z, dir: 1, x, dist: T.dist(t), speed: t < T.tA ? Math.max(0, (T.x(t + 0.05) - x) / 0.05) : t >= T.tD ? (T.x(t + 0.05) - x) / 0.05 : 0, n: 3, glow: -1, truck: true, parked: t >= T.tA && t < T.tD, tA: T.tA, tD: T.tD }; });
   const crew = { roof: crewRoof, props: crewNow.props, trucks, marks: crewNow.marks, traces: ctx.noWork ? null : tracesAt(t, crewW, cache.crew), spots: cache.crew.get('P') || null, works: (crewNow.works || []).map(w => w.kind) };
   const ln = lineOf(t), line = ln && t >= ln.T0 - 60 && t < ln.T1 + 120 ? { on: true, n: members.filter(m => m.kind === 'liner' && m.s.pose === 'wait' && !m.s.door).length, admits: ln.admits.filter(a => a > t - 600 && a < t + 600).length } : { on: false, n: 0 };
-  return { visits: all, members, doors, dance, cart, cars, line, crew, witness: inWin ? { kind: LG.kind, t0: LG.t0, n: reacted.length } : null, buses: buses.map(b => { const sh = b.shut, d = busDoorAt(t, b, sh); return { ...b, shut: sh, xNow: b.x(t), door: d.k > 0.001 ? d.k : 0, doorPhase: d.phase }; }) };
+  return { visits: all, members, doors, dance, party: sp ? { crowd: sp.crowd, brk: sp.brk, k: sp.k, hold: sp.hold, pockets: sp.pockets.length } : null, cart, cars, line, crew, witness: inWin ? { kind: LG.kind, t0: LG.t0, n: reacted.length } : null, buses: buses.map(b => { const sh = b.shut, d = busDoorAt(t, b, sh); return { ...b, shut: sh, xNow: b.x(t), door: d.k > 0.001 ? d.k : 0, doorPhase: d.phase }; }) };
 }
 
 // ------------------------------------------------------------------ 11a-1 — THE PEOPLE OF THE HOLIDAYS: the visits (PURE)

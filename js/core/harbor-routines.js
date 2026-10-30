@@ -12,6 +12,7 @@
 // (the inlay's event rig) come on with it. &force=dance: one every 5 minutes, any night (the preview).
 import { rngFrom, hashString } from './rng.js';
 import { partyAtT } from './harbor-moments.js';
+import { knob } from './harbor-schedule.js';
 
 /** the circle's numbers: slot (s), the window (local hours, after midnight + 24), the chance a slot has one, when it starts in its
  *  slot + how long it dances (s), the dancers (tier 0: the first `tier0`), their ring (× the inlay's ring) + the watchers' */
@@ -105,10 +106,10 @@ export const VENDOR = Object.freeze({
 });
 /** the cart's evening on local day `key` (PURE): { t0 (setting off from the edge), ta (at the spot), tb (packing up: wheeling out),
  *  t1 (gone) } or null (a warm month). dayStart: the local midnight (s abs); xIn / xAt: the edge + the spot (world x) */
-export function cartEvening(key, month, dayStart, xIn, xAt, { seed = 1924 } = {}) {
+export function cartEvening(key, month, dayStart, xIn, xAt, { seed = 1924, party = false } = {}) {
   if (!VENDOR.months.includes(month)) return null;
   const r = rngFrom(hashString(`cart|${seed}|${key}`)), dur = Math.abs(xIn - xAt) / VENDOR.roll;
-  const ta = dayStart + (VENDOR.from + (r() - 0.5) * 2 * VENDOR.jitter) * 3600, tb = dayStart + (VENDOR.to + (r() - 0.5) * 2 * VENDOR.jitter) * 3600;
+  const ta = dayStart + (VENDOR.from + (r() - 0.5) * 2 * VENDOR.jitter) * 3600, tb = dayStart + (party ? knob('cart.party').partyTo - r() * VENDOR.jitter : VENDOR.to + (r() - 0.5) * 2 * VENDOR.jitter) * 3600;   // (NIGHT-B: a party night packs up before the crowd)
   return { t0: ta - dur, ta, tb, t1: tb + dur, dur };
 }
 /** where the cart is at t on that evening (PURE) → { on, x, roll (the distance its wheels have turned), moving } */

@@ -69,6 +69,7 @@ export function promenadeSolids(L, HP) {
 export function usesSolid(vis, q) {
   if (q.owner && q.owner.includes(vis.kind)) return true;
   if (vis.onBench && vis.onBench === q.id) return true;
+  if (q.pid && vis.pid === q.pid) return true;   // (the street party's pocket: its own people stand in it — core/harbor-streetparty.js)
   if (q.sit && vis.legs) for (const lg of vis.legs) if (lg.k === 'pose' && lg.pose === 'sit' && lg.x > q.x0 && lg.x < q.x1 && lg.z > q.z0 && lg.z < q.z1) return true;
   return false;
 }

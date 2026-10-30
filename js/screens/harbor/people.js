@@ -32,6 +32,16 @@ import { SPEAK_V } from '../../core/harbor-speakeasy.js';
 import { propItems } from './workers.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+/** NIGHT-B — THE STREET PARTY's dancers (core/harbor-streetparty.js): the break's kind (st.dance: bounce / wands / swing), the CHEER as it
+ *  starts (the first 2.2 s of their dance: both arms up), the bounce's HOP (lifted on st.y), the swing pairs' TWIRL round each other (a
+ *  small circle, a turn every 8 beats, the two partners opposite) — on the phone's own beat (beatsF) + its song's energy (EN) */
+function streetDance(mem, st, beatsF, EN) {
+  const since = st.since || 0, cheer = Math.max(EN.cheer || 0, since < 2.2 ? 1 - since / 2.2 : 0);
+  const mv = danceMoves(mem.idx || 0, beatsF, mem.vid, { dk: Math.min(EN.dk == null ? 1 : EN.dk, cheer > 0 ? 0.998 : 1), cheer, t: EN.t || 0 }, st.dance);
+  let x = st.x, z = st.z;
+  if (st.dance === 'swing' && mem.sp && mem.sp.pair != null) { const a = Math.PI * beatsF / 4 + (mem.sp.slot % 2) * Math.PI, r = 0.3; x += Math.cos(a) * r; z += Math.sin(a) * r * 0.7; }
+  return { ...st, x, z, y: (st.y || 0) + (mv.hop || 0) * 2.1, moves: mv, hd: st.hd + mv.spin, dir: undefined };
+}
 
 export function createPeople() {
   let L = null, M = null, mapKey = '', cache = new Map(), roofCache = new Map(), looks = new Map(), lineN = 0, budget = 1;
@@ -91,7 +101,7 @@ export function createPeople() {
     if (!L) return;
     ensureMap(!!f.event, !!f.ring);
     const hf = hforceOf(f);
-    const fk = `${f.forceJog ? 1 : 0}${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${f.forceStandAt == null ? '' : Math.round(f.forceStandAt)}|${f.forceBenchAt == null ? '' : Math.round(f.forceBenchAt)}|${f.forceDogAt == null ? '' : Math.round(f.forceDogAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
+    const fk = `${f.forceCircle ? 1 : 0}${f.partyForced ? 1 : 0}${f.noStreetParty ? 1 : 0}${f.danceKind || ''}|${f.forceCircleAt == null ? '' : Math.round(f.forceCircleAt)}|${f.forceJog ? 1 : 0}${f.forceBus ? 1 : 0}${f.forceDance ? 1 : 0}${f.noDance ? 1 : 0}|${f.forceWork || ''}|${f.forceWorkAt == null ? '' : Math.round(f.forceWorkAt)}|${f.noWork ? 1 : 0}|${f.forceBusAt == null ? '' : Math.round(f.forceBusAt)}|${f.forceDanceAt == null ? '' : Math.round(f.forceDanceAt)}|${f.forceStandAt == null ? '' : Math.round(f.forceStandAt)}|${f.forceBenchAt == null ? '' : Math.round(f.forceBenchAt)}|${f.forceDogAt == null ? '' : Math.round(f.forceDogAt)}|${JSON.stringify(hf)}`; if (fk !== forced) { forced = fk; cache.clear(); }
     const t = f.ms / 1000, ctx = { snowWork: f.snowWork || null, off: f.off || 0, seed: f.seed || 1924, rain: f.rain || 0, fog: f.fog || 0, budget, party: f.party || null, rush: f.rush || null, shopOpen: f.shopOpen || null, forceJog: !!f.forceJog, forceBus: !!f.forceBus, forceBusAt: f.forceBusAt == null ? null : f.forceBusAt, forceDoors: !!f.forceDoors, forceDance: !!f.forceDance, forceDanceAt: f.forceDanceAt == null ? null : f.forceDanceAt, forceStandAt: f.forceStandAt == null ? null : f.forceStandAt, forceBenchAt: f.forceBenchAt == null ? null : f.forceBenchAt, forceDogAt: f.forceDogAt == null ? null : f.forceDogAt, noDance: !!f.noDance, event: !!f.event, ring: !!f.ring, lobby: lineN,
       // 8b1 — THE WORKERS: &force=work-<kind> (the preview), &force=no-work, the real dusk (the doorman, the flower seller), Group 2's can
       forceWork: f.forceWork || null, forceWorkAt: f.forceWorkAt == null ? null : f.forceWorkAt, hot: f.hot || null, noWork: !!f.noWork, dusk: f.dusk || null, legend: f.legend || null,
@@ -99,6 +109,8 @@ export function createPeople() {
       raid: f.raid || null,
       // NIGHT-A2 — THE STANDING PROPS ARE SOLID (core/harbor-holidayprops.js#standingFootprints → harbor-people.js#aroundSolids)
       solids: solidsOf(f.solids), solidsKey: solidsK,
+      // NIGHT-B — THE STREET PARTY's previews: the PARTY preview's crowd at its peak, &force=dance's breaks (+ &dance=kind), the old circle
+      partyForced: !!f.partyForced, danceKind: f.danceKind || null, noStreetParty: !!f.noStreetParty, forceCircle: !!f.forceCircle, forceCircleAt: f.forceCircleAt == null ? null : f.forceCircleAt,
       // 11a-1 — the holidays' previews (&force=trick-or-treat / zombies / procession: the clock s each was switched on)
       hforce: hf };
     const p0 = pnow();
@@ -285,7 +297,11 @@ export function createPeople() {
       if (riding.has(it.m)) continue;
       const mem = it.m, look = lookFor(mem, env);
       let st = mem.s, mv = null;
-      if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF, mem.vid, EN); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+      if (st.pose === 'wands' && st.dance) st = streetDance(mem, st, beatsF, EN), mv = st.moves;
+      else if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, beatsF, mem.vid, EN); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+      // (NIGHT-B — the street party: a drinker's glass; the conga's wand swings on the beat)
+      else if (st.pose === 'mingle' && mem.sp && mem.sp.drink) st = { ...st, drink: true };
+      else if (st.conga) { st = { ...st, beatF: beatsF }; mv = { move: 'swing', conga: true }; }
       // (8b1: the bootleggers' lookout keeps turning his head — up the street, down it, back)
       else if (st.pose === 'lookout') st = { ...st, hd: st.hd + 0.85 * Math.sin((env.t || 0) * 0.55 + (mem.m.seed % 7)) };
       else if (mem.kind === 'watcher') st = { ...st, beatF: beatsF };
@@ -308,7 +324,7 @@ export function createPeople() {
       if (box && mem.kind === 'proc' && mem.m.bearer != null) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), sh = J.shs[J.near], pt = [fx + sh[0] * H, fy - (sh[1] + 0.03) * H], o = bearers.get(mem.vid); if (o) { drawOfrenda(c, o, pt, H, E); bearers.delete(mem.vid); } else bearers.set(mem.vid, pt); }
       // (8b2 — THE RAID: the officer's flashlight hand on screen, for the beam raid.js draws from it)
       if (box && mem.kind === 'officer' && st.pose === 'flash') { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near], e = J.elbows[J.near]; officerAt = { hand: [fx + h[0] * H, fy - h[1] * H], dir: [h[0] - e[0], -(h[1] - e[1])], H, t: env.t || 0 }; }
-      if (box && mv) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false); drawWands(c, J, fx, fy, H, { idx: mem.idx || 0, n: nDancers, beatsF, punch: bt ? bt.punch || 0 : (1 - (beatsF % 1)) ** 3, pal: bt && bt.pal, move: mv.move, t: env.t || 0, tier: env.tier, k: now.dance ? Math.max(0.35, now.dance.k) : 1, trails: env.mo === false ? null : trails, key: mem.vid, advance }); }
+      if (box && mv) { const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false); drawWands(c, J, fx, fy, H, { idx: mem.idx || 0, n: nDancers, beatsF, punch: bt ? bt.punch || 0 : (1 - (beatsF % 1)) ** 3, pal: bt && bt.pal, move: mv.move, t: env.t || 0, tier: env.tier, k: now.dance ? Math.max(0.35, now.dance.k) : 1, trails: env.mo === false ? null : trails, key: mem.vid, advance, ...(mv.conga ? { hands: [1 - J.near] } : {}) }); }
       if (box && mem.kind === 'dogwalker' && mem.m.role === 'lead') {
         const { J, fx, fy, H } = rigOf(cam, st, look, env.t || 0, env.mo !== false), h = J.hands[J.near];
         hands.set(mem.vid, [fx + h[0] * H, fy - h[1] * H]); walkZ.set(mem.vid, st.z);
@@ -632,6 +648,9 @@ export function createPeople() {
     /** FP3b — THE DANCE CIRCLE now: { on, k (0..1 formed), id, s0, s1 } (the scene lights the inlay's floor spots + keeps the cart away) */
     dance: () => ({ ...(now.dance || { on: false, k: 0 }), energy: +PD.dk.toFixed(2), cheer: +PD.cheer.toFixed(2), gap: PD.gap }),   // (SP5: the dancers' energy + the gap between songs)
     /** 8b1 — THE WORKERS now: who's out (kinds), the traces (the milk on the step, the board's game, the blade's repaint, the faults…), the props, the trucks */
+    // NIGHT-B — THE STREET PARTY now (core/harbor-streetparty.js via folkAt): { crowd, brk, k, hold, pockets } | null — the front street's
+    // hold (scene.js#frontHoldNow), the crowd's sounds, the light's party dim, the tests (window.__district.harbor().party)
+    party: () => (now && now.party ? now.party : null),
     crew: () => (now.crew ? { works: now.crew.works, traces: now.crew.traces, props: (now.crew.props || []).map(p => p.kind), trucks: (now.crew.trucks || []).map(T => ({ id: T.id, model: T.model, x: +T.x.toFixed(2), parked: T.parked })), roof: (now.crew.roof || []).map(m => ({ kind: m.kind, pose: m.s.pose, x: +m.s.x.toFixed(2), y: +(m.s.y || 0).toFixed(2) })), members: now.members.filter(m => m.routine === 'work').map(m => ({ id: m.vid, kind: m.kind, pose: m.s.pose, carry: m.s.carry || null, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), y: +(m.s.y || 0).toFixed(2) })) } : null),
     /** FP3b — THE VENDOR SPOT now: the chestnut cart { on, x, parked, moving } */
     cart: () => ({ ...(now.cart || { on: false }) }),
@@ -652,7 +671,8 @@ export function createPeople() {
       const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...lineMembers(t)].filter(m => m.s.z <= FOLK.roadZ && !insideDoor(m) && m.m.role !== 'dog');
       for (const mem of all) {
         let st = mem.s, mv = null;
-        if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, lastBeatsF, mem.vid, { dk: PD.dk, cheer: PD.cheer, t: lastEnv ? lastEnv.t || 0 : 0 }); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
+        if (st.pose === 'wands' && st.dance) { st = streetDance(mem, st, lastBeatsF, { dk: PD.dk, cheer: PD.cheer, t: lastEnv ? lastEnv.t || 0 : 0 }); mv = st.moves; }
+        else if (st.pose === 'wands') { mv = danceMoves(mem.idx || 0, lastBeatsF, mem.vid, { dk: PD.dk, cheer: PD.cheer, t: lastEnv ? lastEnv.t || 0 : 0 }); st = { ...st, moves: mv, hd: st.hd + mv.spin, dir: undefined }; }
         const { J, fx, fy, H } = rigOf(L.cam, st, lookFor(mem, env), t, env.mo !== false, st.y || 0);
         out.push({ id: mem.vid, role: mem.m.role, kind: mem.kind, pose: st.pose, x: st.x, z: st.z, y: st.y || 0, hd: st.hd, dist: st.dist || 0, v: st.v || 0, fx, fy, H, feet: J.feet, planted: J.planted, heel: J.heel, hands: J.hands, elbows: J.elbows, shs: J.shs, head: J.head, move: mv ? mv.move : null, beatsF: mv ? lastBeatsF : null });
       }
@@ -663,7 +683,7 @@ export function createPeople() {
     /** what's on the promenade now (tests, the readout) */
     debug: () => ({ hol: { trick: now.members.filter(m => m.kind === 'trick').length, zombies: now.members.filter(m => m.kind === 'zombie').length, proc: now.members.filter(m => m.kind === 'proc').length, costumed: now.members.filter(m => m.m && m.m.costume).length }, witness: now.witness || null, running: now.members.filter(m => m.s.run).length, n: now.members.filter(m => m.m.role !== 'dog').length, dogs: now.members.filter(m => m.m.role === 'dog').length, dogAt: now.members.filter(m => m.m.role === 'dog').map(m => ({ id: m.vid, x: +m.s.x.toFixed(3), z: +m.s.z.toFixed(3), hd: +m.s.hd.toFixed(3), turn: +(m.s.turn || 0).toFixed(2), pose: m.s.pose })), /* (HOTFIX Oct 29: the dog's turn — e2e people) */ roof: roofNow.members.length, line: lineN, buses: now.buses.map(b => ({ id: b.id, x: +b.xNow.toFixed(2), door: +(b.door || 0).toFixed(3), doorPhase: b.doorPhase, stop: +b.xc.toFixed(2) })),
       guard: { hidden: guardHide.size, total: guarded, log: guardLog.slice() },   // (C4b: THE PEOPLE RULE's safety net — who it kept off screen)
-      members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
+      members: now.members.map(m => ({ id: m.vid, kind: m.kind, role: m.m.role, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), y: +(m.s.y || 0).toFixed(2), sp: m.sp ? 1 : 0, dance: m.s.dance || null, pose: m.s.pose, dir: m.s.dir, hd: +(m.s.hd || 0).toFixed(3), cross: !!m.s.cross, a: +(m.s.a == null ? 1 : m.s.a).toFixed(2), door: m.s.door ? m.s.door.id : null })),
       doors: { ...(now.doors || {}) }, cart: now.cart ? { on: !!now.cart.on, parked: !!now.cart.parked, x: +(now.cart.x || 0).toFixed(2) } : null, dance: { ...(now.dance || {}) }, dancers: now.members.filter(m => m.kind === 'dancer').length, watchers: now.members.filter(m => m.kind === 'watcher').length,
       roofMembers: roofNow.members.map(m => ({ kind: m.kind, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })), map: M ? { nodes: M.nodes, rects: M.rects.length } : null }),
     destroy() { cache.clear(); roofCache.clear(); looks.clear(); },

@@ -27,7 +27,7 @@ export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 
  *  &emu, &slot, &panel stay: they are where + how you look, not what is forced. */
 // (NIGHT-A: + &prop (the harvest display's model / drawn) + &light (the night light's old / new) — CLEAR ALL took neither off: the owner's
 // &prop=model stayed after it)
-export const PREVIEW_KEYS = Object.freeze([...REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid'), 'moment', 'hush', 'letter', 'ad', 'season', 'n', 'wind', 'rained', 'tagms', 'at', 'prop', 'light']);
+export const PREVIEW_KEYS = Object.freeze([...REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid'), 'moment', 'dance', 'hush', 'letter', 'ad', 'season', 'n', 'wind', 'rained', 'tagms', 'at', 'prop', 'light']);
 /** the page's search without its preview flags ('?city=2&debug=1' | '' ) + which flags were stripped */
 export function realCitySearch(search) {
   const q = new URLSearchParams(search || ''), gone = [];
@@ -266,9 +266,11 @@ export const EVENTS = [
   { id: 'waterbench', sec: 'people', label: 'THE WATER BENCH', cat: 'promenade', group: 'ON THE PROMENADE', kw: 'bench sitter couple skyline harbor water', hint: 'C4b: a sitter on the water bench within ~10 s (seen from behind, facing the harbor) + a couple stopping beside it — again every ~100 s' },
   { id: 'dogwalk', sec: 'people', label: 'A DOG WALK', cat: 'promenade', group: 'ON THE PROMENADE', kw: 'dog walker leash pet', hint: 'C4d: a walker + dog within ~10 s, then every ~45 s from alternate sides along the front — every other one sniffs the hydrant (day + night)' },
   { id: 'joggers', sec: 'people', label: 'THE JOGGERS', cat: 'promenade', group: 'ON THE PROMENADE', kw: 'jogger run running runner', hint: 'a jogger through every ~20 s (their own hours: early, lunch 12–1, after work 5–7, weekend mornings 8–10 — one every 1–2 min)' },
-  { id: 'dance', sec: 'people', label: 'THE DANCE CIRCLE', cat: 'promenade', group: 'ON THE PROMENADE', hint: 'the glow-wand dancers on the compass inlay — a circle every 5 minutes (best with PARTY ON)' },
+  { id: 'dance', sec: 'people', label: 'THE DANCE BREAK', cat: 'promenade', group: 'ON THE PROMENADE', kw: 'street party conga bounce wands swing pairs bench spill dancers crowd pockets', hint: 'NIGHT-B: the street party + a DANCE BREAK every 5 minutes, the kinds in turn (the conga, the bounce, wands up, swing pairs, a mix) — &dance=conga|bounce|wands|swing|mix picks one' },
+  { id: 'circle', sec: 'tools', label: 'THE OLD DANCE CIRCLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'SP5’s hourly glow-wand circle on the compass — retired by NIGHT-B’s dance breaks — compare' },
   { id: 'doors', sec: 'speakeasy', label: 'THE DOORS', cat: 'promenade', group: 'THE DOOR', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
-  { id: 'no-dance', sec: 'tools', label: 'NO DANCE CIRCLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without the glow-wand circle — compare (its cost)' },
+  { id: 'no-dance', sec: 'tools', label: 'NO DANCE BREAKS', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without its dance breaks — compare (their cost)' },
+  { id: 'no-street-party', sec: 'tools', label: 'NO STREET PARTY', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without THE STREET PARTY’s crowd + breaks — compare (its cost)' },
   { id: 'no-people', sec: 'tools', label: 'NO PEOPLE', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'the promenade + the roof empty — compare' },
   // PART 8b1 — THE WORKERS' SCHEDULE: each one on a loop (its own clock: a few minutes, the long shows joined mid-way); NO WORKERS: compare
   { id: 'work-xlights', label: 'THE CHRISTMAS LIGHTS CREW', cat: 'workers', group: 'MORNING', kw: 'black friday christmas strings bulbs electrician van stepladder rig', hint: 'Black Friday 9:45 → noon: the electrician’s van, the riggers on the washers’ platform hanging big bulbs along every sill + the cornice, a stepladder along the awning' },

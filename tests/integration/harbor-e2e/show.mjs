@@ -395,8 +395,8 @@ G('life', async () => {
     await waitFor(Q.page, `${P}.people.doors.side === 0`, 'the door shut again', 30000);
     ok(true, 'REAL DOORS: the side door shut again behind them');
     await Q.ctx.close(); }
-  // ---- FP3b — THE GLOW-WAND DANCE CIRCLE (&force=dance: one every 5 minutes) on a party night: it forms on the compass, the cart away
-  { const Q = await open({ slot: 'pp7', qs: `when=2026-10-24T22:25${GR}&force=dance`, view: [402, 874] });
+  // ---- FP3b — THE GLOW-WAND DANCE CIRCLE (&force=circle since NIGHT-B: one every 5 minutes) on a party night: it forms on the compass, the cart away
+  { const Q = await open({ slot: 'pp7', qs: `when=2026-10-24T22:25${GR}&force=circle`, view: [402, 874] });   // (NIGHT-B: the retired circle — its own preview)
     await harborUp(Q.page);
     await waitFor(Q.page, `${P}.people.dance.k > 0.99`, 'the circle formed', 90000);
     const pp = await ev(Q.page, `${P}.people`);

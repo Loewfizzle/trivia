@@ -292,6 +292,12 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
     foot[0] = { a: 0.005, b: sg[0] * 0.08, y: ANKLE }; foot[1] = { a: -0.005, b: sg[1] * 0.08, y: ANKLE };
     hipY = HIP0 - 0.006 - 0.006 * Math.abs(sh); wShift = sh;
   }
+  // NIGHT-B — MINGLING (the street party's pockets): the feet a little apart, the weight shifting slowly from leg to leg — never a statue
+  if (pose === 'mingle') {
+    const w = mo ? Math.sin(t * 0.45 + L.h * 41) : 0, sh = Math.sign(w) * smooth(clamp01((Math.abs(w) - 0.35) / 0.5));
+    foot[0] = { a: 0.01, b: sg[0] * 0.075, y: ANKLE }; foot[1] = { a: -0.01, b: sg[1] * 0.075, y: ANKLE };
+    hipY = HIP0 - 0.005 * Math.abs(sh); wShift = 0.8 * sh;
+  }
   if (pose === 'garden') hipY = 0.36;
   if (lift) { foot[0] = { a: 0.075, b: -0.06, y: ANKLE }; foot[1] = { a: -0.05, b: 0.06, y: ANKLE + 0.012 * sq }; hipY = HIP0 - 0.215 * sq * deep; }
   // 8b1 — ON A LADDER: the feet on the rungs (just in front), climbing = the legs + arms trading rung by rung with the height gained;
@@ -366,6 +372,27 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'wave') { const w = mo ? Math.sin(t * 7) * 0.35 : 0; arm(N, 2.6 + w * 0.3, -0.5 + w, 0.3); }
   if (pose === 'watch') { arm(N, 1.0, 1.9); arm(Fa, 0.9, 1.6); }
   if (pose === 'chat') { const g = mo ? Math.sin(t * 2.3 + L.h * 5) : 0; arm(N, 0.7 + 0.25 * g, 1.1); }
+  // NIGHT-B — MINGLING (core/harbor-streetparty.js's pockets — the owner: "ALWAYS slightly moving … never frozen statues"): each person their
+  // own cycle (its pace + order from their look's seed) of TALKING (the near hand gesturing — big, readable), LISTENING (hands on the hips, a
+  // nod), a LAUGH with the head thrown back (the shoulders shaking), a SIP (a drinker's glass up to the mouth); in + out eased inside the cycle
+  let mingleAct = null;
+  if (pose === 'mingle') {
+    const sd = Math.floor(L.h * 997), per = 5.5 + (sd % 5) * 0.8, tt = mo ? t + sd * 0.37 : 1.3, cyc = Math.floor(tt / per), u = (tt / per) % 1;
+    const acts = st.drink ? ['talk', 'sip', 'listen', 'laugh', 'talk', 'sip', 'listen'] : ['talk', 'listen', 'laugh', 'talk', 'listen', 'talk'];
+    const act = acts[(cyc + sd) % acts.length], e = Math.sin(Math.PI * clamp01(u * 1.12));
+    mingleAct = act;
+    if (act === 'talk') { const g = mo ? Math.sin(t * 3.3 + sd) : 0, g2 = mo ? Math.sin(t * 1.9 + sd * 2) : 0; arm(N, 0.8 + 0.6 * e * (0.65 + 0.35 * g), 1.3 - 0.5 * g2 * e, 0.12 + 0.28 * e * Math.max(0, g)); head.a += 0.012 * g2 * e; }
+    else if (act === 'listen') { arm(N, 0.3, 1.75, 0.5); arm(Fa, 0.28, 1.7, 0.48); head.a += 0.02 * (mo ? Math.max(0, Math.sin(t * 2.6 + sd)) : 0) * e; }
+    else if (act === 'laugh') { const sh = mo ? Math.sin(t * 16 + sd) * e : 0; head.a -= 0.065 * e; head.y += 0.004 * e; shJ.forEach(q => { q.y += 0.005 * sh; q.a -= 0.02 * e; }); arm(N, 0.55, 1.45, 0.18); }
+    else { const k = smooth(clamp01((u - 0.18) / 0.22)) * (1 - smooth(clamp01((u - 0.6) / 0.2))); arm(N, 0.75 + 1.75 * k, 1.2 + 0.95 * k, 0.1); head.a -= 0.035 * k; }
+    if (st.drink && act !== 'sip' && act !== 'talk') arm(N, 0.75, 1.25, 0.1);   // (the glass held at the chest)
+  }
+  // NIGHT-B — THE CONGA (core/harbor-streetparty.js#congaPlan): walking the line — the near hand forward on the shoulder in front, the far
+  // arm UP waving its wand back + forth (the swing on the beat — people.js passes st.beatF)
+  if (st.conga && walking) {
+    const b = st.beatF != null ? st.beatF : t * 2, w = mo ? Math.sin(Math.PI * b) : 0;
+    arm(N, 1.48, 0.1, 0.04); arm(Fa, 2.75 + 0.12 * w, 0.3 + 0.25 * w, 0.22 + 0.32 * w);
+  }
   if (pose === 'lean') { arm(0, 1.3, 0.3); arm(1, 1.25, 0.35); headA += 0.03; }
   // (PROM: arms CROSSED high on the chest — the forearms folded across each other; pushed off the wall they drop to his sides for the nod)
   // (C4b: hands CLASPED at the belt (attend); holding the door — the far arm out on the leaf at chest height, the near hand TIPS THE CAP: st.tip 0..1)
@@ -493,7 +520,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
   const tw = Math.hypot(0.138 * cz, 0.1 * cx);
   return {
-    hd, cx, cz, d: cx >= 0 ? 1 : -1, side: Math.abs(cx) > 0.72, face: st.dir, pose, walking, p, jog, toast, near: N,
+    hd, cx, cz, d: cx >= 0 ? 1 : -1, side: Math.abs(cx) > 0.72, face: st.dir, pose, walking, p, jog, toast, near: N, drink: pose === 'mingle' && !!st.drink, act: mingleAct,
     noCarry: (pose === 'pick' && uP < 0.5) || (pose === 'set' && uP >= 0.5) || (pose === 'unload' && uP < 0.45), uk, sq,
     feet: feetS, knees: kneesS, hips: hipsS, hip: mid(hipsS[0], hipsS[1]), shs: shsS, sh: mid(shsS[0], shsS[1]),
     elbows: elbow.map(scr), hands: hand.map(scr), head: scr(head), tw, planted, heel, sv,
@@ -734,7 +761,7 @@ function body(c, J, L, X, Y, H, lit, env) {
     GEAR[L.carry](c, { hand: [X(mx), Y(my)], J: { ...J, shs: [[mx, my - 0.06], [mx, my - 0.06]], sh0: J.shs }, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
   } else if (J.pose !== 'wands' && L.carry && !J.noCarry && GEAR[L.carry]) GEAR[L.carry](c, { hand, J, X, Y, H, f, d, t: env.t || 0, mo: env.mo !== false, pose: J.pose });
   else if (J.pose !== 'wands' && L.carry && !['point', 'wave', 'toast', 'dance', 'garden', 'clap'].includes(J.pose)) carry(c, L.carry, hand, H, f, d);
-  if (J.pose === 'toast') { const [gx, gy] = hand; c.fillStyle = 'rgba(236,226,190,0.9)'; c.beginPath(); c.moveTo(gx - H * 0.03, gy - H * 0.05); c.lineTo(gx + H * 0.03, gy - H * 0.05); c.lineTo(gx, gy - H * 0.015); c.closePath(); c.fill(); c.fillRect(gx - 0.25, gy - H * 0.015, 0.5, H * 0.03); }
+  if (J.pose === 'toast' || J.drink) { const [gx, gy] = hand; c.fillStyle = 'rgba(236,226,190,0.9)'; c.beginPath(); c.moveTo(gx - H * 0.03, gy - H * 0.05); c.lineTo(gx + H * 0.03, gy - H * 0.05); c.lineTo(gx, gy - H * 0.015); c.closePath(); c.fill(); c.fillRect(gx - 0.25, gy - H * 0.015, 0.5, H * 0.03); }
   if (L.paper && J.pose !== 'sit' && J.pose !== 'wands') {
     // the newspaper tented over the head between the two hands (newsprint, a fold down its middle, a few lines of print)
     const a = [X(J.hands[0][0]), Y(J.hands[0][1])], b = [X(J.hands[1][0]), Y(J.hands[1][1])], xl = Math.min(a[0], b[0]) - H * 0.07, xr = Math.max(a[0], b[0]) + H * 0.07, yb = Math.min(a[1], b[1]) + H * 0.01, mid = (xl + xr) / 2, pk = yb - H * 0.055;

@@ -48,7 +48,7 @@ test('NIGHT-B — THE SOLIDS: over long seeded nights (a plain October evening w
         if (cs.length) cartSeen++;
         const base = [...S.map(q => ({ ...q, x0: q.x0 + P, x1: q.x1 - P, z0: q.z0 + P, z1: q.z1 - P })), ...cs];
         for (const x of f.members) for (const q of base) {
-          if ((q.owner && q.owner.includes(x.kind)) || (q.sit && (x.s.pose === 'sit' || SITTERS.has(x.kind)))) continue;
+          if ((q.owner && q.owner.includes(x.kind)) || (q.sit && (x.s.pose === 'sit' || SITTERS.has(x.kind))) || (x.kind === 'bencher' && q.id === 'cab-bench')) continue;   // (NIGHT-B: the bench dancers stand ON it)
           if (x.s.x > q.x0 - BODY && x.s.x < q.x1 + BODY && x.s.z > q.z0 - BODY && x.s.z < q.z1 + BODY) bad.push(`+${(i * 1.5 / 60).toFixed(1)} min: ${x.kind} ${x.m.role} ${x.s.pose} at ${x.s.x.toFixed(2)},${x.s.z.toFixed(2)} in ${q.id}`);
         }
       }
