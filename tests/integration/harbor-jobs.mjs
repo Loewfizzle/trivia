@@ -36,14 +36,14 @@ export const SECONDS = {
   tower: 37,           // (9e: THE CONSTRUCTION TOWER — four pages one after the other; 9f: + the site at night — 18 s on the laptop; BNAME: + the classic crane page — 21 s)
   citylife: 40,        // (9e: THE CITY LIFE — the night shift, the water wagon, the morning paper; three pages)
   light: 45,           // (NIGHT-B: + the stage light's ladder, ~45 s; NIGHT-A: THE BRIGHTNESS LADDER + THE BUTTONS AT NIGHT — four pages at 3×; 28 s on the laptop)
-  thanks: 70, streetparty: 60, partysync: 55, heli: 57, roofcrisp: 28,   // (NIGHT-C: partysync — five pages, ~50 s on the laptop; heli — four pages, a guess)
+  thanks: 70, streetparty: 60, partysync: 55, heli: 57, roofcrisp: 28, quietbuilding: 20,   // (NIGHT-C: partysync — five pages, ~50 s on the laptop; heli — four pages, a guess)
            // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
 };
 
 // ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
 export const CI_JOBS = {
   audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp'],   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
-  show: ['neon', 'party', 'sky', 'life'],
+  show: ['neon', 'party', 'sky', 'life', 'quietbuilding'],   // (NIGHT-C: quietbuilding — the lightest)
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'streetparty', 'panel'],   // (NIGHT-B: streetparty)   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)
   perf: ['tower', 'partysync', 'heli', 'flags', 'perf'],   // (NIGHT-C: partysync + heli + flags — before the serial perf)

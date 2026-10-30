@@ -20,6 +20,7 @@
 import { rngFrom, hashString } from './rng.js';
 import { legendNight } from './harbor-legend.js';
 import { partyDow } from './party.js';
+import { knob } from './harbor-schedule.js';
 
 export const RARITY = Object.freeze({ common: 1, uncommon: 0.34, rare: 0.008 });
 export const RARITIES = Object.freeze(['routine', 'common', 'uncommon', 'rare', 'legendary', 'holiday']);
@@ -533,6 +534,35 @@ export function bossWatchAt(plan, s, seed = 11) {
 }
 /** (SP5's old name, kept for callers: the plan's stand at `s` for the default plan) */
 export function bossWatch(s, seed = 11, demo = false) { return bossWatchAt(bossWatchPlan(seed, { demo }), s, seed); }
+
+// ------------------------------------------------------------------ NIGHT-C — THE QUIET BUILDING (the owner, Oct 29 5:52–5:54 pm — DECIDED)
+// At NIGHT (not a party night) only these windows stay LIVE: the BOSS's TV room, the two CUT-OFF side rooms on the left edge (the top floor
+// + the floor below: their candle / flicker / ambience moods — always on at night) and the UPPER MIDDLE — the shadowboxer's room, live only
+// while he trains (SKY builds him; until then it is parked like its neighbours). Every other window is PARKED, not deleted: a drawn blind,
+// a mix of warm-lit + dark, the lit ones going out one by one as the night gets later (THE CITY TIMETABLE's windows.parked — a DARKNESS
+// row: from the rooms' dusk to the dawn). Their moments sleep — the holidays' scenes too, only the routines keep their hour (the panel's
+// WINDOWS rows still play any of them — a preview); the holidays' sill pieces stay; PARTY NIGHTS are unchanged (the window party, the
+// moments, the dancing — Halloween itself is one).
+export const PARKED_ROOMS = Object.freeze(['bar', 'jazz', 'back']);   // ('back' = the upper middle: the shadowboxer's, SKY)
+export const LIVE_ROOMS = Object.freeze(['apartment', 'edge2', 'edge3']);
+/** tonight's parked rooms (key = the EVENING's date; every phone the same): which are lit behind their blinds (litMin … litMax of them —
+ *  never all dark, never all lit) + when each lit one goes out (s after MIDNIGHT: negative = before it), in a seeded order between
+ *  outFrom and outTo → { lit: { id: bool }, out: { id: s } } */
+export function parkedNight(key, ctx = {}) {
+  const P = knob('windows.parked'), r = rngFrom(hashString(`parked|${ctx.seed || 1924}|${key}`)), order = [...PARKED_ROOMS];
+  for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
+  const n = P.litMin + Math.floor(r() * (P.litMax - P.litMin + 1)), lit = {}, out = {};
+  const span = (P.outTo - P.outFrom) * 3600, start = (P.outFrom - 24) * 3600;
+  order.forEach((id, i) => { lit[id] = i < n; if (i < n) out[id] = Math.round(start + span * (i + 0.15 + r() * 0.7) / n); });
+  return { lit, out };
+}
+/** a parked room's light at s seconds after midnight (its lamp CLICKS off at its time — the quiet nights' stutter: off, a flash, off) */
+export function parkedLevel(PN, id, s) {
+  if (!PN || !PN.lit[id]) return 0;
+  const e = s - PN.out[id];
+  if (e < 0 || s >= TV_END * 3600) return e < 0 ? 1 : 0;
+  return e < 0.12 ? 0.3 : e < 0.2 ? 0.85 : e < 0.3 ? 0.12 : 0;
+}
 
 // ------------------------------------------------------------------ WIN3 — THE QUIET NIGHTS (the boss's glow the only light on)
 const dowOfKey = key => { const [y, m, d] = key.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };

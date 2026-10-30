@@ -504,6 +504,7 @@ export function createSpeakeasy() {
   // FP3a (FREV H1) — THE FACADE'S ONE POWER HOOK: power(k) dims every light on the building at once — the rooms (k), the blade +
   // its bulbs (lamp), the sconce + the awning's lamps, the barber pole, the basement, the hush sign. 1 = untouched (the frame f
   // passes through as it is); 8b's raid drives it (harbor().raid → speak.power)
+  let lifeEnv = null, crispWins = null;   // (NIGHT-C: this frame's window-life env — the crisp layer's copy draws with it; the windows it covers)
   let quiet = false, quietF = null;   // (FP3b: the tests' hold — the basement steady, the windows' moments paused, the facade's light levels
   // frozen where they were (a slow machine may still be ramping the city up): a light probe compares only what it switches)
   let power = 1, doorState = { side: 0, shop: 0, inside: null }, doorRects = { side: null, shop: null };
@@ -533,8 +534,10 @@ export function createSpeakeasy() {
     // PART 7b — THE LIFE: the people, the cat, the TV, the night lamp, the bar's afternoon + last light, the shop's day, the mirror door
     c.globalAlpha = 1;
     const [ox, oy] = G.front(0, 0);
-    if (!quiet && P > 0.04) life.draw(c, {   // (POL4: in a blackout the life's own lit windows — the TV, the night lamp — go dark with the rest)
-      map: x => wallMap(x, ox, oy, G.K), vp: wallVP(ox, oy, G.K, G.cam.VPX, G.cam.VPY), wins, levels, k, f, shopWin: G.s.shop.win, card: null, play: f.play });
+    // (NIGHT-C — THE LIVE WINDOWS AT 3×: a window the crisp layer draws this frame is skipped here — drawWindow paints it there)
+    lifeEnv = { map: x => wallMap(x, ox, oy, G.K), vp: wallVP(ox, oy, G.K, G.cam.VPX, G.cam.VPY), wins, levels, k, f, shopWin: G.s.shop.win, card: null, play: f.play };
+    if (!quiet && P > 0.04) life.draw(c, crispWins && crispWins.size ? { ...lifeEnv, skip: crispWins } : lifeEnv);   // (POL4: in a blackout the life's own lit windows — the TV, the night lamp — go dark with the rest)
+    else lifeEnv = null;
     // 8P → WIN — THE HUSH WORD SIGN: the door's password sign on the corner pier (the letters stacked on a dark plate, over the sconce),
     // only while a lobby is open (hushsign.js) — POLISH 5: one clear pane, nothing laid over them
     { if (f.hush !== undefined) hush.set(f.hush);
@@ -661,6 +664,10 @@ export function createSpeakeasy() {
   return {
     layout, draw,
     windows: () => wins.map(w => ({ id: w.id, room: w.room, floor: w.floor, col: w.col, edge: !!w.edge, rect: { ...w.rect } })),
+    /** NIGHT-C — THE LIVE WINDOWS AT 3× (scene.js#crispTick): paint ONE window's life into x (the crisp layer's canvas — this frame's env,
+     *  the same painters); setCrispWins(Set) = the windows the city's canvas skips while their crisp copy covers them */
+    drawWindow(x, id) { if (lifeEnv) life.draw(x, { ...lifeEnv, only: id }); },
+    setCrispWins(s) { crispWins = s && s.size ? s : null; },
     /** 8b2 — THE RAID's wash: the side wall (the face toward the road) on screen → [[x, y] × 4] | null */
     sidePoly: () => (G ? [G.side(0, -0.05), G.side(0, V.parapet), G.side(G.len, V.parapet), G.side(G.len, -0.05)] : null),
     light(id, k) { if (k == null) own.delete(id); else own.set(id, clamp01(k)); },

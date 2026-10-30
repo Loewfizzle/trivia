@@ -23,6 +23,7 @@ import { partyTimeline, danceBreaks, partyNight, eveningOf as spEveningOf } from
 import { breakFlight, patrolInSlot } from '../../core/harbor-heli.js';
 import { knob } from '../../core/harbor-schedule.js';
 import { tierVal } from '../../core/harbor-tiers.js';
+import { LIVE_ROOMS } from '../../core/harbor-moments.js';
 import { SLOT_MS } from '../../core/harbor-events.js';
 import { paletteFor } from '../district/palette.js';
 import { createStars } from '../district/stars.js';
@@ -979,11 +980,34 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     for (const id of [...roofK.keys()]) if (!seen.has(id)) { roofK.delete(id); neon.setCrisp(id, 0); }
   }
   const roofCrispDebug = () => [...roofK].map(([id, k]) => ({ id, k: +k.toFixed(3) }));
+  // NIGHT-C — THE LIVE WINDOWS AT 3× (THE QUIET BUILDING, the owner Oct 29 5:54 pm: "every live window PREMIUM"): at night the boss's TV
+  // room + the two cut-off side rooms on the crisp layer at the phone's full dpr — the SAME window life (speakeasy.js#drawWindow → windows.js
+  // draw with env.only), the city's canvas skipping a window once its crisp copy covers it whole (env.skip). They yield to the city's own
+  // (a crossfade) whenever something is drawn over the glass: rain on the glass, a raid's shades + flashlight, a legendary's blackout, the
+  // Christmas strings, a worker at the facade; by day the windows are unchanged. Tier ≥ 1 (THE TIER TABLE's liveWin3x).
+  const winK = new Map();
+  function liveWinCrisp(c, off, fadeIn, on, dt, busy) {
+    const want0 = on && tierVal('liveWin3x', tier) > 0 && !off.has('no-speakeasy') && !off.has('no-live-crisp') && !!L.speakeasy;
+    const night = clamp01((LK.w.night || 0) + (LK.w.late || 0)), wetGlass = !!(WXS && (LK.rain > 0.03 || WXS.drip > 0.05 || WXS.wet > 0.05));
+    const want = want0 && !busy && !LB && !(legends && legends.active()) && !(raidFrame && raidFrame.R) && !(xlK > 0.01) && !wetGlass ? fadeIn * smooth(0.55, 0.9, night) : 0;
+    const shown = new Set(), step = Math.min(1, (dt || 16) / 450);
+    for (const w of want0 || winK.size ? speak.windows() : []) {
+      if (!LIVE_ROOMS.includes(w.id)) continue;
+      let k = winK.get(w.id) || 0; k += (want - k) * step; if (Math.abs(want - k) < 0.01) k = want; winK.set(w.id, k);
+      if (k <= 0.002) continue;
+      const r = w.rect;
+      crisp.show(c, { id: `win-${w.id}`, z: 1, box: { x: r.x - 1, y: r.y - 1, w: r.w + 2, h: r.h + 2 }, key: `f${roofFrameN}`, xfade: 0, alpha: k, draw: x => speak.drawWindow(x, w.id) });
+      if (k >= 0.999) shown.add(w.id);
+    }
+    speak.setCrispWins(shown);
+  }
+  const liveCrispDebug = () => [...winK].map(([id, k]) => ({ id, k: +k.toFixed(3) }));
   function crispTick(c, off, fadeIn, pplLive, crispOn, dt) {
     roofCrisp(c, off, fadeIn, crispOn, dt);
-    if (!crispOn) { crisp.end(); return; }
+    if (!crispOn) { liveWinCrisp(c, off, fadeIn, false, dt, false); crisp.end(); return; }
     const crew = pplLive ? people.crew() : null, busy = !!(crew && crew.works && crew.works.some(w => /paint|billpost|bulb|lamp|wash|repair|sign/.test(w))) ||   // (the works up on the facade / the board; never the doorman at his post)
        !!(crew && crew.traces && (crew.traces.blade || (crew.traces.board && crew.traces.board.pasting)));
+    liveWinCrisp(c, off, fadeIn, true, dt, busy);   // (NIGHT-C: the live windows at 3× — a worker at the facade sends them back to the city's)
     const SNB2 = snowNow() ? SN : null, cp = SNB2 && !clock.force.has('no-snowcaps') ? capFor('stage', bakeTones, SNB2) : null;
     const xf2 = fadeMs, bk = baker.key, game = speakCtx().game;
     const day = clamp01((TW.day || 0) + 0.8 * (TW.gold || 0)), dk = smooth(0.25, 0.65, day);   // (the date stone + the roof poster: by day — at night later passes light the facade)
@@ -2102,7 +2126,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       tw: TW, hush: hushPreview(), flash: lightningFlash(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, raidS: RP ? nowRS - (RP.t0 - 5) : null, seed: L ? L.seed || 1924 : 1924,
         // (WIN3 — THE PARTY IN THE WINDOWS: the peak's clock (seconds since it began / until it ends), the beat, the forced flag)
         partyPhase: PT.name, partyPeakS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (hr - pl.peak) * 3600; })(), partyEndS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (pl.calm - hr) * 3600; })(),
-        partyForce: clock.force.has('window-party'), beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, ...songEdge() } : null, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+        partyForce: clock.force.has('window-party'), noPark: clock.force.has('no-quiet-building'), beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, ...songEdge() } : null, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     if (fadeIn > 0 && !off.has('no-speakeasy')) chimneys.draw(c, chimF, 'near');
     // 11a-2 — THE FIRST CHRISTMAS STRINGS on the speakeasy (xlights.js): up from the Black Friday crew's last minute (core/harbor-xmas.js),
     // switched on at dusk — eased — × the facade's power (the blackout, the raid's cut)
@@ -3212,7 +3236,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
-      roofCrisp: roofCrispDebug(),   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
+      roofCrisp: roofCrispDebug(), liveCrisp: liveCrispDebug(),   // (NIGHT-C: the live windows' crisp share each)   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
       heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),

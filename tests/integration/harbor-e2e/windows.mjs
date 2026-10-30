@@ -304,6 +304,7 @@ G('windows', async () => {
     const late = await ev(Q.page, 'window.__district.harbor().speakeasy.life.tv.late'), figs = await ev(Q.page, winTrace(1.5));
     ok(ks.length > 100 && jumps >= 3 && sd / mean > 0.4 && late && figs.every(f => !(f.figs || []).some(g => g.w === 'apartment')), `THE FLICKER IS IRREGULAR (1 am): ${jumps} jumps in 9 s, the gaps' spread ${(sd / mean).toFixed(2)} of their mean (never periodic), the late mode ${late}, still nobody`);
     await Q.ctx.close(); }
+  // (NIGHT-C: the parked rooms' panes are DARK DRAWN BLINDS now — the cloth + its hem a touch above a black pane: < 40)
   // ---- WIN3 — A QUIET NIGHT (Oct 21 2026 is one): by 1:30 am every other room has gone to bed — the bar, the jazz club, the back room and
   // both edge windows dark — and the boss's blue glow is the ONLY light on the building; a normal night keeps its life around it
   { const Q = await open({ slot: 'w3-quiet', qs: `when=2026-10-22T01:30${GR}&force=no-people,no-wildlife`, view: [402, 874] });
@@ -311,13 +312,15 @@ G('windows', async () => {
     const L = await ev(Q.page, 'window.__district.harbor().speakeasy.life'), W = await wins(Q.page);
     const lums = {}; for (const id of ['bar', 'jazz', 'back', 'edge2', 'edge3', 'apartment']) if (W[id]) lums[id] = lum(await area(Q.page, W[id], 0.15, 0.85, 0.15, 0.85));
     const others = ['bar', 'jazz', 'back', 'edge2', 'edge3'].filter(id => lums[id] != null);
-    ok(L.quiet && L.bed && others.every(id => L.bed[id] === 0) && others.every(id => lums[id] < 30) && lums.apartment > Math.max(...others.map(id => lums[id])) + 15 && L.states.apartment === 'tv',
+    ok(L.quiet && L.bed && others.every(id => L.bed[id] === 0) && others.every(id => lums[id] < (['bar', 'jazz', 'back'].includes(id) ? 40 : 30)) && lums.apartment > Math.max(...others.map(id => lums[id])) + 12 && L.states.apartment === 'tv',
       `A QUIET NIGHT at 1:30: quiet ${L.quiet}, the beds ${JSON.stringify(L.bed)}, the panes ${Object.entries(lums).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(' · ')} — the TV the only light on`);
     await Q.ctx.close();
     const N = await open({ slot: 'w3-norm', qs: `when=2026-10-23T01:30${GR}&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(N.page); await lit(N.page);
     const L2 = await ev(N.page, 'window.__district.harbor().speakeasy.life');
-    ok(!L2.quiet && Object.values(L2.bed || {}).every(v => v === 1), `A NORMAL NIGHT at 1:30: quiet ${L2.quiet}, every room awake (${JSON.stringify(L2.bed)})`);
+    // (NIGHT-C — THE QUIET BUILDING: on every non-party night the bar, the jazz room + the back room are PARKED behind their blinds, their
+    // lamps out one by one by ~1:30 — a quiet night is now the night the side rooms go to bed too)
+    ok(!L2.quiet && L2.bed && L2.bed.edge2 === 1 && L2.bed.edge3 === 1 && L2.parkOn && ['bar', 'jazz', 'back'].every(id => L2.park[id] === 1), `A NORMAL NIGHT at 1:30: quiet ${L2.quiet}, the side rooms awake, the rest parked (${JSON.stringify(L2.bed)} · parked ${JSON.stringify(L2.park)})`);
     await N.ctx.close(); }
   // ---- SP5 — THE BOSS's ROOM BY DAY (the owner: the shade drawn all day — the one window that never opens to the daylight; never a person):
   // at 1 pm the apartment's pane is the PALE drawn linen blind (9c — the owner's pick: the building's cream blind; was a dark olive) beside the back room's glass, its day plan runs (a peek / the cigar smoke / a shadow), no figure
@@ -668,4 +671,47 @@ G('doors', async () => {
     ok(swung >= 5 && worst && worst.latch <= 2.5 * worst.med + 60, `THE DOORS NEVER SNAP (${L.id}, ${L.when.slice(11)}): at the latch ≤ ${worst ? worst.latch : '?'} pixels changed in a frame (what moves there anyway, the frames round it: ${worst ? worst.med : '?'}; ${ends.length} closes, ${swung} frames swung open)`);
     await P.ctx.close();
   }
+});
+
+// ================================================================ NIGHT-C — THE QUIET BUILDING (ONLY=quietbuilding; the `show` cloud job — the
+// lightest). The owner (Oct 29 5:52 pm): at night only the boss's TV room + the two cut-off side rooms stay live; the bar, the jazz room + the
+// upper middle (the shadowboxer's — SKY) are PARKED behind drawn blinds, a mix of warm-lit + dark, going out one by one; party nights + the
+// day unchanged. On a 3× phone the live rooms are on the crisp layer at night.
+G('quietbuilding', async () => {
+  const LIFE = 'window.__district.harbor().speakeasy.life', PARKED = ['bar', 'jazz', 'back'];
+  const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
+  const lum = async (p, r) => { let s = 0; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) { const c = await px(p, r.x + r.w * (0.25 + 0.25 * i), r.y + r.h * (0.25 + 0.25 * j)); s += 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]; } return s / 9; };
+  // ---- 1. a plain Tuesday at 9 pm: parked + the mix, no moment in a parked room for 12 s (the side rooms + the boss's keep theirs)
+  { const Q = await open({ slot: 'qb1', qs: `when=2026-10-27T21:00${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await waitFor(Q.page, `${LIFE}.parkOn && ${PARKED.map(id => `${LIFE}.park.${id} === 1`).join(' && ')}`, 'parked', 20000).catch(() => {});
+    const L = await ev(Q.page, LIFE), W = Object.fromEntries((await ev(Q.page, 'window.__district.harbor().speakeasy.windows()')).map(w => [w.id, w.rect]));
+    const litN = PARKED.filter(id => L.parked && L.parked.lit[id]).length, seen = new Set();
+    for (let i = 0; i < 24; i++) { for (const e of (await ev(Q.page, `${LIFE}.on`)) || []) seen.add(e.win); await sleep(500); }
+    const lums = {}; for (const id of PARKED) lums[id] = await lum(Q.page, W[id]);
+    const litL = PARKED.filter(id => L.parked.lit[id]).map(id => lums[id]), darkL = PARKED.filter(id => !L.parked.lit[id]).map(id => lums[id]);
+    ok(L.parkOn && PARKED.every(id => L.park[id] === 1) && litN >= 1 && litN <= 2, `THE QUIET BUILDING (Tue 9 pm): the bar, the jazz room + the upper middle parked (${JSON.stringify(L.park)}), ${litN} of 3 warm-lit behind the blind`);
+    ok(![...seen].some(id => PARKED.includes(id)), `…THEIR MOMENTS SLEEP: 12 s of the night's moments only in ${[...seen].join(', ') || 'no window'} (never a parked room)`);
+    ok(Math.min(...litL) > Math.max(...darkL) + 12, `…A MIX OF WARM-LIT + DARK BLINDS: lit ${litL.map(v => v.toFixed(0)).join(' / ')} vs dark ${darkL.map(v => v.toFixed(0)).join(' / ')} (luma)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}quietbuilding-9pm-402x874.png` });
+    await Q.ctx.close(); }
+  // ---- 2. the same night later: the lit ones going out one by one (by 1:40 all three dark behind their blinds)
+  { const Q = await open({ slot: 'qb2', qs: `when=2026-10-28T01:40${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1500);
+    const L = await ev(Q.page, LIFE), outs = Object.values(L.parked ? L.parked.out : {});
+    ok(L.parkOn && PARKED.every(id => L.bed[id] === 0) && outs.length >= 1 && outs.every(s => s < 1.6 * 3600), `THE LIGHTS GO OUT ONE BY ONE: at 1:40 every parked lamp out (${JSON.stringify(L.bed)}; their times ${outs.map(s => `${Math.floor((s / 3600 + 24) % 24)}:${String(Math.floor(((s / 60) % 60 + 60) % 60)).padStart(2, '0')}`).join(', ')})`);
+    await Q.ctx.close(); }
+  // ---- 3. unchanged: a PARTY night (the window party) + the DAY; 4. Monday 8 pm — the boxer's window parked (until SKY)
+  for (const [when, what, want] of [['2026-10-24T22:30', 'a party night', false], ['2026-10-27T13:00', 'the day', false], ['2026-10-26T20:00', 'Monday 8 pm', true]]) {
+    const Q = await open({ slot: `qb-${want ? 'p' : 'u'}`, qs: `when=${when}${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1500);
+    const L = await ev(Q.page, LIFE);
+    ok(!!L.parkOn === want && (want ? L.park.back === 1 : PARKED.every(id => !L.park[id])), `${what}: ${want ? 'the upper middle (the boxer’s, until SKY) parked like its neighbours' : 'unchanged — nothing parked'} (${JSON.stringify(L.park)})`);
+    await Q.ctx.close();
+  }
+  // ---- 5. THE LIVE WINDOWS AT 3× (a 3× phone at night): the boss's room + the two side rooms on the crisp layer
+  { const Q = await open({ slot: 'qb3x', qs: `when=2026-10-27T22:40${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874], dpr: 3 });
+    await harborUp(Q.page); await waitFor(Q.page, `(window.__district.harbor().liveCrisp || []).length === 3 && window.__district.harbor().liveCrisp.every(w => w.k === 1)`, 'the live windows crisp', 20000).catch(() => {});
+    const lc = await ev(Q.page, 'window.__district.harbor().liveCrisp'), cv = await ev(Q.page, `[...document.querySelectorAll('canvas.hc-crisp')].filter(c => c.style.display !== 'none' && +c.style.opacity > 0.5 && !c.style.mixBlendMode).map(c => +(c.width / parseFloat(c.style.width)).toFixed(2))`);
+    ok(lc.length === 3 && lc.every(w => w.k === 1) && cv.filter(r => Math.abs(r - 3) < 0.05).length >= 3, `THE LIVE WINDOWS AT 3×: ${lc.map(w => `${w.id} ${w.k}`).join(', ')} — on the crisp layer at ${cv.join(' / ')}×`);
+    await Q.ctx.close(); }
 });

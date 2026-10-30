@@ -39,6 +39,10 @@ export const SCHEDULE = Object.freeze([
   // ---- THE REST OF THE CITY (rows to SEE the whole day; their times live in `src` until SCHED migrates them)
   { id: 'lamps', trigger: 'darkness', status: 'live', src: 'core/harbor-lamps.js', what: 'the implied lamps + the beacons: the photocell at dusk, off at dawn' },
   { id: 'windows.dusk', trigger: 'darkness', status: 'live', src: 'core/harbor-moments.js', what: 'the speakeasy\'s windows light at dusk; late at night they go out one by one' },
+  // (NIGHT-C — THE QUIET BUILDING, the owner Oct 29 5:52 pm: from the rooms' dusk to the dawn, not on a party night; litMin / litMax: how
+  // many of the three parked rooms are lit behind their blinds tonight; outFrom / outTo: the lit ones' lamps going out, one by one)
+  { id: 'windows.parked', trigger: 'darkness', status: 'live', src: 'core/harbor-moments.js#parkedNight + screens/harbor/windows.js', what: 'THE QUIET BUILDING: at night only the boss’s TV room + the two cut-off side rooms stay live; the bar, the jazz room + the upper middle (the boxer’s — SKY) PARKED behind drawn blinds, a mix of warm-lit + dark, going out one by one; party nights unchanged',
+    knobs: { litMin: 1, litMax: 2, outFrom: 22.25, outTo: 25.5 }, conflicts: ['window.party'] },
   { id: 'signs.modes', trigger: 'clock', status: 'live', src: 'core/harbor-roofmodes.js', what: 'the roof signs\' hourly modes (spell / race / breath)' },
   { id: 'party.pulse', trigger: 'beat', status: 'live', src: 'core/harbor-beat.js', what: 'the party pulse: the lights on the song\'s grid (a trusted grid always punches)' },
   { id: 'holidays', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js', what: 'the holidays, their build-ups day by day + the sign dressings' },

@@ -18,6 +18,7 @@
 // states, the shop + PAINT[id] · window-holiday.js the holidays' rooms + moments.
 import { safeCtx } from '../../ui/canvas-safe.js';
 import { litPal, RIM_COL, RIM_SIDE, traceReset, traceWindow, setRim, figure, traceList } from './window-figure.js';
+import { PARKED_ROOMS, parkedNight, parkedLevel, partyAt } from '../../core/harbor-moments.js';
 import { dayKey, hourPlan, routineAt, quietNight, bedtimes, BED_ROOMS, bedLevel, windowParty, windowPartyAt, MOMENT, usesBlind, BLIND, blindAt, starOnly, momentsAt, blindsAt, roomState, bossDayPlan, bossDayAt, bossSignal, edgeMoods, edgeShades, TANGO_PATH, STAGE_ROOM, STAGE, tvLight } from '../../core/harbor-moments.js';
 import { sunTimes } from '../../core/sky.js';
 import { stepDanceClock, createDanceClock } from '../../core/harbor-dance.js';
@@ -84,6 +85,17 @@ export function createWindowLife() {
     const tvOff = tvDead === nightKey;
     const quiet = quietNight(nightKey, { party: ctx.party, seed: L.seed }), bed = quiet ? bedtimes(nightKey, { seed: L.seed }) : null, bedK = {};
     for (const id of BED_ROOMS) bedK[id] = bed ? bedLevel(bed, id, sMid) : 1;
+    // NIGHT-C — THE QUIET BUILDING (core#parkedNight): at night — not a party evening, not a panel preview, not &force=no-quiet-building —
+    // the bar, the jazz room + the upper middle are PARKED: the blind rolls down (the blind cycle — never a cut) as the rooms' night begins
+    // and up again at dawn / a party; a seeded mix lit behind it, the lit lamps going out one by one later (their lit level → bedK)
+    const ekd = nightKey.split('-').map(Number), eveDow = new Date(Date.UTC(ekd[0], ekd[1] - 1, ekd[2])).getUTCDay();
+    const parkOn = !L.noPark && !(L.moment && MOMENT[L.moment]) && darkAtNow(h, ctx.dark) && !ctx.party && !partyAt(eveDow, 22, nightKey);
+    const PN = parkOn ? parkedNight(nightKey, { seed: L.seed }) : null, park = {}, pdt = parkT == null ? 1e9 : Math.max(0, f.t - parkT); parkT = f.t;
+    for (const id of PARKED_ROOMS) {
+      const want = parkOn ? 1 : 0, b0 = parkB[id], b = b0 == null || pdt > 2 ? want : b0 + Math.sign(want - b0) * Math.min(Math.abs(want - b0), pdt / BLIND.down);
+      parkB[id] = b; park[id] = b;
+      if (parkOn) bedK[id] = Math.min(bedK[id] == null ? 1 : bedK[id], parkedLevel(PN, id, sMid));
+    }
     // WIN3 — THE PARTY IN THE WINDOWS (core#windowParty): at the party's PEAK the rooms go up one by one in a seeded order, each its own
     // colour; forced (&force=window-party) from the page's start; a raid CUTS it (the lights off, the dancers scatter, the blinds drop —
     // a 1.6-s tail from partyKeep) and it stays dead for the night
@@ -119,6 +131,10 @@ export function createWindowLife() {
       if (bed) for (const id of Object.keys(blinds)) if (bedK[id] != null && bedK[id] <= 0.5) delete blinds[id];
       if (party && party.on) for (const id of Object.keys(blinds)) if (party.k[id] > 0.01) delete blinds[id];
       if (bed) on = on.filter(e => e.win === 'all' || bedK[e.win] == null || bedK[e.win] > 0.5);   // (WIN3: a room gone to bed has no moments)
+      // (NIGHT-C: a PARKED room's moments sleep — the holidays' scenes too (Halloween week's costume party ran every ~45 s: not a quiet
+      // building); only its routines keep their hour. The holiday's sill pieces stay; a party night — Halloween itself — is unchanged)
+      if (parkOn) { on = on.filter(e => e.win === 'all' || !PARKED_ROOMS.includes(e.win) || !!(MOMENT[e.id] && MOMENT[e.id].rarity === 'routine'));
+        for (const id of PARKED_ROOMS) if (!on.some(e => e.win === id)) delete blinds[id]; }
       if (party && party.on) on = on.filter(e => e.win !== 'all' && !(party.k[e.win] > 0.01));   // (WIN3: a room at the party has no other moment)
       // (Reduced motion: no moving moments — the rooms keep their states: the TV's light steady, the night lamp, the shop's barber still)
       if (f.motion === false || f.motion === 0) { on = []; blinds = {}; }   // (11a-1: the title passes motion 0 — the old === false never caught it)
@@ -144,7 +160,7 @@ export function createWindowLife() {
     const shades = edgeShades(nightKey, { seed: L.seed });
     stepDanceClock(wd, wdT == null ? 0 : Math.max(0, f.t - wdT), L.beat ? { beatsF: L.beat.beatsF, gap: !!L.beat.gap, left: L.beat.left == null ? null : L.beat.left, id: L.beat.id || null } : null); wdT = f.t;
     const cur = block(loc.key, Math.floor(h), ctx), nx = cur.find(e => e.t0 > loc.sec);
-    last = { on, blinds, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
+    last = { on, blinds, park, parkOn, parked: PN, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
     return last;
   }
 
@@ -161,12 +177,12 @@ export function createWindowLife() {
     const winOf = id => env.wins.find(w => w.id === id);
     const byWin = new Map();
     for (const e of fr.on) {
-      if (e.win === 'all') { for (const id of TANGO_PATH) (byWin.get(id) || byWin.set(id, []).get(id)).push(e); }
+      if (e.win === 'all') { for (const id of TANGO_PATH) if (!(fr.park && fr.park[id] > 0.5)) (byWin.get(id) || byWin.set(id, []).get(id)).push(e); }   // (NIGHT-C: never through a parked room)
       else (byWin.get(e.win) || byWin.set(e.win, []).get(e.win)).push(e);
     }
     c.save(); env.map(c);
     // (WIN — what keeps the city at 60 fps: a moment on, a tap answering, someone passing deep in a room — scene.js#fastNow reads busy())
-    traceReset(); busyNow = fr.on.length > 0 || taps.some(o => t - o.at < 3.2) || (catTap >= 0 && t - catTap < 1);
+    if (!env.only) traceReset(); busyNow = fr.on.length > 0 || taps.some(o => t - o.at < 3.2) || (catTap >= 0 && t - catTap < 1);
     const passer = mo && !fr.on.some(e => MOMENT[e.id] && MOMENT[e.id].rarity !== 'routine') ? passerAt(t) : null;
     // the glints: the glasses + the shaker catching the light where they are (warm at night, a cool sparkle by day)
     const glints = (x, gx, gy, s) => { const a = x.globalAlpha; x.save(); x.globalCompositeOperation = 'lighter'; glow(x, k > 0.3 ? [255, 236, 190] : [255, 255, 255], gx, gy, 0.12 * s, 0.85 * Math.max(0.35, k) * a); x.restore(); };
@@ -176,13 +192,24 @@ export function createWindowLife() {
       const tap = taps.find(o => o.id === w.id && t - o.at < 3.2);
       const dress = holDress(fr.hol, w.id) || (list.some(e => e.id === 'ofrenda') ? 'ofrenda' : null);
       const bl9 = fr.blinds ? fr.blinds[w.id] || 0 : 0;   // (9c: a moment's blind cycle in this window)
-      if (!list.length && !tap && !dress && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp') && bl9 < 0.002) continue;
+      const pk = fr.park ? fr.park[w.id] || 0 : 0;         // (NIGHT-C: a parked room's blind)
+      if (env.only && w.id !== env.only) continue;          // (NIGHT-C: one window — the crisp layer's copy of a live room)
+      if (env.skip && env.skip.has(w.id)) continue;         // (… and the city skips it while that copy covers it)
+      if (!list.length && !tap && !dress && !fr.full.has(w.id) && kl < 0.01 && w.id !== 'bar' && !(w.id === 'apartment' && fr.states.apartment !== 'lamp') && bl9 < 0.002 && pk < 0.002) continue;
       if (w.edge && k < 0.01 && !list.length && !tap && !dress && bl9 < 0.002) continue;
       c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
       traceWindow(w.id);
       // WIN3 — A ROOM GONE TO BED (a quiet night): its pane dark, nothing drawn in it (the lit layer is × its bed level too: speakeasy.js)
       const bedk = fr.bed && fr.bed[w.id] != null ? fr.bed[w.id] : 1;
-      if (bedk < 0.02 && !list.length && !tap) { R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(7,8,15)'); c.restore(); continue; }
+      // NIGHT-C — A PARKED ROOM, its blind all the way down: just the blind (warm with its lamp behind it, or dark), the holiday's sill piece
+      // in front of it — nothing behind it is drawn
+      if (pk > 0.998 && !list.length && !tap && k > 0.01) {
+        const E0 = { c, G, w, k, kl, day, t, mo, T, glints, f, env, frameC, after: [], B: boxOf(G, env.vp) }; E0.deep = (t2, fn) => deepAt(c, E0.B, t2, fn);
+        cycleBlind(E0, 1);
+        if (dress === 'pumpkin') sillPumpkin(E0);
+        c.restore(); for (const fn of E0.after) fn(); continue;
+      }
+      if (bedk < 0.02 && !list.length && !tap && pk < 0.002) { R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(7,8,15)'); c.restore(); continue; }
       // WIN3 — THE PARTY IN THE WINDOWS: a room at the party is painted whole here (the colour, the crowd, the blind); the edge windows
       // join with their party cycle (light + shadow only, in the cycle's colours)
       if (fr.party && fr.party.on && fr.party.k[w.id] != null && (fr.party.k[w.id] > 0.001 || fr.party.cut) && k > 0.01) {
@@ -215,7 +242,8 @@ export function createWindowLife() {
       else if (dress === 'pumpkin' && kl > 0.05) sillPumpkin(E);
       // the moments in this window
       for (const e of list) { const p = PAINT[e.id]; if (p) sceneSafe(c, e.id, () => zoomed(STAGE[e.id] || 1, () => p(E, e.el, e.len, e))); }
-      if (bl9 > 0.002) cycleBlind(E, bl9);   // (9c: never a cut — the blind down, the scene swapped under it, the blind up)
+      { const bk9 = list.length ? bl9 : Math.max(bl9, pk);   // (NIGHT-C: + a parked room's blind rolling down at dusk / up at dawn)
+        if (bk9 > 0.002) cycleBlind(E, bk9); }   // (9c: never a cut — the blind down, the scene swapped under it, the blind up)
       if (tap) sceneSafe(c, `tap:${w.id}`, () => tapPaint(E, tap));
       c.restore();
       for (const fn of E.after) fn();
@@ -223,6 +251,7 @@ export function createWindowLife() {
     c.restore();
     setRim(null);
     // the shop (the barbershop's big window): its day life, its CLOSED card, the hidden mirror door
+    if (env.only) return;   // (NIGHT-C: the crisp layer's one window — the shop + the TV's spill stay the city's)
     traceWindow('shop');
     shop(c, env, fr, byWin.get('shop') || [], { k, day, t, mo, T, f });
     traceWindow('');
@@ -275,6 +304,7 @@ export function createWindowLife() {
   }
 
   let tvDead = null;   // (tvDead: the night key the TV snapped off on — a raid)
+  const parkB = {}; let parkT = null;   // (NIGHT-C: each parked room's blind 0 up … 1 down, eased over the blind's own BLIND.down)
   let bossKey = '', bossPlan = [];   // (SP5: the boss's day plan, rebuilt per day / overcast)
   const wd = createDanceClock(); let wdT = null;   // (SP5: the building's dance clock)
   let partyT0 = null, partyDead = null, partyCutT = null, partyKeep = null;   // (WIN3: the window party — forced from t0; dead after a raid's cut)
@@ -334,7 +364,7 @@ export function createWindowLife() {
     catReset() { catTap = -1; },
     /** WIN: something in a window is MOVING (a moment, a tap's answer, a passer-by) — a 60-fps reason (scene.js#fastNow) */
     busy: () => busyNow,
-    debug: () => ({ dropped: [...droppedScenes], blinds: last.blinds || {}, shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: S.lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: S.cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
+    debug: () => ({ dropped: [...droppedScenes], blinds: last.blinds || {}, park: last.park || {}, parkOn: !!last.parkOn, parked: last.parked || null, shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: S.lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: S.cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
     destroy() { for (const cv of sprites.values()) cv.width = cv.height = 0; sprites.clear(); blocks.clear(); },
   };
 }
