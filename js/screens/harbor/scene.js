@@ -99,6 +99,7 @@ import { createLightning } from './lightning.js';
 import { createWaterFog } from './waterfog.js';
 import { createFogDepth } from './fogdepth.js';
 import { createStormDeck } from './stormdeck.js';
+import { createIceFx } from './icefx.js';
 import { createWetGround } from './wetground.js';
 import { createStill } from './still.js';
 import { createCabStand } from './cabstand.js';
@@ -586,6 +587,38 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const waterFog = createWaterFog();      // (9a: the fog lying on the harbor)
   const stormDeck = createStormDeck();    // (ATM-B: THE STORM DECK — the low heavy base + the cumulonimbus towers, lit from inside)
   let stormK = 0, stormT = null;
+  // ATM-B — FREEZING RAIN = ICE (icefx.js): the edges the ice hangs from — the speakeasy's ledges (the snow's own lines), the blade + the
+  // roof signs' frames (each its own light), the railing, the benches' seats — made once a layout
+  const iceFx = createIceFx();
+  let iceEdges = null, iceKey = '';
+  function iceEdgesNow() {
+    const br = speak.bladeRect ? speak.bladeRect() : null, k = `${laneKey}|${cam.W}x${cam.H}|${br ? [br.x, br.y, br.w, br.h].map(Math.round).join(',') : '-'}`;
+    if (k === iceKey && iceEdges) return iceEdges;
+    iceKey = k; const out = [], rail = [];
+    const sp = L.speakeasy;
+    if (sp) {
+      const P = (u, v, z = sp.z0 - 0.04) => project(cam, sp.x0 + u, v, z), ln = (a, b, o) => out.push({ x0: a[0], y0: a[1], x1: b[0], y1: b[1], ...o });
+      const a = awningSnow(sp);
+      ln(P(a.u0, a.yF, a.zF), P(a.u1, a.yF, a.zF), { len: 12, dens: 0.34, warm: true });
+      ln(P(-0.4, 9.85), P(11.2, 9.85), { len: 13, dens: 0.24 });                    // (the cornice's drip edge)
+      ln(P(-0.4, 4.3), P(11.2, 4.3), { len: 8, dens: 0.2 });                       // (the belt course)
+      for (const [u0, u1] of sp.windows) for (const [, v1] of sp.rows) ln(P(u0 - 0.05, v1 + 0.02), P(u1 + 0.05, v1 + 0.02), { len: 7.5, dens: 0.36, warm: true });
+      if (sp.shop && sp.shop.win) ln(P(sp.shop.win[0], sp.shop.win[3] + 0.02), P(sp.shop.win[1], sp.shop.win[3] + 0.02), { len: 7, dens: 0.34, warm: true });
+    }
+    if (br) {
+      // the vertical blade: icicles along its bottom (its bulbs' warm white), the glaze down both sides
+      const tint = [255, 232, 206];
+      out.push({ x0: br.x, y0: br.y + br.h, x1: br.x + br.w, y1: br.y + br.h, len: 10, dens: 0.42, tint });
+      out.push({ x0: br.x, y0: br.y, x1: br.x, y1: br.y + br.h, side: true, tint }, { x0: br.x + br.w, y0: br.y, x1: br.x + br.w, y1: br.y + br.h, side: true, tint });
+    }
+    // the roof signs' bottoms, each in its own neon colour
+    try { const sl = neon.signLights(), ds = neon.debug().signs; for (const d of ds) { if (!/^n-roof/.test(d.id)) continue; const m = sl.find(q => Math.abs(q.x - d.rect.x) < 1 && Math.abs(q.y - d.rect.y) < 1); out.push({ x0: d.rect.x + 2, y0: d.rect.y + d.rect.h, x1: d.rect.x + d.rect.w - 2, y1: d.rect.y + d.rect.h, len: 8, dens: 0.4, tint: m ? m.col : [210, 230, 255] }); } } catch { /* signs not built yet */ }
+    // (the railing runs BEHIND the speakeasy + its blade: its ice starts at their right edge)
+    if (L.rail) { const y = project(cam, 0, L.rail.y, Z.rail)[1], x0 = Math.max(sp && sp.x1 != null ? project(cam, sp.x1, 0, sp.z0)[0] : 0, br ? br.x + br.w + 2 : 0); if (x0 < W - 20) rail.push({ x0, y0: y, x1: W, y1: y, len: 6, dens: 0.12 }); }
+    for (const b of [L.bench, L.cabStand].filter(Boolean)) { const a0 = project(cam, b.x - b.w / 2, 0.47, b.z + 0.1), a1 = project(cam, b.x + b.w / 2, 0.47, b.z + 0.1); out.push({ x0: a0[0], y0: a0[1], x1: a1[0], y1: a1[1], len: 4.5, dens: 0.32 }); }
+    iceEdges = { main: out, rail };
+    return iceEdges;
+  }
   const fogD = createFogDepth();          // (ATM-B: FOG AS DEPTH — the veils by depth, the halos, the drifting banks)
   const still = createStill();            // (PROM: the two benches live + sharp, sorted with the walkers — still.js)
   const cabStand = createCabStand();      // (PROM: the cab stand's taxi on the front street while the dock rests — cabstand.js)
@@ -1122,7 +1155,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the rain's inputs this frame: its level, the lean from the real wind + its gusts, how much day, the strike, where it lands
   function rainEnv(fs, part) {
     const day = clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), wb = water.band();
-    return { rain: LK.rain || 0, slant: Math.max(-0.9, Math.min(0.9, -WF.v(0.5) / 14 * 0.5)), gustAt: WF.level > 0.15 ? u => WF.at(u) * WF.level : null, day, t: fs.t, dt: fs.dt, tier, motion: S.motion, flash: lightningFlash(),
+    return { rain: LK.rain || 0, ice: WXS ? WXS.ice || 0 : 0, slant: Math.max(-0.9, Math.min(0.9, -WF.v(0.5) / 14 * 0.5)), gustAt: WF.level > 0.15 ? u => WF.at(u) * WF.level : null, day, t: fs.t, dt: fs.dt, tier, motion: S.motion, flash: lightningFlash(),
       water: wb ? { y0: wb.y0 + 2, y1: wb.y1 - 2 } : null, ground: wb ? { y0: wb.y1 + 6 } : null, top: cam.safeTop + 30, dim: part === 'veils' ? 1 - 0.6 * clamp01(LK.fog || 0) : 1 };
   }
   // the lights the rain catches (every 300 ms at most: rainfx.js#lights): the NEON logo (its colour, as lit as it is), the signs, the lamps' globes
@@ -1424,7 +1457,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (FP3b — the dance circle's beat: the party's song clock + its punch + palette; null off a party → wands.js keeps a steady 120 bpm)
       beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette, ...songEdge() } : null,   // (SP5: the song's edge — the dancers wind down, idle, pick up)
       // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
-      wind: WF.v(0.5), windF: WF, W, wxDown: WXS && WXS.blizzard ? WXS.blizzard : 0 };   // (ATM-A: the shared wind — the smoke pulses with the gusts, the walkers lean into a strong one; ATM-B: the coats stream, the blizzard bows the heads)
+      wind: WF.v(0.5), windF: WF, W, wxDown: WXS && WXS.blizzard ? WXS.blizzard : 0, wxIce: WXS ? WXS.ice || 0 : 0 };   // (ATM-A: the shared wind — the smoke pulses with the gusts, the walkers lean into a strong one; ATM-B: the coats stream, the blizzard bows the heads)
   }
   let lobbyLine = 0, spillCls = false, partyDim = null, crowdMemo = null;
   /** NIGHT-C — the dancers' span on screen for the helicopter's beam: the pockets standing (their rings), the floor's back / middle / front,
@@ -2316,6 +2349,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const wlEnv = wlOn ? { T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * PWQ /* (C4c: the lamps' light on the animals + the hydrant dies with the drain) */, fade: fadeIn, tier } : null;
     if (wlOn) wild.draw(c, 'water', wlEnv);
     layer('road');
+    // (ATM-B: the railing's ice here — the stage's trees + the blade stand in front of it)
+    if (WXS && WXS.ice > 0.03 && fadeIn > 0 && !off.has('no-ice') && L.speakeasy) iceFx.draw(c, { ice: WXS.ice, edges: iceEdgesNow().rail, seed: 50, night: litK(DK, 'lamps'), day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0)), t, motion: S.motion, max: 40 });
     // 9b — THE PLOWED LANE appearing behind the plow (the road baked white while it snows): from where it came in to its tail; held across
     // the road for a little after it has gone until the bake's own plowed lane lands
     if (fadeIn > 0 && L.road && snowNow() && roadModeNow() === 'white' && !off.has('no-people')) {
@@ -2451,6 +2486,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (PROM — THE CAB STAND: the taxi's scene decided before the walkers are drawn — its fare is drawn where it puts them)
       if (pplLive && L.cabStand) { const TH9 = trafficHoldNow(); cabStand.tick({ L, t: performance.now() / 1000, gone: !!S.dockGone, motion: S.motion, hold: !!(TH9 && TH9.on) || frontHoldNow() || !!(legends && legends.active()) || !!(raidFrame.R && raidFrame.R.front), busy: roadLight.busy(), waiters: people.waiters(), people }); }
       const sx = !off.has('no-promenade') && bakeTones ? still.items(L, bakeTones, { dpr: (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 2, fade: fadeIn, pw: PWQ }) : [];   // (PROM: the benches)
+      // ATM-B — FREEZING RAIN: the ice on everything above (the speakeasy's ledges, the signs' frames, the railing, the benches) + the
+      // promenade's sheen — before the near people (they walk in front of it)
+      if (WXS && WXS.ice > 0.03 && fadeIn > 0 && !off.has('no-ice') && L.speakeasy) iceFx.draw(c, { ice: WXS.ice, edges: iceEdgesNow().main, keep: true, ground: { y0: groundY(cam, Z.prom[1]) - 4, y1: Math.min(H, cam.dock.y + 60), W }, night: litK(DK, 'lamps'), day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0)), t, motion: S.motion, max: tierVal('icicles', tier) });
       if (pplOn) { people.draw(c, 'near', { ...pplEnv, extra: [...(wlOn ? wild.items('near', wlEnv) : []), ...hx, ...wx9, ...sx, ...(centreItem ? [centreItem] : [])], dogLunge: vid => wild.dogLunge(vid) }); people.draw(c, 'roof', pplEnv); }
       else { for (const it of sx.sort((a, b) => b.z - a.z)) it.draw(c); if (centreItem) centreItem.draw(c); if (wlOn) wild.draw(c, 'near', wlEnv); for (const it of hx) { c.save(); it.draw(c); c.restore(); } } }
     // NIGHT-C — THE HELICOPTER UP FOR EVERY DANCE BREAK (core/harbor-heli.js#breakFlight → skyfx.heliBreak → air.js#breakDraw): over the
@@ -3519,7 +3557,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       snowman: SM ? { ...SM } : null,
       snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), crisp: crisp.debug(), pane: frost.debug(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
-      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, fogDepth: fogD.debug(), storm: { k: +stormK.toFixed(2), deck: stormDeck.debug() }, strikeClose: () => zap.strikeClose(), zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]), amps: swayGeo.map(s => +(s.amp || 0).toFixed(2)), cut: [...swayCut.values()].flat().filter(s => !s.noCut).length }, windF: { speed: +WF.speed.toFixed(1), gust: +WF.gust.toFixed(1), dir: WF.dir, side: WF.side, level: +WF.level.toFixed(2), look: WF.look, src: WF.src, gusts: WF.gusts, at: [0, 0.25, 0.5, 0.75, 1].map(u => +WF.at(u).toFixed(2)) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
+      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, fogDepth: fogD.debug(), storm: { k: +stormK.toFixed(2), deck: stormDeck.debug() }, iceFx: iceFx.debug(), strikeClose: () => zap.strikeClose(), zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]), amps: swayGeo.map(s => +(s.amp || 0).toFixed(2)), cut: [...swayCut.values()].flat().filter(s => !s.noCut).length }, windF: { speed: +WF.speed.toFixed(1), gust: +WF.gust.toFixed(1), dir: WF.dir, side: WF.side, level: +WF.level.toFixed(2), look: WF.look, src: WF.src, gusts: WF.gusts, at: [0, 0.25, 0.5, 0.75, 1].map(u => +WF.at(u).toFixed(2)) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },

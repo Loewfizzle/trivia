@@ -187,6 +187,9 @@ export function createCitySounds() {
       keep('rain-awning', wxBed.awning * on, -0.55, { ramp: 3, linger: 30, fadeIn: 4 });
       keep('rain-water', wxBed.water * on, 0.4, { ramp: 3, linger: 30, fadeIn: 5 });
       keep('gutter-drip', wxBed.drip * on, -0.45, { ramp: 4, linger: 30, fadeIn: 3 });
+      // (ATM-B — FREEZING RAIN: sleet ticking on the glass — near the speakeasy's windows (left), quiet: felt more than heard)
+      wxBed.sleet = W9.state === 'freezing' ? smooth(0.08, 0.45, r) * 0.6 : 0;
+      keep('sleet-glass', wxBed.sleet * on, -0.5, { ramp: 3, linger: 30, fadeIn: 4 });
       keep('wind-leaves', wxBed.wind * on, 0.2, { ramp: 4, linger: 30, fadeIn: 5 });
       keep('crickets-night', wxBed.crickets * on, 0.15, { ramp: 6, linger: 60, fadeIn: 8 });
       keep('birdsong-morning', wxBed.birds * on, -0.15, { ramp: 6, linger: 60, fadeIn: 8 });

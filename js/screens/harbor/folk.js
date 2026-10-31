@@ -188,7 +188,8 @@ const FAR_SH = new Set(['ladderA', 'ladderB']);
  *  square root of the speed (≈ 0.65 m · √v — 1 unit = 0.83 m): a stroll at 1 m/s ≈ 0.65 m (92 steps a minute), a walk at 1.3 ≈ 0.74 m
  *  (105), a brisk 1.5 ≈ 0.80 m (112), a jog at 2.6 ≈ 1.05 m (150) — in the person's OWN height, so a kid's step is shorter + quicker;
  *  ± 6 % per person (L.stride). Before: 0.35 at every speed — a stroll took a brisk walk's step (74 a minute), the brisk shuffled at 138. */
-export const STEP = (L, v) => { const vv = v > 0.3 ? v : L.jog ? 3.1 : 1.3; return Math.max(0.28, Math.min(0.62, 0.338 * Math.sqrt(vv) * (L.stride || 1) / Math.sqrt(L.h || 1))); };
+// ATM-B — CAREFUL STEPS ON THE ICE (freezing rain): the same ground speed (the shared plan), in SHORT, QUICK steps — a shuffle (FW_ICY)
+export const STEP = (L, v) => { const vv = v > 0.3 ? v : L.jog ? 3.1 : 1.3, ic = L.jog ? 0 : FW_ICY; return Math.max(0.28 - 0.1 * ic, Math.min(0.62, 0.338 * Math.sqrt(vv) * (L.stride || 1) / Math.sqrt(L.h || 1) * (1 - 0.45 * ic))); };
 /** one stride (two steps) in world units at speed v — folk.js's phase + people.js's per-frame integration share it */
 /** SP3 (the owner): every person on the promenade ~9 % bigger against the doors, the bench, the lamps + the cart — the drawn body
  *  (2.1 units = 1.75 m before) × FOLK_SCALE; their stride + their reach scale with it */
@@ -211,16 +212,17 @@ const headingOf = st => (st.hd != null ? st.hd : st.dir === 1 ? 0 : st.dir === -
 // swings out DOWNWIND (both corners, the downwind one lifting) with a quick flutter, and a SCARF's TAIL streams out from the neck — big
 // shapes at ~27 pt, never fine detail; each person's share follows the GUST WAVE at their place (WF.at(u): a gust rolls through the crowd
 // from upwind); THE BLIZZARD bows the heads (FW_DOWN).
-let FW_LEAN = 0, FW_SIDE = 1, FW_FLAP = 0, FW_T = 0, FW_AT = null, FW_W = 1, FW_DOWN = 0;
+let FW_LEAN = 0, FW_SIDE = 1, FW_FLAP = 0, FW_T = 0, FW_AT = null, FW_W = 1, FW_DOWN = 0, FW_ICY = 0;
 const WIND_POSES = new Set(['walk', 'wait', 'look', 'shop', 'chat', 'point']);
 /** once a frame: the wind's lean (rad at its strongest, 0 in calm air) + its side on screen (+1 blowing right); o: { flap (0..1 the coats'
  *  stream), t (s), at (u → 0..1 the gust there), W (the screen's width), down (0..1 heads bowed: the blizzard) } */
 export function setFolkWind(lean, side, o = null) {
   FW_LEAN = lean > 0 ? lean : 0; FW_SIDE = side < 0 ? -1 : 1;
   FW_FLAP = o && o.flap > 0 ? Math.min(1, o.flap) : 0; FW_T = o ? o.t || 0 : 0; FW_AT = o && o.at ? o.at : null; FW_W = o && o.W > 0 ? o.W : 1; FW_DOWN = o && o.down > 0 ? Math.min(1, o.down) : 0;
+  FW_ICY = o && o.icy > 0.05 ? Math.min(1, (o.icy - 0.05) / 0.5) : 0;
 }
 /** the debug + tests: the people's wind now */
-export const folkWind = () => ({ lean: +FW_LEAN.toFixed(3), side: FW_SIDE, flap: +FW_FLAP.toFixed(3), down: +FW_DOWN.toFixed(2) });
+export const folkWind = () => ({ lean: +FW_LEAN.toFixed(3), side: FW_SIDE, flap: +FW_FLAP.toFixed(3), down: +FW_DOWN.toFixed(2), icy: +FW_ICY.toFixed(2) });
 export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const hd = headingOf(st), cx = Math.cos(hd), cz = Math.sin(hd), pose = st.pose || 'walk', jog = (!!L.jog || !!st.run) && st.v > 2, G = jog ? GAIT.jog : GAIT.walk;   // (8b1: st.run — anyone RUNNING, the witnesses fleeing)
   // (a step in heights — a stride is two; FP3b: a relaxed 1920s pace takes SHORTER steps — a long step at a slow speed reads as a

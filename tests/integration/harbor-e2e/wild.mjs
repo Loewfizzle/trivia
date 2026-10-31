@@ -102,6 +102,12 @@ G('weather', async () => {
     const b = await ev(Q.page, `${P}.sky.state.balloons`);
     ok(b && b.order.join() === 'btc-orange,alien,bitcoin,bullseye,smiley,flag' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
     await Q.ctx.close(); }
+  // ---- ATM-B — FREEZING RAIN READS AS ICE: icicles on the ledges + the signs' frames + the railing, the ice sheen, people's careful steps
+  { const Q = await open({ slot: 'fz1', qs: `when=2026-11-20T21:30${GR}&force=freezing-rain`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1500);
+    const w = await ev(Q.page, W), fw = await ev(Q.page, `${P}.people.wind`);
+    ok(w.ice > 0.4 && w.iceFx.icicles >= 40 && w.iceFx.edges >= 10 && fw.icy > 0.5, `ATM-B FREEZING RAIN = ICE: ${w.iceFx.icicles} icicles on ${w.iceFx.edges} edges (ice ${w.ice}), careful steps (icy ${fw.icy})`);
+    await Q.ctx.close(); }
   // ---- ATM-B — THE STORM: the deck rolls in (the low heavy base + the cumulonimbus towers), the panel's CLOSE STRIKE (&force=strike) lands
   // a thick fork on a crown / the water / THE NEEDLE within ~15 s, the flash still capped
   { const Q = await open({ slot: 'st1', qs: `when=2026-11-03T21:30${GR}&force=storm,strike`, view: [402, 874] });

@@ -131,7 +131,10 @@ export function createHarborRain() {
       const B = new Map();
       const add = (key, col, a, w, x0, y0, x1, y1) => { let b = B.get(key); if (!b) { b = { col, a, w, seg: [] }; B.set(key, b); } b.seg.push(x0, y0, x1, y1); };
       const q = v => Math.round(v / 32) * 32;
-      const base = day > 0.5 ? [206, 212, 224] : [172, 186, 222];
+      // (ATM-B — FREEZING RAIN must read as ICE: finer, shorter streaks in a colder, clearer light, a share of them GLINTING at the head)
+      const ice = clamp01(s.ice || 0), glints = ice > 0.05 ? [] : null;
+      const base = ice > 0.05 ? (day > 0.5 ? [214, 230, 252] : [186, 212, 255]) : day > 0.5 ? [206, 212, 224] : [172, 186, 222];
+      const iL = 1 - 0.32 * ice, iW = 1 - 0.22 * ice;
       for (const p of drops) {
         if (s.motion) {
           p.y += p.v * RL.v * sec;
@@ -142,7 +145,7 @@ export function createHarborRain() {
           }
           if (p.y - p.len > H) { Object.assign(p, spawn(p.d, false)); landOf(p, s); continue; }
         }
-        const b = RAIN_DEPTH[p.d], ln = p.len * RL.len, hx = p.x - k * p.y, hy = p.y, tx = hx + k * ln, ty = hy - ln;
+        const b = RAIN_DEPTH[p.d], ln = p.len * RL.len * iL, hx = p.x - k * p.y, hy = p.y, tx = hx + k * ln, ty = hy - ln;
         if (hx < -40 || hx > W + 40) continue;
         // its light: the cell it falls through (a tube's colour near the tubes, the lamp's amber under a globe), a strike over all
         const L = night > 0.15 ? lightAt(hx, hy) : null;
@@ -157,8 +160,9 @@ export function createHarborRain() {
         const cq = [q(col[0]), q(col[1]), q(col[2])], aq = Math.round(Math.min(1, a) * 10) / 10, key = ((((cq[0] >> 5) * 9 + (cq[1] >> 5)) * 9 + (cq[2] >> 5)) * 11 + Math.round(aq * 10)) * 3 + p.d;   // (a number: no string per drop)
         // the tail (fainter) + the head
         const mx = (hx + tx) / 2, my = (hy + ty) / 2;
-        add(key * 2, cq, aq * 0.45, b.w * RL.w, tx, ty, mx, my);
-        add(key * 2 + 1, cq, aq, b.w * RL.w, mx, my, hx, hy);
+        add(key * 2, cq, aq * 0.45, b.w * RL.w * iW, tx, ty, mx, my);
+        add(key * 2 + 1, cq, aq, b.w * RL.w * iW, mx, my, hx, hy);
+        if (glints && p.d > 0 && (p.gl == null ? (p.gl = Math.random()) : p.gl) < 0.22 * ice) glints.push(hx, hy, p.gl, p.d);
       }
       c.save(); c.lineCap = 'round';
       c.globalCompositeOperation = day > 0.5 ? 'source-over' : 'lighter';
@@ -166,6 +170,13 @@ export function createHarborRain() {
         if (bt.a <= 0.02) continue;
         c.strokeStyle = `rgb(${bt.col[0]},${bt.col[1]},${bt.col[2]})`; c.globalAlpha = bt.a; c.lineWidth = bt.w;
         c.beginPath(); const sg = bt.seg; for (let i = 0; i < sg.length; i += 4) { c.moveTo(sg[i], sg[i + 1]); c.lineTo(sg[i + 2], sg[i + 3]); } c.stroke();
+      }
+      // (the glints: a bright point at the head of a falling bead of ice, twinkling as it turns)
+      if (glints && glints.length) {
+        c.globalCompositeOperation = 'lighter'; c.fillStyle = day > 0.5 ? 'rgb(255,255,255)' : 'rgb(226,238,255)';
+        const tt = s.t || 0;
+        for (let i = 0; i < glints.length; i += 4) { const tw = 0.45 + 0.55 * Math.abs(Math.sin(tt * 9 + glints[i + 2] * 40)), r = glints[i + 3] === 2 ? 1.25 : 0.85; c.globalAlpha = Math.min(1, (day > 0.5 ? 0.7 : 0.9) * tw); c.fillRect(glints[i] - r, glints[i + 1] - r, r * 2, r * 2); }
+        c.globalCompositeOperation = day > 0.5 ? 'source-over' : 'lighter';
       }
       // THE RINGS on the harbor (flattened: the water seen low) + THE SPLASHES on the promenade's stones
       if (rings.length) {

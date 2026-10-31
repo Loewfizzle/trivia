@@ -503,7 +503,7 @@ export function createPeople() {
    *  scene runs (after frame()), whether or not the people were drawn this frame (6b: + the dance circle's) */
   function tick(env) {
     // (ATM-A: the shared wind on the bodies — a lean into a strong one; core/harbor-wind.js, folk.js#setFolkWind)
-    { const wf = env && env.windF, v = wf ? Math.abs(wf.v(0.5)) : 0, k = v <= 9 ? 0 : v >= 24 ? 1 : ((v - 9) / 15) ** 2 * (3 - 2 * (v - 9) / 15); setFolkWind(0.16 * k, wf ? wf.side : 1, { flap: v <= 7 ? 0 : Math.min(1, (v - 7) / 13), t: env.t || 0, at: wf ? wf.at : null, W: env.W || (env.cam && env.cam.W) || 402, down: env.wxDown || 0 }); }
+    { const wf = env && env.windF, v = wf ? Math.abs(wf.v(0.5)) : 0, k = v <= 9 ? 0 : v >= 24 ? 1 : ((v - 9) / 15) ** 2 * (3 - 2 * (v - 9) / 15); setFolkWind(0.16 * k, wf ? wf.side : 1, { flap: v <= 7 ? 0 : Math.min(1, (v - 7) / 13), t: env.t || 0, at: wf ? wf.at : null, W: env.W || (env.cam && env.cam.W) || 402, down: env.wxDown || 0, icy: env.wxIce || 0 }); }
     if (!L || !env || !env.snd) return;
     const near = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...lineMembers(env.t || 0)].filter(m => m.s.z <= FOLK.roadZ);
     sounds(env, near);

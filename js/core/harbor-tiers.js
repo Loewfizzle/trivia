@@ -39,6 +39,8 @@ export const TIERS = Object.freeze({
   // ATM-B — FOG AS DEPTH (fogdepth.js): the lights' halos hanging in the murk (the signs + the NEON logo; half as many on the speakeasy's
   // windows) — the veils + the road's bank are on every tier, the promenade's bank from tier 1
   fogHalos: Object.freeze([8, 16, 24]),
+  // ATM-B — FREEZING RAIN's ICICLES (icefx.js): how many hang from the ledges, the signs' frames, the railing + the benches (a few small fills each)
+  icicles: Object.freeze([50, 110, 180]),
 });
 
 /** the knob's value at a tier (clamped 0..2; an unknown tier = 2) */
