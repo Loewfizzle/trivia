@@ -114,7 +114,16 @@ export const SLOTS = [
   S('birdsong-morning', '9', 'loop', 0.08, 'morning birdsong (spring / summer)'),
   S('crickets-night', '9', 'loop', 0.07, 'summer-night crickets'),
   S('wind-leaves', '9', 'loop', 0.08, 'autumn wind through leaves'),
-  S('wind-winter', '9', 'loop', 0.08, 'winter wind'),
+  S('wind-winter', '9', 'loop', 0.08, 'winter wind: an airy alley wind (a breeze in the cold)', 'ATM-A: sounds.js THE WIND — cold + a breeze or more'),
+  // (ATM-A — THE WIND AS ONE SYSTEM's sounds: Grok's weather set, Oct 31 — the beds by the wind's speed, the gusts on the visual gust waves
+  // (core/harbor-wind.js), the whistles rare in a strong wind; the blizzard + the sleet wait in their slots for ATM-B)
+  S('wind-gale', '9', 'loop', 0.08, 'a gusty harbor gale howling round a waterfront building', 'ATM-A: a strong wind / a gale'),
+  S('gust-big', '9', 'once', 0.09, 'a big gust whooshing through (two takes)', 'ATM-A: a strong gust wave reaching the screen'),
+  S('gust-mid', '9', 'once', 0.07, 'a gust outdoors, through the trees (two takes)', 'ATM-A: a gust wave on a windy day'),
+  S('gust-soft', '9', 'once', 0.06, 'a soft, distant gust (two takes)', 'ATM-A: a light gust in a breeze'),
+  S('wind-whistle', '9', 'once', 0.05, 'the wind whistling round a corner / in a window frame (two takes)', 'ATM-A: now + then in a strong wind'),
+  S('blizzard', '9', 'loop', 0.09, 'a blizzard’s roar (two takes)', 'ATM-B: the blizzard (imported in ATM-A, silent until then)'),
+  S('sleet-glass', '9', 'loop', 0.05, 'sleet ticking on glass', 'ATM-B: freezing rain / sleet (imported in ATM-A, silent until then)'),
   S('snow-hush', '9', 'loop', 0.06, 'snow’s muffled hush', '9b: while snow lies at night (sounds.js THE WEATHER)'),
   // (9b — THE WINTER WORK + PLAY: the doorman's shovel at the steps; the plow's blade on the road, the salt off the spinner, footsteps in
   // the snow — each slot waits for its recording, silent until then)

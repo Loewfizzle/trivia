@@ -26,3 +26,7 @@ art/models/promenade/**/*.glb
 art/models/f22/*.glb
 art/models/mothman/*.glb
 art/models/blackbird/*.glb
+
+# ATM-A (Oct 31): Grok's weather sounds — the originals (13 WAVs, ~140 MB, some Sonniss: never offered as stand-alone downloads) stay
+# out of the public repo; scripts/add-city-sfx.py makes the shipped web copies in audio/city/; credits.txt + claude-notes.txt beside them kept
+art/city-sfx/weather/*.wav

@@ -204,6 +204,13 @@ const headingOf = st => (st.hd != null ? st.hd : st.dir === 1 ? 0 : st.dir === -
  * elbows, hands, head; D (each limb's depth: legs / arms), cx / cz (the heading's cos / sin), d (the side it faces on screen), side
  * (profile-ish), tw (the torso's half width on screen), planted (each foot), heel (each heel's rise 0..1).
  */
+// ATM-A — THE PEOPLE IN THE WIND (core/harbor-wind.js, one wind): in a strong wind the walkers + the standers LEAN INTO IT — forward when
+// they face into it, a touch back when it's behind them (a gale ≈ 9°: the head ~3 pt over at the phone's size); the hand on the hat is
+// the look's (lookOf: o.wind > 10). people.js sets it once a frame (setFolkWind).
+let FW_LEAN = 0, FW_SIDE = 1;
+const WIND_POSES = new Set(['walk', 'wait', 'look', 'shop', 'chat', 'point']);
+/** once a frame: the wind's lean (rad at its strongest, 0 in calm air) + its side on screen (+1 blowing right) */
+export function setFolkWind(lean, side) { FW_LEAN = lean > 0 ? lean : 0; FW_SIDE = side < 0 ? -1 : 1; }
 export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const hd = headingOf(st), cx = Math.cos(hd), cz = Math.sin(hd), pose = st.pose || 'walk', jog = (!!L.jog || !!st.run) && st.v > 2, G = jog ? GAIT.jog : GAIT.walk;   // (8b1: st.run — anyone RUNNING, the witnesses fleeing)
   // (a step in heights — a stride is two; FP3b: a relaxed 1920s pace takes SHORTER steps — a long step at a slow speed reads as a
@@ -340,6 +347,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   }
   // ---- the upper body: the shoulders (counter-rotating against the hips), the head; a forward lean tips the torso
   const shY = (pose === 'sit' ? 0.58 : pose === 'garden' ? 0.61 : HIP0 + 0.3 - 0.2 * sq * deep) + breath - dip, up = shY - hipY;
+  if (FW_LEAN > 0.004 && WIND_POSES.has(pose) && !L.kid) { const into = -cx * FW_SIDE; lean += FW_LEAN * (into > 0 ? into : 0.35 * into); }   // (ATM-A: into the wind)
   let shA = lean * up, headA = lean * (up + 0.115);
   if (pose === 'garden') { shA = 0.12; headA = 0.17; }
   if (lift) { shA = 0.15 * sq; headA = 0.17 * sq; }

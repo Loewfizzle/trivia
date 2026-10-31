@@ -468,9 +468,9 @@ export const WEATHER = [
   { id: 'overcast', label: 'OVERCAST', group: 'THE SKY' },
   // (FP3a — the weather by layers: a 600 m MIST (no banks), a low STRATUS deck, a HIGH OVERCAST = a bright veil, never grey)
   { id: 'stratus', label: 'LOW STRATUS', group: 'THE SKY' }, { id: 'highovercast', label: 'HIGH OVERCAST', group: 'THE SKY' },
-  // (9a — THE WEATHER: one row per state — each also a link flag: &force=drizzle|rain|heavy-rain|storm|fog|mist|windy|freezing-rain)
+  // (9a — THE WEATHER: one row per state — each also a link flag: &force=drizzle|rain|heavy-rain|storm|fog|mist|windy|gale|freezing-rain)
   { id: 'drizzle', label: 'DRIZZLE', group: 'RAIN' }, { id: 'rain', label: 'RAIN', group: 'RAIN' }, { id: 'heavy', label: 'HEAVY RAIN', group: 'RAIN' },
-  { id: 'storm', label: 'STORM', group: 'STORM' }, { id: 'windy', label: 'WINDY', group: 'STORM' },
+  { id: 'storm', label: 'STORM', group: 'STORM' }, { id: 'windy', label: 'WINDY', group: 'STORM' }, { id: 'gale', label: 'GALE', group: 'STORM' },   // (ATM-A: &force=gale)
   { id: 'fog', label: 'FOG', group: 'FOG' }, { id: 'mist', label: 'MIST', group: 'FOG' },
   { id: 'freezing', label: 'FREEZING RAIN', group: 'COLD' }, { id: 'snow', label: 'SNOW', group: 'COLD' },
 ];

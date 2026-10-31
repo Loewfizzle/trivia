@@ -42,10 +42,11 @@ test('the previews by name: &force=storm / &wx=heavy + &wxk=', () => {
   for (const id of Object.keys(WX_FORCE)) {
     const c = skyClock(`?force=${id}&at=42.96,-85.67`);
     assert.ok(c.wx && c.wx.forced, id);
-    assert.equal(cityWeather(c.wx).state, { 'heavy-rain': 'heavy', 'freezing-rain': 'freezing', snowfall: 'snow' }[id] || id, id);
+    assert.equal(cityWeather(c.wx).state, { 'heavy-rain': 'heavy', 'freezing-rain': 'freezing', snowfall: 'snow', gale: 'windy' }[id] || id, id);
   }
   const k = skyClock('?wx=rain&wxk=light'); assert.equal(cityWeather(k.wx).k, 0.3);
   assert.equal(cityWeather(forcedWeather('windy')).state, 'windy');
+  { const g = cityWeather(forcedWeather('gale')); assert.ok(g.state === 'windy' && g.wind === 20 && g.gust === 30, 'ATM-A: &force=gale — a windy state at 20 m/s, gusts 30'); }
   assert.equal(skyClock('?at=42.96,-85.67').wx.kind, 'clear', 'a place alone: clear weather');
 });
 

@@ -78,6 +78,7 @@ export function createCitySounds() {
   let duckNow = 1, jetX = 0.5, jetKey = '', jetFetch = '';
   // PART 6b — THE LEGENDARY SKY: the run heard (its one-shots fired once), the music's dip / muffle / tape stop while it lasts
   let lgRun = null, lgDuck = 1, lgHz = 20000, lgRate = 1, lgBendAt = 0;
+  let gustEdge = 0, gustAt = -1e9, gustN = 0, whistleAt = 0;   // (ATM-A: the gust waves heard — the last upwind-edge level, the last gust sound, a count; the next whistle)
   let wxBed = null;                     // (9a: the weather's beds now — the AUDIO panel lists them)
   const thunders = [];                  // (9a: the thunder waiting for its distance)
 
@@ -194,7 +195,31 @@ export function createCitySounds() {
       // 9b — WINTER: the snow's muffled hush while snow lies at night (a soft cold wind, felt more than heard), the shovel's scrape while
       // someone shovels (panned to them)
       keep('snow-hush', clamp(W9.snowLie || 0, 0, 1) * smooth(0.4, 0.8, W9.night || 0) * (1 - smooth(0.1, 0.5, r)) * 0.8 * on, 0.1, { ramp: 6, linger: 40, fadeIn: 10 });
-      keep('snow-shovel', clamp(W9.shovel || 0, 0, 1) * on, W9.shovelPan || 0, { ramp: 1.5, linger: 20, fadeIn: 2 }); }
+      keep('snow-shovel', clamp(W9.shovel || 0, 0, 1) * on, W9.shovelPan || 0, { ramp: 1.5, linger: 20, fadeIn: 2 });
+      // ATM-A — THE WIND, heard (core/harbor-wind.js — the same wind the trees + the rain + the water show): THE BEDS by its speed — the
+      // airy ALLEY wind in the cold from a breeze up, the gusty harbor GALE once it's strong (any season); THE GUSTS on the visual gust
+      // waves — a gust sound as each wave reaches the screen's upwind edge (big / mid / soft by its strength + the day's wind, panned from
+      // upwind, its level varied; pickTake never plays one take twice running); a WHISTLE now + then in a strong wind. Felt, not heard:
+      // under the music (bm.k), every bed faded in + out
+      const wf = W9.windF, sp = wf ? wf.speed : 0, cold = W9.temp != null ? smooth(10, 4, W9.temp) : mo === 12 || mo <= 3 ? 1 : mo === 11 ? 0.6 : 0;
+      wxBed.winter = wf ? smooth(3.5, 8, sp) * (1 - 0.55 * smooth(12, 17, sp)) * cold * (1 - 0.5 * smooth(0.3, 0.8, r)) : 0;
+      wxBed.gale = wf ? smooth(10, 17, sp) * (0.75 + 0.25 * wf.at(0.5)) : 0;
+      keep('wind-winter', wxBed.winter * on, -0.1, { ramp: 4, linger: 40, fadeIn: 6 });
+      keep('wind-gale', wxBed.gale * on, 0.1, { ramp: 2.5, linger: 40, fadeIn: 5 });
+      if (wf && on > 0 && wf.level > 0.2) {
+        const edge = wf.at(wf.side > 0 ? 0 : 1), ts = t / 1000;
+        if (edge > 0.22 && gustEdge <= 0.22 && ts - gustAt > 3) {
+          gustAt = ts;
+          const big = wf.level > 0.62 && edge > 0.6, slot = big ? 'gust-big' : wf.level > 0.35 ? 'gust-mid' : 'gust-soft';
+          citySound(slot, { gain: on * (0.65 + 0.35 * Math.random()) * (0.6 + 0.4 * edge), pan: clamp(-0.45 * wf.side + (Math.random() - 0.5) * 0.5, -0.9, 0.9) });
+          gustN++;
+        }
+        gustEdge = edge;
+        if (sp >= 13) {
+          if (!whistleAt) whistleAt = ts + 40 + Math.random() * 80;
+          else if (ts > whistleAt) { citySound('wind-whistle', { gain: on * (0.5 + 0.3 * Math.random()), pan: (Math.random() - 0.5) * 1.2 }); whistleAt = ts + 70 + Math.random() * 110; }
+        } else whistleAt = 0;
+      } else gustEdge = 0; }
     // ---- 8P — THE SPEAKEASY's LIFE, heard: each moment's cues (on the clock), the barbershop's day
     life(t);
     // ---- THE SKY (skyfx.listen(): what's up there now) — under the bed, ducked with it under the music (bm.k)
@@ -546,7 +571,7 @@ export function createCitySounds() {
     loop: (slot, o) => cityLoop(slot, o),
     debug: () => ({ mix, beds: [...beds.entries()].map(([slot, b]) => ({ slot, zero: !!b.zeroAt, ...(b.h.debug ? b.h.debug() : {}) })),
       runs: [...runs.entries()].map(([slot, r]) => ({ slot, gain: +r.g.toFixed(3), pan: +r.p.toFixed(2), takes: r.hs.map(h => h.take), started: r.n })),
-      pending: pending.map(c => ({ slot: c.slot, in: +((c.at - performance.now()) / 1000).toFixed(1), mark: c.mark })), duck: duckNow, people: { ...people },
+      pending: pending.map(c => ({ slot: c.slot, in: +((c.at - performance.now()) / 1000).toFixed(1), mark: c.mark })), duck: duckNow, people: { ...people }, wind: { gusts: gustN, edge: +gustEdge.toFixed(2) },
       legend: { rate: lgRate, hz: Math.round(lgHz), duck: +lgDuck.toFixed(2), crackles: lgRun ? lgRun.crackN || 0 : 0, tapS: lgRun && lgRun.tapS != null ? +lgRun.tapS.toFixed(2) : null },
       bus: { arrive: !!bus.arrive, idle: !!bus.idle, depart: !!bus.depart, pan: bus.pan }, barber: barberLast, next: Object.fromEntries(Object.entries(next).map(([k, v]) => [k, v ? Math.round((v - performance.now()) / 1000) : null])), player: citySoundsDebug() }),
     destroy() {

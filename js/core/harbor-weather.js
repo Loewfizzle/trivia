@@ -138,6 +138,6 @@ export function weatherLine(st) {
 export const WX_FORCE = Object.freeze({
   drizzle: ['drizzle', { rain: 0.25, rate: 0.3 }], rain: ['rain', { rain: 0.55, rate: 3.5 }], 'heavy-rain': ['heavy', { rain: 0.9, rate: 12 }],
   storm: ['storm', { rain: 0.95, rate: 15, storm: 1, wind: 9, gust: 18 }], fog: ['fog', { fog: 0.9, vis: 150 }], mist: ['mist', { fog: 0.45, vis: 600 }],
-  windy: ['windy', { wind: 14, gust: 21 }], snowfall: ['snow', { snow: 0.7, temp: -3 }], 'freezing-rain': ['freezing', { rain: 0.5, rate: 2.5, temp: -2, code: 67 }],
+  windy: ['windy', { wind: 14, gust: 21 }], gale: ['gale', { wind: 20, gust: 30 }], snowfall: ['snow', { snow: 0.7, temp: -3 }], 'freezing-rain': ['freezing', { rain: 0.5, rate: 2.5, temp: -2, code: 67 }],
 });
 export const WX_K = Object.freeze({ light: 0.3, medium: 0.6, heavy: 0.95 });

@@ -483,7 +483,9 @@ export function createLeaves() {
         if (l.y < l.land) {
           // falling: a terminal drift down, the wind carrying it, a flutter side to side, tumbling
           const fl = Math.sin(t * l.om + l.ph);
-          l.x += (wind * 2.6 * l.k + fl * l.sway * l.k) * dt;
+          const wl = o.windAt ? o.windAt(l.x < 0 ? 0 : l.x > cam.W ? 1 : l.x / cam.W) : wind;   // (ATM-A: the wind THERE — a gust carries them off)
+          l.x += (wl * 2.6 * l.k + fl * l.sway * l.k) * dt;
+          if (o.windAt) l.y -= Math.max(0, Math.abs(wl) - 9) * 0.9 * l.k * dt;   // (a strong gust lifts them a little — they sail)
           l.y += l.vy * l.k * (0.75 + 0.35 * Math.abs(fl)) * dt;
           l.rot += l.spin * dt;
         } else { l.y = l.land; l.rest += dt; }

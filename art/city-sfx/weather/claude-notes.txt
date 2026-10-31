@@ -1,0 +1,74 @@
+Neon Speakeasy - weather SFX - listening/analysis notes
+(Grok Bot, 2026-10-31. All 13 files are unmodified original WAVs. I analysed the actual files: sample-level start/end check, loop-seam step vs the file's own largest internal steps, RMS envelope, spectrogram, clipping and DC.)
+None of the files clips. No voices or music were found in any of them.
+
+LOOPS - BLIZZARD
+blizzard-loop-1.wav - 31.93 s, WAV 96k/24 stereo (Soundrangers, Sonniss)
+  Harsh, roaring mountain wind with clear whistling/howling tones on top of a dense roar. Very steady and alive. No voices/traffic. Peak -6 dBFS.
+  Made as a loop: start and end match (-23 dB, same spectrum). The last-to-first sample step (0.068) is about 2x the largest step inside the file, so a faint tick at the seam is possible. A 5-10 ms crossfade in the engine removes it.
+blizzard-loop-2.wav - 86.46 s, WAV 48k/24 stereo (klankbeeld, CC BY 4.0)
+  Real blizzard over a suburban city (Den Bosch NL, 2017). Steady, full, hissing roar with gusts and wind whistling through the city. Very even level. Peak -7.5 dBFS.
+  No voices/music. The tags mention "road", but no traffic is visible. There are two very brief faint tonal blips (~1.6 kHz at ~12 s and ~32 s), buried under the storm.
+  Starts and ends abruptly (no fades; the first sample is non-zero). The seam step is within the normal range for the file, and start/end levels are similar (-28/-26 dB), so it loops acceptably. Use a short (50-200 ms) crossfade to be safe, and a few ms fade-in on the very first play.
+
+LOOPS - WINTER WIND (CITY)
+winter-wind-loop-1.wav - 71.70 s, WAV 96k/24 stereo (Hzandbits Urban Winds II, Sonniss)
+  Moderate urban wind through an alley: airy whoosh, gently fluctuating, with light wire flapping/ticks (one sharper tick at ~49.7 s is a real wire tick, not a digital click). No voices/traffic.
+  Around 31 s there is a change in high-frequency texture, likely a library edit, but it doesn't click.
+  Quiet master (peak -21 dBFS), so raise the gain. It has ~50 ms fade-in/out, which gives a tiny dip when looped. A 50 ms crossfade hides it.
+winter-wind-loop-2.wav - 42.40 s, WAV 48k/32-bit FLOAT stereo (klankbeeld, CC BY 4.0)
+  A real gale (up to 70 km/h) howling around a steel waterfront building in Vlissingen harbour (NL). Moderate, gusty, cold-sounding wind with a soft howl, and a strong low-frequency rumble component.
+  No voices, traffic, waves or music seen. Peak -3 dBFS.
+  Chosen over 97396 (jpnien), which has persistent narrow tonal lines (~400 Hz and several in 2-6 kHz) that sound like hum or whine and are not clearly city.
+  ENDS: hard cut at both start and end (no fades; the first sample is about -0.15). Played once, it may click on start/stop, and the raw seam jump is large. Loop it with a 100-300 ms crossfade, and use a short fade-in/out when starting or stopping.
+  32-bit float WAV plays in all modern browsers (Web Audio decodeAudioData). Some older tools prefer 16/24-bit.
+
+GUSTS (one-shots)
+gust-1.wav - 4.46 s, WAV 96k/24 stereo (Rescopic, Sonniss)
+  Big airy whoosh. Fast swell (peak ~1.3 s), then a long smooth fade to digital silence. Clean at both ends. A designed library whoosh. Loud (peak -0.2 dBFS).
+gust-2.wav - 3.47 s, WAV 48k/16 stereo (NIKOKnecht, CC0)
+  Real wind/air woosh. Builds over ~1 s, peaks around 1.5-2 s, then sinks to a low tail. Peak -2 dBFS.
+  HARD CUT AT END: the tail is still at about -38 dB when the file stops, and there is a small DC offset (+0.007). A tiny click is possible at the end, so use a ~20 ms fade-out in the engine.
+gust-3.wav - 2.08 s, WAV 48k/16 stereo (sqeeeek, CC0)
+  Soft, dark, low gust with a perfect build-and-fade. Starts and ends in near-silence.
+  VERY quiet master (peak -36 dBFS), so it needs about +25-30 dB in the game. A good distant/muffled gust.
+gust-4.wav - 2.49 s, WAV 44.1k/16 stereo (F3ather, CC0)
+  Gust through trees with leaves rustling. Quick attack (starts within ~10 ms, not from silence, but with no click), then a natural decay to near-silence. Peak -8 dBFS.
+gust-5.wav - 2.29 s, WAV 96k/24 stereo (Articulated Sounds, Sonniss)
+  Large swirling air whoosh with a little foliage. Rises fast (peak ~0.6 s), then fades smoothly. Clean start (digital silence) and near-silent end. A designed library whoosh, punchy (peak -0.4 dBFS).
+gust-6.wav - 3.60 s, WAV 44.1k/24 stereo (Huglex, CC0)
+  Real wind howling through a window: a short, low moaning gust that holds, then fades to digital silence. Clean ends. Indoor flavour. Peak -21.5 dBFS.
+
+WHISTLES
+wind-whistle-1.wav - 37.04 s, WAV 48k/24 stereo (pavelvon, CC0)
+  Real wind whistling in a window frame on an enclosed balcony. A continuous breathy whistle tone that wanders around 1.5-1.9 kHz, drops to ~1.1 kHz after ~23 s, and sits over gusty wind noise. A couple of faint ticks (~7.5 s, ~23 s). Peak -3 dBFS.
+  Has short fade-in/out (clean ends) and a tiny DC offset (-0.002, harmless).
+  A bit longer than the 10-30 s target (37 s). It works as a long one-shot, or loops with a 1-2 s crossfade (start and end are both about -33 dB).
+wind-whistle-2.wav - 9.30 s, WAV 44.1k/16 stereo (vazdaz, CC0)
+  Heavy wind whistling and fluttering between buildings (Vienna). Whistle tones (~0.7 and 1.4 kHz) in roughly the first 0-4 s, then fluttering, buffeting wind. Strong low-frequency content. Peak -14 dBFS.
+  Clean, starts and ends at zero. Not a loop.
+  Slightly under the 10 s minimum (9.3 s). It is the "around a building corner" flavour, used as a one-shot.
+
+SLEET (optional)
+sleet-glass-1.wav - 42.34 s, WAV 96k/24 stereo (InspectorJ, Sonniss)
+  Small hail/ice pellets ticking densely on a glass pane, recorded inside. Bright, crisp, steady. Technically hail, but it reads as sleet-on-window.
+  Made as a loop: start and end match and the seam step is well within the normal range. Peak -2 dBFS.
+
+LOOP SUMMARY
+  Clean loops: sleet-glass-1, and blizzard-loop-1 (possible faint seam tick; use a 5-10 ms crossfade).
+  Loop with a short crossfade (50-300 ms): blizzard-loop-2, winter-wind-loop-1, winter-wind-loop-2 (hard-cut ends; always crossfade or fade).
+  Loop with a 1-2 s crossfade if needed: wind-whistle-1.
+  One-shots: gust-1..6, wind-whistle-2 (and wind-whistle-1).
+
+RECOMMENDED USE
+  - Blizzard scenes: use blizzard-loop-1 or -2 as the bed, alternating them so the storm doesn't feel repetitive. Layer sleet-glass-1 quietly for "inside by the window" moments.
+  - Ordinary cold city night: use winter-wind-loop-1 (airy alley) or winter-wind-loop-2 (gusty, howling, more low end) at low volume under the music.
+  - Random weather events: play a random gust every 8-20 s with random volume and pan.
+      gust-1 / gust-5: big hero gusts.
+      gust-2 / gust-4: outdoor mid gusts (fade out gust-2's end).
+      gust-3 / gust-6: soft, distant or indoor gusts.
+  - Tension/spooky moments: wind-whistle-1 (window whistle) or wind-whistle-2 (whistle between buildings) as one-shots over the bed.
+  - Levels differ a lot (gust-3 is about -36 dBFS peak, winter-wind-loop-1 about -21). Set gain per file in the engine rather than editing the files.
+  - Credits: two files are CC BY 4.0 (blizzard-loop-2 and winter-wind-loop-2, both klankbeeld), so the credit must name klankbeeld and freesound.org (see credits.txt).
+
+ALTERNATES (not delivered): 454365 kyles (FLAC), 770281 Sadiquecat (FLAC) and 67707 SunnySideSound (AIFF) were dropped because they are not WAV/MP3. 97396 jpnien was passed over for winter-wind-loop-2 (tonal hum lines).

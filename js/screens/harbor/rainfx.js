@@ -119,7 +119,7 @@ export function createHarborRain() {
       }
       c.setTransform(T); c.globalAlpha = 1;
     },
-    /** over everything (s: { rain 0..1, slant, day 0..1, dt (ms), tier, motion, flash 0..1, water: { y0, y1 }, ground: { y0 } }) */
+    /** over everything (s: { rain 0..1, slant, gustAt? (u 0..1 → the gust wave there × the wind's level — ATM-A), day 0..1, dt (ms), tier, motion, flash 0..1, water: { y0, y1 }, ground: { y0 } }) */
     drops(c, s) {
       const sec = Math.min(0.1, (s.dt || 16) / 1000), tier = s.tier == null ? 2 : s.tier;
       const RL = rainLook(s.rain), want = s.rain > 0.004 ? Math.round(RAIN_CAP[tier] * RL.n * (s.motion ? 1 : 0.4)) : 0;
@@ -148,7 +148,10 @@ export function createHarborRain() {
         const L = night > 0.15 ? lightAt(hx, hy) : null;
         let col = base, a = b.a * (day > 0.5 ? 0.85 : 0.75) * RL.a;
         // (HEAVY: SHEETS of rain sweeping across in waves with the wind — bands of denser, brighter streaks travelling over the screen)
-        if (RL.heavy > 0.02) { const u = Math.sin(((hx - (s.t || 0) * 70 * (k >= 0 ? -1 : 1)) / W) * Math.PI * 2.6 + hy * 0.002); a *= 1 + RL.heavy * (0.75 * Math.max(0, u) ** 2 - 0.25); }
+        // (ATM-A — WIND AS ONE SYSTEM: in a wind the sheets ARE the gust waves (core/harbor-wind.js) — a band of denser, brighter rain rolling
+        // downwind across the screen as each gust passes, the lulls thinner; heavy rain makes them stronger)
+        if (s.gustAt) { const ga = s.gustAt(hx < 0 ? 0 : hx > W ? 1 : hx / W); a *= 0.78 + (1.1 + 0.9 * RL.heavy) * ga; }
+        else if (RL.heavy > 0.02) { const u = Math.sin(((hx - (s.t || 0) * 70 * (k >= 0 ? -1 : 1)) / W) * Math.PI * 2.6 + hy * 0.002); a *= 1 + RL.heavy * (0.75 * Math.max(0, u) ** 2 - 0.25); }
         if (L) { const m = Math.min(1, L[3] * 0.9) * night; col = [base[0] + (L[0] - base[0]) * m, base[1] + (L[1] - base[1]) * m, base[2] + (L[2] - base[2]) * m]; a *= 1 + 1.6 * m; }
         if (flash > 0) { a = Math.min(1, a * (1 + 1.8 * flash)); col = [col[0] + (235 - col[0]) * flash, col[1] + (240 - col[1]) * flash, col[2] + (255 - col[2]) * flash]; }
         const cq = [q(col[0]), q(col[1]), q(col[2])], aq = Math.round(Math.min(1, a) * 10) / 10, key = ((((cq[0] >> 5) * 9 + (cq[1] >> 5)) * 9 + (cq[2] >> 5)) * 11 + Math.round(aq * 10)) * 3 + p.d;   // (a number: no string per drop)

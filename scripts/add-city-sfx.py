@@ -534,6 +534,16 @@ CUTS = {
     'party-clink-3': [{'cut': (0.0, 3.0), 'fin': 0.003, 'fout': 0.6, 'hp': 400, 'lp': 7000, 'rate': 22050}],
     'party-group': [{'cut': (4.0, 11.0), 'fin': 0.8, 'fout': 1.5, 'hp': 150, 'lp': 3000, 'rate': 16000}],
     'party-group-2': [{'cut': (2.0, 10.0), 'fin': 0.8, 'fout': 1.5, 'hp': 150, 'lp': 3000, 'rate': 16000}],
+    # ---- ATM-A — GROK'S WEATHER SET (art/city-sfx/weather/: claude-notes.txt + credits.txt; the 13 originals git-ignored, untouched).
+    # Each loop's window + a tail the runtime crossfades into its head (the hard-cut ends + Grok's seam notes never reach the seam);
+    # one-shots faded; levels evened by the house meter — the slots' gains make big / mid / soft (gust-3's −36 dBFS master included)
+    'winter-wind-loop-1': [{'loop': (34.0, 30.0), 'xf': 2.5, 'search': 1.0, 'hp': 120, 'rate': 22050, 'kbps': 48}],   # (after the ~31 s library edit; the wire tick at 49.7 s is real)
+    'winter-wind-loop-2': [{'loop': (1.5, 34.0), 'xf': 2.5, 'search': 1.0, 'hp': 80, 'lowmid': 2.0, 'rate': 22050, 'kbps': 48}],   # (hard cuts at both ends: never used; the low howl kept on a phone)
+    'gust-2': [{'cut': (0.0, 3.47), 'fin': 0.01, 'fout': 0.15, 'hp': 110}],   # (the hard cut at its end + a DC offset: faded + high-passed)
+    'wind-whistle-1': [{'cut': (2.0, 16.0), 'fin': 1.0, 'fout': 1.5, 'hp': 200, 'rate': 22050}],   # (14 s of the window-frame whistle, before its ~23 s drop)
+    'blizzard-loop-1': [{'loop': (0.6, 27.0), 'xf': 2.0, 'search': 0.5, 'hp': 100, 'rate': 22050, 'kbps': 48}],
+    'blizzard-loop-2': [{'loop': (34.0, 30.0), 'xf': 2.5, 'search': 1.0, 'hp': 100, 'rate': 22050, 'kbps': 48}],   # (34–66.5 s: past both faint tonal blips, ~12 + ~32 s)
+    'sleet-glass-1': [{'loop': (2.0, 30.0), 'xf': 2.0, 'search': 0.5, 'hp': 220, 'rate': 32000, 'kbps': 56}],
     # ---- 8b1 — GROK'S SECOND-TRY SOUNDS (credits.txt "Second-try sounds"; analysed: tools in the 8b1 notes, docs/audio.md#8b1)
     # (38.6 s Pixabay MP3, a house party's walla: ≤ 20 % voiced frames in any second, no held tone (no music) — indistinct; heard
     # through an upstairs window: 300 Hz–1.8 kHz (the consonants a word needs live above 2 kHz — none readable), at 16 kHz)
@@ -601,7 +611,11 @@ CUTS = {
 ALIAS = {'radio-static': 'bb-static', 'jet-scream': 'bb-scream', 'sonic-boom': 'bb-boom', 'heli-flyby': 'helicopter', 'airliner-high': 'airliner-far', 'jets-formation': 'jet-flyby', 'tr3b-powerdown': 'tr3b-power-down',
          'club-murmur': 'club-murmur-calm', 'mirror-door': 'door-heavy', 'bar-ambience-close': 'bar-open', 'window-sash': 'window-sash-up',
          'secret-knock': 'door-knock', 'marching-band-far': 'parade-band',
-         'crane-work': 'crane', 'hammering-far': 'hammering', 'implosion': 'implosion-rumble', 'warning-horn': 'tower-horn'}   # (9e: the tower's)
+         'crane-work': 'crane', 'hammering-far': 'hammering', 'implosion': 'implosion-rumble', 'warning-horn': 'tower-horn',   # (9e: the tower's)
+         # (ATM-A — Grok's weather set keeps its own names — credits.txt matches them — each mapped to its slot here)
+         'winter-wind-loop-1': 'wind-winter', 'winter-wind-loop-2': 'wind-gale', 'gust-1': 'gust-big', 'gust-5': 'gust-big', 'gust-2': 'gust-mid',
+         'gust-4': 'gust-mid', 'gust-3': 'gust-soft', 'gust-6': 'gust-soft', 'wind-whistle-1': 'wind-whistle', 'wind-whistle-2': 'wind-whistle',
+         'blizzard-loop-1': 'blizzard', 'blizzard-loop-2': 'blizzard', 'sleet-glass-1': 'sleet-glass'}
 # never imported (8P): the diesel bus stand-ins (the 1945 truck's takes instead), the "haunted" door alternatives, the TV murmur (MUSIC
 # held in it — G4 / E5 / G5 notes for 1–1.9 s at 26–41 s — and one clear talker: modulation 0.5–1.1), the slot (inside the knock)
 # 6b: traffic-far (MODERN traffic — the owner: leave the slot empty), trash-truck (a modern ZIL diesel standing still: start, revs, stop —

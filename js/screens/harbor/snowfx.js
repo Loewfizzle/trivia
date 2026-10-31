@@ -13,7 +13,7 @@ export function createSnowfall() {
   const spawn = (d, anywhere) => ({ d, x: Math.random() * (W + 80) - 40, y: anywhere ? Math.random() * H : -6 - Math.random() * 30, ph: Math.random() * 6.28, s: 0.75 + Math.random() * 0.5, land: H * (d === 0 ? 0.62 + Math.random() * 0.12 : d === 1 ? 0.75 + Math.random() * 0.15 : 0.9 + Math.random() * 0.12) });
   return {
     resize(w, h) { if (w === W && h === H) return; W = w; H = h; flakes = []; },
-    /** s: { snow 0..1, wind (m/s, + = blowing right on screen), day 0..1, dt (ms), t, tier, motion, lightAt (x, y) → [r,g,b,k] | null } */
+    /** s: { snow 0..1, wind (m/s, + = blowing right on screen), windAt? (u 0..1 → the wind there, m/s signed — ATM-A), day 0..1, dt (ms), t, tier, motion, lightAt (x, y) → [r,g,b,k] | null } */
     draw(c, s) {
       const sec = Math.min(0.1, (s.dt || 16) / 1000), tier = s.tier == null ? 2 : s.tier;
       const want = s.snow > 0.004 ? Math.round(CAPS[tier] * Math.min(1, 0.15 + 0.85 * s.snow) * (s.motion ? 1 : 0.35)) : 0;
@@ -28,7 +28,9 @@ export function createSnowfall() {
         const D = DEPTH[f.d];
         if (s.motion) {
           f.y += D.v * f.s * sec;
-          f.x += (wind * (0.5 + 0.5 * f.d) + Math.sin(s.t * 0.7 + f.ph) * (6 + 6 * f.d)) * sec;
+          // (ATM-A: the shared wind THERE — the gust waves roll through the snow: it gusts sideways in sheets, settles in the lulls)
+          const wf = s.windAt ? Math.max(-16, Math.min(16, s.windAt(f.x < 0 ? 0 : f.x > W ? 1 : f.x / W))) * 2.6 : wind;
+          f.x += (wf * (0.5 + 0.5 * f.d) + Math.sin(s.t * 0.7 + f.ph) * (6 + 6 * f.d)) * sec;
           if (f.y > f.land) Object.assign(f, spawn(f.d, false));
           if (f.x > W + 40) f.x -= W + 80; else if (f.x < -40) f.x += W + 80;
         }

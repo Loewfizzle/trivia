@@ -1,0 +1,115 @@
+Neon Speakeasy - weather sound effects - credits
+Collected 2026-10-31. All 13 files are unmodified original WAVs, only renamed.
+
+ATTRIBUTION REQUIRED (CC BY 4.0) - show these lines in the game credits:
+  blizzard-loop-2.wav:  "snowstorm city 02 171211_1249.wav" by klankbeeld (https://freesound.org/people/klankbeeld/sounds/413608/), freesound.org, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  winter-wind-loop-2.wav:  "coast wind  building Vlissingen 243 pm 250915_0022" by klankbeeld (https://freesound.org/people/klankbeeld/sounds/826957/), freesound.org, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+  Note: klankbeeld asks on his sound pages that both he (klankbeeld) AND freesound.org are credited. The lines above do that.
+
+All other files are CC0 or Sonniss GDC bundle files and need no attribution. They are credited below as a courtesy.
+Sonniss GDC bundle files were fetched from archive.org mirrors of the official free bundles (official source: https://sonniss.com/gameaudiogdc).
+Freesound files are the original downloads from the Freesound pages listed.
+
+blizzard-loop-1.wav
+  Title:   wind_harsh_mountain_02_30_loop
+  Author:  Soundrangers (Sonniss GDC 2018 bundle)
+  Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+  Source:  https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20-%20Wind/wind_harsh_mountain_02_30_loop.wav
+  Length/format: 31.93 s, WAV 96 kHz/24-bit stereo, 18.4 MB
+  Attribution line: "wind_harsh_mountain_02_30_loop" by Soundrangers - Sonniss GDC Game Audio Bundle (no attribution required)
+
+blizzard-loop-2.wav
+  Title:   snowstorm city 02 171211_1249.wav
+  Author:  klankbeeld (Freesound)
+  Licence: CC BY 4.0 - https://creativecommons.org/licenses/by/4.0/
+  Source:  https://freesound.org/people/klankbeeld/sounds/413608/
+  Length/format: 86.46 s, WAV 48 kHz/24-bit stereo, 23.7 MB
+  Attribution line: "snowstorm city 02 171211_1249.wav" by klankbeeld (https://freesound.org/people/klankbeeld/sounds/413608/), freesound.org, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)  [REQUIRED]
+
+winter-wind-loop-1.wav
+  Title:   Wind,Ext,Alley,Whoosh,Fluctuating slightly,Wire flapping
+  Author:  Hzandbits - Urban Winds II (Sonniss GDC 2017 bundle)
+  Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+  Source:  https://archive.org/download/game-audio-gdcpart-3/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle/Hzandbits%20-%20Urban%20Winds%20II/Wind%2CExt%2CAlley%2CWhoosh%2CFluctuating%20slightly%2CWire%20flapping.wav
+  Length/format: 71.70 s, WAV 96 kHz/24-bit stereo, 41.3 MB
+  Attribution line: "Wind,Ext,Alley,Whoosh,Fluctuating slightly,Wire flapping" by Hzandbits - Sonniss GDC Game Audio Bundle (no attribution required)
+
+winter-wind-loop-2.wav
+  Title:   coast wind  building Vlissingen 243 pm 250915_0022
+  Author:  klankbeeld (Freesound)
+  Licence: CC BY 4.0 - https://creativecommons.org/licenses/by/4.0/
+  Source:  https://freesound.org/people/klankbeeld/sounds/826957/
+  Length/format: 42.40 s, WAV 48 kHz/32-bit float stereo, 15.5 MB
+  Attribution line: "coast wind  building Vlissingen 243 pm 250915_0022" by klankbeeld (https://freesound.org/people/klankbeeld/sounds/826957/), freesound.org, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)  [REQUIRED]
+
+gust-1.wav
+  Title:   WHSH_Airy-Whoosh Wind Gust 11_RSCPC_DW
+  Author:  Rescopic Sound - Distinct Whooshes (Sonniss GDC 2024 bundle)
+  Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+  Source:  https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Rescopic%20Sound%20-%20Distinct%20Whooshes/WHSH_Airy-Whoosh%20Wind%20Gust%2011_RSCPC_DW.wav
+  Length/format: 4.46 s, WAV 96 kHz/24-bit stereo, 2.7 MB
+  Attribution line: "WHSH_Airy-Whoosh Wind Gust 11_RSCPC_DW" by Rescopic Sound - Sonniss GDC Game Audio Bundle (no attribution required)
+
+gust-2.wav
+  Title:   Short Wind/Air Woosh | A gust of wind
+  Author:  NIKOKnecht (Freesound)
+  Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  Source:  https://freesound.org/people/NIKOKnecht/sounds/569109/
+  Length/format: 3.47 s, WAV 48 kHz/16-bit stereo, 661 KB
+  Attribution line: "Short Wind/Air Woosh | A gust of wind" by NIKOKnecht (https://freesound.org/people/NIKOKnecht/sounds/569109/), CC0 1.0 public domain (no attribution required)
+
+gust-3.wav
+  Title:   wind_gust_short_sqeeeek.wav
+  Author:  sqeeeek (Freesound)
+  Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  Source:  https://freesound.org/people/sqeeeek/sounds/381853/
+  Length/format: 2.08 s, WAV 48 kHz/16-bit stereo, 391 KB
+  Attribution line: "wind_gust_short_sqeeeek.wav" by sqeeeek (https://freesound.org/people/sqeeeek/sounds/381853/), CC0 1.0 public domain (no attribution required)
+
+gust-4.wav
+  Title:   a gust of wind blowing some leaves
+  Author:  F3ather (Freesound)
+  Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  Source:  https://freesound.org/people/F3ather/sounds/711441/
+  Length/format: 2.49 s, WAV 44.1 kHz/16-bit stereo, 430 KB
+  Attribution line: "a gust of wind blowing some leaves" by F3ather (https://freesound.org/people/F3ather/sounds/711441/), CC0 1.0 public domain (no attribution required)
+
+gust-5.wav
+  Title:   MAGIC AIR Large Whoosh, Swirl, Wind Gust, Foliage 01
+  Author:  Articulated Sounds - Magic Elements vol.1 (Sonniss GDC 2019 bundle)
+  Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+  Source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Articulated%20Sounds%20-%20Magic%20Elements%20vol.1/MAGIC%20AIR%20Large%20Whoosh%2C%20Swirl%2C%20Wind%20Gust%2C%20Foliage%2001.wav
+  Length/format: 2.29 s, WAV 96 kHz/24-bit stereo, 1.9 MB
+  Attribution line: "MAGIC AIR Large Whoosh, Swirl, Wind Gust, Foliage 01" by Articulated Sounds - Sonniss GDC Game Audio Bundle (no attribution required)
+
+gust-6.wav
+  Title:   WindHowl3
+  Author:  Huglex (Freesound)
+  Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  Source:  https://freesound.org/people/Huglex/sounds/848578/
+  Length/format: 3.60 s, WAV 44.1 kHz/24-bit stereo, 931 KB
+  Attribution line: "WindHowl3" by Huglex (https://freesound.org/people/Huglex/sounds/848578/), CC0 1.0 public domain (no attribution required)
+
+wind-whistle-1.wav
+  Title:   Wind Whistling Window Frame.wav
+  Author:  pavelvon (Freesound)
+  Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  Source:  https://freesound.org/people/pavelvon/sounds/396533/
+  Length/format: 37.04 s, WAV 48 kHz/24-bit stereo, 10.2 MB
+  Attribution line: "Wind Whistling Window Frame.wav" by pavelvon (https://freesound.org/people/pavelvon/sounds/396533/), CC0 1.0 public domain (no attribution required)
+
+wind-whistle-2.wav
+  Title:   Whistling And Fluttering Wind Between Buildings
+  Author:  vazdaz (Freesound)
+  Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+  Source:  https://freesound.org/people/vazdaz/sounds/787541/
+  Length/format: 9.30 s, WAV 44.1 kHz/16-bit stereo, 1.6 MB
+  Attribution line: "Whistling And Fluttering Wind Between Buildings" by vazdaz (https://freesound.org/people/vazdaz/sounds/787541/), CC0 1.0 public domain (no attribution required)
+
+sleet-glass-1.wav
+  Title:   HAIL_InsJ_Hail_Interior_Glass_02_LOOP
+  Author:  InspectorJ - Essentials 06 Rain (Sonniss GDC 2023 bundle)
+  Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+  Source:  https://archive.org/download/gdc-2023-game-audio-bundle/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/InspectorJ%20-%20Essentials%2006%20Rain/HAIL_InsJ_Hail_Interior_Glass_02_LOOP.wav
+  Length/format: 42.34 s, WAV 96 kHz/24-bit stereo, 24.5 MB
+  Attribution line: "HAIL_InsJ_Hail_Interior_Glass_02_LOOP" by InspectorJ - Sonniss GDC Game Audio Bundle (no attribution required)

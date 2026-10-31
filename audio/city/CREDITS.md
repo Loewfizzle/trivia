@@ -56,6 +56,28 @@ are kept anyway, with each source file's MD5.
 - Source: https://cdn.pixabay.com/download/audio/2025/06/26/audio_058fb67e0b.mp3?filename=49656682-urban-morning-birds-4-am-soundscape-366500.mp3
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 
+## blizzard-loop-1.wav  →  blizzard
+
+- MD5 `508f10114a5dc6d2a67f7ba1516bf576`
+- blizzard-loop-1.wav
+- Title:   wind_harsh_mountain_02_30_loop
+- Author:  Soundrangers (Sonniss GDC 2018 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20-%20Wind/wind_harsh_mountain_02_30_loop.wav
+- Length/format: 31.93 s, WAV 96 kHz/24-bit stereo, 18.4 MB
+- Attribution line: "wind_harsh_mountain_02_30_loop" by Soundrangers - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## blizzard-loop-2.wav  →  blizzard
+
+- MD5 `4b7656ef278af4efd3644bd6ee06e1b9`
+- blizzard-loop-2.wav
+- Title:   snowstorm city 02 171211_1249.wav
+- Author:  klankbeeld (Freesound)
+- Licence: CC BY 4.0 - https://creativecommons.org/licenses/by/4.0/
+- Source:  https://freesound.org/people/klankbeeld/sounds/413608/
+- Length/format: 86.46 s, WAV 48 kHz/24-bit stereo, 23.7 MB
+- Attribution line: "snowstorm city 02 171211_1249.wav" by klankbeeld (https://freesound.org/people/klankbeeld/sounds/413608/), freesound.org, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)  [REQUIRED]
+
 ## boat-putter.mp3  →  boat-putter
 
 - MD5 `8dc3461fefdb6b931b89358e99756c0d`
@@ -487,6 +509,72 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - Original: https://freesound.org/people/TRP/sounds/574388/ (CC0 1.0, https://creativecommons.org/publicdomain/zero/1.0/) - "Seagulls distant urban St John 190529.flac", FLAC 48 kHz/24-bit stereo
 - NOTE: The file imported is the lossless Freesound original named in this block (TRP, sound 574388, CC0 1.0; FLAC 48 kHz 24-bit stereo, 0:52), not the Pixabay MP3 copy.
+
+## gust-1.wav  →  gust-big
+
+- MD5 `02943bd1400a5f9d70b331d4fc28be76`
+- gust-1.wav
+- Title:   WHSH_Airy-Whoosh Wind Gust 11_RSCPC_DW
+- Author:  Rescopic Sound - Distinct Whooshes (Sonniss GDC 2024 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/sonniss-gdc-2024-game-audio-bundle-normalized/Rescopic%20Sound%20-%20Distinct%20Whooshes/WHSH_Airy-Whoosh%20Wind%20Gust%2011_RSCPC_DW.wav
+- Length/format: 4.46 s, WAV 96 kHz/24-bit stereo, 2.7 MB
+- Attribution line: "WHSH_Airy-Whoosh Wind Gust 11_RSCPC_DW" by Rescopic Sound - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## gust-2.wav  →  gust-mid
+
+- MD5 `6a1a125752291e10f44fbb8ece325b65`
+- gust-2.wav
+- Title:   Short Wind/Air Woosh | A gust of wind
+- Author:  NIKOKnecht (Freesound)
+- Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+- Source:  https://freesound.org/people/NIKOKnecht/sounds/569109/
+- Length/format: 3.47 s, WAV 48 kHz/16-bit stereo, 661 KB
+- Attribution line: "Short Wind/Air Woosh | A gust of wind" by NIKOKnecht (https://freesound.org/people/NIKOKnecht/sounds/569109/), CC0 1.0 public domain (no attribution required)
+
+## gust-3.wav  →  gust-soft
+
+- MD5 `f1872968536e8fa1fddd7a8f97f861e4`
+- gust-3.wav
+- Title:   wind_gust_short_sqeeeek.wav
+- Author:  sqeeeek (Freesound)
+- Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+- Source:  https://freesound.org/people/sqeeeek/sounds/381853/
+- Length/format: 2.08 s, WAV 48 kHz/16-bit stereo, 391 KB
+- Attribution line: "wind_gust_short_sqeeeek.wav" by sqeeeek (https://freesound.org/people/sqeeeek/sounds/381853/), CC0 1.0 public domain (no attribution required)
+
+## gust-4.wav  →  gust-mid
+
+- MD5 `4d595d87c4b07af88f1f66dd0e100c9e`
+- gust-4.wav
+- Title:   a gust of wind blowing some leaves
+- Author:  F3ather (Freesound)
+- Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+- Source:  https://freesound.org/people/F3ather/sounds/711441/
+- Length/format: 2.49 s, WAV 44.1 kHz/16-bit stereo, 430 KB
+- Attribution line: "a gust of wind blowing some leaves" by F3ather (https://freesound.org/people/F3ather/sounds/711441/), CC0 1.0 public domain (no attribution required)
+
+## gust-5.wav  →  gust-big
+
+- MD5 `e222e1d9a2a20a4d5f4381275a440b6c`
+- gust-5.wav
+- Title:   MAGIC AIR Large Whoosh, Swirl, Wind Gust, Foliage 01
+- Author:  Articulated Sounds - Magic Elements vol.1 (Sonniss GDC 2019 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/Articulated%20Sounds%20-%20Magic%20Elements%20vol.1/MAGIC%20AIR%20Large%20Whoosh%2C%20Swirl%2C%20Wind%20Gust%2C%20Foliage%2001.wav
+- Length/format: 2.29 s, WAV 96 kHz/24-bit stereo, 1.9 MB
+- Attribution line: "MAGIC AIR Large Whoosh, Swirl, Wind Gust, Foliage 01" by Articulated Sounds - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## gust-6.wav  →  gust-soft
+
+- MD5 `08a59280130ec894c39e4bd986a37ae2`
+- gust-6.wav
+- Title:   WindHowl3
+- Author:  Huglex (Freesound)
+- Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+- Source:  https://freesound.org/people/Huglex/sounds/848578/
+- Length/format: 3.60 s, WAV 44.1 kHz/24-bit stereo, 931 KB
+- Attribution line: "WindHowl3" by Huglex (https://freesound.org/people/Huglex/sounds/848578/), CC0 1.0 public domain (no attribution required)
 
 ## gutter-drip.mp3  →  gutter-drip
 
@@ -1050,6 +1138,17 @@ are kept anyway, with each source file's MD5.
 - Source: https://assets.mixkit.co/active_storage/sfx/1651/1651.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
+## sleet-glass-1.wav  →  sleet-glass
+
+- MD5 `1ea7d01eab094fd4e15d090eaf694a23`
+- sleet-glass-1.wav
+- Title:   HAIL_InsJ_Hail_Interior_Glass_02_LOOP
+- Author:  InspectorJ - Essentials 06 Rain (Sonniss GDC 2023 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/gdc-2023-game-audio-bundle/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/InspectorJ%20-%20Essentials%2006%20Rain/HAIL_InsJ_Hail_Interior_Glass_02_LOOP.wav
+- Length/format: 42.34 s, WAV 96 kHz/24-bit stereo, 24.5 MB
+- Attribution line: "HAIL_InsJ_Hail_Interior_Glass_02_LOOP" by InspectorJ - Sonniss GDC Game Audio Bundle (no attribution required)
+
 ## snow-hush.wav  →  snow-hush
 
 - MD5 `7419977075dfd214673aacb097ed2c76`
@@ -1310,6 +1409,28 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - Original: Freesound user kvgarlic, "WindLeavesRustlingonStreet" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 
+## wind-whistle-1.wav  →  wind-whistle
+
+- MD5 `1240f88b7d7c9f001e4d28c30df331ee`
+- wind-whistle-1.wav
+- Title:   Wind Whistling Window Frame.wav
+- Author:  pavelvon (Freesound)
+- Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+- Source:  https://freesound.org/people/pavelvon/sounds/396533/
+- Length/format: 37.04 s, WAV 48 kHz/24-bit stereo, 10.2 MB
+- Attribution line: "Wind Whistling Window Frame.wav" by pavelvon (https://freesound.org/people/pavelvon/sounds/396533/), CC0 1.0 public domain (no attribution required)
+
+## wind-whistle-2.wav  →  wind-whistle
+
+- MD5 `8a58a759ca32f0704c0f531807700e88`
+- wind-whistle-2.wav
+- Title:   Whistling And Fluttering Wind Between Buildings
+- Author:  vazdaz (Freesound)
+- Licence: CC0 1.0 Universal (public domain dedication) - https://creativecommons.org/publicdomain/zero/1.0/
+- Source:  https://freesound.org/people/vazdaz/sounds/787541/
+- Length/format: 9.30 s, WAV 44.1 kHz/16-bit stereo, 1.6 MB
+- Attribution line: "Whistling And Fluttering Wind Between Buildings" by vazdaz (https://freesound.org/people/vazdaz/sounds/787541/), CC0 1.0 public domain (no attribution required)
+
 ## window-sash.mp3  →  window-sash-down, window-sash-up
 
 - MD5 `623101f8e3a1349afbe4de2b1db1ca4b`
@@ -1320,6 +1441,28 @@ are kept anyway, with each source file's MD5.
 - Licence: Pixabay Content License - https://pixabay.com/service/license-summary/
 - Original: Freesound user jamesdrake89, "Sash Window Open and Close" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
+
+## winter-wind-loop-1.wav  →  wind-winter
+
+- MD5 `5a95fed4fb351e1f7d3e833592b6e6a3`
+- winter-wind-loop-1.wav
+- Title:   Wind,Ext,Alley,Whoosh,Fluctuating slightly,Wire flapping
+- Author:  Hzandbits - Urban Winds II (Sonniss GDC 2017 bundle)
+- Licence: Sonniss GDC Game Audio Bundle licence (royalty-free, commercial use OK, no attribution required; https://sonniss.com/gameaudiogdc)
+- Source:  https://archive.org/download/game-audio-gdcpart-3/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle/Hzandbits%20-%20Urban%20Winds%20II/Wind%2CExt%2CAlley%2CWhoosh%2CFluctuating%20slightly%2CWire%20flapping.wav
+- Length/format: 71.70 s, WAV 96 kHz/24-bit stereo, 41.3 MB
+- Attribution line: "Wind,Ext,Alley,Whoosh,Fluctuating slightly,Wire flapping" by Hzandbits - Sonniss GDC Game Audio Bundle (no attribution required)
+
+## winter-wind-loop-2.wav  →  wind-gale
+
+- MD5 `a21732c3c553a7b75386cdfd37fcb7ca`
+- winter-wind-loop-2.wav
+- Title:   coast wind  building Vlissingen 243 pm 250915_0022
+- Author:  klankbeeld (Freesound)
+- Licence: CC BY 4.0 - https://creativecommons.org/licenses/by/4.0/
+- Source:  https://freesound.org/people/klankbeeld/sounds/826957/
+- Length/format: 42.40 s, WAV 48 kHz/32-bit float stereo, 15.5 MB
+- Attribution line: "coast wind  building Vlissingen 243 pm 250915_0022" by klankbeeld (https://freesound.org/people/klankbeeld/sounds/826957/), freesound.org, licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)  [REQUIRED]
 
 ## witch-cackle.mp3  →  witch-cackle
 

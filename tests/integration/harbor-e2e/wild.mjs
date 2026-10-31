@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR end to end: the `wild` cloud job's groups (wildlife, workers, legends, weather, bench) — tests/integration/harbor-jobs.mjs#CI_JOBS.
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=wild, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { OUT, SHOTS, sleep, ok, GR, NIGHT, open, ev, waitFor, tapAt, harborUp, G } from './kit.mjs';
+import { OUT, SHOTS, sleep, ok, okT, GR, NIGHT, open, ev, waitFor, tapAt, harborUp, G } from './kit.mjs';
 
 // ================================================================ PART 9a — THE WEATHER (only when real or forced): no weather on a clear day,
 // each state forced + its look, the lightning's safety caps, reduced motion, the weather on the sign + the glass (the labels clear), the
@@ -102,6 +102,28 @@ G('weather', async () => {
     const b = await ev(Q.page, `${P}.sky.state.balloons`);
     ok(b && b.order.join() === 'btc-orange,alien,bitcoin,bullseye,smiley,flag' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
     await Q.ctx.close(); }
+  // ---- ATM-A — THE WIND AS ONE SYSTEM (core/harbor-wind.js): still air keeps the crowns at rest, a WINDY day sways them (the gust waves
+  // rolling through), a GALE bends them hard; the moving crowns are CUT from their layer (no ghost); the water is never a mirror (its
+  // roughness floor); in a gale the gusts are HEARD on the visual waves (after a tap)
+  { const amps = async (Q, ms) => { let mx = 0; const end = Date.now() + ms; while (Date.now() < end) { const s = await ev(Q.page, `${W}.sway`); if (s && s.amps) mx = Math.max(mx, ...s.amps.map(Math.abs)); await sleep(150); } return mx; };
+    const C = await open({ slot: 'wd0', qs: `when=2026-10-22T13:00${GR}&wx=clear&wind=0`, view: [402, 874] });
+    await harborUp(C.page);
+    const c0 = await amps(C, 3000), wC = await ev(C.page, `${W}.windF`), rC = await ev(C.page, `${P}.water.rough`);
+    ok(c0 < 1.2 && wC && wC.look === 'calm', `ATM-A STILL AIR: the crowns near rest (max ${c0.toFixed(2)} pt), the wind ${wC && wC.look}`);
+    ok(rC >= 0.2, `ATM-A THE WATER NEVER A MIRROR: roughness ${rC} at 0 m/s (the floor 0.2)`);
+    await C.ctx.close();
+    const Wd = await open({ slot: 'wd1', qs: `when=2026-10-22T13:00${GR}&force=windy`, view: [402, 874] });
+    await harborUp(Wd.page);
+    const a1 = await amps(Wd, 6000), s1 = await ev(Wd.page, `${W}.sway`), w1 = await ev(Wd.page, `${W}.windF`);
+    ok(w1 && w1.look === 'windy' && a1 > 3 && s1.cut >= 1, `ATM-A A WINDY DAY: the crowns sway up to ${a1.toFixed(1)} pt at the top (${s1.cut} cut from their layer — no ghost), the wind ${w1 && `${w1.speed} m/s, gusts ${w1.gust}`}`);
+    await Wd.ctx.close();
+    const G2 = await open({ slot: 'wd2', qs: `when=2026-10-22T13:00${GR}&force=gale`, view: [402, 874] });
+    await harborUp(G2.page); await tapAt(G2.page, 30, 300);
+    const a2 = await amps(G2, 9000), w2 = await ev(G2.page, `${W}.windF`);
+    const snd = await ev(G2.page, 'window.__district.harbor().sounds ? window.__district.harbor().sounds.wind : null').catch(() => null);
+    ok(w2 && w2.look === 'gale' && a2 > a1 && a2 > 6, `ATM-A A GALE: the crowns bent up to ${a2.toFixed(1)} pt (a windy day's ${a1.toFixed(1)}), the wind ${w2 && `${w2.speed} m/s`}`);
+    okT(!snd || snd.gusts >= 1, `ATM-A THE GUSTS HEARD on the visual waves: ${snd ? `${snd.gusts} gust sounds in ~9 s` : 'no sounds readout'}`);
+    await G2.ctx.close(); }
 });
 // ---- PART 8b1 — THE WILDLIFE (core/harbor-wildlife.js + screens/harbor/wildlife.js + fauna.js): the animals drawn where they stand,
 // the pigeons flushing + coming back, the night's coyote, the can, the gulls landing, every panel row showing its animal

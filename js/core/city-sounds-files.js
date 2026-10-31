@@ -34,6 +34,10 @@ export const FILES = /*FILES*/{
   "birdsong-morning": [
     {"f": "birdsong-morning.mp3", "v": "ff3796a0", "d": 28.0, "lufs": -24.4, "loop": 26.0, "xf": 2.0, "from": [1.0, 29.0], "src": "birdsong-morning", "r": 22050}
   ],
+  "blizzard": [
+    {"f": "blizzard-loop-1.mp3", "v": "c25444e7", "d": 29.0, "lufs": -24.4, "loop": 27.0, "xf": 2.0, "from": [1.1, 30.1], "src": "blizzard-loop-1", "r": 22050},
+    {"f": "blizzard-loop-2.mp3", "v": "f21826e9", "d": 32.5, "lufs": -24.4, "loop": 30.0, "xf": 2.5, "from": [33.0, 65.5], "src": "blizzard-loop-2", "r": 22050}
+  ],
   "boat-putter": [
     {"f": "boat-putter.mp3", "v": "732f29bc", "d": 32.5, "lufs": -24.4, "loop": 30.0, "xf": 2.5, "from": [11.4, 43.9], "src": "boat-putter", "r": 16000}
   ],
@@ -208,6 +212,18 @@ export const FILES = /*FILES*/{
     {"f": "gulls_3.mp3", "v": "547a9f4e", "d": 1.5, "lufs": -20.5, "peak": 0.37, "from": [3.7, 5.2], "src": "gulls", "w": 0.6},
     {"f": "gulls_4.mp3", "v": "0639841f", "d": 1.75, "lufs": -20.4, "peak": 0.97, "from": [6.85, 8.6], "src": "gulls"}
   ],
+  "gust-big": [
+    {"f": "gust-1.mp3", "v": "79a8182b", "d": 4.067, "lufs": -20.4, "peak": 1.0, "sw": [0.35, 2.6], "from": [0.22, 4.28], "src": "gust-1"},
+    {"f": "gust-5.mp3", "v": "961c4352", "d": 2.044, "lufs": -20.3, "peak": 0.55, "sw": [0.2, 0.95], "from": [0.16, 2.21], "src": "gust-5"}
+  ],
+  "gust-mid": [
+    {"f": "gust-2.mp3", "v": "5fa6bb15", "d": 3.467, "lufs": -20.4, "peak": 1.6, "sw": [0.65, 2.0], "from": [0.0, 3.47], "src": "gust-2"},
+    {"f": "gust-4.mp3", "v": "5d2f8807", "d": 2.49, "lufs": -20.4, "peak": 0.4, "sw": [0.15, 1.35], "from": [0.0, 2.49], "src": "gust-4"}
+  ],
+  "gust-soft": [
+    {"f": "gust-3.mp3", "v": "f1d8a2bb", "d": 2.08, "lufs": -20.5, "peak": 1.2, "sw": [0.55, 1.7], "from": [0.0, 2.08], "src": "gust-3"},
+    {"f": "gust-6.mp3", "v": "f495ca22", "d": 3.6, "lufs": -20.4, "peak": 2.1, "sw": [0.15, 3.1], "from": [0.0, 3.6], "src": "gust-6"}
+  ],
   "gutter-drip": [
     {"f": "gutter-drip.mp3", "v": "65ba49cc", "d": 31.0, "lufs": -24.6, "loop": 29.0, "xf": 2.0, "from": [1.5, 32.5], "src": "gutter-drip", "r": 22050}
   ],
@@ -364,6 +380,9 @@ export const FILES = /*FILES*/{
     {"f": "siren-1920s_1.mp3", "v": "dbd2a0b9", "d": 14.5, "lufs": -20.4, "peak": 6.15, "sw": [1.7, 11.9], "from": [0.5, 15.0], "src": "siren-1920s", "r": 16000},
     {"f": "siren-1920s_2.mp3", "v": "8b4fede4", "d": 32.0, "lufs": -20.4, "peak": 6.25, "sw": [1.4, 18.35], "from": [14.5, 46.5], "src": "siren-1920s", "w": 0.6, "r": 16000}
   ],
+  "sleet-glass": [
+    {"f": "sleet-glass-1.mp3", "v": "8be5a39b", "d": 32.0, "lufs": -24.1, "loop": 30.0, "xf": 2.0, "from": [2.5, 34.5], "src": "sleet-glass-1", "r": 32000}
+  ],
   "snow-hush": [
     {"f": "snow-hush.mp3", "v": "f770d3fe", "d": 23.9, "lufs": -24.4, "loop": 21.4, "xf": 2.5, "from": [2.2, 26.1], "src": "snow-hush", "r": 16000}
   ],
@@ -465,8 +484,18 @@ export const FILES = /*FILES*/{
   "water-lapping": [
     {"f": "water-lapping.mp3", "v": "5ec91343", "d": 62.5, "lufs": -24.4, "loop": 60.0, "xf": 2.5, "from": [9.4, 71.9], "src": "water-lapping"}
   ],
+  "wind-gale": [
+    {"f": "winter-wind-loop-2.mp3", "v": "a5023783", "d": 36.5, "lufs": -24.4, "loop": 34.0, "xf": 2.5, "from": [2.5, 39.0], "src": "winter-wind-loop-2", "r": 22050}
+  ],
   "wind-leaves": [
     {"f": "wind-leaves.mp3", "v": "058c8808", "d": 24.0, "lufs": -24.1, "loop": 22.0, "xf": 2.0, "from": [19.2, 43.2], "src": "wind-leaves", "r": 22050}
+  ],
+  "wind-whistle": [
+    {"f": "wind-whistle-1.mp3", "v": "6fcee711", "d": 14.0, "lufs": -20.4, "peak": 3.25, "sw": [0.3, 13.55], "from": [2.0, 16.0], "src": "wind-whistle-1", "r": 22050},
+    {"f": "wind-whistle-2.mp3", "v": "daa3506f", "d": 9.3, "lufs": -20.4, "peak": 2.05, "sw": [0.15, 5.35], "from": [0.0, 9.3], "src": "wind-whistle-2"}
+  ],
+  "wind-winter": [
+    {"f": "winter-wind-loop-1.mp3", "v": "60cc3c51", "d": 32.5, "lufs": -24.4, "loop": 30.0, "xf": 2.5, "from": [33.0, 65.5], "src": "winter-wind-loop-1", "r": 22050}
   ],
   "window-sash-down": [
     {"f": "window-sash-down.mp3", "v": "be42e2df", "d": 1.65, "lufs": -20.5, "peak": 0.9, "sw": [0.15, 1.15], "from": [12.75, 14.4], "hit": 0.9, "src": "window-sash"}

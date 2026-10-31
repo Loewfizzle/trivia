@@ -147,6 +147,7 @@ export function forcedWeather(kind, extra = {}) {
     highovercast: { kind: 'veil', cloud: 1, code: 3, layers: { lo: 0, mid: 0, hi: 1 } },
     // (9a — THE WEATHER's previews: core/harbor-weather.js#WX_FORCE gives each its rate / wind / ice)
     heavy: { kind: 'heavy', cloud: 1, rain: 0.9, rate: 12 }, windy: { kind: 'windy', cloud: 0.45, wind: 14, gust: 21 },
+    gale: { kind: 'windy', cloud: 0.6, wind: 20, gust: 30 },   // (ATM-A: a GALE — the trees bent hard, people leaning in, the rain driven sideways)
     freezing: { kind: 'freezing', cloud: 1, rain: 0.5, rate: 2.5, temp: -2, code: 67 },
   }[kind] || { kind: 'clear', cloud: 0.1 };
   return { rain: 0, snow: 0, storm: 0, fog: 0, wind: kind === 'storm' ? 9 : kind === 'windy' ? 14 : 3, windDir: 250, temp: kind === 'snow' || kind === 'freezing' ? -2 : kind === 'freeze' ? -16 : 12, lat: null, lon: null, city: null, at: Date.now(), ...base, ...extra };

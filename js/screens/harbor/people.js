@@ -17,7 +17,7 @@ import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capBy
 import { tierVal } from '../../core/harbor-tiers.js';
 import { promenadeSolids } from '../../core/harbor-solids.js';
 import { workFx } from './snowfx.js';
-import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen, drawOfrenda } from './folk.js';
+import { lookOf, drawFolk, drawDog, drawLeash, rigOf, STEP, strideLen, drawOfrenda, setFolkWind } from './folk.js';
 import { drawBus } from './bus.js';
 import { createVehicles, UNDERGLOW } from './vehicles.js';
 import { beaconOf, drawBeacon } from './raid.js';
@@ -502,6 +502,8 @@ export function createPeople() {
   /** FP3a (FREV H3 — no sound inside a painter): the footsteps, the laughs, the cart, the line, the roof, the bus — every frame the
    *  scene runs (after frame()), whether or not the people were drawn this frame (6b: + the dance circle's) */
   function tick(env) {
+    // (ATM-A: the shared wind on the bodies — a lean into a strong one; core/harbor-wind.js, folk.js#setFolkWind)
+    { const wf = env && env.windF, v = wf ? Math.abs(wf.v(0.5)) : 0, k = v <= 9 ? 0 : v >= 24 ? 1 : ((v - 9) / 15) ** 2 * (3 - 2 * (v - 9) / 15); setFolkWind(0.16 * k, wf ? wf.side : 1); }
     if (!L || !env || !env.snd) return;
     const near = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...lineMembers(env.t || 0)].filter(m => m.s.z <= FOLK.roadZ);
     sounds(env, near);

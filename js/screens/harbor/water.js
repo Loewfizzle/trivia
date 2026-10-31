@@ -189,7 +189,12 @@ export function createWater() {
   // (the steps' cost, smoothed: harbor().water.ms — tests + the perf budget)
   const ema = (k, v) => { const m = stats.ms || (stats.ms = {}); m[k] = +((m[k] || 0) * 0.92 + v * 0.08).toFixed(3); };
   let built = false, composed = false, builtAt = -1e9, composedAt = -1e9;
-  const roughOf = f => clamp01(smooth(1.2, 11, Math.max(0, f.wind || 0)) + 0.35 * (f.rain || set0.rain || 0));
+  // ATM-A — THE WATER NEVER A MIRROR (the owner, Oct 26: "too still and flat … like a mirror"): a FLOOR of roughness at any wind (the
+  // reflections always break into bands), the wind's chop on top (the shared wind's mean — core/harbor-wind.js; the gusts pulse only the
+  // ripples' sway below, never the baked textures)
+  const ROUGH_FLOOR = 0.2;
+  const windOf = f => (f.windF ? f.windF.speed : Math.max(0, f.wind || 0));
+  const roughOf = f => clamp01(ROUGH_FLOOR + (1 - ROUGH_FLOOR) * smooth(1.2, 11, windOf(f)) + 0.35 * (f.rain || set0.rain || 0));
 
   // BUILD: the mirror (R) from the frame above the waterline, the objects in the water, the light columns
   function build(main, f, t, still) {
@@ -267,11 +272,14 @@ export function createWater() {
     // 4. the ripples: the mirror row by row (one wave phase per depth: a sideways wobble, a vertical break, crest / trough) —
     //    in device pixels: each strip fills its own whole rows (st.r, st.hd), wider than the canvas (no edge inside it)
     const dayK = Math.min(1, T.day + T.gold * 0.6);
-    const amp = 0.05 + 0.3 * rough, jit = 0.03 + 0.22 * rough;
+    // (ATM-A: a gust passing mid-screen roughens the ripples for its moment; THE SWELL — a slow long wave rolling toward us, ~5 s a wave,
+    // lifting + dropping each depth's reflection in turn, at any wind)
+    const wf = f.windF, gk = wf ? wf.at(0.5) * wf.level : 0;
+    const amp = (0.05 + 0.3 * rough) * (1 + 0.6 * gk), jit = (0.03 + 0.22 * rough) * (1 + 0.5 * gk), swell = 0.11 * (1 + 0.4 * rough);
     for (const st of strips) {
       const ph = st.z * 0.92 - t * 1.35, ph2 = st.z * 2.37 + t * 1.9 + st.seed * 6.28;
       const A = amp * st.s, dx = A * (0.66 * Math.sin(ph) + 0.34 * Math.sin(ph2));
-      const dy = jit * st.s * Math.sin(st.z * 1.71 + t * 1.1 + st.seed * 3);
+      const dy = jit * st.s * Math.sin(st.z * 1.71 + t * 1.1 + st.seed * 3) + swell * st.s * Math.sin(st.z * 0.33 + t * 1.25);
       // FRESNEL + DEPTH: a mirror at the grazing far end; looking down near us more of the water's own colour (the base under
       // it: blue-green by day, orange at golden hour, black at night) — so it darkens toward us; the wind breaks it up
       // (THE DAY PASS: a stronger mirror by day — the wheel, the lighthouse and the sunlit city read in the water; golden hour + night as before)
@@ -289,6 +297,13 @@ export function createWater() {
     const tS = performance.now(); ema('strips', tS - tm2);
     // 5. the wavelets: sky-lit crests + dark troughs sliding against each other (their density follows the wind)
     bakeTex(T, rough);
+    // ATM-A — THE GUSTS ON THE WATER: dark CAT'S PAWS — the gust waves (core/harbor-wind.js) crossing the harbor as roughened, darker
+    // patches, drawn under the wavelets (one gradient a frame)
+    if (wf && wf.level > 0.2 && !still) {
+      const gr = x.createLinearGradient(0, 0, W, 0), a0 = (0.07 + 0.11 * wf.level) * (0.45 + 0.55 * dayK);
+      for (let i = 0; i <= 8; i++) gr.addColorStop(i / 8, `rgba(6,16,28,${(a0 * wf.at(i / 8)).toFixed(3)})`);
+      x.globalAlpha = fa; x.fillStyle = gr; x.fillRect(0, y0 + 1, W, Hw + 2); x.globalAlpha = 1;
+    }
     const ta = (0.95 * dayK + 0.45 * T.night) * (0.55 + 0.45 * rough) * fa * (1 - 0.3 * T.day);
     if (ta > 0.01) {
       const o1 = still ? 0 : ((t * (3 + 9 * rough)) % W + W) % W, o2 = still ? W * 0.37 : ((-t * (2 + 6 * rough)) % W + W) % W;
