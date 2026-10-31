@@ -210,7 +210,9 @@ G('music', async () => {
     const HEARD = `(() => { const pm = window.__arcade.partyMusicDebug && window.__arcade.partyMusicDebug(); return (pm && pm.synced && pm.heard && pm.heard.id) || (${NOW}); })()`;
     if (!deck('party').includes(first)) await waitFor(P.page, `${JSON.stringify(deck('party'))}.includes(${HEARD})`, 'PARTY ON: a party song heard', 25000).catch(() => {});
     const now = await ev(P.page, HEARD);
-    ok(deck('party').includes(now), `PANEL PARTY ON plays a PARTY song over a saved MUSIC MOOD (EVENING: ${first} → ${now})`);
+    // (ATM-B: when it misses, say what each player was doing — the synced player's state, this phone's own, the audio context)
+    const why = deck('party').includes(now) ? '' : ` — ${await ev(P.page, `JSON.stringify((() => { const pm = window.__arcade.partyMusicDebug(), d = window.__arcade.musicDebug(); return { mood: window.__arcade.mood(), pm: pm && { kind: pm.kind, song: pm.song, at: pm.at, synced: pm.synced, claims: pm.claims, heard: pm.heard, own: pm.own, player: pm.player }, list: d.list, playing: d.playing, want: d.want, health: d.health && { state: d.health.state, sounding: d.health.sounding, direct: d.health.direct } }; })())`).catch(e => e.message)}`;
+    ok(deck('party').includes(now), `PANEL PARTY ON plays a PARTY song over a saved MUSIC MOOD (EVENING: ${first} → ${now})${why}`);
     await waitFor(P.page, "window.__district.party().on > 0.9 && window.__district.party().src === 'grid'", 'the pulse on the song’s grid', 15000);
     const pk = []; for (let i = 0; i < 24; i++) { pk.push(await ev(P.page, 'window.__district.party().punch')); await new Promise(r => setTimeout(r, 90)); }
     okT(Math.max(...pk) - Math.min(...pk) > 0.25, `PANEL PARTY ON: the pulse beats on ${now}'s grid (punch ${Math.min(...pk).toFixed(2)} → ${Math.max(...pk).toFixed(2)}, src ${await ev(P.page, 'window.__district.party().src')})`);
@@ -597,7 +599,10 @@ G('music', async () => {
     const PHASE = () => ev(f, `import('/js/audio/music.js').then(m => new Promise(res => requestAnimationFrame(() => requestAnimationFrame(() => {
       const np = m.nowPlaying(), b = window.__arcade.beat(), p = window.__district.party(), hb = window.__district.harbor();
       if (!np || !b || !b.grid) return res(null);
-      const g = b.grid, k = (b.pos - (g.t0 || 0)) * g.bpm / 60 - (g.down || 0);
+      // (ATM-B: the lights' beat against the element's grid AT THE SAME INSTANT — the song position the city's last frame used
+      // (party().songPos); the probe's own b.pos is later by however old that frame is: on a loaded 2-core runner 1–2 frames = up to ~0.14
+      // beats of pure staleness, which is not the song clock under test. The element vs heard is its own check (lag))
+      const g = b.grid, at = p.songPos != null ? p.songPos : b.pos, k = (at - (g.t0 || 0)) * g.bpm / 60 - (g.down || 0);
       let d = ((k - p.beatsF) % 4 + 4) % 4; d = Math.min(d, 4 - d);
       res({ d: +d.toFixed(3), lag: +(np.at - b.pos).toFixed(3), src: p.src, line: hb.beatLine, clock: hb.clock });
     }))))`);
