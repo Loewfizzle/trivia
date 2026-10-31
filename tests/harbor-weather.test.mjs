@@ -42,7 +42,7 @@ test('the previews by name: &force=storm / &wx=heavy + &wxk=', () => {
   for (const id of Object.keys(WX_FORCE)) {
     const c = skyClock(`?force=${id}&at=42.96,-85.67`);
     assert.ok(c.wx && c.wx.forced, id);
-    assert.equal(cityWeather(c.wx).state, { 'heavy-rain': 'heavy', 'freezing-rain': 'freezing', snowfall: 'snow', gale: 'windy' }[id] || id, id);
+    assert.equal(cityWeather(c.wx).state, { 'heavy-rain': 'heavy', 'freezing-rain': 'freezing', snowfall: 'snow', 'heavy-snow': 'snow', blizzard: 'snow', gale: 'windy' }[id] || id, id);
   }
   const k = skyClock('?wx=rain&wxk=light'); assert.equal(cityWeather(k.wx).k, 0.3);
   assert.equal(cityWeather(forcedWeather('windy')).state, 'windy');
@@ -137,4 +137,16 @@ test('THE WET PROMENADE: puddles seeded in the low spots, the same for everyone,
     assert.ok(p.thr > 0.1 && p.thr < 0.95, 'its own depth: they dry one by one');
   }
   assert.ok(new Set(a.map(p => Math.round(p.thr * 10))).size >= 3, 'different depths');
+});
+
+test('ATM-B — THE BLIZZARD: heavy snow + a strong wind or a low visibility; never a light snow, never a calm one', async () => {
+  const { blizzardK, cityWeather, WX_FORCE } = await import('../js/core/harbor-weather.js');
+  assert.equal(blizzardK(1, 3, 5, null), 0, 'heavy snow, calm: no blizzard');
+  assert.equal(blizzardK(0.3, 20, 30, 100), 0, 'light snow in a gale: no blizzard');
+  assert.ok(blizzardK(1, 17, 26, null) > 0.9, 'heavy snow + 17 m/s: a blizzard');
+  assert.ok(blizzardK(0.9, 4, 6, 300) > 0.8, 'heavy snow + 300 m visibility: a blizzard');
+  const [kind, extra] = WX_FORCE.blizzard, w = cityWeather({ kind, ...extra, forced: true });
+  assert.ok(w.state === 'snow' && w.blizzard > 0.9 && /BLIZZARD/.test(w.why), `the forced blizzard: ${w.why}`);
+  const h = cityWeather({ kind: WX_FORCE['heavy-snow'][0], ...WX_FORCE['heavy-snow'][1], forced: true });
+  assert.ok(h.state === 'snow' && h.snow > 0.9 && !h.blizzard, 'heavy snow is not a blizzard');
 });

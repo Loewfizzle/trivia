@@ -209,6 +209,10 @@ export function createCitySounds() {
       wxBed.gale = wf ? smooth(10, 17, sp) * (0.75 + 0.25 * wf.at(0.5)) : 0;
       keep('wind-winter', wxBed.winter * on, -0.1, { ramp: 4, linger: 40, fadeIn: 6 });
       keep('wind-gale', wxBed.gale * on, 0.1, { ramp: 2.5, linger: 40, fadeIn: 5 });
+      // (ATM-B — THE BLIZZARD, heard: Grok's two blizzard loops ALTERNATED (never the same bed long — a take every ~2½ min, faded across)
+      // under the snow's hush + the gale; the gusts stay on the visual waves below)
+      wxBed.blizzard = smooth(0.15, 0.75, W9.blizzard || 0) * 0.95;
+      keep('blizzard', wxBed.blizzard * on, 0, { ramp: 3, linger: 30, fadeIn: 5, take: Math.floor(t / 150000) % 2 });
       if (wf && on > 0 && wf.level > 0.2) {
         const edge = wf.at(wf.side > 0 ? 0 : 1), ts = t / 1000;
         if (edge > 0.22 && gustEdge <= 0.22 && ts - gustAt > 3) {

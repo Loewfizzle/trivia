@@ -8,40 +8,64 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const CAPS = [60, 130, 220];   // (the speed round: the near flakes carry the look)
 const DEPTH = [{ k: 0.42, v: 14, r: 0.85, a: 0.6 }, { k: 0.36, v: 24, r: 1.45, a: 0.88 }, { k: 0.22, v: 40, r: 2.9, a: 0.72 }];
 
+// ATM-B — HEAVY SNOW IN LAYERS OF DEPTH (the owner, Oct 27: "heavy snow + wind still broken — the layers of depth"): the three depths are
+// drawn WHERE THEY ARE — the far fine flakes behind the near skyline (s.layer 'far'), the mid layer over the harbor ('mid'), the big near
+// flakes over everything ('near', which also moves them all once a frame) — + the white veil softening the skyline (fogdepth.js, driven by
+// the snow); in heavy snow the near flakes BIGGER + more of them. THE BLIZZARD (s.blizzard 0..1): the snow DRIVEN SIDEWAYS in the gust
+// waves (the near flakes become short streaks along their flight), denser. + THE TREES SHAKING SNOW OFF in the gusts (shake()), THE GROUND
+// SNOW blowing in streamers + drifting against the speakeasy + the benches (ground()) — never on the street under the dock (it's open).
+const LAYER = { far: 0, mid: 1, near: 2 };
 export function createSnowfall() {
-  let W = 0, H = 0, flakes = [], slab = null, nextSlab = 0;
+  let W = 0, H = 0, flakes = [], slab = null, nextSlab = 0, puffs = [], streams = [];
+  const shook = new Map();
   const spawn = (d, anywhere) => ({ d, x: Math.random() * (W + 80) - 40, y: anywhere ? Math.random() * H : -6 - Math.random() * 30, ph: Math.random() * 6.28, s: 0.75 + Math.random() * 0.5, land: H * (d === 0 ? 0.62 + Math.random() * 0.12 : d === 1 ? 0.75 + Math.random() * 0.15 : 0.9 + Math.random() * 0.12) });
   return {
     resize(w, h) { if (w === W && h === H) return; W = w; H = h; flakes = []; },
     /** s: { snow 0..1, wind (m/s, + = blowing right on screen), windAt? (u 0..1 → the wind there, m/s signed — ATM-A), day 0..1, dt (ms), t, tier, motion, lightAt (x, y) → [r,g,b,k] | null } */
     draw(c, s) {
-      const sec = Math.min(0.1, (s.dt || 16) / 1000), tier = s.tier == null ? 2 : s.tier;
-      const want = s.snow > 0.004 ? Math.round(CAPS[tier] * Math.min(1, 0.15 + 0.85 * s.snow) * (s.motion ? 1 : 0.35)) : 0;
+      const sec = Math.min(0.1, (s.dt || 16) / 1000), tier = s.tier == null ? 2 : s.tier, only = s.layer ? LAYER[s.layer] : null, moving = only == null || only === 2;
+      const bz = clamp01(s.blizzard || 0), heavy = clamp01((s.snow - 0.6) / 0.4);
+      const want = s.snow > 0.004 ? Math.round(CAPS[tier] * Math.min(1, 0.15 + 0.85 * s.snow) * (1 + 0.35 * heavy + 0.6 * bz) * (s.motion ? 1 : 0.35)) : 0;
       if (!want && !flakes.length) return;
-      while (flakes.length < want) { const r = Math.random(), d = r < DEPTH[0].k ? 0 : r < DEPTH[0].k + DEPTH[1].k ? 1 : 2; flakes.push(spawn(d, flakes.length < want * 0.7 && want - flakes.length > 20)); }
-      if (flakes.length > want) flakes.length = want;
-      const day = clamp01(s.day), night = 1 - day, wind = Math.max(-16, Math.min(16, s.wind || 0)) * 2.6;
+      if (moving) {
+        while (flakes.length < want) { const r = Math.random(), d = r < DEPTH[0].k ? 0 : r < DEPTH[0].k + DEPTH[1].k ? 1 : 2; flakes.push(spawn(d, flakes.length < want * 0.7 && want - flakes.length > 20)); }
+        if (flakes.length > want) flakes.length = want;
+      }
+      const day = clamp01(s.day), night = 1 - day, wind = Math.max(-16, Math.min(16, s.wind || 0)) * 2.6 * (1 + 1.5 * bz);
+      const big = 1 + 0.35 * heavy + 0.15 * bz, streak = bz > 0.25 && s.motion;
       const B = new Map();
       const base = day > 0.5 ? [250, 252, 255] : [200, 208, 240];
       const q = v => Math.round(v / 24) * 24;
+      const lines = streak ? new Map() : null;
       for (const f of flakes) {
         const D = DEPTH[f.d];
-        if (s.motion) {
-          f.y += D.v * f.s * sec;
-          // (ATM-A: the shared wind THERE — the gust waves roll through the snow: it gusts sideways in sheets, settles in the lulls)
-          const wf = s.windAt ? Math.max(-16, Math.min(16, s.windAt(f.x < 0 ? 0 : f.x > W ? 1 : f.x / W))) * 2.6 : wind;
-          f.x += (wf * (0.5 + 0.5 * f.d) + Math.sin(s.t * 0.7 + f.ph) * (6 + 6 * f.d)) * sec;
+        if (s.motion && moving) {
+          f.y += D.v * f.s * sec * (1 + 0.55 * bz);
+          // (ATM-A: the shared wind THERE — the gust waves roll through the snow: it gusts sideways in sheets, settles in the lulls;
+          // ATM-B: a blizzard DRIVES it sideways — the gusts' share stronger)
+          const wf = s.windAt ? Math.max(-16, Math.min(16, s.windAt(f.x < 0 ? 0 : f.x > W ? 1 : f.x / W))) * 2.6 * (1 + 1.5 * bz) : wind;
+          f.vx = wf * (0.5 + 0.5 * f.d) + Math.sin(s.t * 0.7 + f.ph) * (6 + 6 * f.d) * (1 - 0.6 * bz);
+          f.x += f.vx * sec;
           if (f.y > f.land) Object.assign(f, spawn(f.d, false));
           if (f.x > W + 40) f.x -= W + 80; else if (f.x < -40) f.x += W + 80;
         }
+        if (only != null && f.d !== only) continue;
         let col = base;
         const L = night > 0.15 && s.lightAt ? s.lightAt(f.x, f.y) : null;
         if (L && L[3] > 0.02) { const k = Math.min(1, L[3] * 2.2) * night; col = [col[0] + (L[0] - col[0]) * k * 0.7 + 40 * k, col[1] + (L[1] - col[1]) * k * 0.7 + 40 * k, col[2] + (L[2] - col[2]) * k * 0.7 + 40 * k]; }
         const a = D.a * (f.d === 0 ? 0.6 + 0.4 * day : 1) * Math.min(1, (f.land - f.y) / 40 + 0.2);
         const r0 = Math.min(255, q(col[0])), g0 = Math.min(255, q(col[1])), b0 = Math.min(255, q(col[2])), al = Math.round(a * 4), key = ((f.d * 4 + al) * 11 + r0 / 24) * 121 + (g0 / 24) * 11 + b0 / 24;   // (a number, never a string a flake)
+        if (lines && f.d > 0) {
+          // (the blizzard: a near / mid flake a short streak along its flight — the snow reads DRIVEN, not drifting)
+          let ln = lines.get(key); if (!ln) { ln = { col: [r0, g0, b0], a: al / 4, w: D.r * big * (f.d === 2 ? 0.8 : 0.7), seg: [] }; lines.set(key, ln); }
+          const vy = D.v * f.s * (1 + 0.55 * bz), vx = f.vx || 0, k = (f.d === 2 ? 0.13 : 0.09) * bz;
+          ln.seg.push(f.x - vx * k, f.y - vy * k, f.x, f.y);
+          continue;
+        }
         let b = B.get(key); if (!b) { b = { col: [r0, g0, b0], a: al / 4, d: f.d, pts: [] }; B.set(key, b); }
-        b.pts.push(f.x, f.y, D.r * f.s);
+        b.pts.push(f.x, f.y, D.r * f.s * (f.d === 2 ? big : 1));
       }
+      if (lines) { c.lineCap = 'round'; for (const ln of lines.values()) { if (ln.a <= 0) continue; c.globalAlpha = ln.a; c.strokeStyle = `rgb(${ln.col[0] | 0},${ln.col[1] | 0},${ln.col[2] | 0})`; c.lineWidth = ln.w; c.beginPath(); const g = ln.seg; for (let i = 0; i < g.length; i += 4) { c.moveTo(g[i], g[i + 1]); c.lineTo(g[i + 2], g[i + 3]); } c.stroke(); } }
       for (const b of B.values()) {
         if (b.a <= 0) continue;
         c.globalAlpha = b.a; c.fillStyle = `rgb(${b.col[0] | 0},${b.col[1] | 0},${b.col[2] | 0})`;
@@ -79,7 +103,56 @@ export function createSnowfall() {
       }
       c.globalAlpha = 1;
     },
-    debug: () => ({ flakes: flakes.length, slab: !!slab }),
+    /** THE TREES SHAKING SNOW OFF in the gusts: s = { on (snow on the crowns 0..1), trees: [{ x, y (the crown's top), r }], at (u → the gust
+     *  there 0..1), wind (signed m/s), W, t, dt, motion, day } — a gust reaching a crown (rising past ~0.45) knocks a puff of snow off it,
+     *  drifting down + downwind */
+    shake(c, s) {
+      const sec = Math.min(0.1, (s.dt || 16) / 1000);
+      if (s.on > 0.1 && s.motion && s.at && s.trees) for (let i = 0; i < s.trees.length; i++) {
+        const tr = s.trees[i], g = s.at(Math.max(0, Math.min(1, tr.x / (s.W || W || 1)))), was = shook.get(i) || 0;
+        if (g > 0.45 && was <= 0.45 && puffs.length < 160) for (let k = 0; k < 18; k++) puffs.push({ x: tr.x + (Math.random() - 0.5) * tr.r * 1.6, y: tr.y + Math.random() * tr.r * 0.9, vx: (s.wind || 0) * (1.2 + Math.random()) + (Math.random() - 0.5) * 8, vy: 6 + Math.random() * 14, r: 0.9 + Math.random() * 1.8, a: 0.95, life: 2 + Math.random() * 1.6 });
+        shook.set(i, g);
+      }
+      if (!puffs.length) return;
+      c.save(); c.fillStyle = s.day > 0.5 ? 'rgb(248,250,255)' : 'rgb(206,212,240)';
+      for (let i = puffs.length - 1; i >= 0; i--) {
+        const p = puffs[i];
+        if (s.motion) { p.x += p.vx * sec; p.y += p.vy * sec; p.vy += 22 * sec; p.life -= sec; }
+        if (p.life <= 0) { puffs.splice(i, 1); continue; }
+        c.globalAlpha = Math.min(1, p.life / 1.2) * p.a; c.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
+      }
+      c.restore();
+    },
+    /** THE GROUND SNOW in the wind: s = { lie (snow lying 0..1), band: { y0, y1 } (the promenade — never the street under the dock), W, at,
+     *  side (+1 blowing right), level (the wind 0..1), t, dt, motion, day, drifts: [{ x, y, w }] (the speakeasy's foot, the benches' legs),
+     *  blizzard } — STREAMERS of snow blown low along the stones in the gusts + soft DRIFTS banked against the walls + legs (downwind side) */
+    ground(c, s) {
+      const lie = clamp01(s.lie || 0); if (lie < 0.15 || !s.band) return;
+      const day = clamp01(s.day || 0), col = day > 0.5 ? [246, 248, 254] : [196, 202, 232], sh = day > 0.5 ? [206, 214, 230] : [120, 126, 160];
+      // the DRIFTS (they build with the snow + the wind — banked on the downwind side)
+      const dk = lie * (0.5 + 0.5 * clamp01(s.level || 0) + 0.3 * clamp01(s.blizzard || 0));
+      if (dk > 0.15 && s.drifts) for (const d of s.drifts) {
+        const w = d.w * (0.7 + 0.6 * dk), h = Math.max(2, w * 0.22 * dk), x = d.x + (s.side || 1) * w * 0.25;
+        c.globalAlpha = 0.95; c.fillStyle = `rgb(${col})`; c.beginPath(); c.ellipse(x, d.y, w, h, 0, Math.PI, 0); c.fill();
+        c.globalAlpha = 0.35; c.fillStyle = `rgb(${sh})`; c.fillRect(x - w, d.y - 0.6, w * 2, 1.2);
+      }
+      // the STREAMERS: long low wisps racing along the stones while a gust blows (a strong wind only)
+      const sec = Math.min(0.1, (s.dt || 16) / 1000), lv = clamp01(((s.level || 0) - 0.35) / 0.4) + 0.6 * clamp01(s.blizzard || 0);
+      if (!streams.length) { let q = 31; const r = () => { q = (q * 16807) % 2147483647; return q / 2147483647; }; for (let i = 0; i < 9; i++) streams.push({ x: r() * (s.W || W), y: r(), len: 40 + r() * 70, ph: r() * 6.28 }); }
+      if (lv < 0.05) return;
+      const B = s.band;
+      c.save(); c.fillStyle = `rgb(${col})`;
+      for (const st of streams) {
+        const g = s.at ? s.at(Math.max(0, Math.min(1, st.x / (s.W || W || 1)))) : 0.5;
+        if (s.motion) { st.x += (s.side || 1) * (60 + 140 * g) * lv * sec; if (st.x > (s.W || W) + st.len) st.x = -st.len; else if (st.x < -st.len) st.x = (s.W || W) + st.len; }
+        const a = lie * lv * (0.15 + 0.55 * g) * (0.7 + 0.3 * Math.sin((s.t || 0) * 1.3 + st.ph));
+        if (a < 0.02) continue;
+        const y = B.y0 + (B.y1 - B.y0) * (0.1 + 0.8 * st.y);
+        c.globalAlpha = Math.min(0.75, a); c.beginPath(); c.ellipse(st.x, y, st.len * (0.7 + 0.5 * g), 1.4 + 1.6 * g, 0, 0, Math.PI * 2); c.fill();
+      }
+      c.restore();
+    },
+    debug: () => ({ flakes: flakes.length, slab: !!slab, puffs: puffs.length }),
   };
 }
 

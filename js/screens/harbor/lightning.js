@@ -102,7 +102,7 @@ export function createLightning({ onStrike = null } = {}) {
     /** s: { on (a storm), t (s), motion, base (the cloud base y), horizon (the far skyline's foot y), force ('lightning': more often),
      *  close ('strike': a CLOSE strike every ~10 s — the panel's control), needle ([x, y] | null), skyline (crown y per column), water ({ y0, y1 }) } */
     tick(s) {
-      motion = s.motion !== false; if (s.horizon != null) foot = s.horizon + 6;
+      motion = !!s.motion; if (s.horizon != null) foot = s.horizon + 6;   // (an unset motion = still: the old rule — never a full flash before the setting lands)
       if (!s.on) { flash = 0; if (cur && s.t - cur.at > 1) cur = null; return; }
       if (wantClose && s.t - lastAt >= 1.5) { wantClose = false; strike(s.t, s, 'close'); next = s.t + LIGHTNING.MIN_GAP + r() * 3; }
       else if (s.t >= next && s.t - lastAt >= LIGHTNING.MIN_GAP) {

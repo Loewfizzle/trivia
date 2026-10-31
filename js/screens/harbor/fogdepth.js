@@ -23,10 +23,12 @@ export function fogLook(fog) {
 }
 /** PURE: each depth's veil [top alpha, bottom alpha] for a look — far gone, middle ghostly, the harbor softened, the stage clear */
 export function veilOf(which, look) {
-  const { k, m } = look;
+  const { k, m } = look, x = look.x || 0;
   const V = { far: [[0.36, 0.6], [0.86, 0.97]], mid: [[0.15, 0.34], [0.52, 0.76]], harbor: [[0.06, 0.2], [0.24, 0.48]], road: [[0.02, 0.1], [0.18, 0.34]], stage: [[0, 0.05], [0.07, 0.15]] }[which];
   if (!V) return [0, 0];
-  return [lerp(V[0][0], V[1][0], m) * k, lerp(V[0][1], V[1][1], m) * k];
+  // (ATM-B — THE BLIZZARD's whiteout: the middle rows + the harbor + the road go too, the stage only softened)
+  const xb = which === 'far' ? 1 : 1 + (which === 'stage' ? 0.6 : 0.4) * x;
+  return [Math.min(0.97, lerp(V[0][0], V[1][0], m) * k * xb), Math.min(0.97, lerp(V[0][1], V[1][1], m) * k * xb)];
 }
 /** PURE: the fog's colour [top, bottom] — pale grey-white by day (warmer near dusk), a dim violet-grey at night lit warm from below by the
  *  city (+ a magenta lean on a party night) */
@@ -38,7 +40,7 @@ export function fogColours({ day = 0, golden = 0, party = false } = {}) {
 }
 
 export function createFogDepth() {
-  let look = { k: 0, m: 0, dense: false }, cols = [[0, 0, 0], [0, 0, 0]], day = 0, night = 0, t = 0, motion = true, wind = 2, W = 1, tier = 2;
+  let snowK = 0, look = { k: 0, m: 0, dense: false }, cols = [[0, 0, 0], [0, 0, 0]], day = 0, night = 0, t = 0, motion = true, wind = 2, W = 1, tier = 2;
   const grads = new Map();             // `${which}|${y0}|${y1}|${alphas}|${cols}` → gradient (a frame keeps ~3)
   const halos = new Map();             // colour key → a soft halo sprite
   let tile = null, drawn = { veils: 0, halos: 0, banks: 0 };
@@ -71,9 +73,11 @@ export function createFogDepth() {
   return {
     /** once a frame: s = { fog (0..1), day, golden, night, party, t, motion, wind (signed m/s on screen), W, tier } → the look */
     frame(s) {
-      look = fogLook(s.fog);
+      look = fogLook(s.fog); look.x = clamp01(s.whiteout || 0); snowK = clamp01(s.snow || 0);
       day = clamp01(s.day || 0); night = clamp01(s.night || 0); t = s.t || 0; motion = s.motion !== false; wind = s.wind == null ? 2 : s.wind; W = s.W || W; tier = s.tier == null ? 2 : s.tier;
       cols = fogColours({ day, golden: s.golden || 0, party: !!s.party });
+      // (ATM-B: falling snow whitens the murk — by day a white wall, at night the city's glow on the snow, brighter than fog)
+      if (snowK > 0.01) { const sc = [mixC([132, 134, 160], [236, 240, 248], day), mixC([176, 166, 184], [226, 230, 240], day)]; cols = [mixC(cols[0], sc[0], snowK), mixC(cols[1], sc[1], snowK)]; }
       drawn = { veils: 0, halos: 0, banks: 0 };
       return look;
     },
@@ -150,7 +154,7 @@ export function createFogDepth() {
       c.restore();
       drawn.banks++;
     },
-    debug: () => ({ k: +look.k.toFixed(2), m: +look.m.toFixed(2), dense: look.dense, mode: look.k <= 0.01 ? 'none' : look.m > 0.5 ? 'dense' : 'mist', col: cols, ...drawn, sprites: halos.size }),
+    debug: () => ({ k: +look.k.toFixed(2), m: +look.m.toFixed(2), dense: look.dense, mode: look.k <= 0.01 ? 'none' : look.x > 0.5 ? 'whiteout' : snowK > 0.3 ? 'snow' : look.m > 0.5 ? 'dense' : 'mist', x: +(look.x || 0).toFixed(2), col: cols, ...drawn, sprites: halos.size }),
     destroy() { for (const h of halos.values()) h.width = 0; halos.clear(); if (tile) { if (tile.tinted && tile.tinted.cv) tile.tinted.cv.width = 0; tile.width = 0; } tile = null; grads.clear(); },
   };
 }

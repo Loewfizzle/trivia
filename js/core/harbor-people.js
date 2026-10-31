@@ -796,7 +796,8 @@ function blockVisits(phase, k, M, ctx = {}) {
   const B = FOLK.block, t0 = k * B + (phase ? B / 2 : 0), t1 = t0 + B, loc = localOf(t0 + B / 2, ctx.off);
   const r = rngFrom(hashString(`folk|${ctx.seed || 1924}|${loc.key}|${phase}|${k}`));
   const party = ctx.party ? ctx.party(t0 + B / 2) : partyAtT(t0 + B / 2, ctx.off);
-  const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: ctx.rain || 0, budget: ctx.budget == null ? 1 : ctx.budget, rush: ctx.rush ? ctx.rush(t0 + B / 2) : 0, street: party && !ctx.noStreetParty ? (ctx.partyForced ? 1 : crowdK(loc.h < 12 ? loc.h + 24 : loc.h)) : 0 });
+  // (ATM-B: THE BLIZZARD — few people out: it counts like a storm's rain here; the looks keep their own rain — no umbrellas in it)
+  const mn = mixNow({ h: loc.h, dow: loc.dow, party, rain: Math.max(ctx.rain || 0, ctx.blizzard > 0.05 ? 0.75 + 0.2 * Math.min(1, ctx.blizzard) : 0), budget: ctx.budget == null ? 1 : ctx.budget, rush: ctx.rush ? ctx.rush(t0 + B / 2) : 0, street: party && !ctx.noStreetParty ? (ctx.partyForced ? 1 : crowdK(loc.h < 12 ? loc.h + 24 : loc.h)) : 0 });
   const rushK = ctx.rush ? ctx.rush(t0 + B / 2) : 0;
   // (×1.3: a phase's visits must fit inside its block, so its load falls off toward the block's end — the other phase fills in)
   const want = mn.n / 2 * B * 1.3, cap = phase === 0 ? Math.ceil(FOLK.cap * 0.65) : FOLK.cap, out = [];

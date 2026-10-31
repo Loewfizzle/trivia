@@ -476,6 +476,7 @@ export const WEATHER = [
   { id: 'storm', label: 'STORM', group: 'STORM' }, { id: 'windy', label: 'WINDY', group: 'STORM' }, { id: 'gale', label: 'GALE', group: 'STORM' },   // (ATM-A: &force=gale)
   { id: 'fog', label: 'FOG', group: 'FOG' }, { id: 'mist', label: 'MIST', group: 'FOG' },
   { id: 'freezing', label: 'FREEZING RAIN', group: 'COLD' }, { id: 'snow', label: 'SNOW', group: 'COLD' },
+  { id: 'heavysnow', label: 'HEAVY SNOW', group: 'COLD' }, { id: 'blizzard', label: 'BLIZZARD', group: 'COLD' },   // (ATM-B: the layers of depth + the whiteout; also &force=heavy-snow / blizzard)
 ];
 export const WEATHER_GROUPS = [...new Set(WEATHER.map(w => w.group))];
 const lastMonday = (y, m) => { const d = new Date(Date.UTC(y, m, 0)); return d.getUTCDate() - ((d.getUTCDay() + 6) % 7); };

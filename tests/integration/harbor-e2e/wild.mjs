@@ -102,6 +102,18 @@ G('weather', async () => {
     const b = await ev(Q.page, `${P}.sky.state.balloons`);
     ok(b && b.order.join() === 'btc-orange,alien,bitcoin,bullseye,smiley,flag' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
     await Q.ctx.close(); }
+  // ---- ATM-B — HEAVY SNOW IN LAYERS + THE BLIZZARD: heavy snow = the far veil (a 'snow' look) + more, bigger flakes; the blizzard = a
+  // WHITEOUT with depth, the snow driven sideways, the heads bowed, the blizzard's bed in the mix
+  { const H1 = await open({ slot: 'hs1', qs: `when=2026-12-15T12:30${GR}&force=heavy-snow`, view: [402, 874] });
+    await harborUp(H1.page); await sleep(1500);
+    const hw = await ev(H1.page, W);
+    ok(hw.state === 'snow' && hw.fogDepth.mode === 'snow' && !(hw.line || '').includes('BLIZZARD'), `ATM-B HEAVY SNOW IN LAYERS: ${hw.line} · the veil ${hw.fogDepth.mode} (${hw.fogDepth.veils} veils)`);
+    await H1.ctx.close();
+    const B1 = await open({ slot: 'bz1', qs: `when=2026-12-15T12:30${GR}&force=blizzard`, view: [402, 874] });
+    await harborUp(B1.page); await tapAt(B1.page, 30, 300); await sleep(2500);
+    const bw = await ev(B1.page, W), fw = await ev(B1.page, `${P}.people.wind`), beds = await ev(B1.page, `${P}.sounds && ${P}.sounds.beds ? ${P}.sounds.beds : null`).catch(() => null);
+    ok(/BLIZZARD/.test(bw.line) && bw.fogDepth.mode === 'whiteout' && bw.fogDepth.x > 0.8 && fw.down > 0.8 && fw.flap > 0.3, `ATM-B THE BLIZZARD: ${bw.line} · the whiteout ${bw.fogDepth.mode} (x ${bw.fogDepth.x}), heads down ${fw.down}, coats ${fw.flap}${beds ? ` · beds ${JSON.stringify(beds)}` : ''}`);
+    await B1.ctx.close(); }
   // ---- ATM-B — FREEZING RAIN READS AS ICE: icicles on the ledges + the signs' frames + the railing, the ice sheen, people's careful steps
   { const Q = await open({ slot: 'fz1', qs: `when=2026-11-20T21:30${GR}&force=freezing-rain`, view: [402, 874] });
     await harborUp(Q.page); await sleep(1500);

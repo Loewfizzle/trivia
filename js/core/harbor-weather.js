@@ -56,7 +56,10 @@ export function cityWeather(wx) {
   // (1b) SNOW (9b) — a snow code, or the source's snow (never sleet: that is freezing rain) — the flakes' level by the code / the source
   if (SNOW_CODES.has(code) || ((wx.kind === 'snow' || num(wx.snow) > 0.05) && !FREEZING_CODES.has(code) && wx.kind !== 'sleet' && rain0 < 0.1)) {
     const kk = k != null ? k : clamp01(Math.max(num(wx.snow), code === 75 || code === 86 ? 1 : code === 73 || code === 85 ? 0.72 : code === 71 || code === 77 ? 0.45 : 0.6));
-    return { ...out, state: 'snow', k: kk, snow: kk, rate: 0, why: `${src} snow · ${temp == null ? '?' : temp} °C${wind >= WX.windy ? ` · wind ${wind} m/s` : ''}` };
+    // (ATM-B — THE BLIZZARD: heavy snow + a strong wind (~15 m/s, or its gusts) or snow with the visibility under ~400 m — a whiteout)
+    const vis = wx.vis != null && Number.isFinite(Number(wx.vis)) ? Number(wx.vis) : null;
+    const bz = blizzardK(kk, wind, gust, vis);
+    return { ...out, state: 'snow', k: kk, snow: kk, rate: 0, blizzard: bz, why: `${src} ${bz > 0.5 ? 'BLIZZARD' : 'snow'} · ${temp == null ? '?' : temp} °C${wind >= WX.windy ? ` · wind ${wind} m/s` : ''}${vis != null && vis < 1000 ? ` · vis ${vis} m` : ''}` };
   }
   // (2) FREEZING RAIN — a freezing code, or rain falling at / under freezing (ice: the glaze on the frame + the glass)
   if (FREEZING_CODES.has(code) || wx.kind === 'freezing' || (wet && temp != null && temp <= WX.freezeC)) {
@@ -82,6 +85,14 @@ export function cityWeather(wx) {
   return { ...out, why: `${src} ${wx.kind} — no weather on the city` };
 }
 
+/** PURE (ATM-B): how much of a BLIZZARD (0..1) — the snow heavy enough (k ≥ ~0.5) AND a strong wind (11 → 16 m/s, or gusts 17 → 25) or a
+ *  low visibility (800 → 400 m) */
+export function blizzardK(k, wind, gust, vis) {
+  const heavy = clamp01((num(k) - 0.45) / 0.25);
+  if (heavy <= 0) return 0;
+  const wB = clamp01((Math.max(num(wind), num(gust) / 1.55) - 11) / 5), vB = vis == null ? 0 : clamp01((800 - num(vis)) / 400);
+  return Math.round(heavy * Math.max(wB, vB) * 100) / 100;
+}
 /** PURE: the street's wetness on a load after real rain (wetAt ms: when it last really rained) — 1 while raining, drying over WX.dryMin */
 export function wetFrom(wetAt, now) {
   if (wetAt == null || !Number.isFinite(wetAt)) return 0;
@@ -98,7 +109,7 @@ export const dripFrom = (wetAt, now) => (wetAt == null ? 0 : clamp01(1 - Math.ma
 
 /** the live state (what's drawn now): created at the first answer — joined mid-way (a load in the rain shows the rain at once) */
 export function createWeatherState(target = cityWeather(null), { wet = 0, drip = 0 } = {}) {
-  return { state: target.state, k: target.k, rain: target.rain, snow: target.snow || 0, fog: target.fog, wind: target.wind, gust: target.gust, dir: target.dir, ice: target.ice,
+  return { state: target.state, k: target.k, rain: target.rain, snow: target.snow || 0, blizzard: target.blizzard || 0, fog: target.fog, wind: target.wind, gust: target.gust, dir: target.dir, ice: target.ice,
     lightning: target.lightning, wet: Math.max(wet, target.rain > 0 ? 1 : 0), drip: Math.max(drip, target.rain > 0 ? 1 : 0), since: 0, target };
 }
 
@@ -120,6 +131,7 @@ export function stepWeather(st, target, dt, { forced = false } = {}) {
   if (st.rain > 0.03) { st.wet = Math.min(1, st.wet + s / 120); st.drip = Math.min(1, st.drip + s / 30); }
   else { st.wet = Math.max(0, st.wet - s / (WX.dryMin * 60)); st.drip = Math.max(0, st.drip - s / (WX.dripMin * 60)); }
   st.snow = toward(st.snow || 0, target.snow || 0, 1 / (forced ? 8 : 120));      // (9b: the flakes come on over ~2 min live — a few big ones first)
+  st.blizzard = toward(st.blizzard || 0, target.blizzard || 0, 1 / (forced ? 6 : 90));   // (ATM-B: the whiteout closes in over ~1.5 min live)
   st.fog = toward(st.fog, target.fog, 1 / WX.fogS);
   st.wind += (target.wind - st.wind) * Math.min(1, s / 20); st.gust += (target.gust - st.gust) * Math.min(1, s / 20); st.dir = target.dir;
   st.ice = toward(st.ice, target.ice, 1 / 240);
@@ -131,13 +143,13 @@ export function stepWeather(st, target, dt, { forced = false } = {}) {
 export function weatherLine(st) {
   if (!st) return 'weather —';
   const p = v => Math.round(v * 100);
-  return `→ ${st.state.toUpperCase()}${st.k ? ` ${p(st.k)}%` : ''} · ${st.target ? st.target.why : ''} · rain ${p(st.rain)}% wet ${p(st.wet)}% drip ${p(st.drip)}% fog ${p(st.fog)}%${st.snow > 0.01 ? ` snow ${p(st.snow)}%` : ''}${st.ice > 0.01 ? ` ice ${p(st.ice)}%` : ''} · wind ${st.wind.toFixed(1)} g ${st.gust.toFixed(1)}${st.lightning ? ' · ⚡' : ''}`;
+  return `→ ${st.state.toUpperCase()}${st.k ? ` ${p(st.k)}%` : ''} · ${st.target ? st.target.why : ''} · rain ${p(st.rain)}% wet ${p(st.wet)}% drip ${p(st.drip)}% fog ${p(st.fog)}%${st.snow > 0.01 ? ` snow ${p(st.snow)}%` : ''}${st.blizzard > 0.01 ? ` BLIZZARD ${p(st.blizzard)}%` : ''}${st.ice > 0.01 ? ` ice ${p(st.ice)}%` : ''} · wind ${st.wind.toFixed(1)} g ${st.gust.toFixed(1)}${st.lightning ? ' · ⚡' : ''}`;
 }
 
 /** the previews: a state id (&force=… / &wx=…) + an intensity (&wxk=light|medium|heavy) → core/weather.js#forcedWeather's kind + extras */
 export const WX_FORCE = Object.freeze({
   drizzle: ['drizzle', { rain: 0.25, rate: 0.3 }], rain: ['rain', { rain: 0.55, rate: 3.5 }], 'heavy-rain': ['heavy', { rain: 0.9, rate: 12 }],
   storm: ['storm', { rain: 0.95, rate: 15, storm: 1, wind: 12, gust: 22 }], fog: ['fog', { fog: 0.9, vis: 150 }], mist: ['mist', { fog: 0.45, vis: 600 }],
-  windy: ['windy', { wind: 14, gust: 21 }], gale: ['gale', { wind: 20, gust: 30 }], snowfall: ['snow', { snow: 0.7, temp: -3 }], 'freezing-rain': ['freezing', { rain: 0.5, rate: 2.5, temp: -2, code: 67 }],
+  windy: ['windy', { wind: 14, gust: 21 }], gale: ['gale', { wind: 20, gust: 30 }], snowfall: ['snow', { snow: 0.7, temp: -3 }], 'heavy-snow': ['snow', { snow: 1, temp: -5, wind: 6, gust: 10 }], blizzard: ['snow', { snow: 1, temp: -8, wind: 17, gust: 26, vis: 250 }], 'freezing-rain': ['freezing', { rain: 0.5, rate: 2.5, temp: -2, code: 67 }],
 });
 export const WX_K = Object.freeze({ light: 0.3, medium: 0.6, heavy: 0.95 });
