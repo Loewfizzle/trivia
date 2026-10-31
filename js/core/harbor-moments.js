@@ -18,6 +18,7 @@
 // never two in the same window at once, never more than MAX_AT_ONCE together. RARITY = the chance a slot (when the eligible ones sum
 // under 1 — by day — the rest of the slot stays empty: rare stays rare).
 import { rngFrom, hashString } from './rng.js';
+import { mothmanNight } from './harbor-mothman.js';
 import { legendNight } from './harbor-legend.js';
 import { partyDow } from './party.js';
 import { knob } from './harbor-schedule.js';
@@ -64,7 +65,7 @@ export const MOMENTS = Object.freeze([
   // ---- WIN2 — THE EYES IN THE HAZE (the owner's add-on): one of the four full windows a dark room full of slow drifting haze, lit faintly
   // from below by an ember-red glow, with just a pair of big red glowing eyes watching the street — blinking rarely, drifting a little,
   // narrowing now + then; no body, no face. Its own calendar (eyesNights): 2 random weekend nights a month, 11 pm → 4 am, 3 plays of
-  // 150 s; never a legendary's night, never with the edge windows' eerie-red mood, never a Mothman night (ctx.mothman — none yet)
+  // 150 s; never a legendary's night, never with the edge windows' eerie-red mood, never a Mothman night (core/harbor-mothman.js#mothmanNight)
   { id: 'eyes', label: 'THE EYES IN THE HAZE', rarity: 'legendary', calendar: 'eyes', windows: ['bar', 'jazz', 'back'], hours: [23, 4], light: 'night', len: 150, plays: 3, starter: false, kind: 'a dark room full of slow haze, an ember-red glow from below, a pair of big red eyes watching the street — blinking rarely, drifting, narrowing; no body, no face' },
   { id: 'cash', label: 'COUNTING THE CASH', rarity: 'uncommon', windows: ['back'], hours: [22.5, 2.5], light: 'night', len: 26, cooldown: 420, party: 0.6, boot: true, noRaid: true, starter: false, kind: 'a close-up: a man in shirtsleeves + braces under the green banker\'s lamp, bills peeled off the heap into banded stacks, a lick of the thumb, a glance over his shoulder; a shadow at the door — it all goes in the bag' },
   // ---- 11a-2 — THANKSGIVING's ROOM LIFE (the owner: "candlelit family tables in windows on the lit 3D kit + ACT BIG — NEVER in the boss's
@@ -156,12 +157,12 @@ const shiftKey = (key, days) => { const [y, m, d] = ymdOf(key), t = new Date(Dat
 /**
  * the eyes' nights of a month: TWO weekend nights (Fri / Sat evenings, seeded by the month), each with `plays` starts between 11 pm and
  * 4 am (seconds after the EVENING's midnight — the small hours' starts run past 86400) → { 'YYYY-MM-DD': [s, s, s] }; a legendary's
- * night (harbor-legend.js) or a night the edge windows show the eerie-red mood is skipped (ctx.mothman: none yet — the hook)
+ * night (harbor-legend.js), a night the edge windows show the eerie-red mood or a MOTHMAN night (harbor-mothman.js) is skipped
  */
 export function eyesNights(y, m, ctx = {}) {
   const M = MOMENT.eyes, r = rngFrom(hashString(`eyes|${y}|${m}`)), out = {};
   // (the eligible weekend nights first — a legendary's night, an eerie-red night, a Mothman night are never in the draw — then two of them)
-  const days = []; for (let d = 1; d <= 31; d++) { const t = new Date(Date.UTC(y, m - 1, d)); if (t.getUTCMonth() !== m - 1) break; const dow = t.getUTCDay(); if ((dow === 5 || dow === 6) && !legendNight(y, m, d) && !redMoodNight(dayKey(y, m, d), ctx) && !ctx.mothman) days.push(d); }
+  const days = []; for (let d = 1; d <= 31; d++) { const t = new Date(Date.UTC(y, m - 1, d)); if (t.getUTCMonth() !== m - 1) break; const dow = t.getUTCDay(); if ((dow === 5 || dow === 6) && !legendNight(y, m, d) && !redMoodNight(dayKey(y, m, d), ctx) && !mothmanNight(y, m, d)) days.push(d); }   // (MODELS: his nights from core/harbor-mothman.js — the old ctx.mothman hook)
   const picks = []; while (picks.length < 2 && days.length) { const i = Math.floor(r() * days.length); picks.push(days.splice(i, 1)[0]); }
   for (const d of picks.sort((a, b) => a - b)) {
     const key = dayKey(y, m, d);

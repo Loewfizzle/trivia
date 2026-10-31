@@ -16,6 +16,12 @@ export const CREDITS = [
   // BNAME: the construction tower's crane (art/models/crane/credits.txt: "Crane by J-Toastie, CC BY 3.0 (poly.pizza)")
   { group: '3D MODELS', title: 'Crane by J-Toastie', by: 'J-Toastie (poly.pizza)', licence: 'CC BY 3.0 (poly.pizza)', link: 'https://poly.pizza/m/gCcpjaxFdv' },
   // SKY-A: every F-22 in the city (the TR-3B's chase, the air show, the missing man, the flyby, the skytypers) — art/models/f22/credits.txt
+  // THE MODELS PASS — THE MOTHMAN's two models (art/models/mothman/credits.txt: Tencent HY 3D's terms ask that published outputs say they're AI-made)
+  { group: '3D MODELS', title: 'The Mothman — perched + wings spread (AI-generated)', by: 'Generated with Tencent HY 3D (Hunyuan 3D V3.1, AI-generated) from images created with Grok', licence: 'Tencent HY 3D Global Terms of Service — AI-generated output', link: 'https://hy3d.tencent.ai' },
+  // THE MODELS PASS — the SR-71 behind the Blackbird's art switch (art/models/blackbird/credits.txt)
+  { group: '3D MODELS', title: '"SR-71 blackbird (FREE) downloadable" by pablogcg05', by: 'pablogcg05 (@pablogcg05)', licence: 'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)', link: 'https://sketchfab.com/3d-models/sr-71-blackbird-free-downloadable-68038c36f48a40b9a769331abcd822c1' },
+  // THE MODELS PASS — the patrol helicopter (art/models/helicopter/credits.txt: CC0, its site lists it as made with AI tools)
+  { group: '3D MODELS', title: '"Utility helicopter" by 3D Assets (made with AI tools)', by: '3D Assets (https://3dassets.dev/u/3dassets)', licence: 'CC0 1.0 — dedicated to the public domain (https://creativecommons.org/publicdomain/zero/1.0/)', link: 'https://3dassets.dev/assets/transport-collection-hd-utility-helicopter-18e3c5fe' },
   { group: '3D MODELS', title: '"F22 Raptor FREE" by NLM', by: 'NLM (@NLM-Group)', licence: 'CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)', link: 'https://sketchfab.com/3d-models/f22-raptor-free-2a64abf0866a405c865466c7642ca689' },
   // NIGHT-A2: City 2.0's EVENING deck (c2-80s-retro-synthwave) — the Pixabay Content License asks no attribution; credited anyway
   { group: 'THE MUSIC', title: '80s Retro Synthwave', by: 'Playsound, Pixabay', licence: 'Pixabay Content License', link: 'https://pixabay.com/music/synthwave-80s-retro-synthwave-186631/' },

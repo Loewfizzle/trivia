@@ -250,9 +250,17 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
    counts, and write `docs/<id>.md`.
 
 ## Testing (the short version; every suite and flag: `docs/testing.md`)
+- **THE BUILD MACHINE IS THE MINI PC** (the owner, Oct 30: "do more tests, do things locally"): a Beelink SER8, Windows 11, **32 GB**, Java (Temurin 21)
+  → the emulators run HERE. Before EVERY final push run LOCALLY: the unit suite, the rules + `/api` tests, the smoke test (`GAMES=…` for a shared
+  file) AND the FULL `e2e-harbor` suite (a City 2.0 pass) — the cloud run then CONFIRMS instead of discovers. Measured on it: unit ≈ 75 s, rules ≈ 27 s,
+  smoke `GAMES=cipher` ≈ 38 s, one harbor group ≈ 30–60 s, the full harbor suite: docs/harbor/passes/models.md. **Run the full suite with nothing
+  else busy** (no model bakes, no shot bursts beside it: under that load every group timed out "the harbor baked" — MODELS). Browser tests run
+  OUTSIDE Claude Code's sandbox (its private AppData copy can't launch Chromium): the local, uncommitted rule in `.claude/settings.local.json`
+  (`node tests/integration/e2e-*`, `shots.mjs`, `title-perf.mjs`, `pixdiff.mjs` — run them from the repo root with those paths). Chromium:
+  `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`. The laptop is retired (a backup).
 - **GitHub checks** (unit → rules → /api → smoke, on the emulators) run **only on a pass's FINAL push** (SP6, the owner's CLOUD MINUTES, Oct 27):
   a game / app pass tags that push's commit **`[ci]`**, a City 2.0 pass **`[harbor]`** (which runs both workflows); pull requests + `gh workflow run tests`
-  always run; every other push shows a skipped run (0 minutes) — run the unit suite on the laptop before every push. Next to the Vercel deploy, never
+  always run; every other push shows a skipped run (0 minutes) — run the unit suite locally before every push. Next to the Vercel deploy, never
   blocking it. Budget: ≈ 30–40 cloud minutes a pass (tests ≈ 10, the harbor's 8 jobs ≈ 28–34; HOTFIX Oct 29: + perf). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
 - **VERCEL DEPLOYS ONLY TAGGED PUSHES** (the owner's DEPLOYMENT STORAGE, Oct 27: Hobby's 10 GB went at ~300 MB a deploy on every push):
   `vercel.json#ignoreCommand` builds only when the push's **LAST commit message** carries **`[harbor]`**, **`[ci]`** or **`[deploy]`**
@@ -265,7 +273,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, 8 parallel jobs): the FULL `e2e-harbor` suite runs only on a pass's FINAL push
   (the harbor tag in a commit message + a City 2.0 file touched) or `gh workflow run harbor` (`-f job=street`). **At most TWO cloud runs a pass**;
   never re-run to confirm a flake. A new test group: its `G()` in `tests/integration/harbor-e2e/<job>.mjs` + its name in exactly one job in
-  `harbor-jobs.mjs`. Locally: the unit suite + the touched groups (`ONLY=…`), never the whole suite (out of memory). Full text: docs/harbor.md.
+  `harbor-jobs.mjs`. Locally (the mini PC): the touched groups (`ONLY=…`) while working, the FULL suite once before the final push. Full text: docs/harbor.md.
 - **THE BASELINE GUARD:** `ONLY=perf` fails above 2× `tests/integration/perf-baseline.json` (`PERF_GUARD=only` ≈ 1.5 min; `PERF_BASELINE=write`
   only when a pass changes the cost on purpose — say so). A cache keyed per frame must hold its whole working set.
 - `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).

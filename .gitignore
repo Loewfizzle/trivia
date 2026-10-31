@@ -24,3 +24,5 @@ art/models/promenade/**/*.glb
 
 # SKY-A (Oct 30): the F-22 model (25 MB — sources > ~20 MB stay on the laptop; scripts/bake/f22.mjs re-bakes it; credits.txt beside it is kept)
 art/models/f22/*.glb
+art/models/mothman/*.glb
+art/models/blackbird/*.glb

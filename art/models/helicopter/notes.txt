@@ -1,0 +1,99 @@
+NEON SPEAKEASY - PATROL / PARTY HELICOPTER - NOTES (2026-10-30)
+
+BEST PICK: helicopter-utility-hd_3dassets-18712.glb
+  What it is : a generic light single-turbine civil helicopter in the Bell 206 JetRanger style (bubble nose,
+               engine-deck fairing, thin tail boom, T-tail with an orange fin, tubular skids). Navy-blue paint,
+               ivory boom and roof, orange accent fin, plus a small "light" material (a lamp) on the boom.
+               It reads as police / news / tour. No floats, winch, weapons or other attachments.
+  Format     : glTF 2.0 binary (.glb), single self-contained file, no textures (7 flat PBR materials),
+               uses KHR_mesh_quantization (three.js GLTFLoader loads it natively, with no decoder needed).
+  Size       : 318,796 bytes (311 KB)
+  Triangles  : 6,456 (11 meshes, 14 nodes). The rotors are 1,424 of these.
+  Units/axes : metres, +Y up, nose toward +Z, origin at the footprint centre on the ground (y=0).
+               Overall 8.50 (rotor span, X) x 3.115 (height) x 9.56 (length incl. rotor disc) m.
+  Animation  : one clip "rotor-spin" (LINEAR, 0-1 s, rotation channels on main-rotor and tail-rotor only).
+               The asset page text says "no animation clips", but the file does contain this one. Ignore it if unused.
+
+  NODE HIERARCHY (confirmed with gltf-transform + three.js; rotors ARE separate):
+    utility-helicopter                  (root group)
+      utility-helicopter_0   mat paint   (fuselage shell)           1,856 tris
+      utility-helicopter_1   mat glass   (canopy glazing)             944
+      utility-helicopter_2   mat ivory   (roof/boom/upper body)       976
+      utility-helicopter_3   mat metal   (skids, struts, mast)        560
+      utility-helicopter_4   mat accent  (orange tail fin)            176
+      utility-helicopter_5   mat rubber  (dark trim/engine deck)      360
+      utility-helicopter_6   mat light   (small lamp on the boom)     160
+      main-rotor             GROUP, pivot (0, 3.01, 0.53). Spins about +Y.
+        main-rotor/rubber    4 blades, span +/-4.25 m                 512
+        main-rotor/metal     hub                                       48
+      tail-rotor             GROUP, pivot (0.18, 2.20, -4.13). Spins about X (disc lies in the YZ plane, on the +X/right side of the fin)
+        tail-rotor/rubber    blades, dia ~1.3 m                       768
+        tail-rotor/metal     hub                                       96
+    To hide the rotors: set visible=false on the nodes named "main-rotor" and "tail-rotor" (each one hides its whole group).
+    The mast stub stays on the body (in utility-helicopter_3), which works well as the anchor for a code-drawn rotor disc.
+    Rotor pivots are exactly at the hub centres: the blade bounding-box centres match the node origins. A disc drawn
+    at world (0, 3.01, 0.53) with a radius of about 4.25 m matches the original. The tail disc is centred at (0.18, 2.20, -4.13) with a radius of about 0.65 m.
+
+  WHY IT WON: CC0, a direct download with no account, a clean single GLB, a civil JetRanger shape, rotors as properly
+    pivoted named groups, a good triangle count for sprite baking, and the cleanest silhouette of everything tested. The
+    silhouette strip (previews/best_silhouette-strip_64px_8yaw.png: top row with rotors, bottom row with them hidden, at 64 px)
+    reads clearly as a helicopter at every 45 degrees.
+
+  HONEST FLAWS:
+    - It is AI-generated (the site says so) and a generic design, not an exact Bell model. Details are simple, but the shape is clean.
+    - The navy paint is dark. On a night scene it may sink into the background. Recolour the "paint" material
+      (e.g. white/blue police livery) or add a rim light when baking. Glass is near-black.
+    - The main rotor has 4 blades (a real 206 has 2). This doesn't matter if the rotors are hidden and drawn in code.
+    - Fairly glossy materials (metalness 0.3-0.85), so it can look dark under flat lighting without an environment map.
+    - Front and rear views are very narrow (a thin shape at 64 px), which is normal for a helicopter.
+
+RUNNER-UP INCLUDED: runnerup_helicopter-utility-lowpoly_3dassets-20028.glb  (CC0, 122,100 bytes, 2,408 tris)
+  Same author/style, simpler low-poly JetRanger shape: teal body, cream boom, orange engine fairing/fin. No textures, no animation.
+  Rotors separate, but as 4 flat sibling nodes (no pivot groups): two nodes both named "main-rotor" (blades and hub, node
+  origin at about (0, 2.85-2.87, 0.69)) and two nodes both named "tail-rotor" (origin at about (0.17-0.20, 2.16, -3.59)). Hiding by name works.
+  It's a good fallback if the HD one is too detailed or too dark. It wasn't picked because it's less refined and the rotor nodes aren't grouped.
+
+OTHER CANDIDATES (downloaded to /workspace/neon/helicopter/src/ and inspected, not delivered):
+  * Pixor "Helicopter": https://pixor.art/library/vehicles/helicopter/  (file /library/files/helicopter/pixor-library-helicopter.glb)
+      Author Frakassets / Pixor library. CC0. GLB 28,468 B, 732 tris, plus a .blend. Rotors separate: "Helicopter rotor" and
+      "Helicopter tail rotor" nodes with their own origins, and a rotor animation. Flaw: a toy-like bubble-cockpit
+      (MD 500 / Bell 47-ish) cartoon with an orange body. It reads more "cute" than patrol. A good CC0 fallback for a cartoon look.
+  * Poly Pizza "Helicopter" by jeremy: https://poly.pizza/m/eb7b31pjGtQ  CC-BY 3.0. GLB 45,208 B, 840 tris. A nice white/blue
+      JetRanger-like low-poly with a strong police/news read, BUT it's one merged mesh "Cube": rotors are NOT separate. Nose is +X.
+      Credit if used: "Helicopter" by jeremy (https://poly.pizza/m/eb7b31pjGtQ) is licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+  * Poly Pizza "Helicopter" by kazuma: https://poly.pizza/m/EQJ2MECUbx  CC0. GLB 77,712 B, 1,094 tris. Black/red, single mesh
+      (rotors NOT separate), very dark for night use.
+  * OpenGameArt "Rescue Helicopter (low poly)": https://opengameart.org/content/rescue-helicopter-low-poly  CC-BY 4.0,
+      uploaded by brylie. The model itself is by blueskinrulez (Sketchfab model 0c4d0167..., now 404). glTF+bin zip 111,426 B, 8,661 tris,
+      EC135-ish. Rotors separate (4 blade nodes Cube.003-.006 + hub Cylinder.004, tail rotor "Cylinder"). Flaws: uses the
+      KHR_materials_pbrSpecularGlossiness extension, which current three.js no longer supports, so it renders flat grey. It also has the old
+      OSG node clutter, a stray "Area" light node, and a crude tail. Its provenance relies on the uploader.
+  * 3dassets.dev "Light Turbine Utility Helicopter" (asset 32802), CC0, 819,640 B, 20,332 tris, named pivots + animations.
+      REJECTED: the fuselage sits at x=-1.27 while the main-rotor blade mesh is offset back to x=0, so the rotor disc is off the mast.
+  * 3dassets.dev "Light Utility Helicopter (Battle Royale)" (asset 28246), CC0, 459,164 B, 25,792 tris. Olive military-ish, with
+      "loot" glow materials, and the tail fin looked detached in our side render. Poor fit.
+  * 3dassets.dev "Light Piston Helicopter" (asset 32804), CC0, 700,296 B, 17,460 tris. Bubble trainer type, less patrol-like.
+  * 3dassets.dev "Rescue helicopter" (asset 18715, same pack as the best pick, not downloaded). It has a winch cable/hook and an external
+      pod (weird attachments), although it does have a "searchlight" node.
+
+SKETCHFAB CANDIDATES (CC-BY, downloadable, but need a SIGNED-IN download. The anonymous API returns 401, and I created no account):
+  Rotor separation is unknown until downloaded. Face counts are from the Sketchfab API.
+  * Bell 429 Helicopter, davidre, CC BY 4.0, 83,574 faces (white/orange, realistic civil, probably the best "real" civilian look)
+      https://sketchfab.com/3d-models/bell-429-helicopter-8dda855f3ab343b7b69ca7adcbf24f03
+  * Helicopter bell, 3DDomino, CC BY 4.0, 2,028 faces (low-poly yellow Bell 206 style)
+      https://sketchfab.com/3d-models/helicopter-bell-20d80ac1480b42eb855b8136a4c411b4
+  * Eurocopter ec135 Politia - High-poly, solid3ddd, CC BY 4.0, 199,830 faces (actual police livery EC135, heavy)
+      https://sketchfab.com/3d-models/eurocopter-ec135-politia-high-poly-02373bff3f7f48bf8649805455fe4260
+  * AS350_B2, kulunk, CC BY 4.0, 5,740 faces (AS350 Ecureuil)
+      https://sketchfab.com/3d-models/as350-b2-48d812a1a2574c5182565902051ca846
+  * Police Helicopter 2 (Unity3D), unitygtt34, CC BY 4.0, 1,906 faces
+      https://sketchfab.com/3d-models/police-helicopter-2-unity3d-da9d886634044c2aa25ddecd927ae6bb
+  Not usable: helijah's "Bell 206 Jet Ranger" (Sketchfab "Free Standard" licence, not CC) and Bell H-13 (CC BY-NC).
+  "lowpoly police helicopter" by creosine has floats.
+  Credit format if one of these is used: "<title>" by <author> (<url>) is licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+PREVIEWS (previews/, 1024 px, dark background, three.js render of the ORIGINAL file):
+  best_front.png, best_side.png, best_threequarter.png, best_rear-threequarter.png, best_below.png, best_top.png,
+  best_threequarter_rotors-hidden.png, best_side_rotors-hidden.png,
+  best_silhouette-strip_64px_8yaw.png (8 yaws at 45 deg steps, elev. 25 deg, orthographic; row 1 rotors on, row 2 rotors hidden),
+  runnerups_contact-sheet.png (als / pixor / jeremy / kazuma / rescue: three-quarter + side)

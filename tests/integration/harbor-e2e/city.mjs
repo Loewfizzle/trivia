@@ -235,6 +235,12 @@ async function panelSection() {
     `EVERYONE: two phones (one arriving late) on the same minute (clocks ${Math.round(Math.abs(b.now - c.now))} ms apart, ${Math.round((b.now - expect) / 1000)} s from startAt's 23:00)`);
   ok(Math.abs(b.at - c.at) < 1500 && Math.abs(b.at - Date.UTC(2026, 9, 25, 3, 0)) < 1500, `EVERYONE: the banner's first flight starts at startAt on both phones (${Math.round(Math.abs(b.at - c.at))} ms apart) — the late one joins mid-flight`);
   if (SHOTS) await C.page.screenshot({ path: `${OUT}panel-everyone-430x932.png` });
+  // MODELS — A PREVIEW LINK KEEPS ITS OWN FLAGS while EVERYONE is on (the owner's ~90 s TR-3B link): its &force wins on its page, a toast says so
+  { const D = await open({ slot: 'he4', qs: `${NIGHT}&force=aurora` });
+    await harborUp(D.page); await waitFor(D.page, '!!window.__district.remote()', 'the listener up', 10000); await sleep(1500);
+    const f = await ev(D.page, 'window.__district.harbor().flags'), toast = await ev(D.page, "[...document.querySelectorAll('.toast, [class*=toast]')].map(e => e.textContent).join(' | ')");
+    ok(!f.remote && f.force.includes('aurora') && !f.force.includes('banner') && /THIS LINK/.test(toast), `A PREVIEW LINK KEEPS ITS OWN &force WHILE EVERYONE IS ON: ${f.force.join(',')} (remote ${f.remote}); the toast "${toast.slice(0, 90)}"`);
+    await D.ctx.close(); }
   // the default city never subscribes
   { const N = await open({ slot: 'he3', qs: NIGHT, city: false }); await sleep(2500);
     ok(!N.files.some(u => /remote\.js|harbor-remote/.test(u)) && (await ev(N.page, 'window.__district.harbor()')) === null && !(await ev(N.page, '!!document.querySelector(".hr-pill")')), 'EVERYONE: the default city never loads the panel or listens to city2/live');

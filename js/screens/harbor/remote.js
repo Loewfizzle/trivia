@@ -92,6 +92,7 @@ function firedOf(a, b, ui) {
   return out;
 }
 /** the link's own preview flags (not the tools: &debug, &grid) — a fresh link with any of them wins over a stored JUST ME */
+const linkForces = () => { try { return !!new URLSearchParams(location.search).get('force'); } catch { return false; } };
 const linkFlags = () => { try { const q = new URLSearchParams(location.search); return R.REMOTE_KEYS.filter(k => k !== 'debug' && k !== 'grid' && q.has(k)); } catch { return []; } };
 const navType = () => { try { const e = performance.getEntriesByType('navigation')[0]; return (e && e.type) || 'navigate'; } catch { return 'navigate'; } };
 let linkChecked = false;
@@ -149,13 +150,19 @@ export function createRemote({ scene, api = apiCall }) {
     const k = who === 'me' ? 'me' : `all|${at}`; if (k === overNote || (k === 'me' && overNote.startsWith('me'))) return; overNote = k;   // (JUST ME: once a page — the owner taps rows; EVERYONE: once a state)
     toast(`${who === 'all' ? 'EVERYONE’S' : 'YOUR JUST ME'} PREVIEW IS ON — IT REPLACES THIS LINK’S &${own.join(' &').toUpperCase()}${admin ? ' · ☰ → ADMIN → CLEAR ALL FOR THE LINK' : ''}`, 'warn', 5200);
   }
+  let yieldNote = -1;
+  function noteYield(at) { if (at === yieldNote) return; yieldNote = at; toast(`EVERYONE’S PREVIEW IS ON — THIS LINK’S &${linkFlags().join(' &').toUpperCase()} WINS ON THIS PAGE`, 'info', 4200); }
   function apply() {
     const sc = scene();
     if (liveNext && liveNext.startAt <= serverNow()) { live = liveNext; liveNext = null; }
     if (destroyed || !sc || !sc.remote) return;
     if (!R.isEmpty(mine.state)) { sc.remote(mineParams(), { at: mine.at, srv: serverNow, who: mine.at === storeAt ? 'me-stored' : 'me' }); noteOver('me', mine.at); }
-    else if (liveOn() && live.startAt !== ignoreLiveAt) { sc.remote(R.toParams(live.state), { at: live.startAt, srv: serverNow, who: 'all' }); noteOver('all', live.startAt); }
-    else sc.remote(null, { srv: serverNow });
+    // (MODELS — THE LINKS RULE: the owner waited ~90 s on a TR-3B link and gave up — an EVERYONE state on the server REPLACED the link's
+    // own &force, silently but for a 5 s toast. A page whose own link FORCES something (&force=…) is an explicit ask to see it: EVERYONE's
+    // state yields to it on that page (a toast says so, once a state); a link with only a clock / weather (&when, &wx) still takes
+    // EVERYONE's state, as before; JUST ME — chosen in this tab — still wins)
+    else if (liveOn() && live.startAt !== ignoreLiveAt && !linkForces()) { sc.remote(R.toParams(live.state), { at: live.startAt, srv: serverNow, who: 'all' }); noteOver('all', live.startAt); }
+    else { if (liveOn() && live.startAt !== ignoreLiveAt) noteYield(live.startAt); sc.remote(null, { srv: serverNow }); }
     paintChip();
   }
   const tick = setInterval(() => { apply(); if (sheet) paintStatus(); }, 4000);

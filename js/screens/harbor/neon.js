@@ -41,7 +41,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   let signs = [], boards = [], outs = [], items = [], queue = [], key = '', scheme = 'city', assignKey = '';
   let built = 0, lastOn = false, mbSprites = 0, rev = 0, fresh = null;
   const comp = { far: null, near: null, harbor: null };   // tier 0: each group's lit neon as one image (when it is steady)
-  const moment = { party: 0, flash: null, chase: false, scene: null, burnout: false, lamps: null };
+  const moment = { party: 0, flash: null, chase: false, scene: null, burnout: false, lamps: null, itemK: null };   // (itemK — MODELS: { itemId: 0..1 } one item's light, e.g. the Mothman's needle stuttering)
   let glassFaces = [], pending = null;
   // NEON PASS 3: THE PARTY SHOW (core/harbor-show.js) — the cast (the items' descriptors, per layout), this frame's plan; THE
   // EVERYDAY MOTION (tonight's blinking / spelling signs, the colour-cycling sign, the slow chasers)
@@ -613,7 +613,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
    */
   function drawOne(c, it, f, t, motion, flutter, partyK, noPunch, dimK, kMul = 1, hi = false) {
     const lit = hi && it.litHi ? it.litHi : it.lit, swp = hi && it.swpHi ? it.swpHi : it.swp;
-    const base = f.fade * (flutter ? 0.965 + 0.035 * Math.sin(t * 11 + it.i * 2.3) * Math.sin(t * 3.1 + it.i) : 1) * dimK * kMul;
+    const ik = moment.itemK && moment.itemK[it.id] != null ? moment.itemK[it.id] : 1;   // (MODELS: one item's own light — the needle's stutter)
+    const base = f.fade * (flutter ? 0.965 + 0.035 * Math.sin(t * 11 + it.i * 2.3) * Math.sin(t * 3.1 + it.i) : 1) * dimK * kMul * ik;
     if (base <= 0.002) return;
     if (it.kind === 'board') {
       // (DT1: the board is LAMP-LIT — its gooseneck lamps' level: on from late golden hour, a dim wash once the neon is up)
@@ -743,7 +744,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
   const inGroup = (it, group) => (it.kind === 'outline' ? it.o.group : groupOf(it.kind === 'sign' ? it.sg.spot : it.b.spot)) === group;
   function steady(group, t, partyK) {
     if (items.some(it => it.kind === 'sign' && it.sg.spot.mount === 'tower' && it.dim != null && it.dim !== 1 && inGroup(it, group))) return false;
-    if (partyK > 0.05 || moment.flash || queue.length) return false;
+    if (partyK > 0.05 || moment.flash || moment.itemK || queue.length) return false;
     for (const it of items) if (inGroup(it, group) && (!it.ready || !it.pw || !it.pw.on || t - it.pw.t0 < 2.5)) return false;
     return true;
   }
@@ -1153,6 +1154,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       else if (name === 'chase') moment.chase = !!v;
       else if (name === 'show') moment.scene = v || null;
       else if (name === 'lamps') moment.lamps = v == null ? null : clamp01(+v);   // (DT1: the billboard's lamps — null = their own timing; 0 off, 1 on: Part 7's raid, the TR-3B's drain, the previews)
+      else if (name === 'itemK') moment.itemK = v && Object.keys(v).length ? v : null;   // (MODELS: { id: k } — null = every item its own light)
       else if (name === 'burnout') moment.burnout = !!v;            // (&force=burnout: a dead letter tonight)          // (a party show scene held: the &scene= preview, reviews)
       else if (name === 'flash') { const g = v && v.game && games.find(x => x.id === v.game); const cols = (v && v.cols) || (g ? markFor(g).tubes.map(t => hexRgb(t.col)).concat([hexRgb(SIGN_ACC[g.id] || '#ffffff')]) : [[255, 46, 151], [46, 230, 255]]); moment.flash = { t0: performance.now(), dur: 1.6, cols }; }
       else if (name === 'scheme' && (SCHEMES[v] || v === 'city')) { schemeX = v === 'city' ? null : v; applyScheme(); }

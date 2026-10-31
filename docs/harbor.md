@@ -619,8 +619,9 @@ CLAUDE.md is loaded into every Claude Code session, so its City 2.0 paragraphs w
   It runs as **8 parallel jobs** (`audio` `show` `city` `perf` `street` `windows` `wild` `holiday`, ≈ 4 min each); a red job → **"Re-run failed jobs"** re-runs that job only.
   **A new test group goes in exactly one job in `tests/integration/harbor-jobs.mjs`** (e2e-harbor.mjs refuses to run and the unit test fails
   until it does). Timing checks (`okT`) and known-flaky pixel probes (`okF`) are WARNINGS on CI, listed in each job's summary page.
-  City 2.0 passes never run the whole suite on the laptop (it runs out of memory): the unit suite + the touched groups (`ONLY=…`) locally,
-  then the final `[harbor]` push and read `gh run list --workflow harbor`.
+  ON THE MINI PC (32 GB, since THE MODELS PASS — the laptop-era "never the whole suite locally, out of memory" is gone): the touched groups
+  (`ONLY=…`) while working, then THE FULL suite locally once before the final push (nothing else heavy beside it — docs/testing.md#testing), then
+  the final `[harbor]` push and read `gh run list --workflow harbor`.
   **CI minutes (the owner, Oct 24): at most TWO cloud runs per pass.** Never re-run the cloud suite to confirm a flake: a failed check in
   code the pass didn't touch that is a known flake goes in the pass's "Known issues" and the pass finishes.
 - **THE BASELINE GUARD** (HOTFIX Oct 29 — the forced bus ran at 5 fps on the owner's iPhone: a plan cache smaller than its frame's working set

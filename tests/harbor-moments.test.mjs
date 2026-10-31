@@ -4,6 +4,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { windowParty, windowPartyAt, partyRoomK, PARTY_ROOMS, PARTY_COLS, PARTY_DOWN, tvShadow, tvHolidayTint, quietNight, bedtimes, bedLevel, BED_ROOMS, MOMENTS, MOMENT, STARTERS, RARITIES, WINDOW_IDS, TANGO_PATH, MAX_AT_ONCE, hourPlan, dayPlan, fixedPlan, momentsAt, routineAt, legendNights, roomState, tvLight, lateTvK, inHours, partyAt, darkAt, windowsOf, dayKey, edgeMoods, EDGE_MOODS, redMoodNight, eyesNights, eyesPlaysOn } from '../js/core/harbor-moments.js';
 import { legendNight } from '../js/core/harbor-legend.js';
+import { mothmanNight } from '../js/core/harbor-mothman.js';
 import { ROOMS, roomLight } from '../js/core/harbor-speakeasy.js';
 import { EVENTS, PANEL_EVENTS, CATS } from '../js/core/harbor-remote.js';
 
@@ -216,7 +217,8 @@ test("WIN2 — THE EYES IN THE HAZE: two weekend nights a month, three plays eac
     if (Object.keys(nights).length < 2) red++;
   }
   assert.equal(total, 24, `${total} eyes nights in 2026 (two a month, drawn from the eligible nights: ${red} months short)`);
-  assert.deepEqual(eyesNights(2026, 10, { mothman: true }), {}, 'a Mothman night: none (the hook)');
+  // (MODELS: the Mothman's real nights — core/harbor-mothman.js — never carry the eyes; the old ctx.mothman hook is gone)
+  for (let y = 2026; y <= 2027; y++) for (let m = 1; m <= 12; m++) for (const k of Object.keys(eyesNights(y, m))) { const [yy, mm, dd] = k.split('-').map(Number); assert.equal(mothmanNight(yy, mm, dd), null, `${k}: an eyes night is never a Mothman night`); }
   // the day's fixed plan carries them in one window; a play straddling midnight shows on both days' clocks
   const key = Object.keys(eyesNights(2026, 10))[0];
   if (key) { const fp = fixedPlan(key).filter(e => e.id === 'eyes'); assert.ok(fp.length >= 1 && fp.every(e => e.win !== 'all' && e.len === 150), `${key}: on the fixed plan in one window`); }

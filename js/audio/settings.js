@@ -12,11 +12,17 @@ function load() {
   } catch { return { ...DEFAULTS }; }
 }
 
-export const settings = load();
+// MODELS — THE PHONE BENCH RUNS SILENT (the owner, Oct 30: it asked for a TAP FOR SOUND on every scene — he tapped late on the first
+// ones): under `&bench=1` THIS PAGE is muted with its music off — never saved (the device's own choice is kept + written back), so no
+// scene waits for, or asks for, a tap; sound is not measured.
+export const PAGE_SILENT = (() => { try { return /[?&]bench=1(?:&|$)/.test(location.search); } catch { return false; } })();
+const saved = load();
+export const settings = PAGE_SILENT ? { ...saved, muted: true, musicOff: true } : saved;
 
 export function updateSettings(patch) {
   Object.assign(settings, patch);
-  try { localStorage.setItem(KEY, JSON.stringify(settings)); } catch { /* private mode: keep in memory */ }
+  if (PAGE_SILENT) { for (const k of ['muted', 'musicOff']) if (k in patch) saved[k] = patch[k]; settings.muted = true; settings.musicOff = true; }
+  try { localStorage.setItem(KEY, JSON.stringify(PAGE_SILENT ? { ...settings, muted: saved.muted, musicOff: saved.musicOff } : settings)); } catch { /* private mode: keep in memory */ }
   listeners.forEach(fn => fn(settings));
 }
 

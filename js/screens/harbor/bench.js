@@ -20,7 +20,12 @@
 //   · WHAT COSTS THE PARTY (THE PROFILE): the same dance break with ONE piece off at a time, the tier pinned at 2 — the crowd, the street
 //     party's crowd, the wands, the crisp 3× layers, the sky beams, the live water, the vignette back on the canvas — each row's frame time
 //     against the full break's: the phone itself says where its frame goes.
-// docs/harbor/passes/c4c.md + sky-b.md · docs/testing.md (ONLY=bench).
+// MODELS — THE OWNER's PROFILE RUN (Oct 30 5:56 pm): (1) it asked for a TAP FOR SOUND on every scene → THE BENCH RUNS SILENT (`&bench=1`
+// mutes the page — audio/settings.js#PAGE_SILENT — and the AUDIO strip stays down: nothing waits for a tap); (2) some scenes FROZE a few
+// seconds on their fresh load → each row reports its LOAD FREEZE: the page's first frame, the longest stall between frames from then until
+// the scene is steady (20 frames in a row under 50 ms, or the bakes done), when it happened, how many stalls ≥ 250 ms, + the longest
+// main-thread task where the browser reports them (Chrome; Safari has no long-task API). The hitch itself is PERF's.
+// docs/harbor/passes/c4c.md + sky-b.md + models.md · docs/testing.md (ONLY=bench).
 
 /** the scenes, in order (each a preview state as URL flags) */
 export const BENCH_SCENES = Object.freeze([
@@ -94,11 +99,17 @@ export function cpuProbe() {
   return best;
 }
 
+/** PURE: the load-freeze line (o: { first (s since the navigation: the bench's first frame), freeze (ms), at (s), stalls, steady (s | null), task (ms | null), ready (ms) }) */
+export function loadLine(o) {
+  const s1 = v => (v / 1000).toFixed(1);
+  return `the first frame at ${o.first.toFixed(1)} s · the longest freeze ${s1(o.freeze)} s${o.freeze >= 250 ? ` (at ${o.at.toFixed(1)} s)` : ''} · ${o.stalls} stall${o.stalls === 1 ? '' : 's'} ≥ 0.25 s · steady ${o.steady != null ? `at ${o.steady.toFixed(1)} s` : 'NOT before the bakes finished'}${o.task ? ` · the longest task ${s1(o.task)} s` : ''} · baked in ${s1(o.ready)} s`;
+}
+
 /** PURE: the report's text (rows: [{ scene, stats, tier0, tier1, mem, steps, why, fill?, cpu?, profile?, id? }], head: { ua, w, h, dpr, cityDpr, cap, at }) */
 export function benchText(head, rows, extra = {}) {
   const pad = (s, n) => String(s).padEnd(n);
   const L = [
-    'NEON SPEAKEASY — THE PHONE BENCH (C4c + SKY-B, City 2.0)',
+    'NEON SPEAKEASY — THE PHONE BENCH (C4c + SKY-B + MODELS, City 2.0) — SILENT (sound is not measured)',
     `${head.at} · ${head.w}×${head.h} pt · device dpr ${head.dpr} · the city at ${head.cityDpr}×${head.cap > 2 ? ' (&dpr=3)' : ''} · ${head.ua}`,
     `each scene on a FRESH PAGE: its bakes finished, ${BENCH.cool / 1000} s cool-down (the city paused), ${BENCH.settle / 1000} s to settle, then ${BENCH.measure / 1000} s measured. frames = the time between frames (16.7 = 60 fps); work = the city's own JS per frame; outside = frame p50 − work p50 (the GPU process rasterizing + the compositor); slow = frames over 20 ms`,
   ];
@@ -108,6 +119,7 @@ export function benchText(head, rows, extra = {}) {
     const s = r.stats;
     L.push(`${pad(r.scene, 38)} ${pad(s.fps, 6)} ${pad(`${s.p50} / ${s.p95} / ${s.worst}`, 25)} ${pad(`${s.slow}%`, 6)} ${pad(`${s.work} / ${s.workP95}`, 15)} ${pad(s.side != null ? s.side : '—', 8)} ${pad(`${r.tier0}→${r.tier1}`, 10)} ${r.mem}`);
     if (r.fill) L.push(`    painted a frame: ${r.fill.mp} MP (${r.fill.screens} screens) · ${r.fill.calls} draws + ${r.fill.paths} paths · on the page: ${r.fill.layers} canvases, ${r.fill.layerMp} MP`);
+    if (r.load) L.push(`    load: ${loadLine(r.load)}`);
     if (r.cpu) L.push(`    CPU speed ${r.cpu}`);
     if (r.steps && r.steps.length) for (const st of r.steps) L.push(`    ${st.dir === 'down' ? '↓' : st.dir === 'up' ? '↑' : '·'} ${st.at} s: ${st.text}`);
     if (r.why) L.push(`    mostly at 60 because: ${r.why}`);
@@ -192,11 +204,38 @@ export function createBench(o) {
     el.append(stop);
     if (s.kind === 'profile') o.pin(2);
     cur = { s, sc, dts: [], works: [], phase: 'ready', t0: performance.now(), tier0: null, steps0: (o.snap().tierLog || []).length, fast: new Map(), memMax: 0, idle: [] };
+    watchLoad(cur);
     o.hook((dt, work) => {
       if (!cur) return;
       if (cur.phase === 'measure') { cur.dts.push(dt); cur.works.push(work); const f = o.snap().fast || 'calm'; cur.fast.set(f, (cur.fast.get(f) || 0) + 1); }
     });
     tick();
+  }
+  // (MODELS: THE LOAD FREEZE — rAF from this step's start (its fresh page) until the scene is steady or baked; a long-task observer, buffered,
+  // where the browser has one)
+  function watchLoad(c) {
+    const L = c.load = { first: performance.now() / 1000, freeze: 0, at: 0, stalls: 0, steady: null, task: null, run: 0, last: 0 };
+    try {
+      if (typeof PerformanceObserver !== 'undefined' && (PerformanceObserver.supportedEntryTypes || []).includes('longtask')) {
+        const ob = new PerformanceObserver(list => { for (const e of list.getEntries()) L.task = Math.max(L.task || 0, e.duration); });
+        ob.observe({ type: 'longtask', buffered: true });
+        c.loadObs = ob;
+      }
+    } catch { /* no long tasks here */ }
+    const f = t => {
+      if (cur !== c) return;
+      if (L.last) {
+        const g = t - L.last;
+        if (g > L.freeze) { L.freeze = g; L.at = L.last / 1000; }
+        if (g >= 250) L.stalls++;
+        L.run = g < 50 ? L.run + 1 : 0;
+        if (L.run >= 20 && L.steady == null) L.steady = t / 1000;
+      }
+      L.last = t;
+      if (c.phase === 'ready') requestAnimationFrame(f);
+      else { try { if (c.loadObs) c.loadObs.disconnect(); } catch { /* */ } }
+    };
+    requestAnimationFrame(f);
   }
   const SET = () => BENCH.settle * K, COOL = () => BENCH.cool * K, MEAS = () => (cur.sc.measure || BENCH.measure) * K, FILL = () => Math.max(300, BENCH.fill * K);
   function idleRate() {
@@ -244,7 +283,8 @@ export function createBench(o) {
     const fast = [...c.fast.entries()].sort((a, b) => b[1] - a[1]).slice(0, 2).map(([k, n]) => `${k} ${Math.round(100 * n / Math.max(1, c.dts.length))}%`).join(', ');
     if (run.rows.length === 0 && c.idle.length > 10) { const m = q(c.idle, 0.5); run.phone.push(`the screen's idle rate ${(1000 / m).toFixed(0)} fps${m > 25 ? ' — LOW POWER MODE likely ON (Safari caps it at 30)' : m < 12 ? ' (120 Hz)' : ''}`); }
     run.rows.push({ id: c.s.id, profile: c.s.kind === 'profile', scene: c.sc.label, stats: benchStats(c.dts, c.works), tier0: c.tier0, tier1: `${s.tier}/${s.dprTier}`, mem: c.memMax.toFixed(1), steps: log.slice(c.steps0), why: fast, fill,
-      cpu: `${Math.round(100 * base / Math.max(0.01, c.cpuA || cpuB))} % → ${Math.round(100 * base / Math.max(0.01, cpuB))} % of the start's (a falling % = a warm phone throttling)`, ready: c.readyMs });
+      cpu: `${Math.round(100 * base / Math.max(0.01, c.cpuA || cpuB))} % → ${Math.round(100 * base / Math.max(0.01, cpuB))} % of the start's (a falling % = a warm phone throttling)`, ready: c.readyMs,
+      load: c.load ? { first: +c.load.first.toFixed(2), freeze: Math.round(c.load.freeze), at: +c.load.at.toFixed(2), stalls: c.load.stalls, steady: c.load.steady != null ? +c.load.steady.toFixed(2) : null, task: c.load.task ? Math.round(c.load.task) : null, ready: c.readyMs || 0 } : null });
     run.i++;
     save(run);
     if (run.i >= run.plan.length) { finish(); return; }

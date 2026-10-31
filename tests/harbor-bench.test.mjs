@@ -36,3 +36,13 @@ test('C4c — THE PHONE BENCH: the numbers (fps from the frames, the percentiles
   const t = benchText({ at: 'now', ua: 'iPhone', w: 402, h: 874, dpr: 3, cityDpr: 2, cap: 2 }, [{ scene: 'a party', stats: s, tier0: '2/2', tier1: '1/2', mem: '81.0', steps: [{ at: 9.5, dir: 'down', text: '2/2 → 1/2 (effects — live)' }], why: 'party 100%', fill: { mp: 13.1, screens: 9.4, calls: 900, paths: 2300, layers: 14, layerMp: 2.1 }, cpu: '100 % → 97 %' }, full, noPeople], { phone: 'the screen\'s idle rate 60 fps', guard: 'nothing stepped down', tierLog: [{ at: 9.5, dir: 'down', text: '2/2 → 1/2' }] });
   for (const w of ['THE PHONE BENCH', 'device dpr 3', 'a party', '2/2→1/2', '↓ 9.5 s', 'memory guard: nothing stepped down', 'every quality step', 'FRESH PAGE', 'outside', 'painted a frame: 13.1 MP (9.4 screens)', 'CPU speed 100 %', 'idle rate 60 fps', 'WHAT COSTS THE PARTY', '→ frame p50 -3.3 ms · work -4 ms']) assert.ok(t.includes(w), `the report says "${w}"`);
 });
+
+test('MODELS — THE LOAD FREEZE: each row says the first frame, the longest stall (+ when, if ≥ 0.25 s), the stalls, when steady, the longest task, the bake', async () => {
+  const { loadLine } = await import('../js/screens/harbor/bench.js');
+  const l = loadLine({ first: 1.23, freeze: 2400, at: 3.1, stalls: 3, steady: 7.4, task: 1900, ready: 6300 });
+  assert.match(l, /first frame at 1\.2 s/); assert.match(l, /longest freeze 2\.4 s \(at 3\.1 s\)/); assert.match(l, /3 stalls/); assert.match(l, /steady at 7\.4 s/); assert.match(l, /longest task 1\.9 s/); assert.match(l, /baked in 6\.3 s/);
+  const m = loadLine({ first: 0.5, freeze: 40, at: 1, stalls: 0, steady: null, task: null, ready: 900 });
+  assert.doesNotMatch(m, /\(at /); assert.match(m, /NOT before the bakes/);
+  const t = benchText({ at: 'now', ua: 'x', w: 402, h: 874, dpr: 3, cityDpr: 2, cap: 2 }, [{ scene: 's', stats: benchStats([16, 17], [5, 6]), tier0: '2/2', tier1: '2/2', mem: '1', steps: [], load: { first: 1, freeze: 900, at: 2, stalls: 1, steady: 4, task: null, ready: 3000 } }]);
+  assert.match(t, /SILENT/); assert.match(t, /load: the first frame/);
+});

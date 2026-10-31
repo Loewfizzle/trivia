@@ -557,3 +557,47 @@ G('blackbird', async () => {
     }
   }
 });
+
+// THE MODELS PASS — THE MOTHMAN (core/harbor-mothman.js + screens/harbor/mothman.js): perched on the needle's tip from a link within ~5 s of the
+// reveal, two red eyes, his own overlay at the phone's dpr; the leaving: the needle's stutter (its light dark at the swap), the glide away,
+// the overlay gone after; an ordinary night never fetches his sprites
+G('mothman', async () => {
+  const M = 'window.__district.harbor().mothman';
+  { const Q = await open({ slot: 'mm1', qs: `when=2026-11-03T03:00${GR}&wx=clear&force=mothman`, view: [402, 874], dpr: 3 });
+    await harborUp(Q.page);
+    const t0 = await ev(Q.page, 'performance.now()');
+    await waitFor(Q.page, `(() => { const m = ${M}; return !!(m && m.model === 'perch' && m.box); })()`, 'perched', 8000);
+    const dt = (await ev(Q.page, 'performance.now()')) - t0, d = await ev(Q.page, M);
+    ok(dt < 5000, `A LINK SHOWS HIM WITHIN ~5 s of the reveal: perched after ${(dt / 1000).toFixed(1)} s`);
+    const talonY = d.box.y + d.box.h * (1 - 0.383 * 296 / 306);
+    ok(Math.abs(d.box.x + d.box.w / 2 - d.tip[0]) < 6 && Math.abs(talonY - d.tip[1]) < 8, `ON THE NEEDLE's TIP: his middle ${Math.round(d.box.x + d.box.w / 2)} vs the tip ${d.tip[0]}, the talons ~${Math.round(talonY)} vs ${d.tip[1]}`);
+    ok(d.box.h > 70 && d.box.h < 110, `~84 pt tall at 402 (${d.box.h} pt — the hem draping round the spire)`);
+    const ov = await ev(Q.page, `(() => { const c = document.querySelector('canvas.hb-moth'); return c ? { dpr: +(c.width / parseFloat(c.style.width)).toFixed(2), z: getComputedStyle(c).zIndex } : null; })()`);
+    ok(ov && ov.dpr >= 2.9, `HIS OWN OVERLAY at the phone's full dpr (${ov && ov.dpr}×)`);
+    // the eyes: red pixels at both sockets, a few pt apart (sampled from the overlay)
+    const red = await ev(Q.page, `(() => { const c = document.querySelector('canvas.hb-moth'), x = c.getContext('2d'), k = c.width / parseFloat(c.style.width), L = parseFloat(c.style.left), T = parseFloat(c.style.top); const m = ${M}; return m.eyes.map(([ex, ey]) => { let best = 0; for (let dx = -3; dx <= 3; dx++) for (let dy = -2; dy <= 2; dy++) { const p = x.getImageData(Math.round((ex - L + dx) * k), Math.round((ey - T + dy) * k), 1, 1).data; best = Math.max(best, p[0] - (p[1] + p[2]) / 2); } return best; }); })()`);
+    ok(red.filter(v => v > 60).length >= 1, `TWO RED EYES (the reds at the sockets: ${red.join(', ')} — a blink may close one)`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}mothman-perch-402x874.png` });
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'mm2', qs: `when=2026-11-03T03:00${GR}&wx=clear&force=mothman-leave`, view: [402, 874] });
+    await harborUp(Q.page);
+    let dark = 0, glide = 0, xs = [];
+    const end = Date.now() + 24000;
+    while (Date.now() < end) {
+      const d = await ev(Q.page, M);
+      if (d && d.needle != null && d.needle < 0.1) dark++;
+      if (d && d.model === 'glide') { glide++; xs.push(d.x); }
+      if (d && d.phase === 'gone') break;
+      await sleep(60);
+    }
+    ok(dark >= 2, `THE NEEDLE STUTTERS DARK (${dark} samples) — the swap hides in it`);
+    ok(glide >= 20 && xs[xs.length - 1] !== xs[0], `HE GLIDES AWAY (${glide} samples, x ${xs[0]} → ${xs[xs.length - 1]})`);
+    await waitFor(Q.page, `!document.querySelector('canvas.hb-moth')`, 'his overlay gone', 8000).catch(() => {});
+    ok(!(await ev(Q.page, `!!document.querySelector('canvas.hb-moth')`)), 'GONE AFTER: his overlay removed');
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'mm3', qs: `when=2026-11-04T03:00${GR}&wx=clear`, view: [402, 874] });
+    await harborUp(Q.page); await sleep(1500);
+    const net = await ev(Q.page, `performance.getEntriesByType('resource').some(e => e.name.includes('assets/city/mothman/'))`);
+    ok(!net && !(await ev(Q.page, `!!document.querySelector('canvas.hb-moth')`)), 'AN ORDINARY NIGHT: no Mothman, his sprites never fetched');
+    await Q.ctx.close(); }
+});

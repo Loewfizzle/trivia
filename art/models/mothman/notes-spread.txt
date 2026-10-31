@@ -1,0 +1,81 @@
+MOTHMAN (WINGS SPREAD, LIFT-OFF) 3D MODEL - NOTES
+Generated 2026-10-30 ~10:18 AM EDT; checked and compressed ~10:35 AM EDT
+
+FILES (this folder)
+- mothman-spread.glb: the original HY 3D download, byte-identical copy of
+  mothman-spread-noeyes-hy3d-v3.1.glb (MD5 3b52ecd02bfab58642db3450b1d2e1ce, 86,566,780 bytes, ~87 MB).
+  1,500,000 triangles, 823,661 vertices, 1 mesh, 1 PBR material (double-sided, KHR_materials_specular),
+  3 x 4096x4096 PNG textures (base colour 17.4 MB, normal 12.5 MB, metallic-roughness 12.4 MB). No emissive map. No animation.
+  Bounding box (metres): x -0.504..0.492 (wingspan ~1.0), y 0..0.723, z -0.084..0.208.
+- mothman-spread-small.glb: phone/website copy. 6,111,320 bytes (~6.1 MB). 300,000 triangles, 205,130 vertices (20% kept).
+  3 x 2048x2048 WebP (base colour q92 ~524 KB, metallic-roughness q92 ~359 KB, normal lossless ~3.2 MB). meshopt + quantization.
+- mothman-spread-source.jpg: the source image (Grok Imagine edit of the tucked original, dark hollow eye sockets, no glow).
+- render-<angle>.png: 1024x1024 headless three.js renders of the ORIGINAL model on mid-grey (#808080).
+  Angles: front, back, rear-3q-left, rear-3q-right, below (straight up), behind-below (behind, 45 deg below),
+  front-below (45 deg below), side, top.
+- render-closeup-*.png: close-ups of the face, the back of the body, the underside of the body, each wing underside, and the feet.
+  render-closeup-face-basecolour-unlit.png shows the raw base-colour texture with no lighting (eye check).
+- contact-sheet.png: all 9 angles, labelled, original model. contact-sheet-small.png: the same for the small copy.
+- compare-orig-vs-small-<angle>.png: left = original, right = small copy.
+
+HOW IT WAS MADE
+- Tool: Tencent HY 3D Global web app (https://hy3d.tencent.ai), free account. Image-to-3D, single image,
+  model "3DGeneration-V3.1" (HY 3D V3.1), PBR textured, 1.5M faces. No seed was shown. Nothing was paid.
+- Source image: mothman-spread-source.jpg, made with Grok Imagine (by Ben's Grok assistant), edited from the tucked
+  original ../../out/mothman-folded-source.png into a wings-spread lift-off pose, with dark hollow eye sockets and NO glow.
+  (An earlier edit with red eyes was rejected and was not used.)
+- Small copy, made from a COPY of the original with @gltf-transform/cli 4.5.1:
+  weld -> simplify --ratio 0.2 --error 0.001 -> resize 2048x2048 -> webp (base colour q92, metallic-roughness q92,
+  normal lossless) -> meshopt. No Draco.
+
+THREE.JS
+- Load with GLTFLoader plus loader.setMeshoptDecoder(MeshoptDecoder) from 'three/addons/libs/meshopt_decoder.module.js'.
+  Without the decoder the small copy will not load (EXT_meshopt_compression is required). WebP textures (EXT_texture_webp)
+  work in all current phone browsers. The original needs no decoder.
+- The material has KHR_materials_specular with specularColorFactor 2.0 (same as the tucked model). Under bright
+  room/environment lighting the very dark texture (average RGB ~32/255) therefore reads as mid-to-light grey and shiny.
+  In a dark neon city scene it will look much darker. Lower the env intensity or specular if it looks too pale.
+
+VALIDATION (gltf-transform validate / Khronos validator)
+- Original: 0 errors, 1 warning (MESH_PRIMITIVE_GENERATED_TANGENT_SPACE: no tangents stored, three.js makes them at runtime), 0 infos, 0 hints.
+- Small: 0 errors, the same 1 warning, 0 hints.
+
+LOOK CHECK - BACK AND UNDERSIDE (the views the city shows most)
+Verdict: CLEAN. No holes, tears, melted or blobby areas, no stretched or smeared texture and no baked-in background
+at any angle. The wing membranes are whole on both sides and the ragged trailing edges are crisp. The wings are attached to
+the arms and the flanks/hips only; the legs hang free and are not fused to the wings.
+Per-angle (original):
+- front: clean. Skull face, ribbed chest, arms on the wing fingers, ragged wing edges all good.
+- back: clean. The wing upper surfaces have good membrane texture and finger bones. The back of the body is a smooth, rather
+  plain flat panel that ends in a small point at the tailbone, with little anatomy (spine, shoulder blades). Plain but not broken.
+- rear-3q-left: clean. Best-looking rear view: wing texture, finger bones and hanging legs read well.
+- rear-3q-right: clean. Same as left.
+- below (straight up): clean. Wings are seen almost edge-on here because they are swept back in a fairly flat plane;
+  belly, chest, chin and feet read fine; underside membrane whole.
+- behind-below: clean. Wing undersides whole with good texture; the hips/belly are smooth and slightly soft; feet read well.
+- front-below: clean.
+- side: clean but thin. The wings are a near-flat plane behind the body (little curvature/thickness), so from the side they
+  are a thin blade. Body, skull profile and legs are good.
+- top: clean but thin. Wings are nearly edge-on; the top of the head and shoulders are fine. Least useful angle.
+Minor flaws (not visible at game distance):
+- The back of the torso is plain and featureless (generator guessed it).
+- Feet and toes are a little soft and stubby, especially the toes seen from below; claws are fine.
+- A small pale/light-grey patch on the back of one knee (texture brighter there).
+- The belly/hip area seen from directly under is smooth and a bit soft.
+- The wings are fairly flat (one plane), so edge-on views (side, top, straight below) look thin.
+
+EYES (left dark on purpose)
+- Base-colour texture has NO red anywhere: max colour difference between channels is 14/255 over all 16.8M pixels
+  (pure greyscale), 0 reddish pixels. The same in the small copy's WebP texture.
+- No emissive texture and no emissiveFactor on the material, so nothing glows.
+- In the unlit base-colour close-up the eye sockets are pure black (RGB 0,0,0).
+- Note: the sockets are shallow dished pads, not deep holes. Under strong lighting their glossy surface catches the
+  environment reflection and can read as grey "lenses" (see render-closeup-face.png). Ben will add his own glowing eyes
+  later, which will cover this; until then they stay dark, with no glow and no red, as asked.
+
+ORIGINAL UNTOUCHED
+- /home/box/Downloads/mothman-spread-noeyes-hy3d-v3.1.glb was never modified (MD5 3b52ecd02bfab58642db3450b1d2e1ce,
+  same as mothman-spread.glb here). All processing was done on a copy in ../work/.
+
+CREDIT LINE: see ../../credits.txt
+"Mothman 3D model generated with Tencent HY 3D (Hunyuan 3D V3.1, AI-generated) from an image created with Grok."

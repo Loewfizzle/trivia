@@ -554,8 +554,8 @@ G('freeze', async () => {
       const tapT = await ev(P.page, 'performance.now()');
       await tapAt(P.page, 201, 420);
       await waitFor(P.page, 'window.__district.harbor().legend.state && !!window.__district.harbor().legend.state.run', "the link's TR-3B starts after the tap", 15000);
-      const b = await ev(P.page, `(() => { const g = window.__district.harbor().legend; return { s: g.state.s, now: performance.now(), tap: g.link.tap, go: g.link.go }; })()`);
-      ok(b.go - b.tap > 3500 && b.go - b.tap < 4500 && b.s < 1.5 && b.tap >= tapT - 50, `9g …then starts ${((b.go - b.tap) / 1000).toFixed(1)} s after the first tap, from its beginning (s ${b.s})`);
+      const b = await ev(P.page, `(() => { const g = window.__district.harbor().legend; return { s: g.state.s, now: performance.now(), tap: g.link.tap, go: g.link.go, lead: g.link.lead }; })()`);
+      ok(b.go - b.tap > b.lead - 500 && b.go - b.tap < b.lead + 500 && b.lead <= 3000 && b.s < 1.5 && b.tap >= tapT - 50, `9g …then starts ${((b.go - b.tap) / 1000).toFixed(1)} s after the first tap, from its beginning (s ${b.s})`);
       await P.ctx.close();
     })(),
     (async () => {
@@ -566,7 +566,7 @@ G('freeze', async () => {
       ok(s0 === s1, `9g A LINK's IMPLOSION WAITS: the tower held at the countdown's start until the tap (s ${s0} → ${s1})`);
       await tapAt(P.page, 201, 420);
       await waitFor(P.page, `window.__district.harbor().tower.st.s > ${s1} + 0.5`, 'the implosion runs after the tap', 15000);
-      ok(true, '9g …and runs once the tap + 4 s have passed');
+      ok(true, '9g …and runs once the tap + the link lead (2.5 s) have passed');
       await P.ctx.close();
     })(),
     (async () => {

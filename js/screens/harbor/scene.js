@@ -131,6 +131,8 @@ import { createWinterFolk, doorCleared, winterActs } from './winterfolk.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
 import { paradeWindow, paradeUnits } from '../../core/harbor-parade.js';
 import { createBlackbird } from './blackbird.js';
+import { createMothman } from './mothman.js';
+import { mothmanAt } from '../../core/harbor-mothman.js';
 import { BB, bbChaseAt, soloNear, watcherStep } from '../../core/harbor-blackbird.js';
 import { jetLook } from './jets.js';
 import { latchBig, holidayAt, halloweenPieces, dotdPieces, thanksgivingPieces, holidaySeason, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
@@ -178,6 +180,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const raidFx = createRaid();                     // 8b2: THE RAID's light — the wash, the shades, the flashlight (harbor().raid)
   // SKY-A — THE BLACKBIRD (screens/harbor/blackbird.js on its own full-dpr overlay above the sign; its triggers: core/harbor-blackbird.js)
   const bb = createBlackbird();
+  // THE MODELS PASS — THE MOTHMAN on THE NEON NEEDLE (screens/harbor/mothman.js on its own overlay; his nights: core/harbor-mothman.js)
+  const moth = createMothman();
   const wild = createWildlife();                   // 8b1: THE WILDLIFE — pigeons, gulls, the owl, the squirrel, the coyote, the trash can, the cat, fish, the heron, fireflies (harbor().wildlife)
   const strings = createStrings();
   // 11a-1 — THE SIGN DECORATION SYSTEM (screens/harbor/signdress.js, LAZY: loaded on a dressed day or a preview): the holiday's dressing
@@ -279,7 +283,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // behaves like the panel. ufo + tr3b leave the force set until then (their craft + the dark city pre-baked meanwhile:
   // legends.prewarm); the implosion keeps its flag with its clock held at the countdown's start (the tower's look never jumps).
   // &lgs= (a held still) and &builds= keep their own behaviour; &lgnow=1 = the old start at the load (the tests + shots that time it).
-  const LINK_LEAD = 4000;
+  // (MODELS — THE LINKS RULE: a legendary forced from a link starts within ~5 s of the tap — the lead 4 → 2.5 s, its sounds' decode wait
+  // 4 → 2.5 s more at most; the TR-3B's tape sag starts 2 s into the run, so the song still has ~4.5 s after the tap to be playing)
+  const LINK_LEAD = 2500, LINK_SND_WAIT = 2500;
   const linkHeld = new Set();
   if (qp.get('lgnow') !== '1') {
     const held = qp.get('lgs') != null && qp.get('lgs') !== '';
@@ -298,7 +304,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (linkGoAt == null) { if (shownAt >= 0 && linkTapAt != null) linkGoAt = Math.max(shownAt, linkTapAt) + LINK_LEAD; else return; }
     if (now < linkGoAt) return;
     // (PROM: + up to 4 s more while the held legendary's sounds still decode — its approach never starts ahead of its hum)
-    if (now < linkGoAt + 4000 && snd && snd.legendReady && [...linkHeld].some(id => !snd.legendReady(id, sndPicks()))) return;
+    if (now < linkGoAt + LINK_SND_WAIT && snd && snd.legendReady && [...linkHeld].some(id => !snd.legendReady(id, sndPicks()))) return;
     const ids = [...linkHeld]; linkHeld.clear();
     for (const id of ids) {
       if (id === 'implosion') { forceSince.set('implosion', clock.now() / 1000); continue; }
@@ -1413,6 +1419,45 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (S.onFlash) S.onFlash({ near: 0.12, boom: true });
     } })) fastUntil = Math.max(fastUntil, performance.now() + 300);
   }
+  // ---------------------------------------------------------------- THE MODELS PASS — THE MOTHMAN (core/harbor-mothman.js: his nights, the
+  // swap's timing; screens/harbor/mothman.js: the two baked models + the eyes). The previews: &force=mothman (perched now), mothman-arrive
+  // (the glide in → the stutter → perched), mothman-leave (the stutter → the glide away); &force=no-mothman keeps him away. Never with a
+  // legendary running; in rain / snow / fog / a storm he fades (the weather passes in front of him); reduced motion: perched or not, no glide.
+  let mmTipKey = '', mmTip = null, mmNeedle = null, mmShownS = null;
+  // (a forced arrival / leaving starts at its fire moment — but never before the city shows: a link's waits for the reveal + 1.5 s)
+  const mmAt = id => Math.max(forceAtOf(id), mmShownS != null ? mmShownS + 1.5 : Infinity);
+  function mmTipOf() {
+    if (!L || !L.towers || !cam) return null;
+    const k = `${cam.W}x${cam.H}|${laneKey}`;
+    if (k === mmTipKey) return mmTip;
+    mmTipKey = k; mmTip = null;
+    const t = L.towers.find(q => q.id === 'needle');
+    if (t) { const tp = t.tiers[t.tiers.length - 1], cx = (tp.x0 + tp.x1) / 2; mmTip = project(L.cam, cx, tp.y0 + tp.h + (tp.crown ? tp.crown.h : 0) + (t.needle || 0), tp.z0); }
+    return mmTip;
+  }
+  function mmState() {
+    const nowS = clock.now() / 1000, f = clock.force;
+    if (f.has('mothman-leave')) return { st: mothmanAt(null, { force: true, leaveAt: nowS - mmAt('mothman-leave') }), dir: 1 };
+    if (f.has('mothman-arrive')) return { st: mothmanAt(null, { force: true, since: nowS - mmAt('mothman-arrive') }), dir: -1 };
+    if (f.has('mothman')) return { st: mothmanAt(null, { force: true }), dir: 1 };
+    if (f.has('no-mothman') || !LK.local) return { st: null, dir: 1 };
+    const st = mothmanAt(LK.local);
+    // (his side: seeded by the night — he arrives from one side, leaves by the other or the same)
+    const n = st && st.night, dir = n ? ((Math.round((st.phase === 'out' ? n.leave : n.arrive) * 60) % 2) ? 1 : -1) : 1;
+    return { st, dir };
+  }
+  function mmTick(fs) {
+    if (mmShownS == null && shownAt >= 0) mmShownS = clock.now() / 1000;
+    let { st, dir } = mmState();
+    if (st && legends && legends.active()) st = null;
+    if (st && !S.motion && st.model === 'glide') st = null;
+    const vis = (1 - smooth(0.03, 0.15, Math.max(LK.rain || 0, LK.snow || 0, WXS ? WXS.snow || 0 : 0))) * (1 - smooth(0.3, 0.55, LK.fog || 0)) * (LK.storm ? 0 : 1);
+    const dev = (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 2;
+    const on = moth.frame({ st, tip: mmTipOf(), W: cam ? cam.W : 402, H: cam ? cam.H : 874, top: safeTopV, dpr: dev, t: fs.t, motion: S.motion, veil: 1 - vis * (shownAt >= 0 ? 1 : 0), dir }, {
+      needle: k => { const q = k == null ? null : Math.round(k * 20) / 20; if (q !== mmNeedle) { mmNeedle = q; neon.moment('itemK', q == null ? null : { needle: q }); } },
+    });
+    if (on && st && st.model === 'glide') fastUntil = Math.max(fastUntil, performance.now() + 300);
+  }
   // ---------------------------------------------------------------- SKY-A — THE TR-3B's LIGHTS LIGHT THE WORLD (the owner, Oct 30): the city
   // is DRAINED dark while it passes, so its corner lights + the red orb are nearly the only light — a soft white / red glow slides across
   // the ROOFTOPS + tower tops under it (masked to the buildings' own silhouettes: the far + near bakes, a mask built once per skyline) and
@@ -1968,6 +2013,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // POLISH 4 — THE TR-3B's BLACKOUT this frame: { k (how dark the city is), dead: { far, city, harbor, near } } or null
     LB = legends && legends.active() ? legends.blackout() : null; stepPow(); if (!LB && fv.cv) freeFront();
     if (shownAt >= 0) bbTick(fs, now);   // (SKY-A: the Blackbird — once the city shows)
+    if (shownAt >= 0) mmTick(fs);         // (MODELS: the Mothman on the needle)
     const deadFar = !!(LB && LB.dead.far), deadCity = !!(LB && LB.dead.city), dk0 = LB ? LB.k : 0;
     // ---- the sky
     c.globalAlpha = 1;
@@ -3348,7 +3394,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       legend: { state: legends ? legends.debug() : { run: null, loaded: false, loading: legendsLoading },
         start: (kind, o = {}) => { const w = { kind, at: o.at || clock.now(), dir: o.dir || 1 }; if (legends) return legends.start(kind, w.at, w); legendWant = w; needLegends(); return true; },
         stop: () => { legendWant = null; if (legends) legends.stop(); }, power: (x, band) => legendPow(x, band || 'city', 0), drain: (d = 'city') => (legends ? legends.drainCols(d) : null), blackout: () => (legends ? legends.blackout() : null), dark: () => ({ far: !!darkOf('far'), near: !!darkOf('near') }),
-        link: { held: [...linkHeld], tap: linkTapAt, go: linkGoAt, shown: shownAt },   // (9g: a link's legendary waiting for the reveal + the first tap)
+        link: { held: [...linkHeld], tap: linkTapAt, go: linkGoAt, shown: shownAt, lead: LINK_LEAD },   // (9g: a link's legendary waiting for the reveal + the first tap)
         hold: trafficHoldNow() /* (Oct 25: the traffic's hold — { t0, t1 (abs s), on }) */ },
       sounds: { ...snd.debug(), play: snd.play, loop: snd.loop, jets: snd.jets, bus: snd.bus, periscope: o => snd.periscope(o) },
       road: { ...roadLight.debug(), wash: o => roadLight.wash(o) },
@@ -3381,13 +3427,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
       roofCrisp: roofCrispDebug(), liveCrisp: liveCrispDebug(),   // (NIGHT-C: the live windows' crisp share each)   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
-      tr3bLight: wlDbg, blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot }); } },
+      tr3bLight: wlDbg, mothman: { ...(moth.debug() || {}), tip: mmTip ? mmTip.map(v => Math.round(v)) : null, ready: moth.ready() }, blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot }); } },
       heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), ms: sky.heliMs ? sky.heliMs() : null, crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),
     destroy() {
       try { bb.destroy(); } catch { /* fine */ }
+      try { moth.destroy(); } catch { /* fine */ }
       if (dress) { try { dress.destroy(); } catch { /* fine */ } }
       if (hsky && hsky.destroy) { try { hsky.destroy(); } catch { /* fine */ } }
       if (hprops && hprops.destroy) { try { hprops.destroy(); } catch { /* fine */ } }

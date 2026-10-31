@@ -25,7 +25,7 @@ import { beatSource } from './audio/beat.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
 import { showBackdrop } from './screens/district/backdrop.js';
-import { settings, onSettings } from './audio/settings.js';
+import { settings, onSettings, PAGE_SILENT } from './audio/settings.js';
 import { lazyView } from './games/lazy-view.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
 
@@ -238,7 +238,7 @@ async function boot() {
   installSettingsPanel();
   // &debug=1: THE AUDIO DIAGNOSTIC (docs/audio.md#m3) — what the music is doing, on any screen; FP: or switched on from THE PREVIEW
   // PANEL → TOOLS → AUDIO PANEL on this device (ui/debug-tools.js: remembered, live on / off)
-  const syncDiag = () => { const on = debugTool('audio'); if (on || diagLoaded) import('./audio/diag.js').then(m => { diagLoaded = true; if (debugTool('audio')) m.mountAudioDiag(); else m.unmountAudioDiag(); }).catch(() => {}); };
+  const syncDiag = () => { if (PAGE_SILENT) return; const on = debugTool('audio'); if (on || diagLoaded) import('./audio/diag.js').then(m => { diagLoaded = true; if (debugTool('audio')) m.mountAudioDiag(); else m.unmountAudioDiag(); }).catch(() => {}); };
   syncDiag();
   onDebugTools(id => { if (id === 'audio') syncDiag(); });
   const fxClass = () => document.body.classList.toggle('reduced-fx', !!settings.reducedFx);

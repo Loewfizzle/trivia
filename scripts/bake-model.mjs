@@ -41,6 +41,9 @@ const out = LOOK || opt('out') || path.join(ROOT, recipe.OUT);
 
 const server = http.createServer((req, res) => {
   if (req.url === '/model.glb') { res.writeHead(200, { 'content-type': 'model/gltf-binary' }); fs.createReadStream(MODEL).pipe(res); return; }
+  // (MODELS: a recipe with SEVERAL models — the Mothman's tucked perch + his spread-wing glide — exports MODELS { key: path }; served at /m/<key>.glb)
+  const mm = /^\/m\/([a-z0-9-]+)\.glb$/.exec(req.url || '');
+  if (mm && recipe.MODELS && recipe.MODELS[mm[1]]) { res.writeHead(200, { 'content-type': 'model/gltf-binary' }); fs.createReadStream(path.resolve(ROOT, recipe.MODELS[mm[1]])).pipe(res); return; }
   if (req.url === '/' || req.url === '/bake.html') { res.writeHead(200, { 'content-type': 'text/html' }); res.end(recipe.page({ THREE })); return; }
   res.writeHead(404); res.end();
 });

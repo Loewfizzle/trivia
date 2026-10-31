@@ -1,0 +1,22 @@
+NEON SPEAKEASY - HELICOPTER MODEL CREDITS
+(Downloaded 2026-10-30. Both files are CC0 1.0 Universal: no attribution is legally required.
+They allow commercial use. The credit lines below are optional courtesy credits.)
+
+helicopter-utility-hd_3dassets-18712.glb   [BEST PICK]
+  Source page : https://3dassets.dev/assets/transport-collection-hd-utility-helicopter-18e3c5fe
+  Direct file : https://cdn.3dassets.dev/assets/18712/v1/model.glb  (renamed from model.glb; bytes unchanged)
+  Title       : Utility helicopter (Vehicle Collection HD: Cars, Planes and Boats)
+  Author      : 3D Assets (https://3dassets.dev/u/3dassets). The site lists it as "made with AI tools" (AI model: Claude Fable 5.1, contributor-reported)
+  Licence     : CC0 1.0 Universal - https://creativecommons.org/publicdomain/zero/1.0/
+  Credit line : "Utility helicopter" by 3D Assets (https://3dassets.dev/assets/transport-collection-hd-utility-helicopter-18e3c5fe) is dedicated to the public domain under CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+
+runnerup_helicopter-utility-lowpoly_3dassets-20028.glb   [OPTIONAL RUNNER-UP]
+  Source page : https://3dassets.dev/assets/air-land-sea-vehicles-utility-helicopter-7dbc148e
+  Direct file : https://cdn.3dassets.dev/assets/20028/v1/model.glb  (renamed from model.glb; bytes unchanged)
+  Title       : Utility helicopter (Air, Land and Sea Vehicles)
+  Author      : 3D Assets (https://3dassets.dev/u/3dassets). The site lists it as made with AI tools (Claude Fable 5.1, contributor-reported)
+  Licence     : CC0 1.0 Universal - https://creativecommons.org/publicdomain/zero/1.0/
+  Credit line : "Utility helicopter" by 3D Assets (https://3dassets.dev/assets/air-land-sea-vehicles-utility-helicopter-7dbc148e) is dedicated to the public domain under CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/)
+
+previews/*.png
+  Rendered on this box from the files above with three.js 0.187.0 (headless Chrome). These are our own renders of CC0 content.

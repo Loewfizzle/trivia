@@ -21,7 +21,8 @@ export const SECONDS = {
   life: 90,            // (FP3b: real doors + the dance circle — a circle forming ~40 s after the page opens)
   load: 30,            // (FP3a: the load gate — measured on the laptop)
   legends: 55,         // (6b: the legendary sky — three pages, a guess; SKY-A: + the F-22 chase page)
-  blackbird: 50,       // (SKY-A: THE BLACKBIRD — four pages: forced, the chase, the watcher, a solo sighting)
+  blackbird: 50,
+  mothman: 45,         // (MODELS: THE MOTHMAN — perched from a link, the leaving, an ordinary night)       // (SKY-A: THE BLACKBIRD — four pages: forced, the chase, the watcher, a solo sighting)
   blackout: 30,        // (C4c: the TR-3B's blackout on four holiday nights at 3× — 24 s on the laptop)
   bench: 25,           // (C4c: THE PHONE BENCH — the card, two scenes measured at &benchfast=1, the report; SKY-B: a fresh page per scene — 22 s on the laptop)
   workers: 75,         // (8b1: the workers — four pages, measured on the laptop)
@@ -49,7 +50,7 @@ export const CI_JOBS = {
   show: ['neon', 'party', 'sky', 'life', 'quietbuilding'],   // (NIGHT-C: quietbuilding — the lightest)
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'streetparty', 'panel'],   // (NIGHT-B: streetparty)   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)
-  perf: ['tower', 'partysync', 'flags', 'perf'],   // (SKY-B: heli → legend: its circle page)   // (NIGHT-C: partysync + heli + flags — before the serial perf)
+  perf: ['tower', 'partysync', 'flags', 'mothman', 'perf'],   // (MODELS: + the Mothman — the lightest job; perf stays last)   // (SKY-B: heli → legend: its circle page)   // (NIGHT-C: partysync + heli + flags — before the serial perf)
   // (city's history: 9e — tower before the serial pair (now in perf); PEO — promenade moved here from street, motion took its room)
   street: ['speakeasy', 'sounds', 'people', 'motion', 'freeze'],   // (HOTFIX Oct 27: freeze — the lightest job)   // (PEO: motion — the owner asked for it in the street job; promenade → city for the room; WIN3: windows → its own job)
   // (WIN3: THE WINDOWS' own job — the boss's room, the quiet nights, the cash, the window party pushed the group to ~165 s)
