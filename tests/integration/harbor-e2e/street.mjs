@@ -165,6 +165,8 @@ G('sounds', async () => {
   await ev(P.page, 'window.__district.remote().open()');
   await ev(P.page, "window.__district.remote().openCats(['sounds'])");
   await waitFor(P.page, "!!document.querySelector('.hr-sec[data-cat=\"sounds\"] .hr-snd')", 'the SOUNDS rows', 5000);
+  // (ATM-C: the CITY SOUNDS list folds behind its heading — opened first, as a person would)
+  await ev(P.page, "(() => { const f = document.querySelector('.hr-fold.is-folded[data-cat=\"sounds\"]'); if (f) f.querySelector('.hr-foldb').click(); })()");
   const rows = await ev(P.page, `[...document.querySelectorAll('.hr-sec[data-cat="sounds"] .hr-snd')].map(r => ({ id: r.dataset.slot, filled: r.classList.contains('is-filled'), dis: r.querySelector('.hr-snd-play').disabled, st: r.querySelector('.hr-snd-st').textContent, h: r.getBoundingClientRect().height }))`);
   const filled = rows.filter(x => x.filled).map(x => x.id).sort();
   ok(rows.length === SLOTS.length && filled.join() === filledSlots().sort().join() && rows.every(x => x.filled !== x.dis) && rows.filter(x => !x.filled).every(x => x.st === 'EMPTY') && rows.every(x => x.h >= 44),

@@ -545,7 +545,7 @@ export function createClouds() {
   let W = 1, top = 0, roof = 200, HZ = 300, box = null, list = [], old = null, oldK = 0, planKey = '', jobs = [], born = 0, G = null, gKey = '';
   let extra = { grey: 0, dark: 0, base: 0 };              // (the weather's set() — 9a)
   let res = 1.8, N = null, epoch = 0, rr = 0, lastA = 0, lastT = 0, mix = null, t0Clock = 0, e0 = 0, windSgn = 1;
-  let veilTile = null;   // (ATM-C: the high veil's fibres — veilFibres)
+  let veilTile = null, veilBake = null;   // (ATM-C: the high veil's fibres — veilFibres; its sheen baked — veilLook)
   // (POLISH 5 — THE LOAD: the plans made (the load log names each), the new set's fade (1.6 s; SLOW_MS once the city has shown —
   // the weather landing, a new block: a slow blend, never a pop) and whether the scene has settled the first set (settle()))
   let plans = 0, appearMs = 1600, shown = false;
@@ -810,7 +810,7 @@ export function createClouds() {
       mb: +list.reduce((s, d) => s + (d.cv ? d.cv.width * d.cv.height * 4 : 0) + (d.prev ? d.prev.width * d.prev.height * 4 : 0) + (d.F ? d.F.pw * d.F.ph * (d.F.m !== d.F.t ? 7 : 6) : 0), 0).toFixed(0) / 1e6,
       at: list.map(d => ({ k: d.kind, x: Math.round(d.xNow), y: Math.round(d.y), w: Math.round(d.w), h: Math.round(d.h), s: +d.s.toFixed(2) })),
     }),
-    destroy() { free(list); free(old); list = []; old = null; jobs = []; for (const g of glows.values()) g.width = 0; glows.clear(); for (const o of patches.values()) if (o.cv) o.cv.width = 0; patches.clear(); for (const cv of pool) cv.width = 0; pool.length = 0; if (veilTile) { veilTile.cv.width = 0; veilTile = null; } },
+    destroy() { free(list); free(old); list = []; old = null; jobs = []; for (const g of glows.values()) g.width = 0; glows.clear(); for (const o of patches.values()) if (o.cv) o.cv.width = 0; patches.clear(); for (const cv of pool) cv.width = 0; pool.length = 0; if (veilTile) { veilTile.cv.width = 0; veilTile = null; } if (veilBake) { veilBake.cv.width = 0; veilBake = null; } },
   };
   // ATM-C — THE FIBRES of the high veil: one baked tile (made once, ~0.5 MB), long soft streaks + a few finer threads, mostly along the
   // wind, never ruler-straight; drawn wrapped across the sky and drifting with the wind
@@ -840,11 +840,27 @@ export function createClouds() {
     if (k < 0.02 || day < 0.05) return;
     const gold = clamp01((LK.w.golden || 0) + (LK.w.dawn || 0) * 0.6), H0 = HZ, kd = k * day * (1 - 0.25 * gold);   // (a low sun's veil a touch lighter: warm, not beige)
     const tint = (a, w) => [a[0] + (w[0] - a[0]) * gold, a[1] + (w[1] - a[1]) * gold, a[2] + (w[2] - a[2]) * gold].map(Math.round).join(',');
-    const g = c.createLinearGradient(0, top, 0, H0);
-    g.addColorStop(0, `rgba(${tint([236, 241, 250], [250, 236, 218])},${(0.2 * kd).toFixed(3)})`);
-    g.addColorStop(0.55, `rgba(${tint([240, 244, 250], [255, 232, 206])},${(0.32 * kd).toFixed(3)})`);
-    g.addColorStop(1, `rgba(${tint([246, 247, 250], [255, 226, 192])},${(0.46 * kd).toFixed(3)})`);
-    c.fillStyle = g; c.fillRect(0, 0, W, H0);
+    // (THE SPEED: the sheen + the sky whitened round the sun BAKED into one half-resolution canvas — remade only when the veil, the low sun's
+    // warmth or the sun's place moves a step; a frame draws it once + the fibres (the 4× CPU A/B: the four full-sky fills cost +22 ms))
+    const sv = sun && sun.x != null && sun.vis > 0.05 ? sun : null, vk = `${W}|${H0}|${Math.round(kd * 24)}|${Math.round(gold * 10)}|${sv ? `${Math.round(sv.x / 6)},${Math.round(sv.y / 6)},${Math.round(sv.vis * 10)}` : '-'}`;
+    if (!veilBake || veilBake.key !== vk) {
+      const cw = Math.max(1, Math.ceil(W / 2)), ch = Math.max(1, Math.ceil(H0 / 2)), cv = veilBake && veilBake.cv ? veilBake.cv : document.createElement('canvas');
+      if (cv.width !== cw || cv.height !== ch) { cv.width = cw; cv.height = ch; }
+      const x = ctx2d(cv);
+      if (x) {
+        x.setTransform(0.5, 0, 0, 0.5, 0, 0); x.clearRect(0, 0, W, H0);
+        const g = x.createLinearGradient(0, top, 0, H0);
+        g.addColorStop(0, `rgba(${tint([236, 241, 250], [250, 236, 218])},${(0.2 * kd).toFixed(3)})`);
+        g.addColorStop(0.55, `rgba(${tint([240, 244, 250], [255, 232, 206])},${(0.32 * kd).toFixed(3)})`);
+        g.addColorStop(1, `rgba(${tint([246, 247, 250], [255, 226, 192])},${(0.46 * kd).toFixed(3)})`);
+        x.fillStyle = g; x.fillRect(0, 0, W, H0);
+        if (sv) { const r0 = Math.min(W, H0) * 0.62, w0 = x.createRadialGradient(sv.x, sv.y, 0, sv.x, sv.y, r0);
+          w0.addColorStop(0, `rgba(${tint([250, 250, 252], [255, 238, 210])},${(0.34 * kd * sv.vis).toFixed(3)})`); w0.addColorStop(1, `rgba(${tint([250, 250, 252], [255, 238, 210])},0)`);
+          x.fillStyle = w0; x.fillRect(sv.x - r0, sv.y - r0, r0 * 2, r0 * 2); }
+      }
+      veilBake = { key: vk, cv };
+    }
+    c.drawImage(veilBake.cv, 0, 0, W, H0);
     // the fibres: the tile wrapped across the sky above the roofs, drifting with the wind (a full turn of the tile in ~10 min at a breeze)
     const T = veilFibres();
     if (T) {
@@ -855,10 +871,7 @@ export function createClouds() {
       c.restore();
     }
     if (sun && sun.x != null && sun.vis > 0.05) {
-      // the sky round the sun whiter (the veil lit from behind) + the sun's light spread wide and soft
-      const r0 = Math.min(W, H0) * 0.62, w0 = c.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, r0);
-      w0.addColorStop(0, `rgba(${tint([250, 250, 252], [255, 238, 210])},${(0.34 * kd * sun.vis).toFixed(3)})`); w0.addColorStop(1, `rgba(${tint([250, 250, 252], [255, 238, 210])},0)`);
-      c.fillStyle = w0; c.fillRect(sun.x - r0, sun.y - r0, r0 * 2, r0 * 2);
+      // (the sky round the sun whiter — in the bake above) + the sun's light spread wide and soft
       c.save(); c.globalCompositeOperation = 'lighter';
       const r = Math.min(W, H0) * 0.3, gg = c.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, r);
       gg.addColorStop(0, `rgba(255,252,240,${(0.3 * k * sun.vis).toFixed(3)})`); gg.addColorStop(0.35, `rgba(255,252,240,${(0.12 * k * sun.vis).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,252,240,0)');

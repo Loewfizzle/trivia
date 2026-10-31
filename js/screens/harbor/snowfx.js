@@ -68,7 +68,7 @@ export function createSnowfall() {
       const sec = Math.min(0.1, (s.dt || 16) / 1000), tier = s.tier == null ? 2 : s.tier, only = s.layer ? LAYER[s.layer] : null, moving = only == null || only === 2;
       const bz = clamp01(s.blizzard || 0), heavy = clamp01((s.snow - 0.6) / 0.4);
       // (ATM-C: HEAVY snow DENSER — many small + mid flakes filling the air, only a few big near ones (the owner: "sparse for heavy"))
-      const want = s.snow > 0.004 ? Math.round(CAPS[tier] * Math.min(1, 0.15 + 0.85 * s.snow) * (1 + 1.6 * heavy * (1 - 0.4 * bz) + 0.6 * bz) * (s.motion ? 1 : 0.35)) : 0;
+      const want = s.snow > 0.004 ? Math.round(CAPS[tier] * Math.min(1, 0.15 + 0.85 * s.snow) * (1 + 1.6 * heavy * (1 - 0.8 * bz) + 0.6 * bz) * (s.motion ? 1 : 0.35)) : 0;   // (the blizzard ~ its old count: the soft sprites cost more a flake than its strokes did)
       if (!want && !flakes.length) return;
       // (the near layer — the only one in front of the promenade — carries heavy snow's density: MORE near flakes, most of them SMALL + crisp
       // (the air full of snow), only a third big + soft; the blizzard's near layer a FEW big soft flakes + its driven small ones)
@@ -113,7 +113,8 @@ export function createSnowfall() {
         if (al < 0.03) continue;
         // (the blizzard: a mid / near flake's SHORT SOFT SMEAR along its flight — its slant from its own velocity, 15 / 30 / 45 degrees)
         let sm = 0;
-        if (smear && f.d > 0) { const vy = D.v * f.s * (1 + 0.55 * bz), vx = f.vx || 0; if (Math.abs(vx) > vy * 0.6) { const deg = Math.atan2(vy, Math.abs(vx)) * 57.3; sm = (deg < 22 ? 1 : deg < 38 ? 2 : 3) * (vx < 0 ? -1 : 1); } }
+        // (only the FEW BIG near flakes smear: theirs is what reads; the small + mid ones' motion shows the drive — the 4× CPU A/B: every smear was ~55 ms)
+        if (smear && f.d === 2 && !f.sml) { const vy = D.v * f.s * (1 + 0.55 * bz), vx = f.vx || 0; if (Math.abs(vx) > vy * 0.6) { const deg = Math.atan2(vy, Math.abs(vx)) * 57.3; sm = (deg < 22 ? 1 : deg < 38 ? 2 : 3) * (vx < 0 ? -1 : 1); } }
         const dd = f.sml ? 0 : f.d, key = r0 + ',' + g0 + ',' + b0 + '|' + dd + '|' + f.v + '|' + sm;
         const als = al;
         let b = B.get(key); if (!b) { b = { col: [r0, g0, b0], d: dd, v: f.v, sm, pts: [] }; B.set(key, b); }
@@ -126,10 +127,13 @@ export function createSnowfall() {
       const add = only === 2;
       if (add) c.globalCompositeOperation = 'lighter';
       for (const b of B.values()) {
+        // (THE FAR DUST — ~2 pt dots, its softness invisible at phone size — one batched path a colour, as before: a sprite a flake costs a
+        // call each (the 4× CPU A/B: the blizzard's ~430 calls a frame); only the mid + near flakes, whose softness shows, are sprites)
+        if (b.d === 0 && !b.sm && only !== 2) { c.fillStyle = `rgb(${b.col[0]},${b.col[1]},${b.col[2]})`; for (let i = 0; i < b.pts.length; i += 5) { const r = b.pts[i + 2] * 0.9; c.globalAlpha = Math.min(1, b.pts[i + 3] * 0.85); c.fillRect(b.pts[i] - r, b.pts[i + 1] - r, r * 2, r * 2); } continue; }
         const A = flakeArt(b.col, b.d, b.v, b.sm);
         if (!A) continue;
         // (the sprite's soft edge runs past the flake's radius: drawn at ~2.4 r — the visible body ~ today's flake, the feather beyond)
-        const k = b.d === 2 ? 3.6 : b.d === 1 ? 3.3 : 3;
+        const k = b.d === 2 ? (b.sm ? 3 : 3.6) : b.d === 1 ? 3.3 : 3;   // (a smear already twice as long: drawn a touch smaller)
         for (let i = 0; i < b.pts.length; i += 5) {
           const r = b.pts[i + 2], h = r * k, w = h * A.w * (b.sm ? 1 : b.pts[i + 4]);
           c.globalAlpha = Math.min(1, b.pts[i + 3] * (add ? 0.62 + 0.18 * night : 1)); c.drawImage(A.cv, b.pts[i] - w / 2, b.pts[i + 1] - h / 2, w, h);

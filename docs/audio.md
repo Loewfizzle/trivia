@@ -465,7 +465,28 @@ rain), `rain-pavement` (the street round you, from moderate rain), `rain-awning`
 the time sound takes from its distance (3–16 s), never two rolls on top of each other. Everything under the music (the bed's duck); City
 1.0's rain loop + recorded thunder are off in City 2.0. The AUDIO panel's `weather <state> · beds …` line names what sounds.
 
-## THE STORM + THE COLD, HEARD (ATM-B, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js` (`thunder`, the weather beds), `audio/city-sound.js#cityCrack`
+## THE THUNDER RECORDED + THE BOXER's BAG (ATM-C, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js#thunder` (+ `CRACK2`), `screens/harbor/lightning.js` (the held flash), `core/harbor-boxer.js#boxerCues`
+- **THE THUNDER IS RECORDED** (the owner: ATM-B's synthesized crack "sounds terrible — very cheap and basic" → `cityCrack` REMOVED): Grok's set
+  (`art/city-sfx/thunder/` — the 9 originals git-ignored, never edited; `claude-notes.txt` + `credits.txt` beside them) → 9 web copies, **0.63 MB**
+  (mono, 24 kHz / 56 kbps, the long rumble tails faded at ≤ ~11 s, levelled to −23 LUFS — the cracks keep their headroom: a new per-take `lufs` in
+  add-city-sfx.py's CUTS; the crackle alternate's 0 dBFS peak lands at −2.4): **`thunder-close`** (close-1..5 + the crackle + the deep slam at
+  weight 0.3; gain 0.26 → −34.7 LUFS into the bus, over the far rolls' −35.9, under THE SONIC BOOM's −31.6) + **`thunder-mid`** (mid-1, mid-2 —
+  its 40 ms fade in, 2.5 s out). Each take's CUT starts ~0.3 s before its crack; its `hit` (add-city-sfx.py `mark`) = the crack's onset in the
+  file (Grok's notes, checked on the 2–8 kHz envelope — close-2's crack is at 0.67 s, not 0.01: "rises in 10 ms" was its rise time).
+- **THE FLASH ON THE TAKE's OWN CRACK**: a CLOSE strike picks its take FIRST (`pickTake`, never the same twice running) and `thunder()` returns
+  `{ lead, second }` to `lightning.js` (through `scene.js`'s `onStrike`): the crack is HEARD at the flash + the distance delay — when the take's
+  crack sits later in its file than the delay, the file starts now and the strike (bolt, flash, deck light — everything visible) is HELD BACK
+  by `lead`; otherwise the flash is now and the file waits. A take with a SECOND crack (`CRACK2`: close-4 at 2.5 s, the crackle at 1.6 s in the
+  cut) flashes again on it (≥ 0.6 s apart: the safety cap holds). Mid / far strikes: `thunder-mid` or `thunder-far` (55 / 45), the roll after
+  its distance, never on top of the last; an intra-cloud flicker the quietest, slowed. `harbor().sounds.thunderLog` = the last picks (the e2e).
+- **THE BOXER's BAG LOUDER + VARIED** (the owner: "I wish you could hear the bag more" · "just one sound of bag hitting"): `boxer-bag` 0.10 → 0.14
+  (~+3 dB, still through the cracked window's low-pass + room); VARIETY BY PUNCH (`boxerCues`): a JAB (a light straight) gain 0.72 at rate 1.12
+  (lighter, higher, shorter), a CROSS / HOOK / UPPERCUT full weight at 0.88 / 0.84 (deeper); a burst's FOLLOW-UP punches from **`boxer-combo`**
+  — Grok's two CC0 bag combos (ZusIsKing, Freesound 766864 + 766865) CUT INTO THEIR SINGLE HITS (6 takes, ~20 KB: the recordings' own ~0.4 s
+  spacing never matched his 0.27 s, so each hit stays on its own punch); THE CHAIN on ~1 in 3 heavy hits (a stable hash: every phone the same).
+  The bells, the rope + the speed bag unchanged.
+
+## THE STORM + THE COLD, HEARD (ATM-B, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js` (`thunder`, the weather beds) — (ATM-C: the synthesized crack below is GONE — the recorded thunder above)
 - **THE THUNDER BY DISTANCE** (`thunder(ev)` — the strike's kind, its distance's delay, its pan from where it hit): a CLOSE strike (≲ 1.6 km,
   0.5–4 s after its flash) = `cityCrack` — a SYNTHESIZED split (no file: a 1.6 s noise buffer made once per sample rate — two tearing peaks
   0 + 45 ms, a crackle tail, a low boom swelling under them, through a low-pass sweeping 7 kHz → 380 Hz) on the city's own chain (its gain,
