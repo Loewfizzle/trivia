@@ -506,7 +506,7 @@ export function createAir() {
     const e = (s.now - heli.start) / 1000;
     if (e < 0) return null;
     const p = heli.mode === 'break' ? breakAt(heli, e, s.now / 1000) : { ...heliAt(heli, e), yaw: 0, pitch: 0 };
-    if (p.done) { if (heli.spr) heli.spr.cv.width = 0; heli = null; return null; }
+    if (p.done) { if (heli.spr) heli.spr.cv.width = 0; if (heli.mspr) heli.mspr.width = 0; heli = null; return null; }
     if (heli.mode !== 'break') { p.pitch = p.hover ? 0 : 0.07 * p.dir * Math.min(1, Math.abs(p.vx) / (40 * K)); p.patrol = true; p.yaw = heliModel ? turn(heli, p, e) : p.dir; if (!heliModel) heli.th = p.dir > 0 ? 0 : Math.PI; } else p.yaw = turn(heli, p, e);
     const L = heli.len, sc = p.sc || 1, t = s.t, ext = L * sc * 0.8;
     // (off-screen — the turn round behind the city: not drawn, no beam)
@@ -557,11 +557,20 @@ export function createAir() {
     const hub = lerpP('hub'), lamp = lerpP('lamp'), ax = hub[0], ay = hub[1] + 0.3 * M.px;
     const n = clamp01(look.dark * 1.2), dd = 1 - n, pitch = (p.pitch || 0) * Math.cos(th);
     c.save(); c.translate(p.x, p.y); c.rotate(pitch);
-    const blit = (i, a) => { if (a <= 0.003) return; const cx = (i % M.cols) * M.fw, cy = Math.floor(i / M.cols) * M.fh;
-      for (const [lt, w] of [['day', dd], ['night', n]]) if (w > 0.003 && heliModel.sheets[lt]) { c.globalAlpha = a * w; c.drawImage(heliModel.sheets[lt], cx, cy, M.fw, M.fh, -ax * k, -ay * k, M.fw * k, M.fh * k); } };
-    // (the light: night over day; the two views: the nearer one whole, the next one laid over it by how far the heading has come)
-    blit(i0, 1); blit(i1, f);
-    c.globalAlpha = 1;
+    // (THE SPRITE, cached: the two nearest views × the hour's two lights blended ONCE into a small canvas at this size — rebuilt only when
+    // the heading, the light or the size moves on (the turn quantised to sixths): one drawImage a frame, as the drawn chopper was)
+    const fq = Math.round(f * 6) / 6, nq = Math.round(n * 6) / 6, sz = Math.max(4, Math.round(L * sc)), d = Math.min(3, dpr * 1.25), key = `${i0}|${i1}|${fq}|${nq}|${sz}|${d}`;
+    if (!heli.mspr || heli.msprKey !== key) {
+      const kk = sz / M.px, w = Math.ceil(M.fw * kk * d), hgt = Math.ceil(M.fh * kk * d);
+      if (!heli.mspr) heli.mspr = mk(w, hgt); else if (heli.mspr.width !== w || heli.mspr.height !== hgt) { heli.mspr.width = w; heli.mspr.height = hgt; }
+      const x = safeCtx(heli.mspr); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, w, hgt); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+      const blit = (i, a) => { if (a <= 0.003) return; const cx = (i % M.cols) * M.fw, cy = Math.floor(i / M.cols) * M.fh;
+        for (const [lt, wt] of [['day', 1 - nq], ['night', nq]]) if (wt > 0.003 && heliModel.sheets[lt]) { x.globalAlpha = a * wt; x.drawImage(heliModel.sheets[lt], cx, cy, M.fw, M.fh, 0, 0, w, hgt); } };
+      // (the light: night over day; the two views: the nearer one whole, the next one laid over it by how far the heading has come)
+      blit(i0, 1); blit(i1, fq); x.globalAlpha = 1;
+      heli.msprKey = key; heli.msprK = kk;
+    }
+    c.drawImage(heli.mspr, -ax * heli.msprK, -ay * heli.msprK, M.fw * heli.msprK, M.fh * heli.msprK);
     const P = q => [(q[0] - ax) * k, (q[1] - ay) * k];
     // THE ROTORS (hidden in the bake): the main disc — round, seen a little from below (a thin ellipse), its blades flicking across; the
     // tail disc on the fin — face-on from the side, edge-on head-on
@@ -789,7 +798,14 @@ export function createAir() {
       const travel = Math.hypot(aim.x - entry[0], aim.y - entry[1]) / sp, arriveMs = f.arrive * 1000;
       const start = from ? s.now : arriveMs - travel * 1000, hold = Math.max(1, f.leave - Math.max(f.arrive, start / 1000 + travel));
       if (heli && heli.spr) heli.spr.cv.width = 0;
-      const A = band ? Math.max(0, (band.x1 - band.x0) / 2) : 0;
+      let A = band ? Math.max(0, (band.x1 - band.x0) / 2) : 0;
+      // (MODELS — the drift's ENDS clear every sign too: at its far ends the craft's box (±0.7 L wide, −0.36 → +0.26 L tall round its
+      // centre) once just reached the WAIT / WALK lantern — a latent near-miss the e2e caught only when its samples landed on an end)
+      for (const r of (s.avoidSky || [])) {
+        if (!r || !(r.w > 0) || r.y > aim.y + len * 0.26 || r.y + r.h < aim.y - len * 0.36) continue;
+        if (r.x + r.w <= aim.x) A = Math.min(A, Math.max(0, aim.x - len * 0.7 - (r.x + r.w) - 2));
+        else if (r.x >= aim.x) A = Math.min(A, Math.max(0, r.x - (aim.x + len * 0.7) - 2));
+      }
       heli = { start, route: [[entry[0], entry[1], 0], [aim.x, aim.y, hold], [dir > 0 ? W + 80 : -80, aim.y - 18 * K, 0]], dir, spr: null, sprKey: '', len, own: false, mode: 'break', brkId: f.id,
         brk: { arrive: f.arrive, leave: f.leave, A } };
       // (THE PRE-BAKE: the craft in tonight's light + the beam in every palette colour, now — 16 s before the song — never on its first swing)

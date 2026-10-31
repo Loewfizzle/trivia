@@ -129,11 +129,30 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
   (typically ~100–200 ms) is past what any page can see — Windows reports only its own output path. **SETTINGS → SPEAKER DELAY (MS)**
   (OFF · 50 · 100 · 200 · 300 — this device only, saved): its synced songs play that much EARLIER (synced-songs.js#speakerLead), so a
   TV's sound leaves the speakers in step with a phone's; e2e `speaker`: 150 ms set → 148 ms earlier than its twin. This device's OWN
-  player (the fallback before the synced one decodes, or the direct path) now also adds the reported output latency + the speaker delay
-  (party-music.js#partyCue) — it used to add only a fixed 0.25 s.
+  player (the fallback before the synced one decodes, or the direct path) adds the speaker delay too (party-music.js#partyCue). (Adding the
+  reported output latency there as well put it ~40 ms off the timeline — past the 50-ms ride-along tolerance — and broke the first tap's
+  hand-over to the synced player: the local full suite's `neon` group caught it; taken out.)
 - **WHAT EACH BROWSER REPORTS**: the readout's station line now ends `lat out N base M ts · spk S` (out / base = the reported latencies,
   ts = getOutputTimestamp) — Windows Chrome here: out 40, base 10, ts. iOS Safari: read it off the iPhone's own `&debug=1` line (not
   measurable from here). Comparing the two lines + the ear sets the TV's delay; the owner's size of the lag is still pending.
+
+## Group 6 — the end: the numbers
+- **THE FULL HARBOR SUITE ON THE MINI PC** (all 10 jobs' groups, `SHARDS=3` + panel + perf, nothing else running): **24 min 05 s**,
+  **762 / 769**, the machine's memory peak **13.3 GB of 32** (Chrome ≤ 5.8 GB) → it fits: THE NEW STANDARD before a final push. (The first
+  try, with a SwiftShader model bake + shot bursts beside it, timed every group out on "the harbor baked": run it alone.) The 7 failures,
+  each classified: `neon`'s first-tap race + PENDING — A REAL REGRESSION of Group 5 (the own player +40 ms off the timeline: fixed, 40/40);
+  the break helicopter's lantern check — a latent near-miss at the drift's end, revealed by a page-timing shift (fixed: the drift's ends
+  clear every sign, 21/21); the evening's FIRST TAP surge + 9c's crisp list by day — SKY-B's known flakes; the calm load's tier step + the
+  battery's 60-fps moment — FAIL ON THE PRE-PASS BUILD TOO (this machine's headless Chromium paints at ~30 fps: 33.4-ms frames).
+- **THE BASELINE GUARD**: a plain night 0.58×, the forced bus 0.79×, the dog walk 0.65× (≤ 2×). **THE 20-CYCLE MEMORY CHECK**: offscreen
+  13.86 → 13.86 MB, heap 4.3 MB — flat (it sat at +6.1 → +6.6 MB in the cloud: SKY-A / SKY-B; the cloud run says whether that holds there).
+- **`title-perf.mjs --ab`** (A = 454bc71, the commit before the pass, on :5174; 4× CPU): np-night same · np-party same · mm-perch same (the
+  Mothman perched costs nothing measurable) · sa-patrol same at every tier once the model's sprite is CACHED (the first A/B: tier 1
+  SLOWER +3.3 ms — up to four scaled drawImages a frame; now the two views × the two lights blend once into a small canvas when the heading,
+  the light or the size moves on: one drawImage, as the drawn chopper).
+- **THE PHONE BENCH**: + `mothman` (perched, then the glide) + `patrol` (the baked helicopter) scenes; silent; a load-freeze line a scene.
+- **LOCAL CHECKS** before the push: unit 925 / 925 (~75 s) · rules 45 / 45 (27 s) · `/api` 25 / 25 (2 s) · smoke `GAMES=cipher` 3 / 3 (30 s).
+- **THE BAKES' WEIGHT**: assets/city/mothman 62 KB, sr71 10 KB, heli 157 KB; audio/city/boxer-* ~170 KB.
 
 ## Decisions
 - The Mothman 84 pt (not 70) — 38 % of the tucked model is the hem below his talons.
@@ -145,4 +164,19 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
 - EVERYONE's preview yields to a page whose own link carries `&force` (not to a clock-only link — the panel's own EVERYONE test opens night links).
 
 ## Known issues
-- (filled at the end)
+- The break flight (OFF by default, `&force=break-heli`) is now on the model too — not reviewed by the owner.
+- The patrol is not on the crisp layer (it flies behind the near pieces) — its sprites are baked at ~3× its near-pass size, so the 2×
+  canvas is the only softness.
+- The Mothman's glide sprite is one bank frame + a 2D lean (the baked banks unused so far — a swap would pop); the look round is the eyes
+  only (one mesh: no separate head).
+- The stations' lag on the owner's TV: the browser can't see the TV + soundbar's delay — he sets SPEAKER DELAY on the mini PC by ear;
+  iOS's reported latencies: read off his phone's `&debug=1` station line.
+- On this machine headless Chromium paints at ~30 fps: `perf`'s calm-load + battery 60-fps checks fail locally on any build (the cloud's
+  runners are the judge for those).
+- SKY-B's known flakes stand (the evening's first-tap surge on a slow first decode; 9c's crisp list by day).
+
+## Handoff to ATM
+- Clouds, wind, fog, storm, freezing rain, the sun (decisions.md §10) — the Mothman fades in rain / snow / fog / a storm (his veil from
+  LK.rain / snow / fog / storm): ATM's real weather drives it for free; a storm deck over the needle could hide him (his overlay has no
+  cloud in front of it — ATM decides if he should sit behind a low deck).
+- The full harbor suite runs locally in ~24 min: run it before ATM's final push, alone.

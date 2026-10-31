@@ -1360,3 +1360,21 @@ City 2.0 PARTY deck plays as ONE timeline every phone computes the same way, on 
 - TOOLS → NO PARTY SYNC (`&force=no-party-sync`): each phone its own party songs again (A/B) — the breaks keep the deck.
 - Checks: `tests/party-deck.test.mjs`; e2e `partysync` (each phone within ~100 ms of the clock, the break on the heard song, three live
   phones + a late joiner within ~50 ms of each other).
+
+## THE MODELS PASS — the boxer's sounds, the loudest boom, SPEAKER DELAY (Oct 30)
+- **THE SHADOWBOXER's GYM** (core/harbor-boxer.js#boxerCues → screens/harbor/sounds.js, panned to his window): `boxer-bell3` (the real
+  ding-ding-ding burst — Mateusz_Chenc, CC0) on a round's start, `boxer-bell` (one ding — Benboncan, CC BY 4.0, credited) on its end, a
+  `boxer-bag` thud on every punch that lands on the bag (five takes: four real-bag qubodup hits + a Gamemaster body hit), `boxer-chain`
+  (InspectorJ's distant jingles) after a hard one, `boxer-rope` + `boxer-speedbag` in turn off in the room once he has left in his long
+  break. Imported by scripts/add-city-sfx.py from COPIES staged under their slot names (`--src <folder>`; the originals untouched) with the
+  CUTS rows "THE SHADOWBOXER's GYM": heard through a cracked-open window — low-passed (~1.1 kHz thuds, 2.6 kHz bells), a small room, the
+  qubodup takes' hard 0.5-s cuts faded. ~170 KB.
+- **THE SONIC BOOM IS THE LOUDEST THING IN THE GAME**: `bb-boom` 0.24 → 0.264 (both thumps; a unit test: no other slot as loud); the
+  music dips to 0.6 under it; the master bus's soft limiter (engine.js: −12 dB, 4:1) keeps it from clipping.
+- **SPEAKER DELAY** (settings.speakerDelay, ms — SETTINGS → SPEAKER DELAY: OFF · 50 · 100 · 200 · 300): the synced songs (stations, the
+  party, a room's lobby song) are scheduled by what the browser says is HEARD (games/pulse/clock.js#ctxAtServer: getOutputTimestamp, else
+  currentTime − outputLatency) — a TV's + a soundbar's own processing is past that: this device's songs play speakerDelay EARLIER
+  (synced-songs.js#speakerLead); this device's own player adds it too (party-music.js#partyCue — not the reported latency: ~40 ms off the
+  timeline broke the first tap's hand-over, caught by the local full suite). Measured:
+  two pages on one station within 2 ms; a 150-ms setting → 148 ms earlier (e2e `speaker`). The readout's station line: `lat out N base M
+  ts · spk S`.

@@ -7,7 +7,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   ~400–600 a day when this ran on every push) only a pass's FINAL push runs it**: a push with **`[ci]`** (a game / app pass) or **`[harbor]`** (a City 2.0
   pass) in one of its commit messages; pull requests and `gh workflow run tests` always run; any other push shows a skipped run (0 minutes; it never
   cancels a full run in flight — a newer full run cancels an older one). The build machine (THE MINI PC, below) runs `node --test tests/*.test.mjs` before every push. Budget
-  ≈ 30–40 cloud minutes a pass (this workflow ≈ 10, the harbor's 8 jobs ≈ 28–34). It runs the unit tests,
+  ≈ 35–50 cloud minutes a pass (this workflow ≈ 10, the harbor's 10 jobs ≈ 36–42). It runs the unit tests,
   then the rules tests, the `/api` tests and the smoke test on the emulators with headless Chrome. They run **next to** the Vercel
   deploy, never in front of it; a failure is a red ✗ on the commit (and an email). (Since Oct 27 Vercel itself deploys only a push whose LAST
   commit carries `[harbor]`, `[ci]` or `[deploy]` — `vercel.json#ignoreCommand`, CLAUDE.md → Testing.) The smoke
@@ -56,6 +56,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     chase across the dark sign, the watcher's reward, a solo sighting at its time); unit `tests/harbor-blackbird.test.mjs` (+ the legends'
     registry) + `harbor-heli.test.mjs`; title-perf `sa-break-noheli` (`--vs sp-break`: the helicopter's own cost) + `sa-patrol`; the phone
     bench's `blackbird` scene (+ `party-break` / `tr3b` now carry the helicopter / the chase's Blackbird). `shots.mjs --crop heli`.
+  - **THE MODELS PASS**: `ONLY=mothman` (the new `models` cloud job, ~30 s — perched from a link within ~5 s of the reveal on the needle's tip, his own overlay at the phone's dpr, two red eyes, the leaving: the needle's dark stutter + the glide, the overlay gone; an ordinary night never fetches his sprites; unit `tests/harbor-mothman.test.mjs`) · `ONLY=boxer` (`models`, ~80 s — + THE BAG STAYS IN ONE SPOT, facing away from it in the air + toward it at the bag, it swings, the rest's SIT) · `ONLY=speaker` (`models`, ~10 s — two pages on one station + SPEAKER DELAY 150 ms → that page ~150 ms earlier) · `ONLY=heli` (its 4th page: the baked model, the near pass ≥ 55 pt, the turn toward us on a stop, no stop behind the speakeasy, the searchlight's steps < 0.25 rad) · `ONLY=panel` (+ a forcing link keeps its own `&force` while EVERYONE is on) · `ONLY=freeze` (a link's legendary `link.lead` 2.5 s after the tap); title-perf `mm-perch`; the phone bench's `mothman` + `patrol` scenes.
   - **A NEW GROUP** (`G('people', …)` in its job's file, `harbor-e2e/<job>.mjs`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
     `e2e-harbor.mjs` refuses to run (even with `ONLY=`) and `tests/harbor-jobs.test.mjs` fails in the quick workflow, so no group is ever
     skipped silently. A new JOB: a key in `CI_JOBS` + the same name in harbor.yml's matrix list + the Run-workflow options (the test checks).

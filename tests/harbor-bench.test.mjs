@@ -5,8 +5,8 @@ import assert from 'node:assert/strict';
 import { BENCH_SCENES, BENCH_PROFILE, PROFILE_Q, BENCH, benchStats, benchText, benchUrl } from '../js/screens/harbor/bench.js';
 import { REMOTE_KEYS, EVENTS } from '../js/core/harbor-remote.js';
 
-test('C4c — THE PHONE BENCH: the heavy scenes (a party peak, a dance break, party + snow, Halloween, the UFO, the TR-3B, the Blackbird, a storm) as preview states the panel knows', () => {
-  assert.deepEqual(BENCH_SCENES.map(s => s.id), ['party', 'party-break', 'party-snow', 'halloween', 'ufo', 'tr3b', 'blackbird', 'storm']);
+test('C4c — THE PHONE BENCH: the heavy scenes (a party peak, a dance break, party + snow, Halloween, the UFO, the TR-3B, the Blackbird, a storm + MODELS: the Mothman, the patrol) as preview states the panel knows', () => {
+  assert.deepEqual(BENCH_SCENES.map(s => s.id), ['party', 'party-break', 'party-snow', 'halloween', 'ufo', 'tr3b', 'blackbird', 'storm', 'mothman', 'patrol']);
   for (const s of [...BENCH_SCENES, { id: 'profile', q: PROFILE_Q }]) for (const k of Object.keys(s.q)) assert.ok(REMOTE_KEYS.includes(k), `${s.id}: ${k} is a preview key`);
   const per = s => 12000 + BENCH.cool + BENCH.settle + (s.measure || BENCH.measure) + BENCH.fill;
   const ms = BENCH_SCENES.reduce((a, s) => a + per(s), 0) + BENCH_PROFILE.reduce((a) => a + per({ measure: BENCH.profile }), 0);

@@ -105,10 +105,10 @@ export function partyClaims() {
 export function partyCue(prev = null) {
   const T = timeline();
   if (!T) return null;
-  // (+ the element's start: a quarter second to load + begin; MODELS: + this device's output latency where the browser reports it — the
-  // element plays through the same output — + the SPEAKER DELAY setting: this phone's own player keeps step with the synced ones)
-  const ac = getContext(), outLat = ac ? Math.max(0, Math.min(0.4, (ac.outputLatency || 0) || (ac.baseLatency || 0))) : 0;
-  const t = T.cityMs / 1000 + 0.25 + outLat + speakerLead();
+  // (+ the element's start: a quarter second to load + begin; MODELS: + the SPEAKER DELAY setting, as the synced player. NOT the reported
+  // output latency: it pushed this player ~40 ms off the timeline — past PARTY_RIDE_S with the element's jitter — and broke the first
+  // tap's hand-over to the synced player, which already schedules by what is heard)
+  const t = T.cityMs / 1000 + 0.25 + speakerLead();
   let s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, t);
   if (!s) return null;
   if (s.id === prev || s.t1 - t < 6) s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, s.t1 + 0.01) || s;

@@ -1608,6 +1608,23 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE DOG's TURN: its heading eased over 0.6 s (dogHeading), its place a continuous function of it (dogOffset), the dock clamp before the
   sniff (dogPlace), a squash-through flip while it turns (drawDog): the biggest move a frame 1.85 → 0.13 u.
 
+## CITY 2.0 — THE MODELS PASS: THE MOTHMAN, THE SR-71, THE HELICOPTER, THE SHADOWBOXER (Oct 30 2026) — docs/harbor/passes/models.md (plan.md "OWNER'S NOTES — OCT 30 (evening)")
+- THE MINI PC IS THE BUILD MACHINE: the docs say so (32 GB, Java: the emulators, rules, /api, smoke + the full harbor suite run locally
+  before the final push; the sandbox note); the phone bench runs SILENT + reports each scene's load freeze; THE LINKS RULE (a link's
+  legendary ≤ 5 s after the tap; an EVERYONE preview yields to a link that forces something).
+- THE MOTHMAN: two Hunyuan models baked (the tucked perch on the neon needle's tip, the spread-wing glide), the needle's dark stutter hides
+  the swap; two red eyes in code blinking out of sync; ~twice a month, 2 → 5 am (never a legendary's night or the eyes in the haze's);
+  `&force=mothman` / `mothman-arrive` / `mothman-leave`.
+- THE BLACKBIRD: the baked SR-71 behind its art switch (now the default; TOOLS → THE BLACKBIRD DRAWN); the vapor cone never clipped,
+  bigger, holding ~2.6 s; the sonic boom +10 % — the loudest sound in the game. THE TR-3B: the drained city stays dark (the dark bake's
+  rose walls read as a pink glow).
+- THE PATROL: the baked helicopter (24 headings, the rotors + the lights live), turning toward us on a stop, 64 pt up close, a hover that
+  would hide behind the speakeasy lifted into open sky, the searchlight eased.
+- THE SHADOWBOXER: the bag fixed on the right, long combinations in the air facing away from it, Ali footwork, bursts on the bag, the rests
+  sat out on the floor, no wall shadow; his 20 sounds in (11 takes shipped, muffled through a cracked window).
+- THE STATIONS ON TWO DEVICES: measured (two pages within 2 ms; the reported output latency already scheduled for); SETTINGS → SPEAKER
+  DELAY for a TV / soundbar; a 10th cloud job (`models`).
+
 ## CITY 2.0 — SKY-B: THE PARTY's SPEED, THE PATROL + THE BLACKBIRD, THE SHADOWBOXER, THE RADIO STATIONS (Oct 30 2026) — docs/harbor/passes/sky-b.md (plan.md "OWNER'S NOTES — OCT 30 (midday)")
 - THE PARTY's SPEED: the phone bench rebuilt to tell the truth (every scene a fresh page, its bakes finished, a cool-down, the frame side,
   the pixels painted, the CPU speed + low power hints; WHAT COSTS THE PARTY: the dance break with one piece off at a time); the vignette a
