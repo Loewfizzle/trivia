@@ -311,6 +311,9 @@ G('windows', async () => {
     await harborUp(Q.page); await lit(Q.page); await sleep(1200);
     const L = await ev(Q.page, 'window.__district.harbor().speakeasy.life'), W = await wins(Q.page);
     const lums = {}; for (const id of ['bar', 'jazz', 'back', 'edge2', 'edge3', 'apartment']) if (W[id]) lums[id] = lum(await area(Q.page, W[id], 0.15, 0.85, 0.15, 0.85));
+    // (ATM-C: the TV room's crossing SHADOW is a solid dark body now (a body blocks the light) — a sample taken as it passes reads the pane
+    // darker; "the only light on" is the set's light: the brightest of three looks half a second apart)
+    if (W.apartment) for (let i = 0; i < 2; i++) { await sleep(500); lums.apartment = Math.max(lums.apartment, lum(await area(Q.page, W.apartment, 0.15, 0.85, 0.15, 0.85))); }
     const others = ['bar', 'jazz', 'back', 'edge2', 'edge3'].filter(id => lums[id] != null);
     ok(L.quiet && L.bed && others.every(id => L.bed[id] === 0) && others.every(id => lums[id] < (['bar', 'jazz', 'back'].includes(id) ? 40 : 30)) && lums.apartment > Math.max(...others.map(id => lums[id])) + 12 && L.states.apartment === 'tv',
       `A QUIET NIGHT at 1:30: quiet ${L.quiet}, the beds ${JSON.stringify(L.bed)}, the panes ${Object.entries(lums).map(([k, v]) => `${k} ${v.toFixed(0)}`).join(' · ')} — the TV the only light on`);
