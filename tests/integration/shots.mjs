@@ -154,6 +154,7 @@ const PRESET = { dock: ['.nd-actions', 24], corner: ['.menu-btn, .music-btn', 10
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 // --zoom: the shot's own pixels drawn N × N on a page of their own (image-rendering: pixelated — no blur) and shot again
 async function magnify(ctx, buf, k, path) {
+  buf = Buffer.from(buf);   // (ATM-B: newer puppeteer hands back a Uint8Array)
   const w = buf.readUInt32BE(16), h = buf.readUInt32BE(20), q = await ctx.newPage();
   await q.setViewport({ width: w * k, height: h * k, deviceScaleFactor: 1 });
   await q.setContent(`<body style="margin:0;background:#000"><img src="data:image/png;base64,${buf.toString('base64')}" style="display:block;width:${w * k}px;height:${h * k}px;image-rendering:pixelated"></body>`);

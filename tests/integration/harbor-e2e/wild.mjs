@@ -123,6 +123,10 @@ G('weather', async () => {
     const snd = await ev(G2.page, 'window.__district.harbor().sounds ? window.__district.harbor().sounds.wind : null').catch(() => null);
     ok(w2 && w2.look === 'gale' && a2 > a1 && a2 > 6, `ATM-A A GALE: the crowns bent up to ${a2.toFixed(1)} pt (a windy day's ${a1.toFixed(1)}), the wind ${w2 && `${w2.speed} m/s`}`);
     okT(!snd || snd.gusts >= 1, `ATM-A THE GUSTS HEARD on the visual waves: ${snd ? `${snd.gusts} gust sounds in ~9 s` : 'no sounds readout'}`);
+    // ATM-B — COATS + SCARVES STREAM (the owner, Oct 31): in a gale the people's coats + scarves stream downwind (folk.js#setFolkWind's
+    // flap); a calm day's stay still (the still-air page above read 0)
+    { const fw = await ev(G2.page, `${P}.people.wind`);
+      ok(fw && fw.flap > 0.4 && fw.lean > 0.02 && fw.side === w2.side, `ATM-B THE COATS + SCARVES STREAM in a gale: flap ${fw && fw.flap}, lean ${fw && fw.lean} rad, downwind ${fw && fw.side > 0 ? 'right' : 'left'}`); }
     await G2.ctx.close(); }
 });
 // ---- PART 8b1 — THE WILDLIFE (core/harbor-wildlife.js + screens/harbor/wildlife.js + fauna.js): the animals drawn where they stand,

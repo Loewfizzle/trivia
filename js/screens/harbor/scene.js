@@ -87,7 +87,7 @@ import { setCityClock } from '../../core/city.js';
 import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
 import { tracesAt } from '../../core/harbor-crew.js';
 import { folkMap, FOLK } from '../../core/harbor-people.js';
-import { BODY_H } from './folk.js';
+import { BODY_H, folkWind } from './folk.js';
 import { drawSheets, sheetArt, bladeArt, drawBlade } from './workers.js';
 import { createDayFx } from './dayfx.js';
 import { createChimneys } from './chimneys.js';
@@ -1419,7 +1419,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (FP3b — the dance circle's beat: the party's song clock + its punch + palette; null off a party → wands.js keeps a steady 120 bpm)
       beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette, ...songEdge() } : null,   // (SP5: the song's edge — the dancers wind down, idle, pick up)
       // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
-      wind: WF.v(0.5), windF: WF };   // (ATM-A: the shared wind — the smoke pulses with the gusts, the walkers lean into a strong one)
+      wind: WF.v(0.5), windF: WF, W, wxDown: WXS && WXS.blizzard ? WXS.blizzard : 0 };   // (ATM-A: the shared wind — the smoke pulses with the gusts, the walkers lean into a strong one; ATM-B: the coats stream, the blizzard bows the heads)
   }
   let lobbyLine = 0, spillCls = false, partyDim = null, crowdMemo = null;
   /** NIGHT-C — the dancers' span on screen for the helicopter's beam: the pockets standing (their rings), the floor's back / middle / front,
@@ -3444,7 +3444,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (6b: THE DIRECTOR — the budget, what runs, who asked + got a yes)
       director: director.state(),
       // 8P: THE PEOPLE — who's on the promenade + the roof, the bus; setLine(n): Lobby 2.0's line at the door; budget(k): 6b's director
-      people: { ...people.debug(), party: people.party(), cars: people.cars(), traffic: people.traffic(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k), rigs: () => people.rigs(), cost: () => people.cost() },   // (PEO: rigs() + cost() — the motion probe)      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
+      people: { ...people.debug(), wind: folkWind(), party: people.party(), cars: people.cars(), traffic: people.traffic(), crew: people.crew(), setLine: n => { lobbyLine = n || 0; }, budget: k => people.budget(k), rigs: () => people.rigs(), cost: () => people.cost() },   // (PEO: rigs() + cost() — the motion probe)      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)
       // (8b1: THE WILDLIFE — who's where; scare(x, z, r) / startle(): Group 3's witnesses; budget(k): THE DIRECTOR)
       raid: (() => { const P = raidPlanNow(), nowS = clock.now() / 1000, R = P ? raidAt(P, nowS) : null; return P ? { key: P.key, why: P.why, party: P.party, s: +(nowS - P.t0).toFixed(1), tAppear: +(P.tAppear - P.t0).toFixed(1), tStop: P.tStop != null ? +(P.tStop - P.t0).toFixed(1) : null, tDepart: P.tDepart != null ? +(P.tDepart - P.t0).toFixed(1) : null, tBack: +(P.tBack - P.t0).toFixed(1), tEnd: +(P.tEnd - P.t0).toFixed(1), phase: R ? R.phase : 'after', power: R ? +R.power.toFixed(2) : 1, cars: R ? R.cars.length : 0, beam: R ? +R.beam.toFixed(2) : 0, club: R ? +R.club.toFixed(2) : 1 } : null; })(),
       wildlife: { ...wild.debug(), scare: (x, z, r) => wild.scare(x, z, r), startle: () => wild.startle(), budget: k => wild.budget(k), hydrantState: () => wild.hydrantState(), busy: wild.busy() },      // (8P: the lamps' life — each lamp's level, its switch-on threshold, the rare moment)

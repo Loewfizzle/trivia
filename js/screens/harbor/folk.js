@@ -207,10 +207,20 @@ const headingOf = st => (st.hd != null ? st.hd : st.dir === 1 ? 0 : st.dir === -
 // ATM-A — THE PEOPLE IN THE WIND (core/harbor-wind.js, one wind): in a strong wind the walkers + the standers LEAN INTO IT — forward when
 // they face into it, a touch back when it's behind them (a gale ≈ 9°: the head ~3 pt over at the phone's size); the hand on the hat is
 // the look's (lookOf: o.wind > 10). people.js sets it once a frame (setFolkWind).
-let FW_LEAN = 0, FW_SIDE = 1;
+// ATM-B — COATS + SCARVES STREAM (the owner, Oct 31: "people only lean + hold their hats"): in a strong wind a long / short coat's HEM
+// swings out DOWNWIND (both corners, the downwind one lifting) with a quick flutter, and a SCARF's TAIL streams out from the neck — big
+// shapes at ~27 pt, never fine detail; each person's share follows the GUST WAVE at their place (WF.at(u): a gust rolls through the crowd
+// from upwind); THE BLIZZARD bows the heads (FW_DOWN).
+let FW_LEAN = 0, FW_SIDE = 1, FW_FLAP = 0, FW_T = 0, FW_AT = null, FW_W = 1, FW_DOWN = 0;
 const WIND_POSES = new Set(['walk', 'wait', 'look', 'shop', 'chat', 'point']);
-/** once a frame: the wind's lean (rad at its strongest, 0 in calm air) + its side on screen (+1 blowing right) */
-export function setFolkWind(lean, side) { FW_LEAN = lean > 0 ? lean : 0; FW_SIDE = side < 0 ? -1 : 1; }
+/** once a frame: the wind's lean (rad at its strongest, 0 in calm air) + its side on screen (+1 blowing right); o: { flap (0..1 the coats'
+ *  stream), t (s), at (u → 0..1 the gust there), W (the screen's width), down (0..1 heads bowed: the blizzard) } */
+export function setFolkWind(lean, side, o = null) {
+  FW_LEAN = lean > 0 ? lean : 0; FW_SIDE = side < 0 ? -1 : 1;
+  FW_FLAP = o && o.flap > 0 ? Math.min(1, o.flap) : 0; FW_T = o ? o.t || 0 : 0; FW_AT = o && o.at ? o.at : null; FW_W = o && o.W > 0 ? o.W : 1; FW_DOWN = o && o.down > 0 ? Math.min(1, o.down) : 0;
+}
+/** the debug + tests: the people's wind now */
+export const folkWind = () => ({ lean: +FW_LEAN.toFixed(3), side: FW_SIDE, flap: +FW_FLAP.toFixed(3), down: +FW_DOWN.toFixed(2) });
 export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const hd = headingOf(st), cx = Math.cos(hd), cz = Math.sin(hd), pose = st.pose || 'walk', jog = (!!L.jog || !!st.run) && st.v > 2, G = jog ? GAIT.jog : GAIT.walk;   // (8b1: st.run — anyone RUNNING, the witnesses fleeing)
   // (a step in heights — a stride is two; FP3b: a relaxed 1920s pace takes SHORTER steps — a long step at a slow speed reads as a
@@ -349,6 +359,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const shY = (pose === 'sit' ? 0.58 : pose === 'garden' ? 0.61 : HIP0 + 0.3 - 0.2 * sq * deep) + breath - dip, up = shY - hipY;
   if (FW_LEAN > 0.004 && WIND_POSES.has(pose) && !L.kid) { const into = -cx * FW_SIDE; lean += FW_LEAN * (into > 0 ? into : 0.35 * into); }   // (ATM-A: into the wind)
   let shA = lean * up, headA = lean * (up + 0.115);
+  if (FW_DOWN > 0.01 && WIND_POSES.has(pose) && !L.kid) { const into = -cx * FW_SIDE; headA += 0.2 * FW_DOWN * (into > 0 ? 1 : 0.5); shA += 0.05 * FW_DOWN; }   // (ATM-B: the blizzard — heads down)
   if (pose === 'garden') { shA = 0.12; headA = 0.17; }
   if (lift) { shA = 0.15 * sq; headA = 0.17 * sq; }
   const shJ = [0, 1].map(i => ({ a: shA - (walking ? G.sh * (foot[i].a - mid0) : 0), b: sg[i] * 0.11, y: shY - 0.015 }));
@@ -672,12 +683,19 @@ function body(c, J, L, X, Y, H, lit, env) {
   const top = J.sh[1] + 0.01, hipY = J.hip[1], sx = J.tw, tX = J.sh[0], hX = J.hip[0];
   const hem = J.pose === 'sit' ? hipY - 0.02 : L.hem != null ? L.hem : L.coat === 'long' ? 0.27 : L.dress === 'flapper' ? 0.3 : L.dress ? 0.24 : L.coat === 'short' ? hipY - 0.06 : hipY - 0.02;
   const swingHem = J.walking ? Math.sin(J.p * TAU * 2) * 0.012 : 0;
+  // (ATM-B: the wind's stream at this person — the gust wave at their place on screen; a seated coat stays put)
+  const ph = L.fwPh != null ? L.fwPh : (L.fwPh = Math.random() * TAU);
+  const wk = FW_FLAP > 0.01 && J.pose !== 'sit' && !L.jog ? FW_FLAP * (0.55 + 0.45 * (FW_AT ? FW_AT(Math.max(0, Math.min(1, X(0) / FW_W))) : 0.5)) : 0;
+  const flut = wk ? Math.sin(FW_T * 8.5 + ph) * 0.6 + Math.sin(FW_T * 13.7 + ph * 2) * 0.4 : 0;
+  const hemOut = L.coat === 'long' ? 0.085 : L.coat === 'short' ? 0.045 : L.dress ? 0.05 : 0;
+  const sw = FW_SIDE * wk * hemOut * (1 + 0.28 * flut), lift = wk * hemOut * 0.45 * (1 + 0.4 * flut);
+  const hemDn = FW_SIDE > 0 ? [0, lift] : [lift, 0];   // (the downwind corner lifts: [left corner, right corner])
   const torsoCol = L.coat !== 'none' ? cols.coat : L.dress ? cols.dress : cols.shirt;
   const flare = L.coat === 'long' ? 0.03 : L.dress === 'flapper' ? 0.035 : L.dress ? 0.045 : 0.01;
   const torso = () => {
     c.beginPath();
     c.moveTo(X(tX - sx), Y(top)); c.lineTo(X(tX + sx), Y(top));
-    c.lineTo(X(hX + sx * 0.82), Y(hipY + 0.05)); c.lineTo(X(hX + sx * 0.9 + flare + swingHem * d), Y(hem)); c.lineTo(X(hX - sx * 0.9 - flare + swingHem * d), Y(hem)); c.lineTo(X(hX - sx * 0.82), Y(hipY + 0.05));
+    c.lineTo(X(hX + sx * 0.82 + sw * 0.25), Y(hipY + 0.05)); c.lineTo(X(hX + sx * 0.9 + flare + swingHem * d + sw * (FW_SIDE > 0 ? 1.15 : 0.7)), Y(hem + hemDn[1])); c.lineTo(X(hX - sx * 0.9 - flare + swingHem * d + sw * (FW_SIDE > 0 ? 0.7 : 1.15)), Y(hem + hemDn[0])); c.lineTo(X(hX - sx * 0.82 + sw * 0.25), Y(hipY + 0.05));
     c.closePath();
   };
   c.fillStyle = f(torsoCol); torso(); c.fill();
@@ -702,7 +720,17 @@ function body(c, J, L, X, Y, H, lit, env) {
   if (L.tux && cz < 0.4) { const v0 = tX + cx * sx * 0.45; c.fillStyle = f(cols.shirt, 1.2); c.beginPath(); c.moveTo(X(v0 - 0.03 * (1 - ax * 0.5)), Y(top)); c.lineTo(X(v0 + 0.03 * (1 - ax * 0.5)), Y(top)); c.lineTo(X(v0), Y(top - 0.13)); c.closePath(); c.fill(); }
   if (L.coat !== 'none' && ax > 0.5) { c.fillStyle = 'rgba(0,0,0,0.16)'; c.fillRect(X(tX - sx * 0.1 * d), Y(top - 0.05), Math.max(0.4, H * 0.012), (top - 0.05 - hem) * H * 0.95); }
   if (L.snowy && L.coat !== 'none') { c.fillStyle = f([238, 242, 252]); c.beginPath(); c.ellipse(X(tX), Y(top + 0.012), sx * H * 1.02, Math.max(0.7, H * 0.022), 0, Math.PI, 0); c.fill(); }   // (9b: snow on the shoulders)
-  if (cols.scarf && L.coat !== 'none') { c.fillStyle = f(cols.scarf); c.beginPath(); c.ellipse(X(tX), Y(top - 0.005), sx * H * 0.92, H * 0.026, 0, 0, TAU); c.fill(); if (ax > 0.5 || cz < -0.5) c.fillRect(X(tX + (ax > 0.5 ? -d * 0.05 : 0.02)), Y(top - 0.005), Math.max(0.6, 0.03 * H), 0.13 * H); }
+  if (cols.scarf && L.coat !== 'none') {
+    c.fillStyle = f(cols.scarf); c.beginPath(); c.ellipse(X(tX), Y(top - 0.005), sx * H * 0.92, H * 0.026, 0, 0, TAU); c.fill();
+    if (wk > 0.06) {
+      // (ATM-B: THE SCARF's TAIL streaming out downwind from the neck — one bold ribbon, rippling, its end dropping as the gust eases)
+      const len = 0.09 + 0.2 * wk, x0 = tX + FW_SIDE * sx * 0.55, y0 = top - 0.012, wv = 0.036 * (1 + 0.25 * flut), sag = 0.05 * (1 - wk);
+      c.beginPath(); c.moveTo(X(x0), Y(y0 + 0.016));
+      for (let i = 1; i <= 4; i++) { const u = i / 4, rip = Math.sin(FW_T * 11 + ph - u * 4.2) * 0.016 * wk * u; c.lineTo(X(x0 + FW_SIDE * len * u), Y(y0 + 0.016 - sag * u * u + rip)); }
+      for (let i = 4; i >= 0; i--) { const u = i / 4, rip = Math.sin(FW_T * 11 + ph - u * 4.2) * 0.016 * wk * u; c.lineTo(X(x0 + FW_SIDE * len * u), Y(y0 + 0.016 - sag * u * u + rip - wv * (1 - 0.35 * u))); }
+      c.closePath(); c.fill();
+    } else if (ax > 0.5 || cz < -0.5) c.fillRect(X(tX + (ax > 0.5 ? -d * 0.05 : 0.02)), Y(top - 0.005), Math.max(0.6, 0.03 * H), 0.13 * H);
+  }
   // 8b1 — THE UNIFORMS' DETAILS: an overalls' bib + straps, an apron, a waistcoat, brass buttons down the front (+ the cop's badge)
   if (L.overalls) {
     const bw = sx * (0.62 + 0.3 * (1 - ax)); c.fillStyle = f(cols.legs); c.fillRect(X(tX - bw), Y(top - 0.07), bw * 2 * H, (top - 0.07 - hipY + 0.02) * H);
