@@ -210,7 +210,9 @@ export const SLOTS = [
   S('boxer-bell', '7', 'once', 0.08, 'a boxing round bell — ONE ding (played ×3 to start a round, once to end it)', 'the shadowboxer’s rounds (SKY-B)'),
   S('boxer-rope', '7', 'once', 0.05, 'a skipping rope (or a speed bag) burst, off in the room', 'the shadowboxer’s long break, out of view (SKY-B)'),
   S('bb-static', 'sky', 'once', 0.22, 'an old radio tuning warble + static (three takes)', 'the Blackbird’s tell, ~3 s before it crosses'),
-  S('bb-boom', 'sky', 'once', 0.24, 'a distant explosion standing in for the sonic boom — played TWICE 0.15–0.3 s apart', 'the Blackbird’s double boom, ~0.8–1 s after its vapor cone (the city shakes a touch)'),
+  // (MODELS — the owner, Oct 30 6:43 pm: THE SONIC BOOM 10 % LOUDER, THE LOUDEST THING IN THE GAME — above every effect + the music; both
+  // thumps come through this slot; the master bus's soft limiter (audio/engine.js) keeps it from clipping)
+  S('bb-boom', 'sky', 'once', 0.264, 'a distant explosion standing in for the sonic boom — played TWICE 0.15–0.3 s apart', 'the Blackbird’s double boom, ~0.8–1 s after its vapor cone (the city shakes a touch)'),
   S('bb-scream', 'sky', 'once', 0.17, 'an F-16 overhead pass sped up 1.25× (a higher, tearing whine)', 'the Blackbird crossing, after the boom'),
   S('tr3b-crackle', 'sky', 'once', 0.1, 'electrical crackle (an electric arc + its reverb, ~3.6 s)'),
   S('tr3b-power-down', 'sky', 'once', 0.12, 'the power-down (the blackout): the hum cut dead with a thump at `hit` s, a turbine winding down'),

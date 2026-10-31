@@ -404,6 +404,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // own bake, a minute ahead (legends.darkWanted()); the blackout draws it in place of the lit facades and lays it back in the
   // drain's strips. Freed once the run is over. Without it (not baked yet) the lit facades stand in.
   const dark = { key: '', q: [], g: {}, want: false };
+  const DRAIN_DARK = { far: 0.38, near: 0.5 };   // (MODELS: how far the drained skyline is pulled to a cool near-black — the near band's rose walls most)
   function darkStart() {
     dark.q = []; dark.key = baker.key;
     const T = { ...(bakeTones || lookTones()), flood: 0, floodFront: false };
@@ -416,6 +417,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const steps = name === 'far' ? [...facadeSteps(L, T, 'far', 6, neon.glass), neon.housingStep('far', T)]
         : [...facadeSteps(L, T, 'near', 6, neon.glass), neon.housingStep('near', T), searchlightStep(L, T), ...quaySteps(L, T)];
       for (const st of steps) dark.q.push(() => { x.save(); st(x); x.restore(); });
+      // (MODELS — THE OWNER's TR-3B REVIEW, Oct 30 6:43 pm: "a NEON-PINK GLOW in the lower middle of the city" during the drain — the dark
+      // bake kept the facades' night base, the near band's rose + lavender walls lit like a glow in the dead city. The drained city stays
+      // DARK: the bake pulled toward a cool near-black inside its own pixels (once a bake, nothing a frame); the TR-3B's white + red light
+      // on the tower tops is drawn after it, untouched)
+      dark.q.push(() => { x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(7,6,18,${DRAIN_DARK[name]})`; x.fillRect(0, 0, cw, ch); x.restore(); });
       dark.q.push(() => { d.ready = true; d.y0 = y0; d.h = h; });
     }
   }
@@ -1367,14 +1373,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const tr = S.textRects, cb = bbCorner();
     if (!tr || !tr.neon) return { y: cb + 30, clip: cb + 2 };
     const top = Math.max(safeTopV + 8, cb + 6), bot = tr.neon.y - 4;
-    if (bot - top >= 28) return { y: (top + bot) / 2, clip: cb + 2, clipBot: tr.neon.y + 6 };   // (SKY-B: the cone + ring stay above the lit letters)
+    if (bot - top >= 28) return { y: top + (bot - top) * 0.44, clip: cb + 2, clipBot: tr.neon.y + 6 };   // (SKY-B: the cone + ring stay above the lit letters — MODELS: a touch above the middle, the bigger cone's room below; its top passes behind the buttons)
     const tg = tr.tag || tr.neon;
     return { y: tg.y + tg.h + 24, clip: tg.y + tg.h + 4 };
   }
   function bbTick(fs, now) {
     if (!S.motion) { if (bb.on()) bb.stop(); return; }
     const nowMs = clock.now(), nowS = nowMs / 1000, W = cam ? cam.W : 402, busy = bb.on();
-    if (qp.get('bbart')) bb.setArt(qp.get('bbart'));
+    // (THE ART SWITCH: a link's &bbart=drawn|model wins, else the panel's TOOLS row, else the default — the baked model since MODELS)
+    bb.setArt(qp.get('bbart') || (clock.force.has('bb-drawn') ? 'drawn' : 'model'));
     // THE CHASE: every TR-3B — once the F-22s are ~⅓ across, the same direction (the tell first: it starts BB.tell s before)
     if (legends && legends.active()) {
       const d = legends.debug(), r = d && d.run, sAt = bbChaseAt();

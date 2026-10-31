@@ -43,8 +43,28 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
   for the reveal + 1.5 s), `no-mothman` (TOOLS). Unit `tests/harbor-mothman.test.mjs`; e2e `ONLY=mothman` (the `perf` job — the lightest; 9 checks, ~30 s).
 - **CREDITS**: both models (Tencent HY 3D, AI-generated), the SR-71 (CC BY), the helicopter (CC0, made with AI tools) in ☰ → CREDITS.
 
+## Group 2 — THE BLACKBIRD's MODEL + FIXES, THE TR-3B's GLOW
+- **THE SR-71 MODEL** (scripts/bake/sr71.mjs, from the F-22's recipe; "SR-71 blackbird (FREE) downloadable" by pablogcg05, CC BY 4.0):
+  untextured, the iron-ball black with a blue cast, level, nose → +x, seen 22° from below (a true profile is a needle at 96 pt — the delta's
+  underside gives it mass), yaw 8°, the three lights → assets/city/sr71/ (≈ 10 KB). THE ART SWITCH's DEFAULT IS NOW THE MODEL
+  (blackbird.js#BB_ART_DEFAULT): at 402 it reads as the real aircraft (the delta, the nacelles, the chines) where the drawing is a stylised
+  profile; by day it's the clear win, at night both are silhouettes (the model gets the drawn one's neon rim). `&bbart=drawn` + TOOLS →
+  THE BLACKBIRD DRAWN = the A/B; the model loads with the flyby's sounds (prefetch), the drawing stands in until it's there. The owner judges.
+- **THE VAPOR CONE NEVER CLIPPED**: the overlay now reaches the screen's top (its strip used to start under the corner buttons — the cut the
+  owner saw), the cone + ring drawn whole; toward the LIT letters only a soft fade over the last ~18 pt (destination-out, the cone + ring
+  only — the craft + plumes drawn after); the flight sits at 44 % of the strip (more room below). BIGGER (the bell 0.74 × the body long,
+  0.34 tall — no room clamp), BRIGHTER (the bell 0.8, the bloom 0.42), IT LASTS: BB.coneHold 0.5 → 2.6 s (it swells a touch while held),
+  coneFade 1.4 → 2.6 s, the ring 1.8 → 2.8 s.
+- **THE SONIC BOOM +10 %** (the 6:43 pm note — supersedes +5 %): the slot 0.24 → 0.264, both thumps; still the loudest slot (a unit test
+  says nothing else is as loud); the music dips deeper under it (0.5 → 0.6, held 1.4 s); the master bus's soft limiter (−12 dB, 4:1) stays.
+- **THE TR-3B's PINK GLOW**: not the party (a Thursday cast + a pixel diff against Saturday: the same) — THE DARK CITY BAKE (the drained
+  skyline drawn in place of the lit one) kept the facades' night base, and the near band's rose + lavender walls behind the wheel read as a
+  pink glow in the dead city. Now the dark bake is pulled toward a cool near-black inside its own pixels (far 0.38, near 0.5 — once a bake,
+  nothing a frame); the TR-3B's white + red light on the tower tops is drawn after it, untouched.
+
 ## Decisions
 - The Mothman 84 pt (not 70) — 38 % of the tucked model is the hem below his talons.
+- The Blackbird's default art is the baked SR-71 (the owner judges on his phone; TOOLS → THE BLACKBIRD DRAWN for the A/B).
 - EVERYONE's preview yields to a page whose own link carries `&force` (not to a clock-only link — the panel's own EVERYONE test opens night links).
 
 ## Known issues

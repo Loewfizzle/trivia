@@ -73,7 +73,7 @@ function paintSR71(x, look) {
   }
 }
 /** the craft's sprite at len pt, d px a pt (the device's) → { cv, w, h, ox (the tail's x in the sprite), oy (the nacelle line) } */
-function sr71Sprite(len, look, d) {
+function drawnSprite(len, look, d) {
   // (SKY-A refine: drawn a third DEEPER than true — at 60–75 pt a true-proportioned SR-71 is a needle. SKY-B — the owner: LONGER, a long
   // needle-nosed SR-71: at ~96 pt it reads with far less exaggeration — 15 % deeper than true)
   const W = len * 1.06, H = len * 0.25, ox = len * 0.03, oy = len * 0.18;
@@ -84,9 +84,38 @@ function sr71Sprite(len, look, d) {
   return { cv, w: W, h: H, ox, oy };
 }
 
+// ------------------------------------------------------------------ THE MODEL (THE MODELS PASS): "SR-71 blackbird (FREE) downloadable" by
+// pablogcg05 (CC BY 4.0, ☰ → CREDITS) baked by scripts/bake/sr71.mjs → assets/city/sr71/: level, seen a little from below, nose → +x, in the
+// three lights (blended by the hour). LAZY: fetched when the art switch asks for it; until it's in (or if it fails) the drawing stands in.
+export const BB_ART_DEFAULT = 'model';
+const SR71 = new URL('../../../assets/city/sr71/', import.meta.url);
+let sr71Load = null, sr71 = null;
+function loadSR71() {
+  if (sr71Load) return sr71Load;
+  const img = n => new Promise((res, rej) => { const i = new Image(); i.decoding = 'async'; i.onload = () => res(i); i.onerror = () => rej(new Error(n)); i.src = new URL(n, SR71).href; });
+  sr71Load = (async () => { const r = await fetch(new URL('sr71.json', SR71).href); if (!r.ok) throw new Error('sr71.json'); const meta = await r.json(), sheets = {}; for (const lt of meta.lights) sheets[lt] = await img(`sr71-${lt}.webp`); sr71 = { meta, sheets }; return sr71; })();
+  sr71Load.catch(() => { sr71Load = null; });
+  return sr71Load;
+}
+/** the baked SR-71 at len pt (tail → nose), the hour's light blended, d px a pt → { cv, w, h, ox, oy, rot } — the tail at (ox, oy), level */
+function sr71Sprite(len, look, d) {
+  const M = sr71; if (!M) return null;
+  const m = M.meta, k = len / m.lenPx, W = m.fw * k, H = m.fh * k, cv = mk(W * d, H * d), x = ctx2d(cv);
+  if (!x) return null;
+  const n = clamp01(look.dark), g = clamp01(look.golden || 0) * (1 - n), dd = Math.max(0, 1 - n - g);
+  let sum = 0; x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high';
+  for (const [lt, w] of [['day', dd], ['golden', g], ['night', n]]) if (w > 0.002 && M.sheets[lt]) { sum += w; x.globalAlpha = w / sum; x.drawImage(M.sheets[lt], 0, 0, m.fw, m.fh, 0, 0, W * d, H * d); }
+  x.globalAlpha = 1;
+  // AT NIGHT: the city's neon as a rim on the underside (the drawn one's magenta below) — through the sprite's own pixels
+  if (n > 0.2) { x.globalCompositeOperation = 'source-atop'; const rg = x.createLinearGradient(0, 0, 0, H * d); rg.addColorStop(0, `rgba(150,170,255,${0.22 * n})`); rg.addColorStop(0.45, 'rgba(0,0,0,0)'); rg.addColorStop(1, `rgba(255,80,190,${0.3 * n})`); x.fillStyle = rg; x.fillRect(0, 0, W * d, H * d); x.globalCompositeOperation = 'source-over'; }
+  return { cv, w: W, h: H, ox: m.tail[0] * k, oy: m.tail[1] * k, rot: Math.atan2(m.nose[1] - m.tail[1], m.nose[0] - m.tail[0]), model: true };
+}
+
 // ------------------------------------------------------------------ the module
 export function createBlackbird() {
-  let cv = null, x = null, cvKey = '', fl = null, spr = null, sprKey = '', art = 'drawn', lastDbg = null;
+  // (MODELS: THE ART SWITCH's default is the baked SR-71 — it reads as the real aircraft at 96 pt (the delta, the nacelles, the chines)
+  // where the drawing is a stylised profile; `&bbart=drawn` / TOOLS → THE BLACKBIRD DRAWN for the A/B)
+  let cv = null, x = null, cvKey = '', fl = null, spr = null, sprKey = '', art = BB_ART_DEFAULT, lastDbg = null;
   const glows = new Map();
   const glow = col => { const k = col.join(','); let c = glows.get(k); if (!c) { c = mk(48, 48); const g = ctx2d(c); if (g) { const gr = g.createRadialGradient(24, 24, 0, 24, 24, 24); gr.addColorStop(0, rgb(col, 1)); gr.addColorStop(0.3, rgb(col, 0.45)); gr.addColorStop(1, rgb(col, 0)); g.fillStyle = gr; g.fillRect(0, 0, 48, 48); } glows.set(k, c); } return c; };
 
@@ -130,7 +159,7 @@ export function createBlackbird() {
   }
   /** SKY-B — every Blackbird sound fetched + decoded AHEAD (the scene asks ~20 s before a solo sighting + at a TR-3B's start): the radio
    *  crackle then plays on its cue, never late or lost to the fetch */
-  function prefetch() { for (const [slot, n] of [['bb-static', 3], ['bb-boom', 1], ['bb-scream', 1]]) for (let i = 0; i < n; i++) cityPrefetch(slot, i, { hold: 30000 }); }
+  function prefetch() { for (const [slot, n] of [['bb-static', 3], ['bb-boom', 1], ['bb-scream', 1]]) for (let i = 0; i < n; i++) cityPrefetch(slot, i, { hold: 30000 }); if (art === 'model') loadSR71(); }
   /** per frame: s = { now (clock ms), W, H, dpr, look, t, motion }, cb = { onShake() } → true while it's up (the calm frame rate keeps 60) */
   function frame(s, cb = {}) {
     if (!fl) return false;
@@ -142,42 +171,37 @@ export function createBlackbird() {
     const pan = Math.max(-0.9, Math.min(0.9, (st.u - 0.5) * 1.6 * fl.dir));
     const play = (slot, o, duck) => (cb.duck && duck ? cb.duck(slot, { ...o, ...duck }) : citySound(slot, { ...o, jitter: 0 }));
     cue('tell', -BB.tell, () => play('bb-static', { gain: 1, pan: -0.6 * fl.dir }, { depth: 0.45, hold: 2.4, release: 1.2 }));
-    cue('boom1', BB.cone + BB.boom, () => { play('bb-boom', { gain: 1, pan: pan * 0.4 }, { depth: 0.5, hold: 1.2, release: 2.5 }); if (cb.onShake) cb.onShake(); });
+    // (MODELS: the music dips deeper under the boom — the loudest thing in the game)
+    cue('boom1', BB.cone + BB.boom, () => { play('bb-boom', { gain: 1, pan: pan * 0.4 }, { depth: 0.6, hold: 1.4, release: 2.5 }); if (cb.onShake) cb.onShake(); });
     cue('boom2', BB.cone + BB.boom + BB.boomGap, () => citySound('bb-boom', { gain: 0.8, pan: pan * 0.4, rate: 0.94, jitter: 0 }));
     cue('scream', BB.cone + BB.boom + BB.boomGap + 0.12, () => citySound('bb-scream', { gain: 1, pan: 0.7 * fl.dir, jitter: 0 }));
     if (e > bbLife(s.W, len) + 0.2) { fl.done = true; fl = null; free(); lastDbg = null; return false; }
     if (!st.on && !st.ring && !(st.cone > 0) && st.streak <= 0) { if (cv) x.clearRect(0, 0, cv.width, cv.height); lastDbg = { e: +e.toFixed(2), on: false, tell: st.tell }; return e < 0 || st.boom == null || st.boom < 3; }
-    // THE OVERLAY: the strip round its path (the ring's room), at the device's dpr, clipped under the corner buttons
-    const d = Math.min(3, s.dpr || 2), bandH = len * 1.9, top = Math.max(fl.clip, fl.y - bandH / 2);
-    if (!overlay(s.W, top, fl.y + bandH / 2 - top, d)) return true;
+    // THE OVERLAY: the band round its path (the cone's + the ring's room), at the device's dpr — MODELS (the owner, Oct 30 6:05 pm: "THE
+    // VAPOR CONE IS CUT OFF AT THE TOP"): NEVER CLIPPED — the band reaches the screen's top (the corner buttons sit above it, the cone
+    // behind them), and toward the LIT letters below only a SOFT FADE of the cone + the ring (the letters stay clear by placement)
+    const d = Math.min(3, s.dpr || 2), bandH = len * 2.8, top = Math.max(0, fl.y - bandH / 2), bot = fl.clipBot != null ? Math.min(fl.y + bandH / 2, fl.clipBot + 8) : fl.y + bandH / 2;
+    if (!overlay(s.W, top, Math.max(10, bot - top), d)) return true;
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height);
     x.setTransform(d, 0, 0, d, 0, -top * d);
-    // (SKY-B: above the LIT sign the cone + the ring keep to the strip — never over the letters; in the chase, across the dark sign, full size)
     x.save();
-    if (fl.clipBot != null) { x.beginPath(); x.rect(0, top, s.W, Math.max(1, fl.clipBot - top)); x.clip(); }
-    const room = Math.max(10, Math.min(fl.y - fl.clip, fl.clipBot != null ? fl.clipBot - fl.y : 1e9));
     const look = s.look, night = look.dark, span = s.W + len * (1 + BB.plume);
     const noseX = u => (fl.dir > 0 ? -len * 0.2 + u * (s.W + len * 0.2) : s.W + len * 0.2 - u * (s.W + len * 0.2));
     const nx = noseX(st.u), tailX = nx - fl.dir * len, y = fl.y;
-    // THE SPEED STREAK: a thin bright line along its path behind it, fading
-    if (st.streak > 0.01) {
-      const x0 = fl.dir > 0 ? 0 : s.W, g = x.createLinearGradient(x0, 0, tailX, 0);
-      g.addColorStop(0, `rgba(230,236,255,0)`); g.addColorStop(1, `rgba(240,244,255,${(0.28 + 0.25 * night) * st.streak})`);
-      x.globalCompositeOperation = 'lighter'; x.strokeStyle = g; x.lineWidth = 1.1; x.beginPath(); x.moveTo(x0, y + len * 0.01); x.lineTo(tailX, y + len * 0.01); x.stroke(); x.globalCompositeOperation = 'source-over';
-    }
     // SKY-B — THE VAPOR CONE, CENTRE STAGE: it forms round the craft's tail half as its middle crosses the screen's centre, then STAYS where
     // the barrier broke as the craft tears on out of it — a big bright white bell (bigger + brighter than SKY-A's, ~0.6 × the body tall),
     // its sharp leading edge, the shock's striations, a wide soft bloom; it holds, then DISSIPATES slowly — swelling, softening, fading
+    // (MODELS: BIGGER, BRIGHTER, it LASTS — it swells a touch through its ~2.6 s hold, then dissolves slowly (BB.coneHold / coneFade))
     if (st.cone > 0.004) {
-      const cx = noseX(st.coneU) - fl.dir * len * 0.42, age = Math.max(0, st.coneS), sw = 1 + 0.32 * Math.min(1, Math.max(0, age - BB.coneIn - BB.coneHold) / BB.coneFade) + 0.04 * Math.min(1, age / 0.3);
-      const k = st.cone, soft = 1 - k, L0 = len * 0.62 * sw, R1 = Math.min(len * 0.3, room + 6) * sw, R0 = len * 0.05 * sw, f0 = cx + fl.dir * L0 * 0.42, f1 = cx - fl.dir * L0 * 0.58;
+      const cx = noseX(st.coneU) - fl.dir * len * 0.42, age = Math.max(0, st.coneS), sw = 1 + 0.12 * Math.min(1, Math.max(0, age - BB.coneIn) / BB.coneHold) + 0.3 * Math.min(1, Math.max(0, age - BB.coneIn - BB.coneHold) / BB.coneFade) + 0.04 * Math.min(1, age / 0.3);
+      const k = st.cone, soft = 1 - k, L0 = len * 0.74 * sw, R1 = len * 0.34 * sw, R0 = len * 0.055 * sw, f0 = cx + fl.dir * L0 * 0.42, f1 = cx - fl.dir * L0 * 0.58;
       x.save(); x.globalCompositeOperation = 'lighter';
-      x.globalAlpha = (0.32 + 0.18 * night) * k; const gb = Math.min(len * 0.85, room * 2.4) * sw; x.drawImage(glow([235, 242, 255]), cx - gb, y - gb * 0.6, gb * 2, gb * 1.2);   // (the bloom)
+      x.globalAlpha = (0.42 + 0.18 * night) * k; const gb = len * 0.95 * sw; x.drawImage(glow([235, 242, 255]), cx - gb, y - gb * 0.6, gb * 2, gb * 1.2);   // (the bloom)
       x.globalAlpha = 1; x.globalCompositeOperation = 'source-over';
       const bell = (rs, a) => { const g = x.createLinearGradient(f0, 0, f1, 0); g.addColorStop(0, `rgba(250,252,255,${a})`); g.addColorStop(0.22, `rgba(240,246,255,${a * 0.72})`); g.addColorStop(0.65, `rgba(228,236,250,${a * 0.28})`); g.addColorStop(1, 'rgba(225,235,250,0)');
         x.fillStyle = g; x.beginPath(); x.moveTo(f0, y - R0 * rs); x.quadraticCurveTo(f0 - fl.dir * L0 * 0.18, y - R1 * rs * 0.92, f1, y - R1 * rs); x.lineTo(f1, y + R1 * rs); x.quadraticCurveTo(f0 - fl.dir * L0 * 0.18, y + R1 * rs * 0.92, f0, y + R0 * rs); x.closePath(); x.fill(); };
-      bell(Math.min(1.25 + 0.3 * soft, (room + 8) / Math.max(1, R1)), 0.22 * k);   // (a soft outer veil — wider as it dissipates, kept to the strip)
-      bell(1, (0.62 + 0.2 * night) * k ** 1.2);          // (the cone itself)
+      bell(1.25 + 0.3 * soft, 0.26 * k);   // (a soft outer veil — wider as it dissipates)
+      bell(1, (0.8 + 0.15 * night) * k ** 1.2);          // (the cone itself: brighter white condensation)
       x.globalCompositeOperation = 'lighter';
       // the leading edge: a crisp bright ring where the shock sits + two fainter striations behind it
       for (const [o, a, wd] of [[0, 0.95, 1.6], [0.2, 0.35, 1], [0.42, 0.2, 0.8]]) {
@@ -188,9 +212,21 @@ export function createBlackbird() {
     }
     // THE SHOCK RING: where it broke through — a thin bright ring seen edge-on (a tall ellipse), expanding + fading with the cone; it stays there
     if (st.ring && s.motion) {
-      const rx0 = noseX(st.ring.u) - fl.dir * len * 0.16, r = Math.min(len, room * 1.5 + 14) * (0.16 + 0.85 * Math.sqrt(st.ring.k)), a = (1 - st.ring.k) ** 1.3;
+      const rx0 = noseX(st.ring.u) - fl.dir * len * 0.16, r = len * 1.05 * (0.16 + 0.85 * Math.sqrt(st.ring.k)), a = (1 - st.ring.k) ** 1.3;
       x.globalCompositeOperation = 'lighter'; x.strokeStyle = `rgba(235,242,255,${0.9 * a})`; x.lineWidth = 1.7 * (1 - 0.5 * st.ring.k);
       x.beginPath(); x.ellipse(rx0, y, r * 0.3, r, 0, 0, TAU); x.stroke(); x.globalCompositeOperation = 'source-over';
+    }
+    // (the SOFT EDGE toward the lit letters: the cone + the ring faded out over the last ~18 pt above them — never a hard cut)
+    if (fl.clipBot != null) {
+      const fy0 = fl.clipBot - 18, g = x.createLinearGradient(0, fy0, 0, fl.clipBot + 2);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(1, 'rgba(0,0,0,1)');
+      x.globalCompositeOperation = 'destination-out'; x.fillStyle = g; x.fillRect(0, fy0, s.W, bot - fy0 + 4); x.globalCompositeOperation = 'source-over';
+    }
+    // THE SPEED STREAK: a thin bright line along its path behind it, fading
+    if (st.streak > 0.01) {
+      const x0 = fl.dir > 0 ? 0 : s.W, g = x.createLinearGradient(x0, 0, tailX, 0);
+      g.addColorStop(0, `rgba(230,236,255,0)`); g.addColorStop(1, `rgba(240,244,255,${(0.28 + 0.25 * night) * st.streak})`);
+      x.globalCompositeOperation = 'lighter'; x.strokeStyle = g; x.lineWidth = 1.1; x.beginPath(); x.moveTo(x0, y + len * 0.01); x.lineTo(tailX, y + len * 0.01); x.stroke(); x.globalCompositeOperation = 'source-over';
     }
     if (st.on) {
       x.save(); x.translate(tailX, y); x.scale(fl.dir, 1);
@@ -201,8 +237,11 @@ export function createBlackbird() {
       x.globalCompositeOperation = 'source-over';
       // the craft (the art switch: the drawn SR-71 — or a baked model's sprite in its place)
       const key = `${art}|${Math.round(len)}|${Math.round(look.day * 8)}|${Math.round(look.golden * 8)}|${Math.round(night * 8)}|${d}`;
-      if (!spr || key !== sprKey) { if (spr) spr.cv.width = 0; spr = sr71Sprite(len, look, d); sprKey = key; }
-      if (spr) x.drawImage(spr.cv, -spr.ox, -spr.oy - len * 0.029, spr.w, spr.h);
+      if (art === 'model' && !sr71) loadSR71();
+      const key2 = `${key}|${sr71 ? 1 : 0}`;
+      if (!spr || key2 !== sprKey) { if (spr) spr.cv.width = 0; spr = (art === 'model' && sr71Sprite(len, look, d)) || drawnSprite(len, look, d); sprKey = key2; }
+      if (spr && spr.model) { x.save(); x.rotate(-spr.rot); x.drawImage(spr.cv, -spr.ox, -spr.oy, spr.w, spr.h); x.restore(); }
+      else if (spr) x.drawImage(spr.cv, -spr.ox, -spr.oy - len * 0.029, spr.w, spr.h);
       // at night its lights: a red beacon on the spine, the tail's white
       if (night > 0.2) { x.globalCompositeOperation = 'lighter'; x.globalAlpha = night * (Math.sin(s.t * 9) > 0.4 ? 0.9 : 0.2); x.drawImage(glow([255, 40, 40]), len * 0.5 - 4, -len * 0.04 - 4, 8, 8); x.globalAlpha = 1; x.globalCompositeOperation = 'source-over'; }
       x.restore();
@@ -216,7 +255,8 @@ export function createBlackbird() {
     start, frame, prefetch,
     on: () => !!fl,
     /** THE ART SWITCH: 'drawn' (the default) | 'model' (a baked sprite — once a bake exists; else the drawing stays) */
-    setArt(a) { art = a === 'model' ? 'model' : 'drawn'; },
+    setArt(a) { art = a === 'drawn' ? 'drawn' : 'model'; if (art === 'model') loadSR71(); },
+    art: () => art, modelReady: () => !!sr71,
     stop() { fl = null; free(); },
     debug: () => (fl ? { kind: fl.kind, at: fl.at, dir: fl.dir, y: Math.round(fl.y), art, ...(lastDbg || {}) } : null),
     destroy() { free(); if (spr) spr.cv.width = 0; spr = null; for (const c of glows.values()) c.width = 0; glows.clear(); },
