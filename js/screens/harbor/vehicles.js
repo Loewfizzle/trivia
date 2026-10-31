@@ -164,6 +164,27 @@ function drawDoorOpen(c, id, M, K, sp, k01, look, bob, inside) {
   c.fillStyle = rgb(shade(K.p, 0.25)); c.fillRect(xf - Math.max(0.5, 0.05 * sp * Math.sin(th)), yTf, Math.max(0.5, 0.05 * sp * Math.sin(th)), yBf - yTf);
 }
 
+/**
+ * ATM-D — THE FAR REAR DOOR (the cab stand's fare boards from the CURB — the FAR side; the owner, Oct 31 4:50 pm): the back-seat door on the
+ * far side, swung out on its front hinge toward the curb — seen from our side only its TOP EDGE (the window frame) rising above the roofline
+ * as it opens, the dark of the far glass under it. Local coords as drawDoorOpen; k01 0..1 (eased). The rear door: u 0.62 → 1.72 from the
+ * tail (the near openable door doorsOf() names is the front one).
+ */
+function drawFarDoorTop(c, M, K, sp, k01, bob) {
+  const e = k01 * k01 * (3 - 2 * k01), th = e * 1.2;
+  if (th < 0.02) return;
+  const X = u => (u - M.len / 2) * sp, Y = v => -v * sp + bob, a = 0.62, b = Math.min(1.72, M.cab[1] - 0.6), Wd = b - a;
+  // (the free edge swings toward the hinge + away from us: away = HIGHER on the screen (we look down on the car) — the rise is the door's
+  // depth seen from our camera height)
+  const xh = X(b), xf = X(b) - Wd * Math.cos(th) * sp, rise = Wd * Math.sin(th) * sp * 0.42, yT = Y(M.h - 0.12), fr = Math.max(0.7, 0.07 * sp);
+  c.save();
+  c.beginPath(); c.rect(Math.min(xh, xf) - 2, yT - rise - fr * 3, Math.abs(xh - xf) + 4, rise + fr * 3 + 0.04 * sp); c.clip();   // (only what stands above the roof)
+  c.fillStyle = rgb(mix(K.glassB, [16, 18, 26], 0.5)); c.beginPath(); c.moveTo(xh, yT + 0.5); c.lineTo(xf, yT - rise + 0.5); c.lineTo(xf, yT + 0.04 * sp); c.lineTo(xh, yT + 0.04 * sp); c.closePath(); c.fill();
+  c.fillStyle = rgb(shade(K.p, -0.18)); c.beginPath(); c.moveTo(xh, yT); c.lineTo(xf, yT - rise); c.lineTo(xf, yT - rise - fr); c.lineTo(xh, yT - fr); c.closePath(); c.fill();
+  c.fillStyle = rgb(shade(K.p, 0.2)); c.fillRect(xf - Math.max(0.5, 0.04 * sp), yT - rise - fr, Math.max(0.6, 0.06 * sp), fr + rise * 0.15);   // (the free edge's corner catching the light)
+  c.restore();
+}
+
 // ------------------------------------------------------------------ THE BODY (baked)
 /** SP6 — THE LETTERING, BIG ENOUGH TO READ ON AN iPHONE (the owner: "POLICE, TAXI, BAKERY — big enough to read"): the word as big as
  *  its panel allows — box (cx, cy, w, h in px), two-word names stacked on two lines when that reads bigger, letters squeezed to 72 % at
@@ -662,6 +683,8 @@ export function createVehicles() {
         if (v.inside) { c.save(); c.scale(sg, 1); c.translate(-v.x, -v.y); c.beginPath(); c.rect(doorBox.x, doorBox.y, doorBox.w, doorBox.h); c.clip(); c.globalAlpha = k; v.inside(c, doorBox); c.restore(); }
       });
     }
+    // ATM-D — the FAR rear door's top edge above the roof (the cab stand's curb-side boarding)
+    if ((v.farDoor || 0) > 0.01) { const P = paintsOf(id, pnt), K = lookOf(look, P.body); drawFarDoorTop(c, M, K, sp, clamp01(v.farDoor), v.bob || 0); }
     // 9b — THE PLOW's BLADE: a big angled moldboard on its push frame in front of the nose (bright orange, its lower edge steel; snow
     // rolling off its face while it pushes — v.plowing 0..1)
     if (M.blade) {

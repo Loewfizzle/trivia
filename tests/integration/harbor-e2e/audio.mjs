@@ -853,13 +853,18 @@ G('heli', async () => {
   { const Q = await open({ slot: 'hpcirc', qs: `when=2026-10-21T22:00${GR}&wx=clear&force=helicopter&speed=4`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `!!(${H}.up)`, 'the forced patrol up', 20000).catch(() => {});
-    const seen = { near: 0, behind: 0, hover: 0, n: 0, looks: new Set(), fixed: 0, len: 0 };
+    const seen = { near: 0, behind: 0, hover: 0, n: 0, looks: new Set(), fixed: 0, len: 0, spots: 0, blocked: null };
+    const occ = (await ev(Q.page, 'window.__district.harbor().heliOcc')) || [];
     const t0 = Date.now();
     while (Date.now() - t0 < 30000) {
       const u = (await ev(Q.page, H)).up;
-      if (u && !u.off) { seen.n++; if (u.behind) seen.behind++; else seen.near++; if (u.hover) seen.hover++; if (u.look) seen.looks.add(u.look); if (u.lk > 0.95) seen.fixed++; seen.len = u.len; }
+      if (u && !u.off) { seen.n++; if (u.behind) seen.behind++; else seen.near++; if (u.hover) seen.hover++; if (u.look) seen.looks.add(u.look); if (u.lk > 0.95) seen.fixed++; seen.len = u.len;
+        // (ATM-D — THE SEARCHLIGHT's CLEAR LINE: a spot it looks at is never behind a near piece — the line from the lamp clears them all)
+        if (u.look && u.tx != null) { seen.spots++; for (let i = 1; i < 24 && !seen.blocked; i++) { const k = i / 24, px = u.x + (u.tx - u.x) * k, py = u.y + (u.ty - u.y) * k;
+          for (const o of occ) if (px > o.x && px < o.x + o.w && py > o.y && py < o.y + o.h) seen.blocked = `${u.look} at ${u.tx}, ${u.ty} through ${Math.round(o.x)},${Math.round(o.y)} ${Math.round(o.w)}×${Math.round(o.h)}`; } } }
       await sleep(200);
     }
+    ok(!seen.blocked, `ATM-D — THE SEARCHLIGHT's CLEAR LINE: ${seen.spots} looks sampled, none through the speakeasy / its billboard / the signs${seen.blocked ? ` — BLOCKED: ${seen.blocked}` : ''}`);
     ok(seen.len >= 40, `SKY-B — CLOSER: the near craft ${seen.len} pt (SKY-A's 28)`);
     ok(seen.near > 10 && seen.behind > 5, `…ROUND THE CITY: the near pass (${seen.near} samples) + BEHIND THE TOWERS (${seen.behind})`);
     ok(seen.hover / Math.max(1, seen.n) < 0.4, `…MOVING MOST OF THE TIME: stopped ${Math.round(100 * seen.hover / Math.max(1, seen.n))} % of what's on screen`);

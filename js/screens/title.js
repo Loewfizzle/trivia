@@ -190,15 +190,18 @@ const HAT = santaHat();
 // holiday colours like them. Drawn in the O's own box (0..64 × 0..100). Parts: [d, width, colour-vars | null]
 const O_ALT = {
   halloween: [
-    // the body: a squat pumpkin with a dimple at the top, and two rib lines
-    ['M32 30 C26 24 14 25 7 36 C0 47 0 74 9 87 C16 97 26 100 32 97 C38 100 48 97 55 87 C64 74 64 47 57 36 C50 25 38 24 32 30', 7, null, 'translate(32 100) scale(1.24) translate(-32 -100)'],
-    ['M24 31 C17 45 17 82 25 97 M40 31 C47 45 47 82 39 97', 3.2, null, 'translate(32 100) scale(1.24) translate(-32 -100)'],
-    // the carved face: triangle eyes, a nose, a toothy grin
-    ['M14 55 L22 45 L28 57 Z M50 55 L42 45 L36 57 Z', 3.6, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8', 'translate(32 100) scale(1.24) translate(-32 -100)'],
-    ['M30 66 L32 61 L34 66 Z', 3, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8', 'translate(32 100) scale(1.24) translate(-32 -100)'],
-    ['M13 72 Q32 90 51 72 L47 79 L42 74 L37 81 L32 75 L27 81 L22 74 L17 79 Z', 3.4, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8', 'translate(32 100) scale(1.24) translate(-32 -100)'],
-    // the stem and a curling vine
-    ['M31 29 C30 20 33 12 39 8 M34 18 C40 21 47 18 50 11 C52 7 49 4 46 6', 4.2, '--g:#3ddc6a;--b:#7dff9c;--c:#efffe9', 'translate(32 100) scale(1.24) translate(-32 -100)'],
+    // (ATM-D — THE PUMPKIN AT THE O's FULL SIZE, the owner Oct 31 1:09 pm: it looked SHRUNK inside the word — the old body, scaled ×1.24 about
+    // its foot, spanned only y 9.5 → 97 (88 % of the letters' height) and its round shoulders read smaller still. Drawn natively in the O's box
+    // now, no transform: the body from the cap height to the baseline (a round shape overshoots a hair, like a typeface's O), the O's full
+    // width, the letters' own tube (9); only the stem + vine rise above the word)
+    ['M32 10 C26 0 14 -1 7 8 C1 16 -2.5 33 -2.5 52 C-2.5 72 1 86 8 93 C14 100 24 101 32 97 C40 101 50 100 56 93 C63 86 66.5 72 66.5 52 C66.5 33 63 16 57 8 C50 -1 38 0 32 10', 9, null],
+    ['M22 4 C11 22 10 78 23 98 M42 4 C53 22 54 78 41 98', 4, null],
+    // the carved face: triangle eyes, a nose, a toothy grin (the old face, kept in proportion to the taller body)
+    ['M10.4 40.7 L20 27.7 L27.2 43.3 Z M53.6 40.7 L44 27.7 L36.8 43.3 Z', 4.5, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8'],
+    ['M29.6 55 L32 48.5 L34.4 55 Z', 3.7, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8'],
+    ['M9.2 62.8 Q32 86.2 54.8 62.8 L50 71.9 L44 65.4 L38 74.5 L32 66.7 L26 74.5 L20 65.4 L14 71.9 Z', 4.2, '--g:#ffcf4a;--b:#ffe07a;--c:#fffbe8'],
+    // the stem and a curling vine (above the letters, as before)
+    ['M31 9 C29.5 0.8 33.2 -9 40.7 -14 M34.5 -1.7 C41.9 2 50.6 -1.7 54.3 -10 C56.8 -15 53 -19 49.4 -16.6', 5.2, '--g:#3ddc6a;--b:#7dff9c;--c:#efffe9'],
   ],
   stpatrick: [
     // four heart-shaped leaves round the centre, a slender stem

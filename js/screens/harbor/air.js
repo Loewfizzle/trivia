@@ -681,18 +681,27 @@ export function createAir() {
     if (lk <= 0.001) return null;
     const memo = heli.looks || (heli.looks = new Map()), d = h.dir || 1;
     let T = memo.get(h.stop.id);
-    if (!T) {
-      let kind = h.look, x = h.x + d * 16 * K, y = waterY;
-      if (kind === 'boat') {
+    if (T === undefined) {
+      // (ATM-D — THE SEARCHLIGHT's CLEAR LINE, the owner Oct 31 4:34 pm: its pool lay on the ground in front of the speakeasy's door while the
+      // beam passed THROUGH the roof billboard — impossible. A spot is taken only when the straight line from the lamp to it clears every near
+      // piece (the speakeasy, its billboard, the blade, the signs — s.heliOcc), and never the speakeasy's own ground ("don't even bother");
+      // the chosen kind first, then the water at a few places, else no spot at all (the beam keeps its own sweep))
+      const occ = s.heliOcc || [], sp = occ[0] || null;
+      const clear = (x1, y1) => { for (let i = 1; i < 24; i++) { const u = i / 24, px = h.x + (x1 - h.x) * u, py = h.y + (y1 - h.y) * u; for (const o of occ) if (px > o.x - 2 && px < o.x + o.w + 2 && py > o.y - 2 && py < o.y + o.h + 2) return false; } return true; };
+      const offSpeak = x1 => !sp || x1 > sp.x + sp.w + 18 * K;
+      const ok = c2 => c2 && c2.x > 6 && c2.x < W - 6 && clear(c2.x, c2.y) && (c2.kind !== 'promenade' || offSpeak(c2.x));
+      const cands = [];
+      if (h.look === 'boat') {
         const bs = (s.boatSpots ? s.boatSpots() : []).filter(b => b.x > 8 && b.x < W - 8 && Math.abs(b.x - h.x) < 150 * K && b.y > h.y + 6);
-        const b = bs.sort((a, b2) => Math.abs(a.x - h.x) - Math.abs(b2.x - h.x))[0];
-        if (b) { x = b.x; y = b.y - 2 * K; T = { kind, x, y, boat: b.id }; } else kind = 'water';
+        for (const b of bs.sort((a, b2) => Math.abs(a.x - h.x) - Math.abs(b2.x - h.x))) cands.push({ kind: 'boat', x: b.x, y: b.y - 2 * K, boat: b.id });
       }
-      if (!T && kind === 'roof') T = { kind, x: h.x + d * 10 * K, y: waterTop - 9 * K };
-      if (!T && kind === 'promenade' && s.promY && s.promY < (s.dockTop || H) - 8) T = { kind, x: h.x + d * 22 * K, y: s.promY };
-      if (!T) T = { kind: 'water', x, y };
+      if (h.look === 'roof') cands.push({ kind: 'roof', x: h.x + d * 10 * K, y: waterTop - 9 * K });
+      if (h.look === 'promenade' && s.promY && s.promY < (s.dockTop || H) - 8) cands.push({ kind: 'promenade', x: h.x + d * 22 * K, y: s.promY });
+      for (const dx of [16, 40, -16, 70, -44]) cands.push({ kind: 'water', x: h.x + d * dx * K, y: waterY });
+      T = cands.find(ok) || null;
       memo.set(h.stop.id, T);
     }
+    if (!T) return null;
     return { ...T, lk };
   }
   let lookNow = null, skyAt = -1, beamAng = null;
@@ -904,7 +913,7 @@ export function createAir() {
     /** anything crossing the sky right now (the calm frame rate: a plane, the train, a satellite, the helicopter keep 60 fps) */
     busy: () => planes.some(p => p.k < 1) || !!train || !!sat || !!heli,
     lanesInUse: () => new Set(planes.filter(p => p.k < 1).map(p => p.lane)),
-    debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ lane: p.lane, x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, len: +p.len.toFixed(1), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), cap: CAP, train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, heli: heliNow ? { x: Math.round(heliNow.x), y: Math.round(heliNow.y), hover: heliNow.hover, behind: !!heliNow.behind, look: lookNow ? lookNow.kind : null, lk: lookNow ? +lookNow.lk.toFixed(2) : 0, mode: heli && heli.mode === 'break' ? 'break' : 'patrol', yaw: heliNow.yaw, model: !!heliNow.model, heading: heliNow.heading, w: heliNow.w, cx: heliNow.cx != null ? Math.round(heliNow.cx) : null, cy: heliNow.cy != null ? Math.round(heliNow.cy) : null, ang: beamAng != null ? +beamAng.toFixed(3) : null, sc: heliNow.sc, off: !!heliNow.off, len: heli ? +heli.len.toFixed(1) : null, dur: heli ? Math.round(routeDur(heli)) : null, e: +(heliNow.e || 0).toFixed(1), band: heli && heli.brk ? Math.round(heli.brk.A * 2) : null, replans: heli ? heli.replans || 0 : 0, route: heli ? heli.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]) : null } : null, beamArts: beamArts.size, glows: glows.size, nextPlane: Math.round(nextPlane) }),
+    debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ lane: p.lane, x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, len: +p.len.toFixed(1), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), cap: CAP, train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, heli: heliNow ? { x: Math.round(heliNow.x), y: Math.round(heliNow.y), hover: heliNow.hover, behind: !!heliNow.behind, look: lookNow ? lookNow.kind : null, lk: lookNow ? +lookNow.lk.toFixed(2) : 0, tx: lookNow ? Math.round(lookNow.x) : null, ty: lookNow ? Math.round(lookNow.y) : null, mode: heli && heli.mode === 'break' ? 'break' : 'patrol', yaw: heliNow.yaw, model: !!heliNow.model, heading: heliNow.heading, w: heliNow.w, cx: heliNow.cx != null ? Math.round(heliNow.cx) : null, cy: heliNow.cy != null ? Math.round(heliNow.cy) : null, ang: beamAng != null ? +beamAng.toFixed(3) : null, sc: heliNow.sc, off: !!heliNow.off, len: heli ? +heli.len.toFixed(1) : null, dur: heli ? Math.round(routeDur(heli)) : null, e: +(heliNow.e || 0).toFixed(1), band: heli && heli.brk ? Math.round(heli.brk.A * 2) : null, replans: heli ? heli.replans || 0 : 0, route: heli ? heli.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]) : null } : null, beamArts: beamArts.size, glows: glows.size, nextPlane: Math.round(nextPlane) }),
     destroy() { for (const p of planes) if (p.spr) p.spr.cv.width = 0; if (heli && heli.spr) heli.spr.cv.width = 0; for (const c of glows.values()) c.width = 0; glows.clear(); for (const q of beamArts.values()) { q.cone.width = 0; q.pool.width = 0; } beamArts.clear(); planes = []; heli = null; },
   };
 }
