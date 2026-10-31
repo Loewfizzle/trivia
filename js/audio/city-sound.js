@@ -341,6 +341,39 @@ export function cityPreview(slot, { seconds = 8 } = {}) {
 }
 
 /** the player's state (the panel, the tests): the loops running, the decoded MB, the last one-shots */
+/** ATM-B — THE CLOSE THUNDER's CRACK (synthesized, no file): a sharp split of noise — two quick tearing peaks, the highs falling away into
+ *  a low boom — on the city's own chain (its gain, its soft limiter, the Effects slider + Mute). Right on top of a close strike, the
+ *  recorded roll after it. Silent while locked / muted; never throws. */
+let crackBuf = null;
+export function cityCrack({ gain = 1, pan = 0 } = {}) {
+  try {
+    if (!isUnlocked() || !audible()) return false;
+    const c = getContext();
+    if (!c || c.state !== 'running') return false;
+    if (!crackBuf || crackBuf.sampleRate !== c.sampleRate) {
+      const n = Math.floor(c.sampleRate * 1.6), b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); let lo = 0;
+      for (let i = 0; i < n; i++) {
+        const t = i / c.sampleRate, w = Math.random() * 2 - 1; lo = lo * 0.985 + w * 0.015;
+        // the split: two tearing peaks 0 + 45 ms, a crackle tail, then the low boom swelling under it
+        const crack = Math.exp(-t / 0.05) + 0.8 * (t > 0.045 ? Math.exp(-(t - 0.045) / 0.07) : 0) + 0.25 * Math.exp(-t / 0.35) * (Math.random() < 0.08 ? 1.6 : 0.5);
+        const boom = (t < 0.08 ? t / 0.08 : Math.exp(-(t - 0.08) / 0.55)) * 7;
+        d[i] = Math.max(-1, Math.min(1, w * crack * 0.9 + lo * boom));
+      }
+      crackBuf = b;
+    }
+    const src = c.createBufferSource(); src.buffer = crackBuf;
+    const f = c.createBiquadFilter(); f.type = 'lowpass'; f.Q.value = 0.4;
+    const at = c.currentTime + 0.01;
+    f.frequency.setValueAtTime(7000, at); f.frequency.exponentialRampToValueAtTime(380, at + 0.9);
+    const g = c.createGain(); g.gain.setValueAtTime(0, at); g.gain.linearRampToValueAtTime(Math.min(1, gain) * 0.9, at + 0.004);
+    const pn = panner(c, Math.max(-1, Math.min(1, pan)), out(c));
+    src.connect(f).connect(g).connect(pn.node);
+    src.onended = () => { try { g.disconnect(); f.disconnect(); if (pn.own) pn.node.disconnect(); } catch { /* gone */ } };
+    src.start(at);
+    cityLog.push({ slot: 'thunder-crack', f: '(synth)', at: performance.now() }); if (cityLog.length > 40) cityLog.shift();
+    return true;
+  } catch { return false; }
+}
 export function citySoundsDebug() {
   const mb = [...bufs.values()].reduce((s, e) => s + e.mb, 0);
   return { loops: [...loops].map(L => ({ slot: L.slot, gain: +(L.s.gain * L.gain).toFixed(4), pan: +L.pan.toFixed(2), voices: L.voices.length, ready: !!L.buf, lp: L.lp ? L.s.lp : 0 })), mb: +mb.toFixed(2), files: [...bufs.keys()], log: cityLog.slice(-8), decodeRate: noOffline ? 'context' : [...decoders.keys()].join('/') || DECODE_RATE };

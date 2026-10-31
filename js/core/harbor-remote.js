@@ -218,6 +218,8 @@ export const EVENTS = [
   { id: 'moonbow', label: 'MOONBOW', cat: 'weather', group: 'RAINBOWS', night: true },
   { id: 'neonbow', label: 'NEON BOW', cat: 'weather', group: 'RAINBOWS', night: true },
   { id: 'lightning', label: 'LIGHTNING', cat: 'weather', group: 'WEATHER FX', hint: 'with WEATHER = STORM' },
+  { id: 'strike', label: 'CLOSE STRIKE', cat: 'weather', group: 'WEATHER FX', hint: 'ATM-B — with WEATHER = STORM: a CLOSE strike every ~10 s (a thick fork onto a crown, the water or THE NEEDLE; the crack right on top) — the first within ~2 s' },
+  { id: 'no-storm-deck', label: 'STORM DECK OFF', cat: 'weather', sec: 'tools', group: 'COMPARE — OFF SWITCHES', hint: 'ATM-B — the storm’s low base + cumulonimbus towers off — compare (their cost)' },
   { id: 'freeze', sec: 'winter', label: 'FROST', cat: 'weather', group: 'THE COLD' },
   { id: 'halo', label: '22° SUN HALO', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL (a thin cirrostratus sky): the rare faint ring round the sun' },
   { id: 'plow', sec: 'winter', label: 'THE PLOW', cat: 'weather', group: 'SNOW DAYS', hint: '9b: the plow truck clears the waterside road now — in view ~1 s after the tap, the salt truck right behind it; with snow on the ground' },

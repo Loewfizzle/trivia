@@ -74,7 +74,7 @@ G('weather', async () => {
   { const Q = await open({ slot: 'wx-rm', qs: `when=2026-10-22T22:30${GR}&force=storm`, view: [402, 874], init: { fn: () => { try { const k = 'na:settings', s = JSON.parse(localStorage.getItem(k) || '{}'); s.reducedFx = true; localStorage.setItem(k, JSON.stringify(s)); } catch { /* fine */ } }, arg: null } });
     await harborUp(Q.page);
     const tr = await ev(Q.page, `new Promise(res => { let mx = 0; const n0 = ${W}.zap.strikes, t0 = performance.now(); (function lp() { mx = Math.max(mx, ${W}.zap.flash); if (performance.now() - t0 < 9000) setTimeout(lp, 50); else res({ mx, n: ${W}.zap.strikes - n0, water: ${W}.glass.water }); })(); })`);
-    ok(tr.mx === 0 && Object.keys(tr.water || {}).length === 0, `REDUCED MOTION: no flash (${tr.mx}) through ${tr.n} strikes (the thunder still rumbles), the glass only a few STILL beads (no water moving: ${JSON.stringify(tr.water)})`);
+    ok(tr.mx <= 0.13 && Object.keys(tr.water || {}).length === 0, `REDUCED MOTION: only a DIMMED flash (${tr.mx} ≤ 0.13 — ATM-B: dimmed, one soft pulse, no bolt) through ${tr.n} strikes (the thunder still rumbles), the glass only a few STILL beads (no water moving: ${JSON.stringify(tr.water)})`);
     await Q.ctx.close(); }
   // ---- THE WET STREET DRYING: 12 min after the rain stopped (&rained=12) — still wet, drying; the puddles still there
   { const Q = await open({ slot: 'wx-dry', qs: `when=2026-10-22T22:30${GR}&wx=clear&rained=12`, view: [402, 874] });
@@ -101,6 +101,14 @@ G('weather', async () => {
     await waitFor(Q.page, `!!${P}.sky.state.balloons`, 'the festival', 10000).catch(() => {});
     const b = await ev(Q.page, `${P}.sky.state.balloons`);
     ok(b && b.order.join() === 'btc-orange,alien,bitcoin,bullseye,smiley,flag' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
+    await Q.ctx.close(); }
+  // ---- ATM-B — THE STORM: the deck rolls in (the low heavy base + the cumulonimbus towers), the panel's CLOSE STRIKE (&force=strike) lands
+  // a thick fork on a crown / the water / THE NEEDLE within ~15 s, the flash still capped
+  { const Q = await open({ slot: 'st1', qs: `when=2026-11-03T21:30${GR}&force=storm,strike`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${W}.zap.kinds.close >= 1 && ${W}.storm.k > 0.5`, 'a close strike', 20000).catch(() => {});
+    const sw = await ev(Q.page, W), z = sw.zap;
+    ok(sw.storm.k > 0.5 && sw.storm.deck.towers >= 2 && z.kinds.close >= 1 && (z.kinds.crown || 0) + (z.kinds.water || 0) + (z.kinds.needle || 0) >= 1, `ATM-B THE STORM: the deck in (${sw.storm.k}, ${sw.storm.deck.towers} towers, ${sw.storm.deck.mb} MB), the CLOSE STRIKE landed (${JSON.stringify(z.kinds)})`);
     await Q.ctx.close(); }
   // ---- ATM-B — FOG AS DEPTH (fogdepth.js; the owner: "fog doesn't really do anything"): DENSE fog = the veils by depth (the far rows gone,
   // the middle ghostly, the stage clear) + the lights' halos + the drifting banks; MIST its own lighter look; the skyline's contrast

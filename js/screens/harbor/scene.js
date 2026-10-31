@@ -98,6 +98,7 @@ import { createHarborRain, rainLook } from './rainfx.js';
 import { createLightning } from './lightning.js';
 import { createWaterFog } from './waterfog.js';
 import { createFogDepth } from './fogdepth.js';
+import { createStormDeck } from './stormdeck.js';
 import { createWetGround } from './wetground.js';
 import { createStill } from './still.js';
 import { createCabStand } from './cabstand.js';
@@ -583,6 +584,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const zap = createLightning({ onStrike: ev => { snd.thunder(ev); if (S.onFlash) S.onFlash(ev); } });
   const lightningFlash = () => zap.flash();
   const waterFog = createWaterFog();      // (9a: the fog lying on the harbor)
+  const stormDeck = createStormDeck();    // (ATM-B: THE STORM DECK — the low heavy base + the cumulonimbus towers, lit from inside)
+  let stormK = 0, stormT = null;
   const fogD = createFogDepth();          // (ATM-B: FOG AS DEPTH — the veils by depth, the halos, the drifting banks)
   const still = createStill();            // (PROM: the two benches live + sharp, sorted with the walkers — still.js)
   const cabStand = createCabStand();      // (PROM: the cab stand's taxi on the front street while the dock rests — cabstand.js)
@@ -2141,7 +2144,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.sky(c, fs);
     if (!msgUp) cloudsNow();
     // 9a — THE LIGHTNING in a real thunderstorm (WXS.lightning) or &force=lightning with a storm: the deck lit from inside + a bolt now and then
-    zap.tick({ on: !!(WXS && WXS.lightning) && !off.has('no-lightning'), t, motion: S.motion, base: cam.safeTop + 40, horizon: (skyline && skyline.length ? Math.max(...skyline) : HZ * 0.9) - 4, force: off.has('lightning') });
+    // ATM-B — THE STORM: the deck rolls in (~25 s live, ~6 s on a preview) under the lightning; the bolts start from its underside; a CLOSE
+    // strike onto a crown, the water or THE NEEDLE (mmTipOf); &force=strike (the panel's CLOSE STRIKE) = a close one every ~10 s
+    { const want = WXS && WXS.state === 'storm' && !off.has('no-storm-deck') ? 1 : 0, sdt = stormT == null ? 0 : Math.max(0, Math.min(0.5, t - stormT)); stormT = t;
+      stormK += (want - stormK) * Math.min(1, sdt / (WXS && WXS.target && WXS.target.why && /forced/.test(WXS.target.why) ? 3 : 12)); if (Math.abs(want - stormK) < 0.002) stormK = want; }
+    const skyFoot = (skyline && skyline.length ? Math.max(...skyline) : HZ * 0.9) - 4, deckBase = cam.safeTop + (skyFoot - cam.safeTop) * 0.3;
+    zap.tick({ on: !!(WXS && WXS.lightning) && !off.has('no-lightning'), t, motion: S.motion, base: stormK > 0.3 ? deckBase : cam.safeTop + 40, horizon: skyFoot, force: off.has('lightning'), close: off.has('strike'), needle: mmTipOf(), skyline, water: water.band() });
+    if (stormK > 0.01) stormDeck.draw(c, { k: stormK, W, top: Math.max(0, cam.safeTop - 20), base: deckBase, horizon: skyFoot, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), night: litK(DK, 'lamps'), party: PT.on > 0.5, t, motion: S.motion, wind: WF.v(0.5) * 0.35, dpr, flash: zap.flashInfo() });
     zap.draw(c, fs);
     // (6b: THE TR-3B + its chase — under the cloud base, in front of the stars + the moon, behind the city's crowns)
     if (legends && !off.has('no-legends')) legends.sky(c, fs);
@@ -2278,6 +2287,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     AUD.wheel = hf.wheel.lights; AUD.pier = hf.lamps; AUD.beam = hf.beam.k; AUD.boats = hf.boat.lights * hf.boat.power;
     layer('water');
     drawWater(c, t, fs, T, fadeIn, sunNow);
+    zap.front(c);                                   // (ATM-B: a CLOSE strike's fork — in front of the skyline, landing on a crown, the needle or the water)
     // far → near: the far boats (behind the lighthouse) → the pier, the lighthouse, the cottage [baked] → the beam → Rosie →
     // the wheel (+ the pier's lamps) → the water taxi (in front of the pier head)
     // (&force=no-boats / no-wakes / no-wheel / no-beam: each piece off — the perf A/B of one piece on one page)
@@ -3509,7 +3519,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       snowman: SM ? { ...SM } : null,
       snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), crisp: crisp.debug(), pane: frost.debug(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
-      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, fogDepth: fogD.debug(), zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]), amps: swayGeo.map(s => +(s.amp || 0).toFixed(2)), cut: [...swayCut.values()].flat().filter(s => !s.noCut).length }, windF: { speed: +WF.speed.toFixed(1), gust: +WF.gust.toFixed(1), dir: WF.dir, side: WF.side, level: +WF.level.toFixed(2), look: WF.look, src: WF.src, gusts: WF.gusts, at: [0, 0.25, 0.5, 0.75, 1].map(u => +WF.at(u).toFixed(2)) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
+      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, fogDepth: fogD.debug(), storm: { k: +stormK.toFixed(2), deck: stormDeck.debug() }, strikeClose: () => zap.strikeClose(), zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]), amps: swayGeo.map(s => +(s.amp || 0).toFixed(2)), cut: [...swayCut.values()].flat().filter(s => !s.noCut).length }, windF: { speed: +WF.speed.toFixed(1), gust: +WF.gust.toFixed(1), dir: WF.dir, side: WF.side, level: +WF.level.toFixed(2), look: WF.look, src: WF.src, gusts: WF.gusts, at: [0, 0.25, 0.5, 0.75, 1].map(u => +WF.at(u).toFixed(2)) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
@@ -3537,7 +3547,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       baker.destroy(); litBaker.destroy(); wild.destroy(); for (const d of Object.values(dark.g)) d.cv.width = d.cv.height = 0; freeFront(); sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();
       if (hazeCv) hazeCv.width = hazeCv.height = 0;
       if (haloSp) haloSp.cv.width = 0;
-      still.destroy(); cabStand.destroy(); crisp.destroy(); fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); wetGround.destroy(); glassWx.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
+      still.destroy(); cabStand.destroy(); crisp.destroy(); fx.destroy(); wfx.destroy(); clouds.destroy(); rain.destroy(); waterFog.destroy(); fogD.destroy(); stormDeck.destroy(); wetGround.destroy(); glassWx.destroy(); frost.destroy(); sun.destroy(); if (bow.destroy) bow.destroy(); if (stars.destroy) stars.destroy();
       if (roStrip) { roStrip.remove(); roStrip = null; }
       if (llStrip) { llStrip.remove(); llStrip = null; }
       if (repBtn) { repBtn.remove(); repBtn = null; }

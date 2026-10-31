@@ -22,7 +22,7 @@
 //                while he cuts), the 3 am broom · THE BUS (bus(event, o)) · THE PEOPLE (step / laugh / cart / cartBell / line /
 //                rooftop) · THE JETS (jets(o): panned right → left, the music ducked round their peak — the slot's `duck`)
 // City 2.0's title only (the scene lives there); the Effects slider + Mute rule it (the SFX bus); all of it fails silently.
-import { citySound, cityLoop, cityPrefetch, cityReady, citySoundsDebug } from '../../audio/city-sound.js';
+import { citySound, cityLoop, cityPrefetch, cityReady, citySoundsDebug, cityCrack } from '../../audio/city-sound.js';
 import { isFilled, takesOf, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan, pickTakes, rivetGap } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { CHASE, BLACK, tr3bAt } from '../../core/harbor-legend.js';
@@ -520,10 +520,22 @@ export function createCitySounds() {
     /** 9a — THE THUNDER after its flash: a strike ev { delay (s: its distance), level, km } → 'thunder-far' then, panned a little
      *  (never two rolls on top of each other: a newer strike waits for the last to roll away) */
     thunder(ev = {}) {
+      // (ATM-B — THE THUNDER BY ITS DISTANCE: a CLOSE strike (km < ~1.6) CRACKS right on top of its flash (a synthesized split, ~0.5–4 s
+      // after, by the distance) with the roll under it + a brief dip in the music; a FAR one is a long low roll, later + softer; an
+      // intra-cloud flicker a soft grumble. A newer roll never lands on top of the last: it waits for it to roll away — a crack never waits)
       if (dead) return;
-      const at = performance.now() + Math.max(0, ev.delay || 3) * 1000, last = thunders[thunders.length - 1];
-      const when = last ? Math.max(at, last + 6000) : at; thunders.push(when); if (thunders.length > 4) thunders.shift();
-      setTimeout(() => { if (!dead) citySound('thunder-far', { gain: clamp(ev.level == null ? 0.8 : ev.level, 0.3, 1), pan: rnd(-0.35, 0.35) }); }, when - performance.now());
+      const close = ev.kind === 'close' || (ev.near && ev.km != null && ev.km < 1.6), delayMs = Math.max(0, ev.delay == null ? 3 : ev.delay) * 1000;
+      const at = performance.now() + delayMs, last = thunders[thunders.length - 1];
+      const when = close ? at : last ? Math.max(at, last + 6000) : at; thunders.push(when); if (thunders.length > 4) thunders.shift();
+      const pan = clamp(ev.pan != null ? ev.pan : rnd(-0.35, 0.35), -0.8, 0.8);
+      setTimeout(() => {
+        if (dead) return;
+        if (close) {
+          cityCrack({ gain: 1, pan });
+          this.ducked('thunder-far', { gain: 1, pan, depth: 0.45, hold: 1.4, release: 3.5 });
+        } else if (ev.kind === 'ic') citySound('thunder-far', { gain: clamp((ev.level || 0.5) * 0.55, 0.2, 0.5), pan, rate: 0.82 });
+        else this.ducked('thunder-far', { gain: clamp(ev.level == null ? 0.8 : ev.level, 0.3, 0.9), pan, depth: 0.82, hold: 2.5, release: 4 });
+      }, when - performance.now());
     },
     /** 9a: the weather's beds now (the AUDIO panel's line) */
     weatherBeds: () => (wxBed ? Object.fromEntries(Object.entries(wxBed).filter(([, v]) => v > 0.01).map(([k, v]) => [k, +v.toFixed(2)])) : {}),

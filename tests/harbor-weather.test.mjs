@@ -94,19 +94,25 @@ test('no weather on a clear day — and lightning never without a storm', () => 
   assert.equal(h.lightning, false);
 });
 
-test('THE LIGHTNING\'s safety: capped brightness, ≤ 2 flickers inside 0.6 s, strikes ≥ 4.5 s apart, thunder after its flash', async () => {
-  const { strikeFlickers, flickerAt, thunderDelay, LIGHTNING } = await import('../js/screens/harbor/lightning.js');
-  let s = 3; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+test('THE LIGHTNING\'s safety: capped brightness, ≤ 3 strokes ≥ 0.13 s apart inside 0.62 s (never > 3 flashes a second), strikes ≥ 4.5 s apart, the thunder by distance', async () => {
+  const { strikeFlickers, flickerAt, thunderDelay, strikeKind, LIGHTNING } = await import('../js/screens/harbor/lightning.js');
+  let s = 7; const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  const counts = [0, 0, 0, 0];
   for (let i = 0; i < 400; i++) {
     const fl = strikeFlickers(r);
-    assert.ok(fl.length >= 1 && fl.length <= LIGHTNING.FLICKERS, 'one or two flickers');
-    for (const [t0, len, a] of fl) { assert.ok(t0 + len <= LIGHTNING.WINDOW, 'inside the window'); assert.ok(a <= LIGHTNING.CAP + 1e-9, 'capped'); }
+    counts[fl.length]++;
+    assert.ok(fl.length >= 1 && fl.length <= LIGHTNING.FLICKERS, '1 to 3 strokes');
+    for (let j = 0; j < fl.length; j++) { const [t0, len, a] = fl[j]; assert.ok(t0 + len <= LIGHTNING.WINDOW, 'inside the window'); assert.ok(a <= LIGHTNING.CAP + 1e-9, 'capped'); if (j) assert.ok(t0 - fl[j - 1][0] >= LIGHTNING.STROKE_GAP - 1e-9, 'strokes apart'); }
     let mx = 0; for (let e = 0; e < 1.5; e += 0.005) mx = Math.max(mx, flickerAt(fl, e));
     assert.ok(mx <= LIGHTNING.CAP + 1e-9 && mx > 0.1);
   }
+  assert.ok(counts[2] > 40 && counts[3] > 20, `double + triple strokes happen (${counts.join('/')})`);
+  assert.ok(LIGHTNING.FLICKERS <= 3 && LIGHTNING.WINDOW <= 1, 'never more than 3 flashes in any second');
   assert.ok(LIGHTNING.CAP <= 0.5 && LIGHTNING.CITY <= 0.12, 'never a white screen: the sky ≤ 0.5, the city ≤ 0.12');
   assert.ok(LIGHTNING.MIN_GAP >= 4 && LIGHTNING.GAP[0] >= LIGHTNING.MIN_GAP, 'never more than one strike in a few seconds');
-  assert.ok(thunderDelay(1.2) >= 3 && thunderDelay(5.4) <= 16 && thunderDelay(3) > thunderDelay(1.5), 'the thunder after the flash, later from further');
+  assert.ok(LIGHTNING.RM <= 0.35, 'reduced motion: dimmed');
+  assert.ok(thunderDelay(0.4) < 1.5 && thunderDelay(5.4) <= 16 && thunderDelay(3) > thunderDelay(1.5), 'a close crack right on top, later from further');
+  assert.ok(Math.abs(LIGHTNING.NEEDLE - 1 / 6) < 1e-9 && ['ic', 'far', 'close'].every(k => [0.1, 0.5, 0.9].map(strikeKind).includes(k)), 'the three kinds; the needle ~1 in 6 close strikes');
 });
 
 test('THE PEOPLE in the weather: fewer in rain, almost nobody in a storm, someone sheltering under the awning', async () => {
