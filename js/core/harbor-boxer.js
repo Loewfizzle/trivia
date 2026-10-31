@@ -210,6 +210,8 @@ export function swingAt(key, set, round, t, seed = 1924) {
  * one ding at its end), a muffled thud on every punch that lands on the bag (+ the chain after a hard one), the rope + the speed bag off
  * in the room once he's stepped out in his long break
  */
+/** a small stable hash of a punch's place (the chain's 1-in-3: every phone the same) */
+function cueHash(key, si, r, bi, pi) { let h = 2166136261; for (const c of `${key}|${si}|${r}|${bi}|${pi}`) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; }
 export function boxerCues(a0, a1, plan, key = '', seed = 1924) {
   const P = knob('boxer'), out = [];
   if (!plan || !(a1 > a0) || a1 - a0 > 30) return out;
@@ -222,10 +224,17 @@ export function boxerCues(a0, a1, plan, key = '', seed = 1924) {
       if (r0 > a0 && r0 <= a1) out.push({ at: r0, slot: 'boxer-bell3', gain: 1 });
       if (r1 > a0 && r1 <= a1 && r1 <= plan.end) out.push({ at: r1, slot: 'boxer-bell', gain: 0.9 });
       const R = roundOf(key, si, r + 1, seed);
-      for (const b of R.beats) if (b.at === 'bag') for (const p of b.punches) {
+      // ATM-C — VARIETY BY PUNCH (the owner, Oct 31: "just one sound of bag hitting", no chain heard): a JAB (a light straight) lighter +
+      // snappier (higher, shorter: rate 1.12), a CROSS + a HOOK heavier + deeper (rate 0.88 / 0.84, full weight); a fast BURST's follow-up
+      // punches from the bag-combo recordings' hits (boxer-combo); the CHAIN on ~1 in 3 crosses + hooks (a hash: every phone the same)
+      R.beats.forEach((b, bi) => { if (b.at === 'bag') b.punches.forEach((p, pi) => {
         const at = r0 + b.t + p.t + LAND;
-        if (at > a0 && at <= a1) { out.push({ at, slot: 'boxer-bag', gain: 0.55 + 0.45 * p.p, rate: p.kind === 'hook' ? 0.92 : 1 }); if (p.p >= 0.9) out.push({ at: at + 0.22, slot: 'boxer-chain', gain: 0.7 }); }
-      }
+        if (!(at > a0 && at <= a1)) return;
+        const heavy = p.kind === 'hook' || p.kind === 'upper' || p.p >= 0.85, jab = !heavy;
+        const slot = pi > 0 && b.punches.length >= 2 ? 'boxer-combo' : 'boxer-bag';
+        out.push({ at, slot, gain: jab ? 0.72 : 1, rate: jab ? 1.12 : p.kind === 'hook' ? 0.84 : 0.88 });
+        if (heavy && cueHash(key, si, r, bi, pi) % 3 === 0) out.push({ at: at + 0.22, slot: 'boxer-chain', gain: 0.7 });
+      }); });
     }
     // (the long break: once he's stepped out of view — ~4.6 min in — the rope + the speed bag off in the room, turn about)
     const b0 = S + plan.set;

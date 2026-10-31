@@ -127,6 +127,11 @@ G('weather', async () => {
     await waitFor(Q.page, `${W}.zap.kinds.close >= 1 && ${W}.storm.k > 0.5`, 'a close strike', 20000).catch(() => {});
     const sw = await ev(Q.page, W), z = sw.zap;
     ok(sw.storm.k > 0.5 && sw.storm.deck.towers >= 2 && z.kinds.close >= 1 && (z.kinds.crown || 0) + (z.kinds.water || 0) + (z.kinds.needle || 0) >= 1, `ATM-B THE STORM: the deck in (${sw.storm.k}, ${sw.storm.deck.towers} towers, ${sw.storm.deck.mb} MB), the CLOSE STRIKE landed (${JSON.stringify(z.kinds)})`);
+    // (ATM-C — THE RECORDED THUNDER ON ITS OWN CRACK: the close strike picked one of Grok's close takes and the crack is HEARD at the flash +
+    // the distance delay — the flash held back by `lead`, or the file by `wait` (lead − wait = crack − delay); the synthesized crack gone)
+    const tl = ((await ev(Q.page, 'window.__district.harbor().sounds.thunderLog')) || []).filter(e => e.crack != null);
+    const e0 = tl[0];
+    ok(e0 && /^thunder-(close-[1-5]|alt-close-(crackle|deepslam))$/.test(e0.take) && Math.abs((e0.lead - e0.wait) - (e0.crack - e0.delay)) < 0.03, `ATM-C THE CLOSE THUNDER IS RECORDED + ON ITS CRACK: ${e0 ? `${e0.take} — crack ${e0.crack} s in, the distance ${e0.delay} s → the flash held ${e0.lead} s, the file ${e0.wait} s${e0.second ? `, a second flash ${e0.second.toFixed(2)} s on` : ''}` : 'no close thunder logged'}`);
     await Q.ctx.close(); }
   // ---- ATM-B — FOG AS DEPTH (fogdepth.js; the owner: "fog doesn't really do anything"): DENSE fog = the veils by depth (the far rows gone,
   // the middle ghostly, the stage clear) + the lights' halos + the drifting banks; MIST its own lighter look; the skyline's contrast

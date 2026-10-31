@@ -1,0 +1,53 @@
+THUNDER SFX - ANALYSIS NOTES  (updated 2026-10-31; every number was measured on the ORIGINAL files)
+Tools: ffmpeg ebur128 (integrated LUFS, LRA, true peak) plus numpy/scipy.
+"Full-scale" (FS) counts samples with |x| >= 0.9999. A flat-top is a run of identical sample values near the peak.
+Floor is the 10th-percentile 0.25 s RMS, in dBFS. HF is the 2-8 kHz band.
+All files are RIFF/WAVE PCM. No music, voices or traffic in any of them.
+
+thunder-close-1.wav  Soundrangers thunder_strike_03 | WAV 24-bit PCM, 96 kHz, stereo | 15.39 s (over the 4-12 s target)
+  Peak -0.50 dBFS (TP -0.5) | 0 FS samples, no flat-tops | -19.6 LUFS, LRA 12.9
+  Crack at 0.6-0.8 s (HF -18 dB rel), fairly sharp. Heavy boom and long roll, second swell at 8-9 s, then a fade-out. No rain. No clicks: starts at -57 dB rel and fades out at the end.
+
+thunder-close-2.wav  Freesound 2689 Pingel | WAV 16-bit PCM, 44.1 kHz, stereo | 15.51 s (over target)
+  Peak -0.03 dBFS (TP -0.0) | 0 FS samples. The longest identical run is 4 samples at the crest, a rounded natural peak, not a clip | -19.9 LUFS, LRA 23.6
+  Very loud clap about 400 ft away. Rises 20 dB in about 10 ms, so the crack is very sharp, with a deep low-heavy slam. Secondary rumble at 7-8 s, then a natural fade.
+  Floor -46.8 dBFS (outdoor ambience, HF floor -64). No rain. Starts at -57 and ends at -68 dBFS, no clicks.
+
+thunder-close-3.wav  Freesound 350506 Spennnyyy | WAV 16-bit PCM, 48 kHz, stereo | 12.46 s
+  Peak -1.02 dBFS (TP -1.0) | 0 FS samples, no flat-tops | -19.0 LUFS, LRA 25.3
+  Within about 1/4 mile. The crack hits at 1.05 s and keeps crackling and ripping from 1 to 5 s, then rumbles out.
+  Floor -69.5 dBFS, very clean. No rain. Starts at -80 and ends at -87 dBFS, no clicks.
+
+thunder-close-4.wav  Freesound 832980 George_Papargyris | WAV 32-bit float, 96 kHz, stereo | 10.66 s
+  Peak -0.46 dBFS (TP -0.5) | 0 FS samples, no flat-tops | -21.7 LUFS, LRA 20.6
+  Double crack at about 1.5 s and about 3.0 s, each with a fast HF rise, then a boom and rumble.
+  Faint distant rain (HF floor -65 dBFS), well under the thunder. Floor -56.7 dBFS. Edges are exact zeros, so the start and end are clean.
+
+thunder-close-5.wav  Freesound 239489 lonemonk | WAV 16-bit PCM, 44.1 kHz, stereo | 10.77 s
+  Peak -1.00 dBFS (TP -1.0) | 0 FS samples | -23.8 LUFS, LRA 25.4
+  The brightest single crack of the set (onset 0.32 s, HF -15 dB rel). Short tail that falls below -40 dB by about 3 s.
+  Floor -65.4 dBFS. No rain. The author applied fades, so the edges are exact zeros.
+
+thunder-mid-1.wav  Soundrangers thunder_mountainous_distant_03 | WAV 24-bit PCM, 96 kHz, stereo | 11.59 s
+  Peak -1.52 dBFS | 0 FS samples | -28.7 LUFS (quiet, so gain it up in-game), LRA 13.2
+  Builds from about 1 s, peaks at 2 s, rolls with mountain echo to about 10 s, then fades. Soft crack (HF -33 dB). No rain. Fade-in and fade-out, no clicks.
+
+thunder-mid-2.wav  Freesound 18045 dobroide | WAV 16-bit PCM, 44.1 kHz, stereo | 15.30 s (inside the 6-15 s range, just)
+  Peak -0.40 dBFS (TP -0.4) | 0 FS samples, no flat-tops | -23.3 LUFS, LRA 21.9
+  Distant thunder rolling in several swells (peak at about 7 s). No crack (HF max -69 dBFS).
+  Floor -44 dBFS of low-frequency outdoor ambience. HF floor -81 dBFS, so there is no hiss or rain.
+  The file starts and ends inside that ambience (about -38 and -43 dBFS RMS). The first and last samples are about -47 dBFS, with no step larger than normal. That is not a click, but a 20-50 ms fade in-engine would help if it plays without other audio.
+
+ALTERNATES
+alternates/thunder-alt-close-deepslam.wav  Soundrangers thunder_clap_04 | WAV 24-bit PCM, 96 kHz, stereo | 14.67 s
+  Peak -2.38 dBFS | 0 FS samples | -26.7 LUFS, LRA 17.0
+  Boomy close slam with little crack (HF -39 dB). The publisher padded the start with about 33 ms of digital silence. No rain.
+
+alternates/thunder-alt-close-crackle.wav  Freesound 534023 Fission9 | WAV 24-bit PCM, 96 kHz, stereo | 13.47 s
+  Peak -0.00 dBFS (TP 0.0). This is a single sample at the normalized maximum, with no identical runs, so it is not clipped. Leave some headroom in-engine.
+  -26.0 LUFS, LRA 23.0. About 1 mile away: a crackling build of several cracks between 1 and 2.5 s, then a rumble. Floor -69 dBFS, no rain. Exact-zero edges.
+
+REJECTED ON THE ORIGINALS
+  840628 loganzsound "Closeup Thunder Strike 01" (CC0): CLIPS. 604 samples at full scale between 0.66 and 1.3 s, 76 runs of 3 or more samples at >= 0.989, the longest 75 samples (1.7 ms). Not delivered.
+  165874 GaryEdstrom "Thunder Without Rain or Wind" (the original mid-2 pick): CLIPS. Peak 0.00 dBFS, 40 full-scale samples at 1.83 s, including a hard flat-top of 17 identical samples. Replaced by 18045 dobroide. Not delivered.
+  Earlier rejections, by preview or Sonniss original: Soundrangers big_crack_02 (flat-topped), InspectorJ Very-Close_Rain_08 (clipped), Freesound 321654, 242048 and 455087 (clipped or limited).

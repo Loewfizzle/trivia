@@ -157,6 +157,20 @@ are kept anyway, with each source file's MD5.
 - "Chains Metal Movement Distant Short" - InspectorJ (Jonathan Shaw, www.jshaw.co.uk)
 - Sonniss GDC 2023 Game Audio Bundle - royalty-free, no attribution required
 
+## boxer-combo.wav  →  boxer-combo
+
+- MD5 `7c82be41cf8f6246ce80d2fe31ca8ebe`
+- boxer-combo.wav  (Grok's bag-combo-1.wav, ~/Downloads/Grok/city-sfx/boxer/ — cut into its four hits)
+- "OBJPBag-Int_FourHitPunchingBag_Zus_OwSFX_Hard" - ZusIsKing (Freesound #766864, https://freesound.org/people/ZusIsKing/sounds/766864/)
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ (courtesy: "Punching bag combo by ZusIsKing (Freesound), CC0.")
+
+## boxer-combo-2.wav  →  boxer-combo
+
+- MD5 `68ce22d7eff8f81be05b888b997da58b`
+- boxer-combo-2.wav  (Grok's bag-combo-2.wav, ~/Downloads/Grok/city-sfx/boxer/ — cut into its two hits)
+- "OBJPBag-Int_TwoHitPunchingBag_Zus_OwSFX_Hard" - ZusIsKing (Freesound #766865, https://freesound.org/people/ZusIsKing/sounds/766865/)
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ (courtesy: "Punching bag combo by ZusIsKing (Freesound), CC0.")
+
 ## boxer-rope.wav  →  boxer-rope
 
 - MD5 `38fe2146d5c7cb0c7598b09c217ed8e5`
@@ -1214,6 +1228,70 @@ are kept anyway, with each source file's MD5.
 - Source: https://archive.org/download/game-audio-gdc/Sonniss.com%20-%20GDC%20-%20Game%20Audio%20Bundle/Coll%20Anderson%20-%20House/EFX%20INT%20HOUSE%20DOOR%20Front%20O_C%20Far%20Soft%2001.wav
 - Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/
 
+## thunder-alt-close-crackle.wav  →  thunder-close
+
+- MD5 `2a61409c345001ec355ffe7f77e9bce9`
+- alternates/thunder-alt-close-crackle.wav
+- Original: 534023__fission9__thunderclap.wav. Title "Thunderclap", author Fission9.
+- Link: https://freesound.org/s/534023/
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "Thunderclap" by Fission9 (https://freesound.org/s/534023/), CC0 1.0
+
+## thunder-alt-close-deepslam.wav  →  thunder-close
+
+- MD5 `27f17132375cfd2d6da6539cd4ba375b`
+- alternates/thunder-alt-close-deepslam.wav
+- Original: thunder_clap_04.wav ("Single thunder clap, close POV.")
+- Publisher: Soundrangers, "Thunder" pack. Source: Sonniss GDC 2018 Game Audio Bundle.
+- Link: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20%E2%80%93%20Thunder/thunder_clap_04.wav
+- Licence: Sonniss GDC Bundle licence. No attribution required. No standalone redistribution.
+
+## thunder-close-1.wav  →  thunder-close
+
+- MD5 `191b7984b8a638b2e3117ae18a3f00b5`
+- thunder-close-1.wav
+- Original: thunder_strike_03.wav ("Large, epic thunder strike with lightning.")
+- Publisher: Soundrangers, "Thunder" pack. Source: Sonniss GDC 2018 Game Audio Bundle.
+- Link: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20%E2%80%93%20Thunder/thunder_strike_03.wav
+- Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+- Optional credit: "Thunder SFX: Soundrangers (Sonniss GDC 2018 Game Audio Bundle)"
+
+## thunder-close-2.wav  →  thunder-close
+
+- MD5 `ba73bfd2d1e524e16892b8450b9ea90a`
+- thunder-close-2.wav
+- Original: 2689__pingel__th_loud.wav. Title "th_loud.wav", author Pingel.
+- Link: https://freesound.org/s/2689/
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "th_loud.wav" by Pingel (https://freesound.org/s/2689/), CC0 1.0
+
+## thunder-close-3.wav  →  thunder-close
+
+- MD5 `404ef388d5938d98ac46feaf781f3b3c`
+- thunder-close-3.wav
+- Original: 350506__spennnyyy__extremely-close-thunder-no-rain.wav. Title "Extremely Close THUNDER! (no rain)", author Spennnyyy.
+- Link: https://freesound.org/s/350506/
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "Extremely Close THUNDER! (no rain)" by Spennnyyy (https://freesound.org/s/350506/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## thunder-close-4.wav  →  thunder-close
+
+- MD5 `51a69d11a49a1330195b0e3eb2f496d0`
+- thunder-close-4.wav
+- Original: 832980__george_papargyris__thunderclap-close-up.wav. Title "Thunderclap close up", author George_Papargyris.
+- Link: https://freesound.org/s/832980/
+- Licence: CC BY 4.0. CREDIT REQUIRED:
+- "Thunderclap close up" by George_Papargyris (https://freesound.org/s/832980/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## thunder-close-5.wav  →  thunder-close
+
+- MD5 `417c1445fe37ca79d54ab77330b9bff6`
+- thunder-close-5.wav
+- Original: 239489__lonemonk__sharp-clap-of-thunder.wav. Title "Sharp Clap of Thunder", author lonemonk.
+- Link: https://freesound.org/s/239489/
+- Licence: CC BY 4.0. CREDIT REQUIRED:
+- "Sharp Clap of Thunder" by lonemonk (https://freesound.org/s/239489/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
 ## thunder-far.wav  →  thunder-far
 
 - MD5 `9c33658fe24d7ff58ed0fb7f5a1fd43c`
@@ -1222,6 +1300,24 @@ are kept anyway, with each source file's MD5.
 - Page: https://mixkit.co/free-sound-effects/thunder/
 - Source: https://assets.mixkit.co/active_storage/sfx/2395/2395.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
+
+## thunder-mid-1.wav  →  thunder-mid
+
+- MD5 `118b5803f178d1008188ba9ed7302d18`
+- thunder-mid-1.wav
+- Original: thunder_mountainous_distant_03.wav ("Distant thunder clap rolling through mountainous terrain.")
+- Publisher: Soundrangers, "Thunder" pack. Source: Sonniss GDC 2018 Game Audio Bundle.
+- Link: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20%E2%80%93%20Thunder/thunder_mountainous_distant_03.wav
+- Licence: Sonniss GDC Bundle licence, as for thunder-close-1. No attribution required. No standalone redistribution.
+
+## thunder-mid-2.wav  →  thunder-mid
+
+- MD5 `dac426d52ee5c2c38536099fd8775766`
+- thunder-mid-2.wav
+- Original: 18045__dobroide__20060412thunder.wav. Title "20060412.thunder.wav", author dobroide.
+- Link: https://freesound.org/s/18045/
+- Licence: CC BY 4.0. CREDIT REQUIRED:
+- "20060412.thunder.wav" by dobroide (https://freesound.org/s/18045/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
 
 ## tower-horn-2.wav  →  tower-horn
 

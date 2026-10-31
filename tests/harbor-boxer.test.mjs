@@ -53,9 +53,11 @@ test('HIS SOUNDS: ding-ding-ding at a round\'s start + one ding at its end, a th
   const start = boxerCues(H(19) - 1, H(19) + 1, p, K).filter(q => q.slot === 'boxer-bell3');
   assert.equal(start.length, 1, 'ding-ding-ding (one burst)');
   assert.equal(boxerCues(H(19) + 179, H(19) + 181, p, K).filter(q => q.slot === 'boxer-bell').length, 1, 'one ding at the end');
-  let bag = 0, chain = 0, rope = 0;
-  for (let s = H(19); s < H(19) + 3000; s += 20) for (const q of boxerCues(s, s + 20, p, K)) { if (q.slot === 'boxer-bag') bag++; if (q.slot === 'boxer-chain') chain++; if (q.slot === 'boxer-rope') rope++; }
-  assert.ok(bag > 40 && chain > 3 && rope >= 3, `bag ${bag}, chain ${chain}, rope ${rope}`);
+  let bag = 0, chain = 0, rope = 0, combo = 0, heavy = 0, jabs = 0;
+  for (let s = H(19); s < H(19) + 3000; s += 20) for (const q of boxerCues(s, s + 20, p, K)) { if (q.slot === 'boxer-bag') bag++; if (q.slot === 'boxer-combo') combo++; if (q.slot === 'boxer-chain') chain++; if (q.slot === 'boxer-rope') rope++; if (/boxer-(bag|combo)/.test(q.slot)) { if (q.rate > 1) jabs++; else heavy++; } }
+  assert.ok(bag > 20 && combo > 20 && chain > 3 && rope >= 3, `bag ${bag}, combo ${combo}, chain ${chain}, rope ${rope}`);
+  // (ATM-C — VARIETY BY PUNCH: jabs lighter + higher, crosses + hooks deeper; the chain on ~1 in 3 heavy hits)
+  assert.ok(jabs > 10 && heavy > 10 && chain / heavy > 0.2 && chain / heavy < 0.45, `jabs ${jabs}, heavy ${heavy}, the chain on ${(chain / heavy).toFixed(2)} of the heavy hits`);
   assert.equal(boxerCues(H(12), H(12) + 20, p, K).length, 0);
   assert.equal(boxerCues(H(19) - 1, H(19) + 20, p, K).length > 0, true);   // (MODELS: the round's bell is ONE cue at its very start)
   assert.equal(boxerCues(H(19), H(19) + 120, null, K).length, 0);

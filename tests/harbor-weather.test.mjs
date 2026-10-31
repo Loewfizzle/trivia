@@ -150,3 +150,19 @@ test('ATM-B — THE BLIZZARD: heavy snow + a strong wind or a low visibility; ne
   const h = cityWeather({ kind: WX_FORCE['heavy-snow'][0], ...WX_FORCE['heavy-snow'][1], forced: true });
   assert.ok(h.state === 'snow' && h.snow > 0.9 && !h.blizzard, 'heavy snow is not a blizzard');
 });
+
+test('ATM-C — THE FLASH ON THE TAKE\'s OWN CRACK: a close strike held back by the recorded take\'s `lead`, flashing again on its second crack', async () => {
+  const { createLightning } = await import('../js/screens/harbor/lightning.js');
+  let got = null;
+  const z = createLightning({ onStrike: ev => { got = ev; return ev.kind === 'close' ? { lead: 0.5, second: 1.5 } : null; } });
+  z.resize(400, 800, 500);
+  z.strikeClose();
+  const s = t => ({ on: true, t, motion: true, base: 100, horizon: 450, skyline: Array.from({ length: 40 }, () => 380), water: { y0: 470, y1: 520 } });
+  z.tick(s(10));
+  assert.equal(got && got.kind, 'close', 'the panel\'s close strike fired');
+  const at = dt => { z.tick(s(10 + dt)); return z.flash(); };
+  assert.equal(at(0.1), 0, 'nothing visible before the crack');
+  assert.ok(at(0.52) > 0.1, 'the flash lands on the crack (0.5 s later)');
+  assert.ok(at(1.4) < 0.02, 'dark between the two cracks');
+  assert.ok(at(2.02) > 0.1, 'the second crack flashes again (1.5 s after the first)');
+});

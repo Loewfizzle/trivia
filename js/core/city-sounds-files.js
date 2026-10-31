@@ -58,6 +58,14 @@ export const FILES = /*FILES*/{
     {"f": "boxer-chain-2.mp3", "v": "cd6036f3", "d": 1.4, "lufs": -20.7, "peak": 0.75, "sw": [0.15, 1.25], "from": [0.0, 1.4], "src": "boxer-chain-2", "r": 22050},
     {"f": "boxer-chain.mp3", "v": "edfff34c", "d": 1.1, "lufs": -20.5, "peak": 0.45, "sw": [0.15, 0.8], "from": [0.0, 1.1], "src": "boxer-chain", "r": 22050}
   ],
+  "boxer-combo": [
+    {"f": "boxer-combo-2_1.mp3", "v": "ff7f5af5", "d": 0.25, "lufs": -22.8, "peak": 0.12, "sw": [0.12, 0.12], "from": [0.02, 0.27], "hit": 0.01, "src": "boxer-combo-2", "r": 22050},
+    {"f": "boxer-combo-2_2.mp3", "v": "b5283ff2", "d": 0.25, "lufs": -22.2, "peak": 0.12, "sw": [0.12, 0.12], "from": [0.35, 0.6], "hit": 0.01, "src": "boxer-combo-2", "r": 22050},
+    {"f": "boxer-combo_1.mp3", "v": "fb67b6c5", "d": 0.37, "lufs": -21.0, "peak": 0.15, "sw": [0.15, 0.2], "from": [0.02, 0.39], "hit": 0.01, "src": "boxer-combo", "r": 22050},
+    {"f": "boxer-combo_2.mp3", "v": "7028cd1a", "d": 0.37, "lufs": -22.4, "peak": 0.15, "sw": [0.15, 0.2], "from": [0.46, 0.82], "hit": 0.01, "src": "boxer-combo", "r": 22050},
+    {"f": "boxer-combo_3.mp3", "v": "6ac4ad6b", "d": 0.37, "lufs": -22.3, "peak": 0.15, "sw": [0.15, 0.2], "from": [0.84, 1.21], "hit": 0.01, "src": "boxer-combo", "r": 22050},
+    {"f": "boxer-combo_4.mp3", "v": "67371046", "d": 0.131, "lufs": -23.3, "peak": 0.07, "sw": [0.07, 0.07], "from": [1.38, 1.75], "hit": 0.01, "src": "boxer-combo", "r": 22050}
+  ],
   "boxer-rope": [
     {"f": "boxer-rope.mp3", "v": "4c85dc4e", "d": 4.4, "lufs": -22.6, "peak": 2.35, "sw": [0.15, 4.15], "from": [1.0, 5.4], "src": "boxer-rope", "r": 16000}
   ],
@@ -412,9 +420,22 @@ export const FILES = /*FILES*/{
     {"f": "street-door-close_3.mp3", "v": "b32747ae", "d": 1.25, "lufs": -20.9, "peak": 0.45, "sw": [0.2, 0.7], "from": [12.55, 13.8], "hit": 0.35, "src": "street-door"},
     {"f": "street-door-close_4.mp3", "v": "e83644b0", "d": 1.1, "lufs": -20.9, "peak": 0.35, "sw": [0.15, 0.85], "from": [19.0, 20.1], "hit": 0.3, "src": "street-door", "w": 0.6}
   ],
+  "thunder-close": [
+    {"f": "thunder-alt-close-crackle.mp3", "v": "e1e9319d", "d": 10.1, "lufs": -23.5, "peak": 0.65, "sw": [0.25, 6.05], "from": [0.5, 10.6], "hit": 0.5, "src": "thunder-alt-close-crackle", "w": 0.3, "r": 24000},
+    {"f": "thunder-alt-close-deepslam.mp3", "v": "6920a229", "d": 10.45, "lufs": -23.5, "peak": 0.8, "sw": [0.15, 1.85], "from": [0.05, 10.5], "hit": 0.4, "src": "thunder-alt-close-deepslam", "w": 0.3, "r": 24000},
+    {"f": "thunder-close-1.mp3", "v": "0a47172f", "d": 11.0, "lufs": -23.4, "peak": 0.55, "sw": [0.2, 1.15], "from": [0.3, 11.3], "hit": 0.32, "src": "thunder-close-1", "r": 24000},
+    {"f": "thunder-close-2.mp3", "v": "3affabf1", "d": 11.15, "lufs": -23.5, "peak": 0.35, "sw": [0.15, 1.35], "from": [0.35, 11.5], "hit": 0.27, "src": "thunder-close-2", "r": 24000},
+    {"f": "thunder-close-3.mp3", "v": "53017070", "d": 9.85, "lufs": -23.5, "peak": 0.5, "sw": [0.2, 1.15], "from": [0.75, 10.6], "hit": 0.3, "src": "thunder-close-3", "r": 24000},
+    {"f": "thunder-close-4.mp3", "v": "0d7883a5", "d": 8.7, "lufs": -23.5, "peak": 1.2, "sw": [0.9, 3.1], "from": [0.5, 9.2], "hit": 1.0, "src": "thunder-close-4", "r": 24000},
+    {"f": "thunder-close-5.mp3", "v": "9ab5a164", "d": 6.2, "lufs": -23.4, "peak": 0.45, "sw": [0.15, 2.4], "from": [0.1, 6.3], "hit": 0.22, "src": "thunder-close-5", "r": 24000}
+  ],
   "thunder-far": [
     {"f": "thunder-far_1.mp3", "v": "5d162591", "d": 14.5, "lufs": -20.4, "peak": 1.35, "sw": [0.6, 5.4], "from": [0.0, 14.5], "src": "thunder-far", "r": 16000},
     {"f": "thunder-far_2.mp3", "v": "cdb797e2", "d": 16.4, "lufs": -20.5, "peak": 1.55, "sw": [0.3, 14.8], "from": [30.6, 47.0], "src": "thunder-far", "r": 16000}
+  ],
+  "thunder-mid": [
+    {"f": "thunder-mid-1.mp3", "v": "521f0a4b", "d": 10.5, "lufs": -23.4, "peak": 0.95, "sw": [0.6, 3.45], "from": [0.3, 10.8], "src": "thunder-mid-1", "r": 24000},
+    {"f": "thunder-mid-2.mp3", "v": "c11a159b", "d": 14.0, "lufs": -23.5, "peak": 2.65, "sw": [2.2, 4.85], "from": [0.0, 14.0], "src": "thunder-mid-2", "r": 24000}
   ],
   "tower-horn": [
     {"f": "tower-horn-2.mp3", "v": "79b5640e", "d": 5.5, "lufs": -20.4, "peak": 0.95, "sw": [0.2, 1.35], "from": [11.5, 17.0], "src": "tower-horn-2"},

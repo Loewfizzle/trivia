@@ -25,7 +25,7 @@ test('every slot: a unique kebab-case id, a known part, loop | once, a mix level
 });
 
 test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people (8P) + the life + workers + wildlife (6b) fill their slots; everything else is empty', () => {
-  assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'bar-open', 'boat-putter', 'boxer-bag', 'boxer-bell', 'boxer-bell3', 'boxer-chain', 'boxer-rope', 'boxer-speedbag', 'broom-sweep', 'bus-arrive', 'bus-door', 'bus-idle', 'bus-pull-away', 'car-1920s-pass',
+  assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'bar-open', 'boat-putter', 'boxer-bag', 'boxer-bell', 'boxer-bell3', 'boxer-chain', 'boxer-combo', 'boxer-rope', 'boxer-speedbag', 'broom-sweep', 'bus-arrive', 'bus-door', 'bus-idle', 'bus-pull-away', 'car-1920s-pass',
     'cart-bell', 'cat-land', 'cat-meow', 'city-hum-day', 'city-hum-night', 'club-murmur-calm', 'club-murmur-party', 'coyote-howl', 'coyote-yip', 'crates-clink', 'crowd-clap',
     'crowd-whoop', 'dog-bark', 'door-heavy', 'door-heavy-close', 'door-knock', 'drone-swarm', 'footsteps-cobble', 'footsteps-heels', 'geese', 'glasses-clink',
     'bb-boom', 'bb-scream', 'bb-static', 'glow-wand-swish', 'gulls', 'helicopter', 'hydrant-spray', 'jet-flyby', 'jogger-trip', 'ladder-clank', 'laugh-distant', 'line-murmur', 'market-murmur', 'milk-bottles', 'newspaper-rustle', 'periscope-ping',
@@ -33,7 +33,7 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     'siren-1920s', 'squeegee', 'squirrel-chatter', 'steam-whistle', 'street-door', 'street-door-close', 'tr3b-crackle', 'tr3b-drone', 'tr3b-power-down', 'tr3b-presence', 'trash-can-lid',
     'trash-truck-arrive', 'trash-truck-depart', 'truck-delivery', 'tv-murmur', 'ufo-beam', 'ufo-hum', 'water-lapping', 'window-sash-down', 'window-sash-up',
     // (9a — THE WEATHER's sounds)
-    'birdsong-morning', 'crickets-night', 'foghorn', 'gutter-drip', 'rain-awning', 'rain-drizzle', 'rain-pavement', 'rain-water', 'thunder-far', 'wind-leaves',
+    'birdsong-morning', 'crickets-night', 'foghorn', 'gutter-drip', 'rain-awning', 'rain-drizzle', 'rain-pavement', 'rain-water', 'thunder-far', 'wind-leaves', 'thunder-close', 'thunder-mid',   // (ATM-C: Grok's recorded thunder)
     // (11a-1 — HALLOWEEN: the witch, the ghost ship, the haunted wind + the black cat's synthesized hiss)
     'cat-hiss', 'ghost-bell', 'ghost-ship-creak', 'haunted-wind', 'witch-cackle',
     // (NIGHT-B — THE STREET PARTY's crowd: the two walla beds, the laughs, the cheers, the clinks, the closer group takes)
@@ -112,7 +112,8 @@ test('every take points at a real, small file whose content matches its cache ke
   // (NIGHT-B: + THE STREET PARTY's crowd — two walla beds (16 kHz / 40 kbps) + 13 one-shots, 1.1 MB of the brief's ≤ 1.5 MB: ~17.8 MB)
   // (MODELS: + the boxer's 11 takes ~0.17 MB; ATM-A: + Grok's WEATHER SET — 13 files, 1.31 MB (the beds 22 kHz / 48 kbps, the sleet 32 / 56,
   // the gusts + whistles 32 / 64) — the owner: "no hard cap, nothing outrageous, report it": ~19.5 MB; fetched only when their weather plays)
-  assert.ok(total < 19.6e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (ATM-C: + Grok's RECORDED THUNDER — 9 takes, 0.63 MB (24 kHz / 56 kbps, the tails faded at ≤ 11 s): ~20.1 MB; fetched when a storm plays)
+  assert.ok(total < 20.2e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');

@@ -79,7 +79,11 @@ export function createLightning({ onStrike = null } = {}) {
     kinds[kind]++;
     const fl = motion ? strikeFlickers(r) : [[0, 0.25, LIGHTNING.CAP * LIGHTNING.RM]];   // (reduced motion: one soft pulse, dimmed)
     cur = { at: t, kind, x: target ? target.x : x, y: base + (HZ - base) * (0.04 + 0.1 * r()), rad: W * (kind === 'ic' ? 0.26 + 0.2 * r() : 0.32 + 0.22 * r()), fl, km, bolt: motion ? bl : null, target, side: target ? (target.x < W / 2 ? -1 : 1) : (x < W / 2 ? -1 : 1) };
-    if (onStrike) onStrike({ kind, pan: +Math.max(-0.8, Math.min(0.8, (cur.x / W) * 2 - 1)).toFixed(2), near: kind === 'close', km: +km.toFixed(1), delay: thunderDelay(km), level: kind === 'close' ? 1 : kind === 'far' ? 0.62 + 0.25 * (1 - (km - 2.6) / 3.6) : 0.5, bolt: !!bl, target: target ? target.kind : null });
+    const said = onStrike ? onStrike({ kind, pan: +Math.max(-0.8, Math.min(0.8, (cur.x / W) * 2 - 1)).toFixed(2), near: kind === 'close', km: +km.toFixed(1), delay: thunderDelay(km), level: kind === 'close' ? 1 : kind === 'far' ? 0.62 + 0.25 * (1 - (km - 2.6) / 3.6) : 0.5, bolt: !!bl, target: target ? target.kind : null }) : null;
+    // (ATM-C — THE FLASH ON THE TAKE's OWN CRACK: the recorded close take's crack sits `lead` s into its file — the strike is held back that
+    // long (everything visible waits on the flash), and a take with a SECOND crack flashes again on it (≥ 0.6 s apart: the safety cap holds))
+    if (said && said.lead > 0) { cur.at = t + Math.min(2, said.lead); lastAt = cur.at; }
+    if (said && said.second > 0.6 && motion) { cur.fl = [...cur.fl, [said.second, 0.07, LIGHTNING.CAP * 0.92], [said.second + LIGHTNING.STROKE_GAP, 0.05, LIGHTNING.CAP * 0.6]]; cur.hold = said.second; }
   }
   const sw = (P, c) => { c.beginPath(); c.moveTo(P[0][0], P[0][1]); for (let i = 1; i < P.length; i++) c.lineTo(P[i][0], P[i][1]); c.stroke(); };
   function drawBolt(c, k, close) {
@@ -103,7 +107,7 @@ export function createLightning({ onStrike = null } = {}) {
      *  close ('strike': a CLOSE strike every ~10 s — the panel's control), needle ([x, y] | null), skyline (crown y per column), water ({ y0, y1 }) } */
     tick(s) {
       motion = !!s.motion; if (s.horizon != null) foot = s.horizon + 6;   // (an unset motion = still: the old rule — never a full flash before the setting lands)
-      if (!s.on) { flash = 0; if (cur && s.t - cur.at > 1) cur = null; return; }
+      if (!s.on) { flash = 0; if (cur && s.t - cur.at > 1 + (cur.hold || 0)) cur = null; return; }
       if (wantClose && s.t - lastAt >= 1.5) { wantClose = false; strike(s.t, s, 'close'); next = s.t + LIGHTNING.MIN_GAP + r() * 3; }
       else if (s.t >= next && s.t - lastAt >= LIGHTNING.MIN_GAP) {
         strike(s.t, s, s.close && r() < 0.8 ? 'close' : strikeKind(r()));
@@ -111,7 +115,7 @@ export function createLightning({ onStrike = null } = {}) {
       }
       flash = cur ? flickerAt(cur.fl, s.t - cur.at) : 0;
       if (!motion) { flash = Math.min(flash, LIGHTNING.CAP * LIGHTNING.RM); if (cur) cur.bolt = null; }   // (reduced motion — every frame: dimmed, no bolt)
-      if (cur && s.t - cur.at > 1.3) cur = null;
+      if (cur && s.t - cur.at > 1.3 + (cur.hold || 0)) cur = null;
     },
     /** the panel's CLOSE STRIKE: the next moment it may (never inside MIN_GAP of the last — the safety rule wins) */
     strikeClose() { wantClose = true; },

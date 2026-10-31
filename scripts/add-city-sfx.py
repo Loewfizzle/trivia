@@ -508,6 +508,11 @@ CUTS = {
     'boxer-bag-3': [{'cut': (0.0, 0.5), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050}],
     'boxer-bag-4': [{'cut': (0.0, 0.5), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050}],
     'boxer-bag-5': [{'cut': (0.0, 0.48), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050}],
+    # (ATM-C — THE BAG's VARIETY: Grok's two CC0 bag COMBOS (bag-combo-1: four hits at 0.03 / 0.465 / 0.855 / 1.385 s; bag-combo-2: two at
+    # 0.025 / 0.365 s — measured) cut into their single hits — the follow-up punches of his fast bursts on the bag (sounds.js: each still on
+    # its own punch; the recordings' own spacing (~0.4 s) never matched his 0.27 s); through the same cracked window as the thuds)
+    'boxer-combo': [{'cut': (a - 0.01, a + 0.36), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050, 'mark': 0.01} for a in (0.03, 0.465, 0.855, 1.385)],
+    'boxer-combo-2': [{'cut': (a - 0.01, a + 0.24), 'fin': 0.003, 'fout': 0.1, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050, 'mark': 0.01} for a in (0.025, 0.365)],
     'boxer-chain': [{'cut': (0.0, 1.1), 'fin': 0.004, 'fout': 0.4, 'hp': 300, 'lp': 2600, 'verb': (0.2, 0.015, 0.45, 2000), 'rate': 22050}],
     'boxer-chain-2': [{'cut': (0.0, 1.4), 'fin': 0.004, 'fout': 0.5, 'hp': 300, 'lp': 2600, 'verb': (0.2, 0.015, 0.45, 2000), 'rate': 22050}],
     'boxer-bell': [{'cut': (0.0, 3.6), 'fin': 0.004, 'fout': 1.6, 'hp': 220, 'lp': 2600, 'verb': (0.2, 0.02, 0.6, 2200), 'rate': 22050}],
@@ -544,6 +549,20 @@ CUTS = {
     'blizzard-loop-1': [{'loop': (0.6, 27.0), 'xf': 2.0, 'search': 0.5, 'hp': 100, 'rate': 22050, 'kbps': 48}],
     'blizzard-loop-2': [{'loop': (34.0, 30.0), 'xf': 2.5, 'search': 1.0, 'hp': 100, 'rate': 22050, 'kbps': 48}],   # (34–66.5 s: past both faint tonal blips, ~12 + ~32 s)
     'sleet-glass-1': [{'loop': (2.0, 30.0), 'xf': 2.0, 'search': 0.5, 'hp': 220, 'rate': 32000, 'kbps': 56}],
+    # ---- ATM-C — GROK'S RECORDED THUNDER (art/city-sfx/thunder/: claude-notes.txt + credits.txt; the 9 originals git-ignored, untouched —
+    # close-1, mid-1 + the deep slam are Sonniss: never offered as stand-alone downloads). The owner: the synthesized crack "sounds terrible —
+    # very cheap and basic". Each take cut with ~0.3 s before its crack (MARK = the crack's onset in the cut: the flash lands on it —
+    # sounds.js#CRACKS; onsets from the notes, checked on the 2–8 kHz envelope), the long rumble tails faded early (≤ ~11 s), levelled to
+    # −23 LUFS (the cracks keep their headroom — the crackle alternate peaks at 0 dBFS; the slot gain makes up the level), mono 24 kHz
+    'thunder-close-1': [{'cut': (0.3, 11.3), 'fin': 0.05, 'fout': 3.0, 'hp': 30, 'mark': 0.32, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],
+    'thunder-close-2': [{'cut': (0.35, 11.5), 'fin': 0.05, 'fout': 3.0, 'hp': 30, 'mark': 0.27, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],
+    'thunder-close-3': [{'cut': (0.75, 10.6), 'fin': 0.05, 'fout': 2.5, 'hp': 30, 'mark': 0.3, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],
+    'thunder-close-4': [{'cut': (0.5, 9.2), 'fin': 0.05, 'fout': 2.5, 'hp': 30, 'mark': 1.0, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],   # (TWO cracks: 1.0 + 2.5 s in the cut)
+    'thunder-close-5': [{'cut': (0.1, 6.3), 'fin': 0.03, 'fout': 2.0, 'hp': 30, 'mark': 0.22, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],
+    'thunder-alt-close-crackle': [{'cut': (0.5, 10.6), 'fin': 0.05, 'fout': 2.5, 'hp': 30, 'mark': 0.5, 'lufs': -23.0, 'w': 0.3, 'rate': 24000, 'kbps': 56}],   # (the crackling build: 0.5 + 1.6 s)
+    'thunder-alt-close-deepslam': [{'cut': (0.05, 10.5), 'fin': 0.05, 'fout': 3.0, 'hp': 30, 'mark': 0.4, 'lufs': -23.0, 'w': 0.3, 'rate': 24000, 'kbps': 56}],   # (past its 33 ms of digital silence)
+    'thunder-mid-1': [{'cut': (0.3, 10.8), 'fin': 0.3, 'fout': 2.5, 'hp': 30, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],   # (quiet: −28.7 LUFS → levelled up like the rest)
+    'thunder-mid-2': [{'cut': (0.0, 14.0), 'fin': 0.04, 'fout': 2.5, 'hp': 40, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],   # (starts + ends inside its ambience: faded in 40 ms, out over 2.5 s)
     # ---- 8b1 — GROK'S SECOND-TRY SOUNDS (credits.txt "Second-try sounds"; analysed: tools in the 8b1 notes, docs/audio.md#8b1)
     # (38.6 s Pixabay MP3, a house party's walla: ≤ 20 % voiced frames in any second, no held tone (no music) — indistinct; heard
     # through an upstairs window: 300 Hz–1.8 kHz (the consonants a word needs live above 2 kHz — none readable), at 16 kHz)
@@ -615,7 +634,11 @@ ALIAS = {'radio-static': 'bb-static', 'jet-scream': 'bb-scream', 'sonic-boom': '
          # (ATM-A — Grok's weather set keeps its own names — credits.txt matches them — each mapped to its slot here)
          'winter-wind-loop-1': 'wind-winter', 'winter-wind-loop-2': 'wind-gale', 'gust-1': 'gust-big', 'gust-5': 'gust-big', 'gust-2': 'gust-mid',
          'gust-4': 'gust-mid', 'gust-3': 'gust-soft', 'gust-6': 'gust-soft', 'wind-whistle-1': 'wind-whistle', 'wind-whistle-2': 'wind-whistle',
-         'blizzard-loop-1': 'blizzard', 'blizzard-loop-2': 'blizzard', 'sleet-glass-1': 'sleet-glass'}
+         'blizzard-loop-1': 'blizzard', 'blizzard-loop-2': 'blizzard', 'sleet-glass-1': 'sleet-glass',
+         # (ATM-C — Grok's thunder keeps its own names (credits.txt matches them), each mapped to its slot)
+         'thunder-close-1': 'thunder-close', 'thunder-close-2': 'thunder-close', 'thunder-close-3': 'thunder-close', 'thunder-close-4': 'thunder-close',
+         'thunder-close-5': 'thunder-close', 'thunder-alt-close-crackle': 'thunder-close', 'thunder-alt-close-deepslam': 'thunder-close',
+         'thunder-mid-1': 'thunder-mid', 'thunder-mid-2': 'thunder-mid'}
 # never imported (8P): the diesel bus stand-ins (the 1945 truck's takes instead), the "haunted" door alternatives, the TV murmur (MUSIC
 # held in it — G4 / E5 / G5 notes for 1–1.9 s at 26–41 s — and one clear talker: modulation 0.5–1.1), the slot (inside the knock)
 # 6b: traffic-far (MODERN traffic — the owner: leave the slot empty), trash-truck (a modern ZIL diesel standing still: start, revs, stop —
@@ -896,7 +919,7 @@ def credit_blocks(folder):
     if not p.exists(): return {}
     blocks, cur = {}, None
     for line in p.read_text(encoding='utf-8', errors='replace').splitlines():
-        m = re.match(r'^([A-Za-z0-9_.-]+\.(?:wav|flac|mp3|m4a|ogg|aif|aiff|aac))\b', line)
+        m = re.match(r'^(?:[A-Za-z0-9_.-]+/)?([A-Za-z0-9_.-]+\.(?:wav|flac|mp3|m4a|ogg|aif|aiff|aac))\b', line)   # (ATM-C: a block may name a sub-folder — 'alternates/x.wav')
         if m:
             cur = m.group(1); blocks[cur] = [line.rstrip()]
         elif cur and line.startswith((' ', '\t')) and line.strip():
@@ -1206,7 +1229,7 @@ def process(path, stem, slot, kind, cut, k, ncuts, tmp):
         nI, nO = int(fin * SR), int(min(fout, len(y) / SR * 0.6) * SR)
         if nI: y[:nI] *= 0.5 - 0.5 * np.cos(np.linspace(0, np.pi, nI))
         if nO: y[-nO:] *= 0.5 + 0.5 * np.cos(np.linspace(0, np.pi, nO))
-        y = level(y, ONCE_LUFS)
+        y = level(y, cut.get('lufs', ONCE_LUFS))   # (ATM-C: a take may sit lower — the thunder's cracks keep their headroom)
         pk, sw = swell(y)
         info = {'peak': pk, 'sw': sw, 'from': [round(t0, 2), round(t1, 2)]}
         if hit is not None: info['hit'] = round(hit, 2)
