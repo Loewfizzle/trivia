@@ -930,7 +930,8 @@ G('heli', async () => {
         if (h.model) model++;
         if (h.w) { if (!h.behind) nearW = Math.max(nearW, h.w); else farW = Math.min(farW, h.w); }
         if (h.hover && h.model && h.heading != null && h.heading % 180 !== 0) turned++;
-        if (h.hover && h.look && !stops.some(q => Math.abs(q.x - h.cx) < 20)) stops.push({ x: h.cx, y: h.cy, look: h.look });
+        // (ATM-D: a stop counts by its HOVER — its look may rightly be empty: from just over the billboard's shoulder no spot has a clear line)
+        if (h.hover && h.cx != null && !stops.some(q => Math.abs(q.x - h.cx) < 20)) stops.push({ x: h.cx, y: h.cy, look: h.look || 'none' });
         if (h.ang != null) { if (lastAng != null && h.t - lastT < 400) maxStep = Math.max(maxStep, Math.abs(h.ang - lastAng)); lastAng = h.ang; lastT = h.t; } else lastAng = null;
       } else lastAng = null;
       await sleep(120);
@@ -954,6 +955,12 @@ G('heli', async () => {
       for (let i = 0; i < R.length - 1; i++) { const A = R[i], B = R[i + 1]; if (A[3] || B[3]) continue; for (let k = 0; k <= 40; k++) { const x = A[0] + (B[0] - A[0]) * k / 40, y = A[1] + (B[1] - A[1]) * k / 40; if (x < -10 || x > innerWidth + 10) continue;
         for (const r of occ) if (x + w * 0.3 > r.x && x - w * 0.3 < r.x + r.w && y + w * 0.13 > r.y && y < r.y + r.h) { out.push(sd + ':' + i + '@' + Math.round(x) + ',' + Math.round(y)); k = 99; break; } } } } return out; })()`);
       ok(bad.length === 0, `ATM-C — 200 PATROL SEEDS: no hover or leg behind the near pieces${bad.length ? ` — ${bad.length} legs, e.g. ${bad.slice(0, 4).join(' · ')}` : ''}`); }
+    // (ATM-D — the ON-SCREEN stops of 200 seeds find a searchlight spot with a clear line (the fallbacks: the far roofs + the far water at long
+    // diagonals); the cloud once caught a flight whose stops all sat over the billboard and found none — only the hovers right over its
+    // shoulder may (nothing on the ground is in sight from there))
+    { const r = await ev(Q.page, `(() => { const H = window.__district.harbor(); let n = 0, none = 0; const kinds = {}; for (let sd = 1; sd <= 200; sd++) { const p = H.heli.planFor(1761900000 + sd * 37); if (!p || !p.spots) return null;
+        p.spots.forEach((k, i) => { if (k === undefined || k === null && (p.route[i][0] < 0 || p.route[i][0] > innerWidth)) return; const q = p.route[i]; if (q[0] < 0 || q[0] > innerWidth) return; n++; if (k == null) none++; else kinds[k] = (kinds[k] || 0) + 1; }); } return { n, none, kinds }; })()`);
+      ok(r && r.n > 50 && r.none / r.n < 0.08, `ATM-D — 200 SEEDS' STOPS FIND A CLEAR SPOT: ${r ? `${r.n} on-screen stops, ${r.none} without (${(100 * r.none / r.n).toFixed(1)} % — the hovers just over the billboard's shoulder, where every spot is behind it: no pool, the beam keeps its sweep) — ${JSON.stringify(r.kinds)}` : 'no plan'}`); }
     ok(maxStep < 0.25, `THE SEARCHLIGHT SWEEPS SMOOTHLY: its biggest change between samples ${maxStep.toFixed(3)} rad (it used to jump ~0.8 as the craft slowed into a stop)`);
     await Q.ctx.close(); }
 });

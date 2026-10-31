@@ -192,7 +192,7 @@ export function createAir() {
   let W = 1, H = 1, HZ = 1, K = 1, dpr = 2, tier = 2;
   let planes = [], nextPlane = 6 + Math.random() * 12, forcedAt = -1e9, trainGone = -1e9, forcedKind = '';
   let train = null, trainNight = '', sat = null, nextSat = 60 + Math.random() * 180;
-  let heli = null, lastS = null;   // (lastS: ATM-C — the last frame's state, for planFor)
+  let heli = null, lastS = null, lastWater = null;   // (lastS: ATM-C — the last frame's state, for planFor)
   const glows = new Map();
   // (SKY-A: bounded — only fixed colours + the palettes' own ever reach it; a stray shade can never pile up canvases again)
   const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glows.get(k); if (!c) { if (glows.size > 40) { for (const q of glows.values()) q.width = 0; glows.clear(); } c = mk(32, 32); const x = safeCtx(c); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.28, `rgba(${k},0.45)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); glows.set(k, c); } return c; };
@@ -672,6 +672,32 @@ export function createAir() {
     const yw = Math.cos(th), lx0 = L * 0.08 * sc * yw, ly0 = L * 0.12 * sc, cs = Math.cos(pitch), sn = Math.sin(pitch);
     return { x: p.x + lx0 * cs - ly0 * sn, y: p.y + lx0 * sn + ly0 * cs, cx: p.x, cy: p.y, dir: p.dir, hover: p.hover, e, sc, yaw: +yw.toFixed(2), heading: Math.round(deg), behind: !!p.behind, look: p.look || null, stop: p.stop || null, model: true, w: Math.round(L * sc) };
   }
+  // ATM-D — a stop's searchlight spot from a lamp at (hx, hy), the craft facing d, its wanted kind (look) — or null (no clear spot)
+  function spotFor(hx, hy, d, look, s, waterY, waterTop) {
+    // (ATM-D — THE SEARCHLIGHT's CLEAR LINE, the owner Oct 31 4:34 pm: its pool lay on the ground in front of the speakeasy's door while the
+    // beam passed THROUGH the roof billboard — impossible. A spot is taken only when the straight line from the lamp to it clears every near
+    // piece (the speakeasy, its billboard, the blade, the signs — s.heliOcc), and never the speakeasy's own ground ("don't even bother");
+    // the chosen kind first, then the water at a few places, else no spot at all (the beam keeps its own sweep))
+    const occ = s.heliOcc || [], sp = occ[0] || null;
+    const clear = (x1, y1) => { for (let i = 1; i < 24; i++) { const u = i / 24, px = hx + (x1 - hx) * u, py = hy + (y1 - hy) * u; for (const o of occ) if (px > o.x - 2 && px < o.x + o.w + 2 && py > o.y - 2 && py < o.y + o.h + 2) return false; } return true; };
+    const offSpeak = x1 => !sp || x1 > sp.x + sp.w + 18 * K;
+    const ok = c2 => c2 && c2.x > 6 && c2.x < W - 6 && clear(c2.x, c2.y) && (c2.kind !== 'promenade' || offSpeak(c2.x));
+    const cands = [];
+    if (look === 'boat') {
+      const bs = (s.boatSpots ? s.boatSpots() : []).filter(b => b.x > 8 && b.x < W - 8 && Math.abs(b.x - hx) < 150 * K && b.y > hy + 6);
+      for (const b of bs.sort((a, b2) => Math.abs(a.x - hx) - Math.abs(b2.x - hx))) cands.push({ kind: 'boat', x: b.x, y: b.y - 2 * K, boat: b.id });
+    }
+    if (look === 'roof') cands.push({ kind: 'roof', x: hx + d * 10 * K, y: waterTop - 9 * K });
+    if (look === 'promenade' && s.promY && s.promY < (s.dockTop || H) - 8) cands.push({ kind: 'promenade', x: hx + d * 22 * K, y: s.promY });
+    for (const dx of [16, 40, -16, 70, -44]) cands.push({ kind: 'water', x: hx + d * dx * K, y: waterY });
+    // (the fallbacks — a craft hovering ABOVE the billboard sees no water near it (it's behind the building): the far quay's roofs, then
+    // the water farther out on either side; a stop with no clear spot at all is rare)
+    for (const dx of [10, -10, 40, -40, 100, -100, 160, -160, 220, -220, 280, -280]) cands.push({ kind: 'roof', x: hx + d * dx * K, y: waterTop - 9 * K });
+    for (const dx of [110, -90, 150, -130, 190]) cands.push({ kind: 'water', x: hx + d * dx * K, y: waterY });
+    // (from just above the billboard every beam down to the NEAR water crosses it: the FAR water, just below the far quay, at a long diagonal)
+    for (const dx of [140, -140, 190, -190, 240, -240, 300, -300, 350, -350]) cands.push({ kind: 'water', x: hx + d * dx * K, y: waterTop + 12 * K });
+    return cands.find(ok) || null;
+  }
   // SKY-B — WHERE THE PATROL LOOKS on a stop (its searchlight's spot, screen pt): a boat (the nearest on the water, kept for the whole stop),
   // the far quay's roofs, the water, the promenade — or null (not stopped / by day: the moving beam's own spot). lk: how far the beam has
   // swung onto it (0 → 1 over the stop's first ~0.9 s, back over its last).
@@ -681,26 +707,7 @@ export function createAir() {
     if (lk <= 0.001) return null;
     const memo = heli.looks || (heli.looks = new Map()), d = h.dir || 1;
     let T = memo.get(h.stop.id);
-    if (T === undefined) {
-      // (ATM-D — THE SEARCHLIGHT's CLEAR LINE, the owner Oct 31 4:34 pm: its pool lay on the ground in front of the speakeasy's door while the
-      // beam passed THROUGH the roof billboard — impossible. A spot is taken only when the straight line from the lamp to it clears every near
-      // piece (the speakeasy, its billboard, the blade, the signs — s.heliOcc), and never the speakeasy's own ground ("don't even bother");
-      // the chosen kind first, then the water at a few places, else no spot at all (the beam keeps its own sweep))
-      const occ = s.heliOcc || [], sp = occ[0] || null;
-      const clear = (x1, y1) => { for (let i = 1; i < 24; i++) { const u = i / 24, px = h.x + (x1 - h.x) * u, py = h.y + (y1 - h.y) * u; for (const o of occ) if (px > o.x - 2 && px < o.x + o.w + 2 && py > o.y - 2 && py < o.y + o.h + 2) return false; } return true; };
-      const offSpeak = x1 => !sp || x1 > sp.x + sp.w + 18 * K;
-      const ok = c2 => c2 && c2.x > 6 && c2.x < W - 6 && clear(c2.x, c2.y) && (c2.kind !== 'promenade' || offSpeak(c2.x));
-      const cands = [];
-      if (h.look === 'boat') {
-        const bs = (s.boatSpots ? s.boatSpots() : []).filter(b => b.x > 8 && b.x < W - 8 && Math.abs(b.x - h.x) < 150 * K && b.y > h.y + 6);
-        for (const b of bs.sort((a, b2) => Math.abs(a.x - h.x) - Math.abs(b2.x - h.x))) cands.push({ kind: 'boat', x: b.x, y: b.y - 2 * K, boat: b.id });
-      }
-      if (h.look === 'roof') cands.push({ kind: 'roof', x: h.x + d * 10 * K, y: waterTop - 9 * K });
-      if (h.look === 'promenade' && s.promY && s.promY < (s.dockTop || H) - 8) cands.push({ kind: 'promenade', x: h.x + d * 22 * K, y: s.promY });
-      for (const dx of [16, 40, -16, 70, -44]) cands.push({ kind: 'water', x: h.x + d * dx * K, y: waterY });
-      T = cands.find(ok) || null;
-      memo.set(h.stop.id, T);
-    }
+    if (T === undefined) { T = spotFor(h.x, h.y, d, h.look, s, waterY, waterTop); memo.set(h.stop.id, T); }
     if (!T) return null;
     return { ...T, lk };
   }
@@ -855,6 +862,7 @@ export function createAir() {
     /** SKY-B — the patrol's NEAR pass, low over the near water (after the near boats; the railing, the promenade's trees + the near signs
      *  stand in front of it) + its searchlight down to the water / onto its spot. waterY: the near water line, waterTop: the far quay's */
     heliNear(c, s, waterY, waterTop) {
+      lastWater = { waterY, waterTop };
       if (!heli) { heliNow = null; lookNow = null; return; }
       if (heli.mode === 'break') return;
       timed(s, () => { const r = drawHeli(c, s, airLook(s.L), 'city'); if (!(r && r.off && skyAt === s.t)) heliNow = r; if (heliNow && !heliNow.off && !heliNow.behind) beam0(c, s, waterY, 'near', waterTop); else lookNow = null; });
@@ -909,7 +917,7 @@ export function createAir() {
     fly(s, route, { land = false } = {}) { if (!route || route.length < 2) return; const r = route.map(p => [p[0], p[1], p[2] || 0]); if (land) r[r.length - 1][2] = 1e6; heli = { start: s.now, route: r, dir: r[1][0] >= r[0][0] ? 1 : -1, spr: null, sprKey: '', len: 28 * K, own: true }; },
     heliOn: () => !!heli,
     /** ATM-C (tests): the patrol's route for a seed, planned from this frame's near pieces — [x, y, hold, behind] points (null before a frame) */
-    planFor: seed => { if (!lastS) return null; const h = heliPlan(lastS, 0, seed); return h ? { len: h.len, route: h.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]) } : null; },
+    planFor: seed => { if (!lastS) return null; const h = heliPlan(lastS, 0, seed); if (!h) return null; const sp = (q, i) => (q[2] && q[4] && q[4].look && !q[4].behind && lastWater ? spotFor(q[0], q[1], (h.route[i + 1] ? Math.sign(h.route[i + 1][0] - q[0]) : h.dir) || h.dir || 1, q[4].look, lastS, lastWater.waterY, lastWater.waterTop) : undefined); return { len: h.len, water: lastWater, route: h.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]), spots: h.route.map((q, i) => { const r = sp(q, i); return r === undefined ? undefined : r ? r.kind : null; }) }; },   // (ATM-D: + each stop's spot — the e2e sweeps seeds)
     /** anything crossing the sky right now (the calm frame rate: a plane, the train, a satellite, the helicopter keep 60 fps) */
     busy: () => planes.some(p => p.k < 1) || !!train || !!sat || !!heli,
     lanesInUse: () => new Set(planes.filter(p => p.k < 1).map(p => p.lane)),

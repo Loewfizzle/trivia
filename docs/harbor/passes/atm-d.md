@@ -66,6 +66,11 @@ PART 10's decisions in §6 "FOR PART 10"; the superyacht split off; the FR5 extr
   piece (`s.heliOcc` — the speakeasy, its billboard, the blade, the signs), never the speakeasy's own ground (a promenade spot must lie right
   of the building + 18 pt); the chosen kind first (a boat / the far roofs / the promenade), then the water at five places, else NO spot (the
   beam keeps its own sweep). The approved patrol path unchanged. The e2e `heli` group samples every look for 30 s: 17 looks, none blocked.
+  THE CLOUD's FIRST RUN caught a flight whose stops all hovered just over the billboard — none found a spot, and the fresh-load check (which
+  counted a stop only by its look) saw no stop: the fallbacks added (`spotFor` — the far quay's roofs + the FAR water at long diagonals; the
+  near water line is too low to reach from up there), the stop counted by its hover, and a 200-seed sweep (`planFor(seed).spots`): 1123
+  on-screen stops, 58 (5.2 %) without a spot — the hovers right over the billboard's shoulder, where everything on the ground is behind it
+  (no pool, the beam keeps its sweep; the building covers it).
 - **THE CAB PICKUP ON THE CURB SIDE** (`cabstand.js`, `vehicles.js#drawFarDoorTop`): the fare walks from the bench to the curb beside the
   cab's FAR REAR door (behind the car — the cab stand draws him BEFORE the car, so its body covers him below the shoulders); the far rear
   door opens (the kit draws only its TOP EDGE swinging up above the roofline — the frame + the dark of its glass, its free edge rising as it
@@ -93,6 +98,8 @@ PART 10's decisions in §6 "FOR PART 10"; the superyacht split off; the FR5 extr
   e2e-harbor suite **784 / 786** in 25 min — the two misses are the two known machine-timing checks (the toast's arm step 0.31 rad vs 0.25,
   the calm load at 2× CPU stepping a tier on the TV's 29 Hz) that fail the same before the pass (ATM-A / ATM-C); the new searchlight check
   passed (17 looks, none blocked).
+- **THE CLOUD**: run 1 (the harbor workflow by hand — the final push's own files were docs + tests, outside its path filter): tests ✅, harbor
+  9 / 10 — legend ✗ (the searchlight's stops over the billboard, above; fixed, 25 / 25 locally); run 2 = the legend job alone (below).
 
 ## Decisions
 - **The low sun is PAINTED, not added**: the sky round a low sun is already near-white — an added core can't be seen; the light reads by a
