@@ -36,11 +36,13 @@ export const rainSlant = (wind, dir, gust = wind, t = 0) => {
 
 export function createHarborRain() {
   let W = 1, H = 1, HZ = 1, drops = [], rings = [], splashes = [], grid = null, gw = 0, gh = 0, gridAt = -1e9;
-  let tile = null, mask = null, veil = null;
+  let tile = null, mask = null, veil = null, drift = 0;   // (drift: ATM-C — the slant's sideways run over the screen's height, pt)
 
   function spawn(d, any) {
     const b = RAIN_DEPTH[d];
-    const p = { d, x: Math.random() * (W + 240) - 120, y: any ? Math.random() * H : -20 - Math.random() * 160, v: b.v[0] + Math.random() * (b.v[1] - b.v[0]), len: b.len[0] + Math.random() * (b.len[1] - b.len[0]), land: 1e9 };
+    // (ATM-C — THE RAIN REACHES EVERY CORNER (the owner, Oct 31: the storm's slant never reached the bottom-right — the bench + the tree
+    // stayed dry): a drop's head runs k·y sideways as it falls, so the spawns cover the screen PLUS that whole run on the upwind side)
+    const p = { d, x: Math.min(0, drift) - 120 + Math.random() * (W + 240 + Math.abs(drift)), y: any ? Math.random() * H : -20 - Math.random() * 160, v: b.v[0] + Math.random() * (b.v[1] - b.v[0]), len: b.len[0] + Math.random() * (b.len[1] - b.len[0]), land: 1e9 };
     return p;
   }
   function landOf(p, s) {
@@ -122,7 +124,8 @@ export function createHarborRain() {
     /** over everything (s: { rain 0..1, slant, gustAt? (u 0..1 → the gust wave there × the wind's level — ATM-A), day 0..1, dt (ms), tier, motion, flash 0..1, water: { y0, y1 }, ground: { y0 } }) */
     drops(c, s) {
       const sec = Math.min(0.1, (s.dt || 16) / 1000), tier = s.tier == null ? 2 : s.tier;
-      const RL = rainLook(s.rain), want = s.rain > 0.004 ? Math.round(RAIN_CAP[tier] * RL.n * (s.motion ? 1 : 0.4)) : 0;
+      drift = (s.slant || 0) * H;
+      const RL = rainLook(s.rain), want = s.rain > 0.004 ? Math.round(RAIN_CAP[tier] * RL.n * (s.motion ? 1 : 0.4) * (W + 240 + Math.abs(drift)) / (W + 240)) : 0;   // (the same density over the wider band)
       if (!want && !drops.length && !rings.length && !splashes.length) return;
       while (drops.length < want) { const r = Math.random(); const p = spawn(r < RAIN_DEPTH[0].k ? 0 : r < RAIN_DEPTH[0].k + RAIN_DEPTH[1].k ? 1 : 2, want - drops.length > 40); landOf(p, s); drops.push(p); }
       if (drops.length > want) drops.length = want;

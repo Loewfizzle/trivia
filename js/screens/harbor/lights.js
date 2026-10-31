@@ -394,7 +394,9 @@ export function createLights() {
       // (on in the murk by day too — low visibility; a slow sine breath shared by every top)
       const p = motion ? 0.5 - 0.5 * Math.cos((t / 4.2) * Math.PI * 2) : 0.7, a = Math.max(night, 0.55 * heavy) * heavy * (0.25 + 0.75 * p);
       c.save(); c.globalCompositeOperation = 'lighter';
-      for (const b of beacons) { const r = b.r * (9 + 7 * heavy); c.globalAlpha = Math.min(1, a * 0.75); c.drawImage(D.red, b.x - r, b.y - r, r * 2, r * 2); c.globalAlpha = Math.min(1, a); const r2 = b.r * 3.2; c.drawImage(D.red, b.x - r2, b.y - r2, r2 * 2, r2 * 2); }
+      // (ATM-C — the owner, Oct 31: in fog the halos read as "big pink blobs across the skyline" — IN FOG ONLY a little DIMMER + SMALLER
+      // (was r × (9 + 7·heavy) at 0.75); every other night + weather draws the beacons exactly as before (the pass below))
+      for (const b of beacons) { const r = b.r * (6.5 + 3.5 * heavy); c.globalAlpha = Math.min(1, a * 0.5); c.drawImage(D.red, b.x - r, b.y - r, r * 2, r * 2); c.globalAlpha = Math.min(1, a * 0.8); const r2 = b.r * 2.8; c.drawImage(D.red, b.x - r2, b.y - r2, r2 * 2, r2 * 2); }
       c.restore();
       return;
     }

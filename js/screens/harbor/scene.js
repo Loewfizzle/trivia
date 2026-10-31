@@ -594,21 +594,21 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function iceEdgesNow() {
     const br = speak.bladeRect ? speak.bladeRect() : null, k = `${laneKey}|${cam.W}x${cam.H}|${br ? [br.x, br.y, br.w, br.h].map(Math.round).join(',') : '-'}`;
     if (k === iceKey && iceEdges) return iceEdges;
-    iceKey = k; const out = [], rail = [];
+    iceKey = k; const out = [], rail = [], panes = [];
     const sp = L.speakeasy;
     if (sp) {
       const P = (u, v, z = sp.z0 - 0.04) => project(cam, sp.x0 + u, v, z), ln = (a, b, o) => out.push({ x0: a[0], y0: a[1], x1: b[0], y1: b[1], ...o });
       const a = awningSnow(sp);
-      ln(P(a.u0, a.yF, a.zF), P(a.u1, a.yF, a.zF), { len: 12, dens: 0.34, warm: true });
-      ln(P(-0.4, 9.85), P(11.2, 9.85), { len: 13, dens: 0.24 });                    // (the cornice's drip edge)
+      ln(P(a.u0, a.yF, a.zF), P(a.u1, a.yF, a.zF), { len: 20, dens: 0.34, warm: true, big: true });   // (ATM-C: big = chunky icicles — the nearest ledges)
+      ln(P(-0.4, 9.85), P(11.2, 9.85), { len: 19, dens: 0.24, big: true });                    // (the cornice's drip edge)
       ln(P(-0.4, 4.3), P(11.2, 4.3), { len: 8, dens: 0.2 });                       // (the belt course)
-      for (const [u0, u1] of sp.windows) for (const [, v1] of sp.rows) ln(P(u0 - 0.05, v1 + 0.02), P(u1 + 0.05, v1 + 0.02), { len: 7.5, dens: 0.36, warm: true });
-      if (sp.shop && sp.shop.win) ln(P(sp.shop.win[0], sp.shop.win[3] + 0.02), P(sp.shop.win[1], sp.shop.win[3] + 0.02), { len: 7, dens: 0.34, warm: true });
+      for (const [u0, u1] of sp.windows) for (const [v0, v1] of sp.rows) { ln(P(u0 - 0.05, v1 + 0.02), P(u1 + 0.05, v1 + 0.02), { len: 12, dens: 0.36, warm: true, big: true }); const a0 = P(u0, v1), a1 = P(u1, v0); panes.push({ x: Math.min(a0[0], a1[0]), y: Math.min(a0[1], a1[1]), w: Math.abs(a1[0] - a0[0]), h: Math.abs(a1[1] - a0[1]) }); }
+      if (sp.shop && sp.shop.win) { ln(P(sp.shop.win[0], sp.shop.win[3] + 0.02), P(sp.shop.win[1], sp.shop.win[3] + 0.02), { len: 11, dens: 0.34, warm: true, big: true }); const a0 = P(sp.shop.win[0], sp.shop.win[3]), a1 = P(sp.shop.win[1], sp.shop.win[2]); panes.push({ x: Math.min(a0[0], a1[0]), y: Math.min(a0[1], a1[1]), w: Math.abs(a1[0] - a0[0]), h: Math.abs(a1[1] - a0[1]) }); }
     }
     if (br) {
       // the vertical blade: icicles along its bottom (its bulbs' warm white), the glaze down both sides
       const tint = [255, 232, 206];
-      out.push({ x0: br.x, y0: br.y + br.h, x1: br.x + br.w, y1: br.y + br.h, len: 10, dens: 0.42, tint });
+      out.push({ x0: br.x, y0: br.y + br.h, x1: br.x + br.w, y1: br.y + br.h, len: 16, dens: 0.42, tint, big: true });
       out.push({ x0: br.x, y0: br.y, x1: br.x, y1: br.y + br.h, side: true, tint }, { x0: br.x + br.w, y0: br.y, x1: br.x + br.w, y1: br.y + br.h, side: true, tint });
     }
     // the roof signs' bottoms, each in its own neon colour
@@ -616,7 +616,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the railing runs BEHIND the speakeasy + its blade: its ice starts at their right edge)
     if (L.rail) { const y = project(cam, 0, L.rail.y, Z.rail)[1], x0 = Math.max(sp && sp.x1 != null ? project(cam, sp.x1, 0, sp.z0)[0] : 0, br ? br.x + br.w + 2 : 0); if (x0 < W - 20) rail.push({ x0, y0: y, x1: W, y1: y, len: 6, dens: 0.12 }); }
     for (const b of [L.bench, L.cabStand].filter(Boolean)) { const a0 = project(cam, b.x - b.w / 2, 0.47, b.z + 0.1), a1 = project(cam, b.x + b.w / 2, 0.47, b.z + 0.1); out.push({ x0: a0[0], y0: a0[1], x1: a1[0], y1: a1[1], len: 4.5, dens: 0.32 }); }
-    iceEdges = { main: out, rail };
+    iceEdges = { main: out, rail, panes };
     return iceEdges;
   }
   const fogD = createFogDepth();          // (ATM-B: FOG AS DEPTH — the veils by depth, the halos, the drifting banks)
@@ -2420,7 +2420,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // right after their bake, so the people + the front row stand in front of them
     if (fadeIn > 0) drawSignalLamps(c, L, sigSt, sigO);
     // 9a — THE WET PROMENADE (after real rain: the puddles drying patch by patch, the lamps' wet streaks, rings while it rains, the drips)
-    if (WXS && (WXS.wet > 0.02 || WXS.drip > 0.02 || clock.force.has('wet-street')) && fadeIn > 0 && !off.has('no-wet')) wetGround.draw(c, { wet: clock.force.has('wet-street') ? 1 : WXS.wet, drip: WXS.drip, rain: LK.rain || 0, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), night: litK(DK, 'lamps') * (lit > 0 ? lit : 0) * (LB ? legendPow(W * 0.5, 'near', 209) : 1), levels: LLF.levels, reflect: wetReflect(), lightAt: rain.lightAt, lightKey: neon.rev, t, dt, motion: S.motion, tier, fade: fadeIn });
+    // (ATM-C: FREEZING RAIN's ground is an ICE SHEET — a mirror: the wet reflections at full strength while the ice lasts)
+    if (WXS && (WXS.wet > 0.02 || WXS.drip > 0.02 || WXS.ice > 0.03 || clock.force.has('wet-street')) && fadeIn > 0 && !off.has('no-wet')) wetGround.draw(c, { wet: clock.force.has('wet-street') ? 1 : Math.max(WXS.wet, Math.min(1, WXS.ice * 1.2)), drip: WXS.drip, rain: LK.rain || 0, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), night: litK(DK, 'lamps') * (lit > 0 ? lit : 0) * (LB ? legendPow(W * 0.5, 'near', 209) : 1), levels: LLF.levels, reflect: wetReflect(), lightAt: rain.lightAt, lightKey: neon.rev, t, dt, motion: S.motion, tier, fade: fadeIn });
     AUD.signals = sigO.fade * sigO.lk; AUD.lampsPost = LLF.levels.length ? Math.max(...LLF.levels) * LLF.ramp : 0;
     // PART 7a — THE SPEAKEASY's live layer: its rooms lit (from dusk, by the hour), their glow on the brick, the shop's lamp, the
     // sconce, the basement's amber (day + night), the ghost ad's lamps, the barber pole (turning while the shop is open)
@@ -2499,7 +2500,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const sx = !off.has('no-promenade') && bakeTones ? still.items(L, bakeTones, { dpr: (typeof devicePixelRatio !== 'undefined' && devicePixelRatio) || 2, fade: fadeIn, pw: PWQ }) : [];   // (PROM: the benches)
       // ATM-B — FREEZING RAIN: the ice on everything above (the speakeasy's ledges, the signs' frames, the railing, the benches) + the
       // promenade's sheen — before the near people (they walk in front of it)
-      if (WXS && WXS.ice > 0.03 && fadeIn > 0 && !off.has('no-ice') && L.speakeasy) iceFx.draw(c, { ice: WXS.ice, edges: iceEdgesNow().main, keep: true, ground: { y0: groundY(cam, Z.prom[1]) - 4, y1: Math.min(H, cam.dock.y + 60), W }, night: litK(DK, 'lamps'), day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0)), t, motion: S.motion, max: tierVal('icicles', tier) });
+      if (WXS && WXS.ice > 0.03 && fadeIn > 0 && !off.has('no-ice') && L.speakeasy) iceFx.draw(c, { ice: WXS.ice, edges: iceEdgesNow().main, panes: iceEdgesNow().panes, grade: { W, H }, keep: true, ground: { y0: groundY(cam, Z.prom[1]) - 4, y1: Math.min(H, cam.dock.y + 60), W }, night: litK(DK, 'lamps'), day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0)), t, motion: S.motion, max: tierVal('icicles', tier) });
       // ATM-B — HEAVY SNOW + THE BLIZZARD on the stage: the trees shaking snow off in the gusts, the ground snow blowing in streamers +
       // banked in drifts against the speakeasy's foot + the benches' legs (the promenade only — the street under the dock stays open)
       { const lieK = snowNow() ? topsOf(SN) : 0;
@@ -2783,7 +2784,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const lgW = legendPow(cam.wheelQuiet ? cam.wheelQuiet.x : W * 0.45, 'harbor', 301);   // (6b: the legendary's pull on the wheel + the pier's lamps)
     const sh0 = neon.show(), hw = { t, ms, T, sunDir, lights: glowK * lgW, fade: fadeIn, motion, party: PT.on > 0 ? PT : null, sparkle: PT.on > 0 ? sh0.sparkle : 0, cn: sh0.cn || 0, drop: sh0.drop || 0 };
     const hb = { t, T, lights: glowK * legendPow(W * 0.55, 'harbor', 302), power: LB ? legendPow(W * 0.55, 'harbor', 302) : 1, motion, heel, nightAt, fade: fadeIn, noWake: clock.force.has('no-wakes'), steam: harborSteam(), wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? 1 : -1) };
-    const hl = { ms, now: performance.now(), k: legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) * fadeIn * Math.max(litK(DK, 'beams') * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, motion, tier, dim: !!lights.spelling, water };
+    const hl = { ms, now: performance.now(), k: legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) * fadeIn * Math.max(litK(DK, 'beams') * (S.lit > 0 ? S.lit : 0), clamp01(((LK.fog || 0) - 0.5) * 2) * 0.6), fog: LK.fog || 0, night: litK(DK, 'beams') * (S.lit > 0 ? S.lit : 0), motion, tier, dim: !!lights.spelling, water };   // (ATM-C: night — by day in fog the shaft barely shows)
     // (NEON PASS 6, the owner: on a party night the lighthouse holds its own — a stronger, wider beam; now and then (4 bars in 16) it
     // picks up the party's colour — the right word tower's palette colour, eased in + out)
     if (PT.on > 0) { const u = (PT.bar % 16) + (PT.phase || 0); hl.party = PT.ramp * Math.max(0.6, PT.energy || 0); hl.pm = S.motion ? smooth(8, 9, u) * (1 - smooth(12, 13, u)) : 0; hl.pcol = hl.pm > 0 ? (neon.beamCols(['wordB'])[0] || null) : null; }

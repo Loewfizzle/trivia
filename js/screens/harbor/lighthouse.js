@@ -275,19 +275,23 @@ export function createBeam() {
     // (6b — THE BEAM IN HEAVY FOG, the owner: "almost lasers, too sharp". In fog a beam is BROADER + SOFTER, never sharper: the denser
     // the fog, the WIDER, SHORTER and more diffuse the cone — soft edges from layered fans — with a big glow at the lamp (draw()). A light
     // fog keeps a faint crisp shaft; the thin hard-edged look belongs to clear air)
-    const col = pc.join(','), fog = clamp01(f.fog || 0), heavy = smooth(0.35, 0.95, fog), wide = (1 + 2.2 * heavy) * (1 + 0.32 * pa), D = 58 * (1 - 0.42 * heavy) + 8 * fog * (1 - heavy);
+    // (ATM-C — THE LIGHTHOUSE IN FOG, the owner Oct 31 (night + day): "a HUGE FLAT WHITE BLOB smeared across the right-side towers" — the
+    // beam 3.2× wide + its lit patches + the big glows all ADDED made one overexposed mass. Now a visible sweeping SHAFT: barely wider in
+    // fog (×1.5 at most), soft-edged, its light falling off along it, the patches faint; by day (f.night ~0) the shaft barely there)
+    const col = pc.join(','), fog = clamp01(f.fog || 0), heavy = smooth(0.35, 0.95, fog), wide = (1 + 0.5 * heavy) * (1 + 0.32 * pa), D = 58 * (1 - 0.3 * heavy) + 8 * fog * (1 - heavy);
+    const nightK = f.night == null ? 1 : clamp01(f.night), dayCut = fog > 0.12 ? 0.15 + 0.85 * nightK : 1;
     k *= 1 + 0.6 * pa;
     // (POLISH 4 — VOLUMETRIC IN FOG (fogbeam.js: why the wedges read flat): as the fog thickens the crisp wedges hand over to ONE
     // volumetric body — gaussian across, dimming exponentially along, widening, its density streaks — + the fog's patches lighting up as
     // it sweeps through them; clear air keeps the crisp shaft)
     const vol = smooth(0.12, 0.45, fog);
     for (const off of [0, Math.PI]) {
-      const aa = a + off, F2 = fan(aa, D, 0.085 * wide), al = Math.min(1, k * (0.28 + 0.52 * F2.side) * (1 + 0.5 * fog - 0.25 * heavy));
+      const aa = a + off, F2 = fan(aa, D, 0.085 * wide), al = Math.min(1, k * (0.28 + 0.52 * F2.side) * (1 + 0.3 * fog - 0.3 * heavy)) * dayCut;
       if (al < 0.01) continue;
       if (vol > 0.01) {
         const FV = fan(aa, D * 1.3, 0.085 * wide * 1.2), ax = FV.em[0] - lx, ay = FV.em[1] - ly, bx = (FV.e1[0] - FV.e0[0]) / 2, by = (FV.e1[1] - FV.e0[1]) / 2;
-        drawFogBeam(c, lx, ly, ax, ay, bx, by, pc, al * vol * (1.25 + 0.35 * heavy), 0.3 * (1 - 0.6 * heavy));
-        if (f.tier > 0) fogPatches(c, lx, ly, ax, ay, Math.hypot(bx, by), pc, al * vol * 0.9, f.motion ? (f.now || 0) / 1000 : 0, f.tier === 2 ? 5 : 3);
+        drawFogBeam(c, lx, ly, ax, ay, bx, by, pc, al * vol * 0.95, 0.35 * (1 - 0.4 * heavy));
+        if (f.tier > 0) fogPatches(c, lx, ly, ax, ay, Math.hypot(bx, by), pc, al * vol * 0.35, f.motion ? (f.now || 0) / 1000 : 0, f.tier === 2 ? 5 : 3);
         c.globalAlpha = 1;
       }
       if (vol > 0.99) continue;
@@ -313,10 +317,12 @@ export function createBeam() {
       c.save(); c.globalCompositeOperation = 'lighter';
       // the haze lit around the lantern (brighter in fog)
       // (6b: heavy fog — a BIG glow at the lamp: the light scattered all round it; at tier 0 too, it's the beam's whole look then)
-      const fog = clamp01(f.fog || 0), heavy = smooth(0.35, 0.95, fog), hr = lu * (4 + 6 * fog + 9 * heavy);
-      if (f.tier > 0 || heavy > 0.3) { c.globalAlpha = Math.min(1, k * (0.22 + 0.4 * fog + 0.3 * heavy)); c.drawImage(halo, lx - hr, ly - hr, hr * 2, hr * 2); }
-      // (POLISH 4: + the WIDE scattered glow in thick fog — the whole murk round the lantern lit, in the lamp's colour)
-      if (fog > 0.12) fogGlow(c, lx, ly, lu * (9 + 26 * heavy), colour, k * smooth(0.12, 0.45, fog) * (0.22 + 0.28 * heavy));
+      // (ATM-C: in fog a SOFT HALO round the lamp — modest, never the white mass the old 19-lamp halo + 35-lamp glow made together)
+      const fog = clamp01(f.fog || 0), heavy = smooth(0.35, 0.95, fog), hr = lu * (4 + 3 * fog + 2 * heavy), nk = f.night == null ? 1 : clamp01(f.night);
+      if (f.tier > 0 || heavy > 0.3) { c.globalAlpha = Math.min(1, k * (0.22 + 0.22 * fog)); c.drawImage(halo, lx - hr, ly - hr, hr * 2, hr * 2); }
+      // (POLISH 4: + the WIDE scattered glow in thick fog — the murk round the lantern lit, in the lamp's colour; ATM-C: smaller + fainter,
+      // fainter still by day)
+      if (fog > 0.12) fogGlow(c, lx, ly, lu * (7 + 7 * heavy), colour, k * smooth(0.12, 0.45, fog) * (0.12 + 0.08 * heavy) * (0.55 + 0.45 * nk));
       c.globalAlpha = 1;
       drawFans(c, f, a, k);
       // the lantern's core + THE FLARE: a beam swinging round to face us
@@ -324,8 +330,9 @@ export function createBeam() {
       const fl = Math.pow(Math.abs(Math.sin(a)), 22);
       c.globalAlpha = k * 0.9; const cr = lu * 1.1; c.drawImage(halo, lx - cr, ly - cr, cr * 2, cr * 2);
       if (fl > 0.02 && f.motion && f.tier > 0) {          // (tier 0, the calm city: no flare star)
-        c.globalAlpha = Math.min(1, k * fl); const fr = lu * (7 + 4 * fog); c.drawImage(flareC, lx - fr, ly - fr, fr * 2, fr * 2);
-        c.globalAlpha = Math.min(1, k * fl * 0.6); const hr2 = lu * 5; c.drawImage(halo, lx - hr2, ly - hr2, hr2 * 2, hr2 * 2);
+        const ff = 1 - 0.55 * fog;   // (ATM-C: in fog the flare softer + smaller — the beam's light spreads into the murk instead)
+        c.globalAlpha = Math.min(1, k * fl * ff); const fr = lu * (7 - 2 * fog); c.drawImage(flareC, lx - fr, ly - fr, fr * 2, fr * 2);
+        c.globalAlpha = Math.min(1, k * fl * 0.6 * ff); const hr2 = lu * 5; c.drawImage(halo, lx - hr2, ly - hr2, hr2 * 2, hr2 * 2);
         if (f.water) f.water.light(lx, ly, colour, Math.min(1, k * fl * 1.2), lu * 2.4);
       }
       c.restore();

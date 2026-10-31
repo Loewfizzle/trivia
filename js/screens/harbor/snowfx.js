@@ -4,9 +4,47 @@
 // white by day. Batched by quantized colour (one path a batch). Caps 70 / 140 / 230 by tier. Reduced motion: a still, light snowfall.
 // + THE AWNING's SLAB (9b — "WEATHER ON THE SPEAKEASY"): now + then a slab of snow slides off the awning's front edge and drops (a white
 //   chunk breaking into a puff on the walk) — only while snow lies on it.
+import { ctx2d } from '../../ui/canvas-safe.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const CAPS = [60, 130, 220];   // (the speed round: the near flakes carry the look)
 const DEPTH = [{ k: 0.42, v: 14, r: 0.85, a: 0.6 }, { k: 0.36, v: 24, r: 1.45, a: 0.88 }, { k: 0.22, v: 40, r: 2.9, a: 0.72 }];
+
+// ATM-C — ONE SOFT-FLAKE FIX (the owner, Oct 31: heavy snow "just looks like WHITE CIRCLES", the blizzard's near snow "looks very off" — "long,
+// thin, hard-edged white STICKS", the gale's chunks "PERFECTLY SQUARE"): every flake a PRE-BAKED SOFT SPRITE — a bright centre feathering
+// out to nothing (never a rim), slightly IRREGULAR (two or three offset blobs), the near ones bigger, softer + TRANSLUCENT (out of focus,
+// close to the lens); in the blizzard the mid + near flakes carry a SHORT SOFT SMEAR along the wind (baked at three slants a side), never a
+// rod. Four shapes × three softnesses (far · mid · near) × the batch's colour, made on first use (a few dozen 32–64 px canvases) — one
+// drawImage a flake, no paths: no more than the arcs + strokes cost.
+const SOFT = [0.42, 0.28, 0.1];          // (the core's share of the radius before it feathers: far crisp-ish, near out of focus)
+const art = new Map();
+function flakeArt(col, d, v, sm) {
+  const key = `${col[0]},${col[1]},${col[2]}|${d}|${v}|${sm}`;
+  let e = art.get(key);
+  if (e) return e;
+  if (art.size > 140) { for (const o of art.values()) o.cv.width = 0; art.clear(); }
+  const S = d === 2 ? 48 : 32, sw = sm ? 2 : 1, cv = document.createElement('canvas'); cv.width = S * sw; cv.height = S;
+  const x = ctx2d(cv);
+  if (!x) return null;
+  let q = (v + 1) * 7919 + d * 131; const R = () => { q = (q * 16807) % 2147483647; return q / 2147483647; };
+  // the blobs (offset from the middle, each soft): one main + 1–2 smaller lobes = an irregular flake
+  const blobs = [[0, 0, 1, 1]]; for (let i = 0; i < 1 + (v % 2); i++) { const a = R() * 6.283, o = 0.18 + R() * 0.16; blobs.push([Math.cos(a) * o, Math.sin(a) * o, 0.55 + R() * 0.25, 0.7 + R() * 0.25]); }
+  const r0 = S * 0.5, core = SOFT[d];
+  // a smear: the same flake drawn along its flight (a slant of 15 / 30 / 45° down-wind, sm's sign = the side), fading to its tail
+  const steps = sm ? 7 : 1, ang = sm ? (Math.abs(sm) * 15) * Math.PI / 180 : 0, dir = sm < 0 ? -1 : 1, len = S * 0.62;
+  for (let k = 0; k < steps; k++) {
+    const u = steps > 1 ? k / (steps - 1) : 0, cx = S * sw / 2 + (sm ? dir * (u - 0.5) * len * Math.cos(ang) : 0), cy = S / 2 + (sm ? (u - 0.5) * len * Math.sin(ang) : 0), ka = sm ? 0.28 + 0.72 * u : 1;
+    for (const [bx, by, br, ba] of blobs) {
+      const rr = r0 * 0.92 * br, g = x.createRadialGradient(cx + bx * r0, cy + by * r0, 0, cx + bx * r0, cy + by * r0, rr);
+      g.addColorStop(0, `rgba(255,255,255,${(ba * ka).toFixed(3)})`); g.addColorStop(core, `rgba(255,255,255,${(ba * ka * (sm ? 0.82 : 0.9)).toFixed(3)})`);
+      g.addColorStop(Math.min(0.95, core + 0.35), `rgba(255,255,255,${(ba * ka * (sm ? 0.28 : 0.42)).toFixed(3)})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+      x.fillStyle = g; x.fillRect(0, 0, S * sw, S);
+    }
+  }
+  x.globalCompositeOperation = 'source-in'; x.fillStyle = `rgb(${col[0]},${col[1]},${col[2]})`; x.fillRect(0, 0, S * sw, S);
+  e = { cv, w: sw };
+  art.set(key, e);
+  return e;
+}
 
 // ATM-B — HEAVY SNOW IN LAYERS OF DEPTH (the owner, Oct 27: "heavy snow + wind still broken — the layers of depth"): the three depths are
 // drawn WHERE THEY ARE — the far fine flakes behind the near skyline (s.layer 'far'), the mid layer over the harbor ('mid'), the big near
@@ -18,25 +56,39 @@ const LAYER = { far: 0, mid: 1, near: 2 };
 export function createSnowfall() {
   let W = 0, H = 0, flakes = [], slab = null, nextSlab = 0, puffs = [], streams = [];
   const shook = new Map();
-  const spawn = (d, anywhere) => ({ d, x: Math.random() * (W + 80) - 40, y: anywhere ? Math.random() * H : -6 - Math.random() * 30, ph: Math.random() * 6.28, s: 0.75 + Math.random() * 0.5, land: H * (d === 0 ? 0.62 + Math.random() * 0.12 : d === 1 ? 0.75 + Math.random() * 0.15 : 0.9 + Math.random() * 0.12) });
+  // (ATM-C: v = its shape (0..3), b = its own brightness (0.7..1) — varied flakes. THE CORNERS: the snow WRAPS (a flake leaving one side comes
+  // back on the other at its height), so even the blizzard's sideways drive covers every corner — no upwind band (one 3.6 screens wide put
+  // three flakes in four off the screen))
+  let smallP = 0.3, filled = false;   // (smallP: the share of NEAR flakes that are small + crisp — most of them in heavy snow)
+  const spawn = (d, anywhere) => { return { d, x: Math.random() * (W + 80) - 40, y: anywhere ? Math.random() * H : -6 - Math.random() * 30, ph: Math.random() * 6.28, s: 0.75 + Math.random() * 0.5, v: (Math.random() * 4) | 0, b: 0.7 + Math.random() * 0.3, sml: d === 2 && Math.random() < smallP, fi: anywhere ? 0 : 1, land: H * (d === 0 ? 0.62 + Math.random() * 0.12 : d === 1 ? 0.75 + Math.random() * 0.15 : 0.9 + Math.random() * 0.12) }; };
   return {
     resize(w, h) { if (w === W && h === H) return; W = w; H = h; flakes = []; },
     /** s: { snow 0..1, wind (m/s, + = blowing right on screen), windAt? (u 0..1 → the wind there, m/s signed — ATM-A), day 0..1, dt (ms), t, tier, motion, lightAt (x, y) → [r,g,b,k] | null } */
     draw(c, s) {
       const sec = Math.min(0.1, (s.dt || 16) / 1000), tier = s.tier == null ? 2 : s.tier, only = s.layer ? LAYER[s.layer] : null, moving = only == null || only === 2;
       const bz = clamp01(s.blizzard || 0), heavy = clamp01((s.snow - 0.6) / 0.4);
-      const want = s.snow > 0.004 ? Math.round(CAPS[tier] * Math.min(1, 0.15 + 0.85 * s.snow) * (1 + 0.35 * heavy + 0.6 * bz) * (s.motion ? 1 : 0.35)) : 0;
+      // (ATM-C: HEAVY snow DENSER — many small + mid flakes filling the air, only a few big near ones (the owner: "sparse for heavy"))
+      const want = s.snow > 0.004 ? Math.round(CAPS[tier] * Math.min(1, 0.15 + 0.85 * s.snow) * (1 + 1.6 * heavy * (1 - 0.4 * bz) + 0.6 * bz) * (s.motion ? 1 : 0.35)) : 0;
       if (!want && !flakes.length) return;
+      // (the near layer — the only one in front of the promenade — carries heavy snow's density: MORE near flakes, most of them SMALL + crisp
+      // (the air full of snow), only a third big + soft; the blizzard's near layer a FEW big soft flakes + its driven small ones)
+      const nearK = Math.min(0.5, DEPTH[2].k * (1 + 0.9 * heavy));
+      smallP = Math.min(0.85, 0.25 + 0.45 * heavy + 0.15 * bz);
       if (moving) {
-        while (flakes.length < want) { const r = Math.random(), d = r < DEPTH[0].k ? 0 : r < DEPTH[0].k + DEPTH[1].k ? 1 : 2; flakes.push(spawn(d, flakes.length < want * 0.7 && want - flakes.length > 20)); }
+        // (ATM-C — A FRESH LOAD's SNOW FILLS THE SCREEN: the weather fades in, so the flakes it adds came in at the top edge and took ~14 s
+        // to fall past the city — at 8 s the lower half was empty. While it is still FILLING (the first time it reaches its count) a new
+        // flake starts anywhere on the screen, fading in over ~0.6 s (fi) — never popping)
+        if (!want) filled = false;
+        while (flakes.length < want) { const r = Math.random(), d = r < 1 - nearK - DEPTH[1].k ? 0 : r < 1 - nearK ? 1 : 2; flakes.push(spawn(d, !filled || (flakes.length < want * 0.7 && want - flakes.length > 20))); }
+        if (flakes.length >= want * 0.95 && want > 0) filled = true;
         if (flakes.length > want) flakes.length = want;
       }
       const day = clamp01(s.day), night = 1 - day, wind = Math.max(-16, Math.min(16, s.wind || 0)) * 2.6 * (1 + 1.5 * bz);
-      const big = 1 + 0.35 * heavy + 0.15 * bz, streak = bz > 0.25 && s.motion;
+      const M = 40;
+      const big = 1 + 0.35 * heavy + 0.15 * bz, smear = bz > 0.25 && s.motion;
       const B = new Map();
-      const base = day > 0.5 ? [250, 252, 255] : [200, 208, 240];
+      const base = day > 0.5 ? [252, 253, 255] : [226, 232, 255];
       const q = v => Math.round(v / 24) * 24;
-      const lines = streak ? new Map() : null;
       for (const f of flakes) {
         const D = DEPTH[f.d];
         if (s.motion && moving) {
@@ -46,34 +98,44 @@ export function createSnowfall() {
           const wf = s.windAt ? Math.max(-16, Math.min(16, s.windAt(f.x < 0 ? 0 : f.x > W ? 1 : f.x / W))) * 2.6 * (1 + 1.5 * bz) : wind;
           f.vx = wf * (0.5 + 0.5 * f.d) + Math.sin(s.t * 0.7 + f.ph) * (6 + 6 * f.d) * (1 - 0.6 * bz);
           f.x += f.vx * sec;
+          if (f.fi < 1) f.fi = Math.min(1, f.fi + sec / 0.6);
           if (f.y > f.land) Object.assign(f, spawn(f.d, false));
-          if (f.x > W + 40) f.x -= W + 80; else if (f.x < -40) f.x += W + 80;
+          if (f.x > W + M) f.x -= W + 2 * M; else if (f.x < -M) f.x += W + 2 * M;
         }
         if (only != null && f.d !== only) continue;
         let col = base;
         const L = night > 0.15 && s.lightAt ? s.lightAt(f.x, f.y) : null;
         if (L && L[3] > 0.02) { const k = Math.min(1, L[3] * 2.2) * night; col = [col[0] + (L[0] - col[0]) * k * 0.7 + 40 * k, col[1] + (L[1] - col[1]) * k * 0.7 + 40 * k, col[2] + (L[2] - col[2]) * k * 0.7 + 40 * k]; }
         const a = D.a * (f.d === 0 ? 0.6 + 0.4 * day : 1) * Math.min(1, (f.land - f.y) / 40 + 0.2);
-        const r0 = Math.min(255, q(col[0])), g0 = Math.min(255, q(col[1])), b0 = Math.min(255, q(col[2])), al = Math.round(a * 4), key = ((f.d * 4 + al) * 11 + r0 / 24) * 121 + (g0 / 24) * 11 + b0 / 24;   // (a number, never a string a flake)
-        if (lines && f.d > 0) {
-          // (the blizzard: a near / mid flake a short streak along its flight — the snow reads DRIVEN, not drifting)
-          let ln = lines.get(key); if (!ln) { ln = { col: [r0, g0, b0], a: al / 4, w: D.r * big * (f.d === 2 ? 0.8 : 0.7), seg: [] }; lines.set(key, ln); }
-          const vy = D.v * f.s * (1 + 0.55 * bz), vx = f.vx || 0, k = (f.d === 2 ? 0.13 : 0.09) * bz;
-          ln.seg.push(f.x - vx * k, f.y - vy * k, f.x, f.y);
-          continue;
-        }
-        let b = B.get(key); if (!b) { b = { col: [r0, g0, b0], a: al / 4, d: f.d, pts: [] }; B.set(key, b); }
-        b.pts.push(f.x, f.y, D.r * f.s * (f.d === 2 ? big : 1));
+        const r0 = Math.min(255, q(col[0])), g0 = Math.min(255, q(col[1])), b0 = Math.min(255, q(col[2]));
+        // (ATM-C: the near flakes translucent — out of focus, close to the lens; each flake its own brightness)
+        const al = a * f.b * (f.fi == null ? 1 : f.fi) * (f.d === 2 ? (f.sml ? 1.3 : 0.66 + 0.08 * heavy) : 1);
+        if (al < 0.03) continue;
+        // (the blizzard: a mid / near flake's SHORT SOFT SMEAR along its flight — its slant from its own velocity, 15 / 30 / 45 degrees)
+        let sm = 0;
+        if (smear && f.d > 0) { const vy = D.v * f.s * (1 + 0.55 * bz), vx = f.vx || 0; if (Math.abs(vx) > vy * 0.6) { const deg = Math.atan2(vy, Math.abs(vx)) * 57.3; sm = (deg < 22 ? 1 : deg < 38 ? 2 : 3) * (vx < 0 ? -1 : 1); } }
+        const dd = f.sml ? 0 : f.d, key = r0 + ',' + g0 + ',' + b0 + '|' + dd + '|' + f.v + '|' + sm;
+        const als = al;
+        let b = B.get(key); if (!b) { b = { col: [r0, g0, b0], d: dd, v: f.v, sm, pts: [] }; B.set(key, b); }
+        // (THE FLUTTER: a gentle tumble — the flake's width breathing as it turns; never on the far dust)
+        const tu = f.d > 0 && s.motion ? 0.72 + 0.28 * Math.abs(Math.cos(s.t * (1.1 + 0.4 * f.s) + f.ph)) : 1;
+        b.pts.push(f.x, f.y, D.r * f.s * (f.d === 2 ? (f.sml ? 0.55 : big * 1.25) : 1), als, tu);
       }
-      if (lines) { c.lineCap = 'round'; for (const ln of lines.values()) { if (ln.a <= 0) continue; c.globalAlpha = ln.a; c.strokeStyle = `rgb(${ln.col[0] | 0},${ln.col[1] | 0},${ln.col[2] | 0})`; c.lineWidth = ln.w; c.beginPath(); const g = ln.seg; for (let i = 0; i < g.length; i += 4) { c.moveTo(g[i], g[i + 1]); c.lineTo(g[i + 2], g[i + 3]); } c.stroke(); } }
+      // (ATM-C: the NEAR layer ADDED — flakes close to the lens catch the light and glow brighter than the air: over a blizzard's pale veil a
+      // soft white flake drawn over it vanished; added, it reads soft + bright. The far + mid layers stay plain (behind the veils))
+      const add = only === 2;
+      if (add) c.globalCompositeOperation = 'lighter';
       for (const b of B.values()) {
-        if (b.a <= 0) continue;
-        c.globalAlpha = b.a; c.fillStyle = `rgb(${b.col[0] | 0},${b.col[1] | 0},${b.col[2] | 0})`;
-        if (b.d === 0) { for (let i = 0; i < b.pts.length; i += 3) { const r = b.pts[i + 2]; c.fillRect(b.pts[i] - r, b.pts[i + 1] - r, r * 2, r * 2); } continue; }   // (the far ones: tiny squares — no arcs)
-        c.beginPath();
-        for (let i = 0; i < b.pts.length; i += 3) { const r = b.pts[i + 2]; c.moveTo(b.pts[i] + r, b.pts[i + 1]); c.arc(b.pts[i], b.pts[i + 1], r, 0, 6.2832); }
-        c.fill();
+        const A = flakeArt(b.col, b.d, b.v, b.sm);
+        if (!A) continue;
+        // (the sprite's soft edge runs past the flake's radius: drawn at ~2.4 r — the visible body ~ today's flake, the feather beyond)
+        const k = b.d === 2 ? 3.6 : b.d === 1 ? 3.3 : 3;
+        for (let i = 0; i < b.pts.length; i += 5) {
+          const r = b.pts[i + 2], h = r * k, w = h * A.w * (b.sm ? 1 : b.pts[i + 4]);
+          c.globalAlpha = Math.min(1, b.pts[i + 3] * (add ? 0.62 + 0.18 * night : 1)); c.drawImage(A.cv, b.pts[i] - w / 2, b.pts[i + 1] - h / 2, w, h);
+        }
       }
+      if (add) c.globalCompositeOperation = 'source-over';
       c.globalAlpha = 1;
     },
     /** THE AWNING's SLAB: { on (snow lies on it), a: the awning's front edge on screen { x0, x1, y }, foot (the walk's y), col, t, dt, motion,
@@ -114,12 +176,17 @@ export function createSnowfall() {
         shook.set(i, g);
       }
       if (!puffs.length) return;
-      c.save(); c.fillStyle = s.day > 0.5 ? 'rgb(248,250,255)' : 'rgb(206,212,240)';
+      // (ATM-C — the owner: the chunks blown off the trees were "PERFECTLY SQUARE white blocks" -> soft rounded irregular clumps (the near
+      // flake's sprite), breaking up as they blow: each one swells + thins over its life)
+      const pc = s.day > 0.5 ? [248, 250, 255] : [206, 212, 240];
+      c.save();
       for (let i = puffs.length - 1; i >= 0; i--) {
         const p = puffs[i];
         if (s.motion) { p.x += p.vx * sec; p.y += p.vy * sec; p.vy += 22 * sec; p.life -= sec; }
         if (p.life <= 0) { puffs.splice(i, 1); continue; }
-        c.globalAlpha = Math.min(1, p.life / 1.2) * p.a; c.fillRect(p.x - p.r, p.y - p.r, p.r * 2, p.r * 2);
+        const A = flakeArt(pc, 2, i & 3, 0); if (!A) continue;
+        const grow = 1 + 0.9 * Math.max(0, 1 - p.life / 2.6), h = p.r * 3.2 * grow;
+        c.globalAlpha = Math.min(1, p.life / 1.2) * p.a * (1.1 - 0.35 * grow); c.drawImage(A.cv, p.x - h / 2, p.y - h / 2, h, h);
       }
       c.restore();
     },
@@ -152,7 +219,7 @@ export function createSnowfall() {
       }
       c.restore();
     },
-    debug: () => ({ flakes: flakes.length, slab: !!slab, puffs: puffs.length }),
+    debug: () => ({ flakes: flakes.length, slab: !!slab, puffs: puffs.length, sprites: art.size, near: flakes.filter(f => f.d === 2).length, rows: [0, 1, 2, 3, 4, 5, 6, 7].map(k => flakes.filter(f => f.d === 2 && f.y >= k * H / 8 && f.y < (k + 1) * H / 8).length) }),
   };
 }
 
