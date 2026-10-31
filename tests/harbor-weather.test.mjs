@@ -130,7 +130,11 @@ test('THE WET PROMENADE: puddles seeded in the low spots, the same for everyone,
   const L = { cam, seed: 1924, lamps: [{ x: -2, z: 38 }, { x: 8, z: 50 }], trees: [{ x: 10, z: 39, grate: true }], medallion: { x: 3, z: 45 }, bench: { x: -1, z: 49 }, speakeasy: { x0: -40, x1: -12, z0: 44, side: { x: -12, z: 60 } } };
   const a = puddlesOf(L, 1924), b = puddlesOf(L, 1924);
   assert.deepEqual(a, b, 'seeded');
-  assert.ok(a.length >= 5 && a.length <= 9, `${a.length} puddles`);
+  assert.ok(a.length >= 6 && a.length <= 16, `${a.length} puddles`);
+  // (ATM-D — REAL PUDDLES: clustered in 3–4 low spots, a main one + satellites, the sizes varied)
+  const spots = new Set(a.map(p => p.spot));
+  assert.ok(spots.size >= 3 && spots.size <= 4 && a.length > spots.size, `${spots.size} low spots for ${a.length} puddles`);
+  assert.ok(Math.max(...a.map(p => p.rx)) > 2.4 * Math.min(...a.map(p => p.rx)), 'the sizes vary widely');
   for (const p of a) {
     assert.ok(Math.hypot(p.x - 3, p.z - 45) > 3.4, 'off the inlay');
     for (const l of L.lamps) assert.ok(Math.hypot(p.x - l.x, p.z - l.z) > 1, 'not under a lamp');

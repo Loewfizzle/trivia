@@ -92,7 +92,11 @@ export function createFogDepth() {
       let g = grads.get(key);
       if (!g) {
         g = c.createLinearGradient(0, y0, 0, y1);
-        g.addColorStop(0, rgba(cols[0], a0)); g.addColorStop(0.7, rgba(mixC(cols[0], cols[1], 0.6), lerp(a0, a1, 0.8))); g.addColorStop(1, rgba(cols[1], a1));
+        // (ATM-D — NO SEAMS: a veil that starts below the top of the screen FADES IN over its first ~50 pt — its top was a hard horizontal
+        // line across the sky (the mid + the harbor veils at full strength from their first row), cutting the beams + the halos in two)
+        const fi = y0 > 2 ? Math.min(0.45, 50 / (y1 - y0)) : 0;
+        if (fi > 0) { g.addColorStop(0, rgba(cols[0], 0)); g.addColorStop(fi, rgba(cols[0], a0)); } else g.addColorStop(0, rgba(cols[0], a0));
+        g.addColorStop(Math.max(fi + 0.01, 0.7), rgba(mixC(cols[0], cols[1], 0.6), lerp(a0, a1, 0.8))); g.addColorStop(1, rgba(cols[1], a1));
         if (grads.size > 12) grads.clear();
         grads.set(key, g);
       }

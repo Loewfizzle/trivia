@@ -28,19 +28,53 @@ export function puddlesOf(L, seed = 1924) {
   if (L.bench) blocked.push({ x: L.bench.x, z: L.bench.z, r: 2.0 });
   if (L.hydrant) blocked.push({ x: L.hydrant.x, z: L.hydrant.z, r: 1.0 });
   const inBuilding = (x, z) => s && (z > s.z0 - 0.6 ? x < s.x1 + (z - s.z0) * ((s.side.x - s.x1) / Math.max(1e-3, s.side.z - s.z0)) + 0.8 : false);
-  let tries = 0;
-  while (out.length < 9 && tries++ < 500) {
-    // (the LOW SPOTS: along the front edge + along the curb where the water runs off, a few by the building's foot — rarely mid-floor)
-    const band = r(), z = band < 0.42 ? 37.3 + r() * 2.2 : band < 0.8 ? 48.2 + r() * 3.2 : 40 + r() * 8;
-    const hw = cam.hw ? cam.hw(z) : (cam.W || 402) / 2 * z / cam.F, x = (r() * 2 - 1) * hw * 0.9;
-    const rx = 1.2 + r() * 1.9, rz = rx * (0.3 + r() * 0.2);
-    if (inBuilding(x - rx, z)) continue;
-    if (blocked.some(b => Math.hypot((x - b.x) / (b.r + rx), (z - b.z) / (b.r + rz * 2)) < 1)) continue;
-    if (out.some(p => Math.hypot((x - p.x) / (p.rx + rx + 0.6), (z - p.z) / (p.rz + rz + 0.5)) < 1)) continue;
-    out.push({ x, z, rx, rz, thr: 0.12 + r() * 0.78, ph: r() * 6.28, seed: r() });
+  const fits = (x, z, rx, rz) => !inBuilding(x - rx, z) && !blocked.some(b => Math.hypot((x - b.x) / (b.r + rx), (z - b.z) / (b.r + rz * 2)) < 1)
+    && !out.some(p => Math.hypot((x - p.x) / (p.rx + rx + 0.35), (z - p.z) / (p.rz + rz + 0.3)) < 1);
+  // (ATM-D — REAL PUDDLES, the owner Oct 31 1:20 pm: "perfect ovals, all the same shape, evenly spread" — they CLUSTER in the low spots:
+  // 3–4 low spots (along the front edge + the curb where the water runs off, one by the building's foot), each a main puddle of its own
+  // size + 1–3 smaller satellites round it; the sizes vary widely (0.5 → 3.2 half-length))
+  let tries = 0, spots = 0;
+  while (spots < 4 && tries++ < 400) {
+    const band = r(), z = band < 0.4 ? 37.4 + r() * 2 : band < 0.8 ? 48.4 + r() * 3 : 40.5 + r() * 7;
+    const hw = cam.hw ? cam.hw(z) : (cam.W || 402) / 2 * z / cam.F, x = (r() * 2 - 1) * hw * 0.88;
+    const rx = 1.4 + r() * 1.8, rz = rx * (0.38 + r() * 0.2);
+    if (!fits(x, z, rx, rz)) continue;
+    const thr = 0.12 + r() * 0.5;   // (the main one the deepest of its spot: it keeps longest)
+    out.push({ x, z, rx, rz, thr, ph: r() * 6.28, seed: r(), spot: spots });
+    const sat = 1 + Math.floor(r() * 3);
+    for (let k = 0, t2 = 0; k < sat && t2 < 30; t2++) {
+      const a = r() * Math.PI * 2, d = 1.1 + r() * 1.3, srx = 0.5 + r() * 0.9, sx = x + Math.cos(a) * (rx + srx) * d * 0.75, sz = z + Math.sin(a) * (rz + srx * 0.4) * d * 0.9;
+      if (!fits(sx, sz, srx, srx * 0.4)) continue;
+      out.push({ x: sx, z: sz, rx: srx, rz: srx * (0.4 + r() * 0.2), thr: Math.min(0.92, thr + 0.08 + r() * 0.3), ph: r() * 6.28, seed: r(), spot: spots }); k++;
+    }
+    spots++;
   }
   return out;
 }
+
+/** PURE (ATM-D): a puddle's outline on the screen — an irregular blob (a lumpy radius, seeded) + 1–3 thin FINGERS seeping sideways along
+ *  the paving's joints (the rows run across the screen): [{ pts: [[x, y] …] } | { ell: [cx, cy, rx, ry] }] */
+export function puddleShape(S, seed) {
+  const r = rngFrom(Math.floor(seed * 1e9) >>> 0), a = r() * 6.28, b = r() * 6.28, c2 = r() * 6.28, k2 = 0.12 + r() * 0.12, k3 = 0.08 + r() * 0.1, pts = [];
+  for (let i = 0; i < 22; i++) {
+    const th = (i / 22) * Math.PI * 2, rr = 1 + k2 * Math.sin(2 * th + a) + k3 * Math.sin(3 * th + b) + 0.06 * Math.sin(5 * th + c2);
+    pts.push([S.cx + S.rx * rr * Math.cos(th), S.cy + S.ry * rr * Math.sin(th) * (Math.sin(th) > 0 ? 0.9 : 1)]);
+  }
+  const out = [{ pts }], nf = 1 + Math.floor(r() * 3);
+  for (let i = 0; i < nf; i++) {
+    const side = r() < 0.5 ? -1 : 1, row = (r() < 0.5 ? -0.55 : 0.45) + (r() - 0.5) * 0.2;   // (along a joint just above / below the middle)
+    const len = S.rx * (0.45 + r() * 0.6);
+    out.push({ ell: [S.cx + side * (S.rx * 0.75 + len * 0.45), S.cy + S.ry * row, len, Math.max(0.7, S.ry * (0.16 + r() * 0.1))] });
+  }
+  return out;
+}
+const shapePath = (x, sh, sc = 1, cx = 0, cy = 0) => {
+  x.beginPath();
+  for (const p of sh) {
+    if (p.pts) { const P = p.pts; x.moveTo(cx + (P[0][0] - cx) * sc, cy + (P[0][1] - cy) * sc); for (let i = 1; i < P.length; i++) x.lineTo(cx + (P[i][0] - cx) * sc, cy + (P[i][1] - cy) * sc); x.closePath(); }
+    else { const [ex, ey, erx, ery] = p.ell; x.moveTo(cx + (ex - cx) * sc + erx * sc, cy + (ey - cy) * sc); x.ellipse(cx + (ex - cx) * sc, cy + (ey - cy) * sc, erx * sc, ery * sc, 0, 0, Math.PI * 2); }
+  }
+};
 
 export function createWetGround() {
   let L = null, pud = [], cv = null, key = '', W = 1, H = 1, dpr = 2, rings = [], drips = [], box = null, lastRate = 0;
@@ -79,20 +113,50 @@ export function createWetGround() {
       x.globalCompositeOperation = 'source-over';
     }
     // THE PUDDLES: the deep ones keep longest (thr); a puddle's size grows with how far the wetness is past its own threshold
+    // (ATM-D — REAL PUDDLES: an irregular outline + fingers along the joints (puddleShape); a DARKER DAMP RING of soaked stones round it
+    // (+ a few glints on them); the water a DARK MIRROR — the sky's colour, darker than the wet stones, its far edge catching the bright sky,
+    // the trees behind it reflected (trunk + crown, upside down below their foot) and at night the lights + the neon (as before); in
+    // FREEZING weather the puddle is ICE: matte whitish, a frosty rim, a few cracks, no reflections)
+    const ice = clamp01(o.ice || 0), trees = (L.trees || []).filter(t => t.z > 30 && t.z < 60);
     for (const p of pud) {
       const k = smooth(p.thr, p.thr + 0.18, wet);
       if (k <= 0.02) continue;
-      const S = onScreen(p), rx = S.rx * (0.45 + 0.55 * k), ry = S.ry * (0.45 + 0.55 * k);
+      const S0 = onScreen(p), sc = 0.45 + 0.55 * k, S = { cx: S0.cx, cy: S0.cy, rx: S0.rx * sc, ry: S0.ry * sc }, rx = S.rx, ry = S.ry, sh = puddleShape(S, p.seed);
+      // the damp ring: the soaked stones round it a little darker (a soft wider patch under the puddle), drying first
+      x.fillStyle = `rgba(${day > 0.5 ? '20,24,34' : '4,4,12'},${((day > 0.5 ? 0.13 : 0.2) * k).toFixed(3)})`; shapePath(x, sh, 1.32, S.cx, S.cy); x.fill();
+      x.fillStyle = `rgba(${day > 0.5 ? '20,24,34' : '4,4,12'},${((day > 0.5 ? 0.1 : 0.14) * k).toFixed(3)})`; shapePath(x, sh, 1.14, S.cx, S.cy); x.fill();
+      { const gr = rngFrom(Math.floor(p.seed * 7e8) >>> 0); x.fillStyle = `rgba(${day > 0.5 ? '255,255,255' : '190,180,230'},${((day > 0.5 ? 0.4 : 0.3) * k * (1 - ice)).toFixed(3)})`;
+        for (let i = 0; i < 4; i++) { const a = gr() * 6.28, d = 1.08 + gr() * 0.2; x.fillRect(S.cx + Math.cos(a) * rx * d - 1, S.cy + Math.sin(a) * ry * d - 0.25, 1.6 + gr() * 1.4, 0.5); } }
       x.save();
-      // an organic edge: an ellipse + two lobes
-      x.beginPath(); x.ellipse(S.cx, S.cy, rx, ry, 0, 0, Math.PI * 2);
-      x.ellipse(S.cx - rx * 0.45, S.cy + ry * 0.18, rx * 0.55, ry * 0.75, 0, 0, Math.PI * 2);
-      x.ellipse(S.cx + rx * 0.5, S.cy - ry * 0.12, rx * 0.5, ry * 0.7, 0, 0, Math.PI * 2);
-      x.clip();
-      // the mirrored sky: the far side of a puddle mirrors the higher (brighter) sky, its near side the lower
-      const g = x.createLinearGradient(0, S.cy - ry, 0, S.cy + ry);
-      g.addColorStop(0, `rgba(${skyHi},${((day > 0.5 ? 0.6 : 0.42) * k).toFixed(3)})`); g.addColorStop(0.55, `rgba(${sky},${((day > 0.5 ? 0.5 : 0.5) * k).toFixed(3)})`); g.addColorStop(1, `rgba(${sky},${((day > 0.5 ? 0.35 : 0.55) * k).toFixed(3)})`);
-      x.fillStyle = g; x.fillRect(S.cx - rx * 1.6, S.cy - ry * 1.6, rx * 3.2, ry * 3.2);
+      shapePath(x, sh); x.clip();
+      if (ice > 0.3) {
+        // ICED: matte whitish (the sky's tint only faintly), a frosty brighter rim, a few cracks
+        const g = x.createLinearGradient(0, S.cy - ry, 0, S.cy + ry);
+        g.addColorStop(0, `rgba(${day > 0.5 ? '232,240,248' : '150,162,196'},${(0.85 * k).toFixed(3)})`); g.addColorStop(1, `rgba(${day > 0.5 ? '200,212,228' : '104,116,152'},${(0.85 * k).toFixed(3)})`);
+        x.fillStyle = g; x.fillRect(S.cx - rx * 2.2, S.cy - ry * 2, rx * 4.4, ry * 4);
+        const cr = rngFrom(Math.floor(p.seed * 3e8) >>> 0); x.strokeStyle = `rgba(${day > 0.5 ? '255,255,255' : '214,224,255'},${(0.7 * k).toFixed(3)})`; x.lineWidth = 0.6;
+        for (let i = 0; i < 3; i++) { let px = S.cx + (cr() - 0.5) * rx, py = S.cy + (cr() - 0.5) * ry; x.beginPath(); x.moveTo(px, py); for (let j = 0; j < 3; j++) { px += (cr() - 0.5) * rx * 0.8; py += (cr() - 0.5) * ry * 0.7; x.lineTo(px, py); } x.stroke(); }
+        x.restore();
+        x.strokeStyle = `rgba(${day > 0.5 ? '255,255,255' : '200,212,246'},${(0.55 * k).toFixed(3)})`; x.lineWidth = 0.9; shapePath(x, sh); x.stroke();
+        continue;
+      }
+      // the mirrored sky, DARK: the far side catches the brighter sky high up, the rest the sky's colour well below the stones' value
+      const g = x.createLinearGradient(0, S.cy - ry * 1.1, 0, S.cy + ry);
+      if (day > 0.5) { g.addColorStop(0, `rgba(196,208,224,${(0.82 * k).toFixed(3)})`); g.addColorStop(0.3, `rgba(118,136,162,${(0.86 * k).toFixed(3)})`); g.addColorStop(1, `rgba(66,76,96,${(0.88 * k).toFixed(3)})`); }
+      else { g.addColorStop(0, `rgba(118,96,160,${(0.7 * k).toFixed(3)})`); g.addColorStop(0.32, `rgba(48,42,82,${(0.84 * k).toFixed(3)})`); g.addColorStop(1, `rgba(18,18,36,${(0.88 * k).toFixed(3)})`); }   // (the city's glow in the night sky, mirrored)
+      x.fillStyle = g; x.fillRect(S.cx - rx * 2.2, S.cy - ry * 2, rx * 4.4, ry * 4);
+      // the trees standing behind it, mirrored: a dark trunk straight down from below its foot, the crown's mass beyond (where the puddle
+      // reaches that far below the foot) — the reflection of what stands on the floor behind the water
+      for (const t of trees) {
+        if (t.z <= p.z + 0.4) continue;
+        const [tx, ty] = project(cam, t.x, 0, t.z), [, tt] = project(cam, t.x, t.trunk, t.z), [, tc] = project(cam, t.x, t.trunk + t.h * 0.85, t.z);
+        const tw = Math.max(1.5, cam.F * 0.42 / t.z), cw = cam.F * (t.w || 4) * 0.42 / t.z, th = ty - tt, ch = tt - tc;
+        if (tx + cw < S.cx - rx * 1.3 || tx - cw > S.cx + rx * 1.3 || ty > S.cy + ry) continue;
+        x.fillStyle = `rgba(${day > 0.5 ? '40,34,34' : '2,2,8'},${((day > 0.5 ? 0.45 : 0.5) * k).toFixed(3)})`; x.fillRect(tx - tw / 2, ty, tw, th);
+        const cg = x.createRadialGradient(tx, ty + th + ch * 0.5, 0, tx, ty + th + ch * 0.5, Math.max(cw, ch * 0.6));
+        cg.addColorStop(0, `rgba(${day > 0.5 ? '70,48,40' : '6,4,12'},${((day > 0.5 ? 0.4 : 0.45) * k).toFixed(3)})`); cg.addColorStop(1, `rgba(${day > 0.5 ? '70,48,40' : '6,4,12'},0)`);
+        x.fillStyle = cg; x.fillRect(tx - cw * 1.2, ty + th - 2, cw * 2.4, ch * 1.2);
+      }
       // the lights standing behind it, mirrored as vertical streaks through it (the lamps' globes; the neon's colours from the light grid)
       if (o.night > 0.05) {
         for (const R of o.reflect || []) {
@@ -114,12 +178,23 @@ export function createWetGround() {
         }
       }
       x.globalCompositeOperation = 'source-over';
+      // a fine bright lip along its far edge (the sky caught at the water's edge) — inside the clip, so it follows the lumpy outline
+      x.strokeStyle = `rgba(${day > 0.5 ? '246,250,255' : '170,150,210'},${(0.38 * k).toFixed(3)})`; x.lineWidth = 0.6;
+      x.save(); x.beginPath(); x.rect(S.cx - rx * 2, S.cy - ry * 2, rx * 4, ry * 1.6); x.clip(); shapePath(x, sh, 0.97, S.cx, S.cy); x.stroke(); x.restore();
       x.restore();
-      // the wet rim: a darker soaked edge round it + a fine bright lip on its far side
-      x.strokeStyle = `rgba(10,10,20,${(0.14 * k).toFixed(3)})`; x.lineWidth = 1.4;
-      x.beginPath(); x.ellipse(S.cx, S.cy, rx * 1.04, ry * 1.08, 0, 0, Math.PI * 2); x.stroke();
-      x.strokeStyle = `rgba(${day > 0.5 ? '250,252,255' : '170,150,210'},${(0.5 * k).toFixed(3)})`; x.lineWidth = 0.7;
-      x.beginPath(); x.ellipse(S.cx, S.cy, rx * 0.98, ry * 0.95, 0, Math.PI * 1.08, Math.PI * 1.92); x.stroke();
+    }
+    // (ATM-D — THE DEPTH ORDER, the owner's screenshot twice: a puddle BEHIND the tree was drawn over its trunk. The trees stand in the stage
+    // bake, under this layer — so every trunk is cut OUT of this layer from its foot up: on the ground plane, anything above a tree's foot on
+    // the screen lies behind it, so the trunk always covers it. (The benches, the people, the cart, the props are drawn after: they cover
+    // the puddles already.))
+    if (trees.length) {
+      x.globalCompositeOperation = 'destination-out'; x.fillStyle = '#000';
+      for (const t of trees) {
+        const [tx, ty] = project(cam, t.x, 0, t.z), [, tt] = project(cam, t.x, t.trunk * 0.9, t.z), hw = cam.F * (t.big ? 0.32 : 0.26) / t.z, fl = hw * 1.5;
+        if (ty < y0 || tx < -40 || tx > W + 40) continue;
+        x.beginPath(); x.moveTo(tx - fl, ty + 0.5); x.lineTo(tx - hw, ty - Math.min(6, (ty - tt) * 0.12)); x.lineTo(tx - hw * 0.85, tt); x.lineTo(tx + hw * 0.85, tt); x.lineTo(tx + hw, ty - Math.min(6, (ty - tt) * 0.12)); x.lineTo(tx + fl, ty + 0.5); x.closePath(); x.fill();
+      }
+      x.globalCompositeOperation = 'source-over';
     }
   }
   return {
@@ -131,7 +206,7 @@ export function createWetGround() {
       const wet = clamp01(o.wet);
       if (wet > 0.02) {
         const rainK = clamp01(o.rain || 0), wob = rainK > 0.03 && o.motion ? Math.floor((o.t || 0) * 2.5) : null;   // (C4a: the reflections' ripple while it rains)
-        const k = `${wob == null ? '' : wob}|${Math.round(wet * 20)}|${Math.round(o.day * 6)}|${Math.round(o.night * 10)}|${(o.reflect || []).map(R => `${Math.round(R.x)}.${Math.round((R.k ?? 1) * 4)}.${(R.col || []).join('')}`).join(',')}|${W}x${H}|${o.lightKey || ''}`;
+        const k = `${wob == null ? '' : wob}|${Math.round(wet * 20)}|${Math.round(o.day * 6)}|${Math.round(o.night * 10)}|${(o.reflect || []).map(R => `${Math.round(R.x)}.${Math.round((R.k ?? 1) * 4)}.${(R.col || []).join('')}`).join(',')}|${W}x${H}|${o.lightKey || ''}|${Math.round(clamp01(o.ice || 0) * 4)}`;
         if (k !== key) { key = k; bake({ ...o, wet, wob, rainK }); }
         if (cv && box) { c.save(); c.globalAlpha = o.fade; c.drawImage(cv, 0, box.y0, W, box.h); c.restore(); }
       }

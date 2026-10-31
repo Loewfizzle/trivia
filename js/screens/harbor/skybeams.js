@@ -148,7 +148,7 @@ export function createSkyBeams() {
     const haze = 1 + 0.7 * clamp01(f.haze || 0);
     // (POLISH 4 — IN REAL FOG a beam is a VOLUME, never a crisp line to the top of the sky (fogbeam.js): the crisp beam hands over to a
     // wide soft body dimming exponentially upward — SHORTER the thicker the fog — the fog's patches lit along it, a big glow round its root)
-    const fog = clamp01(f.fog || 0), vol = (f.fog == null ? 0 : 1) * (fog < 0.12 ? 0 : fog > 0.45 ? 1 : ((fog - 0.12) / 0.33) ** 2 * (3 - 2 * (fog - 0.12) / 0.33)), heavy = clamp01((fog - 0.35) / 0.6), crisp = 1 - 0.92 * vol;
+    const fog = clamp01(f.fog || 0), vol = (f.fog == null ? 0 : 1) * (fog < 0.12 ? 0 : fog > 0.45 ? 1 : ((fog - 0.12) / 0.33) ** 2 * (3 - 2 * (fog - 0.12) / 0.33)), heavy = clamp01((fog - 0.35) / 0.6), crisp = (1 - vol) * (1 - vol);   // (ATM-D — THE FOG's "SEAM", the owner's night-fog screenshot: a thin vertical line under the NEON sign = the crisp beam's 8 % left to the TOP of the sky in dense fog; gone now — in fog a beam is only its volume)
     const pulse = 0.5 + 1.0 * (f.punch || 0);                         // (NEON PASS 5: a clear punch on the strong beats; 7a: 0.55 + 0.75 → 0.5 + 1.0)
     c.save(); c.globalCompositeOperation = 'lighter';
     const rs = f.signs || [];

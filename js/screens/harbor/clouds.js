@@ -614,7 +614,11 @@ export function createClouds() {
         a *= thin;
         if (a <= 0.004) return;
         c.globalAlpha = a;
-        if (d.kind === 'deck') { for (const ox of [x, x + d.w]) if (ox < W && ox + d.w > 0) c.drawImage(cv, ox, -2 + (extra.base || 0) * 0.3, d.w, d.h); }
+        // (ATM-D — THE FOG's SEAM, the owner's night-fog screenshot: a thin vertical line mid-sky. The deck's two copies met at a FRACTIONAL
+        // device pixel — each copy's edge anti-aliased against the sky = a faint line drifting with the wind. Both copies + their join are
+        // snapped to whole device pixels: the tile's wrap meets edge to edge.)
+        if (d.kind === 'deck') { const ds = c.getTransform().a || 1, sn = v => Math.round(v * ds) / ds, x0 = sn(x), dw = sn(d.w);
+          for (const ox of [x0, x0 + dw]) if (ox < W && ox + dw > 0) c.drawImage(cv, ox, -2 + (extra.base || 0) * 0.3, dw, d.h); }
         else if (x < W && x + d.w > 0) {
           // (6b — CLOUDS EVOLVE: each heap / patch slowly SWELLS + changes its shape (wider, taller, on its own slow clocks, anchored at
           // its base) and THINS + RE-FORMS over minutes — a pure function of the sky's clock, every phone the same; never the deck/veil)
