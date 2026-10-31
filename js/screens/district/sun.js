@@ -289,25 +289,36 @@ export function createSun(opts = {}) {
     }
     return cv;
   };
-  // (ATM-C — the disc BETWEEN the two, for a sun 7.6–11.6° up: the crisp coloured disc (hs 0) morphing into the white-hot core (hs 1) in one
-  // gradient — the core whitening, the edge softening + spreading — quantised to 1/10 of the white share: a few sprites a day)
-  const betweens = new Map();
-  const between = (col, lift, hs) => {
-    const q = Math.round(hs * 10) / 10, k = `${qc(col).join(',')}|${q}|${Math.round(lift * 10)}`;
-    let cv = betweens.get(k);
+  // (ATM-D — THE SUN AS A GLOWING LIGHT, the owner Oct 31 4:40 pm: golden hour "almost looks like an EGG", sunrise "a big flat orange COIN" —
+  // the crisp disc (ATM-C's `between`, now gone) was the sticker. Below the approved white-hot sun (hs < 0.99) the Harbor's sun is ONE soft sprite
+  // drawn 2.2 radii across: a bright gold-white CORE that blooms out into the stage's colour with no rim — the visible sun smaller (its
+  // plateau ~0.5 r), the glow carrying the size; at hs → 1 its stops meet `hot`'s exactly (the approved 9:30 am / noon look, no seam).
+  // d (0..1: the last couple of degrees, 1 − smooth(1, 3.5, el)) grows a DEFINED orange disc (its plateau ~0.9 r) — still a soft glowing
+  // edge falling off over ~0.3 r, never a sticker; quantised to tenths: a few sprites a day)
+  const lights = new Map();
+  const lightSun = (col, hs, d) => {
+    const qh = Math.round(hs * 10) / 10, qd = Math.round(d * 10) / 10, k = `${qc(col).join(',')}|${qh}|${qd}`;
+    let cv = lights.get(k);
     if (!cv) {
       cv = mk(128, 128); const x = cv.getContext('2d');
-      const L = (a, b) => a + (b - a) * q, mix = (a, b) => a.map((v, i) => Math.round(L(v, b[i]))), mixW = a => col.map(v => Math.round(255 + (v - 255) * a));
-      const hi = col.map(v => Math.min(255, v + (255 - v) * lift)), R = L(60, 64) / 64;
+      const S = 3.2, at = r => r / S;                        // a radius in sun radii → a gradient stop (the sprite is 3.2 r across)
+      const L = (a, b, t) => a + (b - a) * t, mixW = (c, a) => c.map(v => Math.round(255 + (v - 255) * a));
+      // three profiles as (radius in r, alpha, whiteness) stops — G the glowing light (d 0): a white-hot core (≤ 0.2 r) easing into the
+      // stage's gold by ~0.75 r, the gold fading into the sky over 3 r (the sky round a low sun is already near-white: the light reads by
+      // its warm bloom round a white core — never a white blob on white, never a narrow gold ring); D the defined low disc (d 1); H = `hot`
+      // exactly (drawn 1.25 r: white to 0.625 r, 0.82 at 0.85 r, 0.36 at 1.05 r, gone at 1.25 r) — interpolated G → D by d, then → H by
+      // the white share
+      const G = [[0, 1, 1], [0.2, 1, 0.92], [0.45, 0.92, 0.58], [0.75, 0.66, 0.26], [1.05, 0.42, 0.1], [1.4, 0.22, 0.03], [1.9, 0.08, 0], [3.2, 0, 0]];
+      const D = [[0, 1, 0.36], [0.5, 1, 0.26], [0.8, 1, 0.12], [0.95, 0.85, 0.04], [1.1, 0.45, 0], [1.35, 0.18, 0], [1.9, 0.05, 0], [3.2, 0, 0]];
+      const H = [[0, 1, 1], [0.4, 1, 1], [0.625, 1, 1], [0.85, 0.82, 0.88], [1.05, 0.38, 0.75], [1.3, 0.07, 0.65], [2.0, 0.015, 0.65], [3.2, 0, 0.65]];   // (+ a faint tail: the 10° sun showed a soft ring where hot cut off)
       const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
-      g.addColorStop(0, `rgba(${mix(hi, [255, 255, 255])},1)`);
-      g.addColorStop(L(0.72, 0.5) * R, `rgba(${mix(col, [255, 255, 254])},1)`);
-      g.addColorStop(L(0.95, 0.68) * R, `rgba(${mix(col.map(v => v * 0.93), mixW(0.12))},${L(1, 0.82).toFixed(3)})`);
-      g.addColorStop(L(0.985, 0.84) * R, `rgba(${mix(col, mixW(0.25))},${L(0.45, 0.36).toFixed(3)})`);
-      g.addColorStop(R, `rgba(${mix(col, mixW(0.35))},0)`);
+      for (let i = 0; i < G.length; i++) {
+        const st = G[i].map((v, j) => L(L(v, D[i][j], qd), H[i][j], qh));
+        g.addColorStop(Math.min(1, at(st[0])), `rgba(${mixW(col, 1 - st[2])},${st[1].toFixed(3)})`);
+      }
       x.fillStyle = g; x.fillRect(0, 0, 128, 128);
-      if (betweens.size > 40) betweens.clear();
-      betweens.set(k, cv);
+      if (lights.size > 40) lights.clear();
+      lights.set(k, cv);
     }
     return cv;
   };
@@ -541,10 +552,12 @@ export function createSun(opts = {}) {
       } else {
         // (the Harbor: a low sun a crisp coloured disc, a high one the white-hot core with no edge — crossfaded by its height)
         const hs = HB ? now.st.white : 0;
-        // (ATM-C: ONE sprite between the two, never a crossfade — the crisp disc at a third strength under the soft white core read as
-        // a cream plate with a ring (the "paper plate" again at 9:30 am); its core colour + its edge's softness move with the white share)
-        if (HB && hs > 0.01 && hs < 0.99) { const sz = 1.07 + 0.18 * hs; c.globalAlpha = vis; c.drawImage(between(col, now.st.lift, hs), x - rx * sz, y - ry * sz, rx * sz * 2, ry * sz * 2); }
-        else {
+        // (ATM-D: below the approved white sun, THE GLOWING LIGHT — lightSun, painted: a white core blooming into the stage's gold, the
+        // gold carrying the size the smaller core gave up. An ADDED version washed out to white on the near-white sky round a low sun.)
+        if (HB && hs < 0.99) {
+          const d = 1 - smooth(1, 3.5, el), S = 3.2;
+          c.globalAlpha = vis; c.drawImage(lightSun(col, hs, d), x - rx * S, y - ry * S, rx * S * 2, ry * S * 2);
+        } else {
           if (hs < 0.99) { c.globalAlpha = vis * (1 - hs); c.drawImage(disc(col, HB ? now.st.lift : 0.55), x - rx * 1.07, y - ry * 1.07, rx * 2.14, ry * 2.14); }
           if (hs > 0.01) { c.globalAlpha = vis * hs; c.drawImage(hot(col), x - rx * 1.25, y - ry * 1.25, rx * 2.5, ry * 2.5); }
         }
@@ -601,6 +614,6 @@ export function createSun(opts = {}) {
       c.fillStyle = 'rgba(14,20,44,' + (0.3 * k) + ')'; c.fillRect(0, 0, W, H);
     },
     debug: () => (now ? { x: Math.round(now.x), y: Math.round(now.y), r: +now.r.toFixed(1), el: +now.el.toFixed(1), vis: +now.vis.toFixed(2), fade: +now.fade.toFixed(2), col: now.col, eclipse: now.eclipse ? { total: !!now.eclipse.total, obsc: now.eclipse.obsc } : null } : null),
-    destroy() { for (const cv of [discCv, coronaCv, rayCv, art && art.cres, art && art.halo, art && art.tmp, ...discs.values(), ...glows.values()]) if (cv) cv.width = 0; },
+    destroy() { for (const cv of [discCv, coronaCv, rayCv, art && art.cres, art && art.halo, art && art.tmp, ...discs.values(), ...glows.values(), ...lights.values(), ...hots.values()]) if (cv) cv.width = 0; },
   };
 }

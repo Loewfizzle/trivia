@@ -4,9 +4,12 @@
 // THREE KINDS OF STRIKE:
 //   · INTRA-CLOUD — the deck lit from inside, a flicker or two through its shapes (stormdeck.js reads flashInfo()), no bolt;
 //   · FAR — a branching bolt from the cloud base down BEHIND the far skyline (drawn in the sky layer: the city stands in front of it);
-//   · CLOSE — a THICK, jagged, branching fork with a white-hot core, IN FRONT of the skyline (front(): after the water), striking a tower's
-//     crown, the harbor's water (a flash on the surface) or THE NEEDLE (~1 in 6 close strikes) — 1–3 return strokes in a split second;
-//     the stage lit for an instant from the strike's side (city()).
+//   · CLOSE — IN FRONT of the skyline (front(): after the water), striking the NEAREST BUILDINGS' roofs (the near row + the quay heroes —
+//     never one hidden behind the speakeasy, its billboard or a sign), the harbor's WATER (a flash on the surface) or THE NEEDLE (~1 in 6)
+//     — 1–3 return strokes in a split second; the stage lit for an instant from the strike's side (city()).
+//     (ATM-D — the owner, Oct 31 4:40 pm: the FAR strikes "look really good", the close ones "don't look as good" → a close bolt is drawn in
+//     the FAR strikes' style a size up (bigger, brighter, a crisp white core — not the old thick rope), fewer branches, and EVERY branch
+//     ends above where it lands: no fork reaches down over the promenade / the stage.)
 // The THUNDER follows after the time sound takes (onStrike → sounds.js#thunder: a crack right on top of a close one, a long roll for a far).
 // SAFETY (photosensitive viewers): never a full-screen white flash — the light stays in the SKY (the city only a faint, capped lift: CITY);
 // the sky's glow capped (CAP); at most 3 strokes in a strike, ≥ 0.13 s apart, inside WINDOW (never more than 3 flashes in any second); never
@@ -33,24 +36,27 @@ export function flickerAt(fl, e) {
   for (const [t0, len, a] of fl) { const u = e - t0; if (u < 0 || u > len + 0.3) continue; const v = u < 0.012 ? u / 0.012 : u < len ? 1 : Math.exp(-(u - len) / 0.075); k = Math.max(k, a * v); }
   return Math.min(LIGHTNING.CAP, k);
 }
-/** PURE: the thunder's delay from a strike d km away (sound ~0.343 km/s) — a close one right on top (≥ 0.5 s), a far one up to 16 s */
-export const thunderDelay = km => Math.max(0.5, Math.min(16, km / 0.343));
+/** PURE: the thunder's delay after its flash (s). ATM-D — THE THUNDER's LAG (the owner, Oct 31 4:40 pm: "too much of a lag" — a close strike
+ *  waited ~2.5 s for its boom): a CLOSE strike booms almost at once (≤ 0.5 s); only far strikes get a distance delay, CAPPED at 3 s (a game's
+ *  sky, not physics: 16 s of silence after a far flash read as "nothing happened"). close: true for a close strike. */
+export const thunderDelay = (km, close = false) => close ? Math.min(0.5, 0.12 + 0.22 * Math.max(0, km)) : Math.max(0.8, Math.min(3, 0.6 + 0.4 * km));
 /** PURE: a strike's kind from a roll (0..1) */
 export const strikeKind = u => (u < LIGHTNING.KINDS.ic ? 'ic' : u < LIGHTNING.KINDS.ic + LIGHTNING.KINDS.far ? 'far' : 'close');
 
 // A JAGGED channel: midpoint displacement with big sideways kicks (the zigzag of a real stroke), then BRANCHES off it heading down + out
 // (each with a sub-branch now + then): [{ pts, w (width share), a (brightness share) }]
 function bolt(r, x0, y0, x1, y1, close) {
-  const jag = close ? 0.55 : 0.45;
+  const jag = close ? 0.48 : 0.45, floor = y1;   // (ATM-D: nothing below the strike's own landing point)
   const grow = (a, b, it, j) => { let pts = [a, b]; for (let i = 0; i < it; i++) { const nx = []; for (let k = 0; k < pts.length - 1; k++) { const [ax, ay] = pts[k], [bx, by] = pts[k + 1], d = Math.hypot(bx - ax, by - ay); nx.push(pts[k], [(ax + bx) / 2 + (r() - 0.5) * d * j, (ay + by) / 2 + (r() - 0.5) * d * 0.14]); } nx.push(pts[pts.length - 1]); pts = nx; } return pts; };
   const main = grow([x0, y0], [x1, y1], 7, jag), out = [{ pts: main, w: 1, a: 1 }];
-  const nb = (close ? 3 : 1) + Math.floor(r() * (close ? 3 : 2));
+  const nb = (close ? 2 : 1) + Math.floor(r() * 2);
   for (let b = 0; b < nb; b++) {
     const i = 8 + Math.floor(r() * (main.length * 0.62)), [sx, sy] = main[Math.min(main.length - 2, i)], len = (y1 - y0) * (0.16 + r() * 0.3), dir = r() < 0.5 ? -1 : 1;
-    const br = grow([sx, sy], [sx + dir * len * (0.45 + r() * 0.6), sy + len * (0.7 + 0.3 * r())], 5, 0.5);
+    const br = grow([sx, sy], [sx + dir * len * (0.45 + r() * 0.6), Math.min(floor - 6, sy + len * (0.7 + 0.3 * r()))], 5, 0.5);
     out.push({ pts: br, w: 0.5, a: 0.6 });
-    if (close && r() < 0.55) { const j = Math.floor(br.length * (0.3 + 0.4 * r())), [qx, qy] = br[j], l2 = len * (0.3 + 0.3 * r()); out.push({ pts: grow([qx, qy], [qx + dir * l2 * (0.5 + r() * 0.5), qy + l2], 4, 0.5), w: 0.3, a: 0.4 }); }
+    if (close && r() < 0.3) { const j = Math.floor(br.length * (0.3 + 0.4 * r())), [qx, qy] = br[j], l2 = len * (0.3 + 0.3 * r()); out.push({ pts: grow([qx, qy], [qx + dir * l2 * (0.5 + r() * 0.5), Math.min(floor - 8, qy + l2)], 4, 0.5), w: 0.3, a: 0.4 }); }
   }
+  for (const b of out) for (const q of b.pts) if (q[1] > floor) q[1] = floor;   // (the jag's vertical kick never dips a branch under the landing)
   return out;
 }
 
@@ -65,21 +71,27 @@ export function createLightning({ onStrike = null } = {}) {
     if (kind === 'far') bl = bolt(r, x, base + 6, x + (r() - 0.5) * W * 0.22, s.horizon != null ? s.horizon : HZ * 0.92, false);
     if (kind === 'close') {
       // THE NEEDLE ~1 in 6 close strikes (when it stands on screen), else a tower's crown or the harbor's water
-      const tip = s.needle, sky = s.skyline, wb = s.water;
+      const tip = s.needle, sky = s.near || s.skyline, wb = s.water, occ = s.occ || [];
+      // (a point the near pieces hide — the speakeasy, its billboard, the blade, the signs — is never a landing)
+      const hidden = (px, py) => occ.some(o => px > o.x - 6 && px < o.x + o.w + 6 && py > o.y - 4);
       if (tip && r() < LIGHTNING.NEEDLE) target = { kind: 'needle', x: tip[0], y: tip[1] };
-      else if (sky && sky.length && r() < 0.55) {
-        // a crown: the highest point in a random stretch of the skyline (a tower's top, not a gap)
-        const a = Math.floor(sky.length * (0.08 + 0.7 * r())), b = Math.min(sky.length - 1, a + Math.floor(sky.length * 0.14));
-        let bx = a; for (let i = a; i <= b; i++) if (sky[i] < sky[bx]) bx = i;
-        target = { kind: 'crown', x: bx * (W / sky.length), y: sky[bx] };
-      } else if (wb) target = { kind: 'water', x: W * (0.15 + 0.7 * r()), y: wb.y0 + 4 + r() * Math.max(4, (wb.y1 - wb.y0) * 0.35) };
-      if (target) { kinds[target.kind === 'needle' ? 'needle' : target.kind] = (kinds[target.kind] || 0) + 1; const sx = target.x + (r() - 0.5) * W * 0.3; bl = bolt(r, sx, base + 4, target.x, target.y, true); }
+      else if (sky && sky.length && r() < 0.6) {
+        // a crown of the NEAREST buildings: the highest point in a random stretch of the near roofline (a roof, not a gap), not hidden
+        for (let tries = 0; tries < 6 && !target; tries++) {
+          const a = Math.floor(sky.length * (0.06 + 0.78 * r())), b = Math.min(sky.length - 1, a + Math.floor(sky.length * 0.1));
+          let bx = a; for (let i = a; i <= b; i++) if (sky[i] < sky[bx]) bx = i;
+          const tx = bx * (W / (sky.length - 1 || 1)), ty = sky[bx];
+          if (!hidden(tx, ty) && ty < (wb ? wb.y0 : HZ)) target = { kind: 'crown', x: tx, y: ty };
+        }
+      }
+      if (!target && wb) for (let tries = 0; tries < 6 && !target; tries++) { const tx = W * (0.12 + 0.76 * r()), ty = wb.y0 + 4 + r() * Math.max(4, (wb.y1 - wb.y0) * 0.35); if (!hidden(tx, ty)) target = { kind: 'water', x: tx, y: ty }; }
+      if (target) { kinds[target.kind === 'needle' ? 'needle' : target.kind] = (kinds[target.kind] || 0) + 1; const sx = target.x + (r() - 0.5) * W * 0.24; bl = bolt(r, sx, base + 4, target.x, target.y, true); }
       else kind = 'far';
     }
     kinds[kind]++;
     const fl = motion ? strikeFlickers(r) : [[0, 0.25, LIGHTNING.CAP * LIGHTNING.RM]];   // (reduced motion: one soft pulse, dimmed)
     cur = { at: t, kind, x: target ? target.x : x, y: base + (HZ - base) * (0.04 + 0.1 * r()), rad: W * (kind === 'ic' ? 0.26 + 0.2 * r() : 0.32 + 0.22 * r()), fl, km, bolt: motion ? bl : null, target, side: target ? (target.x < W / 2 ? -1 : 1) : (x < W / 2 ? -1 : 1) };
-    const said = onStrike ? onStrike({ kind, pan: +Math.max(-0.8, Math.min(0.8, (cur.x / W) * 2 - 1)).toFixed(2), near: kind === 'close', km: +km.toFixed(1), delay: thunderDelay(km), level: kind === 'close' ? 1 : kind === 'far' ? 0.62 + 0.25 * (1 - (km - 2.6) / 3.6) : 0.5, bolt: !!bl, target: target ? target.kind : null }) : null;
+    const said = onStrike ? onStrike({ kind, pan: +Math.max(-0.8, Math.min(0.8, (cur.x / W) * 2 - 1)).toFixed(2), near: kind === 'close', km: +km.toFixed(1), delay: thunderDelay(km, kind === 'close'), level: kind === 'close' ? 1 : kind === 'far' ? 0.62 + 0.25 * (1 - (km - 2.6) / 3.6) : 0.5, bolt: !!bl, target: target ? target.kind : null }) : null;
     // (ATM-C — THE FLASH ON THE TAKE's OWN CRACK: the recorded close take's crack sits `lead` s into its file — the strike is held back that
     // long (everything visible waits on the flash), and a take with a SECOND crack flashes again on it (≥ 0.6 s apart: the safety cap holds))
     if (said && said.lead > 0) { cur.at = t + Math.min(2, said.lead); lastAt = cur.at; }
@@ -90,12 +102,13 @@ export function createLightning({ onStrike = null } = {}) {
     if (!cur || !cur.bolt) return;
     c.save(); c.globalCompositeOperation = 'lighter'; c.lineJoin = 'round'; c.lineCap = 'round';
     // a violet glow, a blue-white body, a WHITE-HOT CORE (its branches thinner + fainter) — the core's brightness is the bolt's, not the sky's
-    const L = close ? [[13, '160,150,255', 0.16], [5.5, '206,206,255', 0.5], [2.4, '255,255,255', 1]] : [[6, '170,160,255', 0.18], [2.6, '214,214,255', 0.5], [1.1, '255,255,255', 0.95]];
+    // (ATM-D: a close bolt = the far style a size up — the old thick rope (13 / 5.5 / 2.4) read cheap next to the far strikes)
+    const L = close ? [[8.5, '170,160,255', 0.22], [3.4, '214,214,255', 0.58], [1.5, '255,255,255', 1]] : [[6, '170,160,255', 0.18], [2.6, '214,214,255', 0.5], [1.1, '255,255,255', 0.95]];
     for (const br of cur.bolt) for (const [lw, col, a] of L) { c.strokeStyle = `rgba(${col},${(a * br.a * k).toFixed(3)})`; c.lineWidth = lw * (0.35 + 0.65 * br.w); sw(br.pts, c); }
     // where it lands: a flare at the crown / the needle / a burst of light on the water
     const tg = cur.target;
     if (close && tg) {
-      const rr = tg.kind === 'water' ? 34 : 22, g = c.createRadialGradient(tg.x, tg.y, 0, tg.x, tg.y, rr);
+      const rr = tg.kind === 'water' ? 28 : 18, g = c.createRadialGradient(tg.x, tg.y, 0, tg.x, tg.y, rr);
       g.addColorStop(0, `rgba(255,255,255,${(0.9 * k).toFixed(3)})`); g.addColorStop(0.3, `rgba(200,200,255,${(0.45 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(160,160,255,0)');
       c.fillStyle = g; c.fillRect(tg.x - rr, tg.y - rr * (tg.kind === 'water' ? 0.5 : 1), rr * 2, rr * (tg.kind === 'water' ? 1.2 : 2));
     }

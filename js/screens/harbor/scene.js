@@ -164,7 +164,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let GRID = /[?&]grid=1(?:&|$)/.test(q), DEBUG = /[?&]debug=1(?:&|$)/.test(q);
   let tier = tier0, W = 0, H = 0, dpr = 1, HZ = 0;
   let dprTier = tier0;   // (WIN2 — THE QUALITY STEP: the canvas RESOLUTION's own tier — after the reveal a step takes the EFFECTS (tier) first, the resolution last)
-  let cam = null, L = null, skyline = null, vignette = null, glow = null, camSig = '';
+  let cam = null, L = null, skyline = null, nearRoof = null, vignette = null, glow = null, camSig = '';
   const skyCv = document.createElement('canvas');
   const skyMix = { cv: document.createElement('canvas'), sky: null, ver: -1, v: -1 };     // (the sky + the stars: FILL)
   const baker = createBaker();
@@ -861,6 +861,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // the roofline (the highest roof over every 4 pt): the sun fits its arch to it, the planes keep above it
     // (9e — THE SUN MUST NOT BREAK: the envelope, the construction slot always at full height — core/harbor-layout.js#envelope)
     skyline = L.envelope || roofline(L);
+    nearRoof = roofline(L, b => b.z <= 252);   // (ATM-D: the NEAREST buildings' roofs — the near row + the quay heroes: where a close strike lands)
     towerFx.layout(L);
     archFor();
     lights.layout(L);
@@ -1213,7 +1214,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function rainEnv(fs, part) {
     const day = clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), wb = water.band();
     return { rain: LK.rain || 0, ice: WXS ? WXS.ice || 0 : 0, slant: Math.max(-0.9, Math.min(0.9, -WF.v(0.5) / 14 * 0.5)), gustAt: WF.level > 0.15 ? u => WF.at(u) * WF.level : null, day, t: fs.t, dt: fs.dt, tier, motion: S.motion, flash: lightningFlash(),
-      water: wb ? { y0: wb.y0 + 2, y1: wb.y1 - 2 } : null, ground: wb ? { y0: wb.y1 + 6 } : null, top: cam.safeTop + 30, dim: part === 'veils' ? 1 - 0.6 * clamp01(LK.fog || 0) : 1 };
+      water: wb ? { y0: wb.y0 + 2, y1: wb.y1 - 2 } : null, ground: wb ? { y0: wb.y1 + 6 } : null, top: cam.safeTop + 30, dim: part === 'veils' ? 1 - 0.6 * clamp01(LK.fog || 0) : 1, logo: part === 'drops' ? S.logoRect || null : null };
   }
   // the lights the rain catches (every 300 ms at most: rainfx.js#lights): the NEON logo (its colour, as lit as it is), the signs, the lamps' globes
   function rainLights() {
@@ -2241,7 +2242,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     { const want = WXS && WXS.state === 'storm' && !off.has('no-storm-deck') ? 1 : 0, sdt = stormT == null ? 0 : Math.max(0, Math.min(0.5, t - stormT)); stormT = t;
       stormK += (want - stormK) * Math.min(1, sdt / (WXS && WXS.target && WXS.target.why && /forced/.test(WXS.target.why) ? 3 : 12)); if (Math.abs(want - stormK) < 0.002) stormK = want; }
     const skyFoot = (skyline && skyline.length ? Math.max(...skyline) : HZ * 0.9) - 4, deckBase = cam.safeTop + (skyFoot - cam.safeTop) * 0.3;
-    zap.tick({ on: !!(WXS && WXS.lightning) && !off.has('no-lightning'), t, motion: S.motion, base: stormK > 0.3 ? deckBase : cam.safeTop + 40, horizon: skyFoot, force: off.has('lightning'), close: off.has('strike'), needle: mmTipOf(), skyline, water: water.band() });
+    zap.tick({ on: !!(WXS && WXS.lightning) && !off.has('no-lightning'), t, motion: S.motion, base: stormK > 0.3 ? deckBase : cam.safeTop + 40, horizon: skyFoot, force: off.has('lightning'), close: off.has('strike'), needle: mmTipOf(), skyline, near: nearRoof, occ: fs.heliOcc, water: water.band() });
     if (stormK > 0.01) stormDeck.draw(c, { k: stormK, W, top: Math.max(0, cam.safeTop - 20), base: deckBase, horizon: skyFoot, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), night: litK(DK, 'lamps'), party: PT.on > 0.5, t, motion: S.motion, wind: WF.v(0.5) * 0.35, dpr, flash: zap.flashInfo() });
     zap.draw(c, fs);
     // (6b: THE TR-3B + its chase — under the cloud base, in front of the stars + the moon, behind the city's crowns)

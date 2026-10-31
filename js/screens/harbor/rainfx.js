@@ -127,7 +127,12 @@ export function createHarborRain() {
       drift = (s.slant || 0) * H;
       const RL = rainLook(s.rain), want = s.rain > 0.004 ? Math.round(RAIN_CAP[tier] * RL.n * (s.motion ? 1 : 0.4) * (W + 240 + Math.abs(drift)) / (W + 240)) : 0;   // (the same density over the wider band)
       if (!want && !drops.length && !rings.length && !splashes.length) return;
-      while (drops.length < want) { const r = Math.random(); const p = spawn(r < RAIN_DEPTH[0].k ? 0 : r < RAIN_DEPTH[0].k + RAIN_DEPTH[1].k ? 1 : 2, want - drops.length > 40); landOf(p, s); drops.push(p); }
+      // (ATM-D — THE STORM's RAIN FINER + FAINTER + VARIED, the owner Oct 31 4:40 pm: "a little too busy, too white / bright" — long, bright,
+      // uniform white streaks over everything incl. the NEON logo. With the heavy share (heavy rain → the storm): MANY fine faint far drops,
+      // FEWER near ones (far 46 → 64 %, near 20 → 8 %), every streak thinner, the unlit ones mostly DARK (they catch light only near the
+      // lamps / neon / signs — the light grid still lifts those), lighter over the logo. Drizzle + rain unchanged: drizzle < rain < heavy < storm.)
+      const hv = RL.heavy, kFar = RAIN_DEPTH[0].k + 0.18 * hv, kMid = RAIN_DEPTH[1].k - 0.06 * hv;
+      while (drops.length < want) { const r = Math.random(); const p = spawn(r < kFar ? 0 : r < kFar + kMid ? 1 : 2, want - drops.length > 40); landOf(p, s); drops.push(p); }
       if (drops.length > want) drops.length = want;
       const k = s.slant || 0, day = clamp01(s.day), flash = s.flash || 0, night = 1 - day;
       // the batches: key = colour (quantized) + alpha level → [x0,y0,x1,y1,…] for the tail + the head of each streak
@@ -136,8 +141,11 @@ export function createHarborRain() {
       const q = v => Math.round(v / 32) * 32;
       // (ATM-B — FREEZING RAIN must read as ICE: finer, shorter streaks in a colder, clearer light, a share of them GLINTING at the head)
       const ice = clamp01(s.ice || 0), glints = ice > 0.05 ? [] : null;
-      const base = ice > 0.05 ? (day > 0.5 ? [214, 230, 252] : [186, 212, 255]) : day > 0.5 ? [206, 212, 224] : [172, 186, 222];
-      const iL = 1 - 0.32 * ice, iW = 1 - 0.22 * ice;
+      const dk = ice > 0.05 ? 0 : hv * night;   // (the storm's unlit drops darker at night)
+      const base0 = ice > 0.05 ? (day > 0.5 ? [214, 230, 252] : [186, 212, 255]) : day > 0.5 ? [206, 212, 224] : [172, 186, 222];
+      const base = dk > 0 ? base0.map((v, i) => v + ([112, 124, 160][i] - v) * dk) : base0;
+      const iL = 1 - 0.32 * ice, iW = (1 - 0.22 * ice) * (1 - 0.34 * hv), dimU = 1 - (0.42 * night + 0.22 * day) * hv;
+      const lg = s.logo, lx0 = lg ? lg.x - 14 : 0, lx1 = lg ? lg.x + lg.w + 14 : 0, ly0 = lg ? lg.y - 14 : 0, ly1 = lg ? lg.y + lg.h + 30 : 0, lgK = 0.25 + 0.45 * hv;
       for (const p of drops) {
         if (s.motion) {
           p.y += p.v * RL.v * sec;
@@ -152,7 +160,8 @@ export function createHarborRain() {
         if (hx < -40 || hx > W + 40) continue;
         // its light: the cell it falls through (a tube's colour near the tubes, the lamp's amber under a globe), a strike over all
         const L = night > 0.15 ? lightAt(hx, hy) : null;
-        let col = base, a = b.a * (day > 0.5 ? 0.85 : 0.75) * RL.a;
+        let col = base, a = b.a * (day > 0.5 ? 0.85 : 0.75) * RL.a * (L ? 1 : dimU);
+        if (lg && hx > lx0 && hx < lx1 && hy > ly0 && hy < ly1) a *= 1 - lgK;   // (lighter over the NEON logo)
         // (HEAVY: SHEETS of rain sweeping across in waves with the wind — bands of denser, brighter streaks travelling over the screen)
         // (ATM-A — WIND AS ONE SYSTEM: in a wind the sheets ARE the gust waves (core/harbor-wind.js) — a band of denser, brighter rain rolling
         // downwind across the screen as each gust passes, the lulls thinner; heavy rain makes them stronger)
