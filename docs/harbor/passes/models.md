@@ -90,8 +90,39 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
 - e2e `heli` (+ its 4th page: the model, the near pass ≥ 55 pt, the turn, no stop behind the speakeasy, the smooth beam — 21 checks); a 10th
   cloud job `models` (the Mothman + the shadowboxer: every other job sat at its ~5-min cap).
 
+## Group 4 — THE SHADOWBOXER's WINDOW, REWORKED + HIS SOUNDS
+- **THE BAG BUG**: its side was SEEDED PER ROUND (`bagSide = r() < 0.5 ? −1 : 1`) and defaulted to the right between rounds — it jumped
+  sides. Now ONE fixed spot on the right (core/harbor-boxer.js#BAG_SIDE), swinging only from his hits; only he turns. e2e: the bag's x
+  the same through a round + its rest.
+- **THE ROUNDS** (roundOf, rewritten): MOSTLY SHADOWBOXING IN THE AIR, mid-room, turned AWAY from the bag (facing left — his straight reaches
+  ~⅓ of the room, so the open floor sits mid-room and a full jab never leaves the frame): long, obvious COMBINATIONS (one-two,
+  jab-jab-cross, jab-cross-hook, jab-cross-hook-cross, five, SIX), each punch ~0.27 s apart, FULLY OUT (a straight's fist a whole reach
+  away), SLIPS / DUCKS / a pull / a weave after half of them; ALI's FOOTWORK — always bouncing on his toes (~2.3 a second, the heels up),
+  the weight rocking, the head riding the bounce, the SHUFFLE (the feet flicking past each other), quick STEPS side to side. Then a BURST ON
+  THE BAG: a TURN through his front (the silhouette narrows — never a flip), a step over, short hard combinations — the bag swings out a
+  beat after each hit (a delayed pendulum, capped at 0.2 rad: never out of the frame), the chain after a hard one — and back. Rounds 2, 5 +
+  8 open on the bag (three bursts), the rest get one mid-round. Unit: air > 2× the bag, a six-punch combination, > 40 defences, turns
+  through |face| < 0.5, facing away from the bag in the air + toward it at the bag.
+- **THE REST** (restAt): he walks it off to the open side's wall, SHAKES OUT his arms (loose, shoulders rolling, a lazy bounce), SITS ON
+  THE FLOOR — his back to the wall, knees up, arms over the knees, head down, breathing — ~36 s, gets up + bounces back for the bell.
+  THE 10-MIN BREAK: the same (4 min sitting), then he walks out of the frame; the rope + the speed bag are heard off in the room only after
+  he's gone (rope + speed bag in turn from ~4.8 min).
+- **THE LOOK** (screens/harbor/boxer.js, rewritten on an explicit skeleton — hip, shoulders, head, knees, feet, elbows, fists — every pose a
+  bold silhouette: thick limbs, big round gloves, a strong V torso; the bulb's warm rim): NO WALL SHADOW (the bulb's swinging pool stays);
+  every move eased (punches: out 0.11 s, held 0.06, back 0.17; the torso + head turning into a cross); poses blended for the sit-down + the
+  get-up. Judged at 3× bursts of his window through a rest, an air round, a bag burst + Friday's wrap-up (the towel, the walk out, the
+  blind down lit).
+- **HIS SOUNDS** — Grok's 20 files in (copies staged under their slot names; boxer-claude-notes.txt read): `boxer-bag` five takes (the four
+  real-bag qubodup hits — hard-cut at 0.5 s → faded — + the Gamemaster body hit), `boxer-chain` two (InspectorJ's distant jingles),
+  `boxer-bell3` NEW — the real ding-ding-ding burst (Mateusz_Chenc, CC0) at a round's start, `boxer-bell` the end's single ding
+  (Benboncan, **CC BY 4.0 — credited** in ☰ → CREDITS), `boxer-rope`, `boxer-speedbag` NEW; all HEARD THROUGH A CRACKED-OPEN WINDOW:
+  low-passed (~1.1 kHz thuds, 2.6 kHz bells), a small room, the slots' quiet gains, panned to his window (sounds.js). ~170 KB shipped.
+  Not used: the bag combos (bag-combo-1/-2/-3 — the thuds follow his own punches; combo-3's CC BY not needed), bag-hit-5/6/8/9/10 (spares),
+  chain-3 (the longest), the speed-bag's own clipping trimmed (−3 dB).
+
 ## Decisions
 - The Mothman 84 pt (not 70) — 38 % of the tucked model is the hem below his talons.
+- The shadowboxer works the air FACING LEFT mid-room (his reach vs a ~square window); rounds 2, 5, 8 open on the bag.
 - The patrol stays in the city's own canvas (not the crisp layer): it flies behind the near pieces.
 - A 10th cloud job (`models`) instead of stretching the 5-minute cap.
 - The Blackbird's default art is the baked SR-71 (the owner judges on his phone; TOOLS → THE BLACKBIRD DRAWN for the A/B).

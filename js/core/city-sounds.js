@@ -207,8 +207,11 @@ export const SLOTS = [
   // never over the music; core/harbor-boxer.js#boxerCues on his clock — files: ~/Downloads/Grok/city-sfx/boxer/ when they arrive)
   S('boxer-bag', '7', 'once', 0.1, 'a heavy bag hit, muffled + distant (a few takes)', 'the shadowboxer: every hit on the bag (SKY-B)'),
   S('boxer-chain', '7', 'once', 0.06, 'a heavy bag’s chain creaking after a hard hit', 'the shadowboxer: after a hard one (SKY-B)'),
-  S('boxer-bell', '7', 'once', 0.08, 'a boxing round bell — ONE ding (played ×3 to start a round, once to end it)', 'the shadowboxer’s rounds (SKY-B)'),
+  S('boxer-bell', '7', 'once', 0.08, 'a boxing round bell — ONE ding (the round ends)', 'the shadowboxer’s rounds (SKY-B; MODELS: the end — the start is boxer-bell3)'),
   S('boxer-rope', '7', 'once', 0.05, 'a skipping rope (or a speed bag) burst, off in the room', 'the shadowboxer’s long break, out of view (SKY-B)'),
+  // (MODELS: the 20 files arrived — the real multi-strike start bell + the speed bag; boxer-bell is now the END-of-round ding)
+  S('boxer-bell3', '7', 'once', 0.08, 'a boxing bell’s ding-ding-ding burst (the round starts)', 'the shadowboxer’s round starts (MODELS)'),
+  S('boxer-speedbag', '7', 'once', 0.045, 'a speed-bag rattle, off in the room', 'the shadowboxer’s long break, out of view (MODELS)'),
   S('bb-static', 'sky', 'once', 0.22, 'an old radio tuning warble + static (three takes)', 'the Blackbird’s tell, ~3 s before it crosses'),
   // (MODELS — the owner, Oct 30 6:43 pm: THE SONIC BOOM 10 % LOUDER, THE LOUDEST THING IN THE GAME — above every effect + the music; both
   // thumps come through this slot; the master bus's soft limiter (audio/engine.js) keeps it from clipping)

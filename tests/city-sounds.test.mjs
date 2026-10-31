@@ -25,7 +25,7 @@ test('every slot: a unique kebab-case id, a known part, loop | once, a mix level
 });
 
 test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people (8P) + the life + workers + wildlife (6b) fill their slots; everything else is empty', () => {
-  assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'bar-open', 'boat-putter', 'broom-sweep', 'bus-arrive', 'bus-door', 'bus-idle', 'bus-pull-away', 'car-1920s-pass',
+  assert.deepEqual(filledSlots().sort(), ['airliner-far', 'balloon-burner', 'bar-open', 'boat-putter', 'boxer-bag', 'boxer-bell', 'boxer-bell3', 'boxer-chain', 'boxer-rope', 'boxer-speedbag', 'broom-sweep', 'bus-arrive', 'bus-door', 'bus-idle', 'bus-pull-away', 'car-1920s-pass',
     'cart-bell', 'cat-land', 'cat-meow', 'city-hum-day', 'city-hum-night', 'club-murmur-calm', 'club-murmur-party', 'coyote-howl', 'coyote-yip', 'crates-clink', 'crowd-clap',
     'crowd-whoop', 'dog-bark', 'door-heavy', 'door-heavy-close', 'door-knock', 'drone-swarm', 'footsteps-cobble', 'footsteps-heels', 'geese', 'glasses-clink',
     'bb-boom', 'bb-scream', 'bb-static', 'glow-wand-swish', 'gulls', 'helicopter', 'hydrant-spray', 'jet-flyby', 'jogger-trip', 'ladder-clank', 'laugh-distant', 'line-murmur', 'market-murmur', 'milk-bottles', 'newspaper-rustle', 'periscope-ping',

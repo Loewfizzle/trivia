@@ -67,6 +67,90 @@ are kept anyway, with each source file's MD5.
 - Original: Freesound user James2nd, "Narrow Boat Engine" on Freesound (CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/)
 - NOTE: The file imported is the Pixabay MP3 copy named in this block (Pixabay Content License) of the CC0 Freesound original — the lossless original was not in the folder (drop it in under the same name and re-run to upgrade).
 
+## boxer-bag.flac  →  boxer-bag
+
+- MD5 `01edf4295dd88b13b1039c2de03cc355`
+- boxer-bag.flac  (Grok's bag-hit-1.flac, ~/Downloads/Grok/city-sfx/boxer/)
+- "Punching bag hits" - qubodup (OpenGameArt pack qubodupPunch.7z, cut from Freesound 53985)
+- Page: https://opengameart.org/content/punch
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+
+## boxer-bag-2.flac  →  boxer-bag
+
+- MD5 `07b6817854b3f5a227d4cd0c5fff4bba`
+- boxer-bag-2.flac  (Grok's bag-hit-2.flac, ~/Downloads/Grok/city-sfx/boxer/)
+- "Punching bag hits" - qubodup (OpenGameArt pack qubodupPunch.7z, cut from Freesound 53985)
+- Page: https://opengameart.org/content/punch
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+
+## boxer-bag-3.flac  →  boxer-bag
+
+- MD5 `237e1aaea0077121d39db710eb2cabab`
+- boxer-bag-3.flac  (Grok's bag-hit-3.flac, ~/Downloads/Grok/city-sfx/boxer/)
+- "Punching bag hits" - qubodup (OpenGameArt pack qubodupPunch.7z, cut from Freesound 53985)
+- Page: https://opengameart.org/content/punch
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+
+## boxer-bag-4.flac  →  boxer-bag
+
+- MD5 `dc2250c8dc24ad5cf276d94b387e2731`
+- boxer-bag-4.flac  (Grok's bag-hit-4.flac, ~/Downloads/Grok/city-sfx/boxer/)
+- "Punching bag hits" - qubodup (OpenGameArt pack qubodupPunch.7z, cut from Freesound 53985)
+- Page: https://opengameart.org/content/punch
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+
+## boxer-bag-5.wav  →  boxer-bag
+
+- MD5 `3cb59470975e315718c4044e294a607b`
+- boxer-bag-5.wav  (Grok's bag-hit-7.wav, ~/Downloads/Grok/city-sfx/boxer/)
+- "punch_general_body_impact_03" - Gamemaster Audio (Punch Sound Pack)
+- Sonniss GDC 2017 Game Audio Bundle - royalty-free, no attribution required
+
+## boxer-bell.wav  →  boxer-bell
+
+- MD5 `10d2041eeeea705f10cdbbfc26eb2096`
+- boxer-bell.wav  (Grok's bell-end-1.wav, ~/Downloads/Grok/city-sfx/boxer/)
+- "Boxing Bell 1.wav" by Benboncan (https://freesound.org/s/66952/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+- Licence: CC BY 4.0 - CREDIT REQUIRED (in-game: CREDITS)
+
+## boxer-bell3.wav  →  boxer-bell3
+
+- MD5 `94e6f925b1ee6d6e1d9c63637cefc223`
+- boxer-bell3.wav  (Grok's bell-start-1.wav, ~/Downloads/Grok/city-sfx/boxer/)
+- "Boxing Bell Signals" - Mateusz_Chenc (Freesound 520998)
+- Page: https://freesound.org/people/Mateusz_Chenc/sounds/520998/
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+
+## boxer-chain.wav  →  boxer-chain
+
+- MD5 `c31269a4fdd8aeec8f4081a70eafd892`
+- boxer-chain.wav  (Grok's chain-1.wav, ~/Downloads/Grok/city-sfx/boxer/)
+- "Chains Metal Movement Distant Very Short" - InspectorJ (Jonathan Shaw, www.jshaw.co.uk)
+- Sonniss GDC 2023 Game Audio Bundle - royalty-free, no attribution required
+
+## boxer-chain-2.wav  →  boxer-chain
+
+- MD5 `77db316d6b667a4e83614fe550f7fd7a`
+- boxer-chain-2.wav  (Grok's chain-2.wav, ~/Downloads/Grok/city-sfx/boxer/)
+- "Chains Metal Movement Distant Short" - InspectorJ (Jonathan Shaw, www.jshaw.co.uk)
+- Sonniss GDC 2023 Game Audio Bundle - royalty-free, no attribution required
+
+## boxer-rope.wav  →  boxer-rope
+
+- MD5 `38fe2146d5c7cb0c7598b09c217ed8e5`
+- boxer-rope.wav  (Grok's rope-1.wav, ~/Downloads/Grok/city-sfx/boxer/)
+- "20131202_Springseil_H2nXY.wav" - Soundscape_Leuphana (Freesound 210160)
+- Page: https://freesound.org/people/Soundscape_Leuphana/sounds/210160/
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+
+## boxer-speedbag.wav  →  boxer-speedbag
+
+- MD5 `056413595d5556788ffb13111a7b04e4`
+- boxer-speedbag.wav  (Grok's speedbag-1.wav, ~/Downloads/Grok/city-sfx/boxer/)
+- "boxing speed bag practice.wav" (Freesound 655326)
+- Page: https://freesound.org/s/655326/
+- Licence: CC0 1.0 - https://creativecommons.org/publicdomain/zero/1.0/ - no attribution needed
+
 ## broom-sweep.mp3  →  broom-sweep
 
 - MD5 `153d45749031af41c131f1c6bf2c816a`

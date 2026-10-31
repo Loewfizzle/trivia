@@ -499,6 +499,21 @@ CUTS = {
     ],
     # (4.8 s Sonniss, an audience cheering: the whoops 0–1.5 s (voiced 0.67–0.92: "whoo"s, no words), applause after; low-passed 4 kHz)
     'crowd-whoop': [{'cut': (0.0, 4.6), 'fin': 0.05, 'fout': 1.2, 'hp': 200, 'lp': 4000}],
+    # ---- THE MODELS PASS — THE SHADOWBOXER's GYM (COPIES of ~/Downloads/Grok/city-sfx/boxer/, renamed to their slots in a staging folder
+    # — the originals untouched; `--src <that folder>`; boxer-claude-notes.txt: which hits are real bags, the qubodup takes hard-cut at
+    # 0.5 s). HEARD THROUGH A CRACKED-OPEN 3rd-FLOOR WINDOW: low-passed (the thuds ~1.1 kHz, the bells + the chain a little brighter),
+    # a small room (a short hall, wet ~0.2), quiet (the slots' gains); the hard cuts faded out (fout)
+    'boxer-bag': [{'cut': (0.0, 0.5), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050}],
+    'boxer-bag-2': [{'cut': (0.0, 0.5), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050}],
+    'boxer-bag-3': [{'cut': (0.0, 0.5), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050}],
+    'boxer-bag-4': [{'cut': (0.0, 0.5), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050}],
+    'boxer-bag-5': [{'cut': (0.0, 0.48), 'fin': 0.003, 'fout': 0.14, 'hp': 70, 'lp': 1100, 'verb': (0.22, 0.015, 0.45, 1400), 'rate': 22050}],
+    'boxer-chain': [{'cut': (0.0, 1.1), 'fin': 0.004, 'fout': 0.4, 'hp': 300, 'lp': 2600, 'verb': (0.2, 0.015, 0.45, 2000), 'rate': 22050}],
+    'boxer-chain-2': [{'cut': (0.0, 1.4), 'fin': 0.004, 'fout': 0.5, 'hp': 300, 'lp': 2600, 'verb': (0.2, 0.015, 0.45, 2000), 'rate': 22050}],
+    'boxer-bell': [{'cut': (0.0, 3.6), 'fin': 0.004, 'fout': 1.6, 'hp': 220, 'lp': 2600, 'verb': (0.2, 0.02, 0.6, 2200), 'rate': 22050}],
+    'boxer-bell3': [{'cut': (9.2, 13.8), 'fin': 0.004, 'fout': 1.5, 'hp': 220, 'lp': 2600, 'verb': (0.2, 0.02, 0.6, 2200), 'rate': 22050}],
+    'boxer-rope': [{'cut': (1.0, 5.4), 'fin': 0.2, 'fout': 0.8, 'hp': 150, 'lp': 1800, 'verb': (0.2, 0.015, 0.45, 1600), 'rate': 16000, 'kbps': 48}],
+    'boxer-speedbag': [{'cut': (2.0, 7.0), 'fin': 0.3, 'fout': 1.0, 'gainpre': -3.0, 'hp': 150, 'lp': 1600, 'verb': (0.2, 0.015, 0.45, 1500), 'rate': 16000, 'kbps': 48}],
     # ---- NIGHT-B — THE STREET PARTY's CROWD (~/Downloads/city-sfx-party/: COPIES of ~/Downloads/Grok/city-sfx/party-crowd/, renamed to
     # their slots — the originals untouched; `--src ~/Downloads/city-sfx-party`). Measured (RMS per block, no listening here): walla-5's
     # 92–154 s window steady −37…−46 dB (its German phrase at ~1:07 left out); walla-1 −32…−40 dB whole; cheer-2's loudest crescendo

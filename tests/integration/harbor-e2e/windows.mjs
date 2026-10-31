@@ -746,6 +746,21 @@ G('boxer', async () => {
     ok(up > 0 && kinds.has('bag') && hits > 0, `THE PREVIEW (WINDOWS → THE SHADOWBOXER, ROUND 2): the blind up first (${up}), then on the heavy bag — ${hits} hits seen landing (any day, any hour)`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}boxer-preview-402x874.png` });
     await Q.ctx.close(); }
+  // ---- MODELS — THE ROOM REWORKED (&force=boxer&round=2): THE BAG STAYS IN ONE SPOT through the round + the rest (it jumped sides); he works
+  // the air turned AWAY from it (facing left), turns to it for a burst (facing right) and it swings; in the rest he walks it off + sits
+  { const Q = await open({ slot: 'bx5', qs: `when=2026-10-27T13:00${GR}&wx=clear&force=boxer,no-people,no-wildlife&round=2`, view: [402, 874] });
+    await harborUp(Q.page);
+    const bagXs = new Set(), faces = { air: new Set(), bag: new Set() }; let swing = 0, t0 = Date.now();
+    while (Date.now() - t0 < 30000) { const B = await ev(Q.page, `${LIFE}.boxer`); if (B && B.bagX != null) { bagXs.add(B.bagX); if (B.at && B.face != null && B.beat !== 'turn' && Math.abs(B.face) > 0.9) faces[B.at].add(Math.sign(B.face)); swing = Math.max(swing, Math.abs(B.bag || 0)); } await sleep(150); }
+    ok(bagXs.size === 1, `THE BAG STAYS IN ONE SPOT (x ${[...bagXs].join(', ')}) — only he turns`);
+    ok(faces.air.has(-1) && !faces.air.has(1) && faces.bag.has(1) && !faces.bag.has(-1) && swing > 0.05, `IN THE AIR HE FACES AWAY FROM THE BAG (${[...faces.air]}), AT THE BAG TOWARD IT (${[...faces.bag]}) — it swings ${swing.toFixed(2)} rad`);
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'bx6', qs: `when=2026-11-02T20:05:20${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
+    await harborUp(Q.page); await waitFor(Q.page, `!!(${LIFE}.boxer && ${LIFE}.boxer.rest === 'sit')`, 'he sits down in his rest', 25000).catch(() => {});
+    const B = await ev(Q.page, `${LIFE}.boxer`);
+    ok(B && B.phase === 'rest' && B.rest === 'sit', `THE 1-MIN REST (Mon 8:05 pm): he walked it off, shook out his arms + SITS ON THE FLOOR, back to the wall (${B && B.rest})`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}boxer-rest-402x874.png` });
+    await Q.ctx.close(); }
   // ---- 4. a FRIDAY he wraps up (Nov 6): out at 8:30 as the party warms up — the towel, the walk out, his blind down
   { const Q = await open({ slot: 'bx4', qs: `when=2026-11-06T20:30:02${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page);

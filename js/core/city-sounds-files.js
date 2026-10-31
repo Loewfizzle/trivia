@@ -37,6 +37,29 @@ export const FILES = /*FILES*/{
   "boat-putter": [
     {"f": "boat-putter.mp3", "v": "732f29bc", "d": 32.5, "lufs": -24.4, "loop": 30.0, "xf": 2.5, "from": [11.4, 43.9], "src": "boat-putter", "r": 16000}
   ],
+  "boxer-bag": [
+    {"f": "boxer-bag-2.mp3", "v": "a9e69439", "d": 0.5, "lufs": -23.7, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.0, 0.5], "src": "boxer-bag-2", "r": 22050},
+    {"f": "boxer-bag-3.mp3", "v": "9895f2da", "d": 0.5, "lufs": -22.4, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.0, 0.5], "src": "boxer-bag-3", "r": 22050},
+    {"f": "boxer-bag-4.mp3", "v": "337d42b7", "d": 0.5, "lufs": -21.0, "peak": 0.15, "sw": [0.15, 0.35], "from": [0.0, 0.5], "src": "boxer-bag-4", "r": 22050},
+    {"f": "boxer-bag-5.mp3", "v": "725ac5c5", "d": 0.476, "lufs": -21.1, "peak": 0.15, "sw": [0.15, 0.25], "from": [0.0, 0.48], "src": "boxer-bag-5", "r": 22050},
+    {"f": "boxer-bag.mp3", "v": "6ce70f1b", "d": 0.5, "lufs": -22.2, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.0, 0.5], "src": "boxer-bag", "r": 22050}
+  ],
+  "boxer-bell": [
+    {"f": "boxer-bell.mp3", "v": "92d14ad9", "d": 3.6, "lufs": -20.4, "peak": 0.2, "sw": [0.15, 1.5], "from": [0.0, 3.6], "src": "boxer-bell", "r": 22050}
+  ],
+  "boxer-bell3": [
+    {"f": "boxer-bell3.mp3", "v": "36a163bb", "d": 4.6, "lufs": -20.4, "peak": 0.3, "sw": [0.15, 1.6], "from": [9.2, 13.8], "src": "boxer-bell3", "r": 22050}
+  ],
+  "boxer-chain": [
+    {"f": "boxer-chain-2.mp3", "v": "cd6036f3", "d": 1.4, "lufs": -20.7, "peak": 0.75, "sw": [0.15, 1.25], "from": [0.0, 1.4], "src": "boxer-chain-2", "r": 22050},
+    {"f": "boxer-chain.mp3", "v": "edfff34c", "d": 1.1, "lufs": -20.5, "peak": 0.45, "sw": [0.15, 0.8], "from": [0.0, 1.1], "src": "boxer-chain", "r": 22050}
+  ],
+  "boxer-rope": [
+    {"f": "boxer-rope.mp3", "v": "4c85dc4e", "d": 4.4, "lufs": -22.6, "peak": 2.35, "sw": [0.15, 4.15], "from": [1.0, 5.4], "src": "boxer-rope", "r": 16000}
+  ],
+  "boxer-speedbag": [
+    {"f": "boxer-speedbag.mp3", "v": "6833475b", "d": 5.0, "lufs": -22.8, "peak": 3.65, "sw": [3.4, 4.25], "from": [2.0, 7.0], "src": "boxer-speedbag", "r": 16000}
+  ],
   "broom-sweep": [
     {"f": "broom-sweep.mp3", "v": "526b1c0c", "d": 26.0, "lufs": -24.4, "loop": 24.0, "xf": 2.0, "from": [16.7, 42.7], "src": "broom-sweep", "r": 16000}
   ],

@@ -38,7 +38,7 @@ export const SECONDS = {
   tower: 37,           // (9e: THE CONSTRUCTION TOWER — four pages one after the other; 9f: + the site at night — 18 s on the laptop; BNAME: + the classic crane page — 21 s)
   citylife: 40,        // (9e: THE CITY LIFE — the night shift, the water wagon, the morning paper; three pages)
   light: 45,           // (NIGHT-B: + the stage light's ladder, ~45 s; NIGHT-A: THE BRIGHTNESS LADDER + THE BUTTONS AT NIGHT — four pages at 3×; 28 s on the laptop)
-  boxer: 45,           // (SKY-B: THE SHADOWBOXER — four pages)
+  boxer: 80,           // (SKY-B: THE SHADOWBOXER — four pages)
   stations: 60,        // (SKY-B: MUSIC AS RADIO STATIONS — three pages, a station change)
   thanks: 70, streetparty: 60, partysync: 55, heli: 125, roofcrisp: 28, quietbuilding: 20,   // (NIGHT-C: partysync — five pages, ~50 s on the laptop; heli — four pages, a guess)
            // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
