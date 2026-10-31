@@ -99,7 +99,7 @@ PART 10's decisions in §6 "FOR PART 10"; the superyacht split off; the FR5 extr
   the calm load at 2× CPU stepping a tier on the TV's 29 Hz) that fail the same before the pass (ATM-A / ATM-C); the new searchlight check
   passed (17 looks, none blocked).
 - **THE CLOUD**: run 1 (the harbor workflow by hand — the final push's own files were docs + tests, outside its path filter): tests ✅, harbor
-  9 / 10 — legend ✗ (the searchlight's stops over the billboard, above; fixed, 25 / 25 locally); run 2 = the legend job alone (below).
+  9 / 10 — legend ✗ (the searchlight's stops over the billboard, above; fixed, 25 / 25 locally); run 2 = the legend job alone: ✅ (7 min). The fix live with a deploy-only push (26433cf).
 
 ## Decisions
 - **The low sun is PAINTED, not added**: the sky round a low sun is already near-white — an added core can't be seen; the light reads by a
