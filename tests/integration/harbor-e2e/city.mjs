@@ -500,7 +500,8 @@ G('water', async () => {
     await waitFor(N.page, 'window.__district.harbor().rate.drawn > 0', 'a frame', 2000);
     const h = await ev(N.page, 'window.__district.harbor()');
     ok(h.water.strips > 30 && h.water.copies > 0, `THE WATER: the mirror rippled row by row (${h.water.strips} rows), the lights' columns at night (${h.water.copies} copies)`);
-    ok(h.water.rough < 0.05, `A CALM NIGHT (wind 0.5 m/s): a glassy mirror (roughness ${h.water.rough})`);
+    // (ATM-A — the owner, Oct 26: "too still and flat … like a mirror" → a calm night is NEVER glass: the roughness floor 0.2, no more)
+    ok(h.water.rough >= 0.2 && h.water.rough < 0.3, `A CALM NIGHT (wind 0.5 m/s): never a mirror — only the floor's motion (roughness ${h.water.rough})`);
     // THE GAME BLADE's neon + its chasing bulbs show in the water below it (Part 6a: it took the HOTEL's spot; its mirror image:
     // as far under the waterline as the sign is above it)
     const hot = h.neon.signs.find(s => s.id === 'n-blade');

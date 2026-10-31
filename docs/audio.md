@@ -465,6 +465,20 @@ rain), `rain-pavement` (the street round you, from moderate rain), `rain-awning`
 the time sound takes from its distance (3–16 s), never two rolls on top of each other. Everything under the music (the bed's duck); City
 1.0's rain loop + recorded thunder are off in City 2.0. The AUDIO panel's `weather <state> · beds …` line names what sounds.
 
+## THE WIND's SOUNDS (ATM-A, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js` (THE WIND), `core/harbor-wind.js`, `scripts/add-city-sfx.py` (ALIAS + CUTS)
+Grok's 13 WAVs (`art/city-sfx/weather/` — the originals git-ignored, never edited; `claude-notes.txt` + `credits.txt` beside them) → 13 web
+copies, **1.31 MB**: `wind-winter` (winter-wind-loop-1: the airy ALLEY wind, a 30 s window after its ~31 s library edit), `wind-gale`
+(winter-wind-loop-2: the gusty harbor GALE, CC BY klankbeeld — its hard-cut ends never used: the loop's window + a 2.5 s tail the runtime
+crossfades in), `gust-big` (gust-1 + gust-5), `gust-mid` (gust-2 — its hard cut + DC faded + high-passed — + gust-4), `gust-soft` (gust-3 —
+the −36 dBFS master levelled like every one-shot, the SLOT gain keeps it soft — + gust-6), `wind-whistle` (wind-whistle-2 + 14 s of
+wind-whistle-1); for ATM-B, silent until then: `blizzard` (both blizzard loops, windows clear of loop-2's faint tonal blips) + `sleet-glass`.
+The files keep their own names (credits.txt matches them): `ALIAS` maps each to its slot. HOW THEY PLAY (felt, not heard — under the music,
+`bm.k`): THE BEDS by the shared wind's speed — the alley wind in the cold (≤ ~10 °C, else Nov–Mar) from a breeze up, thinning as the gale
+comes in; the gale from ~10 m/s (any season), swelling a touch with the gust at mid-screen; THE GUSTS on the VISUAL gust waves — as a wave
+reaches the screen's upwind edge (`at(edge)` crossing 0.22, ≥ 3 s apart) one gust: BIG on a strong day + a strong wave, MID on a windy day,
+SOFT in a breeze, panned from upwind ± a little, its level varied (pickTake never repeats a take); A WHISTLE every ~70–180 s at ≥ 13 m/s.
+The sounds' readout: `sounds.wind` `{ gusts, edge }`. CREDITS: klankbeeld's two exact lines (☰ → CREDITS + audio/city/CREDITS.md).
+
 ## 7b — THE SPEAKEASY'S SLOTS (Oct 24 2026; City 2.0) — `screens/harbor/windows.js`, `screens/harbor/sounds.js#speakeasy`
 The speakeasy's life calls five Part 7 slots — all EMPTY today, so all silent; a recording dropped in starts sounding with its event
 (8P: filled, + the moments' own cues, the barbershop, the broom — tv-murmur stays empty; see 8P below):

@@ -79,7 +79,7 @@ export function windFrame(inp, t, seed = 1924) {
   const level = clamp01((speed - 1) / 19) ** 0.8, gusty = clamp01((gust / Math.max(0.5, speed) - 1) / 0.9) * smooth(2, 8, speed);
   const lean = smooth(3, 22, speed);
   const cross = WIND.crossSlow + (WIND.crossFast - WIND.crossSlow) * smooth(4, 20, speed);
-  const list = level > 0.04 ? gustsNear(t, level, gusty, seed) : [];
+  const list = level > 0.2 ? gustsNear(t, level, gusty, seed) : [];   // (gusts from a real breeze, ≈ 4.6 m/s: still air stays still)
   const at = u => {
     if (!list.length) return 0;
     const d = (side > 0 ? u : 1 - u) * cross;        // (upwind edge first)

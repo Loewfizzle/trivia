@@ -62,6 +62,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   - THE SOLIDS: every solid thing on the promenade is ONE registry (core/harbor-solids.js) — every walk goes round it.
   - NO LAMPPOSTS: the implied lamps; the light in ONE pure module (core/harbor-light.js; NEW light default, `&light=old` for A/B).
   - NO TRAFFIC DURING THE LEGENDARIES (core/harbor-legend.js#trafficHold); every vehicle planner reads it.
+  - THE WIND IS ONE STATE (core/harbor-wind.js → scene.js#WF once a frame): anything that moves in the wind reads it (gusts roll from upwind).
   - THE BEAT: the lights follow the song's grid; a TRUSTED GRID ALWAYS PUNCHES; the kicks only calibrate the lead (core/harbor-beat.js).
   - 3D only as BAKED sprites (scripts/bake-model.mjs); lettering nothing passes in front of → THE CRISP LAYER (crisp.js).
   - Every force flag has a panel row (core/harbor-remote.js; tests/harbor-remote.test.mjs greps for strays).
@@ -255,7 +256,8 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   file) AND the FULL `e2e-harbor` suite (a City 2.0 pass) — the cloud run then CONFIRMS instead of discovers. Measured on it: unit ≈ 75 s, rules ≈ 27 s,
   smoke `GAMES=cipher` ≈ 30 s, one harbor group ≈ 30–130 s, THE FULL HARBOR SUITE ≈ 24 min (762 checks; the machine's peak ~13 GB of 32 — models.md). **Run the full suite with nothing
   else busy** (no model bakes, no shot bursts beside it: under that load every group timed out "the harbor baked" — MODELS). Browser tests run
-  OUTSIDE Claude Code's sandbox (its private AppData copy can't launch Chromium): the local, uncommitted rule in `.claude/settings.local.json`
+  OUTSIDE Claude Code's sandbox (its private AppData copy can't launch Chromium); EVERY browser script imports puppeteer from
+  `tests/integration/kit/puppeteer.mjs` (muted; on Windows software compositing — the TV runs at 29 Hz and headless Chromium followed it to ~30 fps): the local, uncommitted rule in `.claude/settings.local.json`
   (`node tests/integration/e2e-*`, `shots.mjs`, `title-perf.mjs`, `pixdiff.mjs` — run them from the repo root with those paths). Chromium:
   `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`. The laptop is retired (a backup).
 - **GitHub checks** (unit → rules → /api → smoke, on the emulators) run **only on a pass's FINAL push** (SP6, the owner's CLOUD MINUTES, Oct 27):

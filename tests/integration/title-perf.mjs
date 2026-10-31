@@ -93,6 +93,8 @@ const SCENES = {
   // CITY 2.0, Part 4: the water — a windy night (the most light-column copies + the broken mirror); nw- = the same scenes without
   // the live water (only its baked base: Part 3's cost), for a before / after
   'np-windy': 'when=2026-10-14T21:30&wx=clear&wind=13&force=no-planes',
+  // (ATM-A — THE WIND AS ONE SYSTEM: a windy autumn DAY (the crowns cut + swaying, the cat's paws, the leaves), a GALE, a HIGH VEIL)
+  'atm-windy': 'when=2026-10-22T13:00&force=windy,no-planes', 'atm-gale': 'when=2026-10-22T13:00&force=gale,no-planes', 'atm-gale-ns': 'when=2026-10-22T13:00&force=gale,no-planes,no-sway', 'atm-w20': 'when=2026-10-22T13:00&force=windy,no-planes&wind=20', 'atm-veil': 'when=2026-10-22T13:00&wx=veil&force=no-planes',
   // SP6: a normal night with the blue TV window on (23:00); the UFO's abduction (the beam drawn as one image now)
   's9-fresh': 'when=2027-01-15T22:00&wx=clear&snow=fresh&force=no-planes', 's9-fall': 'when=2027-01-14T22:30&snow=fresh&force=snowfall,no-planes', 's9-plow': 'when=2027-01-14T13:00&snow=fresh&force=plow,no-planes', 's9-thaw': 'when=2027-01-15T22:00&wx=clear&snow=thaw&force=no-planes', 's9-party': 'when=2027-01-15T22:30&wx=clear&snow=fresh&force=party,no-planes',   // (9b: WINTER — the snow vs none)
   'sp6-tv': 'when=2026-10-14T23:00&wx=clear&force=no-planes', 'sp6-ufo': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo&lgnow=1',

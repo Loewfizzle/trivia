@@ -1168,12 +1168,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const om = Math.PI * 2 * Math.max(0.38, 0.7 - Hc / 400), ze = 0.22;
       st.v += (om * om * (target - st.x) - 2 * ze * om * st.v) * sec; st.x += st.v * sec;
       const ph = s.i * 2.1 + s.x * 0.07;
-      s.amp = st.x + Hc * ((0.004 + 0.012 * w.level) * Math.sin(t * 1.9 + ph) + 0.003 * w.level * Math.sin(t * 5.3 + ph * 1.7));
+      s.amp = st.x + Hc * (0.014 * w.level * w.level * Math.sin(t * 1.9 + ph) + 0.003 * w.level * Math.sin(t * 5.3 + ph * 1.7));   // (the rock grows with the wind: still air ~0 — a calm night draws no crown)
       s.noCut = false;
       if (Math.abs(s.amp) > Math.abs(big)) big = s.amp;
-      if (Math.abs(s.amp) >= 0.05) (swayCut.get(s.layer) || swayCut.set(s.layer, []).get(s.layer)).push(s);
+      if (Math.abs(s.amp) >= 0.3) (swayCut.get(s.layer) || swayCut.set(s.layer, []).get(s.layer)).push(s);   // (under 0.3 pt nothing shows: no copy, no cut — a calm night costs nothing)
     }
-    swayDbg = { n: geo.length, amp: +big.toFixed(2), why: Math.abs(big) >= 0.05 ? 'on' : 'calm', look: w.look, lean: +w.lean.toFixed(2) };
+    swayDbg = { n: geo.length, amp: +big.toFixed(2), why: Math.abs(big) >= 0.3 ? 'on' : 'calm', look: w.look, lean: +w.lean.toFixed(2) };
     // (two crowns whose boxes overlap can't both be cut by one even-odd clip: those keep the old copy-over)
     for (const list of swayCut.values()) for (let a = 0; a < list.length; a++) for (let b = a + 1; b < list.length; b++) {
       const A = list[a].box, B = list[b].box;
@@ -1182,7 +1182,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   /** the crown's clipped box in a layer (its bake's pixels ↔ the screen) */
   function swayBox(s, g) {
-    const b = s.box, y0 = g.show.y0, x0 = Math.max(0, b.x), yA = Math.max(y0, b.y), x1 = Math.min(W, b.x + b.w), yB = Math.min(y0 + g.show.h, b.y + b.h);
+    // (on whole device pixels: the layer's bands round the box + its patch meet with no anti-aliased seam)
+    const dv = v => Math.round(v * dpr) / dpr;
+    const b = s.box, y0 = g.show.y0, x0 = dv(Math.max(0, b.x)), yA = dv(Math.max(y0, b.y)), x1 = dv(Math.min(W, b.x + b.w)), yB = dv(Math.min(y0 + g.show.h, b.y + b.h));
     const sxk = g.cur.width / W, sy = g.show.h / g.cur.height;
     return x1 - x0 < 2 || yB - yA < 2 ? null : { x: x0, y: yA, w: x1 - x0, h: yB - yA, sx: x0 * sxk, sy: (yA - y0) / sy, sw: (x1 - x0) * sxk, sh: (yB - yA) / sy };
   }
@@ -1209,8 +1211,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const cut = [];
     for (const s of list) { if (s.noCut) continue; const bx = swayBox(s, g); const p = bx && swayPatch(s, g, bx); if (p) cut.push([bx, p]); }
     if (!cut.length) return false;
-    c.save(); c.beginPath(); c.rect(0, g.show.y0, W, g.show.h); for (const [bx] of cut) c.rect(bx.x, bx.y, bx.w, bx.h); c.clip('evenodd');
-    c.drawImage(g.cur, 0, g.show.y0, W, g.show.h); c.restore();
+    // (no clip path — a full-layer draw through an even-odd clip cost ~5 ms a frame on a CPU raster: the layer is drawn as the plain
+    // rectangles AROUND the boxes — horizontal bands between the boxes' edges, each band's spans between them — then each box's patch)
+    const y0 = g.show.y0, y1 = y0 + g.show.h, sxk = g.cur.width / W, syk = g.cur.height / g.show.h;
+    const ys = [...new Set([y0, y1, ...cut.flatMap(([b]) => [Math.max(y0, b.y), Math.min(y1, b.y + b.h)])])].sort((a, b) => a - b);
+    const part = (x, y, w, h) => { if (w > 0.01 && h > 0.01) c.drawImage(g.cur, x * sxk, (y - y0) * syk, w * sxk, h * syk, x, y, w, h); };
+    for (let i = 0; i < ys.length - 1; i++) {
+      const ya = ys[i], yb = ys[i + 1]; if (yb - ya < 0.01) continue;
+      const xs = cut.filter(([b]) => b.y < yb - 0.001 && b.y + b.h > ya + 0.001).map(([b]) => [b.x, b.x + b.w]).sort((a, b) => a[0] - b[0]);
+      let x = 0; for (const [xa, xb] of xs) { part(x, ya, xa - x, yb - ya); x = Math.max(x, xb); } part(x, ya, W - x, yb - ya);
+    }
     for (const [bx, p] of cut) c.drawImage(p, bx.x, bx.y, bx.w, bx.h);
     return true;
   }

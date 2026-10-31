@@ -1608,6 +1608,19 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE DOG's TURN: its heading eased over 0.6 s (dogHeading), its place a continuous function of it (dogOffset), the dock clamp before the
   sniff (dogPlace), a squash-through flip while it turns (drawDog): the biggest move a frame 1.85 → 0.13 u.
 
+## CITY 2.0 — ATM-A: GREEN MEANS GREEN, THE MODELS FIXES, WIND AS ONE SYSTEM, THE CLOUDS + THE SUN (Oct 31 2026) — docs/harbor/passes/atm-a.md (plan.md "OWNER'S NOTES — OCT 31 (night)")
+- GREEN MEANS GREEN: one test browser (tests/integration/kit/puppeteer.mjs) — muted, and on Windows composited in software: the mini PC's
+  TV runs at 4K / 29 Hz and headless Chromium followed its vsync (~30 fps); the first-tap surge's real race (a sub-second dropout while the
+  station's synced player re-places its voices disarmed the detector) fixed in the city; the 20-cycle memory check reads the heap without
+  V8's compiled code (+6.2 MB of JIT vs +0.35 MB of objects); 9c's crisp list waits for the whole list.
+- THE MODELS REVIEW: the boxer's air punches shorter (the bag's unchanged), the glove ~1.3 pt clear of the frame; the wrap-up blind eased +
+  no hand-over snap; the patrol hovers over the roof billboard; the TR-3B casts no light on the city; the cone 10 % shorter; the Mothman
+  postponed (his switch off, his previews kept).
+- WIND AS ONE SYSTEM (core/harbor-wind.js): the crowns on springs with the gust waves rolling through, cut from their layer (no ghost); the
+  rain's slant + gust sheets, the snow, the leaves, the people leaning in, the papel picado + the smoke; the water never a mirror (a
+  roughness floor, a swell, cat's paws); &force=gale; Grok's 13 weather sounds (1.31 MB) — the beds by speed, the gusts on the visual waves.
+- THE CLOUDS' speed locked to minutes (a unit test); the readout's WIND; THE SUN a white-hot core with no rim from ~9° up.
+
 ## CITY 2.0 — THE MODELS PASS: THE MOTHMAN, THE SR-71, THE HELICOPTER, THE SHADOWBOXER (Oct 30 2026) — docs/harbor/passes/models.md (plan.md "OWNER'S NOTES — OCT 30 (evening)")
 - THE MINI PC IS THE BUILD MACHINE: the docs say so (32 GB, Java: the emulators, rules, /api, smoke + the full harbor suite run locally
   before the final push; the sandbox note); the phone bench runs SILENT + reports each scene's load freeze; THE LINKS RULE (a link's
