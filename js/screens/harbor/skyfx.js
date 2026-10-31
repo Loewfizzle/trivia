@@ -58,12 +58,15 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     for (let pass = 0; pass < 3; pass++) for (const r of boxes) if (r.x < x1 + w2 && r.x + r.w > x0 - w2 && r.y < y - top && r.y + r.h > y - top - 3) y = r.y + r.h + top + 3;
     // (a sign BELOW = one that starts under the craft's skids at its highest; one beside it — OVERCLOCK — shrinks the band instead)
     let yMax = Math.min(crowd.y0 - bot - 24, wl.y + wl.h * 0.5);
-    for (const r of boxes) if (r.x < x1 + w2 && r.x + r.w > x0 - w2 && r.y > y + bot) yMax = Math.min(yMax, r.y - bot - 3);
+    for (const r of boxes) if (r.x < x1 + w2 && r.x + r.w > x0 - w2 && r.y > y + bot) yMax = Math.min(yMax, r.y - bot - 5);   // (MODELS: 3 → 5 pt — the hover's ±1.6-pt bob)
     y = Math.max(y, yMax);
     // (…and clear of every sign beside it: the band shrinks away from it)
     const mid0 = (crowd.x0 + crowd.x1) / 2;
     for (const r of boxes) if (r.y < y + bot + 3 && r.y + r.h > y - top - 3 && r.x < x1 + w2 + 4 && r.x + r.w > x0 - w2 - 4) {
-      if (r.x + r.w / 2 < mid0) x0 = Math.max(x0, r.x + r.w + w2 + 4); else x1 = Math.min(x1, r.x - w2 - 4);
+      // (MODELS: + the beam's root's offset — it sits up to 0.08 L off the craft's centre as it turns: the 4-pt margin alone left the
+      // WAIT / WALK lantern 0.3 pt inside the craft's box at the drift's end — a near-miss the cloud's e2e kept catching)
+      const m = w2 + len * 0.12 + 4;
+      if (r.x + r.w / 2 < mid0) x0 = Math.max(x0, r.x + r.w + m); else x1 = Math.min(x1, r.x - m);
     }
     if (x1 < x0) { const m = Math.max(w2, Math.min(W - w2, (x0 + x1) / 2)); x0 = x1 = m; }
     return { aim: { x: (x0 + x1) / 2, y }, band: { x0, x1 } };

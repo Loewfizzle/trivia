@@ -154,6 +154,15 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
 - **LOCAL CHECKS** before the push: unit 925 / 925 (~75 s) · rules 45 / 45 (27 s) · `/api` 25 / 25 (2 s) · smoke `GAMES=cipher` 3 / 3 (30 s).
 - **THE BAKES' WEIGHT**: assets/city/mothman 62 KB, sr71 10 KB, heli 157 KB; audio/city/boxer-* ~170 KB.
 
+## The cloud's run 1 (0c472a9) → the fixes (run 2)
+- tests ✅; harbor 8 / 10 (`models` ✅ first time). **legend**: (1) the break helicopter's lantern check AGAIN (220, 625) — the real cause:
+  scene.js#heliAvoid MEMOIZED its list per layout, and a list built before the WAIT / WALK lantern's box (+ the signs) existed left the
+  lantern out for good — the break band never avoided it (the local passes were the samples missing the drift's end). Now the memo is keyed
+  on what it holds (the signs' count, the lantern, the NEON rect; heliOcc the same), the band's "beside" margin covers the beam root's offset
+  (+0.12 L) and the "below" margin the hover's bob (3 → 5 pt): the craft hovers 9–11 pt higher there, clear. (2) the bench group crashed on a
+  read landing mid-navigation (the bench loads each scene's page) — its reads now retry across a navigation. **audio**: FIRST TAP late —
+  SKY-B's known first-tap flake (a station's first song decodes slowly on CI). Local: heli + bench 26 / 26.
+
 ## Decisions
 - The Mothman 84 pt (not 70) — 38 % of the tucked model is the hem below his talons.
 - The stations' remaining two-device lag is the TV + soundbar's own delay: a per-device SPEAKER DELAY setting, not a guess.
@@ -173,7 +182,7 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
   iOS's reported latencies: read off his phone's `&debug=1` station line.
 - On this machine headless Chromium paints at ~30 fps: `perf`'s calm-load + battery 60-fps checks fail locally on any build (the cloud's
   runners are the judge for those).
-- SKY-B's known flakes stand (the evening's first-tap surge on a slow first decode; 9c's crisp list by day).
+- SKY-B's known flakes stand (the evening's / late first-tap surge on a slow first decode — local + cloud; 9c's crisp list by day).
 
 ## Handoff to ATM
 - Clouds, wind, fog, storm, freezing rain, the sun (decisions.md §10) — the Mothman fades in rain / snow / fog / a storm (his veil from

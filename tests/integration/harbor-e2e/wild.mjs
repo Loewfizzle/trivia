@@ -462,18 +462,20 @@ G('bench', async () => {
     const b0 = await ev(Q.page, `(() => { const b = ${P}.phoneBench; return { running: b.running, text: document.querySelector('.hb-bench').textContent }; })()`);
     ok(!b0.running && /START/.test(b0.text), `THE PHONE BENCH waits for a tap: a START card (${b0.text.slice(0, 60)}…)`);
     await ev(Q.page, `${P}.phoneBench.start()`).catch(() => {});
+    // (MODELS — the cloud caught a read landing mid-navigation (the bench loads each scene's page): every read here retries across one)
+    const evN = async js => { for (let k = 0; k < 20; k++) { try { return await ev(Q.page, js); } catch (e) { if (!/context was destroyed|navigation|Target closed|detached/i.test(String(e && e.message))) throw e; await sleep(250); } } return null; };
     // (SKY-B: EVERY SCENE ON A FRESH PAGE — the bench loads each scene's link: its bakes finished, a cool-down with the city paused, settle, measure)
     const seen = new Set(), phases = new Set(); let loads = 0, lastUrl = '';
     const tB = Date.now();
     while (Date.now() - tB < 90000) {
-      const r = await ev(Q.page, `(() => { const h = window.__district && window.__district.harbor && window.__district.harbor(), b = h && h.phoneBench; return b ? { rows: b.rows, i: b.i, phase: b.phase, running: b.running, url: location.search } : null; })()`).catch(() => null);
+      const r = await evN(`(() => { const h = window.__district && window.__district.harbor && window.__district.harbor(), b = h && h.phoneBench; return b ? { rows: b.rows, i: b.i, phase: b.phase, running: b.running, url: location.search } : null; })()`).catch(() => null);
       if (r) { if (r.url !== lastUrl) { loads++; lastUrl = r.url; seen.add(new URLSearchParams(r.url).get('when')); } if (r.phase) phases.add(r.phase); if (r.rows >= 2 && r.i >= 2) break; }
       await sleep(150);
     }
-    const mid = await ev(Q.page, `({ b: ${P}.phoneBench, q: location.search })`);
+    const mid = await evN(`({ b: ${P}.phoneBench, q: location.search })`);
     ok(mid.b.running && mid.b.i >= 2 && /benchrun=1/.test(mid.q) && loads >= 3 && seen.size >= 2, `THE PHONE BENCH: every scene on a FRESH PAGE, in order (${mid.b.rows} measured, ${loads} pages: ${[...seen].join(' · ')})`);
     ok(['ready', 'cool', 'settle', 'measure'].every(p => phases.has(p)), `THE PHONE BENCH: its bakes finished, then a COOL-DOWN (the city paused), settle, measure (${[...phases].join(' → ')})`);
-    await ev(Q.page, `${P}.phoneBench.stop()`);
+    await evN(`${P}.phoneBench.stop()`);
     await waitFor(Q.page, `${P}.phoneBench.done && ${P}.phoneBench.sent !== null`, 'the report sent (or refused)', 15000).catch(() => {});
     const end = await ev(Q.page, `(() => { const b = ${P}.phoneBench, ta = document.querySelector('.hb-bench textarea'), btns = [...document.querySelectorAll('.hb-bench button')].map(x => x.textContent); return { b, report: ta ? ta.value : '', btns }; })()`);
     ok(end.b.done && /THE PHONE BENCH/.test(end.report) && /a party peak/.test(end.report) && /memory guard:/.test(end.report) && /painted a frame: [\d.]+ MP/.test(end.report) && /outside/.test(end.report) && /CPU speed/.test(end.report) && end.btns.includes('COPY'), `THE PHONE BENCH's REPORT on screen with COPY (${end.report.split('\n').length} lines: the frame side, the pixels painted, the CPU speed) + sent to /admin: ${end.b.sent}`);

@@ -1519,7 +1519,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let avoidMemo = null;
   function heliAvoid() {
     if (!cam) return [];
-    const key = `${cam.W}x${cam.H}|${laneKey}`;
+    // (MODELS: the key carries what the list is made of — the lantern's box + the signs come after the first layout; a list cached before
+    // them left the WAIT / WALK lantern out for good: the break flight's drift reached it — the cloud's e2e caught it)
+    let ns = 0; try { ns = neon.signRects().length; } catch { /* fine */ }
+    const key = `${cam.W}x${cam.H}|${laneKey}|${ns}|${L && L.crosswalk && L.crosswalk.lantern && L.crosswalk.lantern.box ? 1 : 0}|${S.textRects && S.textRects.neon ? 1 : 0}`;
     if (avoidMemo && avoidMemo.key === key) return avoidMemo.v;
     const v = [];
     try { for (const r of neon.signRects()) v.push(r); } catch { /* fine */ }
@@ -1533,7 +1536,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let occMemo = null;
   function heliOcc() {
     if (!cam || !L || !L.speakeasy) return [];
-    const key = `${cam.W}x${cam.H}|${laneKey}`;
+    let ns = 0; try { ns = neon.signRects().length; } catch { /* fine */ }
+    const key = `${cam.W}x${cam.H}|${laneKey}|${ns}`;
     if (occMemo && occMemo.key === key) return occMemo.v;
     const sp = L.speakeasy, [ax, ay] = project(cam, sp.x0, 0, sp.z0), [bx, by] = project(cam, sp.x1, SPEAK_V.crest, sp.z0), v = [{ x: Math.min(ax, bx), y: Math.min(ay, by), w: Math.abs(bx - ax), h: Math.abs(ay - by) }];
     try { for (const r of neon.signRects()) if (r.x < Math.max(ax, bx) && r.x + r.w > Math.min(ax, bx) && r.y + r.h > Math.min(ay, by) - 80) v.push(r); } catch { /* fine */ }
