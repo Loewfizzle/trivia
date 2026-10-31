@@ -4382,3 +4382,9 @@ THE SHADOWBOXER — THE OWNER's REVIEW (Oct 30, 6:01 pm, iPhone, Mon Nov 2 8 pm)
 + THE MINI PC's TV at 4K / 29 Hz (the cause of the "30 fps"): the owner may set Windows to 60 Hz himself — the tests no longer depend on it.
 + COATS + SCARVES don't stream in the wind yet (ATM-A: people only lean + hold their hats) → ATM-B: they do, in strong wind + the blizzard.
 + THE "PANEL PARTY ON" music check missed once in ATM-A's full local run (passes alone) → find + fix the race in ATM-B (green means green).
+
+## ATM-B DONE (Oct 31, ~3 pm — b6c2454 + 1 test fix, live; THE CLOUD: run 1 tests ✅ + harbor 9 / 10 (audio ✗ SONG CLOCK — a test bug: the check read a loaded runner's frame age as drift; fixed), run 2 audio ✅ 142 / 142 — docs/harbor/passes/atm-b.md)
++ FOG AS DEPTH (veils by depth, the lights haloed, banks on the wind; mist ≠ dense), THE STORM (the deck lit from inside, close forks onto a crown / the water / THE NEEDLE, the crack on top, &force=strike), FREEZING RAIN = ICE (icicles on every ledge + the signs' frames, careful steps, sleet), HEAVY SNOW IN LAYERS + THE BLIZZARD (the whiteout, the snow driven sideways, the trees shaking, drifts, the blizzard loops), COATS + SCARVES streaming.
++ Speed (4× CPU A/B vs the build before): clear weather, fog, the storm, freezing rain, a snowfall — all SAME (the fog's halos were capped after a first SLOWER); the blizzard ≈ the old storm's cost.
++ OPEN for ATM-C: PANEL PARTY ON missed once more after its fix (the diagnostic now prints both players' state); the bus crawl in a blizzard not built; the owner's review of ATM-A + ATM-B together.
+

@@ -11,7 +11,9 @@ cloud run; the owner reviews ATM-A + ATM-B TOGETHER → ATM-C, a cleanup pass fo
   before its current one, a voice queued for later read as `playing()` while nothing sounded, so `partyMusicTick` kept returning "synced"
   and the 8 s stall cover (`PARTY_WAIT_MS` → this phone's own player) never ran. FIX (`audio/party-music.js`): the hand-off is reset with each
   new player, and the handed path can't hold the phone silent past `PARTY_WAIT_MS` since the last sound heard (the stall guard then decides,
-  its wait counted from that last sound). Not a tolerance; the test is unchanged.
+  its wait counted from that last sound). Not a tolerance; the test is unchanged. ⚠ NOT PROVEN: it missed once more in a solo `music`
+  run AFTER the fix (`c2-evening9 → null`), then passed 3 / 3 + the cloud's audio job — so this was a hole, not (only) THE cause. The check
+  now prints both players' state when it misses (the synced player, this phone's own, the context) → ATM-C reads that line and fixes the cause.
 - **COATS + SCARVES STREAM** (`folk.js#setFolkWind` — `{ flap, t, at, W, down, icy }`): a long / short coat's hem swings out downwind (the
   downwind corner lifting, a quick flutter), a scarf's tail streams out from the neck as one bold rippling ribbon; each person's share follows
   the GUST WAVE at their place (`WF.at(u)`); the blizzard bows the heads (`down`). From ~7 m/s, full at ~20.
@@ -95,6 +97,13 @@ cloud run; the owner reviews ATM-A + ATM-B TOGETHER → ATM-C, a cleanup pass fo
   both pass alone (9.4 u/s · 0.007 beats). A re-run then caught PANEL "clearing the mood goes back to DAY" once (not in the full run): the
   check waited for ANY change, then read once — now it waits for the DAY song itself (`music` 112 / 112 ×3).
 
+## THE CLOUD
+- Run 1 (the harbor tag, b6c2454): tests ✅ · harbor 9 / 10 ✅ — `audio` ✗ on SONG CLOCK ("playing — the lights on the element's grid": 0.136 beats,
+  the limit 0.12; locally 0.122 once under the shards). A TEST BUG: the probe compared the city's beat (computed in the city's last frame)
+  with the element's position sampled LATER in the probe's frame — a loaded 2-core runner's frame age read as drift. Now the city exposes the
+  song position its frame used (`party().songPos`) and the check compares at that instant (locally 0.001–0.011 beats).
+- Run 2 (`gh workflow run harbor -f job=audio`, the cap's second): `audio` ✅ 142 / 142.
+
 ## Decisions (Claude Code's calls — the owner may overrule)
 - The storm deck's towers are plain dark masses: lit cauliflower crowns were tried twice and read as rows of balls / soap bubbles at phone
   size (the phone-first rule) — the lightning reveals their shape.
@@ -105,6 +114,8 @@ cloud run; the owner reviews ATM-A + ATM-B TOGETHER → ATM-C, a cleanup pass fo
 - Fog and snow share one veil module (a whiteout IS fog, white).
 
 ## Known issues
+- PANEL PARTY ON (the music group) still missed once locally after Group 0's fix — the diagnostic line names the cause next time (ATM-C).
+- RETURN (rAF dropped) in the music group missed once in a solo run (the punch after the restart 0.806 vs 1.234 before) — a timing check, watched.
 - The local run's timing checks (the toast, the calm load) + two shard-load misses (the dog's turn, the song clock) — see Group 5.
 - THE BUS CRAWLING in the blizzard (+ its lamps glowing) is NOT built: the buses run on the shared timetable — slowing them is a planner
   change (every phone) → ATM-C or SCHED.
