@@ -50,3 +50,12 @@ test('LULLS + GUSTS: the wind sits under its mean between gusts, up to the gust 
   let any = 0; for (let t = 0; t < 600; t += 1) any += windFrame(windInput({ wind: 0.5, gust: 0.8 }), t).gusts;
   assert.equal(any, 0, 'calm air: no gusts');
 });
+
+test('THE CLOUDS DO NOT RACE WITH THE WIND (core/harbor-clouds.js#driftSpeed): a cloud crosses a phone in MINUTES even in a gale', async () => {
+  const { driftSpeed } = await import('../js/core/harbor-clouds.js');
+  for (const w of [0, 3, 8, 14, 20, 30]) {
+    const nearest = driftSpeed(w) * 1.1;                 // (the nearest cumulus's depth factor — measured ≤ ~1.1)
+    assert.ok(402 / nearest >= 130, `${w} m/s: the nearest cloud crosses 402 pt in ${(402 / nearest / 60).toFixed(1)} min`);
+  }
+  assert.ok(driftSpeed(20) === driftSpeed(30), 'a gale never speeds them past the cap');
+});

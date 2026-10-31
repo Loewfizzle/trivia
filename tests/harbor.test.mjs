@@ -1703,7 +1703,7 @@ test("THE SUN'S STAGES (sunColourAt): white ≥ 15°, yellow-white 6–15°, gol
   const at = sunColourAt, hue = c => (c[1] - c[2]) / Math.max(1, c[0] - c[2]);   // (0 red … 1 yellow; low = no colour)
   const w = at(20), y = at(10), a = at(4), o = at(1);
   assert.ok(w.disc.every(v => v >= 238) && w.white === 1 && w.halo === 1 && w.squash === 1, '20°: white, the white-hot core + its halo');
-  assert.ok(y.disc[0] === 255 && y.disc[1] >= 215 && y.disc[2] >= 130 && y.disc[2] <= 200 && y.disc[1] - y.disc[2] >= 40 && y.white < 0.05, '10°: warm yellow-white, the coloured disc');
+  assert.ok(y.disc[0] === 255 && y.disc[1] >= 215 && y.disc[2] >= 130 && y.disc[2] <= 200 && y.disc[1] - y.disc[2] >= 40 && y.white > 0.95, '10°: the warm yellow-white stage — ATM-A: its core already WHITE-HOT (no cream disc + rim), the warmth in the ring + the bloom');
   assert.ok(a.disc[0] === 255 && a.disc[1] >= 135 && a.disc[1] <= 185 && a.disc[2] < 90 && a.halo < 0.05 && a.lift < 0.3, '4°: golden amber, no white bloom');
   assert.ok(o.disc[0] === 255 && o.disc[1] < 110 && o.disc[2] < 60, '1°: deep orange-red');
   assert.ok(o.squash >= 0.85 && o.squash <= 0.92 && at(0).squash < o.squash && at(4).squash === 1, '1°: flattened by refraction (0.85–0.9)');

@@ -2634,7 +2634,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function wxLines() {
     const f2 = v => (+v || 0).toFixed(2), pct = v => Math.round((+v || 0) * 100);
     const out = `→ ${LK.wxKind || 'seeded'} · opaque ${f2(LK.cloud)} veil ${f2(LK.veil)} fog ${f2(LK.fog)}`;
-    const wl = weatherLine(WXS) + (SN.stage !== 'none' ? ` · ground ${SN.stage} ${SN.depth} cm (${snowSrc})` : '');
+    const wl = weatherLine(WXS) + (SN.stage !== 'none' ? ` · ground ${SN.stage} ${SN.depth} cm (${snowSrc})` : '') + ` · WIND ${WF.look} ${WF.speed.toFixed(1)} m/s g ${WF.gust.toFixed(1)} ${WF.side > 0 ? '→' : '←'} (${WF.src})`;   // (ATM-A: the shared wind)
     if (clock.force.has('climate')) { const cw = climateNow(); return [`weather: climate fallback — forced (&force=climate)`, `wx ${cw.climate.why} · from ${cw.climate.how} · ${cw.temp} °C · WMO ${cw.code}`, `${out} · climate`, wl]; }
     if (clock.wx) return [`wx FORCED ${clock.wx.kind} (${remoteKey ? 'the panel' : 'the link'})`, `${out} · forced`, wl];
     if (clock.force.has('climate')) { const cw = climateNow(); return [`weather: climate fallback — forced (&force=climate)`, `wx ${cw.climate.why} · from ${cw.climate.how} · ${cw.temp} °C · WMO ${cw.code}`, `${out} · climate`, wl]; }

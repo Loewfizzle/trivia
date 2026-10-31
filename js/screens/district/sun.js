@@ -32,7 +32,7 @@ export function sunColor(el) {
 /** PURE (CITY 2.0 — the Harbor's sun only; City 1.0 keeps sunColor + sunShape): THE SUN'S STAGES by its real elevation, the
  *  one table the disc, its glow and its halo all read (the same rising as setting — it is a function of the elevation only):
  *    ≥ ~15°   white — you can't see its colour, only its light (the white-hot core, the big white bloom + halo)
- *    6–15°    warm yellow-white (the core still bright, the bloom cream)
+ *    6–15°    warm yellow-white (ATM-A: the core white-hot from ~9°, the warmth in its outer ring + the bloom)
  *    2–6°     clearly golden amber (the disc crisp + coloured, the bloom warm)
  *    < ~2°    deep orange-red, flattened by refraction (0.85–0.9 high at the horizon)
  *  Every value is a smooth function of el (colours interpolated between the stops, shares by smoothstep): no visible steps.
@@ -51,7 +51,11 @@ export function sunColourAt(el) {
   const gw = 0.5 + 0.5 * smooth(6, 18, el);
   return {
     disc, glow: disc.map((v, j) => Math.round(lerp(v, [255, 250, 240][j], gw))),
-    lift: lerp(0.18, 0.55, smooth(2, 12, el)), white: smooth(10, 18, el), halo: smooth(3.5, 15, el), squash: lerp(0.85, 1, smooth(-0.5, 3.5, el)),
+    // (ATM-A — THE SUN LOOKS WRONG, the owner Oct 29 9:35 am: "a flat pale CREAM DISC … like a paper plate" at ~11° up — the coloured disc
+    // with its rim still showed there. The WHITE-HOT CORE now takes over from ~3–9° up: a near-white core blowing out into its glow, no
+    // rim; the stage's warmth lives in its soft outer ring + the bloom (so 6–8° before sunset still reads warm); the crisp coloured disc
+    // only right at the horizon)
+    lift: lerp(0.18, 0.55, smooth(2, 12, el)), white: smooth(3, 9, el), halo: smooth(3.5, 15, el), squash: lerp(0.85, 1, smooth(-0.5, 3.5, el)),
   };
 }
 /** PURE: the Harbor's disc colour alone (sunColourAt(el).disc) */
@@ -271,9 +275,11 @@ export function createSun(opts = {}) {
     let cv = hots.get(k);
     if (!cv) {
       cv = mk(128, 128); const x = cv.getContext('2d');
-      const g = x.createRadialGradient(64, 64, 0, 64, 64, 64), hi = col.map(v => Math.min(255, v + (255 - v) * 0.7));
-      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.62, 'rgba(255,255,253,1)'); g.addColorStop(0.8, `rgba(${hi.map(Math.round)},0.92)`);
-      g.addColorStop(0.9, `rgba(${k},0.45)`); g.addColorStop(1, `rgba(${k},0)`);
+      // (ATM-A — NO RIM: the owner's "paper plate" was this ring — the stage's cream at 0.8–0.9 of the radius at full strength read as an
+      // outlined disc. The core stays white, then BLOWS OUT smoothly into the bloom, only a hint of the stage's warmth as it fades)
+      const g = x.createRadialGradient(64, 64, 0, 64, 64, 64), mixW = a => col.map(v => Math.round(255 + (v - 255) * a));
+      g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.5, 'rgba(255,255,254,1)'); g.addColorStop(0.68, `rgba(${mixW(0.12)},0.82)`);
+      g.addColorStop(0.84, `rgba(${mixW(0.25)},0.36)`); g.addColorStop(1, `rgba(${mixW(0.35)},0)`);
       x.fillStyle = g; x.fillRect(0, 0, 128, 128);
       if (hots.size > 40) hots.clear();
       hots.set(k, cv);
