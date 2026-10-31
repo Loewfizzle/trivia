@@ -312,16 +312,17 @@ G('legends', async () => {
     ok(span >= 60 && span < 402, `THE TR-3B ARRIVING: ${Math.round(span)} pt of the city flickering out (${d.length} strips) — not all of it yet`);
     await Q.ctx.close(); }
   // ---- SKY-A — THE TR-3B AT FULL RES (&lgs=15, a 3× phone at tier 2): its own overlay at the phone's dpr (the crowns cut out of it), its
-  // lights LIGHT THE WORLD (a glow on the drained rooftops + the harbor's reflections); TOOLS → TR-3B SOFT = the city's own 2× copy
+  // own lights on the craft — and (ATM-A, the owner: "no reflected light on the city at all") NOTHING CAST on the drained city: no glow on the
+  // rooftops, no pools on the harbor; TOOLS → TR-3B SOFT = the city's own 2× copy
   for (const [slot, extra, hi] of [['lg2h', '', true], ['lg2k', ',no-legend-crisp', false]]) {
     const Q = await open({ slot, qs: `${NIGHT}&wx=clear&force=tr3b${extra}&lgs=15`, view: [402, 874], dpr: 3 });
     await harborUp(Q.page); await ev(Q.page, 'window.__district.setTier(2)');
-    await waitFor(Q.page, `${P}.legend.state.phase === 'cross' && !!${P}.tr3bLight`, 'the TR-3B crossing', 20000).catch(() => {});
+    await waitFor(Q.page, `${P}.legend.state.phase === 'cross' && ${P}.tr3bLight.lights > 0`, 'the TR-3B crossing', 20000).catch(() => {});
     await sleep(800);
     const st = await ev(Q.page, `${P}.legend.state`), wl = await ev(Q.page, `${P}.tr3bLight`), cv = await ev(Q.page, `!!document.querySelector('canvas.hl-tri')`);
     if (hi) {
       ok(st.triHi && st.triDpr >= 2.9 && cv, `THE TR-3B AT FULL RES: its own overlay at ${st.triDpr}× (the city's canvas is 2×)`);
-      ok(wl && wl.any && wl.n === 4, `ITS LIGHTS LIGHT THE WORLD: ${wl && wl.n} lights (three corners + the orb) on the drained rooftops + the water`);
+      ok(wl && wl.cast === false && wl.lights === 4, `ITS LIGHTS STAY ON THE CRAFT: ${wl && wl.lights} lights (three corners + the orb) on it, nothing cast on the drained city (ATM-A)`);
       if (SHOTS) await Q.page.screenshot({ path: `${OUT}legend-tr3b-fullres-402x874.png` });
     } else ok(!st.triHi && !cv, 'TOOLS → TR-3B SOFT: back on the city’s own canvas (no overlay)');
     await Q.ctx.close();

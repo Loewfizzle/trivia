@@ -436,7 +436,7 @@ export function createAir() {
         // speakeasy + its roof billboard — s.heliOcc) climbs ABOVE it into open sky — over every sign there too — and looks down at the
         // promenade from up there; always visible)
         let sy = kind === 'roof' ? roofY : y, over = false;
-        for (let pass = 0; pass < 3; pass++) for (const r of [...occ, ...avoid]) if (r.x < x + len * 0.62 && r.x + r.w > x - len * 0.62 && r.y < sy + bot && r.y + r.h > sy - top && (occ.includes(r) || over)) { sy = r.y - bot - 4 * K; over = true; }
+        for (let pass = 0; pass < 3; pass++) for (const r of [...occ, ...avoid]) if (r.x < x + len * 0.62 && r.x + r.w > x - len * 0.62 && r.y < sy + bot && r.y + r.h > sy - top && (occ.includes(r) || over)) { sy = r.y - bot - 6 * K; over = true; }   // (ATM-A: 4 → 6 pt — the hover's bob (±1.6) clear too)
         if (over) kind = 'promenade';
         route.push([x, sy, P.stop[n] * (0.85 + 0.3 * rnd(i * 9 + 7 + j)), 1, { look: kind, id: `${i}.${j}`, over }]);
       }

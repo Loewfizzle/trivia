@@ -158,7 +158,9 @@ export function boxerAt(s, plan, key = '', seed = 1924) {
     const e = s - plan.end;
     if (e < P.outWalk) return { phase: 'done', t: e, blind: 0, lamp: 1, inView: true, x: 0.35, face: -BAG_SIDE, bagSide: BAG_SIDE };
     const e2 = e - P.outWalk;
-    if (e2 < P.blindDown) return { phase: 'out', t: e2, blind: e2 / P.blindDown, lamp: 1, inView: false, bagSide: BAG_SIDE };
+    // (ATM-A — the owner: the wrap-up's blind "snaps, kind of bounces into place" → eased all the way down: it slows into the sill, no
+    // stop at full speed; windows.js keeps drawing his room until the bulb is out, so nothing swaps under the landed blind)
+    if (e2 < P.blindDown) { const u = e2 / P.blindDown; return { phase: 'out', t: e2, blind: u * u * (3 - 2 * u), lamp: 1, inView: false, bagSide: BAG_SIDE }; }
     return { phase: 'out', t: e2, blind: 1, lamp: e2 < P.blindDown + P.lampOff ? 1 : 0, inView: false, bagSide: BAG_SIDE };
   }
   // which set + where in it

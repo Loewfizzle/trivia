@@ -191,7 +191,7 @@ export function createBlackbird() {
     // SKY-B — THE VAPOR CONE, CENTRE STAGE: it forms round the craft's tail half as its middle crosses the screen's centre, then STAYS where
     // the barrier broke as the craft tears on out of it — a big bright white bell (bigger + brighter than SKY-A's, ~0.6 × the body tall),
     // its sharp leading edge, the shock's striations, a wide soft bloom; it holds, then DISSIPATES slowly — swelling, softening, fading
-    // (MODELS: BIGGER, BRIGHTER, it LASTS — it swells a touch through its ~2.6 s hold, then dissolves slowly (BB.coneHold / coneFade))
+    // (MODELS: BIGGER, BRIGHTER, it LASTS — it swells a touch through its hold (ATM-A: ~2.3 s), then dissolves slowly (BB.coneHold / coneFade))
     if (st.cone > 0.004) {
       const cx = noseX(st.coneU) - fl.dir * len * 0.42, age = Math.max(0, st.coneS), sw = 1 + 0.12 * Math.min(1, Math.max(0, age - BB.coneIn) / BB.coneHold) + 0.3 * Math.min(1, Math.max(0, age - BB.coneIn - BB.coneHold) / BB.coneFade) + 0.04 * Math.min(1, age / 0.3);
       const k = st.cone, soft = 1 - k, L0 = len * 0.74 * sw, R1 = len * 0.34 * sw, R0 = len * 0.055 * sw, f0 = cx + fl.dir * L0 * 0.42, f1 = cx - fl.dir * L0 * 0.58;

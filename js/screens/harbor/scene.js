@@ -1465,45 +1465,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     });
     if (on && st && st.model === 'glide') fastUntil = Math.max(fastUntil, performance.now() + 300);
   }
-  // ---------------------------------------------------------------- SKY-A — THE TR-3B's LIGHTS LIGHT THE WORLD (the owner, Oct 30): the city
-  // is DRAINED dark while it passes, so its corner lights + the red orb are nearly the only light — a soft white / red glow slides across
-  // the ROOFTOPS + tower tops under it (masked to the buildings' own silhouettes: the far + near bakes, a mask built once per skyline) and
-  // shows as moving REFLECTIONS on the harbor (water.light). Cached sprites only, at half resolution (a glow is soft).
-  let wlCv = null, wlX = null, wlMask = null, wlMaskKey = '', wlDbg = null, wlFailed = false;
-  const wlSpr = new Map();
-  const wlSprite = col => { const k = col.join(','); let cv = wlSpr.get(k); if (!cv) { cv = document.createElement('canvas'); cv.width = cv.height = 64; const x = ctx2d(cv); if (x) { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, `rgba(${k},0.9)`); g.addColorStop(0.35, `rgba(${k},0.4)`); g.addColorStop(1, `rgba(${k},0)`); x.fillStyle = g; x.fillRect(0, 0, 64, 64); } wlSpr.set(k, cv); } return cv; };
-  function triWorldLight(c, lights, sk) {
-    if (!sk || !sk.length || !cam) return;
-    let mn = Infinity; for (const v of sk) if (Number.isFinite(v) && v < mn) mn = v;
-    for (const n of ['far', 'near']) { const g = baker.group(n); if (g && g.ready && g.show) mn = Math.min(mn, g.show.y0 + 30); }   // (the tallest crowns too)
-    const top = Math.max(0, mn - 30), bot = L.lanes && L.lanes.water ? L.lanes.water.y : HZ, h = bot - top, s = 0.5;
-    if (!(h >= 10)) { wlDbg = { why: 'h', top, bot, mn }; return; }
-    const cw = Math.ceil(W * s), ch = Math.ceil(h * s), mk = `${baker.key}|${cw}x${ch}|${Math.round(top)}`;
-    if (!wlCv || wlCv.width !== cw || wlCv.height !== ch) { if (!wlCv) wlCv = document.createElement('canvas'); wlCv.width = cw; wlCv.height = ch; wlX = ctx2d(wlCv); }
-    if (!wlX) return;
-    if (mk !== wlMaskKey) {
-      wlMaskKey = mk; if (!wlMask) wlMask = document.createElement('canvas'); wlMask.width = cw; wlMask.height = ch;
-      const m = ctx2d(wlMask); if (m) { m.setTransform(s, 0, 0, s, 0, -top * s); for (const n of ['far', 'near']) { const g = baker.group(n); if (g && g.ready && g.cur) m.drawImage(g.cur, 0, g.show.y0, W, g.show.h); } }
-    }
-    const x = wlX;
-    x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, cw, ch);
-    x.setTransform(s, 0, 0, s, 0, -top * s); x.globalCompositeOperation = 'lighter';
-    let any = false;
-    for (const l of lights) {
-      // (the light falls DOWN from the craft — the owner, Oct 30: the first pass "almost looks too bright", whole towers lit top to bottom like
-      // a floodlight. Now a SHALLOW pool just under each light: the crowns nearest it catch it, the walls below fade fast (the masks keep it
-      // on the buildings), a lower peak; the orb's red a warmer, less saturated red-orange — light on stone, not a red filter)
-      const k = l.k * (l.orb ? 0.34 : 0.24), rx = l.orb ? 125 : 90, ry = l.orb ? 82 : 66;
-      if (k < 0.02) continue;
-      any = true;
-      x.globalAlpha = Math.min(1, k); x.drawImage(wlSprite(l.orb ? [255, 120, 80] : l.col), l.x - rx, l.y + 26 - ry, rx * 2, ry * 2);
-      try { water.light(l.x, l.y, l.col, k * (l.orb ? 0.8 : 0.6), l.orb ? 5 : 3.5); } catch { /* fine */ }
-    }
-    wlDbg = { n: lights.length, any, top: Math.round(top), bot: Math.round(bot), lights: lights.map(l => ({ x: Math.round(l.x), y: Math.round(l.y), roof: Math.round(sk[Math.max(0, Math.min(sk.length - 1, Math.round(l.x / 4)))]) })) };
-    if (!any) return;
-    x.globalAlpha = 1; x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'destination-in'; x.drawImage(wlMask, 0, 0);
-    c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 1; c.drawImage(wlCv, 0, top, W, h); c.restore();
-  }
+  // ---------------------------------------------------------------- THE TR-3B CASTS NO LIGHT ON THE CITY (ATM-A — the owner's MODELS review,
+  // Oct 31: "no reflected light on the city at all" — SUPERSEDES SKY-A's "its lights light the world" + SKY-B's "keep the white + red on the
+  // tower tops"). The glow on the drained rooftops + its pools on the harbor are gone; the craft's OWN lights (the corners, the hub, the red
+  // orb — glowing + blinking on the craft, legends.js) stay; the drained city stays dark.
   /** SKY-A — the TR-3B's full-res overlay: cut out exactly what stands in front of it (the skyline's own bitmaps: far, near, the harbor's
    *  pieces, the billboards) — x already transformed to screen pt; box: the overlay's { left, top, w, h } */
   function cityCut(x, box) {
@@ -1537,9 +1502,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function heliOcc() {
     if (!cam || !L || !L.speakeasy) return [];
     let ns = 0; try { ns = neon.signRects().length; } catch { /* fine */ }
-    const key = `${cam.W}x${cam.H}|${laneKey}|${ns}`;
+    // (ATM-A — the owner: the hover "above the speakeasy" sat BEHIND THE BILLBOARD: the list had the front up to its crest but not the roof
+    // board above it. + the board (its poster face + the lamps over it): the stop climbs over the billboard into open sky)
+    let bd = null; try { bd = (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak' && b.rect); } catch { /* fine */ }
+    const key = `${cam.W}x${cam.H}|${laneKey}|${ns}|${bd ? `${Math.round(bd.rect.x)},${Math.round(bd.rect.y)},${Math.round(bd.rect.w)},${Math.round(bd.rect.h)}` : '-'}`;
     if (occMemo && occMemo.key === key) return occMemo.v;
     const sp = L.speakeasy, [ax, ay] = project(cam, sp.x0, 0, sp.z0), [bx, by] = project(cam, sp.x1, SPEAK_V.crest, sp.z0), v = [{ x: Math.min(ax, bx), y: Math.min(ay, by), w: Math.abs(bx - ax), h: Math.abs(ay - by) }];
+    if (bd) { const r = bd.rect, lamps = r.h * 0.35; v.push({ x: r.x - 2, y: r.y - lamps, w: r.w + 4, h: r.h + lamps + 2 }); }
     try { for (const r of neon.signRects()) if (r.x < Math.max(ax, bx) && r.x + r.w > Math.min(ax, bx) && r.y + r.h > Math.min(ay, by) - 80) v.push(r); } catch { /* fine */ }
     occMemo = { key, v };
     return v;
@@ -2164,7 +2133,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     lights.lateTv(LK.local ? lateTvK(LK.local.h + LK.local.mi / 60) * nightK : 0);
     if (!deadCity) lights.draw(c, 'near', now, nightK, S.motion);
     neon.draw(c, 'near', deadCity ? { ...nf, off: true } : nf);
-    if (legends && legends.active() && fadeIn > 0) { const tl = legends.triLights && legends.triLights(); if (tl) { try { triWorldLight(c, tl, skyline); } catch (e) { wlDbg = { err: String(e && e.message) }; if (!wlFailed) { wlFailed = true; reportError(e, 'harbor tr3b light'); } } } }
     // 9e — THE CONSTRUCTION TOWER's live layer (tower.js: the crane, the work lights, topping out, the implosion + its dust, the opening's
     // searchlights) — behind the roofs nearer than the slot (its own clip)
     if (TWS && !off.has('no-tower')) towerFx.draw(c, { st: TWS, T: bakeTones, dpr, bt: now / 1000, night: litK(DK, 'lamps'), t, motion: S.motion, power: LB ? legendPow(W * 0.3, 'city', 411) : 1, logo: S.logoRect, fade: fadeIn, wind: LK.wind == null ? 3 : LK.wind });
@@ -3449,7 +3417,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
       roofCrisp: roofCrispDebug(), liveCrisp: liveCrispDebug(),   // (NIGHT-C: the live windows' crisp share each)   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
-      heliOcc: heliOcc(), tr3bLight: wlDbg, mothman: { ...(moth.debug() || {}), tip: mmTip ? mmTip.map(v => Math.round(v)) : null, ready: moth.ready() }, blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot }); } },
+      heliOcc: heliOcc(), tr3bLight: { cast: false, lights: legends && legends.triLights ? (legends.triLights() || []).length : 0 } /* (ATM-A: its lights cast nothing on the city) */, mothman: { ...(moth.debug() || {}), tip: mmTip ? mmTip.map(v => Math.round(v)) : null, ready: moth.ready() }, blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot }); } },
       heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), ms: sky.heliMs ? sky.heliMs() : null, crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),

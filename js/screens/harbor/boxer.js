@@ -32,6 +32,13 @@ const PUNCH = {                                        // (the punching arm at f
   hook: [[0.28, 0.81], [0.37, 0.84]],
   upper: [[0.17, 0.67], [0.27, 0.94]],
 };
+// ATM-A — THE AIR PUNCHES a little shorter (the owner's MODELS review, Oct 31: the glove touched the window's dark edge and the arm read
+// long; "DON'T OVERCORRECT"; the BAG punches are "perfect" — they keep PUNCH as it is). In the air (beat.at 'air') the arm is scaled
+// from ITS shoulder: the jab 0.89 (shoulder → glove's far edge ≈ 0.48 → 0.43 of his height), the cross 0.82 (≈ 0.55 → 0.45), the hook's
+// upper arm 0.9 (its forearm kept), the uppercut as it is — and the shoulder ROTATES FORWARD into the punch a little more (the torso
+// carries the glove, the arm doesn't stretch). Still full extension: the elbow straight, the beat held out.
+const AIR = { straight: [0.89, 0.82], hook: 0.9, rot: [0.05, 0.085] };
+const SHOULDER = { lead: [0.025, -0.03], rear: [-0.015, -0.03] };     // (silhouette(): each arm's shoulder from the pose's sh)
 function stance(o = {}) {
   const b = o.bob || 0, sway = o.sway || 0, lean = o.lean || 0, dy = o.dy || 0, dx = o.dx || 0;
   const hip = [0.0 + sway + dx * 0.6, 0.49 + b + dy], sh = [0.05 + sway + lean + dx, 0.79 + b + dy * 1.05], head = [0.09 + sway + lean * 1.25 + dx * 1.1 + (o.headX || 0), 0.905 + b * 1.15 + dy * 1.1 + (o.headY || 0)];
@@ -65,7 +72,15 @@ function roundPose(st, t, mo) {
     const d = bt - p.t, OUT = 0.11, HOLD = 0.06, BACK = 0.17;
     if (d < -0.01 || d > OUT + HOLD + BACK) continue;
     const e = d < OUT ? easeOut(clamp01((d + 0.01) / (OUT + 0.01))) : d < OUT + HOLD ? 1 : 1 - ease(clamp01((d - OUT - HOLD) / BACK));
-    const arm = p.arm ? 'rear' : 'lead', G0 = P.arms[arm], Pk = PUNCH[p.kind] || PUNCH.straight, rot = (p.arm ? 0.06 : 0.035) * e;
+    const arm = p.arm ? 'rear' : 'lead', G0 = P.arms[arm], air = b.at === 'air', kind = PUNCH[p.kind] ? p.kind : 'straight';
+    const rot = (air ? AIR.rot[p.arm ? 1 : 0] : p.arm ? 0.06 : 0.035) * e;
+    let Pk = PUNCH[kind];
+    if (air && kind !== 'upper') {
+      // (scaled from this arm's shoulder — the stance's sh + the arm's offset; the punch's turn moves shoulder + arm together below)
+      const S = add(P.sh, SHOULDER[arm][0], SHOULDER[arm][1]);
+      if (kind === 'straight') { const k = AIR.straight[p.arm ? 1 : 0]; Pk = [lp(S, Pk[0], k), lp(S, Pk[1], k)]; }
+      else { const el = lp(S, Pk[0], AIR.hook); Pk = [el, add(el, Pk[1][0] - Pk[0][0], Pk[1][1] - Pk[0][1])]; }
+    }
     P.arms[arm] = [lp(G0[0], add(Pk[0], rot, 0), e), lp(G0[1], add(Pk[1], rot, 0), e)];
     P.sh = add(P.sh, rot, 0); P.head = add(P.head, rot * 1.1, -0.006 * e); P.hip = add(P.hip, rot * 0.35, 0);
     if (p.arm) P.legs.back[1] = add(P.legs.back[1], 0.02 * e, 0.01 * e);   // (the rear heel turns in behind a cross)
@@ -186,7 +201,9 @@ export function boxerRoom(E, st, o = {}) {
   // HIM: his place across the room (core: x 0 = the open side's wall … BAG_X = his spot at the bag, a full reach from it), the way he faces
   // (his room is ~square and his straight reaches ~⅓ of its width: the OPEN FLOOR he punches from (facing left) sits mid-room, so a full
   // jab never leaves the frame; the wall he sits against at the left; his spot at the bag a reach from it — core x → the pane, piecewise)
-  const spot = bagX - 0.53 * H, KX = [[-0.32, x0 - 0.3 * H], [0.1, x0 + 0.12 * cw], [0.14, x0 + 0.4 * cw], [0.5, x0 + 0.58 * cw], [BAG_X, spot]];
+  // (ATM-A: the open floor’s ends 0.40 / 0.58 → 0.478 / 0.62 of the pane — with the shorter air punches the glove at the left end now
+  // stops ~1.4 pt short of the window's frame (it ran ~3 pt under it: "the glove touches the dark edge"); the bag's spot unchanged)
+  const spot = bagX - 0.53 * H, KX = [[-0.32, x0 - 0.3 * H], [0.1, x0 + 0.12 * cw], [0.14, x0 + 0.478 * cw], [0.5, x0 + 0.62 * cw], [BAG_X, spot]];
   const fxOf = x => { if (x <= KX[0][0]) return KX[0][1]; for (let i = 1; i < KX.length; i++) if (x <= KX[i][0]) { const [a, A] = KX[i - 1], [b, B] = KX[i]; return A + (B - A) * ((x - a) / (b - a)); } return spot; };
   let fx = fxOf(st.x == null ? 0.35 : st.x), face = st.face == null ? -1 : st.face;
   if ((st.phase === 'rest' || st.phase === 'break') && st.rest) { const R = st.rest, k = R.act === 'walk' || R.act === 'back' || R.act === 'walkout' ? ease(R.u) : 1; fx = fxOf(lerp(R.x0, R.x1, k)); face = R.face; }

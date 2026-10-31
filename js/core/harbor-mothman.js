@@ -22,8 +22,11 @@ function dice(y, m, d) {
   if (u >= P.p) return null;
   return { arrive: Math.round(lerp(P.arriveFrom, P.arriveTo, a) * 60) / 60, leave: Math.round(lerp(P.leaveFrom, P.leaveTo, l) * 60) / 60 };
 }
-/** his night: (y, m, d) = the EVENING's local date → { arrive, leave } (hours on that evening's clock: 26 = 2 am) | null */
-export function mothmanNight(y, m, d) {
+/** his night: (y, m, d) = the EVENING's local date → { arrive, leave } (hours on that evening's clock: 26 = 2 am) | null.
+ *  ATM-A — POSTPONED (the owner, Oct 31): no nights while the timetable's switch (legend.mothman knobs.on) is off; o.dice: the nights the
+ *  dice would give (the tests of his calendar, the switch aside) */
+export function mothmanNight(y, m, d, o = {}) {
+  if (!o.dice && !knob('legend.mothman').on) return null;
   if (m === 10 && d === 31) return null;                          // (the ghost ship's night)
   const t = dice(y, m, d);
   if (!t || legendNight(y, m, d)) return null;
@@ -68,7 +71,7 @@ export function mothmanAt(lc, o = {}) {
   // (the evening a small-hours moment belongs to: after noon → today's evening; before → yesterday's, its hour + 24)
   let y = lc.y, m = lc.m, d = lc.d, hr = hr0;
   if (hr0 < 12) { [y, m, d] = prevDay(lc.y, lc.m, lc.d); hr = hr0 + 24; }
-  const n = mothmanNight(y, m, d);
+  const n = mothmanNight(y, m, d, { dice: !!o.dice });
   if (!n) return null;
   const s = (hr - n.arrive) * 3600, sl = (hr - n.leave) * 3600;
   if (s < 0) return null;

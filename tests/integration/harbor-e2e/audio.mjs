@@ -832,7 +832,9 @@ G('heli', async () => {
   for (const [when, what] of [[into(nightF), 'night'], [into(dayF), 'day']]) {
     const Q = await open({ slot: `hp${what}`, qs: `when=${when}${GR}&wx=clear`, view: [402, 874] });
     await harborUp(Q.page);
-    await waitFor(Q.page, `!!(${H}.up)`, `the ${what} patrol up`, 25000).catch(() => {});
+    // (ATM-A: judged ON SCREEN — the flight's turns climb to the far pass off the screen's edge (x ≈ W + its length), where "low over the
+    // harbor" means nothing; a sample there failed once the hover's height moved the timing by a second)
+    await waitFor(Q.page, `(() => { const u = ${H}.up; return !!(u && u.x > 0 && u.x < innerWidth); })()`, `the ${what} patrol up`, 25000).catch(() => {});
     const h = await ev(Q.page, H), wl = await ev(Q.page, 'window.__district.harbor().lanes && window.__district.harbor().lanes.water ? window.__district.harbor().lanes.water.y : null');
     ok(h.up && h.up.dur >= (what === 'night' ? 180 : 120) && h.up.dur <= (what === 'night' ? 250 : 180), `SKY-B — A SLOW CIRCLE ROUND THE CITY (${what}): the patrol's flight ${h.up && h.up.dur} s (night 3–4 min, day 2–3 min)`);
     ok(h.up && h.up.mode === 'patrol' && (wl == null || (h.up.behind ? h.up.y < wl : h.up.y > wl - 60)), `THE PATROL (${what}, Tue 27 ${when.slice(11, 16)}): up — ${h.up ? `${h.up.behind ? 'BEHIND the towers' : 'low over the harbor'} (${h.up.x}, ${h.up.y}${h.up.hover ? ', stopped' : ''})` : 'nothing'}${wl != null ? ` — the water at ${Math.round(wl)}` : ''}`);

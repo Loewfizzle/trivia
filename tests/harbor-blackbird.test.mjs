@@ -17,11 +17,12 @@ test('THE FLYBY: the tell before it, the cone just after it enters, the ring, fu
   const noseAt = u => -0.2 * 96 + u * (402 + 0.2 * 96), mid = noseAt(c.coneU) - 48;
   assert.ok(Math.abs(mid - 201) < 40, `the barrier breaks centre stage (the craft's middle at ${mid.toFixed(0)} of 402)`);
   // (MODELS — the owner: it LASTS — full through ~2.5–3 s, then a slow dissolve)
-  assert.ok(bbAt(BB.cone + 2.5).cone > 0.99, `still full at 2.5 s (${bbAt(BB.cone + 2.5).cone.toFixed(2)})`);
+  assert.ok(bbAt(BB.cone + 2.3).cone > 0.99 && bbAt(BB.cone + 2.6).cone < 0.99, `still full at 2.3 s (${bbAt(BB.cone + 2.3).cone.toFixed(2)}), dissolving by 2.6 s (ATM-A)`);
   const mf = BB.coneIn + BB.coneHold + BB.coneFade * 0.5;
   assert.ok(bbAt(BB.cone + mf).cone > 0.05 && bbAt(BB.cone + mf).cone < 0.7, `still there + fading at ${mf.toFixed(1)} s (${bbAt(BB.cone + mf).cone.toFixed(2)})`);
   const gone = BB.coneIn + BB.coneHold + BB.coneFade;
-  assert.ok(gone >= 4.5 && gone <= 6 && bbAt(BB.cone + gone + 0.01).cone === 0, `the cone's whole life ${gone.toFixed(2)} s (MODELS: ~2.6 s held + a ~2.6 s dissolve)`);
+  assert.ok(gone >= 4.5 && gone <= 6 && bbAt(BB.cone + gone + 0.01).cone === 0, `the cone's whole life ${gone.toFixed(2)} s (ATM-A: ~2.3 s held + the ~2.6 s dissolve)`);
+  assert.ok(Math.abs(BB.coneHold - 2.6 * 0.9) < 0.02 && BB.coneFade === 2.6, 'ATM-A — the owner: the cone 10 % shorter in the air (~2.6 → ~2.3 s), the slow dissolve kept');
   for (let s = 0; s < gone; s += 0.05) assert.ok(bbAt(BB.cone + s + 0.05).cone <= bbAt(BB.cone + s).cone + 1e-9 || s < BB.coneIn, 'it only fades once it has bloomed');
   assert.ok(BB.ring >= 1.5 && bbAt(BB.cone + BB.ring + 0.01).ring === null, 'the ring fades with it');
   assert.equal(bbAt(BB.cone + BB.boom - 0.01).boom, null);

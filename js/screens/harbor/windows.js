@@ -178,7 +178,7 @@ export function createWindowLife() {
     if (states.bar === 'last') full.add('bar');
     for (const e of on) if (e.id === 'lights-out') full.add('apartment'); else if (e.id === 'wake') full.add(e.win); else if (e.id === 'bartender') full.add('bar'); else if (e.id === 'eyes') full.add(e.win);   // (WIN2: the eyes' dark room; SP5: the wake in its own window)
     if (party && party.on) for (const id of party.order) if (party.k[id] > 0.001 || party.cut) full.add(id);   // (WIN3: a party room is drawn whole here)
-    if (bx && bx.blind < 0.999) full.add('back');   // (SKY-B: his room drawn whole here)
+    if (boxerOpen(bx)) full.add('back');   // (SKY-B: his room drawn whole here — ATM-A: until his bulb is out, the blind down over it)
     // WIN2 — THE EDGE WINDOWS' MOOD LIGHTS: at night the two edge windows are the live layer's (their mood seeded by the night's date)
     if (darkAtNow(h, ctx.dark)) { full.add('edge2'); full.add('edge3'); }
     const moods = edgeMoods(nightKey, { hol: ctx.hol ? ctx.hol.id : null, party: ctx.party });
@@ -237,7 +237,7 @@ export function createWindowLife() {
         c.restore(); for (const fn of E0.after) fn(); continue;
       }
       // SKY-B — THE SHADOWBOXER's ROOM (boxer.js): the bulb, the amber wall, the bag, him — his blind over it while it rolls
-      if (w.id === 'back' && fr.boxer && pk < 0.999) {
+      if (w.id === 'back' && fr.boxer && (pk < 0.999 || boxerOpen(fr.boxer))) {
         const Eb = { c, G, w, k, kl: k * (fr.boxer.lamp == null ? 1 : fr.boxer.lamp), day, t, mo, T, glints, f, env, frameC, after: [], B: boxOf(G, env.vp) };
         busyNow = busyNow || fr.boxer.inView || pk > 0.002;
         sceneSafe(c, 'boxer', () => { lastBoxer = boxerRoom(Eb, fr.boxer, { key: fr.boxer.key, seed: fr.boxer.seed }); });
@@ -341,6 +341,10 @@ export function createWindowLife() {
   let tvDead = null;   // (tvDead: the night key the TV snapped off on — a raid)
   const parkB = {}; let parkT = null;
   const BOXER_LEAD = 5.5;
+  // (ATM-A — the wrap-up's blind landed, then SNAPPED: at blind ≥ 0.999 the window left his room's drawing for the parked path at once —
+  // the lit layer's own window glow (frame + sill light) back on, the crisp copy gone. His room keeps the window — the blind fully down
+  // over it, warm with his bulb — until the bulb goes out; then both paths are the same dark blind)
+  const boxerOpen = b => !!b && (b.blind < 0.999 || (b.phase === 'out' && b.lamp > 0));
   let boxT0 = null, boxRound = null, boxForced = null, boxKey = '', boxPlanNow = null, lastBoxer = null;   // (SKY-B: the shadowboxer — the preview's anchor, tonight's plan)   // (NIGHT-C: each parked room's blind 0 up … 1 down, eased over the blind's own BLIND.down)
   let bossKey = '', bossPlan = [];   // (SP5: the boss's day plan, rebuilt per day / overcast)
   const wd = createDanceClock(); let wdT = null;   // (SP5: the building's dance clock)
