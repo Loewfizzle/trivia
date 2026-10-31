@@ -750,7 +750,7 @@ G('partysync', async () => {
     ok(a && b && a.id === a.song && b.id === b.song && a.kind === 'night' && b.kind === 'night', `THE TIMELINE's SONG: the phones hear ${a && a.id} / ${b && b.id} (their timelines' ${a && a.song} / ${b && b.song}, a party ${a && a.kind})`);
     ok(a && b && Math.abs(a.err) < 0.1 && Math.abs(b.err) < 0.1, `IN TIME: each within ~100 ms of the server clock's timeline (${a && (a.err * 1000).toFixed(0)} / ${b && (b.err * 1000).toFixed(0)} ms)`);
     { const line = await ev(pages[0].page, 'window.__district.harbor().partySync');
-      ok(/^party NIGHT · c2-party\d+ \d+:\d\d \/ \d+:\d\d · (SYNCED \(server clock\)|riding \(own player, on the clock\)) · next in \d+:\d\d/.test(line || ''), `THE READOUT (&debug=1): "${line}"`); }
+      ok(/^party NIGHT · c2-party\d+ \d+:\d\d \/ \d+:\d\d · (SYNCED \(server clock\)|riding \(own player, on the clock\))( · lat out \d+ base \d+( ts)?( · spk \d+)?)? · next in \d+:\d\d/.test(line || ''), `THE READOUT (&debug=1): "${line}"`); }
     // ---- 2. THE BREAK ON THE HEARD SONG: as the conga starts, the song every phone hears is the break's — just begun
     { const p = pages[0].page;
       await waitFor(p, `(() => { const s = window.__district.harbor() && __district.harbor().people.party; return !!(s && s.brk && s.brk.kind === 'conga' && s.k > 0.02); })()`, 'the conga break', 40000);

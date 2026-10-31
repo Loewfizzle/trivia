@@ -12,7 +12,7 @@
 //     the synced player takes over again at the next song. The dips + the low-pass reach the synced voices (onMusicDuck, musicInput).
 // THE PARKED DATABASE holds: serverNow() is the saved offset while parked — no socket is opened for this. A sped-up preview (&speed) can't
 // be in sync: this phone's own player then plays the deck as before. MUSIC OFF: nothing plays; the breaks still follow the same timeline.
-import { createSyncedSongs } from './synced-songs.js';
+import { createSyncedSongs, speakerLead } from './synced-songs.js';
 import { musicUrl } from './music-url.js';
 import { getMusicBus, getContext, clockFrozen } from './engine.js';
 import { serverNow } from '../firebase.js';
@@ -105,7 +105,10 @@ export function partyClaims() {
 export function partyCue(prev = null) {
   const T = timeline();
   if (!T) return null;
-  const t = T.cityMs / 1000 + 0.25;                        // (+ the element's start: a quarter second to load + begin)
+  // (+ the element's start: a quarter second to load + begin; MODELS: + this device's output latency where the browser reports it — the
+  // element plays through the same output — + the SPEAKER DELAY setting: this phone's own player keeps step with the synced ones)
+  const ac = getContext(), outLat = ac ? Math.max(0, Math.min(0.4, (ac.outputLatency || 0) || (ac.baseLatency || 0))) : 0;
+  const t = T.cityMs / 1000 + 0.25 + outLat + speakerLead();
   let s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, t);
   if (!s) return null;
   if (s.id === prev || s.t1 - t < 6) s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, s.t1 + 0.01) || s;
@@ -159,6 +162,7 @@ export function partyMusicDebug() {
   const T = timeline();
   if (!T) return null;
   const s = deckSongAt(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
-  return { kind: T.tl.kind, station: T.tl.kind === 'station' ? T.tl.mood : null, song: s ? s.id : null, at: s ? +(T.cityMs / 1000 - s.t0).toFixed(2) : null, dur: s ? s.dur : null, left: s ? +(s.t1 - T.cityMs / 1000).toFixed(1) : null,
+  const ac = getContext(), lat = ac ? { out: Math.round((ac.outputLatency || 0) * 1000), base: Math.round((ac.baseLatency || 0) * 1000), ts: !!ac.getOutputTimestamp } : null;
+  return { lat, speaker: Math.round(speakerLead() * 1000), kind: T.tl.kind, station: T.tl.kind === 'station' ? T.tl.mood : null, song: s ? s.id : null, at: s ? +(T.cityMs / 1000 - s.t0).toFixed(2) : null, dur: s ? s.dur : null, left: s ? +(s.t1 - T.cityMs / 1000).toFixed(1) : null,
     riding: !!(last && last.riding), synced: !!(player && player.now()), claims: partyClaims(), heard: partyNow(), own: (() => { const n = nowPlaying(); return n ? { id: n.id, at: n.at } : null; })(), player: player ? player.debug() : null };
 }

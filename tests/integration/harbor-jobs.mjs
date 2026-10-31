@@ -22,7 +22,8 @@ export const SECONDS = {
   load: 30,            // (FP3a: the load gate — measured on the laptop)
   legends: 55,         // (6b: the legendary sky — three pages, a guess; SKY-A: + the F-22 chase page)
   blackbird: 50,
-  mothman: 45,         // (MODELS: THE MOTHMAN — perched from a link, the leaving, an ordinary night)       // (SKY-A: THE BLACKBIRD — four pages: forced, the chase, the watcher, a solo sighting)
+  mothman: 45,
+  speaker: 30,         // (MODELS: two pages on one station + SPEAKER DELAY)         // (MODELS: THE MOTHMAN — perched from a link, the leaving, an ordinary night)       // (SKY-A: THE BLACKBIRD — four pages: forced, the chase, the watcher, a solo sighting)
   blackout: 30,        // (C4c: the TR-3B's blackout on four holiday nights at 3× — 24 s on the laptop)
   bench: 25,           // (C4c: THE PHONE BENCH — the card, two scenes measured at &benchfast=1, the report; SKY-B: a fresh page per scene — 22 s on the laptop)
   workers: 75,         // (8b1: the workers — four pages, measured on the laptop)
@@ -59,7 +60,7 @@ export const CI_JOBS = {
   wild: ['wildlife', 'workers', 'weather', 'stations'],   // (SKY-B: + the radio stations — the lightest job)
   // (SKY-A: THE LEGENDS' own job — the TR-3B + the F-22s, THE BLACKBIRD, the phone bench: wild was at its cap)
   legend: ['legends', 'blackbird', 'bench', 'heli'],   // (SKY-B: + the patrol's circle (heli, ~90 s) + the shadowboxer)
-  models: ['mothman', 'boxer'],   // (THE MODELS PASS: a 10th job — every other job sat at its ~5-min cap: the Mothman + the shadowboxer's room)
+  models: ['mothman', 'boxer', 'speaker'],   // (THE MODELS PASS: a 10th job — every other job sat at its ~5-min cap: the Mothman + the shadowboxer's room)
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
   holiday: ['holiday', 'thanks', 'panelrows', 'citylife'],   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };

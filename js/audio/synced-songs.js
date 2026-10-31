@@ -14,6 +14,12 @@ import { getContext } from './engine.js';
 import { serverNow } from '../firebase.js';
 import { ctxAtServer } from '../games/pulse/clock.js';
 import { songStarts, XF_MS } from '../core/playlist.js';
+import { settings } from './settings.js';
+// MODELS — TWO DEVICES IN STEP (the owner's iPhone + the mini PC through a TV + a soundbar over eARC: the same station song, a slight lag):
+// ctxAtServer already schedules by what the browser says is HEARD (getOutputTimestamp, else currentTime − outputLatency); a TV's +
+// a soundbar's own processing (often 100–200 ms) is past what any page can see — SETTINGS → SPEAKER DELAY plays this device's songs that
+// much earlier (ms), so its sound leaves the speakers in step with a phone's
+export const speakerLead = () => Math.max(0, Math.min(0.5, (Number(settings.speakerDelay) || 0) / 1000));
 
 const LOOKAHEAD_MS = 45_000; // decode the next song this long before its crossfade
 const END_FADE = 1.5;        // seconds: the very end of the last song fades out
@@ -61,7 +67,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     const e = bufs.get(keyOf(i));
     if (!e || !e.buf) return;
     const buf = e.buf;
-    const origin = ctxAtServer(starts[i]);             // ctx time at which position 0 is heard
+    const origin = ctxAtServer(starts[i]) - speakerLead();   // ctx time at which position 0 is heard (− this device's speaker delay)
     const at = Math.max(ctx.currentTime + 0.05, origin);
     const off = at - origin;
     if (off >= buf.duration - 0.25) { done.add(i); return; }
@@ -142,7 +148,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       if (performance.now() - lastCheck > 500) {
         lastCheck = performance.now();
         for (const [i, v] of [...voices]) {
-          if (Math.abs(v.origin - ctxAtServer(starts[i])) > 0.12 && ctx.currentTime - v.startedAt > 0.5) {
+          if (Math.abs(v.origin - (ctxAtServer(starts[i]) - speakerLead())) > 0.12 && ctx.currentTime - v.startedAt > 0.5) {
             restarts++;
             stopVoice(ctx, i, 0.08);
             start(ctx, i, starts);

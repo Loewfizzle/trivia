@@ -601,3 +601,19 @@ G('mothman', async () => {
     ok(!net && !(await ev(Q.page, `!!document.querySelector('canvas.hb-moth')`)), 'AN ORDINARY NIGHT: no Mothman, his sprites never fetched');
     await Q.ctx.close(); }
 });
+
+// THE MODELS PASS — TWO DEVICES IN STEP (the owner's iPhone + the mini PC through a TV + soundbar: the same station song, a slight lag): two
+// pages on one station stay within a few ms (each schedules by what its browser reports it HEARS); SETTINGS → SPEAKER DELAY (a TV /
+// soundbar's own delay, past what a page can see) plays that page's song that much EARLIER
+G('speaker', async () => {
+  const D = '(() => { const d = window.__arcade && window.__arcade.partyMusicDebug(); return d && d.heard ? { id: d.heard.id, at: d.heard.at, tl: d.at, synced: d.synced, lat: d.lat, spk: d.speaker } : null; })()';
+  const init = { fn: () => { try { const s = JSON.parse(localStorage.getItem('na:settings') || '{}'); s.speakerDelay = 150; localStorage.setItem('na:settings', JSON.stringify(s)); } catch { /* */ } } };
+  const A = await open({ slot: 'spa', qs: `${GR.slice(1)}&wx=clear`, view: [402, 874] }), B = await open({ slot: 'spb', qs: `${GR.slice(1)}&wx=clear`, view: [402, 874], init });
+  for (const P of [A, B]) { await harborUp(P.page); await tapAt(P.page, 201, 420); }
+  for (const P of [A, B]) await waitFor(P.page, `(() => { const d = ${D}; return !!(d && d.synced); })()`, 'the station synced', 20000);
+  const gaps = [];
+  for (let i = 0; i < 6; i++) { const [a, b] = await Promise.all([A, B].map(P => ev(P.page, D))); if (a && b && a.id === b.id) gaps.push(Math.round(((b.at - b.tl) - (a.at - a.tl)) * 1000)); await sleep(400); }
+  const a = await ev(A.page, D), b = await ev(B.page, D), med = gaps.sort((x, y) => x - y)[gaps.length >> 1];
+  ok(gaps.length >= 4 && Math.abs(med - 150) < 25 && b.spk === 150, `SPEAKER DELAY 150 ms plays that page ${med} ms earlier than its twin on the same station (the browser reports out ${a.lat && a.lat.out} + base ${a.lat && a.lat.base} ms — already scheduled for)`);
+  await A.ctx.close(); await B.ctx.close();
+});

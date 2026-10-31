@@ -120,8 +120,24 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
   Not used: the bag combos (bag-combo-1/-2/-3 — the thuds follow his own punches; combo-3's CC BY not needed), bag-hit-5/6/8/9/10 (spares),
   chain-3 (the longest), the speed-bag's own clipping trimmed (−3 dB).
 
+## Group 5 — THE STATIONS' TWO-DEVICE LAG
+- **MEASURED** (two pages, separate browser contexts, one station, the mini PC's Chromium): their synced players **within 0–2 ms of each
+  other**; each schedules its song ~50 ms AHEAD of the timeline — exactly the 40 ms `outputLatency` + 10 ms `baseLatency` this browser
+  reports (`getOutputTimestamp` available) — so the reported output delay was ALREADY compensated (games/pulse/clock.js#ctxAtServer
+  schedules by what the browser says is heard). No second-plus gap → no sync bug in the page.
+- **WHAT's LEFT** (the owner's iPhone + the mini PC through a TV + a soundbar over eARC): the TV's + the soundbar's own processing
+  (typically ~100–200 ms) is past what any page can see — Windows reports only its own output path. **SETTINGS → SPEAKER DELAY (MS)**
+  (OFF · 50 · 100 · 200 · 300 — this device only, saved): its synced songs play that much EARLIER (synced-songs.js#speakerLead), so a
+  TV's sound leaves the speakers in step with a phone's; e2e `speaker`: 150 ms set → 148 ms earlier than its twin. This device's OWN
+  player (the fallback before the synced one decodes, or the direct path) now also adds the reported output latency + the speaker delay
+  (party-music.js#partyCue) — it used to add only a fixed 0.25 s.
+- **WHAT EACH BROWSER REPORTS**: the readout's station line now ends `lat out N base M ts · spk S` (out / base = the reported latencies,
+  ts = getOutputTimestamp) — Windows Chrome here: out 40, base 10, ts. iOS Safari: read it off the iPhone's own `&debug=1` line (not
+  measurable from here). Comparing the two lines + the ear sets the TV's delay; the owner's size of the lag is still pending.
+
 ## Decisions
 - The Mothman 84 pt (not 70) — 38 % of the tucked model is the hem below his talons.
+- The stations' remaining two-device lag is the TV + soundbar's own delay: a per-device SPEAKER DELAY setting, not a guess.
 - The shadowboxer works the air FACING LEFT mid-room (his reach vs a ~square window); rounds 2, 5, 8 open on the bag.
 - The patrol stays in the city's own canvas (not the crisp layer): it flies behind the near pieces.
 - A 10th cloud job (`models`) instead of stretching the 5-minute cap.

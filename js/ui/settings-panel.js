@@ -37,6 +37,12 @@ function slider(label, key) {
   return h('label.set-row', h('span.label', label), out, input);
 }
 
+// MODELS — SPEAKER DELAY: a TV, a soundbar or a Bluetooth speaker adds its own delay the browser can't see; two devices on the same
+// station (the same song on the server clock) then sound a beat apart. This device's songs play that much earlier (audio/synced-songs.js).
+function speakerRow() {
+  const seg = segmented([0, 50, 100, 200, 300].map(v => ({ value: String(v), label: v ? String(v) : 'OFF' })), String(settings.speakerDelay || 0), v => updateSettings({ speakerDelay: Number(v) || 0 }));
+  return h('div.set-row.set-mood', h('span.label', 'SPEAKER DELAY (MS)'), seg, h('span.set-hint', 'ON A TV OR SOUNDBAR? IF ITS MUSIC LAGS A PHONE’S, RAISE THIS'));
+}
 // MUSIC MOOD (both cities): AUTO follows the time of day; a chosen mood plays from that mood's deck in the city that's showing.
 // In a lobby the room's song follows the HOST's choice.
 function moodRow() {
@@ -122,6 +128,7 @@ function open() {
       slider('MUSIC VOLUME', 'music'),
       h('div.set-row.set-seg', h('span.label', 'MENU MUSIC'), segmented([{ value: 'mood', label: 'BY TIME' }, { value: 'classic', label: 'CLASSIC' }], settings.menuMusic || 'mood', v => updateSettings({ menuMusic: v }))),
       moodRow(),
+      speakerRow(),
       slider('EFFECTS', 'sfx'),
       toggle('MUTE ALL', 'muted'),
       toggle('HAPTICS', 'haptics'),

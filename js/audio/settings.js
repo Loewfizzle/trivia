@@ -1,6 +1,6 @@
 // Device-wide audio/haptics preferences (not per identity slot).
 const KEY = 'na:settings';
-const DEFAULTS = { music: 0.35, sfx: 0.7, muted: false, musicOff: false, haptics: true, pulseHits: false, prismScheme: 'gesture', prismSens: 0.5, prismBtn: 0.5, prismFlick: false, prismSlam: 'right', reducedFx: false, alwaysNight: false, menuMusic: 'mood', musicMood: 'auto' }; // reducedFx: calmer effects everywhere (title intro, PRISM DROP) // musicOff: silent music, effects stay // musicMood: AUTO (the time of day) or a chosen mood (audio/mood.js#MOOD_CHOICES), both cities // PULSE hit sounds: off by default
+const DEFAULTS = { music: 0.35, sfx: 0.7, muted: false, musicOff: false, haptics: true, pulseHits: false, prismScheme: 'gesture', prismSens: 0.5, prismBtn: 0.5, prismFlick: false, prismSlam: 'right', reducedFx: false, alwaysNight: false, menuMusic: 'mood', musicMood: 'auto', speakerDelay: 0 }; // reducedFx: calmer effects everywhere (title intro, PRISM DROP) // musicOff: silent music, effects stay // musicMood: AUTO (the time of day) or a chosen mood (audio/mood.js#MOOD_CHOICES), both cities // PULSE hit sounds: off by default // speakerDelay (ms, MODELS): a TV / soundbar / Bluetooth speaker's own delay the browser can't see — the synced songs play that much earlier here
 const listeners = new Set();
 
 function load() {
