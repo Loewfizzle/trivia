@@ -6,7 +6,7 @@
 // a ?room= link (pre-filled; with and without a profile), REJOIN, Welcome back + EDIT, the showcase preview
 // sheets (+ HOW TO PLAY), quality tiers + frame pacing, memory cleanup when leaving the title, the lobby's
 // small sign; screenshots at 390×844, 412×915, 1440×900; videos of the first and the returning intro.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync, rmSync, existsSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';

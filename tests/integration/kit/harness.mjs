@@ -8,7 +8,7 @@
 //
 // Env: N (players), SHOTS=0 (no screenshots), GPU=1 (real GPU; default software WebGL), CPU=4 (throttle for perf runs),
 // PERF=0/1, FAST=1 (the suite's own short path), E2E_BASE (default the local server).
-import puppeteer from 'puppeteer-core';
+import puppeteer from './puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 export const NAMES = ['ALICE', 'BOB', 'CHARLIE', 'DANA', 'EVE', 'FINN', 'GRACE', 'HAL'];

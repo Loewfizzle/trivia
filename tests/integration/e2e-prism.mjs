@@ -8,7 +8,7 @@
 //   song's key and on its 16th-note grid; frame pacing at every quality tier under CPU throttling; results.
 // Match B — SCORE RUSH: the next song of the room playlist; live leaderboard; a top-out reboots the board (score
 //   kept); the finale on the final beat; results by score.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

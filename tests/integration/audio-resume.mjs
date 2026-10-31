@@ -1,8 +1,6 @@
 // Regression test: iOS-style audio interruption (context suspended + music element paused behind our back).
 // Needs scripts/serve.mjs on 5173 + emulators. Usage: node audio-resume.mjs
-import { createRequire } from 'node:module';
-const require = createRequire('C:/Users/benja/Documents/trivia/tests/integration/package.json');
-const puppeteer = require('puppeteer-core');
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const b = await puppeteer.launch({ executablePath: process.argv[2] || 'C:/Program Files/Google/Chrome/Application/chrome.exe', headless: true, args: ['--autoplay-policy=user-gesture-required'] });
 const p = await b.newPage();

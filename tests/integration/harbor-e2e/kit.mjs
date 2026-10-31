@@ -4,7 +4,7 @@
 // G() + GROUPS and runGroup(). The entry point + the runner:
 // ../e2e-harbor.mjs (the same CLI + env as ever). A helper only one job uses lives in that job's file; one a second job needs moves here.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
-import puppeteer from 'puppeteer-core';
+import puppeteer from '../kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 export const BROWSER = process.argv[2];
@@ -111,6 +111,21 @@ export const harborUp = p => waitFor(p, '!!(window.__district.harbor() && window
 const DB = 'http://127.0.0.1:9000';
 export const dbPut = (path, v) => fetch(`${DB}/${path}.json?ns=demo-arcade-default-rtdb`, { method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: JSON.stringify(v) });
 export const flags = p => ev(p, 'window.__district.harbor().flags');
+// ATM-A Group 0 — THE 20-CYCLE MEMORY CHECK reads the heap WITHOUT V8's compiled code. Runtime.getHeapUsage counted the JIT's
+// optimized code too, which grows with how long + how fast the page has run (heap snapshots at cycle 2 vs 20: +6.2 MB of code —
+// 1,098 InstructionStreams — vs +0.35 MB of JS objects): +4.3 MB here, +6.4 in the cloud on the same build. A snapshot (it runs a
+// full GC first) split by node type: everything but 'code' still counts — JS objects, strings, closures, the DOM, Blink's objects.
+export async function heapNoCode(cdp) {
+  const chunks = [];
+  const on = c => chunks.push(c.chunk);
+  cdp.on('HeapProfiler.addHeapSnapshotChunk', on);
+  try { await cdp.send('HeapProfiler.takeHeapSnapshot', { reportProgress: false, captureNumericValue: false }); } finally { cdp.off('HeapProfiler.addHeapSnapshotChunk', on); }
+  const s = JSON.parse(chunks.join('')); chunks.length = 0;
+  const m = s.snapshot.meta, nf = m.node_fields.length, types = m.node_types[0], iT = m.node_fields.indexOf('type'), iS = m.node_fields.indexOf('self_size');
+  let total = 0, code = 0;
+  for (let i = 0; i < s.nodes.length; i += nf) { const sz = s.nodes[i + iS]; total += sz; if (types[s.nodes[i + iT]] === 'code') code += sz; }
+  return { total, code, rest: total - code };
+}
 export const settled = (p, what = 'settled', ms = 15000) => waitFor(p, '!window.__district.harbor().pending && !window.__district.harbor().fading', what, ms);
 export const GROUPS = new Map();
 export const G = (name, fn) => { if (!GROUPS.has(name)) GROUPS.set(name, []); GROUPS.get(name).push(fn); };

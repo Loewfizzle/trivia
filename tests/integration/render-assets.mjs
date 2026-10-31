@@ -2,7 +2,7 @@
 // title scene and logo (tests/integration/brand.html). Needs scripts/serve.mjs running on :5173.
 //   cd tests/integration && node render-assets.mjs "<browser path>"
 // Writes to /assets. Re-run after changing the logo, the city or the game list.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { fileURLToPath } from 'node:url';
 
 const BROWSER = process.argv[2] || 'C:/Program Files/Google/Chrome/Application/chrome.exe';

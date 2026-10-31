@@ -50,6 +50,7 @@ import { createDock, dressCorners, ICON } from './title-dock.js';
 // the boot screen until harborReady settles (a failed load falls back to City 1.0). A unit test keeps await out of module tops.
 const HARBOR_URL = /[?&]city=2(?:&|$)/.test(location.search);
 let createHarbor = null, harborSettled = !HARBOR_URL;
+let visitAnswered = false;   // (ATM-A: the sign has answered a song this visit — the first-tap detector is FRESH until then)
 export const harborReady = HARBOR_URL
   ? import('./harbor/scene.js').then(m => { createHarbor = m.createHarbor; }, e => { console.warn('harbor', e); cityFailed(); }).finally(() => { harborSettled = true; })
   : Promise.resolve();
@@ -985,8 +986,10 @@ export function createTitle() {
   // it fires from finish() and from the running race's end, within SURGE_PEND. Reduced motion / effects: one gentle brighten (the
   // catch still catches). &force=first-tap previews it every 5 s (no cooldown).
   const SURGE_COOL = 10000, SURGE_PEND = 8000;
-  let surgeLast = null, surgeCount = 0, surgeIv = 0, surgePending = null;
-  const surgeStart = createStartDetector({ quietMs: 1000 });
+  let surgeLast = null, surgeSkip = null, surgeCount = 0, surgeIv = 0, surgePending = null;
+  // (ATM-A: until the visit's first song is answered the detector is FRESH — neon-ramp.js: a dropout while the station's synced
+  // player re-places its voices right after a load no longer disarms it; module-level, so a later title visit mid-song isn't a start)
+  const surgeStart = createStartDetector({ quietMs: 1000, fresh: !visitAnswered });
   /** the sign's answer now (the music started / the preview / the test hook) — returns what it did */
   function signSurge(why = 'hook') {
     const now = performance.now();
@@ -1013,8 +1016,11 @@ export function createTitle() {
       return raceLogo(ans) ? ans : 'skip:race';
     })();
     // (can't run yet → pending: the intro's end or the running race's end fires it — never lost, never spent)
+    // (ATM-A: a COOLDOWN skip — the detector catching the same song the tap's fallback already answered — never overwrites the last
+    // real answer: it is kept apart for the readout)
+    if (did === 'skip:cool') { surgeSkip = { why, did, at: Math.round(now) }; return did; }
     if (why !== 'force' && (did === 'skip:intro' || did === 'skip:busy' || did === 'skip:race')) surgePending = { why, at: now };
-    else if (!did.startsWith('skip')) { surgePending = null; surgeCount++; if (why !== 'force') surgeAt = now; }
+    else if (!did.startsWith('skip')) { surgePending = null; surgeCount++; if (why !== 'force') { surgeAt = now; if (why === 'music') { visitAnswered = true; surgeStart.spend(); } } }
     surgeLast = { why, did, at: Math.round(now), ...(surgePending && surgePending.at === now ? { pending: true } : {}) };
     return did;
   }
@@ -1671,7 +1677,7 @@ export function createTitle() {
       // 'catch' the warm-up window | 'soft' | 'skip:…'); surge() — how many ran, the last one { why: music | force | hook, did, at },
       // pending (waiting for the intro / a race to end), cool (ms left of the 10 s cooldown after a real answer to the music))
       signSurge: () => signSurge('hook'),
-      surge: () => ({ count: surgeCount, last: surgeLast, pending: !!surgePending, onBeat: onBeat ? { ...onBeat } : null, cool: Math.max(0, Math.round(SURGE_COOL - (performance.now() - surgeAt))),
+      surge: () => ({ count: surgeCount, last: surgeLast, skip: surgeSkip, pending: !!surgePending, onBeat: onBeat ? { ...onBeat } : null, cool: Math.max(0, Math.round(SURGE_COOL - (performance.now() - surgeAt))),
         running: !!(race && (race.kind === 'surge' || race.kind === 'first')) }),
       dock: {
         join: openJoin,

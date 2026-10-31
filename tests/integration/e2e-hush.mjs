@@ -8,7 +8,7 @@
 // 6. Closing a room records its word in hush/ (24 h rest); with every other word resting, a new room gets the one free word.
 // 7. The guessing guard: five words that open nothing in a minute → a short, friendly wait.
 // Screenshots of the lobby card + JOIN panel at 390×844, 430×932, 412×915, 1440×900.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, readFileSync } from 'node:fs';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { ref, get, set, update } from 'firebase/database';

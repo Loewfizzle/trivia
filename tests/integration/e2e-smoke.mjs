@@ -4,7 +4,7 @@
 // Two plain tabs (separate browser contexts = two players): title → create / join → lobby → HOW TO PLAY → each of the six
 // games started from the lobby, watched through its opening screens → back to the lobby. Fails on any visible "null",
 // "undefined", "NaN" or "[object Object]", on page errors, and on console errors. Takes about two minutes.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

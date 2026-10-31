@@ -138,23 +138,30 @@ export function firstTapAnswer(st, plan, t, o = {}) {
  * A START = the clock was below 0 for ≥ quietMs (or since the page came up: the visit's first song), then MOVES across two readings.
  * Not a start: music already playing when the detector began, a song change (the clock jumps back while sounding), a blip of
  * silence shorter than quietMs (a crossfade between songs).  feed(clock, nowMs) → true once per start.
+ * ATM-A — `fresh` (no song answered yet this visit — title.js's module flag): the visit's FIRST song is a start even if its clock
+ * drops out for a moment before it settles. The cloud's "FIRST TAP … (nothing)": right after a load the server clock's offset
+ * settles and the station's synced player RE-PLACES its voices — the clock went ≥ 0, back to −1 for < 1 s, then moving — and the
+ * old rule called that a crossfade (disarmed), while the tap's own fallback had already stood down (the clock read ≥ 0 at the tap).
  */
-export function createStartDetector({ quietMs = 1000 } = {}) {
-  let state = 'init', offAt = -Infinity, prev = -1, armed = false;
+export function createStartDetector({ quietMs = 1000, fresh = false } = {}) {
+  let state = 'init', offAt = -Infinity, prev = -1, armed = false, first = !!fresh;
   return {
     feed(c, now) {
       if (!(c >= 0)) {                                     // silent
         if (state !== 'off') { if (state !== 'init') offAt = now; state = 'off'; }
         armed = false; prev = -1; return false;
       }
-      if (state === 'init') { state = 'on'; prev = c; return false; }       // already playing when we began: not a start
-      if (state === 'off') { state = 'on'; armed = now - offAt >= quietMs; prev = c; return false; }
+      if (state === 'init') { state = 'on'; prev = c; armed = first; return false; }   // already playing when we began: not a start (unless fresh)
+      if (state === 'off') { state = 'on'; armed = first || now - offAt >= quietMs; prev = c; return false; }
       const moved = c > prev + 0.03;
       prev = c;
-      if (armed && moved) { armed = false; return true; }
+      if (armed && moved) { armed = false; first = false; return true; }
       return false;
     },
+    /** the visit's first start already answered elsewhere (the tap's fallback ran) — later gaps are crossfades again */
+    spend() { first = false; },
     get state() { return state; },
+    get fresh() { return first; },
   };
 }
 

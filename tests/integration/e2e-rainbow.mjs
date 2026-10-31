@@ -3,7 +3,7 @@
 // neon powering off), never over the sun, behind the towers at every size, under the text, the neon's sputter and breathing,
 // Reduced effects, the preview flags, frame pacing at 4× CPU, and the review's screenshots (Grand Rapids).
 // node e2e-rainbow.mjs "<browser>" ./shots-rainbow   (env SHOTS=0 CPU=4 ONLY=trigger,choice,fade,sun,place,neon,reduced,flags,perf,media)
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

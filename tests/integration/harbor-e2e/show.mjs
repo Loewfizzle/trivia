@@ -323,9 +323,10 @@ G('neon', async () => {
     // (3) OFF / ON again inside 10 s → the cooldown (toggling can't spam it)
     await tap(P.page, '.music-btn'); await waitFor(P.page, `${CLOCK}.then(c => c < 0)`, 'the music off', 5000); await sleep(1300);
     await tap(P.page, '.music-btn');
-    await waitFor(P.page, '(window.__district.surge().last || {}).did === "skip:cool"', 'the cooldown answer', 15000).catch(() => {});
+    // (ATM-A: a cooldown skip is kept apart in surge().skip — `last` stays the last REAL answer)
+    await waitFor(P.page, '(window.__district.surge().skip || {}).did === "skip:cool"', 'the cooldown answer', 15000).catch(() => {});
     const s3 = await ev(P.page, 'window.__district.surge()');
-    ok(s3.count === 2 && s3.last.did === 'skip:cool', `THE MUSIC BUTTON inside 10 s: the cooldown (${s3.count}, ${JSON.stringify(s3.last)})`);
+    ok(s3.count === 2 && s3.skip && s3.skip.did === 'skip:cool' && s3.last.did === 'surge', `THE MUSIC BUTTON inside 10 s: the cooldown (${s3.count}, skip ${JSON.stringify(s3.skip)}, last ${JSON.stringify(s3.last)})`);
     await P.ctx.close(); }
   // (4) a tap ~100 ms into the intro (on a fast machine too early to skip it: the music starts while the sign powers on → PENDING → it
   // fires after the intro; on a slower one the tap skips the intro — either way the answer is never lost)

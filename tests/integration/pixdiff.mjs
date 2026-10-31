@@ -9,7 +9,7 @@
 // <scene>-a.png, -b.png, -diff.png (the changed pixels in magenta over a dimmed A) to --out.
 // Burst mode (--burst N): motion ON, N frames --gap ms apart from each side for a side-by-side look (no diff: the beat and the
 // clock differ between two pages) — <scene>-a-01.png … and a contact sheet <scene>-burst.png (A left, B right).
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

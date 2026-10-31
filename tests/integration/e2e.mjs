@@ -3,7 +3,7 @@
 //
 //   1) emulators running (see CLAUDE.md → Testing)   2) node scripts/serve.mjs
 //   3) cd tests/integration && node e2e.mjs [path-to-chrome-or-edge] [screenshotDir]
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 const BROWSER = process.argv[2] || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';

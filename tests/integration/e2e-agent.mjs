@@ -7,7 +7,7 @@
 //   escapes), an agent leaving the room mid-round (void + re-deal), round scores, podium.
 // Match B — SAME ROOM, 2 agents: the agent's reveal must match a normal player's (size, panel colour, brightness,
 //   animation, sound, haptic), TALK IT OUT, two unmasked.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

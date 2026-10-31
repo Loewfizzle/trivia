@@ -1,6 +1,6 @@
 // Trivia repeats across rematches: plays Overclock / Last Signal several times in one room (live trivia
 // APIs, emulators + scripts/serve.mjs) and checks no question is dealt twice. Usage: node trivia-rematch.mjs "<browser path>"
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const BASE = 'http://localhost:5173/?emu';
 const b = await puppeteer.launch({ executablePath: process.argv[2], headless: true });

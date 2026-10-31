@@ -1,7 +1,7 @@
 // NEON PAR render profile: every hole in golf-preview.html with 7 rolling ghosts, on the GPU, at a phone's
 // pixel density and 4× CPU throttling. Prints draw calls / objects / three.js render() cost / frame pacing.
 //   node golf-profile.mjs "<browser path>" [tier]
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 
 const BROWSER = process.argv[2];
 const TIER = process.argv[3] ?? '2';

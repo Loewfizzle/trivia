@@ -1,6 +1,6 @@
 // Frame-pacing probe for LAST SIGNAL's decay effects (2 players, host tab in the foreground).
 //   node perf-signal.mjs "<browser path>"
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 
 const BROWSER = process.argv[2] || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';
 const BASE = 'http://localhost:5173/?emu';

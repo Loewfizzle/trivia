@@ -2299,6 +2299,13 @@ test('FP3a — THE MUSIC STARTING: the detector fires once per start (silent ≥
   assert.equal(fires([5, 5.1, -1, -1, -1, 0, 0.1]), 0, 'a 300 ms gap (a crossfade blip) is not a new start');
   assert.equal(fires([5, 5.1, ...Array(12).fill(-1), 0, 0.1, 0.2]), 1, 'the music button OFF ≥ 1 s, then ON → a start');
   assert.equal(fires([-1, 0, 0.1, ...Array(12).fill(-1), 0, 0.1, ...Array(12).fill(-1), 0, 0.1]), 3, 'every start counts (the 10 s cooldown is the title\'s, not the detector\'s)');
+  // ATM-A — the visit's first song (fresh): a dropout while the station's synced player re-places its voices is still the start
+  const runF = (seq, step = 100) => { const d = createStartDetector({ quietMs: 1000, fresh: true }); let t = 0; return seq.map(c => { const r = d.feed(c, t); t += step; return r; }).filter(Boolean).length; };
+  assert.equal(runF([-1, -1, 75.4, -1, -1, -1, 75.9, 76.0, 76.1]), 1, 'fresh: the first song through a 300 ms re-place gap → ONE start (the cloud\'s "nothing")');
+  assert.equal(fires([-1, -1, 75.4, -1, -1, -1, 75.9, 76.0, 76.1]), 0, '… not fresh (a later visit to the title): the same gap is a crossfade');
+  assert.equal(runF([-1, 0, 0.1, 0.2, -1, -1, 0.3, 0.4, 0.5]), 1, 'fresh is spent by the first start: a gap after it is a crossfade again');
+  assert.equal(runF([75.4, 75.5, 75.6]), 1, 'fresh: playing at the very first reading is the visit\'s first song, not one already playing');
+  { const d = createStartDetector({ quietMs: 1000, fresh: true }); d.spend(); let t = 0; const n = [-1, 0, -1, 0.1, 0.2].map(c => { const r = d.feed(c, t); t += 100; return r; }).filter(Boolean).length; assert.equal(n, 0, 'spend(): answered by the tap\'s fallback — the gap is a crossfade'); }
 });
 
 test('8a — PULSE STRENGTH: pulseGain parses percent / multiplier, clamps, defaults; pulseOut is linear to the knee, never above the cap; the remote validates it (the server shares it), drops the default, and carries it to the URL + the status', async () => {

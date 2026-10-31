@@ -1,6 +1,6 @@
 // Menus look review: setup, lobby (2 players), the game options sheet, settings, chat, at phone sizes + desktop.
 //   node ui-shots.mjs "<browser>" ./shots-ui [sizes=0,1]
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 const [,, BROWSER, OUTA = './shots-ui'] = process.argv;
 const OUT = OUTA.replace(/\/?$/, '/'); mkdirSync(OUT, { recursive: true });

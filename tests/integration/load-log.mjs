@@ -9,7 +9,7 @@
 // --intro: the full power-on (the emulators are not needed for the title); the default skips it like every E2E (?emu).
 // --live: no &when / &tz / &at (any of them makes a preview clock with no live weather) — the real clock + the live weather path (/api/sky: run scripts/serve.mjs --emu, or it fails fast → the seeded sky).
 // Exit code 1 when a visible change was logged after the reveal.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 const argv = process.argv.slice(2);

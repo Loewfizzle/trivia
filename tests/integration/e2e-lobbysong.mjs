@@ -5,7 +5,7 @@
 // 2. A joiner on another song crossfades (~1.8 s) into the room's song at the room's place.
 // 3. A joiner already on the room's song at the room's place keeps playing it (no restart).
 // 4. The fallback: with CLASSIC menu music the room picks its own song as before.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 
 const BROWSER = process.argv[2];
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';

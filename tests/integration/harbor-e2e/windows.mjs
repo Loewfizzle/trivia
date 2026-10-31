@@ -586,7 +586,10 @@ G('snow', async () => {
   // stone + the roof poster ride full-dpr overlays; at night the blade's lit letters + bulbs; at DPR 2 (the canvas's own) none at all
   // (SKY-A: wx=clear — the roof signs' crisp copies yield to the city's in rain / fog by design; the live weather made this a coin toss)
   { const D = await open({ slot: 'cr-d', qs: `when=2026-10-27T13:00${GR}&wx=clear`, view: [402, 874], dpr: 3 });
-    await harborUp(D.page); await waitFor(D.page, `${SNW}.crisp.items.length >= 3`, 'the crisp items', 10000).catch(() => {});
+    // (ATM-A — the cloud's flake: the wait returned at 3 items while the check wants 9 — the roof signs' copies register after the neon's
+    // bake and YIELD for a moment whenever a plane / the day's helicopter passes in front of them (by design). Wait for the whole list.)
+    const WANT = ['blade-board', 'datestone', 'roofboard', 'still-street', 'still-water', 'rs-body-n-roofA', 'rs-lit-n-roofA', 'rs-body-n-roofB', 'rs-lit-n-roofB'];
+    await harborUp(D.page); await waitFor(D.page, `(() => { const ids = ${SNW}.crisp.items.map(i => i.id); return ${JSON.stringify(WANT)}.every(id => ids.includes(id)); })()`, 'the crisp items', 15000).catch(() => {});
     const a = await ev(D.page, `${SNW}.crisp`), ids = a.items.map(i => i.id).sort().join(',');
     ok(a.on && a.dpr === 3 && ids.replace(/,?still-(street|water)/g, '').replace(/,?rs-(body|lit)-n-roof[AB]/g, '') === 'blade-board,datestone,roofboard' && ['still-street', 'still-water'].every(id => ids.includes(id)) && ['rs-body-n-roofA', 'rs-lit-n-roofA', 'rs-body-n-roofB', 'rs-lit-n-roofB'].every(id => ids.includes(id)) &&   /* (PROM: + the two benches; NIGHT-C: + the two roof signs — housing + light — at 3×) */ a.items.every(i => i.w > 20), `9c THE CRISP LAYER by day at DPR 3: ${ids} (${a.items.map(i => `${i.w}×${i.h}`).join(', ')})`);
     const n = await ev(D.page, `document.querySelectorAll('canvas.hc-crisp').length`);

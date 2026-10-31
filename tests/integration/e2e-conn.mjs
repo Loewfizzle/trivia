@@ -7,7 +7,7 @@
 // a parked start; a refresh mid-game resumes; a host whose phone locks (the page FROZEN) mid-game still hands over; QUIT closes the
 // socket after the grace; a hidden title tab closes it; /board + /admin open none; no connection warning on a parked title.
 // (&conngrace= / &connhid= shorten the grace + the hidden wait under ?emu — the real ones are 30 s + 2 min.)
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

@@ -9,7 +9,7 @@
 // countdown, scorecards, final podium, game-night points, rematch, renderer memory across every hole, frame
 // pacing on a 4× CPU "mid-range phone". Screenshots of every new screen at 390×844 and 412×915.
 // Pages render at 1× DPR between screenshots (software WebGL in headless Chrome/Edge is slow at 2×).
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

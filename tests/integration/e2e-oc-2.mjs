@@ -4,7 +4,7 @@
 // real UI play (typing into Missing Link, taps on spellings / tiles / operators / compass points, real touch swipes and
 // half-screen taps in Sort It), scoring checked against what the host wrote, a refresh mid-Make 24 (solved puzzle kept),
 // the host's phone dying mid-Sort It (migration), and every new screen + reveal at 390×844 and 412×915.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

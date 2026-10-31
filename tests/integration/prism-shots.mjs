@@ -1,7 +1,7 @@
 // PRISM DROP preview screenshots + frame timing per world/tier (no Firebase).
 //   node prism-shots.mjs "<browser path>" ./shots-prism [cpu throttle, default 1]
 // Needs scripts/serve.mjs running on :5173.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 const [, , browserPath, outDir = './shots-prism', cpuArg = '1'] = process.argv;

@@ -5,7 +5,7 @@
 //   with ALWAYS NIGHT, hidden by rain, the forced eclipses, Reduced effects, frame pacing at golden hour.
 //   node e2e-sky.mjs "<browser>" [./shots-sky]          (local server: node scripts/serve.mjs --emu)
 import { createHarness } from './kit/harness.mjs';
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 
 const H = await createHarness({ name: 'sky', slot: 'sk', sizes: [[390, 844]] });
 const { ok, log, sleep, browser, finish } = H;

@@ -7,7 +7,7 @@
 // a kicked player losing access, a refresh + a late joiner seeing the history, system lines (join, kick, start,
 // win), the iOS keyboard layout (fake visualViewport), clear chat, and the lock state in every game (badge keeps
 // counting, no sound, no toasts), unlocked breaks (Last Signal reveal, Neon Par after holing out).
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

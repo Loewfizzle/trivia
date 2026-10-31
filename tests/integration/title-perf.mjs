@@ -23,7 +23,7 @@
 // (A party night at 4× without a GPU steps itself down from tier 2 — setTier() pins against stepping UP only — so its tier-2
 // windows are thrown away: measure tier 2 at --cpu 1–2. Without --gpu the fill is main-thread work: a fair proxy for a fill cost.)
 // Needs scripts/serve.mjs on :5173 (and a second one on :5174 for --ab).
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 
 const BROWSER = process.argv[2];
 const arg = (k, d) => { const i = process.argv.indexOf(`--${k}`); return i > 0 ? process.argv[i + 1] : d; };

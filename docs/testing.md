@@ -22,6 +22,20 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   copy can't launch Chromium) — the uncommitted `.claude/settings.local.json` excludes `node tests/integration/e2e-*`, `shots.mjs`, `title-perf.mjs`,
   `pixdiff.mjs`… from it (run them from the repo root with those paths). Chromium: `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`. winget's msstore source fails a cert check — install
   from the winget source.
+- **THE TEST BROWSER — SILENT + 60 FPS** (ATM-A, Oct 31): every browser script imports puppeteer from `tests/integration/kit/puppeteer.mjs`, never
+  `puppeteer-core` (`tests/test-browser.test.mjs` greps for strays). Its `launch()` adds the flags every run needs: **`--mute-audio`** (the owner: the
+  city's sounds came out of the mini PC's TV + soundbar during a pass — Web Audio still runs, the audio checks read the page's own state / analysers) and,
+  on Windows, **`--disable-gpu-compositing`** — **THE 30 FPS FIX**: the mini PC drives its TV at **4K / 29 Hz** (`Get-CimInstance Win32_VideoController` →
+  CurrentRefreshRate 29), and Chromium on Windows takes its frame clock from the primary display's vsync EVEN HEADLESS (a plain rAF counter: 33.4-ms
+  frames, ~28.5 fps — with or without `--enable-gpu`, SwiftShader, the new / old headless, the no-throttle flags). Software compositing runs on Chromium's
+  own 60 Hz clock (16.7-ms frames) while WebGL stays on the Radeon 780M; `--disable-frame-rate-limit` only reached ~52 fps unpaced. Proof: the rAF
+  counter 60.0 fps, `ONLY=perf`'s calm load + the battery's 60-fps moment PASS locally (they failed on every build before). Skipped when a run asks for
+  the GPU on purpose (`--enable-gpu`, `GPU=1`) or `VSYNC=display`; Linux (the cloud) is untouched. (Setting the TV to 60 Hz would also fix it — the
+  owner's call, not the tests'.)
+- **THE 20-CYCLE MEMORY CHECK reads the heap WITHOUT V8's compiled code** (ATM-A — `harbor-e2e/kit.mjs#heapNoCode`): heap snapshots at cycle 2 vs 20
+  showed +6.2 MB of JIT code (1,098 InstructionStreams — it grows with how long + how fast the page ran: +4.3 MB here, +6.4 in the cloud on the same
+  build) against +0.35 MB of JS objects; the check takes a snapshot (a full GC first) and counts every node but `code` — objects, strings, closures,
+  the DOM, Blink's objects — under the same 6 MB limit; the message prints the compiled code apart.
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, Oct 24): the WHOLE
   `e2e-harbor.mjs` (`SHOTS=0`, on the emulators) on GitHub's machines. **The rule (PART 8P, the owner's 2,000 monthly minutes — the repo is
   PRIVATE): it runs only on a pass's FINAL push** — a push with **`[harbor]`** in one of its commit messages (`CITY 2.0 PART 8P: … [harbor]`)

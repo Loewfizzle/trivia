@@ -4,7 +4,7 @@
 // pacing of the worst real case (a rainy party peak: the bus, the chase, the line, umbrellas, spray, a hail) at 4× CPU.
 // (The knock → JOIN and the dock-buttons-still-work checks live in e2e-title.mjs, group "knock".)
 // node e2e-people.mjs "<browser>" [./shots-people]   (env SHOTS=0 CPU=4 ONLY=door,line,peds,rain,hail,bus,holidays,reduced,perf)
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

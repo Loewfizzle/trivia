@@ -4,7 +4,7 @@
 // identical puzzles on every phone, real UI play (taps on tiles / items / keypad / circuit tiles), scoring math
 // against what the host wrote, a refresh mid-Rewire (turns + solved circuits restored), the host's phone dying
 // mid-Timeline (migration), and every new screen + reveal at 390×844 and 412×915.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

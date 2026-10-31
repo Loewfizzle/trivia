@@ -2,7 +2,7 @@
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=perf, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { OUT, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, G } from './kit.mjs';
+import { OUT, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, G } from './kit.mjs';
 
 G('perf', async () => {
   // ---- WIN2 — THE QUALITY STEP: a CALM LOAD on a mid phone profile (2x CPU) — 30 s after the reveal, NO tier step: nothing is judged in
@@ -99,8 +99,7 @@ G('perf', async () => {
   // import() inside page.evaluate right after a forced GC — CDP lost the pending promise. The store is imported ONCE, before the GC, and
   // the cycles call it synchronously; the screens are waited for as before)
   await Q.page.evaluate(() => import('/js/store.js').then(m => { window.__e2eStore = m; return true; }));
-  await cdp.send('HeapProfiler.collectGarbage');
-  const q0 = (await cdp.send('Runtime.getHeapUsage')).usedSize;
+  const q0 = await heapNoCode(cdp);   // (ATM-A: the heap without V8's compiled code — kit.mjs#heapNoCode)
   for (let i = 0; i < 20; i++) {
     await Q.page.evaluate(() => { window.__e2eStore.setState({ view: 'setup', setupMode: 'host' }); return true; });
     await waitFor(Q.page, "!!document.querySelector('.setup-screen') && !window.__district", 'the setup screen', 8000).catch(() => {});
@@ -112,13 +111,12 @@ G('perf', async () => {
   await waitFor(Q.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled (the memory is read between crossfades)', 15000);
   // (the same tier as the first reading: a loaded laptop may probe a tier down — NEON PASS 5's tiering — and memory scales with the tier)
   if ((await ev(Q.page, 'window.__district.harbor().mem.tier')) !== memH0.mem.tier) { await ev(Q.page, `window.__district.setTier(${memH0.mem.tier})`); await settled(Q.page, 'the same tier again'); }
-  await cdp.send('HeapProfiler.collectGarbage');
-  const q1 = (await cdp.send('Runtime.getHeapUsage')).usedSize;
+  const q1 = await heapNoCode(cdp);
   const mem1 = (await ev(Q.page, 'window.__district.harbor()')).mem.mb;
   const scenes = await ev(Q.page, `document.querySelectorAll('.nd-scene').length`);
   const lay = h => h.mem.layers.map(l => `${l.name.split(' ')[0]}:${l.mb}`).join(' ');
   const hq0 = memH0, hq1 = await ev(Q.page, 'window.__district.harbor()');
-  ok(scenes === 1 && q1 - q0 < 6e6 && Math.abs(mem1 - mem0) < 0.05, `MEMORY: 20 title↔setup cycles leave one city, heap ${Math.round((q1 - q0) / 1e5) / 10} MB, offscreen ${mem0} → ${mem1} MB${Math.abs(mem1 - mem0) >= 0.05 ? ` (tier ${hq0.mem.tier} → ${hq1.mem.tier}; ${lay(hq0)} → ${lay(hq1)})` : ''}`);
+  ok(scenes === 1 && q1.rest - q0.rest < 6e6 && Math.abs(mem1 - mem0) < 0.05, `MEMORY: 20 title↔setup cycles leave one city, heap ${Math.round((q1.rest - q0.rest) / 1e5) / 10} MB (+ V8's compiled code ${Math.round((q1.code - q0.code) / 1e5) / 10} MB, not counted), offscreen ${mem0} → ${mem1} MB${Math.abs(mem1 - mem0) >= 0.05 ? ` (tier ${hq0.mem.tier} → ${hq1.mem.tier}; ${lay(hq0)} → ${lay(hq1)})` : ''}`);
   await Q.page.evaluate(() => { Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await sleep(300);
   ok((await ev(Q.page, 'window.__district.scene()')).running === false, 'HIDDEN TAB (city 2): the Harbor stops rendering');

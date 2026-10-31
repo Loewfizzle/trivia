@@ -3,7 +3,7 @@
 // 1. Lobby countdown in the last 10 minutes on every phone, KEEP OPEN (host) resets it.
 // 2. Past the hour the host closes the room live: every phone lands on the title with a message.
 // 3. "Next day": nobody's online, the room is an hour stale, a player opens the site again → title + message, room deleted.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
 import { ref, get, update } from 'firebase/database';

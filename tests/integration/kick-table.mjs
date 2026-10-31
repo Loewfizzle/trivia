@@ -8,7 +8,7 @@
 import { chromium } from 'playwright';
 const argv = process.argv.slice(2), opt = (k, d) => { const i = argv.indexOf(`--${k}`); return i < 0 ? d : argv[i + 1]; };
 const exe = argv[0], deck = opt('deck', 'party'), only = opt('songs', ''), shift = opt('shift', '');   // --shift id=beats: a grid's t0 moved (a phase check)
-const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--autoplay-policy=no-user-gesture-required'] });
+const browser = await chromium.launch({ executablePath: exe, headless: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'] });
 const page = await browser.newPage();
 await page.goto('http://localhost:5173/tests/integration/avatars-preview.html');
 const rows = await page.evaluate(async ({ deck, only, shift }) => {

@@ -4,7 +4,7 @@
 // - OVERCLOCK: 3 players, identical seeded challenges on every client, every challenge UI driven,
 //   a player refreshes mid-challenge and resumes, standings, final
 // Screenshots of every new screen at 390x844 and 412x915.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 const BROWSER = process.argv[2] || 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe';

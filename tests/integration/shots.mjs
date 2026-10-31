@@ -33,7 +33,7 @@
 //   <scene>-<w>x<h>-cast-<nnn>-<t ms>.jpg (t from the cast's start) — a flicker a 200 ms screenshot burst steps over shows here
 //   (e.g. the TR-3B's power coming back: --qs "force=tr3b" --js "__district.harbor().legend.start('tr3b',{at:Date.now()-32000})" --cast 9000)
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const argv = process.argv.slice(2);

@@ -4,7 +4,7 @@
 // golden-hour shadows, wind + shedding, the street's party night (lamp colours, the chase, the party bus), Reduced effects and
 // the frame pacing of the heaviest case (a rainy party peak with the bus) at 4× CPU. Grand Rapids.
 // node e2e-street.mjs "<browser>" [./shots-street]   (env SHOTS=0 CPU=4 ONLY=layout,lamps,trees,bus,signal,cars,plow,shadows,wind,party,reduced,perf)
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

@@ -3,7 +3,7 @@
 // room's song, the searchlights by phase, the midnight finale (once; forced; never on New Year's Eve), the street, the holiday
 // colours (JOIN and the corner buttons stay white), Reduced effects, frame pacing at 4× CPU — plus the review's videos and
 // screenshots (Grand Rapids). node e2e-party.mjs "<browser>" ./shots-party   (env SHOTS=0 VIDEO=0 CPU=4 SIZES=390,1440 ONLY=timing,beat,lobby,lights,finale,street,holiday,reduced,perf,media)
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync, rmSync, readdirSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';

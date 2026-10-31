@@ -5,7 +5,7 @@
 // load → synced start, a bot per player with its own timing (perfect / late / sloppy / idle), chords (multi-touch),
 // live leaderboard, a refresh mid-song (resumes at the right position), backgrounding, the quality-tier fallback
 // under CPU throttling, frame pacing on a throttled "mid-range phone", Echo rounds, standings, podium + stats.
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
 
 const BROWSER = process.argv[2];

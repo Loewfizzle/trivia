@@ -1,7 +1,7 @@
 // SLIPSTREAM look review without Firebase: slip-preview.html for every biome (and a gravity flip) at every size.
 //   node slip-shots.mjs "<browser path>" ./shots-slip [seed] [only=dunes,storm] [sizes=0,2]
 // Also prints per-tier frame timings at 4× CPU (GPU=1 uses the real GPU).
-import puppeteer from 'puppeteer-core';
+import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync } from 'node:fs';
 
 const [,, BROWSER, OUTA = './shots-slip', SEED = 'look'] = process.argv;
