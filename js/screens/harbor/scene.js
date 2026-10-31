@@ -43,7 +43,7 @@ import { reportError, recentErrors } from '../../errlog.js';
 import { createBaker } from './bake.js';
 import { toneWeights, toneKey, tones, sunLook, sunKey, harborSky, harborWarm, harborWeights } from './tones.js';
 import { paintSky } from './sky.js';
-import { facadeSteps } from './skyline.js';
+import { facadeSteps, skyItems } from './skyline.js';
 import { litSteps, createLights, newMeta } from './lights.js';
 import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
@@ -382,24 +382,78 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (C2 — each depth's strips go right after ITS OWN layer: the far ones were laid after the near rows were drawn, so in the dying
   // + the power coming back the far facades covered the near buildings in flickering strips — the owner's "buildings behind the
   // jets flicker")
+  // ATM-C — THE BLACKOUT BUILDING BY BUILDING (the owner, Oct 31: the drain swept across as a WIPE whose straight vertical edge SLICED
+  // THROUGH BUILDINGS + SIGNS — the HIGH STAKES + NEON PAR towers + the NEON PAR roof sign half lit / half dark down a hard line — "looks
+  // cool but not real"): the strips are now each BUILDING's — every 12-pt column split top to bottom by the building seen there (the
+  // nearest first; a taller one behind owns the strip above a lower one in front), each roof sign joined to the tower it stands on — and
+  // every strip takes ITS BUILDING's power (legends.power at the building's middle, its own id: one stutter + one moment per building,
+  // rolling across the city in the craft's direction; the power-up the same in reverse). A building goes out WHOLE.
+  let drainGeo = null;
+  function drainGeoFor(name) {
+    const sl = (() => { try { return neon.signRects().length; } catch { return 0; } })(), key = `${cam.W}x${cam.H}|${laneKey}|${sl}`;
+    if (!drainGeo || drainGeo.key !== key) drainGeo = { key, g: {} };
+    if (drainGeo.g[name]) return drainGeo.g[name];
+    const items = (skyItems(L)[name] || []).filter(it => it.b);
+    const blds = new Map(), boxes = [];
+    for (const it of items) {
+      const b = it.b, [ax] = project(cam, b.x0, 0, b.z0), [bx] = project(cam, b.x1, 0, b.z0), top = project(cam, 0, (b.y0 || 0) + (b.h || 0), b.z0)[1];
+      const id = it.o && it.o.tower ? `t:${it.o.tower.id}` : `b:${b.x0.toFixed(1)}|${b.z0.toFixed(1)}`;
+      if (!blds.has(id)) blds.set(id, { id, n: blds.size + (name === 'far' ? 400 : 0), x0: ax, x1: bx });
+      const B = blds.get(id); B.x0 = Math.min(B.x0, ax); B.x1 = Math.max(B.x1, bx);
+      boxes.push({ x0: Math.min(ax, bx), x1: Math.max(ax, bx), top, z: b.z0, B });
+    }
+    // the roof signs: each joins the building it stands on (the one under its middle, the nearest roof below its foot)
+    const signs = [];
+    try { for (const r of neon.signRects()) { const cx = r.x + r.w / 2; let best = null; for (const bx of boxes) if (cx >= bx.x0 && cx <= bx.x1 && bx.top >= r.y + r.h - 6 && (!best || bx.top < best.top)) best = bx; if (best && best.top - (r.y + r.h) < 60) signs.push({ x0: r.x - 3, x1: r.x + r.w + 3, y0: r.y - 10, y1: best.top, B: best.B }); } } catch { /* no signs yet */ }
+    const n = Math.max(16, Math.round(W / 12)), cw = W / n, cols = [];
+    for (let i = 0; i < n; i++) {
+      const x = (i + 0.5) * cw, here = boxes.filter(bx => x >= bx.x0 && x < bx.x1).sort((a, b) => a.z - b.z), segs = [];
+      let cur = 1e9;
+      for (const bx of here) if (bx.top < cur) { segs.push({ y0: bx.top, y1: cur, B: bx.B }); cur = bx.top; }
+      const sg = signs.find(q => x >= q.x0 && x < q.x1);
+      if (sg) segs.push({ y0: sg.y0, y1: Math.min(sg.y1, cur), B: sg.B });
+      else if (segs.length) segs.push({ y0: cur - 30, y1: cur, B: segs[segs.length - 1].B });   // (a crown's spire + beacon just above)
+      cols.push(segs);
+    }
+    for (const B of blds.values()) B.xf = Math.max(0, Math.min(1, (B.x0 + B.x1) / 2 / W));
+    return (drainGeo.g[name] = { n, cw, cols, blds: [...blds.values()] });
+  }
+  /** ATM-C — a neon item's building power under the drain (neon.js#drawItems: its tubes + sign go out WITH the building): the building its
+   *  lit sprite overlaps most, in the group it draws in → 0..1 (memo per item, per frame) */
+  let ldMemo = new Map(), ldT = -1;
+  function neonLegendDim(it, group) {
+    const r = Array.isArray(it.lit) ? it.lit[0] : it.lit; if (!r || r.w == null || !legends || (group !== 'far' && group !== 'near')) return 1;   // (it.lit: the item's sprites — the first one's rect)
+    if (ldT !== lastT9) { ldMemo = new Map(); ldT = lastT9; }
+    if (ldMemo.has(it)) return ldMemo.get(it);
+    const G = drainGeoFor(group); let best = null, bo = 0;
+    for (const B of G.blds) { const o = Math.min(r.x + r.w, Math.max(B.x0, B.x1)) - Math.max(r.x, Math.min(B.x0, B.x1)); if (o > bo) { bo = o; best = B; } }
+    const v = best ? legends.power(best.xf, group === 'far' ? 'far' : 'city', best.n) : 1;
+    ldMemo.set(it, v);
+    return v;
+  }
   function drainCity(c, fadeIn, only) {
     if (fadeIn <= 0) return;
     for (const name of only ? [only] : ['far', 'near']) {
       // (POLISH 4: the far rows + the near rows each their own depth — the far skyline comes back first; a DEAD depth draws no lights
       // at all, so it has nothing to cover)
-      const cols = legends.drainCols(name === 'far' ? 'far' : 'city'); if (!cols || !cols.length) continue;
+      const band = name === 'far' ? 'far' : 'city';
+      const cols0 = legends.drainCols(band); if (!cols0 || !cols0.length) continue;   // (null: no drain now, or the whole depth dead)
       const g = baker.group(name); if (!g || !g.ready) continue;
       const dk = darkOf(name), src = dk ? dk.cv : g.cur;
-      const k = g.cur.width / W, ky = g.cur.height / g.show.h;
-      for (const cl of cols) {
-        if (tier === 0 && name === 'near' && cl.k < 0.9) continue;     // (tier 0: the near rows only where it's dead — the far ones carry the sputter)
-        // (only from the roofs down: the transparent sky above them costs the same to copy — the skyline's own top over the strip)
-        let top = g.show.y0 + g.show.h;
-        if (skyline) for (let i = Math.max(0, Math.floor(cl.x0 / 4)); i <= Math.min(skyline.length - 1, Math.ceil(cl.x1 / 4)); i++) if (skyline[i] < top) top = skyline[i];
-        const y0 = Math.max(g.show.y0, top - 48), hh = g.show.y0 + g.show.h - y0;   // (48: the roof signs stand above their roofs)
-        if (hh <= 1) continue;
-        c.globalAlpha = Math.min(1, cl.k) * fadeIn; c.drawImage(src, cl.x0 * k, (y0 - g.show.y0) * ky, (cl.x1 - cl.x0) * k, hh * ky, cl.x0, y0, cl.x1 - cl.x0, hh);
+      const k = g.cur.width / W, ky = g.cur.height / g.show.h, gy0 = g.show.y0, gy1 = g.show.y0 + g.show.h;
+      const G = drainGeoFor(name), pw = new Map();
+      const kOf = B => { if (!pw.has(B)) { const p = legends.power(B.xf, band, B.n); pw.set(B, p >= 0.985 ? 0 : Math.round((1 - p) * 8) / 8); } return pw.get(B); };
+      // (neighbouring columns with the same strip — the same building, the same level — merge into one draw)
+      let run = null;
+      const flush = () => { if (!run) return; const y0 = Math.max(gy0, run.y0), y1 = Math.min(gy1, run.y1), hh = y1 - y0; if (hh > 1) { c.globalAlpha = Math.min(1, run.k) * fadeIn; c.drawImage(src, run.x0 * k, (y0 - gy0) * ky, (run.x1 - run.x0) * k, hh * ky, run.x0, y0, run.x1 - run.x0, hh); } run = null; };
+      for (let i = 0; i < G.n; i++) for (const sg of G.cols[i]) {
+        const kk = kOf(sg.B);
+        if (kk <= 0 || (tier === 0 && name === 'near' && kk < 0.9)) continue;     // (tier 0: the near rows only where they're dead)
+        const x0 = i * G.cw;
+        if (run && run.B === sg.B && run.k === kk && run.x1 === x0 && Math.abs(run.y0 - sg.y0) < 0.5 && Math.abs(run.y1 - sg.y1) < 0.5) { run.x1 = x0 + G.cw; continue; }
+        flush(); run = { x0, x1: x0 + G.cw, y0: sg.y0, y1: sg.y1, B: sg.B, k: kk };
       }
+      flush();
     }
     c.globalAlpha = 1;
   }
@@ -2238,7 +2292,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const lampsF = clock.force.has('lamps-on') ? 1 : clock.force.has('lamps-off') ? 0 : null;
     if (lampsF !== lampsForced) { lampsForced = lampsF; neon.moment('lamps', lampsF); }
     const billK = lampsF != null ? lampsF : litK(DK, 'bill') * (1 - LAMP_DIM * litK(DK, 'neon'));
-    const nf = { t, now, ms: clock.now(), dt, night: litK(DK, 'neon'), bill: billK, fade: fadeIn, motion: S.motion, tier, party: PT.on > 0 ? PT : null, spelling: sp0 ? sp0.towers : null, finale: fw.busy(), hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, force: clock.force, pulse: PT.pulse };
+    const nf = { t, now, ms: clock.now(), dt, night: litK(DK, 'neon'), bill: billK, fade: fadeIn, motion: S.motion, tier, party: PT.on > 0 ? PT : null, spelling: sp0 ? sp0.towers : null, finale: fw.busy(), hour: LK.local ? LK.local.h + LK.local.mi / 60 : null, force: clock.force, pulse: PT.pulse, legendDim: LB && legends && legends.state && (legends.state() || {}).kind === 'tr3b' ? neonLegendDim : null };
     neon.draw(c, 'far', deadFar ? { ...nf, off: true } : nf);
     if (legends && legends.active()) drainCity(c, fadeIn, 'far');   // (C2: the far strips over the far layer only — before the near rows)
     const sunNow = sun.debug(), rk = off.has('no-rays') ? 0 : rayStrength(LK, sunNow);
@@ -2262,6 +2316,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     lights.lateTv(LK.local ? lateTvK(LK.local.h + LK.local.mi / 60) * nightK : 0);
     if (!deadCity) lights.draw(c, 'near', now, nightK, S.motion);
     neon.draw(c, 'near', deadCity ? { ...nf, off: true } : nf);
+    // (ATM-C — THE TR-3B's REFLECTION ON THE WATER, back (the owner, Oct 31: no light on the city "I like it", keep — but its own lights
+    // MIRRORED ON THE HARBOR, as before ATM-A): each corner light + the red orb a moving reflection (water.light); the buildings still nothing)
+    if (legends && legends.active() && fadeIn > 0) { const tl = legends.triLights && legends.triLights(); if (tl) for (const l of tl) { const k = l.k * (l.orb ? 0.34 : 0.24); if (k >= 0.02) try { water.light(l.x, l.y, l.col, k * (l.orb ? 0.8 : 0.6), l.orb ? 5 : 3.5); } catch { /* fine */ } } }
     // 9e — THE CONSTRUCTION TOWER's live layer (tower.js: the crane, the work lights, topping out, the implosion + its dust, the opening's
     // searchlights) — behind the roofs nearer than the slot (its own clip)
     if (TWS && !off.has('no-tower')) towerFx.draw(c, { st: TWS, T: bakeTones, dpr, bt: now / 1000, night: litK(DK, 'lamps'), t, motion: S.motion, power: LB ? legendPow(W * 0.3, 'city', 411) : 1, logo: S.logoRect, fade: fadeIn, wind: LK.wind == null ? 3 : LK.wind });
@@ -2568,7 +2625,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!off.has('no-road-light')) { const ms = clock.now(), h0 = LK.local ? LK.local.h + LK.local.mi / 60 : 12, THN = trafficHoldNow(); const rf = { ms, hourAt: t => h0 + (t - ms) / 3.6e6, night: litK(DK, 'lamps'), day: (TW.day || 0) + 0.6 * (TW.gold || 0), motion: S.motion, fade: fadeIn, on: L.impliedOn !== false, force: clock.force.has('road-pass'), play: S.motion ? snd.play : null,
       gone: !!S.dockGone, dt, T: bakeTones || T, dpr, t, wet: L.wet || 0, party: PT.on > 0.5 /* (POL4: a party night — a few cars glow) */,
       hold: !!(THN && THN.on) || frontHoldNow() || cabStand.busy() /* (PROM: no pass while the cab stand's taxi stands) */, power: LB ? legendPow(W * 0.5, 'near', 208) : 1 /* (Oct 25: no new pass under a legendary; its lamps die with the city — the lamps only, never its night look) */ }; roadLight.tick(rf); roadLight.draw(c, rf);
-      if (cabStand.busy() && fadeIn > 0) { const st9 = L.impliedRoad && L.impliedRoad.street; cabStand.draw(c, { L, t: performance.now() / 1000, T: bakeTones || T, fade: fadeIn, night: litK(DK, 'lamps'), lampAt: x => roadLampAt(L.lamps, x), dpr, motion: S.motion, wet: L.wet || 0, rails: st9 ? st9.rails : null, power: LB ? legendPow(W * 0.5, 'near', 208) : 1 }); } }
+      if (cabStand.busy() && fadeIn > 0) { const st9 = L.impliedRoad && L.impliedRoad.street; cabStand.draw(c, { L, t: performance.now() / 1000, T: bakeTones || T, fade: fadeIn, night: litK(DK, 'lamps'), lampAt: x => roadLampAt(L.lamps, x), dpr, motion: S.motion, wet: L.wet || 0, rails: st9 ? st9.rails : null, power: LB ? legendPow(W * 0.5, 'near', 208) : 1, fare: (cc, vid, s) => { if (pplOn && pplEnv) people.drawFare(cc, vid, s, pplEnv); } }); } }   // (ATM-C: the fare round the tail + in through the near door)
     // 8b2 add-on — THE RAID FROM THE FRONT: its patrol car on the street under the dock (seen whole while the dock rests; behind JOIN / HOST
     // otherwise — its beam + its circle on the brick read above them), its red + blue, the spotlight's beam
     if (raidFrame.R && raidFrame.R.front && fadeIn > 0) { const st = L.impliedRoad && L.impliedRoad.street; raidFx.front(c, raidFrame.R, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn, T: bakeTones || T, night: litK(DK, 'lamps'), lampAt: x => roadLampAt(L.lamps, x), dpr, wet: L.wet || 0, rails: st ? st.rails : null, motion: S.motion }, { spotAt: raidFrame.spotAt }); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
@@ -3585,7 +3642,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
       roofCrisp: roofCrispDebug(), liveCrisp: liveCrispDebug(),   // (NIGHT-C: the live windows' crisp share each)   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
-      heliOcc: heliOcc(), tr3bLight: { cast: false, lights: legends && legends.triLights ? (legends.triLights() || []).length : 0 } /* (ATM-A: its lights cast nothing on the city) */, mothman: { ...(moth.debug() || {}), tip: mmTip ? mmTip.map(v => Math.round(v)) : null, ready: moth.ready() }, blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot }); } },
+      heliOcc: heliOcc(), tr3bLight: { cast: false, water: true, lights: legends && legends.triLights ? (legends.triLights() || []).length : 0 } /* (ATM-A: its lights cast nothing on the city; ATM-C: their reflections on the water back) */, mothman: { ...(moth.debug() || {}), tip: mmTip ? mmTip.map(v => Math.round(v)) : null, ready: moth.ready() }, blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot }); } },
       heli: { planFor: seed => (sky.heliPlanFor ? sky.heliPlanFor(seed) : null), breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), ms: sky.heliMs ? sky.heliMs() : null, crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),

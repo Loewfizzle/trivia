@@ -533,6 +533,10 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   // laugh); the trick-or-treaters at the door (the bucket held up while it's open); the procession's holds (a candle cupped at the chest,
   // a photo held up, marigolds, the mariachis' instruments, the ofrenda's pole on the shoulder); the grown-up's torch pointed ahead
   holidayArms({ L, st, pose, walking, p, t, mo, arm, shJ, head, near: N, farA: Fa, uP, cr: cr0 });
+  // ATM-C — AN UMBRELLA IS HELD (the owner, Oct 31: walkers swung the umbrella arm like a free arm — the umbrella bobbed + swayed every
+  // step): the near arm BENT at the elbow, the hand steady in front of the chest just under the shoulder — it moves with the body only (the
+  // walk's own bob); the other arm swings as ever
+  if (L.umbrella && pose !== 'sit' && pose !== 'wands' && !jog) arm(N, 0.32, 1.85, 0.12);
   // ---- onto the screen
   const k0 = kD[0], k1 = kD[1];
   const scr = j => { const D = j.a * cz + j.b * cx; return [j.a * cx - j.b * cz, j.y + D * (k0 - k1 * j.y)]; };
@@ -807,7 +811,14 @@ function body(c, J, L, X, Y, H, lit, env) {
     c.strokeStyle = f([150, 146, 136]); c.lineWidth = Math.max(0.3, H * 0.008); c.beginPath(); c.moveTo(mid, pk); c.lineTo(mid, pk + H * 0.03); c.stroke();
     if (H > 24) { c.strokeStyle = f([120, 116, 110]); c.lineWidth = Math.max(0.25, H * 0.004); c.beginPath(); for (let i = 1; i < 4; i++) { const u = i / 4; c.moveTo(xl + (mid - xl) * 0.25, yb - (yb - pk) * u * 0.8 + H * 0.004); c.lineTo(mid - H * 0.01, pk + (yb - pk) * (1 - u) * 0.3 + H * 0.01 * u); } c.stroke(); }
   }
-  if (L.umbrella && J.pose !== 'sit') { const [ux, uy] = hand; c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(ux, Y(1.18)); c.stroke(); c.fillStyle = f(L.umbrella); c.beginPath(); c.ellipse(ux, Y(1.18), H * 0.3, H * 0.12, 0, Math.PI, 0); c.fill(); }
+  if (L.umbrella && J.pose !== 'sit') {
+    // (ATM-C: the canopy RIDES WITH THE BODY — a fixed shaft above the held hand (never a fixed height the swinging hand pulled at), a slight
+    // lean into the wind + a tilt as a gust reaches this person (the shared wind's wave here); its handle hidden in the fist)
+    const [ux, uy] = hand, g = FW_AT ? FW_AT(Math.max(0, Math.min(1, X(0) / FW_W))) : 0, tilt = Math.max(-0.3, Math.min(0.3, FW_SIDE * (FW_LEAN * 2.2 + 0.12 * g * Math.sin(FW_T * 3.1 + L.h * 9))));
+    const sh = H * 0.36, tx = ux + Math.sin(tilt) * sh, ty = uy - Math.cos(tilt) * sh;
+    c.strokeStyle = f([30, 26, 24]); c.lineWidth = Math.max(0.5, H * 0.012); c.beginPath(); c.moveTo(ux, uy); c.lineTo(tx, ty); c.stroke();
+    c.fillStyle = f(L.umbrella); c.beginPath(); c.ellipse(tx, ty, H * 0.3, H * 0.12, tilt, Math.PI, 0); c.fill();
+  }
 }
 // the brim's line on the head (in head radii above its centre) per hat — the band under it is in shade
 const BRIM = { witch: 0.55, sombrero: 0.5, catrina: 0.5, fedora: 0.55, top: 0.6, boater: 0.6, cloche: 0.18, flatcap: 0.62, newsboy: 0.62, helmet: 0.45, pith: 0.5, painter: 0.62, peaked: 0.52 };

@@ -895,3 +895,22 @@ test('NIGHT-A2 — THE STANDING PROPS ARE SOLID (the owner: people CLIPPING THRO
   }
   assert.ok(worst < 1.35, `a detoured crossing at most ${worst.toFixed(2)}× its pace`);
 });
+
+test('ATM-C — AN UMBRELLA IS HELD: the umbrella hand steady by the shoulder through the stride (a free arm swings), the other arm still swings', async () => {
+  const { jointsOf: J0, lookOf: L0 } = await import('../js/screens/harbor/folk.js');
+  const run = umb => {
+    const L = L0('walker', 7, { rain: 0 }); L.umbrella = umb ? [28, 28, 34] : null; L.paper = false;
+    const xs = [], ys = [], far = [];
+    for (let i = 0; i < 40; i++) {
+      const J = J0({ x: 0, z: 40, pose: 'walk', hd: 0, v: 1.4, dist: i * 0.05, a: 1 }, L, i * 0.05), n = J.near, h = J.hands[n], s = J.shs[n], fh = J.hands[1 - n], fs = J.shs[1 - n];
+      xs.push(h[0] - s[0]); ys.push(h[1] - s[1]); far.push(fh[0] - fs[0]);
+    }
+    const span = a => Math.max(...a) - Math.min(...a);
+    return { dx: span(xs), dy: span(ys), y: ys.reduce((a, b) => a + b, 0) / ys.length, far: span(far) };
+  };
+  const free = run(false), held = run(true);
+  assert.ok(free.dx > 0.1, `a free arm swings (${free.dx.toFixed(3)})`);
+  assert.ok(held.dx < 0.01 && held.dy < 0.01, `the umbrella hand steady (${held.dx.toFixed(3)}, ${held.dy.toFixed(3)})`);
+  assert.ok(held.y > -0.15 && held.y < 0.02, `held up by the shoulder (${held.y.toFixed(3)} below it)`);
+  assert.ok(held.far > 0.1, `the other arm still swings (${held.far.toFixed(3)})`);
+});

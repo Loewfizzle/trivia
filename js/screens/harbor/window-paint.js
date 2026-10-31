@@ -149,7 +149,10 @@ export function createPaint(life) {
       // raised to the mouth + flaring on a draw
       const nr = wa.near == null ? 1 : wa.near, soft = 1 - nr, sc = 1 + 0.35 * soft, sway = mo ? Math.sin(t * 0.7) * 0.008 : 0;
       const x = G.g0 + G.cw * wa.x + (wa.shift || 0) * G.cw * 0.035 + sway, lean = (wa.shift || 0) * 0.025, hd = wa.head || 0;
-      const A = 0.9 * wa.a * Math.max(0.35, glowC.a), Y = v => hem + (G.h0 + v * G.ch - hem) * sc, X = (u, v) => x + (u * G.cw + lean * (v * G.ch)) * sc;
+      // (ATM-C — HE's SOLID (the owner, Oct 31: when his silhouette stands in front of the TV "the flicker seems to SHINE THROUGH HIM"): his
+      // darkness was 0.9 × the TV's glow — so he lightened + darkened WITH the flicker. A body blocks the light: fully OPAQUE + steady (only
+      // his own fade in / out), the flicker on the room round him + a thin rim of the screen's light on his edges)
+      const A = Math.min(1, 0.98 * wa.a), Y = v => hem + (G.h0 + v * G.ch - hem) * sc, X = (u, v) => x + (u * G.cw + lean * (v * G.ch)) * sc;
       const body = (ox, oy) => {
         c.beginPath(); c.moveTo(X(-0.3, 0) + ox, hem - 0.02 + oy); c.quadraticCurveTo(X(-0.29, 0.53) + ox, Y(0.53) + oy, X(-0.1, 0.49) + ox, Y(0.49) + oy);
         c.lineTo(X(0.1, 0.49) + ox, Y(0.49) + oy); c.quadraticCurveTo(X(0.3, 0.53) + ox, Y(0.53) + oy, X(0.32, 0) + ox, hem - 0.02 + oy); c.closePath(); c.fill();   // (the shoulders)
@@ -161,7 +164,9 @@ export function createPaint(life) {
         c.beginPath(); c.moveTo(cx0, cb); c.lineTo(cx0 + G.cw * 0.012, ct - G.ch * 0.012); c.quadraticCurveTo((cx0 + cx1) / 2, ct - G.ch * 0.004, cx1 - G.cw * 0.012, ct - G.ch * 0.012); c.lineTo(cx1, cb); c.closePath(); c.fill();   // (the crown, pinched)
       };
       const passes = soft > 0.06 ? 7 : 1, br = soft * G.cw * 0.09;
-      c.fillStyle = `rgba(4,3,9,${(passes > 1 ? A * (0.32 + 0.3 * nr) : A).toFixed(3)})`;
+      // (the rim: the same body a hair bigger in the screen's light, ADDED, under the dark one — a thin bright edge where the light wraps him)
+      if (nr > 0.6) { c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = `rgba(${glowC.col.map(Math.round).join(',')},${(0.32 * nr * wa.a * glowC.a).toFixed(3)})`; const rr = G.cw * 0.012; for (const [ox, oy] of [[rr, 0], [-rr, 0], [0, rr]]) body(ox, oy); c.restore(); }
+      c.fillStyle = `rgba(4,3,9,${(passes > 1 ? Math.min(1, A * (0.45 + 0.4 * nr)) : A).toFixed(3)})`;
       for (let i = 0; i < passes; i++) { const an = i * TAU / Math.max(1, passes - 1); body(i ? Math.cos(an) * br : 0, i ? Math.sin(an) * br : 0); }
       glow(c, [2, 2, 6], x, Y(0.5), G.cw * 0.32 * sc, 0.35 * wa.a, 1.1); c.globalAlpha = 1;
       const em = wa.ember || 0, hold = wa.hold || 0, up = Math.min(1, em * 1.7);
@@ -458,7 +463,7 @@ export function createPaint(life) {
     { const g = c.createLinearGradient(0, G.h0, 0, G.h0 + G.ch * 0.14); g.addColorStop(0, `rgba(2,2,8,${(0.45 * a).toFixed(3)})`); g.addColorStop(1, 'rgba(2,2,8,0)'); c.fillStyle = g; c.fillRect(G.g0, G.h0, G.cw, G.ch * 0.14); }
     // the shadow across the glow now and then (only ever a shadow)
     const sh = mo ? tvShadow(t, 11) : null;
-    if (sh) { const u = sh.dir > 0 ? sh.u : 1 - sh.u; glow(c, [2, 2, 6], G.g0 + G.cw * (0.2 + 0.6 * u), G.h0 + G.ch * 0.66, G.cw * 0.26, 0.6 * sh.a * a, 1.3); }
+    if (sh) { const u = sh.dir > 0 ? sh.u : 1 - sh.u; glow(c, [2, 2, 6], G.g0 + G.cw * (0.2 + 0.6 * u), G.h0 + G.ch * 0.66, G.cw * 0.26, Math.min(1, 0.92 * sh.a * a), 1.6); }   // (ATM-C: a steadier, darker core — a body blocks the light)
     // the haze some nights, catching the blue (no cigarette, no one)
     const smk = smokeLevel(t);
     if (smk.haze > 0.01) { c.globalCompositeOperation = 'lighter'; const sc = mixc([120, 140, 200], near, 0.6); for (let i = 0; i < 4; i++) { const hx2 = G.g0 + G.cw * ((0.15 + 0.25 * i + (mo ? t * 0.012 : 0)) % 1.1), hy2 = G.h0 + G.ch * (0.6 + 0.12 * Math.sin(t * 0.21 + i * 1.7)); glow(c, sc, hx2, hy2, G.cw * 0.34, 0.08 * smk.haze * a * (0.35 + 0.65 * tk), 0.42); } c.globalCompositeOperation = 'source-over'; }

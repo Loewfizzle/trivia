@@ -739,7 +739,10 @@ export function createLegends({ clock, qp } = {}) {
       glow(c, [255, 236, 210], x0, y0, len * 0.085, len * 0.045, 0.55 * k);
       glow(c, [255, 252, 244], x0, y0, len * 0.026, len * 0.016, 0.95 * k);
     });
-    if (lv) { const ib = kc.indexOf(Math.max(...kc)), q = P[ib]; glow(c, [226, 234, 255], q[0] * 0.8, q[1] * 0.8, len * 0.34, len * 0.0075, 0.4 * kc[ib]); }
+    // (ATM-C — THE FLARES BREATHE (the owner, Oct 31: they SNAP on + off — the streak jumped to whichever corner was brightest that frame):
+    // every corner light its own horizontal flare, eased in + out on that light's own pulse (smoothstep over its top ~third: ~0.5 s up,
+    // ~0.5 s down), never a pop)
+    if (lv) P.forEach((q, i) => { const f = kc[i] < 0.82 ? 0 : (u => u * u * (3 - 2 * u))(Math.min(1, (kc[i] - 0.82) / 0.18)); if (f > 0.01) glow(c, [226, 234, 255], q[0] * 0.8, q[1] * 0.8, len * 0.34, len * 0.0075, 0.4 * f); });
     // (2) THEY LIGHT THE WORLD — their places on the screen this frame for the scene (scene.js#triWorldLight: a glow sliding over the
     // drained rooftops + their reflections in the harbor)
     { const cs = Math.cos(-0.02), sn = Math.sin(-0.02), S = (lx, ly) => ({ x: p.x + dir * (lx * cs - ly * sn), y: p.y + (lx * sn + ly * cs) });

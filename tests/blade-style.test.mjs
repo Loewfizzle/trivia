@@ -14,14 +14,15 @@ test('two hundred weeks: never the same letter style two weeks running; every fo
     assert.equal(S.key, bladeStyle(w).key, 'the same on every call');
     fonts.add(S.font); inks.add(S.ink); panels.add(S.panel); prev = S;
   }
-  assert.equal(fonts.size, 4); assert.equal(inks.size, 3); assert.equal(panels.size, 5);
+  assert.equal(fonts.size, 3); assert.ok(!fonts.has('inline'), 'ATM-C: the inline style out of the rotation'); assert.equal(inks.size, 3); assert.equal(panels.size, 5);
   // the memo never changes an answer: week 150 asked cold equals week 150 asked after its neighbours
   assert.equal(bladeStyle(150).key, bladeStyle(150).key);
 });
 
 test('the preview override: any part of <font>-<ink>-<panel>, the rest the week\'s own', () => {
-  const S = bladeStyle(40), F = bladeStyle(40, 'inline-amber-burgundy');
-  assert.deepEqual([F.font, F.ink, F.panel], ['inline', 'amber', 'burgundy']);
+  const S = bladeStyle(40), F = bladeStyle(40, 'condensed-amber-burgundy');
+  assert.deepEqual([F.font, F.ink, F.panel], ['condensed', 'amber', 'burgundy']);
+  assert.equal(bladeStyle(40, 'inline').font, S.font, 'ATM-C: an old inline link falls back to the week’s own style');
   const G = bladeStyle(40, 'slab');
   assert.equal(G.font, 'slab'); assert.equal(G.ink, S.ink); assert.equal(G.panel, S.panel);
   assert.equal(bladeStyle(40, 'nonsense').key, S.key);

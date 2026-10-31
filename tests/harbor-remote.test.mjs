@@ -7,7 +7,7 @@ import { MOMENTS } from '../js/core/harbor-moments.js';
 
 test('the panel: eleven sections in the owner\'s order (WIN: SPEAKEASY of its own); every area + every row lands in one; nothing dropped', () => {
   // (9d — THE ADMIN PANEL: the sections by use; TIME + the weather's chips are the pinned NOW bar above them)
-  assert.deepEqual(SECTIONS.map(s => s.label), ['HOLIDAYS', 'SPEAKEASY', 'SKY + WEATHER', 'LEGENDARY', 'PEOPLE + WORKERS', 'WINTER', 'WILDLIFE', 'HARBOR', 'LIGHTS + MUSIC', 'TOOLS']);
+  assert.deepEqual(SECTIONS.map(s => s.label), ['SKY + WEATHER', 'LEGENDARY', 'LIGHTS + MUSIC', 'SPEAKEASY', 'PEOPLE + WORKERS', 'HARBOR', 'WILDLIFE', 'WINTER', 'HOLIDAYS', 'TOOLS']);
   const ids = new Set(SECTIONS.map(s => s.id));
   for (const c of CATS) assert.ok(ids.has(AREA_SECTION[c.id]), `${c.id}: its section`);
   for (const e of EVENTS) assert.ok(ids.has(sectionOf(e.id)), `${e.id}: a section`);

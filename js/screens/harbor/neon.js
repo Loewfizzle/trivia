@@ -725,7 +725,10 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
       if (it.kind === 'outline') { if (it.o.group !== group) continue; }
       else if (groupOf(it.kind === 'sign' ? it.sg.spot : it.b.spot) !== group) continue;
       const ck = it.kind === 'sign' ? crispK.get(it.sg.id) || 0 : 0;
-      drawOne(c, it, f, t, motion, flutter, partyK, noPunch, dimOf(it, f), 1 - ck);
+      // (ATM-C: under the TR-3B's drain each tube + sign dims WITH ITS BUILDING — f.legendDim, the scene's per-building power)
+      const lk = f.legendDim ? f.legendDim(it, group) : 1;
+      if (lk <= 0.002) continue;
+      drawOne(c, it, f, t, motion, flutter, partyK, noPunch, dimOf(it, f) * lk, 1 - ck);
     }
   }
   // (8a: the billboard on the speakeasy's roof is its own group, 'bill' — baked + drawn just before the speakeasy)

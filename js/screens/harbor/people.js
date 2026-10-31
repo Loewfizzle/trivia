@@ -660,6 +660,14 @@ export function createPeople() {
     overKey: (box, z) => frontOf(box, z).map(d => d.key).join(';'),
     redrawOver(cc, box, z) { for (const d of frontOf(box, z).sort((a, b) => b.z - a.z)) { try { d.redo(cc); } catch { /* polish */ } } },
     /** PROM: override a member (vid) on this device — a partial state, 'hide', or null to give them back to the plan */
+    /** ATM-C — the cab stand's fare drawn BY THE CAB STAND (round the taxi's tail + in through its near door — in front of the car, or in its
+     *  doorway): member vid with its state overridden by s; env: the scene's people env */
+    drawFare(c, vid, s, env) {
+      if (!L || !env) return;
+      const m = now.members.find(q => q.vid === vid); if (!m) return;
+      const E = envOf(env); c.save(); c.globalAlpha = (env.fade == null ? 1 : env.fade) * (s.a == null ? 1 : s.a);
+      drawFolk(c, L.cam, { s: { ...m.s, ...s }, L: lookFor(m, env) }, { ...E, yUp: s.y || 0 }); c.restore();
+    },
     override(vid, s) { if (s == null) over.delete(vid); else over.set(vid, s); if (over.size > 24) over.delete(over.keys().next().value); },
     /** PROM: the cab stand's waiters now (the taxi's candidates): [{ vid, x, z, pose, since, left }] */
     waiters: () => (now.members || []).filter(m => m.kind === 'cabwait' && m.m.role === 'lead').map(m => ({ vid: m.vid, x: m.s.x, z: m.s.z, pose: m.s.pose, since: m.s.since || 0, left: m.s.left == null ? 0 : m.s.left, look: m.look, seed: m.m.seed })),

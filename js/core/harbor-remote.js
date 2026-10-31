@@ -101,17 +101,20 @@ export const catOf = id => { const e = EV[id]; return e && CAT_IDS.has(e.cat) ? 
 // TIME + the WEATHER's quick chips live in the PINNED "NOW" bar at the very top (always open: NOW_TIMES, NOW_WEATHER, the date's
 // holiday chips — nearHolidays); the sections below, by use: HOLIDAYS · SPEAKEASY (the windows inside) · SKY (+ the rest of the
 // weather) · LEGENDARY · PEOPLE + WORKERS · WINTER (the snow, the snowman, the plow) · WILDLIFE · HARBOR · LIGHTS + MUSIC · TOOLS
+// ATM-C — THE PANEL TIDIED (the owner, Oct 31 12:03 pm: "the categories in a clear order"): the screen top to bottom — the sky + the
+// weather (with the TIME bar above everything), the legendaries in it, the lights + the music over the city, the speakeasy, the people on
+// the promenade, the harbor, the animals — then the seasons (winter, the holidays), TOOLS last
 export const SECTIONS = [
-  // (11a-1: THE HOLIDAYS — the date jump + every holiday moment on demand)
-  { id: 'holidays', label: 'HOLIDAYS' },
-  { id: 'speakeasy', label: 'SPEAKEASY' },
   { id: 'sky', label: 'SKY + WEATHER' },
   { id: 'legendary', label: 'LEGENDARY' },
-  { id: 'people', label: 'PEOPLE + WORKERS' },
-  { id: 'winter', label: 'WINTER' },
-  { id: 'wildlife', label: 'WILDLIFE' },
-  { id: 'harbor', label: 'HARBOR' },
   { id: 'lightsmusic', label: 'LIGHTS + MUSIC' },
+  { id: 'speakeasy', label: 'SPEAKEASY' },
+  { id: 'people', label: 'PEOPLE + WORKERS' },
+  { id: 'harbor', label: 'HARBOR' },
+  { id: 'wildlife', label: 'WILDLIFE' },
+  { id: 'winter', label: 'WINTER' },
+  // (11a-1: THE HOLIDAYS — the date jump + every holiday moment on demand)
+  { id: 'holidays', label: 'HOLIDAYS' },
   { id: 'tools', label: 'TOOLS' },
 ];
 const SEC_IDS = new Set(SECTIONS.map(s => s.id));

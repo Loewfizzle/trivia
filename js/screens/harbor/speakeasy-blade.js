@@ -88,9 +88,8 @@ const BLADE_FONT = {
   block: FONT,                                                                                     // (a bold Deco block: Chakra Petch, stretched wide)
   condensed: px => `700 ${px}px "Chakra Petch", Orbitron, sans-serif`,                                // (a condensed marquee sans: tall, never stretched)
   slab: px => `800 ${px}px "JetBrains Mono", "Courier New", monospace`,                             // (a slab)
-  inline: px => `900 ${px}px Orbitron, "Chakra Petch", sans-serif`,                                   // (a heavy Deco face with an inline cut through it)
 };
-const BLADE_WIDE = { block: LETTER.wide, condensed: 1.08, slab: 1.55, inline: 1.45 };
+const BLADE_WIDE = { block: LETTER.wide, condensed: 1.08, slab: 1.55 };   // (ATM-C: 'inline' gone — it split each letter into two strokes at blade size)
 const lum3 = c => (c[0] * 0.2126 + c[1] * 0.7152 + c[2] * 0.0722);
 /** the week's ink colour for a game (the game's painted colour lifted toward white until it reads lit) */
 function bladeInk(game) {
@@ -111,20 +110,18 @@ export function paintLetters(x, game, style, M) {
     // (one stretch for every letter, from an H: an I stays a narrow stroke, never a block)
     x.save(); x.font = font(size * 100); const nat = x.measureText('H').width / 100, own = x.measureText(ch).width / 100; x.restore();
     const sq = Math.max(0.6, Math.min(wide, (L.cw * LETTER.fill) / Math.max(1e-3, nat), (L.cw * 0.98) / Math.max(1e-3, own)));   // (a wide M / W never past its column)
-    const inline = S.font === 'inline' ? () => text(x, ch, col.cx, vb + size * 0.04, size * 0.86, { stroke: rgb(panel, 0.9), lw: size * 0.04, sq: sq * 0.86, font }) : null;   // (the inline: a thin cut of the panel's colour inside the letter)
     if (style === 'day') {
       const paintCol = S.ink === 'game' ? mix(ink, [255, 255, 255], 0.1) : S.ink === 'amber' ? INK_COLS.amber : [246, 232, 196];
-      text(x, ch, col.cx + size * 0.05, vb - size * 0.05, size, { fill: rgb(mix(M.giltLo, [10, 10, 20], 0.3), 0.85), sq, font });
+      // (ATM-C: the painted letters' offset shadow SUBTLE — a soft depth, never a second outline beside the letter)
+      text(x, ch, col.cx + size * 0.025, vb - size * 0.025, size, { fill: rgb(mix(M.giltLo, [10, 10, 20], 0.3), 0.32), sq, font });
       text(x, ch, col.cx, vb, size, { fill: rgb(mix(paintCol, M.inside, 0.5 * M.night)), stroke: rgb(mix(S.ink === 'game' ? mix(ink, [20, 20, 30], 0.45) : M.gilt, M.inside, 0.5 * M.night)), lw: size * 0.07, sq, font });
-      if (inline) inline();
-    } else if (style === 'dark') { text(x, ch, col.cx, vb, size, { fill: rgb(M.letterN), stroke: rgb(M.letterN), lw: size * 0.06, sq, font }); if (inline) inline(); }
+    } else if (style === 'dark') { text(x, ch, col.cx, vb, size, { fill: rgb(M.letterN), stroke: rgb(M.letterN), lw: size * 0.06, sq, font }); }
     else {
       // (9e — the owner: "a weird font or effect on the vertical blade sign": the WHITE-HOT CORE was a second, 80 %-size letter shifted up
       //  inside a coloured letter with a thick edge — the two never lined up, so every letter read as a hollow outlined tile. Now ONE clean
       //  letter: near-white (a breath of the game's colour), a thin edge in its colour, the glow in its colour — a lit sign, one shape)
       const body = mix(ink, [255, 252, 244], 0.8), edge = mix(ink, [255, 255, 255], 0.35);
       text(x, ch, col.cx, vb, size, { fill: rgb(body), stroke: rgb(edge), lw: size * 0.045, sq, font, glow: [M.glowPx, rgb(ink, 0.95)] });
-      if (inline) inline();
     }
   });
 }

@@ -69,11 +69,14 @@ export const AD_ORDER = Object.freeze(['rum', 'golf', 'stakes', 'pulse', 'cipher
 export const adWeek = ms => Math.floor((ms - AD_EPOCH) / WEEK);
 // ------------------------------------------------------------------ SP5 — THE BLADE'S WEEKLY LOOK (the owner: never boring)
 /** Each Monday's repaint (the sign painters, 1–4 pm) changes THE GAME + THE LETTER COLOUR + THE LETTER STYLE + THE PANEL COLOUR; the
- *  marquee bulbs stay warm white. Four letter styles from one 1920s Art Deco family — never a script, never the same style two weeks
+ *  marquee bulbs stay warm white. Three letter styles (ATM-C: 'inline' out) from one 1920s Art Deco family — never a script, never the same style two weeks
  *  running (an iterative seeded walk from the epoch's week, the same on every phone); the ink: the GAME's colour with a white-hot core
  *  (most weeks), a classic warm white or an amber; the panel: one of five dark enamels. By day the painted letters + the panel vary the
  *  same way. forced ('<font>-<ink>-<panel>', the &blade= preview) overrides any part. */
-export const BLADE_FONTS = Object.freeze(['block', 'condensed', 'slab', 'inline']);
+// (ATM-C — the owner, Oct 31: NEON PAR on the blade had "some outline or double lettering" — this week's INLINE style (a thin cut of the
+// panel's colour through every stroke) split each letter into two thin strokes at blade size: 'inline' OUT of the rotation; the styles
+// left read as SOLID letters, one colour, a thin edge at most)
+export const BLADE_FONTS = Object.freeze(['block', 'condensed', 'slab']);
 export const BLADE_INKS = Object.freeze(['game', 'warm', 'amber']);
 export const BLADE_PANELS = Object.freeze({ navy: [24, 30, 50], green: [14, 42, 34], burgundy: [54, 16, 28], charcoal: [26, 26, 31], violet: [34, 20, 54] });
 export const INK_COLS = Object.freeze({ warm: [255, 214, 150], amber: [255, 168, 56] });
@@ -82,7 +85,7 @@ export function bladeStyle(week, forced = null) {
   const w = Math.max(0, week | 0);
   let font = styleMemo.get(w);
   if (!font) {
-    let f = BLADE_FONTS[Math.floor(rngFrom(hashString('blade-font|0'))() * 4)], from = 0;
+    let f = BLADE_FONTS[Math.floor(rngFrom(hashString('blade-font|0'))() * BLADE_FONTS.length)], from = 0;
     for (let i = w; i > 0; i--) if (styleMemo.has(i)) { f = styleMemo.get(i); from = i; break; }
     for (let i = from + 1; i <= w; i++) { const r = rngFrom(hashString(`blade-font|${i}`)), others = BLADE_FONTS.filter(x => x !== f); f = others[Math.floor(r() * others.length)]; styleMemo.set(i, f); }
     if (w === 0) styleMemo.set(0, f);

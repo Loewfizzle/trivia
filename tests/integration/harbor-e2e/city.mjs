@@ -86,6 +86,14 @@ async function panelSection() {
     const m = await ev(M.page, "({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.dbg-s[data-id=audio]') })");
     ok(m.ro && m.diag, `PANEL TOOLS: remembered on this device — a visit without &debug=1 shows the readout (${m.ro}) + the AUDIO panel (${m.diag})`);
     await M.ctx.close();
+    // ATM-C — THE PANEL TIDIED: the CITY SOUNDS list FOLDED behind its heading (closed by default, its row count shown), a tap opens it +
+    // it's remembered; CLEAR ALL clears the readouts too (the readout + the AUDIO panel off)
+    { const fs = await ev(O.page, `(() => { const f = document.querySelector('.hr-fold[data-cat="sounds"]'); return f ? { folded: f.classList.contains('is-folded'), n: +f.querySelector('.hr-foldn').textContent, shown: getComputedStyle(f.querySelector('.hr-kb')).display } : null; })()`);
+      await ev(O.page, `document.querySelector('.hr-fold[data-cat="sounds"] .hr-foldb').click()`);
+      const fo = await ev(O.page, `({ open: !document.querySelector('.hr-fold[data-cat="sounds"]').classList.contains('is-folded'), saved: localStorage.getItem('nd:hr-folds') })`);
+      await ev(O.page, `document.querySelector('.hr-fold[data-cat="sounds"] .hr-foldb').click()`);
+      ok(fs && fs.folded && fs.shown === 'none' && fs.n > 100 && fo.open && /CITY SOUNDS/.test(fo.saved || ''), `ATM-C THE PANEL TIDIED: CITY SOUNDS folded (${fs ? `${fs.n} rows, ${fs.shown}` : 'no fold'}) → a tap opens it + remembers it (${fo.saved})`);
+    }
     await ev(O.page, 'window.__district.remote().openCats([])');
   }
   // a row's section opens (a real tap on its header) before the row is tapped
@@ -99,6 +107,9 @@ async function panelSection() {
     // (9d: a row inside a closed fold — the NOW bar's MORE TIME — is unfolded first, as a person would)
     if (await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); const d = b && b.closest('details'); if (!d || d.open) return false; d.open = true; return true; }, label)) await sleep(150);
     await reveal(label);
+    // (ATM-C: a row inside a closed LONG-BLOCK fold — its heading tapped open first, as a person would)
+    { const fb = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); const f = b && b.closest('.hr-fold.is-folded'); if (!f) return null; const hb = f.querySelector('.hr-foldb'); hb.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = hb.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2, k: f.dataset.fold }; }, label);
+      if (fb) { await tapAt(O.page, fb.x, fb.y); await waitFor(O.page, `!document.querySelector('.hr-fold[data-fold="${fb.k}"]').classList.contains('is-folded')`, `the ${fb.k} fold opens`, 3000); } }
     const r = await O.page.evaluate(l => { const b = [...document.querySelectorAll('.hr-sheet .hr-b')].find(x => x.textContent.replace('☾', '').trim() === l); if (!b) return null; b.scrollIntoView({ block: 'center', behavior: 'instant' }); const q = b.getBoundingClientRect(); return { x: q.left + q.width / 2, y: q.top + q.height / 2 }; }, label);
     if (!r) throw new Error(`no chip ${label}`);
     await tapAt(O.page, r.x, r.y); await sleep(200);
@@ -214,6 +225,18 @@ async function panelSection() {
     ok(s && ['wordA', 'wordB', 'wordV'].every(t => s.towers.includes(t)) && s.scrolls.join() === 'wordB' && /BIRTHDAY.*SCROLLS/.test(fit) && /ROOM/.test(fit),
       `THE WORD TOWERS (JUST ME): "${s && s.text}" on ${s && s.towers} — ${s && s.scrolls} scrolls; the readout: "${fit}"`);
     await ev(O.page, 'window.__district.remote().close(), window.__district.remote().setMine({})'); }
+  // ATM-C — CLEAR ALL CLEARS THE READOUTS (last: CLEAR ALL takes the page back to the real city): the readout + the AUDIO panel on, CLEAR ALL → both off
+  { await ev(O.page, 'window.__district.remote().open()');
+    await waitFor(O.page, "!!document.querySelector('.hr-sheet')", 'the sheet', 4000).catch(() => {});
+    await ev(O.page, "window.__district.remote().openCats(['tools'])");
+    await waitFor(O.page, "!!document.querySelector('.hr-sec[data-cat=\"tools\"] [data-tool=\"audio\"]')", 'the tool switches', 3000).catch(() => {});
+    for (const id of ['audio', 'readout']) await ev(O.page, `(() => { const b = document.querySelector('.hr-sec[data-cat="tools"] [data-tool="${id}"]'); if (b && !b.classList.contains('is-on')) b.click(); })()`);
+    await waitFor(O.page, "!!document.querySelector('.dbg-s[data-id=audio]') && window.__district.harbor().flags.readout", 'both on', 4000).catch(() => {});
+    const on = await ev(O.page, "({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.dbg-s[data-id=audio]') })");
+    await ev(O.page, "document.querySelector('.hr-clear').click()");
+    await waitFor(O.page, "!document.querySelector('.dbg-s[data-id=audio]') && !window.__district.harbor().flags.readout", 'the readouts cleared', 4000).catch(() => {});
+    const cr = await ev(O.page, "({ ro: window.__district.harbor().flags.readout, diag: !!document.querySelector('.dbg-s[data-id=audio]') })");
+    ok(on.ro && on.diag && !cr.ro && !cr.diag, `ATM-C CLEAR ALL CLEARS THE READOUTS: on (${on.ro}, ${on.diag}) → the readout ${cr.ro ? 'still on' : 'off'}, the AUDIO panel ${cr.diag ? 'still up' : 'gone'}`); }
   await O.ctx.close();
 
   // ---- EVERYONE ON CITY 2: the server's node (written here with the emulator's owner rights; the /api path: server.test) —

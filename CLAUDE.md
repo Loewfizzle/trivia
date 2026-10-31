@@ -58,6 +58,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **City 2.0 (`?city=2`) — its standing rules, one line each** (the full text: docs/harbor.md#city-20-in-claudemd--the-full-text; the
   owner's CURRENT decisions: **docs/harbor/decisions.md** — read it before a Harbor pass; plan.md is the archive):
   - THE WINDOW RULE: every window moment enters by its own motion or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION).
+  - THE WINDOW STANDARD (the owner, Oct 31): the shadowboxer + the boss's TV room are the bar for every window scene — one real light in the room, its shadows, smooth eased motion, that quality.
   - THE PEOPLE RULE: nobody appears or vanishes in view on the promenade (core/harbor-witness.js#rejoinVisits, people.js#guard).
   - THE SOLIDS: every solid thing on the promenade is ONE registry (core/harbor-solids.js) — every walk goes round it.
   - NO LAMPPOSTS: the implied lamps; the light in ONE pure module (core/harbor-light.js; NEW light default, `&light=old` for A/B).

@@ -49,6 +49,7 @@ import { cityPreview, citySoundsDebug } from '../../audio/city-sound.js';
 import { debugTool, setDebugTool } from '../../ui/debug-tools.js';
 import { setMenuExtra, setMenuCue } from '../../ui/settings-panel.js';
 
+const FOLD_KEY = 'nd:hr-folds';   // (ATM-C: the long blocks the owner opened — remembered on this device)
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin', OPEN_KEY = 'nd:hr-open', DELAY_KEY = 'nd:hr-delay', RECENT_KEY = 'nd:hr-recent';
 const RECENT_MAX = 6;
 const ss = {
@@ -454,6 +455,10 @@ export function createRemote({ scene, api = apiCall }) {
   async function clearAll() {
     autoSetting();
     const cleared = [];
+    // (ATM-C — CLEAR ALL CLEARS THE READOUTS TOO (the owner, Oct 31): the frame READOUT + its LOAD log + the AUDIO panel off with
+    // everything else, and a link's &debug=1 out of the address (the strips it put up go with it))
+    if (debugTool('readout') || debugTool('audio')) { setDebugTool('readout', false); setDebugTool('audio', false); cleared.push('THE READOUTS'); }
+    try { const q = new URLSearchParams(location.search); if (q.has('debug')) { q.delete('debug'); const s2 = q.toString(); history.replaceState(history.state, '', location.pathname + (s2 ? `?${s2}` : '') + location.hash); } } catch { /* fine */ }
     if (play) { stopPlay(false); cleared.push('PLAY ALL'); }
     if (mode === 'me') {
       // SP5 — THE REAL CITY NOW (the owner: CLEAR ALL only emptied the panel's state — a preview LINK's flags kept forcing, EVERYONE's
@@ -671,7 +676,24 @@ export function createRemote({ scene, api = apiCall }) {
     },
   };
   // a block: `.hr-sec.hr-k` (the old hooks) — its heading (`.hr-h`), its rows
-  const block = (cat, head, q, kids, extra = {}) => h('div.hr-sec.hr-k', { dataset: { cat, q: `${head} ${q || ''}`, ...extra } }, h('h3.hr-h.hr-kh', head), h('div.hr-kb', ...kids));
+  // ATM-C — THE PANEL TIDIED (the owner, Oct 31 12:03 pm: "the SOUNDS list — every sound in one long list" + every other long list: he
+  // scrolls past them): a block with more than FOLD_MIN rows FOLDS behind its own heading — closed by default, remembered on this device
+  // (nd:hr-folds), its row count beside the name; a search opens every fold it finds rows in (CSS: .is-search)
+  const FOLD_MIN = 12, KEEP_OPEN = new Set(['playall', 'party', 'music', 'lights', 'tools']);
+  const openFolds = (() => { const v = ls.get(FOLD_KEY); return new Set(Array.isArray(v) ? v : []); })();
+  const block = (cat, head, q, kids, extra = {}) => {
+    const body = h('div.hr-kb', ...kids), n = body.querySelectorAll('.hr-b, .hr-snd').length;
+    // (the blocks with LIVE CONTROLS — the party's ON / OFF, the music, the beat's slider, the debug tools — keep them in view; every
+    // other long list folds: the event lists, the weather's + the snow's + the holidays' lists, THE CITY SOUNDS)
+    if (n <= FOLD_MIN || KEEP_OPEN.has(cat)) return h('div.hr-sec.hr-k', { dataset: { cat, q: `${head} ${q || ''}`, ...extra } }, h('h3.hr-h.hr-kh', head), body);
+    const key = `${cat}|${head}`, open = openFolds.has(key);
+    const el = h('div.hr-sec.hr-k.hr-fold', { class: open ? null : 'is-folded', dataset: { cat, q: `${head} ${q || ''}`, fold: key, ...extra } },
+      h('h3.hr-h.hr-kh', h('button.hr-foldb', { type: 'button', 'aria-expanded': open ? 'true' : 'false', onclick: e => {
+        const now = !openFolds.has(key); if (now) openFolds.add(key); else openFolds.delete(key); ls.set(FOLD_KEY, [...openFolds]);
+        el.classList.toggle('is-folded', !now); e.currentTarget.setAttribute('aria-expanded', now ? 'true' : 'false'); } },
+        h('span.hr-foldi', { 'aria-hidden': 'true' }), h('span', head), h('small.hr-foldn', String(n)))), body);
+    return el;
+  };
   function flip(id, secEl) {
     const on = !openSecs.has(id);
     if (on) openSecs.add(id); else openSecs.delete(id);
