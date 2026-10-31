@@ -899,6 +899,35 @@ G('heli', async () => {
     const gone = !(await ev(Q.page, `${H}.breakOn`));
     ok(gone && lastX != null && (lastX < -10 || lastX > W + 10), `OFF AFTER THE SONG: it flew out (last seen at x ${lastX} of ${W}) — never vanished in view`);
     await Q.ctx.close(); }
+  // ---- 4. MODELS — THE PATROL AS A BAKED MODEL (&force=helicopter at night): the model's sprites drawn, THE NEAR PASS BIG + THE FAR PASS
+  // small (its size follows its distance), on a stop it TURNS toward the viewer (a real 3D view), NO STOP HIDDEN BEHIND THE SPEAKEASY (it
+  // climbs above the roof), THE SEARCHLIGHT never jumps (its angle moves by small steps frame to frame)
+  { const Q = await open({ slot: 'hmod', qs: `when=2026-11-03T21:30${GR}&wx=clear&force=helicopter`, view: [402, 874] });
+    await harborUp(Q.page);
+    const occ = (await ev(Q.page, 'window.__district.harbor().heliOcc')) || [];
+    let nearW = 0, farW = 1e9, model = 0, turned = 0, maxStep = 0, lastAng = null, lastT = 0, hidden = null;
+    const stops = [], t0 = Date.now();
+    while (Date.now() - t0 < 26000) {   // (the first near pass: in, its stops, out — the far pass behind the towers comes ~40 s in)
+      const h = await ev(Q.page, `(() => { const u = window.__district.harbor().heli.up; return u ? { ...u, t: performance.now() } : null; })()`);
+      if (h && !h.off) {
+        if (h.model) model++;
+        if (h.w) { if (!h.behind) nearW = Math.max(nearW, h.w); else farW = Math.min(farW, h.w); }
+        if (h.hover && h.model && h.heading != null && h.heading % 180 !== 0) turned++;
+        if (h.hover && h.look) {
+          if (!stops.some(q => Math.abs(q.x - h.cx) < 20)) stops.push({ x: h.cx, y: h.cy, look: h.look });
+          const half = (h.w || 60) * 0.5;
+          for (const r of occ) if (!h.behind && h.cx + half * 0.6 > r.x && h.cx - half * 0.6 < r.x + r.w && h.cy - half * 0.2 > r.y && h.cy < r.y + r.h) hidden = hidden || `${Math.round(h.cx)},${Math.round(h.cy)} behind ${Math.round(r.x)}–${Math.round(r.x + r.w)} × ${Math.round(r.y)}–${Math.round(r.y + r.h)}`;
+        }
+        if (h.ang != null) { if (lastAng != null && h.t - lastT < 400) maxStep = Math.max(maxStep, Math.abs(h.ang - lastAng)); lastAng = h.ang; lastT = h.t; } else lastAng = null;
+      } else lastAng = null;
+      await sleep(120);
+    }
+    ok(model > 20, `THE BAKED MODEL flies the patrol (${model} samples on the model)`);
+    ok(nearW >= 55 && (farW === 1e9 || farW <= nearW * 0.5), `THE NEAR PASS IS BIG: ${nearW} pt at 402 (≥ 55; the far pass behind the towers ~a third of it — unit: helicopter.patrol's near / far)`);
+    ok(turned >= 2, `ON A STOP IT TURNS TOWARD US through the baked views (${turned} turned samples)`);
+    ok(stops.length >= 1 && !hidden, `NO STOP HIDDEN BEHIND THE SPEAKEASY (stops ${stops.map(q => `${q.look} @ ${Math.round(q.x)},${Math.round(q.y)}`).join(' · ')}${hidden ? ` — HIDDEN ${hidden}` : ''})`);
+    ok(maxStep < 0.25, `THE SEARCHLIGHT SWEEPS SMOOTHLY: its biggest change between samples ${maxStep.toFixed(3)} rad (it used to jump ~0.8 as the craft slowed into a stop)`);
+    await Q.ctx.close(); }
 });
 
 // ================================================================ NIGHT-C — THE ROOF SIGNS AT 3× (ONLY=roofcrisp; the `audio` cloud job — the

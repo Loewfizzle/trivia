@@ -62,8 +62,38 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
   pink glow in the dead city. Now the dark bake is pulled toward a cool near-black inside its own pixels (far 0.38, near 0.5 — once a bake,
   nothing a frame); the TR-3B's white + red light on the tower tops is drawn after it, untouched.
 
+## Group 3 — THE HELICOPTER MODEL + THE PATROL FIXES
+- **THE BAKE** (scripts/bake/heli.mjs; "Utility helicopter" by 3D Assets, CC0, made with AI tools): its `main-rotor` + `tail-rotor` nodes
+  hidden, its `rotor-spin` clip ignored; 24 HEADINGS (0° nose right · 90° toward us · 180° left · 270° away), 9° from below, a DAY + a NIGHT
+  light (at night the navy lifted to a slate blue + the glass lighter, a cool rim from above + a warm one from below — Grok's note that the
+  paint sinks at night); 200 px a fuselage → assets/city/heli/ (2 × ~76 KB, 6 × 4 sheets of 208×119 frames, ~2.4 MB decoded each); per heading
+  the hubs, the belly lamp, the beacon, the tail light + the nose projected into heli.json.
+- **THE DRAW** (air.js#drawModel; the drawn chopper stands in until the sprites load, or if they fail): the two nearest headings
+  cross-faded (never a stepped turn), the day + night sheets blended by the hour; THE ROTORS live — the main disc a thin ellipse at the hub
+  (radius 4.25 m, seen from 9° below) with two blades flicking, the tail disc face-on from the side / edge-on head-on; the lights — the belly
+  lamp, the red beacon, the nav light (green flying right, red left), the white tail light — at their projected points. Anchored by the hub
+  at the drawn craft's own rotor height, so every planner + clearance check sees the same box (the break flight's "never in front of a sign"
+  check caught the first anchoring).
+- **IT TURNS IN 3D**: the patrol now has a heading (the break's turn(), extended): on a stop it turns ~35° toward the viewer (its cabin's
+  front shows) and back onto its course as it moves on.
+- **ITS SIZE FOLLOWS ITS DISTANCE**: `helicopter.patrol.near` 1.6 → 2.3 — the near pass 64 pt at 402 (was ~45), the far pass behind the
+  towers ~20 pt (its `far` unchanged: a third of the near).
+- **NO HOVER BEHIND THE SPEAKEASY**: the scene hands the plan the speakeasy's front (ground → its crest) + any sign over it
+  (scene.js#heliOcc); a stop whose craft would sit behind them climbs ABOVE them into open sky and looks down at the promenade (the first
+  close pass's stop at x ~130 now hovers at y ~551, above the roof, behind its string lights — visible).
+- **THE SEARCHLIGHT SWEEPS SMOOTHLY**: the beam's angle jumped by ~0.8 rad in one frame as the craft slowed into a stop (−0.5·dir in flight
+  → the sweep on a stop) and stepped with the party's beat; now an eased follow every frame (τ 0.5 s), the 'front' part drawing the very angle
+  the 'near' part settled; e2e: the biggest change between ⅛-s samples 0.11 rad.
+- NOT on the crisp layer: the patrol flies BEHIND the near pieces (the trees, the speakeasy, the signs) — a full-res overlay would have to
+  cut them all out; it stays in the city's canvas (the sprites baked at 200 px — ~3× its drawn size at the near pass). The dance-break flight
+  stays OFF (`&force=break-heli` flies it — on the model now too).
+- e2e `heli` (+ its 4th page: the model, the near pass ≥ 55 pt, the turn, no stop behind the speakeasy, the smooth beam — 21 checks); a 10th
+  cloud job `models` (the Mothman + the shadowboxer: every other job sat at its ~5-min cap).
+
 ## Decisions
 - The Mothman 84 pt (not 70) — 38 % of the tucked model is the hem below his talons.
+- The patrol stays in the city's own canvas (not the crisp layer): it flies behind the near pieces.
+- A 10th cloud job (`models`) instead of stretching the 5-minute cap.
 - The Blackbird's default art is the baked SR-71 (the owner judges on his phone; TOOLS → THE BLACKBIRD DRAWN for the A/B).
 - EVERYONE's preview yields to a page whose own link carries `&force` (not to a clock-only link — the panel's own EVERYONE test opens night links).
 
