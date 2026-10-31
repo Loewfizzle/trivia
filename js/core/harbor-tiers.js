@@ -38,7 +38,7 @@ export const TIERS = Object.freeze({
   liveWin3x: Object.freeze([0, 1, 1]),
   // ATM-B — FOG AS DEPTH (fogdepth.js): the lights' halos hanging in the murk (the signs + the NEON logo; half as many on the speakeasy's
   // windows) — the veils + the road's bank are on every tier, the promenade's bank from tier 1
-  fogHalos: Object.freeze([8, 16, 24]),
+  fogHalos: Object.freeze([6, 10, 14]),   // (ATM-B's A/B: the halos were the fog's biggest cost — fewer + their radius capped)
   // ATM-B — FREEZING RAIN's ICICLES (icefx.js): how many hang from the ledges, the signs' frames, the railing + the benches (a few small fills each)
   icicles: Object.freeze([50, 110, 180]),
 });

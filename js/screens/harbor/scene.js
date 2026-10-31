@@ -2309,10 +2309,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // ATM-B — the MIDDLE rows ghostly in dense fog; then every lit sign + the NEON logo a soft halo HANGING in the air (the light scatters
     // through the murk — drawn over the veil: the glow you see where the building is gone)
     if (fogOn) {
-      fogD.veil(c, 'mid', 0, fogTop);
+      const crownTop = skyline && skyline.length ? Math.max(0, Math.min(...skyline) - 24) : 0;   // (the sky above the crowns already took the far veil)
+      fogD.veil(c, 'mid', crownTop, fogTop);
       const sl = deadCity ? [] : neon.signLights().map(g => ({ x: g.x, y: g.y, w: g.w, h: g.h, col: g.col, k: g.on * nf.night * nf.fade }));
       const nr = S.textRects && S.textRects.neon, sc0 = S.signCol ? (n => [n >> 16, (n >> 8) & 255, n & 255])(parseInt(S.signCol.slice(1), 16)) : [255, 95, 180];
-      if (nr && !LB) sl.unshift({ x: nr.x, y: nr.y, w: nr.w, h: nr.h * 1.3, col: sc0, k: 0.75 * litK(DK, 'logo') });
+      if (nr && !LB) sl.unshift({ x: nr.x, y: nr.y, w: nr.w, h: nr.h * 1.3, col: sc0, k: 0.75 * litK(DK, 'logo'), cap: 130 });
       fogD.halos(c, sl, tierVal('fogHalos', tier));
     }
     // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)
@@ -2348,7 +2349,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (!noB) boats.draw(c, hf.boat, 0, L.wheel.z + L.wheel.frame + 0.5);
     sky.beam(c, fs);                                // (the helicopter's searchlight down to the water)
     if (!off.has('no-snowfall') && fadeIn > 0 && (LK.snow || 0) > 0.004) snowfall.draw(c, { ...snowEnv(), layer: 'mid' });   // (ATM-B: the MID layer over the harbor, under its veil)
-    if (fogOn && fogWb) fogD.veil(c, 'harbor', 0, fogWb.y1);   // (ATM-B: the harbor's pieces softened — the lighthouse's cone + glow come through)
+    if (fogOn && fogWb) fogD.veil(c, 'harbor', Math.max(0, fogWb.y0 - (fogWb.y1 - fogWb.y0) * 3), fogWb.y1);   // (ATM-B: the harbor's pieces softened — the lighthouse's cone + glow come through)
     // 9a — THE FOG ON THE WATER (real fog / mist): a bank lying on the harbor, the far quay melting into it, wisps drifting with the wind
     if ((LK.fog || 0) > 0.16 && fadeIn > 0 && !off.has('no-fog')) { const wb = water.band(); if (wb) waterFog.draw(c, { y0: wb.y0, y1: wb.y1, W, fog: LK.fog, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, motion: S.motion, wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? -1 : 1), glow: PT.on > 0.5 ? [150, 90, 170] : [118, 96, 150] }); }
     // 8b1 — THE WILDLIFE's plan + reactions this frame (before any of its passes), then the WATER pass: the heron's mooring piling in the
@@ -2523,9 +2524,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // side), the speakeasy's lit windows smeared warm, the implied lamps' light hanging in the murk
     if (fogOn) {
       const p0 = groundY(cam, Z.prom[1]) - 30, p1 = Math.min(H, cam.dock.y + 40);
-      fogD.veil(c, 'stage', p0 - 40, H);
+      fogD.veil(c, 'stage', p0 - 40, p1);
       fogD.bank(c, 'prom', p0, groundY(cam, Z.prom[0]));
-      fogD.lampGlow(c, p0, H);
+      fogD.lampGlow(c, p0, p1);
       const pw = speak.power ? speak.power() : 1, wk = litK(DK, 'lamps') * (lit > 0 ? lit : 0) * pw;
       if (wk > 0.02) fogD.halos(c, speak.windows().filter(w => !w.edge).map(w => ({ ...w.rect, col: [255, 190, 120], k: 0.9 * wk })), Math.max(4, tierVal('fogHalos', tier) >> 1));
     }

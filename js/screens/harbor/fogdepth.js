@@ -101,7 +101,7 @@ export function createFogDepth() {
     },
     /** THE LIGHTS IN FOG: each a soft halo hanging in the air (list: [{ x, y, w, h, col, k }]); the denser the fog, the wider + stronger;
      *  by day only a faint bloom. max: the tier table's count */
-    halos(c, list, max = 24) {
+    halos(c, list, max = 24, cap = 64) {
       if (look.k <= 0.01 || !list || !list.length) return;
       const D = lerp(0.45, 1, look.m), base = look.k * (0.22 + 0.4 * D) * lerp(1, 0.28, day);
       if (base < 0.01) return;
@@ -110,7 +110,9 @@ export function createFogDepth() {
       for (const l of list) {
         if (n >= max) break;
         if (!(l.k > 0.02)) continue;
-        const r = Math.max(l.w, l.h) * 0.5 * (1.5 + 2.1 * D) + 5 + 7 * D, a = Math.min(1, base * l.k);
+        // (the radius CAPPED: an additive sprite's cost is its area — the 4×-CPU A/B found the uncapped halos (the logo's ~1100 pt) the fog's
+        // biggest cost; l.cap: the NEON logo's own)
+        const r = Math.min(l.cap || cap, Math.max(l.w, l.h) * 0.5 * (1.2 + 1.3 * D) + 4 + 6 * D), a = Math.min(1, base * l.k);
         if (a < 0.01) continue;
         c.globalAlpha = a;
         c.drawImage(haloOf(l.col), l.x + l.w / 2 - r, l.y + l.h / 2 - r * 0.85, r * 2, r * 1.7);
