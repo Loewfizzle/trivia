@@ -6,11 +6,11 @@ import { BENCH_SCENES, BENCH_PROFILE, PROFILE_Q, BENCH, benchStats, benchText, b
 import { REMOTE_KEYS, EVENTS } from '../js/core/harbor-remote.js';
 
 test('C4c — THE PHONE BENCH: the heavy scenes (a party peak, a dance break, party + snow, Halloween, the UFO, the TR-3B, the Blackbird, a storm + MODELS: the Mothman, the patrol) as preview states the panel knows', () => {
-  assert.deepEqual(BENCH_SCENES.map(s => s.id), ['party', 'party-break', 'party-snow', 'halloween', 'ufo', 'tr3b', 'blackbird', 'storm', 'mothman', 'patrol']);
+  assert.deepEqual(BENCH_SCENES.map(s => s.id), ['party', 'party-break', 'party-snow', 'halloween', 'ufo', 'tr3b', 'blackbird', 'storm', 'fog', 'freezing', 'blizzard', 'mothman', 'patrol']);
   for (const s of [...BENCH_SCENES, { id: 'profile', q: PROFILE_Q }]) for (const k of Object.keys(s.q)) assert.ok(REMOTE_KEYS.includes(k), `${s.id}: ${k} is a preview key`);
   const per = s => 12000 + BENCH.cool + BENCH.settle + (s.measure || BENCH.measure) + BENCH.fill;
   const ms = BENCH_SCENES.reduce((a, s) => a + per(s), 0) + BENCH_PROFILE.reduce((a) => a + per({ measure: BENCH.profile }), 0);
-  assert.ok(ms > 6 * 60000 && ms < 14 * 60000, `${(ms / 60000).toFixed(1)} min in all`);
+  assert.ok(ms > 6 * 60000 && ms < 17 * 60000, `${(ms / 60000).toFixed(1)} min in all`);   // (ATM-B: + fog, freezing rain + the blizzard — ~14 min; the scenes + the profile also run apart)
 });
 test('SKY-B — THE PROFILE: the dance break with one piece off at a time — every switch is a real preview flag; the first row everything on', () => {
   assert.equal(BENCH_PROFILE[0].off, '');

@@ -39,7 +39,11 @@ export const BENCH_SCENES = Object.freeze([
   // (SKY-A: the TR-3B at full res + its lights on the world, the F-22 vic on the model, THE BLACKBIRD passing them)
   { id: 'tr3b', label: "the TR-3B's drain + the F-22 chase + the Blackbird", q: { when: '2026-10-21T22:00', wx: 'clear' }, legend: 'tr3b', measure: 30000 },
   { id: 'blackbird', label: 'THE BLACKBIRD (a forced flyby every ~8 s)', q: { when: '2026-10-21T22:00', wx: 'clear', force: 'blackbird' } },
-  { id: 'storm', label: 'a summer storm (9:30 pm)', q: { when: '2026-07-11T21:30', wx: 'storm' } },
+  { id: 'storm', label: 'a summer storm + close strikes (9:30 pm)', q: { when: '2026-07-11T21:30', wx: 'storm', force: 'strike' } },
+  // (ATM-B — the full-screen weathers, each its own scene: the fog's veils + halos + banks, the ice, the blizzard's whiteout + streaks)
+  { id: 'fog', label: 'dense fog at night (9:30 pm)', q: { when: '2026-11-03T21:30', wx: 'fog' } },
+  { id: 'freezing', label: 'freezing rain: the ice (9:30 pm)', q: { when: '2026-11-20T21:30', wx: 'freezing' } },
+  { id: 'blizzard', label: 'THE BLIZZARD (9:30 pm)', q: { when: '2026-12-15T21:30', wx: 'blizzard' } },
   // (MODELS: THE MOTHMAN — perched, then the needle's stutter + the glide away (his own overlay); THE NIGHT PATROL on the baked model — 24
   // headings, live rotors + lights, the smoothed searchlight)
   { id: 'mothman', label: 'THE MOTHMAN: perched, then the glide away (3 am)', q: { when: '2026-11-03T03:00', wx: 'clear', force: 'mothman-leave' } },

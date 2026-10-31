@@ -465,6 +465,18 @@ rain), `rain-pavement` (the street round you, from moderate rain), `rain-awning`
 the time sound takes from its distance (3–16 s), never two rolls on top of each other. Everything under the music (the bed's duck); City
 1.0's rain loop + recorded thunder are off in City 2.0. The AUDIO panel's `weather <state> · beds …` line names what sounds.
 
+## THE STORM + THE COLD, HEARD (ATM-B, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js` (`thunder`, the weather beds), `audio/city-sound.js#cityCrack`
+- **THE THUNDER BY DISTANCE** (`thunder(ev)` — the strike's kind, its distance's delay, its pan from where it hit): a CLOSE strike (≲ 1.6 km,
+  0.5–4 s after its flash) = `cityCrack` — a SYNTHESIZED split (no file: a 1.6 s noise buffer made once per sample rate — two tearing peaks
+  0 + 45 ms, a crackle tail, a low boom swelling under them, through a low-pass sweeping 7 kHz → 380 Hz) on the city's own chain (its gain,
+  its soft limiter, the Effects slider + Mute) — with the recorded `thunder-far` roll under it via `ducked()` (the music dips to 0.45 for
+  ~1.4 s, back over 3.5 s); a FAR strike = the roll alone, later + softer, a smaller dip (0.82); an INTRA-CLOUD flicker a soft low grumble
+  (the roll at 0.82× rate). A roll never lands on another (≥ 6 s apart); a crack never waits.
+- **THE SLEET** (`sleet-glass`, Grok's sleet-glass-1): a quiet bed while it's FREEZING RAIN, panned to the speakeasy's windows (left).
+- **THE BLIZZARD** (`blizzard`, both of Grok's blizzard loops): its bed by the weather's `blizzard` (0..1), the TAKE alternating every ~2½ min
+  (`keep(…, { take })` — the old one fades out, the other fades in: never the same bed long), under the snow's hush + the gale bed; the gusts
+  stay on the visual gust waves (ATM-A).
+
 ## THE WIND's SOUNDS (ATM-A, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js` (THE WIND), `core/harbor-wind.js`, `scripts/add-city-sfx.py` (ALIAS + CUTS)
 Grok's 13 WAVs (`art/city-sfx/weather/` — the originals git-ignored, never edited; `claude-notes.txt` + `credits.txt` beside them) → 13 web
 copies, **1.31 MB**: `wind-winter` (winter-wind-loop-1: the airy ALLEY wind, a 30 s window after its ~31 s library edit), `wind-gale`

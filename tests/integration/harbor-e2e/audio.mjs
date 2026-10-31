@@ -192,8 +192,10 @@ G('music', async () => {
     const after = await ev(P.page, NOW), off = await ev(P.page, `(() => { const d = window.__arcade.partyMusicDebug(); return !d || d.kind !== 'station'; })()`);
     ok(deck('party').includes(after) && off, `PANEL: SKIP steps this phone off the PARTY station onto its own next party song (${now} → ${after})`);
     await ev(P.page, 'window.__district.remote().setMine({})');
-    await changed(P.page, after, 'AUTO again');
-    ok(deck('day').includes(await ev(P.page, NOW)), 'PANEL: clearing the mood goes back to the time of day (DAY)');
+    // (ATM-B: wait for the condition itself — a DAY song — not for "any change": the first change seen could land between the panel's
+    // clear and the city's 2-s mood watch switching the song (missed once in the local run))
+    await waitFor(P.page, `${JSON.stringify(deck('day'))}.includes(${NOW})`, 'AUTO again: a DAY song', 20000).catch(() => {});
+    ok(deck('day').includes(await ev(P.page, NOW)), `PANEL: clearing the mood goes back to the time of day (DAY: ${await ev(P.page, NOW)})`);
     await P.ctx.close(); }
 
   // ---- 5b. NIGHT-A — THE PANEL's PARTY PLAYS A PARTY SONG + THE PULSE LOCKS TO IT (the owner's test: "beat grid", no pulse with the

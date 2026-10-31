@@ -1608,6 +1608,13 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE DOG's TURN: its heading eased over 0.6 s (dogHeading), its place a continuous function of it (dogOffset), the dock clamp before the
   sniff (dogPlace), a squash-through flip while it turns (drawDog): the biggest move a frame 1.85 → 0.13 u.
 
+## CITY 2.0 — ATM-B: FOG AS DEPTH, THE STORM, FREEZING RAIN, HEAVY SNOW IN LAYERS + THE BLIZZARD (Oct 31 2026) — docs/harbor/passes/atm-b.md (plan.md "OWNER'S NOTES — OCT 31 (morning)")
+- THE PANEL PARTY ON race: the synced player's hand-off carried over a station change — a queued-but-silent voice held the phone quiet past the 8 s cover (audio/party-music.js). COATS + SCARVES stream with the gust wave at each person (folk.js#setFolkWind).
+- FOG AS DEPTH (screens/harbor/fogdepth.js): veils after the far rows / the near skyline / the harbor, banks on the road + the promenade, the lights' halos (the signs, the NEON logo, the speakeasy's windows, the implied lamps), night fog lit by the city; mist vs dense measured on the skyline's contrast.
+- THE STORM (stormdeck.js + lightning.js + audio/city-sound.js#cityCrack): the low heavy base + cumulonimbus towers rolling in, lit from inside; intra-cloud / far / close strikes (thick forks onto a crown, the water or THE NEEDLE ~1 in 6), 1–3 strokes inside the safety caps, the stage lit from the strike's side; the thunder by distance + the music ducked; &force=strike.
+- FREEZING RAIN (icefx.js): icicles on the speakeasy's ledges, the blade + the roof signs, the railing + the benches; the glaze, the ice sheen; the rain finer + glinting; careful steps; sleet on the glass.
+- HEAVY SNOW IN LAYERS (snowfx.js) + THE BLIZZARD (core/harbor-weather.js#blizzardK): the far / mid / near flakes at their depths, the white veil, the whiteout, the snow driven sideways, few people (heads down), the trees shaking snow off, streamers + drifts, Grok's blizzard loops alternated.
+
 ## CITY 2.0 — ATM-A: GREEN MEANS GREEN, THE MODELS FIXES, WIND AS ONE SYSTEM, THE CLOUDS + THE SUN (Oct 31 2026) — docs/harbor/passes/atm-a.md (plan.md "OWNER'S NOTES — OCT 31 (night)")
 - GREEN MEANS GREEN: one test browser (tests/integration/kit/puppeteer.mjs) — muted, and on Windows composited in software: the mini PC's
   TV runs at 4K / 29 Hz and headless Chromium followed its vsync (~30 fps); the first-tap surge's real race (a sub-second dropout while the
