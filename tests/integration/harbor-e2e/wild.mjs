@@ -102,6 +102,23 @@ G('weather', async () => {
     const b = await ev(Q.page, `${P}.sky.state.balloons`);
     ok(b && b.order.join() === 'btc-orange,alien,bitcoin,bullseye,smiley,flag' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
     await Q.ctx.close(); }
+  // ---- ATM-B — FOG AS DEPTH (fogdepth.js; the owner: "fog doesn't really do anything"): DENSE fog = the veils by depth (the far rows gone,
+  // the middle ghostly, the stage clear) + the lights' halos + the drifting banks; MIST its own lighter look; the skyline's contrast
+  // measured against a clear night (the band above the water: its spread of brightness falls)
+  { const spread = Q => ev(Q.page, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth, wb = ${P}.water.band;
+      const y1 = Math.round(((wb && wb.y0) || 640) * k), h = Math.round(110 * k), d = cv.getContext('2d').getImageData(0, y1 - h, cv.width, h).data; let n = 0, s = 0, s2 = 0;
+      for (let i = 0; i < d.length; i += 4 * 13) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; n++; s += v; s2 += v * v; } const m = s / n; res(+Math.sqrt(s2 / n - m * m).toFixed(1)); }))`);
+    const at = `when=2026-11-03T21:30${GR}`;
+    const C0 = await open({ slot: 'fg0', qs: `${at}&wx=clear`, view: [402, 874] }); await harborUp(C0.page); await sleep(1500);
+    const sc = await spread(C0); await C0.ctx.close();
+    const F = await open({ slot: 'fg1', qs: `${at}&force=fog`, view: [402, 874] }); await harborUp(F.page); await sleep(1500);
+    const fd = await ev(F.page, `${W}.fogDepth`), sf = await spread(F);
+    ok(fd && fd.mode === 'dense' && fd.veils >= 5 && fd.halos >= 3 && fd.banks >= 1 && sf < sc * 0.7, `ATM-B DENSE FOG = DEPTH: ${fd && `${fd.veils} veils, ${fd.halos} halos, ${fd.banks} banks`}; the skyline's contrast ${sf} vs a clear night's ${sc}`);
+    await F.ctx.close();
+    const M = await open({ slot: 'fg2', qs: `${at}&force=mist`, view: [402, 874] }); await harborUp(M.page); await sleep(1500);
+    const md = await ev(M.page, `${W}.fogDepth`), sm = await spread(M);
+    ok(md && md.mode === 'mist' && sm < sc && sm > sf, `ATM-B MIST ≠ FOG: mist ${md && md.mode} (contrast ${sm}) between a clear night's ${sc} and dense fog's ${sf}`);
+    await M.ctx.close(); }
   // ---- ATM-A — THE WIND AS ONE SYSTEM (core/harbor-wind.js): still air keeps the crowns at rest, a WINDY day sways them (the gust waves
   // rolling through), a GALE bends them hard; the moving crowns are CUT from their layer (no ghost); the water is never a mirror (its
   // roughness floor); in a gale the gusts are HEARD on the visual waves (after a tap)

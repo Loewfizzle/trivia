@@ -97,6 +97,7 @@ import { createClouds } from './clouds.js';
 import { createHarborRain, rainLook } from './rainfx.js';
 import { createLightning } from './lightning.js';
 import { createWaterFog } from './waterfog.js';
+import { createFogDepth } from './fogdepth.js';
 import { createWetGround } from './wetground.js';
 import { createStill } from './still.js';
 import { createCabStand } from './cabstand.js';
@@ -582,6 +583,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const zap = createLightning({ onStrike: ev => { snd.thunder(ev); if (S.onFlash) S.onFlash(ev); } });
   const lightningFlash = () => zap.flash();
   const waterFog = createWaterFog();      // (9a: the fog lying on the harbor)
+  const fogD = createFogDepth();          // (ATM-B: FOG AS DEPTH — the veils by depth, the halos, the drifting banks)
   const still = createStill();            // (PROM: the two benches live + sharp, sorted with the walkers — still.js)
   const cabStand = createCabStand();      // (PROM: the cab stand's taxi on the front street while the dock rests — cabstand.js)
   const wetGround = createWetGround();    // (9a: the wet promenade — the puddles, the lamps' wet reflections, the rings, the awning's drips)
@@ -2196,7 +2198,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sun.halo(c, fs); drawRays(c, L, sunNow, rk * fadeIn, t, 'behind', S.motion, tier); sky.low(c, fs);
     // 11a-1 — THE GHOST SHIP's place this frame + its reflection + its lanterns' columns into the water (before the water composes)
     if (hsky) hsky.queue(hskyEnv({ t, dt, fade: fadeIn }), off.has('no-water') ? null : water);
-    wfx.fogLayer(c, fs, 1, t);
+    // ATM-B — FOG AS DEPTH (fogdepth.js): the far rows GONE in dense fog (softened in mist) — the veil from the sky down to the water
+    const fogOn = !off.has('no-fog') && fadeIn > 0 && fogD.frame({ fog: LK.fog || 0, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), golden: clamp01((LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), night: litK(DK, 'lamps') * (lit > 0 ? lit : 0), party: PT.on > 0.5, t, motion: S.motion, wind: WF.v(0.5), W, tier }).k > 0.01;
+    const fogWb = fogOn ? water.band() : null, fogTop = fogWb ? fogWb.y0 : HZ;
+    if (fogOn) fogD.veil(c, 'far', 0, fogTop);
     // SP3 — HEAVY RAIN's biggest read: the far skyline GREYED behind a rain haze (the far rows melt into it; the near rows stay clearer)
     rainHaze(c, 'far', 0.62, fadeIn);
     { const dkN = deadCity && darkOf('near'); if (dkN && fadeIn > 0) { const g = baker.group('near'); c.globalAlpha = fadeIn; c.drawImage(dkN.cv, 0, g.show.y0, W, g.show.h); c.globalAlpha = 1; } else pair('near', 'nearLit', deadCity ? 0 : winK, lx, xf, fadeIn); }
@@ -2251,7 +2256,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (legends && legends.active()) drainCity(c, fadeIn, 'near');   // (6b: THE TR-3B's power drain rolling across the city under it)
     drawRays(c, L, sunNow, rk * fadeIn, t, 'front', S.motion, tier);
     mk9('the harbor');
-    wfx.fogLayer(c, fs, 2, t);
+    // ATM-B — the MIDDLE rows ghostly in dense fog; then every lit sign + the NEON logo a soft halo HANGING in the air (the light scatters
+    // through the murk — drawn over the veil: the glow you see where the building is gone)
+    if (fogOn) {
+      fogD.veil(c, 'mid', 0, fogTop);
+      const sl = deadCity ? [] : neon.signLights().map(g => ({ x: g.x, y: g.y, w: g.w, h: g.h, col: g.col, k: g.on * nf.night * nf.fade }));
+      const nr = S.textRects && S.textRects.neon, sc0 = S.signCol ? (n => [n >> 16, (n >> 8) & 255, n & 255])(parseInt(S.signCol.slice(1), 16)) : [255, 95, 180];
+      if (nr && !LB) sl.unshift({ x: nr.x, y: nr.y, w: nr.w, h: nr.h * 1.3, col: sc0, k: 0.75 * litK(DK, 'logo') });
+      fogD.halos(c, sl, tierVal('fogHalos', tier));
+    }
     // (6b: THE BEACONS IN FOG — their red halos glowing through the murk, after the fog that hides the towers)
     if ((LK.fog || 0) > 0.35 && !deadCity) lights.beacons(c, now, Math.max(nightK, beaconK) * (lit > 0 ? lit : 0) * (1 - dk0), 0, S.motion, LK.fog, true);
     // the searchlights: over the city's fog (a foggy night is when they are most dramatic: the beams light the cloud)
@@ -2283,7 +2296,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.harbor(c, fs);                              // (the drone show's barge in front of Rosie's landing + the drones still low by it)
     if (!noB) boats.draw(c, hf.boat, 0, L.wheel.z + L.wheel.frame + 0.5);
     sky.beam(c, fs);                                // (the helicopter's searchlight down to the water)
-    wfx.fogLayer(c, fs, 3, t);
+    if (fogOn && fogWb) fogD.veil(c, 'harbor', 0, fogWb.y1);   // (ATM-B: the harbor's pieces softened — the lighthouse's cone + glow come through)
     // 9a — THE FOG ON THE WATER (real fog / mist): a bank lying on the harbor, the far quay melting into it, wisps drifting with the wind
     if ((LK.fog || 0) > 0.16 && fadeIn > 0 && !off.has('no-fog')) { const wb = water.band(); if (wb) waterFog.draw(c, { y0: wb.y0, y1: wb.y1, W, fog: LK.fog, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), t, motion: S.motion, wind: (LK.wind == null ? 3 : LK.wind) * (Math.sin((LK.windDir == null ? 250 : LK.windDir) * Math.PI / 180) >= 0 ? -1 : 1), glow: PT.on > 0.5 ? [150, 90, 170] : [118, 96, 150] }); }
     // 8b1 — THE WILDLIFE's plan + reactions this frame (before any of its passes), then the WATER pass: the heron's mooring piling in the
@@ -2321,6 +2334,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (8b1: the animals on the far side — gulls on the railing, the coyote — sorted in by depth with the people)
     if (pplOn) { const px = paradeItems(fadeIn); people.draw(c, 'far', wlOn || px.length ? { ...pplEnv, extra: [...(wlOn ? wild.items('far', wlEnv) : []), ...px], dogLunge: vid => wild.dogLunge(vid) } : pplEnv); }
     else if (wlOn) wild.draw(c, 'far', wlEnv);
+    // ATM-B — a BANK drifting along the road on the shared wind (the far side of the stage: the crossers fade in + out of it)
+    if (fogOn) { const r0 = groundY(cam, Z.road[1]) - 26, r1 = groundY(cam, Z.road[0]); fogD.veil(c, 'road', r0 - 20, r1); fogD.bank(c, 'road', r0, r1); }
     layer('bill');
     // (8b1 — THE BOARD SWAP AT ONCE: a billboard just changed (the billposter, the API) — its new board painted over the baked one in the
     // baked look's tones until a bake carrying that change has landed AND its crossfade is over (the crossfade lays the OLD layer under
@@ -2436,6 +2451,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (fadeIn > 0 && off.has('break-heli') && !off.has('no-heli')) {
       const sp9 = pplLive ? people.party() : null, f9 = sp9 && sp9.brk && !(LK.storm) && (LK.wind || 0) < 14 ? breakFlight(sp9.brk) : null;
       if (f9 || sky.heliBreakOn()) sky.heliBreak(c, fs, f9, crowdSpan(sp9), f9 ? heliAvoid() : null);
+    }
+    // ATM-B — THE PROMENADE IN FOG: the near stage stays CLEAR — a faint muting wash + a thin bank drifting through (thicker at the far
+    // side), the speakeasy's lit windows smeared warm, the implied lamps' light hanging in the murk
+    if (fogOn) {
+      const p0 = groundY(cam, Z.prom[1]) - 30, p1 = Math.min(H, cam.dock.y + 40);
+      fogD.veil(c, 'stage', p0 - 40, H);
+      fogD.bank(c, 'prom', p0, groundY(cam, Z.prom[0]));
+      fogD.lampGlow(c, p0, H);
+      const pw = speak.power ? speak.power() : 1, wk = litK(DK, 'lamps') * (lit > 0 ? lit : 0) * pw;
+      if (wk > 0.02) fogD.halos(c, speak.windows().filter(w => !w.edge).map(w => ({ ...w.rect, col: [255, 190, 120], k: 0.9 * wk })), Math.max(4, tierVal('fogHalos', tier) >> 1));
     }
     mk9('the front row + weather');
     if (wlOn) wild.draw(c, 'front', wlEnv);
@@ -3484,7 +3509,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       snowman: SM ? { ...SM } : null,
       snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), crisp: crisp.debug(), pane: frost.debug(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
-      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]), amps: swayGeo.map(s => +(s.amp || 0).toFixed(2)), cut: [...swayCut.values()].flat().filter(s => !s.noCut).length }, windF: { speed: +WF.speed.toFixed(1), gust: +WF.gust.toFixed(1), dir: WF.dir, side: WF.side, level: +WF.level.toFixed(2), look: WF.look, src: WF.src, gusts: WF.gusts, at: [0, 0.25, 0.5, 0.75, 1].map(u => +WF.at(u).toFixed(2)) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
+      weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, fogDepth: fogD.debug(), zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]), amps: swayGeo.map(s => +(s.amp || 0).toFixed(2)), cut: [...swayCut.values()].flat().filter(s => !s.noCut).length }, windF: { speed: +WF.speed.toFixed(1), gust: +WF.gust.toFixed(1), dir: WF.dir, side: WF.side, level: +WF.level.toFixed(2), look: WF.look, src: WF.src, gusts: WF.gusts, at: [0, 0.25, 0.5, 0.75, 1].map(u => +WF.at(u).toFixed(2)) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
       flags: { force: [...clock.force], q: Object.fromEntries(qp), wx: clock.wx ? clock.wx.kind : null, speed: clock.speed || 1, now: clock.now(), remote: !!remoteKey, preview: !!clock.preview, keepLive: !!clock.keepLive, debug: DEBUG, readout: debugTool('readout', DEBUG), grid: GRID },
       beatLine: PT.on > 0 ? beatLine() : null, safeLine: PT.on > 0 ? safeLine() : null, safety: { mode: safety.mode, why: safety.why, k: +safety.k.toFixed(3), amp: +(safety.amp || 0).toFixed(3), full: !!safety.full, punchAt: safety.punchAt, fullAt: safety.fullAt },
