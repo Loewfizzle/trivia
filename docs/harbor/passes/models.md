@@ -163,6 +163,15 @@ patrol fixes; THE SHADOWBOXER's window reworked + his 20 sounds; the stations' t
   read landing mid-navigation (the bench loads each scene's page) — its reads now retry across a navigation. **audio**: FIRST TAP late —
   SKY-B's known first-tap flake (a station's first song decodes slowly on CI). Local: heli + bench 26 / 26.
 
+## The cloud's run 2 (fe326fa — the last, the cap)
+- tests ✅; harbor **8 / 10**: `legend` ✅ (the break helicopter's lantern + the bench fixed), `models` ✅ again. **audio**: FIRST TAP day +
+  morning — the first-tap surge family (a different time of day fails each run: a station's first song decodes slowly on CI's 2-core
+  machine; SKY-B's known issue). **perf**: THE 20-CYCLE MEMORY CHECK — heap 6.4 MB vs its 6-MB limit, offscreen 13.86 → 13.87 MB (flat);
+  locally heap 4.3 MB — FR5's known item (+6.1 SKY-A, +6.6 SKY-B, now 6.4). Not re-run (the two-run cap). Vercel deployed fe326fa.
+- THE LINKS on the live site (headless Chromium, a returning visitor, timed from the navigation): the Mothman perched 4.1 s · leaving 5.4 s ·
+  the Blackbird (model) 7.1 s · (drawn) 7.2 s · the TR-3B 3.5 s after the tap · the patrol 3.5 s · the boxer Monday 8 pm 2.7 s · on the bag
+  (Mon 7:04:08 pm) 2.7 s · sitting out a rest (Mon 8:05:20 pm) 2.7 s · Friday's wrap-up 2.7 s.
+
 ## Decisions
 - The Mothman 84 pt (not 70) — 38 % of the tucked model is the hem below his talons.
 - The stations' remaining two-device lag is the TV + soundbar's own delay: a per-device SPEAKER DELAY setting, not a guess.
