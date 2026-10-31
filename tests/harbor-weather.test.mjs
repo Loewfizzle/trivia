@@ -112,6 +112,9 @@ test('THE LIGHTNING\'s safety: capped brightness, ≤ 3 strokes ≥ 0.13 s apart
   assert.ok(LIGHTNING.MIN_GAP >= 4 && LIGHTNING.GAP[0] >= LIGHTNING.MIN_GAP, 'never more than one strike in a few seconds');
   assert.ok(LIGHTNING.RM <= 0.35, 'reduced motion: dimmed');
   assert.ok(thunderDelay(0.4) < 1.5 && thunderDelay(5.4) <= 16 && thunderDelay(3) > thunderDelay(1.5), 'a close crack right on top, later from further');
+  // (ATM-D — THE THUNDER's LAG: a close strike booms within 0.5 s; only far strikes get a distance delay, capped at 3 s)
+  for (const km of [0.35, 0.9, 1.55]) assert.ok(thunderDelay(km, true) <= 0.5, `close at ${km} km: ${thunderDelay(km, true)} s`);
+  for (const km of [2.6, 4, 6.2, 20]) assert.ok(thunderDelay(km) <= 3 && thunderDelay(km) >= 0.8, `far at ${km} km: ${thunderDelay(km)} s`);
   assert.ok(Math.abs(LIGHTNING.NEEDLE - 1 / 6) < 1e-9 && ['ic', 'far', 'close'].every(k => [0.1, 0.5, 0.9].map(strikeKind).includes(k)), 'the three kinds; the needle ~1 in 6 close strikes');
 });
 

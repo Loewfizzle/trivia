@@ -1686,5 +1686,17 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE QUIET BUILDING: the bar, the jazz room + the upper middle parked behind blinds at night (a lit / dark mix, out one by one); the boss's
   room + the two side rooms live — at 3× on the crisp layer.
 
+## CITY 2.0 — ATM-D: THE CLEANUP — THE OWNER's ATM-C REVIEW + THE PUDDLES + THE PUMPKIN (Oct 31 2026) — docs/harbor/passes/atm-d.md (plan.md "OWNER'S NOTES — OCT 31 (evening)")
+The owner's ATM-C review (complete 4:54 pm) + the puddles + the Halloween pumpkin, in one cleanup pass, every look from a fresh WebKit load at
+402: THE SKY + THE STORM — the low sun painted as a glowing light (a white core blooming into its gold, a soft orange disc only in the last
+couple of degrees; the approved high sun untouched), the storm's rain finer + mostly dark + lighter over the logo (the heavy share only),
+a close strike's boom within 0.5 s + far ones capped at 3 s, close strikes on the nearest roofs + the water in the far strikes' style with no
+fork over the stage; THE GROUND — real puddles (clustered in the low spots, irregular with fingers along the joints, dark mirrors of the sky +
+the trees + the lights, a damp ring, iced in freezing rain; every trunk cut out of the wet layer so a tree stands in front of the puddle
+behind it), the blizzard's ground snow as dancing ribbons hugging the ground + clipped off the speakeasy, the fog's line (the party's sky
+beams kept 8 % of their crisp beam in fog) + the veils' hard tops; THE PIECES — the patrol's searchlight only on spots with a clear line, the
+cab stand's fare boarding through the far rear door + ducking out of sight (no fade), the boxer's bag +8.6 %, the pumpkin redrawn in the O's
+own box at the letters' height. Step 0: the owner's notes part 40 (THE ROADMAP REORDERED; Part 10's fireworks decisions + Grok's sounds).
+
 ## CITY 2.0 — ATM-C: THE CLEANUP — THE OWNER's ATM-A + ATM-B REVIEWS (Oct 31 2026) — docs/harbor/passes/atm-c.md (plan.md "OWNER'S NOTES — OCT 31 (the ATM reviews)" + the 12:03 pm add-on)
 The owner's two reviews in one cleanup pass: Group 0 the patrol's hover (reproduced from a fresh load in Chromium + WebKit: the LEGS out of the hover dived back through the billboard — air.js#clearLegs + a re-plan when the near pieces change; 200 seeds checked) + PANEL PARTY ON (a mid-song voice read "heard" before its start — synced-songs.js#now); Group 1 the veil (a milky sheen + drifting fibres, the halo ~1 day in 7 + faint) + the sun's colour by its height (white from ~11.5°, gold / amber / orange below; the golden-hour + sunrise skies warm with the sun up); Group 2 one soft-flake fix (baked soft sprites, the near layer added, the blizzard's smear, heavy snow denser, a fresh load's snow fills the screen), the rain's corners, freezing rain as ice (chunky icicles, the glaze, the ice-sheet mirror, frosted panes, a colder grade), the lighthouse + the beacons in fog; Group 3 the recorded thunder (9 takes, the flash on each take's crack) + the boxer's bag (+3 dB, variety by punch, the combo hits); Group 4 the TR-3B (its water reflection, the blackout building by building incl. the neon outlines, the flares breathing), cab riders through the open door, umbrellas held, the boss's shadow solid, the blade's inline style out, THE WINDOW STANDARD, the admin panel tidied (long lists fold, screen-order sections, CLEAR ALL clears the readouts).
