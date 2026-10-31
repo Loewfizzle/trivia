@@ -1693,17 +1693,23 @@ test('THE DAY PASS — the Harbor\'s sun: white-hot high, golden → orange → 
   const w = sunColorHarbor(40), g = sunColorHarbor(4), r = sunColorHarbor(0), m = sunColorHarbor(9);
   assert.ok(w.every(v => v >= 245), 'high: white');
   assert.ok(g[0] === 255 && g[2] < 100 && r[1] < g[1], 'low: golden, then redder');
-  // (SP: the 9 am sun — ~9° up — is never an orange ball; since the stages pass it is a pale warm yellow-white)
-  assert.ok(m[1] > 205 && m[2] > 130, 'nine degrees up: pale, never orange');
+  // (SP: the 9 am sun — ~9° up — is never an orange ball; ATM-C — the owner's "colour follows its height": GOLD there now, the white-hot
+  // core from ~11.5°)
+  assert.ok(m[1] > 195 && m[2] > 105, 'nine degrees up: gold, never orange');
   assert.deepEqual(sunColor(40), [255, 244, 223]);
 });
 
 import { sunPosition } from '../js/core/sky.js';
-test("THE SUN'S STAGES (sunColourAt): white ≥ 15°, yellow-white 6–15°, golden amber 2–6°, orange-red + squashed under 2°; smooth; the city's light follows", () => {
+test("THE SUN'S STAGES (sunColourAt): white ≥ ~11.5°, gold 6–8°, golden amber 2–6°, orange-red + squashed under 2°; smooth; the city's light follows", () => {
   const at = sunColourAt, hue = c => (c[1] - c[2]) / Math.max(1, c[0] - c[2]);   // (0 red … 1 yellow; low = no colour)
   const w = at(20), y = at(10), a = at(4), o = at(1);
   assert.ok(w.disc.every(v => v >= 238) && w.white === 1 && w.halo === 1 && w.squash === 1, '20°: white, the white-hot core + its halo');
-  assert.ok(y.disc[0] === 255 && y.disc[1] >= 215 && y.disc[2] >= 130 && y.disc[2] <= 200 && y.disc[1] - y.disc[2] >= 40 && y.white > 0.95, '10°: the warm yellow-white stage — ATM-A: its core already WHITE-HOT (no cream disc + rim), the warmth in the ring + the bloom');
+  assert.ok(y.disc[0] === 255 && y.disc[1] >= 200 && y.disc[1] <= 225 && y.disc[2] >= 110 && y.disc[2] <= 175 && y.white > 0.3 && y.white < 0.8, '10°: between — ATM-C: the white-hot core fading in');
+  // ATM-C — THE OWNER's TWO SUNS: 5:45 pm Oct 29 (8.2° up, "almost too white") is GOLD with no white core; 9:30 am Oct 31 (11.4°, APPROVED
+  // white) keeps most of its white-hot core
+  const g8 = at(8.2), m11 = at(11.4);
+  assert.ok(g8.white < 0.1 && g8.disc[1] < 205 && g8.disc[2] < 120 && g8.glow[2] < 190, `8.2° (golden hour): gold, no white core (white ${g8.white}, disc ${g8.disc})`);
+  assert.ok(m11.white > 0.97, `11.4° (the approved 9:30 am): the white-hot core, as approved (${m11.white.toFixed(2)})`);
   assert.ok(a.disc[0] === 255 && a.disc[1] >= 135 && a.disc[1] <= 185 && a.disc[2] < 90 && a.halo < 0.05 && a.lift < 0.3, '4°: golden amber, no white bloom');
   assert.ok(o.disc[0] === 255 && o.disc[1] < 110 && o.disc[2] < 60, '1°: deep orange-red');
   assert.ok(o.squash >= 0.85 && o.squash <= 0.92 && at(0).squash < o.squash && at(4).squash === 1, '1°: flattened by refraction (0.85–0.9)');

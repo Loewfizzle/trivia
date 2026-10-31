@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 import { haloOf } from '../js/core/harbor-clouds.js';
 import { slotOf } from '../js/core/city-sounds.js';
 
-test('THE 22° HALO on ~1 veil day in 4, THE SUN DOGS on ~half of those (seeded: every phone the same); the previews force them', () => {
+test('THE 22° HALO on ~1 veil day in 7 (ATM-C: rare), THE SUN DOGS on ~1 in 3 of those (seeded: every phone the same); the previews force them', () => {
   let halo = 0, dogs = 0, n = 0;
   for (let d = 0; d < 730; d++) {
     const t = new Date(Date.UTC(2026, 0, 1) + d * 864e5), lc = { y: t.getUTCFullYear(), m: t.getUTCMonth() + 1, d: t.getUTCDate() };
@@ -14,8 +14,8 @@ test('THE 22° HALO on ~1 veil day in 4, THE SUN DOGS on ~half of those (seeded:
     if (h.dogs) { dogs++; assert.ok(h.halo, 'sun dogs only with the halo'); }
     assert.deepEqual(haloOf(lc), h, 'the same for everyone');
   }
-  assert.ok(halo / n > 0.18 && halo / n < 0.32, `the halo ~1 day in 4 (${(halo / n).toFixed(2)})`);
-  assert.ok(dogs / halo > 0.3 && dogs / halo < 0.7, `the sun dogs on ~half of the halo days (${(dogs / halo).toFixed(2)})`);
+  assert.ok(halo / n > 0.09 && halo / n < 0.2, `the halo ~1 day in 7 (${(halo / n).toFixed(2)})`);
+  assert.ok(dogs / halo > 0.18 && dogs / halo < 0.5, `the sun dogs on ~1 in 3 of the halo days (${(dogs / halo).toFixed(2)})`);
   assert.ok(haloOf(null, { halo: true }).halo && !haloOf(null, { halo: true }).dogs, '&force=halo: the ring');
   const f = haloOf(null, { dogs: true });
   assert.ok(f.halo && f.dogs, '&force=sundogs: the ring + the dogs');

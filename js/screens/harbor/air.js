@@ -192,7 +192,7 @@ export function createAir() {
   let W = 1, H = 1, HZ = 1, K = 1, dpr = 2, tier = 2;
   let planes = [], nextPlane = 6 + Math.random() * 12, forcedAt = -1e9, trainGone = -1e9, forcedKind = '';
   let train = null, trainNight = '', sat = null, nextSat = 60 + Math.random() * 180;
-  let heli = null;
+  let heli = null, lastS = null;   // (lastS: ATM-C — the last frame's state, for planFor)
   const glows = new Map();
   // (SKY-A: bounded — only fixed colours + the palettes' own ever reach it; a stray shade can never pile up canvases again)
   const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glows.get(k); if (!c) { if (glows.size > 40) { for (const q of glows.values()) q.width = 0; glows.clear(); } c = mk(32, 32); const x = safeCtx(c); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.28, `rgba(${k},0.45)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); glows.set(k, c); } return c; };
@@ -443,7 +443,76 @@ export function createAir() {
       route.push([outX, y - 12 * K, P.turn[n], 1]);
       route.push([outX, fy, 0, far, { behind: true, v: P.farV }], [inX, fy - 8 * K, i < P.loops[n] - 1 ? P.turn[n] : 0, far, { behind: true, v: P.farV }]);
     }
-    return { start, route, dir, spr: null, sprKey: '', len, own: false, sp: P.speed * K };
+    clearLegs(route, occ, len, top, bot);
+    return { start, route, dir, spr: null, sprKey: '', len, own: false, sp: P.speed * K, occKey: occKeyOf(s), seed, occRef: s.heliOcc, avRef: s.avoidSky };
+  }
+  /** the near pieces' rects as a key — a route planned before they were all registered (a slow phone's first seconds) re-plans */
+  function occKeyOf(s) {
+    const r4 = r => `${Math.round(r.x)},${Math.round(r.y)},${Math.round(r.w)},${Math.round(r.h)}`;
+    return `${(s.heliOcc || []).filter(r => r && r.w > 0).map(r4).join(';')}|${(s.avoidSky || []).filter(r => r && r.w > 0).map(r4).join(';')}|${s.lanes && s.lanes.water ? Math.round(s.lanes.water.y) : '-'}`;
+  }
+  // ATM-C — THE LEGS CLEAR THE NEAR PIECES TOO (the owner, Oct 31: "the hover is STILL behind the billboard / the speakeasy" — the hover sat
+  // above the billboard, but the leg OUT of it dived straight back down through the billboard + the speakeasy's roof, and the low pass left
+  // the screen behind the speakeasy): a near leg to / from an OFF-SCREEN point (the way in, the way out) whose straight line would pass
+  // behind a near piece (s.heliOcc) gets its off-screen end RAISED until the line clears that piece's top (the craft's belly + 6 pt) — one
+  // straight eased leg (a waypoint would stop it: every leg eases in + out), climbing as it nears the speakeasy and leaving over its roof.
+  function clearLegs(route, occ, len, top, bot) {
+    if (!occ.length) return;
+    const half = len * 0.5, pad = 6 * K, off = x => x < 0 || x > W;
+    for (let i = 0; i < route.length - 1; i++) {
+      const A = route[i], B = route[i + 1];
+      if ((A[4] && A[4].behind) || (B[4] && B[4].behind) || (off(A[0]) && off(B[0]))) continue;
+      if (!off(A[0]) && !off(B[0])) {
+        // (a leg between two ON-SCREEN points — the hover above the billboard → a low stop over the water (WebKit's fresh load, ATM-C): its
+        // straight line dived through the billboard. The LOWER end rises to the piece's clearing height: the craft crosses level, then
+        // looks down from there)
+        for (const r of occ) {
+          const need = r.y - bot - pad;
+          let hit = false;
+          for (let k = 0; k <= 24 && !hit; k++) { const x = A[0] + (B[0] - A[0]) * k / 24, y = A[1] + (B[1] - A[1]) * k / 24; hit = x + half * 0.6 > r.x && x - half * 0.6 < r.x + r.w && y > need + 1 && y - top < r.y + r.h; }
+          if (!hit) continue;
+          const lo = A[1] > B[1] ? A : B;
+          lo[1] = Math.min(lo[1], need); if (lo[4] && lo[2] > 0) lo[4].over = true;
+        }
+        continue;
+      }
+      const O = off(B[0]) ? B : A, I = O === B ? A : B;                 // O: the off-screen end (raised), I: the on-screen end (kept)
+      for (let pass = 0; pass < 2; pass++) for (const r of occ) {
+        // where the craft first enters the rect's span coming from I toward O
+        const xe = O[0] < I[0] ? r.x + r.w + half * 0.6 : r.x - half * 0.6;
+        const need = r.y - bot - pad;
+        if ((xe - I[0]) * (O[0] - I[0]) <= 0) {
+          // (the on-screen end is already over the piece — a hover above the billboard: level out from there, never down through it)
+          if (I[0] + half * 0.6 > r.x && I[0] - half * 0.6 < r.x + r.w && O[1] > need) O[1] = Math.max(need - 90 * K, Math.min(O[1], Math.max(I[1], need)));
+          continue;
+        }
+        const at = I[1] + (O[1] - I[1]) * (xe - I[0]) / (O[0] - I[0]);
+        if (at <= need) continue;
+        // (the line through I + that point, carried on to O's x; too steep a climb (a low stop right beside the piece) → the STOP itself
+        // hovers at the clearing height and the leg leaves level from there)
+        const want = I[1] + (need - I[1]) * (O[0] - I[0]) / (xe - I[0]);
+        if (want >= need - 90 * K) O[1] = Math.min(O[1], want);
+        else { if (I[2] > 0) { I[1] = Math.min(I[1], need); if (I[4]) I[4].over = true; } O[1] = Math.min(O[1], need); }
+      }
+    }
+  }
+  /** ATM-C — the near pieces' rects changed after the flight was planned (a slow phone registers the billboard after the patrol starts):
+   *  plan again from the same start + seed and take the new route from the point AFTER the leg it's on (the leg itself kept: no jump) */
+  function replanHeli(s, e) {
+    heli.occRef = s.heliOcc; heli.avRef = s.avoidSky;
+    const k = occKeyOf(s); if (k === heli.occKey) return;
+    const h = heliPlan(s, heli.start, heli.seed); if (!h || h.route.length !== heli.route.length) return;
+    const i = segAt(heli, e);
+    heli.route = heli.route.slice(0, i + 2).concat(h.route.slice(i + 2)); heli.occKey = k; heli.replans = (heli.replans || 0) + 1;
+  }
+  /** the route point whose hold or outgoing leg the craft is in at e (s) */
+  function segAt(h, e) {
+    const sp = h.sp || 52 * K; let tt = e;
+    for (let i = 0; i < h.route.length - 1; i++) {
+      const A = h.route[i], B = h.route[i + 1]; tt -= A[2] || 0; if (tt < 0) return i;
+      tt -= Math.hypot(B[0] - A[0], B[1] - A[1]) / (sp * ((A[3] || 1) + (B[3] || 1)) / 2 * ((A[4] && A[4].v) || 1)); if (tt < 0) return i;
+    }
+    return h.route.length - 1;
   }
   /** a route's whole length (s): its legs at their speed + its holds (the debug readout + the tests: a patrol's loops) */
   function routeDur(h) {
@@ -505,6 +574,7 @@ export function createAir() {
     if (!heli) return null;
     const e = (s.now - heli.start) / 1000;
     if (e < 0) return null;
+    if (!heli.own && heli.mode !== 'break' && heli.occKey != null && (heli.occRef !== s.heliOcc || heli.avRef !== s.avoidSky)) replanHeli(s, e);
     const p = heli.mode === 'break' ? breakAt(heli, e, s.now / 1000) : { ...heliAt(heli, e), yaw: 0, pitch: 0 };
     if (p.done) { if (heli.spr) heli.spr.cv.width = 0; if (heli.mspr) heli.mspr.width = 0; heli = null; return null; }
     if (heli.mode !== 'break') { p.pitch = p.hover ? 0 : 0.07 * p.dir * Math.min(1, Math.abs(p.vx) / (40 * K)); p.patrol = true; p.yaw = heliModel ? turn(heli, p, e) : p.dir; if (!heliModel) heli.th = p.dir > 0 ? 0 : Math.PI; } else p.yaw = turn(heli, p, e);
@@ -711,6 +781,7 @@ export function createAir() {
     setTier(t) { tier = t; },
     /** the sky layer: planes in the free sky lanes, satellites at twilight, the helicopter. free: { 'sky-high': bool, 'sky-low': bool } */
     draw(c, s, free) {
+      lastS = s;
       const { L, dt, force, motion } = s;
       const sec = dt / 1000, look = airLook(L);
       const hr = L.local ? L.local.h + L.local.mi / 60 : 20;
@@ -828,10 +899,12 @@ export function createAir() {
     /** HOOK (Part 10: the party yacht's landing): fly a route of [x, y, hold s] points (screen pt) from now; land: hold at the last */
     fly(s, route, { land = false } = {}) { if (!route || route.length < 2) return; const r = route.map(p => [p[0], p[1], p[2] || 0]); if (land) r[r.length - 1][2] = 1e6; heli = { start: s.now, route: r, dir: r[1][0] >= r[0][0] ? 1 : -1, spr: null, sprKey: '', len: 28 * K, own: true }; },
     heliOn: () => !!heli,
+    /** ATM-C (tests): the patrol's route for a seed, planned from this frame's near pieces — [x, y, hold, behind] points (null before a frame) */
+    planFor: seed => { if (!lastS) return null; const h = heliPlan(lastS, 0, seed); return h ? { len: h.len, route: h.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]) } : null; },
     /** anything crossing the sky right now (the calm frame rate: a plane, the train, a satellite, the helicopter keep 60 fps) */
     busy: () => planes.some(p => p.k < 1) || !!train || !!sat || !!heli,
     lanesInUse: () => new Set(planes.filter(p => p.k < 1).map(p => p.lane)),
-    debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ lane: p.lane, x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, len: +p.len.toFixed(1), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), cap: CAP, train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, heli: heliNow ? { x: Math.round(heliNow.x), y: Math.round(heliNow.y), hover: heliNow.hover, behind: !!heliNow.behind, look: lookNow ? lookNow.kind : null, lk: lookNow ? +lookNow.lk.toFixed(2) : 0, mode: heli && heli.mode === 'break' ? 'break' : 'patrol', yaw: heliNow.yaw, model: !!heliNow.model, heading: heliNow.heading, w: heliNow.w, cx: heliNow.cx != null ? Math.round(heliNow.cx) : null, cy: heliNow.cy != null ? Math.round(heliNow.cy) : null, ang: beamAng != null ? +beamAng.toFixed(3) : null, sc: heliNow.sc, off: !!heliNow.off, len: heli ? +heli.len.toFixed(1) : null, dur: heli ? Math.round(routeDur(heli)) : null, e: +(heliNow.e || 0).toFixed(1), band: heli && heli.brk ? Math.round(heli.brk.A * 2) : null } : null, beamArts: beamArts.size, glows: glows.size, nextPlane: Math.round(nextPlane) }),
+    debug: () => ({ planes: planes.filter(p => p.k < 1).map(p => ({ lane: p.lane, x0: Math.round(p.x0), y0: Math.round(p.y0), x1: Math.round(p.x1), y1: Math.round(p.y1), slope: +p.slope.toFixed(3), dir: p.dir, approach: p.approach, len: +p.len.toFixed(1), k: +p.k.toFixed(2) })), trails: planes.reduce((n, p) => n + p.trail.length, 0), cap: CAP, train: train ? { n: train.n, mode: train.mode } : null, sat: !!sat, heli: heliNow ? { x: Math.round(heliNow.x), y: Math.round(heliNow.y), hover: heliNow.hover, behind: !!heliNow.behind, look: lookNow ? lookNow.kind : null, lk: lookNow ? +lookNow.lk.toFixed(2) : 0, mode: heli && heli.mode === 'break' ? 'break' : 'patrol', yaw: heliNow.yaw, model: !!heliNow.model, heading: heliNow.heading, w: heliNow.w, cx: heliNow.cx != null ? Math.round(heliNow.cx) : null, cy: heliNow.cy != null ? Math.round(heliNow.cy) : null, ang: beamAng != null ? +beamAng.toFixed(3) : null, sc: heliNow.sc, off: !!heliNow.off, len: heli ? +heli.len.toFixed(1) : null, dur: heli ? Math.round(routeDur(heli)) : null, e: +(heliNow.e || 0).toFixed(1), band: heli && heli.brk ? Math.round(heli.brk.A * 2) : null, replans: heli ? heli.replans || 0 : 0, route: heli ? heli.route.map(q => [Math.round(q[0]), Math.round(q[1]), +(q[2] || 0).toFixed(1), q[4] && q[4].behind ? 1 : 0]) : null } : null, beamArts: beamArts.size, glows: glows.size, nextPlane: Math.round(nextPlane) }),
     destroy() { for (const p of planes) if (p.spr) p.spr.cv.width = 0; if (heli && heli.spr) heli.spr.cv.width = 0; for (const c of glows.values()) c.width = 0; glows.clear(); for (const q of beamArts.values()) { q.cone.width = 0; q.pool.width = 0; } beamArts.clear(); planes = []; heli = null; },
   };
 }

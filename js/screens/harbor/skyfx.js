@@ -359,6 +359,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     holdTag: () => false,
     /** PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js reads it ~4× a second): what's up there now — the planes + the
      *  helicopter (where), the banner plane, the skywriters, the balloons, the drone show, the birds */
+    heliPlanFor: seed => air.planFor(seed),   // (ATM-C: the patrol's route for any seed, from this frame's near pieces — the e2e sweeps seeds)
     listen: () => ({ jets: last ? show.listen(last) : null, air: air.debug(), banner: banner.on(), smoke: smoke.on(), balloons: balloons.on() ? balloons.burn() : null, drones: drones.on(), birds: birds.debug() }),
     // ---- THE API (harbor().sky): each piece starts now, or at o.at (clock ms); → true if it could start
     api: {

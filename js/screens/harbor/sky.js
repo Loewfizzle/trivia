@@ -16,7 +16,9 @@ export function paintSky(cv, W, HZ, dpr, P, o = {}) {
   g.addColorStop(0, css(st[0])); g.addColorStop(0.45, css(st[1])); g.addColorStop(0.8, css(st[2])); g.addColorStop(1, css(st[3]));
   x.fillStyle = g; x.fillRect(0, 0, W, HZ);
   const hg = x.createRadialGradient(W * 0.5, HZ * 1.02, 0, W * 0.5, HZ * 1.02, Math.max(W, HZ) * 0.9);
-  hg.addColorStop(0, css(P.glow)); hg.addColorStop(0.45, css(P.glow2)); hg.addColorStop(1, 'rgba(0,0,0,0)');
+  // (ATM-C: a golden hour with the sun up — o.warm — its low glow warm gold, not the dusk's pink)
+  const wm = Math.max(0, Math.min(1, o.warm || 0)), wg = (c, to) => c.map((v, i) => (i < 3 ? Math.round(v + (to[i] - v) * wm) : v));
+  hg.addColorStop(0, css(wg(P.glow, [255, 184, 96]))); hg.addColorStop(0.45, css(wg(P.glow2, [255, 168, 92]))); hg.addColorStop(1, 'rgba(0,0,0,0)');
   x.fillStyle = hg; x.fillRect(0, 0, W, HZ);
   // NEON PASS 3 — THE CITY'S LIGHT ON THE NIGHT AIR: a real neon city lights the haze over it — a soft violet bloom over the
   // middle of the skyline, teal toward the right, a warm magenta hint at the left; low over the roofs (o.roof: the roofline's

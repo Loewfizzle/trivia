@@ -911,22 +911,21 @@ G('heli', async () => {
   // ---- 4. MODELS — THE PATROL AS A BAKED MODEL (&force=helicopter at night): the model's sprites drawn, THE NEAR PASS BIG + THE FAR PASS
   // small (its size follows its distance), on a stop it TURNS toward the viewer (a real 3D view), NO STOP HIDDEN BEHIND THE SPEAKEASY (it
   // climbs above the roof), THE SEARCHLIGHT never jumps (its angle moves by small steps frame to frame)
-  { const Q = await open({ slot: 'hmod', qs: `when=2026-11-03T21:30${GR}&wx=clear&force=helicopter`, view: [402, 874] });
-    await harborUp(Q.page);
-    const occ = (await ev(Q.page, 'window.__district.harbor().heliOcc')) || [];
-    let nearW = 0, farW = 1e9, model = 0, turned = 0, maxStep = 0, lastAng = null, lastT = 0, hidden = null;
-    const stops = [], t0 = Date.now();
-    while (Date.now() - t0 < 26000) {   // (the first near pass: in, its stops, out — the far pass behind the towers comes ~40 s in)
-      const h = await ev(Q.page, `(() => { const u = window.__district.harbor().heli.up; return u ? { ...u, t: performance.now() } : null; })()`);
+  // (ATM-C — THE OWNER's WAY: a FRESH load of his link (no wait for the title, the reveal or the layout; an iPhone's dpr 3) — the hover was
+  // "fixed" twice on a warmed-up page. Sampled from the first frame; the near pieces read at the END (their final rects); + EVERY NEAR LEG
+  // of the planned route checked against them (the leg out of the hover dived back through the billboard + the speakeasy's roof))
+  { const Q = await open({ slot: 'hmod', qs: `when=2026-11-03T21:30${GR}&wx=clear&force=helicopter`, view: [402, 874], dpr: 3, wait: false });
+    let nearW = 0, farW = 1e9, model = 0, turned = 0, maxStep = 0, lastAng = null, lastT = 0, hidden = null, route = null, replans = 0;
+    const stops = [], near = [], t0 = Date.now();
+    while (Date.now() - t0 < 30000) {   // (the first near pass: in, its stops, out — the far pass behind the towers comes ~40 s in)
+      const h = await ev(Q.page, `(() => { try { const u = window.__district.harbor().heli.up; return u ? { ...u, t: performance.now() } : null; } catch { return null; } })()`).catch(() => null);
+      if (h && h.route) { route = h.route; replans = h.replans; }
+      if (h && !h.off && !h.behind && h.cx != null) near.push({ x: h.cx, y: h.cy, w: h.w || 60, hover: h.hover });
       if (h && !h.off) {
         if (h.model) model++;
         if (h.w) { if (!h.behind) nearW = Math.max(nearW, h.w); else farW = Math.min(farW, h.w); }
         if (h.hover && h.model && h.heading != null && h.heading % 180 !== 0) turned++;
-        if (h.hover && h.look) {
-          if (!stops.some(q => Math.abs(q.x - h.cx) < 20)) stops.push({ x: h.cx, y: h.cy, look: h.look });
-          const half = (h.w || 60) * 0.5;
-          for (const r of occ) if (!h.behind && h.cx + half * 0.6 > r.x && h.cx - half * 0.6 < r.x + r.w && h.cy - half * 0.2 > r.y && h.cy < r.y + r.h) hidden = hidden || `${Math.round(h.cx)},${Math.round(h.cy)} behind ${Math.round(r.x)}–${Math.round(r.x + r.w)} × ${Math.round(r.y)}–${Math.round(r.y + r.h)}`;
-        }
+        if (h.hover && h.look && !stops.some(q => Math.abs(q.x - h.cx) < 20)) stops.push({ x: h.cx, y: h.cy, look: h.look });
         if (h.ang != null) { if (lastAng != null && h.t - lastT < 400) maxStep = Math.max(maxStep, Math.abs(h.ang - lastAng)); lastAng = h.ang; lastT = h.t; } else lastAng = null;
       } else lastAng = null;
       await sleep(120);
@@ -934,7 +933,22 @@ G('heli', async () => {
     ok(model > 20, `THE BAKED MODEL flies the patrol (${model} samples on the model)`);
     ok(nearW >= 55 && (farW === 1e9 || farW <= nearW * 0.5), `THE NEAR PASS IS BIG: ${nearW} pt at 402 (≥ 55; the far pass behind the towers ~a third of it — unit: helicopter.patrol's near / far)`);
     ok(turned >= 2, `ON A STOP IT TURNS TOWARD US through the baked views (${turned} turned samples)`);
-    ok(stops.length >= 1 && !hidden, `NO STOP HIDDEN BEHIND THE SPEAKEASY (stops ${stops.map(q => `${q.look} @ ${Math.round(q.x)},${Math.round(q.y)}`).join(' · ')}${hidden ? ` — HIDDEN ${hidden}` : ''})`);
+    const occ = (await ev(Q.page, 'window.__district.harbor().heliOcc')) || [];
+    const box = r => `${Math.round(r.x)}–${Math.round(r.x + r.w)} × ${Math.round(r.y)}–${Math.round(r.y + r.h)}`;
+    // (a sample is HIDDEN when the craft's middle band (its cabin, not the rotor's tips) is inside a near piece's rect)
+    for (const q of near) for (const r of occ) if (q.x + q.w * 0.3 > r.x && q.x - q.w * 0.3 < r.x + r.w && q.y + q.w * 0.13 > r.y && q.y < r.y + r.h) hidden = hidden || `${q.hover ? 'hover' : 'leg'} ${Math.round(q.x)},${Math.round(q.y)} behind ${box(r)}`;
+    let legHit = null;
+    if (route) for (let i = 0; i < route.length - 1; i++) { const A = route[i], B = route[i + 1]; if (A[3] || B[3]) continue;
+      for (let k = 0; k <= 40; k++) { const x = A[0] + (B[0] - A[0]) * k / 40, y = A[1] + (B[1] - A[1]) * k / 40; if (x < -10 || x > 412) continue;
+        for (const r of occ) if (x + nearW * 0.3 > r.x && x - nearW * 0.3 < r.x + r.w && y + nearW * 0.13 > r.y && y < r.y + r.h) legHit = legHit || `leg ${i} (${A[0]},${A[1]} → ${B[0]},${B[1]}) at ${Math.round(x)},${Math.round(y)} behind ${box(r)}`; } }
+    ok(stops.length >= 1 && !hidden, `NO STOP OR LEG HIDDEN BEHIND THE SPEAKEASY / ITS BILLBOARD, FROM A FRESH LOAD (stops ${stops.map(q => `${q.look} @ ${Math.round(q.x)},${Math.round(q.y)}`).join(' · ')}; ${near.length} near samples; the pieces ${occ.map(box).join(' · ')}${hidden ? ` — HIDDEN ${hidden}` : ''})`);
+    ok(route && !legHit, `ATM-C — EVERY NEAR LEG OF THE ROUTE CLEARS THE NEAR PIECES (${route ? route.length : 0} points, re-planned ${replans}×${legHit ? ` — ${legHit}` : ''})`);
+    // (+ ATM-C: the seed is the flight's start second — a fresh load gets a different route each time; 200 seeds planned from this frame's
+    // real near pieces, every near leg sampled: no hover and no leg ever behind the speakeasy or its billboard)
+    { const bad = await ev(Q.page, `(() => { const H = window.__district.harbor(), occ = H.heliOcc || []; const out = []; for (let sd = 1; sd <= 200; sd++) { const p = H.heli.planFor(1761900000 + sd * 37); if (!p) return ['no plan']; const w = p.len, R = p.route;
+      for (let i = 0; i < R.length - 1; i++) { const A = R[i], B = R[i + 1]; if (A[3] || B[3]) continue; for (let k = 0; k <= 40; k++) { const x = A[0] + (B[0] - A[0]) * k / 40, y = A[1] + (B[1] - A[1]) * k / 40; if (x < -10 || x > innerWidth + 10) continue;
+        for (const r of occ) if (x + w * 0.3 > r.x && x - w * 0.3 < r.x + r.w && y + w * 0.13 > r.y && y < r.y + r.h) { out.push(sd + ':' + i + '@' + Math.round(x) + ',' + Math.round(y)); k = 99; break; } } } } return out; })()`);
+      ok(bad.length === 0, `ATM-C — 200 PATROL SEEDS: no hover or leg behind the near pieces${bad.length ? ` — ${bad.length} legs, e.g. ${bad.slice(0, 4).join(' · ')}` : ''}`); }
     ok(maxStep < 0.25, `THE SEARCHLIGHT SWEEPS SMOOTHLY: its biggest change between samples ${maxStep.toFixed(3)} rad (it used to jump ~0.8 as the craft slowed into a stop)`);
     await Q.ctx.close(); }
 });

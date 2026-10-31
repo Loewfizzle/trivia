@@ -168,7 +168,11 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       let best = null;
       // (NIGHT-C: a song scheduled to START LATER — the next one, decoded + queued ahead of its crossfade — isn't sounding yet: its gain
       // node reads its intrinsic 1 before its first scheduled value, which made it "the loudest" (the beat followed the wrong song))
-      for (const [i, v] of voices) { if (ctx.currentTime < v.origin - 0.01 && ctx.currentTime < v.startAt) continue; const g = v.gain.gain.value; if (!best || g > best.g) best = { i, g, at: ctx.currentTime - v.origin }; }
+      // (ATM-C — THE PANEL PARTY ON miss, found at last: a voice JOINING MID-SONG has its origin in the past but starts ~50 ms from now — its
+      // gain read the same intrinsic 1 for that moment, so the song was "heard" once at full volume, then not at all while its real fade-in
+      // was still under 0.05: the check sampled the false yes, then null. Nothing sounds before a voice's own start (+ a render quantum or
+      // two for the audio thread to post the first scheduled value).)
+      for (const [i, v] of voices) { if (ctx.currentTime < v.startAt + 0.02) continue; const g = v.gain.gain.value; if (!best || g > best.g) best = { i, g, at: ctx.currentTime - v.origin }; }
       return best && best.g > 0.05 ? { i: best.i, id: game.songs[best.i], at: Math.max(0, best.at) } : null;
     },
     /** is song i decoded and ready? */

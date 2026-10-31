@@ -41,7 +41,7 @@ import { settings } from '../../audio/settings.js';
 import { onUnlock } from '../../audio/engine.js';
 import { reportError, recentErrors } from '../../errlog.js';
 import { createBaker } from './bake.js';
-import { toneWeights, toneKey, tones, sunLook, sunKey, harborSky, harborWeights } from './tones.js';
+import { toneWeights, toneKey, tones, sunLook, sunKey, harborSky, harborWarm, harborWeights } from './tones.js';
 import { paintSky } from './sky.js';
 import { facadeSteps } from './skyline.js';
 import { litSteps, createLights, newMeta } from './lights.js';
@@ -762,7 +762,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   // (DT1: the palette + the facades' tones from the Harbor's weights — the sky model's + THE BLUE HOUR: tones.js#harborWeights)
   let LH = harborWeights(LK), P = paletteFor(LH), skyKey = '', lookAt = 0, TW = toneWeights(LH);
-  const skyKeyNow = () => `${LK.key}|${Math.round(((LH && LH.blue) || 0) * 40)}`;
+  const skyKeyNow = () => `${LK.key}|${Math.round(((LH && LH.blue) || 0) * 40)}|${harborWarm(LK)}`;
   // ONE "HOW DARK IS IT" INPUT (C1.5, core/harbor-dark.js): every lighting decision reads DK through a named ramp (litK)
   // (DT1 — THE BLUE HOUR: the darkness follows the real sun's elevation — core/harbor-dark.js#DUSK; ALWAYS NIGHT: the sky model's 1)
   // (9a: the storm term from THE WEATHER — a storm's rain, a heavy rain a little; eased with the rain itself)
@@ -847,7 +847,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       LOADLOG.add('memory', st9.length ? `the guard STEPPED DOWN ${st9.map(g => `${g.name} ${g.from}→${g.to}`).join(', ')} (the bakes want ${memGuard.want} MB + ${memGuard.others} MB else live, budget ${memGuard.budget})` : `the guard: nothing stepped (the bakes ${memGuard.want} MB + ${memGuard.others} MB else live of ${memGuard.budget})`); }
     if (DEBUG) console.info('[harbor] layout', { W, H, F: +cam.F.toFixed(1), CAMH: +cam.CAMH.toFixed(2), VPY: +cam.VPY.toFixed(1), limitY: cam.limitY, squeeze: +L.squeeze.toFixed(2), mem: memAll() });
     skyGlowY = Array.from(skyline).sort((a, b) => a - b)[Math.floor(skyline.length * 0.35)];
-    paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK), dark: DK });
+    paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK), warm: harborWarm(LK), dark: DK });
     skyKey = skyKeyNow();
     skyMix.sky = null;                                         // (a re-layout repaints the sky: the merged copy too)
     for (const m of [fx, wfx, rain, sun, zap]) m.resize(W, H, HZ);
@@ -1800,7 +1800,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       sched = createScheduler(HARBOR_EVENTS, t => { const sp = sunPosition(t, lat, lon); return { ms: t, force: clock.force, night: an || sp.el < -6, el: an ? -30 : sp.el, az: sp.az, month: new Date(t).getUTCMonth() + 1, south: lat < 0, heli: ms => !!patrolInSlot(ms, SLOT_MS, heliCtx) }; }, { seed, forced: ['demo', 'searchlights'].filter(id => clock.force.has(id)), anchor: anchorFor(ms, LK.local) });
     }
     // (NEON PASS 4: the party's warmer glow over the skyline — repainted when the party starts / ends)
-    if (skyKeyNow() !== skyKey || (partyLit() ? 1 : 0) !== skyParty) { holdSky(now); skyKey = skyKeyNow(); skyParty = partyLit() ? 1 : 0; skyMix.sky = null; paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK), dark: DK }); }
+    if (skyKeyNow() !== skyKey || (partyLit() ? 1 : 0) !== skyParty) { holdSky(now); skyKey = skyKeyNow(); skyParty = partyLit() ? 1 : 0; skyMix.sky = null; paintSky(skyCv, W, HZ, dpr, P, { roof: skyGlowY, party: skyParty, stops: harborSky(P, LK), warm: harborWarm(LK), dark: DK }); }
     if (L && neon.night(nightKey(LK.local), TW.day + TW.gold)) layout('tonight\'s signs');          // (tonight's signs: a new pick, only while they are dark + unpainted)
     // (never during a crossfade: its source is the canvas the next bake draws into)
     if (L && bakeKey() !== baker.key && !baker.pending && fadeFrom < 0 && !waitRects()) rebake();
@@ -3585,7 +3585,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       partySync: S.musicLine ? [].concat(S.musicLine()).find(l => /^party /.test(l)) || null : null,   // (NIGHT-C: the readout's party line)
       roofCrisp: roofCrispDebug(), liveCrisp: liveCrispDebug(),   // (NIGHT-C: the live windows' crisp share each)   // (NIGHT-C: the roof signs' crisp share each — 1 = at the phone's full dpr)
       heliOcc: heliOcc(), tr3bLight: { cast: false, lights: legends && legends.triLights ? (legends.triLights() || []).length : 0 } /* (ATM-A: its lights cast nothing on the city) */, mothman: { ...(moth.debug() || {}), tip: mmTip ? mmTip.map(v => Math.round(v)) : null, ready: moth.ready() }, blackbird: { ...(bb.debug() || {}), strip: bbStrip(), watch: (() => { try { return JSON.parse(localStorage.getItem('na:bbwatch') || 'null'); } catch { return null; } })(), start: (kind = 'forced', dir = 1, inS = BB.tell) => { const hy = bbStrip(); return bb.start(kind, clock.now() + inS * 1000, dir, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot }); } },
-      heli: { breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), ms: sky.heliMs ? sky.heliMs() : null, crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
+      heli: { planFor: seed => (sky.heliPlanFor ? sky.heliPlanFor(seed) : null), breakOn: sky.heliBreakOn(), beam: sky.heliBeam(), ms: sky.heliMs ? sky.heliMs() : null, crowd: crowdMemo ? crowdMemo.v : null, up: (() => { try { const a = sky.listen().air; return a && a.heli ? a.heli : null; } catch { return null; } })() },   // (NIGHT-C: the helicopter over a dance break + its beam's pool)
       music: S.musicLine ? [].concat(S.musicLine())[0] : null, sync: S.musicLine ? [].concat(S.musicLine())[1] || null : null, clock: S.musicLine ? [].concat(S.musicLine())[2] || null : null,       // (CITY 2.0 MUSIC: the readout's music line)
       rate: { drawn, fast: fastWhy, running }, main: { w: canvas.width, h: canvas.height, mb: +(canvas.width * canvas.height * 4 / 1e6).toFixed(2) }, bakes: baker.bakes, key: baker.key, pending: baker.pending || litBaker.pending || lightKey() !== litBaker.key, shown: shownAt >= 0, reveal: shownAt >= 0 ? { why: revealWhy, ms: Math.round(shownAt - t0) } : null, loadLog: { rows: LOADLOG.rows.slice(), visible: LOADLOG.visible(), open: LOADLOG.open(), lines: LOADLOG.lines(200) }, events: events.active.map(e => ({ id: e.id, lanes: e.lanes, k: +e.k.toFixed(3) })), quiet: events.quiet } : null),
     debug: () => ({ city: 2, signs: neon.debug().signs, changes: [], tier, dpr, W, H, running, layers: GROUPS.length, windows: 0, ...S, logoRect: undefined, w: LK.w, holiday: LK.holiday, rain: LK.rain, snow: LK.snow, storm: LK.storm, fog: LK.fog, cloud: LK.cloud, wind: LK.wind, live: LK.live, wxKind: LK.wxKind, moon: LK.moon, fx: fx.debug(), wfx: wfx.debug(), rainFx: rain.debug(), birds: sky.debug().birds, road: {}, air: sky.debug().air, sun: sun.debug(), skyline: skyline ? Array.from(skyline, v => Math.round(v)) : null, mem: memAll(), bakes: baker.bakes }),

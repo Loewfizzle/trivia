@@ -330,6 +330,8 @@ export function cloudLit(G, d, x, box) {
  */
 export function haloOf(lc, forced = {}) {
   const h = lc ? (((lc.y * 400 + lc.m * 31 + lc.d) * 2654435761) >>> 0) : 1;
-  const seeded = h % 4 === 0;
-  return { halo: seeded || !!forced.halo || !!forced.dogs, dogs: (seeded && ((h >>> 2) & 1) === 1) || !!forced.dogs };
+  // (ATM-C — the owner, Oct 31: the halo + two bright sun dogs read as the veil's whole look → RARE: ~1 veil day in 7, the sun dogs on
+  // ~1 in 3 of those (and both much fainter: clouds.js#veilLook))
+  const seeded = h % 7 === 0;
+  return { halo: seeded || !!forced.halo || !!forced.dogs, dogs: (seeded && ((h >>> 3) % 3) === 0) || !!forced.dogs };
 }

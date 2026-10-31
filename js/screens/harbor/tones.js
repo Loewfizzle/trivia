@@ -122,12 +122,23 @@ const SKY_VEIL = [[176, 198, 226], [196, 214, 236], [214, 228, 242], [228, 236, 
 const sm = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
 const mixc = (a, b, t) => a.map((v, i) => v + (b[i] - v) * t);
 /** the Harbor's sky stops (4 colours, top → horizon) for a look: the palette's, with the Harbor's own day sky by the day's share */
+// ATM-C — THE GOLDEN HOUR IS GOLD (the owner, Oct 31 9:24 am — at 5:45 pm, ~8° up: the sky "lavender / purple", the sun "almost too
+// white"): with the sun still UP the golden hour's sky is WARM — blue overhead, a warm haze below, gold toward the horizon round the low
+// sun; the palette's lavender + salmon (City 1.0's dusk) belong AFTER sunset, so they come back as the sun goes down (−1.5° → +2°).
+const SKY_GOLD = [[40, 72, 142], [158, 148, 150], [242, 182, 120], [255, 212, 146]];
+/** 0..1: the low sun's warm sky share (the golden / dawn look × the sun up × not under a grey deck) — harborSky + the sky's low glow */
+export function harborWarm(LK) {
+  if (!LK || !LK.w || !LK.sun) return 0;
+  const g = sm(0.45, 0.97, LK.cloud || 0);
+  return Math.round(clamp01(((LK.w.golden || 0) + (LK.w.dawn || 0)) * 1.25) * sm(-1.5, 2, LK.sun.el) * (1 - g) * 16) / 16;   // (+ the sunrise: the dawn look with the sun up)
+}
+const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export function harborSky(P, LK) {
   if (!P || !P.sky) return null;
-  const d = LK && LK.w ? LK.w.day || 0 : 0;
-  if (d <= 0.001) return P.sky;
+  const d = LK && LK.w ? LK.w.day || 0 : 0, wm = harborWarm(LK);
+  if (d <= 0.001 && wm <= 0) return P.sky;
   const g = sm(0.45, 0.97, (LK && LK.cloud) || 0) * 0.85, v = Math.round(((LK && LK.veil) || 0) * 0.25 * 8) / 8;
-  return P.sky.map((c, i) => { const own = mixc(mixc(SKY_DAY[i], SKY_VEIL[i], v * (1 - g)), SKY_GREY[i], g); return mixc(c.slice(0, 3), own, d).map(Math.round); });
+  return P.sky.map((c, i) => { const own = mixc(mixc(SKY_DAY[i], SKY_VEIL[i], v * (1 - g)), SKY_GREY[i], g); return mixc(mixc(c.slice(0, 3), SKY_GOLD[i], wm), own, d).map(Math.round); });
 }
 export const sunKey = sl => `${sl.sunDir}${sl.sunEl}${sl.cloud > 0.6 ? 'o' : ''}${sl.ovc ? `v${sl.ovc}` : ''}`;
 

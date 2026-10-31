@@ -545,6 +545,7 @@ export function createClouds() {
   let W = 1, top = 0, roof = 200, HZ = 300, box = null, list = [], old = null, oldK = 0, planKey = '', jobs = [], born = 0, G = null, gKey = '';
   let extra = { grey: 0, dark: 0, base: 0 };              // (the weather's set() — 9a)
   let res = 1.8, N = null, epoch = 0, rr = 0, lastA = 0, lastT = 0, mix = null, t0Clock = 0, e0 = 0, windSgn = 1;
+  let veilTile = null;   // (ATM-C: the high veil's fibres — veilFibres)
   // (POLISH 5 — THE LOAD: the plans made (the load log names each), the new set's fade (1.6 s; SLOW_MS once the city has shown —
   // the weather landing, a new block: a slow blend, never a pop) and whether the scene has settled the first set (settle()))
   let plans = 0, appearMs = 1600, shown = false;
@@ -809,27 +810,67 @@ export function createClouds() {
       mb: +list.reduce((s, d) => s + (d.cv ? d.cv.width * d.cv.height * 4 : 0) + (d.prev ? d.prev.width * d.prev.height * 4 : 0) + (d.F ? d.F.pw * d.F.ph * (d.F.m !== d.F.t ? 7 : 6) : 0), 0).toFixed(0) / 1e6,
       at: list.map(d => ({ k: d.kind, x: Math.round(d.xNow), y: Math.round(d.y), w: Math.round(d.w), h: Math.round(d.h), s: +d.s.toFixed(2) })),
     }),
-    destroy() { free(list); free(old); list = []; old = null; jobs = []; for (const g of glows.values()) g.width = 0; glows.clear(); for (const o of patches.values()) if (o.cv) o.cv.width = 0; patches.clear(); for (const cv of pool) cv.width = 0; pool.length = 0; },
+    destroy() { free(list); free(old); list = []; old = null; jobs = []; for (const g of glows.values()) g.width = 0; glows.clear(); for (const o of patches.values()) if (o.cv) o.cv.width = 0; patches.clear(); for (const cv of pool) cv.width = 0; pool.length = 0; if (veilTile) { veilTile.cv.width = 0; veilTile = null; } },
   };
+  // ATM-C — THE FIBRES of the high veil: one baked tile (made once, ~0.5 MB), long soft streaks + a few finer threads, mostly along the
+  // wind, never ruler-straight; drawn wrapped across the sky and drifting with the wind
+  function veilFibres() {
+    if (veilTile) return veilTile;
+    const TW = 640, TH = 220, cv = document.createElement('canvas'); cv.width = TW; cv.height = TH;
+    const x = ctx2d(cv); if (!x) return null;
+    const R = rngFrom('veil-fibres'), stroke = (y0, len, wid, a) => {
+      const x0 = R() * TW, bend = (R() - 0.5) * 26, tilt = (R() - 0.5) * 18;
+      for (const dx of [-TW, 0, TW]) {
+        x.beginPath(); x.moveTo(x0 + dx, y0); x.bezierCurveTo(x0 + dx + len * 0.33, y0 + bend + tilt * 0.3, x0 + dx + len * 0.66, y0 - bend + tilt * 0.7, x0 + dx + len, y0 + tilt);
+        x.lineWidth = wid; x.strokeStyle = `rgba(255,255,255,${a.toFixed(3)})`; x.stroke();
+      }
+    };
+    x.lineCap = 'round';
+    for (let i = 0; i < 70; i++) stroke(R() * TH, 120 + R() * 320, 10 + R() * 22, 0.035 + R() * 0.045);   // the soft sheets
+    for (let i = 0; i < 90; i++) stroke(R() * TH, 60 + R() * 220, 1.2 + R() * 2.4, 0.05 + R() * 0.07);    // the finer threads
+    veilTile = { cv, w: TW, h: TH };
+    return veilTile;
+  }
+  // 6b — THE HIGH VEIL. ATM-C — IT READS AS A VEIL (the owner, Oct 31 9:20 am: `&wx=veil` "just looks like a sun dog — I don't see a high
+  // thin veil of clouds"; the sheen was 7–24 % and the halo + dogs were the strongest thing in the sky): a MILKY WHITE SHEEN over the whole
+  // sky — the blue paler + whiter, more toward the horizon and round the sun — faint FIBRES drifting in it, and the sun SOFTENED into a wide
+  // diffuse glow (the sheen over its disc + a broad bloom); the halo + sun dogs rare + faint (haloOf, below)
   function veilLook(c, fs, sun, k, lc) {
     const LK = fs.L, day = clamp01(LK.w.day + LK.w.golden * 0.7 + LK.w.dawn * 0.6) * (1 - clamp01(LK.w.night + LK.w.late));
     if (k < 0.02 || day < 0.05) return;
-    const H0 = HZ, g = c.createLinearGradient(0, top, 0, H0);
-    g.addColorStop(0, `rgba(236,240,248,${(0.07 * k * day).toFixed(3)})`); g.addColorStop(0.7, `rgba(240,242,248,${(0.16 * k * day).toFixed(3)})`); g.addColorStop(1, `rgba(244,244,246,${(0.24 * k * day).toFixed(3)})`);
+    const gold = clamp01((LK.w.golden || 0) + (LK.w.dawn || 0) * 0.6), H0 = HZ, kd = k * day * (1 - 0.25 * gold);   // (a low sun's veil a touch lighter: warm, not beige)
+    const tint = (a, w) => [a[0] + (w[0] - a[0]) * gold, a[1] + (w[1] - a[1]) * gold, a[2] + (w[2] - a[2]) * gold].map(Math.round).join(',');
+    const g = c.createLinearGradient(0, top, 0, H0);
+    g.addColorStop(0, `rgba(${tint([236, 241, 250], [250, 236, 218])},${(0.2 * kd).toFixed(3)})`);
+    g.addColorStop(0.55, `rgba(${tint([240, 244, 250], [255, 232, 206])},${(0.32 * kd).toFixed(3)})`);
+    g.addColorStop(1, `rgba(${tint([246, 247, 250], [255, 226, 192])},${(0.46 * kd).toFixed(3)})`);
     c.fillStyle = g; c.fillRect(0, 0, W, H0);
+    // the fibres: the tile wrapped across the sky above the roofs, drifting with the wind (a full turn of the tile in ~10 min at a breeze)
+    const T = veilFibres();
+    if (T) {
+      const band = Math.max(80, roof - top + 40), sc = band / T.h, tw = T.w * sc, wv = LK.wind == null ? 3 : LK.wind;
+      const off = ((((fs.motion === false ? 0 : fs.now / 1000) * (1.2 + Math.min(10, Math.abs(wv)) * 0.35) * windSgn) % tw) + tw) % tw;
+      c.save(); c.globalAlpha = Math.min(1, 0.85 * kd);
+      for (let x0 = off - tw; x0 < W; x0 += tw) c.drawImage(T.cv, x0, top - 10, tw, band);
+      c.restore();
+    }
     if (sun && sun.x != null && sun.vis > 0.05) {
+      // the sky round the sun whiter (the veil lit from behind) + the sun's light spread wide and soft
+      const r0 = Math.min(W, H0) * 0.62, w0 = c.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, r0);
+      w0.addColorStop(0, `rgba(${tint([250, 250, 252], [255, 238, 210])},${(0.34 * kd * sun.vis).toFixed(3)})`); w0.addColorStop(1, `rgba(${tint([250, 250, 252], [255, 238, 210])},0)`);
+      c.fillStyle = w0; c.fillRect(sun.x - r0, sun.y - r0, r0 * 2, r0 * 2);
       c.save(); c.globalCompositeOperation = 'lighter';
-      const r = Math.min(W, H0) * 0.32, gg = c.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, r);
-      gg.addColorStop(0, `rgba(255,252,240,${(0.22 * k * sun.vis).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,252,240,0)');
+      const r = Math.min(W, H0) * 0.3, gg = c.createRadialGradient(sun.x, sun.y, 0, sun.x, sun.y, r);
+      gg.addColorStop(0, `rgba(255,252,240,${(0.3 * k * sun.vis).toFixed(3)})`); gg.addColorStop(0.35, `rgba(255,252,240,${(0.12 * k * sun.vis).toFixed(3)})`); gg.addColorStop(1, 'rgba(255,252,240,0)');
       c.fillStyle = gg; c.fillRect(sun.x - r, sun.y - r, r * 2, r * 2);
       c.restore();
       // THE 22° HALO (POLISH 4, the owner: "a very obvious circle of clouds" — wrong): a FAINT, THIN ring of LIGHT in the veil — barely
-      // there, a slightly REDDISH INNER EDGE, the sky a touch DARKER inside it; ~1 veil day in 4 (seeded). SUN DOGS (a rarer bonus, ~1
+      // there, a slightly REDDISH INNER EDGE, the sky a touch DARKER inside it; ~1 veil day in 7 (seeded; ATM-C). SUN DOGS (a rarer bonus, ~1
       // halo day in 2): two small bright rainbow-tinted spots level with the sun, one each side just outside the ring, red toward the sun.
       // (R: the real ring at this camera's field, pulled in a little so the sun dogs stay on a phone's screen; drawn under the roofs' line)
       const hk = haloOf(lc, { halo: fs.force.has('halo'), dogs: fs.force.has('sundogs') });
       if (hk.halo && k > 0.25) {
-        const R = Math.min(W * 0.42, H0 * 0.5), band = Math.max(2.5, R * 0.03), v = k * sun.vis;
+        const R = Math.min(W * 0.42, H0 * 0.5), band = Math.max(2.5, R * 0.03), v = k * sun.vis * 0.5;   // (ATM-C: half as bright — never the veil's signature)
         c.save(); c.beginPath(); c.rect(0, 0, W, roof + 20); c.clip();
         // the sky inside the ring a touch darker (never at the sun itself: its own glow is there)
         const dg = c.createRadialGradient(sun.x, sun.y, R * 0.35, sun.x, sun.y, R - band * 0.5);
@@ -845,7 +886,7 @@ export function createClouds() {
         // THE SUN DOGS (parhelia): level with the sun, just outside the ring; red on the sun's side → amber → white → a faint blue, a
         // short white tail pointing away; a gentle shimmer as the veil's crystals drift
         if (hk.dogs) for (const side of [-1, 1]) {
-          const dx = sun.x + side * R * 1.03, dy = sun.y, sh = 0.85 + 0.15 * Math.sin(fs.t * 0.7 + side), a = v * sh;
+          const dx = sun.x + side * R * 1.03, dy = sun.y, sh = 0.85 + 0.15 * Math.sin(fs.t * 0.7 + side), a = v * sh * 0.8;   // (ATM-C: the dogs fainter still — v is already halved)
           if (dx < -band * 6 || dx > W + band * 6) continue;
           const spot = (ox, rx, ry, col, al) => { const gx = c.createRadialGradient(0, 0, 0, 0, 0, 1); gx.addColorStop(0, `rgba(${col},${al.toFixed(3)})`); gx.addColorStop(1, `rgba(${col},0)`);
             c.save(); c.translate(dx + side * ox, dy); c.scale(rx, ry); c.fillStyle = gx; c.beginPath(); c.arc(0, 0, 1, 0, Math.PI * 2); c.fill(); c.restore(); };
@@ -890,7 +931,7 @@ export function createClouds() {
       // (the time on the cloud field: seconds into this 6-hour block on the city's clock — every phone the same sky)
       const tSec = e0 + ((fs.now - t0Clock) / 1000);
       // 6b — THE HIGH VEIL (cirrostratus: core/weather.js#veilOf → mix.veil): a MILKY SHEEN over the blue (whiter toward the horizon), the
-      // sun SOFTENED in it (a wide watery glow), and on a rare veil day (~1 in 4, seeded by the date) a faint 22° HALO round the sun
+      // sun SOFTENED in it (a wide watery glow), and on a rare veil day (~1 in 7 — ATM-C, seeded by the date) a faint 22° HALO round the sun
       if (mix && mix.veil > 0.05 && part !== 'front') veilLook(c, fs, sunInfo, mix.veil * appear, lc);
       if (old) { oldK = Math.max(0, 1 - appear); drawSet(c, old, oldK, tSec, LK, fs.motion); if (oldK <= 0) { free(old); old = null; } }
       drawSet(c, list, appear, tSec, LK, fs.motion, part);

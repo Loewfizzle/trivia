@@ -41,21 +41,24 @@ export function sunColor(el) {
  *  vertical scale: the look only, never the arch's fit) }.
  *  (The owner, Oct 2026: at 17:57 — ~6–8° up, ~45 min before sunset — it was still bright white; the SP pass had it near-white
  *  from ~5°.) */
-const SUN_STAGES = [[-2, [236, 50, 26]], [0, [255, 68, 30]], [1, [255, 90, 36]], [2, [255, 118, 44]], [4, [255, 158, 62]], [6, [255, 192, 100]],
-  [10, [255, 226, 160]], [15, [255, 244, 216]], [20, [255, 251, 238]], [30, [255, 254, 248]]];
+// (ATM-C — THE SUN's COLOUR FOLLOWS ITS HEIGHT, the owner Oct 31 9:24 am: at 5:45 pm (8.2° up) "almost looks too white"; the 9:30 am sun
+// (11.4°) APPROVED white: the white-hot core now only from ~7.6° → 11.6° up (at 11.4° white as before, at 8.2° ~6 %); below it GOLD → AMBER
+// (~4°) → deep ORANGE at the horizon, its glow + bloom warm with it)
+const SUN_STAGES = [[-2, [236, 50, 26]], [0, [255, 68, 30]], [1, [255, 88, 34]], [2, [255, 112, 42]], [4, [255, 146, 56]], [6, [255, 176, 82]],
+  [9, [255, 202, 118]], [12, [255, 226, 164]], [16, [255, 244, 214]], [20, [255, 251, 238]], [30, [255, 254, 248]]];
 export function sunColourAt(el) {
   const S = SUN_STAGES;
   let disc = S[S.length - 1][1];
   if (el <= S[0][0]) disc = S[0][1];
   else for (let i = 1; i < S.length; i++) if (el <= S[i][0]) { const [e0, c0] = S[i - 1], [e1, c1] = S[i]; const t = (el - e0) / (e1 - e0); disc = c0.map((v, j) => Math.round(lerp(v, c1[j], t))); break; }
-  const gw = 0.5 + 0.5 * smooth(6, 18, el);
+  const gw = 0.35 + 0.65 * smooth(9, 20, el);
   return {
     disc, glow: disc.map((v, j) => Math.round(lerp(v, [255, 250, 240][j], gw))),
     // (ATM-A — THE SUN LOOKS WRONG, the owner Oct 29 9:35 am: "a flat pale CREAM DISC … like a paper plate" at ~11° up — the coloured disc
     // with its rim still showed there. The WHITE-HOT CORE now takes over from ~3–9° up: a near-white core blowing out into its glow, no
     // rim; the stage's warmth lives in its soft outer ring + the bloom (so 6–8° before sunset still reads warm); the crisp coloured disc
     // only right at the horizon)
-    lift: lerp(0.18, 0.55, smooth(2, 12, el)), white: smooth(3, 9, el), halo: smooth(3.5, 15, el), squash: lerp(0.85, 1, smooth(-0.5, 3.5, el)),
+    lift: lerp(0.18, 0.55, smooth(5, 14, el)), white: smooth(7.6, 11.6, el), halo: smooth(3.5, 15, el), squash: lerp(0.85, 1, smooth(-0.5, 3.5, el)),
   };
 }
 /** PURE: the Harbor's disc colour alone (sunColourAt(el).disc) */
@@ -283,6 +286,28 @@ export function createSun(opts = {}) {
       x.fillStyle = g; x.fillRect(0, 0, 128, 128);
       if (hots.size > 40) hots.clear();
       hots.set(k, cv);
+    }
+    return cv;
+  };
+  // (ATM-C — the disc BETWEEN the two, for a sun 7.6–11.6° up: the crisp coloured disc (hs 0) morphing into the white-hot core (hs 1) in one
+  // gradient — the core whitening, the edge softening + spreading — quantised to 1/10 of the white share: a few sprites a day)
+  const betweens = new Map();
+  const between = (col, lift, hs) => {
+    const q = Math.round(hs * 10) / 10, k = `${qc(col).join(',')}|${q}|${Math.round(lift * 10)}`;
+    let cv = betweens.get(k);
+    if (!cv) {
+      cv = mk(128, 128); const x = cv.getContext('2d');
+      const L = (a, b) => a + (b - a) * q, mix = (a, b) => a.map((v, i) => Math.round(L(v, b[i]))), mixW = a => col.map(v => Math.round(255 + (v - 255) * a));
+      const hi = col.map(v => Math.min(255, v + (255 - v) * lift)), R = L(60, 64) / 64;
+      const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
+      g.addColorStop(0, `rgba(${mix(hi, [255, 255, 255])},1)`);
+      g.addColorStop(L(0.72, 0.5) * R, `rgba(${mix(col, [255, 255, 254])},1)`);
+      g.addColorStop(L(0.95, 0.68) * R, `rgba(${mix(col.map(v => v * 0.93), mixW(0.12))},${L(1, 0.82).toFixed(3)})`);
+      g.addColorStop(L(0.985, 0.84) * R, `rgba(${mix(col, mixW(0.25))},${L(0.45, 0.36).toFixed(3)})`);
+      g.addColorStop(R, `rgba(${mix(col, mixW(0.35))},0)`);
+      x.fillStyle = g; x.fillRect(0, 0, 128, 128);
+      if (betweens.size > 40) betweens.clear();
+      betweens.set(k, cv);
     }
     return cv;
   };
@@ -516,8 +541,13 @@ export function createSun(opts = {}) {
       } else {
         // (the Harbor: a low sun a crisp coloured disc, a high one the white-hot core with no edge — crossfaded by its height)
         const hs = HB ? now.st.white : 0;
-        if (hs < 0.99) { c.globalAlpha = vis * (1 - hs); c.drawImage(disc(col, HB ? now.st.lift : 0.55), x - rx * 1.07, y - ry * 1.07, rx * 2.14, ry * 2.14); }
-        if (hs > 0.01) { c.globalAlpha = vis * hs; c.drawImage(hot(col), x - rx * 1.25, y - ry * 1.25, rx * 2.5, ry * 2.5); }
+        // (ATM-C: ONE sprite between the two, never a crossfade — the crisp disc at a third strength under the soft white core read as
+        // a cream plate with a ring (the "paper plate" again at 9:30 am); its core colour + its edge's softness move with the white share)
+        if (HB && hs > 0.01 && hs < 0.99) { const sz = 1.07 + 0.18 * hs; c.globalAlpha = vis; c.drawImage(between(col, now.st.lift, hs), x - rx * sz, y - ry * sz, rx * sz * 2, ry * sz * 2); }
+        else {
+          if (hs < 0.99) { c.globalAlpha = vis * (1 - hs); c.drawImage(disc(col, HB ? now.st.lift : 0.55), x - rx * 1.07, y - ry * 1.07, rx * 2.14, ry * 2.14); }
+          if (hs > 0.01) { c.globalAlpha = vis * hs; c.drawImage(hot(col), x - rx * 1.25, y - ry * 1.25, rx * 2.5, ry * 2.5); }
+        }
       }
       c.globalAlpha = 1;
     },
