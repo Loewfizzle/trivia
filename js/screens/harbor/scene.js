@@ -101,7 +101,7 @@ import { createClouds } from './clouds.js';
 import { createHarborRain, rainLook } from './rainfx.js';
 import { createLightning } from './lightning.js';
 import { createWaterFog } from './waterfog.js';
-import { createFogDepth } from './fogdepth.js';
+import { createFogDepth, veilOf } from './fogdepth.js';
 import { createStormDeck } from './stormdeck.js';
 import { createIceFx } from './icefx.js';
 import { createWetGround } from './wetground.js';
@@ -2444,7 +2444,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // THE DAY PASS — THE CLOUDS (clouds.js: the Harbor's own, every hour, the real cover + wind); City 1.0's weather-fx only for
     // the lightning now (its clouds off: cloud 0)
     // (DT2: the sun's whole place — its x + y on the screen, how visible, and its side when it has set: each cloud is lit from it)
-    { const sd = sun.debug(); if (!off.has('no-clouds')) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }); }
+    // (PERF-A — DENSE FOG HIDES THE SKY: under the far veil at ≥ 0.82 the cloud deck shows through at ≤ 18 % — pixdiff: no pixel past Δ 24
+    //  with the clouds off — so it isn't painted (a full-screen layer on the owner's iPhone, whose fog frame was 12.3 MP); mist keeps them)
+    const fogHidesSky = fogD.on() && veilOf('far', fogD.look())[0] >= 0.82;
+    { const sd = sun.debug(); if (!off.has('no-clouds') && !fogHidesSky) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }); }
     };
     const msgB = sky.msgUp ? sky.msgUp() : null, msgUp = !!msgB;
     { const dt0 = Math.min(100, dt || 16); thinK = Math.max(0, Math.min(1, thinK + (msgUp ? 1 : -1) * dt0 / 1800)); if (msgB) thinBox = msgB; clouds.thin(thinK > 0.002 ? thinBox : null, thinK); }

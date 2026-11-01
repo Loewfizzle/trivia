@@ -41,9 +41,10 @@ export function fogColours({ day = 0, golden = 0, party = false } = {}) {
 
 export function createFogDepth() {
   let snowK = 0, look = { k: 0, m: 0, dense: false }, cols = [[0, 0, 0], [0, 0, 0]], day = 0, night = 0, t = 0, motion = true, wind = 2, W = 1, tier = 2;
-  const grads = new Map();             // `${which}|${y0}|${y1}|${alphas}|${cols}` → gradient (a frame keeps ~3)
+  const grads = new Map();             // `${which}|${device rows}|${alphas}|${cols}` → a 1-px-wide strip canvas of the veil's gradient (a frame keeps ~5)
   const halos = new Map();             // colour key → a soft halo sprite
   let tile = null, drawn = { veils: 0, halos: 0, banks: 0 };
+  const strips = new Map();             // (PERF-A) a bank's two layers, composited at CSS resolution: which → canvas
   function bakeTile() {
     // a soft patchy bank: blobs of every size, tileable across x (the waterfog's recipe, taller + lumpier)
     tile = mk(512, 96);
@@ -91,19 +92,23 @@ export function createFogDepth() {
       if (look.k <= 0.01 || !(y1 > y0)) return;
       const [a0, a1] = veilOf(which, look);
       if (a1 < 0.004) return;
-      const key = `${which}|${Math.round(y0)}|${Math.round(y1)}|${Math.round(a0 * 200)}|${Math.round(a1 * 200)}|${cols[0]}|${cols[1]}`;
-      let g = grads.get(key);
-      if (!g) {
-        g = c.createLinearGradient(0, y0, 0, y1);
+      // (PERF-A — the veils were 5 gradient FILLS a frame (~6 ms of the fog's CPU raster in WebKit, the owner's engine): each is now a
+      //  cached 1-pixel-wide strip of the same gradient at the screen's device rows, stretched across — an image draw, the same stops)
+      const dpr = Math.abs(c.getTransform().d) || 1, hp = Math.max(2, Math.ceil((y1 - y0) * dpr));
+      const key = `${which}|${hp}|${Math.round(a0 * 200)}|${Math.round(a1 * 200)}|${cols[0]}|${cols[1]}|${y0 > 2 ? 1 : 0}`;
+      let st = grads.get(key);
+      if (!st) {
+        st = mk(1, hp); const x = safeCtx(st), g = x.createLinearGradient(0, 0, 0, hp);
         // (ATM-D — NO SEAMS: a veil that starts below the top of the screen FADES IN over its first ~50 pt — its top was a hard horizontal
         // line across the sky (the mid + the harbor veils at full strength from their first row), cutting the beams + the halos in two)
         const fi = y0 > 2 ? Math.min(0.45, 50 / (y1 - y0)) : 0;
         if (fi > 0) { g.addColorStop(0, rgba(cols[0], 0)); g.addColorStop(fi, rgba(cols[0], a0)); } else g.addColorStop(0, rgba(cols[0], a0));
         g.addColorStop(Math.max(fi + 0.01, 0.7), rgba(mixC(cols[0], cols[1], 0.6), lerp(a0, a1, 0.8))); g.addColorStop(1, rgba(cols[1], a1));
-        if (grads.size > 12) grads.clear();
-        grads.set(key, g);
+        x.fillStyle = g; x.fillRect(0, 0, 1, hp);
+        if (grads.size > 12) { for (const cv of grads.values()) cv.width = 0; grads.clear(); }
+        grads.set(key, st);
       }
-      c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; c.fillStyle = g; c.fillRect(0, y0, W, y1 - y0); c.restore();
+      c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; c.drawImage(st, 0, 0, 1, hp, 0, y0, W, y1 - y0); c.restore();
       drawn.veils++;
     },
     /** THE LIGHTS IN FOG: each a soft halo hanging in the air (list: [{ x, y, w, h, col, k }]); the denser the fog, the wider + stronger;
@@ -133,9 +138,17 @@ export function createFogDepth() {
     lampGlow(c, y0, y1) {
       const a = look.k * lerp(0.05, 0.13, look.m) * night;
       if (a < 0.006 || !(y1 > y0)) return;
-      const g = c.createLinearGradient(0, y0, 0, y1);
-      g.addColorStop(0, 'rgba(255,196,140,0)'); g.addColorStop(1, `rgba(255,196,140,${a.toFixed(3)})`);
-      c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(0, y0, W, y1 - y0); c.restore();
+      // (PERF-A: a cached 1-pixel-wide strip, stretched — not a new gradient filled every frame)
+      const dpr = Math.abs(c.getTransform().d) || 1, hp = Math.max(2, Math.ceil((y1 - y0) * dpr)), key = `glow|${hp}|${Math.round(a * 400)}`;
+      let st = grads.get(key);
+      if (!st) {
+        st = mk(1, hp); const x = safeCtx(st), g = x.createLinearGradient(0, 0, 0, hp);
+        g.addColorStop(0, 'rgba(255,196,140,0)'); g.addColorStop(1, `rgba(255,196,140,${a.toFixed(3)})`);
+        x.fillStyle = g; x.fillRect(0, 0, 1, hp);
+        if (grads.size > 12) { for (const cv of grads.values()) cv.width = 0; grads.clear(); }
+        grads.set(key, st);
+      }
+      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 1; c.drawImage(st, 0, 0, 1, hp, 0, y0, W, y1 - y0); c.restore();
     },
     /** A BANK drifting across a band (the road, the promenade) on the shared wind: the baked patchy tile at two depths, the near one
      *  faster; thicker at the band's top (the far side) — people walking through it fade in + out. dense: the strength, × the look */
@@ -155,15 +168,25 @@ export function createFogDepth() {
         tile.tinted = { key: tk, cv: tc };
       }
       const src = tile.tinted.cv, v = wind * 3.2;   // (pt/s: a 2.5 m/s fog air drifts ~8 pt/s — the banks visibly move, never race)
+      // (PERF-A — the owner's iPhone fog frame painted 12.3 MP: the two drifting layers are laid into ONE small strip at CSS resolution —
+      //  the 512 × 96 tile is softer than that already — and the strip drawn once at the screen's dpr: half the bank's painted pixels;
+      //  source-over twice into the strip then once onto the city = the same picture as twice onto the city)
+      const top = y0 - h * 0.25, sh = Math.ceil(h * 1.4) + 2, sw = Math.ceil(W);
+      let st = strips.get(which);
+      if (!st || st.width !== sw || st.height !== sh) { if (st) st.width = 0; st = mk(sw, sh); strips.set(which, st); }
+      const x = safeCtx(st);
+      x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1; x.clearRect(0, 0, sw, sh);
       for (const [sp, yy, hh, a] of [[0.55, y0 - h * 0.25, h * 0.85, 1], [1, y0 + h * 0.2, h * 0.95, 0.75]]) {
         const sc = hh / 96, tw = 512 * sc * 1.6, off = (((motion ? t : 0) * v * sp) % tw + tw) % tw;
-        c.globalAlpha = Math.min(1, amp * a * 1.6);
-        for (let x0 = off - tw; x0 < W; x0 += tw) c.drawImage(src, x0, yy, tw, hh);
+        x.globalAlpha = Math.min(1, amp * a * 1.6);
+        for (let x0 = off - tw; x0 < W; x0 += tw) x.drawImage(src, x0, yy - top, tw, hh);
       }
+      c.globalAlpha = 1;
+      c.drawImage(st, 0, top, sw, sh);
       c.restore();
       drawn.banks++;
     },
     debug: () => ({ k: +look.k.toFixed(2), m: +look.m.toFixed(2), dense: look.dense, mode: look.k <= 0.01 ? 'none' : look.x > 0.5 ? 'whiteout' : snowK > 0.3 ? 'snow' : look.m > 0.5 ? 'dense' : 'mist', x: +(look.x || 0).toFixed(2), col: cols, ...drawn, sprites: halos.size }),
-    destroy() { for (const h of halos.values()) h.width = 0; halos.clear(); if (tile) { if (tile.tinted && tile.tinted.cv) tile.tinted.cv.width = 0; tile.width = 0; } tile = null; grads.clear(); },
+    destroy() { for (const st of strips.values()) st.width = 0; strips.clear(); for (const h of halos.values()) h.width = 0; halos.clear(); if (tile) { if (tile.tinted && tile.tinted.cv) tile.tinted.cv.width = 0; tile.width = 0; } tile = null; for (const cv of grads.values()) cv.width = 0; grads.clear(); },
   };
 }
