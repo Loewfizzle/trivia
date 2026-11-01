@@ -95,7 +95,7 @@ Step 0 of every pass appends the owner's notes HERE and updates decisions.md.
 | 10 | ✅ (Oct 31 — docs/harbor/passes/part-10.md): PART 10 — THE FIREWORKS + the owner's ATM-D review fixes (Group 0) + his two add-ons (the boxer every night; the fireworks BEHIND the lit sign): one GPU engine, every night's shows, the crowd looking up, Grok's sounds, the party show on the song's beat | Opus 5.5 high | ~3–4 h |
 | FR5 | ✅ (Nov 1 — docs/harbor/review-5.md, d009377) + THE GROK REVIEW ✅ (plan/grok-review-REPORT.md): a FABLE READ-ONLY REVIEW (speed, memory, code health, the pass overhead, the scene.js cut lines) + Grok's around-the-city review (profile / tabs / admin, /api, audio sync, rules) — "OWNER'S NOTES — NOV 1 (late night)" | Fable | ~1 h |
 | PERF-A | ✅ (Nov 1 — docs/harbor/passes/perf-a.md): the owner's fixes (the dragon-egg salvo full width, the near launches, the blizzard's ground snow off, the willow line, the phantom 2D rockets, the balloons over the billboards, the two bitcoin balloons) + THE LOADS + THE FRAMES (fog first) + GREEN MEANS GREEN + THE PROFILE + TABS + ADMIN + the quick overhead wins — "OWNER'S NOTES — NOV 1 (late night)" | Opus 5.5 high | long |
-| PERF-B | ← NEXT: the rest of the overhead (the windows group in parallel, the fixed sleeps, the cloud's leftover minutes), the standing-rule leaks (FR5 C2), the first three scene.js cuts (fireworks, legends, holidays) — "OWNER'S NOTES — NOV 1 (late night)" | Opus 5.5 high | ~2–3 h |
+| PERF-B | ← NEXT (this pass): the owner's PERF-A review (the finale's left clip, the balloons' WHOLE SKY + the depth rule + THE DISCO BALL, the fog / snow window smudges, the fog's density checked, the blizzard's first seconds) + THE FINALE holding tier 2 + FOG TO 60 + PERF-A's carry-overs + the rest of the overhead + the standing-rule leaks (FR5 C2) + three scene.js cuts (fireworks, legends, holidays) — "OWNER'S NOTES — NOV 1 (morning)" | Opus 5.5 high | ~2–3 h |
 | APP FIXES | Grok's other findings (ci tag): presence healing, the radio after unlock + the clock offset + stop / gain / seek, the rules holes, chat locks for stakes / rum, the lobby chat leak; the owner re-publishes the rules — "OWNER'S NOTES — NOV 1 (late night)" | Opus 5.5 high | ~2 h |
 | PEOPLE | PEOPLE POLISH (C3's first half): the promenade people get the dancers' treatment — bolder poses, clear silhouettes, more life — "OWNER'S NOTES — OCT 31 (evening)" | Opus 5.5 high | ~2–3 h |
 | DESKTOP | the one-time DESKTOP pass (~1.5–2 h + a ~30–45 min follow-up after the owner looks on a computer); leaves automatic desktop checks every later pass runs — "OWNER'S NOTES — OCT 29 (late)" | Opus 5.5 high | ~2 h |
@@ -4572,3 +4572,90 @@ Nov 1 (night) — THE REVIEW LINKS: no &debug=1 on the owner's review links any 
 saw) — only when a readout is actually needed, and the summary says so.
 Nov 1 (late night) — THE BENCH SOUND: A FALSE ALARM (the owner: with every other tab closed, a fresh bench run was SILENT — the sound came
 from another open tab). The bench's mute works; NOTHING to fix (the "THE BENCH ISN'T SILENT" note above is withdrawn).
+
+## OWNER'S NOTES — NOV 1 (morning)
+
+## PERF-A WRITTEN (Nov 1, late night) — the owner's fixes, the loads, the frames (fog first), green means green, the profile/admin; PERF-B
++ APP FIXES next. Step 0 = plan.md from "FR5 + GROK REVIEW WRITTEN" to the end (step0-perfa.txt).
+
+## Nov 1 (late night) — THE BENCH SOUND: A FALSE ALARM (the owner: with every other tab closed, a fresh bench run was SILENT — the sound came
+from another open tab). The bench's mute works; NOTHING to fix (the "THE BENCH ISN'T SILENT" note above is withdrawn).
+
+## PERF-A DONE (Nov 1, ~5:30 am) — live; cloud green first try (tests + 10 harbor jobs); local 801/801 in 20.2 min. Summary: plan/perfa-summary.txt
+- Done: dragon eggs full width (8 shells); NEAR LAUNCHES = a new 4th layer (pier end + breakwater by the lighthouse); the willow line = a
+  burst glow's square edge still ~4 % bright (fixed, same brightness elsewhere); phantom 2D rockets removed (also off on NYE / July 4);
+  balloons over billboards / roof signs / a spire only when right under them; the bitcoin opposites at every hour + never neighbours;
+  blizzard streamers off; profile: key never overwritten (+ "restore it?"), no cached "not admin", second-tab banner + USE THIS TAB, the empty
+  card explains, the restore retries.
+- Numbers (WebKit on the mini PC, 402 wide): fog 34.5 → 25.9 ms (−25 %, 11.3 → 9.2 MP; clouds not drawn in DENSE fog — hidden; mist keeps
+  them); weeknight show 35.5 → 21.6 ms + its slow load gone (it WAS the phantom rockets); finale same main-thread cost, burst glows 1/16 the
+  pixels (GPU — only the phone bench can confirm); conga ≈ same; blizzard+debug freeze gone; December repeat visits' stall halved. Tests:
+  unit 83 → 30 s; full suite ~21 min (≈ 8–12 min off a pass).
+- MY FLAGS: (1) THE BALLOON ROW — "at 402 wide only a balloon's height of open sky → the festival flies almost in a row" — conflicts with the
+  festival's "never a row" design; Ben judges it on the link; if it reads as a row → options in PERF-B (smaller far balloons, let them use the
+  gaps between towers, fewer at once). (2) Fog at −25 % on the mini PC's CPU rasteriser — the phone bench decides whether fog now holds 60.
+  (3) Flaky TV-room brightness check (once) → PERF-B. Moved to PERF-B: the frost layer's load cost, spreading the people's first-minute
+  planning, tiny per-frame savings, the dancers' pose cache if the finale still steps down.
+
+## THE PHONE BENCH AFTER PERF-A (Nov 1, 5:47 am EST, iPhone) — plan/bench-nov1-after-perfa.txt (also /admin BENCH)
+- FOG: 41.4 → 51.3 fps, slow 43 % → 17 %, work 5.5 → 3.8 ms, 12.3 → 10 MP. BETTER, NOT 60: p95 still 34 ms (17 % of frames miss a vsync).
+- THE WEEKNIGHT SHOW: 60 fps, 0 % slow; its load FIXED (first frame 4.7 → 1.2 s). Blizzard 60, show in snow 60, everything else ~60.
+- THE PARTY FINALE GOT WORSE: 56.7 → 51.2 fps, slow 11 % → 34 %, p95 22 → 26 ms; stepped tier 2 → 1 at 22 s (was 42 s), back at 26.5 s.
+  Draws 743 → 799, paths 1398 → 1677 — the new NEAR-LAUNCH layer + the 8 full-width dragon eggs added more than the glows' 1/16 saved.
+  → PERF-B's #1 target: the finale holds tier 2 WITHOUT losing the new launches / dragon eggs (the near layer's cost — its tails /
+  reflections / per-shell draws; the dancers' pose cache — the people row: −2 ms, −27 % slow; the crisp layers last).
+- Conga 58.2 → 58.8 (same). Halloween 59.8 → 58.9 (7 % slow) + UFO 60 → 59.2 — small, likely noise / warmth; watch.
+- The "what costs the party" rows ran cooler this time (everything-on 39 → 50 fps) — not comparable to the first run.
+
+## OWNER's REVIEW OF PERF-A — Nov 1, 6:48 am EST (iPhone) → PERF-B's Step 0
+- THE FINALE: "the dragon eggs looked fine — everything looked really good." BUT "there's still some CLIPPING in the BOTTOM LEFT" (his
+  screenshot, plan/finale-clip-after-perfa.png: the big gold burst on the LEFT, beside the N — its lower sparks / glow end on a straight
+  horizontal line on the left side, around the tagline's height / just below it, above the moon + the skyline). PERF-A's glow-edge fix
+  didn't cover it: find the remaining clip (another square / box edge — the sparks' layer bounds, the smoke, the bloom, the sign-band /
+  tagline mask, the GL scissor on the left) → seamless; --cast through the finale in WebKit 402×874 + 390 / 430, the LEFT side included.
+- THE BALLOON FESTIVAL (his screenshot plan/balloons-row-after-perfa.png): they fly IN A ROW right under the tagline — "put them HIGHER. I
+  don't get why they have to be in that space. They can even go up IN FRONT OF THE NEON SIGN. They can drift up ABOVE it." → REVERSES the
+  old rule (balloons.js "never parked behind the NEON sign — the owner"; the tagline as the ceiling). NEW: the festival uses the WHOLE SKY —
+  heights spread from just over the roofs/billboards up past the sign to the top of the screen, never a row (the old ALT high/low spread
+  across the full height). THE CHAT's DEFAULT (unless the owner objects): by depth — the FAR / small balloons pass BEHIND the lit sign's
+  tubes (the sign is nearer), the NEAR / big ones pass IN FRONT of it; balloons DRIFT through the sign's area (never park over the letters
+  for long — the flights are slow, so the sign's band is a place they cross, not where they hover); a single balloon the same rules.
+  The two ₿ balloons now look right (orange/black-₿ left, black/orange-₿ right, apart) — KEEP.
+- DENSE FOG (his screenshot plan/fog-after-perfa.png): "okay — better than it was." TWO NOTES: (1) THE SMUDGES ON THE SPEAKEASY's WINDOWS:
+  the haze over the lit windows (both floors) reads as SMUDGES, not fog. Fix: the windows read clean — fog over them only as a passing wisp
+  the wind carries off within a few seconds (moving, on WF, never a parked blob); the stage-clear rule (fogdepth.js: "the stage clear").
+  (2) "I think we took TOO MUCH FOG OUT": PERF-A claimed no visible change (pixdiff) + only dropped the clouds the fog hid — VERIFY with a
+  side-by-side of the pre-PERF-A fog (git before PERF-A) vs now at 402×874 WebKit; if it got lighter, restore the density (the veils /
+  banks) WITHOUT giving back the speed (the bench's fog 51 fps must not drop; aim for 60).
+- THE WEEKNIGHT SHOW: "loads fast … a few small single launches, way less busy than the party show — it's good." APPROVED (the phantom 2D
+  rockets gone = only the GPU show).
+- THE BLIZZARD (plan/blizzard-after-perfa.jpg): GROUND SNOW GONE — "looks good". "A little choppy at the very beginning" (the bench: the
+  longest freeze 0.8 s at 2.6 s — the blizzard's load is the worst left) → PERF-B: spread the blizzard's first seconds (its bakes / flake
+  sprites / the whiteout) so the first frames stay smooth. AND "the window thing that looks bad AGAIN" — the same SMUDGES on the speakeasy's
+  lit windows as in fog (the snow's white veil / whiteout over the windows) → one fix for both: the speakeasy's windows read clean through
+  fog + snow veils (only moving wisps / flakes cross them, never a parked haze).
+- THE BALLOONS BY DAY (plan/balloons-day-after-perfa.png): the same ROW just over the roofs (two partly behind CIPHER's board / tucked by a
+  spire) — "you get all that space up there and you just choose that" → the WHOLE-SKY spread above holds day + night. The ₿ pair by day:
+  orange/black-₿ + black/orange-₿ — right. There's room on the far RIGHT for ONE MORE balloon → a 7th festival balloon.
+- THE 7th BALLOON: Ben asked for a "BILLY STRINGS balloon". The chat: no real artist's NAME or FACE on the balloon (his name + likeness are
+  his to license; a public site) — offered a BLUEGRASS homage instead, two prototypes at phone scale (plan/../proto/bluegrass-balloons.png):
+  A = THE SUNBURST GUITAR (tobacco sunburst envelope, the soundhole + rosette, strings, a pickguard), B = THE BANJO (a cream drum head, the
+  chrome rim + brackets, strings + bridge, a dark resonator skirt). → Ben picks.
+- (7:02 am) APPROVED: the balloons by day ("good"); THE SECOND-TAB banner (USE THIS TAB → ADMIN fine); the depth rule for the balloons and
+  the sign — FAR/small BEHIND the lit tubes, NEAR/big IN FRONT, drifting through, never parked over the letters (DECIDED). Billy Strings
+  balloon SKIPPED. The 7th balloon: three new prototypes (proto/balloon-designs-3.png): A THE MARTINI (a special-shape balloon: the glass,
+  the olive on its pick — the speakeasy's own), B THE DISCO BALL (mirror tiles + coloured glints — the party), C THE ART DECO HARLEQUIN (red
+  / gold / black diamonds, 1920s). → Ben picks.
+- (7:04 am) THE 7th BALLOON = THE DISCO BALL (the owner: "it looks good — just make it VERY HIGH QUALITY"). Spec for PERF-B: a mirror-ball
+  envelope on the balloon kind's shape (balloons.js#balloonArt — a new kind, in the festival's line-up, on the far right's open slot, kept
+  apart from the ₿ pair + its own height in the whole-sky spread): real mirror TILES following the sphere's curve (rows narrowing to the
+  poles, the gores' meridians), each tile catching the light — by DAY the sky blue above + the warm city below reflected, a few bright sun
+  glints that TWINKLE as it turns slowly; at NIGHT the tiles pick up the city's neon colours + the burner's warm flash, a few sparkles
+  winking; sparse moving sparkles (a handful at a time, cheap — baked tile sheets + a few glint sprites, no per-frame tile drawing);
+  a dark seam band at the mouth + the usual basket. Reads at ~30 pt unzoomed (a silver ball with colour flecks + a twinkle), never a grey
+  blob against the day sky. Day + night looks at 390 / 402 / 430, --cast for the twinkle; the tier table's numbers for its sparkles.
+
+## Nov 1 (morning) — PERF-B WRITTEN: the owner's PERF-A review fixes (the finale's left clip, the balloons' whole sky + depth + THE DISCO
+BALL, the fog/snow window smudges, the fog's density checked, the blizzard's first seconds) + THE FINALE holding tier 2 without losing the
+new launches / dragon eggs + fog to 60 + PERF-A's carry-overs + the rest of the overhead + the standing-rule leaks + three scene.js cuts.
+APP FIXES next (Grok's other findings; the owner re-publishes the rules after it).
