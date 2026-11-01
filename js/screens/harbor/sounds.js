@@ -562,6 +562,9 @@ export function createCitySounds() {
         // (PART 10 G0: a take already DECODED first — the storm loads + pins them ahead, so the crack is never late by a first decode)
         let pick = null;
         for (let i = 0; i < 6; i++) { const p = pickTake('thunder-close', Math.random, lastClose); if (!p) break; if (!pick) pick = p; if (cityReady('thunder-close', p.i)) { pick = p; break; } }
+        // (PERF-B — the cloud's "0.67 s LATE": six random tries can all miss the takes already decoded right after the tap — then EVERY take
+        //  is checked for a decoded one before a fresh decode is risked)
+        if (pick && !cityReady('thunder-close', pick.i)) { const tk = takesOf('thunder-close'), ok = tk.map((_, i) => i).filter(i => i !== lastClose && (tk[i].w ?? 1) > 0 && cityReady('thunder-close', i)); if (ok.length) { const i = ok[Math.floor(Math.random() * ok.length)]; pick = { take: tk[i], i }; } }
         const crack = pick ? (pick.take.hit != null ? pick.take.hit : 0.3) : d;
         if (pick) lastClose = pick.i;
         const lead = Math.max(0, crack - d), wait = Math.max(0, d - crack), second = pick && CRACK2[pick.take.src] != null ? CRACK2[pick.take.src] - crack : null;

@@ -102,6 +102,9 @@ G('holiday', async () => {
     // tube every ~25 s (title.js#tiredTick), a blink, lightning. Both are the spider walking the word: either passes)
     ok(at && dropped && onWord && st2 && ['crawl', 'skitter'].includes(st2.mode) && Math.abs(st2.x - x0) > 2 && wordPx && wordPx.in, `THE SPIDER'S TAP (touch, ${at ? `${at.x.toFixed(0)},${at.y.toFixed(0)}` : 'no spider'}): it drops to the SPEAKEASY word (${st && st.mode} → ${st2 && st2.mode}, y ${st2 && st2.y} on the word ${st2 && st2.word}; on screen ${wordPx && wordPx.sy} within ${wordPx && wordPx.top}–${wordPx && wordPx.bottom}) and crawls along it (x ${x0} → ${st2 && st2.x})`);
     // THE SECOND SPIDER on the last N's web: its own tap, its own trip; the two never in step
+    // (PERF-B — the cloud's red: the tap found the second spider SCARED (its nerves — the first one's trip or a flicker near it) and a scared
+    //  spider freezes instead of dropping; the tap is meant for a spider at rest → wait for it calm + still first)
+    await waitFor(Q.page, `(() => { const b = ${P}.dress.spider2; return b && b.mode === 'still' && !(b.scared > 0.05) && !(b.crouch > 0.05); })()`, 'the second spider calm', 15000).catch(() => {});
     const at2 = await ev(Q.page, `${P}.spiders[1] || null`);
     let trip2 = false;
     if (at2) { await Q.page.touchscreen.tap(at2.x, at2.y); trip2 = await waitFor(Q.page, `['drop', 'crawl'].includes(${P}.dress.spider2.mode)`, 'the second dropping', 2500).then(() => true).catch(() => false); }

@@ -130,6 +130,14 @@ Unit 956 / 956 (30 s) · rules 45 / 45 · /api 25 / 25 · smoke — every game �
 **The overhead saved**: the windows group 446 → 280 s locally (the cloud's critical path), the legends + music + holiday groups 10–30 s each,
 the cloud's perf job ~70 s (the pacing loop) + the smoke ~48 s (8-s watch × 12 games), the npm noise.
 
+## THE CLOUD
+- Run 1 (466f549): tests ✅; harbor 8 / 10 jobs — two timing races only the slower machines showed, both fixed at their cause (no tolerance
+  widened): **THE SECOND SPIDER** (holiday) — the tap found it SCARED (its nerves, from the first spider's trip) and a scared spider freezes
+  instead of dropping → the test waits for it calm + still before the tap; **NO BRIGHT FLASH IS SILENT** (wild) — a close crack 0.67 s late:
+  the thunder tried six random takes for a decoded one and all six missed right after the tap → `sounds.js#thunder` now checks EVERY take for a
+  decoded one before risking a fresh decode. Local: holiday + weather 65 / 65 (the cracks 0.29–0.48 s).
+- Run 2: the final push (the two-run cap).
+
 ## THE NUMBERS (before = 4e4e9c0, PERF-A's end · after = PERF-B's end; the mini PC)
 | scene | WebKit 402×660 dpr 3, frame work (ms, 3 windows) | the bench's fill (WebKit) | load (after the reveal) |
 | --- | --- | --- | --- |
