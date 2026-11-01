@@ -1,0 +1,4 @@
+This work is based on "stylized tree" (https://sketchfab.com/3d-models/stylized-tree-8daa312234f04a59a216682981af500d) by Daniel (https://sketchfab.com/danielpetrov) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+
+Requirements: Author must be credited. Commercial use is allowed.
+(Source: stylized_tree/license.txt inside the Sketchfab glTF download.)

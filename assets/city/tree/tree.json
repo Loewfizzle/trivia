@@ -1,0 +1,25 @@
+{
+ "z": 42,
+ "F": 600,
+ "dpr": 3,
+ "x": 10.92,
+ "H": 8.14,
+ "seasons": [
+  "spring",
+  "summer",
+  "autumn",
+  "bare",
+  "bare-snow",
+  "dead",
+  "dead-snow"
+ ],
+ "lights": [
+  "day",
+  "gold",
+  "night"
+ ],
+ "w": 309,
+ "h": 403,
+ "footX": 154.5,
+ "footY": 377.14
+}

@@ -18,6 +18,7 @@ import { treePlan, envelopeOf, treeMix, BARK, FRUIT, LEAF } from '../../core/har
 import { rgb, mix } from './shapes.js';
 import { treeLamps, lampShadow, lightMode, NIGHT_LIGHT } from '../../core/harbor-light.js';
 import { soft } from './props-light.js';
+import { treeModelMode, treeVariant, drawTreeModel } from './tree-model.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -332,6 +333,14 @@ function drawCluster(x, s, bx, by, cl, env, rig, leafPt, gr, flush = true) {
 export function drawTree(x, cam, t, T, ctx = {}) {
   const plan = planOf(t, ctx), rig = rigOf(T, ctx, t), env = plan.env;
   const s = cam.F / t.z, [bx, by] = project(cam, t.x, 0, t.z);
+  // (WSP — THE CORNER TREE AS A BAKED MODEL: the big framing maple draws its season's sprite while the switch is on — tree-model.js; its
+  //  grate + the fallen leaves stay drawn here; until the sprites are in, the hand-drawn tree below)
+  if (t.big && treeModelMode()) {
+    const v = treeVariant(ctx.season || 'autumn', ctx.snowBranch ?? ctx.snow ?? 0);
+    if (t.grate) drawGrate(x, cam, t, rig, ctx);
+    if (ctx.season !== 'winter') drawFallen(x, cam, t, plan, rig, ctx);
+    if (drawTreeModel(x, bx, by, s, T, v, ctx.lampK ?? 1)) return;
+  }
   const bark = mix(BARK[t.kind] || BARK.maple, [0, 0, 0], 0.35 * (ctx.wet || 0));
   if (t.grate) drawGrate(x, cam, t, rig, ctx);
   drawFallen(x, cam, t, plan, rig, ctx);

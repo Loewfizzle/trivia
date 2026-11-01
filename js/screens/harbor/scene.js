@@ -131,6 +131,7 @@ import { snowState, forcedPack, packFromDays, daysOf, snowKey, emptyPack } from 
 import { capFor, groundSteps, roadStep, speakStep, topsOf, snowTones, releaseSnow, awningSnow, plowedStrip } from './snow.js';
 import { createSnowfall } from './snowfx.js';
 import { createGaleSea, galeK } from './galesea.js';
+import { setTreeModel, treeModelKey, treeVariant, treeModelState } from './tree-model.js';
 import { lastCleared, SNOWWORK, flushWet } from '../../core/harbor-snowwork.js';
 import { trafficLanes } from '../../core/harbor-traffic.js';
 import { createWinterFolk, doorCleared, winterActs } from './winterfolk.js';
@@ -277,6 +278,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const qp = new URLSearchParams(q);
   // (NIGHT-A: a link's own &prop wins over a forced row — &prop=drawn shows the drawn display whatever the panel kept)
   const propModelNow = () => (qp.has('prop') ? qp.get('prop') === 'model' : clock.force.has('harvest-model'));
+  // (WSP — THE CORNER TREE AS A MODEL: &tree=model (winter: its own bare limbs) | &tree=dead (winter: DeadTree_1) | &tree=drawn, or the panel's rows)
+  const treeModelNow = () => { const q = qp.get('tree'); if (q === 'model') return 'bare'; if (q === 'dead') return 'dead'; if (q === 'drawn') return ''; return clock.force.has('tree-dead') ? 'dead' : clock.force.has('tree-model') ? 'bare' : ''; };
   // NIGHT-A — THE NIGHT LIGHT's switch (core/harbor-light.js): a link's &light=new|old, else the panel's rows, else the default (NEW since
   // NIGHT-A2) — set before every frame + the first bake; the bake key carries it, so a flip re-bakes the ground
   const lightModeNow = () => { const v = qp.get('light'); return v === 'new' || v === 'old' ? v : clock.force.has('light-new') ? 'new' : clock.force.has('light-old') ? 'old' : LIGHT_DEFAULT; };
@@ -1374,7 +1377,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   let cloudSetKey = '';
   // (POLISH 5: named parts — the load log says WHICH changed: bakeKey is their values joined, the same string as before)
-  const bakeParts = () => ({ light: (setLightMode(lightModeNow()), setStageMode(stageNow()), lightMode() + (stageMode() ? '+stage' : '')), season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key, snow: snowNow() });
+  const bakeParts = () => ({ light: (setLightMode(lightModeNow()), setStageMode(stageNow()), lightMode() + (stageMode() ? '+stage' : '')), season: seasonNow(), lamps: `l${lampsNow()}`, road: `${impliedOn() ? 'r' : ''}${wetNow() ? `w${wetNow()}` : ''}`, tones: toneKey(TW), sun: sunKey(sunLook(LK, P)), camera: camSig, neon: neon.rev, flood: `f${floodNow()}${clock.force.has('flood-front') ? 'w' : ''}`, facade: speakCtx().key, snow: snowNow(), tree: (setTreeModel(treeModelNow()), treeModelKey(treeVariant(seasonNow(), snowNow() ? SN.branches || 0 : 0))) });
   const bakeKey = () => Object.values(bakeParts()).join('|');
   let bakeParts0 = null;
   const partsDiff = (a, b) => (a ? Object.keys(b).filter(k => String(a[k]) !== String(b[k])).join(', ') || 'same' : 'first');
@@ -3719,6 +3722,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       snowman: SM ? { ...SM } : null,
       gale: { k: +galeK(WF).toFixed(2), ...galeSea.debug() },
+      treeModel: treeModelState(),
       snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), crisp: crisp.debug(), pane: frost.debug(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, fogDepth: fogD.debug(), storm: { k: +stormK.toFixed(2), deck: stormDeck.debug() }, iceFx: iceFx.debug(), strikeClose: () => zap.strikeClose(), zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]), amps: swayGeo.map(s => +(s.amp || 0).toFixed(2)), cut: [...swayCut.values()].flat().filter(s => !s.noCut).length }, windF: { speed: +WF.speed.toFixed(1), gust: +WF.gust.toFixed(1), dir: WF.dir, side: WF.side, level: +WF.level.toFixed(2), look: WF.look, src: WF.src, gusts: WF.gusts, at: [0, 0.25, 0.5, 0.75, 1].map(u => +WF.at(u).toFixed(2)) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },
