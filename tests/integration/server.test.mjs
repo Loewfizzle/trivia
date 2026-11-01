@@ -32,6 +32,7 @@ import { isOffensive } from '../../js/core/names.js';
 import { finalGame } from '../fixtures/finals.mjs';
 import { weekKey } from '../../js/core/week.js';
 import { RANKS } from '../../js/core/ranks.js';
+import { encodeWord, secretKey } from '../../js/games/cipher/logic.js';
 
 const NOW = Date.UTC(2026, 9, 14, 23, 0, 0);       // Wed 2026-10-14, 7 pm Eastern
 const DAY = 86_400_000;
@@ -55,6 +56,8 @@ async function seedRoom(id, uids, opts = {}, names = {}) {
   const game = finalGame(id, uids, opts);
   game.phaseStartAt = clock;
   if (game.playStartAt) { game.phaseStartAt = game.playStartAt + 240_000; }
+  let boards = null;
+  if (id === 'cipher') ({ boards } = cipherSigned(game, code));
   const ranks = (await import('../../js/core/match-report.js')).extractMatch(game, {});
   const night = { g: id, at: clock, p: {}, n: {} };
   for (const [u, r] of Object.entries(ranks.rows)) { night.p[u] = NIGHT[r.rank] || 0; night.n[u] = names[u] || u.toUpperCase(); }
@@ -63,8 +66,28 @@ async function seedRoom(id, uids, opts = {}, names = {}) {
     players: Object.fromEntries(uids.map((u, i) => [u, { name: names[u] || u.toUpperCase(), color: 'cyan', avatar: 'bolt', joinedAt: i }])),
     game,
     night: { [game.matchId]: night },
+    ...(boards ? { boards: { [game.matchId]: boards } } : {}),
   });
   return { code, matchId: game.matchId, game };
+}
+// a CIPHER final as the real clients leave it: game.sx (every round's word, obfuscated) + boards/{m}/{r}/{uid} whose guesses give
+// exactly the results (solved at guess n, or n misses)
+const WORDS = { 5: 'crane', 6: 'planet', 7: 'kitchen', 4: 'moon' };
+function cipherSigned(game, code) {
+  game.sx = {};
+  const boards = {};
+  for (const [r, res] of Object.entries(game.results || {})) {
+    const L = game.lengths[r], word = WORDS[L], sk = secretKey(code, game.matchId, Number(r));
+    game.sx[r] = encodeWord(word, sk);
+    boards[r] = {};
+    for (const [uid, x] of Object.entries(res)) {
+      const miss = 'z'.repeat(L), guesses = x.solved ? [...Array(Math.max(0, x.n - 1)).fill(miss), word] : Array(x.n).fill(miss);
+      boards[r][uid] = { g: guesses.map(w => encodeWord(w, sk)), p: guesses.map(() => '0'.repeat(L)), solved: !!x.solved, done: true };
+    }
+  }
+  game.round = Math.max(...Object.keys(game.results || { 0: 1 }).map(Number));
+  game.secret = game.sx[game.round];
+  return { boards };
 }
 const report = (uid, room, now = clock, snap) => processReport(uid, { code: room.code, matchId: room.matchId, ...(snap ? { snap } : {}) }, now);
 const stats = async uid => val(`pstats/${await val(`uids/${uid}`)}`);
@@ -95,14 +118,14 @@ test('profiles are created automatically, once, with a name tag and a key', asyn
   assert.notEqual(b.profile.t, a.profile.t);
 });
 
-test('existing players (no server profile yet) get one from their room name when a match is counted', async () => {
+// APP FIXES (Grok 2.2): a report never MINTS a profile (a forged room could have made profiles for anyone) — each phone makes its own
+test('a player with no profile is not given one by a report (each phone makes its own when it joins)', async () => {
+  await ensure('u-old1', 'VETERAN');
   const room = await seedRoom('cipher', ['u-old1', 'u-old2'], {}, { 'u-old1': 'VETERAN', 'u-old2': 'ROOKIE' });
   const r = await report('u-old1', room);
   assert.equal(r.status, 'counted');
-  const pid2 = await val('uids/u-old2');
-  assert.ok(pid2, 'the other player got a profile too');
-  assert.equal((await val(`profiles/${pid2}`)).n, 'ROOKIE');
-  assert.equal((await stats('u-old2')).g.cipher.p, 1);
+  assert.equal(await val('uids/u-old2'), null, 'no profile minted for the other player');
+  assert.equal((await stats('u-old1')).g.cipher.p, 1, 'the reporter (with a profile) is counted');
   tick();
 });
 
@@ -213,6 +236,7 @@ test('opt-out: off the boards, stats still count, ranks still known privately; b
 });
 
 test('forged and impossible reports are refused; the match itself still counts', async () => {
+  await ensure('u-f1', 'FONE'); await ensure('u-f2', 'FTWO');
   await rejects(processReport('u-x', { code: 'nope', matchId: 'm1' }, clock), 400, 'bad_match');
   await rejects(processReport('u-x', { code: 'QQQQ', matchId: 'nosuch' }, clock), 409, 'unverifiable');
   // still running
@@ -227,10 +251,11 @@ test('forged and impossible reports are refused; the match itself still counts',
   const forged = structuredClone(moved.game);
   for (const r of Object.values(forged.results)) { r['u-f2'].pts = 9999; }
   await ref(`rooms/${moved.code}/game`).set({ id: 'cipher', matchId: 'next', phase: 'intro', participants: { 'u-f1': true } });
-  await rejects(report('u-f2', moved, clock, forged), 409);
-  // …the honest snapshot is accepted
-  const ok = await report('u-f1', moved, clock, moved.game);
+  // (APP FIXES: a snapshot is PLACINGS ONLY, from the night record — its numbers are never read, so a forged one counts the same)
+  const ok = await report('u-f1', moved, clock, forged);
   assert.equal(ok.status, 'counted');
+  assert.equal(await val(`lb/cipher-score/all/${await val('uids/u-f2')}`), null, 'no score from a client\'s snapshot');
+  assert.equal((await stats('u-f2')).g.cipher.p, 1, 'the placing counts');
   tick();
   // impossible PULSE score: rejected record, the match counts
   const pulse = await seedRoom('pulse', ['u-f1', 'u-f2'], { pulseScore: 10_000_000 });
@@ -240,6 +265,37 @@ test('forged and impossible reports are refused; the match itself still counts',
   assert.equal(s.g.pulse.p, 1);
   assert.equal(s.b && s.b['pulse-pulse1-normal'], undefined);
   assert.equal(await val(`lb/pulse-pulse1-normal/all/${await val('uids/u-f1')}`), null);
+  tick();
+});
+
+// APP FIXES (Grok 2.2) — NO INVENTED MATCHES ON THE BOARD
+test('INVENTED MATCHES: a forged CIPHER final, a record with no time, a ghost in night.n — refused or not credited', async () => {
+  for (const u of ['u-iv1', 'u-iv2', 'u-ghost']) await ensure(u, u.slice(2).toUpperCase());
+  // 1. the forged final: the host writes "u-iv2 solved every round in 1 guess" — the boards u-iv2 signed say otherwise
+  const forged = await seedRoom('cipher', ['u-iv1', 'u-iv2']);
+  const g = structuredClone(forged.game);
+  for (const r of Object.keys(g.results)) g.results[r]['u-iv2'] = { pts: 999, solved: true, n: 1, t: 1000, speed: 99, eff: 99 };
+  // (its placings rewritten to match, so only the boards can tell)
+  await ref(`rooms/${forged.code}/game`).set(g);
+  await ref(`rooms/${forged.code}/night/${forged.matchId}/p`).set({ 'u-iv1': 2, 'u-iv2': 3 });
+  await rejects(report('u-iv2', forged), 409, 'mismatch');
+  // 2. a record with no time (the 6-hour cap was skipped) — and one from the future
+  const noAt = await seedRoom('bluff', ['u-iv1', 'u-iv2']);
+  await ref(`rooms/${noAt.code}/night/${noAt.matchId}/at`).set(null);
+  await rejects(report('u-iv1', noAt), 409, 'unverifiable');
+  const future = await seedRoom('bluff', ['u-iv1', 'u-iv2']);
+  await ref(`rooms/${future.code}/night/${future.matchId}/at`).set(clock + 10 * DAY);
+  await rejects(report('u-iv1', future), 409, 'unverifiable');
+  const old = await seedRoom('bluff', ['u-iv1', 'u-iv2']);
+  await rejects(report('u-iv1', old, clock + 7 * 3600_000), 409, 'too_old');
+  // 3. a uid that never sat in the room: in the game + night.n, no players/{uid} → not credited (even with a profile)
+  const ghost = await seedRoom('bluff', ['u-iv1', 'u-iv2', 'u-ghost']);
+  await ref(`rooms/${ghost.code}/players/u-ghost`).set(null);
+  const before = (await stats('u-ghost'))?.g?.bluff?.p || 0;
+  const r = await report('u-iv1', ghost);
+  assert.equal(r.status, 'counted');
+  assert.equal((await stats('u-ghost'))?.g?.bluff?.p || 0, before, 'the ghost got nothing');
+  await rejects(report('u-ghost', await seedRoom('bluff', ['u-iv1', 'u-ghost']).then(async x => { await ref(`rooms/${x.code}/players/u-ghost`).set(null); return x; })), 403, 'not_in_match');
   tick();
 });
 
@@ -447,6 +503,7 @@ test('HTTP: every call needs a valid ID token; the board is public and cacheable
   const u = await signUp();
   assert.equal((await call(reportHandler, { body: { code: 'ABCD', matchId: 'x1' } })).status, 401);
   assert.equal((await call(reportHandler, { token: 'forged.token.here', body: { code: 'ABCD', matchId: 'x1' } })).status, 401);
+  await ensure(u.localId, 'HTTPU');   // (a phone makes its profile when it joins — a report never mints one)
   const room = await seedRoom('cipher', [u.localId, 'u-http2']);
   const ok = await call(reportHandler, { token: u.idToken, body: { code: room.code, matchId: room.matchId } });
   assert.equal(ok.status, 200, JSON.stringify(ok.body));
