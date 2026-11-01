@@ -10,7 +10,8 @@
 //
 // GROUPS (NEON PASS 5 — the suite had grown to ~90 checks and 3 ½ minutes): ONLY=core,flags,skyline,neon,water,harbor,sky,
 // party,panel,dock,music,perf (comma-separated) runs those groups in this process. With no ONLY the independent groups run in PARALLEL
-// shards (SHARDS=3 child processes, each its own browser — the same checks), then the two that must run alone: panel (it writes
+// shards (SHARDS=4 child processes by default — PERF-A: measured 20.9 min on the mini PC vs 24–28 at 3, nothing timed out — each its
+// own browser, the same checks), then the two that must run alone: panel (it writes
 // the shared city2/live node every ?city=2 page listens to) and perf (CPU-throttled timing). SHARDS=1: everything in this process.
 // THE CLOUD JOBS (Oct 24): GitHub runs the groups as parallel jobs — JOB=audio|show|city|street runs one job's groups (harbor-jobs.mjs).
 // A NEW GROUP goes in exactly one job there (this script refuses to run until it does).
@@ -38,7 +39,7 @@ import './harbor-e2e/holiday.mjs';
 const JOB = process.env.JOB || '';
 if (JOB && !CI_JOBS[JOB]) { console.error(`unknown JOB ${JOB} (the cloud jobs: ${Object.keys(CI_JOBS).join(', ')})`); process.exit(1); }
 const ONLY = JOB ? CI_JOBS[JOB] : (process.env.ONLY || '').split(',').map(x => x.trim()).filter(Boolean), TAG = process.env.SHARD_TAG || '';
-const SHARDS = Number(process.env.SHARDS || 3);
+const SHARDS = Number(process.env.SHARDS || 4);
 if (ONLY.length) { if (JOB) log(`JOB ${JOB}: ${ONLY.join(', ')}`); for (const g of ONLY) await runGroup(g); }
 else if (SHARDS > 1) {
   // (the laptop's parallel run: the independent groups spread over the shards by their measured times — harbor-jobs.mjs#localShards)

@@ -18,10 +18,12 @@ test('every e2e-harbor group is in exactly one cloud job (add a new group to the
   assert.deepEqual(jobProblems(groups), []);
 });
 
-test('the serial groups (panel, perf) run last in their job; every job is under ~5 min of tests', () => {
+test('the serial groups (panel, perf) run last in their job; every job is under 10 min of tests (the job timeout is 15)', () => {
   for (const [job, list] of Object.entries(CI_JOBS)) {
     const s = list.reduce((a, g) => a + (SECONDS[g] || 30), 0);
-    assert.ok(s < 300, `job ${job}: ${s} s of measured tests — split it`);
+    // (PERF-A: SECONDS are the cloud's REAL per-group seconds now — the old 300-s cap only held because the Oct 24 guesses under-read
+    // the suite 1.39×; the real jobs ran 151–596 s. 600 = the honest cap under harbor.yml's timeout-minutes: 15)
+    assert.ok(s < 600, `job ${job}: ${s} s of measured tests — split it`);
   }
   assert.ok(SERIAL.every(g => Object.values(CI_JOBS).flat().includes(g)));
   // (a broken order is reported)

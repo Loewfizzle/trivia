@@ -11,41 +11,19 @@
 // SERIAL groups go LAST in their job, in this order: panel writes the shared city2/live node every ?city=2 page listens to (nothing
 // may run beside it); perf is CPU-throttled timing (nothing beside it either). Each cloud job has its own emulators, so two jobs never meet.
 
-// each group's measured seconds on GitHub's 2-core machine (run 40085807390, Oct 24; the first ten ran two shards side by side, so
-// they're a little slow) — for balancing only
+// each group's measured seconds on GitHub's 2-core machine — for balancing only. PERF-A (Nov 1) refreshed every row from the cloud's own
+// per-group seconds (FR5 D1: harbor run 41269772550, PART 10's final; the old Oct 24 guesses under-read the suite 1.39× — legends 3.4×,
+// workers 3.1×, windows 2.7× — so the local shards were 1,299 / 1,277 / 813 s apart) + the missing fireworks row. A NEW GROUP: its first
+// cloud run's seconds here (the job log prints each group's time).
 export const SECONDS = {
-  core: 27, flags: 7, skyline: 12, water: 27, harbor: 8, speakeasy: 45, promenade: 30,
-  neon: 95, dock: 15, sky: 27, party: 66, music: 161, sounds: 51, windows: 165,   // (WIN3: the windows grew — the late flicker's read, the quiet night, the raid's cut, the party's stagger)
-  panel: 55, perf: 140,   // (HOTFIX Oct 29: + THE BASELINE GUARD, ~60 s)
-  people: 70,          // (8P: measured on the laptop — refine from the first cloud run)
-  life: 90,            // (FP3b: real doors + the dance circle — a circle forming ~40 s after the page opens)
-  load: 30,            // (FP3a: the load gate — measured on the laptop)
-  legends: 55,         // (6b: the legendary sky — three pages, a guess; SKY-A: + the F-22 chase page)
-  blackbird: 50,
-  mothman: 45,
-  speaker: 30,         // (MODELS: two pages on one station + SPEAKER DELAY)         // (MODELS: THE MOTHMAN — perched from a link, the leaving, an ordinary night)       // (SKY-A: THE BLACKBIRD — four pages: forced, the chase, the watcher, a solo sighting)
-  blackout: 30,        // (C4c: the TR-3B's blackout on four holiday nights at 3× — 24 s on the laptop)
-  bench: 25,           // (C4c: THE PHONE BENCH — the card, two scenes measured at &benchfast=1, the report; SKY-B: a fresh page per scene — 22 s on the laptop)
-  workers: 75,         // (8b1: the workers — four pages, measured on the laptop)
-  wildlife: 85,        // (8b1: the animals — eight pages incl. the panel rows; 81 s on the laptop)
-  tape: 85,            // (Oct 25: THE TAPE STOP — one page, a whole TR-3B in real time + a second run; measured on the laptop)
-  motion: 75,          // (PEO, Oct 25: THE PEOPLE'S MOTION — a 12-s trace of an afternoon + the dance circle (a wait for it); measured on the laptop)
-  weather: 70,         // (9a: THE WEATHER — fourteen pages, joined at once; 66 s on the laptop)
-  holiday: 75,         // (11a-1: THE HOLIDAYS — eight pages: the build-up by date, the night, the come-down, the procession, reduced motion)
-  panelrows: 100,
-  snow: 80,           // (9b: WINTER — eleven pages; measured on the laptop)
-  freeze: 45,          // (HOTFIX Oct 27: NEVER FREEZE AT NIGHT — four pages side by side, 46 s on the laptop)
-  doors: 20,           // (9d: THE DOORS NEVER SNAP — two pages one after the other, a forced pass each; 13 s on the laptop)
-  tower: 37,           // (9e: THE CONSTRUCTION TOWER — four pages one after the other; 9f: + the site at night — 18 s on the laptop; BNAME: + the classic crane page — 21 s)
-  citylife: 40,        // (9e: THE CITY LIFE — the night shift, the water wagon, the morning paper; three pages)
-  light: 45,           // (NIGHT-B: + the stage light's ladder, ~45 s; NIGHT-A: THE BRIGHTNESS LADDER + THE BUTTONS AT NIGHT — four pages at 3×; 28 s on the laptop)
-  boxer: 80,           // (SKY-B: THE SHADOWBOXER — four pages)
-  stations: 60,        // (SKY-B: MUSIC AS RADIO STATIONS — three pages, a station change)
-  thanks: 70, streetparty: 60, partysync: 55, heli: 125, roofcrisp: 28, quietbuilding: 20,   // (NIGHT-C: partysync — five pages, ~50 s on the laptop; heli — four pages, a guess)
-           // (11a-2: THANKSGIVING + THE PARADE + BLACK FRIDAY — seven pages; a guess from the laptop)      // (WIN3: every window row of the panel tapped in the real sheet — one page, ~21 rows × ~4.5 s)
+  windows: 446, perf: 270, workers: 229, music: 207, legends: 189, weather: 183, holiday: 174, people: 161, neon: 159, heli: 141,
+  panel: 126, freeze: 120, snow: 98, panelrows: 97, boxer: 83, party: 75, sounds: 72, tower: 68, motion: 66, tape: 58, partysync: 57,
+  load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
+  speakeasy: 30, fireworks: 30, stations: 29, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
+  citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4,
 };
 
-// ~170–200 s of tests each (+ ~1 min of setup) — about 4 min of wall time a job
+// 151–583 s of tests each by the cloud's own seconds (+ ~25 s of setup); the windows job is the critical path (PERF-B opens its pages in parallel)
 export const CI_JOBS = {
   audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp'],   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life', 'quietbuilding'],   // (NIGHT-C: quietbuilding — the lightest)
