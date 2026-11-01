@@ -89,7 +89,7 @@ function roundPose(st, t, mo) {
 }
 /** walking (s: the walk's time; guard: the hands up as he steps over to the bag; tired: the hands down, a slight hunch) */
 function walkPose(s, guard, k) {
-  const ph = Math.sin(s * TAU * 0.95), up = Math.abs(Math.cos(s * TAU * 0.95)) * 0.012;
+  const st = k == null ? 1 : k, ph = Math.sin(s * TAU * 0.95) * st, up = Math.abs(Math.cos(s * TAU * 0.95)) * 0.012 * st;   // (k: the stride — PART 10: short steps as he slows into place, no sliding feet)
   const P = stance({ bob: up, lean: guard ? 0.02 : -0.01 });
   P.legs = { front: [[0.04 + 0.07 * ph, 0.26 + up], [0.06 + 0.12 * ph, 0.012]], back: [[-0.03 - 0.07 * ph, 0.26 + up], [-0.05 - 0.12 * ph, 0.012]] };
   if (!guard) { P.arms = { lead: [[0.04 + 0.03 * ph, 0.57], [0.07 + 0.05 * ph, 0.45]], rear: [[-0.01 - 0.03 * ph, 0.57], [-0.03 - 0.05 * ph, 0.46]] }; P.gloves = true; P.head = add(P.head, 0.01, -0.01); }
@@ -115,13 +115,27 @@ const mixPose = (A, B, k) => ({
   arms: { lead: [lp(A.arms.lead[0], B.arms.lead[0], k), lp(A.arms.lead[1], B.arms.lead[1], k)], rear: [lp(A.arms.rear[0], B.arms.rear[0], k), lp(A.arms.rear[1], B.arms.rear[1], k)] },
   gloves: true, lift: lerp(A.lift || 0, B.lift || 0, k),
 });
+/** PART 10 — HIS ENTRANCE (the owner's ATM-D review: "the blind goes up + he SNAPS into view" → he WALKS UP into place, smooth, eased):
+ *  round 1's first walkIn s (his real entrance) or the preview's 'enter' → { t (s into it), k (0 → 1 his walk to his place, eased in the
+ *  drawing), turn (0 → 1: the last TURN s, standing, turning through his front from the way he walked to the round's facing) } | null */
+const TURN = 0.7;
+function walkInK(st, P) {
+  const into = st.phase === 'enter' ? st.t : st.phase === 'round' && st.round === 1 && st.t < P.walkIn ? st.t : null;
+  if (into == null) return null;
+  const len = st.phase === 'enter' ? st.len || P.walkIn : P.walkIn, walk = Math.max(0.5, len - TURN);
+  return { t: into, k: clamp01(into / walk), turn: clamp01((into - walk) / TURN) };
+}
 /** his POSE now (any phase) → the skeleton */
 function poseOf(st, t, mo) {
   const P = knob('boxer');
-  if (st.phase === 'round') {
-    if (st.round === 1 && st.t < P.walkIn) return walkPose(st.t, false, 1);              // (he walks in)
-    return roundPose(st, t, mo);
+  const wk = walkInK(st, P);
+  if (wk) {                                                                                 // (he walks in — PART 10: then turns into his guard)
+    const stride = Math.min(1, 0.22 + 4.4 * wk.k * (1 - wk.k));                             // (his steps shorten as he eases into his place)
+    if (wk.turn <= 0) return walkPose(wk.t, false, stride);
+    const S = stance({ lift: 0.01, width: 0.55 + 0.45 * Math.abs(Math.cos(Math.PI * wk.turn)) });
+    return mixPose(walkPose(wk.t, false, stride), S, ease(Math.min(1, wk.turn * 1.6)));
   }
+  if (st.phase === 'round') return roundPose(st, t, mo);
   if ((st.phase === 'rest' || st.phase === 'break') && st.rest) {
     const R = st.rest, rt = st.t;
     if (R.act === 'walk' || R.act === 'walkout') return walkPose(rt, false, 1);
@@ -208,9 +222,10 @@ export function boxerRoom(E, st, o = {}) {
   let fx = fxOf(st.x == null ? 0.35 : st.x), face = st.face == null ? -1 : st.face;
   if ((st.phase === 'rest' || st.phase === 'break') && st.rest) { const R = st.rest, k = R.act === 'walk' || R.act === 'back' || R.act === 'walkout' ? ease(R.u) : 1; fx = fxOf(lerp(R.x0, R.x1, k)); face = R.face; }
   // walking in (round 1) + out (after his last set): from / to beyond the frame's open side
-  const wi = st.phase === 'round' && st.round === 1 && st.t < P.walkIn ? 1 - ease(clamp01(st.t / P.walkIn)) : 0;
+  // (PART 10: he eases into his place, slowing into it, then turns through his front to the round's facing — never a flip)
+  const wk = walkInK(st, P), wi = wk ? 1 - ease(wk.k) : 0;
   const wo = st.phase === 'done' && st.t > 4 ? ease(clamp01((st.t - 4) / Math.max(0.1, P.outWalk - 4))) : 0;
-  if (wi > 0) { face = 1; fx = lerp(fx, x0 - 0.3 * H, wi); }
+  if (wk) { const f1 = st.face == null ? -1 : st.face; face = wk.turn > 0 ? lerp(1, f1, ease(wk.turn)) : 1; fx = lerp(fx, x0 - 0.3 * H, wi); }
   if (wo > 0) { face = -1; fx = lerp(fx, x0 - 0.3 * H, wo); }
   const fy = floorV - 0.05 * ch;
   const pose = st.inView ? poseOf({ ...st }, t, mo) : null;

@@ -30,7 +30,11 @@ function baseSprite() {
   for (let i = 0; i < AL; i++) {
     const v = i / (AL - 1);
     const w = 0.05 + 0.95 * v;                                            // (the cone: its half-width at v, of the far end's)
-    const att = Math.exp(-FOG_ATT * v) * (0.55 + 0.45 * Math.min(1, v * 30)) * (0.5 + 0.5 * (1 - v));
+    // (PART 10 — THE FOG's SPLICE, the owner's Halloween party fog: the body still held ~3 % of its light at its far end, a CUT edge at its
+    // widest — the party's sky beams all end near one height (the fog shortens them alike), so their cut ends lined up into one hard
+    // horizontal line across the sky under SPEAKEASY, seen once the sign went dark. Its last quarter now eases out to nothing)
+    const e = clamp01((v - 0.72) / 0.28), endFade = 1 - e * e * (3 - 2 * e);
+    const att = Math.exp(-FOG_ATT * v) * (0.55 + 0.45 * Math.min(1, v * 30)) * (0.5 + 0.5 * (1 - v)) * endFade;
     for (let j = 0; j < AC; j++) {
       const d = Math.abs(j + 0.5 - AC / 2) / (AC / 2) * SPAN, q = d / w;
       const soft = Math.exp(-q * q * 2.1), core = Math.exp(-q * q * 16) * 0.5;

@@ -559,9 +559,11 @@ export function rigOf(cam, st, L, t = 0, mo = true, yUp = 0) {
   let J = jointsOf(st, L, t, mo, kD);
   // 8b2 — NO SNAPPING BETWEEN POSES (the owner): the first BLEND s of every leg eases out of the one before (its last frame: a walk at the
   // same distance, a pose as it ended) — sitting down, standing up, a reach, a lift, setting off; every figure, workers or not
-  if (mo && st.prev && st.prev !== st.pose && st.since != null && st.since < BLEND) {
+  // (PART 10: `blendS` — a longer blend for one state: the cab stand's fare RISING off the bench, sit → stand)
+  const BL = st.blendS || BLEND;
+  if (mo && st.prev && st.prev !== st.pose && st.since != null && st.since < BL) {
     const was = jointsOf({ ...st, pose: st.prev, v: st.prev === 'walk' ? Math.max(st.v || 0, 1) : 0, since: 9, left: 0, rung: null }, L, t, mo, kD);
-    J = blendJ(was, J, smooth(st.since / BLEND));
+    J = blendJ(was, J, smooth(st.since / BL));
   }
   return { fx, fy, H, J };
 }

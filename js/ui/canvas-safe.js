@@ -36,6 +36,12 @@ export function ctx2d(cv, o) {
   try { return cv.getContext('2d', o) || null; } catch { return null; }
 }
 
+/** PART 10 — a canvas's WebGL2 context (the fireworks' GPU engine), or null — never throws; counted by canvasMb like the 2D ones */
+export function glCtx(cv, o) {
+  track(cv);
+  try { return cv.getContext('webgl2', o) || null; } catch { return null; }
+}
+
 // C4c — THE HONEST TOTAL (review-4 H19: the readout counted the bakes, the water, the wheel + the boats, and missed 32-43 MB of live
 // canvases): every canvas that takes a context through ctx2d / safeCtx is remembered (a WeakRef: never kept alive by this list), and
 // canvasMb() sums the pixels of the live ones (width x height x 4) — what the memory guard + the readout + the phone bench count.

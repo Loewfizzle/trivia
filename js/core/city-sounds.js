@@ -219,13 +219,14 @@ export const SLOTS = [
   // SKY-B — THE SHADOWBOXER (his window cracked open — a hot 3rd-floor gym: MUFFLED + DISTANT, felt not heard, panned to his window,
   // never over the music; core/harbor-boxer.js#boxerCues on his clock — files: ~/Downloads/Grok/city-sfx/boxer/ when they arrive)
   // (ATM-D — the owner, Oct 31 4:50 pm: the bag another 5–10 % louder, still muffled through the window: 0.14 → 0.152, +8.6 %, the bag + its combo hits)
-  S('boxer-bag', '7', 'once', 0.152, 'a heavy bag hit, muffled + distant (a few takes)', 'the shadowboxer: every hit on the bag (SKY-B)'),
+  // (PART 10 — the owner's ATM-D review, Oct 31 8:22 pm: the bag another +5 %: 0.152 → 0.16, the bag + its combo hits)
+  S('boxer-bag', '7', 'once', 0.16, 'a heavy bag hit, muffled + distant (a few takes)', 'the shadowboxer: every hit on the bag (SKY-B)'),
   S('boxer-chain', '7', 'once', 0.06, 'a heavy bag’s chain creaking after a hard hit', 'the shadowboxer: after a hard one (SKY-B)'),
   S('boxer-bell', '7', 'once', 0.08, 'a boxing round bell — ONE ding (the round ends)', 'the shadowboxer’s rounds (SKY-B; MODELS: the end — the start is boxer-bell3)'),
   S('boxer-rope', '7', 'once', 0.05, 'a skipping rope (or a speed bag) burst, off in the room', 'the shadowboxer’s long break, out of view (SKY-B)'),
   // (MODELS: the 20 files arrived — the real multi-strike start bell + the speed bag; boxer-bell is now the END-of-round ding)
   S('boxer-bell3', '7', 'once', 0.08, 'a boxing bell’s ding-ding-ding burst (the round starts)', 'the shadowboxer’s round starts (MODELS)'),
-  S('boxer-combo', '7', 'once', 0.152, 'a heavy bag hit from a fast combo, muffled + distant (six takes cut from two CC0 combos)', 'the shadowboxer: the follow-up punches of a burst on the bag (ATM-C)'),
+  S('boxer-combo', '7', 'once', 0.16, 'a heavy bag hit from a fast combo, muffled + distant (six takes cut from two CC0 combos)', 'the shadowboxer: the follow-up punches of a burst on the bag (ATM-C)'),
   S('boxer-speedbag', '7', 'once', 0.045, 'a speed-bag rattle, off in the room', 'the shadowboxer’s long break, out of view (MODELS)'),
   S('bb-static', 'sky', 'once', 0.22, 'an old radio tuning warble + static (three takes)', 'the Blackbird’s tell, ~3 s before it crosses'),
   // (MODELS — the owner, Oct 30 6:43 pm: THE SONIC BOOM 10 % LOUDER, THE LOUDEST THING IN THE GAME — above every effect + the music; both
@@ -499,4 +500,35 @@ export function bellsBetween(a, b) {
   if (b.n === a.n) return BARBER_BELLS.filter(t => a.ph < t && t <= b.ph).length;
   if (b.n === a.n + 1) return BARBER_BELLS.filter(t => a.ph < t).length + BARBER_BELLS.filter(t => t <= b.ph).length;
   return 0;                                   // (a jump — the clock moved, a long pause: nothing rung for what was missed)
+}
+
+// PART 10 Group 0 — THE SILENT FLASHES (the owner, Oct 31 8:10 pm: "some BIG, BRIGHT, CLOSE-looking flashes make NO SOUND, or it's so
+// delayed I can't connect it"). Found: (1) a mid / far / intra-cloud roll WAITED for the last roll + 6 s — in a busy storm the waits piled
+// up (a flash's thunder 6–20 s after it, or after the next flash); (2) an intra-cloud flash — as bright as a close one — rolled at ~¼ of a
+// far one's level, not ducked: inaudible under the music; (3) a take was fetched + decoded on its FIRST strike (the crack late by the
+// decode — and the one-shots' LRU dropped them again), so the storm now loads + pins its takes ahead (sounds.js#tick).
+export const THUNDER = Object.freeze({ GAP: 2.5, SLACK: 1.2, BRIGHT: 0.3, CLOSE_MAX: 0.5, FAR_MAX: 3.5 });
+/** PURE: when a mid / far / intra-cloud roll plays (ms): its own time `at`, nudged to GAP s after the last roll (`last`, ms | null) so two
+ *  don't land on top of each other — but never more than SLACK s late: past that it plays on time over the last one's tail */
+export function thunderWhen(at, last) {
+  if (last == null || !Number.isFinite(last)) return at;
+  const want = Math.max(at, last + THUNDER.GAP * 1000);
+  return want - at <= THUNDER.SLACK * 1000 ? want : at;
+}
+/** PURE: a mid / far / intra-cloud roll's level (× the slot's) — by the flash's brightness b (0..1 of the cap): an intra-cloud flash that
+ *  lights the deck is a LOW RUMBLE you hear (never under ~0.4), a far strike by its distance (lightning.js's level) */
+export function thunderLevel(ev = {}) {
+  const b = Math.max(0, Math.min(1, ev.bright == null ? 0.8 : ev.bright));
+  if (ev.kind === 'ic') return +Math.max(0.4, Math.min(0.8, 0.3 + 0.5 * b)).toFixed(3);
+  return +Math.max(0.45, Math.min(0.9, ev.level == null ? 0.8 : ev.level)).toFixed(3);
+}
+/** PURE: a flash's thunder verdict for the readout + the checks — e { kind, bright, delay, heard (s after the flash | null), why } →
+ *  'ok' | 'quiet' (a dim flash: nothing promised) | 'muted' (locked / muted / effects off: silent by design) | 'waiting' | 'LATE' | 'SILENT' */
+export function thunderVerdict(e, sinceFlash = Infinity) {
+  if (!e) return 'SILENT';
+  if (e.why === 'locked' || e.why === 'muted') return 'muted';
+  const max = e.kind === 'close' ? THUNDER.CLOSE_MAX + 0.15 : THUNDER.FAR_MAX + THUNDER.SLACK;
+  if (e.heard != null) return e.heard <= max ? 'ok' : 'LATE';
+  if ((e.bright ?? 1) < THUNDER.BRIGHT) return 'quiet';
+  return sinceFlash < max + 1.5 && e.why !== 'failed' && e.why !== 'no sound' ? 'waiting' : 'SILENT';
 }

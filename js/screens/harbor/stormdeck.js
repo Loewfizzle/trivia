@@ -1,8 +1,16 @@
-// CITY 2.0 — ATM-B: THE STORM DECK (the owner, Oct 26: "THE STORM ISN'T A STORM YET"; decisions.md §10 THE STORM). A thunderstorm's sky:
-// a LOW, HEAVY BASE rolling across the top of the sky (dark lumpy rolls, sagging pouches along its underside) + dark CUMULONIMBUS TOWERS
-// rising behind the skyline into an anvil that merges with the base — ROLLING IN on the wind (slowly: the clouds' speed rule, minutes
-// across), LIT FROM INSIDE by the lightning (the strike's patch of the deck flaring through its own shapes: lightning.js#flashInfo). By day
-// a slate grey, its tops a little lighter; at night near-black, its underside catching the city's glow.
+// CITY 2.0 — ATM-B: THE STORM DECK (the owner, Oct 26: "THE STORM ISN'T A STORM YET"; decisions.md §10 THE STORM) — REBUILT in PART 10's
+// Group 0 as REAL CUMULONIMBUS (the owner's ATM-D review, Oct 31 8:10 + 8:12 pm: "almost looks like TORNADOES — the bases of the clouds go
+// way too far down"; the old deck's pouches + its tower columns, narrow at the foot and widening upward, hung beside the logo like funnels):
+//   · THE NEAR DECK overhead — a dark band along the top with a broad, FLAT, ragged underside at `base` (no pouches, no lobes), faint rolls
+//     inside, its underside catching the city's glow at night, a few soft rain curtains falling from it;
+//   · THE FAR THUNDERHEADS (two; three on a wide screen), each WHOLE + in view: a flat dark base held well above the skyline (and above the
+//     rain's haze, which ate a lower foot and left only an anvil on a stem — a funnel again), stepped billowing towers broadest at the base,
+//     the main updraft's steep wall, the flat-topped ANVIL spreading downwind with its underside flaring into the tower, a soft rain shaft
+//     below. One silhouette per cell (unioned lumps on a scratch, shaded by height — lit crowns read as rows of balls: ATM-B). By day the
+//     sun on them (lighter than the storm's grey all the way up: a cell crossing the sky's value falls apart); at night the city's glow on
+//     their bases, faint — the lightning shows them whole.
+// ROLLING IN on the wind (slowly: the clouds' speed rule, minutes across), LIT FROM INSIDE by the lightning (the strike's patch flaring
+// through the tile's own shapes: lightning.js#flashInfo — the gaps between the cells stay dark).
 // THE COST: one baked tile (made once per size + light bucket, ~1.6 screens wide), drawn twice a frame (+ once more, clipped, in a flash).
 // It draws in the sky layer after the everyday clouds (clouds.js keeps its storm grey under it) and before the lightning's glow + bolts.
 import { safeCtx } from '../../ui/canvas-safe.js';
@@ -19,9 +27,23 @@ export function deckColours(day, night, party = false) {
   return { body, top, under };
 }
 
+/** PURE: the FAR thunderheads' colours — { base, body, top }. They must stay clear of the sky's own value all the way up (a cell that
+ *  crosses it — dark at its foot, bright at its anvil — falls apart into a mushroom): by day LIGHTER than the storm's grey (the sun on
+ *  distant towers, the crowns + the anvil brightest), the flat base dark; at night a little lighter than the black sky above the city's
+ *  glow, the base catching that glow — the lightning shows their whole shape. */
+export function farColours(day, night) {
+  const d = clamp01(day), n = clamp01(night);
+  return {
+    base: mixC(mixC([44, 40, 54], [104, 80, 116], n), [46, 49, 58], d),
+    body: mixC(mixC([46, 44, 58], [84, 74, 112], n), [138, 143, 154], d),
+    top: mixC(mixC([50, 48, 64], [60, 54, 86], n), [196, 200, 210], d),
+  };
+}
+
 export function createStormDeck() {
   let tile = null, scratch = null, key = '', off = 0, lastT = null, dbg = { on: false, towers: 0, mb: 0, flashes: 0 };
-  function bake(W, top, base, horizon, cols, dpr) {
+  dbg.tileURL = () => (tile ? tile.toDataURL() : null);   // (look work: the baked deck alone)
+  function bake(W, top, base, horizon, cols, dpr, day, night) {
     const TW = Math.ceil(W * 1.6), TH = Math.ceil(horizon), s = Math.min(2, dpr || 1);
     if (!tile) tile = mk(1, 1);
     tile.width = Math.ceil(TW * s); tile.height = Math.ceil(TH * s);
@@ -36,29 +58,132 @@ export function createStormDeck() {
         x.fillStyle = g; x.beginPath(); x.arc(cx + ox, cy, rad, 0, Math.PI * 2); x.fill();
       }
     };
-    const B = cols.body.join(','), U = cols.under.join(','), T = cols.top.join(',');
-    // the TOWERS (behind the skyline): a column of rounded masses from the horizon up, widening into a flat anvil under the base
-    const nT = W > 600 ? 3 : 2, towers = [];
-    for (let i = 0; i < nT; i++) {
-      const cx = TW * (0.12 + (i + r() * 0.6) / nT * 0.82), foot = horizon, crest = base + (horizon - base) * (0.05 + 0.18 * r()), w0 = W * (0.13 + 0.07 * r());
-      towers.push(cx);
-      // (each LUMP a plain dark mass — lit crowns read as rows of balls at phone size (tried: ATM-B); the lightning reveals their shape)
-      const lump = (lx, ly, rad) => blob(lx, ly, rad, B, 0.97);
-      for (let y = foot; y > crest; y -= w0 * 0.2) {
-        const u = (foot - y) / (foot - crest), w = w0 * (0.7 + 0.6 * u * u);
-        for (let k = 0; k < 3; k++) lump(cx + (r() - 0.5) * w * 1.1, y + (r() - 0.5) * w0 * 0.16, w * (0.34 + 0.24 * r()));
+    const B = cols.body.join(','), towers = [];
+    const bandH = base - top, gap = horizon - base;
+    // a soft curtain (a rain shaft): one small sprite — soft at both sides, fading downward — stretched + slanted where it falls
+    const shaft = mk(48, 64), sq = safeCtx(shaft);
+    { const hg = sq.createLinearGradient(0, 0, 48, 0); hg.addColorStop(0, 'rgba(0,0,0,0)'); hg.addColorStop(0.3, 'rgba(0,0,0,1)'); hg.addColorStop(0.7, 'rgba(0,0,0,1)'); hg.addColorStop(1, 'rgba(0,0,0,0)');
+      sq.fillStyle = hg; sq.fillRect(0, 0, 48, 64); sq.globalCompositeOperation = 'destination-in';
+      const vg = sq.createLinearGradient(0, 0, 0, 64); vg.addColorStop(0, 'rgba(0,0,0,1)'); vg.addColorStop(0.35, 'rgba(0,0,0,0.6)'); vg.addColorStop(1, 'rgba(0,0,0,0)');
+      sq.fillStyle = vg; sq.fillRect(0, 0, 48, 64); }
+    const tinted = (col) => { const t = mk(48, 64), tq = safeCtx(t); tq.drawImage(shaft, 0, 0); tq.globalCompositeOperation = 'source-in'; tq.fillStyle = `rgb(${col})`; tq.fillRect(0, 0, 48, 64); return t; };
+    const curtain = (img, X, y0, w, h, slant, a) => {
+      for (const ox of [-TW, 0, TW]) {
+        if (X + ox + w + Math.abs(slant) < 0 || X + ox - w - Math.abs(slant) > TW) continue;
+        x.save(); x.globalAlpha = a; x.transform(1, 0, slant / h, 1, X + ox - w / 2, y0); x.drawImage(img, 0, 0, w, h); x.restore();
       }
-      // the anvil: a wide, flattened spread into the base, sheared downwind
-      for (let k = 0; k < 8; k++) lump(cx + (r() - 0.3) * w0 * 3, crest + (r() - 0.5) * w0 * 0.2, w0 * (0.4 + 0.3 * r()));
+    };
+    // ---- 1. THE FAR CELLS (the owner, Oct 31 8:12 pm: REAL CUMULONIMBUS — "almost looks like TORNADOES" before): each a whole
+    // thunderhead behind the skyline — a FLAT, ragged base just above the low crowns, a broad stepped mass of billowing towers (the main
+    // updraft tallest, lower flanking towers either side — broadest at the base: a column that widens upward reads as a funnel), the
+    // overshooting dome, the ANVIL spreading downwind under the near deck with a strip of sky between. ONE silhouette per cell (its lumps
+    // unioned on a scratch, then shaded by height) — never rows of balls.
+    const cells = [{ u: 0.27, sc: 1 }, { u: 0.79, sc: 0.72 }];
+    if (W > 600) cells.push({ u: 0.53, sc: 0.55 });
+    const dk = clamp01(day);
+    const fc = farColours(day, night), farBody = fc.body, farBase = fc.base, farTop = fc.top;
+    for (const cell of cells) {
+      const sc = cell.sc, cx = TW * (cell.u + (r() - 0.5) * 0.05), dir = r() < 0.7 ? 1 : -1;
+      // (the WHOLE cell in view above the haze that eats the sky toward the horizon — its flat dark base clear of the towers: a cell whose foot
+      //  fades into that haze shows only its anvil + upper trunk, and that reads as a FUNNEL. The farther one smaller + its base a little lower)
+      const yb = base + gap * (0.5 + 0.08 * (1 - sc)), ya = base + gap * (0.16 + 0.16 * (1 - sc)), H = yb - ya;
+      if (!(H > 20)) continue;
+      const bw = Math.min(W * 0.4, H * 1.3) * sc + 10;
+      const anL = bw * 0.5, anR = bw * 1.3, pad = bw * 0.35;
+      const cw = Math.ceil(anL + anR + pad * 2), ch = Math.ceil(H + pad), lx = pad + (dir > 0 ? anL : anR), oy = ya - pad * 0.5;
+      const cv = mk(cw * s, ch * s), q = safeCtx(cv);
+      q.setTransform(s, 0, 0, s, 0, 0);
+      const L = (px, py, rad, sy = 1, a = 1, solid = 0.62) => {   // one soft lump (unioned: solid core, soft edge)
+        q.save(); q.translate(lx + dir * px, py - oy); q.scale(1, sy);
+        const g = q.createRadialGradient(0, 0, 0, 0, 0, rad);
+        g.addColorStop(0, `rgba(0,0,0,${a})`); g.addColorStop(solid, `rgba(0,0,0,${a})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+        q.fillStyle = g; q.beginPath(); q.arc(0, 0, rad, 0, Math.PI * 2); q.fill(); q.restore();
+      };
+      // the towers (px measured DOWNWIND from the cell's centre): [centre, half-width at the foot, top y (as a share of H from the base)]
+      // (the classic profile: the tall main updraft upwind — a steep wall into the anvil, no overhang on that side — then the towers
+      //  stepping DOWN under the anvil downwind, + a low feeder tower upwind: broadest at the base, never a stem under a cap)
+      const tws = [[-0.1, 0.42, 0.95], [-0.52, 0.2, 0.36 + 0.1 * r()], [0.28, 0.3, 0.64 + 0.08 * r()], [0.6, 0.2, 0.4 + 0.08 * r()]];
+      for (const [tc, hw, th] of tws) {
+        const tTop = yb - H * th, c0 = tc * bw, w0 = hw * bw, nar = th > 0.9 ? 0.06 : 0.3;   // (the main tower stays broad to the anvil)
+        // the trunk: filled from the base up, narrowing a little toward its crown
+        for (let y = yb - w0 * 0.35; y > tTop + w0 * 0.5; y -= w0 * (0.3 + 0.3 * r())) {
+          const u = (yb - y) / (yb - tTop), w = w0 * (1 - nar * u);
+          L(c0 + (r() - 0.5) * w * 0.3, y, w * (0.95 + 0.15 * r()));
+          // cauliflower flanks: smaller billows on both sides
+          const fl = u < 0.3 ? 0 : 0.75;   // (fewer billows low down: the base stays smooth + flat)
+          if (r() < fl) L(c0 - w * (0.78 + 0.22 * r()), y + (r() - 0.5) * w0 * 0.5, w0 * (0.24 + 0.2 * r()));
+          if (r() < fl) L(c0 + w * (0.78 + 0.22 * r()), y + (r() - 0.5) * w0 * 0.5, w0 * (0.24 + 0.2 * r()));
+        }
+        // the crown: a cluster of rounded billows
+        for (let k = 0; k < 5; k++) L(c0 + (r() - 0.5) * w0 * 1.2, tTop + w0 * (0.35 + 0.3 * r()), w0 * (0.32 + 0.2 * r()));
+      }
+      // THE ANVIL: a flat-topped plate from the main tower's crown, out downwind (+ a short way upwind); thick at the tower, thin at the
+      // tips, its top a little domed over the updraft, its far end feathering out
+      const n = 40;
+      for (let i = 0; i <= n; i++) {
+        // (upwind it ends ROUND over the main tower's crown — full thickness to its end; downwind it thins to a feathered tip)
+        const v = i / n, px = -bw * 0.38 + (bw * 0.38 + anR) * v, dist = px < 0 ? 0 : px / anR, dd = Math.min(1, dist);
+        const thk = H * (0.17 - 0.13 * dd) * (0.8 + 0.4 * r()), yTop = ya + H * (0.035 * dd * dd) + (r() - 0.5) * H * 0.012;
+        L(px, yTop + thk * 0.5, thk * 1.1 + bw * 0.03, 0.5, 1 - 0.55 * Math.max(0, dist - 0.6) / 0.4, 0.5);
+        // (where it leaves the tower its underside FLARES down into it — a smooth curve, never a T)
+        if (px > 0 && dd < 0.4) { const fk = (1 - dd / 0.4) ** 2; L(px, yTop + thk + H * 0.07 * fk, H * 0.13 * fk + 2, 0.75, 1, 0.55); }
+      }
+      // THE FLAT BASE: everything below a ragged line just under yb cut away
+      q.globalCompositeOperation = 'destination-out'; q.fillStyle = '#000';
+      q.beginPath(); q.moveTo(0, ch + 10);
+      for (let xx = 0; xx <= cw; xx += 4) q.lineTo(xx, yb - oy + Math.sin(xx * 0.23 + cx) * 0.8 + (r() - 0.5) * 1.4);
+      q.lineTo(cw, ch + 10); q.closePath(); q.fill();
+      // shaded by height: the base darkest, the body, the crowns + the anvil's top lighter (the sun on them by day; barely at night)
+      q.globalCompositeOperation = 'source-in';
+      const g = q.createLinearGradient(0, yb - oy, 0, ya - oy);
+      g.addColorStop(0, `rgb(${farBase})`); g.addColorStop(0.09, `rgb(${farBody})`); g.addColorStop(0.6, `rgb(${mixC(farBody, farTop, 0.45)})`); g.addColorStop(1, `rgb(${farTop})`);
+      q.fillStyle = g; q.fillRect(0, 0, cw, ch);
+      // (the light from the sunny side — one broad soft lift on the upwind flank; the anvil's underside in its own shadow)
+      q.globalCompositeOperation = 'source-atop';
+      const sx = lx - dir * bw * 0.3, sy0 = ya - oy + H * 0.35, sg = q.createRadialGradient(sx, sy0, 0, sx, sy0, bw * 0.6);
+      sg.addColorStop(0, `rgba(${farTop},${0.12 + 0.18 * dk})`); sg.addColorStop(1, `rgba(${farTop},0)`);
+      q.fillStyle = sg; q.fillRect(0, 0, cw, ch);
+      const ug = q.createLinearGradient(0, ya - oy + H * 0.12, 0, ya - oy + H * 0.3);
+      ug.addColorStop(0, 'rgba(0,0,0,0)'); ug.addColorStop(0.5, `rgba(${farBase},0.35)`); ug.addColorStop(1, 'rgba(0,0,0,0)');
+      q.save(); q.beginPath(); q.rect(dir > 0 ? lx + bw * 0.45 : 0, 0, dir > 0 ? cw : lx - bw * 0.45, ch); q.clip(); q.fillStyle = ug; q.fillRect(0, 0, cw, ch); q.restore();
+      // its RAIN SHAFT first (a soft curtain under the base, down behind the skyline), then the cell
+      const ft = tinted(farBase.join(',')); curtain(ft, cx + dir * bw * 0.05, yb - 2, bw * 0.95, horizon - yb + 14, dir * gap * 0.05, 0.5 * sc); ft.width = ft.height = 0;
+      x.globalAlpha = 0.72 + 0.26 * sc;
+      for (const ox of [-TW, 0, TW]) { const X = cx + ox; if (X + cw < 0 || X - cw > TW) continue; x.drawImage(cv, X - lx, oy, cw, ch); }
+      x.globalAlpha = 1;
+      cv.width = cv.height = 0;
+      towers.push(cx);
     }
-    // THE LOW, HEAVY BASE: rolls of dark cloud along the top, thickest at the very top, sagging lumpy pouches along its underside
-    const bandH = base - top;
-    for (let i = 0; i < 110; i++) { const cx = r() * TW, cy = top - bandH * 0.3 + r() * bandH * 0.95, rad = bandH * (0.22 + 0.4 * r()); blob(cx, cy, rad, B, 0.92); }
-    for (let i = 0; i < 70; i++) { const cx = r() * TW, cy = base - bandH * (0.05 + 0.18 * r()), rad = bandH * (0.08 + 0.12 * r()); blob(cx, cy, rad, U, 0.85); }
-    // (a dark roof over it all: the base merges into the sky's own darkness at the top)
-    const g = x.createLinearGradient(0, 0, 0, top + bandH * 0.4); g.addColorStop(0, `rgba(${B},0.96)`); g.addColorStop(1, `rgba(${B},0)`);
-    x.fillStyle = g; x.fillRect(0, 0, TW, top + bandH * 0.4);
-    dbg.towers = towers.length; dbg.mb = +((tile.width * tile.height * 4) / 1e6).toFixed(2);
+    // ---- 2. THE NEAR DECK (overhead): a dark band along the top with a broad, FLAT, ragged underside at `base` — well above the skyline
+    // (no pouches, no lobes hanging toward the towers); faint roll texture inside; its underside catching the city's glow at night.
+    const und = mixC(cols.body, cols.under, 0.7);
+    const g = x.createLinearGradient(0, 0, 0, base);
+    g.addColorStop(0, `rgba(${B},0.98)`); g.addColorStop(0.6, `rgba(${B},0.96)`); g.addColorStop(1, `rgba(${und},0.95)`);
+    x.fillStyle = g; x.fillRect(0, 0, TW, base - bandH * 0.05);
+    // the ragged underside: flattened small lumps along one line (the edge wanders by a few pt, never a lobe)
+    for (let xx = -10; xx < TW + 10; xx += bandH * 0.06 + r() * bandH * 0.05) {
+      const rad = bandH * (0.05 + 0.06 * r()), cy = base - bandH * 0.05 + (r() - 0.6) * bandH * 0.035;
+      x.save(); x.translate(xx, cy); x.scale(1, 0.5);
+      const lg = x.createRadialGradient(0, 0, 0, 0, 0, rad);
+      lg.addColorStop(0, `rgba(${und},0.95)`); lg.addColorStop(0.65, `rgba(${und},0.95)`); lg.addColorStop(1, `rgba(${und},0)`);
+      x.fillStyle = lg; x.beginPath(); x.arc(0, 0, rad, 0, Math.PI * 2); x.fill(); x.restore();
+    }
+    // the rolls: long soft bands of a hair lighter / darker inside the deck
+    x.save(); x.beginPath(); x.rect(0, 0, TW, base - bandH * 0.08); x.clip();
+    for (let i = 0; i < 26; i++) {
+      const cx = r() * TW, cy = top + r() * (bandH * 0.85), rx = W * (0.12 + 0.2 * r()), ry = bandH * (0.05 + 0.07 * r()), lite = r() < 0.5;
+      x.save(); x.translate(cx, cy); x.scale(1, ry / rx);
+      const rg = x.createRadialGradient(0, 0, 0, 0, 0, rx);
+      const col = lite ? mixC(cols.body, cols.top, 0.18).join(',') : mixC(cols.body, [6, 6, 10], 0.35).join(',');
+      rg.addColorStop(0, `rgba(${col},${lite ? 0.22 : 0.3})`); rg.addColorStop(1, `rgba(${col},0)`);
+      x.fillStyle = rg; x.beginPath(); x.arc(0, 0, rx, 0, Math.PI * 2); x.fill(); x.restore();
+    }
+    x.restore();
+    // a few broad, faint rain curtains falling from the base (soft-edged — never a narrow dark column)
+    const uc = tinted(und.join(','));
+    for (let i = 0; i < 3; i++) curtain(uc, r() * TW, base - 3, W * (0.3 + 0.2 * r()), gap * 0.75, gap * 0.08, 0.22);
+    shaft.width = shaft.height = uc.width = uc.height = 0;
+    dbg.towers = towers.length; dbg.mb = +((tile.width * tile.height * 4) / 1e6).toFixed(2); dbg.geo = { W: Math.round(W), top: Math.round(top), base: Math.round(base), horizon: Math.round(horizon) };
     return { TW, TH };
   }
   let dims = { TW: 1, TH: 1 };
@@ -70,7 +195,7 @@ export function createStormDeck() {
       if (s.k <= 0.01 || !(s.horizon > s.base) || !(s.base > s.top)) return;
       const cols = deckColours(s.day, s.night, s.party);
       const k2 = `${Math.round(s.W)}|${Math.round(s.top)}|${Math.round(s.base)}|${Math.round(s.horizon)}|${cols.body}|${Math.round((s.dpr || 1) * 2)}`;
-      if (k2 !== key) { key = k2; dims = bake(s.W, s.top, s.base, s.horizon, cols, s.dpr); }
+      if (k2 !== key) { key = k2; dims = bake(s.W, s.top, s.base, s.horizon, cols, s.dpr, s.day, s.night); }
       // ROLLING IN: the deck slides downwind — a cloud's minutes across (≤ ~3 pt/s), never racing
       const dt = lastT == null ? 0 : Math.max(0, Math.min(0.2, s.t - lastT)); lastT = s.t;
       if (s.motion) off = (off + Math.max(-3, Math.min(3, (s.wind || 0) * 0.22)) * dt) % dims.TW;

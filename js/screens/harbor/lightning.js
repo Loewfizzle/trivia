@@ -91,7 +91,8 @@ export function createLightning({ onStrike = null } = {}) {
     kinds[kind]++;
     const fl = motion ? strikeFlickers(r) : [[0, 0.25, LIGHTNING.CAP * LIGHTNING.RM]];   // (reduced motion: one soft pulse, dimmed)
     cur = { at: t, kind, x: target ? target.x : x, y: base + (HZ - base) * (0.04 + 0.1 * r()), rad: W * (kind === 'ic' ? 0.26 + 0.2 * r() : 0.32 + 0.22 * r()), fl, km, bolt: motion ? bl : null, target, side: target ? (target.x < W / 2 ? -1 : 1) : (x < W / 2 ? -1 : 1) };
-    const said = onStrike ? onStrike({ kind, pan: +Math.max(-0.8, Math.min(0.8, (cur.x / W) * 2 - 1)).toFixed(2), near: kind === 'close', km: +km.toFixed(1), delay: thunderDelay(km, kind === 'close'), level: kind === 'close' ? 1 : kind === 'far' ? 0.62 + 0.25 * (1 - (km - 2.6) / 3.6) : 0.5, bolt: !!bl, target: target ? target.kind : null }) : null;
+    const said = onStrike ? onStrike({ kind, pan: +Math.max(-0.8, Math.min(0.8, (cur.x / W) * 2 - 1)).toFixed(2), near: kind === 'close', km: +km.toFixed(1), delay: thunderDelay(km, kind === 'close'), level: kind === 'close' ? 1 : kind === 'far' ? 0.62 + 0.25 * (1 - (km - 2.6) / 3.6) : 0.5, bolt: !!bl, target: target ? target.kind : null,
+      bright: +(Math.max(...fl.map(f => f[2])) / LIGHTNING.CAP).toFixed(2) }) : null;   // (PART 10 G0: the flash's peak, 0..1 of the cap — the thunder's level + the readout)
     // (ATM-C — THE FLASH ON THE TAKE's OWN CRACK: the recorded close take's crack sits `lead` s into its file — the strike is held back that
     // long (everything visible waits on the flash), and a take with a SECOND crack flashes again on it (≥ 0.6 s apart: the safety cap holds))
     if (said && said.lead > 0) { cur.at = t + Math.min(2, said.lead); lastAt = cur.at; }

@@ -26,7 +26,7 @@ import { clamp01, rgb, tri, glassOf, R, boxOf, deepAt, hsh, mixc, TAU, landing }
 import { reportError } from '../../errlog.js';
 import { createPaint } from './window-paint.js';
 import { createHoliday } from './window-holiday.js';
-import { boxerNight, boxerPlan, boxerForced, boxerAt } from '../../core/harbor-boxer.js';
+import { boxerNight, boxerPlan, boxerPreview, boxerAt } from '../../core/harbor-boxer.js';
 import { legendNight } from '../../core/harbor-legend.js';
 import { boxerRoom } from './boxer.js';
 export { paintRoom, lateOf, ROOM_TINT, LATE_TINT } from './window-rooms.js';
@@ -99,10 +99,10 @@ export function createWindowLife() {
     let bx = null, bxInfo = null;
     if (L.boxer) {
       // (the preview: the blind down first, then up over its own time — he comes in at round 1, or is resting before round n — then the bell)
-      if (boxT0 == null || boxRound !== L.boxer.round) { boxT0 = f.t; boxRound = L.boxer.round; boxForced = boxerForced(L.boxer.round, BOXER_LEAD); }
-      const s = f.t - boxT0;
-      bx = L.boxer.round > 1 && s < BOXER_LEAD - 1 ? { phase: 'blind-up', blind: Math.min(1, 1 - (s - 0.8) / (BOXER_LEAD - 1.8)), lamp: 1, inView: false, set: 0, round: L.boxer.round, t: s } : boxerAt(s, boxForced, 'forced', L.seed);
-      if (bx.phase === 'off') bx = { phase: 'blind-up', blind: 1, lamp: 1, inView: false, set: 0, round: 1, t: s };
+      // (PART 10: round n > 1 walks up into place after the blind too — core#boxerPreview — never a snap into view)
+      if (boxT0 == null || boxRound !== L.boxer.round) { boxT0 = f.t; boxRound = L.boxer.round; }
+      const s = f.t - boxT0, pv = boxerPreview(s, L.boxer.round, BOXER_LEAD, L.seed);
+      bx = pv.st; boxForced = pv.plan;
       bxInfo = { sec: s, plan: boxForced, key: 'forced', seed: L.seed || 1924 };
     } else {
       boxT0 = null;

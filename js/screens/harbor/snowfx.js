@@ -51,7 +51,7 @@ function flakeArt(col, d, v, sm) {
 // flakes over everything ('near', which also moves them all once a frame) — + the white veil softening the skyline (fogdepth.js, driven by
 // the snow); in heavy snow the near flakes BIGGER + more of them. THE BLIZZARD (s.blizzard 0..1): the snow DRIVEN SIDEWAYS in the gust
 // waves (the near flakes become short streaks along their flight), denser. + THE TREES SHAKING SNOW OFF in the gusts (shake()), THE GROUND
-// SNOW blowing in streamers + drifting against the speakeasy + the benches (ground()) — never on the street under the dock (it's open).
+// SNOW lifting off in wisps + drifting against the speakeasy + the benches (ground()) — never on the street under the dock (it's open).
 const LAYER = { far: 0, mid: 1, near: 2 };
 export function createSnowfall() {
   let W = 0, H = 0, flakes = [], slab = null, nextSlab = 0, puffs = [], streams = [], gsNow = null;   // (gsNow: the ground snow's last frame — the debug)
@@ -196,7 +196,7 @@ export function createSnowfall() {
     },
     /** THE GROUND SNOW in the wind: s = { lie (snow lying 0..1), band: { y0, y1 } (the promenade — never the street under the dock), W, at,
      *  side (+1 blowing right), level (the wind 0..1), t, dt, motion, day, drifts: [{ x, y, w }] (the speakeasy's foot, the benches' legs),
-     *  blizzard } — STREAMERS of snow blown low along the stones in the gusts + soft DRIFTS banked against the walls + legs (downwind side) */
+     *  blizzard } — WISPS of snow lifting off the stones in the gusts (a puff curls up + dissipates in 1–3 s) + soft DRIFTS banked against the walls + legs (downwind side) */
     ground(c, s) {
       const lie = clamp01(s.lie || 0); gsNow = { lie: +lie.toFixed(2), lv: 0, puffs: 0 }; if (lie < 0.15 || !s.band) return;
       const day = clamp01(s.day || 0), col = day > 0.5 ? [246, 248, 254] : [196, 202, 232], sh = day > 0.5 ? [206, 214, 230] : [120, 126, 160];
@@ -207,51 +207,63 @@ export function createSnowfall() {
         c.globalAlpha = 0.95; c.fillStyle = `rgb(${col})`; c.beginPath(); c.ellipse(x, d.y, w, h, 0, Math.PI, 0); c.fill();
         c.globalAlpha = 0.35; c.fillStyle = `rgb(${sh})`; c.fillRect(x - w, d.y - 0.6, w * 2, 1.2);
       }
-      // the STREAMERS: long low wisps racing along the stones while a gust blows (a strong wind only)
+      // THE WISPS (PART 10 — the owner's blizzard screenshot after ATM-D: the streamers came CLUMPED in groups, too often, too much):
+      // a light PUFF lifts off the lying snow, curls up into the air + DISSIPATES into nothing — blown away downwind — in ~1–3 s. Sparse:
+      // a few at a time, more in the gusts (born where THE WIND gusts — WF.at), never one travelling across the screen (≤ ~110 pt of drift).
+      // Each wisp = 5 soft puffs (the near flake's sprite) peeling off along a small curl, spreading + thinning as it goes; the building
+      // still clipped out (s.bld), so a wisp passes behind the speakeasy's corner, never over its facade.
       const sec = Math.min(0.1, (s.dt || 16) / 1000), lv = clamp01(((s.level || 0) - 0.35) / 0.4) + 0.6 * clamp01(s.blizzard || 0);
-      // (ATM-D — THE GROUND SNOW DANCES, the owner Oct 31 4:34 pm: it blew "in a STRAIGHT LINE, too perfectly uniform", and "through the front
-      // of the speakeasy". Each streamer is now a RIBBON of soft puffs (the near flake's sprite) trailing its head downwind: the ribbon
-      // CURLS (a travelling wave along it), RISES + DIPS with the gust over it, the head swirls, its thickness swells + thins along its length,
-      // and it BREAKS UP + REFORMS (a moving gap pattern); every streamer its own speed + thickness. It HUGS THE GROUND — a few pt of lift at
-      // most — and lives on the open floor + the street: s.bld (the speakeasy's front-right foot + its side's far foot, screen) clips the
-      // building out, so a streamer passes BEHIND its corner, never across the facade.)
-      const WW = s.W || W;
-      if (!streams.length) { let q = 31; const r = () => { q = (q * 16807) % 2147483647; return q / 2147483647; }; for (let i = 0; i < 10; i++) streams.push({ x: r() * WW, y: r(), len: 46 + r() * 84, ph: r() * 6.28, sp: 0.6 + r() * 0.8, th: 0.6 + r() * 0.8, v: Math.floor(r() * 4) }); }
-      gsNow.lv = +lv.toFixed(2); if (lv < 0.05) return;
-      const B = s.band, T = s.t || 0, side = s.side || 1;
+      const WW = s.W || W, B = s.band, side = s.side || 1;
+      gsNow.lv = +lv.toFixed(2);
+      if (!s.motion) { streams.length = 0; return; }
+      if (lv >= 0.05 && streams.length < 7) {
+        // the spawn: a quiet trickle in the lulls, up to ~3 a second in a strong gust; a candidate is kept by the gust where it lands
+        const x = Math.random() * WW, g = s.at ? s.at(Math.max(0, Math.min(1, x / (WW || 1)))) : 0.5;
+        const rate = Math.min(1.6, lv) * (0.35 + 2.4 * g * g);
+        const yu = Math.random(), yy = B.y0 + (B.y1 - B.y0) * (0.08 + 0.84 * yu);
+        const hid = s.bld && x < Math.max(s.bld.fx, s.bld.sx) && yy < Math.max(s.bld.fy, s.bld.sy);   // (behind the building: never born)
+        if (!hid && Math.random() < rate * sec) {
+          const dep = 0.75 + 0.55 * yu;
+          streams.push({ x, y: yy, dep, age: 0, life: 1.1 + Math.random() * 1.9, g: 0.5 + 0.5 * g,
+            v: Math.floor(Math.random() * 4), ph: Math.random() * 6.28, rise: 15 + Math.random() * 17, sp: 0.8 + Math.random() * 0.5, curl: Math.random() < 0.5 ? 1 : -1 });
+        }
+      }
+      if (!streams.length) return;
       c.save(); if (day <= 0.5) c.globalCompositeOperation = 'lighter';
       if (s.bld) {   // everything but the building above its foot: the band, minus the region left of its front + side foot line
         // (the front face left of its front corner, the side face between the two corners above the side's foot line)
-        const { fx, fy, sx, sy } = s.bld, top = Math.min(B.y0, sy) - 30, xr = Math.max(fx, sx);
+        const { fx, fy, sx, sy } = s.bld, top = Math.min(B.y0, sy) - 60, xr = Math.max(fx, sx);
         c.beginPath(); c.rect(-60, top, WW + 120, H + 60 - top);
         c.moveTo(-60, top); c.lineTo(xr, top); c.lineTo(xr, Math.min(sy, fy)); c.lineTo(sx, sy); c.lineTo(fx, fy); c.lineTo(-60, fy); c.closePath();
         c.clip('evenodd');
       }
-      for (const st of streams) {
-        const g = s.at ? s.at(Math.max(0, Math.min(1, st.x / (WW || 1)))) : 0.5;
-        if (s.motion) { st.x += side * (60 + 140 * g) * lv * st.sp * sec; if (st.x > WW + st.len) { st.x = -st.len * 0.2; st.y = (st.y + 0.37) % 1; } else if (st.x < -st.len) { st.x = WW + st.len * 0.2; st.y = (st.y + 0.37) % 1; } }
-        const a0 = lie * lv * (0.2 + 0.6 * g);
-        if (a0 < 0.02) continue;
-        const y = B.y0 + (B.y1 - B.y0) * (0.1 + 0.8 * st.y), dep = 0.75 + 0.55 * st.y, len = st.len * (0.7 + 0.5 * g) * dep, N = 11;
-        const spr = flakeArt(day > 0.5 ? col : [168, 176, 210], 2, st.v, 0), shd = day > 0.5 ? flakeArt([150, 164, 196], 2, st.v, 0) : null; if (!spr) continue;
-        for (let i = 0; i < N; i++) {
-          const u = i / (N - 1), ph = st.ph + u * 5.2;
-          // break-up: a gap pattern travelling along the ribbon (two waves beating)
-          const brk = 0.5 + 0.5 * Math.sin(u * 7.3 - T * 1.9 * st.sp + st.ph) * Math.sin(u * 3.1 + T * 0.7 + st.ph * 1.7);
-          const vis = brk < 0.22 ? 0 : brk < 0.5 ? (brk - 0.22) / 0.28 : 1;
-          if (vis < 0.05) continue;
-          const env = Math.pow(Math.sin(Math.PI * Math.min(1, u * 1.08)), 0.6) * (0.65 + 0.35 * Math.sin(u * 9 + T * 1.7 * st.sp + st.ph));
-          const lift = (1.2 + 3.2 * g) * dep * (0.5 + 0.5 * Math.sin(ph - T * 2.6 * st.sp)), sw = (1 - u) * (1 - u);
-          const bx = st.x - side * u * len + Math.cos(T * 3.1 * st.sp + ph) * 2.6 * g * sw, by = y - lift - Math.sin(T * 3.1 * st.sp + ph) * 1.4 * g * sw;
-          const r = (3.2 + 4 * st.th * (0.35 + g)) * dep * Math.max(0.3, env);
-          const al = Math.min(0.7, a0 * vis * (0.55 + 0.45 * env));
-          // (on lying snow a white puff vanishes: by day a faint cool shadow on the snow under it shapes it; at night it's ADDED — the
-          // blown snow catching the street's light over the grey-blue ground)
-          if (shd) { c.globalAlpha = Math.min(0.85, al * 0.85); c.drawImage(shd.cv, bx - r * 2.6, by - r * 0.6 + 1.8 + lift * 0.6, r * 5.2, r * 1.6); c.globalAlpha = al; c.drawImage(spr.cv, bx - r * 2.5, by - r * 0.85, r * 5, r * 1.7); }
-          else { c.globalAlpha = al; c.drawImage(spr.cv, bx - r * 2.5, by - r * 0.85, r * 5, r * 1.7); }
+      const spc = day > 0.5 ? col : [168, 176, 210];
+      for (let i = streams.length - 1; i >= 0; i--) {
+        const w = streams[i];
+        w.age += sec; if (w.age >= w.life) { streams.splice(i, 1); continue; }
+        const u = w.age / w.life, gs = w.g * w.sp;
+        // its body drifts downwind (slowing as the puff loses its push) — ~40–110 pt over a life
+        w.x += side * (34 + 44 * gs) * (1.15 - 0.6 * u) * sec;
+        const spr = flakeArt(spc, 2, w.v, 0), shd = day > 0.5 ? flakeArt([150, 164, 196], 2, w.v, 0) : null; if (!spr) continue;
+        // the envelope: a quick lift-off (0.2 of a life), then thinning into nothing; brighter in a stronger gust, softer at depth
+        const env = Math.min(1, u / 0.2) * Math.pow(1 - u, 1.6), a0 = Math.min(1, 0.4 + lie) * Math.min(1, 0.55 + 0.4 * lv) * (0.6 + 0.4 * w.g) * env * 1.6;
+        if (a0 < 0.015) continue;
+        const ease = 1 - (1 - u) * (1 - u), lift = w.rise * w.dep * ease;
+        for (let k = 0; k < 5; k++) {
+          // the puffs peel off one after another along a small curl: the leading one highest + furthest downwind, the last near the snow
+          const lag = k * 0.11, uk = Math.max(0, u - lag) / (1 - lag); if (uk <= 0) continue;
+          const ek = 1 - (1 - uk) * (1 - uk), ang = w.ph + w.curl * (ek * 4.2 + k * 0.7);
+          const rad = (3 + 9 * ek) * w.dep;
+          const bx = w.x - side * k * 4.5 * w.dep + Math.cos(ang) * rad * 0.9, by = w.y - lift * (1 - k * 0.14) - Math.sin(ang) * rad * 0.5;
+          const r = (3.6 + 5.4 * ek + 0.8 * k) * w.dep;   // it SPREADS as it dissipates
+          const al = Math.min(0.72, a0 * (1 - 0.12 * k) * (1 - 0.4 * ek));
+          if (al < 0.01) continue;
+          if (shd && lift < 6) { c.globalAlpha = al * 0.7 * (1 - lift / 6); c.drawImage(shd.cv, bx - r * 1.6, w.y - r * 0.35 + 1.2, r * 3.2, r * 0.9); }
+          c.globalAlpha = al; c.drawImage(spr.cv, bx - r * 2, by - r * 1.1, r * 4, r * 2.2);
           gsNow.puffs++;
         }
       }
+      gsNow.wisps = streams.length; gsNow.xy = streams.map(w => [Math.round(w.x), Math.round(w.y), +(w.age / w.life).toFixed(2)]);
       c.restore();
     },
     debug: () => ({ ground: gsNow, flakes: flakes.length, slab: !!slab, puffs: puffs.length, sprites: art.size, near: flakes.filter(f => f.d === 2).length, rows: [0, 1, 2, 3, 4, 5, 6, 7].map(k => flakes.filter(f => f.d === 2 && f.y >= k * H / 8 && f.y < (k + 1) * H / 8).length) }),

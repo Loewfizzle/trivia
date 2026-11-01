@@ -6,9 +6,14 @@ import { knob } from '../js/core/harbor-schedule.js';
 
 const P = knob('boxer'), H = h => h * 3600;
 // Oct 2026: Mon 26, Tue 27, Wed 28, Fri 30, Sat 31
-test('HIS NIGHTS: Monday, Wednesday, Friday — never the rest, never a legendary\'s night; every phone the same', () => {
-  assert.ok(boxerNight('2026-10-26').on && boxerNight('2026-10-28').on && boxerNight('2026-10-30').on);
-  for (const k of ['2026-10-25', '2026-10-27', '2026-10-29', '2026-10-31']) assert.equal(boxerNight(k).on, false, k);
+test('HIS NIGHTS: EVERY NIGHT (the owner, Oct 31 8:32 pm — was Mon / Wed / Fri), never a legendary\'s night; the party nights Fri + Sat ~50/50; every phone the same', () => {
+  for (const k of ['2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29', '2026-10-30', '2026-10-31']) assert.equal(boxerNight(k).on, true, k);
+  for (const k of ['2026-10-25', '2026-10-26', '2026-10-27', '2026-10-28', '2026-10-29']) { const n = boxerNight(k); assert.ok(!n.party && n.stay, `${k}: a plain night — the whole evening`); }
+  assert.ok(boxerNight('2026-10-30').party && boxerNight('2026-10-31').party, 'Friday + Saturday: the party nights');
+  let sat = 0; for (let d = 0; d < 52; d++) { const dt = new Date(Date.UTC(2027, 0, 1 + 7 * d)); while (dt.getUTCDay() !== 6) dt.setUTCDate(dt.getUTCDate() + 1); const n = boxerNight(`${dt.getUTCFullYear()}-${dt.getUTCMonth() + 1}-${dt.getUTCDate()}`); assert.ok(n.party); if (n.stay) sat++; }
+  assert.ok(sat > 14 && sat < 38, `a Saturday ~50/50 too: he stays ${sat} of 52`);
+  const sw = boxerPlan(boxerNight('2026-10-31')), pl = boxerPlan(boxerNight('2026-10-27'));
+  assert.ok(sw.end <= pl.end, 'a party night: he wraps up at 8:30 or trains to the end of the evening');
   assert.equal(boxerNight('2026-10-26', { legend: () => true }).on, false, 'a legendary night has its own sky');
   assert.equal(boxerNight('2026-10-26', { legend: () => ({ kind: 'ufo', h: 21.5 }) }).on, false, 'a legendary DURING his evening: he sits it out');
   assert.equal(boxerNight('2026-10-26', { legend: () => ({ kind: 'ufo', h: 24.15 }) }).on, true, '…one after it leaves him his training');
@@ -67,6 +72,19 @@ test('THE PREVIEW (&force=boxer, &round=N): round N starts a few seconds after i
   assert.equal(a.phase, 'round'); assert.equal(a.round, 4);
   assert.equal(boxerAt(f.start - 1, f, 'forced').phase, 'blind-up');
   assert.equal(boxerAt(1, boxerForced(1, 4), 'forced').phase, 'blind-up');
+});
+test('PART 10 — HIS ENTRANCE IN THE PREVIEW (&round=N > 1): the blind up, then he WALKS UP into his place (never standing there the instant the blind is up), then the bell', async () => {
+  const { boxerPreview } = await import('../js/core/harbor-boxer.js');
+  const L = 5.5, up = L - 1;
+  for (const r of [1, 2, 6]) {
+    const seen = []; let firstIn = null;
+    for (let s = 0; s < 14; s += 0.05) { const { st } = boxerPreview(s, r, L); seen.push(st.phase); if (st.inView && firstIn == null) firstIn = { s, st }; }
+    assert.ok(seen[0] === 'blind-up', `round ${r}: the blind first`);
+    assert.ok(firstIn && firstIn.st.blind === 0, `round ${r}: in view only once the blind is up`);
+    const walking = firstIn.st.phase === 'enter' || (firstIn.st.phase === 'round' && firstIn.st.round === 1 && firstIn.st.t < P.walkIn);
+    assert.ok(walking && firstIn.st.t < 0.1, `round ${r}: his first frame in view is the START of his walk-in (${firstIn.st.phase} t ${firstIn.st.t.toFixed(2)})`);
+    if (r > 1) { const b = boxerPreview(up + P.walkIn + 0.1, r, L).st; assert.equal(b.phase, 'round'); assert.equal(b.round, r); assert.ok(b.t < 0.2, 'the bell right after he is in place'); }
+  }
 });
 
 test('MODELS — THE ROOM REWORKED: THE BAG NEVER MOVES SIDES; MOSTLY IN THE AIR, turned away from the bag, long combinations (up to six), slips + ducks, Ali footwork; bursts on the bag (it swings); a turn passes through his front', async () => {

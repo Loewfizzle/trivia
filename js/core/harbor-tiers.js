@@ -41,6 +41,17 @@ export const TIERS = Object.freeze({
   fogHalos: Object.freeze([6, 10, 14]),   // (ATM-B's A/B: the halos were the fog's biggest cost — fewer + their radius capped)
   // ATM-B — FREEZING RAIN's ICICLES (icefx.js): how many hang from the ledges, the signs' frames, the railing + the benches (a few small fills each)
   icicles: Object.freeze([50, 110, 180]),
+  // PART 10 — THE FIREWORKS (screens/harbor/fireworks.js — the GPU engine; the PLAN is the same on every phone, a tier draws less of each
+  // shell, never fewer shells): fwSparks = a shell's sparks (% of the full count); fwTrails = the trails' length (×10); fwSmoke = smoke puffs a
+  // burst; fwLights = the bursts that light the city + the smoke at once; fwMirror = the reflections in the harbor (1 on); fwDpr = the
+  // overlay's pixel ratio cap (×10); fwRing = the spark instances held on the GPU (a ring — ~30 s of a finale at the top tier)
+  fwSparks: Object.freeze([45, 72, 100]),
+  fwTrails: Object.freeze([6, 10, 10]),
+  fwSmoke: Object.freeze([2, 3, 4]),
+  fwLights: Object.freeze([3, 5, 8]),
+  fwMirror: Object.freeze([0, 1, 1]),
+  fwDpr: Object.freeze([10, 15, 20]),
+  fwRing: Object.freeze([8192, 16384, 32768]),
 });
 
 /** the knob's value at a tier (clamped 0..2; an unknown tier = 2) */

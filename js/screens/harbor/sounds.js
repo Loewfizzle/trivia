@@ -23,7 +23,7 @@
 //                rooftop) · THE JETS (jets(o): panned right → left, the music ducked round their peak — the slot's `duck`)
 // City 2.0's title only (the scene lives there); the Effects slider + Mute rule it (the SFX bus); all of it fails silently.
 import { citySound, cityLoop, cityPrefetch, cityReady, citySoundsDebug } from '../../audio/city-sound.js';
-import { isFilled, takesOf, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan, pickTakes, pickTake, rivetGap } from '../../core/city-sounds.js';
+import { isFilled, takesOf, slotOf, bedMix, gullCalls, gullGap, chainDue, BED_FADE_IN, BED_RAMP, duckAt, sweepPan, momentCues, barberAt, bellsBetween, JET_SYNC, jetPan, pickTakes, pickTake, rivetGap, thunderWhen, thunderLevel, thunderVerdict } from '../../core/city-sounds.js';
 import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { CHASE, BLACK, tr3bAt } from '../../core/harbor-legend.js';
 import { isUnlocked } from '../../audio/engine.js';
@@ -84,6 +84,18 @@ export function createCitySounds() {
   let wxBed = null;                     // (9a: the weather's beds now — the AUDIO panel lists them)
   const thunders = [];                  // (9a: the thunder waiting for its distance)
   const thunderLog = []; let lastClose = -1;   // (ATM-C: the recorded thunder's last picks — never the same close take twice running)
+  // PART 10 G0 — THE FLASH LOG (the &debug=1 readout + the checks): every flash + its thunder — { t (s, the flash), kind, bright, km,
+  // delay, take, why ('locked' | 'muted' | 'queued' | 'played' | 'no sound' | 'failed'), h (the handle), crack (s into the take) }
+  const flashLog = []; let stormPrefetchAt = 0;
+  const flashEntry = (ev, flashAt) => { const e = { t: flashAt, kind: ev.kind || 'far', bright: ev.bright ?? null, km: ev.km ?? null, delay: null, take: null, why: !isUnlocked() ? 'locked' : settings.muted || (settings.sfx != null && settings.sfx <= 0.01) ? 'muted' : 'queued', h: null, crack: 0 }; flashLog.push(e); if (flashLog.length > 12) flashLog.shift(); return e; };
+  const bindFlash = (e, h, take) => { if (!e || e.why === 'locked' || e.why === 'muted') return; e.take = take; if (!h) e.why = 'no sound'; else e.h = h; };
+  /** each flash's state now: heard = s from the flash to the take's crack (close) / its start (a roll) as it really played */
+  function flashState(e) {
+    const h = e.h; let why = e.why, heard = null;
+    if (h) { const s = h.started(); if (s > 0) { why = 'played'; heard = +((s / 1000 + e.crack) - e.t).toFixed(2); } else if (h.ended()) why = 'failed'; }
+    const out = { t: +e.t.toFixed(1), kind: e.kind, bright: e.bright, km: e.km, delay: e.delay, take: e.take, why, heard };
+    return { ...out, verdict: thunderVerdict(out, performance.now() / 1000 - e.t) };
+  }
 
   /** keep a bed at this gain (0 = fade it out; stopped after `linger` s at zero: its buffer is freed) */
   function keep(slot, gain, pan = 0, { ramp = 1.5, linger = 20, fadeIn = 2, take = null } = {}) {
@@ -179,6 +191,13 @@ export function createCitySounds() {
     // awning drumming close (left: the speakeasy), the pavement around you, the rain on the water far off (right); the drips after it;
     // the wind in the leaves on a windy day; crickets on warm summer nights, birdsong on spring / summer mornings — all under the
     // music (bm.k), felt more than heard
+    // PART 10 G0 — THE STORM's THUNDER LOADED AHEAD: in a storm every close take is fetched + decoded + PINNED (re-armed each 10 s, the
+    // pin 60 s — gone a minute after the storm), the rolls fetched + decoded: a strike's crack never waits for its first decode
+    if (weather && weather.state === 'storm' && t >= stormPrefetchAt && isUnlocked()) {
+      stormPrefetchAt = t + 10000;
+      takesOf('thunder-close').forEach((_, i) => cityPrefetch('thunder-close', i, { hold: 60000 }));
+      for (const sl of ['thunder-mid', 'thunder-far']) takesOf(sl).forEach((_, i) => cityPrefetch(sl, i));
+    }
     { const W9 = weather || {}, r = clamp(W9.rain || 0, 0, 1), on = !bm.hold && unlockedAt ? bm.k : 0, mo = W9.month || 0, h = W9.hour == null ? 12 : W9.hour;
       const drizzle = W9.state === 'drizzle' || W9.state === 'freezing';
       wxBed = { drizzle: (drizzle ? smooth(0.02, 0.2, r) : smooth(0.02, 0.2, r) * (1 - smooth(0.3, 0.55, r))) * 0.9, pavement: smooth(0.22, 0.75, r) * (1 + 0.45 * smooth(0.62, 0.9, r)), awning: smooth(0.12, 0.6, r) * 0.75 * (1 + 0.5 * smooth(0.62, 0.9, r)),
@@ -519,8 +538,8 @@ export function createCitySounds() {
       if (!isUnlocked() || settings.muted || (settings.sfx != null && settings.sfx <= 0.01)) return true;
       return legendTakes(kind, picks).slice(0, LEGEND_KEY[kind] || 2).every(([slot, i]) => cityReady(slot, i));
     },
-    ducked(slot, { gain = 1, pan = 0, depth = 0.55, hold = 3.5, release = 5, take = null, jitter } = {}) {
-      const h = citySound(slot, { gain, pan: clamp(pan, -1, 1), take, ...(jitter != null ? { jitter } : {}) });
+    ducked(slot, { gain = 1, pan = 0, depth = 0.55, hold = 3.5, release = 5, take = null, jitter, rate } = {}) {
+      const h = citySound(slot, { gain, pan: clamp(pan, -1, 1), take, ...(jitter != null ? { jitter } : {}), ...(rate != null ? { rate } : {}) });
       if (h) ducks.push({ h, depth, pan: null, follow: false, env: el => (el < 0 ? 1 : el < 0.6 ? 1 - (1 - depth) * (el / 0.6) : el < hold ? depth : el < hold + release ? depth + (1 - depth) * ((el - hold) / release) : 1) });
       return h;
     },
@@ -540,29 +559,37 @@ export function createCitySounds() {
       const close = ev.kind === 'close' || (ev.near && ev.km != null && ev.km < 1.6), d = Math.max(0, ev.delay == null ? 3 : ev.delay);
       const pan = clamp(ev.pan != null ? ev.pan : rnd(-0.35, 0.35), -0.8, 0.8);
       if (close) {
-        const pick = pickTake('thunder-close', Math.random, lastClose), crack = pick ? (pick.take.hit != null ? pick.take.hit : 0.3) : d;
+        // (PART 10 G0: a take already DECODED first — the storm loads + pins them ahead, so the crack is never late by a first decode)
+        let pick = null;
+        for (let i = 0; i < 6; i++) { const p = pickTake('thunder-close', Math.random, lastClose); if (!p) break; if (!pick) pick = p; if (cityReady('thunder-close', p.i)) { pick = p; break; } }
+        const crack = pick ? (pick.take.hit != null ? pick.take.hit : 0.3) : d;
         if (pick) lastClose = pick.i;
         const lead = Math.max(0, crack - d), wait = Math.max(0, d - crack), second = pick && CRACK2[pick.take.src] != null ? CRACK2[pick.take.src] - crack : null;
-        const go = () => { if (!dead) this.ducked('thunder-close', { gain: 1, pan, depth: 0.45, hold: 2.2, release: 4, take: pick ? pick.i : null, jitter: 0 }); };
+        const fe = flashEntry(ev, performance.now() / 1000 + Math.min(2, lead)); fe.delay = +d.toFixed(2); fe.crack = crack;
+        const go = () => { if (!dead) bindFlash(fe, this.ducked('thunder-close', { gain: 1, pan, depth: 0.45, hold: 2.2, release: 4, take: pick ? pick.i : null, jitter: 0 }), pick ? pick.take.src : null); };
         if (wait > 0.005) setTimeout(go, wait * 1000); else go();
         thunders.push(performance.now() + (lead + wait) * 1000); if (thunders.length > 4) thunders.shift();
-        thunderLog.push({ take: pick ? pick.take.src : null, crack, delay: +d.toFixed(2), lead: +lead.toFixed(2), wait: +wait.toFixed(2), second }); if (thunderLog.length > 8) thunderLog.shift();
+        thunderLog.push({ take: pick ? pick.take.src : null, crack, delay: +d.toFixed(2), lead: +lead.toFixed(2), wait: +wait.toFixed(2), second, ready: pick ? cityReady('thunder-close', pick.i) : false }); if (thunderLog.length > 8) thunderLog.shift();
         return { lead, second };
       }
+      // (PART 10 G0: never the old 6-s queue — a roll waits for the last one by at most THUNDER.SLACK s, then plays on time over its tail)
       const at = performance.now() + d * 1000, last = thunders[thunders.length - 1];
-      const when = last ? Math.max(at, last + 6000) : at; thunders.push(when); if (thunders.length > 4) thunders.shift();
+      const when = thunderWhen(at, last != null ? last : null); thunders.push(when); if (thunders.length > 4) thunders.shift();
+      const fe = flashEntry(ev, performance.now() / 1000); fe.delay = +((when - performance.now()) / 1000).toFixed(2);
       setTimeout(() => {
         if (dead) return;
-        // (the mid rolls + the old far takes share the far strikes; an intra-cloud flicker the quietest, slowed)
-        const slot = Math.random() < 0.55 ? 'thunder-mid' : 'thunder-far';
-        if (ev.kind === 'ic') citySound(slot, { gain: clamp((ev.level || 0.5) * 0.5, 0.18, 0.45), pan, rate: 0.85 });
-        else this.ducked(slot, { gain: clamp(ev.level == null ? 0.8 : ev.level, 0.3, 0.9), pan, depth: 0.82, hold: 2.5, release: 4 });
+        // (the mid rolls + the old far takes share the far strikes; an intra-cloud flash a LOW RUMBLE — slowed, by its brightness, heard)
+        const slot = Math.random() < 0.55 ? 'thunder-mid' : 'thunder-far', g = thunderLevel(ev);
+        const h = ev.kind === 'ic' ? this.ducked(slot, { gain: g, pan, depth: 0.9, hold: 1.6, release: 3, jitter: 0.02, rate: 0.85 }) : this.ducked(slot, { gain: g, pan, depth: 0.82, hold: 2.5, release: 4 });
+        bindFlash(fe, h, slot);
         thunderLog.push({ take: slot, delay: +d.toFixed(2) }); if (thunderLog.length > 8) thunderLog.shift();
       }, when - performance.now());
       return null;
     },
     /** ATM-C: the last thunders (the tests + the AUDIO panel): { take, crack, delay, lead, wait, second } */
     thunderLog: () => thunderLog.slice(),
+    /** PART 10 G0: every flash + its thunder now (the readout's thunder lines + the checks): [{ t, kind, bright, km, delay, take, why, heard, verdict }] */
+    flashLog: () => flashLog.map(flashState),
     /** 9a: the weather's beds now (the AUDIO panel's line) */
     weatherBeds: () => (wxBed ? Object.fromEntries(Object.entries(wxBed).filter(([, v]) => v > 0.01).map(([k, v]) => [k, +v.toFixed(2)])) : {}),
     /** 8P — THE BUS: bus('arrive' | 'idle' | 'door' | 'depart' | 'pan' | 'gone', { pan, gain, stopIn }) — see busEvent */

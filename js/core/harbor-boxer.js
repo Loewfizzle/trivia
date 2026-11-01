@@ -1,7 +1,8 @@
 // CITY 2.0 — SKY-B: THE SHADOWBOXER (plan.md OCT 29 (the evening) — his SCHEDULE REVISED + FRIDAY + THE END OF HIS NIGHT + HIS LOOK
 // CONFIRMED; THE QUIET BUILDING + THE BOXER's ROOM; OCT 30 (midday) — his sounds). PURE (tests/harbor-boxer.test.mjs): every phone the
 // same, a late page joins him mid-round. The numbers live in THE CITY TIMETABLE (row `boxer`).
-//   HIS NIGHTS   MONDAY, WEDNESDAY, FRIDAY, 7 → 11 pm (never on a legendary's night). FRIDAY (a party night, seeded by the date ~50/50):
+//   HIS NIGHTS   EVERY NIGHT, 7 → 11 pm (the owner, Oct 31 8:32 pm — was Mon / Wed / Fri; never on a legendary's night, a raid ends it).
+//                THE PARTY NIGHTS — FRIDAY + SATURDAY (each seeded by the date ~50/50):
 //                he WRAPS UP as the party warms up (~8:30 — he finishes the ROUND he's in, towels off, walks out) or STAYS to 11, training
 //                through the party (his window sits out of the window party). At 11 he FINISHES THE SET he's in, then he's done.
 //   A SET        10 ROUNDS of 3 min, a 1-min rest after each (40 min) → a 10-min BREAK (he leaves the frame — the rope heard off in
@@ -9,7 +10,8 @@
 //   A ROUND      seeded: 'shadow' (shadowboxing side to side — footwork, combos in the air), 'bag' (combos into the HEAVY BAG: it swings,
 //                the bulb with it), 'weave' (duck + weave + footwork). Its beats: a bounce on the toes, a step, jab · jab-jab · jab-cross ·
 //                a hook · cross-hook · a four-punch combo · a duck · a weave · a breath. In the rest he walks, drinks, shakes out his arms.
-//   HIS WINDOW   'back' (the upper middle): the BLIND goes UP before he walks in (his entrance — THE WINDOW RULE); after his last set it
+//   HIS WINDOW   'back' (the upper middle): the BLIND goes UP, then he WALKS UP into his place from the open side, turning to face the
+//                air through his front (his entrance — THE WINDOW RULE: never a snap; the panel's ROUND n preview too); after his last set it
 //                comes down warm-lit, then the bulb goes out.
 //   HIS SOUNDS   (the window's cracked open — a hot gym): the round BELL (ding-ding-ding at a round's start, one ding at its end), a
 //                muffled THUD on every bag hit, the bag's CHAIN after a hard one, the ROPE off-frame in his long break.
@@ -21,17 +23,17 @@ const DAY = 86400;
 const dowOf = key => { const [y, m, d] = key.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 
 /**
- * his NIGHT: key = the evening's local date 'Y-M-D' → { on, friday, stay } — on: a training night (Mon / Wed / Fri; not a legendary's
- * night: o.legend(key) true skips it); friday: stay = he trains through the party (else he wraps up at `wrapAt`)
+ * his NIGHT: key = the evening's local date 'Y-M-D' → { on, party, friday (= party, the old name), stay } — on: a training night (every
+ * night; not a legendary's night: o.legend(key) true skips it); party (Fri + Sat): stay = he trains through the party (else he wraps up at `wrapAt`)
  */
 export function boxerNight(key, o = {}) {
   const P = knob('boxer'), dow = dowOf(key);
   // (a legendary's night: he sits it out only if it comes DURING his evening — o.legend(key) → true, or { h } its local hour (the UFO's
   // 12:15 am, a TR-3B after 11 leave him his training))
   const lg = o.legend ? o.legend(key) : null, clash = lg === true || (lg && typeof lg.h === 'number' && lg.h >= P.from - 0.5 && lg.h <= P.to + 0.75);
-  if (!P.days.includes(dow) || clash) return { on: false, friday: false, stay: false };
-  const friday = dow === 5, stay = friday ? rngFrom(hashString(`boxer|${o.seed || 1924}|${key}`))() < P.stayChance : true;
-  return { on: true, friday, stay };
+  if (!P.days.includes(dow) || clash) return { on: false, party: false, friday: false, stay: false };
+  const party = (P.partyDays || [5]).includes(dow), stay = party ? rngFrom(hashString(`boxer|${o.seed || 1924}|${key}`))() < P.stayChance : true;
+  return { on: true, party, friday: party, stay };
 }
 
 /** his EVENING's plan (seconds after the evening's local midnight): { start (round 1 of set 1), end (he's out), sets: [start…], cycle } */
@@ -40,11 +42,12 @@ export function boxerPlan(night) {
   if (!night || !night.on) return null;
   const sets = [];
   // (the last set: the one in progress at `to` — he finishes it; a Friday wrap-up: the ROUND in progress at `wrapAt`, then out)
-  const stopAt = night.friday && !night.stay ? P.wrapAt * 3600 : P.to * 3600;
+  const wrap = !!(night.party || night.friday) && !night.stay;
+  const stopAt = wrap ? P.wrapAt * 3600 : P.to * 3600;
   let end = start;
   for (let s = start; s < stopAt; s += cycle) {
     sets.push(s);
-    if (night.friday && !night.stay && stopAt < s + set) {
+    if (wrap && stopAt < s + set) {
       const r = Math.min(P.rounds - 1, Math.floor((stopAt - s) / (P.round + P.rest)));
       end = s + r * (P.round + P.rest) + P.round;                    // (he finishes the round, then walks out — no rest)
       break;
@@ -81,6 +84,25 @@ const pickW = (list, u) => { let a = 0; for (const [k, w] of list) { a += w; if 
 function combo(name, power = 1) { const seq = COMBOS[name]; return { act: name, d: 0.2 + seq.length * GAP + 0.24, punches: [...seq].map((k, i) => ({ t: 0.2 + i * GAP, ...PK[k], p: PK[k].p * power })) }; }
 /** where his face points from where he works (+1 = right): turned AWAY from the bag in the air, at the bag facing it */
 export const faceAt = at => (at === 'bag' ? BAG_SIDE : -BAG_SIDE);
+
+/**
+ * THE PANEL's PREVIEW now (&force=boxer + &round=N), s seconds after it opened (lead: when the blind is up + round 1 starts) → { st (as
+ * boxerAt), plan }. PART 10 (the owner's ATM-D review, Oct 31 8:22 pm — "the blind goes up + he SNAPS into view"): ROUND n > 1 opened
+ * him standing mid-room the instant the blind was up; now, like round 1, he WALKS UP into his place ('enter', walkIn s) once the blind
+ * is up, then the bell. Round 1 = his real entrance (boxerAt's blind-up, then round 1's walk-in).
+ */
+export function boxerPreview(s, round = 1, lead = 5.5, seed = 1924) {
+  const P = knob('boxer'), r = Math.max(1, Math.min(P.rounds, round | 0 || 1));
+  if (r === 1) {
+    const plan = boxerForced(1, lead); let st = boxerAt(s, plan, 'forced', seed);
+    if (st.phase === 'off') st = { phase: 'blind-up', blind: 1, lamp: 1, inView: false, set: 0, round: 1, t: s, bagSide: BAG_SIDE };
+    return { st, plan };
+  }
+  const up = lead - 1, plan = boxerForced(r, up + P.walkIn);
+  if (s < up) return { st: { phase: 'blind-up', blind: Math.max(0, Math.min(1, 1 - (s - 0.8) / (up - 0.8))), lamp: 1, inView: false, set: 0, round: r, t: s, bagSide: BAG_SIDE }, plan };
+  if (s < up + P.walkIn) return { st: { phase: 'enter', t: s - up, len: P.walkIn, x: 0.35, face: faceAt('air'), blind: 0, lamp: 1, inView: true, set: 0, round: r, bagSide: BAG_SIDE }, plan };
+  return { st: boxerAt(s, plan, 'forced', seed), plan };
+}
 
 /** one ROUND's beats (seeded by the evening, the set + the round): [{ t, d, act, at ('air' | 'bag'), from (a turn's old place), x0, x1,
  *  punches: [{ t (s into the beat), arm, kind, p }] }] + { kind, bursts, endX } */

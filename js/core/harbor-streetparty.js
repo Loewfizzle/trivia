@@ -229,6 +229,30 @@ const exitsOf = (W, z) => {
  * there (pose 'mingle' facing the pocket), dances through every break of its stay (pose 'wands' with the break's kind — the rig blends the
  * two over a third of a second), walks off the other way. A = the tenures' anchor (abs s); route(a, b) → points (cached by the caller)
  */
+/** PART 10 — THE CROWD STOPS + LOOKS UP: every 'mingle' stretch that meets a fireworks show (shows: [{ t0, t1, fin }]) turns into WATCHING —
+ *  a beat after it starts they turn to the harbor (backs to us), heads up, a few point first; a share cheers (waves) through the finale;
+ *  a few seconds after its last burst they go back to mingling. In place (legs edited), seeded (every phone the same) */
+export function watchShows(legs, shows, r) {
+  const out = [];
+  for (const L of legs) {
+    if (L.k !== 'pose' || L.pose !== 'mingle') { out.push(L); continue; }
+    let a = L.t0;
+    for (const s of shows) {
+      const w0 = Math.max(L.t0, s.t0 + 0.6 + r() * 2.4), w1 = Math.min(L.t1, s.t1 + 1.5 + r() * 4);
+      if (w1 - w0 < 3 || w0 < a) continue;
+      if (w0 > a + 0.05) out.push({ ...L, t0: a, t1: w0 });
+      const hd = Math.PI / 2 + (r() - 0.5) * 0.7, fin = s.fin != null ? Math.max(w0, Math.min(w1, s.fin)) : w1;
+      let c = w0;
+      if (r() < 0.22) { const tp = Math.min(w1, c + 3.5 + r() * 3); out.push({ k: 'pose', pose: 'point', x: L.x, z: L.z, t0: c, t1: tp, hd }); c = tp; }
+      if (r() < 0.45 && fin > c + 1 && w1 > fin + 2) { out.push({ k: 'pose', pose: 'watch', x: L.x, z: L.z, t0: c, t1: fin, hd }); out.push({ k: 'pose', pose: 'wave', x: L.x, z: L.z, t0: fin, t1: w1, hd }); }
+      else if (w1 > c + 0.05) out.push({ k: 'pose', pose: 'watch', x: L.x, z: L.z, t0: c, t1: w1, hd });
+      a = w1;
+    }
+    if (L.t1 > a + 0.05) out.push({ ...L, t0: a });
+  }
+  legs.length = 0; legs.push(...out);
+  return legs;
+}
 export function occupant(p, j, n, A, win, brks, W, routeOf, ctx = {}) {
   const r = rngFrom(hashString(`occ|${p.id}|${j}`)), P = SP.tenure[0] + r() * (SP.tenure[1] - SP.tenure[0]), off = r() * P;
   const ta = A + off + n * P, tb = ta + P, rn = rngFrom(hashString(`occ|${p.id}|${j}|${n}`));
@@ -250,6 +274,7 @@ export function occupant(p, j, n, A, win, brks, W, routeOf, ctx = {}) {
   }
   if (leave > at + 0.05) legs.push({ k: 'pose', pose: 'mingle', x: sl.x, z: sl.z, t0: at, t1: leave, hd: sl.hd });
   legs.push({ k: 'walk', pts: pout, t0: leave, t1, v });
+  if (ctx.shows && ctx.shows.length) watchShows(legs, ctx.shows, rngFrom(hashString(`occw|${p.id}|${j}|${n}`)));
   const pair = p.kind === 'loner' ? null : Math.floor(j / 2);
   return { id: `sp.${p.id}.${j}.${n}`, kind: 'mingler', routine: 'street', look: 'guest', gait: 'stroll', party: true, idx: j, pid: p.id,
     sp: { pocket: p.rank, slot: j, pair, mate: pair == null ? null : j ^ 1, cx: p.x, cz: p.z, drink: rn() < 0.55 },
@@ -362,7 +387,7 @@ export function streetPartyAt(t, ctx, W, get) {
         if (!win || t < win[0] - 120 || t > win[1] + 200) return;
         const r = rngFrom(hashString(`occ|${p.id}|${j}`)), P = SP.tenure[0] + r() * (SP.tenure[1] - SP.tenure[0]), off = r() * P, n0 = Math.floor((t - A - off) / P);
         for (let n = n0 - 1; n <= n0 + 1; n++) {
-          const v = get(`SPO|${p.id}|${j}|${n}|${Math.round(A)}|${nightBrks.map(b => b.id).join(',')}`, () => occupant(p, j, n, A, win, nightBrks, W, routeOf, ctx));
+          const v = get(`SPO|${p.id}|${j}|${n}|${Math.round(A)}|${nightBrks.map(b => b.id).join(',')}|${(ctx.shows || []).map(s => Math.round(s.t0)).join(',')}`, () => occupant(p, j, n, A, win, nightBrks, W, routeOf, ctx));
           if (v && t >= v.t0 - 2 && t < v.t1 + 2) visits.push(v);
         }
       });

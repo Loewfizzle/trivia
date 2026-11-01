@@ -23,6 +23,10 @@ export const WITNESS = Object.freeze({
   // show, people FREEZE (watching the road), or casually walk off / look away like nothing's happening; the DOORMAN slips inside at the
   // side door; once the cars are gone they pick up their own way again (the doorman back out a little after the lights)
   raid: { notice: [0.2, 1.8], len: 40, empty: 12, freeze: 0.45, away: 0.3, after: [1, 4], doorman: 8 },
+  // PART 10 — THE FIREWORKS (lg: { kind: 'fireworks', t0: the show's start, len, fin: the finale's start }): everyone on the promenade STOPS
+  // + turns to the harbor (their backs to us), looks up — a few point at first — a share cheers through the finale (waving); a beat after
+  // the last burst they pick up their own way again. Nobody is held away (new arrivals walk on as usual — no empty spell)
+  fireworks: { notice: [0.4, 3.2], after: [1, 5], point: 0.3, wave: 0.4, len: 80, empty: 0 },
 });
 const lenOf = lg => (lg.len != null ? lg.len : WITNESS[lg.kind].len);
 /** is t inside the legend's people window (its own length + the empty tail)? */
@@ -33,7 +37,7 @@ export function witnessWindow(lg, t) {
 }
 /** a visit that would START during the event or its empty tail doesn't come (the promenade stays empty) */
 export function suppressed(lg, v) {
-  const W = lg && WITNESS[lg.kind]; if (!W) return false;
+  const W = lg && WITNESS[lg.kind]; if (!W || lg.kind === 'fireworks') return false;
   return v.t0 >= lg.t0 - 0.5 && v.t0 < lg.t0 + lenOf(lg) + W.empty;
 }
 
@@ -115,6 +119,17 @@ export function reactVisit(v, lg, M, ctx = {}) {
         else { const out = wayOut(M, at, r), to = out.edge || M.exits[at.x < 2 ? 'left' : 'right'][0], vis = planVisit({ look: 'walker', gait: 'walk', goals: [{ at: { x: to.x, z: to.z } }] }, now, M, { r, start: at }); if (vis) { for (const l2 of vis.legs) push(l2); now = vis.t1; } }
       }
     }
+  } else if (lg.kind === 'fireworks') {
+    // STOP + face the harbor, heads up (a few point first); a share cheers (waves) through the finale; then on their way
+    const end = lg.t0 + lenOf(lg), tb = end + W.after[0] + r() * (W.after[1] - W.after[0]), fin = lg.fin != null ? Math.min(end, lg.fin) : end;
+    const hd = PI / 2 + (r() - 0.5) * 0.8;
+    if (r() < W.point) { const tp = Math.min(tb, now + 3.5 + r() * 3); push({ k: 'pose', pose: 'point', x: at.x, z: at.z, t0: now, t1: tp, hd }); now = tp; }
+    if (r() < W.wave && fin > now + 1 && tb > fin + 2) { push({ k: 'pose', pose: 'watch', x: at.x, z: at.z, t0: now, t1: fin, hd }); push({ k: 'pose', pose: 'wave', x: at.x, z: at.z, t0: fin, t1: tb, hd }); }
+    else push({ k: 'pose', pose: 'watch', x: at.x, z: at.z, t0: now, t1: tb, hd });
+    now = tb;
+    const back = resume(v, legs, at, now, r);
+    if (back) now = back;
+    else { const out = wayOut(M, at, r), to = out.edge || M.exits[at.x < 2 ? 'left' : 'right'][0], vis = planVisit({ look: 'walker', gait: 'stroll', goals: [{ at: { x: to.x, z: to.z } }] }, now, M, { r, start: at }); if (vis) { for (const l2 of vis.legs) push(l2); now = vis.t1; } }
   } else if (lg.kind === 'ufo') {
     // STOP + LOOK UP (a couple point) until the beam opens, then a startled beat
     const tf = lg.t0 + W.flee + W.react[0] + r() * (W.react[1] - W.react[0]);

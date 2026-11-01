@@ -63,7 +63,10 @@ export function createFogDepth() {
     let h = halos.get(key);
     if (!h) {
       h = mk(64, 64); const x = safeCtx(h), g = x.createRadialGradient(32, 32, 0, 32, 32, 32);
-      g.addColorStop(0, rgba(col, 0.9)); g.addColorStop(0.25, rgba(col, 0.42)); g.addColorStop(0.6, rgba(col, 0.12)); g.addColorStop(1, rgba(col, 0));
+      g.addColorStop(0, rgba(col, 0.9)); g.addColorStop(0.25, rgba(col, 0.42)); g.addColorStop(0.6, rgba(col, 0.12));
+      // (PART 10 — the rim eased out (0.12 · (1 − s)²): a straight fall to 0 left a crease at the edge, read as a line on the bright fog)
+      for (const s of [0.25, 0.5, 0.75]) g.addColorStop(0.6 + 0.4 * s, rgba(col, 0.12 * (1 - s) * (1 - s)));
+      g.addColorStop(1, rgba(col, 0));
       x.fillStyle = g; x.fillRect(0, 0, 64, 64);
       if (halos.size > 24) { const first = halos.keys().next().value; const cv = halos.get(first); if (cv) cv.width = 0; halos.delete(first); }
       halos.set(key, h);

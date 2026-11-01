@@ -66,3 +66,35 @@ test('PROM — THE CAB STAND: waiters walk up + sit on the front bench facing th
   const ev = standEvents(Math.floor(day0 / FOLK.block) + 60, { off: OFF, forceStandAt: day0 + 60 * FOLK.block });
   assert.ok(ev.length >= 4, `&force=cabstand: a waiter every ~${STAND.every} s (${ev.length} in a block)`);
 });
+
+test('PART 10 Group 0 — THE CAB STAND PICKUP: the fare RISES off the seat where he sat, walks out of the bench\'s seat side + round every solid to the curb, never a jump, never inside the bench', async () => {
+  const { cameraFor, harborLayout } = await import('../js/core/harbor-layout.js');
+  const { standSpots, pickupPlan, pickupFareAt, PICKUP } = await import('../js/core/harbor-cabs.js');
+  const { furnitureSolids } = await import('../js/core/harbor-solids.js');
+  for (const [w, h] of [[390, 844], [402, 874], [430, 932]]) {
+    const cam = cameraFor(w, h, { dock: { x: 14, y: h - 116, w: w - 28, h: 76 } }, { top: 62, bottom: 34 }), L = harborLayout(cam), S = standSpots(L);
+    const solids = furnitureSolids(L), bench = solids.find(q => q.id === 'cab-bench');
+    for (const seat of S.seats) {
+      const p = pickupPlan(L, { vid: 'v', x: seat.x, z: seat.z, hd: 0 }, 100);
+      // (the first state = where the sitter sat, rising out of the sit pose)
+      const f0 = pickupFareAt(p, p.tW);
+      assert.ok(f0 && Math.abs(f0.x - seat.x) < 1e-6 && Math.abs(f0.z - seat.z) < 1e-6 && f0.prev === 'sit' && f0.blendS >= 0.6, `${w}: rises off his seat (no jump off the bench)`);
+      assert.equal(pickupFareAt(p, p.tW - 0.01), null, 'the planned sitter until then');
+      let prev = f0, out = false;
+      for (let t = p.tW; t < p.tSat; t += 1 / 60) {
+        const f = pickupFareAt(p, t); if (!f) break;
+        const step = Math.hypot(f.x - prev.x, f.z - prev.z);
+        assert.ok(step < 0.08, `${w} t+${(t - p.tW).toFixed(2)}: no jump (${step.toFixed(3)} u in a frame)`);
+        const inBench = f.x > bench.x0 + 0.45 && f.x < bench.x1 - 0.45 && f.z > bench.z0 + 0.45 && f.z < bench.z1 - 0.45;   // (the bench itself, unpadded)
+        assert.ok(!inBench, `${w}: never inside the bench (${f.x.toFixed(2)}, ${f.z.toFixed(2)})`);
+        if (f.z < bench.z0) out = true;
+        else if (out) assert.fail(`${w}: once out in front of the bench he never goes back into its footprint`);
+        for (const q of solids) if (q.id !== 'cab-bench' && f.y === 0) assert.ok(!(f.x > q.x0 && f.x < q.x1 && f.z > q.z0 && f.z < q.z1), `${w}: walks round ${q.id}`);
+        prev = f;
+      }
+      assert.ok(out, `${w}: he leaves the bench toward the street`);
+      assert.ok(Math.abs(prev.z - p.pSeat.z) < 0.2, `${w}: ends in the cab`);
+      assert.ok(Math.abs(p.tR - p.tW - PICKUP.rise) < 1e-9 && p.tC > p.tR, 'a rise, then the walk');
+    }
+  }
+});

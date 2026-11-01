@@ -9,9 +9,11 @@
 //   cabPlan(e, L, M)    one call planned: { T (the cab: a truck-like vehicle plan + sign(t)), riders: [people visits] }
 import { rngFrom, hashString } from './rng.js';
 import { truckPlan } from './harbor-crew.js';
-import { FOLK, planVisit } from './harbor-people.js';
+import { FOLK, planVisit, lerpHd } from './harbor-people.js';
 import { TRAFFIC, trafficLanes } from './harbor-traffic.js';
 import { partyAtT } from './harbor-moments.js';
+import { furnitureSolids, SOLID } from './harbor-solids.js';
+import { STREET } from './harbor-promenade.js';
 
 /** the numbers: the evening's window (local hours, 25 = 1 am), the chance of a call per block (normal / party), drops before `swap`
  *  (local hour) mostly, pick-ups after; the cab's length; the riders' walk */
@@ -101,6 +103,57 @@ export function standPlan(e, L, M) {
   if (!off) return null;
   return { id: e.id, rider: mk([...vis.legs, ...off.legs], off.t1), cab: null };
 }
+// ------------------------------------------------------------------ THE CAB STAND's PICKUP (PURE — the timeline + the fare's path; the
+// taxi + its drawing: screens/harbor/cabstand.js; tested in tests/harbor-cabs.test.mjs)
+// PART 10 Group 0 — THE MIDDLE (the owner, Oct 31 8:22 pm: when the cab pulled up he VANISHED from the bench, REAPPEARED behind it, WALKED
+// THROUGH it, then got in): he now STANDS UP off the seat where he sat (an eased rise, `rise` s — the rig blends sit → stand over it),
+// turns + steps forward CLEAR of the bench (THE SOLIDS: his path leaves its footprint straight out of the seat side + goes round any other
+// solid), then walks to the curb by the far rear door. Never a jump: every point of the path is continuous in t.
+export const PICKUP = Object.freeze({ inS: 4.2, rise: 0.95, clear: 0.75, V: 1.45, wait: 1.1, outS: 4.6 });
+/** the pickup's timeline + the fare's path: L (the layout), w ({ vid, x, z } — the sitter now), t0 (s) */
+export function pickupPlan(L, w, t0, S = null) {
+  const st = L.impliedRoad && L.impliedRoad.street, cam = L.cam, lane = st ? st.lanes[0] : { z: 32.5, dir: -1 }, z = lane.z;
+  // (it stops by the waiter, its whole body on screen — the screen's edge clamps it; the rear door between its middle + its tail)
+  const len = STREET.car && STREET.car.len ? STREET.car.len : 4.4, xStop = Math.min(w.x - 0.1, cam.hw(z) - len / 2 - 0.4), doorX = xStop + len / 2 - 1.2;
+  const xIn = cam.hw(z) + len / 2 + 2.5, xOut = -cam.hw(z) - len / 2 - 2.5;
+  const pCurb = { x: doorX + 0.95, z: z + 1.35 }, pSeat = { x: doorX + 0.35, z: z + 0.55 };
+  const pts = pickupPath(L, { x: w.x, z: w.z }, pCurb, S);
+  let d = 0; for (let i = 1; i < pts.length; i++) d += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z);
+  const tA = t0 + PICKUP.inS, tW = tA - 1.5, tR = tW + PICKUP.rise, tC = tR + d / PICKUP.V, tOpen = tC - 0.25, tIn = tC + 0.35, tSat = tIn + 1.1, tShut = tSat + 0.15, tGone = tShut + 0.55, tGo = tGone + PICKUP.wait, tEnd = tGo + PICKUP.outS;
+  return { vid: w.vid, z, xIn, xOut, xStop, tA, tW, tR, tC, tOpen, tIn, tSat, tShut, tGone, tGo, tEnd, from: { x: w.x, z: w.z, hd: w.hd == null ? -Math.PI / 2 : w.hd }, pts, d, pCurb, pSeat };
+}
+/** the fare's walk from the seat to the curb: out of the bench's seat side first (toward the street — the bench faces it), then to the
+ *  curb, a detour round the corner of any other solid the straight line would cross (S: the solids, or the layout's furniture) */
+export function pickupPath(L, a, b, S = null) {
+  const solids = (S || furnitureSolids(L)).filter(q => q.id !== 'cab-bench');
+  const out = { x: a.x, z: Math.min(a.z, (L.cabStand ? L.cabStand.z : a.z) - SOLID.pad - PICKUP.clear) };
+  const pts = [a, out];
+  const cross = (p, q, s) => { for (let i = 0; i <= 24; i++) { const u = i / 24, x = p.x + (q.x - p.x) * u, zz = p.z + (q.z - p.z) * u; if (x > s.x0 && x < s.x1 && zz > s.z0 && zz < s.z1) return true; } return false; };
+  const hit = solids.find(s => cross(out, b, s));
+  if (hit) { const left = Math.abs(out.x - hit.x0) < Math.abs(out.x - hit.x1), cx = left ? hit.x0 - 0.15 : hit.x1 + 0.15; pts.push({ x: cx, z: hit.z1 + 0.1 }, { x: cx, z: hit.z0 - 0.1 }); }
+  pts.push(b);
+  return pts;
+}
+/** a point along a polyline at distance s */
+function along(pts, s) {
+  for (let i = 1; i < pts.length; i++) { const a = pts[i - 1], b = pts[i], l = Math.hypot(b.x - a.x, b.z - a.z); if (s <= l || i === pts.length - 1) { const u = l > 0 ? Math.min(1, Math.max(0, s / l)) : 1; return { x: a.x + (b.x - a.x) * u, z: a.z + (b.z - a.z) * u, hd: Math.atan2(b.z - a.z, b.x - a.x) }; } s -= l; }
+  return { ...pts[pts.length - 1], hd: 0 };
+}
+/** the fare's state at t (drawn by the cab stand, BEHIND the car) — or null (not yet / gone): RISING off the seat (the planned sit pose
+ *  easing into a stand — `prev` + `blendS` for folk.js#rigOf), WALKING out + round to the curb, waiting a breath as the door opens,
+ *  stepping in + ducking down out of sight as he sits */
+export function pickupFareAt(p, t) {
+  if (t < p.tW || t >= p.tSat) return null;
+  const ez = u => (u < 0 ? 0 : u > 1 ? 1 : u * u * (3 - 2 * u));
+  // (facing: he rises the way he sat (the bench's sitters are drawn side-on), then turns onto his path over his first steps)
+  if (t < p.tR) return { x: p.from.x, z: p.from.z, pose: 'wait', prev: 'sit', blendS: PICKUP.rise, hd: p.from.hd, v: 0, dist: 0, a: 1, since: t - p.tW, left: 9, y: 0 };
+  if (t < p.tC) { const s = (t - p.tR) * PICKUP.V, q = along(p.pts, s), k = ez((t - p.tR) / 0.6); return { x: q.x, z: q.z, pose: 'walk', prev: 'wait', hd: lerpHd(p.from.hd, q.hd, k), v: 1.4, dist: s, a: 1, since: t - p.tR, y: 0 }; }
+  if (t < p.tIn) return { x: p.pCurb.x, z: p.pCurb.z, pose: 'wait', prev: 'walk', hd: -Math.PI / 2, v: 0, dist: p.d, a: 1, since: t - p.tC, y: 0 };
+  // (in: a step toward the car, then down — he sits on the back seat, sinking behind the body; the last of him under the roofline)
+  const u = (t - p.tIn) / (p.tSat - p.tIn), s1 = ez(u / 0.45), s2 = ez((u - 0.3) / 0.7);
+  return { x: p.pCurb.x + (p.pSeat.x - p.pCurb.x) * s1, z: p.pCurb.z + (p.pSeat.z - p.pCurb.z) * s1, pose: s2 > 0.35 ? 'sit' : 'walk', hd: -Math.PI / 2 + 0.6 * s1, v: s2 > 0.35 ? 0 : 0.8, dist: p.d + s1 * 0.8, a: 1, since: t - p.tIn, y: -1.6 * s2 };
+}
+
 /** the stop for a layout (the workers' trucks' — their P: the near lane, the stop line, the crossing) */
 export const cabStop = L => { const ln = trafficLanes(L).near, cw = L.crosswalk; return { truckZ: ln.z, stopFront: cw.x0 - TRAFFIC.stopBack - 0.15, cw }; };
 

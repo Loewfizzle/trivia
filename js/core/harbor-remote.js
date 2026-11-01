@@ -180,8 +180,10 @@ export const EVENTS = [
   { id: 'eclipse', label: 'MOON ECLIPSE', cat: 'sky', group: 'UP HIGH', night: true },
   { id: 'eclipse-sun', label: 'SOLAR ECLIPSE', cat: 'sky', group: 'UP HIGH' },
   { id: 'totality', label: 'TOTALITY', cat: 'sky', group: 'UP HIGH' },
-  { id: 'fireworks', label: 'FIREWORKS', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
-  { id: 'finale', label: 'PARTY FINALE', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
+  { id: 'fireworks', label: 'FIREWORKS', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, hint: 'PART 10: the weeknight show (~60–90 s) — the sign dims, the people look up' },
+  { id: 'fireworks-party', label: 'PARTY SHOW', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, hint: 'PART 10: the full party show (~4–5 min) + the finale + the gold willow curtain' },
+  { id: 'fireworks-midnight', label: 'MIDNIGHT SHELLS', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, hint: 'PART 10: the 2–4 shells at midnight (below the sign, no dim)' },
+  { id: 'finale', label: 'PARTY FINALE', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true, hint: 'PART 10: the party show from its finale (the full sky → the gold willow curtain)' },
   { id: 'sleigh', label: 'SLEIGH', cat: 'sky', group: 'FIREWORKS + HOLIDAY SKY', night: true },
   { id: 'witch', label: 'WITCH', cat: 'holidays', group: 'HALLOWEEN', night: true, hint: 'she crosses the sky on her broom (the moon when it’s up), a trail of neon sparks + her cackle' },
   // (11a-1 — HALLOWEEN + DAY OF THE DEAD: the moments on demand; the build-up itself is DATE-driven — the HOLIDAY jump or &when=Oct 1 → Nov 3)

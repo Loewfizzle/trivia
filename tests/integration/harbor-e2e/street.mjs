@@ -310,6 +310,10 @@ G('people', async () => {
     const done = await ev(Q.page, `${P}.promenade.cabTaxi`), still = await ev(Q.page, `${P}.people.members.filter(m => m.kind === 'cabwait').map(m => m.id)`);
     ok(!up.run && up.runs === 0 && run.run && done.taken.includes(run.run.vid), `PROM THE CAB STAND: no taxi with the dock up (${up.runs}); the dock rests → the taxi came for ${run.run ? run.run.vid : '—'} + took them (${done.taken.join(', ')})`);
     void still;
+    // (PART 10 Group 0 — the owner: when the cab pulled up he VANISHED off the bench + walked THROUGH it: he RISES from the seat where he sat, and
+    // every frame the cab stand draws him he's listed for the bench's sharp overlay — so it draws him in front of it, never covers him)
+    ok(done.fareFrames > 30 && done.fareListed >= done.fareFrames - 2 && done.rose && done.last && Math.hypot(done.rose.x - done.last.sat.x, done.rose.z - done.last.sat.z) < 0.05,
+      `PART 10 THE CAB PICKUP's MIDDLE: he rises where he sat (${done.rose ? `${done.rose.x}, ${done.rose.z}` : '—'} vs ${done.last && done.last.sat ? `${done.last.sat.x}, ${done.last.sat.z}` : '—'}); drawn ${done.fareFrames} frames, ${done.fareListed} of them re-drawn over the bench's sharp overlay`);
     await Q.ctx.close(); }
   // ---- midday (a Thursday): people out on the promenade, inside the cap, on screen + never under the dock; THE HUSH SIGN says OPEN
   { const Q = await open({ slot: 'pp1', qs: `when=2026-10-22T12:30${GR}`, view: [402, 874] });

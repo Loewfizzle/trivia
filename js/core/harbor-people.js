@@ -1177,14 +1177,14 @@ export function folkAt(t, world, cache = new Map()) {
   // the bench dancers — on top of the everyday crowd (the tier table decides how much a phone draws: capByTier); the pockets are SOLIDS
   // while they stand (the walkers thread between them); a break pauses the cab stand (no waiter sits down in it)
   const spW = get(`SPWorld|${ctx.solidsKey || ''}`, () => ({ L, M, route, solids: (ctx.solids || []).filter(q => q.t0 == null), line: lineRect(L, LINE.max) }));
-  const spCtx = { off: ctx.off, seed: ctx.seed, party: ctx.party, partyForced: !!ctx.partyForced, forceDanceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, danceKind: ctx.danceKind || null, noDance: !!ctx.noDance, blocked: ctx.blocked || null, event: !!ctx.event, rain: ctx.rain || 0, deck: ctx.deck || null };
+  const spCtx = { off: ctx.off, seed: ctx.seed, party: ctx.party, partyForced: !!ctx.partyForced, forceDanceAt: ctx.forceDance && ctx.forceDanceAt != null ? ctx.forceDanceAt : null, danceKind: ctx.danceKind || null, noDance: !!ctx.noDance, blocked: ctx.blocked || null, shows: ctx.fwShows || null, event: !!ctx.event, rain: ctx.rain || 0, deck: ctx.deck || null };
   const sp = ctx.noStreetParty ? null : streetPartyAt(t, spCtx, spW, get);
   const standOK = pl => (!sp || !sp.busy(pl.rider.t0, pl.rider.tEnd || pl.rider.t1)) && !closed(pl.rider.t0, pl.rider.tEnd || pl.rider.t1);   // (a dance — a break or the old circle's preview — pauses the cab stand)
   let all = [...A(ka), ...Bv(kb), ...busesNear(t - 400, t + 10).flatMap(b => riders(b)), ...cabsNear(t - 400, t + 10).flatMap(pl => pl.riders), ...standsNear(t - 400, t + 10).filter(standOK).map(pl => pl.rider), ...forced, ...routine, ...hol, ...(sp ? sp.visits : [])].filter(v => t >= v.t0 && t < (v.tEnd || v.t1));
   // 8b1 — THE WITNESSES (core/harbor-witness.js): a legendary night (ctx.legend: { kind, t0 }) — everyone on the promenade when it comes
   // reacts (the UFO: they look up, then FLEE; the TR-3B: they stare up, a few hurry indoors); nobody new comes until the empty spell ends
   // (the reaction holds after the window too — a routine back at its post on its new path, never the old one popping back — for a few hours)
-  const LG = ctx.legend && t >= ctx.legend.t0 && t < ctx.legend.t0 + 4 * 3600 ? ctx.legend : RP && t >= RP.tAppear ? { kind: 'raid', t0: RP.tAppear, len: Math.max(8, RP.tPast - RP.tAppear) } : null, inWin = LG && witnessWindow(LG, t);
+  const LG = ctx.legend && t >= ctx.legend.t0 && t < ctx.legend.t0 + 4 * 3600 ? ctx.legend : RP && t >= RP.tAppear ? { kind: 'raid', t0: RP.tAppear, len: Math.max(8, RP.tPast - RP.tAppear) } : ctx.fireworks && t >= ctx.fireworks.t0 && t < ctx.fireworks.t0 + 3600 ? ctx.fireworks : null, inWin = LG && witnessWindow(LG, t);   // (PART 10: + a show — the crowd stops + looks up)
   let reacted = [];
   if (LG) {
     reacted = get(`WIT|${LG.kind}|${LG.t0}`, () => {

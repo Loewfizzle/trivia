@@ -123,7 +123,7 @@ G('weather', async () => {
   // ---- ATM-B — THE STORM: the deck rolls in (the low heavy base + the cumulonimbus towers), the panel's CLOSE STRIKE (&force=strike) lands
   // a thick fork on a crown / the water / THE NEEDLE within ~15 s, the flash still capped
   { const Q = await open({ slot: 'st1', qs: `when=2026-11-03T21:30${GR}&force=storm,strike`, view: [402, 874] });
-    await harborUp(Q.page);
+    await harborUp(Q.page); await tapAt(Q.page, 30, 300);   // (PART 10 G0: the tap unlocks the audio — the flash log then follows every thunder)
     await waitFor(Q.page, `${W}.zap.kinds.close >= 1 && ${W}.storm.k > 0.5`, 'a close strike', 20000).catch(() => {});
     const sw = await ev(Q.page, W), z = sw.zap;
     ok(sw.storm.k > 0.5 && sw.storm.deck.towers >= 2 && z.kinds.close >= 1 && (z.kinds.crown || 0) + (z.kinds.water || 0) + (z.kinds.needle || 0) >= 1, `ATM-B THE STORM: the deck in (${sw.storm.k}, ${sw.storm.deck.towers} towers, ${sw.storm.deck.mb} MB), the CLOSE STRIKE landed (${JSON.stringify(z.kinds)})`);
@@ -131,6 +131,20 @@ G('weather', async () => {
     // the distance delay — the flash held back by `lead`, or the file by `wait` (lead − wait = crack − delay); the synthesized crack gone)
     const tl = ((await ev(Q.page, 'window.__district.harbor().sounds.thunderLog')) || []).filter(e => e.crack != null);
     const e0 = tl[0];
+    // (PART 10 G0 — NO BRIGHT FLASH IS SILENT: every flash in the log PLAYED its thunder — a close one's crack ≤ ~0.5 s after the flash, a
+    // roll within its distance + the slack; none SILENT, none LATE (a flash before the tap is 'muted' — the locked audio, by design: not counted))
+    const FL = 'window.__district.harbor().sounds.flashLog';
+    await waitFor(Q.page, `${FL}.filter(e => e.verdict !== 'waiting' && e.verdict !== 'muted').length >= 3`, 'three flashes heard', 45000).catch(() => {});
+    const fl = ((await ev(Q.page, FL)) || []).filter(e => e.verdict !== 'waiting' && e.verdict !== 'muted'), bad = fl.filter(e => e.verdict !== 'ok' && e.verdict !== 'quiet');
+    const cl = fl.filter(e => e.kind === 'close');
+    // (+ a BUSY storm — &force=lightning: every 4.5–7 s, intra-cloud + far + close mixed — every roll heard within its distance + the slack)
+    { const B = await open({ slot: 'st2', qs: `when=2026-11-03T21:30${GR}&force=storm,lightning`, view: [402, 874] });
+      await harborUp(B.page); await tapAt(B.page, 30, 300);
+      await waitFor(B.page, `${FL}.filter(e => e.kind !== 'close' && e.verdict !== 'waiting' && e.verdict !== 'muted').length >= 3`, 'three rolls heard', 50000).catch(() => {});
+      const bl = ((await ev(B.page, FL)) || []).filter(e => e.verdict !== 'waiting' && e.verdict !== 'muted'), bb = bl.filter(e => e.verdict !== 'ok' && e.verdict !== 'quiet');
+      ok(bl.filter(e => e.kind !== 'close').length >= 3 && !bb.length, `PART 10 A BUSY STORM's ROLLS ALL HEARD: ${bl.map(e => `${e.kind} b${e.bright} → ${e.take} ${e.heard != null ? `${e.heard} s` : e.why} ${e.verdict}`).join(' · ')}`);
+      await B.ctx.close(); }
+    ok(fl.length >= 3 && !bad.length && cl.length >= 1 && cl.every(e => e.heard != null && e.heard <= 0.65), `PART 10 NO BRIGHT FLASH IS SILENT: ${fl.length} flashes — ${fl.map(e => `${e.kind} b${e.bright} → ${e.take} ${e.heard != null ? `${e.heard} s` : e.why} ${e.verdict}`).join(' · ')}`);
     ok(e0 && /^thunder-(close-[1-5]|alt-close-(crackle|deepslam))$/.test(e0.take) && Math.abs((e0.lead - e0.wait) - (e0.crack - e0.delay)) < 0.03, `ATM-C THE CLOSE THUNDER IS RECORDED + ON ITS CRACK: ${e0 ? `${e0.take} — crack ${e0.crack} s in, the distance ${e0.delay} s → the flash held ${e0.lead} s, the file ${e0.wait} s${e0.second ? `, a second flash ${e0.second.toFixed(2)} s on` : ''}` : 'no close thunder logged'}`);
     await Q.ctx.close(); }
   // ---- ATM-B — FOG AS DEPTH (fogdepth.js; the owner: "fog doesn't really do anything"): DENSE fog = the veils by depth (the far rows gone,

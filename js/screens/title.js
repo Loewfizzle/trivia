@@ -359,7 +359,7 @@ export function createTitle() {
     // (and again once the scene has its clock: the first check can come before its look — then nothing showed for 30 s)
     if (createHarbor) { tiredTick(); setTimeout(tiredTick, 1200); tiredT = setInterval(tiredTick, 30000); }
     // CITY 2.0 — THE SIGN-DIM HOOK (C1.5; Part 6b's sky messages use it): the scene says how dim the logo and the tagline should be
-    if (createHarbor) scene.set({ onSignDim: applySignDim });
+    if (createHarbor) scene.set({ onSignDim: applySignDim, onSignFlash: applySignFlash });
     // CITY 2.0: THE PREVIEW PANEL (docs/harbor.md) — everyone on ?city=2 follows the owner's city2/live; she gets the TEST pill.
     // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
     // (SP4: a JUST ME state kept for this tab loads at once — the scene's reveal waits for it, so the preview is in the first picture)
@@ -666,6 +666,17 @@ export function createTitle() {
   }
   // THE SIGN-DIM HOOK (C1.5, core/harbor-signdim.js): a sky message flies in front of the logo — the NEON letters + SPEAKEASY dim
   // (--sd-logo: opacity on their own wrappers, nothing else writes those) and the tagline fades (nd-tag-sky), over d.ms; back after
+  // PART 10 — THE SIGN JOINS THE FIREWORKS (the owner, Oct 31 9:05 pm: it stays LIT in front of them; a subtle brightening on the biggest
+  // bursts): the scene hands the flare 0..1 — on a party night it rides the party's swell (partyFrame), any other night it lights the sign's
+  // bloom itself (opacity only — a compositor change), easing back as the flare decays
+  let fwFlare = 0;
+  function applySignFlash(k) {
+    if (destroyed || !els.sign) return;
+    fwFlare = k;
+    if (els.root && els.root.classList.contains('is-party')) return;
+    const b = els.sign.querySelector('.nd-bloom'); if (!b) return;
+    if (k > 0.01 && els.sign.classList.contains('is-steady')) b.style.opacity = String(Math.round(k * 0.6 * 50) / 50); else b.style.opacity = '';
+  }
   function applySignDim(d) {
     if (destroyed || !els.sign) return;
     els.sign.style.setProperty('--sd-ms', `${Math.round(d.ms)}ms`);
@@ -894,10 +905,14 @@ export function createTitle() {
     // the bloom holds a gentle level that moves with the party's phase and the finale's swell (the beat breathes in the canvas's
     // halo under it): a big layer re-composited every frame cost a slow phone 60+ ms
     // (City 2.0, NEON PASS 3: the NEON word joins the show on its BIGGEST drops only — p.big, a flare easing back)
-    const sw = Math.max(p.swell, 0.8 * (p.big || 0));
+    const sw = Math.max(p.swell, 0.8 * (p.big || 0), fwFlare);   // (PART 10: + a big firework's flare)
     // (City 2.0, NEON PASS 4 — THE HARD BEAT: the rings + SPEAKEASY PUNCH on every beat — p.punch, a ~50 ms attack and a quick
     // decay — through opacity alone: the rings' glow layer, SPEAKEASY's extra glow layer; the big bloom keeps its gentle level)
-    const bo = Math.round((0.2 * pe + 0.6 * sw) * 50) / 50, hk = Math.round((createHarbor ? 0.78 + 1.2 * (p.punch || 0) + 0.5 * sw : 1 + 0.34 * p.breath * pe + 0.5 * sw) * 50) / 50;
+    // (PART 10: the bloom sits outside the sign's dimmed wrapper — it follows a dim (a sky message, the fireworks, the TR-3B) itself,
+    // eased over the dim's own time, so a dark sign never keeps a glow of its own on the fog)
+    { const tn = performance.now(), sd = createHarbor && scene && scene.signDim ? scene.signDim() : null, want = sd ? sd.logo : 1, dtb = Math.min(100, tn - (bloomDimAt || tn));
+      bloomDimAt = tn; bloomDim += (want - bloomDim) * Math.min(1, dtb / Math.max(120, (sd && sd.ms) || 1200) * 2.5); if (Math.abs(want - bloomDim) < 0.01) bloomDim = want; }
+    const bo = Math.round((0.2 * pe + 0.6 * sw) * bloomDim * 50) / 50, hk = Math.round((createHarbor ? 0.78 + 1.2 * (p.punch || 0) + 0.5 * sw : 1 + 0.34 * p.breath * pe + 0.5 * sw) * 50) / 50;
     if (createHarbor && partyEls.word) { const wp = Math.round(Math.min(1, (p.punch || 0) * 1.45 + 0.6 * sw) * 40) / 40; if (wp !== partyEls.wp) { partyEls.wp = wp; partyEls.word.style.opacity = String(wp); } }
     // (NEON PASS 5 — the owner: THE NEON LOGO PULSES TOO, with the city: a clear but gentler punch than the skyline so the word stays
     // readable — its light alone (.nd-logo-glow, opacity only), on the letters that are lit right now)
@@ -911,7 +926,7 @@ export function createTitle() {
     if (bo !== partyEls.bo && partyEls.bloom) { partyEls.bo = bo; partyEls.bloom.style.setProperty('--bo', bo); }
     if (hk !== partyEls.hk) { partyEls.hk = hk; for (const g of partyEls.glows) g.el.style.opacity = g.ring.classList.contains('is-lit') ? String(Math.round(hk * g.k * 250) / 250) : ''; }
   }
-  let partyEls = null;
+  let partyEls = null, bloomDim = 1, bloomDimAt = 0;
   // ---------------------------------------------------------------- THE RACE (NEON PASS 6, City 2.0 — the owner)
   // A bright surge races through the NEON letters in turn — N → E → O → N, through the blacked-out connectors between them (dim
   // there: it runs behind the painted tube) — each letter BLAZING fully on as it passes (its own blaze layer, opacity only), then a

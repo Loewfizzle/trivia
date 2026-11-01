@@ -113,7 +113,10 @@ export function createPeople() {
       // NIGHT-B — THE STREET PARTY's previews: the PARTY preview's crowd at its peak, &force=dance's breaks (+ &dance=kind), the old circle
       partyForced: !!f.partyForced, danceKind: f.danceKind || null, noStreetParty: !!f.noStreetParty, forceCircle: !!f.forceCircle, forceCircleAt: f.forceCircleAt == null ? null : f.forceCircleAt,
       // 11a-1 — the holidays' previews (&force=trick-or-treat / zombies / procession: the clock s each was switched on)
-      hforce: hf };
+      hforce: hf,
+      // PART 10 — THE FIREWORKS: the shows (the street party's pockets stop + look up — fwShows) + the one under way (the witnesses' event);
+      // the breaks' conflicts (scene.js#danceBlocked: a raid, a legendary, a show — never reached the street party before PART 10)
+      fwShows: f.fwShows || null, fireworks: f.fireworks || null, blocked: f.blocked || null };
     const p0 = pnow();
     now = f.off == null ? { members: [], buses: [], doors: { side: 0, shop: 0 } } : folkAt(t, { L, M, ctx }, cache);
     if (f.off == null) guardT = null; else guard(now, t);   // (no plan yet — the clock's offset unknown: the first real frame is a load)
@@ -662,15 +665,22 @@ export function createPeople() {
     /** PROM: override a member (vid) on this device — a partial state, 'hide', or null to give them back to the plan */
     /** ATM-C — the cab stand's fare drawn BY THE CAB STAND (round the taxi's tail + in through its near door — in front of the car, or in its
      *  doorway): member vid with its state overridden by s; env: the scene's people env */
-    drawFare(c, vid, s, env) {
+    drawFare(c, vid, s, env, clipY = null) {
       if (!L || !env) return;
       const m = now.members.find(q => q.vid === vid); if (!m) return;
-      const E = envOf(env); c.save(); c.globalAlpha = (env.fade == null ? 1 : env.fade) * (s.a == null ? 1 : s.a);
-      drawFolk(c, L.cam, { s: { ...m.s, ...s }, L: lookFor(m, env) }, { ...E, yUp: s.y || 0 }); c.restore();
+      const E = envOf(env), it = { s: { ...m.s, ...s }, L: lookFor(m, env) }, fe = { ...E, yUp: s.y || 0 }, a = (env.fade == null ? 1 : env.fade) * (s.a == null ? 1 : s.a);
+      c.save(); c.globalAlpha = a; const box = drawFolk(c, L.cam, it, fe); c.restore();
+      // (PART 10 Group 0 — the owner: when the cab pulled up he VANISHED off the bench + walked THROUGH it: the bench's sharp overlay (still.js
+      // on the crisp layer) re-draws only who's in drawnNear — the fare drawn here wasn't, so the bench covered him. Now he's listed like any
+      // walker in front of it (with the car's wheel-line clip), so the overlay re-draws him in his place)
+      if (!box) return false;
+      drawnNear.push({ z: it.s.z, box, key: `${vid}|fare|${it.s.x.toFixed(2)}|${it.s.z.toFixed(2)}|${it.s.pose}|${(it.s.dist || 0).toFixed(2)}|${(it.s.since || 0).toFixed(2)}|${(s.y || 0).toFixed(2)}`,
+        redo: cc => { cc.save(); cc.globalAlpha = a; if (clipY != null) { cc.beginPath(); cc.rect(-50, clipY - 4000, 4000, 4000); cc.clip(); } drawFolk(cc, L.cam, it, fe); cc.restore(); } });
+      return true;
     },
     override(vid, s) { if (s == null) over.delete(vid); else over.set(vid, s); if (over.size > 24) over.delete(over.keys().next().value); },
     /** PROM: the cab stand's waiters now (the taxi's candidates): [{ vid, x, z, pose, since, left }] */
-    waiters: () => (now.members || []).filter(m => m.kind === 'cabwait' && m.m.role === 'lead').map(m => ({ vid: m.vid, x: m.s.x, z: m.s.z, pose: m.s.pose, since: m.s.since || 0, left: m.s.left == null ? 0 : m.s.left, look: m.look, seed: m.m.seed })),
+    waiters: () => (now.members || []).filter(m => m.kind === 'cabwait' && m.m.role === 'lead').map(m => ({ vid: m.vid, x: m.s.x, z: m.s.z, pose: m.s.pose, hd: m.s.hd, since: m.s.since || 0, left: m.s.left == null ? 0 : m.s.left, look: m.look, seed: m.m.seed })),
     layout, frame, draw, tick, drawInside,
     /** FP3b — REAL DOORS: how open each speakeasy door is now ({ side, shop }: 0..1 — the speakeasy draws the leaf) */
     doors: () => ({ ...(now.doors || { side: 0, shop: 0 }) }),

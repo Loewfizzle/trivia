@@ -31,8 +31,19 @@ export const SCHEDULE = Object.freeze([
   { id: 'party.conga', trigger: 'event', status: 'live', src: 'core/harbor-streetparty.js#congaPlan', what: 'THE BIG CONGA: in a conga break a long line in from the right edge, across the whole promenade + off the left' },
   { id: 'cart.party', trigger: 'clock', status: 'live', src: 'core/harbor-routines.js#cartEvening', what: 'the chestnut cart PACKS UP before the party\'s crowd on a party night (any other night: VENDOR.to)',
     knobs: { partyTo: 20.4 } },
-  { id: 'party.fireworks', trigger: 'clock', status: 'planned', src: 'Part 10', what: 'the party night\'s FIREWORKS at 10 pm (or once dark enough) + its biggest dance break; a small burst at midnight',
-    knobs: { at: 22.0, midnight: 24.0 }, conflicts: ['storm'] },
+  // ---- PART 10 — THE FIREWORKS (core/harbor-fireworks.js + screens/harbor/fireworks.js; the owner, Oct 31 5:02 pm): EVERY night. at: the
+  // local hour (or once properly dark — the sun at darkEl° — if later: a summer twilight); latest: no show starts after it; gap: the
+  // minutes kept clear round a legendary / a raid / the ghost ship (s — the show WAITS for them); dur: the show's length range (s);
+  // finale: the party show's finale (s, before the curtain + the salutes); n: the midnight shells; cancel: the weather that calls it off
+  // (rain / fog / snow 0..1, wind m/s — a gale); the sign dims `dim` for the shows (not midnight's — they stay below it)
+  { id: 'fireworks.show', trigger: 'clock', status: 'live', src: 'core/harbor-fireworks.js#weeknightScript', what: 'THE WEEKNIGHT SHOW: a short show (~60–90 s, a few dozen shells) at 9:30 pm on every night that is not a party night — the sign dims, the people look up',
+    knobs: { at: 21.5, latest: 23.4, gap: 120, darkEl: -7.5, dur: [62, 88], dim: 0.06, cancel: { rain: 0.12, wind: 16, fog: 0.55, snow: 0.5 } },
+    conflicts: ['legendaries', 'raid', 'storm', 'helicopter.patrol'] },
+  { id: 'fireworks.party', trigger: 'clock', status: 'live', src: 'core/harbor-fireworks.js#partyScript', what: 'THE PARTY SHOW: the full show (~4–5 min) at 10 pm on a party night, building to a FINALE (a full sky) + THE GOLD WILLOW CURTAIN over the skyline; synced to the party song; the dancers stop + look up',
+    knobs: { at: 22.0, latest: 23.6, gap: 150, dur: [250, 290], finale: 40 },
+    conflicts: ['legendaries', 'raid', 'storm', 'party.break', 'helicopter.patrol'] },
+  { id: 'fireworks.midnight', trigger: 'clock', status: 'live', src: 'core/harbor-fireworks.js#midnightScript', what: 'MIDNIGHT: 2–4 shells, low (below the sign, no dim) — "someone setting off a few"; every night',
+    knobs: { at: 24.0, latest: 24.6, gap: 60, n: [2, 4] }, conflicts: ['legendaries', 'storm'] },
   // ---- FIXED POINTS
   { id: 'rosie.bell', trigger: 'clock', status: 'live', fixed: true, src: 'core/harbor-boats.js', what: 'ROSIE\'s ship\'s bell as she docks at :00 (the horn ~:03 as she casts off) — the owner: NEVER moved',
     knobs: { minute: 0 } },
@@ -70,7 +81,7 @@ export const SCHEDULE = Object.freeze([
   // SKY-A — THE LEGENDS' REGISTRY (FR4 asked): every legendary, its trigger, its rarity + its conflicts in ONE place. The numbers MIRROR
   // the code that rolls them (core/harbor-legend.js — moved INTO this table at SCHED; tests/harbor-blackbird.test.mjs checks they agree)
   { id: 'legend.ufo', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (LEGEND_P)', registry: true, what: 'THE UFO ABDUCTION: ~1–2 a month, any night, 21:30 → 00:45 (a seeded minute); 30 s — sebslom’s model, the pale green beam over the compass, the witnesses flee', knobs: { from: 21.5, to: 24.75, len: 30 }, conflicts: ['legend.tr3b', 'raid', 'party.break'] },
-  { id: 'legend.tr3b', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (TR3B_PARTY_P, TR3B_HOURS)', registry: true, what: 'THE TR-3B: ~1.5 a month, PARTY NIGHTS only (Fri / Sat), at the peak (22:09–22:51 · 23:09–23:51 · 00:09–00:30), never a fireworks night; the city drains dark, the craft crosses (its lights light the world), the F-22 vic chases it + THE BLACKBIRD passes them', knobs: { partyP: 0.17, hours: [[22.15, 22.85], [23.15, 23.85], [24.15, 24.5]] }, conflicts: ['legend.ufo', 'raid', 'party.fireworks', 'party.break', 'traffic'] },
+  { id: 'legend.tr3b', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (TR3B_PARTY_P, TR3B_HOURS)', registry: true, what: 'THE TR-3B: ~1.5 a month, PARTY NIGHTS only (Fri / Sat), at the peak (22:09–22:51 · 23:09–23:51 · 00:09–00:30), never a fireworks night; the city drains dark, the craft crosses (its lights light the world), the F-22 vic chases it + THE BLACKBIRD passes them', knobs: { partyP: 0.17, hours: [[22.15, 22.85], [23.15, 23.85], [24.15, 24.5]] }, conflicts: ['legend.ufo', 'raid', 'fireworks.party', 'party.break', 'traffic'] },
   { id: 'legend.ghostship', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js#ghostShipAt', registry: true, what: 'THE GHOST SHIP: Halloween night only (the legendary of Oct 31 — no UFO / TR-3B that night)' },
   { id: 'legend.flyby', trigger: 'calendar', status: 'live', src: 'screens/harbor/skyfx.js#flybyDay', registry: true, what: 'THE SURPRISE FLYBY: ~twice a month, golden hour → 11 pm — F-22s straight across on afterburner (the model)' },
   // (THE MODELS PASS — THE MOTHMAN, core/harbor-mothman.js + screens/harbor/mothman.js: p = a night's chance (≈ 2 a month once the legendary
@@ -84,11 +95,11 @@ export const SCHEDULE = Object.freeze([
   { id: 'blackbird.solo', trigger: 'calendar', status: 'live', src: 'core/harbor-blackbird.js#soloDay', what: 'THE BLACKBIRD’s SOLO SIGHTINGS: rare (~2 a month, a seeded day + time), ~5 passes on July 4 — above the lit sign; never on a legendary night', knobs: { perMonth: 2, from: 11, to: 23, july4: 5, july4From: 12, july4To: 21.5 }, conflicts: ['legendaries'] },
   { id: 'blackbird.watcher', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#watcherStep', what: 'THE WATCHER’s REWARD: after 60 visible minutes on the city (a gap under 5 min pauses the count, longer resets it) — this device only, once a day, never announced', knobs: { minutes: 60, pauseMin: 5, step: 5 } },
   // (SKY-B — THE SHADOWBOXER, core/harbor-boxer.js + screens/harbor/boxer.js: days (0 = Sun); from / to / wrapAt (local hours); stayChance (a
-  // Friday he trains on through the party); round / rest / brk (s) + rounds a set; walkIn / outWalk (s: in at a set's start, the towel +
+  // party night — Fri + Sat, partyDays — he trains on through the party); round / rest / brk (s) + rounds a set; walkIn / outWalk (s: in at a set's start, the towel +
   // out at the end); blindLead / blindDown (s: the blind up before him, down after); lampOff (s: the bulb out after the blind is down);
   // height (his share of the window's height); bagKick / bulbKick (rad a full hit); ropeBursts (the rope heard in a long break))
-  { id: 'boxer', trigger: 'calendar', status: 'live', src: 'core/harbor-boxer.js + screens/harbor/boxer.js', what: 'THE SHADOWBOXER: Mon / Wed / Fri 7 → 11 pm in the upper middle window (the blind up = his entrance), SETS of 10 ROUNDS (3 min) + 1-min rests → a 10-min break → again; at 11 he finishes the set; FRIDAY (seeded ~50/50) he wraps up at 8:30 (the round he is in) or trains on through the party; never on a legendary night',
-    knobs: { days: [1, 3, 5], from: 19, to: 23, wrapAt: 20.5, stayChance: 0.5, round: 180, rest: 60, rounds: 10, brk: 600, walkIn: 3.5, outWalk: 7, blindLead: 3.5, blindDown: 3.5, lampOff: 90, height: 0.7, bagKick: 0.12, bulbKick: 0.07, ropeBursts: 6 }, conflicts: ['window.party', 'raid', 'legendaries'] },
+  { id: 'boxer', trigger: 'calendar', status: 'live', src: 'core/harbor-boxer.js + screens/harbor/boxer.js', what: 'THE SHADOWBOXER: EVERY NIGHT 7 → 11 pm in the upper middle window (the blind up, then he WALKS UP into place = his entrance), SETS of 10 ROUNDS (3 min) + 1-min rests → a 10-min break → again; at 11 he finishes the set; the PARTY NIGHTS (Fri + Sat, each seeded by the date ~50/50) he wraps up at 8:30 (the round he is in — the towel, the walk out, the blind down) or trains on through the party; never during a raid or on a legendary night (the owner, Oct 31 8:32 pm: every night — was Mon / Wed / Fri)',
+    knobs: { days: [0, 1, 2, 3, 4, 5, 6], partyDays: [5, 6], from: 19, to: 23, wrapAt: 20.5, stayChance: 0.5, round: 180, rest: 60, rounds: 10, brk: 600, walkIn: 3.5, outWalk: 7, blindLead: 3.5, blindDown: 3.5, lampOff: 90, height: 0.7, bagKick: 0.12, bulbKick: 0.07, ropeBursts: 6 }, conflicts: ['window.party', 'raid', 'legendaries'] },
   { id: 'legendaries', trigger: 'event', status: 'live', src: 'core/harbor-legend.js', what: 'the legendaries (the UFO, the TR-3B…) — their seeded nights', conflicts: ['traffic'] },
   { id: 'blackout', trigger: 'event', status: 'live', src: 'core/harbor-dark.js', what: 'THE BLACKOUT (the TR-3B\'s drain): every light down, back on in turn' },
   { id: 'raid', trigger: 'event', status: 'live', src: 'core/harbor-raid.js', what: 'THE RAID: the night after a bootlegger delivery (~50 %), 9–11 pm', conflicts: ['party.break'] },
@@ -106,7 +117,10 @@ export const CONFLICTS = Object.freeze([
   { a: 'helicopter.patrol', b: 'legendaries', rule: 'no patrol near tonight’s legendary (its window: legendGap before → legendLen after)', where: 'core/harbor-heli.js#legendWindow' },
   { a: 'blackbird.solo', b: 'legendaries', rule: 'no solo Blackbird on a legendary night (that night has its own sky; the TR-3B brings its own Blackbird)', where: 'core/harbor-blackbird.js#soloDay' },
   { a: 'blackbird', b: 'traffic', rule: 'nothing new crosses the sky strip while it flies (one flyby at a time, a forced one waits)', where: 'screens/harbor/blackbird.js#start' },
-  { a: 'party.fireworks', b: 'storm', rule: 'no fireworks in a storm (Part 10)', where: 'Part 10' },
+  { a: 'fireworks.show', b: 'storm', rule: 'no fireworks in rain, a storm, a gale, dense fog or heavy snow (light snow + clear cold nights go ahead); a show that turns bad stops launching', where: 'core/harbor-fireworks.js#fireworksWeather · screens/harbor/fireworks.js' },
+  { a: 'fireworks.show', b: 'legendaries', rule: 'a show WAITS for tonight’s legendary / the ghost ship / the raid (its gap after it); never launched while one runs', where: 'core/harbor-fireworks.js#fireworksNight (ctx.busy)' },
+  { a: 'fireworks.party', b: 'party.break', rule: 'no dance break during a show — the dancers STOP + look up (the break is skipped)', where: 'core/harbor-streetparty.js#danceBreaks (ctx.blocked) · scene.js' },
+  { a: 'fireworks.show', b: 'helicopter.patrol', rule: 'no patrol over a show (the sky is the fireworks’)', where: 'core/harbor-heli.js#patrolsNear (ctx.blocked) · scene.js' },
   { a: 'boxer', b: 'window.party', rule: 'the boxer\'s window sits out of the window party when he trains on a party night', where: 'screens/harbor/windows.js (party.k.back = 0 while he is in)' },
   { a: 'boxer', b: 'raid', rule: 'a raid ends his night (the blinds come down)', where: 'screens/harbor/windows.js (boxer off once raidS ≥ 0)' },
   { a: 'legend.mothman', b: 'window.haze', rule: 'EYES IN THE HAZE never shares a Mothman night (nor a legendary’s)', where: 'core/harbor-moments.js#eyesNights (mothmanNight)' },
