@@ -215,6 +215,10 @@ function aimV(p0, p1, k, g, T) {
 export function createHarborFireworks(opts = {}) {
   let cv = null, gl = null, prog = null, sprog = null, vao = null, svao = null, ibuf = null, sbuf = null, quad = null, maskTex = null, puffTex = null;
   let cprog = null, cvao = null, washTex = null, washFb = null, washW = 0, washH = 0;   // (PERF-A: the quarter-res wash buffer)
+  // (PERF-B — THE LIVE RANGE: the ring held ~30 s of a finale at the top tier and EVERY pass drew all of it (~32k instances × 4 vertices ×
+  //  3 passes a frame, the dead ones only culled in the vertex shader); `tail` now walks past the dead from the oldest end — a spark's death
+  //  (birth + life) kept per slot — and each pass draws only [tail, head): the same picture, a few seconds' worth of vertices)
+  let deathAt = null, tail = 0, liveN = 0;
   let W = 0, H = 0, dpr = 1, tier = 2, cap = 0, scap = 0, head = 0, written = 0, shead = 0, swritten = 0, tBase = 0, maskKey = '', maskW = 1, failed = false, why = '', alphaK = 0;
   const shells = new Map();        // cue key → { k, i0, n, end, light }
   const doneBy = new Map();        // show id → the cue keys already built (or past) — a show's cues are built once
@@ -232,7 +236,7 @@ export function createHarborFireworks(opts = {}) {
       if (!gl) throw new Error('no webgl2');
       prog = compile(gl, VS, FS); sprog = compile(gl, SVS, SFS); cprog = compile(gl, CVS, CFS); cvao = gl.createVertexArray();
       quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
-      cap = tierVal('fwRing', t); scap = Math.round(cap / 24);
+      cap = tierVal('fwRing', t); scap = Math.round(cap / 24); deathAt = new Float32Array(cap); tail = liveN = 0;
       ibuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, ibuf); gl.bufferData(gl.ARRAY_BUFFER, cap * F_INST * 4, gl.DYNAMIC_DRAW);
       sbuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, sbuf); gl.bufferData(gl.ARRAY_BUFFER, scap * F_SMOKE * 4, gl.DYNAMIC_DRAW);
       vao = gl.createVertexArray(); svao = gl.createVertexArray();
@@ -254,7 +258,7 @@ export function createHarborFireworks(opts = {}) {
   function free() {
     try { if (gl) { for (const b of [ibuf, sbuf, quad]) if (b) gl.deleteBuffer(b); for (const tx of [maskTex, puffTex]) if (tx) gl.deleteTexture(tx); if (prog) gl.deleteProgram(prog.p); if (sprog) gl.deleteProgram(sprog.p); if (cprog) gl.deleteProgram(cprog.p); if (washTex) gl.deleteTexture(washTex); if (washFb) gl.deleteFramebuffer(washFb); const lc = gl.getExtension('WEBGL_lose_context'); if (lc) lc.loseContext(); } } catch { /* fine */ }
     if (cv) { cv.width = cv.height = 0; cv.remove(); }
-    cv = gl = prog = sprog = vao = svao = ibuf = sbuf = quad = maskTex = puffTex = null; cprog = cvao = washTex = washFb = null; washW = washH = 0; shells.clear(); head = written = shead = swritten = 0; maskKey = '';
+    cv = gl = prog = sprog = vao = svao = ibuf = sbuf = quad = maskTex = puffTex = null; cprog = cvao = washTex = washFb = null; washW = washH = 0; shells.clear(); head = written = shead = swritten = 0; maskKey = ''; deathAt = null; tail = liveN = 0;
   }
   function resize(w, h, d) {
     if (!gl) return;
@@ -265,12 +269,15 @@ export function createHarborFireworks(opts = {}) {
     cv._h = hh; maskKey = '';
   }
   // THE MASK: per 4 pt column — the roofline (what hides the far layer) + the top of the nearest piece in front (the speakeasy, its
-  // billboard, the signs — else the water's near edge): 16-bit each, R G = the roofline, B A = the near top (y / H)
+  // billboard, the signs — else the water's near edge): 16-bit each, R G = the roofline, B A = the near top (y / the LAYER's height)
+  // (PERF-B — THE FINALE's LEFT CLIP, the owner Nov 1: the shader decodes these × u_view.y = the layer's own height (cut at the water,
+  //  ~480 of 874 pt) but they were encoded / H (the whole screen) — every roofline + the speakeasy's flat top read ~45 % too high, so a big
+  //  burst on the left ended on a straight line at the tagline's height. Encoded / the layer's height now)
   function mask(g) {
-    const sk = g.skyline, n = Math.ceil(W / 4) + 1, key = `${W}|${H}|${g.key}`;
+    const LH = (cv && cv._h) || H, sk = g.skyline, n = Math.ceil(W / 4) + 1, key = `${W}|${LH}|${g.key}`;
     if (key === maskKey) return;
     maskKey = key; maskW = n;
-    const px = new Uint8Array(n * 4), enc = (i, o, y) => { const v = Math.max(0, Math.min(65535, Math.round(y / H * 65535))); px[i * 4 + o] = v >> 8; px[i * 4 + o + 1] = v & 255; };
+    const px = new Uint8Array(n * 4), enc = (i, o, y) => { const v = Math.max(0, Math.min(65535, Math.round(y / LH * 65535))); px[i * 4 + o] = v >> 8; px[i * 4 + o + 1] = v & 255; };
     for (let i = 0; i < n; i++) {
       const x = i * 4, s = sk && sk.length ? sk[Math.min(sk.length - 1, i)] : H;
       let near = g.band ? g.band[1] : H;
@@ -297,7 +304,8 @@ export function createHarborFireworks(opts = {}) {
     if (tn) {
       gl.bindBuffer(gl.ARRAY_BUFFER, ibuf);
       let left = tn, src = 0;
-      while (left > 0) { const n = Math.min(left, cap - head); gl.bufferSubData(gl.ARRAY_BUFFER, head * F_INST * 4, tmp, src * F_INST, n * F_INST); head = (head + n) % cap; written = Math.min(cap, written + n); src += n; left -= n; }
+      while (left > 0) { const n = Math.min(left, cap - head); gl.bufferSubData(gl.ARRAY_BUFFER, head * F_INST * 4, tmp, src * F_INST, n * F_INST); if (deathAt) for (let j = 0; j < n; j++) { const o = (src + j) * F_INST; deathAt[head + j] = tmp[o + 4] + tmp[o + 5] + 0.05; } head = (head + n) % cap; written = Math.min(cap, written + n); src += n; left -= n; }
+      liveN += tn; if (liveN >= cap) { liveN = cap; tail = head; }
     }
     if (sn) {
       gl.bindBuffer(gl.ARRAY_BUFFER, sbuf);
@@ -400,7 +408,7 @@ export function createHarborFireworks(opts = {}) {
     if (!gl && !init(env.W, env.H, env.dpr, env.tier)) return false;
     geom = env.geom; tier = env.tier;
     if (!tBase) tBase = Math.floor(env.now);
-    if (env.now - tBase > 3000 && !shells.size && !smokeLeft(env.now)) { tBase = Math.floor(env.now); written = swritten = 0; head = shead = 0; }
+    if (env.now - tBase > 3000 && !shells.size && !smokeLeft(env.now)) { tBase = Math.floor(env.now); written = swritten = 0; head = shead = 0; tail = liveN = 0; }
     resize(env.W, env.H, Math.min(env.dpr, tierVal('fwDpr', env.tier) / 10));
     mask(env.geom);
     const now = env.now - tBase, look = 0.25;
@@ -432,7 +440,7 @@ export function createHarborFireworks(opts = {}) {
     lightsNow = L.slice(0, Math.max(1, tierVal('fwLights', env.tier)));
     lastNow = now;
     draw(now, env);
-    stats = { shells: shells.size, sparks: written, puffs: swritten, draws: stats.draws, ms: +(performance.now() - t0).toFixed(2), lights: lightsNow.length };
+    stats = { shells: shells.size, sparks: written, live: stats.live || 0, puffs: swritten, draws: stats.draws, ms: +(performance.now() - t0).toFixed(2), lights: lightsNow.length };
     return true;
   }
   const smokeLeft = abs => swritten > 0 && abs - tBase < lastSmokeEnd;
@@ -444,6 +452,14 @@ export function createHarborFireworks(opts = {}) {
     gl.bindBuffer(gl.ARRAY_BUFFER, ibuf);
     for (let i = 0; i < 4; i++) { gl.enableVertexAttribArray(1 + i); gl.vertexAttribPointer(1 + i, 4, gl.FLOAT, false, F_INST * 4, (first * F_INST + i * 4) * 4); gl.vertexAttribDivisor(1 + i, 1); }
   }
+  /** the live sparks' instances: past the dead at the oldest end, then 1–2 ranges [first, count] (the ring may wrap) */
+  function liveRanges(now) {
+    if (deathAt) while (liveN > 0 && deathAt[tail] < now) { tail = (tail + 1) % cap; liveN--; }
+    else { tail = (head - written + cap) % Math.max(1, cap); liveN = written; }
+    if (liveN <= 0) return [];
+    return tail + liveN <= cap ? [[tail, liveN]] : [[tail, cap - tail], [0, liveN - (cap - tail)]];
+  }
+  function drawLive(ranges) { let n = 0; for (const [a, c] of ranges) { bindSparks(a); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, c); n++; } return n; }
   function draw(now, env) {
     const w = cv.width, h = cv.height, hh = cv._h || H;
     gl.viewport(0, 0, w, h);
@@ -468,7 +484,9 @@ export function createHarborFireworks(opts = {}) {
       gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, swritten); draws++;
     }
     // 2. THE SPARKS (+ blooms + the city's wash), additive; 3. their reflections in the harbor
-    if (written) {
+    const live = written ? liveRanges(now) : [];
+    stats.live = live.reduce((a, r) => a + r[1], 0);
+    if (live.length) {
       gl.useProgram(prog.p); gl.blendFunc(gl.ONE, gl.ONE);
       const U = prog.U;
       gl.uniform2f(U.u_view, W, hh); gl.uniform1f(U.u_t, now); gl.uniform1f(U.u_wind, wind); gl.uniform1f(U.u_squash, geom && geom.waterY ? Math.max(0.1, Math.min(0.4, (bandY[1] - geom.waterY.barge) / Math.max(60, geom.waterY.barge - geom.skyTop) * 0.92)) : 0.2);
@@ -495,13 +513,13 @@ export function createHarborFireworks(opts = {}) {
       if (lowOk) {
         gl.bindFramebuffer(gl.FRAMEBUFFER, washFb); gl.viewport(0, 0, ww, wh); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
         gl.uniform1f(U.u_mirror, 0); gl.uniform1f(U.u_pass, 1);
-        bindSparks(0); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, written); draws++;
+        draws += drawLive(live);
         gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, w, h);
       }
       gl.uniform1f(U.u_pass, lowOk ? 2 : 0);
       for (const m of passes) {
         gl.uniform1f(U.u_mirror, m);
-        bindSparks(0); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, written); draws++;
+        draws += drawLive(live);
       }
       if (lowOk) {
         gl.useProgram(cprog.p); gl.blendFunc(gl.ONE, gl.ONE);

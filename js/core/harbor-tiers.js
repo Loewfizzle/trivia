@@ -52,6 +52,9 @@ export const TIERS = Object.freeze({
   fwMirror: Object.freeze([0, 1, 1]),
   fwDpr: Object.freeze([10, 15, 20]),
   fwRing: Object.freeze([8192, 16384, 32768]),
+  // PERF-B — THE DISCO BALL (balloons.js — the festival's 7th): the glints twinkling on its brightest tiles at once (sprites; the tiles are
+  // one baked sheet per light)
+  discoGlints: Object.freeze([2, 4, 6]),
 });
 
 /** the knob's value at a tier (clamped 0..2; an unknown tier = 2) */

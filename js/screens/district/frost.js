@@ -15,33 +15,43 @@ function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>>
 // sign, the hush word + the dock's labels — the same middle mask + holes).
 export function createFrost(opts = {}) {
   const BOLD = !!opts.bold, HZ = BOLD ? 1.7 : 1, LW = BOLD ? 2.1 : 1, LN = BOLD ? 1.4 : 1;
-  let W = 1, H = 1, cv = null, key = '', grown = 0, wasCold = false, lastA = 0, lastOp = '';
+  let W = 1, H = 1, cv = null, key = '', grown = 0, wasCold = false, lastA = 0, lastOp = '', joinFade = 1, layerA = -1;
 
   // ---------------------------------------------------------------- the frozen pane
   let clearRects = null;   // (9c — City 2.0: [{ x, y, w, h, f (feather pt) }] kept clear: the sign, the hush word, the dock's labels, the corner buttons)
-  function bake() {
+  // PERF-B — THE FROST's LOAD (FR5 H18; the owner, Nov 1: "the blizzard is a little choppy at the very beginning"): the pane's bake was
+  // ~70 ms on a phone INSIDE the reveal's frame (4× CPU: 280–320 ms of the blizzard's 1.4-s first frame). It now bakes in STEPS — one a
+  // frame (the haze, the grains, the ferns' glow in halves, the crystals, the clear middle) — into a canvas shown only once whole
+  // (the same picture: the same seeded draws in the same order)
+  let job = null;
+  function bakeSteps() {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
-    if (cv) cv.width = 0;
-    cv = mk(W * dpr, H * dpr);
-    const x = cv.getContext('2d');
+    const nc = mk(W * dpr, H * dpr);
+    const x = nc.getContext('2d');
     x.scale(dpr, dpr);
     const R = rng(271828);
     x.lineCap = 'round';
+    const steps = [];
+    steps.push(() => {
     // 1. the ice crust: a frosted haze thickest at the corners and along the bottom, grained like real rime
     for (const [cx, cy, rr] of [[0, 0, 0.5], [W, 0, 0.5], [0, H, 0.62], [W, H, 0.62]]) {
       const g = x.createRadialGradient(cx, cy, 0, cx, cy, Math.min(W, H) * rr);
       g.addColorStop(0, `rgba(226,240,255,${Math.min(0.8, 0.42 * HZ)})`); g.addColorStop(0.45, `rgba(214,232,255,${0.16 * HZ})`); g.addColorStop(1, 'rgba(214,232,255,0)');
       x.fillStyle = g; x.fillRect(0, 0, W, H);
     }
+    });
+    steps.push(() => {
     for (let i = 0; i < 2600; i++) {
       // grains, crowded toward the edges
       const e = R(), u = R(), d = Math.pow(R(), 2.2) * Math.min(W, H) * 0.42;
       const px = e < 0.25 ? d : e < 0.5 ? W - d : u * W, py = e < 0.5 ? u * H : e < 0.75 ? d : H - d;
       x.fillStyle = `rgba(240,248,255,${0.18 + R() * 0.4})`; x.fillRect(px, py, (0.6 + R() * 0.9) * (BOLD ? 1.5 : 1), (0.6 + R() * 0.9) * (BOLD ? 1.5 : 1));
     }
+    });
     // 2. the feathers: fern-like dendrites — a main stem, short twigs off both sides at ±60° (shorter toward the tip),
     //    the twigs feathered again; grown inward from seeds crowded into the corners and along the edges
     const segs = [];
+    steps.push(() => {
     const fern = (px, py, ang, len, w, depth) => {
       const steps = Math.max(3, Math.round(len / 3.2));
       let cx = px, cy = py, dir = ang;
@@ -64,11 +74,24 @@ export function createFrost(opts = {}) {
       const e = Math.floor(R() * 4), u = R();
       seed(e === 1 ? W : e === 3 ? 0 : u * W, e === 0 ? 0 : e === 2 ? H : u * H, (12 + R() * 30) * LN, 0.9 * LW);
     }
-    // a soft glow under the crystals, then the crystals themselves: bright, fine, pale blue-white
-    x.save(); x.shadowColor = 'rgba(200,225,255,0.8)'; x.shadowBlur = 5;
-    for (const g of segs) { x.strokeStyle = `rgba(225,240,255,${0.16 * g.a * (BOLD ? 1.6 : 1)})`; x.lineWidth = g.w * 2.6; x.beginPath(); x.moveTo(g.x0, g.y0); x.lineTo(g.x1, g.y1); x.stroke(); }
-    x.restore();
+    });
+    // a soft glow under the crystals, then the crystals themselves: bright, fine, pale blue-white (the glow in four slices — its blur is
+    // the bake's dearest part)
+    // (PERF-B: the glow was each stroke with its own shadowBlur — hundreds of separate blur passes (the blizzard's load stall: ~3.5 s of
+    //  GPU work in Chromium at 4×, ~0.1 s frames in WebKit). Now every glow stroke goes into ONE canvas at a quarter of the pane's
+    //  resolution (the soft halo's own scale: ~2 pt a texel), widened by the blur's reach, and is laid on once, smoothed — the same soft
+    //  light under the crystals, one draw)
+    const gs = 0.5, gc = mk(W * gs, H * gs), gx = gc.getContext('2d');
+    gx.scale(gs, gs); gx.lineCap = 'round';
+    steps.push(() => {
+      for (const g of segs) { gx.strokeStyle = `rgba(222,238,255,${0.13 * g.a * (BOLD ? 1.6 : 1)})`; gx.lineWidth = g.w * 2.6 + 3.2; gx.beginPath(); gx.moveTo(g.x0, g.y0); gx.lineTo(g.x1, g.y1); gx.stroke(); }
+      for (const g of segs) { gx.strokeStyle = `rgba(232,244,255,${0.1 * g.a * (BOLD ? 1.6 : 1)})`; gx.lineWidth = g.w * 2.6; gx.beginPath(); gx.moveTo(g.x0, g.y0); gx.lineTo(g.x1, g.y1); gx.stroke(); }
+    });
+    steps.push(() => { x.save(); x.imageSmoothingEnabled = true; x.imageSmoothingQuality = 'high'; x.drawImage(gc, 0, 0, W, H); x.restore(); gc.width = gc.height = 0; });
+    steps.push(() => {
     for (const g of segs) { x.strokeStyle = `rgba(246,251,255,${Math.min(1, 0.85 * g.a * (BOLD ? 1.15 : 1))})`; x.lineWidth = Math.max(BOLD ? 0.8 : 0.4, g.w * 0.75); x.beginPath(); x.moveTo(g.x0, g.y0); x.lineTo(g.x1, g.y1); x.stroke(); }
+    });
+    steps.push(() => {
     // keep the middle clear: the sign, the tagline and the buttons always read
     x.globalCompositeOperation = 'destination-in';
     const m = x.createRadialGradient(W * 0.5, H * 0.46, Math.min(W, H) * 0.3, W * 0.5, H * 0.46, Math.hypot(W, H) * 0.56);
@@ -87,7 +110,21 @@ export function createFrost(opts = {}) {
       }
     }
     x.globalCompositeOperation = 'source-over';
+    });
+    return { cv: nc, steps, i: 0 };
   }
+  /** one bake step (a frame's share); true once the new pane is whole + swapped in */
+  function stepBake() {
+    if (!job) return false;
+    job.steps[job.i++]();
+    if (job.i < job.steps.length) return false;
+    const host = cv && cv.parentElement, after = cv && cv.previousElementSibling;
+    if (cv) { cv.remove(); cv.width = 0; }
+    cv = job.cv; job = null;
+    if (host) { if (after && after.parentElement === host) after.after(cv); else host.append(cv); cv.className = 'hb-frost'; Object.assign(cv.style, { position: 'absolute', left: '0px', top: '0px', width: '100%', height: '100%', pointerEvents: 'none', zIndex: '0', opacity: '0' }); layerA = -1; }
+    return true;
+  }
+  function bake() { job = bakeSteps(); while (!stepBake()) { /* all at once */ } }
 
   return {
     resize(w, h) { W = w; H = h; key = ''; },
@@ -96,20 +133,45 @@ export function createFrost(opts = {}) {
     pane(c, s) {
       const k = s.L.freeze || (s.force.has('freeze') ? 1 : 0);
       // (C4d — FR4 H18: the whole-screen pane (5.3 MB at 2×) was kept for the rest of the visit once a frost had formed — freed with the thaw)
-      if (k <= 0.01) { grown = 0; wasCold = false; if (cv) { cv.width = cv.height = 0; cv = null; key = ''; } return; }
+      if (k <= 0.01) { grown = 0; wasCold = false; job = null; if (cv) { cv.remove(); cv.width = cv.height = 0; cv = null; key = ''; } return; }
       // (9e: s.joined — a city OPENED on a frozen night already has its frost; it creeps in slowly only when the cold arrives while you look)
-      if (!wasCold) { wasCold = true; grown = s.joined ? 1 : 0; }
+      if (!wasCold) { wasCold = true; grown = s.joined ? 1 : 0; joinFade = s.joined ? 0 : 1; }
+      // (PERF-B: the bake in steps, held off until s.bakeOk (the scene: ~0.8 s after the reveal); a pane whose bake isn't whole yet isn't
+      //  drawn — a joined city's frost then fades in over ~1.2 s, never a pop)
+      const kk = `${W}|${H}`;
+      if (kk !== key) { if (s.bakeOk === false) return; job = bakeSteps(); key = kk; }
+      if (job) { if (s.bakeOk === false || !stepBake()) { if (!cv) return; } }
+      if (!cv) return;
+      if (s.layer && cv.parentElement !== s.layer.host && cv.isConnected) cv.remove();
       // it forms slowly: a few seconds to creep in from the edges
       grown = Math.min(1, grown + s.dt / (s.motion ? 9000 : 1));
-      const kk = `${W}|${H}`;
-      if (kk !== key) { bake(); key = kk; }
+      joinFade = Math.min(1, joinFade + s.dt / (s.motion ? 1200 : 1));
       const night = s.L.w.night + s.L.w.late;
-      c.globalAlpha = lastA = k * (0.55 + 0.35 * night) * grown * grown * (3 - 2 * grown);
+      lastA = k * (0.55 + 0.35 * night) * grown * grown * (3 - 2 * grown) * joinFade;
+      // (PERF-B — THE PANE AS A LAYER (s.layer = { host, after }: City 2.0): the baked pane sits on the page right over the vignette's layer,
+      //  its strength the element's opacity — the compositor blends it; no full-screen draw a frame, and the vignette stays a layer in a
+      //  freeze too (it was drawn on the canvas so the frost could lie over it). The same picture)
+      if (s.layer && s.layer.host) {
+        if (cv.parentElement !== s.layer.host) {
+          cv.className = 'hb-frost'; cv.setAttribute('aria-hidden', 'true');
+          Object.assign(cv.style, { position: 'absolute', left: '0px', top: '0px', width: '100%', height: '100%', pointerEvents: 'none', zIndex: '0' });
+          if (s.layer.after && s.layer.after.parentElement === s.layer.host) s.layer.after.after(cv); else s.layer.host.append(cv);
+          layerA = -1;
+        }
+        const q = Math.round(lastA * 250) / 250;
+        if (q !== layerA) { layerA = q; cv.style.opacity = String(q); }
+        lastOp = 'layer';
+        return;
+      }
+      if (cv.isConnected) cv.remove();
+      c.globalAlpha = lastA;
       const op0 = c.globalCompositeOperation; c.globalCompositeOperation = 'source-over'; lastOp = op0;
       c.drawImage(cv, 0, 0, W, H);
       c.globalCompositeOperation = op0;
       c.globalAlpha = 1;
     },
+    /** PERF-B: the pane's page layer off (the scene stopped drawing it: no freeze any more, the switch off) */
+    hideLayer() { if (cv && cv.isConnected) cv.remove(); },
     /** baked into a skyline row: icicles under the nearer rows' roof lines (x: the row's canvas context, css-px transform) */
     decorate(x, rects, li, k, P) {
       if (k <= 0.02 || li < 2) return;
@@ -131,6 +193,6 @@ export function createFrost(opts = {}) {
       }
     },
     debug: () => ({ grown, clear: clearRects ? clearRects.length : 0, rects: clearRects ? clearRects.map(r => [r.x, r.y, r.w, r.h, r.f].map(Math.round)) : [], alpha: +lastA.toFixed(3), op: lastOp, size: [W, H] }),
-    destroy() { if (cv) cv.width = 0; },
+    destroy() { if (cv) { cv.remove(); cv.width = 0; } job = null; },
   };
 }

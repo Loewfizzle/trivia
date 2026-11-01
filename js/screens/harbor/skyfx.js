@@ -288,7 +288,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
         else if (id === 'balloons' || id === 'balloon-festival') balloons.stop();
       }
     },
-    setTier(t) { for (const m of [air, banner, smoke, birds, drones, cel, aur]) if (m.setTier) m.setTier(t); },
+    setTier(t) { for (const m of [air, banner, smoke, birds, drones, cel, aur, balloons]) if (m.setTier) m.setTier(t); },
     /** tonight's aurora (the scene: auroraTonight + the sky) — strength for the art */
     setAurora(a) { aurora = a || { on: false, strength: 0 }; },
     /** the frame's state: start what the scheduler / the clock / the previews ask (call once a frame, before drawing) */

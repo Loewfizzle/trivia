@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR end to end: the `windows` cloud job's groups (windows, snow, doors, blackout) — tests/integration/harbor-jobs.mjs#CI_JOBS.
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=windows, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { OUT, SHOTS, t0, sleep, ok, okF, okT, GR, open, ev, waitFor, tap, harborUp, G } from './kit.mjs';
+import { OUT, SHOTS, t0, sleep, ok, okF, okT, GR, open, ev, waitFor, tap, harborUp, G, settled } from './kit.mjs';
 
 // ================================================================ PART 7b — THE SPEAKEASY'S LIFE (ONLY=windows; docs/harbor/passes/part-7b.md)
 G('windows', async () => {
@@ -560,10 +560,10 @@ G('snow', async () => {
     await Q.ctx.close(); }
   // ---- THE SIGN: snow heaped on the tubes by day (the sign off); lit at night most of it has melted (joined)
   { const D = await open({ slot: 'sn-sd', qs: `when=2027-01-15T13:00${GR}&snow=fresh`, view: [402, 874] });
-    await harborUp(D.page); await sleep(1500);
+    await harborUp(D.page); await settled(D.page);
     const a = await ev(D.page, SNW);
     const N = await open({ slot: 'sn-sn', qs: `when=2027-01-15T21:30${GR}&snow=fresh&temp=-6`, view: [402, 874] });
-    await harborUp(N.page); await sleep(1500);
+    await harborUp(N.page); await settled(N.page);
     const b = await ev(N.page, SNW);
     ok(a && b && a.sign > 0.6 && b.sign < 0.4 && b.icicles > 0.2, `SNOW ON THE NEON: by day ${a && a.sign} · lit at night ${b && b.sign} (melted) + icicles ${b && b.icicles}`);
     await D.ctx.close(); await N.ctx.close(); }
@@ -572,12 +572,13 @@ G('snow', async () => {
   for (const [mode, paneOn, glassOn] of [['pane', true, false]]) {
     const Q = await open({ slot: `sn-fr-${mode}`, qs: `when=2027-01-20T22:00${GR}&snow=older&temp=-14`, view: [402, 874] });
     await harborUp(Q.page);
-    await waitFor(Q.page, `${SNW}.pane.grown > 0.3`, 'the pane forming', 20000).catch(() => {});
+    // (PERF-B: the pane bakes in steps after the reveal + fades in (~2 s), on its own page layer over the vignette — waited for + sampled with it)
+    await waitFor(Q.page, `${SNW}.pane.grown > 0.3 && ${SNW}.pane.alpha > 0.5`, 'the pane forming', 20000).catch(() => {});
     const s = await ev(Q.page, SNW);
     ok(s && (s.pane.grown > 0.3) === paneOn && s.pane.clear >= 2 && s.pane.alpha > 0.5 && (s.gwx.frost > 0.05) === glassOn, `9c FROST ${mode.toUpperCase()}: the pane ${s && s.pane.grown} at ${s && s.pane.alpha} (${s && s.pane.clear} clear holes), the buttons' frost ${s && s.gwx.frost}`);
     // (9e — THE FROST LINK SHOWED NOTHING on the iPhone: the hairline pane vanished on the lit city + the corner buttons' holes erased the
     //  top corners. Now bold + no corner holes: the four corners must read — bright pixels in each corner of the real picture)
-    const fr = await ev(Q.page, `(() => { const c = document.querySelector('.nd-scene canvas') || [...document.querySelectorAll('canvas')].sort((a, b) => b.width * b.height - a.width * a.height)[0]; const x = document.createElement('canvas'); x.width = 40; x.height = 87; const g = x.getContext('2d'); g.drawImage(c, 0, 0, 40, 87); const d = g.getImageData(0, 0, 40, 87).data; const L = (i) => d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11; const m = (x0, y0) => { let s = 0; for (let y = y0; y < y0 + 8; y++) for (let x1 = x0; x1 < x0 + 6; x1++) s += L(y * 40 + x1); return s / 48; }; return [m(0, 0), m(34, 0), m(0, 79), m(34, 79)].map(v => Math.round(v)); })()`);
+    const fr = await ev(Q.page, `(() => { const c = document.querySelector('.nd-scene canvas') || [...document.querySelectorAll('canvas')].sort((a, b) => b.width * b.height - a.width * a.height)[0]; const x = document.createElement('canvas'); x.width = 40; x.height = 87; const g = x.getContext('2d'); g.drawImage(c, 0, 0, 40, 87); const fz = document.querySelector('.hb-frost'); if (fz && fz.isConnected) { g.globalAlpha = +(fz.style.opacity || 1); g.drawImage(fz, 0, 0, 40, 87); g.globalAlpha = 1; } const d = g.getImageData(0, 0, 40, 87).data; const L = (i) => d[i * 4] * 0.3 + d[i * 4 + 1] * 0.59 + d[i * 4 + 2] * 0.11; const m = (x0, y0) => { let s = 0; for (let y = y0; y < y0 + 8; y++) for (let x1 = x0; x1 < x0 + 6; x1++) s += L(y * 40 + x1); return s / 48; }; return [m(0, 0), m(34, 0), m(0, 79), m(34, 79)].map(v => Math.round(v)); })()`);
     ok(fr.every(v => v > 38), `9e THE FROST READS in all four corners (mean light ${fr.join(' · ')} of 255)`);
     await Q.ctx.close();
   }
@@ -711,7 +712,7 @@ G('quietbuilding', async () => {
     await Q.ctx.close(); }
   // ---- 2. the same night later: the lit ones going out one by one (by 1:40 all three dark behind their blinds)
   { const Q = await open({ slot: 'qb2', qs: `when=2026-10-28T01:40${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
-    await harborUp(Q.page); await sleep(1500);
+    await harborUp(Q.page); await settled(Q.page);
     const L = await ev(Q.page, LIFE), outs = Object.values(L.parked ? L.parked.out : {});
     ok(L.parkOn && PARKED.every(id => L.bed[id] === 0) && outs.length >= 1 && outs.every(s => s < 1.6 * 3600), `THE LIGHTS GO OUT ONE BY ONE: at 1:40 every parked lamp out (${JSON.stringify(L.bed)}; their times ${outs.map(s => `${Math.floor((s / 3600 + 24) % 24)}:${String(Math.floor(((s / 60) % 60 + 60) % 60)).padStart(2, '0')}`).join(', ')})`);
     await Q.ctx.close(); }
@@ -719,7 +720,7 @@ G('quietbuilding', async () => {
   // night too now — every night — his own blind over the parked state)
   for (const [when, what, want] of [['2026-10-24T22:30', 'a party night', false], ['2026-10-27T13:00', 'the day', false], ['2026-10-29T20:00', 'Thursday 8 pm', true]]) {
     const Q = await open({ slot: `qb-${want ? 'p' : 'u'}`, qs: `when=${when}${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
-    await harborUp(Q.page); await sleep(1500);
+    await harborUp(Q.page); await settled(Q.page);
     const L = await ev(Q.page, LIFE);
     ok(!!L.parkOn === want && (want ? L.park.bar === 1 && L.park.jazz === 1 && (L.boxer ? L.park.back === L.boxer.blind : L.park.back === 1) : PARKED.every(id => !L.park[id])), `${what}: ${want ? `parked like a plain night — the upper middle ${L.boxer ? `the boxer's (blind ${L.park.back})` : 'parked'}` : 'unchanged — nothing parked'} (${JSON.stringify(L.park)})`);
     await Q.ctx.close();
@@ -757,7 +758,7 @@ G('boxer', async () => {
     ok(B && ['round', 'rest'].includes(B.phase) && B.blind === 0, `EVERY NIGHT (Tue 8:05 pm): he trains — ${B ? `${B.phase} ${B.round} of set ${B.set + 1}` : 'nobody'}`);
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'bx2b', qs: `when=2026-10-27T23:45${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
-    await harborUp(Q.page); await sleep(1500);
+    await harborUp(Q.page); await settled(Q.page);
     const L = await ev(Q.page, LIFE);
     ok((!L.boxer || (L.boxer.phase === 'out' && L.boxer.blind === 1 && L.boxer.lamp === 0)) && L.park && L.park.back > 0.9, `…DONE BY 11:45 pm (Tue): his blind down, the bulb out — the upper middle parked (blind ${L.park && L.park.back}${L.boxer ? `, ${L.boxer.phase}` : ''})`);
     await Q.ctx.close(); }

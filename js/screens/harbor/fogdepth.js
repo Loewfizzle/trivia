@@ -43,7 +43,38 @@ export function createFogDepth() {
   let snowK = 0, look = { k: 0, m: 0, dense: false }, cols = [[0, 0, 0], [0, 0, 0]], day = 0, night = 0, t = 0, motion = true, wind = 2, W = 1, tier = 2;
   const grads = new Map();             // `${which}|${device rows}|${alphas}|${cols}` → a 1-px-wide strip canvas of the veil's gradient (a frame keeps ~5)
   const halos = new Map();             // colour key → a soft halo sprite
-  let tile = null, drawn = { veils: 0, halos: 0, banks: 0 };
+  let tile = null, drawn = { veils: 0, halos: 0, banks: 0, wisps: 0 };
+  // PERF-B — THE CLEAN GLASS (the owner, Nov 1: "the haze over the lit windows reads as SMUDGES", dense fog + the blizzard): the speakeasy's
+  // windows are the near stage — the stage veil, the promenade's bank, the lamps' lift + the window halos are drawn AROUND the glass (an
+  // even-odd clip; the glow hangs round each window, never over it), and the only fog over the glass is a WISP the wind carries across
+  // in a few seconds (wisps()). glassK: how clean (the windows' light — by day the glass takes the veil like the bricks)
+  let glass = null, glassK = 0, wisp = null, mul = 1;
+  function holed(c, fn) {
+    if (!glass || !glass.length || glassK <= 0.01) { mul = 1; fn(); return; }
+    c.save(); c.beginPath(); c.rect(-20, -20, W + 40, 1e5); for (const r of glass) c.rect(r.x, r.y, r.w, r.h); c.clip('evenodd'); mul = 1; fn(); c.restore();
+    if (glassK < 0.99) { c.save(); c.beginPath(); for (const r of glass) c.rect(r.x, r.y, r.w, r.h); c.clip(); mul = 1 - glassK; fn(); c.restore(); }
+    mul = 1;
+  }
+  // the wisp: a long soft streak (blobs along a line, tapered), white — tinted per fog colour like the bank
+  function wispArt(col) {
+    const tk = col.join(',');
+    if (wisp && wisp.key === tk) return wisp.cv;
+    if (!wisp) {
+      const base = mk(160, 40), x = safeCtx(base);
+      let sd = 7; const r = () => { sd = (sd * 16807) % 2147483647; return sd / 2147483647; };
+      for (let i = 0; i < 14; i++) {
+        const u = (i + 0.5) / 14, cx = 14 + u * 132, cy = 20 + (r() - 0.5) * 8, rw = 16 + r() * 18, a = (0.22 + r() * 0.18) * Math.sin(Math.PI * u);
+        const g = x.createRadialGradient(cx, cy, 0, cx, cy, rw); g.addColorStop(0, `rgba(255,255,255,${a.toFixed(3)})`); g.addColorStop(0.55, `rgba(255,255,255,${(a * 0.4).toFixed(3)})`); g.addColorStop(1, 'rgba(255,255,255,0)');
+        x.save(); x.translate(cx, cy); x.scale(1, 0.42); x.translate(-cx, -cy); x.fillStyle = g; x.fillRect(cx - rw, cy - rw, rw * 2, rw * 2); x.restore();
+      }
+      wisp = { base, cv: mk(160, 40), key: '' };
+    }
+    const x = safeCtx(wisp.cv);
+    x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, 160, 40); x.drawImage(wisp.base, 0, 0);
+    x.globalCompositeOperation = 'source-in'; x.fillStyle = `rgb(${tk})`; x.fillRect(0, 0, 160, 40);
+    wisp.key = tk;
+    return wisp.cv;
+  }
   const strips = new Map();             // (PERF-A) a bank's two layers, composited at CSS resolution: which → canvas
   function bakeTile() {
     // a soft patchy bank: blobs of every size, tileable across x (the waterfog's recipe, taller + lumpier)
@@ -82,7 +113,7 @@ export function createFogDepth() {
       cols = fogColours({ day, golden: s.golden || 0, party: !!s.party });
       // (ATM-B: falling snow whitens the murk — by day a white wall, at night the city's glow on the snow, brighter than fog)
       if (snowK > 0.01) { const sc = [mixC([132, 134, 160], [236, 240, 248], day), mixC([176, 166, 184], [226, 230, 240], day)]; cols = [mixC(cols[0], sc[0], snowK), mixC(cols[1], sc[1], snowK)]; }
-      drawn = { veils: 0, halos: 0, banks: 0 };
+      drawn = { veils: 0, halos: 0, banks: 0, wisps: 0 };
       return look;
     },
     on: () => look.k > 0.01,
@@ -108,17 +139,19 @@ export function createFogDepth() {
         if (grads.size > 12) { for (const cv of grads.values()) cv.width = 0; grads.clear(); }
         grads.set(key, st);
       }
-      c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1; c.drawImage(st, 0, 0, 1, hp, 0, y0, W, y1 - y0); c.restore();
+      const put = () => { c.save(); c.globalCompositeOperation = 'source-over'; c.globalAlpha = mul; c.drawImage(st, 0, 0, 1, hp, 0, y0, W, y1 - y0); c.restore(); };
+      if (which === 'stage') holed(c, put); else put();
       drawn.veils++;
     },
     /** THE LIGHTS IN FOG: each a soft halo hanging in the air (list: [{ x, y, w, h, col, k }]); the denser the fog, the wider + stronger;
      *  by day only a faint bloom. max: the tier table's count */
-    halos(c, list, max = 24, cap = 64) {
+    halos(c, list, max = 24, cap = 64, round = false) {
       if (look.k <= 0.01 || !list || !list.length) return;
+      if (round) { holed(c, () => this.halos(c, list, max, cap, false)); return; }
       const D = lerp(0.45, 1, look.m), base = look.k * (0.22 + 0.4 * D) * lerp(1, 0.28, day);
       if (base < 0.01) return;
       c.save(); c.globalCompositeOperation = 'lighter';
-      let n = 0;
+      let n = 0; const m0 = mul;
       for (const l of list) {
         if (n >= max) break;
         if (!(l.k > 0.02)) continue;
@@ -126,7 +159,7 @@ export function createFogDepth() {
         // biggest cost; l.cap: the NEON logo's own)
         const r = Math.min(l.cap || cap, Math.max(l.w, l.h) * 0.5 * (1.2 + 1.3 * D) + 4 + 6 * D), a = Math.min(1, base * l.k);
         if (a < 0.01) continue;
-        c.globalAlpha = a;
+        c.globalAlpha = a * m0;
         c.drawImage(haloOf(l.col), l.x + l.w / 2 - r, l.y + l.h / 2 - r * 0.85, r * 2, r * 1.7);
         n++;
       }
@@ -148,7 +181,7 @@ export function createFogDepth() {
         if (grads.size > 12) { for (const cv of grads.values()) cv.width = 0; grads.clear(); }
         grads.set(key, st);
       }
-      c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = 1; c.drawImage(st, 0, 0, 1, hp, 0, y0, W, y1 - y0); c.restore();
+      holed(c, () => { c.save(); c.globalCompositeOperation = 'lighter'; c.globalAlpha = mul; c.drawImage(st, 0, 0, 1, hp, 0, y0, W, y1 - y0); c.restore(); });
     },
     /** A BANK drifting across a band (the road, the promenade) on the shared wind: the baked patchy tile at two depths, the near one
      *  faster; thicker at the band's top (the far side) — people walking through it fade in + out. dense: the strength, × the look */
@@ -181,12 +214,39 @@ export function createFogDepth() {
         x.globalAlpha = Math.min(1, amp * a * 1.6);
         for (let x0 = off - tw; x0 < W; x0 += tw) x.drawImage(src, x0, yy - top, tw, hh);
       }
-      c.globalAlpha = 1;
-      c.drawImage(st, 0, top, sw, sh);
+      const put = () => { c.globalAlpha = mul; c.drawImage(st, 0, top, sw, sh); };
+      if (which === 'prom') holed(c, put); else put();
       c.restore();
       drawn.banks++;
     },
+    /** PERF-B — this frame's clean glass: rects (the speakeasy's windows, CSS px) + k (0 = fogged like the bricks … 1 = clean) */
+    glass(rects, k) { glass = rects && rects.length ? rects : null; glassK = clamp01(k || 0); },
+    /** PERF-B — THE WISPS over the glass: long soft streaks carried across the facade on the wind (WF: the signed m/s at the facade),
+     *  one row of windows at a time, each crossing a window in a few seconds — the only fog the clean glass ever shows */
+    wisps(c, windV) {
+      if (!glass || !glass.length || glassK <= 0.01 || look.k <= 0.01 || !motion) return;
+      const a = look.k * lerp(0.35, 0.7, look.m) * (1 + 0.4 * (look.x || 0)) * glassK;
+      if (a < 0.02) return;
+      // the rows of windows (by their middle), the facade's span
+      let x0 = 1e9, x1 = -1e9; const rows = [];
+      for (const r of glass) { x0 = Math.min(x0, r.x); x1 = Math.max(x1, r.x + r.w); const cy = r.y + r.h / 2; let row = rows.find(q => Math.abs(q.cy - cy) < r.h * 0.5); if (!row) rows.push(row = { cy, h: r.h }); }
+      const v = windV == null ? 2 : windV, sp = Math.max(14, Math.abs(v) * 5) * (v < 0 ? -1 : 1), art = wispArt(mixC(cols[0], cols[1], 0.55));
+      c.save(); c.globalCompositeOperation = 'source-over';
+      rows.forEach((row, i) => {
+        const L = Math.max(60, row.h * 3.2), Hh = row.h * 0.9, span = x1 - x0 + L, cross = span / Math.abs(sp);
+        // (two tracks a row on their own periods: a wisp every ~6–11 s, never a rhythm you can count)
+        for (const [per, ph, dy] of [[cross + 6.3 + 2.1 * i, 0.37 * i, -0.18], [cross + 9.7 + 1.3 * i, 3.9 + 0.71 * i, 0.22]]) {
+          const u = ((t + ph * per) % per) / per * (per / cross);
+          if (u > 1) continue;
+          const lx = sp > 0 ? x0 - L + u * span : x1 - u * span;
+          c.globalAlpha = Math.min(1, a);
+          c.drawImage(art, lx, row.cy + dy * row.h - Hh / 2, L, Hh);
+          drawn.wisps++;
+        }
+      });
+      c.restore();
+    },
     debug: () => ({ k: +look.k.toFixed(2), m: +look.m.toFixed(2), dense: look.dense, mode: look.k <= 0.01 ? 'none' : look.x > 0.5 ? 'whiteout' : snowK > 0.3 ? 'snow' : look.m > 0.5 ? 'dense' : 'mist', x: +(look.x || 0).toFixed(2), col: cols, ...drawn, sprites: halos.size }),
-    destroy() { for (const st of strips.values()) st.width = 0; strips.clear(); for (const h of halos.values()) h.width = 0; halos.clear(); if (tile) { if (tile.tinted && tile.tinted.cv) tile.tinted.cv.width = 0; tile.width = 0; } tile = null; for (const cv of grads.values()) cv.width = 0; grads.clear(); },
+    destroy() { for (const st of strips.values()) st.width = 0; strips.clear(); for (const h of halos.values()) h.width = 0; halos.clear(); if (wisp) { wisp.base.width = 0; wisp.cv.width = 0; wisp = null; } glass = null; if (tile) { if (tile.tinted && tile.tinted.cv) tile.tinted.cv.width = 0; tile.width = 0; } tile = null; for (const cv of grads.values()) cv.width = 0; grads.clear(); },
   };
 }

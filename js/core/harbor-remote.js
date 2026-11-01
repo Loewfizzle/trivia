@@ -170,7 +170,7 @@ export const EVENTS = [
   { id: 'balloon-festival', label: 'BALLOON FESTIVAL', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   // (9a — the owner: the balloons STAY UP 45–90 min; the FAST rows show the whole crossing ×12, ~4–7 min)
   { id: 'balloons-fast', label: 'BALLOONS · FAST', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'the whole slow crossing ×12 — ~4 min instead of 45–60' },
-  { id: 'balloon-festival-fast', label: 'FESTIVAL · FAST', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'the six launches + the crossing ×12' },
+  { id: 'balloon-festival-fast', label: 'FESTIVAL · FAST', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'the seven launches + the crossing ×12' },
   { id: 'planes', label: 'PLANES', cat: 'sky', group: 'AIRCRAFT' },
   { id: 'approach', label: 'PLANE ON APPROACH', cat: 'sky', group: 'AIRCRAFT' },
   { id: 'satellites', label: 'SATELLITE TRAIN', cat: 'sky', group: 'AIRCRAFT', night: true },
@@ -403,7 +403,7 @@ export const AB_FLAGS = Object.freeze([
   AB('no-awning-light', 'the awning\'s light off'), AB('no-beam', 'the lighthouse beam off'), AB('no-beams', 'the party\'s sky beams off'),
   AB('no-birds', 'no birds'), AB('no-boats', 'no boats'), AB('no-climate', 'no climate fallback (a failed weather ask = the default sky)'),
   AB('no-clouds', 'no clouds'), AB('no-crisp', 'no crisp layer (the lettering at the bake\'s 2×)'), AB('no-dayfx', 'no flags in the wind, no sun glints'),
-  AB('no-fog', 'no fog on the water'), AB('no-ghost-ship', 'no ghost ship (Halloween)'), AB('no-glasswx', 'no weather on the neon + the buttons\' glass'),
+  AB('no-fog', 'no fog on the water'), AB('fog-glass', 'PERF-B: the speakeasy windows fogged like the bricks again (the old smudged look) — the clean glass A/B'), AB('no-ghost-ship', 'no ghost ship (Halloween)'), AB('no-glasswx', 'no weather on the neon + the buttons\' glass'),
   AB('no-holiday-props', 'no holiday pieces on the ground'), AB('no-lamp-light', 'the lamps\' light off'), AB('no-leaves', 'no falling leaves'),
   AB('no-legends', 'no legendaries tonight'), AB('no-lightning', 'no lightning'), AB('no-merge', 'the bands drawn one by one (no merged layers)'),
   AB('no-party', 'a party night without its party'), AB('no-planes', 'no airliners + contrails'), AB('no-promenade', 'the promenade empty of its pieces'),

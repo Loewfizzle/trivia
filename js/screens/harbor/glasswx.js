@@ -369,7 +369,9 @@ export function createGlassWeather({ host = typeof document !== 'undefined' ? do
   function drawSnow(x, litL, amb, col, wet, pw = 1) {
     if (!snowGeo || snowGeo.of !== geo) { buildSnowGeo(); snowKey = ''; }
     const lit = Math.max(...litL);
-    const key = `${Math.round(snowK * 60)}|${litL.map(v => Math.round(v * 12)).join('')}|${Math.round(amb * 8)}|${Math.round(wet * 6)}|${Math.round(pw * 10)}|${col.join(',')}|${dpr}|${geo.box.w}`;
+    // (PERF-B — the blizzard's first seconds: the sign's BOOT FLICKER lights the letters one by one at the reveal and the snow re-rendered
+    //  on every step (~4 frames of ~0.1 s in WebKit): a letter's light in 4 steps — the flicker is on / off anyway)
+    const key = `${Math.round(snowK * 60)}|${litL.map(v => Math.round(v * 4)).join('')}|${Math.round(amb * 8)}|${Math.round(wet * 6)}|${Math.round(pw * 10)}|${col.join(',')}|${dpr}|${geo.box.w}`;
     if (key !== snowKey) { snowKey = key; snowRenders++; renderSnow(litL, amb, col, wet, pw); }
     if (snowCv) x.drawImage(snowCv, geo.box.x, geo.box.y, geo.box.w, geo.box.h);
     const H = geo.half, t = performanceT;

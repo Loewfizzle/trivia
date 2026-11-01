@@ -2,7 +2,7 @@
 // flight found again on load after its scheduler window (screens/harbor/balloons.js PURE helpers + core/harbor-events.js#recent).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { flightLen, burnSchedule, FLIGHT, BURN, FESTIVAL_ORDER, BALLOON_KINDS, BALLOON_SCHEMES, FAST, driftAt, apartSpots } from '../js/screens/harbor/balloons.js';
+import { flightLen, burnSchedule, FLIGHT, BURN, FESTIVAL_ORDER, BALLOON_KINDS, BALLOON_SCHEMES, FAST, driftAt, apartSpots, festivalSpots, discoTiles } from '../js/screens/harbor/balloons.js';
 import { createScheduler, HARBOR_EVENTS, SLOT_MS, RECENT_MS } from '../js/core/harbor-events.js';
 
 test('a single flight lasts 45–60 min, the festival 60–90 — seeded (every phone the same)', () => {
@@ -32,7 +32,7 @@ test('the burner: RARE + irregular on a cruise (45–120 s), often while climbin
 });
 
 test('the festival line-up in the owner\'s order + the new styles', () => {
-  assert.deepEqual(FESTIVAL_ORDER, ['btc-orange', 'alien', 'bitcoin', 'bullseye', 'smiley', 'flag']);
+  assert.deepEqual(FESTIVAL_ORDER, ['btc-orange', 'alien', 'bitcoin', 'bullseye', 'smiley', 'flag', 'disco']);
   for (const k of ['vstripes', 'pinstripes', 'bullseye', 'smiley']) { assert.ok(BALLOON_KINDS.includes(k), k); assert.ok(BALLOON_SCHEMES[k].length >= 1, k); }
   assert.equal(BALLOON_SCHEMES.pinstripes.length, 2, 'two of the old schemes kept');
   assert.ok(!BALLOON_KINDS.includes('bitcoin') && !BALLOON_KINDS.includes('alien'), 'the specials keep their rare odds');
@@ -55,14 +55,35 @@ test('a flight still up is found on load: the scheduler keeps what started (rece
   assert.ok(found.ms - found.b.start < RECENT_MS);
 });
 
-test('PERF-A — THE TWO ₿ BALLOONS are never neighbours: opposite halves of the sky at every shuffle (seeded, no extra draws)', () => {
-  const n = FESTIVAL_ORDER.length, a = FESTIVAL_ORDER.indexOf('btc-orange'), b = FESTIVAL_ORDER.indexOf('bitcoin'), base = FESTIVAL_ORDER.map((_, i) => 0.1 + 0.8 * (i + 0.5) / n);
+test('PERF-A — THE TWO ₿ BALLOONS are never neighbours (apartSpots, the 6-balloon line-up): opposite halves at every shuffle', () => {
+  const six = ['btc-orange', 'alien', 'bitcoin', 'bullseye', 'smiley', 'flag'], n = 6, a = 0, b = 2, base = six.map((_, i) => 0.1 + 0.8 * (i + 0.5) / n);
   let s = 7; const R = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   for (let k = 0; k < 500; k++) {
-    const sh = [...base].sort(() => R() - 0.5), out = apartSpots(sh), rank = v => [...out].sort((p, q) => p - q).indexOf(v);
+    const sh = [...base].sort(() => R() - 0.5), out = apartSpots(sh, a, b), rank = v => [...out].sort((p, q) => p - q).indexOf(v);
     assert.deepEqual([...out].sort(), [...base].sort(), 'the same spots, only swapped');
     assert.ok(Math.abs(rank(out[a]) - rank(out[b])) >= 3, `apart: ${rank(out[a])} vs ${rank(out[b])}`);
     assert.ok((out[a] < 0.5) !== (out[b] < 0.5), 'opposite halves');
-    assert.deepEqual(apartSpots(sh), out, 'the same on every phone');
   }
+});
+
+test('PERF-B — THE FESTIVAL OF SEVEN: the disco ball on the rightmost spot, the ₿ pair apart (≥ 3) + never beside it — every shuffle, seeded', () => {
+  const n = FESTIVAL_ORDER.length, d = FESTIVAL_ORDER.indexOf('disco'), a = FESTIVAL_ORDER.indexOf('btc-orange'), b = FESTIVAL_ORDER.indexOf('bitcoin'), base = FESTIVAL_ORDER.map((_, i) => 0.06 + 0.88 * (i + 0.5) / n);
+  let s = 11; const R = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  for (let k = 0; k < 800; k++) {
+    const sh = [...base].sort(() => R() - 0.5), out = festivalSpots(sh), rank = v => [...out].sort((p, q) => p - q).indexOf(v);
+    assert.deepEqual([...out].sort(), [...base].sort(), 'the same spots, only swapped');
+    assert.equal(rank(out[d]), n - 1, 'the disco ball rightmost');
+    assert.ok(Math.abs(rank(out[a]) - rank(out[b])) >= 3, `the ₿ pair apart: ${rank(out[a])} vs ${rank(out[b])}`);
+    assert.ok(rank(out[a]) < n - 2 && rank(out[b]) < n - 2, 'never beside the disco ball');
+    assert.deepEqual(festivalSpots(sh), out, 'the same on every phone');
+  }
+});
+
+test('PERF-B — THE DISCO BALL TILES: rows narrowing to the crown, staggered, every tile on the front half, the same every bake', () => {
+  const t = discoTiles(), rows = new Map();
+  for (const x of t) { rows.set(x.row, (rows.get(x.row) || 0) + 1); assert.ok(x.a0 >= -Math.PI / 2 - 1e-9 && x.a1 <= Math.PI / 2 + 1e-9 && x.a1 > x.a0); assert.ok(x.v1 > x.v0); }
+  const counts = [...rows.values()];
+  assert.ok(counts.length >= 18 && t.length >= 250 && t.length <= 600, `${counts.length} rows, ${t.length} tiles`);
+  assert.ok(counts[0] < counts[Math.floor(counts.length / 2) - 1], 'fewer tiles at the crown than round the middle');
+  assert.deepEqual(discoTiles(), t);
 });

@@ -2449,7 +2449,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (DT2: the sun's whole place — its x + y on the screen, how visible, and its side when it has set: each cloud is lit from it)
     // (PERF-A — DENSE FOG HIDES THE SKY: under the far veil at ≥ 0.82 the cloud deck shows through at ≤ 18 % — pixdiff: no pixel past Δ 24
     //  with the clouds off — so it isn't painted (a full-screen layer on the owner's iPhone, whose fog frame was 12.3 MP); mist keeps them)
-    const fogHidesSky = fogD.on() && veilOf('far', fogD.look())[0] >= 0.82;
+    // (PERF-B — the owner: "I think we took too much fog out": at night the skip is invisible (WebKit 402×660, the old vs now: ≤ 0.8 of 255),
+    //  by DAY the white deck showing through the veil at 18 % was part of the whiteout — skipping it darkened the top of the sky ~6 / 255:
+    //  the deck is painted again by day + golden hour, skipped only in the dark)
+    const fogHidesSky = fogD.on() && veilOf('far', fogD.look())[0] >= 0.82 && (LK.w.day || 0) + (LK.w.golden || 0) + (LK.w.dawn || 0) < 0.3;
     { const sd = sun.debug(); if (!off.has('no-clouds') && !fogHidesSky) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }); }
     };
     const msgB = sky.msgUp ? sky.msgUp() : null, msgUp = !!msgB;
@@ -2812,11 +2815,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // side), the speakeasy's lit windows smeared warm, the implied lamps' light hanging in the murk
     if (fogOn) {
       const p0 = groundY(cam, Z.prom[1]) - 30, p1 = Math.min(H, cam.dock.y + 40);
+      const pw = speak.power ? speak.power() : 1, wk = litK(DK, 'lamps') * (lit > 0 ? lit : 0) * pw;
+      // (PERF-B — THE CLEAN GLASS: the windows read clean through fog + snow — the veil, the bank, the lift + the halos go round them; a
+      //  passing wisp is the only fog over the glass. &force=fog-glass = the old smeared look, for an A/B)
+      const wins = !off.has('no-speakeasy') && L.speakeasy ? speak.windows() : [];
+      fogD.glass(off.has('fog-glass') ? null : wins.map(w => w.rect), wk);
       fogD.veil(c, 'stage', p0 - 40, p1);
       fogD.bank(c, 'prom', p0, groundY(cam, Z.prom[0]));
       fogD.lampGlow(c, p0, p1);
-      const pw = speak.power ? speak.power() : 1, wk = litK(DK, 'lamps') * (lit > 0 ? lit : 0) * pw;
-      if (wk > 0.02) fogD.halos(c, speak.windows().filter(w => !w.edge).map(w => ({ ...w.rect, col: [255, 190, 120], k: 0.9 * wk })), Math.max(4, tierVal('fogHalos', tier) >> 1));
+      if (wk > 0.02) fogD.halos(c, wins.filter(w => !w.edge).map(w => ({ ...w.rect, col: [255, 190, 120], k: 0.9 * wk })), Math.max(4, tierVal('fogHalos', tier) >> 1), 64, true);
+      fogD.wisps(c, WF.v(0.2));
+      fogD.glass(null, 0);
     }
     mk9('the front row + weather');
     if (wlOn) wild.draw(c, 'front', wlEnv);
@@ -2902,15 +2911,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sun.dim(c, fs);
     mk9('the foreground + frost');
     const vigK = Math.min(1.22, night + (HR.shadow > 0.01 ? HR.shadow * 1.4 : 0)), tcV = tempNow();
-    const frostOn = fadeIn > 0 && !off.has('no-glasswx') && (clock.force.has('freeze') || (tcV != null && smooth(-4, -12, tcV) > 0.01));
-    if (frostOn || off.has('vig-canvas') || !vigLayer.show(canvas, vignette, 0.45 + 0.45 * vigK)) { vigLayer.hide(); drawForeground(c, W, H, vignette, vigK); }
+    // (PERF-B: the frozen pane is its own page layer over the vignette's now — the vignette stays a layer in a freeze; &force=vig-canvas
+    //  draws both on the canvas, as before)
+    const vigOnCanvas = off.has('vig-canvas') || !vigLayer.show(canvas, vignette, 0.45 + 0.45 * vigK);
+    if (vigOnCanvas) { vigLayer.hide(); drawForeground(c, W, H, vignette, vigK); }
     // 9c — THE FROZEN PANE (the owner prefers City 1.0's frost): district/frost.js#pane over the whole screen on a REAL deep freeze (−4 °C →
     // full by −12 °C, or FROST forced), forming slowly, kept clear of the NEON sign + SPEAKEASY, the dock's labels + the corner buttons
     // (soft-edged holes: only the lace's finest edge reaches them). 9d: the pane only — no frost on the buttons.
     // (9e: the pane AFTER the vignette — the frost is on the glass, nearest the eye; under the vignette the corners it grows in were darkened away)
+    if (!(fadeIn > 0 && !off.has('no-glasswx')) && frost.hideLayer) frost.hideLayer();
     if (fadeIn > 0 && !off.has('no-glasswx')) {
       const tc2 = tempNow();
       const fz = clock.force.has('freeze') ? 1 : tc2 == null ? 0 : smooth(-4, -12, tc2);
+      if (fz <= 0.01 && frost.hideLayer) frost.hideLayer();
       if (fz > 0.01) {
         const cr = [];
         if (S.logoRect) { const r = S.logoRect; cr.push({ x: r.x - 14, y: r.y - 18, w: r.w + 28, h: r.h * 1.75 + 36, f: 34 }); }
@@ -2920,7 +2933,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         //  sits over the frost like a frosted window's latch), a tight one round the dock's buttons only)
         for (const g of S.glass || []) if (g.group !== 'corner') cr.push({ x: g.x + 2, y: g.y + 2, w: g.w - 4, h: g.h - 4, f: 10 });
         frost.setClear && frost.setClear(cr);
-        frost.pane(c, { L: { freeze: fz, w: { night: LK.w.night || 0, late: LK.w.late || 0 } }, force: clock.force, dt, motion: S.motion, joined: shownAt < 0 || performance.now() - shownAt < 3000 });
+        frost.pane(c, { layer: vigOnCanvas ? null : { host: canvas.parentElement, after: vigLayer.el }, L: { freeze: fz, w: { night: LK.w.night || 0, late: LK.w.late || 0 } }, force: clock.force, dt, motion: S.motion, joined: shownAt < 0 || performance.now() - shownAt < 3000, bakeOk: shownAt >= 0 && performance.now() - shownAt > 800 });   // (PERF-B: the pane bakes in steps after the reveal)
       }
     }
     mk9('the crisp layer');
