@@ -6,6 +6,7 @@
 //   chunk breaking into a puff on the walk) — only while snow lies on it.
 import { ctx2d } from '../../ui/canvas-safe.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 const CAPS = [60, 130, 220];   // (the speed round: the near flakes carry the look)
 const DEPTH = [{ k: 0.42, v: 14, r: 0.85, a: 0.6 }, { k: 0.36, v: 24, r: 1.45, a: 0.88 }, { k: 0.22, v: 40, r: 2.9, a: 0.72 }];
 
@@ -62,7 +63,7 @@ export function createSnowfall() {
   // (ATM-C: v = its shape (0..3), b = its own brightness (0.7..1) — varied flakes. THE CORNERS: the snow WRAPS (a flake leaving one side comes
   // back on the other at its height), so even the blizzard's sideways drive covers every corner — no upwind band (one 3.6 screens wide put
   // three flakes in four off the screen))
-  let smallP = 0.3, filled = false;   // (smallP: the share of NEAR flakes that are small + crisp — most of them in heavy snow)
+  let smallP = 0.3, filled = false, smFlips = 0;   // (smFlips: the near smears' slant changes — the debug: WSP's hysteresis)   // (smallP: the share of NEAR flakes that are small + crisp — most of them in heavy snow)
   const spawn = (d, anywhere) => { return { d, x: Math.random() * (W + 80) - 40, y: anywhere ? Math.random() * H : -6 - Math.random() * 30, ph: Math.random() * 6.28, s: 0.75 + Math.random() * 0.5, v: (Math.random() * 4) | 0, b: 0.7 + Math.random() * 0.3, sml: d === 2 && Math.random() < smallP, fi: anywhere ? 0 : 1, land: H * (d === 0 ? 0.62 + Math.random() * 0.12 : d === 1 ? 0.75 + Math.random() * 0.15 : 0.9 + Math.random() * 0.12) }; };
   return {
     resize(w, h) { if (w === W && h === H) return; W = w; H = h; flakes = []; },
@@ -99,7 +100,18 @@ export function createSnowfall() {
           // (ATM-A: the shared wind THERE — the gust waves roll through the snow: it gusts sideways in sheets, settles in the lulls;
           // ATM-B: a blizzard DRIVES it sideways — the gusts' share stronger)
           const wf = s.windAt ? Math.max(-16, Math.min(16, s.windAt(f.x < 0 ? 0 : f.x > W ? 1 : f.x / W))) * 2.6 * (1 + 1.5 * bz) : wind;
-          f.vx = wf * (0.5 + 0.5 * f.d) + Math.sin(s.t * 0.7 + f.ph) * (6 + 6 * f.d) * (1 - 0.6 * bz);
+          // (WSP — THE BLOWING SNOW, the owner Nov 1: "it goes SUPER FAST, STOPS, CHANGES DIRECTIONS" — each flake's sideways speed was SET
+          //  every frame from the gust field + its sway, so it jumped as the gusts rolled through, and where the lazy sway was as big as the
+          //  wind (heavy snow in a breeze) a flake stopped dead + swept back. Now: (1) ONE DIRECTION once the wind drives the snow (a
+          //  blizzard, or a drive over ~18 pt/s) — the gusts change its SPEED only, never below ~45 % of the drive, never a reversal;
+          //  (2) INERTIA — the flake EASES toward that target (τ ≈ 0.28 s for the dust … ~0.5 s for a big near flake): it curves through
+          //  the gusts. The look kept: the same drive, the same sway, the same speeds)
+          const drive = wf * (0.5 + 0.5 * f.d), sway = Math.sin(s.t * 0.7 + f.ph) * (6 + 6 * f.d) * (1 - 0.6 * bz);
+          let tgt = drive + sway;
+          const dk = Math.max(bz, smooth(10, 26, Math.abs(drive)));
+          if (dk > 0) { const sd = drive < 0 ? -1 : 1, held = sd * Math.max(Math.abs(drive) * 0.45, sd * tgt); tgt += (held - tgt) * dk; }
+          if (f.vx == null) f.vx = tgt;
+          else { const tau = 0.28 + 0.11 * f.d * f.s; f.vx += (tgt - f.vx) * (1 - Math.exp(-sec / tau)); }
           f.x += f.vx * sec;
           if (f.fi < 1) f.fi = Math.min(1, f.fi + sec / 0.6);
           if (f.y > f.land) Object.assign(f, spawn(f.d, false));
@@ -117,7 +129,18 @@ export function createSnowfall() {
         // (the blizzard: a mid / near flake's SHORT SOFT SMEAR along its flight — its slant from its own velocity, 15 / 30 / 45 degrees)
         let sm = 0;
         // (only the FEW BIG near flakes smear: theirs is what reads; the small + mid ones' motion shows the drive — the 4× CPU A/B: every smear was ~55 ms)
-        if (smear && f.d === 2 && !f.sml) { const vy = D.v * f.s * (1 + 0.55 * bz), vx = f.vx || 0; if (Math.abs(vx) > vy * 0.6) { const deg = Math.atan2(vy, Math.abs(vx)) * 57.3; sm = (deg < 22 ? 1 : deg < 38 ? 2 : 3) * (vx < 0 ? -1 : 1); } }
+        // (WSP — its slant HELD with hysteresis: a flake near a band's edge kept flipping between two baked slants as its speed wobbled —
+        //  the streak visibly jumping angle; now it changes only ~4° past the edge, and the smear turns on at 0.65 × its fall, off at 0.5)
+        if (smear && f.d === 2 && !f.sml) {
+          const vy = D.v * f.s * (1 + 0.55 * bz), vx = f.vx || 0, ax = Math.abs(vx), on = f.sm ? ax > vy * 0.5 : ax > vy * 0.65;
+          if (on) {
+            const deg = Math.atan2(vy, ax) * 57.3, cur = Math.abs(f.sm || 0), H = 4;
+            const keep = cur === 1 ? deg < 22 + H : cur === 2 ? deg > 22 - H && deg < 38 + H : cur === 3 ? deg > 38 - H : false;
+            sm = (keep ? cur : deg < 22 ? 1 : deg < 38 ? 2 : 3) * (vx < 0 ? -1 : 1);
+          }
+          if (sm && f.sm && sm !== f.sm) smFlips++;
+          f.sm = sm;
+        } else f.sm = 0;
         const dd = f.sml ? 0 : f.d, key = r0 + ',' + g0 + ',' + b0 + '|' + dd + '|' + f.v + '|' + sm;
         const als = al;
         let b = B.get(key); if (!b) { b = { col: [r0, g0, b0], d: dd, v: f.v, sm, pts: [] }; B.set(key, b); }
@@ -271,7 +294,7 @@ export function createSnowfall() {
       gsNow.wisps = streams.length; gsNow.xy = streams.map(w => [Math.round(w.x), Math.round(w.y), +(w.age / w.life).toFixed(2)]);
       c.restore();
     },
-    debug: () => ({ ground: gsNow, flakes: flakes.length, slab: !!slab, puffs: puffs.length, sprites: art.size, near: flakes.filter(f => f.d === 2).length, rows: [0, 1, 2, 3, 4, 5, 6, 7].map(k => flakes.filter(f => f.d === 2 && f.y >= k * H / 8 && f.y < (k + 1) * H / 8).length) }),
+    debug: () => ({ smFlips, vx: flakes.slice(0, 60).map(f => (f.d === 2 ? Math.round(f.vx || 0) : null)), ground: gsNow, flakes: flakes.length, slab: !!slab, puffs: puffs.length, sprites: art.size, near: flakes.filter(f => f.d === 2).length, rows: [0, 1, 2, 3, 4, 5, 6, 7].map(k => flakes.filter(f => f.d === 2 && f.y >= k * H / 8 && f.y < (k + 1) * H / 8).length) }),
   };
 }
 

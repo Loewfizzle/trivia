@@ -275,7 +275,8 @@ export function createWater() {
     // (ATM-A: a gust passing mid-screen roughens the ripples for its moment; THE SWELL — a slow long wave rolling toward us, ~5 s a wave,
     // lifting + dropping each depth's reflection in turn, at any wind)
     const wf = f.windF, gk = wf ? wf.at(0.5) * wf.level : 0;
-    const amp = (0.05 + 0.3 * rough) * (1 + 0.6 * gk), jit = (0.03 + 0.22 * rough) * (1 + 0.5 * gk), swell = 0.11 * (1 + 0.4 * rough);
+    // (WSP — THE GALE: the reflections broken up harder + a bigger swell, only past "windy" (f.gale: galesea.js#galeK))
+    const gl = f.gale || 0, amp = (0.05 + 0.3 * rough) * (1 + 0.6 * gk) * (1 + 0.9 * gl), jit = (0.03 + 0.22 * rough) * (1 + 0.5 * gk) * (1 + 0.8 * gl), swell = 0.11 * (1 + 0.4 * rough) * (1 + 1.4 * gl);
     for (const st of strips) {
       const ph = st.z * 0.92 - t * 1.35, ph2 = st.z * 2.37 + t * 1.9 + st.seed * 6.28;
       const A = amp * st.s, dx = A * (0.66 * Math.sin(ph) + 0.34 * Math.sin(ph2));

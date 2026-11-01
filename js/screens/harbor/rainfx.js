@@ -16,9 +16,13 @@ const RAIN_CAP = [150, 280, 440];
  *  brightness (× 1 at rain) */
 export function rainLook(rain) {
   const r = Math.max(0, rain || 0), sm = (a, b, v) => { const u = Math.min(1, Math.max(0, (v - a) / (b - a))); return u * u * (3 - 2 * u); };
-  const n = r <= 0.3 ? 0.03 + 0.3 * r : r <= 0.55 ? 0.12 + (0.74 - 0.12) * sm(0.3, 0.55, r) : 0.74 + (2.2 - 0.74) * sm(0.55, 0.9, r);
+  const n0 = r <= 0.3 ? 0.03 + 0.3 * r : r <= 0.55 ? 0.12 + (0.74 - 0.12) * sm(0.3, 0.55, r) : 0.74 + (2.2 - 0.74) * sm(0.55, 0.9, r);
+  // (WSP — DRIZZLE YOU CAN SEE, the owner Nov 1: "you can hardly tell" — ~40 drops at ~18 % opacity, 4–6 pt long: invisible. Now ~a third
+  //  of rain's drops (~0.34 of RAIN_CAP — rain 0.74; was ~0.08), each nearly as bright as rain's but SHORTER, THINNER + SLOWER — fine drops hanging in the air; rain +
+  //  heavy rain untouched: the drizzle share fades out by 0.5, where the old curve has long taken over)
+  const n = r > 0.004 ? Math.max(n0, 0.34 * sm(0.02, 0.12, r) * (1 - sm(0.32, 0.5, r))) : n0;
   const dz = 1 - sm(0.28, 0.5, r), hv = sm(0.62, 0.9, r);
-  return { n, v: 1 - 0.42 * dz + 0.3 * hv, len: 1 - 0.55 * dz + 0.6 * hv, w: 1 - 0.28 * dz + 0.15 * hv, a: 1 - 0.38 * dz + 0.28 * hv, heavy: hv, drizzle: dz };
+  return { n, v: 1 - 0.55 * dz + 0.3 * hv, len: 1 - 0.62 * dz + 0.6 * hv, w: 1 - 0.3 * dz + 0.15 * hv, a: 1 + 0.1 * dz + 0.28 * hv, heavy: hv, drizzle: dz };
 }
 /** the depths: share, speed (pt/s), length (pt), width, alpha, landing (null / water / ground) */
 const RAIN_DEPTH = [
@@ -131,7 +135,8 @@ export function createHarborRain() {
       // uniform white streaks over everything incl. the NEON logo. With the heavy share (heavy rain → the storm): MANY fine faint far drops,
       // FEWER near ones (far 46 → 64 %, near 20 → 8 %), every streak thinner, the unlit ones mostly DARK (they catch light only near the
       // lamps / neon / signs — the light grid still lifts those), lighter over the logo. Drizzle + rain unchanged: drizzle < rain < heavy < storm.)
-      const hv = RL.heavy, kFar = RAIN_DEPTH[0].k + 0.18 * hv, kMid = RAIN_DEPTH[1].k - 0.06 * hv;
+      // (WSP: drizzle leans to the mid + near depths — its far streaks are too fine to read: far 46 → 30 %, mid 34 → 40 %, near 20 → 30 %)
+      const hv = RL.heavy, dzK = RL.drizzle, kFar = RAIN_DEPTH[0].k + 0.18 * hv - 0.16 * dzK, kMid = RAIN_DEPTH[1].k - 0.06 * hv + 0.06 * dzK;
       while (drops.length < want) { const r = Math.random(); const p = spawn(r < kFar ? 0 : r < kFar + kMid ? 1 : 2, want - drops.length > 40); landOf(p, s); drops.push(p); }
       if (drops.length > want) drops.length = want;
       const k = s.slant || 0, day = clamp01(s.day), flash = s.flash || 0, night = 1 - day;
@@ -143,7 +148,9 @@ export function createHarborRain() {
       const ice = clamp01(s.ice || 0), glints = ice > 0.05 ? [] : null;
       const dk = ice > 0.05 ? 0 : hv * night;   // (the storm's unlit drops darker at night)
       const base0 = ice > 0.05 ? (day > 0.5 ? [214, 230, 252] : [186, 212, 255]) : day > 0.5 ? [206, 212, 224] : [172, 186, 222];
-      const base = dk > 0 ? base0.map((v, i) => v + ([112, 124, 160][i] - v) * dk) : base0;
+      const base1 = dk > 0 ? base0.map((v, i) => v + ([112, 124, 160][i] - v) * dk) : base0;
+      // (WSP: drizzle BY DAY — light drops on a bright grey sky barely read: whiter + a little more opaque, so the fine drops show)
+      const dzD = ice > 0.05 ? 0 : RL.drizzle * day, base = dzD > 0 ? base1.map((v, i) => v + ([240, 244, 252][i] - v) * dzD) : base1;
       const iL = 1 - 0.32 * ice, iW = (1 - 0.22 * ice) * (1 - 0.34 * hv), dimU = 1 - (0.42 * night + 0.22 * day) * hv;
       const lg = s.logo, lx0 = lg ? lg.x - 14 : 0, lx1 = lg ? lg.x + lg.w + 14 : 0, ly0 = lg ? lg.y - 14 : 0, ly1 = lg ? lg.y + lg.h + 30 : 0, lgK = 0.25 + 0.45 * hv;
       for (const p of drops) {
@@ -160,7 +167,7 @@ export function createHarborRain() {
         if (hx < -40 || hx > W + 40) continue;
         // its light: the cell it falls through (a tube's colour near the tubes, the lamp's amber under a globe), a strike over all
         const L = night > 0.15 ? lightAt(hx, hy) : null;
-        let col = base, a = b.a * (day > 0.5 ? 0.85 : 0.75) * RL.a * (L ? 1 : dimU);
+        let col = base, a = b.a * (day > 0.5 ? 0.85 : 0.75) * RL.a * (L ? 1 : dimU) * (1 + 0.45 * dzD);
         if (lg && hx > lx0 && hx < lx1 && hy > ly0 && hy < ly1) a *= 1 - lgK;   // (lighter over the NEON logo)
         // (HEAVY: SHEETS of rain sweeping across in waves with the wind — bands of denser, brighter streaks travelling over the screen)
         // (ATM-A — WIND AS ONE SYSTEM: in a wind the sheets ARE the gust waves (core/harbor-wind.js) — a band of denser, brighter rain rolling

@@ -130,6 +130,7 @@ import { snowmanPiece, SNOWMAN_H } from './snowman.js';
 import { snowState, forcedPack, packFromDays, daysOf, snowKey, emptyPack } from '../../core/harbor-snow.js';
 import { capFor, groundSteps, roadStep, speakStep, topsOf, snowTones, releaseSnow, awningSnow, plowedStrip } from './snow.js';
 import { createSnowfall } from './snowfx.js';
+import { createGaleSea, galeK } from './galesea.js';
 import { lastCleared, SNOWWORK, flushWet } from '../../core/harbor-snowwork.js';
 import { trafficLanes } from '../../core/harbor-traffic.js';
 import { createWinterFolk, doorCleared, winterActs } from './winterfolk.js';
@@ -638,6 +639,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // 9a — THE RAIN is the Harbor's own now (rainfx.js: depth, the wind's slant, lit by the tubes + the lamps, rings + splashes)
   const rain = createHarborRain();
   const snowfall = createSnowfall();
+  const galeSea = createGaleSea();   // (WSP — THE GALE's SEA: the whitecaps, the swell, the spray — galesea.js)
   const winterFolk = createWinterFolk();   // (9b: the doorman's shovel, the shoveller, the snowball fight, the slip)
   // (9b: the winter's sounds — the snow lying, someone shovelling: the doorman at the steps (left) or the shoveller on the walk)
   const winterSound = () => { if (clock.force.has('no-snow')) return {}; const lie = SN.stage !== 'none' ? Math.min(1, SN.cover * 1.2) : 0; const a = lie || clock.force.has('shovel') ? winterActs(LK.local, SN.stage !== 'none' ? SN : { stage: 'fresh', cover: 1, age: 0 }, { force: clock.force, falling: WXS ? WXS.snow : 0 }) : null; return { snowLie: lie, shovel: a && (a.shovel || a.shoveller) ? 1 : 0, shovelPan: a && a.shovel ? -0.55 : 0 }; };       // (9b: the Harbor's own falling snow, lit by the neon + the lamps; the awning's slab)
@@ -1265,12 +1267,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     for (const s of geo) {
       const Hc = s.foot - s.top; if (Hc < 8) continue;
       const u = Math.max(0, Math.min(1, (s.box.x + s.box.w / 2) / W)), side = w.side;
-      const target = Hc * (0.045 * w.lean + 0.085 * w.at(u) * w.level) * side;
+      // (WSP — THE GALE: a strong lean downwind + the crowns TOSSING in the gusts, only past "windy" (gk); a breeze unchanged)
+      const gk = galeK(w), atU = w.at(u);
+      const target = Hc * (0.045 * w.lean + 0.085 * atU * w.level + gk * (0.03 + 0.06 * atU)) * side;
       let st = swaySt.get(s.i); if (!st) { st = { x: target, v: 0 }; swaySt.set(s.i, st); }
       const om = Math.PI * 2 * Math.max(0.38, 0.7 - Hc / 400), ze = 0.22;
       st.v += (om * om * (target - st.x) - 2 * ze * om * st.v) * sec; st.x += st.v * sec;
       const ph = s.i * 2.1 + s.x * 0.07;
-      s.amp = st.x + Hc * (0.014 * w.level * w.level * Math.sin(t * 1.9 + ph) + 0.003 * w.level * Math.sin(t * 5.3 + ph * 1.7));   // (the rock grows with the wind: still air ~0 — a calm night draws no crown)
+      s.amp = st.x + Hc * (0.014 * w.level * w.level * Math.sin(t * 1.9 + ph) + 0.003 * w.level * Math.sin(t * 5.3 + ph * 1.7) + gk * (0.5 + atU) * (0.011 * Math.sin(t * 3.1 + ph * 1.3) + 0.005 * Math.sin(t * 7.7 + ph * 2.1)));   // (the rock grows with the wind: still air ~0 — a calm night draws no crown)
       s.noCut = false;
       if (Math.abs(s.amp) > Math.abs(big)) big = s.amp;
       if (Math.abs(s.amp) >= 0.3) (swayCut.get(s.layer) || swayCut.set(s.layer, []).get(s.layer)).push(s);   // (under 0.3 pt nothing shows: no copy, no cut — a calm night costs nothing)
@@ -2431,6 +2435,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     AUD.wheel = hf.wheel.lights; AUD.pier = hf.lamps; AUD.beam = hf.beam.k; AUD.boats = hf.boat.lights * hf.boat.power;
     layer('water');
     drawWater(c, t, fs, T, fadeIn, sunNow);
+    // (WSP — THE GALE: the harbor darker + rougher, the swell rolling downwind, the WHITECAPS — only on windy / gale days: galeK)
+    if (!off.has('no-gale-sea') && galeK(WF) > 0.02) { const wb = water.band(); if (wb) galeSea.rough(c, { W, y0: wb.y0, y1: wb.y1, WF, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.5 * (LK.w.dawn || 0)), gold: clamp01(LK.w.golden || 0), t, dt, tier, motion: S.motion, fade: fadeIn }); }
     zap.front(c);                                   // (ATM-B: a CLOSE strike's fork — in front of the skyline, landing on a crown, the needle or the water)
     // far → near: the far boats (behind the lighthouse) → the pier, the lighthouse, the cottage [baked] → the beam → Rosie →
     // the wheel (+ the pier's lamps) → the water taxi (in front of the pier head)
@@ -2438,7 +2444,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const noB = off.has('no-boats');
     if (!noB) boats.draw(c, hf.boat, L.lighthouse.z, 1e9);
     layer('harbor');
-    if (LB) harborBlackout(c, L, 1 - legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303));   // (POLISH 4: its baked lights go dark too)
+    if (LB) harborBlackout(c, L, 1 - legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303));
+    // (WSP — THE GALE's SPRAY off the breakwater's rocks + the pier head's face, in the gusts)
+    if (!off.has('no-gale-sea') && galeK(WF) > 0.05) {
+      const b = L.breakwater, ph = L.pier.head, [bx0, by] = project(cam, b.x0, b.h, b.z), [bx1] = project(cam, b.x1, b.h, b.z), [px0, py] = project(cam, ph.x0, L.pier.y - 1.6, ph.z0), [px1] = project(cam, ph.x1, 0, ph.z0);
+      galeSea.spray(c, { sites: [{ x0: bx0, x1: bx1, y: by, s: cam.F / b.z / 4 }, { x0: px0, x1: px1, y: py, s: cam.F / ph.z0 / 4 }], WF, W, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0)), t, dt, tier, motion: S.motion, fade: fadeIn });
+    }   // (POLISH 4: its baked lights go dark too)
     if (!off.has('no-beam')) beam.draw(c, hf.beam);
     neon.draw(c, 'harbor', LB ? { ...nf, fade: nf.fade * legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) } : nf);   // (NEON PASS 3: the lighthouse + the keeper's house in neon)
     if (!noB) boats.draw(c, hf.boat, L.wheel.z + L.wheel.frame + 0.5, L.lighthouse.z);
@@ -2680,7 +2691,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // otherwise — its beam + its circle on the brick read above them), its red + blue, the spotlight's beam
     if (raidFrame.R && raidFrame.R.front && fadeIn > 0) { const st = L.impliedRoad && L.impliedRoad.street; raidFx.front(c, raidFrame.R, { t: performance.now() / 1000, dark: litK(DK, 'lamps'), fade: fadeIn, T: bakeTones || T, night: litK(DK, 'lamps'), lampAt: x => roadLampAt(L.lamps, x), dpr, wet: L.wet || 0, rails: st ? st.rails : null, motion: S.motion }, { spotAt: raidFrame.spotAt }); }   // (FP2: the dock rests (title.js#tagState) → the motorcar is seen; FP3a: its sound in tick())
     // the trees' falling leaves (autumn) / the crabapple's petals (its blossom) in the real wind (8a: trees.js)
-    if (fadeIn > 0 && !off.has('no-leaves')) { const wd = LK.windDir == null ? 250 : LK.windDir; leaves.draw(c, { t, dt, motion: S.motion, wind: WF.v(0.5), windAt: u => WF.v(u), wd, season: L.season, phase: L.seasonPhase, fade: fadeIn, night: litK(DK, 'lamps'), tier }); }
+    if (fadeIn > 0 && !off.has('no-leaves')) { const wd = LK.windDir == null ? 250 : LK.windDir; leaves.draw(c, { t, dt, motion: S.motion, wind: WF.v(0.5), windAt: u => WF.v(u), gale: galeK(WF), wd, season: L.season, phase: L.seasonPhase, fade: fadeIn, night: litK(DK, 'lamps'), tier }); }
     // (C4d — H1: the lampposts' live glass (drawLampLight) is gone with the posts (PROM): the implied lamps' light is baked into the pools)
     // THE STRING LIGHTS on the speakeasy's roof (NEON PASS 4): warm from dusk; a party night's colours chasing on the beat.
     // (SP2: the CAFÉ-LIGHT CANOPY over the roof's deck — strings.js; &force=strings-party previews the party's colours)
@@ -2992,7 +3003,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (x1 - x0 > 1 && yb - ya > 1) mirrors.push({ cv: hg.cur, sx: x0 * k, sy: (ya - hg.show.y0) * k, sw: (x1 - x0) * k, sh: (yb - ya) * k, x: x0, y: ya, w: x1 - x0, h: yb - ya, axis: m.axis });
     }
     const mo = fs.moonAt, moonK = mo && LK.moon.el > -1 ? (P.moonA || 0) * clamp01((LK.moon.el + 1) / 4) * (0.3 + 0.7 * clamp01(LK.moon.illum * 3)) * (fs.moonVeil == null ? 1 : fs.moonVeil) : 0;
-    water.draw(c, canvas, { t, T, night: litK(DK, 'water'), fade: fadeIn, motion: S.motion, wind: LK.wind, windF: WF, cloud: LK.cloud, rain: clamp01(+LK.rain || 0), sun: sunNow && LK.sun.el > -3 ? { ...sunNow, el: LK.sun.el } : null, moon: moonK > 0.02 ? { x: mo.x, y: mo.y, k: moonK } : null, mirrors, punch: clock.force.has('no-punch') ? 0 : neon.show().punch || 0 });
+    water.draw(c, canvas, { t, T, night: litK(DK, 'water'), fade: fadeIn, motion: S.motion, wind: LK.wind, windF: WF, gale: clock.force.has('no-gale-sea') ? 0 : galeK(WF), cloud: LK.cloud, rain: clamp01(+LK.rain || 0), sun: sunNow && LK.sun.el > -3 ? { ...sunNow, el: LK.sun.el } : null, moon: moonK > 0.02 ? { x: mo.x, y: mo.y, k: moonK } : null, mirrors, punch: clock.force.has('no-punch') ? 0 : neon.show().punch || 0 });
   }
   // DT1 — THE SIGN'S DARK HALO (the owner: the pink letters hard to read with the moon behind): a soft dark shadow hugging the NEON
   // word's tubes and SPEAKEASY's letters, painted on the sky BEHIND the sign (the page draws over the canvas) — dark on the dark night
@@ -3707,6 +3718,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (THE PREVIEW PANEL: the flags the city runs on right now — the page's own or the remote's)
       // (9a — THE WEATHER now: the state, its intensity, what the city shows — rain / wet / drip / fog / ice / wind — + the target's why)
       snowman: SM ? { ...SM } : null,
+      gale: { k: +galeK(WF).toFixed(2), ...galeSea.debug() },
       snow: { ...SN, src: snowSrc, key: snowNow(), falling: WXS ? +(WXS.snow || 0).toFixed(3) : 0, fall: snowfall.debug(), road: L && L.road ? roadModeNow() : null, work: snowWorkNow(), crisp: crisp.debug(), pane: frost.debug(), gwx: glassWx.debug(), sign: glassWx.debug().snow, signLum: glassWx.debug().snowLum, icicles: glassWx.debug().icicles },          // (9b: THE SNOWPACK + where it came from)
       weather: WXS ? { state: WXS.state, k: +WXS.k.toFixed(2), rain: +WXS.rain.toFixed(3), wet: +WXS.wet.toFixed(3), drip: +WXS.drip.toFixed(3), fog: +WXS.fog.toFixed(3), ice: +WXS.ice.toFixed(3), wind: +WXS.wind.toFixed(1), gust: +WXS.gust.toFixed(1), lightning: WXS.lightning, fogDepth: fogD.debug(), storm: { k: +stormK.toFixed(2), deck: stormDeck.debug() }, iceFx: iceFx.debug(), strikeClose: () => zap.strikeClose(), zap: zap.debug(), rainFx: rain.debug(), ground: wetGround.debug(), glass: glassWx.debug(), sway: { ...swayDbg, geo: swayGeo.map(s => [s.layer, Math.round(s.foot - s.top), s.holes.length]), amps: swayGeo.map(s => +(s.amp || 0).toFixed(2)), cut: [...swayCut.values()].flat().filter(s => !s.noCut).length }, windF: { speed: +WF.speed.toFixed(1), gust: +WF.gust.toFixed(1), dir: WF.dir, side: WF.side, level: +WF.level.toFixed(2), look: WF.look, src: WF.src, gusts: WF.gusts, at: [0, 0.25, 0.5, 0.75, 1].map(u => +WF.at(u).toFixed(2)) }, why: WXS.target ? WXS.target.why : '', line: weatherLine(WXS) } : null,
       lightAudit: () => { const o = {}; for (const k in AUD) o[k] = +(+AUD[k] || 0).toFixed(3); const wl = wheel.lit(); o.wheelBulbs = wl.bulbs; o.wheelCars = wl.cars; o.speakeasy = +speak.power().toFixed(3); return o; },

@@ -466,12 +466,12 @@ export function createLeaves() {
     draw(c, o = {}) {
       if (!cam || !trees.length || !o.motion || !(o.tier > 0)) { leaves.length = 0; return; }
       const season = o.season || 'autumn', phase = o.phase ?? 0.5, wind = +o.wind || 0, dt = Math.min(0.1, (o.dt || 16) / 1000);
-      const max = o.tier >= 2 ? 12 : 5;
+      const gl = +o.gale || 0, max = Math.round((o.tier >= 2 ? 12 : 5) * (1 + gl));   // (WSP: a gale tears more of them off)
       // who sheds: the maples in autumn (more as it goes on, more in a wind), the crabapple's petals in its blossom, a stray leaf
       // at the end of summer
       const src = season === 'autumn' ? trees : season === 'spring' ? trees.filter(tr => tr.t.kind === 'crab') : season === 'summer' && phase > 0.85 ? trees.filter(tr => tr.t.kind === 'maple') : [];
       let rate = season === 'autumn' ? 0.5 + 1.1 * phase : season === 'spring' ? (phase > 0.25 && phase < 0.95 ? 0.7 : 0) : season === 'summer' ? 0.06 : 0;
-      rate *= 1 + Math.min(2, Math.abs(wind) / 5);
+      rate *= (1 + Math.min(2, Math.abs(wind) / 5)) * (1 + 2 * gl);
       if (src.length && rate > 0) {
         acc += dt * rate;
         while (acc >= 1) { acc -= 1; if (leaves.length < max) { const tr = src[Math.floor(R() * src.length)]; if (tr.t.kind === 'maple' || season !== 'autumn' || R() < 0.4) spawn(tr, season, o.night || 0); } }
