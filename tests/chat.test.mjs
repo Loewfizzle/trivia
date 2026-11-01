@@ -81,3 +81,20 @@ test('no crude words anywhere in the question banks; crude API trivia is skipped
   assert.equal(tooSpecific({ q: 'What is the word for a female goose?', correct: 'A Gander', wrong: ['A Leopardess', 'A Hembra', 'A Bitch'], cat: 'language' }), true);
   assert.equal(hasProfanity('class assassin Scunthorpe'), false);
 });
+
+// APP FIXES (Grok 5.2): HIGH STAKES + RUMRUNNER fell to `default: return false` — chat open while you still had a secret move
+test('chat locks: HIGH STAKES while betting / answering until you lock in; RUMRUNNER through the day until you are done', async () => {
+  const { chatLocked } = await import('../js/chat/logic.js');
+  const hs = phase => ({ id: 'stakes', phase, participants: { a: true, b: true } });
+  assert.equal(chatLocked(hs('bet'), 'a', { lock: {} }), true, 'betting, no bet yet');
+  assert.equal(chatLocked(hs('bet'), 'a', { lock: { a: { b: 1 } } }), false, 'bet locked in: talk');
+  assert.equal(chatLocked(hs('q'), 'a', { lock: { a: { b: 1 } } }), true, 'the question, no answer yet');
+  assert.equal(chatLocked(hs('q'), 'a', { lock: { a: { b: 1, a: 2 } } }), false, 'answered: talk');
+  assert.equal(chatLocked(hs('show'), 'a', { lock: {} }), false, 'the showdown');
+  assert.equal(chatLocked(hs('bet'), 'a', null), true, 'not synced yet: locked to be safe');
+  assert.equal(chatLocked(hs('bet'), 'spectator', { lock: {} }), false);
+  const rr = phase => ({ id: 'rum', phase, participants: { a: true } });
+  assert.equal(chatLocked(rr('day'), 'a', { pub: {} }), true, 'the day, still moving');
+  assert.equal(chatLocked(rr('day'), 'a', { pub: { a: { nw: 3, done: 123 } } }), false, 'done for the day: talk');
+  assert.equal(chatLocked(rr('night'), 'a', { pub: {} }), false);
+});

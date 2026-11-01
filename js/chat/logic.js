@@ -65,6 +65,19 @@ export function chatLocked(game, uid, live) {
       const n = mine('nodes');
       return !(n && n.h === game.hi && n.f != null); // holed out: watch and talk
     }
+    case 'stakes': {
+      // HIGH STAKES (APP FIXES — Grok 5.2): locked while you still have to BET (phase 'bet') or ANSWER (phase 'q') — your lock flag
+      // (hslock/…/{uid}/{b|a}) opens it
+      if (game.phase !== 'bet' && game.phase !== 'q') return false;
+      const l = mine('lock');
+      return !(l && l[game.phase === 'bet' ? 'b' : 'a']);
+    }
+    case 'rum': {
+      // RUMRUNNER (APP FIXES — Grok 5.2): locked through the day until you're DONE (rrpub/…/{uid}.done)
+      if (game.phase !== 'day') return false;
+      const n = mine('pub');
+      return !(n && n.done);
+    }
     default:
       return false;
   }

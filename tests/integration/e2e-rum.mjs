@@ -65,8 +65,13 @@ await H.run(async () => {
   ok(/permission/i.test(hostPriv), 'nor can the host, during the day');
   const own = await pages[0].evaluate(async (code, m, u) => { const fb = await import('/js/firebase.js'); const s = await fb.get(fb.dbRef(`rrp/${code}/${m}/${u}/1`)); return s.val(); }, H.code, g0.matchId, uids[0]);
   ok(own && own.dest === 'docks' && own.a && Object.keys(own.a).length === 2, 'your own log is there: the tip-off, the trade, the destination');
+  // APP FIXES (Grok 5.2): chat locked through the day until you're DONE
+  const chatLock = p => p.evaluate(() => import('/js/chat/chat.js').then(m => m.locked()));
+  ok(await chatLock(pages[0]), 'CHAT: locked during the day (not done yet)');
   await G(pages[0], 'window.__rum.done()');
   await waitFor(pages[1], (s, u) => s.live && s.live.pub && s.live.pub[u] && s.live.pub[u].done, 'the public DONE flag', 10000, uids[0]);
+  await waitFor(pages[0], (s, u) => s.live && s.live.pub && s.live.pub[u] && s.live.pub[u].done, 'my DONE flag', 10000, uids[0]).catch(() => {});
+  ok(!(await chatLock(pages[0])), 'CHAT: open once you are done for the day');
   const pub = await evalIn(pages[1], (s, u) => JSON.stringify(s.live.pub[u]), uids[0]);
   ok(!pub.includes('docks') && pub.includes('"nw"'), 'the flag carries the net worth, never the destination');
   // bots everywhere else; the day ends early once everyone is done

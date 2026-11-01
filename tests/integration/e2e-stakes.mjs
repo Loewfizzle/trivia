@@ -33,12 +33,18 @@ await H.run(async () => {
   await sleep(1800);
   ok(await pages[0].$('.hs-cat.is-flipped .hs-cat-name'), 'the category card turns over');
   await waitPhase(host, 'bet', 0, 'betting', 15000);
+  // APP FIXES (Grok 5.2): no chatting the answer — chat is locked while you still have a bet to place
+  const chatLock = p => p.evaluate(() => import('/js/chat/chat.js').then(m => m.locked()));
+  await waitFor(pages[0], s => !!s.liveKey, 'synced', 10000).catch(() => {});
+  ok(await chatLock(pages[0]), 'CHAT: locked while betting (no bet yet)');
   // phone 0 bets 300 through the UI, phone 1 the minimum by timing out? no: phone 1 bets ALL IN
   await G(pages[0], 'window.__stakes.bet(300)');
   if (!FAST) await H.shot(pages[1], 'hs-02-bet-390x844');   // (timed phases: one quick shot; every size is reviewed in stakes-preview.html)
   await waitFor(pages[1], s => s.live && s.live.lock && s.live.lock[Object.keys(s.game.participants).sort()[0]] !== undefined || Object.values((s.live && s.live.lock) || {}).some(x => x && x.b), 'a public lock flag', 10000);
   const hidden = await pages[1].evaluate(async (code, m, u) => { const fb = await import('/js/firebase.js'); try { await fb.get(fb.dbRef(`hsbet/${code}/${m}/0/${u}`)); return 'read'; } catch (e) { return String(e.message || e); } }, H.code, g0.matchId, uids[0]);
   ok(/permission/i.test(hidden), `another phone can't see a bet before the showdown (${hidden.slice(0, 40)})`);
+  await waitFor(pages[0], (s, u) => s.live && s.live.lock && s.live.lock[u] && s.live.lock[u].b, 'my bet locked', 10000, uids[0]).catch(() => {});
+  ok(!(await chatLock(pages[0])), 'CHAT: open once the bet is locked in');
   const flags = await evalIn(pages[1], s => JSON.stringify(s.live.lock));
   ok(!flags.includes('300'), 'the public lock flag carries no amount');
   if (!FAST) {
