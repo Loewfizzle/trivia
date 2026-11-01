@@ -18,7 +18,8 @@ const DEPTH = [{ k: 0.42, v: 14, r: 0.85, a: 0.6 }, { k: 0.36, v: 24, r: 1.45, a
 const SOFT = [0.42, 0.28, 0.1];          // (the core's share of the radius before it feathers: far crisp-ish, near out of focus)
 const art = new Map();
 function flakeArt(col, d, v, sm) {
-  const key = `${col[0]},${col[1]},${col[2]}|${d}|${v}|${sm}`;
+  // (PERF-B — FR5 A4.3: a NUMBER key — the string built per flake per frame cost ~23 ms/s in the blizzard)
+  const key = (((((col[0] & 255) * 256 + (col[1] & 255)) * 256 + (col[2] & 255)) * 4 + d) * 16 + v) * 16 + (sm + 8);
   let e = art.get(key);
   if (e) return e;
   if (art.size > 140) { for (const o of art.values()) o.cv.width = 0; art.clear(); }

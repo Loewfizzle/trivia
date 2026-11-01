@@ -256,10 +256,13 @@ export function drawSignalLamps(c, L, st, o) {
 /** FP2: the far kerb along the railing (world units: its height + its depth from the railing back toward us) */
 export const FAR_KERB = Object.freeze({ h: 0.18, d: 0.9 });
 export const WORDS = [{ word: 'WAIT', col: [255, 118, 52], dim: [84, 40, 34] }, { word: 'WALK', col: [176, 255, 212], dim: [40, 70, 62] }];
+// (PERF-B — FR5 A4.2: the crossing's WAIT / WALK was measured every frame — the widths kept per size + word)
+const WORD_W = new Map();
 function word(x, p, text, col, a = 1) {
-  const px = p.h * 0.74;
-  x.font = FONT(px); x.textAlign = 'center'; x.textBaseline = 'middle';
-  const m = x.measureText(text).width || px * 2.6, k = Math.min(1, (p.w * 0.86) / m);
+  const px = p.h * 0.74, f = FONT(px), wk = f + '|' + text;
+  x.font = f; x.textAlign = 'center'; x.textBaseline = 'middle';
+  let mw = WORD_W.get(wk); if (mw == null) { mw = x.measureText(text).width || px * 2.6; if (WORD_W.size > 32) WORD_W.clear(); WORD_W.set(wk, mw); }
+  const m = mw, k = Math.min(1, (p.w * 0.86) / m);
   x.save(); x.translate(p.x + p.w / 2, p.y + p.h * 0.54); x.scale(k, 1); x.globalAlpha *= a; x.fillStyle = rgb(col); x.fillText(text, 0, 0); x.restore();
 }
 /** the lantern's post, box, cap + its unlit panes (baked into the road, behind the traffic); ln.box = its panes on screen */
