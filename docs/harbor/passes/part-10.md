@@ -134,6 +134,16 @@ they came (§7 the boxer, §6 the sign).
   10 s, retried each frame until the audio is unlocked); (3) the `heli` group's timeout + the workers' "promenade empty" passed alone (the
   four local shards' load) and with (1).
 
+- **THE CLOUD's FIRST RUN** (406d834): tests ✅; harbor 8 / 10 — holiday ✗ (the spiders' calm-down within 18 s + a letter tap's stutter)
+  + city ✗ (LOAD WEATHER — kept: a lit crossfade after the reveal). Locally all three pass (the LOAD group's OTHER holiday-jump check fails
+  the same on the build BEFORE the pass — this machine). Looking for anything this pass adds to an ordinary frame, the A/B of a QUIET PARTY
+  NIGHT (np-party, Sat 11 pm, no show) read **+3.6 ms SLOWER** — a SCHEDULE difference: a break blocked by a show had consumed the dice
+  differently, so every later break of the night moved (the new build mid-conga, the old one not). FIXED: a blocked break draws its kind
+  first, so it only removes itself (`harbor-streetparty.js#danceBreaks`); and the fireworks' tick does NOTHING while no show is near + the
+  engine is idle (no geometry, no weather, no layer). After: **np-party SAME (−0.1 ms, noise ±4.1)**; the Halloween 9 pm spider scene
+  draws the same city in both builds (the boxer has wrapped up by then). The touched groups locally 116 / 116. The cloud's second run = the
+  pass's last.
+
 ## Decisions
 - **BEHIND THE LIT SIGN** (the owner's 9:05 pm add-on) — the engine's layer inside the scene box under the sign; the sign joins the show
   by its bloom (one element's opacity — a compositor change, never a filter).

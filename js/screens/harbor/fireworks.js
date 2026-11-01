@@ -463,6 +463,8 @@ export function createHarborFireworks(opts = {}) {
     frame,
     /** the bursts lighting the city now: [{ x, y, r, I, c [0..1 rgb], layer, R }] — the scene's water columns, the crowd, the readout */
     lights: () => lightsNow,
+    /** the engine holds its layer (a show near, its smoke, or the few seconds before it frees) — the scene skips its tick when not */
+    alive: () => !!gl || shells.size > 0,
     /** a show / its smoke still up */
     busy: () => !!gl && (shells.size > 0),
     mem: () => (cv ? +((cv.width * cv.height * 4 * 2 + cap * F_INST * 4 + scap * F_SMOKE * 4) / 1e6).toFixed(2) : 0),

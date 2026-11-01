@@ -117,8 +117,10 @@ export function danceBreaks(day0, key, ctx = {}) {
   for (let aim = B.from; aim <= B.to; aim += B.every_min / 60) {
     const at = day0 + (aim + (r() - 0.5) * 2 * B.jitter_min / 60) * 3600, song = songs.find(s => s.t0 >= at);
     if (!song || song.t1 > day0 + (B.to + 0.25) * 3600 || song.t0 - last < B.minGap_min * 60) continue;
-    if (ctx.blocked && ctx.blocked(song.t0 - 30, song.t1 + 30)) continue;
     const kind = pickKind(r, song.fast, prev, ctx.danceKind);
+    // (PART 10: a blocked break — a raid, a legendary, a fireworks show — only REMOVES ITSELF: its kind is drawn first, so the dice stay in
+    //  step and every other break of the night keeps its time + kind)
+    if (ctx.blocked && ctx.blocked(song.t0 - 30, song.t1 + 30)) continue;
     out.push({ id: `brk.${key}.${out.length}`, s0: song.t0, s1: song.t1, kind, fast: song.fast, n: out.length, ...(song.id ? { song: song.id } : {}) });
     prev = kind; last = song.t0;
   }

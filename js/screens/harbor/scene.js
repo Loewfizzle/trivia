@@ -790,7 +790,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function fwTick() {
     const nowS = clock.now() / 1000;
     if (!fwx.ok() || !L || !cam || !skyline) { fwState.on = false; return; }
-    const shows = fwShowsNow(nowS), wxOk = fireworksWeather({ storm: !!(LK.storm || (WXS && WXS.state === 'storm')), rain: +LK.rain || 0, wind: WXS ? WXS.wind || 0 : 0, fog: +LK.fog || 0, snow: +LK.snow || 0 });
+    const shows = fwShowsNow(nowS);
+    // (nothing near + the engine idle: no work at all this frame — the geometry, the weather, the GPU layer all wait for a show)
+    if (!shows.length && !fwx.alive()) { fwState.on = false; fwState.show = null; fwState.dim = false; fwState.why = ''; fwDimK = 0; fwFlash = 0; if (fwFlashSent && S.onSignFlash) { fwFlashSent = 0; S.onSignFlash(0); } if (fwS.bed) { fwS.bed.stop(2); fwS.bed = null; } return; }
+    const wxOk = fireworksWeather({ storm: !!(LK.storm || (WXS && WXS.state === 'storm')), rain: +LK.rain || 0, wind: WXS ? WXS.wind || 0 : 0, fog: +LK.fog || 0, snow: +LK.snow || 0 });
     const legendUp = !!(legends && legends.active());
     const launching = shows.some(sh => sh.forced) || (wxOk.ok && !legendUp);
     const live = shows.map(sh => ({ show: sh, plan: fwPlan(sh.kind, sh.seed, sh.t0) }));
