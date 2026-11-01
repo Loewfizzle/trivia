@@ -55,24 +55,74 @@ function alienPath(x, R) {
   x.bezierCurveTo(0.95 * R, 0.85 * R, 0.45 * R, 1.3 * R, 0.16 * R, 1.5 * R);
   x.closePath();
 }
-// THE ₿ (POLISH 5 — the owner: "it reads as a B with short stubs"): the real Bitcoin symbol, drawn (never a font's glyph) — a BOLD B
-// (its stem + two bowls, the lower a touch wider, the counters cut clean: one even-odd fill, crisp) with TWO VERTICAL STROKES that
-// clearly stand ABOVE and BELOW the letter, the whole mark at the logo's slight tilt, centred on the envelope
-function bitcoinMark(x, R, col) {
-  const h = R * 1.02, t = h * 0.19, r = h * 0.25, wb = h * 0.3, x0 = -(wb + r) * 0.62, y0 = -h / 2;
-  x.save(); x.fillStyle = col; x.rotate(0.24);
+// THE ₿ — WSP, PREMIUM (the owner's PERF-B review, Nov 1: "looks very cheap"; supersedes POLISH 5's arcs): THE REAL MARK — the open
+// Bitcoin logo's ₿ (public domain; its 64-unit drawing, the B tilted ~14° with its two short strokes above + below), flattened ONCE to
+// polygons (btcMarkPolys, PURE) and PROJECTED POINT BY POINT onto the envelope's sphere (onSphere: longitude / latitude) — so it wraps over
+// the gores, narrowing where the sphere turns away, its edges vector-crisp at any dpr (never a font, never a stretched bitmap). Painted ON
+// the fabric: a soft print shadow under it, the mark, a gloss on the light's side clipped to it — then (balloonArt) the puffed gores, the
+// sphere's light + shade and the sheen are laid OVER it like the rest of the fabric. THE OPPOSITES kept: orange on black (glowing at
+// night through the lit sprite), black on orange.
+const BTC_D = 'm46.11,27.441c0.637-4.258-2.605-6.547-7.038-8.074l1.438-5.768-3.511-0.875-1.4,5.616c-0.923-0.23-1.871-0.447-2.813-0.662l1.41-5.653-3.509-0.875-1.439,5.766c-0.764-0.174-1.514-0.346-2.242-0.527l0.004-0.018-4.842-1.209-0.934,3.75s2.605,0.597,2.55,0.634c1.422,0.355,1.679,1.296,1.636,2.042l-1.638,6.571c0.098,0.025,0.225,0.061,0.365,0.117-0.117-0.029-0.242-0.061-0.371-0.092l-2.296,9.205c-0.174,0.432-0.615,1.08-1.609,0.834,0.035,0.051-2.552-0.637-2.552-0.637l-1.743,4.019,4.569,1.139c0.85,0.213,1.683,0.436,2.503,0.646l-1.453,5.834,3.507,0.875,1.439-5.772c0.958,0.26,1.888,0.5,2.798,0.726l-1.434,5.745,3.511,0.875,1.453-5.823c5.987,1.133,10.489,0.676,12.384-4.739,1.527-4.36-0.076-6.875-3.226-8.515,2.294-0.529,4.022-2.038,4.483-5.155zm-8.023,11.249c-1.085,4.36-8.426,2.003-10.806,1.412l1.928-7.729c2.38,0.594,10.012,1.77,8.878,6.317zm1.086-11.312c-0.99,3.966-7.1,1.951-9.082,1.457l1.748-7.007c1.982,0.494,8.365,1.416,7.334,5.55z';
+let btcMemo = null;
+/** PURE: the ₿'s outline as closed polygons in its own units, centred on the mark (0,0) — [[x, y, x, y, …], …] (the outer + 2 counters) */
+export function btcMarkPolys(d = BTC_D, seg = 10) {
+  if (d === BTC_D && btcMemo) return btcMemo;
+  const tok = d.match(/[a-zA-Z]|-?(?:\d+\.?\d*|\.\d+)(?:e[-+]?\d+)?/g), polys = [];
+  let i = 0, cmd = '', x = 0, y = 0, sx = 0, sy = 0, cx2 = 0, cy2 = 0, cur = null;
+  const num = () => +tok[i++], isNum = () => i < tok.length && !/[a-zA-Z]/.test(tok[i]);
+  const cubic = (x1, y1, x2, y2, x3, y3) => { for (let k = 1; k <= seg; k++) { const t = k / seg, u = 1 - t; cur.push(u * u * u * x + 3 * u * u * t * x1 + 3 * u * t * t * x2 + t * t * t * x3, u * u * u * y + 3 * u * u * t * y1 + 3 * u * t * t * y2 + t * t * t * y3); } cx2 = x2; cy2 = y2; x = x3; y = y3; };
+  while (i < tok.length) {
+    if (!isNum()) cmd = tok[i++];
+    const rel = cmd === cmd.toLowerCase(), C = cmd.toUpperCase(), ox = rel ? x : 0, oy = rel ? y : 0;
+    if (C === 'Z') { if (cur && cur.length >= 6) polys.push(cur); cur = null; x = sx; y = sy; continue; }
+    if (C === 'M') { if (cur && cur.length >= 6) polys.push(cur); x = ox + num(); y = oy + num(); sx = x; sy = y; cur = [x, y]; cmd = rel ? 'l' : 'L'; cx2 = x; cy2 = y; continue; }
+    if (C === 'L') { x = ox + num(); y = oy + num(); cur.push(x, y); cx2 = x; cy2 = y; continue; }
+    if (C === 'H') { x = ox + num(); cur.push(x, y); cx2 = x; cy2 = y; continue; }
+    if (C === 'V') { y = oy + num(); cur.push(x, y); cx2 = x; cy2 = y; continue; }
+    if (C === 'C') { const a = [num(), num(), num(), num(), num(), num()]; cubic(ox + a[0], oy + a[1], ox + a[2], oy + a[3], ox + a[4], oy + a[5]); continue; }
+    if (C === 'S') { const a = [num(), num(), num(), num()]; cubic(2 * x - cx2, 2 * y - cy2, ox + a[0], oy + a[1], ox + a[2], oy + a[3]); continue; }
+    i++;   // (an unknown command's number: skipped)
+  }
+  if (cur && cur.length >= 6) polys.push(cur);
+  // centred on the mark's own box
+  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9;
+  for (const p of polys) for (let k = 0; k < p.length; k += 2) { x0 = Math.min(x0, p[k]); x1 = Math.max(x1, p[k]); y0 = Math.min(y0, p[k + 1]); y1 = Math.max(y1, p[k + 1]); }
+  const mx = (x0 + x1) / 2, my = (y0 + y1) / 2;
+  const out = polys.map(p => p.map((v, k) => (k % 2 ? v - my : v - mx)));
+  out.h = y1 - y0; out.w = x1 - x0;
+  if (d === BTC_D) btcMemo = out;
+  return out;
+}
+/** the ₿ traced onto the sphere: SPAN = the mark's full height in radians of latitude (strokes included), centred a touch above the
+ *  dome's middle (where the sphere faces us most) */
+const BTC_SPAN = 1.56, BTC_LAT = 0.05;
+function btcPath(x, R, dx = 0, dy = 0) {
+  const P = btcMarkPolys(), k = BTC_SPAN / P.h;
   x.beginPath();
-  // the outer B
-  x.moveTo(x0, y0); x.lineTo(x0 + wb, y0); x.arc(x0 + wb, y0 + r, r, -Math.PI / 2, Math.PI / 2);
-  x.lineTo(x0 + wb * 1.12, y0 + h / 2); x.arc(x0 + wb * 1.12, y0 + h * 0.75, r, -Math.PI / 2, Math.PI / 2); x.lineTo(x0, y0 + h); x.closePath();
-  // the two counters (cut out: even-odd)
-  const ri = r - t * 0.92;
-  x.moveTo(x0 + t, y0 + t * 0.92); x.lineTo(x0 + wb, y0 + t * 0.92); x.arc(x0 + wb, y0 + r, ri, -Math.PI / 2, Math.PI / 2); x.lineTo(x0 + t, y0 + r + ri); x.closePath();
-  x.moveTo(x0 + t, y0 + h / 2 + (r - ri)); x.lineTo(x0 + wb * 1.12, y0 + h / 2 + (r - ri)); x.arc(x0 + wb * 1.12, y0 + h * 0.75, ri, -Math.PI / 2, Math.PI / 2); x.lineTo(x0 + t, y0 + h - t * 0.92); x.closePath();
-  x.fill('evenodd');
-  // the two strokes through it, standing well clear above + below (the ₿'s mark of identity)
-  const bw = t * 0.72, ext = h * 0.2;
-  for (const bx of [x0 + wb * 0.28, x0 + wb * 0.92]) { x.fillRect(bx - bw / 2, y0 - ext, bw, ext + t); x.fillRect(bx - bw / 2, y0 + h - t, bw, ext + t); }
+  for (const p of P) {
+    for (let j = 0; j < p.length; j += 2) {
+      const [px, py] = onSphere(R, p[j] * k, BTC_LAT - p[j + 1] * k);
+      if (j) x.lineTo(px + dx, py + dy); else x.moveTo(px + dx, py + dy);
+    }
+    x.closePath();
+  }
+}
+function bitcoinMark(x, R, col, light, lit) {
+  x.save();
+  // the print's shadow: the mark a hair down + away from the light, soft + faint — it sits ON the fabric, not floating over it
+  if (!lit) { x.fillStyle = 'rgba(0,0,0,0.28)'; btcPath(x, R, -light.side * R * 0.018, R * 0.026); x.fill('nonzero'); }
+  x.fillStyle = col; btcPath(x, R); x.fill('nonzero');
+  if (!lit) {
+    // THE GLOSS: a soft highlight on the light's side, clipped to the mark (printed ink catching the sun / the sky) + a thin bright lip
+    // along its lit edges (the emboss), the far side a touch darker
+    x.save(); btcPath(x, R); x.clip('nonzero');
+    const hx = light.side * R * 0.35, g = x.createRadialGradient(hx, -R * 0.42, 0, hx * 0.5, -R * 0.1, R * 0.95);
+    g.addColorStop(0, `rgba(255,252,240,${(0.16 + 0.22 * light.day).toFixed(3)})`); g.addColorStop(0.6, 'rgba(255,252,240,0)'); g.addColorStop(1, 'rgba(0,0,0,0.18)');
+    x.fillStyle = g; x.fillRect(-R * 1.2, -R * 1.2, R * 2.4, R * 2.6);
+    x.strokeStyle = `rgba(255,248,230,${(0.1 + 0.18 * light.day).toFixed(3)})`; x.lineWidth = Math.max(0.35, R * 0.022); x.lineJoin = 'round';
+    btcPath(x, R, light.side * R * 0.008, -R * 0.012); x.stroke();
+    x.restore();
+  }
   x.restore();
 }
 // ---------------------------------------------------------------- 9a — THE STYLES (the owner, Oct 25: the festival's line-up + new designs)
@@ -80,19 +130,21 @@ function bitcoinMark(x, R, col) {
 // (R·sin φ·cos λ, −R·sin λ) — gores narrow toward the edges, rings + the face wrap round the curve; the puffed gores + the sphere's
 // light are laid over afterwards (the seams read only as shading).
 /** the everyday kinds a single balloon draws from (₿ + the alien keep their rare odds) */
-export const BALLOON_KINDS = ['vstripes', 'pinstripes', 'bullseye', 'smiley'];
-/** the festival's line-up, in launch order (the owner: orange ₿, the alien, black ₿, bullseye, smiley, striped) */
+export const BALLOON_KINDS = ['vstripes', 'pinstripes', 'skull', 'smiley'];
+/** the festival's line-up, in launch order (the owner: orange ₿, the alien, black ₿, the skull, smiley, striped) */
+// (WSP — the owner, Nov 1 evening: THE SKULL replaces the violet + teal bullseye — "a black and white skull", "high quality like all the
+//  other ones")
 // (the owner's add-on, Oct 25: the sixth is the AMERICAN FLAG — vertical stripes stay an everyday style)
 // (PERF-B — the owner, Nov 1: the 7th, THE DISCO BALL, on the far right's open slot — festivalSpots)
-export const FESTIVAL_ORDER = ['btc-orange', 'alien', 'bitcoin', 'bullseye', 'smiley', 'flag', 'disco'];
+export const FESTIVAL_ORDER = ['btc-orange', 'alien', 'bitcoin', 'skull', 'smiley', 'flag', 'disco'];
 /** Old Glory: red #B22234, navy #3C3B6E, white */
 export const FLAG = { red: [178, 34, 52], navy: [60, 59, 110], white: [246, 244, 240] };
 /** the schemes per kind (POLISH 5's two-colour gores kept as PINSTRIPES: red / gold, blue / cream) */
 export const BALLOON_SCHEMES = {
   pinstripes: [[[214, 40, 48], [250, 204, 60]], [[40, 92, 196], [246, 244, 236]]],
   vstripes: [[[214, 40, 48], [246, 150, 40], [250, 214, 60], [60, 170, 90], [50, 120, 210], [120, 70, 170]], [[24, 130, 110], [244, 232, 200], [232, 92, 40], [244, 232, 200]], [[30, 34, 72], [240, 190, 60], [196, 44, 52], [240, 190, 60]]],
-  // (the owner's add-on: DEEP VIOLET + TEAL rings on CREAM — distinct from the orange ₿, the black ₿, the alien, the yellow smiley, the flag)
-  bullseye: [[[244, 236, 214], [86, 40, 140], [22, 140, 138]]],
+  // (WSP: THE SKULL — bone white over the dome, black from the jaw down; [bone, bone's second gore, the black])
+  skull: [[[240, 235, 222], [232, 226, 212], [18, 16, 20]]],
   smiley: [[[250, 208, 36], [246, 200, 30]]],
 };
 const brighten = c => mix(c, [255, 220, 150], 0.25).map(v => Math.min(255, Math.round(v * 1.15)));
@@ -135,7 +187,7 @@ function fabric(x, R, kind, scheme, lit, light) {
     //  lit orange + the black ₿ the owner keeps exactly — the colours the black one used to turn at night)
     if (kind === 'bitcoin') return [[26, 24, 28], [32, 30, 34]][i % 2];
     if (kind === 'btc-orange') return lit ? [[255, 150, 36], [250, 140, 30]][i % 2] : [[247, 147, 26], [240, 140, 22]][i % 2];
-    if (kind === 'bullseye') return L(sch[0]);
+    if (kind === 'skull') return L(sch[i % 2]);
     if (kind === 'smiley') return L(sch[i % sch.length]);
     if (kind === 'flag') return L(i % 2 ? FLAG.white : FLAG.red);
     return L(sch[i % sch.length]);                       // (pinstripes + vstripes: a colour a gore, round the sphere)
@@ -145,15 +197,46 @@ function fabric(x, R, kind, scheme, lit, light) {
     if (a1 < -Math.PI / 2 - 0.01 || a0 > Math.PI / 2 + 0.01) continue;
     goreFill(x, R, Math.max(-Math.PI / 2, a0), Math.min(Math.PI / 2, a1), kind === 'flag' ? [L(FLAG.red), L(FLAG.white)] : [goreCol(i)]);
   }
-  // BULLSEYE: rings of equal angle round the point facing us — on the sphere they crowd toward the limb (radius R·sin θ)
-  if (kind === 'bullseye') {
-    const K = 7, cy = -0.04 * R;
-    for (let k = K; k >= 1; k--) {
-      const th = (k / K) * (Math.PI / 2) * 1.02, r = R * 1.06 * Math.sin(Math.min(Math.PI / 2, th));
-      x.fillStyle = rgb(L(k % 2 ? sch[0] : sch[1 + ((k / 2) % 2)])); x.beginPath(); x.ellipse(0, cy, r, r * 1.02, 0, 0, TAU); x.fill();
+  // THE SKULL (WSP — the owner, Nov 1 evening: "a black and white skull … high quality like all the other ones"): painted ON the sphere
+  // like the smiley — every feature a shape in longitude / latitude projected point by point (foreshortened where the dome turns away):
+  // BIG dark SOCKETS (a soft bone-shadow rim round each, the brow's inner corners lower — a stern, readable skull at ~30 pt), the inverted
+  // NOSE, the cheek hollows' soft shade, a ROW OF TEETH wrapping the curve (the bite line + the gaps), and BLACK FROM THE JAW DOWN to the
+  // mouth — the black + white the owner asked for. The puffed gores, the sun's light + shade + the sheen go OVER it (balloonArt); at dusk
+  // the lit sprite glows the bone warm from inside while the sockets stay black.
+  if (kind === 'skull') {
+    const ink = 'rgb(16,14,18)';
+    const sph = (pts, close = true) => { x.beginPath(); pts.forEach(([lo, la], k) => { const [px, py] = onSphere(R, lo, la); if (k) x.lineTo(px, py); else x.moveTo(px, py); }); if (close) x.closePath(); };
+    const ring = (cl, ca, rl, ra, n = 1, tilt = 0, sq = 2.6) => Array.from({ length: 40 }, (_, k) => {
+      const t = k / 40 * TAU, c = Math.cos(t), sn = Math.sin(t), e = 2 / sq;
+      const u = Math.sign(c) * Math.pow(Math.abs(c), e) * rl, v = Math.sign(sn) * Math.pow(Math.abs(sn), e) * ra;
+      return [cl + u * n, ca + v + tilt * u];
+    });
+    // the jaw down: black below a latitude curve that dips a little at the chin (the lower envelope a black hood)
+    const jaw = Array.from({ length: 25 }, (_, k) => { const lo = -Math.PI / 2 + k / 24 * Math.PI; return [lo, -0.86 - 0.06 * Math.cos(lo)]; });
+    x.fillStyle = rgb(lit ? [40, 30, 26] : sch[2]); sph([...jaw, [Math.PI / 2, -1.6], [-Math.PI / 2, -1.6]]); x.fill();
+    x.fillRect(-R * 1.2, R * 0.86, R * 2.4, R * 0.7);
+    // the cheek hollows + the temples: soft bone shade (depth, not detail)
+    if (!lit) for (const sg of [-1, 1]) {
+      const [cx, cy] = onSphere(R, sg * 0.5, -0.36), g = x.createRadialGradient(cx, cy, 0, cx, cy, R * 0.34);
+      g.addColorStop(0, 'rgba(70,60,56,0.26)'); g.addColorStop(1, 'rgba(70,60,56,0)'); x.fillStyle = g; x.fillRect(cx - R * 0.4, cy - R * 0.4, R * 0.8, R * 0.8);
     }
-    // (below the dome the taper carries the outer ring's colour — a band at the skirt so the pattern reads as rings, not a target)
-    x.fillStyle = rgb(L(sch[1])); x.fillRect(-R * 1.2, R * 1.02, R * 2.4, R * 0.5);
+    // THE SOCKETS: a soft shadow rim (the bone curving in), then the deep black — rounded squares, their inner top corners pulled down
+    for (const sg of [-1, 1]) {
+      x.fillStyle = 'rgba(60,50,48,0.35)'; sph(ring(sg * 0.34, 0.08, 0.3, 0.27, 1, -sg * 0.2)); x.fill();
+      x.fillStyle = ink; sph(ring(sg * 0.34, 0.07, 0.25, 0.225, 1, -sg * 0.2)); x.fill();
+    }
+    // THE NOSE: an inverted heart (the point up, two lobes at its foot), black
+    x.fillStyle = ink;
+    sph([[0, -0.17], [0.05, -0.25], [0.1, -0.35], [0.105, -0.41], [0.075, -0.45], [0.035, -0.44], [0, -0.41], [-0.035, -0.44], [-0.075, -0.45], [-0.105, -0.41], [-0.1, -0.35], [-0.05, -0.25]]); x.fill();
+    // THE TEETH: a band of bone across the face's foot (outlined), the bite line through it, the gaps between the teeth
+    const T0 = -0.55, T1 = -0.8, TL = 0.42, tw = Math.max(0.35, R * 0.035);
+    x.strokeStyle = ink; x.lineJoin = 'round'; x.lineCap = 'round';
+    x.lineWidth = tw * 1.3;
+    sph([...Array.from({ length: 13 }, (_, k) => [-TL + k / 12 * TL * 2, T0 - 0.02 * Math.cos((k / 12 - 0.5) * Math.PI)]), ...Array.from({ length: 13 }, (_, k) => [TL - k / 12 * TL * 2, T1 + 0.03])]); x.stroke();
+    x.lineWidth = tw; sph(Array.from({ length: 13 }, (_, k) => [-TL + k / 12 * TL * 2, (T0 + T1) / 2]), false); x.stroke();
+    x.lineWidth = tw * 0.8;
+    for (let k = 1; k < 8; k++) { const lo = -TL + k / 8 * TL * 2; sph([[lo, T0 - 0.01], [lo, T1 + 0.02]], false); x.stroke(); }
+    x.lineCap = 'butt';
   }
   // THE AMERICAN FLAG wrapped round the envelope: the red + white stripes down the gores to the mouth (goreFill: two a gore), the NAVY
   // CANTON over the crown — its lower edge a circle of latitude (seen a little from below: a soft curve) — and its stars as crisp white
@@ -196,8 +279,8 @@ function fabric(x, R, kind, scheme, lit, light) {
   }
   // THE MARKS: the ₿ (THE OPPOSITES — the black envelope: an ORANGE ₿ at every hour, brighter lit from inside · the orange envelope: a
   // BLACK ₿ at every hour) + the alien's big glossy almond eyes
-  if (kind === 'bitcoin') bitcoinMark(x, R, lit ? 'rgb(255,168,46)' : 'rgb(247,147,26)');
-  if (kind === 'btc-orange') bitcoinMark(x, R, 'rgb(20,14,8)');
+  if (kind === 'bitcoin') bitcoinMark(x, R, lit ? 'rgb(255,168,46)' : 'rgb(247,147,26)', light, lit);
+  if (kind === 'btc-orange') bitcoinMark(x, R, 'rgb(20,14,8)', light, lit);
   if (alien && !lit) {
     for (const sg of [-1, 1]) {
       x.save(); x.translate(sg * 0.42 * R, 0.22 * R); x.rotate(sg * -0.5);
@@ -318,7 +401,7 @@ function glintSprite() {
   return c;
 }
 /** one balloon's art in this light → { cv, glow, w, h, oy (the dome's centre from the top), mouth (y of the mouth) } — kind: one of
- *  BALLOON_KINDS (pinstripes · vstripes · bullseye · smiley — its scheme) or the specials ('bitcoin' black, 'btc-orange', 'alien') */
+ *  BALLOON_KINDS (pinstripes · vstripes · skull · smiley — its scheme) or the specials ('bitcoin' black, 'btc-orange', 'alien') */
 function balloonArt(R, scheme, light, dpr, kind = 'pinstripes') {
   const alien = kind === 'alien', path = alien ? alienPath : envPath, mouthY = (alien ? 1.5 : 1.42) * R;
   const W = R * 2.3, Hh = R * (kind === 'alien' ? 3.5 : 3.35), d = Math.min(3, dpr * 1.25);
@@ -397,6 +480,30 @@ export const FAST = 12;
 /** the burner: one short burn every 45–120 s on a cruise (seeded, never a rhythm); every 3–7 s while climbing at the launch */
 export const BURN = { cruise: [45, 120], climb: [3, 7], len: [1.8, 3.4] };
 const hash01 = (a, b) => { let h = (Math.imul(a | 0, 0x9e3779b1) ^ Math.imul((b | 0) + 0x7f4a7c15, 0x85ebca6b)) >>> 0; h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d) >>> 0; h ^= h >>> 12; return (h >>> 0) / 4294967296; };
+/** WSP — the sign's band crossed this many times faster by a NEAR balloon's altitude journey (squeezeBand) */
+export const SIGN_SQUEEZE = 2.5;
+/** PURE: a height y in [y0, y1] remapped so the band [sb.y, sb.y + sb.h] takes 1 / SIGN_SQUEEZE of its natural share of the journey —
+ *  continuous + monotonic (no jump), the ends fixed; sb null = unchanged */
+export function squeezeBand(y, sb, y0, y1) {
+  if (!sb || !(y1 > y0)) return y;
+  const a = Math.max(y0, Math.min(y1, sb.y)), b = Math.max(y0, Math.min(y1, sb.y + sb.h));
+  if (!(b > a)) return y;
+  const A = a - y0, S = (b - a) / SIGN_SQUEEZE, C = y1 - b, T = A + S + C, v = (y - y0) / (y1 - y0) * T;
+  return v < A ? y0 + v : v < A + S ? a + (v - A) * SIGN_SQUEEZE : b + (v - A - S);
+}
+/** PURE (WSP — THE LAYER SNAP): may a balloon whose box is [x, y, w, h] change its layer here? Only where the switch can't be SEEN: its
+ *  bottom above every roof under it (sk: the roofline per 4-px column; tops: the roof signs, the billboard + the spires' tips — + .tips)
+ *  and its box clear of the sign's band (sb) */
+export function layerClear(x, y, w, h, sb, sk, tops) {
+  if (sb && x + w > sb.x && x < sb.x + sb.w && y < sb.y + sb.h && y + h > sb.y) return false;
+  const i0 = Math.max(0, Math.floor(x / 4)), yb = y + h + 1;
+  for (const arr of [sk, tops, tops && tops.tips]) {
+    if (!arr || !arr.length) continue;
+    const i1 = Math.min(arr.length - 1, Math.ceil((x + w) / 4));
+    for (let i = i0; i <= i1; i++) if (arr[i] < yb) return false;
+  }
+  return true;
+}
 /** PURE: a flight's length in seconds from its seed (every phone the same) */
 export function flightLen(seed, festival) {
   const [a, b] = festival ? FLIGHT.festival : FLIGHT.single;
@@ -562,11 +669,15 @@ export function createBalloons() {
           // (a thin tip: only under the balloon's own body — the envelope's middle ±⅓ + its basket — never across the window)
           const tp = tops.tips; if (tp) { const i0 = Math.max(0, Math.floor((x - A.w * 0.34) / 4)), i1 = Math.min(tp.length - 1, Math.ceil((x + A.w * 0.34) / 4)); for (let i = i0; i <= i1; i++) if (tp[i] - 2 < fl) fl = tp[i] - 2; }
         }
+        if (b.lay === 'front') fl -= A.h * 0.18 + 2;    // (WSP: in front, no basket tucked behind a roof — it would show IN FRONT of it)
         fl = Math.max(fl, top + A.h + 4);
         const dts = Math.min(0.25, (s.dt || 16) / 1000) * cur.fast;
         b.fl = b.fl == null || Math.abs(b.fl - fl) > 400 ? fl : b.fl + Math.max(-1.6 * dts, Math.min(1.6 * dts, fl - b.fl));
         const room = Math.max(0, b.fl - top - A.h), rise = 0.05 * Math.sin(eL * TAU / b.rise + b.ph) + 0.16 * Math.sin(eL * TAU / b.jP + b.jPh);
-        let y = top + room * clamp01(b.band + rise) + (s.motion ? Math.sin(s.t * 0.55 + b.ph) * 0.7 : 0);
+        // (WSP — PERF-B's known issue "they sit over the NEON letters for minutes": a NEAR one's heights SQUEEZE the sign's band — the
+        //  part of its journey that falls on the letters is crossed SIGN_SQUEEZE× faster, the rest of the sky keeps its share; one smooth,
+        //  monotonic map: no jump)
+        let y = squeezeBand(top + room * clamp01(b.band + rise), b.front && sb ? sb : null, top, top + room) + (s.motion ? Math.sin(s.t * 0.55 + b.ph) * 0.7 : 0);
         // THE RISE (the festival): from just under the roofline at its x (hidden behind the buildings: the sky draws first) up to its
         // height, easing out
         if (b.climb && eL < b.climb) {
@@ -576,8 +687,16 @@ export function createBalloons() {
         }
         const alpha = fadeIn * fadeOut * (0.75 + 0.25 * b.near);
         b.box = [x - A.w / 2, y + A.oy * 0, A.w, A.h];
-        // (PERF-B — the depth rule: a near balloon over the sign's band goes onto its own overlay above the sign; everything else in the city)
-        const pad = b.R * 0.9, inFront = b.front && sb && x + A.w / 2 > sb.x && x - A.w / 2 < sb.x + sb.w && y < sb.y + sb.h && y + A.h > sb.y;
+        // (PERF-B — the depth rule: a near balloon over the sign's band goes onto its own overlay above the sign; everything else in the city.
+        //  WSP — THE LAYER SNAP (the owner's PERF-B review: "it pops IN FRONT of the buildings on the way up", day + night): the overlay sits
+        //  above the WHOLE city, so a near balloon still rising from behind a tower jumped in front of it the moment it touched the sign's
+        //  band. ONE CONTINUOUS DEPTH now: the layer it WANTS (front: a near one by the sign; back: everyone else) is TAKEN only where nothing
+        //  it overlaps would show the switch — clear of every roof, roof sign + spire under it AND clear of the sign's band (layerSwitch).
+        //  A near one that reaches the sign still tucked behind a roof simply crosses BEHIND the letters this time)
+        const pad = b.R * 0.9;
+        const want = !!(b.front && sb && x + A.w / 2 > sb.x - A.w * 0.5 && x - A.w / 2 < sb.x + sb.w + A.w * 0.5 && y < sb.y + sb.h + A.h * 0.7 && y + A.h > sb.y - A.h * 0.7);
+        if ((b.lay === 'front') !== want && layerClear(x - A.w / 2, y, A.w, A.h, sb, sk, tops)) b.lay = want ? 'front' : 'back';
+        const inFront = b.lay === 'front';
         let g = c, ox = 0, oy = 0;
         if (inFront) {
           const dd = Math.min(3, dpr * 1.25), f = frontOf(b, A.w + pad * 2, A.h + pad * 2, dd);

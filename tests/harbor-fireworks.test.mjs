@@ -1,7 +1,7 @@
 // PART 10 — THE FIREWORKS' PLANNER (core/harbor-fireworks.js): every night's shows, their times + conflicts, the scripted format, the weather.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { fireworksNight, planShow, scriptShow, fireworksWeather, fireworksBusy, SHELL_TYPES, FW_LAYERS, FW_COLORS } from '../js/core/harbor-fireworks.js';
+import { fireworksNight, planShow, scriptShow, fireworksWeather, fireworksBusy, syncToBeat, SHELL_TYPES, FW_LAYERS, FW_COLORS } from '../js/core/harbor-fireworks.js';
 import { knob } from '../js/core/harbor-schedule.js';
 
 const DAY0 = 1793419200 - 24 * 3600;   // a local midnight (abs s)
@@ -79,6 +79,13 @@ test('the party show builds to its finale + ends on the GOLD WILLOW CURTAIN', ()
   assert.ok(eggs.length >= 6 && eggs.length <= 8, `${eggs.length} dragon eggs at the very end`);
   assert.ok(Math.min(...eggs.map(c => c.x)) < 0.12 && Math.max(...eggs.map(c => c.x)) > 0.88, 'left edge → right edge');
   assert.ok(eggs.every(c => c.t >= Math.max(...curtain.map(q => q.t))), 'after the curtain — the last volley');
+  // WSP — ONE SALVO (the owner's PERF-B review): the same launch + the same burst for every egg, before + after the beat sync
+  for (const q of [p, syncToBeat(p, 1000, t => ({ b0: 1000.13, beat: 0.5, bar: 4, down: 0 }))]) {
+    const e = q.cues.filter(c => c.type === 'crackle' && c.big && c.t > q.dur - 4.5);
+    assert.equal(e.length, 8, 'all eight eggs');
+    assert.equal(new Set(e.map(c => c.t)).size, 1, `one burst moment (${e.map(c => c.t)})`);
+    assert.equal(new Set(e.map(c => Math.round((c.t - c.rise) * 1000))).size, 1, 'one launch moment');
+  }
 });
 
 test('the scripted format (New Year’s Eve + July 4th later): cues + fill sections', () => {

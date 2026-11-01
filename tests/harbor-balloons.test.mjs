@@ -32,8 +32,8 @@ test('the burner: RARE + irregular on a cruise (45–120 s), often while climbin
 });
 
 test('the festival line-up in the owner\'s order + the new styles', () => {
-  assert.deepEqual(FESTIVAL_ORDER, ['btc-orange', 'alien', 'bitcoin', 'bullseye', 'smiley', 'flag', 'disco']);
-  for (const k of ['vstripes', 'pinstripes', 'bullseye', 'smiley']) { assert.ok(BALLOON_KINDS.includes(k), k); assert.ok(BALLOON_SCHEMES[k].length >= 1, k); }
+  assert.deepEqual(FESTIVAL_ORDER, ['btc-orange', 'alien', 'bitcoin', 'skull', 'smiley', 'flag', 'disco']);
+  for (const k of ['vstripes', 'pinstripes', 'skull', 'smiley']) { assert.ok(BALLOON_KINDS.includes(k), k); assert.ok(BALLOON_SCHEMES[k].length >= 1, k); }
   assert.equal(BALLOON_SCHEMES.pinstripes.length, 2, 'two of the old schemes kept');
   assert.ok(!BALLOON_KINDS.includes('bitcoin') && !BALLOON_KINDS.includes('alien'), 'the specials keep their rare odds');
   assert.equal(driftAt(0), 0); assert.equal(driftAt(1), 1); assert.ok(driftAt(0.05) < 0.05, 'eased from rest');
@@ -56,7 +56,7 @@ test('a flight still up is found on load: the scheduler keeps what started (rece
 });
 
 test('PERF-A — THE TWO ₿ BALLOONS are never neighbours (apartSpots, the 6-balloon line-up): opposite halves at every shuffle', () => {
-  const six = ['btc-orange', 'alien', 'bitcoin', 'bullseye', 'smiley', 'flag'], n = 6, a = 0, b = 2, base = six.map((_, i) => 0.1 + 0.8 * (i + 0.5) / n);
+  const six = ['btc-orange', 'alien', 'bitcoin', 'skull', 'smiley', 'flag'], n = 6, a = 0, b = 2, base = six.map((_, i) => 0.1 + 0.8 * (i + 0.5) / n);
   let s = 7; const R = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
   for (let k = 0; k < 500; k++) {
     const sh = [...base].sort(() => R() - 0.5), out = apartSpots(sh, a, b), rank = v => [...out].sort((p, q) => p - q).indexOf(v);
@@ -86,4 +86,23 @@ test('PERF-B — THE DISCO BALL TILES: rows narrowing to the crown, staggered, e
   assert.ok(counts.length >= 18 && t.length >= 250 && t.length <= 600, `${counts.length} rows, ${t.length} tiles`);
   assert.ok(counts[0] < counts[Math.floor(counts.length / 2) - 1], 'fewer tiles at the crown than round the middle');
   assert.deepEqual(discoTiles(), t);
+});
+
+test('WSP — THE LAYER SNAP: a balloon changes layer only where nothing it overlaps would show it; the sign band squeezed for the near ones', async () => {
+  const { layerClear, squeezeBand, SIGN_SQUEEZE } = await import('../js/screens/harbor/balloons.js');
+  const sk = Array.from({ length: 101 }, (_, i) => (i >= 40 && i <= 60 ? 300 : 500));   // a tower 160–240 px, its roof at 300
+  const sb = { x: 50, y: 100, w: 300, h: 120 };
+  assert.equal(layerClear(170, 260, 40, 60, null, sk, null), false, 'its basket behind the tower: no switch');
+  assert.equal(layerClear(170, 200, 40, 60, sb, sk, null), false, 'clear of the roof but on the sign: no switch');
+  assert.equal(layerClear(170, 232 - 0.5, 40, 60, { ...sb, h: 60 }, sk, null), true, 'clear of both: the switch is invisible here');
+  const tops = Object.assign(Array(101).fill(1e9), { tips: Object.assign(Array(101).fill(1e9), { 45: 250 }) });
+  assert.equal(layerClear(170, 200, 40, 60, null, sk, tops), false, 'a spire\'s tip under it counts');
+  // the squeeze: continuous, monotonic, the ends fixed, the band crossed SIGN_SQUEEZE× faster
+  const y0 = 40, y1 = 400; let last = -1e9;
+  for (let k = 0; k <= 1000; k++) { const y = squeezeBand(y0 + (y1 - y0) * k / 1000, sb, y0, y1); assert.ok(y >= last - 1e-9); if (k) assert.ok(y - last < 3.6 * SIGN_SQUEEZE, 'no jump'); last = y; }
+  assert.equal(squeezeBand(y0, sb, y0, y1), y0); assert.ok(Math.abs(squeezeBand(y1, sb, y0, y1) - y1) < 1e-9);
+  const inBand = Array.from({ length: 1000 }, (_, k) => squeezeBand(y0 + (y1 - y0) * k / 999, sb, y0, y1)).filter(y => y > sb.y && y < sb.y + sb.h).length;
+  const nat = sb.h / (y1 - y0), A = sb.y - y0, S = sb.h / SIGN_SQUEEZE, C = y1 - sb.y - sb.h;
+  assert.ok(inBand <= 1000 * S / (A + S + C) + 2 && inBand < 1000 * nat * 0.55, `${inBand} of 1000 steps over the letters (was ${Math.round(1000 * nat)})`);
+  assert.equal(squeezeBand(123, null, y0, y1), 123);
 });

@@ -100,7 +100,7 @@ G('weather', async () => {
     await harborUp(Q.page);
     await waitFor(Q.page, `!!${P}.sky.state.balloons`, 'the festival', 10000).catch(() => {});
     const b = await ev(Q.page, `${P}.sky.state.balloons`);
-    ok(b && b.order.join() === 'btc-orange,alien,bitcoin,bullseye,smiley,flag,disco' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
+    ok(b && b.order.join() === 'btc-orange,alien,bitcoin,skull,smiley,flag,disco' && b.dur >= 3600 && b.dur <= 5400, `THE FESTIVAL: ${b && b.order.join(' → ')} · a ${b && Math.round(b.dur / 60)}-min flight`);
     await Q.ctx.close(); }
   // ---- ATM-B — HEAVY SNOW IN LAYERS + THE BLIZZARD: heavy snow = the far veil (a 'snow' look) + more, bigger flakes; the blizzard = a
   // WHITEOUT with depth, the snow driven sideways, the heads bowed, the blizzard's bed in the mix

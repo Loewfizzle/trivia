@@ -155,6 +155,10 @@ export function createSceneFireworks(C) {
   };
   fwHooks.burst = (c, p) => {
     const now = performance.now(), d = fwDelay(c), pan = fwPan(p.bx), far = c.layer === 'sky', fin = fwFinaleNow();
+    // WSP — THE ONE-MOMENT SALVO (the closing dragon eggs burst together): its first three booms + crackles heard, the rest are the same
+    // moment — eight stacked at full gain would clip
+    fwS.salvo = now - (fwS.salvoAt || 0) < 150 ? (fwS.salvo || 0) + 1 : 0; fwS.salvoAt = now;
+    if (c.big && fwS.salvo >= 3) return;
     if (!fin || c.big || now - fwS.boomAt > 260) {
       fwS.boomAt = now;
       C.snd.play(far ? 'firework-burst-far' : 'firework-burst', { gain: (c.big ? 1 : 0.72) * (far ? 0.85 : 1) * (fin && !c.big ? 0.7 : 1), pan, sync: { peakIn: () => d, mark: 'hit' } });

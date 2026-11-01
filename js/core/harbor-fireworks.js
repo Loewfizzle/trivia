@@ -101,8 +101,10 @@ export function partyScript(seed) {
     // THE CURTAIN: gold willows the whole width (the sky layer behind the skyline + the barges in front), staggered
     ...Array.from({ length: 9 }, (_, i) => ({ t: curtain + (i % 3) * 0.18 + (i * 0.07), type: 'willow', layer: i % 2 ? 'sky' : 'barge', x: 0.08 + i * 0.105, h: i % 2 ? 0.36 : 0.86, s: i % 2 ? 1.5 : 1.35, c1: 'gold', c2: 'gold', big: true })),
     // THE CLOSING DRAGON EGGS (PERF-A — the owner, Nov 1: "those were the really cool ones"; they were 4 shells over the right third):
-    // 8 crackle shells LEFT EDGE → RIGHT EDGE, a rolling salvo behind the lit sign — the whole sky crackling at the very end
-    ...Array.from({ length: 8 }, (_, i) => ({ t: dur - 3.0 + i * 0.16 + (i % 2) * 0.05, type: 'crackle', layer: 'barge', x: 0.07 + i * 0.123, h: 0.56 + 0.1 * (i % 2), c1: 'white', c2: 'gold', big: true })),
+    // 8 crackle shells LEFT EDGE → RIGHT EDGE behind the lit sign. WSP (the owner's PERF-B review, Nov 1: "all of them launch at the same
+    // moment + burst at the same moment"): ONE SALVO — the same burst time + the same rise (so the same launch), the tails rising together;
+    // their pops scatter after by themselves (each crackle star its own pop time — the renderer). syncToBeat moves them as one (a bar).
+    ...Array.from({ length: 8 }, (_, i) => ({ t: dur - 2.6, rise: 2.3, type: 'crackle', layer: 'barge', x: 0.07 + i * 0.123, h: 0.56 + 0.1 * (i % 2), c1: 'white', c2: 'gold', big: true, whistle: i === 2 || i === 5 })),
   ];
   return { dur, cues, fill: [
     { from: 9, to: 60, every: [0.9, 2.0], types: FILL_TYPES.open, layers: { barge: 5, sky: 2, light: 1 }, salvo: [0.1, 3] },
