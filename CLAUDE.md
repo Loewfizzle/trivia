@@ -2,7 +2,7 @@
 
 Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Twelve games. Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
-plus six Vercel serverless functions in `/api` (profiles, server-verified results, THE BOARD, admin, errors from phones — `docs/profiles.md`; the live weather — `docs/title.md`).
+plus seven Vercel serverless functions in `/api` (profiles, server-checked results, THE BOARD, admin, errors from phones — `docs/profiles.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
 district" in code (`js/screens/district/`, the `nd-` class prefix). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
@@ -113,7 +113,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 ```
 index.html / sw.js / manifest.webmanifest / assets/     shell, service worker (network-first, same-origin static only, never /api), PWA, icons + og.png
 board.html admin.html                                    THE BOARD for anyone (/board, og-board.jpg) and the admin page (/admin)
-api/ profile.js report.js board.js admin.js log.js sky.js + _lib/   Vercel functions (firebase-admin): profiles, verified results, boards, moderation, errors + reports from phones (9e: SEND REPORT / the hang watch), live weather (+ NOAA's Kp)
+api/ profile.js report.js board.js admin.js log.js sky.js time.js + _lib/   Vercel functions (firebase-admin): profiles, checked results, boards, moderation, errors + reports from phones (9e: SEND REPORT / the hang watch), live weather (+ NOAA's Kp), the server's clock (time.js: no imports, no-store)
 package.json                                             only firebase-admin for /api (npm install at the root for local /api)
 css/base.css components.css screens.css title.css        tokens + themes, the design system (+ NEON GLASS), setup/lobby, the title
 css/kit.css                                              the match kit's default look (announcements, cards, Call the Winner, report)
@@ -153,12 +153,12 @@ tests/fixtures/finals.mjs                                finished matches of eve
 rooms/{CODE}/       ← CODE = the HUSH WORD (a common 4-letter word; docs/content.md); hush/{WORD}: { closedAt } rests it 24 h after closing
   meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...} }   ← locked: LOCK THE DOOR (no new player nodes)
   players/{uid}:  { name, color, avatar, joinedAt, pid? }    ← written by that player only (pid: their own profile id only)
-  presence/{uid}: { online, lastSeen }                       ← onDisconnect sets online:false
+  presence/{uid}: { online, lastSeen, v: 2, c: { connId } } ← ONE CHILD PER CONNECTION (APP FIXES): online = any c child left
   kicked/{uid}:   true                                       ← host only
   game:      host-only; per-game shape; totals are always DERIVED from results (never stored) so a replayed step can't double-score
   night/{matchId}:   { g, p: { uid: 3|2|1|0 }, n: { uid: name }, b?: { uid: bonus }, at }  ← host; game-night scoreboard
   <game nodes>/{matchId}/…/{uid}                              ← a player's own data for the current step, phase-gated by the rules
-chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   hsbet/{CODE}/   rrp/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not
+chats/{CODE}/   fleets/{CODE}/   glsonar/{CODE}/   spy/{CODE}/   hsbet/{CODE}/   rrp/{CODE}/   seal/{CODE}/   ← top level: rooms/{CODE} is readable by any signed-in user, these are not (seal = THE SEAL: a round's secrets)
 city2/live      ← CITY 2.0's PREVIEW PANEL for EVERYONE (server-written via /api/admin; admins listen live, every other phone reads the cached GET /api/admin?live=1; docs/harbor.md)
 profiles/{pid} (signed-in, one at a time)  uids/{uid} (own)  pstats/{pid} (owner)  lb/ results/ ppriv/ pkeys/ tags/ rl/ audit/ flags/ (server only)   ← docs/profiles.md
 ```
@@ -180,12 +180,19 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   auth persists independently. Phones are slot 1.
 - **Rejoin:** `localStorage na:{slot}:session` holds the room code. On boot `resumeSession()` re-enters the
   room (re-adding the player node if it vanished). Boards/score come back from the DB.
-- **Presence:** written on every `.info/connected` = true, with `onDisconnect().set({online:false,lastSeen})`.
-  Offline players remain in the room as "SIGNAL LOST". The director doesn't wait for offline players.
+- **Presence — ONE CHILD PER CONNECTION** (APP FIXES, Nov 1 — Grok 5.1: a refresh's OLD socket's late onDisconnect marked the player
+  offline for the rest of the match): each `.info/connected` = true adds `presence/{uid}/c/{connId}` with `onDisconnect().remove()` (registered
+  before the child exists), then `{ online: true, lastSeen, v: 2 }`, then an `onDisconnect().update({online:false,lastSeen})` (registered after
+  the node exists — the server checks it against the node as it is). Online = any `c` child (`core/room-logic.js#presenceOnline`); every
+  reader goes through `normalizePresence` (store.state.presence keeps `{ online, lastSeen }`). The room code is captured before the first
+  await; while connected the client HEALS its own child (≤ every 5 s, a timed retry); leaving drops it. Proof: `e2e-presence.mjs` (the
+  cloud's tests job). Offline players remain in the room as "SIGNAL LOST". The director doesn't wait for offline players.
 - **Host migration (`core/room-logic.js#shouldClaimHost`):** host considered gone if its player node is gone,
-  or presence offline for ≥ 10 s, or — during a game — `meta.hostBeat` (every 2 s) is ≥ 10 s stale (locked
-  phones can keep sockets open while JS is frozen). Online players in join order claim with a stagger
-  (+4 s per rank) via a transaction on `meta/hostId`; the rules only allow the claim under those conditions.
+  or (in the lobby) its presence has no connection for ≥ 10 s, or — during a game — `meta.hostBeat` (every 2 s) is ≥ 10 s stale: while a
+  game runs the BEAT ALONE decides (a fresh beat blocks a claim whatever presence says; a stale one deposes a frozen phone whose socket
+  looks online). Online players in join order claim with a stagger (+4 s per rank) via a transaction on `meta/hostId`; the rules check
+  the same (10 s, the beat during a game, the claimer a live online player — not the stagger); `joinedAt` is set once at server time.
+  A KICK stops every game write + presence (the rules want a live `players/{uid}` + no `kicked/{uid}`).
 - **Director:** `host.js` ticks every 250 ms; if host, calls `module.prepare()` (asset/trivia top-ups, private host duties) and
   `module.step(game, {code, now, live, online})`, writing the returned patch. A per-transition in-flight guard prevents duplicate writes.
   A step may carry `$room: { 'meta/used/…': true }` side writes (stripped and written in the same atomic room update). When a step
@@ -200,7 +207,12 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   Directors and views must check `liveKey` before trusting `live` (a refresh must never look like "no progress").
 - **Privacy pattern** (GRIDLOCK, DOUBLE AGENT, HIGH STAKES — whose host may read the hidden bets only once the phase is `show`; RUMRUNNER — private day logs the host reads only at night, and the server replays the whole city from the books): secrets in a top-level node readable by the owner (+ the host when it must act);
   the owner's client does the private computation and publishes only the public result; the host falls back after a few seconds
-  or at once when the owner is offline; a rules test proves another player cannot read it.
+  or at once when the owner is offline; a rules test proves another player cannot read it. GRIDLOCK's results + sonar answers are
+  written by the HOST only (it reads the fleets — a target could have answered "miss"). **THE SEAL** (APP FIXES — `games/kit/seal.js`,
+  docs/data-model.md): a round's player-written SECRETS (BLUFF lies + votes, LAST SIGNAL answers, OVERCLOCK answers) live in
+  `seal/{CODE}/{node}/{m}/{key}/{uid}` (owner-only), the room keeps `{ done, at }`; when the round closes the director writes
+  `game/unseal/{node} = key` (PENCILS DOWN: no more writes, the host alone may read) — a module opts in with `export const sealed`;
+  `sealGate` turns its director's "leave the phase" into "unseal first".
 
 ## Audio (the short version; everything else in `docs/audio.md`)
 - **MOOD MUSIC** (docs/audio.md): menu screens play the time-of-day mood (`audio/mood.js`, songs in `data/mood-music.json`, built by

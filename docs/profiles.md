@@ -43,12 +43,21 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
   with a banner that stays ("ALREADY OPEN IN ANOTHER TAB — USE THAT ONE"; never `?slot=2` — on a phone that is an empty login) and its host
   loop stops (`state.dupTab`); USE THIS TAB swaps them; a yielded tab takes over once the other has not answered for 9 s.
 
-## Results (server-verified)
+## Results (checked by the server — what that means per game is below)
 - At the podium every phone in the match queues one report (`js/profile/queue.js`, localStorage `na:{slot}:rq`): `{ code, matchId,
   snap }`. The queue retries with backoff, at once when the network comes back, and drops reports older than 5 h.
 - `POST /api/report` (ID token required) reads the match **from the room** (`rooms/{code}/game`, phase `final`). Only when the room
   has moved on (a rematch started) does it accept the reporter's snapshot, and then only if the snapshot's placings agree with the
   room's game-night record (`night/{matchId}`, host-written). Reports from non-participants are refused.
+- **APP FIXES (Nov 1 — Grok 2.2, NO INVENTED MATCHES; docs/app-fixes.md):** the night record is REQUIRED with its `at` (the server's
+  clock — the rules) and always age-capped (6 h; one from the future refused); only uids with a SEAT in the room (`players/{uid}`)
+  are credited — `night.n` is display only; the room path checks the game's placings against the night record; CIPHER's results must
+  agree with the players' own signed boards (`api/report.js#cipherAgrees` — re-graded from the guesses, every round's word in
+  `game.sx`); the snapshot path gives PLACINGS ONLY (`placingsOnly`, from the night record — never a client's game blob: no records,
+  no scores); a uid with no profile is NOT given one by a report (each phone makes its own when it joins).
+- **What "checked" means per game:** CIPHER — re-graded from the guesses (host + server). OVERCLOCK — the per-part credit (timing,
+  partial credit) is the phone's: friends-level trust, bounded per challenge. NEON PAR's physics, PRISM DROP, SLIPSTREAM, PULSE's taps:
+  the phone's own numbers within plausibility bounds — friends-level trust, NOT server-verified. Placings always come from the room.
 - `js/core/match-report.js#extractMatch` turns the match into per-player rows: placing, win (a first place not shared by the whole
   table), career counters, record values — each record checked for plausibility (PULSE ≤ the chart's perfect score from
   `data/pulse/manifest.json` counts; SLIPSTREAM ≤ top speed × ride time; Score Rush ≤ a generous ceiling from lines and song

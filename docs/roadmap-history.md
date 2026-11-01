@@ -1686,6 +1686,20 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE QUIET BUILDING: the bar, the jazz room + the upper middle parked behind blinds at night (a lit / dark mix, out one by one); the boss's
   room + the two side rooms live — at 3× on the crisp layer.
 
+## APP FIXES — THE GROK REVIEW's FINDINGS (Nov 1 2026) — docs/app-fixes.md (plan.md "OWNER'S NOTES — NOV 1 (late morning)")
+An app pass from Grok's read-only review (its profile / admin / tab part was PERF-A), every finding re-verified + a test that failed first.
+Group 1 PRESENCE + THE HOST: one presence child per connection (a refresh's late onDisconnect no longer marks you offline), the self-heal,
+a fresh heartbeat blocks a host claim (client + rules: 10 s, the claimer online), joinedAt set once at server time, a kick stops game
+writes, the lobby chat strip leak; e2e-presence.mjs (old code 5/12, new 12/12) joins the cloud's tests job. Group 2 THE RADIO: the clock
+snaps after a suspension (the lock screen: 6 s → 0.5 s), THE DEAD-GRAPH RULE (interrupted / stuck → the direct path at the station's
+place), the title's clock with no socket (/api/time), stop(fade) honoured + its node disconnected, one monotonic envelope, the direct
+player's second seek, a backward jump. Group 3 THE SEAL: BLUFF's lies + votes, SIGNAL's answers, OVERCLOCK's answers in seal/{CODE}
+(owner-only; the host reads a round once it writes game/unseal — pencils down); CIPHER re-graded from the guesses; GRIDLOCK's results +
+sonar by the host only, fleets created only while placing, relocates checked by the host; PULSE + SIGNAL targets phase-gated. Group 4
+/api/report: the night record's time required + capped, credit only real seats, the snapshot = placings only, CIPHER checked against the
+signed boards, no minted profiles. Group 5: chat locks for HIGH STAKES + RUMRUNNER. Also: e2e-8p's stale invite selector, a stale-voice
+debug artifact in the lobby song test. THE OWNER RE-PUBLISHES THE RULES.
+
 ## CITY 2.0 — PERF-B: THE OWNER's PERF-A REVIEW + THE FINALE + FOG + THE OVERHEAD + THE RULES + THE FIRST scene.js CUT (Nov 1 2026) — docs/harbor/passes/perf-b.md (plan.md "OWNER'S NOTES — NOV 1 (morning)")
 The second speed pass. Group 1 (the owner's review): the finale's straight cut on the left was the fireworks' hide-behind mask encoded against the screen's height but decoded against the GPU layer's (~45 % too high) — fixed; the balloons use the whole sky (no tagline ceiling, a slow altitude journey through the sign's band, the near ones IN FRONT of the lit sign on small overlays, the far ones behind) + THE DISCO BALL (the festival's 7th: ~400 mirror tiles reflecting sky / city / sun by day, the night + the sign's pink + the neon at night, twinkling glints from the tier table); the speakeasy's windows clean through fog + snow (the veil + bank + lamps' lift + halos round the glass, passing wisps the only fog over it); the fog's density restored by day (the cloud deck under dense fog); the blizzard's first seconds smooth (the frost pane baked in steps after the reveal, its glow one soft layer instead of hundreds of shadow blurs, a page layer over the vignette — WebKit's worst frame 0.70 → 0.25 s). Group 2: the finale's GPU — each pass draws only the live sparks, the crackle pops on a tighter quad, reflections off the water dropped early; fog now costs a clear night's frame in WebKit (the logo glow as a compositor layer tried + dropped). Group 3: WAIT / WALK measured once, the flake key a number, the TV-room flake fixed in the test. Group 4: the windows group 3 pages at a time (446 → 280 s), conditions instead of sleeps, the cloud's pacing loop + smoke watch + npm noise trimmed. Group 5: every canvas counted (31 district contexts), the wind's five leaks on WF, the moments' party night from the timetable, the scene's tier table into harbor-tiers, the force-flag test's receivers; scene-fireworks.js (the first scene.js cut, a pure move — legends + holidays later).
 

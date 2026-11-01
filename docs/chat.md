@@ -16,7 +16,9 @@ Deep-dive for the room chat: data, locks per game, system lines, profanity filte
 - **Locks** (`logic.js#chatLocked`, unit-tested): chat opens in the lobby and every break; it is locked only during your
   own active play — Cipher guessing (until solved/out), Last Signal answering (eliminated = always open), Overclock
   challenge (until done), Bluff write/vote, PULSE song/Echo, Neon Par until you hole out, PRISM DROP while your board is live (knocked out = open), DOUBLE AGENT
-  briefing + clues (in SAME ROOM mode also debate → last chance: the debate happens out loud). Spectators can always chat.
+  briefing + clues (in SAME ROOM mode also debate → last chance: the debate happens out loud), HIGH STAKES while you still have to
+  bet (`bet`) or answer (`q`) — your lock flag opens it, RUMRUNNER through the `day` until you're DONE (APP FIXES — Grok 5.2: both fell to
+  "open"). Spectators can always chat.
   While locked: the button shows a small lock, the badge keeps counting, no sound/toast/vibration, and an open sheet
   closes when the next round starts. `body.chat-fab-on .timer` leaves room for the button under the gear.
 - **System lines** (host, quiet style): joined, left, signal lost (after 6 s offline), reconnected, removed by the host,

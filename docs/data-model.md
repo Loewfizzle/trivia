@@ -8,21 +8,35 @@ rooms/{CODE}/                                                ← CODE = the room
   meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...} }
              locked: true = LOCK THE DOOR (host): the rules refuse a NEW players/{uid}; existing nodes (refresh, rejoin,
              a dropped phone coming back, leaving) are untouched; kicked stays kicked either way
-  players/{uid}:  { name, color, avatar, joinedAt }          ← written by that player only (a new node only while unlocked)
-  presence/{uid}: { online, lastSeen }                       ← onDisconnect sets online:false
+  players/{uid}:  { name, color, avatar, joinedAt }          ← written by that player only (a new node only while unlocked);
+                                                               joinedAt set ONCE at the server's clock (APP FIXES — the claim order)
+  presence/{uid}: { online, lastSeen, v: 2, c: { connId: ts } } ← ONE CHILD PER CONNECTION (APP FIXES): each socket adds c/{connId}
+                  with onDisconnect().remove(); online = any child left (core/room-logic.js#presenceOnline — v 2 = the flag is
+                  ignored; a node without v/c is the old shape: its flag). online:false + lastSeen still written by an onDisconnect
+                  update (older clients). The client heals its own child while connected. Own node only, a live seat, not kicked.
   kicked/{uid}:   true                                       ← host only
   game:      host-only; per-game shape (CIPHER below)
   boards/{matchId}/{round}/{uid}: { g:[enc guesses], p:['01202',…], solved, done, solvedAt, at }  ← CIPHER, own, only during 'play'
-  answers/{matchId}/{q}/{uid}:    { c: 0-3, at: server time }   ← SIGNAL, own, once, during 'question', alive only
-  targets/{matchId}/{uid}:        uid of another participant    ← SIGNAL, own
-  oc/{matchId}/{ci}/{uid}:        { p, ok, n, done, at, doneAt, w?, o?, g?, rw? } ← OVERCLOCK, own, during 'play', locked once done
-                                  (w Lexicon best word, o Timeline order '2031', g Closest Call guess, rw Rewire turns for resume)
-  lies/{matchId}/{round}/{uid}:   { t ≤ 40 chars, at }          ← BLUFF, own, during 'write' (editable)
-  votes/{matchId}/{round}/{uid}:  { k: optionKey, like?, at }   ← BLUFF, own, during 'vote' (changeable)
-  night/{matchId}:   { g: gameId, p: { uid: 3|2|1|0 }, n: { uid: name }, at }  ← host; game-night scoreboard
+                                  (public by design: every phone draws each opponent's coloured rows; the host RE-GRADES p +
+                                  solved from g — cipher/logic.js#regradeBoards; game.sx/{round} keeps every round's obfuscated word)
+  answers/{matchId}/{q}/{uid}:    { done: true, at }            ← SIGNAL, own, once, during 'question', alive only — the choice
+                                  itself is in THE SEAL (below); the old { c, at } still accepted this pass
+  targets/{matchId}/{uid}:        uid of another participant    ← SIGNAL, own, never in the final or once out (public: "N LOCKED ON YOU")
+  oc/{matchId}/{ci}/{uid}:        { p, ok, n, done, at, doneAt } ← OVERCLOCK, own, during 'play', locked once done — the answers
+                                  (w Lexicon best word, o Timeline order '2031', g Closest Call guess, rw Rewire turns) are in THE SEAL;
+                                  the host publishes them for the reveal as game/rv/{ci}/{uid}
+  lies/{matchId}/{round}/{uid}:   { done: true, at }            ← BLUFF, own, during 'write' — the text in THE SEAL (old { t, at } accepted)
+  votes/{matchId}/{round}/{uid}:  { done: true, at }            ← BLUFF, own, during 'vote' — { k, like? } in THE SEAL (old shape accepted)
+  night/{matchId}:   { g: gameId, p: { uid: 3|2|1|0 }, n: { uid: name }, at }  ← host; game-night scoreboard (at = the server's
+                                  clock, required — /api/report age-caps by it; n is display only: credit needs a seat in players/)
   meta/used/bluff/{questionId}: true                            ← host; Bluff questions already used in this room
   meta/used/trivia/{qHash}: true                                ← host; trivia questions any match in this room has banked
   pulse/{matchId}/{uid}: { k: songIndex, ready, s, c, mc, p, g, o, m, n, e, er, at }  ← PULSE, own, current song only
+seal/{CODE}/{node}/{matchId}/{key}/{uid}   ← THE SEAL (APP FIXES — Grok 4.1; games/kit/seal.js): a round's SECRETS out of rooms/.
+  node lies / votes (BLUFF: { t, at } / { k, like?, at }) · answers (SIGNAL: { c, at }) · oc (OVERCLOCK: { w?, o?, g?, rw?, at }).
+  Read: the owner; the HOST the whole {key} only once rooms/{CODE}/game/unseal/{node} === key ("pencils down" — the director
+  writes it when the round closes; after it nobody writes that round). Write: the owner, the same gates as the room node + not
+  unsealed. Wiped by the host at a match's start + end and with the room (room.js#closeRoom).
 hush/{WORD}: { closedAt }               ← HUSH WORDS cooldown: written ONLY in the same update that deletes rooms/{WORD} (rules:
                                          the room existed before, is gone after; closedAt = server time) — a client can't rest
                                          words at will. Readable by any signed-in user (the host reads it to pick a word).
@@ -53,13 +67,15 @@ rooms/{CODE}/meta/settings/chat: { filter: bool }                 ← host; "Fil
   glready/{matchId}/{uid}: { at }                 ← GRIDLOCK: fleet placed (own, during 'place')
   glshot/{matchId}/{rk}/{uid}: { t, r, c | x, at } ← GRIDLOCK: Classic = the current player on their turn (plain cell); Royale = anyone
                                                     alive while aiming (t public for TARGET LOCK, the cell obfuscated as x); once per volley
-  glres/{matchId}/{rk}/{target}: { r: {shooter: [{h 0|1|2, s?}]}, k: {slot: "r,c,len,d"}, by?: 'host', at }  ← the target (or the host), once
+  glres/{matchId}/{rk}/{target}: { r: {shooter: [{h 0|1|2, s?}]}, k: {slot: "r,c,len,d"}, by?: 'host', at }  ← the HOST only, once
+                                                    (APP FIXES — Grok 4.2: from the fleet it reads; glsonar the same)
   glcall/{matchId}/{uid}: { w, at }               ← GRIDLOCK Call the Winner (as prismcall)
   slip/{matchId}/{uid}: { st: ride|rewind|out, t, x, y, a, g ±1, v, n (on ground), l (lives), i (shimmer), c (combo), rd (ride code
                           b|c + r|s|w), d, bc, fl, ln, cl, bi, rg, at (out only) }  ← SLIPSTREAM, own, ~10 Hz, count/play/end; out is final
   slipcall/{matchId}/{uid}: { w, at }             ← SLIPSTREAM Call the Winner (same rules as prismcall)
 fleets/{CODE}/{matchId}/{uid}: { s: "r,c,len,d;…", at }   ← top level, GRIDLOCK fleets. read: that player + the current host;
-                                       write: the player (while placing, or until they have one) or the host when none exists.
+                                       write: the player — CREATED only while placing, never deleted, a RELOCATE keeps the ship
+                                       count (the host checks the rest: abilities.js#legalRelocate) — or the host when none exists.
 spy/{CODE}/                            ← top level, DOUBLE AGENT secrets (never inside rooms/{CODE})
   key/{matchId}: { seed }      read/write: the CURRENT host only (rules check rooms/{CODE}/meta/hostId)
   card/{uid}:    { m, rk, cat, word|null, agent }   read: that player only; write: host only
@@ -160,9 +176,9 @@ them on the server clock), boards{uid:{cells{"r,c":{by,h}}, sunk{slot:"r,c,len,d
 hand{uid:[card]} + cardN{uid} (Arcade; cards are public, their aim is not), out{uid:{at,place,rem,by,cap?}}, bounty (3+ fleets only),
 done, winner, capped, results{uid:{pts,sh,hi,sk,el,acc,ab,bl,bp}}, calls }`. Unhit ships are never in it.
 GRIDLOCK player nodes: `glready/{m}/{uid}`; `glshot/{m}/{rk}/{uid}` = Classic `{ t, r, c, at }` or simultaneous `{ ts{target:true}, x
-(obfuscated shots + ability payload), a?, at }`; `glres/{m}/{rk}/{target}` = `{ r{shooter:[{h 0..3, s?, cr?, cc?}]}, k{slot:geo}, by?:'host', at }`;
+(obfuscated shots + ability payload), a?, at }`; `glres/{m}/{rk}/{target}` = `{ r{shooter:[{h 0..3, s?, cr?, cc?}]}, k{slot:geo}, by?:'host', at }` (the host only);
 `glcall/{m}/{uid}`. Top level: `fleets/{code}/{m}/{uid}` (owner + host read; owner writes while placing, or in Arcade `aim` with a RELOCATE
-card before locking in) and `glsonar/{code}/{m}/{shooter}/{rk} = { n, at }` (written by the scanned player or the host, read by the shooter alone).
+card before locking in) and `glsonar/{code}/{m}/{shooter}/{rk} = { n, at }` (written by the HOST only — APP FIXES — read by the shooter alone).
 
 SLIPSTREAM `game`: `{ id:'slip', matchId, settings{lives}, participants, seed (the course), songs[ids], sd[ms], pl0, phase:
 count|play|end|final, songStartAt, playStartAt (GO), phaseEndsAt (play: GO + 9 min), n0, out{uid:{at,place,rem,d,gone?,time?}},

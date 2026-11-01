@@ -19,7 +19,7 @@ export const SECONDS = {
   windows: 300, perf: 200, workers: 229, music: 207, legends: 189, weather: 183, holiday: 174, people: 161, neon: 159, heli: 141,
   panel: 126, freeze: 120, snow: 98, panelrows: 97, boxer: 83, party: 75, sounds: 72, tower: 68, motion: 66, tape: 58, partysync: 57,
   load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
-  speakeasy: 30, fireworks: 30, stations: 29, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
+  speakeasy: 30, fireworks: 30, stations: 40, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4,
 };
 

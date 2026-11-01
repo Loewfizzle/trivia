@@ -145,6 +145,11 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     Looks without a server: `board-preview.html` (`?mode=public&g=pulse&c=records&p=all&far=1&anon=1&empty=1&err=1`),
     `results-preview.html` (`?case=first|top10|world|pb|merged|rankup|legend`), `emblems-preview.html`; `og-board.html` renders the
     /board link preview (`render-assets.mjs` writes assets/og-board.jpg).
+  - **PRESENCE + THE HOST (APP FIXES, Nov 1, ~35 s; in the cloud's tests job after CONN):** `node tests/integration/e2e-presence.mjs "<browser path>" ./shots-presence`
+    (`SHOTS=0`) — three phones play LAST SIGNAL: a lobby left before its chat strip loaded leaks none (the module held on a slow line);
+    a guest refreshes mid-question + the old page's late onDisconnect → still online, the question waits for them; the presence node
+    wiped to "offline" → the phone heals itself; the HOST refreshes + the late onDisconnect → not deposed, no phone even tries to claim.
+    CONN also checks THE TITLE's CLOCK (a stubbed /api/time 5 s ahead → serverNow follows, 0 sockets).
   - **CONN — THE DATABASE CONNECTIONS (Oct 28, ~1.5 min; in the cloud's tests job after the smoke test):** `node e2e-conn.mjs "<browser path>" ./shots-conn`
     watches every page's WebSockets through the DevTools protocol and counts the open database sockets in each state — a first visit's
     title (City 1.0 + 2.0): **0**; HOST: 1; JOIN by the hush word + by an invite link from a parked start: 1; a game: 1 each; a refresh

@@ -1400,7 +1400,33 @@ the evening's 8 pm timeline (the dance breaks are planned on it) — on the same
   NO RADIO STATIONS (`&force=no-stations`) = each phone's own shuffle (A/B; the e2e's own-player checks run on it). The readout:
   `station EVENING · c2-evening10 1:23 / 4:53 · SYNCED (server clock) · next in 3:30`.
 - No socket (the parked database: `serverNow()` keeps its saved offset); a sped-up preview (`&speed`) can't be in sync: its own shuffle.
-- e2e: `ONLY=stations` (the `wild` job): two phones in step (< 100 ms), a station change, a late joiner mid-song.
+- e2e: `ONLY=stations` (the `wild` job): two phones in step (< 100 ms), a station change, a late joiner mid-song, `stop(fade)`
+  disconnecting its node, a backward jump, AFTER THE LOCK SCREEN, A CALL (APP FIXES below).
+
+### APP FIXES (Nov 1 2026 — docs/app-fixes.md, Grok 3.1–3.8): the radio's clocks, the dead graph, stop / gain / seek
+- **THE CLOCK AFTER A SUSPENSION** (`games/pulse/clock.js` + PURE `core/sync-math.js#clockStep`): the ctx↔performance map is the median
+  of recent samples; a sample > 0.5 s off it (the context slept: the lock screen, a call) THROWS the old samples away + snaps, and
+  `resetClock` runs on every resume (`engine.onResume`) — the synced voice is re-placed on the next 500-ms check. Before: the old
+  median held the bar the phone left at the lock screen for ~6 s (measured −5965 ms in the stations e2e).
+- **THE DEAD-GRAPH RULE** (`engine.js#graphDead`): closed · `interrupted` (a call, Siri) · frozen · stuck (a `suspended` context asked to
+  resume that didn't in 1.5 s) = dead → the synced player stops (0.25 s) and this phone's own player takes THE DIRECT PATH at
+  `partyCue().at` (music.js's `graphDead` is the same rule); `synced-songs#now()` reports nothing unless running + not frozen; the
+  `PARTY_WAIT_MS` cover counts on any state once the first tap happened (visible). Before the first tap: not dead (nothing can play).
+- **THE TITLE's CLOCK WITH NO SOCKET** (`firebase.js#syncTimeNoSocket`, `api/time.js`): the title parks the database, so the offset came
+  only from a past socket (or 0) — two phones' stations could be seconds apart. GET `/api/time` (no-store) twice, the shortest round trip
+  (`core/sync-math.js#serverOffsetFrom`, |offset| < 1 day), 1.5 s after a visible boot + on return from the background (≥ 60 s apart);
+  never over the socket's own offset; never a socket (e2e-conn proves it). `lineInfo()` shows `timeSyncs` / `timeSyncLast`.
+- **stop(fade)** (`synced-songs.js`): honours the caller's fade (a legendary's hold / a dead graph 0.25 s, else 0.6 s) and disconnects
+  the node `connect()` made once the fade is over (every station change used to leave one more gain on the music bus); voices
+  disconnect `onended`.
+- **ONE MONOTONIC ENVELOPE** (`core/sync-math.js#songEnvelope`): the fade-out never starts before the fade-in ends — a 1.2-s station
+  join 0.6 s before a crossfade turns over from the value it reached (was: a jump back to full volume); `src.start()` is guarded (a
+  failure disconnects the source; `failures` in the debug); a re-place starts the new voice first and fades the old one only if it started.
+- **THE DIRECT PLAYER's SEEK** (`music.js#startTrack`): a second seek on `loadedmetadata` / `canplay` while the element is still near 0
+  and the cue is past 0.3 s (iOS drops a seek made before the metadata); `switchNow` keeps a cue a provider made in the last 10 s, and
+  app.js never calls it while a station timeline runs (the station places its own song).
+- **A BACKWARD JUMP** (`synced-songs#setGame`): the same queue moved > 100 ms (the panel's time jump) forgets which songs "played to
+  their end"; voices whose song isn't wanted any more stop (0.3 s).
 
 ## THE PARTY SONG IN SYNC (NIGHT-C, Oct 30 2026; City 2.0 — docs/harbor/passes/night-c.md)
 
