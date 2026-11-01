@@ -563,6 +563,39 @@ CUTS = {
     'thunder-alt-close-deepslam': [{'cut': (0.05, 10.5), 'fin': 0.05, 'fout': 3.0, 'hp': 30, 'mark': 0.4, 'lufs': -23.0, 'w': 0.3, 'rate': 24000, 'kbps': 56}],   # (past its 33 ms of digital silence)
     'thunder-mid-1': [{'cut': (0.3, 10.8), 'fin': 0.3, 'fout': 2.5, 'hp': 30, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],   # (quiet: −28.7 LUFS → levelled up like the rest)
     'thunder-mid-2': [{'cut': (0.0, 14.0), 'fin': 0.04, 'fout': 2.5, 'hp': 40, 'lufs': -23.0, 'rate': 24000, 'kbps': 56}],   # (starts + ends inside its ambience: faded in 40 ms, out over 2.5 s)
+    # ---- PART 10 — GROK'S FIREWORKS SET (art/city-sfx/fireworks/: claude-notes.txt + credits.txt; the 26 originals + 10 alternates
+    # git-ignored, untouched — launch-1, crackle-1, whistle-1 + crowd-2 are Sonniss). Times from Grok's notes (onsets measured on a 10 ms
+    # trace). Each BOOM cut with a short run-up before its burst — MARK = the burst's onset in the cut (the scene lines the boom up with
+    # the flash + the distance's delay); each LAUNCH's mark = its thump. Levelled per take (the originals ~ -8 ... -35 LUFS): near booms
+    # -21, far -24, launches -24, whistles -26 (shrill), crackle + willow -25, the finales -22, the crowd -24; the slot gains do the rest
+    'fw-launch-1': [{'cut': (0.0, 3.2), 'fin': 0.01, 'fout': 1.0, 'hp': 60, 'mark': 0.12, 'lufs': -24.0, 'rate': 32000, 'kbps': 56}],   # (thump 0.1 s, the whoosh's peak 0.41, a long hiss tail)
+    'fw-launch-2': [{'cut': (0.0, 2.6), 'fin': 0.015, 'fout': 0.4, 'hp': 60, 'mark': 0.04, 'lufs': -24.0, 'rate': 32000, 'kbps': 56}],   # (abrupt first frame: a 15 ms fade-in; the motor's burnout at 2.35 s)
+    'fw-launch-3': [{'cut': (0.0, 1.7), 'fin': 0.01, 'fout': 0.35, 'hp': 60, 'mark': 0.05, 'lufs': -24.0, 'rate': 32000, 'kbps': 56}],   # (the mortar's pop only - its own burst at 1.86 s left out)
+    'fw-launch-4': [{'cut': (0.0, 2.1), 'fin': 0.02, 'fout': 0.5, 'hp': 60, 'mark': 0.02, 'lufs': -24.0, 'w': 0.6, 'rate': 32000, 'kbps': 56}],   # (ABRUPT START: a 20 ms fade-in; the weakest launch - weighted down)
+    'fw-boom-near-1': [{'cut': (0.0, 2.75), 'fin': 0.03, 'fout': 0.9, 'hp': 35, 'mark': 0.27, 'lufs': -21.0, 'rate': 24000, 'kbps': 56},   # (TWO explosions -> two takes:
+                       {'cut': (2.7, 5.0), 'fin': 0.03, 'fout': 0.9, 'hp': 35, 'mark': 0.26, 'lufs': -21.0, 'rate': 24000, 'kbps': 56}],  #  0.27 + 2.96 s)
+    'fw-boom-near-2': [{'cut': (1.95, 4.0), 'fin': 0.12, 'fout': 0.5, 'hp': 60, 'mark': 0.52, 'lufs': -21.0, 'w': 0.7, 'rate': 24000, 'kbps': 56}],   # (lo-fi, in a street bed: past its launch hiss -> the boom at 2.47 s)
+    'fw-boom-near-3': [{'cut': (3.2, 7.5), 'fin': 0.05, 'fout': 1.8, 'hp': 35, 'mark': 0.32, 'gainpre': -1.0, 'lufs': -21.0, 'rate': 24000, 'kbps': 56}],   # (the deep mortar burst at 3.52 s; float overs -> -1 dB at decode)
+    'fw-boom-near-4': [{'cut': (0.0, 3.4), 'fin': 0.003, 'fout': 0.8, 'hp': 35, 'mark': 0.03, 'lufs': -21.0, 'rate': 24000, 'kbps': 56}],   # (the burst at 0.02 s + its slapbacks 1.12 / 1.65)
+    'fw-boom-near-5': [{'cut': (0.05, 2.3), 'fin': 0.02, 'fout': 0.6, 'hp': 50, 'mark': 0.18, 'lufs': -22.0, 'w': 0.6, 'rate': 24000, 'kbps': 56}],   # (the small, sharp one: a light variant)
+    'fw-boom-far-1': [{'cut': (0.1, 2.0), 'fin': 0.05, 'fout': 0.8, 'hp': 35, 'mark': 0.2, 'lufs': -24.0, 'rate': 24000, 'kbps': 56}],   # (two round booms 0.30 + 0.78 s)
+    'fw-boom-far-2': [{'cut': (0.9, 3.2), 'fin': 0.04, 'fout': 0.7, 'hp': 35, 'mark': 0.38, 'lufs': -24.0, 'rate': 24000, 'kbps': 56}],   # (the main boom at 1.28 s + its valley echo)
+    'fw-boom-far-3': [{'cut': (0.0, 2.38), 'fin': 0.02, 'fout': 0.9, 'hp': 35, 'mark': 0.15, 'lufs': -24.0, 'rate': 24000, 'kbps': 56}],   # (THE FILE ENDS inside its echo -> faded out over its last 0.9 s)
+    'fw-boom-far-4': [{'cut': (1.0, 2.78), 'fin': 0.05, 'fout': 0.6, 'hp': 35, 'mark': 0.26, 'lufs': -24.0, 'rate': 24000, 'kbps': 56}],   # (past its ambience pre-roll -> the boom at 1.26 s)
+    'fw-crackle-1': [{'cut': (1.6, 5.4), 'fin': 0.1, 'fout': 1.0, 'hp': 120, 'lufs': -25.0, 'rate': 32000, 'kbps': 56}],   # (the main crackle burst 1.85-3.85 s + its decay)
+    'fw-crackle-2': [{'cut': (0.0, 2.79), 'fin': 0.15, 'fout': 0.4, 'hp': 120, 'lufs': -25.0, 'rate': 32000, 'kbps': 56}],   # (an excerpt - HARD IN + OUT: faded both ends)
+    'fw-crackle-3': [{'loop': (0.12, 1.5), 'xf': 0.5, 'search': 0.05, 'hp': 120, 'to': 'firework-crackle-bed', 'rate': 32000, 'kbps': 56}],   # (a dense continuous bed, hard in + out -> THE LOOP, never a one-shot)
+    'fw-crackle-4': [{'cut': (1.5, 4.6), 'fin': 0.1, 'fout': 0.8, 'hp': 120, 'lufs': -25.0, 'rate': 32000, 'kbps': 56}],   # (the pops 1.75-3.42 s, past its fizz)
+    'fw-whistle-1': [{'cut': (0.0, 1.8), 'fin': 0.01, 'fout': 0.5, 'hp': 300, 'mark': 0.03, 'lufs': -26.0, 'rate': 32000, 'kbps': 56}],
+    'fw-whistle-2': [{'cut': (0.1, 1.8), 'fin': 0.02, 'fout': 0.4, 'hp': 300, 'mark': 0.1, 'lufs': -26.0, 'rate': 32000, 'kbps': 56}],
+    'fw-whistle-3': [{'cut': (0.0, 1.55), 'fin': 0.01, 'fout': 0.3, 'hp': 300, 'mark': 0.05, 'lufs': -26.0, 'rate': 32000, 'kbps': 56}],   # (its little pop at 1.63 s left out)
+    'fw-willow-1': [{'cut': (0.35, 3.5), 'fin': 0.05, 'fout': 1.0, 'hp': 150, 'lufs': -25.0, 'rate': 32000, 'kbps': 56}],   # (the sizzle + the fading crackle, past its close pop - the boom is its own)
+    'fw-willow-2': [{'cut': (0.3, 3.45), 'fin': 0.08, 'fout': 0.9, 'hp': 150, 'lufs': -25.0, 'rate': 32000, 'kbps': 56}],
+    'fw-finale-1': [{'cut': (0.3, 25.5), 'fin': 0.3, 'fout': 3.0, 'hp': 35, 'lufs': -22.0, 'rate': 24000, 'kbps': 56}],   # (Tinos harbour from a hill; its quiet right channel -> the mono fold)
+    'fw-finale-2': [{'cut': (0.0, 22.8), 'fin': 0.2, 'fout': 2.5, 'hp': 35, 'lufs': -22.0, 'rate': 24000, 'kbps': 56}],   # (an excerpt still busy at its end -> a 2.5 s fade-out)
+    'fw-crowd-1': [{'cut': (0.0, 3.2), 'fin': 0.05, 'fout': 0.7, 'hp': 150, 'lp': 5000, 'lufs': -24.0, 'rate': 22050, 'kbps': 48},   # (the ooh ... aah swell 0.24-2.1 s)
+                   {'cut': (3.65, 6.27), 'fin': 0.12, 'fout': 0.8, 'hp': 150, 'lp': 5000, 'lufs': -24.0, 'rate': 22050, 'kbps': 48}],   # (the second, its sharp start (an edit join) eased in)
+    'fw-crowd-2': [{'cut': (0.0, 4.8), 'fin': 0.05, 'fout': 0.6, 'hp': 150, 'lp': 6000, 'lufs': -24.0, 'rate': 22050, 'kbps': 48}],
     # ---- 8b1 — GROK'S SECOND-TRY SOUNDS (credits.txt "Second-try sounds"; analysed: tools in the 8b1 notes, docs/audio.md#8b1)
     # (38.6 s Pixabay MP3, a house party's walla: ≤ 20 % voiced frames in any second, no held tone (no music) — indistinct; heard
     # through an upstairs window: 300 Hz–1.8 kHz (the consonants a word needs live above 2 kHz — none readable), at 16 kHz)
@@ -638,7 +671,10 @@ ALIAS = {'radio-static': 'bb-static', 'jet-scream': 'bb-scream', 'sonic-boom': '
          # (ATM-C — Grok's thunder keeps its own names (credits.txt matches them), each mapped to its slot)
          'thunder-close-1': 'thunder-close', 'thunder-close-2': 'thunder-close', 'thunder-close-3': 'thunder-close', 'thunder-close-4': 'thunder-close',
          'thunder-close-5': 'thunder-close', 'thunder-alt-close-crackle': 'thunder-close', 'thunder-alt-close-deepslam': 'thunder-close',
-         'thunder-mid-1': 'thunder-mid', 'thunder-mid-2': 'thunder-mid'}
+         'thunder-mid-1': 'thunder-mid', 'thunder-mid-2': 'thunder-mid',
+         # (PART 10 - Grok's fireworks keep their own names (credits.txt matches them); fw-crackle-3 goes to the bed (its CUTS 'to'))
+         'fw-launch': 'firework-launch', 'fw-whistle': 'firework-whistle', 'fw-boom-near': 'firework-burst', 'fw-boom-far': 'firework-burst-far',
+         'fw-crackle': 'firework-crackle', 'fw-willow': 'firework-willow', 'fw-finale': 'firework-finale', 'fw-crowd-1': 'firework-ooh', 'fw-crowd-2': 'crowd-cheer'}
 # never imported (8P): the diesel bus stand-ins (the 1945 truck's takes instead), the "haunted" door alternatives, the TV murmur (MUSIC
 # held in it — G4 / E5 / G5 notes for 1–1.9 s at 26–41 s — and one clear talker: modulation 0.5–1.1), the slot (inside the knock)
 # 6b: traffic-far (MODERN traffic — the owner: leave the slot empty), trash-truck (a modern ZIL diesel standing still: start, revs, stop —
