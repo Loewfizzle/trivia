@@ -382,15 +382,19 @@ G('people', async () => {
     okT(Date.now() - t0 < 12000, `&force=dogwalk (C4d): a walker + dog on screen ${((Date.now() - t0) / 1000).toFixed(1)} s after the reveal`);
     // HOTFIX Oct 29 — THE DOG's TURN in the real page: every frame for 20 s — it never moves faster than a scamper round its walker
     // (~8 u / s; the old side-to-side jump was 1.85 u in one frame ≈ 110 u / s), its facing never flips back within ½ s
-    const tr = await ev(Q.page, `new Promise(res => { const out = [], t0 = performance.now(); const f = () => { const p = window.__district.harbor().people; out.push({ t: performance.now(), d: p.dogAt || [] }); if (performance.now() - t0 < 20000) requestAnimationFrame(f); else res(out); }; requestAnimationFrame(f); })`);
-    let fast = 0, back = 0, n = 0, worst = 0; const last = new Map(), flip = new Map();
+    // (PERF-A — FR5 D3: the speed over the SCENE's time — the drawn frame's own stamp (loop().drawnAt) — in ≥ 100-ms windows: the trace's
+    //  rAF stamp with a 1/60 floor read the city's ~8 u/s turn as 11+ under load, the same order flip as the toast's arm step)
+    const tr = await ev(Q.page, `new Promise(res => { const out = [], t0 = performance.now(); const f = () => { const D = window.__district, p = D.harbor().people, lp = D.loop(); out.push({ t: lp && lp.drawnAt != null ? lp.drawnAt : performance.now(), d: p.dogAt || [] }); if (performance.now() - t0 < 20000) requestAnimationFrame(f); else res(out); }; requestAnimationFrame(f); })`);
+    let fast = 0, back = 0, n = 0, worst = 0; const last = new Map(), flip = new Map(), win = new Map();
     for (const fr of tr) for (const d of fr.d) {
       const q = last.get(d.id), sg = Math.cos(d.hd) < 0 ? -1 : 1;
-      if (q && fr.t - q.t < 120) { const v = Math.hypot(d.x - q.x, d.z - q.z) / Math.max(1 / 60, (fr.t - q.t) / 1000); n++; worst = Math.max(worst, v); if (v > 11) fast++;
+      if (q && fr.t - q.t < 120 && fr.t > q.t) {
+        let w = win.get(d.id); if (!w || fr.t - w.t > 400) { w = { t: q.t, x: q.x, z: q.z }; win.set(d.id, w); }
+        if (fr.t - w.t >= 100) { const v = Math.hypot(d.x - w.x, d.z - w.z) / ((fr.t - w.t) / 1000); n++; worst = Math.max(worst, v); if (v > 11) fast++; win.set(d.id, { t: fr.t, x: d.x, z: d.z }); }
         if (q.sg !== sg) { if (fr.t - (flip.get(d.id) || -1e9) < 500) back++; flip.set(d.id, fr.t); } }
-      last.set(d.id, { t: fr.t, x: d.x, z: d.z, sg });
+      if (!q || fr.t > q.t) last.set(d.id, { t: fr.t, x: d.x, z: d.z, sg });
     }
-    ok(n > 100 && fast === 0 && back === 0, `THE DOG's TURN (HOTFIX Oct 29) in the page, 20 s: ${n} dog frames, the fastest ${worst.toFixed(1)} u/s (≤ 11), ${fast} faster, ${back} facing flips back within ½ s`);
+    ok(n > 40 && fast === 0 && back === 0, `THE DOG's TURN (HOTFIX Oct 29) in the page, 20 s: ${n} dog windows (≥ 0.1 s of scene time), the fastest ${worst.toFixed(1)} u/s (≤ 11), ${fast} faster, ${back} facing flips back within ½ s`);
     await Q.ctx.close(); }
   // ---- THE ROOF on a party night: guests up there (through the hatch), the promenade's party guests
   { const Q = await open({ slot: 'pp5', qs: `when=2026-10-24T21:45${GR}`, view: [402, 874] });

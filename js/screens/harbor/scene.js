@@ -2012,7 +2012,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (C4d — the cloud's LOAD WEATHER failed again in Halloween week: the key's 11th part, the HOLIDAY TINT (holLit — its quarter steps
     // follow the darkness too), was unnamed ('#10') so a late answer's re-bake crossfaded in 1.2 s; it rides the slow blend like the rest)
     { const d = keyDiff(litBaker.key, lightKey(), ['share', 'bias', 'warm', 'night', 'W', 'H', 'dock', 'limit', 'tier', 'party', 'hol']), fade = shownAt >= 0 && litBaker.bakes >= 1;
-      const slow = fade && wxRecent() && /^(share|bias|warm|night|hol)(, (share|bias|warm|night|hol))*$/.test(d);
+      // (PERF-A — FR5 #3: LOAD WEATHER was a REAL city behaviour: the hourly window share steps in 1/60s, so on the real clock a step landed
+      //  in the seconds after the reveal every few minutes → a 1.2-s window flash a phone loading then saw. A share / bias / warm / night /
+      //  holiday step inside the post-reveal grace (TIER_GRACE) rides the slow blend too, like a weather change)
+      const slow = fade && (wxRecent() || performance.now() - shownAt < TIER_GRACE) && /^(share|bias|warm|night|hol)(, (share|bias|warm|night|hol))*$/.test(d);
       litFadeMs = slow ? WX_BLEND : 1200;
       LOADLOG.add('lit', `${fade ? `crossfade ${litFadeMs} ms` : 'swap (dark)'} · ${d}${slow ? ' (the weather: slow)' : ''}`, { fade: fade && !slow }); }
     litLook = { share: Math.round(winShare() * 60) / 60, bias: winBias(), warm: P.winWarm || 0, night: DK, party: partyLit(), hol: holLit() };
@@ -3798,7 +3801,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     party: () => ({ on: PT.on, ramp: PT.ramp, energy: PT.energy, name: PT.name, phase: PT.phase, breath: PT.breath, punch: PT.punch || 0, safe: PT.safe || null, safeK: PT.safeK == null ? null : +PT.safeK.toFixed(3), pulse: PT.pulse || pulseGain(null), pulsePeak: +roPulse.toFixed(3),beatU: PT.beatU, beatT: PT.beatT, bpm: hbeat.bpm, rate: PT.rate, locked: +hbeat.locked.toFixed(2), src: hbeat.src, bar: PT.bar, beatIdx: PT.beatIdx, beatsF: +hbeat.beats.toFixed(3), songPos: PT.songPos == null ? null : +PT.songPos.toFixed(4), level: +hbeat.level.toFixed(2), live: hbeat.live, hits: { ...hbeat.hits }, swell: PT.swell, wave: PT.wave, plan: PT.plan ? { ...PT.plan } : null, finale: fw.busy(), sparks: fw.count(), bursts: PT.bursts, beams: +beamK.toFixed(3), show: { ...neon.show() } }),
     finale: () => startFinale(),
     /** 8a — THE LOOP: running, ms since its last frame, frames drawn, the watchdog's restarts (stalls: 'running' with no frame) + why */
-    loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, failStop, ...loopLog, at: Math.round(loopLog.at), wx: WXS ? WXS.state : null, wxBeds: snd.weatherBeds() }),
+    loop: () => ({ running, ago: Math.round(performance.now() - seenAt), drawn, drawnAt: last, failStop, ...loopLog, at: Math.round(loopLog.at), wx: WXS ? WXS.state : null, wxBeds: snd.weatherBeds() }),
     /** 8a (test hook): what the watchdog does now (why: 'visible' | 'pageshow' | 'focus' | 'tap' | 'watchdog') → true = restarted */
     wakeLoop: why => wakeLoop(why),
     /** 9e — THE CONSTRUCTION TOWER: its stage now + what the live layer sees */

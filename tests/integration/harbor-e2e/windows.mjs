@@ -142,7 +142,7 @@ G('windows', async () => {
   // the moments' motion trace: every rAF — the drawn count, the 60-fps reason, every window figure (windows.js#TRACE: window, waist, arms)
   const winTrace = secs => `new Promise(res => { const D = window.__district, out = [], t0 = performance.now();
     (function loop() { const h = D.harbor(), lp = D.loop(), L = h.speakeasy.life;
-      out.push({ t: performance.now(), drawn: lp ? lp.drawn : 0, fast: h.rate ? h.rate.fast : '', on: L.on.map(e => e.id + '@' + e.win), figs: L.figs });
+      out.push({ t: performance.now(), drawn: lp ? lp.drawn : 0, at: lp && lp.drawnAt != null ? lp.drawnAt : performance.now(), fast: h.rate ? h.rate.fast : '', on: L.on.map(e => e.id + '@' + e.win), figs: L.figs });
       if (performance.now() - t0 < ${secs * 1000}) requestAnimationFrame(loop); else res(out); })(); })`;
   // ---- THE TOAST AT 60 FPS with nobody walking (measured: the saver's 30 fps + its 30 ↔ 60 flips were the choppiness — now a window
   // moment is a 60-fps reason), and its arms EASED: no stepped updates, no snap inside a cycle
@@ -161,7 +161,9 @@ G('windows', async () => {
     let maxStep = 0, judder = 0, n = 0, total = 0; const series = new Map(), meds = [];
     for (let i = 1; i < drawn.length; i++) {
       const a = drawn[i - 1], b = drawn[i]; if (!a.figs || !b.figs || a.figs.length !== b.figs.length || !a.on.length || !b.on.length) continue;
-      const dt = Math.max(0.5, (b.t - a.t) / 16.7);
+      // (PERF-A — FR5 D3: the step over the SCENE's time between the two draws whose poses were read (the loop's drawnAt), never the trace's
+      //  own rAF stamp — under load the trace + the scene swap order in a frame and one sample carried two frames of pose over one Δt (×2))
+      const dt = Math.max(0.5, (b.at - a.at) / 16.7);
       for (let k = 0; k < b.figs.length; k++) { const p = a.figs[k], q = b.figs[k]; if (!p.arms || !q.arms || p.w !== q.w || Math.abs(p.x - q.x) > 0.3 || p.s !== q.s || Math.abs(p.d - q.d) > 0.1) continue; /* (WIN2: the same figure — its size + its depth; the walk-in re-sorts the list) */ const d = Math.max(...[0, 1].flatMap(j => [Math.abs(q.arms[j][0] - p.arms[j][0]), Math.abs(q.arms[j][1] - p.arms[j][1])])) / dt; (series.get(k) || series.set(k, []).get(k)).push(d); }   // (the biggest single JOINT move, like PEO's dancers)
     }
     for (const steps of series.values()) {
@@ -291,7 +293,9 @@ G('windows', async () => {
     // (the friends: the two figures sharing ONE depth in the frame — the bartender keeps his own)
     for (const f of fr) { const g = (f.figs || []).filter(q => q.w === 'bar' && !q.sil), cnt = new Map(); for (const q of g) cnt.set(q.d, (cnt.get(q.d) || 0) + 1); const pair = [...cnt.entries()].find(([, n]) => n >= 2); if (pair) ds.push(pair[0]); }
     let jump = 0; for (let i = 1; i < ds.length; i++) jump = Math.max(jump, Math.abs(ds[i] - ds[i - 1]));
-    ok(ds.length > 60 && ds[0] > 0.6 && ds[ds.length - 1] < 0.3 && jump < 0.06, `THE TOAST WALKS IN: the friends' depth ${ds[0] && ds[0].toFixed(2)} → ${ds.length && ds[ds.length - 1].toFixed(2)} over 3 s, the biggest step ${jump.toFixed(3)} (never a cut)`);
+    // (PERF-A — FR5 D3: the old `ds.length > 60` counted FRAMES — a 2-core runner's ~30 fps gave fewer; what matters is the pair seen in
+    //  most of the frames, its depth falling, never a cut)
+    ok(ds.length >= Math.max(20, 0.8 * fr.length) && ds[0] > 0.6 && ds[ds.length - 1] < 0.3 && jump < 0.06, `THE TOAST WALKS IN: the friends' depth ${ds[0] && ds[0].toFixed(2)} → ${ds.length && ds[ds.length - 1].toFixed(2)} over 3 s, the biggest step ${jump.toFixed(3)} (never a cut)`);
     await Q.ctx.close(); }
   // ---- WIN3 — THE BOSS's ROOM LATE (~1 am): the flicker IRREGULAR in the light's own trace (jumps at uneven gaps, never a pulse), the
   // late mode on (the channel flipping comes in bursts); the room still blue, still nobody

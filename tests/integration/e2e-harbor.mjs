@@ -56,7 +56,23 @@ else if (SHARDS > 1) {
       res();
     });
   })));
-  for (const g of SERIAL) await runGroup(g);
+  // (PERF-A — FR5 D3: the mini PC's TV runs at 60 Hz now, so the perf group gets the GPU locally (GPU=1: its own child process — the
+  //  browser is launched once per process): A CALM LOAD then judges the city, not software compositing of a 804×1748 canvas. The cloud
+  //  (CI) and an explicit GPU / VSYNC choice keep the old way)
+  const perfGpu = !process.env.CI && !process.env.GPU && !process.env.VSYNC;
+  for (const g of SERIAL) {
+    if (g !== 'perf' || !perfGpu) { await runGroup(g); continue; }
+    await new Promise(res => {
+      const ch = spawn(process.execPath, [me, BROWSER, OUT], { env: { ...process.env, ONLY: 'perf', GPU: '1', SHARD_TAG: 'perf' }, stdio: ['ignore', 'pipe', 'pipe'] });
+      for (const st of [ch.stdout, ch.stderr]) { let buf = ''; st.on('data', d => { buf += d; let k; while ((k = buf.indexOf('\n')) >= 0) { console.log('[perf]', buf.slice(0, k)); buf = buf.slice(k + 1); } }); }
+      ch.on('exit', () => {
+        const rf = `${OUT}result-perf.json`;
+        if (existsSync(rf)) { const r = JSON.parse(readFileSync(rf, 'utf8')); checks.push(...r.checks); errors.push(...r.errors); warnings.push(...(r.warnings || [])); }
+        else errors.push('the perf group (GPU=1) wrote no result');
+        res();
+      });
+    });
+  }
 } else { for (const g of [...GROUPS.keys()].filter(g => !SERIAL.includes(g)).concat(SERIAL)) await runGroup(g); }
 const passed = checks.filter(c => c.ok).length;
 log(`checks ${passed}/${checks.length} passed${warnings.length ? ` · warnings ${warnings.length}:\n${warnings.map(w => `  ~ ${w}`).join('\n')}` : ''}`);

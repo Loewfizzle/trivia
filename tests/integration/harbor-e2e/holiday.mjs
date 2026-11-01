@@ -116,7 +116,16 @@ G('holiday', async () => {
     const n = await ev(Q.page, `${P}.poke({ kind: 'race', k: 1 })`);
     // (a spider scared by the tired tube's poke in the last 4 s sits that one out — the cooldown; at least one reacts)
     const scared = await waitFor(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return [a, b].some(s => s && s.scared > 0.8 && s.crouch > 0.4); })()`, 'a spider scared', 1500).then(() => true).catch(() => false);
-    const calm = await waitFor(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return a && b && a.scared === 0 && b.scared === 0 && a.crouch === 0 && b.crouch === 0; })()`, 'both calm', 18000).then(() => true).catch(() => false);   // (SP5: the dash is far + the return slow + wary — up to ~14 s)
+    // (PERF-A — FR5 D3: calm within 18 s of the LAST poke that scared one — the title pokes them too (the tired tube every ~25 s, a race),
+    //  and a poke mid-return restarts the ~11-s scare: the clock restarts with it; the city behaves as designed)
+    let calm = false;
+    { let pk = await ev(Q.page, `${P}.pokes.filter(p => p.n > 0).length`), until = Date.now() + 18000;
+      for (const end = Date.now() + 75000; Date.now() < end && Date.now() < until;) {
+        const r = await ev(Q.page, `(() => { const a = ${P}.dress.spider, b = ${P}.dress.spider2; return { calm: !!(a && b && a.scared === 0 && b.scared === 0 && a.crouch === 0 && b.crouch === 0), n: ${P}.pokes.filter(p => p.n > 0).length }; })()`);
+        if (r.calm) { calm = true; break; }
+        if (r.n !== pk) { pk = r.n; until = Date.now() + 18000; }   // (re-poked: SP5's dash + the wary return, up to ~14 s, from now)
+        await sleep(200);
+      } }
     ok(n >= 1 && scared && calm, `ITS NERVES: the race's poke scared ${n} spider(s) — frozen, crouched, eyes flaring (${scared}), calm again within 18 s (${calm})`);
     // a letter beside it: the letter farthest from the spider, tapped — its tube stutters out at once (the night plan: off at 0 ms)
     const letters = await ev(Q.page, `[...document.querySelectorAll('.nd-sign .ndl')].map(l => { const r = l.getBoundingClientRect(); return { x: r.x + r.width / 2, y: r.y + r.height / 2, on: l.classList.contains('on') }; })`);
