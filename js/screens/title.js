@@ -232,10 +232,34 @@ ${parts.map(([d, w, v, tf]) => `<path class="ndl-hi" d="${d}" ${tf ? `transform=
 // Christmas: a string of glass C9 bulbs wound round the sign's own tubes. The wire spirals along each letter's tube path
 // (traced from the live SVG), passing in front of the glass and behind it; at every turn a bulb hangs off the side of the
 // tube, drooping a little under its weight; between letters the wire sags in a swag with a few bulbs. k: how many are lit.
+// (PERF-A — FR5 #8: the trace walked every letter's tube with getPointAtLength every 1.4 units at mount — 1.2 s at 4× on every December
+//  load, both cities. The traced wire (its paths + its bulbs' places) depends only on the letters, so it is kept per letter set: in memory
+//  + this device's localStorage — the first December load traces, every later one only draws. k (how many are lit) stays live.)
+const XWIRE_V = 1, xwireMem = new Map();
+function xmasWire(svg) {
+  const parts = [svg.getAttribute('viewBox') || ''];
+  for (const g of svg.querySelectorAll('.ndl')) { const p = g.querySelector('.ndl-body'); parts.push((g.getAttribute('transform') || '') + '|' + (p ? p.getAttribute('d') || '' : '')); }
+  let hsh = 2166136261; const str = parts.join('#'); for (let i = 0; i < str.length; i++) { hsh ^= str.charCodeAt(i); hsh = Math.imul(hsh, 16777619); }
+  const key = `nd:xwire:${XWIRE_V}:${(hsh >>> 0).toString(36)}:${str.length}`;
+  if (xwireMem.has(key)) return xwireMem.get(key);
+  let w = null;
+  try { const j = localStorage.getItem(key); if (j) w = JSON.parse(j); } catch { w = null; }
+  if (!w || !w.bulbs) {
+    w = traceXmasWire(svg);
+    try { for (let i = localStorage.length - 1; i >= 0; i--) { const k2 = localStorage.key(i); if (k2 && k2.startsWith('nd:xwire:') && k2 !== key) localStorage.removeItem(k2); } localStorage.setItem(key, JSON.stringify(w)); } catch { /* full / blocked: traced again next load */ }
+  }
+  xwireMem.set(key, w);
+  return w;
+}
 function xmasWrapSvg(svg, k) {
   const vb = svg.getAttribute('viewBox');
-  const P = 23, A = 8.2, R = 5.4;             // turn length, wire swing (tube radius 4.5 + a little), what the glass hides
   const COLS = ['#ff3b4e', '#2fe07a', '#ffc94a', '#4ea3ff', '#fff1d6'];
+  const { back, front, swags, bulbs } = xmasWire(svg);
+  return xmasWireSvg(vb, COLS, back, front, swags, bulbs, k);
+}
+/** the wire traced along the live SVG's tubes → { back, front, swags (each a path's d), bulbs: [{ x, y, ang }] } */
+function traceXmasWire(svg) {
+  const P = 23, A = 8.2, R = 5.4;             // turn length, wire swing (tube radius 4.5 + a little), what the glass hides
   const back = [], front = [], bulbs = [];
   const ends = [];
   let bi = 0;
@@ -279,6 +303,9 @@ function xmasWrapSvg(svg, k) {
     for (const t of [0.3, 0.7]) bulbs.push({ x: x0 + (x1 - x0) * t, y: y + Math.sin(Math.PI * t) * sag, ang: 0 });
   }
   const d = segs => segs.map(sg => 'M' + sg.map(p => p[0].toFixed(1) + ' ' + p[1].toFixed(1)).join(' L')).join(' ');
+  return { back: d(back), front: d(front), swags: d(swags), bulbs: bulbs.map(b => ({ x: +b.x.toFixed(3), y: +b.y.toFixed(3), ang: +b.ang.toFixed(3) })) };
+}
+function xmasWireSvg(vb, COLS, back, front, swags, bulbs, k) {
   const order = bulbs.map((_, i) => ((i * 7919 + 13) % 97) / 97);
   const defs = COLS.map((hot, i) => `<radialGradient id="ndw-b${i}" cx="0.38" cy="0.3" r="0.8"><stop offset="0" stop-color="#fff"/><stop offset="0.3" stop-color="${hot}"/><stop offset="1" stop-color="${hot}" stop-opacity="0.88"/></radialGradient>
 <radialGradient id="ndw-g${i}"><stop offset="0" stop-color="${hot}" stop-opacity="0.6"/><stop offset="0.45" stop-color="${hot}" stop-opacity="0.16"/><stop offset="1" stop-color="${hot}" stop-opacity="0"/></radialGradient>
@@ -293,10 +320,10 @@ function xmasWrapSvg(svg, k) {
   }).join('');
   return `<svg viewBox="${vb}" aria-hidden="true"><defs>${defs}</defs>
 <g fill="none" stroke-linecap="round" stroke-linejoin="round">
-<path d="${d(back)}" stroke="#0b1d10" stroke-width="0.9" opacity="0.55"/>
-<path d="${d(swags)}" stroke="#0e2414" stroke-width="1.05"/>
-<path d="${d(front)}" stroke="#0e2414" stroke-width="1.25"/>
-<path d="${d(front)}" stroke="rgba(180,255,200,0.18)" stroke-width="0.4" transform="translate(-0.3 -0.3)"/>
+<path d="${back}" stroke="#0b1d10" stroke-width="0.9" opacity="0.55"/>
+<path d="${swags}" stroke="#0e2414" stroke-width="1.05"/>
+<path d="${front}" stroke="#0e2414" stroke-width="1.25"/>
+<path d="${front}" stroke="rgba(180,255,200,0.18)" stroke-width="0.4" transform="translate(-0.3 -0.3)"/>
 </g>${bulbSvg}</svg>`;
 }
 

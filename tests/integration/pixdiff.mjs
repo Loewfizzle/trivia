@@ -36,6 +36,11 @@ const SCENES = {
   'party-nc': 'when=2026-10-24T23:00&wx=clear&force=no-planes,no-birds,no-clouds',
   'dusk-nc': 'when=2026-10-22T19:05&wx=clear&force=no-planes,no-birds,no-clouds',
   'golden-nc': 'when=2026-10-22T18:20&wx=clear&force=no-planes,no-birds,no-clouds',
+  // PERF-A: the Christmas wire (traced once, then kept), dense fog at night (the frame's biggest cost on the owner's iPhone), the weeknight show
+  christmas: 'when=2026-12-15T21:30&wx=clear&force=no-planes,no-birds',
+  fog: 'when=2026-11-03T21:30&wx=fog&force=no-planes,no-birds',
+  'fog-party': 'when=2026-10-24T22:20&wx=fog&force=no-planes,no-birds',
+  mist: 'when=2026-11-03T21:30&force=mist,no-planes,no-birds',
 };
 const names = arg('scenes', 'night,party,noon,golden').split(',');
 mkdirSync(OUT, { recursive: true });
@@ -66,7 +71,8 @@ async function shoot(base, q, still) {
   await sleep(1500);
   return page;
 }
-const png = async p => (await p.screenshot({ type: 'png' })).toString('base64');
+// (PERF-A: Buffer.from — puppeteer now returns a Uint8Array, whose toString('base64') is a comma list: the diff's images never loaded + it hung)
+const png = async p => Buffer.from(await p.screenshot({ type: 'png' })).toString('base64');
 // the diff, in a blank page's canvas (no PNG library in node)
 const lab = await browser.newPage();
 async function diff(a, b, noise) {

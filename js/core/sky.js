@@ -47,11 +47,21 @@ const ZONES = {
 };
 const REGION_LAT = { America: 38, Europe: 50, Africa: 5, Asia: 30, Australia: -32, Pacific: -20, Atlantic: 40, Indian: -20, Antarctica: -70 };
 
+// (PERF-A — FR5 #7: a NEW Intl.DateTimeFormat on every call cost 0.3–0.8 s of a load at 4× — the planners + look() call this hundreds of
+//  times. One formatter per zone, kept: the same parts, a fraction of the cost)
+const LP_OPTS = { hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', weekday: 'short' };
+const lpFmt = new Map();
+function zoneFormat(tz) {
+  let f = lpFmt.get(tz);
+  if (f) return f;
+  try { f = new Intl.DateTimeFormat('en-US', { timeZone: tz, ...LP_OPTS }); } catch { f = lpFmt.get('UTC') || new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', ...LP_OPTS }); }
+  if (lpFmt.size > 64) lpFmt.clear();
+  lpFmt.set(tz, f);
+  return f;
+}
 /** Local calendar + clock in a time zone (Intl), with the zone's UTC offset in minutes. */
 export function localParts(ms, tz) {
-  let f;
-  try { f = new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', weekday: 'short' }); }
-  catch { f = new Intl.DateTimeFormat('en-US', { timeZone: 'UTC', hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric', second: 'numeric', weekday: 'short' }); }
+  const f = zoneFormat(tz);
   const p = {};
   for (const x of f.formatToParts(new Date(ms))) p[x.type] = x.value;
   const y = +p.year, m = +p.month, d = +p.day, h = +p.hour % 24, mi = +p.minute, s = +p.second;
