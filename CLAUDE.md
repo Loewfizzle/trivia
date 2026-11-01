@@ -254,8 +254,8 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 ## Testing (the short version; every suite and flag: `docs/testing.md`)
 - **THE BUILD MACHINE IS THE MINI PC** (the owner, Oct 30: "do more tests, do things locally"): a Beelink SER8, Windows 11, **32 GB**, Java (Temurin 21)
   → the emulators run HERE. Before EVERY final push run LOCALLY: the unit suite, the rules + `/api` tests, the smoke test (`GAMES=…` for a shared
-  file) AND the FULL `e2e-harbor` suite (a City 2.0 pass) — the cloud run then CONFIRMS instead of discovers. Measured on it: unit ≈ 75 s, rules ≈ 27 s,
-  smoke `GAMES=cipher` ≈ 30 s, one harbor group ≈ 30–130 s, THE FULL HARBOR SUITE ≈ 24 min (762 checks; the machine's peak ~13 GB of 32 — models.md). **Run the full suite with nothing
+  file) AND the FULL `e2e-harbor` suite (a City 2.0 pass) — the cloud run then CONFIRMS instead of discovers. Measured on it: unit ≈ 30 s (PERF-A's split), rules ≈ 27 s,
+  smoke `GAMES=cipher` ≈ 30 s, one harbor group ≈ 30–130 s, THE FULL HARBOR SUITE ≈ 21 min at 4 shards (the default since PERF-A; ~800 checks; the machine's peak ~13 GB of 32 — models.md). **Run the full suite with nothing
   else busy** (no model bakes, no shot bursts beside it: under that load every group timed out "the harbor baked" — MODELS). Browser tests run
   OUTSIDE Claude Code's sandbox (its private AppData copy can't launch Chromium); EVERY browser script imports puppeteer from
   `tests/integration/kit/puppeteer.mjs` (muted; on Windows software compositing — the TV runs at 29 Hz and headless Chromium followed it to ~30 fps): the local, uncommitted rule in `.claude/settings.local.json`

@@ -74,7 +74,9 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
   - **A NEW GROUP** (`G('people', …)` in its job's file, `harbor-e2e/<job>.mjs`) goes in exactly ONE job in `harbor-jobs.mjs` (the lightest by its `SECONDS` table) — until it does,
     `e2e-harbor.mjs` refuses to run (even with `ONLY=`) and `tests/harbor-jobs.test.mjs` fails in the quick workflow, so no group is ever
     skipped silently. A new JOB: a key in `CI_JOBS` + the same name in harbor.yml's matrix list + the Run-workflow options (the test checks).
-    A local no-ONLY run (`SHARDS=2|3`, the default 3) spreads the same groups over its shards by `SECONDS` (`localShards`), then panel + perf.
+    A local no-ONLY run (`SHARDS=2|3|4|5`, the default 4 since PERF-A: ~21 min on the mini PC, nothing timed out) spreads the same groups over its shards by `SECONDS` (`localShards` — the cloud's REAL per-group seconds since PERF-A; a new group: its first cloud run's seconds), then panel + perf (perf in its own child with the GPU locally — GPU=1: the TV is 60 Hz; CI / an explicit GPU or VSYNC keeps the old way).
+    THE UNIT SUITE's wall time is its slowest FILE: harbor-people.test.mjs was split into six (PERF-A — 83 → 30 s); keep a new test file under ~15 s.
+    pixdiff.mjs works again (PERF-A: puppeteer's Uint8Array screenshots) + scenes christmas / fog / fog-party / mist.
   - **WARNINGS, not red** (on `CI=true`, or locally `TIMING=warn`; `TIMING=strict` makes them hard again): `okT` — pure speed (frames
     drawn in a window, a bake finished in time, a sound's peak in its window, the punch after a return, the pole's turn rate, the scene
     reading PULSE STRENGTH's flag within 3 s, the frames drawn after a return); `okF` — **known-flaky pixel probes** that failed once in the

@@ -29,6 +29,19 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
   A new key retires the old one.
 - The room seat (`players/{uid}`) carries `pid` (rules: only your own, `root.uids[auth.uid]`); the lobby, chat and results read the
   live `profiles/{pid}` (`js/profile/public.js`). A refused write (stale id) retries without it — joining never depends on it.
+- **THE KEY ON THE DEVICE IS NEVER OVERWRITTEN** (PERF-A, Grok 1.3): `ensure` returns a key only when it CREATES a profile; if a different
+  key is already on the device (a lost guest login, a failed IndexedDB migration, the same name typed again), the device keeps its key and
+  its "saved" note, the new key waits in `na:{slot}:pnotes.heldNew`, and the membership card offers **THIS DEVICE ALREADY HAD A KEY —
+  RESTORE IT?** (RESTORE IT · No — keep the new profile: the old key then kept in `pnotes.oldKeys`). Never delete a stored key until a
+  restore succeeds.
+- **THE RESTORE RETRIES** (PERF-A): a network failure / timeout (status 0) is tried up to 3 more times with a backoff and a 15-s wait
+  (WAKING THE SERVER — TRYING AGAIN); a server that answered (a bad key, a limit) is final; the invalid sound only for a refused key.
+- **THE EMPTY CARD SAYS WHY** (PERF-A): no key + no profile on this ADDRESS → "Nothing saved on this address yet (<host>) — if you have a
+  key, enter it below. Your profile wasn't deleted." (storage is per origin: neonspeakeasy.com and www. are two); a cached profile made
+  for another login is never painted as the member ("THIS DEVICE'S SIGN-IN CHANGED — RESTORE WITH YOUR KEY" when the key is here).
+- **THE SECOND TAB** (PERF-A, `identity.js#watchDuplicateTabs`): the same slot in two tabs → the OLDER stays the player, the newer YIELDS
+  with a banner that stays ("ALREADY OPEN IN ANOTHER TAB — USE THAT ONE"; never `?slot=2` — on a phone that is an empty login) and its host
+  loop stops (`state.dupTab`); USE THIS TAB swaps them; a yielded tab takes over once the other has not answered for 9 s.
 
 ## Results (server-verified)
 - At the podium every phone in the match queues one report (`js/profile/queue.js`, localStorage `na:{slot}:rq`): `{ code, matchId,
@@ -111,6 +124,9 @@ REGULAR in the first evening, INSIDER after a few, LEGEND after 40+ evenings (mo
   (where others do see it) or an emblem — the admin sees the real name next to the report and decides.
 
 ## Admin (`/admin`)
+- **THE ADMIN CHECK NEVER CACHES A NO** (PERF-A — `screens/harbor/remote.js#checkAdmin`, the ☰ menu's ADMIN row on `?city=2`): only a yes with a
+  real pid is kept (6 h, per tab); a whoami with no pid (this login not linked yet) waits for the profile sync and asks once more; every
+  profile change (a restore, a first link — `me.js` fires `nd:me`) asks again.
 Signs in with the browser's own anonymous identity (same as the game there). `POST /api/admin` checks the caller's profile id against
 `ADMIN_PIDS` (comma-separated) and writes `audit/{push}` for every change. Actions: search (name prefix, `Name#1234`, profile id),
 view a player (profile, boards with ranks, games), remove a record (all-time / this week / both), reset a career board, rename (no
