@@ -115,6 +115,23 @@ export function sonarCount(ships, r, c, size) {
   return n;
 }
 
+/**
+ * APP FIXES (Grok 4.3) — the HOST checks a fleet that changed after placement (its copy → the fresh read): the same ships (count +
+ * lengths, slot by slot), at most ONE moved, and that move a valid relocation (below). The rules can only see the string's length.
+ */
+export function legalRelocate(prev, next, board, size, canPlace) {
+  if (!Array.isArray(prev) || !Array.isArray(next) || prev.length !== next.length) return false;
+  const same = (a, b) => a && b && a.r === b.r && a.c === b.c && a.len === b.len && a.d === b.d;
+  const moved = [];
+  for (let i = 0; i < prev.length; i++) {
+    if (!next[i] || !prev[i] || next[i].len !== prev[i].len) return false;
+    if (!same(prev[i], next[i])) moved.push(i);
+  }
+  if (!moved.length) return true;
+  if (moved.length > 1) return false;
+  return canRelocate(prev, moved[0], next[moved[0]], size, board, canPlace);
+}
+
 /** A valid relocation of slot i: undamaged ship, new spot inside, no overlap, no cell already shot. */
 export function canRelocate(ships, i, cand, size, board, canPlace) {
   const s = ships[i];

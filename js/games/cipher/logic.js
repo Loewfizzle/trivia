@@ -78,6 +78,26 @@ export function asArray(v) {
   return Object.keys(v).sort((a, b) => a - b).map(k => v[k]);
 }
 
+/**
+ * APP FIXES (Grok 4.6) — THE HOST RE-GRADES: a board's colours (p) + `solved` are recomputed from its GUESSES (g — obfuscated with
+ * the round's key, as the view writes them; a plain word is graded the same), so a phone can't write five greens it never earned.
+ * A board with no guesses has no rows. Everything else on the board stays as written (solvedAt is the server's clock — the rules).
+ */
+export function regradeBoards(game, boards, code) {
+  const sk = secretKey(code, game.matchId, game.round);
+  const word = decodeWord(game.secret, sk).toLowerCase();
+  const L = word.length, ok = new RegExp(`^[a-z]{${L}}$`);
+  const out = {};
+  for (const [uid, b] of Object.entries(boards || {})) {
+    if (!b) continue;
+    const guesses = asArray(b.g).slice(0, MAX_GUESSES).map(x => { let d = ''; try { d = decodeWord(String(x), sk).toLowerCase(); } catch { /* not base64: a plain word, or junk */ } return ok.test(d) ? d : ok.test(String(x).toLowerCase()) ? String(x).toLowerCase() : null; });
+    const p = guesses.map(gs => (gs ? evaluateGuess(gs, word) : '0'.repeat(L)));
+    const solved = p.length > 0 && p[p.length - 1] === '2'.repeat(L);
+    out[uid] = { ...b, p, solved };
+  }
+  return out;
+}
+
 export function computeRoundResults(game, boards) {
   const length = game.lengths[game.round];
   const out = {};

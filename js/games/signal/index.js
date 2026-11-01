@@ -9,6 +9,7 @@ import { state } from '../../store.js';
 // Trivia questions already used by earlier matches in this room (never dealt again tonight).
 const roomSeen = () => (state.meta && state.meta.used && state.meta.used.trivia) || {};
 import { lazyView, gameSheets } from '../lazy-view.js';
+import { sealGate, mergeSealed } from '../kit/seal.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
 export const createView = lazyView(() => import('./view.js'), gameSheets('signal'));
 
@@ -16,6 +17,9 @@ export const MUSIC = 'signal';
 export { DEFAULT_SETTINGS };
 
 export const livePaths = g => ({ answers: `answers/${g.matchId}/${g.q || 0}`, targets: `targets/${g.matchId}` });
+// THE SEAL (kit/seal.js): the answer itself lives in seal/{CODE}/… — the room shows only who has transmitted
+// (targets stay public: every phone counts "N LOCKED ON YOU")
+export const sealed = g => ({ answers: `answers/${g.matchId}/${g.q || 0}` });
 
 export async function start({ code, matchId, settings, participants, now }) {
   const s = { ...DEFAULT_SETTINGS, ...settings, cats: [].concat(settings.cats || []) };
@@ -30,14 +34,14 @@ export function prepare(game, { code, host }) {
   topUp(() => state.game, code, (game.q || 0) + 8, roomSeen);
 }
 
-export const step = (game, { code, now, live, online }) => nextStep(game, {
+export const step = (game, { code, now, live, online }) => sealGate(game, nextStep(game, {
   now,
   online,
-  answers: live.answers || {},
+  answers: mergeSealed(live.answers, live.seal_answers),
   targets: live.targets || {},
   correctOf: q => { const it = decodeQuestion(game, code, q); return it ? it.c : null; },
   fallback: n => fallbackPatch(game, code, n, roomSeen()),
-});
+}), { node: 'answers', key: String(game.q || 0), phase: 'question' });   // pencils down before the answers are read
 
 export const OPTIONS = [
   { key: 'hp', label: 'STARTING HP', choices: HP_OPTIONS.map(v => ({ value: v, label: String(v) })) },

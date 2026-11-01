@@ -8,6 +8,7 @@ import { state } from '../../store.js';
 // Trivia questions already used by earlier matches in this room (never dealt again tonight).
 const roomSeen = () => (state.meta && state.meta.used && state.meta.used.trivia) || {};
 import { lazyView, gameSheets } from '../lazy-view.js';
+import { sealGate, unsealed, mergeSealed } from '../kit/seal.js';
 // the view loads when a match of this game is on screen (keeps first paint light)
 export const createView = lazyView(() => import('./view.js'), gameSheets('overclock'));
 
@@ -29,12 +30,30 @@ export function prepare(game, { code, host }) {
   topUp(() => state.game, code, triviaNeeded(game), roomSeen);
 }
 
-export const step = (game, { code, now, live, online }) => nextStep(game, {
-  now,
-  online,
-  boards: live.boards || {},
-  fallback: n => fallbackPatch(game, code, n, roomSeen()),
-});
+// THE SEAL (kit/seal.js): a challenge's ANSWERS (w: the word · o: an order · g: a guess · rw: the rewiring) live in seal/{CODE}/… —
+// the room shows the progress (p · ok · n · done); at the end of 'play' the host unseals them and publishes them for the reveal
+// (game/rv/{ci}/{uid}: the closest guesses on the number line, the longest words, …)
+export const sealed = g => ({ boards: `oc/${g.matchId}/${g.ci || 0}` });
+export const OC_SECRET = ['w', 'o', 'g', 'rw'];
+export const step = (game, { code, now, live, online }) => {
+  const ck = String(game.ci || 0);
+  const patch = sealGate(game, nextStep(game, {
+    now,
+    online,
+    boards: mergeSealed(live.boards, live.seal_boards),
+    fallback: n => fallbackPatch(game, code, n, roomSeen()),
+  }), { node: 'oc', key: ck, phase: 'play' });
+  if (patch && game.phase === 'play' && patch.phase && patch.phase !== 'play' && unsealed(game, 'oc', ck)) {
+    const rv = {};
+    for (const [uid, e] of Object.entries(live.seal_boards || {})) {
+      const x = {};
+      for (const f of OC_SECRET) if (e && e[f] != null) x[f] = e[f];
+      if (Object.keys(x).length) rv[uid] = x;
+    }
+    if (Object.keys(rv).length) patch[`rv/${ck}`] = rv;
+  }
+  return patch;
+};
 
 export const OPTIONS = [
   { key: 'mode', label: 'MODE', type: 'list', choices: [

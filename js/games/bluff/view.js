@@ -5,7 +5,7 @@ import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
 import { avatar, createTimer, countUp, leaderboard, fmtNum } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
-import { dbRef, set, serverTimestamp, serverNow } from '../../firebase.js';
+import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { playerOrder } from '../../core/room-logic.js';
 import { sfx } from '../../audio/sfx.js';
@@ -186,7 +186,9 @@ export function createView() {
       return;
     }
     myLie = { key: roundKey(game), t };
-    set(dbRef(`rooms/${st.code}/lies/${game.matchId}/${game.round}/${me()}`), { t, at: serverTimestamp() })
+    // THE SEAL: the text in your envelope (seal/…), the room only learns that you filed — one atomic write
+    const path = `lies/${game.matchId}/${game.round}/${me()}`;
+    dbUpdate(dbRef(), { [`seal/${st.code}/${path}`]: { t, at: serverTimestamp() }, [`rooms/${st.code}/${path}`]: { done: true, at: serverTimestamp() } })
       .catch(() => toast('TOO LATE — FILING CLOSED', 'err'));
     sfx('lock');
     vibrate(15);
@@ -197,7 +199,7 @@ export function createView() {
   function refreshWrite(game) {
     if (!els.filed) return;
     const lies = liveFor(game, 'lies');
-    const mine = (lies[me()] && lies[me()].t) || (myLie && myLie.key === roundKey(game) ? myLie.t : null);
+    const mine = (myLie && myLie.key === roundKey(game) ? myLie.t : null) || ownSealed(game, 'my_lies').t || null;
     if (els.form) els.form.classList.toggle('is-filed', !!mine);
     if (mine && els.fileBtn) {
       els.fileBtn.firstChild.textContent = 'UPDATE LIE';
@@ -207,7 +209,7 @@ export function createView() {
     const uids = playerOrder(st.players).filter(u => game.participants && game.participants[u]);
     els.filed.replaceChildren(h('span.label', 'REPORTS FILED'), h('div.nb-filed-row', uids.map(uid => {
       const p = player(uid);
-      const done = !!(lies[uid] && lies[uid].t) || (uid === me() && !!mine);
+      const done = !!(lies[uid] && (lies[uid].t || lies[uid].done)) || (uid === me() && !!mine);
       return h('span.nb-agent', { class: done ? 'is-done' : null, style: { '--c': colorHex(p.color) }, title: p.name }, avatar(p.avatar, p.color, 26), done ? h('i', '✓') : null);
     })));
   }
@@ -238,9 +240,13 @@ export function createView() {
     refreshVote(game);
   }
 
+  // your own envelope (THE SEAL: live.my_lies / my_votes — only when it belongs to this round)
+  function ownSealed(game, name) {
+    const path = `/seal/${st.code}/${name === 'my_lies' ? 'lies' : 'votes'}/${game.matchId}/${game.round}/${me()}`;
+    return (st.liveKey && st.liveKey.includes(`"${path}"`) && st.live[name]) || {};
+  }
   function myOwnKey(game) {
-    const lies = liveFor(game, 'lies');
-    const t = (lies[me()] && lies[me()].t) || (myLie && myLie.key === roundKey(game) ? myLie.t : null);
+    const t = (myLie && myLie.key === roundKey(game) ? myLie.t : null) || ownSealed(game, 'my_lies').t || null;
     return t ? optionKey(cleanLie(t)) : null;
   }
 
@@ -252,16 +258,17 @@ export function createView() {
     myVote = { key: roundKey(game), ...next };
     const data = { k: next.k, at: serverTimestamp() };
     if (next.like) data.like = next.like;
-    set(dbRef(`rooms/${st.code}/votes/${game.matchId}/${game.round}/${me()}`), data).catch(() => toast('VOTING CLOSED', 'err'));
+    const path = `votes/${game.matchId}/${game.round}/${me()}`;
+    dbUpdate(dbRef(), { [`seal/${st.code}/${path}`]: data, [`rooms/${st.code}/${path}`]: { done: true, at: serverTimestamp() } }).catch(() => toast('VOTING CLOSED', 'err'));
     sfx(like !== undefined ? 'node' : 'select', { i: 6 });
     vibrate(10);
     refreshVote(game);
   }
 
   function currentVote(game) {
-    const v = liveFor(game, 'votes')[me()];
+    const v = ownSealed(game, 'my_votes');
     if (myVote && myVote.key === roundKey(game)) return myVote;
-    return v ? { k: v.k, like: v.like || null } : { k: null, like: null };
+    return v.k ? { k: v.k, like: v.like || null } : { k: null, like: null };
   }
 
   function refreshVote(game) {
@@ -277,7 +284,7 @@ export function createView() {
       b.classList.toggle('is-locked', !canVote);
     });
     const votes = liveFor(game, 'votes');
-    const voted = Object.keys(game.participants || {}).filter(u => votes[u] && votes[u].k).length;
+    const voted = Object.keys(game.participants || {}).filter(u => votes[u] && (votes[u].k || votes[u].done)).length;
     const total = Object.keys(game.participants || {}).length;
     els.voteStatus.textContent = !canVote ? 'OBSERVER MODE'
       : !v.k ? 'Tap the answer you believe is real.'

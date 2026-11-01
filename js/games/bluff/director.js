@@ -58,7 +58,7 @@ export function nextStep(game, ctx) {
       return { phase: 'write', phaseStartAt: now, phaseEndsAt: now + WRITE_MS };
 
     case 'write': {
-      const allIn = active.length > 0 && active.every(u => ctx.lies && ctx.lies[u] && ctx.lies[u].t);
+      const allIn = active.length > 0 && active.every(u => ctx.lies && ctx.lies[u] && (ctx.lies[u].t || ctx.lies[u].done));   // (done: THE SEAL's public flag)
       if (!allIn && now < ends + GRACE_MS) return null;
       const d = ctx.decode(game);
       if (!d) return null;
@@ -74,7 +74,7 @@ export function nextStep(game, ctx) {
     }
 
     case 'vote': {
-      const allVoted = active.length > 0 && active.every(u => ctx.votes && ctx.votes[u] && ctx.votes[u].k);
+      const allVoted = active.length > 0 && active.every(u => ctx.votes && ctx.votes[u] && (ctx.votes[u].k || ctx.votes[u].done));
       // Everyone voted: stay open a moment after the latest vote, so a ♥ (a second tap) or a
       // changed mind still lands — closing instantly cut off the last voter's like.
       const lastVoteAt = allVoted ? Math.max(...active.map(u => Number(ctx.votes[u].at) || 0)) : 0;

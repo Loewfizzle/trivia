@@ -4,7 +4,7 @@
 //
 // Nothing here keeps game state locally — every decision is re-derived from the
 // mirrored database state on each tick, so any client can take over at any time.
-import { dbRef, update, runTransaction, serverTimestamp, serverNow } from './firebase.js';
+import { dbRef, update, remove, runTransaction, serverTimestamp, serverNow } from './firebase.js';
 import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
@@ -84,7 +84,8 @@ function direct(now) {
   mod.prepare(game, { code: state.code, host: true }); // e.g. word lists / trivia top-ups on a freshly promoted host
   const step = mod.step(game, { code: state.code, now, live: state.live, online: onlineMap() });
   if (!step) return;
-  const sig = `${game.matchId}|${game.phase}|${game.phaseStartAt}`;
+  // (THE SEAL: an unseal is a step of its own inside a phase — the director's real step follows it at once, not 3 s later)
+  const sig = `${game.matchId}|${game.phase}|${game.phaseStartAt}|${JSON.stringify(game.unseal || null)}`;
   if (inflight.sig === sig && now - inflight.at < 3000) return; // write already on its way
   inflight = { sig, at: now };
   if (step.lobby) { backToLobby(); return; }
@@ -146,6 +147,7 @@ export async function startGame(gameId, settings) {
   if (!created) { toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
+  wipeSeal(state.code);
   await update(dbRef(`rooms/${state.code}`), {
     game,
     ...($room || {}),
@@ -169,9 +171,12 @@ export function rematch() {
 }
 
 const clearPlayerNodes = () => Object.fromEntries(ALL_PLAYER_NODES.map(n => [n, null]));
+// THE SEAL's envelopes (seal/{CODE}, outside the room) go with the player nodes at a match's start + end
+const wipeSeal = code => { if (code) remove(dbRef(`seal/${code}`)).catch(() => {}); };
 
 export async function backToLobby() {
   if (!isHost() || !state.code) return;
+  wipeSeal(state.code);
   await update(dbRef(`rooms/${state.code}`), {
     game: null,
     ...clearPlayerNodes(),

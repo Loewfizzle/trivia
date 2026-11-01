@@ -4,9 +4,8 @@
 //   a volley is Classic `turn` (one player, one shot) or a simultaneous `aim` (SALVO / BATTLE ROYALE / ARCADE: everyone
 //   locks in, all shots resolve together)
 //
-// The host never sees anyone's unhit ships: shots are resolved by the target's own client (or the host from its private
-// copy as a fallback — index.js#prepare) and arrive as glres/{m}/{rk}/{target}; this director only folds those public
-// results into the boards. Every transition is a pure function of (game, live, now) so a replay is harmless.
+// Shots are resolved by the HOST from the fleets it may read (index.js#prepare — APP FIXES, Grok 4.2: never by the target's own
+// phone) and arrive as glres/{m}/{rk}/{target}; this director only folds those public results into the boards. Every transition is a pure function of (game, live, now) so a replay is harmless.
 import {
   cleanSettings, boardSize, fleetFor, aliveOf, boardOf, isShot, randomShot, decodeAim, decodeLock, shotKey, applyResolution,
   bountyHolder, pointsFor, showMs, callBonus, SIMUL, roundCap, SKIP_OFFLINE_MS, RESOLVE_CAP_MS, END_MS, CLASSIC_VOLLEY_CAP, SALVO_AIM_EXTRA_S,

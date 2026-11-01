@@ -295,6 +295,83 @@ test('host migration: the claimer must be online (old shape or a live connection
   await assertSucceeds(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'), 'a live connection is online');
 });
 
+// APP FIXES (Grok 4.1) — THE SEAL: in-round secrets out of rooms/ (readable by any signed-in user)
+function sealRoom(phase = 'write') {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.status = 'playing';
+  r.rooms[CODE].game = { id: 'bluff', matchId: 'm1', round: 1, rk: '1', phase, participants: { host: true, p2: true } };
+  return r;
+}
+test('THE SEAL (bluff): a lie lives in your envelope — nobody else reads it, the host only once the round is unsealed, no writes after', async () => {
+  await seed(sealRoom('write'));
+  const E = `seal/${CODE}/lies/m1/1`;
+  await assertSucceeds(update(ref(db('p2'), '/'), { [`${E}/p2`]: { t: 'A MOOSE', at: serverTimestamp() }, [`${R}/lies/m1/1/p2`]: { done: true, at: serverTimestamp() } }), 'the envelope + the public flag in one write');
+  await assertSucceeds(get(ref(db('p2'), `${E}/p2`)), 'the owner reads their own');
+  await assertFails(get(ref(db('stranger'), `${E}/p2`)), 'a stranger can\'t');
+  await assertFails(get(ref(db('host'), `${E}/p2`)), 'the host can\'t read a lie while players are still writing');
+  await assertFails(get(ref(db('host'), E)), '…nor the round\'s envelopes');
+  await assertFails(set(ref(db('host'), `${E}/p2`), { t: 'FORGED', at: serverTimestamp() }), 'nobody writes your envelope');
+  await assertFails(set(ref(db('p2'), `${E}/p2`), { t: 'x'.repeat(41), at: serverTimestamp() }), 'length-limited');
+  assert.equal((await get(ref(db('stranger'), `${R}/lies/m1/1/p2`))).val().t, undefined, 'the room shows only that p2 filed');
+  await assertSucceeds(set(ref(db('host'), `${R}/lies/m1/1/host`), { t: 'OLDER CLIENT', at: serverTimestamp() }), 'the old shape is still accepted this pass');
+  // pencils down: the host unseals the round
+  await assertSucceeds(update(ref(db('host'), `${R}/game`), { 'unseal/lies': '1' }));
+  await assertSucceeds(get(ref(db('host'), E)), 'unsealed: the host reads the round\'s envelopes');
+  await assertFails(get(ref(db('p2'), E)), '…a player still can\'t read the round');
+  await assertFails(set(ref(db('p2'), `${E}/p2`), { t: 'TOO LATE', at: serverTimestamp() }), 'no writes after pencils down');
+  await assertSucceeds(remove(ref(db('host'), `seal/${CODE}`)), 'the host wipes the envelopes between matches');
+});
+
+test('THE SEAL (bluff votes, signal answers, overclock answers): the same envelope rules', async () => {
+  const vote = sealRoom('vote');
+  await seed(vote);
+  const V = `seal/${CODE}/votes/m1/1`;
+  await assertSucceeds(update(ref(db('p2'), '/'), { [`${V}/p2`]: { k: 'abc', like: 'def', at: serverTimestamp() }, [`${R}/votes/m1/1/p2`]: { done: true, at: serverTimestamp() } }));
+  await assertFails(get(ref(db('host'), `${V}/p2`)), 'the host can\'t see a vote while voting runs');
+  await assertSucceeds(update(ref(db('host'), `${R}/game`), { 'unseal/votes': '1' }));
+  await assertSucceeds(get(ref(db('host'), V)));
+  await env.clearDatabase();
+  await seed(signalRoom('question'));
+  const A = `seal/${CODE}/answers/m2/4`;
+  await assertSucceeds(update(ref(db('p2'), '/'), { [`${A}/p2`]: { c: 2, at: serverTimestamp() }, [`${R}/answers/m2/4/p2`]: { done: true, at: serverTimestamp() } }));
+  await assertFails(set(ref(db('p2'), `${A}/p2`), { c: 3, at: serverTimestamp() }), 'one answer');
+  await assertFails(get(ref(db('host'), `${A}/p2`)), 'the host can\'t peek before the question closes');
+  await assertFails(set(ref(db('p2'), `${R}/answers/m2/4/host`), { done: true, at: serverTimestamp() }), 'never a flag for someone else');
+  await assertSucceeds(update(ref(db('host'), `${R}/game`), { 'unseal/answers': '4' }));
+  assert.equal((await assertSucceeds(get(ref(db('host'), A)))).val().p2.c, 2);
+  await env.clearDatabase();
+  const oc = lobbyRoom();
+  oc.rooms[CODE].meta.status = 'playing';
+  oc.rooms[CODE].game = { id: 'overclock', matchId: 'm3', ci: 2, ck: '2', phase: 'play', participants: { host: true, p2: true } };
+  await seed(oc);
+  const O = `seal/${CODE}/oc/m3/2`;
+  await assertSucceeds(update(ref(db('p2'), '/'), { [`${O}/p2`]: { g: 1234, at: serverTimestamp() }, [`${R}/oc/m3/2/p2`]: { p: 1, ok: 1, n: 1, done: true, at: serverTimestamp(), doneAt: serverTimestamp() } }));
+  await assertFails(get(ref(db('host'), `${O}/p2`)), 'the closest guess stays hidden while others still guess');
+  await assertFails(set(ref(db('p2'), `${O}/p2`), { g: 'x', at: serverTimestamp() }), 'shape checked');
+  await assertSucceeds(update(ref(db('host'), `${R}/game`), { 'unseal/oc': '2' }));
+  await assertSucceeds(get(ref(db('host'), O)));
+  await assertFails(set(ref(db('p2'), `${O}/p2`), { g: 999, at: serverTimestamp() }), 'pencils down');
+});
+
+test('LAST SIGNAL targets: never in the final, never once you are out; PULSE boards only while a song loads / plays / echoes', async () => {
+  const s = signalRoom('question');
+  await seed(s);
+  await assertSucceeds(set(ref(db('p2'), `${R}/targets/m2/p2`), 'host'));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/out/p2`), 3));
+  await assertFails(set(ref(db('p2'), `${R}/targets/m2/p2`), 'host'), 'out: no more targeting');
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/game`), { out: null, phase: 'final' }));
+  await assertFails(set(ref(db('p2'), `${R}/targets/m2/p2`), 'host'), 'final: no more targeting');
+  await env.clearDatabase();
+  const pr = lobbyRoom();
+  pr.rooms[CODE].meta.status = 'playing';
+  pr.rooms[CODE].game = { id: 'pulse', matchId: 'm4', si: 0, phase: 'song', participants: { host: true, p2: true } };
+  await seed(pr);
+  const board = { k: 0, ready: true, s: 100, c: 1, mc: 1, p: 1, g: 0, o: 0, m: 0, n: 1, e: 0, er: 0, at: serverTimestamp() };
+  await assertSucceeds(set(ref(db('p2'), `${R}/pulse/m4/p2`), board));
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'standings'));
+  await assertFails(set(ref(db('p2'), `${R}/pulse/m4/p2`), { ...board, s: 999999 }), 'no score after the song');
+});
+
 test('stale-room cleanup: query + delete only rooms idle > 1h (no game for an hour)', async () => {
   const old = now() - 61 * 60_000;
   await seed({
@@ -311,6 +388,7 @@ test('stale-room cleanup: query + delete only rooms idle > 1h (no game for an ho
   assert.deepEqual(found, ['OLDD', 'ORPH']);
   await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), limitToFirst(500))), 'bounded listing only');
   await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/hostId'), limitToFirst(5))), 'only by activeAt');
+  await assertFails(get(query(ref(me, 'rooms'), orderByChild('meta/activeAt'), limitToFirst(20))), 'an end is required (APP FIXES)');
   await assertSucceeds(remove(ref(me, 'rooms/OLDD')));
   await assertSucceeds(remove(ref(me, 'rooms/ORPH')));
   await assertFails(remove(ref(me, 'rooms/NEWW')));
@@ -413,6 +491,9 @@ test('game night scoreboard and question history: host only', async () => {
   const entry = { g: 'bluff', p: { host: 3, p2: 2 }, n: { host: 'HOST', p2: 'TWO' }, at: serverTimestamp() };
   await assertFails(set(ref(db('p2'), `${R}/night/m9`), entry));
   await assertSucceeds(set(ref(db('host'), `${R}/night/m9`), entry));
+  // APP FIXES (Grok 2.2): the record's time is the server's (/api/report age-caps every match by it)
+  await assertFails(set(ref(db('host'), `${R}/night/m8`), { ...entry, at: 9e15 }), 'a record from the future (never "too old") is refused');
+  await assertFails(set(ref(db('host'), `${R}/night/m8`), { g: 'bluff', p: { host: 3 } }), 'a record with no time is refused');
   await assertSucceeds(update(ref(db('host'), `${R}/meta`), { 'used/bluff/q123': true }));
   await assertFails(update(ref(db('p2'), `${R}/meta`), { 'used/bluff/q999': true }));
   await assertFails(update(ref(db('host'), `${R}/meta`), { 'used/bluff/q1': 'yes' }), 'boolean only');
@@ -733,6 +814,10 @@ test('gridlock fleets are private: only the owner (and the host) can read; owner
   await assertSucceeds(set(ref(db('host'), `${F}/p3`), fleet), 'the host fills in a missing one (auto-place)');
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/game/phase`), 'aim'));
   await assertFails(set(ref(db('p2'), `${F}/p2`), fleet), 'no re-placing once the match is under way');
+  // APP FIXES (Grok 4.3): a fleet is CREATED only while placing (after that only the host fills a gap) and never deleted by its owner
+  await env.withSecurityRulesDisabled(ctx => remove(ref(ctx.database(), `${F}/p3`)));
+  await assertFails(set(ref(db('p3'), `${F}/p3`), fleet), 'no fleet created after placement (laid out where the shots missed)');
+  await assertFails(remove(ref(db('p2'), `${F}/p2`)), 'the owner never deletes it');
   await assertSucceeds(remove(ref(db('host'), `fleets/${CODE}`)), 'the host wipes fleets for a new match');
 });
 
@@ -770,26 +855,32 @@ test('gridlock Part 2: the simultaneous lock-in (ts + x, a card only in Arcade),
   await assertFails(set(ref(db('host'), `${F}/host`), { s: '1,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp() }), 'already locked in this volley');
   await assertFails(set(ref(db('p2'), `${F}/p2`), { s: '1,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp() }), 'no relocate card');
   await env.withSecurityRulesDisabled(ctx => remove(ref(ctx.database(), `${A}/host`)));
+  await assertFails(set(ref(db('host'), `${F}/host`), { s: '1,0,4,0;2,0,3,1;5,5,3,0', at: serverTimestamp() }), 'a relocate keeps every ship (the same count)');
   await assertSucceeds(set(ref(db('host'), `${F}/host`), { s: '1,0,4,0;2,0,3,1;5,5,3,0;7,0,2,0', at: serverTimestamp() }), 'relocate in hand, not locked in yet');
-  // sonar answers: written by the scanned player (or the host) while resolving, readable by the shooter alone
-  await seed(glRoom({ phase: 'resolve', rk: '4', mode: 'arcade', settings: { mode: 'arcade' }, acts: { host: { a: 'sonar', t: 'p2', r: 1, c: 1 } }, fire: { p3: [{ t: 'p2', r: 0, c: 0 }] } }));
-  const S = `glsonar/${CODE}/m1/host/4`;
-  await assertFails(set(ref(db('p3'), S), { n: 2, at: serverTimestamp() }), 'a bystander can\'t answer');
-  await assertSucceeds(set(ref(db('p2'), S), { n: 2, at: serverTimestamp() }), 'the scanned player answers');
-  await assertFails(set(ref(db('p2'), S), { n: 3, at: serverTimestamp() }), 'once');
-  await assertSucceeds(get(ref(db('host'), S)), 'the shooter reads it');
+  // sonar answers: written by the HOST (APP FIXES — the scanned player could have answered any number) while resolving, readable
+  // by the shooter alone
+  await seed(glRoom({ phase: 'resolve', rk: '4', mode: 'arcade', settings: { mode: 'arcade' }, acts: { p3: { a: 'sonar', t: 'p2', r: 1, c: 1 } }, fire: { host: [{ t: 'p2', r: 0, c: 0 }] } }));
+  const S = `glsonar/${CODE}/m1/p3/4`;
+  await assertFails(set(ref(db('p2'), S), { n: 0, at: serverTimestamp() }), 'THE SCANNED PLAYER can\'t answer (a lie: 0)');
+  await assertFails(set(ref(db('p3'), S), { n: 2, at: serverTimestamp() }), 'the shooter can\'t answer itself');
+  await assertSucceeds(set(ref(db('host'), S), { n: 2, at: serverTimestamp() }), 'the host answers');
+  await assertFails(set(ref(db('host'), S), { n: 3, at: serverTimestamp() }), 'once');
+  await assertSucceeds(get(ref(db('p3'), S)), 'the shooter reads it');
   await assertFails(get(ref(db('p2'), S)), 'nobody else does');
-  await assertFails(get(ref(db('p3'), `glsonar/${CODE}/m1/host`)), 'not even the whole branch');
+  await assertFails(get(ref(db('host'), `glsonar/${CODE}/m1/p3`)), 'not even the whole branch');
 });
 
-test('gridlock resolutions: the target or the host, once, while resolving; calls as in PRISM DROP', async () => {
-  await seed(glRoom({ phase: 'resolve', rk: '4', fire: { p2: [{ t: 'host', r: 1, c: 1 }] } }));
+// APP FIXES (Grok 4.2): a target's phone could answer "miss" to a hit — the HOST writes every result (it reads the fleets)
+test('gridlock resolutions: the HOST only, once, while resolving; calls as in PRISM DROP', async () => {
+  await seed(glRoom({ phase: 'resolve', rk: '4', fire: { host: [{ t: 'p2', r: 1, c: 1 }], p2: [{ t: 'host', r: 1, c: 1 }] } }));
   const X = `${R}/glres/m1/4`;
   const res = { r: { p2: [{ h: 1, s: 0 }] }, k: { 0: '1,1,2,0' }, at: serverTimestamp() };
+  const miss = { r: { host: [{ h: 0, s: 0 }] }, at: serverTimestamp() };
   await assertFails(set(ref(db('p3'), `${X}/host`), res), 'a bystander can\'t resolve someone\'s board');
-  await assertSucceeds(set(ref(db('host'), `${X}/host`), res), 'the owner resolves their own board');
-  await assertFails(set(ref(db('host'), `${X}/host`), res), 'once');
-  await assertSucceeds(set(ref(db('host'), `${X}/p2`), { ...res, by: 'host' }), 'the host resolves for an absent owner');
+  await assertFails(set(ref(db('p2'), `${X}/p2`), miss), 'THE TARGET can\'t write its own result (a lie: "miss")');
+  await assertSucceeds(set(ref(db('host'), `${X}/p2`), { ...res, by: 'host' }), 'the host resolves p2\'s board');
+  await assertFails(set(ref(db('host'), `${X}/p2`), res), 'once');
+  await assertSucceeds(set(ref(db('host'), `${X}/host`), res), 'the host resolves its own board too (from its fleet, like any other)');
   await assertFails(set(ref(db('p2'), `${X}/p3`), res), 'p2 is not the host');
   await seed(glRoom({ phase: 'show', rk: '4', out: { p3: { at: now() - 2000, place: 3, rem: 2 } } }));
   await assertSucceeds(set(ref(db('p3'), `${R}/glcall/m1/p3`), { w: 'host', at: serverTimestamp() }));

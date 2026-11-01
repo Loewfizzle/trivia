@@ -10,10 +10,12 @@ SALVO (several shots per volley) and ARCADE (abilities).
   cur gets a seeded random shot). Royale: `aim` (everyone alive locks `glshot/{m}/{rk}/{uid}` = { t, x }; x = the cell through
   `core/obfuscate` with `shotKey(code, m, rk, uid)`, so the HUD can warn WHO locked on without WHERE). Ends when every alive online
   player has locked or at the timer; nobody who didn't lock fires.
-- **Resolution is private.** `resolve`: `game.fire` names each shot; the TARGET's own client runs `logic.js#resolveVolley(fleet,
-  board, shots)` against its fleet and writes `glres/{m}/{rk}/{target}` — hits/misses/"already hit" per shooter, and only the
-  geometry of ships SUNK this volley. The host (which may read every fleet) does the same after 4 s, or at once for an offline
-  owner (`index.js#prepare`). The director folds results into the public `boards` (`applyResolution`), credits hits/sinks/
+- **Resolution is private — and the HOST's** (APP FIXES, Nov 1 — Grok 4.2: a target's own phone could have answered "miss" to a hit):
+  `resolve`: `game.fire` names each shot; the HOST (which may read every fleet) runs `logic.js#resolveVolley(fleet, board, shots)` on a
+  fresh read of each target's fleet at once and writes `glres/{m}/{rk}/{target}` — hits/misses/"already hit" per shooter, and only the
+  geometry of ships SUNK this volley (`index.js#prepare`; the rules take glres from the host only). The fresh read is trusted only if it
+  is the host's copy or ONE legal relocate of it (`abilities.js#legalRelocate`); a placed layout that isn't legal is replaced in the
+  host's copy. A fleet is created only while placing and never deleted by its owner (rules). The director folds results into the public `boards` (`applyResolution`), credits hits/sinks/
   eliminations, moves to `show`. 15 s cap: a missing resolution counts as misses.
 - **Points** (`POINTS`): hit 10, sink 30, elimination 50; on the bounty holder hits and sinks ×1.5. The bounty = the alive
   player strictly ahead on points. Eliminations in one volley place weaker-first (fewer points). Safety cap: Royale 25 rounds /
@@ -68,12 +70,12 @@ them as mode cards — `OPTIONS` type `cards`, rendered by `lobby.js#optionCards
   validates it at resolve (`abilities.js#cleanAct`; invalid parts are dropped, the count capped by `allowance`). Classic turns keep
   `{ t, r, c, at }`. A RELOCATE rewrites `fleets/{code}/{m}/{uid}` first (the rules allow it in `aim`, with the card in hand, before
   the lock-in exists), then locks in with `act = { i }`.
-- **Resolution order:** shields and relocates first (the shield is published in `game.acts` at `resolve`, so the target's resolver —
-  or the host's fallback, which re-reads the fleet because a relocate may have moved it — applies it: a shot in the 3×3 is
+- **Resolution order:** shields and relocates first (the shield is published in `game.acts` at `resolve`, so the host's resolver — which
+  re-reads the fleet because a relocate may have moved it — applies it: a shot in the 3×3 is
   `h: 3` BLOCKED, no mark, counted in `stats.bl` for the owner), then every attack together. `expandAttacks` turns a cluster into
   four cells (`k: 'cluster'`) and a torpedo into `{ k: 'torpedo', axis, idx, dir }`, which `resolveVolley` runs from the edge to the
   first unhit ship cell (`h: 1, cr, cc`; a shield on the way blocks it, an empty lane fizzles `h: 0`, nothing is marked).
-- **SONAR is private:** the scanned player's phone (or the host after `FALLBACK_MS`) writes `glsonar/{code}/{m}/{shooter}/{rk} =
+- **SONAR is private:** the HOST (APP FIXES: never the scanned player) writes `glsonar/{code}/{m}/{shooter}/{rk} =
   { n, at }` at resolve; only the shooter can read it (rules + a rules test); the view polls it during the show and prints the
   readout ("2 SIGNALS DETECTED"). Everyone else sees the scan sweep the board, never the answer.
 - **Events / cinematic:** new `ev` kinds `shield { t, r, c }`, `relocate { t }`, `sonar { by, t, r, c }`, `torpedo { by, t, axis, idx,

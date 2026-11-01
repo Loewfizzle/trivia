@@ -6,7 +6,7 @@
 //
 // Phases:  intro -> play -> reveal -> (standings -> intro ...) -> final -> lobby
 import {
-  PHASE_MS, PLAY_GRACE_MS, MAX_GUESSES, roundLengths, computeRoundResults,
+  PHASE_MS, PLAY_GRACE_MS, MAX_GUESSES, roundLengths, computeRoundResults, regradeBoards,
   encodeWord, decodeWord, secretKey,
 } from './logic.js';
 
@@ -29,6 +29,8 @@ export function createGame({ code, matchId, settings, participants, now, pickWor
     phaseStartAt: now,
     phaseEndsAt: now + PHASE_MS.intro,
     secret: encodeWord(first.word, secretKey(code, matchId, 0)),
+    // every round's word, obfuscated as `secret` (APP FIXES: /api/report re-grades every round's boards against its own word)
+    sx: { 0: encodeWord(first.word, secretKey(code, matchId, 0)) },
     used: { [first.key]: true },
     reveal: null,
     results: null,
@@ -51,7 +53,8 @@ export function nextStep(game, { code, now, boards, online, pickWord }) {
       const active = uids.filter(u => online[u]);
       const allDone = active.length > 0 && active.every(u => boards && boards[u] && boards[u].done);
       if (!allDone && now < ends + PLAY_GRACE_MS) return null;
-      const results = computeRoundResults(game, boards || {});
+      // (APP FIXES — Grok 4.6: the colours + "solved" from the guesses, never the phone's word for it — logic.js#regradeBoards)
+      const results = computeRoundResults(game, regradeBoards(game, boards || {}, code));
       return {
         phase: 'reveal',
         phaseStartAt: now,
@@ -81,6 +84,7 @@ export function nextStep(game, { code, now, boards, online, pickWord }) {
         phaseStartAt: now,
         phaseEndsAt: now + PHASE_MS.intro,
         secret: encodeWord(pick.word, secretKey(code, game.matchId, round)),
+        [`sx/${round}`]: encodeWord(pick.word, secretKey(code, game.matchId, round)),
         [`used/${pick.key}`]: true,
         reveal: null,
       };

@@ -60,7 +60,7 @@ async function readRoomBasics(code) {
 
 // ---- HUSH WORDS: the room's code is a word (data/hushwords.json); js/core/hush.js picks it, the claim below makes it ours
 // The nodes outside rooms/ that belong to a room (secrets, chat): wiped when a room is made and when it closes.
-const ROOM_SIDE_NODES = ['chats', 'spy', 'fleets', 'glsonar', 'hsbet', 'rrp', 'rrsec'];
+const ROOM_SIDE_NODES = ['chats', 'spy', 'fleets', 'glsonar', 'hsbet', 'rrp', 'rrsec', 'seal'];
 let wordsP = null;
 function loadHushWords() {
   // fetched once, only by a phone that hosts (the service worker keeps a copy); [] if it can't load → the old random codes
@@ -189,6 +189,8 @@ function enterRoom(code) {
     if (!meta) { if (seen.meta) exitRoom(roomIdle(state.meta, serverNow()) ? 'ROOM CLOSED — NO GAME FOR AN HOUR' : 'ROOM CLOSED'); return; }
     seen.meta = true;
     setState({ meta });
+    // (a new host reads the round's sealed envelopes — its live paths change with the host: games/registry.js#livePathsFor)
+    if (state.game) watchLive(code, state.game);
   });
   listen('players', players => {
     players = players || {};
@@ -229,7 +231,8 @@ function watchLive(code, game) {
   const live = {};
   const loaded = new Set();
   for (const [name, path] of Object.entries(paths)) {
-    liveUnsubs.push(onValue(dbRef(`${R(code)}/${path}`), s => {
+    // (a path starting with '/' is absolute — THE SEAL's envelopes, outside rooms/)
+    liveUnsubs.push(onValue(dbRef(path.startsWith('/') ? path.slice(1) : `${R(code)}/${path}`), s => {
       if (state.code !== code || liveWanted !== key) return;
       live[name] = s.val() || {};
       loaded.add(name);

@@ -5,7 +5,7 @@ import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
 import { avatar, createTimer } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
-import { dbRef, set, serverTimestamp, serverNow } from '../../firebase.js';
+import { dbRef, set, update as dbUpdate, serverTimestamp, serverNow } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { playerOrder } from '../../core/room-logic.js';
 import { sfx } from '../../audio/sfx.js';
@@ -37,6 +37,8 @@ export function createView() {
   const player = uid => st.players[uid] || GHOST;
   const answersNow = game => (st.liveKey && st.liveKey.includes(`answers/${game.matchId}/${game.q || 0}"`) && st.live.answers) || {};
   const targetsNow = () => (st.live && st.live.targets) || {};
+  // your own envelope (THE SEAL: live.my_answers, only when it belongs to this question)
+  const ownAnswer = game => { const p = `/seal/${st.code}/answers/${game.matchId}/${game.q || 0}/${me()}`; return (st.liveKey && st.liveKey.includes(`"${p}"`) && st.live.my_answers) || {}; };
 
   function mount(el, state) {
     root = el;
@@ -256,8 +258,8 @@ export function createView() {
       pulseClass(els.opts, 'q-in');
       if (myChoice && myChoice.key !== key) myChoice = null;
     }
-    const mine = answersNow(game)[me()];
-    const chosen = mine ? mine.c : myChoice && myChoice.key === key ? myChoice.c : null;
+    const mine = ownAnswer(game);
+    const chosen = myChoice && myChoice.key === key ? myChoice.c : mine.c != null ? mine.c : null;
     const log = game.log && game.log[game.q || 0];
     const correct = game.phase === 'reveal' && log ? log.c : null;
     const canAnswer = game.phase === 'question' && isAlive(game, me()) && chosen == null;
@@ -281,7 +283,9 @@ export function createView() {
     renderQuestion(game);
     const elapsed = serverNow() - (game.qStartAt || 0);
     els.qCat.textContent = `TRANSMITTED · ${strikeDamage(elapsed, multiplier(game.q || 0))} DMG IF CORRECT`;
-    set(dbRef(`rooms/${st.code}/answers/${game.matchId}/${game.q || 0}/${me()}`), { c: i, at: serverTimestamp() })
+    // THE SEAL: the choice in your envelope (seal/…), the room only learns that you transmitted — one atomic write
+    const path = `answers/${game.matchId}/${game.q || 0}/${me()}`;
+    dbUpdate(dbRef(), { [`seal/${st.code}/${path}`]: { c: i, at: serverTimestamp() }, [`rooms/${st.code}/${path}`]: { done: true, at: serverTimestamp() } })
       .catch(() => { toast('TOO LATE — SIGNAL CLOSED', 'err'); });
   }
 

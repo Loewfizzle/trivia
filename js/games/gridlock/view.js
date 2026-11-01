@@ -268,25 +268,8 @@ export function createView() {
       } else renderLock([]);
     } else { renderLock([]); root.classList.remove('is-aiming'); }
     // ---- resolving: my board's results come from my fleet; sonar scans of my board get their private answer
-    if (ph === 'resolve' && participant() && fleet) {
-      const acts = game.acts || {};
-      if (resolvedFor !== game.rk) {
-        const fire = game.fire || {};
-        const shots = {};
-        for (const [by, list] of Object.entries(fire)) { const mine = list.filter(s => s.t === me()); if (mine.length) shots[by] = mine; }
-        if (Object.keys(shots).length) {
-          resolvedFor = game.rk;
-          const sh = acts[me()] && acts[me()].a === 'shield' ? { r: acts[me()].r, c: acts[me()].c } : null;
-          const r = resolveVolley(fleet, boardOf(game, me()), shots, sh, game.size);
-          set(dbRef(`rooms/${st.code}/glres/${game.matchId}/${game.rk}/${me()}`), { ...r, at: serverTimestamp() }).catch(() => { /* the host beat me to it */ });
-        }
-      }
-      for (const [by, a] of Object.entries(acts)) {
-        if (a.a !== 'sonar' || a.t !== me() || sonarAnsweredFor.has(`${game.rk}:${by}`)) continue;
-        sonarAnsweredFor.add(`${game.rk}:${by}`);
-        set(dbRef(`glsonar/${st.code}/${game.matchId}/${by}/${game.rk}`), { n: sonarCount(fleet, a.r, a.c, game.size), at: serverTimestamp() }).catch(() => { /* the host answers */ });
-      }
-    }
+    // ---- resolving: the HOST writes every board's result + the sonar answers from the fleets it reads (APP FIXES — Grok 4.2:
+    // a target's phone used to resolve its own board and could answer "miss" to a hit) — gridlock/index.js#prepare
     // ---- the cinematic
     if (ph === 'show' && game.ev && (!timeline || timeline.rk !== game.rk)) buildTimeline();
     if (ph !== 'show' && timeline && timeline.rk !== game.rk) timeline = null;

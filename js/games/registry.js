@@ -23,11 +23,25 @@ import * as gridlock from './gridlock/index.js';
 import * as stakes from './stakes/index.js';
 import * as rum from './rum/index.js';
 
+import { state } from '../store.js';
+import { unsealed } from './kit/seal.js';
+
 export const GAME_MODULES = { cipher, signal, overclock, bluff, pulse, golf, agent, prism, slip, gridlock, stakes, rum };
 
 export function livePathsFor(game) {
   const mod = game && GAME_MODULES[game.id];
-  return mod && game.matchId != null ? mod.livePaths(game) : null;
+  if (!mod || game.matchId == null) return null;
+  const paths = { ...mod.livePaths(game) };
+  // THE SEAL (kit/seal.js): your own envelope on every phone; the round's envelopes for the host once unsealed (absolute paths: '/…')
+  if (mod.sealed && state.code && state.uid) {
+    const host = !!(state.meta && state.meta.hostId === state.uid);
+    for (const [name, path] of Object.entries(mod.sealed(game))) {
+      const [node, , key] = path.split('/');
+      paths[`my_${name}`] = `/seal/${state.code}/${path}/${state.uid}`;
+      if (host && unsealed(game, node, key)) paths[`seal_${name}`] = `/seal/${state.code}/${path}`;
+    }
+  }
+  return paths;
 }
 
 export function liveKeyFor(game) {

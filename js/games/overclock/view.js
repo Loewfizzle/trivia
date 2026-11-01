@@ -6,7 +6,7 @@ import { h, clear, pulseClass, vibrate, reducedMotion } from '../../ui/dom.js';
 import { avatar, createTimer, countUp, leaderboard, fmtNum } from '../../ui/components.js';
 import { createFinal } from '../../ui/final.js';
 import { toast } from '../../ui/toast.js';
-import { dbRef, set, serverTimestamp, serverNow } from '../../firebase.js';
+import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../../firebase.js';
 import { colorHex } from '../../config.js';
 import { playerOrder } from '../../core/room-logic.js';
 import { sfx } from '../../audio/sfx.js';
@@ -67,6 +67,13 @@ export function createView() {
   const participant = game => !!(game.participants && game.participants[me()]);
   const player = uid => st.players[uid] || GHOST;
   const boardsNow = game => (st.liveKey && st.liveKey.includes(`"oc/${game.matchId}/${game.ci}"`) && st.live.boards) || {};
+  // THE SEAL: your own answers (live.my_boards) + everyone's once the host has published them for the reveal (game.rv)
+  const ownSealed = game => { const p = `/seal/${st.code}/oc/${game.matchId}/${game.ci}/${me()}`; return (st.liveKey && st.liveKey.includes(`"${p}"`) && st.live.my_boards) || {}; };
+  const revealBoards = game => {
+    const pub = boardsNow(game), rv = (game.rv && game.rv[game.ci]) || {}, out = {};
+    for (const uid of new Set([...Object.keys(pub), ...Object.keys(rv)])) out[uid] = { ...(pub[uid] || {}), ...(rv[uid] || {}) };
+    return out;
+  };
 
   function mount(el, state) {
     root = el;
@@ -193,9 +200,9 @@ export function createView() {
         if (!els.stage.querySelector('.oc-sync')) { clear(els.stage); els.stage.append(h('div.oc-sync', 'SYNCING CHALLENGE…')); }
         return;
       }
-      const mine = boardsNow(game)[me()] || {};
+      const mine = boardsNow(game)[me()] || {}, env = ownSealed(game);
       chal = { key, spec, parts: spec.parts, p: mine.p || 0, ok: mine.ok || 0, done: !!mine.done, ui: null, marks: [], times: [], extra: {}, local: {} };
-      for (const f of ['w', 'o', 'g', 'rw']) if (mine[f] != null) chal.extra[f] = mine[f];
+      for (const f of ['w', 'o', 'g', 'rw']) if (env[f] != null) chal.extra[f] = env[f]; else if (mine[f] != null) chal.extra[f] = mine[f];
       clear(els.stage);
       if (chal.done) showDone();
       else mountChallenge(game);
@@ -250,9 +257,13 @@ export function createView() {
 
   function write(done) {
     const game = g();
-    const data = { p: chal.p, ok: chal.ok, n: chal.parts, done, at: serverTimestamp(), ...(chal.extra || {}) };
+    // THE SEAL: the progress in the room, the answers (w / o / g / rw) in your envelope — one atomic write
+    const data = { p: chal.p, ok: chal.ok, n: chal.parts, done, at: serverTimestamp() };
     if (done) data.doneAt = serverTimestamp();
-    set(dbRef(`rooms/${st.code}/oc/${game.matchId}/${game.ci}/${me()}`), data).catch(() => toast('TOO LATE — CHALLENGE CLOSED', 'err'));
+    const path = `oc/${game.matchId}/${game.ci}/${me()}`;
+    const w = { [`rooms/${st.code}/${path}`]: data };
+    if (chal.extra && Object.keys(chal.extra).length) w[`seal/${st.code}/${path}`] = { ...chal.extra, at: serverTimestamp() };
+    dbUpdate(dbRef(), w).catch(() => toast('TOO LATE — CHALLENGE CLOSED', 'err'));
   }
 
   function showDone() {
@@ -406,7 +417,7 @@ export function createView() {
       prevScore: prevMap[r.uid] ? prevMap[r.uid].score : 0,
       prevRank: game.ci > 0 && prevMap[r.uid] ? prevMap[r.uid].rank : null,
       delta: res[r.uid] ? res[r.uid].pts : 0,
-      note: noteFor(game, res[r.uid], boardsNow(game)[r.uid]),
+      note: noteFor(game, res[r.uid], revealBoards(game)[r.uid]),
     }));
     const next = game.order[game.ci + 1];
     const mine = res[me()];
@@ -489,7 +500,7 @@ export function createView() {
     const spec = buildSpec(game);
     if (!spec) return null;
     return buildReveal(game, spec, {
-      boards: boardsNow(game),
+      boards: revealBoards(game),
       uids: Object.keys(game.participants || {}),
       player,
       timers: revealTimers,

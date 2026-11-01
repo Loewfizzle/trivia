@@ -337,7 +337,7 @@ try {
 
   // expired invite + full room messages
   const probe = await openPlayer(1, 'room=ZZZZ');
-  await probe.waitForSelector('.nd-msg[data-kind="warn"]', { timeout: 20000 });
+  await probe.waitForSelector('.nd-note[data-kind="warn"]', { timeout: 20000 });   // (the title's note above the dock — was .nd-msg)
   await shotBoth(probe, 's3-02-invite-expired');
   await probe.ctx.close();
 
