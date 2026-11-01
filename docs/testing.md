@@ -77,6 +77,12 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     A local no-ONLY run (`SHARDS=2|3|4|5`, the default 4 since PERF-A: ~21 min on the mini PC, nothing timed out) spreads the same groups over its shards by `SECONDS` (`localShards` — the cloud's REAL per-group seconds since PERF-A; a new group: its first cloud run's seconds), then panel + perf (perf in its own child with the GPU locally — GPU=1: the TV is 60 Hz; CI / an explicit GPU or VSYNC keeps the old way).
     THE UNIT SUITE's wall time is its slowest FILE: harbor-people.test.mjs was split into six (PERF-A — 83 → 30 s); keep a new test file under ~15 s.
     pixdiff.mjs works again (PERF-A: puppeteer's Uint8Array screenshots) + scenes christmas / fog / fog-party / mist.
+    **PERF-B — THE OVERHEAD**: the `windows` group's 28 blocks run 3 pages at a time (`WIN_POOL=3`; `WIN_POOL=1` = the old serial order) — the 8
+    that time FRAMES (the toast's 60 fps + arm steps, the walk-in, the tango, the TV's flicker, the boss late, the cash, PLAY ALL) run alone after the
+    pool; a failing block logs `FATAL [windows:<slot>]` and the rest still run. Locally 280 s (the cloud's 446 s was the suite's critical path).
+    No fixed waits for conditions: `harborUp(p); await settled(p)` (never `sleep(1500)`), the legends' UFO trace waits for its condition (the
+    UFO gone + ≥ 3 walkers back, ≤ 52 s), the music group's stuck checks wait for `health.stuck`. The cloud: the perf group's frame-pacing loop
+    (warnings only) skipped on CI (`ON_CI` — it runs on the mini PC), the smoke's watch 8 s a game (`WATCH_MS`), `npm ci --no-audit --no-fund`.
   - **WARNINGS, not red** (on `CI=true`, or locally `TIMING=warn`; `TIMING=strict` makes them hard again): `okT` — pure speed (frames
     drawn in a window, a bake finished in time, a sound's peak in its window, the punch after a return, the pole's turn rate, the scene
     reading PULSE STRENGTH's flag within 3 s, the frames drawn after a return); `okF` — **known-flaky pixel probes** that failed once in the

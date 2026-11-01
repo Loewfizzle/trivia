@@ -247,7 +247,7 @@ G('music', async () => {
     // b) iOS won't give the context back (resume refused, "interrupted"): ONE tap anywhere rebuilds it — the same song plays on
     await vis('hidden'); await sleep(400);
     await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
-    await vis('visible'); await sleep(1900);
+    await vis('visible'); await waitFor(p, 'window.__arcade.musicDebug().health.stuck', 'the context marked stuck', 4000).catch(() => {});   // (PERF-B: the condition, was a 1.9-s sleep)
     const sh = await H();
     ok(sh.stuck && !sh.sounding, `STUCK: back on screen, the context won't run (${sh.state}) — marked stuck, waiting for a tap`);
     const b0 = await cur();
@@ -260,7 +260,7 @@ G('music', async () => {
     // c) stuck again — this time the tap is ON THE MUSIC BUTTON: it must end with music playing, never switch the music off
     await vis('hidden'); await sleep(400);
     await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('suspended'))`);
-    await vis('visible'); await sleep(1900);
+    await vis('visible'); await waitFor(p, 'window.__arcade.musicDebug().health.stuck', 'the context marked stuck', 4000).catch(() => {});   // (PERF-B: the condition, was a 1.9-s sleep)
     const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
     await tapAt(p, mb[0], mb[1]);
     ok(await playingOn('the music button after a stuck context'), 'MUSIC BUTTON: one tap on it brings the music back');
@@ -325,13 +325,13 @@ G('music', async () => {
     // stuck after leaving Safari + ONE tap anywhere
     await vis('hidden'); await sleep(400);
     await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
-    await vis('visible'); await sleep(1900);
+    await vis('visible'); await waitFor(p, 'window.__arcade.musicDebug().health.stuck', 'the context marked stuck', 4000).catch(() => {});   // (PERF-B: the condition, was a 1.9-s sleep)
     await tapAt(p, 30, 300);
     ok(await playingOn('iOS rule: one tap after a stuck context'), `iOS RULE: stuck after leaving Safari — ONE tap brings it back (${JSON.stringify(await ev(p, 'window.__arcade.musicDebug().health'))})`);
     // stuck + the tap is on the MUSIC BUTTON: music, never a silent "MUSIC ON"
     await vis('hidden'); await sleep(400);
     await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
-    await vis('visible'); await sleep(1900);
+    await vis('visible'); await waitFor(p, 'window.__arcade.musicDebug().health.stuck', 'the context marked stuck', 4000).catch(() => {});   // (PERF-B: the condition, was a 1.9-s sleep)
     const mb = await ev(p, `(() => { const r = document.querySelector('.music-btn').getBoundingClientRect(); return [r.x + r.width / 2, r.y + r.height / 2]; })()`);
     ok(await ev(p, `!!document.elementFromPoint(${mb[0]}, ${mb[1]}).closest('.music-btn')`), 'iOS RULE: the tap lands on the music button itself (the AUDIO block keeps clear of it)');
     await tapAt(p, mb[0], mb[1]);

@@ -53,8 +53,8 @@ jobs:
           java-version: 21
       - name: Install (firebase-admin for /api; emulators, rules testing, puppeteer-core for the tests)
         run: |
-          npm ci
-          npm ci --prefix tests/integration
+          npm ci --no-audit --no-fund
+          npm ci --prefix tests/integration --no-audit --no-fund
       - name: Cache the emulator downloads
         uses: actions/cache@v4
         with:

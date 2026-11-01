@@ -11,7 +11,8 @@ const BROWSER = process.argv[2];
 const OUT = (process.argv[3] || './shots').replace(/\/?$/, '/');
 mkdirSync(OUT, { recursive: true });
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
-const WATCH_MS = Number(process.env.WATCH_MS || 14000);
+// (PERF-B — FR5 D1: 14 → 8 s a game — every game's opening screens show within it; −78 s a cloud run)
+const WATCH_MS = Number(process.env.WATCH_MS || 8000);
 // quick settings so each game reaches real play fast (DOUBLE AGENT needs 4 players — e2e-agent.mjs covers it)
 // (GAMES=cipher,pulse: only those — the one-game smoke check a City 2.0 pass runs when it touches a shared file; plan.md TESTING SCOPE)
 const ONLY_GAMES = (process.env.GAMES || '').split(',').filter(Boolean);

@@ -61,7 +61,11 @@ G('perf', async () => {
   const cdp = await Q.page.target().createCDPSession();
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: CPU });
   const perf = [];
-  for (const t of [2, 1, 0]) {
+  // (PERF-B — FR5 D1: the pacing loop is WARNINGS only (the A/B + the phone decide) — three re-bakes + 6-s windows at 4× CPU, ~1.5 billed
+  //  minutes a cloud run; it runs locally, the cloud skips it)
+  const PACING = !ON_CI;
+  if (!PACING) log('perf: the frame-pacing loop (warnings only) skipped on CI — it runs on the mini PC');
+  for (const t of PACING ? [2, 1, 0] : []) {
     // (one plain-value read; a page torn down under 4× throttle + GC once lost a pending evaluate: "Promise was collected" — retried)
     for (let k = 0; k < 2; k++) {
       try {
@@ -86,7 +90,7 @@ G('perf', async () => {
   // C1.5 (the owner's decision): absolute numbers on this laptop are WARNINGS — the gate is the relative A/B in one run
   // (title-perf.mjs --ab) and her iPhone (&debug=1's session line). Headless Chrome without a GPU is raster-bound on a party
   // night (frames 33–100 ms at 4× on the commit before C1.5 too, the tier stepping down): the check is that it measured.
-  ok(perf.length === 3 && perf.every(p => p.cost > 0), `PERF (city 2, party peak, ${CPU}× CPU) measured: ${perf.map(p => `t${p.tier}${p.now !== p.tier ? `→${p.now}` : ''}: p50 ${p.p50} ms, work ${p.cost} ms`).join(' · ')}`);
+  if (PACING) ok(perf.length === 3 && perf.every(p => p.cost > 0), `PERF (city 2, party peak, ${CPU}× CPU) measured: ${perf.map(p => `t${p.tier}${p.now !== p.tier ? `→${p.now}` : ''}: p50 ${p.p50} ms, work ${p.cost} ms`).join(' · ')}`);
   for (const p of perf) {
     if (p.cost > BUDGET_MS[p.tier]) log(`WARN  PERF: t${p.tier} scene work ${p.cost} ms > the ${BUDGET_MS[p.tier]} ms budget on this laptop (a warning — the A/B + the phone decide)`);
     if (p.p50 > 18 || (p.tier > 0 && p.now === 0)) log(`WARN  PERF: t${p.tier} frames p50 ${p.p50} ms${p.now === 0 && p.tier > 0 ? ', fell to tier 0' : ''} (a warning on this laptop)`);
