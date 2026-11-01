@@ -38,7 +38,7 @@ layout(location=1) in vec4 a_ov;
 layout(location=2) in vec4 a_tm;
 layout(location=3) in vec4 a_col;
 layout(location=4) in vec4 a_fx;
-uniform vec2 u_view; uniform float u_t; uniform float u_wind; uniform float u_mirror; uniform float u_squash; uniform float u_glow; uniform float u_trailK;
+uniform vec2 u_view; uniform float u_t; uniform float u_wind; uniform float u_mirror; uniform float u_squash; uniform float u_glow; uniform float u_trailK; uniform float u_pass;
 out vec2 v_q; out vec3 v_col; out float v_i; out float v_len; out float v_w; out vec2 v_pos; out float v_kind; out float v_layer; out float v_size;
 float ef(float k, float a) { return k > 0.001 ? (1.0 - exp(-k * a)) / k : a; }
 vec2 posAt(float a) {
@@ -52,7 +52,8 @@ vec2 posAt(float a) {
 void main() {
   float age = u_t - a_tm.x, life = a_tm.y, kind = a_fx.y, seed = a_fx.z;
   bool mirrorDead = u_mirror > 0.5 && (a_fx.w <= 0.0 || kind > 4.5 && kind < 5.5);
-  if (age < 0.0 || age > life || mirrorDead) { gl_Position = vec4(3.0, 3.0, 3.0, 1.0); return; }
+  bool isWash = kind > 4.5 && kind < 5.5, passDead = (u_pass > 0.5 && u_pass < 1.5 && !isWash) || (u_pass > 1.5 && isWash);
+  if (age < 0.0 || age > life || mirrorDead || passDead) { gl_Position = vec4(3.0, 3.0, 3.0, 1.0); return; }
   float u = age / life, size = a_col.w, I = pow(1.0 - u, 1.25);
   vec3 base = a_col.rgb, hot = vec3(1.0, 0.95, 0.86);
   vec3 c = mix(hot, base, smoothstep(0.0, 0.07, u));
@@ -115,6 +116,19 @@ void main() {
   vec3 c = v_col * v_i * g * a;
   o = vec4(c, max(c.r, max(c.g, c.b)) * u_alphaK);
 }`;
+// PERF-A — THE WASHES AT QUARTER RESOLUTION: each burst's light wash is a soft Gaussian over a quad ~1,100 pt across (most of the screen);
+// in a finale ~10 are alive — ~10 MP of fragment work a frame at tier 2 for the smoothest thing on screen. They are drawn into a buffer at
+// ¼ of the layer's size (1/16 of the fragments) and added onto it once through a linear upsample: the same glow.
+const CVS = `#version 300 es
+precision highp float;
+layout(location=0) in vec2 a_c;
+out vec2 v_uv;
+void main() { v_uv = a_c * 0.5 + 0.5; gl_Position = vec4(a_c, 0.0, 1.0); }`;
+const CFS = `#version 300 es
+precision highp float;
+in vec2 v_uv; uniform sampler2D u_wash; out vec4 o;
+void main() { o = texture(u_wash, v_uv); }`;
+const WASH_DIV = 4;
 const SVS = `#version 300 es
 precision highp float;
 layout(location=0) in vec2 a_c;
@@ -200,6 +214,7 @@ function aimV(p0, p1, k, g, T) {
 
 export function createHarborFireworks(opts = {}) {
   let cv = null, gl = null, prog = null, sprog = null, vao = null, svao = null, ibuf = null, sbuf = null, quad = null, maskTex = null, puffTex = null;
+  let cprog = null, cvao = null, washTex = null, washFb = null, washW = 0, washH = 0;   // (PERF-A: the quarter-res wash buffer)
   let W = 0, H = 0, dpr = 1, tier = 2, cap = 0, scap = 0, head = 0, written = 0, shead = 0, swritten = 0, tBase = 0, maskKey = '', maskW = 1, failed = false, why = '', alphaK = 0;
   const shells = new Map();        // cue key → { k, i0, n, end, light }
   const doneBy = new Map();        // show id → the cue keys already built (or past) — a show's cues are built once
@@ -215,7 +230,7 @@ export function createHarborFireworks(opts = {}) {
       Object.assign(cv.style, { position: 'absolute', left: '0px', top: '0px', pointerEvents: 'none', zIndex: '0' });
       gl = glCtx(cv, { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false, preserveDrawingBuffer: false });
       if (!gl) throw new Error('no webgl2');
-      prog = compile(gl, VS, FS); sprog = compile(gl, SVS, SFS);
+      prog = compile(gl, VS, FS); sprog = compile(gl, SVS, SFS); cprog = compile(gl, CVS, CFS); cvao = gl.createVertexArray();
       quad = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]), gl.STATIC_DRAW);
       cap = tierVal('fwRing', t); scap = Math.round(cap / 24);
       ibuf = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, ibuf); gl.bufferData(gl.ARRAY_BUFFER, cap * F_INST * 4, gl.DYNAMIC_DRAW);
@@ -237,9 +252,9 @@ export function createHarborFireworks(opts = {}) {
     } catch (e) { failed = true; why = String(e && e.message || e).slice(0, 120); try { console.warn('[harbor] fireworks: no GPU engine —', why); } catch { /* fine */ } free(); return false; }
   }
   function free() {
-    try { if (gl) { for (const b of [ibuf, sbuf, quad]) if (b) gl.deleteBuffer(b); for (const tx of [maskTex, puffTex]) if (tx) gl.deleteTexture(tx); if (prog) gl.deleteProgram(prog.p); if (sprog) gl.deleteProgram(sprog.p); const lc = gl.getExtension('WEBGL_lose_context'); if (lc) lc.loseContext(); } } catch { /* fine */ }
+    try { if (gl) { for (const b of [ibuf, sbuf, quad]) if (b) gl.deleteBuffer(b); for (const tx of [maskTex, puffTex]) if (tx) gl.deleteTexture(tx); if (prog) gl.deleteProgram(prog.p); if (sprog) gl.deleteProgram(sprog.p); if (cprog) gl.deleteProgram(cprog.p); if (washTex) gl.deleteTexture(washTex); if (washFb) gl.deleteFramebuffer(washFb); const lc = gl.getExtension('WEBGL_lose_context'); if (lc) lc.loseContext(); } } catch { /* fine */ }
     if (cv) { cv.width = cv.height = 0; cv.remove(); }
-    cv = gl = prog = sprog = vao = svao = ibuf = sbuf = quad = maskTex = puffTex = null; shells.clear(); head = written = shead = swritten = 0; maskKey = '';
+    cv = gl = prog = sprog = vao = svao = ibuf = sbuf = quad = maskTex = puffTex = null; cprog = cvao = washTex = washFb = null; washW = washH = 0; shells.clear(); head = written = shead = swritten = 0; maskKey = '';
   }
   function resize(w, h, d) {
     if (!gl) return;
@@ -461,9 +476,39 @@ export function createHarborFireworks(opts = {}) {
       gl.uniform2f(U.u_band, bandY[0], bandY[1]); gl.uniform1f(U.u_maskW, maskW); gl.uniform1f(U.u_alphaK, alphaK);
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, maskTex); gl.uniform1i(U.u_mask, 0);
       const passes = tierVal('fwMirror', tier) ? [0, 1] : [0];
+      // (PERF-A) the washes into the quarter-res buffer (cleared), additive — then the layer's own passes skip them
+      const ww = Math.max(1, Math.ceil(w / WASH_DIV)), wh = Math.max(1, Math.ceil(h / WASH_DIV));
+      let lowOk = !!cprog;
+      if (lowOk && (!washTex || washW !== ww || washH !== wh)) {
+        try {
+          if (!washTex) { washTex = gl.createTexture(); washFb = gl.createFramebuffer(); }
+          gl.bindTexture(gl.TEXTURE_2D, washTex);
+          gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, ww, wh, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+          for (const [p, v] of [[gl.TEXTURE_MIN_FILTER, gl.LINEAR], [gl.TEXTURE_MAG_FILTER, gl.LINEAR], [gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE], [gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE]]) gl.texParameteri(gl.TEXTURE_2D, p, v);
+          gl.bindFramebuffer(gl.FRAMEBUFFER, washFb); gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, washTex, 0);
+          lowOk = gl.checkFramebufferStatus(gl.FRAMEBUFFER) === gl.FRAMEBUFFER_COMPLETE;
+          gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+          washW = ww; washH = wh;
+        } catch { lowOk = false; }
+        if (!lowOk) { try { if (washTex) gl.deleteTexture(washTex); if (washFb) gl.deleteFramebuffer(washFb); } catch { /* fine */ } washTex = washFb = null; cprog = null; washW = washH = 0; }
+      }
+      if (lowOk) {
+        gl.bindFramebuffer(gl.FRAMEBUFFER, washFb); gl.viewport(0, 0, ww, wh); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+        gl.uniform1f(U.u_mirror, 0); gl.uniform1f(U.u_pass, 1);
+        bindSparks(0); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, written); draws++;
+        gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, w, h);
+      }
+      gl.uniform1f(U.u_pass, lowOk ? 2 : 0);
       for (const m of passes) {
         gl.uniform1f(U.u_mirror, m);
         bindSparks(0); gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, written); draws++;
+      }
+      if (lowOk) {
+        gl.useProgram(cprog.p); gl.blendFunc(gl.ONE, gl.ONE);
+        gl.activeTexture(gl.TEXTURE2); gl.bindTexture(gl.TEXTURE_2D, washTex); gl.uniform1i(cprog.U.u_wash, 2);
+        gl.bindVertexArray(cvao); gl.bindBuffer(gl.ARRAY_BUFFER, quad); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); gl.vertexAttribDivisor(0, 0);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4); draws++;
+        gl.activeTexture(gl.TEXTURE0);
       }
     }
     gl.bindVertexArray(null);
