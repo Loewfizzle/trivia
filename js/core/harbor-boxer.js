@@ -3,7 +3,7 @@
 // same, a late page joins him mid-round. The numbers live in THE CITY TIMETABLE (row `boxer`).
 //   HIS NIGHTS   EVERY NIGHT, 7 → 11 pm (the owner, Oct 31 8:32 pm — was Mon / Wed / Fri; never on a legendary's night, a raid ends it).
 //                THE PARTY NIGHTS — FRIDAY + SATURDAY (each seeded by the date ~50/50):
-//                he WRAPS UP as the party warms up (~8:30 — he finishes the ROUND he's in, towels off, walks out) or STAYS to 11, training
+//                he WRAPS UP as the party warms up (~8:30 — he finishes the ROUND he's in, stands catching his breath, walks out — WSP: no towel-off) or STAYS to 11, training
 //                through the party (his window sits out of the window party). At 11 he FINISHES THE SET he's in, then he's done.
 //   A SET        10 ROUNDS of 3 min, a 1-min rest after each (40 min) → a 10-min BREAK (he leaves the frame — the rope heard off in
 //                the room) → again: a 50-min cycle from 7 pm.
@@ -266,3 +266,15 @@ export function boxerCues(a0, a1, plan, key = '', seed = 1924) {
 }
 /** the evening's seconds for a local clock: { key (the evening's date), sec } — the small hours belong to the evening before */
 export function eveningSec(dayKey, sec, prevKey) { return sec < 6 * 3600 ? { key: prevKey, sec: sec + DAY } : { key: dayKey, sec }; }
+
+/** WSP — THE BAG UNDER THE MUSIC (the owner, Nov 1: with the music button OFF the heavy bag got clearly quieter after APP FIXES — the
+ *  duck asked music.js#musicSounding, which answers "sounding" when no song exists at all, and APP FIXES' stop + disconnect now leaves no
+ *  song when the music is off). PURE: the duck applies ONLY while music is really AUDIBLE — the music on, not muted, its volume up, AND a
+ *  song playing (the page's own song's clock running, or a synced station / party song on the music bus) → 0.55; otherwise 1 (the
+ *  approved level). m: { off, muted, vol, clock (s, −1 = none), station (bool) } */
+export const BOXER_DUCK = 0.55;
+export function boxerDuck(m = {}) {
+  const audible = !m.off && !m.muted && (m.vol || 0) > 0 && ((m.clock != null && m.clock >= 0) || !!m.station);
+  return audible ? BOXER_DUCK : 1;
+}
+

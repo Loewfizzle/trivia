@@ -126,3 +126,14 @@ test('MODELS — THE REST: he walks it off, shakes out his arms, SITS ON THE FLO
   assert.ok(out.length >= 4 && out.every(q => !boxerAt(q.at, p, K).inView), `the rope + the speed bag only once he's out of view (${out.length})`);
   assert.ok(out.some(q => q.slot === 'boxer-speedbag') && out.some(q => q.slot === 'boxer-rope'));
 });
+
+test('WSP — THE BAG UNDER THE MUSIC: ducked only while music is really audible (never with the music off / muted / no song)', async () => {
+  const { boxerDuck, BOXER_DUCK } = await import('../js/core/harbor-boxer.js');
+  assert.equal(boxerDuck({ off: true, muted: false, vol: 0.35, clock: -1, station: false }), 1, 'the music button OFF: the approved level');
+  assert.equal(boxerDuck({ off: true, muted: false, vol: 0.35, clock: 12, station: true }), 1, 'OFF wins even if a song object still runs');
+  assert.equal(boxerDuck({ off: false, muted: true, vol: 0.35, clock: 12 }), 1, 'muted');
+  assert.equal(boxerDuck({ off: false, muted: false, vol: 0, clock: 12 }), 1, 'volume down');
+  assert.equal(boxerDuck({ off: false, muted: false, vol: 0.35, clock: -1, station: false }), 1, 'music on but nothing playing yet');
+  assert.equal(boxerDuck({ off: false, muted: false, vol: 0.35, clock: 30.2 }), BOXER_DUCK, "the page's own song playing");
+  assert.equal(boxerDuck({ off: false, muted: false, vol: 0.35, clock: -1, station: true }), BOXER_DUCK, 'the synced station playing');
+});

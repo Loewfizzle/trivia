@@ -39,7 +39,7 @@ export const MOMENTS = Object.freeze([
   { id: 'wake', label: 'THE UPSTAIRS WAKES', rarity: 'routine', windows: ['back'], at: 7, jitter: 8, len: 42, kind: 'a big silhouette motion: the blind up, a stretch, a look out at the morning' },
   { id: 'shop-open', label: 'THE BARBERSHOP OPENS', rarity: 'routine', windows: ['shop'], at: 9, jitter: 3, len: 44, kind: 'a light change + people: the lamp on, the barber in, OPEN, the first customer in the chair' },
   { id: 'bartender', label: 'THE BARTENDER ARRIVES', rarity: 'routine', windows: ['bar'], at: 16, jitter: 6, len: 52, kind: 'lights on one by one behind a half-drawn shade, a glass polished' },
-  { id: 'lights-out', label: 'LIGHTS OUT · THE TV', rarity: 'routine', windows: ['apartment'], at: 22, jitter: 12, len: 16, kind: 'the lamp clicks off, the TV flickers on, someone settles on the couch' },
+  { id: 'lights-out', label: 'LIGHTS OUT · THE TV', rarity: 'routine', windows: ['apartment'], at: 21.5, jitter: 12,   /* (WSP — the owner, Nov 1: the TV ON ~9:30 pm, was ~10) */ len: 16, kind: 'the lamp clicks off, the TV flickers on, someone settles on the couch' },
   // ---- the random draws
   { id: 'dance', label: 'A COUPLE DANCING', rarity: 'common', windows: ['jazz'], hours: [19.5, 2], light: 'night', len: 9, cooldown: 30, party: 2, kind: 'big silhouettes crossing the shade' },
   { id: 'toast', label: 'A TOAST AT THE BAR', rarity: 'common', windows: ['bar'], hours: [19, 2.5], light: 'night', len: 7, cooldown: 24, party: 1.6, kind: 'arms up, glasses glinting, the clink' },
@@ -348,19 +348,24 @@ function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); return e 
  * their starts today, seconds; their ends = start + len). NEVER FULLY DARK: from the bar's close at 3 am until the upstairs wakes
  * there is always the apartment's night lamp (and the bar's last light + the sweeping until 4).
  *   apartment  'day' (after the wake, until dusk) · 'lamp' (dusk → lights out) · 'tv' (lights out → 3 am) · 'tvoff' (3 am: the TV's last
- *              flicker, TV_OFF s) · 'dark' (→ the wake: SP3 — the owner: the TV switches off and the room goes DARK until morning)
+ *              flicker, TV_OFF s) · 'shade' (WSP — the owner, Nov 1: he PULLS THE SHADE DOWN, SHADE_LEN s, his silhouette at it) · 'night'
+ *              (→ the wake: the shade drawn, ONE small NIGHTLIGHT glowing warm behind it all night, fading out as the daylight comes up —
+ *              replaces SP3's fully dark room)
  *   bar        'closed' (4 am → the bartender) · 'open' (the bartender → 3 am: by day the half-drawn shade, at night the full bar) · 'last' (3 → 4 am)
  *   shop       'closed' · 'open' (the opening's end → 6 pm)
  */
 const BAR_LAST = [3, 4], SHOP_CLOSE = 18, TV_END = 3;
 /** SP3: the TV's switch-off at TV_END (s): a last flicker + the picture shrinking away */
 export const TV_OFF = 3.2;
+/** WSP: the shade's pull after the TV's switch-off (s): he steps to the window, reaches up, draws it down (eased), steps away */
+export const SHADE_LEN = 6;
 export function roomState(id, h, routines = {}) {
   const s = h * 3600, start = k => (routines[k] == null ? MOMENT[k].at * 3600 : routines[k]), end = k => start(k) + MOMENT[k].len;
   if (id === 'apartment') {
     if (h < TV_END || s >= start('lights-out')) return 'tv';
     if (s - TV_END * 3600 < TV_OFF) return 'tvoff';
-    return s < end('wake') ? 'dark' : 'lamp';
+    if (s - TV_END * 3600 < TV_OFF + SHADE_LEN) return 'shade';
+    return s < end('wake') ? 'night' : 'lamp';
   }
   if (id === 'bar') {
     if (h >= BAR_LAST[0] && h < BAR_LAST[1]) return 'last';

@@ -93,12 +93,13 @@ test('7b — THE ROUTINES: fixed in the day (a few seeded minutes), every day, t
     }
   }
   const r = { wake: 7 * 3600 + 120, 'shop-open': 9 * 3600 + 60, bartender: 16 * 3600 + 200, 'lights-out': 22 * 3600 + 300 };
-  assert.equal(roomState('apartment', 6.5, r), 'dark', 'SP3: dark until the wake (the owner)');
+  assert.equal(roomState('apartment', 6.5, r), 'night', 'WSP: the shade drawn + the nightlight until the wake (the owner, Nov 1)');
   assert.equal(roomState('apartment', 12, r), 'lamp');
   assert.equal(roomState('apartment', 23, r), 'tv');
   assert.equal(roomState('apartment', 1.5, r), 'tv');
   assert.equal(roomState('apartment', 3 + 1 / 3600, r), 'tvoff', '3:00:01: the TV switching off');
-  assert.equal(roomState('apartment', 3.5, r), 'dark', 'SP3: 3:30 — the TV room dark');
+  assert.equal(roomState('apartment', 3 + 5 / 3600, r), 'shade', 'WSP: 3:00:05 — he pulls the shade down');
+  assert.equal(roomState('apartment', 3.5, r), 'night', 'WSP: 3:30 — the shade drawn, the nightlight on');
   assert.equal(roomState('bar', 12, r), 'closed');
   assert.equal(roomState('bar', 16.5, r), 'open');
   assert.equal(roomState('bar', 2.5, r), 'open');

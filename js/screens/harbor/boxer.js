@@ -6,7 +6,7 @@
 //     shuffle, quick steps side to side; a TURN passes through his front (the silhouette narrows), never a flip
 //   · LONG, OBVIOUS COMBINATIONS in the air, turned away from the bag — every punch FULLY OUT (a straight's arm the length of his
 //     reach); slips + ducks between; BURSTS ON THE BAG (it swings visibly)
-//   · THE REST: he walks it off, shakes out his arms, then SITS ON THE FLOOR, his back against the wall, knees up, head down — up for the
+//   · THE REST: he walks it off, stands catching his breath (hands on hips — WSP: the arm-shake + the towel-off removed), then SITS ON THE FLOOR, his back against the wall, knees up, head down — up for the
 //     bell; the long break the same, longer, then he steps out
 // Every pose a BOLD silhouette at the window's real size (~40 pt: he is ~28 pt tall) — big shapes, never fine detail; one warm rim from the
 // bulb ("not flat black paper"). Drawn in the front wall's units (v up) inside the pane's clip — the window life's E (windows.js) — and on
@@ -101,12 +101,14 @@ function sitPose(t, mo) {
   return { hip: [0.0, 0.08], sh: [0.02, 0.4 + br], head: [0.1, 0.44 + br * 0.6], legs: { back: [[0.19, 0.31], [0.31, 0.012]], front: [[0.21, 0.33], [0.33, 0.012]] },
     arms: { lead: [[0.17, 0.35 + br * 0.5], [0.27, 0.27 + br * 0.5]], rear: [[0.15, 0.34 + br * 0.5], [0.25, 0.26 + br * 0.5]] }, gloves: true, lift: 0 };
 }
-/** shaking it out: standing, the arms hanging, shaken loose; the shoulders rolling; a lazy bounce */
-function shakePose(t, mo) {
-  const sh = mo ? Math.sin(t * 21) * 0.03 : 0, roll = mo ? Math.sin(t * TAU * 0.6) * 0.012 : 0, b = mo ? 0.008 * Math.abs(Math.sin(t * TAU * 1.3)) : 0;
-  const P = stance({ bob: b, lean: -0.01, width: 0.6 });
-  P.sh = add(P.sh, 0, roll); P.head = add(P.head, 0, roll * 0.8);
-  P.arms = { lead: [[0.05 + sh * 0.5, 0.58 + roll], [0.07 + sh, 0.44 + roll]], rear: [[-0.01 - sh * 0.5, 0.58 + roll], [-0.03 - sh, 0.44 + roll]] };
+/** WSP — CATCHING HIS BREATH (the owner, Nov 1: the old arm-shake / towel-off "reads as something rude" at phone size — hands jiggling at
+ *  hip height): he STANDS, hands on his hips, elbows out, a touch forward + the head a little bowed, the shoulders + elbows HEAVING slowly
+ *  with each breath (~1.7 s, deep at first, calming) — nothing moving low. The lean + slide down to sit (sitdown → sit) unchanged. */
+function breathePose(t, mo) {
+  const deep = mo ? 1 - 0.45 * Math.min(1, t / 10) : 0, br = mo ? 0.5 - 0.5 * Math.cos(t * TAU / 1.7) : 0.5, up = 0.018 * br * (0.55 + deep * 0.45);
+  const P = stance({ lean: 0.014, width: 0.62 });
+  P.sh = add(P.sh, 0, up); P.head = add(P.head, 0.01, up * 0.85 - 0.012);
+  P.arms = { lead: [[0.19, 0.62 + up * 0.9], [0.075, 0.5]], rear: [[-0.1, 0.62 + up * 0.9], [-0.05, 0.5]] };
   return P;
 }
 const mixPose = (A, B, k) => ({
@@ -140,14 +142,14 @@ function poseOf(st, t, mo) {
     const R = st.rest, rt = st.t;
     if (R.act === 'walk' || R.act === 'walkout') return walkPose(rt, false, 1);
     if (R.act === 'back') return R.u < 0.5 ? walkPose(rt, false, 1) : mixPose(walkPose(rt, false, 1), stance({ lift: 0.01 }), ease((R.u - 0.5) * 2));
-    if (R.act === 'shake') return shakePose(rt, mo);
-    if (R.act === 'sitdown') return mixPose(shakePose(rt, mo), sitPose(rt, mo), ease(R.u));
+    if (R.act === 'shake') return breathePose(rt, mo);   // (WSP: no arm-shake, no towel — he catches his breath)
+    if (R.act === 'sitdown') return mixPose(breathePose(rt, mo), sitPose(rt, mo), ease(R.u));
     if (R.act === 'getup') return mixPose(sitPose(rt, mo), stance({ lift: 0.01 }), ease(R.u));
     return sitPose(rt, mo);
   }
   if (st.phase === 'done') {
     const r = st.t;
-    if (r < 4) { const Pp = stance({ width: 0.6 }); const k = 0.5 + 0.5 * Math.sin(r * 6); Pp.arms.rear = [[0.07, 0.83], [0.04, 0.88 + 0.06 * k]]; Pp.arms.lead = [[0.04, 0.57], [0.06, 0.45]]; Pp.head = add(Pp.head, -0.02, -0.01); return Pp; }   // (the towel over his head)
+    if (r < 4) return breathePose(r, mo);   // (WSP: the evening's end — no towel-off: he stands a moment catching his breath, then walks out)
     return walkPose(r, false, 1);
   }
   return stance();

@@ -3697,7 +3697,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         stop: () => { legendWant = null; if (legends) legends.stop(); }, power: (x, band) => legendPow(x, band || 'city', 0), drain: (d = 'city') => (legends ? legends.drainCols(d) : null), blackout: () => (legends ? legends.blackout() : null), dark: () => ({ far: !!darkOf('far'), near: !!darkOf('near') }),
         link: { held: [...linkHeld], tap: linkTapAt, go: linkGoAt, shown: shownAt, lead: LINK_LEAD },   // (9g: a link's legendary waiting for the reveal + the first tap)
         hold: trafficHoldNow() /* (Oct 25: the traffic's hold — { t0, t1 (abs s), on }) */ },
-      sounds: { ...snd.debug(), play: snd.play, loop: snd.loop, jets: snd.jets, bus: snd.bus, periscope: o => snd.periscope(o), thunderLog: snd.thunderLog(), flashLog: snd.flashLog() },   // (ATM-C: the recorded thunder's picks)
+      sounds: { ...snd.debug(), play: snd.play, loop: snd.loop, jets: snd.jets, bus: snd.bus, periscope: o => snd.periscope(o), thunderLog: snd.thunderLog(), flashLog: snd.flashLog(), boxDuck: snd.boxDuck ? snd.boxDuck() : null },   // (ATM-C: the recorded thunder's picks)
       road: { ...roadLight.debug(), wash: o => roadLight.wash(o) },
       // (FP: the crossing now — the cycle's state, the lantern's box + the heads on screen)
       crossing: (() => { const ln = L.crosswalk && L.crosswalk.lantern; return { ...signalAt(clock.now()), lantern: ln && ln.box ? { x: ln.box.x, y: ln.box.y, w: ln.box.w, h: ln.box.h, letter: ln.box.panes[0].h * 0.74, panes: ln.box.panes.map(q => ({ word: q.word, x: q.x, y: q.y, w: q.w, h: q.h })) } : null, heads: L.signals.map(s => (s.head ? { id: s.id, x: s.head.x, y: s.head.y, w: s.head.w, h: s.head.h, state: s.state } : null)) }; })(),
