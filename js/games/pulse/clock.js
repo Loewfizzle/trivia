@@ -6,11 +6,12 @@
 //   Judged / drawn time  = song position heard - calibration  (calibration: delay the browser can't
 //                     see — Bluetooth, TV audio — plus touch latency, measured by "tap along").
 // Taps use the pointer event's own timeStamp (same clock as performance.now), never Date / setTimeout.
-import { getContext, getMusicBus, getSfxBus } from '../../audio/engine.js';
+import { getContext, getMusicBus, getSfxBus, onResume } from '../../audio/engine.js';
 import { serverNow } from '../../firebase.js';
+import { clockStep, CLOCK_SAMPLES } from '../../core/sync-math.js';
 
 const CAL_KEY = 'na:pulse:calib';
-const SAMPLES = 24;
+const SAMPLES = CLOCK_SAMPLES;
 let offs = [];      // recent (contextTime - performanceTime) samples, seconds
 let offset = null;  // smoothed mapping
 let lastSample = 0;
@@ -28,13 +29,10 @@ function sample() {
   const ts = ctx.getOutputTimestamp ? ctx.getOutputTimestamp() : null;
   if (ts && ts.performanceTime > 0 && ts.contextTime > 0) o = ts.contextTime - ts.performanceTime / 1000;
   else o = ctx.currentTime - (ctx.outputLatency || ctx.baseLatency || 0) - now / 1000;
-  offs.push(o);
-  if (offs.length > SAMPLES) offs.shift();
-  // the output timestamp jitters by a render quantum; the median of recent samples is steady
-  const sorted = [...offs].sort((a, b) => a - b);
-  const med = sorted[sorted.length >> 1];
-  // follow real drift, ignore single-sample noise
-  offset = offset == null || Math.abs(med - offset) > 0.05 ? med : offset + (med - offset) * 0.2;
+  // the median of recent samples (the output timestamp jitters by a render quantum); a jump past half a second — the context slept
+  // (the lock screen, a call) — throws the old samples away + snaps (core/sync-math.js#clockStep; APP FIXES, Grok 3.3)
+  const st = clockStep({ offs, offset }, o, SAMPLES);
+  offs = st.offs; offset = st.offset;
 }
 
 /** Context time being heard at performance time perfMs (default: now). */
@@ -50,6 +48,8 @@ export function ctxAtServer(ms) {
 }
 
 export function resetClock() { offs = []; offset = null; lastSample = 0; }
+// (APP FIXES — Grok 3.3: the samples from before a suspension map the wrong time — start the map again whenever the context runs again)
+onResume(resetClock);
 
 // ---------------------------------------------------------------- calibration (per device)
 export function loadCalibration() {

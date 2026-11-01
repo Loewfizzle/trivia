@@ -98,6 +98,9 @@
     },
     "api/sky.js": {
       "maxDuration": 8
+    },
+    "api/time.js": {
+      "maxDuration": 3
     }
   }
 }

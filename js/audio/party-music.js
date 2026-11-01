@@ -14,7 +14,7 @@
 // be in sync: this phone's own player then plays the deck as before. MUSIC OFF: nothing plays; the breaks still follow the same timeline.
 import { createSyncedSongs, speakerLead } from './synced-songs.js';
 import { musicUrl } from './music-url.js';
-import { getMusicBus, getContext, clockFrozen } from './engine.js';
+import { getMusicBus, getContext, graphDead, audioUnlocked } from './engine.js';
 import { serverNow } from '../firebase.js';
 import { cityClock, isCity2 } from '../core/city.js';
 import { XF_MS } from '../core/playlist.js';
@@ -91,12 +91,14 @@ export function partyClaims() {
   const T = timeline();
   if (!T) { pendingAt = 0; return false; }
   const ac = getContext(), cc = cityClock();
-  if (ac && (ac.state === 'closed' || clockFrozen())) return false;
+  if (graphDead()) return false;
   if (cc && cc.musicHold && cc.musicHold()) return false;
   if (player && player.now()) return true;
   if (nowPlaying()) return false;
   if (player && last && player.failed && player.failed(last.cur)) return false;
-  if (ac && ac.state === 'running') { if (!pendingAt) pendingAt = performance.now(); if (performance.now() - pendingAt > PARTY_WAIT_MS) return false; }
+  // (APP FIXES — Grok 3.4: the cover counts on ANY state once the first tap has happened — a 'suspended' graph that never sounds no
+  // longer keeps this phone's own player waiting forever; before the tap nothing can play, so nothing counts)
+  if (ac && audioUnlocked() && document.visibilityState === 'visible') { if (!pendingAt) pendingAt = performance.now(); if (performance.now() - pendingAt > PARTY_WAIT_MS) return false; }
   return true;
 }
 
@@ -122,7 +124,8 @@ export function partyMusicTick(active, hold = false) {
   if (clocked !== !!T) { clocked = !!T; try { setMusicClocked(clocked); } catch { /* tests */ } }
   // (a DEAD GRAPH — iOS after the lock screen: the context frozen or closed — can't play the synced voices: the song goes back to this
   // phone's own player, which takes THE DIRECT PATH (music.js) at the timeline's place; the synced player comes back once the graph runs)
-  const ac = getContext(), dead = !!ac && (ac.state === 'closed' || clockFrozen());
+  // (APP FIXES — Grok 3.4: + 'interrupted' + stuck — engine.js#graphDead)
+  const dead = graphDead();
   if (!T || hold || dead) { stopPartyMusic(hold || dead ? 0.25 : 0.6); return false; }
   const w = deckWindow(T.deck, T.tl.anchor, T.tl.seed, T.cityMs / 1000);
   // (SKY-B: the key is the deck's window only — when the server clock's offset settles (the first seconds after a load) the start moves and

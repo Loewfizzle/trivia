@@ -74,6 +74,14 @@ export const inGesture = () => performance.now() - gestureAt < 60;
 export const canStart = () => unlocked && !!ctx && ctx.state !== 'closed' && (ctx.state === 'running' || inGesture());
 /** The context's clock: is it moving? (false = frozen: 'running' but stopped) */
 export const clockFrozen = () => frozen;
+/** a resume we asked for didn't bring the context back (the next tap rebuilds it) · the first tap has happened */
+export const audioStuck = () => stuck;
+export const audioUnlocked = () => unlocked;
+/** APP FIXES (Grok 3.4) — THE DEAD-GRAPH RULE: the graph can't sound — closed, 'interrupted' (a call, Siri: the OS holds it), frozen
+ *  ('running' but its clock stopped) or stuck (asked to resume, still not running 1.5 s later — a 'suspended' one that won't come
+ *  back). The synced players stop + this phone's own player takes THE DIRECT PATH (music.js). Before the first tap: not dead (nothing
+ *  can play yet anyway). */
+export const graphDead = () => !!ctx && (ctx.state === 'closed' || ctx.state === 'interrupted' || frozen || stuck);
 /** The graph can be trusted: running, not frozen, its clock seen moving for ≥ 2 s (music.js moves a direct song back onto it then). */
 export const graphOk = () => !!ctx && ctx.state === 'running' && !frozen && clock.t > 0 && clock.moving > 0 && performance.now() - clock.moving > 2000;
 

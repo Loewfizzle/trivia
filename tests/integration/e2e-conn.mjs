@@ -86,6 +86,22 @@ try {
     await row('City 2.0 title, idle', C2);
     ok(C2.opened === 0, `City 2.0's title opens no socket either (the preview's EVERYONE comes by the /api poll; opened ${C2.opened})`);
     await C2.ctx.close(); }
+  // APP FIXES (Grok 3.1) — THE TITLE's CLOCK WITH NO SOCKET: GET /api/time sets the server offset on a parked title (here a server 5 s
+  // ahead of this machine: the station's songs follow it) — still no socket
+  { const T = await phone('CLOCK', null);
+    await T.page.setRequestInterception(true);
+    T.page.on('request', r => {
+      if (/\/api\/time(\?|$)/.test(r.url())) r.respond({ status: 200, contentType: 'application/json', headers: { 'cache-control': 'no-store' }, body: JSON.stringify({ t: Date.now() + 5000 }) });
+      else r.continue().catch(() => {});
+    });
+    await go(T, '/?city=2');
+    await titleUp(T);
+    await T.page.waitForFunction(() => window.__arcade.line().timeSyncs > 0, { timeout: 12000 }).catch(() => {});
+    const L = await line(T);
+    const skew = await T.page.evaluate(() => window.__arcade.serverNow() - Date.now());
+    ok(L && L.timeSyncs > 0 && Math.abs(skew - 5000) < 400, `THE TITLE's CLOCK: /api/time sets the offset with the line parked (${L && L.timeSyncs} sync, serverNow − Date.now = ${Math.round(skew)} ms, want ≈ 5000)`);
+    ok(T.opened === 0, `…and opens no socket (${T.opened})`);
+    await T.ctx.close(); }
 
   // ---- 2. HOST
   await A.page.evaluate(() => document.querySelector('.nd-host') && document.querySelector('.nd-host').click());

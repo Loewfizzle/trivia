@@ -825,6 +825,55 @@ G('stations', async () => {
       // (the 1.2-s ramp: seen on most runs (0.06 → 0.58 …); a page that was busy loading may sample it only once it's done — logged, not failed)
       if (gains.length && Math.min(...gains) < 0.9) ok(true, `…FADED IN (its voice ${gains.map(g => g.toFixed(2)).slice(0, 6).join(' → ')})`);
       else console.log(`  ~ the joiner's fade-in was over before its first sample (${gains.map(g => g.toFixed(2)).slice(0, 4).join(' → ')})`); }
+    // ---- APP FIXES (Grok 3.2 / 3.6 / 3.8) — a synced player on its own (synced-songs.js), with a 20-s silent WAV as its songs:
+    //   stop(fade) disconnects the node its connect() made (every station change left one more gain on the music bus);
+    //   the same queue jumping BACK in time (the panel's time jump) plays a song again that had "played to its end"
+    { const p = pages[0].page;
+      const r = await ev(p, `(async () => {
+        const m = await import('/js/audio/synced-songs.js'), e = await import('/js/audio/engine.js');
+        const n = 22050 * 20, b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = (o, str) => [...str].forEach((c, k) => v.setUint8(o + k, c.charCodeAt(0)));
+        w(0, 'RIFF'); v.setUint32(4, 36 + n * 2, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+        v.setUint32(24, 22050, true); v.setUint32(28, 44100, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, 'data'); v.setUint32(40, n * 2, true);
+        const url = URL.createObjectURL(new Blob([b], { type: 'audio/wav' }));
+        let cut = 0, made = 0;
+        const pl = m.createSyncedSongs({ urlFor: () => url, label: 'test', connect: ctx => { made++; const g = ctx.createGain(); const d = g.disconnect.bind(g); g.disconnect = (...a) => { cut++; return d(...a); }; g.connect(e.getMusicBus()); return g; } });
+        const now = () => window.__arcade.serverNow();
+        const wait = ms => new Promise(r => setTimeout(r, ms));
+        const until = async (f, ms) => { const end = performance.now() + ms; while (performance.now() < end) { pl.tick(); if (f()) return true; await wait(50); } return false; };
+        // song 0 (12 s) in its last 0.3 s — marked "played to its end" — song 1 sounding (its crossfade from 8 s)
+        const t0 = now() - 11850;
+        pl.setGame({ matchId: 'jump', songs: ['a', 'b'], sd: [12000, 20000], songStartAt: t0 });
+        pl.tick();
+        const second = await until(() => pl.debug().slots.some(x => x.i === 1), 4000);
+        const zeroDone = !pl.debug().slots.some(x => x.i === 0);
+        // the panel jumps the clock BACK: the same queue, starting 0.5 s from now
+        pl.setGame({ matchId: 'jump', songs: ['a', 'b'], sd: [12000, 20000], songStartAt: now() + 500 });
+        const again = await until(() => pl.debug().slots.some(x => x.i === 0), 4000);
+        const oneGone = await until(() => !pl.debug().slots.some(x => x.i === 1 && x.t > 0), 2000);   // (song 1 is wanted again — queued for its new turn, not sounding at its old place)
+        pl.stop(0.1);
+        await wait(400);
+        URL.revokeObjectURL(url);
+        return { second, zeroDone, again, oneGone, made, cut };
+      })()`);
+      ok(r && r.made === 1 && r.cut >= 1, `stop(fade): the node its connect() made is disconnected after the fade (${JSON.stringify(r && { made: r.made, cut: r.cut })})`);
+      ok(r && r.second && r.zeroDone && r.again && r.oneGone, `A BACKWARD JUMP: the song that had played to its end plays again; the next one leaves its old place (${JSON.stringify(r)})`); }
+    // ---- APP FIXES (Grok 3.3) — AFTER THE LOCK SCREEN: hidden 6 s (the context sleeps), back: in step again within ~1.5 s (the clock's
+    // old samples thrown away + the voice re-placed; on a phone the old median held the bar it left for ~6 s — tests/sync-math.test.mjs)
+    { const p = pages[0].page;
+      const vis = v => ev(p, `(() => { Object.defineProperty(document, 'visibilityState', { value: '${v}', configurable: true }); Object.defineProperty(document, 'hidden', { value: ${v === 'hidden'}, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); })()`);
+      await vis('hidden'); await sleep(6000); await vis('visible');
+      const back = Date.now(); let r = null;
+      while (Date.now() - back < 6000) { r = await read(p); if (r && r.id === r.song && Math.abs(r.err) < 0.12) break; await sleep(100); }
+      const ms = Date.now() - back;
+      ok(r && Math.abs(r.err) < 0.12 && ms < 1500, `AFTER THE LOCK SCREEN: back in step ${ms} ms after unlocking (${r ? (r.err * 1000).toFixed(0) : '?'} ms from the server clock)`); }
+    // ---- APP FIXES (Grok 3.4) — A CALL / SIRI: the context 'interrupted' (the OS holds it) is a DEAD GRAPH — the synced player stops and
+    // this phone's own player takes THE DIRECT PATH at the station's place (before: the radio sat silent on a graph that couldn't sound)
+    { const p = pages[0].page;
+      await ev(p, `import('/js/audio/engine.js').then(e => e.simulateStuck('interrupted'))`);
+      const RADIO = `(() => { const d = window.__arcade.musicDebug(); const pm = window.__arcade.partyMusicDebug(); return { out: d.out, id: (d.playing || '').replace(/^m:/, ''), at: d.at, sounding: d.health.sounding, song: pm && pm.song, want: pm && pm.at, synced: pm && pm.synced, state: d.health.state }; })()`;
+      let r = null; const end = Date.now() + 10000;
+      while (Date.now() < end) { r = await ev(p, RADIO); if (r && r.out === 'direct' && r.id === r.song && Math.abs(r.at - r.want) < 1.5 && !r.synced) break; await sleep(250); }
+      ok(r && r.out === 'direct' && r.id === r.song && Math.abs(r.at - r.want) < 1.5 && !r.synced, `A CALL (the context '${r && r.state}'): the station goes on on THE DIRECT PATH at its place (${JSON.stringify(r)})`); }
   } finally { for (const Q of pages) await Q.ctx.close().catch(() => {}); }
 });
 

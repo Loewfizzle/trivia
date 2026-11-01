@@ -10,7 +10,8 @@
 //
 // The caller owns the processing chain: createSyncedSongs({ urlFor, connect }) where connect(ctx) returns the node
 // every song voice plugs into (created once, the first time audio runs). tick() returns the running context (or null).
-import { getContext } from './engine.js';
+import { getContext, clockFrozen } from './engine.js';
+import { songEnvelope } from '../core/sync-math.js';
 import { serverNow } from '../firebase.js';
 import { ctxAtServer } from '../games/pulse/clock.js';
 import { songStarts, XF_MS } from '../core/playlist.js';
@@ -40,6 +41,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
   let stopped = false;
   let lastCheck = 0;
   let restarts = 0;
+  let failures = 0;          // voices whose start() threw (disconnected at once — APP FIXES, Grok 3.5)
   const bufs = new Map();    // `${matchId}:${i}` -> { buf, failed }
   const voices = new Map();  // song index -> { src, gain, origin, startedAt }
   const done = new Set();    // song indexes that played to their end (never restart)
@@ -63,50 +65,54 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     return w;
   }
 
+  // → true when a voice for song i is now scheduled (APP FIXES, Grok 3.5: ONE monotonic envelope — core/sync-math.js#songEnvelope —
+  // and a start that throws leaves no source behind)
   function start(ctx, i, starts) {
     const e = bufs.get(keyOf(i));
-    if (!e || !e.buf) return;
+    if (!e || !e.buf) return false;
     const buf = e.buf;
     const origin = ctxAtServer(starts[i]) - speakerLead();   // ctx time at which position 0 is heard (− this device's speaker delay)
     const at = Math.max(ctx.currentTime + 0.05, origin);
     const off = at - origin;
-    if (off >= buf.duration - 0.25) { done.add(i); return; }
-    const src = ctx.createBufferSource();
-    src.buffer = buf;
-    const gain = ctx.createGain();
-    src.connect(gain).connect(dest);
-    const g = gain.gain;
+    if (off >= buf.duration - 0.25) { done.add(i); return false; }
     const ctxOf = ms => origin + (ms - starts[i]) / 1000;
-    // fade in: a crossfade from the previous song, or a short ramp when joining mid-song
-    if (i > 0 && off < XF_MS / 1000) {
-      g.setValueAtTime(0, at);
-      g.linearRampToValueAtTime(Math.min(1, (off + 0.001) / (XF_MS / 1000)), at + 0.001);
-      g.linearRampToValueAtTime(1, origin + XF_MS / 1000);
-    } else if (off > 0.02) {
-      g.setValueAtTime(0, at);
-      g.linearRampToValueAtTime(1, at + joinFade);
-    } else {
-      g.setValueAtTime(1, at);
-    }
-    // fade out: into the next song, or at the very end of the last one
+    // fade in: a crossfade from the previous song, or a short ramp when joining mid-song; fade out: into the next song, or at the very
+    // end of the last one — the fade-out never before the fade-in is over
     const end = origin + buf.duration;
-    if (i + 1 < starts.length) {
-      const x0 = Math.max(at + 0.2, ctxOf(starts[i + 1]));
-      g.setValueAtTime(1, x0);
-      g.linearRampToValueAtTime(0, Math.max(x0 + 0.05, ctxOf(starts[i + 1] + XF_MS)));
-    } else if (end - END_FADE > at + 0.2) {
-      g.setValueAtTime(1, end - END_FADE);
-      g.linearRampToValueAtTime(0, end);
+    let out = null;
+    if (i + 1 < starts.length) out = { start: ctxOf(starts[i + 1]), end: ctxOf(starts[i + 1] + XF_MS) };
+    else if (end - END_FADE > at + 0.2) out = { start: end - END_FADE, end };
+    const pts = songEnvelope({ at, origin, crossIn: i > 0 && off < XF_MS / 1000, xfS: XF_MS / 1000, joinFade, out });
+    let src = null, gain = null;
+    try {
+      src = ctx.createBufferSource();
+      src.buffer = buf;
+      gain = ctx.createGain();
+      src.connect(gain).connect(dest);
+      const g = gain.gain;
+      for (const pt of pts) { if (pt.ramp) g.linearRampToValueAtTime(pt.v, pt.t); else g.setValueAtTime(pt.v, pt.t); }
+      src.onended = () => {
+        try { src.disconnect(); gain.disconnect(); } catch { /* gone */ }
+        if (voices.get(i) && voices.get(i).src === src) { voices.delete(i); done.add(i); }
+      };
+      src.start(at, off);
+    } catch (err) {
+      failures++;
+      try { if (src) src.disconnect(); if (gain) gain.disconnect(); } catch { /* never connected */ }
+      console.warn(label, 'start', err && err.name);
+      return false;
     }
-    src.onended = () => { if (voices.get(i) && voices.get(i).src === src) { voices.delete(i); done.add(i); } };
-    src.start(at, off);
     voices.set(i, { src, gain, origin, startedAt: ctx.currentTime, startAt: at });
+    return true;
   }
 
   function stopVoice(ctx, i, fade = 0.12) {
     const v = voices.get(i);
     if (!v) return;
     voices.delete(i);
+    fadeOut(ctx, v, fade);
+  }
+  function fadeOut(ctx, v, fade) {
     const t = ctx.currentTime;
     try {
       v.gain.gain.cancelScheduledValues(t);
@@ -119,6 +125,9 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
   return {
     setGame(g) {
       if (game && g && game.matchId !== g.matchId) { const ctx = getContext(); if (ctx) for (const i of [...voices.keys()]) stopVoice(ctx, i, 0.3); done.clear(); }
+      // (APP FIXES — Grok 3.8: the same queue MOVED in time — the preview panel's time jump, a backward jump — the songs that "played to
+      // their end" may be ahead again: forget them; tick() stops the voices that aren't wanted any more)
+      else if (game && g && Math.abs((g.songStartAt || 0) - (game.songStartAt || 0)) > 100) done.clear();
       game = g;
     },
     /** call every frame; returns the running AudioContext (null before the first tap / while suspended) */
@@ -139,6 +148,8 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       if (dest && ctx && dest.context !== ctx) { voices.clear(); dest = null; restarts++; }
       if (!ctx || ctx.state !== 'running') return null;
       if (!dest) dest = connect(ctx);
+      // a voice whose song isn't wanted any more (a jump in time): out, quickly
+      for (const i of [...voices.keys()]) if (!want.includes(i)) stopVoice(ctx, i, 0.3);
       for (const i of want) {
         if (voices.has(i) || done.has(i) || i < minIndex) continue;
         if (t > starts[i] + game.sd[i] - 300) { done.add(i); continue; }
@@ -150,8 +161,10 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
         for (const [i, v] of [...voices]) {
           if (Math.abs(v.origin - (ctxAtServer(starts[i]) - speakerLead())) > 0.12 && ctx.currentTime - v.startedAt > 0.5) {
             restarts++;
-            stopVoice(ctx, i, 0.08);
-            start(ctx, i, starts);
+            // (APP FIXES — Grok 3.5: the replacement first; the old voice goes only once it started — else it plays on)
+            voices.delete(i);
+            if (start(ctx, i, starts)) fadeOut(ctx, v, 0.08);
+            else if (!voices.has(i)) voices.set(i, v);
           }
         }
       }
@@ -164,7 +177,8 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     /** the song sounding loudest right now: { i, id, at (s into it) } or null */
     now() {
       const ctx = getContext();
-      if (!ctx || !game || !voices.size) return null;
+      // (APP FIXES — Grok 3.4: a suspended / interrupted / frozen graph sounds nothing — never report a place from it)
+      if (!ctx || !game || !voices.size || ctx.state !== 'running' || clockFrozen()) return null;
       let best = null;
       // (NIGHT-C: a song scheduled to START LATER — the next one, decoded + queued ahead of its crossfade — isn't sounding yet: its gain
       // node reads its intrinsic 1 before its first scheduled value, which made it "the loudest" (the beat followed the wrong song))
@@ -182,15 +196,22 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
     debug() {
       const ctx = getContext();
       return {
-        decoded: [...bufs].filter(([, e]) => e.buf).map(([k]) => k), restarts,
-        slots: game ? [...voices].map(([i, v]) => ({ id: game.songs[i], i, t: ctx ? +(ctx.currentTime - v.origin).toFixed(2) : 0, paused: false, gain: +v.gain.gain.value.toFixed(3) })) : [],
+        decoded: [...bufs].filter(([, e]) => e.buf).map(([k]) => k), restarts, failures, connected: !!dest,
+        slots: game ? [...voices].filter(([, v]) => !ctx || v.gain.context === ctx).map(([i, v]) => (   // (a rebuilt context: the old one's voices are gone, not 'playing')
+          { id: game.songs[i], i, t: ctx ? +(ctx.currentTime - v.origin).toFixed(2) : 0, paused: false, gain: +v.gain.gain.value.toFixed(3) })) : [],
       };
     },
-    stop() {
+    // (APP FIXES — Grok 3.2 / 3.6: the fade the caller asks for — a legendary's hold / a dead graph ≈ 0.25 s — and the node connect()
+    // made is disconnected once the fade is over: every station change used to leave one more gain on the music bus)
+    stop(fade = 0.6) {
       stopped = true;
       const ctx = getContext();
-      if (ctx) for (const i of [...voices.keys()]) stopVoice(ctx, i, 0.6);
+      if (ctx) for (const i of [...voices.keys()]) stopVoice(ctx, i, fade);
+      voices.clear();
       bufs.clear();
+      const d = dest;
+      dest = null;
+      if (d) setTimeout(() => { try { d.disconnect(); } catch { /* gone */ } }, (fade + 0.1) * 1000);
     },
   };
 }

@@ -13,6 +13,7 @@
 // so an unlisted caller can never hang on a parked socket.
 import { firebaseConfig } from './firebase-config.js';
 import { slot, useEmulator } from './identity.js';
+import { serverOffsetFrom } from './core/sync-math.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/11.10.0';
 let sdk = null;
@@ -87,6 +88,39 @@ export const dbRef = path => { if (!wants.size) touch(); return ref(db, path); }
 // Server-synchronized clock. Use this for every timer.
 export const serverNow = () => Date.now() + offset;
 
+// APP FIXES (Grok 3.1) — THE TITLE's CLOCK WITH NO SOCKET: the title parks the database, so a phone that never opened a room sat at
+// offset 0 (its own clock) — two phones on the same RADIO STATION could be seconds apart. GET /api/time twice (no-store; the shortest
+// round trip wins — core/sync-math.js#serverOffsetFrom, |offset| < 1 day) once a visible session + on return from the background (≥ 60 s
+// apart). Never opens a socket (CONN), never over the socket's own offset (.info/serverTimeOffset, once the line has been up).
+let socketOffset = false, timeSyncAt = 0, timeSyncs = 0, timeSyncLast = null;
+export async function syncTimeNoSocket(why = 'boot') {
+  if (socketOffset || typeof fetch !== 'function') return null;
+  const t = Date.now();
+  if (timeSyncAt && t - timeSyncAt < 60_000) return null;
+  timeSyncAt = t;
+  const samples = [];
+  for (let k = 0; k < 2; k++) {
+    try {
+      const t0 = Date.now();
+      const r = await fetch('/api/time', { cache: 'no-store' });
+      if (!r.ok) break;
+      const j = await r.json();
+      samples.push({ t0, t1: Date.now(), server: Number(j && j.t) });
+    } catch { break; }
+  }
+  const best = serverOffsetFrom(samples);
+  if (!best || socketOffset) return null;
+  offset = best.offset; timeSyncs++; timeSyncLast = { why, offset: best.offset, rtt: best.rtt };
+  note(`time (${why}): offset ${best.offset} ms, round trip ${best.rtt} ms`);
+  try { localStorage.setItem(OFFSET_KEY, String(best.offset)); } catch { /* private mode: this page only */ }
+  return best;
+}
+if (typeof document !== 'undefined') {
+  // (after the first paint: a tiny request, never in the way of the boot)
+  setTimeout(() => { if (document.visibilityState === 'visible') syncTimeNoSocket('boot'); }, 1500);
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncTimeNoSocket('back on screen'); });
+}
+
 // ---------------------------------------------------------------- CONN — want / release (the parked database)
 const q = typeof location !== 'undefined' ? new URLSearchParams(location.search) : new URLSearchParams();
 // (?emu only: the E2E shortens the waits — tests/integration/e2e-conn.mjs)
@@ -125,6 +159,7 @@ function unpark(why) {
     parked = false; everUp = false;
     note(`open (${why})`);
     sdk.onValue(ref(db, '.info/serverTimeOffset'), s => {
+      socketOffset = true;
       const v = s.val() || 0;
       if (v === offset) return;
       offset = v;
@@ -186,4 +221,4 @@ if (typeof document !== 'undefined') {
   });
 }
 /** What the line is doing (the tests, the &debug=1 report): { net, wants, parked, log } */
-export const lineInfo = () => ({ net, wants: [...wants], parked, started, offset, touches, touchFrom, log: log.slice(-20) });
+export const lineInfo = () => ({ net, wants: [...wants], parked, started, offset, socketOffset, timeSyncs, timeSyncLast, touches, touchFrom, log: log.slice(-20) });

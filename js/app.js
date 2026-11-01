@@ -94,7 +94,8 @@ function moodWatch() {
   const m = moodNow(), c = fixedMood();
   if (moodSeen !== null && m !== moodSeen && !lobbySynced && !partySynced && (c !== choiceSeen || (m === 'party' && isCity2()))) {
     const np = nowPlaying();
-    if (!(np && songsFor(m).includes(np.id))) switchNow(4);
+    // (APP FIXES — Grok 3.7: never while a STATION's timeline runs — the station's own change (party-music.js) places the song)
+    if (!(np && songsFor(m).includes(np.id)) && !partyCue()) switchNow(4);
   }
   moodSeen = m; choiceSeen = c;
 }

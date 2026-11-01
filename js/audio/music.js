@@ -15,7 +15,7 @@
 // is seen frozen. On it: no crossfades (a cut between songs), the volume slider / ducks only where an element's volume works (not
 // iOS), mute + MUSIC OFF mute the element; the beat follows the song's grid (the kick listener hears nothing). At the next tap with
 // the graph seen running for 2 s the song moves back onto a Web Audio voice at its place.
-import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, canStart, inGesture, clockFrozen, graphOk, onResume, onRebuild, onGesture, onFrozen, tapFoundSilence, audioHealth, audioLog, audioEvents } from './engine.js';
+import { getContext, getMusicBus, onUnlock, onVisibility, isUnlocked, canStart, inGesture, clockFrozen, graphOk, onResume, onRebuild, onGesture, onFrozen, tapFoundSilence, audioHealth, audioLog, audioEvents, graphDead as engineGraphDead } from './engine.js';
 import { settings, onSettings } from './settings.js';
 import { musicUrl } from './music-url.js';
 import { createTapeStop } from './tape-stop.js';
@@ -214,7 +214,8 @@ onSettings(applyDirectVolume);
 /** the output the music is on: 'direct' (iOS's own pipeline) or 'web' (a voice through the graph) */
 export const musicOut = () => (current && current.voice && current.voice.direct ? 'direct' : 'web');
 // which output a song starts on now: the direct element while the graph is dead (if it may play), else a voice
-const graphDead = () => { const c = getContext(); return !c || c.state === 'closed' || clockFrozen(); };
+// (APP FIXES — Grok 3.4: + 'interrupted' + stuck: engine.js#graphDead — a call / Siri no longer leaves the song on a graph that can't sound)
+const graphDead = () => !getContext() || engineGraphDead();
 const useDirect = () => !!(direct && direct.armed && graphDead());
 
 // a voice's song again from `at` s (a fresh load: after an error, a stall, a lost connection)
@@ -279,6 +280,13 @@ function startTrack(id, xf = XFADE, out) {
   voice.id = id;
   const at = positions[id] || 0;
   try { voice.el.currentTime = at; } catch { /* not seekable yet */ }
+  // (APP FIXES — Grok 3.7: iOS drops a seek made before the element has its metadata — a station's song then started at 0:00 on the
+  // direct path. Seek again once it can, while the element is still near the top + the cue is past 0.3 s)
+  if (at > 0.3) {
+    const el = voice.el, again = () => { try { if (voice.id === id && el.currentTime < 0.3 && Math.abs(el.currentTime - at) > 0.5) el.currentTime = at; } catch { /* not yet */ } };
+    el.addEventListener('loadedmetadata', again, { once: true });
+    el.addEventListener('canplay', again, { once: true });
+  }
   if (voice.gain) voice.gain.gain.value = 0;
   voice.broken = false;
   playEl(voice.el, toDirect ? 'start direct' : 'start', voice).then(ok => { if (ok) status[id] = status[id] || 'ok'; });
@@ -470,7 +478,8 @@ export async function switchNow(seconds = 4) {
   const warm = prefetch(t, true);
   if (warm) await Promise.race([warm, new Promise(r => setTimeout(r, 6000))]);
   if (current !== from || !desired || desired.id !== list || status[t] === 'missing') return false;   // moved on meanwhile
-  positions[t] = 0;
+  // (APP FIXES — Grok 3.7: a provider that CUED the song — a station's place — keeps its cue; only an uncued song starts from its top)
+  if (!(cuedAt[t] && performance.now() - cuedAt[t] < 10_000)) positions[t] = 0;
   startTrack(t, seconds);
   setTimeout(() => { positions[from.id] = 0; }, seconds * 1000 + 300);     // (the song we left starts from its top next time)
   return true;
@@ -519,7 +528,8 @@ export const musicDuckLevel = () => duckLevel;
 /** the node the music's voices plug into (the low-pass → the music bus) — null before the audio runs */
 export function musicInput() { return getContext() && getMusicBus() ? tone() : null; }
 /** the next start of `id` begins `at` s in (the party's timeline: a song cued at its place on the server clock) */
-export function cueMusic(id, at) { if (id) positions[id] = Math.max(0, at || 0); }
+const cuedAt = {};   // id → performance.now() of the provider's cue (switchNow never zeroes a fresh one)
+export function cueMusic(id, at) { if (id) { positions[id] = Math.max(0, at || 0); cuedAt[id] = performance.now(); } }
 
 /**
  * THE TAPE STOP (City 2.0, 6b → Oct 25 — the TR-3B "bends the music"; docs/audio.md#the-tape-stop-in-web-audio): the song's speed to
