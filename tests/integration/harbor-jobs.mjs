@@ -16,14 +16,15 @@
 // workers 3.1×, windows 2.7× — so the local shards were 1,299 / 1,277 / 813 s apart) + the missing fireworks row. A NEW GROUP: its first
 // cloud run's seconds here (the job log prints each group's time).
 export const SECONDS = {
-  windows: 446, perf: 270, workers: 229, music: 207, legends: 189, weather: 183, holiday: 174, people: 161, neon: 159, heli: 141,
+  windows: 300, perf: 200, workers: 229, music: 207, legends: 189, weather: 183, holiday: 174, people: 161, neon: 159, heli: 141,
   panel: 126, freeze: 120, snow: 98, panelrows: 97, boxer: 83, party: 75, sounds: 72, tower: 68, motion: 66, tape: 58, partysync: 57,
   load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
   speakeasy: 30, fireworks: 30, stations: 29, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4,
 };
 
-// 151–583 s of tests each by the cloud's own seconds (+ ~25 s of setup); the windows job is the critical path (PERF-B opens its pages in parallel)
+// 151–583 s of tests each by the cloud's own seconds (+ ~25 s of setup). PERF-B: windows 446 → ~300 (its pages 3 at a time — 280 s on the
+// mini PC; refresh from this run's log), perf 270 → ~200 (the warnings-only pacing loop skipped on CI)
 export const CI_JOBS = {
   audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp'],   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life', 'quietbuilding'],   // (NIGHT-C: quietbuilding — the lightest)
