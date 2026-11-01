@@ -38,7 +38,7 @@ layout(location=1) in vec4 a_ov;
 layout(location=2) in vec4 a_tm;
 layout(location=3) in vec4 a_col;
 layout(location=4) in vec4 a_fx;
-uniform vec2 u_view; uniform float u_t; uniform float u_wind; uniform float u_mirror; uniform float u_squash; uniform float u_glow; uniform float u_trailK; uniform float u_pass;
+uniform vec2 u_view; uniform float u_t; uniform float u_wind; uniform float u_mirror; uniform float u_squash; uniform float u_glow; uniform float u_trailK; uniform float u_pass; uniform vec2 u_band;
 out vec2 v_q; out vec3 v_col; out float v_i; out float v_len; out float v_w; out vec2 v_pos; out float v_kind; out float v_layer; out float v_size;
 float ef(float k, float a) { return k > 0.001 ? (1.0 - exp(-k * a)) / k : a; }
 vec2 posAt(float a) {
@@ -60,25 +60,29 @@ void main() {
   if (kind < 3.5 || kind > 6.5) I *= mix(0.1, 1.0, smoothstep(0.02, 0.24, age));   // (dim while the stars are still packed — no white ball)
   float emberK = (kind > 6.5) ? 0.95 : 0.5;
   c = mix(c, vec3(1.0, 0.38, 0.1) * (0.55 + 0.45 * base), smoothstep(0.5, 1.0, u) * emberK);
-  float trail = a_fx.x * u_trailK;
+  float trail = a_fx.x * u_trailK, gk = u_glow;
   if (kind < 0.5 || kind > 6.5) { if (u > 0.72) I *= 0.55 + 0.45 * step(0.35, fract(seed * 13.1 + age * 17.0)); }
   else if (kind < 1.5) { I *= 0.2 + 1.1 * step(0.5, fract(seed * 7.13 + age * (9.0 + 7.0 * fract(seed * 3.3)))); }
   else if (kind < 2.5) { float on = step(0.78, fract(seed * 3.7 + age * 6.5)); I = mix(0.12, 1.7, on) * (1.0 - u * 0.5); c = mix(c, vec3(1.0), 0.75 * on); }
   else if (kind < 3.5) {
     float tp = life * (0.72 + 0.24 * fract(seed * 5.1));
     if (age > tp + 0.07) { gl_Position = vec4(3.0, 3.0, 3.0, 1.0); return; }
-    if (age > tp) { I = 2.4; size *= 2.6; c = vec3(1.0, 0.93, 0.75); trail = 0.0; }
+    if (age > tp) { I = 2.4; size *= 2.6; c = vec3(1.0, 0.93, 0.75); trail = 0.0; gk = min(u_glow, 2.0); }   // (PERF-B: the 0.07-s pop's halo quad 2.0× not 3.2× — the dragon eggs' thousands of pops: 0.39 of the fragments)
   }
   else if (kind < 4.5) { I = 0.95 * exp(-age * 16.0) + 0.2 * exp(-age * 1.9); c = mix(vec3(1.0, 0.97, 0.9), base, 0.62 + 0.3 * min(1.0, age * 4.0)); trail = 0.0; }
   else if (kind < 5.5) { I = 0.3 * exp(-age * 5.0) + 0.16 * exp(-age * 0.9) * (1.0 - u); c = base; trail = 0.0; }
   else if (kind < 6.5) { I = 1.25 * (0.85 + 0.15 * sin(age * 61.0 + seed)); c = mix(vec3(1.0, 0.92, 0.75), base, 0.25); }
   vec2 p1 = posAt(age), p0 = posAt(max(0.0, age - trail));
   vec2 d = p1 - p0; float L = length(d); vec2 dir = L > 0.01 ? d / L : vec2(0.0, 1.0); vec2 nrm = vec2(-dir.y, dir.x);
-  float hw = (kind > 3.5 && kind < 5.5) ? size : size * u_glow;
+  float hw = (kind > 3.5 && kind < 5.5) ? size : size * gk;
   float along = mix(-hw, L + hw, a_c.x * 0.5 + 0.5), across = a_c.y * hw;
   vec2 pos = p0 + dir * along + nrm * across;
   if (u_mirror > 0.5) {
     float wy = a_fx.w;
+    // (PERF-B: a reflection that lands wholly outside the water band is dropped HERE — it used to raster its whole quad only for the
+    //  fragment shader to discard every pixel)
+    float ry0 = wy + (wy - p0.y) * u_squash, ry1 = wy + (wy - p1.y) * u_squash;
+    if (min(ry0, ry1) - hw > u_band.y || max(ry0, ry1) + hw < u_band.x) { gl_Position = vec4(3.0, 3.0, 3.0, 1.0); return; }
     pos.y = wy + (wy - pos.y) * u_squash;
     pos.x += sin(pos.y * 0.8 + u_t * 2.1 + seed * 6.0) * 1.3 * clamp((pos.y - wy) / 18.0, 0.0, 2.0);
     I *= 0.34;
