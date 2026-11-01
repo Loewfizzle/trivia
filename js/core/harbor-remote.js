@@ -237,6 +237,7 @@ export const EVENTS = [
   { id: 'sign-melt', sec: 'winter', label: 'SIGN SNOW MELTING', cat: 'weather', group: 'SNOW DAYS', hint: '9b: the NEON sign\u2019s snow melting off the lit tubes ×20 (at night, with SNOW ON THE GROUND)' },
   { id: 'awning-slab', sec: 'winter', label: 'AWNING SLAB', cat: 'weather', group: 'SNOW DAYS', hint: '9b: a slab of snow slides off the speakeasy awning (needs snow on the ground: SNOW ON THE GROUND in THE WEATHER)' },
   { id: 'climate', label: 'CLIMATE FALLBACK', cat: 'weather', group: 'WEATHER FX', hint: '9b: the weather as if the live ask failed — this date + place from the climate normals (+ its snow on the ground)' },
+  { id: 'moon-cloud', label: 'MOON BEHIND A CLOUD', cat: 'weather', group: 'WEATHER FX', night: true, hint: 'WSP: a big cloud drifts back + forth across the moon (with CLOUDS): the moon blocked by a thick cloud, its silver edge + the glow through the thin parts' },
   { id: 'sundogs', label: 'SUN DOGS', cat: 'weather', group: 'WEATHER FX', hint: 'with the HIGH VEIL: the 22° halo + its two sun dogs (the rarer bonus)' },
   { id: 'beams', label: 'SKY BEAMS', cat: 'party', group: 'PARTY · ANY NIGHT', night: true, hint: 'the party’s vertical beams from the tall towers' },
   { id: 'searchlights', label: 'SEARCHLIGHTS', cat: 'lights', group: 'THE TOWERS', night: true },

@@ -59,6 +59,8 @@ function fieldOf(w, h, res, heap) {
   F.m = heap ? new Uint8Array(n) : F.t;
   return F;
 }
+/** WSP — a re-lit cloud's crossfade into its new light (ms) */
+export const CLOUD_FADE_MS = 6000;
 const ROWS = 14;                                   // rows per time slice (a job yields between them; wide sprites fewer)
 const rowsOf = pw => Math.max(2, Math.min(ROWS, Math.floor(5000 / pw)));
 
@@ -555,7 +557,7 @@ export function createClouds() {
   const perf = { ms: 0, jobMs: 0, n: 0, relit: 0, beamMs: 0, hitMs: 0, renders: 0, patches: 0 };
   let cloudWind = null;
   const windX = LK => Math.sin(((LK.windDir == null ? 250 : LK.windDir)) * Math.PI / 180);
-  const free = arr => { for (const d of arr || []) { if (d.cv) d.cv.width = 0; if (d.prev) d.prev.width = 0; d.cv = d.prev = null; d.F = null; } };
+  const free = arr => { MB.key = ''; for (const d of arr || []) { if (d.cv) d.cv.width = 0; if (d.prev) d.prev.width = 0; if (d.mix) d.mix.cv.width = 0; d.cv = d.prev = d.mix = null; d.F = null; } };
   function plan(LK, seed, motion) {
     if (old) free(old);
     old = list.length && born ? list : null; oldK = old ? 1 : 0;
@@ -605,7 +607,7 @@ export function createClouds() {
     const wx = windX(LK), wind = (cloudWind != null ? cloudWind : LK.wind) || 3;
     for (const d of arr) {
       // (the deck: a seamless tile, wrapping by its own width)
-      const x = d.kind === 'deck' ? (() => { const v = driftSpeed(wind) * wx * d.v * (motion ? tSec : 0); return ((v % d.w) + d.w) % d.w - d.w; })() : driftX(d, motion ? tSec : 0, wind, wx, W);
+      const x = d === steer.d && steer.m && steer.c ? steer.m.x - steer.c.x + 0.62 * steer.c.w * Math.sin(tSec * Math.PI * 2 / 70) : d.kind === 'deck' ? (() => { const v = driftSpeed(wind) * wx * d.v * (motion ? tSec : 0); return ((v % d.w) + d.w) % d.w - d.w; })() : driftX(d, motion ? tSec : 0, wind, wx, W);
       d.xNow = x;
       if (!d.cv || (part === 'back' ? d.s >= 0.5 : part === 'front' ? d.s < 0.5 : false)) continue;
       const by = d.y + (extra.base || 0), ty = by - d.h;
@@ -630,9 +632,106 @@ export function createClouds() {
           else c.drawImage(cv, x, ty, d.w, d.h);
         }
       };
-      if (d.prev && d.fade < 1) { draw(d.cv, k); draw(d.prev, k * (1 - d.fade)); }
+      // (WSP — THE CLOUD FLICKER, the owner: the clouds "flicker in different brightness" as they roll by. The old crossfade drew the OLD
+      //  bake OVER the new one, so the moment a fade began a cloud's semi-transparent parts (the thin edges; most of a strato / alto /
+      //  cirrus layer) got DENSER at once — a brightness pop — then eased back. Now a TRUE crossfade: the two bakes SUMMED ('lighter',
+      //  premultiplied) into the cloud's own small canvas at (1 − f) + f — colour AND alpha blend exactly — drawn as one)
+      if (d.prev && d.fade < 1 && d.cv) draw(fadeMix(d), k);
       else draw(d.cv, k);
     }
+  }
+  // ---------------------------------------------------------------- WSP — THE MOON BEHIND THE CLOUDS (the owner, Nov 1 8:29 am)
+  // "the clouds should block it": at night the heaps + the layer clouds are softer + see-through in places (their slow thinning cycle,
+  // the far ones' haze), and the moon's glow was ADDED over the whole cloud — a bright blob in its body, the moon "through" it. Now, in a
+  // small box round the moon only (a few drawImages on small canvases, re-drawn only when the moon or a cloud moves ~1/2 pt):
+  //  - THE BLOCK: the THICK clouds over the moon (heaps, strato, alto, the deck, scud; never the cirrus / the veil) drawn into the box as
+  //    they are on screen, then laid TWICE more over the city's canvas inside a soft disc round the moon: a body that was 60 % opaque is
+  //    ~94 % there (the moon gone behind it); a thin edge (20 %) becomes ~50 % (the moon a soft glow through it)
+  //  - THE GLOW THROUGH: a silvery glow round the moon with the thickened cloud CUT OUT of it: it lights only the thin parts + the sky
+  //    past the edges, never the middle of the body
+  //  - THE SILVER EDGE: the clouds' outline (the mask minus its own erosion by ~2 pt), lit silver, brightest by the moon, fading within
+  //    ~4 moon radii (the classic moon-behind-a-cloud rim). All scaled by how much of the moon is covered + its phase.
+  const thinKind = d => d.kind === 'cirrus' || !!d.veil;
+  const steer = { d: null, m: null, c: null };
+  /** a cloud's BODY in its box (pt): the centroid + the width of its thick part (the baked thickness) — where the moon should go behind */
+  function bodyOf(d) {
+    const F = d.F; let sx = 0, sy = 0, n = 0, x0 = 1e9, x1 = -1e9;
+    for (let y = 0; y < F.ph; y += 2) for (let x = 0; x < F.pw; x += 2) if (F.t[y * F.pw + x] > 150) { sx += x; sy += y; n++; if (x < x0) x0 = x; if (x > x1) x1 = x; }
+    if (!n) return { d, x: d.w / 2, y: d.h / 2, w: d.w * 0.5 };
+    return { d, x: sx / n / F.res, y: sy / n / F.res, w: (x1 - x0) / F.res };
+  }
+  const MB = { cv: null, x: null, rim: null, rx: null, ero: null, ex: null, key: '', cover: 0, n: 0 };
+  function mbCanvas(n) { const cv = document.createElement('canvas'); cv.width = cv.height = n; return [cv, ctx2d(cv)]; }
+  function moonBehind(c, m, LK, tSec, motion) {
+    const S = Math.max(40, m.r * 4.2), ds = Math.min(2, c.getTransform().a || 1), n = Math.ceil(S * 2 * ds);
+    const bx = m.x - S, by = m.y - S;
+    const hits = [];
+    for (const d of list) {
+      if (!d.cv || thinKind(d)) continue;
+      if (d.kind === 'deck') { const x0 = d.xNow; for (const ox of [x0, x0 + d.w]) if (ox < bx + 2 * S && ox + d.w > bx) hits.push([d, ox, -2 + (extra.base || 0) * 0.3, d.w, d.h, 1]); continue; }
+      const ev = evolve(d, tSec, motion), w2 = d.w * ev.sx, h2 = d.h * ev.sy, x = d.xNow - (w2 - d.w) / 2, y = d.y + (extra.base || 0) - h2;
+      if (x < bx + 2 * S && x + w2 > bx && y < by + 2 * S && y + h2 > by) hits.push([d, x, y, w2, h2, ev.a]);
+    }
+    if (!hits.length || !(lastA > 0.02)) { MB.cover = 0; return; }
+    const cover = coverAt(m.x, m.y);
+    const key = `${n}|${Math.round(m.x * 2)}|${Math.round(m.y * 2)}|${hits.map(h => `${h[0].z}:${Math.round(h[1] * 2)}:${Math.round(h[2] * 2)}:${Math.round(h[3] * 2)}:${(h[5] * 32) | 0}:${h[0].lit}:${h[0].mix ? h[0].mix.f : ''}`).join(',')}|${(lastA * 32) | 0}`;
+    if (key !== MB.key) {
+      MB.key = key;
+      if (!MB.cv || MB.n !== n) { if (MB.cv) MB.cv.width = MB.rim.width = MB.ero.width = 0; [MB.cv, MB.x] = mbCanvas(n); [MB.rim, MB.rx] = mbCanvas(Math.ceil(n / 2)); [MB.ero, MB.ex] = mbCanvas(Math.ceil(n / 2)); MB.n = n; }
+      const x = MB.x, r = MB.rx, e = MB.ex;
+      if (!x || !r || !e) return;
+      // the thick clouds as they are on the screen, in the box
+      x.setTransform(ds, 0, 0, ds, -bx * ds, -by * ds); x.globalCompositeOperation = 'source-over'; x.clearRect(bx, by, 2 * S, 2 * S);
+      for (const [d, hx, hy, hw, hh, ha] of hits) { const cv = d.prev && d.fade < 1 && d.mix ? d.mix.cv : d.cv; x.globalAlpha = lastA * ha; x.drawImage(cv, hx, hy, hw, hh); }
+      x.globalAlpha = 1; x.setTransform(1, 0, 0, 1, 0, 0);
+      // the outline: the mask minus its erosion (the mask kept only where its neighbours ~1.5 pt round are cloud too)
+      // (at HALF the box's resolution: drawn back up it comes out SOFT — a glowing lining, never a hard white line)
+      const h = Math.ceil(n / 2), k = Math.max(1, Math.round(1.2 * ds));
+      e.globalCompositeOperation = 'copy'; e.drawImage(MB.cv, 0, 0, h, h);
+      e.globalCompositeOperation = 'destination-in'; for (const [ox, oy] of [[k, 0], [-k, 0], [0, k], [0, -k]]) e.drawImage(MB.cv, ox, oy, h, h);
+      r.globalCompositeOperation = 'copy'; r.drawImage(MB.cv, 0, 0, h, h);
+      r.globalCompositeOperation = 'destination-out'; r.drawImage(MB.ero, 0, 0);
+      // the rim lit silver, brightest by the moon (a radial falloff)
+      r.globalCompositeOperation = 'source-in'; r.fillStyle = 'rgb(236,240,255)'; r.fillRect(0, 0, h, h);
+      r.globalCompositeOperation = 'destination-in';
+      const rg = r.createRadialGradient(h / 2, h / 2, m.r * ds * 0.3, h / 2, h / 2, S * ds / 2); rg.addColorStop(0, 'rgba(0,0,0,1)'); rg.addColorStop(0.4, 'rgba(0,0,0,0.7)'); rg.addColorStop(1, 'rgba(0,0,0,0)');
+      r.fillStyle = rg; r.fillRect(0, 0, h, h); r.globalCompositeOperation = 'source-over';
+      // the erosion canvas becomes THE GLOW THROUGH: a silvery glow with the thickened cloud cut out of it
+      e.globalCompositeOperation = 'copy';
+      const gg = e.createRadialGradient(h / 2, h / 2, 0, h / 2, h / 2, S * ds / 2); gg.addColorStop(0, 'rgba(214,220,246,1)'); gg.addColorStop(0.25, 'rgba(200,208,240,0.5)'); gg.addColorStop(1, 'rgba(200,208,240,0)');
+      e.fillStyle = gg; e.fillRect(0, 0, h, h);
+      e.globalCompositeOperation = 'destination-out'; for (let i = 0; i < 3; i++) e.drawImage(MB.cv, 0, 0, h, h);
+      e.globalCompositeOperation = 'source-over';
+      // the BLOCK: the clouds themselves, faded out softly past ~1.5 moon radii (laid over the city's canvas twice)
+      x.globalCompositeOperation = 'destination-in';
+      const bg = x.createRadialGradient(n / 2, n / 2, m.r * ds * 1.5, n / 2, n / 2, Math.min(S, m.r * 3.2) * ds); bg.addColorStop(0, 'rgba(0,0,0,1)'); bg.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = bg; x.fillRect(0, 0, n, n); x.globalCompositeOperation = 'source-over';
+    }
+    MB.cover = cover;
+    const ill = LK.moon && LK.moon.illum != null ? LK.moon.illum : 0.6, dark = clamp01((LK.w.night + LK.w.late - 0.3) / 0.4);
+    const near = smooth(0.02, 0.4, cover);                // (the moon partly behind: the rim + the glow come up as a cloud reaches it)
+    c.save();
+    c.drawImage(MB.cv, bx, by, 2 * S, 2 * S); c.drawImage(MB.cv, bx, by, 2 * S, 2 * S);
+    c.globalCompositeOperation = 'lighter';
+    { const ra = dark * (0.3 + 0.7 * ill) * (0.3 + 0.7 * near) * 1.35; c.globalAlpha = Math.min(1, ra); c.drawImage(MB.rim, bx, by, 2 * S, 2 * S); if (ra > 1) { c.globalAlpha = Math.min(1, ra - 1); c.drawImage(MB.rim, bx, by, 2 * S, 2 * S); } }
+    c.globalAlpha = dark * (0.3 + 0.7 * ill) * near * 0.55; c.drawImage(MB.ero, bx, by, 2 * S, 2 * S);
+    c.restore();
+  }
+  /** the true crossfade of a re-lit cloud: prev × (1 − fade) + cv × fade, summed (premultiplied) into its own canvas (made once per fade,
+   *  freed at its end — a few clouds at a time) */
+  function fadeMix(d) {
+    const w = d.cv.width, h = d.cv.height;
+    if (!d.mix || d.mix.cv.width !== w || d.mix.cv.height !== h) { if (d.mix) d.mix.cv.width = 0; const cv = document.createElement('canvas'); cv.width = w; cv.height = h; d.mix = { cv, x: ctx2d(cv), f: -1 }; }
+    const m = d.mix;
+    if (!m.x) return d.cv;
+    const f = Math.round(d.fade * 64) / 64;      // (64 steps over the fade — the mix re-drawn only when it moves one)
+    if (f !== m.f) {
+      m.f = f; const x = m.x;
+      x.globalCompositeOperation = 'copy'; x.globalAlpha = 1 - f; x.drawImage(d.prev, 0, 0, w, h);
+      x.globalCompositeOperation = 'lighter'; x.globalAlpha = f; x.drawImage(d.cv, 0, 0);
+      x.globalCompositeOperation = 'source-over'; x.globalAlpha = 1;
+    }
+    return m.cv;
   }
   function evolve(d, t, motion) {
     if (!motion || d.kind === 'deck' || d.veil) return { sx: 1, sy: 1, a: 1 };
@@ -643,10 +742,11 @@ export function createClouds() {
     return { sx, sy, a: floor + (1 - floor) * smooth(0.05, 0.6, life) };
   }
   /** how much cloud covers a point (0..1, from the baked shapes) — the sun glows through a thin edge (district/sun.js#through) */
-  function coverAt(px, py) {
+  function coverAt(px, py, thinOnly) {
     let clear = 1;
     for (const d of list) {
       if (!d.F || !d.cv) continue;
+      if (thinOnly && !thinKind(d)) continue;
       let x = d.xNow;
       const ty = d.kind === 'deck' ? -2 : d.y + (extra.base || 0) - d.h;
       if (d.kind === 'deck') x = x > px ? x - d.w : x + d.w <= px ? x + d.w : x;
@@ -811,9 +911,9 @@ export function createClouds() {
     /** SP: tonight's cirrostratus veil 0..1 (the moon's 22° halo lives under it) */
     veil: () => (mix && list.length ? mix.veil || 0 : 0),
     debug: () => ({
-      clouds: list.length, kinds: list.map(d => d.kind), deck: list.some(d => d.kind === 'deck'), mix: mix ? Object.fromEntries(Object.entries(mix).map(([k, v]) => [k, typeof v === 'number' ? +v.toFixed(2) : v])) : null,
+      clouds: list.length, kinds: list.map(d => d.kind), moonBehind: { cover: +MB.cover.toFixed(2), steer: steer.d ? { kind: steer.d.kind, x: Math.round(steer.d.xNow), y: Math.round(steer.d.y), w: Math.round(steer.d.w), h: Math.round(steer.d.h) } : null, moon: steer.m ? { x: Math.round(steer.m.x), y: Math.round(steer.m.y), r: Math.round(steer.m.r) } : null }, deck: list.some(d => d.kind === 'deck'), mix: mix ? Object.fromEntries(Object.entries(mix).map(([k, v]) => [k, typeof v === 'number' ? +v.toFixed(2) : v])) : null,
       lit: gKey, pending: jobs.length, born: !!born, ms: +perf.ms.toFixed(3), jobMs: +perf.jobMs.toFixed(3), relit: perf.relit, frames: perf.n, beamMs: +perf.beamMs.toFixed(2), hitMs: +perf.hitMs.toFixed(2), renders: perf.renders, patchN: perf.patches,
-      mb: +list.reduce((s, d) => s + (d.cv ? d.cv.width * d.cv.height * 4 : 0) + (d.prev ? d.prev.width * d.prev.height * 4 : 0) + (d.F ? d.F.pw * d.F.ph * (d.F.m !== d.F.t ? 7 : 6) : 0), 0).toFixed(0) / 1e6,
+      mb: +list.reduce((s, d) => s + (d.cv ? d.cv.width * d.cv.height * 4 : 0) + (d.prev ? d.prev.width * d.prev.height * 4 : 0) + (d.mix ? d.mix.cv.width * d.mix.cv.height * 4 : 0) + (d.F ? d.F.pw * d.F.ph * (d.F.m !== d.F.t ? 7 : 6) : 0), 0).toFixed(0) / 1e6,
       at: list.map(d => ({ k: d.kind, x: Math.round(d.xNow), y: Math.round(d.y), w: Math.round(d.w), h: Math.round(d.h), s: +d.s.toFixed(2) })),
     }),
     destroy() { free(list); free(old); list = []; old = null; jobs = []; for (const g of glows.values()) g.width = 0; glows.clear(); for (const o of patches.values()) if (o.cv) o.cv.width = 0; patches.clear(); for (const cv of pool) cv.width = 0; pool.length = 0; if (veilTile) { veilTile.cv.width = 0; veilTile = null; } if (veilBake) { veilBake.cv.width = 0; veilBake = null; } },
@@ -930,6 +1030,14 @@ export function createClouds() {
       windSgn = windX(LK) < 0 ? -1 : 1;
       if (seed !== planKey) { planKey = seed; t0Clock = fs.now; e0 = epoch; G = null; plan(LK, seed, fs.motion); }
       if (!list.length && !old) return;
+      // (WSP — &force=moon-cloud, the panel's MOON BEHIND A CLOUD: the biggest heap / patch steered back + forth across the moon, its body
+      //  at the moon's height — the preview of the moon behind a thick cloud; let go, it returns to its own place)
+      if (fs.force && fs.force.has('moon-cloud') && fs.moonAt && list.length) {
+        if (!steer.d || !list.includes(steer.d)) steer.d = list.filter(d => d.kind !== 'deck' && !thinKind(d)).sort((p, q) => (q.kind === 'cumulus') - (p.kind === 'cumulus') || q.w * q.h - p.w * p.h)[0] || null;
+        if (steer.d && steer.d.F && (!steer.c || steer.c.d !== steer.d)) steer.c = bodyOf(steer.d);
+        if (steer.d && steer.c) { if (steer.d.yOrig == null) steer.d.yOrig = steer.d.y; steer.d.y = fs.moonAt.y + (steer.d.h - steer.c.y) - (extra.base || 0); }
+        steer.m = fs.moonAt;
+      } else if (steer.d) { if (steer.d.yOrig != null) steer.d.y = steer.d.yOrig; steer.d = null; steer.m = null; steer.c = null; }
       // THE LIGHT for the hour (re-shades only when it moves a step)
       const stops = harborSky(fs.P, LK), hzC = stops ? stops[2].slice(0, 3).map((v, i) => (v + stops[3][i]) / 2) : null;
       const party = fs.party && fs.party.on > 0.3 ? fs.party.on : 0;
@@ -938,14 +1046,16 @@ export function createClouds() {
       // a few clouds a frame: is its own light still its bake's? (it drifts past the sun) — re-light in the background
       if (born && !(G.src && G.src.moon)) for (let k = 0; k < 3 && list.length; k++) {
         const d = list[rr++ % list.length];
-        if (!d.cv || d.queued) continue;
+        if (!d.cv || d.queued || d.prev) continue;      // (WSP: never a new light while the last one is still fading in — it would jump)
         const key = cloudLit(G, d, d.xNow > -1e8 ? d.xNow : d.x0, box).key;
         if (key !== d.lit) { d.queued = true; perf.relit++; jobs.push({ d, gen: build(d, true) }); }
       }
       { const j0 = performance.now(); run(born ? 1.2 : 10); perf.jobMs = perf.jobMs * 0.97 + (performance.now() - j0) * 0.03; }
       if (!born && !jobs.length) born = performance.now();
       const now = performance.now(), dt = Math.min(100, fs.dt || 16);
-      for (const d of list) if (d.prev && d.fade < 1) { d.fade = Math.min(1, d.fade + dt / 900); if (d.fade >= 1) { d.prev.width = 0; d.prev = null; } }
+      // (WSP — the light changes SLOWLY: a re-lit cloud eases into its new light over CLOUD_FADE_MS (was 0.9 s — each step of the light a
+      //  visible change): a drifting cloud re-lights every ~30 s, so its light glides from one bake to the next, never steps)
+      for (const d of list) if (d.prev && d.fade < 1) { d.fade = Math.min(1, d.fade + dt / CLOUD_FADE_MS); if (d.fade >= 1) { d.prev.width = 0; d.prev = null; if (d.mix) { d.mix.cv.width = 0; d.mix = null; } } }
       const appear = born ? smooth(0, appearMs, now - born) : 0;
       // (the time on the cloud field: seconds into this 6-hour block on the city's clock — every phone the same sky)
       const tSec = e0 + ((fs.now - t0Clock) / 1000);
@@ -957,10 +1067,12 @@ export function createClouds() {
       lastT = tSec;
       c.globalAlpha = 1;
       lastA = appear;
-      // the moon glowing through a cloud in front of it
+      // the moon glowing through a cloud in front of it — WSP: THICK clouds BLOCK it (moonBehind: the soft local thickening, the glow only
+      // through the thin parts + past the edges, the SILVER EDGE); the old halo stays for the THIN ones (cirrus, the veil) only
       const m = fs.moonAt;
       if (m && (LK.w.night + LK.w.late) > 0.3) {
-        const over = coverAt(m.x, m.y);
+        moonBehind(c, m, LK, tSec, fs.motion);
+        const over = coverAt(m.x, m.y, true);
         if (over > 0.05) { const g = c.createRadialGradient(m.x, m.y, 0, m.x, m.y, m.r * 5); g.addColorStop(0, `rgba(200,205,235,${(0.3 * over * (LK.moon.illum || 0.5)).toFixed(3)})`); g.addColorStop(1, 'rgba(200,205,235,0)'); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(m.x - m.r * 5, m.y - m.r * 5, m.r * 10, m.r * 10); c.globalCompositeOperation = 'source-over'; }
       }
   }
