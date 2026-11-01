@@ -142,6 +142,44 @@ await H.run(async () => {
   const newTry = await p4.evaluate(k => import('/js/profile/me.js').then(m => m.restoreKey(k)).then(r => r.pid, e => e.code), fresh);
   ok(newTry === me0.pid, 'the new key works');
 
+  // ---- 7b. PERF-A — THE KEY ON THE DEVICE IS NEVER OVERWRITTEN (Grok 1.3): a lost guest login (a new anonymous uid) with ALICE's key +
+  // name still on the device → ensure makes a NEW profile, but the device KEEPS her key + its "saved" note, the new key waits aside, the
+  // membership card offers "THIS DEVICE ALREADY HAD A KEY — RESTORE IT?" and RESTORE IT brings ALICE back
+  const p5 = await openPlayer(5);
+  await p5.evaluate((k, me) => { localStorage.setItem('na:f5:pkey', JSON.stringify(k)); localStorage.setItem('na:f5:pnotes', JSON.stringify({ saved: true, games: 4 }));
+    localStorage.setItem('na:f5:me', JSON.stringify({ uid: 'a-lost-guest-login', pid: me.pid, profile: me.profile, at: 1 })); localStorage.setItem('na:f5:profile', JSON.stringify({ name: 'ALICE', color: 'magenta', avatar: 'bolt' })); }, fresh, me0);
+  await p5.reload();
+  await p5.waitForFunction(() => !!JSON.parse(localStorage.getItem('na:f5:pnotes') || '{}').heldNew, { timeout: 25000 });
+  { const kept = JSON.parse(await p5.evaluate(() => localStorage.getItem('na:f5:pkey'))), n5 = await p5.evaluate(() => JSON.parse(localStorage.getItem('na:f5:pnotes')));
+    ok(kept === fresh && n5.saved === true && n5.heldNew && n5.heldNew !== fresh, `THE KEY KEPT: a new profile for a lost login never overwrites the device's key (kept ${kept === fresh}, "saved" ${n5.saved}, the new key aside ${!!n5.heldNew})`); }
+  await p5.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
+  await p5.waitForSelector('.pf-note.is-offer .btn-primary', { timeout: 15000 });
+  ok(/ALREADY HAD A KEY/.test(await p5.$eval('.pf-note.is-offer', e => e.textContent)), 'the membership card offers the restore');
+  await shotAll(p5, 'pf-06b-key-offer');
+  await p5.click('.pf-note.is-offer .btn-primary');
+  await p5.waitForFunction(pid => { const m = JSON.parse(localStorage.getItem('na:f5:me') || 'null'); return m && m.pid === pid; }, { timeout: 20000 }, me0.pid);
+  { const n5 = await p5.evaluate(() => JSON.parse(localStorage.getItem('na:f5:pnotes')));
+    ok(!n5.heldNew && !(await p5.$('.pf-note.is-offer')), 'RESTORE IT: ALICE is back on this device, the offer gone'); }
+  // ---- 7c. PERF-A — THE SECOND TAB (Grok 5.4): the same player opened again → the NEW tab yields with a banner that stays ("ALREADY OPEN IN
+  // ANOTHER TAB — USE THAT ONE", never ?slot=2), its host loop stopped; USE THIS TAB swaps them; closing the other tab frees this one
+  const p6 = await openPlayer(5);
+  await p6.waitForSelector('.dup-tab', { timeout: 15000 });
+  // (a phone is slot 1: "ALREADY OPEN IN ANOTHER TAB — USE THAT ONE"; this test's slot f5 names itself: "SLOT f5 IS ALREADY OPEN …")
+  ok(/ALREADY OPEN IN ANOTHER TAB/.test(await p6.$eval('.dup-tab', e => e.textContent)) && !/slot=2/i.test(await p6.$eval('.dup-tab', e => e.textContent)), `THE SECOND TAB says so: "${(await p6.$eval('.dup-tab span', e => e.textContent))}" (no ?slot=2)`);
+  ok((await p6.evaluate(() => import('/js/store.js').then(m => !!m.state.dupTab))) && !(await p5.$('.dup-tab')), 'the newer tab yields (its host loop idle); the first tab stays the player');
+  await p6.click('.dup-tab .btn');
+  await p5.waitForSelector('.dup-tab', { timeout: 15000 });
+  await p6.waitForFunction(() => !document.querySelector('.dup-tab'), { timeout: 15000 });
+  ok(true, 'USE THIS TAB: the tabs swap (the other one yields now)');
+  await p6.close();
+  await p5.waitForFunction(() => !document.querySelector('.dup-tab'), { timeout: 20000 });
+  ok(true, 'the other tab closed: this one is the player again, the banner gone');
+  // ---- 7d. PERF-A — THE EMPTY CARD SAYS WHY (the Oct 31 scare): no key + no profile on this address → one line, never a card that looks wiped
+  const p7 = await openPlayer(7);
+  await p7.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
+  await p7.waitForSelector('.pf-note', { timeout: 15000 });
+  ok(/Nothing saved on this address yet .*wasn’t deleted/.test(await p7.$eval('.pf-note', e => e.textContent)), `THE EMPTY CARD SAYS WHY: "${await p7.$eval('.pf-note', e => e.textContent)}"`);
+
   // ---- 8. THE BOARD in the app (BNAME: the floor, nicknames, your real name, REPORT), and the opt-out
   const openBoard = async () => {
     await p3.evaluate(() => import('/js/profile/api.js').then(m => m.clearBoardCache()));

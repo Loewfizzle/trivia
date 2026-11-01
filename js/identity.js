@@ -76,15 +76,44 @@ export function setUrlRoom(code) {
   history.replaceState(null, '', location.pathname + (qs ? `?${qs}` : ''));
 }
 
-// Warn when the same slot is open in two tabs (they'd be the same player).
-export function watchDuplicateTabs(onDuplicate) {
-  if (!('BroadcastChannel' in window)) return;
-  const ch = new BroadcastChannel(`na-slot-${slot}`);
+// THE SECOND TAB (PERF-A — Grok 5.4 + FR5 E1: the old toast told a PHONE to add ?slot=2 — an empty login — and both tabs ran the host
+// loop): the same slot open in two tabs → ONE stays the player, the other YIELDS (onChange(true): a banner "ALREADY OPEN IN ANOTHER TAB —
+// USE THAT ONE" that stays, its host loop stopped) until the other tab closes, freezes or the player taps USE THIS TAB (take()).
+// The handshake (BroadcastChannel na-slot-<slot>): a tab says hello (born, active); an ACTIVE tab answers here; between two actives the
+// OLDER wins (born, then id); a yielded tab re-asks every 3 s and takes over once nobody has answered for 9 s (the other tab closed, or
+// is frozen in the background — it can't be used then anyway); a closing tab says bye. No lock, nothing stored: a refresh starts clean.
+export function watchDuplicateTabs(onChange) {
+  const none = { take() {}, yielded: () => false };
+  if (!('BroadcastChannel' in window)) return none;
+  let ch; try { ch = new BroadcastChannel(`na-slot-${slot}`); } catch { return none; }
   const id = Math.random().toString(36).slice(2);
+  let born = Date.now(), yielded = false, lastHere = 0;
+  const older = m => m.born < born || (m.born === born && m.id < id);
+  const set = y => { if (y === yielded) return; yielded = y; try { onChange(y); } catch { /* fine */ } };
+  const probe = () => { try { ch.postMessage({ t: 'hello', id, born, active: !yielded }); } catch { /* closed */ } };
   ch.onmessage = e => {
-    if (e.data.id === id) return;
-    if (e.data.t === 'hello') ch.postMessage({ t: 'here', id });
-    if (e.data.t === 'here' || e.data.t === 'hello') onDuplicate();
+    const m = e.data || {};
+    if (!m.id || m.id === id) return;
+    if (m.t === 'hello') {
+      if (yielded) return;
+      ch.postMessage({ t: 'here', id, born });
+      if (m.active && older(m)) set(true);                 // (two actives: the younger yields)
+    } else if (m.t === 'here') {
+      lastHere = Date.now();
+      if (!yielded && older(m)) set(true);
+    } else if (m.t === 'take') {
+      born = Date.now(); lastHere = Date.now(); set(true);  // (the player picked the other tab)
+    } else if (m.t === 'bye') { lastHere = 0; if (yielded) setTimeout(probe, 120 + Math.random() * 300); }
   };
-  ch.postMessage({ t: 'hello', id });
+  probe();
+  setInterval(() => {
+    if (yielded) { if (Date.now() - lastHere > 9000) { set(false); probe(); } else probe(); }
+    else probe();                                            // (an active tab checks now and then: two actives settle on one)
+  }, 3000);
+  window.addEventListener('pagehide', () => { try { ch.postMessage({ t: 'bye', id }); } catch { /* fine */ } });
+  return {
+    /** USE THIS TAB: this tab becomes the player, every other tab of the slot yields */
+    take() { born = -Date.now(); set(false); try { ch.postMessage({ t: 'take', id }); } catch { /* fine */ } },
+    yielded: () => yielded,
+  };
 }

@@ -27,8 +27,23 @@ export const notes = () => loadNotes();
 export function setNotes(patch) { const n = { ...loadNotes(), ...patch }; saveNotes(n); return n; }
 
 function store(pid, profile) {
+  const was = loadMe();
   saveMe({ uid: state.uid, pid, profile, at: Date.now() });
   setState({ me: { pid, profile } });
+  // (PERF-A: the admin check re-asks when this device's profile changes — a key restore, a first link — never a stale "no")
+  if (!was || was.pid !== pid || was.uid !== state.uid) { try { window.dispatchEvent(new CustomEvent('nd:me', { detail: { pid } })); } catch { /* fine */ } }
+}
+/** PERF-A — THE KEY ON THIS DEVICE IS NEVER OVERWRITTEN (Grok 1.3, verified at this file's ensure: a lost guest login + a typed name made
+ *  a NEW profile and its key replaced the old one on the device): a held offer → { key (the device's old key), fresh (the new profile's
+ *  key, kept aside) } or null. The membership card asks "THIS DEVICE ALREADY HAD A KEY — RESTORE IT?" */
+export const keyOffer = () => { const n = loadNotes(); return n.heldNew && loadKey() ? { key: loadKey(), fresh: n.heldNew } : null; };
+/** KEEP THE NEW ONE: the new profile's key becomes this device's (the old key stays in the notes — never destroyed) */
+export function keepNewKey() {
+  const n = loadNotes(); if (!n.heldNew) return;
+  const old = loadKey();
+  saveKey(n.heldNew);
+  saveNotes({ ...n, heldNew: null, saved: false, oldKeys: [...(n.oldKeys || []), old].filter(Boolean).slice(-3) });
+  setState({ keyOffer: null });
 }
 
 /** Creates / updates this device's profile from the local name, avatar and colour. Never throws. */
@@ -42,7 +57,11 @@ export function syncMe() {
     try {
       await firebaseReady;
       const r = await api('profile', { action: 'ensure', name: p.name, avatar: p.avatar, color: p.color });
-      if (r.key) { saveKey(r.key); setNotes({ saved: false }); }
+      if (r.key) {
+        // (a NEW profile while a key is already on this device: keep the device's key + its "saved" note; the new key waits aside)
+        if (loadKey() && normalizeKey(loadKey()) !== normalizeKey(r.key)) { setNotes({ heldNew: r.key }); setState({ keyOffer: keyOffer() }); }
+        else { saveKey(r.key); setNotes({ saved: false }); }
+      }
       store(r.pid, r.profile);
       if (r.rename && r.rename.blocked && !sessionStorage.getItem('pf:renote')) {
         try { sessionStorage.setItem('pf:renote', '1'); } catch { /* fine */ }
@@ -66,12 +85,20 @@ async function linkRoomSeat() {
 }
 
 /** Links this device to the profile a key belongs to. Throws ApiFail with a readable message. */
-export async function restoreKey(input) {
+export async function restoreKey(input, { onRetry } = {}) {
   const raw = normalizeKey(input);
   if (!raw) throw new ApiFail(400, 'bad_key', 'That doesn’t look like a profile key — it reads NEON-XXXX-XXXX-XXXX.');
-  const r = await api('profile', { action: 'restore', key: raw });
+  // (PERF-A — FR5 E5 / Grok 2.1: one 9-s try met the server's cold start — "COULDN'T REACH THE SERVER" twice. A network failure / a
+  //  timeout (status 0) retries up to 3× with a short backoff + a longer wait; a server that ANSWERED (a bad key, a limit) is final)
+  let r = null;
+  for (let i = 0; ; i++) {
+    try { r = await api('profile', { action: 'restore', key: raw }, { timeout: i ? 15000 : 9000 }); break; }
+    catch (e) { if (!(e instanceof ApiFail) || e.status !== 0 || i >= 3) throw e; if (onRetry) onRetry(i + 1); await new Promise(res => setTimeout(res, 900 * (i + 1))); }
+  }
+  const n0 = loadNotes();
   saveKey(formatKey(raw));
-  setNotes({ saved: true });
+  saveNotes({ ...n0, saved: true, heldNew: null });
+  setState({ keyOffer: null });
   store(r.pid, r.profile);
   // the room name / avatar / colour follow the restored profile
   const local = loadProfile() || {};
@@ -147,4 +174,5 @@ export function watchProfile() {
   window.addEventListener('storage', e => { if (e.key && /:profile$/.test(e.key)) syncMe(); });
   const m = loadMe();
   if (m && m.uid && state.uid && m.uid === state.uid) setState({ me: { pid: m.pid, profile: m.profile } });
+  setState({ keyOffer: keyOffer() });
 }

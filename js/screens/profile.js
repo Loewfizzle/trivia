@@ -6,15 +6,15 @@ import { h, reducedMotion } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
 import { emblem, RANK_COLORS } from '../ui/emblems.js';
 import { toast } from '../ui/toast.js';
-import { setState } from '../store.js';
-import { loadProfile, loadMe } from '../identity.js';
+import { setState, state } from '../store.js';
+import { loadProfile, loadMe, loadKey } from '../identity.js';
 import { GAMES, colorHex } from '../config.js';
 import { RANKS, progress, step, streakPct, weeklyGoal, goalProgress, GOAL_XP, mastery, FINISHES, GLOWS, worn, isUnlocked, stepNameAt } from '../core/ranks.js';
 import { BOARD_GAMES } from '../core/boards.js';
 import { dayKey, weekKey, weekEndsAt } from '../core/week.js';
 import { fmtTag } from '../core/names.js';
 import { careerBoards, recordBoards, boardDef, fmtValue, MIN_WR_GAMES, winRate } from '../core/boards.js';
-import { fetchMe, myRanks, myKey, regenKey, restoreKey, setShown, setNotes, notes, setStyle } from '../profile/me.js';
+import { fetchMe, myRanks, myKey, regenKey, restoreKey, setShown, setNotes, notes, setStyle, keyOffer, keepNewKey } from '../profile/me.js';
 import { GAME_LIGHT } from '../board/view.js';
 import { boardSfx } from '../board/audio.js';
 import { sfx } from '../audio/sfx.js';
@@ -219,12 +219,14 @@ export function createView({ onBack = null, overlay = false } = {}) {
     els.show = h('input.pf-switch-in', { type: 'checkbox', role: 'switch', checked: true, onchange: onShow });
     els.restore = h('div.pf-restore');
     els.foot = h('div.pf-foot');
+    els.why = h('div.pf-why-slot');
     el.append(
       h('header.bar',
         h('button.icon-btn', { type: 'button', 'aria-label': 'Back', onclick: back }, '‹'),
         h('div.bar-title', 'MEMBERSHIP')),
       h('div.pf-scroll',
         els.card,
+        els.why,
         overlay ? null : h('div.pf-actions',
           h('button.btn.btn-ghost', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'edit' }) }, h('span', 'EDIT PROFILE')),
           h('button.btn.btn-ghost', { type: 'button', onclick: () => setState({ view: 'board' }) }, h('span', 'THE BOARD'))),
@@ -245,9 +247,53 @@ export function createView({ onBack = null, overlay = false } = {}) {
   function back() { if (onBack) { onBack(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); }
 
   function paintLocal() {
-    const m = loadMe();
+    // (PERF-A — FR5 E1: a cached profile made for ANOTHER login is never painted as the member)
+    const m0 = loadMe(), m = m0 && m0.uid === state.uid ? m0 : null;
     els.card.replaceChildren(memberCard(m && m.profile, loadProfile() || {}, m && m.profile ? m.profile.x : 0));
     els.games.replaceChildren(h('div.pf-loading', 'Loading your record…'));
+    paintWhy(m0);
+  }
+  /** PERF-A — THE CARD SAYS WHY (the Oct 31 scare: a blank card that looked like a wiped account): the key offer (a new profile was made
+   *  while this device held a key), a sign-in that changed, or nothing saved on this ADDRESS (another origin is another storage) */
+  function paintWhy(m0) {
+    const off = keyOffer();
+    if (off) {
+      const go = h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => doRestore(off.key, go) }, h('span', 'RESTORE IT'));
+      els.why.replaceChildren(h('div.pf-note.is-offer',
+        h('b', 'THIS DEVICE ALREADY HAD A KEY — RESTORE IT?'),
+        h('p', 'A new profile was made on this device, but the key it already had is kept. Restore it to get that profile + its stats back.'),
+        go,
+        h('button.pf-link', { type: 'button', onclick: () => { keepNewKey(); toast('KEPT THE NEW PROFILE — THE OLD KEY STILL WORKS IF YOU ENTER IT', 'info', 5200); els.key.replaceWith(els.key = keyCard()); paintWhy(loadMe()); } }, 'No — keep the new profile')));
+      return;
+    }
+    if (m0 && m0.uid !== state.uid && loadKey()) {
+      const go = h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => doRestore(loadKey(), go) }, h('span', 'RESTORE WITH YOUR KEY'));
+      els.why.replaceChildren(h('div.pf-note', h('b', 'THIS DEVICE’S SIGN-IN CHANGED'), h('p', 'Your key is still here — restore it to bring your profile back.'), go));
+      return;
+    }
+    if (!m0 && !loadKey()) {
+      els.why.replaceChildren(h('div.pf-note', h('p', `Nothing saved on this address yet (${location.host}) — if you have a key, enter it below. Your profile wasn’t deleted.`)));
+      return;
+    }
+    els.why.replaceChildren();
+  }
+  async function doRestore(key, btn) {
+    if (btn) btn.classList.add('is-busy');
+    try {
+      const r = await restoreKey(key, { onRetry: () => toast('WAKING THE SERVER — TRYING AGAIN', 'info', 2600) });
+      toast(`WELCOME BACK, ${r.profile.n.toUpperCase()}`, 'ok');
+      sfx('join');
+      renderRestore(false);
+      els.key.replaceWith(els.key = keyCard());
+      paintLocal();
+      load();
+      return true;
+    } catch (e) {
+      toast(e.message || 'THAT KEY DIDN’T WORK', 'err');
+      // (the invalid sound only when the server REFUSED the key — never for a network failure)
+      if (e && e.status >= 400 && e.status < 500) sfx('invalid');
+      return false;
+    } finally { if (btn) btn.classList.remove('is-busy'); }
   }
 
   async function load() {
@@ -255,6 +301,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       data = await fetchMe();
       if (destroyed) return;
       els.card.replaceChildren(memberCard(data.profile, loadProfile() || {}, data.stats.xp));
+      paintWhy(loadMe());
       paintProgress();
       els.show.checked = !!data.priv.shown;
       els.show.disabled = !!data.priv.banned;
@@ -377,18 +424,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       return;
     }
     const input = h('input.input.pf-key-in', { type: 'text', placeholder: 'NEON-XXXX-XXXX-XXXX', autocapitalize: 'characters', autocomplete: 'off', spellcheck: false, 'aria-label': 'Profile key', maxLength: 24 });
-    const go = h('button.btn.btn-primary.btn-block', { type: 'button', onclick: async () => {
-      go.classList.add('is-busy');
-      try {
-        const r = await restoreKey(input.value);
-        toast(`WELCOME BACK, ${r.profile.n.toUpperCase()}`, 'ok');
-        sfx('join');
-        renderRestore(false);
-        els.key.replaceWith(els.key = keyCard());
-        paintLocal();
-        load();
-      } catch (e) { toast(e.message || 'THAT KEY DIDN’T WORK', 'err'); sfx('invalid'); } finally { go.classList.remove('is-busy'); }
-    } }, h('span', 'RESTORE MY PROFILE'));
+    const go = h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => doRestore(input.value, go) }, h('span', 'RESTORE MY PROFILE'));
     els.restore.replaceChildren(h('div.pf-restore-box',
       h('p.pf-why', 'This device takes over the profile the key belongs to — with all its stats. The profile this device has now is replaced (if it never finished a match, it’s removed).'),
       input, go,

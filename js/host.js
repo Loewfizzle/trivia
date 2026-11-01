@@ -32,6 +32,8 @@ export function startHostLoop() {
 }
 
 function tick() {
+  // (PERF-A — Grok 5.4: the same player open in two tabs ran two host loops; the tab that yields (identity.js#watchDuplicateTabs) is idle)
+  if (state.dupTab) return;
   if (!state.code || !state.meta || !state.connected || !state.uid) return;
   const now = serverNow();
   withChat(m => m.hostTick());

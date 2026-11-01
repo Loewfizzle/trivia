@@ -261,9 +261,17 @@ async function boot() {
   });
   // iOS: block pinch-zoom gestures (viewport meta alone is ignored by Safari).
   document.addEventListener('gesturestart', e => e.preventDefault());
-  watchDuplicateTabs(() => toast(slot === '1'
-    ? 'ALREADY OPEN IN ANOTHER TAB — ADD ?slot=2 TO THE URL TO TEST A SECOND PLAYER'
-    : `SLOT ${slot} IS ALREADY OPEN IN ANOTHER TAB`, 'warn', 6000));
+  // THE SECOND TAB (PERF-A): never "add ?slot=2" (an empty login on a phone) — a banner that stays while the other tab is the player,
+  // this tab's host loop stopped (state.dupTab); USE THIS TAB swaps them
+  { let bar = null; const tabs = watchDuplicateTabs(y => {
+    setState({ dupTab: y });
+    if (!y) { if (bar) { bar.remove(); bar = null; } return; }
+    if (bar) return;
+    bar = h('div.dup-tab', { role: 'status' },
+      h('span', slot === '1' ? 'ALREADY OPEN IN ANOTHER TAB — USE THAT ONE' : `SLOT ${slot} IS ALREADY OPEN IN ANOTHER TAB`),
+      h('button.btn.btn-sm.btn-ghost', { type: 'button', onclick: () => tabs.take() }, h('span', 'USE THIS TAB')));
+    document.body.prepend(bar);   // (before the toasts' box: they step down under it — components.css)
+  }); }
 
   setState({ invite: inviteCode() });
   render(state);

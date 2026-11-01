@@ -24,12 +24,12 @@ async function fetchJson(url, opts = {}) {
   return body;
 }
 
-/** Authenticated POST to /api/<name>. */
-export async function api(name, body) {
+/** Authenticated POST to /api/<name> (opts.timeout: ms — the restore's retries wait longer). */
+export async function api(name, body, opts = {}) {
   await firebaseReady;
   const token = await idToken();
   return fetchJson(`/api/${name}`, {
-    method: 'POST',
+    method: 'POST', timeout: opts.timeout,
     headers: { 'content-type': 'application/json', authorization: `Bearer ${token}` },
     body: JSON.stringify(body || {}),
   });

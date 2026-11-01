@@ -212,16 +212,27 @@ export function createRemote({ scene, api = apiCall }) {
   }
 
   // ---------------------------------------------------------------- the owner's pill (admins only)
+  // (PERF-A — FR5 E2 + Grok: a "no" was pinned 6 h in the tab — asked before this login was linked to its profile, it stayed after a key
+  //  restore. Now ONLY a yes with a real profile id is kept; a whoami with no profile yet waits for this device's profile sync + asks
+  //  once more; every profile change (me.js 'nd:me': a restore, a first link) asks again)
   async function checkAdmin() {
     if (TEST_PANEL) return true;
     const c = ss.get(ADMIN_KEY);
-    if (c && c.at > Date.now() - 6 * 3600e3) return !!c.admin;
+    if (c && c.admin && c.pid && c.at > Date.now() - 6 * 3600e3) return true;
+    if (c && !c.admin) ss.set(ADMIN_KEY, null);   // (an old pinned "no" from before PERF-A)
     if (!api) return false;
     await firebaseReady;
-    try { const r = await api('admin', { action: 'whoami' }); ss.set(ADMIN_KEY, { admin: !!r.admin, at: Date.now() }); return !!r.admin; } catch { return false; }
+    const ask = async () => { const r = await api('admin', { action: 'whoami' }); if (r.admin && r.pid) ss.set(ADMIN_KEY, { admin: true, pid: r.pid, at: Date.now() }); return r; };
+    try {
+      let r = await ask();
+      if (!r.pid) { try { const { syncMe } = await import('../../profile/me.js'); await syncMe(); } catch { /* fine */ } r = await ask(); }
+      return !!r.admin;
+    } catch { return false; }
   }
-  checkAdmin().then(a => {
-    if (destroyed || !a) return false;
+  const onMe = () => { if (destroyed || admin) return; checkAdmin().then(a => { if (a && !destroyed && !admin) adminOn(); }).catch(() => {}); };
+  window.addEventListener('nd:me', onMe);
+  const adminOn = () => Promise.resolve(true).then(() => {
+    if (destroyed) return false;
     admin = true;
     firebaseReady.then(() => { if (!destroyed) listenLive(); }).catch(() => {});
     if (!cssReady) cssReady = new Promise(res => { const l = h('link', { rel: 'stylesheet', href: '/css/harbor-remote.css', 'data-hr': '1' }); const done = () => res(true); l.onload = l.onerror = done; setTimeout(done, 3000); document.head.append(l); });
@@ -236,6 +247,7 @@ export function createRemote({ scene, api = apiCall }) {
     if (liveNext && !cd) countdown('all', liveNext.startAt, R.describe(liveNext.state));
     paintChip(); paintCd();
   });
+  checkAdmin().then(a => { if (a && !destroyed && !admin) adminOn(); }).catch(() => {});
   const effective = () => (!R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : '');
   /** "10/27 22:30" (the state's clock) or what it forces, short */
   const nowWords = st => (st && st.when ? `${+st.when.slice(5, 7)}/${+st.when.slice(8, 10)} ${st.when.slice(11, 16)}` : R.describe(st).slice(0, 30));
@@ -924,7 +936,7 @@ export function createRemote({ scene, api = apiCall }) {
       if (cd) clearInterval(cd.iv);
       if (play) clearTimeout(play.timer);
       if (unsub) { try { unsub(); } catch { /* fine */ } release('admin'); }
-      clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis);
+      clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); window.removeEventListener('nd:me', onMe);
       if (bar) bar.remove();
       if (sheet) sheet.remove();
       setMenuExtra('admin', null); setMenuCue(null);

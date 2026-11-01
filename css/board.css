@@ -382,6 +382,12 @@ body.reduced-fx .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animati
 .pf-key-new.is-armed { color: #ffc2cf; border-color: rgba(255, 120, 150, 0.6); font-size: 9.5px; letter-spacing: 0.06em; }
 .pf-key.is-none .pf-key-copy, .pf-key.is-none .pf-key-hint { display: none; }
 .pf-restore-box { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: var(--gl-bg); border: 1px solid var(--gl-line); }
+/* PERF-A — THE CARD SAYS WHY: a key held on this device, a changed sign-in, an address with nothing saved */
+.pf-why-slot:empty { display: none; }
+.pf-note { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border-radius: 16px; background: var(--gl-bg); border: 1px solid var(--gl-line); }
+.pf-note b { font: 800 11px/1.35 var(--font-display); letter-spacing: 0.14em; color: #ffe6b0; }
+.pf-note p { margin: 0; font-size: 13px; line-height: 1.5; color: var(--gl-dim); }
+.pf-note.is-offer { border-color: rgba(255, 210, 122, 0.45); box-shadow: 0 0 0 1px rgba(255, 210, 122, 0.12), 0 0 22px rgba(255, 210, 122, 0.12); }
 .pf-key-in { font-family: var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; }
 
 /* the opt-out switch */
