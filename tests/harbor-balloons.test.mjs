@@ -2,7 +2,7 @@
 // flight found again on load after its scheduler window (screens/harbor/balloons.js PURE helpers + core/harbor-events.js#recent).
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { flightLen, burnSchedule, FLIGHT, BURN, FESTIVAL_ORDER, BALLOON_KINDS, BALLOON_SCHEMES, FAST, driftAt } from '../js/screens/harbor/balloons.js';
+import { flightLen, burnSchedule, FLIGHT, BURN, FESTIVAL_ORDER, BALLOON_KINDS, BALLOON_SCHEMES, FAST, driftAt, apartSpots } from '../js/screens/harbor/balloons.js';
 import { createScheduler, HARBOR_EVENTS, SLOT_MS, RECENT_MS } from '../js/core/harbor-events.js';
 
 test('a single flight lasts 45–60 min, the festival 60–90 — seeded (every phone the same)', () => {
@@ -53,4 +53,16 @@ test('a flight still up is found on load: the scheduler keeps what started (rece
   assert.ok(found, 'a balloon flight in recent after its window');
   assert.equal(found.active, false, 'no longer active — only recent');
   assert.ok(found.ms - found.b.start < RECENT_MS);
+});
+
+test('PERF-A — THE TWO ₿ BALLOONS are never neighbours: opposite halves of the sky at every shuffle (seeded, no extra draws)', () => {
+  const n = FESTIVAL_ORDER.length, a = FESTIVAL_ORDER.indexOf('btc-orange'), b = FESTIVAL_ORDER.indexOf('bitcoin'), base = FESTIVAL_ORDER.map((_, i) => 0.1 + 0.8 * (i + 0.5) / n);
+  let s = 7; const R = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+  for (let k = 0; k < 500; k++) {
+    const sh = [...base].sort(() => R() - 0.5), out = apartSpots(sh), rank = v => [...out].sort((p, q) => p - q).indexOf(v);
+    assert.deepEqual([...out].sort(), [...base].sort(), 'the same spots, only swapped');
+    assert.ok(Math.abs(rank(out[a]) - rank(out[b])) >= 3, `apart: ${rank(out[a])} vs ${rank(out[b])}`);
+    assert.ok((out[a] < 0.5) !== (out[b] < 0.5), 'opposite halves');
+    assert.deepEqual(apartSpots(sh), out, 'the same on every phone');
+  }
 });

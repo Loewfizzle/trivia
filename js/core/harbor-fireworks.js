@@ -26,6 +26,12 @@ export const FW_LAYERS = Object.freeze({
   barge: Object.freeze({ sites: Object.freeze([0.42, 0.57, 0.72, 0.88]), h: Object.freeze([0.22, 0.88]), s: 1, rise: Object.freeze([1.9, 2.7]), fan: 0.44 }),
   sky: Object.freeze({ sites: Object.freeze([0.1, 0.24, 0.38, 0.55, 0.7, 0.86]), h: Object.freeze([0.05, 0.42]), s: 0.48, rise: Object.freeze([1.6, 2.2]) }),
   light: Object.freeze({ sites: Object.freeze([0.85]), h: Object.freeze([0.12, 0.5]), s: 0.66, rise: Object.freeze([1.3, 1.9]) }),
+  // PERF-A — THE NEAR LAUNCHES (the owner, Nov 1: "it seems like ALL the fireworks launch from BEHIND THE BUILDINGS"): from the
+  // BREAKWATER by the lighthouse + the PIER's end on the open water — their tails seen leaving the water, bursting LOW + CLOSE, below the
+  // NEON sign and in front of the skyline (h: 0 = down over the skyline's roofs, 1 = just under the sign — never in front of it; the
+  // renderer places them: screens/harbor/fireworks.js#placeOf), bigger, the strongest reflections. sites: the scene's own (the pier + the
+  // breakwater on this screen — geom.near); these x's only pick among them
+  near: Object.freeze({ sites: Object.freeze([0.5, 0.78, 0.93]), h: Object.freeze([0.05, 0.75]), s: 1.15, rise: Object.freeze([1.0, 1.5]) }),
 });
 const lerp = (a, b, t) => a + (b - a) * t;
 const pickOf = (r, a) => a[Math.floor(r() * a.length) % a.length];
@@ -34,7 +40,7 @@ const round2 = v => Math.round(v * 100) / 100;
 /** one shell's cue: the burst at t (s from the show's start); its rise (s) — the launch is t − rise */
 function cue(r, o) {
   const layer = o.layer || 'barge', Ly = FW_LAYERS[layer];
-  const site = o.x != null ? o.x : pickOf(r, Ly.sites) + (r() - 0.5) * (layer === 'sky' ? 0.08 : layer === 'barge' ? Ly.fan : 0.035);   // (a barge fires FANS: its shells across the whole sky)
+  const site = o.x != null ? o.x : pickOf(r, Ly.sites) + (r() - 0.5) * (layer === 'sky' ? 0.08 : layer === 'barge' ? Ly.fan : layer === 'near' ? 0.12 : 0.035);   // (a barge fires FANS: its shells across the whole sky)
   const h = o.h != null ? o.h : lerp(Ly.h[0], Ly.h[1], r());
   const type = o.type || 'peony';
   const c1 = o.c1 || (type === 'willow' ? 'gold' : type === 'glitter' || type === 'strobe' ? (r() < 0.5 ? 'silver' : 'gold') : type === 'palm' ? (r() < 0.6 ? 'gold' : pickOf(r, COLS)) : pickOf(r, COLS));
@@ -45,6 +51,7 @@ function cue(r, o) {
 }
 const FILL_TYPES = Object.freeze({
   open: ['peony', 'peony', 'chrys', 'ring', 'palm'],
+  near: ['peony', 'chrys', 'palm', 'ring', 'glitter', 'crossette'],
   build: ['peony', 'chrys', 'chrys', 'ring', 'palm', 'crossette', 'comet', 'multi'],
   willow: ['willow', 'willow', 'glitter', 'strobe', 'palm', 'chrys'],
   far: ['peony', 'chrys', 'crackle', 'ring'],
@@ -80,6 +87,7 @@ export function weeknightScript(seed) {
     { t: dur - 2.4, type: 'willow', layer: 'barge', x: 0.7, h: 0.82, s: 1.25, c1: 'gold', c2: 'gold', big: true },
   ], fill: [
     { from: 7, to: dur - 10, every: [1.6, 3.4], types: FILL_TYPES.build, layers: { barge: 5, sky: 2, light: 1.5 }, salvo: [0.12, 3] },
+    { from: 12, to: dur - 12, every: [6, 11], types: FILL_TYPES.near, layers: { near: 1 } },
   ] };
 }
 /** THE PARTY SHOW (~4–5 min + its FINALE): opening salvo → the build → the willows → the far salvos → the build-up → THE FINALE (a full
@@ -92,13 +100,18 @@ export function partyScript(seed) {
     { t: 6.5, type: 'chrys', layer: 'barge', x: 0.72, h: 0.88, s: 1.3, c1: 'gold', big: true },
     // THE CURTAIN: gold willows the whole width (the sky layer behind the skyline + the barges in front), staggered
     ...Array.from({ length: 9 }, (_, i) => ({ t: curtain + (i % 3) * 0.18 + (i * 0.07), type: 'willow', layer: i % 2 ? 'sky' : 'barge', x: 0.08 + i * 0.105, h: i % 2 ? 0.36 : 0.86, s: i % 2 ? 1.5 : 1.35, c1: 'gold', c2: 'gold', big: true })),
-    ...Array.from({ length: 4 }, (_, i) => ({ t: dur - 2.8 + i * 0.22, type: 'crackle', layer: 'barge', x: 0.55 + i * 0.12, h: 0.6, c1: 'white', c2: 'gold', big: true })),
+    // THE CLOSING DRAGON EGGS (PERF-A — the owner, Nov 1: "those were the really cool ones"; they were 4 shells over the right third):
+    // 8 crackle shells LEFT EDGE → RIGHT EDGE, a rolling salvo behind the lit sign — the whole sky crackling at the very end
+    ...Array.from({ length: 8 }, (_, i) => ({ t: dur - 3.0 + i * 0.16 + (i % 2) * 0.05, type: 'crackle', layer: 'barge', x: 0.07 + i * 0.123, h: 0.56 + 0.1 * (i % 2), c1: 'white', c2: 'gold', big: true })),
   ];
   return { dur, cues, fill: [
     { from: 9, to: 60, every: [0.9, 2.0], types: FILL_TYPES.open, layers: { barge: 5, sky: 2, light: 1 }, salvo: [0.1, 3] },
     { from: 60, to: 110, every: [1.4, 2.8], types: FILL_TYPES.willow, layers: { barge: 4, sky: 1, light: 1 } },
     { from: 110, to: 150, every: [0.8, 1.8], types: FILL_TYPES.far, layers: { sky: 5, barge: 2, light: 1 }, salvo: [0.3, 4] },
     { from: 150, to: fin, every: [0.55, 1.3], types: FILL_TYPES.build, layers: { barge: 5, sky: 2, light: 2 }, salvo: [0.18, 3] },
+    // (PERF-A: THE NEAR LAUNCHES through the whole show + thicker in the build-up — low + close, under the sign)
+    { from: 14, to: fin, every: [4.5, 9], types: FILL_TYPES.near, layers: { near: 1 } },
+    { from: fin - 40, to: curtain - 2, every: [1.6, 3.2], types: FILL_TYPES.near, layers: { near: 1 }, salvo: [0.25, 2] },
     { from: fin, to: curtain - 1.5, every: [0.2, 0.42], types: FILL_TYPES.finale, layers: { barge: 5, sky: 3, light: 2 }, salvo: [0.25, 3] },
   ] };
 }

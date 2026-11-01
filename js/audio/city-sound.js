@@ -132,8 +132,14 @@ export function citySound(slot, { gain = 1, pan = 0, rate = 1, delay = 0, take =
   try {
     const s = slotOf(slot);
     if (!s || !takesOf(slot).length || !isUnlocked() || !audible()) return null;
-    const pick = take != null && takesOf(slot)[take] ? { take: takesOf(slot)[take], i: take } : pickTake(slot, Math.random, lastTake.has(slot) ? lastTake.get(slot) : -1);
+    let pick = take != null && takesOf(slot)[take] ? { take: takesOf(slot)[take], i: take } : pickTake(slot, Math.random, lastTake.has(slot) ? lastTake.get(slot) : -1);
     if (!pick) return null;
+    // (PERF-A: a TIMED sound (its peak on the clock — a firework's boom) whose random take is still downloading would be dropped as late;
+    //  while the slot loads, an already-decoded take of the same slot plays instead — the first boom after the tap is heard)
+    if (sync && take == null && !cityReady(slot, pick.i)) {
+      const tk = takesOf(slot), last = lastTake.has(slot) ? lastTake.get(slot) : -1, ready = tk.map((_, i) => i).filter(i => i !== last && (tk[i].w ?? 1) > 0 && cityReady(slot, i));
+      if (ready.length) { const i = ready[Math.floor(Math.random() * ready.length)]; pick = { take: tk[i], i }; }
+    }
     lastTake.set(slot, pick.i);
     const c = getContext(), t = pick.take, e = load(t);
     let v = s.gain * gain, p = pan;

@@ -735,7 +735,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     let roofTop = HZ; for (let i = 0; i < skyline.length; i++) if (skyline[i] < roofTop) roofTop = skyline[i];
     const lh = L.lighthouse, [lx, ly] = project(cam, lh.x - 2.6, 1.2, lh.z);
     const signBottom = tr && tr.tag ? tr.tag.y + tr.tag.h : S.logoRect ? S.logoRect.y + S.logoRect.h : null;
-    fwGeo = { key, skyline, occ, band: [band.y0, band.y1], skyTop: (cam.safeTop || 40) + 36, roofTop: roofTop - 26, signBottom, waterY: { barge: groundY(cam, 182), light: groundY(cam, lh.z) }, light: { x: lx, y: ly } };
+    // (PERF-A — THE NEAR LAUNCHES: the pier's far end + two spots on the breakwater by the lighthouse, on the water's surface)
+    const pr = L.pier, bw = L.breakwater, near = [];
+    if (pr) { const [px, py] = project(cam, (pr.x0 + pr.x1) / 2, 0, pr.z0 + 4); near.push({ x: px, y: py }); }
+    if (bw) for (const u of [0.25, 0.7]) { const [bx, by] = project(cam, bw.x0 + (bw.x1 - bw.x0) * u, bw.h || 0, bw.z); near.push({ x: bx, y: by }); }
+    fwGeo = { key, skyline, occ, band: [band.y0, band.y1], skyTop: (cam.safeTop || 40) + 36, roofTop: roofTop - 26, signBottom, waterY: { barge: groundY(cam, 182), light: groundY(cam, lh.z), near: groundY(cam, 140) }, light: { x: lx, y: ly }, near: near.filter(q => q.x > -10 && q.x < W + 10) };
     fwGeoKey = key;
     return fwGeo;
   }
@@ -746,13 +750,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // in a row (city-sound.js); in the finale the barrage carries the din (single booms thinned). Muted / locked = a silent show.
   const fwS = { boomAt: 0, launchAt: 0, oohAt: 0, finaleFor: '', cheerFor: '', bed: null };
   const fwPan = x => Math.max(-0.85, Math.min(0.85, (x / Math.max(1, W) - 0.5) * 1.5));
-  const fwDelay = c => (c.layer === 'sky' ? 0.95 + 0.35 * ((c.seed % 1000) / 1000) : c.layer === 'light' ? 0.42 : 0.36 + 0.2 * c.h);
+  const fwDelay = c => (c.layer === 'sky' ? 0.95 + 0.35 * ((c.seed % 1000) / 1000) : c.layer === 'light' ? 0.42 : c.layer === 'near' ? 0.26 + 0.1 * c.h : 0.36 + 0.2 * c.h);
   const fwFinaleNow = () => { const sh = fwState.show; return !!(sh && (sh.kind === 'party' ? clock.now() / 1000 > sh.t1 - knob('fireworks.party').finale - 9 : clock.now() / 1000 > sh.t1 - 9)); };
   fwHooks.launch = (c, p) => {
     const now = performance.now();
     if (fwFinaleNow() && now - fwS.launchAt < 380) return;
     fwS.launchAt = now;
-    const d = fwDelay(c) * 0.9, g = c.layer === 'sky' ? 0.22 : c.layer === 'light' ? 0.5 : 0.75;
+    const d = fwDelay(c) * 0.9, g = c.layer === 'sky' ? 0.22 : c.layer === 'light' ? 0.5 : c.layer === 'near' ? 0.85 : 0.75;
     snd.play('firework-launch', { gain: g, pan: fwPan(p.lx), delay: d });
     if (c.whistle && c.layer !== 'sky') snd.play('firework-whistle', { gain: 0.45, pan: fwPan(p.lx), delay: d + 0.12 });
   };
@@ -775,7 +779,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const sh = fwState.show;
     if (shows && shows.some(x => nowS > x.t0 - 30 && nowS < x.t1) && performance.now() - fwFetchAt > 10000) {
       let got = false;   // (nothing fetches before the audio is unlocked — tried again next frame until it does)
-      for (const sl of ['firework-burst', 'firework-burst-far', 'firework-launch', 'firework-whistle', 'firework-crackle', 'firework-willow', 'firework-ooh', 'firework-finale', 'crowd-cheer']) for (let i = 0; i < 8; i++) got = cityPrefetch(sl, i, { hold: 60000 }) || got;
+      // (PERF-A: take by take across the slots — the first take of EVERY slot first, so a show starting right after the tap has one of each)
+      for (let i = 0; i < 8; i++) for (const sl of ['firework-burst', 'firework-launch', 'firework-burst-far', 'firework-crackle', 'firework-willow', 'firework-whistle', 'firework-ooh', 'firework-finale', 'crowd-cheer']) got = cityPrefetch(sl, i, { hold: 60000 }) || got;
       if (got) fwFetchAt = performance.now();
     }
     if (sh && fwState.on && fwFinaleNow() && fwS.finaleFor !== sh.id && sh.kind !== 'midnight') {
@@ -1869,6 +1874,25 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     occMemo = { key, v };
     return v;
   }
+  /** PERF-A — THE SKY's TOPS (the owner, Nov 1: the festival's balloons sat BEHIND the roof billboards + a spire): per 4 pt column, the top
+   *  of whatever stands ON the roofs above the skyline — the roof + tower signs, the roof billboards (+ the lamps over a board) and every
+   *  tower's tip (its spire + THE NEON NEEDLE's tube, the thin bits the roofline leaves out) — 1e9 where nothing stands; balloons.js
+   *  keeps above it (no tuck). Re-made when the layout or the signs change. */
+  let topsMemo = null;
+  function skyTopsNow() {
+    if (!skyline || !L || !cam) return null;
+    let rr = []; try { rr = neon.roofRects() || []; } catch { /* fine */ }
+    const key = `${camSig}|${rr.length}|${rr.reduce((a, r) => a + Math.round(r.x) * 7 + Math.round(r.y), 0)}`;
+    if (topsMemo && topsMemo.key === key) return topsMemo.v;
+    const v = new Float32Array(skyline.length).fill(1e9), tips = new Float32Array(skyline.length).fill(1e9), put = (A, x0, x1, y) => { for (let i = Math.max(0, Math.floor(x0 / 4)); i <= Math.min(A.length - 1, Math.ceil(x1 / 4)); i++) if (y < A[i]) A[i] = y; };
+    for (const r of rr) { const lamps = r.h * 0.35; put(v, r.x - 2, r.x + r.w + 2, r.y - lamps); }
+    // (the thin tips — a spire, the needle's tube — kept apart: they count only right under a balloon's body, never across its whole
+    //  window, or every balloon is lifted into one row under the tagline)
+    for (const t of L.towers || []) { const tp = t.tiers[t.tiers.length - 1], cx = (tp.x0 + tp.x1) / 2, [sx, sy] = project(cam, cx, tp.y0 + tp.h + (tp.crown ? tp.crown.h : 0) + (t.needle || 0), tp.z0); put(tips, sx - 3, sx + 3, sy - 4); }
+    v.tips = tips;
+    topsMemo = { key, v };
+    return v;
+  }
   /** SP5 — the hourly dance never during a raid or a legendary (the TR-3B / the abduction): the evening's raid plan + the traffic hold */
   function danceBlocked(a, b) {
     if (fwHold(a, b)) return true;   // (PART 10: no dance break during a show — the dancers stop + look up)
@@ -2347,7 +2371,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the scheduler's first read is at once, the moment it exists)
     if (now - eventsAt > 500 || (sched && !schedRead)) { eventsAt = now; if (sched) { events = sched.at(clock.now()); schedRead = true; } density = densityOf([...events.quiet, ...sky.quiet()]); }
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
-    const fs = { cityCut, centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], boatSpots: boats.spots, avoidSky: heliAvoid(), heliOcc: heliOcc(), stageY: groundY(cam, Z.rail), promY: L.prom ? groundY(cam, (L.prom.z0 + L.prom.z1) / 2) : cam.H, dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
+    const fs = { cityCut, centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], boatSpots: boats.spots, avoidSky: heliAvoid(), heliOcc: heliOcc(), stageY: groundY(cam, Z.rail), promY: L.prom ? groundY(cam, (L.prom.z0 + L.prom.z1) / 2) : cam.H, dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, skyTops: skyTopsNow(), L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
     linkGate(now);
@@ -2401,8 +2425,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     sky.moonSky({ band: tagBand(), veil: clouds.veil() });
     moonNow = fs.moonAt || null;
     logoHaze(c);
-    // (11a-1: the district's witch + bats never fly on the Harbor — City 2.0's own (witch.js, birds.js) answer &force=witch / bats)
-    { const ff = fs.force; if (ff.has('witch') || ff.has('bats')) { fs.force = new Set([...ff].filter(id => id !== 'witch' && id !== 'bats')); fx.back(c, fs); fs.force = ff; } else fx.back(c, fs); }
+    // (11a-1: the district's witch + bats never fly on the Harbor — City 2.0's own (witch.js, birds.js) answer &force=witch / bats;
+    //  PERF-A: nor its 2D rockets — the GPU show (fireworks.js) is the Harbor's only fireworks: FR5 #5 found both on every &force=fireworks)
+    { const ff = fs.force; fs.noFireworks = true; if (ff.has('witch') || ff.has('bats') || ff.has('fireworks')) { fs.force = new Set([...ff].filter(id => id !== 'witch' && id !== 'bats' && id !== 'fireworks')); fx.back(c, fs); fs.force = ff; } else fx.back(c, fs); }
     moonNow = fs.moonAt || null;
     // (the golden haze UNDER the disc — additive light over it bleached a 4° amber sun to lemon-white; sun.js#sunColourAt)
     sky.sunHaze(c, fs, sun.debug());
@@ -2903,8 +2928,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // POLISH 5 — THE LOAD LOG's strip (&debug=1, foldable like the readout; remembered per device): the reveal's why + ms and every
   // change to the picture after it, ⚠ on the ones the eye sees. Twice a second while the log records, once more when it closes.
   let llStrip = null, llAt = 0, llDone = false;
+  // (PERF-A: the debug strips refresh once a second for the first 15 s after the reveal — their text + DOM inside the load you judge — then twice)
+  const roEvery = now => (shownAt < 0 || now - shownAt < 15000 ? 1000 : 500);
   function loadStrip(now) {
-    if (now - llAt < 500 && llStrip) return;
+    if (now - llAt < roEvery(now) && llStrip) return;
     llAt = now;
     const open = LOADLOG.open();
     if (!open && llDone && llStrip) return;
@@ -2914,9 +2941,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   // the PIXEL WATCH (&debug=1 only): from 1 s after the reveal (the fade) to the log's end, 4× a second the picture shrunk to 12×24 →
   // six bands' mean brightness; a band jumping > 9 levels between two looks is logged — anything the instruments above don't name
+  // (PERF-A — FR5 #1: the watch's getImageData is a GPU READ-BACK — it waits for everything the GPU still has queued; in the blizzard
+  //  (the flake sprites, the frost pane, the wire baking) that was the owner's 4.5-s LOAD FREEZE, and the readout made every load ~40 %
+  //  longer. It now looks only while NOTHING is baking (the bakes, the lit layer, the neon's sprites): a read then waits for one frame)
   let pxCv = null, pxPrev = null, pxAt = 0;
   function pixWatch(now) {
     if (shownAt < 0 || now - shownAt < 1000 || !LOADLOG.open() || now - pxAt < 250) return;
+    if (baker.pending || litBaker.pending || neon.pending || fadeFrom >= 0 || litFadeFrom >= 0) { pxPrev = null; return; }
     pxAt = now;
     try {
       if (!pxCv) { pxCv = document.createElement('canvas'); pxCv.width = 12; pxCv.height = 24; }
@@ -2975,7 +3006,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   function readout(now) {
     roN++;
-    if (now - roAt <= 500) return;
+    if (now - roAt <= roEvery(now)) return;
     if (!buildId) askBuild();
     const fps = roT0 ? Math.round(roN * 1000 / (now - roT0)) : 0; roN = 0; roT0 = now; roAt = now;
     const cs = [...costs].sort((a, b) => a - b), fr = [...frames].sort((a, b) => a - b);

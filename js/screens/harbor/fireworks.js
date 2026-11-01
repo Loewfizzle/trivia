@@ -97,7 +97,10 @@ void main() {
   if (v_kind > 4.5 && v_kind < 5.5) {
     a = y < u_band.x ? mix(0.045, 0.42, smoothstep(sky - 18.0, sky + 34.0, y)) : y < near ? 0.32 : 0.16;
     float r = length(v_q - vec2(clamp(v_q.x, 0.0, v_len), 0.0)) / v_w;
-    float g = exp(-r * r * 3.2) * a;
+    // (PERF-A — THE WILLOW CURTAIN's LINE: the wash's Gaussian was still ~4 % bright at its square quad's edge — a big low burst drew that
+    //  edge straight across the sky under the tagline (WebKit 402×660, the owner's view). Its outer 30 % now eases to exactly 0 at the edge;
+    //  inside 0.7 of the radius the glow is what it was)
+    float g = exp(-r * r * 3.2) * (1.0 - smoothstep(0.7, 1.0, r)) * a;
     o = vec4(v_col * v_i * g, 0.0); return;
   }
   if (u_mirror > 0.5) { if (y < u_band.x || y > u_band.y || y > near) discard; a = smoothstep(u_band.x, u_band.x + 6.0, y); }
@@ -106,8 +109,9 @@ void main() {
   if (a <= 0.002) discard;
   float s = clamp(v_q.x, 0.0, v_len), dd = length(vec2(v_q.x - s, v_q.y)), f = v_len > 0.01 ? s / v_len : 1.0;
   float g;
-  if (v_kind > 3.5 && v_kind < 4.5) { float r = dd / v_w; g = exp(-r * r * 5.0) * 0.55 + exp(-r * r * 60.0) * 0.45; }
-  else { float q = dd / max(0.35, v_size); g = exp(-q * q * 1.6) + 0.16 * exp(-q * q * 0.18); g *= mix(0.12, 1.0, f * f); }
+  // (PERF-A: the bloom + a spark's halo also reach 0 at their quad's edge — never a faint square)
+  if (v_kind > 3.5 && v_kind < 4.5) { float r = dd / v_w; g = max(0.0, exp(-r * r * 5.0) * 0.55 + exp(-r * r * 60.0) * 0.45 - 0.00371); }
+  else { float q = dd / max(0.35, v_size), qe = v_w / max(0.35, v_size); g = max(0.0, exp(-q * q * 1.6) + 0.16 * exp(-q * q * 0.18) - 0.16 * exp(-qe * qe * 0.18)); g *= mix(0.12, 1.0, f * f); }
   vec3 c = v_col * v_i * g * a;
   o = vec4(c, max(c.r, max(c.g, c.b)) * u_alphaK);
 }`;
@@ -291,15 +295,23 @@ export function createHarborFireworks(opts = {}) {
   /** where a cue bursts + launches on THIS screen (pt): its layer's geometry (scene-given) */
   function placeOf(cue, g) {
     const x = cue.x * W, Ly = cue.layer, sk = g.skyline, col = sk && sk.length ? sk[Math.max(0, Math.min(sk.length - 1, Math.round(x / 4)))] : H * 0.6;
-    const top = g.skyTop, low = g.roofTop, R0 = Math.min(W, 520) * 0.235;
+    const top = g.skyTop, low = g.roofTop, R0 = Math.min(W, 520) * 0.235, R = R0 * cue.s * (Ly === 'sky' ? 0.95 : 1);
     let by = low + (top - low) * cue.h;
     if (cue.low && g.signBottom) by = Math.max(by, g.signBottom + R0 * 0.9 * cue.s + 6);
+    // (PERF-A — THE NEAR LAUNCHES + the lighthouse's: LOW + CLOSE — h 0 = down over the skyline's roofs here, 1 = just under the NEON sign
+    //  (a burst's whole radius below its foot: never in front of the sign); in front of the skyline, the strongest reflections)
+    if (Ly === 'near' || Ly === 'light') {
+      const hi = g.signBottom != null ? g.signBottom + R * 0.85 + 8 : top + (low - top) * 0.25;
+      const lo = Math.min(col + R * 0.25, (g.waterY.near || g.waterY.barge) - R * 0.95);
+      by = lo <= hi ? hi : lo + (hi - lo) * cue.h;
+    }
     let lx = x, ly;
     if (Ly === 'sky') ly = col + 12;
     else if (Ly === 'light') { lx = g.light ? g.light.x : x; ly = g.light ? g.light.y : g.waterY.barge; }
+    else if (Ly === 'near' && g.near && g.near.length) { let best = g.near[0]; for (const q of g.near) if (Math.abs(q.x - x) < Math.abs(best.x - x)) best = q; lx = best.x; ly = best.y; }
     else { ly = g.waterY.barge; const sites = FW_LAYERS.barge.sites; let best = sites[0]; for (const q of sites) if (Math.abs(q - cue.x) < Math.abs(best - cue.x)) best = q; lx = best * W; }   // (launched from the nearest barge)
     const wy = Ly === 'sky' ? -1 : Ly === 'light' ? (g.waterY.light || ly) : ly;
-    return { bx: x, by, lx, ly, R: R0 * cue.s * (Ly === 'sky' ? 0.95 : 1), wy };
+    return { bx: x, by, lx, ly, R, wy };
   }
   function build(cue, show, key, now, tier0) {
     const g = geom, P = placeOf(cue, g), r = rngFrom(cue.seed >>> 0 || 1), sK = tierVal('fwSparks', tier0) / 100, trK = tierVal('fwTrails', tier0) / 10;

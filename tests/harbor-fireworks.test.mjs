@@ -57,7 +57,13 @@ test('the plans: seeded (the same on every phone), sorted by the burst, real she
   assert.ok(p.cues.length > 150, `the party show is full (${p.cues.length})`);
   assert.ok(m.cues.length >= 2 && m.cues.length <= 4 && m.cues.every(c => c.low), 'midnight: 2–4, low (below the sign)');
   assert.ok(new Set(p.cues.map(c => c.type)).size >= 9, 'the party show uses the whole range of shells');
-  assert.deepEqual([...new Set(p.cues.map(c => c.layer))].sort(), ['barge', 'light', 'sky'], 'all three launch layers');
+  assert.deepEqual([...new Set(p.cues.map(c => c.layer))].sort(), ['barge', 'light', 'near', 'sky'], 'all four launch layers');
+  // PERF-A — THE NEAR LAUNCHES (the owner: "ALL the fireworks launch from BEHIND THE BUILDINGS"): through the show, more in the build-up
+  const near = p.cues.filter(c => c.layer === 'near'), F = knob('fireworks.party').finale;
+  assert.ok(near.length >= 15, `${near.length} near launches in a party show`);
+  assert.ok(near.filter(c => c.t > p.dur - F - 40 && c.t < p.dur - F).length >= 6, 'thicker in the build-up');
+  assert.ok(near.every(c => c.h <= 0.8), 'low — never up at the sign');
+  assert.ok(planShow('show', 7).cues.some(c => c.layer === 'near'), 'the weeknight show has a few too');
 });
 
 test('the party show builds to its finale + ends on the GOLD WILLOW CURTAIN', () => {
@@ -68,6 +74,11 @@ test('the party show builds to its finale + ends on the GOLD WILLOW CURTAIN', ()
   assert.ok(curtain.length >= 8, 'a curtain of gold willows');
   const xs = curtain.map(c => c.x);
   assert.ok(Math.max(...xs) - Math.min(...xs) > 0.75, 'across the whole skyline');
+  // PERF-A — THE CLOSING DRAGON EGGS across the FULL width (the owner, Nov 1: they were 4 over the right third)
+  const eggs = p.cues.filter(c => c.type === 'crackle' && c.big && c.t > p.dur - 3.5);
+  assert.ok(eggs.length >= 6 && eggs.length <= 8, `${eggs.length} dragon eggs at the very end`);
+  assert.ok(Math.min(...eggs.map(c => c.x)) < 0.12 && Math.max(...eggs.map(c => c.x)) > 0.88, 'left edge → right edge');
+  assert.ok(eggs.every(c => c.t >= Math.max(...curtain.map(q => q.t))), 'after the curtain — the last volley');
 });
 
 test('the scripted format (New Year’s Eve + July 4th later): cues + fill sections', () => {

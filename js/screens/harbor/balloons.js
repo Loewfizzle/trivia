@@ -5,8 +5,10 @@
 //   6b PREMIUM     each GORE puffed between its load tapes (its own fabric shading), a soft highlight on the sun's side, the dark MOUTH
 //                  you see into from below (the flame inside it on a burn), the skirt, the cables, two tiny passengers over the rim;
 //                  THE BURNER's flare lights the whole envelope from inside (brightest by the mouth), the basket + the air round it
-//   THE SPECIALS   (sometimes in a normal flight, always at the festival) THE ₿ BALLOON — all black with a big orange ₿ by day, at
-//                  night all ORANGE with a black ₿ (lit from inside; a nod, never explained) · THE ALIEN HEAD — a special-shape grey
+//   THE SPECIALS   (sometimes in a normal flight, always at the festival) THE TWO ₿ BALLOONS, THE OPPOSITES at every hour (PERF-A — the
+//                  owner, Nov 1): 'bitcoin' all BLACK with a big ORANGE ₿ (at night still black, the ₿ glowing orange from inside) +
+//                  'btc-orange' all ORANGE with a BLACK ₿ (lit orange from inside at night) — never neighbours at the festival (apartSpots);
+//                  a nod, never explained · THE ALIEN HEAD — a special-shape grey
 //                  alien in green, big glossy black almond eyes, seamed fabric, the basket under its chin
 //   THE ENVELOPE   a teardrop of 12 gores: the stripes narrow toward its edges as they turn away (a sphere, not a flat
 //                  pattern), the load tapes on the seams, the crown's vent cap, the darker skirt; shaded as a sphere toward
@@ -119,8 +121,10 @@ function fabric(x, R, kind, scheme, lit, light) {
   const L = c => (lit ? brighten(c) : c);
   const goreCol = i => {
     if (alien) return [[118, 196, 92], [126, 204, 100]][i % 2];
-    if (kind === 'bitcoin') return lit ? [[255, 150, 36], [250, 140, 30]][i % 2] : [[26, 24, 28], [32, 30, 34]][i % 2];
-    if (kind === 'btc-orange') return L([[247, 147, 26], [240, 140, 22]][i % 2]);
+    // (PERF-A — THE OPPOSITES: the black ₿ balloon stays BLACK lit from inside too (only its ₿ glows); the orange one's night look is the
+    //  lit orange + the black ₿ the owner keeps exactly — the colours the black one used to turn at night)
+    if (kind === 'bitcoin') return [[26, 24, 28], [32, 30, 34]][i % 2];
+    if (kind === 'btc-orange') return lit ? [[255, 150, 36], [250, 140, 30]][i % 2] : [[247, 147, 26], [240, 140, 22]][i % 2];
     if (kind === 'bullseye') return L(sch[0]);
     if (kind === 'smiley') return L(sch[i % sch.length]);
     if (kind === 'flag') return L(i % 2 ? FLAG.white : FLAG.red);
@@ -180,13 +184,10 @@ function fabric(x, R, kind, scheme, lit, light) {
     for (const sg of [-1, 1]) { const [ax, ay] = onSphere(R, sg * 0.7, -0.15), [bx, by] = onSphere(R, sg * 0.62, -0.25); x.beginPath(); x.moveTo(ax, ay); x.lineTo(bx, by); x.stroke(); }
     x.lineCap = 'butt';
   }
-  // THE MARKS: the ₿ (black envelope: orange by day, black on the lit orange at night · the ORANGE envelope: a white ₿ on a dark
-  // keyline) + the alien's big glossy almond eyes
-  if (kind === 'bitcoin') bitcoinMark(x, R, lit || light.day < 0.3 ? 'rgb(20,14,8)' : 'rgb(247,147,26)');
-  if (kind === 'btc-orange') {
-    x.save(); x.scale(1.06, 1.05); bitcoinMark(x, R, lit ? 'rgba(60,28,6,0.85)' : 'rgb(30,18,10)'); x.restore();
-    bitcoinMark(x, R, lit ? 'rgb(255,246,222)' : 'rgb(252,248,240)');
-  }
+  // THE MARKS: the ₿ (THE OPPOSITES — the black envelope: an ORANGE ₿ at every hour, brighter lit from inside · the orange envelope: a
+  // BLACK ₿ at every hour) + the alien's big glossy almond eyes
+  if (kind === 'bitcoin') bitcoinMark(x, R, lit ? 'rgb(255,168,46)' : 'rgb(247,147,26)');
+  if (kind === 'btc-orange') bitcoinMark(x, R, 'rgb(20,14,8)');
   if (alien && !lit) {
     for (const sg of [-1, 1]) {
       x.save(); x.translate(sg * 0.42 * R, 0.22 * R); x.rotate(sg * -0.5);
@@ -286,6 +287,18 @@ export function burnSchedule(seed, climb, until) {
   }
   return out;
 }
+/** PURE (PERF-A — the owner, Nov 1: the two ₿ balloons landed side by side): the festival's shuffled launch spots with the two ₿ balloons
+ *  (line-up indexes a, b) at least 3 spots apart — opposite halves of the sky, never neighbours; the black one swaps with whoever holds
+ *  the spot 3 across from the orange one (no extra draws: the same plan on every phone) */
+export function apartSpots(spots, a = FESTIVAL_ORDER.indexOf('btc-orange'), b = FESTIVAL_ORDER.indexOf('bitcoin')) {
+  const out = [...spots], rank = v => [...out].sort((p, q) => p - q).indexOf(v), n = out.length;
+  if (a < 0 || b < 0 || n < 6) return out;
+  const ra = rank(out[a]), rb = rank(out[b]);
+  if (Math.abs(ra - rb) >= 3) return out;
+  const want = [...out].sort((p, q) => p - q)[ra <= (n - 1) / 2 ? ra + 3 : ra - 3], j = out.indexOf(want);
+  [out[b], out[j]] = [out[j], out[b]];
+  return out;
+}
 /** PURE: a balloon's drift across (0 at its start → 1 off the far edge), eased in so it never lurches from rest */
 export const driftAt = u => { const v = clamp01(u); return v * v * (1.5 - 0.5 * v); };
 
@@ -303,7 +316,7 @@ export function createBalloons() {
     // a single flight's style: the everyday kinds; ~1 in 8 the black ₿, ~1 in 16 the orange ₿, ~1 in 50 the alien (6b's rare odds)
     const r = R0(), single = r < 0.12 ? 'bitcoin' : r < 0.18 ? 'btc-orange' : r < 0.2 ? 'alien' : BALLOON_KINDS[Math.floor(R0() * BALLOON_KINDS.length)];
     // (the festival's launch spots: spread across, shuffled — the line-up keeps its ORDER in time, not in space)
-    const spots = FESTIVAL_ORDER.map((_, i) => 0.1 + 0.8 * (i + 0.5) / n).sort(() => R0() - 0.5);
+    const spots = apartSpots(FESTIVAL_ORDER.map((_, i) => 0.1 + 0.8 * (i + 0.5) / n).sort(() => R0() - 0.5));
     for (let i = 0; i < n; i++) {
       const kind = fest ? FESTIVAL_ORDER[i] : single;
       // depth: nearer = bigger + lower in the sky (each its own height band in the festival)
@@ -360,9 +373,18 @@ export function createBalloons() {
         if ((cur.dir > 0 && x - A.w / 2 > W) || (cur.dir < 0 && x + A.w / 2 < 0)) { gone++; continue; }
         // its own height: the far ones high, the near ones lower; a slow rise + fall over ~7–12 min, a little bob
         // (its floor: the skyline under it — the highest roof across its width, the basket may tuck a little behind — eased, so it
-        // RISES gently over a tall tower as it drifts toward it, like a pilot would)
+        // RISES gently over a tall tower as it drifts toward it, like a pilot would. PERF-A — the owner, Nov 1: they sat BEHIND the roof
+        // billboards + a spire: s.skyTops = the roof signs, the billboard + the spires' tips (scene.js#skyTopsNow) — those count whole,
+        // no tuck, and the window looks half a balloon AHEAD on the wind, so it is already rising as it reaches one)
         let fl = floor0;
+        const ahead = A.w * 0.5, xa = x - A.w * 0.6 - (cur.dir < 0 ? ahead : 0), xb = x + A.w * 0.6 + (cur.dir > 0 ? ahead : 0);
         if (sk && sk.length) { const i0 = Math.max(0, Math.floor((x - A.w * 0.6) / 4)), i1 = Math.min(sk.length - 1, Math.ceil((x + A.w * 0.6) / 4)); if (i1 >= i0) { fl = 1e9; for (let i = i0; i <= i1; i++) if (sk[i] < fl) fl = sk[i]; fl += A.h * 0.18; } }
+        const tops = s.skyTops;
+        if (tops && tops.length) {
+          { const i0 = Math.max(0, Math.floor(xa / 4)), i1 = Math.min(tops.length - 1, Math.ceil(xb / 4)); for (let i = i0; i <= i1; i++) if (tops[i] - 3 < fl) fl = tops[i] - 3; }
+          // (a thin tip: only under the balloon's own body — the envelope's middle ±⅓ + its basket — never across the window)
+          const tp = tops.tips; if (tp) { const i0 = Math.max(0, Math.floor((x - A.w * 0.34) / 4)), i1 = Math.min(tp.length - 1, Math.ceil((x + A.w * 0.34) / 4)); for (let i = i0; i <= i1; i++) if (tp[i] - 2 < fl) fl = tp[i] - 2; }
+        }
         fl = Math.max(fl, top + A.h + 4);
         const dts = Math.min(0.25, (s.dt || 16) / 1000) * cur.fast;
         b.fl = b.fl == null || Math.abs(b.fl - fl) > 400 ? fl : b.fl + Math.max(-1.6 * dts, Math.min(1.6 * dts, fl - b.fl));
@@ -394,8 +416,8 @@ export function createBalloons() {
           c.globalAlpha = alpha * burn * (0.2 + 0.6 * dark); c.drawImage(flameDot, fx - b.R * 0.9, fy - b.R * 0.8, b.R * 1.8, b.R * 1.4);
           c.restore();
         }
-        // THE ₿s AT NIGHT: lit from inside all the time (the black one: orange with a black ₿; the orange one: a glowing white ₿) — the
-        // burns only brighten it (POLISH 5: laid OVER the day's look, not added to it)
+        // THE ₿s AT NIGHT: lit from inside all the time (THE OPPOSITES — the orange one: lit orange with its black ₿; the black one stays
+        // black, its orange ₿ glowing) — the burns only brighten it (POLISH 5: laid OVER the day's look, not added to it)
         if ((b.kind === 'bitcoin' || b.kind === 'btc-orange') && dark > 0.3) { c.save(); c.globalAlpha = alpha * Math.min(1, (dark - 0.3) / 0.5); c.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); c.globalCompositeOperation = 'lighter'; c.globalAlpha = alpha * (dark - 0.3) * 0.35; c.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); c.restore(); }
       }
       // (a festival is over once every balloon has drifted off)

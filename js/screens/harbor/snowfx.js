@@ -53,6 +53,8 @@ function flakeArt(col, d, v, sm) {
 // waves (the near flakes become short streaks along their flight), denser. + THE TREES SHAKING SNOW OFF in the gusts (shake()), THE GROUND
 // SNOW lifting off in wisps + drifting against the speakeasy + the benches (ground()) — never on the street under the dock (it's open).
 const LAYER = { far: 0, mid: 1, near: 2 };
+/** THE BLIZZARD's GROUND-SNOW STREAMERS (the wisps lifting off the lying snow) — OFF (the owner gave them up, Nov 1; decisions.md §10). true = back */
+export const GROUND_WISPS = false;
 export function createSnowfall() {
   let W = 0, H = 0, flakes = [], slab = null, nextSlab = 0, puffs = [], streams = [], gsNow = null;   // (gsNow: the ground snow's last frame — the debug)
   const shook = new Map();
@@ -215,7 +217,9 @@ export function createSnowfall() {
       const sec = Math.min(0.1, (s.dt || 16) / 1000), lv = clamp01(((s.level || 0) - 0.35) / 0.4) + 0.6 * clamp01(s.blizzard || 0);
       const WW = s.W || W, B = s.band, side = s.side || 1;
       gsNow.lv = +lv.toFixed(2);
-      if (!s.motion) { streams.length = 0; return; }
+      // (PERF-A — THE STREAMERS OFF: the owner, Nov 1 — "looks like ghosts / light streaks on the ground — just remove it"; the drifts
+      //  above stay. The code stays behind GROUND_WISPS, off by default)
+      if (!GROUND_WISPS || !s.motion) { streams.length = 0; return; }
       if (lv >= 0.05 && streams.length < 7) {
         // the spawn: a quiet trickle in the lulls, up to ~3 a second in a strong gust; a candidate is kept by the gust where it lands
         const x = Math.random() * WW, g = s.at ? s.at(Math.max(0, Math.min(1, x / (WW || 1)))) : 0.5;

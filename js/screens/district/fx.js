@@ -200,7 +200,8 @@ export function createFx() {
       }
       // fireworks behind the skyline (New Year, the Fourth of July) — only after dark
       const hol = L.holiday;
-      const fw = s.force.has('fireworks') || (dark > 0.5 && hol && (hol.id === 'nye' || hol.id === 'july4'));
+      // (PERF-A: s.noFireworks — City 2.0 has its own GPU show; FR5 #5 found these rockets firing BESIDE it on every &force=fireworks preview)
+      const fw = !s.noFireworks && (s.force.has('fireworks') || (dark > 0.5 && hol && (hol.id === 'nye' || hol.id === 'july4')));
       if (fw && motion) {
         const finale = L.nye && L.nye.finale != null;
         nextRocket -= dt / 1000;

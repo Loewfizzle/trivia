@@ -1190,6 +1190,9 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     reflections: () => items.filter(it => it.ready && it.pw && it.pw.on).map(it => { const R = it.kind === 'sign' ? it.sg.rect : it.kind === 'board' ? it.b.rect : null; if (R) return { id: it.id, x: R.x, y: R.y, w: R.w, h: R.h, col: it.kind === 'sign' ? it.sg.col : [255, 214, 150], a: 1 }; const s = it.lit && it.lit[0]; return s ? { id: it.id, x: s.x, y: s.y, w: s.w, h: s.h, col: roleColour(it.o.roles[0], scheme), a: it.o.st.a } : null; }).filter(Boolean),
     /** NEON PASS 4: the solid signs' rects on screen (a sky beam rises from above the roof sign on its tower) */
     signRects: () => signs.filter(sg => sg.rect).map(sg => sg.rect),
+    /** PERF-A — what stands ON the roofs (the roof + tower signs, the roof billboards): their boxes (pt) — a balloon rises over them
+     *  (balloons.js: the owner saw them parked behind HIGH STAKES / NEON PAR) */
+    roofRects: () => [...signs.filter(sg => sg.rect && sg.spot && (sg.spot.mount === 'roof' || sg.spot.mount === 'tower')).map(sg => sg.rect), ...boards.filter(b => b.rect && b.spot && (b.spot.mount === 'roof' || b.spot.mount === 'tower' || b.spot.mount === 'speak')).map(b => b.rect)],
     /** 9a — THE RAIN catches the signs' light: each sign's rect + its colour + whether it is lit (screen pt) */
     signLights: () => signs.filter(sg => sg.rect).map(sg => { const it = items.find(i => i.sg === sg); return { x: sg.rect.x, y: sg.rect.y, w: sg.rect.w, h: sg.rect.h, col: Array.isArray(sg.col) ? sg.col : hexRgb(String(sg.col || '#d6f0ff')), on: !it || !it.pw || it.pw.on ? 1 : 0 }; }),
     /** NEON PASS 4: the sky beams' colours — each tower's own neon colour (its party colour while a sweep / strobe holds it) */
