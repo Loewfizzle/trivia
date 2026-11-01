@@ -561,6 +561,7 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
+- **THE FIREWORKS ON THE PHONE** (PART 10): the GPU engine's speed on the iPhone is unmeasured — the phone bench's fw-party / fw-week / fw-snow scenes (`&bench=1`) are the owner's run; the mini PC's A/B (main thread, `--gpu`): a weeknight show −3.1 ms, the party finale +1.9 ms (noise ±2.5). passes/part-10.md.
 - **The harvest model "identical" on the owner's iPhone** (C4c's review): NOT reproduced — the live site loads + draws it in WebKit and
   Chromium at 402×874 + his 402×660 (the three files 200, `model: true`, the two looks plainly different). Most likely a panel state
   (EVERYONE / JUST ME) replaced the links' own `&when`; that now says so (a toast) and the model's load is told (the LOAD log, a failure

@@ -433,6 +433,16 @@ G('fireworks', async () => {
     const below = tr && tr.tag ? tr.tag.y + tr.tag.h : 0;
     ok(f.ly.every(y => y > below) && sd.logo === 1, `MIDNIGHT's SHELLS below the sign (bursts at y ${f.ly.join(', ')} > the tagline's foot ${Math.round(below)}), the sign lit`);
     await Q.ctx.close(); }
+  // THE SHOW IS HEARD (the tap unlocks the audio): a weeknight show's launches, booms (after the distance's delay, on the take's hit) +
+  // the falling sparks' crackle / sizzle through the city's player (the test browser is muted — the page's own log is read)
+  { const Q = await open({ slot: 'fw4', qs: `when=2026-10-21T21:40${GR}&force=fireworks`, view: [402, 874] });
+    await harborUp(Q.page); await tapAt(Q.page, 30, 300);
+    const L = `(window.__district.harbor().sounds.player.log || []).filter(l => /^fw-/.test(l.f || ''))`;
+    await waitFor(Q.page, `${L}.some(l => /boom/.test(l.f))`, 'a boom heard', 25000).catch(() => {});
+    const lg = await ev(Q.page, L);
+    const boom = lg.filter(l => /boom/.test(l.f)), launch = lg.filter(l => /launch|whistle/.test(l.f));
+    ok(boom.length > 0 && launch.length > 0 && boom.every(l => !l.late), `THE SHOW IS HEARD: ${launch.length} launch(es) + ${boom.length} boom(s) (${[...new Set(lg.map(l => l.f))].join(', ')}), every boom on time${boom.length ? ` (waits ${boom.map(l => l.wait).join(' / ')} s)` : ''}`);
+    await Q.ctx.close(); }
   { const Q = await open({ slot: 'fw3', qs: `when=2026-10-21T21:30:20${GR}&wx=storm`, view: [402, 874] });
     await harborUp(Q.page);
     await waitFor(Q.page, `${F}.tonight.length > 0`, 'tonight\'s shows planned', 15000);

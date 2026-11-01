@@ -108,7 +108,31 @@ they came (§7 the boxer, §6 the sign).
   A BAR, THE GOLD WILLOW CURTAIN on a PHRASE (4 bars); a cue moves at most half its unit; never launched before the show starts.
 
 ## Group 4 — the numbers
-(filled in at the end of the pass)
+- **SPEED** (`title-perf.mjs`, the mini PC, 402×874, tier 2, 3 + 3 windows). WITHOUT `--gpu` the harness runs WebGL in software and
+  charges the GPU's fill to the main thread (a weeknight show read +18.8 ms, noise ±173 — not a phone's picture); WITH `--gpu` (the
+  script's model of a strong phone): **a weeknight show vs the build before the pass: FASTER, −3.1 ms of main-thread work (noise ±1.3)** —
+  the stopped crowd walks less, the GPU carries the sparks; **THE PARTY SHOW's FINALE over the full Saturday crowd vs the same party moment
+  with no show (`--scenes p10-party0 --vs p10-party`): SAME, +1.9 ms (noise ±2.5)** — 20.8 ms of main-thread work at 2× CPU, frames at the
+  TV's ~30 Hz cap (33.5 ms p95 both). The party A/B against the old build is INVALID (the old build's forced finale never settles a window).
+  At 4× CPU a party night steps itself off tier 2 (the harness says so) — no tier-2 window there. **THE FRAME HEADROOM AT THE PARTY PEAK on
+  the phone is the PHONE BENCH's to state** (`&bench=1`: fw-party / fw-week / fw-snow added) — the owner's run, not yet made.
+- **THE CPU SIDE PER FRAME**: the shells' instances are written once at their launch (≤ ~400 floats × 16 a shell); a frame is 3 instanced
+  draws + ~8 light uniforms; the renderer's own measured JS per frame ≈ 0 ms (the GL calls are queued). New canvases: ONE (the WebGL layer,
+  ~11 MB at 402×689 dpr 2 incl. its double buffer + the 2 MB spark ring + the smoke ring), only while a show is near (freed ~4 s after the
+  last smoke); counted by the memory guard (`glCtx` → canvasMb).
+- **SOUND**: 28 takes, 0.86 MB (audio/city/ 20.98 MB in all).
+- **LOCAL RUN** (the mini PC, alone): unit 1023 / 1023 · rules 45 / 45 · /api 25 / 25 · smoke `GAMES=cipher` 3 / 3 (title.js is shared) ·
+  the new `fireworks` group 8 / 8 · THE FULL e2e-harbor suite, run 1: 777 / 781 + two aborted groups (`heli`'s timeout, the workers' "promenade
+  empty") — fixed or load (below), the four groups then 53 / 53 alone; run 2 (after the fixes): **798 / 801**, no aborted group — the misses: A
+  CALM LOAD STEPS NOTHING (2× CPU; the known machine-timing check that fails the same before the pass — ATM-A / ATM-C / ATM-D), the spiders'
+  calm-down + the party-sync joiner (127 ms) — both passed in run 1 and pass alone (39 / 39: the joiner within 16 ms) — the shards' load.
+
+- **WHAT THE FIRST FULL RUN FOUND** (fixed): (1) the bounce-break preview at 9:30 pm on a Thursday met the new weeknight show — the crowd
+  rightly stopped to watch → A PREVIEW SHOWS WHAT IT ASKS FOR: while a dance / a legendary / a raid / the circle / a helicopter / the drones
+  is forced, tonight's scheduled shows stand aside (`scene.js#fwStand`; a forced show still runs); (2) under load a boom whose take wasn't
+  decoded by its moment was dropped as late → every fireworks take is fetched + decoded + pinned from ~30 s before a show (re-armed every
+  10 s, retried each frame until the audio is unlocked); (3) the `heli` group's timeout + the workers' "promenade empty" passed alone (the
+  four local shards' load) and with (1).
 
 ## Decisions
 - **BEHIND THE LIT SIGN** (the owner's 9:05 pm add-on) — the engine's layer inside the scene box under the sign; the sign joins the show
@@ -121,7 +145,20 @@ they came (§7 the boxer, §6 the sign).
 - **The windows' toast not built** (doesn't read at 40 pt).
 
 ## Known issues
-(filled in at the end of the pass)
+- **The phone is the judge of speed**: no phone-bench run yet for the fireworks scenes (the mini PC's numbers: the main thread only; the
+  GPU's fill on a weak phone is unmeasured) — the owner's `&bench=1` run on the iPhone (fw-party / fw-week / fw-snow) states the headroom.
+- **Reflections are stylised** (squashed into the short water band + the light columns), not a true mirror.
+- **The forced previews' plan length** is the unsynced plan's (a synced party show may run up to ~3 s longer than the preview's `t1` — the
+  cheer at its end can come a beat before the last salute).
+- **Sound on a phone joining mid-show**: shells already up when the page opened stay silent (only launches + bursts crossed live are heard).
+- **The street party's `blocked` rule is new** (it never reached the street party before): on a raid / legendary night a dance break near
+  it is now skipped as THE CONFLICTS always said — the breaks of those few nights move.
+- The far layer's comets start ~12 pt below the roofline — on a very low stretch of skyline a comet's first frames can show between towers.
 
 ## Handoff to FR5 + the Grok review
-(filled in at the end of the pass)
+- FR5 (Fable, the city's engine): the fireworks engine is new (`screens/harbor/fireworks.js`, ~500 lines) — its memory (one WebGL layer
+  only near a show), its context loss (falls back silently, `failed` + `why` on the readout), the ring's overwrite under a long finale, the
+  `fwPlan` memo; THE PASS OVERHEAD (this pass: 6 Group 0 fixes as parallel forks — ~20–40 min each, run side by side; the full local suite;
+  the A/B harness's 4× party windows never settling).
+- The Grok review (around the city): the audio sync (`syncToBeat` reads the deck + the analysed grid — the same on every phone).
+- NYE + July 4th (11b / 11c): author their shows on `scriptShow` (cues + fill sections) — the engine, the layers + the sounds are ready.

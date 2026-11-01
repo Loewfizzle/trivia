@@ -486,6 +486,16 @@ launch-1, crackle-1, whistle-1 + crowd-2 are Sonniss, never stand-alone download
 - **CREDITS**: the 13 CC BY lines of credits.txt's ready-to-paste block, exact, in `js/ui/credits.js` (☰ → CREDITS → SOUND EFFECTS) +
   `audio/city/CREDITS.md` / `sources.json` (the importer); the CC0 + Sonniss ones as one courtesy line.
 
+- **THE PLAYBACK** (`screens/harbor/scene.js` fwHooks / fwSoundTick): the LAUNCH (+ a WHISTLE on ~16 % of the shells) → the BOOM at the burst
+  after the distance's delay (the barges 0.36–0.56 s, the lighthouse 0.42 s, the far layer behind the skyline 0.95–1.3 s), lined up on the take's
+  `hit` (city-sound.js's sync, mark 'hit') — `firework-burst` for the barges + the lighthouse, `firework-burst-far` for the skyline → CRACKLE
+  (crackle / glitter / strobe) or the WILLOW's sizzle (willow / palm) → THE FINALE: `firework-finale` through `ducked` (the music to ~74 %,
+  held for the finale) + on a party night the `firework-crackle-bed` loop → the crowd's `firework-ooh` on a big one (≤ 1 per 9 s) + a
+  `crowd-cheer` at the end. In the finale single booms thin to one per 0.26 s (the barrage carries the din). Weeknights: the fireworks' own
+  sounds only; muted / locked = a silent show. THE PARTY SYNC: `core/harbor-fireworks.js#syncToBeat` puts the bursts on the party song's beat
+  grid (data/mood-music.json songs[id].grid) — the booms follow the bursts, so they land on the beat + the distance. The e2e `fireworks`
+  group's "THE SHOW IS HEARD" reads the player's log (a weeknight show: launches + a near boom 0.45 s after its flash).
+
 ## THE THUNDER RECORDED + THE BOXER's BAG (ATM-C, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js#thunder` (+ `CRACK2`), `screens/harbor/lightning.js` (the held flash), `core/harbor-boxer.js#boxerCues`
 - **THE THUNDER IS RECORDED** (the owner: ATM-B's synthesized crack "sounds terrible — very cheap and basic" → `cityCrack` REMOVED): Grok's set
   (`art/city-sfx/thunder/` — the 9 originals git-ignored, never edited; `claude-notes.txt` + `credits.txt` beside them) → 9 web copies, **0.63 MB**

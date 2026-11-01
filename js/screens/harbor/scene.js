@@ -31,6 +31,7 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createHarborFireworks } from './fireworks.js';
+import { cityPrefetch } from '../../audio/city-sound.js';
 import { fireworksNight, planShow, fireworksWeather, fireworksBusy, syncToBeat, FW_EDGE } from '../../core/harbor-fireworks.js';
 import { hashString as fwHash } from '../../core/rng.js';
 import { createRainbow } from '../district/rainbow.js';
@@ -703,18 +704,22 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return out;
   }
   /** the shows near now (their lead-in → their smoke) */
+  // (a PREVIEW shows what it asks for: while a dance / a legendary / a raid / the circle / a helicopter / the drones is forced, tonight's
+  //  scheduled shows stand aside — a forced show still runs)
+  const FW_STAND = ['dance', 'ufo', 'tr3b', 'raid', 'circle', 'helicopter', 'break-heli', 'drones'];
+  const fwStand = () => FW_STAND.some(id => clock.force.has(id));
   function fwShowsNow(nowS) {
-    const forced = fwForced(nowS), list = forced.length ? forced : (shownAt >= 0 && LK.local ? fwNightOf(nowS) : []);
+    const forced = fwForced(nowS), list = forced.length ? forced : (shownAt >= 0 && LK.local && !fwStand() ? fwNightOf(nowS) : []);
     return list.filter(sh => nowS > sh.t0 - 20 && nowS < sh.t1 + 10);
   }
   /** the scheduled shows near [a, b] (abs s) — what the dance breaks + the patrol give way to */
-  const fwHold = (a, b) => { try { const nowS = clock.now() / 1000; return fireworksBusy(fwForced(nowS), a, b) || (LK.local ? fireworksBusy(fwNightOf(a), a, b) || fireworksBusy(fwNightOf(b), a, b) : null); } catch { return null; } };
+  const fwHold = (a, b) => { try { const nowS = clock.now() / 1000; return fireworksBusy(fwForced(nowS), a, b) || (LK.local && !fwStand() ? fireworksBusy(fwNightOf(a), a, b) || fireworksBusy(fwNightOf(b), a, b) : null); } catch { return null; } };
   /** the crowd's view of the shows (the people + the street party: they stop + look up): the evening's shows near now (+ a preview's) →
    *  fwShows [{ t0, t1, fin }] + fireworks (the witnesses' event: the one under way / just over) */
   function fwCrowd() {
     const nowS = clock.now() / 1000;
     let list = [];
-    try { list = [...fwForced(nowS), ...(LK.local ? fwNightOf(nowS) : [])]; } catch { /* fine */ }
+    try { list = [...fwForced(nowS), ...(LK.local && !fwStand() ? fwNightOf(nowS) : [])]; } catch { /* fine */ }
     const P = knob('fireworks.party').finale, near = list.filter(sh => sh.t1 > nowS - 1800 && sh.t0 < nowS + 1800);
     const fwShows = near.map(sh => ({ t0: Math.round(sh.t0 * 10) / 10, t1: sh.t1, fin: sh.kind === 'party' ? sh.t1 - P - 9 : sh.t1 - 8 }));
     // (+ THE TR-3B in a party — the owner: if a legendary can come during a party, everyone stops + stares: the party's pockets watch it the
@@ -763,9 +768,16 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     }
     if (c.big && now - fwS.oohAt > 9000 && fwState.show && fwState.show.kind !== 'midnight') { fwS.oohAt = now; snd.play('firework-ooh', { gain: PT.on > 0.3 ? 0.7 : 0.4, pan: pan * 0.4, delay: d + 0.35 }); }
   };
-  /** the show-long sounds: the finale's barrage + crackle bed (once a show), the cheer at the end */
-  function fwSoundTick(nowS) {
+  /** the show-long sounds: the finale's barrage + crackle bed (once a show), the cheer at the end; every take FETCHED + DECODED (+ pinned)
+   *  from ~30 s before a show (re-armed every 10 s) — a boom whose take isn't ready by its moment is dropped as late (the e2e found it) */
+  let fwFetchAt = 0;
+  function fwSoundTick(nowS, shows) {
     const sh = fwState.show;
+    if (shows && shows.some(x => nowS > x.t0 - 30 && nowS < x.t1) && performance.now() - fwFetchAt > 10000) {
+      let got = false;   // (nothing fetches before the audio is unlocked — tried again next frame until it does)
+      for (const sl of ['firework-burst', 'firework-burst-far', 'firework-launch', 'firework-whistle', 'firework-crackle', 'firework-willow', 'firework-ooh', 'firework-finale', 'crowd-cheer']) for (let i = 0; i < 8; i++) got = cityPrefetch(sl, i, { hold: 60000 }) || got;
+      if (got) fwFetchAt = performance.now();
+    }
     if (sh && fwState.on && fwFinaleNow() && fwS.finaleFor !== sh.id && sh.kind !== 'midnight') {
       fwS.finaleFor = sh.id;
       if (snd.ducked) snd.ducked('firework-finale', { gain: sh.kind === 'party' ? 1 : 0.6, pan: 0.15, depth: 0.74, hold: sh.kind === 'party' ? 22 : 8, release: 6 });
@@ -792,7 +804,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (S.onSignFlash && Math.abs(fwFlash - fwFlashSent) > 0.02) { fwFlashSent = fwFlash < 0.02 ? 0 : fwFlash; S.onSignFlash(fwFlashSent); }
     fwDimK += ((dimNow ? 1 : 0) - fwDimK) * Math.min(1, (lastDt || 16.7) / 1800); if (Math.abs(fwDimK - (dimNow ? 1 : 0)) < 0.002) fwDimK = dimNow ? 1 : 0;
     fwState.on = !!cur && launching; fwState.show = cur; fwState.why = cur ? (launching ? 'on' : 'cancelled: ' + (legendUp ? 'a legendary' : wxOk.why)) : '';
-    try { fwSoundTick(nowS); } catch { /* audio is polish */ }
+    try { fwSoundTick(nowS, shows); } catch { /* audio is polish */ }
     // the bursts' light in the harbor: a column under each (the near layers), the next water frame
     if (up) for (const l of fwx.lights()) if (l.layer !== 'sky') water.light(l.x, l.y, [l.c[0] * 255, l.c[1] * 255, l.c[2] * 255], Math.min(1, l.I * 0.8), l.R * 0.18, Math.min(140, l.R * 1.1));
   }
