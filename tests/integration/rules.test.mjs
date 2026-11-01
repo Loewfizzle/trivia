@@ -87,7 +87,7 @@ test('LOCK THE DOOR: host only; new players are refused, players already in rejo
   await assertFails(update(ref(db('host'), `${R}/meta`), { locked: 'yes' }), 'a boolean');
   await assertSucceeds(update(ref(db('host'), `${R}/meta`), { locked: true }));
   await assertFails(set(ref(db('p3'), `${R}/players/p3`), player('NEW')), 'a new player cannot join a locked room');
-  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), player('TWO')), 'a player already in rewrites their node (refresh / rejoin)');
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), joinedAt: 2 }), 'a player already in rewrites their node (refresh / rejoin — joinedAt kept)');
   await assertSucceeds(update(ref(db('p2'), `${R}/players/p2`), { name: 'TWO B' }), '…and edits it');
   await assertSucceeds(set(ref(db('p2'), `${R}/presence/p2`), { online: true, lastSeen: serverTimestamp() }), '…and comes back online');
   await assertFails(set(ref(db('k1'), `${R}/players/k1`), player('KICKED')), 'kicked stays kicked (locked)');
@@ -143,6 +143,39 @@ test('presence: own node only (host may clear)', async () => {
   await assertFails(set(ref(db('p2'), `${R}/presence/host`), { online: false, lastSeen: 0 }));
 });
 
+// APP FIXES (Grok 5.1): ONE CHILD PER CONNECTION — c/{connId}, removed by its own socket's onDisconnect
+test('presence: one child per connection — your own only; the old shape still accepted; no player row or kicked = no presence', async () => {
+  await seed(lobbyRoom());
+  await assertSucceeds(update(ref(db('p2'), `${R}/presence/p2`), { online: true, lastSeen: serverTimestamp(), 'c/k1abc': serverTimestamp() }));
+  await assertSucceeds(update(ref(db('p2'), `${R}/presence/p2`), { 'c/k2def': serverTimestamp() }), 'a second tab / the refreshed page');
+  await assertSucceeds(remove(ref(db('p2'), `${R}/presence/p2/c/k1abc`)), 'the old socket removes only its own child');
+  assert.ok((await get(ref(db('p2'), `${R}/presence/p2/c/k2def`))).exists(), 'the new connection stays');
+  await assertFails(update(ref(db('p2'), `${R}/presence/host`), { 'c/evil': serverTimestamp() }), 'never another player\'s');
+  await assertFails(remove(ref(db('p2'), `${R}/presence/host/c/x`)), 'never remove another player\'s connection');
+  await assertFails(update(ref(db('p2'), `${R}/presence/p2`), { 'c/k3': 'yes' }), 'a timestamp, not a string');
+  await assertSucceeds(update(ref(db('p2'), `${R}/presence/p2`), { v: 2 }), 'the shape marker');
+  await assertFails(update(ref(db('p2'), `${R}/presence/p2`), { v: 3 }), 'only v 2');
+  await assertSucceeds(set(ref(db('p2'), `${R}/presence/p2`), { online: true, lastSeen: serverTimestamp() }), 'the old shape (older clients) still writes');
+  await assertFails(set(ref(db('outsider'), `${R}/presence/outsider`), { online: true, lastSeen: serverTimestamp() }), 'no player row, no presence');
+  await assertSucceeds(update(ref(db('host'), R), { 'kicked/p2': true, 'players/p2': null, 'presence/p2': null }));
+  await assertFails(set(ref(db('p2'), `${R}/presence/p2`), { online: false, lastSeen: serverTimestamp() }), 'a kicked phone\'s late onDisconnect can\'t write it back');
+});
+
+test('joinedAt: written once at the server clock — a player can\'t rewrite it to sort first (host claims go in join order)', async () => {
+  await seed(lobbyRoom());
+  await assertFails(set(ref(db('p2'), `${R}/players/p2`), { name: 'TWO', color: 'magenta', avatar: 'eye', joinedAt: 0 }), 'rewrite to 0 refused');
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), { name: 'TWO!', color: 'magenta', avatar: 'eye', joinedAt: 2 }), 'a profile edit keeps it');
+  await assertFails(set(ref(db('p3'), `${R}/players/p3`), { name: 'THREE', color: 'green', avatar: 'hex', joinedAt: 1 }), 'a new seat can\'t pick an old time');
+  await assertSucceeds(set(ref(db('p3'), `${R}/players/p3`), player('THREE')), 'a new seat at server time');
+});
+
+test('a kick stops game writes: a kicked participant can\'t write their board', async () => {
+  await seed(playingRoom('play'));
+  const board = { g: ['abc='], p: ['01200'], solved: false, done: false, at: serverTimestamp() };
+  await assertSucceeds(update(ref(db('host'), R), { 'kicked/p2': true, 'players/p2': null, 'presence/p2': null }));
+  await assertFails(set(ref(db('p2'), `${R}/boards/m1/1/p2`), board), 'kicked (still in participants) — refused');
+});
+
 test('game state and meta: host only', async () => {
   await seed(playingRoom());
   await assertFails(update(ref(db('p2'), `${R}/game`), { phase: 'final' }));
@@ -183,9 +216,14 @@ test('host migration: denied while host is alive', async () => {
   await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'));
 });
 
-test('host migration: allowed when host offline > 8s', async () => {
+test('host migration: allowed when host offline > 10s (the client\'s HOST_TIMEOUT_MS); refused at 9 s', async () => {
+  const early = lobbyRoom();
+  early.rooms[CODE].presence.host = { online: false, lastSeen: now() - 9000 };
+  await seed(early);
+  await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'), '9 s is under the client\'s 10 s');
+  await env.clearDatabase();
   const room = lobbyRoom();
-  room.rooms[CODE].presence.host = { online: false, lastSeen: now() - 9000 };
+  room.rooms[CODE].presence.host = { online: false, lastSeen: now() - 11000 };
   await seed(room);
   await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'someone-else'), 'must claim for yourself');
   await assertFails(set(ref(db('outsider'), `${R}/meta/hostId`), 'outsider'), 'must be a player');
@@ -207,8 +245,13 @@ test('host migration: allowed when host left the room', async () => {
 });
 
 test('host migration: frozen host (stale heartbeat) during a game', async () => {
+  const fresh = playingRoom();
+  fresh.rooms[CODE].meta.hostBeat = now() - 9000;
+  await seed(fresh);
+  await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'), 'a 9-s-old beat is not stale yet');
+  await env.clearDatabase();
   const room = playingRoom();
-  room.rooms[CODE].meta.hostBeat = now() - 9000;
+  room.rooms[CODE].meta.hostBeat = now() - 11000;
   await seed(room);
   await assertSucceeds(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'));
   // heartbeat ignored in lobby
@@ -217,6 +260,39 @@ test('host migration: frozen host (stale heartbeat) during a game', async () => 
   await env.clearDatabase();
   await seed(lobby);
   await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'));
+});
+
+// APP FIXES (Grok 4.4): a refresh left the host's presence "offline" (a late onDisconnect) — a fresh beat must block the claim
+test('host migration: a FRESH heartbeat blocks a claim during a game, whatever presence says', async () => {
+  const room = playingRoom();
+  room.rooms[CODE].meta.hostBeat = now() - 1000;
+  room.rooms[CODE].presence.host = { online: false, lastSeen: now() - 60000 };
+  await seed(room);
+  await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'));
+});
+
+test('host migration: the host\'s live connection beats a stale online:false (one child per connection, lobby)', async () => {
+  const room = lobbyRoom();
+  room.rooms[CODE].presence.host = { online: false, lastSeen: now() - 60000, c: { k9: now() } };
+  await seed(room);
+  await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'));
+});
+
+test('host migration: a v-2 host with no connection left is gone once its lastSeen is 10 s old', async () => {
+  const room = lobbyRoom();
+  room.rooms[CODE].presence.host = { online: true, lastSeen: now() - 11000, v: 2 };
+  await seed(room);
+  await assertSucceeds(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'));
+});
+
+test('host migration: the claimer must be online (old shape or a live connection)', async () => {
+  const room = lobbyRoom();
+  room.rooms[CODE].presence.host = { online: false, lastSeen: now() - 60000 };
+  room.rooms[CODE].presence.p2 = { online: false, lastSeen: now() - 60000 };
+  await seed(room);
+  await assertFails(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'), 'an offline claimer is refused');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/presence/p2`), { online: false, lastSeen: now(), c: { k1: now() } }));
+  await assertSucceeds(set(ref(db('p2'), `${R}/meta/hostId`), 'p2'), 'a live connection is online');
 });
 
 test('stale-room cleanup: query + delete only rooms idle > 1h (no game for an hour)', async () => {
@@ -768,9 +844,9 @@ test('profiles + boards: public profiles, private stats and keys, nothing a clie
   ];
   for (const [path, v] of writes) await assertFails(set(ref(db('host'), path), v), `write ${path}`);
   // a room player node may carry the player's OWN profile id, and nobody else's
-  await assertSucceeds(set(ref(db('host'), `${R}/players/host`), { ...player('HOST'), pid: 'pmike0000000' }));
-  await assertFails(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), pid: 'pmike0000000' }), 'claiming someone else\'s profile');
-  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), player('TWO')), 'no profile id is fine (the server may be down)');
+  await assertSucceeds(set(ref(db('host'), `${R}/players/host`), { ...player('HOST'), joinedAt: 1, pid: 'pmike0000000' }));
+  await assertFails(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), joinedAt: 2, pid: 'pmike0000000' }), 'claiming someone else\'s profile');
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), joinedAt: 2 }), 'no profile id is fine (the server may be down)');
 });
 
 test('HIGH STAKES: bets and answers are hidden until the showdown, once each, in their phase', async () => {

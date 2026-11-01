@@ -32,6 +32,7 @@ export function createLobby() {
   let chips = new Map();
   let kickArmed = { uid: null, at: 0 };
   let sheet = null;
+  let dead = false;   // set at unmount (the lazy chat strip checks it)
 
   function inviteUrl() {
     return `${location.origin}${location.pathname}?room=${st.code}`;
@@ -105,10 +106,16 @@ export function createLobby() {
       els.chatSlot = h('div.chat-slot'),
     );
     // the chat strip (and all chat code) loads after the lobby is up
+    // (APP FIXES — Grok: the strip could be created after unmount, leaving its subscribe / onChat / 1.5-s interval running for
+    // the rest of the tab) — `dead` is set at unmount; a strip that arrives late is destroyed at once
+    dead = false;
+    const slot0 = els.chatSlot;
     import('../chat/ui.js').then(m => {
-      if (!els.chatSlot || !els.chatSlot.isConnected) return;
-      els.chatStrip = m.createChatStrip();
-      els.chatSlot.replaceChildren(els.chatStrip.el);
+      if (dead || els.chatSlot !== slot0 || !slot0.isConnected || els.chatStrip) return;
+      const strip = m.createChatStrip();
+      if (dead) { strip.destroy(); return; }
+      els.chatStrip = strip;
+      slot0.replaceChildren(strip.el);
     }).catch(e => console.warn('chat', e));
     buildGames();
     if (!greeted.has(st.code)) { greeted.add(st.code); el.classList.add('greet'); accessGranted(st.code); }
@@ -400,6 +407,7 @@ export function createLobby() {
   }
 
   function unmount() {
+    dead = true;
     flickerStop = true; clearTimeout(flickerTimer);
     clearInterval(els.idleTimer);
     if (sheet) { sheet.remove(); sheet = null; }

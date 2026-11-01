@@ -105,3 +105,30 @@ test('idle rooms: an hour without a game closes the room; unknown data never doe
   assert.equal(roomIdle(null, now), false);
   assert.equal(roomIdle({ status: 'lobby' }, now), false, 'no timestamp yet → keep');
 });
+
+// APP FIXES (Grok 4.4 / 4.5 / 5.1): "I refreshed and the game skipped me".
+test('a FRESH hostBeat blocks a claim during a game, even when the host\'s presence says offline (a late onDisconnect)', () => {
+  // the old page's queued onDisconnect landed after the refreshed page came back: presence lies "offline"
+  const presence = { host: { online: false, lastSeen: now - 60_000 }, p2: { online: true } };
+  const meta = { hostId: 'host', status: 'playing', hostBeat: now - 2000 };
+  assert.equal(hostGoneFor({ meta, players, presence, now }), 2000, 'the beat is the truth while a game runs');
+  assert.equal(shouldClaimHost({ meta, players, presence, now, me: 'p2' }), false);
+  // ...a stale beat still lets the next player in
+  assert.equal(shouldClaimHost({ meta: { ...meta, hostBeat: now - HOST_TIMEOUT_MS }, players, presence, now, me: 'p2' }), true);
+});
+
+test('presence: ONE CHILD PER CONNECTION — online while any connection is left', async () => {
+  const { presenceOnline, normalizePresence, isOnline } = await import('../js/core/room-logic.js');
+  // the refreshed page's connection B is live; the old page's late onDisconnect removed A + wrote online:false
+  const raw = { u1: { online: false, lastSeen: 5, c: { B: 9 } }, u2: { online: false, lastSeen: 7 }, u3: { online: true, lastSeen: 1 } };
+  assert.equal(presenceOnline(raw.u1), true, 'a live connection wins over a stale online:false');
+  assert.equal(presenceOnline(raw.u2), false, 'no connection left');
+  assert.equal(presenceOnline(raw.u3), true, 'the old shape (no c) still reads its flag');
+  assert.equal(presenceOnline(null), false);
+  assert.equal(presenceOnline({ online: true, lastSeen: 1, v: 2 }), false, 'the new shape: no connection child = offline, whatever the flag');
+  const n = normalizePresence(raw);
+  assert.deepEqual(n.u1, { online: true, lastSeen: 5 });
+  assert.deepEqual(n.u2, { online: false, lastSeen: 7 });
+  assert.equal(isOnline(raw, 'u1'), true, 'isOnline reads the raw shape too');
+  assert.deepEqual(normalizePresence(null), {});
+});

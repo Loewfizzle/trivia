@@ -54,7 +54,10 @@ export function createChatStrip() {
   const offStore = subscribe(paint);
   const tick = setInterval(paint, 1500); // typing entries expire on their own
   paint();
-  return { el, destroy() { offChat(); offStore(); clearInterval(tick); } };
+  // (a test hook: the lobby strips alive in this tab — e2e-presence.mjs checks a lobby left early leaks none)
+  globalThis.__chatStrips = (globalThis.__chatStrips || 0) + 1;
+  let gone = false;
+  return { el, destroy() { if (gone) return; gone = true; globalThis.__chatStrips--; offChat(); offStore(); clearInterval(tick); } };
 }
 
 // ---------------------------------------------------------------- in-game chat button

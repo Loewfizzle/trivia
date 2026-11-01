@@ -5,7 +5,7 @@ import {
 } from './firebase.js';
 import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe } from './identity.js';
-import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle } from './core/room-logic.js';
+import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } from './core/hush.js';
 import { hostSeed } from './audio/lobby-music.js';
@@ -21,6 +21,12 @@ let unsubs = [];
 let liveUnsubs = [];
 let liveWanted = null;
 let seen = { meta: false, self: false };
+// PRESENCE (APP FIXES — one child per connection, core/room-logic.js#presenceOnline): this page's live connection id in the
+// room it was armed for. null = nothing armed (left / leaving), so the self-heal below never writes us back in.
+let myConn = null;
+let lastHeal = 0;
+let healTimer = 0;
+let lastRaw = null;   // the newest raw presence snapshot (the heal's retry reads it)
 
 const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, live: {}, liveKey: null };
 
@@ -191,7 +197,10 @@ function enterRoom(code) {
     setState({ players });
     watchRoomProfiles(players);
   });
-  listen('presence', presence => setState({ presence: presence || {} }));
+  listen('presence', presence => {
+    setState({ presence: normalizePresence(presence) });
+    healPresence(code, presence);
+  });
   listen('night', night => setState({ night: night || {} }));
   listen('kicked', kicked => {
     kicked = kicked || {};
@@ -229,14 +238,56 @@ function watchLive(code, game) {
   }
 }
 
-// (Re)registers presence; called on room entry and on every reconnect.
+// (Re)registers presence; called on room entry and on every reconnect (a new socket = a new connection id).
+// ONE CHILD PER CONNECTION: presence/{uid}/c/{connId} goes away with ITS socket (onDisconnect().remove()), so an old page's
+// late onDisconnect can't mark the refreshed page offline. online + lastSeen are still written (older clients read online).
 export async function armPresence() {
-  if (!state.code || !state.connected || !state.uid) return;
-  const pRef = dbRef(`${R(state.code)}/presence/${state.uid}`);
+  const code = state.code, uid = state.uid;           // captured before the first await: never write into a room we left
+  if (!code || !state.connected || !uid) return;
+  const conn = `${Date.now().toString(36)}${Math.random().toString(36).slice(2, 8)}`;
+  myConn = { code, id: conn };
+  lastHeal = Date.now();   // the first presence snapshot before this write lands is not a reason to heal
+  const pRef = dbRef(`${R(code)}/presence/${uid}`);
   try {
-    await onDisconnect(pRef).set({ online: false, lastSeen: serverTimestamp() });
-    await set(pRef, { online: true, lastSeen: serverTimestamp() });
+    // 1. this connection's child goes with its socket (registered before the child exists: it can never outlive the socket)
+    await onDisconnect(dbRef(`${R(code)}/presence/${uid}/c/${conn}`)).remove();
+    if (state.code !== code || !myConn || myConn.id !== conn) return;   // left (or re-armed) while we waited
+    // 2. the node: v 2 = "online comes from c only" (core/room-logic.js#presenceOnline), so a socket lost before step 3
+    //    still reads offline once its child is gone
+    await update(pRef, { online: true, lastSeen: serverTimestamp(), v: 2, [`c/${conn}`]: serverTimestamp() });
+    // 3. lastSeen + the flag older clients read (the server checks an onDisconnect update against the node as it is NOW,
+    //    so it is registered after the node exists)
+    await onDisconnect(pRef).update({ online: false, lastSeen: serverTimestamp() });
   } catch (e) { console.warn('presence', e); }
+}
+
+// THE SELF-HEAL (Grok 4.5): while connected, if our own connection's child is missing (a stray write, a race with a host's
+// wipe, the node lost), write it again — at most every 5 s. Never after leaving (myConn null) or for another room.
+function healPresence(code, raw) {
+  lastRaw = raw;
+  if (!myConn || myConn.code !== code || state.code !== code || !state.connected || !state.uid) return;
+  const mine = raw && raw[state.uid];
+  if (mine && mine.c && mine.c[myConn.id]) return;
+  if (state.kicked && state.kicked[state.uid]) return;
+  const t = Date.now();
+  if (t - lastHeal < 5000) {
+    // too soon after the last write: try again when the 5 s are up (with the newest snapshot), not on the next event
+    clearTimeout(healTimer);
+    healTimer = setTimeout(() => { healTimer = 0; healPresence(code, lastRaw); }, 5000 - (t - lastHeal) + 50);
+    return;
+  }
+  lastHeal = t;
+  armPresence();
+}
+
+// Drops this page's connection from the room it was armed for (best effort; the rules let a player remove their own child).
+function dropPresence(code, uid) {
+  const conn = myConn;
+  myConn = null;
+  clearTimeout(healTimer); healTimer = 0;
+  if (!code || !uid) return;
+  onDisconnect(dbRef(`${R(code)}/presence/${uid}`)).cancel().catch(() => {});
+  if (conn && conn.code === code) remove(dbRef(`${R(code)}/presence/${uid}/c/${conn.id}`)).catch(() => {});
 }
 
 function stopListening() {
@@ -251,7 +302,7 @@ function stopListening() {
 export function exitRoom(reason, kind = 'warn') {
   const code = state.code;
   stopListening();
-  if (code && state.uid) onDisconnect(dbRef(`${R(code)}/presence/${state.uid}`)).cancel().catch(() => {});
+  dropPresence(code, state.uid);
   saveSession(null);
   setUrlRoom(null);
   setState({ ...EMPTY_ROOM, view: 'title' });
@@ -263,6 +314,7 @@ export async function leaveRoom() {
   const code = state.code;
   if (!code) return;
   const uid = state.uid;
+  myConn = null;   // leaving: the self-heal must not write us back while the node goes
   try {
     const others = Object.keys(state.players).filter(u => u !== uid);
     if (state.meta && state.meta.hostId === uid) {

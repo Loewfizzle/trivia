@@ -21,8 +21,25 @@ export function normalizeCode(input) {
   return s.length === CODE_LENGTH ? s : null;
 }
 
+// PRESENCE — ONE CHILD PER CONNECTION (APP FIXES, Grok 5.1): presence/{uid} = { online, lastSeen, c: { connId: ts } }. Each
+// connection adds its own c/{connId} with onDisconnect().remove(), so an OLD socket's late onDisconnect (a refresh, a radio
+// handoff) only removes ITS child — the player stays online while any connection is left. `online` is still written for
+// older clients; a node marked v 2 (written by this code) is online ONLY through c, a node without it (the old shape) reads its flag.
+export function presenceOnline(p) {
+  if (!p || typeof p !== 'object') return false;
+  if (p.c && typeof p.c === 'object') return Object.keys(p.c).length > 0;
+  if (p.v === 2) return false;   // the new shape with no connection left
+  return p.online === true;
+}
+/** the raw presence node → { uid: { online, lastSeen } } (what every screen + director reads; store.state.presence) */
+export function normalizePresence(raw) {
+  const out = {};
+  for (const [uid, p] of Object.entries(raw || {})) out[uid] = { online: presenceOnline(p), lastSeen: (p && p.lastSeen) || 0 };
+  return out;
+}
+
 export function isOnline(presence, uid) {
-  return !!(presence && presence[uid] && presence[uid].online === true);
+  return presenceOnline(presence && presence[uid]);
 }
 
 // Players sorted by join order (ties broken by uid so every client agrees).
@@ -39,10 +56,13 @@ export function hostGoneFor({ meta, players, presence, now }) {
   const hostId = meta && meta.hostId;
   if (!hostId || !players || !players[hostId]) return Infinity;
   const p = presence && presence[hostId];
+  // While a game runs the HEARTBEAT is the truth (APP FIXES, Grok 4.4): a fresh beat BLOCKS a claim even when presence says
+  // offline (an old socket's late onDisconnect), and a stale one deposes a host whose socket looks online (a frozen phone).
+  // The rules (meta/hostId) apply the same test.
+  if (meta.status === 'playing' && typeof meta.hostBeat === 'number') return Math.max(0, now - meta.hostBeat);
   let gone = 0;
   if (!p) gone = now - (players[hostId].joinedAt || 0);
-  else if (p.online === false) gone = now - (p.lastSeen || 0);
-  if (meta.status === 'playing' && typeof meta.hostBeat === 'number') gone = Math.max(gone, now - meta.hostBeat);
+  else if (!presenceOnline(p)) gone = now - (p.lastSeen || 0);
   return Math.max(0, gone);
 }
 

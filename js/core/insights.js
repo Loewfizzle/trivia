@@ -6,6 +6,7 @@
 // Days, weeks and hours are Eastern time, like THE BOARD's weeks. Only matches the server verified are counted
 // (that's nearly every match; none before profiles went live in Oct 2026).
 import { dayKey, weekKey, easternParts } from './week.js';
+import { presenceOnline } from './room-logic.js';
 
 const DAY = 86_400_000;
 const pad = n => String(n).padStart(2, '0');
@@ -35,7 +36,7 @@ export function liveRooms(rooms, now) {
     if (!r || !r.meta) continue;
     const presence = r.presence || {};
     const players = r.players || {};
-    const online = Object.keys(players).filter(u => presence[u] && presence[u].online).length;
+    const online = Object.keys(players).filter(u => presenceOnline(presence[u])).length;   // (one child per connection — room-logic.js)
     if (!online) continue;
     const playing = r.meta.status === 'playing' && r.game && r.game.id ? r.game.id : null;
     list.push({ online, players: Object.keys(players).length, game: playing, phase: playing ? r.game.phase || null : null, age: Math.max(0, now - (r.meta.createdAt || now)) });
