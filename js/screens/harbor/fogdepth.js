@@ -9,6 +9,7 @@
 // THE COST: three veils (one gradient fill each, cached by colour + band), ≤ ~24 halo sprites (cached per colour), two bank strips (one
 // baked tile drawn ~2× per strip) — the tier table's `fogHalos` + `fogBanks` step them down on weak phones.
 import { safeCtx } from '../../ui/canvas-safe.js';
+import { tierVal } from '../../core/harbor-tiers.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const k = clamp01((v - a) / (b - a)); return k * k * (3 - 2 * k); };
 const lerp = (a, b, k) => a + (b - a) * k;
@@ -186,7 +187,7 @@ export function createFogDepth() {
     /** A BANK drifting across a band (the road, the promenade) on the shared wind: the baked patchy tile at two depths, the near one
      *  faster; thicker at the band's top (the far side) — people walking through it fade in + out. dense: the strength, × the look */
     bank(c, which, y0, y1) {
-      if (look.k <= 0.01 || !(y1 > y0) || tier < 1 && which !== 'road') return;
+      if (look.k <= 0.01 || !(y1 > y0) || (!tierVal('fogPromBank', tier) && which !== 'road')) return;
       const amp = (which === 'road' ? lerp(0.16, 0.55, look.m) : lerp(0.07, 0.3, look.m)) * look.k;
       if (amp < 0.01) return;
       if (!tile) bakeTile();

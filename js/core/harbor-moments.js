@@ -94,7 +94,9 @@ export const dayKey = (y, m, d) => `${y}-${String(m).padStart(2, '0')}-${String(
  *  + THE HOMECOMING — the night before Thanksgiving (core/party.js#partyDow) */
 export const partyAt = (dow, h, key) => {
   if (key) { const [y, m, d] = String(key).split('-').map(Number); dow = partyDow(y, m, d, dow); }
-  return ((dow === 5 || dow === 6) && h >= 19.5) || ((dow === 6 || dow === 0) && h < 2.25);
+  // (PERF-B — FR5 C2a: THE CITY TIMETABLE's party.night row (from 20 → to 26), with the moments' own margins: half an hour early, 15 min late)
+  const pn = knob('party.night');
+  return ((dow === 5 || dow === 6) && h >= pn.from - 0.5) || ((dow === 6 || dow === 0) && h < pn.to - 24 + 0.25);
 };
 /** partyAt at an absolute time (s) in a zone (off: minutes east of UTC) */
 export const partyAtT = (t, off) => { const lt = t + (off || 0) * 60, d = new Date(lt * 1000); return partyAt(d.getUTCDay(), ((lt / 3600) % 24 + 24) % 24, `${d.getUTCFullYear()}-${d.getUTCMonth() + 1}-${d.getUTCDate()}`); };

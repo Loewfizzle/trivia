@@ -11,6 +11,7 @@
 //   fog(c, s)    over the skyline, before the street: banks of fog drifting through the towers
 //   flash(c, s)  over everything: the street and the city lit for an instant by a strike
 
+import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -50,7 +51,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
   let strike = null, nextStrike = 3 + Math.random() * 5, boltCv = null;
   let fogShape = null;
   const glowCache = new Map();
-  const glow = (col) => { const k = col.join(','); let g = glowCache.get(k); if (!g) { g = mk(64, 64); const x = g.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, rgb(col, 1)); gr.addColorStop(0.4, rgb(col, 0.35)); gr.addColorStop(1, rgb(col, 0)); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); glowCache.set(k, g); } return g; };
+  const glow = (col) => { const k = col.join(','); let g = glowCache.get(k); if (!g) { g = mk(64, 64); const x = safeCtx(g); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, rgb(col, 1)); gr.addColorStop(0.4, rgb(col, 0.35)); gr.addColorStop(1, rgb(col, 0)); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); glowCache.set(k, g); } return g; };
 
   // ---------------------------------------------------------------- shapes: density + light marched from above and below
   function* computeShape(kind, w, h, seed) {
@@ -124,7 +125,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
     return { sun: mix(sunG, [180, 190, 220], moon * 0.3), amb: ambG, city, dark };
   }
   function colourShape(sh, Lt) {
-    const x = sh.cv.getContext('2d');
+    const x = safeCtx(sh.cv);
     const img = x.createImageData(sh.cw, sh.ch);
     const px = img.data;
     const { sun, amb, city } = Lt;
@@ -200,7 +201,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
   function makeBolt(x0, y0, y1) {
     const sc = Math.min(2, window.devicePixelRatio || 1);
     const pad = 70, bw = 280;
-    const cv = mk((bw + pad * 2) * sc, (y1 - y0 + pad * 2) * sc), x = cv.getContext('2d');
+    const cv = mk((bw + pad * 2) * sc, (y1 - y0 + pad * 2) * sc), x = safeCtx(cv);
     x.scale(sc, sc); x.translate(pad + bw / 2, pad);
     x.lineCap = 'round'; x.lineJoin = 'round';
     const segs = [];
@@ -246,7 +247,7 @@ export function createWeatherFx({ onFlash = null } = {}) {
     return { cw, ch, a, cv: mk(cw, ch), key: '' };
   }
   function colourFog(f, col) {
-    const x = f.cv.getContext('2d'), img = x.createImageData(f.cw, f.ch);
+    const x = safeCtx(f.cv), img = x.createImageData(f.cw, f.ch);
     for (let i = 0; i < f.cw * f.ch; i++) { img.data[i * 4] = col[0]; img.data[i * 4 + 1] = col[1]; img.data[i * 4 + 2] = col[2]; img.data[i * 4 + 3] = Math.round(f.a[i] * 255); }
     x.putImageData(img, 0, 0);
   }

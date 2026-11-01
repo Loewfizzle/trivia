@@ -9,6 +9,7 @@
 //                 its light lies in the wet street (a soft flipped copy)
 // Every bow is baked once per layout into an offscreen canvas and only faded (the neon animates its brightness alone).
 
+import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 import { bowGeometry } from '../../core/rainbow.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -84,7 +85,7 @@ export function createRainbow({ harbor = false } = {}) {
     x.save(); x.globalCompositeOperation = 'destination-in'; x.fillStyle = gr; x.fillRect(0, 0, W, HZ); x.restore();
   }
   function bakeSoft(kind, secondary) {
-    const s = bakeScale(), cv = mk(W * s, HZ * s), x = cv.getContext('2d');
+    const s = bakeScale(), cv = mk(W * s, HZ * s), x = safeCtx(cv);
     x.scale(s, s);
     const g = geo, band = g.band, rIn = g.R - band;
     const moon = kind === 'moon';
@@ -102,7 +103,7 @@ export function createRainbow({ harbor = false } = {}) {
       const R2 = g.R * 1.21, b2 = band * 1.75;
       ring(x, g, g.R + band * 0.12, R2 - b2, [[0, [8, 16, 36], 0], [0.25, [8, 16, 36], 0.055], [0.8, [8, 16, 36], 0.055], [1, [8, 16, 36], 0]]);
       const rev = [[0, SPECTRUM[5][1], 0], ...SPECTRUM.map(([u, c, a]) => [1 - u, c, a * (g.phone ? 0.36 : 0.3)]).reverse(), [1, SPECTRUM[0][1], 0]];
-      const tmp = mk(W * s, HZ * s), tx = tmp.getContext('2d'); tx.scale(s, s);
+      const tmp = mk(W * s, HZ * s), tx = safeCtx(tmp); tx.scale(s, s);
       ring(tx, g, R2 - b2 * 1.1, R2 + b2 * 0.12, rev);
       if (g.phone) softHole(tx, g.textBlock, 1.12, 1.6);        // on a phone it passes behind SPEAKEASY and the tagline
       x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(tmp, 0, 0); x.setTransform(s, 0, 0, s, 0, 0);
@@ -119,13 +120,13 @@ export function createRainbow({ harbor = false } = {}) {
     const n = TUBES.length, sp = g.band / n, tw = Math.max(2.2, sp * 0.5);
     const pad = tw * 9, y0 = Math.max(0, g.top - pad), h = HZ - y0;
     const tubes = [];
-    const comp = mk(W * s, h * s), cx0 = comp.getContext('2d');
+    const comp = mk(W * s, h * s), cx0 = safeCtx(comp);
     // the clips: dark holders along each tube, lined up across the six (a bracket every ~13° on a phone, closer on a wide screen)
     const step = g.phone ? 21 : 9;
     const clipAngles = [];
     for (let a = 90 - step * 0.5; a > 0; a -= step) clipAngles.push(a, 180 - a);
     for (let i = 0; i < n; i++) {
-      const cv = mk(W * s, h * s), x = cv.getContext('2d');
+      const cv = mk(W * s, h * s), x = safeCtx(cv);
       x.setTransform(s, 0, 0, s, 0, -y0 * s);
       const r = g.R - sp * (i + 0.5), col = TUBES[i];
       const arc = () => { x.beginPath(); x.arc(g.cx, g.cy, r, Math.PI, Math.PI * 2); };
@@ -155,9 +156,9 @@ export function createRainbow({ harbor = false } = {}) {
     }
     // its light in the wet street, baked: mirrored about the horizon and squashed (a wet street, not a mirror), blurred twice by
     // scaling, fading with the distance from the towers' feet
-    const lo = mk(comp.width * 0.12, comp.height * 0.12); lo.getContext('2d').drawImage(comp, 0, 0, lo.width, lo.height);
+    const lo = mk(comp.width * 0.12, comp.height * 0.12); safeCtx(lo).drawImage(comp, 0, 0, lo.width, lo.height);
     const rw = Math.max(1, Math.round(W * 0.25)), rh = Math.max(1, Math.round((H - HZ) * 0.25));
-    const refl = mk(rw, rh), rx = refl.getContext('2d');
+    const refl = mk(rw, rh), rx = safeCtx(refl);
     rx.save(); rx.scale(rw / W, rh / (H - HZ)); rx.translate(0, 0); rx.scale(1, -0.5); rx.drawImage(lo, 0, y0 - HZ, W, h); rx.restore();
     rx.globalCompositeOperation = 'destination-in';
     const fg = rx.createLinearGradient(0, 0, 0, rh); fg.addColorStop(0, 'rgba(0,0,0,1)'); fg.addColorStop(0.35, 'rgba(0,0,0,0.55)'); fg.addColorStop(0.7, 'rgba(0,0,0,0)');
@@ -212,7 +213,7 @@ export function createRainbow({ harbor = false } = {}) {
     if (k !== holeKey) {
       holeKey = k;
       if (!holeCv || holeCv.width !== cv.width || holeCv.height !== cv.height) holeCv = mk(cv.width, cv.height);
-      const x = holeCv.getContext('2d'), s = cv.width / W;
+      const x = safeCtx(holeCv), s = cv.width / W;
       x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, holeCv.width, holeCv.height); x.drawImage(cv, 0, 0);
       x.globalCompositeOperation = 'destination-out';
       const gr = x.createRadialGradient(sunAt.x * s, sunAt.y * s, 0, sunAt.x * s, sunAt.y * s, reach * s);

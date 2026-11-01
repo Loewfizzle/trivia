@@ -71,7 +71,8 @@ export function createDayFx() {
     draw(c, f) {
       const el = f.LK && f.LK.sun ? f.LK.sun.el : -10, k = smooth(1, 4, el) * (f.fade ?? 1) * (1 - 0.8 * smooth(0.7, 0.95, f.LK.cloud || 0)) * (f.LK.rain ? 0.3 : 1);
       if (k < 0.01 || !cam) return;
-      const t = f.motion ? f.t : 0, wind = f.LK.wind == null ? 3 : f.LK.wind, dir = Math.sin(((f.LK.windDir == null ? 250 : f.LK.windDir)) * Math.PI / 180) >= 0 ? 1 : -1;
+      // (PERF-B — THE WIND IS ONE STATE: the flags fly on WF)
+      const t = f.motion ? f.t : 0, wind = f.windF ? Math.abs(f.windF.v(0.5)) : f.LK.wind == null ? 3 : f.LK.wind, dir = f.windF ? f.windF.side : Math.sin(((f.LK.windDir == null ? 250 : f.LK.windDir)) * Math.PI / 180) >= 0 ? 1 : -1;
       // ---- the flags: limp below ~1 m/s, out straight in a gale; the ripple faster with the wind
       const out = smooth(0.5, 9, wind), droop = 1 - out, spd = 3 + wind * 0.9, day = clamp01(f.T ? f.T.day + 0.7 * f.T.gold : 1);
       c.lineCap = 'round';

@@ -3,6 +3,7 @@
 // glowing trails, a soft haze of its colour catching the clouds, then a slow, glittering, drifting fade. Everything is a
 // pre-rendered sprite drawn additively; particle counts are capped per quality tier (tier 0 keeps the shape, drops the trails
 // and the glitter). Its light on the city (light()) is read by the scene and painted onto the buildings and the wet street.
+import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 const TAU = Math.PI * 2;
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const rgba = (c, a) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
@@ -12,7 +13,7 @@ const CAP = [{ sparks: 46, trails: false, glitter: false, split: 0, max: 160 }, 
 
 export function createFireworks({ onBurst = null } = {}) {
   const sprites = new Map();
-  const sprite = (key, w, h, paint) => { let c = sprites.get(key); if (!c) { c = mk(w, h); paint(c.getContext('2d'), w, h); sprites.set(key, c); } return c; };
+  const sprite = (key, w, h, paint) => { let c = sprites.get(key); if (!c) { c = mk(w, h); paint(safeCtx(c), w, h); sprites.set(key, c); } return c; };
   // a soft point of light: a white-hot heart in its colour, a wide soft falloff
   const spark = col => sprite(`sp|${col}`, 32, 32, x => {
     const g = x.createRadialGradient(16, 16, 0, 16, 16, 16);

@@ -314,7 +314,8 @@ export function createAir() {
     while (tr.length > 2 && t - tr[1].at > life + 0.5) tr.shift();
     if (tr.length && t - tr[tr.length - 1].at > life) tr.length = 0;     // (all of it faded: the plane can go)
     if (tr.length < 2) return;
-    const wind = Math.sin(((s.L.windDir == null ? 250 : s.L.windDir)) * Math.PI / 180) * Math.min(10, s.L.wind == null ? 2 : s.L.wind) * 0.3;
+    // (PERF-B — THE WIND IS ONE STATE: the contrails drift on WF, the shared wind on screen — its gusts included)
+    const wind = s.windF ? Math.max(-10, Math.min(10, s.windF.v(0.5))) * 0.3 : Math.sin(((s.L.windDir == null ? 250 : s.L.windDir)) * Math.PI / 180) * Math.min(10, s.L.wind == null ? 2 : s.L.wind) * 0.3;
     const vis = (1 - dark * 0.9) * (0.35 + 0.65 * (day + golden + dawn)) * (fog > 0.3 ? 0.4 : 1);
     if (vis < 0.02) return;
     const tc = golden + dawn > day ? (golden >= dawn ? [255, 210, 184] : [255, 200, 212]) : [255, 255, 255];

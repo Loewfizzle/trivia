@@ -71,7 +71,8 @@ export function createChimneys() {
       if (pass === 'far') { k += (want - k) * Math.min(1, (f.dt || 0.016) / 6); if (Math.abs(want - k) < 0.003) k = want; drawn = 0; }
       if (k < 0.01 || !stacks.length) return;
       const t = f.motion ? f.t : 40, LK = f.LK || {}, T = f.T || { day: 1, gold: 0, night: 0 };
-      const wind = LK.wind == null ? 3 : LK.wind, dir = Math.sin(((LK.windDir == null ? 250 : LK.windDir)) * Math.PI / 180) >= 0 ? 1 : -1;
+      // (PERF-B — THE WIND IS ONE STATE: the smoke leans on WF — its gusts roll through)
+      const wind = f.windF ? Math.abs(f.windF.v(0.5)) : LK.wind == null ? 3 : LK.wind, dir = f.windF ? f.windF.side : Math.sin(((LK.windDir == null ? 250 : LK.windDir)) * Math.PI / 180) >= 0 ? 1 : -1;
       const day = clamp01((T.day || 0) + 0.7 * (T.gold || 0)), night = 1 - day;
       // (by day a soft wood-smoke grey — darker than the bright sky behind it, so it reads — warmer at golden hour; after dark the smoke only
       // shows where the city's light catches it: dusky, warm)

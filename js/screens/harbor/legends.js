@@ -491,7 +491,7 @@ export function createLegends({ clock, qp } = {}) {
     const top = sw * 0.5, len = Math.max(60, med.y - hoverY() - sw * 0.06), bot = sw * 1.12;
     beam = beamSprite(top, bot, len, dpr);
     motes = [];
-    const n = tier === 2 ? 70 : tier === 1 ? 44 : 22;
+    const n = tierVal('ufoMotes', tier);   // (PERF-B: THE TIER TABLE)
     for (let i = 0; i < n; i++) motes.push({ a: (hash01(i, 3) - 0.5) * 1.7, ph: hash01(i, 5), sp: 0.035 + 0.05 * hash01(i, 7), r: 0.5 + 1.1 * hash01(i, 9), down: hash01(i, 11) < 0.18, col: hash01(i, 13) < 0.3 ? [200, 180, 255] : hash01(i, 13) < 0.5 ? [180, 255, 240] : [240, 246, 255] });
   }
   // 9c — HIGHER ON SCREEN, NOT FURTHER AWAY (the owner: it got confused with the Ferris wheel / blocked it): the same nearness + size, but

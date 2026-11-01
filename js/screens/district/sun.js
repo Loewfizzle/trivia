@@ -14,7 +14,7 @@
 // Every disc and glow is a cached sprite; a frame is a handful of drawImage calls. Preview: &force=eclipse-sun, &force=totality.
 
 import { sunPosition, sunArc, sunTimes } from '../../core/sky.js';
-import { blurWorks } from '../../ui/canvas-safe.js';
+import { blurWorks, safeCtx } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -261,7 +261,7 @@ export function createSun(opts = {}) {
     const lq = Math.round(lift * 20) / 20, k = qc(col).join(','), key = lq === 0.55 ? k : `${k}|${lq}`;
     let cv = discs.get(key);
     if (!cv) {
-      cv = mk(128, 128); const x = cv.getContext('2d');
+      cv = mk(128, 128); const x = safeCtx(cv);
       const g = x.createRadialGradient(64, 64, 0, 64, 64, 60);
       const hi = col.map(v => Math.min(255, v + (255 - v) * lq));
       g.addColorStop(0, `rgba(${hi.map(Math.round)},1)`); g.addColorStop(0.72, `rgba(${k},1)`); g.addColorStop(0.95, `rgba(${col.map(v => Math.round(v * 0.93))},1)`); g.addColorStop(1, `rgba(${k},0)`);
@@ -277,7 +277,7 @@ export function createSun(opts = {}) {
     const k = qc(col).join(',');
     let cv = hots.get(k);
     if (!cv) {
-      cv = mk(128, 128); const x = cv.getContext('2d');
+      cv = mk(128, 128); const x = safeCtx(cv);
       // (ATM-A — NO RIM: the owner's "paper plate" was this ring — the stage's cream at 0.8–0.9 of the radius at full strength read as an
       // outlined disc. The core stays white, then BLOWS OUT smoothly into the bloom, only a hint of the stage's warmth as it fades)
       const g = x.createRadialGradient(64, 64, 0, 64, 64, 64), mixW = a => col.map(v => Math.round(255 + (v - 255) * a));
@@ -300,7 +300,7 @@ export function createSun(opts = {}) {
     const qh = Math.round(hs * 10) / 10, qd = Math.round(d * 10) / 10, k = `${qc(col).join(',')}|${qh}|${qd}`;
     let cv = lights.get(k);
     if (!cv) {
-      cv = mk(128, 128); const x = cv.getContext('2d');
+      cv = mk(128, 128); const x = safeCtx(cv);
       const S = 3.2, at = r => r / S;                        // a radius in sun radii → a gradient stop (the sprite is 3.2 r across)
       const L = (a, b, t) => a + (b - a) * t, mixW = (c, a) => c.map(v => Math.round(255 + (v - 255) * a));
       // three profiles as (radius in r, alpha, whiteness) stops — G the glowing light (d 0): a white-hot core (≤ 0.2 r) easing into the
@@ -327,7 +327,7 @@ export function createSun(opts = {}) {
     const k = `${qc(col).join(',')}|${falloff}`;
     let cv = glows.get(k);
     if (!cv) {
-      cv = mk(128, 128); const x = cv.getContext('2d');
+      cv = mk(128, 128); const x = safeCtx(cv);
       const g = x.createRadialGradient(64, 64, 0, 64, 64, 64);
       for (let i = 0; i <= 8; i++) { const t = i / 8; g.addColorStop(t, `rgba(${qc(col).join(',')},${Math.pow(1 - t, falloff) * (i === 8 ? 0 : 1)})`); }
       x.fillStyle = g; x.fillRect(0, 0, 128, 128);
@@ -338,7 +338,7 @@ export function createSun(opts = {}) {
   };
   // the corona at totality: soft pearly streamers around a dark disc (baked once)
   const corona = () => coronaCv || (coronaCv = (() => {
-    const cv = mk(320, 320), x = cv.getContext('2d');
+    const cv = mk(320, 320), x = safeCtx(cv);
     x.translate(160, 160);
     let a = 0x3c6ef3; const R = () => { a = (a * 1103515245 + 12345) >>> 0; return a / 4294967296; };
     // fine streamers, longer along the sun's equator (left / right), soft and slightly curved
@@ -366,7 +366,7 @@ export function createSun(opts = {}) {
   })());
   // a light ray: a long, very soft wedge (baked once)
   const ray = () => rayCv || (rayCv = (() => {
-    const cv = mk(64, 512), x = cv.getContext('2d');
+    const cv = mk(64, 512), x = safeCtx(cv);
     const g = x.createLinearGradient(0, 0, 0, 512); g.addColorStop(0, 'rgba(255,214,160,0.9)'); g.addColorStop(0.5, 'rgba(255,190,130,0.35)'); g.addColorStop(1, 'rgba(255,170,110,0)');
     x.fillStyle = g; x.beginPath(); x.moveTo(30, 0); x.lineTo(34, 0); x.lineTo(64, 512); x.lineTo(0, 512); x.closePath(); x.fill();
     const h = x.createLinearGradient(0, 0, 64, 0); h.addColorStop(0, 'rgba(0,0,0,1)'); h.addColorStop(0.5, 'rgba(0,0,0,0)'); h.addColorStop(1, 'rgba(0,0,0,1)');
@@ -400,7 +400,7 @@ export function createSun(opts = {}) {
     if (!art) art = { cres: mk(CS, CS), halo: mk(HS, HS), tmp: mk(HS, HS) };
     const cc = CS / 2, hc = HS / 2;
     // the crescent
-    const x = art.cres.getContext('2d');
+    const x = safeCtx(art.cres);
     x.setTransform(1, 0, 0, 1, 0, 0); x.globalCompositeOperation = 'source-over'; x.clearRect(0, 0, CS, CS);
     const g = x.createRadialGradient(cc, cc, 0, cc, cc, R);
     g.addColorStop(0, 'rgb(255,255,252)'); g.addColorStop(0.7, 'rgb(255,252,242)'); g.addColorStop(0.92, 'rgb(255,240,214)'); g.addColorStop(1, 'rgb(255,222,184)');
@@ -409,13 +409,13 @@ export function createSun(opts = {}) {
     x.beginPath(); x.arc(cc + e.mx * R, cc + e.my * R, e.k * R, 0, TAU); x.fill();
     x.globalCompositeOperation = 'source-over';
     // its glow: the crescent's shape, blurred (drawn far off the canvas so only its shadow lands)
-    const t = art.tmp.getContext('2d');
+    const t = safeCtx(art.tmp);
     t.setTransform(1, 0, 0, 1, 0, 0); t.globalCompositeOperation = 'source-over'; t.clearRect(0, 0, HS, HS);
     t.shadowOffsetX = 4000; t.shadowColor = 'rgba(255,238,222,1)';
     t.shadowBlur = 14; t.drawImage(art.cres, hc - cc - 4000, hc - cc);
     t.shadowBlur = 34; t.drawImage(art.cres, hc - cc - 4000, hc - cc);
     t.shadowBlur = 0; t.shadowOffsetX = 0;
-    const h = art.halo.getContext('2d');
+    const h = safeCtx(art.halo);
     h.setTransform(1, 0, 0, 1, 0, 0); h.globalCompositeOperation = 'source-over'; h.clearRect(0, 0, HS, HS);
     // the glare around the sun: weaker as less of it is left
     const e2 = Math.pow(e.lit, 0.6);

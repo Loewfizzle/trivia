@@ -553,6 +553,7 @@ export function createClouds() {
   const SLOW_MS = 6000;
   // (the readout: what the clouds cost a frame — the draw + the background jobs — and how often a cloud is re-lit)
   const perf = { ms: 0, jobMs: 0, n: 0, relit: 0, beamMs: 0, hitMs: 0, renders: 0, patches: 0 };
+  let cloudWind = null;
   const windX = LK => Math.sin(((LK.windDir == null ? 250 : LK.windDir)) * Math.PI / 180);
   const free = arr => { for (const d of arr || []) { if (d.cv) d.cv.width = 0; if (d.prev) d.prev.width = 0; d.cv = d.prev = null; d.F = null; } };
   function plan(LK, seed, motion) {
@@ -600,7 +601,8 @@ export function createClouds() {
     while (jobs.length && performance.now() - t0 < budget) { const j = jobs[0]; if (j.gen.next().done) jobs.shift(); }
   }
   function drawSet(c, arr, k, tSec, LK, motion, part) {
-    const wx = windX(LK), wind = LK.wind || 3;
+    // (PERF-B — THE WIND IS ONE STATE: the clouds drift on WF's MEAN speed — never its gusts: a deck's x is speed × the clock's seconds)
+    const wx = windX(LK), wind = (cloudWind != null ? cloudWind : LK.wind) || 3;
     for (const d of arr) {
       // (the deck: a seamless tile, wrapping by its own width)
       const x = d.kind === 'deck' ? (() => { const v = driftSpeed(wind) * wx * d.v * (motion ? tSec : 0); return ((v % d.w) + d.w) % d.w - d.w; })() : driftX(d, motion ? tSec : 0, wind, wx, W);
@@ -918,7 +920,7 @@ export function createClouds() {
     }
   }
   function drawAll(c, fs, sunInfo, part) {
-      const LK = fs.L;
+      const LK = fs.L; cloudWind = fs.windF ? fs.windF.speed : null;
       if (!box) return;
       if (part === 'front') { if (G && list.length) { drawSet(c, list, lastA, lastT, LK, fs.motion, 'front'); c.globalAlpha = 1; } return; }
       const lc = LK.local, blk = lc ? Math.floor(lc.h / 6) : 0;

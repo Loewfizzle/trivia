@@ -15,6 +15,7 @@
 // Pure helpers (exported, tested in tests/aircraft.test.mjs): trafficRate, planPath, navLights, starlinkNight, satTwilight.
 // Preview: &force=planes,approach,satellites,sat. Reduced effects: fewer planes, steady lights, contrails that don't spread.
 
+import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -76,9 +77,9 @@ export function createAircraft() {
   let planes = [], nextPlane = 6 + Math.random() * 12, forcedAt = -1e9;      // the first one soon after the page opens
   let train = null, trainNight = '', sat = null, nextSat = 60 + Math.random() * 180;
   const glows = new Map();
-  const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glows.get(k); if (!c) { c = mk(32, 32); const x = c.getContext('2d'); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.28, `rgba(${k},0.45)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); glows.set(k, c); } return c; };
+  const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glows.get(k); if (!c) { c = mk(32, 32); const x = safeCtx(c); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.28, `rgba(${k},0.45)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); glows.set(k, c); } return c; };
   const puffs = new Map();
-  const puff = (r, g, b) => { const k = `${r},${g},${b}`; let c = puffs.get(k); if (!c) { c = mk(32, 32); const x = c.getContext('2d'); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},0.55)`); gr.addColorStop(0.6, `rgba(${k},0.18)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); puffs.set(k, c); } return c; };
+  const puff = (r, g, b) => { const k = `${r},${g},${b}`; let c = puffs.get(k); if (!c) { c = mk(32, 32); const x = safeCtx(c); const gr = x.createRadialGradient(16, 16, 0, 16, 16, 16); gr.addColorStop(0, `rgba(${k},0.55)`); gr.addColorStop(0.6, `rgba(${k},0.18)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 32, 32); puffs.set(k, c); } return c; };
 
   // the whole sky, like the birds: planes and satellites pass behind the sign and the tagline (the page sits in front of the
   // sky), never below the towers' tops where they'd only be hidden; the top stays clear of the status bar / notch

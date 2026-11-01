@@ -149,7 +149,8 @@ export function createBanner() {
       // ---- THE BANNER: every slice where the plane was a moment ago (its distance down the line ÷ the speed), a little lower the further
       // back (it trails BELOW), + the ripple — travelling, growing toward the end, in gusts, fluttering at the very end
       const total = cur.total, drop = cur.hgt * BANNER.drop * 2.4;
-      const gust = 0.72 + 0.28 * Math.sin(t * 0.37 + 1.3) * Math.sin(t * 0.23 + 0.4);
+      // (PERF-B — THE WIND IS ONE STATE: the banner ripples with the gust wave where the plane is (WF.at) — its own sine is gone)
+      const gust = s.windF ? 0.72 + 0.28 * (2 * s.windF.at(Math.max(0, Math.min(1, p.x / Math.max(1, W)))) - 1) : 0.72;
       const ripple = (u) => {
         if (!mo) return 0;
         const f = u / Math.max(1, total), A = K * (0.5 + 3.4 * Math.pow(f, 1.25)) * gust, w = u * 0.105 / K - t * 5.4;

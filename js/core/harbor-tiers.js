@@ -52,6 +52,14 @@ export const TIERS = Object.freeze({
   fwMirror: Object.freeze([0, 1, 1]),
   fwDpr: Object.freeze([10, 15, 20]),
   fwRing: Object.freeze([8192, 16384, 32768]),
+  // PERF-B — FR5 C2b: the scene's own tier table moved here — the city canvas's pixel ratio (×10; tier 2 = BAKE_CAP: 2, or the device's 3
+  // under &dpr=3 — scene.js reads 20 as BAKE_CAP), the bake's ms a frame, the sign dressing's pixel ratio (×10)
+  sceneDpr: Object.freeze([10, 15, 20]),
+  bakeMs: Object.freeze([2, 3, 4]),
+  dressDpr: Object.freeze([15, 20, 30]),
+  // PERF-B — FR5 C2b: FOG's promenade bank from tier 1 (fogdepth.js — the road's bank on every tier); the UFO beam's motes (legends.js)
+  fogPromBank: Object.freeze([0, 1, 1]),
+  ufoMotes: Object.freeze([22, 44, 70]),
   // PERF-B — THE DISCO BALL (balloons.js — the festival's 7th): the glints twinkling on its brightest tiles at once (sprites; the tiles are
   // one baked sheet per light)
   discoGlints: Object.freeze([2, 4, 6]),

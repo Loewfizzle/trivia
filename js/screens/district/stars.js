@@ -5,6 +5,7 @@
 // projected facing south (north in the Southern Hemisphere). Rendered into an offscreen canvas every 20 s (the sky turns
 // 15°/hour: the change is far too small to see) and when the screen or the look changes; a frame just draws that canvas.
 
+import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 import { planetsAt } from '../../core/sky.js';
 
 const D = Math.PI / 180;
@@ -79,12 +80,12 @@ export function createStars() {
   }
   let cv = null, key = '', at = -1e9, bright = [], planets = [], ver = 0;
   const glowCache = new Map();
-  const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glowCache.get(k); if (!c) { c = document.createElement('canvas'); c.width = c.height = 64; const x = c.getContext('2d'); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.4, `rgba(${k},0.35)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); glowCache.set(k, c); } return c; };
+  const glow = (r, g, b) => { const k = `${r},${g},${b}`; let c = glowCache.get(k); if (!c) { c = document.createElement('canvas'); c.width = c.height = 64; const x = safeCtx(c); const gr = x.createRadialGradient(32, 32, 0, 32, 32, 32); gr.addColorStop(0, `rgba(${k},1)`); gr.addColorStop(0.4, `rgba(${k},0.35)`); gr.addColorStop(1, `rgba(${k},0)`); x.fillStyle = gr; x.fillRect(0, 0, 64, 64); glowCache.set(k, c); } return c; };
 
   function render(W, HZ, L, ms, milky) {
     const dpr = Math.min(2, window.devicePixelRatio || 1);
     if (!cv || cv.width !== Math.round(W * dpr) || cv.height !== Math.round(HZ * dpr)) { cv = document.createElement('canvas'); cv.width = Math.round(W * dpr); cv.height = Math.round(HZ * dpr); }
-    const x = cv.getContext('2d');
+    const x = safeCtx(cv);
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, cv.width, cv.height); x.setTransform(dpr, 0, 0, dpr, 0, 0);
     // the view: facing south (north in the south), the horizon at the skyline, about 85° of sky up to the top of the screen;
     // a touch narrower horizontally on a phone so the constellations keep their shapes

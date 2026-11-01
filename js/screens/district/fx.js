@@ -5,6 +5,7 @@
 // Particle counts are capped per quality tier; Reduced effects (motion 0) stops what moves (the palette still applies).
 // Rare moments (bats, the sleigh, single shooting stars) are scheduled with long, random gaps — or forced by the preview.
 
+import { safeCtx } from '../../ui/canvas-safe.js';   // (PERF-B — FR5 B3: every canvas through the memory guard's count)
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
@@ -15,7 +16,7 @@ const CAPS = [{ snow: 90, petals: 4, leaves: 3, flies: 10, fw: 70, aurora: 40 },
 
 export function createFx() {
   const sprites = new Map();
-  const sprite = (key, w, h, paint) => { let c = sprites.get(key); if (!c) { c = mk(w, h); paint(c.getContext('2d'), w, h); sprites.set(key, c); } return c; };
+  const sprite = (key, w, h, paint) => { let c = sprites.get(key); if (!c) { c = mk(w, h); paint(safeCtx(c), w, h); sprites.set(key, c); } return c; };
   const glow = (col, a = 1) => sprite(`g|${col}|${a}`, 64, 64, (x) => { const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, rgba(col, a)); g.addColorStop(0.35, rgba(col, a * 0.35)); g.addColorStop(1, rgba(col, 0)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); });
   let snow = [], bats = null, meteors = [], sleigh = null;
   const fwx = createFireworks();   // the holiday fireworks (fireworks.js: the same renderer as PARTY NIGHTS' finale)
@@ -41,7 +42,7 @@ export function createFx() {
       const R = rng(7);
       for (let i = 0; i < 9; i++) { const a = R() * TAU, d = R() * r * 0.7, mr = 6 + R() * 15; x.fillStyle = `rgba(150,140,128,${0.12 + R() * 0.12})`; x.beginPath(); x.arc(cx + Math.cos(a) * d, cy + Math.sin(a) * d, mr, 0, TAU); x.fill(); }
       // the lit part only: the disc is copied, cleared to a faint earthshine, and the lit shape drawn back over it
-      const disc = mk(128, 128); disc.getContext('2d').drawImage(x.canvas, 0, 0);
+      const disc = mk(128, 128); safeCtx(disc).drawImage(x.canvas, 0, 0);
       x.clearRect(0, 0, 128, 128);
       x.globalAlpha = 0.1; x.drawImage(disc, 0, 0); x.globalAlpha = 1;
       const k = Math.cos(q * TAU);                 // 1 new, -1 full
@@ -65,7 +66,7 @@ export function createFx() {
   function eclipsed(phase, r, ec) {     // (sprite units: the disc's radius is 52 of 128)
     const S = 128;
     if (!ecCv) ecCv = mk(S, S);
-    const x = ecCv.getContext('2d');
+    const x = safeCtx(ecCv);
     x.globalCompositeOperation = 'copy'; x.drawImage(moonSprite(phase), 0, 0, S, S);
     const mr = 52, Rsh = mr * 2.7, cx = 64, cy = 64;
     const dmin = ec.mag >= 1 ? Math.max(0, Rsh - mr - 2 * mr * (ec.mag - 1)) * 0.55 : Rsh + mr - 2 * mr * ec.mag;
@@ -435,7 +436,7 @@ export function createFx() {
     for (const b of bulbs) { x0 = Math.min(x0, b.x); y0 = Math.min(y0, b.y); x1 = Math.max(x1, b.x); y1 = Math.max(y1, b.y); }
     x0 -= 8; y0 -= 8; x1 += 8; y1 += 8;
     const sc = Math.min(2, window.devicePixelRatio || 1);
-    const cv = mk((x1 - x0) * sc, (y1 - y0) * sc), x = cv.getContext('2d');
+    const cv = mk((x1 - x0) * sc, (y1 - y0) * sc), x = safeCtx(cv);
     x.scale(sc, sc);
     x.globalCompositeOperation = 'lighter';
     for (const b of bulbs) { x.globalAlpha = 0.55; x.drawImage(glow(b.col), b.x - x0 - 5.5, b.y - y0 - 5.5, 11, 11); }

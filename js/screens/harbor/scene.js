@@ -147,7 +147,8 @@ import { ghostShipTimes, GHOST_LEN } from '../../core/harbor-holiday.js';
 import { latchBig, holidayAt, halloweenPieces, dotdPieces, thanksgivingPieces, holidaySeason, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
 
 // (C4c: the top tier's dpr is BAKE_CAP — 2, or the device's 3 under `&dpr=3`, the owner's look judgement only)
-const TIERS = [{ dpr: 1, bakeMs: 2 }, { dpr: 1.5, bakeMs: 3 }, { dpr: BAKE_CAP, bakeMs: 4 }];
+// (PERF-B — FR5 C2b: the dpr + the bake's ms a frame are THE TIER TABLE's sceneDpr + bakeMs rows — tier 2's dpr is BAKE_CAP)
+const TIERS = [0, 1, 2].map(t => ({ dpr: t === 2 ? BAKE_CAP : tierVal('sceneDpr', t) / 10, bakeMs: tierVal('bakeMs', t) }));
 /** DT1: how far the billboard's lamps drop once the neon is fully up (1 − LAMP_DIM of full). M3 (the owner: "an advertisement — you
  *  should be able to see it at night"): 0.5 → 0.1 — the board stays lamp-lit all night, a painted poster beside the neon. PF (the
  *  owner: "the roof billboard's lamps a little BRIGHTER"): 0.1 → 0 — full all night (+ signs.js#lampLightMap / lampGlows a step up) */
@@ -222,7 +223,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (S.dressHost) dress.setHost(S.dressHost);
     { const lv = signLive(); if (lastSignLv >= 0 && Math.abs(lv - lastSignLv) > 0.3) pokeDress({ kind: lv < lastSignLv ? 'dim' : 'flash', k: Math.min(1, 0.4 + Math.abs(lv - lastSignLv)) }); lastSignLv = lv;
       if (zap.flash() > 0.35) pokeDress({ kind: 'lightning', k: 0.85 }); }
-    dress.frame({ holiday: H, pieces: P, t, motion: !!S.motion, tier, dpr, dressDpr: [1.5, 2, 3][dprTier] || 3, signLit: signLive(), word: wordLogo(), letterCols: HR && HR.sign && H === HS ? DRESS_COLS[HR.sign] || null : null,
+    dress.frame({ holiday: H, pieces: P, t, motion: !!S.motion, tier, dpr, dressDpr: tierVal('dressDpr', dprTier) / 10, signLit: signLive(), word: wordLogo(), letterCols: HR && HR.sign && H === HS ? DRESS_COLS[HR.sign] || null : null,
       dark: clamp01(1 - (LK.w.day || 0) - 0.5 * (LK.w.golden || 0)), wind: WXS ? WXS.gust || 0 : (LK.wind == null ? 3 : LK.wind) });
   }
   const dressDebug = () => (dress ? dress.debug() : null);
@@ -2374,7 +2375,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the scheduler's first read is at once, the moment it exists)
     if (now - eventsAt > 500 || (sched && !schedRead)) { eventsAt = now; if (sched) { events = sched.at(clock.now()); schedRead = true; } density = densityOf([...events.quiet, ...sky.quiet()]); }
     // density: what each lane keeps of its usual traffic (a heavy event elsewhere thins it: the planes, the birds, the cars read it)
-    const fs = { cityCut, centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], boatSpots: boats.spots, avoidSky: heliAvoid(), heliOcc: heliOcc(), stageY: groundY(cam, Z.rail), promY: L.prom ? groundY(cam, (L.prom.z0 + L.prom.z1) / 2) : cam.H, dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, skyTops: skyTopsNow(), L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
+    const fs = { windF: WF, cityCut, centre: centre.active() || giantUp(), lanes: L.lanes, moonArt: sky.moon, auroraArt: sky.aurora, meteorArt: sky.meteors, arch: ARCH, moonArch: MOON, density, now: clock.now(), speed: clock.speed || 1, blades: [], boatSpots: boats.spots, avoidSky: heliAvoid(), heliOcc: heliOcc(), stageY: groundY(cam, Z.rail), promY: L.prom ? groundY(cam, (L.prom.z0 + L.prom.z1) / 2) : cam.H, dockTop: cam.dock.y, camX: 0, signalMode: 'right', skyline, skyTops: skyTopsNow(), L: LK, P, t, dt, tier, motion: S.motion, force: clock.force, cam: { x: 0, y: 0 }, signRect: S.logoRect, textRects: S.textRects || null, soundsReady: k => !snd || !snd.legendReady || snd.legendReady(k, sndPicks()), holiday: XP.banner ? 'blackfriday' : HS.id && (HS.id !== 'halloween' || HS.stage > 0.6) ? HS.id : null, firstSnow: S.firstSnow || 0, clear: S.clear, safeTop: safeTopV, party: PT };
     const off = clock.force;
     // PART 6b — THE LEGENDARY SKY: tonight's, a preview's or the API's → the lazy module; the sign glitches while the TR-3B passes under it
     linkGate(now);
@@ -2551,10 +2552,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (DT1: the lighthouse's beam brightens the floodlit wall behind it as it sweeps past — under the lighthouse, drawn later)
     if (cam.lhWall && !off.has('no-beam')) beam.wall(c, { k: fadeIn * litK(DK, 'beams') * litK(DK, 'flood') * (lit > 0 ? lit : 0) * legendPow(cam.lhWall.x, 'harbor', 303), wallZ: 241, motion: S.motion, now: performance.now(), ms: clock.now() });
     // THE DAY PASS — the day's motion: flags on the roofs in the real wind, sun glints on the towers' glass (dayfx.js)
-    if (!off.has('no-dayfx')) dayfx.draw(c, { t, LK, T: bakeTones, fade: fadeIn, motion: S.motion, tier });
+    if (!off.has('no-dayfx')) dayfx.draw(c, { t, LK, windF: WF, T: bakeTones, fade: fadeIn, motion: S.motion, tier });
     // 11a-2 — CHIMNEY SMOKE (chimneys.js): the skyline's roof vents here, the speakeasy's own chimney after its roof (&force=chimneys)
     chimneys.set(clock.force.has('chimneys') ? 1 : HP && HP.chimneys ? HP.chimneys : 0);
-    const chimF = { t, dt, LK, T: bakeTones, fade: fadeIn, motion: S.motion, tier };
+    const chimF = { t, dt, LK, windF: WF, T: bakeTones, fade: fadeIn, motion: S.motion, tier };
     chimneys.draw(c, chimF, 'far');
     // THE SKY BEAMS (NEON PASS 4): straight up from the tall towers' crowns on a party night — one by one through the warm-up (FP2: 8:30 →
     // 9:30 pm, later when the dusk is late), all from the peak, taking turns with the searchlights; pulsing on the beat; in each tower's colour (the sweeps too)
