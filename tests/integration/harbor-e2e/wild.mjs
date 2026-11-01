@@ -553,7 +553,9 @@ G('bench', async () => {
     ok(!b0.running && /START/.test(b0.text), `THE PHONE BENCH waits for a tap: a START card (${b0.text.slice(0, 60)}…)`);
     await ev(Q.page, `${P}.phoneBench.start()`).catch(() => {});
     // (MODELS — the cloud caught a read landing mid-navigation (the bench loads each scene's page): every read here retries across one)
-    const evN = async js => { for (let k = 0; k < 20; k++) { try { return await ev(Q.page, js); } catch (e) { if (!/context was destroyed|navigation|Target closed|detached/i.test(String(e && e.message))) throw e; await sleep(250); } } return null; };
+    // (APP FIXES — the cloud caught a read on a scene page still BOOTING: window.__district / its harbor / the bench not built yet →
+    // "Cannot read properties of undefined (reading 'harbor')" — a read of a half-built page is retried like one mid-navigation)
+    const evN = async js => { for (let k = 0; k < 20; k++) { try { return await ev(Q.page, js); } catch (e) { if (!/context was destroyed|navigation|Target closed|detached|Cannot read properties of (undefined|null)/i.test(String(e && e.message))) throw e; await sleep(250); } } return null; };
     // (SKY-B: EVERY SCENE ON A FRESH PAGE — the bench loads each scene's link: its bakes finished, a cool-down with the city paused, settle, measure)
     const seen = new Set(), phases = new Set(); let loads = 0, lastUrl = '';
     const tB = Date.now();
@@ -562,7 +564,9 @@ G('bench', async () => {
       if (r) { if (r.url !== lastUrl) { loads++; lastUrl = r.url; seen.add(new URLSearchParams(r.url).get('when')); } if (r.phase) phases.add(r.phase); if (r.rows >= 2 && r.i >= 2) break; }
       await sleep(150);
     }
-    const mid = await evN(`({ b: ${P}.phoneBench, q: location.search })`);
+    // (APP FIXES: the page may be booting its next scene — wait for its bench, never read a null one)
+    let mid = null;
+    for (let k = 0; k < 40 && !(mid && mid.b); k++) { mid = await evN(`(() => { const h = window.__district && window.__district.harbor && window.__district.harbor(); return { b: h ? h.phoneBench : null, q: location.search }; })()`); if (!(mid && mid.b)) await sleep(250); }
     ok(mid.b.running && mid.b.i >= 2 && /benchrun=1/.test(mid.q) && loads >= 3 && seen.size >= 2, `THE PHONE BENCH: every scene on a FRESH PAGE, in order (${mid.b.rows} measured, ${loads} pages: ${[...seen].join(' · ')})`);
     ok(['ready', 'cool', 'settle', 'measure'].every(p => phases.has(p)), `THE PHONE BENCH: its bakes finished, then a COOL-DOWN (the city paused), settle, measure (${[...phases].join(' → ')})`);
     await evN(`${P}.phoneBench.stop()`);

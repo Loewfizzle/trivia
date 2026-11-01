@@ -162,3 +162,14 @@ shapes and the new ones (old room lies / votes / answers with their secrets, pre
 minutes before or after the deploy breaks nothing. What waits on it: THE SEAL's envelopes (`seal/…` — refused by the old rules, so the
 new BLUFF / SIGNAL / OVERCLOCK would show "TOO LATE"), presence's connection children, the host-only GRIDLOCK results, the night
 record's time, the claim / kick / joinedAt checks.
+
+## The cloud
+- **Run 1** (13a7370): **tests ✅** (unit, rules, /api, smoke, CONN, presence) · **harbor 8 / 10** — `holiday` ✅ + `wild` ✅ (**PERF-B's two
+  restored pauses CONFIRMED**), `audio` ✅ (the radio's new checks), `legend` ✗ + `models` ✗: two TEST races, fixed at their cause —
+  · `bench` (legend): a read on a scene page still BOOTING (`window.__district` / its bench not built yet: "reading 'harbor'" /
+    "reading 'running'") — the retry now covers a half-built page, and the mid-run read waits for the bench;
+  · `fireworks` "THE SHOW IS HEARD" (models; it also missed once in the local full run): a show FORCED at the tap moment starts
+    before its first boom's take can be decoded, so that boom is dropped as late (a real show prefetches ~30 s ahead) — the check now
+    wants an on-time boom and every boom from then on on time (the early ones logged).
+  Locally: `JOB=legend` 74/74, `JOB=models` 28/28, `bench` 3/3, `fireworks` 3/3.
+- **Run 2**: the second and last of the pass (the cap) — its result is in the summary.
