@@ -92,7 +92,7 @@ PERF-A; the crisp layers kept; the review links without `&debug=1`) — "docs: p
 - **THE WINDOWS GROUP IN PARALLEL** (`harbor-e2e/windows.mjs`, FR5 D2's #1): its 28 blocks (31 pages) are jobs; a pool runs 3 at a time
   (`WIN_POOL`, 1 = the old order); the 8 that time FRAMES (the toast's 60 fps + arm steps, the walk-in's depth steps, the tango, the TV's
   flicker, the boss late, the cash, PLAY ALL's sequencer) run alone after the pool. A failing block records its error and the rest run.
-- `harborUp + sleep(1500)` → `settled()` (17 sites: wild, windows, holiday); the legends' fixed 52-s window → its condition (the UFO gone
+- `harborUp + sleep(1500)` → `settled()` in the windows file (5 sites; wild + holiday's 12 reverted after the cloud's run 2 — see THE CLOUD); the legends' fixed 52-s window → its condition (the UFO gone
   + ≥ 3 walkers back, ≤ 52 s); the music group's four 1.9-s "past the stuck" pauses → the engine's own `health.stuck`.
 - The cloud: the perf job's warnings-only pacing loop skipped on CI (`ON_CI`; it runs on the mini PC); the smoke's watch 14 → 8 s a game;
   `npm ci --no-audit --no-fund` in tests.yml.
@@ -136,7 +136,13 @@ the cloud's perf job ~70 s (the pacing loop) + the smoke ~48 s (8-s watch × 12 
   instead of dropping → the test waits for it calm + still before the tap; **NO BRIGHT FLASH IS SILENT** (wild) — a close crack 0.67 s late:
   the thunder tried six random takes for a decoded one and all six missed right after the tap → `sounds.js#thunder` now checks EVERY take for a
   decoded one before risking a fresh decode. Local: holiday + weather 65 / 65 (the cracks 0.29–0.48 s).
-- Run 2: the final push (the two-run cap).
+- Run 2 (d7b3944): tests ✅; harbor 8 / 10 — **RED**, on two other checks in the same two files: the FIRST spider's tap (the dressing not
+  ready yet), MIST ≠ FOG (the mist read "none" — the weather not yet blended in). The cause is MINE: Group 4 swapped `harborUp + sleep(1500)` for
+  `settled()` (FR5's advice) in `holiday.mjs` + `wild.mjs` too — but that pause also covered the LAZY holiday dressing + the weather's 1.5-s
+  blend, which `settled()` doesn't wait for: enough on the mini PC, short on the cloud's 2-core machines. Those two files' 12 sites are back to
+  the pause (each marked; the windows file's 5 stay — its job passed both runs); local holiday + weather 65 / 65. NOT re-run in the cloud
+  (the two-run cap) — **the next pass's first cloud run is the proof**; the right fix is a real condition per site (the dressing loaded, the
+  weather at its target) — APP FIXES / the next City pass.
 
 ## THE NUMBERS (before = 4e4e9c0, PERF-A's end · after = PERF-B's end; the mini PC)
 | scene | WebKit 402×660 dpr 3, frame work (ms, 3 windows) | the bench's fill (WebKit) | load (after the reveal) |

@@ -80,7 +80,7 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
     **PERF-B — THE OVERHEAD**: the `windows` group's 28 blocks run 3 pages at a time (`WIN_POOL=3`; `WIN_POOL=1` = the old serial order) — the 8
     that time FRAMES (the toast's 60 fps + arm steps, the walk-in, the tango, the TV's flicker, the boss late, the cash, PLAY ALL) run alone after the
     pool; a failing block logs `FATAL [windows:<slot>]` and the rest still run. Locally 280 s (the cloud's 446 s was the suite's critical path).
-    No fixed waits for conditions: `harborUp(p); await settled(p)` (never `sleep(1500)`), the legends' UFO trace waits for its condition (the
+    No fixed waits for conditions: `harborUp(p); await settled(p)` in the windows file (wild + holiday keep their 1.5-s pause: it also covers the lazy holiday dressing + the weather's blend, which `settled()` doesn't — the cloud proved it, PERF-B), the legends' UFO trace waits for its condition (the
     UFO gone + ≥ 3 walkers back, ≤ 52 s), the music group's stuck checks wait for `health.stuck`. The cloud: the perf group's frame-pacing loop
     (warnings only) skipped on CI (`ON_CI` — it runs on the mini PC), the smoke's watch 8 s a game (`WATCH_MS`), `npm ci --no-audit --no-fund`.
   - **WARNINGS, not red** (on `CI=true`, or locally `TIMING=warn`; `TIMING=strict` makes them hard again): `okT` — pure speed (frames

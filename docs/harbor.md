@@ -565,6 +565,7 @@ one room), the banner's colour + passes, the words in the windows for a time win
   (the clean glass, no further invisible cut: in WebKit dense fog = a clear night's frame; the halos ~3 ms the one fog-only cost left) are the
   owner's next `&bench=1` run to judge. If the finale still steps 2 → 1: the near layer's per-shell sparks, then the crisp layers at the party
   peak (the owner's last resort). passes/perf-b.md.
+- **PERF-B's CLOUD WAS RED** (run 2, d7b3944 — the two-run cap): holiday's first spider tap + wild's MIST ≠ FOG, caused by PERF-B's `settled()` swap in those two test files (the pause also covered the lazy dressing + the weather's blend) — reverted, local 65 / 65, unconfirmed in the cloud: the next pass's first cloud run is the proof. passes/perf-b.md THE CLOUD.
 - **PERF-B's leftovers**: the people's plan warm-up over frames (M), the per-frame gradients in `draw()` (A4.4), one glow-sprite cache (H2),
   the skybeams' `tier === 0 ? 0.8 : 0` fallback (a decreasing per-tier value — the tier table's rule forbids it: a decision), the dancers'
   pose cache (not built: its phase steps would show). passes/perf-b.md.

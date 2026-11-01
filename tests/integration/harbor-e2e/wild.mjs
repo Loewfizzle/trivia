@@ -12,7 +12,7 @@ G('weather', async () => {
   // steady line, heavy a running fringe (core/harbor-weather.js#dripRate)
   // ---- a CLEAR day: no rain, no fog, no lightning, nothing on the glass, no weather beds
   { const Q = await open({ slot: 'wx0', qs: `when=2026-10-22T13:00${GR}`, view: [402, 874] });
-    await harborUp(Q.page); await settled(Q.page);
+    await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     const w = await ev(Q.page, W);
     ok(w && w.state === 'clear' && w.rain === 0 && w.fog === 0 && !w.lightning && w.rainFx.drops === 0 && !w.glass.on && w.wet === 0, `NO WEATHER ON A CLEAR DAY: ${w && w.line}`);
     await Q.ctx.close(); }
@@ -105,7 +105,7 @@ G('weather', async () => {
   // ---- ATM-B — HEAVY SNOW IN LAYERS + THE BLIZZARD: heavy snow = the far veil (a 'snow' look) + more, bigger flakes; the blizzard = a
   // WHITEOUT with depth, the snow driven sideways, the heads bowed, the blizzard's bed in the mix
   { const H1 = await open({ slot: 'hs1', qs: `when=2026-12-15T12:30${GR}&force=heavy-snow`, view: [402, 874] });
-    await harborUp(H1.page); await settled(H1.page);
+    await harborUp(H1.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     const hw = await ev(H1.page, W);
     ok(hw.state === 'snow' && hw.fogDepth.mode === 'snow' && !(hw.line || '').includes('BLIZZARD'), `ATM-B HEAVY SNOW IN LAYERS: ${hw.line} · the veil ${hw.fogDepth.mode} (${hw.fogDepth.veils} veils)`);
     await H1.ctx.close();
@@ -116,7 +116,7 @@ G('weather', async () => {
     await B1.ctx.close(); }
   // ---- ATM-B — FREEZING RAIN READS AS ICE: icicles on the ledges + the signs' frames + the railing, the ice sheen, people's careful steps
   { const Q = await open({ slot: 'fz1', qs: `when=2026-11-20T21:30${GR}&force=freezing-rain`, view: [402, 874] });
-    await harborUp(Q.page); await settled(Q.page);
+    await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     const w = await ev(Q.page, W), fw = await ev(Q.page, `${P}.people.wind`);
     ok(w.ice > 0.4 && w.iceFx.icicles >= 40 && w.iceFx.edges >= 10 && fw.icy > 0.5, `ATM-B FREEZING RAIN = ICE: ${w.iceFx.icicles} icicles on ${w.iceFx.edges} edges (ice ${w.ice}), careful steps (icy ${fw.icy})`);
     await Q.ctx.close(); }
@@ -154,13 +154,13 @@ G('weather', async () => {
       const y1 = Math.round(((wb && wb.y0) || 640) * k), h = Math.round(110 * k), d = cv.getContext('2d').getImageData(0, y1 - h, cv.width, h).data; let n = 0, s = 0, s2 = 0;
       for (let i = 0; i < d.length; i += 4 * 13) { const v = (d[i] + d[i + 1] + d[i + 2]) / 3; n++; s += v; s2 += v * v; } const m = s / n; res(+Math.sqrt(s2 / n - m * m).toFixed(1)); }))`);
     const at = `when=2026-11-03T21:30${GR}`;
-    const C0 = await open({ slot: 'fg0', qs: `${at}&wx=clear`, view: [402, 874] }); await harborUp(C0.page); await settled(C0.page);
+    const C0 = await open({ slot: 'fg0', qs: `${at}&wx=clear`, view: [402, 874] }); await harborUp(C0.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     const sc = await spread(C0); await C0.ctx.close();
-    const F = await open({ slot: 'fg1', qs: `${at}&force=fog`, view: [402, 874] }); await harborUp(F.page); await settled(F.page);
+    const F = await open({ slot: 'fg1', qs: `${at}&force=fog`, view: [402, 874] }); await harborUp(F.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     const fd = await ev(F.page, `${W}.fogDepth`), sf = await spread(F);
     ok(fd && fd.mode === 'dense' && fd.veils >= 5 && fd.halos >= 3 && fd.banks >= 1 && sf < sc * 0.7, `ATM-B DENSE FOG = DEPTH: ${fd && `${fd.veils} veils, ${fd.halos} halos, ${fd.banks} banks`}; the skyline's contrast ${sf} vs a clear night's ${sc}`);
     await F.ctx.close();
-    const M = await open({ slot: 'fg2', qs: `${at}&force=mist`, view: [402, 874] }); await harborUp(M.page); await settled(M.page);
+    const M = await open({ slot: 'fg2', qs: `${at}&force=mist`, view: [402, 874] }); await harborUp(M.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     const md = await ev(M.page, `${W}.fogDepth`), sm = await spread(M);
     ok(md && md.mode === 'mist' && sm < sc && sm > sf, `ATM-B MIST ≠ FOG: mist ${md && md.mode} (contrast ${sm}) between a clear night's ${sc} and dense fog's ${sf}`);
     await M.ctx.close(); }
@@ -320,7 +320,7 @@ G('legends', async () => {
   const px = (p, X, Y) => ev(p, `new Promise(res => requestAnimationFrame(() => { const cv = document.querySelector('.nd-scene canvas'), k = cv.width / cv.clientWidth; res(Array.from(cv.getContext('2d').getImageData(Math.round(${X} * k), Math.round(${Y} * k), 1, 1).data).slice(0, 3)); }))`);
   // ---- a normal night never loads the legendary module (it's lazy: a legendary night, a preview or the API only)
   { const Q = await open({ slot: 'lg0', qs: NIGHT, view: [402, 874] });
-    await harborUp(Q.page); await settled(Q.page);
+    await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     const st = await ev(Q.page, `${P}.legend.state`);
     // (jets.js is shared with skytyping + the air show — the legendary module itself, legends.js, is the lazy one)
     ok(!Q.files.some(f => /harbor\/legends\.js/.test(f)) && !st.run, `THE LEGENDARY SKY: a normal night never loads its module (${Q.files.filter(f => /legends\.js/.test(f)).length} files)`);
@@ -688,7 +688,7 @@ G('mothman', async () => {
     ok(!(await ev(Q.page, `!!document.querySelector('canvas.hb-moth')`)), 'GONE AFTER: his overlay removed');
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'mm3', qs: `when=2026-11-04T03:00${GR}&wx=clear`, view: [402, 874] });
-    await harborUp(Q.page); await settled(Q.page);
+    await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     const net = await ev(Q.page, `performance.getEntriesByType('resource').some(e => e.name.includes('assets/city/mothman/'))`);
     ok(!net && !(await ev(Q.page, `!!document.querySelector('canvas.hb-moth')`)), 'AN ORDINARY NIGHT: no Mothman, his sprites never fetched');
     await Q.ctx.close(); }

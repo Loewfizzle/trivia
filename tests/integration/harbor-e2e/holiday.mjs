@@ -7,7 +7,7 @@ import { OUT, SHOTS, sleep, ok, GR, open, ev, waitFor, tapAt, harborUp, G, settl
 // procession (Nov 2 at dusk), all gone (Nov 3 evening); the forced moments; reduced motion (docs/harbor/passes/part-11a-1.md)
 G('holiday', async () => {
   const P = 'window.__district.harbor()';
-  const page = async (slot, when, extra = '', init = null) => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874], init }); await harborUp(Q.page); await settled(Q.page); return Q; };
+  const page = async (slot, when, extra = '', init = null) => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874], init }); await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */ return Q; };
   const sign = Q => ev(Q.page, `[...document.querySelector('.nd-sign').classList].filter(c => c.startsWith('sg-')).join(',')`);
   // ---- OCT 10: early in the build-up — a web part-woven on the sign, its spider, a few pumpkins; the city's own light
   { const Q = await page('hol-o10', '2026-10-10T21:00');
@@ -140,7 +140,7 @@ G('holiday', async () => {
   // ---- WIN3 — THE SECOND SPIDER BY DATE (the owner: part of the build-up — it arrives Oct 29, so the 30th + 31st have two; Oct 28 has
   // one), both on screen inside the sign and TAPPABLE at 390 + 430 unzoomed: a touch tap on each drops THAT spider (the other untouched)
   for (const [when, view, want] of [['2026-10-28T21:00', [402, 874], 1], ['2026-10-29T21:00', [390, 844], 2], ['2026-10-29T21:00', [430, 932], 2]]) {
-    const Q = await open({ slot: `hol-sp${want}${view[0]}`, qs: `when=${when}${GR}&wx=clear`, view }); await harborUp(Q.page); await settled(Q.page);
+    const Q = await open({ slot: `hol-sp${want}${view[0]}`, qs: `when=${when}${GR}&wx=clear`, view }); await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.spiders.length >= ${want}`, 'the spiders', 15000).catch(() => {});
     const d = await ev(Q.page, `${P}.dress`), sp = await ev(Q.page, `${P}.spiders`), sr = await ev(Q.page, `(() => { const r = document.querySelector('.nd-sign').getBoundingClientRect(); return { x: r.left, y: r.top, w: r.width, h: r.height }; })()`);
     const inSign = s => s && s.x > Math.max(0, sr.x) && s.x < Math.min(view[0], sr.x + sr.w) && s.y > sr.y - 12 && s.y < sr.y + sr.h;
@@ -172,7 +172,7 @@ G('holiday', async () => {
   // above the dock) and the three BIG jack-o'-lanterns on the dressing spots (the hydrant, the bench's bale, the lamp post's bale: ≥ 15 pt
   // across, above the dock, drawn), their faces glowing after dark
   { const Q = await open({ slot: 'hol-set', qs: `when=2026-10-27T21:00${GR}&wx=clear&force=giant`, view: [390, 844] });
-    await harborUp(Q.page); await settled(Q.page);
+    await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */
     await waitFor(Q.page, `${P}.hprops && ${P}.hprops.stat.rects && ${P}.hprops.stat.rects.filter(r => r.big).length >= 2`, 'the big jack-o\'-lanterns drawn', 15000).catch(() => {});
     const hp = await ev(Q.page, `${P}.hprops`), cam = await ev(Q.page, `${P}.cam`), rects = (hp && hp.stat.rects) || [];
     const steps = rects.filter(r => !r.big && !r.decor), bigs = rects.filter(r => r.big);
@@ -222,7 +222,7 @@ G('holiday', async () => {
 // its chimney smoke, Black Friday's crew + strings + tree stand + rush, and the sign never amber after the holiday (City 1.0's calendar)
 G('thanks', async () => {
   const P = 'window.__district.harbor()';
-  const page = async (slot, when, extra = '') => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874] }); await harborUp(Q.page); await settled(Q.page); return Q; };
+  const page = async (slot, when, extra = '') => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874] }); await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */ return Q; };
   const sign = Q => ev(Q.page, `[...document.querySelector('.nd-sign').classList].filter(c => c.startsWith('sg-')).join(',')`);
   // ---- C4c — THE HARVEST DISPLAY AS A 3D MODEL (a test behind its switch): a normal Nov 19 night never fetches the model's sprites (the
   // drawn display); &prop=model draws the baked model on the compass with its Edison bulbs (code) on its ledges
