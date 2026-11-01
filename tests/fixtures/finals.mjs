@@ -2,6 +2,7 @@
 // profile / board tests. finalGame(id, uids, opts) — uids[0] wins, uids[1] is second, and so on.
 import { minBet, payout, START, LOAN } from '../../js/games/stakes/logic.js';
 import { playMatch } from '../../js/games/rum/bot.js';
+import { encodeWord, secretKey } from '../../js/games/cipher/logic.js';
 
 export const T0 = Date.UTC(2026, 9, 14, 23, 0, 0); // a Wednesday evening, Eastern
 
@@ -88,4 +89,26 @@ export function finalGame(id, uids, opts = {}) {
     }
     default: throw new Error(`no fixture for ${id}`);
   }
+}
+
+// APP FIXES: /api/report re-grades a CIPHER final against its players' signed boards — this builds them (+ game.sx, every round's
+// obfuscated word) so a fixture final is checkable like a real one
+// a CIPHER final as the real clients leave it: game.sx (every round's word, obfuscated) + boards/{m}/{r}/{uid} whose guesses give
+// exactly the results (solved at guess n, or n misses)
+const WORDS = { 5: 'crane', 6: 'planet', 7: 'kitchen', 4: 'moon' };
+export function cipherSigned(game, code) {
+  game.sx = {};
+  const boards = {};
+  for (const [r, res] of Object.entries(game.results || {})) {
+    const L = game.lengths[r], word = WORDS[L], sk = secretKey(code, game.matchId, Number(r));
+    game.sx[r] = encodeWord(word, sk);
+    boards[r] = {};
+    for (const [uid, x] of Object.entries(res)) {
+      const miss = 'z'.repeat(L), guesses = x.solved ? [...Array(Math.max(0, x.n - 1)).fill(miss), word] : Array(x.n).fill(miss);
+      boards[r][uid] = { g: guesses.map(w => encodeWord(w, sk)), p: guesses.map(() => '0'.repeat(L)), solved: !!x.solved, done: true };
+    }
+  }
+  game.round = Math.max(...Object.keys(game.results || { 0: 1 }).map(Number));
+  game.secret = game.sx[game.round];
+  return { boards };
 }

@@ -61,7 +61,8 @@ export function cipherAgrees(game, boardsByRound, code) {
 export async function processReport(uid, body, now = Date.now()) {
   const code = String(body.code || '');
   const matchId = String(body.matchId || '');
-  if (!/^[A-HJ-NP-Z]{4}$/.test(code) || !/^[a-z0-9]{3,16}$/.test(matchId)) throw new ApiError(400, 'bad_match');
+  // (APP FIXES: any A–Z — a HUSH WORD uses every letter; the old random codes' alphabet (no I / O) refused rooms like MOON or COIN)
+  if (!/^[A-Z]{4}$/.test(code) || !/^[a-z0-9]{3,16}$/.test(matchId)) throw new ApiError(400, 'bad_match');
   const key = `${code}_${matchId}`;
   const myPid = await pidOf(uid);
   const done = await val(`results/${key}`);

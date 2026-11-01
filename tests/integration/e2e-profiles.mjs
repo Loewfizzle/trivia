@@ -11,7 +11,7 @@ process.env.FIREBASE_DATABASE_EMULATOR_HOST ||= '127.0.0.1:9000';
 process.env.GCLOUD_PROJECT ||= 'demo-arcade';
 import { createHarness, REVIEW_SIZES } from './kit/harness.mjs';
 import { val, ref } from '../../api/_lib/fb.js';
-import { finalGame } from '../fixtures/finals.mjs';
+import { finalGame, cipherSigned } from '../fixtures/finals.mjs';
 
 const H = await createHarness({ name: 'profiles', slot: 'f', sizes: REVIEW_SIZES });
 const { pages, log, sleep, ok, evalIn, waitFor, uids, shotAll, openPlayer, BASE, browser } = H;
@@ -54,9 +54,12 @@ await H.run(async () => {
   const game = finalGame('cipher', [uids[0], uids[1]], { matchId: `e2e${Date.now().toString(36).slice(-6)}` });
   game.phaseStartAt = Date.now(); game.phaseEndsAt = Date.now() + 60_000;
   const code = H.code;
+  // (APP FIXES: a CIPHER final is checked against the players' own signed boards — written here as the players would have)
+  const { boards } = cipherSigned(game, code);
+  await ref(`rooms/${code}/boards/${game.matchId}`).set(boards);
   await p0.evaluate(async (c, g, names) => {
     const fb = await import('/js/firebase.js');
-    const night = { g: g.id, at: fb.serverNow(), p: { [Object.keys(g.participants)[0]]: 3, [Object.keys(g.participants)[1]]: 2 }, n: names };
+    const night = { g: g.id, at: fb.serverTimestamp(), p: { [Object.keys(g.participants)[0]]: 3, [Object.keys(g.participants)[1]]: 2 }, n: names };
     await fb.update(fb.dbRef(`rooms/${c}`), { game: g, 'meta/status': 'playing', [`night/${g.matchId}`]: night });
   }, code, game, { [uids[0]]: 'ALICE', [uids[1]]: 'BOB' });
   await p0.waitForSelector('.final', { timeout: 20000 });

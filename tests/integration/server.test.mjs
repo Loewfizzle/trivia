@@ -29,10 +29,9 @@ import { clearBoardCache, boardId } from '../../api/_lib/lb.js';
 import { flagRow, FLAG_LIMITS } from '../../api/board.js';
 import { houseNick, NICK_ADJ, NICK_NOUN } from '../../js/core/nicknames.js';
 import { isOffensive } from '../../js/core/names.js';
-import { finalGame } from '../fixtures/finals.mjs';
+import { finalGame, cipherSigned } from '../fixtures/finals.mjs';
 import { weekKey } from '../../js/core/week.js';
 import { RANKS } from '../../js/core/ranks.js';
-import { encodeWord, secretKey } from '../../js/games/cipher/logic.js';
 
 const NOW = Date.UTC(2026, 9, 14, 23, 0, 0);       // Wed 2026-10-14, 7 pm Eastern
 const DAY = 86_400_000;
@@ -70,25 +69,7 @@ async function seedRoom(id, uids, opts = {}, names = {}) {
   });
   return { code, matchId: game.matchId, game };
 }
-// a CIPHER final as the real clients leave it: game.sx (every round's word, obfuscated) + boards/{m}/{r}/{uid} whose guesses give
-// exactly the results (solved at guess n, or n misses)
-const WORDS = { 5: 'crane', 6: 'planet', 7: 'kitchen', 4: 'moon' };
-function cipherSigned(game, code) {
-  game.sx = {};
-  const boards = {};
-  for (const [r, res] of Object.entries(game.results || {})) {
-    const L = game.lengths[r], word = WORDS[L], sk = secretKey(code, game.matchId, Number(r));
-    game.sx[r] = encodeWord(word, sk);
-    boards[r] = {};
-    for (const [uid, x] of Object.entries(res)) {
-      const miss = 'z'.repeat(L), guesses = x.solved ? [...Array(Math.max(0, x.n - 1)).fill(miss), word] : Array(x.n).fill(miss);
-      boards[r][uid] = { g: guesses.map(w => encodeWord(w, sk)), p: guesses.map(() => '0'.repeat(L)), solved: !!x.solved, done: true };
-    }
-  }
-  game.round = Math.max(...Object.keys(game.results || { 0: 1 }).map(Number));
-  game.secret = game.sx[game.round];
-  return { boards };
-}
+// (cipherSigned: tests/fixtures/finals.mjs — a CIPHER final as the real clients leave it)
 const report = (uid, room, now = clock, snap) => processReport(uid, { code: room.code, matchId: room.matchId, ...(snap ? { snap } : {}) }, now);
 const stats = async uid => val(`pstats/${await val(`uids/${uid}`)}`);
 const rejects = async (p, status, code) => {
@@ -296,6 +277,13 @@ test('INVENTED MATCHES: a forged CIPHER final, a record with no time, a ghost in
   assert.equal(r.status, 'counted');
   assert.equal((await stats('u-ghost'))?.g?.bluff?.p || 0, before, 'the ghost got nothing');
   await rejects(report('u-ghost', await seedRoom('bluff', ['u-iv1', 'u-ghost']).then(async x => { await ref(`rooms/${x.code}/players/u-ghost`).set(null); return x; })), 403, 'not_in_match');
+  tick();
+});
+
+test('a HUSH WORD with an I or an O (MOON) reports like any room (the old code alphabet refused it)', async () => {
+  for (const u of ['u-hw1', 'u-hw2']) await ensure(u, u.slice(2).toUpperCase());
+  const room = await seedRoom('bluff', ['u-hw1', 'u-hw2'], { code: 'MOON' });
+  assert.equal((await report('u-hw1', room)).status, 'counted');
   tick();
 });
 
