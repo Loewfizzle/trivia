@@ -465,6 +465,27 @@ rain), `rain-pavement` (the street round you, from moderate rain), `rain-awning`
 the time sound takes from its distance (3–16 s), never two rolls on top of each other. Everything under the music (the bed's duck); City
 1.0's rain loop + recorded thunder are off in City 2.0. The AUDIO panel's `weather <state> · beds …` line names what sounds.
 
+## THE FIREWORKS SOUNDS (PART 10, Oct 31 2026; City 2.0) — `core/city-sounds.js` ('10' group), `scripts/add-city-sfx.py` CUTS
+Grok's set (`Downloads\Grok\city-sfx\fireworks\` → COPIED to `art/city-sfx/fireworks/`; the 26 originals + 10 alternates git-ignored —
+launch-1, crackle-1, whistle-1 + crowd-2 are Sonniss, never stand-alone downloads; `claude-notes.txt` + `credits.txt` kept). Re-import:
+`~/.cache/neural-arcade/pyenv/Scripts/python -I scripts/add-city-sfx.py --src art/city-sfx/fireworks`.
+- **THE SLOTS** (the scene plays them — screens/harbor/fireworks' hooks in scene.js): `firework-launch` (4 takes: the mortar's thump +
+  the whoosh; `hit` = the thump; launch-3 cut before its own burst, launch-4's abrupt start faded in 20 ms + weighted 0.6) ·
+  `firework-whistle` (3, the climb's whistle) · `firework-burst` NEAR (6: near-1 split into its two explosions, the deep mortar near-3
+  with −1 dB at decode for its float overs, the slapback near-4, near-2 lo-fi + near-5 the small one weighted down; `hit` = the burst) ·
+  `firework-burst-far` (4; far-3's cut end faded over 0.9 s) · `firework-crackle` (3) · `firework-crackle-bed` (a LOOP — crackle-3's hard
+  in + out never reach the seam: 1.38 s window + a 0.45 s tail crossfaded at runtime) · `firework-willow` (2, the sizzle past each take's
+  own pop — the boom is its own) · `firework-finale` (2 barrages, 25.2 + 22.8 s, faded out; finale-1's quiet right channel folds to
+  mono fine) · `firework-ooh` (fw-crowd-1 as two takes: its two swells, the second's edit join eased in) · `crowd-cheer` (fw-crowd-2 — the
+  slot was empty: the fireworks' end + the NYE countdown).
+- **LEVELS** (the originals ≈ −8 … −35 LUFS, each levelled): near booms −21, far booms −24, launches −24, whistles −26 (shrill), crackle +
+  willow −25, finales −22, the crowd −24 (LP 5–6 kHz, HP 150); the −2 dBFS limiter keeps the peaky ones a few dB under (near-4 −24.7,
+  near-5 −24.2, launch-3 −28.5, finale-1 −24.9) — the transients kept, the slot gains (0.05–0.15) set the mix. Mono, booms + finales at
+  24 kHz, crackle / whistles / launches / willow at 32 kHz, the crowd at 22.05 kHz; 56 kbps (the crowd 48).
+- **SIZE**: 28 files, **0.86 MB** (audio/city/ now ≈ 21 MB). No alternate swapped in (the main set covers every slot cleanly).
+- **CREDITS**: the 13 CC BY lines of credits.txt's ready-to-paste block, exact, in `js/ui/credits.js` (☰ → CREDITS → SOUND EFFECTS) +
+  `audio/city/CREDITS.md` / `sources.json` (the importer); the CC0 + Sonniss ones as one courtesy line.
+
 ## THE THUNDER RECORDED + THE BOXER's BAG (ATM-C, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js#thunder` (+ `CRACK2`), `screens/harbor/lightning.js` (the held flash), `core/harbor-boxer.js#boxerCues`
 - **THE THUNDER IS RECORDED** (the owner: ATM-B's synthesized crack "sounds terrible — very cheap and basic" → `cityCrack` REMOVED): Grok's set
   (`art/city-sfx/thunder/` — the 9 originals git-ignored, never edited; `claude-notes.txt` + `credits.txt` beside them) → 9 web copies, **0.63 MB**

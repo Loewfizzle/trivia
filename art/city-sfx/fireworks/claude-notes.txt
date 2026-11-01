@@ -1,0 +1,236 @@
+NEON SPEAKEASY - FIREWORKS: CLAUDE NOTES (2026-10-31)
+How I checked: I could not listen, so each file was judged from a spectrogram plus a 10 ms level trace, an EBU R128
+loudness measurement (ffmpeg ebur128, true peak 4x oversampled), and clipping tests on the ORIGINAL file: samples at full
+scale, runs of identical samples near the peak, and "flat-top" runs (consecutive samples within 0.99 of the peak that
+change by less than 0.05% of it per sample). Every delivered file passed: no flat run longer than 5 samples and no run
+of identical peak samples. All numbers below are measured on the delivered files, which are byte-identical to the
+originals. Times are seconds from the start of the file. "Rel" means dB relative to the file's loudest moment.
+"First 50 ms at X rel" shows how abrupt the start is (below about -40 rel is a clean start).
+
+== LAUNCH (target 0.5-3 s) ==
+fw-launch-1.wav  Sonniss/InspectorJ  96 kHz/24-bit stereo, 3.44 s (0.44 s over target)
+  Close launch: a low thump at ~0.10-0.15 s and a whoosh rising to its peak at 0.41 s, then a long fading spark/hiss
+  tail to the end (about -44 rel at the end, so it ends on a soft tail, not silence). Clean start (-59 rel).
+  Peak -0.0 dBFS (one sample touches full scale, no flat tops), TP -0.0 dBTP, -16.9 LUFS.
+fw-launch-2.wav  675773 craigsmith  48/24 mono, 3.31 s
+  Thump and whoosh almost from the first frame (onset 0.01 s, loudest 0.13 s). The first 50 ms is at -12 rel, so the
+  start is fairly abrupt. Decaying rocket hiss stops fairly abruptly at ~2.35 s (motor burnout), then quiet room tone
+  (-47 rel at the end). Peak -7.26 dBFS, TP -7.2, -24.8 LUFS. Clean, no clipping.
+fw-launch-3.wav  140727 j1987  44.1/16 stereo, 3.30 s
+  Small mortar: a soft launch pop at 0.05 s (-14 rel), a few sparks, then the shell bursts at 1.86 s (the loudest point).
+  This is launch plus burst rather than a pure launch whoosh. Starts at -23 rel (somewhat abrupt).
+  Peak -0.0 dBFS (one sample at full scale in L; max flat run 2, so a natural crest), TP -0.0, -24.3 LUFS.
+fw-launch-4.wav  455547 Kinoton  48/16 mono, 2.25 s
+  Single rocket: a broadband whoosh/hiss rising to ~0.5 s and fading by ~2 s to near silence (-76 rel at the end). Noise
+  rather than a clear whistle tone. ABRUPT START: the first 50 ms is already at -7.7 rel.
+  Peak -0.76 dBFS, TP -0.5, -17.9 LUFS. No clipping. The weakest launch; see the launch alternates.
+
+== BIG CLOSE BOOMS (target 2-6 s) ==
+All five original near-boom picks clipped on the originals (see REJECTED). They were replaced by five clean files from
+follow-up searches (near-2 to near-5 added 2026-10-31).
+fw-boom-near-1.wav  40968 dobroide (promoted from alternate)  44.1/16 stereo, 5.00 s
+  Two explosions: the first at 0.27 s and the second at 2.96 s (-2 rel). Each is a sharp broadband crack with a ~2 s
+  rumbling decay. Clean start (-42 rel). It ends on outdoor ambience at about -35 rel rather than silence, so there is
+  no hard cut, but there is a constant low noise bed (floor about -39 rel).
+  QUIET: peak -10.46 dBFS, TP -10.5, -24.7 LUFS, so it will need gain in the engine. No clipping.
+fw-boom-near-2.wav  255325 kwahmah_02  44.1/16 mono, 4.02 s
+  "A single firework explodes in the street, quite close to me" (Rotherham, 31 Oct 2014). It was recorded on a 4th-gen
+  iPod touch and converted by the uploader, so it is lo-fi. A rising launch hiss from ~0.4-1.0 s (peak around 0.8 s,
+  about -15 rel), then a sharp close boom at 2.47 s with a ~1 s decay. There is a steady street/ambience noise bed at
+  about -33 rel for the whole file, with a faint tonal band around 2-3 kHz. It starts and ends inside that bed (no click,
+  but not silence). Peak -5.44 dBFS, TP -5.4, -28.1 LUFS (headroom, but quiet). No clipping (max flat run 1).
+fw-boom-near-3.wav  341043 hantorio  48 kHz/32-bit FLOAT stereo, 7.55 s (1.55 s OVER the 6 s target)
+  "A single shot mortar fireworks, pretty heavy" (Zoom H2). The mortar launch thump is at 0.60 s (-1 rel), then a
+  deep, heavy burst at 3.52 s with a long rolling decay to the end. Clean start (-50 rel). It ends on ambience at
+  about -37 rel (no click). No flat tops (max flat run 1) and no runs of identical samples. BUT: because it is a float
+  file, 4 samples in the right channel sit just above full scale (peak +0.08 dBFS; left -0.02), TP +0.4 dBTP. The
+  waveform is rounded there, not clipped, but if the engine converts to 16/24-bit integer without gain, those 4
+  samples will clip by 0.08 dB. Pull it down 1 dB in the engine. -22.0 LUFS, LRA 13.6. The best "deep boom" of the set.
+fw-boom-near-4.wav  336009 Rudmer_Rotteveel  44.1/16 stereo, 3.49 s
+  "Single sharp-sounding explosion (fireworks) with strange all-natural reverb/echo almost sounding like a ricochet",
+  isolated by the uploader from a longer DR-05 recording of fireworks. The burst hits at 0.02-0.03 s (the file opens
+  on near-silence, so it is a very fast attack, not a click), with a distinct slapback echo at 1.12 s and a smaller
+  one at 1.65 s, decaying to near silence (-73 rel at the end). Peak -0.16 dBFS (little headroom), TP -0.1, -26.8 LUFS.
+  No clipping (max flat run 1, no full-scale samples).
+fw-boom-near-5.wav  616280 Dan_AudioFile  44.1/24 stereo, 2.33 s
+  Title "Fireworks, single, small, close and short", but the uploader's description says "far away and obvious first
+  and second reflections" (pair of NT5s). A short punchy crack at 0.23 s and a reflection at 0.53 s (-16 rel) over a
+  quiet ambience bed (about -50 rel); clean start and end. It is a SMALL, sharp burst rather than a deep boom; use it
+  as the light variant. Peak -1.20 dBFS (left -3.46), TP -1.2, -32.9 LUFS (quiet). No clipping (max flat run 1).
+
+== DISTANT BOOMS (target 2-6 s) ==
+fw-boom-far-1.wav  640698 Hajisounds  44.1/32-bit int stereo, 5.71 s
+  Round, low booms at 0.30 and 0.78 s (both full level), then softer ones at 2.04, 2.70, 4.49, 4.83 and 5.23 s
+  (-19 to -23 rel). Steady ambience at about -35 rel throughout, and it ends inside that ambience (soft, not a click).
+  Peak -1.98 dBFS, TP -2.0, -16.7 LUFS. Clean.
+fw-boom-far-2.wav  251618 bmlake (promoted from alternate; replaces clipped 784165)  48/24 stereo, 3.20 s
+  Over a lake in a small valley: sharp cracks at 0.07 and 0.33 s (-13/-12 rel), a smaller one at 0.94 s, then the main
+  boom at 1.28 s with a valley echo decaying to near silence (-64 rel at the end). Sharper than "round". The file opens
+  with sound already present (-30 rel in the first 50 ms), which is a mild hard start.
+  Peak -3.28 dBFS, TP -3.3, -31.3 LUFS (quiet overall). Clean.
+fw-boom-far-3.wav  616284 Dan_AudioFile  44.1/24 stereo, 2.38 s
+  Large distant boom at 0.15 s with a long echo. The FILE ENDS while the echo is still at about -23 rel, so expect an
+  audible cut at the end (fade it in the engine). Peak -6.2 dBFS, TP -6.2, -24.7 LUFS. Clean.
+fw-boom-far-4.wav  579285 Natty23  44.1/16 stereo, 2.78 s
+  "Slightly distant": ambience pre-roll, then a sharp-ish boom at 1.26 s that decays to silence (-80 rel).
+  Peak -0.01 dBFS (6 samples within 0.5% of the peak, longest flat run 3, so a natural crest), TP -0.0, -19.2 LUFS.
+
+== CRACKLE (target 2-6 s) ==
+fw-crackle-1.wav  Sonniss/InspectorJ  96/24 stereo, 5.62 s
+  Small pops from 0.3-1.0 s, then the main crackle/glitter burst from 1.85-3.85 s (loudest at 2.14 s), with a clean
+  decay to silence. Close, consumer-style recording. Peak -1.24 dBFS, TP -1.2, -27.9 LUFS. Clean.
+fw-crackle-2.wav  251619 bmlake  48/24 stereo, 2.79 s
+  Continuous crackle with small bursts over a lake: bursts at 0.51, 0.86, 1.20, 1.58 (loudest), 1.88, 2.24 and 2.54 s.
+  It is an excerpt: it starts at -16 rel and ends at -18 rel, so both the in and the out are abrupt.
+  Peak -6.2 dBFS, TP -6.2, -25.9 LUFS. Clean.
+fw-crackle-3.wav  840319 Robo9418 (promoted from alternate; replaces clipped 435729)  44.1/16 stereo, 2.17 s
+  A dense, continuous crackle bed from the first to the last frame, with stronger pops at 0.59, 1.24 and 1.74 s. It is an
+  excerpt with HARD IN AND OUT (-3 rel in the first 50 ms, -12 rel in the last). Better as a looping crackle bed or under
+  a boom than as a one-shot. Peak -0.98 dBFS, TP -0.8, -18.5 LUFS. Clean.
+fw-crackle-4.wav  445237 steffcaffrey  44.1/24 stereo, 5.00 s
+  A fizz/whine from 0-1.6 s, then crackle pops at 1.75, 2.09, 2.48, 2.85 and 3.42 s, fading to silence. Clean start
+  and end. The uploader applied a bass roll-off (high-pass) when recording, so it is light in the lows.
+  Peak -0.10 dBFS (single sample, no flat runs), TP -0.1, -19.2 LUFS.
+
+== WHISTLES (target 1-3 s) ==
+fw-whistle-1.wav  Sonniss/InspectorJ  96/24 stereo, 1.91 s
+  A tonal shriek from 0.03-0.8 s (fundamental about 2-3 kHz with harmonics), then a fading tail. Very loud:
+  peak -0.02 dBFS (single sample, no flat tops), TP -0.0, -7.9 LUFS.
+fw-whistle-2.wav  530972 TimoSchmied  48/24 stereo, 1.85 s
+  A rich, multi-harmonic scream from ~0.2 s (loudest 0.44 s) to ~1.4 s, then a fade to silence. Clean pre-roll.
+  Peak -2.3 dBFS, TP -2.3, -11.5 LUFS. Clean.
+fw-whistle-3.wav  140726 j1987  44.1/16 stereo, 1.87 s
+  A tiny rocket whistling away from 0.05-1.5 s (fading as it climbs), with a small pop at 1.63 s. Fairly prompt start
+  (-32 rel in the first 50 ms). Peak -0.0 dBFS (one sample at full scale in L, no flat run), TP +0.1 dBTP (inter-sample;
+  leave about 0.5 dB headroom), -13.2 LUFS.
+
+== WILLOW / SIZZLE (target 3-8 s) ==
+I found no genuine large gold-willow recording under an allowed licence. These two are the closest real sounds: a pop
+or burst followed by a sparkling sizzle.
+fw-willow-1.wav  56578 atomwrath  44.1/24 stereo, 3.53 s
+  Close pop at 0.26 s, then sizzle/hiss to ~1.6 s and sparse fading crackle to the end, finishing in digital silence.
+  Peak -2.86 dBFS, TP -2.9, -29.1 LUFS. Clean.
+fw-willow-2.wav  110391 soundscalpel.com  44.1/16 stereo, 3.48 s
+  Burst at 0.04 s (only 40 ms pre-roll, so it starts on the hit), crackle from 0.95-1.6 s, then a fizz that decays to
+  digital silence. Peak -0.09 dBFS (max 2 samples near peak, no flat runs), TP -0.0, -19.3 LUFS.
+
+== FINALE (target 10-30 s) ==
+fw-finale-1.wav  840560 George_Papargyris  96 kHz/32-bit float stereo, 25.92 s, 19.9 MB
+  New Year fireworks over the port of Tinos (Greece), recorded from a hill above the harbour, so this is the best match for
+  the harbour brief. About 46 detected bursts from 0.5-24 s (loudest at 11.84 s), continuous with short gaps, fading at
+  the end. Starts and ends in digital silence. Faint distant dogs. Right channel is much quieter than left
+  (peaks -1.1 L / -15.1 R). Peak -1.12 dBFS, TP -1.1, -31.0 LUFS, LRA 7.6. Clean.
+fw-finale-2.wav  840762 bb_sound_records  48/24 stereo, 22.88 s
+  "Full peak": dense blasts, a whistler and a crackling fall, about 49 detected events (loudest at 10.06 s). It is an
+  excerpt: busy from 0.1 s and still active near the end (last 50 ms at -47 rel, then the final samples reach zero, so
+  there is a very short fade). It may sound slightly cut off. Peak -1.59 dBFS, TP -1.5, -32.9 LUFS. Clean.
+
+== CROWD (optional, 3-8 s) ==
+fw-crowd-1.wav  870652 CHallSmith  48/24 mono, 6.27 s
+  A loop group doing a synchronised "Ooh... Aah". One swell from 0.24-2.1 s and a second from 3.78 s; the second starts
+  sharply, possibly at an edit join. The uploader calls it "somewhat surreal". These are vocal sounds, not words.
+  Peak -0.50 dBFS, TP -0.5, -15.0 LUFS. Clean.
+fw-crowd-2.wav  Sonniss/Soundrangers  96/24 stereo, 4.80 s
+  Audience cheering with applause: fades in from 0.26 s, holds, and fades out by 4.8 s. Not fireworks-specific
+  (stadium/audience). I could not confirm by ear that no words can be made out. Peak -0.81 dBFS, -15.4 LUFS. Clean.
+fw-crowd-3: NOT FILLED. No clean CC0/CC BY crowd ooh/aah or cheer of 3-8 s without clear words was found.
+
+== DELIVERED ALTERNATES (deliver/alternates/) ==
+fw-alt-launch-swooshes.wav  675780 craigsmith, CC0, 48/24 mono, 4.83 s (1.83 s over 3 s)
+  Two launch swooshes at 0.13 s and 3.39 s (-9 rel), with a clean start and end. Peak -2.47, TP -2.5, -18.1 LUFS. Clean.
+  This is a cleaner launch than fw-launch-4, but it is over length and from the same recordist as fw-launch-2.
+fw-alt-launch-luka.wav  750685 LukaCafuka, CC0, 48 kHz/32-bit float stereo, 7.09 s (WELL over 3 s)
+  A launch at 0.12 s (loudest 0.33 s), then a long decay to near silence (-98 rel at the end). Clean start.
+  Peak -1.16, TP -0.8, -10.5 LUFS, LRA 25.7. Clean.
+fw-alt-whistle-rocket2.wav  140723 j1987, CC0, 44.1/16 stereo, 2.14 s
+  A whistle from 0.11-0.55 s (loudest 0.17 s) and a pop at 1.45 s (-4 rel). Peak -3.65, TP -3.6, -23.3 LUFS. Clean.
+fw-alt-whistle-firecracker.wav  Sonniss/Membrans, 96/24 stereo, 2.06 s
+  A ground "whistling firecracker" rather than an aerial shell. The whistle starts immediately (-21 rel in the first
+  50 ms) and decays by ~1.3 s. Peak -0.0 (one sample), -7.9 LUFS. Clean.
+fw-alt-willow-sparkler.wav  784324 KVV_Audio, CC BY 4.0, 96/24 stereo, 10.0 s (2 s over 8 s)
+  A steady sparkler sizzle, not a willow. Hard in and out (-11 rel at both ends). Peak -4.5, TP -4.5, -24.6 LUFS. Clean.
+fw-alt-finale-neardominant.wav  840763 bb_sound_records, CC BY 4.0, 48/24 stereo, 20.0 s
+  Dense, with a pronounced crackling fall; about 46 events, loudest at 1.78 s. Same recordist and show as fw-finale-2.
+  Starts at -37 rel and ends at -49 rel. Peak -5.05, TP -5.0, -35.0 LUFS (very quiet). Clean.
+fw-alt-finale-dcsimon.wav  160720 dcsimon, CC BY 3.0, 48/24 stereo, 27.27 s
+  A rural 4th of July show with a boom every ~1-2 s (26 events, loudest at 23.42 s) and tree frogs in the background.
+  Less dense than the main finales. Peak -4.71, TP -4.4, -22.2 LUFS. Clean.
+fw-alt-finale-malta.wav  Sonniss/Sound Villain, 48/24 stereo, 22.2 s
+  Malta harbour festival: about 8 heavy blasts at 0.99, 3.72, 4.73, 6.08, 7.02, 8.17, 9.11 and 10.46 s, then about 11 s
+  of crackle/sparkle decay, so only the first 10 s is barrage-like. Peak -1.0 dBFS, but 91 samples in the left channel sit
+  at that ceiling, which suggests a limiter or normalising at -1 dBFS. There are no flat runs longer than 2 samples.
+  True peak +0.8 dBTP (inter-sample). -10.6 LUFS (loud). Use with care.
+fw-alt-near-richwise.wav  455453 richwise, CC0, 48 kHz/32-bit float stereo, 10.03 s (4 s OVER 6 s)
+  "A single firework with almost no other background noise" (Southampton NYE 2018, Zoom H5). Near silence until one
+  clean, deep boom at 3.59 s, then a long decay to digital silence. Peak -1.0 dBFS, TP -0.3, -17.9 LUFS. The right
+  channel has 10 consecutive samples within 0.5% of its peak, but they are rounded (max flat run 3), so not clipping.
+  The cleanest single boom found; delivered as an alternate only because of its length.
+fw-alt-near-jellegeus.wav  179987 JelleGeus, CC0, 44.1/16 stereo, 7.64 s (1.64 s OVER 6 s)
+  New Year's Eve in Groningen (Zoom H2 rear mics). Several bursts rather than one: 1.00 s (-11 rel), 2.32 s (-3),
+  3.27 s (-6), 4.94 s and 5.23 s (-2), each with a crackle/sparkle tail; loudest at 5.10 s. Clean start (-63 rel) and
+  it ends in digital silence. Peak -4.13 dBFS (good headroom), TP -4.1, -31.8 LUFS. No clipping. No voices visible.
+Not delivered as alternates: 40968, 251618 and 840319 were promoted into the main set; 376662 and 56579 clipped.
+
+== REJECTED / CLIPPED CANDIDATES ==
+Rejected after checking the downloaded ORIGINALS (2026-10-31). Each had flat tops, meaning runs of samples held at
+(or wobbling within a few LSB of) a ceiling with an abrupt entry and exit, which is not a natural rounded crest:
+  624414 MilanKovanda "Firework single shot 2" (was boom-near-4): 201/374 samples at full scale, identical runs up to 67/89.
+  784165 modusmogulus "Firework exploding & clean tail" (was boom-far-2): 59/150 full-scale samples, identical runs 21/42.
+  435729 SamuelGremaud "FIREWORKS - 5" (was crackle-3): flat ceiling at -0.03 dBFS, identical runs up to 46 (clipped,
+     then gained down).
+  99200 dobroide "20100612.fireworks.wav" (was boom-near-2): a 53-sample plateau at -0.04 dBFS that sags linearly, then
+     drops off abruptly. That is a clipped top passed through a high-pass/DC filter. 4-5 such plateaus per channel.
+  552699 jakubp.jp "Single Firework With City Reverb" (was boom-near-5): left channel holds -0.08 dBFS within +/-3 LSB
+     for 36 samples (clipped, then gained down).
+  376660 LOVEBURD "NYE Single Boom" (was boom-near-1): 10/7 flat plateaus per channel up to 43 samples at -0.0 dBFS,
+     with abrupt entry and exit (brick-wall limited or soft-clipped). Borderline, but rejected under the flat-top rule.
+  180531 Suz_Soundcreations "Fireworks_3_close_Amsterdam" (was boom-near-3): 6 consecutive identical full-scale
+     samples in both channels on the first transient (brief hard clip).
+  376662 LOVEBURD "NYE Loud Booms" (was alternate): 7 full-scale samples, 15/10 flat plateaus up to 59 samples.
+  56579 atomwrath "fireworks 3bursts sizzle" (was alternate): flat top at -0.61 dBFS (+/-4 LSB) for 10-13 samples,
+     2-3 times per channel.
+Near-boom follow-up downloads (checked on the originals, 2026-10-31):
+  376661 LOVEBURD "NYE Short Burst": 9 full-scale samples in L, 7 flat plateaus up to 31 samples (clipped/limited).
+  774236 loganzsound "fireworks": clean, but NOT A FIREWORK. The uploader's description says it is "A Pillow Being
+     Slammed Into the Concrete in a Parking Garage, Sounds Alot Like Fireworks". Rejected as not a real fireworks recording.
+  198352 schafferdavid "fireworks impact22": no clipping (peak -0.81), but the uploader's pack description says
+     "blasts, sparkles and crowd reactions", and the spectrogram shows gliding harmonic contours (about 600-1300 Hz,
+     0.3-4.5 s) that look like crowd voices or whistling. It also starts abruptly (-12 rel in the first 50 ms).
+     Rejected for possible voices.
+Sonniss search for more near booms: the archive.org GDC 2015-2020, 2023 and 2024 bundles were listed in full. The
+  InspectorJ "Essentials 03 Fireworks" pack in the GDC 2023 bundle holds only 4 files (Launch_Close_01-03,
+  Multi_Close_01-04-Crackle, Single_Close_03-10-Whistle and the 48 s Display_Multi_02-01). There are no other
+  Single_Close files. The 2024 bundle has no fireworks. Other "mortar" hits (Coll Anderson Guns, Bluezone) are military.
+Earlier rejections (preview or Sonniss original):
+Clipped or limited (full-scale samples or flat tops):
+  Sonniss Malta 006 (left channel has 82 flat runs up to 346 samples), Sonniss Malta 033 (21 full-scale samples,
+  right-channel flat runs up to 74), Sonniss Bombay Sonic FIREWORKS_DR05_01 (19 full-scale samples, clip runs up to 12),
+  840902 klankbeeld, 325667 sloppyjoe24, 161680 and 161687 jppi_Stu (161687 is also "minor processing"), 869083 and 869102
+  MichiJung, 651331, 190700 (phone video), 750716 FOSSarts (146 full-scale samples), 611943 wagneric (206),
+  435728 SamuelGremaud (28), 273320 Clagnar (MP3, 614), 328864 InspectorJ Crackle A (259; also 33 s),
+  142019 HerbertBoland (MP3, 65; ~190 kbps).
+Processed, synthetic or edited:
+  111308 (noise-filtered), 132043 (noise reduction), 372077 (cleaned/edited), 349830 (voices removed with RX, other
+  material added), 81455 (denoised), 845969 (EQ/compression), 588198 and 588199 (wind noise cleaned), 840511 (normalised
+  and sliced), 171655 ("heavily processed" MP3), 335983 (composed), 334260 (SFXR), 118932 (modular synth), 569846
+  (FL Studio), 347119 (sound-designed), 259285 (reversed), 807538 (looped), 365914 (generated), 718132 and 718133
+  (noise-reduced).
+Voices, music or traffic:
+  216604 (a girl yells), 32984 and 32983 (child screams), 321785 and 321783 (St Ives beach, crowd talking; also sparse),
+  410351 (music), 582216 (background music), 613589 (talking), 867211 and 844150 (cars), 21411 (motorbikes; also AIFF),
+  260627 (car alarm), 577278 (voices).
+Hard cuts and edits:
+  649296 (cuts to digital silence at 2.37 s), 718960, 718964, 422079 and 212684 (start right on the boom, no pre-roll),
+  5560 dobroide (abrupt level drops at 4.7 and 7.6 s that look gated or edited).
+Wrong format or low bitrate:
+  FLAC/M4A/AIFF: 169014, 238953, 840670, 863422, 453104, 613669, 613672, 209310, 749687, 861265, 121558, 174493, 174494,
+  822945, 404998, 525157, 244770, 453130, 434281, 386720. Low-bitrate MP3: 14742 (~125 kbps), 142020.
+Wrong length for every slot (and no trimming allowed):
+  Sonniss Stanley Park (44 s), DR40_03 (60 s), InspectorJ Display_Multi_02-01 (48 s), Malta 048 (85 s),
+  Bombay Slapbacks_13 (23.5 s, only 5 sparse booms), 456317 (36 s), 504970 (40 s), 870494 (30.8 s, with a cheering
+  crowd), 861407 (22 s cheering), and short fragments under 2 s (580752, 553153, 167242, 750682, 616286, 186933).
+Other:
+  Sonniss Membrans "Firecracker, Medium Distance 07" (a firecracker, not a shell); 695730 (bottle-rocket whistle,
+  -4.6 LUFS, hard edges); 841958 and 543540 (cake/multi-shot pops with abrupt starts, not launches);
+  190698 (phone-video audio, noisy); 870654 ("Wow" is a word); Bluezone mortar (military); Sonniss GDC 2026 bundle
+  (outside the 2015-2024 range). The GDC 2021 and 2022 bundles are not on archive.org, so they were not searched.

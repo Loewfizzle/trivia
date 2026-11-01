@@ -386,7 +386,7 @@ export function createHarborFireworks(opts = {}) {
         if (la > now + look) break;   // (cues are sorted by the burst; a long rise may launch a hair earlier — the look-ahead covers it)
         if (done.has(key)) continue;
         if (show.t0 + c.t + 6 - tBase < now) { done.add(key); continue; }
-        if (env.launching === false && la > now - 0.05) continue;
+        if (env.launching === false) continue;   // (called off: nothing new goes up — the shells already in the air finish)
         const sh = build(c, show, key, now, env.tier); shells.set(key, sh); done.add(key);
         lastSmokeEnd = Math.max(lastSmokeEnd, sh.burst + 75);
         sh.fresh = la > now - 1;

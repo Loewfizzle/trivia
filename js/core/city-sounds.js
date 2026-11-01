@@ -158,11 +158,18 @@ export const SLOTS = [
   S('rivet-gun', 'tower', 'once', 0.075, 'a rivet gun on the steel — short bursts now + then over the hammering (9g: four takes)', 'the site by day while the hammering plays (sounds.js — rivetDue)'),
   S('crane-lift', 'tower', 'once', 0.06, 'a period crane lifting a big load — now + then over the crane (9f)'),
   // ---- PART 10 — party nights + fireworks
-  S('firework-launch', '10', 'once', 0.12, 'a firework’s launch whoosh'),
-  S('firework-burst', '10', 'once', 0.14, 'a firework bursting (near)', 'the party’s finale (the synthesized burst until it’s filled)'),
-  S('firework-burst-far', '10', 'once', 0.1, 'a firework bursting far off'),
-  S('firework-crackle', '10', 'once', 0.1, 'crackle / glitter after a burst'),
-  S('crowd-cheer', '10', 'once', 0.12, 'a crowd cheering (the fireworks, the NYE countdown)'),
+  // (PART 10 — GROK's FIREWORKS SET, art/city-sfx/fireworks/ — real recordings, levelled per take (the originals ≈ −8 … −35 LUFS): each
+  // boom's `hit` = its burst in the take (the scene lines it up with the flash + the distance's delay), each launch's = its thump)
+  S('firework-launch', '10', 'once', 0.12, 'a firework’s launch: the mortar’s thump + the rising whoosh (four takes)', 'every shell’s launch (screens/harbor/fireworks sounds — near layers louder)'),
+  S('firework-whistle', '10', 'once', 0.06, 'a whistling shell on its way up (three takes)', 'a share of the launches (cue.whistle)'),
+  S('firework-burst', '10', 'once', 0.14, 'a firework bursting NEAR — the barges + the lighthouse (six takes: deep mortar, sharp, slapback, a small one)', 'a near layer’s burst, after its distance’s delay'),
+  S('firework-burst-far', '10', 'once', 0.1, 'a firework bursting FAR off — behind the skyline (four takes)', 'the far layer’s bursts (~1 s after the flash)'),
+  S('firework-crackle', '10', 'once', 0.1, 'crackle / glitter after a burst (three takes)', 'the crackle + glitter + strobe shells’ falling stars'),
+  S('firework-crackle-bed', '10', 'loop', 0.05, 'a dense crackle bed (a loop)', 'the finale’s full sky'),
+  S('firework-willow', '10', 'once', 0.08, 'the sizzle of falling sparks — a willow / glitter (two takes)', 'the gold willows + the curtain'),
+  S('firework-finale', '10', 'once', 0.15, 'a finale barrage over a harbour (two takes, ~23–25 s)', 'the party show’s finale (the music ducks a little under it)'),
+  S('firework-ooh', '10', 'once', 0.07, 'a crowd’s “ooh … aah” (two takes, vocal sounds, no words)', 'the big bursts while people watch'),
+  S('crowd-cheer', '10', 'once', 0.12, 'a crowd cheering + applause (the fireworks’ end, the NYE countdown)', 'the end of a show'),
   // (6b — THE DANCE CIRCLE heard, quiet: the wands' swish on a few big moves, a burst of clapping while the watchers clap, a rare whoop)
   S('glow-wand-swish', '10', 'once', 0.03, 'a glow wand swished through the air (four takes)', 'a few dancers’ big moves in the dance circle (people.js#danceSounds — on the beat, quiet)'),
   S('crowd-clap', '10', 'once', 0.04, 'a few people clapping + cheering round the dance circle (low-passed 3 kHz; three takes)', 'the circle’s watchers clapping (people.js#danceSounds — every ~18–40 s)'),

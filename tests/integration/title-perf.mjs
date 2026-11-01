@@ -102,6 +102,10 @@ const SCENES = {
   // (ATM-D: the sun as a glowing light at sunrise; the real puddles by day + in the rain at night; the fog on a party night (the beams as
   // volumes only); the storm (atmb-storm) + the blizzard (atmb-blizzard) + the dense fog (atmb-fog) above cover the rain, the ground snow + the veils)
   'atmd-sunrise': 'when=2026-10-31T08:50&wx=clear&force=no-planes', 'atmd-wet': 'when=2026-11-03T13:30&wx=clear&force=wet-street,no-planes', 'atmd-wetnight': 'when=2026-11-03T21:30&wx=rain&force=no-planes', 'atmd-fogparty': 'when=2026-10-31T21:30&force=fog,no-planes',
+  // (PART 10 — THE FIREWORKS on the GPU: the party show's finale over the full Saturday crowd, a weeknight show, a show in light snow — an
+  // A/B against a build without them is the fireworks' whole cost)
+  'p10-party': 'when=2026-10-24T22:30&wx=clear&force=finale,no-planes', 'p10-party0': 'when=2026-10-24T22:30&wx=clear&force=no-planes',   // (p10-party0: the same party moment with no show — --scenes p10-party0 --vs p10-party = the finale's cost)
+  'p10-week': 'when=2026-10-21T21:31&wx=clear&force=fireworks,no-planes', 'p10-snow': 'when=2027-01-13T21:31&wx=snowfall&wxk=light&force=fireworks,no-planes',
   // SP6: a normal night with the blue TV window on (23:00); the UFO's abduction (the beam drawn as one image now)
   's9-fresh': 'when=2027-01-15T22:00&wx=clear&snow=fresh&force=no-planes', 's9-fall': 'when=2027-01-14T22:30&snow=fresh&force=snowfall,no-planes', 's9-plow': 'when=2027-01-14T13:00&snow=fresh&force=plow,no-planes', 's9-thaw': 'when=2027-01-15T22:00&wx=clear&snow=thaw&force=no-planes', 's9-party': 'when=2027-01-15T22:30&wx=clear&snow=fresh&force=party,no-planes',   // (9b: WINTER — the snow vs none)
   'sp6-tv': 'when=2026-10-14T23:00&wx=clear&force=no-planes', 'sp6-ufo': 'when=2026-09-15T23:00&wx=clear&force=no-planes,ufo&lgnow=1',

@@ -18,7 +18,7 @@
 import { look as skyLook, skyClock, sunPosition, moonPhase, sunTimes, localParts, setRealNow } from '../../core/sky.js';
 import { serverNow } from '../../firebase.js';
 import { moodData, loadMoodMusic } from '../../audio/mood.js';
-import { deckSpec } from '../../core/party-deck.js';
+import { deckSpec, deckSongAt } from '../../core/party-deck.js';
 import { partyTimeline, danceBreaks, partyNight, eveningOf as spEveningOf } from '../../core/harbor-streetparty.js';
 import { breakFlight, patrolInSlot } from '../../core/harbor-heli.js';
 import { knob } from '../../core/harbor-schedule.js';
@@ -31,7 +31,7 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createHarborFireworks } from './fireworks.js';
-import { fireworksNight, planShow, fireworksWeather, fireworksBusy, FW_EDGE } from '../../core/harbor-fireworks.js';
+import { fireworksNight, planShow, fireworksWeather, fireworksBusy, syncToBeat, FW_EDGE } from '../../core/harbor-fireworks.js';
 import { hashString as fwHash } from '../../core/rng.js';
 import { createRainbow } from '../district/rainbow.js';
 import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, partyPalette, partySeed } from '../../core/party.js';
@@ -641,7 +641,25 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
   const fwNights = new Map(), fwPlans = new Map();
   let fwState = { on: false, show: null, why: '', dim: false }, fwGeo = null, fwGeoKey = '', fwDimK = 0, fwFlash = 0, fwFlashSent = 0;
-  const fwPlan = (kind, seed) => { const k = kind + '|' + seed; let p = fwPlans.get(k); if (!p) { p = planShow(kind, seed); fwPlans.set(k, p); if (fwPlans.size > 8) fwPlans.delete(fwPlans.keys().next().value); } return p; };
+  // (PART 10 — THE SHOW ON THE PARTY SONG: a show on a party night (the party's deck sounding — every phone the same song) is synced to
+  //  its beat grid: core/harbor-fireworks.js#syncToBeat; weeknights keep the plan's own timing; memoized per show + deck)
+  const fwPlan = (kind, seed, t0 = null) => {
+    const line = t0 != null ? fwLineAt(t0) : null, deck = line ? partyDeckNow() : null, k = kind + '|' + seed + '|' + (deck && line ? line.seed + '@' + Math.round(t0) + ':' + deck.sig : '-');
+    let p = fwPlans.get(k);
+    if (!p) { p = planShow(kind, seed); if (deck && line) p = syncToBeat(p, t0, fwGridAt(deck, line)); fwPlans.set(k, p); if (fwPlans.size > 8) fwPlans.delete(fwPlans.keys().next().value); }
+    return p;
+  };
+  /** the party deck sounding at abs s t (a party night's, or the PARTY preview's) — null on a weeknight / with the sync off */
+  function fwLineAt(t) {
+    if (clock.force.has('no-party-sync') || clock.force.has('no-fw-sync')) return null;
+    try { return partyTimeline(t, { off: LK && LK.local ? LK.local.off : 0, seed: (L && L.seed) || 1924, partyForced: !clock.force.has('no-party') && (clock.force.has('party') || clock.force.has('finale') || clock.force.has('fireworks-party')) }); } catch { return null; }
+  }
+  /** the song's beat grid at t → { b0, beat, bar, down } (its trusted grid from the analysis: data/mood-music.json songs[id].grid) */
+  const fwGridAt = (deck, line) => t => {
+    const sg = deckSongAt(deck, line.anchor, line.seed, t), d = moodData(), g = sg && d && d.songs && d.songs[sg.id] ? d.songs[sg.id].grid : null;
+    if (!g || !g.bpm || g.trusted === false) return null;
+    return { b0: sg.t0 + (g.t0 || 0), beat: 60 / g.bpm, bar: 4, down: Math.max(0, (g.down || 1) - 1) };
+  };
   /** tonight's "properly dark" moment (abs s): the sun at the timetable's darkEl after 4 pm, or null (a white night: no show) */
   function fwDarkAt(day0) {
     if (settings.alwaysNight) return day0 + 18 * 3600;
@@ -716,6 +734,46 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     fwGeoKey = key;
     return fwGeo;
   }
+  // PART 10 — THE SOUND (Group 3; Grok's recordings — docs/audio.md#the-fireworks-sounds): a LAUNCH thump (+ sometimes a WHISTLE) → the
+  // BOOM at the burst after the DISTANCE's delay (the barges + the lighthouse ~0.4–0.55 s, the far layer behind the skyline ~1–1.3 s) —
+  // near booms for the barges + the lighthouse, far booms for the skyline — → CRACKLE or the WILLOW's sizzle for the falling sparks; THE
+  // FINALE's barrage (the music ducks a little under it) + the crowd's OOH on the big ones + a CHEER at the end. Never the same take twice
+  // in a row (city-sound.js); in the finale the barrage carries the din (single booms thinned). Muted / locked = a silent show.
+  const fwS = { boomAt: 0, launchAt: 0, oohAt: 0, finaleFor: '', cheerFor: '', bed: null };
+  const fwPan = x => Math.max(-0.85, Math.min(0.85, (x / Math.max(1, W) - 0.5) * 1.5));
+  const fwDelay = c => (c.layer === 'sky' ? 0.95 + 0.35 * ((c.seed % 1000) / 1000) : c.layer === 'light' ? 0.42 : 0.36 + 0.2 * c.h);
+  const fwFinaleNow = () => { const sh = fwState.show; return !!(sh && (sh.kind === 'party' ? clock.now() / 1000 > sh.t1 - knob('fireworks.party').finale - 9 : clock.now() / 1000 > sh.t1 - 9)); };
+  fwHooks.launch = (c, p) => {
+    const now = performance.now();
+    if (fwFinaleNow() && now - fwS.launchAt < 380) return;
+    fwS.launchAt = now;
+    const d = fwDelay(c) * 0.9, g = c.layer === 'sky' ? 0.22 : c.layer === 'light' ? 0.5 : 0.75;
+    snd.play('firework-launch', { gain: g, pan: fwPan(p.lx), delay: d });
+    if (c.whistle && c.layer !== 'sky') snd.play('firework-whistle', { gain: 0.45, pan: fwPan(p.lx), delay: d + 0.12 });
+  };
+  fwHooks.burst = (c, p) => {
+    const now = performance.now(), d = fwDelay(c), pan = fwPan(p.bx), far = c.layer === 'sky', fin = fwFinaleNow();
+    if (!fin || c.big || now - fwS.boomAt > 260) {
+      fwS.boomAt = now;
+      snd.play(far ? 'firework-burst-far' : 'firework-burst', { gain: (c.big ? 1 : 0.72) * (far ? 0.85 : 1) * (fin && !c.big ? 0.7 : 1), pan, sync: { peakIn: () => d, mark: 'hit' } });
+    }
+    if (!fin || c.big) {
+      if (c.type === 'crackle' || c.type === 'glitter' || c.type === 'strobe') snd.play('firework-crackle', { gain: far ? 0.3 : 0.55, pan, delay: d + 0.45 });
+      else if (c.type === 'willow' || c.type === 'palm') snd.play('firework-willow', { gain: far ? 0.3 : 0.55, pan, delay: d + 0.3 });
+    }
+    if (c.big && now - fwS.oohAt > 9000 && fwState.show && fwState.show.kind !== 'midnight') { fwS.oohAt = now; snd.play('firework-ooh', { gain: PT.on > 0.3 ? 0.7 : 0.4, pan: pan * 0.4, delay: d + 0.35 }); }
+  };
+  /** the show-long sounds: the finale's barrage + crackle bed (once a show), the cheer at the end */
+  function fwSoundTick(nowS) {
+    const sh = fwState.show;
+    if (sh && fwState.on && fwFinaleNow() && fwS.finaleFor !== sh.id && sh.kind !== 'midnight') {
+      fwS.finaleFor = sh.id;
+      if (snd.ducked) snd.ducked('firework-finale', { gain: sh.kind === 'party' ? 1 : 0.6, pan: 0.15, depth: 0.74, hold: sh.kind === 'party' ? 22 : 8, release: 6 });
+      if (!fwS.bed && sh.kind === 'party') fwS.bed = snd.loop('firework-crackle-bed', { gain: 0.4, pan: 0.1, fadeIn: 3 });
+    }
+    if (fwS.bed && (!sh || nowS > sh.t1 - 1)) { fwS.bed.stop(4); fwS.bed = null; }
+    if (sh && sh.kind !== 'midnight' && nowS > sh.t1 - 1.5 && fwS.cheerFor !== sh.id) { fwS.cheerFor = sh.id; snd.play('crowd-cheer', { gain: PT.on > 0.3 ? 0.95 : 0.45, pan: 0 }); }
+  }
   /** a frame of the fireworks (after the city's frame: the overlay is its own canvas) */
   function fwTick() {
     const nowS = clock.now() / 1000;
@@ -723,7 +781,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const shows = fwShowsNow(nowS), wxOk = fireworksWeather({ storm: !!(LK.storm || (WXS && WXS.state === 'storm')), rain: +LK.rain || 0, wind: WXS ? WXS.wind || 0 : 0, fog: +LK.fog || 0, snow: +LK.snow || 0 });
     const legendUp = !!(legends && legends.active());
     const launching = shows.some(sh => sh.forced) || (wxOk.ok && !legendUp);
-    const live = shows.map(sh => ({ show: sh, plan: fwPlan(sh.kind, sh.seed) }));
+    const live = shows.map(sh => ({ show: sh, plan: fwPlan(sh.kind, sh.seed, sh.t0) }));
     const up = fwx.frame({ now: nowS, shows: live, W, H, dpr: window.devicePixelRatio || 1, tier, motion: S.motion, launching, geom: fwGeomNow(), wind: WF.v(0.5) });
     // THE SIGN STAYS LIT (the owner, Oct 31 9:05 pm — never dimmed for fireworks: they go off BEHIND it); the party's sky beams stand down
     // for a show (the sky is the fireworks'); THE SIGN JOINS THE SHOW: its bloom brightens on the big bursts (fwFlash — title.js)
@@ -734,6 +792,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (S.onSignFlash && Math.abs(fwFlash - fwFlashSent) > 0.02) { fwFlashSent = fwFlash < 0.02 ? 0 : fwFlash; S.onSignFlash(fwFlashSent); }
     fwDimK += ((dimNow ? 1 : 0) - fwDimK) * Math.min(1, (lastDt || 16.7) / 1800); if (Math.abs(fwDimK - (dimNow ? 1 : 0)) < 0.002) fwDimK = dimNow ? 1 : 0;
     fwState.on = !!cur && launching; fwState.show = cur; fwState.why = cur ? (launching ? 'on' : 'cancelled: ' + (legendUp ? 'a legendary' : wxOk.why)) : '';
+    try { fwSoundTick(nowS); } catch { /* audio is polish */ }
     // the bursts' light in the harbor: a column under each (the near layers), the next water frame
     if (up) for (const l of fwx.lights()) if (l.layer !== 'sky') water.light(l.x, l.y, [l.c[0] * 255, l.c[1] * 255, l.c[2] * 255], Math.min(1, l.I * 0.8), l.R * 0.18, Math.min(140, l.R * 1.1));
   }
@@ -847,7 +906,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the weather it shows (the sun's place) and the flags it runs on (&mood=)
   // (8b1 — THE BEAT, the owner: the panel's PARTY and every forced SHOW drive the MUSIC MOOD too — a party show plays a party song, so
   // the lights' grid is a party song's; audio/mood.js#moodNow asks show() over AUTO — an explicit MUSIC MOOD choice still wins)
-  const SHOW_FORCES = ['party', 'neon-party', 'finale', 'fireworks', 'drones', 'dance', 'strings-party', 'beams'];
+  const SHOW_FORCES = ['party', 'neon-party', 'finale', 'fireworks-party', 'drones', 'dance', 'strings-party', 'beams'];
   // (NIGHT-C — THE PARTY SONG IN SYNC: partyLine() = the party's timeline now (core/harbor-streetparty.js#partyTimeline — the deck, its
   // anchor + seed: the same the dance breaks are planned on), partyDeck() its songs; speed: the clock's rate (a sped-up preview can't sync)
   setCityClock({ now: () => clock.now(), tz: () => clock.tz, wx: () => wxNow(), q: k => qp.get(k), show: () => (!clock.force.has('no-party') && SHOW_FORCES.some(f => clock.force.has(f)) ? 'party' : null),
@@ -858,7 +917,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function partyLineNow() {
     if (clock.force.has('no-party-sync')) return null;   // (A/B: each phone's own party songs, as before NIGHT-C — the breaks keep the deck)
     const dance = clock.force.has('dance') && !clock.force.has('no-dance');
-    return partyTimeline(clock.now() / 1000, { off: LK && LK.local ? LK.local.off : 0, seed: (L && L.seed) || 1924, partyForced: !clock.force.has('no-party') && (clock.force.has('party') || clock.force.has('dance')),
+    return partyTimeline(clock.now() / 1000, { off: LK && LK.local ? LK.local.off : 0, seed: (L && L.seed) || 1924, partyForced: !clock.force.has('no-party') && (clock.force.has('party') || clock.force.has('dance') || clock.force.has('finale') || clock.force.has('fireworks-party')),   // (PART 10: a party show's preview plays the deck its bursts are synced to)
       forceDanceAt: dance ? forceAtOf('dance') : null, noDance: clock.force.has('no-dance') });
   }
   let LK = skyLook(clock.now(), clock.tz, { alwaysNight: !!settings.alwaysNight, wx: wxNow() }), lkMs = clock.now();
@@ -3719,7 +3778,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { fireworks: () => { const nowS = clock.now() / 1000; let tonight = []; try { tonight = LK.local ? fwNightOf(nowS).map(sh => ({ kind: sh.kind, t0: sh.t0, t1: sh.t1, inS: Math.round(sh.t0 - nowS) })) : []; } catch { /* fine */ } return { ...fwx.debug(), on: fwState.on, why: fwState.why, dim: fwState.dim, show: fwState.show ? { id: fwState.show.id, kind: fwState.show.kind, t0: fwState.show.t0, t1: fwState.show.t1, s: +(nowS - fwState.show.t0).toFixed(2) } : null, tonight, lights: fwx.lights().length, mb: fwx.mem(), crowd: (() => { try { return fwCrowd(); } catch (e) { return String(e); } })() }; }, tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
+    harbor: () => (L ? { fireworks: () => { const nowS = clock.now() / 1000; let tonight = []; try { tonight = LK.local ? fwNightOf(nowS).map(sh => ({ kind: sh.kind, t0: sh.t0, t1: sh.t1, inS: Math.round(sh.t0 - nowS) })) : []; } catch { /* fine */ } return { ...fwx.debug(), on: fwState.on, why: fwState.why, dim: fwState.dim, show: fwState.show ? { id: fwState.show.id, kind: fwState.show.kind, t0: fwState.show.t0, t1: fwState.show.t1, s: +(nowS - fwState.show.t0).toFixed(2) } : null, tonight, lights: fwx.lights().length, ly: fwx.lights().map(l => Math.round(l.y)), synced: !!(fwState.show && fwPlan(fwState.show.kind, fwState.show.seed, fwState.show.t0).synced), under: (() => { const cv = document.querySelector('.hb-fw'); return cv ? { parent: cv.parentElement ? cv.parentElement.className : '', afterCity: (() => { const k = [...cv.parentElement.children], i = k.indexOf(cv), crisp = k.findIndex(e => e.classList && e.classList.contains('hc-crisp')); return i > k.indexOf(canvas) && (crisp < 0 || i < crisp); })(), z: cv.style.zIndex } : null; })(), mb: fwx.mem(), crowd: (() => { try { return fwCrowd(); } catch (e) { return String(e); } })() }; }, tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(), chimneys: chimneys.debug(), xmas: { ...XP, tree: treeHeld, xlK: +xlK.toFixed(2) }, parade: parade ? { ...parade.debug(), units: paraUnits ? paraUnits.length : 0 } : null,
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),

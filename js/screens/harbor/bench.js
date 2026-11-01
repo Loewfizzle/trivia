@@ -48,6 +48,11 @@ export const BENCH_SCENES = Object.freeze([
   // headings, live rotors + lights, the smoothed searchlight)
   { id: 'mothman', label: 'THE MOTHMAN: perched, then the glide away (3 am)', q: { when: '2026-11-03T03:00', wx: 'clear', force: 'mothman-leave' } },
   { id: 'patrol', label: 'the night patrol (the baked helicopter, 9:30 pm)', q: { when: '2026-11-03T21:30', wx: 'clear', force: 'helicopter' } },
+  // (PART 10 — THE FIREWORKS: the heaviest moment — the party show's FINALE over the full Saturday crowd (the GPU sparks, the lit smoke, the
+  // city's wash, the reflections; the dancers stopped + looking up); a weeknight show; a show in light snow)
+  { id: 'fw-party', label: "THE PARTY SHOW's FINALE over the full crowd (Sat 10 pm)", q: { when: '2026-10-24T22:00', wx: 'clear', force: 'finale' }, measure: 30000 },
+  { id: 'fw-week', label: 'a weeknight show (Wed 9:30 pm)', q: { when: '2026-10-21T21:31', wx: 'clear', force: 'fireworks' } },
+  { id: 'fw-snow', label: 'a show in light snow (Wed Jan 13, 9:30 pm)', q: { when: '2027-01-13T21:31', wx: 'snow', force: 'fireworks' } },
 ]);
 /** SKY-B — THE PROFILE: the dance break with one piece off at a time (the tier pinned at 2) — what each costs on this phone */
 export const BENCH_PROFILE = Object.freeze([

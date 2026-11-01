@@ -32,3 +32,7 @@ art/models/blackbird/*.glb
 art/city-sfx/weather/*.wav
 # ATM-C (Oct 31): Grok's thunder — the 9 originals (~50 MB; close-1, mid-1 + the deep slam are Sonniss) the same way
 art/city-sfx/thunder/*.wav
+# PART 10 (Oct 31): Grok's fireworks sounds — the 26 originals + 10 alternates (~120 MB; launch-1, crackle-1, whistle-1, crowd-2 + two
+# alternates are Sonniss: never offered as stand-alone downloads) the same way; credits.txt + claude-notes.txt kept
+art/city-sfx/fireworks/*.wav
+art/city-sfx/fireworks/alternates/*.wav

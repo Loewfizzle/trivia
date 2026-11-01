@@ -404,3 +404,40 @@ G('life', async () => {
     ok(pp.dancers >= 4 && !(pp.cart && pp.cart.on), `THE DANCE CIRCLE: ${pp.dancers} dancers on the compass, ${pp.watchers} watching, the chestnut cart away`);
     await Q.ctx.close(); }
 });
+// ---- PART 10 — THE FIREWORKS (core/harbor-fireworks.js + screens/harbor/fireworks.js): the GPU engine up under the LIT sign (the owner,
+// Oct 31 9:05 pm — never dimmed), the party show synced to the party song, the crowd stopped + looking up (no dancing), midnight's few below
+// the sign, a show called off in a storm
+G('fireworks', async () => {
+  const F = 'window.__district.harbor().fireworks()';
+  { const Q = await open({ slot: 'fw1', qs: `when=2026-10-24T22:00${GR}&force=fireworks-party`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(() => { const f = ${F}; return f.failed || (f.gl && f.shells > 0); })()`, 'the first shells up', 20000);
+    let f = await ev(Q.page, F);
+    ok(f.gl && !f.failed && f.under && f.under.afterCity && /nd-scene/.test(f.under.parent), `THE FIREWORKS ENGINE on the GPU (WebGL2: ${f.gl}${f.failed ? ' — ' + f.why : ''}), its layer above the city's canvas + under the crisp lettering, inside the scene's box — under the sign (${JSON.stringify(f.under)})`);
+    await sleep(6000);   // (timed: the show's opening salvo + its smoke)
+    f = await ev(Q.page, F);
+    const sd = await ev(Q.page, 'window.__district.signDim()');
+    ok(f.on && sd.logo === 1 && sd.tag === 1, `THE SIGN STAYS LIT for the show (the owner: the fireworks go off BEHIND it — the sign ${sd.logo}, the tagline ${sd.tag}; asked by: ${sd.by.join(', ') || 'nobody'})`);
+    ok(f.synced, `THE PARTY SHOW ON THE PARTY SONG: the bursts synced to the deck's beat grid (${f.synced})`);
+    await waitFor(Q.page, `${F}.lights >= 1`, 'a burst lighting the city', 8000).catch(() => {});
+    f = await ev(Q.page, F);
+    ok(f.sparks > 500 && f.puffs > 4 && f.lights >= 1, `THE SHOW: ${f.shells} shells in the air, ${f.sparks} spark instances on the GPU, ${f.puffs} smoke puffs, ${f.lights} bursts lighting the city`);
+    const pp = await ev(Q.page, `(() => { const m = window.__district.harbor().people.members; return { n: m.length, watch: m.filter(x => ['watch', 'point', 'wave'].includes(x.pose)).length, dance: m.filter(x => x.pose === 'wands').length }; })()`);
+    ok(pp.watch >= Math.max(3, pp.n * 0.5) && pp.dance === 0, `THE CROWD STOPS + LOOKS UP: ${pp.watch} of ${pp.n} on the promenade watching the sky, ${pp.dance} dancing`);
+    if (SHOTS) await Q.page.screenshot({ path: `${OUT}p10-party-show-402x874.png` });
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'fw2', qs: `when=2026-10-21T23:59${GR}&force=fireworks-midnight`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `(() => { const f = ${F}; return f.failed || f.ly.length > 0; })()`, 'a midnight burst', 20000);
+    const f = await ev(Q.page, F), tr = (await ev(Q.page, 'window.__district.scene()')).textRects, sd = await ev(Q.page, 'window.__district.signDim()');
+    const below = tr && tr.tag ? tr.tag.y + tr.tag.h : 0;
+    ok(f.ly.every(y => y > below) && sd.logo === 1, `MIDNIGHT's SHELLS below the sign (bursts at y ${f.ly.join(', ')} > the tagline's foot ${Math.round(below)}), the sign lit`);
+    await Q.ctx.close(); }
+  { const Q = await open({ slot: 'fw3', qs: `when=2026-10-21T21:30:20${GR}&wx=storm`, view: [402, 874] });
+    await harborUp(Q.page);
+    await waitFor(Q.page, `${F}.tonight.length > 0`, 'tonight\'s shows planned', 15000);
+    await sleep(3000);   // (timed: the show's first shells would be up by now)
+    const f = await ev(Q.page, F);
+    ok(f.tonight.some(s => s.kind === 'show') && !f.on && /cancelled/.test(f.why) && f.shells === 0, `A SHOW CALLED OFF IN A STORM: tonight ${f.tonight.map(s => s.kind).join(' + ')}, ${f.why || 'no show state'}, ${f.shells} shells`);
+    await Q.ctx.close(); }
+});

@@ -439,6 +439,270 @@ are kept anyway, with each source file's MD5.
 - Source: https://assets.mixkit.co/active_storage/sfx/542/542.wav
 - Licence: Mixkit Sound Effects Free License (free for commercial use, no attribution required) - https://mixkit.co/license/#sfxFree
 
+## fw-boom-far-1.wav  →  firework-burst-far
+
+- MD5 `02a76f017f5853c75c3ce1d43e140852`
+- fw-boom-far-1.wav
+- Original: 640698__hajisounds__distant-firework-boom-4.wav (Freesound download). Title "distant firework boom 4.wav", author Hajisounds.
+- Link: https://freesound.org/s/640698/
+- MD5 02a76f017f5853c75c3ce1d43e140852, 2,015,276 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "distant firework boom 4.wav" by Hajisounds (https://freesound.org/s/640698/), CC0 1.0
+
+## fw-boom-far-2.wav  →  firework-burst-far
+
+- MD5 `17e92f44c9719a372f33a55035043b57`
+- fw-boom-far-2.wav
+- Original: 251618__bmlake__fireworks-over-lake-in-small-valley-6.wav (Freesound download). Title "Fireworks over lake in small valley #6.wav", author bmlake.
+- Link: https://freesound.org/s/251618/
+- MD5 17e92f44c9719a372f33a55035043b57, 939,908 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "Fireworks over lake in small valley #6.wav" by bmlake (https://freesound.org/s/251618/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-boom-far-3.wav  →  firework-burst-far
+
+- MD5 `afbb31015a08f04874867b5ef897f322`
+- fw-boom-far-3.wav
+- Original: 616284__dan_audiofile__large-firework-distant-boom-long-echo-stereo.wav (Freesound download). Title "Large firework, distant boom, long echo .stereo.wav", author Dan_AudioFile.
+- Link: https://freesound.org/s/616284/
+- MD5 afbb31015a08f04874867b5ef897f322, 630,360 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "Large firework, distant boom, long echo .stereo.wav" by Dan_AudioFile (https://freesound.org/s/616284/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-boom-far-4.wav  →  firework-burst-far
+
+- MD5 `8c482d383b5acaba7bd8a00be2346b39`
+- fw-boom-far-4.wav
+- Original: 579285__natty23__slightly-distant-firework.wav (Freesound download). Title "Slightly Distant Firework", author Natty23.
+- Link: https://freesound.org/s/579285/
+- MD5 8c482d383b5acaba7bd8a00be2346b39, 489,652 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "Slightly Distant Firework" by Natty23 (https://freesound.org/s/579285/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-boom-near-1.wav  →  firework-burst
+
+- MD5 `22d0658b16a191e472de5166a8d0f4ee`
+- fw-boom-near-1.wav
+- Original: 40968__dobroide__200709152explosions.wav (Freesound download). Title "20070915.2explosions.wav", author dobroide.
+- Link: https://freesound.org/s/40968/
+- MD5 22d0658b16a191e472de5166a8d0f4ee, 912,566 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "20070915.2explosions.wav" by dobroide (https://freesound.org/s/40968/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-boom-near-2.wav  →  firework-burst
+
+- MD5 `9f0f5340a4f6dac27cc2e7ef81608b91`
+- fw-boom-near-2.wav
+- Original: 255325__kwahmah_02__a-single-close-firework.wav (Freesound download). Title "A single, close firework.wav", author kwahmah_02.
+- Link: https://freesound.org/s/255325/
+- MD5 9f0f5340a4f6dac27cc2e7ef81608b91, 354,684 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). CREDIT REQUIRED:
+- "A single, close firework.wav" by kwahmah_02 (https://freesound.org/s/255325/), licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+
+## fw-boom-near-3.wav  →  firework-burst
+
+- MD5 `9af13910180f9ab72d34e9d5e1da812d`
+- fw-boom-near-3.wav
+- Original: 341043__hantorio__single_shot_morter.wav (Freesound download). Title "Single_Shot_Morter.wav", author hantorio.
+- Link: https://freesound.org/s/341043/
+- MD5 9af13910180f9ab72d34e9d5e1da812d, 2,900,624 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). CREDIT REQUIRED:
+- "Single_Shot_Morter.wav" by hantorio (https://freesound.org/s/341043/), licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+
+## fw-boom-near-4.wav  →  firework-burst
+
+- MD5 `7015ae35273ac6afe4d296d96aef50ca`
+- fw-boom-near-4.wav
+- Original: 336009__rudmer_rotteveel__sharp-explosion-weird_natural_reverb.wav (Freesound download). Title "Sharp Explosion Weird_Natural_reverb", author Rudmer_Rotteveel.
+- Link: https://freesound.org/s/336009/
+- MD5 7015ae35273ac6afe4d296d96aef50ca, 614,828 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "Sharp Explosion Weird_Natural_reverb" by Rudmer_Rotteveel (https://freesound.org/s/336009/), CC0 1.0
+
+## fw-boom-near-5.wav  →  firework-burst
+
+- MD5 `4c94702d1cc35ba5a9f4e411ad1ac7d5`
+- fw-boom-near-5.wav
+- Original: 616280__dan_audiofile__fireworks-single-small-close-and-short-stereo.wav (Freesound download). Title "Fireworks, single, small, close and short .stereo.wav", author Dan_AudioFile.
+- Link: https://freesound.org/s/616280/
+- MD5 4c94702d1cc35ba5a9f4e411ad1ac7d5, 619,600 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "Fireworks, single, small, close and short .stereo.wav" by Dan_AudioFile (https://freesound.org/s/616280/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-crackle-1.wav  →  firework-crackle
+
+- MD5 `780ad543559cc8799c26e4e44d065aa3`
+- fw-crackle-1.wav
+- Original: FRWKComr_InsJ_Fireworks_Multi_Close_01-04-Crackle.wav
+- Publisher: InspectorJ (Jacob Moore), "Essentials 03 Fireworks" pack. Source: Sonniss GDC 2023 Game Audio Bundle (archive.org mirror).
+- Link: https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/InspectorJ%20-%20Essentials%2003%20Fireworks/FRWKComr_InsJ_Fireworks_Multi_Close_01-04-Crackle.wav
+- Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+- MD5 780ad543559cc8799c26e4e44d065aa3 (matches archive.org's MD5), 3,323,958 bytes
+- Optional credit: "Fireworks SFX: InspectorJ (Jacob Moore) (Sonniss GDC 2023 Game Audio Bundle)"
+
+## fw-crackle-2.wav  →  firework-crackle
+
+- MD5 `3164f403c94f5cf8abfc251247b96bb1`
+- fw-crackle-2.wav
+- Original: 251619__bmlake__fireworks-5.wav (Freesound download). Title "Fireworks #5", author bmlake.
+- Link: https://freesound.org/s/251619/
+- MD5 3164f403c94f5cf8abfc251247b96bb1, 817,648 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "Fireworks #5" by bmlake (https://freesound.org/s/251619/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-crackle-3.wav  →  firework-crackle-bed
+
+- MD5 `7007c76032cae3da5bf6036daa0dca9b`
+- fw-crackle-3.wav
+- Original: 840319__robo9418__firework-pops.wav (Freesound download). Title "Firework pops", author Robo9418.
+- Link: https://freesound.org/s/840319/
+- MD5 7007c76032cae3da5bf6036daa0dca9b, 383,056 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "Firework pops" by Robo9418 (https://freesound.org/s/840319/), CC0 1.0
+
+## fw-crackle-4.wav  →  firework-crackle
+
+- MD5 `5b6c437a17d479d0e1aebea4450105aa`
+- fw-crackle-4.wav
+- Original: 445237__steffcaffrey__firework-2.wav (Freesound download). Title "Firework 2", author steffcaffrey.
+- Link: https://freesound.org/s/445237/
+- MD5 5b6c437a17d479d0e1aebea4450105aa, 1,325,546 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "Firework 2" by steffcaffrey (https://freesound.org/s/445237/), CC0 1.0
+
+## fw-crowd-1.wav  →  firework-ooh
+
+- MD5 `4526da37f4597aa87c7484e87a923039`
+- fw-crowd-1.wav
+- Original: 870652__challsmith__group-ooh-aah.wav (Freesound download). Title "Group Ooh Aah", author CHallSmith.
+- Link: https://freesound.org/s/870652/
+- MD5 4526da37f4597aa87c7484e87a923039, 904,152 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "Group Ooh Aah" by CHallSmith (https://freesound.org/s/870652/), CC0 1.0
+
+## fw-crowd-2.wav  →  crowd-cheer
+
+- MD5 `decb7e208593ca680f42af74ad4850dd`
+- fw-crowd-2.wav
+- Original: audience_cheers_13.wav
+- Publisher: Soundrangers, "Audience Reactions" pack. Source: Sonniss GDC 2018 Game Audio Bundle (archive.org mirror).
+- Link: https://archive.org/download/game-audio-gdcpart-4/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle/Soundrangers%20-%20Audience%20Reactions/audience_cheers_13.wav
+- Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+- MD5 decb7e208593ca680f42af74ad4850dd (matches archive.org's MD5), 2,774,538 bytes
+- Optional credit: "Fireworks SFX: Soundrangers (Sonniss GDC 2018 Game Audio Bundle)"
+
+## fw-finale-1.wav  →  firework-finale
+
+- MD5 `b24a7eca5b32c5776c25baf2afef034b`
+- fw-finale-1.wav
+- Original: 840560__george_papargyris__2026-new-year-fireworks.wav (Freesound download). Title "2026 New Year Fireworks", author George_Papargyris.
+- Link: https://freesound.org/s/840560/
+- MD5 b24a7eca5b32c5776c25baf2afef034b, 19,911,190 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "2026 New Year Fireworks" by George_Papargyris (https://freesound.org/s/840560/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-finale-2.wav  →  firework-finale
+
+- MD5 `d8f04e13bef04ff669c8ddaa9b8e267c`
+- fw-finale-2.wav
+- Original: 840762__bb_sound_records__fireworks_full_peak_multiple_blasts_with_whistler_and_crackling_fall.wav (Freesound download). Title "Fireworks_Full_Peak_Multiple_Blasts_With_Whistler_And_Crackling_Fall.wav", author bb_sound_records.
+- Link: https://freesound.org/s/840762/
+- MD5 d8f04e13bef04ff669c8ddaa9b8e267c, 6,597,892 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "Fireworks_Full_Peak_Multiple_Blasts_With_Whistler_And_Crackling_Fall.wav" by bb_sound_records (https://freesound.org/s/840762/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-launch-1.wav  →  firework-launch
+
+- MD5 `7f2763aa5646acd72e551aa2afbfb8ef`
+- fw-launch-1.wav
+- Original: FRWKComr_InsJ_Fireworks_Launch_Close_01-03.wav
+- Publisher: InspectorJ (Jacob Moore), "Essentials 03 Fireworks" pack. Source: Sonniss GDC 2023 Game Audio Bundle (archive.org mirror).
+- Link: https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/InspectorJ%20-%20Essentials%2003%20Fireworks/FRWKComr_InsJ_Fireworks_Launch_Close_01-03.wav
+- Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+- MD5 7f2763aa5646acd72e551aa2afbfb8ef (matches archive.org's MD5), 2,035,456 bytes
+- Optional credit: "Fireworks SFX: InspectorJ (Jacob Moore) (Sonniss GDC 2023 Game Audio Bundle)"
+
+## fw-launch-2.wav  →  firework-launch
+
+- MD5 `4aa126994db3e848ca9d52ac15b37614`
+- fw-launch-2.wav
+- Original: 675773__craigsmith__s18-15a-fireworks-rocket-launching.wav (Freesound download). Title "S18-15a Fireworks rocket launching.wav", author craigsmith.
+- Link: https://freesound.org/s/675773/
+- MD5 4aa126994db3e848ca9d52ac15b37614, 478,324 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "S18-15a Fireworks rocket launching.wav" by craigsmith (https://freesound.org/s/675773/), CC0 1.0
+
+## fw-launch-3.wav  →  firework-launch
+
+- MD5 `c71e451017d8caa34e112c73f1c687fb`
+- fw-launch-3.wav
+- Original: 140727__j1987__tinymortar.wav (Freesound download). Title "tinymortar.wav", author j1987.
+- Link: https://freesound.org/s/140727/
+- MD5 c71e451017d8caa34e112c73f1c687fb, 587,352 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "tinymortar.wav" by j1987 (https://freesound.org/s/140727/), CC0 1.0
+
+## fw-launch-4.wav  →  firework-launch
+
+- MD5 `c2d916f100fe2ab28754e83185636a36`
+- fw-launch-4.wav
+- Original: 455547__kinoton__firework-single-rocket-2.wav (Freesound download). Title "Firework Single Rocket #2", author Kinoton.
+- Link: https://freesound.org/s/455547/
+- MD5 c2d916f100fe2ab28754e83185636a36, 221,956 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "Firework Single Rocket #2" by Kinoton (https://freesound.org/s/455547/), CC0 1.0
+
+## fw-whistle-1.wav  →  firework-whistle
+
+- MD5 `82187e57ad88aacfeb7c9c022de3647e`
+- fw-whistle-1.wav
+- Original: FRWKComr_InsJ_Fireworks_Single_Close_03-10-Whistle.wav
+- Publisher: InspectorJ (Jacob Moore), "Essentials 03 Fireworks" pack. Source: Sonniss GDC 2023 Game Audio Bundle (archive.org mirror).
+- Link: https://archive.org/download/game-audio-gdcpart-7/Sonniss.com%20-%20GDC%202023%20-%20Game%20Audio%20Bundle/InspectorJ%20-%20Essentials%2003%20Fireworks/FRWKComr_InsJ_Fireworks_Single_Close_03-10-Whistle.wav
+- Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+- MD5 82187e57ad88aacfeb7c9c022de3647e (matches archive.org's MD5), 1,154,918 bytes
+- Optional credit: "Fireworks SFX: InspectorJ (Jacob Moore) (Sonniss GDC 2023 Game Audio Bundle)"
+
+## fw-whistle-2.wav  →  firework-whistle
+
+- MD5 `145ee3ede906669c128e444be85c7101`
+- fw-whistle-2.wav
+- Original: 530972__timoschmied__firework-scream.wav (Freesound download). Title "Firework Scream", author TimoSchmied.
+- Link: https://freesound.org/s/530972/
+- MD5 145ee3ede906669c128e444be85c7101, 535,028 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/). CREDIT REQUIRED:
+- "Firework Scream" by TimoSchmied (https://freesound.org/s/530972/), licensed under CC BY 4.0 (https://creativecommons.org/licenses/by/4.0/)
+
+## fw-whistle-3.wav  →  firework-whistle
+
+- MD5 `6f72d43b41771c53d3604fe693197fba`
+- fw-whistle-3.wav
+- Original: 140726__j1987__tiny_rocket.wav (Freesound download). Title "tiny_rocket.wav", author j1987.
+- Link: https://freesound.org/s/140726/
+- MD5 6f72d43b41771c53d3604fe693197fba, 334,688 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC0 1.0 (https://creativecommons.org/publicdomain/zero/1.0/). No credit required.
+- Optional credit: "tiny_rocket.wav" by j1987 (https://freesound.org/s/140726/), CC0 1.0
+
+## fw-willow-1.wav  →  firework-willow
+
+- MD5 `cc87e402dde036bb8309daa71b0addfa`
+- fw-willow-1.wav
+- Original: 56578__atomwrath__closepopsizzle-july408.wav (Freesound download). Title "closePopsizzle july408.wav", author atomwrath.
+- Link: https://freesound.org/s/56578/
+- MD5 cc87e402dde036bb8309daa71b0addfa, 935,288 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). CREDIT REQUIRED:
+- "closePopsizzle july408.wav" by atomwrath (https://freesound.org/s/56578/), licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+
+## fw-willow-2.wav  →  firework-willow
+
+- MD5 `0872213451793962b214e51a8ba21f27`
+- fw-willow-2.wav
+- Original: 110391__soundscalpelcom__firework_explosion_fizz.wav (Freesound download). Title "firework_explosion_fizz.wav", author soundscalpel.com.
+- Link: https://freesound.org/s/110391/
+- MD5 0872213451793962b214e51a8ba21f27, 615,506 bytes (byte-identical to the downloaded original, checked with cmp)
+- Licence: CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/). CREDIT REQUIRED:
+- "firework_explosion_fizz.wav" by soundscalpel.com (https://freesound.org/s/110391/), licensed under CC BY 3.0 (https://creativecommons.org/licenses/by/3.0/)
+
 ## geese.mp3  →  geese
 
 - MD5 `62f3d56a5712bc8b7373254dba5e9fc9`

@@ -153,3 +153,31 @@ export function fireworksBusy(shows, a, b) {
   for (const s of shows || []) if (b > s.t0 - FW_EDGE.lead && a < s.t1 + FW_EDGE.tail) return s;
   return null;
 }
+
+/**
+ * PARTY NIGHTS — THE SHOW ON THE PARTY SONG (the owner, Oct 31 5:02 pm): every burst lands ON A BEAT of the song every phone hears, the
+ * big shells ON A BAR, THE GOLD WILLOW CURTAIN on a PHRASE (4 bars) — the finale's big moment. PURE + seeded by the deck (the same on every
+ * phone). plan: planShow's; t0: the show's start (abs s); gridAt(t) → { b0 (abs s of a beat), beat (s), bar (beats, 4), down (the bar's
+ * first beat index from b0) } for the song sounding at t, or null (no song: that cue keeps its time) → a new plan (sorted; never launched
+ * before the show starts; a cue moves at most half a beat — a bar for the big ones, a phrase for the curtain)
+ */
+export function syncToBeat(plan, t0, gridAt) {
+  if (!plan || !gridAt) return plan;
+  const snap = (t, unit, g) => { const p = g.beat * unit, k = Math.round((t - g.b0 - (g.down || 0) * g.beat) / p); return g.b0 + (g.down || 0) * g.beat + k * p; };
+  // the curtain: its first willow on the nearest phrase, the rest keep their stagger
+  const curtain = plan.cues.filter(c => c.type === 'willow' && c.big && c.t > plan.dur - 12);
+  let shiftC = 0;
+  if (curtain.length) { const first = Math.min(...curtain.map(c => c.t)), g = gridAt(t0 + first); if (g && g.beat > 0.2) { const s = snap(t0 + first, (g.bar || 4) * 4, g) - (t0 + first); if (Math.abs(s) <= (g.bar || 4) * 2 * g.beat) shiftC = s; } }
+  const out = plan.cues.map(c => {
+    if (curtain.includes(c)) return { ...c, t: Math.round((c.t + shiftC) * 1000) / 1000 };
+    const at = t0 + c.t, g = gridAt(at);
+    if (!g || !(g.beat > 0.2)) return c;
+    const unit = c.big ? (g.bar || 4) : 1, s = snap(at, unit, g) - at;
+    if (Math.abs(s) > unit * g.beat * 0.5 + 1e-6) return c;
+    const t = Math.round((c.t + s) * 1000) / 1000;
+    return t - c.rise < -0.4 ? c : { ...c, t, beat: true };
+  });
+  out.sort((a, b) => a.t - b.t);
+  const end = Math.max(plan.dur, ...out.map(c => c.t + 3));
+  return { dur: Math.ceil(end), cues: out, synced: true };
+}

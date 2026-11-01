@@ -1686,6 +1686,19 @@ sign-logic) + js/core/sky.js. This is the *why* and the order things were decide
 - THE QUIET BUILDING: the bar, the jazz room + the upper middle parked behind blinds at night (a lit / dark mix, out one by one); the boss's
   room + the two side rooms live — at 3× on the crisp layer.
 
+## CITY 2.0 — PART 10: THE FIREWORKS (+ THE OWNER's ATM-D REVIEW) (Oct 31 2026) — docs/harbor/passes/part-10.md (plan.md "OWNER'S NOTES — OCT 31 (night)", the second of that name)
+GROUP 0 — the owner's ATM-D review, six fixes built in parallel: the storm deck as REAL CUMULONIMBUS (a flat ragged base well above the
+skyline, stepped towers, anvils — no funnels); THE SILENT FLASHES (a 6-s thunder queue, an inaudible intra-cloud rumble, takes decoded late —
+every flash logged + checked); the blizzard's ground snow as sparse WISPS; the fog's horizontal line (the party beams' ends lined up in dense
+fog); the cab fare STANDS UP + walks round the bench (the crisp bench had covered him); the shadowboxer WALKS UP into place + his bag +5 % +
+(the owner's 8:32 pm add-on) he trains EVERY NIGHT. THE FIREWORKS: a pure seeded planner (every night's shows on the timetable, a scripted
+show format for NYE + July 4th later, the weather, the conflicts) + ONE GPU ENGINE (a WebGL2 layer: each spark one instance flown in closed
+form on the GPU — real shell types, comets, white → colour → ember, blooms, the city's wash, smoke lit from inside drifting on the wind, the
+harbor's reflections; three launch layers: barges, behind the skyline, the lighthouse) — BEHIND THE LIT SIGN (the owner's 9:05 pm add-on), the
+sign flaring with the big bursts + pulsing with the party's finale; the crowd + the party pockets stop + look up (+ the same for the TR-3B in a
+party); Grok's recorded sounds layered with a realistic flash → boom delay; the party show synced to the song's beat grid (bursts on beats,
+the big shells on bars, the curtain on a phrase).
+
 ## CITY 2.0 — ATM-D: THE CLEANUP — THE OWNER's ATM-C REVIEW + THE PUDDLES + THE PUMPKIN (Oct 31 2026) — docs/harbor/passes/atm-d.md (plan.md "OWNER'S NOTES — OCT 31 (evening)")
 The owner's ATM-C review (complete 4:54 pm) + the puddles + the Halloween pumpkin, in one cleanup pass, every look from a fresh WebKit load at
 402: THE SKY + THE STORM — the low sun painted as a glowing light (a white core blooming into its gold, a soft orange disc only in the last

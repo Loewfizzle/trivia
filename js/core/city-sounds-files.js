@@ -143,6 +143,9 @@ export const FILES = /*FILES*/{
   "crickets-night": [
     {"f": "crickets-night.mp3", "v": "fdcbd184", "d": 34.5, "lufs": -24.4, "loop": 32.0, "xf": 2.5, "from": [21.2, 55.7], "src": "crickets-night", "r": 22050}
   ],
+  "crowd-cheer": [
+    {"f": "fw-crowd-2.mp3", "v": "4de715dd", "d": 4.8, "lufs": -24.4, "peak": 1.25, "sw": [0.25, 4.1], "from": [0.0, 4.8], "src": "fw-crowd-2", "r": 22050}
+  ],
   "crowd-clap": [
     {"f": "crowd-clap_1.mp3", "v": "8c7727e0", "d": 6.0, "lufs": -20.4, "peak": 1.1, "sw": [0.2, 5.4], "from": [9.0, 15.0], "src": "crowd-clap", "r": 16000},
     {"f": "crowd-clap_2.mp3", "v": "f739550a", "d": 6.0, "lufs": -20.4, "peak": 1.6, "sw": [0.25, 5.1], "from": [14.5, 20.5], "src": "crowd-clap", "r": 16000},
@@ -169,6 +172,51 @@ export const FILES = /*FILES*/{
   ],
   "drone-swarm": [
     {"f": "drone-swarm.mp3", "v": "e58dfe45", "d": 43.0, "lufs": -24.4, "loop": 40.0, "xf": 3.0, "from": [3.0, 46.0], "src": "drone-swarm", "r": 16000}
+  ],
+  "firework-burst": [
+    {"f": "fw-boom-near-1_1.mp3", "v": "693db236", "d": 2.75, "lufs": -21.4, "peak": 0.35, "sw": [0.15, 0.85], "from": [0.0, 2.75], "hit": 0.27, "src": "fw-boom-near-1", "r": 24000},
+    {"f": "fw-boom-near-1_2.mp3", "v": "a797501f", "d": 2.3, "lufs": -21.4, "peak": 0.4, "sw": [0.15, 0.9], "from": [2.7, 5.0], "hit": 0.26, "src": "fw-boom-near-1", "r": 24000},
+    {"f": "fw-boom-near-2.mp3", "v": "3ff543b9", "d": 2.05, "lufs": -22.8, "peak": 0.6, "sw": [0.35, 0.9], "from": [1.95, 4.0], "hit": 0.52, "src": "fw-boom-near-2", "w": 0.7, "r": 24000},
+    {"f": "fw-boom-near-3.mp3", "v": "ab33eedf", "d": 4.3, "lufs": -21.7, "peak": 0.5, "sw": [0.2, 1.7], "from": [3.2, 7.5], "hit": 0.32, "src": "fw-boom-near-3", "r": 24000},
+    {"f": "fw-boom-near-4.mp3", "v": "de2bf25e", "d": 3.4, "lufs": -24.7, "peak": 0.15, "sw": [0.15, 0.55], "from": [0.0, 3.4], "hit": 0.03, "src": "fw-boom-near-4", "r": 24000},
+    {"f": "fw-boom-near-5.mp3", "v": "ef5b159b", "d": 2.25, "lufs": -24.2, "peak": 0.55, "sw": [0.15, 1.75], "from": [0.05, 2.3], "hit": 0.18, "src": "fw-boom-near-5", "w": 0.6, "r": 24000}
+  ],
+  "firework-burst-far": [
+    {"f": "fw-boom-far-1.mp3", "v": "d902a0e6", "d": 1.9, "lufs": -24.4, "peak": 0.3, "sw": [0.15, 1.15], "from": [0.1, 2.0], "hit": 0.2, "src": "fw-boom-far-1", "r": 24000},
+    {"f": "fw-boom-far-2.mp3", "v": "d12c0c81", "d": 2.3, "lufs": -28.0, "peak": 0.5, "sw": [0.15, 0.9], "from": [0.9, 3.2], "hit": 0.38, "src": "fw-boom-far-2", "r": 24000},
+    {"f": "fw-boom-far-3.mp3", "v": "d1791946", "d": 2.375, "lufs": -24.4, "peak": 0.2, "sw": [0.15, 0.55], "from": [0.0, 2.38], "hit": 0.15, "src": "fw-boom-far-3", "r": 24000},
+    {"f": "fw-boom-far-4.mp3", "v": "7832bcba", "d": 1.776, "lufs": -24.5, "peak": 0.4, "sw": [0.15, 0.45], "from": [1.0, 2.78], "hit": 0.26, "src": "fw-boom-far-4", "r": 24000}
+  ],
+  "firework-crackle": [
+    {"f": "fw-crackle-1.mp3", "v": "2f8a96ac", "d": 3.8, "lufs": -25.5, "peak": 1.25, "sw": [0.25, 2.2], "from": [1.6, 5.4], "src": "fw-crackle-1", "r": 32000},
+    {"f": "fw-crackle-2.mp3", "v": "9efeea27", "d": 2.786, "lufs": -25.4, "peak": 0.25, "sw": [0.15, 2.0], "from": [0.0, 2.79], "src": "fw-crackle-2", "r": 32000},
+    {"f": "fw-crackle-4.mp3", "v": "937409e6", "d": 3.1, "lufs": -26.7, "peak": 0.95, "sw": [0.15, 1.7], "from": [1.5, 4.6], "src": "fw-crackle-4", "r": 32000}
+  ],
+  "firework-crackle-bed": [
+    {"f": "fw-crackle-3.mp3", "v": "f9e5885f", "d": 2.0, "lufs": -24.2, "loop": 1.5, "xf": 0.5, "from": [0.07, 2.07], "src": "fw-crackle-3", "r": 32000}
+  ],
+  "firework-finale": [
+    {"f": "fw-finale-1.mp3", "v": "5a44c160", "d": 25.2, "lufs": -24.9, "peak": 13.65, "sw": [13.4, 14.4], "from": [0.3, 25.5], "src": "fw-finale-1", "r": 24000},
+    {"f": "fw-finale-2.mp3", "v": "ae5ece48", "d": 22.8, "lufs": -23.0, "peak": 6.85, "sw": [0.15, 11.0], "from": [0.0, 22.8], "src": "fw-finale-2", "r": 24000}
+  ],
+  "firework-launch": [
+    {"f": "fw-launch-1.mp3", "v": "f4fa06f6", "d": 3.2, "lufs": -23.8, "peak": 0.35, "sw": [0.15, 1.65], "from": [0.0, 3.2], "hit": 0.12, "src": "fw-launch-1", "r": 32000},
+    {"f": "fw-launch-2.mp3", "v": "8655d810", "d": 2.6, "lufs": -24.3, "peak": 0.25, "sw": [0.15, 1.3], "from": [0.0, 2.6], "hit": 0.04, "src": "fw-launch-2", "r": 32000},
+    {"f": "fw-launch-3.mp3", "v": "65462a04", "d": 1.7, "lufs": -28.5, "peak": 0.15, "sw": [0.15, 1.05], "from": [0.0, 1.7], "hit": 0.05, "src": "fw-launch-3", "r": 32000},
+    {"f": "fw-launch-4.mp3", "v": "9df18c72", "d": 2.1, "lufs": -24.1, "peak": 0.5, "sw": [0.15, 0.95], "from": [0.0, 2.1], "hit": 0.02, "src": "fw-launch-4", "w": 0.6, "r": 32000}
+  ],
+  "firework-ooh": [
+    {"f": "fw-crowd-1_1.mp3", "v": "7a29900f", "d": 3.2, "lufs": -24.4, "peak": 0.75, "sw": [0.2, 2.0], "from": [0.0, 3.2], "src": "fw-crowd-1", "r": 22050},
+    {"f": "fw-crowd-1_2.mp3", "v": "e360daeb", "d": 2.619, "lufs": -24.4, "peak": 0.7, "sw": [0.15, 1.7], "from": [3.65, 6.27], "src": "fw-crowd-1", "r": 22050}
+  ],
+  "firework-whistle": [
+    {"f": "fw-whistle-1.mp3", "v": "1412e101", "d": 1.8, "lufs": -26.4, "peak": 0.25, "sw": [0.15, 0.8], "from": [0.0, 1.8], "hit": 0.03, "src": "fw-whistle-1", "r": 32000},
+    {"f": "fw-whistle-2.mp3", "v": "c4b2a2ef", "d": 1.7, "lufs": -26.3, "peak": 0.3, "sw": [0.15, 0.7], "from": [0.1, 1.8], "hit": 0.1, "src": "fw-whistle-2", "r": 32000},
+    {"f": "fw-whistle-3.mp3", "v": "555884a7", "d": 1.55, "lufs": -26.5, "peak": 0.2, "sw": [0.15, 0.55], "from": [0.0, 1.55], "hit": 0.05, "src": "fw-whistle-3", "r": 32000}
+  ],
+  "firework-willow": [
+    {"f": "fw-willow-1.mp3", "v": "c6cac1f4", "d": 3.15, "lufs": -25.3, "peak": 0.15, "sw": [0.15, 1.45], "from": [0.35, 3.5], "src": "fw-willow-1", "r": 32000},
+    {"f": "fw-willow-2.mp3", "v": "9ff33646", "d": 3.15, "lufs": -25.6, "peak": 1.05, "sw": [0.5, 1.55], "from": [0.3, 3.45], "src": "fw-willow-2", "r": 32000}
   ],
   "foghorn": [
     {"f": "foghorn_1.mp3", "v": "4f8e447a", "d": 11.0, "lufs": -20.4, "peak": 3.95, "sw": [0.2, 6.0], "from": [4.5, 15.5], "src": "foghorn", "r": 16000},

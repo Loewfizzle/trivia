@@ -45,6 +45,8 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     'snow-hush', 'snow-shovel',
     // (ATM-A — THE WIND: Grok's weather set — the beds, the gusts, the whistles; the blizzard + the sleet for ATM-B)
     'wind-winter', 'wind-gale', 'gust-big', 'gust-mid', 'gust-soft', 'wind-whistle', 'blizzard', 'sleet-glass',
+    // (PART 10 — THE FIREWORKS: Grok's set — launches, whistles, near + far booms, crackle + its bed, the willow's sizzle, the finale, the crowd)
+    'firework-launch', 'firework-whistle', 'firework-burst', 'firework-burst-far', 'firework-crackle', 'firework-crackle-bed', 'firework-willow', 'firework-finale', 'firework-ooh', 'crowd-cheer',
     // (9e — SUNDAY's BELLS + THE CONSTRUCTION TOWER's crane, hammering, the implosion's rumble + the warning horn)
     'church-bells', 'crane', 'hammering', 'implosion-rumble', 'tower-horn',
     // (9f — the tower's CC0 alternates: the siren's own wail, the rivet gun + the crane lift layered over the beds)
@@ -87,7 +89,7 @@ test('every take points at a real, small file whose content matches its cache ke
       assert.ok(t.lufs < -18 && t.lufs > (s.kind === 'once' ? -30 : -27), `${t.f}: levelled (${t.lufs} LUFS)`);
       if (s.kind === 'loop') {
         // (beds 30 s+; 8P's smaller beds — heard less often or under the music — 20 s+; the bus's idle a short engine loop)
-        const min = { blizzard: 26, 'ufo-beam-idle': 24, 'ufo-hum': 26, 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18, 'rivet-gun': 28, 'snow-hush': 20 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
+        const min = { 'firework-crackle-bed': 1.2, blizzard: 26, 'ufo-beam-idle': 24, 'ufo-hum': 26, 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18, 'rivet-gun': 28, 'snow-hush': 20 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
         // (9f: the rivet gun's seam sat in natural gaps — the owner's 100–200 ms; 9g: the UFO hover A's 0.2 s seam on its pulse (Grok's
         // 0.1–0.2 s), the beam's idle 1.5 s)
         const xfMin = { 'ufo-hum-2.mp3': 0.15, 'ufo-beam-idle.mp3': 1.0 }[t.f] ?? (min < 20 ? 0.5 : 2);
@@ -113,7 +115,8 @@ test('every take points at a real, small file whose content matches its cache ke
   // (MODELS: + the boxer's 11 takes ~0.17 MB; ATM-A: + Grok's WEATHER SET — 13 files, 1.31 MB (the beds 22 kHz / 48 kbps, the sleet 32 / 56,
   // the gusts + whistles 32 / 64) — the owner: "no hard cap, nothing outrageous, report it": ~19.5 MB; fetched only when their weather plays)
   // (ATM-C: + Grok's RECORDED THUNDER — 9 takes, 0.63 MB (24 kHz / 56 kbps, the tails faded at ≤ 11 s): ~20.1 MB; fetched when a storm plays)
-  assert.ok(total < 20.2e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (PART 10: + Grok's FIREWORKS — 28 takes, 0.86 MB (24 / 32 kHz, 56 kbps; the crowd 22 kHz / 48): ~21.0 MB; fetched when a show plays)
+  assert.ok(total < 21.1e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');
