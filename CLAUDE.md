@@ -76,7 +76,10 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   - 3D only as BAKED sprites (scripts/bake-model.mjs); lettering nothing passes in front of → THE CRISP LAYER (crisp.js).
   - Every force flag has a panel row (core/harbor-remote.js; tests/harbor-remote.test.mjs greps for strays).
   - Every canvas through `safeCtx` / `ctx2d` (ui/canvas-safe.js) — counted by the memory guard; a new canvas needs no registration.
-  - THE CITY TIMETABLE (core/harbor-schedule.js) holds every NEW timed thing; THE TIER TABLE (core/harbor-tiers.js) every NEW per-phone number.
+  - THE CITY TIMETABLE (core/harbor-schedule.js) holds EVERY timed thing (SCHED moved the older systems in; tests/harbor-sched-strays.test.mjs
+    fails on a stray time in a planner; THE GOLDEN TABLE — tests/fixtures/sched-golden.mjs — proves a move changed nothing). THE SHOWCASE DIAL
+    (core/harbor-showcase.js — `showcase`, HIGH now) shapes the legendaries + the medium tier; the billboard's hints = the `billboard.*` queue;
+    THE DAY CHART (/daychart + /admin) shows any day from the planners; THE TIER TABLE (core/harbor-tiers.js) every NEW per-phone number.
   - THE WINDOW SCENES ARE TIMETABLE ROWS (WINDOWS, Nov 1): scene.<id> (window, hours, nights, rarity, glow; `rotate: true` = seeded slots — the
     bookie) read by core/harbor-scenes.js; a NEW scene = its row + core/harbor-<id>.js + its painter in windows.js#SCENE_PAINT; after hours the
     scene rooms + the edge windows keep their SHADES DOWN glowing in their colour, lights out one at a time 2–4 am (windows.shades); the old
@@ -143,7 +146,8 @@ js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood
 js/core/mp3-slice.js tape-math.js                        PURE: an MP3's frames → a byte slice in song time; the tape's rate schedule + its exact integral (docs/audio.md#the-tape-stop-in-web-audio)
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
 js/screens/ title.js title-dock.js setup.js lobby.js profile.js district/*.js   the front door, name/avatar, the lobby, the membership card; CITY 1.0 — the district (Canvas 2D: sky, signs, live weather, the street; docs/title.md)
-js/screens/harbor/ js/core/harbor-*.js + its sounds, bakes, canvas helpers   CITY 2.0 — THE HARBOR (?city=2): every file in docs/harbor.md#the-file-map
+js/screens/harbor/ js/core/harbor-*.js + its sounds, bakes, canvas helpers   CITY 2.0 — THE HARBOR (?city=2): every file in docs/harbor.md#the-file-map (scene.js + its cuts: scene-fireworks / legend / holiday / weather / party / perf / panel)
+js/daychart/  daychart.html                         THE DAY CHART (SCHED): the city's day + year from the planners — /daychart + a card in /admin (admins only)
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
 js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
 js/errlog.js                                             errors from players' phones → /api/log → /admin (first import of app.js + board/public.js)

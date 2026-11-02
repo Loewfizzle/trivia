@@ -86,6 +86,10 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     A local no-ONLY run (`SHARDS=2|3|4|5`, the default 4 since PERF-A: ~21 min on the mini PC, nothing timed out) spreads the same groups over its shards by `SECONDS` (`localShards` — the cloud's REAL per-group seconds since PERF-A; a new group: its first cloud run's seconds), then panel + perf (perf in its own child with the GPU locally — GPU=1: the TV is 60 Hz; CI / an explicit GPU or VSYNC keeps the old way).
     THE UNIT SUITE's wall time is its slowest FILE: harbor-people.test.mjs was split into six (PERF-A — 83 → 30 s); keep a new test file under ~15 s.
     pixdiff.mjs works again (PERF-A: puppeteer's Uint8Array screenshots) + scenes christmas / fog / fog-party / mist.
+    SCHED: `--pin` freezes the page's Date.now at its load (the clock-driven signs hold: an A-A noise floor ~0.03 % at night — the
+    no-look-change proof for a refactor) + scenes rain / snow. THE GOLDEN TABLE: `node scripts/sched-golden.mjs` (compare; `--raw <system>`;
+    `--write` only before a move or when a pass changes the schedule on purpose — say so) + tests/harbor-sched-golden.test.mjs. THE SCHEDULE
+    SIM: `node scripts/sim-sched.mjs` (a year of the showcase per dial level; tests/harbor-showcase.test.mjs).
     **PERF-B — THE OVERHEAD**: the `windows` group's 28 blocks run 3 pages at a time (`WIN_POOL=3`; `WIN_POOL=1` = the old serial order) — the 8
     that time FRAMES (the toast's 60 fps + arm steps, the walk-in, the tango, the TV's flicker, the boss late, the cash, PLAY ALL) run alone after the
     pool; a failing block logs `FATAL [windows:<slot>]` and the rest still run. Locally 280 s (the cloud's 446 s was the suite's critical path).

@@ -4957,3 +4957,9 @@ DECIDED:
   nights still get it most). THE BLACKBIRD's daytime sightings lean toward LUNCH (12–1) at HIGH. The rest of the day stays calm.
 
 - THE BUILD TABLE (Nov 2, SCHED Step 0): DESKTOP ✅; SCHED (this pass) ← NEXT; then CITY CONTROLS, PROGRESSION 2.0, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its review), OVERCLOCK (+ its review), FR6, THE SWITCH-OVER (the table itself: decisions.md §1).
+
+Nov 2, ~8:45 am + ~10:30 am EST — SCHED: THE OWNER's ANSWERS IN THE PASS (DECIDED)
+* THE SHOWCASE vs THE COUNTS (Claude's feasibility check: a 45-s prime-time visit catches a legendary ~1 in 85–140 on a weeknight with 2–3, ~1 in 55 on a party night with all 4; 1 in 20 needs ~13 a night from a pool of 4 with "never twice a night") → KEEP THE COUNTS (weeknights 2–3, party nights one an hour from 8 pm until all four have flown; HIGH = that; NORMAL + LOW fewer; the odds rise by themselves as new legendaries join).
+* THE BILLBOARD's SIZE (~70 × 38 pt on an iPhone: the long hints would be ~3 pt letters) → SHORT, WHOLE BOARD (two short lines take the whole board for ~20 s every ~3 min around their moment, then back to the game).
+SCHED DONE (Nov 2) — passes/sched.md. THE BUILD TABLE: SCHED ✅; CITY CONTROLS ← NEXT (its questions round first — the intercom's caption); then PROGRESSION 2.0, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its review), OVERCLOCK (+ its review), FR6, THE SWITCH-OVER.
+

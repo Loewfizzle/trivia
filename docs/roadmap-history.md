@@ -1762,6 +1762,18 @@ player's own 120-ms re-place window). Groups 1–5: THE WINDOW SCENES AS TIMETAB
 windows.old / &force=old-windows, AFTER HOURS (the shades down glowing — amber, cold white, green, rosy — the lights out one at a time 2–4 am;
 + the owner's add-on: the edge windows' shades), THE JUGGLER (+ Grok's drop sounds), THE CRATE GUY, THE CHARLESTON, THE BOOKIE (rotating).
 
+## CITY 2.0 — SCHED (Nov 2 2026) — docs/harbor/passes/sched.md (plan.md "OWNER'S NOTES — NOV 2")
+Group 0: the owner's DESKTOP review — the juggler back to his amber room (neon balls kept), the window preview links start at the reveal + loop,
+the boss's 3 am pull rebuilt as a cream shade sliding over the lit TV room (never a figure), A PHONE HELD SIDEWAYS → a TURN YOUR PHONE
+UPRIGHT card (phones only). Group 1: THE MIGRATION — every older timed system's knobs into THE CITY TIMETABLE (lamps, signs, cabs, traffic,
+routines, raid, Christmas, parade, tower, wildlife, workers, people, windows, holidays, legendaries, sky events, boats, snow crews), proved by
+THE GOLDEN TABLE (36 planners × a year × 2 zones × 2 seeds, unchanged) + a stray-time test. Group 2: THE scene.js SPLIT — scene-legend /
+holiday / weather / party / perf / panel + draw() quartered (3807 → 2968 lines), each proved by pixdiff --pin + the guard. Group 3: THE NEW
+SCHEDULE — THE SHOWCASE DIAL (HIGH now; &showcase= + a panel row; EVERYONE carries it), prime time, the legendaries 2–3 a weeknight / one an
+hour on a party night / never twice a night (the owner kept the counts: ~1 in 137 / 1 in 70 a prime-time visit), the scenes play on through
+them, the medium tier (a plane + a helicopter pass every ~4–5 min in prime time). Group 4: THE BILLBOARD's HINTS (the billboard.* queue; short,
+whole board). Group 5: THE DAY CHART (/daychart + /admin; the 30-second rule's sampler).
+
 ## CITY 2.0 — DESKTOP (Nov 2 2026) — docs/harbor/passes/desktop.md (plan.md "OWNER'S NOTES — NOV 1 (late) + NOV 2")
 Group 1: the owner's WINDOWS review — THE JUGGLER (no doorway: in from the side; an absinthe-green room; neon balls every night), THE
 CHARLESTON (~86 % of the pane, hip-high kicks, wide arms, a dark contour against the pink), THE BOOKIE (one pendant lamp lighting the wall
