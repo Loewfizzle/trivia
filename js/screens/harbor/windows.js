@@ -32,11 +32,12 @@ import { boxerRoom } from './boxer.js';
 import { jugglerRoom } from './juggler.js';
 import { crateRoom } from './crate.js';
 import { charlestonRoom } from './charleston.js';
+import { bookieRoom } from './bookie.js';
 import { knob } from '../../core/harbor-schedule.js';
 import { SCENE_ROOMS, EDGE_ROOMS, scenesTonight, sceneAt, scenePreview, shadesNight, shadeLevel, roomColour, sceneFreeFrom, edgeShadePlan, edgeShadeAt } from '../../core/harbor-scenes.js';
 // WINDOWS — THE SCENES' PAINTERS (one per scene id: core/harbor-scenes.js#SCENE_IDS) — each (E, st (core#sceneAt), o) → its trace; a scene
 // with no painter yet never plays (its timetable row stays 'planned')
-export const SCENE_PAINT = { juggler: jugglerRoom, crate: crateRoom, charleston: charlestonRoom };
+export const SCENE_PAINT = { juggler: jugglerRoom, crate: crateRoom, charleston: charlestonRoom, bookie: bookieRoom };
 export { paintRoom, lateOf, ROOM_TINT, LATE_TINT } from './window-rooms.js';
 
 export function createWindowLife() {
@@ -145,7 +146,7 @@ export function createWindowLife() {
         room[id] = { st, col: rc.col, sway: rc.sway, lamp: fs && fs.win === id ? 1 : shadeLevel(scOut[id], evSec), hold: null };
         if (st) { scHold[id] = st; scHoldT[id] = null; } else if (scHold[id] && !L.partyForce && !(L.moment && MOMENT[L.moment])) { room[id].hold = scHold[id]; if (scHoldT[id] == null) scHoldT[id] = f.t; room[id].holdT = scHoldT[id]; }
       }
-      SC = { list, room, out: scOut, forced: fs ? fs.id : null };
+      SC = { list, room, out: scOut, forced: fs ? fs.id : null, slam: !!(fs && fs.slam) };
     }
     for (const id of (oldMode ? PARKED_ROOMS : [])) {
       const want = parkOn ? 1 : 0, b0 = parkB[id], b = b0 == null || pdt > 2 ? want : b0 + Math.sign(want - b0) * Math.min(Math.abs(want - b0), pdt / BLIND.down);
@@ -302,7 +303,7 @@ export function createWindowLife() {
         const Es = { c, G, w, k, kl: k, day, t: scR.st || scR.holdT == null ? t : scR.holdT, mo: mo && !!scR.st, T, glints, f, env, frameC, after: [], B: boxOf(G, env.vp), beat: f.beat || null };
         Es.deep = (t2, fn) => deepAt(c, Es.B, t2, fn);
         busyNow = true;
-        sceneSafe(c, scSt.id, () => { lastScene[w.id] = SCENE_PAINT[scSt.id](Es, scSt, { key: fr.nightKey, seed: fr.seed || 1924, party: fr.partyNight, beat: fr.beatNow }); });
+        sceneSafe(c, scSt.id, () => { lastScene[w.id] = SCENE_PAINT[scSt.id](Es, scSt, { key: fr.nightKey, seed: fr.seed || 1924, party: fr.partyNight, beat: fr.beatNow, slam: !!(fr.scenes && fr.scenes.slam && fr.scenes.forced === scSt.id) }); });
         const sh = Math.max(scSt.shade || 0, scR.st ? 0 : pk);
         if (sh > 0.002) cycleBlind(Es, sh, { col: scR.col, sway: scR.sway, lamp: 1 });
         if (Es.front) sceneSafe(c, `${scSt.id}:front`, Es.front);   // (the exit's pull: him at the glass over the shade)
