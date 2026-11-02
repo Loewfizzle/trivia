@@ -53,6 +53,10 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   UNZOOMED. Before building a detail, check it against its real size on the iPhone (a speakeasy window is ~40 pt wide); a detail that
   can't be seen there (fingers, a figure in the dark behind, small props, crust textures) is NOT built — make it bigger, bolder, a clear
   silhouette + one bright accent, or drop it. Judge every look review at 390 / 402 / 430 without zooming in.
+- **Desktop comes free (the owner, Nov 1–2 — DESKTOP):** every feature, holiday + event is built + judged for the PHONE only; a desktop, an iPad
+  sideways or a phone sideways get it through the shared city + THE DESKTOP CAMERA (core/harbor-layout.js#DESK) — never a desktop-only piece
+  or a second version. EVERY pass checks ONE desktop size (1440×900: shots.mjs `--sizes pass`) beside the three phone widths + fixes what
+  breaks there; sideways + iPad only in a desktop pass + FR6 (`--sizes desk-pass`). docs/harbor.md#the-camera--the-layout-part-1-numbers.
 - **Class names:** prefix new CSS classes per feature (`nd-`, `ndl-`, `pd-`, `da-`, `gl-`…). A bare `.nl-hi` once collided with
   Overclock's number line and shoved the logo's highlights sideways.
 - **Presentation tech:** Canvas 2D (+ a WebGL fragment shader for a sky/world) unless 3D *is* the game (RUMRUNNER's city diorama is three.js, but it is a backdrop and a map: every button, price and card is DOM over it). Every polish pass on a three.js

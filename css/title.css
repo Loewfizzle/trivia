@@ -233,6 +233,17 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
   .nd-gate { padding-bottom: 22vh; }
 }
 
+/* ---- DESKTOP Group 5 — A PHONE SIDEWAYS (the owner's desktop question 7: phones sideways = the desktop framing): the strip between the
+   sign + the dock is all the city has, so the sign is smaller + higher, the tagline tight, the dock compact (scaled from its foot: the
+   camera measures it as it is) — an upright phone, an iPad (any way up) and a desktop never match this */
+@media (orientation: landscape) and (max-height: 500px) {
+  .nd-sign { margin-top: max(6px, calc(var(--safe-t) + 4px)); }
+  .nd-logo-wrap { width: min(30vw, 196px); }
+  .nd-word { font-size: 12px; }
+  .nd-tag { margin-top: 5px; font-size: 9px; }
+  .nd-actions { transform: scale(0.8); transform-origin: 50% 100%; }
+}
+
 /* reduced effects / motion: no drift, no sheen, no breathing — a plain, still menu */
 @media (prefers-reduced-motion: reduce) {
   .nd-gate-txt { animation: none; }

@@ -1,7 +1,7 @@
 // The look-review camera: screenshots of the title (or any URL state) at the sizes that matter, in one command.
 // Replaces the throwaway _something-shots scripts. Needs scripts/serve.mjs (--emu for anything that opens a room).
 //
-//   node shots.mjs "<browser>" [--scenes night,day,halloween] [--sizes phones|desktop|all|390x844,412x915] [--place gr|ny|none]
+//   node shots.mjs "<browser>" [--scenes night,day,halloween] [--sizes phones|desktop|pass|wide|ipad|sideways|desk-pass|all|390x844,412x915] [--place gr|ny|none]
 //                  [--crop dock,corner,sign | --crop 0,1400,780,300] [--qs "wx=rain&force=lightning"] [--out ./shots-review]
 //                  [--wait 2600] [--guest] [--preview] [--city 2] [--safe] [--tier 0|1|2] [--zoom 3 [--zx 0.5]]
 // --tier: CITY 2.0 — the scene forced to that quality tier (setTier) before the shot. --zoom N: each crop's device pixels blown
@@ -62,7 +62,10 @@ const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
 // --when 2026-10-26T06:00:30: every scene at that moment instead of its own (8b1: a worker's show, a wildlife moment)
 const WHEN = opt('when', '') || '';
 const LOAD = !!opt('load', false), NET = { '3g': { latency: 150, down: 1.6e6, up: 0.75e6 }, '4g': { latency: 60, down: 9e6, up: 3e6 } }[opt('net', '')] || null, CPU = Number(opt('cpu', 0)) || 0;
-const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900', harbor: '390x844,402x874,412x915,430x932,874x402,1440x900' };
+// (DESKTOP, Nov 2 — THE STANDING RULE: every pass checks ONE desktop size (desktop = 1440×900) beside the three phone widths; sideways +
+//  iPad only in a desktop pass + FR6: wide = the big monitors, ipad = upright + sideways, sideways = two phones on their side, desk-pass = all)
+const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900', harbor: '390x844,402x874,412x915,430x932,874x402,1440x900',
+  pass: '390x844,402x874,430x932,1440x900', wide: '1920x1080,2560x1080,1280x720', ipad: '820x1180,1180x820', sideways: '874x402,932x430', 'desk-pass': '1440x900,1920x1080,2560x1080,1280x720,820x1180,1180x820,874x402' };
 const SIZES = String(SIZE_SETS[opt('sizes', 'quick')] || opt('sizes')).split(',').map(s => s.split('x').map(Number));
 // [when, options] — dates are Grand Rapids' 19 Oct 2026 unless the scene is a holiday
 const SCENE = {

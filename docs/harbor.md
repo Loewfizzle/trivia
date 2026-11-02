@@ -255,12 +255,31 @@ World units: x right, y up, z away; the camera at x = 0, CAMH up, level. `sx = V
 | 874×402 (sideways) | 270 | 262 | 0.33 | 8.9 pt | 50 pt |
 | 1440×900 | 604 | 566 | 0.65 | 19.9 pt | 111 pt |
 
+(The 874×402 + 1440×900 rows are Part 1's; since DESKTOP (Nov 2) every wide screen runs THE DESKTOP CAMERA below — 1440×900: F 725, the eye
+at 8, squeeze 0.66, people ~33 pt.)
+
 (Squeeze: Part 2 numbers. Part 1 measured 0.55 / 0.52 / 0.76 / 0.66 / 0.28 / 0.52 — very different drama per phone.)
 
-- **Wide (desktop, sideways):** room = dock top − 4 − tagline bottom − 10; F = max(600 · room / 411, people ≥ 9 pt), CAMH =
-  min(13.5, 0.55 (0.4 when the room is short) · room · 36.5 / F). A panorama: the harbor pieces spread (× up to 2.2), the skyline
-  bands are generated across the whole width, more landmarks further out, the promenade repeats to the right edge, and a FRONT ROW
-  (z 28–33: lamp + tree pairs, benches, people) lives either side of the dock (never under it).
+- **Wide (desktop, an iPad sideways, a phone sideways) — THE DESKTOP CAMERA (DESKTOP, Nov 2; the owner's desktop questions, "go with your
+  recs"; passes/desktop.md):** room = dock top − 4 − tagline bottom − 10; F = max(600 · room / 411, people ≥ 9 pt) × **DESK.kF 1.4** (easing
+  back to ×1 when the room is under ~220 pt — a phone sideways), CAMH = min(13.5, 0.55 (0.4 short) · room · 36.5 / F, **DESK.camh 8**), the
+  near edge (the line above the dock) at **z DESK.zFront 50** (a phone: 36.5) — closer + LOWER: the water + the skyline the picture, the
+  promenade a shallow band that runs on past the dock's top to the screen's foot (the dock floats over its middle). The numbers were picked by
+  the feasibility check: the skyline keeps the phone's own squeeze (~0.66) + the word towers' faces exactly the phone's (WORD_FACES: a quay
+  hero in front trimmed ≤ 12 %) — 1.65× had flattened it to 0.45 + cost the faces 7 rows. **COMPOSED up to DESK.wMax 2.2 : 1**: wider, the
+  composition frame starts at cam.cx0 (the speakeasy at its left edge) and a soft fade to dark covers the rest (css/title.css .nd-scene::after,
+  0 wide at ≤ 2.2 : 1). Everything that enters (people, cars, boats) spawns past the REAL screen edge (cam.hw / cam.W), so it comes in
+  through the fade. Wide-only fixes: the billboard on a taller frame clear of the roof's guests + the string pole (the low eye looks UP at
+  the roof), the EMPIRE kept second, the wheel by the phone's rule (just right of the speakeasy — off the word face), the billboard wins
+  over a panorama sign. The sign ~1.25× bigger on a desktop (the wide media query); a phone sideways: the sign smaller + the dock scaled
+  0.8 (the landscape-short query). The panorama (towers further out, the promenade to the right edge) is Part 1's, still generated.
+- **THE RESIZE (DESKTOP):** while the window changes the last frame is HELD at its built size + the whole layer scaled uniformly (cover,
+  anchored bottom-centre — scene.js#pinResize); the debounced re-fit (180 ms) lays out + draws in one frame + lets go; a pixel-ratio change
+  (another monitor) is caught by a per-frame devicePixelRatio read + the media query. THE PIXEL BUDGET (harbor-tiers sceneMp: 2.2 / 3.2 /
+  4.2 MP) caps the scene + fireworks canvases' ratio on a big monitor — a phone never reaches it.
+- **DESKTOP COMES FREE (the standing rule, CLAUDE.md):** phone-first always; every pass checks ONE desktop size (1440×900, shots.mjs `--sizes
+  pass`) beside the three phone widths; sideways + iPad only in a desktop pass + FR6 (`--sizes desk-pass`); e2e-harbor `desktop` proves the
+  camera, the dock, the hover, Esc, the resize, the iPad, a phone sideways + a phone untouched.
 - **The squeeze** (`squeeze(cam, yMax)`): above a knee (55 % of the way from the limit down to the horizon; lower for a short
   strip of sky) the height above the knee is scaled by s with a soft start, so the highest top (crown included) lands on the limit.
   Monotonic (taller stays taller), low roofs untouched. **Part 2 (the owner's call, Oct 21 2026: "same skyline, extra sky"):** an
