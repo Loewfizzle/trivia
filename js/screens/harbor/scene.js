@@ -32,6 +32,7 @@ import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createSceneFireworks } from './scene-fireworks.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
+import { hintAt } from '../../core/harbor-billboard.js';
 import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
 import { createSceneParty } from './scene-party.js';
@@ -889,14 +890,35 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g; } catch { return null; } };
   // (9f — LOAD WEATHER: the board's game is synced BEFORE the reveal too — a panel's clock jump to another day used to swap the poster
   // ~1 s after the city showed, a neon re-bake crossfading over it)
+  let boardHintKey = '';
+  /** the board's hint now: the queue's (billboard.*) on the city's clock, or the preview's (&force=billboard-hints: &hint= fireworks | party |
+   *  lookup | postcard — 20 s on, 10 s off, looping) */
+  function boardHintNow() {
+    const lc = LK.local; if (!lc) return null;
+    if (clock.force.has('billboard-hints')) {
+      const k = qp.get('hint') || 'fireworks', fa = forceAtOf('billboard-hints'), on = fa == null || (((clock.now() / 1000 - fa) % 30) + 30) % 30 < 20;
+      if (!on) return null;
+      const P = { fireworks: ['FIREWORKS', 'TONIGHT 9:30'], party: ['STREET PARTY', 'FROM 8'], lookup: ['LOOK UP', 'ANY MINUTE'], postcard: ['LAST WEEK', 'BLACKBIRD'] }[k] || ['FIREWORKS', 'TONIGHT 9:30'];
+      return { lines: P, art: k === 'postcard' ? 'blackbird' : null };
+    }
+    return hintAt(lc, clock.now() / 1000);
+  }
   function boardSync(tr) {
     lampFaultNow = tr.lampFault || null;
     const now = performance.now();
     if (now - boardCheck > 500 && now > boardHeld) {
       boardCheck = now;
       const want = boardGameOf(tr.board.key), dead = tr.boardLampDead == null ? null : tr.boardLampDead;
-      // (the board shows the key's game; a paste in progress keeps the OLD one under the sheets until the last sheet is up)
-      if (want && (neon.boardGame(BOARD_ID) !== want || neon.boardDead(BOARD_ID) !== dead)) neon.billboard(BOARD_ID, { game: want, dead });
+      // SCHED Group 4 — THE BOARD's HINTS (core/harbor-billboard.js — the timetable's billboard.* queue): a hint takes the WHOLE board for its
+      // spell, then the day's game is back (never while the billposter pastes); &force=billboard-hints&hint=<kind> previews one on a loop
+      const hint = tr.board.pasting || clock.force.has('no-hints') ? null : boardHintNow();
+      const hk = hint ? `${hint.lines.join('|')}|${hint.art || ''}` : '';
+      // (a re-layout of the neon rebuilds the board with its game: a hint spell re-applies itself whenever the board shows a game)
+      if (hint ? hk !== boardHintKey || neon.boardGame(BOARD_ID) != null : hk !== boardHintKey || (want && (neon.boardGame(BOARD_ID) !== want || neon.boardDead(BOARD_ID) !== dead))) {
+        boardHintKey = hk;
+        if (hint) neon.billboard(BOARD_ID, { lines: hint.lines, art: hint.art, dead });
+        else if (want) neon.billboard(BOARD_ID, { game: want, dead });   // (the board shows the key's game; a paste in progress keeps the OLD one under the sheets)
+      }
     }
   }
   function workBoard(c, tr) {

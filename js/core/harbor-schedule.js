@@ -35,12 +35,20 @@ export const SCHEDULE = Object.freeze([
   // (PRIME TIME on the visitor's LOCAL time: the evenings most — Fri + Sat × weekend — a little at lunch, late night sparse, the dead hours
   // calm, the rest of the day off-peak)
   { id: 'showcase.prime', trigger: 'clock', status: 'live', src: 'core/harbor-showcase.js#primeWeight', what: 'PRIME TIME: 6–11 pm (Fri + Sat most), lunch 12–1 a little, late night sparse, ~2–6 am + mid-afternoon calm',
-    knobs: { prime: [18, 23], weekend: 1.3, lunch: [12, 13], lunchW: 0.5, late: [23, 2], lateW: 0.3, dead: [[2, 6], [14, 17]], offW: 0.33 } },
+    knobs: { prime: [18, 23], weekend: 1.3, lunch: [12, 13], lunchW: 0.5, late: [23, 2], lateW: 0.3, dead: [[2, 6], [14, 17]], offW: 0.33, darkLead: 0.75, dawn: 6.5 } },
   // (THE MEDIUM TIER — a kind = a row with knobs.medium: { kind, weight, when: any | dark | day, cool (s between two of it) } — the city wires
   //  each: a plane pass + a helicopter pass at night; the dog walk is off — the crowd's cap)
   { id: 'medium.plane', trigger: 'clock', status: 'live', src: 'screens/harbor/air.js (a scheduled pass)', what: 'A MEDIUM MOMENT: an airliner crossing (on approach at night: its landing lights)', knobs: { medium: { kind: 'plane', weight: 2, when: 'any', cool: 150 } } },
   { id: 'medium.dogwalk', trigger: 'clock', status: 'off', off: 'SCHED: OFF — an extra walker on top of a full crowd broke the people cap (FOLK.cap: 13 at 390); the crowd keeps its own dog walkers (people.mix)', src: 'core/harbor-people.js', what: 'A MEDIUM MOMENT: a dog walker along the front, a stop mid-screen (every other one sniffs the hydrant)', knobs: { medium: { kind: 'dogwalk', weight: 1.5, when: 'any', cool: 420 } } },
   { id: 'medium.heli', trigger: 'clock', status: 'live', src: 'core/harbor-heli.js (a scheduled pass)', what: 'A MEDIUM MOMENT: an extra helicopter pass at night (its searchlight on the water)', knobs: { medium: { kind: 'heli', weight: 1, when: 'dark', cool: 1200 } } },
+  // ---- SCHED Group 4 — THE BILLBOARD's MESSAGE QUEUE (core/harbor-billboard.js; the owner, Nov 2: "short, whole board"): each row a message —
+  // kind (fireworks · party · lookup · postcard; CITY CONTROLS adds 'text'), its two short lines (≤ ~10 letters each: the board is ~70 pt wide
+  // on an iPhone), its window (from: an evening hour; the end = its event), prio (the highest ON wins), every / show (s: it takes the WHOLE
+  // board `show` s every `every` s inside its window, then the day's game is back)
+  { id: 'billboard.fireworks', trigger: 'clock', status: 'live', src: 'core/harbor-billboard.js#hintsAt', what: 'THE BILLBOARD: FIREWORKS / TONIGHT 9:30 — a weeknight, from the evening until the show', knobs: { kind: 'fireworks', lines: ['FIREWORKS', 'TONIGHT'], from: 18, prio: 2, every: 180, show: 20 } },
+  { id: 'billboard.party', trigger: 'clock', status: 'live', src: 'core/harbor-billboard.js#hintsAt', what: 'THE BILLBOARD on party days: STREET PARTY / FROM 8 (Friday) · FULL SHOW / AT 10 (Saturday) — from noon until it starts', knobs: { kind: 'party', fri: ['STREET PARTY', 'FROM'], sat: ['FULL SHOW', 'AT'], from: 12, prio: 1, every: 180, show: 20 } },
+  { id: 'billboard.lookup', trigger: 'event', status: 'live', src: 'core/harbor-billboard.js#hintsAt', what: 'THE BILLBOARD: LOOK UP / ANY MINUTE — `lead` min before each of tonight’s legendaries (NEVER naming it)', knobs: { kind: 'lookup', lines: ['LOOK UP', 'ANY MINUTE'], lead: 5, prio: 3, every: 60, show: 25 } },
+  { id: 'billboard.postcard', trigger: 'calendar', status: 'live', src: 'core/harbor-billboard.js#hintsAt', what: 'THE SUNDAY POSTCARD: LAST WEEK / THE BLACKBIRD (a small silhouette of one legendary that came last week) — Sunday daytime', knobs: { kind: 'postcard', lines: ['LAST WEEK'], dow: 0, from: 10, to: 18, prefer: 'blackbird', prio: 0, every: 240, show: 25 } },
   { id: 'party.crowd', trigger: 'clock', status: 'live', src: 'core/harbor-streetparty.js#crowdK', what: 'THE STREET PARTY crowd: grows through the warm-up, fullest at the peak, thins after 1 am, gone by 2',
     knobs: { warm: 20.5, full: 21.75, thin: 25.0, gone: 26.0, scan: [19.5, 26.5] } },   // (scan: the span its pockets' windows are read over)
   // (NIGHT-C — THE SAME PARTY SONG ON EVERY PHONE, the owner Oct 30: the City 2.0 PARTY deck itself on the server clock — core/party-deck.js,

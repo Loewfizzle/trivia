@@ -430,6 +430,8 @@ function litSprites(sg, dpr, swap = false) {
 // ------------------------------------------------------------------ BILLBOARDS (painted, 1920s; gooseneck lamps)
 /** what a billboard shows: { game } → its name, its tag line, its mark, its colours; or { title, sub, col: [bg, ink] } (CITY CONTROL) */
 export function billboardContent(show, games) {
+  // (SCHED Group 4: a hint — two short lines, or the Sunday postcard's silhouette + its name: a cream handbill, black + red ink)
+  if (show && show.lines) return { title: show.lines.join(' '), lines: show.lines, art: show.art || null, sub: '', game: null, bg: [236, 222, 190], ink: [30, 22, 26], acc: show.acc || [214, 40, 60] };
   const g = games.find(x => x.id === (show && show.game)) || null;
   if (g) { const acc = accOf(g); return { title: g.name, sub: g.tag || '', game: g, bg: mix(acc, [30, 18, 40], 0.78), ink: mix(acc, [255, 246, 226], 0.35), acc }; }
   return { title: (show && show.title) || 'NEON SPEAKEASY', sub: (show && show.sub) || 'YOUR FRIENDS ARE ALREADY INSIDE', game: null, bg: (show && show.bg) || [40, 22, 48], ink: (show && show.ink) || [255, 214, 120], acc: (show && show.acc) || [255, 46, 151] };
@@ -537,6 +539,37 @@ export function lampGlows(x, lamps, R, k = 1) {
  * the sun; at night the board is dark but where its lamps light it (nightS, drawn with the lamps' level: neon.js).
  * → { id, spot, rect, content, dayDraw(x, T), nightS, lamps }
  */
+/** SCHED Group 4 — A HINT ON THE BOARD (core/harbor-billboard.js): two short lines filling the poster (the first big, the second a little
+ *  smaller), a pasted 1920s handbill — or the Sunday postcard: a small silhouette of last week's legendary over its name. Readable at 390:
+ *  each line as big as ~90 % of the board's width allows (condensed), never under ~30 % of its height for the first */
+function hintPoster(x, R, content, pt, sd, FONT, SQ) {
+  const [a, b] = content.lines, cx = R.x + R.w / 2, tw = R.w * 0.9;
+  const fit = (txt, max) => { let fs = max; x.font = FONT(fs); while (fs > 3 && x.measureText(txt).width * SQ > tw) { fs *= 0.96; x.font = FONT(fs); } return fs; };
+  const line = (txt, fs, base) => {
+    x.save(); x.translate(cx, base); x.scale(SQ, 1); x.font = FONT(fs); const nw = x.measureText(txt).width, nx = -nw / 2; x.lineJoin = 'round';
+    x.fillStyle = rgba(pt.shade, 0.5); x.fillText(txt, nx + (sd > 0 ? -1 : 1) * fs * 0.06, fs * 0.06);
+    x.strokeStyle = rgba(pt.edge); x.lineWidth = Math.max(0.6, fs * 0.1); x.strokeText(txt, nx, 0);
+    x.fillStyle = rgba(pt.ink); x.fillText(txt, nx, 0); x.restore();
+  };
+  // (the handbill's border: a double rule just inside the board)
+  x.strokeStyle = rgba(pt.edge, 0.85); x.lineWidth = Math.max(0.5, R.h * 0.025); x.strokeRect(R.x + R.w * 0.03, R.y + R.h * 0.05, R.w * 0.94, R.h * 0.9);
+  if (content.art) {
+    // THE POSTCARD: the silhouette in the upper half, the two lines under it
+    const sy = R.y + R.h * 0.27, sw = R.w * 0.36, sh = R.h * 0.26; x.save(); x.translate(cx, sy); x.fillStyle = rgba(pt.edge);
+    const k = content.art;
+    x.beginPath();
+    if (k === 'blackbird') { x.moveTo(-sw / 2, 0); x.lineTo(sw * 0.1, -sh * 0.08); x.lineTo(sw / 2, -sh * 0.02); x.lineTo(sw / 2, sh * 0.02); x.lineTo(sw * 0.1, sh * 0.08); x.closePath(); x.moveTo(-sw * 0.1, 0); x.lineTo(sw * 0.15, -sh * 0.45); x.lineTo(sw * 0.28, -sh * 0.45); x.lineTo(sw * 0.2, 0); x.lineTo(sw * 0.28, sh * 0.45); x.lineTo(sw * 0.15, sh * 0.45); x.closePath(); }
+    else if (k === 'ufo') { x.ellipse(0, 0, sw / 2, sh * 0.18, 0, 0, Math.PI * 2); x.moveTo(sw * 0.2, -sh * 0.08); x.ellipse(0, -sh * 0.12, sw * 0.2, sh * 0.25, 0, Math.PI, 0); }
+    else if (k === 'tr3b') { x.moveTo(0, -sh * 0.48); x.lineTo(sw * 0.42, sh * 0.42); x.lineTo(-sw * 0.42, sh * 0.42); x.closePath(); }
+    else { for (const dx of [-0.3, 0, 0.3]) { x.moveTo(sw * dx - sw * 0.12, sh * (Math.abs(dx) * 0.6)); x.lineTo(sw * dx + sw * 0.12, sh * (Math.abs(dx) * 0.6) - sh * 0.05); x.lineTo(sw * dx - sw * 0.06, sh * (Math.abs(dx) * 0.6) + sh * 0.12); x.closePath(); } }
+    x.fill(); x.restore();
+    const fb = fit(b, R.h * 0.32), fa = Math.min(fit(a, R.h * 0.22), fb * 0.8);
+    line(a, fa, R.y + R.h * 0.6); line(b, fb, R.y + R.h * 0.9);
+    return;
+  }
+  const f1 = fit(a, R.h * 0.4), f2 = Math.min(f1 * 0.8, fit(b, R.h * 0.3));
+  line(a, f1, R.y + R.h * 0.5); line(b, f2, R.y + R.h * 0.86);
+}
 export function buildBillboard(spot, content, ctx) {
   const R = spot.rect, dpr = ctx.dpr, dun = spot.mount === 'speak', lamps = gooseneckLamps(R, dun ? 5 : 4);
   // (8b1: a burnt-out gooseneck — ctx.dead, its index — throws no light until the billposter fixes it; its shade still hangs there)
@@ -549,6 +582,7 @@ export function buildBillboard(spot, content, ctx) {
   const poster = (x, sd) => {
     const pt = posterPaint(content.game, content.acc);
     x.fillStyle = rgba(pt.face); x.fillRect(R.x, R.y, R.w, R.h);
+    if (content.lines) { hintPoster(x, R, content, pt, sd, FONT, SQ); return; }
     // the name: as big as one line across 90 % of the board allows (condensed), its baseline clear of the catwalk's railing
     const tw = R.w * 0.9;
     let fs = R.h * 0.4; x.font = FONT(fs);

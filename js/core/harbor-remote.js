@@ -22,7 +22,7 @@ import { SHOWCASE_LEVELS } from './harbor-showcase.js';
 import { knob } from './harbor-schedule.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'showcase', 'horn', 'hum', 'depart', 'round', 'min'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'showcase', 'hint', 'horn', 'hum', 'depart', 'round', 'min'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
@@ -55,6 +55,8 @@ export const INPUTS = {
   tower: { kind: 'select', label: 'TOWERS', options: TOWER_CHOICES, labels: { '': 'AUTO', wordA: 'A', wordB: 'B', wordV: 'VERTICAL', 'wordA,wordB': 'A + B', 'wordA,wordB,wordV': 'A + B + V' } },
   scheme: { kind: 'select', label: 'SCHEME', options: [...new Set([...NEON_SCHEMES, ...ROSIE_SCHEMES])], default: 'halloween' },
   game: { kind: 'select', label: 'GAME', options: GAME_IDS, default: 'pulse' },
+  // (SCHED Group 4: which billboard hint the preview loops — core/harbor-billboard.js)
+  hint: { kind: 'select', label: 'HINT', options: ['fireworks', 'party', 'lookup', 'postcard'], default: 'fireworks' },
   // (9g — THE SOUNDS NOBODY HAS HEARD: the owner picks by ear — core/city-sounds.js#SOUND_PICKS; '' = the default: PROM — HORN B, HUM A, DEPART LAYERED)
   horn: { kind: 'select', label: 'HORN', options: ['', 'a', 'c'], labels: { '': 'B · THE OLD HORN', a: 'A · DESTROYER', c: 'C · SYNTHESIZED' } },
   hum: { kind: 'select', label: 'HUM', options: ['', 'b'], labels: { '': 'A · HOVER ENGINE', b: 'B · DEEP THROB' } },
@@ -256,6 +258,7 @@ export const EVENTS = [
   // (SP3 + SP6 — THE ROOF SIGNS' HOURLY MODES, every named sign in one mode, its turn coming round fast: neon.js#planRoof)
   { id: 'roof-spell', label: 'ROOF SIGNS · SPELL', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'the letters light one by one, a hold, two flashes' },
   { id: 'roof-race', label: 'ROOF SIGNS · RACE', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'a bright pulse once round each sign’s frame' },
+  { id: 'billboard-hints', label: 'THE BILLBOARD’S HINTS', cat: 'signs', group: 'THE CITY’S NEON', inputs: ['hint'], hint: 'the speakeasy’s billboard as a message board: 20 s of a hint, 10 s of the game, looping (SCHED)' },
   { id: 'roof-breath', label: 'ROOF SIGNS · BREATH', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'a slow brighten / dim, never off' },
   { id: 'roof-wordflash', label: 'ROOF SIGNS · WORD FLASH', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'the 1920s drum flasher: word by word, then both held' },
   { id: 'roof-layers', label: 'ROOF SIGNS · LAYERS', cat: 'signs', group: 'THE CITY’S NEON', night: true, hint: 'built in stages: the border, the letters, the icon' },
@@ -297,6 +300,7 @@ export const EVENTS = [
   { id: 'no-quiet-building', sec: 'tools', label: 'THE BUSY BUILDING', cat: 'windows', group: 'COMPARE — OFF SWITCHES', kw: 'quiet building parked windows blinds moments every window night', hint: 'NIGHT-C: every window live at night again (the moments in the bar, the jazz room + the upper middle) — compare with THE QUIET BUILDING (only the boss’s room + the two side rooms live; the rest behind drawn blinds)' },
   { id: 'old-windows', sec: 'tools', label: 'THE OLD WINDOW SCENES', cat: 'windows', group: 'COMPARE — OFF SWITCHES', kw: 'retired bartender bar sax toast tango dance peek cash card game holiday ghost mummy witch costume ofrenda thanksgiving quiet building', hint: 'WINDOWS: the scenes the owner retired (Nov 1) back on as they were — the bar + its bartender, the toast, the sax, the dancing couple, the tango, the peek, the cash count, the card game, every holiday window scene + the old quiet building' },
   { id: 'no-live-crisp', sec: 'tools', label: 'LIVE WINDOWS SOFT', cat: 'windows', group: 'COMPARE — OFF SWITCHES', kw: 'live windows crisp 3x boss tv side rooms edge candle', hint: 'NIGHT-C: the boss’s TV room + the two side rooms back in the city’s own 2× canvas at night — compare with THE LIVE WINDOWS AT 3× (only on a 3× phone)' },
+  { id: 'no-hints', sec: 'tools', label: 'THE BILLBOARD: GAMES ONLY', cat: 'signs', group: 'COMPARE — OFF SWITCHES', kw: 'billboard hints message board fireworks look up postcard', hint: 'SCHED: the speakeasy’s billboard without its hints — the day’s game all day (compare)' },
   { id: 'no-legend-crisp', sec: 'tools', label: 'TR-3B SOFT', cat: 'sky', group: 'COMPARE — OFF SWITCHES', kw: 'tr3b crisp 3x sharp dpr full res overlay legend craft', hint: 'SKY-A: the TR-3B back in the city’s own 2× canvas (no full-res overlay) — compare' },
   { id: 'no-roof-crisp', sec: 'tools', label: 'ROOF SIGNS SOFT', cat: 'signs', group: 'COMPARE — OFF SWITCHES', kw: 'roof signs crisp 3x sharp dpr high stakes cipher signal tower', hint: 'NIGHT-C: the tower roof signs back in the city’s own 2× canvas (no crisp layer) — compare with THE ROOF SIGNS AT 3× (only on a 3× phone)' },
   { id: 'no-party-sync', sec: 'tools', label: 'NO PARTY SYNC', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', kw: 'party music song server clock sync same song every phone own player', hint: 'NIGHT-C: the party songs on THIS phone’s own player again (each phone its own song, as before) — the dance breaks still follow the shared party deck; compare' },
@@ -672,7 +676,7 @@ export function cleanRemote(raw) {
   }
   if (r.colour != null && r.colour !== '') { const v = String(r.colour).replace('#', '').toLowerCase(); if (v === 'rainbow' || HEX_RE.test(v)) out.colour = v; else bad.push('colour'); }
   sel('by', ['word', 'letter']); sel('style', INPUTS.style.options); sel('tower', TOWER_CHOICES.filter(Boolean));
-  sel('scheme', INPUTS.scheme.options); sel('game', GAME_IDS);
+  sel('scheme', INPUTS.scheme.options); sel('game', GAME_IDS); sel('hint', INPUTS.hint.options);
   sel('horn', ['b', 'c']); sel('hum', ['b']); sel('depart', ['b', 'layered']);   // (9g: the sounds' A / B / C — A is the default, never sent)
   sel('round', INPUTS.round.options);   // (SKY-B: the shadowboxer's round)
   sel('min', INPUTS.min.options);   // (WINDOWS: a scene's minutes in)
@@ -697,7 +701,7 @@ export function cleanRemote(raw) {
     if (Number.isInteger(v) && v >= PULSE.min && v <= PULSE.max && v % PULSE.step === 0) { if (v !== PULSE.def) out.pulse = v; } else bad.push('pulse');
   }
   // (an input no event on the list uses is dropped quietly: the panel keeps its fields filled while an event is off)
-  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'game']) if (k in out && !uses.has(k)) delete out[k];
+  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'game', 'hint']) if (k in out && !uses.has(k)) delete out[k];
   if ('scheme' in out && !uses.has('scheme')) delete out.scheme;
   return { state: out, bad };
 }
@@ -713,7 +717,7 @@ export function toParams(st) {
   if (st.party === 'on') force.push('party');
   if (st.party === 'off') force.push('no-party');
   if (force.length) p.force = force.join(',');
-  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'horn', 'hum', 'depart', 'round']) if (st[k] != null) p[k] = String(st[k]);
+  for (const k of ['text', 'show', 'colours', 'colour', 'by', 'style', 'tower', 'scheme', 'game', 'hint', 'scene', 'when', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'horn', 'hum', 'depart', 'round']) if (st[k] != null) p[k] = String(st[k]);
   if (st.cycle) p.cycle = '1';
   if (st.speed && st.speed !== 1) p.speed = String(st.speed);
   if (st.debug) p.debug = '1';

@@ -139,7 +139,7 @@ export function mediumDay(key, day0, dow, o = {}) {
     if (!keep) continue;
     const eh = h < 12 ? h + 24 : h;   // (the small hours on the evening's clock)
     if (lw.some(([a, b]) => eh > a - pad && eh < b + pad)) continue;
-    const isDark = h >= dark - 0.75 || h < 6.5;
+    const P = knob('showcase.prime'), isDark = h >= dark - P.darkLead || h < P.dawn;   // (a 'dark' medium kind: from ¾ h before full dark to the dawn)
     const ok = pool.filter(p => (p.when === 'any' || (p.when === 'dark') === isDark) && (last[p.kind] == null || t - last[p.kind] >= p.cool));
     if (!ok.length) continue;
     const tot = ok.reduce((s, p) => s + p.weight, 0); let x = ki * tot, p = ok[0];
