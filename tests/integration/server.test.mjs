@@ -508,7 +508,7 @@ test('HTTP: every call needs a valid ID token; the board is public and cacheable
   const pid = await val(`uids/${u.localId}`);
   assert.ok(!text.includes(pid), 'no profile id in the public response');
   assert.ok(!text.includes(u.localId.toUpperCase()), 'no typed name in the public response');
-  for (const r of b.body.rows) assert.deepEqual(Object.keys(r).sort(), ['a', 'c', 'id', 'n', 'r', 'rank', 't', 'v']);
+  for (const r of b.body.rows) assert.deepEqual(Object.keys(r).sort(), ['a', 'c', 'id', 'l', 'n', 'r', 'rank', 't', 'v']);   // (+ l: the level — PROGRESSION A)
 });
 
 // ---- BNAME (Oct 28): THE BOARD's PUBLIC NAMES

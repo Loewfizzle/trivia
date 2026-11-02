@@ -10,6 +10,7 @@ import { createHmac } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
 import { BOARD_GAMES, boardDef, careerBoards, toSort, winRate, MIN_WR_GAMES, fromSort, GAME_BOARDS } from '../../js/core/boards.js';
 import { houseNick, BOARD_MIN_MATCHES } from '../../js/core/nicknames.js';
+import { levelOf } from '../../js/core/levels.js';
 import { weekKey } from '../../js/core/week.js';
 
 export const TOP_N = 100;
@@ -98,7 +99,7 @@ async function profilesOf(pids) {
 export function publicRow(pid, p) {
   const id = boardId(pid);
   const nick = houseNick(id);
-  return { id, n: nick.n, t: nick.t, a: p.a, c: p.c, r: p.r || 0 };
+  return { id, n: nick.n, t: nick.t, a: p.a, c: p.c, r: p.r || 0, l: p.l || levelOf(p.x || 0) };
 }
 
 export async function topRows(board, period, now = Date.now()) {

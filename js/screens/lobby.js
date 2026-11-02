@@ -1,7 +1,7 @@
 // Lobby: the hush word (the room's code, on a password card) + invite + LOCK THE DOOR (host), live player list, host game picker.
 import { h, clear, reducedMotion } from '../ui/dom.js';
 import { RANK_COLORS } from '../ui/emblems.js';
-import { step } from '../core/ranks.js';
+import { levelInfo } from '../core/levels.js';
 import { neonTick } from '../audio/ambience.js';
 import { playerChip, segmented, chips as chipSelect, accessGranted, avatar } from '../ui/components.js';
 import { nightStandings } from '../core/night.js';
@@ -346,11 +346,11 @@ export function createLobby() {
         chip.dataset.uid = uid;
         if (pub && pub.r >= 3) chip.classList.add(`rk-glow-${pub.r}`);
         if (uid === st.uid && pub) {
-          // you: a mini membership card (step, progress, streak); tap opens the card
-          const sp = step(pub.x || 0);
+          // you: a mini membership card (level, progress, streak); tap opens the card
+          const sp = levelInfo(pub.x || 0);
           chip.classList.add('is-me-card');
-          chip.style.setProperty('--rk', RANK_COLORS[sp.i]);
-          chip.querySelector('.chip-body').append(h('div.chip-xp', h('span', sp.name), h('span.chip-xp-bar', h('i', { style: { transform: `scaleX(${sp.frac})` } })), pub.s >= 2 ? h('span', `${pub.s}🔥`) : null, h('span.chip-xp-card', 'CARD')));
+          chip.style.setProperty('--rk', RANK_COLORS[sp.band.r]);
+          chip.querySelector('.chip-body').append(h('div.chip-xp', h('span', `LV ${sp.lvl}`), h('span.chip-xp-bar', h('i', { style: { transform: `scaleX(${sp.frac})` } })), pub.s >= 2 ? h('span', `${pub.s}🔥`) : null, h('span.chip-xp-card', 'CARD')));
           chip.addEventListener('click', e => { if (e.target.closest('button')) return; import('./profile.js').then(m => m.openCard()); });
         }
         if (entry) { entry.el.replaceWith(chip); }

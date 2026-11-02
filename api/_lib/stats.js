@@ -1,63 +1,16 @@
-// Applying a verified match: career counters, records, XP and rank, then the boards. Exactly once per player:
-// each player's update is ONE transaction on pstats/{pid} that also records the match key (m/{key}), so a retry,
-// a second reporter or a crash halfway can never count a match twice.
-//
-//   pstats/{pid}: { xp, g{game:{p,w,…}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records: all-time best,
-//                   this week's best), day{k, g{game:1}}, last (server ms of the last counted match), m{key: at},
-//                   st{n, d} (the nightly streak), gd (the week whose goal was paid) }
+// Applying a verified match: career counters, records, XP, the level + its rewards, then the boards. Exactly once per player: each
+// player's update is ONE transaction on pstats/{pid} running the PURE step (js/core/progress.js#matchStep — the same code the year sim
+// runs) that also records the match key (m/{key}), so a retry, a second reporter or a crash halfway can never count a match twice.
 import { ref, val } from './fb.js';
 import { boardPaths, rankOf, clearBoardCache, matchCount, minMatches, syncBoards } from './lb.js';
-import { boardDef, better, toSort } from '../../js/core/boards.js';
-import { matchXp, rankIndex, streakAfter, streakPart, weeklyGoal, goalProgress, GOAL_XP } from '../../js/core/ranks.js';
-import { BOARD_GAMES } from '../../js/core/boards.js';
-import { weekKey, dayKey } from '../../js/core/week.js';
+import { boardDef, toSort } from '../../js/core/boards.js';
+import { matchStep } from '../../js/core/progress.js';
+import { levelOf, emblemRank } from '../../js/core/levels.js';
+import { bumpOwners } from './owners.js';
 
-const KEEP_KEYS = 60;
 // one match per player per this long — a real match takes minutes; this stops a forged room from farming wins
 export const MIN_MATCH_GAP_MS = Number(process.env.MATCH_GAP_MS ?? 45_000);
-
-function step(stats, key, gid, row, n, now) {
-  const s = stats || {};
-  if (s.m && s.m[key]) return { skip: 'counted' };
-  if (s.last && now - s.last < MIN_MATCH_GAP_MS && now >= s.last) return { skip: 'too_soon' };
-  const wk = weekKey(now), dk = dayKey(now);
-  const next = { ...s, g: { ...(s.g || {}) }, b: { ...(s.b || {}) }, m: { ...(s.m || {}) } };
-  if (next.wk !== wk) { next.wk = wk; next.gw = {}; } else next.gw = { ...(s.gw || {}) };
-  next.day = s.day && s.day.k === dk ? { k: dk, g: { ...(s.day.g || {}) } } : { k: dk, g: {} };
-  const firstToday = !next.day.g[gid];
-  next.day.g[gid] = 1;
-  const gamesToday = Object.keys(next.day.g).length;
-  const add = (o, c) => { const x = { ...(o || {}) }; for (const [k, v] of Object.entries(c)) x[k] = (x[k] || 0) + v; return x; };
-  next.g[gid] = add(next.g[gid], row.c);
-  next.gw[gid] = add(next.gw[gid], row.c);
-  const pbs = [];
-  for (const [board, v] of Object.entries(row.rec || {})) {
-    const def = boardDef(board);
-    if (!def) continue;
-    const old = s.b && s.b[board];
-    const b = { ...(old || {}) };
-    const prevAll = old ? old.a : null;
-    const prevWeek = old && old.wk === wk ? old.w : null;
-    if (better(def, v, prevAll)) { b.a = v; pbs.push({ b: board, v, prev: prevAll, first: prevAll == null }); }
-    if (better(def, v, prevWeek)) { b.w = v; b.wk = wk; }
-    next.b[board] = b;
-  }
-  const xp = matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
-  // the nightly streak: +10 % a night from the second, up to +40 %
-  next.st = streakAfter(s.st, dk, dayKey(now - 86_400_000));
-  const sp = streakPart(xp.total, next.st.n);
-  if (sp) { xp.parts.push(sp); xp.total += sp.v; }
-  // the weekly goal: paid once, the match that completes it
-  const goal = weeklyGoal(wk, BOARD_GAMES);
-  if (next.gd !== wk && goalProgress(goal, next.gw).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
-  const from = s.xp || 0;
-  next.xp = from + xp.total;
-  next.last = now;
-  next.m[key] = now;
-  const keys = Object.keys(next.m);
-  if (keys.length > KEEP_KEYS) keys.sort((a, b) => next.m[a] - next.m[b]).slice(0, keys.length - KEEP_KEYS).forEach(k => delete next.m[k]);
-  return { next, pbs, xp, from, prevStats: s, wk };
-}
+const step = (stats, key, gid, row, n, now) => matchStep(stats, { key, gid, row, n, now, gap: MIN_MATCH_GAP_MS });
 
 /**
  * ex: core/match-report.js#extractMatch output; pids: { uid: pid }.
@@ -93,9 +46,11 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
         before[b] = { all: oa != null ? await rankOf(b, 'all', oa, now) : null, week: ow != null ? await rankOf(b, res.wk, ow, now) : null, def };
       }));
     }
-    const r0 = rankIndex(res.from), r1 = rankIndex(stats.xp);
-    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }) };
+    const r0 = emblemRank(res.from), r1 = emblemRank(stats.xp);
+    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }) };
     await ref('/').update(patch);
+    // "X% OF PLAYERS HAVE THIS": the owners' counts (best effort — a count is display only)
+    await bumpOwners(res.items, !matchCount(res.prevStats)).catch(e => console.warn('owners', e && e.message));
     // the match that crosses the floor puts every game's boards up at once (the earlier matches were held back)
     if (listed && played === minMatches()) await syncBoards(pid, { now });
     const ranks = [];
@@ -111,7 +66,7 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
     outcomes[pid] = {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n,
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
-      rk: { from: r0, to: r1 }, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1,
+      rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1,
     };
   }));
   clearBoardCache();

@@ -16,7 +16,7 @@ import { isBoardId } from '../js/core/nicknames.js';
 import { weekEndsAt } from '../js/core/week.js';
 import { activity } from './_lib/activity.js';
 
-const pub = r => ({ id: r.id, n: r.n, t: r.t, a: r.a, c: r.c, r: r.r, rank: r.rank, v: r.v });
+const pub = r => ({ id: r.id, n: r.n, t: r.t, a: r.a, c: r.c, r: r.r, l: r.l || 1, rank: r.rank, v: r.v });
 
 export async function boardQuery(q, now = Date.now()) {
   const b = String(q.b || '');

@@ -13,6 +13,8 @@ import { syncBoards, clearBoardCache, boardId, matchCount, minMatches } from './
 import { keyFromBytes, formatKey, normalizeKey } from '../../js/core/pkey.js';
 import { nameKey, isOffensive } from '../../js/core/names.js';
 import { sanitizeName } from '../../js/core/room-logic.js';
+import { levelOf } from '../../js/core/levels.js';
+import { OLD_FINISH, OLD_GLOW } from '../../js/core/items.js';
 import { NAME_MAX, AVATAR_IDS, COLORS } from '../../js/config.js';
 
 export const RENAME_MS = 24 * 3600_000;
@@ -42,7 +44,10 @@ export async function publicProfile(pid) {
   if (!p) return null;
   // BNAME: bid = this profile's board id (the client finds its own row by it); m = counted matches (the 3-match floor)
   const m = typeof p.m === 'number' ? p.m : matchCount({ g: await val(`pstats/${pid}/g`) });
-  return { pid, n: p.n, t: p.t, a: p.a, c: p.c, x: p.x || 0, r: p.r || 0, h: !!p.h, at: p.at || 0, s: p.s || 0, f: p.f || null, g: p.g || null, bid: boardId(pid), m, mm: minMatches() };
+  // PROGRESSION A: l = the level (derived from x when an old profile lacks it); what they WEAR — cd card · g glow · tb tube style · es
+  // emblem shape (item ids, core/items.js; the old VAULT's finish / glow ids mapped)
+  return { pid, n: p.n, t: p.t, a: p.a, c: p.c, x: p.x || 0, l: p.l || levelOf(p.x || 0), r: p.r || 0, h: !!p.h, at: p.at || 0, s: p.s || 0,
+    cd: p.cd || OLD_FINISH[p.f] || null, g: OLD_GLOW[p.g] || p.g || null, tb: p.tb || null, es: p.es || null, fd: !!p.fd, bid: boardId(pid), m, mm: minMatches() };
 }
 
 /** Claims a 4-digit tag for a name: `prefer` if it's free under that name, else a random free one. */

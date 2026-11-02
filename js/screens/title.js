@@ -14,7 +14,7 @@
 // Test hook: window.__district.
 import { wordNeonChars, wordNeonDefs } from '../ui/word-neon.js';
 import { h, reducedMotion } from '../ui/dom.js';
-import { step } from '../core/ranks.js';
+import { levelLabel } from '../core/levels.js';
 import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
 import { logoSvg, logoGlowSvg, logoRaceSvg, logoTrack, anchorsSvg, TAGLINE } from '../ui/logo.js';
@@ -1592,7 +1592,7 @@ export function createTitle() {
     const ic = els.youTab.querySelector('.nd-tab-ic');
     if (youSig === els.youSig) { /* unchanged */ } else if ((els.youSig = youSig) && p && p.name) {
       ic.replaceChildren(avatar(p.avatar, p.color, 27));
-      els.youTab.setAttribute('aria-label', `Your membership card, ${p.name}${pub ? `, ${step(pub.x || 0).name}` : ''}`);
+      els.youTab.setAttribute('aria-label', `Your membership card, ${p.name}${pub ? `, ${levelLabel(pub.x || 0)}` : ''}`);
       els.youTab.classList.remove('is-guest');
     } else {
       ic.innerHTML = ICON.guest;

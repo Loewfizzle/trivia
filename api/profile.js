@@ -7,7 +7,9 @@
 //   rename  { name }                 → { profile } | 429 { until }
 //   show    { on }                   → { priv }              "Show me on global leaderboards"
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
-import { FINISHES, GLOWS, isUnlocked } from '../js/core/ranks.js';
+import { ITEM, STARTER } from '../js/core/items.js';
+import { carryOver } from '../js/core/progress.js';
+import { ownerCounts, pctOf, bumpOwners } from './_lib/owners.js';
 import { val, ref } from './_lib/fb.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
@@ -43,10 +45,16 @@ export async function profileAction(uid, body, ip = '', now = Date.now()) {
     case 'ensure': return ensureProfile(uid, { name: body.name, avatar: body.avatar, color: body.color }, now);
     case 'me': {
       const pid = await mine(uid);
-      const [profile, stats, priv] = await Promise.all([publicProfile(pid), val(`pstats/${pid}`), privateInfo(pid)]);
+      let [profile, stats, priv] = await Promise.all([publicProfile(pid), val(`pstats/${pid}`), privateInfo(pid)]);
+      // THE CARRY-OVER (PROGRESSION A): a profile from before levels gets every level reward its XP had earned (once; a transaction)
+      if (stats && carryOver(stats, now)) {
+        let got = [];
+        await ref(`pstats/${pid}`).transaction(cur => { const c = carryOver(cur, now); got = c ? c.items : []; return c ? c.next : undefined; });
+        if (got.length) { await bumpOwners(got).catch(() => {}); stats = await val(`pstats/${pid}`); }
+      }
       const s = stats || {};
       const wk = weekKey(now);
-      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null } };
+      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {} } };
     }
     case 'ranks': {
       const pid = await mine(uid);
@@ -59,14 +67,31 @@ export async function profileAction(uid, body, ip = '', now = Date.now()) {
     case 'regen': return { key: await newKey(await mine(uid)) };
     case 'rename': return { profile: await rename(await mine(uid), body.name, { now }) };
     case 'style': {
-      // wear a card finish / a name glow from THE VAULT: only what the player's XP has unlocked
+      // wear what you OWN (PROGRESSION A): { card?, glow?, tube?, shape? } — an item id you own, or '' to take it off (a card → the default)
       const pid = await mine(uid);
-      const xp = (await val(`pstats/${pid}/xp`)) || 0;
+      const owned = (await val(`pstats/${pid}/it`)) || {};
       const patch = {};
-      if (body.f != null) { const it = FINISHES.find(x => x.id === body.f); if (!it || !isUnlocked(it, xp)) throw new ApiError(403, 'locked'); patch[`profiles/${pid}/f`] = it.id; }
-      if (body.g != null) { const it = GLOWS.find(x => x.id === body.g); if (!it || !isUnlocked(it, xp)) throw new ApiError(403, 'locked'); patch[`profiles/${pid}/g`] = it.id; }
+      const SLOT = { card: ['card', 'cd'], glow: ['glow', 'g'], tube: ['tube', 'tb'], shape: ['emblem', 'es'] };
+      for (const [k, [kind, field]] of Object.entries(SLOT)) {
+        if (body[k] == null) continue;
+        const id = String(body[k]);
+        if (!id) { patch[`profiles/${pid}/${field}`] = null; continue; }
+        const it = ITEM[id];
+        if (!it || it.kind !== kind || !(owned[id] || STARTER.includes(id))) throw new ApiError(403, 'locked');
+        patch[`profiles/${pid}/${field}`] = id;
+      }
+      if (patch[`profiles/${pid}/cd`] !== undefined) patch[`profiles/${pid}/f`] = null;   // the old finish id retires with the first pick
       if (Object.keys(patch).length) await ref('/').update(patch);
       return { profile: await publicProfile(pid) };
+    }
+    case 'pct': {
+      // "X% OF PLAYERS HAVE THIS" — for the ids the caller OWNS only (never a list of what exists)
+      const pid = await mine(uid);
+      const [owned, ach, oc] = await Promise.all([val(`pstats/${pid}/it`), val(`pstats/${pid}/ac`), ownerCounts(now)]);
+      const out = { i: {}, a: {} };
+      for (const id of Object.keys(owned || {})) out.i[id] = pctOf(oc.i[id], oc.n);
+      for (const id of Object.keys(ach || {})) out.a[id] = pctOf(oc.a[id], oc.n);
+      return { pct: out, n: oc.n };
     }
     case 'show': { const pid = await mine(uid); await setShown(pid, !!body.on); return { priv: await privateInfo(pid) }; }
     default: throw new ApiError(400, 'bad_action');

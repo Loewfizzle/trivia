@@ -9,7 +9,7 @@ import { api } from '../profile/api.js';
 import { boardDef, fmtValue } from '../core/boards.js';
 import { fmtTag, isOffensive } from '../core/names.js';
 import { houseNick } from '../core/nicknames.js';
-import { RANKS } from '../core/ranks.js';
+import { levelLabel } from '../core/levels.js';
 import { GAMES } from '../config.js';
 import { GAME_LIGHT } from '../board/view.js';
 import { mountDayChart } from '../daychart/daychart.js';
@@ -117,7 +117,7 @@ function render(v) {
   const name = h('input.input', { value: p.n, maxLength: 12, 'aria-label': 'New name' });
   const boards = v.boards.slice().sort((a, b) => (a.game + a.b).localeCompare(b.game + b.b));
   box.replaceChildren(
-    h('div.ad-who', avatar(p.a, p.c, 46), h('div', h('div.ad-who-n', p.n, h('small', fmtTag(p.t))), h('div.ad-dim', `${RANKS[p.r].name} · ${p.x.toLocaleString()} XP · ${p.pid}`)), emblem(p.r, 40)),
+    h('div.ad-who', avatar(p.a, p.c, 46), h('div', h('div.ad-who-n', p.n, h('small', fmtTag(p.t))), h('div.ad-dim', `${levelLabel(p.x || 0)} · ${(p.x || 0).toLocaleString()} XP · ${p.pid}`)), emblem(p.r, 40)),
     h('div.ad-flags',
       v.priv.shown ? h('span.ad-tag', 'SHOWN') : h('span.ad-tag.is-hidden', 'OPTED OUT'),
       v.priv.banned ? h('span.ad-tag.is-bad', 'HIDDEN BY ADMIN') : null,

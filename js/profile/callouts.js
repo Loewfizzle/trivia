@@ -8,7 +8,7 @@ import { loadMe } from '../identity.js';
 import { countUp } from '../ui/components.js';
 import { emblem, RANK_COLORS } from '../ui/emblems.js';
 import { boardDef, fmtValue } from '../core/boards.js';
-import { RANKS, progress, step, stepIndex, unlockedBetween } from '../core/ranks.js';
+import { levelInfo, bandOf } from '../core/levels.js';
 import { GAMES } from '../config.js';
 import { onOutcome, outcomeFor, matchKey } from './queue.js';
 import { boardSfx } from '../board/audio.js';
@@ -83,10 +83,8 @@ export function attachCallouts(code, game) {
     const step = reduced() ? 120 : 650;
     list.forEach((p, i) => later(() => plaque(p), i * step));
     if (o.xp && o.xp.gain) later(() => xpLine(o), list.length * step + 150);
-    // THE VAULT: what this match unlocked, shown as the thing itself
-    const ul = o.xp ? unlockedBetween(o.xp.from, o.xp.to) : [];
-    ul.forEach((u, k) => later(() => unlocked(u), list.length * step + 900 + k * 700));
-    if (o.rk && o.rk.to > o.rk.from) later(() => rankUp(o.rk.from, o.rk.to), list.length * step + (reduced() ? 300 : 1500));
+    // (PROGRESSION A: what a match unlocks — items, achievements, the level-up — is THE END-OF-ROUND MOMENT's, right after the podium)
+    if (o.rk && o.rk.to > o.rk.from) later(() => rankUp(o.rk.from, o.rk.to, o.xp ? o.xp.to : 0), list.length * step + (reduced() ? 300 : 1500));
     if (list.length && !reduced()) vibrate(list[0].k === 'first' ? [30, 50, 30, 50, 90] : [24, 40, 24]);
   }
 
@@ -107,11 +105,11 @@ export function attachCallouts(code, game) {
   }
 
   function xpLine(o) {
-    const from = step(o.xp.from), to = step(o.xp.to);
-    const fill = h('span.rc-xp-fill', { style: { '--f0': String(stepIndex(o.xp.from) === stepIndex(o.xp.to) ? from.frac : 0), '--f': String(to.frac) } });
+    const from = levelInfo(o.xp.from), to = levelInfo(o.xp.to);
+    const fill = h('span.rc-xp-fill', { style: { '--f0': String(from.lvl === to.lvl ? from.frac : 0), '--f': String(to.frac) } });
     const gain = h('b', '+0');
-    const line = h('div.rc-xp', { style: { '--rk': RANK_COLORS[to.i] } },
-      emblem(to.i, 22),
+    const line = h('div.rc-xp', { style: { '--rk': RANK_COLORS[to.band.r] } },
+      emblem(to.band.r, 22),
       h('div.rc-xp-main',
         h('div.rc-xp-top', gain, h('span', ' XP'), h('span.rc-xp-parts', o.xp.parts.map(p => p.label).join(' · '))),
         h('div.rc-xp-bar', fill)),
@@ -121,43 +119,23 @@ export function attachCallouts(code, game) {
     countUp(gain, 0, o.xp.gain, reduced() ? 1 : 900, v => `+${num(v)}`);
   }
 
-  // under the bar: the new step (a step up inside a rank is its own small moment), the streak, and the card
+  // under the bar: the band + the level, what the next level needs, the streak, and the card
   function xpNext(o) {
-    const to = step(o.xp.to);
-    const up = stepIndex(o.xp.to) > stepIndex(o.xp.from) && !(o.rk && o.rk.to > o.rk.from);
-    if (up) { boardSfx('forge'); }
+    const to = levelInfo(o.xp.to);
     return [
-      h('span.rc-xp-step', up ? `NEW: ${to.name}` : to.name),
-      h('span', to.nextName ? `${num(to.need)} TO ${to.nextName}` : ''),
+      h('span.rc-xp-step', `${to.band.name} · LEVEL ${to.lvl}`),
+      h('span', to.max ? '' : `${num(to.need)} XP TO ${to.lvl + 1}`),
       o.streak >= 2 ? h('span', `${o.streak}-NIGHT STREAK 🔥`) : null,
       h('button.rc-xp-card', { type: 'button', onclick: () => import('../screens/profile.js').then(m => m.openCard()) }, 'YOUR CARD'),
     ];
   }
 
-  function unlocked(u) {
-    import('../screens/profile.js').then(m => {
-      const me = loadMe();
-      const pub = me && me.profile ? me.profile : null;
-      const show = u.kind === 'finish'
-        ? m.memberCard(pub, {}, 1e9, { fin: u.id, mini: true })
-        : h('span.rc-ul-name', { class: `nm-glow-${u.id}` }, (pub && pub.n) || 'YOU');
-      const item = h('div.rc-plaque.rc-unlock', { class: `is-${u.kind}` },
-        h('span.rc-sweep', { 'aria-hidden': 'true' }),
-        h('div.rc-ul-show', show),
-        h('div.rc-body', h('b.rc-n', `UNLOCKED · ${u.name}`), h('span.rc-sub', u.line)),
-        h('button.rc-xp-card', { type: 'button', onclick: () => m.openCard() }, 'WEAR IT'));
-      el.append(item);
-      turnOn(item, 'is-in');
-      boardSfx('forge');
-      if (!reduced()) vibrate([20, 40, 60]);
-    }).catch(() => {});
-  }
-
-  function rankUp(from, to) {
+  function rankUp(from, to, o0xp) {
     if (document.querySelector('.rc-up')) return;
     const shards = Array.from({ length: 16 }, (_, i) => h('i', { style: { '--a': `${(360 / 16) * i + (i % 3) * 7}deg`, '--d': `${70 + (i % 4) * 22}px` } }));
-    const letters = RANKS[to].name.split('').map((ch, i) => h('span', { style: { '--i': i } }, ch));
-    upEl = h('div.rc-up', { role: 'dialog', 'aria-label': `Rank up: ${RANKS[to].name}`, style: { '--rk': RANK_COLORS[to], '--rk0': RANK_COLORS[from] }, onclick: () => close(true) },
+    const B = bandOf(levelInfo(o0xp).lvl);
+    const letters = B.name.split('').map((ch, i) => h('span', { style: { '--i': i } }, ch));
+    upEl = h('div.rc-up', { role: 'dialog', 'aria-label': `New band: ${B.name}`, style: { '--rk': RANK_COLORS[to], '--rk0': RANK_COLORS[from] }, onclick: () => close(true) },
       h('div.rc-up-veil'),
       h('div.rc-up-stage',
         h('span.rc-up-rays'),
@@ -165,9 +143,9 @@ export function attachCallouts(code, game) {
         h('span.rc-up-shards', ...shards),
         h('span.rc-up-ring'),
         h('span.rc-up-new.rk-big', emblem(to, 176, { mini: false }))),
-      h('div.rc-up-kicker', 'RANK UP'),
+      h('div.rc-up-kicker', `LEVEL ${levelInfo(o0xp).lvl}`),
       h('div.rc-up-name', ...letters),
-      h('div.rc-up-line', RANKS[to].line),
+      h('div.rc-up-line', B.line),
       h('div.rc-up-skip', 'TAP TO CONTINUE'));
     document.body.append(upEl);
     turnOn(upEl, 'is-on');

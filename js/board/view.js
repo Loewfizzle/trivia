@@ -20,7 +20,7 @@ import { GAMES, colorHex } from '../config.js';
 import { boardDef, recordBoards, careerBoards, fmtValue, BOARD_GAMES, PULSE_DIFFS, MIN_WR_GAMES } from '../core/boards.js';
 import { weekEndsAt } from '../core/week.js';
 import { fmtTag } from '../core/names.js';
-import { RANKS } from '../core/ranks.js';
+import { bandOf, levelOf } from '../core/levels.js';
 import { board as fetchBoard, activeGames, reportRow } from '../profile/api.js';
 import { createHall } from './scene.js';
 import { boardSfx } from './audio.js';
@@ -209,7 +209,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     avatar(r.a, r.c, top ? 36 : 30),
     h('span.bd-who',
       h('span.bd-n', name, mine ? h('span.bd-you', 'YOU') : null),
-      h('span.bd-t', emblem(r.r | 0, 14), h('span', fmtTag(tag)), r.rank === 1 ? h('span.bd-crown', RANKS[r.r | 0].name) : null)),
+      h('span.bd-t', emblem(r.r | 0, 14), h('span', fmtTag(tag)), r.rank === 1 ? h('span.bd-crown', `${bandOf(r.l || 1).name} · LV ${r.l || 1}`) : null)),
     h('span.bd-v', fmtValue(def, r.v)),
     mine || !r.id ? null : h('button.bd-more', { type: 'button', 'aria-label': `Report ${r.n}`, onclick: e => { e.stopPropagation(); openReport(r, def); } }, h('span', '⋯')));
     return li;
@@ -382,7 +382,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     if (pub || !els.meBtn) return;
     const m = me();
     els.meBtn.replaceChildren(...(m && m.profile
-      ? [emblem(m.profile.r | 0, 30), h('span.bd-mebtn-l', RANKS[m.profile.r | 0].name)]
+      ? [emblem(m.profile.r | 0, 30), h('span.bd-mebtn-l', `LV ${levelOf(m.profile.x || 0)}`)]
       : [h('span.bd-mebtn-l', 'PROFILE')]));
     if (m && m.profile) els.meBtn.style.setProperty('--rk', RANK_COLORS[m.profile.r | 0]);
   }
