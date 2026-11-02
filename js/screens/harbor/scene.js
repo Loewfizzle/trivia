@@ -31,14 +31,15 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createSceneFireworks } from './scene-fireworks.js';
+import { createSceneParty } from './scene-party.js';
 import { createSceneWeather } from './scene-weather.js';
 import { createSceneHoliday } from './scene-holiday.js';
 import { createSceneLegend } from './scene-legend.js';
 import { createRainbow } from '../district/rainbow.js';
-import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, partyPalette, partySeed } from '../../core/party.js';
-import { harborParty, harborPartyPlan, partyReadyHour, punchEnv } from '../../core/harbor-show.js';
-import { createHarborBeat, advanceHarborBeat, pulseGain, pulseOut, createSafety, stepSafety, safePunch } from '../../core/harbor-beat.js';
-import { bowEnvelope, bowWeights, bowSchedule, lastRain } from '../../core/rainbow.js';
+import { partyHour, createBeatClock } from '../../core/party.js';
+import { harborPartyPlan, punchEnv } from '../../core/harbor-show.js';
+import { createHarborBeat, pulseGain, pulseOut, createSafety } from '../../core/harbor-beat.js';
+
 import { cameraFor, harborLayout, laneRects, roofline, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
 import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core/harbor-events.js';
 import { settings } from '../../audio/settings.js';
@@ -69,7 +70,7 @@ import { createCentre } from './centre.js';
 import { ghostAdGame , bladeStyle, adWeek, awningLight, SPEAK_V } from '../../core/harbor-speakeasy.js';
 import { partyAtT as partyAtT9 } from '../../core/harbor-moments.js';
 import { promenadeSteps, furnitureSteps, dimPools, shadowsStep } from './stage.js';
-import { lampThresholds, warmUp, lampMoment } from '../../core/harbor-lamps.js';
+
 import { createPeople } from './people.js';
 import { createWildlife } from './wildlife.js';
 import { seasonOf, seasonPhase, signalAt, streetWet } from '../../core/harbor-promenade.js';
@@ -115,7 +116,7 @@ import { createReporter } from './report.js';
 import { createTowerFx } from './tower.js';
 import { isFilled, pickTakes } from '../../core/city-sounds.js';
 import { towerAt, forcedTower, towerKey, implosionSounds, IMPLODE } from '../../core/harbor-tower.js';
-import { darkness, litK, windowsNight, isNight, windowShare, windowBias, partyReady, power, photocell, beaconStep } from '../../core/harbor-dark.js';
+import { darkness, litK, windowsNight, isNight, windowShare, windowBias, power, photocell, beaconStep } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
 import { legendNight, eveningOf, trafficHold, inHold } from '../../core/harbor-legend.js';
 import { raidEvening, raidPlan, raidAt, forcedRaid, RAID } from '../../core/harbor-raid.js';
@@ -145,7 +146,7 @@ import { createMothman } from './mothman.js';
 import { mothmanAt } from '../../core/harbor-mothman.js';
 import { BB, bbChaseAt, soloNear, watcherStep } from '../../core/harbor-blackbird.js';
 import { jetLook } from './jets.js';
-import { holidayAt, holidaySeason, lightRules, spookyFlicker } from '../../core/harbor-holiday.js';
+import { holidayAt, holidaySeason, lightRules } from '../../core/harbor-holiday.js';
 
 // (C4c: the top tier's dpr is BAKE_CAP — 2, or the device's 3 under `&dpr=3`, the owner's look judgement only)
 // (PERF-B — FR5 C2b: the dpr + the bake's ms a frame are THE TIER TABLE's sceneDpr + bakeMs rows — tier 2's dpr is BAKE_CAP)
@@ -250,7 +251,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // PART 6b — THE LEGENDARY SKY (screens/harbor/legends.js: the UFO abduction, the TR-3B + its jet chase) — LAZILY loaded: only on a
   // legendary night (core/harbor-legend.js#legendNight, a minute ahead), a preview (&force=ufo / tr3b) or the API (harbor().legend)
   let legends = null, legendsLoading = false, legendCheckAt = -1e9, legendWant = null;
-
 
    // (MODELS: how far the drained skyline is pulled to a cool near-black — the near band's rose walls most)
 
@@ -397,12 +397,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const crisp = createCrisp();   // (9c: THE CRISP LAYER — lettering at the phone's full dpr: crisp.js)   // (9a: the weather on the NEON sign's tubes + the dock / corner buttons' glass — small overlay canvases)
   let frost = { resize: NOOP, pane: NOOP, debug: () => ({}), destroy: NOOP };
 
-
   // SP3 — THE WEATHER'S SOURCE IS DECIDED ONCE, BEFORE THE REVEAL (the owner's load log: the city flipped from the live clouds to the
   // seeded fallback 0.48 s after it showed — the saved answer went stale under it): live / cached / seeded at the reveal; after it the
   // last answer is HELD (up to 3 h) until a new one arrives — a new answer that differs blends slowly (stepWeather), never a fall-back
   let wxHeld = null, wxRevealed = false;
-
 
 
   // CITY 2.0 MUSIC (core/city.js): the music follows THIS clock — the scene's own, so the preview panel's time jumps + speeds move it too —
@@ -868,8 +866,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let swayKey = '', swayGeo = [], swayDbg = { n: 0, amp: 0, why: '' };
 
 
-
-
   let lampLevels = null;
 
   let cloudSetKey = '';
@@ -878,44 +874,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const bakeKey = () => Object.values(bakeParts()).join('|');
   let bakeParts0 = null;
   const partsDiff = (a, b) => (a ? Object.keys(b).filter(k => String(a[k]) !== String(b[k])).join(', ') || 'same' : 'first');
-  // 8P — THE LAMPS' LIFE (core/harbor-lamps.js): the switch-on order + the warm-up, the rare moment on the city clock (the same lamp on
-  // every phone); a lamp already on when the page opens never stutters; the crossing's pair stays steady while an event is on the inlay
-  let lampTh = null, lampThKey = '', lampOnAt = [], lampWas = [];
-  // NIGHT-A — THE PARTY's TINT on the new light's wash (the owner: "party nights tint the wash faintly with the neon's colours"): one
-  // full-width gradient over the promenade + the street, 'lighter', a few % — the party palette's colour, a new one every 8 bars (eased
-  // over the last bar: never on the beat, never a flash); the blackout takes it down with the lamps. Tier 0: none (one fill a frame).
-  function partyWash(c, fadeIn) {
-    if (lightMode() !== 'new' || !(PT.on > 0.02) || tier === 0 || fadeIn <= 0 || !PT.palette || !PT.palette.length) return;
-    const k = 0.06 * PT.on * fadeIn * litK(DK, 'lamps') * (S.lit > 0 ? S.lit : 0) * (LB ? legendPow(W * 0.5, 'near', 210) : 1);
-    if (k < 0.004) return;
-    const pal = PT.palette, n = pal.length, u = S.motion ? (((PT.bar || 0) % (8 * n)) + (PT.phase || 0)) / 8 : 0, i = Math.floor(u) % n, f = clamp01(((u % 1) - 0.85) / 0.15);
-    const col = pal[i].map((v, j) => Math.round(v + (pal[(i + 1) % n][j] - v) * f)), y0 = groundY(cam, L.prom.z1), g = c.createLinearGradient(0, y0, 0, H);
-    g.addColorStop(0, `rgba(${col},${(k * 0.35).toFixed(4)})`); g.addColorStop(1, `rgba(${col},${k.toFixed(4)})`);
-    c.save(); c.globalCompositeOperation = 'lighter'; c.fillStyle = g; c.fillRect(0, y0, W, H - y0); c.restore();
-  }
-  function lampLife(t) {
-    const n = L.lamps.length, ramp = litK(DK, 'lamps'), seed = L.seed || 1924, key = `${n}|${seed}`;
-    if (key !== lampThKey) { lampThKey = key; lampTh = lampThresholds(n, seed); lampOnAt = new Array(n).fill(-99); lampWas = new Array(n).fill(null); }
-    // (PROM: the two implied pools nearest the compass stay steady while an event stands on it — the tall pair's old rule)
-    const ms = clock.now(), mo = S.motion, skip = centre.active() && L.medallion ? L.lamps.map((l, i) => [Math.abs(l.x - L.medallion.x), i]).sort((a, b) => a[0] - b[0]).slice(0, 2).map(p => p[1]) : [];
-    const m = mo && ramp > 0.6 ? lampMoment(ms, n, { seed, skip }) : null;
-    const levels = [], off = []; let dim = false;
-    for (let i = 0; i < n; i++) {
-      const on = ramp >= lampTh[i];
-      if (on && lampWas[i] === false) lampOnAt[i] = t;
-      lampWas[i] = on;
-      let lv = on ? (mo ? warmUp(t - lampOnAt[i]) : 1) : 0;
-      if (m && m.i === i) lv *= m.level(ms);
-      // (8b1 — CAUSE AND EFFECT: a lamp's BAD NIGHT — it stutters every minute or so until the morning's short ladder fixes it)
-      // (11a-1 — THE SPOOKY LIGHT: on Halloween night each lamp now and then GUTTERS — its own seeded stutter, a few times a minute)
-      if (lv > 0 && mo && HR.lampFlicker > 0.01) lv *= 1 - HR.lampFlicker * spookyFlicker(ms / 1000, i);
-      if (lv > 0 && mo && lampFaultNow && lampFaultNow.lamp === i && ms / 1000 >= lampFaultNow.from) { const u = ((ms / 1000 - lampFaultNow.from) % lampFaultNow.period); if (u < 1.1) lv *= u < 0.12 ? 0.1 : u < 0.3 ? 0.75 : u < 0.42 ? 0.05 : u < 0.62 ? 0.6 : u < 0.75 ? 0.15 : 1; }
-      if (legends && legends.active()) lv *= legendPow(project(cam, L.lamps[i].x, 0, L.lamps[i].z)[0], 'near', 100 + i);   // (6b: a legendary's power)
-      levels.push(lv); off.push(1 - lv); if (lv < 0.98) dim = true;
-    }
-    lampDbg = { levels: levels.map(v => +v.toFixed(2)), th: lampTh.map(v => +v.toFixed(2)), moment: m ? { i: m.i, kind: m.kind, at: m.at, len: +m.len.toFixed(2) } : null };
-    return { levels, off, dim: dim && ramp > 0.02, ramp };
-  }
+  // SCHED — FR5 C1's cut (scene-party.js, a pure move): the lamps' life + the party's wash, the rainbows' target, partyTick + the finale — PT stays here (read + written by the frame), set through the ctx
+  const sceneParty = createSceneParty({ get bc() { return bc; }, get bowForcedAt() { return bowForcedAt; }, set bowForcedAt(v) { bowForcedAt = v; }, get cam() { return cam; }, get centre() { return centre; }, get clock() { return clock; }, get DK() { return DK; }, get fw() { return fw; }, get fwx() { return fwx; }, get H() { return H; }, get hbeat() { return hbeat; }, get HR() { return HR; }, get HZ() { return HZ; }, get L() { return L; }, get lampDbg() { return lampDbg; }, set lampDbg(v) { lampDbg = v; }, get lampFaultNow() { return lampFaultNow; }, get lastDt() { return lastDt; }, get lastWet() { return lastWet; }, get LB() { return LB; }, get legendPow() { return legendPow; }, get legends() { return legends; }, get LK() { return LK; }, get PT() { return PT; }, get pulseQ() { return pulseQ; }, set pulseQ(v) { pulseQ = v; }, get punchHist() { return punchHist; }, get punchI() { return punchI; }, set punchI(v) { punchI = v; }, get qp() { return qp; }, get roPk() { return roPk; }, set roPk(v) { roPk = v; }, get roPkAt() { return roPkAt; }, set roPkAt(v) { roPkAt = v; }, get roPulse() { return roPulse; }, set roPulse(v) { roPulse = v; }, get S() { return S; }, get safety() { return safety; }, get tier() { return tier; }, get W() { return W; }, get wxNow() { return wxNow; } });
+  const { bowTarget, lampLife, partyTick, partyWash, startFinale } = sceneParty;
+
   let lampDbg = null, lampFaultNow = null;
   // 8b1 — the roof board + the blade, kept in step with the workers' traces
   const BOARD_ID = 'bb-left';
@@ -1395,98 +1357,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (L && lightKey() !== litBaker.key && !litBaker.pending && litFadeFrom < 0) rebakeLights();
   }
 
-  // ------------------------------------------------------------------ RAINBOWS + PARTY NIGHTS (the rules: core/; Part 11 builds the party's look)
-  const BOW0 = { day: 0, moon: 0, neon: 0, secondary: false, strength: 1 };
   let bowForcedAt = null, bowT = null;
-  function bowTarget(t) {
-    const f = clock.force, now = clock.now();
-    const forced = f.has('rainbow2') ? 'day2' : f.has('rainbow') ? 'day' : f.has('moonbow') ? 'moon' : f.has('neonbow') ? 'neon' : null;
-    if (forced) {
-      if (bowForcedAt == null) { if (t < 1.2) return BOW0; bowForcedAt = now; }
-      const env = smooth(0, 8000, now - bowForcedAt);
-      return { day: forced.startsWith('day') ? env : 0, moon: forced === 'moon' ? env : 0, neon: forced === 'neon' ? env : 0, secondary: forced === 'day2', strength: 1, forced };
-    }
-    const wet = lastRain(wxNow(), clock.preview && !clock.keepLive ? null : lastWet());
-    if (wet == null) return BOW0;
-    const env = bowEnvelope(now, wet);
-    if (env <= 0) return { ...BOW0, wet };
-    const w = bowWeights(LK, { party: PT.ramp });
-    return { day: env * w.day, moon: env * w.moon, neon: env * w.neon, secondary: bowSchedule(wet).secondary, strength: w.strength, wet, env };
-  }
-  // FP2 — TONIGHT'S PARTY PLAN (core/harbor-show.js#harborPartyPlan): the warm-up at 8:30 pm or when the power-up has finished, whichever
-  // is later; the peak at 9:30 or 45 min after that — once an evening (the real sun: when darkness() first passes partyReady)
-  let planKey = '', planV = harborPartyPlan();
-  function partyPlanNow() {
-    const lc = LK.local; if (!lc) return planV;
-    const an = !!settings.alwaysNight || !LK.sun, key = `${lc.y}-${lc.m}-${lc.d}-${lc.h < 12}|${an}|${LK.lat}|${LK.lon}`;
-    if (key === planKey) return planV;
-    planKey = key;
-    const mid = Date.UTC(lc.y, lc.m - 1, lc.d) - lc.off * 60000 - (lc.h < 12 ? 864e5 : 0);
-    const ready = an ? null : partyReadyHour(mid, ms => darkness({ el: sunPosition(ms, LK.lat, LK.lon).el }), partyReady);
-    return (planV = harborPartyPlan(ready));
-  }
-  function partyTick(t, dt, lit) {
-    const hol = LK.holiday && LK.holiday.full ? LK.holiday.id : null;
-    const caught = S.caught != null ? S.caught : isNight(DK);
-    // (&force=no-party: THE PREVIEW PANEL's PARTY OFF — a real party night held dark)
-    // (DT1: a party night powers up first — the show warms up once the blue hour's power-up is done)
-    // (FP2: and never before tonight's warm-up — 8:30 pm at the earliest: harborParty(…).on)
-    const plan = partyPlanNow(), hp0 = harborParty(partyHour(LK.local), plan);
-    const ps = clock.force.has('no-party') ? { on: 0, energy: 0, phase: null, forced: true } : partyState(LK.local, { caught: caught && lit > 0.5 && partyReady(DK) && hp0.on, force: clock.force.has('party') });
-    // (8b2 — THE BLACKOUT WINS (the owner: the TR-3B forced with PARTY ON left the neon, the windows, the sky beams + the show lit): the
-    // party show is scaled by what's left of the city's power at its SOURCE — every party light (the chasers, the LED facades, the punch,
-    // the sky beams, the searchlights' turn) reads PT.on / PT.ramp; dark while the city is dead, ramping back with the power)
-    const blk = legends && legends.active() ? legends.blackout() : null, pwK = blk ? clamp01(1 - blk.k) : 1;
-    if (pwK < 1) ps.on *= pwK;
-    // (9f — LOAD WEATHER: the windows' party look is baked from tonight's party WITHOUT the title's gates (its entrance light, the
-    // sign's catch — which lags a panel's clock jump by a second): the city's own darkness decides; the entrance fades
-    // the whole city in anyway, so a party night's windows are party from the first picture, never re-baked mid-fade-in)
-    PT.litOn = ps.forced ? ps.on : partyState(LK.local, { caught: isNight(DK) && partyReady(DK) && hp0.on, force: clock.force.has('party') }).on * pwK;
-    PT.name = ps.phase; PT.on = ps.on; PT.ramp = ps.on; PT.energy = ps.energy; PT.motion = S.motion; PT.tier = tier; PT.plan = plan; PT.power = pwK;
-    // (the harbor's own night — FP2: 8:30 pm warm-up → 9:30 pm peak → calming after 1 am; core/party.js keeps the window + the 2 am wind-down)
-    if (ps.on > 0 && !ps.forced) { PT.energy = hp0.energy; PT.name = hp0.name; }
-    PT.palette = partyPalette(hol);
-    const song = ps.on > 0 && S.beat ? S.beat() : null;
-    PT.song = song;   // (SP5: the dancers' song edge — songEdge())
-    advanceBeat(bc, dt, song);
-    PT.breath = S.motion ? bc.breath : 0.5;
-    // THE BEAT (NEON PASS 5 — core/harbor-beat.js): the song's grid (real bars, the downbeat) + the kicks the analyser hears; the
-    // pulse HALF-TIME (beats 1 + 3, the downbeat hardest); without music a calm 120 bpm of its own
-    advanceHarborBeat(hbeat, dt, song, ps.on > 0 && S.kick ? S.kick() : null);
-    PT.songPos = song && song.pos >= 0 ? song.pos : null;   // (ATM-B: the song position this frame's beat used — the SONG CLOCK check compares at that same instant)
-    PT.bar = hbeat.bar; PT.phase = hbeat.barU; PT.beat = hbeat.idx === 0 && hbeat.u < 0.25;
-    PT.beatU = hbeat.u; PT.beatT = hbeat.T; PT.beatIdx = hbeat.idx; PT.beats = Math.floor(hbeat.beats); PT.beatsF = hbeat.beats; PT.rate = 1 / (4 * hbeat.T); PT.src = hbeat.src;
-    // (8a — PULSE STRENGTH: ONE multiplier on the punch here, at its source — every beat-driven light reads PT.punch or the ripple's
-    // history; the preview panel's slider / &pulse= (core/harbor-beat.js#pulseGain, PULSE_DEFAULT), with the soft knee: pulseOut)
-    const pq = qp.get('pulse'); if (pq !== pulseQ) { pulseQ = pq; PT.pulse = pulseGain(pq); }
-    // (8b1 — THE SAFETY RULE, core/harbor-beat.js#stepSafety: the punch only while the heard offset is confirmed — else a gentle breath;
-    // the punch itself stays on the trusted grid)
-    if (ps.on > 0) { const cb = S.beatCal ? S.beatCal() : {}; stepSafety(safety, { src: hbeat.src, bar: hbeat.bar, song: cb.song || (song && song.id) || null, anchors: cb.anchors, live: hbeat.live, cal: cb, saved: !!cb.saved, deafSong: !!cb.deafSong }, dt); }
-    const sp0 = safePunch(safety, hbeat.punch, hbeat.beats, hbeat.level);
-    PT.safe = safety.mode; PT.safeK = safety.k;
-    PT.punch = S.motion && ps.on > 0 ? pulseOut(sp0 * ps.on * (0.72 + 0.28 * Math.min(1, Math.max(0, (PT.energy - 0.55) / 0.45))), PT.pulse) : 0;
-    punchHist[punchI = (punchI + 1) & 63] = S.motion ? pulseOut(sp0, PT.pulse) : 0;          // (the show scales it by the scene + the night)
-    roPk = Math.max(roPk, PT.punch); if (t - roPkAt > 0.5 || t < roPkAt) { roPulse = roPk; roPk = 0; roPkAt = t; }   // (the readout's `pulse`: the peak of the last ½ s)
-    PT.punchAt = punchAt;
-    PT.swell = Math.max(0, PT.swell - dt / 3800);
-    const hr = partyHour(LK.local), sd = partySeed(LK.local);
-    if (!fwx.ok() && ps.on > 0 && !ps.forced && !LK.nye && PT.finaleDone !== sd && finaleDue(PT.lastHour, hr)) { PT.finaleDone = sd; startFinale(); }   // (PART 10: the GPU engine's midnight shells replace it)
-    PT.lastHour = hr;
-    if (!fwx.ok() && clock.force.has('finale') && !PT.finaleForced && t > 2.5 && lit > 0.5) { PT.finaleForced = true; startFinale(); }
-    if (S.onParty && (PT.on > 0 || PT.wasOn)) S.onParty(PT);
-    PT.wasOn = PT.on > 0;
-  }
-  /** the city's punch s seconds ago (≤ ~1 s: the frames' history) — the show's ripple rolling across the skyline */
-  function punchAt(s) { const n = Math.min(63, Math.round(s * 1000 / Math.max(8, lastDt))); return punchHist[(punchI - n + 64) & 63]; }
+
+
+
   let lastDt = 16.7, pulseQ, roPk = 0, roPulse = 0, roPkAt = 0;
-  // the midnight finale: shells over the city, never on the sign (Part 11 stages the real one)
-  function startFinale() {
-    if (!S.motion) { PT.swell = 1; PT.bursts++; return; }
-    const pal = partyPalette(null), tr = S.textRects;
-    const n = W < 760 ? 4 : 6, big = W < 760 ? Math.min(W * 0.18, 74) : Math.min(W * 0.11, 150);
-    const yHi = tr && tr.tag ? tr.tag.y + tr.tag.h + big * 0.9 : HZ * 0.34, yLo = Math.max(yHi + 10, cam ? cam.limitY + 40 : HZ * 0.6);
-    for (let i = 0; i < n; i++) fw.launch({ x: W * (0.2 + 0.6 * (i + 0.5) / n), y0: HZ * 0.98, ty: yHi + (yLo - yHi) * [0.5, 0.15, 0.75, 0.3, 0.6, 0.2][i % 6], col: pal[i % pal.length], col2: '#ffffff', big, delay: i * 0.36 });
-  }
 
   // ------------------------------------------------------------------ the frame
   let devDpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
