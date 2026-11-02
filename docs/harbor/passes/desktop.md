@@ -109,7 +109,13 @@ the squeeze flattens the crowns): measured on the real layout, 1440×900:
   1920 @2 60 fps at the 2.6-MP budget (1 % slow).
 - **Memory** (2560×1080): the bakes 86 MB (the phone 46) of the 160-MB budget, the guard stepped nothing; ~720–760 tracked canvases (the
   phone 541); at DPR 2 the tracked total 199 MB.
-- **THE BASELINE GUARD**: a plain night 1.08×, the forced bus 0.87×, the dog walk 0.81× (≤ 2×).
+- **THE BASELINE GUARD**: a plain night 0.66×, the forced bus 0.94×, the dog walk 0.68× (≤ 2×; the full run).
+- **THE LOCAL RUN** (the mini PC, before the final push): unit 984 · rules 55 · /api 27 · smoke 6/6 (+ 6/6 at 1440×900) · CONN 20/20 · THE FULL
+  HARBOR SUITE **820/820** in 19.2 min (the calm load + partysync included).
+- **THE CLOUD** — run 1 (976bbb8): tests ✅; harbor 9/10 — **perf ✅ (partysync GREEN in the cloud, the first time in four passes)**, models ✗:
+  the new desktop group's hover check — the cloud's headless Linux runner reports no fine pointer, so the mouse-only CSS (the pointer, the
+  ring shown) wasn't in play there; the check now tests that CSS only where the browser has a mouse, the hover logic everywhere. Run 2
+  (`gh workflow run harbor -f job=models`) ✅. The two-run cap kept.
 
 ## Decisions
 - **The desktop camera 1.4× / eye 8 / z 50, not the closer 1.65×** — the feasibility check: 1.65× flattened the skyline (squeeze 0.45 vs the
