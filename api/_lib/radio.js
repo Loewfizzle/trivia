@@ -12,7 +12,7 @@
 //   city2/showcase        the TUNING WINDOW's level (every phone reads it through GET /api/admin?live=1, with the city's moments)
 //   here/{uid}            THE NIXIE's count: a visible title says hello every ~2 min (an ESTIMATE until Vercel Analytics)
 import { ApiError } from './http.js';
-import { ref, val, adminPids } from './fb.js';
+import { ref, val, adminPids, emulated } from './fb.js';
 import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY } from '../../js/core/harbor-radio.js';
 import { SHOWCASE_LEVELS } from '../../js/core/harbor-showcase.js';
@@ -24,6 +24,8 @@ const tzOffAt = (ms, tz) => { try { const p = Object.fromEntries(new Intl.DateTi
 export async function roleOf(pid) {
   if (!pid) return null;
   if (adminPids().includes(pid)) return 'owner';
+  // (the LOCAL EMULATORS only — the E2E's owner: testAdmins/{pid}; production never runs with the emulator's env, so this is never read there)
+  if (emulated() && (await val(`testAdmins/${pid}`))) return 'owner';
   return (await val(`radio/crew/${pid}`)) ? 'crew' : null;
 }
 const need = (ok, code, msg) => { if (!ok) throw new ApiError(403, code, msg); };

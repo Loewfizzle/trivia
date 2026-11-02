@@ -13,6 +13,91 @@
   ],
   "note": null
  },
+ "404150__lilmati__select-denied-01": {
+  "file": "404150__lilmati__select-denied-01.wav",
+  "md5": "bf87d28ab825594636aeebd316a5675c",
+  "slots": [
+   "radio-denied"
+  ],
+  "credit": [
+   "404150__lilmati__select-denied-01.wav",
+   "  Title \"Select, Denied 01.wav\", author LilMati (Freesound)",
+   "  Source: https://freesound.org/s/404150/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "418329__cambrianman__detonator-switching": {
+  "file": "418329__cambrianman__detonator-switching.wav",
+  "md5": "2a561e57106091c13850ee88059c2d79",
+  "slots": [
+   "radio-cover-close",
+   "radio-cover-open"
+  ],
+  "credit": [
+   "418329__cambrianman__detonator-switching.wav",
+   "  Title \"detonator switching\", author cambrianman (Freesound)",
+   "  Source: https://freesound.org/s/418329/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "463484__soundsofscienceupf__jack-cable-plug-in": {
+  "file": "463484__soundsofscienceupf__jack-cable-plug-in.wav",
+  "md5": "01d71d4987515329fe54aaf3afb4ce74",
+  "slots": [
+   "radio-jack-in"
+  ],
+  "credit": [
+   "463484__soundsofscienceupf__jack-cable-plug-in.wav",
+   "  Title \"Jack cable plug-in\", author soundsofscienceupf (Freesound)",
+   "  Source: https://freesound.org/s/463484/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "477641__joao_janz__power-cord-unplug-1_2": {
+  "file": "477641__joao_janz__power-cord-unplug-1_2.wav",
+  "md5": "08fcbc3c5378e80a1119100d4c43f5aa",
+  "slots": [
+   "radio-jack-out"
+  ],
+  "credit": [
+   "477641__joao_janz__power-cord-unplug-1_2.wav",
+   "  Title \"Power Cord Unplug 1_2\", author Joao_Janz (Freesound)",
+   "  Source: https://freesound.org/s/477641/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "499033__16fpanskavyskocil_tom__headphones-jack-plugged-in": {
+  "file": "499033__16fpanskavyskocil_tom__headphones-jack-plugged-in.wav",
+  "md5": "3d9e8bd315d4987d38f6b531901a174d",
+  "slots": [
+   "radio-jack-in"
+  ],
+  "credit": [
+   "499033__16fpanskavyskocil_tom__headphones-jack-plugged-in.wav",
+   "  Title \"Headphones, jack plugged in.wav\", author 16FPanskaVyskocil_Tom (Freesound)",
+   "  Source: https://freesound.org/s/499033/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "499034__16fpanskavyskocil_tom__headphones-jack-pugged-out": {
+  "file": "499034__16fpanskavyskocil_tom__headphones-jack-pugged-out.wav",
+  "md5": "3fc8c8a58bc35fbadb8d7f3e941c4cdb",
+  "slots": [
+   "radio-jack-out"
+  ],
+  "credit": [
+   "499034__16fpanskavyskocil_tom__headphones-jack-pugged-out.wav",
+   "  Title \"Headphones, jack pugged out.wav\", author 16FPanskaVyskocil_Tom (Freesound)",
+   "  Source: https://freesound.org/s/499034/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
  "499396__16gstepankovas__12_falling-tennis-ball-01": {
   "file": "499396__16gstepankovas__12_falling-tennis-ball-01.wav",
   "md5": "e5d60e460c8bc31363de5f65e6775a45",
@@ -23,6 +108,62 @@
    "499396__16gstepankovas__12_falling-tennis-ball-01.wav",
    "  Title \"12_Falling tennis ball-01.wav\", author 16GStepankovaS (Freesound)",
    "  Source: https://freesound.org/s/499396/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "536411__rudmer_rotteveel__jack-plug-in": {
+  "file": "536411__rudmer_rotteveel__jack-plug-in.wav",
+  "md5": "0273dccaa398b7bef351818e559b65d9",
+  "slots": [
+   "radio-jack-in"
+  ],
+  "credit": [
+   "536411__rudmer_rotteveel__jack-plug-in.wav",
+   "  Title \"Jack Plug In\", author Rudmer_Rotteveel (Freesound)",
+   "  Source: https://freesound.org/s/536411/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "594300__mc5__pulling-out-the-plug-from-electrical-socket": {
+  "file": "594300__mc5__pulling-out-the-plug-from-electrical-socket.wav",
+  "md5": "4a4a7eae605c13cdab3bea4885b5ea69",
+  "slots": [
+   "radio-jack-out"
+  ],
+  "credit": [
+   "594300__mc5__pulling-out-the-plug-from-electrical-socket.wav",
+   "  Title \"Pulling Out the Plug from Electrical Socket\", author _MC5_ (Freesound)",
+   "  Source: https://freesound.org/s/594300/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "624637__onekellyordered__casio-as-51r-cassette-player-play-button": {
+  "file": "624637__onekellyordered__casio-as-51r-cassette-player-play-button.wav",
+  "md5": "222d67aa173713b6b61c0967bb2a805a",
+  "slots": [
+   "radio-band"
+  ],
+  "credit": [
+   "624637__onekellyordered__casio-as-51r-cassette-player-play-button.wav",
+   "  Title \"Casio AS-51R Cassette Player Play Button\", author OneKellyOrdered (Freesound)",
+   "  Source: https://freesound.org/s/624637/",
+   "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "643563__el_boss__radial-knob-clicks-turning-dial": {
+  "file": "643563__el_boss__radial-knob-clicks-turning-dial.wav",
+  "md5": "6bebe10d11df9ae4ac9261be4f00a19f",
+  "slots": [
+   "radio-tick"
+  ],
+  "credit": [
+   "643563__el_boss__radial-knob-clicks-turning-dial.wav",
+   "  Title \"Radial knob clicks turning dial\", author el_boss (Freesound)",
+   "  Source: https://freesound.org/s/643563/",
    "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
   ],
   "note": null
@@ -52,6 +193,132 @@
    "  Title \"Generic Soft Wood/Floor Hits\", author SirBagel (Freesound)",
    "  Source: https://freesound.org/s/732813/",
    "  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/"
+  ],
+  "note": null
+ },
+ "Bluezone_BC0302_industrial_lever_switch_small_003": {
+  "file": "Bluezone_BC0302_industrial_lever_switch_small_003.wav",
+  "md5": "38b389efb8a4383b906f114b7e45cff9",
+  "slots": [
+   "radio-fire"
+  ],
+  "credit": [
+   "Bluezone_BC0302_industrial_lever_switch_small_003.wav",
+   "  Title \"Bluezone_BC0302_industrial_lever_switch_small_003\", publisher/pack \"BluezoneCorp - Industrial Lever Switch\". Source: Sonniss GDC2024-GameAudioBundle1of9 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle1of9.zip/BluezoneCorp%20-%20Industrial%20Lever%20Switch/Bluezone_BC0302_industrial_lever_switch_small_003.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
+  ],
+  "note": null
+ },
+ "Bluezone_BC0304_retrofuturistic_computer_button_013": {
+  "file": "Bluezone_BC0304_retrofuturistic_computer_button_013.wav",
+  "md5": "90498ee1122e2098c57daefe204e1806",
+  "slots": [
+   "radio-denied"
+  ],
+  "credit": [
+   "Bluezone_BC0304_retrofuturistic_computer_button_013.wav",
+   "  Title \"Bluezone_BC0304_retrofuturistic_computer_button_013\", publisher/pack \"BluezoneCorp - Retrofuturistic Computer\". Source: Sonniss GDC2024-GameAudioBundle1of9 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle1of9.zip/BluezoneCorp%20-%20Retrofuturistic%20Computer/Bluezone_BC0304_retrofuturistic_computer_button_013.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
+  ],
+  "note": null
+ },
+ "Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011": {
+  "file": "Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011.wav",
+  "md5": "81df2e360c73e00887e2c9c2bfa129ba",
+  "slots": [
+   "radio-fire"
+  ],
+  "credit": [
+   "Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011.wav",
+   "  Title \"Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011\", publisher/pack \"BluezoneCorp - Steampunk Machines\". Source: Sonniss GDC2024-GameAudioBundle1of9 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle1of9.zip/BluezoneCorp%20-%20Steampunk%20Machines/Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
+  ],
+  "note": null
+ },
+ "Coffee, Grinder, Knob, Turn, Click X3": {
+  "file": "Coffee, Grinder, Knob, Turn, Click X3.wav",
+  "md5": "6be811ad46d626e13b12ab803ffd3713",
+  "slots": [
+   "radio-tick"
+  ],
+  "credit": [
+   "Coffee, Grinder, Knob, Turn, Click X3.wav",
+   "  Title \"Coffee, Grinder, Knob, Turn, Click X3\", publisher/pack \"UberDuo - The Home Barista\". Source: Sonniss GDC 2018 - Game Audio Bundle Part 6of8 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%206of8.zip/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%206of8/UberDuo%20-%20The%20Home%20Barista/Coffee%2C%20Grinder%2C%20Knob%2C%20Turn%2C%20Click%20X3.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
+  ],
+  "note": null
+ },
+ "MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM": {
+  "file": "MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav",
+  "md5": "e94b0b5acaddd136d35544c0acdf1315",
+  "slots": [
+   "radio-fire"
+  ],
+  "credit": [
+   "MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav",
+   "  Title \"MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM\", publisher/pack \"Epic Stock Media - HD Lock And Mechanism Sound Design Kit\". Source: Sonniss GDC2026-GameAudioBundle2of5 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2026-GameAudioBundle2of5.zip/Epic%20Stock%20Media%20-%20HD%20Lock%20And%20Mechanism%20Sound%20Design%20Kit/MECHLtch_Click%20Deep%20Mechanism%20Latch%20Button%20Nearfield%20Thunk%2002_ESM_HDLM.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
+  ],
+  "note": null
+ },
+ "METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals": {
+  "file": "METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals.wav",
+  "md5": "a7ab7f8d5e50b922e075fb53d2b1f043",
+  "slots": [
+   "radio-cover-open"
+  ],
+  "credit": [
+   "METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals.wav",
+   "  Title \"METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals\", publisher/pack \"344 Audio - Antique Small Metals\". Source: Sonniss GDC2026-GameAudioBundle1of5 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2026-GameAudioBundle1of5.zip/344%20Audio%20-%20Antique%20Small%20Metals/METLMvmt_%20%20Opening%20Lid%20Of%20Antique%20Blowtorch_344%20Audio_Antique%20Small%20Metals.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
+  ],
+  "note": null
+ },
+ "SBvr_Mode Select Wheel 006": {
+  "file": "SBvr_Mode Select Wheel 006.wav",
+  "md5": "63d29e6d79eaab37360de4484d0f706f",
+  "slots": [
+   "radio-tick"
+  ],
+  "credit": [
+   "SBvr_Mode Select Wheel 006.wav",
+   "  Title \"SBvr_Mode Select Wheel 006\", publisher/pack \"Sonic Bat - Vintage Radio\". Source: Sonniss GDC2026-GameAudioBundle4of5 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2026-GameAudioBundle4of5.zip/Sonic%20Bat%20-%20Vintage%20Radio/SBvr_Mode%20Select%20Wheel%20006.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
+  ],
+  "note": null
+ },
+ "SBvr_Power Button 003": {
+  "file": "SBvr_Power Button 003.wav",
+  "md5": "73a5fe99f350dde4ef8aaf8c7d2330bf",
+  "slots": [
+   "radio-band"
+  ],
+  "credit": [
+   "SBvr_Power Button 003.wav",
+   "  Title \"SBvr_Power Button 003\", publisher/pack \"Sonic Bat - Vintage Radio\". Source: Sonniss GDC2026-GameAudioBundle4of5 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2026-GameAudioBundle4of5.zip/Sonic%20Bat%20-%20Vintage%20Radio/SBvr_Power%20Button%20003.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
+  ],
+  "note": null
+ },
+ "VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples": {
+  "file": "VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples.wav",
+  "md5": "d52a4c03a50383849854770b46df934d",
+  "slots": [
+   "radio-cover-close"
+  ],
+  "credit": [
+   "VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples.wav",
+   "  Title \"VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples\", publisher/pack \"InMotionAudio - UK Police Vehicle\". Source: Sonniss GDC2024-GameAudioBundle2of9 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle2of9.zip/InMotionAudio%20-%20UK%20Police%20Vehicle/VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
   ],
   "note": null
  },
@@ -2857,6 +3124,20 @@
    "  \"Reverse Flutter Riser 01\" - L.A. Sound (Transitions 003), Sonniss GDC 2019 bundle",
    "  Source: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/L.A.%20Sounds%20-%20Transitions%20003/Reverse%20Flutter%20Riser%2001.wav",
    "  Licence: Sonniss GDC Game Audio Bundle Licence (royalty-free, commercial use, no attribution required; do not redistribute the raw files standalone) - https://sonniss.com/gdc-bundle-license/"
+  ],
+  "note": null
+ },
+ "vintage_radio_button_006": {
+  "file": "vintage_radio_button_006.wav",
+  "md5": "8aa38d0d443a25a6b9d24dc0763097ff",
+  "slots": [
+   "radio-band"
+  ],
+  "credit": [
+   "vintage_radio_button_006.wav",
+   "  Title \"vintage_radio_button_006\", publisher/pack \"3maze - Buttons and Switches\". Source: Sonniss GDC 2016- Game Audio Bundle Part 1of6 (archive.org mirror).",
+   "  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle%20Part%201of6.zip/3maze%20-%20Buttons%20and%20Switches/vintage_radio_button_006.wav",
+   "  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file."
   ],
   "note": null
  },

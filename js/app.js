@@ -11,7 +11,7 @@ import { resumeSession, armPresence, roomExists } from './room.js';
 import { startHostLoop } from './host.js';
 import { keepAwake } from './wakelock.js';
 import { GAME_MODULES } from './games/registry.js';
-import { createTitle, harborReady, harborPending } from './screens/title.js';
+import { createTitle, harborReady, harborPending, harborRemote } from './screens/title.js';
 import { createSetup } from './screens/setup.js';
 import { createLobby } from './screens/lobby.js';
 import { installAudio } from './audio/engine.js';
@@ -308,6 +308,8 @@ async function boot() {
   setState({ ready: true });
   dismissBoot();
   startHostLoop();
+  // CITY CONTROLS A — THE RADIO: the server says who has one (radio-gate.js) — only then does anything load (City 2.0 only)
+  if (isCity2()) setTimeout(() => import('./screens/harbor/radio-gate.js').then(m => m.startRadioGate({ remote: harborRemote, roomCode: () => state.code || null })).catch(e => console.warn('radio', e)), 2500);
   // Installable app: a network-first service worker (never caches Firebase traffic). Not on localhost/dev.
   if ('serviceWorker' in navigator && location.protocol === 'https:' && !/^(localhost|127\.)/.test(location.hostname)) {
     navigator.serviceWorker.register('/sw.js').catch(() => {});

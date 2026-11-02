@@ -550,6 +550,30 @@ CUTS = {
        '389546__j0hnlang__plastic_ball_wooden_floor_2': [{'cut': (1.25, 3.0), 'fin': 0.003, 'fout': 0.15, 'hp': 90, 'lp': 1500, 'gainenv': [(0.24, 1.75, -4.0)], 'verb': (0.16, 0.012, 0.4, 1400), 'mark': 0.06, 'rate': 22050, 'kbps': 48}],
        '499396__16gstepankovas__12_falling-tennis-ball-01': [{'cut': (0.9, 3.7), 'fin': 0.003, 'fout': 0.15, 'hp': 90, 'lp': 1500, 'gainenv': [(0.6, 2.8, -5.0)], 'verb': (0.16, 0.012, 0.4, 1400), 'mark': 0.05, 'rate': 22050, 'kbps': 48}],
        '732813__sirbagel__generic-soft-woodfloor-hits': [{'cut': (a - 0.06, a + 0.3), 'fin': 0.003, 'fout': 0.1, 'hp': 90, 'lp': 1500, 'verb': (0.16, 0.012, 0.4, 1400), 'mark': 0.06, 'rate': 22050, 'kbps': 48} for a in (0.16, 1.01, 2.66)]},
+    # ---- CITY CONTROLS A — GROK'S RADIO DESK SET (art/city-sfx/radio/: claude-notes.txt + credits.txt; the originals git-ignored,
+    # untouched — COPIES of ~/Downloads/Grok/city-sfx/radio/). The owner's desk on HIS phone: crisp brass + Bakelite, never loud ("felt not
+    # heard"); every take starts RIGHT ON THE HIT (a 1–2 ms pad), a high-pass 120–160 Hz (phone speakers), 1 ms in / 30–120 ms out;
+    # levelled as every one-shot (−20 LUFS), the slots' gains make them quiet. The cuts: Grok's notes (the pick per sound, seconds)
+    **{'536411__rudmer_rotteveel__jack-plug-in': [{'cut': (0.06, 0.75), 'fin': 0.001, 'fout': 0.06, 'hp': 140, 'to': 'radio-jack-in', 'rate': 32000}],
+       '463484__soundsofscienceupf__jack-cable-plug-in': [{'cut': (a, b), 'fin': 0.001, 'fout': 0.12, 'hp': 140, 'to': 'radio-jack-in', 'rate': 32000} for a, b in ((1.395, 1.70), (4.175, 4.55), (8.045, 8.42))],
+       '499033__16fpanskavyskocil_tom__headphones-jack-plugged-in': [{'cut': (0.595, 1.05), 'fin': 0.001, 'fout': 0.06, 'hp': 140, 'to': 'radio-jack-in', 'rate': 32000}],
+       '499034__16fpanskavyskocil_tom__headphones-jack-pugged-out': [{'cut': (1.30, 1.65), 'fin': 0.001, 'fout': 0.05, 'hp': 140, 'to': 'radio-jack-out', 'rate': 32000}],
+       '477641__joao_janz__power-cord-unplug-1_2': [{'cut': (0.06, 0.45), 'fin': 0.001, 'fout': 0.06, 'hp': 140, 'to': 'radio-jack-out', 'rate': 32000}],
+       '594300__mc5__pulling-out-the-plug-from-electrical-socket': [{'cut': (0.17, 0.50), 'fin': 0.001, 'fout': 0.06, 'hp': 140, 'lp': 5000, 'to': 'radio-jack-out', 'rate': 32000}],
+       'MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM': [{'cut': (0.0, 0.38), 'fin': 0.001, 'fout': 0.05, 'hp': 120, 'to': 'radio-fire', 'rate': 32000, 'name': 'esm-mechltch-latch-thunk-02'}],
+       'Bluezone_BC0302_industrial_lever_switch_small_003': [{'cut': (0.085, 0.38), 'fin': 0.001, 'fout': 0.05, 'hp': 120, 'gainpre': -1.0, 'to': 'radio-fire', 'rate': 32000, 'name': 'bluezone-lever-switch-small-003'}],
+       'Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011': [{'cut': (0.085, 0.45), 'fin': 0.001, 'fout': 0.08, 'hp': 120, 'to': 'radio-fire', 'rate': 32000, 'name': 'bluezone-steampunk-impact-011'}],
+       'SBvr_Mode Select Wheel 006': [{'cut': (a, b), 'fin': 0.001, 'fout': 0.05, 'hp': 160, 'to': 'radio-tick', 'rate': 32000, 'name': f'sbvr-mode-select-wheel-006-{i}'} for i, (a, b) in enumerate(((0.55, 0.74), (0.86, 1.05)))],
+       'Coffee, Grinder, Knob, Turn, Click X3': [{'cut': (a, b), 'fin': 0.001, 'fout': 0.05, 'hp': 160, 'lp': 6000, 'to': 'radio-tick', 'rate': 32000, 'name': f'uberduo-grinder-knob-click-{i}'} for i, (a, b) in enumerate(((0.20, 0.36), (0.47, 0.63)))],
+       '643563__el_boss__radial-knob-clicks-turning-dial': [{'cut': (4.03, 4.20), 'fin': 0.001, 'fout': 0.03, 'hp': 160, 'presence': (3.0, 2500), 'to': 'radio-tick', 'rate': 32000}],
+       'vintage_radio_button_006': [{'cut': (0.065, 0.29), 'fin': 0.001, 'fout': 0.05, 'hp': 140, 'gainpre': -0.5, 'to': 'radio-band', 'rate': 32000}],
+       'SBvr_Power Button 003': [{'cut': (0.395, 0.60), 'fin': 0.001, 'fout': 0.05, 'hp': 140, 'gainpre': -0.5, 'to': 'radio-band', 'rate': 32000, 'name': 'sbvr-power-button-003'}],
+       '624637__onekellyordered__casio-as-51r-cassette-player-play-button': [{'cut': (6.11, 6.28), 'fin': 0.001, 'fout': 0.04, 'hp': 140, 'gainpre': -0.5, 'to': 'radio-band', 'rate': 32000}],
+       'Bluezone_BC0304_retrofuturistic_computer_button_013': [{'cut': (0.065, 0.31), 'fin': 0.001, 'fout': 0.06, 'hp': 90, 'to': 'radio-denied', 'rate': 32000, 'name': 'bluezone-retro-button-013'}],
+       '404150__lilmati__select-denied-01': [{'cut': (0.06, 0.14), 'fin': 0.001, 'fout': 0.03, 'hp': 90, 'gainpre': -1.5, 'to': 'radio-denied', 'rate': 32000}],
+       '418329__cambrianman__detonator-switching': [{'cut': (3.24, 3.55), 'fin': 0.001, 'fout': 0.06, 'hp': 140, 'to': 'radio-cover-open', 'rate': 32000}, {'cut': (9.18, 9.45), 'fin': 0.001, 'fout': 0.06, 'hp': 120, 'to': 'radio-cover-close', 'rate': 32000}],
+       'METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals': [{'cut': (0.17, 0.65), 'fin': 0.001, 'fout': 0.08, 'hp': 140, 'to': 'radio-cover-open', 'rate': 32000, 'name': '344audio-antique-blowtorch-lid'}],
+       'VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples': [{'cut': (0.355, 0.65), 'fin': 0.001, 'fout': 0.06, 'hp': 120, 'to': 'radio-cover-close', 'rate': 32000, 'name': 'inmotion-celldoor-lockopen-02'}]},
     # ---- ATM-A — GROK'S WEATHER SET (art/city-sfx/weather/: claude-notes.txt + credits.txt; the 13 originals git-ignored, untouched).
     # Each loop's window + a tail the runtime crossfades into its head (the hard-cut ends + Grok's seam notes never reach the seam);
     # one-shots faded; levels evened by the house meter — the slots' gains make big / mid / soft (gust-3's −36 dBFS master included)
@@ -973,7 +997,7 @@ def credit_blocks(folder):
     if not p.exists(): return {}
     blocks, cur = {}, None
     for line in p.read_text(encoding='utf-8', errors='replace').splitlines():
-        m = re.match(r'^(?:[A-Za-z0-9_.-]+/)?([A-Za-z0-9_.-]+\.(?:wav|flac|mp3|m4a|ogg|aif|aiff|aac))\b', line)   # (ATM-C: a block may name a sub-folder — 'alternates/x.wav')
+        m = re.match(r'^(?:[A-Za-z0-9_.-]+/)?([A-Za-z0-9_.-][A-Za-z0-9_.,\' -]*\.(?:wav|flac|mp3|m4a|ogg|aif|aiff|aac))\b', line)   # (CITY CONTROLS A: a name with spaces / commas — the Sonniss files)   # (ATM-C: a block may name a sub-folder — 'alternates/x.wav')
         if m:
             cur = m.group(1); blocks[cur] = [line.rstrip()]
         elif cur and line.startswith((' ', '\t')) and line.strip():
@@ -1013,6 +1037,20 @@ def write_credits(sources):
 
 
 # ---- one source file → its takes
+# (CITY CONTROLS A — the RADIO DESK SET keeps Grok's names (credits.txt matches them), each mapped to its slot; a cut's 'to' sends it on)
+ALIAS.update({
+    '536411__rudmer_rotteveel__jack-plug-in': 'radio-jack-in', '463484__soundsofscienceupf__jack-cable-plug-in': 'radio-jack-in',
+    '499033__16fpanskavyskocil_tom__headphones-jack-plugged-in': 'radio-jack-in', '499034__16fpanskavyskocil_tom__headphones-jack-pugged-out': 'radio-jack-out',
+    '477641__joao_janz__power-cord-unplug-1_2': 'radio-jack-out', '594300__mc5__pulling-out-the-plug-from-electrical-socket': 'radio-jack-out',
+    'MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM': 'radio-fire', 'Bluezone_BC0302_industrial_lever_switch_small_003': 'radio-fire',
+    'Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011': 'radio-fire', 'SBvr_Mode Select Wheel 006': 'radio-tick',
+    'Coffee, Grinder, Knob, Turn, Click X3': 'radio-tick', '643563__el_boss__radial-knob-clicks-turning-dial': 'radio-tick',
+    'vintage_radio_button_006': 'radio-band', 'SBvr_Power Button 003': 'radio-band', '624637__onekellyordered__casio-as-51r-cassette-player-play-button': 'radio-band',
+    'Bluezone_BC0304_retrofuturistic_computer_button_013': 'radio-denied', '404150__lilmati__select-denied-01': 'radio-denied',
+    '418329__cambrianman__detonator-switching': 'radio-cover-open', 'METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals': 'radio-cover-open',
+    'VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples': 'radio-cover-close'})
+
+
 def slot_of(stem, slots):
     if stem in slots: return stem, 1
     if ALIAS.get(stem) in slots: return ALIAS[stem], 1

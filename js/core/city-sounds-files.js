@@ -405,6 +405,47 @@ export const FILES = /*FILES*/{
   "prop-plane": [
     {"f": "prop-plane.mp3", "v": "0818f33b", "d": 39.0, "lufs": -20.4, "peak": 7.55, "sw": [0.8, 23.6], "from": [1.0, 40.0], "src": "prop-plane", "r": 16000}
   ],
+  "radio-band": [
+    {"f": "624637__onekellyordered__casio-as-51r-cassette-player-play-button.mp3", "v": "6dc4b158", "d": 0.17, "lufs": -22.0, "peak": 0.09, "sw": [0.09, 0.09], "from": [6.11, 6.28], "src": "624637__onekellyordered__casio-as-51r-cassette-player-play-button", "r": 32000},
+    {"f": "sbvr-power-button-003.mp3", "v": "75b292da", "d": 0.205, "lufs": -27.6, "peak": 0.1, "sw": [0.1, 0.1], "from": [0.4, 0.6], "src": "SBvr_Power Button 003", "r": 32000},
+    {"f": "vintage_radio_button_006.mp3", "v": "7c1688ce", "d": 0.225, "lufs": -24.8, "peak": 0.11, "sw": [0.11, 0.11], "from": [0.07, 0.29], "src": "vintage_radio_button_006", "r": 32000}
+  ],
+  "radio-cover-close": [
+    {"f": "418329__cambrianman__detonator-switching_2.mp3", "v": "add61b9d", "d": 0.27, "lufs": -22.6, "peak": 0.14, "sw": [0.14, 0.14], "from": [9.18, 9.45], "src": "418329__cambrianman__detonator-switching", "r": 32000},
+    {"f": "inmotion-celldoor-lockopen-02.mp3", "v": "3964585e", "d": 0.295, "lufs": -22.1, "peak": 0.15, "sw": [0.15, 0.15], "from": [0.35, 0.65], "src": "VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples", "r": 32000}
+  ],
+  "radio-cover-open": [
+    {"f": "344audio-antique-blowtorch-lid.mp3", "v": "1c057f48", "d": 0.48, "lufs": -20.8, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.17, 0.65], "src": "METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals", "r": 32000},
+    {"f": "418329__cambrianman__detonator-switching_1.mp3", "v": "1c689c25", "d": 0.31, "lufs": -22.3, "peak": 0.15, "sw": [0.15, 0.15], "from": [3.24, 3.55], "src": "418329__cambrianman__detonator-switching", "r": 32000}
+  ],
+  "radio-denied": [
+    {"f": "404150__lilmati__select-denied-01.mp3", "v": "59f87f75", "d": 0.077, "lufs": -20.6, "peak": 0.04, "sw": [0.04, 0.04], "from": [0.06, 0.14], "src": "404150__lilmati__select-denied-01", "r": 32000},
+    {"f": "bluezone-retro-button-013.mp3", "v": "031ed3f6", "d": 0.245, "lufs": -21.8, "peak": 0.12, "sw": [0.12, 0.12], "from": [0.07, 0.31], "src": "Bluezone_BC0304_retrofuturistic_computer_button_013", "r": 32000}
+  ],
+  "radio-fire": [
+    {"f": "bluezone-lever-switch-small-003.mp3", "v": "fcdbfe2c", "d": 0.29, "lufs": -20.2, "peak": 0.14, "sw": [0.14, 0.14], "from": [0.09, 0.38], "src": "Bluezone_BC0302_industrial_lever_switch_small_003", "r": 32000},
+    {"f": "bluezone-steampunk-impact-011.mp3", "v": "202ec920", "d": 0.365, "lufs": -20.3, "peak": 0.15, "sw": [0.15, 0.2], "from": [0.09, 0.45], "src": "Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011", "r": 32000},
+    {"f": "esm-mechltch-latch-thunk-02.mp3", "v": "d51e111e", "d": 0.379, "lufs": -26.3, "peak": 0.15, "sw": [0.15, 0.15], "from": [0.0, 0.38], "src": "MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM", "r": 32000}
+  ],
+  "radio-jack-in": [
+    {"f": "463484__soundsofscienceupf__jack-cable-plug-in_1.mp3", "v": "32f39254", "d": 0.305, "lufs": -25.5, "peak": 0.15, "sw": [0.15, 0.15], "from": [1.4, 1.7], "src": "463484__soundsofscienceupf__jack-cable-plug-in", "r": 32000},
+    {"f": "463484__soundsofscienceupf__jack-cable-plug-in_2.mp3", "v": "c62d3b47", "d": 0.375, "lufs": -21.0, "peak": 0.15, "sw": [0.15, 0.2], "from": [4.17, 4.55], "src": "463484__soundsofscienceupf__jack-cable-plug-in", "r": 32000},
+    {"f": "463484__soundsofscienceupf__jack-cable-plug-in_3.mp3", "v": "7b42a684", "d": 0.375, "lufs": -21.6, "peak": 0.15, "sw": [0.15, 0.2], "from": [8.04, 8.42], "src": "463484__soundsofscienceupf__jack-cable-plug-in", "r": 32000},
+    {"f": "499033__16fpanskavyskocil_tom__headphones-jack-plugged-in.mp3", "v": "f4bccb86", "d": 0.455, "lufs": -22.7, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.59, 1.05], "src": "499033__16fpanskavyskocil_tom__headphones-jack-plugged-in", "r": 32000},
+    {"f": "536411__rudmer_rotteveel__jack-plug-in.mp3", "v": "273d6c06", "d": 0.69, "lufs": -22.3, "peak": 0.4, "sw": [0.15, 0.5], "from": [0.06, 0.75], "src": "536411__rudmer_rotteveel__jack-plug-in", "r": 32000}
+  ],
+  "radio-jack-out": [
+    {"f": "477641__joao_janz__power-cord-unplug-1_2.mp3", "v": "c63caee3", "d": 0.39, "lufs": -23.6, "peak": 0.15, "sw": [0.15, 0.2], "from": [0.06, 0.45], "src": "477641__joao_janz__power-cord-unplug-1_2", "r": 32000},
+    {"f": "499034__16fpanskavyskocil_tom__headphones-jack-pugged-out.mp3", "v": "7b3b587a", "d": 0.35, "lufs": -21.3, "peak": 0.15, "sw": [0.15, 0.2], "from": [1.3, 1.65], "src": "499034__16fpanskavyskocil_tom__headphones-jack-pugged-out", "r": 32000},
+    {"f": "594300__mc5__pulling-out-the-plug-from-electrical-socket.mp3", "v": "bcadf80d", "d": 0.33, "lufs": -20.5, "peak": 0.15, "sw": [0.15, 0.15], "from": [0.17, 0.5], "src": "594300__mc5__pulling-out-the-plug-from-electrical-socket", "r": 32000}
+  ],
+  "radio-tick": [
+    {"f": "643563__el_boss__radial-knob-clicks-turning-dial.mp3", "v": "e5ae45aa", "d": 0.17, "lufs": -22.7, "peak": 0.09, "sw": [0.09, 0.09], "from": [4.03, 4.2], "src": "643563__el_boss__radial-knob-clicks-turning-dial", "r": 32000},
+    {"f": "sbvr-mode-select-wheel-006-0.mp3", "v": "a231c0ce", "d": 0.19, "lufs": -24.1, "peak": 0.1, "sw": [0.1, 0.1], "from": [0.55, 0.74], "src": "SBvr_Mode Select Wheel 006", "r": 32000},
+    {"f": "sbvr-mode-select-wheel-006-1.mp3", "v": "5e2d92c9", "d": 0.19, "lufs": -23.9, "peak": 0.1, "sw": [0.1, 0.1], "from": [0.86, 1.05], "src": "SBvr_Mode Select Wheel 006", "r": 32000},
+    {"f": "uberduo-grinder-knob-click-0.mp3", "v": "7e2937a9", "d": 0.16, "lufs": -22.1, "peak": 0.08, "sw": [0.08, 0.08], "from": [0.2, 0.36], "src": "Coffee, Grinder, Knob, Turn, Click X3", "r": 32000},
+    {"f": "uberduo-grinder-knob-click-1.mp3", "v": "e21c3c80", "d": 0.16, "lufs": -22.0, "peak": 0.08, "sw": [0.08, 0.08], "from": [0.47, 0.63], "src": "Coffee, Grinder, Knob, Turn, Click X3", "r": 32000}
+  ],
   "rain-awning": [
     {"f": "rain-awning.mp3", "v": "7d83be99", "d": 34.5, "lufs": -24.3, "loop": 32.0, "xf": 2.5, "from": [5.5, 40.0], "src": "rain-awning", "r": 22050}
   ],

@@ -279,6 +279,8 @@ export function createRemote({ scene, api = apiCall }) {
   /** 9d — THE ADMIN ROW at the ☰ menu's bottom: ADMIN · what's on; CLEAR beside it while JUST ME is on */
   function adminRow({ close: closeMenu }) {
     if (destroyed || !admin) return null;
+    // (CITY CONTROLS A — ONE WAY IN: with the radio on this page its DEV · THE WORKSHOP button opens the panel; the ☰ row steps aside)
+    if (document.querySelector('.rd-btn')) return null;
     const on = effective(), sub = on === 'me' ? `JUST ME · ${nowWords(mine.state)}` : on === 'all' ? `EVERYONE · ${nowWords(live.state)}` : 'Preview panel';
     const main = h('button.gm-item', { type: 'button', 'aria-label': `Admin — the preview panel${on ? ` (${sub})` : ''}`, onclick: () => { closeMenu(); open(); } }, h('b', 'ADMIN'), h('span', sub));
     return h('div.gm-adm', { dataset: { on } }, main,

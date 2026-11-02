@@ -22,6 +22,7 @@ export const PARTS = [
   { id: '11', label: 'PART 11 · THE HOLIDAYS' },
   { id: 'sky', label: '6b + THE SKY' },
   { id: 'legend', label: 'LEGENDARY EVENTS' },
+  { id: 'CCA', label: 'CITY CONTROLS · THE RADIO DESK' },
 ];
 
 // (o: extras — lp: a low-pass in Hz on a loop's voice, the highs softened at playback: FP, the water heard from the promenade)
@@ -240,6 +241,16 @@ export const SLOTS = [
   // thud on the rug (3 takes — a ball that lands dead, the bag set down)
   S('juggler-drop', '7', 'once', 0.12, 'a juggling ball dropped on a wooden floor: the thud + 2–4 smaller bounces + a short roll, muffled through glass', 'the juggler: a drop (WINDOWS — core/harbor-juggler.js#jugglerCues)'),
   S('juggler-thud', '7', 'once', 0.09, 'a soft dull thud on a rug — a ball landing dead, the bag set down', 'the juggler: a dead drop, his bag set down (WINDOWS)'),
+  // CITY CONTROLS A — THE RADIO DESK (the owner's phone only; Grok's picks, art/city-sfx/radio/claude-notes.txt): crisp brass + Bakelite,
+  // quiet — "felt not heard"; the desk works silently (screens/harbor/radio-sound.js)
+  S('radio-jack-in', 'CCA', 'once', 0.22, 'a brass patch jack plugged in: the slide + a firm seat', 'the radio: a jack tapped (its patch card up)'),
+  S('radio-jack-out', 'CCA', 'once', 0.2, 'a jack pulled out: a softer slide + release', 'the radio: the card closed, STOP'),
+  S('radio-fire', 'CCA', 'once', 0.26, 'a heavy brass push-button / lever THUNK', 'the radio: FIRE, CLEAR ALL'),
+  S('radio-tick', 'CCA', 'once', 0.18, 'one heavy detent click of a dial', 'the radio: the tuning needle, the knobs, a choice'),
+  S('radio-band', 'CCA', 'once', 0.2, 'an old radio push-button clacking down', 'the radio: the band selector, open + close'),
+  S('radio-denied', 'CCA', 'once', 0.18, 'a soft, low, muted mechanical no, never a buzzer', 'the radio: a greyed jack, a refused fire'),
+  S('radio-cover-open', 'CCA', 'once', 0.22, 'a hinged metal safety cover flipped open', 'the radio: the CLEAR ALL cover lifted'),
+  S('radio-cover-close', 'CCA', 'once', 0.2, 'the safety cover snapped shut', 'the radio: the cover down'),
   S('boxer-speedbag', '7', 'once', 0.045, 'a speed-bag rattle, off in the room', 'the shadowboxer’s long break, out of view (MODELS)'),
   S('bb-static', 'sky', 'once', 0.22, 'an old radio tuning warble + static (three takes)', 'the Blackbird’s tell, ~3 s before it crosses'),
   // (MODELS — the owner, Oct 30 6:43 pm: THE SONIC BOOM 10 % LOUDER, THE LOUDEST THING IN THE GAME — above every effect + the music; both

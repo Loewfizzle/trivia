@@ -1,0 +1,255 @@
+NEON SPEAKEASY - RADIO DESK: CLAUDE NOTES (2026-11-02)
+Scene: Eddie's private city control panel on his phone, styled as a 1920s walnut-and-brass radio desk.
+Desk sounds (jack, fire, knob, band button, denied, cover) are for Eddie only, on a phone speaker: crisp, mechanical, premium
+(brass and Bakelite), never plasticky, cartoony or loud. The PA chime and PA crackle are heard by every visitor on phone speakers
+over music, so they must be clear and classy.
+How I checked: I could not listen, so I used a 2-5 ms level trace (take times), spectral centroid and low-frequency share,
+pitch tracking (chime notes), EBU R128 loudness (LUFS integrated over the whole file, including silence), true peak, and clipping
+tests on the originals (full-scale samples, float overs, flat-top runs). Every delivered file passed unless noted.
+Files are untouched originals with original names. The builder trims, converts and normalises.
+Times are seconds from the start of the file. "rel" = dB below that file's loudest point. "Gated" = digital silence between sounds.
+Very short one-shots fall below the LUFS gate; judge them by peak.
+Main folder = picks; alternates/ = weaker but usable extras.
+
+== JACK-IN ==  (plug slides in and seats with a firm click, 0.2-0.5 s, 3-4 takes)
+PICK 1: 536411__rudmer_rotteveel__jack-plug-in.wav
+  WAV 44.1 kHz/16-bit stereo, 0.76 s | peak -5.0 dBFS, true peak -4.9 dBTP, -27.6 LUFS
+  Real 6.35 mm jack pushed into a speaker. Light slide/tick at 0.08 (-13 rel), firm seat at 0.52 (low, 0.3 kHz).
+  Trim 0.04-0.75 for slide+seat, or 0.48-0.75 for the seat alone. Floor about -44 rel (light room tone; inaudible on a phone).
+PICK 2: 463484__soundsofscienceupf__jack-cable-plug-in.wav
+  WAV 44.1 kHz/16-bit stereo, 9.32 s | peak -2.5 dBFS, true peak -2.4 dBTP, -32.6 LUFS
+  Real jack cable plugged into an input (MTG lab). Several takes: 1.38-1.70 (seat 1.41, the best), 4.15-4.60 (4.19, brighter),
+  8.03-8.45 (8.06, brightest). Floor about -40 rel: some room tone, so fade each take out by about 0.3 s.
+PICK 3: 499033__16fpanskavyskocil_tom__headphones-jack-plugged-in.wav
+  WAV 48 kHz/24-bit stereo, 2.60 s | peak -6.6 dBFS, true peak -6.5 dBTP, -30.7 LUFS
+  Real 3.5 mm headphone jack plugged in, close mic. Slide 0.60-0.67 (soft), seat 0.80 (a low thump, 0.2 kHz).
+  Trim 0.58-1.05. The seat could partly be an electrical pop; check it by ear. Very clean floor (-74 rel).
+ALT: alternates/170379__unfa__plug-in.flac
+  FLAC 48 kHz/16-bit stereo, 1.08 s | peak -6.3 dBFS, true peak -6.3 dBTP, -25.6 LUFS
+  unfa "Plug IN": FLAC 48/16. Low thumps 0.27-0.56 (main 0.42). Quite low and dull; likely part input pop.
+ALT: alternates/265755__vacuumfan7072__charger_port_insert.wav
+  WAV 44.1 kHz/16-bit mono, 0.53 s | peak -1.7 dBFS, true peak -1.5 dBTP, -26.2 LUFS
+  Charger plug into a phone port: slide 0.06, crisp click 0.42. Small and plasticky, but crisp.
+ALT: alternates/Latchlocker,aluminum,link,jostle,slide,click,out,over.wav
+  WAV 96 kHz/24-bit mono, 1.32 s | peak -7.9 dBFS, true peak -7.9 dBTP, -32.5 LUFS
+  Metal slide then click (not a jack). Slide 0.07-0.28, clicks 0.45-0.69. A brassier alternative if the jacks sound too modern.
+
+== JACK-OUT ==  (softer slide and release, 0.2-0.4 s, 2-3 takes)
+PICK 1: 499034__16fpanskavyskocil_tom__headphones-jack-pugged-out.wav
+  WAV 48 kHz/24-bit stereo, 2.80 s | peak -11.1 dBFS, true peak -11.0 dBTP, -34.2 LUFS
+  Real 3.5 mm headphone jack pulled out. Small slide noise from 1.05, crisp release click at 1.37 (4.3 kHz). Trim 1.30-1.65.
+  Quiet (peak -11 dBFS); normalise up. Very clean floor.
+PICK 2: 477641__joao_janz__power-cord-unplug-1_2.wav
+  WAV 96 kHz/24-bit stereo, 0.68 s | peak -0.3 dBFS, true peak -0.3 dBTP, -27.5 LUFS
+  Power cord pulled from a socket (not a jack, but a similar plug release). Release 0.07, slide-off 0.19. Trim 0.03-0.45.
+  Digital silence between sounds (gated).
+PICK 3: 594300__mc5__pulling-out-the-plug-from-electrical-socket.wav
+  WAV 44.1 kHz/32-bit float stereo, 0.66 s | peak -2.7 dBFS, true peak -2.7 dBTP, -24.3 LUFS
+  Plug pulled from an electrical socket, Sennheiser MKH 416. Release 0.18, tail 0.26. Trim 0.14-0.50. Bright (6 kHz); soften with a low-pass if needed.
+
+== FIRE ==  (big heavy brass push-button / lever THUNK, 0.2-0.6 s, 3 takes)
+PICK 1: MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav
+  WAV 192 kHz/24-bit stereo, 0.38 s | peak -1.0 dBFS, true peak -1.0 dBTP, below LUFS gate (very short)
+  Best fit: deep latch-button thunk, near-field. Starts on the hit at 0.00-0.01, small tick at 0.12 (-30 rel). Use the whole file.
+  Very clean floor (-81 rel). Very short, so the LUFS reading is gated; it sounds loud.
+PICK 2: Bluezone_BC0302_industrial_lever_switch_small_003.wav
+  WAV 96 kHz/24-bit stereo, 0.38 s | peak -0.2 dBFS, true peak 0.4 dBTP, below LUFS gate (very short)
+  Industrial lever switch: hit at 0.09 (3 kHz, metallic), tiny tail 0.31. Use whole file. Floor about -46 rel.
+PICK 3: Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011.wav
+  WAV 96 kHz/24-bit stereo, 0.69 s | peak -0.2 dBFS, true peak -0.2 dBTP, -13.3 LUFS
+  Heavy mechanical impact: hit at 0.09 (low, 0.4 kHz), small rattles 0.46 and 0.53. Trim 0.00-0.45 for a single thunk. The heaviest of the three.
+ALT: alternates/151271__timgormly__metal-lever-1.aiff
+  AIFF 44.1 kHz/24-bit stereo, 0.62 s | peak -1.7 dBFS, true peak -1.7 dBTP, -16.3 LUFS
+  timgormly metal lever thrown: AIFF 44.1/24. Two-part hit 0.27 + 0.38. Trim 0.22-0.62. Gated silence.
+ALT: alternates/556634__cookiespolicy__switch-klunk-2.wav
+  WAV 96 kHz/24-bit mono, 1.14 s | peak -0.1 dBFS, true peak 0.0 dBTP, -26.8 LUFS
+  Rotary selector "klunk": 96/24 mono. Hit 0.14 with a low tail to 0.8. Trim 0.10-0.60. Peak -0.1 (no clipped samples).
+ALT: alternates/Bluezone_BC0302_industrial_lever_switch_039.wav
+  WAV 96 kHz/24-bit stereo, 1.25 s | peak -0.2 dBFS, true peak -0.1 dBTP, -10.4 LUFS
+  Big lever: hits 0.09 and 0.35, rattle tail. Two takes; floor about -37 rel (some noise).
+ALT: alternates/mixkit-metal-button-push-1830.wav
+  WAV 44.1 kHz/24-bit stereo, 0.61 s | peak -7.5 dBFS, true peak -7.5 dBTP, -28.4 LUFS
+  Metal button push: click 0.11 + low body 0.21-0.44. Trim 0.08-0.55. Lighter than a lever.
+
+== KNOB-TICK ==  (single heavy detent click, 0.05-0.15 s, 3 takes)
+PICK 1: SBvr_Mode Select Wheel 006.wav
+  WAV 192 kHz/32-bit float mono, 1.25 s | peak -2.2 dBFS, true peak -2.3 dBTP, -34.1 LUFS
+  Vintage radio mode-select wheel (Sonic Bat Vintage Radio). Two detent clicks: 0.56 (1.0 kHz) and 0.87 (0.6 kHz, heavier).
+  Trim 0.54-0.68 and 0.85-0.98. Clean floor (-60 rel). The most on-theme.
+PICK 2: Coffee, Grinder, Knob, Turn, Click X3.wav
+  WAV 96 kHz/24-bit mono, 0.82 s | peak -6.0 dBFS, true peak -5.6 dBTP, -33.0 LUFS
+  Coffee grinder knob: crisp clicks at 0.21 (3.6 kHz) and 0.48 (6.2 kHz, bright). Trim 0.19-0.30 and 0.46-0.57.
+PICK 3: 643563__el_boss__radial-knob-clicks-turning-dial.wav
+  WAV 44.1 kHz/16-bit stereo, 7.14 s | peak -6.0 dBFS, true peak -5.8 dBTP, -36.3 LUFS
+  Radial audio knob clicks, close: heavy low clicks at 0.74, 3.35, 3.56, 4.05 (loudest), 5.22, 5.40, 5.71. Trim about 0.03 before
+  each to 0.08 after. Very low (0.2-0.3 kHz), thuddy; may want a little high-shelf.
+ALT: alternates/862193__dimapain__microwave-switch-knob-click-dial-select-turn-satisfying-mechanical-control-foley-kitchen-zoom-h5-xy-microphone.wav
+  WAV 96 kHz/24-bit stereo, 14.18 s | peak -4.6 dBFS, true peak -4.5 dBTP, -38.4 LUFS
+  Microwave knob clicks, Zoom H5 96/24: many clicks e.g. 2.75, 5.53, 5.67, 6.24. Plastic-ish.
+
+== BAND-BUTTON ==  (old radio push-button clacking down, 0.1-0.3 s, 2-3 takes)
+PICK 1: vintage_radio_button_006.wav
+  WAV 96 kHz/24-bit stereo, 0.29 s | peak -0.1 dBFS, true peak 0.1 dBTP, below LUFS gate (very short)
+  Vintage radio button (3maze): one clean clack at 0.07 (3.8 kHz). Use the whole file (0.29 s). Floor -45 rel.
+  Peak -0.1 dBFS, true peak +0.1 dBTP (inter-sample only; no clipped samples).
+PICK 2: SBvr_Power Button 003.wav
+  WAV 192 kHz/32-bit float mono, 0.78 s | peak 0.1 dBFS, true peak 0.1 dBTP, -29.8 LUFS
+  Vintage radio power button (Sonic Bat): faint pre-click 0.07 (-27 rel), main clack 0.40. Trim 0.37-0.60.
+  32-bit float with one sample at +0.09 dBFS: lower 0.5 dB if converting to 16/24-bit.
+PICK 3: 624637__onekellyordered__casio-as-51r-cassette-player-play-button.wav
+  WAV 44.1 kHz/16-bit mono, 26.02 s | peak -0.2 dBFS, true peak 0.2 dBTP, -31.8 LUFS
+  Casio cassette Play button, press and release takes: 0.18, 2.45, 6.13 (loudest), 9.26, 11.12. Trim about 0.05 before each to 0.15 after.
+  Crisp (3.5 kHz), mechanical; a little plasticky.
+ALT: alternates/button_on_off_064.wav
+  WAV 96 kHz/24-bit stereo, 0.35 s | peak -0.0 dBFS, true peak 0.2 dBTP, below LUFS gate (very short)
+  Button click at 0.07 (4 kHz), 0.35 s. Peak -0.02 (2 flat samples at peak, not clipping). Bright.
+ALT: alternates/477706__joao_janz__digital-radio-rack-unit-button-snap-3_1.wav
+  WAV 96 kHz/24-bit stereo, 0.66 s | peak -9.0 dBFS, true peak -9.0 dBTP, -30.7 LUFS
+  Vintage Samsung radio rack button, 96/24: quiet (peak -9) soft snap. Gated silence.
+ALT: alternates/697510__jumbosizedfish__wr120b-snooze-button.wav
+  WAV 44.1 kHz/16-bit stereo, 0.92 s | peak -29.6 dBFS, true peak -29.5 dBTP, -53.2 LUFS
+  Midland radio snooze button: one click at 0.35. Very quiet (peak -29.6 dBFS); normalise a lot.
+
+== DENIED ==  (soft, low, muted mechanical "no" (never a buzzer), 0.1-0.3 s, 2 takes)
+PICK 1: Bluezone_BC0304_retrofuturistic_computer_button_013.wav
+  WAV 96 kHz/24-bit stereo, 0.31 s | peak -0.2 dBFS, true peak -0.2 dBTP, below LUFS gate (very short)
+  Low, dull button thunk at 0.07 (0.2 kHz) with a soft low tail at 0.18. Use whole file (0.31 s).
+PICK 2: 404150__lilmati__select-denied-01.wav
+  WAV 44.1 kHz/16-bit stereo, 0.14 s | peak -6.0 dBFS, true peak -4.9 dBTP, below LUFS gate (very short)
+  LilMati "Select, Denied 01": a soft low thud at 0.07 (0.2 kHz), 0.14 s. Designed for UI, sounds mechanical-muted.
+ALT: alternates/Closing Latches 4.wav
+  WAV 96 kHz/24-bit stereo, 0.64 s | peak -5.1 dBFS, true peak -4.9 dBTP, -27.7 LUFS
+  Low latch thud at 0.07 (0.3 kHz), then a bright click at 0.30: trim 0.04-0.25 to keep only the thud.
+ALT: alternates/mixkit-typewriter-soft-click-1125.wav
+  WAV 44.1 kHz/24-bit stereo, 0.22 s | peak -5.8 dBFS, true peak -5.8 dBTP, below LUFS gate (very short)
+  Typewriter soft click at 0.10 (1.2 kHz), muted. 0.22 s.
+ALT: alternates/Bluezone_BC0268_switch_button_click_small_005.wav
+  WAV 96 kHz/24-bit stereo, 0.25 s | peak -0.2 dBFS, true peak -0.2 dBTP, below LUFS gate (very short)
+  Small low click at 0.06 (0.8 kHz). 0.25 s.
+
+== COVER ==  (hinged metal safety cover flipped open and closed, 0.2-0.5 s, 2 takes each)
+PICK 1: 418329__cambrianman__detonator-switching.wav
+  WAV 44.1 kHz/16-bit mono, 9.55 s | peak -4.6 dBFS, true peak -4.3 dBTP, -31.5 LUFS
+  Real toggle switch with a red safety cover ("detonator switching"). Cover flips open at 3.25 (crisp, 1.9 kHz), quiet switch sounds
+  in between, cover closes at 9.20 (soft, low). Trim 3.20-3.55 (open) and 9.15-9.45 (close). The cover is probably plastic.
+PICK 2: METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals.wav
+  WAV 96 kHz/24-bit stereo, 1.45 s | peak -7.4 dBFS, true peak -7.4 dBTP, -26.5 LUFS
+  Antique blowtorch lid opening (metal hinge): small click 0.18, main open 0.30 (5 kHz), rattle to 0.6. Trim 0.15-0.65. Use as OPEN.
+PICK 3: VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples.wav
+  WAV 96 kHz/24-bit stereo, 0.73 s | peak -6.0 dBFS, true peak -6.0 dBTP, -26.2 LUFS
+  Metal lock/latch: small sounds 0.07-0.29, main latch 0.37 (0.9 kHz). Trim 0.33-0.65. Use as CLOSE (metal clack).
+PICK 4: 700894__magnuscarlssen__fireign_zippo-strike-close_mc.wav
+  WAV 48 kHz/16-bit mono, 1.53 s | peak -2.5 dBFS, true peak -0.7 dBTP, -26.3 LUFS
+  Zippo lid (metal hinge): strike/open 0.29 (low), lid snap closed 1.32. Trim 0.25-0.55 and 1.28-1.50. Second open/close pair.
+ALT: alternates/OBJCont_Coffee Tin Lid Open 3_RogueWaves_KawaiiUI.wav
+  WAV 96 kHz/24-bit mono, 0.54 s | peak -14.9 dBFS, true peak -14.9 dBTP, -38.6 LUFS
+  Tin lid open: 0.09-0.25. Quiet (peak -14.9).
+ALT: alternates/mixkit-gear-metallic-lock-sound-2858.wav
+  WAV 44.1 kHz/16-bit stereo, 1.10 s | peak -1.0 dBFS, true peak -1.0 dBTP, -20.8 LUFS
+  Gear metallic lock: click 0.09, tail 0.19. Good metal CLOSE.
+ALT: alternates/Latchlocker,steel,lever,small,close,release,squeak,snap,ring.wav
+  WAV 96 kHz/24-bit mono, 1.39 s | peak -4.6 dBFS, true peak -4.6 dBTP, -24.2 LUFS
+  Steel lever close: snap 0.54 with a ring. Trim 0.44-0.80.
+
+== PA-CHIME ==  (warm two/three-tone ding-dong (vibraphone/tubular bell, or airplane cabin chime), 1-2.5 s, 3-4 takes)
+PICK 1: 670297__kinoton__airplane-seatbelt-sign-beep.wav
+  WAV 48 kHz/16-bit mono, 2.93 s | peak -9.8 dBFS, true peak -9.8 dBTP, -18.2 LUFS
+  AIRPLANE CABIN CHIME #1 - THE AIRPLANE PICK (designed recreation, pure sine). The classic Airbus/Boeing seatbelt/PA two-tone D5 (587 Hz) -> B4 (494 Hz).
+  Note 1 at 0.29, note 2 at 1.33; each has a soft attack and a long natural decay (about -30 dB after 1 s). Sound ends at 2.38.
+  Trim 0.27-2.40 (digital silence before and room-quiet floor after, about -55 dB below peak). No clipping. Peak -9.8 dBFS: normalise up about 9 dB.
+  The most authentic and the cleanest airplane two-tone; plainer than a bell, very clear on phone speakers.
+PICK 2: 845147__sadiquecat__airplane-ding.wav
+  WAV 48 kHz/24-bit mono, 1.68 s | peak -0.1 dBFS, true peak -0.1 dBTP, -8.7 LUFS
+  AIRPLANE CABIN CHIME #2 (designed, generated sine in Audacity). Two-tone D5 (589 Hz) -> B4 (495 Hz), notes at 0.00 and 0.87.
+  Tight version: note 1 fades to digital silence at 0.80, note 2 fades out by 1.68. Starts on the sound (short fade-in from sample 0); use the whole file.
+  Hot: peak -0.1 dBFS, -8.7 LUFS, no clipped samples. Decays are shorter and more abrupt than 670297; best if you want a quick 1.7 s chime.
+  CC0 (author says attribution is appreciated but not required).
+PICK 3: mixkit-home-standard-ding-dong-109.wav
+  WAV 44.1 kHz/16-bit stereo, 4.06 s | peak -0.1 dBFS, true peak -0.1 dBTP, -12.0 LUFS
+  Two-tone doorbell ding-dong G4 -> E4 (notes at 0.00 and 0.35). Warm and low, some overtones. Ring decays to -40 dB by 2.98.
+  Trim 0.00-2.50 with a 0.4 s fade-out. A doorbell rather than a vibraphone. Recording vs synth is not stated.
+PICK 4: 419491__plasterbrain__subway-station-chime.flac
+  FLAC 44.1 kHz/16-bit stereo, 2.67 s | peak -10.0 dBFS, true peak -10.0 dBTP, -18.9 LUFS
+  Two-tone E5 -> C5 train-stop chime (0.00, 0.75), played on a sampled vibraphone (Acousticsamples "Viby" library), so not a live recording.
+  The closest to "vibraphone ding-dong". Ends at 2.66, no trim needed. Peak -10 dBFS: normalise up. Floor -26 rel is the vibraphone ring, not noise.
+PICK 5: mixkit-airport-announcement-ding-1569.wav
+  WAV 44.1 kHz/16-bit stereo, 4.65 s | peak -0.1 dBFS, true peak -0.1 dBTP, -9.7 LUFS
+  Three-tone descending G5 - E5 - C5 airport ding (0.18, 0.72, 1.25). Clean. Sound runs to about 4.0 s: trim 0.15-2.60 with a fade.
+PICK 6: 244583__nachosose__a320-tritone-chime.wav
+  WAV 44.1 kHz/16-bit mono, 3.04 s | peak -5.2 dBFS, true peak -5.2 dBTP, -14.0 LUFS
+  AIRPLANE CABIN CHIME #3 (designed/recreated, pure sine). Airbus A320 crew-announcement tri-tone G4 - D5 - B4
+  (0.00, 0.95, 1.95), very clean (floor -72 rel). Trim 0.00-2.60 with a fade, or 0.00-1.80 for two tones (but G4->D5 rises, so for the classic
+  descending ding-dong use 670297 or 845147). Kept in the main folder from the first delivery.
+ALT: alternates/245851__shamrock132__chime.wav
+  WAV 44.1 kHz/16-bit mono, 4.53 s | peak -1.0 dBFS, true peak -1.0 dBTP, -14.2 LUFS
+  AIRPLANE CABIN CHIME #4 - real field recording of the Airbus A320 interphone chime, D5 (592 Hz) -> B4 (495 Hz) at 1.07 and 2.10.
+  NOISY: constant cabin/electrical hum about -35 dB below peak for the whole file (193/400/800 Hz), and the handset hang-up clicks at
+  3.35-4.10. Trim 1.03-3.15 and high-pass/denoise. No clipping (peak -1.0). Authentic but not clean; use only for a 'real cabin' flavour.
+ALT: alternates/mixkit-melodic-airport-announcement-ding-1570.wav
+  WAV 44.1 kHz/16-bit stereo, 3.51 s | peak -0.1 dBFS, true peak -0.1 dBTP, -8.7 LUFS
+  Melodic airport announcement ding: three-tone F#5 - D#5 - B4 (0.00, 0.60, 1.00), ends about 2.7 s. Airport/airline style.
+ALT: alternates/434085__cbrews__subway-mta-door-close-chime.wav
+  WAV 44.1 kHz/32-bit float stereo, 2.95 s | peak -6.2 dBFS, true peak -6.2 dBTP, -20.5 LUFS
+  NYC subway-style two-tone C5 -> A4 (designed copy), 2.95 s, 32-bit float.
+ALT: alternates/mixkit-elevator-announcement-bells-112.wav
+  WAV 44.1 kHz/24-bit stereo, 5.41 s | peak -7.8 dBFS, true peak -7.8 dBTP, -19.2 LUFS
+  Elevator announcement bells F#4 - A4 - D5 rising, 5.4 s; floor -34 rel (some noise in the tail).
+ALT: alternates/mixkit-elegant-door-announcement-224.wav
+  WAV 44.1 kHz/24-bit stereo, 5.27 s | peak -10.5 dBFS, true peak -10.5 dBTP, -20.1 LUFS
+  Elegant door announcement D5 - F#5 - A5 rising, 5.3 s; floor -36 rel.
+ALT: alternates/mixkit-clear-announce-tones-2861.wav
+  WAV 44.1 kHz/16-bit stereo, 3.97 s | peak -0.3 dBFS, true peak -0.0 dBTP, -10.6 LUFS
+  Clear announce tones C5 - F5 - C5, synthetic, 4.0 s.
+ALT: alternates/BELLDoor-INT_Door Bell Low Tone_JSE_DO_Distance Stereo.wav
+  WAV 48 kHz/32-bit float stereo, 22.83 s | peak -24.5 dBFS, true peak -24.5 dBTP, -36.0 LUFS
+  Real door bell low tone (D#5/F#5), distant perspective, very quiet (peak -24.5). Takes about every 3 s from 1.06.
+
+== PA-CRACKLE ==  (loopable old radio/vinyl crackle + soft static, 10-30 s, no music/voices, 2-3 takes)
+PICK 1: Crackles And Pops 3.wav
+  WAV 48 kHz/16-bit stereo, 30.74 s | peak -11.8 dBFS, true peak -11.7 dBTP, -39.1 LUFS
+  CFry Shortwave: crackle and pops over soft static. Level steady (1 s RMS within +/-1.9 dB), start/end -42.8/-45.5 dB, no tonal
+  content (no music/voices found by tonal analysis). Loop the whole 30.7 s with a 0.5 s crossfade.
+PICK 2: 493122__scottyhigh20__vinyl-crackle-1.wav
+  WAV 44.1 kHz/24-bit stereo, 29.25 s | peak -17.1 dBFS, true peak -17.0 dBTP, -42.1 LUFS
+  Real vinyl crackle: the most even (+/-0.7 dB) with matching start and end levels, so the most loopable. No tones. 29.25 s, use whole file
+  with a short crossfade. Quiet (peak -17 dBFS): normalise. Mostly crackle; layer Mixkit 1446 if you want more static.
+PICK 3: 843730__sammerz__vinyl-crackle.wav
+  WAV 48 kHz/24-bit stereo, 61.44 s | peak -4.9 dBFS, true peak -4.2 dBTP, -39.4 LUFS
+  Real vinyl noise/crackle from an empty groove (AT-LP120X), 61 s, very even (+/-0.4 dB). A faint 152 Hz tone; high-pass at
+  180 Hz if heard. Pick any 20-30 s section and crossfade the loop.
+ALT: alternates/637931__kyles__vinyl-record-crackle-nice-stereo.flac
+  FLAC 48 kHz/24-bit stereo, 74.67 s | peak -17.6 dBFS, true peak -17.6 dBTP, -50.6 LUFS
+  kyles vinyl crackle, FLAC 48/24 stereo, 74.7 s, steady (+/-2 dB), quiet (peak -17.6).
+ALT: alternates/266786__deleted_user_2906614__vinyl-snap-crackle-and-pop-redux.flac
+  FLAC 44.1 kHz/16-bit stereo, 62.01 s | peak -8.5 dBFS, true peak -8.4 dBTP, -47.3 LUFS
+  Vinyl snap/crackle/pop, FLAC 44.1/16, 62 s, +/-2.2 dB; faint 100 Hz hum.
+ALT: alternates/mixkit-radio-noise-static-and-crackles-1446.wav
+  WAV 44.1 kHz/24-bit stereo, 10.98 s | peak -3.6 dBFS, true peak -3.6 dBTP, -23.5 LUFS
+  Radio noise static and crackles, 11 s: static-heavy, the end fades by about 4 dB (crossfade). Good as the soft static layer.
+
+== REJECTED (not delivered) ==
+  134959__jjastr1__zippoclose.wav - clipped (35 full-scale samples, flat run 5).
+  134966__jjastr1__zippoopen.wav - clipped (9 full-scale samples, flat run 2).
+  170378__unfa__plug-out.flac - clipped (12 full-scale samples on the right channel, flat run 13).
+  459771__lilmati__select-denied-02.wav - limited/clipped peak (75 samples at -0.0 dBFS, flat run 11).
+  725318__sadiquecat__mini-ratchet-wera-tool-check-plus-acw.wav - full-scale sample at the very start (0.00 s).
+  Vinyl Noise_02.wav (Sonniss, Certified Audio) - full-scale pop at 9.06 s, and only 9.7 s long.
+  mixkit-airplane-seatbelt-tone-1585.wav - a single B4 sine ping (0.36 s), not a two-tone chime.
+  mixkit-furnace-door-lever-198.wav, mixkit-metal-button-radio-ping-2544.wav - usable but weaker than the picks (lever has a creak; button rings).
+  Not downloaded / rejected earlier: Fiat500 ashtray lid (clipped), Detunized Crackle_steady (clipped), Freesound 532159 (synth crackle),
+    623712 (full-scale sample and room ambience), 188372 (clipped), 630375 (clipped), 448398/838151/796610 (lossy only), 163304 (interference buzz).
+
+== GAPS AND HONEST CAVEATS ==
+- jack-in/out: no real brass switchboard jack exists in any free CC0/Sonniss/Mixkit source I could find. All jacks are modern
+  3.5/6.35 mm plugs. The brassiest option is to layer a jack seat with a short metal click (e.g. Latchlocker in alternates/).
+- pa-chime: none is a live recording of a vibraphone or tubular bell. 419491 is a sampled vibraphone; 244583 is a clean
+  recreated airplane cabin chime (pure sine). If none sounds classy enough, synthesize a two-tone vibraphone ding-dong
+  (e.g. E5 -> C5, soft mallet, 1.8 s decay).
+== AIRPLANE CABIN CHIME RANKING (all CC0, Freesound) ==
+ 1. 670297 Kinoton "Airplane, Seatbelt Sign Beep" (main folder) - classic D5 -> B4 two-tone, cleanest and most authentic. THE AIRPLANE PICK.
+ 2. 845147 Sadiquecat "Airplane ding" (main folder) - same D5 -> B4, tighter (1.7 s), louder, shorter decays.
+ 3. 244583 nachosose "A320 tritone chime" (main folder) - three tones G4 - D5 - B4 (crew-announcement style).
+ 4. 245851 Shamrock132 "chime.wav" (alternates) - real A320 recording; cabin hum at about -35 dB and handset clicks.
+ Compared with the others: airplane chimes are pure sine, so the clearest on phones over music, but plainer than Mixkit 109
+ (warm doorbell with overtones) or 419491 (sampled vibraphone). Mixkit 1569 is a sine-like airport three-tone in between.
+ If Eddie wants the "airplane" feel: use 670297 trimmed 0.27-2.40, normalised.

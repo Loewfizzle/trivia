@@ -1,0 +1,310 @@
+NEON SPEAKEASY - RADIO DESK SFX: CREDITS (2026-11-02)
+All files are the unedited originals with their original download filenames (byte-identical; MD5s in MD5SUMS.txt).
+No file needs a credit: CC0, Mixkit and Sonniss all allow commercial use without attribution. Credits below are optional courtesy.
+No CC BY, CC BY-NC, Sampling+, paid, editorial or ripped material is included.
+
+== JACK-IN ==
+536411__rudmer_rotteveel__jack-plug-in.wav
+  Title "Jack Plug In", author Rudmer_Rotteveel (Freesound)
+  Source: https://freesound.org/s/536411/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+463484__soundsofscienceupf__jack-cable-plug-in.wav
+  Title "Jack cable plug-in", author soundsofscienceupf (Freesound)
+  Source: https://freesound.org/s/463484/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+499033__16fpanskavyskocil_tom__headphones-jack-plugged-in.wav
+  Title "Headphones, jack plugged in.wav", author 16FPanskaVyskocil_Tom (Freesound)
+  Source: https://freesound.org/s/499033/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/170379__unfa__plug-in.flac
+  Title "Plug IN", author unfa (Freesound)
+  Source: https://freesound.org/s/170379/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/265755__vacuumfan7072__charger_port_insert.wav
+  Title "charger_port_insert.wav", author vacuumfan7072 (Freesound)
+  Source: https://freesound.org/s/265755/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/Latchlocker,aluminum,link,jostle,slide,click,out,over.wav
+  Title "Latchlocker,aluminum,link,jostle,slide,click,out,over", publisher/pack "Eiravaein Sound - Latchlocker". Source: Sonniss GDC 2017 - Game Audio Bundle Part 3of9 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle%20Part%203of9.zip/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle%20Part%203of9/Eiravaein%20Sound%20-%20Latchlocker/Latchlocker%2Caluminum%2Clink%2Cjostle%2Cslide%2Cclick%2Cout%2Cover.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+
+== JACK-OUT ==
+499034__16fpanskavyskocil_tom__headphones-jack-pugged-out.wav
+  Title "Headphones, jack pugged out.wav", author 16FPanskaVyskocil_Tom (Freesound)
+  Source: https://freesound.org/s/499034/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+477641__joao_janz__power-cord-unplug-1_2.wav
+  Title "Power Cord Unplug 1_2", author Joao_Janz (Freesound)
+  Source: https://freesound.org/s/477641/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+594300__mc5__pulling-out-the-plug-from-electrical-socket.wav
+  Title "Pulling Out the Plug from Electrical Socket", author _MC5_ (Freesound)
+  Source: https://freesound.org/s/594300/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
+== FIRE ==
+MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav
+  Title "MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM", publisher/pack "Epic Stock Media - HD Lock And Mechanism Sound Design Kit". Source: Sonniss GDC2026-GameAudioBundle2of5 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2026-GameAudioBundle2of5.zip/Epic%20Stock%20Media%20-%20HD%20Lock%20And%20Mechanism%20Sound%20Design%20Kit/MECHLtch_Click%20Deep%20Mechanism%20Latch%20Button%20Nearfield%20Thunk%2002_ESM_HDLM.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+Bluezone_BC0302_industrial_lever_switch_small_003.wav
+  Title "Bluezone_BC0302_industrial_lever_switch_small_003", publisher/pack "BluezoneCorp - Industrial Lever Switch". Source: Sonniss GDC2024-GameAudioBundle1of9 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle1of9.zip/BluezoneCorp%20-%20Industrial%20Lever%20Switch/Bluezone_BC0302_industrial_lever_switch_small_003.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011.wav
+  Title "Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011", publisher/pack "BluezoneCorp - Steampunk Machines". Source: Sonniss GDC2024-GameAudioBundle1of9 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle1of9.zip/BluezoneCorp%20-%20Steampunk%20Machines/Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/151271__timgormly__metal-lever-1.aiff
+  Title "Metal Lever 1.aif", author timgormly (Freesound)
+  Source: https://freesound.org/s/151271/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/556634__cookiespolicy__switch-klunk-2.wav
+  Title "Switch Klunk 2", author cookies+policy (Freesound)
+  Source: https://freesound.org/s/556634/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/Bluezone_BC0302_industrial_lever_switch_039.wav
+  Title "Bluezone_BC0302_industrial_lever_switch_039", publisher/pack "BluezoneCorp - Industrial Lever Switch". Source: Sonniss GDC2024-GameAudioBundle1of9 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle1of9.zip/BluezoneCorp%20-%20Industrial%20Lever%20Switch/Bluezone_BC0302_industrial_lever_switch_039.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/mixkit-metal-button-push-1830.wav
+  Title "Metal button push", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/1830/1830.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+
+== KNOB-TICK ==
+SBvr_Mode Select Wheel 006.wav
+  Title "SBvr_Mode Select Wheel 006", publisher/pack "Sonic Bat - Vintage Radio". Source: Sonniss GDC2026-GameAudioBundle4of5 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2026-GameAudioBundle4of5.zip/Sonic%20Bat%20-%20Vintage%20Radio/SBvr_Mode%20Select%20Wheel%20006.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+Coffee, Grinder, Knob, Turn, Click X3.wav
+  Title "Coffee, Grinder, Knob, Turn, Click X3", publisher/pack "UberDuo - The Home Barista". Source: Sonniss GDC 2018 - Game Audio Bundle Part 6of8 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%206of8.zip/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%206of8/UberDuo%20-%20The%20Home%20Barista/Coffee%2C%20Grinder%2C%20Knob%2C%20Turn%2C%20Click%20X3.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+643563__el_boss__radial-knob-clicks-turning-dial.wav
+  Title "Radial knob clicks turning dial", author el_boss (Freesound)
+  Source: https://freesound.org/s/643563/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/862193__dimapain__microwave-switch-knob-click-dial-select-turn-satisfying-mechanical-control-foley-kitchen-zoom-h5-xy-microphone.wav
+  Title "microwave switch knob click dial select turn satisfying mechanical control foley kitchen zoom-h5 xy-microphone_", author dimapain (Freesound)
+  Source: https://freesound.org/s/862193/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
+== BAND-BUTTON ==
+vintage_radio_button_006.wav
+  Title "vintage_radio_button_006", publisher/pack "3maze - Buttons and Switches". Source: Sonniss GDC 2016- Game Audio Bundle Part 1of6 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle%20Part%201of6.zip/3maze%20-%20Buttons%20and%20Switches/vintage_radio_button_006.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+SBvr_Power Button 003.wav
+  Title "SBvr_Power Button 003", publisher/pack "Sonic Bat - Vintage Radio". Source: Sonniss GDC2026-GameAudioBundle4of5 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2026-GameAudioBundle4of5.zip/Sonic%20Bat%20-%20Vintage%20Radio/SBvr_Power%20Button%20003.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+624637__onekellyordered__casio-as-51r-cassette-player-play-button.wav
+  Title "Casio AS-51R Cassette Player Play Button", author OneKellyOrdered (Freesound)
+  Source: https://freesound.org/s/624637/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/button_on_off_064.wav
+  Title "button_on_off_064", publisher/pack "3maze - Buttons and Switches". Source: Sonniss GDC 2016- Game Audio Bundle Part 1of6 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202016-%20Game%20Audio%20Bundle%20Part%201of6.zip/3maze%20-%20Buttons%20and%20Switches/button_on_off_064.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/477706__joao_janz__digital-radio-rack-unit-button-snap-3_1.wav
+  Title "Digital Radio Rack Unit Button Snap 3_1", author Joao_Janz (Freesound)
+  Source: https://freesound.org/s/477706/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/697510__jumbosizedfish__wr120b-snooze-button.wav
+  Title "WR120B Snooze Button", author JumboSizedFish (Freesound)
+  Source: https://freesound.org/s/697510/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
+== DENIED ==
+Bluezone_BC0304_retrofuturistic_computer_button_013.wav
+  Title "Bluezone_BC0304_retrofuturistic_computer_button_013", publisher/pack "BluezoneCorp - Retrofuturistic Computer". Source: Sonniss GDC2024-GameAudioBundle1of9 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle1of9.zip/BluezoneCorp%20-%20Retrofuturistic%20Computer/Bluezone_BC0304_retrofuturistic_computer_button_013.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+404150__lilmati__select-denied-01.wav
+  Title "Select, Denied 01.wav", author LilMati (Freesound)
+  Source: https://freesound.org/s/404150/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/Closing Latches 4.wav
+  Title "Closing Latches 4", publisher/pack "344 Audio - Ultimate Chess SFX". Source: Sonniss GDC2023-GameAudioBundle1of14 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2023-GameAudioBundle1of14.zip/344%20Audio%20-%20Ultimate%20Chess%20SFX/Closing%20Latches%204.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/mixkit-typewriter-soft-click-1125.wav
+  Title "Typewriter soft click", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/1125/1125.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/Bluezone_BC0268_switch_button_click_small_005.wav
+  Title "Bluezone_BC0268_switch_button_click_small_005", publisher/pack "Bluezone - Switch And Button Sound Effects". Source: Sonniss GDC 2020 - Game Audio Bundle Part2of14 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202020%20-%20Game%20Audio%20Bundle%20Part2of14.zip/Bluezone%20-%20Switch%20And%20Button%20Sound%20Effects/Bluezone_BC0268_switch_button_click_small_005.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+
+== COVER ==
+418329__cambrianman__detonator-switching.wav
+  Title "detonator switching", author cambrianman (Freesound)
+  Source: https://freesound.org/s/418329/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals.wav
+  Title "METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals", publisher/pack "344 Audio - Antique Small Metals". Source: Sonniss GDC2026-GameAudioBundle1of5 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2026-GameAudioBundle1of5.zip/344%20Audio%20-%20Antique%20Small%20Metals/METLMvmt_%20%20Opening%20Lid%20Of%20Antique%20Blowtorch_344%20Audio_Antique%20Small%20Metals.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples.wav
+  Title "VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples", publisher/pack "InMotionAudio - UK Police Vehicle". Source: Sonniss GDC2024-GameAudioBundle2of9 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle2of9.zip/InMotionAudio%20-%20UK%20Police%20Vehicle/VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+700894__magnuscarlssen__fireign_zippo-strike-close_mc.wav
+  Title "FIREIgn_Zippo Strike Close_MC.wav", author magnuscarlssen (Freesound)
+  Source: https://freesound.org/s/700894/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/OBJCont_Coffee Tin Lid Open 3_RogueWaves_KawaiiUI.wav
+  Title "OBJCont_Coffee Tin Lid Open 3_RogueWaves_KawaiiUI", publisher/pack "Rogue Waves - Kawaii UI". Source: Sonniss GDC2024-GameAudioBundle6of9 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2024-GameAudioBundle6of9.zip/Rogue%20Waves%20-%20Kawaii%20UI/OBJCont_Coffee%20Tin%20Lid%20Open%203_RogueWaves_KawaiiUI.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/mixkit-gear-metallic-lock-sound-2858.wav
+  Title "Gear metallic lock sound", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/2858/2858.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/Latchlocker,steel,lever,small,close,release,squeak,snap,ring.wav
+  Title "Latchlocker,steel,lever,small,close,release,squeak,snap,ring", publisher/pack "Eiravaein Sound - Latchlocker". Source: Sonniss GDC 2017 - Game Audio Bundle Part 3of9 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle%20Part%203of9.zip/Sonniss.com%20-%20GDC%202017%20-%20Game%20Audio%20Bundle%20Part%203of9/Eiravaein%20Sound%20-%20Latchlocker/Latchlocker%2Csteel%2Clever%2Csmall%2Cclose%2Crelease%2Csqueak%2Csnap%2Cring.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+
+== PA-CHIME ==
+670297__kinoton__airplane-seatbelt-sign-beep.wav
+  Title "Airplane, Seatbelt Sign Beep", author Kinoton (Freesound)
+  Source: https://freesound.org/s/670297/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+845147__sadiquecat__airplane-ding.wav
+  Title "Airplane ding", author Sadiquecat (Freesound)
+  Source: https://freesound.org/s/845147/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+mixkit-home-standard-ding-dong-109.wav
+  Title "Home standard ding dong", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/109/109.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+419491__plasterbrain__subway-station-chime.flac
+  Title "Subway Station Chime", author plasterbrain (Freesound)
+  Source: https://freesound.org/s/419491/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+mixkit-airport-announcement-ding-1569.wav
+  Title "Airport announcement ding", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/1569/1569.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+244583__nachosose__a320-tritone-chime.wav
+  Title "A320 tritone chime.wav", author nachosose (Freesound)
+  Source: https://freesound.org/s/244583/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/245851__shamrock132__chime.wav
+  Title "chime.wav", author Shamrock132 (Freesound)
+  Source: https://freesound.org/s/245851/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/mixkit-melodic-airport-announcement-ding-1570.wav
+  Title "Melodic airport announcement ding", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/1570/1570.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/434085__cbrews__subway-mta-door-close-chime.wav
+  Title "Subway MTA Door Close Chime", author cbrews (Freesound)
+  Source: https://freesound.org/s/434085/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/mixkit-elevator-announcement-bells-112.wav
+  Title "Elevator announcement bells", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/112/112.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/mixkit-elegant-door-announcement-224.wav
+  Title "Elegant door announcement", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/224/224.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/mixkit-clear-announce-tones-2861.wav
+  Title "Clear announce tones", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/2861/2861.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+alternates/BELLDoor-INT_Door Bell Low Tone_JSE_DO_Distance Stereo.wav
+  Title "BELLDoor-INT_Door Bell Low Tone_JSE_DO_Distance Stereo", publisher/pack "Justsoundeffects - Doors". Source: Sonniss GDC2023-GameAudioBundle2of14 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com-GDC2023-GameAudioBundle2of14.zip/Justsoundeffects%20-%20Doors/BELLDoor-INT_Door%20Bell%20Low%20Tone_JSE_DO_Distance%20Stereo.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+
+== PA-CRACKLE ==
+Crackles And Pops 3.wav
+  Title "Crackles And Pops 3", publisher/pack "CFry – Shortwave". Source: Sonniss GDC 2018 - Game Audio Bundle Part 2of8 (archive.org mirror).
+  Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%202of8.zip/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%202of8/CFry%20%E2%80%93%20Shortwave/Crackles%20And%20Pops%203.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+493122__scottyhigh20__vinyl-crackle-1.wav
+  Title "Vinyl Crackle 1.wav", author scottyhigh20 (Freesound)
+  Source: https://freesound.org/s/493122/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+843730__sammerz__vinyl-crackle.wav
+  Title "Vinyl Crackle", author sammerz_ (Freesound)
+  Source: https://freesound.org/s/843730/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/637931__kyles__vinyl-record-crackle-nice-stereo.flac
+  Title "vinyl record crackle nice stereo.flac", author kyles (Freesound)
+  Source: https://freesound.org/s/637931/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/266786__deleted_user_2906614__vinyl-snap-crackle-and-pop-redux.flac
+  Title "Vinyl snap, crackle and pop redux", author deleted_user_2906614 (Freesound)
+  Source: https://freesound.org/s/266786/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/mixkit-radio-noise-static-and-crackles-1446.wav
+  Title "Radio noise static and crackles", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ (file: https://assets.mixkit.co/active_storage/sfx/1446/1446.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+
+== PASTE-READY CREDITS BLOCK (optional; CC0 needs no credit) ==
+Radio desk sound effects:
+- "Jack Plug In" by Rudmer_Rotteveel (freesound.org/s/536411), CC0
+- "Jack cable plug-in" by soundsofscienceupf (freesound.org/s/463484), CC0
+- "Headphones, jack plugged in.wav" by 16FPanskaVyskocil_Tom (freesound.org/s/499033), CC0
+- "Plug IN" by unfa (freesound.org/s/170379), CC0
+- "charger_port_insert.wav" by vacuumfan7072 (freesound.org/s/265755), CC0
+- "Latchlocker,aluminum,link,jostle,slide,click,out,over" by Eiravaein Sound (Sonniss GDC bundle)
+- "Headphones, jack pugged out.wav" by 16FPanskaVyskocil_Tom (freesound.org/s/499034), CC0
+- "Power Cord Unplug 1_2" by Joao_Janz (freesound.org/s/477641), CC0
+- "Pulling Out the Plug from Electrical Socket" by _MC5_ (freesound.org/s/594300), CC0
+- "MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM" by Epic Stock Media (Sonniss GDC bundle)
+- "Bluezone_BC0302_industrial_lever_switch_small_003" by BluezoneCorp (Sonniss GDC bundle)
+- "Bluezone_BC0305_steampunk_machine_mechanical_texture_heavy_impact_011" by BluezoneCorp (Sonniss GDC bundle)
+- "Metal Lever 1.aif" by timgormly (freesound.org/s/151271), CC0
+- "Switch Klunk 2" by cookies+policy (freesound.org/s/556634), CC0
+- "Bluezone_BC0302_industrial_lever_switch_039" by BluezoneCorp (Sonniss GDC bundle)
+- "Metal button push" from Mixkit (mixkit.co)
+- "SBvr_Mode Select Wheel 006" by Sonic Bat (Sonniss GDC bundle)
+- "Coffee, Grinder, Knob, Turn, Click X3" by UberDuo (Sonniss GDC bundle)
+- "Radial knob clicks turning dial" by el_boss (freesound.org/s/643563), CC0
+- "microwave switch knob click dial select turn satisfying mechanical control foley kitchen zoom-h5 xy-microphone_" by dimapain (freesound.org/s/862193), CC0
+- "vintage_radio_button_006" by 3maze (Sonniss GDC bundle)
+- "SBvr_Power Button 003" by Sonic Bat (Sonniss GDC bundle)
+- "Casio AS-51R Cassette Player Play Button" by OneKellyOrdered (freesound.org/s/624637), CC0
+- "button_on_off_064" by 3maze (Sonniss GDC bundle)
+- "Digital Radio Rack Unit Button Snap 3_1" by Joao_Janz (freesound.org/s/477706), CC0
+- "WR120B Snooze Button" by JumboSizedFish (freesound.org/s/697510), CC0
+- "Bluezone_BC0304_retrofuturistic_computer_button_013" by BluezoneCorp (Sonniss GDC bundle)
+- "Select, Denied 01.wav" by LilMati (freesound.org/s/404150), CC0
+- "Closing Latches 4" by 344 Audio (Sonniss GDC bundle)
+- "Typewriter soft click" from Mixkit (mixkit.co)
+- "Bluezone_BC0268_switch_button_click_small_005" by Bluezone (Sonniss GDC bundle)
+- "detonator switching" by cambrianman (freesound.org/s/418329), CC0
+- "METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals" by 344 Audio (Sonniss GDC bundle)
+- "VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples" by InMotionAudio (Sonniss GDC bundle)
+- "FIREIgn_Zippo Strike Close_MC.wav" by magnuscarlssen (freesound.org/s/700894), CC0
+- "OBJCont_Coffee Tin Lid Open 3_RogueWaves_KawaiiUI" by Rogue Waves (Sonniss GDC bundle)
+- "Gear metallic lock sound" from Mixkit (mixkit.co)
+- "Latchlocker,steel,lever,small,close,release,squeak,snap,ring" by Eiravaein Sound (Sonniss GDC bundle)
+- "Airplane, Seatbelt Sign Beep" by Kinoton (freesound.org/s/670297), CC0
+- "Airplane ding" by Sadiquecat (freesound.org/s/845147), CC0
+- "Home standard ding dong" from Mixkit (mixkit.co)
+- "Subway Station Chime" by plasterbrain (freesound.org/s/419491), CC0
+- "Airport announcement ding" from Mixkit (mixkit.co)
+- "A320 tritone chime.wav" by nachosose (freesound.org/s/244583), CC0
+- "chime.wav" by Shamrock132 (freesound.org/s/245851), CC0
+- "Melodic airport announcement ding" from Mixkit (mixkit.co)
+- "Subway MTA Door Close Chime" by cbrews (freesound.org/s/434085), CC0
+- "Elevator announcement bells" from Mixkit (mixkit.co)
+- "Elegant door announcement" from Mixkit (mixkit.co)
+- "Clear announce tones" from Mixkit (mixkit.co)
+- "BELLDoor-INT_Door Bell Low Tone_JSE_DO_Distance Stereo" by Justsoundeffects (Sonniss GDC bundle)
+- "Crackles And Pops 3" by CFry – Shortwave (Sonniss GDC bundle)
+- "Vinyl Crackle 1.wav" by scottyhigh20 (freesound.org/s/493122), CC0
+- "Vinyl Crackle" by sammerz_ (freesound.org/s/843730), CC0
+- "vinyl record crackle nice stereo.flac" by kyles (freesound.org/s/637931), CC0
+- "Vinyl snap, crackle and pop redux" by deleted_user_2906614 (freesound.org/s/266786), CC0
+- "Radio noise static and crackles" from Mixkit (mixkit.co)

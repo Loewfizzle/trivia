@@ -333,6 +333,10 @@ function xmasWireSvg(vb, COLS, back, front, swags, bulbs, k) {
 // the dock's neon line icons, each drawn twice: the tube (its colour, glowing) and a thin white-hot core on top
 const SIGN_LIGHT = { dotd: '#ffa62a', halloween: '#ff8a2a', christmas: '#ff3048', nye: '#ffd27a', valentine: '#ff4f8a', stpatrick: '#3dff8b', easter: '#c9a2ff', thanksgiving: '#ffa040', july4: '#5a8cff' };
 
+/** CITY CONTROLS A: the title's preview remote while it lives (the radio plays its desk's moments through it) */
+let liveRemote = null;
+export const harborRemote = () => liveRemote;
+
 export function createTitle() {
   isFirstVisit();   // (9g: read before the door is ever walked through on this load)
   const els = {};
@@ -392,7 +396,7 @@ export function createTitle() {
     // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
     // (SP4: a JUST ME state kept for this tab loads at once — the scene's reveal waits for it, so the preview is in the first picture)
     const remoteSoon = (() => { try { return sessionStorage.getItem('nd:hr-me') ? 0 : 1500; } catch { return 1500; } })();
-    if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) remote = m.createRemote({ scene: () => scene }); }).catch(e => console.warn('preview panel', e)); }, remoteSoon);
+    if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; } }).catch(e => console.warn('preview panel', e)); }, remoteSoon);
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },
@@ -1796,7 +1800,7 @@ export function createTitle() {
     dressCorners(false);
     if (dock) dock.destroy();
     clearTimeout(remoteT); clearTimeout(els.holdT);
-    if (remote) { remote.destroy(); remote = null; }
+    if (remote) { remote.destroy(); remote = null; liveRemote = null; }
     const wrap = els.sceneWrap;
     captureBackdrop(els.canvas, scene.partyLight ? scene.partyLight() : null);   // the menus keep a still of the city (+ the party's light, which breathes on)
     const sc = scene;

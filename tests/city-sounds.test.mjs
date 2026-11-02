@@ -51,6 +51,8 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     'church-bells', 'crane', 'hammering', 'implosion-rumble', 'tower-horn',
     // (WINDOWS — the juggler's drops)
     'juggler-drop', 'juggler-thud',
+    // (CITY CONTROLS A — Grok's RADIO DESK set: the owner's phone only)
+    'radio-jack-in', 'radio-jack-out', 'radio-fire', 'radio-tick', 'radio-band', 'radio-denied', 'radio-cover-open', 'radio-cover-close',
     // (9f — the tower's CC0 alternates: the siren's own wail, the rivet gun + the crane lift layered over the beds)
     'crane-lift', 'rivet-gun', 'tower-siren',
     // (9g — THE UFO's REAL SOUNDS: the hover's spin-up + down, the beam's on / idle / off, the lift, the departure, the crowd fleeing)
@@ -118,7 +120,8 @@ test('every take points at a real, small file whose content matches its cache ke
   // the gusts + whistles 32 / 64) — the owner: "no hard cap, nothing outrageous, report it": ~19.5 MB; fetched only when their weather plays)
   // (ATM-C: + Grok's RECORDED THUNDER — 9 takes, 0.63 MB (24 kHz / 56 kbps, the tails faded at ≤ 11 s): ~20.1 MB; fetched when a storm plays)
   // (PART 10: + Grok's FIREWORKS — 28 takes, 0.86 MB (24 / 32 kHz, 56 kbps; the crowd 22 kHz / 48): ~21.0 MB; fetched when a show plays)
-  assert.ok(total < 21.1e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (CITY CONTROLS A: + Grok's RADIO DESK set — 25 short takes, 79 KB (32 kHz / 64 kbps): ~21.13 MB; fetched only on the owner's phone)
+  assert.ok(total < 21.2e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');
