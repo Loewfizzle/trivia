@@ -585,7 +585,10 @@ G('freeze', async () => {
     (async () => {
       // (the same page a minute before the run: the reveal's frames to compare with)
       const runs = {};
-      for (const [k, when] of [['plain', '2026-12-05T22:50:00'], ['mid', '2026-12-05T22:51:06']]) {
+      // (SCHED: the night's TR-3B from the showcase's own list — the schedule decides the minute, never a hard-coded one)
+      const tr = (await import('../../../js/core/harbor-showcase.js')).legendsTonight(2026, 12, 5).find(x => x.kind === 'tr3b');
+      const hm = (h, s = 0) => { const t = Math.round(h * 3600) + s, H = Math.floor(t / 3600) % 24, M = Math.floor(t / 60) % 60, S = t % 60; return `2026-12-05T${String(H).padStart(2, '0')}:${String(M).padStart(2, '0')}:${String(S).padStart(2, '0')}`; };
+      for (const [k, when] of [['plain', hm(tr.h, -60)], ['mid', hm(tr.h, 6)]]) {
         const P = await open({ slot: `fzm${k[0]}`, qs: `when=${when}&wx=clear${GR}`, view: [402, 874], dpr: 3, cores: 6, init: gapInit });
         await P.page.emulateCPUThrottling(4);
         await harborUp(P.page);
