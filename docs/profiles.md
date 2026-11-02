@@ -180,6 +180,19 @@ for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
 - Every action is written to `audit/` (act `radioFire` · `radioStop` · `radioClearAll` · `radioBoard` / `Edit` / `Cancel` · `radioDial`; `b` =
   the jack + the words + the audience, `role`). THE RECORD: `radio/fired/{id}` (`sight`: the owner's to a real audience — Progression 2.0).
 - The public copy (`GET /api/admin?live=1` → `radio`) carries the city's moments, the billboard's messages + the dial — never a profile id.
+- **CC-B (Nov 2 2026 — docs/harbor/passes/city-controls-b.md)**: THE CREW granted by the owner only (`radioCrewSet` { uid (a player he tapped
+  in a lobby) | tag "MIKE#4821" | pid, on } → `radio/crew/{pid}` { at, by, n, t }; cap 10; no profile = no; `radioCrewPeek` for his player
+  card; THE LEDGER's list). ONE RADIO PER LOBBY: the server checks the holder (`core/harbor-radio.js#radioHolder`) on every crew fire;
+  `radioAsk` / `radioHand` write `rooms/{CODE}/radioCrew` (server only). THE INTERCOM (the owner only): `radioIntercom` → `radio/ic` +
+  `radio/clips` (an hour), `radioUnsend`, `GET /api/admin?clip=<id>` (cached 60 s). PRESETS (`radioPreset`, `radioPresetFire` →
+  `radio/presets`). The audit acts add `radioIntercom` · `radioUnsend` · `radioCrewAdd` / `Remove` · `radioAsk` · `radioHandOver` /
+  `radioKeep` · `radioPreset` · `radioPresetFire` · `radioPushOn` / `Off` / `Test`.
+- **"A ROOM JUST OPENED"** (CC-B): `room.js#createRoom` posts `radioRoomOpened` (any signed-in host — the server checks the room is theirs +
+  under 2 min old; once a room an hour; never the owner's own) → a Web Push to every phone the owner turned it on for (`api/_lib/push.js`:
+  VAPID + RFC 8291 on node's crypto; `radio/push/{on, subs, sent}`). SETUP: Vercel → Settings → Environment Variables → `VAPID_PUBLIC_KEY`,
+  `VAPID_PRIVATE_KEY` (a pair: `node -e "import('./api/_lib/push.js').then(m => console.log(m.newVapidKeys()))"`), optional `VAPID_SUBJECT`
+  (mailto:) → redeploy. On the iPhone: Safari → Share → Add to Home Screen → open it from there → the radio → LEDGER → A ROOM JUST OPENED
+  → ON (allow notifications) → SEND A TEST.
 
 ## Setup (production)
 1. Firebase console → Project settings → Service accounts → **Generate new private key** (a JSON file).

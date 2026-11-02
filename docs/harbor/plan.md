@@ -5259,3 +5259,5 @@ OWNER's REVIEW OF CITY CONTROLS A — Nov 2, 3:19 pm EST (iPhone) → CC-B's Ste
 * (3:27 pm) STANDING (the owner): flag real problems — code, layout, look, speed, cost limits — but NEVER raise or plan around hypothetical-player experience concerns while there are no users; they must not delay or change the roadmap.
 
 - THE BUILD TABLE (Nov 2, CITY CONTROLS B Step 0): CITY CONTROLS A ✅; CITY CONTROLS B (this pass) ← NEXT; then PROGRESSION A (the engine), THE VAULT 1 (cards + the Card Lab), THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER.
+
+CITY CONTROLS B DONE (Nov 2) — passes/city-controls-b.md. THE BUILD TABLE: CITY CONTROLS A ✅; CITY CONTROLS B ✅; PROGRESSION A (the engine) ← NEXT; then THE VAULT 1 (cards + the Card Lab), THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER.

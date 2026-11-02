@@ -1762,6 +1762,15 @@ player's own 120-ms re-place window). Groups 1–5: THE WINDOW SCENES AS TIMETAB
 windows.old / &force=old-windows, AFTER HOURS (the shades down glowing — amber, cold white, green, rosy — the lights out one at a time 2–4 am;
 + the owner's add-on: the edge windows' shades), THE JUGGLER (+ Grok's drop sounds), THE CRATE GUY, THE CHARLESTON, THE BOOKIE (rotating).
 
+## CITY 2.0 — CITY CONTROLS B (Nov 2 2026) — docs/harbor/passes/city-controls-b.md (plan.md "OWNER'S NOTES — NOV 2 (afternoon)")
+Step 0: the owner's afternoon notes (Progression 2.0 + THE VAULT decided, THE NO-TRAFFIC RULE). Group 0: the CC-A review — the audience
+knob's three words, SKYWRITE in coloured smoke by day, TAP A LIT JACK → STOP / CANCEL, no long-press (an ARRANGE button), the big ✕, THE
+FINALE's GOLD WILLOW SWEEP left → right (half a beat a willow, hanging ×1.4). Group 1: THE INTERCOM (core/radio-intercom.js, audio/intercom.js,
+radio-intercom.js; the clip an hour in the database + a cached GET; JUST ME · LOBBY ONLY · EVERYONE; held in a game; the chime 419491 + the
+CFry crackle imported). Group 2: THE CREW built complete (the owner's player card + THE LEDGER's crew, the cut-down desk, one radio per
+lobby + ASK + hand-over; dormant until LOBBY 2.0). Group 3: PRESETS. Group 4: "A ROOM JUST OPENED" (Web Push: VAPID + RFC 8291 on node's
+crypto, no new service). Group 5: the rules + /api + e2e (radio + the new crew group), the thunder test seeded, the docs.
+
 ## CITY 2.0 — CITY CONTROLS A (Nov 2 2026) — docs/harbor/passes/city-controls-a.md (plan.md "OWNER'S NOTES — NOV 2 (morning)")
 Group 0: the owner's SCHED review — THE DAY CHART 4 am → 4 am (the boss's TV + his 3 am shade, the lights out one at a time, the milk truck),
 the Charleston's brass horn removed, the juggler a deep dim copper (four distinct windows), the billboard's messages on the crisp layer at night

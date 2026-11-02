@@ -344,7 +344,7 @@ G('crew', async () => {
     ok(p2 && p2.title === 'A ROOM JUST OPENED' && p2.body === `${code2} · 1 player` && p2.url && got.length === 2 && again.ok, `PUSH (CC-B): a guest opens ${code2} → "${p2 && p2.body}" (once — a second call sends nothing)`);
     // THE LEDGER's paper on the owner's phone
     await ev(O.page, 'window.__radio && window.__radio.open()'); await sleep(500); await ev(O.page, `window.__radio.setBand('ledger')`);
-    await waitFor(O.page, '!!document.querySelector(".rd-push h4")', 'the push paper', 10000).catch(() => {});
+    await waitFor(O.page, `/Phones it goes to/.test((document.querySelector('.rd-push') || {}).textContent || '')`, 'the push paper (read)', 15000).catch(() => {});
     const paper = await ev(O.page, `(document.querySelector('.rd-push') || {}).textContent || ''`);
     ok(/A ROOM JUST OPENED/.test(paper) && /Phones it goes to\s*1/.test(paper) && /SEND A TEST/.test(paper), `PUSH (CC-B): THE LEDGER's paper — the switch, the phones (1), SEND A TEST ("${paper.slice(0, 90)}")`);
     await call(O.page, { action: 'radioPush', op: 'unsub', endpoint: sub.endpoint });
