@@ -2,6 +2,7 @@
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=city, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { normalize as wxNormalize } from '../../../js/core/weather.js';
+import { easternParts } from '../../../js/core/week.js';
 import { OUT, BASE, SHOTS, t0, log, sleep, errors, ok, okT, okF, GR, NIGHT, launch, open, ev, waitFor, tapAt, tap, harborUp, dbPut, flags, settled, G } from './kit.mjs';
 
 // ================================================================ THE PREVIEW PANEL (the owner's test remote; ONLY=panel runs just this)
@@ -632,19 +633,28 @@ G('load', async () => {
   await ctx.close();
   // THE WEATHER AT LOAD — the real clock (no &when), /api/sky answered by the test: overcast, after `delay` ms; cached = the answer
   // already on this device (localStorage nd:wx, fresh). The owner's iPhone faded clear → overcast after the city showed, EVERY load.
-  const wxLoad = async (name, { delay, cached, intro, justme }) => {
+  // (PROGRESSION A Group 0 — THE DUSK FLAKE: every load here runs on a page clock pinned to 1 pm Eastern today (the page's Date + the
+  // server-time answer shifted together, whole hours) — the JUST ME holiday-night check (+ the 1.2-s answer) failed around dusk on the real clock,
+  // the lights' power-up; a page &when= can't pin it: a preview link turns the live weather off, and these cases test the live weather)
+  const wxLoad = async (name, { delay, cached, intro, justme, pin = true }) => {
+    const shift = pin ? (13 - easternParts(Date.now()).h) * 3600e3 : 0, now = () => Date.now() + shift;
     const c2 = await (await launch()).createBrowserContext();
     const q = await c2.newPage();
     q.on('pageerror', e => { errors.push(`load-wx pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
     await q.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
-    const ans = { ...wxNormalize({ weather_code: 3, cloud_cover: 100, cloud_cover_low: 95, cloud_cover_mid: 40, cloud_cover_high: 10, visibility: 20000, wind_speed_10m: 12, wind_direction_10m: 250, temperature_2m: 9 }, { lat: 42.96, lon: -85.67 }, Date.now()), kp: [] };
+    const ans = { ...wxNormalize({ weather_code: 3, cloud_cover: 100, cloud_cover_low: 95, cloud_cover_mid: 40, cloud_cover_high: 10, visibility: 20000, wind_speed_10m: 12, wind_direction_10m: 250, temperature_2m: 9 }, { lat: 42.96, lon: -85.67 }, now()), kp: [] };
+    if (shift) await q.evaluateOnNewDocument(sh => {
+      const D = Date, now0 = D.now.bind(D);
+      class PD extends D { constructor(...a) { if (a.length) super(...a); else super(now0() + sh); } static now() { return now0() + sh; } }
+      globalThis.Date = PD;
+    }, shift);
     await q.evaluateOnNewDocument((cachedAns, jm) => {
       try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('na:lw:profile', JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); if (cachedAns) localStorage.setItem('nd:wx', JSON.stringify({ ...cachedAns, at: Date.now(), got: Date.now() })); else localStorage.removeItem('nd:wx'); } catch { /* fine */ }
       // (SP4: a JUST ME state the panel kept for the tab — the owner's "plain Safari load" that read "none (seeded)")
       try { if (jm) sessionStorage.setItem('nd:hr-me', JSON.stringify({ state: { when: jm }, ui: {} })); else sessionStorage.removeItem('nd:hr-me'); } catch { /* fine */ }
     }, cached ? ans : null, justme || null);
     await q.setRequestInterception(true);
-    q.on('request', r => { if (r.url().includes('/api/sky')) setTimeout(() => r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...ans, at: Date.now() }) }).catch(() => {}), delay); else r.continue().catch(() => {}); });
+    q.on('request', r => { if (shift && r.url().includes('/api/time')) r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ t: now() }) }).catch(() => {}); else if (r.url().includes('/api/sky')) setTimeout(() => r.respond({ status: 200, contentType: 'application/json', body: JSON.stringify({ ...ans, at: now() }) }).catch(() => {}), delay); else r.continue().catch(() => {}); });
     await q.goto(`${BASE}/?emu&slot=lw${intro ? '&intro=1' : ''}&city=2`);
     await waitFor(q, '!!window.__district && !!window.__district.harbor() && window.__district.harbor().shown', 'the reveal', 20000);
     await sleep(Math.max(4000, delay + 4000 - 2000));
