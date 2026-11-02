@@ -16,7 +16,8 @@ desktop questions 1–8, "go with your recs"). One session, the groups in order,
 - **THE BOOKIE** (bookie.js, core/harbor-bookie.js): ONE PENDANT LAMP over the desk (a green-glass shade on its cord) lighting the back wall
   behind him — he is a black shape on a lit wall now (the boxer's craft), a soft shadow under him, a bigger figure; the hook in the light;
   THE HAT THROW: snatched, wound up over his head, FLUNG in a high spinning arc across the lit wall, a bounce on landing (BAD timings
-  stretched: the flight 1.3 s); his chain pulled to light the lamp.
+  stretched: the flight 1.3 s); his chain pulled to light the lamp. `&force=bookie-slam` starts the bad call with the force (the throw ~5 s
+  later — ~7 s into a fresh load on the live site).
 - **THE CRATE GUY — REWORKED** (crate.js): a STOCKY dock worker (scene-kit.js#man `build` 1.45 + `minW` 0.7: broad shoulders, heavy arms, a
   thick neck, the cap) and ONE CONTINUOUS MOTION — every job starts where + how the last one ended (`endsOf` along the plan; small jobs —
   wipe, count, swig, a look round — happen where he stands; lean + listen walk out + back; the pry + the bottle walk to the pile first,
@@ -28,7 +29,7 @@ desktop questions 1–8, "go with your recs"). One session, the groups in order,
 - **THE KIT** (scene-kit.js, every scene's figure): the limbs + the head foreshorten through a turn down to 2 % (a hand held forward slides
   to his middle as he faces us — never jumps across); the walk's stopped stance = stand()'s (a slowing walk never snaps the feet); the cap's
   brim slides round through a turn.
-- **`&force=boss-shade`** (THE BOSS · 3 AM SHADE, the panel's TV ROOM): his 3 am bedtime on its own clock from the force — 4 s of the TV, the
+- **`&force=boss-shade`** (THE BOSS · 3 AM SHADE, the panel's TV ROOM): his 3 am bedtime on its own clock from the force — 1.5 s of the TV, the
   switch-off, his pull of the shade, the nightlight — within ~10 s of a fresh load (windows.js#bossSec → window-paint.js). Verified the
   real 3:00:03 moment runs (it lasts 6 s — the owner's 2:52 link was for the bar's first light). **`&force=shades`** (THE SHADES COMING DOWN,
   THE SCENES): the edge windows' shades pulled to the sill one after another from ~3 s.

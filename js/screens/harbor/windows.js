@@ -227,10 +227,10 @@ export function createWindowLife() {
       // (Reduced motion: no moving moments — the rooms keep their states: the TV's light steady, the night lamp, the shop's barber still)
       if (f.motion === false || f.motion === 0) { on = []; blinds = {}; }   // (11a-1: the title passes motion 0 — the old === false never caught it)
     }
-    // DESKTOP Group 1 — &force=boss-shade (the owner never saw his 3 am pull): the boss's room on its OWN clock from the force — 4 s of the
+    // DESKTOP Group 1 — &force=boss-shade (the owner never saw his 3 am pull): the boss's room on its OWN clock from the force — 1.5 s of the
     // TV, the switch-off, HIS PULL of the shade, the nightlight behind it — within ~10 s of a fresh load (bossSec: the painter's clock too)
     if (L.bossShade) { if (bossShadeT0 == null) bossShadeT0 = f.t; } else bossShadeT0 = null;
-    const bossSec = bossShadeT0 != null ? 3 * 3600 - 4 + (f.t - bossShadeT0) : loc.sec;
+    const bossSec = bossShadeT0 != null ? 3 * 3600 - 1.5 + (f.t - bossShadeT0) : loc.sec;   // (1.5 s of the TV: the pull at ~5–11 s of a fresh load on the live site)
     const states = { apartment: roomState('apartment', bossShadeT0 != null ? bossSec / 3600 : h, routines), bar: oldMode ? roomState('bar', h, routines) : 'closed', shop: roomState('shop', h, routines) };   // (WINDOWS: the bar + its bartender retired)
     // SP5 — THE BOSS's ROOM (core#bossDayPlan / bossSignal / bossWatch): the shade drawn all day (its rare life: the peek, the cigar smoke,
     // an overcast day's shadow), the bootleggers' tell (the violet lamp + the spade from the afternoon until the truck; &force=boss-signal),

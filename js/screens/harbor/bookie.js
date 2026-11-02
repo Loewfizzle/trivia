@@ -77,8 +77,10 @@ export function bookieRoom(E, st, o = {}) {
       if (e > ENTER.sit - 0.2 && e < ENTER.lamp + 0.6) { const r = Math.sin(Math.PI * clamp01((e - ENTER.sit + 0.2) / (ENTER.lamp + 0.8 - ENTER.sit))), cx = (lampP[0] - 0.08 * cw - X) / H, tug = e > ENTER.lamp - 0.1 && e < ENTER.lamp + 0.2 ? -0.03 : 0;
         pose.arms.rear = [lp(pose.arms.rear[0], [cx * 0.5, 0.62], r), lp(pose.arms.rear[1], [cx, (chainY - floorV) / H + tug], r)]; } }
   } else if (st.phase === 'work') {
-    // (&force=bookie-slam — the panel's HAT THROW row: the bad call on a loop, 10 s of writing between)
-    const D = o.slam ? (st.work % 26 < BAD.sit ? { seg: { kind: 'bad', d: BAD.sit }, e: st.work % 26 } : { seg: { kind: 'write', d: 26 - BAD.sit }, e: st.work % 26 - BAD.sit }) : doingAt(plan, st.work), seg = D ? D.seg : null, e = D ? D.e : 0;
+    // (&force=bookie-slam — the panel's HAT THROW row: the bad call on a loop, 11 s of writing between; DESKTOP: the loop's phase from the force
+    //  (the force puts its work at 598.5 s) — the bad call starts with the force, the throw ~5 s later: ~7–9 s into a fresh load)
+    const sl = (((st.work - 599) % 26) + 26) % 26;
+    const D = o.slam ? (sl < BAD.sit ? { seg: { kind: 'bad', d: BAD.sit }, e: sl } : { seg: { kind: 'write', d: 26 - BAD.sit }, e: sl - BAD.sit }) : doingAt(plan, st.work), seg = D ? D.seg : null, e = D ? D.e : 0;
     doing = seg ? seg.kind : 'write';
     if (!seg || ['write', 'count', 'call', 'smoke', 'lean'].includes(seg.kind)) {
       seated = true; face = 0;
