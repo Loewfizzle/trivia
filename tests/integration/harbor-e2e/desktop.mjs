@@ -23,10 +23,12 @@ G('desktop', async () => {
     const s0 = nb.signs[0].r;
     await p.mouse.move(s0.x + s0.w / 2, s0.y + s0.h / 2); await sleep(120); await p.mouse.move(s0.x + s0.w / 2 + 1, s0.y + s0.h / 2 + 1);
     await waitFor(p, "document.querySelector('.nd').classList.contains('nd-hovering') && document.querySelector('.nd-hover.on')", 'the hover on the sign', 4000).catch(() => {});
-    const on = await ev(p, `(() => { const g = document.querySelector('.nd-hover'), cs = getComputedStyle(g); return { hov: document.querySelector('.nd').classList.contains('nd-hovering'), on: g.classList.contains('on'), disp: cs.display, cur: getComputedStyle(document.querySelector('.nd-city')).cursor }; })()`);
+    // (the mouse-only CSS — the pointer, the ring shown — lives under (hover: hover) and (pointer: fine): a real desktop matches it; the cloud's
+    //  headless Linux runner reports NO pointer device, so there the CSS half is skipped + said; the hover logic is checked everywhere)
+    const on = await ev(p, `(() => { const g = document.querySelector('.nd-hover'), cs = getComputedStyle(g); return { mouse: matchMedia('(hover: hover) and (pointer: fine)').matches, hov: document.querySelector('.nd').classList.contains('nd-hovering'), on: g.classList.contains('on'), disp: cs.display, cur: getComputedStyle(document.querySelector('.nd-city')).cursor }; })()`);
     await p.mouse.move(150, 160); await sleep(250);
     const off = await ev(p, "({ hov: document.querySelector('.nd').classList.contains('nd-hovering'), on: document.querySelector('.nd-hover').classList.contains('on') })");
-    ok(on.hov && on.on && on.disp === 'block' && on.cur === 'pointer' && !off.hov && !off.on, `THE HOVER (a mouse): over ${nb.signs[0].id} the pointer (${on.cur}) + the glow ring (${on.on}); over the open sky neither (${!off.hov && !off.on})`);
+    ok(on.hov && on.on && (!on.mouse || (on.disp === 'block' && on.cur === 'pointer')) && !off.hov && !off.on, `THE HOVER (a mouse): over ${nb.signs[0].id} the hover + the glow ring (${on.on}) — ${on.mouse ? `the pointer (${on.cur}), the ring shown (${on.disp})` : 'this browser reports no fine pointer: the mouse-only CSS not in play here'}; over the open sky neither (${!off.hov && !off.on})`);
     // Esc closes a sheet (the games sheet from the dock)
     await p.click('.nd-tab-games'); await waitFor(p, "!!document.querySelector('.modal:not(.out)')", 'the games sheet', 5000);
     const sw = await rectOf(p, '.modal .sheet');
