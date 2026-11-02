@@ -32,7 +32,8 @@ import './harbor-e2e/street.mjs';
 import './harbor-e2e/windows.mjs';
 import './harbor-e2e/wild.mjs';
 import './harbor-e2e/holiday.mjs';
-import './harbor-e2e/desktop.mjs';   // (DESKTOP, Nov 2: the wide camera, the desktop UI, the resize, sideways + iPad)
+import './harbor-e2e/desktop.mjs';
+import './harbor-e2e/radio.mjs';   // (CITY CONTROLS A: THE RADIO — the role, the desk, fire → amber → pink → STOP, the room, the program, the ledger)   // (DESKTOP, Nov 2: the wide camera, the desktop UI, the resize, sideways + iPad)
 
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups
 // THE CLOUD JOBS (harbor-jobs.mjs): every group in exactly one job — checked before anything runs, so a new group can't be skipped silently
