@@ -12,6 +12,7 @@ import { rngFrom, hashString } from './rng.js';
 import { SPEAK_V, SPEAK_WIN } from './harbor-speakeasy.js';
 import { promenadeLayout } from './harbor-promenade.js';
 import { TOWER_ID, slotShape } from './harbor-tower.js';
+import { WORD_FACES } from './harbor-windows.js';
 
 /** the mockup's reference phone and camera */
 export const REF = { W: 402, H: 874, VPY: 540, CAMH: 13.5, F: 600 };
@@ -43,6 +44,14 @@ const KNEE_B = 24;         // the knee's softness, pt
  * The camera for a screen. rects: { tag: {y, h}, dock: {x, y, w, h}, neon?, word?, corner? } from the real title (fall back to estimates
  * before the title reports them); safe: { top, bottom } insets.
  */
+// THE DESKTOP CAMERA (DESKTOP Group 3 — the owner's desktop questions 1–3, 6, 8, Nov 1 11:28 pm, "go with your recs"): a wide screen (a
+// desktop, an iPad or a phone sideways) is RE-FRAMED, never the phone stretched — a CLOSER (F × kF) + LOWER (CAMH ≤ camh) camera whose
+// near edge (the line just above the dock) sits at z zFront instead of the phone's 36.5: the promenade a shallow foreground band, the
+// water + the skyline the picture. COMPOSED up to wMax : 1 — wider than that, the composition frame (cam.cx0 … W − cam.cx0) holds the
+// stage (the speakeasy at its left edge) and a soft fade to dark covers the rest (css/title.css .nd-scene::after). The feasibility check
+// (docs/harbor/passes/desktop.md): with the bigger sign these numbers keep the skyline's squeeze at the phone's own ~0.65 and the word
+// towers' full faces (a closer 1.65× squeezed it to 0.45 + cost the faces 7 rows — two-line words would have dropped to one).
+export const DESK = Object.freeze({ kF: 1.4, camh: 8, zFront: 50, wMax: 2.2 });
 export function cameraFor(W, H, rects = {}, safe = {}) {
   const wide = W > H;
   const sb = safe.bottom || 0;
@@ -50,7 +59,7 @@ export function cameraFor(W, H, rects = {}, safe = {}) {
   const tag = rects.tag || { y: wide ? H * 0.43 : H * 0.365, h: 14 };
   const tagB = tag.y + tag.h;
   const front = dock.y - GAP_ABOVE_DOCK;
-  let F, CAMH;
+  let F, CAMH, cam0z = DESK.zFront;
   if (!wide) {
     F = REF.F * W / REF.W;
     CAMH = REF.CAMH;
@@ -60,13 +69,20 @@ export function cameraFor(W, H, rects = {}, safe = {}) {
     const room = Math.max(60, front - tagB - UNDER_TAG);
     F = Math.max(REF.F * room / 411, 9 * SIZE.person.z / units('person', 20));   // (the camera keeps Part 1's 20-pt reference person: 8a's bigger people never move it)
     CAMH = Math.min(REF.CAMH, (room > 250 ? 0.55 : 0.4) * room * Z.front / F);
+    // (THE DESKTOP CAMERA: closer + lower, the near edge further in)
+    const D = DESK;
+    // (a short strip between the tagline + the dock — a phone sideways — can't take the zoom: it eases off below ~220 pt of room)
+    F *= 1 + (D.kF - 1) * Math.max(0, Math.min(1, (room - 90) / 130)); CAMH = Math.min(CAMH, D.camh); cam0z = D.zFront;
   }
-  const VPY = front - F * CAMH / Z.front;
+  const zFront = wide ? cam0z : Z.front;
+  const VPY = front - F * CAMH / zFront;
   // the neon letters, SPEAKEASY, the corner buttons (☰ + music): only for the lanes (laneRects), never for the camera
   const neon = rects.neon || { x: W / 2 - 140, y: tag.y - (wide ? (W >= 1000 ? 205 : 121) : 141), w: 280, h: 85 };
   const word = rects.word || { x: W / 2 - 150, y: tag.y - 34, w: 300, h: 21 };
   const corner = rects.corner || { x: W - 56, y: (safe.top || 0) + 10, w: 44, h: 90 };
-  const cam = { W, H, wide, F, CAMH, VPX: W / 2, VPY, dock, tag, neon, word, corner, cornerL: rects.cornerL || null, limitY: tagB + UNDER_TAG, front, safeTop: safe.top || 0, safeBottom: sb };
+  // (cx0: where the composition frame starts — 0 unless the screen is wider than DESK.wMax : 1)
+  const cx0 = wide ? Math.max(0, (W - DESK.wMax * H) / 2) : 0;
+  const cam = { W, H, wide, F, CAMH, VPX: W / 2, VPY, dock, tag, neon, word, corner, cornerL: rects.cornerL || null, limitY: tagB + UNDER_TAG, front, safeTop: safe.top || 0, safeBottom: sb, zFront, cx0 };
   // the visible half-width at a depth, in world units, and the panorama factor (1 on a phone)
   cam.hw = z => (W / 2) * z / F;
   cam.spread = cam.hw(100) / (0.335 * 100);
@@ -359,6 +375,13 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   for (const b of sky.all) if (b.cap != null) b.h = Math.min(b.h, Math.max(2, hAtY(HZq - b.cap * hUnit, b.z0)));
   // the towers' tiers + window grids (after the squeeze); every block gets its grid
   for (const t of sky.towers) t.tiers = tiersOf(t);
+  // (DESKTOP Group 3 — THE HIERARCHY on the lower desktop camera: the nearer wordV caught up with the EMPIRE by perspective — on a wide
+  //  screen the EMPIRE's top (its set-back top tier) is kept 3 pt above wordV's, still under the sunburst + the limit)
+  if (cam.wide) {
+    const e = sky.towers.find(t => t.id === 'empire'), v = sky.towers.find(t => t.id === 'wordV'), sb = sky.towers.find(t => t.id === 'sunburst');
+    const ty = t => { const tr = t.tiers.at(-1); return project(cam, 0, (tr.y0 || 0) + tr.h + (tr.crown ? tr.crown.h : 0), tr.z0)[1]; };
+    if (e && v && sb) { const want = Math.max(ty(sb) + 2, Math.min(ty(v) - 3, ty(e))); if (ty(e) > want) { e.h += (ty(e) - want) * e.tiers.at(-1).z0 / cam.F; e.tiers = tiersOf(e); } }
+  }
   for (const b of [...sky.bands.flatMap(d => d.blocks), ...sky.heroes]) b.win = grid(b.x1 - b.x0, b.h, PITCH[0], PITCH[1], b.kind === 'hero' ? 2.2 : 0.9);
   const k = Math.max(1, Math.min(2.2, cam.spread * 0.5));           // the harbor pieces spread out on a panorama
   // THE LIGHTHOUSE (Part 3: moved for the word towers, the owner's review): on a phone it stands in the slot between the two
@@ -379,6 +402,15 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
     for (const b of lhBoxes) { const b0 = project(cam, b.x0, 0, b.z0)[0], b1 = project(cam, b.x1, 0, b.z0)[0]; if (b1 > f0 + 1 && b0 < f1 - 1) cover = Math.min(cover, project(cam, 0, b.y1, b.z0)[1]); }
     const rowY = r => project(cam, 0, tr.y0 + g.v0 + r * g.pitch[1] - 0.3, tr.z0)[1];
     let r0 = Math.max(0, g.rows - t.rows);
+    if (cam.wide && WORD_FACES[t.id]) r0 = Math.max(r0, g.rows - WORD_FACES[t.id].rows);   // (a wide screen: exactly the phone's face)
+    // (DESKTOP Group 3 — the lower desktop camera lifts the quay's hero blocks a little over a word tower's lowest face rows: on a wide
+    //  screen a hero in front is trimmed down to the face's first row when that costs it ≤ 12 % of its height — the faces keep the
+    //  phone's rows (WORD_FACES: the same words fit the same way on every screen)
+    if (cam.wide && cover < rowY(r0) + 1) for (const b of sky.heroes) {
+      const [b0, b1] = spanOf(cam, b.x0, b.x1, b.z0, b.z1); if (b1 <= s0 + 1 || b0 >= s1 - 1) continue;
+      const hMax = hAtY(rowY(r0) + 1, b.z0); if (b.h > hMax && hMax >= b.h * 0.88) { b.h = hMax; b.win = grid(b.x1 - b.x0, b.h, PITCH[0], PITCH[1], 2.2); }
+    }
+    if (cam.wide) { cover = 1e9; for (const b of sky.heroes) { const [b0, b1] = spanOf(cam, b.x0, b.x1, b.z0, b.z1); if (b1 > s0 + 1 && b0 < s1 - 1) cover = Math.min(cover, project(cam, 0, b.h, b.z0)[1]); } for (const b of lhBoxes) { const b0 = project(cam, b.x0, 0, b.z0)[0], b1 = project(cam, b.x1, 0, b.z0)[0]; if (b1 > f0 + 1 && b0 < f1 - 1) cover = Math.min(cover, project(cam, 0, b.y1, b.z0)[1]); } }
     while (r0 < g.rows && rowY(r0) > cover - 1) r0++;
     const yFace = rowY(r0);
     t.face = { row0: r0, rows: g.rows - r0, y: yFace };
@@ -401,7 +433,8 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   // as Part 1's; its SIDE WALL runs straight back to z 60 (8a: the corner-turn preview is gone — the owner picked the blade sign).
   // The ground floor: the barbershop's window (shop.win) + its door + the pole, the unmarked side door (door: the knock's target),
   // the basement window in the plinth; the awning over the shop; the upper windows (windows × rows) are the rooms' (ROOMS).
-  const sz0 = 44, sx0 = xAt(cam, -28 * cam.F / REF.F, sz0), sx1 = sx0 + 11.2;
+  // (THE DESKTOP CAMERA: on a screen wider than the composition, the speakeasy stands at the composition frame's left edge — cam.cx0)
+  const sz0 = 44, sx0 = xAt(cam, (cam.cx0 || 0) - 28 * cam.F / REF.F, sz0), sx1 = sx0 + 11.2;
   const side = { x: sx1, z: 60 };
   const speakeasy = { x0: sx0, x1: sx1, z0: sz0, z1: 60, h: 10.5, turned: false, side,
     door: { u0: 9.05, u1: 10.55, h: 2.6 }, awning: { u0: 2.0, u1: 8.1, y0: 3.8, y1: 3.42, z: 43.15 },
@@ -416,7 +449,9 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
   // Clear of the word towers and the hero towers' crowns; it may cover the low skyline behind it.
   const wz = 132, wr = 12.6, legK = 0.42;
   const speakBack = project(cam, speakeasy.x1, 0, speakeasy.z1)[0];
-  const wheelX = Math.max((cam.wide ? -30 : -24) * k * wz / 165, xAt(cam, speakBack + 12 + legK * cam.F * wr / wz, wz));
+  // (DESKTOP Group 3: a wide screen takes the phone's own rule — just right of the speakeasy's back corner — the old panorama's fixed
+  //  −30·k put it over the vertical word tower's face on the closer desktop camera)
+  const wheelX = cam.wide ? xAt(cam, speakBack + 12 + legK * cam.F * wr / wz, wz) : Math.max(-24 * k * wz / 165, xAt(cam, speakBack + 12 + legK * cam.F * wr / wz, wz));
   // (Part 5) the wheel's two A-frames stand in front of and behind it (± 1.7), 16 gondolas; THE PIER widens into a platform
   // under it (the HEAD: the A-frames' feet at ± leg · r stand on its deck, 1.4 units in from its edges) — the walkway behind
   // it runs on to the quay
@@ -455,8 +490,15 @@ export function harborLayout(cam, seed = 1924, opts = {}) {
     chimney: { x: sx0 + 10.5, z: roofBack - 2.2, w: 0.75, h: 1.9 } };
   // (FP: the bulkhead + the chimney moved right, out from under the billboard — its short frame reads as one clean structure)
   // THE BILLBOARD on the roof (8a): its board in world units + the dunnage platform under the frame (core/harbor-neon.js: the spot)
-  { const B = BILLBOARD, y0 = B.dun + B.open;
-    roof.board = { x0: sx0 + B.u0, x1: sx0 + B.u1, y0, y1: y0 + B.h, z: roofBack - B.back, dun: B.dun, deck: speakeasy.h }; }
+  { const B = BILLBOARD, zb = roofBack - B.back; let y0 = B.dun + B.open;
+    // (DESKTOP Group 3 — THE DESKTOP CAMERA looks UP at the roof (its eye 7.5 below the parapet's 10.5): the roof's guests + the string
+    //  lights' pole would rise in front of the board's letters — on a wide screen the board stands on a taller frame that clears a guest's
+    //  head at the front planters (z 47.2), and the pole is cut to end below the board; an upright phone's higher camera never needs it)
+    if (cam.wide) {
+      y0 = Math.max(y0, cam.CAMH + (zb / 47.2) * (speakeasy.h + 2.1 - cam.CAMH) + 0.2);
+      roof.pole.h = Math.max(1.6, Math.min(roof.pole.h, cam.CAMH + (roof.pole.z / zb) * (y0 - 0.2 - cam.CAMH) - speakeasy.h));
+    }
+    roof.board = { x0: sx0 + B.u0, x1: sx0 + B.u1, y0, y1: y0 + B.h, z: zb, dun: B.dun, deck: speakeasy.h }; }
   const L = { cam, seed, bands, landmarks, heroes, quay, water, pier, wheel, lighthouse, breakwater, cottage, boats, rail, road, signals, prom, lamps, trees, bench, cabStand, planters, cart, speakeasy, roof, medallion, mailbox, hydrant, crosswalk, edge, impliedRoad, zones, towers, cuts: sky.cuts, gaps: sky.cuts.map(g => ({ sx: g.sx, w: g.w })), squeeze: (sqRef || sqLoc).s, knee: (sqRef || sqLoc).knee };
   L.door = doorRect(L);
   L.lanes = laneRects(L);

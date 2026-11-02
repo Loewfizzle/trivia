@@ -8,7 +8,9 @@ import { PUMPKINS_MAX } from '../js/core/harbor-holiday.js';
 import { catSpot, halloweenCat, BLACK_CAT } from '../js/core/harbor-wildlife.js';
 
 const SIZES = { '390x844': [390, 844, 47], '402x874': [402, 874, 62], '430x932': [430, 932, 59], '1440x900': [1440, 900, 0] };
-const setup = k => { const [W, H, top] = SIZES[k]; const cam = cameraFor(W, H, { dock: { x: 14, y: H - 116, w: W - 28, h: 76 } }, { top, bottom: 34 }); return { cam, L: harborLayout(cam) }; };
+// (DESKTOP: a wide screen's dock is the real one — centred, 420 wide; the speakeasy's door stands at the left, beside it, never under it)
+const setup = k => { const [W, H, top] = SIZES[k]; const cam = cameraFor(W, H, { dock: W > H ? { x: W / 2 - 210, y: H - 106, w: 420, h: 70 } : { x: 14, y: H - 116, w: W - 28, h: 76 } }, { top, bottom: 34 }); return { cam, L: harborLayout(cam) }; };
+const clearOfDock = (cam, x, y, pad = 0) => y < cam.dock.y + pad || x < cam.dock.x - 4 || x > cam.dock.x + cam.dock.w + 4;
 
 test('11a-1 — THE PUMPKINS: one place per arrival, on + round the side door\'s steps, the door\'s path + the black cat\'s spot left clear, above the dock', () => {
   for (const k of Object.keys(SIZES)) {
@@ -22,7 +24,7 @@ test('11a-1 — THE PUMPKINS: one place per arrival, on + round the side door\'s
       const onUpper = p.y > 0.2, inPath = u > 9.3 + p.d / 2 && u < 10.3 - p.d / 2;
       assert.ok(!(onUpper && inPath), `${k}: the door's path stays free`);
       assert.ok(Math.hypot(p.x - cat.x, p.z - cat.z) > p.d / 2 + 0.12, `${k}: clear of the black cat's spot`);
-      const [, y] = project(cam, p.x, p.y, p.z); assert.ok(y < cam.dock.y, `${k}: above the dock`);
+      const [x, y] = project(cam, p.x, p.y, p.z); assert.ok(clearOfDock(cam, x, y), `${k}: above (or beside) the dock`);
     }
     // never two pumpkins in one place
     for (let i = 0; i < sl.length; i++) for (let j = i + 1; j < sl.length; j++) assert.ok(Math.hypot(sl[i].x - sl[j].x, (sl[i].z - sl[j].z) * 1.6) > (sl[i].d + sl[j].d) * 0.36, `${k}: ${i} + ${j} apart`);
@@ -41,7 +43,7 @@ test('11a-1 — DAY OF THE DEAD: the petal path runs from the open promenade to 
     const near = P.pts.filter(p => p.u > 0.75).length, far = P.pts.filter(p => p.u < 0.25).length;
     assert.ok(near > far * 2, `${k}: denser toward the door (${near} vs ${far})`);
     assert.equal(P.candles.length, 8, 'eight votives');
-    for (const p of P.pts) { const [, y] = project(cam, p.x, 0, p.z); assert.ok(y < cam.dock.y + 4, `${k}: the petals above the dock (${y.toFixed(0)})`); }
+    for (const p of P.pts) { const [x, y] = project(cam, p.x, 0, p.z); assert.ok(clearOfDock(cam, x, y, 4), `${k}: the petals above (or beside) the dock (${x.toFixed(0)}, ${y.toFixed(0)})`); }
   }
 });
 

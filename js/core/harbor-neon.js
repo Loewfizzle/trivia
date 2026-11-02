@@ -827,6 +827,9 @@ export function signSpots(L, { all = false } = {}) {
     }
   }
   for (const s of out) s.rect = rectOf(s.w);
+  // (DESKTOP Group 3: THE BILLBOARD MUST STAY — it carries the long names — so a panorama tower's sign that runs into it gives way first;
+  //  before, at 2560 × 1080 the two conflicted and the filter below dropped both)
+  if (cam.wide) { const bb = out.find(s => s.type === 'billboard'); if (bb) for (let i = out.length - 1; i >= 0; i--) if (out[i].id.startsWith('n-pano') && ovr(out[i].rect, bb.rect, 4)) out.splice(i, 1); }
   // on a wide screen the near band is its own (generated across the width): a phone's spot that ends up hidden there is
   // dropped (the panorama's named signs take the games); on a phone every spot is clear (tested)
   return out.filter(s => s.rect.x + s.rect.w > -2 && s.rect.x < cam.W + 2 && (all || !cam.wide || !spotConflicts(L, s, out).length));

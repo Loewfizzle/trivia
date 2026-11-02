@@ -13,7 +13,7 @@ const SIZES = {
   '412x915': { W: 412, H: 915, tag: { y: 308, h: 14 }, dock: { x: 14, y: 799, w: 384, h: 76 }, safe: { top: 47, bottom: 34 } },
   '430x932': { W: 430, H: 932, tag: { y: 322, h: 14 }, dock: { x: 14, y: 816, w: 402, h: 76 }, safe: { top: 59, bottom: 34 } },
   '874x402': { W: 874, H: 402, tag: { y: 179, h: 14 }, dock: { x: 227, y: 305, w: 420, h: 70 }, safe: { top: 0, bottom: 21 } },
-  '1440x900': { W: 1440, H: 900, tag: { y: 351, h: 15 }, dock: { x: 510, y: 794, w: 420, h: 86 }, safe: { top: 0, bottom: 0 } },
+  '1440x900': { W: 1440, H: 900, tag: { y: 411, h: 14 }, dock: { x: 510, y: 794, w: 420, h: 70 }, safe: { top: 0, bottom: 0 } },   // (DESKTOP: re-measured with the bigger sign, Nov 2)
 };
 // the sign + the corner buttons, relative to the tagline (measured from the real title, Oct 21 2026)
 const signOf = s => { const wide = s.W > s.H, desk = wide && s.W >= 1000;
@@ -74,7 +74,9 @@ for (const k of Object.keys(SIZES)) {
     assert.ok(!overlap(d, { x: s.W - 60, y: 0, w: 60, h: 160 }), 'the door clear of the corner buttons');
     // the bands keep their order and some depth: the water and the promenade are visible
     assert.ok(groundY(cam, Z.rail) - groundY(cam, Z.quay) > (cam.wide && s.H < 500 ? 12 : 40), 'the water reads');
-    assert.ok(cam.dock.y - groundY(cam, Z.road[0]) > (s.H < 500 ? 10 : 40), 'the promenade reads');
+    // (DESKTOP: on a wide screen the promenade is a SHALLOW band that runs on past the dock's top to the screen's foot — the dock floats
+    //  over its middle; measured to the foot there)
+    assert.ok((cam.wide ? s.H : cam.dock.y) - groundY(cam, Z.road[0]) > (s.H < 500 ? 10 : 40), 'the promenade reads');
     // the speakeasy bleeds off the left edge
     assert.ok(project(cam, L.speakeasy.x0, 0, L.speakeasy.z0)[0] < 0);
     assert.ok(project(cam, L.speakeasy.x1, 0, L.speakeasy.z0)[0] > 40);
@@ -99,7 +101,8 @@ for (const k of Object.keys(SIZES)) {
     } else if (s.H < 500) {
       assert.ok(person >= 8.5, `sideways people ${person}`);   // the owner's call: the whole city, smaller
     } else {
-      assert.ok(person > 24 && person < 30, `desktop person ${person}`);
+      // (DESKTOP Group 3 — THE DESKTOP CAMERA: closer than the phone's scale, the people bigger; the composition still wider than a phone)
+      assert.ok(person > 28 && person < 44, `desktop person ${person}`);
       assert.ok(cam.spread > 2, 'a panorama, not a stretched phone');
     }
   });
@@ -449,7 +452,7 @@ test('signs (DT1): 3 named (the blade + 2 stacked roof signs — the left roof s
       assert.equal(got.size, 3, `${k}: 3 games have a named sign tonight`);
       const all = new Set(); for (const n of NIGHTS) { const pk = assignSigns(GAMES12, spots, n); for (const g of pk.values()) all.add(g); all.add(billboardPick(GAMES12, spots, pk, n)); }
       assert.equal(all.size, 12, `${k}: over the nights every game shows — a named sign or the billboard (the nightly shuffle)`);
-    } else if (k === '1440x900') assert.ok(got.size >= 7, `desktop: ${got.size} games`);
+    } else if (k === '1440x900') assert.ok(got.size >= 3 && spots.some(s => s.type === 'billboard'), `desktop: ${got.size} games + the billboard (DESKTOP: the closer camera shows the phone's own signs — THE FIVE SIGNS)`);
     for (const s of spots.filter(s => s.kind === 'named')) { const g = GAMES12.find(x => x.id === pick.get(s.id)); if (g) assert.ok(fitsSpot(g.short, s), `${k}: ${g.short} fits ${s.id}`); }
     // the named spots read on a phone: a vertical sign's letters ≥ 6 pt
     if (!cam.wide) for (const s of spots.filter(s => s.kind === 'named' && s.type === 'vbox')) assert.ok(s.rect.h / s.cap >= 6 * (cam.F / 600) * 0.95, `${k}: ${s.id} letters ${(s.rect.h / s.cap).toFixed(1)} pt`);

@@ -13,6 +13,13 @@
 /* POLISH 5 — City 2.0: the LARGE viewport (Safari's bars retracted), anchored at the top — the bars never resize the canvas */
 .nd-scene.nd-lvh { bottom: auto; height: 100vh; height: 100lvh; }
 .nd-scene.is-reveal { transition: opacity 0.6s ease; }
+/* DESKTOP — THE FAR EDGES (the owner's desktop question 2): the city is composed up to 2.2 : 1 (core/harbor-layout.js#DESK.wMax); on a wider
+   screen a soft fade to dark covers what lies beyond the composition frame — never repeats, never an empty edge. Its width is 0 at 2.2 : 1
+   or narrower (every phone, upright or sideways, every iPad): nothing drawn there. */
+.nd-scene::after { --nd-fw: max(0px, calc((100vw - 220vh) / 2 + 48px)); content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: linear-gradient(to right, #03040b 0, rgba(3, 4, 11, 0.86) calc(var(--nd-fw) * 0.35), rgba(3, 4, 11, 0) var(--nd-fw)),
+    linear-gradient(to left, #03040b 0, rgba(3, 4, 11, 0.86) calc(var(--nd-fw) * 0.35), rgba(3, 4, 11, 0) var(--nd-fw)); }
+@media (max-aspect-ratio: 22/10) { .nd-scene::after { display: none; } }
 body.nd-on .bg, body.nd-on #stage::before, body.nd-on #stage::after { display: none; }
 /* on the title the corner buttons sit in the real corner (elsewhere they hug the phone-width column) */
 /* the corner pair (☰ + music) comes from components.css */
@@ -219,9 +226,10 @@ html.nd-nohalo .nd-c2 .nd-sign .nd-tag.nd-tag { text-shadow: 0 0 10px rgba(3, 3,
 @media (min-width: 900px) and (min-height: 640px) {
   .title-screen.nd { max-width: 1180px; }
   .nd-sign { margin-top: clamp(56px, 11vh, 120px); }
-  .nd-logo-wrap { width: min(40vw, 470px); }
-  .nd-word { font-size: 21px; }
-  .nd-tag { font-size: 11px; margin-top: 18px; }
+  /* (DESKTOP — the owner's desktop question 3: THE NEON SIGN bigger + centred, still the hero — ~1.25× the old 470 px, by the screen's height) */
+  .nd-logo-wrap { width: min(44vw, 66vh, 640px); }
+  .nd-word { font-size: 24px; }
+  .nd-tag { font-size: 12px; margin-top: 20px; }
   .nd-gate { padding-bottom: 22vh; }
 }
 
