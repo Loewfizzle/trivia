@@ -3,7 +3,7 @@
 // after dark), the billboard jack's queue + a REPEAT on THE PROGRAM, THE LEDGER's nixies, a nobody refused at every action, the city
 // behind keeps its tier while the radio is open. NEVER fires anything the other shards' pages would play (the emulators are shared
 // locally): JUST ME, a test room, a city banner set AT A TIME hours away (then cancelled).
-import { OUT, BASE, log, sleep, ok, okT, open, ev, waitFor, harborUp, dbPut, G } from './kit.mjs';
+import { BASE, log, sleep, ok, okT, open, ev, waitFor, harborUp, dbPut, G } from './kit.mjs';
 import * as RD from '../../../js/core/harbor-radio.js';
 
 const DB = 'http://127.0.0.1:9000', get = async p => (await fetch(`${DB}/${p}.json?ns=demo-arcade-default-rtdb`, { headers: { Authorization: 'Bearer owner' } })).json();
@@ -108,5 +108,4 @@ G('radio', async () => {
   await dbPut(`testAdmins/${pid}`, null); await dbPut(`rooms/${ROOM}`, null);
   await O.ctx.close();
   log('radio', 'done');
-  void OUT;
 });

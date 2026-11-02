@@ -1762,6 +1762,17 @@ player's own 120-ms re-place window). Groups 1–5: THE WINDOW SCENES AS TIMETAB
 windows.old / &force=old-windows, AFTER HOURS (the shades down glowing — amber, cold white, green, rosy — the lights out one at a time 2–4 am;
 + the owner's add-on: the edge windows' shades), THE JUGGLER (+ Grok's drop sounds), THE CRATE GUY, THE CHARLESTON, THE BOOKIE (rotating).
 
+## CITY 2.0 — CITY CONTROLS A (Nov 2 2026) — docs/harbor/passes/city-controls-a.md (plan.md "OWNER'S NOTES — NOV 2 (morning)")
+Group 0: the owner's SCHED review — THE DAY CHART 4 am → 4 am (the boss's TV + his 3 am shade, the lights out one at a time, the milk truck),
+the Charleston's brass horn removed, the juggler a deep dim copper (four distinct windows), the billboard's messages on the crisp layer at night
+(+ the day poster no longer switched off by the first hint), THE FINALE's GAP (the willows launch on the next strong beat 0.5–1.25 s after the
+dragon eggs). Group 1: THE SERVER — core/harbor-radio.js (the jacks from the timetable, the roles per action, the lanes, the crew's limits),
+api/_lib/radio.js (/api/admin radio…: fire / stop / clear all / the billboard / the dial / rooms / the ledger; the record + the audit log),
+delivery through the cached GET + rooms/{CODE}/radio, the city playing each fired moment ONCE (scene-radio.js), LIGHTNING's storm cell.
+Groups 2–3: THE RADIO (the gate, the corner button, THE CITY BEHIND, the band selector) + THE DESK (the tuning window, the audience knob, the
+jacks + lamps + patch cards, CLEAR ALL, DEV · THE WORKSHOP; Grok's desk sounds). Group 4: THE PROGRAM. Group 5: THE LEDGER. Group 6: the radio
+group in the harbor suite, the docs.
+
 ## CITY 2.0 — SCHED (Nov 2 2026) — docs/harbor/passes/sched.md (plan.md "OWNER'S NOTES — NOV 2")
 Group 0: the owner's DESKTOP review — the juggler back to his amber room (neon balls kept), the window preview links start at the reveal + loop,
 the boss's 3 am pull rebuilt as a cream shade sliding over the lit TV room (never a figure), A PHONE HELD SIDEWAYS → a TURN YOUR PHONE

@@ -172,6 +172,15 @@ one `errlog/{sig}` entry with a count, devices, browsers, first / last seen and 
 IP, 3000 a day in all; `errlog/` is server-only (the rules' default deny). The admin page lists them newest first (tap the message
 for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
 
+## THE RADIO's roles (CITY CONTROLS A, Nov 2 2026 — docs/harbor/passes/city-controls-a.md)
+- `POST /api/admin { action: 'radio…' }` runs BEFORE the admin-only gate with its own ROLE per action (`api/_lib/radio.js#roleOf`): THE
+  OWNER = a profile in ADMIN_PIDS (every jack, every audience, the dial, the queue, the ledger); THE CREW = `radio/crew/{pid}` (CC-B grants
+  it: its 11 jacks, the room its phone is in, the per-night limits + a cooldown); anyone else → 403 `not_radio`. The local emulators only:
+  `testAdmins/{pid}` = an owner (the E2E). `radioWho` answers the role (the radio's gate loads nothing on a no).
+- Every action is written to `audit/` (act `radioFire` · `radioStop` · `radioClearAll` · `radioBoard` / `Edit` / `Cancel` · `radioDial`; `b` =
+  the jack + the words + the audience, `role`). THE RECORD: `radio/fired/{id}` (`sight`: the owner's to a real audience — Progression 2.0).
+- The public copy (`GET /api/admin?live=1` → `radio`) carries the city's moments, the billboard's messages + the dial — never a profile id.
+
 ## Setup (production)
 1. Firebase console → Project settings → Service accounts → **Generate new private key** (a JSON file).
 2. Vercel → project → Settings → Environment Variables: `FIREBASE_SERVICE_ACCOUNT` = the whole JSON (or its base64),

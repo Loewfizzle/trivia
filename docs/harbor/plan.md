@@ -5193,3 +5193,7 @@ pass; slot: soon after the switch-over (or alongside CITY CONTROLS' follow-up if
   with --cast on the finale (&force=finale) at 402, WebKit too, and give the finale link in the summary.
 
 - THE BUILD TABLE (Nov 2, CITY CONTROLS A Step 0): SCHED ✅; CITY CONTROLS A (this pass) ← NEXT; CITY CONTROLS B; then PROGRESSION 2.0, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its review), OVERCLOCK (+ its review), FR6, THE SWITCH-OVER.
+
+Nov 2, ~12:35 pm EST — CITY CONTROLS A: THE OWNER's ANSWER IN THE PASS (DECIDED)
+* ONE ROOM vs THE LOBBY's STILL (Claude's feasibility check: a room's phones show a still of the city in the lobby until LOBBY 2.0) → BUILD IT, SHOW LATER (the room path built + tested now; it plays once the lobby is the live city; THE CREW waits for LOBBY 2.0 too).
+CITY CONTROLS A DONE (Nov 2) — passes/city-controls-a.md. THE BUILD TABLE: SCHED ✅; CITY CONTROLS A ✅; CITY CONTROLS B ← NEXT; then PROGRESSION 2.0, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its review), OVERCLOCK (+ its review), FR6, THE SWITCH-OVER.

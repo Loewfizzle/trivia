@@ -525,6 +525,14 @@ launch-1, crackle-1, whistle-1 + crowd-2 are Sonniss, never stand-alone download
   spacing never matched his 0.27 s, so each hit stays on its own punch); THE CHAIN on ~1 in 3 heavy hits (a stable hash: every phone the same).
   The bells, the rope + the speed bag unchanged.
 
+## THE RADIO DESK's SOUNDS (CITY CONTROLS A, Nov 2 2026) — `screens/harbor/radio-sound.js`, the `radio-*` slots
+Grok's picks (`art/city-sfx/radio/claude-notes.txt` — the originals git-ignored, copies of `~/Downloads/Grok/city-sfx/radio/`) imported by
+`scripts/add-city-sfx.py --src art/city-sfx/radio` into 8 slots: radio-jack-in (5 takes), radio-jack-out (3), radio-fire (3 — the deep latch
+thunk, the lever, the steampunk hit), radio-tick (5 detents), radio-band (3), radio-denied (2 — a soft low no, never a buzzer), radio-cover-open
+(2), radio-cover-close (2). Every take starts ON THE HIT, high-passed for phone speakers, quiet (the slots' gains 0.18–0.26); 79 KB in all,
+fetched only on the owner's phone. The intercom's chime (the vibraphone 419491) + the PA crackle are CITY CONTROLS B's. Audio is polish: the
+desk works silently. (The importer now reads Sonniss file names with spaces + commas; a `name` gives a URL-safe file.)
+
 ## THE WINDOW SCENES' SOUNDS (WINDOWS, Nov 1 2026; City 2.0) — `core/harbor-juggler.js#jugglerSceneCues`, `core/harbor-crate.js#crateSceneCues`, `screens/harbor/sounds.js` (SCENE_CUES)
 - **THE JUGGLER — ONLY THE DROPS** (the owner: no catch sounds — a 3-hour tick would wear): `juggler-drop` (7 takes: 684374's five — A–E, take
   D past its low bump — + 389546 + 499396; the bounces dipped 4–5 dB after the first impact with `gainenv`) at the missed ball's first floor
