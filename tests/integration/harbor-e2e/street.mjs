@@ -424,7 +424,7 @@ function motionReport(frames) {
   const by = new Map(); for (const f of D) for (const r of f.rigs) { if (!by.has(r.id)) by.set(r.id, []); by.get(r.id).push({ t: f.t, ...r }); }
   const walkers = [], dancers = [];
   for (const [id, seq] of by) {
-    const sp = [], slide = [], slideT = [], ang = []; let plants = 0, walkT = 0, jump = 0, prevA = null, maxRs = 0, wandsT = null;
+    const sp = [], slide = [], slideT = [], ang = [], hs = []; let plants = 0, walkT = 0, jump = 0, prevA = null, maxRs = 0, wandsT = null;
     for (let i = 1; i < seq.length; i++) {
       const a = seq[i - 1], b = seq[i], dt = (b.t - a.t) / 1000; if (dt <= 0 || dt > 0.3) { prevA = null; wandsT = null; continue; }
       // (C4d — F7: a "jump" counted only once the dancer has danced ≥ 1 s (still arriving when the trace starts at dance.k > 0.9) and only
@@ -440,7 +440,7 @@ function motionReport(frames) {
       }
       prevA = null; wandsT = null;
       if (!(a.pose === 'walk' && b.pose === 'walk' && a.v > 0.1 && b.v > 0.1)) continue;
-      const d = Math.hypot(b.fx - a.fx, b.fy - a.fy); sp.push(d / dt); walkT += dt;
+      const d = Math.hypot(b.fx - a.fx, b.fy - a.fy); sp.push(d / dt); walkT += dt; hs.push(b.H);
       for (let k = 0; k < 2; k++) {
         if (!a.planted[k] && b.planted[k]) plants++;
         if (a.planted[k] && b.planted[k] && a.heel[k] === 0 && b.heel[k] === 0 && a.y === b.y) { const s0 = Math.hypot((b.fx + b.feet[k][0] * b.H) - (a.fx + a.feet[k][0] * a.H), (b.fy - b.feet[k][1] * b.H) - (a.fy - a.feet[k][1] * a.H)) / dt; (Math.abs(b.hd - a.hd) < 0.005 ? slide : slideT).push(s0); }
@@ -450,7 +450,10 @@ function motionReport(frames) {
     // (JUDDER = the stop-then-double signature of uneven frames — a frame under half the figure's median speed beside one over 1.5× — not a
     // single fast moment (a partner stepping round the lead can legitimately double for a frame))
     let judder = 0; { const m = med(sp); for (let i = 0; i < sp.length; i++) if (sp[i] < 0.5 * m && ((i > 0 && sp[i - 1] > 1.5 * m) || (i + 1 < sp.length && sp[i + 1] > 1.5 * m))) judder++; }
-    if (sp.length >= 20) { const m = med(sp); walkers.push({ id, kind: seq[0].kind, n: sp.length, pxs: +m.toFixed(1), judder, ratio: +(Math.max(...sp) / (m || 1e-9)).toFixed(2), slide: +(pct(slide, 0.95) / (m || 1e-9)).toFixed(2), slideT: slideT.length >= 8 ? +(pct(slideT, 0.95) / (m || 1e-9)).toFixed(2) : null, spm: walkT > 3 ? Math.round(plants / walkT * 60) : null, mps: +(med(seq.filter(r => r.pose === 'walk').map(r => r.v)) * 0.833).toFixed(2) }); }
+    // (WSP: the slide is judged against the larger of the body's screen speed and ~0.45 of its own height a second — a walker heading INTO
+    //  the distance moves only a few px a second on screen, so a sub-pixel drift of the rig's depth approximation read as a "skate" of 0.35;
+    //  what a viewer sees slide is measured against the figure's size: a normal walk covers ~0.5 body heights a second)
+    if (sp.length >= 20) { const m = med(sp), mk = Math.max(m, 0.45 * med(hs)); walkers.push({ id, kind: seq[0].kind, n: sp.length, pxs: +m.toFixed(1), judder, ratio: +(Math.max(...sp) / (m || 1e-9)).toFixed(2), slide: +(pct(slide, 0.95) / (mk || 1e-9)).toFixed(2), slideT: slideT.length >= 8 ? +(pct(slideT, 0.95) / (mk || 1e-9)).toFixed(2) : null, spm: walkT > 3 ? Math.round(plants / walkT * 60) : null, mps: +(med(seq.filter(r => r.pose === 'walk').map(r => r.v)) * 0.833).toFixed(2) }); }
   }
   const walkingFrames = D.filter(f => f.rigs.some(r => r.pose === 'walk' && r.v > 0.1)), fast = walkingFrames.filter(f => f.fast).length;
   const iv = []; for (let i = 1; i < D.length; i++) iv.push(D[i].t - D[i - 1].t);

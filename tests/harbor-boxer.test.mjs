@@ -39,7 +39,7 @@ test('HIM over an evening: the blind up before him, rounds + rests + the long br
   assert.equal(boxerAt(H(19) + 2400 + 60, p, K).phase, 'break');
   assert.equal(boxerAt(H(19) + 3000 + 10, p, K).round, 1);
   assert.deepEqual(boxerAt(H(20.3), p, K), boxerAt(H(20.3), p, K), 'every phone the same');
-  const d = boxerAt(p.end + 2, p, K); assert.equal(d.phase, 'done'); assert.ok(d.inView, 'he towels off + walks out');
+  const d = boxerAt(p.end + 2, p, K); assert.equal(d.phase, 'done'); assert.ok(d.inView, 'he catches his breath (WSP: no towel) + walks out');
   const o = boxerAt(p.end + P.outWalk + 1, p, K); assert.ok(o.phase === 'out' && o.blind > 0 && o.blind < 1 && o.lamp === 1, 'the blind comes down warm-lit');
   const late = boxerAt(p.end + P.outWalk + P.blindDown + P.lampOff + 5, p, K); assert.ok(late.blind === 1 && late.lamp === 0, '…then the bulb goes out');
 });

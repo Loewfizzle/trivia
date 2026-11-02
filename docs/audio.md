@@ -510,6 +510,14 @@ launch-1, crackle-1, whistle-1 + crowd-2 are Sonniss, never stand-alone download
   by `lead`; otherwise the flash is now and the file waits. A take with a SECOND crack (`CRACK2`: close-4 at 2.5 s, the crackle at 1.6 s in the
   cut) flashes again on it (≥ 0.6 s apart: the safety cap holds). Mid / far strikes: `thunder-mid` or `thunder-far` (55 / 45), the roll after
   its distance, never on top of the last; an intra-cloud flicker the quietest, slowed. `harbor().sounds.thunderLog` = the last picks (the e2e).
+- **THE BAG UNDER THE MUSIC** (WSP, Nov 1 — the owner: with the music button OFF the bag got quieter after APP FIXES): the boxer's cues
+  duck to 0.55 ONLY while music is really audible — the music on, not muted, its volume up, AND a song playing (the page's own song's clock
+  ≥ 0, or the synced station / party song: `party-music.js#partyNow`) — `core/harbor-boxer.js#boxerDuck`. The old test, `music.js#musicSounding()`,
+  answers TRUE with no song at all (it means "nothing to rescue"), and since APP FIXES' stop + disconnect a page with the music off has no
+  song → the bag sat at 0.55. Now 1 (the approved level) with the music off; `harbor().sounds.boxDuck` = the factor last used.
+- **THE CLOSING SALVO's BOOMS** (WSP): the 8 dragon eggs burst in ONE moment — `scene-fireworks.js` plays the first three big booms +
+  crackles of a salvo (within 150 ms of each other) and drops the rest (eight at full gain would clip); the launch thump is one (the
+  finale's 380 ms launch gap).
 - **THE BOXER's BAG LOUDER + VARIED** (the owner: "I wish you could hear the bag more" · "just one sound of bag hitting"): `boxer-bag` 0.10 → 0.14
   (~+3 dB, still through the cracked window's low-pass + room); VARIETY BY PUNCH (`boxerCues`): a JAB (a light straight) gain 0.72 at rate 1.12
   (lighter, higher, shorter), a CROSS / HOOK / UPPERCUT full weight at 0.88 / 0.84 (deeper); a burst's FOLLOW-UP punches from **`boxer-combo`**

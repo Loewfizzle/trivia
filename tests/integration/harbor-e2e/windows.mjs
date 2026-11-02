@@ -120,11 +120,12 @@ G('windows', async () => {
     ok(w.lateTvs >= 4 && w.lateK > 0.9, `THE LATE TVs: ${w.lateTvs} lone windows flickering blue across the skyline (level ${w.lateK})`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}windows-tv-402x874.png` });
     await Q.ctx.close(); }]);
-  // ---- 3:30 am: NEVER FULLY DARK — the bar's last light + the sweeping, the edge window's lamp; SP3: the TV room dark (the owner)
+  // ---- 3:30 am: NEVER FULLY DARK — the bar's last light + the sweeping, the edge window's lamp; WSP (the owner, Nov 1): the TV room's
+  // shade DRAWN with ONE small nightlight glowing warm behind it (replaces SP3's dark room) — dim + warm, never the TV's blue
   WJ.push(['w5', false, async () => { const Q = await open({ slot: 'w5', qs: `when=2026-10-22T03:30${GR}`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
     const L = await life(Q.page), W = await wins(Q.page), ap = await area(Q.page, W.apartment), bar = await area(Q.page, W.bar);
-    ok(L.states.apartment === 'dark' && L.states.bar === 'last' && ap[0] < 40 && bar[0] > 60 && bar[0] > bar[2] + 25, `NEVER FULLY DARK (3:30 am) — SP3: the TV room DARK after its TV (rgb ${ap.map(v => v.toFixed(0)).join(',')}), the bar's last light (rgb ${bar.map(v => v.toFixed(0)).join(',')}) + the edge window's lamp`);
+    ok(L.states.apartment === 'night' && ap[0] > ap[2] + 15 && ap[0] < 150 && L.states.bar === 'last' && bar[0] > 60 && bar[0] > bar[2] + 25, `NEVER FULLY DARK (3:30 am) — WSP: the TV room's shade drawn + its warm NIGHTLIGHT (rgb ${ap.map(v => v.toFixed(0)).join(',')}), the bar's last light (rgb ${bar.map(v => v.toFixed(0)).join(',')}) + the edge window's lamp`);
     await Q.ctx.close(); }]);
   // ---- the hidden mirror door (forced, 10:30 pm): the shop window glows amber while it stands open
   WJ.push(['w6', false, async () => { const Q = await open({ slot: 'w6', qs: `when=2026-10-22T22:30${GR}&force=window&moment=mirror`, view: [402, 874] });
@@ -801,14 +802,14 @@ G('boxer', async () => {
   { const Q = await open({ slot: 'bx6', qs: `when=2026-11-02T20:05:20${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page); await waitFor(Q.page, `!!(${LIFE}.boxer && ${LIFE}.boxer.rest === 'sit')`, 'he sits down in his rest', 25000).catch(() => {});
     const B = await ev(Q.page, `${LIFE}.boxer`);
-    ok(B && B.phase === 'rest' && B.rest === 'sit', `THE 1-MIN REST (Mon 8:05 pm): he walked it off, shook out his arms + SITS ON THE FLOOR, back to the wall (${B && B.rest})`);
+    ok(B && B.phase === 'rest' && B.rest === 'sit', `THE 1-MIN REST (Mon 8:05 pm): he walked it off, caught his breath (WSP: hands on hips — no arm-shake) + SITS ON THE FLOOR, back to the wall (${B && B.rest})`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}boxer-rest-402x874.png` });
     await Q.ctx.close(); }
-  // ---- 4. a FRIDAY he wraps up (Nov 6): out at 8:30 as the party warms up — the towel, the walk out, his blind down
+  // ---- 4. a FRIDAY he wraps up (Nov 6): out at 8:30 as the party warms up — his breath (WSP: no towel), the walk out, his blind down
   { const Q = await open({ slot: 'bx4', qs: `when=2026-11-06T20:30:02${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page);
     const seen = new Set(); const t0 = Date.now();
     while (Date.now() - t0 < 14000) { const B = await ev(Q.page, `${LIFE}.boxer`); seen.add(B ? B.phase : 'gone'); await sleep(200); }
-    ok(seen.has('done') && seen.has('out'), `A FRIDAY HE WRAPS UP (Nov 6, 8:30 pm): he finishes, towels off + walks out, the blind comes down (${[...seen].join(' → ')})`);
+    ok(seen.has('done') && seen.has('out'), `A FRIDAY HE WRAPS UP (Nov 6, 8:30 pm): he finishes, catches his breath (no towel) + walks out, the blind comes down (${[...seen].join(' → ')})`);
     await Q.ctx.close(); }
 });
