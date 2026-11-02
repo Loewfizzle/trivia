@@ -4885,3 +4885,75 @@ OWNER's REVIEW OF WINDOWS — Nov 2, 12:16 am EST (iPhone; links 1–5) → the 
 * A SPEED NOTE (owner, many Safari tabs open): some jitter / slow load / maybe a phase-in hitch → not proof of a regression (iOS memory pressure with many tabs), but CHECK: a fresh load's first ~10 s (the bakes + the first frames) on THE PHONE BENCH in WebKit, the finale + the skull; anything that hitches on load → spread it (bakes across frames / idle time). If clean, note it and move on (FR6 re-benches anyway).
 * (12:30 am) NO FABLE REVIEW NOW (the owner asked; the chat recommends against): FR5's top 10 is 9/10 done (PERF-A/B); FR6 stays before the switch-over. THE REST OF THE scene.js SPLIT (FR5 #10 — legend + holiday deferred by PERF-B as "needs a redesign", then weather, party, perf, panel; then draw() quartered) → FOLDED INTO SCHED: SCHED moves those same systems into THE CITY TIMETABLE, which is the redesign the split needs — each cut a no-look-change step (pixdiff + the baseline guard), its own commit. ORDER unchanged: DESKTOP next → SCHED.
 * (12:35 am) CORRECTION (the chat, from the WINDOWS summary): the 2:52:44 link was built for THE BAR's first light clicking off (~2.5 s after load) — NOT the boss's 3 am shade pull (the chat labelled it wrong). The boss's shade + nightlight still need their own force flag + a verified link (the ask stands). ALSO from WINDOWS: the "calm-load" timing check (Thursday 9:30 pm, now the busiest stretch of the evening) fails on the mini PC on the code from BEFORE that pass too (a machine-timing test, passed in the cloud) → fix the test's premise (a genuinely calm moment), never a wider tolerance. And the party-sync "LIVE + THE LATE JOINER" check (65 ms vs a 50 ms bound, 3 passes running) → find the real cause (clock offset sampling / the joiner's seek) or measure the right quantity — GREEN MEANS GREEN.
+
+## OWNER'S NOTES — NOV 2
+## DESKTOP WRITTEN (Nov 2, ~12:40 am EST) — Step 0 = step0-desk.txt.
+
+## Nov 2, 12:40 am EST — SCHED: GROK's REBUTTAL HEARD → THE OWNER GOES WITH THE CHAT's RECOMMENDATIONS (DECIDED)
+(Grok: plan file Downloads\Grok\sched\grok-sched-rebuttal.md — legendaries 2–4 a WEEK, no 30-s rule, medium every 4–7 min. The owner: "it
+should be more frequent than he recommends … more on your side".) THE CHAT's ARGUMENT: a legendary lasts ~60–90 s and a visit ~10–60 s → even
+ONE legendary a night in a 5-h prime time is caught by <1 % of visits; rarity is measured PER VISIT, not per calendar.
+DECIDED:
+- THE SHOWCASE DIAL is set as THE ODDS A PRIME-TIME VISIT CATCHES A LEGENDARY: HIGH (now) ≈ 1 in 20 visits (≈ one legendary per prime-time
+  hour); turned down to ~1 in 100 and rarer as traffic grows (analytics retunes it).
+- LEGENDARIES ON THEIR OWN DIAL (Grok — adopted), separate from the medium tier; the TRUE JAW-DROPPERS (UFO, TR-3B) rarer than the SOFT ones
+  (the Blackbird, the flyby, …); never the same one twice within ~2 days; the conflict table keeps the big moments apart (no stacking).
+- THE 30-SECOND RULE → "SOMETHING MOVING in any 30 s" (the small tier — people, boats, cabs, windows — already does it); NOT a guaranteed
+  medium event. MEDIUM in prime time every ~3–5 min (between the chat's 2–3 and Grok's 4–7); off-peak ~⅓ of that; dead hours calm.
+- PRIME-TIME WEIGHTING as proposed (6–11 pm, Fri + Sat most, a little at lunch, late night sparse).
+- THE BILLBOARD HINTS (Grok — adopted): "LOOK UP AFTER 10 — SOMETHING'S IN THE SKY" on legendary hours (never naming it — an appointment, not a
+  spoiler); the Sunday postcard "LAST WEEK'S BLACKBIRD" (a small silhouette); + "TONIGHT · FIREWORKS 9:30", "FRIDAY · STREET PARTY FROM 8".
+  SKIPPED: Grok's "WELCOME BACK [name]" (cheesy on a 1920s sign; maybe Lobby / Progression later).
+- TIME ZONES — ALREADY RIGHT (the chat checked the code, read-only: core/harbor-legend.js seeds tonight's legendary by the EVENING's LOCAL date
+  at a LOCAL hour): the same local evening for everyone; friends in one zone see it the same second. Keep it.
+- AUTO-DILUTING pools (adding a scene lowers the others' odds) — kept; the legendary pool's odds come from the dial, not the pool size.
+- (12:45 am) FABLE REVIEWS (the owner — DECIDED): a FABLE REVIEW PER GAME right after its rework (in that game's chat: its rules, director,
+  edge cases, phone look + its hookups to LOBBY / BOARD / PROGRESSION 2.0 — where a cartridge breaks the console); FR6 stays AFTER both games
+  on purpose (the whole app before the switch-over; it reads the games' reports instead of re-reviewing them). No extra review before the games.
+  ORDER: DESKTOP → SCHED → CITY CONTROLS → PROGRESSION 2.0 → BOARD 2.0 → LOBBY 2.0 → SHELL 2.0 → PRISM DROP (+ its review) → OVERCLOCK (+ its
+  review) → FR6 → THE SWITCH-OVER.
+
+## DESKTOP DONE (Nov 2, ~5:40 am EST) — live. Summary: plan/desktop-summary.txt
+- Local: unit 984/984, rules 55/55, /api 27/27, smoke 6/6, FULL harbor 820/820 (19 min). Cloud: tests ✅; harbor 9/10 → the new `desktop`
+  group's mouse-only CSS check failed on the headless runner (no fine pointer) → test fixed, 2nd run green. THE PARTY-SYNC FLAKE FIXED AT ITS
+  CAUSE (the server-clock sample now timed off Resource Timing; 6× CPU: 153–168 ms → 1 ms) — green in the cloud for the first time in 4 passes.
+  Calm-load: a calm Thursday afternoon, measured on the real compositor.
+- Windows: the juggler (no doorway, in from the side, ABSINTHE GREEN, neon balls nightly); the Charleston (bigger, hip-high kicks, a dark
+  outline); the bookie (a pendant lamp lights the wall, a big hat arc); THE CRATE GUY REBUILT (stocky; the old one jumped 176× in 2 h — a new
+  unit test checks every frame); &force=boss-shade + &force=shades.
+- Desktop: a closer + lower camera at 1.4× (NOT 1.65× — that flattened the skyline + cost the word towers rows: two-line messages → one); the
+  sign ~1.25× bigger; ≥ 2.2 : 1 a soft dark edge fade; mouse: pointer + glow, Esc closes sheets; a smooth resize (incl. a DPR change); a
+  2.6 MP drawing cap (1.6 / 2.0 / 2.6 by tier) keeps 1920×1080 @2 at 60 fps; iPad upright = phone, sideways (iPad + phone) = the desktop
+  framing (a sideways phone: smaller sign + a compact dock). Upright phones unchanged (pixdiff = the control's 2.18 % from clock-driven signs).
+- Known: one ~0.4 s redraw after a resize drag ends (mini PC); match-sim's random-content check flaked 1 in ~6 (a hidden game, untouched).
+
+## OWNER's REVIEW OF DESKTOP — Nov 2, 6:00 am EST (iPhone, phone links 1–5) → the next city pass's Step 0
+- THE JUGGLER: the absinthe GREEN room is "too hard to see anything" → BACK TO HIS OLD WARM AMBER LIGHTING (the lamp low + to one side, as
+  WINDOWS shipped it) — KEEP the NEON BALLS every night (+ the plain wall, the walk-in from the side). The owner accepts it reading close to
+  the boxer's warm light (his earlier note) — legibility wins; a slightly different warm (brighter / more golden) is fine if it reads AS WELL.
+- THE OTHER WINDOWS (the crate guy, the Charleston, the bookie) "are good for now — we can tweak later" ✅.
+- THE BOSS's SHADE (`&force=boss-shade`, the 2:30 am link): the owner STILL doesn't see the shade come down on his iPhone (DESKTOP's
+  summary says it lands at ~6–10 s live) → reproduce in WebKit at 402×874 DPR 3 from a fresh load — what that window shows second by second
+  (the TV, the switch-off, the shade's travel, the nightlight); make the pull BIG + slow enough to read at ~40 pt (a clear cream shade
+  sliding down over the lit glass, ~2–3 s, the TV's blue cut as it passes); hold the moment until he's had time to look (or loop it every
+  ~20 s under the force, like the bookie's throw). NOTE: SP5's rule — "you NEVER see the boss" — the pull is the shade moving, never a figure.
+- (6:04 am) THE BOSS's SHADE LINK — the owner: "the page loads, but he doesn't close the window, it's normal". THE CHAT's LIKELY CAUSE (read
+  the code, read-only): windows.js ~232 starts the force's clock (`bossShadeT0 = f.t`) on the FIRST FRAME the windows draw — not at the
+  REVEAL — and plays the moment ONCE (~6 s). On the iPhone the load + reveal take longer than on the mini PC, so the pull is over before the
+  city is shown. FIX: start every scripted window force (boss-shade, shades, bookie-slam, scene-*) at THE REVEAL (as the legendaries do),
+  LOOP boss-shade + shades every ~20 s, and PROVE it in WebKit with a slow (4× CPU) load — never judge a preview link on the mini PC's speed alone.
+- (6:07 am) A PHONE HELD SIDEWAYS (the owner's iPhone screenshot, Safari with its tab bar, ~330 pt tall): "still not right" — the bottom half an
+  EMPTY BRICK PLANE, the skyline a thin strip, tiny people, the speakeasy a sliver at the left edge, the dock not visible (DESKTOP eased the zoom
+  to ~1× on short screens = the old stretched phone camera). DECIDED (6:08 am): NOW (the next city pass, ~15–20 min) → on a PHONE held
+  sideways, a neon "TURN YOUR PHONE UPRIGHT" card over the city (title, lobby + games), gone the moment it rotates back; iPads sideways +
+  computers KEEP the desktop framing. LATER → the PROPER SIDEWAYS FRAMING (its own camera for the short strip — much closer, a thin promenade,
+  the speakeasy brought in, a smaller sign; ~1–1.5 h) WITH TV MODE after the switch-over (both wide-screen shots built together); the card
+  comes off then. The owner checks the desktop links on the mini PC when he's home (nothing waits on them).
+- (6:12 am) SCHED — THE LEGENDARY POOL vs THE RATE (the chat's feasibility catch: "~one per prime-time hour" = ~5 a night, but only FOUR in
+  regular rotation — the UFO, the TR-3B (party nights only), the flyby, the Blackbird solo; the ghost ship = Halloween, the Mothman shelved)
+  → DECIDED (the owner: "sounds good, let's do it"): WEEKNIGHTS ~2–3 legendaries an evening; PARTY NIGHTS ~one an HOUR from 8 pm; NEVER the
+  same one twice in a night; repeats across nights ALLOWED for now; each NEW legendary (the harbor monster, the periscope, …) joins the
+  rotation automatically (the per-visit odds rise as the pool grows). THE TR-3B at HIGH may come on WEEKNIGHTS too, AFTER DARK ONLY (party
+  nights still get it most). THE BLACKBIRD's daytime sightings lean toward LUNCH (12–1) at HIGH. The rest of the day stays calm.
+
+- THE BUILD TABLE (Nov 2, SCHED Step 0): DESKTOP ✅; SCHED (this pass) ← NEXT; then CITY CONTROLS, PROGRESSION 2.0, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its review), OVERCLOCK (+ its review), FR6, THE SWITCH-OVER (the table itself: decisions.md §1).
