@@ -7,9 +7,10 @@
 // answer's 30 days, or the climate's) — every phone at a place the same.
 
 import { packStep, emptyPack } from './harbor-snow.js';
+import { knob } from './harbor-schedule.js';
 
 /** the numbers: the build window (January 2–31), each snow day's progress, the thaw's slump + melt (°C, per day) */
-export const SNOWMAN = Object.freeze({ from: 2, to: 31, perDay: 0.045, lastWeek: 24, buildDepth: 3, buildMax: 3, slumpT: 2, slumpK: 0.12, patch: 0.6, thawT: 4, thawDays: 3, meltPerDay: 0.34 });
+export const SNOWMAN = Object.freeze({ ...knob('snowman'), perDay: 0.045, buildDepth: 3, buildMax: 3, slumpT: 2, slumpK: 0.12, patch: 0.6, thawT: 4, thawDays: 3, meltPerDay: 0.34 });
 /** the stages by progress (what's on him): the base, the middle, the head, the face (eyes + buttons), the carrot, the scarf, the hat, the arms, the smile */
 export const STAGES = Object.freeze([['base', 0.04], ['middle', 0.24], ['head', 0.42], ['face', 0.55], ['carrot', 0.65], ['scarf', 0.74], ['hat', 0.84], ['arms', 0.93], ['smile', 0.99]]);
 export const stageOf = p => { let s = null; for (const [id, at] of STAGES) if (p >= at) s = id; return s; };

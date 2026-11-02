@@ -148,7 +148,7 @@ export function shadesNight(key, o = {}) {
  *  now + then someone raises / lowers it (every ~25–50 min, to another height, eased over PULL_S — never a snap), and after hours (a
  *  seeded minute between `downFrom` → `downTo`) it comes ALL THE WAY DOWN, glowing with the room's mood behind it → the cover (0..1) at
  *  evening second s. key: the evening's date */
-export const EDGE_SHADE = Object.freeze({ up: 0.07, half: 0.5, down: 0.93, full: 0.96, pull: 3.2, from: 18, downFrom: 24, downTo: 25.25, every: [1500, 3000] });
+export const EDGE_SHADE = Object.freeze({ ...knob('windows.edgeshades'), up: 0.07, half: 0.5, down: 0.93, full: 0.96, pull: 3.2 });
 const edgeMemo = new Map();
 export function edgeShadePlan(key, id, base = 'half', o = {}) {
   const mk = `${key}|${id}|${base}|${o.seed || 1924}`;

@@ -4,8 +4,11 @@
 // its window / its rarity, what it must never overlap (CONFLICTS below), where it lives (`src`), and whether it's live or still planned.
 // Only CLOCK + CALENDAR rows have times to tune (their `knobs`); the others record WHAT drives them, so the export shows the whole day.
 //
-// THE RULE (from NIGHT-B on): a NEW timed thing registers here and its planner READS its knobs (knob(id)); nothing new hard-codes a time.
-// The older systems (sky events, legends, workers, boats, traffic, windows…) are listed as rows with `src` and migrate at SCHED.
+// THE RULE (from NIGHT-B on): a NEW timed thing registers here and its planner READS its knobs (knob(id)); nothing hard-codes a time.
+// SCHED (Nov 2) MOVED EVERY OLDER SYSTEM IN (the sky events, the legends, the workers, the people, the windows, the holidays, boats, traffic,
+// the cabs, the raid, the wildlife, the routines, the tower, the parade, Christmas, the lamps, the signs, the snow crews) — proved by THE
+// GOLDEN TABLE (tests/fixtures/sched-golden.mjs: a year of every planner's decisions, unchanged) + tests/harbor-sched-strays.test.mjs (no
+// stray time left in a planner).
 // tests/harbor-tables.test.mjs. PURE.
 
 export const TRIGGERS = Object.freeze(['clock', 'calendar', 'darkness', 'beat', 'event']);
@@ -46,8 +49,15 @@ export const SCHEDULE = Object.freeze([
     knobs: { at: 24.0, latest: 24.6, gap: 60, n: [2, 4] }, conflicts: ['legendaries', 'storm'] },
   // ---- FIXED POINTS
   { id: 'rosie.bell', trigger: 'clock', status: 'live', fixed: true, src: 'core/harbor-boats.js', what: 'ROSIE\'s ship\'s bell as she docks at :00 (the horn ~:03 as she casts off) — the owner: NEVER moved',
-    knobs: { minute: 0 } },
-  // ---- THE REST OF THE CITY (rows to SEE the whole day; their times live in `src` until SCHED migrates them)
+    knobs: { minute: 0, service: { first: 7, last: 23, stretch: 1.6, dwell: 180, out: 200, dinner: 19 } } },
+  { id: 'boats.fishing', trigger: 'clock', status: 'live', src: 'core/harbor-boats.js#FISH', what: 'THE FISHING TUG: out at dawn (`out`, its bow lantern lit while it’s dark), back in the late afternoon (`back`)', knobs: { out: 6.15, back: 16.5 } },
+  { id: 'snow.work', trigger: 'calendar', status: 'live', src: 'core/harbor-snowwork.js#SNOWWORK + FLUSH', what: 'THE SNOW CREWS after a snowfall (the plows + the salter: a pass every `every` s, the salt `saltAfter` s behind, the MORNING round `morning`) + THE WATER WAGON in the small hours (`flush`: from `h0` ± `jitter` h, a shift `len` s, a pass every `every` s, the road dry `dry` s after)',
+    knobs: { every: 2400, saltAfter: 600, morning: [[6.65, 'plow', 'near'], [6.9, 'plow', 'far'], [7.2, 'salter', 'near'], [7.45, 'salter', 'far']], flush: { h0: 2.75, jitter: 0.08, len: [40 * 60, 46 * 60], every: 380, dry: 25 * 60 } } },
+  { id: 'snowman', trigger: 'calendar', status: 'live', src: 'core/harbor-snowman.js#snowmanPlan', what: 'THE SNOWMAN: built on the snow days of January (`from` → `to`, the last week from `lastWeek`)',
+    knobs: { from: 2, to: 31, lastWeek: 24 } },
+  { id: 'windows.edgeshades', trigger: 'clock', status: 'live', src: 'core/harbor-scenes.js#edgeShadePlan', what: 'THE EDGE WINDOWS’ SHADES: from `from` someone raises / lowers one now + then (every `every` [min, + up to] s), all the way down after hours between `downFrom` → `downTo`',
+    knobs: { from: 18, downFrom: 24, downTo: 25.25, every: [1500, 3000] } },
+  // ---- THE REST OF THE CITY (SCHED moved their times in: each row's knobs, read by its `src`)
   { id: 'lamps', trigger: 'darkness', status: 'live', src: 'core/harbor-lamps.js', what: 'the implied lamps + the beacons: the photocell at dusk, off at dawn',
     knobs: { from: 0.08, to: 0.55, warm: 1.3, slot: 420, chance: 0.5, out: 0.22, outS: [3, 6] } },
   { id: 'windows.dusk', trigger: 'darkness', status: 'live', src: 'core/harbor-moments.js', what: 'the speakeasy\'s windows light at dusk; late at night they go out one by one' },
@@ -85,9 +95,30 @@ export const SCHEDULE = Object.freeze([
   { id: 'windows.parked', trigger: 'darkness', status: 'live', src: 'core/harbor-moments.js#parkedNight + screens/harbor/windows.js', what: 'THE QUIET BUILDING: at night only the boss’s TV room + the two cut-off side rooms stay live; the bar, the jazz room + the upper middle (the boxer’s — SKY) PARKED behind drawn blinds, a mix of warm-lit + dark, going out one by one; party nights unchanged',
     knobs: { litMin: 1, litMax: 2, outFrom: 22.25, outTo: 25.5 }, conflicts: ['window.party'] },
   { id: 'signs.modes', trigger: 'clock', status: 'live', src: 'core/harbor-roofmodes.js', what: 'the roof signs\' hourly modes (spell / race / breath)',
-    knobs: { minute: 60, slot: 15 } },
+    knobs: { minute: 60, slot: 15, spellEvery: 180, spellJitter: 60, nightStages: [22, 1] } },
   { id: 'party.pulse', trigger: 'beat', status: 'live', src: 'core/harbor-beat.js', what: 'the party pulse: the lights on the song\'s grid (a trusted grid always punches)' },
-  { id: 'holidays', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js', what: 'the holidays, their build-ups day by day + the sign dressings' },
+  { id: 'holidays', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js', what: 'the holidays, their build-ups day by day + the sign dressings',
+    knobs: {
+      // the calendar (the year of the moment asked): build = when the build-up starts, day = the day itself [from, to) in local days, night =
+      // the holiday's own night [from, to) (hours on the day's clock: 26 = 2 am the next morning), down = the come-down [from, to)
+      table: [
+        { id: 'halloween', label: 'HALLOWEEN', build: [10, 1], day: [10, 31], night: [17.5, 28], end: [11, 1, 4], downLen: 0 },
+        // (Day of the Dead: Nov 1 + 2 — dressed 4 → 7 am on Nov 1 while Halloween's last pieces go; Nov 3 down through the day)
+        { id: 'dotd', label: 'DAY OF THE DEAD', start: [11, 1, 4], dressLen: 3, day: [11, 1], days: 2, night: [17, 23.5], down: [11, 3, 7], downLen: 12 },
+        // 11a-2 — THANKSGIVING (the fourth Thursday of November): the build-up from Nov 4 (Day of the Dead's last pieces gone the evening
+        // before) growing day by day to the Wednesday before; that Wednesday's evening = THE HOMECOMING party night (`eve`); the day itself
+        // (the parade in the morning, the quiet warm afternoon + evening); everything down OVERNIGHT into Black Friday (4 am)
+        { id: 'thanksgiving', label: 'THANKSGIVING', build: [11, 4], eveH: 17.5, end: 4 },
+      ],
+      // HALLOWEEN's build-up: the big jack-o'-lanterns' day (Oct), the second spider's, the giant pumpkin's (arrive / carve / carveH), the
+      // trick-or-treaters until `trickOrTreatTo`, the zombies `zombies` [from, to] (evening hours), the small hours until `lateTo`
+      halloween: { bigDay: 20, spider2Day: 29, giant: { arrive: 20, carve: 28, carveH: 4 }, trickOrTreatTo: 21.25, zombies: [20, 2], lateTo: 6,
+        witch: { from: 18, to: 28.5, everyMin: [7, 25] }, jinks: { afterDusk: 0.4, to: 26, every: [180, 600] } },   // (witch: a pass every everyMin [the night, the last week]; jinks: the bats round the roofs, every s)
+      // THANKSGIVING's day: the leaf raker (before day `days` of the build-up, `from` → `to`), the parade, the chimneys, the pies, the tables
+      thanksgiving: { raker: { days: 18.5, from: 8.6, to: 16.2 }, parade: [8.5, 11.6], chimneys: 11, pies: [12, 18.5], tables: 14.5 },
+      // DAY OF THE DEAD: the procession `after` h past sunset for `len_min`; the monarchs from `monarchs[0]` h until `monarchs[1]` h before dusk
+      dotd: { procession: { after: 1 / 6, len_min: 70 }, monarchs: [9.5, 0.5], monarch: { slot: 600, len: 22, chance: 0.75 } },   // (monarch: a ten-minute slot carries one at `chance`, ~`len` s across)
+    } },
   { id: 'workers', trigger: 'clock', status: 'live', src: 'core/harbor-workers.js', what: 'the workers\' day (milk 6:00, newsboy 7:00, barber 8:30, the beat cop 9 am + 9 pm…)',
     knobs: { shows: {
       // ~5:30 the street sweeper — a 1920s "white wing" with his broom + can cart; a wet streak left drying on the cobbles
@@ -271,7 +302,8 @@ export const SCHEDULE = Object.freeze([
     knobs: { perHour: { day: [2, 4], late: [1, 1], night: [0, 0] }, dayFrom: 6, dayTo: 23 } },
   { id: 'roof.crowd', trigger: 'clock', status: 'live', src: 'core/harbor-people.js#roofCrowd', what: 'THE ROOFTOP: a crowd on party nights + summer (`summer` months) weekend nights (`weekendNight` h, full from `full`, a few from `warm`); the gardener (`garden`); someone at the view (`view` h)',
     knobs: { summer: [6, 8], weekendNight: [19, 1], full: [20, 1.5], warm: 19, garden: { from: 9, to: 11.5, months: [4, 10] }, view: [18, 23] } },
-  { id: 'sky.events', trigger: 'clock', status: 'live', src: 'core/harbor-events.js', what: 'the everyday sky: planes, the helicopter (daily), balloons, birds… by rarity' },
+  { id: 'sky.events', trigger: 'clock', status: 'live', src: 'core/harbor-events.js', what: 'the everyday sky: planes, the helicopter (daily), balloons, birds… by rarity',
+    knobs: { slot_s: 90, rarity: { common_slots: 4, daily_per_day: 3, weekly_days: 7, rare_days: 30, legendary_days: 365 } } },
   // (NIGHT-C — THE HELICOPTER, the owner Oct 29 4:13 pm; SKY-A — REWORKED, the owner Oct 30 8:19–8:35 am: the ORIGINAL route back — round
   // the harbor + back around — TWO LOOPS a patrol, every ~30 min at night (3–4 min), hourly by day (2–3 min) — core/harbor-heli.js.
   // dayStarts: the hour a day's list begins (the small hours belong to the evening before); dayEl / nightEl: the sun's elevation (°) that
@@ -293,17 +325,20 @@ export const SCHEDULE = Object.freeze([
   // counted every `step` s, once a device a day
   // SKY-A — THE LEGENDS' REGISTRY (FR4 asked): every legendary, its trigger, its rarity + its conflicts in ONE place. The numbers MIRROR
   // the code that rolls them (core/harbor-legend.js — moved INTO this table at SCHED; tests/harbor-blackbird.test.mjs checks they agree)
-  { id: 'legend.ufo', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (LEGEND_P)', registry: true, what: 'THE UFO ABDUCTION: ~1–2 a month, any night, 21:30 → 00:45 (a seeded minute); 30 s — sebslom’s model, the pale green beam over the compass, the witnesses flee', knobs: { from: 21.5, to: 24.75, len: 30 }, conflicts: ['legend.tr3b', 'raid', 'party.break'] },
-  { id: 'legend.tr3b', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (TR3B_PARTY_P, TR3B_HOURS)', registry: true, what: 'THE TR-3B: ~1.5 a month, PARTY NIGHTS only (Fri / Sat), at the peak (22:09–22:51 · 23:09–23:51 · 00:09–00:30), never a fireworks night; the city drains dark, the craft crosses (its lights light the world), the F-22 vic chases it + THE BLACKBIRD passes them', knobs: { partyP: 0.17, hours: [[22.15, 22.85], [23.15, 23.85], [24.15, 24.5]] }, conflicts: ['legend.ufo', 'raid', 'fireworks.party', 'party.break', 'traffic'] },
-  { id: 'legend.ghostship', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js#ghostShipAt', registry: true, what: 'THE GHOST SHIP: Halloween night only (the legendary of Oct 31 — no UFO / TR-3B that night)' },
-  { id: 'legend.flyby', trigger: 'calendar', status: 'live', src: 'screens/harbor/skyfx.js#flybyDay', registry: true, what: 'THE SURPRISE FLYBY: ~twice a month, golden hour → 11 pm — F-22s straight across on afterburner (the model)' },
+  { id: 'legend.ufo', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (LEGEND_P)', registry: true, what: 'THE UFO ABDUCTION: ~1–2 a month, any night, 21:30 → 00:45 (a seeded minute); 30 s — sebslom’s model, the pale green beam over the compass, the witnesses flee', knobs: { from: 21.5, to: 24.75, len: 30, p: 0.05 }, conflicts: ['legend.tr3b', 'raid', 'party.break'] },
+  { id: 'legend.tr3b', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (TR3B_PARTY_P, TR3B_HOURS)', registry: true, what: 'THE TR-3B: ~1.5 a month, PARTY NIGHTS only (Fri / Sat), at the peak (22:09–22:51 · 23:09–23:51 · 00:09–00:30), never a fireworks night; the city drains dark, the craft crosses (its lights light the world), the F-22 vic chases it + THE BLACKBIRD passes them', knobs: { partyP: 0.17, hours: [[22.15, 22.85], [23.15, 23.85], [24.15, 24.5]], notOn: [[7, 4], [12, 31], [1, 1]] }, conflicts: ['legend.ufo', 'raid', 'fireworks.party', 'party.break', 'traffic'] },
+  { id: 'legend.ghostship', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js#ghostShipAt', registry: true, what: 'THE GHOST SHIP: Halloween night only (the legendary of Oct 31 — no UFO / TR-3B that night)',
+    knobs: { early: [20.75, 1.0], late: [23, 1.5] } },
+  { id: 'legend.flyby', trigger: 'calendar', status: 'live', src: 'screens/harbor/skyfx.js#flybyDay', registry: true, what: 'THE SURPRISE FLYBY: ~twice a month, golden hour → 11 pm — F-22s straight across on afterburner (the model)',
+    knobs: { p: 0.073, nightShare: 0.72, darkCap: 22.4, darkAfterDusk: 0.6, goldBefore: 1, latest: 23 } },
   // (THE MODELS PASS — THE MOTHMAN, core/harbor-mothman.js + screens/harbor/mothman.js: p = a night's chance (≈ 2 a month once the legendary
   // nights + the night after one of his are taken out); arriveFrom / arriveTo, leaveFrom / leaveTo (hours on the evening's clock: 26 = 2 am);
   // glideIn / glideOut / stutter (s: the glide in to the needle, the glide away, the needle's dark stutter that hides the swap); size (his
   // perched height, pt at 402 — scaled with the screen: 84 = the plan's ~70 pt of HIM above the tip, the hem draping round the spire);
   // on = HIS SWITCH (ATM-A: false — postponed; his code, models + the force previews kept))
   { id: 'legend.mothman', trigger: 'calendar', status: 'off', off: 'ATM-A: POSTPONED (the owner, Oct 31: "looks very cheap, needs major work" — the FUTURE list); no nights while knobs.on is false — &force=mothman / mothman-arrive / mothman-leave still preview him', src: 'core/harbor-mothman.js#mothmanNight + screens/harbor/mothman.js', registry: true, what: 'THE MOTHMAN on THE NEON NEEDLE: ~twice a month, never a legendary night or two nights running — glides in ~2–2:30 am (the needle stutters dark: he is perched), the eyes blinking out of sync, leaves ~5–5:30 (the needle stutters: he is already in the air, gliding up + away — no flaps)', knobs: { on: false, p: 0.075, arriveFrom: 26, arriveTo: 26.5, leaveFrom: 29, leaveTo: 29.5, glideIn: 14, glideOut: 16, stutter: 1.4, size: 84 }, conflicts: ['legend.ufo', 'legend.tr3b', 'window.haze'] },
-  { id: 'legend.rule', trigger: 'event', status: 'live', src: 'core/harbor-legend.js#legendNight', registry: true, what: 'THE LEGENDS’ RULES: never two legendaries a night, never two legendary nights running; a raid never shares its night; nothing new drives in while one runs (trafficHold); no dance break during one' },
+  { id: 'legend.rule', trigger: 'event', status: 'live', src: 'core/harbor-legend.js#legendNight', registry: true, what: 'THE LEGENDS’ RULES: never two legendaries a night, never two legendary nights running; a raid never shares its night; nothing new drives in while one runs (trafficHold); no dance break during one',
+    knobs: { ghostNight: [[10, 31]] } },
   { id: 'blackbird.chase', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#bbChaseAt + screens/harbor/blackbird.js', what: 'THE BLACKBIRD IN EVERY TR-3B CHASE: once the F-22s are ~⅓ across, the same direction, faster — across the dark NEON sign while the drain holds it (above it if it’s powering back)', knobs: { jetsAcross: 1 / 3 } },
   { id: 'blackbird.solo', trigger: 'calendar', status: 'live', src: 'core/harbor-blackbird.js#soloDay', what: 'THE BLACKBIRD’s SOLO SIGHTINGS: rare (~2 a month, a seeded day + time), ~5 passes on July 4 — above the lit sign; never on a legendary night', knobs: { perMonth: 2, from: 11, to: 23, july4: 5, july4From: 12, july4To: 21.5 }, conflicts: ['legendaries'] },
   { id: 'blackbird.watcher', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#watcherStep', what: 'THE WATCHER’s REWARD: after 60 visible minutes on the city (a gap under 5 min pauses the count, longer resets it) — this device only, once a day, never announced', knobs: { minutes: 60, pauseMin: 5, step: 5 } },
@@ -390,7 +425,7 @@ const hh = h => { const x = ((h % 24) + 24) % 24, H = Math.floor(x), M = Math.ro
 export function timetableText() {
   const fmt = r => {
     const k = r.knobs || {}, bits = [];
-    for (const [n, v] of Object.entries(k)) bits.push(typeof v === 'number' && /^(from|to|warm|full|thin|gone|at|midnight|partyTo)$/.test(n) ? `${n} ${hh(v)}` : `${n} ${Array.isArray(v) ? v.join('/') : v}`);
+    for (const [n, v] of Object.entries(k)) bits.push(typeof v === 'number' && /^(from|to|warm|full|thin|gone|at|midnight|partyTo)$/.test(n) ? `${n} ${hh(v)}` : `${n} ${v && typeof v === 'object' && !Array.isArray(v) ? JSON.stringify(v) : Array.isArray(v) ? v.map(x => (x && typeof x === 'object' ? JSON.stringify(x) : x)).join('/') : v}`);
     return `${r.trigger.toUpperCase().padEnd(8)} ${r.id.padEnd(18)} ${r.status === 'planned' ? '(planned) ' : r.status === 'off' ? '(OFF) ' : ''}${r.fixed ? '(FIXED) ' : ''}${r.what}${bits.length ? ` — ${bits.join(' · ')}` : ''}${r.conflicts ? ` · never with: ${r.conflicts.join(', ')}` : ''}  [${r.src}]`;
   };
   const order = TRIGGERS;

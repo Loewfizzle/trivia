@@ -8,14 +8,16 @@
 // runs there: fs.density).
 import { hashString, rngFrom } from './rng.js';
 import { balloonTime } from './harbor-sky.js';
+import { knob } from './harbor-schedule.js';
 
 export const LANES = ['sky-high', 'sky-low', 'skyline', 'water', 'road', 'promenade', 'windows', 'rooftop', 'tagline'];
-export const SLOT_MS = 90 * 1000;
+export const SLOT_MS = knob('sky.events').slot_s * 1000;
 const DAY = 864e5;
 /** how often, on average, an eligible event starts (the period in ms): common = every few slots … legendary = once a year */
 // (NIGHT-C: 'timed' = on a TIMETABLE — its when() is true only in its own slot, and then it always starts (first, after the forced ones):
 // the helicopter's patrol, core/harbor-heli.js)
-export const RARITY = { timed: SLOT_MS, common: 4 * SLOT_MS, daily: DAY / 3, weekly: 7 * DAY, rare: 30 * DAY, legendary: 365 * DAY };
+const RK = knob('sky.events').rarity;
+export const RARITY = { timed: SLOT_MS, common: RK.common_slots * SLOT_MS, daily: DAY / RK.daily_per_day, weekly: RK.weekly_days * DAY, rare: RK.rare_days * DAY, legendary: RK.legendary_days * DAY };
 const ORDER = { timed: -1, legendary: 0, rare: 1, weekly: 2, daily: 3, common: 4 };
 /** the frame budget (ms of drawing per frame) all running events share, and each lane's own share */
 export const BUDGET = { total: 2.5, lane: 1.5 };

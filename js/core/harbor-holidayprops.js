@@ -15,6 +15,7 @@
 import { rngFrom, hashString } from './rng.js';
 import { dressingSpots } from './harbor-spots.js';
 import { centreK } from './harbor-promenade.js';
+import { knob } from './harbor-schedule.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const lerp = (a, b, t) => a + (b - a) * t;
@@ -219,7 +220,7 @@ export function papelRuns(L) {
 
 // ------------------------------------------------------------------ MONARCHS (rare, by day)
 /** a monarch now: by day ~3 of every 4 ten-minute slots carry one (seeded, ~22 s across: about one every 13 minutes); forced: one every 25 s from the flag */
-export const MONARCH = Object.freeze({ slot: 600, len: 22, chance: 0.75 });
+export const MONARCH = Object.freeze({ ...knob('holidays').dotd.monarch });
 export function monarchSlot(ms, o = {}) {
   const s = ms / 1000;
   if (o.forceAt != null) { const e = s - o.forceAt / 1000 - 1.5; if (e < 0) return null; const n = Math.floor(e / 25), u = (e - n * 25) / MONARCH.len; return u < 1 ? { n: 9000 + n, u } : null; }

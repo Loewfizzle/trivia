@@ -29,6 +29,7 @@
 //                    + scheme stages through the night — seeded by the night (the same all night)
 
 import { beatPunch, pulseOut } from './harbor-beat.js';
+import { knob } from './harbor-schedule.js';
 
 export const FX = { none: 0, chase: 1, ledges: 2, fins: 3, flash: 4 };
 /**
@@ -377,7 +378,7 @@ export function everyday(key, cast, signs) {
 }
 
 /** the night's stage on the light timeline (the local hour): 0 the evening (until 22 h) · 1 late night (22–1 h) · 2 the small hours */
-export const nightStage = hour => { const h = ((hour % 24) + 24) % 24; return h >= 22 || h < 1 ? 1 : h >= 1 && h < 12 ? 2 : 0; };
+export const nightStage = hour => { const h = ((hour % 24) + 24) % 24, S = knob('signs.modes').nightStages; return h >= S[0] || h < S[1] ? 1 : h >= S[1] && h < 12 ? 2 : 0; };
 /** a slow colour rotation's mix (0 = the building's own colour, 1 = its second) at t (s): 48 s a cycle — hold, an 8 s fade, hold, back */
 export function rotateMix(t, seed = 0) {
   const u = ((t + seed * 11.3) % 48 + 48) % 48;
@@ -447,7 +448,7 @@ export function signMotion(kind, t, seed = 0) {
 // on the city's clock (every phone the same). A party night: BETWEEN the show's scenes — from the last bar of a scene (its effects
 // fading out) into the first of the next (fading in), every other scene change, the turns as above. &force=spell-on: a quick cycle.
 export const SPELL_DUR = 3.4;                    // s: dark over 0.35 s, the letters 0.6 → 3.0 s (scaled when shorter), then on
-const SPELL_EVERY = 180, SPELL_JITTER = 60;
+const SPELL_EVERY = knob('signs.modes').spellEvery, SPELL_JITTER = knob('signs.modes').spellJitter;
 /** a spell-on u s after it started (dur: its length) → { a (the name's alpha ×), reveal (0..1 of its letters) } */
 export function spellMotion(u, dur = SPELL_DUR) {
   const k = dur / SPELL_DUR, v = u / k;

@@ -9,8 +9,9 @@
 //         scene's time from the lane's entry, off-screen, to where the road first shows past the speakeasy) so the plow comes into view
 //         ~1 s after the flag; forced spawns are never dropped for a bus due at the stop / a worker's truck (simulateLane's `forced`).
 import { rngFrom, hashString } from './rng.js';
+import { knob } from './harbor-schedule.js';
 
-export const SNOWWORK = Object.freeze({ every: 2400, saltAfter: 600, v: { plow: 3.0, salt: 3.6, flusher: 2.3 }, len: { plow: 7.1, salter: 6.0, flusher: 6.2 }, morning: [[6.65, 'plow', 'near'], [6.9, 'plow', 'far'], [7.2, 'salter', 'near'], [7.45, 'salter', 'far']], forcedSalt: 8, block: 120 });
+export const SNOWWORK = Object.freeze({ ...knob('snow.work'), v: { plow: 3.0, salt: 3.6, flusher: 2.3 }, len: { plow: 7.1, salter: 6.0, flusher: 6.2 }, forcedSalt: 8, block: 120 });
 
 const localHour = (t, off) => ((((t + (off || 0) * 60) / 3600) % 24) + 24) % 24;
 
@@ -19,7 +20,7 @@ const localHour = (t, off) => ((((t + (off || 0) * 60) / 3600) % 24) + 24) % 24;
  *  the road left wet behind (the scene's wet road while it works + drying `dry` s after). Its nights: ctx.flush (the scene: not after rain,
  *  not below freezing, not on snow — the hoser at the hydrant (core/harbor-workers.js#SHOWS.hoser) shares the gate). &force=flusher: a
  *  pass every `every` s from the flag (a loop). */
-export const FLUSH = Object.freeze({ h0: 2.75, jitter: 0.08, len: [40 * 60, 46 * 60], every: 380, dry: 25 * 60 });
+export const FLUSH = Object.freeze({ ...knob('snow.work').flush });
 /** PURE: the water wagon's shift on local day index d (days since the epoch, local) → [t0, t1] (abs s) */
 export function flushWindow(d, ctx = {}) {
   const r = rngFrom(hashString(`flush|${ctx.seed || 1924}|${d}`));

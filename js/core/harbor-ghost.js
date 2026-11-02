@@ -8,6 +8,7 @@
 //   batColonyAt(lc, weight, dusk)  THE BATS pouring out of a tower crown at dusk (HP.bats): seconds into the colony's flight or null;
 //                              batJinkAt(lc, weight) — the few jinking round the roofs through the night
 import { GHOST_LEN } from './harbor-holiday.js';
+import { knob } from './harbor-schedule.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -51,8 +52,9 @@ export const WITCH_LEN = 13;
 export function witchAt(lc, weight) {
   if (!lc || !(weight > 0)) return null;
   const hr = hourOf(lc), ev = hr < 12 ? hr + 24 : hr;                        // (the evening's clock: 1 am = 25)
-  if (ev < 18 || ev > 28.5) return null;
-  const per = (weight >= 0.9 ? 7 : 25) * 60, sec = (ev - 18) * 3600, slot = Math.floor(sec / per), into = sec - slot * per;
+  const W = knob('holidays').halloween.witch;
+  if (ev < W.from || ev > W.to) return null;
+  const per = (weight >= 0.9 ? W.everyMin[0] : W.everyMin[1]) * 60, sec = (ev - W.from) * 3600, slot = Math.floor(sec / per), into = sec - slot * per;
   const seed = lc.y * 1000 + lc.m * 40 + (hr < 12 ? lc.d - 1 : lc.d);
   const t0 = 20 + h01(slot, seed) * (per - WITCH_LEN - 40);
   if (into < t0 || into >= t0 + WITCH_LEN) return null;
@@ -86,8 +88,9 @@ export function batColonyForced(nowS, since) {
 export function batJinkAt(lc, weight, dusk = 17.6) {
   if (!lc || !(weight > 0)) return null;
   const hr = hourOf(lc), ev = hr < 12 ? hr + 24 : hr;
-  if (ev < dusk + 0.4 || ev > 26) return null;
-  const per = weight >= 0.9 ? 180 : 600, sec = ev * 3600, slot = Math.floor(sec / per), into = sec - slot * per;
+  const B = knob('holidays').halloween.jinks;
+  if (ev < dusk + B.afterDusk || ev > B.to) return null;
+  const per = weight >= 0.9 ? B.every[0] : B.every[1], sec = ev * 3600, slot = Math.floor(sec / per), into = sec - slot * per;
   const t0 = h01(slot, 31) * (per - 45);
   return into >= t0 && into < t0 + 40 ? { s: into - t0, slot } : null;
 }

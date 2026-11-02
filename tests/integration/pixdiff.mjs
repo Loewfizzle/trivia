@@ -1,7 +1,7 @@
 // PIXEL DIFF — "no look change" proved: the same title preview from two servers (A = the commit before, a `git worktree` on :5174;
 // B = the working tree on :5173), rendered still and compared pixel by pixel (C1.5; docs/testing.md).
 //   node pixdiff.mjs "<browser>" [--a http://localhost:5174] [--b http://localhost:5173] [--city 2] [--size 402x874]
-//                    [--scenes night,party,noon,golden] [--out ./shots-diff] [--thr 24] [--burst 8 --gap 250] [--aq '&flag=…']
+//                    [--scenes night,party,noon,golden] [--out ./shots-diff] [--thr 24] [--burst 8 --gap 250] [--aq '&flag=…'] [--pin]
 // Still mode (default): reduced motion (prefers-reduced-motion: the city holds still) + a seeded Math.random on both sides, each
 // shot taken once the city is settled (no bake, no crossfade, the neon steady). Each scene is shot TWICE on A first — the A-vs-A
 // diff is the noise floor (anything that still moves) — then A vs B. A pixel "differs" when a channel moves by more than --thr.
@@ -20,6 +20,7 @@ const [VW, VH] = arg('size', '402x874').split('x').map(Number);
 const OUT = (arg('out', './shots-diff')).replace(/\/?$/, '/');
 const THR = Number(arg('thr', 24));
 const BURST = Number(arg('burst', 0)), GAP = Number(arg('gap', 250));
+const PIN = process.argv.includes('--pin');   // (SCHED: --pin freezes the page's Date.now at its load — the city's clock + every clock-driven sign hold at &when=: an A-A floor ~0)
 const AQ = arg('aq', '');   // extra query for A only (e.g. --aq "&wheelbg=d": the old commit's flag for what B now does by default)
 const AT = '&tz=America/Detroit&at=42.96,-85.67';
 // the owner's preview moments (a Thursday night, a Saturday party, noon, golden hour) — no planes / birds (they fly on Math.random)
@@ -52,6 +53,7 @@ async function shoot(base, q, still) {
   if (base === A && AQ) q += AQ;
   const page = await browser.newPage();
   if (still) await page.evaluateOnNewDocument(SEED);
+  if (PIN) await page.evaluateOnNewDocument('(() => { const T = Date.now(); Date.now = () => T; })();');
   const mobile = VW < 800;
   await page.setViewport({ width: VW, height: VH, deviceScaleFactor: mobile ? 3 : 1, isMobile: mobile, hasTouch: mobile });
   if (still) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);

@@ -16,6 +16,7 @@
 // own night is on), key (a cache key that changes ~every 10 min + on every phase change) }.
 // The DAY a holiday ends, its pieces come down OVERNIGHT (the owner: "comes down overnight into Day of the Dead"): Halloween's last
 // night runs to 4 am on Nov 1; Day of the Dead's crews dress the promenade 4 → 7 am; Nov 3 its pieces come down through the day.
+import { knob } from './harbor-schedule.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const DAYMS = 864e5;
@@ -26,15 +27,7 @@ const lcDays = lc => at(lc.y, lc.m, lc.d, lc.h + (lc.mi || 0) / 60 + (lc.s || 0)
 
 /** the holidays (the year of the moment asked): build = when the build-up starts, day = the day itself [from, to) in local days,
  *  night = the holiday's own night [from, to) (hours on the day's clock: 26 = 2 am the next morning), down = the come-down [from, to) */
-export const HOLIDAY_TABLE = Object.freeze([
-  { id: 'halloween', label: 'HALLOWEEN', build: [10, 1], day: [10, 31], night: [17.5, 28], end: [11, 1, 4], downLen: 0 },
-  // (Day of the Dead: Nov 1 + 2 — dressed 4 → 7 am on Nov 1 while Halloween's last pieces go; Nov 3 down through the day)
-  { id: 'dotd', label: 'DAY OF THE DEAD', start: [11, 1, 4], dressLen: 3, day: [11, 1], days: 2, night: [17, 23.5], down: [11, 3, 7], downLen: 12 },
-  // 11a-2 — THANKSGIVING (the fourth Thursday of November): the build-up from Nov 4 (Day of the Dead's last pieces gone the evening
-  // before) growing day by day to the Wednesday before; that Wednesday's evening = THE HOMECOMING party night (`eve`); the day itself
-  // (the parade in the morning, the quiet warm afternoon + evening); everything down OVERNIGHT into Black Friday (4 am)
-  { id: 'thanksgiving', label: 'THANKSGIVING', build: [11, 4], eveH: 17.5, end: 4 },
-]);
+export const HOLIDAY_TABLE = Object.freeze(knob('holidays').table.map(r => Object.freeze(r)));
 /** the fourth Thursday of November of year y → its day of the month */
 export function thanksgivingDay(y) { const dow = new Date(Date.UTC(y, 10, 1)).getUTCDay(); return 1 + ((4 - dow + 7) % 7) + 21; }
 
@@ -89,14 +82,14 @@ export function h01(n, salt = 0) {
 
 /** THE PUMPKINS on the speakeasy's steps: how many by the day of October, how many of them carved — MAX on Halloween */
 /** the day (of October) the farm delivery brings the BIG jack-o'-lanterns to the promenade (core/harbor-holidayprops.js#BIG_PIECES) */
-export const BIG_DAY = 20;
+export const BIG_DAY = knob('holidays').halloween.bigDay;
 export const PUMPKINS_MAX = 5;   // (WIN: nine → five — the owner: too crowded on small iPhones)
 /** WIN3 — the day (of October) the SECOND SPIDER arrives on the last N's corner web (the owner: ~2 days before the night) */
-export const SPIDER2_DAY = 29;
+export const SPIDER2_DAY = knob('holidays').halloween.spider2Day;
 /** 11a-2 — THE GIANT JACK-O'-LANTERN on the centre circle (the owner, Oct 26 6:52 pm): the farm's biggest pumpkin arrives on its straw-bale
  *  plinth on Oct 20 (uncarved), is CARVED OVERNIGHT into Oct 28 (by 4 am — the carvers come in the small hours; the city wakes to it),
  *  lit every night from then (its candle from dusk), brightest on Halloween night; gone with the rest at 4 am Nov 1 */
-const GIANT_DAYS = Object.freeze({ arrive: 20, carve: 28, carveH: 4 });
+const GIANT_DAYS = Object.freeze({ ...knob('holidays').halloween.giant });
 /** C4b — THE GIANT OFF (the owner, Oct 28 8:43 pm — "Halloween's almost done, no one's going to see it"): DISABLED from now on — the
  *  code + its bake stay for next October's decision. `&force=giant` (o.giant) still shows it on its dates (a preview + its e2e). With it
  *  off go its closed floor, its floods + the dance's ring round it (they all read `pieces.giant`). */
@@ -111,7 +104,7 @@ export const PUMPKIN_DAYS = Object.freeze(Array.from({ length: PUMPKINS_MAX }, (
 /** what of HALLOWEEN shows now. H: holidayAt(); o: { hour (local 0..24) } → the pieces (0 / false = not shown) */
 export function halloweenPieces(H, o = {}) {
   if (!H || H.id !== 'halloween') return null;
-  const day = 1 + Math.floor(H.days), night = H.eve, hr = o.hour == null ? 12 : o.hour, late = hr < 6;
+  const HW = knob('holidays').halloween, day = 1 + Math.floor(H.days), night = H.eve, hr = o.hour == null ? 12 : o.hour, late = hr < HW.lateTo;
   const pumpkins = PUMPKIN_DAYS.map((p, i) => ({ i, carved: day >= p.carve || night, here: day >= p.arrive })).filter(p => p.here);
   return {
     // the web on the NEON sign: grows every day, fully woven as the night of the 31st begins
@@ -129,8 +122,8 @@ export function halloweenPieces(H, o = {}) {
     // the window scenes (the build-up's weight: from mid-month, more each night, the most on the night)
     windows: night ? 1 : H.stage < 0.45 ? 0 : 0.25 + 0.6 * clamp01((H.stage - 0.45) / 0.55),
     // the people of the night (Halloween night only): trick-or-treaters from dusk → 9 pm, zombies shambling 8 pm → 2 am
-    trickOrTreat: night && !late && hr < 21.25,
-    zombies: night && (hr >= 20 || late) && (!late || hr < 2),
+    trickOrTreat: night && !late && hr < HW.trickOrTreatTo,
+    zombies: night && (hr >= HW.zombies[0] || late) && (!late || hr < HW.zombies[1]),
     // the bats from a tower crown + the witch: the last week's nights more, the night most (the sky reads the weight)
     bats: night ? 1 : H.stage > 0.75 ? 0.35 : 0,
     witch: night ? 1 : H.stage > 0.85 ? 0.3 : 0,
@@ -177,7 +170,7 @@ export function latchBig(held, now, relatch = false) {
  */
 export function thanksgivingPieces(H, o = {}) {
   if (!H || H.id !== 'thanksgiving') return null;
-  const s = H.stage, hr = o.hour == null ? 12 : o.hour, day = H.phase === 'day', days = H.days;
+  const TG = knob('holidays').thanksgiving, s = H.stage, hr = o.hour == null ? 12 : o.hour, day = H.phase === 'day', days = H.days;
   return {
     mums: Math.min(4, 1 + Math.floor(s * 6)),
     bales: s >= 0.09 || day,
@@ -186,14 +179,14 @@ export function thanksgivingPieces(H, o = {}) {
     harvest: s >= 0.42 || day,
     wreath: day ? 1 : clamp01((s - 0.5) / 0.42),
     amber: day,
-    raker: days < 18.5 && hr > 8.6 && hr < 16.2 && !day,
+    raker: days < TG.raker.days && hr > TG.raker.from && hr < TG.raker.to && !day,
     cider: true,
     geese: 2.2,
     party: !!H.eve,
-    parade: day && hr >= 8.5 && hr < 11.6,
-    chimneys: day && hr >= 11 ? 1 : 0,                                // (the ovens + the hearths: chimney smoke from late morning)
-    pies: day && hr >= 12 && hr < 18.5,                               // (people carrying pies to dinner)
-    tables: day && hr >= 14.5,                                        // (the family tables in the windows)
+    parade: day && hr >= TG.parade[0] && hr < TG.parade[1],
+    chimneys: day && hr >= TG.chimneys ? 1 : 0,                                // (the ovens + the hearths: chimney smoke from late morning)
+    pies: day && hr >= TG.pies[0] && hr < TG.pies[1],                               // (people carrying pies to dinner)
+    tables: day && hr >= TG.tables,                                        // (the family tables in the windows)
   };
 }
 /** 11a-2 — THE TREES HOLD THEIR PEAK COLOUR for Thanksgiving (the plan: "peak autumn trees"): the real season would thin + bare them from
@@ -207,7 +200,8 @@ export function holidaySeason(H, season, phase) {
  *  same for everyone: one early (20:45 → 21:45), one late (23:00 → 00:30). Each crossing takes GHOST_LEN s. */
 export const GHOST_LEN = 150;
 export function ghostShipTimes(y) {
-  return [20.75 + h01(y, 11) * 1.0, 23 + h01(y, 13) * 1.5].map(h => Math.round(h * 60) / 60);
+  const G = knob('legend.ghostship');
+  return [G.early[0] + h01(y, 11) * G.early[1], G.late[0] + h01(y, 13) * G.late[1]].map(h => Math.round(h * 60) / 60);
 }
 /** the ghost ship's crossing at a local moment: { s (seconds in), len, n } or null — on Halloween night only */
 export function ghostShipAt(lc) {
@@ -225,7 +219,7 @@ export function ghostShipAt(lc) {
 /** what of DAY OF THE DEAD shows now. H: holidayAt(); o: { hour, dusk (local hour of sunset; ~17.6 in Grand Rapids in early Nov) } */
 export function dotdPieces(H, o = {}) {
   if (!H || H.id !== 'dotd') return null;
-  const up = H.stage * (1 - H.down), hr = o.hour == null ? 12 : o.hour, dusk = o.dusk == null ? 17.6 : o.dusk;
+  const DD = knob('holidays').dotd, up = H.stage * (1 - H.down), hr = o.hour == null ? 12 : o.hour, dusk = o.dusk == null ? 17.6 : o.dusk;
   // each piece goes up in its own order through the dressing (4 → 7 am) and comes down in reverse through Nov 3
   const piece = (a, b) => clamp01((H.stage - a) / (b - a)) * (1 - clamp01((H.down - (1 - b)) / (b - a)));
   return {
@@ -237,15 +231,15 @@ export function dotdPieces(H, o = {}) {
     sign: piece(0.1, 0.6),           // the NEON sign: the marigold garland, papel picado between the letters, candles at its base
     ofrendas: piece(0.2, 0.7),       // the candlelit ofrendas in the windows (Group 1's kit)
     // Nov 2 at dusk: the candlelight PROCESSION along the waterside road (from 10 min after sunset, ~70 min)
-    procession: H.day === 1 && hr >= dusk + 1 / 6 && hr < dusk + 1 / 6 + 70 / 60,
+    procession: H.day === 1 && hr >= dusk + DD.procession.after && hr < dusk + DD.procession.after + DD.procession.len_min / 60,
     // rare monarch butterflies by day (Nov 1 + 2)
-    monarchs: H.day < 2 && hr > 9.5 && hr < dusk - 0.5,
+    monarchs: H.day < 2 && hr > DD.monarchs[0] && hr < dusk - DD.monarchs[1],
     // the tubes warming to marigold / pink (the sign's colours; on the days themselves)
     warm: H.phase !== 'down' ? up : 0,
   };
 }
 /** the procession's place at a local moment (Nov 2): seconds since it began (0 → PROCESSION_LEN) or null */
-export const PROCESSION_LEN = 70 * 60;
+export const PROCESSION_LEN = knob('holidays').dotd.procession.len_min * 60;
 export function processionAt(lc, dusk = 17.6) {
   if (!lc || lc.m !== 11 || lc.d !== 2) return null;
   const hr = lc.h + (lc.mi || 0) / 60 + (lc.s || 0) / 3600, s = (hr - (dusk + 1 / 6)) * 3600;

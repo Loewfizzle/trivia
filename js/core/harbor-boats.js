@@ -10,6 +10,7 @@
 // her berth (her bow toward us), then eases the last half length ASTERN into her landing — bow-out as before, at the same times.
 // Which boats sail is decided per CYCLE from the hour at the cycle's start (the tug at night, the sailboats by day) — a boat
 // never pops in or out while you watch. docs/harbor/passes/part-5.md#the-boats.
+import { knob } from './harbor-schedule.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const PI = Math.PI;
@@ -172,11 +173,11 @@ export function boatRoutes(L, { taxi = false } = {}) {
  *  through her service day (7 am → 11 pm, none in the small hours) she comes in — from off screen ~4 min before, gliding in bow-first
  *  + turning to her pier (her 3D swing) — DOCKS AT :00 (the ship's bell), boards for ~3 min, casts off (her horn; the 7 pm one = the
  *  DINNER CRUISE's long blast) and steams away, gone off screen by ~:06. In motion the whole visit. */
-const ROSIE_SERVICE = Object.freeze({ first: 7, last: 23, stretch: 1.6, dwell: 180, out: 200, dinner: 19 });
+const ROSIE_SERVICE = Object.freeze({ ...knob('rosie.bell').service });
 /** her departures as a table (the hours she casts off at :03 — one horn each) */
 export const ROSIE_TABLE = Object.freeze(Array.from({ length: ROSIE_SERVICE.last - ROSIE_SERVICE.first + 1 }, (_, i) => { const h = ROSIE_SERVICE.first + i; return { dock: h, dep: h + ROSIE_SERVICE.dwell / 3600, horn: h === ROSIE_SERVICE.dinner ? 'dinner' : 'day' }; }));
 /** the fishing tug: out at dawn (FISH.out — a fixed early hour, its bow lantern lit while it's dark), back in the late afternoon */
-export const FISH = Object.freeze({ out: 6.15, back: 16.5, move: 170 });
+export const FISH = Object.freeze({ ...knob('boats.fishing'), move: 170 });
 const ROSIE_IN = 154;
 const dayStartOf = (ms, off) => { const lt = ms / 1000 + off * 60, d = Math.floor(lt / 86400); return (d * 86400 - off * 60) * 1000; };
 const withHd = (st, hd, z) => ({ ...st, hd, z, face: Math.cos(hd) });
