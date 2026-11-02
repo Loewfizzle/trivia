@@ -1587,6 +1587,12 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (shownAt >= 0) bbTick(fs, now);   // (SKY-A: the Blackbird — once the city shows)
     if (shownAt >= 0) mmTick(fs);         // (MODELS: the Mothman on the needle)
     const deadFar = !!(LB && LB.dead.far), deadCity = !!(LB && LB.dead.city), dk0 = LB ? LB.k : 0;
+    const F = { c, deadCity, deadFar, dk0, fs, lit, night, off };
+    drawSky(F, t, dt, now); drawCity(F, t, dt, now); drawHarbor(F, t, dt, now); drawWeather(F, t, dt, now);
+  }
+  /** draw() — THE SKY (FR5 C1: draw() quartered — the locals it shares travel in F) */
+  function drawSky(F, t, dt, now) {
+    const { c, dk0, fs, off } = F;
     // ---- the sky
     c.globalAlpha = 1;
     { const dk = LK.w.night + LK.w.late, moonWash = LK.moon.el > 0 ? 1 - 0.5 * LK.moon.illum : 1;
@@ -1680,6 +1686,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     fs.hween = null;
     if (hsky) { fs.hween = hsky.sky(c, hskyEnv({ t, dt, lanes: L.lanes, moonAt: fs.moonAt || null, safeTop: safeTopV })); if (hsky.busy()) fastUntil = Math.max(fastUntil, performance.now() + 200); }
     drawEvents(c, 'sky');
+  }
+  /** draw() — THE CITY (FR5 C1: draw() quartered — the locals it shares travel in F) */
+  function drawCity(F, t, dt, now) {
+    const { c, deadCity, deadFar, dk0, fs, lit, off } = F;
     // ---- the city: the baked layers, far → near, with the moving things between them
     const fadeIn = shownAt < 0 ? 0 : smooth(0, 900, now - shownAt);
     mk9('the skyline');
@@ -1808,6 +1818,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (beamK * (1 - dk0) > 0.01) drawBeams(c, L, beamK * nightK * (1 - dk0), t, { mist: LK.fog || 0, tier, fog: clamp01(Math.max(LK.fog || 0, ((LK.cloud || 0) - 0.55) * 1.6)), cloudY: (LK.fog || 0) > 0.3 ? HZ * 0.42 : cam.safeTop + 40, motion: S.motion, hit: off.has('no-clouds') ? null : clouds.rayHit, patch: off.has('no-clouds') ? null : (h, col, a, w, ux, uy) => clouds.beamPatch(c, h, col, a, w, ux, uy) });
     // the drones up in the sky + the gulls over the harbor (in front of the city, before the water: the mirror doubles them)
     sky.city(c, fs);
+    Object.assign(F, { T, chimF, crispOn, fadeIn, fogOn, fogWb, lampsF, layer, nf, sunNow, xf });
+  }
+  /** draw() — THE HARBOR's HERO PIECES (FR5 C1: draw() quartered — the locals it shares travel in F) */
+  function drawHarbor(F, t, dt, now) {
+    const { T, c, chimF, crispOn, fadeIn, fogOn, fogWb, fs, lampsF, layer, lit, nf, night, off, sunNow, xf } = F;
     // ---- THE HARBOR'S HERO PIECES (Part 5): their state for this frame, their reflections queued for the water's mirror
     lastNf = LB ? { ...nf, fade: nf.fade * legendPow(cam.lhWall ? cam.lhWall.x : W * 0.8, 'harbor', 303) } : nf;   // (POLISH 4: the water's reflection of the harbor's neon goes dark with it)
     const hf = harborFrame(t, fadeIn, T);
@@ -2087,6 +2102,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // before the power-on the city sits in near-darkness (only at night)
     if (lit < 1) { c.fillStyle = `rgba(2,2,9,${0.58 * (1 - lit) * night})`; c.fillRect(0, 0, W, H); }
     drawEvents(c, 'front');
+    Object.assign(F, { pplLive });
+  }
+  /** draw() — THE WEATHER over everything (FR5 C1: draw() quartered — the locals it shares travel in F) */
+  function drawWeather(F, t, dt, now) {
+    const { c, crispOn, fadeIn, fs, night, off, pplLive } = F;
     // ---- the weather over everything, the frame
     if (!off.has('no-rain')) { rain.lights(rainLights, now, LB ? 100 : 300); rain.drops(c, rainEnv(fs, 'drops')); }
     // 9b — THE AWNING's SLAB sliding off now + then (while snow lies on it), then THE FALLING SNOW (the Harbor's own: City 1.0's flakes off)
