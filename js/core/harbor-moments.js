@@ -23,7 +23,7 @@ import { legendNight } from './harbor-legend.js';
 import { partyDow } from './party.js';
 import { knob } from './harbor-schedule.js';
 
-export const RARITY = Object.freeze({ common: 1, uncommon: 0.34, rare: 0.008 });
+export const RARITY = Object.freeze({ ...knob('windows.moments').rarity });
 export const RARITIES = Object.freeze(['routine', 'common', 'uncommon', 'rare', 'legendary', 'holiday']);
 export const WINDOW_IDS = Object.freeze(['edge2', 'bar', 'jazz', 'edge3', 'apartment', 'back', 'shop']);
 /** the tango's way round the building: the top floor left → right, then the bar floor right → left */
@@ -32,33 +32,36 @@ export const TANGO_PATH = Object.freeze(['edge3', 'back', 'jazz', 'bar', 'edge2'
  *  the routines moved to other windows, the tango skips it, hourPlan refuses it. Its only life: the TV's glow at night, the drawn shade
  *  by day (bossDayPlan), the bootleggers' tell (bossSignal), his shadow at the shade on a party night (bossWatch). */
 export const BOSS_ROOM = 'apartment';
-export const MAX_AT_ONCE = 2;
+export const MAX_AT_ONCE = knob('windows.moments').maxAtOnce;
 
-export const MOMENTS = Object.freeze([
+/** each moment = its spec here (who, which windows, what) + its timing from THE CITY TIMETABLE (windows.moments: at / jitter / hours / len /
+ *  cooldown / party / plays / nights / from / to / eve / minStage), frozen */
+const withTimes = (specs, times) => specs.map(m => Object.freeze({ ...m, ...(times[m.id] || {}) }));
+export const MOMENTS = Object.freeze(withTimes([
   // ---- ROUTINES (fixed in the day; each also moves its room to its next state — roomState below)
-  { id: 'wake', label: 'THE UPSTAIRS WAKES', rarity: 'routine', windows: ['back'], at: 7, jitter: 8, len: 42, kind: 'a big silhouette motion: the blind up, a stretch, a look out at the morning' },
-  { id: 'shop-open', label: 'THE BARBERSHOP OPENS', rarity: 'routine', windows: ['shop'], at: 9, jitter: 3, len: 44, kind: 'a light change + people: the lamp on, the barber in, OPEN, the first customer in the chair' },
-  { id: 'bartender', label: 'THE BARTENDER ARRIVES', rarity: 'routine', windows: ['bar'], at: 16, jitter: 6, len: 52, kind: 'lights on one by one behind a half-drawn shade, a glass polished' },
-  { id: 'lights-out', label: 'LIGHTS OUT · THE TV', rarity: 'routine', windows: ['apartment'], at: 21.5, jitter: 12,   /* (WSP — the owner, Nov 1: the TV ON ~9:30 pm, was ~10) */ len: 16, kind: 'the lamp clicks off, the TV flickers on, someone settles on the couch' },
+  { id: 'wake', label: 'THE UPSTAIRS WAKES', rarity: 'routine', windows: ['back'], kind: 'a big silhouette motion: the blind up, a stretch, a look out at the morning' },
+  { id: 'shop-open', label: 'THE BARBERSHOP OPENS', rarity: 'routine', windows: ['shop'], kind: 'a light change + people: the lamp on, the barber in, OPEN, the first customer in the chair' },
+  { id: 'bartender', label: 'THE BARTENDER ARRIVES', rarity: 'routine', windows: ['bar'], kind: 'lights on one by one behind a half-drawn shade, a glass polished' },
+  { id: 'lights-out', label: 'LIGHTS OUT · THE TV', rarity: 'routine', windows: ['apartment'], kind: 'the lamp clicks off, the TV flickers on, someone settles on the couch' },
   // ---- the random draws
-  { id: 'dance', label: 'A COUPLE DANCING', rarity: 'common', windows: ['jazz'], hours: [19.5, 2], light: 'night', len: 9, cooldown: 30, party: 2, kind: 'big silhouettes crossing the shade' },
-  { id: 'toast', label: 'A TOAST AT THE BAR', rarity: 'common', windows: ['bar'], hours: [19, 2.5], light: 'night', len: 7, cooldown: 24, party: 1.6, kind: 'arms up, glasses glinting, the clink' },
-  { id: 'sax', label: 'THE SAX SOLO', rarity: 'uncommon', windows: ['jazz'], hours: [20, 2], light: 'night', len: 15, cooldown: 200, party: 1.5, kind: 'the sax player (lit in the honey room, the shade up) steps to the glass, leans back + swings the brass bell up (9e)' },
-  { id: 'cat', label: 'THE CAT ON THE SILL', rarity: 'uncommon', windows: ['back', 'edge3', 'edge2'], hours: null, len: 26, cooldown: 240, kind: 'the cat: up onto the sill, settles, tail flicking, down again' },
+  { id: 'dance', label: 'A COUPLE DANCING', rarity: 'common', windows: ['jazz'], light: 'night', kind: 'big silhouettes crossing the shade' },
+  { id: 'toast', label: 'A TOAST AT THE BAR', rarity: 'common', windows: ['bar'], light: 'night', kind: 'arms up, glasses glinting, the clink' },
+  { id: 'sax', label: 'THE SAX SOLO', rarity: 'uncommon', windows: ['jazz'], light: 'night', kind: 'the sax player (lit in the honey room, the shade up) steps to the glass, leans back + swings the brass bell up (9e)' },
+  { id: 'cat', label: 'THE CAT ON THE SILL', rarity: 'uncommon', windows: ['back', 'edge3', 'edge2'], kind: 'the cat: up onto the sill, settles, tail flicking, down again' },
   // 9a — THE WEATHER ON THE GLASS (the plan's wx gate): a DESK FAN turning on the sill on hot afternoons (the real temperature ≥ HOT_C)
-  { id: 'fan', label: 'A FAN ON A HOT DAY', rarity: 'common', windows: ['back'], hours: [11.5, 21], len: 55, cooldown: 300, wx: ['hot'], starter: false, kind: 'a desk fan on the sill, its blades a blur, the curtain stirring' },
+  { id: 'fan', label: 'A FAN ON A HOT DAY', rarity: 'common', windows: ['back'], wx: ['hot'], starter: false, kind: 'a desk fan on the sill, its blades a blur, the curtain stirring' },
   // (9e's MORNING PAPER was taken out in 9f — the owner: "way too cheap looking"; the back / bar windows' other moments fill its hours)
-  { id: 'peek', label: 'A PEEK AT THE STREET', rarity: 'rare', windows: ['jazz', 'back'], hours: [7.5, 2], len: 6.5, cooldown: 1800, kind: 'a silhouette behind the curtain, looking left and right' },
-  { id: 'tango', label: 'THE TANGO (LEGENDARY)', rarity: 'legendary', windows: 'all', hours: [20.5, 23.75], light: 'night', len: 30, plays: 3, nights: 4, kind: 'a top hat + a flapper dress tango past every window in turn' },
+  { id: 'peek', label: 'A PEEK AT THE STREET', rarity: 'rare', windows: ['jazz', 'back'], kind: 'a silhouette behind the curtain, looking left and right' },
+  { id: 'tango', label: 'THE TANGO (LEGENDARY)', rarity: 'legendary', windows: 'all', light: 'night', kind: 'a top hat + a flapper dress tango past every window in turn' },
   // ---- THE HIDDEN MIRROR DOOR (the barbershop's back wall — not one of the starter ten: the speakeasy's own secret)
   // ---- 11a-1 — THE HOLIDAYS' WINDOW SCENES (core/harbor-holiday.js gates them: holiday = its id, minStage = how far the build-up must
   // be, eve = × its weight on the holiday's own night; ctx.hol = { id, stage, eve, w (the build-up's window weight 0..1) })
-  { id: 'ghost', label: 'A GHOST BEHIND THE CURTAIN', rarity: 'common', holiday: 'halloween', minStage: 0.45, windows: ['back'], hours: [18, 3], light: 'night', len: 11, cooldown: 70, eve: 2.4, starter: false, kind: 'a pale glowing sheet rising out of the room’s shadows, drifting across behind the glass, its eyes looking out, the room’s light shivering' },
-  { id: 'mummy', label: 'A MUMMY ON THE SHADE', rarity: 'common', holiday: 'halloween', minStage: 0.6, windows: ['jazz'], hours: [19, 2.5], light: 'night', len: 10, cooldown: 110, eve: 2, starter: false, kind: 'a mummy’s shadow lurching across the jazz room’s shade, arms out stiff, its loose wraps swinging' },
-  { id: 'witchsil', label: 'A WITCH AT HER CAULDRON', rarity: 'common', holiday: 'halloween', minStage: 0.7, windows: ['back'], hours: [19, 2.5], light: 'night', len: 14, cooldown: 160, eve: 1.6, starter: false, kind: 'a witch’s silhouette stirring a cauldron, its green glow from below, the bubbles rising' },
-  { id: 'costume', label: 'THE COSTUME PARTY', rarity: 'common', holiday: 'halloween', minStage: 0.85, windows: ['bar'], hours: [19.5, 2.5], light: 'night', len: 9, cooldown: 45, eve: 3, party: 2, starter: false, kind: 'a witch, a devil, a cat + a sheet ghost raising their glasses at the bar' },
-  { id: 'ofrenda', label: 'LIGHTING THE OFRENDA', rarity: 'common', holiday: 'dotd', minStage: 0.5, windows: ['back'], hours: [16.5, 23.5], len: 14, cooldown: 120, eve: 1.5, starter: false, kind: 'someone kneels at the ofrenda and lights its candles one by one, then a moment of stillness' },
-  { id: 'mirror', label: 'THE MIRROR DOOR', rarity: 'uncommon', windows: ['shop'], hours: [20.75, 2.5], light: 'night', len: 8.5, cooldown: 150, party: 3, starter: false, kind: 'the mirror swings open on the bar: amber light, bottles, silhouettes, a burst of jazz' },
+  { id: 'ghost', label: 'A GHOST BEHIND THE CURTAIN', rarity: 'common', holiday: 'halloween', windows: ['back'], light: 'night', starter: false, kind: 'a pale glowing sheet rising out of the room’s shadows, drifting across behind the glass, its eyes looking out, the room’s light shivering' },
+  { id: 'mummy', label: 'A MUMMY ON THE SHADE', rarity: 'common', holiday: 'halloween', windows: ['jazz'], light: 'night', starter: false, kind: 'a mummy’s shadow lurching across the jazz room’s shade, arms out stiff, its loose wraps swinging' },
+  { id: 'witchsil', label: 'A WITCH AT HER CAULDRON', rarity: 'common', holiday: 'halloween', windows: ['back'], light: 'night', starter: false, kind: 'a witch’s silhouette stirring a cauldron, its green glow from below, the bubbles rising' },
+  { id: 'costume', label: 'THE COSTUME PARTY', rarity: 'common', holiday: 'halloween', windows: ['bar'], light: 'night', starter: false, kind: 'a witch, a devil, a cat + a sheet ghost raising their glasses at the bar' },
+  { id: 'ofrenda', label: 'LIGHTING THE OFRENDA', rarity: 'common', holiday: 'dotd', windows: ['back'], starter: false, kind: 'someone kneels at the ofrenda and lights its candles one by one, then a moment of stillness' },
+  { id: 'mirror', label: 'THE MIRROR DOOR', rarity: 'uncommon', windows: ['shop'], light: 'night', starter: false, kind: 'the mirror swings open on the bar: amber light, bottles, silhouettes, a burst of jazz' },
   // ---- WIN — COUNTING THE CASH (the owner): the bootlegger's take counted under the green banker's lamp in the back room — late on the
   // bootleggers' nights (boot: a delivery night — core/harbor-workers.js#bootlegNight, or Saturday's big one), NEVER on a raid night
   // (noRaid: the cash is gone before the police come — core/harbor-raid.js#raidEvening)
@@ -66,16 +69,16 @@ export const MOMENTS = Object.freeze([
   // from below by an ember-red glow, with just a pair of big red glowing eyes watching the street — blinking rarely, drifting a little,
   // narrowing now + then; no body, no face. Its own calendar (eyesNights): 2 random weekend nights a month, 11 pm → 4 am, 3 plays of
   // 150 s; never a legendary's night, never with the edge windows' eerie-red mood, never a Mothman night (core/harbor-mothman.js#mothmanNight)
-  { id: 'eyes', label: 'THE EYES IN THE HAZE', rarity: 'legendary', calendar: 'eyes', windows: ['bar', 'jazz', 'back'], hours: [23, 4], light: 'night', len: 150, plays: 3, starter: false, kind: 'a dark room full of slow haze, an ember-red glow from below, a pair of big red eyes watching the street — blinking rarely, drifting, narrowing; no body, no face' },
-  { id: 'cash', label: 'COUNTING THE CASH', rarity: 'uncommon', windows: ['back'], hours: [22.5, 2.5], light: 'night', len: 26, cooldown: 420, party: 0.6, boot: true, noRaid: true, starter: false, kind: 'a close-up: a man in shirtsleeves + braces under the green banker\'s lamp, bills peeled off the heap into banded stacks, a lick of the thumb, a glance over his shoulder; a shadow at the door — it all goes in the bag' },
+  { id: 'eyes', label: 'THE EYES IN THE HAZE', rarity: 'legendary', calendar: 'eyes', windows: ['bar', 'jazz', 'back'], light: 'night', starter: false, kind: 'a dark room full of slow haze, an ember-red glow from below, a pair of big red eyes watching the street — blinking rarely, drifting, narrowing; no body, no face' },
+  { id: 'cash', label: 'COUNTING THE CASH', rarity: 'uncommon', windows: ['back'], light: 'night', boot: true, noRaid: true, starter: false, kind: 'a close-up: a man in shirtsleeves + braces under the green banker\'s lamp, bills peeled off the heap into banded stacks, a lick of the thumb, a glance over his shoulder; a shadow at the door — it all goes in the bag' },
   // ---- 11a-2 — THANKSGIVING's ROOM LIFE (the owner: "candlelit family tables in windows on the lit 3D kit + ACT BIG — NEVER in the boss's
   // room, a football game on a TV in another room"): long steady scenes on the holiday's own date (calendar: 'thanksgiving' — the fourth
   // Thursday of November), each played as back-to-back chunks of `len` s from `from` to `to` (local hours; a seeded few minutes' jitter):
   // a phone opened at 4 pm or 7 pm walks straight into them. The people ARRIVE at the start of the first chunk + LEAVE at the end of the
   // last (walkIn), never a cut; the chunks between are seamless. They are the rooms' own life (starOnly keeps them with the routines)
-  { id: 'table', label: 'THE FAMILY TABLE', rarity: 'holiday', calendar: 'thanksgiving', holiday: 'thanksgiving', windows: ['back'], from: 15, to: 21.5, hours: [15, 21.5], len: 900, cooldown: 900, starter: false, kind: 'Thanksgiving dinner by candlelight: a white cloth, the turkey on its platter, the dishes going round, a family of four at the table — passing a dish, leaning in, a toast' },
-  { id: 'football', label: 'THE GAME ON TV', rarity: 'holiday', calendar: 'thanksgiving', holiday: 'thanksgiving', windows: ['jazz'], from: 12.5, to: 19, hours: [12.5, 19], len: 900, cooldown: 900, starter: false, kind: 'Thanksgiving football: the set\u2019s green glow on three on the couch, the snap, a long run — and on a score they jump up, arms high' },
-]);
+  { id: 'table', label: 'THE FAMILY TABLE', rarity: 'holiday', calendar: 'thanksgiving', holiday: 'thanksgiving', windows: ['back'], starter: false, kind: 'Thanksgiving dinner by candlelight: a white cloth, the turkey on its platter, the dishes going round, a family of four at the table — passing a dish, leaning in, a toast' },
+  { id: 'football', label: 'THE GAME ON TV', rarity: 'holiday', calendar: 'thanksgiving', holiday: 'thanksgiving', windows: ['jazz'], starter: false, kind: 'Thanksgiving football: the set\u2019s green glow on three on the couch, the snap, a long run — and on a score they jump up, arms high' },
+], knob('windows.moments').moments));
 export const MOMENT = Object.freeze(Object.fromEntries(MOMENTS.map(m => [m.id, m])));
 /** WINDOWS — THE OLD SCENES RETIRED (the owner, Nov 1 10:54 am: "the older scenes that aren't up to the standard of the new scenes — I don't
  *  want to use those at all"): switched OFF, never deleted — hourPlan / fixedPlan skip them when ctx.retire (windows.js: unless THE CITY
@@ -142,7 +145,7 @@ export const EDGE_MOODS = Object.freeze(['tv', 'red', 'candle', 'banker', 'headl
 export function edgeMoods(key, ctx = {}) {
   const r = rngFrom(hashString(`edge-mood|${key}`)), n = EDGE_MOODS.length;
   const a = EDGE_MOODS[Math.floor(r() * n)], b = EDGE_MOODS[(EDGE_MOODS.indexOf(a) + 1 + Math.floor(r() * (n - 1))) % n];
-  const out = { edge2: a, edge3: b, tint: ctx.hol === 'halloween' ? 'halloween' : ctx.hol === 'christmas' ? 'christmas' : null, off: Math.round(23.8 * 3600 + r() * 1800) };
+  const out = { edge2: a, edge3: b, tint: ctx.hol === 'halloween' ? 'halloween' : ctx.hol === 'christmas' ? 'christmas' : null, off: Math.round(knob('windows.night').edgeOff[0] * 3600 + r() * knob('windows.night').edgeOff[1]) };
   if (ctx.party) out[r() < 0.5 ? 'edge2' : 'edge3'] = 'party';
   return out;
 }
@@ -171,7 +174,7 @@ export function eyesNights(y, m, ctx = {}) {
   const M = MOMENT.eyes, r = rngFrom(hashString(`eyes|${y}|${m}`)), out = {};
   // (the eligible weekend nights first — a legendary's night, an eerie-red night, a Mothman night are never in the draw — then two of them)
   const days = []; for (let d = 1; d <= 31; d++) { const t = new Date(Date.UTC(y, m - 1, d)); if (t.getUTCMonth() !== m - 1) break; const dow = t.getUTCDay(); if ((dow === 5 || dow === 6) && !legendNight(y, m, d) && !redMoodNight(dayKey(y, m, d), ctx) && !mothmanNight(y, m, d)) days.push(d); }   // (MODELS: his nights from core/harbor-mothman.js — the old ctx.mothman hook)
-  const picks = []; while (picks.length < 2 && days.length) { const i = Math.floor(r() * days.length); picks.push(days.splice(i, 1)[0]); }
+  const picks = []; while (picks.length < knob('windows.moments').eyesPerMonth && days.length) { const i = Math.floor(r() * days.length); picks.push(days.splice(i, 1)[0]); }
   for (const d of picks.sort((a, b) => a - b)) {
     const key = dayKey(y, m, d);
     const span = (M.hours[1] + 24 - M.hours[0]) * 3600 - M.len, starts = [];
@@ -277,7 +280,7 @@ export function hourPlan(key, hour, ctx = {}) {
       out.push(e); recent.push(e);
       busyTill[win] = t + c.m.len + 1.5; last[c.m.id] = t;
     }
-    t += party && darkAt(h, ctx.dark) ? 7 + r() * 7 : 10 + r() * 10;
+    { const G = knob('windows.moments').gap[party && darkAt(h, ctx.dark) ? 'party' : 'normal']; t += G[0] + r() * G[1]; }
   }
   return out.sort((a, b) => a.t0 - b.t0);
 }
@@ -480,13 +483,13 @@ export function tvHolidayTint(holId) {
  *  cigar smoke out of the sash cracked open at the top; 50 s), 'shadow' (on OVERCAST days only — ctx.overcast: a shadow crossing behind
  *  the lit shade; 4.2 s). 5–8 a day between 7:30 and 21:30 → [{ id, t0, len }] (seconds after local midnight), the same on every phone */
 export function bossDayPlan(key, ctx = {}) {
-  const r = rngFrom(hashString(`boss|${ctx.seed || 1924}|${key}`)), out = [], n = 5 + Math.floor(r() * 4);
-  let t = 7.5 * 3600 + r() * 1800;
-  for (let i = 0; i < n && t < 21.3 * 3600; i++) {
+  const B = knob('windows.boss'), r = rngFrom(hashString(`boss|${ctx.seed || 1924}|${key}`)), out = [], n = B.perDay[0] + Math.floor(r() * (B.perDay[1] - B.perDay[0] + 1));
+  let t = B.from * 3600 + r() * B.jitter;
+  for (let i = 0; i < n && t < B.to * 3600; i++) {
     const u = r(); let id = u < 0.42 ? 'peek' : u < 0.78 ? 'smoke' : 'shadow';
     if (id === 'shadow' && !ctx.overcast) id = u < 0.9 ? 'peek' : 'smoke';
     out.push({ id, t0: Math.round(t), len: id === 'peek' ? 3.2 : id === 'smoke' ? 50 : 4.2 });
-    t += (50 + r() * 110) * 60;
+    t += (B.gapMin[0] + r() * B.gapMin[1]) * 60;
   }
   return out;
 }
@@ -496,10 +499,10 @@ export function bossDayAt(plan, sec) { for (const e of plan) if (sec >= e.t0 && 
  *  before Saturday's big delivery (~6:30–7 pm) and from 5 pm before a quiet weeknight run (~10:40–11:15 pm) UNTIL THE TRUCK ARRIVES
  *  (truckAt: the show's start, seconds after local midnight — core/harbor-workers.js; without it the window's own middle), then off →
  *  0..1 (a fade in over 25 s, a snap off at the truck) */
-export const SIGNAL_FROM = Object.freeze({ sat: 15, week: 17 });
+export const SIGNAL_FROM = Object.freeze({ ...knob('windows.boss').signalFrom });
 export function bossSignal(sec, { boot = false, sat = false, truckAt = null } = {}) {
   if (!boot) return 0;
-  const from = (sat ? SIGNAL_FROM.sat : SIGNAL_FROM.week) * 3600, to = truckAt != null ? truckAt : (sat ? 18.65 : 22.95) * 3600;
+  const from = (sat ? SIGNAL_FROM.sat : SIGNAL_FROM.week) * 3600, to = truckAt != null ? truckAt : (sat ? knob('windows.boss').signalTo.sat : knob('windows.boss').signalTo.week) * 3600;
   if (sec < from || sec >= to) return 0;
   return Math.min(1, (sec - from) / 25);
 }
@@ -592,7 +595,8 @@ export function quietNight(key, ctx = {}) {
   const dow = dowOfKey(key);
   if (dow === 5 || dow === 6) return false;
   const r = rngFrom(hashString(`quiet|${ctx.seed || 1924}|${key}`))();
-  return r < (dow === 4 ? 0.12 : 0.25);
+  const Q = knob('windows.night').quiet;
+  return r < (dow === 4 ? Q.thu : Q.p);
 }
 /** the rooms that go to bed on a quiet night (the apartment's TV never does; the shop is dark at night anyway) */
 export const BED_ROOMS = Object.freeze(['back', 'jazz', 'bar', 'edge2', 'edge3']);
@@ -601,8 +605,8 @@ export const BED_ROOMS = Object.freeze(['back', 'jazz', 'bar', 'edge2', 'edge3']
 export function bedtimes(key, ctx = {}) {
   const r = rngFrom(hashString(`bed|${ctx.seed || 1924}|${key}`)), order = [...BED_ROOMS];
   for (let i = order.length - 1; i > 0; i--) { const j = Math.floor(r() * (i + 1)); [order[i], order[j]] = [order[j], order[i]]; }
-  let t = 20 * 60 + r() * 10 * 60; const out = {};
-  for (const id of order) { out[id] = Math.round(t); t += 7 * 60 + r() * 8 * 60; }
+  const Bd = knob('windows.night').bed; let t = Bd.first[0] * 60 + r() * Bd.first[1] * 60; const out = {};
+  for (const id of order) { out[id] = Math.round(t); t += Bd.gap[0] * 60 + r() * Bd.gap[1] * 60; }
   return out;
 }
 /** a room's level on a quiet night at s seconds after midnight (negative = before it): 1 until its bedtime, then the lamp CLICKS off (a
@@ -618,7 +622,8 @@ export function bedLevel(bed, id, s) {
  *  fading out ~2:40 → 3 am; the same hours as the speakeasy's own TV upstairs */
 export function lateTvK(h) {
   const x = h < 12 ? h + 24 : h, e = (a, b, v) => { const t = Math.max(0, Math.min(1, (v - a) / (b - a))); return t * t * (3 - 2 * t); };
-  return e(22, 22.33, x) * (1 - e(26.67, 27, x));
+  const T = knob('windows.night').lateTv;
+  return e(T[0], T[1], x) * (1 - e(T[2], T[3], x));
 }
 
 // ------------------------------------------------------------------ WIN3 — THE PARTY IN THE WINDOWS (PURE)
