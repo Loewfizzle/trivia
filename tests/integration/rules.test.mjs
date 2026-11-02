@@ -61,6 +61,24 @@ test('unauthenticated users can read nothing', async () => {
   await assertFails(get(ref(db('anyone'), 'rooms')), 'no listing all rooms');
 });
 
+// CITY CONTROLS A — THE RADIO: a room's moments are the SERVER's (api/_lib/radio.js) — its phones read them on the room's socket, nobody
+// writes them (not even the host); the queue, the record, the crew, the dial, the hello count: server only (no client read or write)
+test('THE RADIO: rooms/{CODE}/radio readable by the room, written by nobody; radio/, city2/showcase, here/ server only', async () => {
+  await seed({ ...lobbyRoom(), radio: { q: { m1: { jack: 'ufo' } }, crew: { p1: true } }, city2: { showcase: 'high' }, here: { host: 1 } });
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/radio/m1`), { jack: 'ufo', at: 1, until: 2 }));
+  await assertSucceeds(get(ref(db('p2'), `${R}/radio`)));
+  for (const u of ['host', 'p2', 'stranger']) {
+    await assertFails(set(ref(db(u), `${R}/radio/m2`), { jack: 'tr3b', at: 1, until: 2 }), `${u} writes a room moment`);
+    await assertFails(update(ref(db(u), `${R}/radio/m1`), { until: 9e12 }), `${u} edits a room moment`);
+    await assertFails(set(ref(db(u), 'radio/q/m9'), { jack: 'ufo' }), `${u} queues a moment`);
+    await assertFails(get(ref(db(u), 'radio/q')), `${u} reads the queue`);
+    await assertFails(set(ref(db(u), `radio/crew/${u}`), true), `${u} joins the crew`);
+    await assertFails(set(ref(db(u), 'city2/showcase'), 'low'), `${u} turns the dial`);
+    await assertFails(get(ref(db(u), 'city2/showcase')), `${u} reads the dial by socket (the cached GET carries it)`);
+    await assertFails(set(ref(db(u), `here/${u}`), 1), `${u} writes the hello count`);
+  }
+});
+
 test('creating a room: only as yourself, never over an existing room', async () => {
   const meta = uid => ({ hostId: uid, status: 'lobby', createdAt: serverTimestamp(), activeAt: serverTimestamp() });
   await assertFails(set(ref(db('a'), `rooms/WXYZ/meta`), meta('b')));

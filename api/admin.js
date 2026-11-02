@@ -23,6 +23,9 @@
 //                                    it from startAt until `until`; js/core/harbor-remote.js validates the state; C2: `delay` 0–10 s
 //                                    pushes startAt — every phone counts down + starts on the same beat) → { live }
 //   cityClear                      → removes city2/live (back to the real city) → { live: null }
+//   radio…                         → CITY CONTROLS A — THE RADIO (api/_lib/radio.js): radioState · radioFire · radioStop · radioClearAll ·
+//                                    radioBoard · radioBoardEdit · radioBoardCancel · radioDial · radioRooms · radioWho · radioHello —
+//                                    each checks the caller's ROLE (the owner = ADMIN_PIDS, THE CREW = radio/crew/{pid}) per action
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
 import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_lib/profiles.js';
@@ -34,6 +37,7 @@ import { weekKey } from '../js/core/week.js';
 import { summarize } from '../js/core/insights.js';
 import { activity } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
+import { radioAction, radioPublic } from './_lib/radio.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -176,6 +180,8 @@ export async function adminAction(uid, body, now = Date.now()) {
   const me = await pidOf(uid);
   const admin = !!me && adminPids().includes(me);
   if (body.action === 'whoami') return { pid: me, admin };
+  // CITY CONTROLS A — THE RADIO (api/_lib/radio.js): its own ROLE check per action (the owner + THE CREW), before the admin-only gate
+  if (typeof body.action === 'string' && body.action.startsWith('radio')) return radioAction(me, uid, body, now);
   if (!admin) throw new ApiError(403, 'not_admin', 'This profile is not an admin.');
   const pid = body.pid ? String(body.pid) : null;
   if (pid && !isPid(pid)) throw new ApiError(400, 'bad_pid');
@@ -242,7 +248,9 @@ export async function adminAction(uid, body, now = Date.now()) {
 export async function cityLiveNow(now = Date.now()) {
   const v = await val('city2/live');
   const ok = v && typeof v === 'object' && Number.isFinite(v.startAt) && Number.isFinite(v.until) && v.until > now;
-  return { live: ok ? { state: v.state || {}, startAt: v.startAt, until: v.until, by: v.by || null } : null, at: now };
+  // (CITY CONTROLS A: + THE RADIO's public part — the city's fired moments, the billboard's messages, the dial; never who fired them)
+  let radio = null; try { radio = await radioPublic(now); } catch (e) { console.warn('radioPublic', e && e.message); }
+  return { live: ok ? { state: v.state || {}, startAt: v.startAt, until: v.until, by: v.by || null } : null, radio, at: now };
 }
 export const LIVE_CACHE = 'public, max-age=0, s-maxage=15';
 

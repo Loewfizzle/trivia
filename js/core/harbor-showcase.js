@@ -14,7 +14,11 @@ export const SHOWCASE_LEVELS = Object.freeze(['high', 'normal', 'low']);
 let LEVEL = null;
 /** the dial's level for this page (the server's EVERYONE value, a preview's &showcase=) — null / unknown → the timetable's default */
 export function setShowcase(v) { const n = SHOWCASE_LEVELS.includes(v) ? v : null; if (n !== LEVEL) { LEVEL = n; memo.clear(); } }
-export const showcaseLevel = () => LEVEL || knob('showcase').level;
+let SERVER = null;
+/** CITY CONTROLS A — THE RADIO's TUNING WINDOW: the owner's dial on the server (city2/showcase, read through GET /api/admin?live=1); a
+ *  preview's &showcase= (setShowcase) still wins on its page */
+export function setServerShowcase(v) { const n = SHOWCASE_LEVELS.includes(v) ? v : null; if (n !== SERVER) { SERVER = n; if (!LEVEL) memo.clear(); } }
+export const showcaseLevel = () => LEVEL || SERVER || knob('showcase').level;
 /** the dial's numbers at a level (default: the page's) */
 export const showcaseOf = (lv = showcaseLevel()) => knob('showcase').levels[lv] || knob('showcase').levels.high;
 
