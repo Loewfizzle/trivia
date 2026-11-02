@@ -561,6 +561,7 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
+- **PARTYSYNC's LIVE + LATE JOINER in the cloud** (WINDOWS' run, f4568c2): the three phones' timelines 65 ms apart vs < 50 (each in time on its own) — the party-sync clocks (untouched since APP FIXES); fix at the cause (each page's server-clock offset), never a widened bound.
 - **WINDOWS — THE SCENES ON THE PHONE** (passes/windows.md): four new painters (gradients per frame, no new canvases); the A/B in the pass log
   — the owner's `&bench=1` run decides; the boss's TV room + the boxer stay the quality bar to judge the four against (the owner's eye).
 - **WINDOWS — the juggler's hand-off at the glass**: his walk to the glass + the pull's close-up are two drawings crossfaded in ~0.5 s (as

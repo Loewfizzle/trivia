@@ -91,6 +91,12 @@ committed + pushed (no tag); the final push carries the harbor tag.
   ~20 fps either way) — the known machine-timing check, left as it was for the cloud to judge. The still rooms are CACHED now
   (scene-kit.js#cached: one canvas per room + scale): the busy evening's work 29.9 → 26.9 ms at 2×.
 
+- **THE CLOUD** (run 1 of 2, f4568c2): tests ✅ (unit, rules, /api, smoke, CONN, presence); harbor 9 / 10 — every job green but `perf`, where
+  ONE check missed: partysync's "LIVE + THE LATE JOINER" — the three phones' party-song TIMELINES 65 ms apart vs < 50 (each phone 34 / 40 / 39 ms
+  from the server clock, inside the player's 120 ms) — the party-sync clocks this pass did not touch (WSP's run ended on the same group); green
+  locally. The perf job's CALM LOAD (red on the mini PC tonight, on the old code too) PASSED in the cloud. NOT re-run (the two-run rule) → the
+  next pass: the three pages' server-clock offsets at the cause.
+
 ## Decisions
 - **The edge windows' shades go down after hours at a seeded minute between midnight and 1:15** (not at their mood's own lights-out minute):
   they join the patchwork first, then the one-at-a-time lights-out like the scene rooms.
