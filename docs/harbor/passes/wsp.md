@@ -138,6 +138,15 @@ quality like all the other ones"); (2) THE BAG UNDER THE MUSIC — the heavy bag
 - **The salvo's sound**: three booms heard for the eight shells (one moment; eight at full gain would clip).
 
 ## Known issues
+- **THE CLOUD RUN (run 1 of 2, 816f5b1): tests GREEN; harbor 8 / 10 — two timing checks on the 2-core runner, in code this pass did not
+  touch; both pass locally**: (1) `perf` — partysync's "IN TIME: each within ~100 ms of the server clock's timeline" read −20 / −104 ms
+  (4 ms over); (2) `wild` — "NO BRIGHT FLASH IS SILENT": the FIRST close strike after the tap heard 0.72 s late (`thunder-close-5`; the next
+  two 0.53 + 0.27 s, on time) — the same shape as APP FIXES 6b's fireworks (a forced event at the tap, its take not decoded in time on a
+  busy runner: the fix there was "an on-time one heard + every one after it on time"). The moon code is not involved (0 rebuilds in that
+  storm: no moon in view). NOT re-run (the rules: never re-run to confirm a flake; the two-run cap) → the next pass: the thunder check's
+  first-strike race at its cause (as 6b), partysync's margin on the runner looked at (never a widened tolerance without a cause).
+- **The moon-behind's rebuild rate**: ~20 a second while a cloud drifts by the moon (each a few small drawImages; the clouds' whole draw
+  0.5 ms in Chromium) — `clouds.moonBehind.builds` counts them; a 1-pt key would halve it if the phone bench ever shows it.
 - **The moon's thin streak**: a faint vertical line can show inside a steered cumulus near the moon (zoomed 2×; invisible at real size).
 - **The gale + the blizzard cost ~+0.7 ms in WebKit** (the whitecaps' small fills) — the phone bench decides; a gale at the party peak is
   rare (no fireworks in a gale).

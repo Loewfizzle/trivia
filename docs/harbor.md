@@ -574,6 +574,7 @@ one room), the banner's colour + passes, the words in the windows for a time win
   Chromium at 402×874 + his 402×660 (the three files 200, `model: true`, the two looks plainly different). Most likely a panel state
   (EVERYONE / JUST ME) replaced the links' own `&when`; that now says so (a toast) and the model's load is told (the LOAD log, a failure
   to /admin). Re-check with C4d's fresh links.
+- **WSP's CLOUD RUN** (816f5b1, run 1 — not re-run): harbor 8 / 10 — partysync IN TIME −104 ms (limit 100) + the first close thunder after the tap 0.72 s late (a decode race like APP FIXES 6b's fireworks); both green locally, neither in WSP's code → the next pass fixes the thunder check at its cause. passes/wsp.md.
 - **WSP's small ones** (passes/wsp.md): a faint streak inside a cumulus by the moon (2× zoom only); the gale + the blizzard ~+0.7 ms in WebKit
   (the whitecaps — the phone bench decides); THE BAG UNDER THE MUSIC checked by the code's gain factor (the owner's ear confirms).
 - The street under the dock shows no snow on a snowy night (ATM-B).

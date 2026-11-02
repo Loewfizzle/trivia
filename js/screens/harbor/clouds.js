@@ -676,7 +676,7 @@ export function createClouds() {
     const cover = coverAt(m.x, m.y);
     const key = `${n}|${Math.round(m.x * 2)}|${Math.round(m.y * 2)}|${hits.map(h => `${h[0].z}:${Math.round(h[1] * 2)}:${Math.round(h[2] * 2)}:${Math.round(h[3] * 2)}:${(h[5] * 32) | 0}:${h[0].lit}:${h[0].mix ? h[0].mix.f : ''}`).join(',')}|${(lastA * 32) | 0}`;
     if (key !== MB.key) {
-      MB.key = key;
+      MB.key = key; MB.builds = (MB.builds || 0) + 1;
       if (!MB.cv || MB.n !== n) { if (MB.cv) MB.cv.width = MB.rim.width = MB.ero.width = 0; [MB.cv, MB.x] = mbCanvas(n); [MB.rim, MB.rx] = mbCanvas(Math.ceil(n / 2)); [MB.ero, MB.ex] = mbCanvas(Math.ceil(n / 2)); MB.n = n; }
       const x = MB.x, r = MB.rx, e = MB.ex;
       if (!x || !r || !e) return;
@@ -911,7 +911,7 @@ export function createClouds() {
     /** SP: tonight's cirrostratus veil 0..1 (the moon's 22° halo lives under it) */
     veil: () => (mix && list.length ? mix.veil || 0 : 0),
     debug: () => ({
-      clouds: list.length, kinds: list.map(d => d.kind), moonBehind: { cover: +MB.cover.toFixed(2), steer: steer.d ? { kind: steer.d.kind, x: Math.round(steer.d.xNow), y: Math.round(steer.d.y), w: Math.round(steer.d.w), h: Math.round(steer.d.h) } : null, moon: steer.m ? { x: Math.round(steer.m.x), y: Math.round(steer.m.y), r: Math.round(steer.m.r) } : null }, deck: list.some(d => d.kind === 'deck'), mix: mix ? Object.fromEntries(Object.entries(mix).map(([k, v]) => [k, typeof v === 'number' ? +v.toFixed(2) : v])) : null,
+      clouds: list.length, kinds: list.map(d => d.kind), moonBehind: { builds: MB.builds || 0, cover: +MB.cover.toFixed(2), steer: steer.d ? { kind: steer.d.kind, x: Math.round(steer.d.xNow), y: Math.round(steer.d.y), w: Math.round(steer.d.w), h: Math.round(steer.d.h) } : null, moon: steer.m ? { x: Math.round(steer.m.x), y: Math.round(steer.m.y), r: Math.round(steer.m.r) } : null }, deck: list.some(d => d.kind === 'deck'), mix: mix ? Object.fromEntries(Object.entries(mix).map(([k, v]) => [k, typeof v === 'number' ? +v.toFixed(2) : v])) : null,
       lit: gKey, pending: jobs.length, born: !!born, ms: +perf.ms.toFixed(3), jobMs: +perf.jobMs.toFixed(3), relit: perf.relit, frames: perf.n, beamMs: +perf.beamMs.toFixed(2), hitMs: +perf.hitMs.toFixed(2), renders: perf.renders, patchN: perf.patches,
       mb: +list.reduce((s, d) => s + (d.cv ? d.cv.width * d.cv.height * 4 : 0) + (d.prev ? d.prev.width * d.prev.height * 4 : 0) + (d.mix ? d.mix.cv.width * d.mix.cv.height * 4 : 0) + (d.F ? d.F.pw * d.F.ph * (d.F.m !== d.F.t ? 7 : 6) : 0), 0).toFixed(0) / 1e6,
       at: list.map(d => ({ k: d.kind, x: Math.round(d.xNow), y: Math.round(d.y), w: Math.round(d.w), h: Math.round(d.h), s: +d.s.toFixed(2) })),
