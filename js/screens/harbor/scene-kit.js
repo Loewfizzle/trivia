@@ -48,7 +48,8 @@ export function stand(o = {}) {
 export function walk(s, k = 1, o = {}) {
   const ph = Math.sin(s * TAU * 0.9) * k, up = Math.abs(Math.cos(s * TAU * 0.9)) * 0.012 * k;
   const P = stand({ bob: up, lean: o.lean || 0 });
-  P.legs = { front: [[0.04 + 0.07 * ph, 0.255 + up], [0.05 + 0.13 * ph, 0.012]], back: [[-0.02 - 0.07 * ph, 0.255 + up], [-0.04 - 0.13 * ph, 0.012]] };
+  // (DESKTOP Group 1: at stride 0 the feet land exactly where stand() has them — a walk that slows to a stop never snaps the stance)
+  P.legs = { front: [[0.04 + 0.07 * ph, 0.255 + up], [0.07 + 0.11 * ph, 0.012]], back: [[-0.03 - 0.06 * ph, 0.255 + up], [-0.07 - 0.1 * ph, 0.012]] };
   if (o.carry) { const cy = o.carry === 'low' ? 0.5 : 0.62; P.arms = { rear: [[0.1, 0.62 + up], [0.22, cy + up]], lead: [[0.12, 0.6 + up], [0.24, cy - 0.02 + up]] }; }
   else P.arms = { rear: [[-0.0 - 0.04 * ph, 0.6 + up], [-0.02 - 0.07 * ph, 0.44 + up]], lead: [[0.05 + 0.04 * ph, 0.6 + up], [0.06 + 0.07 * ph, 0.44 + up]] };
   return P;
@@ -76,31 +77,38 @@ export const mix = (A, B, k) => ({
 /**
  * THE SILHOUETTE: legs + arms as thick strokes, the torso a strong V, the neck, the head, shoes + hands, a hat (o.hat 'cap' | 'fedora' |
  * null). f: his facing (−1 … +1: a turn narrows him through his front — never a flip); o.front: drawn square to us (the juggler: the torso
- * wider, the shoulders level). grow: a rim's extra (the rim pass draws it a hair bigger, nudged toward the light).
+ * wider, the shoulders level). grow: a rim's extra (the rim pass draws it a hair bigger, nudged toward the light). o.build: how heavy he is
+ * (1 = the kit's man; the crate guy ~1.45: broad shoulders, heavy arms + legs, a thick neck — a dock worker's silhouette at ~40 pt).
  */
 export function man(c, X, Y, H, f, pose, col, o = {}) {
-  const fx = Math.sign(f) || 1, sq = o.front ? 1 : Math.max(0.35, Math.abs(f)), g = (o.grow || 0) * H, front = !!o.front;
-  const P = ([x, y]) => [X + fx * sq * x * H, Y + y * H];
+  // (o.minW: how narrow his torso gets as he turns to face us — 0.35 by default; a heavy man keeps more of his bulk, never a stick)
+  const fx = Math.sign(f) || 1, sq = o.front ? 1 : Math.max(o.minW || 0.35, Math.abs(f)), g = (o.grow || 0) * H, front = !!o.front, b = o.build || 1, bh = 1 + (b - 1) * 0.6;
+  // (DESKTOP Group 1: the LIMBS foreshorten through a turn down to 2 % — a hand held forward slides in to his middle as he faces us, never
+  //  jumps across; the torso + head keep their 35 % floor so he never thins to a line)
+  const sl = o.front ? 1 : Math.max(0.02, Math.abs(f));
+  const P = ([x, y]) => [X + fx * sq * x * H, Y + y * H], PL = ([x, y]) => [X + fx * sl * x * H, Y + y * H];
   c.fillStyle = col; c.strokeStyle = col; c.lineCap = 'round'; c.lineJoin = 'round';
-  c.lineWidth = (front ? 0.1 : 0.1) * H + g * 2; c.beginPath();
-  for (const k of ['back', 'front']) { const a = P(add(pose.hip, front ? (k === 'back' ? -0.055 : 0.055) : 0, 0)), b = P(pose.legs[k][0]), e = P(pose.legs[k][1]); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(e[0], e[1]); }
+  c.lineWidth = 0.1 * H * bh + g * 2; c.beginPath();
+  for (const k of ['back', 'front']) { const a = P(add(pose.hip, front ? (k === 'back' ? -0.055 : 0.055) : 0, 0)), b = PL(pose.legs[k][0]), e = PL(pose.legs[k][1]); c.moveTo(a[0], a[1]); c.lineTo(b[0], b[1]); c.lineTo(e[0], e[1]); }
   c.stroke();
   c.beginPath();
-  for (const k of ['back', 'front']) { const e = P(pose.legs[k][1]); c.ellipse(e[0] + (front ? 0 : fx * 0.025 * H), e[1] - 0.004 * H, (front ? 0.045 : 0.058 * Math.max(0.7, sq)) * H + g, 0.024 * H + g, 0, 0, TAU); }
-  const hp = pose.hip, sh = pose.sh, hw = front ? 0.1 : 0.088, sw = front ? 0.155 : 0.118;
+  for (const k of ['back', 'front']) { const e = PL(pose.legs[k][1]); c.ellipse(e[0] + (front ? 0 : fx * 0.025 * H), e[1] - 0.004 * H, (front ? 0.045 : 0.058 * Math.max(0.7, sq)) * H + g, 0.024 * H + g, 0, 0, TAU); }
+  const hp = pose.hip, sh = pose.sh, hw = (front ? 0.1 : 0.088) * bh, sw = (front ? 0.155 : 0.118) * b;
   const h0 = P([hp[0] - hw, hp[1] - 0.01]), h1 = P([hp[0] + hw, hp[1] - 0.01]), s1 = P([sh[0] + sw, sh[1] + (front ? 0.005 : 0)]), s0 = P([sh[0] - sw, sh[1] + 0.01]);
   c.moveTo(h0[0] - fx * g, h0[1] - g); c.lineTo(h1[0] + fx * g, h1[1] - g); c.lineTo(s1[0] + fx * g, s1[1] + g); c.lineTo(s0[0] - fx * g, s0[1] + g); c.closePath();
-  const hd = P(pose.head), nk = P(lp(sh, pose.head, 0.45));
-  c.moveTo(nk[0] + 0.042 * H, nk[1]); c.ellipse(nk[0], nk[1], 0.042 * H * Math.max(0.7, sq) + g, 0.05 * H + g, 0, 0, TAU);
-  c.moveTo(hd[0] + 0.075 * H, hd[1]); c.ellipse(hd[0], hd[1], 0.074 * H * Math.max(0.78, sq) + g, 0.082 * H + g, 0, 0, TAU);
+  const hd = PL(pose.head), nk = PL(lp(sh, pose.head, 0.45));
+  c.moveTo(nk[0] + 0.042 * H * b, nk[1]); c.ellipse(nk[0], nk[1], 0.042 * H * b * Math.max(0.7, sq) + g, 0.05 * H + g, 0, 0, TAU);
+  const hr = 1 + (b - 1) * 0.2;
+  c.moveTo(hd[0] + 0.075 * H * hr, hd[1]); c.ellipse(hd[0], hd[1], 0.074 * H * hr * Math.max(0.78, sq) + g, 0.082 * H * hr + g, 0, 0, TAU);
   // the hat: a flat cap (the crown + a short brim forward) / a fedora (a pinched crown, a brim all round)
-  if (o.hat === 'cap') { c.moveTo(hd[0] - 0.08 * H, hd[1] + 0.035 * H); c.ellipse(hd[0] + fx * 0.004 * H, hd[1] + 0.045 * H, 0.083 * H * Math.max(0.8, sq) + g, 0.04 * H + g, 0, Math.PI, TAU); c.rect(hd[0] + (front ? -0.075 : fx > 0 ? 0 : -0.12) * H, hd[1] + 0.03 * H - g, (front ? 0.15 : 0.12) * H, 0.018 * H + g * 2); }
+  // (the cap's brim: forward in profile, centred as he faces us — it slides round through a turn, never flips)
+  if (o.hat === 'cap') { const kb = front ? 0 : Math.min(1, Math.abs(f) / 0.5); c.moveTo(hd[0] - 0.08 * H, hd[1] + 0.035 * H); c.ellipse(hd[0] + fx * 0.004 * H, hd[1] + 0.045 * H, 0.083 * H * Math.max(0.8, sq) + g, 0.04 * H + g, 0, Math.PI, TAU); c.rect(hd[0] + lerp(-0.075, fx > 0 ? 0 : -0.12, kb) * H, hd[1] + 0.03 * H - g, lerp(0.15, 0.12, kb) * H, 0.018 * H + g * 2); }
   if (o.hat === 'fedora') { c.rect(hd[0] - 0.12 * H * Math.max(0.8, sq) - g, hd[1] + 0.045 * H - g, 0.24 * H * Math.max(0.8, sq) + g * 2, 0.018 * H + g * 2); c.moveTo(hd[0] - 0.065 * H, hd[1] + 0.06 * H); c.lineTo(hd[0] - 0.06 * H, hd[1] + 0.125 * H); c.quadraticCurveTo(hd[0], hd[1] + 0.105 * H, hd[0] + 0.06 * H, hd[1] + 0.125 * H); c.lineTo(hd[0] + 0.065 * H, hd[1] + 0.06 * H); c.closePath(); }
   c.fill();
   for (const k of ['rear', 'lead']) {
-    const A = pose.arms[k], s = P(add(sh, front ? (k === 'lead' ? sw - 0.025 : -sw + 0.025) : k === 'lead' ? 0.025 : -0.015, -0.03)), el = P(A[0]), hn = P(A[1]);
-    c.lineWidth = (front ? 0.07 : 0.078) * H + g * 2; c.beginPath(); c.moveTo(s[0], s[1]); c.lineTo(el[0], el[1]); c.lineTo(hn[0], hn[1]); c.stroke();
-    c.beginPath(); c.arc(hn[0], hn[1], 0.04 * H + g, 0, TAU); c.fill();
+    const A = pose.arms[k], s = P(add(sh, front ? (k === 'lead' ? sw - 0.025 : -sw + 0.025) : k === 'lead' ? 0.025 : -0.015, -0.03)), el = PL(A[0]), hn = PL(A[1]);
+    c.lineWidth = (front ? 0.07 : 0.078) * H * b + g * 2; c.beginPath(); c.moveTo(s[0], s[1]); c.lineTo(el[0], el[1]); c.lineTo(hn[0], hn[1]); c.stroke();
+    c.beginPath(); c.arc(hn[0], hn[1], 0.04 * H * bh + g, 0, TAU); c.fill();
   }
 }
 /** the man with his rim: a hair bigger in the light's colour, nudged toward it, then the dark shape over it (o.rim [r,g,b], o.rimA, o.toward) */

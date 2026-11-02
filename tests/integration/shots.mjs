@@ -34,7 +34,7 @@
 //   (e.g. the TR-3B's power coming back: --qs "force=tr3b" --js "__district.harbor().legend.start('tr3b',{at:Date.now()-32000})" --cast 9000)
 // Each shot gets its own browser context (no profile leaking between shots). Files: <scene>-<w>x<h>[-<crop>].png
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
-import { mkdirSync, writeFileSync } from 'node:fs';
+import { mkdirSync, writeFileSync, readFileSync } from 'node:fs';
 
 const argv = process.argv.slice(2);
 const BROWSER = argv[0];
@@ -53,6 +53,9 @@ const CITY = opt('city', '') ? `&city=${opt('city')}` : '';
 const SAFE = !!opt('safe', false);
 const TIER = opt('tier', '') === '' ? null : Number(opt('tier')), ZOOM = Number(opt('zoom', 0)) || 0, ZX = Number(opt('zx', 0.5));
 const IDLE = !!opt('idle', false);
+// --sheet [cols]: DESKTOP — a burst (--every --count) laid out as ONE contact sheet per scene + size + crop (<scene>-<w>x<h>[-crop]-sheet.png),
+//   each frame labelled with its time — a scene's motion judged at a glance (the frames stay too)
+const SHEET = opt('sheet', false) ? (Number(opt('sheet')) || 5) : 0;
 // --dsf N: the device scale factor (default 2 on a phone size, 1 on desktop) — FP2: the barber pole's frame burst at dpr 3 (an iPhone)
 const DSF = Number(opt('dsf', 0)) || 0;
 const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
@@ -223,10 +226,11 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
     await sleep(CAST); await cdp.send('Page.stopScreencast'); n += k; console.log(`${name} ${w}x${h}: ${k} frames in ${CAST} ms`);
     await ctx.close(); continue;
   }
+  const written = [];
   for (let shot = 0; shot < COUNT; shot++) {
   if (shot) await sleep(EVERY);
   const file = `${OUT}${name}-${w}x${h}${IDLE ? '-idle' : ''}${TIER !== null ? `-t${TIER}` : ''}${COUNT > 1 ? `-${shot}` : ''}`;
-  if (!CROPS.length) { await p.screenshot({ path: `${file}.png` }); n++; }
+  if (!CROPS.length) { await p.screenshot({ path: `${file}.png` }); n++; written.push(['', `${file}.png`, shot]); }
   for (const c of CROPS) {
     let clip;
     if (c === 'street') {
@@ -261,6 +265,10 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
         if (cc === 'pole') return { x: Math.max(0, r.x - 8), y: Math.max(0, r.y - 8), width: r.w + 16, height: r.h + 16 };
         const sx = sp.glowAt && sp.glowAt.sconce ? sp.glowAt.sconce[0] : r.x, x1 = Math.min(innerWidth, Math.max(r.x + r.w, sx) + 40 * k), y = Math.max(0, r.y - 44 * k);
         return { x: 0, y, width: x1, height: Math.min(innerHeight - y, r.h + 100 * k) }; }, c);
+    } else if (c.startsWith('win-')) {
+      // DESKTOP Group 1: ONE speakeasy window by its id (win-jazz = the bottom right, win-bar = the bottom middle, win-back = the top middle,
+      // win-boss …), padded 4 pt — a window scene judged at its real size (+ --zoom N to look closer)
+      clip = await p.evaluate(id => { const hb = window.__district.harbor && window.__district.harbor(); const sp = hb && hb.speakeasy; const w = sp && sp.windows().find(x => x.id === id || x.room === id); if (!w) return null; const r = w.rect; return { x: Math.max(0, r.x - 4), y: Math.max(0, r.y - 4), width: r.w + 8, height: r.h + 8 }; }, c.slice(4));
     } else if (c === 'facade' || c === 'upper' || c === 'crest') {
       // CITY 2.0 (7b): THE SPEAKEASY's facade close up — facade: the whole front from the crest + its string lights down to the
       // pavement; upper: the six windows (the moments' stage). With --zoom the device pixels are blown up whole (no width cut).
@@ -321,11 +329,19 @@ for (const [w, h] of SIZES) for (const [name, when, o] of scenes) {
       }, PRESET[c]);
     } else { const [x, y, cw, ch] = c.split(/[,x]/).map(Number); clip = { x, y, width: cw, height: ch }; }
     if (!clip) { console.log(`${name} ${w}x${h}: nothing to crop for "${c}"`); continue; }
-    if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper', 'crest', 'cart', 'treel', 'compass'].includes(c)) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
-    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'crossing', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass', 'heli'].includes(c) || c.startsWith('boat-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
+    if (ZOOM > 1 && !['shop', 'pole', 'facade', 'upper', 'crest', 'cart', 'treel', 'compass'].includes(c) && !c.startsWith('win-')) { const cw = clip.width / ZOOM; clip = { ...clip, x: clip.x + (clip.width - cw) * Math.max(0, Math.min(1, ZX)), width: cw }; }   // (shop / pole: already close — zoomed whole)
+    const path = `${file}-${PRESET[c] || ['street', 'stage', 'band', 'shop', 'crossing', 'pole', 'facade', 'upper', 'skyline', 'sky', 'skyl', 'skyr', 'skym', 'skyl3', 'skyr3', 'logo', 'water', 'wheel', 'lighthouse', 'rosie', 'harbor', 'boats', 'blade', 'bill', 'crest', 'cart', 'treel', 'compass', 'heli'].includes(c) || c.startsWith('boat-') || c.startsWith('win-') ? c : /^\d/.test(c) ? `c${c}` : 'crop'}${ZOOM > 1 ? `-z${ZOOM}` : ''}.png`;
     if (ZOOM > 1) await magnify(ctx, await p.screenshot({ clip }), ZOOM, path); else await p.screenshot({ path, clip });
-    n++;
+    n++; written.push([c, path, shot]);
   }
+  }
+  if (SHEET && written.length > 1) for (const crop of [...new Set(written.map(x => x[0]))]) {
+    const list = written.filter(x => x[0] === crop), b0 = readFileSync(list[0][1]), iw = b0.readUInt32BE(16), ih = b0.readUInt32BE(20);
+    const k = Math.min(1, 2400 / (SHEET * iw)), cols = Math.min(SHEET, list.length), rows = Math.ceil(list.length / cols), q = await ctx.newPage();
+    await q.setViewport({ width: Math.ceil(cols * (iw * k + 6)), height: Math.ceil(rows * (ih * k + 22)), deviceScaleFactor: 1 });
+    await q.setContent(`<body style="margin:0;background:#111;display:flex;flex-wrap:wrap;font:12px monospace;color:#ccc">${list.map(([, f, s]) => `<div style="margin:0 3px 4px"><div>${(s * EVERY / 1000).toFixed(1)} s</div><img src="data:image/png;base64,${readFileSync(f).toString('base64')}" style="display:block;width:${iw * k}px;height:${ih * k}px"></div>`).join('')}</body>`);
+    await q.waitForFunction(() => [...document.images].every(i => i.complete));
+    await q.screenshot({ path: `${OUT}${name}-${w}x${h}${crop ? `-${crop}` : ''}-sheet.png`, fullPage: true }); await q.close();
   }
   await ctx.close();
 }

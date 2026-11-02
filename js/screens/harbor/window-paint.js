@@ -29,7 +29,7 @@ export function createPaint(life) {
     if (bs.party && k > 0.02) { bossShade(E, { glow: st === 'tv' || st === 'tvoff' || st === 'lamp' ? 'tv' : 'dark', cover: 1, watch: bs.watch, signal: bs.signal, tap: tp }); return true; }
     if (st === 'tv') { if (k > 0.01) { if (life.last.tvOff) tvDark(E); else tvRoom(E, 1); return true; } return false; }
     // (SP3 — the owner's 3 am bug: the TV room went ORANGE; now the TV gives a last flicker, the picture shrinks away, the room DARK)
-    if (st === 'tvoff') { const el = (life.last.sec - TV_END_S + 86400) % 86400, on = el < 0.35 ? 1 : el < 0.5 ? 0.25 : el < 0.8 ? 0.95 : Math.max(0, 1 - (el - 0.8) / (TV_OFF - 0.8)) ** 1.6; if (k > 0.01 && on > 0.01) { if (life.last.tvOff) tvDark(E); else tvRoom(E, on); return true; } return false; }
+    if (st === 'tvoff') { const el = ((life.last.bossSec ?? life.last.sec) - TV_END_S + 86400) % 86400, on = el < 0.35 ? 1 : el < 0.5 ? 0.25 : el < 0.8 ? 0.95 : Math.max(0, 1 - (el - 0.8) / (TV_OFF - 0.8)) ** 1.6; if (k > 0.01 && on > 0.01) { if (life.last.tvOff) tvDark(E); else tvRoom(E, on); return true; } return false; }
     // SP5 — BY DAY + THE EVENING: THE DRAWN SHADE (the one window that never opens to the daylight) with its rare life + the tell
     // (NIGHT-A2 — the owner, Oct 29 7:12 pm: "he's a night owl, up all night" — BY DAY the blind is FULLY DOWN: no gap, no strip at the
     // sill (cover 1 × the daylight; the evening's 0.9 gap — the lamp's glow under the hem — returns as the day goes); the peek still
@@ -37,7 +37,7 @@ export function createPaint(life) {
     // WSP — THE BOSS's NIGHT (the owner, Nov 1): after the 3 am switch-off he PULLS THE SHADE DOWN — he steps to the window (his
     // silhouette against the nightlight he left on), reaches up to the ring, draws the shade down (eased), steps away — then the shade
     // stays drawn with ONE small NIGHTLIGHT glowing warm behind it all night, fading out as the daylight comes up (then his day: the wake)
-    if (st === 'shade') { const el = (life.last.sec - TV_END_S + 86400) % 86400 - TV_OFF; shadePull(E, clamp01(el / SHADE_LEN), tp); return true; }
+    if (st === 'shade') { const el = ((life.last.bossSec ?? life.last.sec) - TV_END_S + 86400) % 86400 - TV_OFF; shadePull(E, clamp01(el / SHADE_LEN), tp); return true; }
     if (st === 'night') { bossShade(E, { glow: 'night', cover: 1, day: bs.day, signal: bs.signal, tap: tp }); return true; }
     bossShade(E, { glow: st === 'lamp' && k > 0.02 ? 'lamp' : 'dark', cover: BOSS_COVER(E.day), day: bs.day, signal: bs.signal, tap: tp });
     return true;

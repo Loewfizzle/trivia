@@ -11,7 +11,7 @@
 import { hashString, rngFrom } from './rng.js';
 
 /** his room (x: the pane's fraction): the desk (its middle), the lamp on it, the hat's hook on the left wall, his pacing span */
-export const BK = Object.freeze({ desk: 0.5, lamp: 0.34, hook: 0.1, pace: [0.2, 0.78] });
+export const BK = Object.freeze({ desk: 0.52, lamp: 0.5, hook: 0.2, pace: [0.2, 0.8] });
 const KINDS = [['write', 0.28], ['count', 0.16], ['call', 0.2], ['pace', 0.13], ['smoke', 0.13], ['lean', 0.1]];
 const LEN = { write: [10, 30], count: [8, 18], call: [7, 14], pace: [14, 28], smoke: [5, 7], lean: [10, 22], bad: 15 };
 const pickW = (list, u) => { let a = 0; for (const [k, w] of list) { a += w; if (u < a) return k; } return list[list.length - 1][0]; };
@@ -39,7 +39,7 @@ export function doingAt(plan, s) {
   return seg ? { seg, i: lo, e: Math.max(0, s - seg.t0) } : null;
 }
 /** THE BAD CALL's beats (s into it): the slam, to the hook, the hat thrown (flying, landing), the beat, the pick-up, back on the hook, sit */
-export const BAD = Object.freeze({ slam: 1.4, toHook: 3.6, throw: 4.4, land: 5.2, beat: 7.4, pick: 9.6, hang: 12, sit: 15 });
+export const BAD = Object.freeze({ slam: 1.4, toHook: 3.4, throw: 4.6, land: 5.9, beat: 8, pick: 10.2, hang: 12.4, sit: 15 });
 /** his entrance (s into it, SCENE_TIMING.bookie.enter long): in through the dark, the hat on the hook, to the desk, sits, the LAMP ON */
 export const ENTER = Object.freeze({ toHook: 4.2, hang: 5.6, toDesk: 9.5, sit: 11, lamp: 12.4 });
 /** his exit (s into it, SCENE_TIMING.bookie.exit long): the cash in the bag, up, the hat on, to the glass, the pull */

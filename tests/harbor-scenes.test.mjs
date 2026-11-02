@@ -76,7 +76,7 @@ test('WINDOWS — AFTER HOURS: the shades glow in their room\'s colour, the ligh
   assert.equal(shadeLevel(1000, 999), 1); assert.equal(shadeLevel(1000, 1000.15), 0.85); assert.equal(shadeLevel(1000, 1001), 0);
   const S = scenesTonight('2026-11-03', { all: true }), J = knob('scene.juggler'), C = knob('scene.crate');
   assert.deepEqual(roomColour(S, 'jazz', 20 * 3600).col, J.glow, 'the juggler\'s amber while he works');
-  assert.deepEqual(roomColour(S, 'jazz', 21.6 * 3600).col, J.glow, 'amber behind his shade 9:30–9:45');
+  assert.deepEqual(roomColour(S, 'jazz', 21.6 * 3600).col, J.glow, 'his green behind his shade 9:30–9:45');
   assert.deepEqual(roomColour(S, 'jazz', 24.5 * 3600).col, C.glow, 'the crate guy\'s cold white after midnight');
   assert.equal(roomColour(S, 'jazz', 24.5 * 3600).sway, true, 'his bulb still swaying behind the shade');
   const mid = roomColour(S, 'jazz', 21.75 * 3600 - 30).col; assert.ok(mid.some((v, i) => v !== J.glow[i] && v !== C.glow[i]), 'the shade\'s colour blends over the last minute');
