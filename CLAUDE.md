@@ -1,6 +1,10 @@
 # NEON SPEAKEASY — developer guide
 
-Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Twelve games. Static site on Vercel
+Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Twelve games — **ONLY TWO PLAYABLE** since WINDOWS
+(Nov 1 — the owner): PRISM DROP + OVERCLOCK (`js/config.js` GAMES[].playable is the one switch: the other ten are hidden everywhere a player
+could start them, their code + data + rules FROZEN, not deleted; `sign: true` = THE FIVE SIGNS in the city — the two + NEON PAR, HIGH STAKES,
+GRIDLOCK "next on deck"). **CITY 2.0 IS THE DEFAULT** at the plain address (WINDOWS' quiet flip; `?city=2` still works); City 1.0 only behind
+`?city=1`, UNTESTED from now on (the switch-over deletes it). Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
 plus seven Vercel serverless functions in `/api` (profiles, server-checked results, THE BOARD, admin, errors from phones — `docs/profiles.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
@@ -55,7 +59,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   scene costs several times a 2D one, and a tilted 3D board on a phone fights readability and tap targets (GRIDLOCK Part 1 shipped
   on three.js, failed the play-test and was rebuilt flat in Canvas 2D a week later — straight-on, labels inside the frame, one board up).
 - **The title has one too:** `tests/integration/title-preview.html` (the real title; `shots.mjs --preview`).
-- **City 2.0 (`?city=2`) — its standing rules, one line each** (the full text: docs/harbor.md#city-20-in-claudemd--the-full-text; the
+- **City 2.0 (the default — `?city=2` still accepted) — its standing rules, one line each** (the full text: docs/harbor.md#city-20-in-claudemd--the-full-text; the
   owner's CURRENT decisions: **docs/harbor/decisions.md** — read it before a Harbor pass; plan.md is the archive):
   - THE WINDOW RULE: every window moment enters by its own motion or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION).
   - THE WINDOW STANDARD (the owner, Oct 31): the shadowboxer + the boss's TV room are the bar for every window scene — one real light in the room, its shadows, smooth eased motion, that quality.
@@ -69,6 +73,10 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   - Every force flag has a panel row (core/harbor-remote.js; tests/harbor-remote.test.mjs greps for strays).
   - Every canvas through `safeCtx` / `ctx2d` (ui/canvas-safe.js) — counted by the memory guard; a new canvas needs no registration.
   - THE CITY TIMETABLE (core/harbor-schedule.js) holds every NEW timed thing; THE TIER TABLE (core/harbor-tiers.js) every NEW per-phone number.
+  - THE WINDOW SCENES ARE TIMETABLE ROWS (WINDOWS, Nov 1): scene.<id> (window, hours, nights, rarity, glow; `rotate: true` = seeded slots — the
+    bookie) read by core/harbor-scenes.js; a NEW scene = its row + core/harbor-<id>.js + its painter in windows.js#SCENE_PAINT; after hours the
+    scene rooms + the edge windows keep their SHADES DOWN glowing in their colour, lights out one at a time 2–4 am (windows.shades); the old
+    scenes RETIRED behind windows.old / &force=old-windows (core/harbor-moments.js#RETIRED).
   - Debug + preview flags: `&debug=1` (strips at the TOP), `&dpr=3` (look only), `&bench=1` (THE PHONE BENCH), `&force=…` (a legendary
     from a link waits for the reveal + a tap; `&lgnow=1` at once) — docs/harbor.md.
 - **Look previews without Firebase:** `tests/integration/<id>-preview.html` mounts the REAL view with a scripted state through an import
@@ -291,14 +299,14 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   `harbor-jobs.mjs`. Locally (the mini PC): the touched groups (`ONLY=…`) while working, the FULL suite once before the final push. Full text: docs/harbor.md.
 - **THE BASELINE GUARD:** `ONLY=perf` fails above 2× `tests/integration/perf-baseline.json` (`PERF_GUARD=only` ≈ 1.5 min; `PERF_BASELINE=write`
   only when a pass changes the cost on purpose — say so). A cache keyed per frame must hold its whole working set.
-- `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games, no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
+- `node --test tests/*.test.mjs` — unit + whole-match simulations of all twelve games (the ten hidden ones' quick tests kept), no deps, seconds (+ profiles/boards/XP: `profiles.test.mjs`).
 - `/api` on the emulators: `node --test server.test.mjs` (in tests/integration); the whole profile flow: `node e2e-profiles.mjs "<browser>" ./shots-profiles`.
 - Emulators (Java + Node): `cd tests/integration && npm install && npm run emulators`; rules: `node --test rules.test.mjs`;
   app: `node scripts/serve.mjs` → `http://localhost:5173/?emu` (`&slot=2`… for more players on one computer).
 - **CONN — the database sockets:** `node e2e-conn.mjs "<browser path>" ./shots-conn` (≈ 1.5 min; `MEASURE=1` = the table only, `LINE=1` = each
   state's reasons): 0 sockets on a parked title, 1 in a room, 0 after QUIT + the grace — run it after touching room / boot / firebase.js.
-- Smoke test first: `node e2e-smoke.mjs "<browser path>" ./shots` (two regular phones, every game started, no stray "null"; `GAMES=cipher` = only those — the one-game check a City 2.0 pass runs after touching a shared file).
-- Per game: `node e2e-<id>.mjs "<browser path>" ./shots-<id>` (env `N=8 SHOTS=0 GPU=1 CPU=4 PERF=0/1 FAST=1`); previews without Firebase:
+- Smoke test first: `node e2e-smoke.mjs "<browser path>" ./shots` (two regular phones, the TWO PLAYABLE games started + a check that none of the ten hidden ones can start, no stray "null" — ≈ 30 s; `GAMES=cipher` = only those — the one-game check a City 2.0 pass runs after touching a shared file).
+- Per game (WINDOWS: only PRISM DROP + OVERCLOCK run now — the ten hidden games' long E2Es stop until each comes back): `node e2e-<id>.mjs "<browser path>" ./shots-<id>` (env `N=8 SHOTS=0 GPU=1 CPU=4 PERF=0/1 FAST=1`); previews without Firebase:
   `tests/integration/<id>-preview.html`.
 - RUMRUNNER's economy: `node scripts/sim-rum.mjs` (bot matches on the real rules, per length) before touching `js/games/rum/tuning.js`.
 - Lighthouse (mobile): `npx lighthouse "http://localhost:5173/?emu" --form-factor=mobile --chrome-path="<browser>"` (targets 98–99 / 100 / 100 / 100).

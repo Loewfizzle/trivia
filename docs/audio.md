@@ -525,6 +525,19 @@ launch-1, crackle-1, whistle-1 + crowd-2 are Sonniss, never stand-alone download
   spacing never matched his 0.27 s, so each hit stays on its own punch); THE CHAIN on ~1 in 3 heavy hits (a stable hash: every phone the same).
   The bells, the rope + the speed bag unchanged.
 
+## THE WINDOW SCENES' SOUNDS (WINDOWS, Nov 1 2026; City 2.0) — `core/harbor-juggler.js#jugglerSceneCues`, `core/harbor-crate.js#crateSceneCues`, `screens/harbor/sounds.js` (SCENE_CUES)
+- **THE JUGGLER — ONLY THE DROPS** (the owner: no catch sounds — a 3-hour tick would wear): `juggler-drop` (7 takes: 684374's five — A–E, take
+  D past its low bump — + 389546 + 499396; the bounces dipped 4–5 dB after the first impact with `gainenv`) at the missed ball's first floor
+  contact; `juggler-thud` (732813's soft hits, 3 takes) when it lands DEAD on the rug + his bag set down in his entrance. THROUGH THE GLASS
+  ACROSS THE STREET: a high-pass 90 Hz, a low-pass 1.5 kHz, a small room's reverb (RT60 0.4 s, wet 0.16), 3 ms in / 120 ms out; levelled −20 LUFS
+  like every one-shot, the slot gains 0.12 / 0.09 (felt, under the bag's 0.16); citySound never plays the same take twice running. Copies of
+  Grok's folder in `art/city-sfx/juggler/` (the WAVs git-ignored; claude-notes + credits kept); the unused picks (the bench softball, the flour
+  bag) + the alternates (SB011 Sonniss, one Mixkit) are in SKIP — not shipped, so not credited; the four shipped files are CC0 (a courtesy
+  credit in the CREDITS sheet + audio/city/CREDITS.md).
+- **THE CRATE GUY**: a muffled clink of bottles (`crates-clink`, gain × 0.55) each time a crate is set down — the moment the bulb is bumped.
+- Both ducked like the boxer's bag (core/harbor-boxer.js#boxerDuck: only while the music is really audible), panned to the scene's window
+  (sounds.js#ROOM_PAN); a jump in time plays nothing. The Charleston + the bookie are silent (the city's own music is the phonograph).
+
 ## THE STORM + THE COLD, HEARD (ATM-B, Oct 31 2026; City 2.0) — `screens/harbor/sounds.js` (`thunder`, the weather beds) — (ATM-C: the synthesized crack below is GONE — the recorded thunder above)
 - **THE THUNDER BY DISTANCE** (`thunder(ev)` — the strike's kind, its distance's delay, its pan from where it hit): a CLOSE strike (≲ 1.6 km,
   0.5–4 s after its flash) = `cityCrack` — a SYNTHESIZED split (no file: a 1.6 s noise buffer made once per sample rate — two tearing peaks

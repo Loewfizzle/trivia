@@ -7,7 +7,7 @@
 // he catches all three, a flourish, packs the bag, comes to the glass + pulls the shade (scene-kit.js#pullAtGlass).
 import { JUG, PAT, jugglerPlan, segAt, ballsAt, trickAt, ENTER, EXIT } from '../../core/harbor-juggler.js';
 import { SCENE_TIMING } from '../../core/harbor-scenes.js';
-import { man, rimmed, walk, crouch, sit, stand, mix, ik, ease, lerp, lp, add, rgb, mixc, clamp01, pullAtGlass, hemAt, glowAt } from './scene-kit.js';
+import { cached, man, rimmed, walk, crouch, sit, stand, mix, ik, ease, lerp, lp, add, rgb, mixc, clamp01, pullAtGlass, hemAt, glowAt } from './scene-kit.js';
 
 const TAU = Math.PI * 2;
 const BALL = { 0: [214, 34, 40], 1: [246, 230, 198], 2: [214, 34, 40] };            // red · cream · red
@@ -42,23 +42,27 @@ export function jugglerRoom(E, st, o = {}) {
   const beatK = party && o.beat && o.beat.beatsF != null ? Math.exp(-((o.beat.beatsF % 1 + 1) % 1) * 3.2) : 0;
   // THE LAMP: on a side table at the right, its shade at about his head's height (the arcs' apex): the room's ONE light
   const lamp = [PX(JUG.lamp), floorV + 0.8 * H];
+  // ---- THE STILL ROOM (cached — scene-kit.js#cached): the back wall lit round the lamp, the floor, the corners, the stool, the lamp's table
+  cached(c, 'juggler', [x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1], c => {
   // ---- the room: the back wall dark brown, lit round the lamp (amber, falling off); the floor darker; the corners in shade
-  { const g = c.createRadialGradient(lamp[0], lamp[1], 0.02 * ch, lamp[0], lamp[1], 1.25 * ch);
-    g.addColorStop(0, rgb([248, 178, 100])); g.addColorStop(0.25, rgb([200, 120, 58])); g.addColorStop(0.6, rgb([112, 62, 30])); g.addColorStop(1, rgb([42, 22, 12]));
-    c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1); }
+    { const g = c.createRadialGradient(lamp[0], lamp[1], 0.02 * ch, lamp[0], lamp[1], 1.25 * ch);
+      g.addColorStop(0, rgb([248, 178, 100])); g.addColorStop(0.25, rgb([200, 120, 58])); g.addColorStop(0.6, rgb([112, 62, 30])); g.addColorStop(1, rgb([42, 22, 12]));
+      c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1); }
+    { const g = c.createLinearGradient(0, y0, 0, floorV + 0.03 * ch); g.addColorStop(0, rgb([22, 12, 8])); g.addColorStop(1, rgb([72, 40, 20]));
+      c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, floorV + 0.03 * ch - y0 + 0.05);
+      c.fillStyle = 'rgba(255,184,100,0.16)'; c.beginPath(); c.ellipse(lamp[0] - 0.08 * cw, floorV - 0.02 * ch, 0.38 * cw, 0.05 * ch, 0, 0, TAU); c.fill(); }
+    for (const s of [-1, 1]) { const ex = s < 0 ? x0 : x0 + cw, g = c.createLinearGradient(ex, 0, ex - s * 0.2 * cw, 0); g.addColorStop(0, 'rgba(10,6,4,0.66)'); g.addColorStop(1, 'rgba(10,6,4,0)'); c.fillStyle = g; c.fillRect(s < 0 ? x0 - 0.05 : x0 + cw * 0.8, y0 - 0.05, cw * 0.2 + 0.05, ch + 0.1); }
+    // ---- the stool (left) + his bag (on the floor by it)
+    const stoolX = PX(JUG.stool), seat = floorV + 0.27 * H;
+    c.fillStyle = 'rgb(26,15,10)'; c.fillRect(stoolX - 0.085 * cw, seat - 0.02 * ch, 0.17 * cw, 0.035 * ch);
+    c.strokeStyle = 'rgb(26,15,10)'; c.lineWidth = 0.022 * cw; c.beginPath(); for (const d of [-0.065, 0.065]) { c.moveTo(stoolX + d * cw * 0.9, seat - 0.02 * ch); c.lineTo(stoolX + d * cw * 1.15, floorV); } c.stroke();
+    c.strokeStyle = `rgba(255,170,90,${0.35})`; c.lineWidth = 0.008 * ch; c.beginPath(); c.moveTo(stoolX - 0.085 * cw, seat + 0.015 * ch); c.lineTo(stoolX + 0.085 * cw, seat + 0.015 * ch); c.stroke();
+    c.fillStyle = 'rgb(28,16,10)'; c.fillRect(lamp[0] - 0.14 * cw, floorV, 0.28 * cw, 0.42 * H); c.fillRect(lamp[0] - 0.17 * cw, floorV + 0.42 * H - 0.02 * ch, 0.34 * cw, 0.03 * ch); c.fillRect(lamp[0] - 0.012 * cw, floorV + 0.42 * H, 0.024 * cw, 0.3 * H);
+  });
   // (the doorway in the back wall he comes in through — a dark opening, its frame catching a little of the lamp)
   const door = { x: PX(0.2), w: 0.3 * cw, h: 0.62 * H, y: floorV + 0.06 * ch };   // (left of him: he stands against the lit wall, never the dark opening)
   const doorPaint = () => { c.fillStyle = 'rgba(14,8,6,0.94)'; c.fillRect(door.x - door.w / 2, floorV, door.w, door.h * 1.9); c.strokeStyle = 'rgba(190,120,60,0.4)'; c.lineWidth = 0.02 * cw; c.strokeRect(door.x - door.w / 2, floorV, door.w, door.h * 1.9); };
   if (E.deep) E.deep(0.93, doorPaint); else doorPaint();
-  { const g = c.createLinearGradient(0, y0, 0, floorV + 0.03 * ch); g.addColorStop(0, rgb([22, 12, 8])); g.addColorStop(1, rgb([72, 40, 20]));
-    c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, floorV + 0.03 * ch - y0 + 0.05);
-    c.fillStyle = 'rgba(255,184,100,0.16)'; c.beginPath(); c.ellipse(lamp[0] - 0.08 * cw, floorV - 0.02 * ch, 0.38 * cw, 0.05 * ch, 0, 0, TAU); c.fill(); }
-  for (const s of [-1, 1]) { const ex = s < 0 ? x0 : x0 + cw, g = c.createLinearGradient(ex, 0, ex - s * 0.2 * cw, 0); g.addColorStop(0, 'rgba(10,6,4,0.66)'); g.addColorStop(1, 'rgba(10,6,4,0)'); c.fillStyle = g; c.fillRect(s < 0 ? x0 - 0.05 : x0 + cw * 0.8, y0 - 0.05, cw * 0.2 + 0.05, ch + 0.1); }
-  // ---- the stool (left) + his bag (on the floor by it)
-  const stoolX = PX(JUG.stool), seat = floorV + 0.27 * H;
-  c.fillStyle = 'rgb(26,15,10)'; c.fillRect(stoolX - 0.085 * cw, seat - 0.02 * ch, 0.17 * cw, 0.035 * ch);
-  c.strokeStyle = 'rgb(26,15,10)'; c.lineWidth = 0.022 * cw; c.beginPath(); for (const d of [-0.065, 0.065]) { c.moveTo(stoolX + d * cw * 0.9, seat - 0.02 * ch); c.lineTo(stoolX + d * cw * 1.15, floorV); } c.stroke();
-  c.strokeStyle = `rgba(255,170,90,${0.35})`; c.lineWidth = 0.008 * ch; c.beginPath(); c.moveTo(stoolX - 0.085 * cw, seat + 0.015 * ch); c.lineTo(stoolX + 0.085 * cw, seat + 0.015 * ch); c.stroke();
   // ---- what he's doing now: his place (pane x), facing, depth, pose, the balls
   const bagHome = PX(JUG.bag), spot = PX(JUG.spot), Y0 = floorV;
   let manA = 1, X = spot, face = 0, pose = null, depth = 0, scale = 1, bag = { x: bagHome, held: false, open: false, on: true }, balls = [], kind = st.phase, air = 0, look = 0, turn = 0, bottle = null, floorBall = null, glassK = 0;
@@ -154,8 +158,6 @@ export function jugglerRoom(E, st, o = {}) {
   // ---- the bag on the floor (or in his hand)
   if (bag.on && bag.x != null) { const bw = 0.2 * cw, bh = 0.075 * ch; c.fillStyle = 'rgb(34,20,14)'; c.beginPath(); c.moveTo(bag.x - bw / 2, floorV - 0.005); c.lineTo(bag.x + bw / 2, floorV - 0.005); c.lineTo(bag.x + bw * 0.42, floorV + bh); c.quadraticCurveTo(bag.x, floorV + bh * (bag.open ? 1.4 : 1.25), bag.x - bw * 0.42, floorV + bh); c.closePath(); c.fill(); c.strokeStyle = `rgba(255,170,90,0.4)`; c.lineWidth = 0.008 * ch; c.beginPath(); c.moveTo(bag.x - bw * 0.42, floorV + bh); c.quadraticCurveTo(bag.x, floorV + bh * 1.28, bag.x + bw * 0.42, floorV + bh); c.stroke(); }
   // ---- THE LAMP's furniture (in front of the wall, behind him): the table, the base, the shade glowing from inside
-  c.fillStyle = 'rgb(28,16,10)'; c.fillRect(lamp[0] - 0.14 * cw, floorV, 0.28 * cw, 0.42 * H - 0.0); c.fillRect(lamp[0] - 0.17 * cw, floorV + 0.42 * H - 0.02 * ch, 0.34 * cw, 0.03 * ch);
-  c.fillRect(lamp[0] - 0.012 * cw, floorV + 0.42 * H, 0.024 * cw, 0.3 * H);
   // ---- HIM (with the lamp's warm rim: the light is on his right — our right)
   const Y = floorV, toward = 1;
   const drawMan = () => {

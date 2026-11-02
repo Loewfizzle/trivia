@@ -131,7 +131,8 @@ G('perf', async () => {
   // ================================================================ 5b. BATTERY (cleanup pass 1): a calm night draws every other frame; a hidden page draws none
   // (SKY-B: a TUESDAY — Wednesday's NIGHT has the shadowboxer moving in his window: motion, 60 fps — the saver is tested on a still night)
   // (PART 10: he trains EVERY NIGHT 7 → 11 now — the still night is a Tuesday at 11:40 pm, after his last set)
-  { const C = await open({ slot: 'hc', qs: `when=2026-10-20T23:40${GR}&force=no-planes,no-birds,no-people` });   // (PEO: anyone walking keeps 60 fps now — the saver is tested on an empty promenade)
+  // (WINDOWS: the window scenes work till midnight (the crate guy) + the bookie some nights till ~2:30 — the still night is 3:20 am now, the TV off)
+  { const C = await open({ slot: 'hc', qs: `when=2026-10-21T03:20${GR}&force=no-planes,no-birds,no-people` });   // (PEO: anyone walking keeps 60 fps now — the saver is tested on an empty promenade)
     await C.page.bringToFront();   // (C4d: the group's perf page stays open — behind it, Chromium 149's headless tab got no animation frames: 0 drawn)
     await harborUp(C.page);
     await waitFor(C.page, '!window.__district.harbor().pending && !window.__district.harbor().fading', 'settled', 15000);

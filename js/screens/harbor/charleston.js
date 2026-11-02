@@ -5,7 +5,7 @@
 // (right). Big shapes, light + colour — nothing the phone can't show.
 import { CHA, charlestonPlan, stepAt, movesAt, ENTER, EXIT } from '../../core/harbor-charleston.js';
 import { SCENE_TIMING } from '../../core/harbor-scenes.js';
-import { ease, lerp, lp, add, rgb, mixc, clamp01, pullAtGlass, hemAt, glowAt } from './scene-kit.js';
+import { cached, ease, lerp, lp, add, rgb, mixc, clamp01, pullAtGlass, hemAt, glowAt } from './scene-kit.js';
 
 const TAU = Math.PI * 2;
 const ROSE = [255, 150, 170];
@@ -43,7 +43,8 @@ function poseOf(m, o = {}) {
  *  left: each shape brighter on its left, darker on its right (a gradient across her) */
 function dancer(c, X, Y, H, P, o = {}) {
   const Q = ([x, y]) => [X + x * H, Y + y * H];
-  const across = (col, k = 1) => { const g = c.createLinearGradient(X - 0.22 * H, 0, X + 0.22 * H, 0); g.addColorStop(0, rgb(mixc(col, [255, 236, 236], 0.18 * k))); g.addColorStop(0.55, rgb(col)); g.addColorStop(1, rgb(mixc(col, [40, 10, 30], 0.42 * k))); return g; };
+  // (the lamp's light across her: ONE gradient per colour per frame — skin, dress, fringe — shared by every shape of that colour)
+  const memo = new Map(), across = (col, k = 1) => { const key = col.join() + k; let g = memo.get(key); if (g) return g; g = c.createLinearGradient(X - 0.22 * H, 0, X + 0.22 * H, 0); g.addColorStop(0, rgb(mixc(col, [255, 236, 236], 0.18 * k))); g.addColorStop(0.55, rgb(col)); g.addColorStop(1, rgb(mixc(col, [40, 10, 30], 0.42 * k))); memo.set(key, g); return g; };
   c.lineCap = 'round'; c.lineJoin = 'round';
   // (her rim: the lamp's rosy light round her left edges)
   const limb = (pts, w, col) => { c.strokeStyle = col; c.lineWidth = w * H; c.beginPath(); pts.forEach((p, i) => { const q = Q(p); if (i) c.lineTo(q[0], q[1]); else c.moveTo(q[0], q[1]); }); c.stroke(); };
@@ -83,24 +84,26 @@ export function charlestonRoom(E, st, o = {}) {
   const { c, G, t, mo } = E, cw = G.cw, ch = G.ch, x0 = G.g0, y0 = G.h0, y1 = G.h1;
   const floorV = y0 + 0.11 * ch, H = 0.72 * ch, T = SCENE_TIMING.charleston, PX = u => x0 + u * cw;
   const plan = charlestonPlan(o.key || '', st.workLen, o.seed || 1924), lamp = [PX(CHA.lamp), floorV + 0.8 * H];
+  const ph = [PX(CHA.phono), floorV], chair = [PX(CHA.chair) + 0.08 * cw, floorV];
+  // ---- THE STILL ROOM (cached — scene-kit.js#cached): the rosy walls + floor, the phonograph, the chair
+  cached(c, 'charleston', [x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1], c => {
   // ---- the room: rosy, lit from the lamp at the left; the floor a dark pink-brown; the corners deep
-  { const g = c.createRadialGradient(lamp[0], lamp[1], 0.03 * ch, lamp[0] + 0.1 * cw, lamp[1] - 0.05 * ch, 1.25 * ch);
-    g.addColorStop(0, rgb([250, 186, 200])); g.addColorStop(0.22, rgb([228, 122, 146])); g.addColorStop(0.6, rgb([132, 58, 82])); g.addColorStop(1, rgb([40, 16, 28]));
-    c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1); }
-  { const g = c.createLinearGradient(0, y0, 0, floorV + 0.02 * ch); g.addColorStop(0, rgb([30, 14, 18])); g.addColorStop(1, rgb([96, 50, 58]));
-    c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, floorV + 0.02 * ch - y0 + 0.05);
-    c.fillStyle = 'rgba(255,170,190,0.18)'; c.beginPath(); c.ellipse(lamp[0] + 0.18 * cw, floorV - 0.02 * ch, 0.42 * cw, 0.05 * ch, 0, 0, TAU); c.fill(); }
-  { const g = c.createLinearGradient(x0 + cw, 0, x0 + cw * 0.78, 0); g.addColorStop(0, 'rgba(20,6,14,0.6)'); g.addColorStop(1, 'rgba(20,6,14,0)'); c.fillStyle = g; c.fillRect(x0 + cw * 0.78, y0 - 0.05, cw * 0.22 + 0.05, ch + 0.1); }
-  // ---- THE PHONOGRAPH (right): a small table, the box, the brass horn flaring up + toward the room (its rim catching the lamp)
-  const ph = [PX(CHA.phono), floorV];
-  c.fillStyle = 'rgb(50,22,30)'; c.fillRect(ph[0] - 0.11 * cw, ph[1], 0.22 * cw, 0.36 * H); c.fillRect(ph[0] - 0.13 * cw, ph[1] + 0.36 * H - 0.02 * ch, 0.26 * cw, 0.03 * ch);
-  c.fillStyle = 'rgb(70,32,26)'; c.fillRect(ph[0] - 0.08 * cw, ph[1] + 0.37 * H, 0.16 * cw, 0.09 * H);
-  { const bx = ph[0] - 0.02 * cw, by = ph[1] + 0.46 * H, g = c.createLinearGradient(bx - 0.2 * cw, 0, bx + 0.05 * cw, 0); g.addColorStop(0, rgb([255, 214, 130])); g.addColorStop(1, rgb([150, 96, 40]));
-    c.fillStyle = g; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx - 0.04 * cw, by + 0.16 * H, bx - 0.2 * cw, by + 0.3 * H); c.lineTo(bx - 0.08 * cw, by + 0.37 * H); c.quadraticCurveTo(bx - 0.02 * cw, by + 0.2 * H, bx + 0.02 * cw, by + 0.02 * H); c.closePath(); c.fill(); }
-  // ---- THE CHAIR (left, by the lamp): a plum armchair, its arm + back catching the rosy light
-  const chair = [PX(CHA.chair) + 0.08 * cw, floorV];
-  c.fillStyle = 'rgb(84,30,56)'; c.beginPath(); c.roundRect(chair[0] - 0.13 * cw, chair[1], 0.26 * cw, 0.42 * H, 0.03 * ch); c.fill();
-  c.fillStyle = 'rgb(110,40,72)'; c.beginPath(); c.roundRect(chair[0] - 0.15 * cw, chair[1] + 0.06 * H, 0.06 * cw, 0.22 * H, 0.02 * ch); c.fill(); c.beginPath(); c.roundRect(chair[0] + 0.09 * cw, chair[1] + 0.06 * H, 0.06 * cw, 0.22 * H, 0.02 * ch); c.fill();
+    { const g = c.createRadialGradient(lamp[0], lamp[1], 0.03 * ch, lamp[0] + 0.1 * cw, lamp[1] - 0.05 * ch, 1.25 * ch);
+      g.addColorStop(0, rgb([250, 186, 200])); g.addColorStop(0.22, rgb([228, 122, 146])); g.addColorStop(0.6, rgb([132, 58, 82])); g.addColorStop(1, rgb([40, 16, 28]));
+      c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1); }
+    { const g = c.createLinearGradient(0, y0, 0, floorV + 0.02 * ch); g.addColorStop(0, rgb([30, 14, 18])); g.addColorStop(1, rgb([96, 50, 58]));
+      c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, floorV + 0.02 * ch - y0 + 0.05);
+      c.fillStyle = 'rgba(255,170,190,0.18)'; c.beginPath(); c.ellipse(lamp[0] + 0.18 * cw, floorV - 0.02 * ch, 0.42 * cw, 0.05 * ch, 0, 0, TAU); c.fill(); }
+    { const g = c.createLinearGradient(x0 + cw, 0, x0 + cw * 0.78, 0); g.addColorStop(0, 'rgba(20,6,14,0.6)'); g.addColorStop(1, 'rgba(20,6,14,0)'); c.fillStyle = g; c.fillRect(x0 + cw * 0.78, y0 - 0.05, cw * 0.22 + 0.05, ch + 0.1); }
+    // ---- THE PHONOGRAPH (right): a small table, the box, the brass horn flaring up + toward the room (its rim catching the lamp)
+    c.fillStyle = 'rgb(50,22,30)'; c.fillRect(ph[0] - 0.11 * cw, ph[1], 0.22 * cw, 0.36 * H); c.fillRect(ph[0] - 0.13 * cw, ph[1] + 0.36 * H - 0.02 * ch, 0.26 * cw, 0.03 * ch);
+    c.fillStyle = 'rgb(70,32,26)'; c.fillRect(ph[0] - 0.08 * cw, ph[1] + 0.37 * H, 0.16 * cw, 0.09 * H);
+    { const bx = ph[0] - 0.02 * cw, by = ph[1] + 0.46 * H, g = c.createLinearGradient(bx - 0.2 * cw, 0, bx + 0.05 * cw, 0); g.addColorStop(0, rgb([255, 214, 130])); g.addColorStop(1, rgb([150, 96, 40]));
+      c.fillStyle = g; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx - 0.04 * cw, by + 0.16 * H, bx - 0.2 * cw, by + 0.3 * H); c.lineTo(bx - 0.08 * cw, by + 0.37 * H); c.quadraticCurveTo(bx - 0.02 * cw, by + 0.2 * H, bx + 0.02 * cw, by + 0.02 * H); c.closePath(); c.fill(); }
+    // ---- THE CHAIR (left, by the lamp): a plum armchair, its arm + back catching the rosy light
+    c.fillStyle = 'rgb(84,30,56)'; c.beginPath(); c.roundRect(chair[0] - 0.13 * cw, chair[1], 0.26 * cw, 0.42 * H, 0.03 * ch); c.fill();
+    c.fillStyle = 'rgb(110,40,72)'; c.beginPath(); c.roundRect(chair[0] - 0.15 * cw, chair[1] + 0.06 * H, 0.06 * cw, 0.22 * H, 0.02 * ch); c.fill(); c.beginPath(); c.roundRect(chair[0] + 0.09 * cw, chair[1] + 0.06 * H, 0.06 * cw, 0.22 * H, 0.02 * ch); c.fill();
+  });
   // ---- what she's doing: her place, pose
   let X = PX(CHA.spot), P = null, step = st.phase, scale = 1, glassK = 0, fan = 0;
   const still = { twist: 0, kick: [0, 0], back: [0, 0], knees: 0, cross: 0, arms: [-0.5, -0.5], dx: 0, bob: 0, open: 0, stop: 0, tada: 0 };

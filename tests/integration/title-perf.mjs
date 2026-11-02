@@ -58,6 +58,9 @@ const SCENES = {
   'n4-race': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race', 'n4-punch': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-punch', 'n4-shim': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-shimmer',
   'n4-beams': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-beams', 'n4-str': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-strings', 'n4-all': 'when=2026-10-17T23:00&wx=clear&force=no-planes,no-race,no-punch,no-shimmer,no-beams,no-strings',
   'np-night': 'when=2026-10-14T21:30&wx=clear&force=no-planes',
+  // WINDOWS (Nov 1): the evening with THE JUGGLER + THE CHARLESTON + THE BOXER at once (a Wednesday 8:15 pm); a party night with the
+  // juggler's NEON balls on the beat (a Friday 9 pm, before the window party's peak)
+  'np-windows': 'when=2026-10-14T20:15&wx=clear&force=no-planes', 'np-wparty': 'when=2026-10-16T21:05&wx=clear&force=no-planes',
   // NIGHT-A: THE NEW NIGHT LIGHT (&light=new: an older build ignores the flag — its own light): a plain night, a party night, a rainy night
   // NIGHT-A2: SATURDAY OCT 31 — Halloween AND a party night (the owner's iPhone: 14.5 % slow, frames to 100 ms); -noprops = the same
   // night without the holiday's props (the props' share of it); np-* / w-rain run the DEFAULT light (NEW since NIGHT-A2)

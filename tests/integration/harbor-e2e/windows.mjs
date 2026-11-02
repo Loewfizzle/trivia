@@ -155,7 +155,7 @@ G('windows', async () => {
       if (performance.now() - t0 < ${secs * 1000}) requestAnimationFrame(loop); else res(out); })(); })`;
   // ---- THE TOAST AT 60 FPS with nobody walking (measured: the saver's 30 fps + its 30 ↔ 60 flips were the choppiness — now a window
   // moment is a 60-fps reason), and its arms EASED: no stepped updates, no snap inside a cycle
-  WJ.push(['w-fps', true, async () => { const Q = await open({ slot: 'w-fps', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife,old-windows&moment=toast`, view: [402, 874] });
+  WJ.push(['w-fps', true, async () => { const Q = await open({ slot: 'w-fps', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife&moment=toast`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
     await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'toast' && e.el < 1)", 'a toast starting', 25000);
     const fr = await ev(Q.page, winTrace(6));
@@ -234,7 +234,7 @@ G('windows', async () => {
     await Q.ctx.close(); }]);
   // ---- WIN — 2.5D ROOMS: the people at DEPTH — in the bar the bartender stands deeper (0.55) than the patrons at the counter (0.28): the
   // trace carries each figure's depth; a deeper figure is drawn through a smaller scale (the box's scale(t)); the rooms' boxes exist
-  WJ.push(['w-deep', true, async () => { const Q = await open({ slot: 'w-deep', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife&moment=toast`, view: [402, 874] });
+  WJ.push(['w-deep', true, async () => { const Q = await open({ slot: 'w-deep', qs: `when=2026-10-22T21:30${GR}&force=window,no-people,no-wildlife,old-windows&moment=toast`, view: [402, 874] });
     await harborUp(Q.page); await lit(Q.page);
     await waitFor(Q.page, "window.__district.harbor().speakeasy.life.on.some(e => e.id === 'toast' && e.el > e.len * 0.3 && e.el < e.len * 0.7)", 'the toast on (walked in)', 25000);   // (WIN2: after the friends' walk-in)
     const figs = await ev(Q.page, `new Promise(res => requestAnimationFrame(() => res(window.__district.harbor().speakeasy.life.figs)))`);

@@ -1749,3 +1749,15 @@ own box at the letters' height. Step 0: the owner's notes part 40 (THE ROADMAP R
 
 ## CITY 2.0 — ATM-C: THE CLEANUP — THE OWNER's ATM-A + ATM-B REVIEWS (Oct 31 2026) — docs/harbor/passes/atm-c.md (plan.md "OWNER'S NOTES — OCT 31 (the ATM reviews)" + the 12:03 pm add-on)
 The owner's two reviews in one cleanup pass: Group 0 the patrol's hover (reproduced from a fresh load in Chromium + WebKit: the LEGS out of the hover dived back through the billboard — air.js#clearLegs + a re-plan when the near pieces change; 200 seeds checked) + PANEL PARTY ON (a mid-song voice read "heard" before its start — synced-songs.js#now); Group 1 the veil (a milky sheen + drifting fibres, the halo ~1 day in 7 + faint) + the sun's colour by its height (white from ~11.5°, gold / amber / orange below; the golden-hour + sunrise skies warm with the sun up); Group 2 one soft-flake fix (baked soft sprites, the near layer added, the blizzard's smear, heavy snow denser, a fresh load's snow fills the screen), the rain's corners, freezing rain as ice (chunky icicles, the glaze, the ice-sheet mirror, frosted panes, a colder grade), the lighthouse + the beacons in fog; Group 3 the recorded thunder (9 takes, the flash on each take's crack) + the boxer's bag (+3 dB, variety by punch, the combo hits); Group 4 the TR-3B (its water reflection, the blackout building by building incl. the neon outlines, the flares breathing), cab riders through the open door, umbrellas held, the boss's shadow solid, the blade's inline style out, THE WINDOW STANDARD, the admin panel tidied (long lists fold, screen-order sections, CLEAR ALL clears the readouts).
+
+## CITY 2.0 — WINDOWS (Nov 1 2026, night) — docs/harbor/passes/windows.md (plan.md "OWNER'S NOTES — NOV 1 (night)")
+Group 0: THE QUIET DEFAULT FLIP (core/city.js: City 2.0 with no flag, `?city=1` = City 1.0 — untested from here; the Harbor suite's City 1.0
+checks became City 2.0 ones), ONLY TWO GAMES PLAYABLE (config.js GAMES[].playable: PRISM DROP + OVERCLOCK; host.js#startGame refuses a hidden
+game; the lobby, HOW TO PLAY + the games sheet list the two; the smoke proves none of the ten starts; presence + CONN play OVERCLOCK), THE FIVE
+SIGNS (GAMES[].sign — OVERCLOCK, PRISM DROP + NEON PAR, HIGH STAKES, GRIDLOCK; a next-on-deck sign tap says COMING SOON), the finale's last
+order (the dragon eggs first, the gold willow curtain last — the beat sync can never flip them), THE MENACING SKULL (a black envelope + a hard
+bone-white skull: angled sockets under a heavy brow, a sharp nose, clenched teeth; glowing at night), balloons always in front of the high
+clouds (clouds.js 'high' / 'low' passes round them), the two cloud flakes (the first close strike waits for its decode; partysync reads the
+player's own 120-ms re-place window). Groups 1–5: THE WINDOW SCENES AS TIMETABLE ROWS (core/harbor-scenes.js), the old scenes retired behind
+windows.old / &force=old-windows, AFTER HOURS (the shades down glowing — amber, cold white, green, rosy — the lights out one at a time 2–4 am;
++ the owner's add-on: the edge windows' shades), THE JUGGLER (+ Grok's drop sounds), THE CRATE GUY, THE CHARLESTON, THE BOOKIE (rotating).

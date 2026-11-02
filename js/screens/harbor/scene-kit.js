@@ -2,7 +2,25 @@
 // craft (boxer.js) made general: ONE BOLD SILHOUETTE at the window's real size (~40 pt: a man ~27 pt tall) — thick limbs, a strong torso,
 // the head, a hat — a warm RIM from the room's one light ("not flat black paper"), poses eased + mixed, never a snap. In his own frame: the
 // feet at (0, 0), +x the way he faces (front: his right as we see it), +y up, 1 = his height. Drawn in the front wall's units (v up).
+import { safeCtx } from '../../ui/canvas-safe.js';
 const TAU = Math.PI * 2;
+// THE STILL ROOM, CACHED (WINDOWS — the calm-load check: three scenes + their 3× copies at once stepped the tier down on the mini PC): a room's
+// parts that never move (the walls' light, the floor, the furniture) painted ONCE into a canvas at the window's device scale, then one
+// drawImage a frame. Keyed by the scene, the pane's place + size and the scale (the city's + the crisp layer's copies each their own); ≤ 10
+// kept, the oldest freed. rect: [x, y, w, h] in the wall's units (v up) — the canvas holds it with row 0 at v = y (the wall's own flip
+// puts it the right way up when drawn back). Every canvas through safeCtx (counted by the memory guard).
+const stillCache = new Map();
+export function cached(c, key, rect, paint) {
+  const m = c.getTransform(), s = Math.hypot(m.a, m.b) || 1, [x, y, w, h] = rect, k = `${key}|${x.toFixed(3)}|${y.toFixed(3)}|${w.toFixed(3)}|${h.toFixed(3)}|${s.toFixed(2)}`;
+  let cv = stillCache.get(k);
+  if (!cv) {
+    cv = document.createElement('canvas'); cv.width = Math.max(1, Math.ceil(w * s)); cv.height = Math.max(1, Math.ceil(h * s));
+    const g = safeCtx(cv); g.setTransform(s, 0, 0, s, -x * s, -y * s); paint(g);
+    stillCache.set(k, cv);
+    if (stillCache.size > 10) { const [k0, c0] = stillCache.entries().next().value; c0.width = c0.height = 0; stillCache.delete(k0); }
+  }
+  c.drawImage(cv, x, y, w, h);
+}
 export const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const ease = k => { const v = clamp01(k); return v * v * (3 - 2 * v); };
 export const easeOut = k => 1 - (1 - clamp01(k)) ** 3;

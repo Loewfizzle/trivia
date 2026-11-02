@@ -4,7 +4,7 @@
 // carry it — never the ledger or the cash). The light coming on IS his entrance; the lamp burns on behind his shade after hours (green).
 import { BK, bookiePlan, doingAt, BAD, ENTER, EXIT } from '../../core/harbor-bookie.js';
 import { SCENE_TIMING } from '../../core/harbor-scenes.js';
-import { man, rimmed, walk, crouch, stand, mix, ease, lerp, lp, add, rgb, clamp01, pullAtGlass, hemAt, glowAt } from './scene-kit.js';
+import { cached, man, rimmed, walk, crouch, stand, mix, ease, lerp, lp, add, rgb, clamp01, pullAtGlass, hemAt, glowAt } from './scene-kit.js';
 
 const TAU = Math.PI * 2;
 const GREEN = [120, 230, 140];
@@ -41,12 +41,14 @@ export function bookieRoom(E, st, o = {}) {
   if (st.phase === 'up') lamp = 0;
   else if (st.phase === 'enter') { const e = st.t - ENTER.lamp; lamp = e < 0 ? 0 : e < 0.08 ? 0.7 : e < 0.16 ? 0.1 : e < 0.3 ? 0.9 : 1; }
   const L = lamp;
-  // ---- the room: dark panelled walls, the lamp's GREEN SPILL low round the desk; the floor darker
+  // ---- THE STILL ROOM (cached per lamp level — scene-kit.js#cached): dark panelled walls, the lamp's GREEN SPILL low round the desk
+  cached(c, `bookie${Math.round(L * 10)}`, [x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1], c => {
   { c.fillStyle = rgb([16, 18, 16]); c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1);
-    if (L > 0) { const g = c.createRadialGradient(lampP[0], lampP[1] - 0.04 * ch, 0.02 * ch, lampP[0], lampP[1] - 0.1 * ch, 0.95 * ch); g.addColorStop(0, rgb([96, 150, 104], L)); g.addColorStop(0.35, rgb([44, 70, 50], L)); g.addColorStop(1, rgb([12, 16, 14], L)); c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1); }
-    c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, floorV - y0 + 0.05);
-    for (let i = 1; i < 4; i++) { c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(PX(i / 4) - 0.004 * cw, floorV, 0.008 * cw, ch); }   // (the wall's panels)
-  }
+      if (L > 0) { const g = c.createRadialGradient(lampP[0], lampP[1] - 0.04 * ch, 0.02 * ch, lampP[0], lampP[1] - 0.1 * ch, 0.95 * ch); g.addColorStop(0, rgb([96, 150, 104], L)); g.addColorStop(0.35, rgb([44, 70, 50], L)); g.addColorStop(1, rgb([12, 16, 14], L)); c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1); }
+      c.fillStyle = 'rgba(0,0,0,0.35)'; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, floorV - y0 + 0.05);
+      for (let i = 1; i < 4; i++) { c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(PX(i / 4) - 0.004 * cw, floorV, 0.008 * cw, ch); }   // (the wall's panels)
+    }
+  });
   // ---- the hat hook on the left wall
   c.fillStyle = 'rgb(30,26,20)'; c.fillRect(hook[0] - 0.03 * cw, hook[1] - 0.01 * ch, 0.06 * cw, 0.02 * ch);
   // ---- what he's doing

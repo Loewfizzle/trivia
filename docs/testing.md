@@ -2,6 +2,15 @@
 
 Every test suite in detail: unit + simulation, emulators, the smoke test, each game's E2E and its flags, previews, Lighthouse.
 
+**WINDOWS (Nov 1) — THE TRIMMED SUITES.** Only PRISM DROP + OVERCLOCK are playable (the owner): the smoke test starts those two (+ checks that
+none of the ten hidden games can start — host.js#startGame refuses them) — ≈ 30 s locally (was ≈ 2 min); `e2e-presence` + `e2e-conn` (the cloud's
+tests job) play OVERCLOCK (were LAST SIGNAL / CIPHER); the ten hidden games' long E2Es (`e2e-cipher`… `e2e-rum`, `e2e-8p`) don't run until a game
+comes back; their quick unit tests stay in `node --test tests/*.test.mjs`. City 1.0 is untested: City 2.0 is the default address (`?city=1` =
+City 1.0); the district's own suites (`e2e-title`, `e2e-sky`, `e2e-street`, `e2e-rainbow`, `e2e-people`, `e2e-party`, `e2e-stage2`) are retired with
+it, and the Harbor suite's City 1.0 checks (the music group's old decks, the core group's "no flag = today's city") became City 2.0 checks.
+The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the lights-out one at a time; the old quiet building behind
+`&force=old-windows`) + the unit tests `harbor-scenes`, `harbor-juggler`, `harbor-window-scenes`.
+
 ## Testing
 - **GitHub checks** (`.github/workflows/tests.yml`, Oct 2026): **since SP6 (the owner's CLOUD MINUTES, Oct 27 — Pro's 3,000 a month went at
   ~400–600 a day when this ran on every push) only a pass's FINAL push runs it**: a push with **`[ci]`** (a game / app pass) or **`[harbor]`** (a City 2.0

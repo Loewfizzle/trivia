@@ -132,7 +132,7 @@ export function createWindowLife() {
     let SC = null;
     if (!oldMode) {
       const lg = k => { const [y, m, d] = k.split('-').map(Number); return legendNight(y, m, d); };
-      if (scKey !== `${nightKey}|${L.seed || 1924}`) { scKey = `${nightKey}|${L.seed || 1924}`; scList = scenesTonight(nightKey, { seed: L.seed, legend: lg }); scOut = shadesNight(nightKey, { seed: L.seed, scenes: scList }); }
+      if (scKey !== `${nightKey}|${L.seed || 1924}|${quiet}`) { scKey = `${nightKey}|${L.seed || 1924}|${quiet}`; scList = scenesTonight(nightKey, { seed: L.seed, legend: lg }).filter(x => !(quiet && x.rotating));   /* (a QUIET night — the boss's TV the only light on: the rotating scene stays home) */ scOut = shadesNight(nightKey, { seed: L.seed, scenes: scList }); }
       let list = scList.filter(x => SCENE_PAINT[x.id]);
       const fs = L.scene && SCENE_PAINT[L.scene.id] ? L.scene : null;
       if (fs) { const fk = `${fs.id}|${fs.min || 0}|${fs.win || ''}`; if (scForceKey !== fk || scT0 == null) { scForceKey = fk; scT0 = evSec; } const pv = scenePreview(fs.id, scT0, fs.min || 0, { win: fs.win }); if (pv) list = [...list.filter(x => x.win !== pv.win), pv]; }
@@ -181,7 +181,7 @@ export function createWindowLife() {
       if (partyDead !== nightKey) { partyCutT = null; partyKeep = null; }
     }
     // (WINDOWS: a scene room joins the window party only after its LAST scene that overlaps the peak — then its blind eases up for the party)
-    if (SC && party && party.on && !party.cut && party.s != null) {
+    if (SC && party && party.on && !party.cut && !party.forced && party.s != null) {   // (the forced preview: every room at once, as before)
       const p0 = evSec - party.s, p1 = L.partyEndS != null ? evSec + L.partyEndS : p0 + 4 * 3600, k2 = { ...party.k };
       for (const id of SCENE_ROOMS) { if (k2[id] == null) continue; const ff = SC.room[id].st ? Infinity : sceneFreeFrom(SC.list, id, p0, p1); if (ff != null) k2[id] = evSec < ff ? 0 : k2[id] * Math.min(1, (evSec - ff) / 1.6); if (k2[id] > 0.01) parkB[id] = 1; }
       party = { ...party, k: k2 };
