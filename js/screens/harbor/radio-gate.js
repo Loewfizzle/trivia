@@ -29,6 +29,7 @@ export function startRadioGate(o) {
       });
       const m = await import('./radio.js');
       radio = m.createRadio({ role, remote: o.remote, roomCode: o.roomCode, sheetsReady: css });
+      try { window.__radio = radio; } catch { /* (tests: the desk's debug) */ }
       return radio;
     })().catch(e => { console.warn('[radio] gate', e); return null; }).finally(() => { starting = null; });
     return starting;

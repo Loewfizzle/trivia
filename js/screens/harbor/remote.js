@@ -49,7 +49,8 @@ import { cityPreview, citySoundsDebug } from '../../audio/city-sound.js';
 import { debugTool, setDebugTool } from '../../ui/debug-tools.js';
 import { setMenuExtra, setMenuCue } from '../../ui/settings-panel.js';
 import { setServerShowcase } from '../../core/harbor-showcase.js';
-import { setOwnerMessages } from '../../core/harbor-billboard.js';
+import { setOwnerMessages, setIntercomHead as setBillboardHead } from '../../core/harbor-billboard.js';
+import { intercomFeed, setIntercomBusy, setIntercomHead } from '../../audio/intercom.js';
 
 const FOLD_KEY = 'nd:hr-folds';   // (ATM-C: the long blocks the owner opened — remembered on this device)
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin', OPEN_KEY = 'nd:hr-open', DELAY_KEY = 'nd:hr-delay', RECENT_KEY = 'nd:hr-recent';
@@ -230,7 +231,12 @@ export function createRemote({ scene, api = apiCall }) {
     setServerShowcase(r.showcase || null);
     setOwnerMessages(Array.isArray(r.board) ? r.board : []);
     feedRadio();
+    // CC-B — THE INTERCOM to EVERYONE: the city's copy (audio/intercom.js decides when — a title phone plays it as it arrives)
+    intercomFeed('feed', Array.isArray(r.intercom) ? r.intercom : [], r.stopped || []);
   }
+  // (the intercom waits for a legendary's own audio; its headline goes up on the speakeasy's billboard while it plays)
+  setIntercomBusy(() => { const sc = scene(); return !!(sc && sc.legendBusy && sc.legendBusy()); });
+  setIntercomHead(lines => setBillboardHead(lines));
   // THE NIXIE's count (an estimate until Vercel Analytics): a visible city says hello every ~2 min (no socket — the API)
   let helloT = 0;
   const hello = () => { clearTimeout(helloT); if (destroyed) return; if (document.visibilityState === 'visible' && api) api('admin', { action: 'radioHello' }).catch(() => {}); helloT = setTimeout(hello, 120e3 * (0.9 + Math.random() * 0.2)); };

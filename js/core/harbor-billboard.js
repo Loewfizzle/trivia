@@ -66,8 +66,13 @@ export function ownerWindow(m, ms, off = 0) {
   }
   return null;
 }
+// CC-B — THE INTERCOM's HEADLINE (audio/intercom.js → setIntercomHead): up on the board the whole time the announcement plays (wins over all)
+let IC_HEAD = null;
+export function setIntercomHead(lines) { IC_HEAD = Array.isArray(lines) && lines[0] ? [String(lines[0]), String(lines[1] || '')] : null; }
+export const intercomHead = () => IC_HEAD;
 /** the owner's message ON at abs ms (its spell in the cycle) → { id, lines, own: true } | null */
 export function ownerAt(ms, off = 0) {
+  if (IC_HEAD) return { id: `ic.${IC_HEAD.join('|')}`, lines: IC_HEAD, art: null, own: true };
   const B = knob('radio.billboard');
   for (const m of OWNER) { const w = ownerWindow(m, ms, off); if (w && (((ms - w[0]) / 1000) % B.every) < B.show) return { id: `own.${m.id}`, lines: m.lines, art: null, own: true }; }
   return null;

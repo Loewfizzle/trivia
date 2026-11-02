@@ -19,7 +19,7 @@ G('radio', async () => {
   await harborUp(N.page); await sleep(4500);
   const nob = await ev(N.page, `({ btn: !!document.querySelector('.rd-btn'), css: !!document.querySelector('link[data-rd]'), mod: performance.getEntriesByType('resource').some(e => /screens\\/harbor\\/radio(-program|-ledger|-sound)?\\.js|radio\\.css/.test(e.name)) })`);   // (core/harbor-radio.js + radio-gate.js load for every phone: the city plays fired moments)
   ok(!nob.btn && !nob.css && !nob.mod, `RADIO: a nobody gets nothing — no button, no radio.js / radio.css loaded (${JSON.stringify(nob)})`);
-  { const acts = ['radioState', 'radioFire', 'radioStop', 'radioClearAll', 'radioBoard', 'radioDial', 'radioRooms', 'radioLedger'], res = [];
+  { const acts = ['radioState', 'radioFire', 'radioStop', 'radioClearAll', 'radioBoard', 'radioDial', 'radioRooms', 'radioLedger', 'radioIntercom', 'radioUnsend'], res = [];
     for (const a of acts) res.push(await call(N.page, { action: a, jack: 'ufo', aud: 'everyone', level: 'low', lines: ['HI'], id: 'x'.repeat(20) }));
     ok(res.every(r => !r.ok && r.status === 403 && r.code === 'not_radio'), `RADIO: a nobody refused at every action (${res.map(r => r.code).join(' ')})`); }
   await N.ctx.close();
@@ -95,6 +95,55 @@ G('radio', async () => {
     if (t) await O.page.click('.rd-cardwrap .rd-bigstop');
     await waitFor(O.page, `!(document.querySelector('.rd-jack[data-jack="flyby"]') || {}).dataset.lamp`, 'the lamp dark after CANCEL', 8000).catch(() => {});
     ok(f.ok && t === 'CANCEL' && !(await lampOf(O.page, 'flyby')), `RADIO (CC-B): a QUEUED jack's card → CANCEL ("${t}") → dark`); }
+  // ---- CC-B — THE INTERCOM on JUST ME: a FAKE MIC (an oscillator) → HOLD TO TALK → the review → SEND → the chime + the PA here → UNSEND
+  await ev(O.page, `(() => { navigator.mediaDevices.getUserMedia = async () => { const c = new AudioContext(), o = c.createOscillator(), g = c.createGain(), d = c.createMediaStreamDestination(); o.frequency.value = 220; g.gain.value = 0.4; o.connect(g); g.connect(d); o.start(); return d.stream; }; return true; })()`);
+  { const mic = await sizeOf(O.page, '.rd-mic-btn');
+    ok(mic && mic.h >= 56 && mic.w >= 300, `RADIO (CC-B): THE MIC strip on the desk — HOLD TO TALK (${mic && Math.round(mic.w)}×${mic && Math.round(mic.h)} pt)`);
+    await ev(O.page, `document.querySelector('.rd-mic-btn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }))`);
+    await waitFor(O.page, `!!document.querySelector('.rd-mic-btn.is-on')`, 'ON AIR', 5000);
+    await sleep(300);
+    const lvl = await ev(O.page, `[...document.querySelectorAll('.rd-meter i')].filter(i => i.style.opacity === '1').length`);
+    await sleep(1400);
+    await ev(O.page, `document.querySelector('.rd-mic-btn').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }))`);
+    await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-miccard")', 'the review card', 6000);
+    const t = await ev(O.page, `window.__radio && window.__radio.debug().ic.take`);
+    const lever = await ev(O.page, `(() => { const l = document.querySelector('.rd-miccard .rd-lever'); return l ? { on: l.getAttribute('aria-checked'), h: l.getBoundingClientRect().height } : null; })()`);
+    ok(t && t.dur > 1 && t.bytes > 200 && /^audio\//.test(t.mime) && lever && lever.on === 'true' && lever.h >= 44 && lvl > 0, `RADIO (CC-B): HOLD TO TALK → a ${t && t.dur.toFixed(1)} s take (${t && t.bytes} B, ${t && t.mime}; the meter lit ${lvl} bars) → THE REVIEW: the ON THE BILLBOARD lever on (${JSON.stringify(lever)})`);
+    await O.page.type('.rd-miccard .rd-inp', 'test night');
+    await O.page.click('.rd-miccard .rd-fire');
+    await waitFor(O.page, '!document.querySelector(".rd-cardwrap")', 'sent', 8000);
+    const st = await call(O.page, { action: 'radioState' }), sent = st.ok && st.r.intercom && st.r.intercom.slice(-1)[0];
+    ok(sent && sent.aud === 'me' && sent.head === 'TEST NIGHT' && sent.unsend === true, `RADIO (CC-B): SEND → the server's announcement (${JSON.stringify(sent && { aud: sent.aud, head: sent.head, dur: sent.dur, unsend: sent.unsend })})`);
+    // the clip through the cached GET; the chime + the voice on this phone; the headline on the billboard while it plays
+    const g = await ev(O.page, `fetch('/api/admin?clip=${sent && sent.id}').then(r => ({ s: r.status, t: r.headers.get('content-type'), c: r.headers.get('cache-control') }))`);
+    ok(g.s === 200 && /^audio\//.test(g.t) && /s-maxage=60/.test(g.c), `RADIO (CC-B): the clip through GET ?clip= (${JSON.stringify(g)})`);
+    await waitFor(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().log.some(l => l.id === '${sent && sent.id}' && /^playing|silent/.test(l.what)))`, 'the intercom plays', 10000).catch(() => {});
+    const head = await ev(O.page, `import('/js/core/harbor-billboard.js').then(m => m.intercomHead())`);
+    const dbg = await ev(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug())`);
+    ok(dbg.log.some(l => l.id === (sent && sent.id) && /^playing/.test(l.what)) && JSON.stringify(head) === '["TEST NIGHT",""]', `RADIO (CC-B): the owner's phone plays it (the chime → the PA voice: ${JSON.stringify(dbg.log.filter(l => l.id === (sent && sent.id)).map(l => l.what))}) + the headline on the billboard (${JSON.stringify(head)})`);
+    const un = await sizeOf(O.page, '.rd-icsent .rd-stop');
+    await ev(O.page, `document.querySelector('.rd-icsent .rd-stop').click()`); await sleep(1500);
+    const g2 = await ev(O.page, `fetch('/api/admin?clip=${sent && sent.id}&n=2').then(r => r.status)`), node = await get(`radio/ic/${sent && sent.id}`), clipNode = await get(`radio/clips/${sent && sent.id}`);
+    const after = await ev(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().playing)`);
+    ok(un && un.h >= 40 && g2 === 404 && node && node.state === 'stopped' && clipNode === null && !after, `RADIO (CC-B): UNSEND → stopped here, the clip deleted (GET ${g2}), the announcement stopped`); }
+  // ---- THE INTERCOM to a LOBBY: a second phone IN the lobby gets it on the room's socket + plays it (one start on the server clock)
+  { const P = await open({ slot: 'rdp', qs: 'when=2026-11-03T21:00' });
+    await harborUp(P.page);
+    const code = await ev(P.page, `import('/js/room.js').then(m => m.createRoom({ name: 'LOBBY GUEST', color: 'cyan', avatar: 'bolt' })).then(() => import('/js/store.js')).then(s => s.state.code).catch(e => 'ERR ' + e.message)`);
+    await waitFor(P.page, `import('/js/store.js').then(s => !!(s.state.meta && s.state.code))`, 'the lobby', 15000).catch(() => {});
+    await ev(P.page, `document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); true`);
+    const b64 = Buffer.alloc(3000, 3).toString('base64');
+    const r = await call(O.page, { action: 'radioIntercom', aud: 'room', room: code, mime: 'audio/mp4', dur: 2, b64, head: '' });
+    const node = r.ok ? await get(`rooms/${code}/radio/${r.r.intercom.id}`) : null;
+    await waitFor(P.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().log.some(l => l.id === '${r.ok && r.r.intercom.id}'))`, 'the lobby phone got it', 15000).catch(() => {});
+    const pl = await ev(P.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().log.filter(l => l.id === '${r.ok && r.r.intercom.id}').map(l => l.what))`);
+    ok(r.ok && node && node.kind === 'intercom' && !JSON.stringify(node).includes(pid) && pl.length > 0 && !pl.includes('skipped'), `RADIO (CC-B): LOBBY ONLY → rooms/${code}/radio (no profile id) → the lobby's phone took it on its socket (${JSON.stringify(pl)})`);
+    // EVERYONE: every open lobby gets its copy + the city's cached GET carries it
+    const e = await call(O.page, { action: 'radioIntercom', aud: 'everyone', mime: 'audio/mp4', dur: 2, b64, wait: false });
+    const en = e.ok ? await get(`rooms/${code}/radio/${e.r.intercom.id}`) : null, live = await (await fetch(`${BASE}/api/admin?live=1&ic=${Date.now()}`)).json();
+    ok(e.ok && en && en.wait === false && live.radio && live.radio.intercom.some(m => m.id === e.r.intercom.id), `RADIO (CC-B): EVERYONE → every open lobby's node + the city's feed`);
+    for (const id of [r.ok && r.r.intercom.id, e.ok && e.r.intercom.id].filter(Boolean)) await call(O.page, { action: 'radioUnsend', id });
+    await ev(P.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`); await P.ctx.close(); }
   // ---- ONE ROOM: the room's node (the lobby plays it once it is the live city — LOBBY 2.0)
   const ROOM = 'RDTE';
   await dbPut(`rooms/${ROOM}`, { meta: { hostId: 'rdhost', status: 'lobby', createdAt: Date.now(), activeAt: Date.now() }, players: { rdhost: { name: 'HOSTY', color: 'cyan', avatar: 'bolt', joinedAt: 1 } } });
@@ -138,7 +187,7 @@ G('radio', async () => {
   { const st = await call(O.page, { action: 'radioState' }); ok(st.ok && !st.r.board.length && !st.r.moments.some(m => m.mine && (m.state === 'q' || m.state === 'run')), 'RADIO: CLEAR ALL stopped his moments + emptied the billboard queue'); }
   // the audit log: every action
   { const all = (await get('audit')) || {}, acts = new Set(Object.values(all).filter(l => l && l.by === pid).map(l => l.act));
-    ok(['radioFire', 'radioStop', 'radioBoard', 'radioClearAll'].every(x => acts.has(x)), `RADIO: the audit log has every action (${[...acts].join(' ')})`); }
+    ok(['radioFire', 'radioStop', 'radioBoard', 'radioClearAll', 'radioIntercom', 'radioUnsend'].every(x => acts.has(x)), `RADIO: the audit log has every action (${[...acts].join(' ')})`); }
   await dbPut(`testAdmins/${pid}`, null); await dbPut(`rooms/${ROOM}`, null);
   await O.ctx.close();
   log('radio', 'done');

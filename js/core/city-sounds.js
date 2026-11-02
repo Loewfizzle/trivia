@@ -23,6 +23,7 @@ export const PARTS = [
   { id: 'sky', label: '6b + THE SKY' },
   { id: 'legend', label: 'LEGENDARY EVENTS' },
   { id: 'CCA', label: 'CITY CONTROLS · THE RADIO DESK' },
+  { id: 'CCB', label: 'CITY CONTROLS · THE INTERCOM' },
 ];
 
 // (o: extras — lp: a low-pass in Hz on a loop's voice, the highs softened at playback: FP, the water heard from the promenade)
@@ -251,6 +252,10 @@ export const SLOTS = [
   S('radio-denied', 'CCA', 'once', 0.18, 'a soft, low, muted mechanical no, never a buzzer', 'the radio: a greyed jack, a refused fire'),
   S('radio-cover-open', 'CCA', 'once', 0.22, 'a hinged metal safety cover flipped open', 'the radio: the CLEAR ALL cover lifted'),
   S('radio-cover-close', 'CCA', 'once', 0.2, 'the safety cover snapped shut', 'the radio: the cover down'),
+  // CITY CONTROLS B — THE INTERCOM (docs/audio.md#the-intercom): the one sound that MEANS something — every phone hears it (still never breaks
+  // anything when blocked). The vibraphone E5 → C5 (the owner's pick, not the airplane chime) before + after the voice; the PA crackle under it
+  S('radio-chime', 'CCB', 'once', 0.25, 'a warm vibraphone two-tone ding-dong (E5 → C5)', 'THE INTERCOM: before + after the voice'),
+  S('radio-crackle', 'CCB', 'loop', 0.25, 'old shortwave crackle + soft static, steady', 'THE INTERCOM: under the voice (the 1920s PA)'),
   S('boxer-speedbag', '7', 'once', 0.045, 'a speed-bag rattle, off in the room', 'the shadowboxer’s long break, out of view (MODELS)'),
   S('bb-static', 'sky', 'once', 0.22, 'an old radio tuning warble + static (three takes)', 'the Blackbird’s tell, ~3 s before it crosses'),
   // (MODELS — the owner, Oct 30 6:43 pm: THE SONIC BOOM 10 % LOUDER, THE LOUDEST THING IN THE GAME — above every effect + the music; both

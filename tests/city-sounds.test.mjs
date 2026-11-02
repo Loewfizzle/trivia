@@ -52,7 +52,7 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     // (WINDOWS — the juggler's drops)
     'juggler-drop', 'juggler-thud',
     // (CITY CONTROLS A — Grok's RADIO DESK set: the owner's phone only)
-    'radio-jack-in', 'radio-jack-out', 'radio-fire', 'radio-tick', 'radio-band', 'radio-denied', 'radio-cover-open', 'radio-cover-close',
+    'radio-jack-in', 'radio-jack-out', 'radio-fire', 'radio-tick', 'radio-band', 'radio-denied', 'radio-cover-open', 'radio-cover-close', 'radio-chime', 'radio-crackle',
     // (9f — the tower's CC0 alternates: the siren's own wail, the rivet gun + the crane lift layered over the beds)
     'crane-lift', 'rivet-gun', 'tower-siren',
     // (9g — THE UFO's REAL SOUNDS: the hover's spin-up + down, the beam's on / idle / off, the lift, the departure, the crowd fleeing)
@@ -90,13 +90,13 @@ test('every take points at a real, small file whose content matches its cache ke
       assert.ok(bytes.length < 1.5e6, `${t.f}: ${(bytes.length / 1e6).toFixed(2)} MB ≤ 1.5 MB`);
       assert.equal(createHash('md5').update(bytes).digest('hex').slice(0, 8), t.v, `${t.f}: ?v= is its content (re-run the importer after replacing a file)`);
       // (8P: the scissors' snips are all transient — the limiter stops them at ≈ −28 LUFS; their slot gain makes up for it)
-      assert.ok(t.lufs < -18 && t.lufs > (s.kind === 'once' ? -30 : -27), `${t.f}: levelled (${t.lufs} LUFS)`);
+      assert.ok(t.lufs < (s.id === 'radio-chime' ? -12 : -18) && t.lufs > (s.kind === 'once' ? -30 : -27), `${t.f}: levelled (${t.lufs} LUFS)`);   // (CC-B: THE INTERCOM's chime ~−14 LUFS — the owner's call: it must read over music)
       if (s.kind === 'loop') {
         // (beds 30 s+; 8P's smaller beds — heard less often or under the music — 20 s+; the bus's idle a short engine loop)
-        const min = { 'firework-crackle-bed': 1.2, blizzard: 26, 'ufo-beam-idle': 24, 'ufo-hum': 26, 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18, 'rivet-gun': 28, 'snow-hush': 20 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
+        const min = { 'firework-crackle-bed': 1.2, blizzard: 26, 'ufo-beam-idle': 24, 'ufo-hum': 26, 'bus-idle': 2, 'broom-sweep': 20, 'line-murmur': 20, 'rooftop-party': 20, 'market-murmur': 20, 'tv-murmur': 15, 'tr3b-presence': 28, 'birdsong-morning': 24, 'wind-leaves': 20, 'gutter-drip': 25, 'haunted-wind': 24, 'ghost-ship-creak': 28, 'parade-crowd': 27, 'leaves-rake': 18, 'rivet-gun': 28, 'snow-hush': 20, 'radio-crackle': 29 }[id] ?? 30;   // (11a-2: the kids' file is 31 s, the rake's 22 s)   // (9a: the birdsong's source is 32 s, the leaves' clean stretch 24 s, the drips 33 s)   // (8b1: the TV's steady half + the TR-3B's 33 s hum)
         // (9f: the rivet gun's seam sat in natural gaps — the owner's 100–200 ms; 9g: the UFO hover A's 0.2 s seam on its pulse (Grok's
-        // 0.1–0.2 s), the beam's idle 1.5 s)
-        const xfMin = { 'ufo-hum-2.mp3': 0.15, 'ufo-beam-idle.mp3': 1.0 }[t.f] ?? (min < 20 ? 0.5 : 2);
+        // 0.1–0.2 s), the beam's idle 1.5 s; CC-B: the intercom's crackle 0.5 s — the owner's brief: a steady 30.7 s recording)
+        const xfMin = { 'ufo-hum-2.mp3': 0.15, 'ufo-beam-idle.mp3': 1.0, 'cfry-crackles-and-pops-3.mp3': 0.5 }[t.f] ?? (min < 20 ? 0.5 : 2);
         assert.ok(t.loop >= min && t.xf >= xfMin && t.xf <= 3,
            `${t.f}: a ${min} s+ loop with its seam (${t.loop} + ${t.xf})`);
         assert.ok(Math.abs(t.loop + t.xf - t.d) < 0.1, `${t.f}: the file is the loop + its tail`);
@@ -121,7 +121,8 @@ test('every take points at a real, small file whose content matches its cache ke
   // (ATM-C: + Grok's RECORDED THUNDER — 9 takes, 0.63 MB (24 kHz / 56 kbps, the tails faded at ≤ 11 s): ~20.1 MB; fetched when a storm plays)
   // (PART 10: + Grok's FIREWORKS — 28 takes, 0.86 MB (24 / 32 kHz, 56 kbps; the crowd 22 kHz / 48): ~21.0 MB; fetched when a show plays)
   // (CITY CONTROLS A: + Grok's RADIO DESK set — 25 short takes, 79 KB (32 kHz / 64 kbps): ~21.13 MB; fetched only on the owner's phone)
-  assert.ok(total < 21.2e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
+  // (CITY CONTROLS B: + THE INTERCOM's chime (27 KB) + the PA crackle loop (178 KB, 22 kHz / 48 kbps): ~21.34 MB; fetched when an intercom plays)
+  assert.ok(total < 21.4e6, `audio/city/ ${(total / 1e6).toFixed(2)} MB`);
   // the cuts left out what had to go: the night hum starts after the church bells (≤ 63 s), the car passes are the clean ones
   assert.ok(takesOf('city-hum-night')[0].from[0] > 70, 'no church bells in the night hum');
   assert.ok(takesOf('city-hum-night')[0].from[1] < 190, '… nor the chirps at 193–203 s');

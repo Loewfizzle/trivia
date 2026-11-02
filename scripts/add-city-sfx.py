@@ -573,7 +573,12 @@ CUTS = {
        '404150__lilmati__select-denied-01': [{'cut': (0.06, 0.14), 'fin': 0.001, 'fout': 0.03, 'hp': 90, 'gainpre': -1.5, 'to': 'radio-denied', 'rate': 32000}],
        '418329__cambrianman__detonator-switching': [{'cut': (3.24, 3.55), 'fin': 0.001, 'fout': 0.06, 'hp': 140, 'to': 'radio-cover-open', 'rate': 32000}, {'cut': (9.18, 9.45), 'fin': 0.001, 'fout': 0.06, 'hp': 120, 'to': 'radio-cover-close', 'rate': 32000}],
        'METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals': [{'cut': (0.17, 0.65), 'fin': 0.001, 'fout': 0.08, 'hp': 140, 'to': 'radio-cover-open', 'rate': 32000, 'name': '344audio-antique-blowtorch-lid'}],
-       'VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples': [{'cut': (0.355, 0.65), 'fin': 0.001, 'fout': 0.06, 'hp': 120, 'to': 'radio-cover-close', 'rate': 32000, 'name': 'inmotion-celldoor-lockopen-02'}]},
+       'VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples': [{'cut': (0.355, 0.65), 'fin': 0.001, 'fout': 0.06, 'hp': 120, 'to': 'radio-cover-close', 'rate': 32000, 'name': 'inmotion-celldoor-lockopen-02'}],
+       # CITY CONTROLS B — THE INTERCOM (the owner's picks): the CHIME = 419491 whole (the vibraphone E5 → C5, 0.00 + 0.75 s; ends 2.66), a
+       # short fade-out, ~−14 LUFS (it must read over music on a phone); the PA CRACKLE = CFry's 'Crackles And Pops 3' (30.7 s, steady): the
+       # whole file as the loop with a 0.5 s tail (the runtime's crossfade), a high-pass ~150 Hz, soft (~−34 LUFS) — a bed under the voice
+       '419491__plasterbrain__subway-station-chime': [{'cut': (0.0, 2.66), 'fin': 0.002, 'fout': 0.35, 'hp': 120, 'lufs': -14.0, 'to': 'radio-chime', 'rate': 32000, 'kbps': 80}],
+       'Crackles And Pops 3': [{'loop': (0.2, 29.8), 'xf': 0.5, 'search': 0.2, 'hp': 150, 'lufs': -34.0, 'to': 'radio-crackle', 'rate': 22050, 'kbps': 48, 'name': 'cfry-crackles-and-pops-3'}]},
     # ---- ATM-A — GROK'S WEATHER SET (art/city-sfx/weather/: claude-notes.txt + credits.txt; the 13 originals git-ignored, untouched).
     # Each loop's window + a tail the runtime crossfades into its head (the hard-cut ends + Grok's seam notes never reach the seam);
     # one-shots faded; levels evened by the house meter — the slots' gains make big / mid / soft (gust-3's −36 dBFS master included)
@@ -1048,7 +1053,9 @@ ALIAS.update({
     'vintage_radio_button_006': 'radio-band', 'SBvr_Power Button 003': 'radio-band', '624637__onekellyordered__casio-as-51r-cassette-player-play-button': 'radio-band',
     'Bluezone_BC0304_retrofuturistic_computer_button_013': 'radio-denied', '404150__lilmati__select-denied-01': 'radio-denied',
     '418329__cambrianman__detonator-switching': 'radio-cover-open', 'METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals': 'radio-cover-open',
-    'VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples': 'radio-cover-close'})
+    'VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples': 'radio-cover-close',
+    # (CITY CONTROLS B — THE INTERCOM)
+    '419491__plasterbrain__subway-station-chime': 'radio-chime', 'Crackles And Pops 3': 'radio-crackle'})
 
 
 def slot_of(stem, slots):

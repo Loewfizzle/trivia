@@ -31,6 +31,14 @@ are kept anyway, with each source file's MD5.
 - Source: https://freesound.org/s/418329/
 - Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
 
+## 419491__plasterbrain__subway-station-chime.flac  →  radio-chime
+
+- MD5 `2aa9ebba4c960adcb0d8f14f91b6386d`
+- 419491__plasterbrain__subway-station-chime.flac
+- Title "Subway Station Chime", author plasterbrain (Freesound)
+- Source: https://freesound.org/s/419491/
+- Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
 ## 463484__soundsofscienceupf__jack-cable-plug-in.wav  →  radio-jack-in
 
 - MD5 `01d71d4987515329fe54aaf3afb4ce74`
@@ -149,6 +157,14 @@ are kept anyway, with each source file's MD5.
 - Coffee, Grinder, Knob, Turn, Click X3.wav
 - Title "Coffee, Grinder, Knob, Turn, Click X3", publisher/pack "UberDuo - The Home Barista". Source: Sonniss GDC 2018 - Game Audio Bundle Part 6of8 (archive.org mirror).
 - Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%206of8.zip/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%206of8/UberDuo%20-%20The%20Home%20Barista/Coffee%2C%20Grinder%2C%20Knob%2C%20Turn%2C%20Click%20X3.wav
+- Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+
+## Crackles And Pops 3.wav  →  radio-crackle
+
+- MD5 `af57e11c22ce555de59dcea695f1e073`
+- Crackles And Pops 3.wav
+- Title "Crackles And Pops 3", publisher/pack "CFry – Shortwave". Source: Sonniss GDC 2018 - Game Audio Bundle Part 2of8 (archive.org mirror).
+- Link: https://archive.org/download/sonniss.com-gdc-game-audio-bundles/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%202of8.zip/Sonniss.com%20-%20GDC%202018%20-%20Game%20Audio%20Bundle%20Part%202of8/CFry%20%E2%80%93%20Shortwave/Crackles%20And%20Pops%203.wav
 - Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
 
 ## MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav  →  radio-fire

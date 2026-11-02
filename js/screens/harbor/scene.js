@@ -2823,6 +2823,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** CITY CONTROLS A — THE RADIO: the moments this phone plays (screens/harbor/remote.js + radio.js feed them) */
     radio(list) { radioScene.set(list); },
     radioDebug: () => radioScene.debug(),
+    /** CC-B — THE INTERCOM waits for a legendary's own audio (audio/intercom.js#setIntercomBusy) */
+    legendBusy: () => { try { return !!(legends && legends.active()); } catch { return false; } },
     set(v) {
       Object.assign(S, v);
       if (v.textRects || v.clear) maybeRelayout();

@@ -37,7 +37,7 @@ import { weekKey } from '../js/core/week.js';
 import { summarize } from '../js/core/insights.js';
 import { activity } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
-import { radioAction, radioPublic } from './_lib/radio.js';
+import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -253,10 +253,18 @@ export async function cityLiveNow(now = Date.now()) {
   return { live: ok ? { state: v.state || {}, startAt: v.startAt, until: v.until, by: v.by || null } : null, radio, at: now };
 }
 export const LIVE_CACHE = 'public, max-age=0, s-maxage=15';
+export const CLIP_CACHE = 'public, max-age=0, s-maxage=60';
 
 export default route(['GET', 'POST'], async (req, res) => {
   if (req.method === 'GET') {
     const q = new URL(req.url || '/', 'http://x').searchParams;
+    // CC-B — THE INTERCOM's clip (any phone: the id is the key; cached a minute at the edge — an UNSEND is gone within it)
+    if (q.get('clip')) {
+      const c = await clipOf(q.get('clip'));
+      if (!c) { send(res, 404, { error: 'gone' }); return; }
+      res.statusCode = 200; res.setHeader('Content-Type', c.mime); res.setHeader('Content-Length', String(c.buf.length));
+      res.setHeader('Cache-Control', CLIP_CACHE); res.end(c.buf); return;
+    }
     if (q.get('live') !== '1') throw new ApiError(400, 'bad_action');
     send(res, 200, await cityLiveNow(), { 'Cache-Control': LIVE_CACHE });
     return;

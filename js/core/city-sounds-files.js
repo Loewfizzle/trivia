@@ -410,6 +410,9 @@ export const FILES = /*FILES*/{
     {"f": "sbvr-power-button-003.mp3", "v": "75b292da", "d": 0.205, "lufs": -27.6, "peak": 0.1, "sw": [0.1, 0.1], "from": [0.4, 0.6], "src": "SBvr_Power Button 003", "r": 32000},
     {"f": "vintage_radio_button_006.mp3", "v": "7c1688ce", "d": 0.225, "lufs": -24.8, "peak": 0.11, "sw": [0.11, 0.11], "from": [0.07, 0.29], "src": "vintage_radio_button_006", "r": 32000}
   ],
+  "radio-chime": [
+    {"f": "419491__plasterbrain__subway-station-chime.mp3", "v": "c3ff7f04", "d": 2.66, "lufs": -14.4, "peak": 0.15, "sw": [0.15, 2.25], "from": [0.0, 2.66], "src": "419491__plasterbrain__subway-station-chime", "r": 32000}
+  ],
   "radio-cover-close": [
     {"f": "418329__cambrianman__detonator-switching_2.mp3", "v": "add61b9d", "d": 0.27, "lufs": -22.6, "peak": 0.14, "sw": [0.14, 0.14], "from": [9.18, 9.45], "src": "418329__cambrianman__detonator-switching", "r": 32000},
     {"f": "inmotion-celldoor-lockopen-02.mp3", "v": "3964585e", "d": 0.295, "lufs": -22.1, "peak": 0.15, "sw": [0.15, 0.15], "from": [0.35, 0.65], "src": "VEHMech_PoliceFordTransitVan__CellDoor_LockOpen02_InMotionAudio_UKPoliceVehicleSamples", "r": 32000}
@@ -417,6 +420,9 @@ export const FILES = /*FILES*/{
   "radio-cover-open": [
     {"f": "344audio-antique-blowtorch-lid.mp3", "v": "1c057f48", "d": 0.48, "lufs": -20.8, "peak": 0.15, "sw": [0.15, 0.3], "from": [0.17, 0.65], "src": "METLMvmt_  Opening Lid Of Antique Blowtorch_344 Audio_Antique Small Metals", "r": 32000},
     {"f": "418329__cambrianman__detonator-switching_1.mp3", "v": "1c689c25", "d": 0.31, "lufs": -22.3, "peak": 0.15, "sw": [0.15, 0.15], "from": [3.24, 3.55], "src": "418329__cambrianman__detonator-switching", "r": 32000}
+  ],
+  "radio-crackle": [
+    {"f": "cfry-crackles-and-pops-3.mp3", "v": "80f629ae", "d": 30.3, "lufs": -25.0, "loop": 29.8, "xf": 0.5, "from": [0.2, 30.5], "src": "Crackles And Pops 3", "r": 22050}
   ],
   "radio-denied": [
     {"f": "404150__lilmati__select-denied-01.mp3", "v": "59f87f75", "d": 0.077, "lufs": -20.6, "peak": 0.04, "sw": [0.04, 0.04], "from": [0.06, 0.14], "src": "404150__lilmati__select-denied-01", "r": 32000},

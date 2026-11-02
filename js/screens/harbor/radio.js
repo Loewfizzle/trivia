@@ -19,6 +19,7 @@ import { serverNow } from '../../firebase.js';
 import * as RD from '../../core/harbor-radio.js';
 import { SHOWCASE_LEVELS } from '../../core/harbor-showcase.js';
 import { radioSound } from './radio-sound.js';
+import { createIntercomDesk } from './radio-intercom.js';
 
 const ORDER_KEY = 'nd:rd-order', AUD_KEY = 'nd:rd-aud', BAND_KEY = 'nd:rd-band';
 const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
@@ -44,6 +45,9 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   let order = Array.isArray(ls.get(ORDER_KEY)) ? ls.get(ORDER_KEY) : null;
   const sfx = radioSound();
   const isOwner = role === 'owner';
+  // CC-B — THE INTERCOM (the owner's): the mic strip, the review card, the sent strips (radio-intercom.js)
+  let ic = null;
+  const icDesk = () => { if (!ic && isOwner) ic = createIntercomDesk({ sfx, act: (b, snd) => act(b, snd), who: () => ({ aud, room, line: audLine() }), setCard: c => { card = c; render(); }, render: () => render(), st: () => st }); return ic; };
 
   // ---------------------------------------------------------------- THE CORNER BUTTON
   const dot = h('i.rd-dot', { hidden: true });
@@ -60,7 +64,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       st = await api('admin', body); stAt = serverNow(); err = '';
       if (st.role !== role && st.role) role = st.role;
       feedDesk(); paintDot();
-      if (open && !card) render(); else if (open) paintLive();
+      if (open && !card && !(ic && ic.busy())) render(); else if (open) paintLive();
     } catch (e) { if (e && e.status === 403) { destroy(); return; } }
   }
   function schedule() {
@@ -139,7 +143,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       h('div.rd-knobs',
         h('div.rd-kw', h('button.rd-knob', { type: 'button', 'aria-label': `Showcase: ${lv} — turn`, style: { '--r': `${LV_ROT[lv]}deg` }, onclick: next }), h('span.rd-kl', 'SHOWCASE')),
         h('div.rd-who', plate('WHO HEARS IT'), h('b', '● ', RD.AUD_LABEL[aud], aud === 'room' && room ? ` · ${room}` : ''),
-          h('small', RD.AUDIENCES.map(a => (a === aud ? '●' : RD.AUD_LABEL[a].toLowerCase())).join(' · ')),
+          h('small.rd-auds', ...RD.AUDIENCES.flatMap((a, i) => [i ? ' · ' : null, h('span', { class: a === aud ? 'is-on' : '' }, RD.AUD_LABEL[a].toLowerCase())]).filter(Boolean)),
           aud === 'room' ? h('em.rd-note', 'sky moments play once the lobby is the live city (LOBBY 2.0) · the intercom plays now') : null),
         h('div.rd-kw', h('button.rd-knob', { type: 'button', 'aria-label': `Audience: ${RD.AUD_LABEL[aud]} — turn`, style: { '--r': `${AUD_ROT[aud]}deg` }, onclick: audNext, disabled: !isOwner }), h('span.rd-kl', 'AUDIENCE'))));
   }
@@ -243,6 +247,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   function desk() {
     return [
       isOwner ? tuning() : null,
+      isOwner ? icDesk().strip() : null,
+      isOwner ? h('div.rd-icsent', icDesk().sent()) : null,
       moments(),
       strips(),
       err ? h('p.rd-err', { role: 'alert' }, err) : null,
@@ -349,7 +355,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const old = modal && modal.querySelector('.rd-cardwrap'), was = !!(old && old.classList.contains('is-in'));
     if (old) old.remove();
     if (card && modal) {
-      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : jackCard());
+      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : card.kind === 'mic' ? (icDesk().card() || h('div')) : jackCard());
       modal.append(over); if (!was) requestAnimationFrame(() => requestAnimationFrame(() => over.classList.add('is-in')));
     }
     sheet.scrollTop = keep;
@@ -358,7 +364,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   function paintLive() {
     if (!sheet || card || band !== 'desk') return;
     for (const el of sheet.querySelectorAll('.rd-jack')) { const j = (st && st.jacks || []).find(x => x.id === el.dataset.jack); if (!j) continue; const L = lamp(j); if (el.dataset.lamp !== L) { el.dataset.lamp = L; el.className = `rd-jack${L ? ` is-${L}` : ''}`; } }
-    const old = sheet.querySelector('.rd-strips'), nu = strips();
+    { const box = sheet.querySelector('.rd-icsent'); if (box && ic) box.replaceChildren(...[ic.sent()].filter(Boolean)); }
+    const old = sheet.querySelector('.rd-moments + .rd-strips'), nu = strips();
     if (old && nu) old.replaceWith(nu); else if (old) old.remove(); else if (nu) { const mo = sheet.querySelector('.rd-moments'); if (mo) mo.after(nu); }
     paintDot();
   }
@@ -368,14 +375,14 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   refresh(); schedule();
 
   function destroy() {
-    destroyed = true; clearTimeout(pollT); clearInterval(tickT); clearTimeout(coverT);
+    destroyed = true; clearTimeout(pollT); clearInterval(tickT); clearTimeout(coverT); if (ic) ic.destroy();
     document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis);
     if (modal) modal.remove(); btn.remove(); document.body.classList.remove('rd-open');
   }
   return {
     open: show, close: hide, destroy, refresh,
     /** (tests) the state + what the desk shows */
-    debug: () => ({ role, open, band, aud, room, card: card ? (card.kind === 'jack' ? card.jack.id : card.kind) : null, cover, arrange, jacks: (st && st.jacks || []).map(j => ({ id: j.id, lamp: lamp(j) })), moments: st ? st.moments.length : 0, here: st ? st.here : null }),
+    debug: () => ({ role, open, band, aud, room, card: card ? (card.kind === 'jack' ? card.jack.id : card.kind) : null, cover, arrange, ic: ic ? ic.debug() : null, jacks: (st && st.jacks || []).map(j => ({ id: j.id, lamp: lamp(j) })), moments: st ? st.moments.length : 0, here: st ? st.here : null }),
     setBand(b) { band = b; render(); }, setAud(a, r) { aud = a; room = r || room; render(); },
   };
 }

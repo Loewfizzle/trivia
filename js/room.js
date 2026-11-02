@@ -204,6 +204,12 @@ function enterRoom(code) {
     healPresence(code, presence);
   });
   listen('night', night => setState({ night: night || {} }));
+  // CC-B — THE INTERCOM in a lobby (rooms/{CODE}/radio — written by the server only; LOBBY ONLY + EVERYONE's lobby copy): its phones start it
+  // TOGETHER on the server clock; a phone in a game holds it (audio/intercom.js). The player loads only when an announcement is there.
+  listen('radio', radio => {
+    const list = Object.entries(radio || {}).map(([id, x]) => ({ id, ...(x || {}) })).filter(x => x.kind === 'intercom');
+    if (list.length) import('./audio/intercom.js').then(m => m.intercomFeed('room', list)).catch(e => console.warn('[intercom]', e));
+  });
   listen('kicked', kicked => {
     kicked = kicked || {};
     if (kicked[state.uid]) { exitRoom('THE HOST REMOVED YOU FROM THE ROOM', 'err'); return; }

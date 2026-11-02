@@ -11,11 +11,15 @@
 //   rooms/{CODE}/radio/{id}  a room's moments (its phones listen on the room's socket — ~1–2 s)
 //   city2/showcase        the TUNING WINDOW's level (every phone reads it through GET /api/admin?live=1, with the city's moments)
 //   here/{uid}            THE NIXIE's count: a visible title says hello every ~2 min (an ESTIMATE until Vercel Analytics)
+//   radio/ic/{id}         CC-B — THE INTERCOM's announcements (who, the audience, wait, the headline, the clip's length + type, at / until,
+//                         state); radio/clips/{id} the clip itself (base64 — served by GET /api/admin?clip=<id>, cached a minute); both
+//                         pruned after `keep` s (an hour); a lobby's copy at rooms/{CODE}/radio/{id} (kind 'intercom')
 import { ApiError } from './http.js';
 import { ref, val, adminPids, emulated } from './fb.js';
 import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY } from '../../js/core/harbor-radio.js';
 import { SHOWCASE_LEVELS } from '../../js/core/harbor-showcase.js';
+import { cleanIntercom, icPublic, icLen, canUnsend, IC_WHY } from '../../js/core/radio-intercom.js';
 import { dayKey } from '../../js/core/week.js';
 
 const HERE_MS = 180e3;
@@ -222,8 +226,9 @@ async function state(me, role, body, now) {
     moments: mine.map(m => ({ ...publicMoment(m.id, m), mine: m.by === me, made: m.made })),
   };
   if (role === 'owner') {
-    const [b, sc, rooms, here] = await Promise.all([boardList(now), val('city2/showcase'), openRooms(now), cityCount(now)]);
-    Object.assign(out, { board: b, showcase: SHOWCASE_LEVELS.includes(sc) ? sc : knob('showcase').level, rooms, here });
+    const [b, sc, rooms, here, ics] = await Promise.all([boardList(now), val('city2/showcase'), openRooms(now), cityCount(now), icList(now)]);
+    Object.assign(out, { board: b, showcase: SHOWCASE_LEVELS.includes(sc) ? sc : knob('showcase').level, rooms, here,
+      intercom: ics.filter(m => m.by === me).map(m => ({ ...icPublic(m.id, m), unsend: canUnsend(m, now) })) });
   } else if (room) {
     out.limits = (await val(`radio/limits/${room}/${nightKey(now, knob('radio').home.tz)}`)) || {};
   }
@@ -247,6 +252,8 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
     case 'radioDial': return dial(me, role, body);
     case 'radioRooms': need(role === 'owner', 'not_owner'); return { rooms: await openRooms(now) };
     case 'radioLedger': return ledger(me, role, now, o);
+    case 'radioIntercom': return intercom(me, role, body, now);
+    case 'radioUnsend': return unsend(me, role, body, now);
     default: throw new ApiError(400, 'bad_action');
   }
 }
@@ -254,11 +261,68 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
 /** the public part of the radio for GET /api/admin?live=1 (every phone, cached): the CITY's moments (everyone + city), the billboard's
  *  messages, the dial — never who fired them */
 export async function radioPublic(now) {
-  const [Q, b, sc] = await Promise.all([queue(now), boardList(now), val('city2/showcase')]);
+  const [Q, b, sc, ics] = await Promise.all([queue(now), boardList(now), val('city2/showcase'), icList(now)]);
   return {
     moments: Q.filter(m => (m.aud === 'everyone' || m.aud === 'city') && m.until > now && m.state !== 'stopped').map(m => publicMoment(m.id, m)),
-    stopped: Q.filter(m => (m.aud === 'everyone' || m.aud === 'city') && m.state === 'stopped' && m.until > now - 600e3).map(m => m.id),
+    stopped: [...Q.filter(m => (m.aud === 'everyone' || m.aud === 'city') && m.state === 'stopped' && m.until > now - 600e3).map(m => m.id),
+      ...ics.filter(m => m.aud === 'everyone' && m.state === 'stopped').map(m => m.id)],
+    // CC-B — THE INTERCOM to EVERYONE: the city's copy (a title phone plays it when it arrives; a phone in a game holds it — audio/intercom.js)
+    intercom: ics.filter(m => m.aud === 'everyone' && m.state !== 'stopped').map(m => icPublic(m.id, m)),
     board: b.map(x => ({ id: x.id, lines: x.lines, local: x.local, repeat: x.repeat, at: x.at, until: x.until, made: x.made })),
     showcase: SHOWCASE_LEVELS.includes(sc) ? sc : null,
   };
+}
+
+// ------------------------------------------------------------------ CITY CONTROLS B — THE INTERCOM (the owner only)
+/** the intercom's announcements, pruned (an hour: `keep` — the clips go with them) → [{ id, ...m, state }] */
+async function icList(now) {
+  const all = (await val('radio/ic')) || {}, keep = knob('radio.intercom').keep * 1000, out = [], gone = {};
+  for (const [id, m] of Object.entries(all)) {
+    if (!m || !((m.made || 0) > now - keep)) { gone[`radio/ic/${id}`] = null; gone[`radio/clips/${id}`] = null; continue; }
+    out.push({ id, ...m, state: m.state === 'stopped' ? 'stopped' : now < m.at ? 'q' : now < m.until ? 'run' : 'done' });
+  }
+  if (Object.keys(gone).length) await ref('/').update(gone);
+  return out.sort((a, b) => a.at - b.at);
+}
+/** SEND { aud, room?, wait, head?, mime, dur, b64 } → { intercom } — the clip + the announcement written by the SERVER, every lobby's copy */
+async function intercom(me, role, body, now) {
+  need(role === 'owner', 'not_owner', 'The intercom is the owner’s.');
+  const pre = cleanIntercom(body);
+  if (pre.bad) throw new ApiError(400, pre.bad, IC_WHY[pre.bad] || undefined);
+  let names = [], rooms = [];
+  if (pre.req.aud === 'room') {
+    if (!(await val(`rooms/${pre.req.room}/meta`))) throw new ApiError(404, 'no_room', 'That lobby is closed.');
+    names = await roomNames(pre.req.room); rooms = [pre.req.room];
+  } else if (pre.req.aud === 'everyone') rooms = (await openRooms(now)).map(r => r.code);
+  const { req, bad } = cleanIntercom(body, { names });
+  if (bad) throw new ApiError(400, bad, IC_WHY[bad] || undefined);
+  const K = knob('radio.intercom');
+  if ((await icList(now)).filter(m => m.state !== 'stopped').length >= 12) throw new ApiError(429, 'queue_full', 'Twelve announcements this hour — wait a little.');
+  const id = ref('radio/ic').push().key, at = now + K.lead[req.aud] * 1000;
+  const m = { aud: req.aud, room: req.room, wait: req.wait, head: req.head, mime: req.mime, dur: req.dur, bytes: req.bytes, by: me, role, made: now, at, until: at + icLen(req.dur) * 1000, state: 'q', rooms };
+  const up = { [`radio/ic/${id}`]: m, [`radio/clips/${id}`]: { b64: req.b64, mime: req.mime, made: now } };
+  for (const code of rooms) up[`rooms/${code}/radio/${id}`] = icPublic(id, m);
+  await ref('/').update(up);
+  await audit(me, 'radioIntercom', { b: `${req.dur.toFixed(1)} s → ${AUD_LABEL[req.aud]}${req.room ? ` ${req.room}` : ''}${req.aud === 'everyone' ? ` (+${rooms.length} lobbies)` : ''}${req.head ? ` “${req.head}”` : ''}${req.wait ? '' : ' · don’t wait'}`.slice(0, 140), role, aud: req.aud });
+  return { intercom: { ...icPublic(id, m), unsend: true } };
+}
+/** UNSEND { id } — the announcement stopped everywhere + the clip deleted (a phone that hasn't fetched it never plays it) */
+async function unsend(me, role, body, now) {
+  need(role === 'owner', 'not_owner');
+  const id = String(body.id || '');
+  if (!/^[-_A-Za-z0-9]{10,40}$/.test(id)) throw new ApiError(400, 'bad_id');
+  const m = await val(`radio/ic/${id}`);
+  if (!m) throw new ApiError(404, 'no_message');
+  const up = { [`radio/ic/${id}/state`]: 'stopped', [`radio/ic/${id}/until`]: Math.min(m.until, now), [`radio/clips/${id}`]: null };
+  for (const code of m.rooms || []) if (/^[A-Z]{4}$/.test(code) && (await val(`rooms/${code}/meta`))) up[`rooms/${code}/radio/${id}/state`] = 'stopped';   // (a lobby closed since: skipped)
+  await ref('/').update(up);
+  await audit(me, 'radioUnsend', { b: `${(m.dur || 0).toFixed(1)} s → ${AUD_LABEL[m.aud]}${m.room ? ` ${m.room}` : ''}${canUnsend(m, now) ? '' : ' (late)'}` });
+  return { ok: true };
+}
+/** GET ?clip=<id> — the clip's bytes (null: gone, unsent or past its hour) */
+export async function clipOf(id, now = Date.now()) {
+  if (!/^[-_A-Za-z0-9]{10,40}$/.test(String(id || ''))) return null;
+  const [m, c] = await Promise.all([val(`radio/ic/${id}`), val(`radio/clips/${id}`)]);
+  if (!m || !c || m.state === 'stopped' || !((m.made || 0) > now - knob('radio.intercom').keep * 1000)) return null;
+  return { mime: c.mime, buf: Buffer.from(c.b64, 'base64') };
 }

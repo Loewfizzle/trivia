@@ -525,6 +525,17 @@ launch-1, crackle-1, whistle-1 + crowd-2 are Sonniss, never stand-alone download
   spacing never matched his 0.27 s, so each hit stays on its own punch); THE CHAIN on ~1 in 3 heavy hits (a stable hash: every phone the same).
   The bells, the rope + the speed bag unchanged.
 
+## THE INTERCOM (CITY CONTROLS B, Nov 2 2026) — `audio/intercom.js`, the `radio-chime` + `radio-crackle` slots
+The owner's voice to the city (the rules: `core/radio-intercom.js`; the desk: `screens/harbor/radio-intercom.js`; the pass:
+`docs/harbor/passes/city-controls-b.md`). The one sound in the app that MEANS something — still polish: a locked / muted / blocked
+engine plays nothing and breaks nothing (the headline still goes up). THE CHAIN on every phone (Web Audio, into the SFX bus — the Effects
+slider + Mute): the VIBRAPHONE CHIME (419491, E5 → C5, whole, ~−14 LUFS — loaded by the player itself, never through the city's peak
+cap) → the music DUCKS (`duckMusic` to `radio.intercom.duck`, back to where it was after) → the voice through a 1920s PA (high-pass 320 Hz,
+low-pass 3.4 kHz, +5 dB at 1.8 kHz, a tanh drive ×2.4, a 110 ms dark slap echo with two soft repeats) over the PA CRACKLE (CFry's
+'Crackles And Pops 3', the whole 29.8 s as a loop + a 0.5 s tail, high-passed 150 Hz; the slot 0.25 × 1.4 ≈ −34 LUFS) → the chime → the
+music back up. A lobby's phones start it TOGETHER on the server clock (a phone a moment late joins the timeline); never over a legendary's
+own audio (it waits). PLAY BACK on the owner's review card plays the take through the same chain, on his phone only.
+
 ## THE RADIO DESK's SOUNDS (CITY CONTROLS A, Nov 2 2026) — `screens/harbor/radio-sound.js`, the `radio-*` slots
 Grok's picks (`art/city-sfx/radio/claude-notes.txt` — the originals git-ignored, copies of `~/Downloads/Grok/city-sfx/radio/`) imported by
 `scripts/add-city-sfx.py --src art/city-sfx/radio` into 8 slots: radio-jack-in (5 takes), radio-jack-out (3), radio-fire (3 — the deep latch
