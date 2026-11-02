@@ -15,7 +15,7 @@
 // The camera + every position come from core/harbor-layout.js (pure, tested); the static layers are baked per look key in
 // small chunks into a second set of canvases and crossfaded in (bake.js: the memory budget); only lights and moving things
 // draw every frame. Progressive start: the sky first, the city fades in when its first bake is done.
-import { look as skyLook, skyClock, sunPosition, moonPhase, sunTimes, localParts, setRealNow } from '../../core/sky.js';
+import { look as skyLook, skyClock, sunPosition, moonPhase, localParts, setRealNow } from '../../core/sky.js';
 import { serverNow } from '../../firebase.js';
 import { moodData, loadMoodMusic } from '../../audio/mood.js';
 import { deckSpec } from '../../core/party-deck.js';
@@ -31,6 +31,7 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createSceneFireworks } from './scene-fireworks.js';
+import { createSceneHoliday } from './scene-holiday.js';
 import { createSceneLegend } from './scene-legend.js';
 import { createRainbow } from '../district/rainbow.js';
 import { partyState, partyHour, finaleDue, createBeatClock, advanceBeat, partyPalette, partySeed } from '../../core/party.js';
@@ -138,13 +139,13 @@ import { lastCleared, SNOWWORK, flushWet } from '../../core/harbor-snowwork.js';
 import { trafficLanes } from '../../core/harbor-traffic.js';
 import { createWinterFolk, doorCleared, winterActs } from './winterfolk.js';
 import { LOGO_LETTERS, LOGO_TUBE, LOGO_W } from '../../ui/logo.js';
-import { paradeWindow, paradeUnits } from '../../core/harbor-parade.js';
+
 import { createBlackbird } from './blackbird.js';
 import { createMothman } from './mothman.js';
 import { mothmanAt } from '../../core/harbor-mothman.js';
 import { BB, bbChaseAt, soloNear, watcherStep } from '../../core/harbor-blackbird.js';
 import { jetLook } from './jets.js';
-import { latchBig, holidayAt, halloweenPieces, dotdPieces, thanksgivingPieces, holidaySeason, lightRules, titleHoliday, spookyFlicker } from '../../core/harbor-holiday.js';
+import { holidayAt, holidaySeason, lightRules, spookyFlicker } from '../../core/harbor-holiday.js';
 
 // (C4c: the top tier's dpr is BAKE_CAP — 2, or the device's 3 under `&dpr=3`, the owner's look judgement only)
 // (PERF-B — FR5 C2b: the dpr + the bake's ms a frame are THE TIER TABLE's sceneDpr + bakeMs rows — tier 2's dpr is BAKE_CAP)
@@ -198,83 +199,30 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // on the NEON sign — Halloween's web + spider, Day of the Dead's marigolds, papel picado + candles — on its own full-dpr canvas inside the
   // logo's wrap (S.dressHost, from title.js). &force=sign-web (the finished web + the spider, any day) · &force=sign-dotd (the sign dressed)
   let dress = null, dressLoading = false;
-  const DRESS_COLS = { halloween: [[255, 122, 18], [155, 61, 255], [255, 122, 18], [155, 61, 255]], dotd: [[255, 166, 42], [255, 46, 151], [255, 166, 42], [255, 46, 151]], thanksgiving: [[255, 160, 64], [255, 160, 64], [255, 160, 64], [255, 160, 64]] };
-  // WIN2 — THE SPIDERS' WORLD: the SPEAKEASY word's tubes in LOGO units (the sign's viewBox: -26 -30 384 …; logoRect() is the SVG's
-  // rect inset 7 % / 18 %), and the letters' middles for a poke's x
-  const LOGO_VB = { x: -26, y: -30, w: 384 }, LETTER_X = [32, 128, 208, 300];
-  function wordLogo() {
-    const rr = rects(); if (!rr.neon || !rr.word || !(rr.neon.w > 0)) return null;
-    const svgL = rr.neon.x - rr.neon.w / 0.86 * 0.07, svgT = rr.neon.y - rr.neon.h / 0.64 * 0.18, k = (rr.neon.w / 0.86) / LOGO_VB.w;
-    const lx = px => LOGO_VB.x + (px - svgL) / k, ly = py => LOGO_VB.y + (py - svgT) / k;
-    return { x0: lx(rr.word.x) + 6, x1: lx(rr.word.x + rr.word.w) - 6, y: ly(rr.word.y + rr.word.h * 0.5) };
-  }
+  // SCHED — FR5 C1's cut (scene-holiday.js, a pure move): the holidays' wiring — the sign's dressing, the holiday sky + props + the parade (lazy), holidayTick (HS / HP / HR / HL stay here, set through the ctx)
+  const sceneHoliday = createSceneHoliday({ get bakeTones() { return bakeTones; }, get bigClock() { return bigClock; }, set bigClock(v) { bigClock = v; }, get bigHeld() { return bigHeld; }, set bigHeld(v) { bigHeld = v; }, get bigRelatch() { return bigRelatch; }, set bigRelatch(v) { bigRelatch = v; }, get bigWall() { return bigWall; }, set bigWall(v) { bigWall = v; }, get cam() { return cam; }, get clock() { return clock; }, get DEBUG() { return DEBUG; }, get destroyed() { return destroyed; }, get DK() { return DK; }, get dpr() { return dpr; }, get dprTier() { return dprTier; }, get dress() { return dress; }, set dress(v) { dress = v; }, get dressLoading() { return dressLoading; }, set dressLoading(v) { dressLoading = v; }, get duskDay() { return duskDay; }, set duskDay(v) { duskDay = v; }, get duskH() { return duskH; }, set duskH(v) { duskH = v; }, get forceAtOf() { return forceAtOf; }, get HL() { return HL; }, set HL(v) { HL = v; }, get HP() { return HP; }, set HP(v) { HP = v; }, get hprops() { return hprops; }, set hprops(v) { hprops = v; }, get hpropsLoading() { return hpropsLoading; }, set hpropsLoading(v) { hpropsLoading = v; }, get hpropsMs() { return hpropsMs; }, set hpropsMs(v) { hpropsMs = v; }, get HR() { return HR; }, set HR(v) { HR = v; }, get HS() { return HS; }, set HS(v) { HS = v; }, get HZ() { return HZ; }, get L() { return L; }, get lastSignLv() { return lastSignLv; }, set lastSignLv(v) { lastSignLv = v; }, get LB() { return LB; }, get legendPow() { return legendPow; }, get LK() { return LK; }, get lkMs() { return lkMs; }, get LOADLOG() { return LOADLOG; }, get nowT() { return nowT; }, get parade() { return parade; }, set parade(v) { parade = v; }, get paradeLoading() { return paradeLoading; }, set paradeLoading(v) { paradeLoading = v; }, get paraKey() { return paraKey; }, set paraKey(v) { paraKey = v; }, get paraUnits() { return paraUnits; }, set paraUnits(v) { paraUnits = v; }, get pokeLog() { return pokeLog; }, get propModelNow() { return propModelNow; }, get PWQ() { return PWQ; }, get rects() { return rects; }, get S() { return S; }, get signLive() { return signLive; }, get snd() { return snd; }, get tier() { return tier; }, get treeHeld() { return treeHeld; }, set treeHeld(v) { treeHeld = v; }, get W() { return W; }, get WF() { return WF; }, get WXS() { return WXS; }, get XP() { return XP; }, set XP(v) { XP = v; }, get zap() { return zap; } });
+  const { dressDebug, dressTick, holidayTick, hpropsDraw, hpropsItems, hskyEnv, hskyWanted, paraSound, paradeItems, pokeDress } = sceneHoliday;
+
   // the flicker detector: a jump of the sign's live level between frames (the boot flicker, a blackout, the power back, a sky dim), a
   // lightning flash → the spiders are scared; title.js pokes the taps, the race, the tired tube (scene.poke)
   let lastSignLv = -1, pokeLog = [], partyPools = [];   // (WIN3: the window party's pools on the cobbles this frame — CSS px, for the e2e)
-  function pokeDress(ev) { if (!dress || !dress.scare) return 0; const x = ev.x != null ? ev.x : ev.letter != null ? LETTER_X[Math.max(0, Math.min(3, ev.letter | 0))] : null; const n = dress.scare({ kind: ev.kind || 'poke', x, k: ev.k }); pokeLog.push({ t: +nowT.toFixed(1), kind: ev.kind, x, n }); if (pokeLog.length > 12) pokeLog.shift(); return n; }
-  function dressTick(t) {
-    const fw = clock.force.has('sign-web'), fd = clock.force.has('sign-dotd'), ft = clock.force.has('sign-thanks');   // (11a-2: &force=sign-thanks — the harvest wreath, any day)
-    const H = fw && HS.id !== 'halloween' ? { id: 'halloween', phase: 'build', stage: 1, down: 0, days: 30, eve: false } : fd && HS.id !== 'dotd' ? { id: 'dotd', phase: 'day', stage: 1, down: 0, days: 1, day: 0, eve: false } : ft && HS.id !== 'thanksgiving' ? { id: 'thanksgiving', phase: 'build', stage: 1, down: 0, days: 20, eve: false } : HS;
-    const P = H === HS ? HP : H.id === 'halloween' ? { web: 1, spider: true, spider2: true } : H.id === 'thanksgiving' ? { wreath: 1 } : { sign: 1 };
-    if (!dress) {
-      if (!dressLoading && (H.id === 'halloween' || H.id === 'dotd' || H.id === 'thanksgiving')) { dressLoading = true; import('./signdress.js').then(m => { if (!destroyed) dress = m.createSignDress(); }).catch(e => { dressLoading = false; console.warn('[harbor] sign dress', e); }); }
-      return;
-    }
-    if (S.dressHost) dress.setHost(S.dressHost);
-    { const lv = signLive(); if (lastSignLv >= 0 && Math.abs(lv - lastSignLv) > 0.3) pokeDress({ kind: lv < lastSignLv ? 'dim' : 'flash', k: Math.min(1, 0.4 + Math.abs(lv - lastSignLv)) }); lastSignLv = lv;
-      if (zap.flash() > 0.35) pokeDress({ kind: 'lightning', k: 0.85 }); }
-    dress.frame({ holiday: H, pieces: P, t, motion: !!S.motion, tier, dpr, dressDpr: tierVal('dressDpr', dprTier) / 10, signLit: signLive(), word: wordLogo(), letterCols: HR && HR.sign && H === HS ? DRESS_COLS[HR.sign] || null : null,
-      dark: clamp01(1 - (LK.w.day || 0) - 0.5 * (LK.w.golden || 0)), wind: WXS ? WXS.gust || 0 : (LK.wind == null ? 3 : LK.wind) });
-  }
-  const dressDebug = () => (dress ? dress.debug() : null);
+
+
   // 11a-1 — HALLOWEEN's SKY + WATER (screens/harbor/ghostship.js — the LEGENDARY GHOST SHIP, the WITCH (witch.js), the bats' colony
   // from a tower crown (birds.js via fs.hween)): loaded lazily — in October or for a preview (&force=ghost-ship / witch / bats)
   let hsky = null, hskyLoading = false;
-  const hskyWanted = () => HS.id === 'halloween' || clock.force.has('ghost-ship') || clock.force.has('witch') || clock.force.has('bats');
-  // (11a-2 — THE WITCH WAS CHOPPY (the owner's phone): LK.local carries WHOLE seconds, refreshed only with the look — her pass (+ the ghost
-  // ship's) read from it jumped ~40–120 pt at a time. The sky's holiday pieces get the local time to the millisecond: the look's local
-  // second + the time since it was taken)
-  const fineLocal = () => { const lc = LK.local; if (!lc) return lc; return { ...lc, s: lc.s + (clock.now() - Math.floor(lkMs / 1000) * 1000) / 1000 }; };
-  const hskyEnv = o => ({ L, W, HZ, dpr, lc: fineLocal(), nowS: clock.now() / 1000, motion: S.motion, tier, hp: HP, dusk: duskH, force: clock.force, forceAt: forceAtOf, play: S.motion ? snd.play : null, dark: clamp01((LK.w.night || 0) + (LK.w.late || 0) + 0.6 * (LK.w.dusk || 0)), ...o });
+
+
   // PART 11a-1 — THE HOLIDAY DRESSINGS ON THE GROUND (screens/harbor/holidayprops.js, LAZY: a holiday or a preview): the jack-o'-lanterns
   // on the side door's steps; Day of the Dead's petal path, marigolds, garlands, papel picado + the monarchs — three passes (ground · air · top)
   let hprops = null, hpropsLoading = false, hpropsMs = 0;
-  const hpropsEnv = (fadeIn, lit, mon) => { const wd = LK.windDir == null ? 250 : LK.windDir; return { L, HS, HP, tree: !!treeHeld, T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3) * PWQ /* (C4c: the lamps' light painted into the props dies with the drain) */, t: performance.now() / 1000, ms: clock.now(), motion: S.motion, tier, dpr, fade: fadeIn,
-    wind: WF.v(0.5), gust: WXS ? WXS.gust || 0 : 0, power: LB ? legendPow(W * 0.3, 'near', 211) : 1, monarchAt: mon ? forceAtOf('monarchs') * 1000 : null,
-    propModel: propModelNow() /* (C4c: THE HARVEST DISPLAY's 3D model test — &prop=model + its panel row) */ }; };
+
   // 11a-2 — THE PARADE (screens/harbor/parade.js, LAZY: its morning or &force=parade): its balloons + the float in the FAR pass with the
   // marchers (core/harbor-people.js plans them); the window + the units are pure (core/harbor-parade.js) — every phone the same
   let parade = null, paradeLoading = false, paraKey = '', paraUnits = null;
-  function paradeItems(fadeIn) {
-    if (!L || !bakeTones || clock.force.has('no-holiday-props')) return [];
-    const nowS = clock.now() / 1000, fp = clock.force.has('parade'), w = paradeWindow(nowS, { off: LK.local ? LK.local.off : 0, forceAt: fp ? forceAtOf('parade') : null });
-    if (!w || nowS < w.T0 - 5) return [];
-    if (!parade) { if (!paradeLoading) { paradeLoading = true; import('./parade.js').then(m => { if (!destroyed) parade = m.createParade(); }).catch(e => { paradeLoading = false; console.warn('[harbor] parade', e); }); } return []; }
-    const k = `${Math.round(w.T0)}`; if (k !== paraKey) { paraKey = k; paraUnits = paradeUnits(w); }
-    const wd = LK.windDir == null ? 250 : LK.windDir;
-    return parade.items({ L, w, units: paraUnits, x0: L.speakeasy ? L.speakeasy.x1 - 2.6 : -20, t: nowS, T: bakeTones, dark: litK(DK, 'lamps'), dpr, fade: fadeIn,
-      wind: WF.v(0.5), gust: WXS ? WXS.gust || 0 : 0 });
-  }
-  /** the parade for the sounds: { units: [{ kind, i, x (0..1 of the screen: its middle) }] } | null */
-  function paraSound() {
-    if (!paraUnits || !L) return null;
-    const nowS = clock.now() / 1000, x0 = L.speakeasy ? L.speakeasy.x1 - 2.6 : -20, out = [];
-    for (const u of paraUnits) { if (u.t > nowS) break; const head = x0 + (nowS - u.t) * 0.78, mid = head - u.len / 2; const [sx] = project(cam, mid, 0, 56.2); if (sx < -0.4 * W || sx > 1.4 * W) continue; out.push({ kind: u.kind, i: u.i, x: sx / W }); }
-    return out.length ? { units: out } : null;
-  }
-  /** WIN — the holiday's big set pieces on a pass, z-sorted with the walkers (people.js's extras) → [{ z, draw(c) }] */
-  const hpropsItems = (pass, fadeIn, lit) => (hprops && (HS.id || treeHeld || (HP && (HP.giant || HP.bigs))) && !clock.force.has('no-holiday-props') && bakeTones && L ? hprops.items(pass, hpropsEnv(fadeIn, lit, false)) : []);
-  function hpropsDraw(c, pass, fadeIn, lit) {
-    const mon = clock.force.has('monarchs');
-    if (!hprops) {
-      if (!hpropsLoading && (HS.id || mon || treeHeld)) { hpropsLoading = true; import('./holidayprops.js').then(m => { if (destroyed) return; hprops = m.createHolidayProps(); if (hprops.onHarvestModel) hprops.onHarvestModel(e => LOADLOG.add('note', `THE HARVEST MODEL (&prop=model): ${e.state}${e.why ? ` — ${e.why}` : ''}${e.ms ? ` (${e.ms} ms)` : ''}`)); }).catch(e => { hpropsLoading = false; console.warn('[harbor] holiday props', e); }); }
-      return;
-    }
-    if ((!HS.id && !mon) || clock.force.has('no-holiday-props') || !bakeTones || !L) return;
-    const t0 = DEBUG ? performance.now() : 0;
-    hprops.draw(c, pass, hpropsEnv(fadeIn, lit, mon));
-    if (DEBUG) { const d = performance.now() - t0; hpropsMs = hpropsMs * 0.97 + d * 0.03 * 3; if (typeof window !== 'undefined') { window.__hpropsMs = +(hpropsMs / 3).toFixed(3); window.__hprops = hprops; const b = window.__hpropsLog || (window.__hpropsLog = []); if (pass === 'ground') b.push(d); else if (b.length) b[b.length - 1] += d; if (b.length > 900) b.splice(0, 300); } }
-  }                 // NEON PASS 4: STRING LIGHTS on the speakeasy's roof (Parts 8 + 11 reuse them)          // NEON PASS 2: THE WATERFRONT STRIP — the far shore's bars, diners, the theatre
+
+
+                 // NEON PASS 4: STRING LIGHTS on the speakeasy's roof (Parts 8 + 11 reuse them)          // NEON PASS 2: THE WATERFRONT STRIP — the far shore's bars, diners, the theatre
   let pierLampsAt = [];
   let litFadeFrom = -1, litFadeMs = 1200, litMeta = null, litLook = { share: 0, warm: 0, night: 0 };
   const qp = new URLSearchParams(q);
@@ -295,7 +243,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
 
   let linkTapAt = null, linkGoAt = null;
 
-
   // THE EVERYDAY SKY (Part 6a): the planes, the banner plane, skywriting + skytyping, the helicopter, the birds, balloons, the
   // drone show, the moon's + the aurora's art (screens/harbor/skyfx.js)
   // PART 6b — THE DIRECTOR (core/harbor-director.js): every heavy moment asks it before it starts — the spectacle budget per tier,
@@ -310,12 +257,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
 
 
 
-
-
-
    // (MODELS: how far the drained skyline is pulled to a cool near-black — the near band's rose walls most)
-
-
 
 
   // 9a — THE BLACKOUT AUDIT: every light source's level as this frame drew it (harbor().lightAudit(); the TR-3B test checks them ALL)
@@ -561,34 +503,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the strings' switch-on eased
   let XP = xmasPrelude(null), treeHeld = null, xlK = 0;
   let bigHeld = null, bigRelatch = true, bigClock = null, bigWall = 0;
-  function holidayTick() {
-    const lc = LK.local;
-    HS = holidayAt(lc);
-    const hr = lc ? lc.h + lc.mi / 60 + (lc.s || 0) / 3600 : 12;
-    if (lc && duskDay !== `${lc.y}-${lc.m}-${lc.d}`) { duskDay = `${lc.y}-${lc.m}-${lc.d}`; try { const st = sunTimes(clock.now(), clock.tz, LK.lat, LK.lon); if (st.set) duskH = ((((st.set + lc.off * 60000) / 3.6e6) % 24) + 24) % 24; } catch { /* the default */ } }
-    const hp = HS.id === 'halloween' ? halloweenPieces(HS, { hour: hr, giant: clock.force.has('giant') }) : HS.id === 'dotd' ? dotdPieces(HS, { hour: hr, dusk: duskH }) : HS.id === 'thanksgiving' ? thanksgivingPieces(HS, { hour: hr }) : null;
-    // (11a-2 — BIG PIECES CHANGE OFF-CAMERA (core/harbor-holiday.js#latchBig): the giant + the big set pieces only change at a load, a return
-    // from the background or a jump of the clock (a preview, the panel) — never on screen)
-    { const nowMs = clock.now(), wall = performance.now(); if (bigClock != null && Math.abs((nowMs - bigClock) - (wall - bigWall)) > 90e3) bigRelatch = true; bigClock = nowMs; bigWall = wall; }
-    XP = xmasPrelude(lc, { dusk: duskH });
-    if (clock.force.has('xmas-lights')) XP = { ...XP, lights: 1, lit: true };
-    if (clock.force.has('shoppers')) XP = { ...XP, rush: 1 };
-    if (treeHeld == null || bigRelatch) treeHeld = !!(XP.tree || clock.force.has('treestand'));
-    if (clock.force.has('treestand')) treeHeld = true;
-    { const r = latchBig(bigHeld, hp, bigRelatch); HP = r.pieces; bigHeld = r.held; bigRelatch = false; }
-    if (L && L.cart) L.cart.cider = !!(HP && HP.cider);   // (11a-2: the chestnut cart's HOT CIDER board through the Thanksgiving build-up)
-    HR = lightRules(HS, { hour: hr, dark: clamp01((LK.w.night || 0) + (LK.w.late || 0) + 0.5 * (LK.w.dusk || 0)) });
-    if (!HR.strings && XP.lit) HR.strings = 'christmas';   // (11a-2: the roof's café lights in Christmas colours with the first strings)
-    // (City 2.0 owns Halloween + Day of the Dead: the district's Halloween — its witch, bats + rooftop pumpkin — never runs here; the
-    // title's sign dressing reads City 2.0's calendar through look())
-    // (11a-2: + THANKSGIVING — City 1.0's calendar keeps it 'full' Wed → Fri: the Harbor's sign was amber on Black Friday)
-    if (LK.holiday && (LK.holiday.id === 'halloween' || LK.holiday.id === 'thanksgiving')) LK.holiday = null;
-    LK.c2holiday = titleHoliday(HS);
-    // (the windows' scenes plan by the hour: they read the DAY's stage — noon's — so a plan never shifts mid-hour; eve flips once)
-    if (HS.id && lc) { const hd = holidayAt({ y: lc.y, m: lc.m, d: lc.d, h: 12, mi: 0 }), pd = hd.id === 'halloween' ? halloweenPieces(hd) : null;
-      HL = { id: HS.id, stage: Math.round((hd.id === HS.id ? hd.stage : HS.stage) * 100) / 100, eve: !!HS.eve, w: pd ? Math.round(pd.windows * 10) / 10 : 1, ofrendas: HP && HP.ofrendas != null ? HP.ofrendas : 0 };
-      if (HS.id === 'halloween' && HS.eve) HL.w = 1; } else HL = null;
-  }
+
   holidayTick();
   // 8b1 — THE WORKERS: &force=work-<kind> previews that worker (one every few minutes, any day); &force=no-work keeps them all home
   const workForced = () => { if (clock.force.has('hydrant')) return 'hydrant'; for (const id of clock.force) if (id.startsWith('work-')) return id.slice(5); return null; };
