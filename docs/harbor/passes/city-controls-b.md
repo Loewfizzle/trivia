@@ -88,11 +88,20 @@ NO-TRAFFIC RULE: build it complete now, dormant where it must be). The decisions
   asks again). The speech-recognition suggestion depends on the browser (iOS Safari: with Siri on).
 - UNSEND: a phone that already fetched the clip (the edge keeps it ≤ 60 s) may still play it — the button stays for the minute it matters.
 - The push needs the site ADDED TO THE HOME SCREEN on the iPhone (iOS 16.4+) + the Vercel env vars.
+- THE CLOUD's harbor run 2 ended RED on one test race (the intercom lobby check — fixed after, green locally; the next pass's run confirms).
 - THE FULL LOCAL RUN (the mini PC, alone, ~5 pm): 870/872 → the two re-run alone: the push paper's check read the "Checking…" placeholder
   under the 4-shard load (the test now waits for the paper's real words — green); LOAD WEATHER's soft timing check "a stored JUST ME jump
   into a holiday night: 0 changes after the reveal" fails at DUSK on CITY CONTROLS A's code too (a worktree of 45d9194, the same facade
   crossfade) — the suite loads on the REAL clock and 5 pm is the light's power-up; CC-A's run at 1 pm passed it. Not this pass's; the cloud
   treats it as a warning (TIMING). → a later pass: pin that load's real clock (or the light wave) before the jump.
+- THE CLOUD: run 1 (2cf55a5) tests ✅, harbor 8 / 10 — `models` (the boxer's "done by 11:45 pm": it read the windows before the parked rooms
+  were decided — "blind undefined") + `holiday` (the spider's tap, F10: on the 2-core runner it hadn't stood still within 8 s, the tap
+  landed where it WAS → the dangle + the climb failed after it). Both test races, fixed at their cause (wait for the parked rooms; the real
+  "still" condition up to 20 s + a third tap) — green locally; run 2 = a dispatch of every harbor job.
+- Run 2 (a dispatch of all 10 jobs, 4539c8c+): 9 / 10 — holiday + the boxer GREEN; `models` RED on this pass's own intercom lobby check:
+  the second test phone opened its room before it had signed in ("COULDN'T OPEN A ROOM" — a real phone's HOST waits for the sign-in) →
+  the test now waits for the sign-in (radio + crew 51/51 locally). Not re-run in the cloud — the two-runs-a-pass cap; the next pass's
+  cloud run confirms it.
 
 ## The hand-off to PROGRESSION A
 The engine (levels 1–100 fitted to today's thresholds, the streak + freezes, YOUR TABLE, the daily contract, the achievements' counters,

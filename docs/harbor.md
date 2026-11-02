@@ -584,7 +584,8 @@ one room), the banner's colour + passes, the words in the windows for a time win
   (built + tested, dormant); the intercom to EVERYONE reaches title phones within ~45 s (lobbies ~2 s, together); headless WebKit has no
   MediaRecorder — the owner checks HOLD TO TALK on the iPhone; UNSEND can't pull a clip a phone already fetched (≤ 60 s at the edge); the room
   push needs the Home Screen app on iOS + the VAPID env vars. LOAD WEATHER's "JUST ME jump into a holiday night" timing check fails at DUSK on
-  the real clock (CC-A's code too) — pin that load's clock in a later pass.
+  the real clock (CC-A's code too) — pin that load's clock in a later pass. THE CLOUD: harbor run 2 red on the intercom
+  lobby check's sign-in race (fixed after, green locally — the next pass's run confirms).
 - **CITY CONTROLS A** (passes/city-controls-a.md): ONE ROOM + THE CREW play once LOBBY 2.0 puts the live city in the lobby (the owner's answer);
   the city's fired moments reach other phones within ~45 s (the cached poll); headless WebKit draws no backdrop blur (a darker wash) — the
   owner confirms the blur + the display face's weight on the phone; the night billboard message on the crisp layer is a touch brighter.

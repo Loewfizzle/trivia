@@ -129,6 +129,8 @@ G('radio', async () => {
   // ---- THE INTERCOM to a LOBBY: a second phone IN the lobby gets it on the room's socket + plays it (one start on the server clock)
   { const P = await open({ slot: 'rdp', qs: 'when=2026-11-03T21:00' });
     await harborUp(P.page);
+    // (CC-B — the cloud's run 2: the room was opened before this phone had signed in — a real phone's HOST waits for it: so does the test)
+    await pidOf(P.page); await waitFor(P.page, `import('/js/store.js').then(s => !!s.state.ready)`, 'signed in', 20000).catch(() => {});
     const code = await ev(P.page, `import('/js/room.js').then(m => m.createRoom({ name: 'LOBBY GUEST', color: 'cyan', avatar: 'bolt' })).then(() => import('/js/store.js')).then(s => s.state.code).catch(e => 'ERR ' + e.message)`);
     await waitFor(P.page, `import('/js/store.js').then(s => !!(s.state.meta && s.state.code))`, 'the lobby', 15000).catch(() => {});
     await ev(P.page, `document.body.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); document.body.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); true`);
