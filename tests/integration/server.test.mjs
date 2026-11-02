@@ -952,3 +952,88 @@ test('sky: when the rain really stopped (RAINBOWS) — the past quarter hours, n
   const dry = await skyFor(place, { now: now + 1, fetcher: async () => ({ ok: true, json: async () => ({ current: { weather_code: 0 }, minutely_15: { time: times, precipitation: times.map(() => 0) } }) }) });
   assert.equal(dry.wetAt, null, 'dry all along: no rain to follow');
 });
+
+
+// CITY CONTROLS B — THE INTERCOM · THE CREW (the grant, one radio per lobby, the ask + the hand-over) · PRESETS · "A ROOM JUST OPENED"
+test('CITY CONTROLS B: the intercom, the crew, presets + the room push — every action by role, every one written + audited by the server', async () => {
+  await ref('/').update({ radio: null, here: null });
+  const boss = await ensure('u-ccbboss', 'CcbBoss'), pal = await ensure('u-ccbpal', 'CcbPal'), two = await ensure('u-ccbtwo', 'CcbTwo');
+  await ensure('u-ccbkid', 'CcbKid');
+  process.env.ADMIN_PIDS = boss.pid;
+  try {
+    const clip = Buffer.alloc(3000, 5).toString('base64'), T = Date.now();
+    // ---- THE INTERCOM (the owner only)
+    for (const a of ['radioIntercom', 'radioUnsend', 'radioCrewSet', 'radioCrewPeek', 'radioPreset', 'radioPresetFire', 'radioPush']) await rejects(adminAction('u-ccbkid', { action: a, aud: 'me', mime: 'audio/mp4', dur: 2, b64: clip, op: 'state' }, T), 403, 'not_radio');
+    await ref('rooms/CCBA').set({ meta: { hostId: 'u-ccbpal', status: 'lobby', createdAt: T, activeAt: T }, players: { 'u-ccbpal': { name: 'JESSICA', color: 'cyan', avatar: 'bolt', joinedAt: 1 }, 'u-ccbtwo': { name: 'MIKE', color: 'pink', avatar: 'star', joinedAt: 2 } } });
+    const ic = (await adminAction('u-ccbboss', { action: 'radioIntercom', aud: 'room', room: 'CCBA', mime: 'audio/mp4', dur: 4.2, b64: clip, head: 'game night at 8', wait: true }, T)).intercom;
+    assert.equal(ic.head, 'GAME NIGHT AT 8'); assert.equal(ic.at, T + 2500); assert.ok(ic.until > ic.at + 4200);
+    { const node = await val(`rooms/CCBA/radio/${ic.id}`); assert.equal(node.kind, 'intercom'); assert.ok(!JSON.stringify(node).includes(boss.pid), 'no profile id in the lobby'); }
+    assert.equal((await val(`radio/clips/${ic.id}`)).b64, clip, 'the clip kept by the server');
+    { const { clipOf } = await import('../../api/_lib/radio.js'); const c = await clipOf(ic.id, T + 1000); assert.equal(c.mime, 'audio/mp4'); assert.equal(c.buf.length, 3000); }
+    await rejects(adminAction('u-ccbboss', { action: 'radioIntercom', aud: 'room', room: 'CCBA', mime: 'audio/mp4', dur: 2, b64: clip, head: 'hi jessica' }, T), 400, 'words_name');
+    await rejects(adminAction('u-ccbboss', { action: 'radioIntercom', aud: 'everyone', mime: 'audio/mp4', dur: 99, b64: clip }, T), 400, 'bad_length');
+    const ev = (await adminAction('u-ccbboss', { action: 'radioIntercom', aud: 'everyone', mime: 'audio/webm;codecs=opus', dur: 3, b64: clip, wait: false }, T)).intercom;
+    assert.equal((await val(`rooms/CCBA/radio/${ev.id}`)).wait, false, 'EVERYONE: every open lobby gets its copy');
+    { const { cityLiveNow } = await import('../../api/admin.js'); const r = await cityLiveNow(T + 1000); assert.ok(r.radio.intercom.some(m => m.id === ev.id) && !r.radio.intercom.some(m => m.id === ic.id), 'the city feed: EVERYONE only'); }
+    await adminAction('u-ccbboss', { action: 'radioUnsend', id: ev.id }, T + 5000);
+    { const { clipOf } = await import('../../api/_lib/radio.js'); assert.equal(await clipOf(ev.id, T + 6000), null, 'UNSEND: the clip gone'); assert.equal((await val(`rooms/CCBA/radio/${ev.id}`)).state, 'stopped'); }
+    { const st = await adminAction('u-ccbboss', { action: 'radioState' }, T + 6000); assert.equal(st.intercom.find(m => m.id === ic.id).unsend, true); assert.equal(st.intercom.find(m => m.id === ev.id).state, 'stopped'); }
+    // ---- THE CREW: the owner grants by the uid he tapped + by name tag; cap; the crew refused beyond the role
+    assert.equal((await adminAction('u-ccbboss', { action: 'radioCrewPeek', uid: 'u-ccbpal' })).on, false);
+    await adminAction('u-ccbboss', { action: 'radioCrewSet', uid: 'u-ccbpal', on: true }, T);
+    const tp = await val(`profiles/${two.pid}`);
+    const list = (await adminAction('u-ccbboss', { action: 'radioCrewSet', tag: `${tp.n}#${tp.t}`, on: true }, T)).crew;
+    assert.deepEqual(list.map(c => c.pid).sort(), [pal.pid, two.pid].sort());
+    await rejects(adminAction('u-ccbboss', { action: 'radioCrewSet', tag: 'NOBODY#0001', on: true }), 404, 'no_tag');
+    await rejects(adminAction('u-ccbboss', { action: 'radioCrewSet', uid: 'u-ccbboss', on: true }), 400, 'is_owner');
+    await rejects(adminAction('u-ccbpal', { action: 'radioCrewSet', uid: 'u-ccbtwo', on: false }), 403, 'not_owner');
+    await rejects(adminAction('u-ccbpal', { action: 'radioIntercom', aud: 'room', room: 'CCBA', mime: 'audio/mp4', dur: 2, b64: clip }), 403, 'not_owner');
+    await rejects(adminAction('u-ccbpal', { action: 'radioPreset', op: 'delete', id: 'x' }), 403, 'not_owner');
+    await rejects(adminAction('u-ccbpal', { action: 'radioPush', op: 'test' }), 403, 'not_owner');
+    // ---- ONE RADIO PER LOBBY: the host (pal) holds it; two is refused + asks; pal hands it over
+    assert.equal((await adminAction('u-ccbpal', { action: 'radioState', room: 'CCBA' }, T)).lobby.mine, true);
+    assert.equal((await adminAction('u-ccbtwo', { action: 'radioState', room: 'CCBA' }, T)).lobby.holderName, 'JESSICA');
+    await rejects(adminAction('u-ccbtwo', { action: 'radioFire', jack: 'flyby', aud: 'room', room: 'CCBA' }, T), 403, 'not_holder');
+    await adminAction('u-ccbtwo', { action: 'radioAsk', room: 'CCBA' }, T);
+    assert.equal((await val('rooms/CCBA/radioCrew/ask')).name, 'MIKE');
+    await rejects(adminAction('u-ccbtwo', { action: 'radioHand', room: 'CCBA', give: true }, T), 403, 'not_holder');
+    await adminAction('u-ccbpal', { action: 'radioHand', room: 'CCBA', give: true }, T);
+    assert.equal((await adminAction('u-ccbtwo', { action: 'radioState', room: 'CCBA' }, T)).lobby.mine, true, 'handed over');
+    const fm = (await adminAction('u-ccbtwo', { action: 'radioFire', jack: 'flyby', aud: 'room', room: 'CCBA' }, T)).moment;
+    assert.equal((await val(`radio/fired/${fm.id}`)).sight, false, 'the crew’s never a sighting');
+    // the host changes → the rule again (a new host who isn't crew: the first crew to join — pal)
+    await ref('rooms/CCBA/meta/hostId').set('u-ccbtwo');
+    assert.equal((await adminAction('u-ccbtwo', { action: 'radioState', room: 'CCBA' }, T)).lobby.mine, true, 'the host (crew) holds it');
+    await ref('rooms/CCBA/meta/hostId').set('u-x'); await ref('rooms/CCBA/players/u-x').set({ name: 'X', color: 'cyan', avatar: 'bolt', joinedAt: 3 });
+    assert.equal((await adminAction('u-ccbpal', { action: 'radioState', room: 'CCBA' }, T)).lobby.mine, true, 'a non-crew host: the first crew member to join');
+    // ---- PRESETS: steps re-checked, fired through the live rules
+    const P = (await adminAction('u-ccbboss', { action: 'radioPreset', op: 'add', name: 'game night', step: { kind: 'board', body: { lines: ['GAME NIGHT', '8 PM'], local: { h: 19, mi: 45 }, repeat: { dows: [5] } } } }, T)).presets[0];
+    assert.equal(P.name, 'GAME NIGHT');
+    await adminAction('u-ccbboss', { action: 'radioPreset', op: 'add', id: P.id, step: { kind: 'fire', body: { jack: 'blackbird', aud: 'me' } } }, T);
+    await rejects(adminAction('u-ccbboss', { action: 'radioPreset', op: 'add', id: P.id, step: { kind: 'fire', body: { jack: 'nope', aud: 'me' } } }, T), 400, 'bad_step');
+    const fired = (await adminAction('u-ccbboss', { action: 'radioPresetFire', id: P.id }, T)).results;
+    assert.deepEqual(fired.map(r => [r.kind, r.ok]), [['board', true], ['fire', true]]);
+    await adminAction('u-ccbboss', { action: 'radioPreset', op: 'delete', id: P.id }, T);
+    assert.equal(await val('radio/presets'), null);
+    // ---- "A ROOM JUST OPENED": off → nothing; a room not yours / not new → nothing; the encryption round-trips
+    await ref('rooms/CCBN').set({ meta: { hostId: 'u-ccbkid', status: 'lobby', createdAt: Date.now(), activeAt: Date.now() }, players: { 'u-ccbkid': { name: 'K', color: 'cyan', avatar: 'bolt', joinedAt: 1 } } });
+    assert.equal((await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBN' })).sent, 0, 'the switch is off');
+    await ref('radio/push/on').set(true);
+    assert.equal((await adminAction('u-ccbtwo', { action: 'radioRoomOpened', room: 'CCBN' })).sent, 0, 'not your room');
+    assert.equal((await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBN' })).sent, 0, 'no phones subscribed');
+    assert.ok(await val('radio/push/sent/CCBN'), 'once a room');
+    await rejects(adminAction('u-ccbboss', { action: 'radioPush', op: 'sub', sub: { endpoint: 'https://evil.example.com/x', keys: { p256dh: 'A'.repeat(87), auth: 'B'.repeat(22) } } }), 400, 'bad_sub');
+    { const { encrypt } = await import('../../api/_lib/push.js'), C = await import('node:crypto');
+      const ua = C.createECDH('prime256v1'); ua.generateKeys(); const auth = C.randomBytes(16);
+      const body = encrypt('{"title":"A ROOM JUST OPENED"}', { keys: { p256dh: ua.getPublicKey().toString('base64url'), auth: auth.toString('base64url') } });
+      const hk = (salt, ikm, info, n) => { const prk = C.createHmac('sha256', salt).update(ikm).digest(); return C.createHmac('sha256', prk).update(Buffer.concat([info, Buffer.from([1])])).digest().subarray(0, n); };
+      const salt = body.subarray(0, 16), as = body.subarray(21, 86), ct = body.subarray(86);
+      const ikm = hk(auth, ua.computeSecret(as), Buffer.concat([Buffer.from('WebPush: info\0'), ua.getPublicKey(), as]), 32);
+      const d = C.createDecipheriv('aes-128-gcm', hk(salt, ikm, Buffer.from('Content-Encoding: aes128gcm\0'), 16), hk(salt, ikm, Buffer.from('Content-Encoding: nonce\0'), 12));
+      d.setAuthTag(ct.subarray(-16)); const pt = Buffer.concat([d.update(ct.subarray(0, -16)), d.final()]);
+      assert.equal(pt.subarray(0, -1).toString(), '{"title":"A ROOM JUST OPENED"}', 'RFC 8291 round trip'); assert.equal(pt[pt.length - 1], 2); }
+    // ---- THE AUDIT
+    const log = (await adminAction('u-ccbboss', { action: 'audit', limit: 80 })).log.map(l => l.act);
+    for (const a of ['radioIntercom', 'radioUnsend', 'radioCrewAdd', 'radioAsk', 'radioHandOver', 'radioPreset', 'radioPresetFire']) assert.ok(log.includes(a), a);
+  } finally { process.env.ADMIN_PIDS = ''; await ref('/').update({ radio: null, 'rooms/CCBA': null, 'rooms/CCBN': null }); }
+});

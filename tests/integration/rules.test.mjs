@@ -63,7 +63,7 @@ test('unauthenticated users can read nothing', async () => {
 
 // CITY CONTROLS A — THE RADIO: a room's moments are the SERVER's (api/_lib/radio.js) — its phones read them on the room's socket, nobody
 // writes them (not even the host); the queue, the record, the crew, the dial, the hello count: server only (no client read or write)
-test('THE RADIO: rooms/{CODE}/radio readable by the room, written by nobody; radio/, city2/showcase, here/ server only', async () => {
+test('THE RADIO: rooms/{CODE}/radio + radioCrew readable by the room, written by nobody; radio/, city2/showcase, here/ server only', async () => {
   await seed({ ...lobbyRoom(), radio: { q: { m1: { jack: 'ufo' } }, crew: { p1: true } }, city2: { showcase: 'high' }, here: { host: 1 } });
   await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/radio/m1`), { jack: 'ufo', at: 1, until: 2 }));
   await assertSucceeds(get(ref(db('p2'), `${R}/radio`)));
@@ -76,6 +76,10 @@ test('THE RADIO: rooms/{CODE}/radio readable by the room, written by nobody; rad
     await assertFails(set(ref(db(u), 'city2/showcase'), 'low'), `${u} turns the dial`);
     await assertFails(get(ref(db(u), 'city2/showcase')), `${u} reads the dial by socket (the cached GET carries it)`);
     await assertFails(set(ref(db(u), `here/${u}`), 1), `${u} writes the hello count`);
+    // CC-B — THE CREW's lobby node, THE INTERCOM's clips, PRESETS, the push: the server's only
+    await assertFails(set(ref(db(u), `${R}/radioCrew/hand`), { uid: u, host: 'host' }), `${u} hands themself the lobby's radio`);
+    await assertFails(set(ref(db(u), `${R}/radioCrew/ask`), { uid: u, at: 1 }), `${u} writes an ask`);
+    for (const n of ['radio/ic', 'radio/clips', 'radio/presets', 'radio/push/subs']) { await assertFails(get(ref(db(u), n)), `${u} reads ${n}`); await assertFails(set(ref(db(u), `${n}/x1`), { a: 1 }), `${u} writes ${n}`); }
   }
 });
 

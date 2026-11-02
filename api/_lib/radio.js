@@ -268,7 +268,7 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
     case 'radioCrewList': need(role === 'owner', 'not_owner'); return { crew: await crewList(), cap: knob('radio').crew.cap };
     case 'radioCrewPeek': {   // (the owner's player card: is this player crew? — by the uid he tapped)
       need(role === 'owner', 'not_owner');
-      const pid = /^[A-Za-z0-9]{10,40}$/.test(String(body.uid || '')) ? await pidOf(String(body.uid)) : null;
+      const pid = /^[-_A-Za-z0-9]{3,128}$/.test(String(body.uid || '')) ? await pidOf(String(body.uid)) : null;
       if (!pid) return { pid: null, on: false, why: 'No profile yet — they get one after their first match. Add them then.' };
       const [c, p] = await Promise.all([val(`radio/crew/${pid}`), val(`profiles/${pid}`)]);
       return { pid, on: !!c, n: (p && p.n) || null, t: (p && p.t) || null, owner: pid === me || (await roleOf(pid)) === 'owner', n10: Object.keys((await val('radio/crew')) || {}).length, cap: knob('radio').crew.cap };
@@ -386,7 +386,7 @@ async function crewList() {
 async function crewSet(me, role, body, now) {
   need(role === 'owner', 'not_owner', 'Only the owner picks the crew.');
   let pid = null;
-  if (body.uid) { if (!/^[A-Za-z0-9]{10,40}$/.test(String(body.uid))) throw new ApiError(400, 'bad_uid'); pid = await pidOf(String(body.uid)); if (!pid) throw new ApiError(404, 'no_profile', 'No profile yet — they get one after their first match. Add them then.'); }
+  if (body.uid) { if (!/^[-_A-Za-z0-9]{3,128}$/.test(String(body.uid))) throw new ApiError(400, 'bad_uid'); pid = await pidOf(String(body.uid)); if (!pid) throw new ApiError(404, 'no_profile', 'No profile yet — they get one after their first match. Add them then.'); }
   else if (body.tag) { const t = parseTag(body.tag); if (!t) throw new ApiError(400, 'bad_tag', 'Type a name tag like MIKE#4821.'); pid = await val(`tags/${encodeKey(nameKey(t.name))}/${t.tag}`); if (!isPid(pid)) throw new ApiError(404, 'no_tag', 'No player with that name tag.'); }
   else if (isPid(String(body.pid || ''))) pid = String(body.pid);
   if (!pid) throw new ApiError(400, 'bad_player');
