@@ -95,9 +95,18 @@ export const GEAR = {
     c.strokeStyle = g.f(ZINC_LO); c.lineWidth = lw(g, 0.006); c.beginPath(); c.arc(x, y + H * 0.03, H * 0.04, Math.PI, 0); c.stroke();
   },
   squeegee(c, g) {
-    const [x, y] = g.hand, H = g.H;
-    c.strokeStyle = g.f([90, 70, 50]); c.lineWidth = lw(g, 0.012); c.beginPath(); c.moveTo(x, y); c.lineTo(x, y - H * 0.12); c.stroke();
-    c.fillStyle = g.f([40, 40, 44]); c.fillRect(x - H * 0.05, y - H * 0.135, H * 0.1, lw(g, 0.018));
+    // (WSP — the owner: the washers' gear "readable at phone size": the blade TWICE as wide (~0.2 of him — ~4–5 pt on the phone), its
+    //  brass channel + the black rubber edge, a short handle; while it's on the glass a WET STREAK trails it — a clean, brighter band of
+    //  pane fading back over the stroke (the stroke's state: J.sqS from the squeegee pose) — so the job reads from across the street)
+    const [x, y] = g.hand, H = g.H, S = g.J && g.J.sqS, bw = H * 0.2, top = y - H * 0.11;
+    if (S && S.on && S.dir) {
+      const len = bw * (0.6 + 2.6 * S.k), x0 = x - S.dir * len, gr = c.createLinearGradient(x0, 0, x, 0);
+      gr.addColorStop(0, 'rgba(236,244,255,0)'); gr.addColorStop(0.75, 'rgba(236,244,255,0.22)'); gr.addColorStop(1, 'rgba(250,252,255,0.42)');
+      c.fillStyle = gr; c.fillRect(Math.min(x0, x), top - H * 0.012, Math.abs(x - x0), H * 0.05);
+    }
+    c.strokeStyle = g.f([110, 84, 56]); c.lineWidth = lw(g, 0.014); c.beginPath(); c.moveTo(x, y + H * 0.01); c.lineTo(x, top + H * 0.02); c.stroke();
+    c.fillStyle = g.f([196, 164, 92], 1.1); c.fillRect(x - bw / 2, top, bw, lw(g, 0.022));                    // (the brass channel)
+    c.fillStyle = g.f([22, 22, 26]); c.fillRect(x - bw / 2, top - lw(g, 0.014), bw, lw(g, 0.014));             // (the rubber edge on the glass)
   },
   brush(c, g) {
     const [x, y] = g.hand, H = g.H;

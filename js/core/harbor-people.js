@@ -88,7 +88,7 @@ function capCrowd(ms, cap) {
  *  walking in / out past the edges or round behind the speakeasy); mix = the kinds' weights
  *  (KINDS below). Weekends: busier (n) and LATER (lateShift moves the evening's hours on by an hour). */
 // (POLISH 4 — THE PEOPLE CALMER, the owner: "a little too chaotic — too many people walking briskly, in and out of the speakeasy".
-// ON SCREEN: a weekday daytime 4–5; lunch + after work 6–7; a normal night after dark 3–4; weekend + party nights 8–12 (the dance
+// ON SCREEN: a weekday daytime 4–5 (WSP: ~5–6, lunch ~7–8); lunch + after work 6–7; a normal night after dark 3–4; weekend + party nights 8–12 (the dance
 // circle on top); late at night 0–3 — tests/harbor-people.test.mjs measures it over a simulated day. LINGER MORE, PASS THROUGH LESS:
 // the mix is mostly people who STAY a while — the bench (minutes), the railing over the water, a pair stopped chatting, the bus stop,
 // the cart — and only a few walking straight through. THE SPEAKEASY STAYS SECRET: nobody walks into it from the mix — the barbershop's
@@ -97,9 +97,11 @@ export const MIX = Object.freeze([
   { id: 'small-hours', from: 2, to: 5.5, n: [0.3, 0.5], mix: { nightworker: 2, lone: 1 } },
   { id: 'early', from: 5.5, to: 8, n: [2.3, 1.7], mix: { dogwalker: 3, worker: 2, water: 1, bench: 1 } },
   { id: 'commute', from: 8, to: 9.25, n: [5.2, 3.4], mix: { busrider: 4, brisk: 1.6, newsboy: 1.5, dogwalker: 1.5, worker: 1, bench: 0.6 } },
-  { id: 'morning', from: 9.25, to: 11.5, n: [3.5, 4.6], mix: { bench: 3, water: 2.5, couple: 2.5, dogwalker: 1.5, window: 1.5, meet: 1.5, busrider: 1.5, stroller: 0.8, customer: 0.3, newsboy: 0.5 } },
-  { id: 'midday', from: 11.5, to: 14, n: [5, 5.2], mix: { lunch: 4, bench: 1.2, couple: 2.5, water: 2, meet: 2, window: 1.2, busrider: 1.2, stroller: 0.8, brisk: 0.5, customer: 0.3 } },
-  { id: 'afternoon', from: 14, to: 16.25, n: [3.3, 4.6], mix: { bench: 3, water: 2.5, couple: 2.5, skyline: 0.8, dogwalker: 1.5, window: 1, meet: 1.5, busrider: 1.2, newsboy: 0.6, stroller: 0.8, customer: 0.3 } },
+  // (WSP — the owner, Nov 1: "a few more people in the daytime … some standing still — chatting, waiting, looking at the water": the
+  //  three daytime periods ~+1.3 on screen, the weights leaning to the ones who stand — the chat (meet), the railing (water), a window)
+  { id: 'morning', from: 9.25, to: 11.5, n: [4.3, 5.4], mix: { bench: 3, water: 3.4, couple: 2.5, dogwalker: 1.5, window: 2, meet: 2.6, busrider: 1.5, stroller: 0.8, customer: 0.3, newsboy: 0.5 } },
+  { id: 'midday', from: 11.5, to: 14, n: [5.8, 6.1], mix: { lunch: 4, bench: 1.2, couple: 2.5, water: 2.8, meet: 3, window: 1.6, busrider: 1.2, stroller: 0.8, brisk: 0.5, customer: 0.3 } },
+  { id: 'afternoon', from: 14, to: 16.25, n: [4.1, 5.4], mix: { bench: 3, water: 3.4, couple: 2.5, skyline: 1, dogwalker: 1.5, window: 1.4, meet: 2.6, busrider: 1.2, newsboy: 0.6, stroller: 0.8, customer: 0.3 } },
   { id: 'homeward', from: 16.25, to: 18.5, n: [5.1, 4.6], mix: { busrider: 3.5, homeward: 1.2, couple: 2, bench: 2, water: 1.5, cart: 1.5, meet: 1.5, dogwalker: 1, stroller: 0.6, customer: 0.2 } },
   { id: 'evening', from: 18.5, to: 22, n: [2.5, 3.3], mix: { couple: 3, water: 2, skyline: 1.4, stargazer: 1.5, dogwalker: 1.5, cart: 2, bench: 1.5, meet: 1, stroller: 0.6, jogger: 0.25 } },
   { id: 'late', from: 22, to: 24, n: [2.3, 3.1], mix: { couple: 2, water: 1.5, skyline: 1, lone: 1.5, stargazer: 1, bench: 0.8, straggler: 0.4 } },

@@ -473,6 +473,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   }
   // 8b1 — THE WORKERS' POSES (big, readable motions: the broom's push, the crank's turn, the brush's strokes, the squeegee's sweep)
   const tw8 = mo ? t : 0;
+  let sqS = null;   // (WSP: the squeegee's stroke for gear.js — { dir (+1 →, −1 ←, 0 dipping), k (0..1 through it), on (1 while the blade is on the glass) })
   // (8b2 — STROKES, not wiggles: each work motion is a working stroke (slow, with weight) + a quick return — sk(period, share))
   const sk = (P, share, off = 0) => { const u = (((tw8 + L.h * 13 + off) / P) % 1 + 1) % 1; return u < share ? smooth(u / share) : 1 - smooth((u - share) / (1 - share)); };
   if (pose === 'sweep') { const k = sk(1.25, 0.62); shJ.forEach(q => { q.a += 0.04 * k; }); head.a += 0.04 * k; arm(N, 0.5 + 0.5 * k, 0.5 - 0.1 * k); arm(Fa, 0.8 + 0.5 * k, 0.22); }
@@ -513,7 +514,20 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   if (pose === 'paste') { const k = sk(1.9, 0.68); shJ.forEach(q => { q.a += 0.03 * k; }); arm(N, 2.35 - 0.8 * k, 0.3 + 0.1 * k); arm(Fa, 2.0 - 0.65 * k, 0.45); }
   if (pose === 'pastehi') { const k = sk(2.2, 0.7); arm(N, 2.95 - 0.38 * k, 0.12 + 0.08 * k); arm(Fa, 2.55 - 0.32 * k, 0.28); }
   // the window washer's S: a level SWIPE across the pane (the arm out to the side), down a blade's width, back the other way
-  if (pose === 'squeegee') { const k = sk(1.6, 0.75, 0.3), row = Math.floor(((tw8 + L.h * 13 + 0.3) / 1.6) % 4), across = row % 2 ? 1 - k : k; arm(N, 2.3 - 0.12 * row, 0.3, 0.1 + 0.7 * across); arm(Fa, 0.4, 0.5); }
+  // (WSP — the owner: "each arm its own EASED stroke, no snapping back + forth, the two OUT OF PHASE + varied". The old swipe ran across,
+  //  SNAPPED back in a quarter of its time, and the next row began on the far side — the arm jumped. Now ONE CONTINUOUS S, the way a
+  //  window gets squeegeed: four eased strokes, each starting where the last ended (left → right, a notch down, right → left …), then the
+  //  arm down to the bucket + back up to the top; each washer his own tempo (2.0–2.6 s a stroke) + his own place in it — from his seeded
+  //  height L.h, so the two on the platform never move together. The free hand on the platform's rail, steady.)
+  if (pose === 'squeegee') {
+    const hz = (L.h * 977.13) % 1, P = 2.0 + 0.6 * hz, ph = mo ? (tw8 / P + hz * 5) : hz * 5, seg = Math.floor(ph) % 5, u = ph - Math.floor(ph);
+    let across, ang;
+    if (seg < 4) { const e = smooth(Math.min(1, u / 0.82)), dn = smooth(Math.max(0, (u - 0.82) / 0.18)); across = seg % 2 ? 1 - e : e; ang = 2.32 - 0.12 * (seg + dn); }
+    else { const dip = Math.sin(Math.PI * smooth(u)); across = 0.06 * dip; ang = 1.84 + (2.32 - 1.84) * smooth(u) - 0.85 * dip; }   // (down to the bucket, back up to the top)
+    arm(N, ang, 0.3 + 0.12 * Math.sin(Math.PI * across), 0.1 + 0.7 * across);
+    arm(Fa, 0.42, 0.55);
+    sqS = seg < 4 ? { dir: seg % 2 ? -1 : 1, k: Math.min(1, u / 0.82), on: u < 0.82 ? 1 : 0 } : { dir: 0, k: 0, on: 0 };
+  }
   if (pose === 'tip') { arm(0, 2.75, 0.55); arm(1, 2.65, 0.6); }
   if (pose === 'hold') { arm(0, 1.65, 0.55); arm(1, 1.75, 0.5); }
   if (pose === 'twirl') { arm(N, 1.15, 0.8); }
@@ -545,7 +559,7 @@ export function jointsOf(st, L, t, mo = true, kD = [0.28, 0.04]) {
   const mid = (a, b) => [(a[0] + b[0]) / 2, (a[1] + b[1]) / 2];
   const tw = Math.hypot(0.138 * cz, 0.1 * cx);
   return {
-    hd, cx, cz, d: cx >= 0 ? 1 : -1, side: Math.abs(cx) > 0.72, face: st.dir, pose, walking, p, jog, toast, near: N, drink: pose === 'mingle' && !!st.drink, act: mingleAct,
+    hd, cx, cz, d: cx >= 0 ? 1 : -1, side: Math.abs(cx) > 0.72, face: st.dir, pose, walking, p, jog, toast, near: N, sqS, drink: pose === 'mingle' && !!st.drink, act: mingleAct,
     noCarry: (pose === 'pick' && uP < 0.5) || (pose === 'set' && uP >= 0.5) || (pose === 'unload' && uP < 0.45), uk, sq,
     feet: feetS, knees: kneesS, hips: hipsS, hip: mid(hipsS[0], hipsS[1]), shs: shsS, sh: mid(shsS[0], shsS[1]),
     elbows: elbow.map(scr), hands: hand.map(scr), head: scr(head), tw, planted, heel, sv,

@@ -329,7 +329,14 @@ function platform(c, cam, s, p, env, t, part) {
     c.fillStyle = rgb(wood); c.beginPath(); for (const q of [d0, d1, d2, d3]) c.lineTo(...q); c.closePath(); c.fill();
     const f0 = P(x0, y, z - 0.25), f1 = P(x1, y - 0.18, z - 0.25);
     c.fillStyle = rgb(mix(wood, [0, 0, 0], 0.3)); c.fillRect(f0[0], f0[1], f1[0] - f0[0], f1[1] - f0[1]);
-    for (const xb of [x0 + 1.4, x1 - 2.1]) { const b = P(xb, y, z - 0.05); c.fillStyle = rgb(litAt(env, ZINC, xb, z, 1.1)); c.fillRect(b[0] - 0.14 * sp, b[1] - 0.3 * sp, 0.28 * sp, 0.3 * sp); }
+    // (WSP: the buckets bigger + real — a tapered zinc pail, its lit rim, the wire handle, the water's dull shine — ~5 pt on the phone)
+    for (const xb of [x0 + 1.4, x1 - 2.1]) {
+      const b = P(xb, y, z - 0.05), w = 0.42 * sp, h = 0.46 * sp, zc = litAt(env, ZINC, xb, z, 1.1);
+      c.fillStyle = rgb(zc); c.beginPath(); c.moveTo(b[0] - w / 2, b[1] - h); c.lineTo(b[0] + w / 2, b[1] - h); c.lineTo(b[0] + w * 0.38, b[1]); c.lineTo(b[0] - w * 0.38, b[1]); c.closePath(); c.fill();
+      c.fillStyle = rgb(mix(zc, [255, 255, 255], 0.35)); c.fillRect(b[0] - w / 2, b[1] - h, w, Math.max(0.6, 0.06 * sp));                     // (the rim, lit)
+      c.fillStyle = rgb(mix(zc, [30, 40, 56], 0.55)); c.fillRect(b[0] - w * 0.42, b[1] - h + Math.max(0.6, 0.06 * sp), w * 0.84, Math.max(0.5, 0.05 * sp));   // (the water)
+      c.strokeStyle = rgb(mix(zc, [0, 0, 0], 0.4)); c.lineWidth = Math.max(0.4, 0.03 * sp); c.beginPath(); c.arc(b[0], b[1] - h, w * 0.46, Math.PI * 1.05, Math.PI * 1.95); c.stroke();   // (the handle)
+    }
   } else {
     // the front: a toe board + the top rail on its posts (in front of the washers' legs)
     const r0 = P(x0, y + 1.0, z - 0.3), r1 = P(x1, y + 1.0, z - 0.3), m0 = P(x0, y + 0.5, z - 0.3), m1 = P(x1, y + 0.5, z - 0.3);

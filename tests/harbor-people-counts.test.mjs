@@ -50,9 +50,9 @@ test('C4c — EVERY LEASH HAS ITS DOG (the owner, Oct 29: "a dog walker with no 
     assert.ok(sniffs > 0, `${k}: a sniff at the hydrant through the day (${sniffs})`);
   }
 });
-test('POLISH 4 — THE COUNTS ON SCREEN: a weekday daytime 4–5, lunch + after work 6–7, a normal night 3–4, a party night 8–12 (the dance circle on top), late at night 0–3', () => {
+test('POLISH 4 + WSP — THE COUNTS ON SCREEN: a weekday daytime ~5–6 (WSP: +1–2, standing still), lunch ~7–8, after work 6–7, a normal night 3–4, a party night 8–12 (the dance circle on top), late at night 0–3', () => {
   const { cam, L } = setup('402x874'), M = folkMap(L), cache = new Map(), SAT = DAY + 2 * 86400;
-  const bands = [['weekday daytime', DAY, 9.5, 11, 3.6, 5.4], ['weekday afternoon', DAY, 14.2, 16, 3.6, 5.4], ['lunch', DAY, 12, 13.5, 5.6, 7.4], ['after work', DAY, 16.6, 18.2, 5.6, 7.6],
+  const bands = [['weekday daytime', DAY, 9.5, 11, 4.8, 6.8], ['weekday afternoon', DAY, 14.2, 16, 4.8, 6.8], ['lunch', DAY, 12, 13.5, 6.4, 8.6], ['after work', DAY, 16.6, 18.2, 5.6, 7.6],
     ['a normal night', DAY, 19, 22, 2.8, 4.6], ['a party night (the everyday crowd: the walkers, THE LINE, the side door)', SAT, 21, 24, 5, 12], ['late at night', DAY + 86400, 0.25, 1.75, 0, 3]];
   for (const [name, day, h0, h1, lo, hi] of bands) { const v = bandMean(cam, L, M, day, h0, h1, cache); assert.ok(v >= lo && v <= hi, `${name}: ${v.toFixed(2)} on screen (want ${lo}–${hi})`); }
   // (NIGHT-B — THE STREET PARTY on top at the peak: its pockets ~18–26 people at tier 2 (the owner: "even more if the bench allows"))
