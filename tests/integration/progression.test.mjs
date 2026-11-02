@@ -19,10 +19,14 @@ import { dailyAction } from '../../api/daily.js';
 import { dailySeed, FAKE_DAILY } from '../../api/_lib/dailies.js';
 import { streakDay, dayNum, dayOf } from '../../js/core/streak.js';
 import { BAND_MIN } from '../../js/core/daily.js';
+import { processReport } from '../../api/report.js';
+import { progressEvent } from '../../api/_lib/events.js';
+import { finalGame } from '../fixtures/finals.mjs';
+import { extractMatch } from '../../js/core/match-report.js';
 
 const NOW = Date.UTC(2026, 10, 10, 1, 0, 0);   // Mon Nov 9 2026, 8 pm Eastern
 const DAY = 86_400_000;
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'dly', 'pcount', 'streak', 'progress', 'radio', 'testAdmins', 'gplay'];
 before(async () => { await ref('/').update(Object.fromEntries(NODES.map(n => [n, null]))); });
 after(async () => { await deleteApp(fb().app); });
 
@@ -117,4 +121,104 @@ test('THE OUTAGE BUTTON: admins only, audited; a marked day breaks nobody\'s str
   assert.equal(f.outcome.streak.n, 3);
   assert.deepEqual(f.outcome.streak.ev.outage, [missed]);
   assert.ok(f.outcome.items.includes('flame-full'), 'THE 3-NIGHT MILESTONE: full neon');
+});
+
+// ------------------------------------------------------------------ Group 3: the award engine through the real report, wearing, X%, events, FOUNDER
+const NIGHTPTS = { 1: 3, 2: 2, 3: 1 };
+let codeN = 0;
+async function seedRoom(id, uids, at, hostUid = uids[0]) {
+  const code = `P${'ABCDEFGHJKLMNPQRSTUVWXYZ'[codeN++ % 24]}QZ`;
+  const game = finalGame(id, uids, {});
+  game.phaseStartAt = at;
+  const ex = extractMatch(game, {});
+  const night = { g: id, at, p: {}, n: {} };
+  for (const [u, r] of Object.entries(ex.rows)) { night.p[u] = NIGHTPTS[r.rank] || 0; night.n[u] = u.toUpperCase(); }
+  await ref(`rooms/${code}`).set({ meta: { hostId: hostUid, status: 'playing', createdAt: at, activeAt: at },
+    players: Object.fromEntries(uids.map((u, i) => [u, { name: u.toUpperCase(), color: 'cyan', avatar: 'bolt', joinedAt: i }])), game, night: { [game.matchId]: night } });
+  return { code, matchId: game.matchId };
+}
+
+test('a counted match runs THE AWARD ENGINE: the level rewards, the achievements, FOUNDER (the window open by default), the X% counts', async () => {
+  const at = NOW + 10 * DAY;
+  const h = await ensure('g-host', 'Hosty', at), g2 = await ensure('g-two', 'Two', at);
+  const room = await seedRoom('prism', ['g-host', 'g-two'], at);
+  const r = await processReport('g-host', room, at + 1000);
+  assert.equal(r.status, 'counted');
+  const o = r.outcome;
+  assert.ok(o.lv && o.lv.to >= 2, 'a level');
+  for (const id of ['card-gilded', 'glow-ember', 'emb-key', 'card-founder']) assert.ok(o.items.includes(id), id);
+  for (const id of ['first-round', 'house-warming']) assert.ok(o.ach.includes(id), id);
+  assert.equal(o.st.n, 1);
+  const s = await val(`pstats/${h.pid}`);
+  assert.ok(s.it['card-founder'] && s.ac['house-warming']);
+  assert.equal((await val(`profiles/${h.pid}`)).fd, true);
+  assert.equal((await val(`profiles/${h.pid}`)).l, o.lv.to);
+  // the other player: no HOUSE WARMING (not the host)
+  const s2 = await val(`pstats/${g2.pid}`);
+  assert.ok(s2.ac['first-round'] && !s2.ac['house-warming']);
+  // a replay is the stored outcome — nothing granted twice
+  const again = await processReport('g-host', room, at + 5000);
+  assert.equal(again.status, 'done');
+  assert.ok(await val('pcount/i/card-founder') >= 2, 'the owners counted (the daily players above got it too)');
+  // X% OF PLAYERS HAVE THIS — only for what the caller owns
+  const pc = await profileAction('g-two', { action: 'pct' }, '', at + 6000);
+  assert.ok(pc.n >= 2);
+  assert.equal(pc.pct.a['house-warming'], undefined, 'nothing about what you don’t hold');
+  assert.ok(pc.pct.a['first-round'] >= 1 && pc.pct.i['card-founder'] >= 1);
+});
+
+test('WEAR what you own — never what you don’t', async () => {
+  const at = NOW + 10 * DAY;
+  const r = await profileAction('g-host', { action: 'style', card: 'card-founder', glow: 'glow-ember' }, '', at);
+  assert.equal(r.profile.cd, 'card-founder'); assert.equal(r.profile.g, 'glow-ember');
+  await rejects(profileAction('g-host', { action: 'style', card: 'card-house' }, '', at), 403, 'locked');
+  await rejects(profileAction('g-host', { action: 'style', card: 'glow-ember' }, '', at), 403, 'locked');   // a glow is not a card
+  assert.equal((await profileAction('g-host', { action: 'style', card: '' }, '', at)).profile.cd, null, 'back to the default GILDED');
+  assert.equal((await profileAction('g-two', { action: 'style', card: 'card-gilded' }, '', at)).profile.cd, 'card-gilded', 'the GILDED is everyone’s');
+});
+
+test('EVENTS: the knock (once), THE WATCHER’s hour on the server’s clock, the REAL weather where the phone is', async () => {
+  const at = NOW + 10 * DAY;
+  const pid = await val('uids/g-host');
+  const k = await progressEvent(pid, 'knock', {}, at);
+  assert.deepEqual(k.ach, ['knock-knock']);
+  assert.deepEqual((await progressEvent(pid, 'knock', {}, at + 1)).ach, [], 'a second knock is nothing');
+  assert.equal((await progressEvent(pid, 'watch', {}, at)).why, 'not_yet');
+  await progressEvent(pid, 'watchStart', {}, at);
+  assert.equal((await progressEvent(pid, 'watch', {}, at + 30 * 60e3)).why, 'not_yet', 'half an hour is not the hour');
+  assert.deepEqual((await progressEvent(pid, 'watch', {}, at + 56 * 60e3)).ach, ['patience-pays']);
+  // the weather: the server's own answer (a fake skyFor) — a storm right after a match
+  const sky = kind => async () => ({ kind });
+  assert.deepEqual((await progressEvent(pid, 'weather', { place: { key: 'x' }, skyFor: sky('storm') }, at + 2000)).ach, ['rainmaker']);
+  assert.equal((await progressEvent(pid, 'weather', { place: { key: 'x' }, skyFor: sky('snow') }, at + 4 * 3600e3)).why, 'no_match', 'no match in the last 3 h');
+  await rejects(profileAction('g-host', { action: 'event', ev: 'sighting' }, '', at), 400, 'bad_event');   // PROGRESSION B's — not from a phone yet
+});
+
+test('THE FOUNDER WINDOW: the owner’s switch (server-checked, audited); a crew member or a stranger can’t; closing sweeps', async () => {
+  const at = NOW + 11 * DAY;
+  const boss = await ensure('g-boss', 'Boss', at), pal = await ensure('g-pal', 'Pal', at);
+  await ref(`radio/crew/${pal.pid}`).set({ at, by: boss.pid });
+  await rejects(adminAction('g-pal', { action: 'radioFounder', open: false }, at), 403, 'not_owner');
+  await rejects(adminAction('g-two', { action: 'radioFounder', open: false }, at), 403, 'not_radio');
+  // a player who played before PROGRESSION A existed (no card yet) — the sweep must catch them
+  const old = await ensure('g-old', 'Oldie', at);
+  await ref(`pstats/${old.pid}`).set({ xp: 300, g: { prism: { p: 2 } } });
+  process.env.ADMIN_PIDS = boss.pid;
+  try {
+    const L = await adminAction('g-boss', { action: 'radioLedger' }, at);
+    assert.equal(L.founder.open, true, 'OPEN by default');
+    const r = await adminAction('g-boss', { action: 'radioFounder', open: false }, at);
+    assert.equal(r.founder.open, false); assert.equal(r.founder.swept, 1);
+    assert.ok((await val(`pstats/${old.pid}/it`))['card-founder'] && (await val(`profiles/${old.pid}`)).fd);
+    const log = Object.values((await val('audit')) || {});
+    assert.ok(log.some(x => x.act === 'founderClose' && x.by === boss.pid));
+    // closed: a new player's first match gets no FOUNDING MEMBER
+    await ensure('g-late', 'Late', at); await ensure('g-late2', 'Late2', at);
+    const room = await seedRoom('prism', ['g-late', 'g-late2'], at + 60e3);
+    const rep = await processReport('g-late', room, at + 61e3);
+    assert.ok(!rep.outcome.items.includes('card-founder'));
+    assert.ok(!((await val(`pstats/${await val('uids/g-late')}/it`)) || {})['card-founder'], 'closed means closed');
+    // reopen (the switch goes both ways until launch)
+    assert.equal((await adminAction('g-boss', { action: 'radioFounder', open: true }, at)).founder.open, true);
+  } finally { process.env.ADMIN_PIDS = ''; }
 });

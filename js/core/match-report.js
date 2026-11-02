@@ -3,7 +3,10 @@
 // match (rooms/{code}/game), never on numbers a client sends, so a host can't simply type in a score; the
 // plausibility checks catch impossible values that made it into the room anyway (a hacked client's own node).
 //
-//   extractMatch(game, { pulseCounts }) → { gid, n, mode, rows: { uid: { rank, win, c: {counter: +n}, rec: {board: value} } }, rejected: [...] }
+//   extractMatch(game, { pulseCounts }) → { gid, n, mode, rows: { uid: { rank, win, c: {counter: +n}, rec: {board: value}, f?: {flag: 1} } }, rejected: [...] }
+// f = THE GAME'S ACHIEVEMENT FLAGS (PROGRESSION A — the contract each game's rework plugs into, core/achievements.js#GAME_ACHIEVEMENTS):
+// what this match proved for this player that only the game can tell (PRISM DROP: quad = a 4-line clear; OVERCLOCK: exact = a Closest
+// Call dead on, comeback = last at the halfway point, then the win). Read from the room's own copy, like everything here.
 import { standings as cipherStandings, MAX_GUESSES } from '../games/cipher/logic.js';
 import { rankings as signalRankings } from '../games/signal/logic.js';
 import { standings as ocStandings, MODES as OC_MODES } from '../games/overclock/logic.js';
@@ -88,7 +91,16 @@ function signalExtra(game, uid, out) {
   if (el) out.c.el = el;
 }
 
-function overclockExtra(game, uid, out, row) {
+function overclockExtra(game, uid, out, row, ctx, win) {
+  // the achievement flags (every mode): DEAD ON + COMEBACK KID
+  const order = game.order || [], res = game.results || {};
+  if (order.some((t, ci) => t === 'closest' && res[ci] && res[ci][uid] && num(res[ci][uid].ok) >= 1)) (out.f ||= {}).exact = 1;
+  const half = Math.floor(num(game.total) / 2), uids = Object.keys(game.participants || {});
+  if (win && half >= 1 && uids.length >= 3 && Object.keys(res).length >= half) {
+    const at = u => { let s = 0; for (let ci = 0; ci < half; ci++) s += num(res[ci] && res[ci][u] && res[ci][u].pts); return s; };
+    const mine = at(uid);
+    if (uids.every(u => u === uid || at(u) > mine)) (out.f ||= {}).comeback = 1;
+  }
   const mode = game.settings && game.settings.mode;
   if (mode !== 'standard' || num(game.total) !== OC_MODES.standard) return;
   let bad = false;
@@ -148,6 +160,7 @@ function agentExtra(game, uid, out) {
 
 function prismExtra(game, uid, out) {
   const r = (game.results || {})[uid] || {};
+  if (r.best === 'quad') (out.f ||= {}).quad = 1;   // FOUR ON THE FLOOR (the match's best clear was four lines at once)
   if (num(r.ko)) out.c.ko = Math.min(num(r.ko), 7);
   if (!game.settings || game.settings.mode !== 'rush') return;
   const sc = num(r.sc), ln = num(r.ln);

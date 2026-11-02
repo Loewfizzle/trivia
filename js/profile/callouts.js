@@ -73,6 +73,8 @@ export function attachCallouts(code, game) {
   function show(o) {
     if (shown || destroyed || !o || o.none) return;
     shown = true;
+    // (PROGRESSION A — RAINMAKER / SNOWED IN: a counted match → the server looks up the REAL weather where this phone is)
+    if (!o.skip) import('./events.js').then(m => m.progressEvent('weather', { again: true })).catch(() => {});
     // wait for the podium's crown (≈ 2.6 s after the podium appears)
     const wait = Math.max(0, 2900 - (performance.now() - t0));
     later(() => play(o), reduced() ? 0 : wait);

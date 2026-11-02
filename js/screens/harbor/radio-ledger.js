@@ -3,6 +3,8 @@
 // spotted (a dash until PROGRESSION 2.0 counts them), the longest streak alive, ERRORS FROM PHONES in red → /admin's list); THIS WEEK as a
 // bar chart (visits · games); THE CREW (CC-B: the hand-picked friends — emblem, name tag, when added, what they last fired · REMOVE (a second tap
 // confirms) · ADD BY NAME TAG; cap 10; no profile = can't be added). The server's radioLedger (the owner only; from /admin's STATS + the server).
+// PROGRESSION A — THE FOUNDER WINDOW: OPEN (the default) → every player with a counted match gets FOUNDING MEMBER, forever; the owner flips
+// it CLOSED on launch day (a second tap confirms; closing first sweeps everyone who already played; audited — api/_lib/founder.js).
 import { h } from '../../ui/dom.js';
 import { avatar } from '../../ui/components.js';
 import { jackDef } from '../../core/harbor-radio.js';
@@ -35,9 +37,32 @@ export function paint({ api, now }) {
           return h('div', { title: `${x.visits} visits · ${x.games} games` }, h('i', { style: { height: `${vh}px` } }), h('i.g', { style: { height: `${Math.max(gh, x.games ? 3 : 0)}px` } }), h('span', DOW[d.getUTCDay()]));
         })),
         h('div.rd-key', h('span', h('i'), 'visits (estimate)'), h('span', h('i.g'), 'games'))),
+      founderPaper(L),
       crewPaper(L),
       pushEl || (pushEl = pushPaper({ api })));
   };
+  // THE FOUNDER WINDOW
+  let fArmed = false, fErr = '';
+  function founderPaper(L) {
+    const F = L.founder || { open: true, holders: 0 };
+    const flip = async () => {
+      if (!fArmed) { fArmed = true; fill(memo.data); setTimeout(() => { if (fArmed) { fArmed = false; if (memo) fill(memo.data); } }, 4000); return; }
+      fArmed = false;
+      try { const r = await api('admin', { action: 'radioFounder', open: !F.open }); memo = memo ? { ...memo, data: { ...memo.data, founder: r.founder } } : memo; fErr = ''; }
+      catch (e) { fErr = (e && e.message) || 'Couldn’t flip the switch.'; }
+      if (memo) fill(memo.data);
+    };
+    return h('section.rd-paper.rd-founder', h('h4', 'FOUNDER WINDOW', h('em', F.open ? 'open · every player gets FOUNDING MEMBER' : 'closed · launched')),
+      h('div.rd-lg', h('span', 'Founding members'), h('b', String(F.holders || 0))),
+      h('button.rd-fsw', { type: 'button', class: `${F.open ? 'is-open' : 'is-closed'}${fArmed ? ' is-armed' : ''}`, 'aria-pressed': String(!!F.open), onclick: flip },
+        h('span.rd-fsw-state', F.open ? 'OPEN' : 'CLOSED'),
+        h('span.rd-fsw-do', fArmed ? (F.open ? 'TAP AGAIN TO CLOSE IT — FOREVER?' : 'TAP AGAIN TO REOPEN') : (F.open ? 'CLOSE ON LAUNCH DAY' : 'REOPEN'))),
+      fErr ? h('p.rd-err', { role: 'alert' }, fErr) : null,
+      h('p.rd-hint', F.open
+        ? 'While it’s open, everyone who plays a counted match gets the FOUNDING MEMBER card — and keeps it. Close it on launch day; closing first gives it to everyone who already played.'
+        : `Closed${F.at ? ` ${new Date(F.at).toLocaleDateString()}` : ''}. Nobody new can get FOUNDING MEMBER; the founders keep it.`));
+  }
+
   // THE CREW: who, since when, what they last fired · REMOVE · ADD BY NAME TAG
   const ago = t => { const d = Math.max(0, now() - t), m = Math.round(d / 60e3); return m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
   let armed = null, addErr = '';

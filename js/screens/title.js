@@ -1339,7 +1339,7 @@ export function createTitle() {
     else if (hit.kind === 'cat') sfx('key');
     // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real
     // way in: enter the hush word), exactly like the JOIN ring. Reduced effects: no flash, the panel still opens.
-    else if (hit.kind === 'door') { knock(); if (!reduced()) scene.knock(); openJoin(true, true); }
+    else if (hit.kind === 'door') { knock(); if (!reduced()) scene.knock(); openJoin(true, true); import('../profile/events.js').then(m => m.progressEvent('knock')).catch(() => {}); }   // (PROGRESSION A: KNOCK KNOCK)
   }
   // a tapped letter: by night it stutters out, stays dark a moment and re-ignites like neon does; by day it sparks to life,
   // glows for a moment and flickers out again. One tap at a time per letter.

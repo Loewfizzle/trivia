@@ -14,6 +14,9 @@ import { val, ref } from './_lib/fb.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
+import { founderOpen } from './_lib/founder.js';
+import { progressEvent } from './_lib/events.js';
+import { placeOf, skyFor } from './sky.js';
 import { weekKey } from '../js/core/week.js';
 
 async function mine(uid) {
@@ -40,21 +43,22 @@ export async function myRanks(pid, boards, now = Date.now()) {
   return out;
 }
 
-export async function profileAction(uid, body, ip = '', now = Date.now()) {
+export async function profileAction(uid, body, ip = '', now = Date.now(), req = null) {
   switch (body.action) {
     case 'ensure': return ensureProfile(uid, { name: body.name, avatar: body.avatar, color: body.color }, now);
     case 'me': {
       const pid = await mine(uid);
       let [profile, stats, priv] = await Promise.all([publicProfile(pid), val(`pstats/${pid}`), privateInfo(pid)]);
       // THE CARRY-OVER (PROGRESSION A): a profile from before levels gets every level reward its XP had earned (once; a transaction)
-      if (stats && carryOver(stats, now)) {
-        let got = [];
-        await ref(`pstats/${pid}`).transaction(cur => { const c = carryOver(cur, now); got = c ? c.items : []; return c ? c.next : undefined; });
-        if (got.length) { await bumpOwners(got).catch(() => {}); stats = await val(`pstats/${pid}`); }
+      const fOpen = await founderOpen(now).catch(() => false);
+      if (stats && carryOver(stats, now, { founderOpen: fOpen })) {
+        let got = null;
+        await ref(`pstats/${pid}`).transaction(cur => { got = carryOver(cur, now, { founderOpen: fOpen }); return got ? got.next : undefined; });
+        if (got) { await bumpOwners(got.items, false, got.ach).catch(() => {}); stats = await val(`pstats/${pid}`); if (stats && stats.fd) await ref(`profiles/${pid}/fd`).set(true); }
       }
       const s = stats || {};
       const wk = weekKey(now);
-      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {} } };
+      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null } };
     }
     case 'ranks': {
       const pid = await mine(uid);
@@ -93,6 +97,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now()) {
       for (const id of Object.keys(ach || {})) out.a[id] = pctOf(oc.a[id], oc.n);
       return { pct: out, n: oc.n };
     }
+    case 'event': return progressEvent(await mine(uid), String(body.ev || ''), { place: req ? placeOf(req) : (body.place || null), skyFor }, now);
     case 'show': { const pid = await mine(uid); await setShown(pid, !!body.on); return { priv: await privateInfo(pid) }; }
     default: throw new ApiError(400, 'bad_action');
   }
@@ -101,5 +106,5 @@ export async function profileAction(uid, body, ip = '', now = Date.now()) {
 export default route(['POST'], async (req, res) => {
   const uid = await requireUser(req);
   const body = await readBody(req);
-  send(res, 200, await profileAction(uid, body, clientIp(req)));
+  send(res, 200, await profileAction(uid, body, clientIp(req), Date.now(), req));
 });

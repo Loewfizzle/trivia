@@ -68,7 +68,7 @@ export async function processReport(uid, body, now = Date.now()) {
   const done = await val(`results/${key}`);
   if (done && done.st === 'done') return { ok: true, status: 'done', outcome: myPid ? (done.o && done.o[myPid]) || null : null };
 
-  const [game, night, players] = await Promise.all([val(`rooms/${code}/game`), val(`rooms/${code}/night/${matchId}`), val(`rooms/${code}/players`)]);
+  const [game, night, players, meta] = await Promise.all([val(`rooms/${code}/game`), val(`rooms/${code}/night/${matchId}`), val(`rooms/${code}/players`), val(`rooms/${code}/meta`)]);
   // the night record is required, with its time (the server's clock): no record, no match; too old (or from the future), no match
   if (!night || typeof night.at !== 'number') throw new ApiError(409, 'unverifiable', 'This match has no record in its room.');
   if (now - night.at > MAX_AGE_MS) throw new ApiError(409, 'too_old');
@@ -109,7 +109,7 @@ export async function processReport(uid, body, now = Date.now()) {
   // (a uid with no profile is never given one here — it isn't counted: each phone makes its own profile when it joins)
   const pids = {};
   await Promise.all(Object.keys(ex.rows).map(async u => { const pid = await pidOf(u); if (pid) pids[u] = pid; }));
-  const outcomes = await applyMatch(key, ex, pids, now);
+  const outcomes = await applyMatch(key, ex, pids, now, { code, meta });
   await bumpPlayed(ex.gid, now).catch(e => console.warn('activity', e && e.message));
   await ref(`results/${key}`).set({ st: 'done', at: now, g: ex.gid, mode: ex.mode || null, n: ex.n, src, by: uid, rej: ex.rejected.length || null, o: outcomes });
   if (ex.rejected.length) console.warn('rejected records', key, JSON.stringify(ex.rejected));

@@ -10,6 +10,7 @@ import { matchXp, weeklyGoal, goalProgress, GOAL_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
 import { weekKey, dayKey } from './week.js';
 import { streakDay, streakPlay } from './streak.js';
+import { noteMatch, noteEvent, awardAll } from './achievements.js';
 
 export const KEEP_KEYS = 60;
 export const DEFAULT_GAP_MS = 45_000;
@@ -25,9 +26,10 @@ export function grant(next, ids, now) {
 
 /**
  * One counted match. s = the stats as they are (or null); { key, gid, row: { rank, win, c, rec }, n, now, gap, outage (streak days the
- * owner marked) } → { skip } | { next, pbs, xp, from, prevStats, wk, lv: { from, to }, streak: { n, ev }, items: [ids new to this player] }
+ * owner marked), ctx (the achievements' facts the server knows: { hosted, roomKey, party, hourET, holiday, friends, founderOpen }) } →
+ * { skip } | { next, pbs, xp, from, prevStats, wk, lv: { from, to }, streak: { n, ev }, items: [ids new to this player], ach: [ids] }
  */
-export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, outage = null }) {
+export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, outage = null, ctx = {} }) {
   const s = s0 || {};
   if (s.m && s.m[key]) return { skip: 'counted' };
   if (s.last && now - s.last < gap && now >= s.last) return { skip: 'too_soon' };
@@ -69,7 +71,12 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   const items = grant(next, s.it ? rewardsBetween(lv.from, lv.to) : rewardsUpTo(lv.to), now);
   const streak = playDay(next, now, outage);
   items.push(...streak.items);
-  return { next, pbs, xp, from, prevStats: s, wk, lv, items, streak: { n: next.st.n, ev: streak.ev } };
+  // THE ACHIEVEMENTS: the match into the counters, then the award engine (+ FOUNDER while the window is open)
+  next.pa = noteMatch(s.pa, { gid, rank: row.rank, win: row.win, n, night: next.st.d, flags: row.f, hosted: !!ctx.hosted, roomKey: ctx.roomKey || null,
+    party: !!ctx.party, hourET: ctx.hourET ?? 20, holiday: ctx.holiday || null, friends: ctx.friends || [] });
+  const aw = awardAll(next, now, { founderOpen: !!ctx.founderOpen });
+  items.push(...aw.items);
+  return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev } };
 }
 
 /** THE STREAK's day for a play (a match / a daily): the run, its milestones' items (+ a FAVOR token) — into next. */
@@ -82,14 +89,30 @@ export function playDay(next, now, outage) {
   return { ev, items };
 }
 
-/** The carry-over outside a match (the `me` call): the rewards an XP total has earned and `it` lacks → { next, items } | null. */
-export function carryOver(s0, now) {
+/**
+ * THE CARRY-OVER outside a match (the `me` call): the level rewards an XP total has earned, the achievements its stats already prove
+ * (wins, the streak …), FOUNDER while the window is open — whatever `it` / `ac` lack → { next, items, ach } | null (nothing new).
+ */
+export function carryOver(s0, now, { founderOpen = false } = {}) {
   const s = s0 || {};
-  const want = rewardsUpTo(levelOf(s.xp || 0));
-  if (s.it && want.every(id => s.it[id])) return null;
   const next = { ...s };
-  const items = grant(next, want, now);
-  return items.length ? { next, items } : null;
+  const items = grant(next, rewardsUpTo(levelOf(s.xp || 0)), now);
+  const aw = awardAll(next, now, { founderOpen });
+  items.push(...aw.items);
+  return items.length || aw.ach.length ? { next, items, ach: aw.ach } : null;
+}
+
+/**
+ * An event outside a match (THE KNOCK, THE WATCHER's hour, the real weather, a SIGHTING, a birthday): the counters + the award engine.
+ * → { next, items, ach } | null (nothing new — a second knock is a no-op).
+ */
+export function eventStep(s0, ev, now, { founderOpen = false } = {}) {
+  const s = s0 || {};
+  const pa = noteEvent(s.pa, ev);
+  if (!pa) return null;
+  const next = { ...s, pa };
+  const aw = awardAll(next, now, { founderOpen });
+  return { next, items: aw.items, ach: aw.ach };
 }
 
 /**
@@ -98,7 +121,7 @@ export function carryOver(s0, now) {
  * { skip } | { next, items, streak: { n, ev }, dl }
  *   dl = { n (different days with a daily), last (day), day: { k, g: { game: 1 } }, early (dailies before 8 am), ph (PENTHOUSE finishes) }
  */
-export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, outage = null }) {
+export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, outage = null, founderOpen = false }) {
   const s = s0 || {};
   const key = `daily_${game}_${day}`;
   if (s.m && s.m[key]) return { skip: 'counted' };
@@ -111,5 +134,6 @@ export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, o
   if (n >= 50 && top <= 1) dl.ph += 1;
   next.dl = dl;
   const streak = playDay(next, now, outage);
-  return { next, items: streak.items, streak: { n: next.st.n, ev: streak.ev }, dl };
+  const aw = awardAll(next, now, { founderOpen });
+  return { next, items: [...streak.items, ...aw.items], ach: aw.ach, streak: { n: next.st.n, ev: streak.ev }, dl };
 }

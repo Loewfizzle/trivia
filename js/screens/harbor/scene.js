@@ -1116,6 +1116,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         const r = watcherStep(st0, Date.now() / 1000, document.visibilityState === 'visible', day);
         localStorage.setItem(key, JSON.stringify(r.state));
         if (r.fire) bbWatchPend = 1;
+        // (PROGRESSION A — PATIENCE PAYS: the server starts its own clock when the city is first seen, and checks its hour when this fires)
+        if (document.visibilityState === 'visible' || r.fire) import('../../profile/events.js').then(m => m.progressEvent(r.fire ? 'watch' : 'watchStart')).catch(() => {});
       } catch { /* private mode: no reward */ }
     }
     if (bbWatchPend && !bb.on() && !(legends && legends.active())) { const hy = bbStrip(); if (bb.start('watcher', nowMs + (BB.tell + 1.5) * 1000, Math.random() < 0.5 ? 1 : -1, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot })) bbWatchPend = 0; }

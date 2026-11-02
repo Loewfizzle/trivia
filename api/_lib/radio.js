@@ -29,6 +29,7 @@ import { vapid, sendPush, okEndpoint } from './push.js';
 import { createHash } from 'node:crypto';
 import { SHOWCASE_LEVELS } from '../../js/core/harbor-showcase.js';
 import { cleanIntercom, icPublic, icLen, canUnsend, IC_WHY } from '../../js/core/radio-intercom.js';
+import { setFounder, founderState } from './founder.js';
 import { dayKey } from '../../js/core/week.js';
 
 const HERE_MS = 180e3;
@@ -226,6 +227,7 @@ async function ledger(me, role, now, o) {
     week: days.map(d => ({ d, visits: Object.keys(V[d] || {}).length, games: daily[d] || 0 })),
     estimate: true, since: dayStart,
     crew: await crewList(), crewCap: knob('radio').crew.cap,
+    founder: await founderState().catch(() => null),
   };
 }
 
@@ -284,6 +286,14 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
     case 'radioDial': return dial(me, role, body);
     case 'radioRooms': need(role === 'owner', 'not_owner'); return { rooms: await openRooms(now) };
     case 'radioLedger': return ledger(me, role, now, o);
+    // PROGRESSION A — THE FOUNDER WINDOW (the owner only; closing sweeps every player who already played first; audited)
+    case 'radioFounder': {
+      need(role === 'owner', 'not_owner');
+      const open = body.open !== false;
+      const r = await setFounder(me, open, now);
+      await audit(me, open ? 'founderOpen' : 'founderClose', { b: open ? 'FOUNDER WINDOW: OPEN' : `FOUNDER WINDOW: CLOSED · ${r.holders} founders (${r.swept} swept now)` });
+      return { founder: r };
+    }
     case 'radioIntercom': return intercom(me, role, body, now);
     case 'radioPreset': return preset(me, role, uid, body, now);
     case 'radioPresetFire': return presetFire(me, role, uid, body, now);

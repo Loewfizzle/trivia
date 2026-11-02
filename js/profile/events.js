@@ -1,0 +1,20 @@
+// THE ACHIEVEMENTS' EVENTS from this phone (PROGRESSION A — api/_lib/events.js decides what each is worth; a repeat is a no-op there).
+// Fire-and-forget polish: nothing waits on it, nothing breaks without /api, each event at most once a page load (the server's own
+// guards do the rest). Only with a profile on this device (a stranger's first visit has nothing to earn yet).
+//   knock       the speakeasy's door was knocked (title.js)
+//   watchStart  the harbor came into view (THE WATCHER's hour starts on the SERVER's clock)
+//   watch       THE WATCHER's reward fired on this device (scene.js) — the server checks its own hour
+//   weather     a match just ended (the podium) — the server looks up the REAL weather where the phone is
+import { api } from './api.js';
+import { myPid } from './me.js';
+
+const sent = new Set();
+let onAward = null;
+/** The screens that want to know what an event earned (the end-of-round moment's achievement card, a toast). */
+export const onEventAward = fn => { onAward = fn; };
+
+export function progressEvent(ev, { again = false } = {}) {
+  if ((!again && sent.has(ev)) || !myPid()) return;
+  sent.add(ev);
+  api('profile', { action: 'event', ev }).then(r => { if (r && (r.ach && r.ach.length || r.items && r.items.length) && onAward) onAward(ev, r); }).catch(() => {});
+}

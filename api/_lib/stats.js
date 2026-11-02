@@ -6,11 +6,26 @@ import { boardPaths, rankOf, clearBoardCache, matchCount, minMatches, syncBoards
 import { boardDef, toSort } from '../../js/core/boards.js';
 import { matchStep } from '../../js/core/progress.js';
 import { levelOf, emblemRank } from '../../js/core/levels.js';
+import { founderOpen } from './founder.js';
+import { easternParts } from '../../js/core/week.js';
+import { holidayOf } from '../../js/core/sky.js';
+import { inPartyWindow } from '../../js/core/party.js';
 import { bumpOwners } from './owners.js';
 
 // one match per player per this long — a real match takes minutes; this stops a forged room from farming wins
 export const MIN_MATCH_GAP_MS = Number(process.env.MATCH_GAP_MS ?? 45_000);
-const step = (stats, key, gid, row, n, now, outage) => matchStep(stats, { key, gid, row, n, now, gap: MIN_MATCH_GAP_MS, outage });
+const step = (stats, key, gid, row, n, now, outage, ctx) => matchStep(stats, { key, gid, row, n, now, gap: MIN_MATCH_GAP_MS, outage, ctx });
+
+/** The facts the achievements need that only the server knows (the room's meta, the clock, the other players). */
+function factsFor(uid, ex, pids, now, room) {
+  const E = easternParts(now), meta = (room && room.meta) || {};
+  const hol = holidayOf(E.y, E.m, E.d);
+  return {
+    hosted: !!meta.hostId && meta.hostId === uid, roomKey: room && room.code ? `${room.code}_${meta.createdAt || 0}` : null,
+    party: inPartyWindow(E), hourET: E.h, holiday: hol && hol.full ? hol.id : null,
+    friends: Object.keys(ex.rows).filter(u => u !== uid && pids[u]).map(u => pids[u]),
+  };
+}
 
 /** THE OUTAGE days the owner marked in /admin (streak/outage/{day}) — small; read once per report. */
 export const outageDays = async () => (await val('streak/outage')) || {};
@@ -19,15 +34,16 @@ export const outageDays = async () => (await val('streak/outage')) || {};
  * ex: core/match-report.js#extractMatch output; pids: { uid: pid }.
  * → { pid: outcome } where outcome = { gid, rank, win, xp{gain, parts, from, to}, rk{from, to}, pbs[], ranks[], skip? }
  */
-export async function applyMatch(key, ex, pids, now = Date.now()) {
+export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
   const outcomes = {};
   const outage = await outageDays().catch(() => ({}));
+  const fOpen = await founderOpen(now).catch(() => false);
   await Promise.all(Object.entries(ex.rows).map(async ([uid, row]) => {
     const pid = pids[uid];
     if (!pid) return;
     let res = null;
     const tx = await ref(`pstats/${pid}`).transaction(cur => {
-      res = step(cur, key, ex.gid, row, ex.n, now, outage);
+      res = step(cur, key, ex.gid, row, ex.n, now, outage, { ...factsFor(uid, ex, pids, now, room), founderOpen: fOpen });
       return res.skip ? undefined : res.next;
     });
     if (!tx.committed || !res || res.skip) {
@@ -54,7 +70,8 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
     const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/sd`]: (stats.st && stats.st.d) || null, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }) };
     await ref('/').update(patch);
     // "X% OF PLAYERS HAVE THIS": the owners' counts (best effort — a count is display only)
-    await bumpOwners(res.items, !matchCount(res.prevStats)).catch(e => console.warn('owners', e && e.message));
+    await bumpOwners(res.items, !matchCount(res.prevStats), res.ach).catch(e => console.warn('owners', e && e.message));
+    if (stats.fd) await ref(`profiles/${pid}/fd`).set(true);
     // the match that crosses the floor puts every game's boards up at once (the earlier matches were held back)
     if (listed && played === minMatches()) await syncBoards(pid, { now });
     const ranks = [];
@@ -70,7 +87,7 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
     outcomes[pid] = {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n,
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
-      rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,
+      rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, ach: res.ach, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,
     };
   }));
   clearBoardCache();

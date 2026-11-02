@@ -15,6 +15,7 @@ import { dailyOf, bucketOf, standing, todayView, dailyIds } from '../js/core/dai
 import { streakDay } from '../js/core/streak.js';
 import { dailyStep } from '../js/core/progress.js';
 import { easternParts } from '../js/core/week.js';
+import { founderOpen } from './_lib/founder.js';
 import { isPid } from './_lib/profiles.js';
 
 async function mine(uid) {
@@ -52,15 +53,17 @@ export async function dailyAction(uid, body, now = Date.now()) {
       const stand = standing(cart, hist || {}, n || 1, kept);
       // the player's stats: THE STREAK + the dailies' counters (idempotent by the day's key)
       const outage = await outageDays().catch(() => ({}));
+      const fOpen = await founderOpen(now).catch(() => false);
       let res = null;
-      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(now).h, outage }); return res.skip ? undefined : res.next; });
+      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(now).h, outage, founderOpen: fOpen }); return res.skip ? undefined : res.next; });
       if (res && !res.skip) {
         const st = res.next.st;
         await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d });
-        await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1).catch(() => {});
+        await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1, res.ach).catch(() => {});
+        if (res.next.fd) await ref(`profiles/${pid}/fd`).set(true);
       }
       return { day, score: kept, again: !claim.committed, stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
-        outcome: res && !res.skip ? { streak: res.streak, items: res.items } : null };
+        outcome: res && !res.skip ? { streak: res.streak, items: res.items, ach: res.ach } : null };
     }
     case 'today': {
       const pid = await mine(uid);
