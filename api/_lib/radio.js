@@ -13,13 +13,14 @@
 //   rooms/{CODE}/radio/{id}  a room's moments (its phones listen on the room's socket — ~1–2 s)
 //   city2/showcase        the TUNING WINDOW's level (every phone reads it through GET /api/admin?live=1, with the city's moments)
 //   here/{uid}            THE NIXIE's count: a visible title says hello every ~2 min (an ESTIMATE until Vercel Analytics)
+//   radio/presets/{id}    CC-B — PRESETS (the owner's saved combos: { name, steps: [{ kind: 'fire' | 'board', body }], at }) — one jack each
 //   radio/ic/{id}         CC-B — THE INTERCOM's announcements (who, the audience, wait, the headline, the clip's length + type, at / until,
 //                         state); radio/clips/{id} the clip itself (base64 — served by GET /api/admin?clip=<id>, cached a minute); both
 //                         pruned after `keep` s (an hour); a lobby's copy at rooms/{CODE}/radio/{id} (kind 'intercom')
 import { ApiError } from './http.js';
 import { ref, val, adminPids, emulated } from './fb.js';
 import { knob } from '../../js/core/harbor-schedule.js';
-import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag } from '../../js/core/harbor-radio.js';
+import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag, cleanWords } from '../../js/core/harbor-radio.js';
 import { nameKey } from '../../js/core/names.js';
 import { encodeKey, pidOf, isPid } from './profiles.js';
 import { SHOWCASE_LEVELS } from '../../js/core/harbor-showcase.js';
@@ -237,7 +238,7 @@ async function state(me, role, uid, body, now) {
   if (role === 'owner') {
     const [b, sc, rooms, here, ics] = await Promise.all([boardList(now), val('city2/showcase'), openRooms(now), cityCount(now), icList(now)]);
     Object.assign(out, { board: b, showcase: SHOWCASE_LEVELS.includes(sc) ? sc : knob('showcase').level, rooms, here,
-      intercom: ics.filter(m => m.by === me).map(m => ({ ...icPublic(m.id, m), unsend: canUnsend(m, now) })) });
+      intercom: ics.filter(m => m.by === me).map(m => ({ ...icPublic(m.id, m), unsend: canUnsend(m, now) })), presets: await presetList() });
   } else if (room) {
     out.limits = (await val(`radio/limits/${room}/${nightKey(now, knob('radio').home.tz)}`)) || {};
     // CC-B — ONE RADIO PER LOBBY: who holds it here (+ an ask / a refusal for this phone)
@@ -278,6 +279,8 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
     case 'radioRooms': need(role === 'owner', 'not_owner'); return { rooms: await openRooms(now) };
     case 'radioLedger': return ledger(me, role, now, o);
     case 'radioIntercom': return intercom(me, role, body, now);
+    case 'radioPreset': return preset(me, role, uid, body, now);
+    case 'radioPresetFire': return presetFire(me, role, uid, body, now);
     case 'radioUnsend': return unsend(me, role, body, now);
     default: throw new ApiError(400, 'bad_action');
   }
@@ -413,4 +416,53 @@ async function crewHand(me, role, uid, body, now) {
   await ref(`rooms/${room}/radioCrew`).update(give ? { hand: { uid: R.ask.uid, host: R.meta.hostId, at: now, from: uid }, ask: null, nope: null } : { ask: null, nope: { uid: R.ask.uid, at: now } });
   await audit(me, give ? 'radioHandOver' : 'radioKeep', { b: `${room} → ${R.ask.name}` });
   return { ok: true, give };
+}
+
+// ------------------------------------------------------------------ CITY CONTROLS B — PRESETS (the owner's saved combos — built, tucked away)
+const PRESET_MAX = 12, STEP_MAX = 6;
+/** a saved step, re-checked with the same rules as a live fire → the clean body | null */
+function cleanStep(st) {
+  if (!st || typeof st !== 'object') return null;
+  if (st.kind === 'board') { const { msg, bad } = cleanBoard(st.body || {}); return bad ? null : { kind: 'board', body: { lines: msg.lines, local: msg.local, repeat: msg.repeat } }; }
+  if (st.kind === 'fire') { const { req, bad } = cleanFire(st.body || {}); if (bad) return null; const { jack, aud, room, text, colour, show, dance, local } = req; return { kind: 'fire', body: { jack, aud, room, text, colour, show, dance, local } }; }
+  return null;
+}
+async function presetList() {
+  const all = (await val('radio/presets')) || {};
+  return Object.entries(all).filter(([, x]) => x && Array.isArray(x.steps)).map(([id, x]) => ({ id, name: x.name, steps: x.steps, at: x.at || 0 })).sort((a, b) => a.at - b.at);
+}
+/** SAVE / ADD A STEP / DELETE A STEP / RENAME / DELETE: { op: 'add' (id? | name), step } · { op: 'drop', id, i } · { op: 'name', id, name } · { op: 'delete', id } */
+async function preset(me, role, uid, body, now) {
+  need(role === 'owner', 'not_owner', 'Presets are the owner’s.');
+  const op = String(body.op || ''), all = (await val('radio/presets')) || {};
+  const cleanName = n => { const w = cleanWords(n, { max: 16 }); if (w.bad) throw new ApiError(400, `words_${w.bad}`, WORDS_WHY[w.bad]); return w.text; };
+  const idOk = id => { if (!/^[-_A-Za-z0-9]{10,40}$/.test(String(id || '')) || !all[id]) throw new ApiError(404, 'no_preset'); return String(id); };
+  if (op === 'add') {
+    const step = cleanStep(body.step); if (!step) throw new ApiError(400, 'bad_step', 'That card isn’t set up right.');
+    let id = body.id ? idOk(body.id) : null;
+    if (!id) { if (Object.keys(all).length >= PRESET_MAX) throw new ApiError(429, 'presets_full', `${PRESET_MAX} presets — delete one first.`); id = ref('radio/presets').push().key; await ref(`radio/presets/${id}`).set({ name: cleanName(body.name || 'PRESET'), steps: [step], at: now }); }
+    else { const steps = all[id].steps || []; if (steps.length >= STEP_MAX) throw new ApiError(429, 'steps_full', `${STEP_MAX} steps a preset.`); await ref(`radio/presets/${id}/steps`).set([...steps, step]); }
+    await audit(me, 'radioPreset', { b: `add ${step.kind} ${step.body.jack || 'billboard'} → ${id}` });
+  } else if (op === 'drop') { const id = idOk(body.id), steps = (all[id].steps || []).filter((_, i) => i !== Number(body.i)); if (steps.length) await ref(`radio/presets/${id}/steps`).set(steps); else await ref(`radio/presets/${id}`).remove(); await audit(me, 'radioPreset', { b: `drop step ${body.i} of ${id}` }); }
+  else if (op === 'name') { const id = idOk(body.id); await ref(`radio/presets/${id}/name`).set(cleanName(body.name)); await audit(me, 'radioPreset', { b: `rename ${id}` }); }
+  else if (op === 'delete') { const id = idOk(body.id); await ref(`radio/presets/${id}`).remove(); await audit(me, 'radioPreset', { b: `delete ${all[id].name}` }); }
+  else throw new ApiError(400, 'bad_op');
+  return { presets: await presetList() };
+}
+/** FIRE A PRESET: each step through the SAME checks as a live fire (one that can't go now is reported, the rest still go) */
+async function presetFire(me, role, uid, body, now) {
+  need(role === 'owner', 'not_owner');
+  const id = String(body.id || ''), p = /^[-_A-Za-z0-9]{10,40}$/.test(id) ? await val(`radio/presets/${id}`) : null;
+  if (!p) throw new ApiError(404, 'no_preset');
+  const results = [];
+  for (const st of p.steps || []) {
+    const c = cleanStep(st);
+    try {
+      if (!c) throw new ApiError(400, 'bad_step');
+      if (c.kind === 'board') { const r = await board(me, role, c.body, now, 'add'); results.push({ ok: true, kind: 'board', id: r.message.id }); }
+      else { const r = await fire(me, role, uid, c.body, now); results.push({ ok: true, kind: 'fire', jack: c.body.jack, id: r.moment.id }); }
+    } catch (e) { results.push({ ok: false, kind: c ? c.kind : 'bad', jack: c && c.body.jack, why: e.message || e.code }); }
+  }
+  await audit(me, 'radioPresetFire', { b: `${p.name}: ${results.map(r => `${r.jack || r.kind}${r.ok ? '' : ' ✗'}`).join(', ')}`.slice(0, 140) });
+  return { results };
 }

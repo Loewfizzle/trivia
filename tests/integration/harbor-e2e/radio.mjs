@@ -179,6 +179,36 @@ G('radio', async () => {
     const t1 = await ev(O.page, '(window.__district.tiering() || {}).tier'), dts = (await ev(O.page, 'window.__district.frames()')) || [], last = dts.slice(-60);
     const fps = last.length ? Math.round(1000 / (last.reduce((a, b) => a + b, 0) / last.length)) : 0;
     okT((t1 == null || t0 == null || t1 >= t0) && fps >= 24, `RADIO: the city behind keeps drawing under the open radio (tier ${t0} → ${t1}, ~${fps} fps)`); }
+  // ---- CC-B — PRESETS: + SAVE AS PRESET on two cards (the billboard, a skywrite — AT A TIME hours away) → one preset jack in its own row →
+  // its card (2 steps) → FIRE THE PRESET (both through the server's checks) → DELETE (a second tap)
+  { await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'DESK').click()`); await sleep(400);
+    const hAway = (new Date().getHours() + 7) % 24, hh = String(hAway).padStart(2, '0');
+    const setAt = async () => { await ev(O.page, `[...document.querySelectorAll('.rd-cardwrap .rd-seg button')].find(b => b.textContent === 'AT A TIME').click()`); await sleep(200); await ev(O.page, `(() => { const t = document.querySelector('.rd-cardwrap .rd-time'); t.value = '${hh}:15'; t.dispatchEvent(new Event('change', { bubbles: true })); })()`); };
+    await tapJack(O.page, 'billboard'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-line")', 'the billboard card', 5000);
+    const L = await O.page.$$('.rd-line'); await L[0].type('PRESET'); await L[1].type('NIGHT'); await setAt();
+    await ev(O.page, `document.querySelector('.rd-cardwrap .rd-savepre').click()`); await sleep(200);
+    await O.page.type('.rd-saveto .rd-inp', 'E2E NIGHT');
+    await ev(O.page, `[...document.querySelectorAll('.rd-saveto .rd-done')].find(b => b.textContent === 'NEW').click()`);
+    await waitFor(O.page, `window.__radio && (window.__radio.debug().card === 'jack')`, 'the card stays', 3000).catch(() => {});
+    await sleep(800); await O.page.keyboard.press('Escape'); await sleep(300);
+    await tapJack(O.page, 'skywrite'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-inp")', 'the skywrite card', 5000);
+    await O.page.type('.rd-cardwrap .rd-inp', 'PRESET HELLO'); await setAt();
+    await ev(O.page, `document.querySelector('.rd-cardwrap .rd-savepre').click()`); await sleep(200);
+    await ev(O.page, `[...document.querySelectorAll('.rd-saveto .rd-room')].find(b => /E2E NIGHT/.test(b.textContent)).click()`); await sleep(900);
+    await O.page.keyboard.press('Escape'); await sleep(300);
+    await ev(O.page, 'window.__radio.refresh()'); await sleep(500);
+    const st = await call(O.page, { action: 'radioState' }), pr = st.ok && (st.r.presets || []).find(x => x.name === 'E2E NIGHT');
+    const jackEl = await ev(O.page, `!!document.querySelector('.rd-presets .rd-jack.is-preset')`);
+    ok(pr && pr.steps.length === 2 && pr.steps[0].kind === 'board' && pr.steps[1].body.jack === 'skywrite' && jackEl, `RADIO (CC-B): PRESETS — two cards saved as one preset (${pr && pr.steps.map(x => x.kind).join(' + ')}) → its jack in its own row`);
+    await ev(O.page, `document.querySelector('.rd-presets .rd-jack.is-preset').click()`); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-precard")', 'the preset card', 5000);
+    const steps = await ev(O.page, `document.querySelectorAll('.rd-precard .rd-step').length`);
+    await ev(O.page, `[...document.querySelectorAll('.rd-precard .rd-fire')].find(b => /FIRE THE PRESET/.test(b.textContent)).click()`);
+    await waitFor(O.page, `document.querySelectorAll('.rd-precard p').length >= 2 && [...document.querySelectorAll('.rd-precard p')].some(p => /✓/.test(p.textContent))`, 'the results', 8000).catch(() => {});
+    const res = await ev(O.page, `[...document.querySelectorAll('.rd-precard p')].map(p => p.textContent).filter(t => /[✓✗]/.test(t))`);
+    await ev(O.page, `[...document.querySelectorAll('.rd-precard .rd-cancel')].find(b => /DELETE/.test(b.textContent)).click()`); await sleep(150);
+    await ev(O.page, `[...document.querySelectorAll('.rd-precard .rd-cancel')].find(b => /SURE/.test(b.textContent)).click()`); await sleep(1000);
+    const after = await call(O.page, { action: 'radioState' });
+    ok(steps === 2 && res.length === 2 && res.every(t => /✓/.test(t)) && !(after.r.presets || []).some(x => x.name === 'E2E NIGHT'), `RADIO (CC-B): the preset's card (${steps} steps) → FIRE THE PRESET (${res.join(' | ')}) → DELETE (a second tap)`); }
   // ---- CLEAR ALL under the cover: the cover first, then the button
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'DESK').click()`); await sleep(400);
   await ev(O.page, `document.querySelector('.rd-cover').click()`); await sleep(400);
@@ -187,7 +217,7 @@ G('radio', async () => {
   { const st = await call(O.page, { action: 'radioState' }); ok(st.ok && !st.r.board.length && !st.r.moments.some(m => m.mine && (m.state === 'q' || m.state === 'run')), 'RADIO: CLEAR ALL stopped his moments + emptied the billboard queue'); }
   // the audit log: every action
   { const all = (await get('audit')) || {}, acts = new Set(Object.values(all).filter(l => l && l.by === pid).map(l => l.act));
-    ok(['radioFire', 'radioStop', 'radioBoard', 'radioClearAll', 'radioIntercom', 'radioUnsend'].every(x => acts.has(x)), `RADIO: the audit log has every action (${[...acts].join(' ')})`); }
+    ok(['radioFire', 'radioStop', 'radioBoard', 'radioClearAll', 'radioIntercom', 'radioUnsend', 'radioPreset', 'radioPresetFire'].every(x => acts.has(x)), `RADIO: the audit log has every action (${[...acts].join(' ')})`); }
   await dbPut(`testAdmins/${pid}`, null); await dbPut(`rooms/${ROOM}`, null);
   await O.ctx.close();
   log('radio', 'done');

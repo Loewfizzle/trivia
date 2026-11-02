@@ -17,6 +17,9 @@
 //   member who doesn't hold it sees the button DIMMED with a brass LOCK → THE RADIO'S WITH <NAME> TONIGHT + ASK FOR THE RADIO; the holder gets
 //   "<NAME> WANTS THE RADIO · HAND IT OVER / KEEP IT"; when it passes to you: THE RADIO'S YOURS. THE OWNER: a tap on a player in a lobby opens
 //   their card with the brass CREW switch.
+// CC-B — PRESETS (the owner's, tucked away): a small "+ SAVE AS PRESET" under a patch card's FIRE adds that card's set-up as a STEP to a new
+//   or an existing preset; each preset = ONE jack in its own last row (a small brass plate) → its card: the steps (✕ each), the name, FIRE
+//   (every step through the server's own checks — one that can't go now is said, the rest still go), DELETE (a second tap).
 // Every action goes to the SERVER (/api/admin radio…), which checks the role + the rules + writes it; this page only draws. Audio is
 // polish (radio-sound.js): the desk works silently. 60 fps: the needle, the knobs, the lamps, the plug, the card — transform + opacity.
 import { h } from '../../ui/dom.js';
@@ -197,9 +200,12 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       cell.addEventListener('click', () => { if (!arrange) tapJack(j, cell); });
       return cell;
     }));
+    const P = isOwner && st && st.presets || [];
+    const presetRow = P.length ? h('div.rd-prow', h('span.rd-plate.rd-pplate', 'PRESETS'), h('div.rd-jacks.rd-presets', ...P.map(p => h('button.rd-jack.is-preset', { type: 'button', dataset: { preset: p.id }, 'aria-label': `Preset ${p.name} — ${p.steps.length} steps`, onclick: () => { sfx.play('jackIn'); card = { kind: 'preset', id: p.id, err: '', armed: false }; render(); } },
+      h('i.rd-lamp'), h('i.rd-hole', h('i.rd-plug')), h('span.rd-jl', p.name))))) : null;
     return h('section.rd-face.rd-moments',
       h('div.rd-fh', plate('THE MOMENTS'), h('button.rd-done', { type: 'button', class: arrange ? 'is-on' : '', 'aria-pressed': String(arrange), onclick: () => { arrange = !arrange; sfx.play('tick'); render(); } }, arrange ? 'DONE' : 'ARRANGE')),
-      grid, arrange ? h('p.rd-hint', 'Drag a jack to its place — saved on this phone.') : null);
+      grid, presetRow, arrange ? h('p.rd-hint', 'Drag a jack to its place — saved on this phone.') : null);
   }
   // ARRANGE → DRAG (pointer events; the cell under the finger takes its place; saved per owner on this device)
   function dragStart(e, id, cell) {
@@ -377,7 +383,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       parts.push(sec(['THE WORDS', cnt], inp),
         sec([j.id === 'skywrite' ? 'THE COLOUR' : 'THE BANNER', j.id === 'skywrite' ? h('em', 'the smoke by day · the drones after dark') : null],
           j.id === 'skywrite' ? h('div.rd-sw', ...RD.COLOURS.map(col => h('button', { type: 'button', class: col === c.colour ? 'is-on' : '', style: { '--c': col === 'rainbow' ? 'conic-gradient(#ff2e97,#ffd25a,#7dff6a,#2ee6ff,#b36bff,#ff2e97)' : `#${col}` }, 'aria-label': col === 'rainbow' ? 'rainbow' : `#${col}`, 'aria-pressed': String(col === c.colour), onclick: () => { c.colour = col; sfx.play('tick'); render(); } }))) : null),
-        h('div.rd-prev', { class: `is-${j.id}` }, pv, h('small', 'PREVIEW')));
+        h('div.rd-prev', { class: `is-${j.id}${c.colour === 'rainbow' ? ' is-rainbow' : ''}`, style: j.id === 'skywrite' && c.colour !== 'rainbow' ? { '--smoke': `#${c.colour || 'ffffff'}` } : null }, pv, h('small', 'PREVIEW')));   // (CC-B: the preview in the smoke colour picked)
     }
     if (j.card === 'fireworks') parts.push(sec(['THE SHOW'], seg([['short', 'SHORT · ~90 S'], ['full', 'FULL · ~5 MIN']], c.show, v => { c.show = v; })));
     if (j.card === 'dance') parts.push(sec(['THE DANCE'], seg(RD.DANCES.map(d => [d, d.toUpperCase()]), c.dance, v => { c.dance = v; })));
@@ -398,7 +404,49 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const fire = h('button.rd-fire', { type: 'button', disabled: !!c.sending, onclick: () => fireIt() }, j.card === 'billboard' ? 'POST' : 'FIRE');
     return h('div.rd-card', { role: 'dialog', 'aria-label': `${j.label} — the patch card` }, h('i.rd-grab'),
       h('h3', h('i.rd-lamp'), j.label, closeX('Unplug — close the card')),
-      ...parts, fire, h('p.rd-who2', j.card === 'billboard' ? 'The speakeasy’s billboard · everyone on the city' : audLine()));
+      ...parts, fire, h('p.rd-who2', j.card === 'billboard' ? 'The speakeasy’s billboard · everyone on the city' : audLine()),
+      isOwner && !c.editId ? saveBlock(c) : null);
+  }
+  // ---- PRESETS: this card's set-up as a step
+  function stepOf(c) {
+    const j = c.jack, [hh, mi] = String(c.time || '20:00').split(':').map(Number), local = c.when !== 'now' ? { h: hh, mi } : null;
+    if (j.card === 'billboard') return { kind: 'board', body: { lines: c.lines, local, repeat: c.when === 'repeat' ? { dows: c.dows } : null } };
+    return { kind: 'fire', body: { jack: j.id, aud, room: aud === 'room' ? room : null, text: c.text, colour: c.colour, show: c.show, dance: c.dance, local } };
+  }
+  const stepLine = st => {
+    const b = st.body || {}, at = b.local ? ` · at ${String(b.local.h).padStart(2, '0')}:${String(b.local.mi).padStart(2, '0')}` : ' · now', rep = b.repeat ? ` · every ${b.repeat.dows.map(d => DOW[d].slice(0, 2)).join(' ')}` : '';
+    if (st.kind === 'board') return `BILLBOARD “${(b.lines || []).filter(Boolean).join(' / ')}”${at}${rep}`;
+    const jd = RD.jackDef(b.jack);
+    return `${jd ? jd.label : b.jack}${b.text ? ` “${b.text}”` : ''}${b.show ? ` (${b.show})` : ''} → ${b.aud === 'room' ? `LOBBY ONLY ${b.room || ''}` : RD.AUD_LABEL[b.aud] || ''}${at}`;
+  };
+  function saveBlock(c) {
+    if (!c.save) return h('button.rd-savepre', { type: 'button', onclick: () => { sfx.play('tick'); c.save = true; render(); } }, '+ SAVE AS PRESET');
+    const P = (st && st.presets) || [], add = async (id, name) => {
+      try { const r = await act({ action: 'radioPreset', op: 'add', id: id || undefined, name: name || undefined, step: stepOf(c) }, 'fire'); st.presets = r.presets; c.save = false; c.saved = id ? (P.find(x => x.id === id) || {}).name : name; c.err = ''; }
+      catch (e) { c.err = e.message; }
+      render();
+    };
+    const inp = h('input.rd-inp', { type: 'text', maxlength: '16', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', placeholder: 'GAME NIGHT', 'aria-label': 'A new preset’s name', value: c.preName || '', oninput: e => { c.preName = e.target.value.toUpperCase().slice(0, 16); e.target.value = c.preName; } });
+    return h('div.rd-sec.rd-saveto', h('div.rd-lb', 'SAVE AS PRESET', h('em', 'this card’s set-up as a step')),
+      ...P.map(p => h('button.rd-room', { type: 'button', onclick: () => add(p.id) }, h('b', p.name), h('span', `add as step ${p.steps.length + 1}`))),
+      h('div.rd-cadd', inp, h('button.rd-done', { type: 'button', onclick: () => add(null, c.preName || 'PRESET') }, 'NEW')),
+      h('button.rd-savepre', { type: 'button', onclick: () => { c.save = false; render(); } }, 'NEVER MIND'));
+  }
+  function presetCard() {
+    const c = card, p = ((st && st.presets) || []).find(x => x.id === c.id);
+    if (!p) return h('div.rd-card', h('h3', h('i.rd-lamp'), 'PRESET', closeX()), h('p.rd-hint', 'That preset is gone.'));
+    const go = body => act({ action: 'radioPreset', ...body }, 'tick').then(r => { st.presets = r.presets; render(); }).catch(e => { c.err = e.message; render(); });
+    const nm = h('input.rd-inp', { type: 'text', maxlength: '16', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', value: p.name, 'aria-label': 'The preset’s name',
+      onchange: e => { const v = e.target.value.toUpperCase().trim(); if (v && v !== p.name) go({ op: 'name', id: p.id, name: v }); } });
+    return h('div.rd-card.rd-precard', { role: 'dialog', 'aria-label': `Preset ${p.name}` }, h('i.rd-grab'),
+      h('h3', h('i.rd-lamp'), p.name, closeX('Close the preset')),
+      h('div.rd-sec', h('div.rd-lb', 'THE NAME'), nm),
+      h('div.rd-sec', h('div.rd-lb', 'THE STEPS', h('em', 'in this order')),
+        ...p.steps.map((st2, i) => h('div.rd-step', h('span', h('b', `${i + 1}`), stepLine(st2)), h('button.rd-stepx', { type: 'button', 'aria-label': `Remove step ${i + 1}`, onclick: () => go({ op: 'drop', id: p.id, i }) }, '✕')))),
+      c.results ? h('div.rd-sec', ...c.results.map(r => h('p', { class: r.ok ? 'rd-hint' : 'rd-err' }, `${r.ok ? '✓' : '✗'} ${r.jack ? (RD.jackDef(r.jack) || { label: r.jack }).label : 'BILLBOARD'}${r.ok ? ' — on its way' : ` — ${r.why}`}`))) : null,
+      c.err ? h('p.rd-err', { role: 'alert' }, c.err) : null,
+      h('button.rd-fire', { type: 'button', disabled: !!c.sending, onclick: async () => { c.sending = true; render(); try { const r = await act({ action: 'radioPresetFire', id: p.id }, 'fire'); c.results = r.results; c.err = ''; } catch (e) { c.err = e.message; } c.sending = false; render(); } }, c.sending ? 'FIRING…' : 'FIRE THE PRESET'),
+      h('button.rd-cancel', { type: 'button', class: c.armed ? 'is-armed' : '', onclick: () => { if (!c.armed) { c.armed = true; render(); return; } card = null; go({ op: 'delete', id: p.id }); } }, c.armed ? 'SURE? DELETE IT' : 'DELETE THE PRESET'));
   }
   async function fireIt() {
     const c = card; if (!c || c.sending) return;
@@ -434,7 +482,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const old = modal && modal.querySelector('.rd-cardwrap'), was = !!(old && old.classList.contains('is-in'));
     if (old) old.remove();
     if (card && modal) {
-      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : card.kind === 'mic' ? (icDesk().card() || h('div')) : card.kind === 'player' ? playerCard() : jackCard());
+      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : card.kind === 'mic' ? (icDesk().card() || h('div')) : card.kind === 'player' ? playerCard() : card.kind === 'preset' ? presetCard() : jackCard());
       modal.append(over); if (!was) requestAnimationFrame(() => requestAnimationFrame(() => over.classList.add('is-in')));
     }
     sheet.scrollTop = keep;
