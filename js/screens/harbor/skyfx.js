@@ -88,13 +88,13 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
   // ---- starting pieces (s: the frame state)
   const startBanner = (s, lines, at, o = {}) => { const p = bannerPanels(lines); if (!p.length) return false; banner.start(p, at, { colour: o.colour, passes: o.passes || 2, dir: o.dir || (Math.floor(at / 1000) % 2 ? -1 : 1) }); return true; };
   // (6b: SKYWRITING IS CUT — every sky text message is skytyped; 'skywrite' stays an alias for old callers + links)
-  function startSmoke(s, kind, text, at) {
+  function startSmoke(s, kind, text, at, colour = null) {
     const t = String(text || '').trim();
     if (!t || !lanes) return false;
     const box = msgBox(s);
     if (!box) return false;
     const wd = s.L.windDir == null ? 250 : s.L.windDir;
-    return smoke.start('skytype', t, box, at, { gust: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1 });
+    return smoke.start('skytype', t, box, at, { gust: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1, colour });
   }
   // 6b — THE MESSAGE BOX: ONE layout for every sky message (skytyping by day, the drone show at night) — the whole open sky, from under
   // the corner buttons down to just above the TALLEST crown across it (its spire + the needle's tube: a margin); the NEON sign + the
@@ -245,7 +245,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       const text = qp && qp.get('text');
       again('banner', banner.on(), at => startBanner(s, text ? text.split('|') : ['FRESH LEMONADE', 'AT THE PIER'], at, { passes: 2 }));
       again('skywrite', smoke.on(), at => startSmoke(s, 'skytype', text || 'HELLO', at));     // (6b: skywriting cut — an old link types it)
-      again('skytype', smoke.on(), at => startSmoke(s, 'skytype', text || 'HAPPY BIRTHDAY JESSICA', at));
+      again('skytype', smoke.on(), at => startSmoke(s, 'skytype', text || 'HAPPY BIRTHDAY JESSICA', at, qp && qp.get('colour') ? qp.get('colour').replace('#', '') : null));   // (CC-B: &colour= — coloured smoke)
       again('helicopter', air.heliOn(), at => air.heli(s, at, Math.floor(at / 1000)));
       again('jets', show.on(), at => show.start('airshow', at));
       again('missing-man', show.on(), at => show.start('missing', at));
@@ -369,7 +369,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     api: {
       banner: (lines, o = {}) => !!last && startBanner(last, lines, o.at || last.now, o),
       skywrite: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now),   // (6b: skywriting cut — typed)
-      skytype: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now),
+      skytype: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now, o.colour || null),   // (CC-B: o.colour — coloured smoke)
       drones: (specs, o = {}) => !!last && startDrones(last, (Array.isArray(specs) ? specs : [specs]).map(x => (typeof x === 'string' ? (DRONE_SHAPES.includes(x) || x.startsWith('mark:') ? { shape: x } : { text: x }) : x)), o.at || last.now, o),
       balloons: (o = {}) => !!last && startBalloons(last, (o.at || last.now) - (o.into ? balloons.flightLen(o.seed || 3, !!o.festival) * 1000 * o.into : 0), !!o.festival, o.seed || 3, { fast: !!o.fast, fade: !!o.fade }),   // (o.into: already that share of the way across — CITY CONTROLS A's jack: in view at once)
       helicopter: (o = {}) => { if (!last) return false; air.heli(last, o.at || last.now, o.seed || 1); return air.heliOn(); },

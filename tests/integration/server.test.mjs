@@ -803,7 +803,7 @@ test('CITY CONTROLS A — THE RADIO: roles per action, the dark, one at a time, 
     // by night: on its way (AMBER) for the city's ~45 s lead; the next legendary WAITS its turn; a skywrite (another lane) doesn't
     const a = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'ufo', aud: 'everyone' }, NIGHT_T)).moment;
     assert.equal(a.at, NIGHT_T + 45_000); assert.equal(a.until, a.at + 40_000); assert.equal(a.state, 'q');
-    const b = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'tr3b', aud: 'city' }, NIGHT_T + 1000)).moment;
+    const b = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'tr3b', aud: 'everyone' }, NIGHT_T + 1000)).moment;
     assert.equal(b.at, a.until + 4000, 'the second legendary waits its turn');
     const w = (await adminAction('u-radioboss', { action: 'radioFire', jack: 'skywrite', aud: 'everyone', text: 'happy birthday', colour: '2ee6ff' }, NIGHT_T + 2000)).moment;
     assert.equal(w.at, NIGHT_T + 2000 + 45_000, 'a sky message is its own lane'); assert.equal(w.text, 'HAPPY BIRTHDAY');

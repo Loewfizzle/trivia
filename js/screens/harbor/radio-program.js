@@ -39,7 +39,7 @@ export function paint({ st, now, cancel, edit }) {
   for (const m of mine) {
     const S0 = m.local ? localStart(m.local, m.made || m.at, off) : m.at, j = jackDef(m.jack), h0 = dayH(S0);
     if (h0 < DAY_FROM - 0.01 || h0 > DAY_TO) continue;
-    rows.push({ h0, h1: dayH(m.until), label: `${j ? j.label[0] + j.label.slice(1).toLowerCase() : m.jack}${m.text ? ` “${m.text}”` : ''}${m.aud === 'me' ? ' · just me' : m.aud === 'room' ? ` · room ${m.room || ''}` : ''}`, tag: 'you' });
+    rows.push({ h0, h1: dayH(m.until), label: `${j ? j.label[0] + j.label.slice(1).toLowerCase() : m.jack}${m.text ? ` “${m.text}”` : ''}${m.aud === 'me' ? ' · just me' : m.aud === 'room' ? ` · lobby only ${m.room || ''}` : ' · everyone'}`, tag: 'you' });
   }
   for (const b of (st && st.board) || []) {
     for (const probe of [T, T + 3600e3 * 6, T + 3600e3 * 12]) {

@@ -369,7 +369,7 @@ export function createHarborFireworks(opts = {}) {
     const t = cue.type;
     if (t === 'peony') { ring(Math.round(n0 * 0.6), K.spark, 1.9, 1.7, gpt, c1, sz, 0.07); ring(Math.round(n0 * 0.4), K.spark, 1.7, 1.7, gpt, c2, sz, 0.07, 0.97); }
     else if (t === 'chrys') { ring(Math.round(n0 * 0.9), K.spark, 2.3, 1.55, gpt, c1, sz * 0.95, 0.42); ring(Math.round(n0 * 0.2), K.glitter, 2.6, 1.6, gpt * 0.8, [1, 0.9, 0.7], sz * 0.7, 0.2, 0.92); }
-    else if (t === 'willow') { const c = col01(FW_COLORS.gold); ring(Math.round(n0 * 0.85), K.willow, 4.6, 2.3, 17, c, sz * 0.95, 0.85, 1.05); ring(Math.round(n0 * 0.25), K.glitter, 4.0, 2.4, 16, [1, 0.86, 0.6], sz * 0.6, 0.3, 0.95); }
+    else if (t === 'willow') { const c = col01(FW_COLORS.gold), hang = cue.sweep != null ? 1.4 : 1; ring(Math.round(n0 * 0.85), K.willow, 4.6 * hang, 2.3, 17, c, sz * 0.95, 0.85, 1.05); ring(Math.round(n0 * 0.25), K.glitter, 4.0 * hang, 2.4, 16, [1, 0.86, 0.6], sz * 0.6, 0.3, 0.95); }   // (CC-B — THE SWEEP's willows HANG longer (×1.4): the first still raining as the last bursts — the curtain fills in like a wave)
     else if (t === 'palm') { const arms = 7 + Math.floor(r() * 3); ring(arms, K.comet, 2.4, 1.15, 30, c1, sz * 1.7, 0.75, 1.0, [1, r() * TAU]); ring(Math.round(n0 * 0.25), K.glitter, 1.8, 1.8, gpt, c1, sz * 0.7, 0.12, 0.6); }
     else if (t === 'ring') { const tilt = [0.25 + r() * 0.75, r() * TAU]; ring(Math.round(n0 * 0.5), K.spark, 1.9, 1.75, gpt * 0.8, c1, sz * 1.05, 0.09, 1, tilt); ring(Math.round(n0 * 0.15), K.spark, 1.5, 1.75, gpt, c2, sz * 0.8, 0.05, 0.35); }
     else if (t === 'crossette') {
@@ -395,7 +395,7 @@ export function createHarborFireworks(opts = {}) {
     const np = Math.max(1, Math.round(tierVal('fwSmoke', tier0) * (cue.big ? 1.5 : 1)));
     for (let i = 0; i < np; i++) { const a = r() * TAU, d = Math.sqrt(r()) * R * 0.55; puff(tg[0] + Math.cos(a) * d, tg[1] + Math.sin(a) * d * 0.7 + R * 0.12, burst + 1.2 + r() * 1.6, 38 + r() * 34, R * 0.28, R * (0.7 + r() * 0.4), r(), 0.055 + r() * 0.045); }
     if (cue.layer !== 'sky' && r() < 0.6) puff(lp[0] + (r() - 0.5) * 6, lp[1] - 6, launch + 0.15, 22 + r() * 14, R * 0.12, R * 0.45, r(), 0.18);
-    const life = t === 'willow' ? 5 : t === 'strobe' || t === 'glitter' ? 3.3 : 2.8;
+    const life = t === 'willow' ? (cue.sweep != null ? 7 : 5) : t === 'strobe' || t === 'glitter' ? 3.3 : 2.8;
     return { k: key, n: tn - start, end: burst + life + 0.6, launch, burst, cue, x: tg[0], y: tg[1], R, lc, P };
   }
   const mixCol = (a, b, t) => [a[0] + (b[0] - a[0]) * t, a[1] + (b[1] - a[1]) * t, a[2] + (b[2] - a[2]) * t];

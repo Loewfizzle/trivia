@@ -9,7 +9,8 @@ import * as RD from '../../../js/core/harbor-radio.js';
 const DB = 'http://127.0.0.1:9000', get = async p => (await fetch(`${DB}/${p}.json?ns=demo-arcade-default-rtdb`, { headers: { Authorization: 'Bearer owner' } })).json();
 const call = (p, body) => ev(p, `(async () => { const m = await import('/js/profile/api.js'); try { return { ok: true, r: await m.api('admin', ${JSON.stringify(body)}) }; } catch (e) { return { ok: false, status: e.status, code: e.code, msg: e.message }; } })()`);
 const pidOf = async p => { for (let i = 0; i < 60; i++) { const r = await call(p, { action: 'whoami' }); if (r.ok && r.r.pid) return r.r.pid; await sleep(500); } return null; };
-const tapJack = (p, id) => ev(p, `(() => { const el = document.querySelector('.rd-jack[data-jack="${id}"]'); if (!el) return false; el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); el.dispatchEvent(new PointerEvent('pointerup', { bubbles: true })); return true; })()`);
+const tapJack = (p, id) => ev(p, `(() => { const el = document.querySelector('.rd-jack[data-jack="${id}"]'); if (!el) return false; el.click(); return true; })()`);
+const sizeOf = (p, sel) => ev(p, `(() => { const el = document.querySelector('${sel}'); if (!el) return null; const r = el.getBoundingClientRect(), cs = getComputedStyle(el); return { w: r.width, h: r.height, fg: cs.color, bw: parseFloat(cs.borderTopWidth) }; })()`);
 const lampOf = (p, id) => ev(p, `(() => { const el = document.querySelector('.rd-jack[data-jack="${id}"]'); return el ? el.dataset.lamp : null; })()`);
 
 G('radio', async () => {
@@ -45,8 +46,29 @@ G('radio', async () => {
     if (grey.length) { await tapJack(O.page, grey[0].id); await sleep(300); const bub = await ev(O.page, `(document.querySelector('.rd-bub') || {}).textContent || ''`);
       ok(/NOT NOW/.test(bub) && /after dark only — at \d/.test(bub), `RADIO: a GREYED jack says why + when ("${bub}")`); }
     else ok(st.r.jacks.every(j => j.run.ok), 'RADIO: after dark — every jack ready'); }
+  // ---- CC-B GROUP 0 (the owner's CC-A review): the knob's THREE words, the big ✕, no long-press (an explicit ARRANGE)
+  { const seen = new Set();
+    for (let i = 0; i < 4; i++) { seen.add((await ev(O.page, `(document.querySelector('.rd-who b') || {}).textContent || ''`)).replace(/^● /, '').replace(/ · [A-Z]{4}$/, '')); await O.page.click('.rd-kw:last-child .rd-knob'); await sleep(250); if (await ev(O.page, '!!document.querySelector(".rd-cardwrap")')) { const x = await sizeOf(O.page, '.rd-cardwrap .rd-cx'); if (x) seen.add(`✕${x.w >= 44 && x.h >= 44 ? 'ok' : 'small'}`); await O.page.keyboard.press('Escape'); await sleep(200); } }
+    ok(['JUST ME', 'LOBBY ONLY', 'EVERYONE'].every(w => seen.has(w)) && ![...seen].some(w => /CITY ONLY|ONE ROOM/.test(w)) && seen.has('✕ok'), `RADIO (CC-B): the AUDIENCE knob = JUST ME · LOBBY ONLY · EVERYONE, the lobby list's ✕ ≥ 44 pt (${[...seen].join(' | ')})`); }
+  { const x = await sizeOf(O.page, '.rd-x'); ok(x && x.w >= 44 && x.h >= 44 && x.bw >= 2 && /255, 255, 255/.test(x.fg), `RADIO (CC-B): the radio's ✕ big + bold (${JSON.stringify(x)})`); }
+  { // a held thumb (a scroll that lingers) never starts arranging: pointerdown, 900 ms, pointerup — no wiggle, no card
+    await ev(O.page, `(() => { const el = document.querySelector('.rd-jack[data-jack="banner"]'); el.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); window.__rdHold = el; })()`);
+    await sleep(900);
+    await ev(O.page, `window.__rdHold.dispatchEvent(new PointerEvent('pointerup', { bubbles: true }))`); await sleep(250);
+    const held = await ev(O.page, `({ arr: !!document.querySelector('.rd-jacks.is-arrange'), card: !!document.querySelector('.rd-cardwrap') })`);
+    await ev(O.page, `[...document.querySelectorAll('.rd-done')].find(b => b.textContent === 'ARRANGE').click()`); await sleep(200);
+    const arr = await ev(O.page, `!!document.querySelector('.rd-jacks.is-arrange')`), ab = await sizeOf(O.page, '.rd-done');
+    await ev(O.page, `[...document.querySelectorAll('.rd-done')].find(b => b.textContent === 'DONE').click()`); await sleep(200);
+    ok(!held.arr && !held.card && arr && ab.h >= 44 && !(await ev(O.page, `!!document.querySelector('.rd-jacks.is-arrange')`)), `RADIO (CC-B): NO long-press (held 0.9 s: ${JSON.stringify(held)}) — the ARRANGE button (${ab.h} pt) turns arranging on + DONE off`); }
+  { // THE SKYWRITE's colour by day (coloured smoke): the card's swatches + the skytypers carry it
+    const r = await ev(O.page, `(() => { const ok = window.__district.harbor().sky.skytype('PINK SMOKE', { colour: 'ff2e97' }); const st = window.__district.harbor().sky.state; return { ok, c: st.smoke && st.smoke.colour }; })()`);
+    await tapJack(O.page, 'skywrite'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-sw")', 'the skywrite card', 5000);
+    const sw = await ev(O.page, `document.querySelectorAll('.rd-cardwrap .rd-sw button').length`), x = await sizeOf(O.page, '.rd-cardwrap .rd-cx');
+    await O.page.keyboard.press('Escape'); await sleep(200);
+    ok(r.ok && r.c === 'ff2e97' && sw === RD.COLOURS.length && x.w >= 44, `RADIO (CC-B): SKYWRITE in COLOURED SMOKE (${JSON.stringify(r)}), ${sw} swatches on its card, its ✕ ${x.w} pt`);
+    await ev(O.page, `window.__district.harbor().sky.stop && window.__district.harbor().sky.stop()`); }
   // ---- JUST ME: FIRE → amber → pink → STOP (the Blackbird: any time)
-  // (the audience knob: turn to JUST ME — me · everyone · city · room)
+  // (the audience knob: turn to JUST ME — me · room · everyone)
   for (let i = 0; i < 4; i++) { const a = await ev(O.page, `(document.querySelector('.rd-who b') || {}).textContent || ''`); if (/JUST ME/.test(a)) break; await O.page.click('.rd-kw:last-child .rd-knob'); await sleep(250); if (await ev(O.page, '!!document.querySelector(".rd-cardwrap")')) { await O.page.keyboard.press('Escape'); await sleep(200); } }
   ok(/JUST ME/.test(await ev(O.page, `document.querySelector('.rd-who b').textContent`)), 'RADIO: the AUDIENCE knob turned to JUST ME');
   await tapJack(O.page, 'blackbird'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-fire")', 'the patch card', 5000);
@@ -58,9 +80,21 @@ G('radio', async () => {
   await waitFor(O.page, `(document.querySelector('.rd-jack[data-jack="blackbird"]') || {}).dataset.lamp === 'run'`, 'PINK', 8000);
   const played = await ev(O.page, `(window.__district.radio() || { moments: [] }).moments.some(m => m.jack === 'blackbird' && m.played === 'on')`);
   ok(played, 'RADIO: JUST ME → AMBER → PINK, and the city plays it on this phone (once)');
-  await O.page.click('.rd-strip.is-run .rd-stop');
+  // CC-B — TAP A LIT JACK → its card again with a big STOP (the owner: "easier to turn off")
+  await tapJack(O.page, 'blackbird'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-bigstop")', 'the lit card', 5000);
+  { const b = await ev(O.page, `(() => { const el = document.querySelector('.rd-cardwrap .rd-bigstop'), r = el.getBoundingClientRect(); return { t: el.textContent, h: r.height, w: r.width }; })()`);
+    ok(b.t === 'STOP' && b.h >= 56 && b.w >= 300, `RADIO (CC-B): a LIT jack's card → a big STOP (${JSON.stringify(b)})`); }
+  await O.page.click('.rd-cardwrap .rd-bigstop');
   await waitFor(O.page, `!(document.querySelector('.rd-jack[data-jack="blackbird"]') || {}).dataset.lamp`, 'the lamp dark after STOP', 8000);
   ok(true, 'RADIO: STOP → the lamp dark again');
+  // ...and a QUEUED one (AT A TIME, hours away) → CANCEL
+  { const hAway = (new Date().getHours() + 5) % 24, f = await call(O.page, { action: 'radioFire', jack: 'flyby', aud: 'me', local: { h: hAway, mi: 0 } });
+    await waitFor(O.page, `(document.querySelector('.rd-jack[data-jack="flyby"]') || {}).dataset.lamp === 'q'`, 'AMBER', 8000).catch(() => {});
+    await tapJack(O.page, 'flyby'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-bigstop")', 'the lit card', 5000).catch(() => {});
+    const t = await ev(O.page, `(document.querySelector('.rd-cardwrap .rd-bigstop') || {}).textContent || ''`);
+    if (t) await O.page.click('.rd-cardwrap .rd-bigstop');
+    await waitFor(O.page, `!(document.querySelector('.rd-jack[data-jack="flyby"]') || {}).dataset.lamp`, 'the lamp dark after CANCEL', 8000).catch(() => {});
+    ok(f.ok && t === 'CANCEL' && !(await lampOf(O.page, 'flyby')), `RADIO (CC-B): a QUEUED jack's card → CANCEL ("${t}") → dark`); }
   // ---- ONE ROOM: the room's node (the lobby plays it once it is the live city — LOBBY 2.0)
   const ROOM = 'RDTE';
   await dbPut(`rooms/${ROOM}`, { meta: { hostId: 'rdhost', status: 'lobby', createdAt: Date.now(), activeAt: Date.now() }, players: { rdhost: { name: 'HOSTY', color: 'cyan', avatar: 'bolt', joinedAt: 1 } } });
@@ -68,7 +102,7 @@ G('radio', async () => {
   const node = rf.ok ? await get(`rooms/${ROOM}/radio/${rf.r.moment.id}`) : null;
   ok(rf.ok && node && node.jack === 'balloons' && node.by === 'owner' && !JSON.stringify(node).includes(pid), `RADIO: ONE ROOM → rooms/${ROOM}/radio (${JSON.stringify(node)})`);
   // ---- THE CITY, AT A TIME (hours away — nothing plays during the run): in the cached GET, then cancelled
-  { const hAway = (new Date().getHours() + 6) % 24, cf = await call(O.page, { action: 'radioFire', jack: 'banner', aud: 'city', text: 'E2E HELLO', local: { h: hAway, mi: 0 } });
+  { const hAway = (new Date().getHours() + 6) % 24, cf = await call(O.page, { action: 'radioFire', jack: 'banner', aud: 'everyone', text: 'E2E HELLO', local: { h: hAway, mi: 0 } });
     const live = await (await fetch(`${BASE}/api/admin?live=1`)).json(), mine = cf.ok && live.radio && live.radio.moments.find(m => m.id === cf.r.moment.id);
     ok(cf.ok && mine && mine.text === 'E2E HELLO' && mine.local && !JSON.stringify(live.radio).includes(pid), `RADIO: a city moment AT A TIME in the cached GET (no profile id) — ${JSON.stringify(mine)}`);
     if (cf.ok) await call(O.page, { action: 'radioStop', id: cf.r.moment.id }); }

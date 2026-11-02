@@ -76,8 +76,10 @@ export const SCHEDULE = Object.freeze([
   { id: 'fireworks.party', trigger: 'clock', status: 'live', src: 'core/harbor-fireworks.js#partyScript', what: 'THE PARTY SHOW: the full show (~4–5 min) at 10 pm on a party night, building to a FINALE (a full sky) + THE GOLD WILLOW CURTAIN over the skyline; synced to the party song; the dancers stop + look up',
     // (CITY CONTROLS A — THE FINALE's GAP, the owner Nov 2 11:56 am: "the length of the pause feels unnatural" → ONE CONTINUOUS CLOSE: the
     // gold willows LAUNCH `curtainAfter` [s after the eggs' burst — the soonest, the latest for a STRONG beat] while the crackle still dies,
-    // on the next strong beat (half a bar; the next beat if that's later than the latest) — never a bar later; `curtainRise` [barge, sky] s)
-    knobs: { at: 22.0, latest: 23.6, gap: 150, dur: [250, 290], finale: 40, curtainAfter: [0.5, 1.25], curtainRise: [1.9, 1.7] },
+    // on the next strong beat (half a bar; the next beat if that's later than the latest) — never a bar later; `curtainRise` [barge, sky] s;
+    // CC-B: THE SWEEP — left → right, each willow `curtainStep` s after the one to its left (on the song: `curtainBeats` beats — half a
+    // beat: the wave crosses the city in ~2 s while the first willows still hang, so the whole curtain stands together at the end)
+    knobs: { at: 22.0, latest: 23.6, gap: 150, dur: [250, 290], finale: 40, curtainAfter: [0.5, 1.25], curtainRise: [1.85, 1.75], curtainStep: 0.26, curtainBeats: 0.5 },
     conflicts: ['legendaries', 'raid', 'storm', 'party.break', 'helicopter.patrol'] },
   { id: 'fireworks.midnight', trigger: 'clock', status: 'live', src: 'core/harbor-fireworks.js#midnightScript', what: 'MIDNIGHT: 2–4 shells, low (below the sign, no dim) — "someone setting off a few"; every night',
     knobs: { at: 24.0, latest: 24.6, gap: 60, n: [2, 4] }, conflicts: ['legendaries', 'storm'] },

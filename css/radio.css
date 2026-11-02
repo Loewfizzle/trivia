@@ -51,7 +51,7 @@ body.rd-open { overflow: hidden; }
 .rd-nixie { display: flex; gap: 3px; }
 .rd-nixie span { width: 24px; height: 34px; border-radius: 5px; display: grid; place-items: center; font: 700 23px/1 var(--font-num); color: #ffa24a;
   background: radial-gradient(circle at 50% 60%, #2a1206, #0c0604); border: 1px solid #4a3020; text-shadow: 0 0 6px #ff7a1d, 0 0 14px #ff5a00; }
-.rd-x { width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(226, 184, 103, 0.45); background: rgba(14, 10, 6, 0.8); color: var(--rd-hi); font: 600 17px/1 var(--font-ui); cursor: pointer; }
+.rd-x { width: 48px; height: 48px; flex: none; border-radius: 50%; border: 2px solid #f2d9a0; background: #120c05; color: #fff; font: 800 22px/1 var(--font-ui); cursor: pointer; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 3px 10px rgba(0, 0, 0, 0.5); }   /* (CC-B — the owner: a BIGGER, BOLDER ✕ on every pop-up: ≥ 44 pt, high contrast) */
 
 /* THE BAND SELECTOR: DESK · PROGRAM · LEDGER (brass push buttons, the pressed one lit) */
 .rd-band { display: flex; gap: 6px; padding: 6px; border-radius: 12px; background: rgba(14, 10, 6, 0.95); box-shadow: inset 0 0 0 1px var(--rd-lo); }
@@ -96,7 +96,8 @@ body.rd-open { overflow: hidden; }
 .rd-jacks.is-arrange .rd-jack:nth-child(2n) { animation-delay: -0.16s; }
 .rd-jack.is-drag { opacity: 0.6; animation: none !important; }
 @keyframes rd-wig { from { transform: rotate(-1.6deg); } to { transform: rotate(1.6deg); } }
-.rd-done { min-height: 34px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--rd-au); background: none; color: var(--rd-hi); font: 700 10px/1 var(--font-ui); letter-spacing: 0.18em; cursor: pointer; }
+.rd-done { min-height: 44px; min-width: 96px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--rd-au); background: none; color: var(--rd-hi); font: 700 10.5px/1 var(--font-ui); letter-spacing: 0.18em; cursor: pointer; }
+.rd-done.is-on { background: var(--rd-au); color: var(--rd-ink); }
 
 /* THE STRIPS: on its way (amber) · running (pink + STOP) */
 .rd-strips { display: flex; flex-direction: column; gap: 8px; }
@@ -137,7 +138,8 @@ body.rd-open { overflow: hidden; }
 .rd-grab { display: block; width: 44px; height: 4px; border-radius: 2px; background: #5a4a30; margin: 0 auto 12px; }
 .rd-card h3 { display: flex; align-items: center; gap: 10px; font: 700 16px/1 var(--font-display); letter-spacing: 0.22em; color: var(--rd-hi); margin: 0 0 4px; }
 .rd-card h3 .rd-lamp { background: var(--rd-amb); box-shadow: 0 0 10px var(--rd-amb); }
-.rd-cx { margin-left: auto; width: 44px; height: 44px; border-radius: 50%; border: 1px solid rgba(226, 184, 103, 0.4); background: none; color: var(--rd-hi); font: 600 15px/1 var(--font-ui); cursor: pointer; }
+.rd-cx { margin-left: auto; width: 48px; height: 48px; flex: none; border-radius: 50%; border: 2px solid #f2d9a0; background: #120c05; color: #fff; font: 800 22px/1 var(--font-ui); cursor: pointer; box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.6), 0 3px 10px rgba(0, 0, 0, 0.5); }
+.rd-x:active, .rd-cx:active { transform: scale(0.92); }
 .rd-sec { margin-top: 12px; }
 .rd-lb { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; font: 700 10px/1 var(--font-ui); letter-spacing: 0.22em; color: var(--rd-au); margin-bottom: 8px; }
 .rd-lb em { font: italic 500 12px/1.2 var(--font-ui); letter-spacing: 0; color: var(--rd-dim); text-align: right; }
@@ -226,3 +228,13 @@ body.rd-open { overflow: hidden; }
   .rd-sheet, .rd-back, .rd-card, .rd-cardwrap, .rd-needle, .rd-knob::after, .rd-cover, .rd-plug { transition: none; }
   .rd-jack.is-q .rd-lamp, .rd-strip.is-q .rd-lamp, .rd-jacks.is-arrange .rd-jack { animation: none; }
 }
+
+/* CC-B — A LIT JACK's CARD (the owner: "easier to turn off"): what it's doing + a big STOP (running) / CANCEL (queued) */
+.rd-lit h3 .rd-lamp.is-run { background: var(--rd-pk); box-shadow: 0 0 10px var(--rd-pk); }
+.rd-litrow { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; padding: 12px; border-radius: 14px; background: rgba(10, 7, 3, 0.7); border: 1px solid rgba(226, 184, 103, 0.3); }
+.rd-litwhat b { display: block; font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.18em; color: var(--rd-hi); }
+.rd-litwhat small { display: block; margin-top: 4px; font: italic 500 13px/1.35 var(--font-ui); color: var(--rd-dim); }
+.rd-bigstop { width: 100%; height: 60px; border-radius: 12px; font: 800 17px/1 var(--font-ui); letter-spacing: 0.3em; cursor: pointer; }
+.rd-bigstop.is-stop { border: 2px solid #ff6a6a; background: linear-gradient(#5a0d12, #34060a); color: #fff; box-shadow: 0 0 18px rgba(255, 70, 70, 0.25); }
+.rd-bigstop.is-cancel { border: 2px solid var(--rd-amb); background: linear-gradient(#3e2a08, #241703); color: #ffe2a6; }
+.rd-bigstop:active { transform: scale(0.97); }

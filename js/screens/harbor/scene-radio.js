@@ -1,7 +1,7 @@
 // CITY CONTROLS A — THE RADIO in the city (a cut like scene-legend / scene-fireworks): the moments the owner (+ CC-B's crew) FIRED, played
 // ONCE each at their start on the server clock — never the preview panel's loop (a forced preview starts again a few seconds after each
 // end + vanishes when cleared; a fired moment plays its whole length + leaves by its own motion). core/harbor-radio.js#startOf says how:
-//   legend:<kind> · flyby · blackbird · words (skytyped in white smoke by day, the DRONE SHOW after dark — in its colour) · banner · balloons
+//   legend:<kind> · flyby · blackbird · words (skytyped by day in the SMOKE COLOUR picked — CC-B; the DRONE SHOW after dark — in its colour) · banner · balloons
 //   · fireworks (a one-off show: the weeknight's or the full party show) · lightning · hold:<force id> (the force held on for its length —
 //   the searchlights, the sky beams, the party, a dance break)
 // A night-only moment on a phone where it's still light is skipped there (the city's time ALWAYS follows the real clock). A late load
@@ -42,7 +42,7 @@ export function createSceneRadio(C) {
       case 'words': {
         if (!a) return false;
         if (C.dark()) return !!a.drones([{ text: S.text }], { at: atClock, colour: S.colour === 'rainbow' ? 'rainbow' : `#${S.colour || 'ffffff'}` });
-        return !!a.skytype(S.text, { at: atClock });
+        return !!a.skytype(S.text, { at: atClock, colour: S.colour || null });   // (CC-B: coloured smoke by day — the owner's pick)
       }
       case 'banner': return !!(a && a.banner([S.text], { at: atClock, passes: 2 }));
       case 'balloons': return !!(a && a.balloons({ at: atClock, fade: true, into: 0.3 }));

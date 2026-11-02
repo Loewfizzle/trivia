@@ -2,7 +2,7 @@
 // time per lane (the owner first), the crew's limits, AT A TIME in each viewer's own time
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, darkAt, cleanWords, cleanFire, cleanBoard, planStart, crewCheck, nightKey, lampOf, startOf, localStart, publicMoment, scopeOf } from '../js/core/harbor-radio.js';
+import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, darkAt, cleanWords, cleanFire, cleanBoard, planStart, crewCheck, nightKey, lampOf, startOf, localStart, publicMoment, scopeOf, AUDIENCES, AUD_LABEL } from '../js/core/harbor-radio.js';
 import { SCHEDULE, knob } from '../js/core/harbor-schedule.js';
 
 const NIGHT = Date.UTC(2026, 10, 3, 3, 0, 0), DAY = Date.UTC(2026, 10, 3, 17, 0, 0);   // (10 pm + noon, Grand Rapids)
@@ -21,7 +21,9 @@ test('THE JACKS come FROM THE TIMETABLE: one per row marked with a jack (plug an
 test('THE ROLES per action: the owner every jack + audience; THE CREW its 11 jacks, the room only, no dial / queue / stats / clear all', () => {
   for (const j of jacks()) assert.ok(roleJack('owner', j.id));
   assert.deepEqual(jacks().filter(j => roleJack('crew', j.id)).map(j => j.id).sort(), ['balloons', 'banner', 'beams', 'blackbird', 'fireworks', 'flyby', 'lightning', 'lights', 'skywrite', 'tr3b', 'ufo']);
-  for (const a of ['me', 'everyone', 'city', 'room']) { assert.ok(roleAudience('owner', a)); assert.equal(roleAudience('crew', a), a === 'room'); }
+  for (const a of ['me', 'everyone', 'room']) { assert.ok(roleAudience('owner', a)); assert.equal(roleAudience('crew', a), a === 'room'); }
+  // CC-B — THE KNOB's THREE WORDS (the owner, 3:21 pm): JUST ME · LOBBY ONLY · EVERYONE; CITY ONLY dropped
+  assert.deepEqual(AUDIENCES.map(a => AUD_LABEL[a]), ['JUST ME', 'LOBBY ONLY', 'EVERYONE']); assert.equal(roleAudience('owner', 'city'), false);
   for (const p of ['dial', 'queue', 'stats', 'stopAny', 'clearAll']) { assert.ok(rolePower('owner', p)); assert.ok(!rolePower('crew', p)); }
   assert.ok(!roleJack('nobody', 'ufo') && !roleAudience('nobody', 'room') && !rolePower('nobody', 'dial'));
 });
@@ -42,7 +44,7 @@ test('THE WORDS: ≤ 24 letters, upper case, the profanity filter, no player nam
   assert.equal(cleanWords('GO JESSICA GO', { names: ['Jessica'] }).bad, 'name');
   assert.equal(cleanWords('JESSICAS TACOS', { names: ['Jessica'] }).bad, null, 'whole words only');
   assert.equal(cleanFire({ jack: 'skywrite', aud: 'everyone', text: 'hi', colour: 'zzz' }).req.colour, 'ffffff');
-  assert.equal(cleanFire({ jack: 'fireworks', aud: 'city', show: 'full' }).req.show, 'full');
+  assert.equal(cleanFire({ jack: 'fireworks', aud: 'everyone', show: 'full' }).req.show, 'full');
   assert.equal(cleanFire({ jack: 'ufo', aud: 'room', room: 'ab' }).bad, 'bad_room');
   assert.equal(cleanFire({ jack: 'ufo', aud: 'everyone', local: { h: 25, mi: 0 } }).bad, 'bad_time');
   assert.deepEqual(cleanBoard({ lines: ['game night', '8 pm'], local: { h: 19, mi: 45 }, repeat: { dows: [5, 5, 9] } }).msg, { lines: ['GAME NIGHT', '8 PM'], local: { h: 19, mi: 45 }, repeat: { dows: [5] } });

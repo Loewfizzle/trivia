@@ -4,8 +4,9 @@
 // DOT while one of your moments runs or waits. ONE RADIO over THE CITY BEHIND (the live harbor, blurred — never the mockups' wood), the
 // brass panels: the header (NEON SPEAKEASY · RADIO + the NIXIE count), THE BAND SELECTOR (DESK · PROGRAM · LEDGER), then the face:
 //   THE DESK     the tuning window = THE SHOWCASE DIAL (HIGH · NORMAL · LOW, the red needle + its knob) · WHO HEARS IT (the AUDIENCE knob:
-//                JUST ME · EVERYONE · CITY ONLY · ONE ROOM) · THE MOMENTS — brass PATCH JACKS + lamps built FROM THE TIMETABLE (long-press
-//                → drag to arrange, saved on this device) · the strips (ON ITS WAY / WAITING ITS TURN amber · RUNNING pink + STOP) · the
+//                JUST ME · LOBBY ONLY · EVERYONE — CC-B) · THE MOMENTS — brass PATCH JACKS + lamps built FROM THE TIMETABLE (CC-B: no
+//                long-press — a small ARRANGE button, off by default, then drag; saved on this device; TAP A LIT JACK → its card with a big
+//                STOP / CANCEL) · the strips (ON ITS WAY / WAITING ITS TURN amber · RUNNING pink + STOP) · the
 //                DEV / WORKSHOP button (the preview panel — one way in) · CLEAR ALL under the red SAFETY COVER
 //   THE PATCH CARD (tap a jack) only what the moment needs → the big brass FIRE (who it goes to + how many) → the lamp: dark = ready ·
 //                AMBER blinking = on its way / waiting its turn · PINK = running · GREYED = can't run now (a tap says why + when)
@@ -24,7 +25,7 @@ const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null')
 const pad3 = n => String(Math.max(0, Math.min(999, n | 0))).padStart(3, '0');
 const mmss = s => { s = Math.max(0, Math.round(s)); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 const LEVEL_X = { high: 0.14, normal: 0.5, low: 0.86 };
-const AUD_ROT = { me: -60, everyone: -20, city: 20, room: 60 };
+const AUD_ROT = { me: -50, room: 0, everyone: 50 };
 const LV_ROT = { high: -50, normal: 0, low: 50 };
 const DOW = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
 
@@ -138,8 +139,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       h('div.rd-knobs',
         h('div.rd-kw', h('button.rd-knob', { type: 'button', 'aria-label': `Showcase: ${lv} — turn`, style: { '--r': `${LV_ROT[lv]}deg` }, onclick: next }), h('span.rd-kl', 'SHOWCASE')),
         h('div.rd-who', plate('WHO HEARS IT'), h('b', '● ', RD.AUD_LABEL[aud], aud === 'room' && room ? ` · ${room}` : ''),
-          h('small', RD.AUDIENCES.filter(a => a !== aud).map(a => RD.AUD_LABEL[a].toLowerCase()).join(' · ')),
-          aud === 'room' ? h('em.rd-note', 'plays once the lobby is the live city (LOBBY 2.0)') : null),
+          h('small', RD.AUDIENCES.map(a => (a === aud ? '●' : RD.AUD_LABEL[a].toLowerCase())).join(' · ')),
+          aud === 'room' ? h('em.rd-note', 'sky moments play once the lobby is the live city (LOBBY 2.0) · the intercom plays now') : null),
         h('div.rd-kw', h('button.rd-knob', { type: 'button', 'aria-label': `Audience: ${RD.AUD_LABEL[aud]} — turn`, style: { '--r': `${AUD_ROT[aud]}deg` }, onclick: audNext, disabled: !isOwner }), h('span.rd-kl', 'AUDIENCE'))));
   }
   function pickRoom() {
@@ -165,18 +166,17 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       const L = lamp(j);
       const cell = h('button.rd-jack', { type: 'button', dataset: { jack: j.id, lamp: L }, class: L ? `is-${L}` : '', 'aria-label': `${j.label}${L === 'run' ? ' — running' : L === 'q' ? ' — on its way' : L === 'grey' ? ` — ${j.run.note}` : ''}` },
         h('i.rd-lamp'), h('i.rd-hole', h('i.rd-plug')), h('span.rd-jl', j.label));
-      let lpT = 0, lpFired = false;
-      cell.addEventListener('pointerdown', e => { lpFired = false; clearTimeout(lpT); lpT = setTimeout(() => { lpFired = true; arrange = !arrange; sfx.play('tick'); render(); }, 520); if (arrange) dragStart(e, j.id, cell); });
-      cell.addEventListener('pointerup', () => { clearTimeout(lpT); if (lpFired || arrange) return; tapJack(j, cell); });
-      cell.addEventListener('pointerleave', () => clearTimeout(lpT));
-      cell.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); tapJack(j, cell); } });
+      // (CC-B — the owner: "thumb-scrolling set them wiggling": NO long-press; a tap is a tap, a scroll is a scroll — the button's own
+      // click only fires for a tap that didn't scroll; drag only in ARRANGE mode)
+      cell.addEventListener('pointerdown', e => { if (arrange) dragStart(e, j.id, cell); });
+      cell.addEventListener('click', () => { if (!arrange) tapJack(j, cell); });
       return cell;
     }));
     return h('section.rd-face.rd-moments',
-      h('div.rd-fh', plate('THE MOMENTS'), arrange ? h('button.rd-done', { type: 'button', onclick: () => { arrange = false; render(); } }, 'DONE') : h('em', 'plug in to fire')),
+      h('div.rd-fh', plate('THE MOMENTS'), h('button.rd-done', { type: 'button', class: arrange ? 'is-on' : '', 'aria-pressed': String(arrange), onclick: () => { arrange = !arrange; sfx.play('tick'); render(); } }, arrange ? 'DONE' : 'ARRANGE')),
       grid, arrange ? h('p.rd-hint', 'Drag a jack to its place — saved on this phone.') : null);
   }
-  // LONG-PRESS → DRAG TO ARRANGE (pointer events; the cell under the finger takes its place; saved per owner on this device)
+  // ARRANGE → DRAG (pointer events; the cell under the finger takes its place; saved per owner on this device)
   function dragStart(e, id, cell) {
     e.preventDefault(); cell.setPointerCapture && cell.setPointerCapture(e.pointerId); cell.classList.add('is-drag');
     const move = ev => {
@@ -192,6 +192,11 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   function tapJack(j, cell) {
     const L = lamp(j);
     if (L === 'grey') { sfx.play('denied'); showBubble(cell, `${j.label} · NOT NOW`, j.run.note.replace(/^.*?·\s*/, '').toLowerCase()); return; }
+    // CC-B — EASIER TO TURN OFF (the owner): a LIT jack (amber / pink) opens its card again with a big STOP (running) / CANCEL (queued)
+    if ((L === 'run' || L === 'q') && litOf(j).length) { sfx.play('jackIn'); card = { kind: 'lit', jack: j }; render(); return; }
+    openJack(j);
+  }
+  function openJack(j) {
     sfx.play('jackIn');
     card = { kind: 'jack', jack: j, text: '', colour: 'ffffff', show: 'short', dance: 'mix', when: 'now', time: '20:00', lines: ['', ''], dows: [5], err: '' };
     render();
@@ -218,9 +223,9 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (!mine.length) return null;
     return h('div.rd-strips', ...mine.map(m => {
       const j = RD.jackDef(m.jack), ph = RD.phaseOf(m, now), label = j ? j.label : m.jack, words = m.text ? `“${m.text}”` : '';
-      const where = m.aud === 'room' ? `room ${m.room || ''}` : RD.AUD_LABEL[m.aud].toLowerCase();
+      const where = m.aud === 'room' ? `lobby only ${m.room || ''}` : RD.AUD_LABEL[m.aud].toLowerCase();
       const sub = ph === 'run' ? `${words ? `${words} · ` : ''}${where}${m.mine ? '' : ' · fired by the crew'}`
-        : m.at - now > (m.aud === 'room' ? 4000 : 60000) ? `waiting its turn — at ${RD.clockIn(m.at)}` : m.aud === 'room' ? 'the room in ~2 s' : m.aud === 'me' ? 'on this phone now' : 'the whole city within ~45 s';
+        : m.at - now > (m.aud === 'room' ? 4000 : 60000) ? `waiting its turn — at ${RD.clockIn(m.at)}` : m.aud === 'room' ? 'the lobby in ~2 s' : m.aud === 'me' ? 'on this phone now' : 'the whole city within ~45 s';
       return h('div.rd-strip', { class: ph === 'run' ? 'is-run' : 'is-q', dataset: { id: m.id } },
         h('i.rd-lamp'),
         h('div', h('b', `${label} · ${ph === 'run' ? `RUNNING ${mmss((now - m.at) / 1000)}` : 'ON ITS WAY'}`), h('small', sub)),
@@ -249,15 +254,31 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   // ---------------------------------------------------------------- THE PATCH CARD (+ the room list)
   const audLine = () => {
     if (aud === 'me') return 'A preview on this phone only';
-    if (aud === 'room') { const r = (st && st.rooms || []).find(x => x.code === room); return `Goes to ROOM ${room || '—'}${r ? ` · ${r.online || r.players} on` : ''}`; }
+    if (aud === 'room') { const r = (st && st.rooms || []).find(x => x.code === room); return `Goes to LOBBY ONLY · ${room || '—'}${r ? ` · ${r.online || r.players} on` : ''} — the sky plays once lobbies are in the city`; }
     const n = st && st.here; return `Goes to ${RD.AUD_LABEL[aud]}${n != null ? ` · ${n} in the city` : ''}`;
   };
+  /** a jack's moments this desk may still stop / cancel (yours — the owner: every one) */
+  const litOf = j => { const now = serverNow(); return (st && st.moments || []).filter(m => m.jack === j.id && m.state !== 'stopped' && (m.mine || isOwner) && RD.phaseOf(m, now) !== 'done').sort((a, b) => a.at - b.at); };
+  const closeX = (label = 'Close') => h('button.rd-cx', { type: 'button', 'aria-label': label, onclick: () => { sfx.play('jackOut'); card = null; render(); } }, '✕');
+  function litCard() {
+    const j = card.jack, now = serverNow(), L = litOf(j);
+    const where = m => (m.aud === 'room' ? `LOBBY ONLY · ${m.room || ''}` : RD.AUD_LABEL[m.aud]);
+    return h('div.rd-card.rd-lit', { role: 'dialog', 'aria-label': `${j.label} — stop or cancel` }, h('i.rd-grab'),
+      h('h3', h('i.rd-lamp', { class: L.some(m => RD.phaseOf(m, now) === 'run') ? 'is-run' : 'is-q' }), j.label, closeX('Close the card')),
+      ...(L.length ? L.map(m => {
+        const ph = RD.phaseOf(m, now);
+        return h('div.rd-litrow', { dataset: { id: m.id } },
+          h('div.rd-litwhat', h('b', ph === 'run' ? `RUNNING · ${mmss((now - m.at) / 1000)}` : `ON ITS WAY · ${RD.clockIn(m.at).toUpperCase()}`), h('small', `${m.text ? `“${m.text}” · ` : ''}${where(m)}${m.mine ? '' : ' · fired by the crew'}`)),
+          h('button.rd-bigstop', { type: 'button', class: ph === 'run' ? 'is-stop' : 'is-cancel', onclick: () => { sfx.play('jackOut'); card = null; act({ action: 'radioStop', id: m.id }).catch(e => { err = e.message; render(); }); render(); } }, ph === 'run' ? 'STOP' : 'CANCEL'));
+      }) : [h('p.rd-hint', 'Nothing left to stop here.')]),
+      h('button.rd-cancel', { type: 'button', onclick: () => openJack(j) }, `FIRE ANOTHER ${j.label}`));
+  }
   function roomCard() {
     const rooms = card.rooms || [];
-    return h('div.rd-card', h('i.rd-grab'), h('h3', h('i.rd-lamp'), 'ONE ROOM'),
-      h('p.rd-hint', 'Room moments play once the lobby is the live city (LOBBY 2.0) — built + checked now.'),
+    return h('div.rd-card', h('i.rd-grab'), h('h3', h('i.rd-lamp'), 'LOBBY ONLY', closeX('Close the lobby list')),
+      h('p.rd-hint', 'Pick a lobby. The intercom plays there now; sky moments once the lobby is the live city (LOBBY 2.0).'),
       rooms.length ? h('div.rd-rooms', ...rooms.map(r => h('button.rd-room', { type: 'button', class: r.code === room ? 'is-on' : '', onclick: () => { room = r.code; sfx.play('tick'); card = null; render(); } },
-        h('b', r.code), h('span', `${r.online || 0} of ${r.players} on · ${r.status === 'playing' ? (r.game || 'a game').toUpperCase() : 'THE LOBBY'}`)))) : h('p.rd-empty', 'NO ROOMS OPEN RIGHT NOW'),
+        h('b', r.code), h('span', `${r.online || 0} of ${r.players} on · ${r.status === 'playing' ? (r.game || 'a game').toUpperCase() : 'THE LOBBY'}`)))) : h('p.rd-empty', 'NO LOBBIES OPEN RIGHT NOW'),
       h('button.rd-cancel', { type: 'button', onclick: () => { if (!room) { aud = 'everyone'; ls.set(AUD_KEY, aud); } card = null; render(); } }, 'BACK'));
   }
   function jackCard() {
@@ -269,7 +290,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
         oninput: e => { c.text = e.target.value.toUpperCase().slice(0, 24); e.target.value = c.text; cnt.textContent = `${c.text.length} / 24`; pv.textContent = c.text || 'YOUR WORDS'; pv.classList.toggle('is-ph', !c.text); } });
       const cnt = h('em', `${c.text.length} / 24`), pv = h('b', { class: c.text ? '' : 'is-ph' }, c.text || 'YOUR WORDS');
       parts.push(sec(['THE WORDS', cnt], inp),
-        sec([j.id === 'skywrite' ? 'THE COLOUR' : 'THE BANNER', j.id === 'skywrite' ? h('em', 'white smoke by day · the drones after dark') : null],
+        sec([j.id === 'skywrite' ? 'THE COLOUR' : 'THE BANNER', j.id === 'skywrite' ? h('em', 'the smoke by day · the drones after dark') : null],
           j.id === 'skywrite' ? h('div.rd-sw', ...RD.COLOURS.map(col => h('button', { type: 'button', class: col === c.colour ? 'is-on' : '', style: { '--c': col === 'rainbow' ? 'conic-gradient(#ff2e97,#ffd25a,#7dff6a,#2ee6ff,#b36bff,#ff2e97)' : `#${col}` }, 'aria-label': col === 'rainbow' ? 'rainbow' : `#${col}`, 'aria-pressed': String(col === c.colour), onclick: () => { c.colour = col; sfx.play('tick'); render(); } }))) : null),
         h('div.rd-prev', { class: `is-${j.id}` }, pv, h('small', 'PREVIEW')));
     }
@@ -291,13 +312,13 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (c.err) parts.push(h('p.rd-err', { role: 'alert' }, c.err));
     const fire = h('button.rd-fire', { type: 'button', disabled: !!c.sending, onclick: () => fireIt() }, j.card === 'billboard' ? 'POST' : 'FIRE');
     return h('div.rd-card', { role: 'dialog', 'aria-label': `${j.label} — the patch card` }, h('i.rd-grab'),
-      h('h3', h('i.rd-lamp'), j.label, h('button.rd-cx', { type: 'button', 'aria-label': 'Unplug — close the card', onclick: () => { sfx.play('jackOut'); card = null; render(); } }, '✕')),
+      h('h3', h('i.rd-lamp'), j.label, closeX('Unplug — close the card')),
       ...parts, fire, h('p.rd-who2', j.card === 'billboard' ? 'The speakeasy’s billboard · everyone on the city' : audLine()));
   }
   async function fireIt() {
     const c = card; if (!c || c.sending) return;
     const j = c.jack, [hh, mi] = String(c.time || '20:00').split(':').map(Number), local = c.when !== 'now' ? { h: hh, mi } : null;
-    if (aud === 'room' && !room && j.card !== 'billboard') { c.err = 'PICK A ROOM ON THE AUDIENCE KNOB FIRST'; render(); return; }
+    if (aud === 'room' && !room && j.card !== 'billboard') { c.err = 'PICK A LOBBY ON THE AUDIENCE KNOB FIRST'; render(); return; }
     c.sending = true; c.err = ''; render();
     try {
       if (j.card === 'billboard') await act({ action: c.editId ? 'radioBoardEdit' : 'radioBoard', id: c.editId || undefined, lines: c.lines, local, repeat: c.when === 'repeat' ? { dows: c.dows } : null }, 'fire');
@@ -328,7 +349,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const old = modal && modal.querySelector('.rd-cardwrap'), was = !!(old && old.classList.contains('is-in'));
     if (old) old.remove();
     if (card && modal) {
-      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : jackCard());
+      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : jackCard());
       modal.append(over); if (!was) requestAnimationFrame(() => requestAnimationFrame(() => over.classList.add('is-in')));
     }
     sheet.scrollTop = keep;

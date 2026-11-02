@@ -5,15 +5,16 @@
 //   THE JACKS      built FROM THE TIMETABLE: every row with a `jack` (core/harbor-schedule.js — plug and play: a new moment = its row)
 //   THE ROLES      checked PER ACTION, never a plain "is admin": OWNER (ADMIN_PIDS) = every jack, every audience, the dial, the queue, the
 //                  stats; CREW (THE CREW — CC-B grants it) = its jacks, THE ROOM ITS PHONE IS IN only, the per-night limits
-//   AUDIENCES      me (a preview on the owner's phone) · everyone (the city + every room) · city (title visitors) · room (one room)
+//   AUDIENCES      THREE (the owner's CC-A review, Nov 2 3:21 pm): me = JUST ME (a preview on his phone) · room = LOBBY ONLY (one lobby
+//                  from the live list) · everyone = EVERYONE (the city + every lobby); CITY ONLY dropped (an old 'city' moment still plays)
 //   THE LANES      ONE legendary / ONE sky message / ONE show at a time per scope (the city, a room) — a second waits its turn (AMBER),
 //                  a legendary never over a show; THE OWNER goes first (ahead of the crew's waiting ones) + may STOP anything
 import { SCHEDULE, knob } from './harbor-schedule.js';
 import { sunPosition } from './sky.js';
 import { hasProfanity } from '../chat/logic.js';
 
-export const AUDIENCES = Object.freeze(['me', 'everyone', 'city', 'room']);
-export const AUD_LABEL = Object.freeze({ me: 'JUST ME', everyone: 'EVERYONE', city: 'CITY ONLY', room: 'ONE ROOM' });
+export const AUDIENCES = Object.freeze(['me', 'room', 'everyone']);
+export const AUD_LABEL = Object.freeze({ me: 'JUST ME', room: 'LOBBY ONLY', everyone: 'EVERYONE', city: 'EVERYONE' });
 /** the moment's states: q = on its way / waiting its turn (AMBER), run = running (PINK), done, stopped */
 export const STATES = Object.freeze(['q', 'run', 'done', 'stopped']);
 
@@ -80,7 +81,7 @@ export function cleanWords(raw, o = {}) {
 }
 export const WORDS_WHY = Object.freeze({ empty: 'TYPE SOMETHING FIRST', long: 'TOO LONG', chars: 'LETTERS, NUMBERS + . , ! ? \' & ONLY', words: 'NOT THOSE WORDS', name: 'NO PLAYER NAMES IN THE SKY (HOUSE NICKNAMES ONLY)' });
 
-/** the colours a message may take (the drone show's palette at night; skytyping is white smoke by day) */
+/** the colours a message may take (the drone show's palette at night; CC-B: the skytypers' SMOKE by day too — the owner's pick) */
 export const COLOURS = Object.freeze(['ff2e97', '2ee6ff', 'ffd25a', '7dff6a', 'b36bff', 'ffffff', 'rainbow']);
 export const DANCES = Object.freeze(['mix', 'conga', 'bounce', 'wands', 'swing']);
 

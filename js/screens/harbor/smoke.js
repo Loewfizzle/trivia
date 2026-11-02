@@ -59,20 +59,36 @@ export function createSmoke() {
   }
 
   // ---- the smoke
-  function puffSprite(light) {
-    const key = `${Math.round(light.day * 6)}${Math.round(light.gold * 6)}`;
-    if (puffSpr && key === puffKey) return puffSpr;
-    puffKey = key;
-    puffSpr = puffSpr || mk(64, 64);
-    const x = safeCtx(puffSpr); x.clearRect(0, 0, 64, 64);
-    // a soft round puff: lit from above (white / warm at sunset), its underside a cool grey — the smoke has volume
-    const top = light.gold > 0.3 ? [255, 228, 214] : [255, 255, 255], under = light.gold > 0.3 ? [196, 160, 176] : [196, 206, 224];
+  // CITY CONTROLS B — COLOURED SMOKE (the owner's CC-A review: "pick the smoke colour" by day too): a message may carry a colour (hex, or
+  // 'rainbow' — the letters' columns through RAINBOW left → right); white stays the default. One 64 px sprite per colour + light (≤ 6 kept).
+  const RAINBOW = ['ff2e97', 'ffd25a', '7dff6a', '2ee6ff', 'b36bff'];
+  const sprs = new Map();
+  const rgbOf = hx => [parseInt(hx.slice(0, 2), 16), parseInt(hx.slice(2, 4), 16), parseInt(hx.slice(4, 6), 16)];
+  const mix = (a, b, k) => a.map((v, i) => Math.round(v + (b[i] - v) * k));
+  function puffSprite(light, col = null) {
+    const hx = col && /^[0-9a-f]{6}$/i.test(col) && col.toLowerCase() !== 'ffffff' ? col.toLowerCase() : null;
+    const key = `${Math.round(light.day * 6)}${Math.round(light.gold * 6)}|${hx || 'w'}`;
+    if (key.split('|')[0] !== puffKey) { for (const c of sprs.values()) c.width = 0; sprs.clear(); puffKey = key.split('|')[0]; }
+    if (sprs.has(key)) return sprs.get(key);
+    const spr = mk(64, 64); sprs.set(key, spr); if (!hx) puffSpr = spr;
+    const x = safeCtx(spr); x.clearRect(0, 0, 64, 64);
+    // a soft round puff: lit from above (white / warm at sunset), its underside a cool grey — the smoke has volume; coloured smoke: the
+    // colour lit (a touch of white in the core), its underside the colour in shade
+    let top = light.gold > 0.3 ? [255, 228, 214] : [255, 255, 255], under = light.gold > 0.3 ? [196, 160, 176] : [196, 206, 224];
+    if (hx) { const c = rgbOf(hx); top = mix(c, [255, 255, 255], 0.22); under = mix(c, [40, 44, 70], 0.42); }
     let g = x.createRadialGradient(32, 37, 2, 32, 37, 30); g.addColorStop(0, `rgba(${under},0.55)`); g.addColorStop(0.6, `rgba(${under},0.22)`); g.addColorStop(1, `rgba(${under},0)`);
     x.fillStyle = g; x.fillRect(0, 0, 64, 64);
     // (POLISH 5 — CRISPER: a firm bright core with a short falloff — a dot, not a soft puff)
     g = x.createRadialGradient(31, 29, 1, 32, 31, 25); g.addColorStop(0, `rgba(${top},1)`); g.addColorStop(0.5, `rgba(${top},0.92)`); g.addColorStop(0.72, `rgba(${top},0.45)`); g.addColorStop(1, `rgba(${top},0)`);
     x.fillStyle = g; x.fillRect(0, 0, 64, 64);
-    return puffSpr;
+    return spr;
+  }
+  /** the sprite for a puff (its colour: the message's, or the rainbow by its column) */
+  function sprOf(light, q) {
+    const c = cur && cur.colour;
+    if (c !== 'rainbow') return puffSprite(light, c);
+    const bb = cur.cx || (cur.cx = (() => { let a = 1e9, b = -1e9; for (const p of cur.puffs) { a = Math.min(a, p.x); b = Math.max(b, p.x); } return [a, Math.max(1, b - a)]; })());
+    return puffSprite(light, RAINBOW[Math.min(RAINBOW.length - 1, Math.floor((q.x - bb[0]) / bb[1] * RAINBOW.length))]);
   }
   // POLISH 4 — THE DARK SOFT HALO (the owner: "in front of the SUN the letters lose contrast"): the NEON sign's + the tagline's own
   // trick — a soft dark shade under every puff (drawn first, the puffs over it), merging into one quiet shadow round the letters. On
@@ -121,7 +137,7 @@ export function createSmoke() {
     return [Math.sin(dir * Math.PI / 180) * w * 0.12 * K, -0.04 * K];        // pt/s (east is screen-left: facing south)
   }
   function renderLayer(s, e, light) {
-    const d = Math.min(BAKE_CAP, dpr), x = safeCtx(layer), spr = puffSprite(light);
+    const d = Math.min(BAKE_CAP, dpr), x = safeCtx(layer), one = !cur.colour || cur.colour !== 'rainbow' ? puffSprite(light, cur.colour) : null;
     x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, layer.width, layer.height);
     x.setTransform(d, 0, 0, d, 0, 0);
     const [vx, vy] = drift(s), hs = haloSprite(), live = [];
@@ -130,11 +146,11 @@ export function createSmoke() {
       const n = puffNow(q, e, s.motion);
       if (!n || n.a < 0.01) continue;
       const age = e - q.t, gust = blowOf(q, e), px = q.x + (s.motion ? vx * age + gust[0] : 0), py = q.y + (s.motion ? vy * age + gust[1] : 0);
-      live.push(px, py, n.r, n.a);
+      live.push(px, py, n.r, n.a, one || sprOf(light, q));
     }
     // (the dark halo first — every puff's — then the puffs over it)
-    for (let i = 0; i < live.length; i += 4) { const r = live[i + 2] * HALO_R; x.globalAlpha = Math.min(1, live[i + 3] * haloA(light, live[i], live[i + 1])); x.drawImage(hs, live[i] - r, live[i + 1] - r, r * 2, r * 2); }
-    for (let i = 0; i < live.length; i += 4) { const r = live[i + 2]; x.globalAlpha = Math.min(1, live[i + 3]); x.drawImage(spr, live[i] - r * 1.25, live[i + 1] - r * 1.25, r * 2.5, r * 2.5); }
+    for (let i = 0; i < live.length; i += 5) { const r = live[i + 2] * HALO_R; x.globalAlpha = Math.min(1, live[i + 3] * haloA(light, live[i], live[i + 1])); x.drawImage(hs, live[i] - r, live[i + 1] - r, r * 2, r * 2); }
+    for (let i = 0; i < live.length; i += 5) { const r = live[i + 2]; x.globalAlpha = Math.min(1, live[i + 3]); x.drawImage(live[i + 4], live[i] - r * 1.25, live[i + 1] - r * 1.25, r * 2.5, r * 2.5); }
     x.globalAlpha = 1;
     layerAt = performance.now(); layerE = e;
   }
@@ -158,7 +174,7 @@ export function createSmoke() {
       jets.load();   // (SKY-A: the F-22 model's sprites on their way — the skytypers fly it)
       const p = planType(text, box, at);
       if (!p) return false;
-      p.gust = o.gust || 1;
+      p.gust = o.gust || 1; p.colour = o.colour && o.colour !== 'ffffff' && o.colour !== '#ffffff' ? String(o.colour).replace(/^#/, '') : null;
       cur = p; layerAt = -1e9;
       return true;
     },
@@ -185,14 +201,14 @@ export function createSmoke() {
       const [vx, vy] = drift(s), dt = s.motion ? e - layerE : 0, d = Math.min(BAKE_CAP, dpr);
       c.drawImage(layer, vx * dt, vy * dt, layer.width / d, layer.height / d);
       // the newest puffs (born since the layer): live
-      const spr = puffSprite(light), hs = haloSprite();
+      const one = cur.colour !== 'rainbow' ? puffSprite(light, cur.colour) : null, hs = haloSprite();
       for (const pass of [0, 1]) for (const q of cur.puffs) {
         if (q.t <= layerE) continue;
         if (q.t > e) break;
         const n = puffNow(q, e, s.motion);
         if (!n) continue;
         if (pass === 0) { const r = n.r * HALO_R; c.globalAlpha = Math.min(1, n.a * haloA(light, q.x, q.y)); c.drawImage(hs, q.x - r, q.y - r, r * 2, r * 2); }
-        else { c.globalAlpha = Math.min(1, n.a); c.drawImage(spr, q.x - n.r * 1.25, q.y - n.r * 1.25, n.r * 2.5, n.r * 2.5); }
+        else { c.globalAlpha = Math.min(1, n.a); c.drawImage(one || sprOf(light, q), q.x - n.r * 1.25, q.y - n.r * 1.25, n.r * 2.5, n.r * 2.5); }
       }
       c.globalAlpha = 1;
       // the jets (their afterburners lit: brighter toward dusk)
@@ -204,7 +220,7 @@ export function createSmoke() {
       return true;
     },
     /** what's written (tests + previews): { kind, text, puffs, done (all puffs out), k (0..1 of its whole life) } */
-    debug: () => (cur ? { kind: cur.kind, text: cur.text, pages: cur.pages.length, puffs: cur.puffs.length, last: +cur.last.toFixed(1), release: +cur.release.toFixed(1), end: +cur.end.toFixed(1) } : null),
-    destroy() { if (layer) layer.width = layer.height = 0; if (puffSpr) puffSpr.width = 0; if (haloSpr) haloSpr.width = 0; haloSpr = null; jets.destroy(); layer = null; cur = null; },
+    debug: () => (cur ? { kind: cur.kind, text: cur.text, colour: cur.colour || 'ffffff', pages: cur.pages.length, puffs: cur.puffs.length, last: +cur.last.toFixed(1), release: +cur.release.toFixed(1), end: +cur.end.toFixed(1) } : null),
+    destroy() { if (layer) layer.width = layer.height = 0; for (const c of sprs.values()) c.width = 0; sprs.clear(); puffSpr = null; if (haloSpr) haloSpr.width = 0; haloSpr = null; jets.destroy(); layer = null; cur = null; },
   };
 }

@@ -91,6 +91,18 @@ test('the party show builds to its finale → THE DRAGON EGGS → ends on the GO
     const L = Math.min(...cu.map(c => c.t - c.rise)), gap = L - eg[0].t, onBeat = Math.abs(((L + 1000 - b0) / beat) - Math.round((L + 1000 - b0) / beat)) < 1e-6;
     assert.ok(gap >= 0.5 - 1e-6 && gap <= 1.25 + 1e-6 && onBeat, `beat ${beat} b0 ${b0}: the curtain launches ${gap.toFixed(3)} s after the eggs (on a beat: ${onBeat})`);
   }
+  // CITY CONTROLS B — THE SWEEP (the owner's CC-A review): left → right, edge to edge, each willow LAUNCHING after the one to its left
+  // (unsynced: curtainStep apart; on the song: curtainBeats apart — half a beat), the bursts in the same order
+  for (const [q, beat] of [[p, null], ...[0.4, 0.5, 0.62].map(b => [syncToBeat(p, 1000, () => ({ b0: 1000.13, beat: b, bar: 4, down: 0 })), b])]) {
+    const cu = q.cues.filter(c => c.type === 'willow' && c.c1 === 'gold' && c.big && c.t > q.dur - 14).sort((a, b) => a.x - b.x);
+    assert.ok(cu[0].x < 0.08 && cu[cu.length - 1].x > 0.92, 'edge to edge');
+    const step = beat == null ? knob('fireworks.party').curtainStep : beat * knob('fireworks.party').curtainBeats;
+    for (let k = 1; k < cu.length; k++) {
+      const d = (cu[k].t - cu[k].rise) - (cu[k - 1].t - cu[k - 1].rise);
+      assert.ok(Math.abs(d - step) < (beat == null ? 0.04 : 2e-3), `beat ${beat}: willow ${k} launches ${d.toFixed(3)} s after the one to its left (want ${step})`);
+      assert.ok(cu[k].t > cu[k - 1].t, `beat ${beat}: willow ${k} bursts after the one to its left`);
+    }
+  }
   // WSP — ONE SALVO (the owner's PERF-B review): the same launch + the same burst for every egg, before + after the beat sync
   for (const q of [p, syncToBeat(p, 1000, t => ({ b0: 1000.13, beat: 0.5, bar: 4, down: 0 }))]) {
     const e = q.cues.filter(c => c.type === 'crackle' && c.big && c.t > q.dur - 16);

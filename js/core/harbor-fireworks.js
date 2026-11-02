@@ -47,7 +47,7 @@ function cue(r, o) {
   const c2 = o.c2 || (r() < 0.45 ? pickOf(r, COLS) : c1);
   const rise = o.rise || round2(lerp(Ly.rise[0], Ly.rise[1], 0.35 + 0.65 * h) * (0.92 + 0.16 * r()));
   return { t: round2(o.t), type, layer, x: round2(Math.max(0.03, Math.min(0.97, site))), h: round2(Math.max(0, Math.min(1, h))), s: round2((o.s || 1) * Ly.s * (0.85 + 0.3 * r())),
-    c1, c2, rise, seed: Math.floor(r() * 2 ** 31), ...(o.low ? { low: true } : {}), ...(o.big ? { big: true } : {}), ...(o.whistle != null ? { whistle: !!o.whistle } : { whistle: r() < 0.16 }) };
+    c1, c2, rise, seed: Math.floor(r() * 2 ** 31), ...(o.low ? { low: true } : {}), ...(o.big ? { big: true } : {}), ...(o.sweep != null ? { sweep: o.sweep } : {}), ...(o.whistle != null ? { whistle: !!o.whistle } : { whistle: r() < 0.16 }) };
 }
 const FILL_TYPES = Object.freeze({
   open: ['peony', 'peony', 'chrys', 'ring', 'palm'],
@@ -99,8 +99,10 @@ export function partyScript(seed) {
   const cues = [
     ...[0.52, 0.66, 0.8, 0.94, 0.59, 0.87].map((x, i) => ({ t: 2.5 + i * 0.32, type: 'peony', layer: 'barge', x, h: 0.55 + 0.06 * (i % 3), c1: ['white', 'red', 'white', 'blue', 'gold', 'green'][i] })),
     { t: 6.5, type: 'chrys', layer: 'barge', x: 0.72, h: 0.88, s: 1.3, c1: 'gold', big: true },
-    // THE CURTAIN: gold willows the whole width (the sky layer behind the skyline + the barges in front), staggered
-    ...Array.from({ length: 9 }, (_, i) => ({ t: launch + RZ[i % 2] + (i % 3) * 0.18 + (i * 0.07), rise: RZ[i % 2], type: 'willow', layer: i % 2 ? 'sky' : 'barge', x: 0.08 + i * 0.105, h: i % 2 ? 0.36 : 0.86, s: i % 2 ? 1.5 : 1.35, c1: 'gold', c2: 'gold', big: true })),
+    // THE CURTAIN: gold willows the whole width (the sky layer behind the skyline + the barges in front) — CITY CONTROLS B (the owner's
+    // CC-A review: "perfect + stunning", A's weren't sequential): A SWEEP LEFT → RIGHT, EDGE TO EDGE — each willow launching `curtainStep` s
+    // after the one to its left (syncToBeat: a beat after it), the curtain filling in like a wave
+    ...Array.from({ length: 9 }, (_, i) => ({ t: launch + RZ[i % 2] + i * F.curtainStep, rise: RZ[i % 2], type: 'willow', layer: i % 2 ? 'sky' : 'barge', x: 0.05 + i * 0.1125, h: i % 2 ? 0.36 : 0.86, s: i % 2 ? 1.5 : 1.35, c1: 'gold', c2: 'gold', big: true, sweep: i })),
     // THE CLOSING DRAGON EGGS (PERF-A — the owner, Nov 1: "those were the really cool ones"; they were 4 shells over the right third):
     // 8 crackle shells LEFT EDGE → RIGHT EDGE behind the lit sign. WSP (the owner's PERF-B review, Nov 1: "all of them launch at the same
     // moment + burst at the same moment"): ONE SALVO — the same burst time + the same rise (so the same launch), the tails rising together;
@@ -198,8 +200,12 @@ export function syncToBeat(plan, t0, gridAt) {
       shiftC = at - t0 - L;
     } else shiftC = eS + (A[0] + A[1]) / 2 - L;
   }
+  // THE SWEEP on the song (CITY CONTROLS B): willow k (left → right) launches k × `curtainBeats` beats after the first — one beat apart
+  let sweepAt = null, sweepStep = 0;
+  if (curtain.length && eggs.length) { const L0 = Math.min(...curtain.map(c => c.t - (c.rise || 0))) + shiftC, g = gridAt(t0 + L0); if (g && g.beat > 0.2) { sweepAt = L0; sweepStep = g.beat * knob('fireworks.party').curtainBeats; } }
+  const byX = [...curtain].sort((a, b) => a.x - b.x);
   const out = plan.cues.map(c => {
-    if (curtain.includes(c)) return { ...c, t: Math.round((c.t + shiftC) * 1000) / 1000 };
+    if (curtain.includes(c)) return { ...c, t: Math.round((sweepAt != null ? sweepAt + byX.indexOf(c) * sweepStep + (c.rise || 0) : c.t + shiftC) * 1000) / 1000 };
     const at = t0 + c.t, g = gridAt(at);
     if (!g || !(g.beat > 0.2)) return c;
     const unit = c.big ? (g.bar || 4) : 1, s = snap(at, unit, g) - at;
