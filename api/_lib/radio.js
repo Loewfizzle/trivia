@@ -16,6 +16,7 @@ import { ref, val, adminPids, emulated } from './fb.js';
 import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY } from '../../js/core/harbor-radio.js';
 import { SHOWCASE_LEVELS } from '../../js/core/harbor-showcase.js';
+import { dayKey } from '../../js/core/week.js';
 
 const HERE_MS = 180e3;
 const tzOffAt = (ms, tz) => { try { const p = Object.fromEntries(new Intl.DateTimeFormat('en-US', { timeZone: tz, hourCycle: 'h23', year: 'numeric', month: 'numeric', day: 'numeric', hour: 'numeric', minute: 'numeric' }).formatToParts(new Date(ms)).map(x => [x.type, x.value])); return Math.round((Date.UTC(+p.year, +p.month - 1, +p.day, +p.hour, +p.minute) - Math.floor(ms / 60e3) * 60e3) / 60e3); } catch { return 0; } };
@@ -181,7 +182,34 @@ export async function cityCount(now) {
   if (Object.keys(gone).length) await ref('here').update(gone);
   return n;
 }
-export async function hello(uid, now) { if (/^[A-Za-z0-9]{10,40}$/.test(uid)) await ref(`here/${uid}`).set(now); return { ok: true }; }
+export async function hello(uid, now) {
+  if (/^[A-Za-z0-9]{10,40}$/.test(uid)) await ref('/').update({ [`here/${uid}`]: now, [`radio/visits/${dayKey(now)}/${uid}`]: true });   // (THE LEDGER's visitors a day: an estimate — a visible city)
+  return { ok: true };
+}
+
+/** THE LEDGER (the owner): the nixies (in the city · rooms open · games on), TODAY (visitors — an estimate, new players, matches, the
+ *  legendaries spotted — Progression counts them, null until then —, the longest streak alive, errors from phones today), THIS WEEK (visits
+ *  + games a day). o: { stats (admin.js's STATS), errors () → the error list } */
+async function ledger(me, role, now, o) {
+  need(rolePower(role, 'stats'), 'not_owner');
+  const [S, here, rooms, errs, pst, visits] = await Promise.all([o.stats(now), cityCount(now), openRooms(now), o.errors(now), val('pstats'), val('radio/visits')]);
+  const today = dayKey(now), days = [];
+  for (let k = 6; k >= 0; k--) days.push(dayKey(now - k * 864e5));
+  // (the visits a day: keep 8 days)
+  const V = visits || {}, gone = {}; for (const d of Object.keys(V)) if (d < dayKey(now - 8 * 864e5)) gone[d] = null;
+  if (Object.keys(gone).length) await ref('radio/visits').update(gone);
+  const yest = dayKey(now - 864e5);
+  let streak = 0; for (const s of Object.values(pst || {})) { const st = s && s.st; if (st && (st.d === today || st.d === yest) && st.n > streak) streak = st.n; }
+  const daily = Object.fromEntries((S.games && S.games.daily || []).map(x => [x.k, x.n]));
+  const t0 = new Date(now); const dayStart = now - ((t0.getUTCHours() * 60 + t0.getUTCMinutes()) * 60e3);   // (errors: the last 24 h — the list's own clock)
+  return {
+    now: { here, rooms: rooms.length, games: rooms.filter(r => r.status === 'playing').length },
+    today: { visitors: Object.keys(V[today] || {}).length, newPlayers: (S.today && S.today.newPlayers) || 0, matches: (S.today && S.today.matches) || 0, spotted: null, streak,
+      errors: (errs || []).filter(e => e.last > now - 864e5).length },
+    week: days.map(d => ({ d, visits: Object.keys(V[d] || {}).length, games: daily[d] || 0 })),
+    estimate: true, since: dayStart,
+  };
+}
 
 /** the desk's state (polled every few seconds while it's open): { role, jacks, moments (the caller may see), board, showcase, rooms, here } */
 async function state(me, role, body, now) {
@@ -203,7 +231,7 @@ async function state(me, role, body, now) {
 }
 
 /** the radio's actions (adminAction routes every 'radio…' action here BEFORE its admin-only gate: the crew may use some) */
-export async function radioAction(me, uid, body, now = Date.now()) {
+export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
   if (body.action === 'radioHello') return hello(uid, now);
   const role = await roleOf(me);
   if (body.action === 'radioWho') return { role };
@@ -218,6 +246,7 @@ export async function radioAction(me, uid, body, now = Date.now()) {
     case 'radioBoardCancel': return board(me, role, body, now, 'cancel');
     case 'radioDial': return dial(me, role, body);
     case 'radioRooms': need(role === 'owner', 'not_owner'); return { rooms: await openRooms(now) };
+    case 'radioLedger': return ledger(me, role, now, o);
     default: throw new ApiError(400, 'bad_action');
   }
 }

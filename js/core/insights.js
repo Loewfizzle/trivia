@@ -96,6 +96,8 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
   for (const p of Object.values(profiles || {})) if (p && p.at && wIdx[weekKey(p.at)] != null) newByWeek[wIdx[weekKey(p.at)]].n++;
   const activeWeek = Object.keys(weekCount).length, activeToday = Object.keys(dayCount).length;
   const matchesToday = daily[today] || 0;
+  // (CITY CONTROLS A — THE LEDGER: the profiles made today, Eastern)
+  let newToday = 0; for (const p of Object.values(profiles || {})) if (p && p.at && dayKey(p.at) === today) newToday++;
   // came back: played this week AND on a day before it (a week key is its Monday's date: w20261019 → d20261019)
   const monday = 'd' + wk.slice(1);
   const returningWeek = Object.keys(weekCount).filter(pid => [...(daysOf[pid] || [])].some(d => d < monday)).length;
@@ -105,7 +107,7 @@ export function summarize({ results = {}, profiles = {}, rooms = {}, gplay = {},
   return {
     at: now,
     live,
-    today: { matches: matchesToday, players: activeToday },
+    today: { matches: matchesToday, players: activeToday, newPlayers: newToday },
     totals: { matches: done.length, players: Object.keys(profiles || {}).length, played: Object.keys(allCount).length, multiNight },
     games: { today: todayGames, week: (gplay && gplay.week) || {}, all: (gplay && gplay.all) || {}, last30, avgPlayers, daily: days30.map(k => ({ k, n: daily[k] })) },
     players: { activeToday, activeWeek, returningWeek, newByWeek, topToday, topWeek, topAll, topXp },

@@ -181,7 +181,7 @@ export async function adminAction(uid, body, now = Date.now()) {
   const admin = !!me && adminPids().includes(me);
   if (body.action === 'whoami') return { pid: me, admin };
   // CITY CONTROLS A — THE RADIO (api/_lib/radio.js): its own ROLE check per action (the owner + THE CREW), before the admin-only gate
-  if (typeof body.action === 'string' && body.action.startsWith('radio')) return radioAction(me, uid, body, now);
+  if (typeof body.action === 'string' && body.action.startsWith('radio')) return radioAction(me, uid, body, now, { stats: t => stats(t), errors: t => errorList(t) });
   if (!admin) throw new ApiError(403, 'not_admin', 'This profile is not an admin.');
   const pid = body.pid ? String(body.pid) : null;
   if (pid && !isPid(pid)) throw new ApiError(400, 'bad_pid');
