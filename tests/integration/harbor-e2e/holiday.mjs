@@ -69,12 +69,14 @@ G('holiday', async () => {
     await waitFor(Q.page, `${P}.dress && ${P}.dress.on && ${P}.dress.spider && ${P}.spiderAt`, 'the spider', 15000).catch(() => {});
     await Q.page.touchscreen.tap(30, 120); await sleep(900);            // (a priming tap: the idle title swallows the first touch after 10 s)
     // (C4d — F10: SP6's twin fix here too — wait till it stands still, read where it IS just before the tap, one more tap if it missed)
-    await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the spider still', 8000).catch(() => {});
+    // (CC-B — GREEN MEANS GREEN: on the cloud's 2-core runner it hadn't stood still within 8 s — the tap landed where it WAS: wait for the
+    // real condition longer + a third try)
+    await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the spider still', 20000).catch(() => {});
     let at = await ev(Q.page, `${P}.spiderAt`);
     let dropped = false, onWord = false;
     let dangled = false, landed = false;
-    for (let tries = 0; tries < 2 && at && !dropped; tries++) {
-      if (tries) { await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the spider still', 8000).catch(() => {}); at = await ev(Q.page, `${P}.spiderAt`); }
+    for (let tries = 0; tries < 3 && at && !dropped; tries++) {
+      if (tries) { await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the spider still', 20000).catch(() => {}); at = await ev(Q.page, `${P}.spiderAt`); }
       await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'land', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
     if (at && dropped) {
       // (WIN3 — the owner: it DANGLES on its thread — head down, the legs tucked in (the mean reach under half the stance), a slow turn — and

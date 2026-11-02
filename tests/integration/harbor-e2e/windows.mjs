@@ -781,6 +781,8 @@ G('boxer', async () => {
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'bx2b', qs: `when=2026-10-27T23:45${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page); await settled(Q.page);
+    // (CC-B — GREEN MEANS GREEN: the cloud's slow runner read LIFE before the parked rooms were decided — "blind undefined": wait for them)
+    await waitFor(Q.page, `!!(${LIFE}.park)`, 'the parked rooms decided', 15000).catch(() => {});
     const L = await ev(Q.page, LIFE);
     ok((!L.boxer || (L.boxer.phase === 'out' && L.boxer.blind === 1 && L.boxer.lamp === 0)) && L.park && L.park.back > 0.9, `…DONE BY 11:45 pm (Tue): his blind down, the bulb out — the upper middle parked (blind ${L.park && L.park.back}${L.boxer ? `, ${L.boxer.phase}` : ''})`);
     await Q.ctx.close(); }
