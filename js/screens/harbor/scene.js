@@ -22,6 +22,7 @@ import { deckSpec } from '../../core/party-deck.js';
 import { partyTimeline, danceBreaks, partyNight, eveningOf as spEveningOf } from '../../core/harbor-streetparty.js';
 import { breakFlight, patrolInSlot } from '../../core/harbor-heli.js';
 import { knob } from '../../core/harbor-schedule.js';
+import { rngFrom, hashString } from '../../core/rng.js';
 import { tierVal, budgetDpr } from '../../core/harbor-tiers.js';
 import { LIVE_ROOMS } from '../../core/harbor-moments.js';
 import { SLOT_MS } from '../../core/harbor-events.js';
@@ -31,6 +32,7 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createSceneFireworks } from './scene-fireworks.js';
+import { createSceneRadio } from './scene-radio.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
 import { hintAt } from '../../core/harbor-billboard.js';
 import { createScenePanel } from './scene-panel.js';
@@ -366,7 +368,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const fw = createFireworks({ onBurst: e => { PT.swell = Math.min(1, PT.swell + 0.55); PT.bursts++; if (S.onBurst) S.onBurst(e); } });   // (the district's 2D fireworks: the fallback when the GPU engine can't start)
   // PART 10 — THE FIREWORKS: scene-fireworks.js (PERF-B — FR5 C1's first cut, a pure move): the night's shows + the previews, the sign
   // joining the show, the crowd's view, the sounds on the clock, the GPU layer's tick — reading this scene's state through getters
-  const sceneFw = createSceneFireworks({ get L() { return L; }, get LK() { return LK; }, get cam() { return cam; }, get camSig() { return camSig; }, get skyline() { return skyline; }, get W() { return W; }, get H() { return H; }, get HZ() { return HZ; }, get WF() { return WF; }, get WXS() { return WXS; }, get tier() { return tier; }, get lastDt() { return lastDt; }, get shownAt() { return shownAt; }, get legends() { return legends; }, get occMemo() { return occMemo; }, get PT() { return PT; }, get S() { return S; }, get snd() { return snd; }, get water() { return water; }, get canvas() { return canvas; }, get clock() { return clock; }, get heliOcc() { return heliOcc; }, get forceAtOf() { return forceAtOf; }, get legendForPeople() { return legendForPeople; }, get partyDeckNow() { return partyDeckNow; } });
+  const sceneFw = createSceneFireworks({ get L() { return L; }, get LK() { return LK; }, get cam() { return cam; }, get camSig() { return camSig; }, get skyline() { return skyline; }, get W() { return W; }, get H() { return H; }, get HZ() { return HZ; }, get WF() { return WF; }, get WXS() { return WXS; }, get tier() { return tier; }, get lastDt() { return lastDt; }, get shownAt() { return shownAt; }, get legends() { return legends; }, get occMemo() { return occMemo; }, get PT() { return PT; }, get S() { return S; }, get snd() { return snd; }, get water() { return water; }, get canvas() { return canvas; }, get clock() { return clock; }, get heliOcc() { return heliOcc; }, get forceAtOf() { return forceAtOf; }, get legendForPeople() { return legendForPeople; }, get partyDeckNow() { return partyDeckNow; }, get radioFw() { return radioScene.fw; } });
   const fwx = sceneFw.fwx, fwState = sceneFw.state, fwTick = sceneFw.tick, fwCrowd = sceneFw.crowd, fwHold = sceneFw.hold, fwNightOf = sceneFw.nightOf, fwPlan = sceneFw.plan;
   const bc = createBeatClock();
   const hbeat = createHarborBeat(Math.random());     // NEON PASS 5: THE BEAT (the song's grid + the kicks heard: core/harbor-beat.js)
@@ -388,6 +390,17 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const waterFog = createWaterFog();      // (9a: the fog lying on the harbor)
   const stormDeck = createStormDeck();    // (ATM-B: THE STORM DECK — the low heavy base + the cumulonimbus towers, lit from inside)
   let stormK = 0, stormT = null;
+  // CITY CONTROLS A — THE RADIO's LIGHTNING (the timetable's radio.lightning): a storm cell rolls in over a clear sky from upwind (the deck,
+  // `rollIn` s), 1–3 CLOSE strikes on the spire (the city's rod) at the flash pacing's own gaps (never a strobe), then it rolls away; in a
+  // real storm the deck is there already — just the strikes. { t0, t1 (clock s), times: [s], done }
+  let radioStorm = null;
+  function radioStrike(atClock, o = {}) {
+    const K = knob('radio.lightning'), r = rngFrom(hashString(`zap|${o.seed || atClock}`)), t0 = atClock / 1000, n = K.strikes[0] + Math.floor(r() * (K.strikes[1] - K.strikes[0] + 1)), times = [];
+    let t = t0 + K.firstAt; for (let i = 0; i < n; i++) { times.push(t); t += K.between[0] + r() * (K.between[1] - K.between[0]); }
+    radioStorm = { t0, t1: t0 + K.len, times, done: 0, away: Math.max(times[times.length - 1] + 2, t0 + K.len - K.rollAway) };
+    return true;
+  }
+  const radioStrikeStop = () => { radioStorm = null; };
   // SCHED — FR5 C1's cut (scene-weather.js, a pure move): the weather's sources (live / held / the climate), the ice's edges, the snow + rain envs, THE SWAY (the trees + the wind's layer), weatherTick — WXS / WF stay here, set through the ctx (THE WIND IS ONE STATE: WF is still made once a frame by scene.js's weatherTick path)
   const sceneWeather = createSceneWeather({ get AUD() { return AUD; }, get baker() { return baker; }, get cam() { return cam; }, get camSig() { return camSig; }, get clock() { return clock; }, get clouds() { return clouds; }, get cloudSetKey() { return cloudSetKey; }, set cloudSetKey(v) { cloudSetKey = v; }, get destroyed() { return destroyed; }, get DK() { return DK; }, get dpr() { return dpr; }, get extrasIn() { return extrasIn; }, set extrasIn(v) { extrasIn = v; }, get frost() { return frost; }, set frost(v) { frost = v; }, get H() { return H; }, get HZ() { return HZ; }, get L() { return L; }, get lampLevels() { return lampLevels; }, get laneKey() { return laneKey; }, get lastT9() { return lastT9; }, get legendPow() { return legendPow; }, get lightningFlash() { return lightningFlash; }, get LK() { return LK; }, get LOADLOG() { return LOADLOG; }, get lookAt() { return lookAt; }, set lookAt(v) { lookAt = v; }, get neon() { return neon; }, get rain() { return rain; }, get remoteKey() { return remoteKey; }, get S() { return S; }, get shownAt() { return shownAt; }, get signLive() { return signLive; }, get SN() { return SN; }, get snowDt() { return snowDt; }, get speak() { return speak; }, get swayDbg() { return swayDbg; }, set swayDbg(v) { swayDbg = v; }, get swayGeo() { return swayGeo; }, set swayGeo(v) { swayGeo = v; }, get swayKey() { return swayKey; }, set swayKey(v) { swayKey = v; }, get tier() { return tier; }, get W() { return W; }, get water() { return water; }, get WF() { return WF; }, set WF(v) { WF = v; }, get wfx() { return wfx; }, set wfx(v) { wfx = v; }, get wxHeld() { return wxHeld; }, set wxHeld(v) { wxHeld = v; }, get wxRevealed() { return wxRevealed; }, get WXS() { return WXS; }, set WXS(v) { WXS = v; }, get wxTarget() { return wxTarget; }, set wxTarget(v) { wxTarget = v; }, get wxTargetKey() { return wxTargetKey; }, set wxTargetKey(v) { wxTargetKey = v; } });
   const { climateNow, extrasT, fogD, glassWx, iceEdgesNow, iceFx, lastWet, liveKp, liveWhy, rainEnv, rainHaze, rainLights, snowEnv, swayCut, swayLayer, swayPlan, swayTrees, weatherTick, wetGround, wxNow, wxSourceNow } = sceneWeather;
@@ -478,6 +491,22 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // while it flies (dimSign(id, { logo, tag, ms }) / dimSign(id, null)); title.js applies it (S.onSignDim)
   const signDim = createSignDim(d => { if (S.onSignDim) S.onSignDim(d); });
   let events = { active: [], quiet: [] }, eventsAt = 0, sched = null, schedRead = false, density = densityOf([]);
+  // CITY CONTROLS A — THE RADIO's moments, played ONCE each (scene-radio.js; the remote feeds them: the city's from the cached GET, the
+  // owner's desk at once)
+  const radioScene = createSceneRadio({
+    clock, srv: serverNow,
+    dark: () => clamp01((TW.day || 0) + 0.8 * (TW.gold || 0)) < 0.2,
+    off: () => (LK && LK.local ? LK.local.off : 0),
+    legend: (kind, at) => { const w = { kind, at, dir: 1 }; if (legends) legends.start(kind, at, w); else { legendWant = w; needLegends(); } },
+    stopLegend: () => { legendWant = null; if (legends) legends.stop(); },
+    sky: () => sky.api,
+    blackbird: at => { if (!S.motion) return false; const hy = bbStrip(); return bb.start('forced', at + (BB.tell + 1.5) * 1000, 1, hy.y, { clipTop: hy.clip, clipBot: hy.clipBot }); },
+    stopBlackbird: () => { if (bb.on()) bb.stop(); },
+    lightning: (at, o) => radioStrike(at, o),
+    stopLightning: () => radioStrikeStop(),
+    resetEvents: () => { sched = null; events = { active: [], quiet: [] }; },
+    log: w => LOADLOG.add('radio', w),
+  });
 
   // ------------------------------------------------------------------ the camera + the layout + the bake plan
   function rects() {
@@ -911,7 +940,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       const P = { fireworks: ['FIREWORKS', 'TONIGHT 9:30'], party: ['STREET PARTY', 'FROM 8'], lookup: ['LOOK UP', 'ANY MINUTE'], postcard: ['LAST WEEK', 'BLACKBIRD'] }[k] || ['FIREWORKS', 'TONIGHT 9:30'];
       return { lines: P, art: k === 'postcard' ? 'blackbird' : null };
     }
-    return hintAt(lc, clock.now() / 1000);
+    return hintAt(lc, clock.now() / 1000, { off: lc.off != null ? lc.off : (LK.local && LK.local.off) || 0 });
   }
   function boardSync(tr) {
     lampFaultNow = tr.lampFault || null;
@@ -1570,6 +1599,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   function draw(t, dt, now) {
     try { towerTick(now); } catch (e) { if (!towerFailed) { towerFailed = true; reportError(e, 'harbor tower'); } }
     const c = ctx;
+    try { radioScene.tick(); } catch (e) { console.warn('[harbor] radio', e); }
     syncForce();
     c.setTransform(dpr, 0, 0, dpr, 0, 0);
     refreshLook(performance.now());
@@ -1701,10 +1731,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     snowDt = dt; lastT9 = t;   // (ATM-B: the snow's layers share this frame's clock)
     // ATM-B — THE STORM: the deck rolls in (~25 s live, ~6 s on a preview) under the lightning; the bolts start from its underside; a CLOSE
     // strike onto a crown, the water or THE NEEDLE (mmTipOf); &force=strike (the panel's CLOSE STRIKE) = a close one every ~10 s
-    { const want = WXS && WXS.state === 'storm' && !off.has('no-storm-deck') ? 1 : 0, sdt = stormT == null ? 0 : Math.max(0, Math.min(0.5, t - stormT)); stormT = t;
-      stormK += (want - stormK) * Math.min(1, sdt / (WXS && WXS.target && WXS.target.why && /forced/.test(WXS.target.why) ? 3 : 12)); if (Math.abs(want - stormK) < 0.002) stormK = want; }
+    const nowZ = clock.now() / 1000, rs = radioStorm && nowZ >= radioStorm.t0 - 0.5 && nowZ < radioStorm.t1 + 25 ? radioStorm : null;
+    if (radioStorm && nowZ >= radioStorm.t1 + 25) radioStorm = null;
+    const rsOn = !!(rs && nowZ < rs.away);
+    { const want = (WXS && WXS.state === 'storm' && !off.has('no-storm-deck')) || rsOn ? 1 : 0, sdt = stormT == null ? 0 : Math.max(0, Math.min(0.5, t - stormT)); stormT = t;
+      const rate = rsOn ? knob('radio.lightning').rollIn : (WXS && WXS.target && WXS.target.why && /forced/.test(WXS.target.why) ? 3 : 12);
+      stormK += (want - stormK) * Math.min(1, sdt / rate); if (Math.abs(want - stormK) < 0.002) stormK = want; }
+    if (rs && rs.done < rs.times.length && nowZ >= rs.times[rs.done]) { rs.done++; zap.strikeClose(); }
     const skyFoot = (skyline && skyline.length ? Math.max(...skyline) : HZ * 0.9) - 4, deckBase = cam.safeTop + (skyFoot - cam.safeTop) * 0.3;
-    zap.tick({ on: !!(WXS && WXS.lightning) && !off.has('no-lightning'), t, motion: S.motion, base: stormK > 0.3 ? deckBase : cam.safeTop + 40, horizon: skyFoot, force: off.has('lightning'), close: off.has('strike'), needle: mmTipOf(), skyline, near: nearRoof, occ: fs.heliOcc, water: water.band() });
+    zap.tick({ on: (!!(WXS && WXS.lightning) || !!rs) && !off.has('no-lightning'), manual: !!rs && !(WXS && WXS.lightning), rod: !!rs, t, motion: S.motion, base: stormK > 0.3 ? deckBase : cam.safeTop + 40, horizon: skyFoot, force: off.has('lightning'), close: off.has('strike'), needle: mmTipOf(), skyline, near: nearRoof, occ: fs.heliOcc, water: water.band() });
     if (stormK > 0.01) stormDeck.draw(c, { k: stormK, W, top: Math.max(0, cam.safeTop - 20), base: deckBase, horizon: skyFoot, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), night: litK(DK, 'lamps'), party: PT.on > 0.5, t, motion: S.motion, wind: WF.v(0.5) * 0.35, dpr, flash: zap.flashInfo() });
     zap.draw(c, fs);
     // (6b: THE TR-3B + its chase — under the cloud base, in front of the stars + the moon, behind the city's crowns)
@@ -2785,6 +2820,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }).catch(e => console.warn('[harbor] bench', e));
 
   return {
+    /** CITY CONTROLS A — THE RADIO: the moments this phone plays (screens/harbor/remote.js + radio.js feed them) */
+    radio(list) { radioScene.set(list); },
+    radioDebug: () => radioScene.debug(),
     set(v) {
       Object.assign(S, v);
       if (v.textRects || v.clear) maybeRelayout();

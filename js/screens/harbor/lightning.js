@@ -74,7 +74,7 @@ export function createLightning({ onStrike = null } = {}) {
       const tip = s.needle, sky = s.near || s.skyline, wb = s.water, occ = s.occ || [];
       // (a point the near pieces hide — the speakeasy, its billboard, the blade, the signs — is never a landing)
       const hidden = (px, py) => occ.some(o => px > o.x - 6 && px < o.x + o.w + 6 && py > o.y - 4);
-      if (tip && r() < LIGHTNING.NEEDLE) target = { kind: 'needle', x: tip[0], y: tip[1] };
+      if (tip && (s.rod || r() < LIGHTNING.NEEDLE)) target = { kind: 'needle', x: tip[0], y: tip[1] };   // (s.rod: the radio's strikes go for the spire — the city's lightning rod)
       else if (sky && sky.length && r() < 0.6) {
         // a crown of the NEAREST buildings: the highest point in a random stretch of the near roofline (a roof, not a gap), not hidden
         for (let tries = 0; tries < 6 && !target; tries++) {
@@ -123,7 +123,7 @@ export function createLightning({ onStrike = null } = {}) {
       motion = !!s.motion; if (s.horizon != null) foot = s.horizon + 6;   // (an unset motion = still: the old rule — never a full flash before the setting lands)
       if (!s.on) { flash = 0; if (cur && s.t - cur.at > 1 + (cur.hold || 0)) cur = null; return; }
       if (wantClose && s.t - lastAt >= 1.5) { wantClose = false; strike(s.t, s, 'close'); next = s.t + LIGHTNING.MIN_GAP + r() * 3; }
-      else if (s.t >= next && s.t - lastAt >= LIGHTNING.MIN_GAP) {
+      else if (!s.manual && s.t >= next && s.t - lastAt >= LIGHTNING.MIN_GAP) {   // (CITY CONTROLS A: s.manual — only the radio's planned strikes)
         strike(s.t, s, s.close && r() < 0.8 ? 'close' : strikeKind(r()));
         next = s.t + (s.close ? 9 + r() * 3 : s.force ? LIGHTNING.MIN_GAP + r() * 2.5 : LIGHTNING.GAP[0] + r() * (LIGHTNING.GAP[1] - LIGHTNING.GAP[0]));
       }

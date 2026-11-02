@@ -429,7 +429,7 @@ export const SCHEDULE = Object.freeze([
     knobs: { len: 120, show: 25, every: 60, prio: 50, line: 12 } },
   { id: 'radio.lightning', trigger: 'event', status: 'live', src: 'core/harbor-radio.js#startOf + screens/harbor/stormcell.js', jack: { id: 'lightning', label: 'LIGHTNING', order: 13, card: 'fire', dark: false, len: 26, lane: 'free', start: 'lightning', crew: true, limit: 'lightning', note: 'a strike — on a clear sky a dark storm cell rolls in from upwind first' },
     what: 'THE RADIO’s LIGHTNING: in a storm / rain 1–3 close strikes; on a clear sky a brief storm cell rolls in from upwind (`rollIn` s), strikes `strikes` times on the lighthouse or a tower’s rod, rolls away (`len` s in all)',
-    knobs: { rollIn: 3.5, strikes: [1, 3], firstAt: 5, between: [2.5, 5], len: 24 } },
+    knobs: { rollIn: 3.5, strikes: [1, 3], firstAt: 5, between: [4.6, 6.5], len: 24, rollAway: 6 } },
   { id: 'radio.beams', trigger: 'event', status: 'live', src: 'core/harbor-radio.js#startOf', jack: { id: 'beams', label: 'SKY BEAMS', order: 14, card: 'fire', dark: true, len: 180, lane: 'free', start: 'hold:beams', crew: true, limit: 'beams', note: 'the party’s beams up from the tall towers (3 min)' }, what: 'THE RADIO’s SKY BEAMS' },
   { id: 'legendaries', trigger: 'event', status: 'live', src: 'core/harbor-legend.js', what: 'the legendaries (the UFO, the TR-3B…) — their seeded nights', conflicts: ['traffic'] },
   { id: 'blackout', trigger: 'event', status: 'live', src: 'core/harbor-dark.js', what: 'THE BLACKOUT (the TR-3B\'s drain): every light down, back on in turn' },

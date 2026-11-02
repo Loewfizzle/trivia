@@ -6,6 +6,7 @@
 import { knob, SCHEDULE } from './harbor-schedule.js';
 import { legendsTonight } from './harbor-showcase.js';
 import { partyDow } from './party.js';
+import { localStart } from './harbor-radio.js';
 
 const NAMES = Object.freeze({ blackbird: 'BLACKBIRD', ufo: 'THE SAUCER', tr3b: 'THE TR-3B', flyby: 'THE F-22s' });
 /** the hour as words a 1920s card would print (21.5 → "9:30", 20 → "8") */
@@ -44,9 +45,39 @@ export function hintsAt(lc, o = {}) {
   }
   return out.sort((a, b) => b.prio - a.prio);
 }
+// ------------------------------------------------------------------ CITY CONTROLS A — THE OWNER's MESSAGES (the BILLBOARD jack)
+// radio/board on the server → GET /api/admin?live=1 → setOwnerMessages: { id, lines: [a, b], local: { h, mi } | null, repeat: { dows } | null,
+// at, until (a NOW message: abs ms), made } — a message takes the whole board for `show` s every `every` s inside its window (`len` min from
+// its start; AT A TIME / a REPEAT: in each viewer's OWN local time); the owner's words win over the automatic hints
+let OWNER = [];
+export function setOwnerMessages(list) { OWNER = Array.isArray(list) ? list.filter(m => m && m.id && Array.isArray(m.lines)) : []; }
+export const ownerMessages = () => OWNER;
+/** a message's window that holds `ms` (or null): off = the viewer's zone (minutes east) → [w0, w1] abs ms */
+export function ownerWindow(m, ms, off = 0) {
+  const B = knob('radio.billboard'), span = B.len * 60e3, dayMs = 864e5, offMs = off * 60e3;
+  if (!m.local) return m.at != null && ms >= m.at && ms < (m.until || m.at + span) ? [m.at, m.until || m.at + span] : null;
+  // (AT A TIME, once: the first such local time from when it was made)
+  if (!m.repeat) { const w0 = localStart(m.local, m.made || ms, off); return ms >= w0 && ms < w0 + span ? [w0, w0 + span] : null; }
+  // (A REPEAT: today's or yesterday's (a window past midnight) on its days)
+  const d0 = Math.floor((ms + offMs) / dayMs) * dayMs - offMs;
+  for (const back of [0, 1]) {
+    const day = d0 - back * dayMs, w0 = day + (m.local.h * 60 + m.local.mi) * 60e3;
+    if (m.repeat.dows.includes(new Date(day + offMs).getUTCDay()) && ms >= w0 && ms < w0 + span) return [w0, w0 + span];
+  }
+  return null;
+}
+/** the owner's message ON at abs ms (its spell in the cycle) → { id, lines, own: true } | null */
+export function ownerAt(ms, off = 0) {
+  const B = knob('radio.billboard');
+  for (const m of OWNER) { const w = ownerWindow(m, ms, off); if (w && (((ms - w[0]) / 1000) % B.every) < B.show) return { id: `own.${m.id}`, lines: m.lines, art: null, own: true }; }
+  return null;
+}
+
 /** what the board shows at a local moment + abs seconds t: the top hint whose cycle is ON (its `show` s every `every` s, counted from its
- *  window's start on the city's clock) → { id, lines, art? } | null (null: the day's game) */
+ *  window's start on the city's clock) → { id, lines, art? } | null (null: the day's game). CITY CONTROLS A: the owner's messages first
+ *  (o.off: the viewer's zone, minutes east) */
 export function hintAt(lc, t, o = {}) {
+  { const own = ownerAt(t * 1000, o.off || 0); if (own) return own; }
   for (const H of hintsAt(lc, o)) {
     const ev = evOf(lc), into = (ev.hr - H.from) * 3600;
     if (((into % H.every) + H.every) % H.every < H.show) return { id: H.id, lines: H.lines, art: H.art || null };

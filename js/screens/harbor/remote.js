@@ -48,6 +48,8 @@ import { SLOTS, PARTS, takesOf } from '../../core/city-sounds.js';
 import { cityPreview, citySoundsDebug } from '../../audio/city-sound.js';
 import { debugTool, setDebugTool } from '../../ui/debug-tools.js';
 import { setMenuExtra, setMenuCue } from '../../ui/settings-panel.js';
+import { setServerShowcase } from '../../core/harbor-showcase.js';
+import { setOwnerMessages } from '../../core/harbor-billboard.js';
 
 const FOLD_KEY = 'nd:hr-folds';   // (ATM-C: the long blocks the owner opened — remembered on this device)
 const ME_KEY = 'nd:hr-me', MODE_KEY = 'nd:hr-mode', ADMIN_KEY = 'nd:hr-admin', OPEN_KEY = 'nd:hr-open', DELAY_KEY = 'nd:hr-delay', RECENT_KEY = 'nd:hr-recent';
@@ -196,7 +198,7 @@ export function createRemote({ scene, api = apiCall }) {
     if (document.visibilityState === 'visible') {
       try {
         const r = await fetch('/api/admin?live=1', { headers: { Accept: 'application/json' } });
-        if (r.ok) { const j = await r.json(); if (j && Number.isFinite(j.at)) onLiveNode(j.live || null, j.at); }
+        if (r.ok) { const j = await r.json(); if (j && Number.isFinite(j.at)) { onLiveNode(j.live || null, j.at); onRadio(j.radio || null, j.at); } }
       } catch { /* offline / no /api here: keep what's on */ }
     }
     if (!destroyed && pollOn && !pollT) pollT = setTimeout(poll, POLL_MS * (0.9 + Math.random() * 0.2));
@@ -205,11 +207,34 @@ export function createRemote({ scene, api = apiCall }) {
   document.addEventListener('visibilitychange', onVis);
   poll();
   function listenLive() {
-    pollOn = false; clearTimeout(pollT); pollT = 0;
+    // (CITY CONTROLS A: the polls go on for THE RADIO's part — the listener's answers still win for city2/live: onLiveNode ignores an
+    //  older read once the listener has answered)
     want('admin');
     // (the listener is the truth: its answers always win — the polls stop for good)
     try { unsub = onValue(dbRef('city2/live'), snap => onLiveNode(snap && snap.val ? snap.val() : null, Infinity), () => {}); } catch (e) { console.warn('city2/live', e); }
   }
+
+  // ---------------------------------------------------------------- CITY CONTROLS A — THE RADIO's feed (every phone)
+  // the city's fired moments + the billboard's messages + the dial (the cached GET); the owner's desk adds its own at once (deskMoments)
+  let radioCity = [], radioDesk = [], radioStopped = new Set(), radioSeen = -Infinity;
+  function feedRadio() {
+    const sc = scene(); if (destroyed || !sc || !sc.radio) return;
+    const m = new Map(); for (const x of [...radioCity, ...radioDesk]) if (x && x.id && !radioStopped.has(x.id)) m.set(x.id, x);
+    try { sc.radio([...m.values()]); } catch (e) { console.warn('[harbor] radio feed', e); }
+  }
+  function onRadio(r, at) {
+    if (destroyed || !r || !(at >= radioSeen)) return;
+    radioSeen = at;
+    radioCity = Array.isArray(r.moments) ? r.moments : [];
+    radioStopped = new Set(Array.isArray(r.stopped) ? r.stopped : []);
+    setServerShowcase(r.showcase || null);
+    setOwnerMessages(Array.isArray(r.board) ? r.board : []);
+    feedRadio();
+  }
+  // THE NIXIE's count (an estimate until Vercel Analytics): a visible city says hello every ~2 min (no socket — the API)
+  let helloT = 0;
+  const hello = () => { clearTimeout(helloT); if (destroyed) return; if (document.visibilityState === 'visible' && api) api('admin', { action: 'radioHello' }).catch(() => {}); helloT = setTimeout(hello, 120e3 * (0.9 + Math.random() * 0.2)); };
+  firebaseReady.then(() => { if (!destroyed && !TEST_PANEL) helloT = setTimeout(hello, 4000); }).catch(() => {});
 
   // ---------------------------------------------------------------- the owner's pill (admins only)
   // (PERF-A — FR5 E2 + Grok: a "no" was pinned 6 h in the tab — asked before this login was linked to its profile, it stayed after a key
@@ -928,7 +953,10 @@ export function createRemote({ scene, api = apiCall }) {
   apply();
   return {
     /** the scene was re-created (title.js) or the state should be re-applied */
-    apply,
+    apply: () => { apply(); feedRadio(); },
+    /** CITY CONTROLS A — THE RADIO's desk: its moments (JUST ME + what it just fired) played at once on this phone; poll the city now */
+    deskMoments(list) { radioDesk = Array.isArray(list) ? list : []; feedRadio(); },
+    radioNow: () => poll(),
     open, close,
     /** (tests + shots) the mode, and this phone's JUST ME state — at once (no countdown, nothing queued) */
     setMode(v) { mode = v === 'all' ? 'all' : 'me'; ss.set(MODE_KEY, mode); if (mode === 'all') draft = { state: clone(liveBase()), ui: {} }; render(); },
@@ -944,7 +972,7 @@ export function createRemote({ scene, api = apiCall }) {
     previewCountdown(m = 'me', s = 3, what = 'AURORA · DUSK') { countdown(m, serverNow() + s * 1000 + 400, what); setTimeout(() => { if (cd && cd.what === what) clearInterval(cd.iv); }, 450); },
     debug: () => ({ cue: effective() || null, what: R.describe(mine.state), words: nowWords(mine.state), mode, admin, mine: mine.state, pend: pend && pend.state, queued: dirtyMe(), live, liveNext, delay, query, recent: recent.slice(), countdown: cd && { mode: cd.mode, at: cd.at, n: cd.n, what: cd.what }, open: [...openSecs], effective: !R.isEmpty(mine.state) ? 'me' : liveOn() ? 'all' : null }),
     destroy() {
-      destroyed = true; clearInterval(tick); clearInterval(musicT); clearTimeout(typeT); clearTimeout(nextT); clearTimeout(goT);
+      destroyed = true; clearTimeout(helloT); clearInterval(tick); clearInterval(musicT); clearTimeout(typeT); clearTimeout(nextT); clearTimeout(goT);
       if (cd) clearInterval(cd.iv);
       if (play) clearTimeout(play.timer);
       if (unsub) { try { unsub(); } catch { /* fine */ } release('admin'); }

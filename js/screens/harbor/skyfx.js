@@ -371,7 +371,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       skywrite: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now),   // (6b: skywriting cut — typed)
       skytype: (text, o = {}) => !!last && startSmoke(last, 'skytype', text, o.at || last.now),
       drones: (specs, o = {}) => !!last && startDrones(last, (Array.isArray(specs) ? specs : [specs]).map(x => (typeof x === 'string' ? (DRONE_SHAPES.includes(x) || x.startsWith('mark:') ? { shape: x } : { text: x }) : x)), o.at || last.now, o),
-      balloons: (o = {}) => !!last && startBalloons(last, o.at || last.now, !!o.festival, o.seed || 3, { fast: !!o.fast, fade: !!o.fade }),
+      balloons: (o = {}) => !!last && startBalloons(last, (o.at || last.now) - (o.into ? balloons.flightLen(o.seed || 3, !!o.festival) * 1000 * o.into : 0), !!o.festival, o.seed || 3, { fast: !!o.fast, fade: !!o.fade }),   // (o.into: already that share of the way across — CITY CONTROLS A's jack: in view at once)
       helicopter: (o = {}) => { if (!last) return false; air.heli(last, o.at || last.now, o.seed || 1); return air.heliOn(); },
       /** 6b: the jets — airshow('airshow' | 'missing', { at }) */
       airshow: (kind = 'airshow', o = {}) => !!last && show.start(kind, o.at || last.now),

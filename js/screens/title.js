@@ -1743,6 +1743,7 @@ export function createTitle() {
       street: () => (scene && scene.street ? scene.street() : null),
       cost: () => (scene && scene.cost ? scene.cost() : []),
       harbor: () => (scene && scene.harbor ? scene.harbor() : null),
+      radio: () => (scene && scene.radioDebug ? scene.radioDebug() : null),   // CITY CONTROLS A: the fired moments this phone plays
       remote: () => remote,                                              // CITY 2.0 only: THE PREVIEW PANEL (tests)     // CITY 2.0 only (?city=2): camera, layout, bake + memory
       door: () => (scene && scene.door ? scene.door() : null),
       finale: () => scene && scene.finale(),

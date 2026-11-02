@@ -93,6 +93,11 @@ export function createSceneFireworks(C) {
       const t0 = fa + lead - skip + n * every;
       out.push({ id: 'fw.F.' + id + '.' + Math.round(fa) + '.' + n, kind, t0, t1: t0 + plan.dur, seed, forced: true, skip });
     }
+    // (CITY CONTROLS A — THE RADIO's FIREWORKS jack: a one-off show from its start — never again after a pause; every phone the same seed)
+    for (const r of (C.radioFw ? C.radioFw() : [])) {
+      const seed = fwHash('fwR|' + r.id), plan = fwPlan(r.kind, seed), t0 = r.t0 + 3.6;
+      if (nowS < t0 + plan.dur + 30) out.push({ id: 'fw.R.' + r.id, kind: r.kind, t0, t1: t0 + plan.dur, seed, forced: true, skip: 0 });
+    }
     return out;
   }
   /** the shows near now (their lead-in → their smoke) */
