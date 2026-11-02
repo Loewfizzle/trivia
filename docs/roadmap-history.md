@@ -1761,3 +1761,16 @@ clouds (clouds.js 'high' / 'low' passes round them), the two cloud flakes (the f
 player's own 120-ms re-place window). Groups 1–5: THE WINDOW SCENES AS TIMETABLE ROWS (core/harbor-scenes.js), the old scenes retired behind
 windows.old / &force=old-windows, AFTER HOURS (the shades down glowing — amber, cold white, green, rosy — the lights out one at a time 2–4 am;
 + the owner's add-on: the edge windows' shades), THE JUGGLER (+ Grok's drop sounds), THE CRATE GUY, THE CHARLESTON, THE BOOKIE (rotating).
+
+## CITY 2.0 — DESKTOP (Nov 2 2026) — docs/harbor/passes/desktop.md (plan.md "OWNER'S NOTES — NOV 1 (late) + NOV 2")
+Group 1: the owner's WINDOWS review — THE JUGGLER (no doorway: in from the side; an absinthe-green room; neon balls every night), THE
+CHARLESTON (~86 % of the pane, hip-high kicks, wide arms, a dark contour against the pink), THE BOOKIE (one pendant lamp lighting the wall
+behind him, a bigger figure, the hat flung in a high spinning arc), THE CRATE GUY REWORKED (stocky — scene-kit man() build/minW; one
+continuous motion — tests/harbor-crate-motion.test.mjs, was 176 teleports in 2 h), the kit's limbs foreshortening through a turn,
+&force=boss-shade + &force=shades; shots.mjs --sheet + win-<id>. Group 2: the party-sync flake at its cause (the no-socket clock timed by the
+network's Resource Timing via a PerformanceObserver: 1 ms apart at 6× CPU, was 153–168), the calm load calm + on the real compositor, the
+WebKit load hitch checked (clean). Group 3: THE DESKTOP CAMERA (core/harbor-layout.js#DESK: 1.4× closer, the eye at 8, the near edge z 50 —
+the phone's own squeeze + word faces kept; ≤ 2.2 : 1 + the soft fade; the sign 1.25×; the billboard on a taller frame, the EMPIRE second, the
+wheel off the word face). Group 4: the mouse (a pointer + a glow; the city's hover ring), Esc, THE RESIZE (the held frame + one re-fit, a
+DPR move), THE PIXEL BUDGET (2.6 MP at tier 2 — 60 fps at 1920×1080 on a DPR 2 screen). Group 5: an iPad upright = the phone, sideways = the
+desktop framing; a phone sideways (the sign smaller, the dock 0.8); THE STANDING RULE (CLAUDE.md); e2e-harbor `desktop`.

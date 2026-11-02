@@ -275,7 +275,12 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
     their seats), unlock, an old random-code room + its invite link, closing rests the word, picking with every other word
     resting / every word resting, the guessing guard; the card + JOIN panel at 390×844, 430×932, 412×915, 1440×900.
   - **Look reviews:** `node shots.mjs "<browser>" --scenes night,day,ramp,catch,dawn,first,join,halloween,christmas,valentine,rejoin,sun,rain
-    --sizes quick|phones|desktop|all|390x844,… --place gr|ny|none --crop dock,corner,sign|x,y,w,h --qs "…" --guest --out ./shots-review`
+    --sizes quick|phones|desktop|pass|wide|ipad|sideways|desk-pass|all|390x844,… --place gr|ny|none --crop dock,corner,sign,win-<id>|x,y,w,h --qs "…" --guest --out ./shots-review`
+    (DESKTOP, Nov 2: `--sizes pass` = 390 / 402 / 430 + 1440×900 — EVERY pass's look review; `desk-pass` = the desktop pass + FR6's set (1440×900,
+    1920×1080, 2560×1080, 1280×720, an iPad both ways, a phone sideways); `--crop win-jazz|win-bar|win-back|win-apartment|win-edge2…` = one
+    speakeasy window; `--every ms --count n --sheet [cols]` = the burst as ONE labelled contact sheet. e2e-harbor `ONLY=desktop` (~30 s) proves
+    the desktop camera, the hover, Esc, the resize, the iPad + a phone sideways; `PS_CPU=6 ONLY=partysync` slows the party-sync pages 6× (the
+    cloud's runner on this machine); title-perf `--dsf 2` = a desktop size on a DPR 2 screen.)
     (any moment: `--scenes name=2026-10-19T19:05`). Each shot in its own context; ~8 s per shot. `--preview` shoots
     `title-preview.html` instead — the real title without Firebase or the emulators (look reviews; flows need the app).
   - Title screen E2E by group: `ONLY=gate|flow|dock|neon|perf node e2e-title.mjs …` (gate = first visit / returning / skip; flow = HOST,

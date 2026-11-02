@@ -46,7 +46,7 @@ G('desktop', async () => {
     await sleep(300);
     const b = await settledCanvas(p);
     // (to a DPR 2 screen: the tier pinned at 2 first — this machine's own judge may have stepped it; the canvas then draws at THE PIXEL
-    //  BUDGET's ratio — core/harbor-tiers.js#budgetDpr: ~1.42 at 1920 × 1080, 4.2 MP — never the full 8.3)
+    //  BUDGET's ratio — core/harbor-tiers.js#budgetDpr: ×1.12 at 1920 × 1080, 2.6 MP — never the full 8.3)
     await ev(p, 'window.__district.setTier(2)'); await sleep(300);
     const { budgetDpr } = await import('../../../js/core/harbor-tiers.js'), want = budgetDpr(1920, 1080, 2, 2);
     await p.setViewport({ width: 1920, height: 1080, deviceScaleFactor: 2 });

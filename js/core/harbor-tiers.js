@@ -56,9 +56,10 @@ export const TIERS = Object.freeze({
   // under &dpr=3 — scene.js reads 20 as BAKE_CAP), the bake's ms a frame, the sign dressing's pixel ratio (×10)
   sceneDpr: Object.freeze([10, 15, 20]),
   // DESKTOP Group 4 — THE PIXEL BUDGET (a 1440p / 4K monitor never draws more than it needs): the city's full-screen canvases (the scene,
-  // the fireworks) stay under this many megapixels (×10) — sharp, never wasteful; a phone never reaches it (430 × 932 at 2 = 1.6 MP, an
-  // iPad sideways at 2 = 3.9 MP); a 1920 × 1080 window at DPR 2 draws at ~1.42 (4.2 MP, was 8.3), the crisp layer's lettering stays full
-  sceneMp: Object.freeze([22, 32, 42]),
+  // the fireworks) stay under this many megapixels (×10) — sharp, never wasteful; a phone never reaches it (402 × 874 at its 2× = 1.4 MP,
+  // 430 × 932 = 1.6 MP); measured (title-perf --gpu, Nov 2): a 1920 × 1080 window at DPR 2 held 60 fps at 2.6 MP (×1.12, 1 % slow frames)
+  // vs 20–24 % slow at 4.2 MP and 8.3 MP uncapped — the crisp layer keeps the lettering at the full ratio; an iPad (3.9 MP at 2) → ×1.64
+  sceneMp: Object.freeze([16, 20, 26]),
   bakeMs: Object.freeze([2, 3, 4]),
   dressDpr: Object.freeze([15, 20, 30]),
   // PERF-B — FR5 C2b: FOG's promenade bank from tier 1 (fogdepth.js — the road's bank on every tier); the UFO beam's motes (legends.js)

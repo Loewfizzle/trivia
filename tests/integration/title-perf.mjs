@@ -2,7 +2,7 @@
 //
 //   A/B (THE GATE — C1.5, the owner's rule: only a relative A/B in ONE run means anything on this laptop):
 //     node title-perf.mjs "<browser>" --city 2 --ab http://localhost:5174 [--scenes np-party,np-night] [--tiers 2,1,0]
-//                         [--pairs 3] [--cpu 4] [--gpu] [--size 402x874] [--secs 5]
+//                         [--pairs 3] [--cpu 4] [--gpu] [--size 402x874] [--dsf 2] [--secs 5]
 //     A = the --ab server (a `git worktree` of the commit before on :5174), B = E2E_BASE (the working tree on :5173). Both pages
 //     load once; the one being measured is brought to the front, so the other is HIDDEN and its city stops (the scenes stop on a
 //     hidden page) — they never compete for the CPU. Each
@@ -33,6 +33,8 @@ const SECS = Number(arg('secs', 5));
 const PAIRS = Math.max(1, Number(arg('pairs', 3)));
 const TIERS = arg('tiers', '2,1,0').split(',').map(Number);
 const [VW, VH] = arg('size', '390x844').split('x').map(Number);
+// (DESKTOP: --dsf N — the device pixel ratio (default 3 on a phone size, 1 on a desktop one): a 1920 × 1080 window on a DPR 2 screen)
+const DSF = Number(arg('dsf', 0)) || 0;
 const BASE = process.env.E2E_BASE || 'http://localhost:5173';
 const VS = arg('vs', null);            // --vs <scene>: A = each --scenes scene, B = this one, on the same server (a flag's cost)
 const BASE_A = arg('ab', null) || (VS ? BASE : null);
@@ -192,7 +194,7 @@ async function openPage(base, name) {
   page.on('pageerror', e => errs.push(e.message));
   await page.evaluateOnNewDocument(BENCH);
   const mobile = VW < 800;
-  await page.setViewport({ width: VW, height: VH, deviceScaleFactor: mobile ? 3 : 1, isMobile: mobile, hasTouch: mobile });
+  await page.setViewport({ width: VW, height: VH, deviceScaleFactor: DSF || (mobile ? 3 : 1), isMobile: mobile, hasTouch: mobile });
   await page.goto(`${base}/tests/integration/title-preview.html?${SCENES[name] || name}${AT}${CITY !== '1' ? `&city=${CITY}` : ''}`);
   const end = Date.now() + 25000;
   while (Date.now() < end && !(await page.evaluate('!!(window.__district && window.__district.phase().done)').catch(() => false))) await sleep(150);
