@@ -59,7 +59,84 @@ export const SCHEDULE = Object.freeze([
     knobs: { minute: 60, slot: 15 } },
   { id: 'party.pulse', trigger: 'beat', status: 'live', src: 'core/harbor-beat.js', what: 'the party pulse: the lights on the song\'s grid (a trusted grid always punches)' },
   { id: 'holidays', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js', what: 'the holidays, their build-ups day by day + the sign dressings' },
-  { id: 'workers', trigger: 'clock', status: 'live', src: 'core/harbor-workers.js', what: 'the workers\' day (milk 6:00, newsboy 7:00, barber 8:30, the beat cop 9 am + 9 pm…)' },
+  { id: 'workers', trigger: 'clock', status: 'live', src: 'core/harbor-workers.js', what: 'the workers\' day (milk 6:00, newsboy 7:00, barber 8:30, the beat cop 9 am + 9 pm…)',
+    knobs: { shows: {
+      // ~5:30 the street sweeper — a 1920s "white wing" with his broom + can cart; a wet streak left drying on the cobbles
+      sweeper: { days: [1, 2, 3, 4, 5, 6], win: [5.35, 5.6], len: 20 * 60, prio: 2 },
+      // 6:00 THE MILK TRUCK (fixed): the milkman's wire carrier of bottles left on the barbershop's step (they wait there until the barber)
+      milk: { days: [1, 2, 3, 4, 5, 6], at: 5.982, len: 4.6 * 60, prio: 5 },
+      // the newspaper van drops two twine-tied bundles at the vendor spot before the newsboy comes (the bundles wait: a trace)
+      newsdrop: { days: [0, 1, 2, 3, 4, 5, 6], at: null, before: 'newsboy', lead: 24 * 60, len: 70, prio: 4 },
+      // weekday mornings: THE TRASH TRUCK — the collector carries the can from beside the front-left lamppost to the truck, tips it, brings it back
+      trash: { days: [1, 2, 3, 4, 5], win: [6.3, 7.3], len: 3.6 * 60, prio: 3 },
+      // mid-morning THE ICE MAN: a block on his shoulder with the tongs, to the side door
+      ice: { days: [1, 2, 3, 4, 5], win: [9.75, 10.6], len: 4.4 * 60, prio: 2 },
+      // Tue + Fri, late morning → noon: THE WINDOW WASHERS on their hanging platform, the upper floor then the one below
+      washers: { days: [2, 5], win: [10.55, 10.85], len: 84 * 60, prio: 3 },
+      // Wednesday: THE ROOFTOP GARDENER (the beds through the seasons)
+      gardener: { days: [3], win: [9.3, 9.6], len: 95 * 60, prio: 2 },
+      // ~2 pm the "SODA WATER" truck: crates to the side door (wink)
+      soda: { days: [1, 2, 3, 4, 5], win: [13.7, 14.35], len: 5.5 * 60, prio: 2 },
+      // MONDAY 1–4 pm THE SIGN PAINTERS repaint the blade for the new week, in stages (paint-out → chalk → letters → the gilt)
+      painters: { days: [1], at: 13.0, len: 170 * 60, prio: 5 },
+      // ~5–6 pm THE BILLPOSTER changes the roof billboard (the daily game change): on the catwalk, pasting the new poster in strips
+      billposter: { days: [0, 1, 2, 3, 4, 5, 6], win: [16.85, 17.3], len: 34 * 60, prio: 4 },
+      // ~11 pm (a few nights a month) THE BOOTLEGGERS: a quiet truck (no lamps), crates passed down the basement hatch, a lookout
+      bootleg: { days: [0, 1, 2, 3, 4], win: [22.7, 23.25], len: 7 * 60, prio: 3, rare: 0.09 },
+      // SATURDAY: the bootleggers' BIG delivery before the party night (every Saturday, ~6:30–7 pm)
+      delivery: { days: [6], win: [18.45, 18.9], len: 11 * 60, prio: 4 },
+      // CAUSE AND EFFECT (the city notices itself): the morning after a blade bulb went out — the repairman's tall ladder at the corner
+      bulb: { days: [0, 1, 2, 3, 4, 5, 6], win: [9.15, 9.7], len: 8 * 60, prio: 4, after: 'bulbOut' },
+      // the morning after a lamppost's bad night — a short ladder at that lamp
+      // (PROM — RETIRED: `lamp`, the lampman's stepladder at a lamppost — the promenade has no lampposts now (the implied lamps stand behind
+      // the viewer); a lamp's bad night still stutters its implied pool until the next day — lampFault below + scene.js#lampLife)
+      // the morning after a party night: the extra sweep (7:30) + a cleanup crew on the roof (9 am)
+      sweep2: { days: [0, 6], win: [7.4, 7.7], len: 32 * 60, prio: 3, after: 'party' },
+      crew: { days: [0, 6], win: [8.95, 9.2], len: 70 * 60, prio: 3, after: 'party' },
+      // POLISH 5 — HOT SUMMER AFTERNOONS (the real temperature ≥ HOT_C — ctx.hot(key), the live weather): a city worker opens THE HYDRANT,
+      // its spray arcs onto the cobbles for a couple of minutes (a kid runs through it), shut again; the wet patch dries (~2 hot days in 3)
+      hydrant: { days: [0, 1, 2, 3, 4, 5, 6], win: [13.6, 16.7], len: 3.6 * 60, prio: 2, hot: true, chance: 0.66 },
+      // 11a-2 — THE LEAF RAKER (the Thanksgiving build-up: Nov 4 → 22, late morning): a groundskeeper rakes the fallen leaves under the
+      // trees into two piles, bags them + carries the sack off (dates: a local-date gate — PURE)
+      // 11a-2 — BLACK FRIDAY: THE FIRST CHRISTMAS CREW (core/harbor-xmas.js — its hour + length; the strings appear as they work)
+      xlights: { days: [0, 1, 2, 3, 4, 5, 6], prio: 7 },
+      // 9e — THE WATER WAGON's NIGHT (plan.md "FILLING THE DEAD TIMES — DECIDED" (2)): while the street flusher makes its slow passes on the back
+      // road (~2:45 → 3:30 — core/harbor-snowwork.js#flushWindow), a crewman opens THE HYDRANT and hoses the cobbles (the hot day's spray,
+      // its wet patch drying); never after rain, below freezing or on snow (ctx.flush(key) — the scene's live conditions)
+      hoser: { days: [0, 1, 2, 3, 4, 5, 6], win: [2.95, 3.1], len: 4 * 60, prio: 3, flush: true },
+      raker: { days: [1, 2, 3, 4, 5, 6], win: [10.9, 11.5], len: 32 * 60, prio: 2, dateWin: [11, 4, 22] },   // (dateWin: [month, from day, to day])
+    }, slack: 60 * 60 } },
+  { id: 'workers.regulars', trigger: 'clock', status: 'live', src: 'core/harbor-workers.js#REGULARS', what: 'THE REGULARS (they may overlap a show): the newsboy, the evening edition, the barber, the beat cop + his night patrol, the mailman, the bartender, the doorman, the flower seller, the musician, the staff locking up, the henchman’s night shift — evening ones on the evening’s clock (25 = 1 am)',
+    knobs: {
+      // 7:00 THE NEWSBOY (fixed) at his stand till ~10 (the weekend edition 8 → 11); the EVENING EDITION 4:30 → 6:30 on weekdays
+      newsboy: { days: [1, 2, 3, 4, 5], at: 7.0, len: 3 * 3600, weekend: { at: 8.0, len: 3 * 3600 } },
+      evening: { days: [1, 2, 3, 4, 5], at: 16.5, len: 2 * 3600 },
+      // 8:30 THE BARBER (fixed, Mon–Sat): takes in the milk, sweeps the step, cranks the awning
+      barber: { days: [1, 2, 3, 4, 5, 6], at: 8.5, len: 13.5 * 60 },
+      // 9:00 am + 9:00 pm THE BEAT COP (fixed, every day): a friendly stroll through — the baton's twirl, a tip of the hat
+      cop: { days: [0, 1, 2, 3, 4, 5, 6], at: 9.0, len: 110 },
+      patrol: { days: [0, 1, 2, 3, 4, 5, 6], at: 21.0, len: 110 },
+      // ~10:30 THE MAILMAN to the barbershop
+      mail: { days: [1, 2, 3, 4, 5, 6], win: [10.25, 10.75], len: 95 },
+      // ~4 pm THE BARTENDER arrives at the side door (the window moment's lights come on behind him)
+      bartender: { days: [0, 1, 2, 3, 4, 5, 6], at: 15.93, len: 60 },
+      // from dusk THE DOORMAN at the side door (guests whisper the password); on party nights he hands over to the line's doorman
+      doorman: { days: [0, 1, 2, 3, 4, 5, 6], dusk: 0.17, until: 25.85 },
+      // dusk THE FLOWER SELLER (Wed–Sat, most weeks) selling to couples heading in
+      flowers: { days: [3, 4, 5, 6], dusk: 0.3, len: 2.4 * 3600, chance: 0.72 },
+      // ~8 pm THE MUSICIAN with his double-bass case (the band) — not on Mondays (the band's night off)
+      musician: { days: [0, 2, 3, 4, 5, 6], win: [19.85, 20.1], len: 75 },
+      // ~2 am THE BAR STAFF lock up + leave (the evening's own clock: 26 = 2 am)
+      staff: { days: [0, 1, 2, 3, 4, 5, 6], at: 25.97, len: 150 },
+      // 9e — THE NIGHT SHIFT (plan.md "FILLING THE DEAD TIMES — DECIDED" (1)): the boss's HENCHMAN patrols the block with a flashlight in the
+      // small hours (2:03 → 5:55, every night — after the staff have locked up) + the weekday late nights (Sun–Thu, 11:24 pm → 12:51 am);
+      // his BEAT (the left end of the front, a look round, the corner, a look up the street, a check of the door) + his LAP (off round the
+      // block, back a minute later)
+      henchman: { days: [0, 1, 2, 3, 4, 5, 6], at: 2.05, len: 3.85 * 3600 },
+      henchman2: { days: [0, 1, 2, 3, 4], at: 23.4, len: 1.45 * 3600 },
+    } },
+  { id: 'workers.faults', trigger: 'calendar', status: 'live', src: 'core/harbor-workers.js#bulbOut + lampFault + boardLampOut', what: 'CAUSE AND EFFECT (the nights the city breaks a little — the repairmen the morning after): a BLADE BULB dies one night a week (`bulb`: from + span, local h); a lamp’s bad night (`lamp`: p a night, from + span); a billboard lamp burns out (`board`: p, from + span)',
+    knobs: { bulb: { from: 21.5, span: 3 }, lamp: { p: 0.28, from: 18, span: 3 }, board: { p: 0.11, from: 19.5, span: 5.5 } } },
   // (SCHED — THE MIGRATION, Nov 2: the older systems’ timing knobs moved in; the planner READS them, its behaviour stays in its file)
   { id: 'cabs', trigger: 'clock', status: 'live', src: 'core/harbor-cabs.js#cabEvents', what: 'THE CABS on the back road: from the evening to the small hours a cab call a people-block at `p` (party nights `party` calls), drop-offs before `swap`, pick-ups after',
     knobs: {
@@ -137,6 +214,34 @@ export const SCHEDULE = Object.freeze([
     knobs: { months: [4, 5, 6, 7, 8, 9, 10], chance: 0.45, stay: [1500, 4200] } },
   { id: 'wild.fish', trigger: 'clock', status: 'live', src: 'core/harbor-wildlife.js#fishSlot', what: 'THE FISH jumping: a `slot` s draw',
     knobs: { slot: 45 } },
+  // (THE PEOPLE — core/harbor-people.js: who’s out when — the day’s periods, the weekend’s later evening, the side door’s guests, the line,
+  //  the joggers, the bus, the rooftop)
+  { id: 'people.mix', trigger: 'clock', status: 'live', src: 'core/harbor-people.js#mixNow', what: 'WHO’S OUT WHEN: the day in periods (`periods`: from → to, n [weekday, weekend] on screen, the kinds’ weights), a weekend from Friday `weekendFrom` with its evening `mood.lateShift` h later, the livelier weekday late nights (`lateWeek`), the slow Sunday morning (`sundaySlow`); party nights / rain / the street party’s crowd scale it (`mood`)',
+    knobs: { periods: [
+      { id: 'small-hours', from: 2, to: 5.5, n: [0.3, 0.5], mix: { nightworker: 2, lone: 1 } },
+      { id: 'early', from: 5.5, to: 8, n: [2.3, 1.7], mix: { dogwalker: 3, worker: 2, water: 1, bench: 1 } },
+      { id: 'commute', from: 8, to: 9.25, n: [5.2, 3.4], mix: { busrider: 4, brisk: 1.6, newsboy: 1.5, dogwalker: 1.5, worker: 1, bench: 0.6 } },
+      // (WSP — the owner, Nov 1: "a few more people in the daytime … some standing still — chatting, waiting, looking at the water": the
+      //  three daytime periods ~+1.3 on screen, the weights leaning to the ones who stand — the chat (meet), the railing (water), a window)
+      { id: 'morning', from: 9.25, to: 11.5, n: [4.3, 5.4], mix: { bench: 3, water: 3.4, couple: 2.5, dogwalker: 1.5, window: 2, meet: 2.6, busrider: 1.5, stroller: 0.8, customer: 0.3, newsboy: 0.5 } },
+      { id: 'midday', from: 11.5, to: 14, n: [5.8, 6.1], mix: { lunch: 4, bench: 1.2, couple: 2.5, water: 2.8, meet: 3, window: 1.6, busrider: 1.2, stroller: 0.8, brisk: 0.5, customer: 0.3 } },
+      { id: 'afternoon', from: 14, to: 16.25, n: [4.1, 5.4], mix: { bench: 3, water: 3.4, couple: 2.5, skyline: 1, dogwalker: 1.5, window: 1.4, meet: 2.6, busrider: 1.2, newsboy: 0.6, stroller: 0.8, customer: 0.3 } },
+      { id: 'homeward', from: 16.25, to: 18.5, n: [5.1, 4.6], mix: { busrider: 3.5, homeward: 1.2, couple: 2, bench: 2, water: 1.5, cart: 1.5, meet: 1.5, dogwalker: 1, stroller: 0.6, customer: 0.2 } },
+      { id: 'evening', from: 18.5, to: 22, n: [2.5, 3.3], mix: { couple: 3, water: 2, skyline: 1.4, stargazer: 1.5, dogwalker: 1.5, cart: 2, bench: 1.5, meet: 1, stroller: 0.6, jogger: 0.25 } },
+      { id: 'late', from: 22, to: 24, n: [2.3, 3.1], mix: { couple: 2, water: 1.5, skyline: 1, lone: 1.5, stargazer: 1, bench: 0.8, straggler: 0.4 } },
+      { id: 'night', from: 24, to: 26, n: [1.3, 1.9], mix: { lone: 2, couple: 1, straggler: 0.6, water: 0.5 } },
+      ],
+      weekendFrom: 17, eveningFrom: 18.5, nightTo: 26, lateWeek: [22, 1], sundaySlow: [8.5, 12.5], mood: { party: 3.2, partyN: 3.3, streetCut: 0.5, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2, stormCut: 0.4, fogSlow: 0.18 } } },
+  { id: 'people.jog', trigger: 'clock', status: 'live', src: 'core/harbor-people.js#jogHour', what: 'THE JOGGERS: one every `gap` s in their hours (`hours`; the weekend morning `weekend`)',
+    knobs: { gap: [45, 90], hours: [[5.5, 8], [12, 13], [17, 19]], weekend: [8, 10] } },
+  { id: 'door.stream', trigger: 'clock', status: 'live', src: 'core/harbor-people.js#streamOf', what: 'THE SIDE DOOR’s GUESTS: in (`inHours`, one every `inGap` s) + out (`outHours`, `outGap`); party nights (`party`) + the weekday late nights (`late`) their own',
+    knobs: { gap: 9, inGap: [170, 290], inHours: [18.5, 23.25], outGap: [220, 380], outHours: [21, 25.75], party: { outGap: [95, 165], outHours: [21.5, 26.25] }, late: { outGap: [260, 420], outHours: [22, 25] } } },
+  { id: 'party.line', trigger: 'clock', status: 'live', src: 'core/harbor-people.js#LINE', what: 'THE LINE at the door on PARTY NIGHTS: `from` → `to`, a guest arriving every `arrive` s, admitted in batches every `admit` s',
+    knobs: { from: 20.6, to: 25.4, arrive: [55, 95], admit: [70, 105] } },
+  { id: 'bus', trigger: 'clock', status: 'live', src: 'core/harbor-people.js#busesOf', what: 'THE BUS: `perHour` [min, max] by its band — day (`dayFrom` → `dayTo`), late (the hour after + midnight), night',
+    knobs: { perHour: { day: [2, 4], late: [1, 1], night: [0, 0] }, dayFrom: 6, dayTo: 23 } },
+  { id: 'roof.crowd', trigger: 'clock', status: 'live', src: 'core/harbor-people.js#roofCrowd', what: 'THE ROOFTOP: a crowd on party nights + summer (`summer` months) weekend nights (`weekendNight` h, full from `full`, a few from `warm`); the gardener (`garden`); someone at the view (`view` h)',
+    knobs: { summer: [6, 8], weekendNight: [19, 1], full: [20, 1.5], warm: 19, garden: { from: 9, to: 11.5, months: [4, 10] }, view: [18, 23] } },
   { id: 'sky.events', trigger: 'clock', status: 'live', src: 'core/harbor-events.js', what: 'the everyday sky: planes, the helicopter (daily), balloons, birds… by rarity' },
   // (NIGHT-C — THE HELICOPTER, the owner Oct 29 4:13 pm; SKY-A — REWORKED, the owner Oct 30 8:19–8:35 am: the ORIGINAL route back — round
   // the harbor + back around — TWO LOOPS a patrol, every ~30 min at night (3–4 min), hourly by day (2–3 min) — core/harbor-heli.js.

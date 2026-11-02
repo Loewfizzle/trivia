@@ -31,6 +31,7 @@ import { PARADE, paradeWindow, paradeHold, paradeUnits, unitsAt, unitPeople, par
 import { usesSolid, cartSolids, solidsKeyOf } from './harbor-solids.js';
 import { TIERS, tierVal } from './harbor-tiers.js';
 import { streetPartyAt, crowdK } from './harbor-streetparty.js';
+import { knob } from './harbor-schedule.js';
 
 /** the people's numbers (world units, seconds): block length, the cap on screen, gaits (units / s — a person is 2.1 units), the
  *  walkable floor (zMin: behind the front row's globes + maple; zMax: in front of the tall lamps + the bench), the kerbs */
@@ -93,34 +94,22 @@ function capCrowd(ms, cap) {
 // the mix is mostly people who STAY a while — the bench (minutes), the railing over the water, a pair stopped chatting, the bus stop,
 // the cart — and only a few walking straight through. THE SPEAKEASY STAYS SECRET: nobody walks into it from the mix — the barbershop's
 // occasional customer by day; the side door's guests come on their own schedule (DOOR_STREAM) + THE LINE on party nights (lineNight))
-export const MIX = Object.freeze([
-  { id: 'small-hours', from: 2, to: 5.5, n: [0.3, 0.5], mix: { nightworker: 2, lone: 1 } },
-  { id: 'early', from: 5.5, to: 8, n: [2.3, 1.7], mix: { dogwalker: 3, worker: 2, water: 1, bench: 1 } },
-  { id: 'commute', from: 8, to: 9.25, n: [5.2, 3.4], mix: { busrider: 4, brisk: 1.6, newsboy: 1.5, dogwalker: 1.5, worker: 1, bench: 0.6 } },
-  // (WSP — the owner, Nov 1: "a few more people in the daytime … some standing still — chatting, waiting, looking at the water": the
-  //  three daytime periods ~+1.3 on screen, the weights leaning to the ones who stand — the chat (meet), the railing (water), a window)
-  { id: 'morning', from: 9.25, to: 11.5, n: [4.3, 5.4], mix: { bench: 3, water: 3.4, couple: 2.5, dogwalker: 1.5, window: 2, meet: 2.6, busrider: 1.5, stroller: 0.8, customer: 0.3, newsboy: 0.5 } },
-  { id: 'midday', from: 11.5, to: 14, n: [5.8, 6.1], mix: { lunch: 4, bench: 1.2, couple: 2.5, water: 2.8, meet: 3, window: 1.6, busrider: 1.2, stroller: 0.8, brisk: 0.5, customer: 0.3 } },
-  { id: 'afternoon', from: 14, to: 16.25, n: [4.1, 5.4], mix: { bench: 3, water: 3.4, couple: 2.5, skyline: 1, dogwalker: 1.5, window: 1.4, meet: 2.6, busrider: 1.2, newsboy: 0.6, stroller: 0.8, customer: 0.3 } },
-  { id: 'homeward', from: 16.25, to: 18.5, n: [5.1, 4.6], mix: { busrider: 3.5, homeward: 1.2, couple: 2, bench: 2, water: 1.5, cart: 1.5, meet: 1.5, dogwalker: 1, stroller: 0.6, customer: 0.2 } },
-  { id: 'evening', from: 18.5, to: 22, n: [2.5, 3.3], mix: { couple: 3, water: 2, skyline: 1.4, stargazer: 1.5, dogwalker: 1.5, cart: 2, bench: 1.5, meet: 1, stroller: 0.6, jogger: 0.25 } },
-  { id: 'late', from: 22, to: 24, n: [2.3, 3.1], mix: { couple: 2, water: 1.5, skyline: 1, lone: 1.5, stargazer: 1, bench: 0.8, straggler: 0.4 } },
-  { id: 'night', from: 24, to: 26, n: [1.3, 1.9], mix: { lone: 2, couple: 1, straggler: 0.6, water: 0.5 } },
-]);
+export const MIX = Object.freeze(knob('people.mix').periods.map(p => Object.freeze(p)));
 /** party nights: the guests' weight × this, the count × partyN; rain (0..1): the count × (1 − rainCut × rain), the gaits × (1 + rainFast) */
-export const MOOD = Object.freeze({ party: 3.2, partyN: 3.3, streetCut: 0.5, weekendN: 1, lateShift: 1, rainCut: 0.55, rainFast: 0.2, stormCut: 0.4, fogSlow: 0.18 });
+export const MOOD = Object.freeze({ ...knob('people.mix').mood });
 
 /** the period at local hour h (0..24, a weekend shifts the evening on by MOOD.lateShift) */
 function periodAt(h, weekend = false) {
   let x = h < MIX[0].from ? h + 24 : h;
-  if (weekend && x >= 18.5 && x < 26 + MOOD.lateShift) x = x - MOOD.lateShift < 18.5 ? 18.6 : x - MOOD.lateShift;   // (the evening runs later)
+  const PM = knob('people.mix');
+  if (weekend && x >= PM.eveningFrom && x < PM.nightTo + MOOD.lateShift) x = x - MOOD.lateShift < PM.eveningFrom ? PM.eveningFrom + 0.1 : x - MOOD.lateShift;   // (the evening runs later)
   return MIX.find(p => x >= p.from && x < p.to) || MIX[0];
 }
 /** how many people on average now + the kinds' weights (PURE). ctx: { h, dow, party, rain, budget } */
 export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, rush = 0, street = 0 } = {}) {
   // (9a: a STORM — the heaviest rain — almost empties the promenade: on top of the rain's cut)
   const storm = Math.max(0, Math.min(1, (rain - 0.75) / 0.2));
-  const weekend = dow === 0 || dow === 6 || (dow === 5 && h >= 17), p = periodAt(h, weekend);
+  const PM = knob('people.mix'), weekend = dow === 0 || dow === 6 || (dow === 5 && h >= PM.weekendFrom), p = periodAt(h, weekend);
   // (NIGHT-B: while THE STREET PARTY's crowd stands — street 0..1, its curve — the pockets ARE the party; the everyday crowd eases back to
   // the walkers passing through: × (1 − streetCut × street))
   let n = p.n[weekend ? 1 : 0] * (party ? MOOD.partyN : 1) * (1 - MOOD.streetCut * Math.max(0, Math.min(1, street)));
@@ -137,10 +126,10 @@ export function mixNow({ h = 12, dow = 3, party = false, rain = 0, budget = 1, r
   // seeded lane, JOG below, one every ~1–2 min in their hours)
   // WEEKDAY LATE NIGHTS livelier (Mon–Thu, 10 pm → 1 am): more strollers, couples LEAVING THE BAR by the side door arm in arm
   // (the couples leaving the bar come out by the side door's own schedule — streamOf's `late` lane — never the random mix: POLISH 4)
-  const lateWk = !weekend && !party && (h >= 22 || h < 1) && dow !== 5 && dow !== 6;
+  const lateWk = !weekend && !party && (h >= PM.lateWeek[0] || h < PM.lateWeek[1]) && dow !== 5 && dow !== 6;
   if (lateWk) { n *= 1.3; mix.stroller = (mix.stroller || 0) + 0.8; mix.stargazer = (mix.stargazer || 0) + 0.4; }
   // A SLOWER SUNDAY MORNING (8:30 → 12:30): nobody hurrying to work — strolling pairs (Sunday best), the bench, the water
-  const sunday = dow === 0 && h >= 8.5 && h < 12.5;
+  const sunday = dow === 0 && h >= PM.sundaySlow[0] && h < PM.sundaySlow[1];
   if (sunday) { delete mix.brisk; delete mix.busrider; delete mix.worker; mix.couple = (mix.couple || 1) * 1.6; mix.stroller = (mix.stroller || 0) + 1.5; mix.water = (mix.water || 0) + 0.8; }
   if (rain > 0.3) { delete mix.lunch; delete mix.water; delete mix.stargazer; delete mix.skyline; if (mix.jogger) mix.jogger *= 0.3; if (mix.bench) mix.bench *= 0.15; mix.shelter = 1.6; }
   if (rain > 0.6) delete mix.jogger;
@@ -319,7 +308,7 @@ const crossV = v => Math.max(v, FOLK.speed.brisk * 0.85);
 // up to 36 s): shut [1.1, 1.6] s after the last rider (the fold, 0.85 s, starts ~0.3–0.7 s after they clear), away 1–2 s after it
 // shuts; an empty stop shuts emptyShut s after it stops; every arrival is placed on the signal's clock so its expected departure lands
 // 7 s into a green (busEstLast — the riders' expected last moment) — a red only stops it when its riders run long or short.
-export const BUS = Object.freeze({ len: 7.8, v: 6.5, brake: 2.2, go: 1.4, offAt: 2.2, offGap: 1.5, board: 6, shut: [1.1, 1.6], go0: [1, 2], emptyShut: 3, onLag: 5, greenIn: 7, perHour: { day: [2, 4], late: [1, 1], night: [0, 0] }, doorOpen: 0.7, doorClose: 0.85 });
+export const BUS = Object.freeze({ ...knob('bus'), len: 7.8, v: 6.5, brake: 2.2, go: 1.4, offAt: 2.2, offGap: 1.5, board: 6, shut: [1.1, 1.6], go0: [1, 2], emptyShut: 3, onLag: 5, greenIn: 7, doorOpen: 0.7, doorClose: 0.85 });
 /** the riders' expected last moment through the door after it stops (s; measured on the planner: the boarders ~onLag after the
  *  boarders' window opens, the last off rider ~0.2 s before their own step) — busesOf aims the departure with it */
 const busEstLast = (off, on) => (on ? BUS.offAt + off * BUS.offGap + BUS.onLag : off ? BUS.offAt + (off - 1) * BUS.offGap - 0.2 : 1);
@@ -340,7 +329,7 @@ export function busDoorAt(t, b, sh) {
  */
 export function busesOf(L, key, hour, t0, { force = false } = {}) {
   const r = rngFrom(hashString(`bus|${key}|${hour}`)), cam = L.cam, B = BUS, cw = L.crosswalk;
-  const per = hour >= 6 && hour < 23 ? B.perHour.day : hour === 23 || hour === 0 ? B.perHour.late : B.perHour.night;
+  const per = hour >= B.dayFrom && hour < B.dayTo ? B.perHour.day : hour === B.dayTo || hour === 0 ? B.perHour.late : B.perHour.night;
   const P = SIGNAL_PERIOD, n = force ? Math.floor(3600 / P) : per[0] + Math.floor(r() * (per[1] - per[0] + 1)), out = [];   // (&force=bus: one each signal cycle, ~47 s — the preview)
   const xIn = -cam.hw(FOLK.busZ) - B.len, xOut = cam.hw(FOLK.busZ) + B.len;
   const xc = busStopX(L) + 0.9 - B.len / 2;      // (the bus's centre when its door — 0.9 behind its front — is at the stop)
@@ -349,7 +338,7 @@ export function busesOf(L, key, hour, t0, { force = false } = {}) {
   const dGo = xOut - xc, tGo = Math.sqrt(2 * dGo / B.go), goMid = (B.shut[0] + B.shut[1] + B.go0[0] + B.go0[1]) / 2;
   for (let i = 0; i < n; i++) {
     // the riders: off first (one every offGap from offAt), then the boarders' window [tB, tB + board] (only when someone boards: on)
-    const off = hour >= 6 && hour < 23 ? Math.floor(r() * 3.2) : Math.floor(r() * 1.5), on = Math.floor(r() * 3);
+    const off = hour >= B.dayFrom && hour < B.dayTo ? Math.floor(r() * 3.2) : Math.floor(r() * 1.5), on = Math.floor(r() * 3);
     // (C4d: the stop placed on the signal's clock — its expected departure greenIn s into a green (24 s long: ready up to ~7 s early or ~10 s late still goes at once); a forced one on every cycle)
     const lead = busEstLast(off, on) + goMid - B.greenIn, nominal = force ? t0 + (i + 0.5) * P : t0 + (i + 0.15 + r() * 0.7) * 3600 / n;
     const tA = Math.round((nominal + lead) / P) * P - lead, tE = tA - tBr - dCruise / B.v, tb = tA - tBr;
@@ -658,9 +647,9 @@ export function visitAt(vis, t) {
 // 9f — THE JOGGERS ON THEIR OWN LANE (the owner, Oct 28: "the joggers didn't show"): one passes every gap s (seeded per block — every phone
 // the same) in their hours: the early block (5:30–8), lunch (12–13), after work (17–19), weekend mornings (8–10); fewer in rain, none in
 // heavy rain or a storm; &force=joggers (the panel's JOGGERS row) sends one through every ~20 s at any hour
-export const JOG = Object.freeze({ gap: [45, 90], forced: [17, 23], hours: [[5.5, 8], [12, 13], [17, 19]], weekend: [8, 10], wetCut: 0.3, noRain: 0.6 });
+export const JOG = Object.freeze({ ...knob('people.jog'), forced: [17, 23], wetCut: 0.3, noRain: 0.6 });
 export function jogHour(h, weekend) { return JOG.hours.some(([a, b]) => h >= a && h < b) || (weekend && h >= JOG.weekend[0] && h < JOG.weekend[1]); }
-export const STREAM = Object.freeze({ gap: 9, inGap: [170, 290], inHours: [18.5, 23.25], outGap: [220, 380], outHours: [21, 25.75], party: { outGap: [95, 165], outHours: [21.5, 26.25] }, late: { outGap: [260, 420], outHours: [22, 25] } });
+export const STREAM = Object.freeze({ ...knob('door.stream') });
 const evHour = (tt, off) => { const h = localOf(tt, off).h; return h < 12 ? h + 24 : h; };
 function streamOf(k, t0, ctx, party) {
   const B = FOLK.block, out = [], r = rngFrom(hashString(`stream|${ctx.seed || 1924}|${k}`));
@@ -691,7 +680,7 @@ function streamOf(k, t0, ctx, party) {
  * groups); the rest shuffle up. Never longer than `max` (a group that would make it longer doesn't come); emptied by `to`.
  * → { visits (each guest + the doorman), admits: [t] } — the same on every phone, joined mid-way.
  */
-export const LINE = Object.freeze({ from: 20.6, to: 25.4, arrive: [55, 95], admit: [70, 105], batch: 3, max: 7, slots: 12, step: 0.85 });
+export const LINE = Object.freeze({ ...knob('party.line'), batch: 3, max: 7, slots: 12, step: 0.85 });
 function lineNight(day0, key, M, L, ctx = {}) {
   const r = rngFrom(hashString(`line|${ctx.seed || 1924}|${key}`)), T0 = day0 + LINE.from * 3600, T1 = day0 + LINE.to * 3600;
   const P = linePlaces(L, LINE.slots), D = M.nodes.sideDoor;
@@ -1529,10 +1518,10 @@ export function lineRect(L, n) {
 /** the roof's numbers: who's up there by the clock — party nights + summer weekend nights a crowd (cap), otherwise 0–1 */
 export function roofCrowd({ h = 12, dow = 3, month = 10, party = false, rain = 0 } = {}) {
   if (rain > 0.3) return { n: 0, kinds: {} };
-  const summer = month >= 6 && month <= 8, weekendNight = (dow === 5 || dow === 6) && (h >= 19 || h < 1);
-  if (party || (summer && weekendNight)) return { n: h >= 20 || h < 1.5 ? 5 : h >= 19 ? 3 : 0, kinds: { dancer: 3, toast: 2, railing: 2, bar: 1.5 } };
-  if (h >= 9 && h < 11.5 && month >= 4 && month <= 10) return { n: 0.6, kinds: { gardener: 1 } };
-  if ((h >= 18 && h < 23)) return { n: 0.5, kinds: { view: 1 } };
+  const RC = knob('roof.crowd'), summer = month >= RC.summer[0] && month <= RC.summer[1], weekendNight = (dow === 5 || dow === 6) && (h >= RC.weekendNight[0] || h < RC.weekendNight[1]);
+  if (party || (summer && weekendNight)) return { n: h >= RC.full[0] || h < RC.full[1] ? 5 : h >= RC.warm ? 3 : 0, kinds: { dancer: 3, toast: 2, railing: 2, bar: 1.5 } };
+  if (h >= RC.garden.from && h < RC.garden.to && month >= RC.garden.months[0] && month <= RC.garden.months[1]) return { n: 0.6, kinds: { gardener: 1 } };
+  if ((h >= RC.view[0] && h < RC.view[1])) return { n: 0.5, kinds: { view: 1 } };
   return { n: 0.08, kinds: { view: 1 } };
 }
 /** the roof's map (world x / z on the deck): the hatch (the stair house's door), the front parapet's spots, the dance floor, the bar

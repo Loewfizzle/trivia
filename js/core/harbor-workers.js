@@ -21,95 +21,34 @@ import { partyAt, partyAtT } from './harbor-moments.js';
 import { XMAS, blackFriday } from './harbor-xmas.js';
 import { thanksgiving } from './sky.js';
 import { legendNight } from './harbor-legend.js';
+import { knob } from './harbor-schedule.js';
 
 const H = 3600;
-/** the days: 0 Sun … 6 Sat */
-const WEEKDAY = [1, 2, 3, 4, 5], MON_SAT = [1, 2, 3, 4, 5, 6], EVERY = [0, 1, 2, 3, 4, 5, 6];
 
 /**
  * THE SHOWS (one at a time on the stage): kind → { days, at (a fixed start, local hours) | win ([from, to] for a seeded start), len (s),
  * prio (a fixed one wins; the higher keeps its time), truck (it parks at the stop on the back road: the van's trade / the model) }
  */
-export const SHOWS = Object.freeze({
-  // ~5:30 the street sweeper — a 1920s "white wing" with his broom + can cart; a wet streak left drying on the cobbles
-  sweeper: { days: MON_SAT, win: [5.35, 5.6], len: 20 * 60, prio: 2 },
-  // 6:00 THE MILK TRUCK (fixed): the milkman's wire carrier of bottles left on the barbershop's step (they wait there until the barber)
-  milk: { days: MON_SAT, at: 5.982, len: 4.6 * 60, prio: 5, truck: { model: 'van', word: 'HARBOR DAIRY', paint: 0 } },
-  // the newspaper van drops two twine-tied bundles at the vendor spot before the newsboy comes (the bundles wait: a trace)
-  newsdrop: { days: EVERY, at: null, before: 'newsboy', lead: 24 * 60, len: 70, prio: 4, truck: { model: 'van', word: 'THE HERALD', paint: 2 } },
-  // weekday mornings: THE TRASH TRUCK — the collector carries the can from beside the front-left lamppost to the truck, tips it, brings it back
-  trash: { days: WEEKDAY, win: [6.3, 7.3], len: 3.6 * 60, prio: 3, truck: { model: 'dump', paint: 0 } },
-  // mid-morning THE ICE MAN: a block on his shoulder with the tongs, to the side door
-  ice: { days: WEEKDAY, win: [9.75, 10.6], len: 4.4 * 60, prio: 2, truck: { model: 'van', word: 'ICE CO.', paint: 2 } },
-  // Tue + Fri, late morning → noon: THE WINDOW WASHERS on their hanging platform, the upper floor then the one below
-  washers: { days: [2, 5], win: [10.55, 10.85], len: 84 * 60, prio: 3 },
-  // Wednesday: THE ROOFTOP GARDENER (the beds through the seasons)
-  gardener: { days: [3], win: [9.3, 9.6], len: 95 * 60, prio: 2 },
-  // ~2 pm the "SODA WATER" truck: crates to the side door (wink)
-  soda: { days: WEEKDAY, win: [13.7, 14.35], len: 5.5 * 60, prio: 2, truck: { model: 'van', word: 'SODA WATER', paint: 1 } },
-  // MONDAY 1–4 pm THE SIGN PAINTERS repaint the blade for the new week, in stages (paint-out → chalk → letters → the gilt)
-  painters: { days: [1], at: 13.0, len: 170 * 60, prio: 5 },
-  // ~5–6 pm THE BILLPOSTER changes the roof billboard (the daily game change): on the catwalk, pasting the new poster in strips
-  billposter: { days: EVERY, win: [16.85, 17.3], len: 34 * 60, prio: 4 },
-  // ~11 pm (a few nights a month) THE BOOTLEGGERS: a quiet truck (no lamps), crates passed down the basement hatch, a lookout
-  bootleg: { days: [0, 1, 2, 3, 4], win: [22.7, 23.25], len: 7 * 60, prio: 3, truck: { model: 'stake', paint: 0, dark: true }, rare: 0.09 },
-  // SATURDAY: the bootleggers' BIG delivery before the party night (every Saturday, ~6:30–7 pm)
-  delivery: { days: [6], win: [18.45, 18.9], len: 11 * 60, prio: 4, truck: { model: 'stake', paint: 1, dark: true } },
-  // CAUSE AND EFFECT (the city notices itself): the morning after a blade bulb went out — the repairman's tall ladder at the corner
-  bulb: { days: EVERY, win: [9.15, 9.7], len: 8 * 60, prio: 4, after: 'bulbOut' },
-  // the morning after a lamppost's bad night — a short ladder at that lamp
-  // (PROM — RETIRED: `lamp`, the lampman's stepladder at a lamppost — the promenade has no lampposts now (the implied lamps stand behind
-  // the viewer); a lamp's bad night still stutters its implied pool until the next day — lampFault below + scene.js#lampLife)
-  // the morning after a party night: the extra sweep (7:30) + a cleanup crew on the roof (9 am)
-  sweep2: { days: [0, 6], win: [7.4, 7.7], len: 32 * 60, prio: 3, after: 'party' },
-  crew: { days: [0, 6], win: [8.95, 9.2], len: 70 * 60, prio: 3, after: 'party' },
-  // POLISH 5 — HOT SUMMER AFTERNOONS (the real temperature ≥ HOT_C — ctx.hot(key), the live weather): a city worker opens THE HYDRANT,
-  // its spray arcs onto the cobbles for a couple of minutes (a kid runs through it), shut again; the wet patch dries (~2 hot days in 3)
-  hydrant: { days: EVERY, win: [13.6, 16.7], len: 3.6 * 60, prio: 2, hot: true, chance: 0.66 },
-  // 11a-2 — THE LEAF RAKER (the Thanksgiving build-up: Nov 4 → 22, late morning): a groundskeeper rakes the fallen leaves under the
-  // trees into two piles, bags them + carries the sack off (dates: a local-date gate — PURE)
-  // 11a-2 — BLACK FRIDAY: THE FIRST CHRISTMAS CREW (core/harbor-xmas.js — its hour + length; the strings appear as they work)
-  xlights: { days: EVERY, at: XMAS.crew.at, len: XMAS.crew.len * 60, prio: 7, truck: { model: 'van', word: 'HOLIDAY LIGHTING', paint: 1 }, dates: key => { const [y, m, d] = key.split('-').map(Number), b = blackFriday(y); return m === b.m && d === b.d; } },
-  // 9e — THE WATER WAGON's NIGHT (plan.md "FILLING THE DEAD TIMES — DECIDED" (2)): while the street flusher makes its slow passes on the back
-  // road (~2:45 → 3:30 — core/harbor-snowwork.js#flushWindow), a crewman opens THE HYDRANT and hoses the cobbles (the hot day's spray,
-  // its wet patch drying); never after rain, below freezing or on snow (ctx.flush(key) — the scene's live conditions)
-  hoser: { days: EVERY, win: [2.95, 3.1], len: 4 * 60, prio: 3, flush: true },
-  raker: { days: MON_SAT, win: [10.9, 11.5], len: 32 * 60, prio: 2, dates: key => { const [, m, d] = key.split('-').map(Number); return m === 11 && d >= 4 && d <= 22; } },
+/** a kind → spec table: the timetable's timing (knob) + the planner's own fields per kind (trucks, date gates), frozen */
+function withKnobs(times, own) { const out = {}; for (const [k, v] of Object.entries(times)) out[k] = Object.freeze({ ...v, ...(own[k] || {}) }); for (const k of Object.keys(own)) if (!out[k]) out[k] = Object.freeze({ ...own[k] }); return Object.freeze(out); }
+export const SHOWS = withKnobs(knob('workers').shows, {
+  milk: { truck: { model: 'van', word: 'HARBOR DAIRY', paint: 0 } },
+  newsdrop: { truck: { model: 'van', word: 'THE HERALD', paint: 2 } },
+  trash: { truck: { model: 'dump', paint: 0 } },
+  ice: { truck: { model: 'van', word: 'ICE CO.', paint: 2 } },
+  soda: { truck: { model: 'van', word: 'SODA WATER', paint: 1 } },
+  bootleg: { truck: { model: 'stake', paint: 0, dark: true } },
+  delivery: { truck: { model: 'stake', paint: 1, dark: true } },
+  xlights: { at: XMAS.crew.at, len: XMAS.crew.len * 60, truck: { model: 'van', word: 'HOLIDAY LIGHTING', paint: 1 }, dates: key => { const [y, m, d] = key.split('-').map(Number), b = blackFriday(y); return m === b.m && d === b.d; } },
+  raker: { dates: key => { const [, m, d] = key.split('-').map(Number), W = knob('workers').shows.raker.dateWin; return m === W[0] && d >= W[1] && d <= W[2]; } },
 });
 /** the hydrant's day: the real temperature at least this (°C: ~85 °F) */
 export const HOT_C = 29;
 /** windowed shows may slide this far past their window's end to dodge another show (s) */
-const SLACK = 60 * 60;
+const SLACK = knob('workers').slack;
 
 /** THE REGULARS (may overlap a show): kind → { days, at | win, len } — evening ones in the evening's hours (25 = 1 am) */
-export const REGULARS = Object.freeze({
-  // 7:00 THE NEWSBOY (fixed) at his stand till ~10 (the weekend edition 8 → 11); the EVENING EDITION 4:30 → 6:30 on weekdays
-  newsboy: { days: WEEKDAY, at: 7.0, len: 3 * H, weekend: { at: 8.0, len: 3 * H } },
-  evening: { days: WEEKDAY, at: 16.5, len: 2 * H },
-  // 8:30 THE BARBER (fixed, Mon–Sat): takes in the milk, sweeps the step, cranks the awning
-  barber: { days: MON_SAT, at: 8.5, len: 13.5 * 60 },
-  // 9:00 am + 9:00 pm THE BEAT COP (fixed, every day): a friendly stroll through — the baton's twirl, a tip of the hat
-  cop: { days: EVERY, at: 9.0, len: 110 },
-  patrol: { days: EVERY, at: 21.0, len: 110 },
-  // ~10:30 THE MAILMAN to the barbershop
-  mail: { days: MON_SAT, win: [10.25, 10.75], len: 95 },
-  // ~4 pm THE BARTENDER arrives at the side door (the window moment's lights come on behind him)
-  bartender: { days: EVERY, at: 15.93, len: 60 },
-  // from dusk THE DOORMAN at the side door (guests whisper the password); on party nights he hands over to the line's doorman
-  doorman: { days: EVERY, dusk: 0.17, until: 25.85 },
-  // dusk THE FLOWER SELLER (Wed–Sat, most weeks) selling to couples heading in
-  flowers: { days: [3, 4, 5, 6], dusk: 0.3, len: 2.4 * H, chance: 0.72 },
-  // ~8 pm THE MUSICIAN with his double-bass case (the band) — not on Mondays (the band's night off)
-  musician: { days: [0, 2, 3, 4, 5, 6], win: [19.85, 20.1], len: 75 },
-  // ~2 am THE BAR STAFF lock up + leave (the evening's own clock: 26 = 2 am)
-  staff: { days: EVERY, at: 25.97, len: 150 },
-  // 9e — THE NIGHT SHIFT (plan.md "FILLING THE DEAD TIMES — DECIDED" (1)): the boss's HENCHMAN patrols the block with a flashlight in the
-  // small hours (2:03 → 5:55, every night — after the staff have locked up) + the weekday late nights (Sun–Thu, 11:24 pm → 12:51 am);
-  // his BEAT (the left end of the front, a look round, the corner, a look up the street, a check of the door) + his LAP (off round the
-  // block, back a minute later)
-  henchman: { days: EVERY, at: 2.05, len: 3.85 * H },
-  henchman2: { days: [0, 1, 2, 3, 4], at: 23.4, len: 1.45 * H },
-});
+export const REGULARS = withKnobs(knob('workers.regulars'), {});
 
 // ------------------------------------------------------------------ CAUSE AND EFFECT (seeded nights)
 /** THE BLADE BULB: one night a week (seeded) a marquee bulb dies at a seeded moment (21:30 → 00:30) — dark until the repairman. → {
@@ -117,20 +56,23 @@ export const REGULARS = Object.freeze({
 export function bulbOut(dayKey, ev0, ctx = {}) {
   const wk = weekOf(dayKey), r = rngFrom(hashString(`bulbwk|${ctx.seed || 1924}|${wk}`)), dow = dowOf(dayKey);
   if (Math.floor(r() * 7) !== dow) return null;
-  return { t: ev0 + (21.5 + r() * 3) * H, bulb: Math.floor(r() * 40) };
+  const F = knob('workers.faults').bulb;
+  return { t: ev0 + (F.from + r() * F.span) * H, bulb: Math.floor(r() * 40) };
 }
 /** THE LAMP'S BAD NIGHT (~2 a week): one lamppost stutters now and then all night (dusk → dawn) — fixed next morning. → { lamp (0..n),
  *  from (abs s) } | null */
 export function lampFault(dayKey, ev0, ctx = {}) {
   const r = rngFrom(hashString(`lampfault|${ctx.seed || 1924}|${dayKey}`));
-  if (r() > 0.28) return null;
-  return { lamp: Math.floor(r() * (ctx.lamps || 4)), from: ev0 + (18 + r() * 3) * H, period: 38 + r() * 40 };
+  const F = knob('workers.faults').lamp;
+  if (r() > F.p) return null;
+  return { lamp: Math.floor(r() * (ctx.lamps || 4)), from: ev0 + (F.from + r() * F.span) * H, period: 38 + r() * 40 };
 }
 /** THE BILLBOARD LAMP (~every 9 days): one of its four goosenecks burns out (19:30 → 01:00) — dark until the next billposter fixes it */
 export function boardLampOut(dayKey, ev0, ctx = {}) {
   const r = rngFrom(hashString(`bblamp|${ctx.seed || 1924}|${dayKey}`));
-  if (r() > 0.11) return null;
-  return { lamp: Math.floor(r() * 4), t: ev0 + (19.5 + r() * 5.5) * H };
+  const F = knob('workers.faults').board;
+  if (r() > F.p) return null;
+  return { lamp: Math.floor(r() * 4), t: ev0 + (F.from + r() * F.span) * H };
 }
 /** the bootleggers' quiet weeknight (a few a month) — the RAID's hook (8b2: "rarely the raid comes the night after a delivery") */
 export function bootlegNight(dayKey, ctx = {}) {
@@ -186,7 +128,7 @@ export function workDay(key, ctx = {}) {
     want.push({ kind, S, t0: day0 + at * H, fixed: S.at != null });
   }
   // the newspaper van: before the newsboy's morning (the weekend edition later)
-  { const nb = REGULARS.newsboy, at = WEEKDAY.includes(dow) ? nb.at : nb.weekend.at; want.push({ kind: 'newsdrop', S: SHOWS.newsdrop, t0: day0 + at * H - SHOWS.newsdrop.lead, fixed: true }); }
+  { const nb = REGULARS.newsboy, at = nb.days.includes(dow) ? nb.at : nb.weekend.at; want.push({ kind: 'newsdrop', S: SHOWS.newsdrop, t0: day0 + at * H - SHOWS.newsdrop.lead, fixed: true }); }
   want.sort((a, b) => (b.fixed - a.fixed) || (b.S.prio - a.S.prio) || a.t0 - b.t0);
   const taken = [];
   // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: tonight's legendary holds its minutes — no show (its truck would drive in under the
