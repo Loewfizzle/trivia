@@ -166,6 +166,7 @@ body.rd-open { overflow: hidden; }
   background: #8e1f2a; box-shadow: inset 0 0 0 4px #8e1f2a, inset 0 0 0 5px #e9b75c, inset 0 0 0 7px #8e1f2a, inset 0 0 0 8px rgba(233, 183, 92, 0.6), 0 0 0 3px #2a1a12, 0 6px 14px rgba(0, 0, 0, 0.5); }
 .rd-board-face b { font: 700 25px/1.05 var(--font-ui); letter-spacing: 0.02em; color: #f3c46a; text-shadow: 0 1px 0 #4a0a10; transform: scaleX(0.82); white-space: nowrap; }
 .rd-board-face b + b { font-size: 21px; }
+.rd-board-face b.is-ph { opacity: 0.32; }
 .rd-board small { font: 700 8.5px/1 var(--font-ui); letter-spacing: 0.2em; color: var(--rd-dim); }
 .rd-note2 { margin: 10px 2px 0; }
 .rd-fire { width: 100%; margin-top: 16px; height: 62px; border-radius: 31px; border: 0; cursor: pointer; font: 800 18px/1 var(--font-display); letter-spacing: 0.4em; padding-left: 0.4em; color: var(--rd-ink);

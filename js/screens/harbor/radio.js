@@ -196,6 +196,13 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     card = { kind: 'jack', jack: j, text: '', colour: 'ffffff', show: 'short', dance: 'mix', when: 'now', time: '20:00', lines: ['', ''], dows: [5], err: '' };
     render();
   }
+  /** THE PROGRAM's EDIT: the billboard's card, filled in with the message (POST saves it in place) */
+  function editBoard(b) {
+    const j = (st && st.jacks || []).find(x => x.id === 'billboard'); if (!j) return;
+    sfx.play('jackIn'); band = 'desk';
+    card = { kind: 'jack', jack: j, text: '', colour: 'ffffff', show: 'short', dance: 'mix', when: b.repeat ? 'repeat' : b.local ? 'at' : 'now', time: b.local ? `${String(b.local.h).padStart(2, '0')}:${String(b.local.mi).padStart(2, '0')}` : '20:00', lines: [b.lines[0] || '', b.lines[1] || ''], dows: b.repeat ? b.repeat.dows.slice() : [5], err: '', editId: b.id };
+    render();
+  }
   function showBubble(cell, title, sub) {
     if (bubble) bubble.remove();
     const r = cell.getBoundingClientRect(), sr = sheet.getBoundingClientRect();
@@ -270,9 +277,9 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (j.card === 'dance') parts.push(sec(['THE DANCE'], seg(RD.DANCES.map(d => [d, d.toUpperCase()]), c.dance, v => { c.dance = v; })));
     if (j.card === 'billboard') {
       const line = i => h('input.rd-inp.rd-line', { type: 'text', maxlength: '12', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', value: c.lines[i], 'aria-label': `Line ${i + 1}`, placeholder: i ? '8 PM' : 'GAME NIGHT',
-        oninput: e => { c.lines[i] = e.target.value.toUpperCase().slice(0, 12); e.target.value = c.lines[i]; bb.children[i].textContent = c.lines[i] || ' '; } });
-      const bb = h('div.rd-board-face', h('b', c.lines[0] || ' '), h('b', c.lines[1] || ' '));
-      parts.push(sec(['TWO SHORT LINES', h('em', '12 letters a line — the board is ~70 pt wide')], line(0), line(1)),
+        oninput: e => { c.lines[i] = e.target.value.toUpperCase().slice(0, 12); e.target.value = c.lines[i]; const el = bb.children[i]; el.textContent = c.lines[i] || (i ? '8 PM' : 'GAME NIGHT'); el.classList.toggle('is-ph', !c.lines[i]); } });
+      const bb = h('div.rd-board-face', ...[0, 1].map(i => h('b', { class: c.lines[i] ? '' : 'is-ph' }, c.lines[i] || (i ? '8 PM' : 'GAME NIGHT'))));
+      parts.push(sec(['TWO LINES', h('em', '12 letters a line')], line(0), line(1)),
         h('div.rd-board', bb, h('small', 'ON THE SPEAKEASY’s BILLBOARD')));
     }
     if (j.card !== 'billboard') parts.push(h('p.rd-note2', j.note || ''));
@@ -293,7 +300,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (aud === 'room' && !room && j.card !== 'billboard') { c.err = 'PICK A ROOM ON THE AUDIENCE KNOB FIRST'; render(); return; }
     c.sending = true; c.err = ''; render();
     try {
-      if (j.card === 'billboard') await act({ action: 'radioBoard', lines: c.lines, local, repeat: c.when === 'repeat' ? { dows: c.dows } : null }, 'fire');
+      if (j.card === 'billboard') await act({ action: c.editId ? 'radioBoardEdit' : 'radioBoard', id: c.editId || undefined, lines: c.lines, local, repeat: c.when === 'repeat' ? { dows: c.dows } : null }, 'fire');
       else await act({ action: 'radioFire', jack: j.id, aud, room, text: c.text, colour: c.colour, show: c.show, dance: c.dance, local }, 'fire');
       card = null; render();
     } catch (e) { c.sending = false; c.err = (e && e.message) || 'Couldn’t fire it.'; render(); }
@@ -312,7 +319,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     else {
       const holder = h('div.rd-paperwrap', h('p.rd-hint', 'Tuning in…'));
       kids.push(holder);
-      face(band).then(m => { if (!m || !sheet || !holder.isConnected) return; holder.replaceChildren(...m.paint({ st, api, act, sfx, refresh, now: serverNow, cancel: id => act({ action: 'radioBoardCancel', id }) })); });
+      face(band).then(m => { if (!m || !sheet || !holder.isConnected) return; holder.replaceChildren(...m.paint({ st, api, act, sfx, refresh, now: serverNow, edit: editBoard,
+        cancel: { moment: id => { sfx.play('jackOut'); act({ action: 'radioStop', id }).catch(e => { err = e.message; render(); }); }, board: id => { sfx.play('jackOut'); act({ action: 'radioBoardCancel', id }).catch(e => { err = e.message; render(); }); } } })); });
     }
     const keep = sheet.scrollTop;
     sheet.replaceChildren(...kids.filter(Boolean));
