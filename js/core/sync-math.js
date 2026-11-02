@@ -75,3 +75,8 @@ export function songEnvelope({ at, origin, crossIn = false, xfS = 0, joinFade = 
   pts.push({ t: e, v: 0, ramp: true });
   return pts;
 }
+
+/** a sounding synced song more than this (s) off the server clock's place is re-placed (audio/synced-songs.js, checked twice a second) —
+ *  the player's sync promise: a phone whose audio clock drifts (a starved audio thread, a slow device) stays within it (WINDOWS: the
+ *  partysync check reads it) */
+export const RESYNC_S = 0.12;

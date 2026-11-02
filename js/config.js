@@ -62,17 +62,26 @@ export const AVATARS = {
 export const AVATAR_IDS = Object.keys(AVATARS);
 
 // Game registry metadata (UI + availability). Logic lives in js/games/<id>/.
+// THE GAMES (lobby order). WINDOWS (the owner, Nov 1): ONLY PRISM DROP + OVERCLOCK are PLAYABLE — `playable: false` HIDES a game
+// everywhere a player could start it (the lobby's picker, HOW TO PLAY, the title's games sheet, host.js#startGame refuses it — a rematch,
+// an invite or a stale link included); its code, data + rules stay, FROZEN. `sign: true` = on the city's game signs (THE FIVE SIGNS:
+// the two playable + NEON PAR, HIGH STAKES, GRIDLOCK "next on deck" — a tap on those says COMING SOON). A game comes back = playable: true.
 export const GAMES = [ // lobby order
-  { id: 'rum', name: 'RUMRUNNER', theme: 'rum', tag: 'PROHIBITION TRADING', blurb: 'Buy low at the Docks, sell high Uptown. Dodge the feds. Pay Mr. Balboni. Richest at dawn wins.', playable: true },
-  { id: 'stakes', name: 'HIGH STAKES', theme: 'stakes', tag: 'WAGER TRIVIA', blurb: 'See the category. Bet your chips. Then the question. Know what you know.', playable: true },
-  { id: 'gridlock', name: 'GRIDLOCK', theme: 'gridlock', tag: 'FLEET BATTLE', blurb: 'Place your fleet. Call your shots. Last fleet standing.', playable: true },
-  { id: 'slip', name: 'SLIPSTREAM', theme: 'slip', tag: 'SURVIVAL RIDE', blurb: 'One seeded course, everyone at once. Dive, fly, flip. Last rider riding wins.', playable: true },
-  { id: 'prism', name: 'PRISM DROP', theme: 'prism', tag: 'FALLING-BLOCK BATTLE', blurb: 'Clear lines to the beat. Bury your rivals in junk — or race the song.', playable: true },
-  { id: 'overclock', name: 'OVERCLOCK', theme: 'overclock', tag: 'MIND GAUNTLET', blurb: 'Rapid 30-second brain spikes. Live leaderboard.', playable: true },
-  { id: 'golf', name: 'NEON PAR', theme: 'golf', tag: 'MINI GOLF', blurb: 'Nine neon holes at once. Ghost balls, power-ups, sabotage.', playable: true },
-  { id: 'agent', name: 'DOUBLE AGENT', theme: 'agent', tag: 'SOCIAL DEDUCTION · 4–8', blurb: 'One of you doesn’t know the word. Find the leak.', playable: true },
-  { id: 'pulse', name: 'PULSE', theme: 'pulse', tag: 'RHYTHM RUN', blurb: 'The road is the beat. Hit every note, chase the combo.', playable: true },
-  { id: 'cipher', name: 'CIPHER BREACH', theme: 'cipher', tag: 'WORD RACE', blurb: 'Same hidden word. Everyone races. Watch their boards light up.', playable: true },
-  { id: 'signal', name: 'LAST SIGNAL', theme: 'signal', tag: 'TRIVIA ROYALE', blurb: '100 HP. Answer fast, strike a rival. Last one standing.', playable: true },
-  { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: true },
+  { id: 'rum', name: 'RUMRUNNER', theme: 'rum', tag: 'PROHIBITION TRADING', blurb: 'Buy low at the Docks, sell high Uptown. Dodge the feds. Pay Mr. Balboni. Richest at dawn wins.', playable: false },
+  { id: 'stakes', name: 'HIGH STAKES', theme: 'stakes', tag: 'WAGER TRIVIA', blurb: 'See the category. Bet your chips. Then the question. Know what you know.', playable: false, sign: true },
+  { id: 'gridlock', name: 'GRIDLOCK', theme: 'gridlock', tag: 'FLEET BATTLE', blurb: 'Place your fleet. Call your shots. Last fleet standing.', playable: false, sign: true },
+  { id: 'slip', name: 'SLIPSTREAM', theme: 'slip', tag: 'SURVIVAL RIDE', blurb: 'One seeded course, everyone at once. Dive, fly, flip. Last rider riding wins.', playable: false },
+  { id: 'prism', name: 'PRISM DROP', theme: 'prism', tag: 'FALLING-BLOCK BATTLE', blurb: 'Clear lines to the beat. Bury your rivals in junk — or race the song.', playable: true, sign: true },
+  { id: 'overclock', name: 'OVERCLOCK', theme: 'overclock', tag: 'MIND GAUNTLET', blurb: 'Rapid 30-second brain spikes. Live leaderboard.', playable: true, sign: true },
+  { id: 'golf', name: 'NEON PAR', theme: 'golf', tag: 'MINI GOLF', blurb: 'Nine neon holes at once. Ghost balls, power-ups, sabotage.', playable: false, sign: true },
+  { id: 'agent', name: 'DOUBLE AGENT', theme: 'agent', tag: 'SOCIAL DEDUCTION · 4–8', blurb: 'One of you doesn’t know the word. Find the leak.', playable: false },
+  { id: 'pulse', name: 'PULSE', theme: 'pulse', tag: 'RHYTHM RUN', blurb: 'The road is the beat. Hit every note, chase the combo.', playable: false },
+  { id: 'cipher', name: 'CIPHER BREACH', theme: 'cipher', tag: 'WORD RACE', blurb: 'Same hidden word. Everyone races. Watch their boards light up.', playable: false },
+  { id: 'signal', name: 'LAST SIGNAL', theme: 'signal', tag: 'TRIVIA ROYALE', blurb: '100 HP. Answer fast, strike a rival. Last one standing.', playable: false },
+  { id: 'bluff', name: 'NEURAL BLUFF', theme: 'bluff', tag: 'BLUFF TRIVIA', blurb: 'Fake the truth. Spot the truth. The Ministry is watching.', playable: false },
 ];
+
+/** WINDOWS: can a match of this game start? (the one switch: GAMES[].playable) */
+export const isPlayable = id => !!GAMES.find(g => g.id === id && g.playable);
+/** THE FIVE SIGNS: the games on the city's signs (the roof signs, the blade, the billboard, the speakeasy's ghost ad) */
+export const signGames = list => list.filter(g => g.sign);

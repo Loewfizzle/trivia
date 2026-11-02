@@ -7,7 +7,7 @@ import { MARKS, LETTERS, markFor, bladeWord, tubeEnds, scalePath } from '../js/s
 import { createRotation, rotate, CHANGE_EVERY, tickerText, holidayLine, nightsTo } from '../js/screens/district/sign-logic.js';
 
 test('every game in the registry has its own neon mark and a blade word the tube alphabet can draw', () => {
-  for (const g of GAMES.filter(x => x.playable)) {
+  for (const g of GAMES) {   // (WINDOWS: every game — hidden ones keep their marks for their return)
     assert.ok(MARKS[g.id], `${g.id} has a mark`);
     assert.ok(MARKS[g.id].tubes.length >= 1);
     const w = bladeWord(g);
@@ -27,7 +27,7 @@ test('tube geometry: caps at the open ends, none on closed shapes; paths scale',
 });
 
 test('rotation: one sign changes at a time, never to a game already showing, every game within a few minutes', () => {
-  const nGames = GAMES.filter(x => x.playable).length;
+  const nGames = 12;   // (the rotation's mechanics on a full list — City 1.0, untested in the browser since WINDOWS)
   for (const nSigns of [3, 4]) {
     let r = createRotation(nSigns, nGames);
     const seen = new Set(r.shown);

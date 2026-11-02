@@ -377,9 +377,11 @@ function body(id) {
   ];
 }
 
-export function openHelp(gameId = 'cipher') {
+export function openHelp(gameId) {
   closeHelp();
-  let current = RULES[gameId] ? gameId : 'cipher';
+  // (WINDOWS: only the PLAYABLE games' tabs — + a hidden game's own, when its match is the one on screen (the in-game menu))
+  const first = (GAMES.find(g => g.playable) || GAMES[0]).id;
+  let current = gameId && RULES[gameId] ? gameId : first;
   const content = h('div.help-body');
   const tabs = h('div.help-tabs', { role: 'tablist' });
   const name = h('h2.sheet-title');
@@ -392,7 +394,7 @@ export function openHelp(gameId = 'cipher') {
     content.replaceChildren(...body(id));
     content.scrollTop = 0;
   };
-  for (const g of GAMES) {
+  for (const g of GAMES.filter(x => x.playable || x.id === current)) {
     tabs.append(h('button.help-tab', { type: 'button', role: 'tab', dataset: { id: g.id, theme: g.theme }, onclick: () => show(g.id), 'aria-label': g.name, title: g.name }, gameArtSvg(g.id) || TAB[g.id]));
   }
   sheet = h('div.modal.help-modal', { onclick: e => { if (e.target === sheet) closeHelp(); } },

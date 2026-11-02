@@ -36,7 +36,7 @@ const lineK = ln => (ln.needle ? 1.5 : ln.thin ? THIN : 1);
 const capLight = lv => lv.map((v, i) => { const e = Math.min(i, lv.length - 1 - i); return e < 4 ? v * (0.62 + 0.095 * e) : v; });
 
 export function createNeon({ games: allGames = [], onContent = () => {} } = {}) {
-  const games = allGames.filter(g => g.playable !== false).map(g => ({ ...g, short: signName(g) }));
+  const games = allGames.filter(g => g.sign).map(g => ({ ...g, short: signName(g) }));   // (WINDOWS — THE FIVE SIGNS: config.js GAMES[].sign)
   let L = null, cam = null, dpr = 1, tier = 2, W = 0;
   let signs = [], boards = [], outs = [], items = [], queue = [], key = '', scheme = 'city', assignKey = '';
   let built = 0, lastOn = false, mbSprites = 0, rev = 0, fresh = null;

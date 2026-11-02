@@ -143,8 +143,8 @@ export const FLAG = { red: [178, 34, 52], navy: [60, 59, 110], white: [246, 244,
 export const BALLOON_SCHEMES = {
   pinstripes: [[[214, 40, 48], [250, 204, 60]], [[40, 92, 196], [246, 244, 236]]],
   vstripes: [[[214, 40, 48], [246, 150, 40], [250, 214, 60], [60, 170, 90], [50, 120, 210], [120, 70, 170]], [[24, 130, 110], [244, 232, 200], [232, 92, 40], [244, 232, 200]], [[30, 34, 72], [240, 190, 60], [196, 44, 52], [240, 190, 60]]],
-  // (WSP: THE SKULL — bone white over the dome, black from the jaw down; [bone, bone's second gore, the black])
-  skull: [[[240, 235, 222], [232, 226, 212], [18, 16, 20]]],
+  // (WINDOWS: THE MENACING SKULL — a BLACK envelope (two gores' blacks) + the bone-white skull on its face; [black, black 2, the bone])
+  skull: [[[22, 20, 24], [30, 28, 32], [240, 234, 220]]],
   smiley: [[[250, 208, 36], [246, 200, 30]]],
 };
 const brighten = c => mix(c, [255, 220, 150], 0.25).map(v => Math.min(255, Math.round(v * 1.15)));
@@ -187,7 +187,7 @@ function fabric(x, R, kind, scheme, lit, light) {
     //  lit orange + the black ₿ the owner keeps exactly — the colours the black one used to turn at night)
     if (kind === 'bitcoin') return [[26, 24, 28], [32, 30, 34]][i % 2];
     if (kind === 'btc-orange') return lit ? [[255, 150, 36], [250, 140, 30]][i % 2] : [[247, 147, 26], [240, 140, 22]][i % 2];
-    if (kind === 'skull') return L(sch[i % 2]);
+    if (kind === 'skull') return sch[i % 2];             // (WINDOWS: the black stays black lit from inside — only the bone glows)
     if (kind === 'smiley') return L(sch[i % sch.length]);
     if (kind === 'flag') return L(i % 2 ? FLAG.white : FLAG.red);
     return L(sch[i % sch.length]);                       // (pinstripes + vstripes: a colour a gore, round the sphere)
@@ -197,46 +197,42 @@ function fabric(x, R, kind, scheme, lit, light) {
     if (a1 < -Math.PI / 2 - 0.01 || a0 > Math.PI / 2 + 0.01) continue;
     goreFill(x, R, Math.max(-Math.PI / 2, a0), Math.min(Math.PI / 2, a1), kind === 'flag' ? [L(FLAG.red), L(FLAG.white)] : [goreCol(i)]);
   }
-  // THE SKULL (WSP — the owner, Nov 1 evening: "a black and white skull … high quality like all the other ones"): painted ON the sphere
-  // like the smiley — every feature a shape in longitude / latitude projected point by point (foreshortened where the dome turns away):
-  // BIG dark SOCKETS (a soft bone-shadow rim round each, the brow's inner corners lower — a stern, readable skull at ~30 pt), the inverted
-  // NOSE, the cheek hollows' soft shade, a ROW OF TEETH wrapping the curve (the bite line + the gaps), and BLACK FROM THE JAW DOWN to the
-  // mouth — the black + white the owner asked for. The puffed gores, the sun's light + shade + the sheen go OVER it (balloonArt); at dusk
-  // the lit sprite glows the bone warm from inside while the sockets stay black.
+  // THE SKULL — MENACING (WINDOWS — the owner's WSP review, Nov 1 8:20 pm: WSP's "looks like a panda bear" — the black from the jaw down +
+  // the round sockets). An ORIGINAL design, no brand mark: a BLACK envelope with a hard, angular BONE-WHITE skull painted on its face —
+  // the cranium round, the CHEEKBONES + the JAW cut in straight lines (the black shows in the cheek notches), DEEP ANGLED SOCKETS whose top
+  // edges slope DOWN to the nose (the angry brow) under a heavy brow shadow, a SHARP TRIANGULAR NOSE, a CLENCHED ROW OF TEETH (the bite line
+  // + the gaps through both rows). Every point placed on the sphere (foreshortened where it turns away). Lit from inside (dusk + night) the
+  // envelope STAYS BLACK and only the bone glows warm — a skull hanging in the dark.
   if (kind === 'skull') {
-    const ink = 'rgb(16,14,18)';
+    const ink = 'rgb(12,10,14)', bone = lit ? [255, 236, 196] : sch[2];
     const sph = (pts, close = true) => { x.beginPath(); pts.forEach(([lo, la], k) => { const [px, py] = onSphere(R, lo, la); if (k) x.lineTo(px, py); else x.moveTo(px, py); }); if (close) x.closePath(); };
-    const ring = (cl, ca, rl, ra, n = 1, tilt = 0, sq = 2.6) => Array.from({ length: 40 }, (_, k) => {
-      const t = k / 40 * TAU, c = Math.cos(t), sn = Math.sin(t), e = 2 / sq;
-      const u = Math.sign(c) * Math.pow(Math.abs(c), e) * rl, v = Math.sign(sn) * Math.pow(Math.abs(sn), e) * ra;
-      return [cl + u * n, ca + v + tilt * u];
-    });
-    // the jaw down: black below a latitude curve that dips a little at the chin (the lower envelope a black hood)
-    const jaw = Array.from({ length: 25 }, (_, k) => { const lo = -Math.PI / 2 + k / 24 * Math.PI; return [lo, -0.86 - 0.06 * Math.cos(lo)]; });
-    x.fillStyle = rgb(lit ? [40, 30, 26] : sch[2]); sph([...jaw, [Math.PI / 2, -1.6], [-Math.PI / 2, -1.6]]); x.fill();
-    x.fillRect(-R * 1.2, R * 0.86, R * 2.4, R * 0.7);
-    // the cheek hollows + the temples: soft bone shade (depth, not detail)
-    if (!lit) for (const sg of [-1, 1]) {
-      const [cx, cy] = onSphere(R, sg * 0.5, -0.36), g = x.createRadialGradient(cx, cy, 0, cx, cy, R * 0.34);
-      g.addColorStop(0, 'rgba(70,60,56,0.26)'); g.addColorStop(1, 'rgba(70,60,56,0)'); x.fillStyle = g; x.fillRect(cx - R * 0.4, cy - R * 0.4, R * 0.8, R * 0.8);
-    }
-    // THE SOCKETS: a soft shadow rim (the bone curving in), then the deep black — rounded squares, their inner top corners pulled down
+    const mirror = half => [...half, ...half.slice().reverse().map(([lo, la]) => [-lo, la])];
+    // the head: the cranium an arc (centre lat 0.12), then the cheekbone, the notch, the jaw's straight sides to a squared chin
+    const cran = Array.from({ length: 12 }, (_, k) => { const a = Math.PI / 2 - k / 11 * (Math.PI / 2 + 0.2); return [0.66 * Math.cos(a), 0.12 + 0.62 * Math.sin(a)]; });
+    const head = mirror([...cran, [0.63, -0.2], [0.47, -0.34], [0.43, -0.64], [0.29, -0.86], [0.001, -0.9]]);
+    x.fillStyle = rgb(bone); sph(head); x.fill();
+    // (the bone's own shading: darker toward its edges + under the cheekbones — depth by light, never detail)
+    { const [cx, cy] = onSphere(R, 0, 0.18), g = x.createRadialGradient(cx, cy, R * 0.18, cx, cy, R * 0.95), e = lit ? 'rgba(110,52,18,' : 'rgba(40,34,30,';
+      g.addColorStop(0, `${e}0)`); g.addColorStop(1, `${e}${lit ? 0.42 : 0.32})`); x.fillStyle = g; sph(head); x.fill(); }
+    // THE HEAVY BROW: a bone shadow just over each socket's sloping top edge
     for (const sg of [-1, 1]) {
-      x.fillStyle = 'rgba(60,50,48,0.35)'; sph(ring(sg * 0.34, 0.08, 0.3, 0.27, 1, -sg * 0.2)); x.fill();
-      x.fillStyle = ink; sph(ring(sg * 0.34, 0.07, 0.25, 0.225, 1, -sg * 0.2)); x.fill();
+      x.fillStyle = lit ? 'rgba(60,28,10,0.5)' : 'rgba(40,32,30,0.5)';
+      sph([[sg * 0.04, 0.13], [sg * 0.54, 0.33], [sg * 0.56, 0.2], [sg * 0.06, 0.0]]); x.fill();
     }
-    // THE NOSE: an inverted heart (the point up, two lobes at its foot), black
+    // THE SOCKETS: angled + deep — the inner top corner LOW by the nose, the outer top high, a hard straight brow edge
     x.fillStyle = ink;
-    sph([[0, -0.17], [0.05, -0.25], [0.1, -0.35], [0.105, -0.41], [0.075, -0.45], [0.035, -0.44], [0, -0.41], [-0.035, -0.44], [-0.075, -0.45], [-0.105, -0.41], [-0.1, -0.35], [-0.05, -0.25]]); x.fill();
-    // THE TEETH: a band of bone across the face's foot (outlined), the bite line through it, the gaps between the teeth
-    const T0 = -0.55, T1 = -0.8, TL = 0.42, tw = Math.max(0.35, R * 0.035);
-    x.strokeStyle = ink; x.lineJoin = 'round'; x.lineCap = 'round';
-    x.lineWidth = tw * 1.3;
-    sph([...Array.from({ length: 13 }, (_, k) => [-TL + k / 12 * TL * 2, T0 - 0.02 * Math.cos((k / 12 - 0.5) * Math.PI)]), ...Array.from({ length: 13 }, (_, k) => [TL - k / 12 * TL * 2, T1 + 0.03])]); x.stroke();
-    x.lineWidth = tw; sph(Array.from({ length: 13 }, (_, k) => [-TL + k / 12 * TL * 2, (T0 + T1) / 2]), false); x.stroke();
-    x.lineWidth = tw * 0.8;
-    for (let k = 1; k < 8; k++) { const lo = -TL + k / 8 * TL * 2; sph([[lo, T0 - 0.01], [lo, T1 + 0.02]], false); x.stroke(); }
-    x.lineCap = 'butt';
+    for (const sg of [-1, 1]) { sph([[sg * 0.06, 0.03], [sg * 0.52, 0.22], [sg * 0.5, -0.06], [sg * 0.36, -0.2], [sg * 0.15, -0.17], [sg * 0.07, -0.08]]); x.fill(); }
+    // THE NOSE: a sharp triangle, point up
+    sph([[0, -0.15], [0.085, -0.37], [-0.085, -0.37]]); x.fill();
+    // THE TEETH, CLENCHED: the upper lip line, the bite line, the jaw's foot, the gaps through both rows (bold strokes: they read at ~30 pt)
+    const tw = Math.max(0.45, R * 0.045);
+    x.strokeStyle = ink; x.lineJoin = 'miter'; x.lineCap = 'butt';
+    const row = (la, lo0 = 0.31, bend = 0.03) => Array.from({ length: 13 }, (_, k) => { const u = k / 12 * 2 - 1; return [u * lo0, la - bend * (1 - u * u)]; });
+    x.lineWidth = tw * 1.4; sph(row(-0.47, 0.33), false); x.stroke();
+    x.lineWidth = tw; sph(row(-0.64, 0.31), false); x.stroke();
+    x.lineWidth = tw * 1.2; sph(row(-0.79, 0.27, 0.02), false); x.stroke();
+    x.lineWidth = tw * 0.9;
+    for (let k = 1; k < 7; k++) { const lo = -0.3 + k / 7 * 0.6; sph([[lo, -0.47 - 0.03 * (1 - (lo / 0.33) ** 2)], [lo, -0.79]], false); x.stroke(); }
   }
   // THE AMERICAN FLAG wrapped round the envelope: the red + white stripes down the gores to the mouth (goreFill: two a gore), the NAVY
   // CANTON over the crown — its lower edge a circle of latitude (seen a little from below: a soft curve) — and its stars as crisp white
@@ -402,7 +398,7 @@ function glintSprite() {
 }
 /** one balloon's art in this light → { cv, glow, w, h, oy (the dome's centre from the top), mouth (y of the mouth) } — kind: one of
  *  BALLOON_KINDS (pinstripes · vstripes · skull · smiley — its scheme) or the specials ('bitcoin' black, 'btc-orange', 'alien') */
-function balloonArt(R, scheme, light, dpr, kind = 'pinstripes') {
+export function balloonArt(R, scheme, light, dpr, kind = 'pinstripes') {   // (exported for the look previews)
   const alien = kind === 'alien', path = alien ? alienPath : envPath, mouthY = (alien ? 1.5 : 1.42) * R;
   const W = R * 2.3, Hh = R * (kind === 'alien' ? 3.5 : 3.35), d = Math.min(3, dpr * 1.25);
   let glintsOut = null;
@@ -744,7 +740,8 @@ export function createBalloons() {
         }
         // THE ₿s AT NIGHT: lit from inside all the time (THE OPPOSITES — the orange one: lit orange with its black ₿; the black one stays
         // black, its orange ₿ glowing) — the burns only brighten it (POLISH 5: laid OVER the day's look, not added to it)
-        if ((b.kind === 'bitcoin' || b.kind === 'btc-orange') && dark > 0.3) { g.save(); g.globalAlpha = alpha * Math.min(1, (dark - 0.3) / 0.5); g.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * (dark - 0.3) * 0.35; g.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); g.restore(); }
+        // (WINDOWS: THE MENACING SKULL too — its envelope black, the bone glowing warm all night: a skull hanging in the dark)
+        if ((b.kind === 'bitcoin' || b.kind === 'btc-orange' || b.kind === 'skull') && dark > 0.3) { g.save(); g.globalAlpha = alpha * Math.min(1, (dark - 0.3) / 0.5); g.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * (dark - 0.3) * 0.35; g.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); g.restore(); }
         if (g !== c) g.setTransform(1, 0, 0, 1, 0, 0);
       }
       for (const [i, f] of fronts) if (!used.has(i) && f.cv.style.display !== 'none') f.cv.style.display = 'none';

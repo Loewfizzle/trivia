@@ -264,10 +264,6 @@ async function panelSection() {
     const f = await ev(D.page, 'window.__district.harbor().flags'), toast = await ev(D.page, "[...document.querySelectorAll('.toast, [class*=toast]')].map(e => e.textContent).join(' | ')");
     ok(!f.remote && f.force.includes('aurora') && !f.force.includes('banner') && /THIS LINK/.test(toast), `A PREVIEW LINK KEEPS ITS OWN &force WHILE EVERYONE IS ON: ${f.force.join(',')} (remote ${f.remote}); the toast "${toast.slice(0, 90)}"`);
     await D.ctx.close(); }
-  // the default city never subscribes
-  { const N = await open({ slot: 'he3', qs: NIGHT, city: false }); await sleep(2500);
-    ok(!N.files.some(u => /remote\.js|harbor-remote/.test(u)) && (await ev(N.page, 'window.__district.harbor()')) === null && !(await ev(N.page, '!!document.querySelector(".hr-pill")')), 'EVERYONE: the default city never loads the panel or listens to city2/live');
-    await N.ctx.close(); }
   // C2 — THE DELAY for EVERYONE: a node whose startAt is 3 s ahead — the phones keep what they show until then, then start together
   { const at = Date.now() + 3000;
     await dbPut('city2/live', { v: 1, kind: 'preview', state: { force: ['banner', 'spell'], text: 'HI ALL', when: '2026-10-24T23:00', wx: 'snow' }, params: {}, label: 'test', startAt: at, until: at + 120_000, by: 'ptest00000000' });
@@ -426,22 +422,18 @@ G('core', async () => {
     ok(run.baked && run.tier <= 1 && worst < 60 && !nearSky && !black, `RE-LAYOUT: setTier(1) mid-session (then t${run.tier}: the per-frame reads slow it, so the scene may step down again) — over ${run.n} frames (bake + crossfade) the stage-band pixel never went blank (worst Δ ${Math.round(worst)} from rgb(${run.before}); bare sky ${nearSky}×, black ${black}× — the tiers ${(run.hist || []).join("→")}, the first black frame ${run.first})`);
     await D.ctx.close(); }
 
-  // ================================================================ 2. the flag is never saved; a normal visit is today's city
+  // ================================================================ 2. the flag is never saved; a normal visit is the Harbor (since WINDOWS)
   const stored = await ev(A.page, `JSON.stringify({ ...localStorage }) + JSON.stringify({ ...sessionStorage }) + document.cookie`);
   ok(!/city/i.test(stored), 'NEVER SAVED: ?city=2 leaves nothing in localStorage, sessionStorage or cookies');
+  // (WINDOWS — THE QUIET DEFAULT FLIP, Nov 1: a visit with NO flag is the Harbor now; City 1.0 (?city=1) is untested from here on)
   { let files = []; A.page.on('request', r => files.push(r.url()));
-    // (PF — the CI's slower machine: the ?city=2 page's late requests never count, and today's signs may come up after phase().done)
     await A.page.goto('about:blank'); files = [];
     await A.page.goto(`${BASE}/?emu&slot=ha&${NIGHT}`);
     await waitFor(A.page, '!!window.__district && window.__district.phase().done', 'reload without the flag');
-    await waitFor(A.page, '(window.__district.scene().signs || []).length >= 4', "today's signs", 10000).catch(() => {});
+    await waitFor(A.page, '!!window.__district.harbor() && window.__district.harbor().shown', 'the harbor by default', 25000).catch(() => {});
     const d2 = await ev(A.page, 'window.__district.scene()'), hb = await ev(A.page, 'window.__district.harbor()'), hf = files.filter(u => /\/harbor\//.test(u));
-    const good = d2.city !== 2 && d2.signs.length >= 4 && hb === null && !hf.length;
-    ok(good, `NO FLAG: a reload without ?city=2 is today's city (its signs up, no harbor file loaded)${good ? '' : ` — city ${d2.city}, signs ${d2.signs.length}, harbor ${hb === null ? 'none' : 'up'}, harbor files: ${hf.slice(0, 3).join(' ')}`}`); }
+    ok(d2.city === 2 && hb && hb.shown && hf.length > 0, `NO FLAG = CITY 2.0: a plain visit shows the Harbor (city ${d2.city}, harbor ${hb ? 'up' : 'none'}, ${hf.length} harbor files)`); }
   await A.ctx.close();
-  { const N = await open({ slot: 'hn', qs: NIGHT, city: false });
-    ok(!N.files.some(u => /\/harbor\//.test(u)) && (await ev(N.page, 'window.__district.scene()')).city !== 2, 'NORMAL VISIT: the default city, no harbor module requested');
-    await N.ctx.close(); }
   // ---- FP3a → WIN2: THE DEBUG STRIPS — every strip FOLDED on every load (never remembered open); the column under the TEST pill + the
   // corner buttons, never over them; the readout's title cycles folded → open → EVERY OTHER STRIP HIDDEN (one tap hides them all) → folded;
   // the open LOAD log is capped + scrolls inside itself, its first lines on top; taps pass through

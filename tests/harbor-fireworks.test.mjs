@@ -66,22 +66,29 @@ test('the plans: seeded (the same on every phone), sorted by the burst, real she
   assert.ok(planShow('show', 7).cues.some(c => c.layer === 'near'), 'the weeknight show has a few too');
 });
 
-test('the party show builds to its finale + ends on the GOLD WILLOW CURTAIN', () => {
+test('the party show builds to its finale → THE DRAGON EGGS → ends on the GOLD WILLOW CURTAIN (WINDOWS: the last order swapped)', () => {
   const p = planShow('party', 99), F = knob('fireworks.party').finale;
   const rate = (a, b) => p.cues.filter(c => c.t >= a && c.t < b).length / (b - a);
-  assert.ok(rate(p.dur - F, p.dur - 10) > 2.2 * rate(20, p.dur - F), 'the finale far denser than the show');
+  assert.ok(rate(p.dur - F, p.dur - 14) > 2.2 * rate(20, p.dur - F), 'the finale far denser than the show');
   const curtain = p.cues.filter(c => c.type === 'willow' && c.c1 === 'gold' && c.big && c.t > p.dur - 12);
   assert.ok(curtain.length >= 8, 'a curtain of gold willows');
   const xs = curtain.map(c => c.x);
   assert.ok(Math.max(...xs) - Math.min(...xs) > 0.75, 'across the whole skyline');
   // PERF-A — THE CLOSING DRAGON EGGS across the FULL width (the owner, Nov 1: they were 4 over the right third)
-  const eggs = p.cues.filter(c => c.type === 'crackle' && c.big && c.t > p.dur - 3.5);
-  assert.ok(eggs.length >= 6 && eggs.length <= 8, `${eggs.length} dragon eggs at the very end`);
+  const eggs = p.cues.filter(c => c.type === 'crackle' && c.big && c.t > p.dur - 14);
+  assert.ok(eggs.length >= 6 && eggs.length <= 8, `${eggs.length} dragon eggs at the end`);
   assert.ok(Math.min(...eggs.map(c => c.x)) < 0.12 && Math.max(...eggs.map(c => c.x)) > 0.88, 'left edge → right edge');
-  assert.ok(eggs.every(c => c.t >= Math.max(...curtain.map(q => q.t))), 'after the curtain — the last volley');
+  assert.ok(eggs.every(c => c.t < Math.min(...curtain.map(q => q.t)) - 2.5), 'the eggs BEFORE the curtain (WINDOWS: the curtain is last)');
+  assert.ok(p.cues.every(c => curtain.includes(c) || c.t < Math.min(...curtain.map(q => q.t))), 'nothing bursts after the curtain starts');
+  // ...and the beat sync never flips them, whatever the grid (tempo + phase)
+  for (const beat of [0.4, 0.5, 0.55, 0.62]) for (const b0 of [1000, 1000.13, 1000.31, 1000.5]) {
+    const q = syncToBeat(p, 1000, () => ({ b0, beat, bar: 4, down: 0 }));
+    const cu = q.cues.filter(c => c.type === 'willow' && c.c1 === 'gold' && c.big && c.t > q.dur - 14), eg = q.cues.filter(c => c.type === 'crackle' && c.big && c.t > q.dur - 16);
+    assert.ok(Math.max(...eg.map(c => c.t)) + 2.4 < Math.min(...cu.map(c => c.t)), `beat ${beat} b0 ${b0}: eggs ${Math.max(...eg.map(c => c.t))} before the curtain ${Math.min(...cu.map(c => c.t))}`);
+  }
   // WSP — ONE SALVO (the owner's PERF-B review): the same launch + the same burst for every egg, before + after the beat sync
   for (const q of [p, syncToBeat(p, 1000, t => ({ b0: 1000.13, beat: 0.5, bar: 4, down: 0 }))]) {
-    const e = q.cues.filter(c => c.type === 'crackle' && c.big && c.t > q.dur - 4.5);
+    const e = q.cues.filter(c => c.type === 'crackle' && c.big && c.t > q.dur - 16);
     assert.equal(e.length, 8, 'all eight eggs');
     assert.equal(new Set(e.map(c => c.t)).size, 1, `one burst moment (${e.map(c => c.t)})`);
     assert.equal(new Set(e.map(c => Math.round((c.t - c.rise) * 1000))).size, 1, 'one launch moment');

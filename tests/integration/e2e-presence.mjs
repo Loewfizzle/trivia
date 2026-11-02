@@ -1,12 +1,13 @@
 // PRESENCE + THE HOST end to end (APP FIXES — Grok 4.4 / 4.5 / 5.1: "I refreshed and the game skipped me").
 //   node tests/integration/e2e-presence.mjs "<browser path>" ./shots-presence        (emulators + scripts/serve.mjs --emu)
-// Three phones play LAST SIGNAL (its director never waits for an offline player):
+// Three phones play OVERCLOCK (its director never waits for an offline player; WINDOWS, Nov 1: was LAST SIGNAL — only PRISM DROP +
+// OVERCLOCK are playable now):
 //   1. THE LOBBY CHAT STRIP: a phone whose lazy chat strip arrives after the lobby has gone (the game started) leaks no strip.
-//   2. A GUEST REFRESHES mid-question + the OLD page's onDisconnect lands late (online:false, an old lastSeen): the room still
-//      sees them online (one child per connection), the question waits for their answer — they are NOT skipped.
+//   2. A GUEST REFRESHES mid-challenge + the OLD page's onDisconnect lands late (online:false, an old lastSeen): the room still
+//      sees them online (one child per connection), the challenge waits for them once the other two are done — NOT skipped.
 //   3. THE SELF-HEAL: the presence node is wiped to "offline" (the old shape, no connection child) — the phone writes itself
 //      back within a few seconds.
-//   4. THE HOST REFRESHES mid-question + the same late onDisconnect: nobody claims the host while its heartbeat is fresh
+//   4. THE HOST REFRESHES mid-challenge + the same late onDisconnect: nobody claims the host while its heartbeat is fresh
 //      (client + rules) — the host is NOT deposed.
 import { createHarness } from './kit/harness.mjs';
 import { initializeTestEnvironment } from '@firebase/rules-unit-testing';
@@ -22,20 +23,15 @@ const lateDisconnect = uid => admin(db => update(ref(db, `rooms/${H.code}/presen
 const onlineOn = (page, uid) => evalIn(page, (s, u) => !!(s.presence[u] && s.presence[u].online), uid);
 const phase = page => evalIn(page, s => s.game && s.game.phase);
 
-async function answer(i) {
-  const page = pages[i];
-  await page.waitForSelector('.ls-opt', { timeout: 15000 });
-  await page.evaluate(() => { const b = document.querySelector('.ls-opt[data-i="0"]'); if (b) b.click(); });
-}
-async function pickTarget(i, target) {
-  await pages[i].evaluate(u => { const c = document.querySelector(`.ls-card[data-uid="${u}"]`); if (c) c.click(); }, target);
-}
-async function nextQuestion(host, prev) {
-  await waitFor(host, (s, p) => s.game && ((s.game.phase === 'question' && s.game.q > p) || s.game.phase === 'final'), 'the next question', 60000, prev);
-  return evalIn(host, s => s.game.q);
+// a player's challenge filed as done (the room's public flag, written as the admin — what the phone's own write leaves there)
+const fileDone = (i, g) => admin(db => set(ref(db, `rooms/${H.code}/oc/${g.matchId}/${g.ck}/${uids[i]}`), { p: 1, ok: 1, n: 1, done: true, at: Date.now() }));
+const gameNow = page => evalIn(page, s => s.game && { phase: s.game.phase, ci: s.game.ci, ck: s.game.ck, matchId: s.game.matchId });
+async function nextPlay(host, prev) {
+  await waitFor(host, (s, p) => s.game && ((s.game.phase === 'play' && s.game.ci > p) || s.game.phase === 'final'), 'the next challenge', 90000, prev);
+  return evalIn(host, s => s.game.ci);
 }
 async function backInRoom(i) {
-  await waitFor(pages[i], s => s.code && s.game && s.game.id === 'signal', `${H.NAMES[i]} back in the game`, 30000);
+  await waitFor(pages[i], s => s.code && s.game && s.game.id === 'overclock', `${H.NAMES[i]} back in the game`, 30000);
   await waitFor(pages[i], s => s.connected, `${H.NAMES[i]} connected`, 15000);
 }
 
@@ -66,7 +62,7 @@ await H.run(async () => {
   await waitFor(host, s => Object.keys(s.players).length === 3, '3 players');
   await waitFor(p, () => true, 'settle');
   ok(!!held, 'LOBBY STRIP: the chat strip\'s module is held while the lobby is up');
-  const started = await H.startGame(host, 'signal', {}).then(v => String(v), e => String(e && e.message || e));
+  const started = await H.startGame(host, 'overclock', { mode: 'quick' }).then(v => String(v), e => String(e && e.message || e));
   if (started !== 'true') log('presence', JSON.stringify(await admin(db => import('firebase/database').then(m => m.get(ref(db, `rooms/${H.code}/presence`))).then(x => x.val()))), JSON.stringify(await evalIn(host, s => s.presence)));
   if (started !== 'true') log('toasts', await host.evaluate(() => [...document.querySelectorAll('.toast')].map(t => t.textContent).join(' / ')));
   log('startGame', started, JSON.stringify(await evalIn(host, s => s.game && s.game.phase)));
@@ -78,31 +74,28 @@ await H.run(async () => {
   const strips = await p.evaluate(() => globalThis.__chatStrips || 0);
   ok(strips === 0, `LOBBY STRIP: a lobby left before its chat strip loaded leaves no strip running (${strips} alive)`);
 
-  // ---------------------------------------------------------------- 2. a guest refreshes mid-question
-  let q = await nextQuestion(host, -1);
-  ok(q === 0, 'SIGNAL: the first question');
-  // everyone targets the next player round the table (q 0 asks for it)
-  for (let i = 0; i < 3; i++) await pickTarget(i, uids[(i + 1) % 3]);
+  // ---------------------------------------------------------------- 2. a guest refreshes mid-challenge
+  let q = await nextPlay(host, -1);
+  ok(q === 0, 'OVERCLOCK: the first challenge');
   pages[1].on('console', m => { if (/presence|heal/i.test(m.text())) log('BOB console', m.type(), m.text().slice(0, 200)); });
-  log('BOB refreshes mid-question');
+  log('BOB refreshes mid-challenge');
   await H.refresh(pages[1]);
   await backInRoom(1);
   await sleep(500);
   await lateDisconnect(uids[1]);
   await sleep(1500);
-  ok(await onlineOn(host, uids[1]), 'REFRESH: after the old page\'s late onDisconnect the host still sees BOB online');
+  ok(await onlineOn(host, uids[1]), "REFRESH: after the old page's late onDisconnect the host still sees BOB online");
   ok(await onlineOn(pages[2], uids[1]), 'REFRESH: …and so does CHARLIE');
-  const qNow = await evalIn(host, s => s.game.q);
-  if ((await phase(host)) === 'question' && qNow === q) {
-    await answer(0); await answer(2);
+  const g0 = await gameNow(host);
+  if (g0.phase === 'play' && g0.ci === q) {
+    await fileDone(0, g0); await fileDone(2, g0);
     await sleep(2500);
-    const still = await evalIn(host, (s, prev) => s.game.phase === 'question' && s.game.q === prev, q);
-    ok(still, 'REFRESH: the question WAITS for BOB (not skipped as offline) after the other two answered');
-    await pickTarget(1, uids[2]);
-    await answer(1);
-    await waitFor(host, (s, prev) => !(s.game.phase === 'question' && s.game.q === prev), 'the question resolves once BOB answers', 20000, q);
-    ok(true, 'REFRESH: BOB\'s answer closes the question');
-  } else ok(false, `REFRESH: the question was still open after BOB came back (phase ${await phase(host)}, q ${qNow})`);
+    const still = await evalIn(host, (s, prev) => s.game.phase === 'play' && s.game.ci === prev, q);
+    ok(still, 'REFRESH: the challenge WAITS for BOB (not skipped as offline) after the other two are done');
+    await fileDone(1, g0);
+    await waitFor(host, (s, prev) => !(s.game.phase === 'play' && s.game.ci === prev), 'the challenge resolves once BOB is done', 20000, q);
+    ok(true, "REFRESH: BOB's board closes the challenge");
+  } else ok(false, `REFRESH: the challenge was still open after BOB came back (phase ${g0.phase}, ci ${g0.ci})`);
 
   // ---------------------------------------------------------------- 3. the self-heal
   await admin(db => set(ref(db, `rooms/${H.code}/presence/${uids[1]}`), { online: false, lastSeen: Date.now() - 60_000 }));
@@ -113,13 +106,13 @@ await H.run(async () => {
   if (!healed) log('SELF-HEAL diag', JSON.stringify(await admin(db => import('firebase/database').then(m => m.get(ref(db, `rooms/${H.code}/presence/${uids[1]}`))).then(x => x.val()))), JSON.stringify(await evalIn(pages[1], s => ({ c: s.connected, net: s.net, code: s.code, p: s.presence }))));
 
   // ---------------------------------------------------------------- 4. the host refreshes mid-question
-  q = await nextQuestion(host, q);
-  if ((await phase(host)) !== 'question') { ok(false, 'HOST REFRESH: a question to refresh in'); return; }
+  q = await nextPlay(host, q);
+  if ((await phase(host)) !== 'play') { ok(false, 'HOST REFRESH: a challenge to refresh in'); return; }
   const hostUid = uids[0];
   // the client side alone (the rules refuse a claim anyway): no phone may even TRY while the host's beat is fresh
   const claims = [];
   for (const i of [1, 2]) pages[i].on('console', m => { if (/claim host/.test(m.text())) claims.push(`${H.NAMES[i]}: ${m.text().slice(0, 120)}`); });
-  log('ALICE (host) refreshes mid-question');
+  log('ALICE (host) refreshes mid-challenge');
   await H.refresh(pages[0]);
   await backInRoom(0);
   await sleep(500);

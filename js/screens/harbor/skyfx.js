@@ -355,6 +355,8 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     quiet() { if (!heavy()) return []; const u = used(); return LANES.filter(l => !u.has(l)); },
     /** anything fast up there (the calm frame rate: 60 fps while it flies) */
     busy: () => show.on() || air.busy() || banner.on() || smoke.on() || drones.on() || birds.busy() || balloons.on(),
+    /** WINDOWS: a balloon flight is up (the clouds split round it: the high layers behind, the low heaps in front) */
+    balloonsOn: () => balloons.on(),
     /** (6b: the tagline steps aside through the sign-dim hook now — signFor) */
     holdTag: () => false,
     /** PART 8a — THE CITY SOUNDS (screens/harbor/sounds.js reads it ~4× a second): what's up there now — the planes + the

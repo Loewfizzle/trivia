@@ -19,6 +19,7 @@ import { avatar } from '../ui/components.js';
 import { gameArt, gameArtSvg } from '../ui/game-art.js';
 import { logoSvg, logoGlowSvg, logoRaceSvg, logoTrack, anchorsSvg, TAGLINE } from '../ui/logo.js';
 import { openHelp } from '../ui/help.js';
+import { toast } from '../ui/toast.js';
 import { APP_NAME, GAMES, MIN_PLAYERS, MAX_PLAYERS, colorHex } from '../config.js';
 import { setState } from '../store.js';
 import { slot, loadProfile, useEmulator, loadMe } from '../identity.js';
@@ -37,7 +38,7 @@ import { partyMusicDebug, partyNow } from '../audio/party-music.js';
 const songClock = () => { const p = partyNow(); return p && !settings.musicOff && !settings.muted && settings.music > 0 ? p.at : musicClock(); };
 import { beatMode } from '../core/harbor-beat.js';
 import { moodNow, fixedMoodFrom, MOOD_LABEL } from '../audio/mood.js';
-import { cityFailed, cityClock } from '../core/city.js';
+import { cityFailed, cityClock, CITY1_URL } from '../core/city.js';
 import { tiredLetters, tiredForced } from '../core/harbor-show.js';
 import { isUnlocked } from '../audio/engine.js';
 import { musicClock } from '../audio/music.js';
@@ -45,10 +46,10 @@ import { createDistrict } from './district/scene.js';
 import { captureBackdrop } from './district/backdrop.js';
 import { neonPlan, neonState, neonNext, firstTapAnswer, createStartDetector } from './district/neon-ramp.js';
 import { createDock, dressCorners, ICON } from './title-dock.js';
-// CITY 2.0 — THE HARBOR (docs/harbor.md): only with ?city=2 in the URL (never saved anywhere); without it nothing is loaded.
+// CITY 2.0 — THE HARBOR (docs/harbor.md): THE DEFAULT since WINDOWS (Nov 1); `?city=1` shows City 1.0 instead (never saved anywhere).
 // No top-level await (iOS 14 can't parse one — the whole app would die, every game and City 1.0 too): app.js holds the title on
 // the boot screen until harborReady settles (a failed load falls back to City 1.0). A unit test keeps await out of module tops.
-const HARBOR_URL = /[?&]city=2(?:&|$)/.test(location.search);
+const HARBOR_URL = !CITY1_URL;
 let createHarbor = null, harborSettled = !HARBOR_URL;
 let visitAnswered = false;   // (ATM-A: the sign has answered a song this visit — the first-tap detector is FRESH until then)
 export const harborReady = HARBOR_URL
@@ -401,7 +402,7 @@ export function createTitle() {
       createHarbor ? h('div.nd-word.nd-wn', { html: `<span class="nd-word-g">${wordNeonChars('SPEAKEASY')}<span class="nd-word-p" aria-hidden="true">${wordNeonChars('SPEAKEASY', 'blaze')}</span><span class="nd-word-r" aria-hidden="true">${wordNeonChars('SPEAKEASY', 'blaze', 'i')}</span></span>${wordNeonDefs()}` })
         : h('div.nd-word', h('span.nd-word-g', 'SPEAKEASY', h('span.nd-word-s', { 'aria-hidden': 'true' }, 'SPEAKEASY'))),
       h('div.nd-tag', TAGLINE),
-      els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length} PARTY GAMES · ONE PHONE EACH`));
+      els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length >= 4 ? `${GAMES.filter(g => g.playable).length} ` : ''}PARTY GAMES · ONE PHONE EACH`));   // (WINDOWS: "2 PARTY GAMES" undersold it — the count comes back with the games)
     // (11a-1: THE SIGN DECORATION SYSTEM's overlay lives in the logo's wrap — harbor/signdress.js; the scene drives it)
     if (createHarbor && scene) scene.set({ dressHost: els.sign.querySelector('.nd-logo-wrap'), signLetters: [...els.sign.querySelectorAll('.nd-logo .ndl')] });   // (9c: the snow on each letter glows by its own light)
     els.actions = buildActions();
@@ -1326,7 +1327,7 @@ export function createTitle() {
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
     const hit = scene.hit(x, y);
     if (!hit) return;
-    if (hit.kind === 'sign') { sfx('select'); openHelp(hit.id); }
+    if (hit.kind === 'sign') { const g = GAMES.find(x => x.id === hit.id); if (g && !g.playable) { toast(`${g.name} · COMING SOON`, 'info'); return; } sfx('select'); openHelp(hit.id); }   // (WINDOWS — THE FIVE SIGNS: next on deck = a quiet COMING SOON)
     else if (hit.kind === 'ufo') sfx('portal');
     else if (hit.kind === 'cat') sfx('key');
     // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real

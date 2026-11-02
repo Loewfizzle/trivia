@@ -28,6 +28,8 @@ import { routineAt, MOMENT } from '../../core/harbor-moments.js';
 import { CHASE, BLACK, tr3bAt } from '../../core/harbor-legend.js';
 import { isUnlocked } from '../../audio/engine.js';
 // ATM-C — the close takes with a SECOND crack (s into the cut — add-city-sfx.py's CUTS; the first is each take's own `hit`): the flash again
+/** WINDOWS: a close strike with no take decoded yet waits this long for the decode (the slow runner's first decode ~0.7 s) */
+const THUNDER_DECODE = 1.1;
 const CRACK2 = Object.freeze({ 'thunder-close-4': 2.5, 'thunder-alt-close-crackle': 1.6 });
 import { boxerCues, boxerDuck } from '../../core/harbor-boxer.js';
 import { partyNow } from '../../audio/party-music.js';
@@ -570,7 +572,12 @@ export function createCitySounds() {
         if (pick && !cityReady('thunder-close', pick.i)) { const tk = takesOf('thunder-close'), ok = tk.map((_, i) => i).filter(i => i !== lastClose && (tk[i].w ?? 1) > 0 && cityReady('thunder-close', i)); if (ok.length) { const i = ok[Math.floor(Math.random() * ok.length)]; pick = { take: tk[i], i }; } }
         const crack = pick ? (pick.take.hit != null ? pick.take.hit : 0.3) : d;
         if (pick) lastClose = pick.i;
-        const lead = Math.max(0, crack - d), wait = Math.max(0, d - crack), second = pick && CRACK2[pick.take.src] != null ? CRACK2[pick.take.src] - crack : null;
+        // (WINDOWS — the cloud's "0.72 s LATE" FIRST close strike after the tap: NO take decoded yet (the storm's prefetch starts at the
+        //  unlock) → the decode starts NOW and the STRIKE WAITS for it (THUNDER_DECODE s more on its flash — the flash + the file both
+        //  move, so the crack still lands on the flash + its distance); a strike a second later is never seen as late, a late crack is)
+        const ready = !pick || cityReady('thunder-close', pick.i), extra = ready ? 0 : THUNDER_DECODE;
+        if (!ready) cityPrefetch('thunder-close', pick.i, { hold: 60000 });
+        const lead = Math.min(2, Math.max(0, crack - d + extra)), wait = Math.max(0, lead + d - crack), second = pick && CRACK2[pick.take.src] != null ? CRACK2[pick.take.src] - crack : null;
         const fe = flashEntry(ev, performance.now() / 1000 + Math.min(2, lead)); fe.delay = +d.toFixed(2); fe.crack = crack;
         const go = () => { if (!dead) bindFlash(fe, this.ducked('thunder-close', { gain: 1, pan, depth: 0.45, hold: 2.2, release: 4, take: pick ? pick.i : null, jitter: 0 }), pick ? pick.take.src : null); };
         if (wait > 0.005) setTimeout(go, wait * 1000); else go();

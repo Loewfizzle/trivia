@@ -410,7 +410,8 @@ import { lighthouseBoxes } from '../js/core/harbor-layout.js';
 import { GAMES } from '../js/config.js';
 import { MARKS, bladeWord } from '../js/screens/district/marks.js';
 
-const GAMES12 = GAMES.filter(g => g.playable).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
+// (WINDOWS: the sign MECHANICS are tested on all twelve — a list that grows or shrinks fills more or fewer spots; THE FIVE SIGNS below)
+const GAMES12 = GAMES.map(g => ({ id: g.id, name: g.name, short: signName(g) }));
 const faceRect = (cam, t) => { const tr = t.tiers[0], [a, b] = project(cam, tr.x0, tr.y0 + tr.h, tr.z0), [c] = project(cam, tr.x1, 0, tr.z0); return { x: a, y: b, w: c - a, h: t.face.y - b }; };
 
 test('word towers (Part 3): both faces fully on screen, nothing nearer over them — the lighthouse, the wheel, the boats, the signs', () => {
@@ -2220,7 +2221,7 @@ import { ghostAdGame, adWeek, AD_ORDER, AD_EPOCH, roomLight, ROOMS } from '../js
 import { speakGeo, bladeGeo } from '../js/screens/harbor/speakeasy.js';
 
 test('7a — THE GHOST AD: one game a week, every game in 12 weeks, the swap on Monday ~4 am, never tonight\'s billboard game', () => {
-  const ids = GAMES.filter(g => g.playable !== false).map(g => g.id), WEEK = 7 * 864e5;
+  const ids = GAMES.map(g => g.id), WEEK = 7 * 864e5;
   const seen = new Set();
   for (let w = 0; w < ids.length; w++) seen.add(ghostAdGame(AD_EPOCH + w * WEEK + 3600e3, ids));
   assert.equal(seen.size, ids.length, 'every game gets its week');
@@ -3248,7 +3249,7 @@ test('SP2 — THE MARQUEE (crest + foot only — the letters get the long sides)
 });
 test('SP2 — THE BLADE READS for every game: big letters filling the board (one column a word), never a sliver', () => {
   const { L } = setup('402x874'), k = bladeGeo(speakGeo(L)).k;
-  for (const g of GAMES.filter(x => x.playable !== false)) {
+  for (const g of GAMES) {
     const T = bladeLetters(g.name), words = bladeWords(g.name);
     assert.equal(T.cols.length, Math.min(2, words.length), `${g.name}: a column a word`);
     assert.equal(words.join(''), g.name.toUpperCase().replace(/\s+/g, ''), `${g.name}: every letter, in order`);
@@ -3309,4 +3310,29 @@ test('9c — THE CENTREPIECE SHOW LIGHTING: the floods come on with the lamps (n
   assert.equal(floodTarget(1, 0), 1, 'a dark piece at night: full');
   assert.ok(Math.abs(floodTarget(1, 1) - FLOOD.fill) < 1e-9 && FLOOD.fill > 0.1 && FLOOD.fill < 0.5, 'a lit piece: a low fill — its shape still reads');
   assert.ok(floodTarget(0.5, 0) < floodTarget(1, 0) && floodTarget(1, 0.5) < floodTarget(1, 0), 'with the lamps ramp; the more it lights itself the lower');
+});
+
+// ================================================================ WINDOWS — Group 0: ONLY TWO GAMES PLAYABLE + THE FIVE SIGNS (the owner, Nov 1)
+test('WINDOWS — only PRISM DROP + OVERCLOCK playable; the five sign games; every start path refuses a hidden game', async () => {
+  const { readFileSync } = await import('node:fs');
+  const { isPlayable } = await import('../js/config.js');
+  assert.deepEqual(GAMES.filter(g => g.playable).map(g => g.id).sort(), ['overclock', 'prism']);
+  assert.deepEqual(GAMES.filter(g => g.sign).map(g => g.id).sort(), ['golf', 'gridlock', 'overclock', 'prism', 'stakes']);
+  for (const g of GAMES) assert.equal(isPlayable(g.id), g.id === 'prism' || g.id === 'overclock', `${g.id}: playable ${isPlayable(g.id)}`);
+  assert.equal(isPlayable('nope'), false);
+  // the start paths: host.js#startGame refuses a hidden game before anything is written (rematch goes through it); the lobby,
+  // HOW TO PLAY and the title's games sheet list only the playable ones; a sign tap on a next-on-deck game says COMING SOON
+  const host = readFileSync(new URL('../js/host.js', import.meta.url), 'utf8');
+  const sg = host.slice(host.indexOf('export async function startGame'), host.indexOf('export function rematch'));
+  assert.ok(/if \(!isPlayable\(gameId\)\)[^\n]*return false/.test(sg) && sg.indexOf('isPlayable') < sg.indexOf('mod.start('), 'startGame refuses a hidden game first');
+  assert.ok(/return startGame\(id, settings\)/.test(host.slice(host.indexOf('export function rematch'))), 'a rematch goes through startGame');
+  assert.ok(/for \(const g of GAMES\.filter\(x => x\.playable\)\)/.test(readFileSync(new URL('../js/screens/lobby.js', import.meta.url), 'utf8')), 'the lobby lists the playable games only');
+  assert.ok(/GAMES\.filter\(x => x\.playable \|\| x\.id === current\)/.test(readFileSync(new URL('../js/ui/help.js', import.meta.url), 'utf8')), 'HOW TO PLAY: the playable tabs (+ the match on screen)');
+  const title = readFileSync(new URL('../js/screens/title.js', import.meta.url), 'utf8');
+  assert.ok(/const games = GAMES\.filter\(g => g\.playable\);/.test(title) && /!g\.playable\) \{ toast\(`\$\{g\.name\} · COMING SOON`/.test(title), 'the games sheet + the sign tap');
+  // THE FIVE SIGNS on the phone: over two weeks every one of the five hangs (a named sign or the billboard), nothing else does
+  const five = GAMES.filter(g => g.sign).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
+  const { L } = setup('402x874'), spots = signSpots(L), seen = new Set();
+  for (let d = 0; d < 14; d++) { const n = new Date(Date.UTC(2026, 10, 2) + d * 864e5).toISOString().slice(0, 10), pk = assignSigns(five, spots, n); for (const v of pk.values()) seen.add(v); seen.add(billboardPick(five, spots, pk, n)); }
+  assert.deepEqual([...seen].filter(Boolean).sort(), ['golf', 'gridlock', 'overclock', 'prism', 'stakes'], 'the five, every one of them, over two weeks');
 });

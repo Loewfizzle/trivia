@@ -14,6 +14,7 @@ import { getContext, clockFrozen } from './engine.js';
 import { songEnvelope } from '../core/sync-math.js';
 import { serverNow } from '../firebase.js';
 import { ctxAtServer } from '../games/pulse/clock.js';
+import { RESYNC_S } from '../core/sync-math.js';
 import { songStarts, XF_MS } from '../core/playlist.js';
 import { settings } from './settings.js';
 // MODELS — TWO DEVICES IN STEP (the owner's iPhone + the mini PC through a TV + a soundbar over eARC: the same station song, a slight lag):
@@ -159,7 +160,7 @@ export function createSyncedSongs({ urlFor, connect, label = 'song', joinFade = 
       if (performance.now() - lastCheck > 500) {
         lastCheck = performance.now();
         for (const [i, v] of [...voices]) {
-          if (Math.abs(v.origin - (ctxAtServer(starts[i]) - speakerLead())) > 0.12 && ctx.currentTime - v.startedAt > 0.5) {
+          if (Math.abs(v.origin - (ctxAtServer(starts[i]) - speakerLead())) > RESYNC_S && ctx.currentTime - v.startedAt > 0.5) {
             restarts++;
             // (APP FIXES — Grok 3.5: the replacement first; the old voice goes only once it started — else it plays on)
             voices.delete(i);

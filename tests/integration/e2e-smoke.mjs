@@ -1,8 +1,8 @@
 // Quick smoke test on NORMAL phone tabs (no ?slot= — the other E2E suites all use test slots, which once hid a lobby bug
 // that printed "null" only on a regular phone).
 //   node e2e-smoke.mjs "<browser path>" ./shots
-// Two plain tabs (separate browser contexts = two players): title → create / join → lobby → HOW TO PLAY → each of the six
-// games started from the lobby, watched through its opening screens → back to the lobby. Fails on any visible "null",
+// Two plain tabs (separate browser contexts = two players): title → create / join → lobby → HOW TO PLAY → each PLAYABLE
+// game started from the lobby, watched through its opening screens → back to the lobby. Fails on any visible "null",
 // "undefined", "NaN" or "[object Object]", on page errors, and on console errors. Takes about two minutes.
 import puppeteer from './kit/puppeteer.mjs'; // (+ --mute-audio, the 60 fps fix: kit/puppeteer.mjs)
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -19,19 +19,11 @@ const ONLY_GAMES = (process.env.GAMES || '').split(',').filter(Boolean);
 // (SIZE=402x874: the phones' size, default 390x844; MENU=1: one more shot of each game with its ☰ menu open — the corner's look)
 const [VW, VH] = String(process.env.SIZE || '390x844').split('x').map(Number);
 const SFX = process.env.SIZE ? `-${VW}x${VH}` : '';
+// (WINDOWS, Nov 1 — ONLY TWO GAMES PLAYABLE: PRISM DROP + OVERCLOCK; the other ten are hidden + frozen, their smoke rows gone — host.js
+// refuses to start a hidden game. A game coming back after the switch-over adds its row here again.)
 const ALL_GAMES = [
-  ['cipher', { rounds: 3 }],
-  ['signal', {}],
   ['overclock', { mode: 'quick' }],
-  ['bluff', {}],
-  ['pulse', { count: 1 }],
-  ['golf', { mode: 'quick3' }],
   ['prism', { mode: 'battle' }],
-  ['slip', { lives: 1 }],
-  ['gridlock', { mode: 'classic', placeSec: 45 }],
-  ['gridlock', { mode: 'arcade', placeSec: 45 }],
-  ['stakes', {}],
-  ['rum', { days: 15, daySec: 30 }],
 ];
 const GAMES = ONLY_GAMES.length ? ALL_GAMES.filter(([id]) => ONLY_GAMES.includes(id)) : ALL_GAMES;
 const BAD = /\bnull\b|\bundefined\b|\bNaN\b|\[object Object\]/;
@@ -166,6 +158,17 @@ try {
   await host.keyboard.press('Escape');
   await host.evaluate(() => { const c = document.querySelector('.modal .sheet-close, .modal [aria-label="Close"]'); if (c) c.click(); });
   await sleep(500);
+
+  // ---- WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game can never start (host.js#startGame refuses it — a rematch, an invite or a
+  // stale link all go through it); the lobby shows only the playable cards
+  { const ids = await host.evaluate(() => import('/js/config.js').then(c => c.GAMES.filter(g => !g.playable).map(g => g.id)));
+    const res = [];
+    for (const id of ids) res.push(await host.evaluate(g => import('/js/host.js').then(m => m.startGame(g, {})), id));
+    await sleep(600);
+    const g = await evalIn(host, s => s.game ? s.game.id : null);
+    ok(ids.length === 10 && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
+    const cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
+    ok(cards.length === 2 && cards.includes('prism') && cards.includes('overclock'), `THE LOBBY: only the two playable games (${cards.join(', ')})`); }
 
   // ---- each game: start, watch its opening screens on both phones, back to the lobby
   for (const [id, settings] of GAMES) {

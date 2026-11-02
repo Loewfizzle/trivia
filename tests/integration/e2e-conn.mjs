@@ -137,8 +137,8 @@ try {
   ok(I.n === 1, `JOIN by an invite link (${I.n} socket)`);
 
   // ---- 5. a game
-  await A.page.evaluate(() => import('/js/host.js').then(m => m.startGame('cipher', { rounds: 3 })));
-  await waitFor(B.page, s => s.game && s.game.id === 'cipher', 'the game on the guest', 20000);
+  await A.page.evaluate(() => import('/js/host.js').then(m => m.startGame('overclock', { mode: 'quick' })));
+  await waitFor(B.page, s => s.game && s.game.id === 'overclock', 'the game on the guest', 20000);
   await sleep(2000);
   await row('in a game (host)', A); await row('in a game (guest)', B);
   ok(A.n === 1 && B.n === 1, `in a game: one socket each (${A.n}, ${B.n})`);

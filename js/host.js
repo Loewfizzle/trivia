@@ -8,7 +8,7 @@ import { dbRef, update, remove, runTransaction, serverTimestamp, serverNow } fro
 import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
-import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS } from './config.js';
+import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './config.js';
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES } from './games/registry.js';
 import { toast } from './ui/toast.js';
 
@@ -138,6 +138,8 @@ export function onlineCount() {
 export async function startGame(gameId, settings) {
   const mod = GAME_MODULES[gameId];
   if (!mod || !isHost()) return false;
+  // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)
+  if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }
   const participants = {};
   for (const uid of Object.keys(state.players)) if (isOnline(state.presence, uid)) participants[uid] = true;
   const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);

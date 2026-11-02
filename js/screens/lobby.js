@@ -184,7 +184,7 @@ export function createLobby() {
   function buildGames() {
     clear(els.games);
     els.gameCards = {};
-    for (const g of GAMES) {
+    for (const g of GAMES.filter(x => x.playable)) {   // (WINDOWS: the hidden games are gone from the picker)
       const card = h('button.game-card', {
         type: 'button', dataset: { theme: g.theme }, class: g.playable ? null : 'is-locked',
         onclick: () => pickGame(g),

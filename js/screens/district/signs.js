@@ -80,7 +80,7 @@ function tickerColor(L) {
 }
 
 export function createSigns({ games: allGames = [] } = {}) {
-  const games = allGames.filter(g => g.playable !== false);
+  const games = allGames.filter(g => g.sign);   // (WINDOWS: City 1.0 — the five sign games; untested since)
   const R = Math.min(2, window.devicePixelRatio || 1);
   const sprites = new Map();
   const glow = col => { let c = sprites.get(col); if (!c) { c = mk(64, 64); const x = c.getContext('2d'); const g = x.createRadialGradient(32, 32, 0, 32, 32, 32); g.addColorStop(0, rgba(col, 1)); g.addColorStop(0.3, rgba(col, 0.38)); g.addColorStop(1, rgba(col, 0)); x.fillStyle = g; x.fillRect(0, 0, 64, 64); sprites.set(col, c); } return c; };

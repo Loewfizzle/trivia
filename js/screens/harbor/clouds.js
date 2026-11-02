@@ -609,7 +609,7 @@ export function createClouds() {
       // (the deck: a seamless tile, wrapping by its own width)
       const x = d === steer.d && steer.m && steer.c ? steer.m.x - steer.c.x + 0.62 * steer.c.w * Math.sin(tSec * Math.PI * 2 / 70) : d.kind === 'deck' ? (() => { const v = driftSpeed(wind) * wx * d.v * (motion ? tSec : 0); return ((v % d.w) + d.w) % d.w - d.w; })() : driftX(d, motion ? tSec : 0, wind, wx, W);
       d.xNow = x;
-      if (!d.cv || (part === 'back' ? d.s >= 0.5 : part === 'front' ? d.s < 0.5 : false)) continue;
+      if (!d.cv || (part === 'back' ? d.s >= 0.5 : part === 'front' ? d.s < 0.5 : part === 'high' ? !highKind(d) : part === 'low' ? highKind(d) : false)) continue;
       const by = d.y + (extra.base || 0), ty = by - d.h;
       // (POLISH 5 — CLOUDS NEVER COVER A MESSAGE: a cloud over the message's letters thins out, white dots never sit on a white cloud)
       const tb = thinB && thinK > 0 && part !== 'front' ? thinB : null, over = tb && x < tb.x + tb.w && x + d.w > tb.x && by - d.h < tb.y + tb.h && by > tb.y;
@@ -652,6 +652,8 @@ export function createClouds() {
   //  - THE SILVER EDGE: the clouds' outline (the mask minus its own erosion by ~2 pt), lit silver, brightest by the moon, fading within
   //    ~4 moon radii (the classic moon-behind-a-cloud rim). All scaled by how much of the moon is covered + its phase.
   const thinKind = d => d.kind === 'cirrus' || !!d.veil;
+  // (WINDOWS — the owner: balloons ALWAYS IN FRONT of the high layers — cirrus, the veil, alto are far higher; behind the low heaps only)
+  const highKind = d => d.kind === 'cirrus' || d.kind === 'alto' || !!d.veil;
   const steer = { d: null, m: null, c: null };
   /** a cloud's BODY in its box (pt): the centroid + the width of its thick part (the baked thickness) — where the moon should go behind */
   function bodyOf(d) {
@@ -1023,6 +1025,8 @@ export function createClouds() {
       const LK = fs.L; cloudWind = fs.windF ? fs.windF.speed : null;
       if (!box) return;
       if (part === 'front') { if (G && list.length) { drawSet(c, list, lastA, lastT, LK, fs.motion, 'front'); c.globalAlpha = 1; } return; }
+      // (WINDOWS: 'high' = the frame's update + the veil + the high clouds; then the balloons; then 'low' = the low clouds + the moon's light)
+      if (part === 'low') { if (G && (list.length || old)) { if (old) { drawSet(c, old, oldK, lastT, LK, fs.motion, 'low'); if (oldK <= 0) { free(old); old = null; } } drawSet(c, list, lastA, lastT, LK, fs.motion, 'low'); c.globalAlpha = 1; moonLight(c, fs, LK, lastT); } return; }
       const lc = LK.local, blk = lc ? Math.floor(lc.h / 6) : 0;
       const cover = clamp01(LK.cloud || 0), lay = LK.cloudLayers;
       const seed = `${lc ? `${lc.y}-${lc.m}-${lc.d}-${blk}` : 'x'}|${Math.round(cover * 8)}|${lay ? `${Math.round(lay.lo * 4)}${Math.round(lay.mid * 4)}${Math.round(lay.hi * 4)}` : '-'}|${LK.rain > 0.05 || LK.storm ? 'w' : ''}`;
@@ -1062,11 +1066,14 @@ export function createClouds() {
       // 6b — THE HIGH VEIL (cirrostratus: core/weather.js#veilOf → mix.veil): a MILKY SHEEN over the blue (whiter toward the horizon), the
       // sun SOFTENED in it (a wide watery glow), and on a rare veil day (~1 in 7 — ATM-C, seeded by the date) a faint 22° HALO round the sun
       if (mix && mix.veil > 0.05 && part !== 'front') veilLook(c, fs, sunInfo, mix.veil * appear, lc);
-      if (old) { oldK = Math.max(0, 1 - appear); drawSet(c, old, oldK, tSec, LK, fs.motion); if (oldK <= 0) { free(old); old = null; } }
+      if (old) { oldK = Math.max(0, 1 - appear); drawSet(c, old, oldK, tSec, LK, fs.motion, part === 'high' ? 'high' : undefined); if (oldK <= 0 && part !== 'high') { free(old); old = null; } }
       drawSet(c, list, appear, tSec, LK, fs.motion, part);
       lastT = tSec;
       c.globalAlpha = 1;
       lastA = appear;
+      if (part !== 'high') moonLight(c, fs, LK, tSec);
+  }
+  function moonLight(c, fs, LK, tSec) {
       // the moon glowing through a cloud in front of it — WSP: THICK clouds BLOCK it (moonBehind: the soft local thickening, the glow only
       // through the thin parts + past the edges, the SILVER EDGE); the old halo stays for the THIN ones (cirrus, the veil) only
       const m = fs.moonAt;

@@ -1425,7 +1425,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let sheetK = '', sheetV = null, bladeK = '', bladeV = null, boardCheck = 0, boardHeld = 0;
   // (8b1: the BLADE is the week's — stable from the Monday painters to the next; the roof board steps aside from the blade's game, never the
   // other way round, so the billposter's daily change can never flip the blade)
-  const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), games.filter(g => g.playable !== false).map(g => g.id), null); };
+  const bladeGameOn = key => { const [y, m, d] = key.split('-').map(Number); return ghostAdGame(Date.UTC(y, m - 1, d, 23), games.filter(g => g.sign).map(g => g.id), null); };
   const boardGameOf = (key, l) => { try { let g = neon.boardPick(key, 0, l); const nx = new Date(Date.UTC(...key.split('-').map((v, i) => +v - (i === 1 ? 1 : 0))) + 864e5).toISOString().slice(0, 10), bl = [bladeGameOn(key), bladeGameOn(nx)]; for (let n = 1; n < 4 && g && bl.includes(g); n++) g = neon.boardPick(key, n, l) || g; return g; } catch { return null; } };
   // (9f — LOAD WEATHER: the board's game is synced BEFORE the reveal too — a panel's clock jump to another day used to swap the poster
   // ~1 s after the city showed, a neon re-bake crossfading over it)
@@ -1748,7 +1748,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return null;
   }
   // PART 7a: the speakeasy's bake inputs — this week's GHOST AD (the same for everyone: core/harbor-speakeasy.js), the month (the ivy)
-  const playable = games.filter(g => g.playable !== false);
+  const playable = games.filter(g => g.sign);   // (WINDOWS — THE FIVE SIGNS: the ghost ad rotates the five sign games)
   let speakMemo = null;
   // (8b1 — THE SIGN PAINTERS: on Monday the blade keeps LAST week's name until they've finished repainting it, ~4 pm)
   function speakCtxFor(ms) {
@@ -2262,7 +2262,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       parade: paraSound(), raker: (() => { if (off.has('no-people')) return null; const p = people.positions().find(m => m.kind === 'raker' && m.v < 0.05); if (!p) return null; const [rx] = project(cam, p.x, 0, p.z); return { pan: Math.max(-1, Math.min(1, (rx / W) * 2 - 1)) }; })() });
     // (POLISH 5 — CLOUDS NEVER COVER A MESSAGE, the owner: a cumulus hid part of "JESSICA": while a message is skytyped every cloud is
     // drawn BEHIND the letters — before the sky's pieces — the rest of the time after them, as before)
-    const cloudsNow = () => {
+    const cloudsNow = part => {
     // THE DAY PASS — THE CLOUDS (clouds.js: the Harbor's own, every hour, the real cover + wind); City 1.0's weather-fx only for
     // the lightning now (its clouds off: cloud 0)
     // (DT2: the sun's whole place — its x + y on the screen, how visible, and its side when it has set: each cloud is lit from it)
@@ -2272,13 +2272,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     //  by DAY the white deck showing through the veil at 18 % was part of the whiteout — skipping it darkened the top of the sky ~6 / 255:
     //  the deck is painted again by day + golden hour, skipped only in the dark)
     const fogHidesSky = fogD.on() && veilOf('far', fogD.look())[0] >= 0.82 && (LK.w.day || 0) + (LK.w.golden || 0) + (LK.w.dawn || 0) < 0.3;
-    { const sd = sun.debug(); if (!off.has('no-clouds') && !fogHidesSky) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }); }
+    { const sd = sun.debug(); if (!off.has('no-clouds') && !fogHidesSky) clouds.draw(c, fs, { x: sd && sd.vis > 0.02 ? sd.x : null, y: sd ? sd.y : null, vis: sd ? sd.vis : 0, side: (bakeTones && bakeTones.sunDir) || 0 }, part); }
     };
     const msgB = sky.msgUp ? sky.msgUp() : null, msgUp = !!msgB;
     { const dt0 = Math.min(100, dt || 16); thinK = Math.max(0, Math.min(1, thinK + (msgUp ? 1 : -1) * dt0 / 1800)); if (msgB) thinBox = msgB; clouds.thin(thinK > 0.002 ? thinBox : null, thinK); }
-    if (msgUp) cloudsNow();
+    // (WINDOWS — the owner: BALLOONS ALWAYS IN FRONT OF THE HIGH CLOUDS (cirrus, the veil, alto: far higher); behind the low heaps only)
+    const balloonsUp = !msgUp && sky.balloonsOn && sky.balloonsOn();
+    if (msgUp) cloudsNow(); else if (balloonsUp) cloudsNow('high');
     sky.sky(c, fs);
-    if (!msgUp) cloudsNow();
+    if (!msgUp) cloudsNow(balloonsUp ? 'low' : undefined);
     // 9a — THE LIGHTNING in a real thunderstorm (WXS.lightning) or &force=lightning with a storm: the deck lit from inside + a bolt now and then
     snowDt = dt; lastT9 = t;   // (ATM-B: the snow's layers share this frame's clock)
     // ATM-B — THE STORM: the deck rolls in (~25 s live, ~6 s on a preview) under the lightning; the bolts start from its underside; a CLOSE
