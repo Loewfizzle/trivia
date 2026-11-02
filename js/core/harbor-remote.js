@@ -171,6 +171,7 @@ export const EVENTS = [
   { id: 'balloons', label: 'BALLOONS', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   { id: 'balloon-festival', label: 'BALLOON FESTIVAL', cat: 'sky', group: 'AIRCRAFT', oneShot: true },
   // (9a — the owner: the balloons STAY UP 45–90 min; the FAST rows show the whole crossing ×12, ~4–7 min)
+  { id: 'balloon-skull', label: 'THE SKULL BALLOON', cat: 'sky', group: 'AIRCRAFT', oneShot: true, kw: 'skull balloon menacing black white', hint: 'WINDOWS: one skull balloon up mid-sky at once (by day: bone-white on its black envelope; at night the bone glowing) — its real flights are the festival + the everyday draw' },
   { id: 'balloons-fast', label: 'BALLOONS · FAST', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'the whole slow crossing ×12 — ~4 min instead of 45–60' },
   { id: 'balloon-festival-fast', label: 'FESTIVAL · FAST', cat: 'sky', group: 'AIRCRAFT', oneShot: true, hint: 'the seven launches + the crossing ×12' },
   { id: 'planes', label: 'PLANES', cat: 'sky', group: 'AIRCRAFT' },

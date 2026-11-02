@@ -164,7 +164,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     const wd = s.L.windDir == null ? 250 : s.L.windDir;
     // (6b: BALLOONS USE THE WHOLE SKY — from under the corner buttons to the crowns, behind the sign, in front of the sun + the moon)
     const mb = msgBox(s), box = mb ? { x: 0, y: mb.y, w: W, h: mb.h + 10 } : null;
-    balloons.start({ at, seed, festival: fest, box, lanes: { 'sky-high': lanes['sky-high'], 'sky-low': lanes['sky-low'] }, windSign: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1, fast: !!o.fast, fade: !!o.fade });
+    balloons.start({ at, seed, festival: fest, box, lanes: { 'sky-high': lanes['sky-high'], 'sky-low': lanes['sky-low'] }, windSign: Math.sin(wd * Math.PI / 180) >= 0 ? 1 : -1, fast: !!o.fast, fade: !!o.fade, kind: o.kind || null, band: o.band == null ? null : o.band });
     return true;
   }
 
@@ -254,6 +254,8 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       again('balloons', balloons.on(), at => startBalloons(s, at - balloons.flightLen(3, false) * 300, false, 3, { fade: true }));
       again('balloon-festival', balloons.on(), at => startBalloons(s, at, true, 5));
       again('balloons-fast', balloons.on(), at => startBalloons(s, at, false, 3, { fast: true }));
+      // (WINDOWS — THE MENACING SKULL's preview: one skull balloon, a near one, mid-sky + already up — in view at once, by day or night)
+      again('balloon-skull', balloons.on(), at => startBalloons(s, at - balloons.flightLen(4, false) * 300, false, 4, { fade: true, kind: 'skull', band: 0.74 }));
       again('balloon-festival-fast', balloons.on(), at => startBalloons(s, at, true, 5, { fast: true }));
       again('drones', drones.on(), at => {
         // (POLISH 4: the drone show is A MESSAGE — its pages only; an old link's &show=heart,… is ignored)

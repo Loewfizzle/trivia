@@ -26,6 +26,7 @@ committed + pushed (no tag); the final push carries the harbor tag.
 - **THE MENACING SKULL** (`balloons.js` 'skull'): a BLACK envelope, a hard angular bone-white skull on its face — a round cranium, cheekbones +
   jaw cut straight (the black in the notches), deep ANGLED sockets whose tops slope down to the nose under a heavy brow shadow, a sharp
   triangular nose, a clenched row of teeth; at night the envelope stays black and only the bone glows warm (drawn like the ₿s all night).
+  Its preview: `&force=balloon-skull` (the panel's THE SKULL BALLOON — one near skull balloon already up, low in the sky, clear of the sign).
 - **BALLOONS IN FRONT OF THE HIGH CLOUDS** (`clouds.js` 'high' / 'low' parts, `scene.js`): while a balloon flight is up the clouds draw in two
   passes — the veil + cirrus + alto, then the balloons, then the low heaps + the moon's light.
 - **THE TWO CLOUD FLAKES**: (1) the first close thunder after the tap — no take decoded yet → the decode starts at once and the STRIKE WAITS

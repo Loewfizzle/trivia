@@ -580,7 +580,7 @@ export function createBalloons() {
     const box = o.box || (o.lanes && o.lanes['sky-low']);
     const dur = flightLen(seed, fest);
     // a single flight's style: the everyday kinds; ~1 in 8 the black ₿, ~1 in 16 the orange ₿, ~1 in 50 the alien (6b's rare odds)
-    const r = R0(), single = r < 0.12 ? 'bitcoin' : r < 0.18 ? 'btc-orange' : r < 0.2 ? 'alien' : BALLOON_KINDS[Math.floor(R0() * BALLOON_KINDS.length)];
+    const r = R0(), single = o.kind && (BALLOON_SCHEMES[o.kind] || ['bitcoin', 'btc-orange', 'alien', 'flag', 'disco'].includes(o.kind)) ? o.kind : r < 0.12 ? 'bitcoin' : r < 0.18 ? 'btc-orange' : r < 0.2 ? 'alien' : BALLOON_KINDS[Math.floor(R0() * BALLOON_KINDS.length)];
     // (the festival's launch spots: spread across, shuffled — the line-up keeps its ORDER in time, not in space)
     const spots = festivalSpots(FESTIVAL_ORDER.map((_, i) => 0.06 + 0.88 * (i + 0.5) / n).sort(() => R0() - 0.5));
     for (let i = 0; i < n; i++) {
@@ -594,7 +594,7 @@ export function createBalloons() {
     }
     for (const b of list) b.burns = burnSchedule(b.seed, b.climb, dur - b.launch);
     // (PERF-B — THE WHOLE SKY: a single balloon at any height, high to low — seeded; its slow altitude journey below)
-    if (!fest) for (const b of list) b.band = 0.1 + 0.78 * hash01(seed, 0xba);
+    if (!fest) for (const b of list) b.band = o.band != null ? o.band : 0.1 + 0.78 * hash01(seed, 0xba);   // (o.band: a preview's height — the skull's link: mid-sky)
     // (each balloon's slow ALTITUDE JOURNEY — a pilot climbing + sinking to find the wind: ±16 % of the sky over 9–15 min, so it drifts
     //  THROUGH the sign's band, never parked over the letters)
     for (const b of list) { b.jP = (9 + 6 * hash01(b.seed, 0x1f)) * 60; b.jPh = hash01(b.seed, 0x2e) * TAU; }
