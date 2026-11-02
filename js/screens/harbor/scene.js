@@ -31,6 +31,7 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createSceneFireworks } from './scene-fireworks.js';
+import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
 import { createSceneParty } from './scene-party.js';
 import { createSceneWeather } from './scene-weather.js';
@@ -54,7 +55,7 @@ import { litSteps, createLights, newMeta } from './lights.js';
 import { rayStrength, drawRays } from './rays.js';
 import { searchlightStep, drawBeams } from './searchlights.js';
 import { cabinetCut } from './signs.js';
-import { SPELL_WORDS } from '../../core/harbor-windows.js';
+
 import { quaySteps, drawQuayLamps, quayLampSprite } from './quay.js';
 import { createNeon, nightKey } from './neon.js';
 import { waterSteps, createWater, waterBand, axisAt } from './water.js';
@@ -89,7 +90,7 @@ import { createWaterfront } from './waterfront.js';
 import { createSkyBeams } from './skybeams.js';
 import { createStrings } from './strings.js';   // (the roof's café-light canopy — SP2)
 import { auroraTonight, stormKp } from '../../core/harbor-sky.js';
-import { REMOTE_KEYS, PREVIEW_KEYS, eventDef } from '../../core/harbor-remote.js';
+
 import { setCityClock } from '../../core/city.js';
 import { lhEdgeBlocks, signSpots } from '../../core/harbor-neon.js';
 import { tracesAt } from '../../core/harbor-crew.js';
@@ -1358,7 +1359,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
 
   let bowForcedAt = null, bowT = null;
 
-
   let lastDt = 16.7, pulseQ, roPk = 0, roPulse = 0, roPkAt = 0;
 
   // ------------------------------------------------------------------ the frame
@@ -2461,100 +2461,15 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     c.drawImage(hazeCv, cx - rw, cy - rh, rw * 2, rh * 2);
     c.restore();
   }
-  // THE PREVIEW PANEL (core/harbor-remote.js + screens/harbor/remote.js): the preview links' URL flags swapped LIVE — the clock
-  // (time, speed, weather, zone), the &force= set (the same Set every module reads), the flags' values (qp, read where they are
-  // used) — and whatever a preview left behind when it goes (a scheme, a colour, a word, a held scene) put back. params: { key:
-  // value } in place of the page's own REMOTE_KEYS, or null (back to the page's own URL); o.at: when it began (server ms),
-  // o.srv: the server clock — a time jump runs from o.at, so every phone shows the same minute, and a sky piece the state asks for
-  // starts at o.at (a late arrival lands mid-flight).
-  let pageQ = new URLSearchParams(q);
+  // SCHED — FR5 C1's cut (scene-panel.js, a pure move): THE PREVIEW PANEL's state on this city (realCity, applyRemote, the neon moments) + the everyday events' tick + their drawing
+  const scenePanel = createScenePanel({ get beam() { return beam; }, get beamK() { return beamK; }, set beamK(v) { beamK = v; }, get boats() { return boats; }, get bowForcedAt() { return bowForcedAt; }, set bowForcedAt(v) { bowForcedAt = v; }, get clock() { return clock; }, get DEBUG() { return DEBUG; }, set DEBUG(v) { DEBUG = v; }, get dpr() { return dpr; }, get events() { return events; }, set events(v) { events = v; }, get fastUntil() { return fastUntil; }, set fastUntil(v) { fastUntil = v; }, get GRID() { return GRID; }, set GRID(v) { GRID = v; }, get L() { return L; }, get lastDt() { return lastDt; }, get legends() { return legends; }, get legendWant() { return legendWant; }, set legendWant(v) { legendWant = v; }, get lights() { return lights; }, get linkHeld() { return linkHeld; }, get LOADLOG() { return LOADLOG; }, get lookAt() { return lookAt; }, set lookAt(v) { lookAt = v; }, get neon() { return neon; }, get pageClock() { return pageClock; }, set pageClock(v) { pageClock = v; }, get PT() { return PT; }, get q() { return q; }, get qp() { return qp; }, get realLive() { return realLive; }, set realLive(v) { realLive = v; }, get refreshLook() { return refreshLook; }, get remoteApplied() { return remoteApplied; }, set remoteApplied(v) { remoteApplied = v; }, get remoteKey() { return remoteKey; }, set remoteKey(v) { remoteKey = v; }, get remoteWho() { return remoteWho; }, set remoteWho(v) { remoteWho = v; }, get S() { return S; }, get sched() { return sched; }, set sched(v) { sched = v; }, get shownAt() { return shownAt; }, get sky() { return sky; }, get skyKey() { return skyKey; }, set skyKey(v) { skyKey = v; }, get spellBy() { return spellBy; }, set spellBy(v) { spellBy = v; }, get spellOpts() { return spellOpts; }, get tier() { return tier; }, get W() { return W; }, get wheel() { return wheel; }, get wheelParty() { return wheelParty; } });
+  const { applyRemote, drawEvents, eventsTick, neonMoments, realCity, remoteStored } = scenePanel;
   let pageClock = { now: clock.now, wx: clock.wx, speed: clock.speed, tz: clock.tz, preview: clock.preview, force: new Set(clock.force) };
-  /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): the page's OWN link flags (&when / &force / &wx / &hush…) are dropped too — the
-   *  page clock becomes the real one at the place the link names (&tz / &at kept), the live weather comes back, every sky piece in
-   *  flight + a legendary are stopped, the forced events end with their flags. → the flags that were stripped (the panel's toast) */
-  function realCity() {
-    const gone = [];
-    linkHeld.clear();                                     // (9g: a link's legendary still waiting for its tap goes with the link)
-    for (const k of PREVIEW_KEYS) if (pageQ.has(k)) { gone.push(k); pageQ.delete(k); }
-    const c = skyClock('?' + pageQ.toString());
-    pageClock = { now: c.now, wx: c.wx, speed: c.speed, tz: c.tz, preview: c.preview, force: new Set(c.force) };
-    try { sky.api.stop(); } catch {}
-    try { legendWant = null; if (legends) legends.stop(); } catch {}
-    // (a link that only names the PLACE (&tz / &at) is still a 'preview' clock to skyClock — a seeded sky for the review links; the real
-    // city wants the LIVE weather: keepLive, as the panel's own moved clock does — the readout says so; every later clear keeps it)
-    realLive = !!(pageClock.preview && !pageClock.wx && !pageQ.has('when') && !(pageClock.speed > 1));
-    remoteKey = '~'; applyRemote(null, {});
-    return gone;
-  }
+
   let remoteWho = null;   // (NIGHT-A: what the panel forces here + whose — the readout's `panel:` row)
   let remoteKey = '', remoteApplied = false, realLive = false;   // (SP5: realLive — after CLEAR ALL a place-only link keeps the LIVE weather on its 'preview' clock)
-  // (SP4: a JUST ME state the panel kept for this tab — sessionStorage, remote.js#ME_KEY — is applied before the reveal: the gate waits)
-  const remoteStored = (() => { try { return !!sessionStorage.getItem('nd:hr-me'); } catch { return false; } })();
-  function applyRemote(params, o = {}) {
-    const srv = o.srv || Date.now, at = o.at != null ? o.at : srv();
-    const key = params ? JSON.stringify(params) + '|' + at : '';
-    remoteApplied = true;
-    if (key === remoteKey) return false;
-    remoteKey = key;
-    remoteWho = params ? { who: o.who || 'me', params } : null;
-    LOADLOG.add('panel', params ? `the preview panel's state applied (${Object.keys(params).join(', ')})${shownAt < 0 ? ' before the reveal' : ''}` : 'the preview panel cleared — the real city');
-    const sp = new URLSearchParams(pageQ);
-    if (params) { for (const k of REMOTE_KEYS) sp.delete(k); for (const [k, v] of Object.entries(params)) sp.set(k, v); }
-    const before = new Set(clock.force), q0 = new URLSearchParams(qp), text0 = qp.get('text') + '|' + qp.get('style') + '|' + qp.get('tower');
-    const c = params ? skyClock('?' + sp.toString()) : pageClock;
-    clock.force.clear(); for (const id of c.force) clock.force.add(id);
-    clock.tz = c.tz; clock.wx = c.wx; clock.speed = c.speed;
-    if (params) {
-      const timed = !!sp.get('when') || c.speed > 1;
-      // (SP4 — the live weather stays unless the state sets the weather; a clock the panel moves KEEPS it (keepLive) — a preview LINK
-      // (&when= in the page's own URL) is still the seeded sky, so every test + review link stays deterministic)
-      clock.preview = pageClock.preview || !!c.wx || timed;
-      clock.keepLive = timed && !pageClock.preview && !c.wx;
-      if (timed) { const start = sp.get('when') ? c.now() : at, sp0 = c.speed; clock.now = () => start + (srv() - at) * sp0; }
-      else clock.now = pageClock.now;
-    } else { clock.preview = pageClock.preview; clock.now = pageClock.now; clock.keepLive = realLive; }
-    for (const k of [...qp.keys()]) qp.delete(k);
-    for (const [k, v] of sp) qp.append(k, v);
-    GRID = sp.get('grid') === '1'; DEBUG = sp.get('debug') === '1';
-    // what the previews that went off leave behind
-    const gone = id => before.has(id) && !clock.force.has(id), came = id => !before.has(id) && clock.force.has(id);
-    const f = clock.force;
-    if ((gone('spell') || (f.has('spell') && text0 !== qp.get('text') + '|' + qp.get('style') + '|' + qp.get('tower'))) && spellBy === 'force') { lights.clear(); spellBy = null; }
-    if (!f.has('wheel-scheme')) wheel.scheme(wheelParty ? 'party' : 'city');
-    if (gone('beam-green')) beam.set({ colour: null });
-    if (!f.has('rosie-lights')) boats.set({ rosie: 'city' });
-    if (gone('neon-party')) { neon.moment('party', 0); neon.moment('chase', false); }
-    if (!qp.get('scene')) neon.moment('show', null);
-    else if (f.has('neon-party')) neon.moment('chase', false);
-    if (gone('burnout')) neon.moment('burnout', false);
-    if (!f.has('neon-scheme')) neon.moment('scheme', 'city');
-    if (['demo', 'searchlights'].some(id => gone(id) || came(id))) { sched = null; events = { active: [], quiet: [] }; }
-    if ((gone('taxi') || came('taxi') || gone('rosie-turn') || came('rosie-turn')) && L) boats.layout(L, { dpr, tier, taxi: f.has('taxi'), turn: f.has('rosie-turn') });
-    if (['rainbow', 'rainbow2', 'moonbow', 'neonbow'].some(id => gone(id) || came(id))) bowForcedAt = null;
-    if (came('finale')) PT.finaleForced = false;
-    // the sky's pieces: the ones the state asks for start at o.at (clock ms); the ones that went stop
-    // (an event whose own flags changed — a new text, other shapes — starts over)
-    const redo = [...f].filter(id => before.has(id) && (eventDef(id) && eventDef(id).inputs || []).some(k => q0.get(k) !== qp.get(k)));
-    sky.remote(clock.now() - (srv() - at) * (clock.speed || 1), [...[...before].filter(id => gone(id)), ...redo], [...[...f].filter(id => came(id)), ...redo]);
-    if (legends) legends.remote(clock.now() - (srv() - at) * (clock.speed || 1), [...before].filter(id => gone(id)), [...f].filter(id => came(id)));
-    lookAt = 0; skyKey = '';                                       // (the look follows at once: the clock, the weather)
-    // (SP4: the look + the holiday + the light rules refreshed NOW — a state applied before the reveal is in the first picture, and the
-    // gate below sees the lit re-bake it wants before letting the city in, not a crossfade after)
-    try { refreshLook(performance.now()); } catch (e) { console.warn('[harbor] remote look', e); }
-    fastUntil = Math.max(fastUntil, performance.now() + 3000);
-    return true;
-  }
-  // the neon's MOMENTS, previewed now (later parts call harbor().neon.moment): &force=neon-party (chasers + the beat + colour
-  // shifts), &force=neon-flash&game=pulse (a game's colours sweeping the skyline, every 6 s), &force=neon-scheme&scheme=halloween
-  let flashAt = -1e9;
-  function neonMoments(t) {
-    const f = clock.force;
-    if (f.has('neon-party')) { neon.moment('party', 1); if (!qp.get('scene')) neon.moment('chase', true); }
-    if (qp.get('scene')) neon.moment('show', qp.get('scene'));
-    if (f.has('burnout')) neon.moment('burnout', true);
-    if (f.has('neon-flash') && t - flashAt > 6 && t > 2.5) { flashAt = t; neon.moment('flash', { game: qp.get('game') || 'pulse' }); }
-    if (f.has('neon-scheme')) neon.moment('scheme', qp.get('scheme') || 'halloween');
-  }
+
+
   // NEON PASS 2 — FILL (the iPhone's slow frames: its GPU blends every pixel of every layer, ~6.4 screens a party-night frame at
   // DPR 2): while a band and its lit windows are both steady, they are drawn as ONE bitmap (the band, then its lights at their
   // level, merged once — rebuilt when either re-bakes or the level moves a 64th). The same picture ('over' is associative), half
@@ -2597,33 +2512,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // THE EVENTS of Part 2: the searchlights (a rare grand-opening night, &force=searchlights) and a word in the windows (the
   // scheduler's random one, or &force=spell&text=HELLO&style=wipe|steady|twinkle&tower=wordA|wordB|wordV)
   let beamK = 0;
-  function eventsTick(now, nightK) {
-    const on = id => events.active.find(e => e.id === id);
-    const sl = on('searchlights');
-    // (they warm up over a few seconds when the event starts and fade out the same when it ends)
-    // (NEON PASS 3: the searchlights JOIN THE PARTY at its peak — the show's `lights`)
-    beamK += ((sl ? 1 : Math.max(0, neon.show().lights)) - beamK) * Math.min(1, 0.025 * (S.motion ? (lastDt || 16.7) / 16.7 : 50));   // (per 60 Hz frame: the same warm-up at 30 Hz)
-    if (clock.force.has('spell')) {
-      if (spellBy !== 'force' && nightK > 0.1 && lights.spell(...spellOpts())) spellBy = 'force';
-      return;
-    }
-    const sp = on('spell');
-    if (sp && spellBy !== sp.seed && nightK > 0.1) { if (lights.spell(SPELL_WORDS[sp.seed % SPELL_WORDS.length], { style: sp.seed % 3 === 0 ? 'twinkle' : 'wipe' })) spellBy = sp.seed; }
-    else if (!sp && spellBy != null && spellBy !== 'force') { lights.clear(); spellBy = null; }
-  }
-  // the events' look in Part 1: the debug-only demo (&force=demo) — a lantern drifting across the sky lane, labelled
-  function drawEvents(c, where) {
-    for (const e of events.active) {
-      if (e.id !== 'demo' || where !== 'sky') continue;
-      const ln = L.lanes['sky-low'], x = ln.x + ln.w * (0.1 + 0.8 * e.k), y = ln.y + ln.h / 2;
-      c.fillStyle = 'rgba(255,190,90,0.95)'; c.beginPath(); c.arc(x, y, 5, 0, Math.PI * 2); c.fill();
-      c.font = '600 9px "Chakra Petch", system-ui, sans-serif'; c.fillText(`EVENT demo · lane sky-low · ${Math.round(e.k * 100)}%`, Math.min(W - 150, x + 9), y + 3);
-    }
-  }
+
   // SCHED — FR5 C1's cut (scene-perf.js, a pure move): THE TIERING — the session's frame stats, perf(), judge(), the tier steps + their log; tier / dprTier stay here, set through the ctx
   const scenePerf = createScenePerf({ get baker() { return baker; }, get boats() { return boats; }, get bow() { return bow; }, get build() { return build; }, get capped() { return capped; }, set capped(v) { capped = v; }, get cool() { return cool; }, set cool(v) { cool = v; }, get costs() { return costs; }, get DEBUG() { return DEBUG; }, get dprTier() { return dprTier; }, set dprTier(v) { dprTier = v; }, get fadeFrom() { return fadeFrom; }, get fastUntil() { return fastUntil; }, set fastUntil(v) { fastUntil = v; }, get frames() { return frames; }, get fw() { return fw; }, get graceDone() { return graceDone; }, set graceDone(v) { graceDone = v; }, get heavyHeld() { return heavyHeld; }, set heavyHeld(v) { heavyHeld = v; }, get heavyUntil() { return heavyUntil; }, get heavyWhy() { return heavyWhy; }, get lastJudge() { return lastJudge; }, set lastJudge(v) { lastJudge = v; }, get legendHeld() { return legendHeld; }, set legendHeld(v) { legendHeld = v; }, get legends() { return legends; }, get litBaker() { return litBaker; }, get LOADLOG() { return LOADLOG; }, get lockAt() { return lockAt; }, set lockAt(v) { lockAt = v; }, get manualTier() { return manualTier; }, set manualTier(v) { manualTier = v; }, get perfN() { return perfN; }, set perfN(v) { perfN = v; }, get probe() { return probe; }, set probe(v) { probe = v; }, get PT() { return PT; }, get resizeT() { return resizeT; }, get shownAt() { return shownAt; }, get sky() { return sky; }, get slowN() { return slowN; }, set slowN(v) { slowN = v; }, get stepWhy() { return stepWhy; }, get tier() { return tier; }, set tier(v) { tier = v; }, get tierAt() { return tierAt; }, set tierAt(v) { tierAt = v; }, get tierHold() { return tierHold; }, set tierHold(v) { tierHold = v; }, get upAt() { return upAt; }, set upAt(v) { upAt = v; }, get upLock() { return upLock; }, set upLock(v) { upLock = v; }, get ups() { return ups; }, set ups(v) { ups = v; }, get wantBake() { return wantBake; }, get wantBuild() { return wantBuild; }, get wantStep() { return wantStep; }, set wantStep(v) { wantStep = v; }, get wasHeavy9() { return wasHeavy9; }, set wasHeavy9(v) { wasHeavy9 = v; }, get wheel() { return wheel; } });
   const { LOAD_SKIP, TIER_GRACE, UP_RETRY, heavyNow, perf, sess, setTier, stepTier, tenMinSlow, tierHist, tierLog } = scenePerf;
-
 
 
    // (WIN2: never judged in the first 15 s after the reveal — the bakes, the people, the windows, the fonts + images landing)
@@ -2635,8 +2527,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let lockAt = 0, wasHeavy9 = false;
 
                       // (the readout shows the steps: 2→1→2)
-
-
 
 
   // 8a — THE LOOP COMES BACK (the owner's iPhone after 7a: back from the home screen the music + Web Audio recovered — the DOM AUDIO
