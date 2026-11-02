@@ -4963,3 +4963,233 @@ Nov 2, ~8:45 am + ~10:30 am EST — SCHED: THE OWNER's ANSWERS IN THE PASS (DECI
 * THE BILLBOARD's SIZE (~70 × 38 pt on an iPhone: the long hints would be ~3 pt letters) → SHORT, WHOLE BOARD (two short lines take the whole board for ~20 s every ~3 min around their moment, then back to the game).
 SCHED DONE (Nov 2) — passes/sched.md. THE BUILD TABLE: SCHED ✅; CITY CONTROLS ← NEXT (its questions round first — the intercom's caption); then PROGRESSION 2.0, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its review), OVERCLOCK (+ its review), FR6, THE SWITCH-OVER.
 
+
+## OWNER'S NOTES — NOV 2 (morning)
+
+## Nov 2, 6:20–7:18 am EST — PROGRESSION 2.0: THE LOOK (the owner — DECIDED; mockups: proto/prog/round*.png + card*.png, outputs/progression-*.png + gilded-*.png)
+- The chat's first round: three looks for the END-OF-ROUND PROGRESS MOMENT + the REWORKED MEMBERSHIP CARD — A GILDED (black lacquer + brass foil +
+  one neon accent), B NEON GLASS, C VELVET ROOM. The owner liked GILDED → three more in the family: 1 EMERALD & BRASS (green-black lacquer, brass,
+  a stepped ziggurat crown in emerald enamel, mint-neon accent), 2 MIDNIGHT & CHAMPAGNE (navy, champagne-silver, Chrysler arches, pink accent),
+  3 ONYX & ROSE GOLD (rose gold, a diamond lattice, violet accent).
+- DECIDED (corrected 7:19 am): THE DEFAULT LOOK = THE ORIGINAL GILDED (A — black lacquer, brass foil, the Art Deco fan crown, the hot-pink
+  neon accent for what you just earned) for the end-of-round moment + the card + the profile. ALL THE OTHERS (Emerald & Brass, Midnight &
+  Champagne, Onyx & Rose Gold, Neon Glass, Velvet Room) = UNLOCKABLE PLAYER CARDS.
+- THE END-OF-ROUND MOMENT (the chat's flow, shown in the mockups): the placement lands → the XP lines count up one by one (a soft tick) → the
+  total punches in → the level bar fills (what you had plain, what you just earned in the neon accent; a level-up flips the medal + a burst)
+  → the streak flame flickers on + today's dot lights → "NEXT · LEVEL 25 — unlocks …" teases the next reward; ~4–5 s, a tap skips to the end.
+- THE PROFILE under the card: the level bar, stats (matches · wins · best streak · bests), CITY SIGHTINGS (spotted icons + ??? for the missed),
+  THE VAULT (the cards you own, the locked ones with their level).
+- (7:18–7:21 am) EMBLEMS + PLAYER CARDS (the chat's proposal — the owner: "all 3 sound good" = DECIDED):
+  YOUR IDENTITY = FOUR EARNED PIECES (they ARE the wardrobe — there's no body to dress; the old "wardrobe" idea is replaced): (1) YOUR CARD
+  (the background — Gilded default), (2) YOUR EMBLEM (your neon sign), (3) YOUR NAME GLOW (THE VAULT today), (4) A TITLE under your name
+  (NEW — earned, then picked: "THE NIGHT OWL", "SHARPSHOOTER", "SAW THE TR-3B" …).
+  CARDS ARE SEEN where friends look: the lobby's guest list (a slim strip), the end of round, the podium, your row on THE BOARD, the invite
+  banner. WHERE CARDS COME FROM: COMMON from levels (the Gilded family ~10 / 25 / 40 / 60, Neon Glass + Velvet Room between); RARE from
+  streaks + achievements (a 30-NIGHT FLAME card, 100 wins …); LEGENDARY from CITY SIGHTINGS (spot the TR-3B → a black card with its red
+  lights — a card per legendary); SEASONAL (e.g. a Halloween card only in October); THE FOUNDER CARD — everyone who plays BEFORE THE LAUNCH
+  gets it, never earnable again (DECIDED); THE OWNER card at level 100.
+  EMBLEMS UPGRADED: new SHAPES from achievements (a saucer, a triangle, a Blackbird, a flame); TUBE STYLES to unlock (two-tone, a gold tube,
+  a slow breathing glow, an old-sign flicker; a party-night emblem pulsing on the beat); THE TINFOIL HAT = an EMBLEM TOPPER (a crinkly foil
+  hat on your emblem — DECIDED).
+  THE RULE FOR EVERY UNLOCK: it reads at its SMALLEST size (an emblem ~28 pt in the lobby list; a card as a slim strip) — phone first, unzoomed.
+- (7:22 am) TITLES — DROPPED (the owner changed his mind: "no titles"). Your identity = THREE earned pieces: YOUR CARD, YOUR EMBLEM (+ its
+  topper / tube style), YOUR NAME GLOW. Achievements still unlock cards, emblem shapes, tube styles + glows — never a text title.
+- (7:26 am) THE TINFOIL HAT — DROPPED from Progression 2.0 (the owner: "we can do something with it later") → the FUTURE list. No emblem
+  toppers for now; emblems get new shapes + tube styles only.
+
+## Nov 2, 8:05–8:25 am EST — CITY CONTROLS: THE LOOK (the owner — DECIDED; mockups: outputs/city-controls-*.png, proto/prog/controls*.html)
+- Rounds: three layouts (Console / Tabs / Switchboard) → the owner picked the SWITCHBOARD (#3) + the chat's two details (GREYED-OUT moments that
+  can't run now; the LIVE COUNT of people on the city) → three "real console" takes (A Radio Desk · B Telephone Switchboard · C Broadcast Desk)
+  → DECIDED: "A — THE RADIO DESK" with B's PATCH JACKS for the moments + a SLIMMER INTERCOM ("that looks great"; final: city-controls-radio-desk.png):
+  a walnut + brass 1920s radio: a NIXIE-TUBE counter (people in the city); the SHOWCASE DIAL as a glowing TUNING WINDOW with a red needle
+  (HIGH · NORMAL · LOW) + its knob; WHO HEARS IT (just me · everyone · city only · one room) on the AUDIENCE knob; THE MOMENTS as brass PATCH
+  JACKS with lamps (12 now: SKYWRITE, BANNER, FIREWORKS, LIGHTS, UFO, TR-3B, PARTY, YACHT, BLACKBIRD, FLYBY, DANCE, BALLOONS — room for a 4th row);
+  the BILLBOARD line; THE INTERCOM as a slim strip with a chrome mic grille (HOLD); CLEAR ALL under a red SAFETY COVER. Gilded family colours.
+- (8:29–8:37 am) WHAT A JACK DOES (mockup: outputs/city-controls-jack-flow.png — the owner: "looks good" = DECIDED): TAP → that moment's PATCH CARD
+  slides up (only what it needs: SKYWRITE = the words ≤ 24 + the smoke colour + NOW / AT A TIME in each viewer's local time + a sky preview;
+  FIREWORKS short / full; DANCE its kind; UFO / BLACKBIRD / FLYBY / BALLOONS just FIRE) → the big brass FIRE (it says who it goes to + the count)
+  → the LAMP: dark = ready · blinking AMBER = on its way / waiting its turn (rooms ~2 s, the whole city ~45 s; behind a running legendary it
+  waits) · PINK = running (the strip shows how long + STOP) · GREYED = can't run now (a tap says why + when: "TR-3B — after dark only, 6:12 pm").
+  JUST ME on the audience knob = a preview on your phone only.
+- (8:39–8:43 am) THE THREE FACES (mockup: outputs/city-controls-three-faces.png — the owner: "all of that looks great" = DECIDED): ONE RADIO, a
+  brass BAND SELECTOR on top: THE DESK (the controls) · THE PROGRAM (a printed radio listing on cream paper: TONIGHT in order — done greyed,
+  ON NOW, the legendaries' times tagged LEGEND (admin only), YOURS in pink; THE WEEK — legendaries a night, party nights in red; YOUR QUEUE —
+  tap to edit / cancel; built on SCHED's day chart) · THE LEDGER (nixie tubes: in the city · rooms open · games on; TODAY on a ledger page —
+  visitors, new players, matches, legendaries spotted, the longest streak alive, errors from phones; THIS WEEK as a bar chart; today's
+  /admin STATS behind it, Vercel Analytics after the switch-over). WHICH MOMENTS GET A JACK: generated FROM THE TIMETABLE — a row marked
+  fireable gets a jack automatically (plug and play); real "wows" that read on the phone only (no cabs / pigeons / calendar-bound holidays);
+  long-press a jack to arrange; > 16 → the rows scroll.
+- (8:42–8:43 am) THE BACKGROUND: NOT the wood ("I don't like the old wood background") → "THE CITY BEHIND" (the chat's pick — DECIDED): the LIVE
+  neon harbor, blurred, behind the unchanged brass panels (you watch what you fire happen behind the desk). Mockup: city-controls-backgrounds.png.
+- (8:43–8:49 am) CITY CONTROLS — MORE (the owner — DECIDED unless marked):
+  - WHERE IT LIVES: INSIDE THE APP over the real city (THE CITY BEHIND needs it) — a RADIO item in the ☰ menu that only admins see (ADMIN_PIDS);
+    not the separate /admin page.
+  - THE INTERCOM's CAPTION → A HEADLINE ON THE BILLBOARD (supersedes Oct 28's "voice only, no captions"): the facts the chat checked in the
+    code (audio/engine.js): music ON = iOS 'playback' session → heard EVEN ON THE SILENT SWITCH; music OFF / muted = 'ambient' → heard only with
+    the ringer on; everything muted in the app → silent (respected); iOS blocks ALL page sound until the first tap — first-time visitors tap
+    TAP TO ENTER, a RETURNING visitor who hasn't touched the screen hears nothing. A full transcript can't fit / read on the billboard (~20–24
+    letters a line) → while the voice plays, the speakeasy billboard shows a SHORT HEADLINE (≤ 24 letters: "FIREWORKS IN 5 MINUTES") typed in
+    the review step (PLAY BACK · SEND · DISCARD), the pass may SUGGEST one from the recording. The owner: it MUST LOOK PREMIUM, held to the
+    same standard as the rest of the site (the billboard's 1920s lettering + lamps, crisp at the phone's dpr, a proper in + out, readable
+    at 390 unzoomed).
+  - OPEN (the chat's recommendations, not yet answered): fired moments COUNT AS CITY SIGHTINGS (once a day per player; &force= links never);
+    PRESETS (optional — one jack = a saved combo, e.g. GAME NIGHT = billboard + skywrite + fireworks); NO daily cap on fired legendaries.
+  - SOUNDS for the desk (a Grok prompt BEFORE the pass): the jack plugging in, the FIRE clunk, the tuning needle's tick, the intercom's
+    two-tone chime + the 1920s PA crackle.
+- (8:49–8:52 am) CITY CONTROLS — THE REST (the owner — DECIDED): FIRED MOMENTS COUNT AS CITY SIGHTINGS, ONCE A DAY per player (server-known;
+  &force= / panel previews never); PRESETS built but NOT PROMINENT (tucked away — "not sure I'll ever use it"; e.g. a long-press / a small
+  "save as preset" on the patch card, a preset = one jack in the last row); NO DAILY CAP on fired legendaries; "A ROOM JUST OPENED" — a push
+  to the owner's phone when someone opens a room; REPEATING ITEMS in the queue ("every Friday 7:45 → billboard GAME NIGHT · 8 PM"); ONE ROOM
+  on the audience knob lists the open rooms (hush word, players, game — Oct 28's design, carried over); billboard SHOUT-OUTS follow BNAME
+  (house nicknames, never a typed name but the owner's own).
+- (9:28 am) THE RADIO DESK's SOUNDS ARE IN (Grok): C:\Users\benja\Downloads\Grok\city-sfx\radio\ (picks) + alternates\ — ORIGINALS UNTOUCHED (copies
+  only; the CITY CONTROLS pass trims, converts + normalises). READ claude-notes.txt FIRST (the pick per sound, exact cut points in seconds, peak +
+  loudness); credits.txt: all CC0 / Sonniss GDC / Mixkit (no attribution required — the site credits them anyway as the city does). Picks:
+  jack-in 536411 (0.04–0.75) + takes from 463484 (1.41, 4.19, 8.06) + 499033 (0.58–1.05); jack-out 499034 (1.30–1.65), 477641 (0.03–0.45),
+  594300 (0.14–0.50); fire 'MECHLtch_Click Deep Mechanism Latch Button Nearfield Thunk 02_ESM_HDLM.wav' (whole), Bluezone lever switch
+  small_003, Bluezone steampunk heavy_impact_011 (0–0.45); knob-tick 'SBvr_Mode Select Wheel 006.wav' (0.54–0.68, 0.85–0.98), 'Coffee,
+  Grinder, Knob, Turn, Click X3.wav', 643563; band-button vintage_radio_button_006 (whole), 'SBvr_Power Button 003.wav' (0.37–0.60; 32-bit
+  float, −0.5 dB if converting), 624637; denied Bluezone BC0304 retrofuturistic button_013 (whole), 404150; cover 418329 (open 3.20–3.55,
+  close 9.15–9.45), antique blowtorch lid (open 0.15–0.65), CellDoor_LockOpen02 (close 0.33–0.65), Zippo 700894; PA-CHIME = the AIRPLANE
+  CABIN CHIME 670297__kinoton__airplane-seatbelt-sign-beep.wav (D5→B4 two-tone; trim 0.27–2.40 s, +~9 dB for phone speakers over music, a
+  short fade out) — shorter alt 845147__sadiquecat__airplane-ding.wav (whole, 1.68 s); others 244583 (A320 three-tone), Mixkit 109 (warm
+  doorbell, 0–2.5 s + fade), 419491 (vibraphone E5→C5); pa-crackle 'Crackles And Pops 3.wav' looped whole with a 0.5 s crossfade (or 493122),
+  soft under the voice + music. UI sounds start RIGHT ON THE HIT. Audio is polish (CLAUDE.md): the desk works silently.
+  NOTE (the chat): the chime will be judged by the owner — an airplane seatbelt "ding-dong" may read modern rather than 1920s; the pass
+  A/B's it against the vibraphone 419491 + the warm doorbell and the owner picks on his phone.
+- (9:31 am) THE INTERCOM CHIME — DECIDED (the owner: "both close enough — whatever you decide"; demos outputs/chime-A-airplane.m4a +
+  chime-B-vibraphone.m4a): THE VIBRAPHONE — 419491__plasterbrain__subway-station-chime.flac (E5 → C5, whole file, a short fade-out, normalised
+  to ~−14 LUFS like the demo); NOT the airplane chime (reads modern / "a plane"). The PA crackle under the voice: 'Crackles And Pops 3.wav'
+  high-passed ~150 Hz, ~−34 LUFS (soft — the demo's level), looped with a 0.5 s crossfade. Sequence: chime → the music ducks + the crackle
+  under the voice (+ the billboard HEADLINE) → chime → the music back up.
+- (9:33 am) THE WAY IN — A CORNER BUTTON (the owner's idea; the chat: yes — supersedes "a RADIO item in the ☰ menu"): a third small circle
+  UNDER the ☰ (top-left), the SAME size + style as ☰ / music (36 pt circle, the invisible 44 pt tap area, NEON GLASS), ADMINS ONLY (ADMIN_PIDS —
+  nobody else ever sees it); its glyph = a small brass old-radio / mic mark; a small PINK DOT on it while one of the owner's moments is
+  running or queued. One tap opens the radio (the point is speed — firing in the moment). The existing PREVIEW PANEL (the forces / EVERYONE
+  mode) is reached from INSIDE the radio (a small DEV / WORKSHOP button) — one way in for both, no second corner button. Checked on the
+  title + the lobby (the split corners) at 390 / 402 / 430 so it never crowds the sign or the dock.
+- (9:34 am) THE BILLBOARD = ITS OWN JACK (the chat's catch — the band buttons squeezed the desk's billboard line out): tap → its patch card
+  (type ≤ 24 letters + a preview on the real billboard · NOW / AT A TIME / REPEAT, e.g. every Friday) → it lands in YOUR QUEUE on THE
+  PROGRAM. CITY CONTROLS' QUESTIONS ROUND — DONE (the owner: "sounds good"); the prompt after SCHED's summary.
+- (9:49 am) FUTURE DISCUSSION — MINI ADMINS (the owner's idea): a small group of trusted friends with LIMITED controls — fire a few
+  legendaries + skytyping / banner messages for THEIR ROOM only (their lobby's phones, together on the server clock), never global / the
+  whole city. THE CHAT's THOUGHTS: good idea + a natural fit — (1) the scope must be THE ROOM (the shared city belongs to everyone; a room
+  already shares one seed, so a room-only moment is clean); (2) it overlaps PROGRESSION's "CALL IN A FAVOR" (players earn a moment for their
+  room ~once a week) — a mini admin ≈ "unlimited favors, granted by the owner"; design them together; (3) guard rails: the words through the
+  chat's PROFANITY filter + BNAME, a rate limit, the owner can grant / revoke in one tap (THE LEDGER or /admin), everything in the AUDIT LOG,
+  their moments DON'T count as City Sightings (farmable); (4) a small radio for them (a cut-down desk: a few jacks + the skywrite / banner
+  cards, no showcase dial, no intercom to everyone). FUTURE-PROOFING FOR CITY CONTROLS (do it now, cheap): the server checks a ROLE per
+  action (OWNER today: every jack + every audience) rather than a plain "is admin" — so mini admins later = a new role + its allowed jacks /
+  audiences, no rework. Slot: discuss after PROGRESSION (with the favors), build after the switch-over.
+- (9:51 am) MINI ADMINS — CLARIFIED (the owner): it's just for 3–5 CLOSE FRIENDS he hand-picks, so they can SHOW OFF to their kids / their
+  friend group when they play together in a room. NOT a player feature → NOT tied to "Call in a favor" (that stays a separate Progression
+  idea). Simpler: the owner adds a friend (by their profile / key) on THE LEDGER or /admin + can remove them; that friend's phone gets the same
+  corner radio button with a CUT-DOWN desk — a few legendaries + skywrite / banner jacks, audience locked to THE ROOM THEY'RE IN; trusted, so
+  light guard rails (the profanity filter stays — kids — + the audit log; no sightings from them). Small on top of CITY CONTROLS' roles
+  (~30–45 min) — could ride in CITY CONTROLS or later (the owner's call).
+- (9:52 am) MINI ADMINS → IN THE CITY CONTROLS PASS (the owner: "yeah"): the FRIEND role (3–5 hand-picked, added / removed by the owner, the
+  cut-down room-only radio, profanity filter + audit log, no sightings) built on CITY CONTROLS' role system.
+- (9:53 am) TWO (OR MORE) FRIENDS WITH THE RADIO IN ONE ROOM (the chat's design): ONE SHARED DESK PER ROOM — both radios show the same live lamps
+  (A fires the UFO → B's UFO jack lights pink "RUNNING · fired by <A's name>"); the city's rules hold — ONE legendary / ONE sky message at a time:
+  a second one goes AMBER "waiting its turn" and plays when the sky clears (first come, first served; a small queue, ~3 per room); either
+  friend may STOP what's running; the OWNER (if in the room or aiming ONE ROOM at it) goes first + can stop anything.
+- (9:54 am) SUPERSEDES the shared desk above — ONE RADIO PER ROOM (the owner's idea + the chat's fallback — DECIDED): the room's controls go to
+  THE HOST if the host is a mini admin; otherwise to THE MINI ADMIN WHO JOINED THE ROOM FIRST; nobody else in that room gets the radio button
+  while that holds (no fighting). It FOLLOWS THE HOST (host migration moves it, the existing election); the city's one-at-a-time rule still
+  queues a second moment; THE OWNER always outranks (goes first, can stop anything).
+- (9:55 am) THE MINI ADMIN WITHOUT THE RADIO (the owner: "he might be wondering why his controls don't work" — the chat's design, DECIDED):
+  his corner radio button STAYS VISIBLE but DIMMED with a small brass lock (never hidden — hiding looks broken); a tap opens a small brass
+  note: "THE RADIO'S WITH <NAME> TONIGHT — whoever hosts runs the show in this room. Host your own room to take the mic." + an ASK FOR THE
+  RADIO button → the holder gets a quiet prompt "<NAME> wants the radio · HAND IT OVER / KEEP IT"; HAND IT OVER moves it. When the holder
+  leaves, the radio passes on by the same rule and his button lights up (a small toast "THE RADIO'S YOURS"). The owner outranks everyone.
+- (9:56 am) HOW THE OWNER PICKS HIS MINI ADMINS (the chat's design — DECIDED with "sounds good"): a "THE CREW" section on THE LEDGER: (1) THE EASY
+  WAY — in a room with them, tap the friend in the guest list → an owner-only "ADD TO THE CREW" (their PROFILE gets the role, so it follows
+  them to any device they restore with their key); (2) BY NAME TAG — type their name tag (docs/profiles.md) on THE CREW. THE CREW lists each
+  friend (name, emblem, when added, what they last fired) with REMOVE (instant, server-side). Max ~5. A friend needs a PROFILE (they have one
+  once they've played) — no profile = can't be added (the note says so).
+- (9:57 am) ADDING A MINI ADMIN — REFINED (the owner — DECIDED): TAP A PLAYER's CARD (anywhere it shows — the lobby's guest list, the end of
+  round, the podium, THE BOARD …) → their card opens → an OWNER-ONLY "CREW" CHECKBOX (a brass toggle) on it: tick = a mini admin, untick =
+  removed (instant, server-side; it follows their PROFILE). THE CREW on THE LEDGER still lists them all (+ REMOVE, + add by name tag). CAP: 10.
+- (9:57–9:59 am) THE CREW's ACCESS (the chat's recommendation — the owner: limits needed "not tight"): ROOM ONLY; 8 JACKS — SKYWRITE · BANNER ·
+  FIREWORKS · BALLOONS / UFO · TR-3B · BLACKBIRD · FLYBY (words through the profanity filter; the full fireworks show allowed in their room).
+  NOT for them: the intercom, the showcase dial, THE PROGRAM + THE LEDGER, the speakeasy billboard, PARTY / YACHT / LIGHTS, presets, CLEAR
+  ALL, the dev panel — they get STOP on their own moments. Their desk: the Radio Desk look without the tuning window + dials, the 8 jacks, a
+  "THIS ROOM ONLY" plate. THE ANTI-SPAM LIMIT (loose, per room per night): a ~1-MINUTE COOLDOWN after a moment ends before they can fire the
+  next; EACH LEGENDARY ≤ 3 times a night; SKYWRITE / BANNER ≤ 10 a night; FIREWORKS ≤ 3 a night; a jack at its limit greys out with the note
+  "THAT'S ENOUGH UFOs FOR TONIGHT — back tomorrow" (+ the cooldown shows on the lamp). The owner has NO limits.
+- (9:59 am) FIREWORKS BY DAY (the owner asked: does firing them turn it to night?) → NO: the city's time ALWAYS follows the real clock (one
+  shared world; a room flipping to night would break the sky, the lights, the scenes + the music). Each moment keeps its own DAY / NIGHT rule:
+  FIREWORKS, UFO, TR-3B after dark only (the jack greyed by day with "after dark — at 6:12 pm"); SKYWRITE, BANNER, BALLOONS, BLACKBIRD, FLYBY
+  any time (the pass checks each one's real rule + marks it in its timetable row). FUTURE IDEA (the chat): DAYTIME FIREWORKS — real
+  Japanese "daylight fireworks" = bursts of COLOURED SMOKE that read against a blue sky → a day version of the jack later.
+
+## ★★★ FUTURE IDEA — HIGH PRIORITY (the owner, Nov 2 10:01 am: "I LOVE the idea of daytime fireworks" — put an EMPHASIS on it) ★★★
+DAYTIME FIREWORKS — Japan's real "daylight fireworks" (hiru hanabi): shells that burst into COLOURED SMOKE (blooms, trails, parachute
+streamers, smoke rings) that READ AGAINST A BLUE SKY — the city's fireworks by day. Uses: (1) the FIREWORKS jack by day on the owner's radio +
+THE CREW's (today it's after dark only); (2) daytime holidays + parades (July 4 afternoon, the Thanksgiving parade, a game launch); (3) maybe
+a rare daytime show on a party Saturday afternoon. Must meet the city's standard: big soft smoke shapes in bold colours that read at 390
+unzoomed (not tiny puffs), the smoke drifting + shearing with THE WIND (WF), slowly dissolving; sounds = the deeper daytime "thump" + the
+crackle of the shell without the night's light. Built to the fireworks' frame budget (PART 10's GPU show). Discuss its questions ahead of its
+pass; slot: soon after the switch-over (or alongside CITY CONTROLS' follow-up if it fits).
+- (10:01 am) A LIGHTNING STRIKE JACK — for the OWNER + THE CREW (the owner — DECIDED): the city's existing lightning + RECORDED THUNDER (ATM).
+  THE CHAT's design (so it never looks like a glitch on a clear day): in a storm / rain it's just a strike (1–3 bolts, close, the flash +
+  the crack); on a CLEAR sky it brings a brief DARK STORM CELL over the harbor (rolls in ~3–4 s from upwind, THE WIND), strikes 1–3 times
+  (the lighthouse or a tower's lightning rod — a clear target), rolls away in ~20 s. Day + night. The crew's desk → 9 jacks (LIGHTNING
+  joins row 2 or a third row); crew limit ≤ 10 a night + the cooldown. Flash safety: no strobe runs — the existing flash pacing
+  (prefers-reduced-motion = a softer flash).
+- (10:02 am) THE CREW ALSO GETS SEARCHLIGHTS + SKY BEAMS (the owner — supersedes "not LIGHTS for them"): SEARCHLIGHTS (the LIGHTS jack) + SKY
+  BEAMS (the party's beams across the sky) — room only, AFTER DARK, ≤ 10 a night each + the cooldown. The crew's desk → 11 jacks (three rows:
+  SKYWRITE · BANNER · FIREWORKS · BALLOONS / UFO · TR-3B · BLACKBIRD · FLYBY / LIGHTNING · SEARCHLIGHTS · SKY BEAMS). The owner's desk gets a
+  SKY BEAMS jack too if it isn't one yet. CITY CONTROLS + THE CREW — the questions round CLOSED ("that's enough for now").
+- (10:05 am) THE INTERCOM's HEADLINE IS OPTIONAL (the owner — DECIDED): in the intercom's review step (PLAY BACK · SEND · DISCARD) a brass
+  TOGGLE LEVER "ON THE BILLBOARD" — ON shows the headline field (≤ 24 letters, a suggested line from the recording) + it goes up on the
+  billboard while the voice plays; OFF = voice only (no field, the billboard untouched). Default ON; it remembers the owner's last choice.
+
+## SCHED DONE (Nov 2, ~11:20 am EST — ~5 h) — live (28b8cdb5, harbor tag). Summary: plan/sched-summary.txt
+- Local: unit 1005/1005, rules 55/55, /api 27/27, smoke 6/6, FULL harbor 819/819. Cloud: tests ✅ + harbor ✅ FIRST TRY (both).
+- Done: the DESKTOP review fixes (juggler amber + neon balls; window links from the reveal + boss-shade / shades loop every 20 s; the boss's pull
+  = a ~2.8 s cream shade, never a figure; the UPRIGHT card on sideways phones); THE MIGRATION (every timed system in the timetable; a golden
+  year matched exactly; a strays test); THE SPLIT (6 cuts — legend, holiday, weather, party, perf, panel — + draw() quartered; scene.js 3807 →
+  2968); THE NEW SCHEDULE (the showcase dial HIGH; prime time on local time; legendaries 2–3 a weeknight / one an hour from 8 pm on party nights;
+  never twice a night; the TR-3B weeknights after dark; the Blackbird at lunch; medium = an airliner pass + an extra night heli every ~4–5 min;
+  the window scenes + the boxer play THROUGH legendaries); THE BILLBOARD HINTS (a red handbill, gold letters, the whole board 20–25 s every
+  1–4 min: FIREWORKS / TONIGHT 9:30, STREET PARTY / FROM 8, FULL SHOW / AT 10, LOOK UP / ANY MINUTE 5 min before each legendary, the SUNDAY
+  POSTCARD); THE DAY CHART (/daychart + a card in /admin, admins only).
+- The owner's two answers mid-pass: KEEP THE COUNTS (1 in 20 would need ~13 legendaries a night from 4); SHORT HINTS TAKE THE WHOLE BOARD
+  (~70 × 38 pt). The dog walk dropped from the medium tier (it broke the crowd's cap). THE SIM at HIGH: 1 in 137 (weeknight, 2.5 a night) /
+  1 in 70 (party night, 4) — the odds rise as new legendaries join.
+- Known: the proper sideways view → TV mode; changing the dial mid-evening re-plans that evening's fireworks waits only next evening; the
+  scheduled planes' paths can differ per phone.
+
+## OWNER's REVIEW OF SCHED — Nov 2, 11:48 am EST (iPhone; links 1–5 + a screenshot of the boxer + the Charleston) → CITY CONTROLS' Step 0
+- THE DAY CHART: "the layout + look is great" BUT it only runs 6 am → 1 am → a FULL 24-HOUR chart (midnight → midnight, or the city's own day
+  4 am → 4 am — every hour shown, the small hours included: the shades, the lights-out 2–4 am, the boss at 3, the milkman at 6).
+- THE CHARLESTON: the YELLOW THING behind her arm (the tall yellow lamp / prop at her left in the pink room) "is confusing zoomed out" → REMOVE
+  it (keep the room's rosy light — the light source may sit off-frame / above); nothing bright behind her silhouette.
+- THE JUGGLER "looks good" BUT: his amber reads the SAME as THE BOXER's (the owner's screenshot: the boxer's top-middle window is warm amber /
+  gold) → a DIFFERENT warm shade + a touch DIMMER so the neon balls pop. The chat's pick: a deep, dim COPPER / ember-orange (lower + redder than
+  the boxer's gold — still clearly warm, never green / blue / pink: the TV is blue, the Charleston pink); check the lit windows side by side at
+  390 (a weeknight 8:30 pm: boxer + juggler + Charleston + the boss's TV) — four distinct colours.
+- APPROVED: THE BOSS's SHADE (the cream pull, the nightlight) ✅ and THE BILLBOARD HINT (the red handbill) ✅.
+- (11:52 am) links 6–10: the LOOK UP hint ✅, the Sunday postcard ✅, the upright card ✅. The UFO link (7) + the TR-3B link (8): "just shows a
+  UFO abduction (OVERCLOCK is on the billboard)" — by design the LOOK UP hint runs the 5 min BEFORE a legendary, the game's sign is back
+  during it; the chat asked the owner to confirm link 8 showed the TR-3B (not a UFO).
+- (11:52 am) THE BILLBOARD's MESSAGES — CRISP + PREMIUM (the owner): every hint, the Sunday postcard, the intercom's headline + the owner's typed
+  messages drawn at the phone's FULL dpr (3× on his iPhone) — on THE CRISP LAYER (crisp.js) if nothing passes in front of the board (else
+  a full-dpr overlay with the passers-by drawn above it), the 1920s lettering's edges + the gold's highlight sharp, the handbill's paper
+  texture + edges clean, the postcard's silhouette crisp; checked at 390 / 402 / 430 + WebKit 402×874 @3, side by side with today's — it
+  must look clearly sharper. Same standard as the sign + the blade.
+- (11:53 am) LINK 8 showed THE TR-3B as it should ✅ (the owner). SCHED's review DONE → CITY CONTROLS' prompt next (when the owner says ready).
+- (11:55 am) CITY CONTROLS SPLIT IN TWO (the chat — the owner's ~3–4 h a pass rule): CC-A (THIS prompt) = Step 0 + the SCHED review fixes · the
+  server's ROLES + actions + the audit log · THE RADIO (the corner button, THE DESK, the jacks from the timetable, the patch cards, the lamps,
+  FIRE / STOP, the BILLBOARD jack + the owner's queue, LIGHTNING + SKY BEAMS) · THE PROGRAM · THE LEDGER (stats). CC-B (next) = THE INTERCOM
+  (record → review → headline toggle → send / unsend, the chime + the PA, audiences, wait / don't wait) · THE CREW (the role, the CREW toggle on
+  player cards, the cut-down room radio, limits, one radio per room, the locked note + ASK) · PRESETS · "A ROOM JUST OPENED" push · REPEAT
+  items if not done in A. The mockups are in Downloads\NEON\city-controls\ (PNGs + src\ HTML).
+- (11:56 am) ADD-ON — THE FINALE's GAP, into Group 0: in the party show's finale (core/harbor-fireworks.js — the closing DRAGON EGGS salvo, then
+  THE GOLD WILLOW SWEEP), the pause between the eggs and the willow is too long — "the length of the pause feels unnatural". Make it one
+  continuous close: the willow launches while the eggs' crackle is still dying (~0.5–1 s after their burst, overlapping the last pops), never
+  a silent gap. Keep the show's sync to the party song (the willow on the next strong beat right after the eggs — never a bar later). Check
+  with --cast on the finale (&force=finale) at 402, WebKit too, and give the finale link in the summary.
+
+- THE BUILD TABLE (Nov 2, CITY CONTROLS A Step 0): SCHED ✅; CITY CONTROLS A (this pass) ← NEXT; CITY CONTROLS B; then PROGRESSION 2.0, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its review), OVERCLOCK (+ its review), FR6, THE SWITCH-OVER.
