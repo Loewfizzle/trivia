@@ -354,8 +354,11 @@ function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); return e 
  * What a room is doing at hour h (local, 0–24) — the routines move them (routines: { wake, shop-open, bartender, lights-out } →
  * their starts today, seconds; their ends = start + len). NEVER FULLY DARK: from the bar's close at 3 am until the upstairs wakes
  * there is always the apartment's night lamp (and the bar's last light + the sweeping until 4).
- *   apartment  'day' (after the wake, until dusk) · 'lamp' (dusk → lights out) · 'tv' (lights out → 3 am) · 'tvoff' (3 am: the TV's last
- *              flicker, TV_OFF s) · 'shade' (WSP — the owner, Nov 1: he PULLS THE SHADE DOWN, SHADE_LEN s, his silhouette at it) · 'night'
+ *   apartment  'day' (after the wake, until dusk) · 'lamp' (dusk → lights out) · 'tv' (lights out → 3 am) · 'shade' (3 am — SCHED, the
+ *              owner's DESKTOP review: THE SHADE COMES DOWN OVER THE LIT TV ROOM — a cream shade sliding down the blue glass, big + slow
+ *              (~2.8 s), the TV's blue cut as the hem passes; then the set switches off BEHIND the drawn shade + the nightlight warms it;
+ *              SHADE_LEN s; never a figure — SP5's "you never see the boss") · ('tvoff' — the old switch-off before the pull, no longer
+ *              reached: the painter keeps it for a party night's look) · 'night'
  *              (→ the wake: the shade drawn, ONE small NIGHTLIGHT glowing warm behind it all night, fading out as the daylight comes up —
  *              replaces SP3's fully dark room)
  *   bar        'closed' (4 am → the bartender) · 'open' (the bartender → 3 am: by day the half-drawn shade, at night the full bar) · 'last' (3 → 4 am)
@@ -364,14 +367,15 @@ function nextMoment(plan, sec) { const e = plan.find(o => o.t0 > sec); return e 
 const BAR_LAST = [3, 4], SHOP_CLOSE = 18, TV_END = 3;
 /** SP3: the TV's switch-off at TV_END (s): a last flicker + the picture shrinking away */
 export const TV_OFF = 3.2;
-/** WSP: the shade's pull after the TV's switch-off (s): he steps to the window, reaches up, draws it down (eased), steps away */
-export const SHADE_LEN = 6;
+/** SCHED: the 3 am pull (s): the TV on behind the shade's travel (BOSS_PULL), the set off behind the drawn shade, the nightlight up */
+export const SHADE_LEN = 7;
+/** SCHED: the 3 am pull's beats inside SHADE_LEN (s): the shade's travel [from, to], the TV's switch-off behind it, the nightlight's rise */
+export const BOSS_PULL = Object.freeze({ from: 0.6, to: 3.4, tvOff: 3.8, night: [4.4, 6.4] });
 export function roomState(id, h, routines = {}) {
   const s = h * 3600, start = k => (routines[k] == null ? MOMENT[k].at * 3600 : routines[k]), end = k => start(k) + MOMENT[k].len;
   if (id === 'apartment') {
     if (h < TV_END || s >= start('lights-out')) return 'tv';
-    if (s - TV_END * 3600 < TV_OFF) return 'tvoff';
-    if (s - TV_END * 3600 < TV_OFF + SHADE_LEN) return 'shade';
+    if (s - TV_END * 3600 < SHADE_LEN) return 'shade';
     return s < end('wake') ? 'night' : 'lamp';
   }
   if (id === 'bar') {

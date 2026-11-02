@@ -2,7 +2,7 @@
 // bar + the bartender + the patrons, the sax player, the edge windows' moods, the window party), the barbershop's life (shop: the day,
 // the CLOSED card, the mirror door), the taps' answers + PAINT[id] — one painter per moment (core/harbor-moments.js#MOMENTS). Made per
 // life by createPaint(life) (the life's shared state — windows.js#S).
-import { TV_OFF, SHADE_LEN, tvLight, TV_PAL, tvScene, bossWatchAt, bossWatchPlan, tvHolidayTint, tvShadow, MOMENT, TANGO_PATH } from '../../core/harbor-moments.js';
+import { TV_OFF, SHADE_LEN, BOSS_PULL, tvLight, TV_PAL, tvScene, bossWatchAt, bossWatchPlan, tvHolidayTint, tvShadow, MOMENT, TANGO_PATH } from '../../core/harbor-moments.js';
 import { sm, clamp01, R, rgb, mixc, TAU, paintBar, tri, hsh, lerp, walkIn, floorShadow, paintBox, paintLampRoom, solveArm, deepAt, boxOf, lampFall, shopGlass, shopChairX, shopLamp, shopMirrorDoor, shopTones, barberChair, SHOP_ROOM } from './window-rooms.js';
 import { figure, whoM, BARTENDER_PAL, whoW, figures, litPal, RIM_COL, sax, SIL, setRim, pals, BARBER, NIGHTGOWN, DAY_PALS, SHADOW, LEGS_SH, cat, SIL_TV, TANGO_HIM } from './window-figure.js';
 import { idleMoves } from '../../core/harbor-dance.js';
@@ -37,35 +37,42 @@ export function createPaint(life) {
     // WSP — THE BOSS's NIGHT (the owner, Nov 1): after the 3 am switch-off he PULLS THE SHADE DOWN — he steps to the window (his
     // silhouette against the nightlight he left on), reaches up to the ring, draws the shade down (eased), steps away — then the shade
     // stays drawn with ONE small NIGHTLIGHT glowing warm behind it all night, fading out as the daylight comes up (then his day: the wake)
-    if (st === 'shade') { const el = ((life.last.bossSec ?? life.last.sec) - TV_END_S + 86400) % 86400 - TV_OFF; shadePull(E, clamp01(el / SHADE_LEN), tp); return true; }
+    if (st === 'shade') { const el = ((life.last.bossSec ?? life.last.sec) - TV_END_S + 86400) % 86400; shadePull(E, Math.max(0, Math.min(SHADE_LEN, el)), tp); return true; }
     if (st === 'night') { bossShade(E, { glow: 'night', cover: 1, day: bs.day, signal: bs.signal, tap: tp }); return true; }
     bossShade(E, { glow: st === 'lamp' && k > 0.02 ? 'lamp' : 'dark', cover: BOSS_COVER(E.day), day: bs.day, signal: bs.signal, tap: tp });
     return true;
   }
   /** WSP — the nightlight's strength (0..1): full in the dark, fading out with the daylight (E.day) — the real sunrise's light */
   const nightLightA = E => 0.5 * (1 - sm(0.04, 0.7, E.day || 0));
-  /** WSP — THE SHADE's PULL (u 0..1 through SHADE_LEN): the shade from rolled up (cover 0.04) to fully down, eased; his silhouette — standing
-   *  at the window, one arm up to the hem (the ring), following it down — solid against the nightlight behind him; he steps in at the start
-   *  and away at the end (THE WINDOW RULE: by his own motion) */
-  function shadePull(E, u, tp) {
-    const { c, G, t, mo } = E;
-    const pull = sm(0.25, 0.85, u), cover = 0.04 + 0.96 * pull, hem = G.h1 - G.ch * cover;
-    bossShade(E, { glow: 'night', cover, tap: tp });
-    // him: in from the right (0 → 0.2), at the window (the pull), away to the left (0.86 → 1); solid, the nightlight's warm rim on his edge
-    const a = sm(0, 0.16, u) * (1 - sm(0.86, 1, u)), x = G.g0 + G.cw * (0.62 - 0.08 * sm(0, 0.2, u) - 0.3 * sm(0.86, 1, u));
-    if (a < 0.01) return;
-    const Y = v => G.h0 + v * G.ch, W = G.cw, br = mo ? Math.sin(t * 2.2) * 0.004 * G.ch : 0;
-    c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
-    c.fillStyle = `rgba(4,3,9,${(0.97 * a).toFixed(3)})`;
-    c.beginPath(); c.moveTo(x - W * 0.2, Y(0) - 0.02); c.quadraticCurveTo(x - W * 0.2, Y(0.5) + br, x - W * 0.07, Y(0.48) + br);
-    c.lineTo(x + W * 0.08, Y(0.48) + br); c.quadraticCurveTo(x + W * 0.21, Y(0.5) + br, x + W * 0.21, Y(0) - 0.02); c.closePath(); c.fill();   // (the shoulders + the body down out of the pane)
-    c.beginPath(); c.ellipse(x, Y(0.575) + br, W * 0.092, G.ch * 0.085, 0, 0, TAU); c.fill();   // (the head)
-    // the arm: up to the hem's ring while he pulls (the hand on it), down at his side before + after
-    const reach = sm(0.14, 0.26, u) * (1 - sm(0.84, 0.92, u)), hx = x + W * (0.12 + 0.06 * reach), hy = lerp(Y(0.3), Math.min(Y(0.95), hem - G.ch * 0.02), reach);
-    c.strokeStyle = c.fillStyle; c.lineCap = 'round'; c.lineWidth = W * 0.085;
-    c.beginPath(); c.moveTo(x + W * 0.15, Y(0.45) + br); c.quadraticCurveTo(x + W * (0.24 - 0.04 * reach), lerp(Y(0.32), Y(0.62), reach), hx, hy); c.stroke();
-    c.beginPath(); c.arc(hx, hy, W * 0.05, 0, TAU); c.fill();   // (the hand)
-    c.restore();
+  /** SCHED — THE 3 AM PULL (the owner's DESKTOP review: "he doesn't close the window"; el 0..SHADE_LEN s): the lit TV room behind the
+   *  glass, A CREAM SHADE SLIDING DOWN OVER IT — big + slow (BOSS_PULL.from → .to, eased), its bold hem bar + the shadow it casts on the
+   *  lit glass, the TV's blue cut as the hem passes; then the set switches off BEHIND the drawn shade (its blue on the cloth flickers out)
+   *  + the warm nightlight comes up through it. Never a figure (SP5: "you NEVER see the boss") — the shade's own motion is the moment
+   *  (THE WINDOW RULE). Reads at ~40 pt: the cloth a pale cream, the room under it the deep TV blue. */
+  function shadePull(E, el, tp) {
+    const { c, G, t, mo, k } = E, P = BOSS_PULL;
+    const pull = sm(P.from, P.to, el), cover = 0.04 + 0.96 * pull, hem = G.h1 - G.ch * cover;
+    // the set's level behind (on through the pull; the switch-off flicker after it)
+    const oe = el - P.tvOff, tvOn = oe < 0 ? 1 : oe < 0.15 ? 0.3 : oe < 0.3 ? 0.95 : Math.max(0, 1 - (oe - 0.3) / 0.9) ** 1.6;
+    const nl = sm(P.night[0], P.night[1], el);
+    // 1. the lit TV room (below the hem it stays in view: the blue cut as the shade passes)
+    if (cover < 0.999 && tvOn > 0.01) { if (life.last.tvOff) tvDark(E); else tvRoom(E, tvOn); } else R(c, G.g0, G.h0, G.g1, G.h1, 'rgb(9,8,14)');
+    // 2. the shade's cloth: cream, lit by the set from behind (a little of its blue in it) → after the switch-off the nightlight's warm
+    const tv = mo ? tvLight(t, 11, { late: !!life.last.tvLate }) : { k: 0.75, tint: 0.4, warm: 0 }, tvc = tvCols(tv, t).near;
+    const CREAM = [236, 220, 186], cloth = [128, 116, 92];
+    const litA = Math.max(0.2, (0.55 + 0.25 * tv.k) * tvOn) * k;
+    if (nl < 0.999) litBlind(c, G, { hem, cloth, col: mixc(CREAM, tvc, 0.28), a: litA, lamp: { u: G.g1 - G.cw * 0.26, v: G.h0 + G.ch * 0.3 }, sil: false });
+    if (nl > 0.001) { const a0 = c.globalAlpha; c.globalAlpha = a0 * nl; bossShade(E, { glow: 'night', cover, tap: tp }); c.globalAlpha = a0; }
+    // 3. THE HEM, BOLD (the moving edge is the moment): the shadow it throws down the lit glass + a bright cream bar with a dark lip
+    if (cover < 0.999) {
+      const sh = G.ch * 0.09, g = c.createLinearGradient(0, hem, 0, hem - sh);
+      g.addColorStop(0, `rgba(0,0,0,${(0.55 * k).toFixed(3)})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+      c.save(); c.beginPath(); c.rect(G.g0, G.h0, G.cw, G.ch); c.clip();
+      c.fillStyle = g; c.fillRect(G.g0, hem - sh, G.cw, sh);
+      c.fillStyle = rgb(mixc(CREAM, [255, 255, 255], 0.2), k); c.fillRect(G.g0 - 0.1, hem - 0.004, G.cw + 0.2, 0.05);
+      c.fillStyle = `rgba(40,28,16,${(0.8 * k).toFixed(3)})`; c.fillRect(G.g0 - 0.1, hem - 0.018, G.cw + 0.2, 0.016);
+      c.restore();
+    }
   }
   /** SP5 — THE BOSS's SHADE: a plain 1920s roller blind drawn down the pane (o.cover of it; NIGHT-A2: 1 by day — fully down, BOSS_COVER — 0.9 at night: the lamp's glow at the sill), its ring
    *  pull; by DAY it reads DARK against the sunlit facade (a dull olive cloth, the daylight only on its top edge); at dusk it glows WARM

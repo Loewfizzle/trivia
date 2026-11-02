@@ -97,8 +97,9 @@ test('7b — THE ROUTINES: fixed in the day (a few seeded minutes), every day, t
   assert.equal(roomState('apartment', 12, r), 'lamp');
   assert.equal(roomState('apartment', 23, r), 'tv');
   assert.equal(roomState('apartment', 1.5, r), 'tv');
-  assert.equal(roomState('apartment', 3 + 1 / 3600, r), 'tvoff', '3:00:01: the TV switching off');
-  assert.equal(roomState('apartment', 3 + 5 / 3600, r), 'shade', 'WSP: 3:00:05 — he pulls the shade down');
+  assert.equal(roomState('apartment', 3 + 1 / 3600, r), 'shade', 'SCHED: 3:00:01 — the shade comes down over the lit TV room');
+  assert.equal(roomState('apartment', 3 + 6.5 / 3600, r), 'shade', 'SCHED: 3:00:06 — the set off behind the drawn shade, the nightlight up');
+  assert.equal(roomState('apartment', 3 + 7.5 / 3600, r), 'night', 'SCHED: 3:00:07.5 — the nightlight behind the drawn shade');
   assert.equal(roomState('apartment', 3.5, r), 'night', 'WSP: 3:30 — the shade drawn, the nightlight on');
   assert.equal(roomState('bar', 12, r), 'closed');
   assert.equal(roomState('bar', 16.5, r), 'open');

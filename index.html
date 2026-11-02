@@ -42,7 +42,7 @@
       color: #8f97c8; font: 700 10px/1.4 ui-monospace, Menlo, Consolas, monospace; letter-spacing: .32em; transition: opacity .5s ease; }
     #boot { pointer-events: none; } /* nothing to tap here: an early tap reaches the title's TAP TO ENTER */
     #boot.out { opacity: 0; }
-    html:not(.css-ready) body > *:not(#boot):not(script) { visibility: hidden !important; }
+    html:not(.css-ready) body > *:not(#boot):not(#ns-turn):not(script) { visibility: hidden !important; }
     #boot .boot-logo { width: min(82vw, 330px); height: auto; overflow: visible; opacity: .9; }
     #boot .boot-name { margin-top: -2px; padding-left: .66em; font: 700 clamp(13px, 3.9vw, 17px)/1.2 system-ui, -apple-system, 'Segoe UI', sans-serif; letter-spacing: .66em; color: rgba(236, 240, 255, .32); }
     #boot .boot-name { display: flex; align-items: center; justify-content: center; gap: .55em; }
@@ -53,6 +53,22 @@
     @media (max-height: 720px) { #boot { padding-top: calc(env(safe-area-inset-top, 0px) + 38px); } #boot .boot-logo { width: min(70vw, 270px); } }
     @media (min-width: 900px) and (min-height: 640px) { #boot { padding-top: calc(12px + clamp(56px, 11vh, 120px)); background: radial-gradient(90% 40% at 50% 74%, rgba(70, 40, 120, .22), transparent 70%), linear-gradient(180deg, #03040b 0%, #05061a 45%, #0b0b26 62%, #141236 74%, #0c0b22 74.1%, #030309 100%); } #boot .boot-logo { width: min(40vw, 470px); } #boot .boot-name { font-size: 21px; } }
     @media (prefers-reduced-motion: reduce) { #boot .boot-status { animation: none; } }
+    /* SCHED — A PHONE HELD SIDEWAYS (the owner, Nov 2: the short strip read as an empty brick plane): a neon TURN YOUR PHONE UPRIGHT card over
+       the city (title, lobby, games), gone the moment it turns back; the city keeps running behind it. PHONES ONLY — a coarse pointer + a short
+       side: an iPad sideways + a computer keep the desktop framing. The proper sideways camera comes later with TV mode (docs/harbor.md KNOWN ISSUES) */
+    #ns-turn { display: none; }
+    @media (orientation: landscape) and (max-height: 500px) and (pointer: coarse) {
+      #ns-turn { display: flex; position: fixed; inset: 0; z-index: 900; align-items: center; justify-content: center; touch-action: none;
+        background: radial-gradient(70% 90% at 50% 50%, rgba(8, 6, 24, .72), rgba(3, 3, 10, .9)); }
+      #ns-turn .ns-turn-card { display: flex; align-items: center; gap: 22px; padding: 20px 30px 20px 24px; border-radius: 22px;
+        background: rgba(14, 12, 34, .82); border: 1px solid rgba(255, 255, 255, .16); box-shadow: 0 0 0 1px rgba(255, 92, 196, .28), 0 0 34px rgba(255, 92, 196, .2), 0 18px 50px rgba(0, 0, 0, .55); }
+      #ns-turn .ns-turn-phone { width: 46px; height: 46px; flex: none; animation: ns-turn-rot 2.8s cubic-bezier(.6, 0, .3, 1) infinite; }
+      #ns-turn b { display: block; font: 900 17px/1.25 Orbitron, system-ui, sans-serif; letter-spacing: .14em; color: #ffe9f7;
+        text-shadow: 0 0 2px #ff5cc4, 0 0 9px rgba(255, 92, 196, .85), 0 0 22px rgba(255, 92, 196, .45); }
+      #ns-turn span { display: block; margin-top: 6px; font: 600 14px/1.3 'Chakra Petch', system-ui, sans-serif; letter-spacing: .06em; color: #c9cde8; }
+    }
+    @keyframes ns-turn-rot { 0%, 22% { transform: rotate(-90deg); } 50%, 88% { transform: rotate(0deg); } 100% { transform: rotate(-90deg); } }
+    @media (prefers-reduced-motion: reduce) { #ns-turn .ns-turn-phone { animation: none; } }
   </style>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -95,6 +111,7 @@
   </div>
   <main id="stage"></main>
   <div id="net" class="net" role="status" aria-live="polite"><span class="net-dot"></span><span class="net-text"></span></div>
+  <div id="ns-turn" role="status"><div class="ns-turn-card"><svg class="ns-turn-phone" viewBox="0 0 48 48" aria-hidden="true"><rect x="14" y="4" width="20" height="40" rx="5" fill="none" stroke="#7df9ff" stroke-width="3"/><rect x="21" y="8.5" width="6" height="2" rx="1" fill="#7df9ff"/><circle cx="24" cy="38.5" r="2" fill="#7df9ff"/></svg><div><b>TURN YOUR PHONE UPRIGHT</b><span>The city is built to be seen tall.</span></div></div></div>
   <noscript><p style="padding:24px;color:#fff">This game needs JavaScript.</p></noscript>
   <script type="module" src="js/app.js"></script>
 </body>

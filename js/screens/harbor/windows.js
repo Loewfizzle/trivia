@@ -35,6 +35,8 @@ import { charlestonRoom } from './charleston.js';
 import { bookieRoom } from './bookie.js';
 import { knob } from '../../core/harbor-schedule.js';
 import { SCENE_ROOMS, EDGE_ROOMS, scenesTonight, sceneAt, scenePreview, shadesNight, shadeLevel, roomColour, sceneFreeFrom, edgeShadePlan, edgeShadeAt } from '../../core/harbor-scenes.js';
+/** SCHED: a looping window force (&force=boss-shade / shades) repeats every FORCE_LOOP s from THE REVEAL */
+const FORCE_LOOP = 20;
 // WINDOWS — THE SCENES' PAINTERS (one per scene id: core/harbor-scenes.js#SCENE_IDS) — each (E, st (core#sceneAt), o) → its trace; a scene
 // with no painter yet never plays (its timetable row stays 'planned')
 export const SCENE_PAINT = { juggler: jugglerRoom, crate: crateRoom, charleston: charlestonRoom, bookie: bookieRoom };
@@ -135,7 +137,8 @@ export function createWindowLife() {
       if (scKey !== `${nightKey}|${L.seed || 1924}|${quiet}`) { scKey = `${nightKey}|${L.seed || 1924}|${quiet}`; scList = scenesTonight(nightKey, { seed: L.seed, legend: lg }).filter(x => !(quiet && x.rotating));   /* (a QUIET night — the boss's TV the only light on: the rotating scene stays home) */ scOut = shadesNight(nightKey, { seed: L.seed, scenes: scList }); }
       let list = scList.filter(x => SCENE_PAINT[x.id]);
       const fs = L.scene && SCENE_PAINT[L.scene.id] ? L.scene : null;
-      if (fs) { const fk = `${fs.id}|${fs.min || 0}|${fs.win || ''}`; if (scForceKey !== fk || scT0 == null) { scForceKey = fk; scT0 = evSec; } const pv = scenePreview(fs.id, scT0, fs.min || 0, { win: fs.win }); if (pv) list = [...list.filter(x => x.win !== pv.win), pv]; }
+      // (SCHED: a forced scene's clock is HELD at its start until THE REVEAL — a slow phone sees it from its first second, like a legendary)
+      if (fs) { const fk = `${fs.id}|${fs.min || 0}|${fs.win || ''}`; if (scForceKey !== fk || scT0 == null || L.shown === false) { scForceKey = fk; scT0 = evSec; } const pv = scenePreview(fs.id, scT0, fs.min || 0, { win: fs.win }); if (pv) list = [...list.filter(x => x.win !== pv.win), pv]; }
       else { scForceKey = ''; scT0 = null; }
       const room = {};
       for (const id of SCENE_ROOMS) {
@@ -227,10 +230,12 @@ export function createWindowLife() {
       // (Reduced motion: no moving moments — the rooms keep their states: the TV's light steady, the night lamp, the shop's barber still)
       if (f.motion === false || f.motion === 0) { on = []; blinds = {}; }   // (11a-1: the title passes motion 0 — the old === false never caught it)
     }
-    // DESKTOP Group 1 — &force=boss-shade (the owner never saw his 3 am pull): the boss's room on its OWN clock from the force — 1.5 s of the
-    // TV, the switch-off, HIS PULL of the shade, the nightlight behind it — within ~10 s of a fresh load (bossSec: the painter's clock too)
-    if (L.bossShade) { if (bossShadeT0 == null) bossShadeT0 = f.t; } else bossShadeT0 = null;
-    const bossSec = bossShadeT0 != null ? 3 * 3600 - 1.5 + (f.t - bossShadeT0) : loc.sec;   // (1.5 s of the TV: the pull at ~5–11 s of a fresh load on the live site)
+    // DESKTOP Group 1 — &force=boss-shade (the owner never saw his 3 am pull): the boss's room on its OWN clock from the force — the TV,
+    // the shade down over it, the set off behind it, the nightlight (bossSec: the painter's clock too). SCHED (the owner's DESKTOP review:
+    // "the page loads, but he doesn't close the window"): the clock starts AT THE REVEAL (L.shown — a slow phone's load + reveal used to eat
+    // the whole ~6 s, it played once from the first frame drawn) and LOOPS every FORCE_LOOP s: 2 s of the TV, the pull, the nightlight
+    if (L.bossShade && L.shown !== false) { if (bossShadeT0 == null) bossShadeT0 = f.t; } else bossShadeT0 = null;
+    const bossSec = bossShadeT0 != null ? 3 * 3600 - 2 + ((f.t - bossShadeT0) % FORCE_LOOP) : loc.sec;
     const states = { apartment: roomState('apartment', bossShadeT0 != null ? bossSec / 3600 : h, routines), bar: oldMode ? roomState('bar', h, routines) : 'closed', shop: roomState('shop', h, routines) };   // (WINDOWS: the bar + its bartender retired)
     // SP5 — THE BOSS's ROOM (core#bossDayPlan / bossSignal / bossWatch): the shade drawn all day (its rare life: the peek, the cigar smoke,
     // an overcast day's shadow), the bootleggers' tell (the violet lamp + the spade from the afternoon until the truck; &force=boss-signal),
@@ -257,10 +262,10 @@ export function createWindowLife() {
     // night's beds); a preview (a forced moment / the window party) leaves it as it is
     let edge = null;
     // (DESKTOP Group 1 — &force=shades: THE PATCHWORK COMING DOWN at once — each edge window's shade pulled from where it is to the sill, one
-    //  after another ~1.8 s apart, from ~3 s after the force; the scene rooms keep their own)
-    if (L.shadesForce && night) { if (shadesT0 == null) { shadesT0 = f.t; shadesEv0 = evSec; } } else shadesT0 = null;
+    //  after another ~1.8 s apart, from ~3 s after the force; the scene rooms keep their own. SCHED: from THE REVEAL, looping every FORCE_LOOP s)
+    if (L.shadesForce && night && L.shown !== false) { if (shadesT0 == null) { shadesT0 = f.t; shadesEv0 = evSec; } } else shadesT0 = null;
     if (!oldMode && night) { edge = {}; let i = 0; for (const id of EDGE_ROOMS) { const pl = edgeShadePlan(nightKey, id, shades[id], { seed: L.seed }); let cover = edgeShadeAt(pl, evSec);
-      if (shadesT0 != null) { const c0 = edgeShadeAt(pl, shadesEv0), u = clamp01((f.t - shadesT0 - 3 - i * 1.8) / 3.2); cover = c0 + (1 - c0) * u * u * (3 - 2 * u); }
+      if (shadesT0 != null) { const c0 = edgeShadeAt(pl, shadesEv0), u = clamp01((((f.t - shadesT0) % FORCE_LOOP) - 3 - i * 1.8) / 3.2); cover = c0 + (1 - c0) * u * u * (3 - 2 * u); }
       edge[id] = { cover, lamp: Math.min(shadeLevel(scOut[id], evSec), bedK[id] == null ? 1 : bedK[id]) }; i++; } }
     stepDanceClock(wd, wdT == null ? 0 : Math.max(0, f.t - wdT), L.beat ? { beatsF: L.beat.beatsF, gap: !!L.beat.gap, left: L.beat.left == null ? null : L.beat.left, id: L.beat.id || null } : null); wdT = f.t;
     const cur = block(loc.key, Math.floor(h), ctx), nx = cur.find(e => e.t0 > loc.sec);
@@ -450,7 +455,7 @@ export function createWindowLife() {
   const boxerOpen = b => !!b && (b.blind < 0.999 || (b.phase === 'out' && b.lamp > 0));
   let boxT0 = null, boxRound = null, boxForced = null, boxKey = '', boxPlanNow = null, lastBoxer = null;   // (SKY-B: the shadowboxer — the preview's anchor, tonight's plan)   // (NIGHT-C: each parked room's blind 0 up … 1 down, eased over the blind's own BLIND.down)
   let bossKey = '', bossPlan = [];   // (SP5: the boss's day plan, rebuilt per day / overcast)
-  let bossShadeT0 = null, shadesT0 = null, shadesEv0 = 0;   // (DESKTOP: &force=boss-shade / &force=shades — each from its first frame)
+  let bossShadeT0 = null, shadesT0 = null, shadesEv0 = 0;   // (DESKTOP: &force=boss-shade / &force=shades — SCHED: each from THE REVEAL, looping)
   let scKey = '', scList = [], scOut = {}, scForceKey = '', scT0 = null; const scHold = {}, scHoldT = {}, lastScene = {};   // (WINDOWS: tonight's scenes, their lights-out, the preview's anchor, a raid's frozen frame, each painter's trace)
   const wd = createDanceClock(); let wdT = null;   // (SP5: the building's dance clock)
   let partyT0 = null, partyDead = null, partyCutT = null, partyKeep = null;   // (WIN3: the window party — forced from t0; dead after a raid's cut)
