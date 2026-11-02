@@ -31,6 +31,7 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createSceneFireworks } from './scene-fireworks.js';
+import { createScenePerf } from './scene-perf.js';
 import { createSceneParty } from './scene-party.js';
 import { createSceneWeather } from './scene-weather.js';
 import { createSceneHoliday } from './scene-holiday.js';
@@ -401,7 +402,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // seeded fallback 0.48 s after it showed — the saved answer went stale under it): live / cached / seeded at the reveal; after it the
   // last answer is HELD (up to 3 h) until a new one arrives — a new answer that differs blends slowly (stepWeather), never a fall-back
   let wxHeld = null, wxRevealed = false;
-
 
   // CITY 2.0 MUSIC (core/city.js): the music follows THIS clock — the scene's own, so the preview panel's time jumps + speeds move it too —
   // the weather it shows (the sun's place) and the flags it runs on (&mood=)
@@ -864,7 +864,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // filled from a patch of the layer minus the crown's discs (made once a bake), so the crown's old place shows what's behind it; its
   // sheared copy (from the bake, clipped to its discs) is drawn over. What stands in front of a crown in its layer (the blade) stays put.
   let swayKey = '', swayGeo = [], swayDbg = { n: 0, amp: 0, why: '' };
-
 
   let lampLevels = null;
 
@@ -1358,7 +1357,6 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
 
   let bowForcedAt = null, bowT = null;
-
 
 
   let lastDt = 16.7, pulseQ, roPk = 0, roPulse = 0, roPkAt = 0;
@@ -2622,150 +2620,24 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       c.font = '600 9px "Chakra Petch", system-ui, sans-serif'; c.fillText(`EVENT demo · lane sky-low · ${Math.round(e.k * 100)}%`, Math.min(W - 150, x + 9), y + 3);
     }
   }
+  // SCHED — FR5 C1's cut (scene-perf.js, a pure move): THE TIERING — the session's frame stats, perf(), judge(), the tier steps + their log; tier / dprTier stay here, set through the ctx
+  const scenePerf = createScenePerf({ get baker() { return baker; }, get boats() { return boats; }, get bow() { return bow; }, get build() { return build; }, get capped() { return capped; }, set capped(v) { capped = v; }, get cool() { return cool; }, set cool(v) { cool = v; }, get costs() { return costs; }, get DEBUG() { return DEBUG; }, get dprTier() { return dprTier; }, set dprTier(v) { dprTier = v; }, get fadeFrom() { return fadeFrom; }, get fastUntil() { return fastUntil; }, set fastUntil(v) { fastUntil = v; }, get frames() { return frames; }, get fw() { return fw; }, get graceDone() { return graceDone; }, set graceDone(v) { graceDone = v; }, get heavyHeld() { return heavyHeld; }, set heavyHeld(v) { heavyHeld = v; }, get heavyUntil() { return heavyUntil; }, get heavyWhy() { return heavyWhy; }, get lastJudge() { return lastJudge; }, set lastJudge(v) { lastJudge = v; }, get legendHeld() { return legendHeld; }, set legendHeld(v) { legendHeld = v; }, get legends() { return legends; }, get litBaker() { return litBaker; }, get LOADLOG() { return LOADLOG; }, get lockAt() { return lockAt; }, set lockAt(v) { lockAt = v; }, get manualTier() { return manualTier; }, set manualTier(v) { manualTier = v; }, get perfN() { return perfN; }, set perfN(v) { perfN = v; }, get probe() { return probe; }, set probe(v) { probe = v; }, get PT() { return PT; }, get resizeT() { return resizeT; }, get shownAt() { return shownAt; }, get sky() { return sky; }, get slowN() { return slowN; }, set slowN(v) { slowN = v; }, get stepWhy() { return stepWhy; }, get tier() { return tier; }, set tier(v) { tier = v; }, get tierAt() { return tierAt; }, set tierAt(v) { tierAt = v; }, get tierHold() { return tierHold; }, set tierHold(v) { tierHold = v; }, get upAt() { return upAt; }, set upAt(v) { upAt = v; }, get upLock() { return upLock; }, set upLock(v) { upLock = v; }, get ups() { return ups; }, set ups(v) { ups = v; }, get wantBake() { return wantBake; }, get wantBuild() { return wantBuild; }, get wantStep() { return wantStep; }, set wantStep(v) { wantStep = v; }, get wasHeavy9() { return wasHeavy9; }, set wasHeavy9(v) { wasHeavy9 = v; }, get wheel() { return wheel; } });
+  const { LOAD_SKIP, TIER_GRACE, UP_RETRY, heavyNow, perf, sess, setTier, stepTier, tenMinSlow, tierHist, tierLog } = scenePerf;
 
-  // THE TIER (Part 6a, the owner's iPhone: tier 1 at 1–3 ms of work, 60 fps, 0 % slow): a step DOWN when the 75th-percentile
-  // frame passes 19.5 ms (never in the first 2.5 s after the city shows: the first bakes + the power-on are a transient); a step
-  // back UP when a stepped-down city has run 20 s at a steady 60 fps (p75 ≤ 17.5 ms, ≤ 5 % of frames over 20 ms) with light
-  // work (the mean ≤ 4.5 ms, p95 ≤ 8) — at most twice a session, never again after a step-down that followed a step-up, never
-  // after setTier() from outside (tests, perf runs: their tier stays)
-  // THE SESSION COUNT (the readout's honest number, C1.5): every rAF interval since the city first showed — how many ran over
-  // 20 ms (a missed vsync at 60 Hz), the longest run of them in a row, the longest single interval. Never reset (a hidden page
-  // doesn't count: the loop stops and start() re-bases the clock).
-  // DT1 (the owner's readout: "7 % slow" right after load): the same count again from LOAD_SKIP after the city showed (the
-  // bakes, the fonts, the images settled) — the readout shows both; the second is the honest one
-  const sess = { n: 0, slow: 0, run: 0, maxRun: 0, max: 0, t0: 0, after: { n: 0, slow: 0, run: 0, maxRun: 0, max: 0, t0: 0 } };
-  const LOAD_SKIP = 10000;
-  const count = (o, dt) => {
-    if (!o.n) o.t0 = performance.now();
-    o.n++;
-    if (dt > o.max) o.max = dt;
-    if (dt > 20) { o.slow++; if (++o.run > o.maxRun) o.maxRun = o.run; } else o.run = 0;
-  };
-  // (6b — THE DIRECTOR's passive long-session check: the slow share over the LAST 10 MINUTES, per-second buckets — the creep shows)
-  const tenMin = { b: new Array(600).fill(null), sec: -1 };
-  function tenMinSlow() { let n = 0, s = 0; for (const x of tenMin.b) if (x) { n += x[0]; s += x[1]; } return n ? (100 * s / n) : 0; }
-  function session(dt) {
-    if (shownAt < 0 || document.visibilityState !== 'visible') return;
-    { const sec = Math.floor(performance.now() / 1000); if (sec !== tenMin.sec) { tenMin.sec = sec; tenMin.b[sec % 600] = [0, 0]; } const x = tenMin.b[sec % 600]; x[0]++; if (dt > 20) x[1]++; }
-    count(sess, dt);
-    if (performance.now() - shownAt >= LOAD_SKIP) count(sess.after, dt);
-  }
-  function perf(dt) {
-    session(dt);
-    // (C4c — THE CLIMB RE-ARMED (the owner, Oct 28: "are we too careful?"): the way back up used to be spent for the visit — twice a
-    // session, never after a step down that followed a step up (upLock) — so one party peak could leave the city lower until the next
-    // load. Now the END of a heavy moment (a legendary, the party, the fireworks) re-arms it, and a lock lifts after UP_RETRY anyway)
-    { const hv9 = !!(legends && legends.active()) || PT.on > 0.5 || fw.busy(); if (wasHeavy9 && !hv9 && (upLock || ups >= 2)) { upLock = false; ups = 0; tierNote('re-armed', 'a heavy moment ended: the climb back may try again'); } wasHeavy9 = hv9; }
-    frames.push(dt);
-    if (frames.length > 90) frames.shift();
-    if (cool > 0) { cool--; return; }
-    const now = performance.now();
-    // (DT1 — LOAD HITCHES NEVER COST A TIER: the owner's readout showed 2→1→2 at load — the first bakes, the lit windows, the
-    // neon's sprites, the fonts + images landing; a probe there could even read the hitch as a capped phone. Nothing steps for
-    // TIER_GRACE after the city shows, and the first window it judges holds no frame from before)
-    // (POLISH 4 — A LEGENDARY HOLDS THE TIER: the owner's iPhone stepped 2→1→2 during the TR-3B — each step REBAKES the whole city,
-    // mid-event; its ~50 s are judged by nobody, and the window after it starts fresh)
-    if (legends && legends.active()) {
-      legendHeld = true;
-      // (9e — the owner's TR-3B link repeats the run every ~47 s, so the judge was held FOREVER there: WebKit at 9 fps stayed at t2 for
-      //  580 frames. A legendary still holds the normal judging, but a CRAWL (the 75th-percentile frame over 40 ms — under 25 fps — on four
-      //  half-second looks in a row) drops the live EFFECTS a step (no re-bake: invisible); the resolution waits for the run's end)
-      if (tier > 0 && frames.length >= 90 && document.visibilityState === 'visible' && !(++perfN % 30)) {
-        const s = [...frames].sort((a, b) => a - b);
-        legSlow = s[67] > 40 ? legSlow + 1 : 0;
-        if (legSlow >= 4) { legSlow = 0; stepDown(judge(now, 'a crawl under a legendary (< 25 fps)', 'down')); frames.length = 0; }
-      }
-      return;
-    }
-    if (legendHeld) { legendHeld = false; frames.length = 0; tierHold = Math.max(tierHold, now + 3000); return; }
-    // (WIN2 — THE QUALITY STEP (the owner's iPhone: a step ~9.5 s after the reveal, a full-city crossfade for it): KNOWN HEAVY MOMENTS are
-    // judged by nobody — a bake in flight, the crossfade of one, the sign's surge / race / a tapped letter — their frames never enter
-    // the window, and the window after them starts fresh)
-    { const hv = heavyNow(now); if (hv) { heavyHeld = hv; frames.length = 0; return; } if (heavyHeld) { heavyHeld = null; frames.length = 0; tierHold = Math.max(tierHold, now + 1500); return; } }
-    if (frames.length < 90 || document.visibilityState !== 'visible' || now < tierHold || shownAt < 0 || now - shownAt < TIER_GRACE) return;
-    if (!graceDone) { graceDone = true; frames.length = 0; return; }
-    if (wantStep) { const w = wantStep; wantStep = null; if (tier > 0 || dprTier > 0) { judge(now, w, 'down'); stepDown(w); cool = 150; frames.length = 0; return; } }
-    if (++perfN % 30) return;                 // (the sort every half second, not every frame)
-    const s = [...frames].sort((a, b) => a - b);
-    // NEON PASS 5 — A CAPPED FRAME RATE IS NOT A SLOW CITY (the owner's iPhone: a party night with NOTHING racing — tier 0): iOS
-    // Low Power Mode (and Safari in some states) runs requestAnimationFrame at 30 Hz however light the page is, so the frames read
-    // ~33 ms and the city stepped 2 → 1 → 0 in ~10 s, dropping the racing light, the effects and the glow, for nothing. Now a
-    // step down is a PROBE: ~4 s later, if the frames didn't get faster (the median interval still ≥ 85 % of before), it was the
-    // phone's cap, not the city — it steps back up and stops stepping down for frame timing (CAPPED; the readout says so); only
-    // a real overload of its own work (mean > 12 ms a frame) still steps it down.
-    if (probe && now - probe.at > 4000) {
-      const p50 = s[45];
-      if (p50 >= probe.p50 * 0.85) { capped = Math.round(1000 / p50); const back = probe.from; probe = null; LOADLOG.add('tier', `capped at ${capped} Hz — the step gave nothing: back to ${back.tier}/${back.dprTier}`); stepTo(back.tier, back.dprTier, 'capped: back'); cool = 150; frames.length = 0; return; }
-      probe = null;
-    }
-    // (WIN2: SUSTAINED slowness only — the 75th-percentile frame over 19.5 ms on FOUR half-second looks in a row (≈ 3.5 s of frames),
-    // never one bad window; what was measured goes to the LOAD log + the readout's tier line)
-    slowN = s[67] > 19.5 ? slowN + 1 : 0;
-    if (slowN >= 4 && (tier > 0 || dprTier > 0) && !probe) {
-      const cs = costs.length ? costs.reduce((a, b) => a + b, 0) / costs.length : 0;
-      if (capped && cs <= 12) return;
-      if (upAt) { upLock = true; lockAt = performance.now(); }
-      if (!capped) probe = { from: { tier, dprTier }, p50: s[45], at: now };
-      const why = judge(now, 'the frame rate', 'down');
-      slowN = 0; stepDown(why); cool = 150; frames.length = 0; return;
-    }
-    if ((tier < TOP_TIER || dprTier < TOP_TIER) && !manualTier && (!upLock || now - lockAt > UP_RETRY) && (ups < 2 || now - upAt > UP_RETRY) && now - tierAt > 20000 && costs.length >= 60) {
-      const cs = [...costs].sort((a, b) => a - b), mean = cs.reduce((a, b) => a + b, 0) / cs.length, slow = s.filter(v => v > 20).length / s.length;
-      if (s[67] <= 17.5 && slow <= 0.05 && mean <= 4.5 && cs[Math.floor(cs.length * 0.95)] <= 8) { ups++; upAt = now; judge(now, 'steady 60 fps', 'up'); stepUp(); cool = 150; frames.length = 0; }
-    }
-  }
-  const TOP_TIER = 2, TIER_GRACE = 15000;   // (WIN2: never judged in the first 15 s after the reveal — the bakes, the people, the windows, the fonts + images landing)
-  let legSlow = 0;
+
+
+   // (WIN2: never judged in the first 15 s after the reveal — the bakes, the people, the windows, the fonts + images landing)
+
   let graceDone = false, legendHeld = false, heavyHeld = null, heavyUntil = 0, heavyWhy = '', slowN = 0, lastJudge = null;
-  /** WIN2: a known heavy moment right now (its name) — nothing is judged in it */
-  function heavyNow(now) {
-    if (baker.pending || litBaker.pending || wantBake || wantBuild || resizeT) return 'a bake';
-    if (fadeFrom >= 0) return 'the crossfade';
-    if (now < heavyUntil) return heavyWhy;
-    return null;
-  }
-  /** WIN2: what the judge measured — the window's frames (p50 / p75 / p95 / the worst), the work, the slow share — kept for the readout */
-  function judge(now, why, dir) {
-    const s = [...frames].sort((a, b) => a - b), cs = [...costs].sort((a, b) => a - b), n = s.length;
-    const at = (now - shownAt) / 1000, p = q => (n ? s[Math.min(n - 1, Math.floor(n * q))] : 0), mean = cs.length ? cs.reduce((a, b) => a + b, 0) / cs.length : 0;
-    const slow = n ? Math.round(100 * s.filter(v => v > 20).length / n) : 0;
-    const text = `${dir === 'down' ? '↓' : '↑'} ${at.toFixed(1)} s after the reveal: frames p50 ${p(0.5).toFixed(1)} · p75 ${p(0.75).toFixed(1)} · p95 ${p(0.95).toFixed(1)} · worst ${(n ? s[n - 1] : 0).toFixed(0)} ms, ${slow} % slow over ${(n / 60).toFixed(1)} s · work ${mean.toFixed(1)} ms (${why})`;
-    lastJudge = { at: +at.toFixed(1), dir, why, p50: +p(0.5).toFixed(1), p75: +p(0.75).toFixed(1), p95: +p(0.95).toFixed(1), worst: +(n ? s[n - 1] : 0).toFixed(1), slow, work: +mean.toFixed(1), n, text };
-    return text;
-  }
+
   let tierHold = 0, perfN = 0, tierAt = performance.now(), ups = 0, upAt = 0, upLock = false, manualTier = false, probe = null, capped = 0;
-  // (C4c: the climb's retry + its log — every step with its time + why, for the readout + THE PHONE BENCH (the LOAD log stops 15 s after
-  // the reveal); UP_RETRY: a locked or spent climb tries again after 3 min)
-  const UP_RETRY = 180000, tierLog = [];
+
   let lockAt = 0, wasHeavy9 = false;
-  function tierNote(dir, text) { tierLog.push({ at: +((performance.now() - (shownAt < 0 ? performance.now() : shownAt)) / 1000).toFixed(1), dir, tier, dprTier, text }); if (tierLog.length > 60) tierLog.shift(); }
-  const tierHist = [tier];                      // (the readout shows the steps: 2→1→2)
-  const applyFx = () => { wheel.setTier(tier); boats.setTier(tier); sky.setTier(tier); if (legends) legends.setTier(tier); if (bow) bow.setTier(tier); if (fw) fw.setTier(tier); };
-  const histPush = () => { tierHist.push(dprTier === tier ? tier : `${tier}/${dprTier}`); if (tierHist.length > 8) tierHist.shift(); tierAt = performance.now(); };
-  /** the whole step (before the reveal, from outside): the effects AND the resolution to t — a re-bake */
-  function stepTier(t, why = 'the frame rate') { fastUntil = Math.max(fastUntil, performance.now() + 1500); const was = tier; tier = Math.max(0, Math.min(2, t)); dprTier = tier;   // (NEON PASS 5: build() clears the canvas — the battery saver must never skip the next draw: a black frame)
-     LOADLOG.add('tier', `${was} → ${tier} (${why})`, { applied: shownAt >= 0 });
-     histPush(); applyFx(); build('a tier step'); if (DEBUG) console.info('[harbor] tier', tier); }
-  /** WIN2 — a step DOWN after the reveal: the EFFECTS first (live modules only — no bake, no crossfade: invisible), the canvas RESOLUTION
-   *  last (a re-bake through the crossfade, the last resort); → true when something stepped */
-  function stepDown(why) {
-    const now = performance.now(), was = `${tier}/${dprTier}`; fastUntil = Math.max(fastUntil, now + 1500);
-    let kind;
-    if (tier > 0) { tier--; applyFx(); kind = 'effects — live, no re-bake'; }
-    else if (dprTier > 0) { dprTier--; kind = 'resolution — a re-bake'; }
-    else return false;
-    stepWhy.push(why); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (${kind}; ${why})`, { applied: true }); tierNote('down', `${was} → ${tier}/${dprTier} (${kind}; ${why})`); histPush();
-    if (kind[0] === 'r') build('a tier step'); if (DEBUG) console.info('[harbor] tier', tier, dprTier);
-    return true;
-  }
-  /** a step UP after a step down: the resolution back first, then the effects */
-  function stepUp() {
-    const was = `${tier}/${dprTier}`; fastUntil = Math.max(fastUntil, performance.now() + 1500);
-    if (dprTier < TOP_TIER) { dprTier++; LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (resolution back)`, { applied: true }); tierNote('up', `${was} → ${tier}/${dprTier} (resolution back)`); histPush(); build('a tier step up'); }
-    else if (tier < TOP_TIER) { tier++; applyFx(); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (effects back)`, { applied: true }); tierNote('up', `${was} → ${tier}/${dprTier} (effects back)`); histPush(); }
-  }
-  function stepTo(t, d, why) { const was = `${tier}/${dprTier}`, rb = d !== dprTier; tier = t; dprTier = d; applyFx(); LOADLOG.add('tier', `${was} → ${tier}/${dprTier} (${why})`, { applied: true }); tierNote('to', `${was} → ${tier}/${dprTier} (${why})`); histPush(); if (rb) build('a tier step'); }
-  function setTier(t) { manualTier = true; stepTier(t); }
+
+                      // (the readout shows the steps: 2→1→2)
+
+
+
 
   // 8a — THE LOOP COMES BACK (the owner's iPhone after 7a: back from the home screen the music + Web Audio recovered — the DOM AUDIO
   // panel live, "out WEB AUDIO" — yet the city's lights didn't pulse; the beat line she read is drawn BY this loop, so a stopped loop
