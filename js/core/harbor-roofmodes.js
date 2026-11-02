@@ -1,4 +1,5 @@
-// CITY 2.0 — SP3: THE ROOF SIGNS' HOURLY MODES (the owner, Oct 25 — DECIDED; PURE — tests/harbor-roofmodes.test.mjs; drawn by
+
+import { knob } from './harbor-schedule.js';// CITY 2.0 — SP3: THE ROOF SIGNS' HOURLY MODES (the owner, Oct 25 — DECIDED; PURE — tests/harbor-roofmodes.test.mjs; drawn by
 // screens/harbor/neon.js). Every HOUR each named sign on the skyline (the roof signs + the tower's blade — not the NEON logo, not the
 // billboard) runs ONE of three modes, seeded per sign per hour — the same for everyone, two neighbours never the same mode in an hour:
 //   SPELL   the letters light one at a time in order, hold, the word flashes twice + settles — its turn comes every ~60 s
@@ -19,7 +20,7 @@ export const ROOF_MODES = Object.freeze(['spell', 'race', 'breath', 'wordflash',
 export const BIG_MOVES = Object.freeze(['spell', 'race', 'wordflash', 'layers', 'twotone']);
 /** the numbers (s): the restart flicker, a spell's + a race's length, the turn's slot (≥ RM.slot, every active sign about once a
  *  minute), the breath's period + its floor */
-export const RM = Object.freeze({ restart: 1.7, spell: 6.2, race: 2.8, minute: 60, slot: 15, breath: 5.2, floor: 0.72, wordflash: 7.4, layers: 6.4, twotone: 6 });
+export const RM = Object.freeze({ ...knob('signs.modes'), restart: 1.7, spell: 6.2, race: 2.8, breath: 5.2, floor: 0.72, wordflash: 7.4, layers: 6.4, twotone: 6 });
 
 const hash = (s, n) => { let h = 2166136261 ^ n; for (const ch of String(s)) { h = Math.imul(h ^ ch.charCodeAt(0), 16777619); } h ^= h >>> 13; h = Math.imul(h, 0x5bd1e995); h ^= h >>> 15; return (h >>> 0) / 4294967296; };
 

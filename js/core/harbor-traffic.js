@@ -15,13 +15,23 @@
 import { signalAt, SIGNAL_CYCLE, SIGNAL_PERIOD } from './harbor-promenade.js';
 import { rngFrom, hashString } from './rng.js';
 import { partyAtT } from './harbor-moments.js';
+import { knob } from './harbor-schedule.js';
 
 /** the numbers: the cruise (u / s), acceleration + braking (u / s²), the gap kept (u), the reaction after green (s), the block (s), the
  *  cars a block per lane by the hour, the lanes' depth (z) + direction, how far off screen a car enters + leaves (u) */
-export const TRAFFIC = Object.freeze({
-  v: [5.0, 6.2], acc: 1.7, brake: 3.2, gap: 1.3, react: 0.7, block: 120, dt: 0.1, tail: 70, minGap: 7,
-  perBlock: { day: [2, 4], evening: [1, 3], late: [0, 1], party: [2, 3] }, glow: 0.34,
-  lanes: { near: { z: 56.3, dir: 1 }, far: { z: 59.7, dir: -1 } }, off: 9, stopBack: 0.8,
+export const TRAFFIC = Object.freeze({ ...knob('traffic'),
+  v: [5.0, 6.2],
+  acc: 1.7,
+  brake: 3.2,
+  gap: 1.3,
+  react: 0.7,
+  dt: 0.1,
+  tail: 70,
+  minGap: 7,
+  glow: 0.34,
+  lanes: { near: { z: 56.3, dir: 1 }, far: { z: 59.7, dir: -1 } },
+  off: 9,
+  stopBack: 0.8,
 });
 const LEN = { packard: 5.85, modelA: 4.5, taxi: 4.85, roadster: 4.6, modelT: 4.05, coupe: 4.55, van: 5.05 };
 const SEQ = ['packard', 'modelA', 'taxi', 'roadster', 'modelT', 'coupe', 'van'];
@@ -47,7 +57,7 @@ export function trafficLanes(L) {
 export function laneSpawns(j, lane, ctx = {}) {
   const B = TRAFFIC.block, t0 = j * B, r = rngFrom(hashString(`traffic|${ctx.seed || 1924}|${lane}|${j}`));
   const h = localHour(t0 + B / 2, ctx.off), dow = new Date((t0 + B / 2 + (ctx.off || 0) * 60) * 1000).getUTCDay(), party = !!(ctx.party ? ctx.party(t0 + B / 2) : partyAtT(t0 + B / 2, ctx.off));
-  const band = party && h >= 20 ? 'party' : h >= 7 && h < 19 ? 'day' : h >= 19 && h < 24 ? 'evening' : h < 1.5 ? 'evening' : h < 6 ? 'late' : 'evening';
+  const Bd = TRAFFIC.bands, band = party && h >= Bd.party ? 'party' : h >= Bd.day[0] && h < Bd.day[1] ? 'day' : h >= Bd.evening[0] && h < Bd.evening[1] ? 'evening' : h < Bd.lateFrom ? 'evening' : h < Bd.lateTo ? 'late' : 'evening';
   const [a, b] = TRAFFIC.perBlock[band];
   const n = a + Math.floor(r() * (b - a + 1)), out = [];
   let last = t0 - TRAFFIC.minGap;
@@ -55,7 +65,7 @@ export function laneSpawns(j, lane, ctx = {}) {
     const at = t0 + 4 + r() * (B - 12);
     if (at - last < TRAFFIC.minGap) { r(); r(); continue; }
     const num = j * 8 + k, veh = backVehicle(num, lane === 'near' ? 1 : 2), v = TRAFFIC.v[0] + r() * (TRAFFIC.v[1] - TRAFFIC.v[0]);
-    out.push({ id: `car.${lane}.${j}.${k}`, n: num, t0: at, v, model: veh.model, len: veh.len, paint: veh.h % 5, trade: (veh.h >>> 4) % 4, rumble: (veh.h >>> 7) % 3 === 0, glow: party && h >= 21 && r() < TRAFFIC.glow ? (veh.h >>> 9) % 4 : -1 });
+    out.push({ id: `car.${lane}.${j}.${k}`, n: num, t0: at, v, model: veh.model, len: veh.len, paint: veh.h % 5, trade: (veh.h >>> 4) % 4, rumble: (veh.h >>> 7) % 3 === 0, glow: party && h >= TRAFFIC.glowFrom && r() < TRAFFIC.glow ? (veh.h >>> 9) % 4 : -1 });
     last = at;
   }
   return out.sort((p, q) => p.t0 - q.t0);

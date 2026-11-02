@@ -16,24 +16,25 @@ import { knob } from './harbor-schedule.js';
 
 /** the circle's numbers: slot (s), the window (local hours, after midnight + 24), the chance a slot has one, when it starts in its
  *  slot + how long it dances (s), the dancers (tier 0: the first `tier0`), their ring (× the inlay's ring) + the watchers' */
-export const DANCE = Object.freeze({
-  // SP5 — ON THE HOUR (the owner, DECIDED — replaces the always-on circle from 10 pm): on PARTY NIGHTS (any party mode) EVERY HOUR ON THE
-  // HOUR the dancers walk up to the centre circle (from the side door, arriving over ~30 s: the stagger + the walk), dance for TWO SONGS
-  // (~2 × 3.5 min on the party's clock — the same for everyone; when music plays, the dance clock shapes the moves to the songs:
-  // core/harbor-dance.js — a wind-down at a song's end, a cheer, idle in the gap, the pick-up), then leave in twos + threes. Never under a
-  // holiday centrepiece, never during a raid or a legendary (ctx.event / ctx.blocked); joins mid-way (seeded on the clock).
-  slot: 3600, from: 20.5, to: 26.25, chance: 1, start: 0, len: 420, stagger: 2.2, songs: 2, song: 210,
+export const DANCE = Object.freeze({ ...knob('dance.circle'),
+  stagger: 2.2,
   // (POL4 — the owner: "bunched in the exact centre": SPREAD OUT loosely in a ring ACROSS + AROUND the compass — each its own radius
   // (ring × [min, max] of the inlay's ring, seeded per circle) + its own angle (the base angle ± jitter); reach: the floor the crowd
   // keeps clear of while it dances (× the ring), the watchers further out behind + beside)
   // (the first four on the diagonals just outside the inlay's rim (ring × [1.0, 1.22], ± 0.3 rad) — tier 0's four still stand all round —
   // the last two out to the LEFT + RIGHT (× [1.36, 1.52], ± 0.12 rad): the circle reads ACROSS the floor at phone size. The closed floor:
   // a circle of `reach` × the ring + 0.4 (it must leave the bench's corner a path) + a small one round each side spot (`side`))
-  n: 6, tier0: 4, ring: [1.0, 1.22], ringSide: [1.36, 1.52], jitter: 0.3, jitterSide: 0.12, reach: 1.15, side: { at: 1.45, r: 0.75 },
-  watchers: [3, 5], watchRing: [1.6, 1.8],
+  n: 6,
+  tier0: 4,
+  ring: [1.0, 1.22],
+  ringSide: [1.36, 1.52],
+  jitter: 0.3,
+  jitterSide: 0.12,
+  reach: 1.15,
+  side: { at: 1.45, r: 0.75 },
+  watchers: [3, 5],
+  watchRing: [1.6, 1.8],
   angles: [Math.PI / 4, 3 * Math.PI / 4, 5 * Math.PI / 4, 7 * Math.PI / 4, 0, Math.PI],
-  // (&force=dance: a circle every 5 minutes, any night)
-  force: { slot: 300, start: 8, len: 240 },
 });
 /** 11a-2 — THE RING round the GIANT BITCOIN PUMPKIN (the owner: on Halloween night — a Saturday — the hourly dance circles it): the
  *  dancers evenly round it on an oval (rx × rz, its centre cz toward us — clear of its straw bed), dancing in place for a `phrase` (s), then all
@@ -99,10 +100,10 @@ export function danceLevel(sess, t) {
 // ~9:30 pm in the COLD months only (October → March: roasted chestnuts are a cold-weather treat), empty in between (people walk
 // through). Whenever the inlay is in use — the dance circle, a holiday centrepiece — nothing sets up there.
 // The cart is WHEELED IN by its vendor from the right edge (and out again): cartAt(t) is where it is, pure, on the clock.
-export const VENDOR = Object.freeze({
-  months: [10, 11, 12, 1, 2, 3], from: 18.5, to: 21.5, jitter: 0.18,      // (the cart's evening, local hours; ± up to ~11 min a day)
-  roll: 0.9, wheel: 0.6,                                                   // (units / s wheeled in + out; the cart's wheel radius)
-  newsboy: [[7, 10], [16.5, 18.5]],                                        // (8b: the newsboy's stand — the hook only)
+export const VENDOR = Object.freeze({ ...knob('cart'),
+  roll: 0.9,
+  wheel: 0.6,   // (units / s wheeled in + out; the cart's wheel radius)
+  newsboy: [[7, 10], [16.5, 18.5]],   // (8b: the newsboy's stand — the hook only)
 });
 /** the cart's evening on local day `key` (PURE): { t0 (setting off from the edge), ta (at the spot), tb (packing up: wheeling out),
  *  t1 (gone) } or null (a warm month). dayStart: the local midnight (s abs); xIn / xAt: the edge + the spot (world x) */

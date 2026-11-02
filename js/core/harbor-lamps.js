@@ -5,9 +5,10 @@
 // stands on the inlay. (3) A rarer moment: one lamp goes OUT for a few seconds, then catches again. Every phone sees the same lamp
 // do the same thing at the same moment (seeded by the city's clock).
 import { rngFrom } from './rng.js';
+import { knob } from './harbor-schedule.js';
 
 /** the switch-on: the lamps' ramp (0..1) at which each lamp catches, spread over [from, to] in a seeded order (not left → right) */
-export const LAMP_LIFE = Object.freeze({ from: 0.08, to: 0.55, warm: 1.3, slot: 420, chance: 0.5, out: 0.22, outS: [3, 6] });
+export const LAMP_LIFE = Object.freeze({ ...knob('lamps') });
 
 /** each lamp's switch-on threshold (PURE): n lamps → [th…] in a shuffled order, seeded */
 export function lampThresholds(n, seed = 1924) {

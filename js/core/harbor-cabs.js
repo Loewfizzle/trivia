@@ -14,15 +14,20 @@ import { TRAFFIC, trafficLanes } from './harbor-traffic.js';
 import { partyAtT } from './harbor-moments.js';
 import { furnitureSolids, SOLID } from './harbor-solids.js';
 import { STREET } from './harbor-promenade.js';
+import { knob } from './harbor-schedule.js';
 
 /** the numbers: the evening's window (local hours, 25 = 1 am), the chance of a call per block (normal / party), drops before `swap`
  *  (local hour) mostly, pick-ups after; the cab's length; the riders' walk */
-export const CAB = Object.freeze({ from: 19.25, to: 25.6, p: 0.5, party: [1, 2], swap: 23, len: 4.85, step: 1.15, hail: 4.5,
+export const CAB = Object.freeze({ ...knob('cabs'),
+  len: 4.85,
+  step: 1.15,
+  hail: 4.5,
   // C2 — THE CAB's DOOR (the owner: "passengers step out of / into the cab through a door that opens — no appearing from behind it"): the
   // kerb-side door swings open (`open` s), each fare steps down from the cab's floor (`floor` units up) through the doorway to the road
   // beside it (or up + in), the door shuts behind the last (`shut` s); `inZ` how far inside the doorway a fare starts / ends (units
   // behind the cab's middle — drawn clipped into the doorway, like the bus's riders)
-  door: { open: 0.55, shut: 0.6, floor: 0.6, inZ: 0.2, out: 1.15, hold: 0.5 } });
+  door: { open: 0.55, shut: 0.6, floor: 0.6, inZ: 0.2, out: 1.15, hold: 0.5 },
+});
 /** how open the cab's door is at t from its door legs (0..1): open from the first, shut after the last */
 function doorOf(legs) {
   if (!legs.length) return () => 0;
@@ -62,7 +67,7 @@ export function cabEvents(k, ctx = {}) {
 // SITS, waiting a while (`sit` s — their patience). The TAXI that comes for them on the FRONT STREET is the device's own (screens/harbor/
 // cabstand.js): the street under the dock is a stage only while the dock is HIDDEN (9e) — so with the dock up the whole time they GIVE UP:
 // most walk off; some cross to the back road's curb and HAIL one of the night's cabs (a 'pick' — cabPlan with `start`), never stuck.
-export const STAND = Object.freeze({ from: 7.5, to: 25.4, p: 0.42, party: 0.72, sit: [55, 150], hail: 0.38, every: 100 });
+export const STAND = Object.freeze({ ...knob('cabstand') });
 /** the cab stand's waiters of people-block k (seeded): [{ id, t (setting off), sit (s), hail (gives up by hailing on the back road),
  *  seat (0 | 1: the bench's left / right seat — by the block's parity, so two waiters never share one), seed }] */
 export function standEvents(k, ctx = {}) {

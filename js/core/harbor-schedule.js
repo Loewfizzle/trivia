@@ -48,16 +48,76 @@ export const SCHEDULE = Object.freeze([
   { id: 'rosie.bell', trigger: 'clock', status: 'live', fixed: true, src: 'core/harbor-boats.js', what: 'ROSIE\'s ship\'s bell as she docks at :00 (the horn ~:03 as she casts off) — the owner: NEVER moved',
     knobs: { minute: 0 } },
   // ---- THE REST OF THE CITY (rows to SEE the whole day; their times live in `src` until SCHED migrates them)
-  { id: 'lamps', trigger: 'darkness', status: 'live', src: 'core/harbor-lamps.js', what: 'the implied lamps + the beacons: the photocell at dusk, off at dawn' },
+  { id: 'lamps', trigger: 'darkness', status: 'live', src: 'core/harbor-lamps.js', what: 'the implied lamps + the beacons: the photocell at dusk, off at dawn',
+    knobs: { from: 0.08, to: 0.55, warm: 1.3, slot: 420, chance: 0.5, out: 0.22, outS: [3, 6] } },
   { id: 'windows.dusk', trigger: 'darkness', status: 'live', src: 'core/harbor-moments.js', what: 'the speakeasy\'s windows light at dusk; late at night they go out one by one' },
   // (NIGHT-C — THE QUIET BUILDING, the owner Oct 29 5:52 pm: from the rooms' dusk to the dawn, not on a party night; litMin / litMax: how
   // many of the three parked rooms are lit behind their blinds tonight; outFrom / outTo: the lit ones' lamps going out, one by one)
   { id: 'windows.parked', trigger: 'darkness', status: 'live', src: 'core/harbor-moments.js#parkedNight + screens/harbor/windows.js', what: 'THE QUIET BUILDING: at night only the boss’s TV room + the two cut-off side rooms stay live; the bar, the jazz room + the upper middle (the boxer’s — SKY) PARKED behind drawn blinds, a mix of warm-lit + dark, going out one by one; party nights unchanged',
     knobs: { litMin: 1, litMax: 2, outFrom: 22.25, outTo: 25.5 }, conflicts: ['window.party'] },
-  { id: 'signs.modes', trigger: 'clock', status: 'live', src: 'core/harbor-roofmodes.js', what: 'the roof signs\' hourly modes (spell / race / breath)' },
+  { id: 'signs.modes', trigger: 'clock', status: 'live', src: 'core/harbor-roofmodes.js', what: 'the roof signs\' hourly modes (spell / race / breath)',
+    knobs: { minute: 60, slot: 15 } },
   { id: 'party.pulse', trigger: 'beat', status: 'live', src: 'core/harbor-beat.js', what: 'the party pulse: the lights on the song\'s grid (a trusted grid always punches)' },
   { id: 'holidays', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js', what: 'the holidays, their build-ups day by day + the sign dressings' },
   { id: 'workers', trigger: 'clock', status: 'live', src: 'core/harbor-workers.js', what: 'the workers\' day (milk 6:00, newsboy 7:00, barber 8:30, the beat cop 9 am + 9 pm…)' },
+  // (SCHED — THE MIGRATION, Nov 2: the older systems’ timing knobs moved in; the planner READS them, its behaviour stays in its file)
+  { id: 'cabs', trigger: 'clock', status: 'live', src: 'core/harbor-cabs.js#cabEvents', what: 'THE CABS on the back road: from the evening to the small hours a cab call a people-block at `p` (party nights `party` calls), drop-offs before `swap`, pick-ups after',
+    knobs: {
+      from: 19.25,
+      to: 25.6,
+      p: 0.5,
+      party: [1, 2],
+      swap: 23,
+    } },
+  { id: 'cabstand', trigger: 'clock', status: 'live', src: 'core/harbor-cabs.js#standEvents', what: 'THE CAB STAND: a waiter walks up to the bench + sits (`sit` s of patience) — `p` a block (`party` on a party night), some give up + hail on the back road (`hail`); &force=cabstand: one every `every` s',
+    knobs: { from: 7.5, to: 25.4, p: 0.42, party: 0.72, sit: [55, 150], hail: 0.38, every: 100 } },
+  { id: 'traffic', trigger: 'clock', status: 'live', src: 'core/harbor-traffic.js#laneSpawns', what: 'THE TRAFFIC on the back road: cars a `block` by the hour’s band (day · evening · late · party), the party’s cars glowing from `glowFrom`',
+    knobs: {
+      block: 120,
+      perBlock: { day: [2, 4], evening: [1, 3], late: [0, 1], party: [2, 3] },
+      bands: { party: 20, day: [7, 19], evening: [19, 24], lateFrom: 1.5, lateTo: 6 },
+      glowFrom: 21,
+    } },
+  { id: 'dance.circle', trigger: 'clock', status: 'live', src: 'core/harbor-routines.js#danceSlot', what: 'THE DANCE CIRCLE on PARTY NIGHTS: every hour on the hour (`slot`) from `from` → `to`, two songs; &force=dance: every `force.slot` s',
+    knobs: {
+      // SP5 — ON THE HOUR (the owner, DECIDED — replaces the always-on circle from 10 pm): on PARTY NIGHTS (any party mode) EVERY HOUR ON THE
+      // HOUR the dancers walk up to the centre circle (from the side door, arriving over ~30 s: the stagger + the walk), dance for TWO SONGS
+      // (~2 × 3.5 min on the party's clock — the same for everyone; when music plays, the dance clock shapes the moves to the songs:
+      // core/harbor-dance.js — a wind-down at a song's end, a cheer, idle in the gap, the pick-up), then leave in twos + threes. Never under a
+      // holiday centrepiece, never during a raid or a legendary (ctx.event / ctx.blocked); joins mid-way (seeded on the clock).
+      slot: 3600,
+      from: 20.5,
+      to: 26.25,
+      chance: 1,
+      start: 0,
+      len: 420,
+      songs: 2,
+      song: 210,
+      // (&force=dance: a circle every 5 minutes, any night)
+      force: { slot: 300, start: 8, len: 240 },
+    } },
+  { id: 'cart', trigger: 'clock', status: 'live', src: 'core/harbor-routines.js#cartEvening', what: 'THE CHESTNUT CART: the cold months’ evenings (`months`), wheeled in at `from` (± `jitter` h), packed up at `to` (a party night: cart.party)',
+    knobs: {
+      months: [10, 11, 12, 1, 2, 3],
+      from: 18.5,
+      to: 21.5,
+      jitter: 0.18,   // (the cart's evening, local hours; ± up to ~11 min a day)
+    } },
+  { id: 'parade', trigger: 'calendar', status: 'live', src: 'core/harbor-parade.js#paradeWindow', what: 'THE THANKSGIVING PARADE: the fourth Thursday at `from` (local), `len` s long',
+    knobs: { from: 9.0, len: 2.4 * 3600 } },
+  { id: 'tower', trigger: 'calendar', status: 'live', src: 'core/harbor-tower.js#towerAt', what: 'THE CONSTRUCTION TOWER’s year: the implosion the 3rd Sunday of April, announced `announceDays` before, rubble `rubbleDays`, rising from `rise` [month, day], topping `top`, finishing `finish`, the crane off `craneOff`, the GRAND OPENING at `openH`',
+    knobs: { announceDays: 3, rubbleDays: 10, rise: [6, 1], top: [9, 1], finish: [9, 8], craneOff: [9, 15], openH: 19, implodeH: 10 } },
+  { id: 'xmas.prelude', trigger: 'calendar', status: 'live', src: 'core/harbor-xmas.js#xmasPrelude', what: 'CHRISTMAS’s PRELUDE: Black Friday’s RUSH (`rush`: in → full → out, local h), the TREE STAND (from `tree.h` on Black Friday to `tree.to` [month, day, h]), the first crew (`crew.at` h, `crew.len` min), the strings lit `early` h before dusk, the banner `banner` [from, to] h',
+    knobs: {
+      rush: [6.5, 8.5, 18.5, 21],
+      tree: { h: 7.5, to: [12, 24, 21] },
+      early: 0.25,
+      off: 25,
+      until: [1, 6],
+      // THE FIRST CREW (core/harbor-workers.js#SHOWS.xlights): its start (local h) + length (min) — the strings appear as they work
+      crew: { at: 9.75, len: 150 },
+      banner: [9, 17],
+    } },
   { id: 'sky.events', trigger: 'clock', status: 'live', src: 'core/harbor-events.js', what: 'the everyday sky: planes, the helicopter (daily), balloons, birds… by rarity' },
   // (NIGHT-C — THE HELICOPTER, the owner Oct 29 4:13 pm; SKY-A — REWORKED, the owner Oct 30 8:19–8:35 am: the ORIGINAL route back — round
   // the harbor + back around — TWO LOOPS a patrol, every ~30 min at night (3–4 min), hourly by day (2–3 min) — core/harbor-heli.js.
@@ -127,7 +187,12 @@ export const SCHEDULE = Object.freeze([
   { id: 'windows.old', trigger: 'event', status: 'off', off: 'WINDOWS: RETIRED (the owner, Nov 1) — &force=old-windows previews them', src: 'core/harbor-moments.js#RETIRED + screens/harbor/windows.js', what: 'THE OLD WINDOW SCENES (retired)', knobs: { on: false } },
   { id: 'legendaries', trigger: 'event', status: 'live', src: 'core/harbor-legend.js', what: 'the legendaries (the UFO, the TR-3B…) — their seeded nights', conflicts: ['traffic'] },
   { id: 'blackout', trigger: 'event', status: 'live', src: 'core/harbor-dark.js', what: 'THE BLACKOUT (the TR-3B\'s drain): every light down, back on in turn' },
-  { id: 'raid', trigger: 'event', status: 'live', src: 'core/harbor-raid.js', what: 'THE RAID: the night after a bootlegger delivery (~50 %), 9–11 pm', conflicts: ['party.break'] },
+  { id: 'raid', trigger: 'event', status: 'live', src: 'core/harbor-raid.js', what: 'THE RAID: the night after a bootlegger delivery (~50 %), 9–11 pm', conflicts: ['party.break'],
+    knobs: {
+      window: [21.33, 22.75],
+      after: 0.5,
+      party: 0.12,
+    } },
 ]);
 
 /** THE CONFLICTS — what can never happen at the same time, in ONE place (the owner, 9:11 pm): `rule` = who gives way; `where` = the code */

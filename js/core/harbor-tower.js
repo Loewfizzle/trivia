@@ -16,6 +16,7 @@
 // the sun's arch fit, its catch time + the god rays read it; only the drawing changes.
 // THE FIRST CYCLE starts with the April 2027 implosion: until then today's tower stands (9e's decision — no construction site appears
 // overnight; every stage is previewable from THE PREVIEW PANEL: &build=<stage>[&buildk=0..1], &force=implosion).
+import { knob } from './harbor-schedule.js';
 
 export const TOWER_ID = 'wordV';
 export const FIRST_YEAR = 2027;
@@ -32,9 +33,9 @@ export const designFor = year => DESIGNS[((((year - 2026) % DESIGNS.length) + DE
 /** the implosion's timeline (s from the moment, T): the siren, the horns, the charges' flashes down the floors, the drop, the dust */
 // (PROM — the owner, Oct 28: "it takes way too long" → THE NEW TIMELINE: the siren (10.5 s) → 10 s after it ENDS, HORN B's three
 // blasts (4.65 s each, 1.55 s apart) → 5 s after the last one ENDS, the charges + the fall. Was siren −60 / horns −20 −12 −5)
-export const IMPLODE = Object.freeze({ h: 10, siren: -42.6, horns: [-22.1, -15.9, -9.7], flash0: 0, flash1: 2.6, drop0: 2.8, drop1: 9.5, dust1: 240, window: [-120, 300] });
+export const IMPLODE = Object.freeze({ h: knob('tower').implodeH, siren: -42.6, horns: [-22.1, -15.9, -9.7], flash0: 0, flash1: 2.6, drop0: 2.8, drop1: 9.5, dust1: 240, window: [-120, 300] });
 /** the stages' calendar (local dates of year Y) */
-export const CYCLE = Object.freeze({ announceDays: 3, rubbleDays: 10, rise: [6, 1], top: [9, 1], finish: [9, 8], craneOff: [9, 15], openH: 19 });
+export const CYCLE = Object.freeze({ ...knob('tower') });
 export const STAGES = Object.freeze(['standing', 'implosion', 'rubble', 'cleanup', 'rising', 'topping', 'finishing', 'opening', 'finished']);
 
 const DAY = 86400;

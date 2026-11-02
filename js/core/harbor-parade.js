@@ -11,6 +11,7 @@
 import { rngFrom, hashString } from './rng.js';
 import { thanksgivingDay } from './harbor-holiday.js';
 
+import { knob } from './harbor-schedule.js';
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 
 /** the parade's road: its pace (units / s — a slow march), its two files (z: the near lane's), the lead the hold starts before its head,
@@ -28,7 +29,7 @@ export const BALLOONS = Object.freeze({
 });
 /** the parades: id → { from (local hour), len (s), cycle (the units' order, repeated), balloons (the balloons' order, cycled) } */
 export const PARADES = Object.freeze({
-  thanksgiving: Object.freeze({ from: 9.0, len: 2.4 * 3600, cycle: Object.freeze(['band', 'balloon', 'balloon', 'band', 'balloon', 'float', 'balloon']), balloons: Object.freeze(['turkey', 'pumpkin', 'acorn', 'cider']) }),
+  thanksgiving: Object.freeze({ ...knob('parade'), cycle: Object.freeze(['band', 'balloon', 'balloon', 'band', 'balloon', 'float', 'balloon']), balloons: Object.freeze(['turkey', 'pumpkin', 'acorn', 'cider']) }),
 });
 
 const localAt = (t, off = 0) => { const lt = t + off * 60, d = new Date(lt * 1000); return { y: d.getUTCFullYear(), m: d.getUTCMonth() + 1, d: d.getUTCDate(), h: ((lt / 3600) % 24 + 24) % 24, day0: t - (((lt % 86400) + 86400) % 86400) }; };

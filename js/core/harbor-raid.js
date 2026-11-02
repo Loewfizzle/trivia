@@ -22,22 +22,30 @@ import { holidayOf } from './sky.js';
 import { signalAt } from './harbor-promenade.js';
 import { trafficLanes } from './harbor-traffic.js';
 import { FOLK, folkMap, route } from './harbor-people.js';
+import { knob } from './harbor-schedule.js';
 
 const H = 3600;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 /** the numbers: the convoy (cars, the police car's length, the gap between them, cruise + crawl speeds u / s, acceleration + braking,
  *  the sim step), the schedule (the window in local hours, the chances), the officer (s), the lights coming back (s after the last car
  *  is past the crossing), the length of the whole event (cap), the forced preview's period */
-export const RAID = Object.freeze({
-  cars: 4, len: 4.75, gap: 2.6, v: 4.6, crawl: 2.2, acc: 1.5, brake: 2.4, dt: 0.1,
-  window: [21.33, 22.75], after: 0.5, party: 0.12,
+export const RAID = Object.freeze({ ...knob('raid'),
+  cars: 4,
+  len: 4.75,
+  gap: 2.6,
+  v: 4.6,
+  crawl: 2.2,
+  acc: 1.5,
+  brake: 2.4,
+  dt: 0.1,
   // (C2 — the owner: "he shines on the speakeasy's FRONT while standing at its SIDE — he must WALK to where he can see the front":
   // out of the car he strides (FOLK.speed.brisk) round the bench + the crabapple onto the promenade, to `stand` (in front of the
   // facade, right of its corner — z under the front's z0), turns to the windows, shines for `sweep` s, strides back; the raid ~10 s
   // shorter in all: the sweep 10.5 → 6 s, the stopper leaves on the green that keeps the wait shortest, the lights back sooner)
   officer: { out: 1.4, sweep: [5, 11], back: 1.0, v: 1.9, stand: { x: 1.2, z: 42.6 } },
   back: { delay: 3, stagger: [0, 2.0, 3.6, 4.6, 5.6, 6.8], full: 9 },
-  cap: 120, forced: 150,
+  cap: 120,
+  forced: 150,
   // 8b2 add-on — THE RAID FROM THE FRONT: one patrol car pulls up on the FRONT street (under the dock), right below the speakeasy, as the
   // lights cut (it's what they're running from); its car-mounted spotlight sweeps the facade; it leaves with the convoy. `screen`: where
   // its middle stops (a share of the screen's width — under the speakeasy, the whole car on screen when the dock rests)

@@ -7,6 +7,7 @@
 // switch on, and stay up every evening after — Part 11b's Christmas takes them over.
 // Pure: the date → the day's state; the crew's work → which strings are up (segments + their share hung) at a time.
 import { thanksgiving } from './sky.js';
+import { knob } from './harbor-schedule.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
@@ -14,11 +15,7 @@ const dayNum = (y, m, d) => Math.round(Date.UTC(y, m - 1, d) / 864e5);
 
 /** the numbers: the shops' rush (local hours, ramped), the tree stand's season (from Black Friday morning to Christmas Eve's evening),
  *  the strings' evenings (on at dusk − `early` h, off at `off` — 1 am) and the season they stay up (to Jan 6) */
-export const XMAS = Object.freeze({
-  rush: [6.5, 8.5, 18.5, 21], tree: { h: 7.5, to: [12, 24, 21] }, early: 0.25, off: 25, until: [1, 6],
-  // THE FIRST CREW (core/harbor-workers.js#SHOWS.xlights): its start (local h) + length (min) — the strings appear as they work
-  crew: { at: 9.75, len: 150 },
-});
+export const XMAS = Object.freeze({ ...knob('xmas.prelude') });
 /** Black Friday's date in year y → { m, d } (the day after the fourth Thursday of November) */
 export const blackFriday = y => { const t = thanksgiving(y); return { m: 11, d: t.d + 1 }; };
 
@@ -47,7 +44,7 @@ export function xmasPrelude(lc, o = {}) {
   const R = XMAS.rush, rush = bf ? smooth(R[0], R[1], hr) * (1 - smooth(R[2], R[3], hr)) : 0;
   const tEnd = dayNum(yy, XMAS.tree.to[0], XMAS.tree.to[1]);
   const tree = (n > n0 || (bf && hr >= XMAS.tree.h)) && (n < tEnd || (n === tEnd && hr < XMAS.tree.to[2]));
-  return { bf, rush, tree, crew, lights: up, lit: small ? litNight : up === 1 && hr >= dusk - XMAS.early, banner: bf && hr >= 9 && hr < 17 };
+  return { bf, rush, tree, crew, lights: up, lit: small ? litNight : up === 1 && hr >= dusk - XMAS.early, banner: bf && hr >= XMAS.banner[0] && hr < XMAS.banner[1] };
 }
 
 // ------------------------------------------------------------------ THE STRINGS ON THE SPEAKEASY (hung by the crew)
