@@ -644,6 +644,18 @@ export function createRemote({ scene, api = apiCall }) {
         // the station plays on for everyone else, and this phone tunes back in at a reload or a mood change)
         h('div.hr-row', btn('SKIP TO THE NEXT SONG', false, async () => { const pd = (() => { try { return partyMusicDebug(); } catch { return null; } })(); if (pd && pd.kind === 'station' && leaveStation()) { await new Promise(r => setTimeout(r, 300)); await switchNow(2); toast('OFF THE STATION — THIS PHONE’S OWN SONGS', 'info'); paintMusic(); return; } const ok = await switchNow(2); toast(ok ? 'NEXT SONG' : 'NOTHING TO SKIP — THE ROOM’S SONG IS THE HOST’S', ok ? 'info' : 'warn'); paintMusic(); }, { cls: 'hr-wide', title: 'this phone only — at once', q: 'skip next song music' }))],
     },
+    // SCHED — THE SHOWCASE DIAL (core/harbor-showcase.js; CITY CONTROLS gives it a proper button next): how much of the city's rare stuff
+    // a visitor catches — HIGH (the default now) · NORMAL · LOW; to EVERYONE it sets every phone's (the legendaries + the medium moments)
+    showcase: {
+      sec: 'lightsmusic', last: false, label: 'THE SHOWCASE', q: 'showcase dial legendaries rare medium prime time schedule',
+      n: () => 1,
+      on: st => [st.showcase ? `SHOWCASE ${st.showcase.toUpperCase()}` : null],
+      kids: st => {
+        const v = st.showcase || 'high', set = lv => edit(s => { if (lv === 'high') delete s.showcase; else s.showcase = lv; });
+        return [h('div.hr-gl', 'HOW MUCH OF THE RARE STUFF'), h('div.hr-row', ...['high', 'normal', 'low'].map(lv => btn(lv.toUpperCase(), v === lv, () => set(lv), { q: `showcase ${lv}` }))),
+          h('p.hr-note', 'HIGH: 2–3 legendaries a weeknight, one an hour on a party night, a medium moment every ~4 min in prime time · NORMAL + LOW fewer')];
+      },
+    },
     // 8a — PULSE STRENGTH (the owner dials it; the number she picks becomes the default: core/harbor-beat.js#PULSE_DEFAULT)
     lights: {
       sec: 'lightsmusic', last: true, label: 'PULSE STRENGTH', q: 'pulse strength beat punch lights',

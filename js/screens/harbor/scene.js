@@ -31,6 +31,7 @@ import { createFx } from '../district/fx.js';
 import { createSun } from '../district/sun.js';
 import { createFireworks } from '../district/fireworks.js';
 import { createSceneFireworks } from './scene-fireworks.js';
+import { setShowcase } from '../../core/harbor-showcase.js';
 import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
 import { createSceneParty } from './scene-party.js';
@@ -120,7 +121,7 @@ import { isFilled, pickTakes } from '../../core/city-sounds.js';
 import { towerAt, forcedTower, towerKey, implosionSounds, IMPLODE } from '../../core/harbor-tower.js';
 import { darkness, litK, windowsNight, isNight, windowShare, windowBias, power, photocell, beaconStep } from '../../core/harbor-dark.js';
 import { createSignDim } from '../../core/harbor-signdim.js';
-import { legendNight, eveningOf, trafficHold, inHold } from '../../core/harbor-legend.js';
+import { legendNear, eveningOf, trafficHold, inHold, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
 import { raidEvening, raidPlan, raidAt, forcedRaid, RAID } from '../../core/harbor-raid.js';
 import { dayOf as workDayOf, HOT_C, bootlegNight, workDay } from '../../core/harbor-workers.js';
 import { createRaid } from './raid.js';
@@ -950,11 +951,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (st.kind === 'ufo' && st.s >= 5.6 && lgStartled !== lgMemo.t0 && wild) { lgStartled = lgMemo.t0; try { wild.startle(); } catch { /* no wildlife */ } }
       return lgMemo;
     }
-    if (lgMemo && nowS - lgMemo.t0 < 4 * 3600) return lgMemo;
+    if (lgMemo && nowS - lgMemo.t0 < 4 * 3600 && nowS - lgMemo.t0 < (lgMemo.kind === 'ufo' ? UFO_LEN : TR3B_LEN) + 600) return lgMemo;   // (SCHED: the next one may come the same evening — a memo holds 10 min past its run)
     if (LK.local && !LK.alwaysNight && !LK.storm) {
-      const ev = eveningOf(LK.local), lg = legendNight(ev.y, ev.m, ev.d);
+      const lg = legendNear(LK.local, 60);   // (SCHED: tonight's next big one — several a night now)
       // (Oct 25: known a minute AHEAD too — the traffic's hold starts a few seconds before the craft shows)
-      if (lg && !(lg.kind === 'ufo' && (LK.rain || 0) > 0.2)) { const s = (ev.hr - lg.h) * 3600; if (s >= -60 && s < 4 * 3600) { lgMemo = { kind: lg.kind, t0: Math.round((nowS - s) * 2) / 2 }; return lgMemo; } }
+      if (lg && !(lg.kind === 'ufo' && (LK.rain || 0) > 0.2)) { const s = lg.s; lgMemo = { kind: lg.kind, t0: Math.round((nowS - s) * 2) / 2 }; return lgMemo; }
     }
     return null;
   }
@@ -1362,8 +1363,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let lastDt = 16.7, pulseQ, roPk = 0, roPulse = 0, roPkAt = 0;
 
   // ------------------------------------------------------------------ the frame
+  let showcaseQ;   // (SCHED: the dial's last value applied — undefined → the first frame applies it)
   let devDpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
   function frame(now) {
+    // (SCHED — THE SHOWCASE DIAL: the page's &showcase= / the preview panel's (EVERYONE: the server's) level → core/harbor-showcase.js)
+    { const sq = qp.get('showcase'); if (sq !== showcaseQ) { showcaseQ = sq; setShowcase(sq); } }
     if (!running) return;
     raf = requestAnimationFrame(frame);
     // (DESKTOP Group 4: the window moved to a screen of another pixel ratio — not every browser fires 'resize' or the media query for it:

@@ -20,7 +20,7 @@ import { rngFrom, hashString } from './rng.js';
 import { partyAt, partyAtT } from './harbor-moments.js';
 import { XMAS, blackFriday } from './harbor-xmas.js';
 import { thanksgiving } from './sky.js';
-import { legendNight } from './harbor-legend.js';
+import { legendsOf } from './harbor-legend.js';
 import { knob } from './harbor-schedule.js';
 
 const H = 3600;
@@ -133,8 +133,8 @@ export function workDay(key, ctx = {}) {
   const taken = [];
   // (Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: tonight's legendary holds its minutes — no show (its truck would drive in under the
   // craft) across them; a show slides past like past any other, or is skipped)
-  { const [yy, mm, dd] = key.split('-').map(Number), lg = legendNight(yy, mm, dd);
-    if (lg) taken.push({ t0: day0 + lg.h * H - 150, t1: day0 + lg.h * H + 120, legend: true }); }
+  { const [yy, mm, dd] = key.split('-').map(Number);
+    for (const lg of legendsOf(yy, mm, dd)) taken.push({ t0: day0 + lg.h * H - 150, t1: day0 + lg.h * H + 120, legend: true }); }   // (SCHED: every one of tonight's)
   const free = (a, b) => !taken.some(o => a < o.t1 + 25 && b > o.t0 - 25);
   for (const w of want) {
     let t0 = w.t0;

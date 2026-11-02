@@ -11,7 +11,7 @@
 //                resets; personal, once a device a day, never announced)
 import { knob } from './harbor-schedule.js';
 import { hashString, rngFrom } from './rng.js';
-import { legendNight, CHASE } from './harbor-legend.js';
+import { legendsOf, CHASE } from './harbor-legend.js';
 
 // SKY-B — the owner's review (Oct 30 12:32 pm): THE VAPOR CONE in the MIDDLE of the screen ("the sound barrier breaks at centre stage"),
 // MUCH more noticeable — bigger + brighter — and it LINGERS: it forms round the craft, stays where it broke through as the craft tears on
@@ -75,9 +75,9 @@ function localDay(t, off) {
   return { day0, y: dd.getUTCFullYear(), m: dd.getUTCMonth() + 1, d: dd.getUTCDate(), key: `${dd.getUTCFullYear()}-${dd.getUTCMonth() + 1}-${dd.getUTCDate()}` };
 }
 /**
- * THE SOLO SIGHTINGS of a local day → [{ id, t (abs s: it enters), dir (±1) }] — every phone the same. ~`perMonth` a month (a seeded draw
- * per day), at a seeded time between `from` and `to` (local hours); July 4: `july4` passes between its own hours. Never on a legendary
- * night's evening (that night has its own sky).
+ * THE SOLO SIGHTINGS of a local day → [{ id, t (abs s: it enters), dir (±1) }] — every phone the same. SCHED: the Blackbird is one of the
+ * SHOWCASE's legendaries (core/harbor-showcase.js#legendsTonight — its row's window, leaning to LUNCH at HIGH), never twice a day;
+ * July 4: `july4` passes between its own hours.
  */
 export function soloDay(t, off = 0, seed = 1924) {
   const P = knob('blackbird.solo'), D = localDay(t, off), r = rngFrom(hashString(`bb|${seed}|${D.key}`)), out = [];
@@ -85,11 +85,8 @@ export function soloDay(t, off = 0, seed = 1924) {
     for (let i = 0; i < P.july4; i++) { const h = P.july4From + (P.july4To - P.july4From) * ((i + 0.2 + r() * 0.6) / P.july4); out.push({ id: `bb.${D.key}.j${i}`, t: Math.round(D.day0 + h * 3600), dir: r() < 0.5 ? 1 : -1 }); }
     return out;
   }
-  const dim = new Date(Date.UTC(D.y, D.m, 0)).getUTCDate();
-  if (r() < P.perMonth / dim && !legendNight(D.y, D.m, D.d)) {
-    const h = P.from + r() * (P.to - P.from);
-    out.push({ id: `bb.${D.key}.s`, t: Math.round(D.day0 + h * 3600), dir: r() < 0.5 ? 1 : -1 });
-  }
+  const L = legendsOf(D.y, D.m, D.d).find(x => x.kind === 'blackbird');
+  if (L) out.push({ id: `bb.${D.key}.s`, t: Math.round(D.day0 + L.h * 3600), dir: r() < 0.5 ? 1 : -1 });
   return out;
 }
 /** the solo flyby that entered within the last `within` s of t (or enters in the next `ahead` s — the tell's lead) → it or null */

@@ -7,7 +7,7 @@
 //   ufoAt(s) / tr3bAt(s)   each event's state s seconds in (its phases, the craft, the beam, the figure, the drain, the music)
 //   drainAt(x, d)          THE TR-3B's POWER DRAIN at a screen x (0 = cut dead … 1 = untouched) for a band (its range by distance)
 import { hashString, rngFrom } from './rng.js';
-import { partyDow } from './party.js';
+import { legendsTonight } from './harbor-showcase.js';
 import { knob } from './harbor-schedule.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -17,8 +17,6 @@ const DAY = 864e5;
 const dateKey = (y, m, d) => `${y}-${m}-${d}`;
 const prevDay = (y, m, d) => { const p = new Date(Date.UTC(y, m - 1, d) - DAY); return [p.getUTCFullYear(), p.getUTCMonth() + 1, p.getUTCDate()]; };
 
-/** each legendary's share of the nights: ~1.5 a month each (the owner: "~1–2 a month") */
-const LEGEND_P = knob('legend.ufo').p;
 /** how long each runs (s): the abduction's short film, the TR-3B's crossing + the chase + the power coming back */
 /** THE CHASE's pass (s into the event): three F-22s a few seconds behind the TR-3B, across the screen in `dur` s — the lead's x
  *  (fraction of W) goes −0.25 → 1.25 over u 0..1 (each jet `back` jet lengths behind it); `uOff` — the last plume is off the screen.
@@ -29,37 +27,25 @@ export const CHASE = Object.freeze({ t0: 29.2, dur: 2.72, uOff: 1.45 });
 /** the last plume off the screen (s into the TR-3B) */
 export const JETS_GONE = CHASE.t0 + CHASE.dur * CHASE.uOff;
 export const UFO_LEN = knob('legend.ufo').len, TR3B_LEN = Math.round(JETS_GONE + 11);
-/** the legendary hours (local, the evening's clock: 24.5 = 00:30 the next morning) */
-const LEGEND_HOURS = [knob('legend.ufo').from, knob('legend.ufo').to];
 
-/** 9e — THE TR-3B ONLY ON PARTY NIGHTS (the owner, Oct 26 — DECIDED): a Friday / Saturday evening (or the homecoming), its own roll
- *  (~1.5 a month: TR3B_PARTY_P of ~8.6 party nights), at the PEAK — the whole lit party blacking out is the drama — in the peak's hours
- *  but never inside the midnight finale's minutes or the first minutes of an hourly dance (TR3B_HOURS: the windows' starts + ends);
- *  never on a fireworks night (July 4th, New Year's Eve); the UFO keeps its any-night roll (LEGEND_P); never two legendary nights running
- *  (legendNight); a raid never shares its night (harbor-raid.js#raidEvening skips legendary nights) */
-const TR3B_PARTY_P = knob('legend.tr3b').partyP;
-export const TR3B_HOURS = knob('legend.tr3b').hours;
-const FIREWORKS = (m, d) => knob('legend.tr3b').notOn.some(([mm, dd]) => m === mm && d === dd);
-const partyEvening = (y, m, d) => { const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(), pd = partyDow(y, m, d, dow); return pd === 5 || pd === 6; };
-function dice(y, m, d) {
-  const r = rngFrom(hashString(`legend|${dateKey(y, m, d)}`));
-  const u = r(), h = r(), v = r(), hp = r();
-  if (u < LEGEND_P) return { kind: 'ufo', h: Math.round(lerp(LEGEND_HOURS[0], LEGEND_HOURS[1], h) * 60) / 60 };
-  if (v < TR3B_PARTY_P && partyEvening(y, m, d) && !FIREWORKS(m, d)) {
-    // (the peak's windows laid end to end, the roll spread over them)
-    const tot = TR3B_HOURS.reduce((a, [p, q]) => a + q - p, 0); let x = hp * tot, hh = TR3B_HOURS[0][0];
-    for (const [p, q] of TR3B_HOURS) { if (x <= q - p) { hh = p + x; break; } x -= q - p; }
-    return { kind: 'tr3b', h: Math.round(hh * 60) / 60 };
-  }
-  return { kind: null, h: 0 };
-}
-/** tonight's legendary (y, m, d = the EVENING's local date) → { kind, h } | null. Never two legendary nights in a row. */
-export function legendNight(y, m, d) {
-  if (knob('legend.rule').ghostNight.some(([mm, dd]) => m === mm && d === dd)) return null;      // (11a-1: Halloween night is the GHOST SHIP's — core/harbor-holiday.js#ghostShipAt)
-  const t = dice(y, m, d);
-  if (!t.kind) return null;
-  if (dice(...prevDay(y, m, d)).kind) return null;
-  return t;
+/** SCHED — THE LEGENDARIES ON THE SHOWCASE DIAL (core/harbor-showcase.js#legendsTonight — the owner, Nov 2: weeknights 2–3, party nights one
+ *  an hour from 8 pm, never the same one twice a night, repeats across nights allowed; supersedes the old monthly rolls — LEGEND_P, the
+ *  TR-3B's party-night roll, the flyby's ~twice a month, "never two legendary nights running"). The BIG ones (the UFO, the TR-3B) are
+ *  legends.js's films; the flyby (skyfx.js) + the Blackbird (blackbird.js) read the same list. */
+const BIG = new Set(['ufo', 'tr3b']);
+/** tonight's legendaries (the EVENING's local date) → [{ kind, h, len }] (core/harbor-showcase.js) */
+export const legendsOf = (y, m, d) => legendsTonight(y, m, d);
+/** tonight's FIRST legendary of any kind (y, m, d = the evening's local date) → { kind, h } | null — "is it a legendary night" for the
+ *  systems that keep a whole night apart (the Mothman, the eyes in the haze) */
+export function legendNight(y, m, d) { const L = legendsTonight(y, m, d); return L.length ? { kind: L[0].kind, h: L[0].h } : null; }
+/** tonight's BIG legendaries (the UFO, the TR-3B — the films) → [{ kind, h }] */
+export const bigTonight = (y, m, d) => legendsTonight(y, m, d).filter(L => BIG.has(L.kind));
+/** the big legendary near a local moment: running (s ≥ 0, < its length) or due within `ahead` s → { kind, s (s in; negative before), len, h } | null */
+export function legendNear(lc, ahead = 0) {
+  if (!lc) return null;
+  const ev = eveningOf(lc);
+  for (const L of bigTonight(ev.y, ev.m, ev.d)) { const s = (ev.hr - L.h) * 3600, len = L.kind === 'ufo' ? UFO_LEN : TR3B_LEN; if (s >= -ahead && s < len) return { kind: L.kind, s, len, h: L.h }; }
+  return null;
 }
 /** the evening a local clock moment belongs to (after midnight → the day before) and its hour on that evening's clock */
 export function eveningOf(lc) {
@@ -69,31 +55,21 @@ export function eveningOf(lc) {
   return { y, m, d, hr: hr + 24 };
 }
 /** the legendary running at a local moment: { kind, s (seconds in), len } or null (lc: the city clock's local { y, m, d, h, mi, s }) */
-export function legendAt(lc) {
-  if (!lc) return null;
-  const ev = eveningOf(lc), t = legendNight(ev.y, ev.m, ev.d);
-  if (!t) return null;
-  const s = (ev.hr - t.h) * 3600, len = t.kind === 'ufo' ? UFO_LEN : TR3B_LEN;
-  return s >= 0 && s < len ? { kind: t.kind, s, len, h: t.h } : null;
-}
+/** the legendary running at a local moment: { kind, s (seconds in), len } or null (lc: the city clock's local { y, m, d, h, mi, s }) */
+export function legendAt(lc) { const n = legendNear(lc, 0); return n && n.s >= 0 ? n : null; }
 
 // (POLISH 5 — the owner: "I don't like it": THE BARNSTORMER is gone — its event, its preview + panel row, its schedule slot)
 
 /**
- * THE SURPRISE FLYBY (POLISH 4, the owner): now and then, unannounced, a few F-16s scream straight across the sky — from GOLDEN
- * HOUR until 11 pm, weighted toward after dark (when the afterburners look best), in a random direction. ~Twice a month, the
- * same for everyone (seeded by the date). duskH: tonight's sunset as a local hour (the golden hour starts ~1 h before it).
+ * THE SURPRISE FLYBY (POLISH 4, the owner): F-22s scream straight across the sky, in a random direction — SCHED: when the showcase puts it
+ * in tonight's list (from golden hour to 11 pm — its row's window), never twice a night. duskH: tonight's sunset as a local hour.
  * → { h (local hour), dir (±1), n (3–4 jets), night (after dark) } | null
  */
-// (8b1, the owner's decision: ~TWICE A MONTH on random days — POLISH 4 shipped ~2 evenings a week — and NEVER on a legendary night:
-// the UFO / the TR-3B own that sky. 0.073 × the nights that aren't legendary ≈ 2.0 a month.)
-const FLYBY_P = knob('legend.flyby').p;
 export function flybyDay(y, m, d, duskH = 19) {
-  const r = rngFrom(hashString(`flyby|${dateKey(y, m, d)}`));
-  if (r() >= FLYBY_P || legendNight(y, m, d)) return null;
-  const F = knob('legend.flyby'), night = r() < F.nightShare, u = r(), dark0 = Math.min(F.darkCap, duskH + F.darkAfterDusk), gold0 = Math.min(dark0 - 0.25, duskH - F.goldBefore);
-  const h = night ? lerp(dark0, F.latest, u) : lerp(gold0, dark0, u);
-  return { h: Math.round(h * 120) / 120, dir: r() < 0.5 ? 1 : -1, n: 3 + Math.floor(r() * 2), night };   // (plan.md: 3–4 in tight formation)
+  const L = legendsTonight(y, m, d).find(x => x.kind === 'flyby');
+  if (!L) return null;
+  const r = rngFrom(hashString(`flyby|${dateKey(y, m, d)}`)), F = knob('legend.flyby');
+  return { h: L.h, dir: r() < 0.5 ? 1 : -1, n: 3 + Math.floor(r() * 2), night: L.h >= Math.min(F.darkCap, duskH + F.darkAfterDusk) };   // (plan.md: 3–4 in tight formation)
 }
 
 // ------------------------------------------------------------------ THE UFO ABDUCTION (a short film, ~30 s)

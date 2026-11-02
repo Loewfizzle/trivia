@@ -19,7 +19,6 @@
 // under 1 — by day — the rest of the slot stays empty: rare stays rare).
 import { rngFrom, hashString } from './rng.js';
 import { mothmanNight } from './harbor-mothman.js';
-import { legendNight } from './harbor-legend.js';
 import { partyDow } from './party.js';
 import { knob } from './harbor-schedule.js';
 
@@ -173,7 +172,7 @@ const shiftKey = (key, days) => { const [y, m, d] = ymdOf(key), t = new Date(Dat
 export function eyesNights(y, m, ctx = {}) {
   const M = MOMENT.eyes, r = rngFrom(hashString(`eyes|${y}|${m}`)), out = {};
   // (the eligible weekend nights first — a legendary's night, an eerie-red night, a Mothman night are never in the draw — then two of them)
-  const days = []; for (let d = 1; d <= 31; d++) { const t = new Date(Date.UTC(y, m - 1, d)); if (t.getUTCMonth() !== m - 1) break; const dow = t.getUTCDay(); if ((dow === 5 || dow === 6) && !legendNight(y, m, d) && !redMoodNight(dayKey(y, m, d), ctx) && !mothmanNight(y, m, d)) days.push(d); }   // (MODELS: his nights from core/harbor-mothman.js — the old ctx.mothman hook)
+  const days = []; for (let d = 1; d <= 31; d++) { const t = new Date(Date.UTC(y, m - 1, d)); if (t.getUTCMonth() !== m - 1) break; const dow = t.getUTCDay(); if ((dow === 5 || dow === 6) && !redMoodNight(dayKey(y, m, d), ctx) && !mothmanNight(y, m, d)) days.push(d); }   // (MODELS: his nights from core/harbor-mothman.js — the old ctx.mothman hook)
   const picks = []; while (picks.length < knob('windows.moments').eyesPerMonth && days.length) { const i = Math.floor(r() * days.length); picks.push(days.splice(i, 1)[0]); }
   for (const d of picks.sort((a, b) => a - b)) {
     const key = dayKey(y, m, d);

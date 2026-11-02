@@ -18,9 +18,11 @@ import { DRONE_SHAPES } from './harbor-sky.js';
 import { TOWER_CHOICES } from './harbor-windows.js';
 import { PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_STEP } from './harbor-beat.js';
 import { MOMENTS } from './harbor-moments.js';
+import { SHOWCASE_LEVELS } from './harbor-showcase.js';
+import { knob } from './harbor-schedule.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'horn', 'hum', 'depart', 'round', 'min'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'showcase', 'horn', 'hum', 'depart', 'round', 'min'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
@@ -687,6 +689,8 @@ export function cleanRemote(raw) {
   sel('mood', MUSIC_MOODS.map(m => m.id));
   if (r.debug) out.debug = true;
   if (r.grid) out.grid = true;
+  // (SCHED: THE SHOWCASE DIAL — high / normal / low; the timetable's default itself is no change: dropped quietly)
+  if (r.showcase != null && r.showcase !== '') { const v = String(r.showcase); if (SHOWCASE_LEVELS.includes(v)) { if (v !== knob('showcase').level) out.showcase = v; } else bad.push('showcase'); }
   // (8a: PULSE STRENGTH — a whole percent on the slider's steps; the default itself is no change: dropped quietly)
   if (r.pulse != null && r.pulse !== '') {
     const v = Number(r.pulse);
@@ -715,6 +719,7 @@ export function toParams(st) {
   if (st.debug) p.debug = '1';
   if (st.grid) p.grid = '1';
   if (st.pulse) p.pulse = String(st.pulse);
+  if (st.showcase) p.showcase = st.showcase;
   return p;
 }
 
@@ -741,5 +746,6 @@ export function describe(st) {
   if (st.debug) out.push('READOUT');
   if (st.grid) out.push('GRID');
   if (st.pulse) out.push(`PULSE ${st.pulse} %`);
+  if (st.showcase) out.push(`SHOWCASE ${st.showcase.toUpperCase()}`);
   return out.join(' · ');
 }

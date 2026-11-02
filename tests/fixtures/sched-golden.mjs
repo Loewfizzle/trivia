@@ -1,10 +1,11 @@
 // SCHED — THE GOLDEN TABLE: what every timed planner of City 2.0 decides over a whole year (seeded), for 2 time zones × 2 seeds, hashed
 // per system per month. Written BEFORE a planner's timing knobs moved into THE CITY TIMETABLE (core/harbor-schedule.js); after the move the
-// same export must match it EXACTLY (tests/harbor-sched-golden.test.mjs) — a move, never a behaviour change. Regenerated ONCE on purpose at
-// the start of SCHED's Group 3 (the new schedule) — never to hide a difference: node scripts/sched-golden.mjs --write
+// same export must match it EXACTLY (tests/harbor-sched-golden.test.mjs) — a move, never a behaviour change. Regenerated ONCE on purpose in
+// SCHED's Group 3 (THE NEW SCHEDULE: the showcase's legendaries + medium tier — Nov 2) — never to hide a difference: node scripts/sched-golden.mjs --write
 // PURE (node only, no DOM): the planners' own functions, the same calls the city makes (scene.js / windows.js / skyfx.js …).
 import { createHash } from 'node:crypto';
-import { legendNight, flybyDay, legendAt } from '../../js/core/harbor-legend.js';
+import { legendNight, flybyDay, legendAt, legendsOf } from '../../js/core/harbor-legend.js';
+import { legendsTonight, mediumDay } from '../../js/core/harbor-showcase.js';
 import { soloDay } from '../../js/core/harbor-blackbird.js';
 import { mothmanNight } from '../../js/core/harbor-mothman.js';
 import { patrolDay } from '../../js/core/harbor-heli.js';
@@ -32,7 +33,6 @@ import { totGroups, procWindow } from '../../js/core/harbor-holidayfolk.js';
 import { witchAt, batColonyAt } from '../../js/core/harbor-ghost.js';
 import { roadBusy } from '../../js/core/harbor-promenade.js';
 import { sunPosition } from '../../js/core/sky.js';
-import { UFO_LEN, TR3B_LEN } from '../../js/core/harbor-legend.js';
 
 export const ZONES = Object.freeze([{ tz: 'America/Detroit', lat: 42.96, lon: -85.67 }, { tz: 'Europe/Berlin', lat: 52.52, lon: 13.4 }]);
 export const SEEDS = Object.freeze([1924, 7]);
@@ -56,11 +56,10 @@ export function goldenDays(zone, days = YEAR.days) {
   return out;
 }
 const lcOf = (D, h) => ({ y: D.y, m: D.m, d: D.d, h: Math.floor(h), mi: Math.round((h % 1) * 60), s: 0, off: D.off });
-const legendOf = k => { const [y, m, d] = k.split('-').map(Number); return legendNight(y, m, d); };
 /** the windows the sky is held for on an evening (its legendary, the ghost ship, the raid) — scene-fireworks.js#fwNightOf's own */
 function fwHeld(D, seed) {
-  const held = [], lg = legendNight(D.y, D.m, D.d);
-  if (lg) held.push([D.day0 + lg.h * 3600, D.day0 + lg.h * 3600 + (lg.kind === 'ufo' ? UFO_LEN : TR3B_LEN)]);
+  const held = [];
+  for (const lg of legendsOf(D.y, D.m, D.d)) held.push([D.day0 + lg.h * 3600, D.day0 + lg.h * 3600 + lg.len]);   // (SCHED: scene-fireworks.js#fwNightOf — every one of tonight's)
   if (D.m === 10 && D.d === 31) for (const h of ghostShipTimes(D.y)) held.push([D.day0 + h * 3600, D.day0 + h * 3600 + GHOST_LEN]);
   try { const rd = raidEvening(D.key, { off: D.off, seed, day0: D.day0 }); if (rd) held.push([rd.t0 - 30, rd.t0 + RAID.cap]); } catch { /* fine */ }
   return (a, b) => { let e = null; for (const [p, q] of held) if (b > p && a < q) e = Math.max(e == null ? q : e, q); return e; };
@@ -97,8 +96,10 @@ export const SYSTEMS = {
   'windows.night': (D, z, seed) => [edgeMoods(D.key, {}), edgeShades(D.key, { seed }), parkedNight(D.key, { seed }), quietNight(D.key, { seed }), bedtimes(D.key, { seed }), windowParty(D.key, { seed })],
   'windows.boss': (D, z, seed) => bossDayPlan(D.key, { seed }),
   'windows.eyes': D => (D.d === 1 ? eyesNights(D.y, D.m) : undefined),
-  'scenes': (D, z, seed) => { const sc = scenesTonight(D.key, { seed, legend: legendOf }); return [sc, shadesNight(D.key, { seed, scenes: sc })]; },
-  'boxer': (D, z, seed) => boxerNight(D.key, { seed, legend: legendOf }),
+  'scenes': (D, z, seed) => { const sc = scenesTonight(D.key, { seed }); return [sc, shadesNight(D.key, { seed, scenes: sc })]; },   // (SCHED: they play on through the legendaries — windows.js)
+  'boxer': (D, z, seed) => boxerNight(D.key, { seed }),
+  'showcase.legends': D => ['high', 'normal', 'low'].map(lv => legendsTonight(D.y, D.m, D.d, lv)),
+  'showcase.medium': D => (SAMPLE(D) ? mediumDay(D.wkey, D.day0, D.dow) : undefined),
   'holiday': D => [12, 21].map(h => { const x = holidayAt(lcOf(D, h)); return x ? JSON.parse(JSON.stringify(x)) : null; }),
   'holiday.ghost': D => (D.d === 1 && D.m === 1 ? ghostShipTimes(D.y) : undefined),
   'holiday.procession': D => processionAt(lcOf(D, 20), 17.6),

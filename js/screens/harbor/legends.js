@@ -23,7 +23,7 @@
 //   (sounds.js), then THE CHASE: three F-16s screaming across after it in an echelon, afterburners with MACH DIAMONDS (jets.js)
 import { project } from '../../core/harbor-layout.js';
 import { GIANT } from '../../core/harbor-holidayprops.js';
-import { ufoAt, tr3bAt, legendAt, legendNight, tr3bDir, eveningOf, drainAt, blackAt, blackAll, CHASE, chaseX, chasePeakS, chaseBank, CHASE_BANK, FORMATIONS, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { ufoAt, tr3bAt, legendAt, legendNear, tr3bDir, eveningOf, drainAt, blackAt, blackAll, CHASE, chaseX, chasePeakS, chaseBank, CHASE_BANK, FORMATIONS, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
 import { lookOf, drawFolk } from './folk.js';
 import { createJets, jetLook } from './jets.js';
 import { safeCtx, ctx2d } from '../../ui/canvas-safe.js';
@@ -601,8 +601,8 @@ export function createLegends({ clock, qp } = {}) {
       st = null;
       // (a legendary due within the minute: its craft baked now, in a task of its own)
       if (fs.L.local && !fs.L.alwaysNight && now - upAt > 2000) {
-        upAt = now; const ev = eveningOf(fs.L.local), lg = legendNight(ev.y, ev.m, ev.d);
-        if (lg) { const s = (ev.hr - lg.h) * 3600; if (s > -60 && s < 0) warm(lg.kind); }
+        upAt = now; const lg = legendNear(fs.L.local, 60);   // (SCHED: tonight's next big one)
+        if (lg && lg.s < 0) warm(lg.kind);
       }
     }
   }

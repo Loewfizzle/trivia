@@ -13,7 +13,8 @@
 // The sky scheduler (core/harbor-events.js) keeps the sky-low lane for the patrol: the 'helicopter' event fires only in a patrol's slot.
 import { knob } from './harbor-schedule.js';
 import { hashString, rngFrom } from './rng.js';
-import { legendNight } from './harbor-legend.js';
+import { legendsOf } from './harbor-legend.js';
+import { mediumDay } from './harbor-showcase.js';
 
 const DAY = 86400, HOUR = 3600;
 /** the local calendar day of abs s t at offset off (minutes): { day0 (abs s of its local midnight), y, m, d, key } */
@@ -43,18 +44,29 @@ export function patrolDay(t, off, elAt, seed = 1924, memo = null) {
     const m = P.minute[0] + r() * (P.minute[1] - P.minute[0]), tt = at(h + m / 60);
     if (elAt(tt) < P.nightEl) out.push({ id: `heli.${D.key}.n${i}`, t0: Math.round(tt), dur: P.durNight, night: true });
   }
+  // SCHED — THE MEDIUM TIER's helicopter passes (core/harbor-showcase.js#mediumDay: kind 'heli', after dark — prime time weighted): an extra
+  // night flight between the patrols, never within a flight's length of one (the day's own evening + its small hours)
+  for (const [dd, lo, hi] of [[0, P.nightFrom, 24], [1, 0, P.lastNight - 24]]) {   // (the evening's own + its small hours — never the morning's dark)
+    const E = localDay(D.day0 + dd * DAY + DAY / 2, off), dow = new Date((E.day0 + off * 60 + DAY / 2) * 1000).getUTCDay();
+    for (const e of mediumDay(E.key, E.day0, dow)) {
+      if (e.kind !== 'heli') continue;
+      const h = (e.t - E.day0) / HOUR; if (h < lo || h >= hi) continue;
+      if (elAt(e.t) >= P.nightEl || out.some(f => Math.abs(f.t0 - e.t) < 960)) continue;   // (16 min clear of any other flight)
+      out.push({ id: `heli.${D.key}.m${Math.round(e.t)}`, t0: e.t, dur: P.durNight, night: true, medium: true });
+    }
+  }
   out.sort((a, b) => a.t0 - b.t0);
   if (mk) { if (memo.size > 16) memo.clear(); memo.set(mk, out); }
   return out;
 }
 
-/** tonight's LEGENDARY window (abs s) for the evening holding t, or null — the patrol never flies near it */
-export function legendWindow(t, off) {
-  const P = knob('helicopter.patrol'), D = localDay(t - P.dayStarts * HOUR, off), lg = legendNight(D.y, D.m, D.d);
-  if (!lg || !Number.isFinite(lg.h)) return null;
-  const s0 = D.day0 + lg.h * HOUR;
-  return [s0 - P.legendGap, s0 + P.legendLen];
+/** tonight's LEGENDARY windows (abs s) for the evening holding t — [[a, b]…] (SCHED: several a night) — the patrol never flies near one */
+export function legendWindows(t, off) {
+  const P = knob('helicopter.patrol'), D = localDay(t - P.dayStarts * HOUR, off);
+  return legendsOf(D.y, D.m, D.d).map(L => { const s0 = D.day0 + L.h * HOUR; return [s0 - P.legendGap, s0 + P.legendLen]; });
 }
+/** the first of them (or null) — the old single window */
+export function legendWindow(t, off) { return legendWindows(t, off)[0] || null; }
 
 /**
  * THE PATROL near t (abs s) → the flights that overlap [a, b], none near a legendary, none over a dance break (blocked(a, b) — the
@@ -66,8 +78,7 @@ export function patrolsNear(a, b, ctx) {
     for (const f of patrolDay(tt, ctx.off || 0, ctx.elAt, ctx.seed || 1924, ctx.memo || null)) {
       if (seen.has(f.id) || f.t0 + f.dur < a || f.t0 > b) continue;
       seen.add(f.id);
-      const lw = legendWindow(f.t0, ctx.off || 0);
-      if (lw && f.t0 < lw[1] && f.t0 + f.dur > lw[0]) continue;
+      if (legendWindows(f.t0, ctx.off || 0).some(lw => f.t0 < lw[1] && f.t0 + f.dur > lw[0])) continue;
       const B = knob('helicopter.break');
       if (ctx.blocked && ctx.blocked(f.t0 - B.lead, f.t0 + f.dur + B.trail)) continue;
       out.push(f);

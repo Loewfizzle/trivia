@@ -2,21 +2,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { mothmanNight, mothmanAt, stutterAt } from '../js/core/harbor-mothman.js';
-import { legendNight } from '../js/core/harbor-legend.js';
+import { legendsOf } from '../js/core/harbor-legend.js';
 import { knob, SCHEDULE } from '../js/core/harbor-schedule.js';
 import { EVENTS } from '../js/core/harbor-remote.js';
 
 const days = (y0, y1, fn) => { for (let y = y0; y <= y1; y++) for (let m = 1; m <= 12; m++) for (let d = 1; d <= 31; d++) { const t = new Date(Date.UTC(y, m - 1, d)); if (t.getUTCMonth() !== m - 1) continue; fn(y, m, d); } };
 const next = (y, m, d) => { const t = new Date(Date.UTC(y, m - 1, d + 1)); return [t.getUTCFullYear(), t.getUTCMonth() + 1, t.getUTCDate()]; };
 
-test('MODELS — THE MOTHMAN: ~twice a month, the small hours (in 2–2:30 am, out 5–5:30), never a legendary night, Halloween or two nights running', () => {
+test('MODELS — THE MOTHMAN: ~twice a month, the small hours (in 2–2:30 am, out 5–5:30), never in a legendary’s minutes (SCHED: they end by ~00:45), Halloween or two nights running', () => {
   let n = 0, all = 0;
   days(2026, 2028, (y, m, d) => {
     all++;
     const t = mothmanNight(y, m, d, { dice: true });
     if (!t) return;
     n++;
-    assert.equal(legendNight(y, m, d), null, `${y}-${m}-${d}: not a legendary's night`);
+    for (const L of legendsOf(y, m, d)) assert.ok(L.h + L.len / 3600 < t.arrive, `${y}-${m}-${d}: clear of the legendary's minutes`);
     assert.ok(!(m === 10 && d === 31), 'never Halloween (the ghost ship)');
     assert.ok(t.arrive >= 26 && t.arrive <= 26.5 && t.leave >= 29 && t.leave <= 29.5, `${y}-${m}-${d}: in ${t.arrive}, out ${t.leave}`);
     assert.equal(mothmanNight(...next(y, m, d), { dice: true }), null, `${y}-${m}-${d}: never two nights running`);

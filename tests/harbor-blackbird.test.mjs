@@ -2,7 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { BB, bbAt, bbLife, bbChaseAt, soloDay, soloNear, watcherStep } from '../js/core/harbor-blackbird.js';
-import { CHASE, chaseX, legendNight, TR3B_LEN, TR3B_HOURS } from '../js/core/harbor-legend.js';
+import { CHASE, chaseX, legendsOf, TR3B_LEN } from '../js/core/harbor-legend.js';
 import { knob } from '../js/core/harbor-schedule.js';
 
 const OFF = -240, at = iso => Date.parse(iso) / 1000;
@@ -38,7 +38,7 @@ test('THE FLYBY: the tell before it, the cone just after it enters, the ring, fu
 
 test('THE LEGENDS’ REGISTRY (THE CITY TIMETABLE): every legendary has its row, its numbers agree with the code that rolls them', () => {
   for (const id of ['legend.ufo', 'legend.tr3b', 'legend.ghostship', 'legend.flyby', 'legend.mothman', 'legend.rule', 'blackbird.chase', 'blackbird.solo', 'blackbird.watcher']) assert.ok(knob(id), id);
-  assert.deepEqual(knob('legend.tr3b').hours, TR3B_HOURS);
+  for (const id of ['legend.ufo', 'legend.tr3b', 'legend.flyby', 'blackbird.solo']) assert.ok(knob(id).pool && knob(id).kind && knob(id).win, `${id} is in the showcase’s pool`);
 });
 
 test('THE CHASE: the Blackbird enters once the F-22s are ~⅓ across, before the power comes back', () => {
@@ -47,22 +47,20 @@ test('THE CHASE: the Blackbird enters once the F-22s are ~⅓ across, before the
   assert.ok(s + BB.cross < TR3B_LEN, 'inside the TR-3B');
 });
 
-test('THE SOLO SIGHTINGS: rare (~2 a month), every phone the same, never on a legendary night; ~5 passes on July 4', () => {
-  let n = 0, months = 0, lg = 0;
+test('THE SOLO SIGHTINGS (SCHED: the Blackbird is one of the showcase’s legendaries — leaning to lunch at HIGH): the showcase list’s, every phone the same, never twice a day; ~5 passes on July 4', () => {
+  let n = 0, lunch = 0;
   for (let d = 0; d < 365; d++) {
     const t = at('2027-01-01T12:00:00-05:00') + d * 86400, L = soloDay(t, OFF);
-    n += L.length;
-    const D = new Date((t + OFF * 60) * 1000);
-    if (L.length && legendNight(D.getUTCFullYear(), D.getUTCMonth() + 1, D.getUTCDate())) lg++;
+    const D = new Date((t + OFF * 60) * 1000), y = D.getUTCFullYear(), m = D.getUTCMonth() + 1, dd = D.getUTCDate();
     assert.deepEqual(soloDay(t, OFF), L, 'the same on every phone');
-    for (const f of L) { const h = ((f.t + OFF * 60) / 3600 % 24 + 24) % 24; assert.ok(h >= knob('blackbird.solo').from - 0.01 && h <= 23.01 || /\.j/.test(f.id), `its hour ${h.toFixed(2)}`); assert.ok(f.dir === 1 || f.dir === -1); }
+    if (m === 7 && dd === 4) continue;
+    assert.equal(L.length, legendsOf(y, m, dd).some(x => x.kind === 'blackbird') ? 1 : 0, 'the showcase list’s Blackbird');
+    for (const f of L) { const h = ((f.t + OFF * 60) / 3600 % 24 + 24) % 24; assert.ok(h >= 11 - 0.01 && h <= 23.01, `its hour ${h.toFixed(2)}`); if (h >= 12 && h < 13) lunch++; assert.ok(f.dir === 1 || f.dir === -1); }
+    n += L.length;
   }
-  months = 12;
   const j4 = soloDay(at('2027-07-04T12:00:00-04:00'), OFF);
   assert.equal(j4.length, 5, 'five passes on July 4');
-  const rest = n - j4.length;
-  assert.ok(rest >= 10 && rest <= 40, `${rest} solo sightings a year (~2 a month)`);
-  assert.equal(lg, 0, 'never on a legendary night');
+  assert.ok(n > 100, `${n} solo sightings a year at HIGH`); assert.ok(lunch / n > 0.3, `leaning to lunch (${lunch} of ${n})`);
   const f = j4[2]; assert.deepEqual(soloNear(f.t + 1, OFF), f, 'joined just after it entered'); assert.deepEqual(soloNear(f.t - 2, OFF), f, 'the tell before it');
 });
 

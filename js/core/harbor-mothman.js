@@ -9,7 +9,6 @@
 //   THE GLIDE    no flaps (the Point Pleasant witnesses: it glided) — a slight bank, up + away into the night, seen from behind.
 import { knob } from './harbor-schedule.js';
 import { hashString, rngFrom } from './rng.js';
-import { legendNight } from './harbor-legend.js';
 
 const pad = n => String(n).padStart(2, '0');
 const keyOf = (y, m, d) => `${y}-${pad(m)}-${pad(d)}`;
@@ -29,9 +28,9 @@ export function mothmanNight(y, m, d, o = {}) {
   if (!o.dice && !knob('legend.mothman').on) return null;
   if (m === 10 && d === 31) return null;                          // (the ghost ship's night)
   const t = dice(y, m, d);
-  if (!t || legendNight(y, m, d)) return null;
+  if (!t) return null;   // (SCHED: legendaries most nights now — they end by ~00:45, his are the small hours: never in their minutes)
   const [py, pm, pd] = prevDay(y, m, d);
-  if (dice(py, pm, pd) && !legendNight(py, pm, pd) && !(pm === 10 && pd === 31)) return null;   // (never two nights running)
+  if (dice(py, pm, pd) && !(pm === 10 && pd === 31)) return null;   // (never two nights running)
   return t;
 }
 

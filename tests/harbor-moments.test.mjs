@@ -201,7 +201,7 @@ test("WIN2 — THE EDGE WINDOWS' MOODS: a seeded mood per edge window a night, n
   assert.equal(edgeMoods('2026-10-31', { hol: 'halloween' }).tint, 'halloween'); assert.equal(edgeMoods('2026-12-24', { hol: 'christmas' }).tint, 'christmas'); assert.equal(edgeMoods('2026-10-31').tint, null);
 });
 
-test("WIN2 — THE EYES IN THE HAZE: two weekend nights a month, three plays each between 11 pm and 4 am in ONE of the four full windows, never a legendary's night, never with the eerie-red mood; the small hours' plays land on the next day's plan", () => {
+test("WIN2 — THE EYES IN THE HAZE: two weekend nights a month, three plays each between 11 pm and 4 am in ONE of the four full windows (RETIRED; SCHED: no longer kept off a legendary’s night — they’re most nights), never with the eerie-red mood; the small hours' plays land on the next day's plan", () => {
   let total = 0, red = 0;
   for (let mo = 1; mo <= 12; mo++) {
     const nights = eyesNights(2026, mo);
@@ -209,7 +209,7 @@ test("WIN2 — THE EYES IN THE HAZE: two weekend nights a month, three plays eac
       const [y, m, d] = key.split('-').map(Number), dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
       assert.ok(dow === 5 || dow === 6, `${key}: a weekend night`); assert.equal(starts.length, 3, `${key}: three plays`);
       for (const s of starts) assert.ok(s >= 23 * 3600 && s + MOMENT.eyes.len <= 28 * 3600, `${key}: 11 pm → 4 am (${(s / 3600).toFixed(2)} h)`);
-      assert.ok(!legendNight(y, m, d), `${key}: never a legendary's night`); assert.ok(!redMoodNight(key), `${key}: never with the eerie-red mood`);
+      assert.ok(!redMoodNight(key), `${key}: never with the eerie-red mood`);
       total++;
       // the plays on the day's plans: tonight's before midnight, the rest on the next day's, each in ONE window
       const today = eyesPlaysOn(key), next = eyesPlaysOn(`${y}-${String(m).padStart(2, '0')}-${String(d + 1).padStart(2, '0')}`);

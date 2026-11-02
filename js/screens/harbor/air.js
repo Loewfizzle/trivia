@@ -21,6 +21,7 @@ import { knob } from '../../core/harbor-schedule.js';
 import { tierVal } from '../../core/harbor-tiers.js';
 import { beatSweep, beamColour, beamPair, breakDrift } from '../../core/harbor-heli.js';
 import { hashString } from '../../core/rng.js';
+import { mediumDay, showcaseLevel } from '../../core/harbor-showcase.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -190,6 +191,19 @@ export const heliModelReady = () => !!heliModel;
 // ------------------------------------------------------------------ the module
 export function createAir() {
   let W = 1, H = 1, HZ = 1, K = 1, dpr = 2, tier = 2;
+  // SCHED — the medium tier's plane passes of the local day(s) round now (memoized per day; a pass is due once, as its moment goes by)
+  const medMemo = new Map(); let medLast = null;
+  function mediumPlaneDue(s) {
+    const off = (s.L && s.L.local && s.L.local.off) || 0, nowS = s.now / 1000, from = medLast == null || nowS - medLast > 30 || nowS < medLast ? nowS - 1 : medLast;
+    medLast = nowS;
+    for (const tt of [nowS, nowS - 120]) {
+      const lt = tt + off * 60, dn = Math.floor(lt / 86400), day0 = dn * 86400 - off * 60, dd = new Date(dn * 864e5);
+      const key = `${dd.getUTCFullYear()}-${dd.getUTCMonth() + 1}-${dd.getUTCDate()}`, mk = `${key}|${off}|${showcaseLevel()}`;
+      if (!medMemo.has(mk)) { if (medMemo.size > 4) medMemo.clear(); medMemo.set(mk, mediumDay(key, day0, dd.getUTCDay()).filter(e => e.kind === 'plane')); }
+      if (medMemo.get(mk).some(e => e.t > from && e.t <= nowS)) return true;
+    }
+    return false;
+  }
   let planes = [], nextPlane = 6 + Math.random() * 12, forcedAt = -1e9, trainGone = -1e9, forcedKind = '';
   let train = null, trainNight = '', sat = null, nextSat = 60 + Math.random() * 180;
   let heli = null, lastS = null, lastWater = null;   // (lastS: ATM-C — the last frame's state, for planFor)
@@ -816,9 +830,12 @@ export function createAir() {
       const rate = trafficRate(hr) * (look.wet ? 0.5 : 1) * (motion ? 1 : 0.6);
       nextPlane -= sec;
       const forcedPlane = !!fk && performance.now() - forcedAt > 9000;
+      // (SCHED — THE MEDIUM TIER: a scheduled airliner pass — core/harbor-showcase.js#mediumDay, every phone the same moment; on approach
+      //  after dark, its landing lights)
+      const medPlane = !fk && s.now != null ? mediumPlaneDue(s) : false;
       const known = !!(s.textRects && s.textRects.neon);              // never plan a path before the sign's place is known
-      if ((forcedPlane || nextPlane <= 0) && lanes.length && planes.filter(p => p.k < 1).length < (forcedPlane ? Math.max(1, max) + 1 : max) && known) {
-        const approach = force.has('approach') ? true : force.has('planes') ? false : Math.random() < 0.12 && hr > 6 && hr < 23.5;
+      if ((forcedPlane || medPlane || nextPlane <= 0) && lanes.length && planes.filter(p => p.k < 1).length < (forcedPlane || medPlane ? Math.max(1, max) + 1 : max) && known) {
+        const approach = force.has('approach') ? true : force.has('planes') ? false : medPlane ? look.dark > 0.5 : Math.random() < 0.12 && hr > 6 && hr < 23.5;
         // (an approach comes in low: sky-low when it is free; a cruise takes either, the high lane twice as often)
         const pickL = approach && lanes.includes('sky-low') ? 'sky-low' : lanes[lanes.length > 1 && Math.random() < 0.35 ? 1 : 0];
         const p = spawnPlane(s, pickL, approach);

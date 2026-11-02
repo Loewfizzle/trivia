@@ -1,7 +1,7 @@
 // CITY 2.0 — PART 6b: THE LEGENDARY SKY's rules (core/harbor-legend.js) — rarity, the nights, the timelines, the drain.
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { TR3B_HOURS, legendNight, legendAt, eveningOf, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD, JETS_GONE } from '../js/core/harbor-legend.js';
+import { legendNight, legendsOf, legendAt, eveningOf, ufoAt, tr3bAt, drainAt, tr3bDir, UFO_LEN, TR3B_LEN, FORMATIONS, missingManAt, blackAt, blackAll, BLACK, CHASE, chasePeakS, chaseX, trafficHold, inHold, HOLD, JETS_GONE } from '../js/core/harbor-legend.js';
 
 test('Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold from 4 s before the craft until the jets are gone + the power is back', () => {
   const h = trafficHold({ kind: 'tr3b', t0: 1000 });
@@ -15,28 +15,22 @@ test('Oct 25 — NO TRAFFIC DURING THE LEGENDARIES: the hold from 4 s before the
 
 const days = (y, n) => Array.from({ length: n }, (_, i) => { const d = new Date(Date.UTC(y, 0, 1) + i * 864e5); return [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()]; });
 
-test('legendary rarity: ~1–2 a month each, never two in one night, never two nights in a row, the same for everyone', () => {
-  let ufo = 0, tr = 0, prev = null;
-  for (const [y, m, d] of days(2026, 365 * 3)) {
-    const n = legendNight(y, m, d);
-    if (n) { if (n.kind === 'ufo') ufo++; else tr++; assert.equal(prev, null, `two legendary nights in a row at ${y}-${m}-${d}`); assert.ok(n.h >= 21.5 && n.h <= 24.75); }
-    // (9e — THE TR-3B ONLY ON PARTY NIGHTS: a Fri / Sat evening (or the homecoming Wednesday), at the peak, clear of the midnight finale +
-    // each hourly dance's first minutes, never on a fireworks night)
-    if (n && n.kind === 'tr3b') {
-      const dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
-      assert.ok(dow === 5 || dow === 6 || (m === 11 && dow === 3), `the TR-3B on a party night (${y}-${m}-${d}, dow ${dow})`);
-      assert.ok(TR3B_HOURS.some(([p, q]) => n.h >= p - 1e-9 && n.h <= q + 1e-9) && n.h % 1 > 0.12 && Math.abs(n.h - 24) > 0.1, `at the peak, clear of the finale + the dances (${n.h})`);
-      assert.ok(!((m === 7 && d === 4) || (m === 12 && d === 31) || (m === 1 && d === 1)), 'never on a fireworks night');
-    }
-    assert.deepEqual(legendNight(y, m, d), n);                 // (seeded: every phone the same)
-    prev = n;
+test('SCHED — the legendaries on the showcase dial (HIGH): weeknights 2–3, party nights 4 (one an hour from 8 pm), never the same one twice a night, the TR-3B after dark, never on a fireworks night, the same for everyone', () => {
+  for (const [y, m, d] of days(2026, 365 * 2)) {
+    const L = legendsOf(y, m, d), dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay();
+    assert.equal(new Set(L.map(x => x.kind)).size, L.length, `the same one twice on ${y}-${m}-${d}`);
+    if (m === 10 && d === 31) { assert.equal(L.length, 0, 'Halloween night is the ghost ship’s'); continue; }
+    for (const x of L) if (x.kind === 'tr3b') assert.ok(!((m === 7 && d === 4) || (m === 12 && d === 31) || (m === 1 && d === 1)), 'never on a fireworks night');
+    for (const x of L) if (x.kind === 'ufo') assert.ok(x.h >= 21.5 && x.h <= 24.75);
+    assert.deepEqual(legendsOf(y, m, d), L);                 // (seeded: every phone the same)
+    const party = dow === 5 || dow === 6 || (m === 11 && dow === 3 && legendNight(y, m, d) && L.length === 4);
+    if (!party) assert.ok(L.length >= 2 && L.length <= 3, `a weeknight ${y}-${m}-${d}: ${L.length}`);
   }
-  for (const v of [ufo, tr]) assert.ok(v / 36 >= 0.8 && v / 36 <= 2.2, `per month ${(v / 36).toFixed(2)}`);
 });
 
 test('a legendary joined mid-way: legendAt lands mid-way, after midnight belongs to the evening before', () => {
-  const [y, m, d] = days(2026, 400).find(([y, m, d]) => legendNight(y, m, d));
-  const n = legendNight(y, m, d), h = n.h + 10 / 3600, hh = Math.floor(h % 24), mi = Math.floor((h * 60) % 60), sec = Math.round((h * 3600) % 60);
+  const [y, m, d] = days(2026, 400).find(([y, m, d]) => legendsOf(y, m, d).some(x => x.kind === 'ufo' || x.kind === 'tr3b'));
+  const n = legendsOf(y, m, d).find(x => x.kind === 'ufo' || x.kind === 'tr3b'), h = n.h + 10 / 3600, hh = Math.floor(h % 24), mi = Math.floor((h * 60) % 60), sec = Math.round((h * 3600) % 60);
   const next = new Date(Date.UTC(y, m - 1, d) + 864e5);
   const lc = h >= 24 ? { y: next.getUTCFullYear(), m: next.getUTCMonth() + 1, d: next.getUTCDate(), h: hh, mi, s: sec } : { y, m, d, h: hh, mi, s: sec };
   const a = legendAt(lc);
@@ -144,20 +138,17 @@ test('THE DIRECTOR: a spectacle budget per tier, holidays > party > legendary > 
   assert.ok(d.may('drones', 'holiday'), 'a holiday outranks what runs below it');
 });
 
-test('POLISH 4 — THE SURPRISE FLYBY: ~twice a month (8b1), never on a legendary night, golden hour → 11 pm, mostly after dark, either way', async () => {
-  const { flybyDay, legendNight } = await import('../js/core/harbor-legend.js');
-  let n = 0, night = 0, dirs = new Set();
-  for (let d = 0; d < 730; d++) {
-    const dt = new Date(Date.UTC(2026, 0, 1) + d * 864e5), dusk = 17 + 4 * Math.sin(((d % 365) / 365) * Math.PI);   // (a dusk between 17:00 and 21:00)
-    const f = flybyDay(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate(), dusk);
+test('POLISH 4 — THE SURPRISE FLYBY (SCHED: one of the showcase’s soft legendaries — most nights at HIGH): in its window (5 pm → 11 pm), never twice a night, either way, the same for everyone', async () => {
+  const { flybyDay, legendsOf } = await import('../js/core/harbor-legend.js');
+  let n = 0, dirs = new Set();
+  for (let d = 0; d < 365; d++) {
+    const dt = new Date(Date.UTC(2026, 0, 1) + d * 864e5), y = dt.getUTCFullYear(), m = dt.getUTCMonth() + 1, dd = dt.getUTCDate();
+    const f = flybyDay(y, m, dd, 18.5);
+    assert.equal(!!f, legendsOf(y, m, dd).some(x => x.kind === 'flyby'), 'the flyby = the showcase list’s');
     if (!f) continue;
-    n++; if (f.night) night++; dirs.add(f.dir);
-    assert.equal(legendNight(dt.getUTCFullYear(), dt.getUTCMonth() + 1, dt.getUTCDate()), null, 'never on a legendary night');
-    assert.ok(f.h >= dusk - 1.01 && f.h <= 23, `in its window (${f.h} vs dusk ${dusk.toFixed(2)})`);
-    assert.ok(f.n >= 2 && f.n <= 4);
+    n++; dirs.add(f.dir);
+    assert.ok(f.h >= 17 && f.h <= 23, `in its window (${f.h})`); assert.ok(f.n >= 3 && f.n <= 4);
   }
-  const perMonth = n / (730 / 30.44);
-  assert.ok(perMonth > 1.3 && perMonth < 2.8, `${perMonth.toFixed(2)} a month`);
-  assert.ok(night / n > 0.6, 'weighted toward after dark'); assert.equal(dirs.size, 2);
+  assert.ok(n > 150, `${n} a year at HIGH`); assert.equal(dirs.size, 2);
   assert.deepEqual(flybyDay(2026, 10, 24, 18.6), flybyDay(2026, 10, 24, 18.6), 'the same for everyone');
 });

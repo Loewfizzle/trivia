@@ -11,7 +11,7 @@ import { signalAt } from '../../core/harbor-promenade.js';
 import { safeCtx, BAKE_CAP } from '../../ui/canvas-safe.js';
 import { IMPLODE } from '../../core/harbor-tower.js';
 import { litK } from '../../core/harbor-dark.js';
-import { legendNight, eveningOf, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { legendNear } from '../../core/harbor-legend.js';
 
 /** C: scene.js's state by getters (+ a setter where this code assigns it): baker, bakeTones, cam, clock, destroyed, DK, dpr, forceSince, L, laneKey, lastT9, legends=, legendsLoading=, legendWant=, linkGoAt=, linkTapAt=, LK, LOADLOG, lookTones, neon, pageClock, people, qp, remoteKey, shownAt, skyline, snd, speak, tier, TWS, W */
 export function createSceneLegend(C) {
@@ -95,10 +95,7 @@ export function createSceneLegend(C) {
   /** tonight's legendary is due within a minute (or running) */
   function legendSoon() {
     const lc = C.LK.local; if (!lc || C.LK.alwaysNight) return false;
-    const ev = eveningOf(lc), lg = legendNight(ev.y, ev.m, ev.d);
-    if (!lg) return false;
-    const s = (ev.hr - lg.h) * 3600;
-    return s > -60 && s < (lg.kind === 'ufo' ? UFO_LEN : TR3B_LEN);
+    return !!legendNear(lc, 60);   // (SCHED: any of tonight's big ones)
   }
   // THE TR-3B's DRAIN over the baked city: each column's unlit facade laid back over its lit windows, neon, signs + beacons (the
   // column's own sputter + lag: legends.js#drainCols) — the far rows, then the near ones

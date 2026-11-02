@@ -13,7 +13,7 @@ import { partyTimeline, partyNight, eveningOf as spEveningOf } from '../../core/
 import { knob } from '../../core/harbor-schedule.js';
 import { groundY, project } from '../../core/harbor-layout.js';
 import { settings } from '../../audio/settings.js';
-import { legendNight, UFO_LEN, TR3B_LEN } from '../../core/harbor-legend.js';
+import { legendsOf, TR3B_LEN } from '../../core/harbor-legend.js';
 import { raidEvening, RAID } from '../../core/harbor-raid.js';
 import { ghostShipTimes, GHOST_LEN } from '../../core/harbor-holiday.js';
 
@@ -70,8 +70,7 @@ export function createSceneFireworks(C) {
     const off = C.LK.local ? C.LK.local.off || 0 : 0, ev = spEveningOf(tt, off);
     if (fwNights.has(ev.key)) return fwNights.get(ev.key);
     const [y, m, d] = ev.key.split('-').map(Number), seed = (C.L && C.L.seed) || 1924, held = [];
-    const lg = legendNight(y, m, d);
-    if (lg) held.push([ev.day0 + lg.h * 3600, ev.day0 + lg.h * 3600 + (lg.kind === 'ufo' ? UFO_LEN : TR3B_LEN)]);
+    for (const lg of legendsOf(y, m, d)) held.push([ev.day0 + lg.h * 3600, ev.day0 + lg.h * 3600 + lg.len]);   // (SCHED: every one of tonight's)
     if (m === 10 && d === 31) for (const h of ghostShipTimes(y)) held.push([ev.day0 + h * 3600, ev.day0 + h * 3600 + GHOST_LEN]);
     try { const rd = raidEvening(ev.key, { off, seed, day0: ev.day0 }); if (rd) held.push([rd.t0 - 30, rd.t0 + RAID.cap]); } catch { /* fine */ }
     const busy = (a, b) => { let e = null; for (const [p, q] of held) if (b > p && a < q) e = Math.max(e == null ? q : e, q); return e; };

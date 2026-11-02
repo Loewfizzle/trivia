@@ -27,7 +27,6 @@ import { reportError } from '../../errlog.js';
 import { createPaint } from './window-paint.js';
 import { createHoliday } from './window-holiday.js';
 import { boxerNight, boxerPlan, boxerPreview, boxerAt } from '../../core/harbor-boxer.js';
-import { legendNight } from '../../core/harbor-legend.js';
 import { boxerRoom } from './boxer.js';
 import { jugglerRoom } from './juggler.js';
 import { crateRoom } from './crate.js';
@@ -120,7 +119,7 @@ export function createWindowLife() {
       bxInfo = { sec: s, plan: boxForced, key: 'forced', seed: L.seed || 1924 };
     } else {
       boxT0 = null;
-      if (boxKey !== nightKey) { boxKey = nightKey; boxPlanNow = boxerPlan(boxerNight(nightKey, { seed: L.seed, legend: k => { const [y, m, d] = k.split('-').map(Number); return legendNight(y, m, d); } })); }
+      if (boxKey !== nightKey) { boxKey = nightKey; boxPlanNow = boxerPlan(boxerNight(nightKey, { seed: L.seed })); }
       const evSec = h < 6 ? loc.sec + 86400 : loc.sec;
       // (a panel's forced window moment wins over him)
       if (boxPlanNow && !(L.moment && MOMENT[L.moment]) && !(L.raidS != null && L.raidS >= 0 && L.raidS < 7200)) { bx = boxerAt(evSec, boxPlanNow, nightKey, L.seed); bxInfo = { sec: evSec, plan: boxPlanNow, key: nightKey, seed: L.seed || 1924 }; }
@@ -133,7 +132,7 @@ export function createWindowLife() {
     const evSec = h < 6 ? loc.sec + 86400 : loc.sec, night = darkAtNow(h, ctx.dark), raidOn = L.raidS != null && L.raidS >= 0 && L.raidS < 7200;
     let SC = null;
     if (!oldMode) {
-      const lg = k => { const [y, m, d] = k.split('-').map(Number); return legendNight(y, m, d); };
+      const lg = () => null;   // (SCHED: legendaries most nights now — the scenes play on through them; the TR-3B's drain dims the rooms)
       if (scKey !== `${nightKey}|${L.seed || 1924}|${quiet}`) { scKey = `${nightKey}|${L.seed || 1924}|${quiet}`; scList = scenesTonight(nightKey, { seed: L.seed, legend: lg }).filter(x => !(quiet && x.rotating));   /* (a QUIET night — the boss's TV the only light on: the rotating scene stays home) */ scOut = shadesNight(nightKey, { seed: L.seed, scenes: scList }); }
       let list = scList.filter(x => SCENE_PAINT[x.id]);
       const fs = L.scene && SCENE_PAINT[L.scene.id] ? L.scene : null;

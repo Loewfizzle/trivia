@@ -18,6 +18,29 @@ export const SCHEDULE = Object.freeze([
   // ---- THE PARTY NIGHT (NIGHT-B — the owner, Oct 29 4:08 pm: "the street party crowd is there for the WHOLE party night")
   { id: 'party.night', trigger: 'calendar', status: 'live', src: 'core/party.js#partyHour', what: 'party nights: Friday + Saturday 8 pm → 2 am (+ the night before Thanksgiving)',
     knobs: { days: ['fri', 'sat'], from: 20, to: 26, probe: 22 } },   // (probe: the hour a night is asked "is it a party?")
+  // ---- SCHED — THE SHOWCASE (the owner, Nov 2 — DECIDED; core/harbor-showcase.js): ONE DIAL for how much of the city's rare stuff a visitor
+  // catches — `level` HIGH now (the server's city2/live overrides it for everyone; a preview's &showcase=) → each level: THE LEGENDARIES
+  // (weeknight [min, max] in the prime span primeFrom → primeTo; a party night one an hour from partyFrom, up to partyMax; ≥ gap h apart;
+  // tr3bWeeknight: the TR-3B on weeknights too, after dark; bbLunch: the Blackbird's odds of a lunchtime pass) + THE MEDIUM TIER (perHour at
+  // the prime-time peak). legendPad: the hours kept clear round a legendary (the fireworks, the medium moments). THE FEASIBILITY CHECK (the owner
+  // chose "keep the counts"): a 45-s prime-time visit catches a legendary ~1 in 85 on a weeknight, ~1 in 55 on a party night at HIGH
+  // (scripts/sim-sched.mjs) — it rises by itself as new legendaries join the pool (a row with knobs.pool)
+  { id: 'showcase', trigger: 'event', status: 'live', src: 'core/harbor-showcase.js', what: 'THE SHOWCASE DIAL: HIGH (now) · NORMAL · LOW — the legendaries a night + the medium moments an hour, both shaped by prime time',
+    knobs: { level: 'high', legendPad: 0.05,
+      levels: {
+        high: { legend: { weeknight: [2, 3], partyMax: 4, partyFrom: 20, gap: 0.5, primeFrom: 18.5, primeTo: 23.25, tr3bWeeknight: true, bbLunch: 0.5 }, medium: { perHour: 15 } },
+        normal: { legend: { weeknight: [1, 2], partyMax: 2, partyFrom: 21, gap: 0.75, primeFrom: 19.5, primeTo: 23.25, tr3bWeeknight: false, bbLunch: 0.25 }, medium: { perHour: 8 } },
+        low: { legend: { weeknight: [0, 1], partyMax: 1, partyFrom: 22, gap: 1, primeFrom: 20.5, primeTo: 23.75, tr3bWeeknight: false, bbLunch: 0 }, medium: { perHour: 4 } },
+      } } },
+  // (PRIME TIME on the visitor's LOCAL time: the evenings most — Fri + Sat × weekend — a little at lunch, late night sparse, the dead hours
+  // calm, the rest of the day off-peak)
+  { id: 'showcase.prime', trigger: 'clock', status: 'live', src: 'core/harbor-showcase.js#primeWeight', what: 'PRIME TIME: 6–11 pm (Fri + Sat most), lunch 12–1 a little, late night sparse, ~2–6 am + mid-afternoon calm',
+    knobs: { prime: [18, 23], weekend: 1.3, lunch: [12, 13], lunchW: 0.5, late: [23, 2], lateW: 0.3, dead: [[2, 6], [14, 17]], offW: 0.33 } },
+  // (THE MEDIUM TIER — a kind = a row with knobs.medium: { kind, weight, when: any | dark | day, cool (s between two of it) } — the city wires
+  //  each: a plane pass + a helicopter pass at night; the dog walk is off — the crowd's cap)
+  { id: 'medium.plane', trigger: 'clock', status: 'live', src: 'screens/harbor/air.js (a scheduled pass)', what: 'A MEDIUM MOMENT: an airliner crossing (on approach at night: its landing lights)', knobs: { medium: { kind: 'plane', weight: 2, when: 'any', cool: 150 } } },
+  { id: 'medium.dogwalk', trigger: 'clock', status: 'off', off: 'SCHED: OFF — an extra walker on top of a full crowd broke the people cap (FOLK.cap: 13 at 390); the crowd keeps its own dog walkers (people.mix)', src: 'core/harbor-people.js', what: 'A MEDIUM MOMENT: a dog walker along the front, a stop mid-screen (every other one sniffs the hydrant)', knobs: { medium: { kind: 'dogwalk', weight: 1.5, when: 'any', cool: 420 } } },
+  { id: 'medium.heli', trigger: 'clock', status: 'live', src: 'core/harbor-heli.js (a scheduled pass)', what: 'A MEDIUM MOMENT: an extra helicopter pass at night (its searchlight on the water)', knobs: { medium: { kind: 'heli', weight: 1, when: 'dark', cool: 1200 } } },
   { id: 'party.crowd', trigger: 'clock', status: 'live', src: 'core/harbor-streetparty.js#crowdK', what: 'THE STREET PARTY crowd: grows through the warm-up, fullest at the peak, thins after 1 am, gone by 2',
     knobs: { warm: 20.5, full: 21.75, thin: 25.0, gone: 26.0, scan: [19.5, 26.5] } },   // (scan: the span its pockets' windows are read over)
   // (NIGHT-C — THE SAME PARTY SONG ON EVERY PHONE, the owner Oct 30: the City 2.0 PARTY deck itself on the server clock — core/party-deck.js,
@@ -325,12 +348,12 @@ export const SCHEDULE = Object.freeze([
   // counted every `step` s, once a device a day
   // SKY-A — THE LEGENDS' REGISTRY (FR4 asked): every legendary, its trigger, its rarity + its conflicts in ONE place. The numbers MIRROR
   // the code that rolls them (core/harbor-legend.js — moved INTO this table at SCHED; tests/harbor-blackbird.test.mjs checks they agree)
-  { id: 'legend.ufo', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (LEGEND_P)', registry: true, what: 'THE UFO ABDUCTION: ~1–2 a month, any night, 21:30 → 00:45 (a seeded minute); 30 s — sebslom’s model, the pale green beam over the compass, the witnesses flee', knobs: { from: 21.5, to: 24.75, len: 30, p: 0.05 }, conflicts: ['legend.tr3b', 'raid', 'party.break'] },
-  { id: 'legend.tr3b', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (TR3B_PARTY_P, TR3B_HOURS)', registry: true, what: 'THE TR-3B: ~1.5 a month, PARTY NIGHTS only (Fri / Sat), at the peak (22:09–22:51 · 23:09–23:51 · 00:09–00:30), never a fireworks night; the city drains dark, the craft crosses (its lights light the world), the F-22 vic chases it + THE BLACKBIRD passes them', knobs: { partyP: 0.17, hours: [[22.15, 22.85], [23.15, 23.85], [24.15, 24.5]], notOn: [[7, 4], [12, 31], [1, 1]] }, conflicts: ['legend.ufo', 'raid', 'fireworks.party', 'party.break', 'traffic'] },
+  { id: 'legend.ufo', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (LEGEND_P)', registry: true, what: 'THE UFO ABDUCTION: ~1–2 a month, any night, 21:30 → 00:45 (a seeded minute); 30 s — sebslom’s model, the pale green beam over the compass, the witnesses flee', knobs: { from: 21.5, to: 24.75, len: 30, p: 0.05, pool: true, kind: 'ufo', weight: 1, jaw: true, win: [21.5, 24.75], dark: true }, conflicts: ['legend.tr3b', 'raid', 'party.break'] },
+  { id: 'legend.tr3b', trigger: 'calendar', status: 'live', src: 'core/harbor-legend.js#legendNight (TR3B_PARTY_P, TR3B_HOURS)', registry: true, what: 'THE TR-3B: ~1.5 a month, PARTY NIGHTS only (Fri / Sat), at the peak (22:09–22:51 · 23:09–23:51 · 00:09–00:30), never a fireworks night; the city drains dark, the craft crosses (its lights light the world), the F-22 vic chases it + THE BLACKBIRD passes them', knobs: { partyP: 0.17, hours: [[22.15, 22.85], [23.15, 23.85], [24.15, 24.5]], notOn: [[7, 4], [12, 31], [1, 1]], pool: true, kind: 'tr3b', weight: 1, jaw: true, win: [19, 24.6], dark: true, len: 44 }, conflicts: ['legend.ufo', 'raid', 'fireworks.party', 'party.break', 'traffic'] },
   { id: 'legend.ghostship', trigger: 'calendar', status: 'live', src: 'core/harbor-holiday.js#ghostShipAt', registry: true, what: 'THE GHOST SHIP: Halloween night only (the legendary of Oct 31 — no UFO / TR-3B that night)',
     knobs: { early: [20.75, 1.0], late: [23, 1.5] } },
   { id: 'legend.flyby', trigger: 'calendar', status: 'live', src: 'screens/harbor/skyfx.js#flybyDay', registry: true, what: 'THE SURPRISE FLYBY: ~twice a month, golden hour → 11 pm — F-22s straight across on afterburner (the model)',
-    knobs: { p: 0.073, nightShare: 0.72, darkCap: 22.4, darkAfterDusk: 0.6, goldBefore: 1, latest: 23 } },
+    knobs: { p: 0.073, nightShare: 0.72, darkCap: 22.4, darkAfterDusk: 0.6, goldBefore: 1, latest: 23, pool: true, kind: 'flyby', weight: 2, win: [17, 23], len: 8 } },
   // (THE MODELS PASS — THE MOTHMAN, core/harbor-mothman.js + screens/harbor/mothman.js: p = a night's chance (≈ 2 a month once the legendary
   // nights + the night after one of his are taken out); arriveFrom / arriveTo, leaveFrom / leaveTo (hours on the evening's clock: 26 = 2 am);
   // glideIn / glideOut / stutter (s: the glide in to the needle, the glide away, the needle's dark stutter that hides the swap); size (his
@@ -340,7 +363,7 @@ export const SCHEDULE = Object.freeze([
   { id: 'legend.rule', trigger: 'event', status: 'live', src: 'core/harbor-legend.js#legendNight', registry: true, what: 'THE LEGENDS’ RULES: never two legendaries a night, never two legendary nights running; a raid never shares its night; nothing new drives in while one runs (trafficHold); no dance break during one',
     knobs: { ghostNight: [[10, 31]] } },
   { id: 'blackbird.chase', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#bbChaseAt + screens/harbor/blackbird.js', what: 'THE BLACKBIRD IN EVERY TR-3B CHASE: once the F-22s are ~⅓ across, the same direction, faster — across the dark NEON sign while the drain holds it (above it if it’s powering back)', knobs: { jetsAcross: 1 / 3 } },
-  { id: 'blackbird.solo', trigger: 'calendar', status: 'live', src: 'core/harbor-blackbird.js#soloDay', what: 'THE BLACKBIRD’s SOLO SIGHTINGS: rare (~2 a month, a seeded day + time), ~5 passes on July 4 — above the lit sign; never on a legendary night', knobs: { perMonth: 2, from: 11, to: 23, july4: 5, july4From: 12, july4To: 21.5 }, conflicts: ['legendaries'] },
+  { id: 'blackbird.solo', trigger: 'calendar', status: 'live', src: 'core/harbor-blackbird.js#soloDay', what: 'THE BLACKBIRD’s SOLO SIGHTINGS: rare (~2 a month, a seeded day + time), ~5 passes on July 4 — above the lit sign; never on a legendary night', knobs: { perMonth: 2, from: 11, to: 23, july4: 5, july4From: 12, july4To: 21.5, pool: true, kind: 'blackbird', weight: 2, win: [11, 23], lunch: [12, 13], len: 9 }, conflicts: ['legendaries'] },
   { id: 'blackbird.watcher', trigger: 'event', status: 'live', src: 'core/harbor-blackbird.js#watcherStep', what: 'THE WATCHER’s REWARD: after 60 visible minutes on the city (a gap under 5 min pauses the count, longer resets it) — this device only, once a day, never announced', knobs: { minutes: 60, pauseMin: 5, step: 5 } },
   // (SKY-B — THE SHADOWBOXER, core/harbor-boxer.js + screens/harbor/boxer.js: days (0 = Sun); from / to / wrapAt (local hours); stayChance (a
   // party night — Fri + Sat, partyDays — he trains on through the party); round / rest / brk (s) + rounds a set; walkIn / outWalk (s: in at a set's start, the towel +

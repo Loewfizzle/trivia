@@ -4,7 +4,7 @@
 //   WHEN   it follows THE BOOTLEGGERS: the night after a delivery (a quiet weeknight one — core/harbor-workers.js#bootlegNight — or
 //          Saturday's big one) has RAID.after (~50 %) chance of ONE raid, in prime time (RAID.window, ~9:20–10:45 pm); plus a rare
 //          PARTY-NIGHT raid (RAID.party, ~once a month); ~one a week in all; seeded by the date (every phone the same). Never on a
-//          holiday, a legendary sky night (core/harbor-legend.js#legendNight — the UFO / the TR-3B own those), nor across a worker's show
+//          holiday, nor across a legendary's minutes (SCHED: legendaries most nights — core/harbor-showcase.js), nor across a worker's show
 //          (it slides off it inside the window, or skips the night); the party's midnight finale is after the window by design.
 //   WHAT   a convoy of RAID.cars black-and-white 1920s patrol cars (the vehicle kit's 'police') comes out from behind the speakeasy on
 //          the back road's near lane, red + blue washing over the side wall, the wet road, the promenade's back edge + the water; the
@@ -17,7 +17,7 @@
 import { rngFrom, hashString } from './rng.js';
 import { bootlegNight, workDay, prevKey, dayOf } from './harbor-workers.js';
 import { partyAt } from './harbor-moments.js';
-import { legendNight } from './harbor-legend.js';
+import { legendsOf } from './harbor-legend.js';
 import { holidayOf } from './sky.js';
 import { signalAt } from './harbor-promenade.js';
 import { trafficLanes } from './harbor-traffic.js';
@@ -68,13 +68,14 @@ export function raidEvening(key, ctx = {}) {
   if (!why) return null;
   const hol = holidayOf(y, m, d);
   if (hol && hol.full) return null;
-  if (legendNight(y, m, d)) return null;
   const day0 = ctx.day0 != null ? ctx.day0 : null;
   if (day0 == null) return null;
   let h = RAID.window[0] + uT * (RAID.window[1] - RAID.window[0]);
   // (never across a worker's show: slide later past it inside the window, else earlier, else skip the night)
-  if (!ctx.noShows) {
-    const shows = workDay(key, { seed: ctx.seed, off: ctx.off, day0 }).filter(w => w.show);
+  // (SCHED — legendaries most nights now: a raid never shares a legendary's MINUTES (± 5 min) — it slides past one like past a show)
+  const legends = legendsOf(y, m, d).map(L => ({ t0: day0 + L.h * H - 300, t1: day0 + L.h * H + L.len + 300 }));
+  if (!ctx.noShows || legends.length) {
+    const shows = [...(ctx.noShows ? [] : workDay(key, { seed: ctx.seed, off: ctx.off, day0 }).filter(w => w.show)), ...legends];
     const clash = hh => shows.find(w => day0 + hh * H < w.t1 + 60 && day0 + hh * H + RAID.cap > w.t0 - 60);
     for (let k = 0; k < 6 && clash(h); k++) { const w = clash(h); h = (w.t1 + 90 - day0) / H; }
     if (h > RAID.window[1] || clash(h)) { h = RAID.window[0]; if (clash(h)) return null; }

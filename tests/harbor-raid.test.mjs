@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
 import { RAID, raidEvening, raidNear, raidPlan, raidAt, raidCarAt, forcedRaid, spotTargets, spotTour, spotOn } from '../js/core/harbor-raid.js';
 import { bootlegNight, prevKey } from '../js/core/harbor-workers.js';
-import { legendNight } from '../js/core/harbor-legend.js';
+import { legendsOf } from '../js/core/harbor-legend.js';
 import { holidayOf } from '../js/core/sky.js';
 import { signalAt } from '../js/core/harbor-promenade.js';
 import { folkMap, folkAt, FOLK } from '../js/core/harbor-people.js';
@@ -16,7 +16,7 @@ const keyOf = n => { const d = new Date(Date.UTC(2026, 0, 1) + n * 864e5); retur
 const day0Of = key => { const [y, m, d] = key.split('-').map(Number); return Date.UTC(y, m - 1, d) / 1000 - OFF * 60; };
 const dowOf = key => { const [y, m, d] = key.split('-').map(Number); return new Date(Date.UTC(y, m - 1, d)).getUTCDay(); };
 
-test('8b2 — THE RAID\'s SCHEDULE: it follows the bootleggers (the night after a delivery, ~50 %) + a rare party-night raid; ~one a week; prime time; never a holiday or a legendary night; every phone the same', () => {
+test('8b2 — THE RAID\'s SCHEDULE: it follows the bootleggers (the night after a delivery, ~50 %) + a rare party-night raid; ~one a week; prime time; never a holiday or across a legendary’s minutes (SCHED); every phone the same', () => {
   let n = 0, after = 0, party = 0, deliveries = 0;
   const days = 364;
   for (let i = 0; i < days; i++) {
@@ -31,7 +31,7 @@ test('8b2 — THE RAID\'s SCHEDULE: it follows the bootleggers (the night after 
     assert.ok(rd.why === 'after-delivery' ? delivered : [5, 6].includes(dowOf(key)), `${key}: ${rd.why}`);
     if (rd.why === 'after-delivery') after++; else party++;
     const [y, m, d] = key.split('-').map(Number);
-    assert.ok(!legendNight(y, m, d), `${key}: never on a legendary night`);
+    for (const L of legendsOf(y, m, d)) { const a = day0 + L.h * 3600, b = a + L.len; assert.ok(rd.t0 + RAID.cap < a - 299 || rd.t0 > b + 299, `${key}: never across a legendary’s minutes`); }
     const hol = holidayOf(y, m, d); assert.ok(!(hol && hol.full), `${key}: never on a holiday (${hol && hol.id})`);
   }
   const perWeek = n / (days / 7);
