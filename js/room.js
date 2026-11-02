@@ -206,6 +206,8 @@ function enterRoom(code) {
   listen('night', night => setState({ night: night || {} }));
   // CC-B — THE INTERCOM in a lobby (rooms/{CODE}/radio — written by the server only; LOBBY ONLY + EVERYONE's lobby copy): its phones start it
   // TOGETHER on the server clock; a phone in a game holds it (audio/intercom.js). The player loads only when an announcement is there.
+  // CC-B — THE CREW: ONE RADIO PER LOBBY (the hand-over + an ask — server-written; screens/harbor/radio.js reads it from the store)
+  listen('radioCrew', rc => setState({ radioCrew: rc || null }));
   listen('radio', radio => {
     const list = Object.entries(radio || {}).map(([id, x]) => ({ id, ...(x || {}) })).filter(x => x.kind === 'intercom');
     if (list.length) import('./audio/intercom.js').then(m => m.intercomFeed('room', list)).catch(e => console.warn('[intercom]', e));

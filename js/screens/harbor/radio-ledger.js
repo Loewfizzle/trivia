@@ -1,8 +1,11 @@
 // CITY CONTROLS A — THE LEDGER (the radio's right face; mockup 3): NIXIE tubes (IN THE CITY now · ROOMS OPEN · GAMES ON); TODAY on a ledger
 // page (visitors — an estimate until Vercel Analytics: a visible city says hello every ~2 min —, new players, matches played, the legendaries
 // spotted (a dash until PROGRESSION 2.0 counts them), the longest streak alive, ERRORS FROM PHONES in red → /admin's list); THIS WEEK as a
-// bar chart (visits · games); a place kept for THE CREW (CC-B). The server's radioLedger (the owner only; from /admin's STATS + the server).
+// bar chart (visits · games); THE CREW (CC-B: the hand-picked friends — emblem, name tag, when added, what they last fired · REMOVE (a second tap
+// confirms) · ADD BY NAME TAG; cap 10; no profile = can't be added). The server's radioLedger (the owner only; from /admin's STATS + the server).
 import { h } from '../../ui/dom.js';
+import { avatar } from '../../ui/components.js';
+import { jackDef } from '../../core/harbor-radio.js';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 let memo = null;   // { at, data } — 30 s
@@ -31,8 +34,26 @@ export function paint({ api, now }) {
           return h('div', { title: `${x.visits} visits · ${x.games} games` }, h('i', { style: { height: `${vh}px` } }), h('i.g', { style: { height: `${Math.max(gh, x.games ? 3 : 0)}px` } }), h('span', DOW[d.getUTCDay()]));
         })),
         h('div.rd-key', h('span', h('i'), 'visits (estimate)'), h('span', h('i.g'), 'games'))),
-      h('section.rd-paper', h('h4', 'THE CREW', h('em', 'next pass')), h('div.rd-lg', h('span', 'Hand-picked friends with a room radio — add one from their card (CITY CONTROLS B).'))));
+      crewPaper(L));
   };
+  // THE CREW: who, since when, what they last fired · REMOVE · ADD BY NAME TAG
+  const ago = t => { const d = Math.max(0, now() - t), m = Math.round(d / 60e3); return m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
+  let armed = null, addErr = '';
+  const crewAct = async body => { try { const r = await api('admin', { action: 'radioCrewSet', ...body }); memo = memo ? { ...memo, data: { ...memo.data, crew: r.crew } } : memo; addErr = ''; } catch (e) { addErr = (e && e.message) || 'Couldn’t change the crew.'; } if (memo) fill(memo.data); };
+  function crewPaper(L) {
+    const C = L.crew || [], cap = L.crewCap || 10;
+    const inp = h('input.rd-inp', { type: 'text', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', enterkeyhint: 'done', placeholder: 'MIKE#4821', 'aria-label': 'A name tag', maxlength: '30' });
+    const add = () => { const v = inp.value.trim(); if (v) crewAct({ tag: v, on: true }); };
+    inp.addEventListener('keydown', e => { if (e.key === 'Enter') add(); });
+    return h('section.rd-paper.rd-crew', h('h4', 'THE CREW', h('em', `${C.length} of ${cap} · a lobby radio each`)),
+      ...(C.length ? C.map(c => h('div.rd-crow', { dataset: { pid: c.pid } },
+        c.a ? avatar(c.a, c.c || 'yellow', 30) : h('i.rd-noav'),
+        h('div.rd-cwho', h('b', `${c.n}${c.t ? `#${c.t}` : ''}`), h('small', `added ${ago(c.at)} · ${c.last ? `last: ${(jackDef(c.last.jack) || { label: c.last.jack }).label} ${ago(c.last.at)}` : 'nothing fired yet'}`)),
+        h('button.rd-crm', { type: 'button', class: armed === c.pid ? 'is-armed' : '', onclick: () => { if (armed !== c.pid) { armed = c.pid; fill(memo.data); setTimeout(() => { if (armed === c.pid) { armed = null; if (memo) fill(memo.data); } }, 4000); return; } armed = null; crewAct({ pid: c.pid, on: false }); } }, armed === c.pid ? 'SURE?' : 'REMOVE'))) : [h('p.rd-hint', 'Nobody yet. Tap a player in a lobby (their card has the CREW switch) or add a name tag.')]),
+      h('div.rd-cadd', inp, h('button.rd-done', { type: 'button', onclick: add, disabled: C.length >= cap }, 'ADD')),
+      addErr ? h('p.rd-err', { role: 'alert' }, addErr) : null,
+      h('p.rd-hint', 'Up to 10. A player needs a profile (after their first match) to join the crew. The crew fires in the lobby they’re in — once lobbies are in the city (LOBBY 2.0).'));
+  }
   const go = async () => {
     try { if (!memo || now() - memo.at > 30e3) memo = { at: now(), data: await api('admin', { action: 'radioLedger' }) }; fill(memo.data); }
     catch (e) { holder.replaceChildren(h('section.rd-paper', h('h4', 'THE LEDGER'), h('p', `Couldn’t read the ledger: ${(e && e.message) || 'offline'}`))); }

@@ -7,7 +7,9 @@
 //   radio/fired/{id}      THE RECORD (what, when, the audience, who, sight: the owner's to a real audience — PROGRESSION 2.0 counts a
 //                         fired moment a player SPOTS as a City Sighting once a day; previews + the crew's never)
 //   radio/board/{id}      the owner's BILLBOARD messages (now · at a time · every week)
-//   radio/crew/{pid}      THE CREW (CC-B); radio/limits/{room}/{night} the crew's counts + the cooldown
+//   radio/crew/{pid}      THE CREW (CC-B — the owner grants it: { at, by, n, t }; cap 10); radio/limits/{room}/{night} the crew's counts +
+//                         the cooldown; rooms/{CODE}/radioCrew { hand: { uid, host, at }, ask: { uid, name, at }, nope } — ONE RADIO PER
+//                         LOBBY (core/harbor-radio.js#radioHolder): the server writes the hand-over + the ask, the room's phones see them
 //   rooms/{CODE}/radio/{id}  a room's moments (its phones listen on the room's socket — ~1–2 s)
 //   city2/showcase        the TUNING WINDOW's level (every phone reads it through GET /api/admin?live=1, with the city's moments)
 //   here/{uid}            THE NIXIE's count: a visible title says hello every ~2 min (an ESTIMATE until Vercel Analytics)
@@ -17,7 +19,9 @@
 import { ApiError } from './http.js';
 import { ref, val, adminPids, emulated } from './fb.js';
 import { knob } from '../../js/core/harbor-schedule.js';
-import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY } from '../../js/core/harbor-radio.js';
+import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag } from '../../js/core/harbor-radio.js';
+import { nameKey } from '../../js/core/names.js';
+import { encodeKey, pidOf, isPid } from './profiles.js';
 import { SHOWCASE_LEVELS } from '../../js/core/harbor-showcase.js';
 import { cleanIntercom, icPublic, icLen, canUnsend, IC_WHY } from '../../js/core/radio-intercom.js';
 import { dayKey } from '../../js/core/week.js';
@@ -60,7 +64,11 @@ async function fire(me, role, uid, body, now) {
   if (pre.req.aud === 'room') {
     const meta = await val(`rooms/${pre.req.room}/meta`);
     if (!meta) throw new ApiError(404, 'no_room', 'That room is closed.');
-    if (role === 'crew') need(!!(await val(`rooms/${pre.req.room}/players/${uid}`)), 'not_in_room', 'You can only fire in the room you are in.');
+    if (role === 'crew') {
+      need(!!(await val(`rooms/${pre.req.room}/players/${uid}`)), 'not_in_room', 'You can only fire in the lobby you are in.');
+      const R = await crewOfRoom(pre.req.room);
+      need(R.holder === uid, 'not_holder', `THE RADIO’S WITH ${R.holder ? (R.players[R.holder] || {}).name || 'ANOTHER CREW MEMBER' : 'NOBODY'} TONIGHT — whoever hosts runs the show in this lobby.`);
+    }
     names = await roomNames(pre.req.room);
   }
   const { req, bad } = cleanFire(body, { names });
@@ -212,11 +220,12 @@ async function ledger(me, role, now, o) {
       errors: (errs || []).filter(e => e.last > now - 864e5).length },
     week: days.map(d => ({ d, visits: Object.keys(V[d] || {}).length, games: daily[d] || 0 })),
     estimate: true, since: dayStart,
+    crew: await crewList(), crewCap: knob('radio').crew.cap,
   };
 }
 
 /** the desk's state (polled every few seconds while it's open): { role, jacks, moments (the caller may see), board, showcase, rooms, here } */
-async function state(me, role, body, now) {
+async function state(me, role, uid, body, now) {
   const Q = await queue(now);
   const room = body.room && /^[A-Z]{4}$/.test(String(body.room)) ? String(body.room) : null;
   const mine = role === 'owner' ? Q : Q.filter(m => m.aud === 'room' && m.room === room);
@@ -231,6 +240,11 @@ async function state(me, role, body, now) {
       intercom: ics.filter(m => m.by === me).map(m => ({ ...icPublic(m.id, m), unsend: canUnsend(m, now) })) });
   } else if (room) {
     out.limits = (await val(`radio/limits/${room}/${nightKey(now, knob('radio').home.tz)}`)) || {};
+    // CC-B — ONE RADIO PER LOBBY: who holds it here (+ an ask / a refusal for this phone)
+    if (await val(`rooms/${room}/players/${uid}`)) {
+      const R = await crewOfRoom(room), name = u => (R.players[u] || {}).name || null;
+      out.lobby = { code: room, holder: R.holder, holderName: name(R.holder), mine: R.holder === uid, ask: R.ask && R.ask.at > now - 120e3 ? R.ask : null, nope: R.nope && R.nope.uid === uid && R.nope.at > now - 60e3 ? R.nope : null };
+    } else out.lobby = { code: room, holder: null, mine: false, out: true };
   }
   return out;
 }
@@ -242,7 +256,18 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
   if (body.action === 'radioWho') return { role };
   need(!!role, 'not_radio', 'This profile has no radio.');
   switch (body.action) {
-    case 'radioState': return state(me, role, body, now);
+    case 'radioState': return state(me, role, uid, body, now);
+    case 'radioCrewSet': return crewSet(me, role, body, now);
+    case 'radioCrewList': need(role === 'owner', 'not_owner'); return { crew: await crewList(), cap: knob('radio').crew.cap };
+    case 'radioCrewPeek': {   // (the owner's player card: is this player crew? — by the uid he tapped)
+      need(role === 'owner', 'not_owner');
+      const pid = /^[A-Za-z0-9]{10,40}$/.test(String(body.uid || '')) ? await pidOf(String(body.uid)) : null;
+      if (!pid) return { pid: null, on: false, why: 'No profile yet — they get one after their first match. Add them then.' };
+      const [c, p] = await Promise.all([val(`radio/crew/${pid}`), val(`profiles/${pid}`)]);
+      return { pid, on: !!c, n: (p && p.n) || null, t: (p && p.t) || null, owner: pid === me || (await roleOf(pid)) === 'owner', n10: Object.keys((await val('radio/crew')) || {}).length, cap: knob('radio').crew.cap };
+    }
+    case 'radioAsk': return crewAsk(me, role, uid, body, now);
+    case 'radioHand': return crewHand(me, role, uid, body, now);
     case 'radioFire': return fire(me, role, uid, body, now);
     case 'radioStop': return stop(me, role, body, now);
     case 'radioClearAll': return clearAll(me, role, now);
@@ -325,4 +350,67 @@ export async function clipOf(id, now = Date.now()) {
   const [m, c] = await Promise.all([val(`radio/ic/${id}`), val(`radio/clips/${id}`)]);
   if (!m || !c || m.state === 'stopped' || !((m.made || 0) > now - knob('radio.intercom').keep * 1000)) return null;
   return { mime: c.mime, buf: Buffer.from(c.b64, 'base64') };
+}
+
+// ------------------------------------------------------------------ CITY CONTROLS B — THE CREW (the owner grants; the crew's lobby radio)
+/** a lobby's crew + who holds its radio → { meta, players, crewUids, holder, hand, ask, nope } */
+async function crewOfRoom(code) {
+  const [meta, players, rc] = await Promise.all([val(`rooms/${code}/meta`), val(`rooms/${code}/players`), val(`rooms/${code}/radioCrew`)]);
+  const P = players || {}, crewUids = [];
+  await Promise.all(Object.keys(P).map(async u => { const pid = await val(`uids/${u}`); if (isPid(pid) && (await val(`radio/crew/${pid}`))) crewUids.push(u); }));
+  const R = rc || {};
+  return { meta: meta || {}, players: P, crewUids, holder: meta ? radioHolder({ hostId: meta.hostId, players: P, hand: R.hand || null }, crewUids) : null, hand: R.hand || null, ask: R.ask || null, nope: R.nope || null };
+}
+/** THE CREW (THE LEDGER + the toggle): [{ pid, n, t, a, c, at, last: { jack, at } | null }] — newest first */
+async function crewList() {
+  const all = (await val('radio/crew')) || {}, fired = (await val('radio/fired')) || {}, out = [];
+  const last = {}; for (const f of Object.values(fired)) if (f && f.role === 'crew' && f.by && (!last[f.by] || f.at > last[f.by].at)) last[f.by] = { jack: f.jack, at: f.at };
+  for (const [pid, c] of Object.entries(all)) {
+    if (!c) continue;
+    const p = (await val(`profiles/${pid}`)) || {};
+    out.push({ pid, n: p.n || c.n || '?', t: p.t || c.t || '', a: p.a || null, c: p.c || null, at: c.at || 0, last: last[pid] || null });
+  }
+  return out.sort((a, b) => b.at - a.at);
+}
+/** THE CREW TOGGLE (the owner): { uid (a player he tapped) | tag ("MIKE#4821") | pid, on } — follows the PROFILE; cap 10; no profile = no */
+async function crewSet(me, role, body, now) {
+  need(role === 'owner', 'not_owner', 'Only the owner picks the crew.');
+  let pid = null;
+  if (body.uid) { if (!/^[A-Za-z0-9]{10,40}$/.test(String(body.uid))) throw new ApiError(400, 'bad_uid'); pid = await pidOf(String(body.uid)); if (!pid) throw new ApiError(404, 'no_profile', 'No profile yet — they get one after their first match. Add them then.'); }
+  else if (body.tag) { const t = parseTag(body.tag); if (!t) throw new ApiError(400, 'bad_tag', 'Type a name tag like MIKE#4821.'); pid = await val(`tags/${encodeKey(nameKey(t.name))}/${t.tag}`); if (!isPid(pid)) throw new ApiError(404, 'no_tag', 'No player with that name tag.'); }
+  else if (isPid(String(body.pid || ''))) pid = String(body.pid);
+  if (!pid) throw new ApiError(400, 'bad_player');
+  const on = body.on !== false, prof = await val(`profiles/${pid}`);
+  if (on) {
+    if (!prof) throw new ApiError(404, 'no_profile', 'No profile yet — they get one after their first match.');
+    if (pid === me || (await roleOf(pid)) === 'owner') throw new ApiError(400, 'is_owner', 'That’s you — the owner outranks the crew.');
+    const all = (await val('radio/crew')) || {};
+    if (!all[pid] && Object.keys(all).length >= knob('radio').crew.cap) throw new ApiError(429, 'crew_full', `THE CREW IS FULL (${knob('radio').crew.cap}) — remove someone first.`);
+    if (!all[pid]) await ref(`radio/crew/${pid}`).set({ at: now, by: me, n: prof.n || '', t: prof.t || '' });
+  } else await ref(`radio/crew/${pid}`).remove();
+  await audit(me, on ? 'radioCrewAdd' : 'radioCrewRemove', { b: `${(prof && prof.n) || '?'}#${(prof && prof.t) || ''}`, pid });
+  return { pid, on, crew: await crewList() };
+}
+/** ASK FOR THE RADIO (a crew member who doesn't hold it) → the holder's phone sees it on the room's node */
+async function crewAsk(me, role, uid, body, now) {
+  need(role === 'crew', 'not_crew');
+  const room = String(body.room || '').toUpperCase(); if (!/^[A-Z]{4}$/.test(room)) throw new ApiError(400, 'bad_room');
+  need(!!(await val(`rooms/${room}/players/${uid}`)), 'not_in_room', 'Join the lobby first.');
+  const R = await crewOfRoom(room);
+  if (R.holder === uid) throw new ApiError(400, 'is_holder', 'The radio’s already yours.');
+  await ref(`rooms/${room}/radioCrew`).update({ ask: { uid, name: (R.players[uid] || {}).name || 'A CREW MEMBER', at: now }, nope: null });
+  await audit(me, 'radioAsk', { b: `${room} → ${(R.players[R.holder] || {}).name || '?'}` });
+  return { ok: true };
+}
+/** HAND IT OVER / KEEP IT (the holder) */
+async function crewHand(me, role, uid, body, now) {
+  need(role === 'crew', 'not_crew');
+  const room = String(body.room || '').toUpperCase(); if (!/^[A-Z]{4}$/.test(room)) throw new ApiError(400, 'bad_room');
+  const R = await crewOfRoom(room);
+  need(R.holder === uid, 'not_holder', 'The radio isn’t yours to hand over.');
+  if (!R.ask) throw new ApiError(404, 'no_ask', 'Nobody asked.');
+  const give = body.give === true && R.crewUids.includes(R.ask.uid);
+  await ref(`rooms/${room}/radioCrew`).update(give ? { hand: { uid: R.ask.uid, host: R.meta.hostId, at: now, from: uid }, ask: null, nope: null } : { ask: null, nope: { uid: R.ask.uid, at: now } });
+  await audit(me, give ? 'radioHandOver' : 'radioKeep', { b: `${room} → ${R.ask.name}` });
+  return { ok: true, give };
 }

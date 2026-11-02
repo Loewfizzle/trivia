@@ -278,3 +278,49 @@ body.rd-open { overflow: hidden; }
 .rd-icsent:empty { display: none; }
 .rd-auds span.is-on { color: var(--rd-hi); text-decoration: underline; text-decoration-color: var(--rd-au); text-underline-offset: 3px; }
 .rd-icsent { margin-top: -2px; }
+
+/* CC-B — THE CREW: the dimmed corner button + its brass LOCK, the lock face (THE RADIO'S WITH … + ASK), the holder's ask card, the dormant
+   note, the owner's player card (THE CREW switch), THE CREW on THE LEDGER */
+.rd-lockg { display: none; position: absolute; right: -3px; bottom: -3px; width: 15px; height: 13px; border-radius: 3px; background: linear-gradient(180deg, #fff3cf, #e2b867 50%, #8e6a2b); box-shadow: 0 0 0 1.5px rgba(5, 4, 12, 0.9); }
+.rd-lockg::before { content: ''; position: absolute; left: 3px; top: -6px; width: 6px; height: 7px; border: 2px solid #e2b867; border-bottom: 0; border-radius: 5px 5px 0 0; }
+.rd-btn.is-locked { opacity: 0.55; }
+.rd-btn.is-locked .rd-lockg { display: block; }
+.rd-lockface { text-align: center; padding: 22px 16px 18px; }
+.rd-lockface h3 { font: 700 16px/1.3 var(--font-display); letter-spacing: 0.16em; color: var(--rd-hi); margin: 12px 0 8px; }
+.rd-lockface p { font: 500 14px/1.45 var(--font-ui); color: var(--rd-tx); margin: 0 0 6px; }
+.rd-biglock { position: relative; display: inline-block; width: 46px; height: 38px; margin-top: 18px; border-radius: 7px; background: linear-gradient(180deg, #fff3cf, #e2b867 50%, #8e6a2b); box-shadow: 0 3px 10px rgba(0, 0, 0, 0.5); }
+.rd-biglock::before { content: ''; position: absolute; left: 10px; top: -19px; width: 26px; height: 22px; border: 5px solid #e2b867; border-bottom: 0; border-radius: 16px 16px 0 0; box-sizing: border-box; }
+.rd-biglock::after { content: ''; position: absolute; left: 20px; top: 12px; width: 6px; height: 12px; border-radius: 3px; background: #3a2a10; }
+.rd-asked { margin-top: 14px !important; font: 800 12px/1.3 var(--font-ui) !important; letter-spacing: 0.2em; color: var(--rd-amb) !important; }
+.rd-askcard { position: fixed; z-index: 80; left: 50%; top: calc(var(--safe-t) + 104px); transform: translateX(-50%); width: min(calc(100% - 24px), 400px); padding: 14px; border-radius: 18px;
+  --rd-hi: #fff3cf; --rd-au: #e2b867; --rd-ink: #1a1206; background: linear-gradient(180deg, rgba(34, 24, 12, 0.97), rgba(16, 11, 6, 0.97)); border: 1px solid #e2b867; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.55); text-align: center; }
+.rd-askcard > b { display: block; font: 800 14px/1.3 var(--font-ui); letter-spacing: 0.18em; color: #fff3cf; margin-bottom: 10px; }
+.rd-askcard > div { display: grid; grid-template-columns: 1fr 1.3fr; gap: 10px; }
+.rd-askcard .rd-cancel, .rd-askcard .rd-fire { margin: 0; height: 52px; font-size: 12px; letter-spacing: 0.18em; }
+.rd-dormant { margin: 0 2px; font: italic 500 12.5px/1.4 var(--font-ui); color: var(--rd-dim); }
+.rd-dormant b { font-style: normal; font-weight: 800; letter-spacing: 0.16em; color: var(--rd-au); }
+.rd-jacks.is-dormant .rd-jack:not(.is-run):not(.is-q) .rd-hole { opacity: 0.72; }
+.rd-lobplate .rd-plate { font-size: 9.5px; }
+body.rd-owner .lobby .chip.player { cursor: pointer; }
+.rd-pc { display: flex; align-items: center; gap: 14px; margin-top: 10px; padding: 12px; border-radius: 12px; background: rgba(10, 7, 3, 0.7); border: 1px solid rgba(226, 184, 103, 0.3); }
+.rd-pc b { display: block; font: 700 18px/1.2 var(--font-ui); letter-spacing: 0.06em; color: #fff; }
+.rd-pc small { font: 600 13px/1.3 var(--font-num); color: var(--rd-dim); }
+.rd-crewsw { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.rd-crewsw .rd-lb { flex-direction: column; align-items: flex-start; gap: 6px; margin: 0; }
+.rd-lever:disabled { opacity: 0.45; }
+.rd-crow { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px dashed rgba(60, 40, 10, 0.35); }
+.rd-crow .rd-cwho { flex: 1; min-width: 0; }
+.rd-crew .rd-inp::placeholder { color: rgba(90, 74, 48, 0.5); }
+.rd-crow b { display: block; font: 700 14px/1.2 var(--font-ui); }
+.rd-crow small { display: block; font: 500 12px/1.3 var(--font-ui); opacity: 0.75; }
+.rd-noav { width: 30px; height: 30px; border-radius: 50%; background: rgba(60, 40, 10, 0.25); flex: none; }
+.rd-crm { min-height: 44px; min-width: 84px; border-radius: 8px; border: 1px solid #a33; background: none; color: #8a1c1c; font: 800 10.5px/1 var(--font-ui); letter-spacing: 0.16em; cursor: pointer; }
+.rd-crm.is-armed { background: #8a1c1c; color: #fff; }
+.rd-cadd { display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-top: 10px; }
+.rd-crew .rd-inp { background: #fffaf0; color: #1a1206; border-color: #8e6a2b; height: 44px; }
+.rd-crew .rd-done { color: #1a1206; border-color: #8e6a2b; }
+.rd-crew .rd-hint { color: #5a4a30; }
+/* (CC-B: in a LOBBY the page behind is busy text, not the city — a near-solid backdrop so nothing reads through, blur or not) */
+body.cb-split .rd-back { background: radial-gradient(120% 70% at 50% 0%, rgba(40, 22, 70, 0.92), rgba(8, 6, 18, 0.96) 70%); }
+.rd-lobplate { display: flex; align-items: center; }
+.rd-askbtn { font-size: 14px; letter-spacing: 0.22em; padding: 0 12px; }

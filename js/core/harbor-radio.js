@@ -210,3 +210,23 @@ export function localStart(local, made, tzOffMin) {
   if (t < made - 60e3) t += 864e5;
   return t;
 }
+
+// ------------------------------------------------------------------ CC-B — THE CREW: ONE RADIO PER LOBBY
+/**
+ * who holds the lobby's radio: the HOST if a crew member, else the crew member who joined FIRST; it FOLLOWS THE HOST (host migration);
+ * a HAND-OVER (`hand`: { uid, host } — granted while `host` hosted) holds until the host changes or that crew member leaves.
+ * room: { hostId, players: { uid: { joinedAt } }, hand? }, crewUids: the uids in the room whose profile is crew → uid | null
+ */
+export function radioHolder(room, crewUids) {
+  const P = (room && room.players) || {}, crew = [...new Set(crewUids || [])].filter(u => P[u]);
+  if (!crew.length) return null;
+  const hand = room.hand;
+  if (hand && hand.uid && hand.host === room.hostId && crew.includes(hand.uid)) return hand.uid;
+  if (crew.includes(room.hostId)) return room.hostId;
+  return crew.sort((a, b) => ((P[a].joinedAt || 0) - (P[b].joinedAt || 0)) || a.localeCompare(b))[0];
+}
+/** a crew member's name tag ("MIKE#4821") → { name, tag } | null */
+export function parseTag(raw) {
+  const m = /^\s*(.{1,24}?)\s*#\s*(\d{4})\s*$/.exec(String(raw || ''));
+  return m ? { name: m[1], tag: m[2] } : null;
+}

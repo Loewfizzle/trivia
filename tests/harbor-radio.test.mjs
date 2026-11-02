@@ -96,3 +96,18 @@ test('WHAT THE CITY PLAYS (once) + AT A TIME in each viewer\'s own time + the pu
   const pub = publicMoment('x', { jack: 'ufo', by: 'pSECRET', role: 'crew', aud: 'room', room: 'ABCD', at: 1, until: 2, state: 'q' });
   assert.ok(!JSON.stringify(pub).includes('pSECRET')); assert.equal(pub.by, 'crew');
 });
+
+test('CC-B — ONE RADIO PER LOBBY: the host if crew, else the crew member who joined first; it follows the host; a hand-over holds until the host changes', async () => {
+  const { radioHolder, parseTag } = await import('../js/core/harbor-radio.js');
+  const players = { h: { joinedAt: 1 }, a: { joinedAt: 5 }, b: { joinedAt: 3 }, x: { joinedAt: 2 } };
+  assert.equal(radioHolder({ hostId: 'h', players }, []), null, 'no crew: nobody');
+  assert.equal(radioHolder({ hostId: 'h', players }, ['a', 'b']), 'b', 'the crew member who joined first');
+  assert.equal(radioHolder({ hostId: 'h', players }, ['a', 'b', 'h']), 'h', 'the host if crew');
+  assert.equal(radioHolder({ hostId: 'a', players }, ['a', 'b']), 'a', 'it follows the host');
+  assert.equal(radioHolder({ hostId: 'h', players, hand: { uid: 'a', host: 'h' } }, ['a', 'b', 'h']), 'a', 'a hand-over');
+  assert.equal(radioHolder({ hostId: 'x', players, hand: { uid: 'a', host: 'h' } }, ['a', 'b', 'h']), 'h', 'the host changed: the rule again');
+  assert.equal(radioHolder({ hostId: 'h', players: { h: players.h, b: players.b }, hand: { uid: 'a', host: 'h' } }, ['a', 'b', 'h']), 'h', 'the one handed to left');
+  assert.equal(radioHolder({ hostId: 'h', players }, ['zz']), null, 'a crew uid not in the lobby');
+  assert.deepEqual(parseTag('mike#4821'), { name: 'mike', tag: '4821' }); assert.deepEqual(parseTag(' Big Al # 0042 '), { name: 'Big Al', tag: '0042' });
+  assert.equal(parseTag('mike'), null); assert.equal(parseTag('#1234'), null);
+});

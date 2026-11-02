@@ -35,7 +35,7 @@ G('radio', async () => {
   await waitFor(O.page, '!!document.querySelector(".rd-btn")', 'the radio button', 20000);
   const btn = await ev(O.page, `(() => { const b = document.querySelector('.rd-btn').getBoundingClientRect(), m = document.querySelector('.menu-btn').getBoundingClientRect(), a = getComputedStyle(document.querySelector('.rd-btn'), '::after'); return { w: b.width, top: b.top, mBot: m.bottom, dl: Math.abs(b.left - m.left), dw: Math.abs(b.width - m.width), tap: parseFloat(a.width) || 0 }; })()`);
   ok(btn.top > btn.mBot && btn.dl < 1 && btn.dw < 1 && btn.tap >= 44, `RADIO: the corner button UNDER the ☰ — the same size + left edge, a 44 pt tap area (${JSON.stringify(btn)})`);
-  await O.page.click('.rd-btn');
+  await ev(O.page, `document.querySelector('.rd-btn').click()`);
   await waitFor(O.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the desk', 10000);
   const desk = await ev(O.page, `[...document.querySelectorAll('.rd-jack')].map(j => j.dataset.jack)`);
   ok(desk.join() === RD.jacks().map(j => j.id).join(), `RADIO: THE DESK's jacks = the timetable's rows with a jack (${desk.length}: ${desk.join(' ')})`);
@@ -48,7 +48,7 @@ G('radio', async () => {
     else ok(st.r.jacks.every(j => j.run.ok), 'RADIO: after dark — every jack ready'); }
   // ---- CC-B GROUP 0 (the owner's CC-A review): the knob's THREE words, the big ✕, no long-press (an explicit ARRANGE)
   { const seen = new Set();
-    for (let i = 0; i < 4; i++) { seen.add((await ev(O.page, `(document.querySelector('.rd-who b') || {}).textContent || ''`)).replace(/^● /, '').replace(/ · [A-Z]{4}$/, '')); await O.page.click('.rd-kw:last-child .rd-knob'); await sleep(250); if (await ev(O.page, '!!document.querySelector(".rd-cardwrap")')) { const x = await sizeOf(O.page, '.rd-cardwrap .rd-cx'); if (x) seen.add(`✕${x.w >= 44 && x.h >= 44 ? 'ok' : 'small'}`); await O.page.keyboard.press('Escape'); await sleep(200); } }
+    for (let i = 0; i < 4; i++) { seen.add((await ev(O.page, `(document.querySelector('.rd-who b') || {}).textContent || ''`)).replace(/^● /, '').replace(/ · [A-Z]{4}$/, '')); await ev(O.page, `document.querySelector('.rd-kw:last-child .rd-knob').click()`); await sleep(250); if (await ev(O.page, '!!document.querySelector(".rd-cardwrap")')) { const x = await sizeOf(O.page, '.rd-cardwrap .rd-cx'); if (x) seen.add(`✕${x.w >= 44 && x.h >= 44 ? 'ok' : 'small'}`); await O.page.keyboard.press('Escape'); await sleep(200); } }
     ok(['JUST ME', 'LOBBY ONLY', 'EVERYONE'].every(w => seen.has(w)) && ![...seen].some(w => /CITY ONLY|ONE ROOM/.test(w)) && seen.has('✕ok'), `RADIO (CC-B): the AUDIENCE knob = JUST ME · LOBBY ONLY · EVERYONE, the lobby list's ✕ ≥ 44 pt (${[...seen].join(' | ')})`); }
   { const x = await sizeOf(O.page, '.rd-x'); ok(x && x.w >= 44 && x.h >= 44 && x.bw >= 2 && /255, 255, 255/.test(x.fg), `RADIO (CC-B): the radio's ✕ big + bold (${JSON.stringify(x)})`); }
   { // a held thumb (a scroll that lingers) never starts arranging: pointerdown, 900 ms, pointerup — no wiggle, no card
@@ -69,12 +69,12 @@ G('radio', async () => {
     await ev(O.page, `window.__district.harbor().sky.stop && window.__district.harbor().sky.stop()`); }
   // ---- JUST ME: FIRE → amber → pink → STOP (the Blackbird: any time)
   // (the audience knob: turn to JUST ME — me · room · everyone)
-  for (let i = 0; i < 4; i++) { const a = await ev(O.page, `(document.querySelector('.rd-who b') || {}).textContent || ''`); if (/JUST ME/.test(a)) break; await O.page.click('.rd-kw:last-child .rd-knob'); await sleep(250); if (await ev(O.page, '!!document.querySelector(".rd-cardwrap")')) { await O.page.keyboard.press('Escape'); await sleep(200); } }
+  for (let i = 0; i < 4; i++) { const a = await ev(O.page, `(document.querySelector('.rd-who b') || {}).textContent || ''`); if (/JUST ME/.test(a)) break; await ev(O.page, `document.querySelector('.rd-kw:last-child .rd-knob').click()`); await sleep(250); if (await ev(O.page, '!!document.querySelector(".rd-cardwrap")')) { await O.page.keyboard.press('Escape'); await sleep(200); } }
   ok(/JUST ME/.test(await ev(O.page, `document.querySelector('.rd-who b').textContent`)), 'RADIO: the AUDIENCE knob turned to JUST ME');
   await tapJack(O.page, 'blackbird'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-fire")', 'the patch card', 5000);
   const who = await ev(O.page, `document.querySelector('.rd-who2').textContent`);
   ok(/this phone only/i.test(who), `RADIO: the card's FIRE says who it goes to ("${who}")`);
-  await O.page.click('.rd-fire');
+  await ev(O.page, `document.querySelector('.rd-fire').click()`);
   await waitFor(O.page, '!document.querySelector(".rd-cardwrap")', 'the card closed', 6000);
   await waitFor(O.page, `['q', 'run'].includes((document.querySelector('.rd-jack[data-jack="blackbird"]') || {}).dataset.lamp)`, 'the lamp lit', 6000);
   await waitFor(O.page, `(document.querySelector('.rd-jack[data-jack="blackbird"]') || {}).dataset.lamp === 'run'`, 'PINK', 8000);
@@ -84,7 +84,7 @@ G('radio', async () => {
   await tapJack(O.page, 'blackbird'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-bigstop")', 'the lit card', 5000);
   { const b = await ev(O.page, `(() => { const el = document.querySelector('.rd-cardwrap .rd-bigstop'), r = el.getBoundingClientRect(); return { t: el.textContent, h: r.height, w: r.width }; })()`);
     ok(b.t === 'STOP' && b.h >= 56 && b.w >= 300, `RADIO (CC-B): a LIT jack's card → a big STOP (${JSON.stringify(b)})`); }
-  await O.page.click('.rd-cardwrap .rd-bigstop');
+  await ev(O.page, `document.querySelector('.rd-cardwrap .rd-bigstop').click()`);
   await waitFor(O.page, `!(document.querySelector('.rd-jack[data-jack="blackbird"]') || {}).dataset.lamp`, 'the lamp dark after STOP', 8000);
   ok(true, 'RADIO: STOP → the lamp dark again');
   // ...and a QUEUED one (AT A TIME, hours away) → CANCEL
@@ -92,7 +92,7 @@ G('radio', async () => {
     await waitFor(O.page, `(document.querySelector('.rd-jack[data-jack="flyby"]') || {}).dataset.lamp === 'q'`, 'AMBER', 8000).catch(() => {});
     await tapJack(O.page, 'flyby'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-bigstop")', 'the lit card', 5000).catch(() => {});
     const t = await ev(O.page, `(document.querySelector('.rd-cardwrap .rd-bigstop') || {}).textContent || ''`);
-    if (t) await O.page.click('.rd-cardwrap .rd-bigstop');
+    if (t) await ev(O.page, `document.querySelector('.rd-cardwrap .rd-bigstop').click()`);
     await waitFor(O.page, `!(document.querySelector('.rd-jack[data-jack="flyby"]') || {}).dataset.lamp`, 'the lamp dark after CANCEL', 8000).catch(() => {});
     ok(f.ok && t === 'CANCEL' && !(await lampOf(O.page, 'flyby')), `RADIO (CC-B): a QUEUED jack's card → CANCEL ("${t}") → dark`); }
   // ---- CC-B — THE INTERCOM on JUST ME: a FAKE MIC (an oscillator) → HOLD TO TALK → the review → SEND → the chime + the PA here → UNSEND
@@ -110,7 +110,7 @@ G('radio', async () => {
     const lever = await ev(O.page, `(() => { const l = document.querySelector('.rd-miccard .rd-lever'); return l ? { on: l.getAttribute('aria-checked'), h: l.getBoundingClientRect().height } : null; })()`);
     ok(t && t.dur > 1 && t.bytes > 200 && /^audio\//.test(t.mime) && lever && lever.on === 'true' && lever.h >= 44 && lvl > 0, `RADIO (CC-B): HOLD TO TALK → a ${t && t.dur.toFixed(1)} s take (${t && t.bytes} B, ${t && t.mime}; the meter lit ${lvl} bars) → THE REVIEW: the ON THE BILLBOARD lever on (${JSON.stringify(lever)})`);
     await O.page.type('.rd-miccard .rd-inp', 'test night');
-    await O.page.click('.rd-miccard .rd-fire');
+    await ev(O.page, `document.querySelector('.rd-miccard .rd-fire').click()`);
     await waitFor(O.page, '!document.querySelector(".rd-cardwrap")', 'sent', 8000);
     const st = await call(O.page, { action: 'radioState' }), sent = st.ok && st.r.intercom && st.r.intercom.slice(-1)[0];
     ok(sent && sent.aud === 'me' && sent.head === 'TEST NIGHT' && sent.unsend === true, `RADIO (CC-B): SEND → the server's announcement (${JSON.stringify(sent && { aud: sent.aud, head: sent.head, dur: sent.dur, unsend: sent.unsend })})`);
@@ -162,7 +162,7 @@ G('radio', async () => {
   await sleep(200);
   await ev(O.page, `[...document.querySelectorAll('.rd-dows button')].forEach(b => { if (b.classList.contains('is-on') !== (b.textContent === 'FR')) b.click(); })`);
   await sleep(200);
-  await O.page.click('.rd-fire');
+  await ev(O.page, `document.querySelector('.rd-fire').click()`);
   await waitFor(O.page, '!document.querySelector(".rd-cardwrap")', 'the billboard posted', 6000);
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'PROGRAM').click()`);
   await waitFor(O.page, `[...document.querySelectorAll('.rd-paper h4')].some(h => /YOUR QUEUE/.test(h.textContent))`, 'THE PROGRAM', 8000);
@@ -181,9 +181,9 @@ G('radio', async () => {
     okT((t1 == null || t0 == null || t1 >= t0) && fps >= 24, `RADIO: the city behind keeps drawing under the open radio (tier ${t0} → ${t1}, ~${fps} fps)`); }
   // ---- CLEAR ALL under the cover: the cover first, then the button
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'DESK').click()`); await sleep(400);
-  await O.page.click('.rd-cover'); await sleep(400);
+  await ev(O.page, `document.querySelector('.rd-cover').click()`); await sleep(400);
   ok(await ev(O.page, '!!document.querySelector(".rd-clear.is-open")'), 'RADIO: CLEAR ALL — the safety cover lifts first');
-  await O.page.click('.rd-cbtn'); await sleep(1500);
+  await ev(O.page, `document.querySelector('.rd-cbtn').click()`); await sleep(1500);
   { const st = await call(O.page, { action: 'radioState' }); ok(st.ok && !st.r.board.length && !st.r.moments.some(m => m.mine && (m.state === 'q' || m.state === 'run')), 'RADIO: CLEAR ALL stopped his moments + emptied the billboard queue'); }
   // the audit log: every action
   { const all = (await get('audit')) || {}, acts = new Set(Object.values(all).filter(l => l && l.by === pid).map(l => l.act));
@@ -191,4 +191,99 @@ G('radio', async () => {
   await dbPut(`testAdmins/${pid}`, null); await dbPut(`rooms/${ROOM}`, null);
   await O.ctx.close();
   log('radio', 'done');
+});
+
+// CITY CONTROLS B — THE CREW end to end: the owner grants it (from a player's card + THE LEDGER by name tag; cap 10), the crew's cut-down
+// desk (11 jacks, THIS LOBBY ONLY, no tuning / mic / program / ledger), a crew member refused beyond the role, ONE RADIO PER LOBBY (the
+// host's; the other crew member's button locked → THE RADIO'S WITH … → ASK → the holder's HAND IT OVER → THE RADIO'S YOURS), the lobby's
+// limits (the cooldown greys the jack with a friendly note), the owner removes them. Fires only into its own test lobby.
+G('crew', async () => {
+  const uidOf = p => ev(p, `import('/js/store.js').then(s => s.state.uid)`);
+  const O = await open({ slot: 'cro', qs: 'when=2026-11-03T21:00' }); await harborUp(O.page);
+  const opid = await pidOf(O.page); await dbPut(`testAdmins/${opid}`, true);
+  const C = await open({ slot: 'crc', qs: 'when=2026-11-03T21:00' }); await harborUp(C.page);
+  const D = await open({ slot: 'crd', qs: 'when=2026-11-03T21:00' }); await harborUp(D.page);
+  const [cpid, dpid] = [await pidOf(C.page), await pidOf(D.page)], [cuid, duid] = [await uidOf(C.page), await uidOf(D.page)];
+  ok(!!(cpid && dpid && cuid && duid), `CREW: two friends with profiles (${cpid}, ${dpid})`);
+  // ---- THE OWNER grants: by the uid he tapped (the player's card) + by name tag (THE LEDGER)
+  const peek = await call(O.page, { action: 'radioCrewPeek', uid: cuid });
+  const g1 = await call(O.page, { action: 'radioCrewSet', uid: cuid, on: true });
+  const dprof = await get(`profiles/${dpid}`);
+  const g2 = await call(O.page, { action: 'radioCrewSet', tag: `${dprof.n}#${dprof.t}`, on: true });
+  const bad = await call(O.page, { action: 'radioCrewSet', tag: 'NOBODY#0000', on: true });
+  ok(peek.ok && peek.r.pid === cpid && peek.r.on === false && g1.ok && g1.r.on && g2.ok && g2.r.crew.some(c => c.pid === dpid) && !bad.ok && bad.code === 'no_tag', `CREW: the owner's switch (peek → ON by the player's card) + ADD BY NAME TAG (${dprof.n}#${dprof.t}); an unknown tag refused (${bad.code})`);
+  { // CAP 10
+    const fake = {}; for (let i = 0; i < 8; i++) fake[`pzzzzzzzzzz${'abcdefgh'[i]}`] = { at: 1, by: opid, n: 'FAKE', t: '000' + i };
+    for (const [k, v] of Object.entries(fake)) await dbPut(`radio/crew/${k}`, v);
+    const third = await open({ slot: 'cre', qs: 'when=2026-11-03T21:00' }); await harborUp(third.page); await pidOf(third.page); const euid = await uidOf(third.page);
+    const full = await call(O.page, { action: 'radioCrewSet', uid: euid, on: true });
+    for (const k of Object.keys(fake)) await dbPut(`radio/crew/${k}`, null);
+    await third.ctx.close();
+    ok(!full.ok && full.code === 'crew_full', `CREW: CAP 10 — the 11th refused (${full.code}: "${full.msg}")`); }
+  // ---- THE CREW's cut-down desk (C): the corner button, 11 jacks, THIS LOBBY ONLY, no tuning / mic / program / ledger; not in a lobby → greyed
+  await ev(C.page, 'sessionStorage.clear()'); await C.page.reload(); await harborUp(C.page);
+  await waitFor(C.page, '!!document.querySelector(".rd-btn")', 'the crew button', 20000);
+  await ev(C.page, `document.querySelector('.rd-btn').click()`); await waitFor(C.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the crew desk', 10000);
+  { const d = await ev(C.page, `({ jacks: [...document.querySelectorAll('.rd-jack')].map(j => j.dataset.jack), grey: [...document.querySelectorAll('.rd-jack')].every(j => j.dataset.lamp === 'grey'), tune: !!document.querySelector('.rd-tune'), mic: !!document.querySelector('.rd-mic'), band: !!document.querySelector('.rd-bb'), plate: (document.querySelector('.rd-lobplate') || {}).textContent || '', clear: !!document.querySelector('.rd-clear') })`);
+    const want = RD.jacks().filter(j => j.crew).map(j => j.id);
+    ok(d.jacks.length === 11 && d.jacks.every(j => want.includes(j)) && d.grey && !d.tune && !d.mic && !d.band && !d.clear && /THIS LOBBY ONLY/.test(d.plate), `CREW: the cut-down desk — 11 jacks (${d.jacks.join(' ')}), THIS LOBBY ONLY, no tuning / mic / program / ledger / clear-all; not in a lobby → every jack greyed`);
+    await tapJack(C.page, 'banner'); await sleep(300);
+    const bub = await ev(C.page, `(document.querySelector('.rd-bub') || {}).textContent || ''`);
+    ok(/join a lobby/i.test(bub), `CREW: a greyed jack says why ("${bub}")`);
+    await C.page.keyboard.press('Escape'); }
+  // ---- refused beyond the role
+  { const tries = [{ action: 'radioFire', jack: 'ufo', aud: 'everyone' }, { action: 'radioFire', jack: 'billboard', aud: 'room', room: 'ABCD' }, { action: 'radioDial', level: 'low' }, { action: 'radioIntercom', aud: 'me', mime: 'audio/mp4', dur: 2, b64: 'AAAA' }, { action: 'radioCrewSet', uid: duid, on: false }, { action: 'radioLedger' }, { action: 'radioClearAll' }, { action: 'radioBoard', lines: ['HI'] }, { action: 'radioRooms' }];
+    const res = []; for (const b of tries) res.push(await call(C.page, b));
+    ok(res.every(r => !r.ok && r.status === 403), `CREW: refused beyond the role (${res.map(r => r.code).join(' ')})`); }
+  // ---- ONE RADIO PER LOBBY: C hosts → C holds it; D joins → D's button locked → ASK → C hands it over
+  const code = await ev(C.page, `import('/js/room.js').then(m => m.createRoom({ name: 'CREW HOST', color: 'cyan', avatar: 'bolt' })).then(() => import('/js/store.js')).then(s => s.state.code)`);
+  await ev(D.page, `import('/js/room.js').then(m => m.joinRoom('${code}', { name: 'CREW TWO', color: 'pink', avatar: 'star' })).catch(e => e.message)`);
+  await waitFor(D.page, `import('/js/store.js').then(s => s.state.code === '${code}' && !!s.state.meta)`, 'D in the lobby', 15000);
+  await ev(D.page, 'sessionStorage.clear()');
+  await D.page.reload(); await waitFor(D.page, `import('/js/store.js').then(s => s.state.code === '${code}' && !!s.state.meta)`, 'D back in the lobby', 20000);
+  await waitFor(D.page, '!!document.querySelector(".rd-btn")', 'the crew button (D)', 20000);
+  await waitFor(D.page, '!!document.querySelector(".rd-btn.is-locked")', 'the button locked (D)', 15000).catch(() => {});
+  const Cst = await call(C.page, { action: 'radioState', room: code }), Dst = await call(D.page, { action: 'radioState', room: code });
+  ok(Cst.ok && Cst.r.lobby.mine && Dst.ok && !Dst.r.lobby.mine && Dst.r.lobby.holder === cuid && await ev(D.page, '!!document.querySelector(".rd-btn.is-locked .rd-lockg")'), `CREW: ONE RADIO PER LOBBY — the host (C) holds it; D's button DIMMED with a brass lock`);
+  // C fires into the lobby (dormant — recorded + queued); the lobby's limits: the cooldown greys the jack
+  const f = await call(C.page, { action: 'radioFire', jack: 'balloons', aud: 'room', room: code });
+  const node = f.ok ? await get(`rooms/${code}/radio/${f.r.moment.id}`) : null, fired = f.ok ? await get(`radio/fired/${f.r.moment.id}`) : null;
+  const f2 = await call(C.page, { action: 'radioFire', jack: 'lightning', aud: 'room', room: code });
+  const df = await call(D.page, { action: 'radioFire', jack: 'lightning', aud: 'room', room: code });
+  ok(f.ok && node && node.by === 'crew' && fired && fired.sight === false && !f2.ok && f2.code === 'cooldown' && !df.ok && df.code === 'not_holder', `CREW: the holder fires into the lobby (recorded, never a sighting) → the COOLDOWN (${f2.code}: "${f2.msg}"); D refused — not the holder (${df.code})`);
+  await ev(C.page, `window.__radio.open()`); await waitFor(C.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the crew desk in the lobby', 10000);
+  await ev(C.page, `window.__radio.refresh()`); await sleep(400);
+  { const l = await ev(C.page, `(document.querySelector('.rd-jack[data-jack="lightning"]') || {}).dataset.lamp`); ok(l === 'grey', `CREW: the cooldown greys the jack (${l})`); }
+  // D: the lock face → ASK FOR THE RADIO
+  await ev(D.page, `window.__radio.open()`); await waitFor(D.page, '!!document.querySelector(".rd-modal.is-in .rd-lockface")', 'the lock face', 10000);
+  const lockT = await ev(D.page, `document.querySelector('.rd-lockface').textContent`);
+  await ev(D.page, `document.querySelector('.rd-askbtn').click()`);
+  await waitFor(C.page, '!!document.querySelector(".rd-askcard")', 'the holder ask card', 10000);
+  const askT = await ev(C.page, `document.querySelector('.rd-askcard').textContent`);
+  await ev(C.page, `[...document.querySelectorAll('.rd-askcard button')].find(b => b.textContent === 'HAND IT OVER').click()`);
+  await waitFor(D.page, `window.__radio.lobby() && window.__radio.lobby().mine`, 'D holds it', 15000).catch(() => {});
+  const Dafter = await call(D.page, { action: 'radioState', room: code }), Cafter = await call(C.page, { action: 'radioState', room: code });
+  ok(/THE RADIO’S WITH CREW HOST TONIGHT/.test(lockT) && /CREW TWO WANTS THE RADIO/.test(askT) && Dafter.r.lobby.mine && !Cafter.r.lobby.mine, `CREW: D's lock note ("${lockT.slice(0, 40)}…") → ASK → C's "${askT.slice(0, 26)}" → HAND IT OVER → D holds the radio`);
+  // ---- THE OWNER in the lobby: a tap on a player → their card with the brass CREW switch (ON) → OFF
+  await ev(O.page, `import('/js/room.js').then(m => m.joinRoom('${code}', { name: 'THE OWNER', color: 'yellow', avatar: 'bolt' })).catch(e => e.message)`);
+  await waitFor(O.page, `import('/js/store.js').then(s => s.state.code === '${code}' && !!s.state.meta)`, 'the owner in the lobby', 15000);
+  await ev(O.page, 'sessionStorage.clear()'); await O.page.reload();
+  await waitFor(O.page, `!!document.querySelector('.rd-btn') && !!document.querySelector('.chip.player[data-uid="${cuid}"]')`, 'the owner radio + the lobby list', 25000);
+  await ev(O.page, `(() => { const c = document.querySelector('.chip.player[data-uid="${cuid}"]'), r = c.getBoundingClientRect(), o = { bubbles: true, clientX: r.left + 20, clientY: r.top + 10 }; c.dispatchEvent(new PointerEvent('pointerdown', o)); c.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
+  await waitFor(O.page, `(document.querySelector('.rd-pcard .rd-lever') || {}).getAttribute && document.querySelector('.rd-pcard .rd-lever').getAttribute('aria-checked') === 'true'`, 'the card says CREW ON', 10000).catch(() => {});
+  const on1 = await ev(O.page, `(() => { const l = document.querySelector('.rd-pcard .rd-lever'); return l ? l.getAttribute('aria-checked') : null; })()`);
+  await ev(O.page, `document.querySelector('.rd-pcard .rd-lever').click()`);
+  await waitFor(O.page, `document.querySelector('.rd-pcard .rd-lever').getAttribute('aria-checked') === 'false'`, 'CREW OFF', 8000).catch(() => {});
+  const off = await get(`radio/crew/${cpid}`);
+  ok(on1 === 'true' && off === null, `CREW: the owner taps a player in the lobby → their card's CREW switch (${on1}) → OFF (the server: ${JSON.stringify(off)})`);
+  await ev(O.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`);
+  // ---- the owner removes them; the audit log
+  await call(O.page, { action: 'radioCrewSet', pid: cpid, on: false }); await call(O.page, { action: 'radioCrewSet', pid: dpid, on: false });
+  const who = await call(C.page, { action: 'radioWho' });
+  const acts = new Set(Object.values((await get('audit')) || {}).filter(l => l && (l.by === opid || l.by === cpid || l.by === dpid)).map(l => l.act));
+  ok(who.ok && who.r.role === null && ['radioCrewAdd', 'radioCrewRemove', 'radioAsk', 'radioHandOver', 'radioFire'].every(a => acts.has(a)), `CREW: REMOVE → no radio; the audit log has it all (${[...acts].filter(a => /Crew|Ask|Hand|Fire/.test(a)).join(' ')})`);
+  for (const p of [C, D]) await ev(p.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`);
+  await dbPut(`rooms/${code}`, null); await dbPut(`testAdmins/${opid}`, null);
+  for (const p of [O, C, D]) await p.ctx.close();
+  log('crew', 'done');
 });

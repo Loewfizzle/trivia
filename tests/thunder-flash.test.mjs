@@ -7,7 +7,14 @@ const { createLightning, thunderDelay, LIGHTNING } = await import('../js/screens
 const { thunderWhen, thunderLevel, thunderVerdict, THUNDER } = await import('../js/core/city-sounds.js');
 
 // a storm for `mins` minutes at 60 fps → every strike's event + its flash time (s); close strikes' recorded crack sits `hit` s into its take
+// (CC-B — GREEN MEANS GREEN: the lightning planner draws Math.random; the old queue's worst lag fell under 5 s on ~1 run in 3 → a SEEDED
+// storm, the same every run)
+function seeded(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 function storm(mins, opts) {
+  const R = Math.random; Math.random = seeded(1924 + mins + (opts && opts.force ? 7 : 0) + (opts && opts.close ? 13 : 0));
+  try { return stormRun(mins, opts); } finally { Math.random = R; }
+}
+function stormRun(mins, opts) {
   const evs = [];
   const z = createLightning({ onStrike: ev => { evs.push({ ...ev, at: tNow }); return { lead: 0.25, second: null }; } });
   z.resize(402, 874, 600);

@@ -11,6 +11,12 @@
 //   THE PATCH CARD (tap a jack) only what the moment needs → the big brass FIRE (who it goes to + how many) → the lamp: dark = ready ·
 //                AMBER blinking = on its way / waiting its turn · PINK = running · GREYED = can't run now (a tap says why + when)
 //   THE PROGRAM  (radio-program.js) · THE LEDGER (radio-ledger.js)
+// CC-B — THE CREW (role 'crew'): the same desk CUT DOWN — no tuning window, no PROGRAM / LEDGER, no mic: their 11 jacks, a THIS LOBBY ONLY
+//   plate, the audience locked to the lobby their phone is in (none: the jacks greyed "join a lobby"), the per-lobby limits on the lamps, the
+//   dormant note (the sky moments play once LOBBY 2.0 puts the lobby in the city — queued + recorded now). ONE RADIO PER LOBBY: a crew
+//   member who doesn't hold it sees the button DIMMED with a brass LOCK → THE RADIO'S WITH <NAME> TONIGHT + ASK FOR THE RADIO; the holder gets
+//   "<NAME> WANTS THE RADIO · HAND IT OVER / KEEP IT"; when it passes to you: THE RADIO'S YOURS. THE OWNER: a tap on a player in a lobby opens
+//   their card with the brass CREW switch.
 // Every action goes to the SERVER (/api/admin radio…), which checks the role + the rules + writes it; this page only draws. Audio is
 // polish (radio-sound.js): the desk works silently. 60 fps: the needle, the knobs, the lamps, the plug, the card — transform + opacity.
 import { h } from '../../ui/dom.js';
@@ -20,6 +26,9 @@ import * as RD from '../../core/harbor-radio.js';
 import { SHOWCASE_LEVELS } from '../../core/harbor-showcase.js';
 import { radioSound } from './radio-sound.js';
 import { createIntercomDesk } from './radio-intercom.js';
+import { state as store, subscribe } from '../../store.js';
+import { avatar } from '../../ui/components.js';
+import { toast } from '../../ui/toast.js';
 
 const ORDER_KEY = 'nd:rd-order', AUD_KEY = 'nd:rd-aud', BAND_KEY = 'nd:rd-band';
 const ls = { get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
@@ -51,10 +60,21 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
 
   // ---------------------------------------------------------------- THE CORNER BUTTON
   const dot = h('i.rd-dot', { hidden: true });
-  const btn = h('button.rd-btn', { type: 'button', 'aria-label': 'The radio — fire the city’s moments', onclick: () => { sfx.play('band'); show(); } }, glyph(), dot);
+  const lockG = h('i.rd-lockg', { 'aria-hidden': 'true' });
+  const btn = h('button.rd-btn', { type: 'button', 'aria-label': 'The radio — fire the city’s moments', onclick: () => { sfx.play('band'); show(); } }, glyph(), dot, lockG);
   document.body.append(btn);
   const mineLive = () => (st && st.moments || []).filter(m => m.mine && (RD.phaseOf(m, serverNow()) === 'q' || RD.phaseOf(m, serverNow()) === 'run'));
-  const paintDot = () => { dot.hidden = !mineLive().length; };
+  const lobbyOf = () => (!isOwner && st && st.lobby ? st.lobby : null);
+  const lockedOut = () => { const L = lobbyOf(); return !!(L && !L.out && L.holder && !L.mine); };
+  let prevMine = null;
+  const paintDot = () => {
+    dot.hidden = !mineLive().length;
+    btn.classList.toggle('is-locked', lockedOut());
+    const L = lobbyOf();
+    // THE RADIO'S YOURS: it passed to this phone (a hand-over, the holder left, the host changed)
+    if (L && !L.out) { if (L.mine && prevMine === false) { toast('THE RADIO’S YOURS', 'ok'); sfx.play('jackIn'); } prevMine = !!L.mine; } else prevMine = null;
+    paintAsk();
+  };
 
   // ---------------------------------------------------------------- THE SERVER (polled: every 3 s open, every 20 s closed + visible)
   async function refresh() {
@@ -116,7 +136,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const here = st && st.here != null ? st.here : null;
     return h('header.rd-head',
       h('div.rd-brand', h('b', 'NEON SPEAKEASY ·'), h('b', 'RADIO')),
-      isOwner ? h('div.rd-count', { 'aria-label': `${here == null ? 'unknown' : here} people in the city now (an estimate)` }, nixie(here || 0), h('small', 'IN', h('br'), 'THE', h('br'), 'CITY')) : h('div.rd-count.rd-room', h('small', 'THIS ROOM', h('br'), 'ONLY')),
+      isOwner ? h('div.rd-count', { 'aria-label': `${here == null ? 'unknown' : here} people in the city now (an estimate)` }, nixie(here || 0), h('small', 'IN', h('br'), 'THE', h('br'), 'CITY')) : h('div.rd-count.rd-lobplate', h('span.rd-plate', 'THIS LOBBY ONLY')),
       h('button.rd-x', { type: 'button', 'aria-label': 'Close the radio', onclick: () => { sfx.play('band'); hide(); } }, '✕'));
   }
   function bandSel() {
@@ -162,11 +182,12 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const now = serverNow(), ms = (st && st.moments || []).filter(m => m.jack === j.id && m.state !== 'stopped');
     if (ms.some(m => RD.phaseOf(m, now) === 'run')) return 'run';
     if (ms.some(m => RD.phaseOf(m, now) === 'q')) return 'q';
+    if (crewBlock(j)) return 'grey';
     return j.run && !j.run.ok ? 'grey' : '';
   }
   function moments() {
     const J = jackList();
-    const grid = h('div.rd-jacks', { class: arrange ? 'is-arrange' : '' }, ...J.map(j => {
+    const grid = h('div.rd-jacks', { class: `${arrange ? 'is-arrange' : ''}${!isOwner ? ' is-dormant' : ''}` }, ...J.map(j => {
       const L = lamp(j);
       const cell = h('button.rd-jack', { type: 'button', dataset: { jack: j.id, lamp: L }, class: L ? `is-${L}` : '', 'aria-label': `${j.label}${L === 'run' ? ' — running' : L === 'q' ? ' — on its way' : L === 'grey' ? ` — ${j.run.note}` : ''}` },
         h('i.rd-lamp'), h('i.rd-hole', h('i.rd-plug')), h('span.rd-jl', j.label));
@@ -195,7 +216,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   }
   function tapJack(j, cell) {
     const L = lamp(j);
-    if (L === 'grey') { sfx.play('denied'); showBubble(cell, `${j.label} · NOT NOW`, j.run.note.replace(/^.*?·\s*/, '').toLowerCase()); return; }
+    if (L === 'grey') { sfx.play('denied'); showBubble(cell, `${j.label} · NOT NOW`, (crewBlock(j) || (j.run && j.run.note) || '').replace(/^.*?·\s*/, '').toLowerCase()); return; }
     // CC-B — EASIER TO TURN OFF (the owner): a LIT jack (amber / pink) opens its card again with a big STOP (running) / CANCEL (queued)
     if ((L === 'run' || L === 'q') && litOf(j).length) { sfx.play('jackIn'); card = { kind: 'lit', jack: j }; render(); return; }
     openJack(j);
@@ -244,12 +265,47 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       h('button.rd-cbtn', { type: 'button', tabindex: cover ? '0' : '-1', 'aria-hidden': String(!cover), onclick: press }, 'CLEAR ALL'),
       h('button.rd-cover', { type: 'button', 'aria-label': cover ? 'Close the safety cover' : 'Lift the safety cover over CLEAR ALL', onclick: flip }, h('i'), h('span', cover ? 'PRESS TO STOP EVERYTHING YOU FIRED' : 'CLEAR ALL')));
   }
+  // CC-B — THE CREW's lock: the radio's with someone else in this lobby
+  let askedAt = 0;
+  function lockFace(L) {
+    const rc = store.radioCrew || {}, mineAsk = rc.ask && rc.ask.uid === store.uid && rc.ask.at > serverNow() - 120e3;
+    const name = L.holderName || 'ANOTHER CREW MEMBER';
+    return h('section.rd-face.rd-lockface', h('i.rd-biglock', { 'aria-hidden': 'true' }),
+      h('h3', `THE RADIO’S WITH ${name.toUpperCase()} TONIGHT`),
+      h('p', 'Whoever hosts runs the show in this lobby. Host your own lobby to take the mic.'),
+      L.nope ? h('p.rd-hint', `${name.toUpperCase()} KEPT IT — maybe later.`) : null,
+      mineAsk || (askedAt && serverNow() - askedAt < 120e3 && !L.nope) ? h('p.rd-asked', `ASKED — WAITING FOR ${name.toUpperCase()}`)
+        : h('button.rd-fire.rd-askbtn', { type: 'button', onclick: () => { askedAt = serverNow(); sfx.play('fire'); act({ action: 'radioAsk', room: roomCode() }).catch(e => { askedAt = 0; err = e.message; render(); }); render(); } }, 'ASK FOR THE RADIO'),
+      err ? h('p.rd-err', { role: 'alert' }, err) : null);
+  }
+  // the holder's prompt (on the page even with the radio closed): <NAME> WANTS THE RADIO · HAND IT OVER / KEEP IT
+  let askEl = null, askKey = '';
+  function paintAsk() {
+    const L = lobbyOf(), rc = store.radioCrew || {}, ask = rc.ask, on = !!(L && L.mine && ask && ask.uid !== store.uid && ask.at > serverNow() - 120e3);
+    const key = on ? `${ask.uid}|${ask.at}` : '';
+    if (key === askKey) return;
+    askKey = key; if (askEl) { askEl.remove(); askEl = null; }
+    if (!on) return;
+    const answer = give => { sfx.play(give ? 'fire' : 'jackOut'); if (askEl) { askEl.remove(); askEl = null; } act({ action: 'radioHand', room: roomCode(), give }).catch(e => toast(e.message, 'warn')); };
+    askEl = h('div.rd-askcard', { role: 'alertdialog', 'aria-label': `${ask.name} wants the radio` }, h('b', `${String(ask.name).toUpperCase()} WANTS THE RADIO`),
+      h('div', h('button.rd-cancel', { type: 'button', onclick: () => answer(false) }, 'KEEP IT'), h('button.rd-fire', { type: 'button', onclick: () => answer(true) }, 'HAND IT OVER')));
+    document.body.append(askEl); sfx.play('band');
+  }
+  // the crew's block on a jack (no lobby · the lobby's limits + the cooldown) → a note or null
+  function crewBlock(j) {
+    if (isOwner) return null;
+    if (!roomCode()) return 'JOIN A LOBBY — THE CREW FIRES IN THE LOBBY THEY’RE IN';
+    const c = RD.crewCheck(j.id, st && st.limits, serverNow());
+    return c.ok ? null : c.note;
+  }
   function desk() {
+    if (!isOwner) { const L = lobbyOf(); if (lockedOut()) return [lockFace(L)]; }
     return [
       isOwner ? tuning() : null,
       isOwner ? icDesk().strip() : null,
       isOwner ? h('div.rd-icsent', icDesk().sent()) : null,
       moments(),
+      !isOwner ? h('p.rd-dormant', h('b', 'THIS LOBBY ONLY'), ' · the sky moments play once lobbies are in the city (LOBBY 2.0) — queued + recorded now') : null,
       strips(),
       err ? h('p.rd-err', { role: 'alert' }, err) : null,
       clearAll(),
@@ -259,13 +315,14 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
 
   // ---------------------------------------------------------------- THE PATCH CARD (+ the room list)
   const audLine = () => {
+    if (!isOwner) { const P = store.players || {}, n = Object.keys(P).length; return `Goes to THIS LOBBY · ${roomCode() || '—'}${n ? ` · ${n} here` : ''} — plays once lobbies are in the city`; }
     if (aud === 'me') return 'A preview on this phone only';
     if (aud === 'room') { const r = (st && st.rooms || []).find(x => x.code === room); return `Goes to LOBBY ONLY · ${room || '—'}${r ? ` · ${r.online || r.players} on` : ''} — the sky plays once lobbies are in the city`; }
     const n = st && st.here; return `Goes to ${RD.AUD_LABEL[aud]}${n != null ? ` · ${n} in the city` : ''}`;
   };
   /** a jack's moments this desk may still stop / cancel (yours — the owner: every one) */
   const litOf = j => { const now = serverNow(); return (st && st.moments || []).filter(m => m.jack === j.id && m.state !== 'stopped' && (m.mine || isOwner) && RD.phaseOf(m, now) !== 'done').sort((a, b) => a.at - b.at); };
-  const closeX = (label = 'Close') => h('button.rd-cx', { type: 'button', 'aria-label': label, onclick: () => { sfx.play('jackOut'); card = null; render(); } }, '✕');
+  const closeX = (label = 'Close') => h('button.rd-cx', { type: 'button', 'aria-label': label, onclick: () => { sfx.play('jackOut'); const back = card && card.fromChip; card = null; if (back) hide(); else render(); } }, '✕');
   function litCard() {
     const j = card.jack, now = serverNow(), L = litOf(j);
     const where = m => (m.aud === 'room' ? `LOBBY ONLY · ${m.room || ''}` : RD.AUD_LABEL[m.aud]);
@@ -278,6 +335,28 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
           h('button.rd-bigstop', { type: 'button', class: ph === 'run' ? 'is-stop' : 'is-cancel', onclick: () => { sfx.play('jackOut'); card = null; act({ action: 'radioStop', id: m.id }).catch(e => { err = e.message; render(); }); render(); } }, ph === 'run' ? 'STOP' : 'CANCEL'));
       }) : [h('p.rd-hint', 'Nothing left to stop here.')]),
       h('button.rd-cancel', { type: 'button', onclick: () => openJack(j) }, `FIRE ANOTHER ${j.label}`));
+  }
+  function playerCard() {
+    const c = card, P = (store.players || {})[c.uid] || {}, pk = c.peek;
+    const busy = !pk || c.busy, can = pk && pk.pid && !pk.owner;
+    const lever = h('button.rd-lever', { type: 'button', role: 'switch', 'aria-checked': String(!!(pk && pk.on)), class: pk && pk.on ? 'is-on' : '', disabled: busy || !can, 'aria-label': 'The crew',
+      onclick: async () => { if (!can) return; c.busy = true; render(); sfx.play('tick'); try { const r = await api('admin', { action: 'radioCrewSet', uid: c.uid, on: !pk.on }); pk.on = r.on; c.err = ''; sfx.play(r.on ? 'fire' : 'jackOut'); } catch (e) { c.err = e.message; sfx.play('denied'); } c.busy = false; render(); } },
+      h('i.rd-lever-arm'), h('span', pk && pk.on ? 'ON' : 'OFF'));
+    return h('div.rd-card.rd-pcard', { role: 'dialog', 'aria-label': `${P.name || 'A player'} — their card` }, h('i.rd-grab'),
+      h('h3', h('i.rd-lamp'), 'THEIR CARD', closeX('Close their card')),
+      h('div.rd-pc', avatar(P.avatar || 'bolt', P.color || 'yellow', 56), h('div', h('b', P.name || '???'), h('small', pk && pk.t ? `#${pk.t}` : pk && !pk.pid ? 'no profile yet' : '…'))),
+      h('div.rd-sec.rd-crewsw', h('div.rd-lb', 'THE CREW', h('em', pk && pk.owner ? 'that’s the owner' : pk && !pk.pid ? 'needs a profile first' : 'a radio for the lobby they’re in')), lever),
+      pk && pk.why ? h('p.rd-hint', pk.why) : null,
+      pk && pk.pid && !pk.on && pk.n10 >= pk.cap ? h('p.rd-hint', `THE CREW IS FULL (${pk.cap}) — remove someone on THE LEDGER first.`) : null,
+      c.err ? h('p.rd-err', { role: 'alert' }, c.err) : null,
+      h('p.rd-who2', 'The crew fires sky moments in the lobby they’re in (once lobbies are in the city), with nightly limits. Follows their profile.'));
+  }
+  async function openPlayer(uid) {
+    if (!isOwner || destroyed) return;
+    await show();
+    card = { kind: 'player', uid, peek: null, fromChip: true }; render();
+    try { const r = await api('admin', { action: 'radioCrewPeek', uid }); if (card && card.kind === 'player' && card.uid === uid) { card.peek = r; render(); } }
+    catch (e) { if (card && card.kind === 'player') { card.peek = { pid: null, why: e.message }; render(); } }
   }
   function roomCard() {
     const rooms = card.rooms || [];
@@ -324,11 +403,11 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   async function fireIt() {
     const c = card; if (!c || c.sending) return;
     const j = c.jack, [hh, mi] = String(c.time || '20:00').split(':').map(Number), local = c.when !== 'now' ? { h: hh, mi } : null;
-    if (aud === 'room' && !room && j.card !== 'billboard') { c.err = 'PICK A LOBBY ON THE AUDIENCE KNOB FIRST'; render(); return; }
+    if (isOwner && aud === 'room' && !room && j.card !== 'billboard') { c.err = 'PICK A LOBBY ON THE AUDIENCE KNOB FIRST'; render(); return; }
     c.sending = true; c.err = ''; render();
     try {
       if (j.card === 'billboard') await act({ action: c.editId ? 'radioBoardEdit' : 'radioBoard', id: c.editId || undefined, lines: c.lines, local, repeat: c.when === 'repeat' ? { dows: c.dows } : null }, 'fire');
-      else await act({ action: 'radioFire', jack: j.id, aud, room, text: c.text, colour: c.colour, show: c.show, dance: c.dance, local }, 'fire');
+      else await act({ action: 'radioFire', jack: j.id, aud: isOwner ? aud : 'room', room: isOwner ? room : roomCode(), text: c.text, colour: c.colour, show: c.show, dance: c.dance, local }, 'fire');
       card = null; render();
     } catch (e) { c.sending = false; c.err = (e && e.message) || 'Couldn’t fire it.'; render(); }
   }
@@ -355,7 +434,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const old = modal && modal.querySelector('.rd-cardwrap'), was = !!(old && old.classList.contains('is-in'));
     if (old) old.remove();
     if (card && modal) {
-      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : card.kind === 'mic' ? (icDesk().card() || h('div')) : jackCard());
+      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : card.kind === 'mic' ? (icDesk().card() || h('div')) : card.kind === 'player' ? playerCard() : jackCard());
       modal.append(over); if (!was) requestAnimationFrame(() => requestAnimationFrame(() => over.classList.add('is-in')));
     }
     sheet.scrollTop = keep;
@@ -370,6 +449,16 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     paintDot();
   }
 
+  let storeKey = '', storeT = 0;
+  const unsub = subscribe(() => {
+    const k = JSON.stringify([store.code, store.meta && store.meta.hostId, Object.keys(store.players || {}).sort(), store.radioCrew || null]);
+    if (k === storeKey) return; storeKey = k;
+    paintAsk(); clearTimeout(storeT); storeT = setTimeout(() => refresh(), 250);
+  });
+  let downChip = null;
+  const chipDown = e => { const c = e.target && e.target.closest ? e.target.closest('.chip.player[data-uid]') : null; downChip = c && !e.target.closest('button') ? { c, x: e.clientX, y: e.clientY } : null; };
+  const chipUp = e => { const d = downChip; downChip = null; if (!d) return; const c = e.target && e.target.closest ? e.target.closest('.chip.player[data-uid]') : null; if (c === d.c && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 12) openPlayer(c.dataset.uid); };
+  if (isOwner) { document.addEventListener('pointerdown', chipDown, true); document.addEventListener('pointerup', chipUp, true); document.body.classList.add('rd-owner'); }
   const onVis = () => { if (document.visibilityState === 'visible') refresh(); };
   document.addEventListener('visibilitychange', onVis);
   refresh(); schedule();
@@ -377,6 +466,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   function destroy() {
     destroyed = true; clearTimeout(pollT); clearInterval(tickT); clearTimeout(coverT); if (ic) ic.destroy();
     document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis);
+    unsub(); clearTimeout(storeT); if (askEl) askEl.remove(); document.removeEventListener('pointerdown', chipDown, true); document.removeEventListener('pointerup', chipUp, true); document.body.classList.remove('rd-owner');
     if (modal) modal.remove(); btn.remove(); document.body.classList.remove('rd-open');
   }
   return {
@@ -384,5 +474,6 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     /** (tests) the state + what the desk shows */
     debug: () => ({ role, open, band, aud, room, card: card ? (card.kind === 'jack' ? card.jack.id : card.kind) : null, cover, arrange, ic: ic ? ic.debug() : null, jacks: (st && st.jacks || []).map(j => ({ id: j.id, lamp: lamp(j) })), moments: st ? st.moments.length : 0, here: st ? st.here : null }),
     setBand(b) { band = b; render(); }, setAud(a, r) { aud = a; room = r || room; render(); },
+    openPlayer, lobby: () => (st && st.lobby) || null,
   };
 }
