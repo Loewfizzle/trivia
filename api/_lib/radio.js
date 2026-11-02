@@ -14,6 +14,8 @@
 //   city2/showcase        the TUNING WINDOW's level (every phone reads it through GET /api/admin?live=1, with the city's moments)
 //   here/{uid}            THE NIXIE's count: a visible title says hello every ~2 min (an ESTIMATE until Vercel Analytics)
 //   radio/presets/{id}    CC-B — PRESETS (the owner's saved combos: { name, steps: [{ kind: 'fire' | 'board', body }], at }) — one jack each
+//   radio/push/{on, subs/{hash}, sent/{CODE}}  CC-B — "A ROOM JUST OPENED": the owner's push switch, his phones' Web Push subscriptions
+//                         (api/_lib/push.js), a room notified once
 //   radio/ic/{id}         CC-B — THE INTERCOM's announcements (who, the audience, wait, the headline, the clip's length + type, at / until,
 //                         state); radio/clips/{id} the clip itself (base64 — served by GET /api/admin?clip=<id>, cached a minute); both
 //                         pruned after `keep` s (an hour); a lobby's copy at rooms/{CODE}/radio/{id} (kind 'intercom')
@@ -23,6 +25,8 @@ import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag, cleanWords } from '../../js/core/harbor-radio.js';
 import { nameKey } from '../../js/core/names.js';
 import { encodeKey, pidOf, isPid } from './profiles.js';
+import { vapid, sendPush, okEndpoint } from './push.js';
+import { createHash } from 'node:crypto';
 import { SHOWCASE_LEVELS } from '../../js/core/harbor-showcase.js';
 import { cleanIntercom, icPublic, icLen, canUnsend, IC_WHY } from '../../js/core/radio-intercom.js';
 import { dayKey } from '../../js/core/week.js';
@@ -253,6 +257,8 @@ async function state(me, role, uid, body, now) {
 /** the radio's actions (adminAction routes every 'radio…' action here BEFORE its admin-only gate: the crew may use some) */
 export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
   if (body.action === 'radioHello') return hello(uid, now);
+  // CC-B — "A ROOM JUST OPENED": any signed-in host tells the server its room is open (the server checks it + notifies the owner once)
+  if (body.action === 'radioRoomOpened') return roomOpened(me, uid, body, now);
   const role = await roleOf(me);
   if (body.action === 'radioWho') return { role };
   need(!!role, 'not_radio', 'This profile has no radio.');
@@ -281,6 +287,7 @@ export async function radioAction(me, uid, body, now = Date.now(), o = {}) {
     case 'radioIntercom': return intercom(me, role, body, now);
     case 'radioPreset': return preset(me, role, uid, body, now);
     case 'radioPresetFire': return presetFire(me, role, uid, body, now);
+    case 'radioPush': return push(me, role, body, now);
     case 'radioUnsend': return unsend(me, role, body, now);
     default: throw new ApiError(400, 'bad_action');
   }
@@ -465,4 +472,59 @@ async function presetFire(me, role, uid, body, now) {
   }
   await audit(me, 'radioPresetFire', { b: `${p.name}: ${results.map(r => `${r.jack || r.kind}${r.ok ? '' : ' ✗'}`).join(', ')}`.slice(0, 140) });
   return { results };
+}
+
+// ------------------------------------------------------------------ CITY CONTROLS B — "A ROOM JUST OPENED" (a push to the owner's phone)
+const subKey = ep => createHash('sha256').update(String(ep)).digest('hex').slice(0, 24);
+/** push to every phone the owner turned it on for → { sent, gone } (a subscription the service says is gone is dropped) */
+async function notifyOwner(data) {
+  const subs = (await val('radio/push/subs')) || {}, out = { sent: 0, gone: 0, codes: [] };
+  await Promise.all(Object.entries(subs).map(async ([k, sub]) => {
+    const st = await sendPush(sub, data);
+    out.codes.push(st);
+    if (st >= 200 && st < 300) out.sent++;
+    else if (st === 404 || st === 410) { out.gone++; await ref(`radio/push/subs/${k}`).remove(); }
+  }));
+  return out;
+}
+/** THE LEDGER's switch: { op: 'state' (+ endpoint) · 'sub' { sub } · 'unsub' { endpoint } · 'set' { on } · 'test' } */
+async function push(me, role, body, now) {
+  need(role === 'owner', 'not_owner', 'The push is the owner’s.');
+  const V = vapid(), op = String(body.op || 'state');
+  const subs = async () => (await val('radio/push/subs')) || {};
+  if (op === 'sub') {
+    if (!V) throw new ApiError(503, 'no_vapid', 'The push keys aren’t set up on the server yet (Vercel → VAPID_PUBLIC_KEY + VAPID_PRIVATE_KEY).');
+    const sub = body.sub || {}, k = sub.keys || {};
+    if (!okEndpoint(sub.endpoint) || !/^[A-Za-z0-9_-]{80,100}$/.test(String(k.p256dh || '')) || !/^[A-Za-z0-9_-]{16,30}$/.test(String(k.auth || ''))) throw new ApiError(400, 'bad_sub', 'That phone’s subscription doesn’t look right.');
+    if (Object.keys(await subs()).length >= 6 && !(await subs())[subKey(sub.endpoint)]) throw new ApiError(429, 'subs_full', 'Six phones already get it — turn one off first.');
+    await ref('radio/push').update({ [`subs/${subKey(sub.endpoint)}`]: { endpoint: sub.endpoint, keys: { p256dh: k.p256dh, auth: k.auth }, at: now, ua: String(body.ua || '').slice(0, 80) }, on: true });
+    await audit(me, 'radioPushOn', { b: new URL(sub.endpoint).hostname });
+  } else if (op === 'unsub') {
+    if (body.endpoint) await ref(`radio/push/subs/${subKey(body.endpoint)}`).remove();
+    if (!Object.keys(await subs()).length) await ref('radio/push/on').set(false);
+    await audit(me, 'radioPushOff', { b: body.endpoint ? new URL(String(body.endpoint)).hostname : 'all' });
+  } else if (op === 'set') { await ref('radio/push/on').set(body.on === true); await audit(me, body.on === true ? 'radioPushOn' : 'radioPushOff', { b: 'switch' }); }
+  else if (op === 'test') {
+    const r = await notifyOwner({ title: 'A ROOM JUST OPENED', body: 'TEST · this is how it looks', url: '/?city=2', tag: 'ns-test' });
+    await audit(me, 'radioPushTest', { b: `${r.sent} sent · ${r.gone} gone` });
+    return { sent: r.sent, gone: r.gone, codes: r.codes };
+  } else if (op !== 'state') throw new ApiError(400, 'bad_op');
+  const S = await subs();
+  return { key: V ? V.pub : null, on: !!(await val('radio/push/on')), subs: Object.keys(S).length, mine: body.endpoint ? !!S[subKey(body.endpoint)] : null };
+}
+/** a host's room just opened (room.js#createRoom calls it): the room must be theirs + brand new; once a room; never the owner's own */
+async function roomOpened(me, uid, body, now) {
+  const code = String(body.room || '').toUpperCase();
+  if (!/^[A-Z]{4}$/.test(code)) throw new ApiError(400, 'bad_room');
+  const meta = await val(`rooms/${code}/meta`);
+  if (!meta || meta.hostId !== uid || !(meta.createdAt > now - 120e3)) return { ok: true, sent: 0 };
+  if (!(await val('radio/push/on')) || (me && (await roleOf(me)) === 'owner')) return { ok: true, sent: 0 };
+  const t = await ref(`radio/push/sent/${code}`).transaction(cur => (cur && cur > now - 3600e3 ? undefined : now));
+  if (!t.committed) return { ok: true, sent: 0 };
+  const n = Object.keys((await val(`rooms/${code}/players`)) || {}).length || 1;
+  const r = await notifyOwner({ title: 'A ROOM JUST OPENED', body: `${code} · ${n} player${n === 1 ? '' : 's'}`, url: '/?city=2', tag: `room-${code}` });
+  // (the once-a-room marks: a day kept)
+  const sent = (await val('radio/push/sent')) || {}, gone = {}; for (const [c, at] of Object.entries(sent)) if (!(at > now - 864e5)) gone[c] = null;
+  if (Object.keys(gone).length) await ref('radio/push/sent').update(gone);
+  return { ok: true, sent: r.sent };
 }

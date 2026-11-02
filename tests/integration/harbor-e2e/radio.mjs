@@ -313,7 +313,46 @@ G('crew', async () => {
   const acts = new Set(Object.values((await get('audit')) || {}).filter(l => l && (l.by === opid || l.by === cpid || l.by === dpid)).map(l => l.act));
   ok(who.ok && who.r.role === null && ['radioCrewAdd', 'radioCrewRemove', 'radioAsk', 'radioHandOver', 'radioFire'].every(a => acts.has(a)), `CREW: REMOVE → no radio; the audit log has it all (${[...acts].filter(a => /Crew|Ask|Hand|Fire/.test(a)).join(' ')})`);
   for (const p of [C, D]) await ev(p.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`);
-  await dbPut(`rooms/${code}`, null); await dbPut(`testAdmins/${opid}`, null);
+  await dbPut(`rooms/${code}`, null);
+  // ---- CC-B — "A ROOM JUST OPENED": a FAKE subscription (keys made here) at a local receiver → the owner's switch ON → SEND A TEST + a new
+  // room → each push arrives ENCRYPTED (aes128gcm) with a VAPID header, decrypted here to its words; THE LEDGER's paper; OFF
+  { const { createServer } = await import('node:http'), C2 = await import('node:crypto');
+    const got = [];
+    const srv = createServer((req, res) => { const ch = []; req.on('data', c => ch.push(c)); req.on('end', () => { got.push({ h: req.headers, body: Buffer.concat(ch) }); res.statusCode = 201; res.end(); }); });
+    await new Promise(r => srv.listen(0, '127.0.0.1', r));
+    const ua = C2.createECDH('prime256v1'); ua.generateKeys(); const auth = C2.randomBytes(16);
+    const sub = { endpoint: `http://127.0.0.1:${srv.address().port}/push/e2e`, keys: { p256dh: ua.getPublicKey().toString('base64url'), auth: auth.toString('base64url') } };
+    const hk = (salt, ikm, info, n) => { const prk = C2.createHmac('sha256', salt).update(ikm).digest(); return C2.createHmac('sha256', prk).update(Buffer.concat([info, Buffer.from([1])])).digest().subarray(0, n); };
+    const open8291 = body => { const salt = body.subarray(0, 16), idl = body[20], as = body.subarray(21, 21 + idl), ct = body.subarray(21 + idl);
+      const ikm = hk(auth, ua.computeSecret(as), Buffer.concat([Buffer.from('WebPush: info\0'), ua.getPublicKey(), as]), 32);
+      const d = C2.createDecipheriv('aes-128-gcm', hk(salt, ikm, Buffer.from('Content-Encoding: aes128gcm\0'), 16), hk(salt, ikm, Buffer.from('Content-Encoding: nonce\0'), 12));
+      d.setAuthTag(ct.subarray(-16)); const pt = Buffer.concat([d.update(ct.subarray(0, -16)), d.final()]); return JSON.parse(pt.subarray(0, pt.lastIndexOf(2)).toString()); };
+    const on = await call(O.page, { action: 'radioPush', op: 'sub', sub });
+    const t = await call(O.page, { action: 'radioPush', op: 'test' });
+    for (let i = 0; i < 40 && got.length < 1; i++) await sleep(100);
+    const p1 = got[0] ? open8291(got[0].body) : null, vap = got[0] ? String(got[0].h.authorization || '') : '';
+    // the VAPID JWT verifies against its own k= key (ES256)
+    let jwtOk = false; try { const [, tk, k] = /^vapid t=([^,]+), k=(.+)$/.exec(vap); const [hh, bb, sg] = tk.split('.'), pub = Buffer.from(k, 'base64url');
+      const key = C2.createPublicKey({ key: { kty: 'EC', crv: 'P-256', x: pub.subarray(1, 33).toString('base64url'), y: pub.subarray(33, 65).toString('base64url') }, format: 'jwk' });
+      jwtOk = C2.verify('sha256', Buffer.from(`${hh}.${bb}`), { key, dsaEncoding: 'ieee-p1363' }, Buffer.from(sg, 'base64url')) && JSON.parse(Buffer.from(bb, 'base64url')).aud === `http://127.0.0.1:${srv.address().port}`; } catch { jwtOk = false; }
+    ok(on.ok && on.r.on && t.ok && t.r.sent === 1 && got[0] && got[0].h['content-encoding'] === 'aes128gcm' && jwtOk && p1 && p1.title === 'A ROOM JUST OPENED', `PUSH (CC-B): the owner's switch ON (a subscription) → SEND A TEST → an encrypted push with a valid VAPID token → "${p1 && p1.title} · ${p1 && p1.body}"`);
+    // a new room by a guest → the owner's phone hears of it (once)
+    const code2 = await ev(D.page, `import('/js/room.js').then(m => m.createRoom({ name: 'MIKE', color: 'pink', avatar: 'star' })).then(() => import('/js/store.js')).then(s => s.state.code)`);
+    for (let i = 0; i < 60 && got.length < 2; i++) await sleep(100);
+    const p2 = got[1] ? open8291(got[1].body) : null;
+    const again = await call(D.page, { action: 'radioRoomOpened', room: code2 }); await sleep(300);
+    ok(p2 && p2.title === 'A ROOM JUST OPENED' && p2.body === `${code2} · 1 player` && p2.url && got.length === 2 && again.ok, `PUSH (CC-B): a guest opens ${code2} → "${p2 && p2.body}" (once — a second call sends nothing)`);
+    // THE LEDGER's paper on the owner's phone
+    await ev(O.page, 'window.__radio && window.__radio.open()'); await sleep(500); await ev(O.page, `window.__radio.setBand('ledger')`);
+    await waitFor(O.page, '!!document.querySelector(".rd-push h4")', 'the push paper', 10000).catch(() => {});
+    const paper = await ev(O.page, `(document.querySelector('.rd-push') || {}).textContent || ''`);
+    ok(/A ROOM JUST OPENED/.test(paper) && /Phones it goes to\s*1/.test(paper) && /SEND A TEST/.test(paper), `PUSH (CC-B): THE LEDGER's paper — the switch, the phones (1), SEND A TEST ("${paper.slice(0, 90)}")`);
+    await call(O.page, { action: 'radioPush', op: 'unsub', endpoint: sub.endpoint });
+    const after = await call(O.page, { action: 'radioPush', op: 'state' });
+    ok(after.ok && after.r.subs === 0 && after.r.on === false, 'PUSH (CC-B): OFF — the subscription gone');
+    await ev(D.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`); await dbPut(`rooms/${code2}`, null);
+    srv.close(); }
+  await dbPut(`testAdmins/${opid}`, null);
   for (const p of [O, C, D]) await p.ctx.close();
   log('crew', 'done');
 });

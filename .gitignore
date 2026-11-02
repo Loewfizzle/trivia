@@ -44,3 +44,6 @@ art/city-sfx/juggler/alternates/*.wav
 art/city-sfx/radio/*.wav
 art/city-sfx/radio/*.flac
 art/city-sfx/radio/*.flac
+
+# CC-B: the owner's VAPID keys before they go into Vercel (never committed)
+*.local.txt

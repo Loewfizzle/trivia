@@ -338,3 +338,8 @@ body.cb-split .rd-back { background: radial-gradient(120% 70% at 50% 0%, rgba(40
 .rd-cancel.is-armed { border-color: #ff6a6a; color: #ffb0b0; }
 .rd-prev.is-skywrite b { color: var(--smoke, #fff); text-shadow: 0 0 6px var(--smoke, #fff), 0 1px 0 rgba(20, 30, 60, 0.35); }
 .rd-prev.is-skywrite.is-rainbow b { background: linear-gradient(90deg, #ff2e97, #ffd25a, #7dff6a, #2ee6ff, #b36bff); -webkit-background-clip: text; background-clip: text; color: transparent; text-shadow: none; }
+/* CC-B — A ROOM JUST OPENED (THE LEDGER) */
+.rd-push p { font: 500 13.5px/1.45 var(--font-ui); color: #2a1a0a; margin: 6px 0; }
+.rd-push .rd-lever { color: #2a1a0a; border-color: #8e6a2b; background: linear-gradient(180deg, #e8dcbc, #d8c697); }
+.rd-push .rd-lever.is-on { color: #fff3cf; background: linear-gradient(180deg, #3a2a10, #1d150c); }
+.rd-ptest { display: block; margin: 8px 0 0 auto; color: #1a1206; border-color: #8e6a2b; }

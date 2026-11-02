@@ -6,6 +6,7 @@
 import { h } from '../../ui/dom.js';
 import { avatar } from '../../ui/components.js';
 import { jackDef } from '../../core/harbor-radio.js';
+import { pushPaper } from './radio-push.js';
 
 const DOW = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];
 let memo = null;   // { at, data } — 30 s
@@ -34,11 +35,13 @@ export function paint({ api, now }) {
           return h('div', { title: `${x.visits} visits · ${x.games} games` }, h('i', { style: { height: `${vh}px` } }), h('i.g', { style: { height: `${Math.max(gh, x.games ? 3 : 0)}px` } }), h('span', DOW[d.getUTCDay()]));
         })),
         h('div.rd-key', h('span', h('i'), 'visits (estimate)'), h('span', h('i.g'), 'games'))),
-      crewPaper(L));
+      crewPaper(L),
+      pushEl || (pushEl = pushPaper({ api })));
   };
   // THE CREW: who, since when, what they last fired · REMOVE · ADD BY NAME TAG
   const ago = t => { const d = Math.max(0, now() - t), m = Math.round(d / 60e3); return m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : `${Math.round(m / 1440)} d ago`; };
   let armed = null, addErr = '';
+  let pushEl = null;   // (CC-B — A ROOM JUST OPENED: built once, it keeps its own state across the ledger's refills)
   const crewAct = async body => { try { const r = await api('admin', { action: 'radioCrewSet', ...body }); memo = memo ? { ...memo, data: { ...memo.data, crew: r.crew } } : memo; addErr = ''; } catch (e) { addErr = (e && e.message) || 'Couldn’t change the crew.'; } if (memo) fill(memo.data); };
   function crewPaper(L) {
     const C = L.crew || [], cap = L.crewCap || 10;

@@ -98,6 +98,9 @@ export const createRoom = joining(async profile => {
   for (const n of ROOM_SIDE_NODES) await remove(dbRef(`${n}/${code}`)).catch(() => {});
   await writePlayer(code, profile, {});
   enterRoom(code);
+  // CC-B — "A ROOM JUST OPENED": tell the server (it checks the room is ours + new, then pushes to the owner's phone if he turned it on) —
+  // fire and forget: /api down or unconfigured changes nothing
+  import('./profile/api.js').then(m => m.api('admin', { action: 'radioRoomOpened', room: code })).catch(() => {});
   return code;
 });
 
