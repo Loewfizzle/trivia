@@ -12,6 +12,7 @@ import { houseNick } from '../core/nicknames.js';
 import { RANKS } from '../core/ranks.js';
 import { GAMES } from '../config.js';
 import { GAME_LIGHT } from '../board/view.js';
+import { mountDayChart } from '../daychart/daychart.js';
 
 const app = document.getElementById('app');
 const gameName = id => (GAMES.find(g => g.id === id) || { name: id }).name;
@@ -54,6 +55,7 @@ function denied(who) {
 }
 
 function shell() {
+  const dayChartRoot = h('div.ad-daychart');
   const q = h('input.input.ad-q', { type: 'search', placeholder: 'Name, Name#1234 or profile id', autocomplete: 'off', onkeydown: e => { if (e.key === 'Enter') search(q.value); } });
   app.replaceChildren(
     h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('a.ad-link', { href: '/board' }, 'The Board ›')),
@@ -83,7 +85,10 @@ function shell() {
             confirmBtn('Clear all', async () => { renderReports((await call('clearReports')).reports); toast('Cleared'); audit(); }, 'is-danger'))),
         h('p.ad-dim', 'City 2.0 snapshots: SEND REPORT in the &debug=1 strip (TAP), or sent by the page itself when it froze (HANG — the main thread stopped answering; STALL — no frames). Newest 40 kept.'),
         h('ol.ad-errs', { id: 'ad-reps' }, h('li.ad-dim', 'Loading…'))),
+      // SCHED Group 5 — THE DAY CHART (the same chart as /daychart: the city's day hour by hour + the year view, from the timetable)
+      h('section.ad-card.ad-audit', h('div.ad-row.ad-between', h('h2', 'The day chart'), h('a.ad-link', { href: '/daychart' }, 'Full page ›')), dayChartRoot),
       h('section.ad-card.ad-audit', h('div.ad-row.ad-between', h('h2', 'Audit log'), h('button.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' }))));
+  mountDayChart(dayChartRoot);
   audit();
   errors();
   reports();

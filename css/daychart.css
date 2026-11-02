@@ -1,0 +1,39 @@
+/* THE DAY CHART (SCHED Group 5) — /daychart + its card in /admin. NEON GLASS on the admin page's warm dark; phone first (390). Prefix dc-. */
+html.dc-html, html.dc-html body.dc-on { height: auto; overflow: visible; overscroll-behavior: auto; }
+body.dc-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--font-ui); background: radial-gradient(80% 60% at 50% 0%, rgba(255, 79, 216, 0.08), transparent 70%), linear-gradient(180deg, #0a0712, #060307); }
+.dc { box-sizing: border-box; max-width: 760px; margin: 0 auto; padding: calc(var(--safe-t) + 18px) 16px 40px; }
+.dc-page-head { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 14px; }
+.dc-page-head h1 { margin: 4px 0 0; font: 900 26px/1 var(--font-display); letter-spacing: 0.12em; color: #fff6e6; text-shadow: 0 0 18px rgba(255, 79, 216, 0.45); }
+.dc-kicker { font: 700 10px/1 var(--font-mono); letter-spacing: 0.4em; color: rgba(242, 200, 105, 0.85); }
+.dc-link { color: #f3c06a; font: 700 13px/1 var(--font-ui); text-decoration: none; padding: 12px 0; }
+.dc-head { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; margin-bottom: 10px; }
+.dc-tabs { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+.dc-dim { font: 700 10px/1 var(--font-mono); letter-spacing: 0.2em; color: #b9ad97; margin-right: 2px; }
+.dc-tab, .dc-day { min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.05); color: #f3ead8; font: 700 12px/1 var(--font-ui); letter-spacing: 0.06em; cursor: pointer; }
+.dc-tab.is-on, .dc-day.is-on { background: rgba(255, 79, 216, 0.18); border-color: rgba(255, 79, 216, 0.6); color: #fff; box-shadow: 0 0 12px rgba(255, 79, 216, 0.25); }
+.dc-days { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.dc-date { min-height: 44px; padding: 0 10px; border-radius: 12px; border: 1px solid rgba(255, 255, 255, 0.16); background: rgba(255, 255, 255, 0.05); color: #f3ead8; font: 600 16px/1 var(--font-ui); color-scheme: dark; }
+.dc-card { margin: 10px 0; padding: 14px; border-radius: 16px; background: rgba(20, 14, 30, 0.72); border: 1px solid rgba(255, 255, 255, 0.12); }
+.dc-title { margin: 0 0 6px; font: 800 15px/1.3 var(--font-display); letter-spacing: 0.06em; color: #fff3e0; }
+.dc-sum { margin: 4px 0 0; font: 600 14px/1.4 var(--font-ui); color: #e6dccb; }
+.dc-warn { color: #ffb3a8; }
+.dc-legend { display: flex; flex-wrap: wrap; gap: 6px; margin: 6px 0; }
+.dc-chip { padding: 5px 9px; border-radius: 999px; font: 700 10px/1 var(--font-mono); letter-spacing: 0.12em; color: var(--c); border: 1px solid var(--c); background: rgba(0, 0, 0, 0.3); }
+.dc-hours { padding: 6px 10px; }
+.dc-hour { display: grid; grid-template-columns: 54px 1fr; gap: 8px; padding: 8px 0; border-top: 1px solid rgba(255, 255, 255, 0.07); }
+.dc-hour:first-child { border-top: 0; }
+.dc-h { font: 700 13px/1.4 var(--font-num); color: #c9bda6; }
+.dc-hour.is-big .dc-h { color: #ff8ae6; }
+.dc-its { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.dc-it { padding-left: 9px; border-left: 3px solid var(--c); font: 600 14px/1.35 var(--font-ui); color: #efe6d6; overflow-wrap: anywhere; }
+.dc-it b { font: 700 12px/1 var(--font-num); color: var(--c); }
+.dc-it.is-big { color: #fff; font-weight: 700; }
+.dc-med { color: #bfe9ee; font-size: 13px; }
+.dc-on { font: 600 12px/1.35 var(--font-ui); color: #b9ad97; }
+.dc-foot { margin: 14px 2px; font: 600 12px/1.4 var(--font-ui); color: #b9ad97; }
+.dc-table { overflow-x: auto; font: 600 12px/1 var(--font-num); }
+.dc-tr { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(64px, 1fr); grid-template-columns: 44px; gap: 4px; padding: 6px 0; border-top: 1px solid rgba(255, 255, 255, 0.07); min-width: max-content; }
+.dc-tr span { text-align: center; color: #efe6d6; }
+.dc-tr span:first-child { text-align: left; color: #c9bda6; }
+.dc-th span { font: 700 9px/1.2 var(--font-mono); letter-spacing: 0.06em; color: #f3c06a; white-space: normal; }
+.dc-deny { text-align: center; padding: 40px 16px; }
