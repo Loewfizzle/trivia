@@ -2,13 +2,21 @@
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=perf, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
 import { writeFileSync, readFileSync, existsSync } from 'node:fs';
-import { OUT, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, G } from './kit.mjs';
+import { OUT, CPU, BUDGET_MS, log, sleep, ok, okT, ON_CI, skipCI, GR, GUARD_SCENES, NIGHT, open, ev, waitFor, tapAt, harborUp, settled, heapNoCode, G, launchReal, closeReal, displayFps } from './kit.mjs';
 
 G('perf', async () => {
   // ---- WIN2 — THE QUALITY STEP: a CALM LOAD on a mid phone profile (2x CPU) — 30 s after the reveal, NO tier step: nothing is judged in
   // the first 15 s, in a bake, the crossfade or the sign's surge, and only SUSTAINED slowness steps (the effects first, live — never the
   // full-city crossfade the owner saw ~9.5 s after the reveal); what the judge measured is in tiering().judge + the readout's tier line
-  if (process.env.PERF_GUARD !== 'only') { const C2 = await open({ slot: 'calm', qs: `when=2026-10-22T21:30${GR}&debug=1`, view: [402, 874] });
+  // (DESKTOP Group 2 — the premise fixed: "calm" = a moment with nothing special on. Thursday 9:30 pm WAS calm until WINDOWS made it the
+  //  evening's busiest stretch (the juggler's pull, the Charleston, the boxer, the boss's TV) — it failed on this machine on the code before
+  //  WINDOWS too. A plain Thursday afternoon (no scenes, no party, the clear sky); the busy evening's own cost: title-perf np-windows + the bench.
+  //  AND MEASURED ON THE REAL COMPOSITOR (kit.mjs#launchReal): on this machine the test browser's software compositing pinned the frames at
+  //  50 ms under 2× CPU while the city's own work was 21 ms — a presentation cost a phone's GPU never pays (the real compositor: tier 2, no
+  //  step). If the display itself can't give ~60 fps (the TV back at 30 Hz) the check can't be answered here: said so, never a failure.
+  if (process.env.PERF_GUARD !== 'only' && !ON_CI) { const fps = await displayFps(await launchReal());
+    if (fps < 55) { skipCI('A CALM LOAD STEPS NOTHING', `this machine's display gives ${fps.toFixed(0)} fps to the real compositor (the TV at 30 Hz?) — the check needs 60`); await closeReal(); } }
+  if (process.env.PERF_GUARD !== 'only' && (ON_CI || await displayFps(await launchReal()) >= 55)) { const C2 = await open({ slot: 'calm', qs: `when=2026-10-22T15:30${GR}&wx=clear&debug=1`, view: [402, 874], real: !ON_CI });
     await C2.page.bringToFront();
     const cd = await C2.page.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: 2 });
     await harborUp(C2.page);
@@ -18,7 +26,7 @@ G('perf', async () => {
     const machine = !!(ti.judge && ti.judge.p75 > 28);   // (this machine itself can't hold 60 fps here: a timing check, not the city's)
     if (ON_CI) { ok(ti.grace >= 15000, `A CALM LOAD: nothing judged in the first ${ti.grace / 1000} s (≥ 15)`); skipCI('A CALM LOAD STEPS NOTHING', `the runner's p75 ${ti.judge ? ti.judge.p75 : '?'} ms can't hold 60 fps`); }
     else (machine ? okT : ok)(calm && ti.grace >= 15000, `A CALM LOAD STEPS NOTHING (2x CPU, 30 s): tier ${ti.tier}/${ti.dprTier}, steps ${ti.hist.join('->')}${ti.why.length ? ` (${ti.why.join(' | ')})` : ''}, judged from ${ti.grace / 1000} s${ti.judge ? `; the judge: ${ti.judge.text}` : ''}`);
-    await cd.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await C2.ctx.close(); }
+    await cd.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await C2.ctx.close(); await closeReal(); }
   // ---- HOTFIX Oct 29 — THE BASELINE GUARD (the owner's iPhone: &force=bus at 5 fps, 200 ms of work a frame — the people's plan cache
   // re-planned the whole promenade every frame; no check saw it, C4d's "slow headless departure" was this): the mean scene work a frame
   // on a plain night + the forced-event links, at tier 0 and CPU× throttle, divided by a fixed JS loop timed in the same page (the

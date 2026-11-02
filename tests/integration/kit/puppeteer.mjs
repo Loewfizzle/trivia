@@ -6,18 +6,20 @@
 //  · --disable-gpu-compositing on Windows — THE 30 FPS FIX: the mini PC drives its TV at 4K / 29 Hz, and Chromium on Windows takes
 //    its frame clock from the primary display's vsync EVEN HEADLESS (a plain rAF counter: 33.4-ms frames, ~28.5 fps). Software
 //    compositing runs on Chromium's own 60 Hz clock (16.7-ms frames) while WebGL stays on the real GPU. Linux (the cloud) is untouched.
-//    Skipped when a run asks for the GPU on purpose (--enable-gpu, GPU=1) or VSYNC=display.
+//    Skipped when a run asks for the GPU on purpose (--enable-gpu, GPU=1) or VSYNC=display — or a launch with { realCompositor: true }
+//    (DESKTOP Group 2: the calm-load check measures FRAME PACING — software compositing adds ~30 ms of presentation a frame under 2× CPU
+//    that a phone's GPU never pays; since the owner set the TV to 60 Hz (Nov 1) the real compositor is a 60-Hz clock again).
 import puppeteer from 'puppeteer-core';
 
-export function testArgs(args = []) {
+export function testArgs(args = [], o = {}) {
   const out = [...args];
   if (!out.includes('--mute-audio')) out.push('--mute-audio');
   const gpu = out.includes('--enable-gpu') || !!process.env.GPU;
-  if (process.platform === 'win32' && !gpu && process.env.VSYNC !== 'display' && !out.includes('--disable-gpu-compositing')) out.push('--disable-gpu-compositing');
+  if (process.platform === 'win32' && !gpu && !o.realCompositor && process.env.VSYNC !== 'display' && !out.includes('--disable-gpu-compositing')) out.push('--disable-gpu-compositing');
   return out;
 }
 
-const launch = (opts = {}) => puppeteer.launch({ ...opts, args: testArgs(opts.args) });
+const launch = (opts = {}) => { const { realCompositor, ...rest } = opts; return puppeteer.launch({ ...rest, args: testArgs(rest.args, { realCompositor }) }); };
 
 export default new Proxy(puppeteer, {
   get(t, k) {

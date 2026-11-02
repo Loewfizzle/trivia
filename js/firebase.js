@@ -92,32 +92,70 @@ export const serverNow = () => Date.now() + offset;
 // offset 0 (its own clock) — two phones on the same RADIO STATION could be seconds apart. GET /api/time twice (no-store; the shortest
 // round trip wins — core/sync-math.js#serverOffsetFrom, |offset| < 1 day) once a visible session + on return from the background (≥ 60 s
 // apart). Never opens a socket (CONN), never over the socket's own offset (.info/serverTimeOffset, once the line has been up).
+// DESKTOP Group 2 — THE PARTY-SYNC FLAKE (3 cloud runs: three phones' timelines 65–104 ms apart on ONE machine). The cause: each sample
+// was timed with Date.now() around `await fetch` — on a busy page (the city's bakes, a slow phone, the cloud's 2-core runner) the reply is
+// PROCESSED late, so the round trip looks long + lopsided and the offset is biased by about −(the delay)/2, always the same way (PS_CPU=6
+// reproduced it: −149 ± 150 ms). NOW each sample is timed by the browser's NETWORK clock (Resource Timing: requestStart → responseStart,
+// stamped off the main thread; mapped onto Date.now()'s clock), with Date.now() only as the fallback; up to TIME_SAMPLES samples on idle
+// turns, stopping early on a clean one; a later round only replaces the clock with a SHORTER round trip (or after 10 min); a REFINE round
+// ~6 s after the boot when the first one's best was slow. Proof: e2e-harbor partysync (+ PS_CPU=6).
+const TIME_SAMPLES = 5, TIME_GOOD_RTT = 30, TIME_REFINE_RTT = 45;
+const idleTurn = () => new Promise(r => (typeof requestIdleCallback === 'function' ? requestIdleCallback(() => r(), { timeout: 400 }) : setTimeout(r, 30)));
+let timeN = 0;
+/** watch for a url's Resource Timing entry (a PerformanceObserver: it sees entries even once the page's timing BUFFER is full — the city
+ *  loads hundreds of files) → { got: Promise<{ t0, t1 } | null> (the network's send + first-byte times on Date.now()'s clock), stop } */
+function netWatch(url) {
+  let done, ob = null;
+  const got = new Promise(r => { done = r; });
+  try {
+    if (typeof PerformanceObserver === 'undefined' || typeof performance === 'undefined' || !performance.timeOrigin) { done(null); return { got, stop() {} }; }
+    const href = new URL(url, location.href).href;
+    ob = new PerformanceObserver(list => {
+      for (const e of list.getEntries()) {
+        if (e.name !== href) continue;
+        if (!(e.requestStart > 0) || !(e.responseStart >= e.requestStart)) { done(null); continue; }
+        const skew = Date.now() - (performance.timeOrigin + performance.now());   // (the monotonic clock vs the wall clock, now)
+        done({ t0: performance.timeOrigin + e.requestStart + skew, t1: performance.timeOrigin + e.responseStart + skew });
+      }
+    });
+    ob.observe({ type: 'resource', buffered: false });
+  } catch { done(null); }
+  return { got, stop() { try { if (ob) ob.disconnect(); } catch { /* fine */ } done(null); } };
+}
 let socketOffset = false, timeSyncAt = 0, timeSyncs = 0, timeSyncLast = null;
-export async function syncTimeNoSocket(why = 'boot') {
+export async function syncTimeNoSocket(why = 'boot', o = {}) {
   if (socketOffset || typeof fetch !== 'function') return null;
   const t = Date.now();
-  if (timeSyncAt && t - timeSyncAt < 60_000) return null;
+  if (!o.refine && timeSyncAt && t - timeSyncAt < 60_000) return null;
   timeSyncAt = t;
   const samples = [];
-  for (let k = 0; k < 2; k++) {
+  for (let k = 0; k < TIME_SAMPLES; k++) {
     try {
-      const t0 = Date.now();
-      const r = await fetch('/api/time', { cache: 'no-store' });
-      if (!r.ok) break;
+      await idleTurn();
+      const url = `/api/time?n=${++timeN}`, w = netWatch(url), t0 = Date.now();
+      const r = await fetch(url, { cache: 'no-store' });
+      const t1 = Date.now();
+      if (!r.ok) { w.stop(); break; }
       const j = await r.json();
-      samples.push({ t0, t1: Date.now(), server: Number(j && j.t) });
+      const net = await Promise.race([w.got, new Promise(res => setTimeout(() => res(null), 400))]); w.stop();
+      const s = net || { t0, t1 };
+      samples.push({ t0: s.t0, t1: s.t1, server: Number(j && j.t), net: !!net });
+      if (s.t1 - s.t0 <= TIME_GOOD_RTT) break;
     } catch { break; }
   }
   const best = serverOffsetFrom(samples);
   if (!best || socketOffset) return null;
-  offset = best.offset; timeSyncs++; timeSyncLast = { why, offset: best.offset, rtt: best.rtt };
-  note(`time (${why}): offset ${best.offset} ms, round trip ${best.rtt} ms`);
+  // (keep the truer clock: a round with a slower best sample never replaces a faster one from the last 10 min)
+  if (timeSyncLast && timeSyncLast.rtt <= best.rtt && t - timeSyncLast.at < 600_000) { note(`time (${why}): kept offset ${timeSyncLast.offset} ms (round trip ${timeSyncLast.rtt} ≤ ${best.rtt} ms)`); return timeSyncLast; }
+  offset = best.offset; timeSyncs++; timeSyncLast = { why, offset: best.offset, rtt: best.rtt, n: samples.length, at: t, net: samples.some(x => x.net) };
+  note(`time (${why}): offset ${best.offset} ms, round trip ${best.rtt} ms (${samples.length} samples${timeSyncLast.net ? ', network timing' : ''})`);
   try { localStorage.setItem(OFFSET_KEY, String(best.offset)); } catch { /* private mode: this page only */ }
   return best;
 }
 if (typeof document !== 'undefined') {
-  // (after the first paint: a tiny request, never in the way of the boot)
+  // (after the first paint: a tiny request, never in the way of the boot; then once more when the bakes are done if that one was slow)
   setTimeout(() => { if (document.visibilityState === 'visible') syncTimeNoSocket('boot'); }, 1500);
+  setTimeout(() => { if (document.visibilityState === 'visible' && (!timeSyncLast || timeSyncLast.rtt > TIME_REFINE_RTT)) syncTimeNoSocket('refine', { refine: true }); }, 7500);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') syncTimeNoSocket('back on screen'); });
 }
 

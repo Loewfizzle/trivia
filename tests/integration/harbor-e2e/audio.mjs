@@ -765,11 +765,14 @@ G('partysync', async () => {
     for (const Q of pages.splice(0)) await Q.ctx.close();
     // ---- 3. LIVE (no &when: the real time on the server clock) — the panel's PARTY: two phones + a LATE JOINER 15 s later, all on the
     // same song at the same wall moment (the song's start in wall time agrees within ~100 ms)
-    for (const s of ['psc', 'psd']) { const Q = await open({ slot: s, qs: `force=party&wx=clear${GR}`, view: [402, 660] }); pages.push(Q); }
+    // (PS_CPU=N: a DIAGNOSTIC — the three pages' CPU slowed N× from their first byte, the cloud's busy 2-core runner on this machine; DESKTOP
+    //  Group 2 reproduced the flake with it: the old 2-sample clock spread the timelines, the new idle min-round-trip clock holds them)
+    const cpu = Number(process.env.PS_CPU) || 0;
+    for (const s of ['psc', 'psd']) { const Q = await open({ slot: s, qs: `force=party&wx=clear${GR}`, view: [402, 660], cpu }); pages.push(Q); }
     for (const Q of pages) { await harborUp(Q.page); await tapAt(Q.page, 30, 300); }
     for (const Q of pages) await synced(Q.page);
     await sleep(15000);
-    { const Q = await open({ slot: 'pse', qs: `force=party&wx=clear${GR}`, view: [402, 660] }); pages.push(Q); await harborUp(Q.page); await tapAt(Q.page, 30, 300); await synced(Q.page); }
+    { const Q = await open({ slot: 'pse', qs: `force=party&wx=clear${GR}`, view: [402, 660], cpu }); pages.push(Q); await harborUp(Q.page); await tapAt(Q.page, 30, 300); await synced(Q.page); }
     await sleep(800);
     const rs = await Promise.all(pages.map(Q => read(Q.page))), start = r => r.wall - r.at * 1000, want = r => r.wall - r.want * 1000;
     const spread = Math.max(...rs.map(start)) - Math.min(...rs.map(start)), tl = Math.max(...rs.map(want)) - Math.min(...rs.map(want));
@@ -777,7 +780,10 @@ G('partysync', async () => {
     // (PERF-A — FR5 D3: judged by the ENGINE's own numbers — the three TIMELINES agree (the server clock: a few ms) and each phone sounds
     //  within the 120 ms the player itself allows before it re-places a voice (synced-songs.js); the old 100-ms spread of the HEARD starts was
     //  stricter than the engine — two phones at +60 / −67 ms are both in time and 127 apart)
-    ok(tl < 50 && rs.every(r => Math.abs(r.err) <= 0.12), `LIVE + THE LATE JOINER: the timelines agree within ${tl.toFixed(0)} ms; each phone within the engine's 120 ms (${rs.map(r => (r.err * 1000).toFixed(0)).join(' / ')} ms; the joiner ${(rs[2].at).toFixed(1)} s into it; the heard starts ${spread.toFixed(0)} ms apart)`);
+    // (DESKTOP Group 2 — the flake's cause: the timelines are each page's ESTIMATE of the server clock (one machine: the true offsets are equal),
+    //  from /api/time's shortest round trip — each page's clock sample (its round trip + how many samples) printed with the check)
+    const clk = await Promise.all(pages.map(Q => ev(Q.page, '(() => { const l = window.__arcade.line && window.__arcade.line(); const s = l && l.timeSyncLast; return s ? `${s.offset}±${Math.round(s.rtt / 2)}ms(${s.n || "?"}×,${s.why}${s.net ? ",net" : ""})` : "none"; })()')));
+    ok(tl < 50 && rs.every(r => Math.abs(r.err) <= 0.12), `LIVE + THE LATE JOINER: the timelines agree within ${tl.toFixed(0)} ms; each phone within the engine's 120 ms (${rs.map(r => (r.err * 1000).toFixed(0)).join(' / ')} ms; the joiner ${(rs[2].at).toFixed(1)} s into it; the heard starts ${spread.toFixed(0)} ms apart; the clocks ${clk.join(' / ')})`);
   } finally { for (const Q of pages) await Q.ctx.close().catch(() => {}); }
 });
 

@@ -53,6 +53,18 @@ export let browser = null;               // (launched when this process first ru
 // fails is never retried))
 const LAUNCH_MS = process.env.CI ? 90000 : 30000;
 const launchOnce = () => puppeteer.launch({ executablePath: BROWSER, headless: true, timeout: LAUNCH_MS, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio', ...(process.env.GPU ? ['--enable-gpu', '--use-angle=d3d11'] : [])] });
+// (DESKTOP Group 2 — a second browser on the REAL compositor, for the one check that measures frame pacing (the calm load): opened lazily,
+//  closed by closeReal(); kit/puppeteer.mjs#testArgs keeps software compositing for everything else)
+let realBrowser = null;
+export const launchReal = async () => realBrowser || (realBrowser = await puppeteer.launch({ executablePath: BROWSER, headless: true, timeout: LAUNCH_MS, realCompositor: true, args: ['--autoplay-policy=no-user-gesture-required', '--mute-audio'] }));
+export const closeReal = async () => { if (realBrowser) { const b = realBrowser; realBrowser = null; await b.close().catch(() => {}); } };
+/** the display's frame rate as this browser sees it (an empty page's rAF over ~0.8 s) — fps */
+export async function displayFps(b) {
+  const p = await (await b.createBrowserContext()).newPage(); await p.bringToFront();
+  // (the first ~0.3 s of a fresh page's frames are its own warm-up: counted from then, over a full second — the median frame gap)
+  const fps = await p.evaluate(() => new Promise(r => { const g = []; let last = 0, t0 = 0; const f = t => { if (!t0) t0 = t; if (t - t0 > 300 && last) g.push(t - last); last = t; if (t - t0 < 1300) requestAnimationFrame(f); else { g.sort((a, b) => a - b); r(1000 / (g[g.length >> 1] || 1000)); } }; requestAnimationFrame(f); }));
+  await p.browserContext().close(); return fps;
+}
 export const launch = async () => {
   if (browser) return browser;
   try { browser = await launchOnce(); } catch (e) {
@@ -69,8 +81,9 @@ export const launch = async () => {
 // console noise every run printed as errors.)
 const NET_NOISE = /auth\/network-request-failed|WebSocket connection to .* failed|FIREBASE WARNING: .*(?:websocket|transport|connection)/i;
 let curGroup = '';
-export async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0, init = null, wait = true } = {}) {
-  const ctx = await (await launch()).createBrowserContext();
+// (cpu: N× slower from the page's first byte — CDP throttling set before the navigation; DESKTOP: partysync's PS_CPU diagnostic)
+export async function open({ slot = 'h', qs = '', city = true, view = [390, 844], profile = true, dpr = 0, cores = 0, init = null, wait = true, cpu = 0, real = false } = {}) {
+  const ctx = await (await (real ? launchReal() : launch())).createBrowserContext();
   const p = await ctx.newPage();
   const files = [];
   p.on('pageerror', e => { errors.push(`${slot} pageerror: ${e.message}`); log(slot, 'PAGEERROR', e.message); });
@@ -86,6 +99,7 @@ export async function open({ slot = 'h', qs = '', city = true, view = [390, 844]
   await p.evaluateOnNewDocument((slotName, prof) => {
     try { localStorage.setItem('nd:entered', '1'); if (prof) localStorage.setItem(`na:${slotName}:profile`, JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, slot, profile);
+  if (cpu > 1) { const cd = await p.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: cpu }); }
   await p.goto(`${BASE}/?emu&slot=${slot}&${qs}${city ? '&city=2' : ''}`);
   await waitFor(p, wait ? '!!window.__district && window.__district.phase().done' : '!!window.__district', `title ${slot}`, 25000);
   return { ctx, page: p, files };
