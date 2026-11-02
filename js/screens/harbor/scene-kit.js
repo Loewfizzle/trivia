@@ -106,6 +106,7 @@ export function pullAtGlass(E, u, hem, o = {}) {
     c.lineTo(x + dx + W * 0.08, Y(0.48) + br + grow); c.quadraticCurveTo(x + dx + W * 0.22 + grow, Y(0.5) + br + grow, x + dx + W * 0.22 + grow, Y(0) - 0.02); c.closePath(); c.fill();
     c.beginPath(); c.ellipse(x + dx, Y(0.575) + br, W * 0.09 + grow, G.ch * 0.083 + grow, 0, 0, TAU); c.fill();
     if (o.hat === 'fedora') { c.fillRect(x + dx - W * 0.15 - grow, Y(0.63) + br - grow, W * 0.3 + grow * 2, G.ch * 0.022 + grow * 2); c.beginPath(); c.ellipse(x + dx, Y(0.66) + br, W * 0.085 + grow, G.ch * 0.05 + grow, 0, Math.PI, TAU, true); c.fill(); }
+    if (o.hat === 'bob') { c.beginPath(); c.ellipse(x + dx, Y(0.585) + br, W * 0.12 + grow, G.ch * 0.075 + grow, 0, -0.05, Math.PI + 0.05); c.fill(); c.fillRect(x + dx - W * 0.12 - grow, Y(0.53) + br, W * 0.24 + grow * 2, G.ch * 0.06); }
     if (o.hat === 'cap') { c.beginPath(); c.ellipse(x + dx, Y(0.625) + br, W * 0.1 + grow, G.ch * 0.045 + grow, 0, 0, Math.PI); c.fill(); c.fillRect(x + dx - W * 0.02, Y(0.615) + br - grow, W * 0.14 + grow, G.ch * 0.02 + grow * 2); }
     const reach = ease((u - 0.1) / 0.14) * (1 - ease((u - 0.84) / 0.08)), hx = x + dx + W * (0.12 + 0.06 * reach), hy = lerp(Y(0.3), Math.min(Y(0.95), hem - G.ch * 0.02), reach);
     c.lineCap = 'round'; c.lineWidth = W * 0.085 + grow * 2;

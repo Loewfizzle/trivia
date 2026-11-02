@@ -31,11 +31,12 @@ import { legendNight } from '../../core/harbor-legend.js';
 import { boxerRoom } from './boxer.js';
 import { jugglerRoom } from './juggler.js';
 import { crateRoom } from './crate.js';
+import { charlestonRoom } from './charleston.js';
 import { knob } from '../../core/harbor-schedule.js';
 import { SCENE_ROOMS, EDGE_ROOMS, scenesTonight, sceneAt, scenePreview, shadesNight, shadeLevel, roomColour, sceneFreeFrom, edgeShadePlan, edgeShadeAt } from '../../core/harbor-scenes.js';
 // WINDOWS — THE SCENES' PAINTERS (one per scene id: core/harbor-scenes.js#SCENE_IDS) — each (E, st (core#sceneAt), o) → its trace; a scene
 // with no painter yet never plays (its timetable row stays 'planned')
-export const SCENE_PAINT = { juggler: jugglerRoom, crate: crateRoom };
+export const SCENE_PAINT = { juggler: jugglerRoom, crate: crateRoom, charleston: charlestonRoom };
 export { paintRoom, lateOf, ROOM_TINT, LATE_TINT } from './window-rooms.js';
 
 export function createWindowLife() {
