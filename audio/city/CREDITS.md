@@ -7,6 +7,38 @@ attribution required; the raw files are not redistributed — only these edited,
 Content License: commercial use, no attribution required — most of them copies of CC0 Freesound originals, noted). Credits
 are kept anyway, with each source file's MD5.
 
+## 389546__j0hnlang__plastic_ball_wooden_floor_2.wav  →  juggler-drop
+
+- MD5 `c2ce02339b788654cf8997b22e5608cf`
+- 389546__j0hnlang__plastic_ball_wooden_floor_2.wav
+- Title "Plastic_ball_wooden_floor_2.wav", author J0hnLang (Freesound)
+- Source: https://freesound.org/s/389546/
+- Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
+## 499396__16gstepankovas__12_falling-tennis-ball-01.wav  →  juggler-drop
+
+- MD5 `e5d60e460c8bc31363de5f65e6775a45`
+- 499396__16gstepankovas__12_falling-tennis-ball-01.wav
+- Title "12_Falling tennis ball-01.wav", author 16GStepankovaS (Freesound)
+- Source: https://freesound.org/s/499396/
+- Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
+## 684374__boop_7__bouncing-ball.wav  →  juggler-drop
+
+- MD5 `02ecb9de5b5d2953803b09b46e19a159`
+- 684374__boop_7__bouncing-ball.wav
+- Title "bouncing ball.wav", author boop_7 (Freesound)
+- Source: https://freesound.org/s/684374/
+- Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
+## 732813__sirbagel__generic-soft-woodfloor-hits.wav  →  juggler-thud
+
+- MD5 `195a3655e65ee7275b1e591acb5c6eed`
+- 732813__sirbagel__generic-soft-woodfloor-hits.wav
+- Title "Generic Soft Wood/Floor Hits", author SirBagel (Freesound)
+- Source: https://freesound.org/s/732813/
+- Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
 ## airliner-high.wav  →  airliner-far
 
 - MD5 `14e8aa3342acef39389e4415ad43e483`

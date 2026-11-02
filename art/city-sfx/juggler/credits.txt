@@ -1,0 +1,70 @@
+NEON SPEAKEASY - JUGGLER SFX: CREDITS (2026-11-01)
+All files are the unedited originals with their original download filenames (byte-identical; MD5s in MD5SUMS.txt).
+No file needs a credit: CC0, Mixkit and Sonniss all allow commercial use without attribution. Credits below are optional courtesy.
+No CC BY, CC BY-NC, Sampling+, paid, editorial or ripped material is included.
+
+== BALL-DROP (main) ==
+684374__boop_7__bouncing-ball.wav
+  Title "bouncing ball.wav", author boop_7 (Freesound)
+  Source: https://freesound.org/s/684374/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+389546__j0hnlang__plastic_ball_wooden_floor_2.wav
+  Title "Plastic_ball_wooden_floor_2.wav", author J0hnLang (Freesound)
+  Source: https://freesound.org/s/389546/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+499396__16gstepankovas__12_falling-tennis-ball-01.wav
+  Title "12_Falling tennis ball-01.wav", author 16GStepankovaS (Freesound)
+  Source: https://freesound.org/s/499396/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
+== BALL-THUD (main) ==
+732813__sirbagel__generic-soft-woodfloor-hits.wav
+  Title "Generic Soft Wood/Floor Hits", author SirBagel (Freesound)
+  Source: https://freesound.org/s/732813/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+330523__casemundy__ball-dropping-on-bench.wav
+  Title "Ball dropping on bench.wav", author casemundy (Freesound)
+  Source: https://freesound.org/s/330523/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+382642__bbrocer__bag-of-flour-dropped-on-counter-top.wav
+  Title "Bag Of Flour Dropped On Counter Top.wav", author bbrocer (Freesound)
+  Source: https://freesound.org/s/382642/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+
+== ALTERNATES (alternates/) ==
+alternates/497959__16hpanskaresatko_matej__04_tennis-ball-2.wav
+  Title "04_Tennis ball-2.wav", author 16HPanskaResatko_Matej (Freesound)
+  Source: https://freesound.org/s/497959/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/499299__16hpanskavondrova_julie__01-ball-fall-on-the-ground.wav
+  Title "01 Ball - Fall on the ground.wav", author 16HPanskaVondrova_Julie (Freesound)
+  Source: https://freesound.org/s/499299/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/435770__eyewer__bag-on-the-floor.wav
+  Title "Bag on the floor.wav", author Eyewer (Freesound)
+  Source: https://freesound.org/s/435770/
+  Licence: CC0 1.0 Universal (Creative Commons 0) - https://creativecommons.org/publicdomain/zero/1.0/
+alternates/SB011.wav
+  Title "SB011", publisher TheWorkRoom Audio Post, pack "TWRSFX012 - Ball Bounces". Source: Sonniss GDC 2019 Game Audio Bundle (archive.org mirror).
+  Link: https://archive.org/download/game-audio-gdcpart-5/Sonniss.com%20-%20GDC%202019%20-%20Game%20Audio%20Bundle/TheWorkRoom%20Audio%20Post%20-%20Ball%20bounces/SB011.wav
+  Licence: Sonniss GDC Bundle licence (https://sonniss.com/gameaudiogdc). Royalty-free, commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+  MD5 4be1028e80a713d67ce2e0d7d16dfea3 (matches archive.org's MD5)
+alternates/mixkit-light-impact-on-the-ground-2070.wav
+  Title "Light impact on the ground", Mixkit (no individual author listed)
+  Source: https://mixkit.co/free-sound-effects/ball/ (file: https://assets.mixkit.co/active_storage/sfx/2070/2070.wav)
+  Licence: Mixkit Sound Effects Free License (https://mixkit.co/license/#sfxFree). Commercial use allowed, no attribution required. Do not redistribute it as a standalone file.
+
+== PASTE-READY CREDITS BLOCK (optional; CC0 needs no credit) ==
+Juggler sound effects:
+- "bouncing ball.wav" by boop_7 (freesound.org/s/684374), CC0
+- "Plastic_ball_wooden_floor_2.wav" by J0hnLang (freesound.org/s/389546), CC0
+- "12_Falling tennis ball-01.wav" by 16GStepankovaS (freesound.org/s/499396), CC0
+- "Generic Soft Wood/Floor Hits" by SirBagel (freesound.org/s/732813), CC0
+- "Ball dropping on bench.wav" by casemundy (freesound.org/s/330523), CC0
+- "Bag Of Flour Dropped On Counter Top.wav" by bbrocer (freesound.org/s/382642), CC0
+Alternates if used:
+- "04_Tennis ball-2.wav" by 16HPanskaResatko_Matej (freesound.org/s/497959), CC0
+- "01 Ball - Fall on the ground.wav" by 16HPanskaVondrova_Julie (freesound.org/s/499299), CC0
+- "Bag on the floor.wav" by Eyewer (freesound.org/s/435770), CC0
+- SB011 by TheWorkRoom Audio Post (Sonniss GDC 2019 Game Audio Bundle)
+- "Light impact on the ground" from Mixkit (mixkit.co)

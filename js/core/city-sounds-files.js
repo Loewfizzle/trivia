@@ -305,6 +305,20 @@ export const FILES = /*FILES*/{
   "jogger-trip": [
     {"f": "jogger-trip.mp3", "v": "bbd94afa", "d": 0.95, "lufs": -20.7, "peak": 0.2, "sw": [0.15, 0.65], "from": [0.05, 1.0], "hit": 0.06, "src": "jogger-trip"}
   ],
+  "juggler-drop": [
+    {"f": "389546__j0hnlang__plastic_ball_wooden_floor_2.mp3", "v": "c64c12a6", "d": 1.75, "lufs": -20.6, "peak": 0.45, "sw": [0.15, 1.35], "from": [1.25, 3.0], "hit": 0.06, "src": "389546__j0hnlang__plastic_ball_wooden_floor_2", "r": 22050},
+    {"f": "499396__16gstepankovas__12_falling-tennis-ball-01.mp3", "v": "0a3012e7", "d": 2.8, "lufs": -21.8, "peak": 0.2, "sw": [0.15, 2.65], "from": [0.9, 3.7], "hit": 0.05, "src": "499396__16gstepankovas__12_falling-tennis-ball-01", "r": 22050},
+    {"f": "684374__boop_7__bouncing-ball_1.mp3", "v": "c86551a5", "d": 1.32, "lufs": -22.0, "peak": 0.55, "sw": [0.15, 1.05], "from": [1.38, 2.7], "hit": 0.05, "src": "684374__boop_7__bouncing-ball", "r": 22050},
+    {"f": "684374__boop_7__bouncing-ball_2.mp3", "v": "2b0107e7", "d": 1.19, "lufs": -21.7, "peak": 0.5, "sw": [0.15, 0.95], "from": [4.31, 5.5], "hit": 0.05, "src": "684374__boop_7__bouncing-ball", "r": 22050},
+    {"f": "684374__boop_7__bouncing-ball_3.mp3", "v": "81eaae4f", "d": 1.2, "lufs": -21.6, "peak": 0.5, "sw": [0.15, 0.9], "from": [7.25, 8.45], "hit": 0.05, "src": "684374__boop_7__bouncing-ball", "r": 22050},
+    {"f": "684374__boop_7__bouncing-ball_4.mp3", "v": "2674f874", "d": 1.16, "lufs": -21.7, "peak": 0.15, "sw": [0.15, 0.85], "from": [10.64, 11.8], "hit": 0.05, "src": "684374__boop_7__bouncing-ball", "r": 22050},
+    {"f": "684374__boop_7__bouncing-ball_5.mp3", "v": "88a0bc59", "d": 0.906, "lufs": -22.9, "peak": 0.2, "sw": [0.15, 0.6], "from": [13.9, 14.81], "hit": 0.05, "src": "684374__boop_7__bouncing-ball", "r": 22050}
+  ],
+  "juggler-thud": [
+    {"f": "732813__sirbagel__generic-soft-woodfloor-hits_1.mp3", "v": "2f58d1b5", "d": 0.36, "lufs": -22.0, "peak": 0.15, "sw": [0.15, 0.2], "from": [0.1, 0.46], "hit": 0.06, "src": "732813__sirbagel__generic-soft-woodfloor-hits", "r": 22050},
+    {"f": "732813__sirbagel__generic-soft-woodfloor-hits_2.mp3", "v": "1db0769a", "d": 0.36, "lufs": -22.7, "peak": 0.15, "sw": [0.15, 0.2], "from": [0.95, 1.31], "hit": 0.06, "src": "732813__sirbagel__generic-soft-woodfloor-hits", "r": 22050},
+    {"f": "732813__sirbagel__generic-soft-woodfloor-hits_3.mp3", "v": "a2b48abe", "d": 0.36, "lufs": -22.7, "peak": 0.15, "sw": [0.15, 0.2], "from": [2.6, 2.96], "hit": 0.06, "src": "732813__sirbagel__generic-soft-woodfloor-hits", "r": 22050}
+  ],
   "ladder-clank": [
     {"f": "ladder-clank_1.mp3", "v": "5a070cb0", "d": 2.2, "lufs": -20.9, "peak": 0.25, "sw": [0.15, 0.3], "from": [4.3, 6.5], "hit": 0.1, "src": "ladder-clank"},
     {"f": "ladder-clank_2.mp3", "v": "5a42c10f", "d": 1.75, "lufs": -21.6, "peak": 0.35, "sw": [0.15, 1.6], "from": [0.35, 2.1], "src": "ladder-clank", "w": 0.8}

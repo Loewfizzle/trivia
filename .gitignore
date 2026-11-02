@@ -37,3 +37,6 @@ art/city-sfx/thunder/*.wav
 # alternates are Sonniss: never offered as stand-alone downloads) the same way; credits.txt + claude-notes.txt kept
 art/city-sfx/fireworks/*.wav
 art/city-sfx/fireworks/alternates/*.wav
+# WINDOWS (Nov 1): Grok's juggler sounds — the originals + alternates (SB011 is Sonniss, one Mixkit: never stand-alone downloads) the same way
+art/city-sfx/juggler/*.wav
+art/city-sfx/juggler/alternates/*.wav

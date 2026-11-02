@@ -539,6 +539,17 @@ CUTS = {
     'party-clink-3': [{'cut': (0.0, 3.0), 'fin': 0.003, 'fout': 0.6, 'hp': 400, 'lp': 7000, 'rate': 22050}],
     'party-group': [{'cut': (4.0, 11.0), 'fin': 0.8, 'fout': 1.5, 'hp': 150, 'lp': 3000, 'rate': 16000}],
     'party-group-2': [{'cut': (2.0, 10.0), 'fin': 0.8, 'fout': 1.5, 'hp': 150, 'lp': 3000, 'rate': 16000}],
+    # ---- WINDOWS — GROK'S JUGGLER SET (art/city-sfx/juggler/: claude-notes.txt + credits.txt; the originals git-ignored, untouched —
+    # COPIES of ~/Downloads/Grok/city-sfx/juggler/). THROUGH THE GLASS ACROSS THE STREET: a high-pass 90 Hz (phone speakers, no boom), a
+    # low-pass 1.5 kHz, a small room's short reverb (RT60 0.4 s, low wet), 3 ms in / 120 ms out; the drops' BOUNCES dipped 5 dB after the
+    # first impact (gainenv, the take's own seconds — "for a softer feel"); levelled as every one-shot (−20 LUFS), the slot's gain makes it
+    # quiet. juggler-drop: 684374's five takes (A–E, take D past its low bump) + 389546 (a real ball on a wooden floor) + 499396 (the most
+    # natural decay); juggler-thud: 732813's soft hits (three of four)
+    **{'684374__boop_7__bouncing-ball': [{'cut': (a, b), 'fin': 0.003, 'fout': 0.12, 'hp': 90, 'lp': 1500, 'gainenv': [(d - a + 0.18, b - a, -5.0)], 'verb': (0.16, 0.012, 0.4, 1400), 'mark': d - a, 'rate': 22050, 'kbps': 48}
+        for a, b, d in ((1.38, 2.70, 1.43), (4.31, 5.50, 4.36), (7.25, 8.45, 7.30), (10.64, 11.80, 10.69), (13.90, 14.81, 13.95))],
+       '389546__j0hnlang__plastic_ball_wooden_floor_2': [{'cut': (1.25, 3.0), 'fin': 0.003, 'fout': 0.15, 'hp': 90, 'lp': 1500, 'gainenv': [(0.24, 1.75, -4.0)], 'verb': (0.16, 0.012, 0.4, 1400), 'mark': 0.06, 'rate': 22050, 'kbps': 48}],
+       '499396__16gstepankovas__12_falling-tennis-ball-01': [{'cut': (0.9, 3.7), 'fin': 0.003, 'fout': 0.15, 'hp': 90, 'lp': 1500, 'gainenv': [(0.6, 2.8, -5.0)], 'verb': (0.16, 0.012, 0.4, 1400), 'mark': 0.05, 'rate': 22050, 'kbps': 48}],
+       '732813__sirbagel__generic-soft-woodfloor-hits': [{'cut': (a - 0.06, a + 0.3), 'fin': 0.003, 'fout': 0.1, 'hp': 90, 'lp': 1500, 'verb': (0.16, 0.012, 0.4, 1400), 'mark': 0.06, 'rate': 22050, 'kbps': 48} for a in (0.16, 1.01, 2.66)]},
     # ---- ATM-A — GROK'S WEATHER SET (art/city-sfx/weather/: claude-notes.txt + credits.txt; the 13 originals git-ignored, untouched).
     # Each loop's window + a tail the runtime crossfades into its head (the hard-cut ends + Grok's seam notes never reach the seam);
     # one-shots faded; levels evened by the house meter — the slots' gains make big / mid / soft (gust-3's −36 dBFS master included)
@@ -674,7 +685,10 @@ ALIAS = {'radio-static': 'bb-static', 'jet-scream': 'bb-scream', 'sonic-boom': '
          'thunder-mid-1': 'thunder-mid', 'thunder-mid-2': 'thunder-mid',
          # (PART 10 - Grok's fireworks keep their own names (credits.txt matches them); fw-crackle-3 goes to the bed (its CUTS 'to'))
          'fw-launch': 'firework-launch', 'fw-whistle': 'firework-whistle', 'fw-boom-near': 'firework-burst', 'fw-boom-far': 'firework-burst-far',
-         'fw-crackle': 'firework-crackle', 'fw-willow': 'firework-willow', 'fw-finale': 'firework-finale', 'fw-crowd-1': 'firework-ooh', 'fw-crowd-2': 'crowd-cheer'}
+         'fw-crackle': 'firework-crackle', 'fw-willow': 'firework-willow', 'fw-finale': 'firework-finale', 'fw-crowd-1': 'firework-ooh', 'fw-crowd-2': 'crowd-cheer',
+         # (WINDOWS — Grok's juggler set keeps its own names (credits.txt matches them), each mapped to its slot)
+         '684374__boop_7__bouncing-ball': 'juggler-drop', '389546__j0hnlang__plastic_ball_wooden_floor_2': 'juggler-drop', '499396__16gstepankovas__12_falling-tennis-ball-01': 'juggler-drop',
+         '732813__sirbagel__generic-soft-woodfloor-hits': 'juggler-thud'}
 # never imported (8P): the diesel bus stand-ins (the 1945 truck's takes instead), the "haunted" door alternatives, the TV murmur (MUSIC
 # held in it — G4 / E5 / G5 notes for 1–1.9 s at 26–41 s — and one clear talker: modulation 0.5–1.1), the slot (inside the knock)
 # 6b: traffic-far (MODERN traffic — the owner: leave the slot empty), trash-truck (a modern ZIL diesel standing still: start, revs, stop —
@@ -692,7 +706,11 @@ SKIP = {'bus-idle', 'bus-depart', 'mirror-door-open', 'mirror-door-close', 'tv-m
         # -2 files). Drop a stem from here to try one (each has its trim in credits.txt)
         'tower-siren', 'tower-horn', 'hammering', 'crane', 'implosion-charges', 'implosion-rumble',
         # 9g: the UFO brief's NOT-CHOSEN files (Grok: "IGNORE ufo-beam-2.wav and ufo-lift.wav")
-        'ufo-beam-2', 'ufo-lift'}
+        'ufo-beam-2', 'ufo-lift',
+        # WINDOWS: the juggler set's picks not used (the bench softball, the flour bag) + its alternates (SB011 + the Mixkit one may never
+        # ship as stand-alone files anyway)
+        '330523__casemundy__ball-dropping-on-bench', '382642__bbrocer__bag-of-flour-dropped-on-counter-top', '435770__eyewer__bag-on-the-floor',
+        '497959__16hpanskaresatko_matej__04_tennis-ball-2', '499299__16hpanskavondrova_julie__01-ball-fall-on-the-ground', 'SB011', 'mixkit-light-impact-on-the-ground-2070'}
 # 9f — BACKUP TAKES: imported + kept on disk but never picked (weight 0: core/city-sounds.js#pickTake) — the old warning horn behind the
 # craigsmith horn. TO SWAP BACK: move the stem from here to the new take's place (BACKUP = {'tower-horn-2'}), re-run --only tower-horn
 BACKUP = {'warning-horn', 'tower-horn-3', 'ufo-hum-3'}   # (9g: HORN C + HUM B — the panel's A / B choices, never picked at random)

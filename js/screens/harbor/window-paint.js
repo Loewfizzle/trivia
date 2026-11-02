@@ -381,6 +381,9 @@ export function createPaint(life) {
     // windows): a plain fabric blind from the head at tonight's seeded height (core#edgeShades) — UP: the roller only (the full mood light);
     // HALF: the cloth over the top half, the light + its shadows below one straight edge; DOWN: the shade itself a warm translucent panel
     // the mood's light + shadows play ON (the fan's blades, a passer, the flicker show through it, softened). One clean horizontal edge.
+    // (WINDOWS add-on: the new shades — windows.js draws the scene windows' cloth over the mood (eased, glowing in its colour); the mood's
+    // moving shadows ghost through it: E.noShade → { col, a, extra })
+    if (E.noShade) { c.restore(); return { col, a: Math.min(1, A * 1.1), extra }; }
     const shd = (life.last.shades && life.last.shades[w.id]) || 'half', cover = shd === 'down' ? 0.93 : shd === 'half' ? 0.5 : 0.07, hem = G.h1 - G.ch * cover;
     // (C4a: the cloth a LIT BLIND — the mood's light through it from where it stands, the same painter as the boss's shade)
     c.globalAlpha = (shd === 'down' ? 0.72 : shd === 'half' ? 0.86 : 0.94) * Math.max(0.5, k);

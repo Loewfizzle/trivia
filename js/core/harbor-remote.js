@@ -20,7 +20,7 @@ import { PULSE_DEFAULT, PULSE_MIN, PULSE_MAX, PULSE_STEP } from './harbor-beat.j
 import { MOMENTS } from './harbor-moments.js';
 
 /** the URL flags the remote owns (while a remote state is on, the page's own values of these are replaced) */
-export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'horn', 'hum', 'depart', 'round'];
+export const REMOTE_KEYS = ['force', 'text', 'show', 'colours', 'colour', 'by', 'cycle', 'style', 'tower', 'scheme', 'game', 'scene', 'when', 'speed', 'wx', 'wxk', 'snow', 'snowman', 'mood', 'debug', 'grid', 'pulse', 'horn', 'hum', 'depart', 'round', 'min'];
 /** SP5 — CLEAR ALL = THE REAL CITY NOW (the owner): every PREVIEW flag a link may carry — the panel's keys (not the tools &debug / &grid)
  *  + the previews' own extras (&moment, &hush, &letter, &ad, &season, &n, &wind, &rained, &tagms) + &at (a place for the sun WITH A FORCED
  *  CLEAR SKY — core/sky.js#skyClock — so it is a preview too: the real city is the zone's city with its LIVE weather). &tz, &city,
@@ -59,6 +59,8 @@ export const INPUTS = {
   depart: { kind: 'select', label: 'DEPART', options: ['', 'a', 'b'], labels: { '': 'A + B LAYERED', a: 'A · FALLING FLYBY', b: 'B · FAST WHOOSH' } },
   // (SKY-B: THE SHADOWBOXER — skip to a round of his set)
   round: { kind: 'select', label: 'ROUND', options: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10'], default: '1' },
+  // (WINDOWS: a window scene's preview — how far into his work (minutes): 0 = his entrance, the shade up + the walk in)
+  min: { kind: 'select', label: 'MINUTES IN', options: ['0', '10', '30', '60', '90', '120', '150', 'end'], labels: { end: 'THE END (his exit)' }, default: '0' },
 };
 
 /** THE PANEL'S CATEGORIES (PART 7a §0 — the owner: "it's getting so cluttered"): collapsible sections, in this order, collapsed by
@@ -290,6 +292,7 @@ export const EVENTS = [
   { id: 'doors', sec: 'speakeasy', label: 'THE DOORS', cat: 'promenade', group: 'THE DOOR', hint: 'every 24 s someone walks through a real door — the side door at night (its amber spill), the barbershop by day (FP3b)' },
   { id: 'no-dance', sec: 'tools', label: 'NO DANCE BREAKS', cat: 'promenade', group: 'COMPARE — OFF SWITCHES', hint: 'a party night without its dance breaks — compare (their cost)' },
   { id: 'no-quiet-building', sec: 'tools', label: 'THE BUSY BUILDING', cat: 'windows', group: 'COMPARE — OFF SWITCHES', kw: 'quiet building parked windows blinds moments every window night', hint: 'NIGHT-C: every window live at night again (the moments in the bar, the jazz room + the upper middle) — compare with THE QUIET BUILDING (only the boss’s room + the two side rooms live; the rest behind drawn blinds)' },
+  { id: 'old-windows', sec: 'tools', label: 'THE OLD WINDOW SCENES', cat: 'windows', group: 'COMPARE — OFF SWITCHES', kw: 'retired bartender bar sax toast tango dance peek cash card game holiday ghost mummy witch costume ofrenda thanksgiving quiet building', hint: 'WINDOWS: the scenes the owner retired (Nov 1) back on as they were — the bar + its bartender, the toast, the sax, the dancing couple, the tango, the peek, the cash count, the card game, every holiday window scene + the old quiet building' },
   { id: 'no-live-crisp', sec: 'tools', label: 'LIVE WINDOWS SOFT', cat: 'windows', group: 'COMPARE — OFF SWITCHES', kw: 'live windows crisp 3x boss tv side rooms edge candle', hint: 'NIGHT-C: the boss’s TV room + the two side rooms back in the city’s own 2× canvas at night — compare with THE LIVE WINDOWS AT 3× (only on a 3× phone)' },
   { id: 'no-legend-crisp', sec: 'tools', label: 'TR-3B SOFT', cat: 'sky', group: 'COMPARE — OFF SWITCHES', kw: 'tr3b crisp 3x sharp dpr full res overlay legend craft', hint: 'SKY-A: the TR-3B back in the city’s own 2× canvas (no full-res overlay) — compare' },
   { id: 'no-roof-crisp', sec: 'tools', label: 'ROOF SIGNS SOFT', cat: 'signs', group: 'COMPARE — OFF SWITCHES', kw: 'roof signs crisp 3x sharp dpr high stakes cipher signal tower', hint: 'NIGHT-C: the tower roof signs back in the city’s own 2× canvas (no crisp layer) — compare with THE ROOF SIGNS AT 3× (only on a 3× phone)' },
@@ -380,6 +383,10 @@ export const EVENTS = [
   // (&force=window-<id>), grouped by rarity — the catalogue's own list (core/harbor-moments.js#MOMENTS), so a new moment is a new row
   { id: 'window', label: 'WINDOW MOMENT', cat: 'windows', group: 'ROUTINES', ready: false, hint: 'with &moment=<id>' },
   { id: 'boxer', sec: 'speakeasy', label: 'THE SHADOWBOXER', cat: 'windows', group: 'ROUTINES', kw: 'boxer boxing heavy bag bulb gym training upper window bell rounds', inputs: ['round'], hint: 'SKY-B: his room in the upper middle window NOW (any day, any hour): the blind up, then ROUND n of his set (1–10) — the bag + the bulb swinging on his hits, the bell + the thuds; his real nights: EVERY night 7–11 pm (PART 10 — the owner, Oct 31 8:32 pm; Fri + Sat: the party-night rule); round 2+ walks him in after the blind' },
+  // WINDOWS — THE SCENES (core/harbor-scenes.js on THE CITY TIMETABLE): each one NOW in its window (any day, any hour) — MINUTES IN 0 = his
+  // entrance (the shade up, the walk in); later = that far into his work (the routine seeded by tonight); his real hours in the hint
+  { id: 'scene-juggler', sec: 'speakeasy', label: 'THE JUGGLER', cat: 'windows', group: 'THE SCENES', kw: 'juggler juggling balls lamp amber drop cascade shower neon party bottom right window', inputs: ['min'], hint: 'WINDOWS: his room in the bottom-right window NOW — the amber lamp, the glossy red + cream balls (neon on a party night); MINUTES IN 0 = his walk-in with the bag; his real hours: every night 6:30 → 9:30 pm, then he pulls the shade' },
+  { id: 'scene-crate', sec: 'speakeasy', label: 'THE CRATE GUY', cat: 'windows', group: 'THE SCENES', kw: 'crate guy crates bootlegger bottles bulb swinging pile crowbar cigarette bottom right window', inputs: ['min'], hint: 'WINDOWS: his room in the bottom-right window NOW — the bare bulb swinging, the pile of crates growing (MINUTES IN: later = a bigger pile); his real hours: every night 9:45 pm → midnight (after the juggler), then he sits on his pile, smokes + pulls the shade' },
   // WIN3 — THE PARTY IN THE WINDOWS (&force=window-party): the peak's window party from the start, the rooms up one by one
   { id: 'window-party', label: 'THE PARTY IN THE WINDOWS', cat: 'windows', group: 'PARTY NIGHTS', kw: 'dance blinds neon crowd jump wands party', night: true, hint: 'the party’s peak in the windows: the blinds go up one room at a time (~every 10 s), each room a dance party in its own neon colour — silhouettes jumping on the beat, a few glow wands, the colour spilling onto the cobbles; the boss’s TV room never joins; a raid cuts it' },
   // SP5 — THE BOSS's ROOM: the bootleggers' tell (the violet lamp + the spade behind his drawn shade, lit the afternoon before a delivery
@@ -660,6 +667,7 @@ export function cleanRemote(raw) {
   sel('scheme', INPUTS.scheme.options); sel('game', GAME_IDS);
   sel('horn', ['b', 'c']); sel('hum', ['b']); sel('depart', ['b', 'layered']);   // (9g: the sounds' A / B / C — A is the default, never sent)
   sel('round', INPUTS.round.options);   // (SKY-B: the shadowboxer's round)
+  sel('min', INPUTS.min.options);   // (WINDOWS: a scene's minutes in)
   if (r.cycle) out.cycle = true;
   sel('scene', SHOW_SCENE_LIST.map(s => s.id));
   sel('party', ['on', 'off']);

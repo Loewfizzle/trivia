@@ -77,6 +77,12 @@ export const MOMENTS = Object.freeze([
   { id: 'football', label: 'THE GAME ON TV', rarity: 'holiday', calendar: 'thanksgiving', holiday: 'thanksgiving', windows: ['jazz'], from: 12.5, to: 19, hours: [12.5, 19], len: 900, cooldown: 900, starter: false, kind: 'Thanksgiving football: the set\u2019s green glow on three on the couch, the snap, a long run — and on a score they jump up, arms high' },
 ]);
 export const MOMENT = Object.freeze(Object.fromEntries(MOMENTS.map(m => [m.id, m])));
+/** WINDOWS — THE OLD SCENES RETIRED (the owner, Nov 1 10:54 am: "the older scenes that aren't up to the standard of the new scenes — I don't
+ *  want to use those at all"): switched OFF, never deleted — hourPlan / fixedPlan skip them when ctx.retire (windows.js: unless THE CITY
+ *  TIMETABLE's windows.old row is on or &force=old-windows); the panel's WINDOWS rows still preview each. KEPT: the upstairs wake, the shop's
+ *  opening, the boss's TV, THE CAT ON THE SILL, THE FAN ON A HOT DAY, THE EYES IN THE HAZE, THE MIRROR DOOR (+ the boxer, the edge moods) */
+export const RETIRED = Object.freeze(['bartender', 'toast', 'sax', 'dance', 'tango', 'peek', 'cash', 'ghost', 'mummy', 'witchsil', 'costume', 'ofrenda', 'table', 'football']);
+const retiredFor = (ctx, id) => !!(ctx && ctx.retire) && RETIRED.includes(id);
 export const STARTERS = Object.freeze(MOMENTS.filter(m => m.starter !== false).map(m => m.id));
 export const windowsOf = m => (m.windows === 'all' ? TANGO_PATH : m.windows);
 
@@ -189,6 +195,7 @@ export function fixedPlan(key, only = null, ctx = {}) {
   const out = [], y = Number(String(key).slice(0, 4));
   for (const m of MOMENTS) {
     if (only && !only.includes(m.id)) continue;
+    if (retiredFor(ctx, m.id)) continue;   // (WINDOWS: retired)
     if (m.rarity === 'routine') out.push({ id: m.id, win: m.windows[0], t0: routineAt(m.id, key), len: m.len, n: 0 });
     else if (m.calendar === 'eyes') { for (const p of eyesPlaysOn(key, ctx)) out.push({ id: m.id, win: p.win, t0: p.t0, len: m.len, n: p.n }); }   // (WIN2: its own calendar, in ONE window)
     else if (m.calendar === 'thanksgiving') out.push(...holidayPlays(m, key, ctx));   // (11a-2: the holiday's room life, by its date)
@@ -226,7 +233,7 @@ export function hourPlan(key, hour, ctx = {}) {
   const H0 = hour * 3600, H1 = H0 + 3600;
   const fixed = fixedPlan(key, ctx.only, ctx).filter(e => e.t0 + e.len > H0 - 120 && e.t0 < H1 + 120);
   const out = fixed.filter(e => e.t0 >= H0 && e.t0 < H1), busyTill = {}, last = {};
-  const pool = MOMENTS.filter(m => RARITY[m.rarity] && (!ctx.only || ctx.only.includes(m.id)));
+  const pool = MOMENTS.filter(m => RARITY[m.rarity] && (!ctx.only || ctx.only.includes(m.id)) && !retiredFor(ctx, m.id));   // (WINDOWS: the retired never drawn)
   const free = (win, a, b) => (busyTill[win] || 0) <= a && !fixed.some(e => (e.win === win || e.win === 'all') && e.t0 < b + 1.5 && e.t0 + e.len + 1.5 > a);
   let t = H0 + 2 + r() * 6, n = hour * 1000 + 1, recent = [];
   while (t < H1) {

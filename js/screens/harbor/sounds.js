@@ -32,6 +32,12 @@ import { isUnlocked } from '../../audio/engine.js';
 const THUNDER_DECODE = 1.1;
 const CRACK2 = Object.freeze({ 'thunder-close-4': 2.5, 'thunder-alt-close-crackle': 1.6 });
 import { boxerCues, boxerDuck } from '../../core/harbor-boxer.js';
+import { jugglerSceneCues } from '../../core/harbor-juggler.js';
+import { crateSceneCues } from '../../core/harbor-crate.js';
+// WINDOWS — the scenes' own sounds on the evening's clock (a scene with none: silent) — each (sc, a0, a1, key, seed) → [{ at, slot, gain? }]
+const SCENE_CUES = { juggler: jugglerSceneCues, crate: crateSceneCues };
+// (each scene room's pan: the speakeasy is the left of the screen — the top middle, the bottom middle, the bottom right)
+const ROOM_PAN = { back: -0.38, bar: -0.42, jazz: -0.32 };
 import { partyNow } from '../../audio/party-music.js';
 import { musicSounding, musicClock, duckMusic, filterMusic, bendMusic, musicCatchUp, prepareBend } from '../../audio/music.js';
 import { settings } from '../../audio/settings.js';
@@ -74,7 +80,7 @@ export function createCitySounds() {
   let unlockedAt = 0, bedOn = false, bedK = -1, speakBeds = { club: 0, tv: 0, party: false };
   // 8P: the speakeasy's moments (cues waiting for their time), the barbershop's last look, the people's beds, the bus, the ducks
   const seen = new Set(), pending = [];
-  let boxDuckNow = null, boxLast = null, barberLast = null, nextSnip = 0, cartNext = 0, cartOn = false, cartPan = -0.2, lastLaugh = 0;
+  let scLast = null, boxDuckNow = null, boxLast = null, barberLast = null, nextSnip = 0, cartNext = 0, cartOn = false, cartPan = -0.2, lastLaugh = 0;
   const lastStep = { cobble: 0, heels: 0 };
   const people = { line: 0, linePan: -0.45, roof: 0, roofPan: -0.5, crowd: 0, crowdB: 0, crowdPan: 0.2 };   // (NIGHT-B: + the street party's walla)
   const bus = { arrive: null, idle: null, depart: null, pan: 0, gain: 1 };
@@ -349,6 +355,15 @@ export function createCitySounds() {
         for (const q of boxerCues(boxLast.sec, B.sec, B.plan, B.key, B.seed)) play(q.slot, { gain: q.gain * mus, pan: -0.38, ...(q.rate ? { rate: q.rate } : {}) });
       }
       boxLast = B ? { sec: B.sec, key: B.key } : null; }
+    // WINDOWS — THE SCENES' SOUNDS (the juggler's drops: core/harbor-juggler.js#jugglerSceneCues) — through the glass, quiet, under the music
+    // like the boxer's bag (the same duck: only while the music is really audible); a jump in time plays nothing
+    { const SC = fr && b.motion !== false && fr.scenes ? fr.scenes : null, ev = fr ? fr.ev : null;
+      if (SC && scLast && scLast.key === fr.nightKey && ev > scLast.ev && ev - scLast.ev < 5) {
+        const mus = boxerDuck({ off: settings.musicOff, muted: settings.muted, vol: settings.music, clock: musicClock(), station: !!partyNow() });
+        for (const sc of SC.list) { const f = SCENE_CUES[sc.id]; if (!f || ev < sc.start || scLast.ev > sc.end) continue;
+          for (const q of f(sc, scLast.ev, ev, fr.nightKey, fr.seed || 1924)) play(q.slot, { gain: (q.gain || 1) * mus, pan: ROOM_PAN[sc.win] ?? -0.35 }); }
+      }
+      scLast = SC && ev != null ? { ev, key: fr.nightKey } : null; }
     for (let i = pending.length - 1; i >= 0; i--) {
       const c = pending[i];
       if (c.at - t > 2500) continue;

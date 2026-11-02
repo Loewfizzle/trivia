@@ -670,6 +670,8 @@ export function createSpeakeasy() {
     setCrispWins(s) { crispWins = s && s.size ? s : null; },
     /** SKY-B — the shadowboxer's room is open (his blind not all the way down): the crisp layer's live rooms take it at night */
     boxerRoom: () => { const b = life.boxerNow(); return !!(b && (b.blind < 0.999 || (b.phase === 'out' && b.lamp > 0))); },   // (ATM-A: + until his bulb is out — windows.js#boxerOpen)
+    /** WINDOWS — a live room for the crisp layer: the boxer's (as above) or a window scene's room while it's in (windows.js#sceneOpen) */
+    sceneRoom: id => (id === 'back' && (() => { const b = life.boxerNow(); return !!(b && (b.blind < 0.999 || (b.phase === 'out' && b.lamp > 0))); })()) || !!(life.sceneOpen && life.sceneOpen(id)),
     /** 8b2 — THE RAID's wash: the side wall (the face toward the road) on screen → [[x, y] × 4] | null */
     sidePoly: () => (G ? [G.side(0, -0.05), G.side(0, V.parapet), G.side(G.len, V.parapet), G.side(G.len, -0.05)] : null),
     light(id, k) { if (k == null) own.delete(id); else own.set(id, clamp01(k)); },

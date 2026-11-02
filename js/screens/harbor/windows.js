@@ -29,6 +29,13 @@ import { createHoliday } from './window-holiday.js';
 import { boxerNight, boxerPlan, boxerPreview, boxerAt } from '../../core/harbor-boxer.js';
 import { legendNight } from '../../core/harbor-legend.js';
 import { boxerRoom } from './boxer.js';
+import { jugglerRoom } from './juggler.js';
+import { crateRoom } from './crate.js';
+import { knob } from '../../core/harbor-schedule.js';
+import { SCENE_ROOMS, EDGE_ROOMS, scenesTonight, sceneAt, scenePreview, shadesNight, shadeLevel, roomColour, sceneFreeFrom, edgeShadePlan, edgeShadeAt } from '../../core/harbor-scenes.js';
+// WINDOWS — THE SCENES' PAINTERS (one per scene id: core/harbor-scenes.js#SCENE_IDS) — each (E, st (core#sceneAt), o) → its trace; a scene
+// with no painter yet never plays (its timetable row stays 'planned')
+export const SCENE_PAINT = { juggler: jugglerRoom, crate: crateRoom };
 export { paintRoom, lateOf, ROOM_TINT, LATE_TINT } from './window-rooms.js';
 
 export function createWindowLife() {
@@ -59,7 +66,7 @@ export function createWindowLife() {
   }
   const darkAtNow = (h, d) => { const [a, b] = d || [19, 7]; return h >= a || h < b; };
   function block(key, hour, ctx) {
-    const hl = ctx.hol, k = `${key}|${hour}|${ctx.dow}|${ctx.dark.map(v => v.toFixed(2)).join(',')}|${ctx.wx || ''}|${hl ? `${hl.id}${hl.stage}${hl.eve ? 'e' : ''}${hl.w}` : ''}|${ctx.boot ? 'b' : ''}${ctx.raid ? 'r' : ''}`;
+    const hl = ctx.hol, k = `${key}|${hour}|${ctx.retire ? 'R' : ''}|${ctx.dow}|${ctx.dark.map(v => v.toFixed(2)).join(',')}|${ctx.wx || ''}|${hl ? `${hl.id}${hl.stage}${hl.eve ? 'e' : ''}${hl.w}` : ''}|${ctx.boot ? 'b' : ''}${ctx.raid ? 'r' : ''}`;
     let b = blocks.get(k);
     if (!b) { b = hourPlan(key, hour, ctx); blocks.set(k, b); if (blocks.size > 8) blocks.delete(blocks.keys().next().value); }
     return b;
@@ -77,7 +84,10 @@ export function createWindowLife() {
       darkKey = loc.key;
       try { const st = sunTimes(ms, L.tz, L.lat, L.lon), hr = t => ((((t + (L.off || 0) * 60000) / 3.6e6) % 24) + 24) % 24; dark = st.rise && st.set ? [hr(st.set) + 0.35, hr(st.rise) - 0.35] : [19, 7]; } catch { dark = [19, 7]; }
     }
-    const ctx = { dow: loc.dow, month: loc.month, dark: dark || [19, 7], wx: L.wx || null, hol: L.hol || null, boot: !!L.boot, raid: !!L.raid, party: !!L.party, mothman: !!L.mothman };   // (WIN: the cash count's gates; WIN2: the eyes' + the moods')
+    // WINDOWS — THE OLD SCENES RETIRED (the owner, Nov 1): off unless the timetable's windows.old row is on or &force=old-windows (the
+    // panel's row) — then the old quiet building, the bar + its bartender, the sax, the card game + every retired moment come back as they were
+    const oldMode = !!L.oldWindows || !!knob('windows.old').on;
+    const ctx = { dow: loc.dow, month: loc.month, dark: dark || [19, 7], wx: L.wx || null, hol: L.hol || null, boot: !!L.boot, raid: !!L.raid, party: !!L.party, mothman: !!L.mothman, retire: !oldMode };   // (WIN: the cash count's gates; WIN2: the eyes' + the moods')
     smokeForced = !!L.smoke;   // (11a-1: the holiday's scenes — scene.js passes the DAY's stage)   // (9a: the weather gate — 'hot' | 'rain' | null)
     if (rKey !== loc.key) { rKey = loc.key; routines = {}; for (const m of ['wake', 'shop-open', 'bartender', 'lights-out']) routines[m] = routineAt(m, loc.key); }
     // WIN3 — THE BOSS's TV ROOM + THE QUIET NIGHTS: the night's key (the evening's date; the small hours belong to it); a raid night snaps
@@ -92,7 +102,7 @@ export function createWindowLife() {
     // the bar, the jazz room + the upper middle are PARKED: the blind rolls down (the blind cycle — never a cut) as the rooms' night begins
     // and up again at dawn / a party; a seeded mix lit behind it, the lit lamps going out one by one later (their lit level → bedK)
     const ekd = nightKey.split('-').map(Number), eveDow = new Date(Date.UTC(ekd[0], ekd[1] - 1, ekd[2])).getUTCDay();
-    const parkOn = !L.noPark && !(L.moment && MOMENT[L.moment]) && darkAtNow(h, ctx.dark) && !ctx.party && !partyAt(eveDow, 22, nightKey);
+    const parkOn = oldMode && !L.noPark && !(L.moment && MOMENT[L.moment]) && darkAtNow(h, ctx.dark) && !ctx.party && !partyAt(eveDow, 22, nightKey);
     const PN = parkOn ? parkedNight(nightKey, { seed: L.seed }) : null, park = {}, pdt = parkT == null ? 1e9 : Math.max(0, f.t - parkT); parkT = f.t;
     // SKY-B — THE SHADOWBOXER (core/harbor-boxer.js): his evening on the city clock (the small hours belong to the evening before) — or the
     // panel's preview (&force=boxer + &round=N: now, any day); a raid ends his night
@@ -112,10 +122,45 @@ export function createWindowLife() {
       if (boxPlanNow && !(L.moment && MOMENT[L.moment]) && !(L.raidS != null && L.raidS >= 0 && L.raidS < 7200)) { bx = boxerAt(evSec, boxPlanNow, nightKey, L.seed); bxInfo = { sec: evSec, plan: boxPlanNow, key: nightKey, seed: L.seed || 1924 }; }
     }
     if (bx && bx.phase === 'off') { bx = null; bxInfo = null; }
-    for (const id of PARKED_ROOMS) {
+    // WINDOWS — THE SCENES (core/harbor-scenes.js on THE CITY TIMETABLE): tonight's scenes in the scene rooms (the bottom middle, the bottom
+    // right, the top middle — the boxer's own path stays his), or the panel's preview (&force=scene-<id> + &min=N: N minutes into his work,
+    // now, any day); a raid ends them (the shades drop over a frozen last frame). AFTER HOURS: a scene room at night with no scene in it keeps
+    // its SHADE DOWN, glowing in its room's colour (core#roomColour) until its LIGHTS OUT (core#shadesNight: one at a time, 2–4 am)
+    const evSec = h < 6 ? loc.sec + 86400 : loc.sec, night = darkAtNow(h, ctx.dark), raidOn = L.raidS != null && L.raidS >= 0 && L.raidS < 7200;
+    let SC = null;
+    if (!oldMode) {
+      const lg = k => { const [y, m, d] = k.split('-').map(Number); return legendNight(y, m, d); };
+      if (scKey !== `${nightKey}|${L.seed || 1924}`) { scKey = `${nightKey}|${L.seed || 1924}`; scList = scenesTonight(nightKey, { seed: L.seed, legend: lg }); scOut = shadesNight(nightKey, { seed: L.seed, scenes: scList }); }
+      let list = scList.filter(x => SCENE_PAINT[x.id]);
+      const fs = L.scene && SCENE_PAINT[L.scene.id] ? L.scene : null;
+      if (fs) { const fk = `${fs.id}|${fs.min || 0}|${fs.win || ''}`; if (scForceKey !== fk || scT0 == null) { scForceKey = fk; scT0 = evSec; } const pv = scenePreview(fs.id, scT0, fs.min || 0, { win: fs.win }); if (pv) list = [...list.filter(x => x.win !== pv.win), pv]; }
+      else { scForceKey = ''; scT0 = null; }
+      const room = {};
+      for (const id of SCENE_ROOMS) {
+        let st = null;   // (a forced moment / the forced window party take the rooms: a preview)
+        if (!raidOn && !(L.moment && MOMENT[L.moment]) && !L.partyForce) for (const x of list) { if (x.win !== id) continue; const s0 = sceneAt(x, evSec); if (s0) { st = s0; break; } }
+        if (id === 'back' && bx) st = null;   // (the boxer's evening is his)
+        const rc = roomColour(list, id, evSec);
+        room[id] = { st, col: rc.col, sway: rc.sway, lamp: fs && fs.win === id ? 1 : shadeLevel(scOut[id], evSec), hold: null };
+        if (st) { scHold[id] = st; scHoldT[id] = null; } else if (scHold[id] && !L.partyForce && !(L.moment && MOMENT[L.moment])) { room[id].hold = scHold[id]; if (scHoldT[id] == null) scHoldT[id] = f.t; room[id].holdT = scHoldT[id]; }
+      }
+      SC = { list, room, out: scOut, forced: fs ? fs.id : null };
+    }
+    for (const id of (oldMode ? PARKED_ROOMS : [])) {
       const want = parkOn ? 1 : 0, b0 = parkB[id], b = b0 == null || pdt > 2 ? want : b0 + Math.sign(want - b0) * Math.min(Math.abs(want - b0), pdt / BLIND.down);
       parkB[id] = b; park[id] = b;
       if (parkOn) bedK[id] = Math.min(bedK[id] == null ? 1 : bedK[id], parkedLevel(PN, id, sMid));
+    }
+    if (SC) for (const id of SCENE_ROOMS) {
+      const R0 = SC.room[id], busy = !!R0.st || (id === 'back' && !!bx);
+      // (the shade wants DOWN at night whenever no scene is in — or in a raid; it eases over the blind's own time, never a cut; a scene's own
+      // shade (up at its start, pulled down at its end) is the scene's: sceneAt)
+      const want = (night && !busy && !L.noPark && !(L.moment && MOMENT[L.moment]) && !L.partyForce) || (raidOn && night) ? 1 : 0, b0 = parkB[id], b = b0 == null || pdt > 2 ? want : b0 + Math.sign(want - b0) * Math.min(Math.abs(want - b0), pdt / BLIND.down);
+      parkB[id] = b; park[id] = b;
+      if (!R0.st && (b >= 0.999 || !night)) { scHold[id] = null; scHoldT[id] = null; R0.hold = null; }
+      // (the lit layer's level under the shade follows its lights-out; a quiet night's beds still apply once the scene is gone)
+      if (!busy) bedK[id] = Math.min(bedK[id] == null ? 1 : bedK[id], R0.lamp);
+      else bedK[id] = 1;
     }
     // (SKY-B: his blind is HIS — up as he comes in (the window rule), down warm-lit after his last set, the bulb out after; on a party
     // night after he has gone the party may take the room)
@@ -132,6 +177,12 @@ export function createWindowLife() {
       }
       if (partyDead === nightKey && partyCutT != null && f.t - partyCutT < 1.6 && partyKeep) party = { on: true, k: partyKeep.k, col: partyKeep.col, order: partyKeep.order, cut: true, scatter: f.t - partyCutT, beat: L.beat || null };
       if (partyDead !== nightKey) { partyCutT = null; partyKeep = null; }
+    }
+    // (WINDOWS: a scene room joins the window party only after its LAST scene that overlaps the peak — then its blind eases up for the party)
+    if (SC && party && party.on && !party.cut && party.s != null) {
+      const p0 = evSec - party.s, p1 = L.partyEndS != null ? evSec + L.partyEndS : p0 + 4 * 3600, k2 = { ...party.k };
+      for (const id of SCENE_ROOMS) { if (k2[id] == null) continue; const ff = SC.room[id].st ? Infinity : sceneFreeFrom(SC.list, id, p0, p1); if (ff != null) k2[id] = evSec < ff ? 0 : k2[id] * Math.min(1, (evSec - ff) / 1.6); if (k2[id] > 0.01) parkB[id] = 1; }
+      party = { ...party, k: k2 };
     }
     if (bx && bx.phase === 'out' && bx.lamp <= 0 && party && party.on) { bx = null; bxInfo = null; }
     if (bx) { parkB.back = bx.blind; park.back = bx.blind; bedK.back = bx.lamp; if (party && party.k && party.k.back) party = { ...party, k: { ...party.k, back: 0 } }; }
@@ -162,10 +213,19 @@ export function createWindowLife() {
         for (const id of PARKED_ROOMS) if (!on.some(e => e.win === id)) delete blinds[id]; }
       if (party && party.on) on = on.filter(e => e.win !== 'all' && !(party.k[e.win] > 0.01));   // (WIN3: a room at the party has no other moment)
       if (bx) { on = on.filter(e => e.win !== 'back'); delete blinds.back; }   // (SKY-B: his room is his while he's in it)
+      // (WINDOWS: a scene room's moments — a scene in it: none; its shade down at night: only THE EYES, whose own blind cycle takes the shade
+      // up over the dark room and down again — they move to a scene room that's free, or wait for another night)
+      if (SC) {
+        const busyAt = (win, a, b) => SC.list.some(x => x.win === win && x.start < b && x.end > a) || (win === 'back' && !!bx);
+        on = on.map(e => { if (e.id !== 'eyes' || !SCENE_ROOMS.includes(e.win)) return e; const a = evSec - e.el - 5, b = a + e.len + 10; if (!busyAt(e.win, a, b)) return e; const w2 = SCENE_ROOMS.find(w => !busyAt(w, a, b)); return w2 ? { ...e, win: w2 } : null; }).filter(Boolean);
+        on = on.filter(e => !SCENE_ROOMS.includes(e.win) || (!SC.room[e.win].st && (e.id === 'eyes' || !night || (park[e.win] || 0) < 0.5)));
+        for (const e of on) if (e.id === 'eyes' && SCENE_ROOMS.includes(e.win)) { const b = blindAt(e.el, e.len); park[e.win] = Math.min(park[e.win] || 0, b); parkB[e.win] = park[e.win]; bedK[e.win] = 1; }
+        for (const id of SCENE_ROOMS) if (SC.room[id].st) delete blinds[id];
+      }
       // (Reduced motion: no moving moments — the rooms keep their states: the TV's light steady, the night lamp, the shop's barber still)
       if (f.motion === false || f.motion === 0) { on = []; blinds = {}; }   // (11a-1: the title passes motion 0 — the old === false never caught it)
     }
-    const states = { apartment: roomState('apartment', h, routines), bar: roomState('bar', h, routines), shop: roomState('shop', h, routines) };
+    const states = { apartment: roomState('apartment', h, routines), bar: oldMode ? roomState('bar', h, routines) : 'closed', shop: roomState('shop', h, routines) };   // (WINDOWS: the bar + its bartender retired)
     // SP5 — THE BOSS's ROOM (core#bossDayPlan / bossSignal / bossWatch): the shade drawn all day (its rare life: the peek, the cigar smoke,
     // an overcast day's shadow), the bootleggers' tell (the violet lamp + the spade from the afternoon until the truck; &force=boss-signal),
     // on a party night the shade down + his shadow watching the street (&force=boss-watch any night). The window is painted WHOLE here,
@@ -179,15 +239,21 @@ export function createWindowLife() {
     for (const e of on) if (e.id === 'lights-out') full.add('apartment'); else if (e.id === 'wake') full.add(e.win); else if (e.id === 'bartender') full.add('bar'); else if (e.id === 'eyes') full.add(e.win);   // (WIN2: the eyes' dark room; SP5: the wake in its own window)
     if (party && party.on) for (const id of party.order) if (party.k[id] > 0.001 || party.cut) full.add(id);   // (WIN3: a party room is drawn whole here)
     if (boxerOpen(bx)) full.add('back');   // (SKY-B: his room drawn whole here — ATM-A: until his bulb is out, the blind down over it)
+    if (SC) for (const id of SCENE_ROOMS) if (SC.room[id].st || SC.room[id].hold) full.add(id);   // (WINDOWS: a scene's room is drawn whole here)
     // WIN2 — THE EDGE WINDOWS' MOOD LIGHTS: at night the two edge windows are the live layer's (their mood seeded by the night's date)
     if (darkAtNow(h, ctx.dark)) { full.add('edge2'); full.add('edge3'); }
     const moods = edgeMoods(nightKey, { hol: ctx.hol ? ctx.hol.id : null, party: ctx.party });
     // SP5 — the edge windows' roller shades tonight (core#edgeShades) + THE DANCE CLOCK every dancer in the building reads (core/harbor-dance.js:
     // the song's grid blended, the energy winding down at a song's end, idle in the gap, picking up on the new song)
     const shades = edgeShades(nightKey, { seed: L.seed });
+    // WINDOWS add-on — THE EDGE WINDOWS' SHADES (core/harbor-scenes.js#edgeShadePlan): tonight's height, raised / lowered now + then by its own
+    // eased pull, all the way down after hours, glowing in the mood's colour; its light out in the one-at-a-time lights-out (+ a quiet
+    // night's beds); a preview (a forced moment / the window party) leaves it as it is
+    let edge = null;
+    if (!oldMode && night) { edge = {}; for (const id of EDGE_ROOMS) { const pl = edgeShadePlan(nightKey, id, shades[id], { seed: L.seed }); edge[id] = { cover: edgeShadeAt(pl, evSec), lamp: Math.min(shadeLevel(scOut[id], evSec), bedK[id] == null ? 1 : bedK[id]) }; } }
     stepDanceClock(wd, wdT == null ? 0 : Math.max(0, f.t - wdT), L.beat ? { beatsF: L.beat.beatsF, gap: !!L.beat.gap, left: L.beat.left == null ? null : L.beat.left, id: L.beat.id || null } : null); wdT = f.t;
     const cur = block(loc.key, Math.floor(h), ctx), nx = cur.find(e => e.t0 > loc.sec);
-    last = { on, blinds, park, parkOn, parked: PN, boxer: bx ? { ...bx, ...bxInfo } : null, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
+    last = { on, blinds, park, parkOn, parked: PN, scenes: SC, edge, oldMode, ev: evSec, seed: L.seed || 1924, partyNight: ctx.party || partyAt(eveDow, 22, nightKey), beatNow: L.beat || null, boxer: bx ? { ...bx, ...bxInfo } : null, states, boss, shades, dance: { bf: wd.bf, dk: wd.dk, cheer: wd.cheer, gap: wd.gap }, sec: loc.sec, h, sMid, quiet, bed: bedK, bedAt: bed, tvOff, party, tvLate: h >= 0.75 && h < 6, raidS: L.raidS == null ? null : +L.raidS.toFixed(1), key: loc.key, forced, full, hol: ctx.hol, next: nx ? { id: nx.id, win: nx.win, in: Math.round(nx.t0 - loc.sec) } : null, dark: ctx.dark, moods, nightKey };
     return last;
   }
 
@@ -228,11 +294,24 @@ export function createWindowLife() {
       traceWindow(w.id);
       // WIN3 — A ROOM GONE TO BED (a quiet night): its pane dark, nothing drawn in it (the lit layer is × its bed level too: speakeasy.js)
       const bedk = fr.bed && fr.bed[w.id] != null ? fr.bed[w.id] : 1;
+      // WINDOWS — A SCENE IN ITS ROOM (core/harbor-scenes.js + its painter): the room whole, then its shade over it (up at the start, pulled
+      // down by him at the end — or a raid's drop over the frozen last frame)
+      const scR = fr.scenes ? fr.scenes.room[w.id] : null, scSt = scR ? scR.st || scR.hold : null;
+      if (scSt && SCENE_PAINT[scSt.id] && !(w.id === 'back' && fr.boxer)) {
+        const Es = { c, G, w, k, kl: k, day, t: scR.st || scR.holdT == null ? t : scR.holdT, mo: mo && !!scR.st, T, glints, f, env, frameC, after: [], B: boxOf(G, env.vp), beat: f.beat || null };
+        Es.deep = (t2, fn) => deepAt(c, Es.B, t2, fn);
+        busyNow = true;
+        sceneSafe(c, scSt.id, () => { lastScene[w.id] = SCENE_PAINT[scSt.id](Es, scSt, { key: fr.nightKey, seed: fr.seed || 1924, party: fr.partyNight, beat: fr.beatNow }); });
+        const sh = Math.max(scSt.shade || 0, scR.st ? 0 : pk);
+        if (sh > 0.002) cycleBlind(Es, sh, { col: scR.col, sway: scR.sway, lamp: 1 });
+        if (Es.front) sceneSafe(c, `${scSt.id}:front`, Es.front);   // (the exit's pull: him at the glass over the shade)
+        c.restore(); for (const fn of Es.after) fn(); continue;
+      }
       // NIGHT-C — A PARKED ROOM, its blind all the way down: just the blind (warm with its lamp behind it, or dark), the holiday's sill piece
-      // in front of it — nothing behind it is drawn
+      // in front of it — nothing behind it is drawn (WINDOWS: a scene room after hours — its shade glowing in its room's colour)
       if (pk > 0.998 && !list.length && !tap && k > 0.01) {
         const E0 = { c, G, w, k, kl, day, t, mo, T, glints, f, env, frameC, after: [], B: boxOf(G, env.vp) }; E0.deep = (t2, fn) => deepAt(c, E0.B, t2, fn);
-        cycleBlind(E0, 1);
+        cycleBlind(E0, 1, scR ? { col: scR.col, sway: scR.sway } : null);
         if (dress === 'pumpkin') sillPumpkin(E0);
         c.restore(); for (const fn of E0.after) fn(); continue;
       }
@@ -265,9 +344,18 @@ export function createWindowLife() {
       // the room's own state (POLISH 5: single panes — nothing is laid back over the glass after)
       if (w.id === 'apartment' && !eyesOn) zoomed(STAGE_ROOM, () => apartmentState(E, fr.states.apartment, list));
       if (w.id === 'bar' && !eyesOn) zoomed(STAGE_ROOM, () => barState(E, fr.states.bar, list));
-      if (w.id === 'jazz' && kl > 0.01 && !eyesOn && !list.some(e => e.id === 'mummy' || e.id === 'football')) { const solo = list.find(e => e.id === 'sax'); zoomed(solo ? STAGE.sax : STAGE_ROOM, () => saxPlayer(E, solo)); }
+      if (w.id === 'jazz' && fr.oldMode && kl > 0.01 && !eyesOn && !list.some(e => e.id === 'mummy' || e.id === 'football')) { const solo = list.find(e => e.id === 'sax'); zoomed(solo ? STAGE.sax : STAGE_ROOM, () => saxPlayer(E, solo)); }
       // WIN2 — THE EDGE WINDOWS' MOOD LIGHTS (light + shadow only, no people): at night the whole pane is the mood's
-      if (w.edge && k > 0.01 && fr.full.has(w.id) && dress !== 'ofrenda') edgeMood(E, fr.moods ? fr.moods[w.id] : 'candle', fr.moods);
+      if (w.edge && k > 0.01 && fr.full.has(w.id) && dress !== 'ofrenda') {
+        const ES = fr.edge && fr.edge[w.id];
+        if (!ES) edgeMood(E, fr.moods ? fr.moods[w.id] : 'candle', fr.moods);
+        else {
+          // (WINDOWS add-on: the mood behind the scene windows' cloth — its light (× the lights-out) glowing through, its shadows ghosting on it)
+          const m = edgeMood({ ...E, k: k * ES.lamp, noShade: true }, fr.moods ? fr.moods[w.id] : 'candle', fr.moods) || { col: [255, 214, 150], a: 0.6 };
+          cycleBlind(E, ES.cover, { col: m.col, lamp: ES.lamp > 0.01 ? m.a / Math.max(0.01, k) : 0 });
+          if (m.extra && ES.lamp > 0.01) { const hem = G.h1 - G.ch * 0.96 * ES.cover; c.save(); c.beginPath(); c.rect(G.g0, hem, G.cw, G.h1 - hem); c.clip(); c.globalAlpha = 0.32; m.extra(c); c.restore(); }
+        }
+      }
       // (SP3 — the windows that aren't the star keep SLOW SIMPLE LIFE: now and then someone passes deep in the room, a soft shadow.
       // WIN — ONE passer at a time across the whole building, never while a star moment plays: the owner saw figures moving in several
       // panes at once and read it as "the tango in all the windows" — a moment belongs to ONE window, and so does a passer-by)
@@ -278,7 +366,7 @@ export function createWindowLife() {
       // the moments in this window
       for (const e of list) { const p = PAINT[e.id]; if (p) sceneSafe(c, e.id, () => zoomed(STAGE[e.id] || 1, () => p(E, e.el, e.len, e))); }
       { const bk9 = list.length ? bl9 : Math.max(bl9, pk);   // (NIGHT-C: + a parked room's blind rolling down at dusk / up at dawn)
-        if (bk9 > 0.002) cycleBlind(E, bk9); }   // (9c: never a cut — the blind down, the scene swapped under it, the blind up)
+        if (bk9 > 0.002) cycleBlind(E, bk9, scR ? { col: scR.col, sway: scR.sway } : null); }   // (9c: never a cut — the blind down, the scene swapped under it, the blind up)
       if (tap) sceneSafe(c, `tap:${w.id}`, () => tapPaint(E, tap));
       c.restore();
       for (const fn of E.after) fn();
@@ -324,9 +412,12 @@ export function createWindowLife() {
   }
   /** 9c — THE BLIND CYCLE (core#blindAt): the building's cream holland linen rolled down from the head to b (0 up … 1 down): by day lit
    *  evenly from outside, at night glowing with the room's light behind it; the hem bar + the ring pull, the roller's shadow at the head */
-  function cycleBlind(E, b) {
-    const { c, G, kl, day } = E, cover = 0.96 * b, hem = G.h1 - G.ch * cover, lamp = Math.min(1, (kl || 0) * 1.2);
-    const cloth = mixc(mixc([30, 26, 26], [226, 204, 164], day), [255, 214, 150], 0.55 * lamp * (1 - day));
+  function cycleBlind(E, b, o = null) {
+    // (WINDOWS: o.col — the room's own light behind the cloth (the scenes' patchwork: amber · cold white · green · rosy); o.sway — the bare bulb
+    // still swinging: its bright spot drifts slowly side to side; o.lamp — the light's level when the window's own lit level doesn't carry it)
+    const { c, G, day } = E, kl = o && o.lamp != null ? o.lamp * (E.k == null ? 1 : E.k) : E.kl, cover = 0.96 * b, hem = G.h1 - G.ch * cover, lamp = Math.min(1, (kl || 0) * 1.2);
+    const lcol = o && o.col ? o.col : [255, 214, 150];
+    const cloth = mixc(mixc([30, 26, 26], [226, 204, 164], day), lcol, 0.55 * lamp * (1 - day));
     const g = c.createLinearGradient(0, hem, 0, G.h1); g.addColorStop(0, rgb(mixc(cloth, [40, 30, 24], 0.25))); g.addColorStop(0.5, rgb(mixc(cloth, [255, 244, 220], 0.1))); g.addColorStop(1, rgb(mixc(cloth, [40, 30, 24], 0.32)));
     c.fillStyle = g; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, G.h1 - hem + 0.1);
     c.fillStyle = 'rgba(0,0,0,0.4)'; c.fillRect(G.g0 - 0.1, hem, G.cw + 0.2, 0.03);
@@ -334,7 +425,8 @@ export function createWindowLife() {
     c.strokeStyle = rgb([156, 126, 70], 0.95); c.lineWidth = 0.016; c.beginPath(); c.arc(G.cx, hem - 0.075, 0.036, 0, TAU); c.stroke();
     // (C4a: at night the cloth is a LIT BLIND — the room's lamp a radial through it, the folds, the edges — over the even day linen)
     const nk = lamp * (1 - day);
-    if (nk > 0.01) { c.save(); c.globalAlpha = Math.min(1, (1 - day) * 1.4); litBlind(c, G, { hem, cloth: [70, 58, 46], col: [255, 214, 150], a: nk, lamp: { u: G.cx, v: Math.max(hem + 0.15, G.h0 + G.ch * 0.6) }, sil: false }); c.restore(); }   // (the ring pull)
+    const swayU = o && o.sway && E.mo !== false ? G.cw * 0.14 * Math.sin((E.t || 0) * 1.25) : 0;
+    if (nk > 0.01) { c.save(); c.globalAlpha = Math.min(1, (1 - day) * 1.4); litBlind(c, G, { hem, cloth: [70, 58, 46], col: lcol, a: nk, lamp: { u: G.cx + swayU, v: Math.max(hem + 0.15, G.h0 + G.ch * 0.6) }, sil: false }); c.restore(); }   // (the ring pull)
     c.fillStyle = 'rgba(0,0,0,0.45)'; c.fillRect(G.g0, G.h1 - 0.05, G.cw, 0.05);   // (the roller's shadow at the head)
   }
 
@@ -347,6 +439,7 @@ export function createWindowLife() {
   const boxerOpen = b => !!b && (b.blind < 0.999 || (b.phase === 'out' && b.lamp > 0));
   let boxT0 = null, boxRound = null, boxForced = null, boxKey = '', boxPlanNow = null, lastBoxer = null;   // (SKY-B: the shadowboxer — the preview's anchor, tonight's plan)   // (NIGHT-C: each parked room's blind 0 up … 1 down, eased over the blind's own BLIND.down)
   let bossKey = '', bossPlan = [];   // (SP5: the boss's day plan, rebuilt per day / overcast)
+  let scKey = '', scList = [], scOut = {}, scForceKey = '', scT0 = null; const scHold = {}, scHoldT = {}, lastScene = {};   // (WINDOWS: tonight's scenes, their lights-out, the preview's anchor, a raid's frozen frame, each painter's trace)
   const wd = createDanceClock(); let wdT = null;   // (SP5: the building's dance clock)
   let partyT0 = null, partyDead = null, partyCutT = null, partyKeep = null;   // (WIN3: the window party — forced from t0; dead after a raid's cut)
 
@@ -369,7 +462,9 @@ export function createWindowLife() {
    *  wall while the bar is open at night (louder on a party night), the TV's murmur upstairs late */
   function bedLevels(k, party) {
     const st = last.states || {};
-    return { club: st.bar === 'open' && k > 0.3 ? (party ? 1 : 0.6) * k : 0, party: !!party, tv: st.apartment === 'tv' && k > 0.3 ? 0.7 * k : 0 };
+    // (WINDOWS: the bar's room retired — the club's murmur through the wall stays, every night: the speakeasy is still open)
+    const open = last.oldMode ? st.bar === 'open' : (last.h >= 19 || last.h < 3);
+    return { club: open && k > 0.3 ? (party ? 1 : 0.6) * k : 0, party: !!party, tv: st.apartment === 'tv' && k > 0.3 ? 0.7 * k : 0 };
   }
 
 
@@ -400,6 +495,8 @@ export function createWindowLife() {
     frame, draw, hit, bedLevels,
     /** SKY-B — the shadowboxer now (null: not in tonight / not yet / gone): his state + the evening's clock (sounds.js#life's cues) */
     boxerNow: () => last.boxer,
+    /** WINDOWS — a scene is in this window (its room drawn whole: the crisp layer takes it at night, as the boxer's) */
+    sceneOpen: id => !!(last.scenes && last.scenes.room[id] && (last.scenes.room[id].st || last.scenes.room[id].hold)),
     /** WIN3 — the window party's colour spilling out: [{ id, u (the pane's middle along the facade), col, k }] for the rooms up now (the full windows) */
     partySpill: wins => { const P = last.party; if (!P || !P.on || P.cut) return []; return (wins || []).filter(w => !w.edge && P.k[w.id] > 0.01).map(w => ({ id: w.id, u: (w.u[0] + w.u[1]) / 2, col: P.col[w.id], k: P.k[w.id] })); },
     paint: PAINT,
@@ -407,7 +504,7 @@ export function createWindowLife() {
     catReset() { catTap = -1; },
     /** WIN: something in a window is MOVING (a moment, a tap's answer, a passer-by) — a 60-fps reason (scene.js#fastNow) */
     busy: () => busyNow,
-    debug: () => ({ dropped: [...droppedScenes], blinds: last.blinds || {}, park: last.park || {}, parkOn: !!last.parkOn, parked: last.parked || null, shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: S.lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: S.cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, boxer: last.boxer ? { phase: last.boxer.phase, set: last.boxer.set, round: last.boxer.round, t: last.boxer.t == null ? null : +last.boxer.t.toFixed(1), kind: last.boxer.kind || null, blind: +(last.boxer.blind || 0).toFixed(2), lamp: last.boxer.lamp, inView: !!last.boxer.inView, beat: last.boxer.beat ? last.boxer.beat.act : null, x: lastBoxer ? +lastBoxer.fx.toFixed(2) : null, face: lastBoxer ? lastBoxer.face : null, hit: lastBoxer && lastBoxer.hit != null ? +lastBoxer.hit.toFixed(2) : null, at: last.boxer.at || null, rest: last.boxer.rest ? last.boxer.rest.act : null, bagX: lastBoxer && lastBoxer.bagX != null ? +lastBoxer.bagX.toFixed(2) : null, bag: lastBoxer && lastBoxer.bag != null ? +lastBoxer.bag.toFixed(3) : null } : null, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
+    debug: () => ({ dropped: [...droppedScenes], old: !!last.oldMode, scenes: last.scenes ? { forced: last.scenes.forced, out: last.scenes.out, tonight: last.scenes.list.map(x => ({ id: x.id, win: x.win, start: x.start, end: x.end })), room: Object.fromEntries(Object.entries(last.scenes.room).map(([id, r]) => [id, { st: r.st ? { id: r.st.id, phase: r.st.phase, t: +r.st.t.toFixed(1), shade: +r.st.shade.toFixed(2), work: Math.round(r.st.work) } : null, hold: !!r.hold, col: r.col, sway: r.sway, lamp: r.lamp, park: +((last.park || {})[id] || 0).toFixed(2), trace: lastScene[id] || null }])) } : null, blinds: last.blinds || {}, park: last.park || {}, parkOn: !!last.parkOn, parked: last.parked || null, shades: last.shades || null, dance: last.dance || null, boss: last.boss ? { day: last.boss.day ? { id: last.boss.day.id, p: +last.boss.day.p.toFixed(2) } : null, signal: +last.boss.signal.toFixed(2), party: last.boss.party, watch: last.boss.watch ? { a: +last.boss.watch.a.toFixed(2), near: +last.boss.watch.near.toFixed(2), phase: last.boss.watch.phase, stand: last.boss.watch.stand, ember: +last.boss.watch.ember.toFixed(2), head: +last.boss.watch.head.toFixed(2), shift: +last.boss.watch.shift.toFixed(2), x: +last.boss.watch.x.toFixed(2) } : null } : null, party: last.party ? { on: last.party.on, k: last.party.k, col: last.party.col, order: last.party.order, s: last.party.s, cut: last.party.cut, forced: !!last.party.forced, beat: last.party.beat ? +last.party.beat.beatsF.toFixed(2) : null } : null, tv: S.lastTv, tvOff: !!last.tvOff, quiet: !!last.quiet, bed: last.bed || null, bedAt: last.bedAt || null, raidS: last.raidS == null ? null : last.raidS, cash: S.cashTrace, on: last.on.map(e => ({ id: e.id, win: e.win, el: +e.el.toFixed(1), len: e.len })), states: { ...last.states }, boxer: last.boxer ? { phase: last.boxer.phase, set: last.boxer.set, round: last.boxer.round, t: last.boxer.t == null ? null : +last.boxer.t.toFixed(1), kind: last.boxer.kind || null, blind: +(last.boxer.blind || 0).toFixed(2), lamp: last.boxer.lamp, inView: !!last.boxer.inView, beat: last.boxer.beat ? last.boxer.beat.act : null, x: lastBoxer ? +lastBoxer.fx.toFixed(2) : null, face: lastBoxer ? lastBoxer.face : null, hit: lastBoxer && lastBoxer.hit != null ? +lastBoxer.hit.toFixed(2) : null, at: last.boxer.at || null, rest: last.boxer.rest ? last.boxer.rest.act : null, bagX: lastBoxer && lastBoxer.bagX != null ? +lastBoxer.bagX.toFixed(2) : null, bag: lastBoxer && lastBoxer.bag != null ? +lastBoxer.bag.toFixed(3) : null } : null, moods: last.moods || null, nightKey: last.nightKey || null, h: last.h, sec: last.sec, next: last.next, forced: last.forced, sec: Math.round(last.sec || 0), dark: last.dark, full: [...(last.full || [])], blocks: blocks.size, busy: busyNow, figs: traceList().slice(), box: lastBox }),
     destroy() { for (const cv of sprites.values()) cv.width = cv.height = 0; sprites.clear(); blocks.clear(); },
   };
 }

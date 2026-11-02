@@ -49,6 +49,8 @@ test('the first recordings (Part 8a) + the sky (Oct 24) + the speakeasy + people
     'firework-launch', 'firework-whistle', 'firework-burst', 'firework-burst-far', 'firework-crackle', 'firework-crackle-bed', 'firework-willow', 'firework-finale', 'firework-ooh', 'crowd-cheer',
     // (9e — SUNDAY's BELLS + THE CONSTRUCTION TOWER's crane, hammering, the implosion's rumble + the warning horn)
     'church-bells', 'crane', 'hammering', 'implosion-rumble', 'tower-horn',
+    // (WINDOWS — the juggler's drops)
+    'juggler-drop', 'juggler-thud',
     // (9f — the tower's CC0 alternates: the siren's own wail, the rivet gun + the crane lift layered over the beds)
     'crane-lift', 'rivet-gun', 'tower-siren',
     // (9g — THE UFO's REAL SOUNDS: the hover's spin-up + down, the beam's on / idle / off, the lift, the departure, the crowd fleeing)

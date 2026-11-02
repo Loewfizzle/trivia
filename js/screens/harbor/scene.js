@@ -75,6 +75,7 @@ import { windInput, windFrame } from '../../core/harbor-wind.js';
 import { drawForeground, makeVignette, createVignetteLayer } from './foreground.js';
 import { drawGrid } from './grid.js';
 import { createSkyFx } from './skyfx.js';
+import { SCENE_IDS } from '../../core/harbor-scenes.js';
 import { createCitySounds } from './sounds.js';
 import { createRoadLight } from './roadlight.js';
 import { createLeaves, crownDiscs } from './trees.js';
@@ -1118,7 +1119,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const want = want0 && !busy && !LB && !(legends && legends.active()) && !(raidFrame && raidFrame.R) && !(xlK > 0.01) && !wetGlass ? fadeIn * smooth(0.55, 0.9, night) : 0;
     const shown = new Set(), step = Math.min(1, (dt || 16) / 450);
     for (const w of want0 || winK.size ? speak.windows() : []) {
-      if (!LIVE_ROOMS.includes(w.id) && !(w.id === 'back' && speak.boxerRoom && speak.boxerRoom())) continue;   // (SKY-B: + the shadowboxer's room while it's open)
+      if (!LIVE_ROOMS.includes(w.id) && !(speak.sceneRoom ? speak.sceneRoom(w.id) : w.id === 'back' && speak.boxerRoom && speak.boxerRoom())) continue;   // (SKY-B: + the shadowboxer's room while it's open; WINDOWS: + a scene's room)
       let k = winK.get(w.id) || 0; k += (want - k) * step; if (Math.abs(want - k) < 0.01) k = want; winK.set(w.id, k);
       if (k <= 0.002) continue;
       const r = w.rect;
@@ -2558,7 +2559,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       tw: TW, hush: hushPreview(), flash: lightningFlash(), life: { ms: clock.now(), off: LK.local ? LK.local.off : 0, raidS: RP ? nowRS - (RP.t0 - 5) : null, seed: L ? L.seed || 1924 : 1924,
         // (WIN3 — THE PARTY IN THE WINDOWS: the peak's clock (seconds since it began / until it ends), the beat, the forced flag)
         partyPhase: PT.name, partyPeakS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (hr - pl.peak) * 3600; })(), partyEndS: (() => { const hr = partyHour(LK.local), pl = PT.plan || harborPartyPlan(); return hr == null ? null : (pl.calm - hr) * 3600; })(),
-        partyForce: clock.force.has('window-party'), noPark: clock.force.has('no-quiet-building'), boxer: clock.force.has('boxer') ? { round: Number(qp.get('round')) || 1 } : null, beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, ...songEdge() } : null, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
+        partyForce: clock.force.has('window-party'), noPark: clock.force.has('no-quiet-building'), oldWindows: clock.force.has('old-windows'), scene: (() => { for (const id of SCENE_IDS) if (clock.force.has(`scene-${id}`)) return { id, min: qp.get('min') === 'end' ? 'end' : Number(qp.get('min')) || 0, win: qp.get('win') || null }; return null; })(), boxer: clock.force.has('boxer') ? { round: Number(qp.get('round')) || 1 } : null, beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, ...songEdge() } : null, tz: clock.tz, lat: LK.lat, lon: LK.lon, moment: forcedMoment(), hol: HL, wx: WXS && WXS.rain > 0.3 ? 'rain' : hotDay() ? 'hot' : null, ...nightGates(), smoke: clock.force.has('smoke'), party: PT.on > 0.3 || clock.force.has('party') }, play: S.motion ? snd.play : null });   // (7b: THE LIFE — the windows' moments on the city clock)
     if (fadeIn > 0 && !off.has('no-speakeasy')) chimneys.draw(c, chimF, 'near');
     // 11a-2 — THE FIRST CHRISTMAS STRINGS on the speakeasy (xlights.js): up from the Black Friday crew's last minute (core/harbor-xmas.js),
     // switched on at dusk — eased — × the facade's power (the blackout, the raid's cut)

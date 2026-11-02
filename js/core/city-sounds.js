@@ -234,6 +234,12 @@ export const SLOTS = [
   // (MODELS: the 20 files arrived — the real multi-strike start bell + the speed bag; boxer-bell is now the END-of-round ding)
   S('boxer-bell3', '7', 'once', 0.08, 'a boxing bell’s ding-ding-ding burst (the round starts)', 'the shadowboxer’s round starts (MODELS)'),
   S('boxer-combo', '7', 'once', 0.16, 'a heavy bag hit from a fast combo, muffled + distant (six takes cut from two CC0 combos)', 'the shadowboxer: the follow-up punches of a burst on the bag (ATM-C)'),
+  // WINDOWS — THE JUGGLER (Grok's set, art/city-sfx/juggler/: claude-notes.txt + credits.txt): ONLY the occasional DROP, heard faintly
+  // through the glass across the street — low-passed 1.5 kHz, a small room's short reverb, felt more than heard; NO catch sounds (a 3-hour
+  // tick would wear). juggler-drop: a ball's thud + its bounces dipped (7 takes, never the same twice running); juggler-thud: a dull soft
+  // thud on the rug (3 takes — a ball that lands dead, the bag set down)
+  S('juggler-drop', '7', 'once', 0.12, 'a juggling ball dropped on a wooden floor: the thud + 2–4 smaller bounces + a short roll, muffled through glass', 'the juggler: a drop (WINDOWS — core/harbor-juggler.js#jugglerCues)'),
+  S('juggler-thud', '7', 'once', 0.09, 'a soft dull thud on a rug — a ball landing dead, the bag set down', 'the juggler: a dead drop, his bag set down (WINDOWS)'),
   S('boxer-speedbag', '7', 'once', 0.045, 'a speed-bag rattle, off in the room', 'the shadowboxer’s long break, out of view (MODELS)'),
   S('bb-static', 'sky', 'once', 0.22, 'an old radio tuning warble + static (three takes)', 'the Blackbird’s tell, ~3 s before it crosses'),
   // (MODELS — the owner, Oct 30 6:43 pm: THE SONIC BOOM 10 % LOUDER, THE LOUDEST THING IN THE GAME — above every effect + the music; both
