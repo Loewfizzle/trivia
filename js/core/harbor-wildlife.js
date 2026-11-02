@@ -16,6 +16,7 @@ import { rngFrom, hashString } from './rng.js';
 import { xOfF, seasonOf, HYDRANT, hydrantSpot } from './harbor-promenade.js';
 import { mixNow, FOLK } from './harbor-people.js';
 import { SPEAK_V } from './harbor-speakeasy.js';
+import { knob } from './harbor-schedule.js';
 
 const PI = Math.PI;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -100,14 +101,14 @@ export function offPoint(L, dir, near) {
 // ------------------------------------------------------------------ THE PIGEONS (perches + the flock by the clock)
 /** the flock: up to `max` birds (the same eight for the day), planned per `slot` s — how many are out + where each sits; between two
  *  slots each bird flies from its old spot to its new one at its own moment in the first `move` s (never all together) */
-export const PIGEON = Object.freeze({ max: 8, slot: 540, move: 70, fly: 2.6, tier: [4, 6, 8], awayP: 0.3, away: [90, 360], highStay: [60, 240] });
+export const PIGEON = Object.freeze({ ...knob('wild.pigeons'), max: 8, move: 70, fly: 2.6, tier: [4, 6, 8], awayP: 0.3, away: [90, 360], highStay: [60, 240] });
 /** how many pigeons are out at local hour h (PURE): 2–8 by the time (busy mornings + evenings), the season (winter fewer on the ground,
  *  spring + summer the most), the weather (rain: a few huddled on ledges), Sunday a few more (quiet), the night a couple roosting */
 export function pigeonCount({ h = 12, dow = 3, month = 10, rain = 0, sun = null } = {}) {
   const rise = sun ? sun.rise : 7, set = sun ? sun.set : 18.5;
   if (h < rise - 0.3 || h > set + 0.6) return 2;                      // (roosting: two asleep on a ledge)
   const season = seasonOf(month, 15);
-  let n = h < 9.5 ? 6.5 : h < 12 ? 5 : h < 14 ? 4.5 : h < 17 ? 5 : 4;
+  let n = 4; for (const [to, v] of PIGEON.curve) if (h < to) { n = v; break; }
   n *= season === 'winter' ? 0.75 : season === 'autumn' ? 0.9 : 1.15;
   if (dow === 0) n += 1;
   if (rain > 0.3) n *= 0.6;
@@ -200,7 +201,7 @@ export function groundLife(t, seed) {
 // ------------------------------------------------------------------ THE GULLS (landing on the billboard + the railing, by day)
 /** per slot: 0–3 landings (more on windy days; none at night), each on a free gull spot, staying `stay` s (preening, looking round,
  *  the odd call); in rain they sit huddled (puffed, the head drawn in) */
-export const GULL = Object.freeze({ slot: 480, stay: [50, 220], landS: 2.6, offS: 2.2 });
+export const GULL = Object.freeze({ ...knob('wild.gulls'), landS: 2.6, offS: 2.2 });
 export const gullSlotLen = force => (force && force.has('gulls-land') ? 90 : GULL.slot);   // (the preview: a round every 90 s)
 export function gullSlot(j, ctx = {}) {
   const f = ctx.force || new Set(), S = gullSlotLen(f), t = j * S + S / 2, loc = localOf(t, ctx.off), r = R('gl', ctx.seed || 1924, loc.key, j);
@@ -220,7 +221,7 @@ export function gullSlot(j, ctx = {}) {
 }
 
 // ------------------------------------------------------------------ THE SNOWY OWL (winter days, Dec–Mar, uncommon)
-export const OWL = Object.freeze({ months: [12, 1, 2, 3], chance: 0.28, move: [1500, 3600], glide: 6 });
+export const OWL = Object.freeze({ ...knob('wild.owl'), glide: 6 });
 /** the owl's day (PURE): { day0, t0 (glides in), t1 (glides off at dusk), stops: [{ spot, ta, tb }] } or null. Perches: the billboard's
  *  corners, the date stone's top (the speakeasy's crest), a tall lamp's top — big, white, ~10–13 pt; it relocates now and then */
 export function owlDay(key, day0, ctx = {}) {
@@ -256,7 +257,7 @@ export function owlAt(plan, t) {
 // ------------------------------------------------------------------ THE SQUIRREL (the big framing maple, by day)
 /** per slot: comes DOWN the trunk (a spiral), hops out across the cobbles to a few spots, forages (sits up, the tail flicking), then
  *  back UP (into the leaves; in winter into its hollow). Autumn: busy dashing to and fro; winter: rare, short (a mild day). */
-export const SQUIRREL = Object.freeze({ slot: 420, climb: 3.4, hop: 2.2, chance: { spring: 0.5, summer: 0.55, autumn: 0.7, winter: 0.1 } });
+export const SQUIRREL = Object.freeze({ ...knob('wild.squirrel'), climb: 3.4, hop: 2.2 });
 /** the slot (s): the preview loops every 110 s */
 export const squirrelSlotLen = force => (force && force.has('squirrel') ? 110 : SQUIRREL.slot);
 export function squirrelSlot(j, ctx = {}) {
@@ -282,7 +283,7 @@ export function squirrelSlot(j, ctx = {}) {
 /** a night's coyote (PURE): rare (any quiet night from ~10 pm, likeliest 1–4 am); only when the promenade is nearly empty (the
  *  people's own count by the clock). It trots in, stops under a lamp, turns its head to us (the eye-flash), slips off. On full-moon
  *  nights a distant howl (+ the visit's own, head up). → { t0, legs: [{ k: 'trot' | 'stop', ... }], t1, howl?, distant? } | null */
-export const COYOTE = Object.freeze({ chance: 0.3, trot: 2.4, stop: [6, 10], full: 0.93 });
+export const COYOTE = Object.freeze({ ...knob('wild.coyote'), trot: 2.4, stop: [6, 10], full: 0.93 });
 export function coyoteNight(key, day0, L, ctx = {}) {
   const f = ctx.force || new Set(), r = R('coy', ctx.seed || 1924, key);
   const on = r() < COYOTE.chance, full = (ctx.moon || 0) >= COYOTE.full;
@@ -348,7 +349,7 @@ export function coyoteTracks(plan, t, fade = 1500) {
 /** an evening's outing (PURE): ~35 % of warm evenings (winter ~12 %) between dusk and 11 pm, 6–16 minutes on the barbershop's outside
  *  window SILL or the side door's step; never while the window moment shows the cat inside (ctx.catInside(a, b)); now + then it stalks
  *  a pigeon on the cobbles (stalk: a moment it may go, if one is near — the live manager decides). → { t0, ta, tb, t1, spot, stalk } */
-export const CAT = Object.freeze({ chance: 0.35, winter: 0.12, len: [360, 960], walk: 0.9 });
+export const CAT = Object.freeze({ ...knob('wild.cat'), walk: 0.9 });
 export function catEvening(key, day0, L, ctx = {}) {
   const f = ctx.force || new Set(), r = R('cat', ctx.seed || 1924, key), month = Number(String(key).split('-')[1]);
   const forced = f.has('cat-out') || f.has('cat-stalk');
@@ -363,7 +364,7 @@ export function catEvening(key, day0, L, ctx = {}) {
 /** PART 11a-1 — THE BLACK CAT (Halloween: core/harbor-holiday.js#halloweenPieces cat — from mid-October): every evening of the build-up
  *  the speakeasy's cat is out on the side door's STEP (beside the jack-o'-lanterns) from just before sunset to 11:45 pm — to 1:30 am on
  *  Halloween night itself; it walks in from the street's left edge + hops up, walks off at the end (the same legs as catPath). PURE. */
-export const BLACK_CAT = Object.freeze({ lead: 0.15, until: 23.75, untilEve: 25.5 });
+export const BLACK_CAT = Object.freeze({ ...knob('wild.cat').black });
 export function halloweenCat(key, day0, L, ctx = {}) {
   const set = ctx.sun ? ctx.sun.set : 18.5, [, m, d] = String(key).split('-').map(Number), eve = m === 10 && d === 31;
   const t0 = day0 + (set - BLACK_CAT.lead) * 3600, t1 = day0 + (eve ? BLACK_CAT.untilEve : BLACK_CAT.until) * 3600;
@@ -380,12 +381,12 @@ export function catPath(L, t0, len, spot) {
 }
 
 // ------------------------------------------------------------------ FIREFLIES (summer nights)
-export const FIREFLY = Object.freeze({ n: 24, tier: [10, 16, 24], from: 21.2, to: 24.6 });
+export const FIREFLY = Object.freeze({ ...knob('wild.fireflies'), n: 24, tier: [10, 16, 24] });
 /** how many fireflies now (PURE): Jun 10 – Aug 31, after dark (21:15 → 00:35), no rain, a light wind; 0 otherwise */
 export function fireflyCount({ h = 22, month = 7, day = 15, rain = 0, wind = 2, dark = 1, force = false } = {}) {
   if (force) return FIREFLY.n;
   const md = month * 100 + day, hh = h < 12 ? h + 24 : h;
-  if (md < 610 || md > 831 || rain > 0.1 || wind > 7 || dark < 0.55 || hh < FIREFLY.from || hh > FIREFLY.to) return 0;
+  if (md < FIREFLY.season[0] || md > FIREFLY.season[1] || rain > 0.1 || wind > 7 || dark < 0.55 || hh < FIREFLY.from || hh > FIREFLY.to) return 0;
   const edge = Math.min(1, (hh - FIREFLY.from) / 0.5, (FIREFLY.to - hh) / 0.6);
   return Math.round(FIREFLY.n * clamp01(edge) * (wind > 4 ? 0.6 : 1));
 }
@@ -402,7 +403,7 @@ export function fireflyAt(q, t, homes) {
 // ------------------------------------------------------------------ THE HERON (on its piling at dawn)
 /** a morning's heron (PURE): April–October on ~45 % of mornings — it glides in round the sunrise, stands on its piling 25–70 min (a
  *  big still shape against the bright water, the neck shifting, a strike at the water now + then), then flies off low over the water */
-export const HERON = Object.freeze({ months: [4, 5, 6, 7, 8, 9, 10], chance: 0.45, glide: 7, stay: [1500, 4200] });
+export const HERON = Object.freeze({ ...knob('wild.heron'), glide: 7 });
 export function heronMorning(key, day0, ctx = {}) {
   const f = ctx.force || new Set(), r = R('her', ctx.seed || 1924, key), month = Number(String(key).split('-')[1]);
   if (f.has('heron')) return null;              // (the preview loops: heronForced)
@@ -415,7 +416,7 @@ export function heronMorning(key, day0, ctx = {}) {
 export function heronForced(t) { const n = Math.floor(t / 80), t0 = n * 80; return { ta: t0 + HERON.glide, tb: t0 + 70, t0, t1: t0 + 70 + HERON.glide, from: n % 2 ? 1 : -1, to: n % 2 ? -1 : 1, strikes: [t0 + 41] }; }
 
 // ------------------------------------------------------------------ FISH JUMPING (ripple rings in the near water)
-export const FISH = Object.freeze({ slot: 45, band: [66, 104], f: [0.4, 0.8] });
+export const FISH = Object.freeze({ ...knob('wild.fish'), band: [66, 104], f: [0.4, 0.8] });
 /** the jump in slot j (PURE): { t0, x, z, big } | null — likeliest at dawn + dusk, a few by day, rare at night */
 /** the slot (s): the preview jumps every 9 s */
 export const fishSlotLen = force => (force && force.has('fish') ? 9 : FISH.slot);
