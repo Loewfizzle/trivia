@@ -47,7 +47,7 @@ export async function publicProfile(pid) {
   // PROGRESSION A: l = the level (derived from x when an old profile lacks it); what they WEAR — cd card · g glow · tb tube style · es
   // emblem shape (item ids, core/items.js; the old VAULT's finish / glow ids mapped)
   return { pid, n: p.n, t: p.t, a: p.a, c: p.c, x: p.x || 0, l: p.l || levelOf(p.x || 0), r: p.r || 0, h: !!p.h, at: p.at || 0, s: p.s || 0,
-    cd: p.cd || OLD_FINISH[p.f] || null, g: OLD_GLOW[p.g] || p.g || null, tb: p.tb || null, es: p.es || null, fd: !!p.fd, bid: boardId(pid), m, mm: minMatches() };
+    cd: p.cd || OLD_FINISH[p.f] || null, g: OLD_GLOW[p.g] || p.g || null, tb: p.tb || null, es: p.es || null, fd: !!p.fd, sd: p.sd || null, bid: boardId(pid), m, mm: minMatches() };
 }
 
 /** Claims a 4-digit tag for a name: `prefer` if it's free under that name, else a random free one. */

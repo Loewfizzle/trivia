@@ -3,11 +3,13 @@
 // makes a replayed report a no-op. The year sim (tests/levels.test.mjs) runs this exact function.
 //
 //   pstats/{pid}: { xp, g{game:{p,w,…}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{game:1}}, last, m{key: at},
-//                   gd (the week whose goal was paid), it{item: at} (THE VAULT — owned items, server-granted only) … }
+//                   gd (the week whose goal was paid), it{item: at} (THE VAULT — owned items, server-granted only), st (THE STREAK —
+//                   core/streak.js), fv (FAVOR tokens held — PROGRESSION B spends them) … }
 import { boardDef, better, BOARD_GAMES } from './boards.js';
 import { matchXp, weeklyGoal, goalProgress, GOAL_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
 import { weekKey, dayKey } from './week.js';
+import { streakDay, streakPlay } from './streak.js';
 
 export const KEEP_KEYS = 60;
 export const DEFAULT_GAP_MS = 45_000;
@@ -22,10 +24,10 @@ export function grant(next, ids, now) {
 }
 
 /**
- * One counted match. s = the stats as they are (or null); { key, gid, row: { rank, win, c, rec }, n, now, gap } →
- * { skip } | { next, pbs, xp, from, prevStats, wk, lv: { from, to }, items: [ids new to this player] }
+ * One counted match. s = the stats as they are (or null); { key, gid, row: { rank, win, c, rec }, n, now, gap, outage (streak days the
+ * owner marked) } → { skip } | { next, pbs, xp, from, prevStats, wk, lv: { from, to }, streak: { n, ev }, items: [ids new to this player] }
  */
-export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS }) {
+export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, outage = null }) {
   const s = s0 || {};
   if (s.m && s.m[key]) return { skip: 'counted' };
   if (s.last && now - s.last < gap && now >= s.last) return { skip: 'too_soon' };
@@ -65,7 +67,19 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS }) {
   // XP had already earned, at once, the first time it is touched
   const lv = { from: levelOf(from), to: levelOf(next.xp) };
   const items = grant(next, s.it ? rewardsBetween(lv.from, lv.to) : rewardsUpTo(lv.to), now);
-  return { next, pbs, xp, from, prevStats: s, wk, lv, items };
+  const streak = playDay(next, now, outage);
+  items.push(...streak.items);
+  return { next, pbs, xp, from, prevStats: s, wk, lv, items, streak: { n: next.st.n, ev: streak.ev } };
+}
+
+/** THE STREAK's day for a play (a match / a daily): the run, its milestones' items (+ a FAVOR token) — into next. */
+export function playDay(next, now, outage) {
+  const { st, ev } = streakPlay(next.st, streakDay(now), outage);
+  next.st = st;
+  const items = grant(next, ev.milestones.flatMap(m => m.items), now);
+  const fav = ev.milestones.reduce((a, m) => a + (m.favor || 0), 0);
+  if (fav) next.fv = (next.fv || 0) + fav;
+  return { ev, items };
 }
 
 /** The carry-over outside a match (the `me` call): the rewards an XP total has earned and `it` lacks → { next, items } | null. */
@@ -76,4 +90,26 @@ export function carryOver(s0, now) {
   const next = { ...s };
   const items = grant(next, want, now);
   return items.length ? { next, items } : null;
+}
+
+/**
+ * One finished DAILY (the daily contract — core/daily.js): it keeps THE STREAK like a match + the dailies' counters (the achievements read
+ * them). Idempotent by its key (m/daily_<game>_<day>). { game, day (the streak day), now, top (% from the top), n (finishers), hourET } →
+ * { skip } | { next, items, streak: { n, ev }, dl }
+ *   dl = { n (different days with a daily), last (day), day: { k, g: { game: 1 } }, early (dailies before 8 am), ph (PENTHOUSE finishes) }
+ */
+export function dailyStep(s0, { game, day, now, top = 100, n = 0, hourET = 12, outage = null }) {
+  const s = s0 || {};
+  const key = `daily_${game}_${day}`;
+  if (s.m && s.m[key]) return { skip: 'counted' };
+  const next = { ...s, m: { ...(s.m || {}), [key]: now } };
+  const dl = { n: 0, early: 0, ph: 0, ...(s.dl || {}) };
+  if (dl.last !== day) { dl.n += 1; dl.last = day; }
+  dl.day = dl.day && dl.day.k === day ? { k: day, g: { ...(dl.day.g || {}) } } : { k: day, g: {} };
+  dl.day.g[game] = 1;
+  if (hourET >= 4 && hourET < 8) dl.early += 1;
+  if (n >= 50 && top <= 1) dl.ph += 1;
+  next.dl = dl;
+  const streak = playDay(next, now, outage);
+  return { next, items: streak.items, streak: { n: next.st.n, ev: streak.ev }, dl };
 }

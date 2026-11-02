@@ -10,7 +10,10 @@ import { bumpOwners } from './owners.js';
 
 // one match per player per this long — a real match takes minutes; this stops a forged room from farming wins
 export const MIN_MATCH_GAP_MS = Number(process.env.MATCH_GAP_MS ?? 45_000);
-const step = (stats, key, gid, row, n, now) => matchStep(stats, { key, gid, row, n, now, gap: MIN_MATCH_GAP_MS });
+const step = (stats, key, gid, row, n, now, outage) => matchStep(stats, { key, gid, row, n, now, gap: MIN_MATCH_GAP_MS, outage });
+
+/** THE OUTAGE days the owner marked in /admin (streak/outage/{day}) — small; read once per report. */
+export const outageDays = async () => (await val('streak/outage')) || {};
 
 /**
  * ex: core/match-report.js#extractMatch output; pids: { uid: pid }.
@@ -18,12 +21,13 @@ const step = (stats, key, gid, row, n, now) => matchStep(stats, { key, gid, row,
  */
 export async function applyMatch(key, ex, pids, now = Date.now()) {
   const outcomes = {};
+  const outage = await outageDays().catch(() => ({}));
   await Promise.all(Object.entries(ex.rows).map(async ([uid, row]) => {
     const pid = pids[uid];
     if (!pid) return;
     let res = null;
     const tx = await ref(`pstats/${pid}`).transaction(cur => {
-      res = step(cur, key, ex.gid, row, ex.n, now);
+      res = step(cur, key, ex.gid, row, ex.n, now, outage);
       return res.skip ? undefined : res.next;
     });
     if (!tx.committed || !res || res.skip) {
@@ -47,7 +51,7 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
       }));
     }
     const r0 = emblemRank(res.from), r1 = emblemRank(stats.xp);
-    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }) };
+    const patch = { [`profiles/${pid}/x`]: stats.xp, [`profiles/${pid}/l`]: levelOf(stats.xp), [`profiles/${pid}/r`]: r1, [`profiles/${pid}/s`]: (stats.st && stats.st.n) || 1, [`profiles/${pid}/sd`]: (stats.st && stats.st.d) || null, [`profiles/${pid}/m`]: played, ...boardPaths(pid, stats, { hidden: !listed, now, only: ex.gid }) };
     await ref('/').update(patch);
     // "X% OF PLAYERS HAVE THIS": the owners' counts (best effort — a count is display only)
     await bumpOwners(res.items, !matchCount(res.prevStats)).catch(e => console.warn('owners', e && e.message));
@@ -66,7 +70,7 @@ export async function applyMatch(key, ex, pids, now = Date.now()) {
     outcomes[pid] = {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n,
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
-      rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1,
+      rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,
     };
   }));
   clearBoardCache();

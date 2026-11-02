@@ -85,11 +85,17 @@ function shell() {
             confirmBtn('Clear all', async () => { renderReports((await call('clearReports')).reports); toast('Cleared'); audit(); }, 'is-danger'))),
         h('p.ad-dim', 'City 2.0 snapshots: SEND REPORT in the &debug=1 strip (TAP), or sent by the page itself when it froze (HANG — the main thread stopped answering; STALL — no frames). Newest 40 kept.'),
         h('ol.ad-errs', { id: 'ad-reps' }, h('li.ad-dim', 'Loading…'))),
+      // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
+      h('section.ad-card.ad-outage', { id: 'ad-outage' },
+        h('h2', 'Streak outage'),
+        h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
+        h('div.ad-row', { id: 'ad-outage-row' }, h('span.ad-dim', 'Loading…'))),
       // SCHED Group 5 — THE DAY CHART (the same chart as /daychart: the city's day hour by hour + the year view, from the timetable)
       h('section.ad-card.ad-audit', h('div.ad-row.ad-between', h('h2', 'The day chart'), h('a.ad-link', { href: '/daychart' }, 'Full page ›')), dayChartRoot),
       h('section.ad-card.ad-audit', h('div.ad-row.ad-between', h('h2', 'Audit log'), h('button.ad-btn', { type: 'button', onclick: audit }, 'Refresh')), h('ol.ad-log', { id: 'ad-log' }))));
   mountDayChart(dayChartRoot);
   audit();
+  outages();
   errors();
   reports();
   flags();
@@ -275,6 +281,22 @@ function renderStats() {
   box.replaceChildren(
     h('div.ad-row.ad-between', h('h2', 'Stats'), h('span.ad-dim', `${S.totals.matches.toLocaleString()} matches counted`)),
     h('div.ad-stats-grid', gamesBlock(), playersBlock(), dailyBlock(), growthBlock(), timesBlock()));
+}
+
+// THE OUTAGE: today + the 6 days before, each a toggle (a second tap confirms)
+async function outages(r) {
+  const row = document.getElementById('ad-outage-row');
+  if (!row) return;
+  try {
+    r ||= await call('outages');
+    const { dayNum, dayOf } = await import('../core/streak.js');
+    const T = dayNum(r.today), on = r.outage || {};
+    row.replaceChildren(...Array.from({ length: 7 }, (_, i) => {
+      const d = dayOf(T - i), lit = !!on[d];
+      const lab = `${i === 0 ? 'TODAY' : i === 1 ? 'YESTERDAY' : d.slice(5, 7) + '/' + d.slice(7)}${lit ? ' · OUTAGE' : ''}`;
+      return confirmBtn(lab, async () => { outages({ ...(await call('outage', { day: d, on: !lit })), today: r.today }); toast(lit ? 'Outage removed' : 'Outage marked — no streak breaks'); audit(); }, lit ? 'is-primary' : '');
+    }));
+  } catch (e) { row.replaceChildren(h('span.ad-dim', `Couldn’t load (${e.message || e})`)); }
 }
 
 async function errors() {

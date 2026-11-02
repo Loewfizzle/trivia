@@ -1,0 +1,87 @@
+// POST /api/daily { action, … } — THE DAILY CONTRACT (PROGRESSION A; core/daily.js). Signed-in players with a profile; no database socket
+// on the phone (THE PARKED DATABASE — a solo daily is /api only).
+//   start  { game }            → { day, seed, startedAt, done? }      ONE OFFICIAL TRY: the first start is recorded (a refresh = the same try)
+//   finish { game, result }    → { day, score, stand: { n, pct, top, band }, outcome: { streak, items } }   checked + stored server-side
+//   today  { pids? }           → { day, mine: { game: score }, friends: { pid: { game: { done } | { score } } } }   (YOUR TABLE's TODAY)
+//
+//   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · h/{bucket}: count · n: finishers      (server only — the rules' default deny)
+import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
+import { ref, val } from './_lib/fb.js';
+import { pidOf } from './_lib/profiles.js';
+import { bumpOwners } from './_lib/owners.js';
+import { outageDays } from './_lib/stats.js';
+import { dailySeed, loadDailies } from './_lib/dailies.js';
+import { dailyOf, bucketOf, standing, todayView, dailyIds } from '../js/core/daily.js';
+import { streakDay } from '../js/core/streak.js';
+import { dailyStep } from '../js/core/progress.js';
+import { easternParts } from '../js/core/week.js';
+import { isPid } from './_lib/profiles.js';
+
+async function mine(uid) {
+  const pid = await pidOf(uid);
+  if (!pid) throw new ApiError(404, 'no_profile');
+  return pid;
+}
+const cartOf = id => { const c = dailyOf(id); if (!c) throw new ApiError(404, 'no_daily'); return c; };
+
+export async function dailyAction(uid, body, now = Date.now()) {
+  loadDailies();
+  const day = streakDay(now);
+  switch (body.action) {
+    case 'start': {
+      const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
+      const tx = await ref(`${base}/s/${pid}`).transaction(cur => (cur ? undefined : now));
+      const startedAt = tx.snapshot.val();
+      const done = await val(`${base}/r/${pid}`);
+      return { day, seed: dailySeed(cart.id, day), startedAt, done: done ?? null };
+    }
+    case 'finish': {
+      const pid = await mine(uid), cart = cartOf(body.game), base = `dly/${cart.id}/${day}`;
+      const startedAt = await val(`${base}/s/${pid}`);
+      if (!startedAt) throw new ApiError(409, 'not_started', 'Start today’s daily first.');
+      const score = cart.verify(dailySeed(cart.id, day), body.result, { startedAt, now });
+      if (typeof score !== 'number' || !Number.isFinite(score)) throw new ApiError(422, 'refused', 'That result doesn’t check out.');
+      // ONE official try: the first finish is the score (a retry gets the stored one back)
+      const claim = await ref(`${base}/r/${pid}`).transaction(cur => (cur != null ? undefined : score));
+      const kept = claim.snapshot.val();
+      if (claim.committed) {
+        const { ServerValue } = await import('firebase-admin/database');
+        await ref('/').update({ [`${base}/h/${bucketOf(cart, kept)}`]: ServerValue.increment(1), [`${base}/n`]: ServerValue.increment(1) });
+      }
+      const [hist, n] = await Promise.all([val(`${base}/h`), val(`${base}/n`)]);
+      const stand = standing(cart, hist || {}, n || 1, kept);
+      // the player's stats: THE STREAK + the dailies' counters (idempotent by the day's key)
+      const outage = await outageDays().catch(() => ({}));
+      let res = null;
+      await ref(`pstats/${pid}`).transaction(cur => { res = dailyStep(cur, { game: cart.id, day, now, top: stand.top, n: stand.n, hourET: easternParts(now).h, outage }); return res.skip ? undefined : res.next; });
+      if (res && !res.skip) {
+        const st = res.next.st;
+        await ref('/').update({ [`profiles/${pid}/s`]: st.n, [`profiles/${pid}/sd`]: st.d });
+        await bumpOwners(res.items, !(res.next.g && Object.keys(res.next.g).length) && res.dl.n === 1).catch(() => {});
+      }
+      return { day, score: kept, again: !claim.committed, stand: { n: stand.n, pct: stand.pct, top: Math.round(stand.top * 10) / 10, band: stand.band ? stand.band.name : null },
+        outcome: res && !res.skip ? { streak: res.streak, items: res.items } : null };
+    }
+    case 'today': {
+      const pid = await mine(uid);
+      const games = dailyIds();
+      const mineScores = {};
+      await Promise.all(games.map(async g => { const v = await val(`dly/${g}/${day}/r/${pid}`); if (v != null) mineScores[g] = v; }));
+      const friends = {};
+      const pids = (Array.isArray(body.pids) ? body.pids : []).map(String).filter(isPid).filter(p => p !== pid).slice(0, 12);
+      await Promise.all(pids.map(async p => {
+        const theirs = {};
+        await Promise.all(games.map(async g => { const v = await val(`dly/${g}/${day}/r/${p}`); if (v != null) theirs[g] = v; }));
+        friends[p] = todayView(mineScores, theirs);
+      }));
+      return { day, mine: mineScores, friends };
+    }
+    default: throw new ApiError(400, 'bad_action');
+  }
+}
+
+export default route(['POST'], async (req, res) => {
+  const uid = await requireUser(req);
+  const body = await readBody(req);
+  send(res, 200, await dailyAction(uid, body));
+});

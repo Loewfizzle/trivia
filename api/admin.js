@@ -37,6 +37,7 @@ import { weekKey } from '../js/core/week.js';
 import { summarize } from '../js/core/insights.js';
 import { activity } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
+import { streakDay, dayNum } from '../js/core/streak.js';
 import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
 
 async function audit(by, act, pid, detail = {}) {
@@ -240,6 +241,15 @@ export async function adminAction(uid, body, now = Date.now()) {
     }
     case 'cityLive': return cityLive(me, body, now);
     case 'cityClear': await ref('city2/live').remove(); await audit(me, 'cityClear', null); return { live: null };
+    // THE OUTAGE (PROGRESSION A): a streak day the site was down → nobody's streak breaks over it (core/streak.js); audited
+    case 'outage': {
+      const day = String(body.day || '');
+      if (!/^d\d{8}$/.test(day) || dayNum(day) > dayNum(streakDay(now)) || dayNum(streakDay(now)) - dayNum(day) > 14) throw new ApiError(400, 'bad_day');
+      await ref(`streak/outage/${day}`).set(body.on === false ? null : { by: me, at: now });
+      await audit(me, body.on === false ? 'outageOff' : 'outageOn', null, { b: day });
+      return { outage: (await val('streak/outage')) || {} };
+    }
+    case 'outages': return { outage: (await val('streak/outage')) || {}, today: streakDay(now) };
     default: throw new ApiError(400, 'bad_action');
   }
 }

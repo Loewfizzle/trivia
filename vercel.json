@@ -101,6 +101,9 @@
     },
     "api/time.js": {
       "maxDuration": 3
+    },
+    "api/daily.js": {
+      "maxDuration": 10
     }
   }
 }
