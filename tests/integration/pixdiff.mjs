@@ -42,6 +42,9 @@ const SCENES = {
   fog: 'when=2026-11-03T21:30&wx=fog&force=no-planes,no-birds',
   'fog-party': 'when=2026-10-24T22:20&wx=fog&force=no-planes,no-birds',
   mist: 'when=2026-11-03T21:30&force=mist,no-planes,no-birds',
+  // SCHED: the weather's cut — rain + snow at night
+  rain: 'when=2026-11-05T21:30&wx=rain&force=no-planes,no-birds',
+  snow: 'when=2026-12-15T21:30&wx=snow&force=no-planes,no-birds',
 };
 const names = arg('scenes', 'night,party,noon,golden').split(',');
 mkdirSync(OUT, { recursive: true });
