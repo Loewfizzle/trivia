@@ -19,6 +19,13 @@ test('a Saturday party night: the street party, its dance breaks, the party show
   assert.ok(C.party && C.items.some(i => i.label === 'THE STREET PARTY') && C.items.some(i => /DANCE BREAK/.test(i.label)) && C.items.some(i => i.label === 'THE PARTY SHOW'));
   assert.equal(C.items.filter(i => i.cat === 'legendary').length, 4);
 });
+test('THE FULL 24 HOURS (the owner\'s SCHED review): 4 am → 4 am — the milkman at 6, the boss\'s TV to 3 am + his shade, the lights out 2–4 am', () => {
+  const C = dayChart('2026-11-03', { off: -300 });
+  assert.ok(C.items.some(i => i.label === 'The milk truck' && i.h0 < 6.1));
+  assert.ok(C.items.some(i => /BOSS pulls his shade/.test(i.label) && i.h0 === 27));
+  const outs = C.items.filter(i => /^LIGHTS OUT/.test(i.label));
+  assert.ok(outs.length >= 3 && outs.every(i => i.h0 >= 26 && i.h0 < 28.5), outs.map(i => i.h0).join());
+});
 test('a stormy winter day: the fireworks called off', () => {
   const C = dayChart('2027-01-19', { off: -300, wx: { storm: true, rain: 0.9 } });
   assert.ok(C.items.some(i => i.cat === 'fireworks' && /CALLED OFF/.test(i.label)));

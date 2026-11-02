@@ -95,12 +95,12 @@ export function weeknightScript(seed) {
  *  the willows end the show) */
 export function partyScript(seed) {
   const F = knob('fireworks.party'), r = rngFrom(hashString(`fwP|${seed}`)), dur = Math.round(lerp(F.dur[0], F.dur[1], r())), fin = dur - F.finale;
-  const curtain = dur - 8, eggsAt = curtain - 4.5;   // (WINDOWS: the eggs' one burst, then the curtain 4.5 s later — its tails rise through the crackle)
+  const eggsAt = dur - 12.5, launch = eggsAt + (F.curtainAfter[0] + F.curtainAfter[1]) / 2, RZ = F.curtainRise;   // (CITY CONTROLS A — THE FINALE's GAP: the willows LAUNCH ~0.9 s after the eggs' burst — their tails rise through the dying crackle, never a silent pause)
   const cues = [
     ...[0.52, 0.66, 0.8, 0.94, 0.59, 0.87].map((x, i) => ({ t: 2.5 + i * 0.32, type: 'peony', layer: 'barge', x, h: 0.55 + 0.06 * (i % 3), c1: ['white', 'red', 'white', 'blue', 'gold', 'green'][i] })),
     { t: 6.5, type: 'chrys', layer: 'barge', x: 0.72, h: 0.88, s: 1.3, c1: 'gold', big: true },
     // THE CURTAIN: gold willows the whole width (the sky layer behind the skyline + the barges in front), staggered
-    ...Array.from({ length: 9 }, (_, i) => ({ t: curtain + (i % 3) * 0.18 + (i * 0.07), type: 'willow', layer: i % 2 ? 'sky' : 'barge', x: 0.08 + i * 0.105, h: i % 2 ? 0.36 : 0.86, s: i % 2 ? 1.5 : 1.35, c1: 'gold', c2: 'gold', big: true })),
+    ...Array.from({ length: 9 }, (_, i) => ({ t: launch + RZ[i % 2] + (i % 3) * 0.18 + (i * 0.07), rise: RZ[i % 2], type: 'willow', layer: i % 2 ? 'sky' : 'barge', x: 0.08 + i * 0.105, h: i % 2 ? 0.36 : 0.86, s: i % 2 ? 1.5 : 1.35, c1: 'gold', c2: 'gold', big: true })),
     // THE CLOSING DRAGON EGGS (PERF-A — the owner, Nov 1: "those were the really cool ones"; they were 4 shells over the right third):
     // 8 crackle shells LEFT EDGE → RIGHT EDGE behind the lit sign. WSP (the owner's PERF-B review, Nov 1: "all of them launch at the same
     // moment + burst at the same moment"): ONE SALVO — the same burst time + the same rise (so the same launch), the tails rising together;
@@ -181,18 +181,22 @@ export function fireworksBusy(shows, a, b) {
 export function syncToBeat(plan, t0, gridAt) {
   if (!plan || !gridAt) return plan;
   const snap = (t, unit, g) => { const p = g.beat * unit, k = Math.round((t - g.b0 - (g.down || 0) * g.beat) / p); return g.b0 + (g.down || 0) * g.beat + k * p; };
-  // the curtain: its first willow on the nearest phrase, the rest keep their stagger
-  const curtain = plan.cues.filter(c => c.type === 'willow' && c.big && c.t > plan.dur - 12);
-  // (WINDOWS — THE LAST ORDER: the curtain stays AFTER the dragon eggs — a phrase snap that would pull it in front of them takes the
-  // next phrase instead, else it keeps its time)
-  const eggs = plan.cues.filter(c => c.type === 'crackle' && c.big && c.t > plan.dur - 14), eggT = eggs.length ? Math.max(...eggs.map(c => c.t)) : -Infinity;
+  // THE CURTAIN (CITY CONTROLS A — THE FINALE's GAP, the owner: "the length of the pause feels unnatural"; was a PHRASE snap that could
+  // leave ~8 s of nothing): the gold willows LAUNCH on the NEXT STRONG BEAT after the dragon eggs' burst (half a bar, between
+  // curtainAfter's soonest + latest; else the next beat) — while the crackle still dies, never a bar later; the rest keep their stagger
+  const curtain = plan.cues.filter(c => c.type === 'willow' && c.big && c.t > plan.dur - 14);
+  const eggs = plan.cues.filter(c => c.type === 'crackle' && c.big && c.t > plan.dur - 16), eggT = eggs.length ? Math.max(...eggs.map(c => c.t)) : -Infinity;
   let shiftC = 0;
-  if (curtain.length) {
-    const first = Math.min(...curtain.map(c => c.t)), g = gridAt(t0 + first);
+  if (curtain.length && eggs.length) {
+    const A = knob('fireworks.party').curtainAfter, L = Math.min(...curtain.map(c => c.t - (c.rise || 0)));
+    // (the eggs' own burst after their bar snap — the same rule as below)
+    let eS = eggT; { const g = gridAt(t0 + eggT); if (g && g.beat > 0.2) { const u = g.bar || 4, s = snap(t0 + eggT, u, g) - (t0 + eggT); if (Math.abs(s) <= u * g.beat * 0.5 + 1e-6 && eggT + s - Math.max(...eggs.map(c => c.rise || 0)) >= -0.4) eS = eggT + s; } }
+    const from = t0 + eS + A[0], g = gridAt(from);
     if (g && g.beat > 0.2) {
-      const P = (g.bar || 4) * 4 * g.beat, s = snap(t0 + first, (g.bar || 4) * 4, g) - (t0 + first), after = x => first + x >= eggT + (g.bar || 4) * g.beat * 0.5 + 2.5;
-      shiftC = [s, s + P].find(x => Math.abs(x) <= P && (Math.abs(x) <= P / 2 || x > 0) && after(x)) ?? 0;
-    }
+      const base = g.b0 + (g.down || 0) * g.beat, next = unit => { const p = unit * g.beat; return base + Math.ceil((from - base) / p - 1e-9) * p; };
+      let at = next((g.bar || 4) / 2); if (at > t0 + eS + A[1] + 1e-6) at = next(1);
+      shiftC = at - t0 - L;
+    } else shiftC = eS + (A[0] + A[1]) / 2 - L;
   }
   const out = plan.cues.map(c => {
     if (curtain.includes(c)) return { ...c, t: Math.round((c.t + shiftC) * 1000) / 1000 };

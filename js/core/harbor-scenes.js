@@ -25,7 +25,7 @@ export const SCENE_ROOMS = Object.freeze(['bar', 'jazz', 'back']);
 export const EDGE_ROOMS = Object.freeze(['edge2', 'edge3']);
 export const AFTER_ROOMS = Object.freeze([...SCENE_ROOMS, ...EDGE_ROOMS]);
 /** a room's own light behind its shade when no scene that night gives it one (back: the boxer's warm bulb) */
-export const ROOM_GLOW = Object.freeze({ bar: [255, 150, 170], jazz: [255, 176, 92], back: [255, 200, 128] });
+export const ROOM_GLOW = Object.freeze({ bar: [255, 150, 170], jazz: [232, 122, 64], back: [255, 200, 128] });
 /** each scene's shared parts (s): up — the shade rising before he's in; enter — his walk-in (+ setting up); exit — his wrap-up, ending with
  *  pull — him PULLING THE SHADE DOWN (eased) */
 export const SCENE_TIMING = Object.freeze({

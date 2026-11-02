@@ -1,7 +1,7 @@
 // CITY 2.0 — WINDOWS: THE JUGGLER's ROOM (core/harbor-juggler.js: what he does; core/harbor-scenes.js: when) — the bottom-right window,
 // 6:30 → 9:30 pm. THE WINDOW STANDARD (the boxer's craft): ONE LAMP on a side table to his right, low, its shade at the arcs' apex height —
-// every throw's top passes through its brightest light. His room WARM AMBER (SCHED — the owner's DESKTOP review: DESKTOP's absinthe green
-// was "too hard to see anything" → back to the amber WINDOWS shipped; reading close to the boxer's warm light is accepted), a PLAIN back
+// every throw's top passes through its brightest light. His room a deep, dim COPPER (CITY CONTROLS A — the owner's SCHED review: the amber read the
+// same as the boxer's gold → lower + redder, never green / blue / pink; DESKTOP's absinthe green was "too hard to see anything"), a PLAIN back
 // wall behind his whole stage (the owner's WINDOWS review: the old doorway hid his body), and the balls NEON EVERY NIGHT (magenta · yellow · orange — the red + cream couldn't be seen): glowing, the
 // brightest things in the room. PARTY NIGHTS add the PULSE on the song's beat + the room lit in their colours. Every pose eased; he walks in
 // from the SIDE (off the pane's left edge), sets down his bag, takes the balls out, starts slow; at the end he catches all three, a flourish,
@@ -12,7 +12,7 @@ import { cached, man, rimmed, walk, crouch, sit, stand, mix, ik, ease, lerp, lp,
 
 const TAU = Math.PI * 2;
 const NEON = { 0: [255, 46, 170], 1: [255, 228, 60], 2: [255, 128, 28] };           // every night: magenta · yellow · orange (glowing over the amber room)
-const AMBER = [255, 178, 96];                                                       // the lamp's light: warm amber (his rim, the pull's) — SCHED: back from DESKTOP's green
+const AMBER = [228, 122, 66];                                                       // the lamp's light: a deep, dim COPPER (his rim, the pull's) — CITY CONTROLS A: the owner's SCHED review (the old amber read the same as the boxer's gold)
 
 /** his FRONT pose (square to us): hands at [x, y] (his units), toss 0..1 per hand (the forearm's flick), knee (the right knee up: under the leg),
  *  dy (a crouch: the hips down), bob, step (a walking step's phase: the feet lifting in turn) */
@@ -46,11 +46,11 @@ export function jugglerRoom(E, st, o = {}) {
   cached(c, 'juggler', [x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1], c => {
   // ---- the room: the back wall dark brown, lit round the lamp (amber, falling off); the floor darker; the corners in shade
     { const g = c.createRadialGradient(lamp[0], lamp[1], 0.02 * ch, lamp[0], lamp[1], 1.25 * ch);
-      g.addColorStop(0, rgb([248, 178, 100])); g.addColorStop(0.25, rgb([200, 120, 58])); g.addColorStop(0.6, rgb([112, 62, 30])); g.addColorStop(1, rgb([42, 22, 12]));
+      g.addColorStop(0, rgb([214, 116, 62])); g.addColorStop(0.25, rgb([164, 74, 36])); g.addColorStop(0.6, rgb([88, 38, 20])); g.addColorStop(1, rgb([34, 14, 8]));
       c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, ch + 0.1); }
-    { const g = c.createLinearGradient(0, y0, 0, floorV + 0.03 * ch); g.addColorStop(0, rgb([22, 12, 8])); g.addColorStop(1, rgb([72, 40, 20]));
+    { const g = c.createLinearGradient(0, y0, 0, floorV + 0.03 * ch); g.addColorStop(0, rgb([20, 9, 6])); g.addColorStop(1, rgb([60, 28, 16]));
       c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, floorV + 0.03 * ch - y0 + 0.05);
-      c.fillStyle = 'rgba(255,184,100,0.16)'; c.beginPath(); c.ellipse(lamp[0] - 0.08 * cw, floorV - 0.02 * ch, 0.38 * cw, 0.05 * ch, 0, 0, TAU); c.fill(); }
+      c.fillStyle = 'rgba(226,118,62,0.13)'; c.beginPath(); c.ellipse(lamp[0] - 0.08 * cw, floorV - 0.02 * ch, 0.38 * cw, 0.05 * ch, 0, 0, TAU); c.fill(); }
     for (const s of [-1, 1]) { const ex = s < 0 ? x0 : x0 + cw, g = c.createLinearGradient(ex, 0, ex - s * 0.2 * cw, 0); g.addColorStop(0, 'rgba(10,6,4,0.66)'); g.addColorStop(1, 'rgba(10,6,4,0)'); c.fillStyle = g; c.fillRect(s < 0 ? x0 - 0.05 : x0 + cw * 0.8, y0 - 0.05, cw * 0.2 + 0.05, ch + 0.1); }
     // ---- the stool (left) + his bag (on the floor by it)
     const stoolX = PX(JUG.stool), seat = floorV + 0.27 * H;
@@ -198,9 +198,9 @@ export function jugglerRoom(E, st, o = {}) {
   if (bottle && pose) { const fx = Math.sign(face) || 1, sq = Math.max(0.35, Math.abs(face)), P = p => [X + fx * sq * p[0] * H, Y + p[1] * H], hp = P(pose.arms.rear[1]); c.save(); c.translate(hp[0], hp[1]); c.rotate(bottle === 'mouth' ? -fx * 1.9 : 0); c.fillStyle = 'rgb(22,30,18)'; c.fillRect(-0.016 * H, 0, 0.032 * H, 0.1 * H); c.fillRect(-0.008 * H, 0.1 * H, 0.016 * H, 0.04 * H); c.fillStyle = 'rgba(150,240,200,0.5)'; c.fillRect(0.004 * H, 0.015 * H, 0.006 * H, 0.06 * H); c.restore(); }
   // ---- the lamp's shade + bulb glow LAST (in front of the room's air: the light itself)
   { const sw = 0.24 * cw, sh = 0.13 * ch, sx = lamp[0], sy = lamp[1];
-    c.fillStyle = rgb([255, 196, 120]); c.beginPath(); c.moveTo(sx - sw * 0.36, sy + sh * 0.5); c.lineTo(sx + sw * 0.36, sy + sh * 0.5); c.lineTo(sx + sw * 0.5, sy - sh * 0.5); c.lineTo(sx - sw * 0.5, sy - sh * 0.5); c.closePath(); c.fill();
+    c.fillStyle = rgb([206, 108, 60]); c.beginPath(); c.moveTo(sx - sw * 0.36, sy + sh * 0.5); c.lineTo(sx + sw * 0.36, sy + sh * 0.5); c.lineTo(sx + sw * 0.5, sy - sh * 0.5); c.lineTo(sx - sw * 0.5, sy - sh * 0.5); c.closePath(); c.fill();
     const g = c.createLinearGradient(sx - sw * 0.5, 0, sx + sw * 0.5, 0); g.addColorStop(0, 'rgba(120,60,20,0.35)'); g.addColorStop(0.5, 'rgba(255,240,200,0.2)'); g.addColorStop(1, 'rgba(120,60,20,0.35)'); c.fillStyle = g; c.fill();
-    c.save(); c.globalCompositeOperation = 'lighter'; glowAt(c, sx, sy - sh * 0.55, 0.32 * ch, [255, 170, 80], 0.4); glowAt(c, sx, sy, 0.16 * ch, [255, 210, 150], 0.45); c.restore(); }
+    c.save(); c.globalCompositeOperation = 'lighter'; glowAt(c, sx, sy - sh * 0.55, 0.3 * ch, [232, 104, 48], 0.26); glowAt(c, sx, sy, 0.14 * ch, [250, 150, 100], 0.24); c.restore(); }
   // ---- at the glass: the pull (drawn after the shade — windows.js runs E.front)
   if (st.phase === 'exit' && st.pull > 0) E.front = () => pullAtGlass(E, st.pull, hemAt(G, st.shade || 0), { x: 0.56, hat: 'cap', rim: AMBER, rimA: 0.5 });
   return { phase: st.phase, kind, air, x: +((X - x0) / cw).toFixed(3), drop: !!floorBall, party };

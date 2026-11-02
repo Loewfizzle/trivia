@@ -618,7 +618,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     if (base <= 0.002) return;
     if (it.kind === 'board') {
       // (DT1: the board is LAMP-LIT — its gooseneck lamps' level: on from late golden hour, a dim wash once the neon is up)
-      const a = alpha(it, 0, t, motion) * base * (f.bill != null ? f.bill : f.night);
+      const a = alpha(it, 0, t, motion) * base * (f.bill != null ? f.bill : f.night); it.nightA = a;   // (CITY CONTROLS A: the crisp message copy follows it)
       if (a > 0.01 && it.night) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(it.night.c, it.night.x, it.night.y, it.night.w, it.night.h); c.globalCompositeOperation = 'lighter'; }
       return;
     }
@@ -787,7 +787,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     if (a > 0.01 && led.sp) { c.globalAlpha = a; c.drawImage(led.sp.c, led.sp.x, led.sp.y, led.sp.w, led.sp.h); c.globalAlpha = 1; }
   }
   function boardsLit(c, group, t, motion, f) {
-    for (const it of items) if (it.kind === 'board' && inGroup(it, group) && it.night) { const a = alpha(it, 0, t, motion) * f.fade * (f.bill != null ? f.bill : f.night); if (a > 0.01) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(it.night.c, it.night.x, it.night.y, it.night.w, it.night.h); } }
+    for (const it of items) if (it.kind === 'board' && inGroup(it, group) && it.night) { const a = alpha(it, 0, t, motion) * f.fade * (f.bill != null ? f.bill : f.night); it.nightA = a; if (a > 0.01) { c.globalCompositeOperation = 'source-over'; c.globalAlpha = a; c.drawImage(it.night.c, it.night.x, it.night.y, it.night.w, it.night.h); } }
   }
 
   function ledFacade(c, gf, t, f, partyK) {
@@ -1072,6 +1072,8 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     layout, pump, glass, draw, powerTick, housingStep,
     /** 9c: the billboards now (the crisp layer lays the speakeasy's roof board's poster at full dpr by day) */
     boards: () => boards,
+    /** CITY CONTROLS A: a board's lamp-lit level as drawn last frame (0..1) — the crisp copy of a message at night follows it */
+    boardNightA: id => { const it = items.find(x => x.kind === 'board' && x.id === id); return it && it.nightA ? it.nightA : 0; },
     /** tests: each outline's visible runs on screen (after the cut) — { id, z, group, runs: [[[x, y]…]…] } */
     runs: () => outs.map(o2 => ({ id: o2.id, z: o2.z, group: o2.group, runs: o2.runs.map(r => r.pts.map(([x, y]) => [+x.toFixed(1), +y.toFixed(1)])) })),
     /** bumps when a billboard's content changes: the scene re-bakes (the boards are baked with the facades) */

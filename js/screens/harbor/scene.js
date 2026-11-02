@@ -801,9 +801,19 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
         if (veil9 > 0) { x.save(); x.globalCompositeOperation = 'source-atop'; x.fillStyle = `rgba(4,4,26,${(0.54 * veil9).toFixed(3)})`; x.fillRect(sp.box.x, sp.box.y, sp.box.w, sp.box.h); x.restore(); } } });
     }
     // the roof board's poster face (by day: at night its lamps light it live in the city's canvas, softly — the crisp copy fades out at dusk)
-    const rb = !busy && dk > 0.01 && !neon.fresh() ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak') : null;
+    // (CITY CONTROLS A: a swapped board waits only until ITS bake has landed — neon.fresh() never clears, so a day's first hint used to
+    //  switch the crisp poster off for the rest of the visit)
+    const fr9 = neon.fresh(), freshNow = !!(fr9 && fr9.rev > freshDone);
+    const rb = !busy && dk > 0.01 && !freshNow ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak') : null;
     if (rb && rb.rect) { const R0 = rb.rect, ck = rb.content ? `${rb.content.title}|${rb.content.sub}` : rb.id;
       crisp.show(c, { id: 'roofboard', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${bk}|${ck}`, xfade: xf2, alpha: fadeIn * dk, draw: x => { x.beginPath(); x.rect(R0.x, R0.y, R0.w, R0.h); x.clip(); rb.dayDraw(x, bakeTones); } }); }
+    // CITY CONTROLS A — THE BILLBOARD's MESSAGES CRISP AT NIGHT (the owner's SCHED review: a hint, the Sunday postcard, a typed message at
+    // the phone's FULL dpr): the lamp-lit poster face on the crisp layer, at the city's own lamp level for the board (a game's poster stays
+    // in the city's canvas — only the messages, the lettering the eye reads)
+    const rbN = !busy ? (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak' && b.content && b.content.lines && b.nightPoster) : null;
+    if (rbN && rbN.rect) { const R0 = rbN.rect, aN = neon.boardNightA ? neon.boardNightA(rbN.id) : 0;
+      const kN = Math.round(Math.min(1, aN) * 50) / 50;   // (quantised: a repaint only when the lamps' level steps — ~0.06 MB, cheap)
+      if (aN > 0.01) crisp.show(c, { id: 'roofboard-msg', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${rbN.content.lines.join('|')}|${rbN.content.art || ''}|${rbN.dead}|${crisp.dpr}|${kN}`, xfade: 0, alpha: fadeIn, draw: x => rbN.nightPoster(x, crisp.dpr, kN) }); }
     crisp.end();
   }
   // (9d — THE FROST: the PANE only (the owner, DECIDED: "the frost on the buttons looks bad" → none on the buttons or the dock); the

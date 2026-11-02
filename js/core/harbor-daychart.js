@@ -6,7 +6,8 @@ import { knob } from './harbor-schedule.js';
 import { legendsTonight, mediumDay, showcaseLevel, showcaseOf } from './harbor-showcase.js';
 import { patrolDay } from './harbor-heli.js';
 import { workDay } from './harbor-workers.js';
-import { scenesTonight } from './harbor-scenes.js';
+import { scenesTonight, shadesNight } from './harbor-scenes.js';
+import { MOMENT, SHADE_LEN } from './harbor-moments.js';
 import { boxerNight } from './harbor-boxer.js';
 import { fireworksNight, fireworksWeather } from './harbor-fireworks.js';
 import { partyNight, danceBreaks } from './harbor-streetparty.js';
@@ -18,6 +19,8 @@ import { mixNow } from './harbor-people.js';
 import { sunPosition } from './sky.js';
 
 const pad = n => String(n).padStart(2, '0');
+/** THE CITY's OWN DAY (the owner's SCHED review — a FULL 24 HOURS): 4 am → 4 am the next morning (local hours on the day's clock) */
+export const DAY_FROM = 4, DAY_TO = 28;
 const NAMES = Object.freeze({ ufo: 'THE UFO ABDUCTION', tr3b: 'THE TR-3B + THE JET CHASE', flyby: 'THE SURPRISE FLYBY', blackbird: 'THE BLACKBIRD' });
 const WORKER_NAMES = Object.freeze({ newsdrop: 'The newspaper van', newsboy: 'The newsboy', evening: 'The evening edition', barber: 'The barber opens', cop: 'The beat cop', patrol: 'The beat cop’s night round',
   mail: 'The mailman', bartender: 'The bartender arrives', doorman: 'The doorman', flowers: 'The flower seller', musician: 'The musician', staff: 'The staff lock up', henchman: 'The henchman’s night shift',
@@ -51,6 +54,13 @@ export function dayChart(dateKey, o = {}) {
   // THE WINDOWS (the scenes + the shadowboxer)
   for (const sc of scenesTonight(key, { seed })) add('windows', sc.start / 3600, sc.end / 3600, SCENE_NAMES[sc.id] || sc.id);
   { const bx = boxerNight(key, { seed }), P = knob('boxer'); if (bx.on) add('windows', P.from, bx.party && !bx.stay ? P.wrapAt : P.to, 'THE SHADOWBOXER'); }
+  // THE SMALL HOURS (the owner's SCHED review: "every hour, the small hours included"): the boss's blue TV from his lights-out to 3 am, his
+  // shade pull + the nightlight, the scene rooms' LIGHTS OUT one at a time (~2–4 am), the edge windows' with them
+  { const lo = MOMENT['lights-out'].at; add('windows', lo, 27, 'THE BOSS’s BLUE TV (his room)');
+    add('windows', 27, 27 + SHADE_LEN / 3600, 'THE BOSS pulls his shade (the nightlight till dawn)');
+    const ROOM = { bar: 'the bottom middle', jazz: 'the bottom right', back: 'the top middle', edge2: 'an edge window', edge3: 'an edge window' };
+    const outs = shadesNight(key, { seed, scenes: scenesTonight(key, { seed }) });
+    for (const [id, s] of Object.entries(outs)) add('windows', s / 3600, s / 3600 + 1 / 60, `LIGHTS OUT — ${ROOM[id] || id}’s shade goes dark`); }
   // THE PARTY (Fri + Sat) + its dance breaks
   if (party) {
     const N = knob('party.night'); add('party', N.from, N.to, 'THE STREET PARTY');
@@ -69,7 +79,7 @@ export function dayChart(dateKey, o = {}) {
   if (m === 10 && d === 31) for (const gh of ghostShipTimes(y)) add('holiday', gh, gh + GHOST_LEN / 3600, 'THE GHOST SHIP', true);
   { const pw = paradeWindow(day0 + 12 * 3600, { off }); if (pw) add('holiday', H(pw.T0), H(pw.T1), 'THE THANKSGIVING PARADE', true); }
   // THE BILLBOARD's hints (each one's window — it shows its spell every few minutes inside it)
-  { const seen = new Map(); for (let q = 6 * 4; q < 26 * 4; q++) { const hh = q / 4, lc = hh < 24 ? { y, m, d, h: Math.floor(hh), mi: (hh % 1) * 60, s: 0 } : (() => { const p = new Date(Date.UTC(y, m - 1, d) + 864e5); return { y: p.getUTCFullYear(), m: p.getUTCMonth() + 1, d: p.getUTCDate(), h: Math.floor(hh - 24), mi: ((hh - 24) % 1) * 60, s: 0 }; })();
+  { const seen = new Map(); for (let q = DAY_FROM * 4; q < DAY_TO * 4; q++) { const hh = q / 4, lc = hh < 24 ? { y, m, d, h: Math.floor(hh), mi: (hh % 1) * 60, s: 0 } : (() => { const p = new Date(Date.UTC(y, m - 1, d) + 864e5); return { y: p.getUTCFullYear(), m: p.getUTCMonth() + 1, d: p.getUTCDate(), h: Math.floor(hh - 24), mi: ((hh - 24) % 1) * 60, s: 0 }; })();
       for (const x of hintsAt(lc, { level: lv })) { const k = `${x.id}|${x.lines.join(' ')}`, e = seen.get(k); if (e && e.h1 >= hh - 0.25) e.h1 = hh + 0.25; else { const it = { cat: 'billboard', h0: hh, h1: hh + 0.25, label: `THE BILLBOARD: ${x.lines.join(' / ')}`, big: false }; seen.set(k, it); items.push(it); } } } }
   items.sort((a, b) => a.h0 - b.h0 || (b.big - a.big));
   const summary = [

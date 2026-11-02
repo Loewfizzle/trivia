@@ -718,6 +718,20 @@ export function buildBillboard(spot, content, ctx) {
       x.save(); x.globalCompositeOperation = 'multiply'; x.globalAlpha = dk; x.drawImage(lc, R.x, R.y, R.w, R.h); x.restore(); lc.width = lc.height = 0;
     }
   };
-  return { id: spot.id, spot, rect: R, content, dayDraw, nightS, lamps, poster, light, dead: ctx.dead == null ? null : ctx.dead };
+  // (CITY CONTROLS A — THE BILLBOARD's MESSAGES CRISP, the owner's SCHED review: a hint / the postcard / a typed message at night = the
+  // poster face in its lamps' light drawn at the PHONE's FULL dpr on THE CRISP LAYER (nothing passes in front of the roof board) — the
+  // same art as nightS, clipped to the poster: the light map at the layer's own resolution + the shades' glow over the top edge)
+  // (k: the lamps' level as the city draws it — the city lays the lit poster at k over the UNLIT one, so the copy does the same, opaque)
+  const nightPoster = (x, hiDpr = 3, k = 1) => {
+    x.save(); x.beginPath(); x.rect(R.x, R.y, R.w, R.h); x.clip();
+    if (k < 0.999) { poster(x, 0); x.fillStyle = 'rgba(6,5,14,0.88)'; x.fillRect(R.x, R.y, R.w, R.h); x.globalAlpha = Math.max(0, k); }
+    poster(x, 0);
+    const lc = document.createElement('canvas'); lc.width = Math.max(1, Math.ceil(R.w * hiDpr)); lc.height = Math.max(1, Math.ceil(R.h * hiDpr));
+    const lx = safeCtx(lc); if (lx) { lx.scale(hiDpr, hiDpr); lampLightMap(lx, R, litLamps, dun ? 0.17 : 0); x.globalCompositeOperation = 'multiply'; x.drawImage(lc, R.x, R.y, R.w, R.h); }
+    lc.width = lc.height = 0; x.globalCompositeOperation = 'source-over';
+    lampGlows(x, litLamps, R, 1);   // (at k too: globalAlpha)
+    x.restore();
+  };
+  return { id: spot.id, spot, rect: R, content, dayDraw, nightS, nightPoster, lamps, poster, light, dead: ctx.dead == null ? null : ctx.dead };
 }
 export { MARKS };

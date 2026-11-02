@@ -2,7 +2,7 @@
 // planners the city runs). Mounted by /daychart (daychart.html, admins only) and by /admin (its card). Phone first: one column at 390,
 // NEON GLASS cards, the categories as coloured chips. Prefix dc-.
 import { h } from '../ui/dom.js';
-import { dayChart, yearView, clockOf } from '../core/harbor-daychart.js';
+import { dayChart, yearView, clockOf, DAY_FROM, DAY_TO } from '../core/harbor-daychart.js';
 import { SHOWCASE_LEVELS, showcaseOf } from '../core/harbor-showcase.js';
 import { thanksgiving } from '../core/sky.js';
 
@@ -22,7 +22,7 @@ export function sampleDays(now = new Date()) {
     { id: 'today', label: 'TODAY', key: keyOf(now) },
     { id: 'tue', label: 'A TUESDAY', key: keyOf(nextDow(2, now)) },
     { id: 'sat', label: 'A SATURDAY PARTY NIGHT', key: keyOf(nextDow(6, now)) },
-    { id: 'sun', label: 'A LAZY SUNDAY', key: keyOf(nextDow(0, now)), from: 10, to: 19 },
+    { id: 'sun', label: 'A LAZY SUNDAY', key: keyOf(nextDow(0, now)) },
     { id: 'hol', label: hol.getMonth() === 9 ? 'HALLOWEEN NIGHT' : 'THANKSGIVING', key: keyOf(hol) },
     { id: 'storm', label: 'A STORMY WINTER DAY', key: keyOf(nextDow(2, new Date(y + (now.getMonth() >= 1 ? 1 : 0), 0, 12))), wx: { storm: true, rain: 0.9, wind: 12, snow: 0.3 } },
   ];
@@ -42,7 +42,7 @@ export function mountDayChart(root, o = {}) {
     const picks = h('div.dc-days', ...days.map(d => h('button.dc-day', { type: 'button', class: st.day === d.id && !st.date ? 'is-on' : '', onclick: () => { st.day = d.id; st.date = null; render(); } }, d.label)),
       h('input.dc-date', { type: 'date', value: key, 'aria-label': 'Any date', onchange: e => { if (e.target.value) { st.date = e.target.value; render(); } } }));
     const legend = h('div.dc-legend', ...Object.entries(CATS).map(([k, [l, c]]) => h('span.dc-chip', { style: { '--c': c } }, l)));
-    const from = pick.from != null && !st.date ? pick.from : 6, to = pick.to != null && !st.date ? pick.to : 26;
+    const from = DAY_FROM, to = DAY_TO;   // (the owner's SCHED review: the full 24 hours, 4 am → 4 am)
     const hours = [];
     for (let hr = from; hr < to; hr++) {
       const its = C.items.filter(i => i.h0 >= hr && i.h0 < hr + 1);

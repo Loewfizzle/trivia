@@ -1,8 +1,8 @@
 // CITY 2.0 — WINDOWS: THE CHARLESTON's ROOM (core/harbor-charleston.js: what she does; core/harbor-scenes.js: when) — the bottom-middle
 // window, 7 → 10 pm. THE WINDOW STANDARD: ONE ROSY LAMP with a FRINGED shade (at the left) — a warm pink room; SHE IS LIT, never a silhouette:
 // a BRIGHT TEAL FRINGE DRESS whose fringe tiers swing with every kick + twist (the legs + the dress carry it at ~40 pt), bare arms + legs in
-// the lamp's warm light (brighter on its side), a black bob + a gold band. The chair she collapses into (left), the phonograph + its brass horn
-// (right). Big shapes, light + colour — nothing the phone can't show. THE OWNER's WINDOWS REVIEW (Nov 2 — "hard to see what she's doing — you
+// the lamp's warm light (brighter on its side), a black bob + a gold band. The chair she collapses into (left), the phonograph
+// (right — its brass horn REMOVED: CITY CONTROLS A, the owner's SCHED review, "confusing zoomed out"). Big shapes, light + colour — nothing the phone can't show. THE OWNER's WINDOWS REVIEW (Nov 2 — "hard to see what she's doing — you
 // see her feet moving"; the PINK stays): she is BIGGER in the frame (~86 % of the pane), the kicks go to hip height + out wide, the arms swing
 // wide, the limbs thicker, and a DARK PLUM CONTOUR round her whole shape separates the teal from the pink (a clear silhouette at ~40 pt).
 import { CHA, charlestonPlan, stepAt, movesAt, ENTER, EXIT } from '../../core/harbor-charleston.js';
@@ -101,11 +101,12 @@ export function charlestonRoom(E, st, o = {}) {
       c.fillStyle = g; c.fillRect(x0 - 0.05, y0 - 0.05, cw + 0.1, floorV + 0.02 * ch - y0 + 0.05);
       c.fillStyle = 'rgba(255,170,190,0.18)'; c.beginPath(); c.ellipse(lamp[0] + 0.18 * cw, floorV - 0.02 * ch, 0.42 * cw, 0.05 * ch, 0, 0, TAU); c.fill(); }
     { const g = c.createLinearGradient(x0 + cw, 0, x0 + cw * 0.78, 0); g.addColorStop(0, 'rgba(20,6,14,0.6)'); g.addColorStop(1, 'rgba(20,6,14,0)'); c.fillStyle = g; c.fillRect(x0 + cw * 0.78, y0 - 0.05, cw * 0.22 + 0.05, ch + 0.1); }
-    // ---- THE PHONOGRAPH (right): a small table, the box, the brass horn flaring up + toward the room (its rim catching the lamp)
+    // ---- THE PHONOGRAPH (right): a small table, the box, its turntable (no horn — the owner's SCHED review)
     c.fillStyle = 'rgb(50,22,30)'; c.fillRect(ph[0] - 0.11 * cw, ph[1], 0.22 * cw, 0.36 * H); c.fillRect(ph[0] - 0.13 * cw, ph[1] + 0.36 * H - 0.02 * ch, 0.26 * cw, 0.03 * ch);
     c.fillStyle = 'rgb(70,32,26)'; c.fillRect(ph[0] - 0.08 * cw, ph[1] + 0.37 * H, 0.16 * cw, 0.09 * H);
-    { const bx = ph[0] - 0.02 * cw, by = ph[1] + 0.46 * H, g = c.createLinearGradient(bx - 0.2 * cw, 0, bx + 0.05 * cw, 0); g.addColorStop(0, rgb([255, 214, 130])); g.addColorStop(1, rgb([150, 96, 40]));
-      c.fillStyle = g; c.beginPath(); c.moveTo(bx, by); c.quadraticCurveTo(bx - 0.04 * cw, by + 0.16 * H, bx - 0.2 * cw, by + 0.3 * H); c.lineTo(bx - 0.08 * cw, by + 0.37 * H); c.quadraticCurveTo(bx - 0.02 * cw, by + 0.2 * H, bx + 0.02 * cw, by + 0.02 * H); c.closePath(); c.fill(); }
+    // (its brass HORN REMOVED — CITY CONTROLS A, the owner's SCHED review: the tall gold flare behind her arm was "confusing zoomed out";
+    //  nothing bright behind her silhouette — the cabinet + its dark turntable only)
+    c.fillStyle = 'rgb(36,14,22)'; c.beginPath(); c.ellipse(ph[0], ph[1] + 0.465 * H, 0.075 * cw, 0.012 * ch, 0, 0, TAU); c.fill();
     // ---- THE CHAIR (left, by the lamp): a plum armchair, its arm + back catching the rosy light
     c.fillStyle = 'rgb(84,30,56)'; c.beginPath(); c.roundRect(chair[0] - 0.13 * cw, chair[1], 0.26 * cw, 0.42 * H, 0.03 * ch); c.fill();
     c.fillStyle = 'rgb(110,40,72)'; c.beginPath(); c.roundRect(chair[0] - 0.15 * cw, chair[1] + 0.06 * H, 0.06 * cw, 0.22 * H, 0.02 * ch); c.fill(); c.beginPath(); c.roundRect(chair[0] + 0.09 * cw, chair[1] + 0.06 * H, 0.06 * cw, 0.22 * H, 0.02 * ch); c.fill();

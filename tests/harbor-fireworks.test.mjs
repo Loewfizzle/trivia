@@ -78,13 +78,18 @@ test('the party show builds to its finale → THE DRAGON EGGS → ends on the GO
   const eggs = p.cues.filter(c => c.type === 'crackle' && c.big && c.t > p.dur - 14);
   assert.ok(eggs.length >= 6 && eggs.length <= 8, `${eggs.length} dragon eggs at the end`);
   assert.ok(Math.min(...eggs.map(c => c.x)) < 0.12 && Math.max(...eggs.map(c => c.x)) > 0.88, 'left edge → right edge');
-  assert.ok(eggs.every(c => c.t < Math.min(...curtain.map(q => q.t)) - 2.5), 'the eggs BEFORE the curtain (WINDOWS: the curtain is last)');
+  assert.ok(eggs.every(c => c.t < Math.min(...curtain.map(q => q.t)) - 2), 'the eggs BEFORE the curtain (WINDOWS: the curtain is last)');
+  // CITY CONTROLS A — THE FINALE's GAP: the willows LAUNCH 0.5–1.25 s after the eggs' burst (one continuous close, never a silent pause)
+  { const L = Math.min(...curtain.map(c => c.t - c.rise)) - eggs[0].t; assert.ok(L >= 0.5 && L <= 1.25, `the curtain launches ${L} s after the eggs`); }
   assert.ok(p.cues.every(c => curtain.includes(c) || c.t < Math.min(...curtain.map(q => q.t))), 'nothing bursts after the curtain starts');
   // ...and the beat sync never flips them, whatever the grid (tempo + phase)
   for (const beat of [0.4, 0.5, 0.55, 0.62]) for (const b0 of [1000, 1000.13, 1000.31, 1000.5]) {
     const q = syncToBeat(p, 1000, () => ({ b0, beat, bar: 4, down: 0 }));
     const cu = q.cues.filter(c => c.type === 'willow' && c.c1 === 'gold' && c.big && c.t > q.dur - 14), eg = q.cues.filter(c => c.type === 'crackle' && c.big && c.t > q.dur - 16);
-    assert.ok(Math.max(...eg.map(c => c.t)) + 2.4 < Math.min(...cu.map(c => c.t)), `beat ${beat} b0 ${b0}: eggs ${Math.max(...eg.map(c => c.t))} before the curtain ${Math.min(...cu.map(c => c.t))}`);
+    assert.ok(Math.max(...eg.map(c => c.t)) + 2 < Math.min(...cu.map(c => c.t)), `beat ${beat} b0 ${b0}: eggs ${Math.max(...eg.map(c => c.t))} before the curtain ${Math.min(...cu.map(c => c.t))}`);
+    // ...the willows LAUNCH on the next strong beat (or beat) 0.5–1.25 s after the eggs' burst — never a bar later
+    const L = Math.min(...cu.map(c => c.t - c.rise)), gap = L - eg[0].t, onBeat = Math.abs(((L + 1000 - b0) / beat) - Math.round((L + 1000 - b0) / beat)) < 1e-6;
+    assert.ok(gap >= 0.5 - 1e-6 && gap <= 1.25 + 1e-6 && onBeat, `beat ${beat} b0 ${b0}: the curtain launches ${gap.toFixed(3)} s after the eggs (on a beat: ${onBeat})`);
   }
   // WSP — ONE SALVO (the owner's PERF-B review): the same launch + the same burst for every egg, before + after the beat sync
   for (const q of [p, syncToBeat(p, 1000, t => ({ b0: 1000.13, beat: 0.5, bar: 4, down: 0 }))]) {
