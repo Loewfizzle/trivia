@@ -1451,3 +1451,19 @@ body.nd-on .gm-panel, body.cb-split .gm-panel { left: calc(var(--safe-l) + 12px)
 .pf-card.fin-4 { box-shadow: 0 0 0 1px rgba(255, 155, 224, 0.7), 0 0 44px rgba(255, 155, 224, 0.3), 0 20px 50px rgba(0, 0, 0, 0.45); }
 .rc-xp-step { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.14em; color: var(--rk, #fff); }
 .rc-xp-card { margin-left: auto; padding: 6px 10px; border-radius: 999px; font: 700 9.5px/1 var(--font-display); letter-spacing: 0.14em; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); }
+
+/* ---- DESKTOP Group 4 — MOUSE + KEYBOARD (the owner's desktop question 5): a pointer cursor + a gentle glow on everything clickable —
+   only where a real hover exists (a mouse / a trackpad): a touch screen never sees any of it. The lift is a transform (eased); the glow a
+   static drop-shadow switched on with it (never animated — the 60-fps rule). Esc closes the topmost sheet (app.js) + the ☰ menu. */
+@media (hover: hover) and (pointer: fine) {
+  button:not(:disabled), [role="button"], a[href], .nd-codebox, .chip { cursor: pointer; }
+  .nd-actions button, .menu-btn, .music-btn, .gm-panel button, .modal .btn { transition: transform 0.18s var(--ease); }
+  .nd-actions button:not(:disabled):hover, .menu-btn:hover, .music-btn:hover, .gm-panel button:hover { transform: translateY(-1px) scale(1.04); filter: drop-shadow(0 0 9px rgba(196, 214, 255, 0.5)); }
+  .modal .btn:not(:disabled):hover, .btn:not(:disabled):hover { transform: translateY(-1px); filter: drop-shadow(0 0 8px rgba(196, 214, 255, 0.42)); }
+  .nd.nd-hovering, .nd.nd-hovering .nd-city { cursor: pointer; }
+  .nd .nd-hover { display: block; }   /* (more specific than the hidden default below) */
+}
+/* the city's hover ring over a game sign / the speakeasy's door (title.js#onHover): placed at once, faded in + out */
+.nd-hover { display: none; position: fixed; left: 0; top: 0; width: 0; height: 0; pointer-events: none; border-radius: 10px; opacity: 0; transition: opacity 0.2s ease;
+  box-shadow: 0 0 0 1.5px rgba(255, 238, 206, 0.6), 0 0 22px 6px rgba(255, 214, 150, 0.32); }
+.nd-hover.on { opacity: 1; }

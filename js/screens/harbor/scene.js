@@ -22,7 +22,7 @@ import { deckSpec } from '../../core/party-deck.js';
 import { partyTimeline, danceBreaks, partyNight, eveningOf as spEveningOf } from '../../core/harbor-streetparty.js';
 import { breakFlight, patrolInSlot } from '../../core/harbor-heli.js';
 import { knob } from '../../core/harbor-schedule.js';
-import { tierVal } from '../../core/harbor-tiers.js';
+import { tierVal, budgetDpr } from '../../core/harbor-tiers.js';
 import { LIVE_ROOMS } from '../../core/harbor-moments.js';
 import { SLOT_MS } from '../../core/harbor-events.js';
 import { paletteFor } from '../district/palette.js';
@@ -854,9 +854,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     return { tag, dock, neon: tr && tr.neon ? tr.neon : null, word: tr && tr.word ? tr.word : null, corner, cornerL };
   }
   function build(why = 'the start') {
+    unpinResize();   // (DESKTOP: a held resize frame lets go here, the same frame the new layout draws)
     const r = canvas.getBoundingClientRect(), was = W ? `${Math.round(W)}×${Math.round(H)}@${dpr}` : '';
     W = Math.max(320, r.width); H = Math.max(320, r.height);
-    dpr = Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr);
+    dpr = budgetDpr(W, H, Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr), dprTier);   // (DESKTOP: under THE PIXEL BUDGET — a phone never reaches it)
     canvas.width = Math.round(W * dpr); canvas.height = Math.round(H * dpr);
     { const now = `${Math.round(W)}×${Math.round(H)}@${dpr}`; if (now !== was) LOADLOG.add('canvas', `${was || 'none'} → ${now} (${why})`); }
     layout(why);
@@ -1993,9 +1994,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }
 
   // ------------------------------------------------------------------ the frame
+  let devDpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
   function frame(now) {
     if (!running) return;
     raf = requestAnimationFrame(frame);
+    // (DESKTOP Group 4: the window moved to a screen of another pixel ratio — not every browser fires 'resize' or the media query for it:
+    //  a property read a frame (no layout) starts the same debounced re-fit)
+    if (window.devicePixelRatio !== devDpr) { devDpr = window.devicePixelRatio; onResize(); }
     if (wantBuild) { const why = typeof wantBuild === 'string' ? wantBuild : 'a rebuild'; wantBuild = false; measure(); build(why); }      // (FP3a: the clear and the redraw in ONE frame — never a blank one)
     if (benchPause) { seenAt = performance.now(); lastRaf = now; last = now; return; }   // (SKY-B: THE BENCH's COOL-DOWN — the city's frames skipped)
     seenAt = performance.now();                          // (8a: THE LOOP'S PULSE — the watchdog below restarts a loop that stopped getting frames)
@@ -3430,8 +3435,22 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (a resize that changed nothing — iOS fires one on the way back from the home screen — never re-bakes the city)
   // (FP3a: in the load window a height-only change under 25 % — Safari's bars settling — waits for the LAST one + 400 ms; a width
   // change or a big one (a rotation) at once; the build runs from the next frame)
+  // DESKTOP Group 4 — THE RESIZE, SMOOTH (the owner: dragging the window bigger / smaller / to another monitor — no stretch, flash, reload or
+  // freeze): while the size is unsettled the city's last frame is HELD at its built size + the whole layer (the canvas, the crisp lettering,
+  // the panes) scaled uniformly to cover the new window, anchored at the bottom middle (the ground + the dock) — one transform, no
+  // re-draw; the debounced re-fit below lays the city out again + clears it (build → unpinResize) in the frame it draws
+  const pinResize = () => {
+    const host = canvas.parentElement; if (!host || !W || shownAt < 0) return;
+    const nw = host.clientWidth, nh = host.clientHeight;   // (the layout size — untransformed, unlike a bounding rect)
+    if (Math.abs(nw - W) < 0.5 && Math.abs(nh - H) < 0.5) { unpinResize(); return; }
+    const s = Math.max(nw / W, nh / H);
+    canvas.style.width = `${W}px`; canvas.style.height = `${H}px`;
+    host.style.transformOrigin = '0 0'; host.style.transform = `translate(${((nw - s * W) / 2).toFixed(1)}px, ${(nh - s * H).toFixed(1)}px) scale(${s.toFixed(4)})`;
+  };
+  function unpinResize() { if (canvas.style.width) { canvas.style.width = ''; canvas.style.height = ''; } const host = canvas.parentElement; if (host && host.style.transform) host.style.transform = ''; }
   const onResize = () => {
-    const now = performance.now(), r0 = canvas.getBoundingClientRect();
+    pinResize();
+    const now = performance.now(), hostR = canvas.parentElement, r0 = hostR && canvas.style.width ? { width: hostR.clientWidth, height: hostR.clientHeight } : canvas.getBoundingClientRect();
     lastResizeAt = now;
     { const vp = vpSize(); LOADLOG.add('resize', `${vpLast || '?'} → ${vp} · canvas ${Math.round(r0.width)}×${Math.round(r0.height)} (city ${Math.round(W)}×${Math.round(H)})`); vpLast = vp; }
     const big = Math.abs(Math.max(320, r0.width) - W) >= 0.5 || Math.abs(Math.max(320, r0.height) - H) >= 0.25 * H;
@@ -3439,8 +3458,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     resizeT = setTimeout(() => {
       resizeT = 0;
       if (destroyed) return;
-      const r = canvas.getBoundingClientRect();
-      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr) === dpr) { LOADLOG.add('note', 'the resize changed nothing the city uses: kept'); return; }
+      // (DESKTOP: measured on the scene's layer, untransformed — a held frame's canvas is pinned at the old size + scaled)
+      const hostE = canvas.parentElement, r = hostE && canvas.style.width ? { width: hostE.clientWidth, height: hostE.clientHeight } : canvas.getBoundingClientRect();
+      if (Math.abs(Math.max(320, r.width) - W) < 0.5 && Math.abs(Math.max(320, r.height) - H) < 0.5 && budgetDpr(Math.max(320, r.width), Math.max(320, r.height), Math.min(window.devicePixelRatio || 1, TIERS[dprTier].dpr), dprTier) === dpr) { LOADLOG.add('note', 'the resize changed nothing the city uses: kept'); return; }
       fastUntil = Math.max(fastUntil, performance.now() + 1500);
       if (running) wantBuild = 'a resize'; else { measure(); build('a resize'); }
     }, inLoad(now) && !big ? 400 : 180);
@@ -3513,6 +3533,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   window.addEventListener('pageshow', onShow); window.addEventListener('focus', onFocus);
   window.addEventListener('pointerdown', onTapWake, { capture: true, passive: true });
   window.addEventListener('resize', onResize);
+  // (DESKTOP Group 4 — THE RESIZE: a window dragged to a monitor with another pixel ratio may fire no 'resize' at all — the ratio itself is
+  //  watched: its media query changes → the same debounced re-fit (re-armed for the new ratio each time); while the window changes, the
+  //  last frame scales uniformly (css/title.css .nd-scene canvas: object-fit cover) — never stretched, never a flash, no reload)
+  let dprMq = null;
+  const onDpr = () => { armDpr(); onResize(); };
+  const armDpr = () => { try { if (dprMq) dprMq.removeEventListener('change', onDpr); dprMq = window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`); dprMq.addEventListener('change', onDpr); } catch { dprMq = null; } };
+  armDpr();
   // (POLISH 5: the visualViewport's own changes + the fonts landing, for the load log)
   const onVV = () => { const vp = vpSize(); if (vp !== vpLast) { LOADLOG.add('resize', `visualViewport: ${vpLast || '?'} → ${vp}`); vpLast = vp; } };
   if (window.visualViewport) window.visualViewport.addEventListener('resize', onVV);
@@ -3602,6 +3629,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { kind: 'door' };
       return null;
     },
+    /** DESKTOP Group 4 — THE HOVER (a mouse only, title.js#onCityHover): what a click here would answer, asked with NO side effects (no
+     *  spin, no sound, no 60-fps boost) → { kind, rect? (pt: a game sign or the door — the glow's box) } | null */
+    hover(x, y) {
+      const sg = neon.hit(x, y); if (sg) return { kind: 'sign', rect: sg.rect || null };
+      const r = L && L.door.rect; if (r && x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h) return { kind: 'door', rect: r };
+      if (L && (beam.hit(x, y) || boats.hit(x, y) || wheel.hit(x, y))) return { kind: 'harbor' };
+      return null;
+    },
     /** WIN — THE SPIDER'S TAP (the owner's iPhone: tapping it did nothing — title.js answered every tap inside the logo's rect with a
      *  letter buzz before the scene was asked): the dressing's hit alone, asked FIRST by title.js#onCityTap; { kind: 'spider' } or null */
     spiderHit(x, y) { if (!dress) return null; const d = dress.hit(x, y); if (d) fastUntil = performance.now() + 1500; return d; },
@@ -3672,7 +3707,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** City 2.0 only: the camera, the layout's screen boxes, the bake + memory, the events */
     /** PART 7a: is a &force= preview on right now (the URL's or THE PREVIEW PANEL's, live) */
     forced: id => clock.force.has(id),
-    harbor: () => (L ? { fireworks: () => { const nowS = clock.now() / 1000; let tonight = []; try { tonight = LK.local ? fwNightOf(nowS).map(sh => ({ kind: sh.kind, t0: sh.t0, t1: sh.t1, inS: Math.round(sh.t0 - nowS) })) : []; } catch { /* fine */ } return { ...fwx.debug(), on: fwState.on, why: fwState.why, dim: fwState.dim, show: fwState.show ? { id: fwState.show.id, kind: fwState.show.kind, t0: fwState.show.t0, t1: fwState.show.t1, s: +(nowS - fwState.show.t0).toFixed(2) } : null, tonight, lights: fwx.lights().length, ly: fwx.lights().map(l => Math.round(l.y)), synced: !!(fwState.show && fwPlan(fwState.show.kind, fwState.show.seed, fwState.show.t0).synced), under: (() => { const cv = document.querySelector('.hb-fw'); return cv ? { parent: cv.parentElement ? cv.parentElement.className : '', afterCity: (() => { const k = [...cv.parentElement.children], i = k.indexOf(cv), crisp = k.findIndex(e => e.classList && e.classList.contains('hc-crisp')); return i > k.indexOf(canvas) && (crisp < 0 || i < crisp); })(), z: cv.style.zIndex } : null; })(), mb: fwx.mem(), crowd: (() => { try { return fwCrowd(); } catch (e) { return String(e); } })() }; }, tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
+    harbor: () => (L ? { fireworks: () => { const nowS = clock.now() / 1000; let tonight = []; try { tonight = LK.local ? fwNightOf(nowS).map(sh => ({ kind: sh.kind, t0: sh.t0, t1: sh.t1, inS: Math.round(sh.t0 - nowS) })) : []; } catch { /* fine */ } return { ...fwx.debug(), on: fwState.on, why: fwState.why, dim: fwState.dim, show: fwState.show ? { id: fwState.show.id, kind: fwState.show.kind, t0: fwState.show.t0, t1: fwState.show.t1, s: +(nowS - fwState.show.t0).toFixed(2) } : null, tonight, lights: fwx.lights().length, ly: fwx.lights().map(l => Math.round(l.y)), synced: !!(fwState.show && fwPlan(fwState.show.kind, fwState.show.seed, fwState.show.t0).synced), under: (() => { const cv = document.querySelector('.hb-fw'); return cv ? { parent: cv.parentElement ? cv.parentElement.className : '', afterCity: (() => { const k = [...cv.parentElement.children], i = k.indexOf(cv), crisp = k.findIndex(e => e.classList && e.classList.contains('hc-crisp')); return i > k.indexOf(canvas) && (crisp < 0 || i < crisp); })(), z: cv.style.zIndex } : null; })(), mb: fwx.mem(), crowd: (() => { try { return fwCrowd(); } catch (e) { return String(e); } })() }; }, tower: { st: TWS ? { stage: TWS.stage, k: TWS.k, s: TWS.s, crane: TWS.crane, announce: TWS.announce, design: TWS.design ? TWS.design.name : null } : null, key: L.towerKey, fx: towerFx.debug() }, holiday: { state: HS, pieces: HP, rules: HR, dusk: duskH }, dress: dressDebug(), hprops: hprops ? hprops.debug() : null, spiderAt: dress && dress.spiderAt ? dress.spiderAt() : null, spiders: dress && dress.spidersAt ? dress.spidersAt() : [], pokes: pokeLog.slice(), poke: ev => pokeDress(ev || {}), spiderTrip: i => (dress && dress.trip ? dress.trip(i | 0) : false), partyPools: partyPools.slice(), halloweenSky: hsky ? hsky.debug() : null, cam: { W, H, F: cam.F, CAMH: cam.CAMH, VPY: cam.VPY, limitY: cam.limitY, wide: cam.wide, spread: cam.spread, dock: cam.dock, tagGone: !!cam.tagGone, zFront: cam.zFront, cx0: cam.cx0 || 0, dpr }, squeeze: L.squeeze, medallion: L.medallion ? { x: L.medallion.x, z: L.medallion.z, ring: L.medallion.ring } : null, wxSource: wxSourceNow(), keepLive: !!clock.keepLive,
       clouds: { ...clouds.debug(), set: o => clouds.set(o), KINDS: clouds.KINDS, rayHit: clouds.rayHit }, dayfx: dayfx.debug(), chimneys: chimneys.debug(), xmas: { ...XP, tree: treeHeld, xlK: +xlK.toFixed(2) }, parade: parade ? { ...parade.debug(), units: paraUnits ? paraUnits.length : 0 } : null,
       windows: { faces: lights.faces(), spelling: lights.spelling, ...lights.debug(), lateTvRects: lights.lateTvs(), share: litLook.share, key: litBaker.key, bakes: litBaker.bakes, pending: litBaker.pending, mem: litBaker.mem() },
       towers: L.towers.map(tw => ({ id: tw.id, rank: tw.rank, x: project(cam, tw.x0, 0, tw.z0)[0], w: project(cam, tw.x1, 0, tw.z0)[0] - project(cam, tw.x0, 0, tw.z0)[0], top: project(cam, 0, tw.tiers[tw.tiers.length - 1].y0 + tw.tiers[tw.tiers.length - 1].h + (tw.crown ? tw.crown.h : 0), tw.z0)[1] })),
@@ -3749,7 +3784,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT);
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pageshow', onShow); window.removeEventListener('focus', onFocus); window.removeEventListener('pointerdown', onTapWake, { capture: true }); clearInterval(watchdog);
-      window.removeEventListener('resize', onResize);
+      window.removeEventListener('resize', onResize); try { if (dprMq) dprMq.removeEventListener('change', onDpr); } catch { /* fine */ }
       if (window.visualViewport) window.visualViewport.removeEventListener('resize', onVV);
       if (document.fonts && document.fonts.removeEventListener) document.fonts.removeEventListener('loadingdone', onFonts);
       baker.destroy(); litBaker.destroy(); wild.destroy(); for (const d of Object.values(dark.g)) d.cv.width = d.cv.height = 0; freeFront(); sky.destroy(); if (legends) legends.destroy(); snd.destroy(); roadLight.destroy(); leaves.destroy(); waterfront.destroy(); skyBeams.destroy(); strings.destroy(); speak.destroy(); centre.destroy(); neon.destroy(); water.destroy(); wheel.destroy(); beam.destroy(); boats.destroy();

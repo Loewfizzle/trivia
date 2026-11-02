@@ -55,6 +55,10 @@ export const TIERS = Object.freeze({
   // PERF-B — FR5 C2b: the scene's own tier table moved here — the city canvas's pixel ratio (×10; tier 2 = BAKE_CAP: 2, or the device's 3
   // under &dpr=3 — scene.js reads 20 as BAKE_CAP), the bake's ms a frame, the sign dressing's pixel ratio (×10)
   sceneDpr: Object.freeze([10, 15, 20]),
+  // DESKTOP Group 4 — THE PIXEL BUDGET (a 1440p / 4K monitor never draws more than it needs): the city's full-screen canvases (the scene,
+  // the fireworks) stay under this many megapixels (×10) — sharp, never wasteful; a phone never reaches it (430 × 932 at 2 = 1.6 MP, an
+  // iPad sideways at 2 = 3.9 MP); a 1920 × 1080 window at DPR 2 draws at ~1.42 (4.2 MP, was 8.3), the crisp layer's lettering stays full
+  sceneMp: Object.freeze([22, 32, 42]),
   bakeMs: Object.freeze([2, 3, 4]),
   dressDpr: Object.freeze([15, 20, 30]),
   // PERF-B — FR5 C2b: FOG's promenade bank from tier 1 (fogdepth.js — the road's bank on every tier); the UFO beam's motes (legends.js)
@@ -65,6 +69,11 @@ export const TIERS = Object.freeze({
   discoGlints: Object.freeze([2, 4, 6]),
 });
 
+/** DESKTOP — a full-screen canvas's pixel ratio under THE PIXEL BUDGET: the wanted ratio, capped so W × H × r² ≤ sceneMp megapixels */
+export function budgetDpr(W, H, want, tier = 2) {
+  const mp = tierVal('sceneMp', tier) / 10 * 1e6, cap = Math.sqrt(mp / Math.max(1, W * H));
+  return Math.max(1, Math.min(want, cap));
+}
 /** the knob's value at a tier (clamped 0..2; an unknown tier = 2) */
 export function tierVal(key, tier = 2) {
   const row = TIERS[key];

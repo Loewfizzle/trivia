@@ -6,7 +6,7 @@
 
 /* the city */
 .nd-scene { position: fixed; inset: 0; z-index: 0; background: #03040b; transition: opacity 0.4s ease; }
-.nd-scene canvas { display: block; width: 100%; height: 100%; }
+.nd-scene canvas { display: block; width: 100%; height: 100%; object-fit: cover; object-position: 50% 100%; }   /* (DESKTOP: a resize scales the last frame uniformly until the re-fit — never stretched; a phone: the same aspect, no change) */
 .nd-scene.is-out { opacity: 0; }
 /* FP3a — THE LOAD GATE (City 2.0): dark until the city's first full frame is ready, then one clean fade in (docs/harbor.md#performance) */
 .nd-scene.is-hold { opacity: 0; transition: none; }

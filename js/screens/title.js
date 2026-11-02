@@ -417,6 +417,9 @@ export function createTitle() {
       els.actions,
       els.gate);
     el.addEventListener('pointerdown', onAnyTap, { capture: true });
+    // (DESKTOP Group 4: the hover glow ring over a game sign / the door — a mouse only, hidden on a touch screen by CSS)
+    els.hoverGlow = h('div.nd-hover', { 'aria-hidden': 'true' });
+    el.append(els.hoverGlow);
     els.root = el;
     ringColors();
     requestAnimationFrame(ringColors);
@@ -1395,8 +1398,32 @@ export function createTitle() {
     armIdle();
   }
   function onWakeClick(e) { if (swallowed) { e.stopPropagation(); e.preventDefault(); swallowed = false; } }
+  // DESKTOP Group 4 — THE HOVER (the owner's desktop question 5: a pointer cursor + a gentle glow on everything clickable): over the city a
+  // MOUSE asks the scene what a click would answer (scene.hover: no side effects), once a frame — the cursor turns to a pointer, a game
+  // sign / the door gets a soft glow ring (opacity only; its place set at once); a touch never does any of it
+  let hoverRaf = 0, hoverAt = null, hoverOn = false;
+  const HOVER_UI = 'button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel, .nd-corner';
+  function hoverNow() {
+    hoverRaf = 0;
+    const p = hoverAt; if (!p || destroyed || !els.root) return;
+    let hv = null;
+    if (scene && scene.hover && tl && tl.done && !swallowed && !(p.t && p.t.closest && p.t.closest(HOVER_UI))) {
+      const r = logoRect();
+      hv = r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y - 12 && p.y <= r.y + r.h + 12 ? { kind: 'logo' } : scene.hover(p.x, p.y);
+    }
+    els.root.classList.toggle('nd-hovering', !!hv);
+    const g = els.hoverGlow, R = hv && hv.rect;
+    if (g) { if (R) { g.style.width = `${Math.round(R.w + 10)}px`; g.style.height = `${Math.round(R.h + 10)}px`; g.style.transform = `translate(${Math.round(R.x - 5)}px, ${Math.round(R.y - 5)}px)`; } g.classList.toggle('on', !!R); }
+    hoverOn = !!hv;
+  }
+  function onHover(e) {
+    if (e.pointerType !== 'mouse') { if (hoverOn) { hoverAt = { x: -1e4, y: -1e4 }; hoverNow(); } return; }
+    hoverAt = { x: e.clientX, y: e.clientY, t: e.target };
+    if (!hoverRaf) hoverRaf = requestAnimationFrame(hoverNow);
+  }
   function onMouse(e) {
     if (e.pointerType !== 'mouse') return;
+    onHover(e);
     if (!mouseAt) { mouseAt = [e.clientX, e.clientY]; return; }
     if (Math.hypot(e.clientX - mouseAt[0], e.clientY - mouseAt[1]) > 24) { mouseAt = [e.clientX, e.clientY]; if (quickIdle && !els.root.classList.contains('is-idle')) return; wake(); armIdle(); }
   }
@@ -1752,7 +1779,7 @@ export function createTitle() {
     window.removeEventListener('pointerdown', onWake, { capture: true });
     window.removeEventListener('click', onWakeClick, { capture: true });
     window.removeEventListener('keydown', onWake, { capture: true });
-    window.removeEventListener('pointermove', onMouse);
+    window.removeEventListener('pointermove', onMouse); if (hoverRaf) cancelAnimationFrame(hoverRaf); hoverRaf = 0;
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
     clearTimeout(surgeIv); clearTimeout(beatT); document.removeEventListener('pointerup', armTap, true);

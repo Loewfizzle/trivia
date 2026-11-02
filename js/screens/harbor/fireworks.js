@@ -19,7 +19,7 @@
 //   THE TIERS    THE TIER TABLE (fwSparks, fwTrails, fwSmoke, fwLights, fwMirror, fwDpr, fwRing) — fewer sparks, never ugly.
 // No WebGL2 → ok() is false and the scene keeps the district's 2D fireworks (never broken).
 import { glCtx, ctx2d } from '../../ui/canvas-safe.js';
-import { tierVal } from '../../core/harbor-tiers.js';
+import { tierVal, budgetDpr } from '../../core/harbor-tiers.js';
 import { FW_COLORS, FW_LAYERS } from '../../core/harbor-fireworks.js';
 import { hashString, rngFrom } from '../../core/rng.js';
 
@@ -413,7 +413,7 @@ export function createHarborFireworks(opts = {}) {
     geom = env.geom; tier = env.tier;
     if (!tBase) tBase = Math.floor(env.now);
     if (env.now - tBase > 3000 && !shells.size && !smokeLeft(env.now)) { tBase = Math.floor(env.now); written = swritten = 0; head = shead = 0; tail = liveN = 0; }
-    resize(env.W, env.H, Math.min(env.dpr, tierVal('fwDpr', env.tier) / 10));
+    resize(env.W, env.H, budgetDpr(env.W, env.H, Math.min(env.dpr, tierVal('fwDpr', env.tier) / 10), env.tier));   // (DESKTOP: under THE PIXEL BUDGET)
     mask(env.geom);
     const now = env.now - tBase, look = 0.25;
     // new shells: their launch inside the look-ahead, not yet over (a phone joining mid-show builds the ones already up)

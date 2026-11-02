@@ -1183,7 +1183,7 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     fresh: () => fresh,
     /** a tap on a game's sign → { kind: 'sign', id } */
     hit(x, y) {
-      for (const sg of signs) { const R = sg.rect; if (sg.game && x >= R.x - 4 && x <= R.x + R.w + 4 && y >= R.y - 4 && y <= R.y + R.h + 4) return { kind: 'sign', id: sg.game, sign: sg.id }; }
+      for (const sg of signs) { const R = sg.rect; if (sg.game && x >= R.x - 4 && x <= R.x + R.w + 4 && y >= R.y - 4 && y <= R.y + R.h + 4) return { kind: 'sign', id: sg.game, sign: sg.id, rect: R }; }
       return null;
     },
     /** Part 4's hook: every light that should smear in the water — { x, y, w, h, col, a } on screen */
