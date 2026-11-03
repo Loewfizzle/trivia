@@ -31,6 +31,8 @@ test('THE SITE\'S CODE carries no catalog: no item\'s line, no achievement\'s li
     for (const s of lines) if (src.includes(s)) hits.push(`${p.slice(ROOT.length)}: "${s}"`);
     for (const n of sightNames) if (src.includes(n) && (!COMMON_WORDS.includes(n) || /[\\/](vault|progress|fx)[\\/]/.test(p))) hits.push(`${p.slice(ROOT.length)}: ${n}`);
   }
+  // (THE VAULT 2A: the 3 held cards' names out of the art's code — FOUNDING MEMBER is the public pill's word, exempt)
+  for (const [p, src] of files) if (/[\\/](vault|progress|fx)[\\/]|vault\.css$/.test(p)) for (const n of ['PLATINUM', 'THE HOUSE', 'OPENING NIGHT', 'THE METAL CARD', 'FULL BLAZE']) if (src.includes(n)) hits.push(`${p.slice(ROOT.length)}: ${n}`);
   assert.deepEqual(hits, [], `${hits.length} leaks`);
   assert.ok(files.length > 300, `${files.length} shipped files read`);
 });

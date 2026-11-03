@@ -2,6 +2,30 @@
 // gets them with the marks (/api/admin labMarks — admins only); never in the site's code. A new lab item = its row here + its id in
 // js/vault/catalog.js#LAB.
 export const LAB_TEXT = {
+ "card-founder": {
+  "name": "FOUNDING MEMBER",
+  "motion": "OPENING NIGHT — the big NEON SPEAKEASY sign on the speakeasy's roof lighting letter by letter over the city (the title's own NEON tubes, then SPEAKEASY), searchlights once it all burns; your member № stamped in gold; THE BORDER LASER"
+ },
+ "full-card-founder": {
+  "name": "FOUNDING MEMBER · FULL CARD",
+  "motion": "OPENING NIGHT at full size — the sign switching on letter by letter, the EST. 1924 date stone in the parapet, the searchlights, your № + MEMBER SINCE in a gold first-edition stamp; THE BORDER LASER"
+ },
+ "card-house": {
+  "name": "THE HOUSE",
+  "motion": "THE SPEAKEASY IN FULL BLAZE — every sign lit (the blade's bulbs chasing), a neon crown over the door, the finale's gold willows falling behind it; THE BORDER LASER"
+ },
+ "full-card-house": {
+  "name": "THE HOUSE · FULL CARD",
+  "motion": "THE SPEAKEASY IN FULL BLAZE at full size — the whole front lit, the blade + its chasing bulbs, the crown over the door, gold willows raining behind the roof; THE BORDER LASER"
+ },
+ "card-platinum": {
+  "name": "PLATINUM",
+  "motion": "THE METAL CARD — a solid brushed-platinum plate, a diamond-cut bevelled edge, a cold white light sliding across it + catching the bevel"
+ },
+ "full-card-platinum": {
+  "name": "PLATINUM · FULL CARD",
+  "motion": "THE METAL CARD at full size — brushed platinum, the diamond-cut bevel, the cold light sliding across + a glint off the cut corner"
+ },
  "card-zebra": {
   "name": "ZEBRA",
   "motion": "Real zebra hide, black and white — a hot pink shine sweeping across it"

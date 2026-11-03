@@ -69,11 +69,13 @@ export default {
       if (full) stamp(c, glow('255,190,110', 0.2, 32), lx, ly + 7, 3, 0.4 * p, 14);              // (its streak on the water)
     }
     // its RED light on the roofs + the air under it (stronger as the city dies — it drinks the light)
-    const pulse = still ? 0.85 : 0.7 + 0.3 * Math.pow(0.5 + 0.5 * Math.sin(tt * 1.7), 2);
+    // (the owner's lab note on the FULL card, Nov 3 11:42 am: "make the red light pulsing" — a deep, slow heartbeat, near-dark → full; the
+    //  approved strip keeps its gentler pulse)
+    const pulse = still ? 0.85 : full ? 0.02 + 0.98 * Math.pow(0.5 + 0.5 * Math.sin(tt * 2.4), 3) : 0.7 + 0.3 * Math.pow(0.5 + 0.5 * Math.sin(tt * 1.7), 2);
     stamp(c, glow('255,40,24', 0.08, 64), cx, full ? h * 0.66 : h * 0.86, len * 1.5, (0.12 + 0.28 * (1 - dark)) * pulse, len * 0.5);
     stamp(c, glow('255,50,30', 0.1, 64), cx, cy + len * 0.25, len * 0.9, (0.08 + 0.12 * (1 - dark)) * pulse, len * 0.9);
     c.globalCompositeOperation = 'source-over';
-    if (L && fxDiag.sprites) drawCraft(c, L, len, dpr, cx, cy, tt, still, pulse, 1 - dark, Q);
+    if (L && fxDiag.sprites) drawCraft(c, L, len, dpr, cx, cy, tt, still, pulse, 1 - dark, Q, full);
     else { c.globalCompositeOperation = 'lighter'; stamp(c, glow('255,60,40', 0.2, 64), cx, cy, len * 0.4, 0.3); }
     c.restore();
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
@@ -81,7 +83,7 @@ export default {
   },
 };
 
-function drawCraft(c, L, len, dpr, cx, cy, t, still, pulse, drain, Q) {
+function drawCraft(c, L, len, dpr, cx, cy, t, still, pulse, drain, Q, full = false) {
   const T = hull(L, len, dpr), P = L.tr3bCorners(len);
   c.save(); c.translate(cx, cy); c.rotate(-0.03 + (still ? 0 : wob(t * 0.25, 7) * 0.025));
   c.drawImage(T.cv, -T.ox, -T.oy, T.w, T.h);
@@ -129,7 +131,7 @@ function drawCraft(c, L, len, dpr, cx, cy, t, still, pulse, drain, Q) {
   const kc = P.map((q, i) => (still ? 0.9 : 0.62 + 0.38 * Math.sin(t * 1.5 + i * 2.1)));
   c.save(); c.beginPath(); P.forEach((q, i) => (i ? c.lineTo(q[0] * 0.97, q[1] * 0.97) : c.moveTo(q[0] * 0.97, q[1] * 0.97))); c.closePath(); c.clip();
   P.forEach((q, i) => stamp(c, glow('200,210,240', 0.1, 64), q[0] * 0.8, q[1] * 0.8, len * 0.5, 0.09 * kc[i], len * 0.22));
-  stamp(c, glow('255,40,18', 0.1, 64), 0, 0, len * 1.1, (0.16 + 0.2 * pulse) * (1 + 0.4 * drain), len * 0.45);
+  stamp(c, glow('255,40,18', 0.1, 64), 0, 0, len * 1.1, (full ? 0.03 + 0.4 * pulse : 0.16 + 0.2 * pulse) * (1 + 0.4 * drain), len * 0.45);
   c.restore();
   // THE WHITE CORNER LIGHTS: a hot white core, a cool bloom, a flat flare on the brightest
   P.forEach((q, i) => {
@@ -140,8 +142,9 @@ function drawCraft(c, L, len, dpr, cx, cy, t, still, pulse, drain, Q) {
     stamp(c, glow('235,240,255', 0.04, 64), x0, y0, len * (0.35 + 0.35 * k), 0.55 * k, len * 0.014);
   });
   // THE RED CENTRE: the slow heavy pulse — a deep bloom, the hot orb, its flare
-  stamp(c, glow('255,36,16', 0.1, 64), 0, 0, len * 0.6, 0.35 + 0.35 * pulse, len * 0.26);
-  stamp(c, glow('255,70,40', 0.3, 64), 0, 0, len * 0.16, 0.85 * pulse + 0.15, len * 0.075);
+  // (the full card's heartbeat goes nearly dark between beats — the owner's "make the red light pulsing")
+  stamp(c, glow('255,36,16', 0.1, 64), 0, 0, len * 0.6, full ? 0.04 + 0.8 * pulse : 0.35 + 0.35 * pulse, len * 0.26);
+  stamp(c, glow('255,70,40', 0.3, 64), 0, 0, len * 0.16, full ? 0.12 + 0.88 * pulse : 0.85 * pulse + 0.15, len * 0.075);
   stamp(c, glow('255,200,170', 0.5, 32), 0, 0, len * 0.05, 0.9 * pulse, len * 0.028);
   stamp(c, glow('255,60,40', 0.05, 64), 0, 0, len * 0.9 * pulse, 0.35 * pulse, len * 0.014);
   c.restore();

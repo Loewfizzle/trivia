@@ -5,7 +5,7 @@ import { glow, stamp, sprite, fract } from './kit.js';
 import { rrect } from './renderer.js';
 
 /** a searchlight beam, baked pointing up from its root (bottom centre) */
-const beam = () => sprite('fx-beam', 64, 256, (c, W, H) => {
+export const beam = () => sprite('fx-beam', 64, 256, (c, W, H) => {
   for (const [k, a] of [[1, 0.1], [0.55, 0.16], [0.25, 0.24]]) {
     const g = c.createLinearGradient(0, H, 0, 0); g.addColorStop(0, `rgba(255,236,190,${a})`); g.addColorStop(1, `rgba(255,236,190,0)`);
     c.fillStyle = g; c.beginPath(); c.moveTo(W / 2 - 2, H); c.lineTo(W / 2 + 2, H); c.lineTo(W / 2 + W / 2 * k, 0); c.lineTo(W / 2 - W / 2 * k, 0); c.closePath(); c.fill();

@@ -168,8 +168,30 @@ async function magnify(ctx, buf, k, path) {
   await q.waitForFunction(() => document.images[0].complete);
   await q.screenshot({ path }); await q.close();
 }
-const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--mute-audio'] });
 const PAGE = opt('page', '');
+// --wk (THE VAULT 2A): a --page shot in WEBKIT (Safari's engine — Playwright 1.56 in ~/wk or WK_PLAYWRIGHT) as an iPhone: isMobile + touch,
+// --dsf (default 3); --every / --count bursts the whole viewport (no crops). Judges LOOKS (headless WebKit on Windows runs ~10 fps).
+if (PAGE && process.argv.includes('--wk')) {
+  const { homedir } = await import('node:os'); const { join: pj } = await import('node:path'); const { pathToFileURL } = await import('node:url');
+  const { webkit } = await import(pathToFileURL(process.env.WK_PLAYWRIGHT || pj(homedir(), 'wk', 'node_modules', 'playwright', 'index.mjs')).href);
+  const wb = await webkit.launch();
+  for (const [w, h] of SIZES) {
+    const ctx = await wb.newContext({ viewport: { width: w, height: h }, deviceScaleFactor: DSF || 3, isMobile: true, hasTouch: true });
+    const p = await ctx.newPage();
+    p.on('pageerror', e => console.log('PAGEERROR', e.message));
+    await p.goto(`${BASE}/${String(PAGE).replace(/^\/+/, '')}`);
+    await p.waitForFunction(() => document.body && document.body.dataset.ready, null, { timeout: 60000 }).catch(() => {});
+    await sleep(opt('wait', 0) ? WAIT : 1200);
+    for (let k = 0; k < (EVERY ? COUNT : 1); k++) {
+      await p.screenshot({ path: `${OUT}${opt('name', 'page')}-wk-${w}x${h}${EVERY ? `-${String(k).padStart(2, '0')}` : ''}.png`, fullPage: !EVERY });
+      if (EVERY && k < COUNT - 1) await sleep(EVERY);
+    }
+    await ctx.close();
+  }
+  console.log(`${SIZES.length} WebKit page shot(s) in ${OUT}`);
+  await wb.close(); process.exit(0);
+}
+const browser = await puppeteer.launch({ executablePath: BROWSER, headless: true, args: ['--mute-audio'] });
 if (PAGE) {
   for (const [w, h] of SIZES) {
     const p = await browser.newPage();

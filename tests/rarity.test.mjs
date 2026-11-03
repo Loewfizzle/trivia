@@ -1,5 +1,5 @@
 // THE ONE TIER PALETTE (THE VAULT 1C): the JS + CSS twins agree, every pair reads (≥ 4.5 : 1), THE PROGRAM gives every row a tier, the
-// vault's tags + THE PROGRAM use the tokens (no stray hexes), I'M NEW HERE says something.
+// vault's tags + THE PROGRAM use the tokens (no stray hexes), I'M NEW HERE gone (2A).
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
@@ -63,9 +63,11 @@ test('THE PROGRAM paints a badge on every row + tints its name; the vault tags r
   for (const t of RARITY) assert.match(vault, new RegExp(`\\.vl-tt-${t} \\{ color: var\\(--tier-${t}\\)`));
 });
 
-test("I'M NEW HERE closes with a welcome", () => {
+test("I'M NEW HERE is gone (THE VAULT 2A — the ✕ closes the sheet)", () => {
   const src = read('js/profile/bring.js');
-  assert.match(src, /WELCOME IN — PICK A NAME WHEN YOU JOIN YOUR FIRST ROOM/);
-  assert.match(src, /'I’M NEW HERE'/);
-  assert.match(src, /welcomeNew\(\); \} \}, 'I’M NEW HERE'/);
+  assert.doesNotMatch(src, /'I’M NEW HERE'/);
+  assert.doesNotMatch(src, /WELCOME IN — PICK A NAME/);
+  assert.doesNotMatch(src, /byc-new/);
+  assert.ok(src.includes("h('button.byc-x', { type: 'button', 'aria-label': 'Close', onclick: close }, '✕')"), 'the ✕ still closes the sheet');
+  assert.doesNotMatch(read('css/bring.css'), /.byc-new/);
 });

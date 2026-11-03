@@ -63,6 +63,10 @@ export const LOOKS = Object.freeze({
   'card-wildfire': { mat: 'wildfire', fx: 'wildfire' },
   'card-eternal': { mat: 'eternal', fx: 'eternal' },
   'card-witness': { mat: 'witness', fx: 'witness' },
+  // THE VAULT 2A — THE 3 HELD CARDS (the owner's picks, Nov 3 11:50 am)
+  'card-founder': { mat: 'founder', fx: 'opening' },
+  'card-house': { mat: 'house', fx: 'house' },
+  'card-platinum': { mat: 'platinum', fx: 'platinum' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
@@ -81,7 +85,7 @@ const tierOf = id => (LAB.find(x => x.id === id) || {}).tier || 'common';
 
 /** one strip: card (an id with a LOOK) — or plain (a card not approved yet: its palette's vars, a plain strip) + tier; embEl = the player's
  *  own emblem element (else a test emblem); the NAME always whole (ui/fit.js — shrunk, then two lines; never an ellipsis) */
-export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tierIn }) {
+export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tierIn, no }) {
   const look = plain ? { mat: 'plain' } : (LOOKS[card] || LOOKS['card-brushed']), tier = tierIn || tierOf(card);
   const embId = emblem || look.emblem || 'emb-test-neon', em = TEST_EMBLEMS[embId] || TEST_EMBLEMS['emb-test-neon'];
   const mode = prominence(tier, em.tier);
@@ -92,6 +96,8 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,
     h('span.vl-tier', TIER_NAMES[tier] || tier.toUpperCase()),
+    // (FOUNDING MEMBER — the member's REAL number in gold: a numbered first edition; THE VAULT 2A)
+    card === 'card-founder' && !plain && no != null ? h('span.vl-no', `№ ${no}`) : null,
     h('i.vl-frame', { 'aria-hidden': 'true' }));
   el.setAttribute('aria-label', `${name}, level ${lv} (${TIER_NAMES[tier] || tier})`);
   return el;

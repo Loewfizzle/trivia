@@ -16,8 +16,8 @@ export default {
       c.globalCompositeOperation = 'lighter';
       for (const [bw, al, col] of [[h * 0.9, 0.16, tint], [h * 0.34, 0.3, '255,255,255'], [h * 0.12, 0.38, '255,255,255']]) {
         const g = c.createLinearGradient(x - bw, 0, x + bw, 0);
-        g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(0.5, `rgba(${col},${al})`); g.addColorStop(1, `rgba(${col},0)`);
-        c.fillStyle = g; c.globalAlpha = a;
+        g.addColorStop(0, `rgba(${col},0)`); g.addColorStop(0.5, `rgba(${col},${Math.min(1, al * (s.opts.gain || 1))})`); g.addColorStop(1, `rgba(${col},0)`);
+        c.fillStyle = g; c.globalAlpha = a;     // (opts.gain — the stops above: a brighter pass on a light metal (card-platinum); 1 = as approved)
         c.beginPath(); c.moveTo(x - bw + sl, 0); c.lineTo(x + bw + sl, 0); c.lineTo(x + bw - sl, h); c.lineTo(x - bw - sl, h); c.closePath(); c.fill();
       }
       c.restore();

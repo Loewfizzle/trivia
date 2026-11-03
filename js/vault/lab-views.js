@@ -14,6 +14,8 @@ import { TIER_NAMES } from '../core/items.js';
 import { fullCardEl, mountFull } from './full.js';
 
 const CARDS = LAB.filter(x => x.kind === 'card');
+/** the sample member number the lab dresses FOUNDING MEMBER with (a real card shows the member's own №) */
+const SAMPLE_NO = 3112;
 // THE DIAGNOSTICS ROW (THE VAULT 1B — the owner's iPhone is the verdict for speed): each switch turns ONE cost off, remembered per device
 // (localStorage vl:diag); &diag=nofx,nolaser,nosprites,nopause,noglow,noemb,nogpu in the address sets them for one visit (the bench).
 const DIAG = [
@@ -113,7 +115,7 @@ export function mountLab(root, o = {}) {
       grid.append(blk);
       if (item.kind === 'card') {
         const g = GUESTS[(item.n - 1) % GUESTS.length];
-        places.push({ stage, rows: [{ card: item.id, name: g.name, lv: g.lv, host: item.n === 1 }] });
+        places.push({ stage, rows: [{ card: item.id, name: g.name, lv: g.lv, host: item.n === 1, no: SAMPLE_NO }] });
       } else {
         const em = TEST_EMBLEMS[item.id];
         stage.append(h('div.vl-emb-big', emblemSvg(em.finish, 'lead'), emblemSvg(em.finish, 'even', { size: 28 }),
@@ -151,7 +153,7 @@ export function mountLab(root, o = {}) {
       // (the mixes by the lab's numbers — the list's order changes as new sets go first: 1A's samples 1–8, 1B's new 19–26, 1C's sightings 34–41)
       const byN = (a, b) => CARDS.filter(c => c.n >= a && c.n <= b).sort((x, y) => x.n - y.n);
       const SAMPLES = byN(1, 8), NEW = byN(19, 26), SIGHT = byN(34, 41), HELD = byN(50, 70);
-      const rows = GUESTS.map((g, i) => ({ card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0 }));
+      const rows = GUESTS.map((g, i) => ({ card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: SAMPLE_NO + i * 7 }));
       mounted.push(mountStrips(list, rows, { calm: true, label: 'lobby' }));
       window.__lab && (window.__lab.mix = mix);
     };
@@ -166,7 +168,7 @@ export function mountLab(root, o = {}) {
     const only = (new URLSearchParams(location.search).get('full') || '').split(',').filter(Boolean);   // (&full=card-a,card-b: the look reviews)
     for (const item of LAB.filter(x => x.kind === 'full' && (!only.length || only.includes(x.of)))) {
       const g = GUESTS[(item.n - 11) % GUESTS.length];
-      const card = fullCardEl({ card: item.of, who: { name: g.name, lv: g.lv, avatar: ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'][(item.n - 11) % 8], color: ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'][(item.n - 11) % 8], at: Date.UTC(2026, 9, 3) }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
+      const card = fullCardEl({ card: item.of, who: { name: g.name, lv: g.lv, avatar: ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'][(item.n - 11) % 8], color: ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'][(item.n - 11) % 8], at: Date.UTC(2026, 9, 3), no: SAMPLE_NO }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
       const blk = h('section.vl-item', { dataset: { id: item.id } },
         h('div.vl-item-h', h('b', `${item.n} · ${item.name}`), h('span', TIER_NAMES[item.tier]), h('code', item.id)),
         h('div.vl-stage.vl-col', card), h('p.vl-motion', item.motion));

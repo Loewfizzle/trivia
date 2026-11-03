@@ -59,8 +59,8 @@ export function progressSections(data, o = {}) {
   };
   // YOUR CARDS (THE VAULT 1B): the real slim strips — tap one to wear it, VIEW for the full card (js/vault/picker.js)
   const cards = ownedOf(owned, 'card');
-  const picker = cards.length ? cardPicker({ cards, wearing: wear.card, who: { name: o.name, lv: L.lvl, avatar: p.a, color: p.c },
-    onWear: id => o.onWear && o.onWear('card', id), onView: id => o.onView ? o.onView(id) : import('../vault/full.js').then(m => m.openFullCard(id, { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, pub: p })) }) : null;
+  const picker = cards.length ? cardPicker({ cards, wearing: wear.card, who: { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, no: p.t },
+    onWear: id => o.onWear && o.onWear('card', id), onView: id => o.onView ? o.onView(id) : import('../vault/full.js').then(m => m.openFullCard(id, { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, pub: p, no: p.t, at: p.at, fd: !!p.fd })) }) : null;
   const vault = h('section.pg-panel.pg-vault',
     h('div.pg-prof-h', h('span', 'THE VAULT'), h('em', 'tap a card to wear it')),
     ...(picker ? [h('div.pg-vault-k', 'YOUR CARDS'), picker.el] : []), ...(row('glow', 'glow') || []), ...(row('tube', 'tube') || []), ...(row('emblem', 'shape') || []),

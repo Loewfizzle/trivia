@@ -5,7 +5,7 @@ import { glow, stamp } from './kit.js';
 import { fxDiag } from './renderer.js';
 
 /** a point on a rounded rect's perimeter at distance s (clockwise from the top-left corner's end) */
-function along(w, h, r, s) {
+export function along(w, h, r, s) {
   const L = [w - 2 * r, (Math.PI / 2) * r, h - 2 * r, (Math.PI / 2) * r, w - 2 * r, (Math.PI / 2) * r, h - 2 * r, (Math.PI / 2) * r];
   const P = L.reduce((a, b) => a + b, 0);
   s = ((s % P) + P) % P;

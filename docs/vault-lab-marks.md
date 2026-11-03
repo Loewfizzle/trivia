@@ -1,21 +1,21 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-03 16:36 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet.
+Exported 2026-11-03 16:54 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet.
 
 | # | item | tier | mark | note | when |
 | --- | --- | --- | --- | --- | --- |
 | 34 | LIGHTS OUT (`card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
 | 35 | SKY KING (`card-sg-blackbird`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
 | 36 | AFTERBURNER (`card-sg-f22`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
-| 37 | THE FLYING DUTCHMAN (`card-sg-ghostship`) | legendary | FIX | Make the boat move or something | 2026-11-03 16:29 UTC |
+| 37 | THE FLYING DUTCHMAN (`card-sg-ghostship`) | legendary | APPROVE |  | 2026-11-03 16:41 UTC |
 | 38 | SKY DANCER (`card-sg-aurora`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
 | 39 | MAKE A WISH (`card-sg-fireball`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
 | 40 | HOT AIR, COLD BLOOD (`card-sg-skull`) | legendary | APPROVE |  | 2026-11-03 16:30 UTC |
 | 41 | FIX THE MONEY, FIX THE WORLD (`card-sg-btc`) | legendary | APPROVE |  | 2026-11-03 16:30 UTC |
-| 42 | LIGHTS OUT · FULL CARD (`full-card-sg-tr3b`) | legendary | FIX | TR3b body needs to be more black | 2026-11-03 16:31 UTC |
-| 43 | SKY KING · FULL CARD (`full-card-sg-blackbird`) | legendary | FIX | Blackbird needs to be more black | 2026-11-03 16:32 UTC |
+| 42 | LIGHTS OUT · FULL CARD (`full-card-sg-tr3b`) | legendary | FIX | Make the red light pulsing | 2026-11-03 16:42 UTC |
+| 43 | SKY KING · FULL CARD (`full-card-sg-blackbird`) | legendary | APPROVE |  | 2026-11-03 16:42 UTC |
 | 44 | AFTERBURNER · FULL CARD (`full-card-sg-f22`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC |
-| 45 | THE FLYING DUTCHMAN · FULL CARD (`full-card-sg-ghostship`) | legendary | FIX | The moon is blended into the ship.  Needs to be fixed.  Ship needs movement | 2026-11-03 16:32 UTC |
+| 45 | THE FLYING DUTCHMAN · FULL CARD (`full-card-sg-ghostship`) | legendary | APPROVE |  | 2026-11-03 16:42 UTC |
 | 46 | SKY DANCER · FULL CARD (`full-card-sg-aurora`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC |
 | 47 | MAKE A WISH · FULL CARD (`full-card-sg-fireball`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC |
 | 48 | HOT AIR, COLD BLOOD · FULL CARD (`full-card-sg-skull`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC |
@@ -53,27 +53,27 @@ Exported 2026-11-03 16:36 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 32 | SILVER CHROME · FULL CARD (`full-card-chrome`) | uncommon | APPROVE |  | 2026-11-03 14:20 UTC |
 | 33 | MIDNIGHT & CHAMPAGNE · FULL CARD (`full-card-champagne`) | uncommon | APPROVE |  | 2026-11-03 14:21 UTC |
 | 18 | I WANT TO BELIEVE · FULL CARD (`full-card-sg-ufo`) | legendary | APPROVE |  | 2026-11-03 14:21 UTC |
-| 50 | ZEBRA (`card-zebra`) | uncommon | — |  | — |
-| 51 | CAMO (`card-camo`) | uncommon | — |  | — |
-| 52 | VELVET ROOM (`card-velvet`) | rare | — |  | — |
-| 53 | AURORA (`card-aurora`) | rare | — |  | — |
-| 54 | ONYX & ROSE GOLD (`card-rosegold`) | rare | — |  | — |
-| 55 | GOLD FOIL (`card-gold`) | rare | — |  | — |
-| 56 | THE 30-NIGHT FLAME (`card-flame30`) | rare | — |  | — |
-| 57 | MARBLE & GOLD (`card-marble`) | rare | — |  | — |
-| 58 | NEON CAMO (`card-neoncamo`) | rare | — |  | — |
-| 59 | CARBON (`card-carbon`) | rare | — |  | — |
-| 60 | CONFETTI (`card-confetti`) | rare | — |  | — |
-| 61 | CIRCUIT (`card-circuit`) | rare | — |  | — |
-| 62 | VELVET NOIR (`card-noir`) | epic | — |  | — |
-| 63 | SAPPHIRE & SILVER (`card-sapphire`) | epic | — |  | — |
-| 64 | PRISM LEGEND (`card-legend`) | epic | — |  | — |
-| 65 | CENTURY (`card-century`) | epic | — |  | — |
-| 66 | THE MARQUEE · GOLD BULBS (`card-marquee-gold`) | epic | — |  | — |
-| 67 | PENTHOUSE (`card-penthouse`) | epic | — |  | — |
-| 68 | WILDFIRE (`card-wildfire`) | legendary | — |  | — |
-| 69 | ETERNAL FLAME (`card-eternal`) | legendary | — |  | — |
-| 70 | THE WITNESS (`card-witness`) | legendary | — |  | — |
+| 50 | ZEBRA (`card-zebra`) | uncommon | APPROVE |  | 2026-11-03 16:39 UTC |
+| 51 | CAMO (`card-camo`) | uncommon | APPROVE |  | 2026-11-03 16:39 UTC |
+| 52 | VELVET ROOM (`card-velvet`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 53 | AURORA (`card-aurora`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 54 | ONYX & ROSE GOLD (`card-rosegold`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 55 | GOLD FOIL (`card-gold`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 56 | THE 30-NIGHT FLAME (`card-flame30`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 57 | MARBLE & GOLD (`card-marble`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 58 | NEON CAMO (`card-neoncamo`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 59 | CARBON (`card-carbon`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 60 | CONFETTI (`card-confetti`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 61 | CIRCUIT (`card-circuit`) | rare | APPROVE |  | 2026-11-03 16:39 UTC |
+| 62 | VELVET NOIR (`card-noir`) | epic | APPROVE |  | 2026-11-03 16:39 UTC |
+| 63 | SAPPHIRE & SILVER (`card-sapphire`) | epic | APPROVE |  | 2026-11-03 16:39 UTC |
+| 64 | PRISM LEGEND (`card-legend`) | epic | APPROVE |  | 2026-11-03 16:39 UTC |
+| 65 | CENTURY (`card-century`) | epic | APPROVE |  | 2026-11-03 16:39 UTC |
+| 66 | THE MARQUEE · GOLD BULBS (`card-marquee-gold`) | epic | APPROVE |  | 2026-11-03 16:39 UTC |
+| 67 | PENTHOUSE (`card-penthouse`) | epic | APPROVE |  | 2026-11-03 16:39 UTC |
+| 68 | WILDFIRE (`card-wildfire`) | legendary | APPROVE |  | 2026-11-03 16:39 UTC |
+| 69 | ETERNAL FLAME (`card-eternal`) | legendary | APPROVE |  | 2026-11-03 16:39 UTC |
+| 70 | THE WITNESS (`card-witness`) | legendary | APPROVE |  | 2026-11-03 16:40 UTC |
 | 71 | ZEBRA · FULL CARD (`full-card-zebra`) | uncommon | APPROVE |  | 2026-11-03 16:33 UTC |
 | 72 | CAMO · FULL CARD (`full-card-camo`) | uncommon | APPROVE |  | 2026-11-03 16:33 UTC |
 | 73 | VELVET ROOM · FULL CARD (`full-card-velvet`) | rare | APPROVE |  | 2026-11-03 16:33 UTC |

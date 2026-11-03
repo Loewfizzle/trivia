@@ -112,13 +112,7 @@ export async function openElsewhere() {
   return close;
 }
 
-/** I'M NEW HERE (THE VAULT 1C — the owner's 1B review: "it just closes — it should say something"): the sheet closes + a short welcome.
- *  A toast, not the name setup: the name + emblem are picked on HOST / JOIN (the setup screen), where they're needed — sending a stranger
- *  there from the title would start a room they didn't ask for. */
-export const WELCOME_NEW = 'WELCOME IN — PICK A NAME WHEN YOU JOIN YOUR FIRST ROOM';
-function welcomeNew() { toast(WELCOME_NEW, 'info', 4200); }
-
-/** ALREADY A MEMBER? BRING YOUR CARD — paste your key → restored (+ "this device joins it"); I'M NEW carries on as today */
+/** ALREADY A MEMBER? BRING YOUR CARD — paste your key → restored (+ "this device joins it"); the ✕ closes it */
 export async function openBring({ lead = false, onDone = null } = {}) {
   if (document.querySelector('.byc-bring')) return null;
   await bringCss();
@@ -132,8 +126,8 @@ export async function openBring({ lead = false, onDone = null } = {}) {
     h('h2.byc-h', 'BRING YOUR CARD'),
     h('p.byc-p', app ? 'This Home Screen app keeps its own storage, so it starts empty — your card isn’t lost. Paste your key and this app joins it.' : 'Paste your key and this device joins your card. Your card works on all your devices at once — the others stay signed in.'),
     input, err, go,
-    h('p.byc-help', h('b', 'Where’s my key? '), 'On a device you already play on: open your membership card → ', h('b', 'USE THIS CARD ON ANOTHER DEVICE'), ' → COPY. Or wherever you saved it.'),
-    h('button.byc-new', { type: 'button', 'data-act': 'new', onclick: () => { dismissOffer('new'); close(); document.querySelectorAll('.byc-chip').forEach(c => c.remove()); welcomeNew(); } }, 'I’M NEW HERE'));
+    h('p.byc-help', h('b', 'Where’s my key? '), 'On a device you already play on: open your membership card → ', h('b', 'USE THIS CARD ON ANOTHER DEVICE'), ' → COPY. Or wherever you saved it.'));
+  // (THE VAULT 2A — I'M NEW HERE removed with its welcome line: the owner, Nov 3 11:47 am — "no point, the ✕ already does it")
   if (lead) sheet.classList.add('is-lead');
   const run = async () => {
     if (go.classList.contains('is-busy')) return;

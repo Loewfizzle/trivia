@@ -35,6 +35,9 @@ import veil from './veil.js';
 import neoncamo from './neoncamo.js';
 import witness from './witness.js';
 import { wildfire, eternal } from './blaze.js';
+import bevel from './bevel.js';
+import opening from './opening.js';
+import house from './house.js';
 
 /** COMBO (THE VAULT 1C — an EPIC's two effects together on ONE slot): parts = [[effect, opts the part overrides]…], drawn in order */
 export function combo(id, tier, ...parts) {
@@ -50,4 +53,7 @@ export const FX = Object.freeze({ ufo, laser, smoke, frost, flames, prism, marqu
   noir: combo('noir', 'epic', [tube, { tint: '255,58,92' }], [smoke, null]),
   sapphire: combo('sapphire', 'epic', [sheen, { tint: '200,214,238' }], [twinkle, { tint: '226,234,255', n: 1.3 }]),
   legend: combo('legend', 'epic', [holo, null], [twinkle, { tint: '255,255,255', n: 1.1 }]),
-  century: combo('century', 'epic', [flames, null], [embers, { noBed: true, tint: '255,200,90' }]) });
+  century: combo('century', 'epic', [flames, null], [embers, { noBed: true, tint: '255,200,90' }]),
+  // THE VAULT 2A — THE 3 HELD CARDS (card-platinum: a cold sheen + the light on its diamond-cut bevel · card-founder · card-house)
+  bevel, opening, house,
+  platinum: combo('platinum', 'epic', [sheen, { tint: '214,228,255', gain: 2.4 }], [bevel, null]) });

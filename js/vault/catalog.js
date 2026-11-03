@@ -3,6 +3,13 @@
 // 10:23 pm) + the two test emblems. A NEW card / emblem plugs in with a row here (+ its look in js/vault/strip.js + its item in
 // core/items.js); it ships to players only once the owner APPROVES it in the lab (js/vault/approved.js).
 export const LAB = [
+  // THE VAULT 2A — THE 3 HELD CARDS (first: the owner marks them first) — strips, then their full cards
+  { id: 'card-founder', kind: 'card', tier: 'legendary', n: 92 },
+  { id: 'card-house', kind: 'card', tier: 'legendary', n: 93 },
+  { id: 'card-platinum', kind: 'card', tier: 'epic', n: 94 },
+  { id: 'full-card-founder', kind: 'full', of: 'card-founder', tier: 'legendary', n: 95 },
+  { id: 'full-card-house', kind: 'full', of: 'card-house', tier: 'legendary', n: 96 },
+  { id: 'full-card-platinum', kind: 'full', of: 'card-platinum', tier: 'epic', n: 97 },
   // THE VAULT 1C — THE 8 SIGHTING CARDS (first in the lab: the owner marks them first) — strips, then their full cards
   { id: 'card-sg-tr3b', kind: 'card', tier: 'legendary', n: 34 },
   { id: 'card-sg-blackbird', kind: 'card', tier: 'legendary', n: 35 },

@@ -144,12 +144,12 @@ G('vault', async () => {
   { const { ctx, p } = await fingerPage('/tests/integration/title-preview.html?guest=1', [402, 400]);
     await waitFor(p, '!!window.__preview', 'the title preview', 40000);
     await ev(p, `import('/js/profile/bring.js').then(B => { B.openBring({ lead: true }); return true; })`);
-    await waitFor(p, `!!document.querySelector('.byc-bring .byc-new')`, 'the bring sheet');
+    await waitFor(p, `!!document.querySelector('.byc-bring .byc-help')`, 'the bring sheet');
     await sleep(800);
     const read = () => ev(p, `(() => { const s = document.querySelector('.byc-bring .sheet'); return { top: Math.round(s.scrollTop), max: s.scrollHeight - s.clientHeight }; })()`);
     const r = await swipeToEnd(p, 200, 360, 260, read);
-    const nw = await ev(p, `document.querySelector('.byc-bring .byc-new').getBoundingClientRect().bottom <= innerHeight + 1`);
-    ok(r.first.max > 0 && r.last.top >= r.last.max - 2 && nw, `BY FINGER: BRING YOUR CARD on a 402 × 400 screen scrolls inside by swipes — ${r.moved} of ${r.first.max} px, I'M NEW HERE reachable (${nw})`);
+    const nw = await ev(p, `!document.querySelector('.byc-bring .byc-new') && document.querySelector('.byc-bring .byc-help').getBoundingClientRect().bottom <= innerHeight + 1`);
+    ok(r.first.max > 0 && r.last.top >= r.last.max - 2 && nw, `BY FINGER: BRING YOUR CARD on a 402 × 400 screen scrolls inside by swipes — ${r.moved} of ${r.first.max} px, its last line reachable + no I'M NEW HERE (THE VAULT 2A) (${nw})`);
     await ctx.close(); }
 
   // THE SAME LAB IN WEBKIT at iPhone size (Safari's engine)

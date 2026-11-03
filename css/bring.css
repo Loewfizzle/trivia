@@ -23,8 +23,6 @@
 .byc-go { display: block; width: 100%; margin-top: 12px; min-height: 52px; font-size: 15px; letter-spacing: 0.26em; }
 .byc-help { margin: 14px 0 0; font: 500 14px/1.45 var(--font-ui); color: rgba(245, 236, 218, 0.78); }
 .byc-help b, .byc-steps b, .byc-note b { color: #f5ecda; font-weight: 700; }
-.byc-new { display: block; width: 100%; min-height: 46px; margin-top: 10px; border: 0; background: none; cursor: pointer;
-  font: 700 14px/1 var(--font-ui); letter-spacing: 0.22em; color: rgba(245, 236, 218, 0.78); text-decoration: underline; text-underline-offset: 4px; text-decoration-color: rgba(216, 180, 106, 0.6); }
 .byc-acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .byc-acts .byc-btn { flex: 1 1 0; min-width: 0; padding: 0 10px; letter-spacing: 0.14em; }
 /* the key big */

@@ -32,7 +32,7 @@ export const ITEM_ROWS = [
   C('card-noir', 'VELVET NOIR', 'epic', '#0a0507', '#e05a6a', '#ff3a5c', 'Black velvet, a crimson neon edge.', { old: 'noir' }),
   C('card-sapphire', 'SAPPHIRE & SILVER', 'epic', '#050c1f', '#c9d6ee', '#4f8dff', 'Deep sapphire, silver leaf.'),
   C('card-legend', 'PRISM LEGEND', 'epic', '#0b0714', '#f0e6ff', '#ff7af0', 'The whole spectrum, alive in the foil.', { old: 'legend' }),
-  C('card-platinum', 'PLATINUM', 'legendary', '#101114', '#eef1f6', '#ffffff', 'Platinum on black. Few get here.'),
+  C('card-platinum', 'PLATINUM', 'epic', '#101114', '#eef1f6', '#ffffff', 'The metal card. Few get here.'),
   C('card-house', 'THE HOUSE', 'legendary', '#07060a', '#ffd98a', '#ff4fb8', 'Level 100. The house is yours.'),
   // ---- THE VAULT 1A — the style test's new cards (the owner approved the set, Nov 2 10:23 pm; their art: js/vault/strip.js + js/fx, shipped
   // only once APPROVED in THE CARD LAB). Where SMOKE ROOM, FROSTBITE, INFERNO + PRISM unlock: THE VAULT 1B (with the rest of the ~40).

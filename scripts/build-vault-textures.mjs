@@ -41,6 +41,9 @@ const JOBS = [
     ramp: [[0, '#01040f'], [0.45, '#061237'], [0.75, '#0f2a6e'], [0.92, '#2f5cb8'], [1, '#8fb2f2']] },
   { out: 'foil-gold.webp', src: 'ice/Ice002_2K-JPG_Color.jpg', contrast: 2.6, gain: 1, hp: true,
     ramp: [[0, '#5a3a08'], [0.3, '#a07420'], [0.5, '#d4a640'], [0.7, '#f0d27a'], [0.9, '#fff0b8'], [1, '#fffbe8']] },
+  // THE VAULT 2A — PLATINUM (THE METAL CARD): the brushed metal (Metal009) as cold platinum — a quiet grain, nearly white at the top
+  { out: 'platinum.webp', src: 'brushed-metal/Metal009_2K-JPG_Color.jpg', contrast: 1.7, gain: 1, hp: true,
+    ramp: [[0, '#4a4f58'], [0.3, '#7a808a'], [0.5, '#a3a9b2'], [0.72, '#c8ccd3'], [0.9, '#e4e7eb'], [1, '#f7f9fb']] },
 ];
 
 const hex = s => [1, 3, 5].map(i => parseInt(s.slice(i, i + 2), 16));

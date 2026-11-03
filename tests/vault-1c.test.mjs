@@ -59,13 +59,13 @@ test('THE CARD LAB: each new card\'s strip + its FULL card (its own mark), the s
     assert.ok(LAB_TEXT[id].motion.length > 20, `${id}: what it does`);
   }
   const strips = LAB.filter(x => x.kind !== 'full');
-  assert.deepEqual(strips.slice(0, 8).map(x => x.id), SIGHT, 'the 8 sighting cards first');
+  assert.deepEqual(strips.slice(0, 3).map(x => x.id), STILL_HELD.slice().sort((a, b) => ['card-founder', 'card-house', 'card-platinum'].indexOf(a) - ['card-founder', 'card-house', 'card-platinum'].indexOf(b)), '2A: the 3 held cards first'); assert.deepEqual(strips.slice(3, 11).map(x => x.id), SIGHT, 'then the 8 sighting cards');
   assert.equal(new Set(LAB.map(x => x.n)).size, LAB.length, 'every lab number its own');
 });
 
-test('the three still held back stay plain (no LOOK, not in the lab) — listed, never shipped weak', () => {
+test('the three held back in 1C are BUILT in 2A (a LOOK, in the lab first, strip + full card)', () => {
   const strip = read('js/vault/strip.js');
-  for (const id of STILL_HELD) { assert.ok(ITEM[id], `${id}: still an item`); assert.ok(!strip.includes(`'${id}':`), `${id}: no look yet`); assert.ok(!LAB.find(x => x.id === id), `${id}: not in the lab`); }
+  for (const id of STILL_HELD) { assert.ok(ITEM[id], `${id}: still an item`); assert.ok(strip.includes(`'${id}':`), `${id}: its look`); assert.ok(LAB.find(x => x.id === id), `${id}: in the lab`); assert.ok(LAB.find(x => x.id === `full-${id}`), `${id}: its full card in the lab`); }
 });
 
 test('THE SIGHTING CARDS draw the city\'s own models: the hero bakes ship, the city\'s painters are exported (never a second version)', () => {
