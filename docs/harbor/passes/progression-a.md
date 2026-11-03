@@ -63,6 +63,12 @@ Unit 1044/1044 · rules 57/57 (the file unchanged — no re-publish) · /api `se
 night: 0 changes after the reveal" (a TIMING check — a warning in the cloud): under the 4-shard load the neon's bake landed after the reveal
 once; the `load` group alone, twice: 15/15 (Group 0 pinned its clock — the dusk part is gone; this is load timing).
 
+## THE CLOUD
+The final push was docs-only (the workflows' path filters skipped it; Vercel built from its tag) → both started by hand on main: **tests ✅**;
+**harbor run 1: 9 / 10** (the `models` job green = **CC-B's fixed intercom lobby test CONFIRMED**) — the `city` job red on the `load` group's
+`&intro=1` load: Group 0's pin put the page at 1 pm EASTERN, which the runner's UTC page clock read as ~6 pm (the lights' power-up) → pinned to
+10 am Eastern → **run 2 (`-f job=city`): ✅**. Two runs — the cap.
+
 ## The hand-off
 - **PROGRESSION B** (its questions round first): CITY SIGHTINGS (the tap → the reaction → `pgSfx('flash')` + `'polaroid'` → SPOTTED → the pair's
   reveal `'card-reveal'`; server-verified; `eventStep({k:'sighting', id})` already counts them + STARGAZER / FREQUENT FLYER / THE WITNESS; a new
