@@ -5358,3 +5358,128 @@ APPROVED (don't change): HOLD TO TALK works on his iPhone ("amazing, I love it")
 7. (one more) THE STREAK CARD — REDESIGN (the owner's screenshot: no fan crown over it; no italic serif — "nights in a row", "tonight's counted"; too much yellow, blunt, hard to read; the streak too small). DECIDED: the chat's "1 · THE BIG FLAME" (outputs/streak-card-big-flame.png): no crown; a small "YOUR STREAK" caption (ivory ~65%, spaced caps); the big ✕ top-right. THE FLAME the hero, ~160 pt wide: THREE NESTED NEON TUBES — a red-orange outer flame with two side licks + a tall centre tip, an amber middle flame, a white-hot core — each with its glow + white core, plus a soft fill of light inside (transparent at the top → warm at the base) and a warm radial glow behind; built like the sign's tubes, crisp at 3×; the licks flicker + the core breathes (transform / opacity only); reduced motion = lit, still. The SAME flame (smaller) is the dock badge + the end-of-round streak line. THE NUMBER under it: huge (~118 pt), ivory-white with a warm glow; "NIGHTS IN A ROW" under it in the UI font, ivory, spaced caps — no serif. THIS WEEK: seven small flames (lit = the new flame in orange; missed / to come = a dark outline) with M T W T F S S under them, today in white. SOMETHING NEW: a tile with "SOMETHING NEW" (ivory) + "7 / 14 NIGHTS" (pink) and a progress bar (orange → pink). Two tiles: "❄ 1 / FREEZE HELD" (ice-blue number) and "12 / BEST EVER" (ivory); a WIN IT BACK tile when it applies. One quiet line at the bottom: "Play any match before 4 am to keep it lit". Ivory text everywhere, no gold text. Check 390 / 402 / 430 + WebKit 402×874.
 
 PROGRESSION B DONE (Nov 2, late night) — passes/progression-b.md + docs/progression.md (+ the owner's PROGRESSION A review as its add-on). THE BUILD TABLE: PROGRESSION A ✅; PROGRESSION B ✅; THE VAULT 1 (cards + the Card Lab — its questions round first: the card list) ← NEXT; then THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
+
+## OWNER'S NOTES — NOV 2 (late night)
+
+## PROGRESSION B WRITTEN (Nov 2, ~8:35 pm EST) — Step 0 = step0-progb.txt.
+
+## OWNER's REVIEW OF PROGRESSION A — Nov 2, 8:46 pm EST (iPhone) → an ADD-ON to PROGRESSION B (running; its last work group)
+- HOLD TO TALK WORKS ("amazing, I love it") ✅ — the mic fix proven on his iPhone. The end-of-round moment "looks really good" ✅; the sounds good ✅.
+- THE INTERCOM NEEDS A "WHEN": not only live — NOW · IN 10 MIN · AT A TIME (like the patch cards' AT A TIME); the clip kept until it plays + its hour.
+- THE END-OF-ROUND MOMENT: "a lot of things"; the STICKY CONTINUE is broken (it jumps when scrolling) + he doesn't like it docked on top → no sticky:
+  the moment fits ONE SCREEN at 390 with CONTINUE in the flow at the bottom (compact extra unlocks into one line).
+- THE LEVEL-UP TAKEOVER is WAY TOO FAST ("I couldn't even read it") → it STAYS until a TAP, then back to the score screen.
+- (9:16 pm) THE GILDED TEXT (the owner, his screenshot: "too much gold + yellow, you can't read the text"): the chat's 3 options
+  (outputs/gilded-text-options.png) → 1 · IVORY NAMES (DECIDED): item / achievement names warm IVORY (~#F5ECDA), ~14–16 pt, semibold, tight
+  letter-spacing (~0.03em), all caps kept; GOLD only for section headers + borders; descriptions the dim italic serif; "X% of players have this"
+  pink in sentence case. Across the Gilded profile + the end-of-round moment + the streak card. → the add-on to PROGRESSION B.
+- (9:22 pm) THE DOCK FLAME: the look is good, but it STICKS OUT of the dock — it must sit INSIDE the dock; fix it when the dock WIDENS for the
+  CHAT icon (the owner: "maybe include it during that time") → LOBBY 2.0 / SHELL 2.0, whichever adds the chat icon. THE WILLOW CURTAIN: PERFECT ✅.
+- (9:22 pm) THE STREAK CARD — NEEDS A MAJOR REDESIGN (his screenshot): no fan crown over it; no italic serif ("nights in a row", "tonight's
+  counted"); too much yellow, blunt + hard to read; the streak too SMALL. The chat's 3 redesigns: outputs/streak-card-options.png (1 THE BIG FLAME
+  · 2 THE NEON NUMBER · 3 THE EMBER) — his pick pending → an add-on to PROGRESSION B.
+- (9:26 pm) THE PROGRAM (his screenshot): past, now + future are mixed in one list — the past only slightly paler (its pink YOURS tags still
+  bright). → three sections: ON NOW (top) · COMING UP (full strength + "in 6 min") · EARLIER TONIGHT (at the bottom, collapsed, greyed — tags too);
+  a NOW divider. → the add-on to PROGRESSION B.
+- (9:30 pm) PRESETS — REMOVED (the owner: "not worth it"): take out SAVE AS A ONE-TAP JACK, its sheet, the presets row on the desk + their
+  server actions / tests (any saved presets deleted). → the add-on to PROGRESSION B.
+
+## Nov 2, 9:40–9:48 pm EST — CC-B / PROGRESSION A CHECKS (the owner, iPhone)
+- THE SCROLL FIX WORKS ✅. "A ROOM JUST OPENED" — SEND A TEST WORKS ✅ (it reached his Apple Watch too — "really cool").
+- FOUND: the Home Screen app opened as a STRANGER (iOS gives a Home Screen web app its own storage) — no radio, no admin until he restored his
+  KEY there (copied from Safari's membership card; the key LINKS the device — Safari stays signed in; never NEW KEY).
+- THE OWNER: make it OBVIOUS (1) that one card works on SEVERAL DEVICES AT ONCE (sharing the profile), and (2) "ALREADY A MEMBER? BRING YOUR
+  CARD" when a device has nothing saved (the Home Screen app, a new phone, the www / bare-domain split). The chat's plan: in the NEXT prompt's
+  Group 0 (THE VAULT 1) — (a) a fresh device with no profile shows a clear first-screen prompt "ALREADY A MEMBER? BRING YOUR CARD" → paste your key
+  (+ "Your card works on all your devices at once"); (b) the membership card gets "USE THIS CARD ON ANOTHER DEVICE" → the key big + COPY + the
+  steps (Home Screen included), saying the other device stays signed in; (c) the Home Screen app's first open detects standalone mode + no
+  profile and leads with (a). SHELL 2.0 polishes it later.
+- (9:49 pm) THE OWNER: the membership card gets a BOLD recommendation to SAVE THE KEY somewhere safe — copy it to Notes, email it to yourself,
+  a password manager — "lose it and your card can't come back". With it: COPY + (where the phone allows) a SHARE button (the system share sheet
+  → Notes / Mail / Messages) + "I SAVED IT" (which quiets the reminder). → VAULT 1's Group 0 with the other two.
+
+## Nov 2, 9:54 pm EST — THE VAULT: VARIETY + QUALITY ON EVERY CARD (the owner — DECIDED; supersedes "COMMON = still")
+- "A lot of different variety of flair — flames, smoke, freezing, psychedelic, neon, you name it, a lot of random"; EVERY card high quality,
+  not only the legendaries; animation NOT only on legendaries.
+- THE CHAT's FRAME: EVERY CARD MOVES — the tier sets HOW MUCH, not whether: COMMON one subtle living touch (a slow sheen, a smoke wisp, a glint) ·
+  UNCOMMON one clear effect · RARE an effect + glowing edges · EPIC two effects together, bold · LEGENDARY a full living scene + the border laser.
+  Built as an EFFECT LIBRARY (~15–20 reusable effects: flames, smoke, frost creeping + cracking, psychedelic liquid colour / oil slick, neon tubes,
+  marquee bulbs, electric arcs / lightning, glitter + sparkle, holographic tilt, embers + sparks, rain on glass, aurora ribbons, champagne
+  bubbles, starfield / warp, lava, water caustics, glitch / CRT, confetti, ink in water) × MATERIALS (Grok's textures + code) × FRAMES → wide
+  variety at one quality bar. Same Card Lab bar for every tier. Speed: only on-screen cards animate, ONE shared renderer (no canvas per card),
+  the lobby's slim strips a calmer cut, reduced motion = still.
+- (9:56 pm) COMMONS STAY STILL (the owner: "that makes sense") — the tier frame: COMMON still · UNCOMMON one effect · RARE effect + glowing edges ·
+  EPIC two effects · LEGENDARY a living scene + the border laser.
+- (9:56 pm) THE EFFECT LIBRARY IS SHARED, NOT CARD-ONLY (the owner asked if it can be used elsewhere): build it as its own modules (e.g.
+  js/fx/ — size-agnostic, draw into any rect / canvas through the one shared renderer, its own tier numbers) so emblems + glows (VAULT 2), the
+  end-of-round moment, the lobby, the holiday signs + the city can reuse it; where the city already has an effect (the aurora, lightning,
+  skywrite smoke, fireworks) the card version starts from the city's own (one look). In the city an effect still obeys its rules (THE WIND,
+  THE LIGHT, the timetable, the tier budgets).
+
+## Nov 2, 10:07 pm EST — THE VAULT SPLIT + ITS REFERENCES (the owner — DECIDED)
+- THE VAULT 1 SPLIT: 1A = THE STYLE TEST (Group 0: bring your card · one card on all devices · save your key; the Card Lab; the shared effect
+  library's core; ~8 sample cards: 1 Common · 2 Uncommon · 2 Rare · 2 Epic incl. THE MARQUEE · I WANT TO BELIEVE) → the owner approves in the
+  lab → 1B = the rest to that bar. Fewer cards at full quality beats more below it.
+- THE REFERENCE FOR VARIETY: the owner liked the variety of the chat's card mockups — vault-player-cards.png (the tiers) + vault-card-ideas.png
+  (30 ideas) + card-i-want-to-believe.png (the legendary bar), copied to C:\Users\benja\Downloads\NEON\vault\ for the prompt.
+- EMBLEMS: the chat's 18 neon-mark ideas (outputs/emblem-ideas.png, copied there too) — "nothing corny, look good"; his verdict pending.
+- (10:11 pm) THE OWNER on the emblems: "those look good". FIX: LIGHTS OUT (TR-3B) = WHITE corner lights + a RED centre light (as the city's own TR-3B
+  model) — never red corners. NEW (a friend's daughters play): TWO PINK / PURPLE EMBLEMS — SWEETHEART (a pink neon heart + a small purple heart)
+  + BUTTERFLY (purple wings, pink accents) (outputs/emblem-ideas-2.png); and A COUPLE OF PINK-HEART / PURPLE CARDS — the chat's suggestion:
+  HEARTBREAKER (UNCOMMON — pink hearts drifting up a soft pink-to-purple card) + PINK CHAMPAGNE (RARE — blush pink, rising bubbles, a glowing
+  edge); both early level rewards so they're easy to get; the same quality bar.
+- (10:14 pm) THE OWNER: every emblem + card = 3×, PERFECT (the chat's drawings are only shapes). LIGHTS OUT must be much better (→ built from the
+  REAL TR-3B model's silhouette + its light layout, white corners + red centre). THE HEART must be better. BUTTERFLY okay. PINK CHAMPAGNE — NO
+  (kids play: no alcohol on a kids' pick). THE MODEL: like Call of Duty player cards — an aggressive, wild, wide variety, with ONE almost
+  over-the-top girly card among them (the chat: GLITTER BOMB — an explosion of pink glitter, hearts + sparkles; HEARTBREAKER stays as the
+  softer one). Every legendary / new thing brings its cool card (the standing rule). EMBLEMS GET EFFECTS too (the shared effect library +
+  tube styles, by tier).
+- (10:14 pm) THE SLIM CARD IS THE ONE PEOPLE SEE (the owner; the chat AGREES): the lobby, menus, the board, the end of round show the SLIM strip
+  far more than anyone opens a full card → design every card SLIM-FIRST (the strip is the primary canvas; its flare top quality), the full
+  card the bonus; the Card Lab shows the slim strip FIRST + a full lobby of 8 legendary strips at once at 60 fps on the phone.
+- (10:14 pm) THE CHAT's FLAG (pending the owner): kids play → the drink-themed pieces — LAST CALL (a martini emblem), THE CREW (two glasses
+  clinking), the champagne-bubbles effect — keep (a speakeasy theme) or swap (e.g. a 1920s jazz trumpet / two hats / gold bubbles).
+- (10:20 pm) THE OWNER: kids are NOT the real audience — the drink pieces STAY (Last Call, The Crew, bubbles); only the pink card must not be
+  champagne (→ GLITTER BOMB + HEARTBREAKER). SLIM FIRST, CONFIRMED: VAULT 1A builds the ~8 sample cards as SLIM STRIPS first → his approval →
+  then the work goes into the FULL cards (both must be good: a great strip gets TAPPED and opens the full card). THE STRIP's PROMINENCE RULE: the
+  higher tier leads — a still COMMON card + a showy emblem → the EMBLEM gets the full motion + prominence; a busy legendary card → the emblem
+  plays quieter. EMBLEMS NOT LIMITED TO NEON (his worry: neon = only flicker / burn-out; "rainbow prisms" etc., like Call of Duty's): THE
+  CHAT's FRAME — an emblem = a SHAPE + a FINISH: NEON tube (the house style, the commons) · PRISM / holographic rainbow · CHROME · GOLD · ICE
+  CRYSTAL · MOLTEN / FIRE · GLITCH · GALAXY fill …, by tier, + the shared effects; the shape always reads at 28 pt. Built in VAULT 2 (1A tests
+  two emblems on the strips: one neon, one prism).
+- (10:23 pm) THE 8 SAMPLES — APPROVED (the owner: "all of those 8 sounded great"): 1 BRUSHED GOLD (Common, still — its emblem leads) · 2 SMOKE ROOM
+  (Uncommon, smoke drifting) · 3 FROSTBITE (Uncommon, frost creeping + a crack) · 4 INFERNO (Rare, flames + a glowing edge) · 5 PRISM (Rare, a beam
+  splitting into a sweeping rainbow + a holo sheen) · 6 THE MARQUEE (Epic, chasing bulbs + a neon tube) · 7 GLITTER BOMB (Epic, the over-the-top
+  pink) · 8 I WANT TO BELIEVE (Legendary, the real UFO model, the beam pulsing, the border laser). Sheets: outputs/vault-slim-samples.png +
+  emblem-finishes.png (one shape, 8 finishes: neon · prism · chrome · gold · ice crystal · molten · glitch · galaxy), copied to Downloads\NEON\vault\.
+- (10:26 pm) THE OWNER: "everything looks good — just make sure they are HIGH QUALITY" → VAULT 1A's bar: every strip at the I WANT TO BELIEVE class
+  or it doesn't ship; three refine passes each; judged animated on the phone in the Card Lab.
+
+
+## PROGRESSION B DONE (Nov 2, ~10:50 pm EST) — live. Summary: plan/progb-summary.txt
+- Cloud: run 1 tests ✅ harbor 8/10 (test timing + the album's JPEG encode under the polaroid slide → moved after the moment); run 2 ALL GREEN
+  (harbor 10/10, tests incl. the new /api sightings test). Local: profile E2E 66/66, rules 58/58 (file unchanged), full harbor 893/895 (two
+  timing checks under load, green alone). No re-publish, no new env vars.
+- Done: 9 server-verified sightings (UFO, TR-3B, Blackbird, F-22s, ghost ship, aurora, fireball, skull balloon, ₿ balloon; one per appearance;
+  owner-fired once a day; JUST ME / crew / previews never); the reactions on the existing sprites; the real polaroid + SPOTTED + the reveal; the
+  album (on the device; another phone shows card + date); birthdays (month + day, once a year, HAPPY BDAY skywrite); favors (JUST ME preview; the
+  room button asleep until LOBBY 2.0); ALL the A-review add-ons (one-screen moment, held level-up + reveal, ivory text, the BIG FLAME streak card —
+  its side licks moved outside the silhouette, the ✕ bar, THE PROGRAM's 3 sections, intercom WHEN + cancel; presets removed).
+- Decisions: polaroids stay on the phone (no Firebase Storage); the NEON sign isn't in the photo (an overlay — the photo framed below it); the
+  FIREBALL now on a fixed schedule (~3 a year — random per phone couldn't be verified); scheduled intercom clips kept until played + 1 h (≤ ~12,
+  ~10 MB).
+- Known: item / card names still in the code (→ VAULT 1B); a timetable reader could claim a sighting without watching (cosmetics only); the
+  scheduled intercom checked on Chrome only (→ his iPhone).
+
+## OWNER's REVIEW OF PROGRESSION B — Nov 2, 11:00 pm EST (iPhone + 2 screenshots) → an ADD-ON to THE VAULT 1A
+- APPROVED: the full sighting sequence ("looked great"); the UFO's reaction when tapped; the TR-3B tap + photo; the IDEA of the polaroid parking as a
+  thumbnail while the legendary is still on screen, then popping up after ("I like it").
+- BUG: on the UFO link WITHOUT a tap, the UFO still shook at mid-screen + took a photo BY ITSELF.
+- THE PARKED POLAROID: the first time it stayed a thumbnail (never popped up); the shrink-down + pop-up motion "not smooth — needs work".
+- THE PROFILE: all the small ITALIC serif text is unreadable ("You know the back rooms", "Tonight's counted · see you tomorrow", "only the ones
+  you've earned", "71 / 202 XP") → no italic; bigger / bolder / a different colour. FOUNDING MEMBER (small pink) must be BIGGER; small PINK text
+  in general is hard to read → bigger or another colour.
+
+## THE VAULT 1A WRITTEN (Nov 2, ~11:05 pm EST; rewritten with the PROGRESSION B review folded in as Group 0) — Step 0 = step0-v1a.txt.
+
+- THE BUILD TABLE (Nov 2, THE VAULT 1A Step 0): PROGRESSION A ✅; PROGRESSION B ✅; THE VAULT 1A (THE STYLE TEST — the owner's PROGRESSION B review + BRING YOUR CARD, THE CARD LAB, THE EFFECT LIBRARY's core, the 8 sample cards as SLIM STRIPS + two test emblems — this pass) ← NEXT; then THE VAULT 1B (the full cards + the rest of the ~40 + the sighting cards + names served only to owners), THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
