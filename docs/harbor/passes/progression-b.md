@@ -82,6 +82,13 @@ REVIEW OF PROGRESSION A — Nov 2, 8:46 pm EST".
   audio) — his iPhone confirms.
 - **Headless WebKit on Windows has no AudioContext:** the sequence's sounds (flash · polaroid · card-reveal) are silent in the WebKit runs.
 
+## THE FULL LOCAL RUN (the mini PC, Nov 2 late night)
+Unit 1067/1067 · rules 58/58 (+ PROGRESSION B's case; **the rules file unchanged — no re-publish**) · /api `server.test` 29/29 + `progression.test`
+9/9 + `sightings.test` 4/4 (each alone — they wipe their own nodes) · the profile E2E 66/66 · smoke (`GAMES=prism,overclock`) 6/6 · **THE FULL
+HARBOR SUITE 893/895** in 1,250 s → the two misses = TIMING checks (`weather`'s busy-storm thunder 0.69 s late, `desktop`'s resize gap 450 ms)
+in the minutes a WebKit link check ran beside the suite (against the "alone" rule — my slip); the two groups alone: **47/47**. The new groups:
+`sightings` 5/5, `radio` (+ THE WHEN) + `progress` green. No new Vercel env vars; no new function (still 8 of 12).
+
 ## The hand-off — THE VAULT 1 (its questions round first: the card list + the Card Lab)
 - The sighting pairs are `card-sg-<id>` / `emb-sg-<id>` in `core/items.js` (placeholders: the card palette + a glyph) — THE VAULT 1 draws the
   cards from the city's own baked models (decisions §15 THE SIGHTING CARDS' BAR); the reveal (`js/progress/sighting.js#pairCard`) + the album
