@@ -21,7 +21,8 @@ export const SECONDS = {
   load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
   speakeasy: 30, fireworks: 30, stations: 40, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4, desktop: 90,   // (DESKTOP: an estimate — refresh from its first cloud run)
-  radio: 85, crew: 70, progress: 45,   // (PROGRESSION A: progress — an estimate; radio + the FOUNDER switch)   // (CITY CONTROLS A: an estimate — refresh from its first cloud run; CC-B: the intercom + the crew — ~55 s each on the mini PC)
+  radio: 85, crew: 70, progress: 45, sightings: 150,   // (PROGRESSION B: sightings — an estimate from the mini PC)
+    // (PROGRESSION A: progress — an estimate; radio + the FOUNDER switch)   // (CITY CONTROLS A: an estimate — refresh from its first cloud run; CC-B: the intercom + the crew — ~55 s each on the mini PC)
 };
 
 // 151–583 s of tests each by the cloud's own seconds (+ ~25 s of setup). PERF-B: windows 446 → ~300 (its pages 3 at a time — 280 s on the
@@ -42,7 +43,7 @@ export const CI_JOBS = {
   legend: ['legends', 'blackbird', 'bench', 'heli'],   // (SKY-B: + the patrol's circle (heli, ~90 s) + the shadowboxer)
   models: ['mothman', 'boxer', 'speaker', 'fireworks', 'desktop', 'radio', 'crew'],   // (CITY CONTROLS A: the radio — the lightest job)   // (DESKTOP, Nov 2: the lightest job)   // (PART 10: the fireworks — the models job had the room)   // (THE MODELS PASS: a 10th job — every other job sat at its ~5-min cap: the Mothman + the shadowboxer's room)
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
-  holiday: ['holiday', 'thanks', 'panelrows', 'citylife'],   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
+  holiday: ['holiday', 'thanks', 'panelrows', 'citylife', 'sightings'],   // (PROGRESSION B: sightings — the lightest job)   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };
 
 export const SERIAL = ['panel', 'perf'];

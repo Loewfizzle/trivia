@@ -87,7 +87,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       const body = { action: 'radioState' }; const rc = roomCode(); if (role === 'crew' && rc) body.room = rc;
       st = await api('admin', body); stAt = serverNow(); err = '';
       if (st.role !== role && st.role) role = st.role;
-      feedDesk(); paintDot();
+      feedDesk(); feedIntercom(); paintDot();
       // (CC-B review fix 1 — THE SCROLL JUMP: never rebuild under a finger or a still-moving list; a paper face repaints IN PLACE)
       if (open && !card && !(ic && ic.busy()) && !scrolling()) { if (band !== 'desk' && isOwner) paintPaper(); else render(); } else if (open) paintLive();
     } catch (e) { if (e && e.status === 403) { destroy(); return; } }
@@ -98,6 +98,12 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   }
   // the owner's own moments played on THIS phone at once (JUST ME + the city's — the cached GET catches up for everyone else)
   function feedDesk() { const r = remote(); if (r && r.deskMoments) r.deskMoments((st && st.moments || []).filter(m => m.mine && m.aud !== 'room' && m.state !== 'stopped')); }
+  // (PROGRESSION B's add-on — THE INTERCOM's WHEN: his own JUST ME announcements still to come reach this phone's player from the poll too —
+  //  one he scheduled before a reload plays at its time; intercom.js keeps one copy per id)
+  function feedIntercom() {
+    const L = ((st && st.intercom) || []).filter(m => m.aud === 'me' && m.state !== 'stopped' && m.until > serverNow());
+    if (L.length) import('../../audio/intercom.js').then(m => m.intercomFeed('desk', L)).catch(() => {});
+  }
   async function act(body, okSound) {
     busy = true;
     try { const r = await api('admin', body); if (okSound) sfx.play(okSound); busy = false; await refresh(); return r; }

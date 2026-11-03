@@ -1762,6 +1762,13 @@ player's own 120-ms re-place window). Groups 1–5: THE WINDOW SCENES AS TIMETAB
 windows.old / &force=old-windows, AFTER HOURS (the shades down glowing — amber, cold white, green, rosy — the lights out one at a time 2–4 am;
 + the owner's add-on: the edge windows' shades), THE JUGGLER (+ Grok's drop sounds), THE CRATE GUY, THE CHARLESTON, THE BOOKIE (rotating).
 
+## PROGRESSION B — CITY SIGHTINGS + BIRTHDAYS + CALL IN A FAVOR (Nov 2 2026) — docs/harbor/passes/progression-b.md, docs/progression.md
+- THE SIGHTING ENGINE: core/sightings.js (PURE — one row per sighting; verifySighting against the seeded timetable + the radio's fired-moment record: the owner's to a real audience once a day per player; JUST ME, the crew + every &force= never; forged / future / stale / far-zone claims refused); the fireball SEEDED (row sky.fireball); a balloon flight's line-up replayed on the server; POST /api/profile 'sighting' (one count per appearance; the MATCHED PAIR through the award engine; STARGAZER / FREQUENT FLYER / THE WITNESS awake).
+- THE TAP + THE REACTIONS on the same baked sprites (nine); the tap boxes generous + moving with each craft; the aurora never steals a tap on the letters.
+- THE FLASHBULB + THE REAL POLAROID (the city's frame composed from its canvases right after it draws — ~1 ms; WebKit @3 checked first) → SPOTTED → THE REVEAL (held for a tap); AGAIN = the corner print + its stamp; THE ALBUM on the device (IndexedDB bytes) + CITY SIGHTINGS on the profile; the owner's &sgdemo preview.
+- BIRTHDAYS (month + day, private, once a year; the own city's HAPPY BDAY skywrite + MANY HAPPY RETURNS; the room's copy dormant) + CALL IN A FAVOR (the radio's 'favor' role, the token spent only when accepted; JUST ME preview; the room button asleep till LOBBY 2.0).
+- THE ADD-ON (the owner's PROGRESSION A review): the moment fits one screen, the level-up holds for a tap, IVORY NAMES, THE BIG FLAME streak card (the same flame everywhere), the preview profile's ✕ bar, THE PROGRAM in three sections, THE INTERCOM's WHEN.
+
 ## PROGRESSION A — THE ENGINE (Nov 2 2026) — docs/harbor/passes/progression-a.md, docs/progression.md
 LEVELS 1–100 over the same XP (NEWCOMER 1–4 · REGULAR 5–19 · INSIDER 20–39 · MADE 40–69 · LEGEND 70–99 · OWNER 100 = 45,000; each band its own
 price per level, never cheaper than the level before; THE YEAR SIM on the server's own step: every other night of 3 matches → INSIDER ~2 weeks,

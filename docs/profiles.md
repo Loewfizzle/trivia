@@ -83,6 +83,7 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
   your rank is still computed for you. Opting back in re-inserts from `pstats`. The admin's hide (`ppriv/ban`) wins over opting in.
 
 ## XP and ranks
+> **PROGRESSION B (Nov 2 2026):** `POST /api/profile` gained `sighting` (CITY SIGHTINGS — server-verified, one count per appearance), `birthday` (month + day, private, once a year — `me` returns it in `priv.bd`), `birthdayRoom` (the room's skywrite, dormant) + `favor` (CALL IN A FAVOR); `me`'s stats carry `sg` / `sgt` (the sightings' counts). The photos of the sightings never leave the phone. docs/progression.md.
 > **PROGRESSION A (Nov 2 2026) reworked this:** the ranks are now the BANDS of LEVELS 1–100 (the same XP lines; OWNER at 45,000), the
 > streak's +10 %/night XP is gone (streaks pay in milestones), and THE VAULT's finishes + glows are level rewards — **docs/progression.md**
 > (levels, the streak, the items, the 30 achievements, the award engine, the daily contract, FOUNDER, the screens). The per-match XP below stands.

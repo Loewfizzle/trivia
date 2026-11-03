@@ -164,6 +164,26 @@ G('radio', async () => {
     ok(e.ok && en && en.wait === false && live.radio && live.radio.intercom.some(m => m.id === e.r.intercom.id), `RADIO (CC-B): EVERYONE → every open lobby's node + the city's feed`);
     for (const id of [r.ok && r.r.intercom.id, e.ok && e.r.intercom.id].filter(Boolean)) await call(O.page, { action: 'radioUnsend', id });
     await ev(P.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`); await P.ctx.close(); }
+  // ---- PROGRESSION B's add-on — THE INTERCOM's WHEN: JUST ME, AT A TIME ~35 s ahead → kept + queued (THE PROGRAM's YOURS + CANCEL), it
+  // plays THEN — not before; a second one CANCELLED before its time never plays
+  { const b64 = Buffer.alloc(3000, 4).toString('base64'), t0 = await ev(O.page, `import('/js/firebase.js').then(m => m.serverNow())`);
+    const s1 = await call(O.page, { action: 'radioIntercom', aud: 'me', mime: 'audio/mp4', dur: 2, b64, head: '', when: 'at', at: t0 + 35e3 });
+    const s2 = await call(O.page, { action: 'radioIntercom', aud: 'me', mime: 'audio/mp4', dur: 2, b64, head: '', when: 'in10' });
+    const bad = await call(O.page, { action: 'radioIntercom', aud: 'me', mime: 'audio/mp4', dur: 2, b64, head: '', when: 'at', at: t0 + 30 * 3600e3 });
+    const id1 = s1.ok && s1.r.intercom.id, id2 = s2.ok && s2.r.intercom.id;
+    ok(s1.ok && Math.abs(s1.r.intercom.at - (t0 + 35e3)) < 2000 && s2.ok && Math.abs(s2.r.intercom.at - (t0 + 600e3)) < 5000 && !bad.ok && bad.code === 'bad_time',
+      `RADIO (the WHEN): AT A TIME ${s1.ok && Math.round((s1.r.intercom.at - t0) / 1000)} s ahead · IN 10 MIN ${s2.ok && Math.round((s2.r.intercom.at - t0) / 1000)} s · 30 h ahead refused (${bad.code})`);
+    await ev(O.page, `import('/js/audio/intercom.js').then(m => m.intercomFeed('desk', ${JSON.stringify([s1.ok && s1.r.intercom, s2.ok && s2.r.intercom].filter(Boolean))}))`);
+    // CANCEL the second before its time (THE PROGRAM's CANCEL = the unsend)
+    const c2 = id2 ? await call(O.page, { action: 'radioUnsend', id: id2 }) : { ok: false };
+    const logOf = id => ev(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().log.filter(l => l.id === '${id}').map(l => l.what))`);
+    await sleep(Math.max(0, t0 + 25e3 - (await ev(O.page, `import('/js/firebase.js').then(m => m.serverNow())`))));
+    const early = await logOf(id1);
+    await waitFor(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().log.some(l => l.id === '${id1}' && !/held/.test(l.what)))`, 'the scheduled intercom', 25000).catch(() => {});
+    const later = await logOf(id1), when = await ev(O.page, `import('/js/audio/intercom.js').then(m => (m.intercomDebug().log.find(l => l.id === '${id1}') || {}).at || 0)`);
+    const st2 = await get(`radio/ic/${id2}`), clip2 = await get(`radio/clips/${id2}`);
+    ok(early.length === 0 && later.length > 0 && !later.includes('skipped') && when >= t0 + 33e3 && c2.ok && st2 && st2.state === 'stopped' && !clip2 && !(await logOf(id2)).some(w => /playing/.test(w)),
+      `RADIO (the WHEN): the JUST ME one played at its time, not before (${((when - t0) / 1000).toFixed(1)} s after the send: ${JSON.stringify(later)}); the cancelled one never (${st2 && st2.state}, its clip ${clip2 ? 'kept' : 'gone'})`); }
   // ---- ONE ROOM: the room's node (the lobby plays it once it is the live city — LOBBY 2.0)
   const ROOM = 'RDTE';
   await dbPut(`rooms/${ROOM}`, { meta: { hostId: 'rdhost', status: 'lobby', createdAt: Date.now(), activeAt: Date.now() }, players: { rdhost: { name: 'HOSTY', color: 'cyan', avatar: 'bolt', joinedAt: 1 } } });

@@ -85,6 +85,14 @@ await H.run(async () => {
   ok(/^LEVEL [56] · NEW BAND · REGULAR$/.test(upTxt), `a LEVEL-UP: the medal flips — ${upTxt}`);
   await sleep(600);
   await H.shot(p0, 'pf-03-levelup-390x844');
+  // THE LEVEL-UP HOLDS (the owner's PROGRESSION A review): a tap in its first second is ignored; it is still up 5 s later; a tap → the score screen
+  await p0.evaluate(() => document.querySelector('.pg-moment').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await sleep(5000);
+  const held = await p0.evaluate(() => !!document.querySelector('.pg-up.is-on.is-held.is-tap') && /TAP TO CONTINUE/.test((document.querySelector('.pg-up-tap') || {}).textContent || ''));
+  ok(held, 'the level-up is still up after 5 s (a skip-tap in its first second ignored) — TAP TO CONTINUE');
+  await p0.evaluate(() => document.querySelector('.pg-moment').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
+  await p0.waitForFunction(() => !document.querySelector('.pg-up.is-on'), { timeout: 3000 });
+  ok(true, 'a tap → back to the score screen, which finishes from there');
   // the skip: a tap anywhere → the end, at once
   await p0.evaluate(() => document.querySelector('.pg-moment').dispatchEvent(new PointerEvent('pointerup', { bubbles: true })));
   await p0.waitForSelector('.pg-moment.is-end', { timeout: 3000 });
@@ -160,16 +168,16 @@ await H.run(async () => {
   ok(prof.ach.includes('FIRST ROUND') && prof.ach.includes('HOUSE WARMING'), `the achievements she holds (${prof.ach.join(', ')})`);
   ok(prof.vault.includes('card-gilded') && prof.vault.includes('card-founder') && prof.vault.includes('card-brass') && !prof.vault.includes('card-house'), `THE VAULT: only what she owns (${prof.vault.join(', ')})`);
   ok(!/\?\?\?|\d+ \/ \d+ UNLOCKED|\d+ of \d+/.test(prof.text), 'no ??? · no locked slots · no totals');
-  await p3.waitForFunction(() => /OF PLAYERS HAVE THIS/.test((document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || ''), { timeout: 10000 }).catch(() => {});
-  ok(/^\d+% OF PLAYERS HAVE THIS$/.test(await p3.evaluate(() => (document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || '')), 'X% OF PLAYERS HAVE THIS (the server’s count)');
+  await p3.waitForFunction(() => /of players have this/.test((document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || ''), { timeout: 10000 }).catch(() => {});
+  ok(/^\d+% of players have this$/.test(await p3.evaluate(() => (document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || '')), 'X% of players have this (the server’s count — pink, sentence case)');
   // wear another card she owns → the card changes (the server checked it)
   await p3.click('.pg-vitem[data-id="card-founder"]');
   await p3.waitForFunction(() => document.querySelector('.pg-card').dataset.card === 'card-founder', { timeout: 8000 });
   ok((await val(`profiles/${me0.pid}/cd`)) === 'card-founder', 'WEAR IT: FOUNDING MEMBER — on the card + on the server');
   // the streak: the card's flame → the streak card
   await p3.click('.pg-card-st');
-  await p3.waitForSelector('.pg-sc .pg-sc-n', { timeout: 5000 });
-  ok(/^\d+$/.test(await p3.$eval('.pg-sc-n', e => e.textContent)) && (await p3.evaluate(() => document.querySelectorAll('.pg-sc .pg-dots i').length)) === 7, 'tap the flame → THE STREAK CARD (the count, the week’s 7 dots)');
+  await p3.waitForSelector('.pg-sc .pg-sk-n', { timeout: 5000 });
+  ok(/^\d+$/.test(await p3.$eval('.pg-sk-n', e => e.textContent)) && (await p3.evaluate(() => document.querySelectorAll('.pg-sk .pg-sk-day').length)) === 7 && !!(await p3.$('.pg-sk .pg-sk-flame svg')), 'tap the flame → THE STREAK CARD (THE BIG FLAME, the count, the week’s 7 flames)');
   await shotAll(p3, 'pf-06b-streak-card');
   await p3.click('.pg-sc .pg-x');
   await sleep(800);

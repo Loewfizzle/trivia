@@ -99,6 +99,20 @@ test('PROGRESSION A: pstats (xp · it · ac · st · pa · dl · fv), pcount, pr
   for (const n of ['pcount', 'progress/founder', 'dly/test', 'streak/outage']) await assertFails(get(ref(db('me'), n)), `a client reads ${n} by socket (/api answers)`);
 });
 
+// PROGRESSION B: CITY SIGHTINGS (the counts, the appearances counted, the radio's once-a-day, the pairs), BIRTHDAYS (private), FAVORS, the
+// radio's fired-moment record + a room's radio — the SERVER's only: a phone can't claim its own sighting, birthday or favor by socket
+test('PROGRESSION B: sightings (pa.sg · sgt · it card-sg-*), ppriv sgk / sgr / bd / bdr, fv, radio/fired, rooms/{CODE}/radio — written by nobody', async () => {
+  await seed({ uids: { me: 'pme' }, pstats: { pme: { xp: 10, pa: { sg: { ufo: 1 }, sgt: 1 }, it: { 'card-sg-ufo': 1 }, fv: 1 } }, ppriv: { pme: { bd: { m: 11, d: 3, at: 1 } } },
+    rooms: { WISH: { meta: { hostId: 'me', status: 'lobby', createdAt: 1 }, players: { me: { name: 'ME', color: 'cyan', avatar: 'bolt', joinedAt: 1 } } } } });
+  for (const [path, v] of [['pstats/pme/pa/sg/tr3b', 1], ['pstats/pme/pa/sgt', 99], ['pstats/pme/it/card-sg-btc', 1], ['pstats/pme/it/emb-sg-btc', 1], ['pstats/pme/fv', 5],
+    ['ppriv/pme/sgk/ufo:x', 1], ['ppriv/pme/sgr/radio:2026-11-03', 1], ['ppriv/pme/bd', { m: 1, d: 1, at: 0 }], ['ppriv/pme/bdr/2026-11-03_WISH', 1],
+    ['radio/fired/-Nxxxx', { jack: 'ufo', at: 1, role: 'owner', sight: true }], ['rooms/WISH/radio/-Nyyyy', { jack: 'skywrite', text: 'HI', at: 1, until: 2 }]]) {
+    await assertFails(set(ref(db('me'), path), v), `the player writes ${path}`);
+    await assertFails(set(ref(db('stranger'), path), v), `a stranger writes ${path}`);
+  }
+  for (const n of ['ppriv/pme', 'ppriv/pme/bd', 'radio/fired']) await assertFails(get(ref(db('me'), n)), `a client reads ${n} by socket (/api answers)`);
+});
+
 test('creating a room: only as yourself, never over an existing room', async () => {
   const meta = uid => ({ hostId: uid, status: 'lobby', createdAt: serverTimestamp(), activeAt: serverTimestamp() });
   await assertFails(set(ref(db('a'), `rooms/WXYZ/meta`), meta('b')));

@@ -10,7 +10,8 @@ import { favorMoment } from './radio.js';
 
 export async function callFavor(pid, uid, body, now = Date.now()) {
   let took = false;
-  await ref(`pstats/${pid}/fv`).transaction(cur => { const n = Number(cur) || 0; if (n < 1) { took = false; return undefined; } took = true; return n - 1; });
+  // (a transaction's first try may see null before the real value arrives: write 0 then — the server answers with the truth + it runs again)
+  await ref(`pstats/${pid}/fv`).transaction(cur => { const n = Number(cur) || 0; if (n < 1) { took = false; return cur === null ? 0 : undefined; } took = true; return n - 1; });
   if (!took) throw new ApiError(409, 'no_favor', 'No favors to call in.');
   try {
     const r = await favorMoment(pid, uid, body, now);

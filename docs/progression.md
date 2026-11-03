@@ -1,10 +1,11 @@
-# PROGRESSION — levels, the streak, the unlocks, the achievements, the daily contract (PROGRESSION A, Nov 2 2026)
+# PROGRESSION — levels, the streak, the unlocks, the achievements, the daily contract, CITY SIGHTINGS, birthdays, favors (PROGRESSION A + B, Nov 2 2026)
 
 The engine behind every "you got better" moment. **The server is the only writer** (XP, levels, the streak, items, achievements, the
 counts — `database.rules.json`'s default deny; `tests/integration/rules.test.mjs` proves a client can't write any of it); the screens
 only read. **Profiles are polish:** with `/api` down a match plays exactly as before — the moment just doesn't open. The decisions +
 the owner's words: `docs/harbor/plan.md` (PROGRESSION 2.0, THE LEVEL PACE, THE ACHIEVEMENTS — DRAFT, STREAK MILESTONES REMAPPED, VAGUE
-TEASE, NO "???", FOUNDER, THE LOOK, PROGRESSION A's LAST TWO QUESTIONS) + `docs/harbor/decisions.md` §15. The pass: `docs/harbor/passes/progression-a.md`.
+TEASE, NO "???", FOUNDER, THE LOOK, PROGRESSION A's LAST TWO QUESTIONS, OWNER'S NOTES — NOV 2 (night), OWNER's REVIEW OF PROGRESSION A) + `docs/harbor/decisions.md` §15.
+The passes: `docs/harbor/passes/progression-a.md` · `docs/harbor/passes/progression-b.md` (CITY SIGHTINGS, BIRTHDAYS, CALL IN A FAVOR + the owner's A review).
 
 | file | what |
 | --- | --- |
@@ -146,9 +147,98 @@ and no card gets it now) — so "everyone who played before the launch" is exact
   `?preview=streak` · `?preview=flame&streak=N` (`&state=lit|waiting|frozen`); the look page `tests/integration/progress-preview.html?view=…` (`&cards=1` every look).
 - Toasts: an event that earned something (the knock, the watcher) — "ACHIEVEMENT · KNOCK KNOCK" + the bell.
 
+## CITY SIGHTINGS (PROGRESSION B, Nov 2 — TAP TO UNLOCK, server-verified, NO HINT EVER)
+A legendary is SPOTTED only when the player TAPS it while it's on their screen and the SERVER believes it. Nothing ever hints (no pulse, no
+"TAP IT", no list of what's out there — a secret found by tapping + word of mouth); the tap area is generous and moves with the craft.
+
+| file | what |
+| --- | --- |
+| `js/core/sightings.js` | PURE — THE SIGHTINGS (one row each: id, the MATCHED PAIR's names + item ids, the radio jacks that can put it up) + **verifySighting** (`skyWindows` from the seeded timetable · `radioWindows` from the radio's record) |
+| `js/core/harbor-fireball.js` · `js/core/harbor-balloon-kinds.js` | the fireball SEEDED (row `sky.fireball` — it was `Math.random` per phone, which no server could check; the same ~3 a year) · a balloon flight's line-up + length from its seed (the server replays it) |
+| `api/_lib/sightings.js` | `POST /api/profile { action: 'sighting', id, t, tz }` → the place + zone by IP, the showcase dial, NOAA's Kp, `radio/fired`, the rooms, THE WATCHER's start → verify → ONE count per appearance (`ppriv/{pid}/sgk`) → `eventStep({ k: 'sighting' })` |
+| `js/screens/harbor/sight-react.js` | the live TAP BOXES (each legendary's draw stamps where it is) + THE REACTIONS' clock (`fire` / `k` / `u`) |
+| `js/screens/harbor/snapshot.js` | THE POLAROID's photo: the city's ACTUAL frame composed from its own canvases (+ the crisp lettering + the overlays) at the phone's full dpr, right after the city draws (`scene.snapshot`) |
+| `js/progress/sighting.js` · `css/sightings.css` | THE MOMENT: the flashbulb → the print in the corner → THE POLAROID → SPOTTED → THE REVEAL (held until a tap) · AGAIN = the corner print + "SPOTTED · 4th time" |
+| `js/profile/sightings.js` · `js/profile/album.js` · `js/progress/album-view.js` | the claim + its offline queue · THE ALBUM on this device (IndexedDB, the JPEG's bytes) · CITY SIGHTINGS on the profile |
+
+**What counts** (`SIGHTINGS` = `core/achievements.js#LEGENDARIES`): the UFO · the TR-3B · THE BLACKBIRD (its passes, the TR-3B's chase, THE
+WATCHER's reward) · the F-22s (the surprise flyby + the TR-3B's chase) · the GHOST SHIP (Halloween) · the AURORA (its seeded nights + a real
+Kp ≥ 7 storm, after dark at the place) · the FIREBALL · the SKULL balloon + the ₿ balloons (a flight whose seeded line-up has one — the
+festival always).
+**The verdict** (`verifySighting`): the claim's time ≤ the server's + 15 s and ≤ 12 h old (an offline tap queues); the phone's zone within an
+hour of the IP's; then THE TIMETABLE (the window it was up, ± a few seconds) — or THE RADIO: a moment the OWNER fired for EVERYONE / a room
+the player is in counts ONCE A DAY per player (`ppriv/{pid}/sgr/radio:<day>`); JUST ME (his own preview) + a CREW member's moments + every
+`&force=` / `&lgnow=` / the preview panel NEVER (a force plays only on the phone that asked — the timetable says nothing was there; the
+phone doesn't even send a claim from a preview page). One count per APPEARANCE (`ppriv/{pid}/sgk/<key>`, kept 3 days): ten taps on one UFO =
+one sighting.
+**The award** (`core/achievements.js#awardAll`): a legendary's FIRST counted sighting → its MATCHED PAIR (`card-sg-<id>` LEGENDARY card +
+`emb-sg-<id>` emblem; THE VAULT 1 draws them) + the counters `pa.sg[id]`, `pa.sgt` → STARGAZER (3 different) · FREQUENT FLYER (25) · THE
+WITNESS (all). X% via `pcount/i`.
+**A NEW LEGENDARY plugs in by:** its id in `LEGENDARIES` + its row in `SIGHTINGS` (names + jacks) + a `case` in `skyWindows` (where the
+timetable puts it) + its pair in `core/items.js` + a `SR.box(id, …)` in its draw (its tap box) + its reaction (read `SR.k(id)`; motion in
+the screen's plane + its own lights) + a line in the harbor `sightings` group.
+
+### THE TAP + THE REACTIONS (the SAME baked sprites — no new models, angles or art)
+UFO — wobbles on its axis + its beam flickers · TR-3B — its corner lights race round the triangle · BLACKBIRD — pitches its nose up + lights
+its afterburners · F-22s — break apart (each its own way, then fall back in) · GHOST SHIP — its lanterns flare (the stern's most) · SKULL
+balloon — its burner ROARS (a big flame lighting the skull from below) · ₿ balloon — its burner flares + it bobs up + a gold pulse on its ₿ ·
+AURORA — brightens + a ripple runs out along it from the finger · FIREBALL — flares in a burst of sparks. Every tap, even after it's spotted,
+only on the tapper's phone; reduced motion = the light half, held. The title asks the legendaries FIRST (a balloon / the Blackbird can cross
+the sign) — except the aurora, which is BEHIND the sign: a tap on the letters stays the letters'.
+
+### THE FLASHBULB, THE REAL POLAROID, SPOTTED + THE REVEAL
+~0.45 s into the reaction the city's ACTUAL frame is captured (`scene.snapshot` — every city canvas incl. the crisp lettering + the
+legendaries' overlays, cropped square round it at the phone's full dpr: 966 px at 402 @3; ~1 ms on the main thread — the JPEG encodes async
+after) the instant before a press-camera FLASH (A's `flash`); the print slides into the corner, developing — a BIG legendary (the UFO, the
+TR-3B, the ghost ship) keeps it there until the craft has left the screen; then THE POLAROID big (A's `polaroid`) with its date + time
+hand-lettered (Caveat), SPOTTED stamped, and THE REVEAL of the pair + X% (A's `card-reveal`) — HELD until a tap (taps in its first second
+ignored). AGAIN: the corner print + "SPOTTED · 4th time". A preview: the print + "A PREVIEW · IT DOESN'T COUNT", never SPOTTED, never kept.
+`/api` down: the moment plays the same, the claim waits in the queue (≤ 12 h), a later "SPOTTED · <name>" toast when it unlocks.
+**The NEON sign + the tagline are not in the photo** — they're the title's SVG / text over the city (like the dock), not city layers; the crop
+keeps below them where the legendary allows.
+
+### THE ALBUM (the profile's CITY SIGHTINGS)
+**The photos stay ON THE DEVICE** (IndexedDB `ns-album` — the JPEG's bytes, not a Blob: WebKit's private storage refuses Blobs), the first +
+the latest two per legendary (≤ 27, ~0.3 MB each); **the record on the server** (the pair's grant time = "first spotted"). Another device
+shows the LEGENDARY card + the date. Only what's owned — no ???, no totals. A server copy of the photos would need Firebase Storage (a new
+service + its rules) — not added.
+
+### The owner's previews (never counted, never kept in the real album)
+`&sgdemo=<id>` with its legendary forced — the first-time sequence on its own ~2 s after it's in view (its prints go to a separate preview
+album `ns-album-preview`, which `?preview=card` shows) · `&sgagain=N` — the Nth-time corner print.
+
+## BIRTHDAYS (PROGRESSION B)
+`core/birthday.js` (PURE) + `api/_lib/birthday.js`: MONTH + DAY on the profile (never the year), optional, private (`ppriv/{pid}/bd` — never
+in a public response), changeable ONCE A YEAR (a clear counts as a change). On the day (the phone's zone, within an hour of the IP's): the
+player's own city SKYWRITES "HAPPY BDAY <NAME>" (their own name through the name filter — a refused one → FRIEND) the first time it opens
+that day (`remote.js#localMoments` — skytyped by day, the drone show after dark; never on a preview page) + MANY HAPPY RETURNS
+(`event 'birthday'`, server-checked); entering a room that day → the server writes the room's copy (`rooms/{CODE}/radio`, once a day a room —
+DORMANT until LOBBY 2.0 makes the lobby the live city).
+
+## CALL IN A FAVOR (PROGRESSION B)
+A FAVOR token (`pstats/fv` — the 100-night streak's reward) → the profile's A FAVOR sheet: pick ONE of the crew's 11 jacks → **PREVIEW ·
+JUST ME** plays it on the player's own city now (nothing spent) · **FOR YOUR ROOM** spends it through the radio's own path (role `favor`:
+the room they're in, the crew's limits + cooldown, the words' filter, never a sighting); the token is reserved in a transaction + handed back
+if the radio refuses (`api/_lib/favors.js`). The room button sleeps until LOBBY 2.0 (`js/progress/extras.js#FAVOR_ROOMS_LIVE`).
+
+## THE OWNER's PROGRESSION A REVIEW (built as B's add-on)
+The end-of-round moment fits ONE screen (no pinned CONTINUE; extras fold into "+N MORE") · THE LEVEL-UP + every full-screen reveal HOLD until
+a tap (taps in the first second ignored; TAP TO CONTINUE after one) · IVORY NAMES (gold only for the section headers + borders; "22% of
+players have this" pink, sentence case) · THE STREAK CARD = THE BIG FLAME (`js/progress/flame-art.js` — three nested neon tubes; the same
+flame small on the end-of-round line, the profile, the card + the dock badge) · the preview profile's ✕ in its own bar · THE PROGRAM in
+three sections (ON NOW · COMING UP · EARLIER TONIGHT collapsed) · THE INTERCOM's WHEN (NOW · IN 10 MIN · AT A TIME ≤ a day; the clip kept
+until it plays + its hour; CANCEL until it plays).
+
 ## Tests
 `tests/levels.test.mjs` (the curve, the rewards, the carry-over, THE YEAR SIM) · `tests/streak.test.mjs` · `tests/achievements.test.mjs` (all 30 +
 the engine + FOUNDER) · `tests/daily.test.mjs` · `tests/integration/progression.test.mjs` (/api on the emulators: the daily contract with the
 fake daily, the outage, a real report's awards, wearing, X%, the events, the FOUNDER switch + its sweep) · `rules.test.mjs` (nobody writes
 any of it) · `e2e-profiles.mjs` (a real match → the moment, the skip, the profile, the streak card, /api down) · the harbor `progress` group
 (the dock flame at 3×, the preview links, reduced motion) + `radio` (THE FOUNDER switch).
+**PROGRESSION B:** `tests/sightings.test.mjs` (the verifier: every legendary on its real timetable, forged / future / stale / far-zone
+claims, a `&force=` time, the radio's owner once a day vs JUST ME + the crew, the pairs + STARGAZER / FREQUENT FLYER / THE WITNESS) ·
+`tests/birthday.test.mjs` (once a year, Feb 29, the day in the zone, the name filter, the favor role) · `tests/radio-intercom.test.mjs` (THE WHEN) ·
+`tests/integration/sightings.test.mjs` (/api on the emulators: a real claim + one count per appearance + the pair + X%, forged ones, the
+radio once a day, birthdays private + once a year + the day + the room's copy, a favor spent only when accepted) · `rules.test.mjs`
+(nobody writes any of it) · `e2e-profiles.mjs` (the held level-up, the big-flame card) · the harbor `sightings` group (a tap on each
+legendary → its reaction, a forced one never claims; THE SEQUENCE + the capture's frame cost; reduced motion) + `radio` (THE WHEN).

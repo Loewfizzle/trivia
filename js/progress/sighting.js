@@ -59,7 +59,7 @@ export function polaroid(photo, cap, o = {}) {
 /** the pair's placeholder art (THE VAULT 1 replaces it, never the ids): the card in its palette + its glyph; the emblem in neon */
 export function pairCard(id) {
   const s = SIGHTING[id], it = ITEM[s.card], em = ITEM[s.emblem];
-  return h('div.sg-card', { style: cardVars(s.card), dataset: { item: it ? it.id : s.card } }, h('i', em ? em.glyph : '✦'), h('span', 'LEGENDARY'), h('b.sg-shine'));
+  return h('div.sg-card', { style: cardVars(s.card), dataset: { item: it ? it.id : s.card } }, h('i', em ? em.glyph : '✦'), h('span', 'LEGENDARY'), h('em.sg-shine'));
 }
 
 let busy = null;

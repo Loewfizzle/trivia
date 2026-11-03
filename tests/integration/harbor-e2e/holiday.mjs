@@ -359,3 +359,58 @@ G('citylife', async () => {
     ok(n >= 2, `9f THE JOGGERS: &force=joggers sends them through (${n} seen within a minute at 3 pm, outside their hours)`);
     await Q.ctx.close(); }
 });
+
+// PROGRESSION B — CITY SIGHTINGS: a tap on each legendary (forced from its link) → its REACTION (the box moves with it; a forced one never
+// claims); THE SEQUENCE on the owner's preview (&sgdemo — the flash, the REAL polaroid at the phone's dpr, SPOTTED, the pair, held until a
+// tap); reduced motion; the capture never drops a frame (docs/progression.md "CITY SIGHTINGS")
+G('sightings', async () => {
+  const CASES = [['ufo', 'when=2026-11-03T22:00&force=ufo&lgnow=1'], ['tr3b', 'when=2026-11-06T22:30&force=tr3b&lgnow=1'], ['f22', 'when=2026-11-04T17:30&force=flyby'],
+    ['blackbird', 'when=2026-11-04T15:00&force=blackbird'], ['ghostship', 'when=2026-10-31T21:00&force=ghost-ship'], ['aurora', 'when=2026-11-03T23:00&force=aurora'],
+    ['fireball', 'when=2026-11-03T23:00&force=fireball'], ['skull', 'when=2026-10-10T09:00&force=balloon-skull'], ['btc', 'when=2026-10-10T09:00&force=balloon-festival-fast']];
+  const res = [];
+  for (const [id, qs] of CASES) {
+    const P = await open({ slot: `sg${id}`, qs, view: [402, 874] });
+    await harborUp(P.page);
+    await P.page.mouse.click(30, 800).catch(() => {});      // (a legendary from a link waits for a tap)
+    let b = null;
+    const t0 = Date.now();
+    while (Date.now() - t0 < 45000 && !b) { const bs = await ev(P.page, 'window.__district.sightBoxes()').catch(() => []); b = (bs || []).find(x => x.id === id && x.x > 24 && x.x < 378 && x.y > 40 && x.y < 760) || null; if (!b) await sleep(250); }
+    if (!b) { res.push(`${id}: no box`); await P.ctx.close(); continue; }
+    if (id === 'ufo') { await sleep(7000); const bs = await ev(P.page, 'window.__district.sightBoxes()'); b = bs.find(x => x.id === id) || b; }
+    await P.page.mouse.click(b.x, b.y);
+    await sleep(250);
+    const r = await ev(P.page, `import('/js/screens/harbor/sight-react.js').then(m => ({ k: m.k('${b.key}'), u: m.u('${b.key}') }))`);
+    await waitFor(P.page, `import('/js/progress/sighting.js').then(m => !!(m.last.claim))`, 'the claim', 6000).catch(() => {});
+    const c = await ev(P.page, `import('/js/progress/sighting.js').then(m => ({ tap: m.last.tap, claim: m.last.claim }))`);
+    res.push(`${id}: ${r.k > 0.05 && r.u != null && c.tap && c.tap.live === false && c.claim && c.claim.state === 'preview' ? 'ok' : `BAD ${JSON.stringify({ r, c })}`}`);
+    if (SHOTS && id === 'skull') await P.page.screenshot({ path: `${OUT}sightings-react-${id}.png` });
+    await P.ctx.close();
+  }
+  ok(res.every(x => /: ok$/.test(x)), `SIGHTINGS: a tap on each legendary → its reaction, generous + moving with it; a forced one never claims (${res.join(' · ')})`);
+  // THE SEQUENCE (the owner's preview): the flash, the REAL polaroid (the city's own frame at the phone's full dpr), SPOTTED, the pair — held
+  { const S = await open({ slot: 'sgdemo', qs: 'when=2026-11-03T22:00&force=ufo&lgnow=1&sgdemo=ufo', view: [402, 874], dpr: 3 });
+    await harborUp(S.page);
+    await S.page.mouse.click(360, 600).catch(() => {});
+    // (the frames from the tap through the capture: never a dropped one)
+    await ev(S.page, `(() => { window.__sgf = []; const f = t => { window.__sgf.push(t); if (window.__sgf.length < 400) requestAnimationFrame(f); }; requestAnimationFrame(f); return true; })()`);
+    const seen = new Set(), t0 = Date.now();
+    while (Date.now() - t0 < 40000) { const ph = await ev(S.page, `import('/js/progress/sighting.js').then(m => m.last.phase)`); if (ph) seen.add(ph); if (ph === 'reveal' || ph === 'done') break; await sleep(150); }
+    await sleep(1500);
+    const st = await ev(S.page, `import('/js/progress/sighting.js').then(m => ({ snap: m.last.snap, phase: m.last.phase, held: !!document.querySelector('.sg-modal.is-done.has-pair'), stamp: !!document.querySelector('.sg-modal .sg-stamp.is-on'), photo: !!document.querySelector('.sg-modal .sg-photo canvas'), cap: (document.querySelector('.sg-modal .sg-cap') || {}).textContent || '', pair: [...document.querySelectorAll('.sg-modal .sg-item b')].map(b => b.textContent), scroll: document.querySelector('.sg-modal').scrollHeight <= innerHeight + 1 }))`);
+    const gaps = await ev(S.page, `(() => { const t = window.__sgf, g = []; for (let i = 1; i < t.length; i++) g.push(t[i] - t[i - 1]); g.sort((a, b) => a - b); return { n: g.length, med: g[g.length >> 1] || 0, max: g[g.length - 1] || 0 }; })()`);
+    if (SHOTS) await S.page.screenshot({ path: `${OUT}sightings-reveal-402x874.png` });
+    ok(['flash', 'polaroid', 'spotted', 'reveal'].every(p => seen.has(p)) && st.snap && st.snap.w === Math.round(Math.round(402 * 0.8) * 3) && st.photo && st.stamp && st.held && /Nov 3, 2026/.test(st.cap) && st.pair.includes('I WANT TO BELIEVE') && st.scroll,
+      `SIGHTINGS: THE SEQUENCE — ${[...seen].join(' → ')}; the polaroid ${st.snap && st.snap.w}×${st.snap && st.snap.h} px (the real frame at 3×, ${st.snap && st.snap.ms} ms to compose), "${st.cap}", SPOTTED, the pair, held for a tap, one screen ${JSON.stringify({ photo: st.photo, stamp: st.stamp, held: st.held, pair: st.pair, scroll: st.scroll, phase: st.phase })}`);
+    ok(st.snap && st.snap.ms < 12 && gaps.max < Math.max(90, gaps.med * 3), `SIGHTINGS: the capture never hitches the frame loop (compose ${st.snap && st.snap.ms} ms; frames median ${gaps.med.toFixed(1)} ms, worst ${gaps.max.toFixed(1)} ms over ${gaps.n})`);
+    await S.page.mouse.click(201, 120); await sleep(600);
+    ok(await ev(S.page, '!document.querySelector(".sg-modal")'), 'SIGHTINGS: a tap (after its first second) → back to the city');
+    await S.ctx.close(); }
+  // REDUCED MOTION: the same sequence, still (no slide, no stamp slam) — and still held for a tap
+  { const R = await open({ slot: 'sgrm', qs: 'when=2026-11-03T22:00&force=ufo&lgnow=1&sgdemo=ufo', view: [402, 874], init: { fn: () => { localStorage.setItem('na:settings', JSON.stringify({ reducedFx: true })); } } });
+    await harborUp(R.page);
+    await R.page.mouse.click(360, 600).catch(() => {});
+    await waitFor(R.page, '!!document.querySelector(".sg-modal.is-done")', 'the still sequence', 30000).catch(() => {});
+    const r = await ev(R.page, `(() => { const m = document.querySelector('.sg-modal'); return m ? { still: m.classList.contains('sg-still'), done: m.classList.contains('is-done') } : null; })()`);
+    ok(r && r.still && r.done, `SIGHTINGS: REDUCED MOTION — the sequence still, held for a tap (${JSON.stringify(r)})`);
+    await R.ctx.close(); }
+});

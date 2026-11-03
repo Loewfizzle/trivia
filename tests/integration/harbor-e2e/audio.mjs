@@ -1066,7 +1066,7 @@ G('progress', async () => {
     await F.ctx.close();
   }
   // THE PREVIEW LINKS: each shows its thing within ~10 s of a fresh load
-  for (const [pv, sel] of [['moment', '.pg-moment.is-end, .pg-moment .pg-line.is-in'], ['card', '.pg-pv .pg-card'], ['streak', '.pg-sc .pg-sc-n']]) {
+  for (const [pv, sel] of [['moment', '.pg-moment.is-end, .pg-moment .pg-line.is-in'], ['card', '.pg-pv .pg-card'], ['streak', '.pg-sc .pg-sk-n']]) {
     const P = await open({ slot: `pgp${pv}`, qs: `${NIGHT}&preview=${pv}`, view: [402, 874] });
     const t = Date.now();
     await waitFor(P.page, `!!document.querySelector(${JSON.stringify(sel)})`, `?preview=${pv}`, 14000).catch(() => {});
