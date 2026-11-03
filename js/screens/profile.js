@@ -94,7 +94,7 @@ export function closeCard() {
   setTimeout(() => el.remove(), 260);
 }
 
-const KEY_WHY = 'Your profile lives on this device. Switching phones, clearing browser data, or moving between Safari and the Home Screen app on iPhone needs this key — save it in your notes or a password manager. Never share it: whoever has it is you.';
+const KEY_WHY = 'ONE CARD, ALL YOUR DEVICES: your key brings this card to another phone, another browser or the iPhone Home Screen app — every device works at once. Never give it to anyone else: whoever has it is you.';
 
 export function createView({ onBack = null, overlay = false } = {}) {
   const els = {};
@@ -120,8 +120,10 @@ export function createView({ onBack = null, overlay = false } = {}) {
           h('button.btn.btn-ghost', { type: 'button', onclick: () => setState({ view: 'board' }) }, h('span', 'THE BOARD'))),
         els.prog = h('div.pf-prog'),
         h('section.pf-sec',
-          els.key = keyCard({ onNew: () => {} }),
+          els.save = h('div.byc-save-slot'),
+          els.key = keyCard({ onNew: () => paintSave() }),
           h('p.pf-why', KEY_WHY),
+          els.elsewhere = h('button.btn.btn-ghost.btn-block.byc-else-btn', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openElsewhere()) }, h('span', 'USE THIS CARD ON ANOTHER DEVICE')),
           els.restore),
         h('section.pf-sec',
           h('label.pf-switch', h('span.pf-switch-l', h('b', 'Show me on global leaderboards'), h('small', 'Off: your stats still count, only you see them.')), els.show, h('span.pf-switch-ui', { 'aria-hidden': 'true' }))),
@@ -129,7 +131,13 @@ export function createView({ onBack = null, overlay = false } = {}) {
         els.foot));
     renderRestore(false);
     paintLocal();
+    paintSave();
     load();
+  }
+  // THE VAULT 1A — SAVE YOUR KEY SOMEWHERE SAFE (bold until saved) + USE THIS CARD ON ANOTHER DEVICE (only with a key on this device)
+  function paintSave() {
+    if (els.elsewhere) els.elsewhere.hidden = !loadKey();
+    import('../profile/bring.js').then(B => { if (!destroyed && els.save) els.save.replaceChildren(B.saveBox()); }).catch(() => {});
   }
 
   function back() { if (onBack) { onBack(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); }
@@ -160,7 +168,8 @@ export function createView({ onBack = null, overlay = false } = {}) {
       return;
     }
     if (!m0 && !loadKey()) {
-      els.why.replaceChildren(h('div.pf-note', h('p', `Nothing saved on this address yet (${location.host}) — if you have a key, enter it below. Your profile wasn’t deleted.`)));
+      const go = h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openBring({ onDone: () => { renderRestore(false); els.key.replaceWith(els.key = keyCard()); paintLocal(); paintSave(); load(); } })) }, h('span', 'BRING YOUR CARD'));
+      els.why.replaceChildren(h('div.pf-note', h('b', 'ALREADY A MEMBER?'), h('p', `Nothing is saved on this device yet (${location.host}) — your card wasn’t deleted. Bring it here with your key: your card works on all your devices at once.`), go));
       return;
     }
     els.why.replaceChildren();
@@ -174,6 +183,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       renderRestore(false);
       els.key.replaceWith(els.key = keyCard());
       paintLocal();
+      paintSave();
       load();
       return true;
     } catch (e) {
@@ -304,13 +314,13 @@ export function createView({ onBack = null, overlay = false } = {}) {
 
   function renderRestore(open) {
     if (!open) {
-      els.restore.replaceChildren(h('button.pf-link', { type: 'button', onclick: () => renderRestore(true) }, 'Have a key from another device? Use it here'));
+      els.restore.replaceChildren(h('button.pf-link', { type: 'button', onclick: () => renderRestore(true) }, 'Have a key from another device? Bring that card here'));
       return;
     }
     const input = h('input.input.pf-key-in', { type: 'text', placeholder: 'NEON-XXXX-XXXX-XXXX', autocapitalize: 'characters', autocomplete: 'off', spellcheck: false, 'aria-label': 'Profile key', maxLength: 24 });
     const go = h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => doRestore(input.value, go) }, h('span', 'RESTORE MY PROFILE'));
     els.restore.replaceChildren(h('div.pf-restore-box',
-      h('p.pf-why', 'This device takes over the profile the key belongs to — with all its stats. The profile this device has now is replaced (if it never finished a match, it’s removed).'),
+      h('p.pf-why', 'This device joins the card the key belongs to — with all its stats; the other device stays signed in. The profile this device has now is replaced (if it never finished a match, it’s removed).'),
       input, go,
       h('button.pf-link', { type: 'button', onclick: () => renderRestore(false) }, 'Cancel')));
     setTimeout(() => input.focus(), 50);
@@ -331,13 +341,17 @@ export function promptKey() {
   let sheet;
   const close = () => { sheet.classList.add('out'); setTimeout(() => sheet.remove(), 260); };
   const m = loadMe();
+  // (THE VAULT 1A: SHARE — the phone's own sheet → Notes / Mail / Messages / a password manager)
+  const shareRow = typeof navigator.share === 'function' ? h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.shareKey()).then(ok => { if (ok) close(); }) }, h('span', 'SHARE IT TO NOTES OR MAIL')) : null;
   sheet = h('div.modal.pf-prompt', { onclick: e => { if (e.target === sheet) close(); } },
     h('div.sheet', { role: 'dialog', 'aria-label': 'Save your profile key' },
       h('div.sheet-grip'),
       h('div.pf-prompt-head', m && m.profile ? h('span.rk-big', emblem(m.profile.r | 0, 54)) : null,
-        h('div', h('div.sheet-kicker', 'YOUR MEMBERSHIP'), h('h2.sheet-title', 'Save your key'))),
+        h('div', h('div.sheet-kicker', 'YOUR MEMBERSHIP'), h('h2.sheet-title', 'Save your key somewhere safe'))),
+      h('p.pf-why', h('b', 'Email it to yourself, put it in Notes or a password manager. Lose it and your card can’t come back.')),
       h('p.pf-why', KEY_WHY),
       keyCard(),
+      shareRow,
       h('div.pf-prompt-actions',
         h('button.btn.btn-primary.btn-block', { type: 'button', onclick: () => { setNotes({ saved: true }); close(); toast('NICE — YOUR RECORD IS SAFE', 'ok'); } }, h('span', 'I’VE SAVED IT')),
         h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'LATER'))));

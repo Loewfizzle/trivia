@@ -58,6 +58,7 @@ export function createSetup() {
         h('button.icon-btn', { type: 'button', 'aria-label': 'Back', onclick: () => { try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); } }, '‹'),
         h('div.bar-title', mode === 'host' ? 'HOST // NEW ROOM' : mode === 'edit' ? 'PROFILE // EDIT' : 'JOIN // ENTER CODE')),
       h('div.form',
+        els.byc = h('div.setup-byc'),
         mode === 'join' ? h('label.field', h('span.label', 'HUSH WORD'), els.code) : null,
         h('label.field', h('span.label', 'CALLSIGN'), els.name),
         h('div.field', h('span.label', 'SIGNAL COLOR'), els.colors),
@@ -65,6 +66,12 @@ export function createSetup() {
         els.preview),
       h('div.form-cta', els.err = h('p.form-error', { role: 'alert', hidden: true }), els.go));
     renderPicks();
+    // (THE VAULT 1A — BRING YOUR CARD: nothing saved on this device → a member brings their card instead of starting over)
+    import('../profile/bring.js').then(B => {
+      if (!B.nothingSaved() || !els.byc) return;
+      B.bringCss();
+      els.byc.replaceChildren(h('button.byc-chip-go.setup-byc-go', { type: 'button', onclick: () => B.openBring({ onDone: r => { profile = { name: r.profile.n, color: r.profile.c || profile.color, avatar: r.profile.a || profile.avatar }; els.name.value = profile.name; renderPicks(); els.byc.replaceChildren(); } }) }, h('span', 'ALREADY A MEMBER?'), h('b', 'BRING YOUR CARD ›')));
+    }).catch(() => {});
     if (mode === 'join' && !st.invite) setTimeout(() => els.code.focus(), 350);
   }
 

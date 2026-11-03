@@ -183,6 +183,55 @@ await H.run(async () => {
   await sleep(800);
   await shotAll(p3, 'pf-06-profile');
 
+  // ---- 6c. THE VAULT 1A — BRING YOUR CARD (the owner: the Home Screen app opened as a STRANGER): a fresh device with NOTHING saved → the
+  // title's "ALREADY A MEMBER? BRING YOUR CARD" → the sheet → ALICE's key → this device JOINED her card; the first one stays signed in
+  { const p7 = await openPlayer(6);
+    await p7.waitForSelector('.byc-chip .byc-chip-go', { timeout: 25000 }).catch(() => {});
+    ok(!!(await p7.$('.byc-chip .byc-chip-go')), 'BRING YOUR CARD: a fresh device (nothing saved) shows "ALREADY A MEMBER? BRING YOUR CARD" on the title');
+    await shotAll(p7, 'pf-06c-bring-chip', REVIEW_SIZES.slice(0, 2));
+    await p7.click('.byc-chip-go');
+    await p7.waitForSelector('.byc-bring .byc-in', { timeout: 8000 });
+    ok(/all your devices at once/i.test(await p7.$eval('.byc-bring', e => e.textContent)), 'the sheet says one card works on all your devices at once');
+    await shotAll(p7, 'pf-06c-bring-sheet', REVIEW_SIZES.slice(0, 2));
+    await p7.type('.byc-bring .byc-in', JSON.parse(key0));
+    await p7.click('.byc-bring .byc-go');
+    await p7.waitForFunction(pid => (JSON.parse(localStorage.getItem('na:f6:me') || 'null') || {}).pid === pid, { timeout: 20000 }, me0.pid).catch(() => {});
+    await p7.waitForFunction(() => !document.querySelector('.byc-bring'), { timeout: 3000 }).catch(() => {});
+    const m7 = await meOf(p7, 'f6');
+    ok(m7 && m7.pid === me0.pid && !(await p7.$('.byc-chip')) && !(await p7.$('.byc-bring')), 'BRING YOUR CARD: ALICE\'s key → this device joined her card (the pill + the sheet gone)');
+    const still = await p0.evaluate(() => import('/js/profile/me.js').then(m => m.fetchMe()).then(r => r.pid, e => `ERR ${e.code}`));
+    ok(still === me0.pid, `the first device stays signed in — one card on both at once (${still})`);
+    // THE MEMBERSHIP CARD: SAVE YOUR KEY SOMEWHERE SAFE + COPY · SHARE · I SAVED IT, and USE THIS CARD ON ANOTHER DEVICE
+    await p7.browserContext().overridePermissions(BASE, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']).catch(() => {});
+    await p7.evaluate(() => { const k = 'na:f6:pnotes'; const n = JSON.parse(localStorage.getItem(k) || '{}'); localStorage.setItem(k, JSON.stringify({ ...n, saved: false })); window.__shared = null; navigator.share = async d => { window.__shared = d; }; });
+    await p7.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
+    await p7.waitForSelector('.byc-save .byc-acts [data-act="share"]', { timeout: 15000 }).catch(() => {});
+    const box = await p7.evaluate(() => { const b = document.querySelector('.byc-save'); return b ? { text: b.textContent, saved: b.classList.contains('is-saved'), acts: [...b.querySelectorAll('[data-act]')].map(x => x.dataset.act) } : null; });
+    ok(box && /SAVE YOUR KEY SOMEWHERE SAFE/.test(box.text) && /can’t come back/.test(box.text) && !box.saved && ['copy', 'share', 'saved'].every(a => box.acts.includes(a)), `THE MEMBERSHIP CARD: the bold SAVE YOUR KEY SOMEWHERE SAFE + COPY · SHARE · I SAVED IT (${JSON.stringify(box && box.acts)})`);
+    await shotAll(p7, 'pf-06d-save-key', REVIEW_SIZES.slice(0, 2));
+    await p7.click('.byc-save [data-act="copy"]');
+    await sleep(500);
+    const clip = await p7.evaluate(() => navigator.clipboard.readText().catch(() => null));
+    const n1 = await p7.evaluate(() => JSON.parse(localStorage.getItem('na:f6:pnotes') || '{}'));
+    ok(clip === JSON.parse(key0) && n1.saved === true, `COPY puts the key on the clipboard + quiets the reminder (${clip ? 'copied' : 'no clipboard'}, saved ${n1.saved})`);
+    await p7.evaluate(() => { const k = 'na:f6:pnotes'; localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) || '{}'), saved: false })); });
+    await p7.click('.byc-save [data-act="share"]');
+    await sleep(400);
+    const sh = await p7.evaluate(() => ({ s: window.__shared, saved: JSON.parse(localStorage.getItem('na:f6:pnotes') || '{}').saved }));
+    ok(sh.s && sh.s.text.includes(JSON.parse(key0)) && sh.saved === true, 'SHARE hands the key to the phone\'s share sheet (Notes · Mail · Messages) + quiets the reminder');
+    await p7.evaluate(() => { const k = 'na:f6:pnotes'; localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) || '{}'), saved: false })); });
+    await p7.click('.byc-save [data-act="saved"]');
+    await sleep(300);
+    const sv = await p7.evaluate(() => ({ saved: JSON.parse(localStorage.getItem('na:f6:pnotes') || '{}').saved, box: document.querySelector('.byc-save').classList.contains('is-saved'), prompt: import('/js/profile/me.js').then(m => m.shouldPromptKey()) }));
+    ok(sv.saved === true && sv.box, 'I SAVED IT: the reminder quiets (saved) + the box turns quiet ("YOUR KEY IS SAVED ✓")');
+    await p7.click('.byc-else-btn');
+    await p7.waitForSelector('.byc-else .byc-key', { timeout: 6000 }).catch(() => {});
+    const el = await p7.evaluate(() => { const s = document.querySelector('.byc-else'); return s ? { key: s.querySelector('.byc-key').textContent, text: s.textContent, steps: s.querySelectorAll('.byc-steps li').length } : null; });
+    ok(el && el.key === JSON.parse(key0) && el.steps === 3 && /stays signed in/.test(el.text) && /NEW KEY/.test(el.text) && /Home Screen/.test(el.text), 'USE THIS CARD ON ANOTHER DEVICE: the key big + COPY + SHARE + the 3 steps (Home Screen too), "this device stays signed in", no NEW KEY needed');
+    await shotAll(p7, 'pf-06e-use-elsewhere', REVIEW_SIZES.slice(0, 2));
+    await p7.click('.byc-else .byc-x').catch(() => {});
+    await p7.close(); }
+
   // ---- 7. a new key: the old one stops working
   const fresh = await p0.evaluate(() => import('/js/profile/me.js').then(m => m.regenKey()));
   ok(fresh !== JSON.parse(key0), 'a new key was issued');
@@ -231,7 +280,7 @@ await H.run(async () => {
   const p7 = await openPlayer(7);
   await p7.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
   await p7.waitForSelector('.pf-note', { timeout: 15000 });
-  ok(/Nothing saved on this address yet .*wasn’t deleted/.test(await p7.$eval('.pf-note', e => e.textContent)), `THE EMPTY CARD SAYS WHY: "${await p7.$eval('.pf-note', e => e.textContent)}"`);
+  ok(/ALREADY A MEMBER\?.*Nothing is saved on this device yet .*wasn’t deleted.*BRING YOUR CARD/.test(await p7.$eval('.pf-note', e => e.textContent)), `THE EMPTY CARD SAYS WHY: "${await p7.$eval('.pf-note', e => e.textContent)}"`);
 
   // ---- 8. THE BOARD in the app (BNAME: the floor, nicknames, your real name, REPORT), and the opt-out
   const openBoard = async () => {
