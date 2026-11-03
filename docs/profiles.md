@@ -89,6 +89,14 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
   public row NEVER carries the typed name or the profile id** — see "THE BOARD's PUBLIC NAMES" below. It is public (the `/board` page), cached ~15 s in memory and by
   the CDN (`s-maxage=20`), paged (`start`, `n`, top 100). Your exact rank (even outside the top 100, even when hidden) comes from
   `POST /api/profile {action:'ranks'}`: `1 + count(entries > yours)`.
+- **MEMBER NUMBERS** (THE VAULT 2B — `api/_lib/members.js`, `js/core/member.js#memberLabel`): `profiles/{pid}/mn` — a real member number, separate from
+  the name tag's 4 digits; server-written only, sequential by when the profile was made, never reused (`members/next` only moves forward), never
+  changed; the owner (the first id in ADMIN_PIDS) = Nº 1, reserved. The first call that finds a profile without one runs the one-time BACK-FILL
+  (every profile by its `at`, the owner first — claimed by a transaction on `members/claim`, `members/filled` set after); then `ensure` (a new
+  profile) + `me` assign the next. Shown as `0001` on the membership card, FOUNDING MEMBER's gold stamp, the full cards' top line + the DEV
+  cards' plate. The rules: `members/` + every `mn` server-only (the default deny).
+- **THE TWO DEV CARDS** (THE VAULT 2B — js/core/dev-cards.js): `card-dev-switchboard` + `card-dev-source`, granted by 'me' to ADMIN_PIDS only (taken
+  back from anyone else), 'style' refuses them to anyone else (403 locked), in no reward table; names only to him (withShow).
 - **Opt-out** ("Show me on global leaderboards"): `profiles/{pid}/h` + every board entry removed; stats keep counting (`pstats`), and
   your rank is still computed for you. Opting back in re-inserts from `pstats`. The admin's hide (`ppriv/ban`) wins over opting in.
 

@@ -15,6 +15,10 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
 - **THE VAULT 1A** (docs/vault.md): `node --test tests/vault.test.mjs` (pure) · `node --test lab.test.mjs` (in `tests/integration`, the
   emulators: THE CARD LAB's marks — owner only, audited, the export; in the cloud's tests job) · the harbor `vault` group (the `audio` job:
   the lab's 10 items on ONE canvas, the marks, 8 legendaries at 4× CPU = 60 fps on the real compositor, on-screen only, reduced motion) ·
+  THE VAULT 2B: `tests/vault-2b.test.mjs` (unit) + `tests/integration/vault-2b.test.mjs` (/api on the emulators — member numbers, the dev cards,
+  the seasonal grant); the lab preview's `&sheet=1` (EMBLEMS / GLOWS tabs: a contact sheet), `&wear=emb2,glow` (the busiest 2B mix), the
+  profile preview's `&dress=1&tab=emblem` + `&dev=1`; `shots.mjs --page … --el <selector>` scrolls an element into view + crops to it (a slot
+  on the shared effect surface draws only ON SCREEN — a full-page crop below the fold shows it blank).
   `tests/integration/vault-preview.html` (the lab without Firebase; `&view=full`, `&full=<card>`, `&diag=…`, `&fx=2d`) · THE VAULT BENCH `node tests/integration/vault-bench.mjs "<chrome>"` (A FULL LOBBY at a CPU slowdown, each cost off in turn — VAULT 1B; 2A: `WEAR=emb,glow` puts the samples' emblems + glows on the strips, `WEAR=<emblem id>` one on all 8) · the lab's `&view=emblems|glows` · shots.mjs `--page … --wk` (THE VAULT 2A: the page in WebKit as an iPhone, @3) · `tests/integration/program-preview.html` (THE PROGRAM's real paint, `?at=&filter=`) · shots.mjs `--page <url> --crop XxYxWxH --every ms --count n` (a
   close-up burst — judge a strip MOVING) + `--scrolls N` (a page that scrolls inside its own box) + `--js`.
 - **GitHub checks** (`.github/workflows/tests.yml`, Oct 2026): **since SP6 (the owner's CLOUD MINUTES, Oct 27 — Pro's 3,000 a month went at

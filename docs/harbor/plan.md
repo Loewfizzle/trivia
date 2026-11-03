@@ -5712,3 +5712,5 @@ for the cloud's software renderer). Rules unchanged. Summary: plan/v2a-summary.t
 - THE BUILD TABLE (Nov 3, THE VAULT 2B Step 0): THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅; THE VAULT 2A ✅; THE VAULT 2B (DRESS YOUR CARD + the two
   DEV cards + MEMBER Nº 0001 + the rest of the emblems, glows + tube styles — this pass) ← NEXT; then BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (rework +
   review), OVERCLOCK (+ its daily + review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
+
+THE VAULT 2B DONE (Nov 3) — passes/vault-2b.md + docs/vault.md. THE BUILD TABLE: THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅; THE VAULT 2A ✅; THE VAULT 2B ✅ (DRESS YOUR CARD, MEMBER Nº 0001 + real member numbers, THE TWO DEV CARDS, the 2 FIX full cards on the city's real speakeasy, the reveal's fixes, THE CROWN's own shape, the rest of the set — 24 emblems incl. BUTTERFLY + the seasonal four, 14 glows, 8 tube styles); BOARD 2.0 ← NEXT (its questions round first); then LOBBY 2.0, SHELL 2.0, PRISM DROP (rework + review), OVERCLOCK (+ its daily + review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.

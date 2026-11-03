@@ -196,7 +196,7 @@ they're revealed (agents at the vote's end, word/cat at the scores): they're **d
 
 ## Profiles + THE BOARD (top level, server-written — `docs/profiles.md`)
 ```
-profiles/{pid}:   { n, nk (name key), t (tag "4821"), a, c, x (XP), r (rank 0–4), at, h? (off the boards), m (counted matches — BNAME's
+profiles/{pid}:   { n, nk (name key), t (tag "4821"), mn (THE VAULT 2B — the MEMBER Nº, server-only), a, c, x (XP), r (rank 0–4), at, h? (off the boards), m (counted matches — BNAME's
                     3-match floor) }   read: signed-in, ONE pid at a time (never the list — BNAME, Oct 28)
 uids/{uid}:       pid                                     read: that uid. The device ↔ profile link
 pstats/{pid}:     { xp, g{game:{p,w,…counters}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{}},
@@ -244,3 +244,7 @@ game: { id:'stakes', matchId, participants, n0, dplan[11], round, rk, phase: int
 rooms/{CODE}/hslock/{m}/{rk}/{uid}: { b?: server time, a?: server time }   ← own, public flags only, only with the hidden value behind them
 hsbet/{CODE}/{m}/{rk}/{uid}: { b: { b, at }, a: { a 0-3, at } }            ← top level; owner reads; the host from 'show' on; once each, in phase
 ```
+
+## members/ (THE VAULT 2B — server only)
+`members: { next, filled, claim }` — the MEMBER NUMBER counter (`next` = the next number; only moves forward), when the one-time back-fill ran, its
+claim. Nobody reads or writes it but the server (the rules' default deny). Each profile's own number: `profiles/{pid}/mn` (api/_lib/members.js).

@@ -327,3 +327,85 @@ its item row (`api/_lib/catalog.js` + `lab-text.js`) → `js/vault/catalog.js#LA
 ### Measured (the mini PC, 4× CPU, the real compositor, 3×)
 8 legendaries + every sample's emblem + glow 58.7–59 fps (before the layer fix: 33.5) · THE 8 SAMPLES (guests in their sign-up shapes) 60 ·
 THE 8 SIGHTINGS 60 · THE NEW 21 60 · 8 still cards with every emblem LEADING 60 (0.9 ms main thread).
+
+## THE VAULT 2B (Nov 3) — passes/vault-2b.md
+| file | what |
+| --- | --- |
+| `js/vault/dress.js` | DRESS YOUR CARD — `dressPanel(data, o)` (the profile's ONE panel + YOUR COLLECTION) · `openDress(data, o)` (the pinned live strip, 4 tabs CARD · EMBLEM · GLOW · TUBE, tier-edged tiles, a tap wears it at once — `o.wear(slot, id)` → a refusal puts it back —, a long-press / VIEW FULL › → the full card) |
+| `js/core/member.js` · `api/_lib/members.js` | MEMBER NUMBERS — `memberLabel(mn)` ('0001') · the server's back-fill + `memberNo(pid)` (the owner Nº 1, then join order, never reused) |
+| `js/core/dev-cards.js` · `js/fx/dev-switch.js` · `js/fx/dev-source.js` | THE TWO DEV CARDS (ONE OF ONE · DEV — the owner's only) · THE SWITCHBOARD · THE SOURCE |
+| `js/fx/speak-front.js` | THE CITY's REAL SPEAKEASY face-on for a card (the city's own wall painters + its real rooms; lazy, baked per size) — FOUNDING MEMBER's + THE HOUSE's full cards |
+| `js/vault/beat-sync.js` | ON THE BEAT's clock (a party night + a song: each pulse layer's animation set onto the grid) |
+
+### DRESS YOUR CARD (the owner's approved mock — Downloads\NEON\vault\dress-your-card.png)
+The profile: your strip as it is now (live), the worn pieces' names, a big **DRESS YOUR CARD** button; **YOUR COLLECTION** = what you own (cards ·
+emblems (+ your own shape) · glows · tubes) — never a total of what exists. The dress screen: the strip PINNED (its own surface — it leads),
+"THE LOBBY SEES THIS" · **VIEW FULL ›**, the worn names, 4 tabs; tiles 3 across, each edged in its tier colour (`--tier-*`), the worn one ticked,
+the DEV cards first then the rarest; the EMBLEM / GLOW / TUBE tabs start with YOUR SHAPE / NO GLOW / PLAIN TUBE; the TUBE tab says so when a
+special finish is worn (tube styles light neon). Taps = pointerdown + pointerup (iOS); a hold (450 ms, or the browser's own long-press) → the
+full card; the hold's lift never clicks what it opened. The profile preview: `progress-preview.html?view=profile&dress=1&tab=emblem&dev=1`.
+
+### THE TWO DEV CARDS
+| n | id | name | tier | effect | earned | lab |
+| --- | --- | --- | --- | --- | --- | --- |
+| — | card-dev-switchboard | THE SWITCHBOARD | ONE OF ONE · DEV | devSwitch | the owner's (ADMIN_PIDS) — never earnable | 116 strip · 118 full: new |
+| — | card-dev-source | THE SOURCE | ONE OF ONE · DEV | devSource | the owner's (ADMIN_PIDS) — never earnable | 117 strip · 119 full: new |
+Legendary in every rule (the prominence rule, the laser — `rgb2`: gold → red · green → magenta), a tier above in LOOK: the tag ONE OF ONE · DEV
+(ONE OF ONE on the strip), THE DEVELOPER · № 0001 on the plate (THE DEV on the strip). Their art shows on HIS card without an APPROVE (he is the
+lab — approved.js); they lead the lab.
+
+### THE REST OF THE SET (all NEW in the lab, n 115–159 — waiting for the owner's marks; only APPROVED art ships)
+| id | name | finish / kind | tier | earned |
+| --- | --- | --- | --- | --- |
+| emb-crown | THE CROWN | neon (+ gems) | rare | level 55 |
+| emb-cocktail | LAST CALL | neon | common | LAST CALL |
+| emb-diamond | DIAMOND | neon | common | level 13 |
+| emb-glasses | THE CREW | neon (+ a clink) | uncommon | THE CREW |
+| emb-sunrise | EARLY BIRD | neon (+ rays) | uncommon | EARLY BIRD |
+| emb-bullseye | DEAD ON | neon (+ a hit) | uncommon | DEAD ON |
+| emb-crescent | CRESCENT | neon (+ a star) | uncommon | level 37 |
+| emb-butterfly | BUTTERFLY | neon (wings flap) | uncommon | level 9 |
+| emb-peephole | KNOCK KNOCK | neon (+ the peephole) | rare | KNOCK KNOCK |
+| emb-stars | THE TRIPLE | neon (+ the light hops) | rare | THE TRIPLE |
+| emb-wings | WINGS | metal · silver | epic | FREQUENT FLYER |
+| emb-bitcoin | HODL | coin | epic | HODL |
+| emb-sunburst | SUNBURST | metal · gold | epic | level 75 |
+| emb-ace | THE ACE | metal · obsidian | legendary | level 90 |
+| emb-sg-blackbird | SKY KING | metal · black (+ afterburners) | legendary | a Blackbird sighting |
+| emb-sg-f22 | AFTERBURNER | metal · grey (+ flames) | legendary | an F-22 sighting |
+| emb-sg-ghostship | THE FLYING DUTCHMAN | spectral | legendary | a ghost-ship sighting |
+| emb-sg-aurora | SKY DANCER | aurora | legendary | an aurora sighting |
+| emb-sg-fireball | MAKE A WISH | comet | legendary | a fireball sighting |
+| emb-sg-skull | HOT AIR, COLD BLOOD | balloon · bone | legendary | a skull-balloon sighting |
+| emb-sg-btc | FIX THE MONEY, FIX THE WORLD | balloon · ₿ | legendary | a ₿ balloon sighting |
+| emb-hw | THE LANTERN | neon (+ the candle, a bat) | epic | Halloween (a counted match on its days) |
+| emb-tg | HARVEST | autumn | epic | Thanksgiving |
+| emb-xmas | DECK THE HALLS | neon (+ bulbs chasing) | epic | Christmas |
+| emb-nye | AULD LANG SYNE | neon (+ bubbles, a burst) | epic | New Year's |
+| tube-gold | GOLD TUBE | tube style | rare | level 47 |
+| tube-flicker | OLD SIGN | tube style | rare | level 65 |
+| tube-ember | SLOW BURN | tube style | uncommon | a 14-night streak |
+| tube-burnt | BURNT OUT | tube style | rare | level 53 |
+| tube-beat | ON THE BEAT | tube style (party grid) | epic | level 80 |
+| glow-afterglow | AFTERGLOW | glow · still | common | a 7-night streak |
+| glow-ice | ICE | glow · still | common | level 15 |
+| glow-neon | NEON | glow | uncommon | level 28 |
+| glow-candle | CANDLELIGHT | glow | uncommon | DAILY BREAD |
+| glow-frost | FROST | glow | uncommon | level 23 |
+| glow-fire | FIRE | glow | rare | level 38 |
+| glow-starlight | STARLIGHT | glow | rare | STARGAZER |
+| glow-tinsel | TINSEL | glow | rare | SEASON'S GREETINGS |
+| glow-champagne | CHAMPAGNE | glow | rare | level 85 |
+| glow-prism | PRISM | glow | epic | level 70 |
+| glow-glitch | GLITCH | glow | epic | level 63 |
+
+**The new finishes** (`FIN` in emblem-art.js, each receiving its art row): METAL (a palette — silver · gold · black · grey · obsidian —, a struck
+face, a dark edge + a bright bevel, engraved lines, a shine gliding, a glint; its shape's own accents: afterburners, rays, feather tips, the
+ace's running light) · COIN · SPECTRAL · AURORA · COMET · BALLOON · AUTUMN. **A neon shape may carry its own accents** (`SH[x] = { tubes, fx(C),
+group }` — `group` = layers moved as ONE HTML layer: the butterfly's wings). **Name glows**: a moving copy of the name = `data-t` → `::before /
+::after` (opacity / transform only; off on a two-line name, a legendary card, reduced motion). **Tube styles**: GOLD TUBE · OLD SIGN · SLOW BURN ·
+BURNT OUT · ON THE BEAT join TWO-TONE · BREATHING · A CHASING LIGHT.
+
+### Measured (the mini PC, 4× CPU, the real compositor, 3×)
+8 THE SOURCE strips 60 fps (3.4 ms busy) · 8 THE SWITCHBOARD 60 (4.0) · 8 still cards wearing the busiest 2B mix (every emblem leading, every
+moving glow) 60 · 8 legendaries + the same 60 · THE 8 SAMPLES ~56 with the 2A wear and the 2B wear alike (2B adds nothing measurable).

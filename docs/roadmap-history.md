@@ -1843,6 +1843,22 @@ desktop framing; a phone sideways (the sign smaller, the dock 0.8); THE STANDING
   test emblems (NEON + PRISM bolts, THE PROMINENCE RULE); the pink pair as early level rewards (HEARTBREAKER 4, GLITTER BOMB 8).
 - Measured: 8 legendary strips at 4× CPU = 60 fps on the GPU compositor.
 
+## THE VAULT 2B — DRESS YOUR CARD · THE TWO DEV CARDS · MEMBER Nº 0001 · THE REST OF THE SET (Nov 3 2026) — docs/harbor/passes/vault-2b.md, docs/vault.md
+- **DRESS YOUR CARD** (js/vault/dress.js — the owner's approved mock): the profile's ONE panel (the strip, the worn names, the big button) + YOUR
+  COLLECTION; the dress screen — the pinned live strip, 4 tabs, tier-edged tiles, a tap wears it at once, a long-press → the full card.
+- **MEMBER NUMBERS** (api/_lib/members.js): profiles/{pid}/mn — server-written, by join order, never reused; the owner Nº 1; back-filled lazily.
+- **THE TWO DEV CARDS** (ONE OF ONE · DEV, the owner's only — js/fx/dev-switch.js + dev-source.js): THE SWITCHBOARD (the brass desk, cables
+  snaking in + sparking, light on the beat, ON AIR, the VU meter, dust in the lamp) + THE SOURCE (the city's real code in depth, the typed
+  city.build, NEON igniting, the surge, the glitch + scanlines).
+- **The owner's 2 FIX cards** — FOUNDING MEMBER + THE HOUSE's full cards — rebuilt on THE CITY's REAL SPEAKEASY (js/fx/speak-front.js: the city's
+  own wall painters face-on, the real rooms lit).
+- **The reveal**: &sgdemo waits for the legendary fully lit + mostly on screen (the crop always followed the tap); the names on one line; the
+  real emblem. THE CROWN's own shape. The lab's tab bar solid.
+- **The rest of the set**: 24 emblems (every sighting's from the city's outline; BUTTERFLY lv 9; the seasonal four — a counted match during the
+  holiday), 7 new finishes (metal, coin, spectral, aurora, comet, balloon, autumn); 14 name glows (FROST 23, FIRE 38, GLITCH 63 new); 8 tube
+  styles (BURNT OUT 53 new; ON THE BEAT on the party song's grid — js/vault/beat-sync.js).
+- Bench (4× CPU, 3×): 8 dev strips 60 fps; the busiest 2B wear on still cards + on legendaries 60.
+
 ## THE VAULT 2A — THE 3 HELD CARDS + THE EMBLEM / GLOW / TUBE-STYLE SYSTEM (Nov 3 2026) — docs/harbor/passes/vault-2a.md, docs/vault.md
 FOUNDING MEMBER = OPENING NIGHT (the title's own NEON tubes + SPEAKEASY lighting letter by letter on the speakeasy's roof, searchlights, the EST. 1924 date stone, the member's REAL № in gold), THE HOUSE = the speakeasy in full blaze (the blade + chasing bulbs, NEON, a gold crown over the door, gold willows behind), PLATINUM = the metal card (EPIC: brushed platinum, a diamond-cut bevel, a cold light). LIGHTS OUT's full card pulses its red heart; I'M NEW HERE gone. THE EMBLEM SYSTEM: an emblem = a shape + a finish (neon — the sign's tube stack, the 12 sign-up shapes on it — prism, gold, chrome, ice crystal, molten, glitch, galaxy) as composited SVG layers; tube styles (two-tone, breathing, a chasing light) on any neon emblem; name glows (ember, gold leaf, electric) on the name only; the picker's emblem / tube / glow rows on the player's own strip; the lab's EMBLEMS + GLOWS tabs + the samples worn in A FULL LOBBY. The speed fix: motion on HTML-wrapped layers + THE PROMINENCE RULE as the budget (a legendary card leads) — 8 legendaries + every sample 33.5 → 59 fps at 4× CPU.
 
