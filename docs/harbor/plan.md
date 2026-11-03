@@ -5654,3 +5654,61 @@ Rules unchanged. Summary: plan/v1c-summary.txt
   rework + its review — NO daily), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
 
 THE VAULT 2A DONE (Nov 3) — passes/vault-2a.md + docs/vault.md. THE BUILD TABLE: THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅; THE VAULT 2A ✅ (the 3 held cards — FOUNDING MEMBER's opening night, THE HOUSE in full blaze, PLATINUM the metal card —, LIGHTS OUT's red pulse, I'M NEW HERE gone; THE EMBLEM / GLOW / TUBE-STYLE SYSTEM + 17 samples in the lab's EMBLEMS + GLOWS tabs; the prominence rule as the speed budget — a legendary card leads); THE VAULT 2B (the rest, from his marks) ← NEXT; then BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (the rework + its review — NO daily), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
+
+## OWNER'S NOTES — NOV 3 (afternoon)
+
+## THE VAULT 2A WRITTEN (Nov 3, ~11:55 am EST) — Step 0 = step0-v2a.txt.
+
+## Nov 3, 12:10 pm EST — THE DEVELOPER CARD (the owner): a special card ONLY FOR HIM — LEGENDARY, must look really good. The chat's 5 ideas
+(outputs/dev-card-ideas.png): 1 THE ARCHITECT (the harbor as a glowing blueprint, drawn line by line) · 2 THE SWITCHBOARD (the brass radio desk, cables,
+ON AIR) · 3 THE SOURCE (the city's code behind the NEON sign, a cursor typing his name) · 4 KEYS TO THE CITY (a great Art Deco gold key over the night
+harbor, gold willows) · 5 THE NEON SMITH (bending the first tube of the N in a torch flame, sparks). All: a "ONE OF ONE · DEV" tag, Nº 0001, its own
+laser colours; never earnable (granted to the owner's profile only, server-side). His pick pending.
+- (12:14 pm) THE DEVELOPER CARDS — BUILD BOTH (the owner): THE SWITCHBOARD + THE SOURCE, "a lot of flair, a lot of effects, must look stunning"; he can
+  wear either. → VAULT 2B's Group 0 (2A stays focused on the emblem samples). The chat's flair list —
+  THE SWITCHBOARD: the brass desk in warm light; jacks lighting in sequence as glowing patch cables snake in + plug (a spark at each plug), the cables'
+  light pulsing along them on the beat; the ON AIR sign buzzing on with a flicker; a VU meter needle + a row of level lamps dancing; dust motes in a
+  lamp beam; the brass catching a sliding glint; a gold-and-red laser border. THE SOURCE: the city's real code streaming in columns (drift, depth —
+  near columns bright + sharp, far ones dim + soft); a line lighting gold as it "runs"; the cursor typing `city.build({ by: 'LOEWFIZZLE' })` → ENTER →
+  the NEON sign ignites letter by letter with a surge + a burst of sparks; a glitch / CRT flicker pass + scanlines; a green-to-magenta laser border.
+  Both: ONE OF ONE · DEV tag, Nº 0001, granted server-side to the owner only (never earnable), slim strip FIRST then full card, through the lab, 60 fps.
+- (12:17 pm) THE OWNER IS MEMBER Nº 0001 (the owner). His membership card today shows "Nº 3112" — likely his NAME TAG's random 4 digits (Name#3112), not
+  a member number. → VAULT 2B Group 0: a real MEMBER NUMBER, separate from the name tag — sequential by when the profile was made (server-assigned,
+  never reused, never changes); the OWNER's profile = Nº 0001 (reserved), everyone else from Nº 0002 in join order; shown on the membership card, on
+  FOUNDING MEMBER ("your real member number in gold") + the DEV cards; the name tag keeps its digits.
+- (1:17 pm) THE SIGHTING REVEAL CHECK (the ghost ship, his screenshot): looks good, BUT (1) the two names must sit on ONE LINE — the emblem's label
+  (higher, beside a smaller emblem) vs the card's label → same-height tiles, both labels on one baseline; (2) THE CHAT's CATCH: the POLAROID doesn't
+  show the GHOST SHIP — the photo frames the city centre while the ship sails at the screen's right edge → the photo must FRAME THE SIGHTED LEGENDARY
+  (centred on it, wherever it is on screen, cropped to it). (The anchor emblem = a placeholder until VAULT 2B's sighting emblems.) → VAULT 2B Group 0.
+- (1:18 pm) THE OWNER: the ghost ship wasn't in the photo because &sgdemo snapped ~2 s in, while it was still fading in at the edge. AGREED (both in
+  2B's Group 0): (1) the photo CENTRES ON THE TAPPED legendary wherever it is on screen (if the crop already follows the tap, say so + only fix the
+  demo); (2) &sgdemo waits until the legendary is FULLY VISIBLE before it snaps.
+
+## THE VAULT 2A DONE (Nov 3, ~2:20 pm EST) — live; cloud GREEN (tests run 1; harbor 9/10 run 1 + `audio` 177/177 run 2 — a scroll-pause check too strict
+for the cloud's software renderer). Rules unchanged. Summary: plan/v2a-summary.txt
+- Done: FOUNDING MEMBER (the title's NEON + SPEAKEASY sign lighting letter by letter on the speakeasy roof, searchlights, EST. 1924, the member's number
+  in gold — a chip on the strip, a stamp on the full card); THE HOUSE (the speakeasy in full blaze, the blade's chasing bulbs, a gold neon crown, gold
+  willows); PLATINUM (EPIC — brushed platinum, a diamond-cut edge, a cold light sliding); LIGHTS OUT's red centre pulsing (his lab FIX); I'M NEW HERE
+  removed; THE EMBLEM SYSTEM (shape + finish; neon on the sign's tube look; the 12 sign-up shapes on it; tube styles on any neon emblem; glows on the
+  name only; picker rows on his own strip); 17 SAMPLES — 10 emblems (THE KEY, SWEETHEART, THE OWL redone — a horned owl with a heart-shaped face, FOUR ON
+  THE FLOOR, THE HOUSE crown, SNOWED IN, THE FLAME, RAINMAKER, LIGHTS OUT from the real TR-3B, I WANT TO BELIEVE), 3 glows (EMBER, GOLD LEAF, ELECTRIC),
+  tube styles (BREATHING, A CHASING LIGHT + TWO-TONE's look).
+- Decisions: SPEED — emblems rebuilt as HTML-wrapped layers (the compositor); THE PROMINENCE RULE REFINED: on a LEGENDARY card the emblem + the name
+  glow hold a STILL, lit frame (legendary lobby ~59 fps, every other mix 60); SWEETHEART lv 6, A CHASING LIGHT lv 26, THE HOUSE crown lv 100; GOLD LEAF
+  replaces GOLD, ELECTRIC replaces SPARK, ICE + AFTERGLOW commons.
+- Known: two crowns (THE CROWN lv 55 + THE HOUSE crown → 2B gives THE CROWN its own shape); owned items without art show the player's shape / a plain
+  tube until 2B; the game screens + today's lobby still show the old emblem icon (LOBBY 2.0 brings the strips in).
+- (3:24 pm) 2A CHECKED: the lab marks done ("looks good" — the 3 cards, LIGHTS OUT's re-mark, the EMBLEMS + GLOWS tabs); A FULL LOBBY wearing the
+  samples' emblems + glows = 60 fps · 0 slow · tier 2 · 3× · 115 draws ✅. The chat's small catch (→ 2B Group 0): the lab's wrapped tab row now sits
+  over the lobby's "IN THE LOBBY · 8 / 8" header (the label shows through under FULL CARDS) — give the header room below the two tab rows.
+- (3:24–3:30 pm) THE PICKER IS CONFUSING (the owner: "all listed, hard to understand") → THE CHAT's FIX: "DRESS YOUR CARD" (mock: outputs/dress-your-card.png)
+  — the profile shows ONE panel: your strip as it is now + the worn pieces' names + a big DRESS YOUR CARD button (+ a YOUR COLLECTION count line; the long
+  lists leave the profile); the DRESS screen: your strip PINNED at the top, live ("THE LOBBY SEES THIS" · VIEW FULL ›), 4 tabs CARD · EMBLEM · GLOW · TUBE
+  (one list at a time), COMPACT TILES 3 across with tier-coloured edges (the shared palette), the worn one ticked; tap a tile → the strip above changes at
+  once, nothing to save; long-press / VIEW → the full card. APPROVED by the owner ("looks great", 3:27 pm) → VAULT 2B Group 0.
+
+## THE VAULT 2B WRITTEN (Nov 3, ~3:35 pm EST) — Step 0 = step0-v2b.txt.
+
+- THE BUILD TABLE (Nov 3, THE VAULT 2B Step 0): THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅; THE VAULT 2A ✅; THE VAULT 2B (DRESS YOUR CARD + the two
+  DEV cards + MEMBER Nº 0001 + the rest of the emblems, glows + tube styles — this pass) ← NEXT; then BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (rework +
+  review), OVERCLOCK (+ its daily + review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
