@@ -47,7 +47,7 @@ const ALLOW = {
 /** THE TIMED PLANNERS (each has its rows in the timetable) — a new one joins this list */
 const PLANNERS = ['events', 'legend', 'blackbird', 'mothman', 'workers', 'people', 'moments', 'holiday', 'holidayprops', 'boats', 'traffic', 'cabs', 'raid', 'wildlife', 'routines',
   'tower', 'parade', 'xmas', 'lamps', 'roofmodes', 'heli', 'ghost', 'holidayfolk', 'snowwork', 'snowman', 'streetparty', 'fireworks', 'scenes', 'boxer', 'show', 'witness',
-  'crew', 'juggler', 'crate', 'charleston', 'bookie', 'dance', 'dark', 'showcase', 'billboard'].map(f => `harbor-${f}.js`);
+  'crew', 'juggler', 'crate', 'charleston', 'bookie', 'dance', 'dark', 'showcase', 'billboard', 'fireball'].map(f => `harbor-${f}.js`);
 const tokens = code => {
   const out = [...code.matchAll(KEY)].map(m => `${m[1]}:`).concat([...code.matchAll(HOUR)].map(m => m[0].replace(/\s+/g, ' ')));
   const c = code.match(CONST); if (c) out.push(c[1]);

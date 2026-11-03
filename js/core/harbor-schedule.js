@@ -340,6 +340,11 @@ export const SCHEDULE = Object.freeze([
     knobs: { perHour: { day: [2, 4], late: [1, 1], night: [0, 0] }, dayFrom: 6, dayTo: 23 } },
   { id: 'roof.crowd', trigger: 'clock', status: 'live', src: 'core/harbor-people.js#roofCrowd', what: 'THE ROOFTOP: a crowd on party nights + summer (`summer` months) weekend nights (`weekendNight` h, full from `full`, a few from `warm`); the gardener (`garden`); someone at the view (`view` h)',
     knobs: { summer: [6, 8], weekendNight: [19, 1], full: [20, 1.5], warm: 19, garden: { from: 9, to: 11.5, months: [4, 10] }, view: [18, 23] } },
+  // (PROGRESSION B — THE FIREBALL SEEDED: it used to be Math.random on each phone (~3 a year over the night's hours), which no server could
+  // check — now the same rate as a seeded calendar: a fireball night ~perYear times a year, ONE big slow streak at a seeded minute between
+  // `from` and `to` (evening hours), the same for every phone in a time zone — core/harbor-fireball.js; a CITY SIGHTING (MAKE A WISH))
+  { id: 'sky.fireball', trigger: 'calendar', status: 'live', src: 'core/harbor-fireball.js#fireballOf + screens/harbor/meteors.js', what: 'THE FIREBALL: a big slow green-white streak that breaks up — a few nights a year at a seeded minute after dark (clear skies only)',
+    knobs: { perYear: 3, from: 20.5, to: 27.5, len: 6 } },
   { id: 'sky.events', trigger: 'clock', status: 'live', src: 'core/harbor-events.js', what: 'the everyday sky: planes, the helicopter (daily), balloons, birds… by rarity',
     knobs: { slot_s: 90, rarity: { common_slots: 4, daily_per_day: 3, weekly_days: 7, rare_days: 30, legendary_days: 365 } } },
   // (NIGHT-C — THE HELICOPTER, the owner Oct 29 4:13 pm; SKY-A — REWORKED, the owner Oct 30 8:19–8:35 am: the ORIGINAL route back — round

@@ -33,7 +33,9 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
-function rng(seed) { let a = seed >>> 0; return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+import { rng, BALLOON_KINDS, FESTIVAL_ORDER, FLIGHT, hash01, flightLen, singleKind } from '../../core/harbor-balloon-kinds.js';
+// (PROGRESSION B: the line-up + the flight's length moved to core/harbor-balloon-kinds.js — the server replays a flight for a CITY SIGHTING)
+export { BALLOON_KINDS, FESTIVAL_ORDER, FLIGHT, flightLen };
 
 // the envelope's outline (centre of the dome at 0,0; radius 1): the dome, then the taper to the mouth
 function envPath(x, R) {
@@ -129,14 +131,6 @@ function bitcoinMark(x, R, col, light, lit) {
 // Every design is painted ON the sphere: a point at longitude φ / latitude λ (the dome's centre at 0,0) shows at
 // (R·sin φ·cos λ, −R·sin λ) — gores narrow toward the edges, rings + the face wrap round the curve; the puffed gores + the sphere's
 // light are laid over afterwards (the seams read only as shading).
-/** the everyday kinds a single balloon draws from (₿ + the alien keep their rare odds) */
-export const BALLOON_KINDS = ['vstripes', 'pinstripes', 'skull', 'smiley'];
-/** the festival's line-up, in launch order (the owner: orange ₿, the alien, black ₿, the skull, smiley, striped) */
-// (WSP — the owner, Nov 1 evening: THE SKULL replaces the violet + teal bullseye — "a black and white skull", "high quality like all the
-//  other ones")
-// (the owner's add-on, Oct 25: the sixth is the AMERICAN FLAG — vertical stripes stay an everyday style)
-// (PERF-B — the owner, Nov 1: the 7th, THE DISCO BALL, on the far right's open slot — festivalSpots)
-export const FESTIVAL_ORDER = ['btc-orange', 'alien', 'bitcoin', 'skull', 'smiley', 'flag', 'disco'];
 /** Old Glory: red #B22234, navy #3C3B6E, white */
 export const FLAG = { red: [178, 34, 52], navy: [60, 59, 110], white: [246, 244, 240] };
 /** the schemes per kind (POLISH 5's two-colour gores kept as PINSTRIPES: red / gold, blue / cream) */
@@ -469,13 +463,10 @@ export function balloonArt(R, scheme, light, dpr, kind = 'pinstripes') {   // (e
 }
 
 // ---------------------------------------------------------------- 9a — THE BALLOONS STAY UP (the owner, Oct 25 — DECIDED)
-/** a flight's length (minutes): a single balloon 45–60, the festival 60–90 (a real flight lasts 1–2 h) */
-export const FLIGHT = { single: [45, 60], festival: [60, 90] };
 /** the preview's FAST crossing: the whole flight this many times faster (a 45-min crossing in ~4 min) */
 export const FAST = 12;
 /** the burner: one short burn every 45–120 s on a cruise (seeded, never a rhythm); every 3–7 s while climbing at the launch */
 export const BURN = { cruise: [45, 120], climb: [3, 7], len: [1.8, 3.4] };
-const hash01 = (a, b) => { let h = (Math.imul(a | 0, 0x9e3779b1) ^ Math.imul((b | 0) + 0x7f4a7c15, 0x85ebca6b)) >>> 0; h ^= h >>> 15; h = Math.imul(h, 0x2c1b3c6d) >>> 0; h ^= h >>> 12; return (h >>> 0) / 4294967296; };
 /** WSP — the sign's band crossed this many times faster by a NEAR balloon's altitude journey (squeezeBand) */
 export const SIGN_SQUEEZE = 2.5;
 /** PURE: a height y in [y0, y1] remapped so the band [sb.y, sb.y + sb.h] takes 1 / SIGN_SQUEEZE of its natural share of the journey —
@@ -499,11 +490,6 @@ export function layerClear(x, y, w, h, sb, sk, tops) {
     for (let i = i0; i <= i1; i++) if (arr[i] < yb) return false;
   }
   return true;
-}
-/** PURE: a flight's length in seconds from its seed (every phone the same) */
-export function flightLen(seed, festival) {
-  const [a, b] = festival ? FLIGHT.festival : FLIGHT.single;
-  return Math.round((a + (b - a) * hash01(seed || 7, 0x51)) * 60);
 }
 /** PURE: the burns of one balloon — the i-th burn's start (s after its launch) and length; `climb` = the launch's climb (s; 0 = none) */
 export function burnSchedule(seed, climb, until) {
@@ -580,7 +566,7 @@ export function createBalloons() {
     const box = o.box || (o.lanes && o.lanes['sky-low']);
     const dur = flightLen(seed, fest);
     // a single flight's style: the everyday kinds; ~1 in 8 the black ₿, ~1 in 16 the orange ₿, ~1 in 50 the alien (6b's rare odds)
-    const r = R0(), single = o.kind && (BALLOON_SCHEMES[o.kind] || ['bitcoin', 'btc-orange', 'alien', 'flag', 'disco'].includes(o.kind)) ? o.kind : r < 0.12 ? 'bitcoin' : r < 0.18 ? 'btc-orange' : r < 0.2 ? 'alien' : BALLOON_KINDS[Math.floor(R0() * BALLOON_KINDS.length)];
+    const single = singleKind(R0, o.kind, k => !!BALLOON_SCHEMES[k]);   // (core/harbor-balloon-kinds.js — the server replays the same pick)
     // (the festival's launch spots: spread across, shuffled — the line-up keeps its ORDER in time, not in space)
     const spots = festivalSpots(FESTIVAL_ORDER.map((_, i) => 0.06 + 0.88 * (i + 0.5) / n).sort(() => R0() - 0.5));
     for (let i = 0; i < n; i++) {

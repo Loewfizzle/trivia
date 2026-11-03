@@ -6,6 +6,7 @@
 //   regen                            → { key }               a new key; the old one stops working
 //   rename  { name }                 → { profile } | 429 { until }
 //   show    { on }                   → { priv }              "Show me on global leaderboards"
+//   sighting { id, t, tz }           → { ok, counted, n, total, first, items, ach } | { ok: false, why }   (PROGRESSION B — CITY SIGHTINGS)
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
 import { ITEM, STARTER } from '../js/core/items.js';
 import { carryOver } from '../js/core/progress.js';
@@ -16,7 +17,8 @@ import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
 import { founderOpen } from './_lib/founder.js';
 import { progressEvent } from './_lib/events.js';
-import { placeOf, skyFor } from './sky.js';
+import { placeOf, skyFor, kpNow } from './sky.js';
+import { claimSighting } from './_lib/sightings.js';
 import { weekKey } from '../js/core/week.js';
 
 async function mine(uid) {
@@ -58,7 +60,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       }
       const s = stats || {};
       const wk = weekKey(now);
-      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null } };
+      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0, bd: s.bd || null } };
     }
     case 'ranks': {
       const pid = await mine(uid);
@@ -98,6 +100,8 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       return { pct: out, n: oc.n };
     }
     case 'event': return progressEvent(await mine(uid), String(body.ev || ''), { place: req ? placeOf(req) : (body.place || null), skyFor }, now);
+    // PROGRESSION B — CITY SIGHTINGS: a tap on a legendary (server-verified: api/_lib/sightings.js)
+    case 'sighting': return claimSighting(await mine(uid), uid, body, { req, placeOf, kpNow, place: req ? undefined : (body.place || null), ipTz: req ? undefined : (body.ipTz || null) }, now);
     case 'show': { const pid = await mine(uid); await setShown(pid, !!body.on); return { priv: await privateInfo(pid) }; }
     default: throw new ApiError(400, 'bad_action');
   }

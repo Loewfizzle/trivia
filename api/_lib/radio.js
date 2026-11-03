@@ -100,7 +100,7 @@ async function fire(me, role, uid, body, now) {
     up[`rooms/${req.room}/radio/${id}`] = publicMoment(id, m);
     for (const mv of P.moved) { const x = Q.find(y => y.id === mv.id); if (x && x.aud === 'room') { up[`rooms/${x.room}/radio/${mv.id}/at`] = mv.at; up[`rooms/${x.room}/radio/${mv.id}/until`] = mv.until; } }
   }
-  up[`radio/fired/${id}`] = { jack: m.jack, at: m.at, aud: m.aud, room: m.room || null, role, by: me, sight: role === 'owner' && m.aud !== 'me' };
+  up[`radio/fired/${id}`] = { jack: m.jack, at: m.at, until: m.until, len: lenOf(req), made: now, local: m.local || null, aud: m.aud, room: m.room || null, role, by: me, sight: role === 'owner' && m.aud !== 'me' };   // (PROGRESSION B: + until / len / made / local — core/sightings.js#radioWindows reads them)
   if (role === 'crew' && limPath) {
     const lg = (await val(limPath)) || {}, j = jackDef(m.jack);
     up[`${limPath}/counts/${j.limit}`] = ((lg.counts && lg.counts[j.limit]) || 0) + 1;

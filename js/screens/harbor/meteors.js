@@ -7,6 +7,7 @@
 //               night they all fly out from the shower's RADIANT (east of the view: up + to the left, the city faces south)
 // The moon's three-tap shooting star stays City 1.0's (fx.js draws its own). &force=meteor: one every few seconds; &force=fireball.
 import { meteorsOf } from '../../core/sky.js';
+import { fireballOf } from '../../core/harbor-fireball.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
 const TAU = Math.PI * 2;
@@ -17,10 +18,11 @@ function harborMeteorRate(y, m, d) {
   const o = meteorsOf(y, m, d);
   return { rate: o.rate >= 3 ? 0.4 : o.rate >= 1 ? 0.11 : 1 / 38, shower: o.shower };
 }
-const FIREBALL_PER_MIN = 3 / (365 * 8 * 60);       // (a few a year over the night's hours)
+// (PROGRESSION B: the fireball is SEEDED now — core/harbor-fireball.js, its row 'sky.fireball': a few nights a year at one seeded minute,
+// the same for every phone in a time zone, so the server can check a tap on it — a CITY SIGHTING, MAKE A WISH)
 
 export function createMeteors() {
-  let list = [], W = 1, H = 1, dotC = null, rateKey = '', rate = { rate: 0, shower: null }, forcedAt = 0;
+  let list = [], W = 1, H = 1, dotC = null, rateKey = '', rate = { rate: 0, shower: null }, forcedAt = 0, fbKey = '', fb = null, fbDone = '';
   const dot = () => {
     if (dotC) return dotC;
     dotC = document.createElement('canvas'); dotC.width = dotC.height = 32;
@@ -29,14 +31,15 @@ export function createMeteors() {
     x.fillStyle = g; x.fillRect(0, 0, 32, 32);
     return dotC;
   };
-  function spawn(s, fire) {
+  function spawn(s, fire, seeded = null, forced = false) {
     const R = Math.random, top = Math.max(20, (s.safeTop || 0) + 20), sky = Math.max(80, (s.skyline ? Math.min(...s.skyline) : H * 0.4) - top - 30);
-    const x = W * (0.05 + R() * 0.9), y = top + R() * sky * 0.7;
+    const x = W * (seeded ? seeded.x : 0.05 + R() * 0.9), y = top + (seeded ? seeded.y : R()) * sky * 0.7;
     let ang;
     if (rate.shower && !fire) { const rx = -W * 0.35, ry = top - H * 0.1; ang = Math.atan2(y - ry, x - rx) + (R() - 0.5) * 0.12; }
+    else if (seeded) ang = seeded.dir > 0 ? 0.55 : Math.PI - 0.55;
     else ang = (R() < 0.5 ? 0.35 + R() * 0.5 : Math.PI - 0.35 - R() * 0.5);
     const v = fire ? 150 + R() * 60 : 380 + R() * 520, max = fire ? 2.6 + R() * 0.8 : 0.35 + R() * 0.55;
-    list.push({ x, y, ang, v, life: 0, max, len: fire ? 150 : 50 + R() * 90, w: fire ? 4.5 : 1.1 + R() * 1.4, b: fire ? 1 : 0.55 + R() * 0.45, tint: fire ? [190, 255, 200] : TINTS[Math.floor(R() * TINTS.length)], flare: fire || R() < 0.15, fire, sparks: [], trainAt: null });
+    list.push({ x, y, ang, v, life: 0, max, len: fire ? 150 : 50 + R() * 90, w: fire ? 4.5 : 1.1 + R() * 1.4, b: fire ? 1 : 0.55 + R() * 0.45, tint: fire ? [190, 255, 200] : TINTS[Math.floor(R() * TINTS.length)], flare: fire || R() < 0.15, fire, forced, sparks: [], trainAt: null, react: 0 });
   }
   return {
     resize(w, h) { W = w; H = h; },
@@ -48,9 +51,13 @@ export function createMeteors() {
       if (lc) { const k = `${lc.y}-${lc.m}-${lc.d}-${lc.h < 6 ? 'am' : 'pm'}`; if (k !== rateKey) { rateKey = k; const dd = lc.h < 6 ? new Date(Date.UTC(lc.y, lc.m - 1, lc.d) - 864e5) : new Date(Date.UTC(lc.y, lc.m - 1, lc.d)); rate = harborMeteorRate(dd.getUTCFullYear(), dd.getUTCMonth() + 1, dd.getUTCDate()); } }
       const can = s.motion && dark > 0.5 && (L.meteors || 0) > 0;          // (clear + dark: core/sky.js's own gate)
       const forced = s.force.has('meteor'), fireF = s.force.has('fireball');
-      if ((forced || fireF) && s.motion && performance.now() - forcedAt > (fireF ? 6000 : 2500)) { forcedAt = performance.now(); spawn(s, fireF); }
+      // tonight's seeded fireball (the evening's date: before noon the night before) — flown once, at its minute, if the sky is clear + dark
+      if (lc) { const ev = lc.h < 12 ? new Date(Date.UTC(lc.y, lc.m - 1, lc.d) - 864e5) : new Date(Date.UTC(lc.y, lc.m - 1, lc.d)), k = ev.toISOString().slice(0, 10);
+        if (k !== fbKey) { fbKey = k; fb = fireballOf(ev.getUTCFullYear(), ev.getUTCMonth() + 1, ev.getUTCDate()); }
+        const hr = lc.h + lc.mi / 60 + (lc.s || 0) / 3600 + (lc.h < 12 ? 24 : 0);
+        if (fb && can && fbDone !== k && hr >= fb.h && hr < fb.h + 2 / 3600) { fbDone = k; spawn(s, true, fb); } }
+      if ((forced || fireF) && s.motion && performance.now() - forcedAt > (fireF ? 6000 : 2500)) { forcedAt = performance.now(); spawn(s, fireF, null, true); }
       else if (can && Math.random() < (rate.rate / 60) * dt) spawn(s, false);
-      else if (can && Math.random() < (FIREBALL_PER_MIN / 60) * dt) spawn(s, true);
       if (!list.length) return;
       c.save(); c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
       const D = dot();

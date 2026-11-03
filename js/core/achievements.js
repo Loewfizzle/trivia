@@ -130,6 +130,11 @@ export function awardAll(next, now, { founderOpen = false } = {}) {
     ac[a.id] = now; ach.push(a.id);
     if (a.item && !it[a.item]) { it[a.item] = now; items.push(a.item); }
   }
+  // PROGRESSION B — CITY SIGHTINGS: a legendary's FIRST counted sighting → its MATCHED PAIR (its legendary card + its emblem)
+  for (const id of LEGENDARIES) {
+    if (!(pa.sg && pa.sg[id])) continue;
+    for (const item of [`card-sg-${id}`, `emb-sg-${id}`]) if (!it[item]) { it[item] = now; items.push(item); }
+  }
   const played = sum(next.g, 'p') + ((next.dl && next.dl.n) || 0);
   if (founderOpen && played >= 1 && !it['card-founder']) { it['card-founder'] = now; items.push('card-founder'); next.fd = 1; }
   if (ach.length) next.ac = ac;
