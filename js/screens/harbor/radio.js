@@ -492,7 +492,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   let touching = false, scrollAt = 0;
   const scrolling = () => touching || performance.now() - scrollAt < 900;
   const paperArgs = () => ({ st, api, act, sfx, refresh, now: serverNow, edit: editBoard,
-    cancel: { moment: id => { sfx.play('jackOut'); act({ action: 'radioStop', id }).catch(e => { err = e.message; render(); }); }, board: id => { sfx.play('jackOut'); act({ action: 'radioBoardCancel', id }).catch(e => { err = e.message; render(); }); } } });
+    cancel: { moment: id => { sfx.play('jackOut'); act({ action: 'radioStop', id }).catch(e => { err = e.message; render(); }); }, board: id => { sfx.play('jackOut'); act({ action: 'radioBoardCancel', id }).catch(e => { err = e.message; render(); }); },
+      intercom: id => { sfx.play('jackOut'); act({ action: 'radioUnsend', id }).then(() => { if (refresh) refresh(); }).catch(e => { err = e.message; render(); }); } } });
   /** THE PROGRAM / THE LEDGER on a poll: the paper's rows replaced IN PLACE — the sheet (the scrolling box) is never rebuilt, its scroll kept */
   function paintPaper() {
     const holder = sheet && sheet.querySelector('.rd-paperwrap[data-face]');

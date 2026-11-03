@@ -77,5 +77,6 @@ export async function pctFor({ fresh = false } = {}) {
   catch { pctMemo = { at: Date.now(), ttl: 5e3, who, v: { i: {}, a: {} } }; }
   return pctMemo.v;
 }
-export const pctLine = p => (p ? `${p}% OF PLAYERS HAVE THIS` : '');
+// (the owner's PROGRESSION A review — IVORY NAMES: the X% line pink, in sentence case)
+export const pctLine = p => (p ? `${p}% of players have this` : '');
 export const setPctForTest = v => { pctMemo = { at: Date.now(), ttl: 1e12, who: 'test', test: true, v }; };

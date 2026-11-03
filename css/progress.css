@@ -239,3 +239,51 @@
 .pg-pv-in { position: relative; display: grid; gap: 14px; max-width: 440px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 58px) 16px calc(env(safe-area-inset-bottom) + 24px); }
 .pg-pv-k { text-align: center; font: 700 11px/1 var(--font-ui); letter-spacing: 0.34em; color: var(--pg-brass); }
 .pg-pv .pg-x { position: fixed; top: calc(env(safe-area-inset-top) + 10px); right: 12px; }
+
+/* ------------------------------------------------------------------ PROGRESSION B's ADD-ON — the owner's PROGRESSION A review (Nov 2 8:46 pm)
+   (1) THE MOMENT FITS ONE SCREEN at 390 × 844 — nothing pinned: CONTINUE in the flow; the spacing tightened; extra unlocks fold into +N MORE.
+   (2) THE LEVEL-UP HOLDS until a tap (js/progress/moment.js#showUp): it takes the taps, a soft TAP TO CONTINUE after a second.
+   (3) IVORY NAMES: every item + achievement name warm ivory, semibold Chakra Petch, tight spacing; GOLD only for the section headers + the
+       borders; descriptions the dim italic serif; "22% of players have this" pink, sentence case. Contrast: ivory on the lacquer ≈ 16 : 1,
+       pink ≈ 6.4 : 1. */
+:root { --pg-ivory: #f5ecda; }
+.pg-moment { padding: calc(env(safe-area-inset-top) + 10px) 12px calc(env(safe-area-inset-bottom) + 10px); }
+.pg-moment .pg-panel { padding: 14px 16px 12px; }
+.pg-moment .pg-fan { margin-bottom: -4px; }
+.pg-moment .pg-kick { margin-top: 4px; }
+.pg-moment .pg-place { font-size: clamp(28px, 8.2vw, 36px); margin: 2px 0 1px; }
+.pg-moment .pg-sub { margin: 0 0 4px; font-size: 15px; }
+.pg-moment .pg-line { padding: 5px 2px; }
+.pg-moment .pg-total { padding: 7px 2px 1px; }
+.pg-moment .pg-total-v { font-size: 28px; }
+.pg-moment .pg-lv { margin-top: 6px; }
+.pg-moment .pg-bar { margin: 7px 0 6px; }
+.pg-moment .pg-extras { gap: 6px; margin-top: 8px; }
+.pg-moment .pg-extras .pg-box { padding: 8px 12px; }
+.pg-moment .pg-btn { position: static; margin-top: 10px; min-height: 48px; box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6), inset 0 -2px 0 rgba(90, 60, 10, 0.45), 0 6px 18px rgba(0, 0, 0, 0.5); }
+.pg-extras .is-fold { display: none !important; }
+.pg-more { width: 100%; min-height: 44px; justify-content: center; cursor: pointer; color: inherit; font: inherit; }
+.pg-more b { color: var(--pg-pink-hi) !important; letter-spacing: 0.16em !important; font-size: 13px !important; }
+.pg-up.is-held { pointer-events: auto; cursor: pointer; }
+.pg-up-tap { margin-top: 14px; font: 600 11.5px/1 var(--font-ui); letter-spacing: 0.3em; color: var(--pg-dim); opacity: 0; transition: opacity 0.6s ease; }
+.pg-up.is-tap .pg-up-tap { opacity: 0.95; }
+.pg-moment.is-still .pg-up.is-tap .pg-up-tap { opacity: 0.95; }
+/* IVORY NAMES */
+.pg-box b, .pg-moment .pg-box b, .pg-up .pg-box b { font: 600 15px/1.2 var(--font-ui); letter-spacing: 0.03em; color: var(--pg-ivory); }
+.pg-ach b { font-size: 16px !important; }
+.pg-box .pg-pct { font: 600 11.5px/1.3 var(--font-ui); letter-spacing: 0.01em; color: var(--pg-pink); text-transform: none; }
+.pg-tease b { color: var(--pg-ivory); letter-spacing: 0.06em; font-size: 13.5px; }
+.pg-streak b { letter-spacing: 0.04em; }
+.pg-band b { color: var(--pg-ivory); letter-spacing: 0.06em; font-size: 13px; font-weight: 600; }
+.pg-line { font: 600 13.5px/1.2 var(--font-ui); letter-spacing: 0.03em; color: var(--pg-ivory); }
+.pg-line .pg-v { color: var(--pg-ivory); }
+.pg-vitem { width: 96px; }
+.pg-vitem span, .pg-vitem.is-on span { font: 600 13.5px/1.15 var(--font-ui); letter-spacing: 0.03em; color: var(--pg-ivory); }
+.pg-sc .pg-box > b { color: var(--pg-brass); }     /* (the streak card's labels ARE its section headers: gold, wide caps) */
+.pg-sc .pg-box > b { font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.3em; }
+.pg-sc-two .pg-box b { color: var(--pg-ivory); }
+/* THE PROFILE PREVIEW's ✕ — its own bar: the content scrolls UNDER it, never under the button */
+.pg-pv-bar { position: fixed; left: 0; right: 0; top: 0; z-index: 4; height: calc(env(safe-area-inset-top) + 64px); pointer-events: none;
+  background: linear-gradient(180deg, rgba(10, 7, 16, 0.98) 0%, rgba(10, 7, 16, 0.94) 70%, rgba(10, 7, 16, 0) 100%); }
+.pg-pv .pg-x { z-index: 5; background: rgba(255, 255, 255, 0.08); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.5); }
+.pg-pv-in { padding-top: calc(env(safe-area-inset-top) + 70px); }

@@ -361,3 +361,19 @@ body.cb-split .rd-back { background: radial-gradient(120% 70% at 50% 0%, rgba(40
 .rd-jack.is-flash::after { content: ''; position: absolute; inset: -6px; border-radius: 14px; pointer-events: none; box-shadow: 0 0 0 2px rgba(255, 210, 120, 0.95), 0 0 22px rgba(255, 190, 90, 0.85); opacity: 0; animation: rd-newjack 1.2s ease-out 1; }
 @keyframes rd-newjack { 0% { opacity: 0; transform: scale(1.25); } 25% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1); } }
 @media (prefers-reduced-motion: reduce) { .rd-jack.is-flash::after { animation-duration: 0.01s; opacity: 1; } }
+
+/* PROGRESSION B's add-on — THE PROGRAM in THREE SECTIONS (the owner's PROGRESSION A review): ON NOW · COMING UP · EARLIER TONIGHT (collapsed) */
+.rd-prsec { margin-top: 6px; }
+.rd-prk { display: block; margin: 8px 0 2px; font: 700 10px/1.2 var(--font-ui); letter-spacing: 0.26em; color: #5a1424; }
+.rd-pr.is-now > b { display: flex; align-items: center; gap: 5px; color: #b0123c; }
+.rd-pr i.rd-live { display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 50%; background: #e0154a; box-shadow: 0 0 0 2px rgba(224, 21, 74, 0.2); padding: 0; animation: rd-live 1.6s ease-in-out infinite; }
+@keyframes rd-live { 0%, 100% { opacity: 1; } 50% { opacity: 0.35; } }
+@media (prefers-reduced-motion: reduce) { .rd-pr i.rd-live { animation: none; } }
+.rd-pr .rd-in { display: block; margin-top: 1px; font: 600 11px/1.2 var(--font-ui); letter-spacing: 0.02em; color: #8a3a16; }
+.rd-early { border-top: 1.5px solid rgba(90, 20, 36, 0.25); margin-top: 10px; }
+.rd-earbtn { width: 100%; min-height: 44px; margin: 0; padding: 0; border: 0; background: none; text-align: left; cursor: pointer; color: #6e5e4c; }
+.rd-early > .rd-pr { display: none; }
+.rd-early.is-open > .rd-pr { display: flex; }
+.rd-pr.is-past { opacity: 1; color: #7d7162; font-weight: 400; }
+.rd-pr.is-past > b { color: #7d7162; font-weight: 500; }
+.rd-pr.is-past i, .rd-pr.is-past i.you, .rd-pr.is-past i.leg { background: #d4c8af; color: #5f5649; font-weight: 500; }

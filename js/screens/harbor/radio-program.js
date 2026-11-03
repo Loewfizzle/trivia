@@ -1,7 +1,9 @@
 // CITY CONTROLS A — THE PROGRAM (the radio's middle face; mockup 3): a printed RADIO LISTING on cream paper, built FROM THE DAY CHART
 // (core/harbor-daychart.js — the same planners the city runs; never a hand-made list):
-//   TONIGHT (or TODAY before 3 pm)  in order — done greyed, ON NOW marked, the legendaries' times tagged LEGEND (the owner only: a
-//                                   spoiler), YOURS in pink (his fired moments + his billboard messages)
+//   TONIGHT (or TODAY before 3 pm)  THREE SECTIONS (the owner's PROGRESSION A review, Nov 2): ON NOW (a live dot) · COMING UP (full strength,
+//                                   a countdown on each) · EARLIER TONIGHT at the bottom, COLLAPSED to one line (greyed, its tags too);
+//                                   a row moves between them as time passes (repainted in place — the scroll kept); the legendaries tagged
+//                                   LEGEND (the owner only: a spoiler), YOURS in pink (his moments, his billboard messages, his intercom)
 //   THE WEEK                         the legendaries a night, the party nights in red
 //   YOUR QUEUE                       what he set AT A TIME + the billboard's messages + the REPEATS — CANCEL, or EDIT a message
 import { h } from '../../ui/dom.js';
@@ -25,6 +27,10 @@ function cityDay(now) {
   return { key: `${day.getFullYear()}-${pad(day.getMonth() + 1)}-${pad(day.getDate())}`, hNow: hr < DAY_FROM ? hr + 24 : hr, date: day };
 }
 /** a phrase for a listing row (the scenes' + the shows' plain names) */
+/** EARLIER TONIGHT opened (kept across the poll's repaints) */
+let earlierOpen = false;
+/** a countdown: "in 6 min" · "in 1 h 20" */
+const inOf = hrs => { const m = Math.max(1, Math.round(hrs * 60)); return m < 60 ? `in ${m} min` : `in ${Math.floor(m / 60)} h${m % 60 ? ` ${pad(m % 60)}` : ''}`; };
 const nice = s => s.replace(/^THE BOSS’s BLUE TV \(his room\)$/, 'The boss’s TV').replace(/^A DANCE BREAK \((.+)\)$/, 'A dance break · $1');
 
 export function paint({ st, now, cancel, edit }) {
@@ -48,13 +54,30 @@ export function paint({ st, now, cancel, edit }) {
       rows.push({ h0, h1: dayH(w[1]), label: `Billboard · “${b.lines.filter(Boolean).join(' · ')}”`, tag: 'you' }); break;
     }
   }
+  // (the intercom he sent AT A TIME / IN 10 MIN: YOURS on the listing too)
+  for (const m of (st && st.intercom) || []) {
+    if (m.state === 'stopped') continue;
+    const h0 = dayH(m.at); if (h0 < DAY_FROM - 0.01 || h0 > DAY_TO) continue;
+    rows.push({ h0, h1: dayH(m.until), label: `Intercom${m.head ? ` · “${m.head}”` : ''}${m.aud === 'me' ? ' · just me' : m.aud === 'room' ? ` · lobby only ${m.room || ''}` : ' · everyone'}`, tag: 'you' });
+  }
   rows.sort((a, b) => a.h0 - b.h0);
-  const list = rows.length ? rows.map(r => {
-    const past = r.h1 <= hNow, on = r.h0 <= hNow && hNow < r.h1;
-    return h('div.rd-pr', { class: past ? 'is-past' : '' }, h('b', clockOf(r.h0).toUpperCase().replace(':00 ', ' ').replace(/^12 AM$/, 'MIDNIGHT')), h('span', r.label),
-      r.tag === 'you' ? h('i.you', 'YOURS') : null, on ? h('i.now', 'ON NOW') : r.tag === 'leg' ? h('i.leg', 'LEGEND') : null);
-  }) : [h('p.rd-pr', h('span', 'A quiet one — nothing big on the program.'))];
-  const tonight = h('section.rd-paper', h('h4', `${evening ? 'TONIGHT' : 'TODAY'} · ${DOW[date.getDay()]}`, h('em', `${MON[date.getMonth()]} ${date.getDate()} · your time`)), ...list);
+  const clock = r => clockOf(r.h0).toUpperCase().replace(':00 ', ' ').replace(/^12 AM$/, 'MIDNIGHT');
+  const tags = r => [r.tag === 'you' ? h('i.you', 'YOURS') : null, r.tag === 'leg' ? h('i.leg', 'LEGEND') : null];
+  const onNow = rows.filter(r => r.h0 <= hNow && hNow < r.h1), coming = rows.filter(r => r.h0 > hNow), earlier = rows.filter(r => r.h1 <= hNow);
+  const sec = (k, kids) => h('div.rd-prsec', { dataset: { sec: k } }, ...kids);
+  const parts = [];
+  if (onNow.length) parts.push(sec('now', [h('div.rd-prk', 'ON NOW'), ...onNow.map(r => h('div.rd-pr.is-now', h('b', h('i.rd-live', { 'aria-hidden': 'true' }), 'NOW'), h('span', r.label), ...tags(r)))]));
+  parts.push(sec('next', [h('div.rd-prk', 'COMING UP'), ...(coming.length ? coming.map(r => h('div.rd-pr', h('b', clock(r)), h('span', r.label, h('small.rd-in', inOf(r.h0 - hNow))), ...tags(r)))
+    : [h('div.rd-pr', h('span', rows.length ? 'That’s the night — nothing more on the program.' : 'A quiet one — nothing big on the program.'))])]));
+  if (earlier.length) {
+    const label = () => `${earlier.length} EARLIER ${earlierOpen ? '▴' : '▾'}`;
+    const lab = h('span', label());
+    const box = h('div.rd-prsec.rd-early', { class: earlierOpen ? 'is-open' : '', dataset: { sec: 'earlier' } },
+      h('button.rd-prk.rd-earbtn', { type: 'button', 'aria-expanded': String(earlierOpen), onclick: e => { earlierOpen = !earlierOpen; box.classList.toggle('is-open', earlierOpen); e.currentTarget.setAttribute('aria-expanded', String(earlierOpen)); lab.textContent = label(); } }, lab),
+      ...earlier.map(r => h('div.rd-pr.is-past', h('b', clock(r)), h('span', r.label), ...tags(r))));
+    parts.push(box);
+  }
+  const tonight = h('section.rd-paper', h('h4', `${evening ? 'TONIGHT' : 'TODAY'} · ${DOW[date.getDay()]}`, h('em', `${MON[date.getMonth()]} ${date.getDate()} · your time`)), ...parts);
 
   // THE WEEK: the legendaries a night (the showcase's own list), the party nights red
   const week = [];
@@ -72,6 +95,11 @@ export function paint({ st, now, cancel, edit }) {
     const j = jackDef(m.jack), when = m.local ? `${m.local.h % 12 || 12}:${pad(m.local.mi)} ${m.local.h < 12 ? 'AM' : 'PM'}` : phaseOf(m, T) === 'run' ? 'NOW' : clockOf(dayH(m.at)).toUpperCase();
     q.push(h('div.rd-pr', h('b', when), h('span', `${j ? j.label : m.jack}${m.text ? ` “${m.text}”` : ''}`), h('i.you', 'YOURS'),
       h('button.rd-qx', { type: 'button', onclick: () => cancel.moment(m.id) }, phaseOf(m, T) === 'run' ? 'STOP' : 'CANCEL')));
+  }
+  for (const m of (st && st.intercom) || []) {
+    if (m.state === 'stopped' || !(T < m.at)) continue;
+    q.push(h('div.rd-pr', h('b', clockOf(dayH(m.at)).toUpperCase()), h('span', `Intercom${m.head ? ` “${m.head}”` : ''} · ${(m.dur || 0).toFixed(1)} s`), h('i.you', 'YOURS'),
+      cancel.intercom ? h('button.rd-qx', { type: 'button', onclick: () => cancel.intercom(m.id) }, 'CANCEL') : null));
   }
   for (const b of (st && st.board) || []) {
     const when = b.repeat ? `${b.repeat.dows.map(d => DOW[d].slice(0, 3)).join(' ')} ${b.local.h % 12 || 12}:${pad(b.local.mi)}` : b.local ? `${b.local.h % 12 || 12}:${pad(b.local.mi)} ${b.local.h < 12 ? 'AM' : 'PM'}` : 'NOW';

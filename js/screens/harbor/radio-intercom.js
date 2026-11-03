@@ -21,6 +21,16 @@ import { intercomFeed, intercomStopped, playAnnouncement } from '../../audio/int
 import { micSession } from '../../audio/engine.js';
 
 const HEAD_KEY = 'nd:rd-ic-head', WAIT_KEY = 'nd:rd-ic-wait';
+/** AT A TIME: the next HH:MM on this phone's clock (today, or tomorrow when it's gone) → ms; the default an hour from now */
+const pad2 = n => String(n).padStart(2, '0');
+function nextHour() { const d = new Date(Date.now() + 3600e3); return `${pad2(d.getHours())}:${pad2(Math.floor(d.getMinutes() / 5) * 5)}`; }
+export function atOf(hhmm, now = Date.now()) {
+  const [hh, mm] = String(hhmm || '').split(':').map(Number), d = new Date(now);
+  d.setHours(Number.isFinite(hh) ? hh : 20, Number.isFinite(mm) ? mm : 0, 0, 0);
+  let t = d.getTime(); if (t < now + 30e3) t += 864e5;
+  return t;
+}
+const fmtAt = ms => { const d = new Date(ms), hr = d.getHours(); return `${(hr % 12) || 12}:${pad2(d.getMinutes())} ${hr < 12 ? 'AM' : 'PM'}${d.getDate() !== new Date().getDate() ? ' tomorrow' : ''}`; };
 const ls = { get(k, d) { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
 const MIMES = ['audio/mp4', 'audio/mp4;codecs=mp4a.40.2', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
 const pickMime = () => { try { return MIMES.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || ''; } catch { return ''; } };
@@ -106,7 +116,7 @@ export function createIntercomDesk(o) {
       try { if (r.sr) r.sr.stop(); } catch { /* fine */ }
       if (dur < K.minS) { err = 'HOLD THE BUTTON WHILE YOU TALK'; paintStrip(); return; }
       const blob = new Blob(r.chunks, { type: r.mime });
-      take = { blob, mime: r.mime, dur, transcript: r.transcript || '', head: null, headOn: ls.get(HEAD_KEY, true), wait: ls.get(WAIT_KEY, true) };
+      take = { blob, mime: r.mime, dur, transcript: r.transcript || '', head: null, headOn: ls.get(HEAD_KEY, true), wait: ls.get(WAIT_KEY, true), when: 'now', time: nextHour() };
       o.sfx.play('jackIn');
       o.setCard({ kind: 'mic' });
       // the suggestion lands a moment after the release (the recognizer's last result)
@@ -160,6 +170,10 @@ export function createIntercomDesk(o) {
       h('div.rd-sec', h('div.rd-lb', 'ON THE BILLBOARD', h('em', t.headOn ? 'the headline while it plays' : 'voice only')), lever),
       t.headOn ? h('div.rd-sec', h('div.rd-lb', 'THE HEADLINE', cnt), inp, h('div.rd-board', h('div.rd-board-face', pa, pb), h('small', 'ON THE SPEAKEASY’s BILLBOARD'))) : null,
       h('div.rd-sec', h('div.rd-lb', 'IN A GAME', h('em', 'phones mid-game')), seg([[true, 'WAIT FOR THE LOBBY'], [false, 'DON’T WAIT']], t.wait, v => { t.wait = v; ls.set(WAIT_KEY, v); })),
+      // THE WHEN (the owner's PROGRESSION A review): NOW · IN 10 MIN · AT A TIME (your time, up to a day ahead — kept until it plays)
+      h('div.rd-sec', h('div.rd-lb', 'WHEN', h('em', t.when === 'at' ? `at ${fmtAt(atOf(t.time))}` : t.when === 'in10' ? 'ten minutes from now' : 'right away')),
+        seg([['now', 'NOW'], ['in10', 'IN 10 MIN'], ['at', 'AT A TIME']], t.when, v => { t.when = v; }),
+        t.when === 'at' ? h('input.rd-inp.rd-time', { type: 'time', value: t.time, 'aria-label': 'The time (yours)', onchange: e => { t.time = e.target.value || t.time; o.render(); } }) : null),
       t.err ? h('p.rd-err', { role: 'alert' }, t.err) : null,
       h('div.rd-two', h('button.rd-cancel', { type: 'button', onclick: () => discard() }, 'DISCARD'), h('button.rd-fire', { type: 'button', disabled: !!t.sending, onclick: () => send() }, t.sending ? 'SENDING…' : 'SEND')),
       h('p.rd-who2', W.line));
@@ -181,7 +195,7 @@ export function createIntercomDesk(o) {
     t.sending = true; t.err = ''; o.render();
     try {
       const b64 = await toB64(t.blob);
-      const r = await o.act({ action: 'radioIntercom', aud: W.aud, room: W.room || undefined, wait: t.wait, head: t.headOn ? (t.head || '') : '', mime: t.mime, dur: Math.round(t.dur * 100) / 100, b64 }, 'fire');
+      const r = await o.act({ action: 'radioIntercom', aud: W.aud, room: W.room || undefined, wait: t.wait, head: t.headOn ? (t.head || '') : '', mime: t.mime, dur: Math.round(t.dur * 100) / 100, b64, when: t.when, at: t.when === 'at' ? atOf(t.time) : undefined }, 'fire');
       take = null; o.setCard(null);
       // the owner's own phone plays it at once (the others: their lobby's socket / the city's feed)
       if (r && r.intercom) intercomFeed('desk', [r.intercom]);
@@ -193,10 +207,10 @@ export function createIntercomDesk(o) {
     const now = serverNow(), L = ((o.st() && o.st().intercom) || []).filter(m => m.state !== 'stopped' && (now < m.until || m.unsend)).slice(-3);
     if (!L.length) return null;
     return h('div.rd-strips', ...L.map(m => {
-      const ph = now < m.at ? 'q' : now < m.until ? 'run' : 'done', can = IC.canUnsend(m, now);
+      const ph = now < m.at ? 'q' : now < m.until ? 'run' : 'done', can = IC.canUnsend(m, now), later = ph === 'q' && m.at - now > 60e3;
       return h('div.rd-strip', { class: ph === 'run' ? 'is-run' : 'is-q', dataset: { ic: m.id } }, h('i.rd-lamp'),
-        h('div', h('b', `INTERCOM · ${ph === 'run' ? 'PLAYING' : ph === 'q' ? 'ON ITS WAY' : 'SENT'}`), h('small', `${m.dur.toFixed(1)} s · ${m.aud === 'room' ? `lobby only ${m.room || ''}` : AUD_LABEL[m.aud].toLowerCase()}${m.head ? ` · “${m.head}”` : ''}${m.wait ? '' : ' · don’t wait'}`)),
-        can ? h('button.rd-stop', { type: 'button', onclick: () => { o.sfx.play('jackOut'); intercomStopped(m.id); o.act({ action: 'radioUnsend', id: m.id }).catch(() => {}); } }, 'UNSEND') : null);
+        h('div', h('b', `INTERCOM · ${ph === 'run' ? 'PLAYING' : later ? `QUEUED · ${fmtAt(m.at)}` : ph === 'q' ? 'ON ITS WAY' : 'SENT'}`), h('small', `${m.dur.toFixed(1)} s · ${m.aud === 'room' ? `lobby only ${m.room || ''}` : AUD_LABEL[m.aud].toLowerCase()}${m.head ? ` · “${m.head}”` : ''}${m.wait ? '' : ' · don’t wait'}`)),
+        can ? h('button.rd-stop', { type: 'button', onclick: () => { o.sfx.play('jackOut'); intercomStopped(m.id); o.act({ action: 'radioUnsend', id: m.id }).catch(() => {}); } }, later ? 'CANCEL' : 'UNSEND') : null);
     }));
   }
 

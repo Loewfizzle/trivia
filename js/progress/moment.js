@@ -91,7 +91,12 @@ export async function openMoment(o, ctx = {}) {
   // what the match unlocked besides an achievement's own item (the level's rewards — also shown big in the level-up —, the streak's milestones)
   const unlockRows = (o.items || []).filter(id => !ach.some(a => a.item === id) && ITEM[id] && id !== 'card-gilded').slice(0, 2)
     .map(id => h('div.pg-box.pg-unl', itemSwatch(id, ctx.name), h('div', h('small', `UNLOCKED · ${TIER_NAMES[ITEM[id].tier]}`), h('b', ITEM[id].name), h('span', ITEM[id].line), h('em.pg-pct', { dataset: { i: id } }))));
-  const cont = h('button.pg-btn', { type: 'button', onclick: e => { e.stopPropagation(); close(); } }, 'CONTINUE');
+  // (the owner's PROGRESSION A review: the whole moment FITS ONE SCREEN — the first unlock / achievement shows, the rest fold into
+  //  "+N MORE" (a tap opens them in place); CONTINUE sits in the flow at the bottom, never pinned)
+  const folded = [...unlockRows, ...achRows].slice(1);
+  folded.forEach(r => r.classList.add('is-fold'));
+  const moreRow = folded.length ? h('button.pg-box.pg-more', { type: 'button', onclick: e => { e.stopPropagation(); moreRow.remove(); folded.forEach(r => { r.classList.remove('is-fold'); r.classList.add('is-in'); }); } }, h('b', `+${folded.length} MORE`)) : null;
+  const cont = h('button.pg-btn', { type: 'button', onclick: e => { e.stopPropagation(); if (upShown && !upAck) { ackUp(); return; } close(); } }, 'CONTINUE');
   const panel = h('div.pg-panel', { role: 'dialog', 'aria-label': `${pl.place} — your progress` },
     fanCrown(),
     h('div.pg-kick', [game, ctx.match ? `MATCH ${ctx.match}` : null].filter(Boolean).join(' · ') || 'MATCH COMPLETE'),
@@ -100,11 +105,29 @@ export async function openMoment(o, ctx = {}) {
     h('div.pg-lines', ...lines.map(l => l.row)),
     h('div.pg-total', h('span', 'TOTAL'), total),
     h('div.pg-lv', md, h('div.pg-lv-main', h('div.pg-lv-top', lvlName, lvlNeed), h('div.pg-bar', had, got), band)),
-    h('div.pg-extras', streakRow, teaseRow, ...unlockRows, ...achRows),
+    h('div.pg-extras', streakRow, teaseRow, ...unlockRows, ...achRows, moreRow),
     cont);
   const burst = h('div.pg-burst', { 'aria-hidden': 'true' }, ...Array.from({ length: 22 }, (_, i) => h('i', { style: { '--a': `${(360 / 22) * i + (i % 3) * 5}deg`, '--d': `${70 + (i % 4) * 26}px`, '--s': `${0.5 + (i % 3) * 0.3}` } })));
   const lvUp = up ? levelUpCard(L1, L0, lvlItems, ctx.name) : null;
-  const el = h('div.pg-moment', { class: R ? 'is-still' : '', onpointerup: () => skip() }, h('div.pg-veil'), panel, burst, lvUp ? lvUp.el : null);
+  // THE LEVEL-UP HOLDS (the owner's review: "I couldn't even read it"): up until a TAP — taps in its first second are ignored (a skip-tap
+  // can't throw it away unread), a soft TAP TO CONTINUE after a second; then the score screen finishes from there
+  let upShown = false, upAck = !up, upAt = 0, phaseB = null;
+  const UP_HOLD_MS = 1000;
+  function showUp() {
+    if (!lvUp || upShown) return;
+    upShown = true; upAt = performance.now();
+    lvUp.el.classList.add('is-on', 'is-held'); el.classList.add('is-up');
+    setTimeout(() => { if (el.isConnected && !upAck) lvUp.el.classList.add('is-tap'); }, UP_HOLD_MS);
+  }
+  function ackUp() {
+    if (!upShown || upAck) return false;
+    if (performance.now() - upAt < UP_HOLD_MS) return true;
+    upAck = true;
+    lvUp.el.classList.remove('is-on', 'is-held', 'is-tap');
+    if (phaseB) { const f = phaseB; phaseB = null; f(); }
+    return true;
+  }
+  const el = h('div.pg-moment', { class: R ? 'is-still' : '', onpointerup: () => { if (upShown && !upAck) { ackUp(); return; } skip(); } }, h('div.pg-veil'), panel, burst, lvUp ? lvUp.el : null);
   document.body.append(el);
   try { document.activeElement && document.activeElement.blur && document.activeElement.blur(); } catch { /* fine */ }
 
@@ -126,7 +149,8 @@ export async function openMoment(o, ctx = {}) {
     band.replaceChildren(h('b', bandOf(L1.lvl).name), h('em', ` · ${bandOf(L1.lvl).line}`));
     if (streakRow) { streakRow.querySelector('.pg-flame').className = `pg-flame is-lit`; streakRow.classList.add('is-on'); }
     el.querySelectorAll('.pg-box').forEach(b => b.classList.add('is-in'));
-    if (lvUp) lvUp.el.classList.remove('is-on');
+    // (a skip lands on the level-up, held — it is never skipped unread)
+    if (lvUp && !upAck) showUp();
   }
   function setBar(frac, hadFrac) {
     had.style.transform = `scaleX(${Math.max(0, Math.min(1, hadFrac))})`;
@@ -135,6 +159,7 @@ export async function openMoment(o, ctx = {}) {
   function skip() {
     if (done) return;
     done = true;
+    phaseB = null;
     timers.forEach(clearTimeout);
     endState();
   }
@@ -146,7 +171,7 @@ export async function openMoment(o, ctx = {}) {
     setTimeout(() => el.remove(), 320);
     if (ctx.onClose) ctx.onClose();
   }
-  open = { el, close, skip };
+  open = { el, close, skip, upHeld: () => upShown && !upAck };
   setBar(L0.frac, L0.frac);
   if (R) { skip(); return open; }
 
@@ -169,36 +194,44 @@ export async function openMoment(o, ctx = {}) {
   t += 380;
   later(() => { el.classList.add('is-lv'); setBar(up ? 1 : L1.frac, L0.frac); }, t);
   t += 760;
+  // THE REST (after the level-up's tap, or straight on): the medal flips, the extras come in
+  const rest = (t1) => {
+    let t = t1;
+    if (up) {
+      later(() => {
+        md.classList.add('is-flip');
+        later(() => { md.querySelectorAll('b').forEach(b => { b.textContent = String(L1.lvl); }); }, 240);   // (edge-on at ~45–55 %)
+        lvlName.textContent = `LEVEL ${L1.lvl}`;
+        lvlNeed.textContent = L1.max ? 'THE TOP' : `${num(L1.need)} XP to ${L1.lvl + 1}`;
+        band.replaceChildren(h('b', bandOf(L1.lvl).name), h('em', ` · ${bandOf(L1.lvl).line}`));
+        had.style.transition = 'none'; got.style.transition = 'none'; setBar(0, 0);
+        requestAnimationFrame(() => requestAnimationFrame(() => { had.style.transition = ''; got.style.transition = ''; setBar(L1.frac, 0); }));
+      }, t);
+      t += 520;
+    }
+    later(() => el.classList.add('is-extras'), t);
+    if (streakRow) {
+      later(() => { streakRow.classList.add('is-in'); }, t);
+      later(() => { streakRow.querySelector('.pg-flame').className = 'pg-flame is-lit is-ignite'; streakRow.classList.add('is-on'); pgSfx('flame-on'); }, t + 220);
+      t += 560;
+    }
+    if (teaseRow) { later(() => teaseRow.classList.add('is-in'), t); t += 300; }
+    const shown = [...unlockRows, ...achRows].filter(r => !r.classList.contains('is-fold'));
+    shown.forEach(r => { later(() => { r.classList.add('is-in'); pgSfx(achRows.includes(r) ? 'achievement' : 'achievement', { gain: achRows.includes(r) ? 1 : 0.8 }); }, t); t += 450; });
+    if (moreRow) { later(() => moreRow.classList.add('is-in'), t); t += 200; }
+    later(() => { done = true; el.classList.add('is-end'); }, t + 100);
+  };
   if (up) {
     later(() => {
-      el.classList.add('is-up');
-      lvUp.el.classList.add('is-on');
+      showUp();
       pgSfx('medal-flip');
       later(() => { pgSfx('level-up'); el.classList.add('is-burst'); vibrate([20, 50, 20, 120]); }, 240);
     }, t);
-    t += 1500;
-    later(() => {
-      lvUp.el.classList.remove('is-on');
-      md.classList.add('is-flip');
-      later(() => { md.querySelectorAll('b').forEach(b => { b.textContent = String(L1.lvl); }); }, 240);   // (edge-on at ~45–55 %)
-      lvlName.textContent = `LEVEL ${L1.lvl}`;
-      lvlNeed.textContent = L1.max ? 'THE TOP' : `${num(L1.need)} XP to ${L1.lvl + 1}`;
-      band.replaceChildren(h('b', bandOf(L1.lvl).name), h('em', ` · ${bandOf(L1.lvl).line}`));
-      had.style.transition = 'none'; got.style.transition = 'none'; setBar(0, 0);
-      requestAnimationFrame(() => requestAnimationFrame(() => { had.style.transition = ''; got.style.transition = ''; setBar(L1.frac, 0); }));
-    }, t);
-    t += 520;
+    // (the takeover waits for its tap; the rest runs from then — ackUp → phaseB)
+    phaseB = () => rest(120);
+    return open;
   }
-  later(() => el.classList.add('is-extras'), t);
-  if (streakRow) {
-    later(() => { streakRow.classList.add('is-in'); }, t);
-    later(() => { streakRow.querySelector('.pg-flame').className = 'pg-flame is-lit is-ignite'; streakRow.classList.add('is-on'); pgSfx('flame-on'); }, t + 220);
-    t += 560;
-  }
-  if (teaseRow) { later(() => teaseRow.classList.add('is-in'), t); t += 300; }
-  unlockRows.forEach(r => { later(() => { r.classList.add('is-in'); pgSfx('achievement', { gain: 0.8 }); }, t); t += 420; });
-  achRows.forEach(r => { later(() => { r.classList.add('is-in'); pgSfx('achievement'); }, t); t += 480; });
-  later(() => { done = true; el.classList.add('is-end'); }, t + 100);
+  rest(t);
   return open;
 }
 
@@ -213,6 +246,7 @@ function levelUpCard(L1, L0, items, name) {
     medal(L1.lvl, 148),
     h('b.pg-up-n', `LEVEL ${L1.lvl}`),
     h('em', nextBand),
-    ...items.slice(0, 2).map(id => h('div.pg-box.pg-unl.is-in', itemSwatch(id, name), h('div', h('small', 'UNLOCKED'), h('b', ITEM[id].name), h('span', `${TIER_NAMES[ITEM[id].tier]} · ${KINDS[ITEM[id].kind]}`), h('em.pg-pct', { dataset: { i: id } })))));
+    ...items.slice(0, 2).map(id => h('div.pg-box.pg-unl.is-in', itemSwatch(id, name), h('div', h('small', 'UNLOCKED'), h('b', ITEM[id].name), h('span', `${TIER_NAMES[ITEM[id].tier]} · ${KINDS[ITEM[id].kind]}`), h('em.pg-pct', { dataset: { i: id } })))),
+    h('div.pg-up-tap', { 'aria-hidden': 'true' }, 'TAP TO CONTINUE'));
   return { el };
 }

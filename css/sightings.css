@@ -139,3 +139,9 @@
 .sg-fv-words { width: 100%; min-height: 44px; font-size: 16px; text-transform: uppercase; }
 .sg-fv-go { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
 .modal.sg-fv { z-index: 9300; }   /* (over the Gilded profile + its preview shell) */
+/* IVORY NAMES (the owner's PROGRESSION A review — the same as the Gilded profile's) */
+.sg-al-name, .sg-item b, .sg-big-name { font-family: var(--font-ui); font-weight: 600; letter-spacing: 0.03em; color: #f5ecda; }
+.sg-al-name { font-size: 13px; line-height: 1.15; }
+.sg-item b { font-size: 14px; }
+.sg-big-name { font-size: 17px; }
+.sg-al-pct, .sg-item em { font: 600 11px/1.25 var(--font-ui); letter-spacing: 0.01em; color: #ff6fc4; text-transform: none; }

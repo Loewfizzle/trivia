@@ -84,7 +84,7 @@ export async function preview(view, q = new URLSearchParams(), root = null) {
     if (!root) {
       const { pgSheet } = await import('./look.js');
       await pgSheet();
-      const shell = h('div.pg-pv', { role: 'dialog', 'aria-label': 'Membership card preview' }, h('div.pg-veil'), h('button.pg-x', { type: 'button', 'aria-label': 'Close', onclick: () => shell.remove() }, '✕'), host);
+      const shell = h('div.pg-pv', { role: 'dialog', 'aria-label': 'Membership card preview' }, h('div.pg-veil'), h('div.pg-pv-bar', { 'aria-hidden': 'true' }), h('button.pg-x', { type: 'button', 'aria-label': 'Close', onclick: () => shell.remove() }, '✕'), host);
       host.append(h('div.pg-pv-k', 'PREVIEW · A SAMPLE MEMBER'));
       document.body.append(shell);
     }

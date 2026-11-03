@@ -28,6 +28,18 @@ export function cleanHead(raw, o = {}) {
   if (!t) return { text: '', bad: null };
   return cleanWords(t, { max: knob('radio.intercom').head, names: o.names });
 }
+/** THE WHEN (the owner's PROGRESSION A review, Nov 2 8:46 pm): NOW · IN 10 MIN · AT A TIME (up to a day ahead) */
+export const IC_WHEN = Object.freeze(['now', 'in10', 'at']);
+export const IC_IN10_MS = 10 * 60e3, IC_AHEAD_MS = 24 * 3600e3;
+/** a scheduled send's start (ms) or null (NOW) — o.now: the server's clock; bad: 'bad_time' (in the past / more than a day ahead) */
+export function icWhen(body = {}, now = Date.now()) {
+  const w = IC_WHEN.includes(body.when) ? body.when : 'now';
+  if (w === 'now') return { at: null, bad: null };
+  if (w === 'in10') return { at: now + IC_IN10_MS, bad: null };
+  const at = Math.round(Number(body.at));
+  if (!Number.isFinite(at) || at < now + 30e3 || at > now + IC_AHEAD_MS + 60e3) return { at: null, bad: 'bad_time' };
+  return { at, bad: null };
+}
 /** a send's body → { req: { aud, room, wait, head, mime, dur, b64, bytes }, bad } (the server's whitelist; the phone checks the same) */
 export function cleanIntercom(body = {}, o = {}) {
   const K = knob('radio.intercom');
@@ -47,7 +59,7 @@ export function cleanIntercom(body = {}, o = {}) {
   if (h.bad) return { req: null, bad: `words_${h.bad}` };
   return { req: { aud, room, wait: body.wait !== false, head: h.text || null, mime: mime.toLowerCase(), dur: Math.round(dur * 100) / 100, b64, bytes }, bad: null };
 }
-export const IC_WHY = Object.freeze({ bad_audience: 'Pick who hears it.', bad_room: 'Pick a lobby first.', bad_mime: 'This phone recorded a format the city can’t play.', bad_length: 'Too short or too long.', bad_clip: 'The recording is empty.', clip_too_big: 'The recording is too big — keep it under 30 seconds.', ...Object.fromEntries(Object.entries(WORDS_WHY).map(([k, v]) => [`words_${k}`, v])) });
+export const IC_WHY = Object.freeze({ bad_time: 'Pick a time in the next 24 hours.', bad_audience: 'Pick who hears it.', bad_room: 'Pick a lobby first.', bad_mime: 'This phone recorded a format the city can’t play.', bad_length: 'Too short or too long.', bad_clip: 'The recording is empty.', clip_too_big: 'The recording is too big — keep it under 30 seconds.', ...Object.fromEntries(Object.entries(WORDS_WHY).map(([k, v]) => [`words_${k}`, v])) });
 
 /** the headline's two board lines (≤ 12 letters each — word-wrapped; a long word split) */
 export function headLines(text, max = 12) {
@@ -83,7 +95,7 @@ export function icPublic(id, m) {
 export function icDecide(m, ctx) {
   const K = knob('radio.intercom'), now = ctx.now;
   if (!m || m.state === 'stopped') return 'skip';
-  if (now > (m.made || m.at) + K.keep * 1000) return 'skip';
+  if (now > Math.max(m.made || 0, m.at || 0) + K.keep * 1000) return 'skip';   // (a scheduled one keeps its hour from its own start)
   if (now < m.at) return 'wait';
   if (ctx.inGame && (m.wait !== false || ctx.holdGame)) return 'hold';
   if (ctx.busy) return 'wait';
@@ -95,4 +107,4 @@ export function icDecide(m, ctx) {
   return now <= m.until + K.late * 1000 ? 'play' : 'skip';
 }
 /** may the owner still UNSEND it? (the button stays until every phone would have it: `unsend` s after it went out) */
-export const canUnsend = (m, now) => !!m && m.state !== 'stopped' && now < (m.made || 0) + knob('radio.intercom').unsend * 1000;
+export const canUnsend = (m, now) => !!m && m.state !== 'stopped' && now < Math.max(m.made || 0, m.at || 0) + knob('radio.intercom').unsend * 1000;   // (a scheduled one: until it plays + the same minute)
