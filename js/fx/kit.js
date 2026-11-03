@@ -68,16 +68,32 @@ export const heart = (fill = '#ff4fb8', hi = '#ffd6ee', n = 64) => sprite(`heart
 /** a smoke puff: several soft blobs overlapping (an organic edge, not a disc) — variant v */
 export const puff = (rgb, v = 0, n = 128) => sprite(`puff:${rgb}:${v}:${n}`, n, n, (c, w) => {
   const r = rng(91 + v * 17), m = w / 2;
-  for (let i = 0; i < 9; i++) {
-    const a = r() * Math.PI * 2, d = r() * m * 0.42, rr = m * (0.28 + r() * 0.3), x = m + Math.cos(a) * d, y = m + Math.sin(a) * d * 0.8;
-    const g = c.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, `rgba(${rgb},0.34)`); g.addColorStop(0.55, `rgba(${rgb},0.12)`); g.addColorStop(1, `rgba(${rgb},0)`);
+  for (let i = 0; i < 14; i++) {
+    const a = r() * Math.PI * 2, d = r() * m * 0.4, rr = m * (0.3 + r() * 0.28), x = m + Math.cos(a) * d, y = m + Math.sin(a) * d * 0.8;
+    const g = c.createRadialGradient(x, y, 0, x, y, rr); g.addColorStop(0, `rgba(${rgb},0.2)`); g.addColorStop(0.5, `rgba(${rgb},0.08)`); g.addColorStop(1, `rgba(${rgb},0)`);
     c.fillStyle = g; c.fillRect(0, 0, w, w);
   }
 });
-/** a flame lick: a teardrop of fire, white-hot at its root, red at its tip (drawn 'lighter') */
-export const lick = (n = 64) => sprite(`lick:${n}`, n, n * 2, (c, w, h) => {
-  c.translate(w / 2, h * 0.72); c.scale(1, 2.1);
-  const g = c.createRadialGradient(0, 0, 0, 0, -w * 0.06, w * 0.5);
-  g.addColorStop(0, 'rgba(255,246,214,0.95)'); g.addColorStop(0.18, 'rgba(255,214,120,0.85)'); g.addColorStop(0.42, 'rgba(255,130,40,0.55)'); g.addColorStop(0.7, 'rgba(210,40,12,0.22)'); g.addColorStop(1, 'rgba(120,10,0,0)');
-  c.fillStyle = g; c.beginPath(); c.arc(0, 0, w * 0.5, 0, Math.PI * 2); c.fill();
+/** a flame lick: a TONGUE of fire — a teardrop with a pointed, slightly curling tip, red at its edge → orange → a white-hot core at its
+ *  root (two shapes, the inner one smaller), soft-edged by an outer glow pass. Drawn 'lighter' so licks pile into a fire. */
+export const lick = (n = 64) => sprite(`lick2:${n}`, n, n * 2.5, (c, w, h) => {
+  const tongue = (s, lean) => {
+    const bx = w / 2, by = h * 0.94, R = w * 0.36 * s;
+    c.beginPath();
+    c.moveTo(bx - R, by - R * 0.9);
+    c.bezierCurveTo(bx - R * 1.05, by - h * 0.42 * s, bx - R * 0.2 + lean, by - h * 0.6 * s, bx + lean * 1.6, by - h * 0.9 * s);
+    c.bezierCurveTo(bx + R * 0.35 + lean * 0.6, by - h * 0.6 * s, bx + R * 1.05, by - h * 0.38 * s, bx + R, by - R * 0.9);
+    c.arc(bx, by - R * 0.9, R, 0, Math.PI);
+    c.closePath();
+  };
+  // the outer glow + the body
+  c.filter = 'none';
+  const g1 = c.createLinearGradient(0, h, 0, 0);
+  g1.addColorStop(0, 'rgba(255,190,90,0.95)'); g1.addColorStop(0.3, 'rgba(255,110,25,0.85)'); g1.addColorStop(0.65, 'rgba(210,40,8,0.55)'); g1.addColorStop(1, 'rgba(140,10,0,0)');
+  c.globalAlpha = 0.35; c.fillStyle = g1; tongue(1.12, w * 0.05); c.fill();
+  c.globalAlpha = 0.9; tongue(1, w * 0.06); c.fill();
+  // the hot core
+  const g2 = c.createLinearGradient(0, h, 0, h * 0.35);
+  g2.addColorStop(0, 'rgba(255,255,235,1)'); g2.addColorStop(0.4, 'rgba(255,230,140,0.9)'); g2.addColorStop(1, 'rgba(255,170,60,0)');
+  c.globalAlpha = 0.95; c.fillStyle = g2; tongue(0.55, w * 0.03); c.fill();
 });

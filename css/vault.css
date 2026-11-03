@@ -1,0 +1,139 @@
+/* THE VAULT (1A) — THE SLIM STRIPS + THE TWO TEST EMBLEMS + THE CARD LAB (docs/vault.md). Classes vl-* (the vault) / fx-* (the effect
+   library's surface). The strip is NOT a stacking context (no transform / opacity / filter on it) so its material (z 0) sits under the
+   page's ONE shared effect canvas (z 1) and its plate + tag + frame (z 2–3) over it. Only transform + opacity animate; static glows only.
+   Text ≥ 4.5 : 1: the name #fff8ee on the plate (rgba(8,6,12,.72) over any art) ≈ 15 : 1. */
+.fx-host { position: relative; isolation: isolate; }
+.fx-canvas { position: absolute; left: 0; top: 0; width: 100%; height: 100%; z-index: 1; pointer-events: none; }
+
+.vl-list { display: grid; gap: 9px; }
+.vl-strip { --r: 12px; position: relative; height: 64px; border-radius: var(--r); color: #fff8ee; }
+.vl-mat { position: absolute; inset: 0; z-index: 0; border-radius: inherit; overflow: hidden; background: #0c0a10; }
+.vl-mat::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
+.vl-plate { position: absolute; left: 6px; top: 6px; bottom: 6px; z-index: 2; display: flex; align-items: center; gap: 9px; padding: 0 16px 0 7px;
+  border-radius: 9px; background: linear-gradient(90deg, rgba(8, 6, 12, 0.8), rgba(8, 6, 12, 0.66)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), 0 2px 10px rgba(0, 0, 0, 0.35); }
+.vl-emb { display: grid; place-items: center; width: 40px; height: 40px; flex: none; }
+.vl-emb .vl-e { width: 36px; height: 36px; overflow: visible; }
+.vl-who { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vl-name { font: 700 20px/1 var(--font-ui); letter-spacing: 0.05em; color: #fff8ee; white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+.vl-lv { font: 700 11.5px/1 var(--font-num); letter-spacing: 0.16em; color: rgba(245, 236, 218, 0.82); white-space: nowrap; }
+.vl-tier { position: absolute; right: 9px; bottom: 7px; z-index: 2; padding: 5px 8px 4px; border-radius: 6px; font: 800 10.5px/1 var(--font-ui); letter-spacing: 0.2em;
+  background: rgba(8, 6, 12, 0.78); color: #f5ecda; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
+.vl-frame { position: absolute; inset: 0; z-index: 3; border-radius: inherit; pointer-events: none; }
+
+/* ---- the tiers' frames (static; the motion lives in the canvas) */
+.vl-t-common .vl-tier { color: #f1d491; }
+.vl-t-uncommon .vl-tier { color: #b8f5d2; }
+.vl-t-rare .vl-tier { color: #a9dcff; }
+.vl-t-epic .vl-tier { color: #f6dcff; background: rgba(60, 14, 70, 0.85); box-shadow: inset 0 0 0 1px rgba(230, 160, 255, 0.45); }
+.vl-t-legendary .vl-tier { color: #2a1604; background: linear-gradient(180deg, #ffe39a, #ffb24d); box-shadow: 0 0 10px rgba(255, 190, 90, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+.vl-t-common .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 238, 190, 0.55), inset 0 1.5px 0 rgba(255, 252, 235, 0.75), inset 0 -2px 0 rgba(70, 40, 5, 0.55), 0 2px 8px rgba(0, 0, 0, 0.45); }
+.vl-t-uncommon .vl-frame { box-shadow: inset 0 0 0 1px rgba(220, 230, 240, 0.32), 0 2px 8px rgba(0, 0, 0, 0.45); }
+.vl-t-rare .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 2px 10px rgba(0, 0, 0, 0.5); }
+.vl-t-epic .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 220, 160, 0.3), inset 0 0 0 3px rgba(0, 0, 0, 0.35), 0 3px 12px rgba(0, 0, 0, 0.5); }
+.vl-t-legendary .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(120, 255, 190, 0.55), 0 0 0 1.5px rgba(214, 178, 106, 0.85), 0 0 18px rgba(90, 255, 170, 0.25), 0 4px 14px rgba(0, 0, 0, 0.55); }
+
+/* ---- the materials */
+/* 1 BRUSHED GOLD — the real brushed metal (Metal009, tinted + high-passed: scripts/build-vault-textures.mjs), lit like a bar rail: a soft
+   anisotropic sheen along the grain, darker at the foot, a crisp bevel (the frame's inset light + shadow) */
+.vl-s-brushed .vl-mat { background: url(../assets/vault/brushed-gold.webp) center / cover, #c79d4c; }
+.vl-s-brushed .vl-mat::after { background:
+  linear-gradient(90deg, rgba(255, 250, 230, 0) 8%, rgba(255, 250, 230, 0.38) 34%, rgba(255, 250, 230, 0) 50%, rgba(255, 244, 210, 0.22) 74%, rgba(255, 244, 210, 0) 90%),
+  linear-gradient(180deg, rgba(255, 255, 240, 0.34) 0%, rgba(255, 255, 240, 0) 38%, rgba(90, 55, 10, 0) 62%, rgba(70, 40, 5, 0.42) 100%); }
+.vl-s-brushed .vl-plate { background: linear-gradient(90deg, rgba(22, 14, 4, 0.82), rgba(26, 17, 5, 0.72)); box-shadow: inset 0 0 0 1px rgba(255, 230, 170, 0.32), inset 0 1px 0 rgba(255, 240, 200, 0.18), 0 2px 8px rgba(40, 20, 0, 0.45); }
+.vl-s-brushed .vl-tier { background: rgba(26, 17, 5, 0.85); box-shadow: inset 0 0 0 1px rgba(255, 220, 150, 0.5); }
+/* 2 SMOKE ROOM — a dark lounge, a warm lamp off the top-left */
+.vl-s-smoke .vl-mat { background: radial-gradient(130% 170% at 6% -30%, rgba(255, 168, 92, 0.3), rgba(255, 168, 92, 0) 52%), radial-gradient(80% 120% at 90% 120%, rgba(90, 100, 140, 0.25), transparent 60%), linear-gradient(180deg, #1f2028, #0d0e13); }
+/* 3 FROSTBITE — real ice (Ice004, tinted cold + darkened), the frost grows in the canvas */
+.vl-s-frost .vl-mat { background: radial-gradient(110% 160% at 70% 50%, rgba(120, 200, 240, 0.22), transparent 70%), linear-gradient(180deg, rgba(14, 52, 74, 0.72), rgba(6, 26, 40, 0.8)), url(../assets/vault/frost.webp) center / cover, #12384e; }
+.vl-s-frost .vl-frame { box-shadow: inset 0 0 0 1px rgba(200, 240, 255, 0.5), 0 0 12px rgba(120, 210, 255, 0.18), 0 2px 8px rgba(0, 0, 0, 0.45); }
+/* 4 INFERNO — black-red heat */
+.vl-s-inferno .vl-mat { background: radial-gradient(120% 120% at 60% 130%, #5a1404, transparent 70%), linear-gradient(180deg, #0e0303, #230602 65%, #3a0b03); }
+/* 5 PRISM — black glass, a cold sheen across its top */
+.vl-s-prism .vl-mat { background: linear-gradient(180deg, rgba(255, 255, 255, 0.07), rgba(255, 255, 255, 0) 45%), linear-gradient(100deg, #101018, #07070b 60%, #0d0b14); }
+/* 6 THE MARQUEE — a red velvet curtain (its folds) behind the bulbs */
+.vl-s-marquee .vl-mat { background: radial-gradient(90% 140% at 50% 50%, rgba(255, 60, 80, 0.18), transparent 70%), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.26) 0 5px, rgba(255, 255, 255, 0.035) 7px 9px, rgba(0, 0, 0, 0.12) 11px 14px), linear-gradient(180deg, #5c0a1b, #33040f); }
+.vl-s-marquee .vl-plate { left: 14px; top: 13px; bottom: 13px; }
+.vl-s-marquee .vl-tier { right: 15px; bottom: 13px; }
+/* 7 GLITTER BOMB — real glitter (Silver_Glitter_6, tinted hot pink) under a pink → purple wash */
+.vl-s-glitter .vl-mat { background: linear-gradient(100deg, rgba(255, 70, 170, 0.32), rgba(170, 60, 230, 0.4)), url(../assets/vault/glitter-pink.webp) center / cover, #c0287f; }
+.vl-s-glitter .vl-plate { background: linear-gradient(90deg, rgba(40, 4, 34, 0.82), rgba(46, 6, 40, 0.68)); box-shadow: inset 0 0 0 1px rgba(255, 170, 230, 0.35), 0 2px 10px rgba(60, 0, 40, 0.45); }
+/* 8 I WANT TO BELIEVE — the night is drawn in the canvas (the sky + the skyline baked once per size) */
+.vl-s-ufo .vl-mat { background: linear-gradient(180deg, #04130f, #020806); }
+.vl-s-ufo .vl-plate { background: linear-gradient(90deg, rgba(3, 12, 9, 0.8), rgba(3, 12, 9, 0.6)); box-shadow: inset 0 0 0 1px rgba(140, 255, 200, 0.22), 0 2px 10px rgba(0, 0, 0, 0.45); }
+
+/* ---- THE TEST EMBLEMS (the bolt): NEON (the tube) + PRISM (the rainbow) — css motion, transform + opacity only */
+.vl-e path { fill: none; stroke-linejoin: round; stroke-linecap: round; }
+.vl-e-neon .n3 { stroke: #ffd84a; stroke-width: 7.5; opacity: 0.16; }
+.vl-e-neon .n2 { stroke: #ffd84a; stroke-width: 4.2; opacity: 0.34; }
+.vl-e-neon .n1 { stroke: #ffcf3a; stroke-width: 2.3; }
+.vl-e-neon .n0 { stroke: #fffbe2; stroke-width: 0.9; }
+.vl-e-neon.is-lead .n3, .vl-e-neon.is-lead .n2 { animation: vl-breathe 2.6s ease-in-out infinite; }
+.vl-e-neon.is-lead { animation: vl-ignite 7s linear infinite; }
+.vl-e-neon.is-even .n3, .vl-e-neon.is-even .n2 { animation: vl-breathe 3.4s ease-in-out infinite; }
+.vl-e-neon.is-quiet .n3 { opacity: 0.1; } .vl-e-neon.is-quiet .n2 { opacity: 0.26; }
+@keyframes vl-breathe { 0%, 100% { opacity: 0.14; } 50% { opacity: 0.42; } }
+@keyframes vl-ignite { 0%, 86% { opacity: 1; } 87% { opacity: 0.15; } 88% { opacity: 0.9; } 89% { opacity: 0.25; } 90.5% { opacity: 1; } 92% { opacity: 0.55; } 93%, 100% { opacity: 1; } }
+.vl-e-prism .p-halo { stroke: #fff; stroke-width: 6; opacity: 0.12; }
+.vl-e-prism .p-edge { stroke: #fff; stroke-width: 1.3; opacity: 0.9; }
+.vl-e-prism .p-facet { stroke: rgba(255, 255, 255, 0.35); stroke-width: 0.7; }
+.vl-e-prism .p-sweep { transform: translateX(-64px); animation: vl-sweep 4.5s linear infinite; }
+.vl-e-prism .p-sheen { animation: vl-sheen 4.5s ease-in-out infinite; }
+.vl-e-prism .p-glint { fill: #fff; stroke: none; opacity: 0; transform-box: fill-box; transform-origin: center; animation: vl-glint 4.5s ease-in-out infinite; }
+.vl-e-prism.is-lead .p-sweep { animation-duration: 2.4s; } .vl-e-prism.is-lead .p-sheen, .vl-e-prism.is-lead .p-glint { animation-duration: 2.4s; }
+.vl-e-prism.is-lead .p-halo { opacity: 0.22; }
+.vl-e-prism.is-quiet .p-sweep { animation-duration: 9s; } .vl-e-prism.is-quiet .p-sheen, .vl-e-prism.is-quiet .p-glint { animation: none; }
+@keyframes vl-sweep { from { transform: translateX(-64px); } to { transform: translateX(0); } }
+@keyframes vl-sheen { 0%, 55% { transform: translateX(0); } 85%, 100% { transform: translateX(110px); } }
+@keyframes vl-glint { 0%, 70% { opacity: 0; transform: scale(0.3); } 78% { opacity: 1; transform: scale(1.15); } 88%, 100% { opacity: 0; transform: scale(0.4); } }
+@media (prefers-reduced-motion: reduce) { .vl-e, .vl-e * { animation: none !important; } .vl-e-prism .p-sweep { transform: translateX(-32px); } }
+body.reduced-fx .vl-e, body.reduced-fx .vl-e *, .vl-still .vl-e, .vl-still .vl-e * { animation: none !important; }
+
+/* ------------------------------------------------------------------ THE CARD LAB (/lab — admins only) */
+.vl-lab-html, .vl-lab-on { background: #07060b; color: #f5ecda; min-height: 100%; }
+.vl-lab { max-width: 1180px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 40px); font-family: var(--font-ui); }
+.vl-lab h1 { margin: 2px 0 2px; font: 800 24px/1.15 var(--font-ui); letter-spacing: 0.1em; color: #f5ecda; }
+.vl-lab-k { font: 700 12px/1 var(--font-ui); letter-spacing: 0.3em; color: #d8b46a; }
+.vl-lab-sub { margin: 6px 0 14px; font: 500 14.5px/1.45 var(--font-ui); color: rgba(245, 236, 218, 0.8); }
+.vl-tabs { position: sticky; top: 0; z-index: 10; display: flex; gap: 6px; padding: 8px 0 10px; background: linear-gradient(180deg, #07060b 80%, rgba(7, 6, 11, 0)); }
+.vl-tab { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 0; cursor: pointer; font: 800 13px/1 var(--font-ui); letter-spacing: 0.14em; color: #f5ecda; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.4); }
+.vl-tab.is-on { background: linear-gradient(180deg, #fbf0c8, #e2c27a 40%, #a9823c 55%, #e8cd8a); color: #1d1405; box-shadow: none; }
+.vl-tab[disabled] { opacity: 0.45; cursor: default; }
+.vl-col { width: 100%; max-width: 390px; }
+.vl-items { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 372px), 1fr)); gap: 22px 28px; align-items: start; }
+.vl-item { padding: 12px 0 0; border-top: 1px solid rgba(216, 180, 106, 0.22); }
+.vl-item-h { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 9px; }
+.vl-item-h b { font: 800 16px/1.15 var(--font-ui); letter-spacing: 0.06em; color: #f5ecda; }
+.vl-item-h span { font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: #d8b46a; }
+.vl-item-h code { font: 500 11.5px/1 var(--font-mono); color: rgba(245, 236, 218, 0.55); }
+.vl-motion { margin: 8px 0 0; font: 500 13.5px/1.4 var(--font-ui); color: rgba(245, 236, 218, 0.75); }
+.vl-stage { padding: 0; }
+.vl-emb-big { display: flex; align-items: center; gap: 18px; padding: 8px 4px 12px; }
+.vl-emb-big .vl-e { width: 72px; height: 72px; overflow: visible; }
+.vl-emb-big .vl-e.is-28 { width: 28px; height: 28px; }
+.vl-emb-big small { font: 600 12px/1.3 var(--font-ui); color: rgba(245, 236, 218, 0.7); }
+.vl-marks { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 10px; }
+.vl-mark { flex: 1 1 0; min-width: 84px; min-height: 44px; border-radius: 10px; border: 0; cursor: pointer; font: 800 13px/1 var(--font-ui); letter-spacing: 0.16em;
+  color: #f5ecda; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.16); }
+.vl-mark[data-m="approve"].is-on { background: #1d6b45; box-shadow: inset 0 0 0 1.5px #6ff0a8, 0 0 14px rgba(80, 240, 160, 0.35); }
+.vl-mark[data-m="fix"].is-on { background: #6b4a12; box-shadow: inset 0 0 0 1.5px #ffcf6a, 0 0 14px rgba(255, 200, 90, 0.3); }
+.vl-mark[data-m="cut"].is-on { background: #6b1622; box-shadow: inset 0 0 0 1.5px #ff7a8a, 0 0 14px rgba(255, 90, 110, 0.3); }
+.vl-note { width: 100%; min-height: 64px; margin-top: 8px; padding: 10px 12px; border-radius: 10px; border: 1px solid rgba(216, 180, 106, 0.45); background: rgba(255, 255, 255, 0.04);
+  color: #f5ecda; font: 500 16px/1.4 var(--font-ui); resize: vertical; }
+.vl-note[hidden] { display: none; }
+.vl-who-m { margin-top: 6px; font: 500 12.5px/1.3 var(--font-ui); color: rgba(245, 236, 218, 0.6); }
+.vl-lobby { max-width: 390px; padding: 16px 14px 18px; border-radius: 22px; background: linear-gradient(180deg, #170c22, #0b0812); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07); }
+.vl-lobby-h { margin: 0 0 12px 4px; font: 700 12px/1 var(--font-ui); letter-spacing: 0.3em; color: rgba(245, 236, 218, 0.72); }
+.vl-mix { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 12px; }
+.vl-mix .vl-tab { min-height: 40px; font-size: 12px; }
+.vl-fps { position: fixed; right: 12px; bottom: calc(env(safe-area-inset-bottom) + 12px); z-index: 20; padding: 8px 12px; border-radius: 12px; background: rgba(8, 6, 12, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.45); font: 700 13px/1.35 var(--font-mono); color: #f5ecda; white-space: pre; pointer-events: none; }
+.vl-fps.is-bad { box-shadow: inset 0 0 0 1.5px #ff7a8a; }
+.vl-opts { display: flex; gap: 6px; flex-wrap: wrap; margin: 0 0 14px; }
+.vl-deny { max-width: 520px; margin: 40px auto; padding: 20px; border-radius: 16px; box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.4); }
+.vl-deny p { font: 500 15px/1.45 var(--font-ui); color: rgba(245, 236, 218, 0.82); }
+.vl-toast { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 70px); transform: translateX(-50%); z-index: 30; padding: 10px 16px; border-radius: 999px; background: rgba(12, 9, 18, 0.95);
+  box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.6); font: 700 13px/1 var(--font-ui); letter-spacing: 0.1em; color: #f5ecda; transition: opacity 0.3s ease; }
+.vl-toast.is-out { opacity: 0; }
+.vl-a { color: #f6e3a8; }
+select.vl-tab { -webkit-appearance: none; appearance: none; padding-right: 34px; background: rgba(255, 255, 255, 0.05) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23f5ecda' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 12px center; color: #f5ecda; font-size: 16px; }
+select.vl-tab option { color: #111; }

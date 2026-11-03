@@ -51,7 +51,9 @@ function measure(S) {
   S.sized = false; S.dirty = true;
 }
 function size(S) {
-  const want = Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, tierVal('fxDpr', tier) / 10);
+  // (the pixel ratio: the device's, capped by THE TIER TABLE, and by THE PIXEL BUDGET — a tall surface (the lab's whole list) never
+  // allocates more than ~2.6 MP: a lobby of 8 at 3× is ~1.4 MP and never meets it)
+  const want = Math.max(1, Math.min(typeof devicePixelRatio === 'number' ? devicePixelRatio : 1, tierVal('fxDpr', tier) / 10, Math.sqrt(2.6e6 / Math.max(1, S.w * S.h))));
   const W = Math.max(1, Math.round(S.w * want)), H = Math.max(1, Math.round(S.h * want));
   if (S.cv.width !== W || S.cv.height !== H) { S.cv.width = W; S.cv.height = H; }
   S.dpr = want; S.sized = true; S.dirty = true;

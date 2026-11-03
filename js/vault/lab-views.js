@@ -33,6 +33,8 @@ export function mountLab(root, o = {}) {
     h('h1', 'THE CARD LAB'),
     h('p.vl-lab-sub', 'Every strip at its real phone size, moving as it will in the game. Mark each one: ', h('b.vl-a', 'APPROVE'), ' ships it · ', h('b.vl-a', 'FIX'), ' + a note sends it back · ', h('b.vl-a', 'CUT'), ' drops it. THE VAULT 1B reads your marks first.'),
     tabs, opts, content, fps);
+  // (?bare=1: the lobby / the strips alone — no header + switches: the look reviews' close-ups)
+  if (new URLSearchParams(location.search).get('bare') === '1') { root.replaceChildren(content, fps); fps.hidden = true; }
   function paintOpts() {
     still.textContent = fxReduced() ? 'STILL (REDUCED MOTION) ✓' : 'STILL (REDUCED MOTION)';
     still.classList.toggle('is-on', fxReduced());

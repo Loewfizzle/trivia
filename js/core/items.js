@@ -32,6 +32,15 @@ export const ITEMS = [
   C('card-legend', 'PRISM LEGEND', 'epic', '#0b0714', '#f0e6ff', '#ff7af0', 'The whole spectrum, alive in the foil.', { old: 'legend' }),
   C('card-platinum', 'PLATINUM', 'legendary', '#101114', '#eef1f6', '#ffffff', 'Platinum on black. Few get here.'),
   C('card-house', 'THE HOUSE', 'legendary', '#07060a', '#ffd98a', '#ff4fb8', 'Level 100. The house is yours.'),
+  // ---- THE VAULT 1A — the style test's new cards (the owner approved the set, Nov 2 10:23 pm; their art: js/vault/strip.js + js/fx, shipped
+  // only once APPROVED in THE CARD LAB). Where SMOKE ROOM, FROSTBITE, INFERNO + PRISM unlock: THE VAULT 1B (with the rest of the ~40).
+  // THE PINK PAIR (the owner, 10:14–10:20 pm — no champagne): HEARTBREAKER + GLITTER BOMB, EARLY level rewards (core/levels.js)
+  C('card-smoke', 'SMOKE ROOM', 'uncommon', '#14151b', '#d8dbe6', '#ffb070', 'Smoke drifting through a lamp-lit back room.'),
+  C('card-frostbite', 'FROSTBITE', 'uncommon', '#06141e', '#cfeeff', '#7fd8ff', 'Frost creeping in, the ice cracking.'),
+  C('card-inferno', 'INFERNO', 'rare', '#120303', '#ffb070', '#ff5a1f', 'Flames licking up, the edge glowing hot.'),
+  C('card-prism', 'PRISM', 'rare', '#0b0b12', '#f0f2ff', '#9fd8ff', 'White light in, a rainbow out.'),
+  C('card-glitter', 'GLITTER BOMB', 'epic', '#2a0522', '#ffd0ec', '#ff4fb8', 'Pink glitter everywhere. Hearts. Sparkles. More.'),
+  C('card-heartbreaker', 'HEARTBREAKER', 'uncommon', '#1e0920', '#ffd6ee', '#ff6fc8', 'Pink hearts drifting up through violet.'),
   // ---- the streak's milestones
   C('card-flame30', 'THE 30-NIGHT FLAME', 'rare', '#140604', '#ffb35c', '#ff6a2a', 'Thirty nights in a row.'),
   C('card-century', 'CENTURY', 'epic', '#0d0703', '#ffcf8a', '#ff8a3a', 'A hundred nights in a row.'),
@@ -40,7 +49,7 @@ export const ITEMS = [
   // ---- the achievements' cards
   C('card-zebra', 'ZEBRA', 'uncommon', '#111111', '#f2f2f2', '#ff4fb8', 'Black and white, loud on purpose.'),
   C('card-camo', 'CAMO', 'uncommon', '#151a10', '#b8c48a', '#d8ff6a', 'Blend in. You won’t.'),
-  C('card-brushed', 'BRUSHED GOLD', 'uncommon', '#1a1407', '#e6c47a', '#ffd27a', 'Gold, brushed like the bar rail.'),
+  C('card-brushed', 'BRUSHED GOLD', 'common', '#1a1407', '#e6c47a', '#ffd27a', 'Gold, brushed like the bar rail.'),   // (THE VAULT 1A: a COMMON — still, its emblem leads)
   C('card-marble', 'MARBLE & GOLD', 'rare', '#1c1c1f', '#e9d3a0', '#ffffff', 'White marble, gold veins.', { ink: '#f4ecd8' }),
   C('card-marquee-gold', 'THE MARQUEE · GOLD BULBS', 'epic', '#120a04', '#ffd98a', '#ffcc4a', 'Your name in lights, gold bulbs chasing.'),
   C('card-marquee', 'THE MARQUEE', 'epic', '#12060c', '#ffe0b0', '#ff4f7a', 'Theatre bulbs chasing round the edge.'),

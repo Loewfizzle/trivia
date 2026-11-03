@@ -13,20 +13,30 @@ export default {
     c.globalCompositeOperation = 'lighter';
     // the ember bed: a band of heat along the bottom, its brightness flickering in patches
     const bed = c.createLinearGradient(0, h, 0, h * 0.45);
-    bed.addColorStop(0, 'rgba(255,120,30,0.55)'); bed.addColorStop(0.4, 'rgba(220,50,10,0.22)'); bed.addColorStop(1, 'rgba(160,20,0,0)');
+    bed.addColorStop(0, 'rgba(255,140,40,0.75)'); bed.addColorStop(0.35, 'rgba(230,60,12,0.3)'); bed.addColorStop(1, 'rgba(160,20,0,0)');
     c.fillStyle = bed; c.globalAlpha = 0.8 + 0.2 * wob(t * 2.2, 1); c.fillRect(0, 0, w, h);
     for (let i = 0; i < 6; i++) { const x = (i + 0.5) / 6 * w, a = 0.35 + 0.35 * (0.5 + 0.5 * wob(t * 1.7, i * 2)); stamp(c, glow('255,110,30', 0.1, 64), x, h, w / 3.2, a, h * 0.9); }
-    // THE LICKS
-    const n = Math.round((s.opts.calm ? 46 : 58) * (0.5 + 0.5 * Q.q)), L = lick();
-    for (let i = 0; i < n; i++) {
-      const life = 0.75 + r() * 0.6, ph = r(), xb = r(), big = 0.75 + r() * 0.55;
-      const age = fract(t / life + ph);
-      const x = xb * w + Math.sin(t * 2.3 + i) * 2.5 + age * 6 * (r() - 0.5);
-      const under = x < w * 0.42 ? 0.62 : 1;                        // (lower under the name plate)
-      const rise = age * h * (0.55 + big * 0.35) * under;
-      const sz = h * 0.42 * big * under * (1 - age * 0.7);
-      const a = Math.sin(Math.min(1, age * 1.25) * Math.PI) * 0.85;
-      stamp(c, L, x, h - rise + sz * 0.3, sz, a, sz * 2);
+    // THE FIRE: two layers of licks — big slow TONGUES that build the wall of fire (overlapping, so 'lighter' piles them white-hot at
+    // the root), then quick small FLICKERS dancing on top; calmer under the name plate (the name always reads)
+    const L = lick();
+    for (const [layer, count, life0, hMul, szMul, aMul] of [[0, 26, 1.1, 0.55, 0.5, 0.75], [1, 30, 0.6, 0.45, 0.3, 0.85]]) {
+      const n = Math.round(count * (s.opts.calm ? 0.8 : 1) * (0.5 + 0.5 * Q.q));
+      for (let i = 0; i < n; i++) {
+        const life = life0 * (0.75 + r() * 0.5), ph = r(), xb = (i + r() * 0.9) / n;
+        const age = fract(t / life + ph);
+        const under = xb < 0.4 ? 0.55 : 0.7 + 0.3 * Math.min(1, (xb - 0.4) / 0.25);
+        const sway = Math.sin(t * (2 + layer) + i * 1.7) * (2 + age * 5);
+        const x = xb * w + sway;
+        const rise = age * h * hMul * under;
+        const sz = h * szMul * under * (1 - age * 0.62) * (0.8 + 0.4 * r());
+        const a = Math.sin(Math.min(1, age * 1.4) * Math.PI) * aMul;
+        // (the tongue's root sits at its own base: it stretches tall as it rises, then thins out)
+        const tall = sz * (2.3 + age * 1.2);
+        // (half of them mirrored, each leaning with its sway: no two tongues alike)
+        const yc = h - rise - tall * 0.42;
+        c.save(); c.translate(x, yc + tall * 0.42); c.rotate(sway * 0.02); if (i % 2) c.scale(-1, 1);
+        stamp(c, L, 0, -tall * 0.42, sz, a, tall); c.restore();
+      }
     }
     // sparks: small hot points spiralling up
     const ns = Math.round(16 * Q.q);

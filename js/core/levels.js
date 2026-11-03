@@ -63,8 +63,10 @@ export const levelLabel = xp => { const i = levelInfo(xp); return `${i.band.name
 export const LEVEL_REWARDS = [
   { lvl: 1, item: 'card-gilded' },
   { lvl: 3, item: 'card-midnight' },
+  { lvl: 4, item: 'card-heartbreaker' },     // (THE VAULT 1A — THE PINK PAIR, early: the owner, Nov 2 10:11 pm)
   { lvl: 5, item: 'card-brass' },
   { lvl: 7, item: 'tube-twotone' },
+  { lvl: 8, item: 'card-glitter' },
   { lvl: 10, item: 'card-emerald' },
   { lvl: 13, item: 'emb-diamond' },
   { lvl: 15, item: 'glow-ice' },

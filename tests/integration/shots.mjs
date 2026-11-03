@@ -179,6 +179,15 @@ if (PAGE) {
     await p.waitForFunction(() => document.body && document.body.dataset.ready, { timeout: 60000 }).catch(() => {});
     await sleep(opt('wait', 0) ? WAIT : 300);
     if (opt('js', '')) { await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message)); await sleep(400); }
+    // (--crop XxYxWxH in pt + --every ms --count n on a --page: a close-up burst — THE VAULT 1A's strips judged moving)
+    const pc = CROPS.map(c2 => c2.split('x').map(Number)).filter(v => v.length === 4 && v.every(Number.isFinite));
+    if (pc.length || EVERY) {
+      for (let k = 0; k < COUNT; k++) {
+        for (const [cx, cy, cw, ch] of pc.length ? pc : [[0, 0, w, h]]) await p.screenshot({ path: `${OUT}${opt('name', 'page')}-${w}x${h}${pc.length ? `-c${cx}x${cy}` : ''}${EVERY ? `-${String(k).padStart(2, '0')}` : ''}.png`, clip: { x: cx, y: cy, width: cw, height: ch } });
+        if (EVERY && k < COUNT - 1) await sleep(EVERY);
+      }
+      await p.close(); continue;
+    }
     await p.screenshot({ path: `${OUT}${opt('name', 'page')}-${w}x${h}.png`, fullPage: true });
     // (--scrolls N: a page whose content scrolls inside its own box (a sheet, the profile's shell) — N more shots, a viewport lower each)
     for (let i = 1; i <= Number(opt('scrolls', 0)); i++) {

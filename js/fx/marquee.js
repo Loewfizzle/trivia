@@ -9,7 +9,7 @@ import { rrect } from './renderer.js';
 function bulbs(w, h) {
   const k = `${w}x${h}`;
   if (bulbs.k === k) return bulbs.v;
-  const v = [], ins = 5.5, gap = 13.5, nx = Math.max(2, Math.round((w - 2 * ins) / gap)), ny = Math.max(1, Math.round((h - 2 * ins) / gap));
+  const v = [], ins = 6, gap = 15, nx = Math.max(2, Math.round((w - 2 * ins) / gap)), ny = Math.max(1, Math.round((h - 2 * ins) / gap));
   for (let i = 0; i < nx; i++) v.push([ins + (w - 2 * ins) * i / nx, ins]);
   for (let i = 0; i < ny; i++) v.push([w - ins, ins + (h - 2 * ins) * i / ny]);
   for (let i = 0; i < nx; i++) v.push([w - ins - (w - 2 * ins) * i / nx, h - ins]);
@@ -47,18 +47,20 @@ export default {
     }
     // THE BULBS: sockets (always), the chase, now and then the whole ring flashing on the beat
     const cyc = fract(t / 12), flash = Q.still ? 0 : smooth(0.86, 0.87, cyc) * (1 - smooth(0.93, 0.95, cyc)) * (fract(t * 3.3) < 0.5 ? 1 : 0.35);
-    const head = t * 7.5;
+    const head = t * 6;
     for (let i = 0; i < N; i++) {
       const [x, y] = B[i];
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-      c.fillStyle = '#2a1a08'; c.beginPath(); c.arc(x, y, 2.6, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = 'rgba(214,170,90,0.85)'; c.lineWidth = 0.8; c.stroke();
+      c.fillStyle = '#3a2408'; c.beginPath(); c.arc(x, y, 3.3, 0, Math.PI * 2); c.fill();
+      c.strokeStyle = 'rgba(232,190,110,0.9)'; c.lineWidth = 0.9; c.stroke();
+      c.fillStyle = 'rgba(120,70,20,0.9)'; c.beginPath(); c.arc(x, y, 2.1, 0, Math.PI * 2); c.fill();
       // the chase: every third bulb, a soft hand-off (cos^4 of the phase)
       const ph = (i - head) / 3, chase = Math.pow(Math.max(0, Math.cos(ph * Math.PI * 2)), 4);
-      const b = Q.still ? 1 : Math.max(0.16, Math.min(1, 0.16 + chase * 0.84 + flash));
+      const b = Q.still ? 1 : Math.max(0.08, Math.min(1, 0.08 + chase * 0.92 + flash));
       c.globalCompositeOperation = 'lighter';
-      stamp(c, glow('255,196,110', 0.12, 32), x, y, 15, b * 0.7);
-      stamp(c, glow('255,244,214', 0.45, 16), x, y, 5, b);
+      stamp(c, glow('255,186,90', 0.12, 32), x, y, 24, b * 0.75);
+      stamp(c, glow('255,236,190', 0.3, 32), x, y, 9, b);
+      stamp(c, glow('255,255,245', 0.6, 16), x, y, 3.6, b);
     }
     // the edge: brass + a warm glow (an epic's bold frame)
     c.globalCompositeOperation = 'lighter';

@@ -12,13 +12,11 @@ function crystals(w, h, dpr, seed) {
   return sprite(`frost:${w}x${h}@${dpr}:${seed}`, w * dpr, h * dpr, (c) => {
     c.scale(dpr, dpr);
     const r = rng(seed);
-    const haze = (x0, y0, x1, y1) => { const g = c.createLinearGradient(x0, y0, x1, y1); g.addColorStop(0, 'rgba(220,245,255,0.42)'); g.addColorStop(1, 'rgba(220,245,255,0)'); c.fillStyle = g; c.fillRect(0, 0, w, h); };
-    haze(0, 0, 0, h * 0.35); haze(0, h, 0, h * 0.62); haze(0, 0, w * 0.12, 0); haze(w, 0, w * 0.86, 0);
     c.lineCap = 'round';
     const branch = (x, y, a, len, depth, wid) => {
       if (depth > 4 || len < 1.6) return;
       const x2 = x + Math.cos(a) * len, y2 = y + Math.sin(a) * len;
-      c.globalAlpha = 0.25 + 0.5 * (1 - depth / 5); c.lineWidth = wid; c.strokeStyle = 'rgb(232,250,255)';
+      c.globalAlpha = 0.18 + 0.42 * (1 - depth / 5); c.lineWidth = wid; c.strokeStyle = 'rgb(232,250,255)';
       c.beginPath(); c.moveTo(x, y); c.lineTo(x2, y2); c.stroke();
       const n = 2 + (r() < 0.4 ? 1 : 0);
       for (let k = 1; k <= n; k++) {
@@ -29,12 +27,12 @@ function crystals(w, h, dpr, seed) {
     };
     // seeds along the four edges, growing inward
     const edge = (n, fn) => { for (let i = 0; i < n; i++) fn(r()); };
-    edge(Math.round(w / 9), u => branch(u * w, -1, Math.PI / 2 + (r() - 0.5) * 1.1, h * (0.12 + r() * 0.2), 0, 1.1));
-    edge(Math.round(w / 9), u => branch(u * w, h + 1, -Math.PI / 2 + (r() - 0.5) * 1.1, h * (0.12 + r() * 0.2), 0, 1.1));
-    edge(6, u => branch(-1, u * h, (r() - 0.5) * 1.2, h * (0.25 + r() * 0.3), 0, 1.2));
-    edge(6, u => branch(w + 1, u * h, Math.PI + (r() - 0.5) * 1.2, h * (0.25 + r() * 0.3), 0, 1.2));
+    edge(Math.round(w / 15), u => branch(u * w, -1, Math.PI / 2 + (r() - 0.5) * 1.1, h * (0.08 + r() * 0.13), 0, 0.85));
+    edge(Math.round(w / 15), u => branch(u * w, h + 1, -Math.PI / 2 + (r() - 0.5) * 1.1, h * (0.08 + r() * 0.13), 0, 0.85));
+    edge(4, u => branch(-1, u * h, (r() - 0.5) * 1.2, h * (0.18 + r() * 0.2), 0, 0.9));
+    edge(5, u => branch(w + 1, u * h, Math.PI + (r() - 0.5) * 1.2, h * (0.2 + r() * 0.22), 0, 0.9));
     // six-point stars sprinkled (denser near the rim)
-    for (let i = 0; i < Math.round(w / 10); i++) {
+    for (let i = 0; i < Math.round(w / 22); i++) {
       const x = r() * w, y = r() < 0.5 ? r() * h * 0.3 : h - r() * h * 0.3, R = 1.6 + r() * 2.6;
       c.globalAlpha = 0.5 + r() * 0.4; c.lineWidth = 0.6;
       for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3 + r() * 0.3; c.beginPath(); c.moveTo(x - Math.cos(a) * R, y - Math.sin(a) * R); c.lineTo(x + Math.cos(a) * R, y + Math.sin(a) * R); c.stroke(); }
@@ -46,11 +44,12 @@ function crystals(w, h, dpr, seed) {
 /** the crack: a jagged run from the lower right up across, with two branches (a fixed shape per seed) */
 function crackPath(w, h, seed) {
   const r = rng(seed * 7 + 3), main = [];
-  let x = w * 0.6, y = h * 0.86;
+  // (ice cracks in short jagged runs — many small kinks, the line wandering, never a smooth zigzag)
+  let x = w * 0.58, y = h * 0.78, a = -0.5;
   main.push([x, y]);
-  for (let i = 0; i < 9; i++) { x += w * (0.028 + r() * 0.018); y -= h * (0.06 + r() * 0.07) * (r() < 0.25 ? -0.6 : 1); main.push([x, Math.max(h * 0.08, Math.min(h * 0.92, y))]); }
+  for (let i = 0; i < 20; i++) { a += (r() - 0.5) * 0.9; a = Math.max(-1.1, Math.min(0.5, a)); const L = w * (0.009 + r() * 0.012); x += Math.cos(a) * L * 1.6; y += Math.sin(a) * L; main.push([x, Math.max(h * 0.1, Math.min(h * 0.9, y))]); }
   const br = [];
-  for (const at of [3, 6]) { const [bx, by] = main[at], seg = [[bx, by]]; let px = bx, py = by; for (let k = 0; k < 3; k++) { px += w * (0.012 + r() * 0.02); py += (at === 3 ? 1 : -1) * h * (0.08 + r() * 0.06); seg.push([px, py]); } br.push({ at, seg }); }
+  for (const at of [5, 10, 15]) { const [bx, by] = main[at], seg = [[bx, by]]; let px = bx, py = by, ba = at === 10 ? 0.9 : -1.2; for (let k = 0; k < 6; k++) { ba += (r() - 0.5) * 0.8; const L = w * (0.006 + r() * 0.008); px += Math.cos(ba) * L * 1.4; py += Math.sin(ba) * L; seg.push([px, py]); } br.push({ at, seg }); }
   return { main, br };
 }
 const lenOf = pts => { let L = 0; for (let i = 1; i < pts.length; i++) L += Math.hypot(pts[i][0] - pts[i - 1][0], pts[i][1] - pts[i - 1][1]); return L; };
@@ -74,12 +73,19 @@ export default {
     // the frost's reach: grows 0 → 1 over ~6 s, holds, eases back over the last 1.5 s
     const grow = smooth(0, 6.2, tt) * (1 - smooth(9.4, 11, tt)) * 0.92 + 0.08;
     c.save(); rrect(c, 0, 0, w, h, s.opts.radius || 12); c.clip();
-    // THE FRONT: a ragged union of circles round the rim, each its own reach
+    // THE RIME: a soft frosted haze in from the rim, its reach + strength following the frost (soft — never a hard front)
+    for (const [x0, y0, x1, y1, k] of [[0, 0, 0, h * 0.55, 1], [0, h, 0, h * 0.4, 1], [0, 0, w * 0.18, 0, 0.8], [w, 0, w * 0.8, 0, 1]]) {
+      const g = c.createLinearGradient(x0, y0, x0 + (x1 - x0) * (0.35 + 0.65 * grow), y0 + (y1 - y0) * (0.35 + 0.65 * grow));
+      g.addColorStop(0, `rgba(222,246,255,${0.34 * grow * k})`); g.addColorStop(0.45, `rgba(222,246,255,${0.1 * grow * k})`); g.addColorStop(1, 'rgba(222,246,255,0)');
+      c.fillStyle = g; c.fillRect(0, 0, w, h);
+    }
+    // THE FRONT: the crystals revealed through a ragged union of many small circles round the rim, each its own reach (the lines are
+    // cut where they've grown to — growth, not a shape)
     const r = rng(seed + 5); c.save(); c.beginPath();
     const ring = [];
-    for (let x = 0; x <= w; x += 16) { ring.push([x, -2]); ring.push([x, h + 2]); }
-    for (let y = 0; y <= h; y += 14) { ring.push([-2, y]); ring.push([w + 2, y]); }
-    for (const [x, y] of ring) { const R = h * (0.12 + 0.62 * grow) * (0.55 + r() * 0.75); c.moveTo(x + R, y); c.arc(x, y, R, 0, Math.PI * 2); }
+    for (let x = 0; x <= w; x += 9) { ring.push([x, -2]); ring.push([x, h + 2]); }
+    for (let y = 0; y <= h; y += 9) { ring.push([-2, y]); ring.push([w + 2, y]); }
+    for (const [x, y] of ring) { const R = h * (0.06 + 0.42 * grow) * (0.4 + r() * 1.0); c.moveTo(x + R, y); c.arc(x, y, R, 0, Math.PI * 2); }
     c.clip();
     c.drawImage(crystals(w, h, dpr, seed), 0, 0, w, h);
     c.restore();
@@ -90,7 +96,7 @@ export default {
       for (const [wid, col, a] of [[5, '140,220,255', 0.18], [2.2, '200,240,255', 0.5], [0.9, '255,255,255', 0.95]]) {
         c.globalAlpha = a * fade; c.strokeStyle = `rgb(${col})`; c.lineWidth = wid;
         partial(c, P.main, run); c.stroke();
-        for (const b of P.br) { const bf = smooth(b.at / 10, 1, run) ; if (bf > 0) { partial(c, b.seg, bf); c.stroke(); } }
+        for (const b of P.br) { const bf = smooth(b.at / 21, 1, run); if (bf > 0) { partial(c, b.seg, bf); c.stroke(); } }
       }
       // the running tip's flare, then THE GLINT riding the crack once it's whole
       c.globalCompositeOperation = 'lighter';
