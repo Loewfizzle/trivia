@@ -5299,3 +5299,48 @@ APPROVED (don't change): the knob's three words, STOP / CANCEL on a lit jack, th
 4. PRESETS — CONFUSING: rename "+ SAVE AS PRESET" to "SAVE AS A ONE-TAP JACK"; tapping it opens a small sheet: a NAME field (prefilled, e.g. "GAME NIGHT") + one line "Fires this exact card again with one tap — it becomes a jack in the bottom row." + SAVE; after saving the radio scrolls to the new jack and it flashes once. Owner only, as before.
 
 PROGRESSION A DONE (Nov 2, night) — passes/progression-a.md + docs/progression.md (+ the owner's CC-B review as its ADD-ON). THE BUILD TABLE: CITY CONTROLS A ✅; CITY CONTROLS B ✅; PROGRESSION A ✅; PROGRESSION B (sightings, birthdays, favors, the arrival ladder — its questions round first) ← NEXT; then THE VAULT 1 (cards + the Card Lab), THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER.
+
+## OWNER'S NOTES — NOV 2 (night)
+
+PROGRESSION A WRITTEN (Nov 2, ~6:10 pm EST) — Step 0 = step0-proga.txt.
+OWNER's REVIEW OF CITY CONTROLS B — Nov 2, 6:14 pm EST (iPhone) → an ADD-ON to PROGRESSION A (running; its last work group)
+
+* APPROVED: the knob's three words ✅, STOP / CANCEL on a lit jack ("I like it") ✅, the big bold ✕ ✅, no wiggle ✅, the pink skywrite by day ✅, the finale's ORDER (dragon eggs → the gap → the willows) + the GAP itself ✅.
+* BUG: THE PROGRAM + THE LEDGER — scrolling down JUMPS BACK TO THE TOP by itself (a re-render resets the scroll).
+* BUG: THE INTERCOM — "no mic detected on this device" on his iPhone; HOLD TO TALK doesn't record at all.
+* THE WILLOW SWEEP is TOO SLOW left → right: make it a fast ROLLING CURTAIN like the FIRST finale build's willows ("that was perfect") — only the order flipped (after the eggs, the gap as now).
+* PRESETS: "+ SAVE AS PRESET" is CONFUSING (the chat's fix, in the add-on: say what it does).
+
+Nov 2, 6:20 pm EST — THE DESKTOP LINKS CHECKED (the owner, the mini PC full screen)
+
+* All 5 work; "better than before" but he DOESN'T LIKE THE DESKTOP LOOK overall — singled out THE BENCH ON THE RIGHT. Mobile first stands: no work now → FR6 (the desktop + sideways pass) opens with a desktop LOOK review (the bench on the right first); his screenshot / words on what's wrong with the bench go there.
+* (6:21 pm) HIS SCREENSHOT (the day link, full screen — plan/desk-review/desktop-day-nov2.png). THE CHAT's READ for FR6: (1) THE BENCH ON THE RIGHT sits on the promenade's top edge / the curb line by the water, not on the walk — it reads as floating + out of place (the right side's placement isn't the phone's; check every bench / tree / person against the walk's real bounds on wide screens); (2) the promenade is a huge EMPTY flat plaza with tiny props sprinkled over it — the phone's dressed density doesn't fill a wide screen; (3) THE SPEAKEASY — the hero — is cut off at the far LEFT edge and small, while the middle of the screen is plain promenade; (4) the city is a thin band under a lot of sky. FR6 opens with this as its look review (a framing / dressing question, not a bug) — the chat brings options before FR6's prompt.
+
+Nov 2, 8:09 pm EST — THE HOLIDAY SIGNS LOOK CHEAP (the owner): the Christmas + Thanksgiving dressings on the NEON SPEAKEASY sign
+
+* "I just don't like how cheap the Christmas and Thanksgiving themed neon logo is." THE CHAT's PROPOSAL (pending the owner): a HOLIDAY SIGNS redo — Grok makes 2–3 CONCEPT SKETCHES per holiday from a screenshot of the real sign (ideas only — the sign stays code-built tubes); the owner picks; Claude Code builds the pick IN TUBES on the existing sign-dressing system at the sign's own quality (the holiday changes the SIGN ITSELF — tube colours, a light-string wrap, snow on the letters — not small props stuck on), one or two BIG bold ideas that read on the phone. WHEN: before Thanksgiving (Nov 26) — a short pass right after the switch-over (or folded into one before it).
+
+Nov 2, 8:17–8:20 pm EST — THE HOLIDAY SIGNS: HOW (the owner)
+
+* The chat's six SVG mockups (outputs/holiday-signs.png): the owner — "those are embarrassing" (right: hand-drawn tubes ≠ the real sign). NO MORE hand-drawn sign mocks. NO "SIGN LAB" either (the owner: it's the same as just building it) → the holiday-signs pass has CLAUDE CODE BUILD the picked ideas ON THE REAL SIGN (the real tubes, 3×, day + night, force links); the owner judges on the iPhone; fixes by add-on. Optional: two Christmas options built for a side-by-side. THE IDEAS (written): CHRISTMAS 1 the C9 light string (+ snow on the letters; chases on the beat at party nights) · 2 candy-cane tubes + the O as a lit wreath + a red bow · 3 the frozen sign (ice tubes, frost, icicles, a gold star); THANKSGIVING 1 a harvest moon behind the O, amber tubes, big maple leaves drifting · 2 a leaf garland swag under NEON · 3 a cornucopia off the last N. The chat's picks: Christmas 2 (+ 1's chasing bulbs on party nights only), Thanksgiving 1. THE OWNER HASN'T PICKED YET. Before Nov 26.
+
+PROGRESSION A DONE (Nov 2, ~8:20 pm EST) — live. Summary: plan/proga-summary.txt
+
+* Cloud: tests ✅ first run; harbor 9/10 then the `city` job green on run 2 (Group 0's dusk pin at 1 pm Eastern read as ~6 pm on the UTC runner → moved to 10 am). CC-B's intercom test CONFIRMED in the cloud. Local: unit 1044, rules 57, /api 29 + 9, smoke 6, profile E2E 64/64, harbor 887/888 (the load-weather timing warning; green alone twice). Rules unchanged; no new Vercel env vars.
+* Done: LEVELS 1–100 (bands on the old XP lines; OWNER = 45,000); 31 level rewards (Gilded family 10 / 25 / 40 / 60, NEON GLASS + VELVET ROOM between, THE HOUSE at 100); THE STREAK (4 am Eastern, freezes, WIN IT BACK, milestones, the /admin OUTAGE button); THE DAILY CONTRACT (/api/daily — seed, one try, server-checked score, percentile + bands ≥ 50, YOUR TABLE's TODAY; a test-only fake daily); THE 30 ACHIEVEMENTS + X% (dormant ones asleep); THE FOUNDER switch on THE LEDGER (closing it sweeps everyone who already played); THE SCREENS (the end-of-round moment after the podium — replaces RANK UP; level-up; the streak card; the Gilded card + profile; the dock's neon flame at 3×); Grok's 9 sounds.
+* THE CC-B ADD-ON: the scroll jump fixed (papers repaint in place); THE MIC — the cause: iOS's audio session held on `playback` can't record → `play-and-record` for the hold + honest error messages (real iPhone recording still UNTESTED — WebKit on Windows has no mic); the willows a FAST rolling curtain (~0.115 s apart, ~1 s edge to edge, the first on the strong beat; eggs + gap unchanged); SAVE AS A ONE-TAP JACK + its sheet.
+* Decisions: OWNER at 45,000 XP (3 matches ≈ 240 XP a night; every-other-night play → REGULAR night one, INSIDER ~2 weeks, MADE ~2 months, LEGEND ~7 months, OWNER ~a year); the streak's old +10 % XP gone (milestones only); Night Owl / party nights / the 4 am day on Eastern time; level 60's card a placeholder "SAPPHIRE & SILVER" (a 4th Gilded variant for THE VAULT); all item art placeholder (ids final). Folded in: the I / II / III steps → levels; the 7 old finishes + 5 old glows → level rewards (EMBER with FIRST ROUND); the old holo card → the Gilded card.
+* Known: ITEM + ACHIEVEMENT NAMES SHIP IN THE SITE's CODE (a code reader sees the whole list — against "keep them guessing"; THE CHAT: fix in THE VAULT 1 — the server sends names + art only for what a player owns); the intercom on a real iPhone still unproven.
+
+Nov 2, 8:26 pm EST — THE ARRIVAL LADDER → DROPPED for now (the owner: "just forget that idea for now") — NOT in PROGRESSION B; on the FUTURE
+list (if it comes back: every rung needs a DAY + a NIGHT version — the owner's catch: a shooting star can't play by day).
+Nov 2, 8:28 pm EST — THE LEGENDARIES' TAP REACTIONS (the owner: "sounds good" — DECIDED): the SAME baked sprites, no new models / angles /
+art — motion in the screen's plane + their own lights: UFO wobbles + its beam flickers · TR-3B its corner lights race · BLACKBIRD pitches its nose up + lights its afterburners · F-22s break apart · GHOST SHIP its lantern flares · SKULL BALLOON its burner roars (a big flame lighting the skull from below) · ₿ BALLOON its burner flares + it bobs up + a gold pulse on the ₿. ~1–1.5 h of PROGRESSION B; the pass checks how each is built first + says if one can't be done this way.
+Nov 2, 8:29 pm EST — PROGRESSION B's LAST TWO (the owner: "yes to both" — DECIDED)
+
+* THE POLAROID IS A REAL PHOTO: the tap's flashbulb captures the ACTUAL FRAME of the player's city at that moment (the real legendary over their harbor, their time of day + weather) into a polaroid with the date + time written under it; CITY SIGHTINGS on the profile = an ALBUM of the player's own polaroids (only what they own — no list of what's out there); the card + emblem pair still unlocks the first time.
+* BIRTHDAYS: month + day on the profile (never the year), optional, changeable ONCE A YEAR (no farming).
+
+PROGRESSION B WRITTEN (Nov 2, ~8:35 pm EST) — Step 0 = step0-progb.txt.
+
+- THE BUILD TABLE (Nov 2, PROGRESSION B Step 0): PROGRESSION A ✅; PROGRESSION B (CITY SIGHTINGS + the tap reactions + the real polaroid, BIRTHDAYS, CALL IN A FAVOR — this pass; THE ARRIVAL LADDER dropped) ← NEXT; then THE VAULT 1 (cards + the Card Lab), THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
