@@ -13,6 +13,7 @@ import { fxStats, setFxReduced, setFxTier, fxReduced, setFxDiag } from '../fx/re
 import { TIER_NAMES } from '../core/items.js';
 import { fullCardEl, mountFull } from './full.js';
 import { emblemEl } from './emblem-art.js';
+import { applyGlow } from './glows.js';
 import { AVATAR_IDS } from '../config.js';
 import { memberLabel } from '../core/member.js';
 
@@ -163,10 +164,14 @@ export function mountLab(root, o = {}) {
       const byN = (a, b) => CARDS.filter(c => c.n >= a && c.n <= b).sort((x, y) => x.n - y.n);
       const SAMPLES = byN(1, 8), NEW = byN(19, 26), SIGHT = byN(34, 41), HELD = byN(50, 70);
       for (const b of wearBtns) { b.classList.toggle('is-on', !!wearMix[b.dataset.w]); b.textContent = `${b.dataset.w === 'emb' ? 'EMBLEMS' : 'GLOWS'} ${wearMix[b.dataset.w] ? 'ON' : 'OFF'}`; }
-      const EMB = wearMix.set === 2 ? ['emb-sg-btc', 'emb-sg-skull', 'emb-sg-ghostship', 'emb-sg-aurora', 'emb-sg-fireball', 'emb-ace', 'emb-bitcoin', 'emb-butterfly'] : ['emb-sg-ufo', 'emb-house', 'emb-sg-tr3b', 'emb-torch', 'emb-snowflake', 'emb-lightning', 'emb-prism', 'emb-sweetheart'], TUB = [null, null, null, null, null, null, null, 'tube-chase'], GLO = ['glow-gold', 'glow-spark', 'glow-ember'];
+      // (2B — &wear=emb2,glow: the BUSIEST mix — the 2B specials, the neon ones in the 2B tube styles, every moving glow)
+      const B2 = wearMix.set === 2;
+      const EMB = B2 ? ['emb-sg-btc', 'emb-butterfly', 'emb-sg-ghostship', 'emb-glasses', 'emb-sg-aurora', 'emb-stars', 'emb-ace', 'emb-xmas'] : ['emb-sg-ufo', 'emb-house', 'emb-sg-tr3b', 'emb-torch', 'emb-snowflake', 'emb-lightning', 'emb-prism', 'emb-sweetheart'],
+        TUB = B2 ? [null, 'tube-beat', null, 'tube-flicker', null, 'tube-gold', null, 'tube-ember'] : [null, null, null, null, null, null, null, 'tube-chase'],
+        GLO = B2 ? ['glow-glitch', 'glow-prism', 'glow-fire', 'glow-champagne', 'glow-tinsel', 'glow-starlight', 'glow-frost', 'glow-neon'] : ['glow-gold', 'glow-spark', 'glow-ember'];
       // (2A: every guest wears their own sign-up shape on the layered neon renderer — as real players do; 1A's test pair stays on THE STRIPS)
       const AV = ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'], COL = ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'];
-      const rows = GUESTS.map((g, i) => ({ avatar: AV[i], color: COL[i], ...(wearMix.emb ? (wearMix.one ? (/^tube-/.test(wearMix.one) ? { emblem: 'emb-key', tube: wearMix.one } : { emblem: wearMix.one }) : { emblem: EMB[i], tube: TUB[i] }) : {}), ...(wearMix.glow ? { glow: GLO[i % 3] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: noOf(SAMPLE_NO + i * 7) }));
+      const rows = GUESTS.map((g, i) => ({ avatar: AV[i], color: COL[i], ...(wearMix.emb ? (wearMix.one ? (/^tube-/.test(wearMix.one) ? { emblem: 'emb-key', tube: wearMix.one } : { emblem: wearMix.one }) : { emblem: EMB[i], tube: TUB[i] }) : {}), ...(wearMix.glow ? { glow: GLO[i % GLO.length] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: noOf(SAMPLE_NO + i * 7) }));
       mounted.push(mountStrips(list, rows, { calm: true, label: 'lobby' }));
       window.__lab && (window.__lab.mix = mix, window.__lab.wear = { ...wearMix });
     };
@@ -183,8 +188,9 @@ export function mountLab(root, o = {}) {
     const items = LAB.filter(x => (x.kind === 'emblem' || x.kind === 'tube') && (!only.length || only.includes(x.id))).sort((a, b) => (a.n < 90) - (b.n < 90) || a.n - b.n);
     // (THE VAULT 2B: &sheet=1 — a CONTACT SHEET of the emblems: each at 72 pt + 28 pt beside its name, three across — the look reviews)
     if (new URLSearchParams(location.search).get('sheet') === '1') {
-      content.replaceChildren(h('div.ve-sheet', ...items.filter(x => x.kind === 'emblem' && !x.set && !TEST_EMBLEMS[x.id]).map(item => h('div.ve-sheet-i', { dataset: { id: item.id } },
-        h('div.ve-sheet-a', emblemEl({ id: item.id, mode: 'lead', size: 72 }), emblemEl({ id: item.id, mode: 'even', size: 28 })), h('b', item.name || item.id), h('small', `${TIER_NAMES[item.tier]} · ${(item.fin || '').toUpperCase()}`)))));
+      content.replaceChildren(h('div.ve-sheet', ...items.filter(x => (x.kind === 'emblem' && !x.set && !TEST_EMBLEMS[x.id]) || x.kind === 'tube').map(item => h('div.ve-sheet-i', { dataset: { id: item.id } },
+        item.kind === 'tube' ? h('div.ve-sheet-a', emblemEl({ id: 'emb-key', tube: item.id, mode: 'lead', size: 72 }), emblemEl({ avatar: 'star', color: 'cyan', tube: item.id, mode: 'even', size: 28 }))
+          : h('div.ve-sheet-a', emblemEl({ id: item.id, mode: 'lead', size: 72 }), emblemEl({ id: item.id, mode: 'even', size: 28 })), h('b', item.name || item.id), h('small', `${TIER_NAMES[item.tier]} · ${item.kind === 'tube' ? 'TUBE STYLE' : (item.fin || '').toUpperCase()}`)))));
       return;
     }
     for (const item of items) {
@@ -226,7 +232,14 @@ export function mountLab(root, o = {}) {
     const grid = h('div.vl-items');
     content.replaceChildren(h('p.vl-motion', 'Each glow lights the NAME only (never the level), always readable — on a short name + a long one, on a plain card + a legendary, then on a full card.'), grid);
     const places = [], fulls = [];
-    for (const item of LAB.filter(x => x.kind === 'glow')) {
+    // (THE VAULT 2B: &sheet=1 — a CONTACT SHEET: every glow on LOEWFIZZLE + a short name at the plate's size, two across; &only= as above)
+    const onlyG = (new URLSearchParams(location.search).get('only') || '').split(',').filter(Boolean);
+    if (new URLSearchParams(location.search).get('sheet') === '1') {
+      content.replaceChildren(h('div.vg-sheet', ...LAB.filter(x => x.kind === 'glow' && (!onlyG.length || onlyG.includes(x.id))).map(item => h('div.vg-sheet-i', { dataset: { id: item.id } },
+        h('div.vg-sheet-p', applyGlow(h('b.vl-name', 'LOEWFIZZLE'), item.id)), h('div.vg-sheet-p', applyGlow(h('b.vl-name', 'MAYA'), item.id)), h('small', `${item.name || item.id} · ${TIER_NAMES[item.tier]}`)))));
+      return;
+    }
+    for (const item of LAB.filter(x => x.kind === 'glow' && (!onlyG.length || onlyG.includes(x.id)))) {
       const stage = h('div.vl-stage.vl-col');
       const blk = h('section.vl-item', { dataset: { id: item.id } }, h('div.vl-item-h', h('b', `${item.n} · ${item.name}`), h('span', `${TIER_NAMES[item.tier]} · NAME GLOW`), h('code', item.id)), stage, h('p.vl-motion', item.motion));
       grid.append(blk);

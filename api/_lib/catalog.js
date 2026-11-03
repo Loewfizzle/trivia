@@ -125,6 +125,7 @@ export const ITEM_ROWS = [
   T('tube-flicker', 'OLD SIGN', 'rare', 'The flicker of an old sign.'),
   T('tube-beat', 'ON THE BEAT', 'epic', 'Pulses with the party on Friday + Saturday nights.'),
   T('tube-chase', 'A CHASING LIGHT', 'uncommon', 'A light running round and round the tube.'),
+  T('tube-burnt', 'BURNT OUT', 'rare', 'One tube half dead, catching now and then.'),     // (THE VAULT 2B)
   // ---- name glows (today's VAULT glows folded in, + the new ones)
   G('glow-ember', 'EMBER', 'common', 'A warm glow, like a cigar in the dark.', { old: 'ember' }),
   G('glow-ice', 'ICE', 'common', 'Cold blue light, the back room at 3 a.m.', { old: 'ice' }),
@@ -137,6 +138,10 @@ export const ITEM_ROWS = [
   G('glow-starlight', 'STARLIGHT', 'rare', 'Three different legends seen.', { old: 'ice' }),
   G('glow-candle', 'CANDLELIGHT', 'uncommon', 'A daily on seven different days.', { old: 'ember' }),
   G('glow-tinsel', 'TINSEL', 'rare', 'Three holidays at the bar.', { old: 'gold' }),
+  // THE VAULT 2B — the decided glows that had no item yet
+  G('glow-frost', 'FROST', 'uncommon', 'Frost creeping onto your name.'),
+  G('glow-fire', 'FIRE', 'rare', 'Your name, burning.'),
+  G('glow-glitch', 'GLITCH', 'epic', 'The signal tears. Your name holds.'),
   // ---- the rest
   { id: 'flame-full', kind: 'flame', name: 'FULL NEON', tier: 'common', line: 'Three nights in a row: your flame burns full.' },
   { id: 'favor', kind: 'favor', name: 'A FAVOR', tier: 'epic', line: 'Call in a favor: one moment for your room.' },
@@ -200,6 +205,7 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 18, item: 'card-neonglass' },
   { lvl: 20, item: 'card-chrome' },
   { lvl: 22, item: 'card-prism' },
+  { lvl: 23, item: 'glow-frost' },            // (THE VAULT 2B)
   { lvl: 25, item: 'card-champagne' },
   { lvl: 26, item: 'tube-chase' },            // (THE VAULT 2A — the chasing light)
   { lvl: 28, item: 'glow-neon' },
@@ -207,14 +213,17 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 32, item: 'card-velvet' },
   { lvl: 35, item: 'card-aurora' },
   { lvl: 37, item: 'emb-crescent' },
+  { lvl: 38, item: 'glow-fire' },             // (THE VAULT 2B)
   { lvl: 40, item: 'card-rosegold' },
   { lvl: 42, item: 'card-inferno' },
   { lvl: 44, item: 'card-gold' },
   { lvl: 47, item: 'tube-gold' },
   { lvl: 50, item: 'glow-gold' },
+  { lvl: 53, item: 'tube-burnt' },            // (THE VAULT 2B)
   { lvl: 55, item: 'emb-crown' },
   { lvl: 58, item: 'card-noir' },
   { lvl: 60, item: 'card-sapphire' },
+  { lvl: 63, item: 'glow-glitch' },           // (THE VAULT 2B)
   { lvl: 65, item: 'tube-flicker' },
   { lvl: 70, item: 'card-legend' },
   { lvl: 70, item: 'glow-prism' },

@@ -15,6 +15,7 @@
 import { AVATARS, colorHex } from '../config.js';
 import { FRAMES } from '../ui/components.js';
 import { flattenPath } from '../core/tube-path.js';
+import { beatSync } from './beat-sync.js';
 
 const NS = 'http://www.w3.org/2000/svg';
 let uid = 0;
@@ -128,7 +129,9 @@ export const EMBLEM_ART = Object.freeze({
 });
 export const FINISHES = Object.freeze(['neon', 'prism', 'chrome', 'gold', 'ice', 'molten', 'glitch', 'galaxy', 'metal', 'coin', 'spectral', 'aurora', 'comet', 'balloon', 'autumn']);
 /** the tube styles with a look (2A); the others wear as a plain tube until 2B builds theirs */
-export const TUBE_STYLES = Object.freeze({ 'tube-twotone': 'twotone', 'tube-breath': 'breath', 'tube-chase': 'chase' });
+export const TUBE_STYLES = Object.freeze({ 'tube-twotone': 'twotone', 'tube-breath': 'breath', 'tube-chase': 'chase',
+  // THE VAULT 2B — the rest
+  'tube-gold': 'gold', 'tube-flicker': 'flicker', 'tube-ember': 'ember', 'tube-burnt': 'burnt', 'tube-beat': 'beat' });
 export const hasArt = id => !!(id && EMBLEM_ART[id]);
 export const finishOf = id => (EMBLEM_ART[id] || { finish: 'neon' }).finish;
 /** a tube style shows on NEON emblems only (a special finish keeps its own light) */
@@ -178,7 +181,7 @@ function twoTone(defs, A) {
 /** one tube's chosen parts ('glass' 'g2' 'g1' 'body' 'core' 'hi') into a layer's group (two-tone: the layer's gradients) */
 function tubeParts(L, t, T, parts, tt) {
   const k = t.k || 1, w = (t.thin ? T * 0.55 : T) / k, g = el('g', { transform: t.tf });
-  const body = tt ? tt.b : shade(t.col, 0.16), glowC = tt ? tt.b : t.col, core = tt ? tt.c : shade(t.col, 0.84);
+  const body = tt ? tt.b : shade(t.col, 0.16), glowC = t.glow || (tt ? tt.b : t.col), core = tt ? tt.c : shade(t.col, 0.84);
   const P = {
     glass: () => el('path', { d: t.d, class: 've-glass', stroke: shade(t.col, -0.74), 'stroke-width': (w + 1.1 / k).toFixed(2) }),
     g2: () => el('path', { d: t.d, class: 've-g2', stroke: glowC, 'stroke-width': (w * 3.4).toFixed(2) }),
@@ -190,15 +193,46 @@ function tubeParts(L, t, T, parts, tt) {
   for (const p of parts) g.append(P[p]());
   L.g.append(g);
 }
+/** GOLD TUBE's glass (2B): every tube in struck gold — a warm body, a cream core, gold glows */
+const GOLD_TT = { b: '#ffcf5a', c: '#fff4cc' };
+/** SLOW BURN's light (2B): the glow smouldering ember-red round the tube's own colour */
+const EMBER_TT = { b: null, c: '#ffe4c8', g: '#ff5a1e' };
 function neon(C, tubes, o, base) {
-  const T = o.T || 2.6, two = o.tube === 'twotone';
-  const put = (L, parts) => { const tt = two ? twoTone(L.defs, tubes[0].col) : null; for (const t of tubes) tubeParts(L, t, T, parts, tt); };
+  const T = o.T || 2.6, two = o.tube === 'twotone', st = o.tube;
+  const tt0 = st === 'gold' ? GOLD_TT : null;
+  const put = (L, parts, only) => { const tt = two ? twoTone(L.defs, tubes[0].col) : tt0; for (const [k, t] of tubes.entries()) if (!only || only(k)) tubeParts(L, st === 'ember' ? { ...t, glow: EMBER_TT.g } : t, T, parts, tt); };
+  // (THE VAULT 2B — the rest of the tube styles: OLD SIGN · BURNT OUT · SLOW BURN · GOLD TUBE · ON THE BEAT)
+  if (st === 'flicker') {
+    // OLD SIGN: the whole tube's light on one layer, flickering like an old sign (dips + a stutter now + then); the dark glass stays
+    put(base, ['glass']); put(C.layer('ve-old'), ['g2', 'g1', 'body', 'core', 'hi']); return;
+  }
+  if (st === 'burnt') {
+    // BURNT OUT: one tube half dead — the first tube's light stuttering (dark mostly, catching for a moment); the rest burns steady
+    put(base, ['glass']); put(base, ['g2', 'g1', 'body', 'core', 'hi'], k => k > 0 || tubes.length === 1); if (tubes.length > 1) put(C.layer('ve-burnt'), ['g2', 'g1', 'body', 'core', 'hi'], k => k === 0);
+    if (tubes.length === 1) C.layer('ve-burnt-d').g.append(el('path', { d: tubes[0].d, transform: tubes[0].tf, stroke: '#07060a', 'stroke-width': (T * 1.4 / (tubes[0].k || 1)).toFixed(2), 'stroke-dasharray': `${((tubes[0].len || lenOf(tubes[0].d)) * 0.3).toFixed(2)} 999` }));
+    return;
+  }
+  if (st === 'ember') {
+    // SLOW BURN: the tube smouldering — its glow in ember red, breathing slowly + deeply, two embers drifting up off it
+    put(base, ['glass', 'body', 'core', 'hi']); put(C.layer('ve-smoulder'), ['g2', 'g1']);
+    for (const i of [0, 1]) C.layer('ve-spark', `--i:${i}`).g.append(el('circle', { cx: 16 + i * 16, cy: 12 + i * 4, r: 0.9, fill: '#ffb060' }), el('circle', { cx: 16 + i * 16, cy: 12 + i * 4, r: 2, fill: '#ff6a2a', opacity: 0.35 }));
+    return;
+  }
+  if (st === 'beat') {
+    // ON THE BEAT: the glows + the core PULSE on the song's grid on a party night (Fri + Sat, 8 pm – 2 am: --beat / --beat-off from
+    // js/vault/beat-sync.js); any other time a slow, steady glow
+    put(base, ['glass', 'body', 'hi']); put(C.layer('ve-bt'), ['g2', 'g1', 'core']); beatSync(); return;
+  }
   if (o.tube === 'breath') {
     // BREATHING: the glows breathe on their own layer, the body + core on another (the glass + the highlight still)
     put(base, ['glass']); put(C.layer('ve-br-g'), ['g2', 'g1']); put(C.layer('ve-br-b'), ['body', 'core']); put(C.layer(), ['hi']);
     return;
   }
   put(base, ['glass', 'g2', 'g1', 'body', 'core', 'hi']);
+  if (st === 'gold') {
+    // GOLD TUBE: neon in gold glass — + one slow run of white-gold light round it
+    for (const t of tubes) { if (t.noChase) continue; const k = t.k || 1, w = (t.thin ? T * 0.55 : T) / k, len = t.len || lenOf(t.d); C.layer('ve-grun').g.append(el('path', { d: t.d, transform: t.tf, stroke: '#fffbe6', 'stroke-width': (w * 1.05).toFixed(2), 'stroke-dasharray': `${(len * 0.22).toFixed(2)} ${len.toFixed(2)}` })); }
+  }
   if (o.tube === 'chase') {
     // A CHASING LIGHT: the white-hot light in eight short runs round every tube — eight layers, each flashing in turn (opacity only)
     const N = 6;

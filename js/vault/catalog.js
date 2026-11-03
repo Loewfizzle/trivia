@@ -165,6 +165,25 @@ LAB.push(
   { id: 'emb-xmas', kind: 'emblem', tier: 'epic', n: 142, fin: 'neon' },
   { id: 'emb-nye', kind: 'emblem', tier: 'epic', n: 143, fin: 'neon' },
 );
+// THE VAULT 2B — Group 3: THE REST OF THE TUBE STYLES + THE NAME GLOWS
+LAB.push(
+  { id: 'tube-gold', kind: 'tube', tier: 'rare', n: 144 },
+  { id: 'tube-flicker', kind: 'tube', tier: 'rare', n: 145 },
+  { id: 'tube-ember', kind: 'tube', tier: 'uncommon', n: 146 },
+  { id: 'tube-burnt', kind: 'tube', tier: 'rare', n: 147 },
+  { id: 'tube-beat', kind: 'tube', tier: 'epic', n: 148 },
+  { id: 'glow-afterglow', kind: 'glow', tier: 'common', n: 149 },
+  { id: 'glow-ice', kind: 'glow', tier: 'common', n: 150 },
+  { id: 'glow-neon', kind: 'glow', tier: 'uncommon', n: 151 },
+  { id: 'glow-candle', kind: 'glow', tier: 'uncommon', n: 152 },
+  { id: 'glow-frost', kind: 'glow', tier: 'uncommon', n: 153 },
+  { id: 'glow-fire', kind: 'glow', tier: 'rare', n: 154 },
+  { id: 'glow-starlight', kind: 'glow', tier: 'rare', n: 155 },
+  { id: 'glow-tinsel', kind: 'glow', tier: 'rare', n: 156 },
+  { id: 'glow-champagne', kind: 'glow', tier: 'rare', n: 157 },
+  { id: 'glow-prism', kind: 'glow', tier: 'epic', n: 158 },
+  { id: 'glow-glitch', kind: 'glow', tier: 'epic', n: 159 },
+);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.
