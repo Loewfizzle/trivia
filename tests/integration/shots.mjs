@@ -9,6 +9,7 @@
 //   and tubes looked at pixel by pixel. A custom crop in pt: --crop XxYxWxH (a comma separates crops).
 // --page <path?query>: shoot any page of the site instead of the title (e.g. tests/integration/clouds-preview.html?looks=noon), full
 //   length, once its body has data-ready (or after --wait); one shot per size, named by --name (default "page").
+//   --js runs first; --scrolls N = N more shots a viewport lower each, for a page that scrolls inside its own box (THE VAULT 1A).
 // --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
 // --city 2: CITY 2.0, THE HARBOR (docs/harbor.md): adds &city=2 (any extra flag via --qs, e.g. "grid=1" or "force=demo");
 //   --sizes harbor = the six review sizes (four phones upright, a phone sideways, desktop); --safe emulates the iPhone's
@@ -177,7 +178,17 @@ if (PAGE) {
     await p.goto(`${BASE}/${String(PAGE).replace(/^\/+/, '')}`);
     await p.waitForFunction(() => document.body && document.body.dataset.ready, { timeout: 60000 }).catch(() => {});
     await sleep(opt('wait', 0) ? WAIT : 300);
-    await p.screenshot({ path: `${OUT}${opt('name', 'page')}-${w}x${h}.png`, fullPage: true }); await p.close();
+    if (opt('js', '')) { await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message)); await sleep(400); }
+    await p.screenshot({ path: `${OUT}${opt('name', 'page')}-${w}x${h}.png`, fullPage: true });
+    // (--scrolls N: a page whose content scrolls inside its own box (a sheet, the profile's shell) — N more shots, a viewport lower each)
+    for (let i = 1; i <= Number(opt('scrolls', 0)); i++) {
+      const moved = await p.evaluate(() => { const els = [document.scrollingElement, ...document.querySelectorAll('*')].filter(e => e && e.scrollHeight > e.clientHeight + 8 && (getComputedStyle(e).overflowY !== 'visible' || e === document.body || e === document.scrollingElement));
+        const el = els.sort((a, b) => b.scrollHeight - a.scrollHeight)[0]; if (!el) return false; const y0 = el.scrollTop; el.scrollTop += el.clientHeight * 0.85; return el.scrollTop > y0; });
+      if (!moved) break;
+      await sleep(350);
+      await p.screenshot({ path: `${OUT}${opt('name', 'page')}-${w}x${h}-s${i}.png` });
+    }
+    await p.close();
   }
   console.log(`${SIZES.length} page shot(s) in ${OUT}`);
   await browser.close(); process.exit(0);

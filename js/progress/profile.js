@@ -27,7 +27,7 @@ export function progressSections(data, o = {}) {
   const bests = Object.values(s.b || {}).filter(x => x && x.a != null).length;
 
   const level = h('section.pg-panel.pg-prof-lv',
-    h('div.pg-prof-h', h('span', `LEVEL ${L.lvl}`), h('em', L.max ? `${num(s.xp)} XP · THE TOP` : `${num(L.into)} / ${num(L.to - L.from)} XP`)),
+    h('div.pg-prof-h', h('span', `LEVEL ${L.lvl}`), h('em.pg-xp', L.max ? `${num(s.xp)} XP · THE TOP` : `${num(L.into)} / ${num(L.to - L.from)} XP`)),
     h('div.pg-bar', h('i.pg-bar-had', { style: { transform: `scaleX(${L.frac})` } })),
     h('div.pg-band', { style: { marginTop: '9px' } }, h('b', L.band.name), h('em', ` · ${L.band.line}`)));
   const stats = h('section.pg-panel.pg-stats',

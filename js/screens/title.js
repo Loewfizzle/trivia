@@ -477,7 +477,10 @@ export function createTitle() {
 
   function onAnyTap(e) {
     // a tap during the sequence skips to the end (but never swallows a tap on the menu itself)
-    if (!tl || tl.done || e.target.closest('.nd-gate')) return;
+    if (!tl || tl.done || e.target.closest('.nd-gate')) { if (!tl) introTap = e.pointerId ?? true; return; }
+    // (the owner's PROGRESSION B review: a skip-tap is never a CITY tap — it finished the intro on its pointerdown, so its pointerup used to
+    // reach onCityTap and a legendary forced with &lgnow=1 under the finger reacted + took a photo "by itself")
+    introTap = e.pointerId ?? true;
     if (performance.now() - tl.t0 < 250) return;
     skip();
   }
@@ -630,6 +633,19 @@ export function createTitle() {
       import('../profile/events.js').then(m => m.progressEvent('birthday', { tz })).catch(() => {});
     }).catch(e => console.warn('[city extras]', e));
   }
+  // THE VAULT 1A — BRING YOUR CARD: a device with NOTHING saved (no key, no profile) is asked "ALREADY A MEMBER?" — the Home Screen app
+  // (standalone) LEADS with the sheet on its first open; a browser tab gets a quiet pill over the dock. A preview page (&when= / &force= …)
+  // never asks; ?bringcard=1 opens the sheet anyway, ?bringcard=chip shows the pill (the owner's look — nothing happens unless a key is pasted).
+  let bycT = 0;
+  function bringCard() {
+    const q = new URLSearchParams(location.search), force = q.get('bringcard') === '1', chip = q.get('bringcard') === 'chip';
+    if (!force && !chip && ['when', 'tz', 'force', 'wx', 'at', 'preview', 'sgdemo'].some(k => q.get(k))) return;
+    import('../profile/bring.js').then(B => {
+      if (destroyed || (!force && !chip && !B.shouldOffer())) return;
+      if (force || (!chip && B.standalone())) { bycT = setTimeout(() => { if (!destroyed && !document.querySelector('.modal')) B.openBring({ lead: true }); }, 900); return; }
+      if (els.actions && !els.actions.querySelector('.byc-chip')) B.offerChip(els.actions);
+    }).catch(e => console.warn('[bring]', e));
+  }
   function sightDemo() {
     const id = new URLSearchParams(location.search).get('sgdemo');
     if (!id || !createHarbor || !scene || !scene.sightBoxes) return;
@@ -662,6 +678,7 @@ export function createTitle() {
     document.addEventListener('visibilitychange', onVisTitle);
     sightDemo();
     cityExtras();
+    bringCard();
     surgeRetry();     // (FP3a: the music started during the intro → the sign answers now)
   }
 
@@ -1379,8 +1396,13 @@ export function createTitle() {
   // ------------------------------------------------------------------ the living city: taps, and the screen at rest
   // a tap on the city: a sign opens that game's HOW TO PLAY; the moon, the UFO, the cat answer (fx.js); a tap on the
   // main sign makes that tube buzz
-  let down = null;
-  function onCityDown(e) { down = swallowed ? null : { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target }; }
+  let down = null, introTap = null;
+  function onCityDown(e) {
+    // (a touch that began while the gate / the intro was up — it opened or skipped them — never becomes a city tap)
+    if (introTap != null && (introTap === true || introTap === e.pointerId)) { introTap = null; down = null; return; }
+    introTap = null;
+    down = swallowed || !tl || !tl.done ? null : { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target };
+  }
   function onCityUp(e) {
     const d = down; down = null;
     if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || performance.now() - d.t > 600) return;
@@ -1388,7 +1410,7 @@ export function createTitle() {
   }
   function onCityTap(e) {
     if (destroyed || !scene || !tl || !tl.done || swallowed) return;
-    if (e.target.closest('button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel')) return;
+    if (e.target.closest('button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel, .sg-fly, .sg-modal')) return;
     const x = e.clientX, y = e.clientY;
     // (WIN — the spider on the sign is asked BEFORE the letters: a tap on it bolts it down its thread; the letter taps keep the rest of the rect)
     if (scene.spiderHit && scene.spiderHit(x, y)) return;
@@ -1881,7 +1903,7 @@ export function createTitle() {
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
     clearTimeout(sgDemoT); clearTimeout(extrasT);
-    clearTimeout(surgeIv); clearTimeout(beatT); document.removeEventListener('pointerup', armTap, true);
+    clearTimeout(surgeIv); clearTimeout(beatT); clearTimeout(bycT); document.removeEventListener('pointerup', armTap, true);
     document.removeEventListener('visibilitychange', onVisTitle);
     window.removeEventListener('pointerdown', outsideDown, { capture: true });
     if (window.visualViewport) { window.visualViewport.removeEventListener('resize', fitKeyboard); window.visualViewport.removeEventListener('scroll', fitKeyboard); }

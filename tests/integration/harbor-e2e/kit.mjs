@@ -97,7 +97,7 @@ export async function open({ slot = 'h', qs = '', city = true, view = [390, 844]
   if (cores) await p.evaluateOnNewDocument(n => { Object.defineProperty(navigator, 'hardwareConcurrency', { get: () => n }); }, cores);
   if (init) await p.evaluateOnNewDocument(init.fn, init.arg);
   await p.evaluateOnNewDocument((slotName, prof) => {
-    try { localStorage.setItem('nd:entered', '1'); if (prof) localStorage.setItem(`na:${slotName}:profile`, JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
+    try { localStorage.setItem('nd:entered', '1'); localStorage.setItem('nd:byc', 'test'); if (prof) localStorage.setItem(`na:${slotName}:profile`, JSON.stringify({ name: 'AVA', color: 'magenta', avatar: 'bolt' })); } catch { /* fine */ }
   }, slot, profile);
   if (cpu > 1) { const cd = await p.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: cpu }); }
   await p.goto(`${BASE}/?emu&slot=${slot}&${qs}${city ? '&city=2' : ''}`);

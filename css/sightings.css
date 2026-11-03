@@ -17,8 +17,6 @@
 .sg-photo canvas, .sg-photo img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 /* developing: a milky veil over the photo, clearing (opacity only) */
 .sg-dev { position: absolute; inset: 0; background: linear-gradient(180deg, #c9d2cf, #b9c2c6); opacity: 0; pointer-events: none; }
-.sg-pol.is-dev .sg-dev { animation: sg-dev 2.6s cubic-bezier(.4, 0, .3, 1) both; }
-@keyframes sg-dev { 0% { opacity: 1; } 30% { opacity: 0.86; } 100% { opacity: 0; } }
 .sg-cap { height: calc(var(--pw) * 0.24); display: flex; flex-direction: column; justify-content: center; padding: 0 4px 2px;
   font-family: 'Caveat', 'Segoe Print', 'Bradley Hand', 'Marker Felt', cursive; color: #26303f; line-height: 1.02; }
 .sg-cap b { font-weight: 700; font-size: calc(var(--pw) * 0.088); letter-spacing: 0.01em; }
@@ -33,27 +31,32 @@
 @keyframes sg-stamp { 0% { opacity: 0; transform: rotate(-11deg) scale(1.9); } 60% { opacity: 1; transform: rotate(-11deg) scale(0.94); } 100% { opacity: 1; transform: rotate(-11deg) scale(1); } }
 .sg-tag { position: absolute; left: 50%; bottom: calc(var(--pw) * 0.03); transform: translateX(-50%); font: 700 10px/1 var(--font-ui); letter-spacing: 0.16em; color: #8a7f6a; white-space: nowrap; }
 
-/* THE CHIP: the print sliding out of the camera into the corner (above the dock) while the legendary finishes its moment */
-.sg-chip { position: fixed; right: calc(var(--safe-r, 0px) + 14px); bottom: calc(var(--safe-b, 0px) + 132px); z-index: 9050; pointer-events: none;
-  transform: translate3d(0, 0, 0) rotate(4deg); opacity: 0; transition: transform 0.5s cubic-bezier(.2, .9, .3, 1.1), opacity 0.35s ease; }
-.sg-chip .sg-pol { --pw: 84px; }
-.sg-chip .sg-cap { height: 16px; }
-.sg-chip .sg-cap b, .sg-chip .sg-cap span { display: none; }
-.sg-chip.is-in { opacity: 1; transform: translate3d(0, 0, 0) rotate(4deg); }
-.sg-chip.is-from { transform: translate3d(-30vw, 30vh, 0) rotate(-14deg) scale(0.6); opacity: 0; transition: none; }
-.sg-chip.is-out { opacity: 0; transform: translate3d(20px, 30px, 0) rotate(8deg) scale(0.9); }
-.sg-chip .sg-stamp { font-size: 10px; border-width: 2px; right: 3px; top: 44%; padding: 2px 4px 1px; letter-spacing: 0.08em; }
-.sg-chip .sg-stamp small { font-size: 6.5px; letter-spacing: 0.1em; }
+/* THE PARKED PRINT (js/progress/sighting.js#parkPrint): the FULL-SIZE print, scaled into its corner (above the dock) by one transform —
+   it shrinks + glides there out of the flash, parks (TAPPABLE: opens the moment), then grows back from that exact spot (FLIP) */
+.sg-fly { position: fixed; left: 0; top: 0; z-index: 9050; transform-origin: 50% 50%; will-change: transform, opacity; cursor: pointer;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.sg-fly .sg-pol { box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 30px 60px -10px rgba(0, 0, 0, 0.8), 0 4px 12px rgba(0, 0, 0, 0.55); }
+.sg-fly:focus-visible { outline: none; }
+.sg-fly:focus-visible .sg-pol { box-shadow: 0 0 0 10px #e6c47a; }
+/* (the corner's spot — measured once, the print's bottom-right lands here) */
+.sg-corner { position: fixed; right: calc(var(--safe-r, 0px) + 14px); bottom: calc(var(--safe-b, 0px) + 132px); width: 1px; height: 1px; visibility: hidden; pointer-events: none; }
+/* AGAIN: the stamp on the parked print reads at its small size (the print is ~0.27×) */
+.sg-fly .sg-stamp { font-size: calc(var(--pw) * 0.2); top: 38%; border-width: 6px; right: 4%; }
+.sg-fly .sg-stamp small { font-size: 0.5em; }
 
 /* THE MOMENT: the city dimmed behind the print; the pair below it on the reveal; fits ONE screen at 390 × 844 (no scroll, nothing pinned) */
 .sg-modal { position: fixed; inset: 0; z-index: 9060; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.2vh;
-  padding: calc(var(--safe-t, 0px) + 16px) 16px calc(var(--safe-b, 0px) + 16px); background: rgba(3, 3, 9, 0.8); opacity: 0; transition: opacity 0.35s ease;
+  padding: calc(var(--safe-t, 0px) + 16px) 16px calc(var(--safe-b, 0px) + 16px); transition: opacity 0.35s ease;
   -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
-.sg-modal.is-in { opacity: 1; }
+/* (the dim fades on its own layer: the print grown back from the corner stays solid the whole way) */
+.sg-modal::before { content: ''; position: absolute; inset: 0; z-index: -1; background: rgba(3, 3, 9, 0.8); opacity: 0; transition: opacity 0.35s ease; }
+.sg-modal.is-in::before { opacity: 1; }
 .sg-modal.is-out { opacity: 0; transition-duration: 0.28s; }
 .sg-stage { position: relative; display: flex; flex-direction: column; align-items: center; transition: transform 0.6s cubic-bezier(.3, .9, .3, 1); }
 .sg-stage .sg-pol { transform: translate3d(0, 46vh, 0) rotate(-1deg) scale(0.9); opacity: 0; transition: transform 0.9s cubic-bezier(.16, .9, .3, 1), opacity 0.25s ease; }
 .sg-modal.is-print .sg-stage .sg-pol { transform: translate3d(0, 0, 0) rotate(-3deg); opacity: 1; }
+/* (the print that grew back from the corner: already in place — its own FLIP animation carries it) */
+.sg-modal .sg-stage .sg-pol.is-flip { transform: translate(0px, 0px) scale(1) rotate(-3deg); opacity: 1; transition: none; transform-origin: 50% 50%; }
 .sg-modal.is-reveal .sg-stage { transform: translate3d(0, 0, 0) scale(0.7); }
 .sg-head { font: 700 11px/1 var(--font-ui); letter-spacing: 0.32em; color: rgba(255, 236, 200, 0.82); text-transform: uppercase; opacity: 0; transition: opacity 0.4s ease 0.2s; margin-bottom: 1.4vh; }
 .sg-modal.is-print .sg-head { opacity: 1; }
@@ -105,14 +108,14 @@
 .sg-big .sg-x { min-width: 160px; min-height: 46px; }
 @media (prefers-reduced-motion: reduce) {
   .sg-flash.is-on { animation-duration: 0.01s; }
-  .sg-chip, .sg-modal, .sg-stage, .sg-stage .sg-pol, .sg-pair, .sg-go, .sg-hint, .sg-head { transition: none !important; }
-  .sg-pol.is-dev .sg-dev, .sg-stamp.is-on, .sg-modal.is-reveal .sg-item, .sg-modal.is-reveal .sg-card .sg-shine { animation: none !important; }
+  .sg-modal, .sg-modal::before, .sg-stage, .sg-stage .sg-pol, .sg-pair, .sg-go, .sg-hint, .sg-head { transition: none !important; }
+  .sg-stamp.is-on, .sg-modal.is-reveal .sg-item, .sg-modal.is-reveal .sg-card .sg-shine { animation: none !important; }
   .sg-stamp.is-on { opacity: 1; }
 }
 /* (the app's own REDUCED EFFECTS setting — the same as the media query) */
 .sg-still.sg-flash.is-on { animation-duration: 0.01s; }
 .sg-still, .sg-still .sg-stage, .sg-still .sg-stage .sg-pol, .sg-still .sg-pair, .sg-still .sg-go, .sg-still .sg-hint, .sg-still .sg-head { transition: none !important; }
-.sg-still .sg-pol.is-dev .sg-dev, .sg-still .sg-stamp.is-on, .sg-still.is-reveal .sg-item, .sg-still.is-reveal .sg-card .sg-shine { animation: none !important; }
+.sg-still .sg-stamp.is-on, .sg-still.is-reveal .sg-item, .sg-still.is-reveal .sg-card .sg-shine { animation: none !important; }
 .sg-still .sg-stamp.is-on { opacity: 1; }
 /* the album's tiles + the big view */
 .sg-sec .sg-album { margin-top: 10px; }
@@ -130,7 +133,7 @@
 /* PROGRESSION B on the profile: YOUR BIRTHDAY + A FAVOR */
 .sg-bd-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 10px; }
 .sg-bd-day { font: 700 20px/1 var(--font-ui); letter-spacing: 0.04em; color: #f5ecda; }
-.sg-bd-note { margin: 6px 0 0; flex: 1 1 160px; font: italic 500 13px/1.35 Georgia, 'Times New Roman', serif; color: rgba(245, 236, 218, 0.78); }
+.sg-bd-note { margin: 6px 0 0; flex: 1 1 160px; font: 500 14px/1.35 var(--font-ui); color: rgba(245, 236, 218, 0.78); }   /* (no small italic — the owner's PROGRESSION B review) */
 .sg-bd-m, .sg-bd-d { min-height: 44px; font-size: 16px; padding: 0 10px; }
 .sg-bd-m { flex: 1 1 110px; } .sg-bd-d { flex: 0 1 84px; }
 .sg-fv-jacks { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
@@ -144,4 +147,4 @@
 .sg-al-name { font-size: 13px; line-height: 1.15; }
 .sg-item b { font-size: 14px; }
 .sg-big-name { font-size: 17px; }
-.sg-al-pct, .sg-item em { font: 600 11px/1.25 var(--font-ui); letter-spacing: 0.01em; color: #ff6fc4; text-transform: none; }
+.sg-al-pct, .sg-item em { font: 700 12.5px/1.25 var(--font-ui); letter-spacing: 0.01em; color: #ffa6dc; text-transform: none; }   /* (pink only big: bigger + bold, a light pink) */

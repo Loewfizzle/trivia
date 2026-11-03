@@ -364,6 +364,61 @@ G('citylife', async () => {
 // claims); THE SEQUENCE on the owner's preview (&sgdemo — the flash, the REAL polaroid at the phone's dpr, SPOTTED, the pair, held until a
 // tap); reduced motion; the capture never drops a frame (docs/progression.md "CITY SIGHTINGS")
 G('sightings', async () => {
+  // THE VAULT 1A Group 0 — the owner's PROGRESSION B review: on the UFO link WITHOUT a tap the UFO shook + took a photo "by itself" (the tap
+  // that skipped the intro finished it on its pointerdown, so its pointerup reached the city). (1) no tap at all → nothing, the whole time;
+  // (2) a tap DURING the intro, right on the UFO → it only skips the intro: no reaction, no photo
+  { const N = await open({ slot: 'sgnotap', qs: 'when=2026-11-03T22:00&force=ufo&lgnow=1', view: [402, 874] });
+    await harborUp(N.page);
+    const t0 = Date.now(); let up = false, bad = null;
+    while (Date.now() - t0 < 12000) {
+      const r = await ev(N.page, `import('/js/screens/harbor/sight-react.js').then(R => ({ busy: R.busy(), dom: !!document.querySelector('.sg-fly, .sg-modal, .sg-flash'), box: window.__district.sightBoxes().some(b => b.id === 'ufo') }))`);
+      if (r.box) up = true; if (r.busy || r.dom) { bad = r; break; } await sleep(300);
+    }
+    ok(up && !bad, `SIGHTINGS: a forced UFO with NO tap never reacts or takes a photo (12 s up: ${up}${bad ? ` — BAD ${JSON.stringify(bad)}` : ''})`);
+    await N.ctx.close(); }
+  { const K = await open({ slot: 'sgskip', qs: 'when=2026-11-03T22:00&force=ufo&lgnow=1&intro=1', view: [402, 874], wait: false });
+    let b = null, during = false; const t0 = Date.now();
+    while (Date.now() - t0 < 25000 && !b) {
+      const r = await ev(K.page, `(() => { const d = window.__district; if (!d || !d.sightBoxes) return null; const ph = d.phase && d.phase(); const u = d.sightBoxes().find(x => x.id === 'ufo' && x.x + x.rx > 20 && x.x < 378 && x.y > 40 && x.y < 760); return u ? { ...u, done: !!(ph && ph.done) } : null; })()`).catch(() => null);
+      if (r) { b = r; during = !r.done; } else await sleep(60);
+    }
+    // (headless, the UFO is drawn during the intro but still entering from the left: its generous tap box already reaches on screen)
+    if (b) { await tapAt(K.page, Math.max(6, Math.min(396, b.x + (b.x < 6 ? Math.min(b.rx - 8, 30) : 0))), b.y); await sleep(1600); }
+    const r = b ? await ev(K.page, `import('/js/screens/harbor/sight-react.js').then(R => ({ busy: R.busy(), dom: !!document.querySelector('.sg-fly, .sg-modal, .sg-flash'), done: !!window.__district.phase().done }))`) : null;
+    ok(b && r && !r.busy && !r.dom && (r.done || !during), `SIGHTINGS: a tap that skips the intro, right on the UFO, only skips it — no reaction, no photo (${b ? (during ? 'tapped during the intro' : 'the intro was already over — a plain check') : 'no UFO box'} ${JSON.stringify(r)})`);
+    await K.ctx.close(); }
+  // THE PARKED PRINT (the owner: "not smooth"; once it never popped): one element, one eased gesture into the corner; TAPPABLE there; it grows
+  // back from that exact spot — sampled every frame: no jump, no vanish
+  { const F = await open({ slot: 'sgpark', qs: 'when=2026-11-03T22:00&force=ufo&lgnow=1', view: [402, 874] });
+    await harborUp(F.page);
+    let b = null; const t0 = Date.now();
+    while (Date.now() - t0 < 30000 && !b) { const bs = await ev(F.page, 'window.__district.sightBoxes()').catch(() => []); b = (bs || []).find(x => x.id === 'ufo' && x.x > 24 && x.x < 378 && x.y > 40 && x.y < 760) || null; if (!b) await sleep(250); }
+    if (b) {
+      await sleep(6000); const bs = await ev(F.page, 'window.__district.sightBoxes()'); b = bs.find(x => x.id === 'ufo') || b;
+      await ev(F.page, `(() => { window.__pk = []; const f = () => { const fl = document.querySelector('.sg-fly .sg-pol'), mp = document.querySelector('.sg-modal .sg-pol'), el = fl || mp; if (el) { const r = el.getBoundingClientRect(); window.__pk.push({ t: performance.now(), x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, k: fl ? 'fly' : 'modal' }); } if (window.__pk.length < 900) requestAnimationFrame(f); }; requestAnimationFrame(f); return true; })()`);
+      await F.page.mouse.click(b.x, b.y);
+      await waitFor(F.page, `import('/js/progress/sighting.js').then(m => m.last.phase === 'waiting')`, 'the print parked', 9000).catch(() => {});
+      await sleep(900);
+      const fly = await ev(F.page, `(() => { const r = document.querySelector('.sg-fly') && document.querySelector('.sg-fly').getBoundingClientRect(); return r ? { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width } : null; })()`);
+      const tP = Date.now();
+      if (fly) await F.page.mouse.click(fly.x, fly.y);
+      await waitFor(F.page, `import('/js/progress/sighting.js').then(m => m.last.phase === 'polaroid' || m.last.phase === 'spotted' || m.last.phase === 'done')`, 'the tapped print opened', 4000).catch(() => {});
+      const opened = Date.now() - tP;
+      await sleep(900);
+      // (headless rAF times are uneven, so the check is the motion's SHAPE, not a speed: in each leg — out of the flash into the corner, then
+      // the corner into the moment — no single frame covers more than 30 % of the leg, the print only ever closes on its target (no
+      // back-and-forth beyond a settle's few pt), and it is on screen every frame across the hand-over)
+      const pk = await ev(F.page, `(() => { const s = window.__pk || [], o = { n: s.length, step: 0, back: 0, flyN: 0, modN: 0, gap: 0 };
+        const legs = [s.filter(x => x.k === 'fly'), s.filter(x => x.k === 'modal')]; o.flyN = legs[0].length; o.modN = legs[1].length;
+        for (const L of legs) { if (L.length < 3) continue; const e = L[L.length - 1], d0 = Math.hypot(L[0].x - e.x, L[0].y - e.y) || 1; let prev = d0;
+          for (let i = 1; i < L.length; i++) { o.step = Math.max(o.step, Math.hypot(L[i].x - L[i - 1].x, L[i].y - L[i - 1].y) / d0); const d = Math.hypot(L[i].x - e.x, L[i].y - e.y); if (d > prev + 6) o.back++; prev = Math.min(prev, d); } }
+        for (let i = 1; i < s.length; i++) if (s[i].t - s[i - 1].t > 120) o.gap++; return o; })()`);
+      const st = await ev(F.page, `import('/js/progress/sighting.js').then(m => ({ phase: m.last.phase, tapped: !!m.last.tappedPrint }))`);
+      ok(!!fly && fly.w < 110 && st.tapped && opened < 2500, `SIGHTINGS: THE PARKED PRINT sits in its corner (${fly && Math.round(fly.w)} pt wide) and a TAP on it opens the moment at once (${opened} ms, ${JSON.stringify(st)})`);
+      if (SHOTS) await F.page.screenshot({ path: `${OUT}sightings-parked-402x874.png` });
+      okT(pk.flyN > 20 && pk.modN > 10 && pk.step < 0.3 && pk.back === 0 && pk.gap === 0, `SIGHTINGS: THE PARKED PRINT moves as ONE eased gesture — the biggest frame ${(pk.step * 100).toFixed(0)} % of its leg, ${pk.back} reversals, on screen every frame (the corner ${pk.flyN} frames → the moment ${pk.modN} of ${pk.n})`);
+    } else ok(false, 'SIGHTINGS: THE PARKED PRINT — no UFO box');
+    await F.ctx.close(); }
   const CASES = [['ufo', 'when=2026-11-03T22:00&force=ufo&lgnow=1'], ['tr3b', 'when=2026-11-06T22:30&force=tr3b&lgnow=1'], ['f22', 'when=2026-11-04T17:30&force=flyby'],
     ['blackbird', 'when=2026-11-04T15:00&force=blackbird'], ['ghostship', 'when=2026-10-31T21:00&force=ghost-ship'], ['aurora', 'when=2026-11-03T23:00&force=aurora'],
     ['fireball', 'when=2026-11-03T23:00&force=fireball'], ['skull', 'when=2026-10-10T09:00&force=balloon-skull'], ['btc', 'when=2026-10-10T09:00&force=balloon-festival-fast']];
@@ -394,7 +449,7 @@ G('sightings', async () => {
     // (the frames from the tap through the capture: never a dropped one)
     await ev(S.page, `(() => { window.__sgf = []; const f = t => { window.__sgf.push(t); if (window.__sgf.length < 400) requestAnimationFrame(f); }; requestAnimationFrame(f); return true; })()`);
     const seen = new Set(), t0 = Date.now();
-    while (Date.now() - t0 < 40000) { const ph = await ev(S.page, `import('/js/progress/sighting.js').then(m => m.last.phase)`); if (ph) seen.add(ph); if (ph === 'reveal' || ph === 'done') break; await sleep(150); }
+    while (Date.now() - t0 < 40000) { const ph = await ev(S.page, `import('/js/progress/sighting.js').then(m => m.last.phases.slice())`); for (const x of ph || []) seen.add(x); if (seen.has('reveal') || seen.has('done')) break; await sleep(150); }
     await sleep(1500);
     const st = await ev(S.page, `import('/js/progress/sighting.js').then(m => ({ snap: m.last.snap, phase: m.last.phase, held: !!document.querySelector('.sg-modal.is-done.has-pair'), stamp: !!document.querySelector('.sg-modal .sg-stamp.is-on'), photo: !!document.querySelector('.sg-modal .sg-photo canvas'), cap: (document.querySelector('.sg-modal .sg-cap') || {}).textContent || '', pair: [...document.querySelectorAll('.sg-modal .sg-item b')].map(b => b.textContent), scroll: document.querySelector('.sg-modal').scrollHeight <= innerHeight + 1 }))`);
     const gaps = await ev(S.page, `(() => { const t = window.__sgf, g = []; for (let i = 1; i < t.length; i++) g.push(t[i] - t[i - 1]); g.sort((a, b) => a - b); return { n: g.length, med: g[g.length >> 1] || 0, max: g[g.length - 1] || 0 }; })()`);
