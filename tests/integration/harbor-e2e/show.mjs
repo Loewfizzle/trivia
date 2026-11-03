@@ -419,9 +419,11 @@ G('fireworks', async () => {
     const sd = await ev(Q.page, 'window.__district.signDim()');
     ok(f.on && sd.logo === 1 && sd.tag === 1, `THE SIGN STAYS LIT for the show (the owner: the fireworks go off BEHIND it — the sign ${sd.logo}, the tagline ${sd.tag}; asked by: ${sd.by.join(', ') || 'nobody'})`);
     ok(f.synced, `THE PARTY SHOW ON THE PARTY SONG: the bursts synced to the deck's beat grid (${f.synced})`);
-    await waitFor(Q.page, `${F}.lights >= 1`, 'a burst lighting the city', 8000).catch(() => {});
+    // (THE VAULT 2B's cloud run: the check re-sampled AFTER the wait, and on the cloud's software renderer the brief light was gone by then
+    //  — the light the wait SAW counts)
+    const litSeen = await waitFor(Q.page, `${F}.lights >= 1`, 'a burst lighting the city', 8000).then(() => true).catch(() => false);
     f = await ev(Q.page, F);
-    ok(f.sparks > 500 && f.puffs > 4 && f.lights >= 1, `THE SHOW: ${f.shells} shells in the air, ${f.sparks} spark instances on the GPU, ${f.puffs} smoke puffs, ${f.lights} bursts lighting the city`);
+    ok(f.sparks > 500 && f.puffs > 4 && (litSeen || f.lights >= 1), `THE SHOW: ${f.shells} shells in the air, ${f.sparks} spark instances on the GPU, ${f.puffs} smoke puffs, ${f.lights} bursts lighting the city`);
     const pp = await ev(Q.page, `(() => { const m = window.__district.harbor().people.members; return { n: m.length, watch: m.filter(x => ['watch', 'point', 'wave'].includes(x.pose)).length, dance: m.filter(x => x.pose === 'wands').length }; })()`);
     ok(pp.watch >= Math.max(3, pp.n * 0.5) && pp.dance === 0, `THE CROWD STOPS + LOOKS UP: ${pp.watch} of ${pp.n} on the promenade watching the sky, ${pp.dance} dancing`);
     if (SHOTS) await Q.page.screenshot({ path: `${OUT}p10-party-show-402x874.png` });
