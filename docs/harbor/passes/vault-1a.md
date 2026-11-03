@@ -69,11 +69,21 @@ metal, not wood). The textures: 3 WebP at 1050 × 660 (47 + 101 + 335 KB — the
 - **THE INTRO SKIP was the most likely cause** of the photo "by itself" (the only path that turns a non-sighting tap into a sighting); a tap
   for sound that lands ON the craft after the intro is a real tap and still counts — if it happens again, say whether the screen was tapped.
 - HEARTBREAKER has no strip yet (not one of the 8 samples) → 1B.
+- **A test-order dependency (older than this pass):** the profile E2E's "every other row: a house nickname" needs ANOTHER player on THE
+  BOARD; right after the /api tests wipe `lb/` on the emulators it sees only ALICE's row (68/69), and passes once the board has rows again
+  (75/75 on the re-run). Worth seeding a second listed player in the test itself (BOARD 2.0).
 
 ## Hand-off to 1B
 Read `docs/vault-lab-marks.md` first (`node scripts/lab-export.mjs`). APPROVED strips → their full cards (`card-i-want-to-believe.png` is
 the legendary's full-card class); FIX → the note; CUT → gone. Then the rest of the ~40 + the sighting cards on the same library (start
 from the city's own effects: the aurora, lightning, skywrite smoke, fireworks) + names / art served only to owners.
+
+## THE FULL LOCAL RUN (the mini PC, Nov 3)
+unit 1073/1073 · rules 58/58 (the rules file unchanged — no re-publish) · /api: server 29/29, progression 9/9, sightings 4/4, lab 2/2 ·
+smoke 6/6 · the profile E2E 75/75 · THE FULL HARBOR SUITE 894/897 at 4 shards (~21.5 min): the three reds re-run ALONE — the desktop resize,
+the music's A CALL + partysync all GREEN alone (side-load timing); **LOAD WEATHER "a stored JUST ME jump into a holiday night" fails alone
+on the PRE-PASS build too** (c212047, served from a worktree — 14/15 there, the same check): an existing failure, not this pass's (likely
+the date — Nov 3, the jump into a holiday night); the vault group 5/5, sightings 10/10.
 
 ## Tests (this pass)
 unit `tests/vault.test.mjs` (6) · `lab.test.mjs` (2 — /api on the emulators) · rules + the marks (58/58; the rules FILE unchanged — no
