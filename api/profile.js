@@ -7,6 +7,9 @@
 //   rename  { name }                 → { profile } | 429 { until }
 //   show    { on }                   → { priv }              "Show me on global leaderboards"
 //   sighting { id, t, tz }           → { ok, counted, n, total, first, items, ach } | { ok: false, why }   (PROGRESSION B — CITY SIGHTINGS)
+//   birthday { m, d }                → { bd, until }         month + day (never the year), private, changeable once a year
+//   birthdayRoom { room, tz }        → the room's HAPPY BDAY skywrite (dormant until LOBBY 2.0)
+//   favor    { jack, room, text?, colour?, show? } → { moment, spent }   CALL IN A FAVOR (a FAVOR token → one crew jack for the room)
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
 import { ITEM, STARTER } from '../js/core/items.js';
 import { carryOver } from '../js/core/progress.js';
@@ -19,7 +22,12 @@ import { founderOpen } from './_lib/founder.js';
 import { progressEvent } from './_lib/events.js';
 import { placeOf, skyFor, kpNow } from './sky.js';
 import { claimSighting } from './_lib/sightings.js';
+import { setBirthday, birthdayRoom } from './_lib/birthday.js';
+import { callFavor } from './_lib/favors.js';
 import { weekKey } from '../js/core/week.js';
+
+/** the IP's zone (Vercel's header; tests: the body's, only without a request) */
+const ipTzOf = (req, body) => (req ? (req.headers && req.headers['x-vercel-ip-timezone'] ? decodeURIComponent(String(req.headers['x-vercel-ip-timezone'])) : null) : (body && body.ipTz) || null);
 
 async function mine(uid) {
   const pid = await pidOf(uid);
@@ -60,7 +68,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       }
       const s = stats || {};
       const wk = weekKey(now);
-      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0, bd: s.bd || null } };
+      return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
     }
     case 'ranks': {
       const pid = await mine(uid);
@@ -99,7 +107,11 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
       for (const id of Object.keys(ach || {})) out.a[id] = pctOf(oc.a[id], oc.n);
       return { pct: out, n: oc.n };
     }
-    case 'event': return progressEvent(await mine(uid), String(body.ev || ''), { place: req ? placeOf(req) : (body.place || null), skyFor }, now);
+    case 'event': return progressEvent(await mine(uid), String(body.ev || ''), { place: req ? placeOf(req) : (body.place || null), skyFor, tz: body.tz || null, ipTz: ipTzOf(req, body) }, now);
+    // PROGRESSION B — BIRTHDAYS (month + day, private, once a year) + the room's skywrite (dormant until LOBBY 2.0) + CALL IN A FAVOR
+    case 'birthday': return setBirthday(await mine(uid), body, now);
+    case 'birthdayRoom': return birthdayRoom(await mine(uid), uid, body, { ipTz: ipTzOf(req, body) }, now);
+    case 'favor': return callFavor(await mine(uid), uid, body, now);
     // PROGRESSION B — CITY SIGHTINGS: a tap on a legendary (server-verified: api/_lib/sightings.js)
     case 'sighting': return claimSighting(await mine(uid), uid, body, { req, placeOf, kpNow, place: req ? undefined : (body.place || null), ipTz: req ? undefined : (body.ipTz || null) }, now);
     case 'show': { const pid = await mine(uid); await setShown(pid, !!body.on); return { priv: await privateInfo(pid) }; }

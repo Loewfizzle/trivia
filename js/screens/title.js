@@ -600,7 +600,34 @@ export function createTitle() {
 
   // PROGRESSION B — THE OWNER's SIGHTING PREVIEW (&sgdemo=<id>, with its legendary forced): once it's in view, the first-time sequence plays
   // on its own — the reaction, the flash, the REAL polaroid, SPOTTED, the reveal — never claimed, never kept
-  let sgDemoT = 0;
+  let sgDemoT = 0, extrasT = 0;
+  // PROGRESSION B — THIS PHONE's OWN MOMENTS on its city (harbor/remote.js#localMoments — played once, like a fired one):
+  //   a favor's JUST ME preview (the profile hands it over: sessionStorage nd:local-moment) and, ON THE BIRTHDAY (month + day — the phone's
+  //   copy, nd:bd), the HAPPY BDAY <NAME> skywrite the first time the city opens that day (+ MANY HAPPY RETURNS, server-checked). A
+  //   preview page (&when= / &force= …) never plays the birthday.
+  function cityExtras(n = 0) {
+    if (destroyed || !createHarbor) return;
+    if (!remote || !remote.localMoments) { if (n < 40) extrasT = setTimeout(() => cityExtras(n + 1), 500); return; }
+    Promise.all([import('../core/birthday.js'), import('../progress/extras.js'), import('../firebase.js')]).then(([B, X, F]) => {
+      if (destroyed || !remote) return;
+      const srv = () => { try { return F.serverNow(); } catch { return Date.now(); } };
+      let hand = null; try { hand = JSON.parse(sessionStorage.getItem('nd:local-moment') || 'null'); sessionStorage.removeItem('nd:local-moment'); } catch { /* fine */ }
+      if (hand && hand.jack && Date.now() - (hand.at || 0) < 10 * 60e3) {
+        const at = srv() + 2500;
+        remote.localMoments([{ id: `favor-pv-${hand.at}`, jack: hand.jack, at, until: at + 90e3, text: hand.text || null, colour: hand.colour || 'ff6fd0' }]);
+      }
+      const q = new URLSearchParams(location.search), preview = ['when', 'tz', 'force', 'wx', 'speed', 'at', 'preview', 'sgdemo'].some(k => q.get(k));
+      const bd = X.storedBirthday(), tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })();
+      if (!bd || preview || !B.isBirthdayOn(bd, srv(), tz)) return;
+      const key = B.dayKeyOf(srv(), tz);
+      let seen = null; try { seen = localStorage.getItem('nd:bday-sky'); } catch { /* fine */ }
+      if (seen === key) return;
+      try { localStorage.setItem('nd:bday-sky', key); } catch { /* fine */ }
+      const at = srv() + 3500, name = (loadProfile() || {}).name || '';
+      remote.localMoments([{ id: `bday-${key}`, jack: 'skywrite', at, until: at + 90e3, text: B.bdayText(name), colour: 'ff6fd0' }]);
+      import('../profile/events.js').then(m => m.progressEvent('birthday', { tz })).catch(() => {});
+    }).catch(e => console.warn('[city extras]', e));
+  }
   function sightDemo() {
     const id = new URLSearchParams(location.search).get('sgdemo');
     if (!id || !createHarbor || !scene || !scene.sightBoxes) return;
@@ -632,6 +659,7 @@ export function createTitle() {
     armIdle();
     document.addEventListener('visibilitychange', onVisTitle);
     sightDemo();
+    cityExtras();
     surgeRetry();     // (FP3a: the music started during the intro → the sign answers now)
   }
 
@@ -1850,7 +1878,7 @@ export function createTitle() {
     window.removeEventListener('pointermove', onMouse); if (hoverRaf) cancelAnimationFrame(hoverRaf); hoverRaf = 0;
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
-    clearTimeout(sgDemoT);
+    clearTimeout(sgDemoT); clearTimeout(extrasT);
     clearTimeout(surgeIv); clearTimeout(beatT); document.removeEventListener('pointerup', armTap, true);
     document.removeEventListener('visibilitychange', onVisTitle);
     window.removeEventListener('pointerdown', outsideDown, { capture: true });

@@ -29,8 +29,9 @@ export function sampleProfile(q = new URLSearchParams()) {
   const n = Number(q.get('streak') || 7);
   return {
     pid: 'ppreview00000',
+    priv: { bd: q.get('bd') === '0' ? null : { m: 11, d: 3 }, bdAt: Date.UTC(2027, 10, 1) },
     profile: { n: NAME, t: '0042', a: 'diamond', c: 'magenta', x: xp, at: Date.UTC(2026, 9, 3), s: n, sd: null, cd: q.get('card') || null, g: null, fd: true },
-    stats: { xp, g: { prism: { p: 81, w: 27 }, overclock: { p: 47, w: 14 } }, b: { 'prism-rush': { a: 1 }, 'overclock-std': { a: 1 }, x1: { a: 1 }, x2: { a: 1 }, x3: { a: 1 }, x4: { a: 1 } }, st: sampleStreak(n, q.get('state') || 'lit'), it, ac, sg: { ufo: 3, skull: 1, btc: 2 } },
+    stats: { xp, g: { prism: { p: 81, w: 27 }, overclock: { p: 47, w: 14 } }, b: { 'prism-rush': { a: 1 }, 'overclock-std': { a: 1 }, x1: { a: 1 }, x2: { a: 1 }, x3: { a: 1 }, x4: { a: 1 } }, st: sampleStreak(n, q.get('state') || 'lit'), it, ac, sg: { ufo: 3, skull: 1, btc: 2 }, fv: Number(q.get('fv') || 1) },
   };
 }
 /** the outcome a match gives (the server's shape): 2nd of 4, a level-up 24 → 25 (its reward: MIDNIGHT & CHAMPAGNE), the streak, TOP SHELF (+ BRUSHED GOLD) */
@@ -91,7 +92,7 @@ export async function preview(view, q = new URLSearchParams(), root = null) {
       for (const it of ITEMS.filter(x => x.kind === 'card')) host.append(h('div.lbl', `${it.name} · ${it.tier.toUpperCase()}`), gildedCard(data.profile, {}, { card: it.id, st: data.stats.st }));
     } else {
       host.append(gildedCard(data.profile, {}, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
-      if (view === 'profile' || !root) host.append(h('div.pg-prof', ...progressSections(data, { name: NAME, onFlame: () => openStreakCard(data.stats.st), onWear: (slot, id) => { if (slot === 'card') { data.profile.cd = id; host.replaceChildren(); preview(view, new URLSearchParams({ ...Object.fromEntries(q), card: id }), host); } } })));
+      if (view === 'profile' || !root) host.append(h('div.pg-prof', ...progressSections(data, { name: NAME, preview: true, onFlame: () => openStreakCard(data.stats.st), onWear: (slot, id) => { if (slot === 'card') { data.profile.cd = id; host.replaceChildren(); preview(view, new URLSearchParams({ ...Object.fromEntries(q), card: id }), host); } } })));
     }
     window.__pg = { host };
     return host;

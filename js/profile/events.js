@@ -22,8 +22,9 @@ async function told(r) {
   } catch { /* polish */ }
 }
 
-export function progressEvent(ev, { again = false } = {}) {
+export function progressEvent(ev, { again = false, tz = null } = {}) {
   if ((!again && sent.has(ev)) || !myPid()) return;
   sent.add(ev);
-  api('profile', { action: 'event', ev }).then(r => { if (r && ((r.ach && r.ach.length) || (r.items && r.items.length))) told(r); }).catch(() => {});
+  // (tz: the city's zone — the birthday's "today"; the server weighs it against the IP's)
+  api('profile', { action: 'event', ev, tz: tz || (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })() }).then(r => { if (r && ((r.ach && r.ach.length) || (r.items && r.items.length))) told(r); }).catch(() => {});
 }

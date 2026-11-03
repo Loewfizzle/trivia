@@ -70,6 +70,7 @@ async function fire(me, role, uid, body, now) {
   if (pre.req.aud === 'room') {
     const meta = await val(`rooms/${pre.req.room}/meta`);
     if (!meta) throw new ApiError(404, 'no_room', 'That room is closed.');
+    if (role === 'favor') need(!!(await val(`rooms/${pre.req.room}/players/${uid}`)), 'not_in_room', 'A favor is for the room you are in.');
     if (role === 'crew') {
       need(!!(await val(`rooms/${pre.req.room}/players/${uid}`)), 'not_in_room', 'You can only fire in the lobby you are in.');
       const R = await crewOfRoom(pre.req.room);
@@ -86,7 +87,7 @@ async function fire(me, role, uid, body, now) {
   if (!run.ok) throw new ApiError(409, 'cant_now', run.note);
   // THE CREW's limits (loose, per room per night)
   const night = nightKey(now, home.tz), limPath = req.aud === 'room' ? `radio/limits/${req.room}/${night}` : null;
-  if (role === 'crew') { const c = crewCheck(req.jack, await val(limPath), now); if (!c.ok) throw new ApiError(429, c.why, c.note); }
+  if (role === 'crew' || role === 'favor') { const c = crewCheck(req.jack, await val(limPath), now); if (!c.ok) throw new ApiError(429, c.why, c.note); }
   const Q = await queue(now);
   if (Q.filter(m => m.state === 'q' || m.state === 'run').length >= K.queueMax) throw new ApiError(429, 'queue_full', 'The queue is full — wait for one to finish.');
   const m0 = { jack: req.jack, aud: req.aud, room: req.room, by: me, role };
@@ -101,7 +102,7 @@ async function fire(me, role, uid, body, now) {
     for (const mv of P.moved) { const x = Q.find(y => y.id === mv.id); if (x && x.aud === 'room') { up[`rooms/${x.room}/radio/${mv.id}/at`] = mv.at; up[`rooms/${x.room}/radio/${mv.id}/until`] = mv.until; } }
   }
   up[`radio/fired/${id}`] = { jack: m.jack, at: m.at, until: m.until, len: lenOf(req), made: now, local: m.local || null, aud: m.aud, room: m.room || null, role, by: me, sight: role === 'owner' && m.aud !== 'me' };   // (PROGRESSION B: + until / len / made / local — core/sightings.js#radioWindows reads them)
-  if (role === 'crew' && limPath) {
+  if ((role === 'crew' || role === 'favor') && limPath) {
     const lg = (await val(limPath)) || {}, j = jackDef(m.jack);
     up[`${limPath}/counts/${j.limit}`] = ((lg.counts && lg.counts[j.limit]) || 0) + 1;
     up[`${limPath}/lastEnd`] = m.until;
@@ -110,6 +111,9 @@ async function fire(me, role, uid, body, now) {
   await audit(me, 'radioFire', { b: words(m).slice(0, 140), role, aud: m.aud });
   return { moment: { id, ...m, wait: P.wait } };
 }
+
+/** PROGRESSION B — CALL IN A FAVOR: fire ONE crew jack for the caller's room as role 'favor' (the token: api/_lib/favors.js) */
+export async function favorMoment(me, uid, body, now = Date.now()) { return fire(me, 'favor', uid, { ...body, aud: 'room' }, now); }
 
 /** STOP { id } — the owner: anything; the crew: their own */
 async function stop(me, role, body, now) {

@@ -28,8 +28,8 @@ function print(src, cap, tilt) {
 /** → the section element (or null: nothing spotted yet — the profile shows no empty album, no hint) */
 export function albumSection(stats) {
   const own = ownedSightings(stats);
-  if (!own.length) return null;
   sheet();
+  if (!own.length) return null;
   const grid = h('div.sg-album');
   const tiles = new Map();
   own.forEach((s, i) => {

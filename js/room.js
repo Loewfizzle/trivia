@@ -178,6 +178,15 @@ const resumeSaved = joining(async session => {
   }
 });
 
+function birthdayRoom(code) {
+  let bd = null; try { bd = JSON.parse(localStorage.getItem('nd:bd') || 'null'); } catch { /* fine */ }
+  if (!bd || !bd.m) return;
+  setTimeout(() => Promise.all([import('./core/birthday.js'), import('./profile/api.js')]).then(([B, A]) => {
+    const tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })();
+    if (!B.isBirthdayOn(bd, serverNow(), tz)) return;
+    return A.api('profile', { action: 'birthdayRoom', room: code, tz });
+  }).catch(() => {}), 3000);
+}
 function enterRoom(code) {
   want('room');
   stopListening();
@@ -207,6 +216,9 @@ function enterRoom(code) {
     healPresence(code, presence);
   });
   listen('night', night => setState({ night: night || {} }));
+  // PROGRESSION B — BIRTHDAYS: on the player's birthday the server writes the room's HAPPY BDAY skywrite (once a day a room — DORMANT
+  // until LOBBY 2.0 makes the lobby the live city; its phones play it then). Polish: only with a birthday on this phone, never waits.
+  birthdayRoom(code);
   // CC-B — THE INTERCOM in a lobby (rooms/{CODE}/radio — written by the server only; LOBBY ONLY + EVERYONE's lobby copy): its phones start it
   // TOGETHER on the server clock; a phone in a game holds it (audio/intercom.js). The player loads only when an announcement is there.
   // CC-B — THE CREW: ONE RADIO PER LOBBY (the hand-over + an ask — server-written; screens/harbor/radio.js reads it from the store)

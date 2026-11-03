@@ -10,6 +10,7 @@ import { ownedOf, ITEM, TIER_NAMES } from '../core/items.js';
 import { itemSwatch } from './moment.js';
 import { num, pctFor, pctLine, flameIcon } from './look.js';
 import { albumSection } from './album-view.js';
+import { birthdayPanel, favorPanel } from './extras.js';
 
 const sum = (g, k) => Object.values(g || {}).reduce((a, x) => a + ((x && x[k]) || 0), 0);
 
@@ -60,7 +61,8 @@ export function progressSections(data, o = {}) {
     ...(row('card', 'card') || []), ...(row('glow', 'glow') || []), ...(row('tube', 'tube') || []), ...(row('emblem', 'shape') || []),
     h('p.pg-only', 'Only what you own — the rest is for you to find.'));
   const album = albumSection(s);
-  const els = [level, stats, streak, ach, album, vault].filter(Boolean);
+  const extras = [favorPanel(data, o), data.priv || o.birthday ? birthdayPanel(data, o) : null];
+  const els = [level, stats, streak, ach, album, vault, ...extras].filter(Boolean);
   pctFor().then(P => { for (const e of els) e.querySelectorAll('.pg-pct').forEach(x => { x.textContent = pctLine(P.a[x.dataset.a]); }); }).catch(() => {});
   return els;
 }

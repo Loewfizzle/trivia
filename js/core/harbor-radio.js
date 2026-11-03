@@ -29,6 +29,9 @@ export const jackDef = id => { if (!JMAP) JMAP = new Map(jacks().map(j => [j.id,
 export const ROLES = Object.freeze({
   owner: Object.freeze({ id: 'owner', label: 'THE OWNER', audiences: AUDIENCES, dial: true, queue: true, stats: true, stopAny: true, clearAll: true, limited: false, sightings: true }),
   crew: Object.freeze({ id: 'crew', label: 'THE CREW', audiences: Object.freeze(['room']), dial: false, queue: false, stats: false, stopAny: false, clearAll: false, limited: true, sightings: false }),
+  // PROGRESSION B — CALL IN A FAVOR: a player's earned FAVOR token fires ONE of the crew's jacks for THE ROOM THEY'RE IN (the crew's limits;
+  // never a sighting; one token a moment, spent only when the server accepts it — api/_lib/favors.js)
+  favor: Object.freeze({ id: 'favor', label: 'A FAVOR', audiences: Object.freeze(['room']), dial: false, queue: false, stats: false, stopAny: false, clearAll: false, limited: true, sightings: false }),
 });
 /** may `role` use this jack? (the owner: every one; the crew: the rows marked crew — never the billboard, party, dance, the dial) */
 export function roleJack(role, jackId) {
@@ -36,6 +39,8 @@ export function roleJack(role, jackId) {
   if (!R || !j) return false;
   return role === 'owner' ? true : !!j.crew;
 }
+/** PROGRESSION B — CALL IN A FAVOR: the jacks a favor can call (the crew's) */
+export const favorJacks = () => jacks().filter(j => j.crew);
 /** may `role` aim at this audience? */
 export const roleAudience = (role, aud) => !!ROLES[role] && ROLES[role].audiences.includes(aud);
 /** a role's other powers: 'dial' | 'queue' | 'stats' | 'stopAny' | 'clearAll' */
@@ -200,7 +205,7 @@ export function startOf(m) {
 }
 /** the public copy of a moment a phone may see (no pid, no role): { id, jack, at, until, text, colour, show, dance, local, aud, by: 'owner' | 'crew' } */
 export function publicMoment(id, m) {
-  return { id, jack: m.jack, at: m.at, until: m.until, text: m.text || null, colour: m.colour || null, show: m.show || null, dance: m.dance || null, local: m.local || null, aud: m.aud, state: m.state, by: m.role === 'owner' ? 'owner' : 'crew' };
+  return { id, jack: m.jack, at: m.at, until: m.until, text: m.text || null, colour: m.colour || null, show: m.show || null, dance: m.dance || null, local: m.local || null, aud: m.aud, state: m.state, by: m.role === 'owner' ? 'owner' : m.role === 'favor' ? 'favor' : 'crew' };
 }
 /** AT A TIME: a local hour in EACH viewer's own time → this phone's start (ms) for a moment of `len` s set for { h, mi } on the day it
  *  was made (dayMs: the phone's local midnight of that day); a time already gone today → tomorrow's */

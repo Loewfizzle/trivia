@@ -5,12 +5,15 @@
 //   watch       THE WATCHER's hour → PATIENCE PAYS, only if the server's own clock says ≥ 55 min since watchStart (≤ 6 h)
 //   weather     right after a match: the REAL weather where the phone is (Vercel's IP location → /api/sky's cached Open-Meteo answer —
 //               never the phone's word) is a thunderstorm → RAINMAKER / snow → SNOWED IN; only with a counted match in the last 3 h
-// CITY SIGHTINGS + birthdays are PROGRESSION B's (server-verified there); their checks are built + tested with a fake trigger, dormant.
+//   birthday    PROGRESSION B: MANY HAPPY RETURNS — only when it IS the stored birthday (ppriv/{pid}/bd) in the player's zone (api/_lib/birthday.js)
+// CITY SIGHTINGS are their own action (api/_lib/sightings.js).
 import { ref, val } from './fb.js';
 import { ApiError } from './http.js';
 import { bumpOwners } from './owners.js';
 import { founderOpen } from './founder.js';
 import { eventStep } from '../../js/core/progress.js';
+import { birthdayOf, zoneFor } from './birthday.js';
+import { isBirthdayOn } from '../../js/core/birthday.js';
 
 export const WATCH_MS = 55 * 60_000;
 const PLAYED_WITHIN_MS = 3 * 3600_000;
@@ -26,7 +29,7 @@ async function apply(pid, ev, now) {
 }
 
 /** → { ok, items, ach, why? } */
-export async function progressEvent(pid, ev, { place = null, skyFor = null } = {}, now = Date.now()) {
+export async function progressEvent(pid, ev, { place = null, skyFor = null, tz = null, ipTz = null } = {}, now = Date.now()) {
   switch (ev) {
     case 'knock': return apply(pid, { k: 'knock' }, now);
     case 'watchStart': {
@@ -47,6 +50,11 @@ export async function progressEvent(pid, ev, { place = null, skyFor = null } = {
       if (kind === 'storm') return apply(pid, { k: 'storm' }, now);
       if (kind === 'snow') return apply(pid, { k: 'snow' }, now);
       return { ok: true, items: [], ach: [], why: kind || 'no_weather' };
+    }
+    case 'birthday': {
+      const bd = await birthdayOf(pid);
+      if (!isBirthdayOn(bd, now, zoneFor(tz, ipTz, now))) return { ok: false, items: [], ach: [], why: 'not_today' };
+      return apply(pid, { k: 'birthday' }, now);
     }
     default: throw new ApiError(400, 'bad_event');
   }
