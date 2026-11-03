@@ -4,7 +4,9 @@
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LAB } from '../js/vault/catalog.js';
+import { LAB, registerLabText } from '../js/vault/catalog.js';
+import { LAB_TEXT } from '../api/_lib/lab-text.js';   // (THE VAULT 1B moved the names server-side: read them locally)
+registerLabText(LAB_TEXT);
 
 const base = (process.argv[2] || 'https://www.neonspeakeasy.com').replace(/\/$/, '');
 const r = await fetch(`${base}/api/admin?lab=export`, { cache: 'no-store' });

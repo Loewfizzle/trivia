@@ -224,6 +224,30 @@ function softSprite(col, size = 64, stops = [[0, 1], [0.25, 0.55], [0.6, 0.14], 
   return cv;
 }
 
+/** THE SHIP's ART at k pt a unit, dpr px a pt → { body, lines, glow, k, dpr, w, h } (pt) — the city's bake, + THE VAULT 1C's card */
+export function ghostArt(k, dpr) {
+  const pu = k * dpr, w = (BX1 - BX0) * pu, h = (BU1 - BU0) * pu;
+  LW = Math.max(1, Math.min(3.2, 0.75 / (0.06 * pu)));
+  // TWO PASSES of the same art: the FILLS (translucent cloth + timber, drawn over the city) and the LINES (the spectral edges, the
+  // rigging, the lit ports — drawn ADDITIVELY: the ghost's light on top of the city's); a pass skips the other's calls
+  const body = mk(w, h), lines = mk(w, h);
+  for (const [cv, mode] of [[body, 'fill'], [lines, 'line']]) {
+    const x = safeCtx(cv);
+    if (mode === 'fill') { x.stroke = () => {}; x.strokeRect = () => {}; }
+    x.setTransform(pu, 0, 0, -pu, -BX0 * pu, BU1 * pu);
+    paintShip(x, mode);
+    x.setTransform(1, 0, 0, 1, 0, 0);
+  }
+  // the glow: the body down-sampled twice + back up (a soft bloom of its own light; no canvas filter — Safari-safe)
+  const s1 = mk(w / 6, h / 6), s2 = mk(w / 3, h / 3), glow = mk(w / 2, h / 2);
+  const a = safeCtx(s1); a.imageSmoothingEnabled = true; a.drawImage(body, 0, 0, s1.width, s1.height); a.drawImage(lines, 0, 0, s1.width, s1.height);
+  const b = safeCtx(s2); b.imageSmoothingEnabled = true; b.drawImage(s1, 0, 0, s2.width, s2.height); b.globalAlpha = 0.6; b.drawImage(body, 0, 0, s2.width, s2.height);
+  const g = safeCtx(glow); g.imageSmoothingEnabled = true; g.drawImage(s2, 0, 0, glow.width, glow.height);
+  g.globalCompositeOperation = 'source-in'; g.fillStyle = 'rgb(90,255,160)'; g.fillRect(0, 0, glow.width, glow.height);
+  s1.width = s1.height = s2.width = s2.height = 0;
+  return { body, lines, glow, k, dpr, w: w / dpr, h: h / dpr };
+}
+
 export function createGhostShip() {
   let spr = null, sprKey = '';               // { body, glow, k, dpr }
   let mist = [], motes = [], lastT = -1, playedCreak = -1, playedBell = -1, playedBell2 = -1, cur = null, frames = 0;
@@ -235,30 +259,10 @@ export function createGhostShip() {
     const key = `${k.toFixed(3)}|${dpr}`;
     if (spr && sprKey === key) return spr;
     sprKey = key;
-    const pu = k * dpr, w = (BX1 - BX0) * pu, h = (BU1 - BU0) * pu;
-    LW = Math.max(1, Math.min(3.2, 0.75 / (0.06 * pu)));
-    // TWO PASSES of the same art: the FILLS (translucent cloth + timber, drawn over the city) and the LINES (the spectral edges, the
-    // rigging, the lit ports — drawn ADDITIVELY: the ghost's light on top of the city's); a pass skips the other's calls
     if (spr) { for (const cv of [spr.body, spr.lines, spr.glow]) cv.width = cv.height = 0; }
-    const body = mk(w, h), lines = mk(w, h);
-    for (const [cv, mode] of [[body, 'fill'], [lines, 'line']]) {
-      const x = safeCtx(cv);
-      if (mode === 'fill') { x.stroke = () => {}; x.strokeRect = () => {}; }
-      x.setTransform(pu, 0, 0, -pu, -BX0 * pu, BU1 * pu);
-      paintShip(x, mode);
-      x.setTransform(1, 0, 0, 1, 0, 0);
-    }
-    // the glow: the body down-sampled twice + back up (a soft bloom of its own light; no canvas filter — Safari-safe)
-    const s1 = mk(w / 6, h / 6), s2 = mk(w / 3, h / 3), glow = mk(w / 2, h / 2);
-    const a = safeCtx(s1); a.imageSmoothingEnabled = true; a.drawImage(body, 0, 0, s1.width, s1.height); a.drawImage(lines, 0, 0, s1.width, s1.height);
-    const b = safeCtx(s2); b.imageSmoothingEnabled = true; b.drawImage(s1, 0, 0, s2.width, s2.height); b.globalAlpha = 0.6; b.drawImage(body, 0, 0, s2.width, s2.height);
-    const g = safeCtx(glow); g.imageSmoothingEnabled = true; g.drawImage(s2, 0, 0, glow.width, glow.height);
-    g.globalCompositeOperation = 'source-in'; g.fillStyle = 'rgb(90,255,160)'; g.fillRect(0, 0, glow.width, glow.height);
-    s1.width = s1.height = s2.width = s2.height = 0;
-    spr = { body, lines, glow, k, dpr, w: w / dpr, h: h / dpr };
+    spr = ghostArt(k, dpr);
     return spr;
   }
-
   /** where the ship is this frame (or null): env { L, cam, W, lc (LK.local), nowS, since (&force's start, s) | null, motion } */
   function place(env) {
     const run = env.since != null ? ghostForced(env.nowS, env.since) : ghostShipAt(env.lc);

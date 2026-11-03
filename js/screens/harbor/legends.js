@@ -1064,3 +1064,5 @@ export function createLegends({ clock, qp } = {}) {
     destroy() { for (const s of [saucer, beam, tri]) if (s) s.cv.width = 0; triOverlayFree(); jets.destroy(); },
   };
 }
+// THE VAULT 1C — LIGHTS OUT's card draws THIS craft (the hull, its corners, its circuitry) — the city's own, never a second version
+export { tr3bSprite, tr3bCorners, circuit, along, HUB_R, EDGE_LAMPS };

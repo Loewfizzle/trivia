@@ -3,6 +3,23 @@
 // 10:23 pm) + the two test emblems. A NEW card / emblem plugs in with a row here (+ its look in js/vault/strip.js + its item in
 // core/items.js); it ships to players only once the owner APPROVES it in the lab (js/vault/approved.js).
 export const LAB = [
+  // THE VAULT 1C — THE 8 SIGHTING CARDS (first in the lab: the owner marks them first) — strips, then their full cards
+  { id: 'card-sg-tr3b', kind: 'card', tier: 'legendary', n: 34 },
+  { id: 'card-sg-blackbird', kind: 'card', tier: 'legendary', n: 35 },
+  { id: 'card-sg-f22', kind: 'card', tier: 'legendary', n: 36 },
+  { id: 'card-sg-ghostship', kind: 'card', tier: 'legendary', n: 37 },
+  { id: 'card-sg-aurora', kind: 'card', tier: 'legendary', n: 38 },
+  { id: 'card-sg-fireball', kind: 'card', tier: 'legendary', n: 39 },
+  { id: 'card-sg-skull', kind: 'card', tier: 'legendary', n: 40 },
+  { id: 'card-sg-btc', kind: 'card', tier: 'legendary', n: 41 },
+  { id: 'full-card-sg-tr3b', kind: 'full', of: 'card-sg-tr3b', tier: 'legendary', n: 42 },
+  { id: 'full-card-sg-blackbird', kind: 'full', of: 'card-sg-blackbird', tier: 'legendary', n: 43 },
+  { id: 'full-card-sg-f22', kind: 'full', of: 'card-sg-f22', tier: 'legendary', n: 44 },
+  { id: 'full-card-sg-ghostship', kind: 'full', of: 'card-sg-ghostship', tier: 'legendary', n: 45 },
+  { id: 'full-card-sg-aurora', kind: 'full', of: 'card-sg-aurora', tier: 'legendary', n: 46 },
+  { id: 'full-card-sg-fireball', kind: 'full', of: 'card-sg-fireball', tier: 'legendary', n: 47 },
+  { id: 'full-card-sg-skull', kind: 'full', of: 'card-sg-skull', tier: 'legendary', n: 48 },
+  { id: 'full-card-sg-btc', kind: 'full', of: 'card-sg-btc', tier: 'legendary', n: 49 },
   { id: 'card-brushed', kind: 'card', tier: 'common', n: 1 },
   { id: 'card-smoke', kind: 'card', tier: 'uncommon', n: 2 },
   { id: 'card-frostbite', kind: 'card', tier: 'uncommon', n: 3 },

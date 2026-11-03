@@ -34,19 +34,20 @@ export function albumSection(stats) {
   const tiles = new Map();
   own.forEach((s, i) => {
     const tilt = [-2.2, 1.6, -1, 2.4, -1.8, 1.1][i % 6];
-    const art = h('div.sg-al-art', cardArt(s));
+    const ph = cardArt(s), art = h('div.sg-al-art', ph);
     const pct = h('div.sg-al-pct', '');
     const when = h('div.sg-al-pct', capOf(s.at).date);
     const b = h('button.sg-al', { type: 'button', dataset: { id: s.id }, 'aria-label': `${s.name}` }, art, h('div.sg-al-name', s.name), pct, when);
     b.addEventListener('click', () => openBig(s, tiles.get(s.id)));
-    tiles.set(s.id, { s, art, pct, when, tilt, photos: [] });
+    tiles.set(s.id, { s, art, pct, when, tilt, photos: [], ph });
     grid.append(b);
   });
-  // this device's photos (IndexedDB — async; a tile keeps its card until its photo arrives)
+  // this device's photos (IndexedDB — async; a tile keeps its card until its photo arrives); no photo here → the card's SCENE (THE VAULT 1C,
+  // once approved — one surface each, only the tiles without a print)
   Promise.all([import('../profile/album.js'), sheet()]).then(([A]) => A.photos().then(list => {
     for (const T of tiles.values()) {
       const mine = list.filter(p => p.id === T.s.id).sort((a, b) => a.t - b.t);
-      if (!mine.length) continue;
+      if (!mine.length) { import('../vault/full.js').then(V => V.upgradeScene(T.ph, T.s.card, { label: 'album' })).catch(() => {}); continue; }
       T.photos = mine;
       const first = mine.find(p => p.first) || mine[0];
       T.art.replaceChildren(print(A.photoUrl(first), capOf(first.t), T.tilt));
@@ -65,14 +66,15 @@ async function openBig(s, T) {
   let A = null; try { A = await import('../profile/album.js'); } catch { /* fine */ }
   const photos = (T && T.photos) || [];
   const show = h('div.sg-big-show');
-  const pick = p => show.replaceChildren(p ? (() => { const el = print(A.photoUrl(p), capOf(p.t), -1.5); return el; })() : cardArt(s));
+  let scene = null;
+  const pick = p => { if (scene) { scene.surface.destroy(); scene = null; } const ph = p ? null : cardArt(s); show.replaceChildren(p ? print(A.photoUrl(p), capOf(p.t), -1.5) : ph); if (ph) import('../vault/full.js').then(V => V.upgradeScene(ph, s.card, { label: 'album-big' })).then(r => { scene = r; }).catch(() => {}); };
   pick(photos[0] || null);
   const thumbs = photos.length > 1 ? h('div.sg-big-thumbs', ...photos.map(p => h('button.sg-big-th', { type: 'button', onclick: () => pick(p), 'aria-label': `the print from ${capOf(p.t).date}` }, h('img', { src: A.photoUrl(p), alt: '' })))) : null;
   const x = h('button.btn.btn-primary.sg-x', { type: 'button' }, 'CLOSE');
   const el = h('div.sg-big', { role: 'dialog', 'aria-label': s.name },
     h('div.sg-head', { style: { opacity: 1 } }, photos.length ? 'SPOTTED OVER THE HARBOR' : `FIRST SPOTTED ${capOf(s.at).date.toUpperCase()}`), show,
     h('div.sg-big-name', s.name), h('div.sg-al-pct', (T && T.pct.textContent) || ''), h('div.sg-al-pct', s.n > 1 ? `SPOTTED ${s.n} TIMES` : ''), thumbs, x);
-  const close = () => { el.classList.remove('is-in'); setTimeout(() => el.remove(), 260); document.removeEventListener('keydown', onKey); };
+  const close = () => { el.classList.remove('is-in'); setTimeout(() => { if (scene) scene.surface.destroy(); el.remove(); }, 260); document.removeEventListener('keydown', onKey); };
   const onKey = e => { if (e.key === 'Escape') close(); };
   x.addEventListener('click', close);
   el.addEventListener('click', e => { if (e.target === el) close(); });

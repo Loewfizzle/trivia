@@ -2,6 +2,70 @@
 // gets them with the marks (/api/admin labMarks — admins only); never in the site's code. A new lab item = its row here + its id in
 // js/vault/catalog.js#LAB.
 export const LAB_TEXT = {
+ "card-sg-tr3b": {
+  "name": "LIGHTS OUT",
+  "motion": "The TR-3B over a city going dark: its white corner lights + red heart pulsing, energy racing its circuitry, the windows dying in a wave from under it, the quay lamps sputtering out, the power stuttering back + THE BORDER LASER"
+ },
+ "full-card-sg-tr3b": {
+  "name": "LIGHTS OUT · FULL CARD",
+  "motion": "The TR-3B over a city going dark: its white corner lights + red heart pulsing, energy racing its circuitry, the windows dying in a wave from under it, the quay lamps sputtering out, the power stuttering back, the title in neon + THE BORDER LASER"
+ },
+ "card-sg-blackbird": {
+  "name": "SKY KING",
+  "motion": "The real SR-71 flat out at dusk over a sea of cloud: twin afterburners + shock diamonds, the contrails catching the sunset, the cloud deck racing under it + THE BORDER LASER"
+ },
+ "full-card-sg-blackbird": {
+  "name": "SKY KING · FULL CARD",
+  "motion": "The real SR-71 flat out at dusk over a sea of cloud: twin afterburners + shock diamonds, the contrails catching the sunset, the cloud deck racing under it, the title in neon + THE BORDER LASER"
+ },
+ "card-sg-f22": {
+  "name": "AFTERBURNER",
+  "motion": "Three real F-22s in a tight vic high over the clouds: afterburners + shock diamonds, vapour cones blooming + snapping off, the sun on their skins + THE BORDER LASER"
+ },
+ "full-card-sg-f22": {
+  "name": "AFTERBURNER · FULL CARD",
+  "motion": "Three real F-22s in a tight vic high over the clouds: afterburners + shock diamonds, vapour cones blooming + snapping off, the sun on their skins, the title in neon + THE BORDER LASER"
+ },
+ "card-sg-ghostship": {
+  "name": "THE FLYING DUTCHMAN",
+  "motion": "The ghost ship under sail on Halloween night: its green lanterns flickering, fog rolling off the hull + across the water, its reflection, bats across the moon + THE BORDER LASER"
+ },
+ "full-card-sg-ghostship": {
+  "name": "THE FLYING DUTCHMAN · FULL CARD",
+  "motion": "The ghost ship under sail on Halloween night: its green lanterns flickering, fog rolling off the hull + across the water, its reflection, bats across the moon, the title in neon + THE BORDER LASER"
+ },
+ "card-sg-aurora": {
+  "name": "SKY DANCER",
+  "motion": "The northern lights rippling over the harbor — green, a pink hem, crimson on top — their reflection on the water + THE BORDER LASER"
+ },
+ "full-card-sg-aurora": {
+  "name": "SKY DANCER · FULL CARD",
+  "motion": "The northern lights rippling over the harbor — green, a pink hem, crimson on top — their reflection on the water, the title in neon + THE BORDER LASER"
+ },
+ "card-sg-fireball": {
+  "name": "MAKE A WISH",
+  "motion": "A green fireball streaking across the night, flaring + breaking apart, its glowing train lingering, the harbor lit by the flash + THE BORDER LASER"
+ },
+ "full-card-sg-fireball": {
+  "name": "MAKE A WISH · FULL CARD",
+  "motion": "A green fireball streaking across the night, flaring + breaking apart, its glowing train lingering, the harbor lit by the flash, the title in neon + THE BORDER LASER"
+ },
+ "card-sg-skull": {
+  "name": "HOT AIR, COLD BLOOD",
+  "motion": "The skull balloon drifting over the rooftops at night — its burner roaring, lighting the skull from below, embers rising + THE BORDER LASER"
+ },
+ "full-card-sg-skull": {
+  "name": "HOT AIR, COLD BLOOD · FULL CARD",
+  "motion": "The skull balloon drifting over the rooftops at night — its burner roaring, lighting the skull from below, embers rising, the title in neon + THE BORDER LASER"
+ },
+ "card-sg-btc": {
+  "name": "FIX THE MONEY, FIX THE WORLD",
+  "motion": "The two ₿ balloons over the festival at sunset — burners flaring, a gold pulse on every new block, the other balloons drifting far off + THE BORDER LASER"
+ },
+ "full-card-sg-btc": {
+  "name": "FIX THE MONEY, FIX THE WORLD · FULL CARD",
+  "motion": "The two ₿ balloons over the festival at sunset — burners flaring, a gold pulse on every new block, the other balloons drifting far off, the title in neon + THE BORDER LASER"
+ },
  "card-brushed": {
   "name": "BRUSHED GOLD",
   "motion": "Still — real brushed gold, a bevelled edge; its emblem leads"

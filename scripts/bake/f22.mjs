@@ -131,6 +131,7 @@ window.ready = (async () => {
     renderer.render(scene, cam);
     big.width = w; big.height = h; bx.imageSmoothingEnabled = true; bx.imageSmoothingQuality = 'high'; bx.clearRect(0, 0, w, h); bx.drawImage(renderer.domElement, 0, 0, w, h);
     const P = v => { const q = v.clone().project(cam); return [(q.x * 0.5 + 0.5) * w, (0.5 - q.y * 0.5) * h]; };
+    window.lastProj = a => P(new THREE.Vector3(a[0], a[1], a[2]));   // (THE VAULT 1C's card bakes: any point of the jet's frame → the sprite)
     return { w, h, nose: P(new THREE.Vector3(1, 0, 0)), tail: P(new THREE.Vector3(-1, 0, 0)), c: P(new THREE.Vector3(0, 0, 0)) };
   };
   window.shootURL = o => { const r = window.shoot(o); return { url: big.toDataURL('image/png'), ...r }; };

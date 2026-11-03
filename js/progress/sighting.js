@@ -226,8 +226,12 @@ async function bigMoment(sg, { pol, chip, first, preview, still }) {
   const stage = h('div.sg-stage');
   const head = h('div.sg-head', preview ? 'A PREVIEW · IT DOESN’T COUNT' : 'SPOTTED OVER THE HARBOR');
   const pctEl = h('em', '');
+  // (THE VAULT 1C: the placeholder until the card's REAL scene is approved + in — then its scene, moving: js/vault/full.js#upgradeScene)
+  const pairArt = pairCard(sg.id);
+  let scene = null;
+  import('../vault/full.js').then(V => V.upgradeScene(pairArt, s.card, { label: 'reveal' })).then(r => { scene = r; }).catch(() => {});
   const pair = h('div.sg-pair',
-    h('div.sg-item', h('small', 'LEGENDARY CARD'), pairCard(sg.id), h('b', ((ITEM[s.card] || {}).name || s.what)), pctEl),
+    h('div.sg-item', h('small', 'LEGENDARY CARD'), pairArt, h('b', ((ITEM[s.card] || {}).name || s.what)), pctEl),
     h('div.sg-item', h('small', 'EMBLEM'), h('div.sg-emb', ITEM[s.emblem] ? ITEM[s.emblem].glyph : '✦'), h('b', ((ITEM[s.card] || {}).name || s.what)), h('em', '')));
   const go = h('button.btn.btn-primary.sg-go', { type: 'button' }, 'CONTINUE');
   const modal = h('div.sg-modal', { class: `${first ? 'has-pair' : ''} ${still ? 'sg-still' : ''}`, role: 'dialog', 'aria-label': `${s.what} — spotted` }, stage, h('div.sg-foot', go));
@@ -241,7 +245,7 @@ async function bigMoment(sg, { pol, chip, first, preview, still }) {
   if (preview) pol.append(h('div.sg-tag', 'PREVIEW'));
   let shownAt = performance.now(), closeR;
   const closed = new Promise(r => { closeR = r; });
-  const close = () => { if (modal.classList.contains('is-out')) return; modal.classList.add('is-out'); setPhase('done'); setTimeout(() => { modal.remove(); closeR(); }, 320); };
+  const close = () => { if (modal.classList.contains('is-out')) return; modal.classList.add('is-out'); setPhase('done'); setTimeout(() => { if (scene) scene.surface.destroy(); modal.remove(); closeR(); }, 320); };
   const done = () => { modal.classList.add('is-done'); shownAt = performance.now(); };
   // (THE HOLD: taps in its first second never dismiss it — a skip-tap can't throw it away unread)
   modal.addEventListener('pointerup', e => { if (!modal.classList.contains('is-done') || performance.now() - shownAt < 1000) return; if (e.target.closest('.sg-go')) return; close(); });

@@ -333,3 +333,25 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
   radial-gradient(30% 60% at 84% 70%, rgba(60, 200, 230, 0.22), transparent 70%),
   linear-gradient(118deg, rgba(159, 180, 255, 0) 30%, rgba(170, 190, 255, 0.2) 47%, rgba(122, 215, 255, 0.14) 55%, rgba(159, 180, 255, 0) 70%),
   radial-gradient(90% 130% at 85% 0%, #1b2454, #0a0e22 70%); }
+
+/* ---- THE 8 SIGHTING CARDS (THE VAULT 1C): each a scene in the canvas (js/fx/sg-*.js); the card's own light in --sg (r,g,b) — its frame,
+   its plate's edge + the title's neon — + a dark of its night in --sg-dk. The UFO's card (.vl-s-ufo) stays as approved. */
+.vl-s-sg-tr3b { --sg: 255, 72, 56; --sg-dk: 8, 6, 12; --sg-ink: #fff2ee; }
+.vl-s-sg-blackbird { --sg: 196, 150, 255; --sg-dk: 12, 8, 24; --sg-ink: #f6efff; }
+.vl-s-sg-f22 { --sg: 110, 185, 255; --sg-dk: 6, 18, 40; --sg-ink: #eef6ff; }
+.vl-s-sg-ghostship { --sg: 120, 255, 190; --sg-dk: 3, 12, 10; --sg-ink: #eafff4; }
+.vl-s-sg-aurora { --sg: 255, 116, 214; --sg-dk: 4, 10, 16; --sg-ink: #fff0fa; }
+.vl-s-sg-fireball { --sg: 196, 255, 120; --sg-dk: 4, 8, 14; --sg-ink: #f6ffe8; }
+.vl-s-sg-skull { --sg: 255, 132, 52; --sg-dk: 10, 8, 10; --sg-ink: #fff3e8; }
+.vl-s-sg-btc { --sg: 255, 184, 64; --sg-dk: 22, 10, 4; --sg-ink: #fff6e6; }
+[class*="vl-s-sg-"] .vl-mat { background: rgb(var(--sg-dk)); }
+[class*="vl-s-sg-"] .vl-plate { background: linear-gradient(90deg, rgba(var(--sg-dk), 0.82), rgba(var(--sg-dk), 0.62)); box-shadow: inset 0 0 0 1px rgba(var(--sg), 0.26), 0 2px 10px rgba(0, 0, 0, 0.45); }
+.vl-t-legendary[class*="vl-s-sg-"] .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(var(--sg), 0.6), 0 0 0 1.5px rgba(214, 178, 106, 0.85), 0 0 18px rgba(var(--sg), 0.25), 0 4px 14px rgba(0, 0, 0, 0.55); }
+.vl-fc.vl-t-legendary[class*="vl-s-sg-"] .vl-frame { box-shadow: inset 0 0 0 2px rgba(var(--sg), 0.62), 0 0 0 2px rgba(214, 178, 106, 0.9), 0 0 30px rgba(var(--sg), 0.22), 0 8px 26px rgba(0, 0, 0, 0.6); }
+.vl-fc[class*="vl-s-sg-"] .vl-fc-title b { color: var(--sg-ink); text-shadow: 0 0 6px rgba(var(--sg), 0.95), 0 0 18px rgba(var(--sg), 0.6), 0 1px 2px rgba(0, 0, 0, 0.7); }
+/* a long title (card-sg-btc · card-sg-skull · card-sg-ghostship): smaller + balanced on two lines, clear of the plate */
+.vl-fc-title.is-long b { font-size: max(15px, 5.4cqi); line-height: 1.08; text-wrap: balance; }
+.vl-fc-title.is-long { top: 47%; }
+/* THE SIGHTING'S SCENE (the reveal's pair + the album's tile): the full card's art, no words, a smaller radius */
+.vl-scene-box { position: relative; width: 100%; max-width: 240px; margin: 0 auto; }
+.vl-fc.vl-fc-scene { --r: 10px; }

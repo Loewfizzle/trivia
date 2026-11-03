@@ -27,6 +27,8 @@ import { approvedIds } from './approved.js';
 export const fullId = card => `full-${card}`;
 const nameOf = id => ((LAB.find(x => x.id === id) || {}).name) || ((ITEM[id] || {}).name) || '';
 const tierOf = id => ((LAB.find(x => x.id === id) || {}).tier) || ((ITEM[id] || {}).tier) || 'common';
+/** the sighting's line under its title (THE VAULT 1C: the ship sails ON the harbor) */
+const spotOf = card => (card === 'card-sg-ghostship' ? 'sighted on the harbor' : 'spotted over the harbor');
 const timeOf = at => { try { return new Date(at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase(); } catch { return ''; } };
 
 /** the element: material + plate + words + frame (the effect is a slot: mountFull) */
@@ -42,7 +44,7 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,
     h('div.vl-fc-top', h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), h('span.vl-tier', TIER_NAMES[t] || t)),
     who.fd && !sighting ? h('span.vl-fc-fd', 'FOUNDING MEMBER') : null,
-    sighting ? h('div.vl-fc-title', h('b', nameOf(card)), h('small', spotted ? `spotted over the harbor · ${timeOf(spotted)}` : 'spotted over the harbor')) : null,
+    sighting ? h('div.vl-fc-title', { class: nameOf(card).length > 18 ? 'is-long' : '' }, h('b', nameOf(card)), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,
     h('div.vl-fc-foot', h('span.vl-fc-since', h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at))), sighting ? null : h('span.vl-fc-card', nameOf(card))),
     t === 'legendary' ? h('i.vl-fc-brackets', { 'aria-hidden': 'true' }, h('i'), h('i')) : null,
@@ -67,6 +69,31 @@ export function mountFullCard(host, id, who = {}) {
   const surface = createSurface(host, { label: 'full-card' });
   mountFull(surface, el, id);
   return { el, destroy() { surface.destroy(); } };
+}
+
+// THE SIGHTING'S SCENE (THE VAULT 1C): the full card's art WITHOUT its words — the reveal's pair + the album's tile when this device has
+// no photo of it. Only once the owner APPROVED that full card in THE CARD LAB (full-<card>); until then the caller keeps its placeholder.
+/** the scene-only card element (the material + the frame; its scene is a slot: mountScene) */
+export function sceneCardEl(card) {
+  const look = LOOKS[card] || {};
+  return h('div.vl-fc.vl-fc-scene', { class: `vl-t-legendary vl-s-${look.mat || 'plain'}`, dataset: { card } }, h('i.vl-mat', { 'aria-hidden': 'true' }), h('i.vl-frame', { 'aria-hidden': 'true' }));
+}
+/** the scene on a surface (its full-card layout, a smaller radius) */
+export function mountScene(surface, el, card, o = {}) {
+  const look = LOOKS[card];
+  if (!look || !look.fx || !FX[look.fx]) return null;
+  return surface.add(el, FX[look.fx], fxOpts(card, { seed: o.seed || 3, calm: 0, radius: o.radius || 10, full: true }));
+}
+/** swap a placeholder for the approved scene (it keeps the placeholder otherwise): → Promise<{ el, surface } | null> */
+export async function upgradeScene(placeholder, card, o = {}) {
+  if (!placeholder || !LOOKS[card] || !LOOKS[card].fx) return null;
+  const ok = await canShowFull(card); if (!ok || !placeholder.isConnected) return null;
+  await vaultSheet();
+  const el = sceneCardEl(card), box = h('div.vl-scene-box', el);
+  placeholder.replaceWith(box);
+  const surface = createSurface(box, { label: o.label || 'scene' });
+  mountScene(surface, el, card, o);
+  return { el: box, surface };
 }
 
 let open = null;

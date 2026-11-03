@@ -14,5 +14,14 @@ import glitter from './glitter.js';
 import hearts from './hearts.js';
 import sheen from './sheen.js';
 import tube from './tube.js';
+import sgTr3b from './sg-tr3b.js';
+import sgBlackbird from './sg-blackbird.js';
+import sgF22 from './sg-f22.js';
+import sgGhost from './sg-ghost.js';
+import sgAurora from './sg-aurora.js';
+import sgFireball from './sg-fireball.js';
+import { skull as sgSkull, btc as sgBtc } from './sg-balloons.js';
 
-export const FX = Object.freeze({ ufo, laser, smoke, frost, flames, prism, marquee, glitter, hearts, sheen, tube });
+export const FX = Object.freeze({ ufo, laser, smoke, frost, flames, prism, marquee, glitter, hearts, sheen, tube,
+  // THE VAULT 1C — THE 8 SIGHTING CARDS (each the city's own model / painter in its own scene: js/fx/sg-kit.js)
+  sgTr3b, sgBlackbird, sgF22, sgGhost, sgAurora, sgFireball, sgSkull, sgBtc });

@@ -32,6 +32,15 @@ export const LOOKS = Object.freeze({
   'card-neonglass': { mat: 'neonglass', fx: 'tube', tint: '63,224,255' },
   'card-chrome': { mat: 'chrome', fx: 'sheen', tint: '200,225,255' },
   'card-champagne': { mat: 'champagne', fx: 'sheen', tint: '255,232,200' },
+  // THE VAULT 1C — THE 8 SIGHTING CARDS (legendary: a living scene + THE BORDER LASER; each its own light in --sg — css/vault.css)
+  'card-sg-tr3b': { mat: 'sg-tr3b', fx: 'sgTr3b' },
+  'card-sg-blackbird': { mat: 'sg-blackbird', fx: 'sgBlackbird' },
+  'card-sg-f22': { mat: 'sg-f22', fx: 'sgF22' },
+  'card-sg-ghostship': { mat: 'sg-ghostship', fx: 'sgGhost' },
+  'card-sg-aurora': { mat: 'sg-aurora', fx: 'sgAurora' },
+  'card-sg-fireball': { mat: 'sg-fireball', fx: 'sgFireball' },
+  'card-sg-skull': { mat: 'sg-skull', fx: 'sgSkull' },
+  'card-sg-btc': { mat: 'sg-btc', fx: 'sgBtc' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
