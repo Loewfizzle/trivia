@@ -136,3 +136,9 @@ unit 1100/1100 · rules 59/59 (the rules FILE unchanged — no re-publish: `mn` 
 29/29, progression 10/10, sightings 4/4, lab 2/2, vault-2b 3/3 · smoke 6/6 · the profile E2E 75/75 (THE BOARD's row check on the re-run, as in
 1A–2A; its vault steps now wear a card through DRESS YOUR CARD) · THE FULL HARBOR SUITE 930/932 at 4 shards (~22 min): THE RESIZE (green alone —
 400 ms) + LOAD WEATHER's holiday-night jump = the known ones from 2A's log; the `vault` group 31/31, `sightings` 11/11 (+ the ghost ship).
+
+## THE CLOUD (the two-run cap)
+Run 1 (the harbor tag): tests GREEN; harbor 9/10 — the `models` job's THE SHOW check ("0 bursts lighting the city"): it waited for a burst
+lighting the city, then sampled AGAIN, and on the cloud's software renderer the brief light was gone by then — a race in the test (no
+fireworks code changed this pass). The check now counts the burst its wait saw. Run 2 (`gh workflow run harbor -f job=models`): 102/102 GREEN.
+Live on www.neonspeakeasy.com from the harbor-tagged push.
