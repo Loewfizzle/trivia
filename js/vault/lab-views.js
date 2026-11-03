@@ -139,7 +139,7 @@ export function mountLab(root, o = {}) {
   function lobbyView() {
     const pick = h('select.vl-tab', { 'aria-label': '8 of one card', onchange: () => { mix = pick.value; draw(); } },
       h('option', { value: '' }, '8 OF ONE…'), ...CARDS.map(c => h('option', { value: c.id }, c.name)));
-    const mixes = [['samples', 'THE 8 SAMPLES'], ['new', 'THE NEW 8'], ['sightings', 'THE 8 SIGHTINGS'], ['held', 'THE NEW 21'], ['legend', '8 LEGENDARIES']].map(([k, l]) => h('button.vl-tab', { type: 'button', dataset: { k }, onclick: () => { mix = k; pick.value = ''; draw(); } }, l));
+    const mixes = [['samples', 'THE 8 SAMPLES'], ['new', 'THE NEW 8'], ['legend', '8 LEGENDARIES'], ['sightings', 'THE 8 SIGHTINGS'], ['held', 'THE NEW 21']].map(([k, l]) => h('button.vl-tab', { type: 'button', dataset: { k }, onclick: () => { mix = k; pick.value = ''; draw(); } }, l));
     const list = h('div.vl-list');
     const box = h('div.vl-lobby', h('div.vl-lobby-h', 'IN THE LOBBY · 8 / 8'), list);
     content.replaceChildren(h('div.vl-mix', ...mixes, pick), box,
@@ -182,6 +182,8 @@ export function mountLab(root, o = {}) {
     view = v; unmountAll();
     for (const b of tabs.querySelectorAll('.vl-tab')) b.classList.toggle('is-on', b.dataset.v === v);
     if (v === 'lobby') lobbyView(); else if (v === 'full') fullView(); else stripsView();
+    // (THE VAULT 1C — the lab grew to ~90 items: a tab tapped deep down the page brings the new view's top into sight under the sticky tabs)
+    try { const top = content.getBoundingClientRect().top - tabs.getBoundingClientRect().height - 8; if (top < 0) window.scrollBy(0, top); } catch { /* fine */ }
     window.__lab && (window.__lab.view = v);
     try { const q = new URLSearchParams(location.search); q.set('view', v); history.replaceState(null, '', `${location.pathname}?${q}`); } catch { /* fine */ }
   }

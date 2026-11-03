@@ -178,6 +178,9 @@ one sighting.
 **The award** (`core/achievements.js#awardAll`): a legendary's FIRST counted sighting → its MATCHED PAIR (`card-sg-<id>` LEGENDARY card +
 `emb-sg-<id>` emblem; THE VAULT 1 draws them) + the counters `pa.sg[id]`, `pa.sgt` → STARGAZER (3 different) · FREQUENT FLYER (25) · THE
 WITNESS (all). X% via `pcount/i`.
+**The pair's CARD ART** (THE VAULT 1C): every sighting's LEGENDARY card is built — the city's own model in its own scene (`js/fx/sg-*.js`,
+docs/vault.md "THE SIGHTING CARDS"); the reveal's pair + the album's no-photo tile show its SCENE once its full card is approved in THE CARD LAB
+(`js/vault/full.js#upgradeScene`) — the placeholder until then; the reveal's timing unchanged.
 **A NEW LEGENDARY plugs in by:** its id in `LEGENDARIES` + its row in `SIGHTINGS` (names + jacks) + a `case` in `skyWindows` (where the
 timetable puts it) + its pair in `core/items.js` + a `SR.box(id, …)` in its draw (its tap box) + its reaction (read `SR.k(id)`; motion in
 the screen's plane + its own lights) + a line in the harbor `sightings` group.

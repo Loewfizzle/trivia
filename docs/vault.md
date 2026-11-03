@@ -204,3 +204,60 @@ local server. **A NEW item**: its row in `api/_lib/catalog.js` (+ `lab-text.js` 
 | card-chrome | SILVER CHROME | uncommon | sheen | polished chrome, a prism rim | level 20 | new |
 | card-champagne | MIDNIGHT & CHAMPAGNE | uncommon | sheen | navy lacquer, Chrysler arches | level 25 | new |
 The rest of the catalog (25 cards + 8 sighting cards) keeps a plain strip until built (passes/vault-1b.md "Known issues").
+
+## THE VAULT 1C (Nov 3) — passes/vault-1c.md
+### THE ONE TIER PALETTE (`js/core/rarity.js` + css/base.css `--tier-*`)
+COMMON grey · UNCOMMON green · RARE blue · EPIC purple · LEGENDARY gold — the cards' tier tags, the picker, THE PROGRAM (every row its badge +
+its name tinted: `programTier`), later emblems + glows. `--tier-<id>` = the light on a dark ground, `--tier-<id>-ink` = words on paper.
+
+### THE SIGHTING CARDS (`js/fx/sg-*.js`)
+Each the city's OWN art in a scene of its own: `sg-kit.js#city(name, load)` lazy-loads a city painter (legends.js's TR-3B, ghostship.js's
+`ghostArt`, aurora.js's `AURORA_LOOKS`, balloons.js's `balloonArt`) — the backdrop stands alone until it's in; `backdrop()` / `skylineLayer()`
+bake the sky + the harbor's skyline (its windows a separate layer — LIGHTS OUT turns them off column by column); `stage(s)` = the subject's
+box (a strip: right of the plate; a full card: centred high, above the title). The jets are the city's models RE-BAKED at a hero angle:
+`node scripts/bake-model.mjs "<chromium>" sr71-card` / `f22-card` (`scripts/bake/card-shots.mjs` — the city recipes' own pages; a shot's `pts`
+report where a nozzle lands) → `assets/vault/sg/` (+ `sg-jets.js`: afterburners + shock diamonds, contrails, a tileable cloud deck).
+**THE SCENE** (`js/vault/full.js#upgradeScene`): the reveal's pair + the album's no-photo tile show the full card's art without its words once
+`full-<card>` is APPROVED. **A NEW LEGENDARY'S CARD**: its `sg-<id>.js` (from the city's painter), its LOOK (`mat: 'sg-<id>'` + a `--sg` light in
+vault.css), its two lab rows + names (api/_lib/lab-text.js).
+
+### THE HELD-BACK CARDS + the new effects
+`scan` (CAMO) · `spot` (VELVET ROOM) · `rays` (GOLD FOIL) · `embers` (THE 30-NIGHT FLAME, CENTURY's 2nd) · `twinkle` (MARBLE & GOLD, SAPPHIRE's +
+PRISM LEGEND's 2nd) · `confetti` · `circuit` · `holo` (PRISM LEGEND) · `bulbs` (THE MARQUEE · GOLD BULBS — bulbs + searchlights) · `penthouse`
+(lights + traffic) · `veil` (AURORA — the city's strands under glass) · `neoncamo` (an edge map of the material's own texture, mapped as
+the CSS covers it) · `witness` (the star chart) · `blaze` (WILDFIRE, ETERNAL FLAME). **`combo(id, tier, [fx, opts]…)`** (js/fx/index.js) = an
+epic's two effects on ONE slot. A light / busy material's FULL card gets dark bands under its corner words (every word legible).
+
+### THE LAUNCH SET — 1C's cards (all NEW in the lab: strip + full card each, waiting for the owner's marks)
+| id | name | tier | effect | material | earned |
+| --- | --- | --- | --- | --- | --- |
+| card-sg-tr3b | LIGHTS OUT | legendary | sgTr3b | the city going dark | a TR-3B sighting |
+| card-sg-blackbird | SKY KING | legendary | sgBlackbird | dusk over the cloud sea | a Blackbird sighting |
+| card-sg-f22 | AFTERBURNER | legendary | sgF22 | a hard blue day over the deck | an F-22 sighting |
+| card-sg-ghostship | THE FLYING DUTCHMAN | legendary | sgGhost | Halloween night, the moon | a ghost-ship sighting |
+| card-sg-aurora | SKY DANCER | legendary | sgAurora | the harbor under the aurora | an aurora sighting |
+| card-sg-fireball | MAKE A WISH | legendary | sgFireball | the night + the Milky Way | a fireball sighting |
+| card-sg-skull | HOT AIR, COLD BLOOD | legendary | sgSkull | a cold night over the roofs | a skull-balloon sighting |
+| card-sg-btc | FIX THE MONEY, FIX THE WORLD | legendary | sgBtc | the festival at sunset | a ₿ balloon sighting |
+| card-zebra | ZEBRA | uncommon | sheen (pink) | zebra hide | FULL HOUSE |
+| card-camo | CAMO | uncommon | scan | ERDL camo | THE REGULAR |
+| card-velvet | VELVET ROOM | rare | spot | oxblood velvet | level 32 |
+| card-aurora | AURORA | rare | veil | glass | level 35 |
+| card-rosegold | ONYX & ROSE GOLD | rare | sheen (rose) | onyx + lattice | level 40 |
+| card-gold | GOLD FOIL | rare | rays | hammered foil | level 44 |
+| card-flame30 | THE 30-NIGHT FLAME | rare | embers | charcoal | a 30-night streak |
+| card-marble | MARBLE & GOLD | rare | twinkle | marble + gold veins | MADE MAN |
+| card-neoncamo | NEON CAMO | rare | neoncamo | night camo | PARTY ANIMAL |
+| card-carbon | CARBON | rare | sheen (cyan) | carbon weave | PATIENCE PAYS |
+| card-confetti | CONFETTI | rare | confetti | party violet | MANY HAPPY RETURNS |
+| card-circuit | CIRCUIT | rare | circuit | PCB green | OVERCLOCKED |
+| card-noir | VELVET NOIR | epic | tube + smoke | black velvet | level 58 |
+| card-sapphire | SAPPHIRE & SILVER | epic | sheen + twinkle | sapphire | level 60 |
+| card-legend | PRISM LEGEND | epic | holo + twinkle | black holo | level 70 |
+| card-century | CENTURY | epic | flames + embers | burnished bronze | a 100-night streak |
+| card-marquee-gold | THE MARQUEE · GOLD BULBS | epic | bulbs | black velvet | KINGPIN |
+| card-penthouse | PENTHOUSE | epic | penthouse | the night view | PENTHOUSE SUITE |
+| card-wildfire | WILDFIRE | legendary | wildfire | the burning ridge | a 200-night streak |
+| card-eternal | ETERNAL FLAME | legendary | eternal | violet night | a year's streak |
+| card-witness | THE WITNESS | legendary | witness | the star chart | THE WITNESS (every legend) |
+**Held back** (a plain strip for owners until built): PLATINUM (level 95), THE HOUSE (level 100), FOUNDING MEMBER — passes/vault-1c.md.

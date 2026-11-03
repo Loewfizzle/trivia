@@ -33,7 +33,7 @@ G('vault', async () => {
   { const { ctx, p } = await page('view=strips');
     await sleep(1200);
     const s = await ev(p, `(() => ({ items: document.querySelectorAll('.vl-item').length, strips: document.querySelectorAll('.vl-strip').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, slots: window.__lab.stats.slots, names: [...document.querySelectorAll('.vl-item-h b')].map(b => b.textContent) }))()`);
-    ok(s.items === 18 && s.strips === 20 && s.canvases === 1, `THE CARD LAB: 18 items (16 strips — 1A's 8 + 1B's launch set — + 2 test emblems — ${s.strips} strips on the page) on ONE shared effect canvas (${s.canvases}) — ${s.names.join(' · ')}`);
+    ok(s.items === 47 && s.strips === 49 && s.canvases === 1 && /^34 · /.test(s.names[0]), `THE CARD LAB: 47 items (45 strips — 1C's 8 sighting cards FIRST, 1A's 8, 1B's 8, 1C's held-back 21 — + 2 test emblems — ${s.strips} strips on the page) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-smoke"] .vl-mark[data-m="approve"]').click()`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-prism"] .vl-mark[data-m="fix"]').click()`);
     await sleep(200);
@@ -167,7 +167,7 @@ G('vault', async () => {
       await p.waitForFunction('!!(document.body.dataset.ready && window.__lab)', null, { timeout: 60000 });
       const max = await E('document.scrollingElement.scrollHeight - innerHeight');
       await p.touchscreen.tap(392, 400);   // (the empty gutter: focus the page, nothing marked)
-      const y = await scrollDown(max, 12);
+      const y = await scrollDown(max, 40);   // (VAULT 1C: the lab is ~12,000 px now — PageDown until the foot, ≤ 40 presses)
       ok(max > 1200 && y >= max - 2, `BY FINGER in WebKit: THE CARD LAB at 402 × 874 scrolls top → bottom by WebKit's own user scroll — ${y} of ${max} px (the old lock left 0 px to scroll)`);
       const sel = '.vl-item[data-id="card-frostbite"] .vl-mark[data-m="approve"]';
       const tapSel = async () => { await p.locator(sel).scrollIntoViewIfNeeded(); const bb = await p.locator(sel).boundingBox(); await p.touchscreen.tap(bb.x + bb.width / 2, bb.y + bb.height / 2); await p.waitForTimeout(400); return E(`(window.__lab.marks['card-frostbite'] || {}).m || null`); };
@@ -200,7 +200,8 @@ async function anyPage(url, { view = [402, 874], dpr = 2, real = false, cpu = 0 
 G('vault', async () => {
   // THE GPU PATH at the FULL tier: 8 legendaries, then the 8 samples, 4× CPU, the real compositor, 3× — every frame on time
   // (its own browser: the real compositor + the GPU for WebGL — headless Chromium's default GL is a software one, which a phone never runs)
-  for (const mix of ['samples', 'legend']) {
+  // (THE VAULT 1C: + THE 8 SIGHTINGS + THE NEW 21's lobby mix — every new card at the same bar)
+  for (const mix of ['samples', 'legend', 'sightings', 'held']) {
     const gpuB = await puppeteer.launch({ executablePath: BROWSER, headless: 'new', realCompositor: true, args: ['--enable-gpu', '--mute-audio', '--no-sandbox'] });   // (a fresh one per mix, like THE VAULT BENCH)
     const ctx = await gpuB.createBrowserContext(), p = await ctx.newPage();
     await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
@@ -213,7 +214,7 @@ G('vault', async () => {
     const s = [...t].sort((a, b) => a - b), med = s[90], slow = t.filter(x => x > 20).length, fps = 1000 / (t.reduce((a, b) => a + b, 0) / t.length);
     // (4× CPU on the mini PC is the stress case — an iPhone 16 Pro's CPU is well ahead of it: ≥ 54 fps on average + a median frame ≤ 18 ms
     //  there, at the FULL tier, is the bar; the busiest mix — glitter + smoke + the bulbs + the frost's clip — sits ~56)
-    okT(st.gpu && st.tier === 2 && st.dpr >= 2.9 && fps >= 54 && med <= 18, `SPEED (the GPU path): A FULL LOBBY of ${mix === 'legend' ? '8 LEGENDARIES' : 'THE 8 SAMPLES'} at 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow, ${st.gpu ? 'GPU' : '2D'} at tier ${st.tier} ${st.dpr}× (${st.draws} draws, ${st.ms} ms of script)`);
+    okT(st.gpu && st.tier === 2 && st.dpr >= 2.9 && fps >= 54 && med <= 18, `SPEED (the GPU path): A FULL LOBBY of ${({ legend: '8 LEGENDARIES', samples: 'THE 8 SAMPLES', sightings: 'THE 8 SIGHTING CARDS', held: 'THE NEW 21 (8 of them)' })[mix]} at 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow, ${st.gpu ? 'GPU' : '2D'} at tier ${st.tier} ${st.dpr}× (${st.draws} draws, ${st.ms} ms of script)`);
     await ctx.close(); await gpuB.close();
   }
   // SCROLL-PAUSE + THE DIAGNOSTICS ROW: a scroll holds the effects (no frames), they resume after; &diag= sets the switches; 7 of them
@@ -225,14 +226,31 @@ G('vault', async () => {
     const f1 = await ev(p, 'window.__lab.stats.frames'); await sleep(500); const f2 = await ev(p, 'window.__lab.stats.frames');
     ok(d.n === 7 && d.off.sort().join() === 'glow,laser' && d.glow && held.during <= 2 && held.scrolling && f2 - f1 > 10, `DIAGNOSTICS + SCROLL-PAUSE: 7 switches (${d.off.join(' + ')} off from &diag=, the page's glows off: ${d.glow}); a scroll held the effects (${held.during} frames in 600 ms) — they resumed (${f2 - f1} frames in 500 ms)`);
     await ctx.close(); }
-  // THE FULL CARDS tab: 15 full cards (the 8 + the launch set's 7) on ONE canvas; a mark flashes SAVED ✓
+  // THE FULL CARDS tab: 44 full cards (1C's 8 sighting cards + 1A's 8 + 1B's 7 + 1C's 21) on ONE canvas; a mark flashes SAVED ✓
   { const { ctx, p } = await page('view=full');
     await sleep(900);
     const f = await ev(p, `({ cards: document.querySelectorAll('.vl-fc').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, sight: !!document.querySelector('.vl-fc.is-sight .vl-fc-title b') })`);
     await ev(p, `document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-mark[data-m="approve"]').click()`);
     const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
     const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-saved').textContent`) : '';
-    ok(f.cards === 15 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt), `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark flashes "${txt}"`);
+    ok(f.cards === 44 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt), `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark flashes "${txt}"`);
+    await ctx.close(); }
+  // THE VAULT 1C — THE SIGHTING'S SCENE (the reveal's pair + the album's no-photo tile): once its full card is APPROVED the placeholder becomes
+  // the card's real scene (js/vault/full.js#upgradeScene) — all 9 sightings, each its own canvas drawn; unapproved → the placeholder stays
+  { const { ctx, p } = await anyPage('/tests/integration/card-review.html?cards=card-sg-ufo&strips=0&full=0&labmarks=all', { view: [402, 874] });
+    await waitFor(p, '!!document.body.dataset.ready', 'the review page', 30000);
+    const r = await ev(p, `(async () => {
+      const V = await import('/js/vault/full.js'), out = [];
+      for (const id of ['card-sg-ufo', 'card-sg-tr3b', 'card-sg-blackbird', 'card-sg-f22', 'card-sg-ghostship', 'card-sg-aurora', 'card-sg-fireball', 'card-sg-skull', 'card-sg-btc']) {
+        const ph = document.createElement('div'); ph.className = 'sg-card'; ph.style.width = '170px'; document.body.append(ph);
+        const got = await V.upgradeScene(ph, id, { label: 'test' });
+        out.push(!!(got && got.el.querySelector('.vl-fc-scene[data-card="' + id + '"]') && got.el.querySelector('canvas.fx-canvas') && !ph.isConnected));
+      }
+      const ph = document.createElement('div'); document.body.append(ph);
+      const none = await V.upgradeScene(ph, 'card-gilded', {});
+      return { ok: out, plain: none === null && ph.isConnected };
+    })()`);
+    ok(r.ok.every(Boolean) && r.plain, `THE SIGHTING'S SCENE: the 9 sighting cards' approved scenes replace the reveal's / the album's placeholder (${r.ok.filter(Boolean).length}/9, each on its canvas); a card with no scene keeps its placeholder (${r.plain})`);
     await ctx.close(); }
   // THE VAULT PICKER + THE NAME NEVER CUTS OFF (the widest twelve at 390): real strips, one WEARING, one canvas; the card's + every strip's
   // name whole (no overflow, no ellipsis)
@@ -254,13 +272,16 @@ G('vault', async () => {
     const s = await ev(p, `(() => { const e = document.querySelector('.byc-bring .byc-sheet'), r = e.getBoundingClientRect(), c = getComputedStyle(e); return { gap: Math.round(innerHeight - r.bottom), rad: parseFloat(c.borderBottomLeftRadius), bw: parseFloat(c.borderBottomWidth) }; })()`);
     ok(s.gap >= 8 && s.rad >= 16 && s.bw >= 1, `BOTTOM SHEETS: BRING YOUR CARD floats ${s.gap} pt above the bottom, its rounded border whole (radius ${s.rad}, bottom border ${s.bw} px)`);
     await ctx.close(); }
-  // THE PROGRAM (the add-on): the full day (a Friday ~180 rows) · RARE + LEGENDARY (only those, tagged), remembered
+  // THE PROGRAM (the add-on): the full day (a Friday ~180 rows) · RARE + LEGENDARY (only those) · VAULT 1C: EVERY row its tier badge in THE ONE
+  // TIER PALETTE + its name tinted; the filter's rows all rare / epic / legendary; remembered
   { const { ctx, p } = await anyPage('/tests/integration/program-preview.html?at=2026-11-06T21:30&filter=all');
     await waitFor(p, 'document.body.dataset.ready', 'the program', 15000);
     const all = await ev(p, `document.querySelectorAll('.rd-paper:first-child .rd-pr').length`);
+    const badges = await ev(p, `(() => { const rows = [...document.querySelectorAll('.rd-paper:first-child .rd-pr[data-tier]')]; return { n: rows.length, badged: rows.filter(x => x.querySelector('i.rd-tier')).length, tinted: rows.filter(x => { const c = getComputedStyle(x.querySelector(':scope > span')).color; return c !== 'rgb(42, 26, 10)'; }).length, tiers: [...new Set(rows.map(x => x.dataset.tier))].sort().join(',') }; })()`);
+    ok(badges.n === all && badges.badged === all && badges.tinted === all && /common/.test(badges.tiers) && /legendary/.test(badges.tiers), `THE PROGRAM's TIER COLOURS: ${badges.badged}/${all} rows wear their tier badge, ${badges.tinted} names tinted (tiers tonight: ${badges.tiers})`);
     await ev(p, `[...document.querySelectorAll('.rd-prfb')].find(b => /RARE/.test(b.textContent)).click()`);
-    const r = await ev(p, `({ n: document.querySelectorAll('.rd-paper:first-child .rd-pr').length, tagged: [...document.querySelectorAll('.rd-paper:first-child .rd-pr')].filter(x => x.querySelector('i.leg, i.rare')).length, saved: localStorage.getItem('rd:prog') })`);
-    ok(all > 120 && r.n >= 3 && r.n < 20 && r.tagged === r.n - (r.n > r.tagged ? 1 : 0) && r.saved === 'rare', `THE PROGRAM: THE FULL DAY lists ${all} rows; RARE + LEGENDARY ${r.n} (${r.tagged} tagged LEGEND / RARE), remembered (${r.saved})`);
+    const r = await ev(p, `({ n: document.querySelectorAll('.rd-paper:first-child .rd-pr').length, tagged: [...document.querySelectorAll('.rd-paper:first-child .rd-pr')].filter(x => ['rare', 'epic', 'legendary'].includes(x.dataset.tier)).length, saved: localStorage.getItem('rd:prog') })`);
+    ok(all > 120 && r.n >= 3 && r.n < 20 && r.tagged === r.n - (r.n > r.tagged ? 1 : 0) && r.saved === 'rare', `THE PROGRAM: THE FULL DAY lists ${all} rows; RARE + LEGENDARY ${r.n} (${r.tagged} rare / epic / legendary), remembered (${r.saved})`);
     await ctx.close(); }
   // THE NO-TAP SIGHTING in WebKit (Safari's engine) at 402 × 874, a returning visitor: zero input → nothing · a tap AWAY → nothing · a tap
   // ON the UFO → it reacts (the 1B rule: a trusted touch ≥ 800 ms after the page was shown, its down + up on the legendary)

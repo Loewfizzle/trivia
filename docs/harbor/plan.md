@@ -5613,3 +5613,5 @@ THE VAULT 1B DONE (Nov 3) — passes/vault-1b.md + docs/vault.md. THE BUILD TABL
 - THE BUILD TABLE (Nov 3, THE VAULT 1C Step 0): THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C (the Program's tier colours + the "I'm new here"
   welcome, THE 8 SIGHTING CARDS, THE HELD-BACK CARDS — this pass) ← NEXT; then THE VAULT 2A (emblem + glow samples), THE VAULT 2B (the rest),
   BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP, OVERCLOCK, THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
+
+THE VAULT 1C DONE (Nov 3) — passes/vault-1c.md + docs/vault.md. THE BUILD TABLE: THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅ (THE ONE TIER PALETTE + the welcome, THE 8 SIGHTING CARDS, 21 of the 24 held-back cards — PLATINUM / THE HOUSE / FOUNDING MEMBER held back); THE VAULT 2A (emblem + glow samples) ← NEXT; then THE VAULT 2B, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP, OVERCLOCK, THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.

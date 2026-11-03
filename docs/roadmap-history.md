@@ -1843,5 +1843,15 @@ desktop framing; a phone sideways (the sign smaller, the dock 0.8); THE STANDING
   test emblems (NEON + PRISM bolts, THE PROMINENCE RULE); the pink pair as early level rewards (HEARTBREAKER 4, GLITTER BOMB 8).
 - Measured: 8 legendary strips at 4× CPU = 60 fps on the GPU compositor.
 
+## THE VAULT 1C — THE 8 SIGHTING CARDS + THE HELD-BACK CARDS (Nov 3 2026) — docs/harbor/passes/vault-1c.md, docs/vault.md
+- **THE ONE TIER PALETTE** (js/core/rarity.js + css/base.css): COMMON grey · UNCOMMON green · RARE blue · EPIC purple · LEGENDARY gold — the
+  cards' tags, the picker, THE PROGRAM (every row a tier badge + its name tinted). **I'M NEW HERE** closes with a welcome toast.
+- **THE 8 SIGHTING CARDS** (slim + full, LEGENDARY + the laser): LIGHTS OUT (the TR-3B over a city going dark) · SKY KING (the SR-71 re-baked,
+  dusk over the cloud sea) · AFTERBURNER (three re-baked F-22s, vapour cones) · THE FLYING DUTCHMAN (the ghost ship against the moon) · SKY
+  DANCER (the aurora over the harbor) · MAKE A WISH (the fireball breaking up) · HOT AIR, COLD BLOOD (the skull balloon's roar) · FIX THE
+  MONEY, FIX THE WORLD (the ₿ balloons + a gold pulse a block). The reveal + the album show the card's scene once approved.
+- **21 HELD-BACK CARDS** (ZEBRA → THE WITNESS; 14 new effects + combo; 10 CC0 textures); PLATINUM, THE HOUSE, FOUNDING MEMBER held back.
+- Bench (4× CPU): 8 sighting cards 58.4 fps; the new mix + 8 WILDFIRE 60.
+
 ## THE VAULT 1B — SPEED FIRST, THE OWNER's FIXES, THE FULL CARDS + THE LAUNCH SET (Nov 3 2026) — docs/harbor/passes/vault-1b.md, docs/vault.md
 The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is CoreGraphics on the CPU, call by call — so THE GL PAINTER (js/fx/gl.js) draws the same effects on the GPU (the 2D canvas the fallback); scroll-pause; the guard's probation; THE DIAGNOSTICS ROW; THE VAULT BENCH. The no-tap sighting (iOS's app-switch touch — now a trusted touch ≥ 800 ms after the page was shown, down + up on the legendary, a trace to /admin). THE VAULT PICKER (the real strips), THE NAME NEVER CUTS OFF (ui/fit.js), every bottom sheet floats (ui/vv.js), SAVED ✓, the key's line. THE FULL CARDS for the 8 approved strips. The launch set's first 8 (GILDED, MIDNIGHT, BRASS DECO, HEARTBREAKER, EMERALD & BRASS, NEON GLASS, SILVER CHROME, MIDNIGHT & CHAMPAGNE; effects hearts · sheen · tube); SMOKE ROOM / FROSTBITE / PRISM / INFERNO at levels 12 / 16 / 22 / 42. ITEM NAMES ONLY TO OWNERS (api/_lib/catalog.js + lab-text.js, withShow). ADD-ON: THE PROGRAM shows the full day (ALL · RARE + LEGENDARY).
