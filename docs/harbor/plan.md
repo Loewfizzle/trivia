@@ -5534,3 +5534,5 @@ THE VAULT 1A DONE (Nov 3, early) — passes/vault-1a.md + docs/vault.md. THE BUI
   THE VAULT 1B (SPEED FIRST on his iPhone + the diagnostics row, the owner's fixes, THE FULL CARDS for the 8, THE REST OF THE LAUNCH SET + names
   served only to owners — this pass) ← NEXT; then THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its
   review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
+
+THE VAULT 1B DONE (Nov 3) — passes/vault-1b.md + docs/vault.md. THE BUILD TABLE: THE VAULT 1A ✅; THE VAULT 1B ✅ (the GPU path + the diagnostics row, the owner's fixes, THE FULL CARDS, the launch set's first 8, names only to owners, THE PROGRAM's full day); THE VAULT 2 (emblems + glows; + the rest of the launch set's cards if the owner folds them in — else a 1C) ← NEXT; then BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).

@@ -249,3 +249,6 @@ claims, a `&force=` time, the radio's owner once a day vs JUST ME + the crew, th
 radio once a day, birthdays private + once a year + the day + the room's copy, a favor spent only when accepted) · `rules.test.mjs`
 (nobody writes any of it) · `e2e-profiles.mjs` (the held level-up, the big-flame card) · the harbor `sightings` group (a tap on each
 legendary → its reaction, a forced one never claims; THE SEQUENCE + the capture's frame cost; reduced motion) + `radio` (THE WHEN).
+
+## THE VAULT 1B (Nov 3) — NAMES ONLY TO OWNERS + the new rewards
+The items, the 30 achievements and WHAT each level / streak milestone gives moved to the server (`api/_lib/catalog.js`; the shared `core/` modules keep the engine + registries the server fills at import; `REWARD_LEVELS` keeps WHEN). A phone gets display rows only for what it owns or just earned (`withShow` on every /api answer — a level reward's row carries its `lv`, the end of round sorts by it). New level rewards: SMOKE ROOM 12 · FROSTBITE 16 · PRISM 22 · INFERNO 42 (existing players get them on their next match — the carry-over). docs/vault.md "NAMES ONLY TO OWNERS".

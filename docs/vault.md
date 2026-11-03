@@ -1,4 +1,4 @@
-# THE VAULT — the cards, THE CARD LAB + THE EFFECT LIBRARY (THE VAULT 1A, Nov 2–3 2026)
+# THE VAULT — the cards, THE CARD LAB + THE EFFECT LIBRARY (THE VAULT 1A + 1B, Nov 2–3 2026)
 
 What a player COLLECTS (cards · emblems · name glows) and how each one LOOKS + MOVES. The items themselves (ids, names, tiers, who gets
 them) are PROGRESSION's (`docs/progression.md`, `js/core/items.js`); this doc is their ART: the slim strips, the effect library, the lab
@@ -15,6 +15,12 @@ EFFECT LIBRARY); the passes: `docs/harbor/passes/vault-1a.md` (THE STYLE TEST �
 | `js/vault/approved.js` | ONLY APPROVED ART SHIPS — `isApproved(id)` / `approvedIds()` from the lab's public export |
 | `api/_lib/lab.js` (+ `api/admin.js`) | the marks: `labMarks` / `labMark` (admins only, audited, a history) + `GET /api/admin?lab=export` |
 | `js/fx/renderer.js` | THE EFFECT LIBRARY's ONE SHARED RENDERER (surfaces + slots, one clock, one rAF, its own tier guard) |
+| `js/fx/gl.js` | THE GL PAINTER (1B): a 2D-context look-alike over WebGL2 — every surface draws through it (the 2D canvas the fallback) |
+| `js/fx/hearts.js` · `sheen.js` · `tube.js` | 1B's effects: hearts drifting up · the foil's shine pass + a glint · a neon tube inside the edge |
+| `js/vault/picker.js` · `js/vault/full.js` | THE VAULT PICKER (the profile's real strips) · THE FULL CARD (+ its sheet, the profile's own card) |
+| `js/ui/fit.js` · `js/ui/vv.js` | THE NAME NEVER CUTS OFF (fitName) · every bottom sheet above Safari's toolbar (--vv-ob) |
+| `api/_lib/catalog.js` · `api/_lib/lab-text.js` | NAMES ONLY TO OWNERS: the server-only catalog (+ withShow) · the lab's names + descriptions |
+| `tests/integration/vault-bench.mjs` | THE VAULT BENCH (A FULL LOBBY at a CPU slowdown, each cost off in turn) |
 | `js/fx/kit.js` | the shared kit: a seeded RNG, eases, PRE-BAKED SPRITES (glow, sparkle, heart, smoke puff, flame tongue) |
 | `js/fx/index.js` + `smoke · frost · flames · prism · marquee · glitter · laser · ufo .js` | the effects (the registry) |
 | `css/vault.css` | the strips (`vl-`), the emblems, the lab; the surface (`fx-`) |
@@ -142,3 +148,59 @@ the marks, 8 legendaries at 4× CPU = 60 fps, only on-screen slots draw + a hidd
 A FULL LOBBY → 8 LEGENDARIES top → bottom, a tap marks + clears, the membership card's key section + the bring sheet scroll; the same lab
 in WebKit at iPhone size — Playwright 1.56 in `~/wk` or `WK_PLAYWRIGHT`, skipped with a warning elsewhere; its mobile WebKit taps but
 can't drag, so it scrolls by PageDown, blocked by the same lock).
+
+## THE VAULT 1B (Nov 3) — passes/vault-1b.md
+### SPEED (the owner's iPhone is the verdict)
+On iOS Safari a **2D canvas is rasterised by CoreGraphics on the CPU** (in Safari's GPU process), call by call: the page's timer reads ~0
+while the calls still hold the frame. So every surface draws through **THE GL PAINTER** (`js/fx/gl.js` — a 2D-context look-alike over
+WebGL2: triangles in one batch, sprites in one atlas, gradient LUTs, AA fringes, an SDF rounded clip, the stencil for other clips). The 2D
+canvas is the fallback (no WebGL2 · a lost context · `&fx=2d` · GPU DRAW off). **Rules for an effect on the GPU path**: few calls still
+matter (the tessellation runs on the CPU) — bake what never changes into a sprite (`kit.sprite`), keep strokes to the curves you need,
+set `c.fxTol` coarse while building a clip of many circles; `c.isGL` tells you which path you're on. The top tier draws at the phone's
+full 3× (`fxDprGl`). **Scroll-pause** (default on): a scroll / a moving touch holds the effects + pauses their clock. **The guard's
+probation**: a tier step down that doesn't help is undone + held 30 s. **THE DIAGNOSTICS ROW** (the lab, owner-only): CSS GLOWS · EMBLEMS ·
+CANVAS FX · THE LASER · UFO SPRITES · SCROLL-PAUSE · GPU DRAW (remembered: `vl:diag`; `&diag=nofx,nolaser,nosprites,nopause,noglow,noemb,nogpu`)
++ the readout. **THE VAULT BENCH**: `node tests/integration/vault-bench.mjs "<chrome>"` (env CPU, MIX, SW, SCROLL, RUNS — bare: all 8 on
+screen). Measured at 4× CPU, 3×, the full tier: 8 legendaries 60 fps, each card alone ~60, THE 8 SAMPLES 55.7 (the 2D path 31 / 23).
+
+### THE FULL CARD (`js/vault/full.js`)
+`fullCardEl({ card, who, spotted })` + `mountFull(surface, el, card)` · `openFullCard(id, who)` (a sheet) · `mountFullCard(host, id, who)`
+(the profile's own card). The ID-1 shape (1.586 : 1, sized in cqi); the strip's material (`.vl-s-*` — a material can add `.vl-fcm-*` rules
+for the big card); the effect with `opts.full` (every effect lays itself out for it — `kit.unit(s)` = the strip-sized unit); a foil sheen
+(rare +); NEON SPEAKEASY (+ №) + the tier; FOUNDING MEMBER; the plate (emblem + name + BAND · LV); MEMBER SINCE + the card's name. A SIGHTING
+card: the whole scene, its title in neon, when it was spotted, the corner brackets, THE BORDER LASER. Its own lab mark (`full-<card>`).
+
+### THE VAULT PICKER (`js/vault/picker.js`) + THE NAME (`js/ui/fit.js`)
+The profile's cards: the REAL slim strips (the player's emblem + name + LV), the card's name + tier over each, WEARING ✓, tap to wear, VIEW
+→ the full card; unapproved art → a plain strip in the card's palette. `fitName(el, { min, two })`: a name is ALWAYS whole — shrunk to fit,
+then two balanced lines; never an ellipsis (the card, the strips, the full card, the podium).
+
+### NAMES ONLY TO OWNERS
+The catalog is the SERVER's: `api/_lib/catalog.js` (every item's name / line / look, the 30 achievements + their checks, WHAT each level +
+streak milestone gives — registered into the shared registries at import) + `api/_lib/lab-text.js` (the lab's names + descriptions — handed
+to the lab with the marks, admins only). The site's code keeps the logic, the ids (the art's keys), the ORIGINAL GILDED, and WHEN a level
+gives something (`REWARD_LEVELS`). Every /api answer goes through `withShow` → `show: { items, ach }` for exactly the ids it holds; the
+client's /api wrapper registers them (+ keeps this device's own: `ns:show`). The look previews (local only) import the catalog off the
+local server. **A NEW item**: its row in `api/_lib/catalog.js` (+ `lab-text.js` + `js/vault/catalog.js#LAB` for the lab) + its LOOK.
+`tests/vault-names.test.mjs` proves the shipped code carries no catalog.
+
+### THE LAUNCH SET (the cards with art — every one through THE CARD LAB; only APPROVED art ships)
+| id | name | tier | effect | material | earned | lab |
+| --- | --- | --- | --- | --- | --- | --- |
+| card-brushed | BRUSHED GOLD | common | — (its emblem leads) | brushed gold (Metal009) | TOP SHELF (ten wins) | strip ✅ · full new |
+| card-smoke | SMOKE ROOM | uncommon | smoke | a lamp-lit lounge | level 12 | strip ✅ · full new |
+| card-frostbite | FROSTBITE | uncommon | frost | real ice (Ice004) | level 16 | strip ✅ · full new |
+| card-inferno | INFERNO | rare | flames | black-red heat | level 42 | strip ✅ · full new |
+| card-prism | PRISM | rare | prism | black glass | level 22 | strip ✅ · full new |
+| card-marquee | THE MARQUEE | epic | marquee | red velvet | THE HOST | strip ✅ · full new |
+| card-glitter | GLITTER BOMB | epic | glitter | pink glitter (Silver_Glitter_6) | level 8 | strip ✅ · full new |
+| card-sg-ufo | I WANT TO BELIEVE | legendary | ufo + laser | the night over the harbor | a UFO sighting | strip ✅ · full new |
+| card-gilded | GILDED | common | — | black lacquer, the brass fan, a double frame | everyone | strip new (full = the Gilded card) |
+| card-midnight | MIDNIGHT | common | — | a scattered star field, a nebula | level 3 | new |
+| card-heartbreaker | HEARTBREAKER | uncommon | hearts | pink into violet | level 4 | new |
+| card-brass | BRASS DECO | common | — | engraved brass, a deco lattice | level 5 | new |
+| card-emerald | EMERALD & BRASS | uncommon | sheen | green-black lacquer, a stepped crown | level 10 | new |
+| card-neonglass | NEON GLASS | uncommon | tube | smoked glass | level 18 | new |
+| card-chrome | SILVER CHROME | uncommon | sheen | polished chrome, a prism rim | level 20 | new |
+| card-champagne | MIDNIGHT & CHAMPAGNE | uncommon | sheen | navy lacquer, Chrysler arches | level 25 | new |
+The rest of the catalog (25 cards + 8 sighting cards) keeps a plain strip until built (passes/vault-1b.md "Known issues").

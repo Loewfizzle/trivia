@@ -222,3 +222,15 @@ test('THE FOUNDER WINDOW: the owner’s switch (server-checked, audited); a crew
     assert.equal((await adminAction('g-boss', { action: 'radioFounder', open: true }, at)).founder.open, true);
   } finally { process.env.ADMIN_PIDS = ''; }
 });
+
+// THE VAULT 1B — ITEM NAMES ONLY TO OWNERS: /api/profile 'me' (through the route's withShow) describes exactly what the player owns + holds
+test('NAMES ONLY TO OWNERS: me → show = display rows for the owned items + the held achievements, nothing else', async () => {
+  const { withShow } = await import('../../api/_lib/catalog.js');
+  const r = withShow(await profileAction('g-host', { action: 'me' }, '', NOW + 9e6));
+  const owned = Object.keys(r.stats.it || {}).sort(), held = Object.keys(r.stats.ac || {}).sort();
+  assert.ok(owned.length >= 3 && r.show, `${owned.length} owned`);
+  assert.deepEqual(Object.keys(r.show.items).sort(), owned.filter(id => id !== 'card-gilded' || r.show.items[id]));
+  assert.deepEqual(Object.keys(r.show.ach).sort(), held);
+  assert.ok(!r.show.items['card-house'] && !r.show.items['card-sg-tr3b'], 'never an item the player doesn\'t own');
+  for (const a of Object.values(r.show.ach)) assert.ok(!('check' in a));
+});

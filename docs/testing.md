@@ -15,7 +15,7 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
 - **THE VAULT 1A** (docs/vault.md): `node --test tests/vault.test.mjs` (pure) · `node --test lab.test.mjs` (in `tests/integration`, the
   emulators: THE CARD LAB's marks — owner only, audited, the export; in the cloud's tests job) · the harbor `vault` group (the `audio` job:
   the lab's 10 items on ONE canvas, the marks, 8 legendaries at 4× CPU = 60 fps on the real compositor, on-screen only, reduced motion) ·
-  `tests/integration/vault-preview.html` (the lab without Firebase) · shots.mjs `--page <url> --crop XxYxWxH --every ms --count n` (a
+  `tests/integration/vault-preview.html` (the lab without Firebase; `&view=full`, `&full=<card>`, `&diag=…`, `&fx=2d`) · THE VAULT BENCH `node tests/integration/vault-bench.mjs "<chrome>"` (A FULL LOBBY at a CPU slowdown, each cost off in turn — VAULT 1B) · `tests/integration/program-preview.html` (THE PROGRAM's real paint, `?at=&filter=`) · shots.mjs `--page <url> --crop XxYxWxH --every ms --count n` (a
   close-up burst — judge a strip MOVING) + `--scrolls N` (a page that scrolls inside its own box) + `--js`.
 - **GitHub checks** (`.github/workflows/tests.yml`, Oct 2026): **since SP6 (the owner's CLOUD MINUTES, Oct 27 — Pro's 3,000 a month went at
   ~400–600 a day when this ran on every push) only a pass's FINAL push runs it**: a push with **`[ci]`** (a game / app pass) or **`[harbor]`** (a City 2.0

@@ -28,7 +28,7 @@
 //   radio…                         → CITY CONTROLS A — THE RADIO (api/_lib/radio.js): radioState · radioFire · radioStop · radioClearAll ·
 //                                    radioBoard · radioBoardEdit · radioBoardCancel · radioDial · radioRooms · radioWho · radioHello —
 //                                    each checks the caller's ROLE (the owner = ADMIN_PIDS, THE CREW = radio/crew/{pid}) per action
-import './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
+import { displayOf } from './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
 import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_lib/profiles.js';
@@ -255,6 +255,8 @@ export async function adminAction(uid, body, now = Date.now()) {
     }
     case 'outages': return { outage: (await val('streak/outage')) || {}, today: streakDay(now) };
     // THE VAULT 1A — THE CARD LAB (api/_lib/lab.js): the owner's marks, read + written by admins only, every change audited
+    // (THE VAULT 1B: the owner's &sgdemo preview — a preview never claims, so its pair's NAMES come from here, admins only)
+    case 'sightShow': { const id = String(body.id || ''); if (!/^[a-z0-9]{2,16}$/.test(id)) throw new ApiError(400, 'bad_id'); return { show: { items: displayOf([`card-sg-${id}`, `emb-sg-${id}`]), ach: {} } }; }
     case 'labMarks': return { marks: await labMarks(), text: LAB_TEXT };   // (VAULT 1B: the lab's names come with the marks — admins only)
     case 'labMark': { const marks = await labMark(me, body, now); await audit(me, 'labMark', null, { b: `${String(body.id).slice(0, 40)} ${body.mark || 'clear'}`, note: String(body.note || '').slice(0, 140) }); return { marks }; }
     default: throw new ApiError(400, 'bad_action');

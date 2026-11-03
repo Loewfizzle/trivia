@@ -160,9 +160,9 @@ await H.run(async () => {
   await p3.waitForSelector('.pf-game', { timeout: 15000 });
   ok(/CIPHER/.test(await p3.$eval('.pf-game', e => e.textContent)), 'her stats came with it');
   // PROGRESSION A — THE GILDED CARD + THE PROFILE: the level, the stats, the achievements she holds (+ X%), THE VAULT = only what she owns
-  await p3.waitForFunction(() => document.querySelectorAll('.pg-prof .pg-ach').length >= 2 && !!document.querySelector('.pg-vitem[data-id="card-founder"]'), { timeout: 15000 }).catch(() => {});   // (the restored profile's sections, not the blank one's)
+  await p3.waitForFunction(() => document.querySelectorAll('.pg-prof .pg-ach').length >= 2 && !!document.querySelector('.vl-pick[data-id="card-founder"]'), { timeout: 15000 }).catch(() => {});   // (the restored profile's sections, not the blank one's)
   const prof = await p3.evaluate(() => ({ card: document.querySelector('.pg-card').dataset.card, lv: (document.querySelector('.pg-card-lv') || {}).textContent || '',
-    ach: [...document.querySelectorAll('.pg-prof .pg-ach div > b')].map(b => b.textContent), vault: [...document.querySelectorAll('.pg-vitem')].map(b => b.dataset.id),
+    ach: [...document.querySelectorAll('.pg-prof .pg-ach div > b')].map(b => b.textContent), vault: [...document.querySelectorAll('.vl-pick, .pg-vitem')].map(b => b.dataset.id),   // (THE VAULT 1B: the cards are the picker's strips)
     text: document.querySelector('.pg-prof').textContent }));
   ok(prof.card === 'card-gilded' && /^REGULAR · LEVEL [56]$/.test(prof.lv), `the GILDED card: ${prof.lv}`);
   ok(prof.ach.includes('FIRST ROUND') && prof.ach.includes('HOUSE WARMING'), `the achievements she holds (${prof.ach.join(', ')})`);
@@ -171,7 +171,7 @@ await H.run(async () => {
   await p3.waitForFunction(() => /of players have this/.test((document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || ''), { timeout: 10000 }).catch(() => {});
   ok(/^\d+% of players have this$/.test(await p3.evaluate(() => (document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || '')), 'X% of players have this (the server’s count — pink, sentence case)');
   // wear another card she owns → the card changes (the server checked it)
-  await p3.click('.pg-vitem[data-id="card-founder"]');
+  await p3.click('.vl-pick[data-id="card-founder"] .vl-pick-wear');   // (THE VAULT 1B: tap the card's strip)
   await p3.waitForFunction(() => document.querySelector('.pg-card').dataset.card === 'card-founder', { timeout: 8000 });
   ok((await val(`profiles/${me0.pid}/cd`)) === 'card-founder', 'WEAR IT: FOUNDING MEMBER — on the card + on the server');
   // the streak: the card's flame → the streak card
