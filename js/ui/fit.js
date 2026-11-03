@@ -16,6 +16,12 @@ export function fitName(el, o = {}) {
   const unsplit = () => { if (split) { split.replaceWith(first); split = null; } };
   const fit = () => {
     if (!el.isConnected) return;
+    // (THE VAULT 2A: a NAME GLOW's little pieces — absolutely placed <i>s after the text — are out of the measure: they'd count as width)
+    const deco = [...el.children].filter(c => c.tagName === 'I');
+    for (const d of deco) d.style.display = 'none';
+    try { fitNow(); } finally { for (const d of deco) d.style.display = ''; }
+  };
+  const fitNow = () => {
     unsplit();
     el.classList.remove('fit-2');
     el.style.fontSize = '';

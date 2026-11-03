@@ -2,6 +2,23 @@
 // gets them with the marks (/api/admin labMarks — admins only); never in the site's code. A new lab item = its row here + its id in
 // js/vault/catalog.js#LAB.
 export const LAB_TEXT = {
+ "emb-key": { "name": "THE KEY", "motion": "NEON — the house style: an amber key with a pink diamond in its bow, two tubes in the sign's own layers (glass, glow, body, white-hot core); still — its motion comes from the tube style you wear" },
+ "emb-sweetheart": { "name": "SWEETHEART", "motion": "NEON — a pink neon heart done properly (full round lobes, a long point, a reflection arc) with a little purple heart tucked over its shoulder" },
+ "emb-owl": { "name": "THE OWL", "motion": "NEON — an Art Deco owl, no cartoon: a stepped totem in violet, sharp ear tufts, a chevron brow, two narrow almond eyes in gold" },
+ "emb-prism": { "name": "FOUR ON THE FLOOR", "motion": "PRISM — a glass prism: a rainbow sweeping through it, a sheen, a glint off its peak; the white beam in, the four lines out pulsing in turn" },
+ "emb-house": { "name": "THE HOUSE", "motion": "GOLD — a struck-gold crown with its gems, a dark edge + a bright bevel; a slow shine crossing it + a glint off its peak" },
+ "emb-snowflake": { "name": "SNOWED IN", "motion": "ICE CRYSTAL — a cut-ice snowflake: frost growing out at each tip in turn, a glint as each one finishes" },
+ "emb-torch": { "name": "THE FLAME", "motion": "MOLTEN — the flame as lava: a black crust, glowing cracks pulsing, the hot core breathing, a drop of lava falling off its foot, embers rising beside it" },
+ "emb-lightning": { "name": "RAINMAKER", "motion": "GLITCH — the bolt in white with red + cyan ghosts; now and then it jumps, two slices tear sideways, it snaps back" },
+ "emb-sg-tr3b": { "name": "LIGHTS OUT", "motion": "CHROME — the city's REAL TR-3B from below in black chrome: a light gliding across it, its WHITE corner lights pulsing in turn, the RED centre's slow heartbeat" },
+ "emb-sg-ufo": { "name": "I WANT TO BELIEVE", "motion": "GALAXY — the city's saucer filled with deep space: a nebula drifting through it, stars twinkling inside, its rim ports chasing, the beam's rays pulsing below" },
+ "emb-signup": { "name": "THE 12 SIGN-UP SHAPES", "motion": "Today's 12 emblems (the ones you pick when you join) as commons on the NEON renderer — the frame + the icon as two tubes in your colour, crisp at 3×" },
+ "tube-twotone": { "name": "TWO-TONE", "motion": "A TUBE STYLE (any neon emblem): two colours in one tube — your colour into its partner across the wheel" },
+ "tube-breath": { "name": "BREATHING", "motion": "A TUBE STYLE (any neon emblem): the glow breathes slowly in and out" },
+ "tube-chase": { "name": "A CHASING LIGHT", "motion": "A TUBE STYLE (any neon emblem): a white-hot light running round and round the tube" },
+ "glow-ember": { "name": "EMBER", "motion": "A NAME GLOW (common, still): warm coal light round the letters — the name only, never the level" },
+ "glow-gold": { "name": "GOLD LEAF", "motion": "A NAME GLOW (rare): the name in struck gold leaf, a glint popping on its letters one place after another" },
+ "glow-spark": { "name": "ELECTRIC", "motion": "A NAME GLOW (rare): cold electric light, small arcs crackling along the top + the foot of the letters in turn" },
  "card-founder": {
   "name": "FOUNDING MEMBER",
   "motion": "OPENING NIGHT — the big NEON SPEAKEASY sign on the speakeasy's roof lighting letter by letter over the city (the title's own NEON tubes, then SPEAKEASY), searchlights once it all burns; your member № stamped in gold; THE BORDER LASER"

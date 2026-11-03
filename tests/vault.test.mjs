@@ -16,7 +16,7 @@ test('THE LAB\'s catalog: the 8 approved samples (1 common · 2 uncommon · 2 ra
   assert.deepEqual(cards.map(x => x.name), ['BRUSHED GOLD', 'SMOKE ROOM', 'FROSTBITE', 'INFERNO', 'PRISM', 'THE MARQUEE', 'GLITTER BOMB', 'I WANT TO BELIEVE']);
   assert.deepEqual(cards.map(x => x.tier), ['common', 'uncommon', 'uncommon', 'rare', 'rare', 'epic', 'epic', 'legendary']);
   for (const c of cards) { assert.ok(ITEM[c.id], `${c.id} is an item`); assert.equal(ITEM[c.id].name, c.name); assert.equal(ITEM[c.id].tier, c.tier, `${c.id}: the item's tier`); }
-  assert.deepEqual(LAB.filter(x => x.kind === 'emblem').map(x => x.id), ['emb-test-neon', 'emb-test-prism']);
+  assert.deepEqual(LAB.filter(x => x.kind === 'emblem' && x.n < 90).map(x => x.id), ['emb-test-neon', 'emb-test-prism'], "1A's two test emblems (2A's samples: tests/vault-2a.test.mjs)");
   assert.equal(new Set(LAB_IDS).size, LAB_IDS.length); assert.equal(GUESTS.length, 8);
 });
 

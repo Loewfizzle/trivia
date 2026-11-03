@@ -108,6 +108,27 @@ LAB.push(
   { id: 'full-card-eternal', kind: 'full', of: 'card-eternal', tier: 'legendary', n: 90 },
   { id: 'full-card-witness', kind: 'full', of: 'card-witness', tier: 'legendary', n: 91 },
 );
+// THE VAULT 2A — THE EMBLEM SYSTEM's SAMPLES (the EMBLEMS + GLOWS tabs; 2B builds the rest from these marks): 10 emblems (a shape + a
+// finish each), today's 12 sign-up shapes on the neon renderer (one block), 3 tube styles, 3 name glows
+LAB.push(
+  { id: 'emb-key', kind: 'emblem', tier: 'common', n: 98, fin: 'neon' },
+  { id: 'emb-sweetheart', kind: 'emblem', tier: 'common', n: 99, fin: 'neon' },
+  { id: 'emb-owl', kind: 'emblem', tier: 'uncommon', n: 100, fin: 'neon' },
+  { id: 'emb-prism', kind: 'emblem', tier: 'rare', n: 101, fin: 'prism' },
+  { id: 'emb-house', kind: 'emblem', tier: 'legendary', n: 102, fin: 'gold' },
+  { id: 'emb-snowflake', kind: 'emblem', tier: 'epic', n: 103, fin: 'ice' },
+  { id: 'emb-torch', kind: 'emblem', tier: 'epic', n: 104, fin: 'molten' },
+  { id: 'emb-lightning', kind: 'emblem', tier: 'epic', n: 105, fin: 'glitch' },
+  { id: 'emb-sg-tr3b', kind: 'emblem', tier: 'legendary', n: 106, fin: 'chrome' },
+  { id: 'emb-sg-ufo', kind: 'emblem', tier: 'legendary', n: 107, fin: 'galaxy' },
+  { id: 'emb-signup', kind: 'emblem', tier: 'common', n: 108, fin: 'neon', set: true },
+  { id: 'tube-twotone', kind: 'tube', tier: 'common', n: 109 },
+  { id: 'tube-breath', kind: 'tube', tier: 'uncommon', n: 110 },
+  { id: 'tube-chase', kind: 'tube', tier: 'uncommon', n: 111 },
+  { id: 'glow-ember', kind: 'glow', tier: 'common', n: 112 },
+  { id: 'glow-gold', kind: 'glow', tier: 'rare', n: 113 },
+  { id: 'glow-spark', kind: 'glow', tier: 'rare', n: 114 },
+);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.

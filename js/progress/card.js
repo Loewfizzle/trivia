@@ -9,6 +9,7 @@ import { avatar } from '../ui/components.js';
 import { colorHex } from '../config.js';
 import { levelInfo } from '../core/levels.js';
 import { streakView, streakDay } from '../core/streak.js';
+import { GLOW_ART, applyGlow } from '../vault/glows.js';
 import { cardVars, glowClass, flameIcon, reduced } from './look.js';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
@@ -34,7 +35,8 @@ export function gildedCard(pub, local = {}, opts = {}) {
     opts.mini ? null : h('div.pg-card-mid',
       h('span.pg-card-emb', avatar(p.a || 'bolt', p.c || 'magenta', 80)),
       h('div.pg-card-id',
-        fitName(h('div.pg-card-name', { class: glow ? `is-plain-ink ${glow}` : '' }, (p.n || 'MEMBER').toUpperCase()), { min: 17 }),
+        // (THE VAULT 2A: a glow with the new art — GLOW_ART — goes through applyGlow; the rest keep today's class)
+        fitName(GLOW_ART[p.g] ? applyGlow(h('div.pg-card-name', (p.n || 'MEMBER').toUpperCase()), p.g) : h('div.pg-card-name', { class: glow ? `is-plain-ink ${glow}` : '' }, (p.n || 'MEMBER').toUpperCase()), { min: 17 }),
         h('div.pg-card-lv', `${L.band.name} · LEVEL ${L.lvl}`))),
     opts.mini ? null : h('div.pg-card-bot',
       h('div.pg-card-since', h('small', 'MEMBER SINCE'), h('b', sinceOf(p.at))),

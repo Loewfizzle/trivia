@@ -22,7 +22,7 @@ export function sampleProfile(q = new URLSearchParams()) {
   const xp = XP_AT[23] + 260;
   const it = {}; let t = 1;
   for (const id of rewardsUpTo(23)) it[id] = t++;
-  for (const id of ['glow-ember', 'emb-key', 'card-brushed', 'card-founder', 'flame-full', 'glow-afterglow', 'emb-owl']) it[id] = t++;
+  for (const id of ['glow-ember', 'emb-key', 'card-brushed', 'card-founder', 'flame-full', 'glow-afterglow', 'emb-owl', 'tube-breath', 'tube-chase', 'glow-gold', 'glow-spark', 'emb-snowflake']) it[id] = t++;   // (2A: the samples' tube styles, glows + an ice emblem)
   // (PROGRESSION B: three CITY SIGHTINGS spotted — their pairs; the album shows the prints the owner's &sgdemo links took on this device)
   const sgAt = Date.UTC(2026, 10, 2, 3, 14);
   for (const [k, id] of ['ufo', 'skull', 'btc'].entries()) { it[`card-sg-${id}`] = sgAt + k * 864e5; it[`emb-sg-${id}`] = sgAt + k * 864e5; }
@@ -51,10 +51,10 @@ export function sampleOutcome(q = new URLSearchParams()) {
 }
 
 /** mount a preview into `root` (the look page) or over the title (the live site: root = null) */
-export async function preview(view, q = new URLSearchParams(), root = null) {
+export async function preview(view, q = new URLSearchParams(), root = null, keep = null) {
   setPctForTest({ i: Object.fromEntries(ITEMS.map((x, i) => [x.id, 3 + (i * 7) % 40])), a: { 'top-shelf': 22, 'first-round': 96, 'house-warming': 41, 'night-owl': 9 } });
   if (q.get('rm') === '1') document.documentElement.classList.add('pg-rm');
-  const data = sampleProfile(q);
+  const data = keep || sampleProfile(q);   // (2A: a wear in the preview repaints with the same sample — what it wears kept)
   // (the album: the preview's own prints — the &sgdemo links' — never the real album's)
   try { (await import('../profile/album.js')).useAlbum('ns-album-preview'); } catch { /* polish */ }
   if (view === 'moment') {
@@ -93,7 +93,7 @@ export async function preview(view, q = new URLSearchParams(), root = null) {
       for (const it of ITEMS.filter(x => x.kind === 'card')) host.append(h('div.lbl', `${it.name} · ${it.tier.toUpperCase()}`), gildedCard(data.profile, {}, { card: it.id, st: data.stats.st }));
     } else {
       host.append(gildedCard(data.profile, {}, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
-      if (view === 'profile' || !root) host.append(h('div.pg-prof', ...progressSections(data, { name: NAME, preview: true, onFlame: () => openStreakCard(data.stats.st), onWear: (slot, id) => { if (slot === 'card') { data.profile.cd = id; host.replaceChildren(); preview(view, new URLSearchParams({ ...Object.fromEntries(q), card: id }), host); } } })));
+      if (view === 'profile' || !root) host.append(h('div.pg-prof', ...progressSections(data, { name: NAME, preview: true, onFlame: () => openStreakCard(data.stats.st), onWear: (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (!k) return; data.profile[k] = id || null; if (slot === 'card') { host.replaceChildren(); preview(view, new URLSearchParams({ ...Object.fromEntries(q), card: id }), host); return; } host.replaceChildren(); preview(view, q, host, data); } })));
     }
     window.__pg = { host };
     return host;

@@ -87,21 +87,24 @@ export const ITEM_ROWS = [
   E('emb-cocktail', 'COCKTAIL GLASS', 'common', '🍸', 'Last, ten times. Have one on the house.'),
   E('emb-owl', 'THE OWL', 'uncommon', '🦉', 'A match between 2 and 4 am.'),
   E('emb-glasses', 'TWO GLASSES', 'uncommon', '🥂', 'Ten nights with the same friend.'),
-  E('emb-lightning', 'LIGHTNING', 'rare', 'ϟ', 'Played through a real thunderstorm.'),
-  E('emb-snowflake', 'SNOWFLAKE', 'rare', '❄', 'Played while it really snowed.'),
+  E('emb-lightning', 'RAINMAKER', 'epic', 'ϟ', 'Played through a real thunderstorm.'),
+  E('emb-snowflake', 'SNOWED IN', 'epic', '❄', 'Played while it really snowed.'),
   E('emb-peephole', 'THE PEEPHOLE', 'rare', '◉', 'You know the knock.'),
   E('emb-wings', 'WINGS', 'epic', '✈', 'Twenty-five sightings.'),
   E('emb-stars', 'THREE STARS', 'rare', '✦', 'All three dailies in one day.'),
   E('emb-sunrise', 'SUNRISE', 'uncommon', '☀', 'A daily before 8 am.'),
   E('emb-bitcoin', '₿', 'epic', '₿', 'Twenty-one nights in a row. HODL.'),
-  E('emb-prism', 'THE PRISM', 'uncommon', '◆', 'Four lines at once.'),
+  E('emb-prism', 'FOUR ON THE FLOOR', 'rare', '◆', 'Four lines at once.'),
   E('emb-bullseye', 'BULLSEYE', 'uncommon', '◎', 'Dead on.'),
-  E('emb-torch', 'THE TORCH', 'epic', '♨', 'Fifty nights in a row.'),
+  E('emb-torch', 'THE FLAME', 'epic', '♨', 'Fifty nights in a row.'),
   E('emb-diamond', 'DIAMOND', 'common', '◇', 'Level 13.'),
   E('emb-crescent', 'CRESCENT', 'uncommon', '☾', 'Level 37.'),
   E('emb-crown', 'THE CROWN', 'rare', '♛', 'Level 55.'),
   E('emb-sunburst', 'SUNBURST', 'epic', '✺', 'Level 75.'),
   E('emb-ace', 'THE ACE', 'legendary', '♠', 'Level 90.'),
+  // THE VAULT 2A — the emblem set's new marks (the owner's sketches): SWEETHEART (early: a friend's daughters play) + THE HOUSE's crown (level 100)
+  E('emb-sweetheart', 'SWEETHEART', 'common', '♥', 'A pink neon heart, and a little purple one.'),
+  E('emb-house', 'THE HOUSE', 'legendary', '♛', 'Level 100. The crown is yours.'),
   // ---- tube styles (how your emblem's neon burns)
   T('tube-twotone', 'TWO-TONE', 'common', 'Two colours in one tube.'),
   T('tube-ember', 'SLOW BURN', 'uncommon', 'Fourteen nights in a row: a tube that smoulders.'),
@@ -109,15 +112,16 @@ export const ITEM_ROWS = [
   T('tube-gold', 'GOLD TUBE', 'rare', 'Neon in gold glass.'),
   T('tube-flicker', 'OLD SIGN', 'rare', 'The flicker of an old sign.'),
   T('tube-beat', 'ON THE BEAT', 'epic', 'Pulses with the party on Friday + Saturday nights.'),
+  T('tube-chase', 'A CHASING LIGHT', 'uncommon', 'A light running round and round the tube.'),
   // ---- name glows (today's VAULT glows folded in, + the new ones)
   G('glow-ember', 'EMBER', 'common', 'A warm glow, like a cigar in the dark.', { old: 'ember' }),
-  G('glow-ice', 'ICE', 'uncommon', 'Cold blue light, the back room at 3 a.m.', { old: 'ice' }),
+  G('glow-ice', 'ICE', 'common', 'Cold blue light, the back room at 3 a.m.', { old: 'ice' }),
   G('glow-neon', 'NEON', 'uncommon', 'Pink and cyan tubes, buzzing.', { old: 'neon' }),
-  G('glow-gold', 'GOLD', 'rare', 'Your name in gold leaf.', { old: 'gold' }),
+  G('glow-gold', 'GOLD LEAF', 'rare', 'Your name in gold leaf.', { old: 'gold' }),
   G('glow-prism', 'PRISM', 'epic', 'Every colour, moving through your name.', { old: 'prism' }),
   G('glow-champagne', 'CHAMPAGNE', 'rare', 'Bubbles of light.', { old: 'gold' }),
-  G('glow-afterglow', 'AFTERGLOW', 'uncommon', 'Seven nights in a row.', { old: 'ember' }),
-  G('glow-spark', 'SPARK', 'rare', 'From last to first.', { old: 'neon' }),
+  G('glow-afterglow', 'AFTERGLOW', 'common', 'Seven nights in a row.', { old: 'ember' }),
+  G('glow-spark', 'ELECTRIC', 'rare', 'From last to first.', { old: 'neon' }),
   G('glow-starlight', 'STARLIGHT', 'rare', 'Three different legends seen.', { old: 'ice' }),
   G('glow-candle', 'CANDLELIGHT', 'uncommon', 'A daily on seven different days.', { old: 'ember' }),
   G('glow-tinsel', 'TINSEL', 'rare', 'Three holidays at the bar.', { old: 'gold' }),
@@ -172,6 +176,7 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 3, item: 'card-midnight' },
   { lvl: 4, item: 'card-heartbreaker' },     // (THE VAULT 1A — THE PINK PAIR, early: the owner, Nov 2 10:11 pm)
   { lvl: 5, item: 'card-brass' },
+  { lvl: 6, item: 'emb-sweetheart' },        // (THE VAULT 2A — the pink pair's emblem, early)
   { lvl: 7, item: 'tube-twotone' },
   { lvl: 8, item: 'card-glitter' },
   { lvl: 10, item: 'card-emerald' },
@@ -183,6 +188,7 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 20, item: 'card-chrome' },
   { lvl: 22, item: 'card-prism' },
   { lvl: 25, item: 'card-champagne' },
+  { lvl: 26, item: 'tube-chase' },            // (THE VAULT 2A — the chasing light)
   { lvl: 28, item: 'glow-neon' },
   { lvl: 30, item: 'tube-breath' },
   { lvl: 32, item: 'card-velvet' },
@@ -205,6 +211,7 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 90, item: 'emb-ace' },
   { lvl: 95, item: 'card-platinum' },
   { lvl: 100, item: 'card-house' },
+  { lvl: 100, item: 'emb-house' },            // (THE VAULT 2A — THE HOUSE's crown, gold)
 ];
 
 export const MILESTONE_ITEMS = {

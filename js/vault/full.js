@@ -11,7 +11,6 @@
 //   mountFull(host, el, card, o) → slot (host: a surface from js/fx/renderer.js#createSurface)
 //   openFullCard(id, who) → { close() }   (a sheet over the page; its own surface)
 import { h } from '../ui/dom.js';
-import { avatar } from '../ui/components.js';
 import { gildedCard, sinceOf } from '../progress/card.js';
 import { pgSheet } from '../progress/look.js';
 import { bandOf } from '../core/levels.js';
@@ -22,6 +21,10 @@ import { LOOKS, vaultSheet, fxOpts } from './strip.js';
 import { LAB } from './catalog.js';
 import { fitName } from '../ui/fit.js';
 import { approvedIds } from './approved.js';
+import { emblemEl, hasArt } from './emblem-art.js';
+import { applyGlow } from './glows.js';
+import { prominence } from './emblems.js';
+import { embTier } from './strip.js';
 
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
 export const fullId = card => `full-${card}`;
@@ -37,8 +40,9 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const sighting = /^card-sg-/.test(card);
   const name = (who.name || 'MEMBER').toUpperCase();
   const plate = h('div.vl-fc-plate',
-    h('span.vl-fc-emb', avatar(who.avatar || 'bolt', who.color || 'magenta', 46)),
-    h('span.vl-fc-who', fitName(h('b.vl-fc-name', name), { min: 15, two: 17 }), h('small.vl-fc-lv', `${bandOf(lv).name} · LV ${lv}`)));
+    // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)
+    h('span.vl-fc-emb', emblemEl({ id: hasArt(who.shape) ? who.shape : null, avatar: who.avatar || 'bolt', color: who.color || 'magenta', tube: who.tube, mode: prominence(t, embTier(hasArt(who.shape) ? who.shape : null)) })),
+    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', `${bandOf(lv).name} · LV ${lv}`)));
   const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,

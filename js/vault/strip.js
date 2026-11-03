@@ -9,7 +9,9 @@ import { h } from '../ui/dom.js';
 import { createSurface } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
 import { LAB } from './catalog.js';
-import { TIER_NAMES } from '../core/items.js';
+import { TIER_NAMES, ITEM } from '../core/items.js';
+import { emblemEl, hasArt } from './emblem-art.js';
+import { applyGlow } from './glows.js';
 import { emblemSvg, prominence, TEST_EMBLEMS } from './emblems.js';
 import { fitName } from '../ui/fit.js';
 
@@ -70,28 +72,24 @@ export const LOOKS = Object.freeze({
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
-/** css/vault.css on any page that shows a strip (the app loads it with the profile's sheet; a page that didn't gets it here) */
-let sheetP = null;
-export function vaultSheet() {
-  if (sheetP) return sheetP;
-  sheetP = new Promise(res => {
-    if (typeof document === 'undefined' || document.querySelector('link[data-vl]') || [...document.styleSheets].some(x => x.href && x.href.endsWith('/css/vault.css'))) { res(); return; }
-    const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/vault.css'; l.dataset.vl = '1';
-    l.onload = () => res(); l.onerror = () => res(); document.head.append(l); setTimeout(res, 2500);
-  });
-  return sheetP;
-}
+export { vaultSheet } from './sheet.js';
 const tierOf = id => (LAB.find(x => x.id === id) || {}).tier || 'common';
+/** an emblem's tier (the lab's row, else the owner's item row; the sign-up shapes are commons) */
+export const embTier = id => (id && ((LAB.find(x => x.id === id) || {}).tier || (ITEM[id] || {}).tier)) || 'common';
 
 /** one strip: card (an id with a LOOK) — or plain (a card not approved yet: its palette's vars, a plain strip) + tier; embEl = the player's
  *  own emblem element (else a test emblem); the NAME always whole (ui/fit.js — shrunk, then two lines; never an ellipsis) */
-export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tierIn, no }) {
+export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tierIn, no, avatar, color, tube, glow }) {
   const look = plain ? { mat: 'plain' } : (LOOKS[card] || LOOKS['card-brushed']), tier = tierIn || tierOf(card);
-  const embId = emblem || look.emblem || 'emb-test-neon', em = TEST_EMBLEMS[embId] || TEST_EMBLEMS['emb-test-neon'];
-  const mode = prominence(tier, em.tier);
+  // THE EMBLEM (THE VAULT 2A): the player's own (an emblem with art, else their sign-up shape in neon) with its tube style — or 1A's test pair
+  let embId, mode, emb;
+  if (embEl) { embId = ''; mode = 'even'; emb = embEl; }
+  else if (TEST_EMBLEMS[emblem] || (!emblem && !avatar)) { embId = TEST_EMBLEMS[emblem] ? emblem : look.emblem || 'emb-test-neon'; const em = TEST_EMBLEMS[embId] || TEST_EMBLEMS['emb-test-neon']; mode = prominence(tier, em.tier); emb = emblemSvg(em.finish, mode); }
+  else { embId = hasArt(emblem) ? emblem : ''; mode = prominence(tier, embTier(embId)); emb = emblemEl({ id: embId || null, avatar, color, tube, mode }); }
+  const nameEl = applyGlow(h('b.vl-name', name), glow);
   const plate = h('div.vl-plate',
-    h('span.vl-emb', embEl || emblemSvg(em.finish, mode)),
-    h('span.vl-who', fitName(h('b.vl-name', name), { min: 13, two: 14.5 }), h('small.vl-lv', host ? `LV ${lv} · HOST` : `LV ${lv}`)));
+    h('span.vl-emb', emb),
+    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', host ? `LV ${lv} · HOST` : `LV ${lv}`)));
   const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,

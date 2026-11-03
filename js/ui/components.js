@@ -12,7 +12,7 @@ import { pubOf } from '../profile/public.js';
 // a soft sheen across the top, and the icon drawn as a tube too. Static SVG (no filters, nothing animated): cheap to
 // draw anywhere, however many are on screen. viewBox 48×48 with room around it for the glow.
 const oct = (r = 21) => { const a = Math.PI / 8; return 'M' + Array.from({ length: 8 }, (_, i) => `${(24 + r * Math.cos(a + i * Math.PI / 4)).toFixed(2)} ${(24 + r * Math.sin(a + i * Math.PI / 4)).toFixed(2)}`).join('L') + 'Z'; };
-const FRAMES = {
+export const FRAMES = {
   // frame path, icon centre (x, y) and size (px of the 24-grid icon)
   bolt: ['M24 3L42 9V23C42 34 34 41 24 45C14 41 6 34 6 23V9Z', 24, 22.5, 24],                     // shield
   eye: ['M3 24C10 11 17 6.5 24 6.5S38 11 45 24C38 37 31 41.5 24 41.5S10 37 3 24Z', 24, 24, 24],   // almond

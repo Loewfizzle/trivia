@@ -226,7 +226,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     import('../vault/full.js').then(async F => {
       if (!(await F.canShowFull(cd)) || n !== paintN || destroyed) return;
       const L = levelOf(data.stats.xp || p.x || 0);
-      fullMounted = F.mountFullCard(els.card, cd, { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: p.t, fd: !!p.fd, spotted: data.stats.it && data.stats.it[cd] });
+      fullMounted = F.mountFullCard(els.card, cd, { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: p.t, fd: !!p.fd, shape: p.es, tube: p.tb, glow: p.g, spotted: data.stats.it && data.stats.it[cd] });
     }).catch(() => {});
   }
   // PROGRESSION A: the level, the stats, the streak, the achievements, THE VAULT (only what you own) — then this week's goal + mastery

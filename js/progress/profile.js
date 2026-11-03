@@ -6,12 +6,13 @@ import { h } from '../ui/dom.js';
 import { levelInfo } from '../core/levels.js';
 import { streakView, streakDay } from '../core/streak.js';
 import { heldOf } from '../core/achievements.js';
-import { ownedOf, ITEM, TIER_NAMES } from '../core/items.js';
+import { ownedOf, ITEM } from '../core/items.js';
 import { itemSwatch } from './moment.js';
 import { num, pctFor, pctLine, flameIcon } from './look.js';
 import { albumSection } from './album-view.js';
 import { birthdayPanel, favorPanel } from './extras.js';
-import { cardPicker } from '../vault/picker.js';
+import { cardPicker, stylePicker } from '../vault/picker.js';
+import { createSurface } from '../fx/renderer.js';
 
 const sum = (g, k) => Object.values(g || {}).reduce((a, x) => a + ((x && x[k]) || 0), 0);
 
@@ -49,21 +50,24 @@ export function progressSections(data, o = {}) {
 
   const owned = s.it || {};
   const wear = { card: p.cd || 'card-gilded', glow: p.g || null, tube: p.tb || null, shape: p.es || null };
-  const row = (kind, slot) => {
-    const list = ownedOf(owned, kind);
-    if (!list.length) return null;
-    return [h('div.pg-vault-k', { card: 'YOUR CARDS', glow: 'NAME GLOWS', tube: 'TUBE STYLES', emblem: 'EMBLEMS' }[kind]),
-      h('div.pg-vrow', ...list.map(it => h('button.pg-vitem', { type: 'button', class: wear[slot] === it.id ? 'is-on' : '', dataset: { id: it.id }, 'aria-pressed': String(wear[slot] === it.id),
-        title: `${it.name} · ${TIER_NAMES[it.tier]}`, onclick: () => o.onWear && o.onWear(slot, wear[slot] === it.id && slot !== 'card' ? '' : it.id) },
-        itemSwatch(it.id, o.name), h('span', it.name))))];
-  };
+  // THE VAULT's ONE effect surface (2A): the cards' + the style rows' strips are all slots on it (one canvas, one GPU context)
+  const vault = h('section.pg-panel.pg-vault.fx-host');
+  const surface = createSurface(vault, { label: 'vault' });
   // YOUR CARDS (THE VAULT 1B): the real slim strips — tap one to wear it, VIEW for the full card (js/vault/picker.js)
   const cards = ownedOf(owned, 'card');
-  const picker = cards.length ? cardPicker({ cards, wearing: wear.card, who: { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, no: p.t },
-    onWear: id => o.onWear && o.onWear('card', id), onView: id => o.onView ? o.onView(id) : import('../vault/full.js').then(m => m.openFullCard(id, { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, pub: p, no: p.t, at: p.at, fd: !!p.fd })) }) : null;
-  const vault = h('section.pg-panel.pg-vault',
-    h('div.pg-prof-h', h('span', 'THE VAULT'), h('em', 'tap a card to wear it')),
-    ...(picker ? [h('div.pg-vault-k', 'YOUR CARDS'), picker.el] : []), ...(row('glow', 'glow') || []), ...(row('tube', 'tube') || []), ...(row('emblem', 'shape') || []),
+  const picker = cards.length ? cardPicker({ surface, cards, wearing: wear.card, who: { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, no: p.t, shape: wear.shape, tube: wear.tube, glow: wear.glow },
+    onWear: id => o.onWear && o.onWear('card', id), onView: id => o.onView ? o.onView(id) : import('../vault/full.js').then(m => m.openFullCard(id, { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, pub: p, no: p.t, at: p.at, fd: !!p.fd, shape: wear.shape, tube: wear.tube, glow: wear.glow })) }) : null;
+  // EMBLEMS · TUBE STYLES · NAME GLOWS (THE VAULT 2A): rows like the cards — each on the player's own strip (js/vault/picker.js#stylePicker)
+  const who = { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, no: p.t };
+  const styleRow = (kind, slot, label) => {
+    const items = ownedOf(owned, kind);
+    if (!items.length) return [];
+    const sp = stylePicker({ surface, kind, items, wearing: wear, who, onWear: id => o.onWear && o.onWear(slot, id) });
+    return [h('div.pg-vault-k', label), sp.el];
+  };
+  vault.append(
+    h('div.pg-prof-h', h('span', 'THE VAULT'), h('em', 'tap one to wear it')),
+    ...(picker ? [h('div.pg-vault-k', 'YOUR CARDS'), picker.el] : []), ...styleRow('emblem', 'shape', 'EMBLEMS'), ...styleRow('tube', 'tube', 'TUBE STYLES'), ...styleRow('glow', 'glow', 'NAME GLOWS'),
     h('p.pg-only', 'Only what you own — the rest is for you to find.'));
   const album = albumSection(s);
   const extras = [favorPanel(data, o), data.priv || o.birthday ? birthdayPanel(data, o) : null];
