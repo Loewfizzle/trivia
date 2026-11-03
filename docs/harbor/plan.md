@@ -5485,3 +5485,52 @@ PROGRESSION B DONE (Nov 2, late night) — passes/progression-b.md + docs/progre
 - THE BUILD TABLE (Nov 2, THE VAULT 1A Step 0): PROGRESSION A ✅; PROGRESSION B ✅; THE VAULT 1A (THE STYLE TEST — the owner's PROGRESSION B review + BRING YOUR CARD, THE CARD LAB, THE EFFECT LIBRARY's core, the 8 sample cards as SLIM STRIPS + two test emblems — this pass) ← NEXT; then THE VAULT 1B (the full cards + the rest of the ~40 + the sighting cards + names served only to owners), THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
 
 THE VAULT 1A DONE (Nov 3, early) — passes/vault-1a.md + docs/vault.md. THE BUILD TABLE: PROGRESSION B ✅; THE VAULT 1A ✅ (the owner marks the strips in THE CARD LAB); THE VAULT 1B (the full cards + the rest, from his marks — docs/vault-lab-marks.md) ← NEXT; then THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
+
+
+## OWNER'S NOTES — NOV 3 (morning)
+
+## THE VAULT 1A WRITTEN (Nov 2, ~11:05 pm EST; rewritten with the PROGRESSION B review folded in as Group 0) — Step 0 = step0-v1a.txt.
+
+## THE VAULT 1A DONE (Nov 3, ~5:55 am EST) — live; cloud GREEN first try (harbor 10/10 + tests). Rules unchanged.
+- Done: the B-review fixes (the "photo by itself" = the title's intro-skip tap counted as a city tap under &lgnow=1 → never now; the parked
+  polaroid one smooth motion, tappable, always pops — craft leaves / tab returns / 75 s max; no small italic, ≥ 14 pt ivory; FOUNDING MEMBER a
+  pink-outlined pill; X% bigger + bold); BRING YOUR CARD (the prompt — the Home Screen app opens to it, a tab gets a pill above the dock; SAVE
+  YOUR KEY + COPY · SHARE · I SAVED IT; USE THIS CARD ON ANOTHER DEVICE); THE CARD LAB at /lab (admins; APPROVE · FIX + note · CUT, server-checked,
+  audited, history; A FULL LOBBY with an fps readout); js/fx/ (one shared canvas); the 8 strips (3 refine passes each); HEARTBREAKER (lv 4) +
+  GLITTER BOMB (lv 8) as early level rewards.
+- Decisions: 8 legendary strips at 4× CPU = 60 fps (0/240 slow) in Chromium; headless WebKit on the PC runs everything ~10 fps (can't judge) →
+  THE OWNER's iPHONE fps readout in the lab is the verdict. THE MARKS EXPORT IS PUBLIC (ids + marks + notes, no names) so the next pass can read
+  it → MUST move behind the admin check before launch (→ the switch-over list).
+- Known: full cards + the rest + names-only-to-owners → VAULT 1B from his marks; the old holiday-night weather timing check (pre-existing).
+- (6:08 am) THE OWNER re-checked 1A: the NO-TAP UFO STILL reacts + takes a photo by itself (VAULT 1A's fix didn't hold on his iPhone); the parked
+  TR-3B polaroid is FINE ✅. → an add-on to the running LAB-SCROLL HOTFIX.
+- (6:23 am) THE LAB-SCROLL HOTFIX DONE (deploy tag, live): base.css turns page scrolling off for the one-screen app; /lab never switched it back on
+  (the old checks scrolled by code) → one rule in css/vault.css (like /admin). Finger checks in the harbor `vault` group (13/13; WebKit's part runs
+  only on the mini PC). THE NO-TAP UFO BUG IS STILL OPEN (the add-on wasn't sent) → VAULT 1B's Group 0, first item.
+
+## Nov 3, 6:25–6:26 am EST — THE OWNER's CARD LAB CHECK (iPhone 16 Pro)
+- ALL 8 STRIPS + both test emblems APPROVED (marks stored — "APPROVE · Nov 3 at 6:24 AM"); he looked for a SAVE button → add a "SAVED ✓" flash.
+- SPEED — A REAL PROBLEM: THE STRIPS view (2 drawn) 59 fps; A FULL LOBBY of 8 LEGENDARIES = ~42 fps, dips to 38 while scrolling, and the
+  renderer had already fallen to fx TIER 0 at 0.2 MP (soft) with "0 ms" fx time → the canvas isn't the cost — likely COMPOSITING / CSS (animated
+  glows, filters, drop-shadows, blend modes per strip — CLAUDE.md's 60-fps rule) or the scroll handling. VAULT 1A's "60 fps at 4× CPU" was
+  Chromium; his iPhone is the verdict. → VAULT 1B's Group 0 FIRST: 8 legendary strips at 60 fps on his iPhone at FULL quality (never by
+  dropping to a soft tier 0), scrolling included; a DIAGNOSTICS row in the lab (toggles: CSS glows · emblem filters · canvas fx · the laser ·
+  the UFO sprites · reduced motion) so he can find the cost from his phone; then build the rest.
+- (6:29 am) THE PROFILE re-check: the readable text "looks much better" ✅. THE VAULT PICKER ("tap to wear") LOOKS OFF — every card is a placeholder
+  swatch with a LINE (even the 8 approved ones — 1A only put real art in the lab), uneven tiles (HEARTBREAKER's tile wider), long names wrapping to
+  3 lines. THE CHAT's FIX (→ VAULT 1B): the picker = a vertical list of each card's REAL SLIM STRIP (what others see; the calmer cut, only the
+  on-screen ones moving) with its name + tier on it + a WEARING mark; tap to wear; the full card on a long-press / a VIEW button; the same row
+  style for emblems + glows in VAULT 2.
+- (6:30 am) BRING YOUR CARD sheet: GOOD ✅, except its BOTTOM BORDER is CUT OFF under Safari's bottom toolbar → the sheet must end above the
+  toolbar with its full rounded border visible (safe-area / the visual viewport, iOS Safari's collapsing bars; check every bottom sheet). → VAULT 1B.
+- (6:32 am) THE MEMBERSHIP CARD: his name is CUT OFF ("LOEWFIZZ…") → the name must ALWAYS fit whole: auto-fit the size to the space (shrink to a
+  readable minimum, then two lines) — never an ellipsis; check the longest names allowed at 390. → VAULT 1B. He asked why the key has SHARE: it opens
+  the iPhone's share sheet → Notes / Mail / Messages / a password manager in two taps (his "email it to yourself"); the chat suggests the line
+  under it says "send it to YOURSELF — anyone with your key can use your card".
+
+## THE VAULT 1B WRITTEN (Nov 3, ~6:40 am EST) — Step 0 = step0-v1b.txt.
+
+- THE BUILD TABLE (Nov 3, THE VAULT 1B Step 0): THE VAULT 1A ✅ (+ the lab-scroll hotfix; the owner APPROVED all 8 strips + both test emblems);
+  THE VAULT 1B (SPEED FIRST on his iPhone + the diagnostics row, the owner's fixes, THE FULL CARDS for the 8, THE REST OF THE LAUNCH SET + names
+  served only to owners — this pass) ← NEXT; then THE VAULT 2 (emblems + glows), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its
+  review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
