@@ -97,12 +97,16 @@ G('radio', async () => {
     ok(f.ok && t === 'CANCEL' && !(await lampOf(O.page, 'flyby')), `RADIO (CC-B): a QUEUED jack's card → CANCEL ("${t}") → dark`); }
   // ---- CC-B — THE INTERCOM on JUST ME: a FAKE MIC (an oscillator) → HOLD TO TALK → the review → SEND → the chime + the PA here → UNSEND
   await ev(O.page, `(() => { navigator.mediaDevices.getUserMedia = async () => { const c = new AudioContext(), o = c.createOscillator(), g = c.createGain(), d = c.createMediaStreamDestination(); o.frequency.value = 220; g.gain.value = 0.4; o.connect(g); g.connect(d); o.start(); return d.stream; }; return true; })()`);
+  // (THE OWNER's CC-B REVIEW, fix 2 — the iPhone's audio session: a stand-in navigator.audioSession — Chromium has none — logs every type
+  // the page sets; the hold must switch it to play-and-record, the release put it back)
+  await ev(O.page, `(() => { let t = 'playback'; const log = []; window.__sess = log; Object.defineProperty(navigator, 'audioSession', { configurable: true, value: { get type() { return t; }, set type(v) { t = v; log.push(v); } } }); })()`);
   { const mic = await sizeOf(O.page, '.rd-mic-btn');
     ok(mic && mic.h >= 56 && mic.w >= 300, `RADIO (CC-B): THE MIC strip on the desk — HOLD TO TALK (${mic && Math.round(mic.w)}×${mic && Math.round(mic.h)} pt)`);
     await ev(O.page, `document.querySelector('.rd-mic-btn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 1 }))`);
     await waitFor(O.page, `!!document.querySelector('.rd-mic-btn.is-on')`, 'ON AIR', 5000);
     await sleep(300);
     const lvl = await ev(O.page, `[...document.querySelectorAll('.rd-meter i')].filter(i => i.style.opacity === '1').length`);
+    await ev(O.page, `window.__sessOn = navigator.audioSession.type`);   // (mid-hold)
     await sleep(1400);
     await ev(O.page, `document.querySelector('.rd-mic-btn').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 1 }))`);
     await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-miccard")', 'the review card', 6000);
@@ -126,6 +130,20 @@ G('radio', async () => {
     const g2 = await ev(O.page, `fetch('/api/admin?clip=${sent && sent.id}&n=2').then(r => r.status)`), node = await get(`radio/ic/${sent && sent.id}`), clipNode = await get(`radio/clips/${sent && sent.id}`);
     const after = await ev(O.page, `import('/js/audio/intercom.js').then(m => m.intercomDebug().playing)`);
     ok(un && un.h >= 40 && g2 === 404 && node && node.state === 'stopped' && clipNode === null && !after, `RADIO (CC-B): UNSEND → stopped here, the clip deleted (GET ${g2}), the announcement stopped`); }
+  // ---- THE OWNER's CC-B REVIEW, fix 2 — the session went play-and-record for the hold, then back; the messages say what really happened
+  { const log = await ev(O.page, 'window.__sess || []'), now = await ev(O.page, 'navigator.audioSession.type'), mid = await ev(O.page, 'window.__sessOn');
+    ok(mid === 'play-and-record' && log.includes('play-and-record') && now !== 'play-and-record', `RADIO (CC-B review): HOLD TO TALK switches iOS's audio session to play-and-record (it was 'playback' — a session that can't record: the iPhone's "no mic"), then back (${log.join(' → ')}; now ${now})`);
+    const why = async name => {
+      await ev(O.page, `(() => { navigator.mediaDevices.getUserMedia = async () => { throw Object.assign(new Error('test'), { name: '${name}' }); }; })()`);
+      await ev(O.page, `document.querySelector('.rd-mic-btn').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 2 }))`);
+      await waitFor(O.page, '!!document.querySelector(".rd-mic .rd-err")', 'the message', 4000).catch(() => {});
+      const m = await ev(O.page, '(document.querySelector(".rd-mic .rd-err") || {}).textContent || ""');
+      await ev(O.page, `document.querySelector('.rd-mic-btn').dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 2 }))`);
+      return m;
+    };
+    const blocked = await why('NotAllowedError'), none = await why('NotFoundError'), other = await why('NotReadableError'), back = await ev(O.page, 'navigator.audioSession.type');
+    ok(/^MICROPHONE BLOCKED/.test(blocked) && none === 'NO MICROPHONE FOUND ON THIS DEVICE' && /DIDN’T START \(NotReadableError\) — HOLD AGAIN/.test(other) && back !== 'play-and-record',
+      `RADIO (CC-B review): honest mic messages — "${blocked}" · "${none}" · "${other}" (the session back to ${back})`); }
   // ---- THE INTERCOM to a LOBBY: a second phone IN the lobby gets it on the room's socket + plays it (one start on the server clock)
   { const P = await open({ slot: 'rdp', qs: 'when=2026-11-03T21:00' });
     await harborUp(P.page);
@@ -199,36 +217,55 @@ G('radio', async () => {
     const t1 = await ev(O.page, '(window.__district.tiering() || {}).tier'), dts = (await ev(O.page, 'window.__district.frames()')) || [], last = dts.slice(-60);
     const fps = last.length ? Math.round(1000 / (last.reduce((a, b) => a + b, 0) / last.length)) : 0;
     okT((t1 == null || t0 == null || t1 >= t0) && fps >= 24, `RADIO: the city behind keeps drawing under the open radio (tier ${t0} → ${t1}, ~${fps} fps)`); }
-  // ---- CC-B — PRESETS: + SAVE AS PRESET on two cards (the billboard, a skywrite — AT A TIME hours away) → one preset jack in its own row →
-  // its card (2 steps) → FIRE THE PRESET (both through the server's checks) → DELETE (a second tap)
+  // ---- THE OWNER's CC-B REVIEW, fix 1 — THE SCROLL JUMP: scrolled to the bottom of THE LEDGER / THE PROGRAM / THE DESK, two refreshes
+  // later (the 3-s poll) the sheet is still at the bottom (it used to jump back to the top on his iPhone); 402 wide, a short screen so
+  // every face scrolls
+  { const atBottom = () => ev(O.page, `(() => { const s = document.querySelector('.rd-sheet'); return { top: Math.round(s.scrollTop), max: Math.round(s.scrollHeight - s.clientHeight) }; })()`);
+    const res = {};
+    await O.page.setViewport({ width: 402, height: 560, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await sleep(600);   // (a short screen: every face scrolls)
+    for (const face of ['LEDGER', 'PROGRAM', 'DESK']) {
+      await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === '${face}').click()`);
+      await sleep(1500);
+      await ev(O.page, `(() => { const s = document.querySelector('.rd-sheet'); s.scrollTop = s.scrollHeight; })()`);
+      await sleep(7000);   // (two of the radio's 3-s polls — a fixed wait: the refreshes ARE timed)
+      const b = await atBottom();
+      res[face] = b;
+      ok(b.max > 40 && b.top >= b.max - 2, `RADIO (CC-B review): THE ${face} stays where the finger left it through two refreshes (${b.top} of ${b.max})`);
+    }
+    await O.page.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await sleep(400); }
+  // ---- CC-B — PRESETS, as the owner's CC-B review asked (fix 4): "SAVE AS A ONE-TAP JACK" under a card's FIRE → a small sheet (a NAME
+  // prefilled GAME NIGHT + one line + SAVE) → the desk scrolls to the new jack in the bottom row + it flashes once → its card → FIRE → DELETE
   { await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'DESK').click()`); await sleep(400);
     const hAway = (new Date().getHours() + 7) % 24, hh = String(hAway).padStart(2, '0');
-    const setAt = async () => { await ev(O.page, `[...document.querySelectorAll('.rd-cardwrap .rd-seg button')].find(b => b.textContent === 'AT A TIME').click()`); await sleep(200); await ev(O.page, `(() => { const t = document.querySelector('.rd-cardwrap .rd-time'); t.value = '${hh}:15'; t.dispatchEvent(new Event('change', { bubbles: true })); })()`); };
+    const setAt = async () => { await ev(O.page, `[...document.querySelectorAll('.rd-cardwrap .rd-seg button')].find(b => b.textContent === 'AT A TIME').click()`); await sleep(200); await ev(O.page, `(() => { const t = document.querySelector('.rd-cardwrap .rd-time'); t.value = '${hh}:15'; t.dispatchEvent(new Event('change', { bubbles: true })); t.dispatchEvent(new Event('input', { bubbles: true })); })()`); await sleep(200); };
+    await ev(O.page, 'document.querySelector(".rd-sheet").scrollTop = 0');
     await tapJack(O.page, 'billboard'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-line")', 'the billboard card', 5000);
     const L = await O.page.$$('.rd-line'); await L[0].type('PRESET'); await L[1].type('NIGHT'); await setAt();
-    await ev(O.page, `document.querySelector('.rd-cardwrap .rd-savepre').click()`); await sleep(200);
+    const label = await ev(O.page, `(document.querySelector('.rd-cardwrap .rd-savepre') || {}).textContent || ''`);
+    await ev(O.page, `document.querySelector('.rd-cardwrap .rd-savepre').click()`); await sleep(250);
+    const sheetUi = await ev(O.page, `(() => { const s = document.querySelector('.rd-saveto'); return s ? { name: s.querySelector('.rd-inp').value, line: (s.querySelector('.rd-hint') || {}).textContent || '', save: [...s.querySelectorAll('.rd-done')].map(b => b.textContent).join() } : null; })()`);
+    ok(label === 'SAVE AS A ONE-TAP JACK' && sheetUi && sheetUi.name === 'GAME NIGHT' && /^Fires this exact card again with one tap — it becomes a jack in the bottom row\.$/.test(sheetUi.line) && sheetUi.save === 'SAVE',
+      `RADIO (CC-B review): "${label}" → a small sheet: NAME "${sheetUi && sheetUi.name}" · "${sheetUi && sheetUi.line}" · ${sheetUi && sheetUi.save}`);
+    await ev(O.page, `(() => { const i = document.querySelector('.rd-saveto .rd-inp'); i.value = ''; i.dispatchEvent(new Event('input', { bubbles: true })); })()`);
     await O.page.type('.rd-saveto .rd-inp', 'E2E NIGHT');
-    await ev(O.page, `[...document.querySelectorAll('.rd-saveto .rd-done')].find(b => b.textContent === 'NEW').click()`);
-    await waitFor(O.page, `window.__radio && (window.__radio.debug().card === 'jack')`, 'the card stays', 3000).catch(() => {});
-    await sleep(800); await O.page.keyboard.press('Escape'); await sleep(300);
-    await tapJack(O.page, 'skywrite'); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-inp")', 'the skywrite card', 5000);
-    await O.page.type('.rd-cardwrap .rd-inp', 'PRESET HELLO'); await setAt();
-    await ev(O.page, `document.querySelector('.rd-cardwrap .rd-savepre').click()`); await sleep(200);
-    await ev(O.page, `[...document.querySelectorAll('.rd-saveto .rd-room')].find(b => /E2E NIGHT/.test(b.textContent)).click()`); await sleep(900);
-    await O.page.keyboard.press('Escape'); await sleep(300);
-    await ev(O.page, 'window.__radio.refresh()'); await sleep(500);
+    await ev(O.page, `[...document.querySelectorAll('.rd-saveto .rd-done')].find(b => b.textContent === 'SAVE').click()`);
+    await waitFor(O.page, '!!document.querySelector(".rd-presets .rd-jack.is-preset.is-flash")', 'the new jack flashes', 6000).catch(() => {});
+    await sleep(900);   // (the smooth scroll to it — measured once it has settled, still inside the 1.4-s flash)
+    const seen = await ev(O.page, `(() => { const j = document.querySelector('.rd-presets .rd-jack.is-preset'); if (!j) return null; const r = j.getBoundingClientRect(), s = document.querySelector('.rd-sheet').getBoundingClientRect(); return { flash: j.classList.contains('is-flash'), inView: r.top >= s.top - 1 && r.bottom <= s.bottom + 1, card: !!document.querySelector('.rd-cardwrap') }; })()`);
+    await sleep(1600);
+    const once = await ev(O.page, `!document.querySelector('.rd-presets .rd-jack.is-flash')`);
     const st = await call(O.page, { action: 'radioState' }), pr = st.ok && (st.r.presets || []).find(x => x.name === 'E2E NIGHT');
-    const jackEl = await ev(O.page, `!!document.querySelector('.rd-presets .rd-jack.is-preset')`);
-    ok(pr && pr.steps.length === 2 && pr.steps[0].kind === 'board' && pr.steps[1].body.jack === 'skywrite' && jackEl, `RADIO (CC-B): PRESETS — two cards saved as one preset (${pr && pr.steps.map(x => x.kind).join(' + ')}) → its jack in its own row`);
+    ok(pr && pr.steps.length === 1 && pr.steps[0].kind === 'board' && seen && seen.flash && seen.inView && !seen.card && once,
+      `RADIO (CC-B review): SAVE → a one-tap jack in the bottom row, scrolled into view, flashing once (${JSON.stringify(seen)}; then still: ${once})`);
     await ev(O.page, `document.querySelector('.rd-presets .rd-jack.is-preset').click()`); await waitFor(O.page, '!!document.querySelector(".rd-cardwrap.is-in .rd-precard")', 'the preset card', 5000);
     const steps = await ev(O.page, `document.querySelectorAll('.rd-precard .rd-step').length`);
     await ev(O.page, `[...document.querySelectorAll('.rd-precard .rd-fire')].find(b => /FIRE THE PRESET/.test(b.textContent)).click()`);
-    await waitFor(O.page, `document.querySelectorAll('.rd-precard p').length >= 2 && [...document.querySelectorAll('.rd-precard p')].some(p => /✓/.test(p.textContent))`, 'the results', 8000).catch(() => {});
+    await waitFor(O.page, `[...document.querySelectorAll('.rd-precard p')].some(p => /✓/.test(p.textContent))`, 'the result', 8000).catch(() => {});
     const res = await ev(O.page, `[...document.querySelectorAll('.rd-precard p')].map(p => p.textContent).filter(t => /[✓✗]/.test(t))`);
     await ev(O.page, `[...document.querySelectorAll('.rd-precard .rd-cancel')].find(b => /DELETE/.test(b.textContent)).click()`); await sleep(150);
     await ev(O.page, `[...document.querySelectorAll('.rd-precard .rd-cancel')].find(b => /SURE/.test(b.textContent)).click()`); await sleep(1000);
     const after = await call(O.page, { action: 'radioState' });
-    ok(steps === 2 && res.length === 2 && res.every(t => /✓/.test(t)) && !(after.r.presets || []).some(x => x.name === 'E2E NIGHT'), `RADIO (CC-B): the preset's card (${steps} steps) → FIRE THE PRESET (${res.join(' | ')}) → DELETE (a second tap)`); }
+    ok(steps === 1 && res.length === 1 && res.every(t => /✓/.test(t)) && !(after.r.presets || []).some(x => x.name === 'E2E NIGHT'), `RADIO (CC-B): the jack's card (${steps} step) → FIRE THE PRESET (${res.join(' | ')}) → DELETE (a second tap)`); }
   // ---- CLEAR ALL under the cover: the cover first, then the button
   await ev(O.page, `[...document.querySelectorAll('.rd-bb')].find(b => b.textContent === 'DESK').click()`); await sleep(400);
   await ev(O.page, `document.querySelector('.rd-cover').click()`); await sleep(400);

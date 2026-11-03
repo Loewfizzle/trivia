@@ -101,8 +101,9 @@ export function partyScript(seed) {
     { t: 6.5, type: 'chrys', layer: 'barge', x: 0.72, h: 0.88, s: 1.3, c1: 'gold', big: true },
     // THE CURTAIN: gold willows the whole width (the sky layer behind the skyline + the barges in front) — CITY CONTROLS B (the owner's
     // CC-A review: "perfect + stunning", A's weren't sequential): A SWEEP LEFT → RIGHT, EDGE TO EDGE — each willow launching `curtainStep` s
-    // after the one to its left (syncToBeat: a beat after it), the curtain filling in like a wave
-    ...Array.from({ length: 9 }, (_, i) => ({ t: launch + RZ[i % 2] + i * F.curtainStep, rise: RZ[i % 2], type: 'willow', layer: i % 2 ? 'sky' : 'barge', x: 0.05 + i * 0.1125, h: i % 2 ? 0.36 : 0.86, s: i % 2 ? 1.5 : 1.35, c1: 'gold', c2: 'gold', big: true, sweep: i })),
+    // after the one to its left. The owner's CC-B review ("too slow"): a FAST ROLLING CURTAIN — PART 10's first finale's timing + spacing
+    // (0.115 s apart, x every 0.105: the city in ~0.9 s), the whole curtain hanging together
+    ...Array.from({ length: 9 }, (_, i) => ({ t: launch + RZ[i % 2] + i * F.curtainStep, rise: RZ[i % 2], type: 'willow', layer: i % 2 ? 'sky' : 'barge', x: 0.08 + i * 0.105, h: i % 2 ? 0.36 : 0.86, s: i % 2 ? 1.5 : 1.35, c1: 'gold', c2: 'gold', big: true, sweep: i })),
     // THE CLOSING DRAGON EGGS (PERF-A — the owner, Nov 1: "those were the really cool ones"; they were 4 shells over the right third):
     // 8 crackle shells LEFT EDGE → RIGHT EDGE behind the lit sign. WSP (the owner's PERF-B review, Nov 1: "all of them launch at the same
     // moment + burst at the same moment"): ONE SALVO — the same burst time + the same rise (so the same launch), the tails rising together;
@@ -200,9 +201,10 @@ export function syncToBeat(plan, t0, gridAt) {
       shiftC = at - t0 - L;
     } else shiftC = eS + (A[0] + A[1]) / 2 - L;
   }
-  // THE SWEEP on the song (CITY CONTROLS B): willow k (left → right) launches k × `curtainBeats` beats after the first — one beat apart
+  // THE SWEEP on the song: the FIRST willow on the strong beat (above), willow k (left → right) `curtainStep` s after it — the owner's CC-B
+  // review: a fast rolling curtain, not half a beat a willow (PART 10's own rule: "the rest keep their stagger")
   let sweepAt = null, sweepStep = 0;
-  if (curtain.length && eggs.length) { const L0 = Math.min(...curtain.map(c => c.t - (c.rise || 0))) + shiftC, g = gridAt(t0 + L0); if (g && g.beat > 0.2) { sweepAt = L0; sweepStep = g.beat * knob('fireworks.party').curtainBeats; } }
+  if (curtain.length && eggs.length) { const L0 = Math.min(...curtain.map(c => c.t - (c.rise || 0))) + shiftC, g = gridAt(t0 + L0); if (g && g.beat > 0.2) { sweepAt = L0; sweepStep = knob('fireworks.party').curtainStep; } }
   const byX = [...curtain].sort((a, b) => a.x - b.x);
   const out = plan.cues.map(c => {
     if (curtain.includes(c)) return { ...c, t: Math.round((sweepAt != null ? sweepAt + byX.indexOf(c) * sweepStep + (c.rise || 0) : c.t + shiftC) * 1000) / 1000 };

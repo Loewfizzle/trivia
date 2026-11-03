@@ -17,12 +17,13 @@
 //   member who doesn't hold it sees the button DIMMED with a brass LOCK → THE RADIO'S WITH <NAME> TONIGHT + ASK FOR THE RADIO; the holder gets
 //   "<NAME> WANTS THE RADIO · HAND IT OVER / KEEP IT"; when it passes to you: THE RADIO'S YOURS. THE OWNER: a tap on a player in a lobby opens
 //   their card with the brass CREW switch.
-// CC-B — PRESETS (the owner's, tucked away): a small "+ SAVE AS PRESET" under a patch card's FIRE adds that card's set-up as a STEP to a new
-//   or an existing preset; each preset = ONE jack in its own last row (a small brass plate) → its card: the steps (✕ each), the name, FIRE
+// CC-B — PRESETS (the owner's, tucked away): "SAVE AS A ONE-TAP JACK" under a patch card's FIRE (the owner's CC-B review: "+ SAVE AS
+//   PRESET" was confusing) → a small sheet: a NAME (prefilled GAME NIGHT) + "Fires this exact card again with one tap — it becomes a jack in
+//   the bottom row." + SAVE → the radio scrolls to the new jack + it flashes once; each preset = ONE jack in its own last row (a small brass plate) → its card: the steps (✕ each), the name, FIRE
 //   (every step through the server's own checks — one that can't go now is said, the rest still go), DELETE (a second tap).
 // Every action goes to the SERVER (/api/admin radio…), which checks the role + the rules + writes it; this page only draws. Audio is
 // polish (radio-sound.js): the desk works silently. 60 fps: the needle, the knobs, the lamps, the plug, the card — transform + opacity.
-import { h } from '../../ui/dom.js';
+import { h, reducedMotion } from '../../ui/dom.js';
 import { api as apiCall } from '../../profile/api.js';
 import { serverNow } from '../../firebase.js';
 import * as RD from '../../core/harbor-radio.js';
@@ -87,7 +88,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       st = await api('admin', body); stAt = serverNow(); err = '';
       if (st.role !== role && st.role) role = st.role;
       feedDesk(); paintDot();
-      if (open && !card && !(ic && ic.busy())) render(); else if (open) paintLive();
+      // (CC-B review fix 1 — THE SCROLL JUMP: never rebuild under a finger or a still-moving list; a paper face repaints IN PLACE)
+      if (open && !card && !(ic && ic.busy()) && !scrolling()) { if (band !== 'desk' && isOwner) paintPaper(); else render(); } else if (open) paintLive();
     } catch (e) { if (e && e.status === 403) { destroy(); return; } }
   }
   function schedule() {
@@ -118,8 +120,13 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     refresh(); schedule();
     // swipe down from the top of the sheet closes it
     let y0 = null;
-    sheet.addEventListener('pointerdown', e => { y0 = sheet.scrollTop <= 0 && !card ? e.clientY : null; });
-    sheet.addEventListener('pointerup', e => { if (y0 != null && e.clientY - y0 > 90) hide(); y0 = null; });
+    sheet.addEventListener('pointerdown', e => { touching = true; y0 = sheet.scrollTop <= 0 && !card ? e.clientY : null; });
+    sheet.addEventListener('pointerup', e => { touching = false; scrollAt = performance.now(); if (y0 != null && e.clientY - y0 > 90) hide(); y0 = null; });
+    sheet.addEventListener('pointercancel', () => { touching = false; scrollAt = performance.now(); });
+    // (iOS: a finger that scrolls fires pointercancel, then the list coasts — the touch + scroll events say when it has really stopped)
+    sheet.addEventListener('touchstart', () => { touching = true; }, { passive: true });
+    sheet.addEventListener('touchend', () => { touching = false; scrollAt = performance.now(); }, { passive: true });
+    sheet.addEventListener('scroll', () => { scrollAt = performance.now(); }, { passive: true });
   }
   function hide() {
     if (!open) return;
@@ -420,17 +427,36 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     return `${jd ? jd.label : b.jack}${b.text ? ` “${b.text}”` : ''}${b.show ? ` (${b.show})` : ''} → ${b.aud === 'room' ? `LOBBY ONLY ${b.room || ''}` : RD.AUD_LABEL[b.aud] || ''}${at}`;
   };
   function saveBlock(c) {
-    if (!c.save) return h('button.rd-savepre', { type: 'button', onclick: () => { sfx.play('tick'); c.save = true; render(); } }, '+ SAVE AS PRESET');
-    const P = (st && st.presets) || [], add = async (id, name) => {
-      try { const r = await act({ action: 'radioPreset', op: 'add', id: id || undefined, name: name || undefined, step: stepOf(c) }, 'fire'); st.presets = r.presets; c.save = false; c.saved = id ? (P.find(x => x.id === id) || {}).name : name; c.err = ''; }
-      catch (e) { c.err = e.message; }
-      render();
+    if (!c.save) return h('button.rd-savepre', { type: 'button', onclick: () => { sfx.play('tick'); c.save = true; if (c.preName == null) c.preName = 'GAME NIGHT'; render(); } }, 'SAVE AS A ONE-TAP JACK');
+    const save = async () => {
+      const name = (c.preName || '').trim() || 'GAME NIGHT';
+      c.err = '';
+      try {
+        const before = new Set(((st && st.presets) || []).map(x => x.id));
+        const r = await act({ action: 'radioPreset', op: 'add', name, step: stepOf(c) }, 'fire');
+        st.presets = r.presets;
+        const nu = (r.presets || []).find(x => !before.has(x.id)) || (r.presets || []).slice(-1)[0];
+        card = null; render();
+        if (nu) showNewJack(nu.id);
+      } catch (e) { c.err = e.message; render(); }
     };
-    const inp = h('input.rd-inp', { type: 'text', maxlength: '16', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', placeholder: 'GAME NIGHT', 'aria-label': 'A new preset’s name', value: c.preName || '', oninput: e => { c.preName = e.target.value.toUpperCase().slice(0, 16); e.target.value = c.preName; } });
-    return h('div.rd-sec.rd-saveto', h('div.rd-lb', 'SAVE AS PRESET', h('em', 'this card’s set-up as a step')),
-      ...P.map(p => h('button.rd-room', { type: 'button', onclick: () => add(p.id) }, h('b', p.name), h('span', `add as step ${p.steps.length + 1}`))),
-      h('div.rd-cadd', inp, h('button.rd-done', { type: 'button', onclick: () => add(null, c.preName || 'PRESET') }, 'NEW')),
-      h('button.rd-savepre', { type: 'button', onclick: () => { c.save = false; render(); } }, 'NEVER MIND'));
+    const inp = h('input.rd-inp', { type: 'text', maxlength: '16', autocomplete: 'off', autocapitalize: 'characters', spellcheck: 'false', 'aria-label': 'The new jack’s name', value: c.preName || '',
+      oninput: e => { c.preName = e.target.value.toUpperCase().slice(0, 16); e.target.value = c.preName; }, onkeydown: e => { if (e.key === 'Enter') save(); } });
+    return h('div.rd-sec.rd-saveto', h('div.rd-lb', 'SAVE AS A ONE-TAP JACK'),
+      h('label.rd-savename', h('span', 'NAME'), inp),
+      h('p.rd-hint', 'Fires this exact card again with one tap — it becomes a jack in the bottom row.'),
+      h('div.rd-cadd', h('button.rd-savepre', { type: 'button', onclick: () => { c.save = false; render(); } }, 'NEVER MIND'), h('button.rd-done', { type: 'button', onclick: save }, 'SAVE')));
+  }
+  /** after a save: the desk scrolls to the new jack (the bottom row) and it flashes once */
+  function showNewJack(id) {
+    requestAnimationFrame(() => {
+      const el = sheet && sheet.querySelector(`.rd-jack[data-preset="${id}"]`);
+      if (!el) return;
+      try { el.scrollIntoView({ block: 'center', behavior: reducedMotion() ? 'auto' : 'smooth' }); } catch { el.scrollIntoView(); }
+      el.classList.add('is-flash');
+      setTimeout(() => el.classList.remove('is-flash'), 1400);
+      sfx.play('jackIn');
+    });
   }
   function presetCard() {
     const c = card, p = ((st && st.presets) || []).find(x => x.id === c.id);
@@ -462,6 +488,21 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
 
   // ---------------------------------------------------------------- the faces
   let faces = { program: null, ledger: null };
+  // (CC-B review fix 1: a finger on the sheet, or the list still moving (≤ 900 ms since its last scroll) → the poll leaves it alone)
+  let touching = false, scrollAt = 0;
+  const scrolling = () => touching || performance.now() - scrollAt < 900;
+  const paperArgs = () => ({ st, api, act, sfx, refresh, now: serverNow, edit: editBoard,
+    cancel: { moment: id => { sfx.play('jackOut'); act({ action: 'radioStop', id }).catch(e => { err = e.message; render(); }); }, board: id => { sfx.play('jackOut'); act({ action: 'radioBoardCancel', id }).catch(e => { err = e.message; render(); }); } } });
+  /** THE PROGRAM / THE LEDGER on a poll: the paper's rows replaced IN PLACE — the sheet (the scrolling box) is never rebuilt, its scroll kept */
+  function paintPaper() {
+    const holder = sheet && sheet.querySelector('.rd-paperwrap[data-face]');
+    const m = faces[band];
+    if (!holder || holder.dataset.face !== band || !m) { render(); return; }
+    if (band === 'ledger') return;   // (the ledger keeps its own 30-s memo + its own in-place fills: nothing to repaint on a poll)
+    const keep = sheet.scrollTop;
+    holder.replaceChildren(...m.paint(paperArgs()));
+    sheet.scrollTop = keep;
+  }
   async function face(id) {
     if (!faces[id]) { try { const m = await import(id === 'program' ? './radio-program.js' : './radio-ledger.js'); faces[id] = m; } catch (e) { console.warn('[radio]', id, e); } }
     return faces[id];
@@ -471,10 +512,11 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const kids = [header(), bandSel()];
     if (band === 'desk' || !isOwner) kids.push(...desk());
     else {
-      const holder = h('div.rd-paperwrap', h('p.rd-hint', 'Tuning in…'));
+      // (a loaded face paints SYNCHRONOUSLY — a "Tuning in…" placeholder for a frame used to clamp the kept scroll to the top: the jump)
+      const loaded = faces[band];
+      const holder = h('div.rd-paperwrap', { dataset: { face: band } }, ...(loaded ? loaded.paint(paperArgs()) : [h('p.rd-hint', 'Tuning in…')]));
       kids.push(holder);
-      face(band).then(m => { if (!m || !sheet || !holder.isConnected) return; holder.replaceChildren(...m.paint({ st, api, act, sfx, refresh, now: serverNow, edit: editBoard,
-        cancel: { moment: id => { sfx.play('jackOut'); act({ action: 'radioStop', id }).catch(e => { err = e.message; render(); }); }, board: id => { sfx.play('jackOut'); act({ action: 'radioBoardCancel', id }).catch(e => { err = e.message; render(); }); } } })); });
+      if (!loaded) face(band).then(m => { if (!m || !sheet || !holder.isConnected) return; const keep = sheet.scrollTop; holder.replaceChildren(...m.paint(paperArgs())); sheet.scrollTop = keep; });
     }
     const keep = sheet.scrollTop;
     sheet.replaceChildren(...kids.filter(Boolean));

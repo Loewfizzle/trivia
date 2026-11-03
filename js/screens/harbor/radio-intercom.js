@@ -7,17 +7,32 @@
 //   SENT          a strip per announcement still going out: ON ITS WAY / PLAYING + UNSEND (until every phone would have it: `unsend` s)
 // iOS: the mic needs the page's permission (asked on the first hold — a hold that ends before it's granted just asks again); MediaRecorder
 // gives AAC in MP4 there (Opus in WebM elsewhere); ~48 kbps → ~180 KB for 30 s.
+// THE OWNER's CC-B REVIEW (the iPhone said "no mic on this device" and never recorded): the page keeps iOS's audio session on 'playback'
+// for the music (audio/engine.js) — a session that CAN'T CAPTURE, so getUserMedia failed and every failure that wasn't a refusal read as
+// "no mic". Now the hold itself switches the session to 'play-and-record' (engine.js#micSession, synchronously, in the gesture), calls
+// getUserMedia straight away (no device pre-check — iOS lists no mic before the permission), retries once with plain { audio: true }, puts
+// the session back after; the messages say only what really happened (blocked · none found · it didn't start — try again).
 import { h } from '../../ui/dom.js';
 import { serverNow } from '../../firebase.js';
 import { knob } from '../../core/harbor-schedule.js';
 import * as IC from '../../core/radio-intercom.js';
 import { AUD_LABEL } from '../../core/harbor-radio.js';
 import { intercomFeed, intercomStopped, playAnnouncement } from '../../audio/intercom.js';
+import { micSession } from '../../audio/engine.js';
 
 const HEAD_KEY = 'nd:rd-ic-head', WAIT_KEY = 'nd:rd-ic-wait';
 const ls = { get(k, d) { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch { /* fine */ } } };
 const MIMES = ['audio/mp4', 'audio/mp4;codecs=mp4a.40.2', 'audio/webm;codecs=opus', 'audio/webm', 'audio/ogg;codecs=opus'];
 const pickMime = () => { try { return MIMES.find(t => window.MediaRecorder && MediaRecorder.isTypeSupported(t)) || ''; } catch { return ''; } };
+/** what a failed getUserMedia really means (iOS: Safari's own setting; elsewhere the browser's) */
+const IOS = () => /iP(hone|ad|od)/.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+export function micWhy(x) {
+  const n = x && x.name;
+  if (n === 'NotAllowedError' || n === 'SecurityError') return IOS() ? 'MICROPHONE BLOCKED — SETTINGS → SAFARI → MICROPHONE → ALLOW' : 'MICROPHONE BLOCKED — ALLOW IT IN THE BROWSER’S SITE SETTINGS';
+  if (n === 'NotFoundError' || n === 'OverconstrainedError') return 'NO MICROPHONE FOUND ON THIS DEVICE';
+  if (n === 'NotSupportedError') return 'THIS BROWSER CAN’T USE THE MICROPHONE HERE';
+  return `THE MICROPHONE DIDN’T START${n ? ` (${n})` : ''} — HOLD AGAIN`;
+}
 const secs = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
 const toB64 = blob => new Promise((res, rej) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(',')[1] || ''); r.onerror = () => rej(r.error); r.readAsDataURL(blob); });
 
@@ -38,13 +53,18 @@ export function createIntercomDesk(o) {
     rec = { want, t0: 0, chunks: [], level: 0 };
     paintStrip();
     let stream;
-    try { stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
-    catch (x) { rec = null; err = x && x.name === 'NotAllowedError' ? 'THE MIC IS BLOCKED — ALLOW IT IN THE BROWSER’S SETTINGS' : 'NO MIC ON THIS DEVICE'; o.sfx.play('denied'); paintStrip(); return; }
-    if (!want.held) { stream.getTracks().forEach(t => t.stop()); rec = null; err = 'HOLD THE BUTTON WHILE YOU TALK'; paintStrip(); return; }   // (the permission prompt took the hold)
+    micSession(true);   // (synchronously, inside the hold: iOS records only in a play-and-record session)
+    const md = navigator.mediaDevices;
+    try {
+      if (!md || !md.getUserMedia) throw Object.assign(new Error('no mediaDevices'), { name: 'NotSupportedError' });
+      try { stream = await md.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true } }); }
+      catch (x) { if (x && (x.name === 'NotAllowedError' || x.name === 'SecurityError')) throw x; stream = await md.getUserMedia({ audio: true }); }   // (once more, plain)
+    } catch (x) { micSession(false); rec = null; err = micWhy(x); o.sfx.play('denied'); paintStrip(); return; }
+    if (!want.held) { stream.getTracks().forEach(t => t.stop()); micSession(false); rec = null; err = 'HOLD THE BUTTON WHILE YOU TALK'; paintStrip(); return; }   // (the permission prompt took the hold)
     const mime = pickMime();
     let mr;
     try { mr = new MediaRecorder(stream, { ...(mime ? { mimeType: mime } : {}), audioBitsPerSecond: K.kbps * 1000 }); }
-    catch { try { mr = new MediaRecorder(stream); } catch { stream.getTracks().forEach(t => t.stop()); rec = null; err = 'THIS BROWSER CAN’T RECORD'; paintStrip(); return; } }
+    catch { try { mr = new MediaRecorder(stream); } catch { stream.getTracks().forEach(t => t.stop()); micSession(false); rec = null; err = 'THIS BROWSER CAN’T RECORD'; paintStrip(); return; } }
     rec = { ...rec, mr, stream, mime: mr.mimeType || mime || 'audio/webm', t0: performance.now() };
     const chunks = rec.chunks;   // (the LAST chunk arrives after the release — Safari may give everything there: never through `rec`)
     mr.ondataavailable = ev => { if (ev.data && ev.data.size) chunks.push(ev.data); };
@@ -81,6 +101,7 @@ export function createIntercomDesk(o) {
     const dur = Math.min(K.maxS, (performance.now() - r.t0) / 1000);
     r.mr.onstop = () => {
       r.stream.getTracks().forEach(t => t.stop());
+      micSession(false);   // (the session back to the music's)
       try { if (r.meter) r.meter.ac.close(); } catch { /* fine */ }
       try { if (r.sr) r.sr.stop(); } catch { /* fine */ }
       if (dur < K.minS) { err = 'HOLD THE BUTTON WHILE YOU TALK'; paintStrip(); return; }

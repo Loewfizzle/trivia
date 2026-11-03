@@ -85,9 +85,15 @@ export const graphDead = () => !!ctx && (ctx.state === 'closed' || ctx.state ===
 /** The graph can be trusted: running, not frozen, its clock seen moving for ≥ 2 s (music.js moves a direct song back onto it then). */
 export const graphOk = () => !!ctx && ctx.state === 'running' && !frozen && clock.t > 0 && clock.moving > 0 && performance.now() - clock.moving > 2000;
 
-// ---- THE AUDIO SESSION (iOS 17+): 'playback' while the music is on, 'ambient' (effects only) while it is off / muted
+// ---- THE AUDIO SESSION (iOS 17+): 'playback' while the music is on, 'ambient' (effects only) while it is off / muted — and
+// 'play-and-record' while THE INTERCOM holds the mic (CC-B review, the owner's iPhone: a 'playback' session can't capture, so
+// getUserMedia failed and the desk said "no mic on this device")
 let sessionSet = { type: '', at: 0, why: '' };
-const sessionWant = () => (settings.muted || settings.musicOff ? 'ambient' : 'playback');
+let micHeld = 0;
+const sessionWant = () => (micHeld ? 'play-and-record' : settings.muted || settings.musicOff ? 'ambient' : 'playback');
+/** THE INTERCOM: the mic is wanted (on) / let go (off) — sets the session synchronously (call it inside the hold's own gesture). */
+export function micSession(on) { micHeld = Math.max(0, micHeld + (on ? 1 : -1)); setSession(on ? 'mic on' : 'mic off'); }
+export const sessionType = () => { try { return (navigator.audioSession && navigator.audioSession.type) || ''; } catch { return ''; } };
 function setSession(why) {
   let a;
   try { a = navigator.audioSession; } catch { a = null; }
