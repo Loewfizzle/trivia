@@ -33,7 +33,7 @@ G('vault', async () => {
   { const { ctx, p } = await page('view=strips');
     await sleep(1200);
     const s = await ev(p, `(() => ({ items: document.querySelectorAll('.vl-item').length, strips: document.querySelectorAll('.vl-strip').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, slots: window.__lab.stats.slots, names: [...document.querySelectorAll('.vl-item-h b')].map(b => b.textContent) }))()`);
-    ok(s.items === 47 && s.strips === 49 && s.canvases === 1 && /^34 · /.test(s.names[0]), `THE CARD LAB: 47 items (45 strips — 1C's 8 sighting cards FIRST, 1A's 8, 1B's 8, 1C's held-back 21 — + 2 test emblems — ${s.strips} strips on the page) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
+    ok(s.items === 48 && s.strips === 48 && s.canvases === 1 && /^92 · /.test(s.names[0]), `THE CARD LAB: 48 cards (2A's 3 held cards FIRST, 1C's 8 sighting cards, 1A's 8, 1B's 8, 1C's held-back 21 — ${s.strips} strips on the page; the emblems in their own tab) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-smoke"] .vl-mark[data-m="approve"]').click()`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-prism"] .vl-mark[data-m="fix"]').click()`);
     await sleep(200);
@@ -67,12 +67,13 @@ G('vault', async () => {
     ok(a < 8 && b > a && f2 - f1 <= 1, `THE EFFECT LIBRARY draws only what's ON SCREEN: ${a} of 8 legendaries drawn at the top of a short page, ${b} once scrolled to them; hidden → ${f2 - f1} frames (it stops)`);
     void f0; await ctx.close(); }
   // REDUCED MOTION: each strip's still frame, drawn once — the canvas stops; the emblems still
-  { const { ctx, p } = await page('view=lobby&bare=1&mix=samples&still=1', { dpr: 2 });
+  // (2A: the lobby's guests wear the samples' emblems + glows — every layer + every glow piece still)
+  { const { ctx, p } = await page('view=lobby&bare=1&mix=samples&still=1&wear=emb,glow', { dpr: 2 });
     await sleep(1500);
     const f1 = await ev(p, 'window.__lab.stats.frames'); await sleep(1200); const f2 = await ev(p, 'window.__lab.stats.frames');
     const px = await ev(p, `import('/js/fx/renderer.js').then(m => m.fxProbe())`);
-    const anim = await ev(p, `getComputedStyle(document.querySelector('.vl-e-neon')).animationName + ' / ' + getComputedStyle(document.querySelector('.vl-e-prism .p-sweep')).animationName`);
-    ok(f2 - f1 <= 1 && px > 500 && /none \/ none/.test(anim), `REDUCED MOTION: the strips' still frames drawn once (${px} lit samples), the canvas stops (${f2 - f1} frames in 1.2 s), the emblems still (${anim})`);
+    const anim = await ev(p, `(() => { const a = [...document.querySelectorAll('.vl-strip .ve-l, .vl-strip .vg > i')].map(x => getComputedStyle(x).animationName); return a.length + ' layers, ' + a.filter(n => n !== 'none').length + ' moving'; })()`);
+    ok(f2 - f1 <= 1 && px > 500 && /^\d{2,} layers, 0 moving$/.test(anim), `REDUCED MOTION: the strips' still frames drawn once (${px} lit samples), the canvas stops (${f2 - f1} frames in 1.2 s), the emblems still (${anim})`);
     await ctx.close(); }
 });
 
@@ -220,20 +221,22 @@ G('vault', async () => {
   // SCROLL-PAUSE + THE DIAGNOSTICS ROW: a scroll holds the effects (no frames), they resume after; &diag= sets the switches; 7 of them
   { const { ctx, p } = await page('view=lobby&mix=legend&diag=nolaser,noglow');
     await sleep(900);
+    // (2A: the lab's header grew — two rows of tabs + the wear row: the lobby into view first, an off-screen slot never draws)
+    await ev(p, "document.querySelector('.vl-lobby').scrollIntoView({ block: 'start' })"); await sleep(900);
     const d = await ev(p, `({ n: document.querySelectorAll('.vl-dg[data-k]').length, diag: window.__lab.diag, off: [...document.querySelectorAll('.vl-dg.is-off')].map(b => b.dataset.k), glow: document.documentElement.classList.contains('vl-diag-noglow') })`);
     const held = await ev(p, `new Promise(res => { const f0 = window.__lab.stats.frames; let n = 0; const tick = () => { document.dispatchEvent(new Event('scroll')); if (++n < 12) setTimeout(tick, 50); else res({ during: window.__lab.stats.frames - f0, scrolling: window.__lab.stats.scrolling }); }; tick(); })`);
     await sleep(700);
     const f1 = await ev(p, 'window.__lab.stats.frames'); await sleep(500); const f2 = await ev(p, 'window.__lab.stats.frames');
     ok(d.n === 7 && d.off.sort().join() === 'glow,laser' && d.glow && held.during <= 2 && held.scrolling && f2 - f1 > 10, `DIAGNOSTICS + SCROLL-PAUSE: 7 switches (${d.off.join(' + ')} off from &diag=, the page's glows off: ${d.glow}); a scroll held the effects (${held.during} frames in 600 ms) — they resumed (${f2 - f1} frames in 500 ms)`);
     await ctx.close(); }
-  // THE FULL CARDS tab: 44 full cards (1C's 8 sighting cards + 1A's 8 + 1B's 7 + 1C's 21) on ONE canvas; a mark flashes SAVED ✓
+  // THE FULL CARDS tab: 47 full cards (2A's 3 held + 1C's 8 sighting cards + 1A's 8 + 1B's 7 + 1C's 21) on ONE canvas; a mark flashes SAVED ✓
   { const { ctx, p } = await page('view=full');
     await sleep(900);
     const f = await ev(p, `({ cards: document.querySelectorAll('.vl-fc').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, sight: !!document.querySelector('.vl-fc.is-sight .vl-fc-title b') })`);
     await ev(p, `document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-mark[data-m="approve"]').click()`);
     const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
     const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-saved').textContent`) : '';
-    ok(f.cards === 44 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt), `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark flashes "${txt}"`);
+    ok(f.cards === 47 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt), `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark flashes "${txt}"`);
     await ctx.close(); }
   // THE VAULT 1C — THE SIGHTING'S SCENE (the reveal's pair + the album's no-photo tile): once its full card is APPROVED the placeholder becomes
   // the card's real scene (js/vault/full.js#upgradeScene) — all 9 sightings, each its own canvas drawn; unapproved → the placeholder stays
@@ -258,8 +261,9 @@ G('vault', async () => {
     await waitFor(p, `!!document.querySelector('.vl-picker .vl-strip')`, 'the picker', 20000);
     await sleep(1200);
     const r = await ev(p, `(() => { const over = e => e.scrollWidth > e.clientWidth + 1; const names = [...document.querySelectorAll('.pg-card-name, .vl-picker .vl-name')];
-      return { picks: document.querySelectorAll('.vl-pick').length, strips: document.querySelectorAll('.vl-picker .vl-strip').length, wearing: document.querySelectorAll('.vl-pick.is-on').length,
-        canvases: document.querySelectorAll('.vl-picker canvas.fx-canvas').length, views: document.querySelectorAll('.vl-pick-view').length, names: names.length, over: names.filter(over).length,
+      const CP = '.vl-picker:not([data-kind])';
+      return { picks: document.querySelectorAll(CP + ' .vl-pick').length, strips: document.querySelectorAll(CP + ' .vl-strip').length, wearing: document.querySelectorAll(CP + ' .vl-pick.is-on').length,
+        canvases: document.querySelectorAll('.pg-vault canvas.fx-canvas').length, views: document.querySelectorAll('.vl-pick-view').length, names: names.length, over: names.filter(over).length,
         ell: names.filter(e => getComputedStyle(e).textOverflow === 'ellipsis').length, two: names.filter(e => e.classList.contains('fit-2')).length }; })()`);
     ok(r.picks > 5 && r.strips === r.picks && r.views === r.picks && r.wearing === 1 && r.canvases === 1 && r.names > 5 && r.over === 0 && r.ell === 0, `THE VAULT PICKER: ${r.picks} cards as REAL STRIPS (VIEW each, ${r.wearing} WEARING, ${r.canvases} canvas) · THE NAME: WWWWWWWWWWWW whole on the card + ${r.names - 1} strips at 390 (${r.over} overflowing, ${r.ell} ellipses, ${r.two} on two balanced lines)`);
     await ctx.close(); }
@@ -312,4 +316,65 @@ G('vault', async () => {
       ok(none.box && !none.fired && !away.fired && on.fired, `THE NO-TAP SIGHTING in WebKit at 402 × 874: zero input → ${none.fired ? 'FIRED' : 'nothing'} · a tap away → ${away.fired ? 'FIRED' : 'nothing'} · a tap on the UFO → ${on.fired ? 'it reacts' : 'NOTHING'}`);
     } finally { await b.close(); }
   }
+});
+
+// ---- THE VAULT 2A — THE 3 HELD CARDS + THE EMBLEM / GLOW / TUBE-STYLE SYSTEM ----------------------------------------------------------
+//   · THE EMBLEMS tab: the 10 samples + the 12 sign-up shapes + 3 tube styles + 1A's 2 test emblems, each at full size + 28 pt + on two
+//     strips; a mark stored; NOTHING ANIMATES ON AN SVG ELEMENT (each moving part an HTML-wrapped layer: the compositor moves it)
+//   · THE GLOWS tab: 3 glows on a short + a LOEWFIZZLE-length name (whole, one line on the strip), the level line never lit
+//   · the 3 held cards: their strips + full cards drawn, FOUNDING MEMBER's gold № (strip corner + the full card's stamp)
+//   · THE PICKER's style rows: emblems · tube styles · name glows as rows on the player's own strip, one WEARING each, a tap wears it
+//   · A FULL LOBBY of 8 LEGENDARIES + every sample's emblem + glow at 4× CPU on the real compositor (the prominence rule's budget)
+G('vault', async () => {
+  { const { ctx, p } = await page('view=emblems');
+    await sleep(1400);
+    const e = await ev(p, `(() => { const svgAnim = [...document.querySelectorAll('.ve svg, .ve svg *')].filter(x => getComputedStyle(x).animationName !== 'none').length;
+      return { items: document.querySelectorAll('.vl-item').length, ves: document.querySelectorAll('.ve').length, finishes: [...new Set([...document.querySelectorAll('.ve')].map(v => (v.className.match(/ve-f-(\\w+)/) || [])[1]))].sort().join(),
+        moving: [...document.querySelectorAll('.ve-l')].filter(x => getComputedStyle(x).animationName !== 'none').length, svgAnim, canvases: document.querySelectorAll('canvas.fx-canvas').length,
+        small: [...document.querySelectorAll('.vl-emb-big .ve.is-28')].every(v => Math.round(v.getBoundingClientRect().width) === 28) }; })()`);
+    ok(e.items === 16 && e.ves > 60 && e.finishes === 'chrome,galaxy,glitch,gold,ice,molten,neon,prism' && e.moving > 20 && e.svgAnim === 0 && e.canvases === 1 && e.small,
+      `THE EMBLEMS tab: ${e.items} items (10 samples · the 12 sign-up shapes · 3 tube styles · 1A's 2), ${e.ves} emblems in all 8 finishes (${e.finishes}), 28 pt checked; ${e.moving} layers moving on the compositor, ${e.svgAnim} animations on an SVG element (none allowed)`);
+    await ev(p, `document.querySelector('.vl-item[data-id="emb-owl"] .vl-mark[data-m="approve"]').click()`); await sleep(300);
+    const m = await ev(p, `(window.__lab.marks['emb-owl'] || {}).m`);
+    ok(m === 'approve', `THE EMBLEMS tab: a mark stored (emb-owl → ${m})`);
+    if (SHOTS) await p.screenshot({ path: `${OUT}vault-emblems-402x874.png` });
+    await ctx.close(); }
+  { const { ctx, p } = await page('view=glows', { dpr: 2 });
+    await sleep(1200);
+    const g = await ev(p, `(() => { const names = [...document.querySelectorAll('.vl-name.vg, .vl-fc-name.vg')];
+      return { items: document.querySelectorAll('.vl-item').length, names: names.length, looks: [...new Set(names.map(n => (n.className.match(/vg-(ember|goldleaf|electric)/) || [])[1]))].sort().join(),
+        over: names.filter(n => { const d = [...n.children].filter(c => c.tagName === 'I'); d.forEach(c => { c.style.display = 'none'; }); const o = n.scrollWidth > n.clientWidth + 1; d.forEach(c => { c.style.display = ''; }); return o; }).length, strip2: [...document.querySelectorAll('.vl-strip .vl-name.vg')].filter(n => n.classList.contains('fit-2')).length,
+        lvLit: [...document.querySelectorAll('.vl-lv, .vl-fc-lv')].filter(l => l.className.includes('vg')).length, pieces: document.querySelectorAll('.vg > i').length }; })()`);
+    ok(g.items === 3 && g.names === 9 && g.looks === 'electric,ember,goldleaf' && g.over === 0 && g.strip2 === 0 && g.lvLit === 0 && g.pieces > 10,
+      `THE GLOWS tab: ${g.items} glows on ${g.names} names (${g.looks}) — LOEWFIZZLE whole on one line on every strip (${g.over} overflowing, ${g.strip2} split), the level line never lit (${g.lvLit}), ${g.pieces} glints + arcs`);
+    await ctx.close(); }
+  { const { ctx, p } = await anyPage('/tests/integration/card-review.html?cards=card-founder,card-house,card-platinum', { view: [402, 1200] });
+    await waitFor(p, '!!document.body.dataset.ready', 'the review page', 30000); await sleep(1500);
+    const h = await ev(p, `(async () => { const R = await import('/js/fx/renderer.js'); return { slots: R.fxStats.slots, probe: await R.fxProbe(), no: (document.querySelector('.vl-strip.vl-s-founder .vl-no') || {}).textContent || '',
+      stamp: (document.querySelector('.vl-fc.vl-s-founder .vl-fc-stamp b') || {}).textContent || '', plat: getComputedStyle(document.querySelector('.vl-strip.vl-s-platinum .vl-mat')).backgroundImage,
+      tiers: [...document.querySelectorAll('.vl-strip')].map(x => x.dataset.tier).join() }; })()`);
+    ok(h.slots === 6 && h.probe > 300 && h.no === '№ 3112' && h.stamp === '№ 3112' && /platinum\.webp/.test(h.plat) && h.tiers === 'legendary,legendary,epic',
+      `THE 3 HELD CARDS: strips + full cards drawn (${h.slots} slots, ${h.probe} lit samples; tiers ${h.tiers}); FOUNDING MEMBER's gold № on the strip ("${h.no}") + the full card's stamp ("${h.stamp}"); PLATINUM on its metal`);
+    await ctx.close(); }
+  { const { ctx, p } = await anyPage('/tests/integration/progress-preview.html?view=profile&labmarks=all', { view: [402, 874] });
+    await waitFor(p, `!!document.querySelector('.vl-picker[data-kind="glow"] .vl-strip')`, 'the style rows', 20000); await sleep(900);
+    const read = () => ev(p, `Object.fromEntries(['emblem', 'tube', 'glow'].map(k => { const P = document.querySelector('.vl-picker[data-kind="' + k + '"]');
+      return [k, { rows: P.querySelectorAll('.vl-pick').length, on: [...P.querySelectorAll('.vl-pick.is-on')].map(x => x.dataset.id), ve: P.querySelectorAll('.vl-strip .ve').length }]; }))`);
+    const a = await read();
+    await ev(p, `document.querySelector('.vl-picker[data-kind="glow"] .vl-pick[data-id="glow-gold"] .vl-pick-wear').click()`); await sleep(500);
+    await ev(p, `document.querySelector('.vl-picker[data-kind="emblem"] .vl-pick[data-id="emb-snowflake"] .vl-pick-wear').click()`); await sleep(500);
+    const b = await read();
+    const worn = await ev(p, `({ gold: !!document.querySelector('.vl-picker:not([data-kind]) .vl-name.vg-goldleaf'), ice: !!document.querySelector('.vl-picker:not([data-kind]) .ve.ve-f-ice') })`);
+    ok(a.emblem.rows > 3 && a.tube.rows >= 3 && a.glow.rows >= 4 && a.emblem.on.join() === 'none' && a.glow.on.join() === 'none' && a.emblem.ve === a.emblem.rows
+      && b.glow.on.join() === 'glow-gold' && b.emblem.on.join() === 'emb-snowflake' && worn.gold && worn.ice,
+      `THE PICKER's style rows: emblems ${a.emblem.rows} · tube styles ${a.tube.rows} · glows ${a.glow.rows} rows on the player's own strip (one WEARING each: ${a.emblem.on}/${a.glow.on}); a tap wears GOLD LEAF + SNOWED IN (${b.glow.on} · ${b.emblem.on}), the cards' strips wear them too (${worn.gold} · ${worn.ice})`);
+    await ctx.close(); }
+  { const { ctx, p } = await page('view=lobby&bare=1&mix=legend&wear=emb,glow', { real: true, cpu: 4, dpr: 3 });
+    await sleep(2500);
+    const t = await frames(p, 240); t.sort((x, y) => x - y);
+    const st = await ev(p, 'window.__lab.stats');
+    const ems = await ev(p, `({ n: document.querySelectorAll('.vl-strip .ve').length, quiet: document.querySelectorAll('.vl-strip .ve.is-quiet').length, glows: document.querySelectorAll('.vl-strip .vg.vg-still').length })`);
+    const med = t[t.length >> 1], p95 = t[Math.floor(t.length * 0.95)], slow = t.filter(x => x > 20).length;
+    okT(med < 17.5 && slow < t.length * 0.08 && ems.n === 8 && ems.quiet === 8 && ems.glows === 8, `THE VAULT 2A: A FULL LOBBY of 8 LEGENDARIES wearing every sample's emblem + glow at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow; the card leads (${ems.quiet}/8 emblems + ${ems.glows}/8 glows holding still); effect tier ${st.tier}`);
+    await ctx.close(); await closeReal(); }
 });

@@ -5652,3 +5652,5 @@ Rules unchanged. Summary: plan/v1c-summary.txt
 - THE BUILD TABLE (Nov 3, THE VAULT 2A Step 0): THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅; THE VAULT 2A (the 3 held cards + THE EMBLEM / GLOW /
   TUBE-STYLE SYSTEM + ~13 samples — this pass) ← NEXT; then THE VAULT 2B (the rest, from his marks), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (the
   rework + its review — NO daily), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
+
+THE VAULT 2A DONE (Nov 3) — passes/vault-2a.md + docs/vault.md. THE BUILD TABLE: THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅; THE VAULT 2A ✅ (the 3 held cards — FOUNDING MEMBER's opening night, THE HOUSE in full blaze, PLATINUM the metal card —, LIGHTS OUT's red pulse, I'M NEW HERE gone; THE EMBLEM / GLOW / TUBE-STYLE SYSTEM + 17 samples in the lab's EMBLEMS + GLOWS tabs; the prominence rule as the speed budget — a legendary card leads); THE VAULT 2B (the rest, from his marks) ← NEXT; then BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (the rework + its review — NO daily), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.

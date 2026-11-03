@@ -38,7 +38,8 @@ function sheet() {
   return sheetP;
 }
 /** warm the stylesheet + the sounds before the first tap needs them (the title calls it once a legendary is up) */
-export function prewarm() { sheet(); import('../audio/progress-sfx.js').then(m => m.pgPrefetch(['flash', 'polaroid', 'card-reveal'])).catch(() => {}); }
+// (THE VAULT 2A: the reveal's scene modules + css/vault.css load HERE, at the tap — never in the middle of the print's gestures)
+export function prewarm() { sheet(); import('../audio/progress-sfx.js').then(m => m.pgPrefetch(['flash', 'polaroid', 'card-reveal'])).catch(() => {}); import('../vault/full.js').then(() => import('../vault/sheet.js')).then(m => m.vaultSheet()).catch(() => {}); }
 
 /** the print's caption: the date + the time written by hand (the tap's own moment, on this phone's clock) */
 export function caption(t, tz) {

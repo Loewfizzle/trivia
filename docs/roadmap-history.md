@@ -1843,6 +1843,9 @@ desktop framing; a phone sideways (the sign smaller, the dock 0.8); THE STANDING
   test emblems (NEON + PRISM bolts, THE PROMINENCE RULE); the pink pair as early level rewards (HEARTBREAKER 4, GLITTER BOMB 8).
 - Measured: 8 legendary strips at 4× CPU = 60 fps on the GPU compositor.
 
+## THE VAULT 2A — THE 3 HELD CARDS + THE EMBLEM / GLOW / TUBE-STYLE SYSTEM (Nov 3 2026) — docs/harbor/passes/vault-2a.md, docs/vault.md
+FOUNDING MEMBER = OPENING NIGHT (the title's own NEON tubes + SPEAKEASY lighting letter by letter on the speakeasy's roof, searchlights, the EST. 1924 date stone, the member's REAL № in gold), THE HOUSE = the speakeasy in full blaze (the blade + chasing bulbs, NEON, a gold crown over the door, gold willows behind), PLATINUM = the metal card (EPIC: brushed platinum, a diamond-cut bevel, a cold light). LIGHTS OUT's full card pulses its red heart; I'M NEW HERE gone. THE EMBLEM SYSTEM: an emblem = a shape + a finish (neon — the sign's tube stack, the 12 sign-up shapes on it — prism, gold, chrome, ice crystal, molten, glitch, galaxy) as composited SVG layers; tube styles (two-tone, breathing, a chasing light) on any neon emblem; name glows (ember, gold leaf, electric) on the name only; the picker's emblem / tube / glow rows on the player's own strip; the lab's EMBLEMS + GLOWS tabs + the samples worn in A FULL LOBBY. The speed fix: motion on HTML-wrapped layers + THE PROMINENCE RULE as the budget (a legendary card leads) — 8 legendaries + every sample 33.5 → 59 fps at 4× CPU.
+
 ## THE VAULT 1C — THE 8 SIGHTING CARDS + THE HELD-BACK CARDS (Nov 3 2026) — docs/harbor/passes/vault-1c.md, docs/vault.md
 - **THE ONE TIER PALETTE** (js/core/rarity.js + css/base.css): COMMON grey · UNCOMMON green · RARE blue · EPIC purple · LEGENDARY gold — the
   cards' tags, the picker, THE PROGRAM (every row a tier badge + its name tinted). **I'M NEW HERE** closes with a welcome toast.

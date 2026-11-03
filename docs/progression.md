@@ -44,12 +44,13 @@ playable games, a PB now and then → the table's right column. The rank EMBLEMS
 LEGEND's until THE VAULT); `profiles/{pid}/l` = the level. Everything that showed a rank shows **BAND · LEVEL n** (the card, the podium's XP
 strip, the lobby chip "LV n", THE BOARD's #1 crown + your button, /admin).
 
-### THE LEVEL REWARDS (31 — item ids; THE VAULT replaces the ART, never the ids)
-1 GILDED (everyone) · 3 MIDNIGHT · **4 HEARTBREAKER** · 5 BRASS DECO · 7 tube TWO-TONE · **8 GLITTER BOMB** (THE VAULT 1A — the pink pair, early) · **10 EMERALD & BRASS** · 13 emblem DIAMOND · 15 glow ICE · 18 NEON GLASS ·
-20 SILVER CHROME · **25 MIDNIGHT & CHAMPAGNE** · 28 glow NEON · 30 tube BREATHING · 32 VELVET ROOM · 35 AURORA · 37 emblem CRESCENT ·
-**40 ONYX & ROSE GOLD** · 44 GOLD FOIL · 47 tube GOLD · 50 glow GOLD · 55 emblem THE CROWN · 58 VELVET NOIR · **60 SAPPHIRE & SILVER** (the 4th
+### THE LEVEL REWARDS (40 — item ids; THE VAULT replaces the ART, never the ids)
+1 GILDED (everyone) · 3 MIDNIGHT · **4 HEARTBREAKER** · 5 BRASS DECO · **6 emblem SWEETHEART** (THE VAULT 2A) · 7 tube TWO-TONE · **8 GLITTER BOMB** (THE VAULT 1A — the pink pair, early) · **10 EMERALD & BRASS** · 13 emblem DIAMOND · 15 glow ICE · 18 NEON GLASS ·
+20 SILVER CHROME · **25 MIDNIGHT & CHAMPAGNE** · **26 tube A CHASING LIGHT** (2A) · 28 glow NEON · 30 tube BREATHING · 32 VELVET ROOM · 35 AURORA · 37 emblem CRESCENT ·
+**40 ONYX & ROSE GOLD** · 44 GOLD FOIL · 47 tube GOLD · 50 glow GOLD LEAF · 55 emblem THE CROWN · 58 VELVET NOIR · **60 SAPPHIRE & SILVER** (the 4th
 Gilded-family slot — a name + palette for THE VAULT to design) · 65 tube OLD SIGN · 70 PRISM LEGEND + glow PRISM · 75 emblem SUNBURST ·
-80 tube ON THE BEAT · 85 glow CHAMPAGNE · 90 emblem THE ACE · 95 PLATINUM · **100 THE HOUSE**. Today's VAULT is folded in: the 7 old card finishes
+80 tube ON THE BEAT · 85 glow CHAMPAGNE · 90 emblem THE ACE · 95 PLATINUM (EPIC since 2A) · **100 THE HOUSE + its crown emblem** (2A).
+**THE VAULT 2A** renamed the emblem set after the owner's sketches (RAINMAKER · SNOWED IN · FOUR ON THE FLOOR · THE FLAME), the glows GOLD → GOLD LEAF + SPARK → ELECTRIC, set the finishes' tiers (FOUR ON THE FLOOR rare, SNOWED IN + RAINMAKER epic) + ICE / AFTERGLOW common — ids unchanged (docs/vault.md "THE VAULT 2A"). Today's VAULT is folded in: the 7 old card finishes
 + 5 old glows are level rewards at the levels their old rank steps were worth (EMBER = FIRST ROUND's).
 **THE CARRY-OVER:** a profile from before levels gets every reward its XP had earned (+ the achievements its stats already prove, +
 FOUNDER while open) the first time it's touched — its next match, or the `me` call (the card screen).

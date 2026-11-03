@@ -25,7 +25,10 @@ EFFECT LIBRARY); the passes: `docs/harbor/passes/vault-1a.md` (THE STYLE TEST �
 | `js/fx/index.js` + `smoke · frost · flames · prism · marquee · glitter · laser · ufo .js` | the effects (the registry) |
 | `css/vault.css` | the strips (`vl-`), the emblems, the lab; the surface (`fx-`) |
 | `assets/vault/*.webp` · `scripts/build-vault-textures.mjs` | the card textures (1050 × 660 WebP — tinted copies of Grok's CC0 picks; credits in ☰ → CREDITS) |
-| `tests/integration/vault-preview.html` | THE LAB without Firebase (`?view=strips|lobby &mix=samples|legend|<card id> &bare=1 &still=1 &tier=0|1|2`) |
+| `tests/integration/vault-preview.html` | THE LAB without Firebase (`?view=strips|emblems|glows|lobby|full &mix=samples|legend|<card id> &wear=emb,glow|<emblem id> &bare=1 &still=1 &tier=0|1|2 &only=<ids>`) |
+| `js/vault/emblem-art.js` | THE VAULT 2A — THE EMBLEM SYSTEM: the shapes (`SH`), `EMBLEM_ART` (id → shape + finish), the finishes' builders (`FIN`), the neon tube stack + the 12 sign-up shapes, `TUBE_STYLES`, `emblemEl()` |
+| `js/vault/glows.js` · `js/vault/sheet.js` | NAME GLOWS (`GLOW_ART`, `applyGlow`) · css/vault.css on demand (no effect library) |
+| `js/fx/sign-kit.js` · `opening.js` · `house.js` · `bevel.js` | 2A: the app's neon baked for a card (tube letters, the switch-on) · `card-founder`'s scene · `card-house`'s scene · `card-platinum`'s bevel light |
 
 ## THE BAR (the owner, said twice: "make sure they are HIGH QUALITY")
 Every card at the class of I WANT TO BELIEVE (`docs/harbor/plan.md` "THE SIGHTING CARDS' BAR": the real baked model, real light, depth,
@@ -261,3 +264,66 @@ epic's two effects on ONE slot. A light / busy material's FULL card gets dark ba
 | card-eternal | ETERNAL FLAME | legendary | eternal | violet night | a year's streak |
 | card-witness | THE WITNESS | legendary | witness | the star chart | THE WITNESS (every legend) |
 **Held back** (a plain strip for owners until built): PLATINUM (level 95), THE HOUSE (level 100), FOUNDING MEMBER — passes/vault-1c.md.
+
+## THE VAULT 2A (Nov 3) — passes/vault-2a.md
+### THE 3 HELD CARDS
+FOUNDING MEMBER (`card-founder`, legendary — `js/fx/opening.js`): OPENING NIGHT — the title's own NEON tubes + SPEAKEASY (the city's tube
+alphabet) on the speakeasy's roof frame, lighting letter by letter (`sign-kit.js#ignite`), searchlights once it all burns, the EST. 1924 date
+stone in the parapet; the member's REAL № in gold (DOM: `.vl-no` on the strip, `.vl-fc-stamp` on the full card — it carries MEMBER SINCE).
+THE HOUSE (`card-house`, legendary, level 100 — `js/fx/house.js`): the speakeasy's front in full blaze (a baked Deco facade, the blade + its
+chasing bulbs, NEON, a gold neon crown over the door) + gold willows raining behind the roof. PLATINUM (`card-platinum`, EPIC): brushed
+platinum (`assets/vault/platinum.webp`), a CSS diamond-cut bevel, a cold sheen (`sheen` opts.gain) + the light running the bevel (`bevel.js`).
+
+### THE EMBLEM SYSTEM — a shape + a finish (`js/vault/emblem-art.js`)
+**An emblem is a box of small SVG LAYERS** (`span.ve`): the still parts in the base layer; **each moving part its own layer, an HTML `<i
+class="ve-l">` holding its `<svg>`, animated on transform + opacity** (the compositor moves it — Chromium never composites an animated SVG
+element, and motion on SVG children repaints the whole SVG every frame: that cost 8 legendaries + the samples 26 fps); a part moving INSIDE
+the shape slides under a mask of it (`i.ve-m`). No canvas, no filters; crisp at 3×; reduced motion = the still frame.
+**THE 28-PT RULE:** every shape reads at 28 pt on a lobby strip — one or two tubes / one bold silhouette + one bright accent; effects TOUCH or
+SURROUND the shape (frost at the tips, embers beside it, its own lights, a glint), never fill over it.
+**The finishes:** NEON (the house style — the sign's tube stack: glass → two soft glows → body → white-hot core → a hairline highlight; the
+commons; TODAY'S 12 SIGN-UP SHAPES are commons on it, in the player's colour) · PRISM (a rainbow sweeping inside) · GOLD (struck gold, a shine
++ a glint) · CHROME (black chrome, a light gliding; the TR-3B's own lights) · ICE CRYSTAL (frost growing at the tips) · MOLTEN (crust, glowing
+cracks, a drip, embers) · GLITCH (ghosts, the jump, slices tearing) · GALAXY (a nebula drifting inside, stars, ports).
+**TUBE STYLES** (separate unlocks, worn on ANY neon emblem — `TUBE_STYLES`): TWO-TONE (a gradient: the colour into its partner) · BREATHING
+(the glow layer + the body layer breathe) · A CHASING LIGHT (six runs of white-hot light flashing in turn round every tube). A special finish
+keeps its own light (a tube style shows on neon only).
+**NAME GLOWS** (`js/vault/glows.js` — the NAME only, never the level line; always readable): a class on the name + (moving ones) a few
+aria-hidden pieces along the text (`--w` ≈ its width from its letters, so they follow fitName's size + its two lines; fitName measures
+without them). EMBER (common, still) · GOLD LEAF (gold leaf + a glint) · ELECTRIC (arcs on the top edge + off the end). No filter under a
+moving piece.
+**THE PROMINENCE RULE = the budget** (`emblems.js#prominence` → `.is-lead / .is-even / .is-quiet`; durations × `--sp`): LEAD (the emblem
+out-ranks the card) plays EVERY layer; EVEN plays its signature motion only (the secondary layers `.ve-2` rest on their still frame);
+QUIET holds the still, lit frame; **a LEGENDARY card always leads** — its emblem + the name glow (`.vg-still`) hold still.
+
+### THE SET (2A's samples — n 98–114 in THE CARD LAB, waiting for the owner's marks)
+| # | id | name | finish | tier | earned |
+| --- | --- | --- | --- | --- | --- |
+| 98 | emb-key | THE KEY | neon | common | HOUSE WARMING |
+| 99 | emb-sweetheart | SWEETHEART | neon | common | level 6 |
+| 100 | emb-owl | THE OWL | neon | uncommon | NIGHT OWL |
+| 101 | emb-prism | FOUR ON THE FLOOR | prism | rare | FOUR ON THE FLOOR (PRISM DROP) |
+| 102 | emb-house | THE HOUSE (the crown) | gold | legendary | level 100 |
+| 103 | emb-snowflake | SNOWED IN | ice crystal | epic | SNOWED IN |
+| 104 | emb-torch | THE FLAME | molten | epic | a 50-night streak |
+| 105 | emb-lightning | RAINMAKER | glitch | epic | RAINMAKER |
+| 106 | emb-sg-tr3b | LIGHTS OUT | chrome | legendary | a TR-3B sighting |
+| 107 | emb-sg-ufo | I WANT TO BELIEVE | galaxy | legendary | a UFO sighting |
+| 108 | (the 12 sign-up shapes) | — | neon | common | everyone (the one you pick) |
+| 109–111 | tube-twotone · tube-breath · tube-chase | TWO-TONE · BREATHING · A CHASING LIGHT | tube styles | common · uncommon · uncommon | levels 7 · 30 · 26 |
+| 112–114 | glow-ember · glow-gold · glow-spark | EMBER · GOLD LEAF · ELECTRIC | name glows | common · rare · rare | FIRST ROUND · level 50 · COMEBACK KID |
+
+### THE PICKER (`js/vault/picker.js#stylePicker`) + THE LAB
+Emblems, tube styles + name glows are ROWS like the cards: each the player's OWN strip (their worn card) wearing that option, WEARING ✓, tap to
+wear (the first row = none); ONE effect surface for the whole VAULT section (`progress/profile.js`). The lab: EMBLEMS + GLOWS tabs (marks as
+for the cards), A FULL LOBBY's WEAR THE SAMPLES (`&wear=emb,glow`; one id on all 8: `&wear=<id>`); `vault-bench.mjs WEAR=…`.
+
+### A NEW EMBLEM / FINISH / GLOW plugs in by
+its item row (`api/_lib/catalog.js` + `lab-text.js`) → `js/vault/catalog.js#LAB` (kind emblem / tube / glow, its finish) → its art: an emblem
+`EMBLEM_ART[id] = { shape, finish }` (+ its shape in `SH`); a NEW finish a `FIN` builder (the base layer still, each moving part
+`C.layer('cls')`, a part moving inside the shape `C.mask(d).layer()`, secondary motion `ve-2`) + its keyframes (transform + opacity only,
+× `--sp`); a glow `GLOW_ART[id]` + its `.vg-<look>` CSS → three refine passes at 28 pt on a strip first → the owner's marks.
+
+### Measured (the mini PC, 4× CPU, the real compositor, 3×)
+8 legendaries + every sample's emblem + glow 58.7–59 fps (before the layer fix: 33.5) · THE 8 SAMPLES (guests in their sign-up shapes) 60 ·
+THE 8 SIGHTINGS 60 · THE NEW 21 60 · 8 still cards with every emblem LEADING 60 (0.9 ms main thread).
