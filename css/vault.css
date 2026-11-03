@@ -24,10 +24,11 @@
 .vl-frame { position: absolute; inset: 0; z-index: 3; border-radius: inherit; pointer-events: none; }
 
 /* ---- the tiers' frames (static; the motion lives in the canvas) */
-.vl-t-common .vl-tier { color: #f1d491; }
-.vl-t-uncommon .vl-tier { color: #b8f5d2; }
-.vl-t-rare .vl-tier { color: #a9dcff; }
-.vl-t-epic .vl-tier { color: #f6dcff; background: rgba(60, 14, 70, 0.85); box-shadow: inset 0 0 0 1px rgba(230, 160, 255, 0.45); }
+/* the tag's words in THE ONE TIER PALETTE (css/base.css --tier-*; THE VAULT 1C) */
+.vl-t-common .vl-tier { color: var(--tier-common); }
+.vl-t-uncommon .vl-tier { color: var(--tier-uncommon); }
+.vl-t-rare .vl-tier { color: var(--tier-rare); }
+.vl-t-epic .vl-tier { color: var(--tier-epic); background: rgba(34, 10, 52, 0.88); box-shadow: inset 0 0 0 1px rgba(189, 132, 255, 0.5); }
 .vl-t-legendary .vl-tier { color: #2a1604; background: linear-gradient(180deg, #ffe39a, #ffb24d); box-shadow: 0 0 10px rgba(255, 190, 90, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
 .vl-t-common .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 238, 190, 0.55), inset 0 1.5px 0 rgba(255, 252, 235, 0.75), inset 0 -2px 0 rgba(70, 40, 5, 0.55), 0 2px 8px rgba(0, 0, 0, 0.45); }
 .vl-t-uncommon .vl-frame { box-shadow: inset 0 0 0 1px rgba(220, 230, 240, 0.32), 0 2px 8px rgba(0, 0, 0, 0.45); }
@@ -167,7 +168,7 @@ select.vl-tab option { color: #111; }
 .vl-pick-h { display: flex; align-items: center; gap: 8px; min-height: 30px; margin: 0 2px 6px; }
 .vl-pick-n { min-width: 0; font: 700 15px/1.15 var(--font-ui); letter-spacing: 0.04em; color: #f5ecda; overflow-wrap: anywhere; }
 .vl-pick-t { flex: none; font: 800 11px/1 var(--font-ui); letter-spacing: 0.18em; }
-.vl-tt-common { color: #f1d491; } .vl-tt-uncommon { color: #b8f5d2; } .vl-tt-rare { color: #a9dcff; } .vl-tt-epic { color: #f6dcff; } .vl-tt-legendary { color: #ffd27a; }
+.vl-tt-common { color: var(--tier-common); } .vl-tt-uncommon { color: var(--tier-uncommon); } .vl-tt-rare { color: var(--tier-rare); } .vl-tt-epic { color: var(--tier-epic); } .vl-tt-legendary { color: var(--tier-legendary); }
 .vl-pick-on { flex: none; padding: 5px 8px 4px; border-radius: 999px; font: 800 11px/1 var(--font-ui); letter-spacing: 0.14em; color: #1d1405; background: linear-gradient(180deg, #fbf0c8, #e2c27a); }
 .vl-pick-view { flex: none; margin-left: auto; min-width: 64px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; cursor: pointer; font: 800 12px/1 var(--font-ui); letter-spacing: 0.16em; color: #f5ecda; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.45); position: relative; }
 .vl-pick-view::after { content: ''; position: absolute; inset: -4px; }

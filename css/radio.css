@@ -380,6 +380,16 @@ body.cb-split .rd-back { background: radial-gradient(120% 70% at 50% 0%, rgba(40
 
 /* THE PROGRAM — THE FULL DAY (THE VAULT 1B add-on): the switch (ALL · RARE + LEGENDARY) + the RARE tag */
 .rd-pr i.rare { background: #5a1424; color: #ffe3a8; }
+/* THE ONE TIER PALETTE on THE PROGRAM (THE VAULT 1C): every row's tier badge (filled in its tier's ink, white words) + its name tinted */
+.rd-pr i.rd-tier { background: var(--tc-ink); color: #fff; }
+.rd-pr[data-tier] > span { color: var(--tc-ink); font-weight: 600; }
+.rd-pr[data-tier="common"] > span { font-weight: 500; }
+.rd-pr[data-tier="common"] { --tc-ink: var(--tier-common-ink); } .rd-pr[data-tier="uncommon"] { --tc-ink: var(--tier-uncommon-ink); }
+.rd-pr[data-tier="rare"] { --tc-ink: var(--tier-rare-ink); } .rd-pr[data-tier="epic"] { --tc-ink: var(--tier-epic-ink); }
+.rd-pr[data-tier="legendary"] { --tc-ink: var(--tier-legendary-ink); }
+.rd-pr[data-tier="legendary"] i.rd-tier { background: linear-gradient(180deg, #ffd978, #ffb43c); color: var(--tier-on); box-shadow: inset 0 0 0 1px #7f5300; }
+.rd-pr.is-past[data-tier] > span { color: #6f6556; }
+.rd-pr.is-past i.rd-tier, .rd-pr.is-past[data-tier="legendary"] i.rd-tier { background: #d4c8af; color: #5f5649; box-shadow: none; }
 .rd-prf { display: flex; gap: 6px; margin: 2px 0 10px; }
 .rd-prfb { flex: 1 1 0; min-height: 40px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(90, 20, 36, 0.45); background: transparent; color: #5a1424; cursor: pointer; font: 800 11.5px/1 var(--font-ui); letter-spacing: 0.14em; }
 .rd-prfb.is-on { background: #5a1424; color: #fff3dc; border-color: #5a1424; }

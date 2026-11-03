@@ -11,6 +11,7 @@ import { dayChart, clockOf, DAY_FROM, DAY_TO } from '../../core/harbor-daychart.
 import { legendsTonight } from '../../core/harbor-showcase.js';
 import { jackDef, phaseOf, localStart } from '../../core/harbor-radio.js';
 import { ownerWindow } from '../../core/harbor-billboard.js';
+import { programTier, jackTier, RARITY_NAME } from '../../core/rarity.js';
 
 const DOW = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -46,41 +47,43 @@ export function paint({ st, now, cancel, edit }) {
   const dayH = ms => { const x = (ms - new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) / 3600e3; return x; };
   // TONIGHT: the city's rows + YOURS (his moments + messages on this day)
   const rows = C.items.filter(i => filter === 'all' || isRare(i))
-    .map(i => ({ h0: i.h0, h1: i.h1, label: nice(i.label), tag: i.cat === 'legendary' ? 'leg' : isRare(i) ? 'rare' : null }));
+    .map(i => ({ h0: i.h0, h1: i.h1, label: nice(i.label), tag: null, tier: programTier(i) }));
   const mine = (st && st.moments || []).filter(m => m.mine && m.state !== 'stopped');
   for (const m of mine) {
     const S0 = m.local ? localStart(m.local, m.made || m.at, off) : m.at, j = jackDef(m.jack), h0 = dayH(S0);
     if (h0 < DAY_FROM - 0.01 || h0 > DAY_TO) continue;
-    rows.push({ h0, h1: dayH(m.until), label: `${j ? j.label[0] + j.label.slice(1).toLowerCase() : m.jack}${m.text ? ` “${m.text}”` : ''}${m.aud === 'me' ? ' · just me' : m.aud === 'room' ? ` · lobby only ${m.room || ''}` : ' · everyone'}`, tag: 'you' });
+    rows.push({ h0, h1: dayH(m.until), label: `${j ? j.label[0] + j.label.slice(1).toLowerCase() : m.jack}${m.text ? ` “${m.text}”` : ''}${m.aud === 'me' ? ' · just me' : m.aud === 'room' ? ` · lobby only ${m.room || ''}` : ' · everyone'}`, tag: 'you', tier: jackTier(j) });
   }
   for (const b of (st && st.board) || []) {
     for (const probe of [T, T + 3600e3 * 6, T + 3600e3 * 12]) {
       const w = ownerWindow(b, probe, off); if (!w) continue;
       const h0 = dayH(w[0]); if (h0 < DAY_FROM || h0 > DAY_TO) break;
-      rows.push({ h0, h1: dayH(w[1]), label: `Billboard · “${b.lines.filter(Boolean).join(' · ')}”`, tag: 'you' }); break;
+      rows.push({ h0, h1: dayH(w[1]), label: `Billboard · “${b.lines.filter(Boolean).join(' · ')}”`, tag: 'you', tier: 'common' }); break;
     }
   }
   // (the intercom he sent AT A TIME / IN 10 MIN: YOURS on the listing too)
   for (const m of (st && st.intercom) || []) {
     if (m.state === 'stopped') continue;
     const h0 = dayH(m.at); if (h0 < DAY_FROM - 0.01 || h0 > DAY_TO) continue;
-    rows.push({ h0, h1: dayH(m.until), label: `Intercom${m.head ? ` · “${m.head}”` : ''}${m.aud === 'me' ? ' · just me' : m.aud === 'room' ? ` · lobby only ${m.room || ''}` : ' · everyone'}`, tag: 'you' });
+    rows.push({ h0, h1: dayH(m.until), label: `Intercom${m.head ? ` · “${m.head}”` : ''}${m.aud === 'me' ? ' · just me' : m.aud === 'room' ? ` · lobby only ${m.room || ''}` : ' · everyone'}`, tag: 'you', tier: 'uncommon' });
   }
   rows.sort((a, b) => a.h0 - b.h0);
   const clock = r => clockOf(r.h0).toUpperCase().replace(':00 ', ' ').replace(/^12 AM$/, 'MIDNIGHT');
-  const tags = r => [r.tag === 'you' ? h('i.you', 'YOURS') : null, r.tag === 'leg' ? h('i.leg', 'LEGEND') : null, r.tag === 'rare' ? h('i.rare', 'RARE') : null];
+  // (THE ONE TIER PALETTE — THE VAULT 1C: every row its tier badge + its name tinted; YOURS stays beside it)
+  const tags = r => [r.tag === 'you' ? h('i.you', 'YOURS') : null, r.tier ? h('i.rd-tier', RARITY_NAME[r.tier]) : null];
+  const at = r => (r.tier ? { dataset: { tier: r.tier } } : {});
   const onNow = rows.filter(r => r.h0 <= hNow && hNow < r.h1), coming = rows.filter(r => r.h0 > hNow), earlier = rows.filter(r => r.h1 <= hNow);
   const sec = (k, kids) => h('div.rd-prsec', { dataset: { sec: k } }, ...kids);
   const parts = [];
-  if (onNow.length) parts.push(sec('now', [h('div.rd-prk', 'ON NOW'), ...onNow.map(r => h('div.rd-pr.is-now', h('b', h('i.rd-live', { 'aria-hidden': 'true' }), 'NOW'), h('span', r.label), ...tags(r)))]));
-  parts.push(sec('next', [h('div.rd-prk', 'COMING UP'), ...(coming.length ? coming.map(r => h('div.rd-pr', h('b', clock(r)), h('span', r.label, h('small.rd-in', inOf(r.h0 - hNow))), ...tags(r)))
+  if (onNow.length) parts.push(sec('now', [h('div.rd-prk', 'ON NOW'), ...onNow.map(r => h('div.rd-pr.is-now', at(r), h('b', h('i.rd-live', { 'aria-hidden': 'true' }), 'NOW'), h('span', r.label), ...tags(r)))]));
+  parts.push(sec('next', [h('div.rd-prk', 'COMING UP'), ...(coming.length ? coming.map(r => h('div.rd-pr', at(r), h('b', clock(r)), h('span', r.label, h('small.rd-in', inOf(r.h0 - hNow))), ...tags(r)))
     : [h('div.rd-pr', h('span', rows.length ? 'That’s the night — nothing more on the program.' : 'A quiet one — nothing big on the program.'))])]));
   if (earlier.length) {
     const label = () => `${earlier.length} EARLIER ${earlierOpen ? '▴' : '▾'}`;
     const lab = h('span', label());
     const box = h('div.rd-prsec.rd-early', { class: earlierOpen ? 'is-open' : '', dataset: { sec: 'earlier' } },
       h('button.rd-prk.rd-earbtn', { type: 'button', 'aria-expanded': String(earlierOpen), onclick: e => { earlierOpen = !earlierOpen; box.classList.toggle('is-open', earlierOpen); e.currentTarget.setAttribute('aria-expanded', String(earlierOpen)); lab.textContent = label(); } }, lab),
-      ...earlier.map(r => h('div.rd-pr.is-past', h('b', clock(r)), h('span', r.label), ...tags(r))));
+      ...earlier.map(r => h('div.rd-pr.is-past', at(r), h('b', clock(r)), h('span', r.label), ...tags(r))));
     parts.push(box);
   }
   const sw = h('div.rd-prf', { role: 'group', 'aria-label': 'What the program lists' }, ...FILTERS.map(([k, l]) => h('button.rd-prfb', { type: 'button', class: filter === k ? 'is-on' : '', 'aria-pressed': String(filter === k),

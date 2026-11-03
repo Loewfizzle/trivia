@@ -23,6 +23,12 @@
   --orange: #ff8c1a;
   --violet: #a66bff;
 
+  /* THE ONE TIER PALETTE (THE VAULT 1C — js/core/rarity.js holds the same hexes): COMMON grey · UNCOMMON green · RARE blue · EPIC purple ·
+     LEGENDARY gold. --tier-<id> = the light on a dark ground (a badge's fill, a dark card's tag); --tier-<id>-ink = words on paper / light glass */
+  --tier-common: #aeb4bd; --tier-uncommon: #4fdc8c; --tier-rare: #5aa8ff; --tier-epic: #bd84ff; --tier-legendary: #ffc64f;
+  --tier-common-ink: #585d64; --tier-uncommon-ink: #136034; --tier-rare-ink: #1b58ad; --tier-epic-ink: #6a2bb3; --tier-legendary-ink: #7f5300;
+  --tier-on: #14100a;
+
   /* per-game identity (overridden by [data-theme]) */
   --accent: var(--cyan);
   --accent-2: var(--magenta);
