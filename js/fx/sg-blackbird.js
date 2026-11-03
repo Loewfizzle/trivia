@@ -15,6 +15,12 @@ const SKY = { sky: [[0, '#0c0a26'], [0.3, '#2a1d4e'], [0.5, '#6a2f62'], [0.62, '
 const SKY_STRIP = { ...SKY, sky: [[0, '#1a1440'], [0.35, '#4a2658'], [0.6, '#b04a68'], [0.8, '#ff8a50'], [1, '#ffa868']], glow: [{ x: 0.95, y: 0.85, r: 0.35, rgb: '255,180,100', a: 0.55, sy: 0.4 }] };
 const DECK_FAR = { base: '150,86,120', deep: '96,54,100', shade: '128,80,124', lit: '255,176,140', litA: 0.6, puff: 9, seed: 3, side: -1, flat: 0.35 };
 const DECK_NEAR = { base: '92,52,96', deep: '40,24,58', shade: '96,60,112', lit: '255,160,128', litA: 0.62, puff: 15, seed: 9, side: -1, flat: 0.4 };
+/** the jet in the Blackbird's black (the owner's lab note, Nov 3: "more black"): the bake's own pixels taken down to a near-black with a
+ *  blue cast — drawn over the bake, the sunset copy (below) only a rim on it */
+const darkCopy = (img) => sprite('sg-bb-dark', img.width, img.height, (x, W, H) => {
+  x.drawImage(img, 0, 0); x.globalCompositeOperation = 'source-atop';
+  x.fillStyle = 'rgba(4,4,8,0.62)'; x.fillRect(0, 0, W, H);
+});
 /** the jet lit by the sunset: the bake, its own pixels washed warm from the low sun (lower left) — drawn 'lighter' over it */
 const litCopy = (img) => sprite('sg-bb-lit', img.width, img.height, (x, W, H) => {
   x.drawImage(img, 0, 0); x.globalCompositeOperation = 'source-atop';
@@ -54,7 +60,8 @@ export default {
       for (const p of m.pts.slice(0, 2)) { const [x, y] = at(p); contrail(c, x, y, back, w * 1.1, span * 0.05, span * 0.16, '255,206,190', 0.38, tt, still, 6); }
       c.save(); c.translate(cx + bx, cy + by); c.rotate(rot);
       c.drawImage(img, -m.c[0] * k, -m.c[1] * k, m.w * k, m.h * k);
-      c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.32; c.drawImage(litCopy(img), -m.c[0] * k, -m.c[1] * k, m.w * k, m.h * k);
+      c.drawImage(darkCopy(img), -m.c[0] * k, -m.c[1] * k, m.w * k, m.h * k);
+      c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.16; c.drawImage(litCopy(img), -m.c[0] * k, -m.c[1] * k, m.w * k, m.h * k);
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
       c.restore();
       // the afterburners + their diamonds (over the nacelles' exits)

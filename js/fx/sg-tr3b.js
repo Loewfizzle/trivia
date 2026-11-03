@@ -85,6 +85,9 @@ function drawCraft(c, L, len, dpr, cx, cy, t, still, pulse, drain, Q) {
   const T = hull(L, len, dpr), P = L.tr3bCorners(len);
   c.save(); c.translate(cx, cy); c.rotate(-0.03 + (still ? 0 : wob(t * 0.25, 7) * 0.025));
   c.drawImage(T.cv, -T.ox, -T.oy, T.w, T.h);
+  // (the owner's lab note, Nov 3: "more black" — a black wash over its own triangle: radar-absorbent black, the panels still faintly there)
+  c.save(); c.beginPath(); P.forEach((q, i) => (i ? c.lineTo(q[0], q[1]) : c.moveTo(q[0], q[1]))); c.closePath();
+  c.globalAlpha = 0.55; c.fillStyle = 'rgb(2,2,4)'; c.fill(); c.restore(); c.globalAlpha = 1;
   // THE RIM: the moon's cool line along the far edge + the CITY's warm glow on the near edges (it fades as the city dies under it)
   const lit = 1 - drain;
   c.lineCap = 'round';
@@ -125,7 +128,7 @@ function drawCraft(c, L, len, dpr, cx, cy, t, still, pulse, drain, Q) {
   // the lights WASH the hull (clipped to it): the white corners + the red heart
   const kc = P.map((q, i) => (still ? 0.9 : 0.62 + 0.38 * Math.sin(t * 1.5 + i * 2.1)));
   c.save(); c.beginPath(); P.forEach((q, i) => (i ? c.lineTo(q[0] * 0.97, q[1] * 0.97) : c.moveTo(q[0] * 0.97, q[1] * 0.97))); c.closePath(); c.clip();
-  P.forEach((q, i) => stamp(c, glow('200,210,240', 0.1, 64), q[0] * 0.8, q[1] * 0.8, len * 0.7, 0.2 * kc[i], len * 0.3));
+  P.forEach((q, i) => stamp(c, glow('200,210,240', 0.1, 64), q[0] * 0.8, q[1] * 0.8, len * 0.5, 0.09 * kc[i], len * 0.22));
   stamp(c, glow('255,40,18', 0.1, 64), 0, 0, len * 1.1, (0.16 + 0.2 * pulse) * (1 + 0.4 * drain), len * 0.45);
   c.restore();
   // THE WHITE CORNER LIGHTS: a hot white core, a cool bloom, a flat flare on the brightest

@@ -10,9 +10,9 @@ import { city, backdrop, bakeDpr, stage } from './sg-kit.js';
 
 const BX0 = -4.5, BX1 = 38.5, BU0 = -1.6, BU1 = 31;          // (the ship's box in its own units — ghostship.js)
 const SKY = { sky: [[0, '#020807'], [0.3, '#061712'], [0.47, '#0e2f25'], [0.5, '#0a2019'], [0.62, '#04110d'], [1, '#010504']], stars: 16, starRgb: '210,255,230', starTo: 0.42, seed: 31,
-  glow: [{ x: 0.66, y: 0.22, r: 0.55, rgb: '120,220,170', a: 0.26 }, { x: 0.5, y: 0.47, r: 0.9, rgb: '90,200,150', a: 0.12, sy: 0.15 }],
+  glow: [{ x: 0.19, y: 0.31, r: 0.5, rgb: '120,220,170', a: 0.26 }, { x: 0.5, y: 0.47, r: 0.9, rgb: '90,200,150', a: 0.12, sy: 0.15 }],
   clouds: [{ y0: 0.05, y1: 0.35, rgb: '60,110,90', a: 0.16, n: 9, sx: 7 }] };
-const SKY_STRIP = { ...SKY, sky: [[0, '#03100c'], [0.6, '#0d2c22'], [0.72, '#0a2019'], [1, '#010504']], glow: [{ x: 0.72, y: 0.34, r: 0.3, rgb: '120,220,170', a: 0.32 }], clouds: [{ y0: 0, y1: 0.5, rgb: '60,110,90', a: 0.16, n: 8, sx: 9 }] };
+const SKY_STRIP = { ...SKY, sky: [[0, '#03100c'], [0.6, '#0d2c22'], [0.72, '#0a2019'], [1, '#010504']], glow: [{ x: 0.95, y: 0.3, r: 0.22, rgb: '120,220,170', a: 0.3 }], clouds: [{ y0: 0, y1: 0.5, rgb: '60,110,90', a: 0.16, n: 8, sx: 9 }] };
 
 /** the moon: a pale disc, soft maria, a cold rim, its halo */
 const moon = () => sprite('sg-moon', 128, 128, (c, W) => {
@@ -52,7 +52,7 @@ export default {
     const horizon = full ? h * 0.47 : h * 0.72;
     c.drawImage(backdrop(full ? 'gh-full' : 'gh', w, h, dpr, { ...(full ? SKY : SKY_STRIP), water: { y: horizon / h, top: '#06211a', bottom: '#010503', shine: '150,255,210' } }), 0, 0, w, h);
     // THE MOON + its glitter path on the water
-    const mx = full ? w * 0.66 : w * 0.72, my = full ? h * 0.27 : h * 0.36, mr = full ? h * 0.4 : h * 0.86;
+    const mx = full ? w * 0.19 : w * 0.95, my = full ? h * 0.31 : h * 0.3, mr = full ? h * 0.34 : h * 0.62;   // (clear of the ship's whole crossing — the owner's note)
     c.drawImage(moon(), mx - mr / 2, my - mr / 2, mr, mr);
     c.globalCompositeOperation = 'lighter';
     const gr = rng(17), ng = full ? 26 : 10;
@@ -69,11 +69,27 @@ export default {
         bat(c, x, y, 4.5 - i * 0.6, still ? 0.2 : tt * 3.2 + i * 0.4);
       }
     }
-    // THE SHIP: its waterline on the horizon, sailing right, a slow swell
-    const shipH = full ? h * 0.4 : h * 0.78, k = shipH / (BU1 - BU0), cx = full ? w * 0.6 : w * 0.66;
-    const bob = still ? 0 : (Math.sin(tt * 0.55) * 0.22 + Math.sin(tt * 0.23 + 1) * 0.12) * k, roll = still ? 0 : Math.sin(tt * 0.41) * 0.03;
+    // THE SHIP SAILS: materialises, crosses on the swell with its wake, dissolves, comes again (a 26-s crossing)
+    const CROSS = 26, cu = still ? 0.5 : (tt % CROSS) / CROSS;
+    const shipH = full ? h * 0.4 : h * 0.78, k = shipH / (BU1 - BU0);
+    const xa = full ? w * 0.4 : w * 0.5, xb = full ? w * 0.84 : w * 0.82, cx = xa + (xb - xa) * cu;
+    const step = Math.floor(tt * 6), hsh = n => { const v = Math.sin(n * 12.9898) * 43758.5453; return v - Math.floor(v); };
+    const fadeIn = Math.min(1, cu / 0.09), fadeOut = Math.min(1, (1 - cu) / 0.1);
+    const appear = still ? 1 : Math.min(fadeIn, fadeOut) * ((fadeIn < 1 || fadeOut < 1) && hsh(step) < 0.4 ? 0.35 + 0.5 * hsh(step + 7) : 1);
+    const bob = still ? 0 : (Math.sin(tt * 0.9) * 0.38 + Math.sin(tt * 0.37 + 1) * 0.2) * k, roll = still ? 0 : Math.sin(tt * 0.7) * 0.05 + Math.sin(tt * 0.31) * 0.02;
     const pulse = still ? 0.92 : 0.84 + 0.16 * Math.sin(tt * 0.9) * Math.sin(tt * 0.37 + 2);
-    const flick = still ? 1 : (Math.floor(tt * 3) % 7 === 3 ? 0.78 : 1);
+    const flick = (still ? 1 : (Math.floor(tt * 3) % 7 === 3 ? 0.78 : 1)) * appear;
+    // ITS WAKE: a glowing furrow on the water behind the stern + a bow wave, fading back (under the ship)
+    if (appear > 0.02) {
+      c.globalCompositeOperation = 'lighter';
+      const stern = cx + (BX0 - 15 + 4) * k, bow = cx + (BX1 - 15 - 4) * k;
+      for (let i = 0; i < 9; i++) {
+        const back = i * k * 2.6, x = stern - back, wy = horizon + 1.5 + i * 0.35, a = (1 - i / 9) * 0.34 * appear;
+        stamp(c, glow('150,255,200', 0.15, 32), x, wy, k * (5 + i * 1.6), a * (still ? 0.8 : 0.75 + 0.25 * Math.sin(tt * 3 + i)), k * (0.9 + i * 0.12));
+      }
+      stamp(c, glow('200,255,225', 0.3, 32), bow, horizon + 1, k * 4, 0.45 * appear * (still ? 1 : 0.7 + 0.3 * Math.sin(tt * 4)), k * 0.9);
+      c.globalCompositeOperation = 'source-over';
+    }
     if (G && fxDiag.sprites) {
       const A = art(G, k, dpr), x0 = (BX0 - 15) * k, y0 = -BU1 * k;
       // the REFLECTION first: the ship flipped under its waterline, rippling in slices, faint
@@ -83,7 +99,7 @@ export default {
         const off = still ? 0 : Math.sin(tt * 1.6 + i * 0.9) * k * 0.35 * (i / nS + 0.3), sy = (A.h - (i + 1) * sh);
         c.globalCompositeOperation = 'lighter'; c.globalAlpha = 0.45 * pulse * flick * (0.5 + 0.5 * (i / nS));
         c.drawImage(A.lines, 0, sy * dpr, A.w * dpr, sh * dpr, x0 + off, y0 + sy, A.w, sh);
-        c.globalAlpha = 0.3 * pulse * (0.5 + 0.5 * (i / nS));
+        c.globalAlpha = 0.3 * pulse * appear * (0.5 + 0.5 * (i / nS));
         c.drawImage(A.glow, 0, sy * dpr * 0.5, A.w * dpr * 0.5, sh * dpr * 0.5, x0 + off, y0 + sy, A.w, sh);
       }
       c.restore();
@@ -98,11 +114,11 @@ export default {
       for (const [la, lu, sz] of G.LANTERNS) {
         const fl = still ? 0.9 : 0.72 + 0.28 * Math.sin(tt * 11 + la) * Math.sin(tt * 7.3 + lu);
         const lx = (la - 15) * k, ly = -lu * k, R = k * (3 + 2.4 * sz) * fl;
-        stamp(c, glow('140,255,130', 0.15, 64), lx, ly, R * 3.2, 0.5 * sz * fl);
-        stamp(c, glow('190,255,160', 0.35, 32), lx, ly, R, 0.95 * fl);
-        stamp(c, glow('240,255,210', 0.5, 32), lx, ly, Math.max(2, k * 0.6 * sz), 1);
+        stamp(c, glow('140,255,130', 0.15, 64), lx, ly, R * 3.2, 0.5 * sz * fl * appear);
+        stamp(c, glow('190,255,160', 0.35, 32), lx, ly, R, 0.95 * fl * appear);
+        stamp(c, glow('240,255,210', 0.5, 32), lx, ly, Math.max(2, k * 0.6 * sz), appear);
         // its column of light on the water
-        if (sz > 0.6) stamp(c, glow('120,255,160', 0.1, 32), lx, lu * k * 0.62 + bob * 1.6, k * 2, 0.35 * fl * sz, lu * k * 0.9);
+        if (sz > 0.6) stamp(c, glow('120,255,160', 0.1, 32), lx, lu * k * 0.62 + bob * 1.6, k * 2, 0.35 * fl * sz * appear, lu * k * 0.9);
       }
       c.restore();
     } else { c.globalCompositeOperation = 'lighter'; stamp(c, glow('90,255,160', 0.15, 64), cx, horizon - shipH * 0.45, shipH, 0.3); }
@@ -118,7 +134,7 @@ export default {
     const nm = Math.round((full ? 10 : 5) * Q.q + 2), mr2 = rng(52);
     for (let i = 0; i < nm; i++) {
       const u = still ? (i / nm) : ((tt * (0.08 + mr2() * 0.06) + mr2()) % 1), x = cx + (mr2() - 0.5) * shipH * 0.9 - u * shipH * 0.5, y = horizon - shipH * 0.04 + u * shipH * 0.12;
-      stamp(c, puff('150,255,210', i % 4, 128), x, y, shipH * (0.3 + u * 0.5), 0.22 * Math.sin(u * Math.PI), shipH * (0.1 + u * 0.12));
+      stamp(c, puff('150,255,210', i % 4, 128), x, y, shipH * (0.3 + u * 0.5), 0.22 * Math.sin(u * Math.PI) * (0.25 + 0.75 * appear), shipH * (0.1 + u * 0.12));
     }
     c.restore();
     c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';

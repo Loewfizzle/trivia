@@ -111,3 +111,14 @@ the real morning clock — a clock-dependent test, logged for the next pass, not
 Run 1 (the harbor tag): harbor 10/10 GREEN; tests RED — the names-only-to-owners test found AFTERBURNER + LIGHTS OUT in js/fx/sg-*.js
 comments: its folder check matched '/' only, so on the mini PC (backslash paths) it never looked in js/fx, vault or progress. Fixed (both
 separators — a planted name now fails it locally) + the comments use the ids. Run 2 (the ci tag): tests GREEN. Live on www.neonspeakeasy.com.
+
+## THE OWNER'S MARKS (Nov 3, 11:29–11:34 am) + the follow-up
+Every new card marked: the 8 sighting strips APPROVED except THE FLYING DUTCHMAN (FIX: "make the boat move"); their full cards APPROVED except
+LIGHTS OUT (FIX: "TR3b body needs to be more black"), SKY KING (FIX: "Blackbird needs to be more black") + THE FLYING DUTCHMAN (FIX: "the moon is
+blended into the ship", "ship needs movement"); the held-back 21's FULL cards all APPROVED — their SLIM strips (#50–70) still unmarked (a strip
+ships only once approved). Fixed: the TR-3B's hull under a black wash over its own triangle (its lights wash the metal less); the Blackbird
+under a near-black copy of its own bake (the sunset only a rim); THE FLYING DUTCHMAN's moon moved clear of the ship's whole crossing (left
+on the full card, far right on the strip) + the ship SAILS — it materialises, crosses on a bigger swell (bob, roll) with a glowing wake + a bow
+wave, dissolves + comes again (a 26-s crossing). Checked at 402 + WebKit 402 × 874 @3 + a 3-frame burst. **&sgdemo** plays the sighting on
+its own (~2 s after the craft is in view) — the owner's preview, by design; without it nothing fires until a tap. Live with the deploy tag
+(the two cloud runs already used).
