@@ -138,6 +138,33 @@ LAB.unshift(
   { id: 'full-card-dev-switchboard', kind: 'full', of: 'card-dev-switchboard', tier: 'legendary', n: 118, dev: true },
   { id: 'full-card-dev-source', kind: 'full', of: 'card-dev-source', tier: 'legendary', n: 119, dev: true },
 );
+// THE VAULT 2B — Group 2: THE REST OF THE EMBLEM SET (the sighting pairs' emblems, the marks, BUTTERFLY, the seasonal four)
+LAB.push(
+  { id: 'emb-cocktail', kind: 'emblem', tier: 'common', n: 120, fin: 'neon' },
+  { id: 'emb-diamond', kind: 'emblem', tier: 'common', n: 121, fin: 'neon' },
+  { id: 'emb-glasses', kind: 'emblem', tier: 'uncommon', n: 122, fin: 'neon' },
+  { id: 'emb-sunrise', kind: 'emblem', tier: 'uncommon', n: 123, fin: 'neon' },
+  { id: 'emb-bullseye', kind: 'emblem', tier: 'uncommon', n: 124, fin: 'neon' },
+  { id: 'emb-crescent', kind: 'emblem', tier: 'uncommon', n: 125, fin: 'neon' },
+  { id: 'emb-butterfly', kind: 'emblem', tier: 'uncommon', n: 126, fin: 'neon' },
+  { id: 'emb-peephole', kind: 'emblem', tier: 'rare', n: 127, fin: 'neon' },
+  { id: 'emb-stars', kind: 'emblem', tier: 'rare', n: 128, fin: 'neon' },
+  { id: 'emb-wings', kind: 'emblem', tier: 'epic', n: 129, fin: 'metal' },
+  { id: 'emb-bitcoin', kind: 'emblem', tier: 'epic', n: 130, fin: 'coin' },
+  { id: 'emb-sunburst', kind: 'emblem', tier: 'epic', n: 131, fin: 'metal' },
+  { id: 'emb-ace', kind: 'emblem', tier: 'legendary', n: 132, fin: 'metal' },
+  { id: 'emb-sg-blackbird', kind: 'emblem', tier: 'legendary', n: 133, fin: 'metal' },
+  { id: 'emb-sg-f22', kind: 'emblem', tier: 'legendary', n: 134, fin: 'metal' },
+  { id: 'emb-sg-ghostship', kind: 'emblem', tier: 'legendary', n: 135, fin: 'spectral' },
+  { id: 'emb-sg-aurora', kind: 'emblem', tier: 'legendary', n: 136, fin: 'aurora' },
+  { id: 'emb-sg-fireball', kind: 'emblem', tier: 'legendary', n: 137, fin: 'comet' },
+  { id: 'emb-sg-skull', kind: 'emblem', tier: 'legendary', n: 138, fin: 'balloon' },
+  { id: 'emb-sg-btc', kind: 'emblem', tier: 'legendary', n: 139, fin: 'balloon' },
+  { id: 'emb-hw', kind: 'emblem', tier: 'epic', n: 140, fin: 'neon' },
+  { id: 'emb-tg', kind: 'emblem', tier: 'epic', n: 141, fin: 'autumn' },
+  { id: 'emb-xmas', kind: 'emblem', tier: 'epic', n: 142, fin: 'neon' },
+  { id: 'emb-nye', kind: 'emblem', tier: 'epic', n: 143, fin: 'neon' },
+);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.

@@ -9,6 +9,7 @@ import { registerItems } from '../../js/core/items.js';
 import { registerAchievements } from '../../js/core/achievements.js';
 import { registerLevelRewards } from '../../js/core/levels.js';
 import { registerMilestoneItems } from '../../js/core/streak.js';
+import { registerSeasonalItems } from '../../js/core/progress.js';
 import { MAX_DAILIES_A_DAY } from '../../js/core/daily.js';
 import { LEGENDARIES } from '../../js/core/achievements.js';
 
@@ -109,6 +110,13 @@ export const ITEM_ROWS = [
   // THE VAULT 2A — the emblem set's new marks (the owner's sketches): SWEETHEART (early: a friend's daughters play) + THE HOUSE's crown (level 100)
   E('emb-sweetheart', 'SWEETHEART', 'common', '♥', 'A pink neon heart, and a little purple one.'),
   E('emb-house', 'THE HOUSE', 'legendary', '♛', 'Level 100. The crown is yours.'),
+  // THE VAULT 2B — BUTTERFLY (early, beside SWEETHEART: a friend's daughters play) + THE SEASONAL EMBLEMS (earned only during their holiday —
+  // a counted match on its days: core/progress.js#SEASONAL — kept forever)
+  E('emb-butterfly', 'BUTTERFLY', 'uncommon', '✿', 'Purple wings, pink accents.'),
+  E('emb-hw', 'THE LANTERN', 'epic', '☗', 'You played on Halloween.'),
+  E('emb-tg', 'HARVEST', 'epic', '❦', 'You played on Thanksgiving.'),
+  E('emb-xmas', 'DECK THE HALLS', 'epic', '✷', 'You played at Christmas.'),
+  E('emb-nye', 'AULD LANG SYNE', 'epic', '✧', 'You played on New Year’s.'),
   // ---- tube styles (how your emblem's neon burns)
   T('tube-twotone', 'TWO-TONE', 'common', 'Two colours in one tube.'),
   T('tube-ember', 'SLOW BURN', 'uncommon', 'Fourteen nights in a row: a tube that smoulders.'),
@@ -183,6 +191,7 @@ export const LEVEL_REWARD_ROWS = [
   { lvl: 6, item: 'emb-sweetheart' },        // (THE VAULT 2A — the pink pair's emblem, early)
   { lvl: 7, item: 'tube-twotone' },
   { lvl: 8, item: 'card-glitter' },
+  { lvl: 9, item: 'emb-butterfly' },           // (THE VAULT 2B — the pink pair's second emblem, early)
   { lvl: 10, item: 'card-emerald' },
   { lvl: 12, item: 'card-smoke' },          // (THE VAULT 1B — the 1A samples that unlocked nowhere: SMOKE ROOM · FROSTBITE · PRISM · INFERNO)
   { lvl: 13, item: 'emb-diamond' },
@@ -233,6 +242,9 @@ registerItems(ITEM_ROWS);
 registerAchievements(ACH_ROWS);
 registerLevelRewards(LEVEL_REWARD_ROWS);
 registerMilestoneItems(MILESTONE_ITEMS);
+/** THE SEASONAL EMBLEMS (THE VAULT 2B): a counted match during the holiday's own days (core/sky.js#holidayOf — full) → its emblem */
+export const SEASONAL_ITEMS = { halloween: 'emb-hw', thanksgiving: 'emb-tg', christmas: 'emb-xmas', nye: 'emb-nye' };
+registerSeasonalItems(SEASONAL_ITEMS);
 
 const levelOfItem = Object.fromEntries(LEVEL_REWARD_ROWS.map(r => [r.item, r.lvl]));
 const ROW = Object.fromEntries(ITEM_ROWS.map(x => [x.id, x]));

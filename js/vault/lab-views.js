@@ -163,7 +163,7 @@ export function mountLab(root, o = {}) {
       const byN = (a, b) => CARDS.filter(c => c.n >= a && c.n <= b).sort((x, y) => x.n - y.n);
       const SAMPLES = byN(1, 8), NEW = byN(19, 26), SIGHT = byN(34, 41), HELD = byN(50, 70);
       for (const b of wearBtns) { b.classList.toggle('is-on', !!wearMix[b.dataset.w]); b.textContent = `${b.dataset.w === 'emb' ? 'EMBLEMS' : 'GLOWS'} ${wearMix[b.dataset.w] ? 'ON' : 'OFF'}`; }
-      const EMB = ['emb-sg-ufo', 'emb-house', 'emb-sg-tr3b', 'emb-torch', 'emb-snowflake', 'emb-lightning', 'emb-prism', 'emb-sweetheart'], TUB = [null, null, null, null, null, null, null, 'tube-chase'], GLO = ['glow-gold', 'glow-spark', 'glow-ember'];
+      const EMB = wearMix.set === 2 ? ['emb-sg-btc', 'emb-sg-skull', 'emb-sg-ghostship', 'emb-sg-aurora', 'emb-sg-fireball', 'emb-ace', 'emb-bitcoin', 'emb-butterfly'] : ['emb-sg-ufo', 'emb-house', 'emb-sg-tr3b', 'emb-torch', 'emb-snowflake', 'emb-lightning', 'emb-prism', 'emb-sweetheart'], TUB = [null, null, null, null, null, null, null, 'tube-chase'], GLO = ['glow-gold', 'glow-spark', 'glow-ember'];
       // (2A: every guest wears their own sign-up shape on the layered neon renderer — as real players do; 1A's test pair stays on THE STRIPS)
       const AV = ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'], COL = ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'];
       const rows = GUESTS.map((g, i) => ({ avatar: AV[i], color: COL[i], ...(wearMix.emb ? (wearMix.one ? (/^tube-/.test(wearMix.one) ? { emblem: 'emb-key', tube: wearMix.one } : { emblem: wearMix.one }) : { emblem: EMB[i], tube: TUB[i] }) : {}), ...(wearMix.glow ? { glow: GLO[i % 3] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: noOf(SAMPLE_NO + i * 7) }));
@@ -181,6 +181,12 @@ export function mountLab(root, o = {}) {
     const places = [];
     const only = (new URLSearchParams(location.search).get('only') || '').split(',').filter(Boolean);
     const items = LAB.filter(x => (x.kind === 'emblem' || x.kind === 'tube') && (!only.length || only.includes(x.id))).sort((a, b) => (a.n < 90) - (b.n < 90) || a.n - b.n);
+    // (THE VAULT 2B: &sheet=1 — a CONTACT SHEET of the emblems: each at 72 pt + 28 pt beside its name, three across — the look reviews)
+    if (new URLSearchParams(location.search).get('sheet') === '1') {
+      content.replaceChildren(h('div.ve-sheet', ...items.filter(x => x.kind === 'emblem' && !x.set && !TEST_EMBLEMS[x.id]).map(item => h('div.ve-sheet-i', { dataset: { id: item.id } },
+        h('div.ve-sheet-a', emblemEl({ id: item.id, mode: 'lead', size: 72 }), emblemEl({ id: item.id, mode: 'even', size: 28 })), h('b', item.name || item.id), h('small', `${TIER_NAMES[item.tier]} · ${(item.fin || '').toUpperCase()}`)))));
+      return;
+    }
     for (const item of items) {
       const stage = h('div.vl-stage.vl-col');
       const blk = h('section.vl-item', { dataset: { id: item.id } }, h('div.vl-item-h', h('b', `${item.n} · ${item.name}`), h('span', `${TIER_NAMES[item.tier]}${item.fin ? ` · ${item.fin.toUpperCase()}` : item.kind === 'tube' ? ' · TUBE STYLE' : ''}`), h('code', item.id)), stage, h('p.vl-motion', item.motion));
@@ -286,7 +292,7 @@ export function mountLab(root, o = {}) {
   paintOpts();
   const q = new URLSearchParams(location.search);
   if (q.get('mix')) mix = q.get('mix');
-  if (q.get('wear')) for (const w of q.get('wear').split(',')) { if (w in wearMix) wearMix[w] = true; else if (/^(emb|tube)-/.test(w)) { wearMix.emb = true; wearMix.one = w; } }   // (&wear=emb,glow: the bench + the look reviews; &wear=<emblem id> = that one on all 8)
+  if (q.get('wear')) for (const w of q.get('wear').split(',')) { if (w === 'emb2') { wearMix.emb = true; wearMix.set = 2; } else if (w in wearMix) wearMix[w] = true; else if (/^(emb|tube)-/.test(w)) { wearMix.emb = true; wearMix.one = w; } }   // (&wear=emb,glow: the bench + the look reviews; &wear=<emblem id> = that one on all 8)
   show(['lobby', 'full', 'emblems', 'glows'].includes(q.get('view')) ? q.get('view') : 'strips');
   return {
     setMarks(m) { marks = m || {}; repaintMarks(); },

@@ -685,3 +685,71 @@ body.reduced-fx .vg > i, .vl-still .vg > i, .vg.vg-still > i { animation: none !
 /* the DEV tag on the full card: compact + on one line (the top line keeps its own line beside it) */
 .vl-fc.vl-dev1 .vl-tier { font-size: 9px; letter-spacing: 0.12em; white-space: nowrap; padding-left: 7px; padding-right: 7px; }
 .vl-fc.vl-dev1 .vl-fc-house { white-space: nowrap; }
+
+/* ===================================================================== THE VAULT 2B — THE REST OF THE EMBLEM SET (emblem-art.js): every
+   moving part its own HTML layer, transform + opacity only, × --sp (THE PROMINENCE RULE); still under reduced motion (the rules above) */
+.ve-grp > .ve-l, .ve-grp > .ve-m { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+/* the neon shapes' own accents */
+.ve .ve-clink { opacity: 0; animation: ve-clink calc(2.8s * var(--sp)) ease-out infinite; }
+@keyframes ve-clink { 0%, 62% { opacity: 0; } 66% { opacity: 1; } 84%, 100% { opacity: 0; } }
+.ve .ve-sray { opacity: 0.3; animation: ve-sray calc(3s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 0.3s - 3s) * var(--sp)); }
+@keyframes ve-sray { 0%, 100% { opacity: 0.3; } 25% { opacity: 1; } 50% { opacity: 0.3; } }
+.ve .ve-ripple { opacity: 0; animation: ve-ripple calc(2.8s * var(--sp)) ease-out infinite; }
+@keyframes ve-ripple { 0%, 48% { opacity: 0; transform: scale(0.4); } 52% { opacity: 1; transform: scale(0.5); } 100% { opacity: 0; transform: scale(2.6); } }
+.ve .ve-hit { opacity: 0; animation: ve-hit calc(2.8s * var(--sp)) ease-out infinite; }
+@keyframes ve-hit { 0%, 48% { opacity: 0; } 52% { opacity: 1; } 70%, 100% { opacity: 0; } }
+.ve .ve-tw2 { animation: ve-tw2 calc(2.6s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-tw2 { 0%, 100% { opacity: 0.35; transform: scale(0.75); } 50% { opacity: 1; transform: scale(1.1); } }
+.ve .ve-flap { animation: ve-flap calc(3.2s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-flap { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.7); } }
+.ve .ve-peek { opacity: 0; animation: ve-peek calc(6s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-peek { 0%, 52% { opacity: 0; } 58%, 70% { opacity: 1; } 72% { opacity: 0.25; } 74%, 84% { opacity: 1; } 90%, 100% { opacity: 0; } }
+.ve .ve-starlit { opacity: 0; animation: ve-starlit calc(2.7s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 0.9s - 2.7s) * var(--sp)); }
+@keyframes ve-starlit { 0%, 100% { opacity: 0; transform: scale(0.8); } 18% { opacity: 1; transform: scale(1.08); } 40% { opacity: 0; transform: scale(1); } }
+.ve .ve-bulb { animation: ve-bulb calc(2.4s * var(--sp)) linear infinite; animation-delay: calc((var(--i) * 0.4s - 2.4s) * var(--sp)); }
+@keyframes ve-bulb { 0% { opacity: 1; } 30%, 100% { opacity: 0.35; } }
+.ve .ve-bub { opacity: 0; animation: ve-bub calc(2.4s * var(--sp)) ease-in infinite; animation-delay: calc((var(--i) * 0.8s - 2.4s) * var(--sp)); }
+@keyframes ve-bub { 0% { opacity: 0; transform: translateY(0); } 15% { opacity: 1; } 85% { opacity: 0.8; } 100% { opacity: 0; transform: translateY(-15%); } }
+.ve .ve-burst { opacity: 0; animation: ve-burst calc(3.6s * var(--sp)) ease-out infinite; }
+@keyframes ve-burst { 0%, 60% { opacity: 0; transform: scale(0.3); } 66% { opacity: 1; transform: scale(0.85); } 100% { opacity: 0; transform: scale(1.35); } }
+.ve .ve-candle { animation: ve-candle calc(1.3s * var(--sp)) steps(1) infinite; }
+@keyframes ve-candle { 0% { opacity: 0.95; } 13% { opacity: 0.72; } 22% { opacity: 1; } 41% { opacity: 0.8; } 55% { opacity: 0.98; } 71% { opacity: 0.66; } 80% { opacity: 0.92; } }
+.ve .ve-bat { opacity: 0; animation: ve-bat calc(7s * var(--sp)) linear infinite; }
+@keyframes ve-bat { 0%, 55% { opacity: 0; transform: translate(0, 0); } 58% { opacity: 1; } 92% { opacity: 1; transform: translate(-80%, 10%); } 95%, 100% { opacity: 0; transform: translate(-86%, 11%); } }
+/* METAL · COIN · SPECTRAL · AURORA · COMET · BALLOON · AUTUMN */
+.ve-f-metal .ve-halo, .ve-f-coin .ve-halo, .ve-f-balloon .ve-halo, .ve-f-autumn .ve-halo { opacity: 0.16; }
+.ve-f-metal .ve-shine, .ve-f-coin .ve-shine, .ve-f-balloon .ve-shine { animation: ve-shine calc(5.5s * var(--sp)) ease-in-out infinite; }
+.ve-f-metal .ve-tip, .ve-f-coin .ve-tip { animation: ve-glint calc(5.5s * var(--sp)) ease-in-out infinite; animation-delay: calc(-0.5s * var(--sp)); }
+.ve .ve-feather { opacity: 0; animation: ve-starlit calc(3s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 0.75s - 3s) * var(--sp)); }
+.ve .ve-gray { opacity: 0; animation: ve-gray calc(3.6s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 0.4s - 3.6s) * var(--sp)); }
+@keyframes ve-gray { 0%, 100% { opacity: 0; } 12% { opacity: 1; } 30% { opacity: 0; } }
+.ve .ve-run { opacity: 0; animation: ve-chase calc(2.2s * var(--sp)) linear infinite; animation-delay: calc((var(--i) * 0.3667s - 2.2s) * var(--sp)); }
+.ve .ve-ember2 { animation: ve-breathe-g calc(3.4s * var(--sp)) ease-in-out infinite; }
+.ve .ve-burn { animation: ve-burn calc(0.42s * var(--sp)) ease-in-out infinite alternate; animation-delay: calc(var(--i) * -0.17s); }
+@keyframes ve-burn { from { opacity: 0.75; transform: scaleY(0.72); } to { opacity: 1; transform: scaleY(1.12); } }
+.ve .ve-coin { animation: ve-coin calc(5s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-coin { 0%, 70% { transform: scaleX(1); } 76% { transform: scaleX(0.06); } 82% { transform: scaleX(1); } 88% { transform: scaleX(0.06); } 94%, 100% { transform: scaleX(1); } }
+.ve-f-spectral .ve-halo { opacity: 0.2; }
+.ve .ve-spec { animation: ve-spec calc(4s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-spec { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
+.ve .ve-lant { animation: ve-candle calc(1.6s * var(--sp)) steps(1) infinite; animation-delay: calc(var(--i) * -0.5s); }
+.ve .ve-mist { animation: ve-mist calc(7s * var(--sp)) ease-in-out infinite alternate; animation-delay: calc(var(--i) * -3.5s); }
+@keyframes ve-mist { from { transform: translateX(-6%); opacity: 0.5; } to { transform: translateX(6%); opacity: 1; } }
+.ve .ve-rib0, .ve .ve-rib1, .ve .ve-rib2 { animation: ve-rib calc(6s * var(--sp)) ease-in-out infinite alternate; animation-delay: calc(var(--i) * -2s * var(--sp)); }
+@keyframes ve-rib { from { transform: translateX(-7%); opacity: 0.6; } to { transform: translateX(7%); opacity: 1; } }
+.ve .ve-head { animation: ve-head calc(0.9s * var(--sp)) ease-in-out infinite alternate; }
+@keyframes ve-head { from { opacity: 0.85; transform: scale(0.92); } to { opacity: 1; transform: scale(1.08); } }
+.ve [class*="ve-frag"] { opacity: 0; animation: ve-frag calc(2.4s * var(--sp)) ease-out infinite; animation-delay: calc((var(--i) * 0.6s - 2.4s) * var(--sp)); }
+@keyframes ve-frag { 0% { opacity: 0; transform: translate(0, 0); } 15% { opacity: 1; } 100% { opacity: 0; transform: translate(-9%, 9%); } }
+.ve .ve-eyeglow { animation: ve-candle calc(1.4s * var(--sp)) steps(1) infinite; animation-delay: calc(var(--i) * -0.6s); }
+.ve .ve-pulse { opacity: 0; animation: ve-bpulse calc(3.2s * var(--sp)) ease-out infinite; }
+@keyframes ve-bpulse { 0%, 55% { opacity: 0; transform: scale(1); } 60% { opacity: 1; transform: scale(1.02); } 100% { opacity: 0; transform: scale(1.3); } }
+.ve-f-autumn .ve-red { opacity: 0; animation: ve-autumn calc(6s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-autumn { 0%, 100% { opacity: 0; } 50% { opacity: 0.85; } }
+.ve .ve-fall { animation: ve-fall calc(5s * var(--sp)) ease-in infinite; }
+@keyframes ve-fall { 0% { opacity: 0; transform: translate(0, 0) rotate(0); } 15% { opacity: 1; } 85% { opacity: 1; } 100% { opacity: 0; transform: translate(-10%, 55%) rotate(40deg); } }
+.ve-sheet { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; padding: 6px 0 20px; }
+.ve-sheet-i { display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 10px 4px; border-radius: 12px; background: #0e0b14; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.07); text-align: center; }
+.ve-sheet-a { display: flex; align-items: center; gap: 8px; }
+.ve-sheet-a .ve:first-child { width: 72px; height: 72px; } .ve-sheet-a .ve.is-28 { width: 28px; height: 28px; }
+.ve-sheet-i b { font: 800 10.5px/1.2 var(--font-ui); letter-spacing: 0.06em; color: #f5ecda; } .ve-sheet-i small { font: 700 8.5px/1 var(--font-ui); letter-spacing: 0.14em; color: #b8a782; }

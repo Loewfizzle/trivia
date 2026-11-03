@@ -16,6 +16,10 @@ export const KEEP_KEYS = 60;
 export const DEFAULT_GAP_MS = 45_000;
 const add = (o, c) => { const x = { ...(o || {}) }; for (const [k, v] of Object.entries(c || {})) x[k] = (x[k] || 0) + v; return x; };
 
+/** THE SEASONAL EMBLEMS (THE VAULT 2B): holiday id → its emblem — the SERVER's (api/_lib/catalog.js registers it; names only to owners) */
+export const SEASONAL = {};
+export function registerSeasonalItems(map) { Object.assign(SEASONAL, map || {}); }
+
 /** Items into `it` (only the new ones; never a second time): → the ids actually added. */
 export function grant(next, ids, now) {
   next.it = { ...(next.it || {}) };
@@ -74,6 +78,8 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   // THE ACHIEVEMENTS: the match into the counters, then the award engine (+ FOUNDER while the window is open)
   next.pa = noteMatch(s.pa, { gid, rank: row.rank, win: row.win, n, night: next.st.d, flags: row.f, hosted: !!ctx.hosted, roomKey: ctx.roomKey || null,
     party: !!ctx.party, hourET: ctx.hourET ?? 20, holiday: ctx.holiday || null, friends: ctx.friends || [] });
+  // THE SEASONAL EMBLEMS (2B): a counted match during the holiday's own days → its emblem (once; kept forever)
+  if (ctx.holiday && SEASONAL[ctx.holiday]) items.push(...grant(next, [SEASONAL[ctx.holiday]], now));
   const aw = awardAll(next, now, { founderOpen: !!ctx.founderOpen });
   items.push(...aw.items);
   return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev } };

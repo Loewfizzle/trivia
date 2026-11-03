@@ -62,7 +62,7 @@ export const levelLabel = xp => { const i = levelInfo(xp); return `${i.band.name
 // tube styles filling the rest, THE HOUSE at 100.
 // THE VAULT 1B — NAMES ONLY TO OWNERS: WHAT each level gives lives on the server (api/_lib/catalog.js → registerLevelRewards); the site
 // keeps only WHEN (REWARD_LEVELS — THE VAGUE TEASE's "something new at level N").
-export const REWARD_LEVELS = Object.freeze([1, 3, 4, 5, 6, 7, 8, 10, 12, 13, 15, 16, 18, 20, 22, 25, 26, 28, 30, 32, 35, 37, 40, 42, 44, 47, 50, 55, 58, 60, 65, 70, 75, 80, 85, 90, 95, 100]);
+export const REWARD_LEVELS = Object.freeze([1, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13, 15, 16, 18, 20, 22, 25, 26, 28, 30, 32, 35, 37, 40, 42, 44, 47, 50, 55, 58, 60, 65, 70, 75, 80, 85, 90, 95, 100]);
 export const LEVEL_REWARDS = [];
 export function registerLevelRewards(rows) { LEVEL_REWARDS.length = 0; LEVEL_REWARDS.push(...rows); }
 /** The reward items for every level in (from, to] — what a match that took you from one level to another unlocks. */
