@@ -71,6 +71,7 @@ jobs:
             set -e
             node --test rules.test.mjs
             node --test server.test.mjs
+            node --test progression.test.mjs
             (cd ../.. && node scripts/serve.mjs --emu > /tmp/serve.log 2>&1 &)
             for i in $(seq 1 30); do curl -sf http://localhost:5173/ > /dev/null && break; sleep 1; done
             node e2e-smoke.mjs "$CHROME" ./shots

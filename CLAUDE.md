@@ -6,7 +6,7 @@ could start them, their code + data + rules FROZEN, not deleted; `sign: true` = 
 GRIDLOCK "next on deck"). **CITY 2.0 IS THE DEFAULT** at the plain address (WINDOWS' quiet flip; `?city=2` still works); City 1.0 only behind
 `?city=1`, UNTESTED from now on (the switch-over deletes it). Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
-plus seven Vercel serverless functions in `/api` (profiles, server-checked results, THE BOARD, admin, errors from phones — `docs/profiles.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
+plus eight Vercel serverless functions in `/api` (profiles, server-checked results, THE BOARD, admin, errors from phones — `docs/profiles.md`; the daily contract — `docs/progression.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
 district" in code (`js/screens/district/`, the `nd-` class prefix). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
@@ -22,6 +22,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/title.md` | the title screen, the district scene, the logo, the menu, LIVING CITY (time of day, seasons, holidays, sky events, the real sun + solar eclipses; `?when=&tz=&at=&force=`), PARTY NIGHTS (Fri / Sat on the beat), RAINBOWS (after real rain), THE STREET (lamps, trees, buses, the stop light; the people, the speakeasy's door + the knock), the dock, the screen at rest, the easter eggs |
 | `docs/harbor.md` (+ `docs/harbor/passes/`, one log a pass — its INDEX) | **CITY 2.0 — THE HARBOR** (`?city=2`): the bible — size rules, camera + layout, bakes + memory, lanes, budgets, THE FILE MAP, KNOWN ISSUES, the standing rules' full text |
 | `docs/harbor/decisions.md` | the owner's CURRENT City 2.0 decisions (short; `docs/harbor/plan.md` = the dated archive) — **read first in a Harbor pass**; Step 0 updates it |
+| `docs/progression.md` | PROGRESSION (A, Nov 2): levels 1–100, the streak + freezes + WIN IT BACK, the items + THE LEVEL REWARDS, the 30 achievements + the award engine, the daily contract (`/api/daily`), FOUNDER, the end-of-round moment, the Gilded card + profile, the dock's flame, `?preview=` |
 | `docs/chat.md` | room chat (data, locks per game, system lines, profanity filter) |
 | `docs/content.md` | adding questions / puzzles / words to any bank; rebuilding word lists |
 | `docs/profiles.md` | profiles, name tags + keys, `/api`, result reporting, THE BOARD, XP ranks + steps, streaks, the weekly goal, mastery, THE VAULT (card finishes, name glows), emblems, `/board`, `/admin`, the Vercel setup |
@@ -95,6 +96,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   map that swaps `js/firebase.js` for `tests/integration/fake-firebase.js` (see gridlock-preview.html). Iterate screens there in
   seconds; run the E2E once the look is right.
 - **Profiles are polish too:** joining and playing must work with `/api` down or unconfigured (no tags, no emblems, results queue).
+- **PROGRESSION (docs/progression.md):** XP, levels, the streak, items, achievements, X% counts + FOUNDER are written by the SERVER only (one
+  transaction per match / daily / event through the PURE steps in `core/progress.js`); collections show ONLY what a player owns (no ???, no totals).
   Clients never write boards, stats, XP or ranks (server-only in the rules); board ids use dashes (`cipher-score`), never dots.
 - **THE BOARD shows no typed names (BNAME, Oct 28):** no public response (`/api/board`, its CDN copy, `/board`, the title's preview)
   carries another player's typed name or profile id — a row is an opaque board id + its HOUSE NICKNAME (`js/core/nicknames.js`); your
@@ -133,7 +136,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 ```
 index.html / sw.js / manifest.webmanifest / assets/     shell, service worker (network-first, same-origin static only, never /api), PWA, icons + og.png
 board.html admin.html                                    THE BOARD for anyone (/board, og-board.jpg) and the admin page (/admin)
-api/ profile.js report.js board.js admin.js log.js sky.js time.js + _lib/   Vercel functions (firebase-admin): profiles, checked results, boards, moderation, errors + reports from phones (9e: SEND REPORT / the hang watch), live weather (+ NOAA's Kp), the server's clock (time.js: no imports, no-store)
+api/ profile.js report.js board.js admin.js log.js sky.js time.js daily.js + _lib/   Vercel functions (firebase-admin): profiles, checked results, boards, moderation, errors + reports from phones (9e: SEND REPORT / the hang watch), live weather (+ NOAA's Kp), the server's clock (time.js: no imports, no-store)
 package.json                                             only firebase-admin for /api (npm install at the root for local /api)
 css/base.css components.css screens.css title.css        tokens + themes, the design system (+ NEON GLASS), setup/lobby, the title
 css/kit.css                                              the match kit's default look (announcements, cards, Call the Winner, report)
@@ -143,7 +146,9 @@ js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, color
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
 js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js trees.js street-life.js people.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, CITY 1.0's street, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
           week.js ranks.js names.js nicknames.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, THE HOUSE NICKNAMES (BNAME), keys, board catalog, per-game results
-js/profile/ api.js me.js queue.js public.js callouts.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques + rank-up
+js/profile/ api.js me.js queue.js public.js callouts.js events.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
+js/progress/ moment.js streak-card.js card.js profile.js flame.js look.js preview.js + css/progress.css   PROGRESSION's screens (docs/progression.md; lazy): the end-of-round moment + level-up, the streak card, THE GILDED CARD + the profile's sections, the dock's flame, ?preview=
+js/core/ levels.js streak.js items.js achievements.js daily.js progress.js   PURE (server + client): PROGRESSION — the curve, the streak, the items, the 30 achievements + the award engine, the daily contract, the server's steps · js/daily/contract.js (a daily's /api calls)
 js/board/ scene.js view.js screen.js public.js audio.js  THE BOARD: the bar (Canvas 2D), the board UI, app route, /board entry, its SFX
 js/admin/admin.js                                        the /admin page
 js/ui/    dom.js components.js final.js logo.js tube-logo.js game-art.js settings-panel.js help.js credits.js toast.js emblems.js debug-tools.js debug-strip.js word-neon.js   h(), the design system, the podium, the sign + City 2.0's SPEAKEASY tubes, game logos + lobby art, gear + settings, HOW TO PLAY, CREDITS (ADD A CREDIT = one entry in credits.js#CREDITS), toasts, emblems, the &debug=1 strips

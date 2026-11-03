@@ -83,6 +83,22 @@ test('THE RADIO: rooms/{CODE}/radio + radioCrew readable by the room, written by
   }
 });
 
+// PROGRESSION A: XP, levels, the streak, the items, the achievements, the owners' counts, the FOUNDER switch, the dailies, the outage —
+// the SERVER's only (a client can't write any of it, not even its own); its own pstats readable by the owner (the profile reads it via /api)
+test('PROGRESSION A: pstats (xp · it · ac · st · pa · dl · fv), pcount, progress/founder, dly/, streak/outage — written by nobody', async () => {
+  await seed({ uids: { me: 'pme' }, pstats: { pme: { xp: 10, it: { 'card-gilded': 1 }, ac: { 'first-round': 1 }, st: { n: 1, d: 'd20261102' } } }, profiles: { pme: { n: 'ME', x: 10, l: 1 } },
+    pcount: { n: 1, i: { 'card-gilded': 1 } }, progress: { founder: { open: false } }, dly: { test: { d20261102: { n: 1, r: { pme: 900 } } } }, streak: { outage: { d20261101: { by: 'x' } } } });
+  for (const [path, v] of [['pstats/pme/xp', 99999], ['pstats/pme/it/card-house', 1], ['pstats/pme/ac/kingpin', 1], ['pstats/pme/st', { n: 365, d: 'd20261102' }],
+    ['pstats/pme/pa/kn', 1], ['pstats/pme/dl/n', 7], ['pstats/pme/fv', 9], ['profiles/pme/l', 100], ['profiles/pme/x', 45000], ['profiles/pme/s', 365], ['profiles/pme/cd', 'card-house'], ['profiles/pme/fd', true],
+    ['pcount/i/card-house', 1], ['pcount/n', 0], ['progress/founder', null], ['dly/test/d20261102/r/pme', 1000], ['dly/test/d20261102/h/100', 50], ['streak/outage/d20261102', { by: 'me' }]]) {
+    await assertFails(set(ref(db('me'), path), v), `the player writes ${path}`);
+    await assertFails(set(ref(db('stranger'), path), v), `a stranger writes ${path}`);
+  }
+  await assertSucceeds(get(ref(db('me'), 'pstats/pme')));
+  await assertFails(get(ref(db('stranger'), 'pstats/pme')), 'a stranger reads someone\'s stats');
+  for (const n of ['pcount', 'progress/founder', 'dly/test', 'streak/outage']) await assertFails(get(ref(db('me'), n)), `a client reads ${n} by socket (/api answers)`);
+});
+
 test('creating a room: only as yourself, never over an existing room', async () => {
   const meta = uid => ({ hostId: uid, status: 'lobby', createdAt: serverTimestamp(), activeAt: serverTimestamp() });
   await assertFails(set(ref(db('a'), `rooms/WXYZ/meta`), meta('b')));

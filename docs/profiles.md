@@ -83,6 +83,10 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
   your rank is still computed for you. Opting back in re-inserts from `pstats`. The admin's hide (`ppriv/ban`) wins over opting in.
 
 ## XP and ranks
+> **PROGRESSION A (Nov 2 2026) reworked this:** the ranks are now the BANDS of LEVELS 1–100 (the same XP lines; OWNER at 45,000), the
+> streak's +10 %/night XP is gone (streaks pay in milestones), and THE VAULT's finishes + glows are level rewards — **docs/progression.md**
+> (levels, the streak, the items, the 30 achievements, the award engine, the daily contract, FOUNDER, the screens). The per-match XP below stands.
+
 `js/core/ranks.js`: NEWCOMER 0 · REGULAR 250 · INSIDER 2,000 · MADE 7,500 · LEGEND 25,000. Per match: 30 played; a win 40 + 6 per
 extra player; 2nd 20 + 3 per player over 3 (3+ players); 3rd 10 (4+); 20 per personal best (max 3, improving an existing best); 25 for
 the first match of a game today (Eastern), +10 more when it's your 3rd+ different game today. An evening of 8 matches ≈ 400–700 XP:
@@ -97,12 +101,12 @@ REGULAR in the first evening, INSIDER after a few, LEGEND after 40+ evenings (mo
   colours (two tint layers, opacity only). Tabs per game, RECORDS / CAREER, THIS WEEK / ALL TIME, picks (PULSE song × difficulty,
   GRIDLOCK modes…). Rows cascade in (34 ms stagger); the top three are lit gold / silver / bronze (#1 gets a slow light sweep); your
   row glows in your colour in the list and is pinned at the bottom with your exact rank. 25 rows a page, more on scroll.
-- **Profile** (`js/screens/profile.js`): the membership card (holographic sheen, avatar, Name#tag, rank, emblem, an XP bar that
+- **Profile** (PROGRESSION A: THE GILDED CARD + the level, stats, the streak, the achievements + X%, THE VAULT of what you own — docs/progression.md#the-screens-the-owners-mockups-the-original-gilded--black-lacquer-brass-foil-the-fan-crown-one-hot-pink-neon-accent; the old card below is superseded) (`js/screens/profile.js`): the membership card (holographic sheen, avatar, Name#tag, rank, emblem, an XP bar that
   fills with light), the key as a password card (tap to reveal for 20 s, COPY, NEW KEY on a second tap), the opt-out switch, per-game
   cards (wins, win rate after 10, wins this week, ranks this week / all time, highlights, records), profile id + member since.
 - **Key reminder:** after the 3rd finished match (and again after the 10th) unless the key was copied or marked saved — a sheet back
   in the lobby (`app.js` → `promptKey()`).
-- **Podium** (every game, `ui/final.js` → `callouts.js`): after the crown, up to three plaques — #1 WORLDWIDE / #1 THIS WEEK /
+- **Podium** (PROGRESSION A: the plaques + the XP strip stay; THE END-OF-ROUND MOMENT opens after them and replaced the RANK UP below — docs/progression.md) (every game, `ui/final.js` → `callouts.js`): after the crown, up to three plaques — #1 WORLDWIDE / #1 THIS WEEK /
   ENTERED THE TOP 10 / #N WORLDWIDE / #N THIS WEEK / NEW PERSONAL BEST (same moments on several boards merge into one plaque) —
   with a light sweep and a counting rank, then the XP line filling the bar, then the **rank-up** (≈ 3 s, tap to skip): the old emblem
   dissolves into shards, a ring of light, the new emblem forges in with rays behind it, the rank name resolves letter by letter.
@@ -210,6 +214,12 @@ for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
   (`?case=first|top10|world|pb|merged|rankup|legend`), `emblems-preview.html`, `og-board.html` (the /board link preview).
 
 ## Progression (Oct 2026): steps, the nightly streak, the weekly goal, mastery, THE VAULT
+> **Superseded by PROGRESSION A (Nov 2 2026 — docs/progression.md):** the steps → levels 1–100; the nightly streak → THE STREAK (4 am day,
+> freezes, WIN IT BACK, milestones — no XP); THE VAULT's 7 finishes + 5 glows → items granted by level (`profiles/{pid}/cd · g`, worn from
+> `pstats/it`). The weekly goal + mastery stand as written. New `/api`: `POST /api/daily` (the daily contract), `/api/profile` `pct` · `event` ·
+> `style { card, glow, tube, shape }`, the radio's `radioFounder`, /admin's `outage` / `outages` (audited `outageOn` / `outageOff`,
+> `founderOpen` / `founderClose`). New server nodes: `pcount/`, `progress/founder`, `dly/`, `streak/outage`, `pstats/{it, ac, pa, dl, fv}`.
+
 All pure in `js/core/ranks.js` (shared by the server and the screens); the server awards XP in `api/_lib/stats.js#step`, in the
 same once-per-match transaction.
 - **Steps:** each rank below LEGEND splits into I / II / III (`step(xp)`, `stepIndex`) — a step every evening or two. `profiles.r`

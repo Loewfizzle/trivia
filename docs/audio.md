@@ -1522,3 +1522,30 @@ City 2.0 PARTY deck plays as ONE timeline every phone computes the same way, on 
   timeline broke the first tap's hand-over, caught by the local full suite). Measured:
   two pages on one station within 2 ms; a 150-ms setting → 148 ms earlier (e2e `speaker`). The readout's station line: `lat out N base M
   ts · spk S`.
+
+
+## THE PROGRESSION SOUNDS (PROGRESSION A, Nov 2 2026 — docs/progression.md) — `scripts/build-progression-sfx.py`, `js/audio/progress-sfx.js`
+Grok's 9 (his PICK per sound — `Downloads\Grok\progression-sfx\claude-notes.txt`; the originals read only, never touched). The builder decodes
+his cut points through ffmpeg (imageio-ffmpeg), mono 44.1 kHz (the bells live above 2 kHz), a 3 ms fade-in on a cut that doesn't start at 0, a
+raised-cosine fade-out, LEVELLED QUIET (BS.1770, the true peak under −1.5 dBFS) → MP3 128 kbps `audio/sfx/pg-<name>.mp3` (~130 KB in all):
+
+| sound | the cut | LUFS | where |
+| --- | --- | --- | --- |
+| xp-tick | "Antique Clicker 2" 0.098–0.170 | −27 | each XP line (the rate rises a touch per line) |
+| xp-total | Mixkit gear lock 0.020–0.340 | −23 | the total punches in |
+| level-up | "Bell Waiter 001" 0–1.8 | −21 | the level-up (240 ms after the flip) |
+| medal-flip | "Foley Coin Flip Single Fast" 0–0.55 | −25 | the coin flips |
+| flame-on | "Gas Start" 0.1–1.0 (faded 0.5–0.9 — its steady hiss) | −25 | the streak flame lights |
+| flash | the Kodak Brownie shutter (−6 dB) + the powder flash (−4 dB) together | −23 | PROGRESSION B's flashbulb (shipped now) |
+| polaroid | "Polaroid Taking Picture" 1.8–3.3 | −25 | PROGRESSION B's polaroid (shipped now) |
+| card-reveal | the woosh (−3 dB) + the crystal bell (−6 dB) at +0.18 s | −23 | THE VAULT / B's reveal (shipped now) |
+| achievement | Mixkit service bell 0.005–0.5 | −22 | an achievement / an unlock slides in; the knock's toast |
+
+The palette: `pgSfx(name, { gain, rate })` through the engine's SFX bus (the slider + mute apply), decoded once on first use (`pgPrefetch` as
+the moment opens), a burst de-duped; before the unlock / muted / missing = silence, never an error. Credits: CREDITS (`js/ui/credits.js` →
+PROGRESSION SOUNDS, credits.txt's lines word for word). Sonniss v2.0: only the trimmed, encoded assets ship.
+
+### THE INTERCOM's AUDIO SESSION (the owner's CC-B review, Nov 2 — PROGRESSION A's add-on)
+`navigator.audioSession` (iOS 17+) is 'playback' while the music is on, 'ambient' off — and **'play-and-record' while THE INTERCOM holds the mic**
+(`engine.js#micSession(on)`, set synchronously inside the hold before getUserMedia, back after the take / a failure). A 'playback' session can't
+capture on iOS: that was the owner's "no mic on this device".

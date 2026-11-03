@@ -1762,6 +1762,20 @@ player's own 120-ms re-place window). Groups 1–5: THE WINDOW SCENES AS TIMETAB
 windows.old / &force=old-windows, AFTER HOURS (the shades down glowing — amber, cold white, green, rosy — the lights out one at a time 2–4 am;
 + the owner's add-on: the edge windows' shades), THE JUGGLER (+ Grok's drop sounds), THE CRATE GUY, THE CHARLESTON, THE BOOKIE (rotating).
 
+## PROGRESSION A — THE ENGINE (Nov 2 2026) — docs/harbor/passes/progression-a.md, docs/progression.md
+LEVELS 1–100 over the same XP (NEWCOMER 1–4 · REGULAR 5–19 · INSIDER 20–39 · MADE 40–69 · LEGEND 70–99 · OWNER 100 = 45,000; each band its own
+price per level, never cheaper than the level before; THE YEAR SIM on the server's own step: every other night of 3 matches → INSIDER ~2 weeks,
+MADE ~2 months, LEGEND ~7 months, OWNER ~a year); the streak's XP bonus gone; THE LEVEL REWARDS (31 item ids — the Gilded family at 10 / 25 /
+40 / 60, NEON GLASS + VELVET ROOM between, the old VAULT folded in, THE HOUSE at 100) + THE CARRY-OVER. THE STREAK (the 4 am Eastern day, freezes
+on day 3 then every 7 — hold 2, automatic —, WIN IT BACK 3 plays in 3 days once a month, the /admin OUTAGE button, the milestones 3 · 7 · 14 · 30 ·
+50 · 100 (+ a FAVOR) · 200 · 365). THE DAILY CONTRACT (a secret seed, one official try, the server's score, the percentile + PENTHOUSE … FLOOR from
+50 finishers, YOUR TABLE's TODAY, no socket; a TEST-ONLY fake daily). THE AWARD ENGINE + THE 30 ACHIEVEMENTS (only once earned, X% of players;
+the knock, the watcher's hour, the real weather, the games' flags; sightings / dailies / the birthday dormant) + THE FOUNDER WINDOW on THE LEDGER.
+THE SCREENS in THE ORIGINAL GILDED: the end-of-round moment after the podium (it replaced the RANK UP), the level-up, the streak card, the Gilded
+card + profile (only what you own), the dock's neon flame at the full dpr, `?preview=` links; Grok's 9 sounds. Group 0: the harbor load group's
+dusk flake (a pinned page clock). THE ADD-ON (the owner's CC-B review): the radio's papers stop jumping to the top, the intercom records on
+the iPhone (the audio session play-and-record inside the hold), the willows a fast rolling curtain, SAVE AS A ONE-TAP JACK.
+
 ## CITY 2.0 — CITY CONTROLS B (Nov 2 2026) — docs/harbor/passes/city-controls-b.md (plan.md "OWNER'S NOTES — NOV 2 (afternoon)")
 Step 0: the owner's afternoon notes (Progression 2.0 + THE VAULT decided, THE NO-TRAFFIC RULE). Group 0: the CC-A review — the audience
 knob's three words, SKYWRITE in coloured smoke by day, TAP A LIT JACK → STOP / CANCEL, no long-press (an ARRANGE button), the big ✕, THE
