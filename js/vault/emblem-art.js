@@ -1,6 +1,7 @@
 // THE VAULT 2A — THE EMBLEM SYSTEM: AN EMBLEM = A SHAPE + A FINISH (the owner, Nov 2 10:20 pm + Nov 3 7:46 am; emblem-finishes.png — "one
-// shape, eight finishes"). Every emblem is ONE inline SVG (no canvas: crisp at the phone's full 3×, nothing on the shared effect surface),
-// its motion CSS on transform + opacity only (css/vault.css .ve-*), still under reduced motion. THE 28-PT RULE: every shape reads at 28 pt
+// shape, eight finishes"). Every emblem is a box of small SVG LAYERS (no canvas: crisp at the phone's full 3×, nothing on the shared effect surface) — each moving
+// part its own layer, its motion CSS on transform + opacity of the layer (the compositor: nothing repaints — css/vault.css .ve-*), still
+// under reduced motion. THE 28-PT RULE: every shape reads at 28 pt
 // on a lobby strip — bold silhouettes, one or two tubes, one bright accent; the effects TOUCH or SURROUND the shape (frost on the arms,
 // embers off it, its own lights, a glint) — never fill over it.
 //   NEON — the house style (the commons): the sign's own tube stack (ui/logo.js + ui/tube-logo.js — glass → wide glow → near glow →
@@ -10,7 +11,7 @@
 //          (2A) · gold tube · old sign · slow burn · on the beat (2B).
 //   PRISM · CHROME · GOLD · ICE CRYSTAL · MOLTEN · GLITCH · GALAXY — the rarer finishes, each tied to its own emblem.
 // THE PROMINENCE RULE (emblems.js#prominence): mode 'lead' (a still card: the full motion) · 'even' · 'quiet' (a legendary card: calmer).
-//   emblemEl({ id, avatar, color, tube, mode, size }) → <svg class="ve …">   (id: an emblem item id with art — else the avatar shape)
+//   emblemEl({ id, avatar, color, tube, mode, size }) → <span class="ve …"> (its SVG layers)   (id: an emblem item id with art — else the avatar shape)
 import { AVATARS, colorHex } from '../config.js';
 import { FRAMES } from '../ui/components.js';
 import { flattenPath } from '../core/tube-path.js';
@@ -94,172 +95,222 @@ export const finishOf = id => (EMBLEM_ART[id] || { finish: 'neon' }).finish;
 /** a tube style shows on NEON emblems only (a special finish keeps its own light) */
 export const tubeApplies = id => !id || !EMBLEM_ART[id] || EMBLEM_ART[id].finish === 'neon';
 
+// ---------------------------------------------------------------- THE LAYERS (Group 2's speed fix: 8 legendaries + the samples measured 33.5 fps
+// at 4× CPU with the motion on the SVG's CHILDREN — every animated child repaints its whole SVG each frame). Now an emblem is a stack of
+// small SVG LAYERS in one box (span.ve): the still parts in one, EACH MOVING PART ITS OWN LAYER, animated on the layer itself (transform +
+// opacity → the compositor moves it, nothing repaints); a part that moves INSIDE the shape (a sweep, a shine, the nebula) moves inside a
+// MASK of the shape (i.ve-m — the mask still, the layer under it sliding).
+const VB = '-2 -2 52 52', BOX = 52, pct = v => `${((v + 2) / BOX * 100).toFixed(2)}%`;
+const G_ATTR = { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' };
+/** the context: C.layer(cls, style, vb) → { svg, defs, g } appended to the box (DOM order = stacking); C.mask(d, cls) → a mask of the shape
+ *  with its own .layer() */
+function ctx(root) {
+  // (each layer an HTML <i> holding its <svg>: the animation runs on the <i> — Chromium never moves an SVG element on the compositor, so an
+  //  animated <svg> repaints every frame; an animated <i> is just moved)
+  const mk = (host, cls, style, vb) => {
+    const box = document.createElement('i'); box.className = `ve-l${cls ? ` ${cls}` : ''}`;
+    if (style) box.setAttribute('style', style);
+    const svg = el('svg', { viewBox: vb || VB, 'aria-hidden': 'true' });
+    const defs = el('defs'), g = el('g', G_ATTR); svg.append(defs, g); box.append(svg); host.append(box);
+    return { svg: box, defs, g };
+  };
+  return {
+    layer: (cls, style, vb) => mk(root, cls, style, vb),
+    mask(d, cls) {
+      const m = document.createElement('i'); m.className = `ve-m${cls ? ` ${cls}` : ''}`;
+      const url = `url("data:image/svg+xml,${encodeURIComponent(`<svg xmlns='http://www.w3.org/2000/svg' viewBox='${VB}'><path d='${d}'/></svg>`)}")`;
+      m.style.webkitMaskImage = url; m.style.maskImage = url; root.append(m);
+      return { layer: (cls2, style, vb) => mk(m, cls2, style, vb) };
+    },
+  };
+}
+
 // ---------------------------------------------------------------- NEON (the sign's tube stack)
 const lenOf = d => flattenPath(d, 1, 0, 0, 1).reduce((a, p) => a + p.pts.reduce((s, q, i) => (i ? s + Math.hypot(q[0] - p.pts[i - 1][0], q[1] - p.pts[i - 1][1]) : 0), 0), 0);
-/** one tube: { d, col, thin?, tf? (a transform), k (its scale: widths ÷ k) } + the style's paint (two-tone gradients) → <g> */
-function tube(t, T, st) {
-  const k = t.k || 1, w = (t.thin ? T * 0.55 : T) / k, g = el('g', { class: 've-tube', transform: t.tf });
-  const body = st.grad ? `url(#${st.grad}b)` : shade(t.col, 0.16), glowC = st.grad ? `url(#${st.grad}b)` : t.col, core = st.grad ? `url(#${st.grad}c)` : shade(t.col, 0.84);
-  g.append(
-    el('path', { d: t.d, class: 've-glass', stroke: shade(t.col, -0.74), 'stroke-width': (w + 1.1 / k).toFixed(2) }),
-    el('path', { d: t.d, class: 've-g2', stroke: glowC, 'stroke-width': (w * 3.4).toFixed(2) }),
-    el('path', { d: t.d, class: 've-g1', stroke: glowC, 'stroke-width': (w * 1.9).toFixed(2) }),
-    el('path', { d: t.d, class: 've-body', stroke: body, 'stroke-width': w.toFixed(2) }),
-    el('path', { d: t.d, class: 've-core', stroke: core, 'stroke-width': (w * 0.36).toFixed(2) }),
-    el('path', { d: t.d, class: 've-hi', stroke: '#fff', 'stroke-width': (0.42 / k).toFixed(2), transform: `translate(${(-0.45 / k).toFixed(2)} ${(-0.45 / k).toFixed(2)})` }));
-  // A CHASING LIGHT: the tube's white-hot core in eight short runs, each flashing in turn → a light running the glass (opacity only)
-  if (st.chase && !t.noChase) {
-    const L = t.len || lenOf(t.d), N = 8;
-    for (let i = 0; i < N; i++) g.append(el('path', { d: t.d, class: 've-ch', stroke: '#fff', 'stroke-width': (w * 1.15).toFixed(2), 'stroke-dasharray': `${(L * 0.14).toFixed(2)} ${L.toFixed(2)}`, 'stroke-dashoffset': (-i * L / N).toFixed(2), style: `--i:${i}` }));
-  }
-  return g;
+/** two-tone's gradients in one layer's defs → { b, c } fills (else null: each tube its own colour) */
+function twoTone(defs, A) {
+  const n = `ve${++uid}`, B = partner(A);
+  const lg = (id, k) => { const g = el('linearGradient', { id, gradientUnits: 'userSpaceOnUse', x1: 8, y1: 8, x2: 40, y2: 40 }); for (const [o2, c] of [[0, A], [0.47, A], [0.53, B], [1, B]]) g.append(el('stop', { offset: o2, 'stop-color': k ? shade(c, k) : c })); return g; };
+  defs.append(lg(`${n}b`, 0.16), lg(`${n}c`, 0.84));
+  return { b: `url(#${n}b)`, c: `url(#${n}c)` };
 }
-function neon(svg, defs, tubes, o) {
-  const st = { chase: o.tube === 'chase' };
-  if (o.tube === 'twotone') {
-    const n = `ve${++uid}`, A = tubes[0].col, B = partner(A);
-    const lg = (id, k) => { const g = el('linearGradient', { id, gradientUnits: 'userSpaceOnUse', x1: 8, y1: 8, x2: 40, y2: 40 }); for (const [o2, c] of [[0, A], [0.47, A], [0.53, B], [1, B]]) g.append(el('stop', { offset: o2, 'stop-color': k ? shade(c, k) : c })); return g; };
-    defs.append(lg(`${n}b`, 0.16), lg(`${n}c`, 0.84)); st.grad = n;
+/** one tube's chosen parts ('glass' 'g2' 'g1' 'body' 'core' 'hi') into a layer's group (two-tone: the layer's gradients) */
+function tubeParts(L, t, T, parts, tt) {
+  const k = t.k || 1, w = (t.thin ? T * 0.55 : T) / k, g = el('g', { transform: t.tf });
+  const body = tt ? tt.b : shade(t.col, 0.16), glowC = tt ? tt.b : t.col, core = tt ? tt.c : shade(t.col, 0.84);
+  const P = {
+    glass: () => el('path', { d: t.d, class: 've-glass', stroke: shade(t.col, -0.74), 'stroke-width': (w + 1.1 / k).toFixed(2) }),
+    g2: () => el('path', { d: t.d, class: 've-g2', stroke: glowC, 'stroke-width': (w * 3.4).toFixed(2) }),
+    g1: () => el('path', { d: t.d, class: 've-g1', stroke: glowC, 'stroke-width': (w * 1.9).toFixed(2) }),
+    body: () => el('path', { d: t.d, class: 've-body', stroke: body, 'stroke-width': w.toFixed(2) }),
+    core: () => el('path', { d: t.d, class: 've-core', stroke: core, 'stroke-width': (w * 0.36).toFixed(2) }),
+    hi: () => el('path', { d: t.d, class: 've-hi', stroke: '#fff', 'stroke-width': (0.42 / k).toFixed(2), transform: `translate(${(-0.45 / k).toFixed(2)} ${(-0.45 / k).toFixed(2)})` }),
+  };
+  for (const p of parts) g.append(P[p]());
+  L.g.append(g);
+}
+function neon(C, tubes, o, base) {
+  const T = o.T || 2.6, two = o.tube === 'twotone';
+  const put = (L, parts) => { const tt = two ? twoTone(L.defs, tubes[0].col) : null; for (const t of tubes) tubeParts(L, t, T, parts, tt); };
+  if (o.tube === 'breath') {
+    // BREATHING: the glows breathe on their own layer, the body + core on another (the glass + the highlight still)
+    put(base, ['glass']); put(C.layer('ve-br-g'), ['g2', 'g1']); put(C.layer('ve-br-b'), ['body', 'core']); put(C.layer(), ['hi']);
+    return;
   }
-  for (const t of tubes) svg.append(tube(t, o.T || 2.6, st));
+  put(base, ['glass', 'g2', 'g1', 'body', 'core', 'hi']);
+  if (o.tube === 'chase') {
+    // A CHASING LIGHT: the white-hot light in eight short runs round every tube — eight layers, each flashing in turn (opacity only)
+    const N = 6;
+    for (let i = 0; i < N; i++) {
+      const L = C.layer('ve-ch', `--i:${i}`);
+      for (const t of tubes) {
+        if (t.noChase) continue;
+        const k = t.k || 1, w = (t.thin ? T * 0.55 : T) / k, len = t.len || lenOf(t.d);
+        L.g.append(el('path', { d: t.d, transform: t.tf, stroke: '#fff', 'stroke-width': (w * 1.15).toFixed(2), 'stroke-dasharray': `${(len * 0.14).toFixed(2)} ${len.toFixed(2)}`, 'stroke-dashoffset': (-i * len / N).toFixed(2) }));
+      }
+    }
+  }
 }
 
 // ---------------------------------------------------------------- THE FINISHES
-const clipOf = (defs, d) => { const id = `vec${++uid}`, cp = el('clipPath', { id }); cp.append(el('path', { d })); defs.append(cp); return `url(#${id})`; };
 const lin = (defs, stops, x1 = 0, y1 = 0, x2 = 0, y2 = 1, units) => { const id = `veg${++uid}`, g = el('linearGradient', { id, x1, y1, x2, y2, gradientUnits: units }); for (const [o, c, a] of stops) g.append(el('stop', { offset: o, 'stop-color': c, 'stop-opacity': a == null ? 1 : a })); defs.append(g); return `url(#${id})`; };
 const rad = (defs, stops, cx = 0.5, cy = 0.5, r = 0.5) => { const id = `ver${++uid}`, g = el('radialGradient', { id, cx, cy, r }); for (const [o, c, a] of stops) g.append(el('stop', { offset: o, 'stop-color': c, 'stop-opacity': a == null ? 1 : a })); defs.append(g); return `url(#${id})`; };
-const glintStar = (x, y, s, cls = 've-glint') => el('path', { class: cls, d: `M${x} ${y - s} L${x + s * 0.18} ${y - s * 0.18} L${x + s} ${y} L${x + s * 0.18} ${y + s * 0.18} L${x} ${y + s} L${x - s * 0.18} ${y + s * 0.18} L${x - s} ${y} L${x - s * 0.18} ${y - s * 0.18} Z`, fill: '#fff' });
+const starPath = (x, y, s) => `M${x} ${y - s} L${x + s * 0.18} ${y - s * 0.18} L${x + s} ${y} L${x + s * 0.18} ${y + s * 0.18} L${x} ${y + s} L${x - s * 0.18} ${y + s * 0.18} L${x - s} ${y} L${x - s * 0.18} ${y - s * 0.18} Z`;
+/** a glint on its own layer, scaling from its own centre */
+const glint = (C, x, y, s, cls = '', style = '') => C.layer(`ve-glint${cls ? ` ${cls}` : ''}`, `transform-origin:${pct(x)} ${pct(y)};${style}`).g.append(el('path', { d: starPath(x, y, s), fill: '#fff' }));
+/** a band of light sliding across a shape (inside its mask): a layer `w` units wide starting `w` left of the box, moved by CSS (ve-slide) */
+const slide = (M, cls, w, fill, style = '') => { const L = M.layer(cls, `left:${(-w / BOX * 100).toFixed(2)}%;width:${(w / BOX * 100).toFixed(2)}%;${style}`, `0 -2 ${w} 52`); L.g.append(el('rect', { x: 0, y: -2, width: w, height: 52, fill: fill(L.defs) })); return L; };
 const RAINBOW = ['#ff5f8f', '#ffb34d', '#fff27a', '#6dffa8', '#5fd7ff', '#8f7dff', '#ff6fe0'];
+const SHEEN = a => [[0, '#fff', 0], [0.42, '#fff', 0], [0.5, '#fff', a], [0.58, '#fff', 0], [1, '#fff', 0]];
 
 const FIN = {
   // PRISM — a rainbow sweeping through the glass, a white edge, a sheen, a glint; the white beam in + the four lines out (emb-prism)
-  prism(svg, defs) {
-    const S = SH.prism, cp = clipOf(defs, S.body);
-    const rb = lin(defs, [...RAINBOW, ...RAINBOW, RAINBOW[0]].map((c, i, a) => [(i / (a.length - 1)).toFixed(4), c]), 0, 0, 1, 0.35);
-    const sh = lin(defs, [[0, '#fff', 0], [0.45, '#fff', 0], [0.5, '#fff', 0.85], [0.55, '#fff', 0], [1, '#fff', 0]], 0, 0, 1, 0);
-    svg.append(el('path', { d: S.beam, class: 've-beam', stroke: '#fff', 'stroke-width': 1.6, 'stroke-linecap': 'round' }),
-      el('path', { d: S.body, class: 've-halo', stroke: '#fff', 'stroke-width': 5, fill: 'none' }));
-    const g = el('g', { 'clip-path': cp });
-    g.append(el('rect', { x: 0, y: -8, width: 128, height: 64, fill: rb, class: 've-sweep' }), el('rect', { x: -48, y: -8, width: 48, height: 64, fill: sh, class: 've-sheen' }));
-    svg.append(g, el('path', { d: S.body, fill: 'none', stroke: '#fff', 'stroke-width': 1.4, 'stroke-linejoin': 'round', class: 've-edge' }));
-    S.fan.forEach(([d, c], i) => { svg.append(el('path', { d, stroke: c, 'stroke-width': 3.4, opacity: 0.25, 'stroke-linecap': 'round', class: 've-ray-g' }), el('path', { d, stroke: c, 'stroke-width': 1.6, 'stroke-linecap': 'round', class: 've-ray', style: `--i:${i}` })); });
-    svg.append(glintStar(24, 9.5, 4.2));
+  prism(C, B) {
+    const S = SH.prism;
+    B.g.append(el('path', { d: S.beam, class: 've-beam', stroke: '#fff', 'stroke-width': 1.6 }), el('path', { d: S.body, class: 've-halo', stroke: '#fff', 'stroke-width': 5 }));
+    const M = C.mask(S.body);
+    // (the rainbow: two identical cycles across a band 128 wide, sliding one cycle + looping without a seam)
+    const sw = M.layer('ve-sweep', 'width:246.15%', '0 -2 128 52');
+    sw.g.append(el('rect', { x: 0, y: -2, width: 128, height: 52, fill: lin(sw.defs, [...RAINBOW, ...RAINBOW, RAINBOW[0]].map((c, i, a) => [(i / (a.length - 1)).toFixed(4), c]), 0, 0, 1, 0.35) }));
+    slide(M, 've-sheen ve-2', 48, d => lin(d, SHEEN(0.85), 0, 0, 1, 0));
+    const top = C.layer();
+    top.g.append(el('path', { d: S.body, stroke: '#fff', 'stroke-width': 1.4, class: 've-edge' }));
+    S.fan.forEach(([d, c]) => top.g.append(el('path', { d, stroke: c, 'stroke-width': 3.4, opacity: 0.25 }), el('path', { d, stroke: c, 'stroke-width': 1.6, opacity: 0.55 })));
+    // the four lines pulsing out in turn (two layers: 1 + 3, then 2 + 4)
+    for (const i of [0, 1]) { const L = C.layer('ve-rays ve-2', `--i:${i}`); S.fan.filter((x, k) => k % 2 === i).forEach(([d, c]) => L.g.append(el('path', { d, stroke: c, 'stroke-width': 1.6 }))); }
+    glint(C, 24, 9.5, 4.2, 've-2');
   },
   // GOLD — solid gold (emb-house's crown): a struck metal gradient, a dark edge + a bright inner bevel, its gems, a slow shine + a glint
-  gold(svg, defs) {
-    const S = SH.crown, cp = clipOf(defs, `${S.body} ${S.base}`);
-    const au = lin(defs, [[0, '#fff6cf'], [0.28, '#f6cf6a'], [0.5, '#c18a2a'], [0.62, '#f2c45a'], [0.82, '#a8701c'], [1, '#e8b850']]);
-    const sh = lin(defs, [[0, '#fff', 0], [0.42, '#fff', 0], [0.5, '#fff', 0.9], [0.58, '#fff', 0], [1, '#fff', 0]], 0, 0, 1, 0);
-    svg.append(el('path', { d: `${S.body} ${S.base}`, fill: 'none', stroke: '#ffcf5a', 'stroke-width': 5, class: 've-halo' }),
-      el('path', { d: `${S.body} ${S.base}`, fill: au, stroke: '#6a4208', 'stroke-width': 1.3, 'stroke-linejoin': 'round' }),
-      el('path', { d: S.body, fill: 'none', stroke: '#fff3c4', 'stroke-width': 0.7, 'stroke-linejoin': 'round', transform: 'translate(24 23) scale(0.86) translate(-24 -23)', opacity: 0.85 }));
-    for (const [x, y, r, c] of S.gems) svg.append(el('circle', { cx: x, cy: y, r, fill: c, stroke: '#4a2a04', 'stroke-width': 0.6 }), el('circle', { cx: x - r * 0.32, cy: y - r * 0.35, r: r * 0.32, fill: '#fff', opacity: 0.85 }));
-    const g = el('g', { 'clip-path': cp }); g.append(el('rect', { x: -40, y: 0, width: 40, height: 48, fill: sh, class: 've-shine' })); svg.append(g);
-    S.tips.forEach(([x, y], i) => svg.append(glintStar(x, y, 3.6, `ve-glint ve-tip ve-tip${i}`)));
+  gold(C, B) {
+    const S = SH.crown, all = `${S.body} ${S.base}`;
+    const au = lin(B.defs, [[0, '#fff6cf'], [0.28, '#f6cf6a'], [0.5, '#c18a2a'], [0.62, '#f2c45a'], [0.82, '#a8701c'], [1, '#e8b850']]);
+    B.g.append(el('path', { d: all, stroke: '#ffcf5a', 'stroke-width': 5, class: 've-halo' }),
+      el('path', { d: all, fill: au, stroke: '#6a4208', 'stroke-width': 1.3 }),
+      el('path', { d: S.body, stroke: '#fff3c4', 'stroke-width': 0.7, transform: 'translate(24 23) scale(0.86) translate(-24 -23)', opacity: 0.85 }));
+    for (const [x, y, r, c] of S.gems) B.g.append(el('circle', { cx: x, cy: y, r, fill: c, stroke: '#4a2a04', 'stroke-width': 0.6 }), el('circle', { cx: x - r * 0.32, cy: y - r * 0.35, r: r * 0.32, fill: '#fff', opacity: 0.85 }));
+    slide(C.mask(all), 've-shine', 40, d => lin(d, SHEEN(0.9), 0, 0, 1, 0));
+    glint(C, S.tips[1][0], S.tips[1][1], 3.6, 've-tip');
   },
-  // ICE CRYSTAL — cut ice (emb-snowflake): pale crystal arms + a white core, FROST growing at each tip in turn, a glint running round
-  ice(svg, defs) {
-    const S = SH.snowflake, ice = lin(defs, [[0, '#ffffff'], [0.5, '#bfeaff'], [1, '#7fc8f0']]);
-    svg.append(el('path', { d: S.arms, stroke: '#7fd4ff', 'stroke-width': 6.5, opacity: 0.18, 'stroke-linecap': 'round', class: 've-halo' }),
-      el('path', { d: S.arms, stroke: '#2d6f96', 'stroke-width': 4.4, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-      el('path', { d: S.arms, stroke: ice, 'stroke-width': 3, 'stroke-linecap': 'round', 'stroke-linejoin': 'round' }),
-      el('path', { d: S.arms, stroke: '#fff', 'stroke-width': 0.8, 'stroke-linecap': 'round', opacity: 0.95 }),
-      el('path', { d: S.hex, fill: ice, stroke: '#2d6f96', 'stroke-width': 0.8 }));
-    // the frost: a small crystal at each tip (three little spikes), growing out in turn (scale from the tip)
-    S.tips.forEach(([x, y, a], i) => {
-      const f = el('g', { class: 've-frost', style: `--i:${i};transform-origin:${x.toFixed(2)}px ${y.toFixed(2)}px` });
-      for (const da of [-0.7, 0, 0.7]) { const b = a + da; f.append(el('path', { d: `M${x.toFixed(2)} ${y.toFixed(2)} L${(x + Math.cos(b) * 3.4).toFixed(2)} ${(y + Math.sin(b) * 3.4).toFixed(2)}`, stroke: '#eafaff', 'stroke-width': 0.9, 'stroke-linecap': 'round' })); }
-      const gs = glintStar(x, y, 3.2, 've-glint ve-tip'); gs.setAttribute('style', `--i:${i}`); svg.append(f, gs);
-    });
+  // ICE CRYSTAL — cut ice (emb-snowflake): pale crystal arms + a white core; FROST growing out at each tip in turn, glinting as it finishes
+  ice(C, B) {
+    const S = SH.snowflake, ice = lin(B.defs, [[0, '#ffffff'], [0.5, '#bfeaff'], [1, '#7fc8f0']]);
+    B.g.append(el('path', { d: S.arms, stroke: '#7fd4ff', 'stroke-width': 6.5, opacity: 0.18, class: 've-halo' }),
+      el('path', { d: S.arms, stroke: '#2d6f96', 'stroke-width': 4.4 }), el('path', { d: S.arms, stroke: ice, 'stroke-width': 3 }),
+      el('path', { d: S.arms, stroke: '#fff', 'stroke-width': 0.8, opacity: 0.95 }), el('path', { d: S.hex, fill: ice, stroke: '#2d6f96', 'stroke-width': 0.8 }));
+    // (three layers, each a PAIR of opposite tips growing together from the centre's side — a pair every 2 s)
+    for (let i = 0; i < 3; i++) {
+      const L = C.layer('ve-frost', `--i:${i}`);
+      for (const [x, y, a] of [S.tips[i], S.tips[i + 3]]) {
+      L.g.append(el('circle', { cx: x.toFixed(2), cy: y.toFixed(2), r: 3.6, fill: '#bfeaff', opacity: 0.22 }));
+      for (const da of [-0.75, 0, 0.75]) { const b = a + da, L2 = da ? 4.2 : 5.2; L.g.append(el('path', { d: `M${x.toFixed(2)} ${y.toFixed(2)} L${(x + Math.cos(b) * L2).toFixed(2)} ${(y + Math.sin(b) * L2).toFixed(2)}`, stroke: '#f2fcff', 'stroke-width': 1.25 })); }
+      L.g.append(el('path', { d: starPath(x + Math.cos(a) * 5.2, y + Math.sin(a) * 5.2, 2.4), fill: '#fff', class: 've-tipglint' }));
+      }
+    }
   },
   // MOLTEN — emb-torch's flame as lava: a black crust, glowing cracks pulsing, the hot core breathing, heat dripping off the foot, embers rising
-  molten(svg, defs) {
-    const S = SH.flame, crust = lin(defs, [[0, '#3a1206'], [0.6, '#24090a'], [1, '#120404']]);
-    const hot = lin(defs, [[0, '#ffe9a0'], [0.5, '#ffb030'], [1, '#ff5a10']]);
-    svg.append(el('path', { d: S.outer, fill: 'none', stroke: '#ff5a14', 'stroke-width': 5.5, opacity: 0.22, class: 've-halo' }),
-      el('path', { d: S.outer, fill: crust, stroke: '#ff6a1a', 'stroke-width': 1.5, 'stroke-linejoin': 'round' }),
-      el('path', { d: S.cracks, stroke: '#ff8a2a', 'stroke-width': 1.1, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', class: 've-crack' }),
-      el('path', { d: S.cracks, stroke: '#ffe08a', 'stroke-width': 0.45, 'stroke-linecap': 'round', 'stroke-linejoin': 'round', class: 've-crack ve-crack2' }),
-      el('path', { d: S.inner, fill: hot, class: 've-core-h' }),
-      el('path', { d: S.inner, fill: 'none', stroke: '#fff4c8', 'stroke-width': 0.6 }));
-    svg.append(el('ellipse', { cx: 24, cy: 44.2, rx: 1.2, ry: 1.6, fill: '#ffb030', class: 've-drip' }));
-    [[8.5, 30, 0], [39.5, 25, 1], [33.5, 9, 2], [14, 14, 3]].forEach(([x, y, i]) => svg.append(el('circle', { cx: x, cy: y, r: 0.9, fill: '#ffc060', class: 've-ember', style: `--i:${i}` })));
+  molten(C, B) {
+    const S = SH.flame, crust = lin(B.defs, [[0, '#3a1206'], [0.6, '#24090a'], [1, '#120404']]);
+    B.g.append(el('path', { d: S.outer, stroke: '#ff5a14', 'stroke-width': 5.5, opacity: 0.22, class: 've-halo' }),
+      el('path', { d: S.outer, fill: crust, stroke: '#ff6a1a', 'stroke-width': 1.5 }),
+      el('path', { d: S.cracks, stroke: '#ff8a2a', 'stroke-width': 1.1, opacity: 0.4 }));
+    const cr = C.layer('ve-crack'); cr.g.append(el('path', { d: S.cracks, stroke: '#ff8a2a', 'stroke-width': 1.1 }));
+    const cr2 = C.layer('ve-crack ve-crack2 ve-2'); cr2.g.append(el('path', { d: S.cracks, stroke: '#ffe08a', 'stroke-width': 0.45 }));
+    const hot = C.layer('ve-core-h'); hot.g.append(el('path', { d: S.inner, fill: lin(hot.defs, [[0, '#ffe9a0'], [0.5, '#ffb030'], [1, '#ff5a10']]) }), el('path', { d: S.inner, stroke: '#fff4c8', 'stroke-width': 0.6 }));
+    C.layer('ve-drip ve-2').g.append(el('ellipse', { cx: 24, cy: 44.2, rx: 1.2, ry: 1.6, fill: '#ffb030' }));
+    for (const [i, pts] of [[0, [[8.5, 30], [33.5, 9]]], [1, [[39.5, 25], [14, 14]]]]) { const L = C.layer('ve-ember ve-2', `--i:${i}`); for (const [x, y] of pts) L.g.append(el('circle', { cx: x, cy: y, r: 0.95, fill: '#ffc060' })); }
   },
-  // GLITCH — emb-lightning's bolt: white + its red / cyan ghosts, now + then it jumps, splits into slices + snaps back
-  glitch(svg, defs) {
+  // GLITCH — emb-lightning's bolt: white + its red / cyan ghosts, now + then it jumps, two slices tear sideways + it snaps back
+  glitch(C) {
     const d = SH.bolt.body;
-    svg.append(el('path', { d, fill: '#0a0a14', stroke: '#ff2e6a', 'stroke-width': 1.6, 'stroke-linejoin': 'round', class: 've-gr' }),
-      el('path', { d, fill: 'none', stroke: '#2ef0ff', 'stroke-width': 1.6, 'stroke-linejoin': 'round', class: 've-gc' }),
-      el('path', { d, fill: '#14141e', stroke: '#fff', 'stroke-width': 1.6, 'stroke-linejoin': 'round', class: 've-gw' }));
-    // two slices of the bolt that tear sideways for a frame (their own clips: horizontal bands)
+    C.layer('ve-gr').g.append(el('path', { d, fill: '#0a0a14', stroke: '#ff2e6a', 'stroke-width': 1.6 }));
+    C.layer('ve-gc').g.append(el('path', { d, stroke: '#2ef0ff', 'stroke-width': 1.6 }));
+    C.layer('ve-gw').g.append(el('path', { d, fill: '#14141e', stroke: '#fff', 'stroke-width': 1.6 }));
     for (const [y, h, i] of [[17, 4.5, 0], [30, 3.5, 1]]) {
-      const id = `vec${++uid}`, cp = el('clipPath', { id }); cp.append(el('rect', { x: 0, y, width: 48, height: h })); defs.append(cp);
-      const g = el('g', { 'clip-path': `url(#${id})` }), s = el('g', { class: `ve-slice ve-sl${i}` });
-      s.append(el('rect', { x: 0, y, width: 48, height: h, fill: '#05050a' }), el('path', { d, fill: '#14141e', stroke: i ? '#2ef0ff' : '#ff2e6a', 'stroke-width': 1.6 }));
-      g.append(s); svg.append(g);
+      const L = C.layer(`ve-slice ve-sl${i} ve-2`), id = `vec${++uid}`, cp = el('clipPath', { id });
+      cp.append(el('rect', { x: -2, y, width: 52, height: h })); L.defs.append(cp);
+      const g = el('g', { 'clip-path': `url(#${id})` });
+      g.append(el('rect', { x: -2, y, width: 52, height: h, fill: '#05050a' }), el('path', { d, fill: '#14141e', stroke: i ? '#2ef0ff' : '#ff2e6a', 'stroke-width': 1.6 }));
+      L.g.append(g);
     }
   },
   // CHROME — emb-sg-tr3b's black-chrome hull (the real TR-3B): mirror bands, the inset panel line, the hub; a light gliding across; its
   // WHITE corner lights pulsing in turn + the RED centre's heavy pulse (the city's light layout — never red corners)
-  chrome(svg, defs) {
-    const S = SH.tr3b, cp = clipOf(defs, S.hull);
-    const cr = lin(defs, [[0, '#2a2e36'], [0.3, '#0c0d11'], [0.46, '#5a616c'], [0.5, '#c9ced6'], [0.55, '#3a3f48'], [0.8, '#0a0b0e'], [1, '#1c1f25']], 0, 0, 0.3, 1);
-    const sh = lin(defs, [[0, '#fff', 0], [0.44, '#fff', 0], [0.5, '#fff', 0.55], [0.56, '#fff', 0], [1, '#fff', 0]], 0, 0, 1, 0);
-    svg.append(el('path', { d: S.hull, fill: 'none', stroke: '#c8d2e6', 'stroke-width': 4.5, opacity: 0.12, class: 've-halo' }),
-      el('path', { d: S.hull, fill: cr, stroke: '#d8dee8', 'stroke-width': 1.1, 'stroke-linejoin': 'round' }),
-      el('path', { d: S.inset, fill: 'none', stroke: 'rgba(200,210,230,0.32)', 'stroke-width': 0.6 }),
+  chrome(C, B) {
+    const S = SH.tr3b;
+    const cr = lin(B.defs, [[0, '#2a2e36'], [0.3, '#0c0d11'], [0.46, '#5a616c'], [0.5, '#c9ced6'], [0.55, '#3a3f48'], [0.8, '#0a0b0e'], [1, '#1c1f25']], 0, 0, 0.3, 1);
+    B.g.append(el('path', { d: S.hull, stroke: '#c8d2e6', 'stroke-width': 4.5, opacity: 0.12, class: 've-halo' }),
+      el('path', { d: S.hull, fill: cr, stroke: '#d8dee8', 'stroke-width': 1.1 }),
+      el('path', { d: S.inset, stroke: 'rgba(200,210,230,0.32)', 'stroke-width': 0.6 }),
       el('circle', { cx: S.hub[0], cy: S.hub[1], r: S.hubR, fill: '#08090c', stroke: 'rgba(210,218,232,0.55)', 'stroke-width': 0.6 }));
-    const g = el('g', { 'clip-path': cp }); g.append(el('rect', { x: -40, y: 0, width: 40, height: 48, fill: sh, class: 've-shine' })); svg.append(g);
-    S.pods.forEach(([x, y], i) => svg.append(el('circle', { cx: x, cy: y, r: 4.2, fill: '#dfe8ff', opacity: 0.25, class: 've-pod-g', style: `--i:${i}` }), el('circle', { cx: x, cy: y, r: 1.9, fill: '#fff', class: 've-pod', style: `--i:${i}` })));
-    svg.append(el('circle', { cx: S.hub[0], cy: S.hub[1], r: 5.8, fill: '#ff2a14', opacity: 0.3, class: 've-red-g' }), el('circle', { cx: S.hub[0], cy: S.hub[1], r: 2.2, fill: '#ff4a2a', class: 've-red' }), el('circle', { cx: S.hub[0] - 0.5, cy: S.hub[1] - 0.5, r: 0.7, fill: '#ffd6c8' }));
+    slide(C.mask(S.hull), 've-shine ve-2', 40, d => lin(d, SHEEN(0.55), 0, 0, 1, 0));
+    S.pods.forEach(([x, y], i) => { const L = C.layer('ve-pod ve-2', `--i:${i}`); L.g.append(el('circle', { cx: x, cy: y, r: 4.2, fill: '#dfe8ff', opacity: 0.4 }), el('circle', { cx: x, cy: y, r: 1.9, fill: '#fff' })); });
+    const R = C.layer('ve-red'); R.g.append(el('circle', { cx: S.hub[0], cy: S.hub[1], r: 5.8, fill: '#ff2a14', opacity: 0.45 }), el('circle', { cx: S.hub[0], cy: S.hub[1], r: 2.2, fill: '#ff4a2a' }));
+    C.layer().g.append(el('circle', { cx: S.hub[0] - 0.5, cy: S.hub[1] - 0.5, r: 0.7, fill: '#ffd6c8' }));
   },
   // GALAXY — emb-sg-ufo's saucer filled with deep space: a nebula drifting through it, stars twinkling inside; a pale rim, its
   // ports chasing round the rim, the beam's three rays pulsing below it
-  galaxy(svg, defs) {
-    const S = SH.saucer, cp = clipOf(defs, S.body);
-    // (two identical cycles across the 96-wide band: it slides one cycle + loops without a seam)
-    const cyc = [['#2a0f5e'], ['#8a2ab0'], ['#2c3fb8'], ['#d0449c'], ['#3a1a7a'], ['#2a6ad0']];
-    const neb = lin(defs, [...cyc, ...cyc, cyc[0]].map(([c], i, a) => [(i / (a.length - 1)).toFixed(4), c]), 0, 0, 1, 0);
-    const deep = rad(defs, [[0, '#2a1458'], [1, '#080414']]);
-    S.beam.forEach((d, i) => svg.append(el('path', { d, stroke: '#9affd2', 'stroke-width': 1.2, 'stroke-linecap': 'round', class: 've-beamr', style: `--i:${i}` })));
-    svg.append(el('path', { d: S.body, fill: 'none', stroke: '#c7a6ff', 'stroke-width': 5, opacity: 0.18, class: 've-halo' }),
-      el('path', { d: S.body, fill: deep }));
-    const g = el('g', { 'clip-path': cp });
-    g.append(el('rect', { x: 0, y: 10, width: 96, height: 24, fill: neb, opacity: 0.85, class: 've-neb' }));
-    const stars = el('g', { class: 've-stars' });
-    [[9, 26], [14, 24.5], [20, 18], [27, 16.6], [30, 24], [36, 25], [41, 26.5], [23, 26], [17.5, 27.5], [33, 19.5]].forEach(([x, y], i) => stars.append(el('circle', { cx: x, cy: y, r: i % 3 ? 0.45 : 0.75, fill: '#fff', class: 've-star', style: `--i:${i}` })));
-    g.append(stars); svg.append(g);
-    svg.append(el('path', { d: S.body, fill: 'none', stroke: '#e6d8ff', 'stroke-width': 1.1, 'stroke-linejoin': 'round' }),
-      el('path', { d: S.rim, fill: 'none', stroke: 'rgba(230,216,255,0.6)', 'stroke-width': 0.6 }),
-      el('path', { d: S.dome, fill: 'none', stroke: 'rgba(230,216,255,0.5)', 'stroke-width': 0.5 }));
-    S.ports.forEach(([x, y], i) => svg.append(el('circle', { cx: x, cy: y, r: 1.15, fill: '#9affd2', class: 've-port', style: `--i:${i}` })));
+  galaxy(C, B) {
+    const S = SH.saucer;
+    const rays = C.layer('ve-beamr ve-2'); S.beam.forEach(d => rays.g.append(el('path', { d, stroke: '#9affd2', 'stroke-width': 1.2 })));
+    const base = C.layer();
+    base.g.append(el('path', { d: S.body, stroke: '#c7a6ff', 'stroke-width': 5, opacity: 0.18, class: 've-halo' }), el('path', { d: S.body, fill: rad(base.defs, [[0, '#2a1458'], [1, '#080414']]) }));
+    const M = C.mask(S.body);
+    // (the nebula: two identical cycles across a band 96 wide, sliding one cycle + looping without a seam)
+    const cyc = ['#2a0f5e', '#8a2ab0', '#2c3fb8', '#d0449c', '#3a1a7a', '#2a6ad0'];
+    const nb = M.layer('ve-neb', 'width:184.62%', '0 -2 96 52');
+    nb.g.append(el('rect', { x: 0, y: 10, width: 96, height: 24, opacity: 0.85, fill: lin(nb.defs, [...cyc, ...cyc, cyc[0]].map((c, i, a) => [(i / (a.length - 1)).toFixed(4), c]), 0, 0, 1, 0) }));
+    const ST = [[9, 26], [14, 24.5], [20, 18], [27, 16.6], [30, 24], [36, 25], [41, 26.5], [23, 26], [17.5, 27.5], [33, 19.5]];
+    for (const i of [0, 1]) { const L = M.layer(`ve-stars${i ? ' ve-2' : ''}`, `--i:${i}`); ST.filter((s, k) => k % 2 === i).forEach(([x, y], k) => L.g.append(el('circle', { cx: x, cy: y, r: k % 2 ? 0.45 : 0.75, fill: '#fff' }))); }
+    C.layer().g.append(el('path', { d: S.body, stroke: '#e6d8ff', 'stroke-width': 1.1 }), el('path', { d: S.rim, stroke: 'rgba(230,216,255,0.6)', 'stroke-width': 0.6 }), el('path', { d: S.dome, stroke: 'rgba(230,216,255,0.5)', 'stroke-width': 0.5 }));
+    S.ports.forEach(([x, y], i) => C.layer('ve-port ve-2', `--i:${i}`).g.append(el('circle', { cx: x, cy: y, r: 1.15, fill: '#9affd2' })));
+    void B;
   },
 };
 
 /** the 12 sign-up shapes as NEON (the frame + the icon, two tubes in the player's colour, the dark glass behind) */
-function avatarTubes(svg, defs, avatarId, hex, o) {
+function avatarTubes(C, B, avatarId, hex, o) {
   const id = AVATARS[avatarId] ? avatarId : 'bolt', [frame, cx, cy, is] = FRAMES[id] || FRAMES.bolt, k = is / 24;
-  const glass = rad(defs, [[0, hex, 0.42], [0.55, '#0c1030', 0.9], [1, '#03040c', 0.96]], 0.5, 0.3, 0.8);
-  svg.append(el('path', { d: frame, fill: glass, transform: 'translate(24 24) scale(0.94) translate(-24 -24)' }));
-  neon(svg, defs, [
+  B.g.append(el('path', { d: frame, fill: rad(B.defs, [[0, hex, 0.42], [0.55, '#0c1030', 0.9], [1, '#03040c', 0.96]], 0.5, 0.3, 0.8), transform: 'translate(24 24) scale(0.94) translate(-24 -24)' }));
+  neon(C, [
     { d: frame, col: hex, len: lenOf(frame) },
     { d: AVATARS[id], col: hex, k, tf: `translate(${(cx - is / 2).toFixed(2)} ${(cy - is / 2).toFixed(2)}) scale(${k.toFixed(3)})`, noChase: true },
-  ], { ...o, T: 2.2 });
+  ], { ...o, T: 2.2 }, B);
 }
 
 /**
  * THE EMBLEM — o = { id (an emblem with art) | avatar + color (the sign-up shape, neon in the player's colour), tube (a TUBE STYLE item id —
- * NEON only), mode ('lead' | 'even' | 'quiet'), size (px: also `is-28` at 28) } → <svg class="ve ve-f-<finish> ve-t-<style> is-<mode>">
+ * NEON only), mode ('lead' | 'even' | 'quiet'), size (px: also `is-28` at ≤ 30) } → <span class="ve ve-f-<finish> ve-t-<style> is-<mode>">
+ * (its layers inside)
  */
 export function emblemEl(o = {}) {
   const art = EMBLEM_ART[o.id], finish = art ? art.finish : 'neon', style = finish === 'neon' ? TUBE_STYLES[o.tube] || null : null, mode = o.mode || 'even';
-  const svg = el('svg', { viewBox: '-2 -2 52 52', class: `ve ve-f-${finish}${style ? ` ve-t-${style}` : ''} is-${mode}`, 'aria-hidden': 'true', 'data-emb': o.id || o.avatar || 'bolt' });
-  const defs = el('defs'); svg.append(defs);
-  const g = el('g', { fill: 'none', 'stroke-linecap': 'round', 'stroke-linejoin': 'round' });
-  if (art && finish === 'neon') neon(g, defs, SH[art.shape], { tube: style });
-  else if (art) FIN[finish](g, defs);
-  else avatarTubes(g, defs, o.avatar, colorHex(o.color || 'magenta'), { tube: style });
-  svg.append(g);
-  if (o.size) { svg.setAttribute('width', String(o.size)); svg.setAttribute('height', String(o.size)); if (o.size <= 30) svg.classList.add('is-28'); }
-  return svg;
+  const box = document.createElement('span');
+  box.className = `ve ve-f-${finish}${style ? ` ve-t-${style}` : ''} is-${mode}`;
+  box.setAttribute('aria-hidden', 'true'); box.dataset.emb = o.id || o.avatar || 'bolt';
+  const C = ctx(box), B = C.layer('ve-base');
+  if (art && finish === 'neon') neon(C, SH[art.shape], { tube: style }, B);
+  else if (art) FIN[finish](C, B);
+  else avatarTubes(C, B, o.avatar, colorHex(o.color || 'magenta'), { tube: style });
+  if (o.size) { box.style.width = `${o.size}px`; box.style.height = `${o.size}px`; if (o.size <= 30) box.classList.add('is-28'); }
+  return box;
 }

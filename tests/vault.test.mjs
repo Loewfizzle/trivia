@@ -36,6 +36,8 @@ test('THE PROMINENCE RULE: the higher tier leads — a still common card + a rar
   assert.equal(prominence('legendary', 'common'), 'quiet');
   assert.equal(prominence('legendary', 'rare'), 'quiet');
   assert.equal(prominence('epic', 'rare'), 'even');
+  assert.equal(prominence('legendary', 'legendary'), 'quiet', '2A: a legendary card always leads (its emblem + glow hold still)');
+  assert.equal(prominence('rare', 'epic'), 'lead');
 });
 
 test('THE PINK PAIR: HEARTBREAKER (uncommon) + GLITTER BOMB (epic) — EARLY level rewards; no PINK CHAMPAGNE', () => {

@@ -86,7 +86,9 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   if (embEl) { embId = ''; mode = 'even'; emb = embEl; }
   else if (TEST_EMBLEMS[emblem] || (!emblem && !avatar)) { embId = TEST_EMBLEMS[emblem] ? emblem : look.emblem || 'emb-test-neon'; const em = TEST_EMBLEMS[embId] || TEST_EMBLEMS['emb-test-neon']; mode = prominence(tier, em.tier); emb = emblemSvg(em.finish, mode); }
   else { embId = hasArt(emblem) ? emblem : ''; mode = prominence(tier, embTier(embId)); emb = emblemEl({ id: embId || null, avatar, color, tube, mode }); }
+  // (the name glow follows the same rule: on a LEGENDARY card it holds its still, lit look — the card leads)
   const nameEl = applyGlow(h('b.vl-name', name), glow);
+  if (tier === 'legendary') nameEl.classList.add('vg-still');
   const plate = h('div.vl-plate',
     h('span.vl-emb', emb),
     h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', host ? `LV ${lv} · HOST` : `LV ${lv}`)));

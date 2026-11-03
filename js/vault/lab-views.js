@@ -41,7 +41,7 @@ const when = at => new Date(at).toLocaleString('en-US', { month: 'short', day: '
 
 export function mountLab(root, o = {}) {
   let marks = o.marks || {}, view = 'strips', mounted = [], fpsT = 0, mix = 'samples';
-  const wearMix = { emb: false, glow: false };
+  const wearMix = { emb: false, glow: false, one: null };
   const blocks = new Map();
   const content = h('div.vl-content');
   const tabs = h('div.vl-tabs', { role: 'tablist' },
@@ -162,7 +162,7 @@ export function mountLab(root, o = {}) {
       const SAMPLES = byN(1, 8), NEW = byN(19, 26), SIGHT = byN(34, 41), HELD = byN(50, 70);
       for (const b of wearBtns) { b.classList.toggle('is-on', !!wearMix[b.dataset.w]); b.textContent = `${b.dataset.w === 'emb' ? 'EMBLEMS' : 'GLOWS'} ${wearMix[b.dataset.w] ? 'ON' : 'OFF'}`; }
       const EMB = ['emb-sg-ufo', 'emb-house', 'emb-sg-tr3b', 'emb-torch', 'emb-snowflake', 'emb-lightning', 'emb-prism', 'emb-sweetheart'], TUB = [null, null, null, null, null, null, null, 'tube-chase'], GLO = ['glow-gold', 'glow-spark', 'glow-ember'];
-      const rows = GUESTS.map((g, i) => ({ ...(wearMix.emb ? { emblem: EMB[i], tube: TUB[i] } : {}), ...(wearMix.glow ? { glow: GLO[i % 3] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: SAMPLE_NO + i * 7 }));
+      const rows = GUESTS.map((g, i) => ({ ...(wearMix.emb ? (wearMix.one ? (/^tube-/.test(wearMix.one) ? { emblem: 'emb-key', tube: wearMix.one } : { emblem: wearMix.one }) : { emblem: EMB[i], tube: TUB[i] }) : {}), ...(wearMix.glow ? { glow: GLO[i % 3] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: SAMPLE_NO + i * 7 }));
       mounted.push(mountStrips(list, rows, { calm: true, label: 'lobby' }));
       window.__lab && (window.__lab.mix = mix, window.__lab.wear = { ...wearMix });
     };
@@ -173,7 +173,7 @@ export function mountLab(root, o = {}) {
   // LEADS) and a LEGENDARY (it plays QUIETER: THE PROMINENCE RULE); the tube styles on three neon emblems; 1A's two test emblems last
   function emblemsView() {
     const grid = h('div.vl-items');
-    content.replaceChildren(h('p.vl-motion', 'Each emblem at full size, at 28 pt (its lobby size), then on a plain still card (it leads — full motion) and on a legendary (it plays quieter). Tube styles light any NEON emblem: shown on three.'), grid);
+    content.replaceChildren(h('p.vl-motion', 'Each emblem at full size, at 28 pt (its lobby size), then on a plain still card (it leads — full motion) and on a legendary (it holds its still, lit frame — the card leads). Tube styles light any NEON emblem: shown on three.'), grid);
     const places = [];
     const only = (new URLSearchParams(location.search).get('only') || '').split(',').filter(Boolean);
     const items = LAB.filter(x => (x.kind === 'emblem' || x.kind === 'tube') && (!only.length || only.includes(x.id))).sort((a, b) => (a.n < 90) - (b.n < 90) || a.n - b.n);
@@ -181,7 +181,7 @@ export function mountLab(root, o = {}) {
       const stage = h('div.vl-stage.vl-col');
       const blk = h('section.vl-item', { dataset: { id: item.id } }, h('div.vl-item-h', h('b', `${item.n} · ${item.name}`), h('span', `${TIER_NAMES[item.tier]}${item.fin ? ` · ${item.fin.toUpperCase()}` : item.kind === 'tube' ? ' · TUBE STYLE' : ''}`), h('code', item.id)), stage, h('p.vl-motion', item.motion));
       grid.append(blk);
-      const say = h('small', 'full size · at 28 pt (its lobby size)', h('br'), `On a COMMON card it ${prominence('common', item.tier) === 'lead' ? 'LEADS' : 'plays even'} · on a LEGENDARY it ${prominence('legendary', item.tier) === 'quiet' ? 'plays QUIETER' : 'plays even'}`);
+      const say = h('small', 'full size · at 28 pt (its lobby size)', h('br'), `On a COMMON card it ${prominence('common', item.tier) === 'lead' ? 'LEADS' : 'plays even'} · on a LEGENDARY it ${prominence('legendary', item.tier) === 'quiet' ? 'HOLDS STILL (the card leads)' : 'plays even'}`);
       if (TEST_EMBLEMS[item.id]) {
         const em = TEST_EMBLEMS[item.id];
         stage.append(h('div.vl-emb-big', emblemSvg(em.finish, 'lead'), emblemSvg(em.finish, 'even', { size: 28 }), say));
@@ -282,7 +282,7 @@ export function mountLab(root, o = {}) {
   paintOpts();
   const q = new URLSearchParams(location.search);
   if (q.get('mix')) mix = q.get('mix');
-  if (q.get('wear')) for (const w of q.get('wear').split(',')) if (w in wearMix) wearMix[w] = true;   // (&wear=emb,glow: the bench + the look reviews)
+  if (q.get('wear')) for (const w of q.get('wear').split(',')) { if (w in wearMix) wearMix[w] = true; else if (/^(emb|tube)-/.test(w)) { wearMix.emb = true; wearMix.one = w; } }   // (&wear=emb,glow: the bench + the look reviews; &wear=<emblem id> = that one on all 8)
   show(['lobby', 'full', 'emblems', 'glows'].includes(q.get('view')) ? q.get('view') : 'strips');
   return {
     setMarks(m) { marks = m || {}; repaintMarks(); },

@@ -476,91 +476,95 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-fc.vl-s-platinum .vl-frame::after { inset: 5px; padding: 2px; border-radius: calc(var(--r) - 5px); }
 .vl-fcm-platinum .vl-fc-house, .vl-fcm-platinum .vl-fc-since small, .vl-fcm-platinum .vl-fc-since b, .vl-fcm-platinum .vl-fc-card { color: #14171d; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
 
-/* ---- THE VAULT 2A — THE EMBLEM SYSTEM (js/vault/emblem-art.js): AN EMBLEM = A SHAPE + A FINISH. Inline SVG; motion on transform + opacity
-   only; every duration × --sp (THE PROMINENCE RULE: lead 0.72 · even 1 · quiet 1.7 + its sparkle off); reduced motion = the still frame. */
-.ve { --sp: 1; overflow: visible; display: block; }
+/* ---- THE VAULT 2A — THE EMBLEM SYSTEM (js/vault/emblem-art.js): AN EMBLEM = A SHAPE + A FINISH. A box of small SVG LAYERS: the still parts
+   in one, each MOVING part its own layer animated on the layer itself (transform + opacity → the compositor; nothing repaints — Group 2's
+   speed fix), a part moving inside the shape under a MASK of it (.ve-m). Every duration × --sp (THE PROMINENCE RULE: lead 0.72 · even 1 ·
+   quiet 1.7 + its sparkle off); offsets in % of the box (1 unit = 1.92 %); reduced motion = the still frame. */
+.ve { --sp: 1; position: relative; display: block; width: 36px; height: 36px; flex: none; }
 .ve.is-lead { --sp: 0.72; } .ve.is-quiet { --sp: 1.7; }
+.ve > .ve-l, .ve > .ve-m, .ve-m > .ve-l { position: absolute; left: 0; top: 0; width: 100%; height: 100%; overflow: visible; }
+.ve-l { display: block; } .ve-l > svg { display: block; width: 100%; height: 100%; overflow: visible; }
+.ve-m { display: block; -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; }
 .vl-emb .ve { width: 36px; height: 36px; }
-.ve .ve-glint { opacity: 0; transform-box: fill-box; transform-origin: center; }
-.ve.is-quiet .ve-glint { display: none; }
+.ve .ve-glint { opacity: 0; }
+.ve.is-quiet .ve-glint, .ve.is-quiet .ve-tipglint { display: none; }
 /* NEON — the sign's layers (glass under the light; two soft glows; the body; the white-hot core; a hairline highlight) */
-.ve .ve-glass { opacity: 0.9; } .ve .ve-g2 { opacity: 0.14; } .ve .ve-g1 { opacity: 0.32; } .ve .ve-hi { opacity: 0.35; } .ve .ve-ch { opacity: 0; }
+.ve .ve-glass { opacity: 0.9; } .ve .ve-g2 { opacity: 0.14; } .ve .ve-g1 { opacity: 0.32; } .ve .ve-hi { opacity: 0.35; }
 .ve.is-quiet .ve-g2 { opacity: 0.1; }
 /* TUBE STYLES (worn on any neon emblem): BREATHING · A CHASING LIGHT (two-tone is the gradient itself) */
-.ve-t-breath .ve-g1 { animation: ve-breathe1 calc(3.4s * var(--sp)) ease-in-out infinite; }
-.ve-t-breath .ve-g2 { animation: ve-breathe2 calc(3.4s * var(--sp)) ease-in-out infinite; }
-.ve-t-breath .ve-body, .ve-t-breath .ve-core { animation: ve-breathe0 calc(3.4s * var(--sp)) ease-in-out infinite; }
-@keyframes ve-breathe1 { 0%, 100% { opacity: 0.12; } 50% { opacity: 0.55; } }
-@keyframes ve-breathe2 { 0%, 100% { opacity: 0.04; } 50% { opacity: 0.3; } }
-@keyframes ve-breathe0 { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
+.ve-t-breath .ve-br-g { animation: ve-breathe-g calc(3.4s * var(--sp)) ease-in-out infinite; }
+.ve-t-breath .ve-br-g .ve-g1, .ve-t-breath .ve-br-g .ve-g2 { opacity: 0.5; }
+.ve-t-breath .ve-br-b { animation: ve-breathe-b calc(3.4s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-breathe-g { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
+@keyframes ve-breathe-b { 0%, 100% { opacity: 0.72; } 50% { opacity: 1; } }
 .ve-t-chase .ve-body { opacity: 0.62; } .ve-t-chase .ve-core { opacity: 0.45; } .ve-t-chase .ve-g1 { opacity: 0.24; }
-.ve-t-chase .ve-ch { animation: ve-chase calc(1.9s * var(--sp)) linear infinite; animation-delay: calc((var(--i) * 0.2375s - 1.9s) * var(--sp)); }
-@keyframes ve-chase { 0% { opacity: 1; } 16% { opacity: 0.45; } 30%, 100% { opacity: 0; } }
-/* PRISM — the rainbow sweeping through the glass, its four lines pulsing out in turn */
+.ve-t-chase .ve-ch { opacity: 0; animation: ve-chase calc(1.9s * var(--sp)) linear infinite; animation-delay: calc((var(--i) * 0.3167s - 1.9s) * var(--sp)); }
+@keyframes ve-chase { 0% { opacity: 1; } 20% { opacity: 0.45; } 36%, 100% { opacity: 0; } }
+/* the glints (a scale from their own centre + a flash) */
+@keyframes ve-glint { 0%, 70% { opacity: 0; transform: scale(0.3); } 78% { opacity: 1; transform: scale(1.15); } 88%, 100% { opacity: 0; transform: scale(0.4); } }
+/* the slides (a band crossing the shape under its mask: 0 → its distance in its own widths) */
+/* PRISM — the rainbow sweeping through the glass (one cycle = half its band), its sheen, the four lines pulsing out in turn */
 .ve-f-prism .ve-halo { opacity: 0.12; }
 .ve-f-prism .ve-beam { opacity: 0.9; }
-.ve-f-prism .ve-sweep { transform: translateX(-64px); animation: ve-sweep calc(4.5s * var(--sp)) linear infinite; }
+.ve-f-prism .ve-sweep { transform: translateX(-50%); animation: ve-sweep calc(4.5s * var(--sp)) linear infinite; }
 .ve-f-prism .ve-sheen { animation: ve-sheen calc(4.5s * var(--sp)) ease-in-out infinite; }
 .ve-f-prism .ve-glint { animation: ve-glint calc(4.5s * var(--sp)) ease-in-out infinite; }
-.ve-f-prism .ve-ray { animation: ve-ray calc(2.4s * var(--sp)) ease-in-out infinite; animation-delay: calc(var(--i) * 0.18s); }
-@keyframes ve-sweep { from { transform: translateX(-64px); } to { transform: translateX(0); } }
-@keyframes ve-sheen { 0%, 55% { transform: translateX(0); } 85%, 100% { transform: translateX(110px); } }
-@keyframes ve-glint { 0%, 70% { opacity: 0; transform: scale(0.3); } 78% { opacity: 1; transform: scale(1.15); } 88%, 100% { opacity: 0; transform: scale(0.4); } }
-@keyframes ve-ray { 0%, 100% { opacity: 0.5; } 30% { opacity: 1; } }
+.ve-f-prism .ve-rays { opacity: 0; animation: ve-ray calc(2.4s * var(--sp)) ease-in-out infinite; animation-delay: calc(var(--i) * 1.2s * var(--sp)); }
+@keyframes ve-sweep { from { transform: translateX(-50%); } to { transform: translateX(0); } }
+@keyframes ve-sheen { 0%, 55% { transform: translateX(0); } 85%, 100% { transform: translateX(229%); } }
+@keyframes ve-ray { 0%, 100% { opacity: 0; } 30% { opacity: 1; } 60% { opacity: 0; } }
 /* GOLD — a slow shine over struck gold + a glint off the crown's peak */
 .ve-f-gold .ve-halo { opacity: 0.16; }
 .ve-f-gold .ve-shine { animation: ve-shine calc(5.5s * var(--sp)) ease-in-out infinite; }
-.ve-f-gold .ve-tip { display: none; } .ve-f-gold .ve-tip1 { display: inline; animation: ve-glint calc(5.5s * var(--sp)) ease-in-out infinite; animation-delay: calc(-0.5s * var(--sp)); }
-@keyframes ve-shine { 0%, 50% { transform: translateX(0); } 90%, 100% { transform: translateX(96px); } }
-/* ICE CRYSTAL — frost growing at each tip in turn, a glint as it finishes */
+.ve-f-gold .ve-tip { animation: ve-glint calc(5.5s * var(--sp)) ease-in-out infinite; animation-delay: calc(-0.5s * var(--sp)); }
+@keyframes ve-shine { 0%, 50% { transform: translateX(0); } 90%, 100% { transform: translateX(240%); } }
+/* ICE CRYSTAL — frost growing out at each tip in turn (from the tip), glinting as it finishes */
 .ve-f-ice .ve-halo { opacity: 0.18; }
-.ve-f-ice .ve-frost { opacity: 0; animation: ve-frost calc(6s * var(--sp)) ease-out infinite; animation-delay: calc((var(--i) * 1s - 6s) * var(--sp)); }
-.ve-f-ice .ve-tip { animation: ve-glint calc(6s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 1s - 6.6s) * var(--sp)); }
-@keyframes ve-frost { 0% { transform: scale(0.15); opacity: 0; } 10% { opacity: 1; } 38% { transform: scale(1); opacity: 1; } 82% { transform: scale(1); opacity: 0.9; } 100% { transform: scale(1); opacity: 0; } }
+.ve-f-ice .ve-frost { opacity: 0; animation: ve-frost calc(6s * var(--sp)) ease-out infinite; animation-delay: calc((var(--i) * 2s - 6s) * var(--sp)); }
+@keyframes ve-frost { 0% { transform: scale(0.82); opacity: 0; } 12% { opacity: 1; } 40% { transform: scale(1); opacity: 1; } 70% { transform: scale(1); opacity: 0.9; } 90%, 100% { transform: scale(1); opacity: 0; } }
 /* MOLTEN — the cracks pulsing, the core breathing heat, a drop of lava falling off the foot, embers rising beside it */
 .ve-f-molten .ve-halo { opacity: 0.22; }
 .ve-f-molten .ve-crack { animation: ve-crack calc(2.6s * var(--sp)) ease-in-out infinite; }
 .ve-f-molten .ve-crack2 { animation-delay: calc(-1.3s * var(--sp)); }
 .ve-f-molten .ve-core-h { animation: ve-heat calc(3.2s * var(--sp)) ease-in-out infinite; }
 .ve-f-molten .ve-drip { opacity: 0; animation: ve-drip calc(3.6s * var(--sp)) ease-in infinite; }
-.ve-f-molten .ve-ember { opacity: 0; animation: ve-ember calc(3s * var(--sp)) ease-out infinite; animation-delay: calc(var(--i) * -0.75s * var(--sp)); }
+.ve-f-molten .ve-ember { opacity: 0; animation: ve-ember calc(3s * var(--sp)) ease-out infinite; animation-delay: calc(var(--i) * -1.5s * var(--sp)); }
 .ve-f-molten.is-quiet .ve-ember { display: none; }
-@keyframes ve-crack { 0%, 100% { opacity: 0.4; } 50% { opacity: 1; } }
+@keyframes ve-crack { 0%, 100% { opacity: 0.2; } 50% { opacity: 1; } }
 @keyframes ve-heat { 0%, 100% { opacity: 0.8; } 50% { opacity: 1; } }
-@keyframes ve-drip { 0%, 40% { transform: translateY(-2px); opacity: 0; } 52% { opacity: 1; transform: translateY(0); } 92% { opacity: 0; transform: translateY(5px); } 100% { opacity: 0; transform: translateY(5px); } }
-@keyframes ve-ember { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-9px); opacity: 0; } }
+@keyframes ve-drip { 0%, 40% { transform: translateY(-3.8%); opacity: 0; } 52% { opacity: 1; transform: translateY(0); } 92% { opacity: 0; transform: translateY(9.6%); } 100% { opacity: 0; transform: translateY(9.6%); } }
+@keyframes ve-ember { 0% { transform: translateY(0); opacity: 0; } 15% { opacity: 1; } 100% { transform: translateY(-17%); opacity: 0; } }
 /* GLITCH — the ghosts sit a hair off; now + then the bolt jumps, two slices tear sideways, it snaps back */
-.ve-f-glitch .ve-gr { transform: translate(-0.9px, 0); animation: ve-glr calc(3.2s * var(--sp)) linear infinite; }
-.ve-f-glitch .ve-gc { transform: translate(0.9px, 0); animation: ve-glc calc(3.2s * var(--sp)) linear infinite; }
+.ve-f-glitch .ve-gr { transform: translate(-1.7%, 0); animation: ve-glr calc(3.2s * var(--sp)) linear infinite; }
+.ve-f-glitch .ve-gc { transform: translate(1.7%, 0); animation: ve-glc calc(3.2s * var(--sp)) linear infinite; }
 .ve-f-glitch .ve-gw { animation: ve-glw calc(3.2s * var(--sp)) linear infinite; }
 .ve-f-glitch .ve-slice { opacity: 0; animation: ve-slice calc(3.2s * var(--sp)) linear infinite; }
 .ve-f-glitch .ve-sl1 { animation-name: ve-slice2; }
-@keyframes ve-glr { 0%, 68% { transform: translate(-0.9px, 0); } 70% { transform: translate(-3.4px, 0.4px); } 73% { transform: translate(1.6px, -0.3px); } 76%, 100% { transform: translate(-0.9px, 0); } }
-@keyframes ve-glc { 0%, 68% { transform: translate(0.9px, 0); } 70% { transform: translate(3.2px, -0.4px); } 73% { transform: translate(-1.4px, 0.3px); } 76%, 100% { transform: translate(0.9px, 0); } }
-@keyframes ve-glw { 0%, 69% { transform: none; } 70% { transform: translate(1.3px, 0); } 73% { transform: translate(-0.9px, 0); } 75%, 100% { transform: none; } }
-@keyframes ve-slice { 0%, 69% { opacity: 0; transform: none; } 70% { opacity: 1; transform: translateX(4px); } 73% { opacity: 1; transform: translateX(-2.5px); } 75%, 100% { opacity: 0; transform: none; } }
-@keyframes ve-slice2 { 0%, 70% { opacity: 0; transform: none; } 71% { opacity: 1; transform: translateX(-4px); } 74% { opacity: 1; transform: translateX(2px); } 76%, 100% { opacity: 0; transform: none; } }
+@keyframes ve-glr { 0%, 68% { transform: translate(-1.7%, 0); } 70% { transform: translate(-6.5%, 0.8%); } 73% { transform: translate(3.1%, -0.6%); } 76%, 100% { transform: translate(-1.7%, 0); } }
+@keyframes ve-glc { 0%, 68% { transform: translate(1.7%, 0); } 70% { transform: translate(6.2%, -0.8%); } 73% { transform: translate(-2.7%, 0.6%); } 76%, 100% { transform: translate(1.7%, 0); } }
+@keyframes ve-glw { 0%, 69% { transform: none; } 70% { transform: translate(2.5%, 0); } 73% { transform: translate(-1.7%, 0); } 75%, 100% { transform: none; } }
+@keyframes ve-slice { 0%, 69% { opacity: 0; transform: none; } 70% { opacity: 1; transform: translateX(7.7%); } 73% { opacity: 1; transform: translateX(-4.8%); } 75%, 100% { opacity: 0; transform: none; } }
+@keyframes ve-slice2 { 0%, 70% { opacity: 0; transform: none; } 71% { opacity: 1; transform: translateX(-7.7%); } 74% { opacity: 1; transform: translateX(3.8%); } 76%, 100% { opacity: 0; transform: none; } }
 /* CHROME — a light gliding over black chrome; the white corner lights in turn; the red heart's slow pulse */
 .ve-f-chrome .ve-halo { opacity: 0.12; }
 .ve-f-chrome .ve-shine { animation: ve-shine calc(6s * var(--sp)) ease-in-out infinite; }
 .ve-f-chrome .ve-pod { animation: ve-pod calc(3s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 1s - 3s) * var(--sp)); }
-.ve-f-chrome .ve-pod-g { animation: ve-podg calc(3s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 1s - 3s) * var(--sp)); }
 .ve-f-chrome .ve-red { animation: ve-red calc(2.6s * var(--sp)) ease-in-out infinite; }
-.ve-f-chrome .ve-red-g { animation: ve-redg calc(2.6s * var(--sp)) ease-in-out infinite; }
-@keyframes ve-pod { 0%, 100% { opacity: 0.6; } 30% { opacity: 1; } }
-@keyframes ve-podg { 0%, 100% { opacity: 0.1; } 30% { opacity: 0.5; } }
+@keyframes ve-pod { 0%, 100% { opacity: 0.5; } 30% { opacity: 1; } }
 @keyframes ve-red { 0%, 100% { opacity: 0.3; } 50% { opacity: 1; } }
-@keyframes ve-redg { 0%, 100% { opacity: 0.06; } 50% { opacity: 0.55; } }
-/* GALAXY — a nebula drifting through the saucer, stars twinkling inside, its ports chasing, the beam's rays pulsing */
+/* GALAXY — a nebula drifting through the saucer (one cycle = half its band), stars twinkling inside, its ports chasing, the rays pulsing */
 .ve-f-galaxy .ve-halo { opacity: 0.2; }
-.ve-f-galaxy .ve-neb { transform: translateX(-48px); animation: ve-neb calc(16s * var(--sp)) linear infinite; }
-.ve-f-galaxy .ve-star { animation: ve-tw calc(2.8s * var(--sp)) ease-in-out infinite; animation-delay: calc(var(--i) * -0.37s); }
+.ve-f-galaxy .ve-neb { transform: translateX(-50%); animation: ve-neb calc(16s * var(--sp)) linear infinite; }
+.ve-f-galaxy .ve-stars { animation: ve-tw calc(2.8s * var(--sp)) ease-in-out infinite; animation-delay: calc(var(--i) * -1.4s * var(--sp)); }
 .ve-f-galaxy .ve-port { animation: ve-port calc(1.5s * var(--sp)) linear infinite; animation-delay: calc((var(--i) * 0.3s - 1.5s) * var(--sp)); }
-.ve-f-galaxy .ve-beamr { opacity: 0.3; animation: ve-beamr calc(2.4s * var(--sp)) ease-in-out infinite; animation-delay: calc(var(--i) * 0.25s); }
-@keyframes ve-neb { from { transform: translateX(-48px); } to { transform: translateX(0); } }
+.ve-f-galaxy .ve-beamr { opacity: 0.3; animation: ve-beamr calc(2.4s * var(--sp)) ease-in-out infinite; }
+@keyframes ve-neb { from { transform: translateX(-50%); } to { transform: translateX(0); } }
 @keyframes ve-tw { 0%, 100% { opacity: 0.25; } 50% { opacity: 1; } }
 @keyframes ve-port { 0% { opacity: 1; } 30%, 100% { opacity: 0.25; } }
 @keyframes ve-beamr { 0%, 100% { opacity: 0.16; } 50% { opacity: 0.6; } }
+/* THE PROMINENCE RULE as a budget (Group 2 — 8 legendary scenes + 8 emblems at 4× CPU): LEAD plays every layer; EVEN its signature
+   motion only (the secondary layers .ve-2 rest on their still frame); QUIET holds the still frame */
+.ve:not(.is-lead) .ve-2, .ve.is-quiet .ve-l { animation: none !important; }
 /* reduced motion + the lab's STILL + the diagnostics' EMBLEMS OFF: the still frame */
 @media (prefers-reduced-motion: reduce) { .ve, .ve * { animation: none !important; } }
 body.reduced-fx .ve, body.reduced-fx .ve *, .vl-still .ve, .vl-still .ve * { animation: none !important; }
@@ -576,7 +580,7 @@ body.reduced-fx .ve, body.reduced-fx .ve *, .vl-still .ve, .vl-still .ve * { ani
 .vg-ember { color: #ffdcc0 !important; text-shadow: 0 0 5px rgba(255, 118, 40, 0.9), 0 0 14px rgba(255, 74, 20, 0.55), 0 1px 2px rgba(0, 0, 0, 0.75) !important; }
 /* GOLD LEAF (rare): the letters in struck gold leaf; now + then a glint pops on them, one place after another */
 .vg-goldleaf { background: linear-gradient(180deg, #fff6d6 0%, #f8d886 34%, #d39b36 52%, #ffe6a0 74%, #e0aa48 100%); -webkit-background-clip: text; background-clip: text;
-  color: transparent !important; text-shadow: none !important; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 5px rgba(255, 190, 80, 0.32)); }
+  color: transparent !important; text-shadow: none !important; }   /* (no filter: a filtered name re-renders under its moving glint every frame — Group 2) */
 .vg-glint { width: 0.95em; height: 0.95em; margin: -0.47em 0 0 -0.47em; transform-origin: center;
   background: radial-gradient(circle, #fff 0 9%, rgba(255, 244, 210, 0.7) 18%, rgba(255, 230, 160, 0) 42%),
     linear-gradient(90deg, rgba(255, 255, 255, 0) 44%, #fff 50%, rgba(255, 255, 255, 0) 56%) center / 100% 30% no-repeat,
@@ -597,7 +601,7 @@ body.reduced-fx .ve, body.reduced-fx .ve *, .vl-still .ve, .vl-still .ve * { ani
 .vg.fit-2 .vg-arc3 { top: 0.75em; }
 @keyframes vg-arc { 0%, 8% { opacity: 0; } 9% { opacity: 1; } 11% { opacity: 0.2; } 13% { opacity: 1; } 15% { opacity: 0.5; } 17%, 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .vg > i { animation: none !important; opacity: 0 !important; } }
-body.reduced-fx .vg > i, .vl-still .vg > i { animation: none !important; opacity: 0 !important; }
+body.reduced-fx .vg > i, .vl-still .vg > i, .vg.vg-still > i { animation: none !important; opacity: 0 !important; }
 .vl-pick-sub { flex: 1 1 0; min-width: 0; font: 600 12px/1.2 var(--font-ui); color: rgba(245, 236, 218, 0.72); }
 .vl-pick.is-none .vl-pick-n { flex: none; white-space: nowrap; }
 .vl-pick-note { margin: 6px 4px 0; font: 600 12px/1.3 var(--font-ui); color: rgba(245, 236, 218, 0.72); }

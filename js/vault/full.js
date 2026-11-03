@@ -42,7 +42,7 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const plate = h('div.vl-fc-plate',
     // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)
     h('span.vl-fc-emb', emblemEl({ id: hasArt(who.shape) ? who.shape : null, avatar: who.avatar || 'bolt', color: who.color || 'magenta', tube: who.tube, mode: prominence(t, embTier(hasArt(who.shape) ? who.shape : null)) })),
-    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', `${bandOf(lv).name} · LV ${lv}`)));
+    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', `${bandOf(lv).name} · LV ${lv}`)));
   const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,

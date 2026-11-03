@@ -11,8 +11,10 @@ export const TEST_EMBLEMS = Object.freeze({
   'emb-test-prism': { id: 'emb-test-prism', name: 'BOLT · PRISM', tier: 'rare', finish: 'prism' },
 });
 const rank = t => Math.max(0, TIERS.indexOf(t));
-/** THE PROMINENCE RULE: the higher tier leads */
+/** THE PROMINENCE RULE: the higher tier leads — and a LEGENDARY card always leads (THE VAULT 2A, measured: 8 legendary scenes + 8 moving
+ *  emblems + glows = ~50 fps at 4× CPU; with the emblem + the name glow holding their still, lit frames on a legendary card = 58–60) */
 export function prominence(cardTier, embTier) {
+  if (cardTier === 'legendary') return 'quiet';
   const d = rank(embTier) - rank(cardTier);
   return d > 0 ? 'lead' : d <= -2 ? 'quiet' : 'even';
 }

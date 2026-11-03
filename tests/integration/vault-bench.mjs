@@ -3,7 +3,7 @@
 // CoreGraphics on the CPU (in Safari's GPU process) — the page's timer reads "0 ms" while every call + every blended pixel still costs
 // the frame. Chromium with a SOFTWARE canvas (--disable-accelerated-2d-canvas, the default here: SW=0 for the GPU canvas) rasterises
 // on the CPU too, inside the page's own tasks, so the main thread's busy time per frame is the stand-in for the iPhone's raster cost.
-//   node tests/integration/vault-bench.mjs "<chrome>"            (env: CPU=4 MIX=legend|samples|<card id> SW=0 SCROLL=1 RUNS=base,nofx…)
+//   node tests/integration/vault-bench.mjs "<chrome>"            (env: CPU=4 MIX=legend|samples|<card id> SW=0 SCROLL=1 RUNS=base,nofx… WEAR=emb,glow — 2A: the samples' emblems + glows on the strips)
 // Prints per configuration: fps, the mean + p95 frame, slow frames (> 20 ms), the main thread's busy ms per frame.
 import puppeteer from './kit/puppeteer.mjs';
 
@@ -12,6 +12,7 @@ const BASE = process.env.BASE || 'http://localhost:5173';
 const CPU = Number(process.env.CPU || 4), MIX = process.env.MIX || 'legend', SW = process.env.SW !== '0', SCROLL = process.env.SCROLL === '1';
 const RUNS = (process.env.RUNS || 'base,nofx,nolaser,nosprites,noglow,noemb').split(',');
 const TIER = process.env.TIER ?? '2';
+const WEAR = process.env.WEAR || '';
 const VIEW = (process.env.VIEW || '402x874').split('x').map(Number), DPR = Number(process.env.DPR || 3);
 
 const browser = await puppeteer.launch({ executablePath: BIN, headless: 'new', realCompositor: true,
@@ -24,7 +25,7 @@ for (const run of RUNS) {
   const cd = await p.target().createCDPSession();
   await cd.send('Performance.enable');
   const diag = run === 'base' ? '' : `&diag=${run.replace(/\+/g, ',')}`;
-  await p.goto(`${BASE}/tests/integration/vault-preview.html?view=lobby&bare=1&mix=${MIX}&tier=${TIER}${diag}`);
+  await p.goto(`${BASE}/tests/integration/vault-preview.html?view=lobby&bare=1&mix=${MIX}&tier=${TIER}${diag}${WEAR ? `&wear=${WEAR}` : ''}`);
   await p.waitForFunction('!!(document.body.dataset.ready && window.__lab)', { timeout: 30000 });
   if (CPU > 1) await cd.send('Emulation.setCPUThrottlingRate', { rate: CPU });
   await new Promise(r => setTimeout(r, 1500));
@@ -42,6 +43,6 @@ for (const run of RUNS) {
   await ctx.close();
 }
 await browser.close();
-console.log(`THE VAULT BENCH — ${MIX} · ${SW ? 'SOFTWARE canvas (the iPhone stand-in)' : 'GPU canvas'} · CPU ${CPU}× · ${VIEW.join('×')} @${DPR} · tier ${TIER}${SCROLL ? ' · SCROLLING' : ''}`);
+console.log(`THE VAULT BENCH — ${MIX}${WEAR ? ` + ${WEAR}` : ''} · ${SW ? 'SOFTWARE canvas (the iPhone stand-in)' : 'GPU canvas'} · CPU ${CPU}× · ${VIEW.join('×')} @${DPR} · tier ${TIER}${SCROLL ? ' · SCROLLING' : ''}`);
 console.table(rows);
 console.log('(busyMs = the main thread\'s busy time per frame, in UNTHROTTLED ms — the raster cost the iPhone pays in its GPU process)');
