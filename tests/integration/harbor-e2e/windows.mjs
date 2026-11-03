@@ -736,8 +736,10 @@ G('quietbuilding', async () => {
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'qb4', qs: `when=2026-10-28T04:30${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page); await settled(Q.page);
+    // (PROGRESSION B's cloud run: the life's state was read before its first decision — wait for it, never a fixed pause)
+    await waitFor(Q.page, `(() => { const L = ${LIFE}; return !!(L && L.bed && L.park && L.states); })()`, 'the 4:30 am life', 15000).catch(() => {});
     const L = await ev(Q.page, LIFE);
-    ok(ROOMS.every(id => L.bed[id] === 0 && L.park[id] === 1) && L.states.apartment === 'night', `…BY 4:30 AM ALL THREE OUT behind their shades (${JSON.stringify(L.bed)}), the boss's nightlight on (${L.states.apartment})`);
+    ok(!!(L && L.bed && L.park) && ROOMS.every(id => L.bed[id] === 0 && L.park[id] === 1) && L.states.apartment === 'night', `…BY 4:30 AM ALL THREE OUT behind their shades (${JSON.stringify(L.bed)}), the boss's nightlight on (${L.states.apartment})`);
     await Q.ctx.close(); }
   // ---- 3. the day: no shade parked; THE OLD SWITCH (&force=old-windows): the old quiet building back as it was (the parked mix)
   for (const [when, what, old] of [['2026-10-27T13:00', 'the day', false], ['2026-10-27T21:00', 'the old switch (Tue 9 pm)', true]]) {

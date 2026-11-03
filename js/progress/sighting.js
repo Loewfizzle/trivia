@@ -111,12 +111,14 @@ async function run(sg, ctx, claimP) {
   const first = st === 'demo' || (st === 'counted' && r.first);
   const keep = st === 'counted' || st === 'again' || st === 'queued';
   const n = r.n || 0;
-  // KEEP THE PHOTO (this device only) — encoded off the frame, after the flash
-  // (the owner's &sgdemo prints go to the PREVIEW album — ?preview=card shows them; never the real one)
-  if (sg.demo && photo && !sg.again) import('../screens/harbor/snapshot.js').then(m => m.toJpeg(photo)).then(b => b && import('../profile/album.js').then(a => { a.useAlbum('ns-album-preview'); return a.addPhoto({ id: sg.id, t: sg.t, n: 1, blob: b, w: photo.width }).finally(() => a.useAlbum('ns-album')); })).then(ok => { last.saved = !!ok; }).catch(() => {});
-  if (keep && photo && st !== 'again' && !sg.demo) {
-    import('../screens/harbor/snapshot.js').then(m => m.toJpeg(photo)).then(b => b && import('../profile/album.js').then(a => a.addPhoto({ id: sg.id, t: sg.t, n, blob: b, w: photo.width }))).then(ok => { last.saved = !!ok; }).catch(() => { last.saved = false; });
-  }
+  // KEEP THE PHOTO (this device only) — encoded AFTER the moment closes: a JPEG encode of the 3× print costs ~110 ms on Safari's main thread,
+  // never while the print slides (the owner's &sgdemo prints go to the PREVIEW album — ?preview=card shows them; never the real one)
+  const savePhoto = () => {
+    if (!photo) return;
+    const enc = () => import('../screens/harbor/snapshot.js').then(m => m.toJpeg(photo));
+    if (sg.demo && !sg.again) enc().then(b => b && import('../profile/album.js').then(a => { a.useAlbum('ns-album-preview'); return a.addPhoto({ id: sg.id, t: sg.t, n: 1, blob: b, w: photo.width }).finally(() => a.useAlbum('ns-album')); })).then(ok => { last.saved = !!ok; }).catch(() => { last.saved = false; });
+    else if (keep && st !== 'again' && !sg.demo) enc().then(b => b && import('../profile/album.js').then(a => a.addPhoto({ id: sg.id, t: sg.t, n, blob: b, w: photo.width }))).then(ok => { last.saved = !!ok; }).catch(() => { last.saved = false; });
+  };
   const again = st === 'counted' && !r.first || st === 'again';
   if (again || st === 'refused' || (!first && st !== 'queued' && st !== 'preview')) {
     // AGAIN: a small stamp on the corner print, no reveal
@@ -125,6 +127,7 @@ async function run(sg, ctx, claimP) {
     await wait(again ? 3400 : 1600);
     chip.classList.add('is-out'); await wait(500); chip.remove();
     last.phase = 'done';
+    savePhoto();
     return;
   }
   // A BIG legendary: the print waits in the corner until the craft has left the screen (never over its own moment)
@@ -138,6 +141,7 @@ async function run(sg, ctx, claimP) {
     }
   }
   await bigMoment(sg, { pol, chip, first, preview: st === 'preview', still, cap });
+  savePhoto();
 }
 
 /** THE POLAROID big → SPOTTED → THE REVEAL (first) — held until a tap */

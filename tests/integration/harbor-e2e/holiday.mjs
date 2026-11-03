@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR end to end: the `holiday` cloud job's groups (holiday, thanks, panelrows, citylife) — tests/integration/harbor-jobs.mjs#CI_JOBS.
 // Registered with G() in their original order; run through ../e2e-harbor.mjs (JOB=holiday, or ONLY=<groups>). Shared helpers: ./kit.mjs.
 // ADDING A GROUP: G('name', …) in its job's file (harbor-e2e/<job>.mjs) + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { OUT, SHOTS, sleep, ok, GR, open, ev, waitFor, tapAt, harborUp, G, settled } from './kit.mjs';
+import { OUT, SHOTS, sleep, ok, okT, GR, open, ev, waitFor, tapAt, harborUp, G, settled } from './kit.mjs';
 
 // 11a-1 — THE HOLIDAYS: Halloween's build-up by date (Oct 10 / Oct 27), Halloween night, the come-down into Day of the Dead (Nov 1), the
 // procession (Nov 2 at dusk), all gone (Nov 3 evening); the forced moments; reduced motion (docs/harbor/passes/part-11a-1.md)
@@ -401,9 +401,16 @@ G('sightings', async () => {
     if (SHOTS) await S.page.screenshot({ path: `${OUT}sightings-reveal-402x874.png` });
     ok(['flash', 'polaroid', 'spotted', 'reveal'].every(p => seen.has(p)) && st.snap && st.snap.w === Math.round(Math.round(402 * 0.8) * 3) && st.photo && st.stamp && st.held && /Nov 3, 2026/.test(st.cap) && st.pair.includes('I WANT TO BELIEVE') && st.scroll,
       `SIGHTINGS: THE SEQUENCE — ${[...seen].join(' → ')}; the polaroid ${st.snap && st.snap.w}×${st.snap && st.snap.h} px (the real frame at 3×, ${st.snap && st.snap.ms} ms to compose), "${st.cap}", SPOTTED, the pair, held for a tap, one screen ${JSON.stringify({ photo: st.photo, stamp: st.stamp, held: st.held, pair: st.pair, scroll: st.scroll, phase: st.phase })}`);
-    ok(st.snap && st.snap.ms < 12 && gaps.max < Math.max(90, gaps.med * 3), `SIGHTINGS: the capture never hitches the frame loop (compose ${st.snap && st.snap.ms} ms; frames median ${gaps.med.toFixed(1)} ms, worst ${gaps.max.toFixed(1)} ms over ${gaps.n})`);
-    await S.page.mouse.click(201, 120); await sleep(600);
+    // (a frame-time check: hard on the mini PC, a warning on the 2-core cloud runner — the suite's okT, like every frame budget)
+    okT(st.snap && st.snap.ms < 12 && gaps.max < Math.max(90, gaps.med * 3), `SIGHTINGS: the capture never hitches the frame loop (compose ${st.snap && st.snap.ms} ms; frames median ${gaps.med.toFixed(1)} ms, worst ${gaps.max.toFixed(1)} ms over ${gaps.n})`);
+    // (the hold arms a second after the reveal is done: wait for that, then the tap)
+    await waitFor(S.page, '!!document.querySelector(".sg-modal.is-done")', 'the reveal held', 15000).catch(() => {});
+    await sleep(1200);
+    await S.page.mouse.click(201, 120);
+    await waitFor(S.page, '!document.querySelector(".sg-modal")', 'back to the city', 5000).catch(() => {});
     ok(await ev(S.page, '!document.querySelector(".sg-modal")'), 'SIGHTINGS: a tap (after its first second) → back to the city');
+    await waitFor(S.page, `import('/js/progress/sighting.js').then(m => m.last.saved != null)`, 'the print kept', 10000).catch(() => {});
+    ok(await ev(S.page, `import('/js/progress/sighting.js').then(m => m.last.saved === true)`), 'SIGHTINGS: the print is kept (the preview album) only AFTER the moment closed — never encoded under the animation');
     await S.ctx.close(); }
   // REDUCED MOTION: the same sequence, still (no slide, no stamp slam) — and still held for a tap
   { const R = await open({ slot: 'sgrm', qs: 'when=2026-11-03T22:00&force=ufo&lgnow=1&sgdemo=ufo', view: [402, 874], init: { fn: () => { localStorage.setItem('na:settings', JSON.stringify({ reducedFx: true })); } } });
