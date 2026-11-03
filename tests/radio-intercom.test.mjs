@@ -55,3 +55,20 @@ test('WHEN a phone plays it: the lobby TOGETHER, the city\'s feed late, a game h
   assert.ok(canUnsend(m, m.made + 30e3) && !canUnsend(m, m.made + (K.unsend + 1) * 1000), 'UNSEND for its window only');
   assert.ok(!JSON.stringify(m).includes('by'), 'the public copy names nobody');
 });
+
+test('THE WHEN (PROGRESSION B add-on): NOW · IN 10 MIN · AT A TIME up to a day; a scheduled clip kept + cancellable until it plays', async () => {
+  const { icWhen, IC_IN10_MS, canUnsend: cu, icDecide: dec } = await import('../js/core/radio-intercom.js');
+  const { knob } = await import('../js/core/harbor-schedule.js');
+  const now = 1e12, K = knob('radio.intercom');
+  assert.deepEqual(icWhen({}, now), { at: null, bad: null });
+  assert.equal(icWhen({ when: 'in10' }, now).at, now + IC_IN10_MS);
+  assert.equal(icWhen({ when: 'at', at: now + 3 * 3600e3 }, now).at, now + 3 * 3600e3);
+  assert.equal(icWhen({ when: 'at', at: now - 5000 }, now).bad, 'bad_time');
+  assert.equal(icWhen({ when: 'at', at: now + 26 * 3600e3 }, now).bad, 'bad_time');
+  const m = { made: now, at: now + 5 * 3600e3, until: now + 5 * 3600e3 + 9000, dur: 3, state: 'q', wait: true };
+  assert.equal(cu(m, now + 4 * 3600e3), true, 'cancellable hours later, before it plays');
+  assert.equal(cu(m, m.at + (K.unsend + 1) * 1000), false);
+  assert.equal(dec(m, { now: now + 2 * 3600e3, source: 'desk' }), 'wait', 'not before its time (and NOT dropped after an hour)');
+  assert.equal(dec(m, { now: m.at + 500, source: 'desk' }), 'play', 'then it plays');
+  assert.equal(dec(m, { now: m.at + (K.keep + 5) * 1000, source: 'desk', held: true }), 'skip', 'its hour after its own start');
+});

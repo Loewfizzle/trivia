@@ -107,4 +107,4 @@ export function icDecide(m, ctx) {
   return now <= m.until + K.late * 1000 ? 'play' : 'skip';
 }
 /** may the owner still UNSEND it? (the button stays until every phone would have it: `unsend` s after it went out) */
-export const canUnsend = (m, now) => !!m && m.state !== 'stopped' && now < Math.max(m.made || 0, m.at || 0) + knob('radio.intercom').unsend * 1000;   // (a scheduled one: until it plays + the same minute)
+export const canUnsend = (m, now) => { if (!m || m.state === 'stopped') return false; const base = (m.at || 0) - (m.made || 0) > 60e3 ? m.at : (m.made || 0); return now < base + knob('radio.intercom').unsend * 1000; };   // (a scheduled one: until it plays + the same minute)

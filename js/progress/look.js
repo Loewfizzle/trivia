@@ -7,6 +7,7 @@ import { settings } from '../audio/settings.js';
 import { ITEM, DEFAULT_CARD } from '../core/items.js';
 import { api } from '../profile/api.js';
 import { loadMe } from '../identity.js';
+import { flameArt } from './flame-art.js';
 
 export const reduced = () => !!settings.reducedFx || reducedMotion();
 export const num = n => Math.round(n || 0).toLocaleString('en-US');
@@ -49,13 +50,9 @@ export function medal(lvl, size = 64) {
     h('span.pg-medal-face', h('b', String(lvl))));
 }
 
-/** THE NEON FLAME (a tube flame: a coloured outer tube + a white-hot core) — an SVG; `state`: lit · waiting · frozen · out. */
-export function flameIcon(state = 'lit', size = 28) {
-  const outer = 'M12 2.2c.6 3.1 3.6 4.9 4.9 7.7 1.6 3.3.6 7.7-2.6 9.7-1.1.7-2.4 1-3.6 1-3.9-.1-6.6-3.5-6.1-7.3.3-2.3 1.7-3.9 2.8-5.6.2 1.6.9 2.8 2.1 3.5C9 8.6 10 5.1 12 2.2z';
-  const inner = 'M12.1 11.2c.4 1.6 1.9 2.4 2.1 4.1.2 1.8-1.1 3.3-2.8 3.3-1.6 0-2.8-1.3-2.7-2.9.1-1 .7-1.7 1.2-2.4.2.7.6 1.2 1.1 1.4-.1-1.3.3-2.4 1.1-3.5z';
-  return h('span.pg-flame', { class: `is-${state}`, style: { '--f': `${size}px` }, 'aria-hidden': 'true' },
-    S('svg', { viewBox: '0 0 24 24' }, S('path', { d: outer, class: 'g' }), S('path', { d: outer, class: 't' }), S('path', { d: inner, class: 'c' })));
-}
+/** THE NEON FLAME — PROGRESSION B's add-on: the streak card's BIG FLAME's own shape, small (flame-art.js — one flame everywhere: the moment's
+ *  streak line, the profile's row, the card's flame, the week); `state`: lit · waiting · frozen · out. */
+export function flameIcon(state = 'lit', size = 28) { return flameArt(state, size); }
 
 /** A card's palette → CSS variables (the GILDED unless the player wears another). */
 export function cardVars(id) {
