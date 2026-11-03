@@ -5615,3 +5615,40 @@ THE VAULT 1B DONE (Nov 3) — passes/vault-1b.md + docs/vault.md. THE BUILD TABL
   BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP, OVERCLOCK, THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
 
 THE VAULT 1C DONE (Nov 3) — passes/vault-1c.md + docs/vault.md. THE BUILD TABLE: THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅ (THE ONE TIER PALETTE + the welcome, THE 8 SIGHTING CARDS, 21 of the 24 held-back cards — PLATINUM / THE HOUSE / FOUNDING MEMBER held back); THE VAULT 2A (emblem + glow samples) ← NEXT; then THE VAULT 2B, BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP, OVERCLOCK, THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
+
+## OWNER'S NOTES — NOV 3 (midday)
+
+## THE VAULT 1C WRITTEN (Nov 3, ~9:25 am EST) — Step 0 = step0-v1c.txt.
+- (9:32 am) NO PRISM DROP DAILY (the owner: it doesn't fit a solo daily) — the roadmap's "PRISM DROP (+ its daily)" was the chat's slip; the decided
+  dailies stay: a WORDLE-type, a MINESWEEPER-type (COAST CLEAR) + the smallest OVERCLOCK game. PRISM DROP = the rework + its review only.
+
+## THE VAULT 1C DONE (Nov 3, ~11:40 am EST) — live; cloud GREEN (harbor 10/10 run 1; tests run 2 — it caught a gap in the names-only test, fixed).
+Rules unchanged. Summary: plan/v1c-summary.txt
+- Done: ONE TIER PALETTE (grey · green · blue · purple · gold; THE PROGRAM's badges + tinted names, all ≥ 4.5:1 on the paper); I'M NEW HERE → "WELCOME IN —
+  PICK A NAME WHEN YOU JOIN YOUR FIRST ROOM" (names are picked on HOST / JOIN); THE 8 SIGHTING CARDS (LIGHTS OUT — the city's windows die in a wave
+  under the TR-3B, then stutter back; SKY KING — the SR-71 at dusk over a racing cloud sea; AFTERBURNER — 3 F-22s, vapour cones in turn; THE FLYING
+  DUTCHMAN — against the moon in fog; SKY DANCER; MAKE A WISH — the fireball breaking up; HOT AIR, COLD BLOOD; FIX THE MONEY — both ₿ balloons, a gold
+  pulse every block; SR-71 + F-22 re-rendered front-on for the full card); 21 of the 24 held-back cards (ZEBRA … THE WITNESS — a gold star chart of
+  constellations lighting in turn). Speed: 8 sighting cards 58.4 fps at 4× CPU; the new 21 + 8 WILDFIRE 60.
+- Decisions: the reveal + album show a sighting's real scene only once its FULL card is approved in the lab; dark bands behind the corner words on the
+  busiest / lightest full cards (zebra, marble, gold foil, both camos) — approved cards untouched.
+- Known: HELD BACK — PLATINUM, THE HOUSE, FOUNDING MEMBER need their own scene + the owner's direction; one radio test fails by time of day (also on
+  1B's code); the marks export public (→ the switch-over).
+- (11:44 am) THE OWNER's LAB MARKS on 1C (4 FIX notes) → fixed in an accidental quick build session (deploy tag, unit tests only): LIGHTS OUT's TR-3B hull
+  properly black (panel lines faint, corners + centre stand out); SKY KING's Blackbird near-black, sunset only on its edge; THE FLYING DUTCHMAN's moon
+  moved clear (left on the full card, far right on the strip) + the ship now SAILS (fades in, crosses on the swell with a glowing wake, fades out, ~26 s).
+  &sgdemo auto-plays the reveal by design (not the no-tap bug). STILL TO MARK: those 3 full cards + the Dutchman's strip again; the 21 new SLIM STRIPS
+  (#50–70 — their full cards approved, the strips not). The 3 held cards (PLATINUM, THE HOUSE, FOUNDING MEMBER): the chat's proposals pending his yes.
+- (11:47 am) 1C CHECKED: THE PROGRAM's tier colours GOOD ✅; A FULL LOBBY (a mixed set of the new cards) 60 fps · 0 slow · tier 2 · 3× · GPU 9 draws ✅;
+  REMOVE "I'M NEW HERE" from the bring-your-card sheet (the owner: no point — the ✕ already does it; the welcome line can go with it); the sighting
+  reveal check saved for after the next pass.
+- (11:50 am) THE 3 HELD CARDS (the owner: "your picks" — DECIDED): FOUNDING MEMBER (Legendary) = OPENING NIGHT — the big NEON SPEAKEASY sign lighting
+  letter by letter over the city, the speakeasy's 1924 date stone, the player's REAL member number stamped in gold (a numbered first edition) · THE HOUSE
+  (Legendary, level 100) = THE SPEAKEASY IN FULL BLAZE at night — every sign lit, the finale's gold willows falling behind it, a neon crown over the door ·
+  PLATINUM (Epic) = THE METAL CARD — a solid platinum plate, a diamond-cut bevelled edge, a cold white light sliding across it (clean, not busy).
+
+## THE VAULT 2A WRITTEN (Nov 3, ~11:55 am EST) — Step 0 = step0-v2a.txt.
+
+- THE BUILD TABLE (Nov 3, THE VAULT 2A Step 0): THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅; THE VAULT 2A (the 3 held cards + THE EMBLEM / GLOW /
+  TUBE-STYLE SYSTEM + ~13 samples — this pass) ← NEXT; then THE VAULT 2B (the rest, from his marks), BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (the
+  rework + its review — NO daily), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
