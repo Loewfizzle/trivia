@@ -11,6 +11,7 @@ import { levelInfo } from '../core/levels.js';
 import { streakView, streakDay } from '../core/streak.js';
 import { GLOW_ART, applyGlow } from '../vault/glows.js';
 import { cardVars, glowClass, flameIcon, reduced } from './look.js';
+import { memberLabel } from '../core/member.js';
 
 const MONTHS = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
 export const sinceOf = at => { const d = new Date(at || Date.now()); return `${MONTHS[d.getMonth()]} ${d.getFullYear()}`; };
@@ -30,7 +31,7 @@ export function gildedCard(pub, local = {}, opts = {}) {
   const glow = glowClass(p.g);
   const el = h('div.pg-card', { class: opts.mini ? 'is-mini' : '', dataset: { card }, style: { ...cardVars(card), '--c': colorHex(p.c || 'magenta') } },
     h('span.pg-card-clip', { 'aria-hidden': 'true' }, h('span.pg-card-sun')),
-    opts.mini ? null : h('div.pg-card-top', h('span', 'NEON SPEAKEASY'), h('span.pg-card-no', p.t ? `№ ${p.t}` : 'GUEST')),
+    opts.mini ? null : h('div.pg-card-top', h('span', 'NEON SPEAKEASY'), h('span.pg-card-no', memberLabel(p.mn) ? `№ ${memberLabel(p.mn)}` : 'GUEST')),
     p.fd && !opts.mini ? h('span.pg-card-fd', 'FOUNDING MEMBER') : null,
     opts.mini ? null : h('div.pg-card-mid',
       h('span.pg-card-emb', avatar(p.a || 'bolt', p.c || 'magenta', 80)),

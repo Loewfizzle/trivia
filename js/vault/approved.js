@@ -2,6 +2,7 @@
 // export (GET /api/admin?lab=export — ids + marks, edge-cached a minute) once a visit; a card / emblem draws its NEW art (its strip, its
 // effect) only when the owner has marked it APPROVE in THE CARD LAB — anything else keeps today's placeholder. The lab itself always
 // shows everything (it's where the marks are made). Profiles are polish: /api down → nothing new ships (the placeholders stand).
+import { DEV_CARDS } from '../core/dev-cards.js';
 let marksP = null;
 // (the look previews on THIS machine only — localhost / 127.0.0.1, never the live site: &labmarks=all = every lab item approved, so a
 //  preview page with no /api shows the real strips)
@@ -14,5 +15,11 @@ export function labMarks() {
 }
 /** is this item's new art approved? */
 export async function isApproved(id) { const m = await labMarks(); return !!(m[id] && m[id].m === 'approve'); }
-/** the approved ids (a set) */
-export async function approvedIds() { const m = await labMarks(); return new Set(Object.entries(m).filter(([, v]) => v && v.m === 'approve').map(([k]) => k)); }
+/** the approved ids (a set) — + THE TWO DEV CARDS (THE VAULT 2B: only the owner can ever hold them, and he IS the lab — his own card shows
+ *  its art while he marks it; their lab rows still carry his marks) */
+export async function approvedIds() {
+  const m = await labMarks();
+  const out = new Set(Object.entries(m).filter(([, v]) => v && v.m === 'approve').map(([k]) => k));
+  for (const id of DEV_CARDS) { out.add(id); out.add(`full-${id}`); }
+  return out;
+}

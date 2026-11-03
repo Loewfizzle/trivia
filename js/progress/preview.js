@@ -22,7 +22,9 @@ export function sampleProfile(q = new URLSearchParams()) {
   const xp = XP_AT[23] + 260;
   const it = {}; let t = 1;
   for (const id of rewardsUpTo(23)) it[id] = t++;
-  for (const id of ['glow-ember', 'emb-key', 'card-brushed', 'card-founder', 'flame-full', 'glow-afterglow', 'emb-owl', 'tube-breath', 'tube-chase', 'glow-gold', 'glow-spark', 'emb-snowflake']) it[id] = t++;   // (2A: the samples' tube styles, glows + an ice emblem)
+  for (const id of ['glow-ember', 'emb-key', 'card-brushed', 'card-founder', 'flame-full', 'glow-afterglow', 'emb-owl', 'tube-breath', 'tube-chase', 'glow-gold', 'glow-spark', 'emb-snowflake', 'card-inferno', 'card-prism', 'card-marquee', 'card-glitter', 'card-camo', 'card-zebra', 'card-platinum', 'emb-torch', 'emb-house', 'emb-lightning', 'emb-prism', 'emb-sweetheart', 'emb-sg-tr3b', 'tube-twotone']) it[id] = t++;
+  // (THE VAULT 2B: &dev=1 — the owner's own: THE TWO DEV CARDS + Nº 0001)
+  if (q.get('dev') === '1') { it['card-dev-switchboard'] = t++; it['card-dev-source'] = t++; }   // (2A: the samples' tube styles, glows + an ice emblem)
   // (PROGRESSION B: three CITY SIGHTINGS spotted — their pairs; the album shows the prints the owner's &sgdemo links took on this device)
   const sgAt = Date.UTC(2026, 10, 2, 3, 14);
   for (const [k, id] of ['ufo', 'skull', 'btc'].entries()) { it[`card-sg-${id}`] = sgAt + k * 864e5; it[`emb-sg-${id}`] = sgAt + k * 864e5; }
@@ -31,7 +33,7 @@ export function sampleProfile(q = new URLSearchParams()) {
   return {
     pid: 'ppreview00000',
     priv: { bd: q.get('bd') === '0' ? null : { m: 11, d: 3 }, bdAt: Date.UTC(2027, 10, 1) },
-    profile: { n: NAME, t: '0042', a: 'diamond', c: 'magenta', x: xp, at: Date.UTC(2026, 9, 3), s: n, sd: null, cd: q.get('card') || null, g: null, fd: true },
+    profile: { n: NAME, t: '0042', mn: q.get('dev') === '1' ? 1 : 42, a: 'diamond', c: 'magenta', x: xp, at: Date.UTC(2026, 9, 3), s: n, sd: null, cd: q.get('card') || null, g: null, fd: true },
     stats: { xp, g: { prism: { p: 81, w: 27 }, overclock: { p: 47, w: 14 } }, b: { 'prism-rush': { a: 1 }, 'overclock-std': { a: 1 }, x1: { a: 1 }, x2: { a: 1 }, x3: { a: 1 }, x4: { a: 1 } }, st: sampleStreak(n, q.get('state') || 'lit'), it, ac, sg: { ufo: 3, skull: 1, btc: 2 }, fv: Number(q.get('fv') || 1) },
   };
 }
@@ -93,8 +95,10 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
       for (const it of ITEMS.filter(x => x.kind === 'card')) host.append(h('div.lbl', `${it.name} · ${it.tier.toUpperCase()}`), gildedCard(data.profile, {}, { card: it.id, st: data.stats.st }));
     } else {
       host.append(gildedCard(data.profile, {}, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
-      if (view === 'profile' || !root) host.append(h('div.pg-prof', ...progressSections(data, { name: NAME, preview: true, onFlame: () => openStreakCard(data.stats.st), onWear: (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (!k) return; data.profile[k] = id || null; if (slot === 'card') { host.replaceChildren(); preview(view, new URLSearchParams({ ...Object.fromEntries(q), card: id }), host); return; } host.replaceChildren(); preview(view, q, host, data); } })));
+      if (view === 'profile' || !root) host.append(h('div.pg-prof', ...progressSections(data, { name: NAME, preview: true, onFlame: () => openStreakCard(data.stats.st), onWear: (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (!k) return; data.profile[k] = id || null; if (slot === 'card') { host.replaceChildren(); preview(view, new URLSearchParams({ ...Object.fromEntries(q), card: id }), host); return true; } host.replaceChildren(); preview(view, q, host, data); return true; } })));
     }
+    // (THE VAULT 2B: &dress=1 — the DRESS screen open at once; &tab=emblem|glow|tube)
+    if (q.get('dress') === '1' && !window.__dressOpened) { window.__dressOpened = true; const D = await import('../vault/dress.js'); const d = D.openDress(data, { name: NAME, wear: async (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; data.profile[k] = id || null; return true; } }); if (q.get('tab')) { const b = d.el.querySelector(`[data-tab="${q.get('tab')}"]`); if (b) b.click(); } window.__dress = d; }
     window.__pg = { host };
     return host;
   }

@@ -129,6 +129,8 @@ LAB.push(
   { id: 'glow-gold', kind: 'glow', tier: 'rare', n: 113 },
   { id: 'glow-spark', kind: 'glow', tier: 'rare', n: 114 },
 );
+// THE VAULT 2B — Group 0: THE CROWN's own shape (the owner: two crowns → its own: an imperial crown)
+LAB.push({ id: 'emb-crown', kind: 'emblem', tier: 'rare', n: 115, fin: 'neon' });
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.

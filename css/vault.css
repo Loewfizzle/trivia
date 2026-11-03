@@ -102,7 +102,11 @@ html.vl-lab-html, html.vl-lab-html body.vl-lab-on { height: auto; overflow: visi
 .vl-lab h1 { margin: 2px 0 2px; font: 800 24px/1.15 var(--font-ui); letter-spacing: 0.1em; color: #f5ecda; }
 .vl-lab-k { font: 700 12px/1 var(--font-ui); letter-spacing: 0.3em; color: #d8b46a; }
 .vl-lab-sub { margin: 6px 0 14px; font: 500 14.5px/1.45 var(--font-ui); color: rgba(245, 236, 218, 0.8); }
-.vl-tabs { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 10px; background: linear-gradient(180deg, #07060b 80%, rgba(7, 6, 11, 0)); }
+.vl-tabs { position: sticky; top: 0; z-index: 10; display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 0 10px; background: #07060b; }
+/* (THE VAULT 2B — the owner's catch: the wrapped tab rows faded out over the lobby's "IN THE LOBBY · 8 / 8" header, the label showing
+   through under FULL CARDS → the bar is solid; its soft edge hangs BELOW it (never over a word), and the lobby's header keeps room) */
+.vl-tabs::after { content: ''; position: absolute; left: 0; right: 0; top: 100%; height: 14px; pointer-events: none; background: linear-gradient(180deg, #07060b, rgba(7, 6, 11, 0)); }
+.vl-lobby { scroll-margin-top: 140px; }
 .vl-tab { min-height: 44px; padding: 0 14px; border-radius: 10px; border: 0; cursor: pointer; font: 800 13px/1 var(--font-ui); letter-spacing: 0.14em; color: #f5ecda; background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.4); }
 .vl-tab.is-on { background: linear-gradient(180deg, #fbf0c8, #e2c27a 40%, #a9823c 55%, #e8cd8a); color: #1d1405; box-shadow: none; }
 .vl-tab[disabled] { opacity: 0.45; cursor: default; }
@@ -564,6 +568,10 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 @keyframes ve-beamr { 0%, 100% { opacity: 0.16; } 50% { opacity: 0.6; } }
 /* THE PROMINENCE RULE as a budget (Group 2 — 8 legendary scenes + 8 emblems at 4× CPU): LEAD plays every layer; EVEN its signature
    motion only (the secondary layers .ve-2 rest on their still frame); QUIET holds the still frame */
+/* THE VAULT 2B — the neon shapes' own accents (emblem-art.js SH[x].fx): THE CROWN's band gems twinkling in turn + the glint off its cross */
+.ve .ve-gem { animation: ve-gem calc(2.4s * var(--sp)) ease-in-out infinite; animation-delay: calc((var(--i) * 0.8s - 2.4s) * var(--sp)); }
+@keyframes ve-gem { 0%, 100% { opacity: 0.3; transform: scale(0.85); } 35% { opacity: 1; transform: scale(1.12); } 60% { opacity: 0.55; transform: scale(1); } }
+.ve .ve-cglint { animation: ve-glint calc(4.8s * var(--sp)) ease-in-out infinite; }
 .ve:not(.is-lead) .ve-2, .ve.is-quiet .ve-l { animation: none !important; }
 /* reduced motion + the lab's STILL + the diagnostics' EMBLEMS OFF: the still frame */
 @media (prefers-reduced-motion: reduce) { .ve, .ve * { animation: none !important; } }
@@ -611,3 +619,53 @@ body.reduced-fx .vg > i, .vl-still .vg > i, .vg.vg-still > i { animation: none !
 .vl-emb-big .ve { width: 72px; height: 72px; } .vl-emb-big .ve.is-28 { width: 28px; height: 28px; }
 .vl-fc-emb .ve { width: 100%; height: 100%; }
 .vl-mix-k { align-self: center; font: 700 11px/1 var(--font-ui); letter-spacing: 0.18em; color: rgba(245, 236, 218, 0.72); }
+
+/* ===================================================================== THE VAULT 2B — DRESS YOUR CARD (js/vault/dress.js; the owner's
+   approved mock: Downloads\NEON\vault\dress-your-card.png). The profile's ONE panel + YOUR COLLECTION; the DRESS screen: the strip pinned,
+   live, 4 tabs, compact tiles 3 across edged in the TIER colour (--tier-*), the worn one ticked. Text ≥ 4.5 : 1 on #0b0910. */
+.vl-dp-k { margin: 0 0 12px; font: 800 11px/1 var(--font-ui); letter-spacing: 0.3em; color: #e6c47a; }
+.vl-dp-strip { position: relative; }
+.vl-dp-worn { margin: 10px 2px 14px; font: 700 11.5px/1.35 var(--font-ui); letter-spacing: 0.2em; color: #cdbb95; overflow-wrap: anywhere; }
+.vl-dp-go { display: block; width: 100%; min-height: 54px; border: 0; border-radius: 14px; cursor: pointer; font: 800 15px/1 var(--font-ui); letter-spacing: 0.3em; color: #2a1806;
+  background: linear-gradient(180deg, #f6dd98, #d9a94e); box-shadow: inset 0 1px 0 rgba(255, 250, 225, 0.7), inset 0 -2px 0 rgba(120, 70, 10, 0.35), 0 6px 18px -6px rgba(230, 170, 70, 0.55); }
+.vl-dp-go:active { transform: translateY(1px); }
+.vl-dc-row { display: flex; justify-content: space-between; gap: 10px; flex-wrap: wrap; font: 600 14px/1.2 var(--font-ui); color: #e9dcbc; }
+.vl-dc-row b { font: 800 15px/1 var(--font-num); color: #fff4dd; }
+
+.vl-dress { position: fixed; inset: 0; z-index: 70; display: flex; justify-content: center; opacity: 0; transition: opacity 0.2s ease;
+  background: radial-gradient(120% 50% at 50% 0%, rgba(70, 28, 96, 0.55), rgba(0, 0, 0, 0) 70%), #0b0910; color: #f5ecda; }
+.vl-dress.is-in { opacity: 1; }
+.vl-dr-in { width: min(100%, 460px); height: 100%; display: flex; flex-direction: column; padding: calc(env(safe-area-inset-top) + 10px) 16px 0; }
+.vl-dr-head { position: relative; display: flex; align-items: center; justify-content: center; min-height: 52px; }
+.vl-dr-head h2 { margin: 0; font: 800 16px/1 var(--font-ui); letter-spacing: 0.34em; color: #f5ecda; }
+.vl-dr-back { position: absolute; left: 0; top: 50%; transform: translateY(-50%); width: 44px; height: 44px; border: 0; border-radius: 50%; cursor: pointer;
+  font: 400 26px/1 var(--font-ui); color: #f5ecda; background: rgba(255, 255, 255, 0.07); }
+.vl-dr-pin { position: relative; margin-top: 8px; flex: none; }
+.vl-dr-sub { display: flex; align-items: center; justify-content: space-between; margin: 10px 2px 0; font: 800 11px/1 var(--font-ui); letter-spacing: 0.26em; color: #c9b993; }
+.vl-dr-view { min-height: 44px; padding: 0 0 0 12px; border: 0; background: none; cursor: pointer; font: 800 11px/1 var(--font-ui); letter-spacing: 0.26em; color: #f0d79a; }
+.vl-dr-worn { margin: 0 2px 10px; font: 600 11px/1.3 var(--font-ui); letter-spacing: 0.16em; color: #b8a782; overflow-wrap: anywhere; }
+.vl-dr-tabs { flex: none; display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 5px; border-radius: 14px; background: rgba(255, 255, 255, 0.05); }
+.vl-dr-tab { min-height: 44px; border: 0; border-radius: 10px; cursor: pointer; font: 800 12.5px/1 var(--font-ui); letter-spacing: 0.2em; color: #d7c8a6; background: none; }
+.vl-dr-tab[aria-selected="true"] { color: #2a1806; background: linear-gradient(180deg, #f6dd98, #d9a94e); box-shadow: inset 0 1px 0 rgba(255, 250, 225, 0.6); }
+.vl-dr-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch; margin: 12px -16px 0; padding: 0 16px calc(env(safe-area-inset-bottom) + 24px); }
+.vl-dr-note { margin: 0 2px 10px; font: 600 12px/1.35 var(--font-ui); color: #c4b48f; }
+.vl-dr-gridhost { position: relative; }
+.vl-dr-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+/* a tile: its tier's edge, the art on top, the name under it; worn = a gold ring + ✓ */
+.vl-dt { --e: var(--tier-common); position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 118px; padding: 9px 7px 10px;
+  border: 0; border-radius: 14px; cursor: pointer; color: #f5ecda; background: rgba(18, 14, 24, 0.92); box-shadow: inset 0 0 0 1.5px var(--e); -webkit-touch-callout: none; user-select: none; }
+.vl-dt-uncommon { --e: var(--tier-uncommon); } .vl-dt-rare { --e: var(--tier-rare); } .vl-dt-epic { --e: var(--tier-epic); } .vl-dt-legendary { --e: var(--tier-legendary); }
+.vl-dt.is-one { --e: #ff7ad9; box-shadow: inset 0 0 0 1.5px #ffd27a, inset 0 0 0 3px rgba(255, 90, 210, 0.55); }
+.vl-dt.is-on { box-shadow: inset 0 0 0 2px #f2cf7a, 0 0 0 1px rgba(242, 207, 122, 0.35), 0 0 16px rgba(242, 190, 90, 0.35); }
+.vl-dt-on { position: absolute; top: 6px; right: 6px; z-index: 4; width: 22px; height: 22px; border-radius: 50%; display: grid; place-items: center;
+  font: 900 12px/1 var(--font-ui); font-style: normal; color: #2a1806; background: linear-gradient(180deg, #fbeab0, #e0b45a); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
+.vl-dt-art { position: relative; width: 100%; height: 60px; display: grid; place-items: center; }
+.vl-dt-n { font: 800 11.5px/1.2 var(--font-ui); letter-spacing: 0.08em; text-align: center; color: #f5ecda; overflow-wrap: anywhere; }
+.vl-dt-mini.vl-strip { width: 100%; height: 60px; --r: 9px; }
+.vl-dt-mini .vl-frame { z-index: 2; }
+.vl-dt .ve { width: 46px; height: 46px; }
+.vl-dt-name { display: block; max-width: 100%; font: 900 14px/1.1 var(--font-display); letter-spacing: 0.04em; color: #fff8ee; text-align: center; }
+.vl-dt.is-none .vl-dt-n { color: #d8c9a4; }
+/* the DEV cards' tag (ONE OF ONE · DEV — a tier above legendary in look: gold into magenta) */
+.vl-dev1 .vl-tier, .vl-fc.vl-dev1 .vl-tier { color: #2a0f22; letter-spacing: 0.16em; background: linear-gradient(90deg, #ffe39a, #ffb36b 45%, #ff7ad9); box-shadow: 0 0 12px rgba(255, 120, 200, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
+@media (prefers-reduced-motion: reduce) { .vl-dress { transition: none; } }

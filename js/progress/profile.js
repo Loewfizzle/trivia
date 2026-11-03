@@ -6,13 +6,12 @@ import { h } from '../ui/dom.js';
 import { levelInfo } from '../core/levels.js';
 import { streakView, streakDay } from '../core/streak.js';
 import { heldOf } from '../core/achievements.js';
-import { ownedOf, ITEM } from '../core/items.js';
+import { ITEM } from '../core/items.js';
 import { itemSwatch } from './moment.js';
 import { num, pctFor, pctLine, flameIcon } from './look.js';
 import { albumSection } from './album-view.js';
 import { birthdayPanel, favorPanel } from './extras.js';
-import { cardPicker, stylePicker } from '../vault/picker.js';
-import { createSurface } from '../fx/renderer.js';
+import { dressPanel } from '../vault/dress.js';
 
 const sum = (g, k) => Object.values(g || {}).reduce((a, x) => a + ((x && x[k]) || 0), 0);
 
@@ -48,30 +47,12 @@ export function progressSections(data, o = {}) {
     h('div.pg-achs', ...held.map(a => h('div.pg-box.pg-ach', { dataset: { id: a.id } }, itemSwatch(a.item, o.name),
       h('div', h('b', a.name), h('span', a.line), h('em.pg-pct', { dataset: { a: a.id } })))))) : null;
 
-  const owned = s.it || {};
-  const wear = { card: p.cd || 'card-gilded', glow: p.g || null, tube: p.tb || null, shape: p.es || null };
-  // THE VAULT's ONE effect surface (2A): the cards' + the style rows' strips are all slots on it (one canvas, one GPU context)
-  const vault = h('section.pg-panel.pg-vault.fx-host');
-  const surface = createSurface(vault, { label: 'vault' });
-  // YOUR CARDS (THE VAULT 1B): the real slim strips — tap one to wear it, VIEW for the full card (js/vault/picker.js)
-  const cards = ownedOf(owned, 'card');
-  const picker = cards.length ? cardPicker({ surface, cards, wearing: wear.card, who: { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, no: p.t, shape: wear.shape, tube: wear.tube, glow: wear.glow },
-    onWear: id => o.onWear && o.onWear('card', id), onView: id => o.onView ? o.onView(id) : import('../vault/full.js').then(m => m.openFullCard(id, { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, pub: p, no: p.t, at: p.at, fd: !!p.fd, shape: wear.shape, tube: wear.tube, glow: wear.glow })) }) : null;
-  // EMBLEMS · TUBE STYLES · NAME GLOWS (THE VAULT 2A): rows like the cards — each on the player's own strip (js/vault/picker.js#stylePicker)
-  const who = { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, no: p.t };
-  const styleRow = (kind, slot, label) => {
-    const items = ownedOf(owned, kind);
-    if (!items.length) return [];
-    const sp = stylePicker({ surface, kind, items, wearing: wear, who, onWear: id => o.onWear && o.onWear(slot, id) });
-    return [h('div.pg-vault-k', label), sp.el];
-  };
-  vault.append(
-    h('div.pg-prof-h', h('span', 'THE VAULT'), h('em', 'tap one to wear it')),
-    ...(picker ? [h('div.pg-vault-k', 'YOUR CARDS'), picker.el] : []), ...styleRow('emblem', 'shape', 'EMBLEMS'), ...styleRow('tube', 'tube', 'TUBE STYLES'), ...styleRow('glow', 'glow', 'NAME GLOWS'),
-    h('p.pg-only', 'Only what you own — the rest is for you to find.'));
+  // THE VAULT 2B — DRESS YOUR CARD (the owner's approved mock, Nov 3 3:27 pm): ONE panel — your strip as it is now, the worn pieces'
+  // names, a big DRESS YOUR CARD button (the dress screen: js/vault/dress.js) — + YOUR COLLECTION's count line. The long lists are gone.
+  const [vault, collection] = dressPanel(data, { name: o.name, wear: o.onWear, view: o.onView });
   const album = albumSection(s);
   const extras = [favorPanel(data, o), data.priv || o.birthday ? birthdayPanel(data, o) : null];
-  const els = [level, stats, streak, ach, album, vault, ...extras].filter(Boolean);
+  const els = [vault, level, stats, streak, ach, album, collection, ...extras].filter(Boolean);
   pctFor().then(P => { for (const e of els) e.querySelectorAll('.pg-pct').forEach(x => { x.textContent = pctLine(P.a[x.dataset.a]); }); }).catch(() => {});
   return els;
 }

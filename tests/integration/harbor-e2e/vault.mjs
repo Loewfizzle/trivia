@@ -354,7 +354,7 @@ G('vault', async () => {
     const h = await ev(p, `(async () => { const R = await import('/js/fx/renderer.js'); return { slots: R.fxStats.slots, probe: await R.fxProbe(), no: (document.querySelector('.vl-strip.vl-s-founder .vl-no') || {}).textContent || '',
       stamp: (document.querySelector('.vl-fc.vl-s-founder .vl-fc-stamp b') || {}).textContent || '', plat: getComputedStyle(document.querySelector('.vl-strip.vl-s-platinum .vl-mat')).backgroundImage,
       tiers: [...document.querySelectorAll('.vl-strip')].map(x => x.dataset.tier).join() }; })()`);
-    ok(h.slots === 6 && h.probe > 300 && h.no === '№ 3112' && h.stamp === '№ 3112' && /platinum\.webp/.test(h.plat) && h.tiers === 'legendary,legendary,epic',
+    ok(h.slots === 6 && h.probe > 300 && h.no === '№ 0001' && h.stamp === '№ 0001' && /platinum\.webp/.test(h.plat) && h.tiers === 'legendary,legendary,epic',
       `THE 3 HELD CARDS: strips + full cards drawn (${h.slots} slots, ${h.probe} lit samples; tiers ${h.tiers}); FOUNDING MEMBER's gold № on the strip ("${h.no}") + the full card's stamp ("${h.stamp}"); PLATINUM on its metal`);
     await ctx.close(); }
   { const { ctx, p } = await anyPage('/tests/integration/progress-preview.html?view=profile&labmarks=all', { view: [402, 874] });

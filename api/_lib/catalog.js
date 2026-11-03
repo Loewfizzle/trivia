@@ -62,6 +62,10 @@ export const ITEM_ROWS = [
   C('card-confetti', 'CONFETTI', 'rare', '#140a1c', '#ffd6f0', '#ff6fd0', 'Many happy returns.'),
   C('card-circuit', 'CIRCUIT', 'rare', '#04100c', '#7affc0', '#3dffa0', 'Overclocked.'),
   C('card-founder', 'FOUNDING MEMBER', 'legendary', '#0a0806', '#ffdca0', '#ff4fb8', 'Here before the doors opened.'),
+  // ---- THE VAULT 2B — THE TWO DEVELOPER CARDS (ONE OF ONE · DEV — js/core/dev-cards.js): the owner's only, granted by /api/profile 'me' to
+  // ADMIN_PIDS, never earnable (in no reward table); legendary in every rule, a tier above it in look
+  C('card-dev-switchboard', 'THE SWITCHBOARD', 'legendary', '#120a04', '#ffd27a', '#ff3a3a', 'The brass desk you run the city from. One of one.', { dev: true }),
+  C('card-dev-source', 'THE SOURCE', 'legendary', '#030a06', '#7affb0', '#ff4fe0', 'The code that runs the city. One of one.', { dev: true }),
   // ---- PROGRESSION B — CITY SIGHTINGS: each legendary's MATCHED PAIR (a LEGENDARY card + its EMBLEM), first tap that the server
   // believes (core/sightings.js — the ids final, the art THE VAULT's: the city's own baked models on the cards)
   C('card-sg-ufo', 'I WANT TO BELIEVE', 'legendary', '#04100a', '#9dffc4', '#5dff9a', 'The saucer over the harbor. You saw it.', { sg: 'ufo' }),

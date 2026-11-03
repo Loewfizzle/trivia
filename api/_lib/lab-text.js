@@ -2,6 +2,7 @@
 // gets them with the marks (/api/admin labMarks — admins only); never in the site's code. A new lab item = its row here + its id in
 // js/vault/catalog.js#LAB.
 export const LAB_TEXT = {
+ "emb-crown": { "name": "THE CROWN", "motion": "NEON (rare) — its OWN shape now (no second three-spike crown beside THE HOUSE's): an imperial crown, its two violet arches sweeping up to the gold orb + cross, the band's three gems twinkling in turn, a glint off the cross" },
  "emb-key": { "name": "THE KEY", "motion": "NEON — the house style: an amber key with a pink diamond in its bow, two tubes in the sign's own layers (glass, glow, body, white-hot core); still — its motion comes from the tube style you wear" },
  "emb-sweetheart": { "name": "SWEETHEART", "motion": "NEON — a pink neon heart done properly (full round lobes, a long point, a reflection arc) with a little purple heart tucked over its shoulder" },
  "emb-owl": { "name": "THE OWL", "motion": "NEON — an Art Deco owl, no cartoon: a stepped totem in violet, sharp ear tufts, a chevron brow, two narrow almond eyes in gold" },

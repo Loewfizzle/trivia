@@ -651,12 +651,16 @@ export function createTitle() {
     const id = new URLSearchParams(location.search).get('sgdemo');
     if (!id || !createHarbor || !scene || !scene.sightBoxes) return;
     import('../progress/sighting.js').then(m => m.prewarm()).catch(() => {});
+    // (THE VAULT 2B — the owner's ghost-ship check: the demo snapped ~2 s in, the ship still fading in at the edge → it waits until the
+    //  legendary is FULLY VISIBLE: its whole box on screen, faded all the way in (a ≥ 0.85 — the ship's lantern flicker dips a little),
+    //  held 0.9 s; the photo then centres on it — the crop always followed the tap)
     let seenAt = 0; const t0 = performance.now();
+    const whole = x => x.id === id && (x.a == null || x.a >= 0.85) && x.x - (x.w || 0) > 8 && x.x + (x.w || 0) < innerWidth - 8 && x.y - (x.h || 0) > 60 && x.y + (x.h || 0) < innerHeight - 140;
     const look = () => {
       if (destroyed || performance.now() - t0 > 120e3) return;
-      const b = scene.sightBoxes().find(x => x.id === id && x.x > 30 && x.x < innerWidth - 30 && x.y > 60 && x.y < innerHeight - 140);
-      if (b && !seenAt) seenAt = performance.now();
-      if (b && performance.now() - seenAt > 1600) {
+      const b = scene.sightBoxes().find(whole);
+      if (!b) seenAt = 0; else if (!seenAt) seenAt = performance.now();
+      if (b && performance.now() - seenAt > 900) {
         const sg = scene.sightTap(b.x, b.y);
         if (sg) { sg.demo = true; sg.live = false; sg.again = Math.max(0, Math.min(999, Number(new URLSearchParams(location.search).get('sgagain')) || 0)); import('../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); }
         return;

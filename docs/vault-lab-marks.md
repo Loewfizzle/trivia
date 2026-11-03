@@ -1,10 +1,16 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-03 16:54 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet.
+Exported 2026-11-03 20:32 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet.
 
 | # | item | tier | mark | note | when |
 | --- | --- | --- | --- | --- | --- |
-| 34 | LIGHTS OUT (`card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
+| 92 | FOUNDING MEMBER (`card-founder`) | legendary | APPROVE |  | 2026-11-03 19:25 UTC |
+| 93 | THE HOUSE (`card-house`) | legendary | APPROVE |  | 2026-11-03 19:25 UTC |
+| 94 | PLATINUM (`card-platinum`) | epic | APPROVE |  | 2026-11-03 19:25 UTC |
+| 95 | FOUNDING MEMBER · FULL CARD (`full-card-founder`) | legendary | FIX | Needs to be much higher quality.  Close building looks cheap. | 2026-11-03 19:26 UTC |
+| 96 | THE HOUSE · FULL CARD (`full-card-house`) | legendary | FIX | Needs to be much higher quality and more flair more special | 2026-11-03 19:27 UTC |
+| 97 | PLATINUM · FULL CARD (`full-card-platinum`) | epic | APPROVE |  | 2026-11-03 19:27 UTC |
+| 34 | LIGHTS OUT (`card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-03 19:25 UTC |
 | 35 | SKY KING (`card-sg-blackbird`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
 | 36 | AFTERBURNER (`card-sg-f22`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
 | 37 | THE FLYING DUTCHMAN (`card-sg-ghostship`) | legendary | APPROVE |  | 2026-11-03 16:41 UTC |
@@ -12,7 +18,7 @@ Exported 2026-11-03 16:54 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 39 | MAKE A WISH (`card-sg-fireball`) | legendary | APPROVE |  | 2026-11-03 16:29 UTC |
 | 40 | HOT AIR, COLD BLOOD (`card-sg-skull`) | legendary | APPROVE |  | 2026-11-03 16:30 UTC |
 | 41 | FIX THE MONEY, FIX THE WORLD (`card-sg-btc`) | legendary | APPROVE |  | 2026-11-03 16:30 UTC |
-| 42 | LIGHTS OUT · FULL CARD (`full-card-sg-tr3b`) | legendary | FIX | Make the red light pulsing | 2026-11-03 16:42 UTC |
+| 42 | LIGHTS OUT · FULL CARD (`full-card-sg-tr3b`) | legendary | APPROVE |  | 2026-11-03 19:27 UTC |
 | 43 | SKY KING · FULL CARD (`full-card-sg-blackbird`) | legendary | APPROVE |  | 2026-11-03 16:42 UTC |
 | 44 | AFTERBURNER · FULL CARD (`full-card-sg-f22`) | legendary | APPROVE |  | 2026-11-03 16:32 UTC |
 | 45 | THE FLYING DUTCHMAN · FULL CARD (`full-card-sg-ghostship`) | legendary | APPROVE |  | 2026-11-03 16:42 UTC |
@@ -28,8 +34,8 @@ Exported 2026-11-03 16:54 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 6 | THE MARQUEE (`card-marquee`) | epic | APPROVE |  | 2026-11-03 11:24 UTC |
 | 7 | GLITTER BOMB (`card-glitter`) | epic | APPROVE |  | 2026-11-03 11:24 UTC |
 | 8 | I WANT TO BELIEVE (`card-sg-ufo`) | legendary | APPROVE |  | 2026-11-03 11:24 UTC |
-| 9 | BOLT · NEON (`emb-test-neon`) | common | APPROVE |  | 2026-11-03 11:24 UTC |
-| 10 | BOLT · PRISM (`emb-test-prism`) | rare | APPROVE |  | 2026-11-03 11:24 UTC |
+| 9 | BOLT · NEON (`emb-test-neon`) | common | APPROVE |  | 2026-11-03 19:36 UTC |
+| 10 | BOLT · PRISM (`emb-test-prism`) | rare | APPROVE |  | 2026-11-03 19:36 UTC |
 | 19 | GILDED (`card-gilded`) | common | APPROVE |  | 2026-11-03 14:19 UTC |
 | 20 | MIDNIGHT (`card-midnight`) | common | APPROVE |  | 2026-11-03 14:19 UTC |
 | 21 | HEARTBREAKER (`card-heartbreaker`) | uncommon | APPROVE |  | 2026-11-03 14:19 UTC |
@@ -95,3 +101,20 @@ Exported 2026-11-03 16:54 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 89 | WILDFIRE · FULL CARD (`full-card-wildfire`) | legendary | APPROVE |  | 2026-11-03 16:33 UTC |
 | 90 | ETERNAL FLAME · FULL CARD (`full-card-eternal`) | legendary | APPROVE |  | 2026-11-03 16:33 UTC |
 | 91 | THE WITNESS · FULL CARD (`full-card-witness`) | legendary | APPROVE |  | 2026-11-03 16:34 UTC |
+| 98 | THE KEY (`emb-key`) | common | APPROVE |  | 2026-11-03 19:27 UTC |
+| 99 | SWEETHEART (`emb-sweetheart`) | common | APPROVE |  | 2026-11-03 19:27 UTC |
+| 100 | THE OWL (`emb-owl`) | uncommon | APPROVE |  | 2026-11-03 19:27 UTC |
+| 101 | FOUR ON THE FLOOR (`emb-prism`) | rare | APPROVE |  | 2026-11-03 19:27 UTC |
+| 102 | THE HOUSE (`emb-house`) | legendary | APPROVE |  | 2026-11-03 19:27 UTC |
+| 103 | SNOWED IN (`emb-snowflake`) | epic | APPROVE |  | 2026-11-03 19:27 UTC |
+| 104 | THE FLAME (`emb-torch`) | epic | APPROVE |  | 2026-11-03 19:27 UTC |
+| 105 | RAINMAKER (`emb-lightning`) | epic | APPROVE |  | 2026-11-03 19:27 UTC |
+| 106 | LIGHTS OUT (`emb-sg-tr3b`) | legendary | APPROVE |  | 2026-11-03 19:27 UTC |
+| 107 | I WANT TO BELIEVE (`emb-sg-ufo`) | legendary | APPROVE |  | 2026-11-03 19:27 UTC |
+| 108 | THE 12 SIGN-UP SHAPES (`emb-signup`) | common | APPROVE |  | 2026-11-03 19:36 UTC |
+| 109 | TWO-TONE (`tube-twotone`) | common | APPROVE |  | 2026-11-03 19:36 UTC |
+| 110 | BREATHING (`tube-breath`) | uncommon | APPROVE |  | 2026-11-03 19:36 UTC |
+| 111 | A CHASING LIGHT (`tube-chase`) | uncommon | APPROVE |  | 2026-11-03 19:36 UTC |
+| 112 | EMBER (`glow-ember`) | common | APPROVE |  | 2026-11-03 19:36 UTC |
+| 113 | GOLD LEAF (`glow-gold`) | rare | APPROVE |  | 2026-11-03 19:37 UTC |
+| 114 | ELECTRIC (`glow-spark`) | rare | APPROVE |  | 2026-11-03 19:37 UTC |

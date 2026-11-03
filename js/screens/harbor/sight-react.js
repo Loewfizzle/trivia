@@ -21,7 +21,7 @@ const nowMs = () => (typeof performance !== 'undefined' ? performance.now() : Da
 export function box(id, x, y, rx, ry = rx, meta = null) {
   if (!Number.isFinite(x) || !Number.isFinite(y)) return;
   const key = meta && meta.slot != null ? `${id}#${meta.slot}` : id;
-  boxes.set(key, { id, x, y, rx: Math.max(MIN_R, rx + PAD), ry: Math.max(MIN_R, ry + PAD), at: nowMs(), meta });
+  boxes.set(key, { id, x, y, rx: Math.max(MIN_R, rx + PAD), ry: Math.max(MIN_R, ry + PAD), w: rx, h: ry, at: nowMs(), meta });
 }
 /** the legendary under a tap (the nearest by its own size when two overlap; `skip`: ids that can't answer here — the aurora BEHIND the
  *  lit sign: a tap on the letters stays the letters') → { id, key (fire(key) reacts), meta, x, y } | null */
@@ -35,7 +35,9 @@ export function hit(x, y, skip = null) {
   return best;
 }
 /** the boxes up now (tests + &debug: where a tap would land) */
-export function live() { const t = nowMs(), out = []; for (const [key, b] of boxes) if (t - b.at <= FRESH_MS) out.push({ id: b.id, key, x: Math.round(b.x), y: Math.round(b.y), rx: Math.round(b.rx), ry: Math.round(b.ry) }); return out; }
+/** (THE VAULT 2B: + a = how visible it is this frame, 0..1 — a craft fading in passes meta.a; the owner's &sgdemo waits for a whole,
+ *  fully lit craft before it snaps; w / h = its own half size, without the finger's pad) */
+export function live() { const t = nowMs(), out = []; for (const [key, b] of boxes) if (t - b.at <= FRESH_MS) out.push({ id: b.id, key, x: Math.round(b.x), y: Math.round(b.y), rx: Math.round(b.rx), ry: Math.round(b.ry), w: Math.round(b.w), h: Math.round(b.h), a: b.meta && b.meta.a != null ? Math.round(b.meta.a * 100) / 100 : 1 }); return out; }
 /** start a reaction now */
 export function fire(key, at = null) { const id = String(key).split('#')[0]; fired.set(key, { t0: nowMs(), len: (REACT_LEN[id] || 1.4) * 1000, at }); }
 /** where the tap landed for a running reaction ({ x, y } | null — the aurora's ripple starts there) */

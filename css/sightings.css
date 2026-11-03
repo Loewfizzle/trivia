@@ -80,6 +80,12 @@
 .sg-emb { width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 8px 0 7px; font-size: 32px;
   color: #fff; background: radial-gradient(circle, rgba(255, 79, 184, 0.16), rgba(0, 0, 0, 0) 70%); box-shadow: inset 0 0 0 2px rgba(255, 140, 210, 0.85), 0 0 18px rgba(255, 79, 184, 0.6), inset 0 0 14px rgba(255, 79, 184, 0.5);
   text-shadow: 0 0 8px #ff4fb8, 0 0 2px #fff; }
+/* (THE VAULT 2B: both tiles the card's height — the art centred in it, the two names on one baseline) */
+.sg-art { width: 100%; max-width: 168px; aspect-ratio: 1.586; display: flex; align-items: center; justify-content: center; }
+.sg-art .sg-card { max-width: none; }
+.sg-art .sg-emb { margin: 0; }
+.sg-emb.is-art { width: 92px; height: 92px; background: none; box-shadow: none; border-radius: 0; }
+.sg-emb.is-art .ve { width: 72px; height: 72px; }
 .sg-modal.is-reveal .sg-item { animation: sg-pop 0.5s cubic-bezier(.2, 1.4, .4, 1) both; }
 .sg-modal.is-reveal .sg-item + .sg-item { animation-delay: 0.14s; }
 @keyframes sg-pop { 0% { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.86); } 100% { opacity: 1; transform: none; } }

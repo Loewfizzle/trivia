@@ -93,8 +93,9 @@ test('THE MOTION RULE: the 2A keyframes animate transform + opacity only; every 
 
 test('THE PICKER: emblems · tube styles · glows as rows on the player\'s own strip (one surface for THE VAULT); THE LAB: EMBLEMS + GLOWS tabs', () => {
   const pr = read('js/progress/profile.js'), pk = read('js/vault/picker.js'), lab = read('js/vault/lab-views.js');
-  for (const [k, slot] of [['emblem', 'shape'], ['tube', 'tube'], ['glow', 'glow']]) assert.match(pr, new RegExp(`styleRow\\('${k}', '${slot}'`));
-  assert.match(pr, /const surface = createSurface\(vault, \{ label: 'vault' \}\)/);
+  // (THE VAULT 2B: the profile's long rows became DRESS YOUR CARD — js/vault/dress.js, tested in vault-2b.test.mjs; the picker's row
+  //  builders stay for the lab + the previews)
+  assert.match(pr, /dressPanel\(data, /);
   assert.match(pk, /export function stylePicker\(o\)/); assert.match(pk, /'WEARING ✓'/);
   assert.doesNotMatch(pr, /pg-vitem/, 'the old tiles gone');
   for (const v of ['emblems', 'glows']) assert.match(lab, new RegExp(`dataset: \\{ v: '${v}' \\}`));

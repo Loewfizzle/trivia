@@ -221,6 +221,15 @@ async function run(sg, ctx, claimP) {
   savePhoto();
 }
 
+/** the reveal's emblem: its real art (js/vault/emblem-art.js) once the owner has APPROVED it in THE CARD LAB (or on his own preview) */
+function upgradeEmblem(box, id, preview) {
+  Promise.all([import('../vault/emblem-art.js'), import('../vault/approved.js')]).then(async ([E, A]) => {
+    if (!E.hasArt(id)) return;
+    if (!preview && !(await A.approvedIds()).has(id)) return;
+    box.classList.add('is-art'); box.replaceChildren(E.emblemEl({ id, mode: 'lead', size: 72 }));
+  }).catch(() => {});
+}
+
 /** THE POLAROID big → SPOTTED → THE REVEAL (first) — held until a tap */
 async function bigMoment(sg, { pol, chip, first, preview, still }) {
   const s = SIGHTING[sg.id];
@@ -231,9 +240,14 @@ async function bigMoment(sg, { pol, chip, first, preview, still }) {
   const pairArt = pairCard(sg.id);
   let scene = null;
   import('../vault/full.js').then(V => V.upgradeScene(pairArt, s.card, { label: 'reveal' })).then(r => { scene = r; }).catch(() => {});
+  // (THE VAULT 2B — the owner's reveal check: the two names on ONE line — both tiles the card's height, the art centred in it; the
+  //  emblem = its REAL art (the city's own model's outline) once approved in THE CARD LAB — or on the owner's own &sgdemo preview —, the
+  //  placeholder glyph until then)
+  const embBox = h('div.sg-emb', ITEM[s.emblem] ? ITEM[s.emblem].glyph : '✦');
+  upgradeEmblem(embBox, s.emblem, !!sg.demo);
   const pair = h('div.sg-pair',
-    h('div.sg-item', h('small', 'LEGENDARY CARD'), pairArt, h('b', ((ITEM[s.card] || {}).name || s.what)), pctEl),
-    h('div.sg-item', h('small', 'EMBLEM'), h('div.sg-emb', ITEM[s.emblem] ? ITEM[s.emblem].glyph : '✦'), h('b', ((ITEM[s.card] || {}).name || s.what)), h('em', '')));
+    h('div.sg-item', h('small', 'LEGENDARY CARD'), h('div.sg-art', pairArt), h('b', ((ITEM[s.card] || {}).name || s.what)), pctEl),
+    h('div.sg-item', h('small', 'EMBLEM'), h('div.sg-art', embBox), h('b', ((ITEM[s.emblem] || ITEM[s.card] || {}).name || s.what)), h('em', '')));
   const go = h('button.btn.btn-primary.sg-go', { type: 'button' }, 'CONTINUE');
   const modal = h('div.sg-modal', { class: `${first ? 'has-pair' : ''} ${still ? 'sg-still' : ''}`, role: 'dialog', 'aria-label': `${s.what} — spotted` }, stage, h('div.sg-foot', go));
   // the print GROWS BACK from the corner into the middle (the same element — its photo + its developing carry on)

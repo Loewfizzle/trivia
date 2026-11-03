@@ -1,6 +1,6 @@
 // Profiles on the server: automatic creation, name tags, restore keys, renames, the leaderboard opt-out.
 //
-//   profiles/{pid}: { n, nk, t, a, c, x, r, at, h? }   PUBLIC (name, tag, avatar, colour, XP, rank, hidden-from-boards)
+//   profiles/{pid}: { n, nk, t, a, c, x, r, at, h?, mn }   PUBLIC (name, tag, avatar, colour, XP, rank, hidden-from-boards, MEMBER Nº — VAULT 2B)
 //   uids/{uid}: pid                                    the device ↔ profile link (readable by that uid only)
 //   ppriv/{pid}: { kh, at, nameAt, opt?, ban?, uids{uid:at} }   server only
 //   pkeys/{keyHash}: pid                               server only — the key itself is never stored
@@ -17,6 +17,7 @@ import { sanitizeName } from '../../js/core/room-logic.js';
 import { levelOf } from '../../js/core/levels.js';
 import { OLD_FINISH, OLD_GLOW } from '../../js/core/items.js';
 import { NAME_MAX, AVATAR_IDS, COLORS } from '../../js/config.js';
+import { memberNo } from './members.js';
 
 export const RENAME_MS = 24 * 3600_000;
 const RESTORE_LIMIT = { uid: 10, ip: 40, windowMs: 3600_000 };
@@ -47,7 +48,8 @@ export async function publicProfile(pid) {
   const m = typeof p.m === 'number' ? p.m : matchCount({ g: await val(`pstats/${pid}/g`) });
   // PROGRESSION A: l = the level (derived from x when an old profile lacks it); what they WEAR — cd card · g glow · tb tube style · es
   // emblem shape (item ids, core/items.js; the old VAULT's finish / glow ids mapped)
-  return { pid, n: p.n, t: p.t, a: p.a, c: p.c, x: p.x || 0, l: p.l || levelOf(p.x || 0), r: p.r || 0, h: !!p.h, at: p.at || 0, s: p.s || 0,
+  // (THE VAULT 2B: mn = the MEMBER NUMBER — sequential, never reused, the owner Nº 1; members.js — never the name tag's digits)
+  return { pid, n: p.n, t: p.t, mn: p.mn || null, a: p.a, c: p.c, x: p.x || 0, l: p.l || levelOf(p.x || 0), r: p.r || 0, h: !!p.h, at: p.at || 0, s: p.s || 0,
     cd: p.cd || OLD_FINISH[p.f] || null, g: OLD_GLOW[p.g] || p.g || null, tb: p.tb || null, es: p.es || null, fd: !!p.fd, sd: p.sd || null, bid: boardId(pid), m, mm: minMatches() };
 }
 
@@ -101,6 +103,7 @@ export async function ensureProfile(uid, info = {}, now = Date.now()) {
       if (info.avatar && prof.a !== a) patch.a = a;
       if (info.color && prof.c !== c) patch.c = c;
       if (Object.keys(patch).length) await ref(`profiles/${pid}`).update(patch);
+      if (!prof.mn) await memberNo(pid, now).catch(() => null);
       const out = { pid };
       if (info.name && sanitizeName(info.name, NAME_MAX) && prof.n !== name) {
         try { await rename(pid, name, { now }); out.renamed = true; } catch (e) {
@@ -130,6 +133,7 @@ export async function ensureProfile(uid, info = {}, now = Date.now()) {
     [`ppriv/${pid}/uids/${uid}`]: now,
   });
   const key = await newKey(pid);
+  await memberNo(pid, now).catch(() => null);
   return { pid, profile: await publicProfile(pid), key, created: true };
 }
 

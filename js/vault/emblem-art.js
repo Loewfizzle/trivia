@@ -56,6 +56,18 @@ const SH = {
     inner: 'M24 40 C 19.5 40, 17.5 36.5, 18.5 32.5 C 19.3 29.5, 22 28, 22.5 24.5 C 25.5 27, 26 29.5, 25.6 31 C 27.5 30, 28.4 28.8, 28.8 27 C 30.5 29.5, 31 33, 30 35.8 C 29 38.6, 26.8 40, 24 40 Z',
     cracks: 'M14.5 31 L17.2 33.5 L16.4 36.8 M33.6 24.2 L31.4 27.5 L33 30.2 M20.4 17.5 L21.6 20.2 M29.5 13.5 L28.7 17.4 L30.6 19.4 M12.8 26.6 L15.6 26.1' },
   bolt: { body: BOLT },
+  // emb-crown — THE CROWN (level 55, RARE): its OWN shape (the owner, Nov 3 — never a second of emb-house's three-spike gold crown): an
+  // IMPERIAL crown — a jewelled band, two arches sweeping up to meet in the middle, the orb + cross on top; violet neon arches, the orb +
+  // cross in gold; its three band gems twinkling in turn + a glint off the cross
+  crown2: { tubes: [
+    { d: 'M12.4 31.6 C 8.6 22.5, 14.5 15.2, 24 15.8 C 33.5 15.2, 39.4 22.5, 35.6 31.6 M24 15.8 V31.6', col: '#b46bff' },
+    { d: 'M11 31.6 H37 V38.4 H11 Z M21.3 11 A2.7 2.7 0 1 0 26.7 11 A2.7 2.7 0 1 0 21.3 11 Z M24 8.3 V2.6 M21.4 5.1 H26.6', col: '#ffcf5a' }],
+    fx(C) {
+      [[15.5, 35, '#ff5fb4'], [24, 35, '#5fd7ff'], [32.5, 35, '#ff5fb4']].forEach(([x, y, col], i) => {
+        const L = C.layer('ve-gem', `--i:${i};transform-origin:${pct(x)} ${pct(y)}`); L.g.append(el('circle', { cx: x, cy: y, r: 3.2, fill: col, opacity: 0.35 }), el('circle', { cx: x, cy: y, r: 1.35, fill: '#fff' }));
+      });
+      glint(C, 24, 3.6, 3.4, 've-2 ve-cglint');
+    } },
   // emb-sg-tr3b — THE REAL TR-3B, seen from below as the city flies it (screens/harbor/legends.js#tr3bCorners un-flattened: an equilateral
   // triangle, its corners rounded at 3.5 % of its length, the recessed corner pods at 0.8 of the way out, the hub at 0.135): nose up
   tr3b: (() => {
@@ -86,6 +98,8 @@ export const EMBLEM_ART = Object.freeze({
   'emb-lightning': { shape: 'bolt', finish: 'glitch' },
   'emb-sg-tr3b': { shape: 'tr3b', finish: 'chrome' },
   'emb-sg-ufo': { shape: 'saucer', finish: 'galaxy' },
+  // THE VAULT 2B — the rest of the set
+  'emb-crown': { shape: 'crown2', finish: 'neon' },
 });
 export const FINISHES = Object.freeze(['neon', 'prism', 'chrome', 'gold', 'ice', 'molten', 'glitch', 'galaxy']);
 /** the tube styles with a look (2A); the others wear as a plain tube until 2B builds theirs */
@@ -308,7 +322,9 @@ export function emblemEl(o = {}) {
   box.className = `ve ve-f-${finish}${style ? ` ve-t-${style}` : ''} is-${mode}`;
   box.setAttribute('aria-hidden', 'true'); box.dataset.emb = o.id || o.avatar || 'bolt';
   const C = ctx(box), B = C.layer('ve-base');
-  if (art && finish === 'neon') neon(C, SH[art.shape], { tube: style }, B);
+  // (THE VAULT 2B: a neon shape may carry its OWN accents — { tubes, fx(C) }: gems twinkling, a spark, a flap — on layers of their own,
+  //  the tube style still on its tubes)
+  if (art && finish === 'neon') { const S = SH[art.shape]; neon(C, S.tubes || S, { tube: style }, B); if (S.fx) S.fx(C, mode); }
   else if (art) FIN[finish](C, B);
   else avatarTubes(C, B, o.avatar, colorHex(o.color || 'magenta'), { tube: style });
   if (o.size) { box.style.width = `${o.size}px`; box.style.height = `${o.size}px`; if (o.size <= 30) box.classList.add('is-28'); }

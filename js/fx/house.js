@@ -5,12 +5,13 @@
 // and over the door a CROWN in gold neon, breathing. Behind the roof the FINALE: gold willow shells bursting in turn (the city's finale
 // colour — fireworks.js's willow: long, slow, drooping gold), their trails raining down behind the building, each burst washing the
 // front in gold. A 9-second loop; the still frame: everything lit, two willows hanging. + THE BORDER LASER (gold).
-import { glow, stamp, sprite, rng, smooth, fract } from './kit.js';
+import { glow, stamp, sprite, rng, smooth, fract, sparkle } from './kit.js';
 import { drawLaser } from './laser.js';
 import { rrect } from './renderer.js';
 import { backdrop, bakeDpr } from './sg-kit.js';
 import { signLayout, bladeLayout, drawTube, hum, PINK, CREAM, GOLD } from './sign-kit.js';
 import { flattenPath } from '../core/tube-path.js';
+import { front as realFront } from './speak-front.js';
 
 const LOOP = 9;
 const SKY = { sky: [[0, '#04030a'], [0.55, '#0c0818'], [1, '#160c16']], stars: 24, starRgb: '240,232,255', starTo: 0.6, seed: 100,
@@ -89,9 +90,120 @@ function willowAt(j, n, a, R, seed) {
   return [Math.cos(th) * out, Math.sin(th) * out * 0.92 + droop];
 }
 
+// ---------------------------------------------------------------- THE FULL CARD (THE VAULT 2B — the owner's lab FIX: "Needs to be much
+// higher quality and more flair, more special"). the speakeasy at full blast, re-built on the city's OWN building — its real front
+// painted face-on by the city's painters (speak-front.js: the brick by kiln run, the chevron belt, the dentil cornice, the Deco crest,
+// the EST. 1924 date stone, the wall-washers' cones, the barbershop + its awning, THE REAL ROOMS lit — the bar, the jazz room's honey
+// shade, the card game under its green lamp, the TV apartment). Every sign lit: THE BLADE off the corner (SPEAKEASY in the city's tube
+// alphabet, its marquee bulbs chasing), the title's NEON over the awning, the GOLD NEON CROWN over the side door (breathing, its light
+// on the brick). The FLAIR: the finale's gold willows burst behind the roof in turn, each one washing the whole front gold + glinting off
+// the gilt; the party upstairs (the rooms' light pulsing in the bar's colours), the barbershop lit up, gold sparkles drifting down from
+// the bursts in front. The still frame: all lit, two willows hanging.
+const bladeMemo = new Map();
+const bladeFor = (hpx) => { let b = bladeMemo.get(hpx); if (!b) { b = bladeLayout('SPEAKEASY', 0, 0, hpx / 9 / 1.36, CREAM, 1.35, 0.36); bladeMemo.set(hpx, b); } return b; };
+const neonMemo = new Map();
+const neonFor = (wpx) => { let b = neonMemo.get(wpx); if (!b) { b = signLayout([{ logo: true, y: 0, h: wpx * 100 / 332, cx: wpx / 2, col: PINK, tw: 9 }]); neonMemo.set(wpx, b); } return b; };
+const crownMemo = new Map();
+const crownFor = (cw) => {
+  let b = crownMemo.get(cw);
+  if (!b) { const sc = cw / 30; b = [{ key: 'crownF:' + cw.toFixed(2), polys: flattenPath('M3 17 H27 M4 14 L1.5 3.5 L9 9 L15 0.5 L21 9 L28.5 3.5 L26 14 Z', sc, 0, 0, 1.2), col: GOLD, tw: 1.7 * sc }]; crownMemo.set(cw, b); }
+  return b;
+};
+function drawFullHouse(c, s, t, Q) {
+  const { w, h } = s, rad = s.opts.radius || 12, dpr = bakeDpr(Q), still = Q.still, tt = still ? 4.4 : t, q = Q.q || 1;
+  const F = realFront((h * 0.74) / 12.3, dpr, { key: 'hs' });
+  c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
+  c.drawImage(backdrop('hs-full2', w, h, dpr, { ...SKY, skyline: { ...SKY.skyline, y: 0.9, tall: 0.26 } }), 0, 0, w, h);
+  const bw = F.cv ? F.wpx : w * 0.46, bh = F.cv ? F.hpx : h * 0.8, bx = w - 36 - bw, by = h * 0.885 - bh + (F.cv ? F.k * 0.3 : 0), street = h * 0.885;
+  const U = u => bx + u * (bw / 11.2), Vy = v => (F.cv ? by + F.v2y(v) : by + bh - v * (bh / 12.3));
+  // THE FINALE (behind the roof): gold willows bursting in turn over the building + the sky left of it, their trails raining down
+  c.globalCompositeOperation = 'lighter';
+  const R = w * 0.22, roofY = Vy(11.3);
+  let flash = 0;
+  const shells = [{ t: 0, x: bx + bw * 0.28, y: roofY - h * 0.1, n: 30 }, { t: 3, x: bx + bw * 0.82, y: roofY - h * 0.16, n: 30 }, { t: 6, x: w * 0.3, y: h * 0.26, n: 34 }];
+  for (const S of shells) for (const lap of [0, -1]) {
+    const a = fract((tt - S.t) / LOOP) * LOOP + lap * LOOP;
+    if (a < 0 || a > LIFE) continue;
+    if (a < 0.5) { const f = 1 - a / 0.5; flash = Math.max(flash, f); stamp(c, glow('255,214,140', 0.2, 64), S.x, S.y, R * 1.5, 0.5 * f); }
+    const n = Math.max(12, Math.round(S.n * q)), fade = Math.pow(1 - a / LIFE, 1.3);
+    for (let j = 0; j < n; j++) for (let m = 0; m < 9; m++) {
+      const am = a - m * 0.13; if (am < 0) break;
+      const [px, py] = willowAt(j, n, am, R, S.t + 1), f = 1 - m / 9, tw = m === 0 ? 0.75 + 0.25 * Math.sin(tt * 17 + j * 3.7) : 1;
+      stamp(c, glow(a > 3.2 ? '255,150,60' : '255,210,130', 0.45, 32), S.x + px, S.y + py, 5 * (0.55 + f), fade * (0.25 + 0.75 * f) * 0.95 * tw);
+    }
+  }
+  c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+  // the pavement under it (granite flags, the shop's light pooling on them) — the card's foot words sit over it
+  { const g = c.createLinearGradient(0, street - 2, 0, h); g.addColorStop(0, '#1c1418'); g.addColorStop(1, '#0a070a'); c.fillStyle = g; c.fillRect(0, street - 2, w, h - street + 2);
+    c.fillStyle = 'rgba(255,220,170,0.16)'; c.fillRect(0, street - 2, w, 1); }
+  // THE BUILDING (the city's own) + its light
+  if (F.cv) c.drawImage(F.cv, bx, by, bw, bh);
+  else { c.fillStyle = '#2a1016'; c.fillRect(bx, by, bw, bh); }
+  c.globalCompositeOperation = 'lighter';
+  // the party upstairs: each room's light breathing in the bar's colours (pink · teal · amber), in turn
+  if (F.cv) F.wins.forEach((r, i) => {
+    const col = ['255,120,200', '120,230,230', '255,190,110'][i % 3], a = still ? 0.16 : 0.1 + 0.14 * Math.max(0, Math.sin(tt * 1.6 + i * 1.3));
+    c.globalAlpha = a; c.fillStyle = 'rgb(' + col + ')'; c.fillRect(bx + r.x0, by + r.y0, r.x1 - r.x0, r.y1 - r.y0);
+  });
+  c.globalAlpha = 1;
+  // the barbershop lit up (full blaze — its window warm gold, the light spilling onto the pavement)
+  {
+    const x0 = U(3.3), x1 = U(7.9), y0 = Vy(3.12), y1 = Vy(0.78);
+    const g = c.createLinearGradient(0, y0, 0, y1); g.addColorStop(0, 'rgba(255,214,140,0.42)'); g.addColorStop(1, 'rgba(255,170,90,0.6)');
+    c.fillStyle = g; c.fillRect(x0, y0, x1 - x0, y1 - y0);
+    stamp(c, glow('255,180,100', 0.1, 64), (x0 + x1) / 2, y1 + 4, (x1 - x0) * 1.6, 0.4, 26);
+  }
+  // each burst washes the front gold + glints off the gilt (the cornice, the crest, the date stone)
+  if (flash > 0.01) {
+    stamp(c, glow('255,200,120', 0.1, 64), bx + bw * 0.5, roofY, bw * 1.7, 0.32 * flash, bh * 0.9);
+    const r = rng(7);
+    for (let i = 0; i < 9; i++) stamp(c, sparkle('255,240,200'), U(0.6 + r() * 10), Vy(9.9 + r() * 2.2), 7 + r() * 6, flash * (0.4 + r() * 0.6));
+  }
+  stamp(c, glow('255,160,80', 0.1, 64), bx + bw * 0.5, h, bw * 1.5, 0.3, 30);
+  c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+  // THE NEON over the awning (the title's own tubes, pink) — on a dark sign panel on the belt course
+  const nw = bw * 0.36, nh = nw * 100 / 332, nx = U(5.6) - nw / 2, ny = Vy(3.62) - nh * 0.5;
+  c.fillStyle = 'rgba(10,6,10,0.88)'; c.fillRect(nx - nh * 0.22, ny - nh * 0.16, nw + nh * 0.44, nh * 1.32);
+  c.strokeStyle = 'rgba(214,178,106,0.75)'; c.lineWidth = 1; c.strokeRect(nx - nh * 0.22 + 0.5, ny - nh * 0.16 + 0.5, nw + nh * 0.44 - 1, nh * 1.32 - 1);
+  neonFor(Math.round(nw)).forEach((L, i) => drawTube(c, L, 1, dpr, nx, ny, still ? 1 : hum(tt, i + 20)));
+  // THE CROWN over the side door (gold neon, breathing — the level-100 mark), its light on the brick
+  const cw = Math.round((U(10.6) - U(9.0)) * 1.15), cx = U(9.8) - cw / 2, cy = Vy(3.72);
+  const breathe = still ? 1 : 0.76 + 0.24 * Math.sin(tt * 2.1);
+  c.globalCompositeOperation = 'lighter'; stamp(c, glow('255,190,70', 0.15, 64), cx + cw / 2, cy + cw * 0.3, cw * 2.6, 0.5 * breathe, cw * 1.6); c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
+  drawTube(c, crownFor(cw)[0], 1, dpr, cx, cy, breathe);
+  // THE BLADE off the right corner: its bracket, the board, SPEAKEASY lit, the marquee bulbs chasing round it
+  const bdX0 = bx + bw + 3, bdW = 26, bdY0 = Vy(10.1), bdY1 = Vy(3.9), bdH = bdY1 - bdY0;
+  c.fillStyle = '#16100f'; c.fillRect(bx + bw - 2, bdY0 + 10, 6, 3); c.fillRect(bx + bw - 2, bdY1 - 12, 6, 3);
+  c.fillStyle = '#0c0708'; rrect(c, bdX0, bdY0, bdW, bdH, 3); c.fill();
+  c.strokeStyle = 'rgba(214,178,106,0.85)'; c.lineWidth = 1.2; rrect(c, bdX0 + 2.5, bdY0 + 2.5, bdW - 5, bdH - 5, 2); c.stroke();
+  bladeFor(Math.round(bdH - 14)).forEach((L, i) => drawTube(c, L, 1, dpr, bdX0 + bdW / 2, bdY0 + 8, still ? 1 : hum(tt, i)));
+  c.globalCompositeOperation = 'lighter';
+  {
+    const pts = [], st = 6.2;
+    for (let y = bdY0 + 3; y <= bdY1 - 3; y += st) pts.push([bdX0 + 2, y]);
+    for (let x = bdX0 + 2 + st; x < bdX0 + bdW - 2; x += st) pts.push([x, bdY1 - 2]);
+    for (let y = bdY1 - 3; y >= bdY0 + 3; y -= st) pts.push([bdX0 + bdW - 2, y]);
+    for (let x = bdX0 + bdW - 2 - st; x > bdX0 + 2; x -= st) pts.push([x, bdY0 + 2]);
+    const head = still ? 0 : tt * 11;
+    pts.forEach(([x, y], i) => { const ph = fract((i - head) / 6), on = still ? (i % 3 ? 0.55 : 1) : ph < 0.34 ? 1 : 0.32; stamp(c, glow('255,226,160', 0.4, 32), x, y, 5.2 * (0.6 + 0.4 * on), on); });
+  }
+  // gold sparkles drifting down out of the bursts, in front
+  {
+    const r = rng(55), n = Math.round(26 * q);
+    for (let i = 0; i < n; i++) {
+      const sp = 10 + r() * 16, x = r() * w, ph = r() * 50, y = fract((tt * sp + ph * 13) / (h * 0.9)) * h * 0.9, tw = 0.5 + 0.5 * Math.sin(tt * (5 + r() * 6) + ph);
+      stamp(c, sparkle('255,226,150'), x + Math.sin(tt + ph) * 6, y, 4 + r() * 4, (0.25 + 0.6 * tw) * (still ? 0.8 : 1));
+    }
+  }
+  c.restore();
+  c.globalAlpha = 1; c.globalCompositeOperation = 'source-over';
+  drawLaser(c, w, h, t, { rgb: '255,206,120', still, radius: rad });
+}
+
 export default {
   id: 'house', tier: 'legendary', bleed: 10, stillT: 4.4,
   draw(c, s, t, Q) {
+    if (s.opts.full) { drawFullHouse(c, s, t, Q); return; }
     const { w, h } = s, full = !!s.opts.full, rad = s.opts.radius || 12, dpr = bakeDpr(Q), still = Q.still, tt = still ? 4.4 : t;
     // the building's place: a full card — the right side, tall (the plate on the left); a strip — right of the plate, roof to door
     const k = full ? (h * 0.6) / BH : (h * 1.05) / BH, bx = full ? w * 0.95 - BW * k : w * 0.63 - BW * k * 0.5, by = full ? h * 0.82 - BH * k : h * 0.1;

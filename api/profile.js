@@ -15,7 +15,9 @@ import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/h
 import { ITEM, STARTER } from '../js/core/items.js';
 import { carryOver } from '../js/core/progress.js';
 import { ownerCounts, pctOf, bumpOwners } from './_lib/owners.js';
-import { val, ref } from './_lib/fb.js';
+import { val, ref, adminPids } from './_lib/fb.js';
+import { memberNo } from './_lib/members.js';
+import { DEV_CARDS, isDevCard } from '../js/core/dev-cards.js';
 import { ensureProfile, pidOf, publicProfile, restore, newKey, rename, setShown, privateInfo } from './_lib/profiles.js';
 import { boardPaths, rankOf } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
@@ -67,6 +69,18 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
         await ref(`pstats/${pid}`).transaction(cur => { got = carryOver(cur, now, { founderOpen: fOpen }); return got ? got.next : undefined; });
         if (got) { await bumpOwners(got.items, false, got.ach).catch(() => {}); stats = await val(`pstats/${pid}`); if (stats && stats.fd) await ref(`profiles/${pid}/fd`).set(true); }
       }
+      // THE VAULT 2B — MEMBER Nº (assigned the first time a profile without one asks) + THE TWO DEV CARDS: granted to the owner's profile
+      // (ADMIN_PIDS) only — never earnable, in no reward table; a profile not in ADMIN_PIDS never holds them (taken back if one did)
+      if (profile && !profile.mn) { await memberNo(pid, now).catch(() => null); profile = await publicProfile(pid); }
+      const dev = adminPids().includes(pid), it0 = (stats && stats.it) || {};
+      if (DEV_CARDS.some(id => !!it0[id] !== dev)) {
+        const patch = {};
+        for (const id of DEV_CARDS) patch[`pstats/${pid}/it/${id}`] = dev ? (it0[id] || now) : null;
+        if (!dev && isDevCard(profile && profile.cd)) patch[`profiles/${pid}/cd`] = null;
+        await ref('/').update(patch);
+        stats = await val(`pstats/${pid}`);
+        if (!dev) profile = await publicProfile(pid);
+      }
       const s = stats || {};
       const wk = weekKey(now);
       return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
@@ -93,6 +107,7 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
         if (!id) { patch[`profiles/${pid}/${field}`] = null; continue; }
         const it = ITEM[id];
         if (!it || it.kind !== kind || !(owned[id] || STARTER.includes(id))) throw new ApiError(403, 'locked');
+        if (isDevCard(id) && !adminPids().includes(pid)) throw new ApiError(403, 'locked');   // (THE DEV CARDS: the owner's only)
         patch[`profiles/${pid}/${field}`] = id;
       }
       if (patch[`profiles/${pid}/cd`] !== undefined) patch[`profiles/${pid}/f`] = null;   // the old finish id retires with the first pick

@@ -288,7 +288,7 @@ export function createGhostShip() {
     // (PROGRESSION B — CITY SIGHTINGS: where a tap finds it (the real ship, never its reflection); its reaction — its LANTERNS FLARE, the
     // stern's most, a green-white burst + its halo over the deck; still: the same flare, held)
     const rkG = mirror ? SR.k('ghostship') * 0.6 : SR.k('ghostship');
-    if (!mirror && a > 0.12) SR.box('ghostship', ox, oy - 10 * pu, 20 * pu, 13 * pu);
+    if (!mirror && a > 0.12) SR.box('ghostship', ox, oy - 10 * pu, 20 * pu, 13 * pu, { a });
     c.save();
     c.translate(ox, oy); c.rotate(P.roll * P.dir); c.scale(P.dir, 1);
     // the sprite's origin: the hull's middle (x 15 units) on the waterline

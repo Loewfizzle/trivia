@@ -14,10 +14,12 @@ import { TIER_NAMES } from '../core/items.js';
 import { fullCardEl, mountFull } from './full.js';
 import { emblemEl } from './emblem-art.js';
 import { AVATAR_IDS } from '../config.js';
+import { memberLabel } from '../core/member.js';
 
 const CARDS = LAB.filter(x => x.kind === 'card');
-/** the sample member number the lab dresses FOUNDING MEMBER with (a real card shows the member's own №) */
-const SAMPLE_NO = 3112;
+/** the sample member number the lab dresses FOUNDING MEMBER + the DEV cards with (the owner's own: Nº 0001 — a real card shows the member's own №) */
+const SAMPLE_NO = 1;
+const noOf = n => memberLabel(n);
 // THE DIAGNOSTICS ROW (THE VAULT 1B — the owner's iPhone is the verdict for speed): each switch turns ONE cost off, remembered per device
 // (localStorage vl:diag); &diag=nofx,nolaser,nosprites,nopause,noglow,noemb,nogpu in the address sets them for one visit (the bench).
 const DIAG = [
@@ -120,7 +122,7 @@ export function mountLab(root, o = {}) {
       grid.append(blk);
       if (item.kind === 'card') {
         const g = GUESTS[(item.n - 1) % GUESTS.length];
-        places.push({ stage, rows: [{ card: item.id, name: g.name, lv: g.lv, host: item.n === 1, no: SAMPLE_NO }] });
+        places.push({ stage, rows: [{ card: item.id, name: g.name, lv: g.lv, host: item.n === 1, no: noOf(SAMPLE_NO) }] });
       } else {
         const em = TEST_EMBLEMS[item.id];
         stage.append(h('div.vl-emb-big', emblemSvg(em.finish, 'lead'), emblemSvg(em.finish, 'even', { size: 28 }),
@@ -164,7 +166,7 @@ export function mountLab(root, o = {}) {
       const EMB = ['emb-sg-ufo', 'emb-house', 'emb-sg-tr3b', 'emb-torch', 'emb-snowflake', 'emb-lightning', 'emb-prism', 'emb-sweetheart'], TUB = [null, null, null, null, null, null, null, 'tube-chase'], GLO = ['glow-gold', 'glow-spark', 'glow-ember'];
       // (2A: every guest wears their own sign-up shape on the layered neon renderer — as real players do; 1A's test pair stays on THE STRIPS)
       const AV = ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'], COL = ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'];
-      const rows = GUESTS.map((g, i) => ({ avatar: AV[i], color: COL[i], ...(wearMix.emb ? (wearMix.one ? (/^tube-/.test(wearMix.one) ? { emblem: 'emb-key', tube: wearMix.one } : { emblem: wearMix.one }) : { emblem: EMB[i], tube: TUB[i] }) : {}), ...(wearMix.glow ? { glow: GLO[i % 3] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: SAMPLE_NO + i * 7 }));
+      const rows = GUESTS.map((g, i) => ({ avatar: AV[i], color: COL[i], ...(wearMix.emb ? (wearMix.one ? (/^tube-/.test(wearMix.one) ? { emblem: 'emb-key', tube: wearMix.one } : { emblem: wearMix.one }) : { emblem: EMB[i], tube: TUB[i] }) : {}), ...(wearMix.glow ? { glow: GLO[i % 3] } : {}), card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0, no: noOf(SAMPLE_NO + i * 7) }));
       mounted.push(mountStrips(list, rows, { calm: true, label: 'lobby' }));
       window.__lab && (window.__lab.mix = mix, window.__lab.wear = { ...wearMix });
     };
@@ -223,7 +225,7 @@ export function mountLab(root, o = {}) {
       const blk = h('section.vl-item', { dataset: { id: item.id } }, h('div.vl-item-h', h('b', `${item.n} · ${item.name}`), h('span', `${TIER_NAMES[item.tier]} · NAME GLOW`), h('code', item.id)), stage, h('p.vl-motion', item.motion));
       grid.append(blk);
       places.push({ stage, rows: [{ card: 'card-brushed', name: 'BEN', lv: 23, avatar: 'bolt', color: 'yellow', glow: item.id }, { card: 'card-sg-ufo', name: 'LOEWFIZZLE', lv: 64, avatar: 'alien', color: 'green', glow: item.id }] });
-      const fc = fullCardEl({ card: 'card-midnight', who: { name: 'LOEWFIZZLE', lv: 41, avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 3), no: SAMPLE_NO, glow: item.id } });
+      const fc = fullCardEl({ card: 'card-midnight', who: { name: 'LOEWFIZZLE', lv: 41, avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 3), no: noOf(SAMPLE_NO), glow: item.id } });
       fulls.push([stage, fc]);
       const mark = markRow(item); blk.append(mark); blocks.set(item.id, { blk, mark });
     }
@@ -244,7 +246,7 @@ export function mountLab(root, o = {}) {
     const only = (new URLSearchParams(location.search).get('full') || '').split(',').filter(Boolean);   // (&full=card-a,card-b: the look reviews)
     for (const item of LAB.filter(x => x.kind === 'full' && (!only.length || only.includes(x.of)))) {
       const g = GUESTS[(item.n - 11) % GUESTS.length];
-      const card = fullCardEl({ card: item.of, who: { name: g.name, lv: g.lv, avatar: ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'][(item.n - 11) % 8], color: ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'][(item.n - 11) % 8], at: Date.UTC(2026, 9, 3), no: SAMPLE_NO }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
+      const card = fullCardEl({ card: item.of, who: { name: g.name, lv: g.lv, avatar: ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'][(item.n - 11) % 8], color: ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'][(item.n - 11) % 8], at: Date.UTC(2026, 9, 3), no: noOf(SAMPLE_NO) }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
       const blk = h('section.vl-item', { dataset: { id: item.id } },
         h('div.vl-item-h', h('b', `${item.n} · ${item.name}`), h('span', TIER_NAMES[item.tier]), h('code', item.id)),
         h('div.vl-stage.vl-col', card), h('p.vl-motion', item.motion));

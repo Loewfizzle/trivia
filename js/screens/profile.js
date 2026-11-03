@@ -23,6 +23,7 @@ import { GAME_LIGHT } from '../board/view.js';
 import { boardSfx } from '../board/audio.js';
 import { sfx } from '../audio/sfx.js';
 import { settings } from '../audio/settings.js';
+import { memberLabel } from '../core/member.js';
 
 const HL = { gridlock: [['sunk', 'FLEETS SUNK'], ['w_classic', 'CLASSIC WINS'], ['w_salvo', 'SALVO WINS'], ['w_royale', 'ROYALE WINS'], ['w_arcade', 'ARCADE WINS']], agent: [['esc', 'ESCAPES'], ['spot', 'AGENTS CAUGHT']], signal: [['el', 'ELIMINATIONS']], bluff: [['fool', 'PLAYERS FOOLED']], prism: [['ko', 'KNOCKOUTS']] };
 const num = n => Math.round(n || 0).toLocaleString('en-US');
@@ -226,7 +227,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     import('../vault/full.js').then(async F => {
       if (!(await F.canShowFull(cd)) || n !== paintN || destroyed) return;
       const L = levelOf(data.stats.xp || p.x || 0);
-      fullMounted = F.mountFullCard(els.card, cd, { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: p.t, fd: !!p.fd, shape: p.es, tube: p.tb, glow: p.g, spotted: data.stats.it && data.stats.it[cd] });
+      fullMounted = F.mountFullCard(els.card, cd, { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: memberLabel(p.mn), fd: !!p.fd, shape: p.es, tube: p.tb, glow: p.g, spotted: data.stats.it && data.stats.it[cd] });
     }).catch(() => {});
   }
   // PROGRESSION A: the level, the stats, the streak, the achievements, THE VAULT (only what you own) — then this week's goal + mastery
@@ -265,7 +266,8 @@ export function createView({ onBack = null, overlay = false } = {}) {
       sfx('select');
       paintCard();
       paintProgress();
-    } catch (e) { toast(e.code === 'locked' ? 'THAT ISN’T IN YOUR VAULT' : 'THE VAULT IS CLOSED RIGHT NOW', 'err'); }
+      return true;
+    } catch (e) { toast(e.code === 'locked' ? 'THAT ISN’T IN YOUR VAULT' : 'THE VAULT IS CLOSED RIGHT NOW', 'err'); return false; }
   }
 
   function since(d) {
