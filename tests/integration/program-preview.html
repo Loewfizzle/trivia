@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Program — preview</title>
+<!-- THE VAULT 1B add-on — THE PROGRAM (the radio's middle face) without Firebase: the REAL paint() (screens/harbor/radio-program.js) over
+     the day chart, in a scrolling sheet the size of the radio's. ?at=2026-11-06T21:30 (a local time; default now) · &filter=all|rare -->
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/radio.css">
+<style>html, body { height: 100%; } body { margin: 0; background: #120a10; } .pp { height: 100dvh; overflow-y: auto; padding: 14px 12px 40px; box-sizing: border-box; -webkit-overflow-scrolling: touch; }</style>
+</head>
+<body>
+<div class="pp" id="pp"></div>
+<script type="module">
+const q = new URLSearchParams(location.search);
+if (q.get('filter')) localStorage.setItem('rd:prog', q.get('filter'));
+const { paint } = await import('/js/screens/harbor/radio-program.js');
+const at = q.get('at') ? new Date(q.get('at')).getTime() : Date.now();
+const host = document.getElementById('pp');
+host.replaceChildren(...paint({ st: { moments: [], board: [], intercom: [] }, now: () => at, cancel: { moment() {}, board() {}, intercom() {} }, edit() {} }));
+window.__pp = { rows: () => document.querySelectorAll('.rd-paper:first-child .rd-pr').length };
+document.fonts.ready.then(() => { document.body.dataset.ready = '1'; });
+</script>
+</body>
+</html>

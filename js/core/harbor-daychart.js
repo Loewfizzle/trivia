@@ -2,7 +2,7 @@
 // city does on a day, hour by hour, + a YEAR VIEW of the rare things per month — built FROM THE TIMETABLE + THE PLANNERS (the same code the
 // city runs; never a hand-made list). PURE (no DOM): js/daychart/daychart.js draws it (/daychart + /admin, admins only — the legendaries'
 // times are a spoiler). Also THE 30-SECOND RULE's sampler: in prime time no 30-s window with nothing moving in view (quietWindows).
-import { knob } from './harbor-schedule.js';
+import { knob, scheduleRow } from './harbor-schedule.js';
 import { legendsTonight, mediumDay, showcaseLevel, showcaseOf } from './harbor-showcase.js';
 import { patrolDay } from './harbor-heli.js';
 import { workDay } from './harbor-workers.js';
@@ -39,7 +39,7 @@ export function clockOf(h) { const x = ((h % 24) + 24) % 24, H = Math.floor(x), 
 export function dayChart(dateKey, o = {}) {
   const [y, m, d] = dateKey.split('-').map(Number), off = o.off || 0, seed = o.seed || 1924, lv = o.level || showcaseLevel(), lat = o.lat ?? 42.96, lon = o.lon ?? -85.67;
   const key = `${y}-${pad(m)}-${pad(d)}`, wkey = `${y}-${m}-${d}`, dow = new Date(Date.UTC(y, m - 1, d)).getUTCDay(), day0 = Math.round(Date.UTC(y, m - 1, d) / 1000 - off * 60);
-  const H = t => (t - day0) / 3600, items = [], add = (cat, h0, h1, label, big = false) => items.push({ cat, h0: +h0.toFixed(3), h1: +h1.toFixed(3), label, big });
+  const H = t => (t - day0) / 3600, items = [], add = (cat, h0, h1, label, big = false, x = null) => items.push({ cat, h0: +h0.toFixed(3), h1: +h1.toFixed(3), label, big, ...(x || {}) });
   const party = partyNight(day0, { off }), wx = o.wx || {};
   // THE LEGENDARIES (the showcase's list — their minutes)
   const L = legendsTonight(y, m, d, lv);
@@ -52,7 +52,9 @@ export function dayChart(dateKey, o = {}) {
   // THE WORKERS' DAY (the shows + the regulars)
   for (const w of workDay(wkey, { seed, day0, off })) add('workers', H(w.t0), H(w.t1 || w.t0 + 300), WORKER_NAMES[w.kind] || `The ${w.kind.replace(/\d+$/, '')}`);
   // THE WINDOWS (the scenes + the shadowboxer)
-  for (const sc of scenesTonight(key, { seed })) add('windows', sc.start / 3600, sc.end / 3600, SCENE_NAMES[sc.id] || sc.id);
+  // (THE VAULT 1B add-on — THE PROGRAM's RARE tag: a scene the timetable gives under half the nights — its `p` — is RARE)
+  const rareOf = id => { try { const r = scheduleRow(`scene.${id}`); const p = r && r.knobs && r.knobs.p; return p != null && p < 0.5; } catch { return false; } };
+  for (const sc of scenesTonight(key, { seed })) add('windows', sc.start / 3600, sc.end / 3600, SCENE_NAMES[sc.id] || sc.id, false, { id: sc.id, rare: rareOf(sc.id) });
   { const bx = boxerNight(key, { seed }), P = knob('boxer'); if (bx.on) add('windows', P.from, bx.party && !bx.stay ? P.wrapAt : P.to, 'THE SHADOWBOXER'); }
   // THE SMALL HOURS (the owner's SCHED review: "every hour, the small hours included"): the boss's blue TV from his lights-out to 3 am, his
   // shade pull + the nightlight, the scene rooms' LIGHTS OUT one at a time (~2–4 am), the edge windows' with them

@@ -377,3 +377,9 @@ body.cb-split .rd-back { background: radial-gradient(120% 70% at 50% 0%, rgba(40
 .rd-pr.is-past { opacity: 1; color: #7d7162; font-weight: 400; }
 .rd-pr.is-past > b { color: #7d7162; font-weight: 500; }
 .rd-pr.is-past i, .rd-pr.is-past i.you, .rd-pr.is-past i.leg { background: #d4c8af; color: #5f5649; font-weight: 500; }
+
+/* THE PROGRAM — THE FULL DAY (THE VAULT 1B add-on): the switch (ALL · RARE + LEGENDARY) + the RARE tag */
+.rd-pr i.rare { background: #5a1424; color: #ffe3a8; }
+.rd-prf { display: flex; gap: 6px; margin: 2px 0 10px; }
+.rd-prfb { flex: 1 1 0; min-height: 40px; padding: 0 10px; border-radius: 8px; border: 1px solid rgba(90, 20, 36, 0.45); background: transparent; color: #5a1424; cursor: pointer; font: 800 11.5px/1 var(--font-ui); letter-spacing: 0.14em; }
+.rd-prfb.is-on { background: #5a1424; color: #fff3dc; border-color: #5a1424; }

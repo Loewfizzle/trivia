@@ -15,8 +15,14 @@ import { ownerWindow } from '../../core/harbor-billboard.js';
 const DOW = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
 const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const pad = n => String(n).padStart(2, '0');
-// (what goes on the listing: the city's real moments, never the background — the patrols, the medium tier, the workers)
-const KEEP = new Set(['legendary', 'windows', 'fireworks', 'party', 'raid', 'holiday']);
+// THE FULL DAY (THE VAULT 1B add-on — the owner, Nov 3 7:35 am: "why is the list so short?"): EVERY timed thing in the city's timetable
+// for the day (the day chart's every row — the window scenes + the small hours, the workers' day, the airliners, the patrol, the billboard's
+// hints, the party's phases, the holidays, the legendaries, the fireworks — + his own fired moments). A switch at the top: ALL (the
+// default) · RARE + LEGENDARY (the rare scenes, the legendaries, the raid, the holidays' big moments + the fireworks), remembered on his
+// phone (rd:prog). Owner-only (the radio), so it may show the secrets.
+const FILTERS = [['all', 'ALL'], ['rare', 'RARE + LEGENDARY']];
+let filter = (() => { try { return localStorage.getItem('rd:prog') === 'rare' ? 'rare' : 'all'; } catch { return 'all'; } })();
+const isRare = i => i.cat === 'legendary' || i.cat === 'fireworks' || i.cat === 'raid' || (i.cat === 'holiday' && i.big) || !!i.rare;
 const chartMemo = new Map();
 function chartFor(key, level, off) { const k = `${key}|${level}|${off}`; if (!chartMemo.has(k)) { if (chartMemo.size > 12) chartMemo.clear(); chartMemo.set(k, dayChart(key, { off, level })); } return chartMemo.get(k); }
 
@@ -39,8 +45,8 @@ export function paint({ st, now, cancel, edit }) {
   const C = chartFor(key, level, off), evening = hNow >= 15;
   const dayH = ms => { const x = (ms - new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) / 3600e3; return x; };
   // TONIGHT: the city's rows + YOURS (his moments + messages on this day)
-  const rows = C.items.filter(i => KEEP.has(i.cat) && !/^LIGHTS OUT/.test(i.label) && !/BOSS pulls/.test(i.label) && (evening ? i.h1 > 15 : true))
-    .map(i => ({ h0: i.h0, h1: i.h1, label: nice(i.label), tag: i.cat === 'legendary' ? 'leg' : null }));
+  const rows = C.items.filter(i => filter === 'all' || isRare(i))
+    .map(i => ({ h0: i.h0, h1: i.h1, label: nice(i.label), tag: i.cat === 'legendary' ? 'leg' : isRare(i) ? 'rare' : null }));
   const mine = (st && st.moments || []).filter(m => m.mine && m.state !== 'stopped');
   for (const m of mine) {
     const S0 = m.local ? localStart(m.local, m.made || m.at, off) : m.at, j = jackDef(m.jack), h0 = dayH(S0);
@@ -62,7 +68,7 @@ export function paint({ st, now, cancel, edit }) {
   }
   rows.sort((a, b) => a.h0 - b.h0);
   const clock = r => clockOf(r.h0).toUpperCase().replace(':00 ', ' ').replace(/^12 AM$/, 'MIDNIGHT');
-  const tags = r => [r.tag === 'you' ? h('i.you', 'YOURS') : null, r.tag === 'leg' ? h('i.leg', 'LEGEND') : null];
+  const tags = r => [r.tag === 'you' ? h('i.you', 'YOURS') : null, r.tag === 'leg' ? h('i.leg', 'LEGEND') : null, r.tag === 'rare' ? h('i.rare', 'RARE') : null];
   const onNow = rows.filter(r => r.h0 <= hNow && hNow < r.h1), coming = rows.filter(r => r.h0 > hNow), earlier = rows.filter(r => r.h1 <= hNow);
   const sec = (k, kids) => h('div.rd-prsec', { dataset: { sec: k } }, ...kids);
   const parts = [];
@@ -77,7 +83,9 @@ export function paint({ st, now, cancel, edit }) {
       ...earlier.map(r => h('div.rd-pr.is-past', h('b', clock(r)), h('span', r.label), ...tags(r))));
     parts.push(box);
   }
-  const tonight = h('section.rd-paper', h('h4', `${evening ? 'TONIGHT' : 'TODAY'} · ${DOW[date.getDay()]}`, h('em', `${MON[date.getMonth()]} ${date.getDate()} · your time`)), ...parts);
+  const sw = h('div.rd-prf', { role: 'group', 'aria-label': 'What the program lists' }, ...FILTERS.map(([k, l]) => h('button.rd-prfb', { type: 'button', class: filter === k ? 'is-on' : '', 'aria-pressed': String(filter === k),
+    onclick: () => { if (filter === k) return; filter = k; try { localStorage.setItem('rd:prog', k); } catch { /* fine */ } const nu = paint({ st, now, cancel, edit })[0]; tonight.replaceWith(nu); } }, l)));
+  const tonight = h('section.rd-paper', h('h4', `${evening ? 'TONIGHT' : 'TODAY'} · ${DOW[date.getDay()]}`, h('em', `${MON[date.getMonth()]} ${date.getDate()} · your time · ${rows.length} on the program`)), sw, ...parts);
 
   // THE WEEK: the legendaries a night (the showcase's own list), the party nights red
   const week = [];
