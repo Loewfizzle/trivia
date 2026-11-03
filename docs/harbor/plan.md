@@ -5536,3 +5536,80 @@ THE VAULT 1A DONE (Nov 3, early) — passes/vault-1a.md + docs/vault.md. THE BUI
   review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
 
 THE VAULT 1B DONE (Nov 3) — passes/vault-1b.md + docs/vault.md. THE BUILD TABLE: THE VAULT 1A ✅; THE VAULT 1B ✅ (the GPU path + the diagnostics row, the owner's fixes, THE FULL CARDS, the launch set's first 8, names only to owners, THE PROGRAM's full day); THE VAULT 2 (emblems + glows; + the rest of the launch set's cards if the owner folds them in — else a 1C) ← NEXT; then BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP (+ its daily + its review), OVERCLOCK (+ its daily + its review), THE OTHER DAILIES, FR6, THE SWITCH-OVER, then THE HOLIDAY SIGNS (before Nov 26).
+
+## OWNER'S NOTES — NOV 3 (late morning)
+## THE VAULT 1B WRITTEN (Nov 3, ~6:40 am EST) — Step 0 = step0-v1b.txt.
+
+
+## Nov 3, 7:35 am EST — THE PROGRAM SHOWS THE FULL DAY (the owner — DECIDED) → an add-on to VAULT 1B
+- He asked why THE PROGRAM lists so few events: it shows only the headline shows (last night's list was half his own fired jacks). DECIDED: the FULL
+  PROGRAM — every timed thing in the city's timetable for the day (window scenes, everyday life: the barbershop, workers, the bus, boats, holiday
+  build-ups, party-night phases…, + his own moments), keeping ON NOW · COMING UP · EARLIER — with a toggle: ALL (default) · RARE + LEGENDARY. Owner-only
+  (the radio), so it may show the secrets.
+- (7:36 am) A FULL CARD in progress (GLITTER BOMB, from VAULT 1B's work): the CORNER WORDS are hard to read — NEON SPEAKEASY (top left), MEMBER SINCE
+  OCT 2026 (bottom left), GLITTER BOMB (bottom right): small spaced gold letters on busy glitter. RULE for EVERY card (slim + full): every word legible
+  on its art → → an add-on to VAULT 1B.
+- (7:43 am) CARD TEXT — NO CHANGE FOR NOW (the owner): no legibility add-on sent; VAULT 1B builds the cards as its prompt says; he judges the
+  corner words in the Card Lab after. If they still don't read: the chat's options on file — matching plates (outputs/card-text-before-after-2.png)
+  · A the credit-card strip · B the framed card (the chat's pick) · C one plate (outputs/card-text-alternatives.png).
+- (7:44 am) THE FULL PROGRAM add-on — SENT to VAULT 1B (confirmed).
+
+## Nov 3, 7:46–7:49 am EST — THE VAULT 2 QUESTIONS (the owner: "your picks, it sounds good" — DECIDED)
+1. SPLIT like VAULT 1: 2A = ~10 SAMPLES (a few shapes across the finishes — neon, prism, chrome, gold, ice crystal, molten, glitch, galaxy — + 2–3
+   name glows) → his marks in the lab → 2B = the rest.
+2. TUBE STYLES are SEPARATE UNLOCKS that go on ANY NEON emblem the player owns (mix + match — two-tone, gold tube, breathing, flicker, a light
+   chasing along the tube, a beat pulse on party nights …); the special FINISHES (prism, chrome, gold, ice, molten, glitch, galaxy) stay tied to
+   their own emblems.
+3. NAME GLOWS light the NAME ONLY (never the level line); ~12, tiered: COMMON still colours (AFTERGLOW, EMBER, ICE) → rarer with movement (GOLD LEAF
+   + a glint, FROST creeping, ELECTRIC arcs, FIRE, PRISM rainbow, GLITCH, STARLIGHT, CANDLELIGHT, TINSEL); the name always readable.
+4. SEASONAL EMBLEMS: one per big holiday (Halloween, Thanksgiving, Christmas, New Year's), earned only during it, kept forever.
+- THE EMBLEM SET (decided earlier): the approved marks (the key, LAST CALL, RAINMAKER, SNOWED IN, KNOCK KNOCK, THE TRIPLE, EARLY BIRD, HODL, FOUR ON
+  THE FLOOR, DEAD ON, THE CREW, THE FLAME, THE HOUSE) + REDONE properly (the owl — less cartoon; the wings; SKY KING — the real Blackbird outline;
+  LIGHTS OUT — the real TR-3B, white corners + a red centre; the heart) + SWEETHEART + BUTTERFLY + every sighting's matched emblem; today's 12
+  emblems stay as commons. 3×, the Card Lab, the speed rules, the picker rows.
+
+## OWNER's REVIEW OF VAULT 1B — Nov 3, 8:43–8:47 am EST (iPhone, on the road; 3 screenshots) → VAULT 2A's Group 0
+- SPEED FIXED ✅: A FULL LOBBY of 8 legendaries = 61 fps · 16.7 ms · 0 slow/s · fx tier 2 · 3× · 3 ms js (was ~42 at tier 0).
+- THE NAME fits whole ✅ (LOEWFIZZLE). THE BRING-YOUR-CARD sheet's border visible ✅. THE FULL PROGRAM ✅.
+- THE VAULT PICKER as strip rows: "I think it looks good" ✅ — but the strips there (FOUNDING MEMBER, HEARTBREAKER, BRASS DECO, GILDED, MIDNIGHT) are
+  plain gradients: their real art ships only once he APPROVES them in the lab's FULL CARDS tab (1B's gate). Name glows / tube styles / emblems are
+  still the old tiles (the name glow tile cuts "LOE") → VAULT 2's rows.
+- THE NO-TAP UFO STILL REACTS + TAKES A PHOTO BY ITSELF — THIRD TIME (1A + 1B both "fixed" it). → VAULT 2A Group 0, FIRST: an on-screen TRACE
+  (&sgtrace=1: shows WHAT started the reaction — event type, target, time since load, the code path) so his phone tells us the cause; fix from that;
+  if the auto-play is a feature of the force / &lgnow preview, say so plainly.
+- "I'M NEW HERE" just closes the sheet → expected, but it should say something: close + a short welcome ("Welcome in — pick a name when you join
+  your first room") or open the name / emblem setup.
+- THE PROGRAM's RARITY → COLOUR-CODED for every tier (not only a LEGEND badge): one shared tier palette across the whole game (cards, events,
+  emblems) — COMMON grey · UNCOMMON green · RARE blue · EPIC purple · LEGENDARY gold — a small badge on every row + the event name tinted.
+- (8:56 am) GROK BRIEF for LOBBY 2.0's sounds written (plan/grok-lobby-sounds.md → Downloads\Grok\lobby-sfx\): card-in (a card sliding in), invite (a
+  pneumatic-tube capsule arriving / an envelope through a letter slot), friend (two glasses clinking) — 2–3 takes each.
+
+## THE VAULT 1B DONE (Nov 3, ~9:10 am EST) — live; cloud GREEN first run (tests + harbor 10/10). Rules unchanged. Summary: plan/v1b-summary.txt
+- SPEED: the cost was the effects canvas (iPhone Safari draws 2D canvas on the CPU, outside the page timer — the "0 ms") → the effects draw on the
+  GPU (same look; the old path a fallback); top tier at the phone's full 3×; scroll holds the frame. PC at 4× CPU: 8 legendaries 31 → 60 fps; the 8
+  samples 23 → 56. (The owner's iPhone: 61 fps · 0 slow · tier 2 · 3×.) A DIAGNOSTICS row in the lab (GPU DRAW · CANVAS FX · THE LASER · UFO SPRITES ·
+  CSS GLOWS · EMBLEMS · SCROLL-PAUSE).
+- THE NO-TAP UFO: never fires in WebKit; the inferred cause = iOS passing the touch that brings Safari forward (from another app / the switcher)
+  into the page → a sighting now needs a real tap that starts ≥ 0.8 s after the page appears, down + up on the UFO; /admin's "Errors from phones"
+  logs which event started one. (His 8:43 re-test may have been on the new build — re-test.)
+- Done: the picker as real strips + WEARING ✓ + VIEW; the name auto-fits (two even lines at worst); bottom sheets above Safari's toolbar; SAVED ✓;
+  the key's "send it to yourself" line; FULL CARDS for the 8 approved; 8 NEW cards (GILDED, MIDNIGHT, HEARTBREAKER, BRASS DECO, EMERALD & BRASS, NEON
+  GLASS, SILVER CHROME, MIDNIGHT & CHAMPAGNE), strip + full; SMOKE ROOM / FROSTBITE / PRISM / INFERNO unlock at levels 12 / 16 / 22 / 42; NAMES ONLY TO
+  OWNERS (the catalog server-only — 95 items, 30 achievements, 37 level rewards; a leak test); THE FULL PROGRAM (~180 rows on a Friday + the switch).
+- HELD BACK (the bar): ~25 catalog cards + the other 8 SIGHTING CARDS have no art yet (owners see a plain strip in the card's colours) — list in
+  docs/harbor/passes/vault-1b.md → THE CHAT: a VAULT 1C pass before VAULT 2.
+- Known: the marks export still public (→ the switch-over); the old weather check.
+- (9:13 am) THE NO-TAP UFO — FIXED ✅ (the owner re-tested: nothing fires without a tap). VAULT 1C — YES (before VAULT 2): the 8 sighting cards FIRST,
+  then the ~25 held-back cards; Group 0 = the Program's tier colours + the "I'm new here" welcome.
+- (9:14 am) LOBBY 2.0's SOUNDS DELIVERED (Grok) → C:\Users\benja\Downloads\Grok\lobby-sfx\ (3 ranked takes each, originals untouched; READ
+  claude-notes.txt FIRST; credits.txt — all CC0 or Mixkit free SFX, no attribution required). Picks: card-in = 571577 el_boss playing-card-deal
+  (cut 0.230–0.600, fade 0.45–0.60); invite = 855977 hazelr1ver suction-tube-with-fade-in-and-pop (cut 1.300–2.510, fades per notes; optional layer
+  444431 sliding-envelope at ~1.95 so the slide ends on the pop; backup 398403 letterbox); friend = 835833 bogumilamerc wine-glasses-clinking (cut
+  0.470–0.880, −2 dB). Copies only; levelled "felt more than heard"; small compressed files → the LOBBY 2.0 prompt.
+- (9:21 am) THE OWNER APPROVED in the lab: the 8 NEW slim strips + ALL the FULL CARDS (the corner words included — no layout change).
+
+## THE VAULT 1C WRITTEN (Nov 3, ~9:25 am EST) — Step 0 = step0-v1c.txt.
+
+- THE BUILD TABLE (Nov 3, THE VAULT 1C Step 0): THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C (the Program's tier colours + the "I'm new here"
+  welcome, THE 8 SIGHTING CARDS, THE HELD-BACK CARDS — this pass) ← NEXT; then THE VAULT 2A (emblem + glow samples), THE VAULT 2B (the rest),
+  BOARD 2.0, LOBBY 2.0, SHELL 2.0, PRISM DROP, OVERCLOCK, THE OTHER DAILIES, FR6, THE SWITCH-OVER, THE HOLIDAY SIGNS.
