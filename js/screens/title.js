@@ -617,6 +617,8 @@ export function createTitle() {
         remote.localMoments([{ id: `favor-pv-${hand.at}`, jack: hand.jack, at, until: at + 90e3, text: hand.text || null, colour: hand.colour || 'ff6fd0' }]);
       }
       const q = new URLSearchParams(location.search), preview = ['when', 'tz', 'force', 'wx', 'speed', 'at', 'preview', 'sgdemo'].some(k => q.get(k));
+      // (THE OWNER's PREVIEW: &bday=1 — the HAPPY BDAY skywrite on this city now, with this phone's name; nothing sent, nothing counted)
+      if (q.get('bday') === '1') { const at = srv() + 2500; remote.localMoments([{ id: `bday-preview-${Date.now()}`, jack: 'skywrite', at, until: at + 90e3, text: B.bdayText((loadProfile() || {}).name || ''), colour: 'ff6fd0' }]); return; }
       const bd = X.storedBirthday(), tz = (() => { try { return Intl.DateTimeFormat().resolvedOptions().timeZone; } catch { return null; } })();
       if (!bd || preview || !B.isBirthdayOn(bd, srv(), tz)) return;
       const key = B.dayKeyOf(srv(), tz);
