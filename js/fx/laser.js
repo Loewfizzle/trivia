@@ -22,6 +22,8 @@ export function along(w, h, r, s) {
     default: { const a = Math.PI + u * Math.PI / 2; return [r + Math.cos(a) * r, r + Math.sin(a) * r]; }
   }
 }
+/** THE VAULT 2B — a two-colour laser (the DEV cards: gold into red, green into magenta): the head's colour into rgb2 down the tail */
+const mixRgb = (a, b, u) => { const A = a.split(',').map(Number), B = b.split(',').map(Number); return `rgb(${A.map((v, i) => Math.round(v + (B[i] - v) * u)).join(',')})`; };
 export const perimeter = (w, h, r) => 2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Math.PI * r;
 
 /** draw the comet on a slot of w × h (inset i) — rgb its colour, lap its seconds a lap */
@@ -39,7 +41,7 @@ export function drawLaser(c, w, h, t, o = {}) {
       const [x, y] = along(W, H, r, head - k * ds), f = 1 - k / N;
       c.globalAlpha = (pass ? 0.95 : 0.22) * Math.pow(f, 1.5);
       c.lineWidth = pass ? 0.8 + 1.8 * f : 3.5 + 5 * f;
-      c.strokeStyle = pass && f > 0.82 ? 'rgb(255,255,255)' : `rgb(${rgb})`;
+      c.strokeStyle = pass && f > 0.82 ? 'rgb(255,255,255)' : o.rgb2 ? mixRgb(rgb, o.rgb2, k / N) : `rgb(${rgb})`;
       c.beginPath(); c.moveTo(px, py); c.lineTo(x, y); c.stroke();
       px = x; py = y;
     }

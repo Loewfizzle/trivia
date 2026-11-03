@@ -20,7 +20,7 @@ const SAMPLES = LAB.filter(x => x.n >= 98 && x.n <= 114);
 
 test('THE 3 HELD CARDS: built (a LOOK + its effect), first in the lab, strip + full card, PLATINUM epic', () => {
   const strip = read('js/vault/strip.js'), fx = read('js/fx/index.js');
-  assert.deepEqual(LAB.filter(x => x.kind === 'card').slice(0, 3).map(x => x.id), HELD);
+  assert.deepEqual(LAB.filter(x => x.kind === 'card' && !x.dev).slice(0, 3).map(x => x.id), HELD);
   assert.equal(ROW['card-platinum'].tier, 'epic', 'PLATINUM = EPIC (the owner\'s pick)');
   assert.equal(ROW['card-founder'].tier, 'legendary'); assert.equal(ROW['card-house'].tier, 'legendary');
   for (const id of HELD) {

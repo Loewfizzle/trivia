@@ -9,6 +9,7 @@
 //   and tubes looked at pixel by pixel. A custom crop in pt: --crop XxYxWxH (a comma separates crops).
 // --page <path?query>: shoot any page of the site instead of the title (e.g. tests/integration/clouds-preview.html?looks=noon), full
 //   length, once its body has data-ready (or after --wait); one shot per size, named by --name (default "page").
+//   --el <selector> [--eli i]: scroll that element into view + crop to it (THE VAULT 2B — slots draw only on screen).
 //   --js runs first; --scrolls N = N more shots a viewport lower each, for a page that scrolls inside its own box (THE VAULT 1A).
 // --preview: shoot title-preview.html (the real title, no Firebase / emulators needed; HOST and JOIN don't open rooms there).
 // --city 2: CITY 2.0, THE HARBOR (docs/harbor.md): adds &city=2 (any extra flag via --qs, e.g. "grid=1" or "force=demo");
@@ -203,6 +204,12 @@ if (PAGE) {
     if (opt('js', '')) { await p.evaluate(String(opt('js', ''))).catch(e => console.log('JS', e.message)); await sleep(400); }
     // (--crop XxYxWxH in pt + --every ms --count n on a --page: a close-up burst — THE VAULT 1A's strips judged moving)
     const pc = CROPS.map(c2 => c2.split('x').map(Number)).filter(v => v.length === 4 && v.every(Number.isFinite));
+    // (--el <css selector> (THE VAULT 2B): scroll that element into the middle of the viewport + crop to it (a pad of 8 pt) — a slot on the
+    //  shared effect surface draws only while it's ON SCREEN, so a full-page crop below the fold shows it blank; --el i = the i-th match)
+    if (opt('el', '')) {
+      const box = await p.evaluate((sel, i) => { const e = document.querySelectorAll(sel)[i]; if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return [r.left - 8, r.top + scrollY - 8, r.width + 16, r.height + 16].map(v => Math.round(Math.max(0, v))); }, String(opt('el')), Number(opt('eli', 0)));
+      if (box) { pc.push(box); await sleep(EVERY ? 600 : 1200); } else console.log('EL not found', opt('el'));
+    }
     if (pc.length || EVERY) {
       for (let k = 0; k < COUNT; k++) {
         for (const [cx, cy, cw, ch] of pc.length ? pc : [[0, 0, w, h]]) await p.screenshot({ path: `${OUT}${opt('name', 'page')}-${w}x${h}${pc.length ? `-c${cx}x${cy}` : ''}${EVERY ? `-${String(k).padStart(2, '0')}` : ''}.png`, clip: { x: cx, y: cy, width: cw, height: ch } });

@@ -14,6 +14,7 @@ import { emblemEl, hasArt } from './emblem-art.js';
 import { applyGlow } from './glows.js';
 import { emblemSvg, prominence, TEST_EMBLEMS } from './emblems.js';
 import { fitName } from '../ui/fit.js';
+import { isDevCard, ONE_OF_ONE } from '../core/dev-cards.js';
 
 /** each card's strip: its material (css/vault.css .vl-m-*), its effect (js/fx), the emblem it's shown with in the lab */
 export const LOOKS = Object.freeze({
@@ -69,6 +70,9 @@ export const LOOKS = Object.freeze({
   'card-founder': { mat: 'founder', fx: 'opening' },
   'card-house': { mat: 'house', fx: 'house' },
   'card-platinum': { mat: 'platinum', fx: 'platinum' },
+  // THE VAULT 2B — THE TWO DEV CARDS (the owner's own: ONE OF ONE · DEV, his Nº on the plate)
+  'card-dev-switchboard': { mat: 'devswitch', fx: 'devSwitch' },
+  'card-dev-source': { mat: 'devsource', fx: 'devSource' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
@@ -87,15 +91,17 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   else if (TEST_EMBLEMS[emblem] || (!emblem && !avatar)) { embId = TEST_EMBLEMS[emblem] ? emblem : look.emblem || 'emb-test-neon'; const em = TEST_EMBLEMS[embId] || TEST_EMBLEMS['emb-test-neon']; mode = prominence(tier, em.tier); emb = emblemSvg(em.finish, mode); }
   else { embId = hasArt(emblem) ? emblem : ''; mode = prominence(tier, embTier(embId)); emb = emblemEl({ id: embId || null, avatar, color, tube, mode }); }
   // (the name glow follows the same rule: on a LEGENDARY card it holds its still, lit look — the card leads)
+  // (THE VAULT 2B — a DEV card: ONE OF ONE · DEV for its tag, THE DEVELOPER · his № on the plate)
+  const dev = !plain && isDevCard(card);
   const nameEl = applyGlow(h('b.vl-name', name), glow);
   if (tier === 'legendary') nameEl.classList.add('vg-still');
   const plate = h('div.vl-plate',
     h('span.vl-emb', emb),
-    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', host ? `LV ${lv} · HOST` : `LV ${lv}`)));
-  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
+    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? `THE DEV · № ${no || '0001'}` : host ? `LV ${lv} · HOST` : `LV ${lv}`)));
+  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${dev ? ' vl-dev1' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,
-    h('span.vl-tier', TIER_NAMES[tier] || tier.toUpperCase()),
+    h('span.vl-tier', dev ? 'ONE OF ONE' : TIER_NAMES[tier] || tier.toUpperCase()),
     // (FOUNDING MEMBER — the member's REAL number in gold: a numbered first edition; THE VAULT 2A)
     card === 'card-founder' && !plain && no != null ? h('span.vl-no', `№ ${no}`) : null,
     h('i.vl-frame', { 'aria-hidden': 'true' }));

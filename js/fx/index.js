@@ -38,6 +38,8 @@ import { wildfire, eternal } from './blaze.js';
 import bevel from './bevel.js';
 import opening from './opening.js';
 import house from './house.js';
+import devSwitch from './dev-switch.js';
+import devSource from './dev-source.js';
 
 /** COMBO (THE VAULT 1C — an EPIC's two effects together on ONE slot): parts = [[effect, opts the part overrides]…], drawn in order */
 export function combo(id, tier, ...parts) {
@@ -56,4 +58,6 @@ export const FX = Object.freeze({ ufo, laser, smoke, frost, flames, prism, marqu
   century: combo('century', 'epic', [flames, null], [embers, { noBed: true, tint: '255,200,90' }]),
   // THE VAULT 2A — THE 3 HELD CARDS (card-platinum: a cold sheen + the light on its diamond-cut bevel · card-founder · card-house)
   bevel, opening, house,
+  // THE VAULT 2B — THE TWO DEV CARDS (ONE OF ONE · DEV — the owner's own)
+  devSwitch, devSource,
   platinum: combo('platinum', 'epic', [sheen, { tint: '214,228,255', gain: 2.4 }], [bevel, null]) });

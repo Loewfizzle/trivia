@@ -25,6 +25,7 @@ import { emblemEl, hasArt } from './emblem-art.js';
 import { applyGlow } from './glows.js';
 import { prominence } from './emblems.js';
 import { embTier } from './strip.js';
+import { isDevCard, ONE_OF_ONE } from '../core/dev-cards.js';
 
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
 export const fullId = card => `full-${card}`;
@@ -42,11 +43,12 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const plate = h('div.vl-fc-plate',
     // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)
     h('span.vl-fc-emb', emblemEl({ id: hasArt(who.shape) ? who.shape : null, avatar: who.avatar || 'bolt', color: who.color || 'magenta', tube: who.tube, mode: prominence(t, embTier(hasArt(who.shape) ? who.shape : null)) })),
-    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', `${bandOf(lv).name} · LV ${lv}`)));
-  const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}`, dataset: { card, tier: t } },
+    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', isDevCard(card) ? `THE DEVELOPER · № ${who.no || '0001'}` : `${bandOf(lv).name} · LV ${lv}`)));
+  const dev = isDevCard(card);
+  const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,
-    h('div.vl-fc-top', h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), h('span.vl-tier', TIER_NAMES[t] || t)),
+    h('div.vl-fc-top', h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), h('span.vl-tier', dev ? ONE_OF_ONE : TIER_NAMES[t] || t)),
     who.fd && !sighting ? h('span.vl-fc-fd', 'FOUNDING MEMBER') : null,
     sighting ? h('div.vl-fc-title', { class: nameOf(card).length > 18 ? 'is-long' : '' }, h('b', nameOf(card)), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,

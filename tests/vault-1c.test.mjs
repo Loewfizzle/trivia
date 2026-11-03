@@ -58,7 +58,7 @@ test('THE CARD LAB: each new card\'s strip + its FULL card (its own mark), the s
     assert.equal(LAB_TEXT[`full-${id}`].name, `${ITEM[id].name} · FULL CARD`);
     assert.ok(LAB_TEXT[id].motion.length > 20, `${id}: what it does`);
   }
-  const strips = LAB.filter(x => x.kind !== 'full');
+  const strips = LAB.filter(x => x.kind !== 'full' && !x.dev);   // (2B: the owner's two DEV cards lead the lab — vault-2b.test.mjs)
   assert.deepEqual(strips.slice(0, 3).map(x => x.id), STILL_HELD.slice().sort((a, b) => ['card-founder', 'card-house', 'card-platinum'].indexOf(a) - ['card-founder', 'card-house', 'card-platinum'].indexOf(b)), '2A: the 3 held cards first'); assert.deepEqual(strips.slice(3, 11).map(x => x.id), SIGHT, 'then the 8 sighting cards');
   assert.equal(new Set(LAB.map(x => x.n)).size, LAB.length, 'every lab number its own');
 });
