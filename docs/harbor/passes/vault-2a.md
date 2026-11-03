@@ -113,3 +113,9 @@ RADIO's greyed-jack note + LOAD WEATHER's holiday-night jump = the known clock /
 SIGHTINGS' parked print — a REAL regression this pass caught (31 % frame vs 21–22 % on the pre-2A code, A/B'd on a worktree): the tap's
 grow-back loaded the reveal's bigger module graph + vault.css mid-gesture → `progress/sighting.js#prewarm` now loads them at the tap on the
 craft: 20–22 %, the `sightings` group 10/10 twice. The `vault` group 31/31.
+
+## THE CLOUD (the two-run cap)
+Run 1 (the harbor tag): tests GREEN; harbor 9/10 — the `audio` job's DIAGNOSTICS + SCROLL-PAUSE "resumed" check counted 6 frames in 500 ms
+(it asked > 10): this pass put all 8 legendaries on screen for it (the lab's header grew) and the cloud's software GL draws them slower. The
+check now asks what it claims — the effects RESUME (≥ 3 frames ticking); the speed has its own checks. Run 2 (`gh workflow run harbor -f
+job=audio`): 177/177 GREEN. Live on www.neonspeakeasy.com from the harbor-tagged push.
