@@ -206,7 +206,11 @@ export function glPainter(cv) {
   let path = [], cur = null;                    // subpaths: { p: [x, y, …] device px, closed, rr }
   const T = (x, y) => { const m = S.m; return [m[0] * x + m[2] * y + m[4], m[1] * x + m[3] * y + m[5]]; };
   const scaleOf = () => Math.sqrt(Math.abs(S.m[0] * S.m[3] - S.m[1] * S.m[2])) || 1;
-  const segsFor = (rdev, sweep) => Math.max(2, Math.min(128, Math.ceil(Math.abs(sweep) / (2 * Math.acos(Math.max(-1, 1 - 0.25 / Math.max(0.5, rdev)))))));
+  // (THE SPEED of the tessellation — the GPU path's own CPU cost: a curve within HALF a device pixel; a stencil clip's circles within 1.5 px —
+  //  the stencil's edge is hard anyway; measured: THE MARQUEE's 52 bulbs × 8 strips were 60 ms of script a frame at 4× CPU, 0.25 px + a
+  //  join at every corner of every ring)
+  let tol = 0.5;
+  const segsFor = (rdev, sweep) => Math.max(2, Math.min(96, Math.ceil(Math.abs(sweep) / (2 * Math.acos(Math.max(-1, 1 - tol / Math.max(0.5, rdev)))))));
   const newSub = () => { cur = { p: [], closed: false }; path.push(cur); return cur; };
   const pushPt = (x, y) => { if (!cur) newSub(); const [X, Y] = T(x, y); cur.p.push(X, Y); };
   let lastU = [0, 0];
@@ -301,7 +305,7 @@ export function glPainter(cv) {
       const nx = -ty, ny = tx, cosH = Math.max(0.5, nx * -ay + ny * ax), k = 1 / cosH;      // (miter length, capped at 2×)
       L.push(pv(P, x + nx * hi * k, y + ny * hi * k, 1)); R.push(pv(P, x - nx * hi * k, y - ny * hi * k, 1));
       LO.push(pv(P, x + nx * ho * k, y + ny * ho * k, 0)); RO.push(pv(P, x - nx * ho * k, y - ny * ho * k, 0));
-      if (S.join === 'round' && hasP && hasN && ax * bx + ay * by < 0.9) disc(x, y, hwd, P);
+      if (S.join === 'round' && hwd > 1.5 && hasP && hasN && ax * bx + ay * by < 0.5) disc(x, y, hwd, P);
     }
     for (let s = 0; s < segs; s++) {
       const a = s, b = (s + 1) % n;
@@ -309,7 +313,7 @@ export function glPainter(cv) {
       tri(LO[a], L[a], L[b]); tri(LO[a], L[b], LO[b]);
       tri(R[a], RO[a], RO[b]); tri(R[a], RO[b], R[b]);
     }
-    if (!closed && S.cap === 'round') {
+    if (!closed && S.cap === 'round' && hwd > 1.5) {
       const e = (n - 1) * 2;
       let ux = q[0] - q[2], uy = q[1] - q[3], l = Math.hypot(ux, uy) || 1; halfDisc(q[0], q[1], ux / l, uy / l, hi, ho, P);
       ux = q[e] - q[e - 2]; uy = q[e + 1] - q[e - 1]; l = Math.hypot(ux, uy) || 1; halfDisc(q[e], q[e + 1], ux / l, uy / l, hi, ho, P);
@@ -319,6 +323,7 @@ export function glPainter(cv) {
   function setClipRR(x, y, w, h, r) { clips.push([x, y, w, h, Math.max(0, Math.min(r, w / 2, h / 2))]); S.clip = clips.length - 1; }
   function stencilClip() {
     flush();
+    // (its circles were flattened when the path was built — re-flatten nothing here; the path's arcs used the coarse tolerance: see clip())
     if (S.sten) warn('nested stencil clip (the inner one wins)');
     gl.enable(gl.STENCIL_TEST); gl.colorMask(false, false, false, false);
     gl.stencilFunc(gl.ALWAYS, 1, 0xff); gl.stencilOp(gl.KEEP, gl.KEEP, gl.REPLACE);
@@ -341,6 +346,9 @@ export function glPainter(cv) {
     get lineWidth() { return S.lw; }, set lineWidth(v) { if (v > 0 && Number.isFinite(v)) S.lw = v; },
     get lineCap() { return S.cap; }, set lineCap(v) { S.cap = v; },
     get lineJoin() { return S.join; }, set lineJoin(v) { S.join = v; },
+    /** the GPU path's curve tolerance (device px) for the paths that follow; 0 = the default (an effect building a clip of many circles
+     *  sets it coarse — frost.js) */
+    get fxTol() { return tol; }, set fxTol(v) { tol = v > 0 ? v : 0.5; },
     filter: 'none', imageSmoothingEnabled: true, imageSmoothingQuality: 'low', shadowBlur: 0, shadowColor: 'transparent', miterLimit: 10,
     save() { stack.push({ ...S, m: S.m.slice() }); },
     restore() {
@@ -452,7 +460,7 @@ export function glPainter(cv) {
     ctx, lost: false, stats: { draws: 0, verts: 0 },
     /** a new frame of W × H device px: cleared, every clip + state reset */
     begin(w, h) {
-      W = w; H = h; draws = 0; verts = 0; nClip = 1; clipT.fill(0); clipR.fill(0); clips = [null]; slotOf.clear(); cs = 0;
+      W = w; H = h; tol = 0.5; draws = 0; verts = 0; nClip = 1; clipT.fill(0); clipR.fill(0); clips = [null]; slotOf.clear(); cs = 0;
       if (wantReset) P.reset();
       S = st0(); stack.length = 0; path = []; cur = null; blend = 'source-over';
       gl.viewport(0, 0, w, h); gl.useProgram(prog); gl.bindVertexArray(vao); gl.uniform2f(uSize, w, h);

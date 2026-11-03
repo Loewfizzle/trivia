@@ -82,12 +82,14 @@ export default {
     }
     // THE FRONT: the crystals revealed through a ragged union of many small circles round the rim, each its own reach (the lines are
     // cut where they've grown to — growth, not a shape)
-    const r = rng(seed + 5); c.save(); c.beginPath();
+    // (the GPU path: these ~100 circles become a stencil clip — its edge is hard anyway, so they're flattened coarsely: c.fxTol)
+    const r = rng(seed + 5); c.save(); if (c.isGL) c.fxTol = 2; c.beginPath();
     const ring = [];
     for (let x = 0; x <= w; x += 9) { ring.push([x, -2]); ring.push([x, h + 2]); }
     for (let y = 0; y <= h; y += 9) { ring.push([-2, y]); ring.push([w + 2, y]); }
     for (const [x, y] of ring) { const R = U * (0.06 + 0.42 * grow) * (0.4 + r() * 1.0); c.moveTo(x + R, y); c.arc(x, y, R, 0, Math.PI * 2); }
     c.clip();
+    if (c.isGL) c.fxTol = 0;
     c.drawImage(crystals(w, h, dpr, seed, U), 0, 0, w, h);
     c.restore();
     // THE CRACK: runs 4.0 → 5.2 s, stands (fading as the frost goes); its branches follow

@@ -24,7 +24,7 @@ for (const run of RUNS) {
   const cd = await p.target().createCDPSession();
   await cd.send('Performance.enable');
   const diag = run === 'base' ? '' : `&diag=${run.replace(/\+/g, ',')}`;
-  await p.goto(`${BASE}/tests/integration/vault-preview.html?view=lobby&mix=${MIX}&tier=${TIER}${diag}`);
+  await p.goto(`${BASE}/tests/integration/vault-preview.html?view=lobby&bare=1&mix=${MIX}&tier=${TIER}${diag}`);
   await p.waitForFunction('!!(document.body.dataset.ready && window.__lab)', { timeout: 30000 });
   if (CPU > 1) await cd.send('Emulation.setCPUThrottlingRate', { rate: CPU });
   await new Promise(r => setTimeout(r, 1500));

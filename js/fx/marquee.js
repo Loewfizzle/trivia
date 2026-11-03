@@ -2,7 +2,16 @@
 // round the frame (every third bulb, a soft hand-off between neighbours, now and then the whole ring flashes at once) — and A NEON TUBE
 // that FLICKERS ON (the ignition stutter, then lit with the tube's hum; off again for a beat each cycle — the city's own tube look: a
 // wide soft glow, the coloured tube, a white-hot core). Reduced motion: every bulb lit, the tube on.
-import { glow, stamp, fract, smooth } from './kit.js';
+import { glow, stamp, fract, smooth, sprite } from './kit.js';
+
+/** a brass SOCKET (the dark cup, its brass rim, the bulb's base) — baked ONCE at the device's ratio and stamped per bulb (THE VAULT 1B:
+ *  three paths × 52 bulbs × 8 strips a frame were THE MARQUEE's whole cost on the GPU path's CPU side) */
+const socket = dpr => sprite(`mq-socket@${dpr}`, Math.ceil(8 * dpr), Math.ceil(8 * dpr), (c) => {
+  c.scale(dpr, dpr); const x = 4, y = 4;
+  c.fillStyle = '#3a2408'; c.beginPath(); c.arc(x, y, 3.3, 0, Math.PI * 2); c.fill();
+  c.strokeStyle = 'rgba(232,190,110,0.9)'; c.lineWidth = 0.9; c.stroke();
+  c.fillStyle = 'rgba(120,70,20,0.9)'; c.beginPath(); c.arc(x, y, 2.1, 0, Math.PI * 2); c.fill();
+});
 import { rrect } from './renderer.js';
 
 /** the bulbs' places round the frame (inset), in order clockwise from the top-left */
@@ -53,9 +62,7 @@ export default {
     for (let i = 0; i < N; i++) {
       const [x, y] = B[i];
       c.globalCompositeOperation = 'source-over'; c.globalAlpha = 1;
-      c.fillStyle = '#3a2408'; c.beginPath(); c.arc(x, y, 3.3, 0, Math.PI * 2); c.fill();
-      c.strokeStyle = 'rgba(232,190,110,0.9)'; c.lineWidth = 0.9; c.stroke();
-      c.fillStyle = 'rgba(120,70,20,0.9)'; c.beginPath(); c.arc(x, y, 2.1, 0, Math.PI * 2); c.fill();
+      c.drawImage(socket(Math.min(3, Math.round(Q.dpr * 4) / 4)), x - 4, y - 4, 8, 8);
       // the chase: every third bulb, a soft hand-off (cos^4 of the phase)
       const ph = (i - head) / 3, chase = Math.pow(Math.max(0, Math.cos(ph * Math.PI * 2)), 4);
       const b = Q.still ? 1 : Math.max(0.08, Math.min(1, 0.08 + chase * 0.92 + flash));
