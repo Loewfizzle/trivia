@@ -29,6 +29,8 @@ import { createJets, jetLook } from './jets.js';
 import { safeCtx, ctx2d } from '../../ui/canvas-safe.js';
 import { tierVal } from '../../core/harbor-tiers.js';
 import { loadUfoModel, rowsAt, frameAt, drawBody, drawLights, portsAt } from './ufo-model.js';
+import * as SR from './sight-react.js';
+import { breakOf } from './sight-react.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -655,6 +657,9 @@ export function createLegends({ clock, qp } = {}) {
     if (!st || run.kind !== 'tr3b') { triLightsNow = null; if (triOv) triOverlayFree(); return; }
     const p = triPos(), len = triLen(), dir = run.dir, t = sNow;
     if (p.x + len < -20 || p.x - len > W + 20) { triLightsNow = null; if (triOv) triOverlayFree(); drawChase(c0, fs); return; }
+    // (PROGRESSION B — CITY SIGHTINGS: where a tap finds it; its reaction — the corner lights RACE round the triangle)
+    SR.box('tr3b', p.x, p.y + len * 0.05, len * 0.48, len * 0.2);
+    const rkT = SR.k('tr3b'), ruT = SR.u('tr3b') || 0;
     // (SKY-A: on its full-res overlay when it may be — else on the city's canvas as before)
     const ov = triOverlay(c0, fs, p), c = ov || c0;
     triSizes();                                    // (baked ahead by warm(); a no-op here unless the size changed)
@@ -717,7 +722,7 @@ export function createLegends({ clock, qp } = {}) {
     // THE EDGE LIGHTS: small lamps along every edge, a slow pulse running from the rear to the nose
     for (const e of EDGE_LAMPS) {
       const A = P[e.e], B = P[(e.e + 1) % 3], f = e.f, x = lerp(A[0], B[0], f) * 0.93, y = lerp(A[1], B[1], f) * 0.93;
-      const toNose = e.e === 2 ? 1 - f : e.e === 0 ? f : 0.5, w = mo ? Math.pow(0.5 + 0.5 * Math.cos(t * 2.4 - toNose * 5), 6) : 0.3;
+      const toNose = e.e === 2 ? 1 - f : e.e === 0 ? f : 0.5, w = mo ? Math.pow(0.5 + 0.5 * Math.cos(t * (2.4 + 16 * rkT) - toNose * 5), 6) : 0.3 + 0.5 * rkT;
       const col = e.e === 1 ? [255, 214, 170] : [236, 240, 255];
       glow(c, col, x, y, len * 0.016, len * 0.009, 0.35 + 0.65 * w);
       c.globalAlpha = 0.5 + 0.5 * w; c.fillStyle = 'rgb(255,250,240)'; c.fillRect(x - 0.5, y - 0.4, 1, 0.8);
@@ -728,7 +733,9 @@ export function createLegends({ clock, qp } = {}) {
     // (1) THEY LIGHT THE CRAFT — clipped to the hull: each corner light washes the metal round it (a falloff: the panels near it catch it),
     // the red orb washes the belly's middle, pulsing with it; (3) REAL GLOW — a wide soft bloom + a hot core round each light, a faint
     // horizontal FLARE on the brightest
-    const kc = P.map((q, i) => 0.65 + 0.35 * Math.sin(t * 1.6 + i * 2.1)), lv = tier > 0;
+    let kc = P.map((q, i) => 0.65 + 0.35 * Math.sin(t * 1.6 + i * 2.1)); const lv = tier > 0;
+    // (the tap: the three corner lights RACE — one after another round the points, fast + hot; still: all three held bright)
+    if (rkT > 0) kc = kc.map((v, i) => lerp(v, mo ? (Math.floor(ruT * 24) % 3 === i ? 1.75 : 0.22) : 1.35, rkT));
     c.save(); c.beginPath(); P.forEach((q, i) => (i ? c.lineTo(q[0] * 0.97, q[1] * 0.97) : c.moveTo(q[0] * 0.97, q[1] * 0.97))); c.closePath(); c.clip();
     P.forEach((q, i) => glow(c, [196, 204, 232], q[0] * 0.8, q[1] * 0.8, len * 0.36, len * 0.15, 0.2 * kc[i]));
     glow(c, [255, 40, 18], 0, 0, len * 0.62, len * 0.25, 0.1 + 0.14 * pulse);
@@ -749,7 +756,7 @@ export function createLegends({ clock, qp } = {}) {
       triLightsNow = [...P.map((q, i) => ({ ...S(q[0] * 0.8, q[1] * 0.8), col: [236, 240, 255], k: kc[i] })), { ...S(0, 0), col: [255, 60, 30], k: 0.75 + 0.25 * pulse, orb: true }]; }
     { const rx = len * HUB_R * 0.83, ry = rx * 0.4, n = 12;
       for (let i = 0; i < n; i++) {
-        const a = (i / n) * TAU, w = mo ? Math.pow(0.5 + 0.5 * Math.cos(a - t * 2.2), 4) : 0.4;
+        const a = (i / n) * TAU, w = mo ? Math.pow(0.5 + 0.5 * Math.cos(a - t * (2.2 + 18 * rkT)), 4) : 0.4 + 0.4 * rkT;
         glow(c, [255, 96, 40], Math.cos(a) * rx, Math.sin(a) * ry, len * 0.014, len * 0.008, (0.3 + 0.7 * w) * (0.6 + 0.4 * pulse));
       } }
     glow(c, [255, 60, 30], 0, 0, len * (0.15 + 0.035 * pulse), len * (0.065 + 0.018 * pulse), 0.35 + 0.35 * pulse);
@@ -775,7 +782,11 @@ export function createLegends({ clock, qp } = {}) {
     // (SKY-A: THE VIC — the far wingman first, the lead, the near one last; all three BANK together mid-screen)
     const js = chaseJets(st.chase.u).sort((a, b) => a.sc - b.sc);
     chaseNow = { u: +st.chase.u.toFixed(3), roll: +roll.toFixed(2), model: jets.model(), jets: js.map(J => ({ i: J.i, x: Math.round(J.x), y: Math.round(J.y), sc: J.sc })) };
-    for (const J of js) jets.draw(c, { x: J.x, y: J.y, dir, ang: 0.05, len: len * J.sc, look, burn: 1, roll, t: performance.now() / 1000 + J.i * 0.37, i: J.i });
+    // (PROGRESSION B: a tap on the vic — they BREAK APART, each its own way, then fall back in; the Blackbird rides through the same chase)
+    { const mx = js.reduce((a, J) => a + J.x, 0) / js.length, my = js.reduce((a, J) => a + J.y, 0) / js.length;
+      if (mx > -len && mx < W + len) { SR.box('f22', mx, my, len * 1.25, len * 0.75); SR.box('blackbird', mx, my, len * 1.25, len * 0.75, { chase: true }); } }
+    const rkF = SR.k('f22') || SR.k('blackbird'), mo = fs.motion !== false && fs.motion !== 0;
+    for (const J of js) { const B = breakOf(J.i, rkF, len, mo); jets.draw(c, { x: J.x, y: J.y + B.dy, dir, ang: 0.05 + B.ang, len: len * J.sc, look, burn: 1 + B.burn, roll, t: performance.now() / 1000 + J.i * 0.37, i: J.i }); }
   }
 
   // ---------------------------------------------------------------- THE ABDUCTION (before the front row)
@@ -797,7 +808,13 @@ export function createLegends({ clock, qp } = {}) {
     // (the hand-drawn saucer stands in: &ufo=classic, the sprites failed, or still loading after 4 s — a slow network on a preview)
     if (!useM && !saucer && (modelState !== 'loading' || performance.now() - modelT0 > 4000)) saucer = saucerSprite(sR * 2, dpr);
     const night = clamp01(fs.L.w.night + fs.L.w.late), mo = fs.motion;
-    const beamK = st.beam.k, open = st.beam.open;
+    // (PROGRESSION B — CITY SIGHTINGS: where a tap finds it; its reaction — it WOBBLES on its axis + its beam FLICKERS like a bad bulb;
+    // still: no wobble, the beam held low)
+    SR.box('ufo', sa.x, sa.y + R * 0.1, R * 1.05, R * 0.6);
+    const rkU = SR.k('ufo'), ruU = SR.u('ufo') || 0;
+    if (rkU > 0 && mo) { sa.tilt += rkU * 0.17 * Math.sin(ruU * 30); sa.x += rkU * 3.5 * Math.sin(ruU * 21 + 1); sa.y += rkU * 2.2 * Math.sin(ruU * 37); }
+    let beamK = st.beam.k; const open = st.beam.open;
+    if (rkU > 0) beamK *= 1 - rkU * (mo ? (Math.sin(ruU * 97) * Math.sin(ruU * 41 + 2) > -0.1 ? 0.9 : 0.12) : 0.45);
     // ---- THE LIGHT ON THE GROUND + THE SURROUNDINGS (the pool, the wash, the water under it, the lamps' long shadows)
     const gy = med.y, poolR = beam.w * 0.5;
     if (beamK > 0.01 && open > 0.6) {

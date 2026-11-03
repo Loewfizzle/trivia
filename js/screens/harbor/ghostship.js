@@ -10,6 +10,7 @@
 // HOOK-B-WATER-FAR (after the far boats, before the baked pier / lighthouse layer); its reflection + its lanterns' columns go into the
 // water's mirror queue before the water composes (HOOK-B-LOW: queue()).
 import { GHOST, ghostCrossing, ghostForced, batColonyAt, batColonyForced, batJinkAt } from '../../core/harbor-ghost.js';
+import * as SR from './sight-react.js';
 import { createWitch } from './witch.js';
 import { ghostShipAt } from '../../core/harbor-holiday.js';
 import { project } from '../../core/harbor-layout.js';
@@ -280,6 +281,10 @@ export function createGhostShip() {
   function drawShip(c, P, sp, a, mirror = false, t = 0, motion = true) {
     if (a <= 0.004) return;
     const pu = P.k, ox = P.cx, oy = P.axis - P.bob * pu;
+    // (PROGRESSION B — CITY SIGHTINGS: where a tap finds it (the real ship, never its reflection); its reaction — its LANTERNS FLARE, the
+    // stern's most, a green-white burst + its halo over the deck; still: the same flare, held)
+    const rkG = mirror ? SR.k('ghostship') * 0.6 : SR.k('ghostship');
+    if (!mirror && a > 0.12) SR.box('ghostship', ox, oy - 10 * pu, 20 * pu, 13 * pu);
     c.save();
     c.translate(ox, oy); c.rotate(P.roll * P.dir); c.scale(P.dir, 1);
     // the sprite's origin: the hull's middle (x 15 units) on the waterline
@@ -295,9 +300,11 @@ export function createGhostShip() {
     c.globalCompositeOperation = 'lighter';
     for (const [la, lu, s] of LANTERNS) {
       const fl = motion ? 0.75 + 0.25 * Math.sin(t * 11 + la) * Math.sin(t * 7.3 + lu) : 0.9;
-      const r = pu * (2.2 + 1.2 * s) * fl;
-      c.globalAlpha = Math.min(1, a * (0.85 * s) * fl);
+      const flare = 1 + rkG * (s === 1 ? 4.2 : 1.2);
+      const r = pu * (2.2 + 1.2 * s) * fl * flare;
+      c.globalAlpha = Math.min(1, a * (0.85 * s) * fl * (1 + 0.6 * rkG));
       c.drawImage(lampSpr, (la - 15) * pu - r, -lu * pu - r, r * 2, r * 2);
+      if (rkG > 0.01 && s === 1) { const R2 = pu * 17 * rkG; c.globalAlpha = Math.min(1, a * 0.55 * rkG); c.drawImage(lampSpr, (la - 15) * pu - R2 * 1.6, -lu * pu - R2, R2 * 3.2, R2 * 2); }
       c.globalAlpha = Math.min(1, a * fl);
       c.fillStyle = 'rgb(236,255,190)'; c.beginPath(); c.arc((la - 15) * pu, -lu * pu, Math.max(0.6, pu * 0.22 * s), 0, TAU); c.fill();
     }

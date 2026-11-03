@@ -6,6 +6,7 @@
 // night, smooth at 60 fps (a pure function of the clock, no per-frame noise); + its SOFT REFLECTION on the harbor's water. 6a's timing
 // stays (~2 nights a month + a real Kp ≥ 7 storm: skyfx.setAurora).
 import { safeCtx } from '../../ui/canvas-safe.js';
+import * as SR from './sight-react.js';
 
 // POLISH 4 (the owner: "better, but ALL ONE GREEN"): the real colours — GREEN in the middle band (oxygen, the brightest), a PINK /
 // MAGENTA fringe along the curtain's LOWER edge (nitrogen), deep RED / crimson HIGH at the top (oxygen up high), a touch of VIOLET
@@ -41,11 +42,17 @@ export function createAurora() {
     draw(c, k, box, t, motion) {
       if (k < 0.02) return;
       const BB = strands(), strips = tier === 2 ? 44 : tier === 1 ? 32 : 22, tt = motion ? t : 0, span = box.y1 - box.y0;
+      // (PROGRESSION B — CITY SIGHTINGS: the curtain answers a tap — it BRIGHTENS + a RIPPLE runs out along it both ways from the finger;
+      // still: brightened, no ripple)
+      if (k > 0.15) SR.box('aurora', W / 2, box.y0 + span * 0.57, W * 0.5, span * 0.37);
+      const rk = SR.k('aurora'), ru = SR.u('aurora') || 0, tap = SR.at('aurora'), ux = tap ? (tap.x + W * 0.05) / (W * 1.1) : 0.5;
+      k = Math.min(1.25, k * (1 + 0.9 * rk));
       c.save(); c.globalCompositeOperation = 'lighter';
       for (const [base, amp, ph, sp, a] of [[0.94, 0.05, 0, 0.11, 0.5], [0.8, 0.045, 2.2, 0.08, 0.34]]) {
         for (let i = 0; i < strips; i++) {
           const u = i / strips, x = u * W * 1.1 - W * 0.05;
-          const y = box.y0 + span * curtain(u, tt, base, amp, ph, sp);
+          const dU = Math.abs(u - ux), front = ru * 1.25, wv = motion && rk > 0 ? rk * Math.exp(-((dU - front) ** 2) / 0.006) * (1 - ru * 0.6) : 0;
+          const y = box.y0 + span * (curtain(u, tt, base, amp, ph, sp) - 0.07 * wv);
           const hgt = span * (0.5 + 0.18 * k + 0.14 * Math.sin(u * 5 + tt * sp * 2 + ph));
           const bw = W / strips * 7.5;
           const al = Math.min(1, a * k * 0.78 * (0.72 + 0.28 * Math.sin(u * 5 + tt * 0.6 + ph)) * Math.sin(Math.PI * u));

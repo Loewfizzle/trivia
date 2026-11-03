@@ -48,6 +48,9 @@ import { createHarborBeat, pulseGain, pulseOut, createSafety } from '../../core/
 
 import { cameraFor, harborLayout, laneRects, roofline, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
 import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core/harbor-events.js';
+import * as SR from './sight-react.js';
+/** PROGRESSION B: the forces that put a sighting on screen — a tap while one is held never claims (the server would refuse it anyway) */
+const SIGHT_FORCES = ['ufo', 'tr3b', 'blackbird', 'flyby', 'jets', 'aurora', 'fireball', 'ghost-ship', 'balloons', 'balloon-festival', 'balloon-skull', 'balloons-fast', 'balloon-festival-fast', 'legend', 'demo'];
 import { settings } from '../../audio/settings.js';
 
 import { reportError, recentErrors } from '../../errlog.js';
@@ -2867,6 +2870,18 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       if (L && (beam.hit(x, y) || boats.hit(x, y) || wheel.hit(x, y))) return { kind: 'harbor' };
       return null;
     },
+    /** PROGRESSION B — CITY SIGHTINGS: a tap on a legendary (asked FIRST by title.js#onCityTap — before the letters: a balloon / the
+     *  Blackbird can cross the sign). Its reaction starts here (every tap, only on this phone); → { id, key, x, y, t (the tap on the city's
+     *  clock — the server's when live), tz, live (a real visit: a &force= / &when= / &tz= page or the preview panel never claims) } | null */
+    sightTap(x, y, o = {}) {
+      const h = SR.hit(x, y, o.skip || null);
+      if (!h) return null;
+      SR.fire(h.key, { x, y }); fastUntil = performance.now() + 2500;
+      const forced = SIGHT_FORCES.some(f => clock.force.has(f));   // (the preview panel's forces land in clock.force too)
+      return { id: h.id, key: h.key, x: h.x, y: h.y, t: clock.now(), tz: clock.tz, live: !!clock.live && !clock.preview && !forced };
+    },
+    /** the legendaries' tap boxes up now (tests + &debug) */
+    sightBoxes: () => SR.live(),
     /** WIN — THE SPIDER'S TAP (the owner's iPhone: tapping it did nothing — title.js answered every tap inside the logo's rect with a
      *  letter buzz before the scene was asked): the dressing's hit alone, asked FIRST by title.js#onCityTap; { kind: 'spider' } or null */
     spiderHit(x, y) { if (!dress) return null; const d = dress.hit(x, y); if (d) fastUntil = performance.now() + 1500; return d; },

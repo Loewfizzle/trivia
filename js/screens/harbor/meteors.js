@@ -7,6 +7,7 @@
 //               night they all fly out from the shower's RADIANT (east of the view: up + to the left, the city faces south)
 // The moon's three-tap shooting star stays City 1.0's (fx.js draws its own). &force=meteor: one every few seconds; &force=fireball.
 import { meteorsOf } from '../../core/sky.js';
+import * as SR from './sight-react.js';
 import { fireballOf } from '../../core/harbor-fireball.js';
 import { safeCtx } from '../../ui/canvas-safe.js';
 
@@ -67,7 +68,12 @@ export function createMeteors() {
         // THE TRAIN: a faint glow where it passed, lingering ~0.9 s after the head has gone
         if (k >= 1) { if (!m.trainAt) m.trainAt = m.life; const tk = 1 - (m.life - m.trainAt) / (m.fire ? 2 : 0.9); if (tk <= 0 && !m.sparks.length) return false; }
         const life = Math.min(1, k), fade = k < 1 ? Math.sin(Math.PI * Math.min(1, life * 1.15)) : 0;
-        const flare = m.flare ? 1 + 1.6 * Math.exp(-((life - 0.7) ** 2) / 0.006) : 1;
+        // (PROGRESSION B — CITY SIGHTINGS: the fireball answers a tap — it FLARES (a hot white burst) + sheds a shower of sparks; its box
+        // rides its head)
+        const rkF = m.fire ? SR.k('fireball') : 0;
+        if (m.fire && k < 1) SR.box('fireball', hx - dx * m.len * 0.3, hy - dy * m.len * 0.3, m.len * 0.45, 26);
+        if (rkF > 0.3 && k < 1 && Math.random() < 0.8) m.sparks.push({ x: hx, y: hy, vx: (Math.random() - 0.5) * 140, vy: (Math.random() - 0.5) * 140, t: 0, max: 0.4 + Math.random() * 0.6 });
+        const flare = (m.flare ? 1 + 1.6 * Math.exp(-((life - 0.7) ** 2) / 0.006) : 1) * (1 + 2.8 * rkF);
         const a = m.b * fade * flare;
         const len = m.len * (0.4 + 0.6 * Math.min(1, life * 2)), w = m.w * (m.flare ? 0.8 + 0.4 * flare : 1);
         if (k < 1) {
@@ -79,6 +85,7 @@ export function createMeteors() {
           // the head: a hot point + its tinted glow
           c.globalAlpha = Math.min(1, a); const r = (m.fire ? 16 : 5) * (0.8 + 0.4 * flare);
           c.drawImage(D, hx - r, hy - r, r * 2, r * 2);
+          if (rkF > 0.01) { const R2 = 70 * rkF; c.globalAlpha = Math.min(1, 0.85 * rkF * fade); c.drawImage(D, hx - R2, hy - R2 * 0.7, R2 * 2, R2 * 1.4); }   // (the tap's burst: a wide white-green bloom round the head)
           // (breaking up: a flaring one sheds sparks near its end)
           if (m.flare && life > 0.72 && Math.random() < 0.6) m.sparks.push({ x: hx, y: hy, vx: dx * m.v * 0.25 + (Math.random() - 0.5) * 40, vy: dy * m.v * 0.25 + (Math.random() - 0.5) * 40, t: 0, max: 0.35 + Math.random() * 0.5 });
         }

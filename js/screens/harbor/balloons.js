@@ -33,6 +33,7 @@ const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 const mk = (w, h) => { const c = document.createElement('canvas'); c.width = Math.max(1, Math.ceil(w)); c.height = Math.max(1, Math.ceil(h)); return c; };
 const mix = (a, b, t) => a.map((v, i) => Math.round(v + (b[i] - v) * t));
 const rgb = (c, a = 1) => `rgba(${c[0]},${c[1]},${c[2]},${a})`;
+import * as SR from './sight-react.js';
 import { rng, BALLOON_KINDS, FESTIVAL_ORDER, FLIGHT, hash01, flightLen, singleKind } from '../../core/harbor-balloon-kinds.js';
 // (PROGRESSION B: the line-up + the flight's length moved to core/harbor-balloon-kinds.js — the server replays a flight for a CITY SIGHTING)
 export { BALLOON_KINDS, FESTIVAL_ORDER, FLIGHT, flightLen };
@@ -667,6 +668,13 @@ export function createBalloons() {
           const y0 = roof + 2, k = clamp01(eL / b.climb), ez = 1 - Math.pow(1 - k, 2.2);
           y = y0 + (y - y0) * ez;
         }
+        // (PROGRESSION B — CITY SIGHTINGS: the skull + the two ₿s answer a tap — each its own box (the festival's two ₿s apart: slot = its
+        // index); the skull's BURNER ROARS (a big flame lighting the skull from below), a ₿'s burner flares + it BOBS UP + a gold pulse
+        // on its ₿; still: the flame + the light held, no bob)
+        const sid = b.kind === 'skull' ? 'skull' : b.kind === 'bitcoin' || b.kind === 'btc-orange' ? 'btc' : null, skey = sid ? `${sid}#${b.i}` : null;
+        const rkS = sid ? SR.k(skey) : 0;
+        if (rkS > 0 && sid === 'btc' && s.motion) y -= rkS * A.h * 0.14;
+        if (sid && x > -A.w * 0.3 && x < W + A.w * 0.3) SR.box(sid, x, y + A.h * 0.45, A.w * 0.5, A.h * 0.5, { slot: b.i });
         const alpha = fadeIn * fadeOut * (0.75 + 0.25 * b.near);
         b.box = [x - A.w / 2, y + A.oy * 0, A.w, A.h];
         // (PERF-B — the depth rule: a near balloon over the sign's band goes onto its own overlay above the sign; everything else in the city.
@@ -713,17 +721,22 @@ export function createBalloons() {
         while (b.bi < b.burns.length - 1 && b.burns[b.bi][0] + b.burns[b.bi][1] < eL) b.bi++;
         const bn = b.burns[b.bi], cyc = bn ? eL - bn[0] : -1, inBurn = s.motion && cyc >= 0 && cyc < bn[1];
         if (inBurn && b.lastBurn !== b.bi) { b.lastBurn = b.bi; if (x > -A.w * 0.3 && x < W + A.w * 0.3) { burnId++; burnPan = Math.max(-1, Math.min(1, x / W * 2 - 1)); } }
-        const ct = s.t || 0, burn = inBurn ? Math.min(1, cyc * 6, (bn[1] - cyc) * 4) * (0.62 + 0.38 * Math.max(0, Math.sin(ct * 13 + b.ph))) : 0;
+        const ct = s.t || 0, burn0 = inBurn ? Math.min(1, cyc * 6, (bn[1] - cyc) * 4) * (0.62 + 0.38 * Math.max(0, Math.sin(ct * 13 + b.ph))) : 0;
+        const burn = Math.max(burn0, rkS * (s.motion ? 0.8 + 0.2 * Math.sin(ct * 31 + b.ph) : 0.9)), roar = sid === 'skull' ? 1 + 1.5 * rkS : 1 + 0.6 * rkS;
         if (burn > 0.02) {
-          const fx = x, fy = y + A.oy + A.burner, fl = b.R * (0.35 + 0.25 * burn) * (0.9 + 0.1 * Math.sin(ct * 40));
+          const fx = x, fy = y + A.oy + A.burner, fl = b.R * (0.35 + 0.25 * burn) * (0.9 + 0.1 * Math.sin(ct * 40)) * roar;
           g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * burn;
           g.drawImage(flameDot, fx - fl * 0.35, fy - fl * 1.1, fl * 0.7, fl * 1.25);
           g.globalAlpha = alpha * burn * (0.25 + 0.75 * dark + 0.4 * gold) * 0.9;
           g.drawImage(A.glow, x - A.w / 2, y, A.w, A.h);
           // (6b) the flare lights the basket + the air round the mouth (a warm halo, strongest in the dark)
           g.globalAlpha = alpha * burn * (0.2 + 0.6 * dark); g.drawImage(flameDot, fx - b.R * 0.9, fy - b.R * 0.8, b.R * 1.8, b.R * 1.4);
+          // (the tap's roar: the flame's warm light thrown UP over the envelope's face — the skull lit from below)
+          if (rkS > 0.01) { g.globalAlpha = alpha * rkS * (sid === 'skull' ? 0.75 : 0.4) * (0.55 + 0.45 * dark); g.drawImage(flameDot, x - A.w * 0.62, y + A.h * 0.12, A.w * 1.24, A.h * 0.95); }
           g.restore();
         }
+        // (a ₿'s GOLD PULSE: its lit-from-inside glow pulsed gold over the mark, twice through the reaction)
+        if (rkS > 0.01 && sid === 'btc') { const ru = SR.u(skey) || 0, pz = s.motion ? Math.pow(Math.sin(Math.PI * ((ru * 2) % 1)), 2) : 1; g.save(); g.globalCompositeOperation = 'lighter'; g.globalAlpha = alpha * rkS * 0.85 * pz; g.drawImage(A.glow, x - A.w / 2, y, A.w, A.h); g.restore(); }
         // THE ₿s AT NIGHT: lit from inside all the time (THE OPPOSITES — the orange one: lit orange with its black ₿; the black one stays
         // black, its orange ₿ glowing) — the burns only brighten it (POLISH 5: laid OVER the day's look, not added to it)
         // (WINDOWS: THE MENACING SKULL too — its envelope black, the bone glowing warm all night: a skull hanging in the dark)

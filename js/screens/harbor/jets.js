@@ -16,6 +16,7 @@
 //                  (green flying right: its starboard side is ours; red flying left), a white tail light, the beacon on the spine
 //   VAPOUR + SMOKE a vapour cone round the wing on a hard pull (the air show), a white smoke trail by day (the air show's smoke on)
 import { safeCtx } from '../../ui/canvas-safe.js';
+import * as SR from './sight-react.js';
 import { FORMATIONS } from '../../core/harbor-legend.js';
 import { loadF22Model, f22Ready, f22Sprite } from './f22-model.js';
 
@@ -460,7 +461,11 @@ export function createAirShow() {
       // (the jets' sprite baked in the second before they come — never on the frame they enter)
       if (e < 0) { jets.warm(len, look); return; }
       c.save(); smoke(c, e, box, len, look.dark); c.restore();
-      for (const J of showJets(cur.kind, e, box, len, cur.flip, cur.n)) jets.draw(c, { x: J.x, y: J.y, dir: J.dir, ang: climbOf(J.ang, J.dir), len, look, burn: J.burn, vapour: 0, t: performance.now() / 1000 + J.i * 0.29, i: J.i });
+      const JS = showJets(cur.kind, e, box, len, cur.flip, cur.n);
+      // (PROGRESSION B — CITY SIGHTINGS: the surprise flyby's formation answers a tap — it BREAKS APART, each jet its own way)
+      const fly = cur.kind === 'flyby', rk = fly ? SR.k('f22') : 0, mo = s.motion !== false && s.motion !== 0;
+      if (fly && JS.length) SR.box('f22', JS.reduce((q, J) => q + J.x, 0) / JS.length, JS.reduce((q, J) => q + J.y, 0) / JS.length, len * 1.35, len * 0.8);
+      for (const J of JS) { const B = SR.breakOf(J.i, rk, len, mo); jets.draw(c, { x: J.x, y: J.y + B.dy, dir: J.dir, ang: climbOf(J.ang, J.dir) + B.ang, len, look, burn: Math.min(1.5, J.burn + B.burn), vapour: 0, t: performance.now() / 1000 + J.i * 0.29, i: J.i }); }
     },
     /** THE SOUND (POLISH 4: in sync): the pass coming — { key (once per pass), dir, peakIn (s until the formation's middle crosses
      *  the screen's centre: the roar's peak lands there), x (the formation's middle now, a fraction of the box's width) } from ~5 s

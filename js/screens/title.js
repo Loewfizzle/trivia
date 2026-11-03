@@ -1340,6 +1340,10 @@ export function createTitle() {
     const x = e.clientX, y = e.clientY;
     // (WIN — the spider on the sign is asked BEFORE the letters: a tap on it bolts it down its thread; the letter taps keep the rest of the rect)
     if (scene.spiderHit && scene.spiderHit(x, y)) return;
+    // (PROGRESSION B — CITY SIGHTINGS: a legendary under the finger answers before the letters — its reaction, the flash, the polaroid)
+    const lr = logoRect(), onSign = !!(lr && x >= lr.x && x <= lr.x + lr.w && y >= lr.y - 12 && y <= lr.y + lr.h + 12);
+    const sg = scene.sightTap && scene.sightTap(x, y, { skip: onSign ? ['aurora'] : null });   // (the aurora is BEHIND the sign: the letters win there)
+    if (sg) { import('../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); return; }
     const r = logoRect();
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
     const hit = scene.hit(x, y);
@@ -1765,6 +1769,7 @@ export function createTitle() {
       signDim: (id, o) => (scene && scene.dimSign ? (id ? scene.dimSign(id, o) : scene.signDim()) : null),   // (City 2.0, C1.5: the sign-dim hook)            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),
+      sightBoxes: () => (scene && scene.sightBoxes ? scene.sightBoxes() : []),   // (PROGRESSION B: the legendaries' tap boxes up now)
       idle: () => goIdle(),
       quickIdle: () => quickIdle,   // (9e: the QUICK FADE armed — the dock up for ~2 s over a front-street scene)
       idleMs: () => IDLE_MS,        // (9g: 10 s on a device's first visit, 5 s after)

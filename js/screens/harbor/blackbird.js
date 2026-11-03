@@ -15,6 +15,7 @@
 import { ctx2d } from '../../ui/canvas-safe.js';
 import { citySound, cityPrefetch } from '../../audio/city-sound.js';
 import { BB, bbAt, bbLife } from '../../core/harbor-blackbird.js';
+import * as SR from './sight-react.js';
 
 const TAU = Math.PI * 2;
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
@@ -229,11 +230,16 @@ export function createBlackbird() {
       x.globalCompositeOperation = 'lighter'; x.strokeStyle = g; x.lineWidth = 1.1; x.beginPath(); x.moveTo(x0, y + len * 0.01); x.lineTo(tailX, y + len * 0.01); x.stroke(); x.globalCompositeOperation = 'source-over';
     }
     if (st.on) {
+      // (PROGRESSION B — CITY SIGHTINGS: where a tap finds it (page px — the overlay is drawn in the page's own frame); its reaction — it
+      // PITCHES ITS NOSE UP + LIGHTS ITS AFTERBURNERS (the plumes long + white-hot); still: the burners lit, no pitch)
+      SR.box('blackbird', nx - fl.dir * len * 0.45, y, len * 0.62, len * 0.22);
+      const rkB = SR.k('blackbird'), mo = s.motion !== false && s.motion !== 0, ab = Math.min(1.35, st.burn + 0.95 * rkB), pl = 1 + 0.55 * rkB;
       x.save(); x.translate(tailX, y); x.scale(fl.dir, 1);
+      if (rkB > 0 && mo) x.rotate(-0.24 * rkB);
       // the PLUMES (the far one a hair above, dimmer, behind), then the craft
       x.globalCompositeOperation = 'lighter';
-      x.save(); x.translate(len * 0.03, -len * 0.014); plume(x, len * BB.plume, len * 0.024, st.burn * 0.7, s.t, 1); x.restore();
-      x.save(); x.translate(len * 0.03, 0); plume(x, len * BB.plume, len * 0.03, st.burn, s.t, 0); x.restore();
+      x.save(); x.translate(len * 0.03, -len * 0.014); plume(x, len * BB.plume * pl, len * 0.024 * (1 + 0.3 * rkB), ab * 0.7, s.t, 1); x.restore();
+      x.save(); x.translate(len * 0.03, 0); plume(x, len * BB.plume * pl, len * 0.03 * (1 + 0.3 * rkB), ab, s.t, 0); x.restore();
       x.globalCompositeOperation = 'source-over';
       // the craft (the art switch: the drawn SR-71 — or a baked model's sprite in its place)
       const key = `${art}|${Math.round(len)}|${Math.round(look.day * 8)}|${Math.round(look.golden * 8)}|${Math.round(night * 8)}|${d}`;
