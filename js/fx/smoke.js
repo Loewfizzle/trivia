@@ -41,7 +41,7 @@ export default {
       const k = smooth(0.6, 1, u);
       const y = (y0 + wob(t * 0.18, i) * 0.07 - k * k * 0.85) * h;
       const d = h * sz * (1 + k * 0.5);
-      const a = (near ? 0.42 : 0.26) * smooth(0, 0.14, u) * (1 - smooth(0.8, 1, u)) * (0.85 + 0.15 * wob(t * 0.4, i + 3));
+      const a = (near ? 0.56 : 0.34) * smooth(0, 0.14, u) * (1 - smooth(0.8, 1, u)) * (0.85 + 0.15 * wob(t * 0.4, i + 3));
       const warm = Math.max(0, 1 - x / (w * 0.6)) * Math.max(0, 1 - y / (h * 1.3));
       const rot = rot0 + t * (0.02 + k * 0.25) * (i % 2 ? 1 : -1), sx = flat * (1 - k * 0.35), sy = 0.62 + k * 0.3;
       if (warm < 0.98) bank(c, puff(COOL, v), x, y, d, sx, sy, rot, a * (1 - warm));

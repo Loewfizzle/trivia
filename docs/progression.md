@@ -45,7 +45,7 @@ LEGEND's until THE VAULT); `profiles/{pid}/l` = the level. Everything that showe
 strip, the lobby chip "LV n", THE BOARD's #1 crown + your button, /admin).
 
 ### THE LEVEL REWARDS (31 — item ids; THE VAULT replaces the ART, never the ids)
-1 GILDED (everyone) · 3 MIDNIGHT · 5 BRASS DECO · 7 tube TWO-TONE · **10 EMERALD & BRASS** · 13 emblem DIAMOND · 15 glow ICE · 18 NEON GLASS ·
+1 GILDED (everyone) · 3 MIDNIGHT · **4 HEARTBREAKER** · 5 BRASS DECO · 7 tube TWO-TONE · **8 GLITTER BOMB** (THE VAULT 1A — the pink pair, early) · **10 EMERALD & BRASS** · 13 emblem DIAMOND · 15 glow ICE · 18 NEON GLASS ·
 20 SILVER CHROME · **25 MIDNIGHT & CHAMPAGNE** · 28 glow NEON · 30 tube BREATHING · 32 VELVET ROOM · 35 AURORA · 37 emblem CRESCENT ·
 **40 ONYX & ROSE GOLD** · 44 GOLD FOIL · 47 tube GOLD · 50 glow GOLD · 55 emblem THE CROWN · 58 VELVET NOIR · **60 SAPPHIRE & SILVER** (the 4th
 Gilded-family slot — a name + palette for THE VAULT to design) · 65 tube OLD SIGN · 70 PRISM LEGEND + glow PRISM · 75 emblem SUNBURST ·
@@ -53,6 +53,10 @@ Gilded-family slot — a name + palette for THE VAULT to design) · 65 tube OLD 
 + 5 old glows are level rewards at the levels their old rank steps were worth (EMBER = FIRST ROUND's).
 **THE CARRY-OVER:** a profile from before levels gets every reward its XP had earned (+ the achievements its stats already prove, +
 FOUNDER while open) the first time it's touched — its next match, or the `me` call (the card screen).
+**THE ART (THE VAULT 1A, Nov 3 — docs/vault.md):** the first REAL arts are the 8 sample cards as SLIM STRIPS (BRUSHED GOLD — now a
+common · SMOKE ROOM · FROSTBITE · INFERNO · PRISM · THE MARQUEE · GLITTER BOMB · I WANT TO BELIEVE) on THE EFFECT LIBRARY (`js/fx/`), in
+THE CARD LAB for the owner's marks; new ids `card-smoke`, `card-frostbite`, `card-inferno`, `card-prism` (where they unlock: 1B),
+`card-glitter`, `card-heartbreaker`. Only APPROVED art ships (`js/vault/approved.js`); until then every item keeps its placeholder look.
 **THE VAGUE TEASE:** the moment says "SOMETHING NEW AT LEVEL 25" — WHEN, never WHAT.
 
 ## THE STREAK (`pstats/{pid}/st`)
@@ -189,8 +193,10 @@ the sign) — except the aurora, which is BEHIND the sign: a tap on the letters 
 ### THE FLASHBULB, THE REAL POLAROID, SPOTTED + THE REVEAL
 ~0.45 s into the reaction the city's ACTUAL frame is captured (`scene.snapshot` — every city canvas incl. the crisp lettering + the
 legendaries' overlays, cropped square round it at the phone's full dpr: 966 px at 402 @3; ~1 ms on the main thread — the JPEG encodes async
-after) the instant before a press-camera FLASH (A's `flash`); the print slides into the corner, developing — a BIG legendary (the UFO, the
-TR-3B, the ghost ship) keeps it there until the craft has left the screen; then THE POLAROID big (A's `polaroid`) with its date + time
+after) the instant before a press-camera FLASH (A's `flash`); THE PARKED PRINT (THE VAULT 1A — the owner's review: "not smooth"): ONE
+element the whole way — it shrinks + glides into its corner (a tilt, a soft settle), developing, TAPPABLE there (opens the moment at once);
+a BIG legendary (the UFO, the TR-3B, the ghost ship) keeps it there until the craft has CLEARED or LEFT THE SCREEN (a hidden tab waits; a
+looping forced one lets go at 75 s) — then it GROWS BACK from that spot (FLIP, a spring); then THE POLAROID big (A's `polaroid`) with its date + time
 hand-lettered (Caveat), SPOTTED stamped, and THE REVEAL of the pair + X% (A's `card-reveal`) — HELD until a tap (taps in its first second
 ignored). AGAIN: the corner print + "SPOTTED · 4th time". A preview: the print + "A PREVIEW · IT DOESN'T COUNT", never SPOTTED, never kept.
 `/api` down: the moment plays the same, the claim waits in the queue (≤ 12 h), a later "SPOTTED · <name>" toast when it unlocks.
@@ -224,7 +230,8 @@ if the radio refuses (`api/_lib/favors.js`). The room button sleeps until LOBBY 
 ## THE OWNER's PROGRESSION A REVIEW (built as B's add-on)
 The end-of-round moment fits ONE screen (no pinned CONTINUE; extras fold into "+N MORE") · THE LEVEL-UP + every full-screen reveal HOLD until
 a tap (taps in the first second ignored; TAP TO CONTINUE after one) · IVORY NAMES (gold only for the section headers + borders; "22% of
-players have this" pink, sentence case) · THE STREAK CARD = THE BIG FLAME (`js/progress/flame-art.js` — three nested neon tubes; the same
+players have this" in sentence case — since THE VAULT 1A: NO SMALL ITALIC (the descriptions + every small line in the UI font, upright,
+≥ 14 pt, ivory ~78 %), PINK ONLY BIG (FOUNDING MEMBER a neon-outlined pill; X% 13 pt bold, a light pink)) · THE STREAK CARD = THE BIG FLAME (`js/progress/flame-art.js` — three nested neon tubes; the same
 flame small on the end-of-round line, the profile, the card + the dock badge) · the preview profile's ✕ in its own bar · THE PROGRAM in
 three sections (ON NOW · COMING UP · EARLIER TONIGHT collapsed) · THE INTERCOM's WHEN (NOW · IN 10 MIN · AT A TIME ≤ a day; the clip kept
 until it plays + its hour; CANCEL until it plays).

@@ -34,6 +34,16 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
   its "saved" note, the new key waits in `na:{slot}:pnotes.heldNew`, and the membership card offers **THIS DEVICE ALREADY HAD A KEY —
   RESTORE IT?** (RESTORE IT · No — keep the new profile: the old key then kept in `pnotes.oldKeys`). Never delete a stored key until a
   restore succeeds.
+- **BRING YOUR CARD — ONE CARD ON ALL YOUR DEVICES** (THE VAULT 1A, the owner's Nov 2 find: the Home Screen app opened as a STRANGER —
+  iOS gives it its own storage; `js/profile/bring.js`, `css/bring.css`): the key LINKS a device to the profile; every linked device works at
+  once (the other stays signed in; NEW KEY is never needed for it). A device with NOTHING saved (no key + no profile — the Home Screen app, a
+  new phone, another browser, www vs the bare domain) is asked **ALREADY A MEMBER? BRING YOUR CARD**: the Home Screen app (standalone) leads
+  with the sheet on its first open, a browser tab gets a pill over the dock (✕ / I'M NEW → never again: `nd:byc`), the setup screen a line,
+  the empty membership card a button; paste the key → `restoreKey` → this device joined. **The membership card:** a bold SAVE YOUR KEY
+  SOMEWHERE SAFE (email it to yourself, Notes, a password manager — "lose it and your card can't come back") + COPY · SHARE (the system
+  share sheet) · I SAVED IT (= `pnotes.saved`: the 3rd / 10th-match reminder stops; the box turns quiet) + **USE THIS CARD ON ANOTHER
+  DEVICE** (the key big + COPY + SHARE + three steps, Add to Home Screen included). The reminder sheet gets SHARE too. Previews:
+  `?bringcard=1` (the sheet) · `?bringcard=chip` (the pill) — nothing happens unless a key is pasted. Proof: `e2e-profiles.mjs` §6c.
 - **THE RESTORE RETRIES** (PERF-A): a network failure / timeout (status 0) is tried up to 3 more times with a backoff and a 15-s wait
   (WAKING THE SERVER — TRYING AGAIN); a server that answered (a bad key, a limit) is final; the invalid sound only for a refused key.
 - **THE EMPTY CARD SAYS WHY** (PERF-A): no key + no profile on this ADDRESS → "Nothing saved on this address yet (<host>) — if you have a

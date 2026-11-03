@@ -1827,3 +1827,16 @@ the phone's own squeeze + word faces kept; ≤ 2.2 : 1 + the soft fade; the sign
 wheel off the word face). Group 4: the mouse (a pointer + a glow; the city's hover ring), Esc, THE RESIZE (the held frame + one re-fit, a
 DPR move), THE PIXEL BUDGET (2.6 MP at tier 2 — 60 fps at 1920×1080 on a DPR 2 screen). Group 5: an iPad upright = the phone, sideways = the
 desktop framing; a phone sideways (the sign smaller, the dock 0.8); THE STANDING RULE (CLAUDE.md); e2e-harbor `desktop`.
+
+## THE VAULT 1A — THE STYLE TEST (Nov 3 2026) — docs/harbor/passes/vault-1a.md, docs/vault.md
+- **The owner's PROGRESSION B review:** a skip-tap is never a city tap (the forced UFO's photo "by itself"); THE PARKED PRINT as one element
+  (shrink + glide into the corner, tappable, grows back from that spot; always pops); NO SMALL ITALIC; PINK ONLY BIG (FOUNDING MEMBER a pill).
+- **BRING YOUR CARD:** ALREADY A MEMBER? (the Home Screen app leads with it; a pill on a browser tab; the setup screen; the empty card),
+  SAVE YOUR KEY SOMEWHERE SAFE + COPY · SHARE · I SAVED IT, USE THIS CARD ON ANOTHER DEVICE.
+- **THE CARD LAB** (/lab, admins only): every item at phone size, moving, the strip first; APPROVE · FIX + a note · CUT (audited, a
+  history, a public export with no names); A FULL LOBBY of 8 with a live fps readout.
+- **THE EFFECT LIBRARY** (js/fx/): one shared renderer (never a canvas per card; on-screen only; reduced motion = still frames; its own tier
+  guard) + smoke · frost · flames · prism · marquee · glitter · THE BORDER LASER · the UFO's life.
+- **THE 8 SAMPLE STRIPS** (BRUSHED GOLD · SMOKE ROOM · FROSTBITE · INFERNO · PRISM · THE MARQUEE · GLITTER BOMB · I WANT TO BELIEVE) + two
+  test emblems (NEON + PRISM bolts, THE PROMINENCE RULE); the pink pair as early level rewards (HEARTBREAKER 4, GLITTER BOMB 8).
+- Measured: 8 legendary strips at 4× CPU = 60 fps on the GPU compositor.

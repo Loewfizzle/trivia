@@ -63,7 +63,7 @@ export default {
     const r = rng(77);
     for (let i = 0; i < 7; i++) { const x = r() * w, y = r() * h * 0.5, p = r() * 6; stamp(c, glow('220,255,235', 0.3, 16), x, y, 5, still ? 0.5 : 0.25 + 0.6 * Math.max(0, Math.sin(t * 1.3 + p))); }
     // the craft: right of the name plate, high in the strip; a slow bob + a slow turn
-    const R = h * 0.82, cx = w * 0.68, cy = h * 0.24 + (still ? 0 : wob(t * 0.45, 2) * h * 0.035);
+    const R = h * 0.84, cx = w * 0.6, cy = h * 0.24 + (still ? 0 : wob(t * 0.45, 2) * h * 0.035);
     const pulse = still ? 0.9 : 0.78 + 0.22 * (0.5 + 0.5 * Math.sin(t * 2.2)) + 0.05 * wob(t * 3, 5);
     const belly = cy + R * 0.27;
     beam(c, cx, belly, R * 0.5, R * 1.7, h + 2, pulse * (s.opts.calm ? 0.85 : 1));

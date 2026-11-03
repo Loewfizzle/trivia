@@ -28,7 +28,7 @@ export const SECONDS = {
 // 151–583 s of tests each by the cloud's own seconds (+ ~25 s of setup). PERF-B: windows 446 → ~300 (its pages 3 at a time — 280 s on the
 // mini PC; refresh from this run's log), perf 270 → ~200 (the warnings-only pacing loop skipped on CI)
 export const CI_JOBS = {
-  audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp', 'progress'],   // (PROGRESSION A: progress — the dock flame + the preview links, beside the dock)   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
+  audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp', 'progress', 'vault'],   // (THE VAULT 1A: vault — the lab's look page + the 8-legendary fps, beside progress)   // (PROGRESSION A: progress — the dock flame + the preview links, beside the dock)   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life', 'quietbuilding'],   // (NIGHT-C: quietbuilding — the lightest)
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'streetparty', 'panel'],   // (NIGHT-B: streetparty)   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)

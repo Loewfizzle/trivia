@@ -39,6 +39,10 @@ on:
       - 'tests/integration/e2e-harbor.mjs'
       - 'tests/integration/harbor-e2e/**'
       - 'tests/integration/harbor-jobs.mjs'
+      - 'js/fx/**'
+      - 'js/vault/**'
+      - 'css/vault.css'
+      - 'tests/integration/vault-preview.html'
       - '.github/workflows/harbor.yml'
   workflow_dispatch:
     inputs:
