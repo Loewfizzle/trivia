@@ -64,6 +64,12 @@ export const CREDITS = [
   // tinted + cropped copies: scripts/build-vault-textures.mjs). A CC BY galaxy image, when one ships (1B), goes here EXACTLY as credits.txt gives it.
   { group: 'CARD TEXTURES', title: 'Metal009 (brushed metal) + Ice004 (ice)', by: 'ambientCG (Lennart Demes) — https://ambientcg.com', licence: 'CC0 1.0 (https://docs.ambientcg.com/license/)', link: 'https://ambientcg.com/view?id=Metal009' },
   { group: 'CARD TEXTURES', title: 'Silver Glitter 6', by: 'Michelle Grewe (Flickr gabbysol), via Wikimedia Commons', licence: 'CC0 1.0 (http://creativecommons.org/publicdomain/zero/1.0/)', link: 'https://commons.wikimedia.org/wiki/File:Silver_Glitter_6.png' },
+  // THE VAULT 1C — the held-back cards' textures (tinted + cropped copies; CC0 / public domain — named as a courtesy). The sighting cards' jets are
+  // the city's own SR-71 + F-22 models (credited above), re-baked at a card angle.
+  { group: 'CARD TEXTURES', title: 'Marble001 + Marble016 (marble), Fabric004 (carbon weave), Ice002 (the gold foil’s crinkle)', by: 'ambientCG (Lennart Demes) — https://ambientcg.com', licence: 'CC0 1.0 (https://docs.ambientcg.com/license/)', link: 'https://ambientcg.com/view?id=Marble001' },
+  { group: 'CARD TEXTURES', title: 'Velour Velvet', by: 'Poly Haven — photography colormass, processing Rico Cilliers', licence: 'CC0 1.0', link: 'https://polyhaven.com/a/velour_velvet' },
+  { group: 'CARD TEXTURES', title: 'Zebra skin', by: 'Wilfredor, via Wikimedia Commons', licence: 'CC0 1.0 (http://creativecommons.org/publicdomain/zero/1.0/)', link: 'https://commons.wikimedia.org/wiki/File:Zebra_skin.jpg' },
+  { group: 'CARD TEXTURES', title: 'Green-dominant "lowland" ERDL camouflage pattern swatch', by: 'US Army Engineer Research and Development Laboratory (1948), via Wikimedia Commons', licence: 'Public domain (PD-USGov-Military-Army)', link: 'https://commons.wikimedia.org/wiki/File:Green-dominant_%22lowland%22_ERDL_camouflage_pattern_swatch_(cropped).png' },
   // ATM-C — the shadowboxer's combo hits: ZusIsKing's two CC0 bag combos (Freesound 766864 + 766865), a courtesy credit
   { group: 'SOUND EFFECTS', title: 'Punching bag combos', by: 'ZusIsKing (Freesound #766864 + #766865)', licence: 'CC0 1.0 (no attribution required)' },
   // CITY CONTROLS A — the radio desk (the owner's controls): Grok's picks — CC0 Freesound + the Sonniss GDC bundles, courtesy credits

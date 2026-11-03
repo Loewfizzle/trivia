@@ -2,6 +2,174 @@
 // gets them with the marks (/api/admin labMarks — admins only); never in the site's code. A new lab item = its row here + its id in
 // js/vault/catalog.js#LAB.
 export const LAB_TEXT = {
+ "card-zebra": {
+  "name": "ZEBRA",
+  "motion": "Real zebra hide, black and white — a hot pink shine sweeping across it"
+ },
+ "full-card-zebra": {
+  "name": "ZEBRA · FULL CARD",
+  "motion": "Real zebra hide, black and white — a hot pink shine sweeping across it, at full size"
+ },
+ "card-camo": {
+  "name": "CAMO",
+  "motion": "Woodland camo, a night-vision scan line sweeping through it + a reticle locking onto you"
+ },
+ "full-card-camo": {
+  "name": "CAMO · FULL CARD",
+  "motion": "Woodland camo, a night-vision scan line sweeping through it + a reticle locking onto you, at full size"
+ },
+ "card-velvet": {
+  "name": "VELVET ROOM",
+  "motion": "Oxblood velvet with cream + gold piping, a warm stage spotlight drifting across it, dust in the beam, glowing edges"
+ },
+ "full-card-velvet": {
+  "name": "VELVET ROOM · FULL CARD",
+  "motion": "Oxblood velvet with cream + gold piping, a warm stage spotlight drifting across it, dust in the beam, glowing edges, at full size"
+ },
+ "card-aurora": {
+  "name": "AURORA",
+  "motion": "The northern lights rippling under glass — the city’s own aurora strands, glowing edges"
+ },
+ "full-card-aurora": {
+  "name": "AURORA · FULL CARD",
+  "motion": "The northern lights rippling under glass — the city’s own aurora strands, glowing edges, at full size"
+ },
+ "card-rosegold": {
+  "name": "ONYX & ROSE GOLD",
+  "motion": "Black onyx with pale veins under a rose-gold diamond lattice, a rose-gold shine, glowing edges"
+ },
+ "full-card-rosegold": {
+  "name": "ONYX & ROSE GOLD · FULL CARD",
+  "motion": "Black onyx with pale veins under a rose-gold diamond lattice, a rose-gold shine, glowing edges, at full size"
+ },
+ "card-gold": {
+  "name": "GOLD FOIL",
+  "motion": "Hammered gold foil, a deco sunburst whose rays catch the light in turn + glint, glowing edges"
+ },
+ "full-card-gold": {
+  "name": "GOLD FOIL · FULL CARD",
+  "motion": "Hammered gold foil, a deco sunburst whose rays catch the light in turn + glint, glowing edges, at full size"
+ },
+ "card-flame30": {
+  "name": "THE 30-NIGHT FLAME",
+  "motion": "Charcoal with a bed of embers breathing along the foot, low flames, sparks lifting off, glowing edges"
+ },
+ "full-card-flame30": {
+  "name": "THE 30-NIGHT FLAME · FULL CARD",
+  "motion": "Charcoal with a bed of embers breathing along the foot, low flames, sparks lifting off, glowing edges, at full size"
+ },
+ "card-marble": {
+  "name": "MARBLE & GOLD",
+  "motion": "White marble with real gold veins, glints catching along them, glowing edges"
+ },
+ "full-card-marble": {
+  "name": "MARBLE & GOLD · FULL CARD",
+  "motion": "White marble with real gold veins, glints catching along them, glowing edges, at full size"
+ },
+ "card-neoncamo": {
+  "name": "NEON CAMO",
+  "motion": "Night camo whose patches are traced in neon, a wave of power running through the outlines, glowing edges"
+ },
+ "full-card-neoncamo": {
+  "name": "NEON CAMO · FULL CARD",
+  "motion": "Night camo whose patches are traced in neon, a wave of power running through the outlines, glowing edges, at full size"
+ },
+ "card-carbon": {
+  "name": "CARBON",
+  "motion": "Woven carbon fibre, a cold blue shine running across the weave, glowing edges"
+ },
+ "full-card-carbon": {
+  "name": "CARBON · FULL CARD",
+  "motion": "Woven carbon fibre, a cold blue shine running across the weave, glowing edges, at full size"
+ },
+ "card-confetti": {
+  "name": "CONFETTI",
+  "motion": "Party violet, paper confetti + curls tumbling down, flashing as they turn, glowing edges"
+ },
+ "full-card-confetti": {
+  "name": "CONFETTI · FULL CARD",
+  "motion": "Party violet, paper confetti + curls tumbling down, flashing as they turn, glowing edges, at full size"
+ },
+ "card-circuit": {
+  "name": "CIRCUIT",
+  "motion": "A dark green board, copper traces + vias, signals racing along them, an overclocked burst now and then, glowing edges"
+ },
+ "full-card-circuit": {
+  "name": "CIRCUIT · FULL CARD",
+  "motion": "A dark green board, copper traces + vias, signals racing along them, an overclocked burst now and then, glowing edges, at full size"
+ },
+ "card-noir": {
+  "name": "VELVET NOIR",
+  "motion": "Black velvet, a crimson neon tube inside the edge flickering on, smoke drifting through"
+ },
+ "full-card-noir": {
+  "name": "VELVET NOIR · FULL CARD",
+  "motion": "Black velvet, a crimson neon tube inside the edge flickering on, smoke drifting through, at full size"
+ },
+ "card-sapphire": {
+  "name": "SAPPHIRE & SILVER",
+  "motion": "Deep sapphire stone with pale veins, a silver shine + silver-leaf glints"
+ },
+ "full-card-sapphire": {
+  "name": "SAPPHIRE & SILVER · FULL CARD",
+  "motion": "Deep sapphire stone with pale veins, a silver shine + silver-leaf glints, at full size"
+ },
+ "card-legend": {
+  "name": "PRISM LEGEND",
+  "motion": "Black holographic foil, the whole spectrum sliding across it in a band, white glints"
+ },
+ "full-card-legend": {
+  "name": "PRISM LEGEND · FULL CARD",
+  "motion": "Black holographic foil, the whole spectrum sliding across it in a band, white glints, at full size"
+ },
+ "card-century": {
+  "name": "CENTURY",
+  "motion": "Burnished bronze foil, flames licking up + golden embers lifting"
+ },
+ "full-card-century": {
+  "name": "CENTURY · FULL CARD",
+  "motion": "Burnished bronze foil, flames licking up + golden embers lifting, at full size"
+ },
+ "card-marquee-gold": {
+  "name": "THE MARQUEE · GOLD BULBS",
+  "motion": "Black velvet ringed by a double row of gold bulbs chasing, two searchlights crossing behind"
+ },
+ "full-card-marquee-gold": {
+  "name": "THE MARQUEE · GOLD BULBS · FULL CARD",
+  "motion": "Black velvet ringed by a double row of gold bulbs chasing, two searchlights crossing behind, at full size"
+ },
+ "card-penthouse": {
+  "name": "PENTHOUSE",
+  "motion": "The city at night far below a gold-framed window — its lights twinkling, traffic streaming along the avenues"
+ },
+ "full-card-penthouse": {
+  "name": "PENTHOUSE · FULL CARD",
+  "motion": "The city at night far below a gold-framed window — its lights twinkling, traffic streaming along the avenues, at full size"
+ },
+ "card-wildfire": {
+  "name": "WILDFIRE",
+  "motion": "A ridge on fire at night: pines against a wall of flame, smoke lit orange from below, embers whirled up + THE BORDER LASER"
+ },
+ "full-card-wildfire": {
+  "name": "WILDFIRE · FULL CARD",
+  "motion": "A ridge on fire at night: pines against a wall of flame, smoke lit orange from below, embers whirled up, at full size + THE BORDER LASER"
+ },
+ "card-eternal": {
+  "name": "ETERNAL FLAME",
+  "motion": "A bronze brazier holding one slow violet-into-gold flame, sparks spiralling up + THE BORDER LASER"
+ },
+ "full-card-eternal": {
+  "name": "ETERNAL FLAME · FULL CARD",
+  "motion": "A bronze brazier holding one slow violet-into-gold flame, sparks spiralling up, at full size + THE BORDER LASER"
+ },
+ "card-witness": {
+  "name": "THE WITNESS",
+  "motion": "A gold star chart: every legend over the harbor as a constellation, lighting up one after another + THE BORDER LASER"
+ },
+ "full-card-witness": {
+  "name": "THE WITNESS · FULL CARD",
+  "motion": "A gold star chart: every legend over the harbor as a constellation, lighting up one after another, at full size + THE BORDER LASER"
+ },
  "card-sg-tr3b": {
   "name": "LIGHTS OUT",
   "motion": "The TR-3B over a city going dark: its white corner lights + red heart pulsing, energy racing its circuitry, the windows dying in a wave from under it, the quay lamps sputtering out, the power stuttering back + THE BORDER LASER"

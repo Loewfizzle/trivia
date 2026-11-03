@@ -139,7 +139,7 @@ export function mountLab(root, o = {}) {
   function lobbyView() {
     const pick = h('select.vl-tab', { 'aria-label': '8 of one card', onchange: () => { mix = pick.value; draw(); } },
       h('option', { value: '' }, '8 OF ONE…'), ...CARDS.map(c => h('option', { value: c.id }, c.name)));
-    const mixes = [['samples', 'THE 8 SAMPLES'], ['new', 'THE NEW 8'], ['sightings', 'THE 8 SIGHTINGS'], ['legend', '8 LEGENDARIES']].map(([k, l]) => h('button.vl-tab', { type: 'button', dataset: { k }, onclick: () => { mix = k; pick.value = ''; draw(); } }, l));
+    const mixes = [['samples', 'THE 8 SAMPLES'], ['new', 'THE NEW 8'], ['sightings', 'THE 8 SIGHTINGS'], ['held', 'THE NEW 21'], ['legend', '8 LEGENDARIES']].map(([k, l]) => h('button.vl-tab', { type: 'button', dataset: { k }, onclick: () => { mix = k; pick.value = ''; draw(); } }, l));
     const list = h('div.vl-list');
     const box = h('div.vl-lobby', h('div.vl-lobby-h', 'IN THE LOBBY · 8 / 8'), list);
     content.replaceChildren(h('div.vl-mix', ...mixes, pick), box,
@@ -150,8 +150,8 @@ export function mountLab(root, o = {}) {
       list.replaceChildren();
       // (the mixes by the lab's numbers — the list's order changes as new sets go first: 1A's samples 1–8, 1B's new 19–26, 1C's sightings 34–41)
       const byN = (a, b) => CARDS.filter(c => c.n >= a && c.n <= b).sort((x, y) => x.n - y.n);
-      const SAMPLES = byN(1, 8), NEW = byN(19, 26), SIGHT = byN(34, 41);
-      const rows = GUESTS.map((g, i) => ({ card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0 }));
+      const SAMPLES = byN(1, 8), NEW = byN(19, 26), SIGHT = byN(34, 41), HELD = byN(50, 70);
+      const rows = GUESTS.map((g, i) => ({ card: mix === 'samples' ? SAMPLES[i % 8].id : mix === 'new' ? NEW[i % NEW.length].id : mix === 'sightings' ? SIGHT[i % SIGHT.length].id : mix === 'held' ? HELD[(i * 3 + 1) % HELD.length].id : mix === 'legend' ? 'card-sg-ufo' : mix, name: g.name, lv: g.lv, seed: i + 1, host: i === 0 }));
       mounted.push(mountStrips(list, rows, { calm: true, label: 'lobby' }));
       window.__lab && (window.__lab.mix = mix);
     };

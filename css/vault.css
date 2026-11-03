@@ -355,3 +355,78 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 /* THE SIGHTING'S SCENE (the reveal's pair + the album's tile): the full card's art, no words, a smaller radius */
 .vl-scene-box { position: relative; width: 100%; max-width: 240px; margin: 0 auto; }
 .vl-fc.vl-fc-scene { --r: 10px; }
+
+/* ---- THE VAULT 1C — THE HELD-BACK CARDS' MATERIALS (tinted CC0 copies in assets/vault/ — scripts/build-vault-textures.mjs; the motion is
+   the canvas). RARE = an effect + GLOWING EDGES: each rare's frame glows in its own colour (--ge). A light material keeps a dark plate. */
+.vl-s-velvet .vl-frame, .vl-s-auroraglass .vl-frame, .vl-s-rosegold .vl-frame, .vl-s-foil .vl-frame, .vl-s-charcoal .vl-frame,
+.vl-s-marble .vl-frame, .vl-s-neoncamo .vl-frame, .vl-s-carbon .vl-frame, .vl-s-confetti .vl-frame, .vl-s-circuit .vl-frame {
+  box-shadow: inset 0 0 0 1px rgba(var(--ge), 0.7), inset 0 0 12px rgba(var(--ge), 0.32), 0 0 12px rgba(var(--ge), 0.28), 0 2px 8px rgba(0, 0, 0, 0.45); }
+.vl-s-zebra .vl-mat { background: url(../assets/vault/zebra.webp) center / cover, #111; }
+.vl-s-zebra .vl-plate, .vl-s-zebra .vl-tier { background: rgba(8, 8, 8, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 79, 184, 0.45); }
+.vl-s-zebra .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45), 0 2px 8px rgba(0, 0, 0, 0.45); }
+.vl-s-camo .vl-mat { background: url(../assets/vault/camo.webp) center / cover, #2a3220; }
+.vl-s-camo .vl-plate, .vl-s-camo .vl-tier { background: rgba(10, 14, 6, 0.84); box-shadow: inset 0 0 0 1px rgba(184, 196, 138, 0.42); }
+.vl-s-camo .vl-frame { box-shadow: inset 0 0 0 1px rgba(184, 196, 138, 0.5), 0 2px 8px rgba(0, 0, 0, 0.45); }
+.vl-s-velvet { --ge: 255, 207, 122; }
+.vl-s-velvet .vl-mat { background: linear-gradient(100deg, rgba(0, 0, 0, 0.35), rgba(255, 140, 140, 0.08) 30%, rgba(0, 0, 0, 0.3) 55%, rgba(255, 150, 150, 0.06) 80%, rgba(0, 0, 0, 0.4)), url(../assets/vault/velvet-oxblood.webp) center / cover, #45081a; }
+.vl-s-velvet .vl-mat::after { box-shadow: inset 0 0 0 3px #2a0710, inset 0 0 0 4.5px rgba(240, 217, 168, 0.75); }
+.vl-s-velvet .vl-plate, .vl-s-velvet .vl-tier { background: rgba(26, 4, 9, 0.86); box-shadow: inset 0 0 0 1px rgba(240, 217, 168, 0.45); }
+.vl-s-auroraglass { --ge: 143, 240, 216; }
+.vl-s-auroraglass .vl-mat { background: radial-gradient(ellipse at 70% 120%, #0c3a33, transparent 60%), linear-gradient(180deg, #020a12, #051a1c); }
+.vl-s-auroraglass .vl-plate, .vl-s-auroraglass .vl-tier { background: rgba(2, 12, 14, 0.8); box-shadow: inset 0 0 0 1px rgba(143, 240, 216, 0.35); }
+.vl-s-rosegold { --ge: 230, 169, 143; }
+.vl-s-rosegold .vl-mat { background: url(../assets/vault/onyx.webp) center / cover, #0c0a0c; }
+.vl-s-rosegold .vl-mat::after { background: repeating-linear-gradient(60deg, transparent 0 13px, rgba(230, 169, 143, 0.28) 13px 14px), repeating-linear-gradient(-60deg, transparent 0 13px, rgba(230, 169, 143, 0.28) 13px 14px); }
+.vl-s-rosegold .vl-plate, .vl-s-rosegold .vl-tier { background: rgba(12, 8, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(230, 169, 143, 0.5); }
+.vl-s-foil { --ge: 255, 214, 120; }
+.vl-s-foil .vl-mat { background: linear-gradient(160deg, rgba(40, 20, 0, 0.12), rgba(40, 20, 0, 0.42)), url(../assets/vault/foil-gold.webp) center / cover, #c79d4c; }
+.vl-s-foil .vl-plate, .vl-s-foil .vl-tier { background: rgba(30, 18, 4, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 226, 150, 0.55); }
+.vl-s-charcoal { --ge: 255, 120, 50; }
+.vl-s-charcoal .vl-mat { background: radial-gradient(ellipse at 50% 135%, rgba(255, 90, 30, 0.45), transparent 62%), linear-gradient(180deg, #0c0807, #1a0d08); }
+.vl-s-charcoal .vl-plate, .vl-s-charcoal .vl-tier { background: rgba(14, 6, 4, 0.84); box-shadow: inset 0 0 0 1px rgba(255, 150, 80, 0.4); }
+.vl-s-marble { --ge: 233, 211, 160; }
+.vl-s-marble .vl-mat { background: url(../assets/vault/marble-gold.webp) center / cover, #ece6da; }
+.vl-s-marble .vl-plate, .vl-s-marble .vl-tier { background: rgba(20, 16, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(233, 211, 160, 0.6); }
+.vl-s-neoncamo { --ge: 122, 255, 216; }
+.vl-s-neoncamo .vl-mat { background: url(../assets/vault/camo-dark.webp) center / cover, #0a1416; }
+.vl-s-neoncamo .vl-plate, .vl-s-neoncamo .vl-tier { background: rgba(4, 8, 10, 0.84); box-shadow: inset 0 0 0 1px rgba(122, 255, 216, 0.35); }
+.vl-s-carbon { --ge: 90, 209, 255; }
+.vl-s-carbon .vl-mat { background: url(../assets/vault/carbon.webp) center / 180px auto repeat, #111317; }
+.vl-s-carbon .vl-plate, .vl-s-carbon .vl-tier { background: rgba(6, 8, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(90, 209, 255, 0.35); }
+.vl-s-confetti { --ge: 255, 111, 208; }
+.vl-s-confetti .vl-mat { background: radial-gradient(circle at 80% 20%, rgba(255, 120, 220, 0.35), transparent 40%), radial-gradient(circle at 25% 90%, rgba(120, 90, 255, 0.35), transparent 45%), linear-gradient(135deg, #1c0a2c, #3a0c40); }
+.vl-s-confetti .vl-plate, .vl-s-confetti .vl-tier { background: rgba(20, 6, 28, 0.84); box-shadow: inset 0 0 0 1px rgba(255, 170, 230, 0.4); }
+.vl-s-circuit { --ge: 61, 255, 160; }
+.vl-s-circuit .vl-mat { background: repeating-linear-gradient(0deg, transparent 0 11px, rgba(61, 255, 160, 0.05) 11px 12px), repeating-linear-gradient(90deg, transparent 0 11px, rgba(61, 255, 160, 0.05) 11px 12px), radial-gradient(ellipse at 70% 50%, #0a2a1c, #03100b 75%); }
+.vl-s-circuit .vl-plate, .vl-s-circuit .vl-tier { background: rgba(2, 10, 6, 0.86); box-shadow: inset 0 0 0 1px rgba(61, 255, 160, 0.35); }
+/* the epics: two effects, bold frames */
+.vl-s-noir .vl-mat { background: linear-gradient(100deg, rgba(0, 0, 0, 0.3), rgba(255, 90, 120, 0.05) 35%, rgba(0, 0, 0, 0.35) 60%, rgba(255, 90, 120, 0.04) 85%), url(../assets/vault/velvet-black.webp) center / cover, #0a0507; }
+.vl-s-noir .vl-plate, .vl-s-noir .vl-tier { background: rgba(8, 2, 4, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 58, 92, 0.4); }
+.vl-s-sapphire .vl-mat { background: url(../assets/vault/sapphire.webp) center / cover, #061237; }
+.vl-s-sapphire .vl-frame { box-shadow: inset 0 0 0 1.5px #c9d6ee, inset 0 0 0 3.5px #050c1f, inset 0 0 0 4.5px rgba(201, 214, 238, 0.45), 0 3px 12px rgba(0, 0, 0, 0.5); }
+.vl-s-sapphire .vl-plate, .vl-s-sapphire .vl-tier { background: rgba(3, 8, 24, 0.86); box-shadow: inset 0 0 0 1px rgba(201, 214, 238, 0.5); }
+.vl-s-legend .vl-mat { background: radial-gradient(ellipse at 20% 0%, rgba(255, 122, 240, 0.18), transparent 50%), radial-gradient(ellipse at 90% 100%, rgba(122, 200, 255, 0.18), transparent 55%), linear-gradient(135deg, #07050d, #120a1c 55%, #06040a); }
+.vl-s-legend .vl-frame { padding: 1.5px; background: linear-gradient(90deg, #ff7af0, #ffd27a 25%, #9affc0 50%, #7ac8ff 75%, #c07aff); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); box-shadow: none; }
+.vl-s-legend .vl-plate, .vl-s-legend .vl-tier { background: rgba(8, 4, 14, 0.84); box-shadow: inset 0 0 0 1px rgba(240, 230, 255, 0.4); }
+.vl-s-century .vl-mat { background: linear-gradient(180deg, rgba(26, 10, 2, 0.62), rgba(12, 4, 0, 0.88)), url(../assets/vault/foil-gold.webp) center / cover, #3a2008; }
+.vl-s-century .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(255, 207, 138, 0.75), inset 0 0 0 4px rgba(0, 0, 0, 0.4), 0 0 14px rgba(255, 138, 58, 0.3), 0 3px 12px rgba(0, 0, 0, 0.5); }
+.vl-s-century .vl-plate, .vl-s-century .vl-tier { background: rgba(16, 6, 2, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 207, 138, 0.45); }
+.vl-s-marqueegold .vl-mat { background: url(../assets/vault/velvet-black.webp) center / cover, #0c0806; }
+.vl-s-marqueegold .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(255, 217, 138, 0.8), 0 0 16px rgba(255, 196, 90, 0.3), 0 3px 12px rgba(0, 0, 0, 0.5); }
+.vl-strip.vl-s-marqueegold .vl-plate { left: 15px; top: 13px; bottom: 13px; }
+.vl-strip.vl-s-marqueegold .vl-tier { right: 17px; bottom: 14px; }
+.vl-s-marqueegold .vl-plate, .vl-s-marqueegold .vl-tier { background: rgba(10, 6, 2, 0.88); box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.55); }
+.vl-s-penthouse .vl-mat { background: linear-gradient(180deg, #05060f, #0b0c1c 30%, #120e1c); }
+.vl-s-penthouse .vl-frame { box-shadow: inset 0 0 0 2px rgba(246, 227, 176, 0.85), inset 0 0 0 4px #0a0a10, 0 3px 12px rgba(0, 0, 0, 0.5); }
+.vl-s-penthouse .vl-plate, .vl-s-penthouse .vl-tier { background: rgba(6, 6, 12, 0.86); box-shadow: inset 0 0 0 1px rgba(246, 227, 176, 0.5); }
+/* the legendaries: their own scene + light (the laser in the canvas) */
+.vl-s-wildfire { --sg: 255, 120, 50; } .vl-s-eternal { --sg: 200, 130, 255; } .vl-s-witness { --sg: 255, 214, 140; }
+.vl-s-wildfire .vl-mat { background: linear-gradient(180deg, #0c0406, #2a0a06 60%, #120302); }
+.vl-s-eternal .vl-mat { background: radial-gradient(ellipse at 75% 70%, rgba(170, 90, 255, 0.25), transparent 55%), linear-gradient(180deg, #06030c, #0e0618); }
+.vl-s-witness .vl-mat { background: linear-gradient(180deg, #03040c, #0b0e22); }
+.vl-s-wildfire .vl-plate, .vl-s-eternal .vl-plate, .vl-s-witness .vl-plate { background: linear-gradient(90deg, rgba(6, 3, 6, 0.84), rgba(6, 3, 6, 0.64)); box-shadow: inset 0 0 0 1px rgba(var(--sg), 0.3), 0 2px 10px rgba(0, 0, 0, 0.45); }
+.vl-t-legendary.vl-s-wildfire .vl-frame, .vl-t-legendary.vl-s-eternal .vl-frame, .vl-t-legendary.vl-s-witness .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(var(--sg), 0.6), 0 0 0 1.5px rgba(214, 178, 106, 0.85), 0 0 18px rgba(var(--sg), 0.25), 0 4px 14px rgba(0, 0, 0, 0.55); }
+/* every word legible on its art (the owner's rule): on the busiest + lightest full cards the corner words get a dark band top + bottom */
+.vl-fc.vl-s-zebra .vl-mat::after, .vl-fc.vl-s-foil .vl-mat::after, .vl-fc.vl-s-neoncamo .vl-mat::after, .vl-fc.vl-s-marble .vl-mat::after, .vl-fc.vl-s-camo .vl-mat::after {
+  background: linear-gradient(180deg, rgba(8, 6, 4, 0.72), rgba(8, 6, 4, 0.35) 15%, transparent 26%, transparent 70%, rgba(8, 6, 4, 0.4) 80%, rgba(8, 6, 4, 0.78)); }
+.vl-fc.vl-s-marble .vl-mat::after { background: linear-gradient(180deg, rgba(30, 22, 10, 0.78), rgba(30, 22, 10, 0.4) 15%, transparent 26%, transparent 70%, rgba(30, 22, 10, 0.45) 80%, rgba(30, 22, 10, 0.82)); }

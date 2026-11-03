@@ -41,6 +41,28 @@ export const LOOKS = Object.freeze({
   'card-sg-fireball': { mat: 'sg-fireball', fx: 'sgFireball' },
   'card-sg-skull': { mat: 'sg-skull', fx: 'sgSkull' },
   'card-sg-btc': { mat: 'sg-btc', fx: 'sgBtc' },
+  // THE VAULT 1C — THE HELD-BACK CARDS (tiers: UNCOMMON one effect · RARE an effect + glowing edges · EPIC two · LEGENDARY a scene + the laser)
+  'card-zebra': { mat: 'zebra', fx: 'sheen', tint: '255,79,184' },
+  'card-camo': { mat: 'camo', fx: 'scan' },
+  'card-velvet': { mat: 'velvet', fx: 'spot', tint: '255,214,150' },
+  'card-aurora': { mat: 'auroraglass', fx: 'veil' },
+  'card-rosegold': { mat: 'rosegold', fx: 'sheen', tint: '240,176,150' },
+  'card-gold': { mat: 'foil', fx: 'rays', tint: '255,226,150' },
+  'card-flame30': { mat: 'charcoal', fx: 'embers', tint: '255,140,50' },
+  'card-marble': { mat: 'marble', fx: 'twinkle', tint: '255,220,150' },
+  'card-neoncamo': { mat: 'neoncamo', fx: 'neoncamo' },
+  'card-carbon': { mat: 'carbon', fx: 'sheen', tint: '90,209,255' },
+  'card-confetti': { mat: 'confetti', fx: 'confetti' },
+  'card-circuit': { mat: 'circuit', fx: 'circuit', tint: '61,255,160' },
+  'card-noir': { mat: 'noir', fx: 'noir' },
+  'card-sapphire': { mat: 'sapphire', fx: 'sapphire' },
+  'card-legend': { mat: 'legend', fx: 'legend' },
+  'card-century': { mat: 'century', fx: 'century' },
+  'card-marquee-gold': { mat: 'marqueegold', fx: 'bulbs' },
+  'card-penthouse': { mat: 'penthouse', fx: 'penthouse' },
+  'card-wildfire': { mat: 'wildfire', fx: 'wildfire' },
+  'card-eternal': { mat: 'eternal', fx: 'eternal' },
+  'card-witness': { mat: 'witness', fx: 'witness' },
 });
 /** a card's effect options on a surface (its tint rides along) */
 export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
