@@ -652,17 +652,19 @@ export function createTitle() {
     if (!id || !createHarbor || !scene || !scene.sightBoxes) return;
     import('../progress/sighting.js').then(m => m.prewarm()).catch(() => {});
     // (THE VAULT 2B — the owner's ghost-ship check: the demo snapped ~2 s in, the ship still fading in at the edge → it waits until the
-    //  legendary is FULLY VISIBLE: its whole box on screen, faded all the way in (a ≥ 0.85 — the ship's lantern flicker dips a little),
-    //  held 0.9 s; the photo then centres on it — the crop always followed the tap)
+    //  legendary is FULLY VISIBLE: faded all the way in (a ≥ 0.85 — the ship's lantern flicker dips a little) + at least 70 % of it on
+    //  screen (the ship enters from the right edge at ~½ pt a second on a phone: its whole hull can take minutes), held 0.9 s; the photo
+    //  then centres on it — the crop always followed the tap, clamped to the screen)
     let seenAt = 0; const t0 = performance.now();
-    const whole = x => x.id === id && (x.a == null || x.a >= 0.85) && x.x - (x.w || 0) > 8 && x.x + (x.w || 0) < innerWidth - 8 && x.y - (x.h || 0) > 60 && x.y + (x.h || 0) < innerHeight - 140;
+    const onK = (c, r, max) => (r > 0 ? Math.max(0, Math.min(max, c + r) - Math.max(0, c - r)) / (2 * r) : (c > 0 && c < max ? 1 : 0));
+    const whole = x => x.id === id && (x.a == null || x.a >= 0.85) && x.x > 8 && x.x < innerWidth - 8 && x.y > 60 && x.y < innerHeight - 140 && onK(x.x, x.w || 0, innerWidth) >= 0.7 && onK(x.y, x.h || 0, innerHeight) >= 0.7;
     const look = () => {
       if (destroyed || performance.now() - t0 > 120e3) return;
       const b = scene.sightBoxes().find(whole);
       if (!b) seenAt = 0; else if (!seenAt) seenAt = performance.now();
       if (b && performance.now() - seenAt > 900) {
         const sg = scene.sightTap(b.x, b.y);
-        if (sg) { sg.demo = true; sg.live = false; sg.again = Math.max(0, Math.min(999, Number(new URLSearchParams(location.search).get('sgagain')) || 0)); import('../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); }
+        if (sg) { sg.demo = true; sg.live = false; sg.seenA = b.a; sg.again = Math.max(0, Math.min(999, Number(new URLSearchParams(location.search).get('sgagain')) || 0)); import('../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); }
         return;
       }
       sgDemoT = setTimeout(look, 200);

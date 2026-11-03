@@ -468,6 +468,18 @@ G('sightings', async () => {
     await waitFor(S.page, `import('/js/progress/sighting.js').then(m => m.last.saved != null)`, 'the print kept', 10000).catch(() => {});
     ok(await ev(S.page, `import('/js/progress/sighting.js').then(m => m.last.saved === true)`), 'SIGHTINGS: the print is kept (the preview album) only AFTER the moment closed — never encoded under the animation');
     await S.ctx.close(); }
+  // THE VAULT 2B — THE OWNER's GHOST-SHIP CHECK: &sgdemo waits until the ship is FULLY VISIBLE (its whole box on screen, faded in) before
+  // it snaps; the photo FRAMES it (the ship inside the crop); the reveal's two names on ONE baseline; its REAL emblem (the demo shows it)
+  { const S = await open({ slot: 'sgghost', qs: 'when=2026-10-31T22:00&force=ghost-ship&lgnow=1&sgdemo=ghostship', view: [402, 874], dpr: 2 });
+    await harborUp(S.page);
+    const t0 = Date.now(); let ph = [];
+    while (Date.now() - t0 < 60000) { ph = await ev(S.page, `import('/js/progress/sighting.js').then(m => m.last.phases.slice())`) || []; if (ph.includes('reveal') || ph.includes('done')) break; await sleep(200); }
+    await sleep(1600);
+    const g = await ev(S.page, `import('/js/progress/sighting.js').then(m => { const s = m.last.snap, b = s && s.box, at = s && s.at, items = [...document.querySelectorAll('.sg-pair .sg-item b')].map(x => Math.round(x.getBoundingClientRect().top));
+      return { a: m.last.tap && m.last.tap.a, inside: !!(b && at && at.x >= b.left && at.x <= b.left + b.side && at.y >= b.top && at.y <= b.top + b.side), at, box: b, items, art: !!document.querySelector('.sg-pair .sg-emb.is-art .ve') }; })`);
+    ok(g.a != null && g.a >= 0.85 && g.inside && g.items.length === 2 && Math.abs(g.items[0] - g.items[1]) <= 1 && g.art,
+      `SIGHTINGS (2B): &sgdemo snapped the ghost ship FULLY lit (a ${g.a}), the photo frames it (the ship at ${JSON.stringify(g.at)} inside the crop ${JSON.stringify(g.box)}); the two names on one line (tops ${g.items.join(' · ')}); its real emblem (${g.art})`);
+    await S.ctx.close(); }
   // REDUCED MOTION: the same sequence, still (no slide, no stamp slam) — and still held for a tap
   { const R = await open({ slot: 'sgrm', qs: 'when=2026-11-03T22:00&force=ufo&lgnow=1&sgdemo=ufo', view: [402, 874], init: { fn: () => { localStorage.setItem('na:settings', JSON.stringify({ reducedFx: true })); } } });
     await harborUp(R.page);

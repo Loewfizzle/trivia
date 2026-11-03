@@ -119,7 +119,9 @@ export async function openFullCard(id, who = {}) {
   const onKey = e => { if (e.key === 'Escape') close(); };
   const stage = h('div.vl-full-stage', card);
   box.append(stage, h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, 'CLOSE'));
-  const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el) close(); } }, box);
+  // (THE VAULT 2B: a backdrop click in its first 350 ms is the finger that opened it lifting — a long-press — never a close)
+  const born = performance.now();
+  const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
   document.body.append(el);
   if (ok) { surface = createSurface(stage, { label: 'full' }); mountFull(surface, card, id); }
   document.addEventListener('keydown', onKey);

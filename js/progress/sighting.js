@@ -135,7 +135,7 @@ export async function onSighting(sg, ctx = {}) {
   // (THE VAULT 1B — names only to owners: the owner's &sgdemo preview claims nothing, so its pair's names come from /api/admin — admins only;
   //  anyone else's preview shows the craft's plain name)
   if (sg.demo) import('../profile/api.js').then(A => A.api('admin', { action: 'sightShow', id: sg.id })).catch(() => {});
-  last.tap = { id: sg.id, live: sg.live, demo: !!sg.demo, at: Date.now() };
+  last.tap = { id: sg.id, live: sg.live, demo: !!sg.demo, at: Date.now(), a: sg.seenA != null ? sg.seenA : null };
   // (the owner's preview: &sgdemo — the first time; + &sgagain=N — the Nth time: the corner print + its stamp)
   const claimP = sg.demo ? Promise.resolve(sg.again ? { state: 'again', r: { n: sg.again } } : { state: 'demo' }) : claimSighting({ id: sg.id, t: sg.t, tz: sg.tz, live: sg.live });
   claimP.then(r => { last.claim = r; }).catch(() => {});
@@ -158,7 +158,7 @@ async function run(sg, ctx, claimP) {
     const sb = sign ? sign.getBoundingClientRect() : null;
     if (ctx.scene && ctx.scene.snapshot) snap = await Promise.race([ctx.scene.snapshot(box.x, box.y, { avoid: sb ? { y: sb.bottom + 6 } : null }), wait(1500).then(() => null)]);
   } catch (e) { console.warn('[sighting] snapshot', e); }
-  last.snap = snap ? { ms: snap.ms, w: snap.canvas.width, h: snap.canvas.height, box: snap.box } : null;
+  last.snap = snap ? { ms: snap.ms, w: snap.canvas.width, h: snap.canvas.height, box: snap.box, at: { x: Math.round(box.x), y: Math.round(box.y) } } : null;   // (2B: at = the legendary as it was snapped — the photo frames it)
   await sheet();
   const flash = h('div.sg-flash', { class: still ? 'sg-still' : '' });
   document.body.append(flash);

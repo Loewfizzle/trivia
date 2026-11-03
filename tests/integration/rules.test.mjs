@@ -85,6 +85,19 @@ test('THE RADIO: rooms/{CODE}/radio + radioCrew readable by the room, written by
   }
 });
 
+// THE VAULT 2B — MEMBER NUMBERS + THE DEV CARDS: profiles/{pid}/mn + members/ (the counter) are the SERVER's; nobody sets or changes a
+// member number (not their own), nobody reads the counter; a dev card can't be written into anyone's stats
+test('THE VAULT 2B: a member number + the counter + the dev cards — written by nobody, the counter read by nobody', async () => {
+  await seed({ uids: { me: 'pme' }, profiles: { pme: { n: 'ME', mn: 7 } }, pstats: { pme: { it: {} } }, members: { next: 8, filled: 1 } });
+  for (const [path, v] of [['profiles/pme/mn', 1], ['profiles/pme/mn', null], ['profiles/pother/mn', 2], ['members/next', 2], ['members/filled', null], ['members/claim', 1],
+    ['pstats/pme/it/card-dev-switchboard', 1], ['pstats/pme/it/card-dev-source', 1], ['profiles/pme/cd', 'card-dev-source']]) {
+    await assertFails(set(ref(db('me'), path), v), `the player writes ${path}`);
+    await assertFails(set(ref(db('stranger'), path), v), `a stranger writes ${path}`);
+  }
+  await assertFails(get(ref(db('me'), 'members')), 'the counter is the server only');
+  await assertSucceeds(get(ref(db('stranger'), 'profiles/pme')));   // (a profile is readable one at a time — its № with it, like its tag)
+});
+
 // PROGRESSION A: XP, levels, the streak, the items, the achievements, the owners' counts, the FOUNDER switch, the dailies, the outage —
 // the SERVER's only (a client can't write any of it, not even its own); its own pstats readable by the owner (the profile reads it via /api)
 test('PROGRESSION A: pstats (xp · it · ac · st · pa · dl · fv), pcount, progress/founder, dly/, streak/outage — written by nobody', async () => {

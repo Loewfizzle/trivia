@@ -40,12 +40,12 @@ cards.forEach((id, i) => {
   const g = GUESTS[i % GUESTS.length], name = (LAB.find(x => x.id === id) || {}).name || id;
   root.append(h('h3', name));
   if (q.get('strips') !== '0') {
-    const el = stripEl({ card: id, name: g.name, lv: g.lv, host: i === 0, no: 3112 });
+    const el = stripEl({ card: id, name: g.name, lv: g.lv, host: i === 0, no: '0001' });
     root.append(el); const look = LOOKS[id];
     if (look && look.fx) surface.add(el, FX[look.fx], fxOpts(id, { seed: g.lv, radius: 12, calm: q.get('calm') === '1' ? 1 : 0 }));
   }
   if (q.get('full') !== '0') {
-    const card = fullCardEl({ card: id, who: { name: g.name, lv: g.lv, avatar: av[i % 8], color: col[i % 8], at: Date.UTC(2026, 9, 3), no: 3112 }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
+    const card = fullCardEl({ card: id, who: { name: g.name, lv: g.lv, avatar: av[i % 8], color: col[i % 8], at: Date.UTC(2026, 9, 3), no: '0001' }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
     root.append(h('div.vl-col', card)); mountFull(surface, card, id, { seed: i + 3 });
   }
 });

@@ -17,7 +17,7 @@ import { FX } from '../fx/index.js';
 import { TIER_NAMES, TIERS, ITEM, ownedOf } from '../core/items.js';
 import { levelInfo } from '../core/levels.js';
 import { memberLabel } from '../core/member.js';
-import { isDevCard, ONE_OF_ONE } from '../core/dev-cards.js';
+import { isDevCard, ONE_OF_ONE, DEV_CARDS } from '../core/dev-cards.js';
 import { emblemEl, hasArt, tubeApplies, TUBE_STYLES } from './emblem-art.js';
 import { applyGlow, GLOW_ART } from './glows.js';
 import { stripEl, LOOKS, vaultSheet, fxOpts, embTier } from './strip.js';
@@ -33,7 +33,8 @@ const NONE = { emblem: 'YOUR SHAPE', glow: 'NO GLOW', tube: 'PLAIN TUBE' };
 const shapeName = a => `THE ${String(a || 'bolt').toUpperCase()}`;
 const nameOf = id => (ITEM[id] || {}).name || '';
 /** dev cards first (ONE OF ONE), then the rarest, then the newest (ownedOf's order) */
-const order = list => list.map((x, i) => [x, i]).sort(([a, i], [b, j]) => (isDevCard(b.id) - isDevCard(a.id)) || (TIERS.indexOf(b.tier) - TIERS.indexOf(a.tier)) || i - j).map(([x]) => x);
+const devAt = id => (isDevCard(id) ? DEV_CARDS.indexOf(id) : 99);
+const order = list => list.map((x, i) => [x, i]).sort(([a, i], [b, j]) => (devAt(a.id) - devAt(b.id)) || (TIERS.indexOf(b.tier) - TIERS.indexOf(a.tier)) || i - j).map(([x]) => x);
 
 /** what the profile says you wear */
 const wornOf = p => ({ card: p.cd || 'card-gilded', shape: p.es || null, tube: p.tb || null, glow: p.g || null });
@@ -181,14 +182,19 @@ export function openDress(data, o = {}) {
 /** a tap (pointerdown + pointerup, never `click` alone — iOS) + an optional long-press (~0.5 s, no movement) */
 function press(el, onTap, onHold) {
   let t = 0, x = 0, y = 0, held = false, down = false;
+  // (the hold: our own timer — iOS (its callout is off on the tiles) — or the browser's own long-press, a `contextmenu` (Android /
+  //  Chromium take the pointer at ~500 ms with a pointercancel), whichever comes first; once a press)
+  const hold = () => { clearTimeout(t); if (held || !onHold) return; held = true; onHold(); };
   el.addEventListener('pointerdown', e => {
     down = true; held = false; x = e.clientX; y = e.clientY;
-    if (onHold) t = setTimeout(() => { held = true; onHold(); }, 520);
+    if (onHold) t = setTimeout(hold, 450);
   });
   el.addEventListener('pointermove', e => { if (down && Math.hypot(e.clientX - x, e.clientY - y) > 10) { down = false; clearTimeout(t); } });
   el.addEventListener('pointerup', () => { clearTimeout(t); if (down && !held) onTap(); down = false; });
   el.addEventListener('pointercancel', () => { clearTimeout(t); down = false; });
-  el.addEventListener('contextmenu', e => { if (onHold) e.preventDefault(); });
+  el.addEventListener('contextmenu', e => { if (!onHold) return; e.preventDefault(); if (!held) hold(); });
+  // (a HOLD's lift must not click what opened under the finger — the full card's backdrop closed it at once)
+  el.addEventListener('touchend', e => { if (held) e.preventDefault(); });
   // (the keyboard: Enter / Space = a tap)
   el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onTap(); } });
 }

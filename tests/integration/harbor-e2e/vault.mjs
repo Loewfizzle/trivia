@@ -33,7 +33,7 @@ G('vault', async () => {
   { const { ctx, p } = await page('view=strips');
     await sleep(1200);
     const s = await ev(p, `(() => ({ items: document.querySelectorAll('.vl-item').length, strips: document.querySelectorAll('.vl-strip').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, slots: window.__lab.stats.slots, names: [...document.querySelectorAll('.vl-item-h b')].map(b => b.textContent) }))()`);
-    ok(s.items === 48 && s.strips === 48 && s.canvases === 1 && /^92 · /.test(s.names[0]), `THE CARD LAB: 48 cards (2A's 3 held cards FIRST, 1C's 8 sighting cards, 1A's 8, 1B's 8, 1C's held-back 21 — ${s.strips} strips on the page; the emblems in their own tab) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
+    ok(s.items === 50 && s.strips === 50 && s.canvases === 1 && /^116 · /.test(s.names[0]) && /^92 · /.test(s.names[2]), `THE CARD LAB: 50 cards (2B's 2 DEV cards FIRST, 2A's 3 held cards, 1C's 8 sighting cards, 1A's 8, 1B's 8, 1C's held-back 21 — ${s.strips} strips on the page; the emblems in their own tab) on ONE shared effect canvas (${s.canvases}) — first: ${s.names[0]}`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-smoke"] .vl-mark[data-m="approve"]').click()`);
     await ev(p, `document.querySelector('.vl-item[data-id="card-prism"] .vl-mark[data-m="fix"]').click()`);
     await sleep(200);
@@ -237,7 +237,7 @@ G('vault', async () => {
     await ev(p, `document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-mark[data-m="approve"]').click()`);
     const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
     const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-saved').textContent`) : '';
-    ok(f.cards === 47 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt), `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark flashes "${txt}"`);
+    ok(f.cards === 49 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt), `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark flashes "${txt}"`);
     await ctx.close(); }
   // THE VAULT 1C — THE SIGHTING'S SCENE (the reveal's pair + the album's no-photo tile): once its full card is APPROVED the placeholder becomes
   // the card's real scene (js/vault/full.js#upgradeScene) — all 9 sightings, each its own canvas drawn; unapproved → the placeholder stays
@@ -256,17 +256,20 @@ G('vault', async () => {
     })()`);
     ok(r.ok.every(Boolean) && r.plain, `THE SIGHTING'S SCENE: the 9 sighting cards' approved scenes replace the reveal's / the album's placeholder (${r.ok.filter(Boolean).length}/9, each on its canvas); a card with no scene keeps its placeholder (${r.plain})`);
     await ctx.close(); }
-  // THE VAULT PICKER + THE NAME NEVER CUTS OFF (the widest twelve at 390): real strips, one WEARING, one canvas; the card's + every strip's
-  // name whole (no overflow, no ellipsis)
-  { const { ctx, p } = await anyPage('/tests/integration/progress-preview.html?view=profile&labmarks=all&name=WWWWWWWWWWWW', { view: [390, 844] });
-    await waitFor(p, `!!document.querySelector('.vl-picker .vl-strip')`, 'the picker', 20000);
+  // THE VAULT 2B — DRESS YOUR CARD (the owner's approved mock) + THE NAME NEVER CUTS OFF (the widest twelve at 390): the profile's ONE panel
+  // (the strip, the worn names, the big button, YOUR COLLECTION — no long lists); the dress screen: the pinned strip, 4 tabs, a tile per
+  // owned card (tier-edged, one ticked), the name whole on the pinned strip + every card
+  { const { ctx, p } = await anyPage('/tests/integration/progress-preview.html?view=profile&labmarks=all&dev=1&name=WWWWWWWWWWWW&dress=1', { view: [390, 844] });
+    await waitFor(p, `!!document.querySelector('.vl-dress .vl-dt') && !!document.querySelector('.vl-dp .vl-strip')`, 'the dress screen', 20000);
     await sleep(1200);
-    const r = await ev(p, `(() => { const over = e => e.scrollWidth > e.clientWidth + 1; const names = [...document.querySelectorAll('.pg-card-name, .vl-picker .vl-name')];
-      const CP = '.vl-picker:not([data-kind])';
-      return { picks: document.querySelectorAll(CP + ' .vl-pick').length, strips: document.querySelectorAll(CP + ' .vl-strip').length, wearing: document.querySelectorAll(CP + ' .vl-pick.is-on').length,
-        canvases: document.querySelectorAll('.pg-vault canvas.fx-canvas').length, views: document.querySelectorAll('.vl-pick-view').length, names: names.length, over: names.filter(over).length,
-        ell: names.filter(e => getComputedStyle(e).textOverflow === 'ellipsis').length, two: names.filter(e => e.classList.contains('fit-2')).length }; })()`);
-    ok(r.picks > 5 && r.strips === r.picks && r.views === r.picks && r.wearing === 1 && r.canvases === 1 && r.names > 5 && r.over === 0 && r.ell === 0, `THE VAULT PICKER: ${r.picks} cards as REAL STRIPS (VIEW each, ${r.wearing} WEARING, ${r.canvases} canvas) · THE NAME: WWWWWWWWWWWW whole on the card + ${r.names - 1} strips at 390 (${r.over} overflowing, ${r.ell} ellipses, ${r.two} on two balanced lines)`);
+    const r = await ev(p, `(() => { const over = e => e.scrollWidth > e.clientWidth + 1; const names = [...document.querySelectorAll('.pg-card-name, .vl-dp .vl-name, .vl-dr-pin .vl-name')];
+      return { panel: !!document.querySelector('.vl-dp-go') && /DRESS YOUR CARD/.test(document.querySelector('.vl-dp-go').textContent), coll: !!document.querySelector('.vl-dc-row'), lists: document.querySelectorAll('.pg-prof .vl-picker').length,
+        tabs: [...document.querySelectorAll('.vl-dr-tab')].map(b => b.textContent).join(), sel: (document.querySelector('.vl-dr-tab[aria-selected="true"]') || {}).textContent,
+        tiles: document.querySelectorAll('.vl-dt').length, on: document.querySelectorAll('.vl-dt.is-on').length, tiers: [...document.querySelectorAll('.vl-dt')].every(t => /vl-dt-(common|uncommon|rare|epic|legendary)/.test(t.className)),
+        dev1: [...document.querySelectorAll('.vl-dt')].slice(0, 2).map(t => t.dataset.id).join(), pin: document.querySelectorAll('.vl-dr-pin .vl-strip').length,
+        names: names.length, over: names.filter(over).length, ell: names.filter(e => getComputedStyle(e).textOverflow === 'ellipsis').length, no: (document.querySelector('.pg-card-no') || {}).textContent || '' }; })()`);
+    ok(r.panel && r.coll && r.lists === 0 && r.tabs === 'CARD,EMBLEM,GLOW,TUBE' && r.sel === 'CARD' && r.tiles > 10 && r.on === 1 && r.tiers && r.dev1 === 'card-dev-switchboard,card-dev-source' && r.pin === 1 && r.names >= 3 && r.over === 0 && r.ell === 0 && /0001/.test(r.no),
+      `DRESS YOUR CARD: the profile's ONE panel + YOUR COLLECTION (${r.lists} long lists left); the dress screen — the pinned strip, tabs ${r.tabs}, ${r.tiles} card tiles tier-edged (${r.on} ticked, the DEV cards first: ${r.dev1}); WWWWWWWWWWWW whole on the card + the strips (${r.over} over, ${r.ell} cut); the card's ${r.no}`);
     await ctx.close(); }
   // EVERY BOTTOM SHEET FLOATS: BRING YOUR CARD at 402 × 874 — its whole rounded border above the screen's bottom
   { const { ctx, p } = await anyPage('/tests/integration/title-preview.html?guest=1');
@@ -333,8 +336,8 @@ G('vault', async () => {
       return { items: document.querySelectorAll('.vl-item').length, ves: document.querySelectorAll('.ve').length, finishes: [...new Set([...document.querySelectorAll('.ve')].map(v => (v.className.match(/ve-f-(\\w+)/) || [])[1]))].sort().join(),
         moving: [...document.querySelectorAll('.ve-l')].filter(x => getComputedStyle(x).animationName !== 'none').length, svgAnim, canvases: document.querySelectorAll('canvas.fx-canvas').length,
         small: [...document.querySelectorAll('.vl-emb-big .ve.is-28')].every(v => Math.round(v.getBoundingClientRect().width) === 28) }; })()`);
-    ok(e.items === 16 && e.ves > 60 && e.finishes === 'chrome,galaxy,glitch,gold,ice,molten,neon,prism' && e.moving > 20 && e.svgAnim === 0 && e.canvases === 1 && e.small,
-      `THE EMBLEMS tab: ${e.items} items (10 samples · the 12 sign-up shapes · 3 tube styles · 1A's 2), ${e.ves} emblems in all 8 finishes (${e.finishes}), 28 pt checked; ${e.moving} layers moving on the compositor, ${e.svgAnim} animations on an SVG element (none allowed)`);
+    ok(e.items === 46 && e.ves > 150 && e.finishes === 'aurora,autumn,balloon,chrome,coin,comet,galaxy,glitch,gold,ice,metal,molten,neon,prism,spectral' && e.moving > 60 && e.svgAnim === 0 && e.canvases === 1 && e.small,
+      `THE EMBLEMS tab: ${e.items} items (2A's 10 samples + 2B's 25 · the 12 sign-up shapes · 8 tube styles · 1A's 2), ${e.ves} emblems in all 8 finishes (${e.finishes}), 28 pt checked; ${e.moving} layers moving on the compositor, ${e.svgAnim} animations on an SVG element (none allowed)`);
     await ev(p, `document.querySelector('.vl-item[data-id="emb-owl"] .vl-mark[data-m="approve"]').click()`); await sleep(300);
     const m = await ev(p, `(window.__lab.marks['emb-owl'] || {}).m`);
     ok(m === 'approve', `THE EMBLEMS tab: a mark stored (emb-owl → ${m})`);
@@ -343,10 +346,10 @@ G('vault', async () => {
   { const { ctx, p } = await page('view=glows', { dpr: 2 });
     await sleep(1200);
     const g = await ev(p, `(() => { const names = [...document.querySelectorAll('.vl-name.vg, .vl-fc-name.vg')];
-      return { items: document.querySelectorAll('.vl-item').length, names: names.length, looks: [...new Set(names.map(n => (n.className.match(/vg-(ember|goldleaf|electric)/) || [])[1]))].sort().join(),
+      return { items: document.querySelectorAll('.vl-item').length, names: names.length, looks: [...new Set(names.map(n => (n.className.match(/vg-[a-z]+/g) || []).map(c => c.slice(3)).filter(c => c !== 'still')).flat())].sort().join(),
         over: names.filter(n => { const d = [...n.children].filter(c => c.tagName === 'I'); d.forEach(c => { c.style.display = 'none'; }); const o = n.scrollWidth > n.clientWidth + 1; d.forEach(c => { c.style.display = ''; }); return o; }).length, strip2: [...document.querySelectorAll('.vl-strip .vl-name.vg')].filter(n => n.classList.contains('fit-2')).length,
         lvLit: [...document.querySelectorAll('.vl-lv, .vl-fc-lv')].filter(l => l.className.includes('vg')).length, pieces: document.querySelectorAll('.vg > i').length }; })()`);
-    ok(g.items === 3 && g.names === 9 && g.looks === 'electric,ember,goldleaf' && g.over === 0 && g.strip2 === 0 && g.lvLit === 0 && g.pieces > 10,
+    ok(g.items === 14 && g.names === 42 && g.looks.split(',').length === 14 && g.over === 0 && g.strip2 === 0 && g.lvLit === 0 && g.pieces > 10,
       `THE GLOWS tab: ${g.items} glows on ${g.names} names (${g.looks}) — LOEWFIZZLE whole on one line on every strip (${g.over} overflowing, ${g.strip2} split), the level line never lit (${g.lvLit}), ${g.pieces} glints + arcs`);
     await ctx.close(); }
   { const { ctx, p } = await anyPage('/tests/integration/card-review.html?cards=card-founder,card-house,card-platinum', { view: [402, 1200] });
@@ -357,18 +360,30 @@ G('vault', async () => {
     ok(h.slots === 6 && h.probe > 300 && h.no === '№ 0001' && h.stamp === '№ 0001' && /platinum\.webp/.test(h.plat) && h.tiers === 'legendary,legendary,epic',
       `THE 3 HELD CARDS: strips + full cards drawn (${h.slots} slots, ${h.probe} lit samples; tiers ${h.tiers}); FOUNDING MEMBER's gold № on the strip ("${h.no}") + the full card's stamp ("${h.stamp}"); PLATINUM on its metal`);
     await ctx.close(); }
-  { const { ctx, p } = await anyPage('/tests/integration/progress-preview.html?view=profile&labmarks=all', { view: [402, 874] });
-    await waitFor(p, `!!document.querySelector('.vl-picker[data-kind="glow"] .vl-strip')`, 'the style rows', 20000); await sleep(900);
-    const read = () => ev(p, `Object.fromEntries(['emblem', 'tube', 'glow'].map(k => { const P = document.querySelector('.vl-picker[data-kind="' + k + '"]');
-      return [k, { rows: P.querySelectorAll('.vl-pick').length, on: [...P.querySelectorAll('.vl-pick.is-on')].map(x => x.dataset.id), ve: P.querySelectorAll('.vl-strip .ve').length }]; }))`);
-    const a = await read();
-    await ev(p, `document.querySelector('.vl-picker[data-kind="glow"] .vl-pick[data-id="glow-gold"] .vl-pick-wear').click()`); await sleep(500);
-    await ev(p, `document.querySelector('.vl-picker[data-kind="emblem"] .vl-pick[data-id="emb-snowflake"] .vl-pick-wear').click()`); await sleep(500);
-    const b = await read();
-    const worn = await ev(p, `({ gold: !!document.querySelector('.vl-picker:not([data-kind]) .vl-name.vg-goldleaf'), ice: !!document.querySelector('.vl-picker:not([data-kind]) .ve.ve-f-ice') })`);
-    ok(a.emblem.rows > 3 && a.tube.rows >= 3 && a.glow.rows >= 4 && a.emblem.on.join() === 'none' && a.glow.on.join() === 'none' && a.emblem.ve === a.emblem.rows
-      && b.glow.on.join() === 'glow-gold' && b.emblem.on.join() === 'emb-snowflake' && worn.gold && worn.ice,
-      `THE PICKER's style rows: emblems ${a.emblem.rows} · tube styles ${a.tube.rows} · glows ${a.glow.rows} rows on the player's own strip (one WEARING each: ${a.emblem.on}/${a.glow.on}); a tap wears GOLD LEAF + SNOWED IN (${b.glow.on} · ${b.emblem.on}), the cards' strips wear them too (${worn.gold} · ${worn.ice})`);
+  // DRESS YOUR CARD BY FINGER (402 × 874, real taps): EMBLEM tab → tap SNOWED IN → the pinned strip wears the ice crystal at once; GLOW →
+  // GOLD LEAF; TUBE → its tiles; CARD → tap INFERNO → the strip's card; VIEW FULL › → the full card; a long-press on a card tile → its full card
+  { const { ctx, p } = await anyPage('/tests/integration/progress-preview.html?view=profile&labmarks=all&dress=1', { view: [402, 874] });
+    await waitFor(p, `!!document.querySelector('.vl-dress .vl-dt')`, 'the dress screen', 20000); await sleep(900);
+    const tab = async k => { await p.tap(`.vl-dr-tab[data-tab="${k}"]`); await sleep(350); };
+    await tab('emblem');
+    const em = await ev(p, `({ tiles: document.querySelectorAll('.vl-dt').length, none: !!document.querySelector('.vl-dt[data-id="none"].is-on'), ve: document.querySelectorAll('.vl-dt .ve').length })`);
+    await p.tap('.vl-dt[data-id="emb-snowflake"]'); await sleep(400);
+    const pin1 = await ev(p, `({ ice: !!document.querySelector('.vl-dr-pin .ve.ve-f-ice'), ticked: (document.querySelector('.vl-dt.is-on') || {}).dataset ? document.querySelector('.vl-dt.is-on').dataset.id : '' })`);
+    await tab('glow'); await p.tap('.vl-dt[data-id="glow-gold"]'); await sleep(400);
+    const gold = await ev(p, `!!document.querySelector('.vl-dr-pin .vl-name.vg-goldleaf')`);
+    await tab('tube'); const tubes = await ev(p, `document.querySelectorAll('.vl-dt').length`);
+    await tab('card'); await p.tap('.vl-dt[data-id="card-inferno"]'); await sleep(500);
+    const card = await ev(p, `({ pin: (document.querySelector('.vl-dr-pin') || {}).dataset ? document.querySelector('.vl-dr-pin').dataset.card : '', strip: !!document.querySelector('.vl-dr-pin .vl-strip.vl-s-inferno') })`);
+    await p.tap('.vl-dr-view'); await waitFor(p, `!!document.querySelector('.vl-full')`, 'VIEW FULL', 5000).catch(() => {});
+    const view = await ev(p, `!!document.querySelector('.vl-full')`);
+    await ev(p, `document.querySelector('.vl-full-x') && document.querySelector('.vl-full-x').click()`); await sleep(300);
+    // (a long-press: the finger held ~0.6 s on the PRISM tile → its full card)
+    await ev(p, `document.querySelector('.vl-dt[data-id="card-prism"]').scrollIntoView({ block: 'center' })`); await sleep(400);
+    const b = await p.$('.vl-dt[data-id="card-prism"]'); const bb = await b.boundingBox();
+    await p.touchscreen.touchStart(bb.x + bb.width / 2, bb.y + bb.height / 2); await sleep(650); await p.touchscreen.touchEnd(); await sleep(400);
+    const held = await ev(p, `!!document.querySelector('.vl-full')`);
+    ok(em.tiles > 8 && em.none && em.ve === em.tiles && pin1.ice && pin1.ticked === 'emb-snowflake' && gold && tubes >= 3 && card.pin === 'card-inferno' && card.strip && view && held,
+      `DRESS YOUR CARD by finger [${JSON.stringify({ em, pin1, gold, tubes, card, view, held })}]: EMBLEM ${em.tiles} tiles (YOUR SHAPE ticked) → a tap on SNOWED IN → the pinned strip wears it at once (${pin1.ice}); GLOW → GOLD LEAF (${gold}); TUBE ${tubes} tiles; CARD → INFERNO on the strip (${card.pin}); VIEW FULL › (${view}); a long-press → the full card (${held})`);
     await ctx.close(); }
   { const { ctx, p } = await page('view=lobby&bare=1&mix=legend&wear=emb,glow', { real: true, cpu: 4, dpr: 3 });
     await sleep(2500);
