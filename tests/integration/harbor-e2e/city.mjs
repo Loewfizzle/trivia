@@ -633,11 +633,11 @@ G('load', async () => {
   await ctx.close();
   // THE WEATHER AT LOAD — the real clock (no &when), /api/sky answered by the test: overcast, after `delay` ms; cached = the answer
   // already on this device (localStorage nd:wx, fresh). The owner's iPhone faded clear → overcast after the city showed, EVERY load.
-  // (PROGRESSION A Group 0 — THE DUSK FLAKE: every load here runs on a page clock pinned to 1 pm Eastern today (the page's Date + the
+  // (PROGRESSION A Group 0 — THE DUSK FLAKE: every load here runs on a page clock pinned to 10 am Eastern today (midday in UTC too: the cloud runner's page clock is UTC — 1 pm Eastern read as ~6 pm there, the lights' power-up) (the page's Date + the
   // server-time answer shifted together, whole hours) — the JUST ME holiday-night check (+ the 1.2-s answer) failed around dusk on the real clock,
   // the lights' power-up; a page &when= can't pin it: a preview link turns the live weather off, and these cases test the live weather)
   const wxLoad = async (name, { delay, cached, intro, justme, pin = true }) => {
-    const shift = pin ? (13 - easternParts(Date.now()).h) * 3600e3 : 0, now = () => Date.now() + shift;
+    const shift = pin ? (10 - easternParts(Date.now()).h) * 3600e3 : 0, now = () => Date.now() + shift;
     const c2 = await (await launch()).createBrowserContext();
     const q = await c2.newPage();
     q.on('pageerror', e => { errors.push(`load-wx pageerror: ${e.message}`); log('load', 'PAGEERROR', e.message); });
