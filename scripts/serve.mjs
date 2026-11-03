@@ -39,7 +39,7 @@ createServer(async (req, res) => {
   let path = decodeURIComponent(new URL(req.url, 'http://x').pathname);
   const api = /^\/api\/([^/]+)$/.exec(path);
   if (api) { await runApi(api[1], req, res); return; }
-  if (path === '/board' || path === '/admin') path += '.html';
+  if (path === '/board' || path === '/admin' || path === '/lab' || path === '/daychart') path += '.html';
   const file = normalize(join(root, path.endsWith('/') ? `${path}index.html` : path));
   if (!file.startsWith(root)) { res.writeHead(403).end(); return; }
   try {

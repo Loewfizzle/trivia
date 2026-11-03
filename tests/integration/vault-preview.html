@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en" class="vl-lab-html">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>The Card Lab — preview</title>
+<!-- THE VAULT 1A without Firebase / the server: THE CARD LAB's REAL views (js/vault/lab-views.js) with marks kept in memory.
+     ?view=strips|lobby  &mix=samples|legend|<card id>  &still=1 (reduced motion)  &tier=0|1|2 (pin the effects' tier)
+     window.__lab for tests (view, mix, fps, stats, marks). The real page: /lab (admins only). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/vault.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+</head>
+<body class="vl-lab-on">
+<main id="app" class="vl-lab"></main>
+<script type="module">
+import { mountLab } from '/js/vault/lab-views.js';
+import { setFxReduced, setFxTier } from '/js/fx/renderer.js';
+const q = new URLSearchParams(location.search);
+if (q.get('still') === '1') setFxReduced(true);
+if (q.get('tier') != null) setFxTier(Number(q.get('tier')));
+let marks = {};
+mountLab(document.getElementById('app'), { marks, onMark: async (id, m, note) => { marks = { ...marks, [id]: { m, note, at: Date.now(), by: 'preview' } }; return { marks }; } });
+document.fonts.ready.then(() => setTimeout(() => { document.body.dataset.ready = '1'; }, 600));
+</script>
+</body>
+</html>

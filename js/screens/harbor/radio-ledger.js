@@ -38,6 +38,9 @@ export function paint({ api, now }) {
         })),
         h('div.rd-key', h('span', h('i'), 'visits (estimate)'), h('span', h('i.g'), 'games'))),
       founderPaper(L),
+      // THE VAULT 1A — THE CARD LAB (admins only, server-checked): every new card / emblem, moving, at its phone size → APPROVE · FIX · CUT
+      h('section.rd-paper', h('h4', 'THE CARD LAB', h('em', 'the vault · mark the new cards')),
+        h('div.rd-lg', h('span', h('a', { href: '/lab', target: '_blank', rel: 'noopener' }, 'Open THE CARD LAB'), h('small', 'approve · fix · cut')), h('b', '›'))),
       crewPaper(L),
       pushEl || (pushEl = pushPaper({ api })));
   };

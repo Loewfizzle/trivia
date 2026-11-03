@@ -58,7 +58,7 @@ function shell() {
   const dayChartRoot = h('div.ad-daychart');
   const q = h('input.input.ad-q', { type: 'search', placeholder: 'Name, Name#1234 or profile id', autocomplete: 'off', onkeydown: e => { if (e.key === 'Enter') search(q.value); } });
   app.replaceChildren(
-    h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('a.ad-link', { href: '/board' }, 'The Board ›')),
+    h('header.ad-head', h('div', h('div.ad-kicker', 'NEON SPEAKEASY'), h('h1', 'Admin')), h('div', h('a.ad-link', { href: '/lab' }, 'The Card Lab ›'), ' ', h('a.ad-link', { href: '/board' }, 'The Board ›'))),
     h('div.ad-grid',
       h('section.ad-card.ad-live', { id: 'ad-live' }, h('p.ad-dim', 'Loading…')),
       h('section.ad-card.ad-stats', { id: 'ad-stats' }),

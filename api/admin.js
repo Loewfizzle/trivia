@@ -23,6 +23,8 @@
 //                                    it from startAt until `until`; js/core/harbor-remote.js validates the state; C2: `delay` 0–10 s
 //                                    pushes startAt — every phone counts down + starts on the same beat) → { live }
 //   cityClear                      → removes city2/live (back to the real city) → { live: null }
+//   labMarks / labMark { id, mark: 'approve'|'fix'|'cut'|null, note? } → THE CARD LAB (THE VAULT 1A): the owner's marks per collectible
+//                                    (vault/lab, audited); GET /api/admin?lab=export → the marks for the next pass + the site (no names)
 //   radio…                         → CITY CONTROLS A — THE RADIO (api/_lib/radio.js): radioState · radioFire · radioStop · radioClearAll ·
 //                                    radioBoard · radioBoardEdit · radioBoardCancel · radioDial · radioRooms · radioWho · radioHello —
 //                                    each checks the caller's ROLE (the owner = ADMIN_PIDS, THE CREW = radio/crew/{pid}) per action
@@ -39,6 +41,7 @@ import { activity } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
 import { streakDay, dayNum } from '../js/core/streak.js';
 import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
+import { labMarks, labMark, labExport, LAB_CACHE } from './_lib/lab.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -250,6 +253,9 @@ export async function adminAction(uid, body, now = Date.now()) {
       return { outage: (await val('streak/outage')) || {} };
     }
     case 'outages': return { outage: (await val('streak/outage')) || {}, today: streakDay(now) };
+    // THE VAULT 1A — THE CARD LAB (api/_lib/lab.js): the owner's marks, read + written by admins only, every change audited
+    case 'labMarks': return { marks: await labMarks() };
+    case 'labMark': { const marks = await labMark(me, body, now); await audit(me, 'labMark', null, { b: `${String(body.id).slice(0, 40)} ${body.mark || 'clear'}`, note: String(body.note || '').slice(0, 140) }); return { marks }; }
     default: throw new ApiError(400, 'bad_action');
   }
 }
@@ -275,6 +281,8 @@ export default route(['GET', 'POST'], async (req, res) => {
       res.statusCode = 200; res.setHeader('Content-Type', c.mime); res.setHeader('Content-Length', String(c.buf.length));
       res.setHeader('Cache-Control', CLIP_CACHE); res.end(c.buf); return;
     }
+    // THE VAULT 1A — THE CARD LAB's EXPORT (ids + marks + notes, no names / profile ids; a minute at the edge)
+    if (q.get('lab') === 'export') { send(res, 200, await labExport(), { 'Cache-Control': LAB_CACHE }); return; }
     if (q.get('live') !== '1') throw new ApiError(400, 'bad_action');
     send(res, 200, await cityLiveNow(), { 'Cache-Control': LIVE_CACHE });
     return;

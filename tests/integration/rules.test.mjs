@@ -79,6 +79,8 @@ test('THE RADIO: rooms/{CODE}/radio + radioCrew readable by the room, written by
     // CC-B — THE CREW's lobby node, THE INTERCOM's clips, PRESETS, the push: the server's only
     await assertFails(set(ref(db(u), `${R}/radioCrew/hand`), { uid: u, host: 'host' }), `${u} hands themself the lobby's radio`);
     await assertFails(set(ref(db(u), `${R}/radioCrew/ask`), { uid: u, at: 1 }), `${u} writes an ask`);
+    // THE VAULT 1A — THE CARD LAB's marks + their history: the server's only (api/_lib/lab.js)
+    for (const n of ['vault/lab', 'vault/labLog']) { await assertFails(get(ref(db(u), n)), `${u} reads ${n}`); await assertFails(set(ref(db(u), `${n}/card-smoke`), { m: 'approve' }), `${u} writes ${n}`); }
     for (const n of ['radio/ic', 'radio/clips', 'radio/presets', 'radio/push/subs']) { await assertFails(get(ref(db(u), n)), `${u} reads ${n}`); await assertFails(set(ref(db(u), `${n}/x1`), { a: 1 }), `${u} writes ${n}`); }
   }
 });
