@@ -10,6 +10,7 @@ import { setState, state } from '../store.js';
 import { loadProfile, loadMe, loadKey } from '../identity.js';
 import { GAMES } from '../config.js';
 import { weeklyGoal, goalProgress, GOAL_XP, mastery } from '../core/ranks.js';
+import { levelOf } from '../core/levels.js';
 import { gildedCard } from '../progress/card.js';
 import { progressSections } from '../progress/profile.js';
 import { openStreakCard } from '../progress/streak-card.js';
@@ -213,8 +214,20 @@ export function createView({ onBack = null, overlay = false } = {}) {
     }
   }
 
+  // THE VAULT 1B: the card you WEAR is your profile's card — its FULL CARD once the owner has approved it in THE CARD LAB (the Gilded
+  // membership card stands until then, and for the Gilded itself)
+  let fullMounted = null, paintN = 0;
   function paintCard() {
+    const n = ++paintN;
+    if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
     els.card.replaceChildren(memberCard(data.profile, loadProfile() || {}, data.stats.xp, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
+    const p = data.profile || {}, cd = p.cd;
+    if (!cd || cd === 'card-gilded') return;
+    import('../vault/full.js').then(async F => {
+      if (!(await F.canShowFull(cd)) || n !== paintN || destroyed) return;
+      const L = levelOf(data.stats.xp || p.x || 0);
+      fullMounted = F.mountFullCard(els.card, cd, { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: p.t, fd: !!p.fd, spotted: data.stats.it && data.stats.it[cd] });
+    }).catch(() => {});
   }
   // PROGRESSION A: the level, the stats, the streak, the achievements, THE VAULT (only what you own) — then this week's goal + mastery
   function paintProgress() {

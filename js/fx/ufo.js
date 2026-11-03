@@ -13,21 +13,24 @@ let model = null, asking = false;
 function want() { if (model || asking) return; asking = true; loadUfoModel().then(m => { model = m; }).catch(() => { asking = false; }); }
 
 /** the night: a deep green-teal sky (the beam's colour in the air), stars, the harbor skyline with lit windows — once per size */
-function sky(w, h, dpr) {
-  return sprite(`ufo-sky:${w}x${h}@${dpr}`, w * dpr, h * dpr, (c, W, H) => {
+function sky(w, h, dpr, full = false) {
+  return sprite(`ufo-sky:${w}x${h}@${dpr}${full ? ':full' : ''}`, w * dpr, h * dpr, (c, W, H) => {
     c.scale(dpr, dpr);
     const g = c.createLinearGradient(0, 0, 0, h); g.addColorStop(0, '#04130f'); g.addColorStop(0.55, '#06201a'); g.addColorStop(1, '#020806');
     c.fillStyle = g; c.fillRect(0, 0, w, h);
-    const glowR = c.createRadialGradient(w * 0.66, h * 0.15, 0, w * 0.66, h * 0.15, w * 0.45); glowR.addColorStop(0, 'rgba(60,200,140,0.22)'); glowR.addColorStop(1, 'rgba(60,200,140,0)');
+    const gx = full ? w * 0.5 : w * 0.66, gy = full ? h * 0.3 : h * 0.15;
+    const glowR = c.createRadialGradient(gx, gy, 0, gx, gy, w * 0.45); glowR.addColorStop(0, 'rgba(60,200,140,0.22)'); glowR.addColorStop(1, 'rgba(60,200,140,0)');
     c.fillStyle = glowR; c.fillRect(0, 0, w, h);
     const r = rng(1947);
-    for (let i = 0; i < Math.round(w * 0.32); i++) { const x = r() * w, y = r() * h * 0.7, a = 0.25 + r() * 0.7, s = r() < 0.12 ? 1.3 : 0.7; c.fillStyle = `rgba(230,255,240,${a})`; c.fillRect(x, y, s, s); }
+    for (let i = 0; i < Math.round(w * (full ? 0.75 : 0.32)); i++) { const x = r() * w, y = r() * h * 0.7, a = 0.25 + r() * 0.7, s = r() < 0.12 ? 1.3 : 0.7; c.fillStyle = `rgba(230,255,240,${a})`; c.fillRect(x, y, s, s); }
     // the skyline: towers of a few widths along the bottom, a darker near row, windows lit in warm / pink / green pixels
-    const rows = [{ y: h * 0.58, dark: '#04130f', n: 1 }, { y: h * 0.7, dark: '#020a08', n: 0 }];
+    // (a FULL CARD: the skyline along the foot — a third of the card — so the craft + the beam have the sky)
+    const rows = full ? [{ y: h * 0.66, dark: '#04130f', n: 1 }, { y: h * 0.76, dark: '#020a08', n: 0 }] : [{ y: h * 0.58, dark: '#04130f', n: 1 }, { y: h * 0.7, dark: '#020a08', n: 0 }];
+    const tall = full ? h * 0.07 : h * 0.16;
     for (const row of rows) {
       let x = -4;
       while (x < w + 4) {
-        const bw = 9 + r() * 18, bh = h - row.y + r() * h * 0.16 * (row.n + 1);
+        const bw = (9 + r() * 18) * (full ? 1.25 : 1), bh = h - row.y + r() * tall * (row.n + 1);
         c.fillStyle = row.dark; c.fillRect(x, h - bh, bw, bh);
         for (let wy = h - bh + 3; wy < h - 2; wy += 3.4) for (let wx = x + 2; wx < x + bw - 2; wx += 3.2) {
           if (r() < 0.16) { const k = r(); c.fillStyle = k < 0.55 ? 'rgba(255,214,120,0.85)' : k < 0.8 ? 'rgba(255,110,200,0.8)' : 'rgba(120,255,180,0.85)'; c.fillRect(wx, wy, 1, 1.1); }
@@ -55,15 +58,16 @@ export default {
   id: 'ufo', tier: 'legendary', bleed: 10, stillT: 4.2,
   draw(c, s, t, Q) {
     want();
-    const { w, h } = s, dpr = Math.min(3, Math.round(Q.dpr * 4) / 4), still = Q.still;
+    const { w, h } = s, dpr = Math.min(3, Math.round(Q.dpr * 4) / 4), still = Q.still, full = !!s.opts.full;
     const rad = s.opts.radius || 12;
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
-    c.drawImage(sky(w, h, dpr), 0, 0, w, h);
+    c.drawImage(sky(w, h, dpr, full), 0, 0, w, h);
     // twinkling stars (a few, over the baked ones)
     const r = rng(77);
-    for (let i = 0; i < 7; i++) { const x = r() * w, y = r() * h * 0.5, p = r() * 6; stamp(c, glow('220,255,235', 0.3, 16), x, y, 5, still ? 0.5 : 0.25 + 0.6 * Math.max(0, Math.sin(t * 1.3 + p))); }
+    for (let i = 0; i < (full ? 18 : 7); i++) { const x = r() * w, y = r() * h * 0.5, p = r() * 6; stamp(c, glow('220,255,235', 0.3, 16), x, y, 5, still ? 0.5 : 0.25 + 0.6 * Math.max(0, Math.sin(t * 1.3 + p))); }
     // the craft: right of the name plate, high in the strip; a slow bob + a slow turn
-    const R = h * 0.84, cx = w * 0.6, cy = h * 0.24 + (still ? 0 : wob(t * 0.45, 2) * h * 0.035);
+    // (a FULL CARD — the reference card-i-want-to-believe.png: the craft centred high, ~55 % of the card wide, its beam down to the quay)
+    const R = full ? w * 0.27 : h * 0.84, cx = full ? w * 0.5 : w * 0.6, cy = (full ? h * 0.25 : h * 0.24) + (still ? 0 : wob(t * 0.45, 2) * (full ? h * 0.018 : h * 0.035));
     const pulse = still ? 0.9 : 0.78 + 0.22 * (0.5 + 0.5 * Math.sin(t * 2.2)) + 0.05 * wob(t * 3, 5);
     const belly = cy + R * 0.27;
     beam(c, cx, belly, R * 0.5, R * 1.7, h + 2, pulse * (s.opts.calm ? 0.85 : 1));
@@ -71,12 +75,12 @@ export default {
     c.globalCompositeOperation = 'lighter';
     stamp(c, glow('110,255,175', 0.1, 64), cx, h - 2, R * 2.2, 0.35 * pulse, R * 0.6);
     // motes rising in the beam
-    const nm = Math.round(26 * Q.q * (s.opts.calm ? 0.7 : 1)), mr = rng(5);
+    const nm = Math.round(26 * (full ? 2.2 : 1) * Q.q * (s.opts.calm ? 0.7 : 1)), mr = rng(5);
     for (let i = 0; i < nm; i++) {
       const sp = 0.18 + mr() * 0.22, ph = mr(), u = still ? (ph * 0.9 + 0.05) : ((t * sp + ph) % 1);
       const y = h - u * (h - belly - 2), wy = R * 0.5 + (R * 1.7 - R * 0.5) * ((y - belly) / (h - belly));
       const x = cx + (mr() - 0.5) * wy * 0.7 + Math.sin(t * 1.4 + i) * 1.2;
-      stamp(c, glow('200,255,220', 0.35, 16), x, y, 2.4 + mr() * 1.6, 0.85 * Math.sin(u * Math.PI));
+      stamp(c, glow('200,255,220', 0.35, 16), x, y, (2.4 + mr() * 1.6) * (full ? 1.3 : 1), 0.85 * Math.sin(u * Math.PI));
     }
     c.globalCompositeOperation = 'source-over';
     if (model && model.rows && model.rows.hi && fxDiag.sprites) {

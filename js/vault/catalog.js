@@ -13,6 +13,15 @@ export const LAB = Object.freeze([
   { id: 'card-sg-ufo', kind: 'card', name: 'I WANT TO BELIEVE', tier: 'legendary', n: 8, motion: 'The real UFO over the harbor, its beam pulsing, motes rising, ports chasing + THE BORDER LASER' },
   { id: 'emb-test-neon', kind: 'emblem', name: 'BOLT · NEON', tier: 'common', n: 9, motion: 'The house tube: its glow, an ignition flicker (quiet on a legendary)' },
   { id: 'emb-test-prism', kind: 'emblem', name: 'BOLT · PRISM', tier: 'rare', n: 10, motion: 'A rainbow sweeping through the shape, a white edge, a glint (leads on a still card)' },
+  // THE VAULT 1B — THE FULL CARDS of the 8 approved strips (their own marks: the strip can ship before its full card)
+  { id: 'full-card-brushed', kind: 'full', of: 'card-brushed', name: 'BRUSHED GOLD · FULL CARD', tier: 'common', n: 11, motion: 'Still — the brushed gold at full size, its bevel + a bar-rail sheen; the emblem leads' },
+  { id: 'full-card-smoke', kind: 'full', of: 'card-smoke', name: 'SMOKE ROOM · FULL CARD', tier: 'uncommon', n: 12, motion: 'Banks of smoke drifting through the lounge in two depths, curling up off the card, the lamp warming them' },
+  { id: 'full-card-frostbite', kind: 'full', of: 'card-frostbite', name: 'FROSTBITE · FULL CARD', tier: 'uncommon', n: 13, motion: 'Frost growing in from every edge, the crack running across the ice + its glint, then easing back' },
+  { id: 'full-card-inferno', kind: 'full', of: 'card-inferno', name: 'INFERNO · FULL CARD', tier: 'rare', n: 14, motion: 'A wall of flame up the card, embers + sparks rising, the edge burning + breathing, a foil sheen' },
+  { id: 'full-card-prism', kind: 'full', of: 'card-prism', name: 'PRISM · FULL CARD', tier: 'rare', n: 15, motion: 'The white beam into the glass prism, the rainbow fanning out + sweeping, the holo sheen, a glinting edge' },
+  { id: 'full-card-marquee', kind: 'full', of: 'card-marquee', name: 'THE MARQUEE · FULL CARD', tier: 'epic', n: 16, motion: 'A full ring of theatre bulbs chasing (+ the ring flash) round red velvet, the neon arrow flickering on' },
+  { id: 'full-card-glitter', kind: 'full', of: 'card-glitter', name: 'GLITTER BOMB · FULL CARD', tier: 'epic', n: 17, motion: 'Pink glitter bursting with a shockwave, foil flakes flashing, hearts tumbling, sparkles popping' },
+  { id: 'full-card-sg-ufo', kind: 'full', of: 'card-sg-ufo', name: 'I WANT TO BELIEVE · FULL CARD', tier: 'legendary', n: 18, motion: 'The real UFO over the harbor, ports chasing, the beam pulsing to the skyline + motes rising, the title in neon, THE BORDER LASER' },
 ]);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 export const MARKS = Object.freeze(['approve', 'fix', 'cut']);

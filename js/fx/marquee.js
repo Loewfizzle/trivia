@@ -17,8 +17,9 @@ function bulbs(w, h) {
   bulbs.k = k; bulbs.v = v; return v;
 }
 /** the tube: a left-pointing arrow (the marquee's "this way in") along the right half */
-function tubePath(c, w, h) {
-  const x0 = w * 0.5, x1 = w * 0.84, y = h * 0.5, a = h * 0.17;
+function tubePath(c, w, h, full = false) {
+  // (a FULL CARD: the arrow right of the name plate, its size the strip's, a touch bigger)
+  const x0 = w * (full ? 0.62 : 0.5), x1 = w * (full ? 0.88 : 0.84), y = h * 0.5, a = full ? h * 0.1 : h * 0.17;
   c.beginPath();
   c.moveTo(x1, y); c.lineTo(x0 + a * 0.6, y);
   c.moveTo(x0 + a * 1.25, y - a); c.lineTo(x0, y); c.lineTo(x0 + a * 1.25, y + a);
@@ -40,10 +41,11 @@ export default {
     // THE TUBE (under the bulbs): the unlit glass always faintly there; lit, its glow + colour + core
     const p = Q.still ? 1 : power(t);
     c.lineCap = 'round'; c.lineJoin = 'round';
-    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 0.5; c.strokeStyle = 'rgba(120,40,70,0.9)'; c.lineWidth = 2.4; tubePath(c, w, h); c.stroke();
+    const full = !!s.opts.full, k = full ? 1.3 : 1;
+    c.globalCompositeOperation = 'source-over'; c.globalAlpha = 0.5; c.strokeStyle = 'rgba(120,40,70,0.9)'; c.lineWidth = 2.4 * k; tubePath(c, w, h, full); c.stroke();
     if (p > 0.02) {
       c.globalCompositeOperation = 'lighter';
-      for (const [lw, col, a] of [[12, '255,60,150', 0.1], [6.5, '255,70,160', 0.22], [2.6, '255,95,180', 0.95], [1, '255,225,240', 0.95]]) { c.globalAlpha = a * p; c.strokeStyle = `rgb(${col})`; c.lineWidth = lw; tubePath(c, w, h); c.stroke(); }
+      for (const [lw, col, a] of [[12, '255,60,150', 0.1], [6.5, '255,70,160', 0.22], [2.6, '255,95,180', 0.95], [1, '255,225,240', 0.95]]) { c.globalAlpha = a * p; c.strokeStyle = `rgb(${col})`; c.lineWidth = lw * k; tubePath(c, w, h, full); c.stroke(); }
     }
     // THE BULBS: sockets (always), the chase, now and then the whole ring flashing on the beat
     const cyc = fract(t / 12), flash = Q.still ? 0 : smooth(0.86, 0.87, cyc) * (1 - smooth(0.93, 0.95, cyc)) * (fract(t * 3.3) < 0.5 ? 1 : 0.35);

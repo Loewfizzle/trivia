@@ -2,14 +2,14 @@
 // rim), a CRACK RUNS across the ice on the right (its branches splitting off, a bright core in a cold glow), a GLINT rides it, a few
 // crystals twinkle; then the frost eases back and grows again (an ~11 s cycle). The crystal layer is baked ONCE per size (dendrites —
 // branching strokes — + six-point stars + a rime haze at the rim) and revealed through a clip of growing circles round the edges.
-import { sprite, sparkle, glow, stamp, rng, smooth, fract } from './kit.js';
+import { sprite, sparkle, glow, stamp, rng, smooth, fract, unit } from './kit.js';
 import { rrect } from './renderer.js';
 
 const CYCLE = 11;
 
 /** the frost itself: dendrites from the rim inward (fewer + shorter towards the middle), stars, a rime haze */
-function crystals(w, h, dpr, seed) {
-  return sprite(`frost:${w}x${h}@${dpr}:${seed}`, w * dpr, h * dpr, (c) => {
+function crystals(w, h, dpr, seed, U = h) {
+  return sprite(`frost:${w}x${h}@${dpr}:${seed}:${Math.round(U)}`, w * dpr, h * dpr, (c) => {
     c.scale(dpr, dpr);
     const r = rng(seed);
     c.lineCap = 'round';
@@ -27,13 +27,14 @@ function crystals(w, h, dpr, seed) {
     };
     // seeds along the four edges, growing inward
     const edge = (n, fn) => { for (let i = 0; i < n; i++) fn(r()); };
-    edge(Math.round(w / 15), u => branch(u * w, -1, Math.PI / 2 + (r() - 0.5) * 1.1, h * (0.08 + r() * 0.13), 0, 0.85));
-    edge(Math.round(w / 15), u => branch(u * w, h + 1, -Math.PI / 2 + (r() - 0.5) * 1.1, h * (0.08 + r() * 0.13), 0, 0.85));
-    edge(4, u => branch(-1, u * h, (r() - 0.5) * 1.2, h * (0.18 + r() * 0.2), 0, 0.9));
-    edge(5, u => branch(w + 1, u * h, Math.PI + (r() - 0.5) * 1.2, h * (0.2 + r() * 0.22), 0, 0.9));
+    // (U = the size unit: a full card grows the same frost as a strip, all round its longer rim — never a web over the whole card)
+    edge(Math.round(w / 15), u => branch(u * w, -1, Math.PI / 2 + (r() - 0.5) * 1.1, U * (0.08 + r() * 0.13), 0, 0.85));
+    edge(Math.round(w / 15), u => branch(u * w, h + 1, -Math.PI / 2 + (r() - 0.5) * 1.1, U * (0.08 + r() * 0.13), 0, 0.85));
+    edge(Math.round(4 * h / U), u => branch(-1, u * h, (r() - 0.5) * 1.2, U * (0.18 + r() * 0.2), 0, 0.9));
+    edge(Math.round(5 * h / U), u => branch(w + 1, u * h, Math.PI + (r() - 0.5) * 1.2, U * (0.2 + r() * 0.22), 0, 0.9));
     // six-point stars sprinkled (denser near the rim)
     for (let i = 0; i < Math.round(w / 22); i++) {
-      const x = r() * w, y = r() < 0.5 ? r() * h * 0.3 : h - r() * h * 0.3, R = 1.6 + r() * 2.6;
+      const x = r() * w, y = r() < 0.5 ? r() * U * 0.3 : h - r() * U * 0.3, R = 1.6 + r() * 2.6;
       c.globalAlpha = 0.5 + r() * 0.4; c.lineWidth = 0.6;
       for (let k = 0; k < 3; k++) { const a = k * Math.PI / 3 + r() * 0.3; c.beginPath(); c.moveTo(x - Math.cos(a) * R, y - Math.sin(a) * R); c.lineTo(x + Math.cos(a) * R, y + Math.sin(a) * R); c.stroke(); }
     }
@@ -68,13 +69,13 @@ function partial(c, pts, f) {
 export default {
   id: 'frost', tier: 'uncommon', bleed: 0, stillT: 8.2,
   draw(c, s, t, Q) {
-    const { w, h } = s, seed = 11 + (s.opts.seed || 0), dpr = Math.min(3, Math.round(Q.dpr * 4) / 4);
+    const { w, h } = s, seed = 11 + (s.opts.seed || 0), dpr = Math.min(3, Math.round(Q.dpr * 4) / 4), U = unit(s);
     const u = fract(t / CYCLE), tt = u * CYCLE;
     // the frost's reach: grows 0 → 1 over ~6 s, holds, eases back over the last 1.5 s
     const grow = smooth(0, 6.2, tt) * (1 - smooth(9.4, 11, tt)) * 0.92 + 0.08;
     c.save(); rrect(c, 0, 0, w, h, s.opts.radius || 12); c.clip();
     // THE RIME: a soft frosted haze in from the rim, its reach + strength following the frost (soft — never a hard front)
-    for (const [x0, y0, x1, y1, k] of [[0, 0, 0, h * 0.55, 1], [0, h, 0, h * 0.4, 1], [0, 0, w * 0.18, 0, 0.8], [w, 0, w * 0.8, 0, 1]]) {
+    for (const [x0, y0, x1, y1, k] of [[0, 0, 0, U * 0.55, 1], [0, h, 0, h - U * 0.6, 1], [0, 0, w * 0.18, 0, 0.8], [w, 0, w * 0.8, 0, 1]]) {
       const g = c.createLinearGradient(x0, y0, x0 + (x1 - x0) * (0.35 + 0.65 * grow), y0 + (y1 - y0) * (0.35 + 0.65 * grow));
       g.addColorStop(0, `rgba(222,246,255,${0.34 * grow * k})`); g.addColorStop(0.45, `rgba(222,246,255,${0.1 * grow * k})`); g.addColorStop(1, 'rgba(222,246,255,0)');
       c.fillStyle = g; c.fillRect(0, 0, w, h);
@@ -85,9 +86,9 @@ export default {
     const ring = [];
     for (let x = 0; x <= w; x += 9) { ring.push([x, -2]); ring.push([x, h + 2]); }
     for (let y = 0; y <= h; y += 9) { ring.push([-2, y]); ring.push([w + 2, y]); }
-    for (const [x, y] of ring) { const R = h * (0.06 + 0.42 * grow) * (0.4 + r() * 1.0); c.moveTo(x + R, y); c.arc(x, y, R, 0, Math.PI * 2); }
+    for (const [x, y] of ring) { const R = U * (0.06 + 0.42 * grow) * (0.4 + r() * 1.0); c.moveTo(x + R, y); c.arc(x, y, R, 0, Math.PI * 2); }
     c.clip();
-    c.drawImage(crystals(w, h, dpr, seed), 0, 0, w, h);
+    c.drawImage(crystals(w, h, dpr, seed, U), 0, 0, w, h);
     c.restore();
     // THE CRACK: runs 4.0 → 5.2 s, stands (fading as the frost goes); its branches follow
     const P = crackPath(w, h, seed), run = smooth(4.0, 5.2, tt), fade = 1 - smooth(9.4, 10.6, tt);
@@ -109,7 +110,7 @@ export default {
     c.globalCompositeOperation = 'lighter';
     const tw = rng(seed + 9);
     for (let i = 0; i < Math.round(6 * (0.5 + Q.q / 2)); i++) {
-      const x = tw() * w, y = tw() < 0.5 ? tw() * h * 0.22 : h - tw() * h * 0.22, p = tw() * 7;
+      const x = tw() * w, y = tw() < 0.5 ? tw() * U * 0.22 : h - tw() * U * 0.22, p = tw() * 7;
       const a = Q.still ? 0.6 : Math.max(0, Math.sin(t * 1.6 + p)) ** 6;
       stamp(c, sparkle('225,248,255'), x, y, 9, a * grow);
     }

@@ -8,6 +8,9 @@ export function rng(seed) {
   let a = (seed >>> 0) || 1;
   return () => { a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
 }
+/** THE VAULT 1B — an effect's SIZE UNIT: the strip's height on a strip; on a FULL CARD (opts.full) ~46 % of its height, so flames, puffs,
+ *  hearts + sparkles keep the strip's proportions while they fill the bigger card (positions still use the whole w × h) */
+export const unit = s => (s.opts && s.opts.full ? s.h * 0.46 : s.h);
 export const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
 export const smooth = (a, b, v) => { const t = clamp01((v - a) / (b - a)); return t * t * (3 - 2 * t); };
 export const lerp = (a, b, t) => a + (b - a) * t;

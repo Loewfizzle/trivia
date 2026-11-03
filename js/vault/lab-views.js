@@ -11,6 +11,7 @@ import { FX } from '../fx/index.js';
 import { emblemSvg, prominence, TEST_EMBLEMS } from './emblems.js';
 import { fxStats, setFxReduced, setFxTier, fxReduced, setFxDiag } from '../fx/renderer.js';
 import { TIER_NAMES } from '../core/items.js';
+import { fullCardEl, mountFull } from './full.js';
 
 const CARDS = LAB.filter(x => x.kind === 'card');
 // THE DIAGNOSTICS ROW (THE VAULT 1B — the owner's iPhone is the verdict for speed): each switch turns ONE cost off, remembered per device
@@ -41,7 +42,7 @@ export function mountLab(root, o = {}) {
   const tabs = h('div.vl-tabs', { role: 'tablist' },
     h('button.vl-tab', { type: 'button', dataset: { v: 'strips' }, onclick: () => show('strips') }, 'THE STRIPS'),
     h('button.vl-tab', { type: 'button', dataset: { v: 'lobby' }, onclick: () => show('lobby') }, 'A FULL LOBBY'),
-    h('button.vl-tab', { type: 'button', disabled: true, title: 'THE VAULT 1B — after you approve the strips' }, 'FULL CARDS · 1B'));
+    h('button.vl-tab', { type: 'button', dataset: { v: 'full' }, onclick: () => show('full') }, 'FULL CARDS'));
   const still = h('button.vl-tab', { type: 'button', onclick: () => { setFxReduced(!fxReduced()); paintOpts(); } });
   const tierBtns = ['AUTO', 0, 1, 2].map(t => h('button.vl-tab', { type: 'button', dataset: { t: String(t) }, onclick: () => { setFxTier(t === 'AUTO' ? null : t); tierPick = t; paintOpts(); } }, t === 'AUTO' ? 'TIER AUTO' : `TIER ${t}`));
   let tierPick = 'AUTO';
@@ -104,7 +105,7 @@ export function mountLab(root, o = {}) {
     const grid = h('div.vl-items');
     content.replaceChildren(grid);
     const rows = [], places = [];
-    for (const item of LAB) {
+    for (const item of LAB.filter(x => x.kind !== 'full')) {
       const head = h('div.vl-item-h', h('b', `${item.n} · ${item.name}`), h('span', TIER_NAMES[item.tier]), h('code', item.id));
       const stage = h('div.vl-stage.vl-col');
       const blk = h('section.vl-item', { dataset: { id: item.id } }, head, stage, h('p.vl-motion', item.motion));
@@ -153,10 +154,30 @@ export function mountLab(root, o = {}) {
     draw();
   }
 
+  // THE FULL CARDS (THE VAULT 1B): each approved strip's full card at real phone size (a 390-wide column), moving, ONE shared surface
+  function fullView() {
+    const grid = h('div.vl-items.vl-fulls');
+    content.replaceChildren(h('p.vl-motion', 'Each card at its real phone size, the way it opens from a strip, on the profile + the podium. The name plate shows a sample member.'), grid);
+    const cards = [];
+    const only = (new URLSearchParams(location.search).get('full') || '').split(',').filter(Boolean);   // (&full=card-a,card-b: the look reviews)
+    for (const item of LAB.filter(x => x.kind === 'full' && (!only.length || only.includes(x.of)))) {
+      const g = GUESTS[(item.n - 11) % GUESTS.length];
+      const card = fullCardEl({ card: item.of, who: { name: g.name, lv: g.lv, avatar: ['bolt', 'diamond', 'crown', 'alien', 'star', 'moon', 'ghost', 'hex'][(item.n - 11) % 8], color: ['cyan', 'magenta', 'yellow', 'green', 'violet', 'orange', 'magenta', 'cyan'][(item.n - 11) % 8], at: Date.UTC(2026, 9, 3) }, spotted: Date.UTC(2026, 10, 3, 3, 14) });
+      const blk = h('section.vl-item', { dataset: { id: item.id } },
+        h('div.vl-item-h', h('b', `${item.n} · ${item.name}`), h('span', TIER_NAMES[item.tier]), h('code', item.id)),
+        h('div.vl-stage.vl-col', card), h('p.vl-motion', item.motion));
+      const mark = markRow(item); blk.append(mark); blocks.set(item.id, { blk, mark });
+      grid.append(blk); cards.push([card, item.of, item.n]);
+    }
+    const surface = createSurface(grid, { label: 'full' });
+    for (const [card, of, n] of cards) mountFull(surface, card, of, { seed: n });
+    mounted.push({ destroy: () => surface.destroy() });
+  }
+
   function show(v) {
     view = v; unmountAll();
     for (const b of tabs.querySelectorAll('.vl-tab')) b.classList.toggle('is-on', b.dataset.v === v);
-    if (v === 'lobby') lobbyView(); else stripsView();
+    if (v === 'lobby') lobbyView(); else if (v === 'full') fullView(); else stripsView();
     window.__lab && (window.__lab.view = v);
     try { const q = new URLSearchParams(location.search); q.set('view', v); history.replaceState(null, '', `${location.pathname}?${q}`); } catch { /* fine */ }
   }
@@ -179,7 +200,7 @@ export function mountLab(root, o = {}) {
   paintOpts();
   const q = new URLSearchParams(location.search);
   if (q.get('mix')) mix = q.get('mix');
-  show(q.get('view') === 'lobby' ? 'lobby' : 'strips');
+  show(['lobby', 'full'].includes(q.get('view')) ? q.get('view') : 'strips');
   return {
     setMarks(m) { marks = m || {}; repaintMarks(); },
     destroy() { unmountAll(); clearInterval(fpsT); cancelAnimationFrame(raf); },

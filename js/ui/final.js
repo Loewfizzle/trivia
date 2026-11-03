@@ -1,5 +1,6 @@
 // Shared end-of-match screen: podium rise (3rd, 2nd, 1st), glitch WINNER reveal,
 // full leaderboard, and BACK TO LOBBY for whoever is host *right now*.
+import { levelOf } from '../core/levels.js';
 import { fitName } from './fit.js';
 import { h, vibrate, reducedMotion } from './dom.js';
 import { avatar, countUp, leaderboard, burst } from './components.js';
@@ -35,8 +36,11 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     const p = players[r.uid] || GHOST;
     const place = i === 1 ? 1 : i === 0 ? 2 : 3;
     const scoreEl = h('div.pod-score', '0');
+    // (THE VAULT 1B — the winner's FULL CARD on a tap, when they wear an approved one)
+    const pub = place === 1 ? pubOf(p) : null, cd = pub && pub.cd;
+    const openCard = cd ? () => import('../vault/full.js').then(F => F.openFullCard(cd, { name: p.name, lv: pub.x != null ? levelOf(pub.x) : 1, avatar: p.avatar, color: p.color, at: pub.at, pub })).catch(() => {}) : null;
     podium.append(h(`div.pod.pod-${place}`, { style: { '--c': colorHex(p.color), '--d': `${delays[place]}ms` } },
-      h('div.pod-who', avatar(p.avatar, p.color, place === 1 ? 64 : 46), fitName(h('div.pod-name', p.name, rankBadge(pubOf(p), { tag: false })), { min: 10 }),
+      h('div.pod-who', openCard ? { role: 'button', tabindex: '0', 'aria-label': `${p.name}'s card`, onclick: openCard, onkeydown: e => { if (e.key === 'Enter') openCard(); } } : {}, avatar(p.avatar, p.color, place === 1 ? 64 : 46), fitName(h('div.pod-name', p.name, rankBadge(pubOf(p), { tag: false })), { min: 10 }),
         h('div.pod-score-wrap', scoreEl, scoreLabel ? h('small', scoreLabel) : null)),
       h('div.pod-block', h('span', String(r.rank)))));
     setTimeout(() => cancelers.push(countUp(scoreEl, 0, r.score, 1000)), delays[place] + 200);

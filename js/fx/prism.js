@@ -13,14 +13,15 @@ export default {
     const { w, h } = s, rad = s.opts.radius || 12;
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();
     // the prism: an equilateral triangle, point up, at ~55 % across
-    const pcx = w * 0.55, ph = h * 0.74, pw = ph * 1.155, top = [pcx, h * 0.5 - ph / 2], bl = [pcx - pw / 2, h * 0.5 + ph / 2], br = [pcx + pw / 2, h * 0.5 + ph / 2];
-    const hit = [pcx - pw * 0.26, h * 0.56], out = [pcx + pw * 0.22, h * 0.48];
+    // (a FULL CARD: the prism stands right of the name plate, smaller against the card, the beam coming in low from the left)
+    const full = !!s.opts.full, pcx = w * (full ? 0.6 : 0.55), cy = h * (full ? 0.5 : 0.5), ph = h * (full ? 0.46 : 0.74), pw = ph * 1.155, top = [pcx, cy - ph / 2], bl = [pcx - pw / 2, cy + ph / 2], br = [pcx + pw / 2, cy + ph / 2];
+    const hit = [pcx - pw * 0.26, cy + ph * 0.08], out = [pcx + pw * 0.22, cy - ph * 0.03];
     c.globalCompositeOperation = 'lighter'; c.lineCap = 'round';
     // THE BEAM: from the left edge to the prism's face (a soft halo, then the white core)
-    for (const [lw, a] of [[7, 0.08], [3.2, 0.22], [1.3, 0.95]]) { c.globalAlpha = a; c.strokeStyle = '#fff'; c.lineWidth = lw; c.beginPath(); c.moveTo(-4, h * 0.74); c.lineTo(hit[0], hit[1]); c.stroke(); }
+    for (const [lw, a] of [[7, 0.08], [3.2, 0.22], [1.3, 0.95]]) { c.globalAlpha = a; c.strokeStyle = '#fff'; c.lineWidth = lw; c.beginPath(); c.moveTo(-4, h * (full ? 0.69 : 0.74)); c.lineTo(hit[0], hit[1]); c.stroke(); }
     // THE RAINBOW: a fan from the exit, sweeping
     const base = Q.still ? -0.12 : -0.14 + 0.13 * Math.sin(t * 0.55) + 0.03 * Math.sin(t * 1.7);
-    const spread = Q.still ? 0.3 : 0.26 + 0.08 * Math.sin(t * 0.37 + 1);
+    const spread = (Q.still ? 0.3 : 0.26 + 0.08 * Math.sin(t * 0.37 + 1)) * (full ? 2.1 : 1);   // (a full card: the fan opens wide across the right of the card)
     const R = w;                                                  // (long enough to leave the strip)
     for (const [k, alpha] of [[1.25, 0.12], [1, 0.42]]) {
       for (let i = 0; i < BANDS.length; i++) {
