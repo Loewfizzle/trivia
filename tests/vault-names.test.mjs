@@ -29,7 +29,7 @@ test('THE SITE\'S CODE carries no catalog: no item\'s line, no achievement\'s li
   const hits = [];
   for (const [p, src] of files) {
     for (const s of lines) if (src.includes(s)) hits.push(`${p.slice(ROOT.length)}: "${s}"`);
-    for (const n of sightNames) if (src.includes(n) && (!COMMON_WORDS.includes(n) || /[\/](vault|progress|fx)[\/]/.test(p))) hits.push(`${p.slice(ROOT.length)}: ${n}`);
+    for (const n of sightNames) if (src.includes(n) && (!COMMON_WORDS.includes(n) || /[\\/](vault|progress|fx)[\\/]/.test(p))) hits.push(`${p.slice(ROOT.length)}: ${n}`);
   }
   assert.deepEqual(hits, [], `${hits.length} leaks`);
   assert.ok(files.length > 300, `${files.length} shipped files read`);

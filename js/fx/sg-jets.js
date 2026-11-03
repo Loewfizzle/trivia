@@ -1,4 +1,4 @@
-// THE JETS' KIT (THE VAULT 1C — card-sg-blackbird + AFTERBURNER): afterburners with shock diamonds, contrails / vapour bands, a cloud deck seen from
+// THE JETS' KIT (THE VAULT 1C — card-sg-blackbird + card-sg-f22): afterburners with shock diamonds, contrails / vapour bands, a cloud deck seen from
 // above (tileable, scrolled). Every piece a BAKED sprite stamped with a transform — no gradient built per frame (js/fx/kit.js's rule).
 import { sprite, rng } from './kit.js';
 

@@ -1,4 +1,4 @@
-// `card-sg-tr3b` — THE TR-3B's CARD (THE VAULT 1C; the owner: "LIGHTS OUT — the TR-3B (WHITE corner lights + a RED centre, its circuitry)
+// `card-sg-tr3b` — THE TR-3B's CARD (THE VAULT 1C; the owner: "card-sg-tr3b — the TR-3B (WHITE corner lights + a RED centre, its circuitry)
 // over a DARKENED city, the power drained, the lamps dying"). The city's OWN craft (screens/harbor/legends.js#tr3bSprite — the hull, the
 // panels, the pods, the hub, the etched circuitry, baked once per size) hovering high over the harbor, a slow drift + a hair of yaw; its
 // WHITE corner lights pulsing in turn (a hot core, a bloom, a flat flare — they light the hull round them), the RED centre's heavy pulse,

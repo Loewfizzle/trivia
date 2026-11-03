@@ -1,7 +1,7 @@
-// `card-sg-f22` — AFTERBURNER (THE VAULT 1C; the owner: "the F-22s in their tight vic, vapour cones + afterburners"). The city's OWN
+// `card-sg-f22` — card-sg-f22 (THE VAULT 1C; the owner: "the F-22s in their tight vic, vapour cones + afterburners"). The city's OWN
 // Raptor (NLM's model, CC BY 4.0 — the city's bake recipe, scripts/bake/f22.mjs) re-baked for the card from below + ahead, banking
 // (scripts/bake/f22-card.mjs → assets/vault/sg/f22-hero.webp), THREE of it in a TIGHT VIC high over a white cloud deck in a hard blue
-// day: the sun's glare up top, the deck racing under them, each jet's twin AFTERBURNERS (shock diamonds), and the VAPOUR CONES — a white
+// day: the sun's glare up top, the deck racing under them, each jet's twin card-sg-f22S (shock diamonds), and the VAPOUR CONES — a white
 // shroud blooming round each airframe as it goes transonic, flickering, snapping off, in turn (each jet its own beat). The formation
 // holds the frame (we fly with it), each jet its own small motion in the air.
 import { glow, stamp, sprite, sparkle, rng, wob, smooth } from './kit.js';

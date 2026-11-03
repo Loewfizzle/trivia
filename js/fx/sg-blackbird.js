@@ -2,7 +2,7 @@
 // dusk"). The city's OWN SR-71 (pablogcg05's model, CC BY 4.0 — the city's bake recipe, scripts/bake/sr71.mjs) re-baked for the card at a
 // hero angle (scripts/bake/sr71-card.mjs → assets/vault/sg/sr71-hero.webp: from below + ahead, the chines + the delta, the golden light)
 // flat out over a SEA OF CLOUD at dusk: the sun just under the deck, the sky from indigo to a hot band of rose + orange, the deck racing
-// under it (two layers, the near one faster), its TWIN AFTERBURNERS (shock diamonds) + two contrails catching the sunset, a glint riding
+// under it (two layers, the near one faster), its TWIN card-sg-f22S (shock diamonds) + two contrails catching the sunset, a glint riding
 // the spine. A hair of buffet; the jet holds the frame (we fly with it).
 import { glow, stamp, sparkle, sprite, rng, wob } from './kit.js';
 import { drawLaser } from './laser.js';
