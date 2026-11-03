@@ -1189,7 +1189,17 @@ export function createTitle() {
     if (destroyed || !els.sceneWrap || !els.sceneWrap.classList.contains('is-hold')) return;
     els.sceneWrap.classList.add('is-reveal');
     els.sceneWrap.classList.remove('is-hold');
+    pgPreviewSoon(600);
   }
+  // PROGRESSION A — THE PREVIEW LINKS (?preview=moment | card | streak | flame [&streak=N] [&up=0] …): the screen with scripted data over the
+  // city, a moment after the reveal (or 4 s in, whatever the city does). Nothing is written or sent — a preview never counts.
+  let pgPv = (() => { try { const v = new URLSearchParams(location.search).get('preview'); return /^(moment|card|profile|streak)$/.test(v || '') ? v : null; } catch { return null; } })();
+  function pgPreviewSoon(ms) {
+    if (!pgPv) return;
+    const v = pgPv; pgPv = null;
+    setTimeout(() => { if (!destroyed) import('../progress/preview.js').then(m => m.preview(v, new URLSearchParams(location.search))).catch(() => {}); }, ms);
+  }
+  if (pgPv) setTimeout(() => pgPreviewSoon(0), 4000);
   function clearZones() {
     const out = [];
     const add = el => { if (!el) return; const r = restRect(el); if (r.width && r.height) out.push({ x: r.left, y: r.top, w: r.width, h: r.height }); };
@@ -1577,6 +1587,31 @@ export function createTitle() {
     if (text && ms) noteT = setTimeout(() => note(''), ms);
   }
 
+  // PROGRESSION A — THE DOCK's STREAK FLAME: a small neon flame + the count on YOU (js/progress/flame.js; built at the full dpr); no streak =
+  // no badge. ?preview=flame&streak=N shows a sample one (a preview of the badge on a phone with no streak yet).
+  let flameSig = null;
+  function paintDockFlame(pub) {
+    let pv = null;
+    try { const q = new URLSearchParams(location.search); if (q.get('preview') === 'flame') pv = { n: Math.max(1, Number(q.get('streak') || 7)), state: q.get('state') || 'lit' }; } catch { /* fine */ }
+    const sig = pv ? `pv|${pv.n}|${pv.state}` : pub && pub.s ? `${pub.s}|${pub.sd || ''}` : '';
+    if (sig === flameSig) return;
+    flameSig = sig;
+    const old = els.youTab.querySelector('.pg-dock');
+    if (old) old.remove();
+    if (!sig) return;
+    import('../progress/flame.js').then(async m => {
+      if (destroyed || flameSig !== sig) return;
+      let st = pub && pub.s ? { n: pub.s, d: pub.sd } : null;
+      if (pv) { const P = await import('../progress/preview.js'); st = P.sampleStreak(pv.n, pv.state); }
+      await (await import('../progress/look.js')).pgSheet();
+      if (destroyed || flameSig !== sig) return;
+      const b = m.flameBadge(st);
+      const was = els.youTab.querySelector('.pg-dock');
+      if (was) was.remove();
+      if (b) els.youTab.append(b);
+    }).catch(() => {});
+  }
+
   function update(state) {
     st = state;
     if (!els.youTab) return;
@@ -1599,6 +1634,7 @@ export function createTitle() {
       els.youTab.setAttribute('aria-label', 'Create your player');
       els.youTab.classList.add('is-guest');
     }
+    paintDockFlame(pub);
     if (els.sub) els.sub.hidden = !!(p && p.name);
     if ((state.rejoin || '') !== els.rejoinCode) els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', 'aria-label': `Rejoin room ${state.rejoin}`, onclick: () => join(state.rejoin, true) },
       h('i.nd-rejoin-dot', { 'aria-hidden': 'true' }), h('span.nd-rejoin-l', 'REJOIN'), ' ', h('b.nd-rejoin-c', state.rejoin))] : []));

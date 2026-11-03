@@ -175,6 +175,24 @@ G('radio', async () => {
   await waitFor(O.page, '!!document.querySelector(".rd-big3 .rd-nixie")', 'THE LEDGER', 10000);
   const led = await ev(O.page, `({ nix: document.querySelectorAll('.rd-big3 .rd-nixie').length, rows: document.querySelectorAll('.rd-lg').length, bars: document.querySelectorAll('.rd-chart > div').length })`);
   ok(led.nix === 3 && led.rows >= 6 && led.bars === 7, `RADIO: THE LEDGER — 3 nixies, TODAY's rows (${led.rows}), THIS WEEK's 7 bars`);
+  // ---- PROGRESSION A — THE FOUNDER WINDOW on THE LEDGER: OPEN by default; a tap arms it, a second tap CLOSES it (the server, audited);
+  // the same two taps reopen it (the test leaves it open)
+  { const sw = () => ev(O.page, `(() => { const b = document.querySelector('.rd-fsw'); return b ? { state: b.querySelector('.rd-fsw-state').textContent, armed: b.classList.contains('is-armed'), h: b.getBoundingClientRect().height } : null; })()`);
+    const tap = () => ev(O.page, `document.querySelector('.rd-fsw').click()`);
+    await waitFor(O.page, '!!document.querySelector(".rd-fsw")', 'the FOUNDER switch', 10000);
+    const s0 = await sw();
+    await tap(); await sleep(150);
+    const s1 = await sw();
+    await tap();
+    await waitFor(O.page, '(document.querySelector(".rd-fsw-state") || {}).textContent === "CLOSED"', 'CLOSED', 10000).catch(() => {});
+    const s2 = await sw(), node = await get('progress/founder');
+    ok(s0 && s0.state === 'OPEN' && s0.h >= 44 && s1.armed && s2 && s2.state === 'CLOSED' && node && node.open === false && node.by === pid,
+      `RADIO: THE FOUNDER WINDOW — OPEN by default, a tap arms it, the second CLOSES it on the server (${JSON.stringify({ s0, s1, s2, node })})`);
+    const log = Object.values((await get('audit')) || {}).filter(x => x && x.act === 'founderClose' && x.by === pid);
+    ok(log.length >= 1, `RADIO: the FOUNDER switch is audited (${log.length})`);
+    await tap(); await sleep(150); await tap();
+    await waitFor(O.page, '(document.querySelector(".rd-fsw-state") || {}).textContent === "OPEN"', 'OPEN again', 10000).catch(() => {});
+    ok((await get('progress/founder')) === null, 'RADIO: … and reopened (the test leaves it OPEN)'); }
   // ---- THE CITY BEHIND keeps running at its tier while the radio is open (a warning on a slow machine)
   { const t0 = await ev(O.page, '(window.__district.tiering() || {}).tier');
     await sleep(3000);

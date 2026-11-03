@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Progression preview</title>
+<!-- PROGRESSION A without Firebase / the server: the REAL modules (js/progress/*) with scripted data.
+     ?view=moment|streak|card|profile|flame  &at=end (the moment's end state at once)  &up=0 (no level-up)  &card=card-emerald (a look)
+     &streak=7 &state=lit|waiting|frozen|out  &cards=1 (every card look side by side)  &rm=1 (reduced motion)
+     window.__pg for tests. The live site's own preview: ?preview=moment|card|streak|flame (js/progress/preview.js). -->
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/card.css">
+<link rel="stylesheet" href="/css/progress.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase.js" } }</script>
+<style>html, body { margin: 0; min-height: 100%; background: radial-gradient(120% 70% at 50% 0%, #2a1446, #08060f 70%); color: #fff; }
+  #stage { padding: 16px; display: grid; gap: 14px; max-width: 440px; margin: 0 auto; }
+  .lbl { font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: #c2ae86; margin: 6px 0 -6px; }
+  .dockbtn { position: relative; width: 56px; height: 56px; border-radius: 50%; background: rgba(255,255,255,0.08); display: grid; place-items: center; margin: 30px auto; }</style>
+</head>
+<body>
+<div id="stage"></div>
+<script type="module">
+import { preview } from '/js/progress/preview.js';
+const q = new URLSearchParams(location.search);
+preview(q.get('view') || 'moment', q, document.getElementById('stage')).then(() => { document.body.dataset.ready = '1'; });
+</script>
+</body>
+</html>

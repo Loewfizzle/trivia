@@ -1044,3 +1044,40 @@ G('roofcrisp', async () => {
   ok(c.lum.length === 2 && s.lum.length === 2 && c.lum.every((v, i) => Math.abs(v - s.lum[i]) <= s.lum[i] * 0.12 + 2), `…THE SAME SIGN, SHARPER: the luma over each sign ${c.lum.map(v => v.toFixed(0)).join(' / ')} crisp vs ${s.lum.map(v => v.toFixed(0)).join(' / ')} the city's own (within ~12 %)`);
   ok(r.rc.every(x => x.k === 0), `RAIN IN FRONT: the crisp copies yield to the city's own (the drops fall over the sign) — ${r.rc.map(x => `${x.id} ${x.k}`).join(', ')}`);
 });
+
+// PROGRESSION A — THE DOCK's STREAK FLAME + THE PREVIEW LINKS on City 2.0's title (the `audio` job, beside the dock): the badge on YOU
+// only with a streak (none → no badge), built at the FULL dpr (3× → a 54 × 66 px canvas for 18 × 22 pt), readable at 390 + 430, a 44 pt
+// YOU still tappable through it; ?preview=moment / card / streak open their screen within ~10 s (THE LINKS RULE), reduced motion = the
+// moment's end, still.
+G('progress', async () => {
+  const N = await open({ slot: 'pgn', qs: NIGHT, view: [390, 844], dpr: 3 });
+  await harborUp(N.page); await sleep(1500);
+  ok(!(await ev(N.page, '!!document.querySelector(".nd-tab-you .pg-dock")')), 'THE DOCK FLAME: no streak → no badge');
+  await N.ctx.close();
+  for (const view of [[390, 844], [430, 932]]) {
+    const F = await open({ slot: 'pgf', qs: `${NIGHT}&preview=flame&streak=12`, view, dpr: 3 });
+    await harborUp(F.page);
+    await waitFor(F.page, '!!document.querySelector(".nd-tab-you .pg-dock canvas")', 'the flame badge', 10000).catch(() => {});
+    const b = await ev(F.page, `(() => { const d = document.querySelector('.nd-tab-you .pg-dock'); if (!d) return null; const c = d.querySelector('canvas'), r = d.getBoundingClientRect(), y = document.querySelector('.nd-tab-you').getBoundingClientRect(), n = d.querySelector('b'), cs = getComputedStyle(n);
+      return { cw: c.width, ch: c.height, w: Math.round(r.width), h: Math.round(r.height), n: n.textContent, fs: parseFloat(cs.fontSize), pe: getComputedStyle(d).pointerEvents, inYou: r.left < y.right && r.right > y.left && r.top < y.bottom, youW: Math.round(y.width), youH: Math.round(y.height) }; })()`);
+    ok(b && b.cw === 54 && b.ch === 66 && b.n === '12' && b.fs >= 12 && b.pe === 'none' && b.inYou && b.youW >= 44 && b.youH >= 44,
+      `THE DOCK FLAME at ${view.join('×')}: a ${b && b.cw}×${b && b.ch} px canvas (3× of 18×22 pt), "${b && b.n}" at ${b && b.fs} pt, on YOU, taps pass through (${JSON.stringify(b)})`);
+    if (SHOTS) await F.page.screenshot({ path: `${OUT}progress-dock-${view.join('x')}.png` });
+    await F.ctx.close();
+  }
+  // THE PREVIEW LINKS: each shows its thing within ~10 s of a fresh load
+  for (const [pv, sel] of [['moment', '.pg-moment.is-end, .pg-moment .pg-line.is-in'], ['card', '.pg-pv .pg-card'], ['streak', '.pg-sc .pg-sc-n']]) {
+    const P = await open({ slot: `pgp${pv}`, qs: `${NIGHT}&preview=${pv}`, view: [402, 874] });
+    const t = Date.now();
+    await waitFor(P.page, `!!document.querySelector(${JSON.stringify(sel)})`, `?preview=${pv}`, 14000).catch(() => {});
+    const dt = Date.now() - t, seen = await ev(P.page, `!!document.querySelector(${JSON.stringify(sel)})`);
+    ok(seen && dt < 12000, `THE PREVIEW LINK ?preview=${pv}: on screen ${(dt / 1000).toFixed(1)} s after the load`);
+    await P.ctx.close();
+  }
+  // reduced motion: the moment's END, still (no timeline)
+  { const R = await open({ slot: 'pgr', qs: `${NIGHT}&preview=moment`, view: [402, 874], init: { fn: () => { localStorage.setItem('na:settings', JSON.stringify({ reducedFx: true })); } } });
+    await waitFor(R.page, '!!document.querySelector(".pg-moment")', 'the moment', 14000).catch(() => {});
+    const r = await ev(R.page, `(() => { const m = document.querySelector('.pg-moment'); return m ? { still: m.classList.contains('is-still'), end: m.classList.contains('is-end'), lines: document.querySelectorAll('.pg-line.is-in').length } : null; })()`);
+    ok(r && r.still && r.end && r.lines >= 3, `REDUCED MOTION: the moment opens at its end, still (${JSON.stringify(r)})`);
+    await R.ctx.close(); }
+});

@@ -1,14 +1,15 @@
 // The results moments, on every game's podium (ui/final.js): what this match did for you on the global boards.
 // Elegant plaques with a light sweep and a counting rank — NEW PERSONAL BEST, #14 WORLDWIDE, ENTERED THE TOP 10,
-// #1 THIS WEEK — then the XP you earned filling your bar, and when it crosses a line, the RANK UP: the old emblem
-// dissolves, the new one forges in light, the name resolves (≈ 3 s, tap to skip).
+// #1 THIS WEEK — then the XP you earned filling your bar, then THE END-OF-ROUND MOMENT (PROGRESSION A — js/progress/moment.js: the
+// XP lines, the level + its level-up, the streak, the achievements; it replaced the old RANK UP overlay).
 // The server's answer can arrive late (a phone offline at the podium): the plaques appear whenever it does.
 import { h, reducedMotion, vibrate } from '../ui/dom.js';
 import { loadMe } from '../identity.js';
 import { countUp } from '../ui/components.js';
 import { emblem, RANK_COLORS } from '../ui/emblems.js';
 import { boardDef, fmtValue } from '../core/boards.js';
-import { levelInfo, bandOf } from '../core/levels.js';
+import { levelInfo } from '../core/levels.js';
+import { state } from '../store.js';
 import { GAMES } from '../config.js';
 import { onOutcome, outcomeFor, matchKey } from './queue.js';
 import { boardSfx } from '../board/audio.js';
@@ -67,7 +68,7 @@ export function attachCallouts(code, game) {
   const el = h('div.rc', { 'aria-live': 'polite' });
   const t0 = performance.now();
   const timers = [];
-  let shown = false, destroyed = false, upEl = null;
+  let shown = false, destroyed = false, moment = null;
   const later = (fn, ms) => timers.push(setTimeout(() => { if (!destroyed) fn(); }, ms));
 
   function show(o) {
@@ -85,9 +86,17 @@ export function attachCallouts(code, game) {
     const step = reduced() ? 120 : 650;
     list.forEach((p, i) => later(() => plaque(p), i * step));
     if (o.xp && o.xp.gain) later(() => xpLine(o), list.length * step + 150);
-    // (PROGRESSION A: what a match unlocks — items, achievements, the level-up — is THE END-OF-ROUND MOMENT's, right after the podium)
-    if (o.rk && o.rk.to > o.rk.from) later(() => rankUp(o.rk.from, o.rk.to, o.xp ? o.xp.to : 0), list.length * step + (reduced() ? 300 : 1500));
+    // PROGRESSION A — THE END-OF-ROUND MOMENT right after the podium (the crown + the board's plaques): the XP, the level (its level-up +
+    // unlocks), the streak, the tease, the achievements — every phone its own; CONTINUE comes back here (REMATCH / LOBBY as today).
+    // (it replaces the old RANK UP overlay: a new band is the moment's level-up now)
+    if (o.xp && o.xp.gain) later(() => openTheMoment(o), list.length * step + (reduced() ? 400 : 1600));
     if (list.length && !reduced()) vibrate(list[0].k === 'first' ? [30, 50, 30, 50, 90] : [24, 40, 24]);
+  }
+
+  function openTheMoment(o) {
+    const night = (state.night && Object.keys(state.night).length) || 1;
+    const me = loadMe();
+    import('../progress/moment.js').then(m => { if (!destroyed) return m.openMoment(o, { game: game.id, match: night, name: (me && me.profile && me.profile.n) || '' }).then(x => { moment = x; }); }).catch(() => {});
   }
 
   function plaque(p) {
@@ -132,39 +141,6 @@ export function attachCallouts(code, game) {
     ];
   }
 
-  function rankUp(from, to, o0xp) {
-    if (document.querySelector('.rc-up')) return;
-    const shards = Array.from({ length: 16 }, (_, i) => h('i', { style: { '--a': `${(360 / 16) * i + (i % 3) * 7}deg`, '--d': `${70 + (i % 4) * 22}px` } }));
-    const B = bandOf(levelInfo(o0xp).lvl);
-    const letters = B.name.split('').map((ch, i) => h('span', { style: { '--i': i } }, ch));
-    upEl = h('div.rc-up', { role: 'dialog', 'aria-label': `New band: ${B.name}`, style: { '--rk': RANK_COLORS[to], '--rk0': RANK_COLORS[from] }, onclick: () => close(true) },
-      h('div.rc-up-veil'),
-      h('div.rc-up-stage',
-        h('span.rc-up-rays'),
-        h('span.rc-up-old', emblem(from, 150, { mini: false })),
-        h('span.rc-up-shards', ...shards),
-        h('span.rc-up-ring'),
-        h('span.rc-up-new.rk-big', emblem(to, 176, { mini: false }))),
-      h('div.rc-up-kicker', `LEVEL ${levelInfo(o0xp).lvl}`),
-      h('div.rc-up-name', ...letters),
-      h('div.rc-up-line', B.line),
-      h('div.rc-up-skip', 'TAP TO CONTINUE'));
-    document.body.append(upEl);
-    turnOn(upEl, 'is-on');
-    boardSfx('forge');
-    if (!reduced()) vibrate([20, 60, 20, 300, 60]);
-    later(() => close(false), reduced() ? 2200 : 4300);
-  }
-
-  function close(skip) {
-    const u = upEl;
-    if (!u) return;
-    upEl = null;
-    if (skip && !u.classList.contains('is-done')) { u.classList.add('is-done'); setTimeout(() => fade(u), 450); return; }
-    fade(u);
-  }
-  const fade = u => { u.classList.add('is-out'); setTimeout(() => u.remove(), 500); };
-
   const off = onOutcome((k, o) => { if (k === key) show(o); });
   show(outcomeFor(key));
 
@@ -174,7 +150,7 @@ export function attachCallouts(code, game) {
       destroyed = true;
       off();
       timers.forEach(clearTimeout);
-      if (upEl) { upEl.remove(); upEl = null; }
+      if (moment) { moment.close(); moment = null; }   // (the podium left — a rematch, the lobby: the moment goes with it)
     },
   };
 }
