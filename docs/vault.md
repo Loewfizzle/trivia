@@ -112,6 +112,9 @@ real phone size (a 390-wide column), MOVING as in the game, the strip FIRST; its
 **FIX** (+ a note → SAVE NOTE) · **CUT** (tap the lit one again to clear). **A FULL LOBBY**: 8 strips at once in the lobby's calmer cut —
 THE 8 SAMPLES, 8 LEGENDARIES, or 8 of one — with a live readout (frames a second, the effects' tier, their draw cost, the canvas size).
 **STILL** = reduced motion; **TIER 0 / 1 / 2** pins the effects' tier (AUTO = the guard). FULL CARDS = 1B.
+**A NORMAL SCROLLING PAGE** (HOTFIX Nov 3 — the owner's iPhone: a swipe didn't scroll): `css/base.css` locks the app to one screen
+(html/body height 100% + body overflow hidden); the lab undoes it on its own `html.vl-lab-html` / `body.vl-lab-on` (vault.css, like
+admin.css). Any new stand-alone page that loads base.css needs the same unlock — and a FINGER test (a scrollIntoView moves a locked page).
 **The marks** live in `vault/lab/{id}` = `{ m: approve|fix|cut|null, note, at, by }` (server-written only; the rules' default deny), each
 change audited (`audit/` act `labMark`) + kept in `vault/labLog`. **THE EXPORT** `GET /api/admin?lab=export` (edge-cached a minute) = ids +
 marks + notes + when — no names, no profile ids — read by `js/vault/approved.js` (only APPROVED art ships to players) and by
@@ -135,4 +138,7 @@ the lab's readout on the owner's phone.
 `tests/vault.test.mjs` (the catalog, the marks, THE PROMINENCE RULE, the pink pair, the tier rows, the looks + the registry) ·
 `tests/integration/lab.test.mjs` (/api on the emulators: the owner marks — stored, audited, the history; the crew + a stranger refused;
 the export has no names) · `rules.test.mjs` (nobody reads / writes the marks) · the harbor `vault` group (the lab's 10 items on ONE canvas,
-the marks, 8 legendaries at 4× CPU = 60 fps, only on-screen slots draw + a hidden page stops, reduced motion = still frames).
+the marks, 8 legendaries at 4× CPU = 60 fps, only on-screen slots draw + a hidden page stops, reduced motion = still frames; BY FINGER — real touch swipes at 402 × 874 scroll the lab +
+A FULL LOBBY → 8 LEGENDARIES top → bottom, a tap marks + clears, the membership card's key section + the bring sheet scroll; the same lab
+in WebKit at iPhone size — Playwright 1.56 in `~/wk` or `WK_PLAYWRIGHT`, skipped with a warning elsewhere; its mobile WebKit taps but
+can't drag, so it scrolls by PageDown, blocked by the same lock).

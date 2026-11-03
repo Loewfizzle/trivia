@@ -90,6 +90,10 @@ body.reduced-fx .vl-e, body.reduced-fx .vl-e *, .vl-still .vl-e, .vl-still .vl-e
 
 /* ------------------------------------------------------------------ THE CARD LAB (/lab — admins only) */
 .vl-lab-html, .vl-lab-on { background: #07060b; color: #f5ecda; min-height: 100%; }
+/* THE LAB IS A NORMAL SCROLLING PAGE (HOTFIX Nov 3): base.css locks the app to one screen (html/body height 100% + body overflow hidden +
+   overscroll none) — on the lab that killed every finger swipe on the iPhone (a mouse-free page can't scroll at all). Undo it here only,
+   like /admin (admin.css); touch-action stays pan-x pan-y (scroll yes, pinch-zoom no). */
+html.vl-lab-html, html.vl-lab-html body.vl-lab-on { height: auto; overflow: visible; overscroll-behavior: auto; }
 .vl-lab { max-width: 1180px; margin: 0 auto; padding: calc(env(safe-area-inset-top) + 14px) 16px calc(env(safe-area-inset-bottom) + 40px); font-family: var(--font-ui); }
 .vl-lab h1 { margin: 2px 0 2px; font: 800 24px/1.15 var(--font-ui); letter-spacing: 0.1em; color: #f5ecda; }
 .vl-lab-k { font: 700 12px/1 var(--font-ui); letter-spacing: 0.3em; color: #d8b46a; }

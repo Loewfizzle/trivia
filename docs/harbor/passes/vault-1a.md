@@ -85,6 +85,13 @@ the music's A CALL + partysync all GREEN alone (side-load timing); **LOAD WEATHE
 on the PRE-PASS build too** (c212047, served from a worktree — 14/15 there, the same check): an existing failure, not this pass's (likely
 the date — Nov 3, the jump into a holiday night); the vault group 5/5, sightings 10/10.
 
+## HOTFIX — /lab WOULDN'T SCROLL ON THE OWNER'S iPHONE (Nov 3, 6 am)
+The cause: base.css's one-screen lock (html/body height 100% + body overflow hidden + overscroll none) carried into /lab; this pass's
+checks moved the page with scrollIntoView (works on a locked page), never a finger. Not the cause: the fx canvas (absolute inside its
+host, pointer-events none), the mark buttons (touch-action manipulation). The fix: vault.css unlocks `html.vl-lab-html` / `body.vl-lab-on`
+(like /admin); the app's screens unchanged. The proof: the `vault` group's BY FINGER checks (13/13; with the fix removed the 4 scroll
+checks fail at 0 px in Chromium + WebKit). Deployed with the deploy tag only.
+
 ## Tests (this pass)
 unit `tests/vault.test.mjs` (6) · `lab.test.mjs` (2 — /api on the emulators) · rules + the marks (58/58; the rules FILE unchanged — no
 re-publish) · the profile E2E + BRING YOUR CARD (75/75) · the harbor `sightings` group (+ no tap → nothing, the skip-tap, the parked

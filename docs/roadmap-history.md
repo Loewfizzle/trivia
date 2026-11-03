@@ -1829,6 +1829,8 @@ DPR move), THE PIXEL BUDGET (2.6 MP at tier 2 — 60 fps at 1920×1080 on a DPR 
 desktop framing; a phone sideways (the sign smaller, the dock 0.8); THE STANDING RULE (CLAUDE.md); e2e-harbor `desktop`.
 
 ## THE VAULT 1A — THE STYLE TEST (Nov 3 2026) — docs/harbor/passes/vault-1a.md, docs/vault.md
+- **HOTFIX (Nov 3, 6 am):** /lab scrolls by finger on the iPhone (base.css's one-screen lock undone on the lab's own html/body) + the
+  `vault` group's BY FINGER checks (touch swipes in Chromium at 402 × 874, the same lab in WebKit).
 - **The owner's PROGRESSION B review:** a skip-tap is never a city tap (the forced UFO's photo "by itself"); THE PARKED PRINT as one element
   (shrink + glide into the corner, tappable, grows back from that spot; always pops); NO SMALL ITALIC; PINK ONLY BIG (FOUNDING MEMBER a pill).
 - **BRING YOUR CARD:** ALREADY A MEMBER? (the Home Screen app leads with it; a pill on a browser tab; the setup screen; the empty card),
