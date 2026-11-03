@@ -221,13 +221,14 @@ G('vault', async () => {
   // SCROLL-PAUSE + THE DIAGNOSTICS ROW: a scroll holds the effects (no frames), they resume after; &diag= sets the switches; 7 of them
   { const { ctx, p } = await page('view=lobby&mix=legend&diag=nolaser,noglow');
     await sleep(900);
-    // (2A: the lab's header grew — two rows of tabs + the wear row: the lobby into view first, an off-screen slot never draws)
+    // (2A: the lab's header grew — two rows of tabs + the wear row: the lobby into view first, an off-screen slot never draws; all 8 on
+    //  screen draw slower on the cloud's software GL, so 'resumed' = frames ticking again (≥ 3 in 500 ms) — the speed has its own checks)
     await ev(p, "document.querySelector('.vl-lobby').scrollIntoView({ block: 'start' })"); await sleep(900);
     const d = await ev(p, `({ n: document.querySelectorAll('.vl-dg[data-k]').length, diag: window.__lab.diag, off: [...document.querySelectorAll('.vl-dg.is-off')].map(b => b.dataset.k), glow: document.documentElement.classList.contains('vl-diag-noglow') })`);
     const held = await ev(p, `new Promise(res => { const f0 = window.__lab.stats.frames; let n = 0; const tick = () => { document.dispatchEvent(new Event('scroll')); if (++n < 12) setTimeout(tick, 50); else res({ during: window.__lab.stats.frames - f0, scrolling: window.__lab.stats.scrolling }); }; tick(); })`);
     await sleep(700);
     const f1 = await ev(p, 'window.__lab.stats.frames'); await sleep(500); const f2 = await ev(p, 'window.__lab.stats.frames');
-    ok(d.n === 7 && d.off.sort().join() === 'glow,laser' && d.glow && held.during <= 2 && held.scrolling && f2 - f1 > 10, `DIAGNOSTICS + SCROLL-PAUSE: 7 switches (${d.off.join(' + ')} off from &diag=, the page's glows off: ${d.glow}); a scroll held the effects (${held.during} frames in 600 ms) — they resumed (${f2 - f1} frames in 500 ms)`);
+    ok(d.n === 7 && d.off.sort().join() === 'glow,laser' && d.glow && held.during <= 2 && held.scrolling && f2 - f1 >= 3, `DIAGNOSTICS + SCROLL-PAUSE: 7 switches (${d.off.join(' + ')} off from &diag=, the page's glows off: ${d.glow}); a scroll held the effects (${held.during} frames in 600 ms) — they resumed (${f2 - f1} frames in 500 ms)`);
     await ctx.close(); }
   // THE FULL CARDS tab: 47 full cards (2A's 3 held + 1C's 8 sighting cards + 1A's 8 + 1B's 7 + 1C's 21) on ONE canvas; a mark flashes SAVED ✓
   { const { ctx, p } = await page('view=full');
