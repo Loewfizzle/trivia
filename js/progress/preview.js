@@ -8,7 +8,8 @@ import { dayOf, dayNum, streakDay } from '../core/streak.js';
 import { ITEMS } from '../core/items.js';
 import { setPctForTest } from './look.js';
 
-const NAME = 'BEN';
+// (&name= — THE VAULT 1B: the longest names (NAME_MAX 12, e.g. WWWWWWWWWWWW / LOEWFIZZLE) on the card + the strips)
+const NAME = (() => { try { return (new URLSearchParams(location.search).get('name') || 'BEN').slice(0, 12).toUpperCase(); } catch { return 'BEN'; } })();
 /** a streak of n nights as the server keeps it (lit tonight / waiting / frozen yesterday) */
 export function sampleStreak(n = 7, state = 'lit', now = Date.now()) {
   const T = dayNum(streakDay(now)), last = state === 'lit' ? T : state === 'frozen' ? T - 2 : T - 1;

@@ -11,6 +11,7 @@ import { itemSwatch } from './moment.js';
 import { num, pctFor, pctLine, flameIcon } from './look.js';
 import { albumSection } from './album-view.js';
 import { birthdayPanel, favorPanel } from './extras.js';
+import { cardPicker } from '../vault/picker.js';
 
 const sum = (g, k) => Object.values(g || {}).reduce((a, x) => a + ((x && x[k]) || 0), 0);
 
@@ -56,9 +57,13 @@ export function progressSections(data, o = {}) {
         title: `${it.name} · ${TIER_NAMES[it.tier]}`, onclick: () => o.onWear && o.onWear(slot, wear[slot] === it.id && slot !== 'card' ? '' : it.id) },
         itemSwatch(it.id, o.name), h('span', it.name))))];
   };
+  // YOUR CARDS (THE VAULT 1B): the real slim strips — tap one to wear it, VIEW for the full card (js/vault/picker.js)
+  const cards = ownedOf(owned, 'card');
+  const picker = cards.length ? cardPicker({ cards, wearing: wear.card, who: { name: o.name, lv: L.lvl, avatar: p.a, color: p.c },
+    onWear: id => o.onWear && o.onWear('card', id), onView: id => o.onView ? o.onView(id) : import('../vault/full.js').then(m => m.openFullCard(id, { name: o.name, lv: L.lvl, avatar: p.a, color: p.c, pub: p })) }) : null;
   const vault = h('section.pg-panel.pg-vault',
-    h('div.pg-prof-h', h('span', 'THE VAULT'), h('em', 'tap to wear')),
-    ...(row('card', 'card') || []), ...(row('glow', 'glow') || []), ...(row('tube', 'tube') || []), ...(row('emblem', 'shape') || []),
+    h('div.pg-prof-h', h('span', 'THE VAULT'), h('em', 'tap a card to wear it')),
+    ...(picker ? [h('div.pg-vault-k', 'YOUR CARDS'), picker.el] : []), ...(row('glow', 'glow') || []), ...(row('tube', 'tube') || []), ...(row('emblem', 'shape') || []),
     h('p.pg-only', 'Only what you own — the rest is for you to find.'));
   const album = albumSection(s);
   const extras = [favorPanel(data, o), data.priv || o.birthday ? birthdayPanel(data, o) : null];

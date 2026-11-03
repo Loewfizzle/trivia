@@ -56,10 +56,13 @@ function keyActions(k, sel, { onSaved } = {}) {
   const saved = h('button.byc-btn.byc-ghost', { type: 'button', 'data-act': 'saved', onclick: () => { markSaved(); paintSaved(); toast('NICE — YOUR CARD IS SAFE', 'ok'); onSaved && onSaved(); } }, 'I SAVED IT');
   const paintSaved = () => { if (notesSaved()) { saved.textContent = 'SAVED ✓'; saved.classList.add('is-on'); } };
   paintSaved();
-  return h('div.byc-acts',
+  // (THE VAULT 1B — the owner asked why SHARE: it opens the phone's share sheet → Notes · Mail · Messages · a password manager in two taps;
+  //  the line under the buttons says who it's for)
+  return h('div.byc-keyacts', h('div.byc-acts',
     h('button.byc-btn', { type: 'button', 'data-act': 'copy', onclick: async () => { await copyKey(k, sel); paintSaved(); onSaved && notesSaved() && onSaved(); } }, 'COPY'),
     canShare() ? h('button.byc-btn', { type: 'button', 'data-act': 'share', onclick: async () => { await shareKey(k); paintSaved(); onSaved && notesSaved() && onSaved(); } }, 'SHARE') : null,
-    saved);
+    saved),
+    h('p.byc-self', 'Send it to yourself — anyone with your key can use your card.'));
 }
 
 /** THE MEMBERSHIP CARD's bold line: SAVE YOUR KEY SOMEWHERE SAFE (quiet once saved — a small "saved ✓" with the buttons still there) */

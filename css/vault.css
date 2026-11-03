@@ -9,12 +9,15 @@
 .vl-strip { --r: 12px; position: relative; height: 64px; border-radius: var(--r); color: #fff8ee; }
 .vl-mat { position: absolute; inset: 0; z-index: 0; border-radius: inherit; overflow: hidden; background: #0c0a10; }
 .vl-mat::after { content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; }
-.vl-plate { position: absolute; left: 6px; top: 6px; bottom: 6px; z-index: 2; display: flex; align-items: center; gap: 9px; padding: 0 16px 0 7px;
+.vl-plate { position: absolute; left: 6px; top: 6px; bottom: 6px; z-index: 2; display: flex; align-items: center; gap: 9px; padding: 0 16px 0 7px; max-width: calc(100% - 124px);
   border-radius: 9px; background: linear-gradient(90deg, rgba(8, 6, 12, 0.8), rgba(8, 6, 12, 0.66)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.09), 0 2px 10px rgba(0, 0, 0, 0.35); }
 .vl-emb { display: grid; place-items: center; width: 40px; height: 40px; flex: none; }
 .vl-emb .vl-e { width: 36px; height: 36px; overflow: visible; }
-.vl-who { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.vl-name { font: 700 20px/1 var(--font-ui); letter-spacing: 0.05em; color: #fff8ee; white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+.vl-who { display: flex; flex-direction: column; gap: 4px; min-width: 0; flex: 1; }
+.vl-name { display: block; font: 700 20px/1 var(--font-ui); letter-spacing: 0.05em; color: #fff8ee; white-space: nowrap; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7); }
+.vl-name.fit-2 { line-height: 1 !important; }
+.vl-who:has(.fit-2) { gap: 2px; }
+.vl-emb > svg:not(.vl-e) { width: 34px; height: 34px; }
 .vl-lv { font: 700 11.5px/1 var(--font-num); letter-spacing: 0.16em; color: rgba(245, 236, 218, 0.82); white-space: nowrap; }
 .vl-tier { position: absolute; right: 9px; bottom: 7px; z-index: 2; padding: 5px 8px 4px; border-radius: 6px; font: 800 10.5px/1 var(--font-ui); letter-spacing: 0.2em;
   background: rgba(8, 6, 12, 0.78); color: #f5ecda; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
@@ -153,3 +156,33 @@ select.vl-tab option { color: #111; }
 .vl-diag-noglow .vl-name { text-shadow: none !important; }
 .vl-diag-noemb .vl-e { visibility: hidden; }
 .vl-diag-noemb .vl-e, .vl-diag-noemb .vl-e * { animation: none !important; }
+
+/* ---- a PLAIN strip (THE VAULT 1B): a card the owner hasn't approved in the lab yet — its palette (progress/look.js#cardVars), still */
+.vl-s-plain .vl-mat { background: radial-gradient(120% 160% at 85% -20%, color-mix(in srgb, var(--foil) 40%, transparent), transparent 60%), linear-gradient(110deg, var(--lac), color-mix(in srgb, var(--lac) 70%, #000)); }
+.vl-s-plain .vl-frame { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--foil) 60%, transparent), 0 2px 8px rgba(0, 0, 0, 0.45); }
+
+/* ---- THE VAULT PICKER (THE VAULT 1B — the profile's "tap to wear"): a vertical list of the real strips; the name + tier over each, the
+   WEARING mark, VIEW → the full card; tap the strip to wear it */
+.vl-picks { display: grid; gap: 14px; }
+.vl-pick-h { display: flex; align-items: center; gap: 8px; min-height: 30px; margin: 0 2px 6px; }
+.vl-pick-n { min-width: 0; font: 700 15px/1.15 var(--font-ui); letter-spacing: 0.04em; color: #f5ecda; overflow-wrap: anywhere; }
+.vl-pick-t { flex: none; font: 800 11px/1 var(--font-ui); letter-spacing: 0.18em; }
+.vl-tt-common { color: #f1d491; } .vl-tt-uncommon { color: #b8f5d2; } .vl-tt-rare { color: #a9dcff; } .vl-tt-epic { color: #f6dcff; } .vl-tt-legendary { color: #ffd27a; }
+.vl-pick-on { flex: none; padding: 5px 8px 4px; border-radius: 999px; font: 800 11px/1 var(--font-ui); letter-spacing: 0.14em; color: #1d1405; background: linear-gradient(180deg, #fbf0c8, #e2c27a); }
+.vl-pick-view { flex: none; margin-left: auto; min-width: 64px; min-height: 36px; padding: 0 12px; border: 0; border-radius: 10px; cursor: pointer; font: 800 12px/1 var(--font-ui); letter-spacing: 0.16em; color: #f5ecda; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.45); position: relative; }
+.vl-pick-view::after { content: ''; position: absolute; inset: -4px; }
+.vl-pick-wear { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; border-radius: 14px; text-align: left; -webkit-tap-highlight-color: transparent; }
+.vl-pick.is-on .vl-pick-wear { box-shadow: 0 0 0 2px #e2c27a, 0 0 0 4px rgba(226, 194, 122, 0.25); }
+.vl-pick-wear:focus-visible { outline: 2px solid #f6e3a8; outline-offset: 3px; }
+
+/* ---- THE FULL CARD's sheet (THE VAULT 1B — js/vault/full.js) */
+.vl-full { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); background: rgba(4, 3, 8, 0.86); }
+.vl-full-in { width: min(100%, 420px); display: grid; gap: 14px; justify-items: center; }
+.vl-full-in > .pg-card, .vl-full-in > .vl-fc { width: 100%; }
+.vl-full-x { min-height: 44px; min-width: 120px; padding: 0 18px; border: 0; border-radius: 12px; cursor: pointer; font: 800 13px/1 var(--font-ui); letter-spacing: 0.18em; color: #f5ecda; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.5); }
+
+/* ---- SAVED ✓ (THE VAULT 1B): a mark saves on the tap — this flash says so, on its own item */
+.vl-marks { position: relative; }
+.vl-saved { position: absolute; right: 0; top: -30px; padding: 6px 10px 5px; border-radius: 999px; font: 800 12px/1 var(--font-ui); letter-spacing: 0.16em; color: #0d2a1b; background: #7ff0b0; box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4); pointer-events: none; animation: vl-saved-in 0.22s ease-out both; transition: opacity 0.4s ease; }
+.vl-saved.is-out { opacity: 0; }
+@keyframes vl-saved-in { from { opacity: 0; transform: translateY(6px) scale(0.92); } }

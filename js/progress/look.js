@@ -16,14 +16,16 @@ let sheet = null;
 /** The stylesheet, once (resolves when it has loaded — the moment waits for it so it never paints unstyled). */
 export function pgSheet() {
   if (sheet) return sheet;
-  sheet = new Promise(res => {
-    if (document.querySelector('link[data-pg]')) { res(); return; }
+  // (+ THE VAULT's sheet — the slim strips, the picker, the full cards: css/vault.css — the profile + the moments show them since VAULT 1B)
+  const one = (href, key) => new Promise(res => {
+    if (document.querySelector(`link[data-${key}]`) || [...document.styleSheets].some(x => x.href && x.href.endsWith(href))) { res(); return; }
     const l = document.createElement('link');
-    l.rel = 'stylesheet'; l.href = '/css/progress.css'; l.dataset.pg = '1';
+    l.rel = 'stylesheet'; l.href = href; l.dataset[key] = '1';
     l.onload = () => res(); l.onerror = () => res();
     document.head.append(l);
     setTimeout(res, 2500);
   });
+  sheet = Promise.all([one('/css/progress.css', 'pg'), one('/css/vault.css', 'vl')]).then(() => {});
   return sheet;
 }
 

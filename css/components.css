@@ -578,7 +578,9 @@
 .podium { display: grid; grid-template-columns: 1fr 1.2fr 1fr; align-items: end; gap: 8px; min-height: 240px; }
 .pod { display: flex; flex-direction: column; align-items: center; gap: 8px; min-width: 0; }
 .pod-who { display: flex; flex-direction: column; align-items: center; gap: 4px; min-width: 0; max-width: 100%; animation: pod-in 0.7s var(--ease-back) both; animation-delay: calc(var(--d) + 0.35s); }
-.pod-name { max-width: 100%; font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: 0.06em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pod-name { max-width: 100%; font-family: var(--font-display); font-weight: 700; font-size: 12px; letter-spacing: 0.06em; white-space: nowrap; }
+/* THE NAME NEVER CUTS OFF (THE VAULT 1B — ui/fit.js): shrunk to fit, then two lines at the minimum; never an ellipsis */
+.fit-2 { white-space: normal !important; overflow-wrap: anywhere; word-break: break-all; line-height: 1.08 !important; }
 .pod-1 .pod-name { font-size: 15px; color: var(--c); }
 .pod-score-wrap { display: flex; align-items: baseline; gap: 4px; }
 .pod-score-wrap small { font-family: var(--font-mono); font-size: 9px; letter-spacing: 0.14em; color: var(--text-faint); }
@@ -1111,6 +1113,13 @@ body.nd-glass .lobby-idle { border-radius: 16px; border: 1px solid rgba(255, 210
 .sheet-title { color: #fff; }
 .sheet-text { color: var(--gl-dim); }
 .sheet.settings > .set-head { background: rgba(14, 15, 36, 0.96); border-radius: 26px 26px 0 0; }
+/* EVERY BOTTOM SHEET FLOATS (THE VAULT 1B — the owner's iPhone: BRING YOUR CARD's bottom border was cut off under Safari's bottom
+   toolbar): a sheet ends ABOVE the safe area + whatever the visual viewport doesn't show (--vv-ob, ui/vv.js), its whole rounded border
+   visible, a 8-px gutter each side; it scrolls inside when the screen is short. */
+.modal > .sheet { width: calc(100% - 16px); margin: 0 auto calc(var(--safe-b) + var(--vv-ob, 0px) + 10px); border-radius: 26px; border: 1px solid rgba(255, 255, 255, 0.22); padding-bottom: 18px; }
+.modal > .sheet:not(.chat-sheet):not(.help) { max-height: calc(100dvh - var(--safe-t) - var(--safe-b) - var(--vv-ob, 0px) - 22px); }
+.modal > .sheet.help { max-height: calc(min(92dvh, 100dvh - var(--safe-t) - 12px) - var(--safe-b) - var(--vv-ob, 0px) - 10px); }
+.modal > .sheet.settings > .set-head { border-radius: 25px 25px 0 0; }
 .set-room { border-top-color: var(--gl-line); }
 .set-room strong { color: #fff; text-shadow: 0 0 12px var(--accent-glow); }
 .set-sub { color: var(--gl-dim); }

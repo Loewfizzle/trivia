@@ -438,6 +438,7 @@ export function createTitle() {
     // city taps come from the touch itself (iOS Safari never sends 'click' to plain page areas like the city)
     window.addEventListener('pointerdown', onCityDown, { passive: true });
     window.addEventListener('pointerup', onCityUp, { passive: true });
+    document.addEventListener('visibilitychange', onShown); window.addEventListener('pageshow', onShown); window.addEventListener('focus', onShown);
     els.probe = h('div', { style: { position: 'fixed', top: '0', left: '0', width: '1px', height: 'var(--safe-t)', visibility: 'hidden', pointerEvents: 'none' } });
     els.probeB = h('div', { style: { position: 'fixed', bottom: '0', left: '0', width: '1px', height: 'var(--safe-b)', visibility: 'hidden', pointerEvents: 'none' } });
     document.body.append(els.probe, els.probeB);
@@ -1397,16 +1398,48 @@ export function createTitle() {
   // a tap on the city: a sign opens that game's HOW TO PLAY; the moon, the UFO, the cat answer (fx.js); a tap on the
   // main sign makes that tube buzz
   let down = null, introTap = null;
+  // THE VAULT 1B — THE NO-TAP SIGHTING (the owner's iPhone, twice: the forced UFO "reacted + took a photo by itself"; WebKit at 402 × 874
+  // with zero input never fires — every path to the photo is a pointerdown + pointerup pair, or the owner's &sgdemo link). What reaches
+  // the page with nobody meaning to tap: the touch iOS hands to Safari as it comes to the front (a tap on its card in the app switcher, a
+  // swipe back from another app) lands mid-screen — where a forced legendary hovers. So a SIGHTING needs: a trusted touch / click that
+  // began ≥ 800 ms after the page was last shown (load, back on screen, focus), its DOWN and its UP both on the same legendary. Every
+  // sighting on a preview link (&force= / &when= …) sends its trace to /admin's "Errors from phones" (the event, its timing, its target),
+  // so if it ever happens again we see exactly what started it.
+  let shownAt = performance.now();
+  const onShown = () => { if (document.visibilityState !== 'hidden') shownAt = performance.now(); };
   function onCityDown(e) {
     // (a touch that began while the gate / the intro was up — it opened or skipped them — never becomes a city tap)
     if (introTap != null && (introTap === true || introTap === e.pointerId)) { introTap = null; down = null; return; }
     introTap = null;
-    down = swallowed || !tl || !tl.done ? null : { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target };
+    if (!e.isTrusted) { down = null; return; }
+    down = swallowed || !tl || !tl.done ? null : { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target, id: e.pointerId, type: e.pointerType,
+      shown: Math.round(performance.now() - shownAt), sg: scene && scene.sightAt ? scene.sightAt(e.clientX, e.clientY) : null };
   }
   function onCityUp(e) {
     const d = down; down = null;
-    if (!d || Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || performance.now() - d.t > 600) return;
-    onCityTap({ target: d.target, clientX: e.clientX, clientY: e.clientY });
+    if (!d || !e.isTrusted || (d.id != null && e.pointerId != null && d.id !== e.pointerId)) return;
+    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || performance.now() - d.t > 600) return;
+    onCityTap({ target: d.target, clientX: e.clientX, clientY: e.clientY, down: d });
+  }
+  /** may this tap start a sighting? (→ the reason it may not, or '') */
+  function sightBlock(d, key) {
+    if (!d) return 'no down';
+    if (!d.sg) return 'the down was not on a legendary';
+    if (d.sg !== key) return 'the down + the up on different legendaries';
+    if (d.shown < 800) return `a touch ${d.shown} ms after the page was shown (iOS's app-switch touch)`;
+    return '';
+  }
+  let traced = 0;
+  function sightTrace(d, key, why) {
+    const tr = { key, why: why || 'tap', type: d && d.type, shownMs: d && d.shown, downUpMs: d ? Math.round(performance.now() - d.t) : null,
+      at: d ? [Math.round(d.x), Math.round(d.y)] : null, target: d && d.target ? String(d.target.className || d.target.tagName).slice(0, 40) : null,
+      sinceLoad: Math.round(performance.now()), vis: document.visibilityState };
+    window.__sgTrace = tr;
+    const q = new URLSearchParams(location.search);
+    if (traced < 3 && ['force', 'when', 'lgnow'].some(k => q.get(k))) {
+      traced++;
+      import('../errlog.js').then(m => m.reportError(new Error(`SIGHTING TRACE (a preview link, not an error): ${JSON.stringify(tr)}`), 'sighting-trace')).catch(() => {});
+    }
   }
   function onCityTap(e) {
     if (destroyed || !scene || !tl || !tl.done || swallowed) return;
@@ -1416,7 +1449,12 @@ export function createTitle() {
     if (scene.spiderHit && scene.spiderHit(x, y)) return;
     // (PROGRESSION B — CITY SIGHTINGS: a legendary under the finger answers before the letters — its reaction, the flash, the polaroid)
     const lr = logoRect(), onSign = !!(lr && x >= lr.x && x <= lr.x + lr.w && y >= lr.y - 12 && y <= lr.y + lr.h + 12);
-    const sg = scene.sightTap && scene.sightTap(x, y, { skip: onSign ? ['aurora'] : null });   // (the aurora is BEHIND the sign: the letters win there)
+    const skip = onSign ? ['aurora'] : null;                    // (the aurora is BEHIND the sign: the letters win there)
+    const key = scene.sightAt ? scene.sightAt(x, y, skip) : null;
+    const block = key ? sightBlock(e.down, key) : 'none';
+    if (key && block) { sightTrace(e.down, key, `IGNORED — ${block}`); return; }
+    const sg = key && scene.sightTap && scene.sightTap(x, y, { skip });
+    if (sg) { sightTrace(e.down, sg.key, ''); }
     if (sg) { import('../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); return; }
     const r = logoRect();
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
@@ -1902,6 +1940,7 @@ export function createTitle() {
     window.removeEventListener('pointermove', onMouse); if (hoverRaf) cancelAnimationFrame(hoverRaf); hoverRaf = 0;
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
+    document.removeEventListener('visibilitychange', onShown); window.removeEventListener('pageshow', onShown); window.removeEventListener('focus', onShown);
     clearTimeout(sgDemoT); clearTimeout(extrasT);
     clearTimeout(surgeIv); clearTimeout(beatT); clearTimeout(bycT); document.removeEventListener('pointerup', armTap, true);
     document.removeEventListener('visibilitychange', onVisTitle);

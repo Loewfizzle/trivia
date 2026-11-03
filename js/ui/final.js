@@ -1,5 +1,6 @@
 // Shared end-of-match screen: podium rise (3rd, 2nd, 1st), glitch WINNER reveal,
 // full leaderboard, and BACK TO LOBBY for whoever is host *right now*.
+import { fitName } from './fit.js';
 import { h, vibrate, reducedMotion } from './dom.js';
 import { avatar, countUp, leaderboard, burst } from './components.js';
 import { colorHex } from '../config.js';
@@ -35,7 +36,7 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
     const place = i === 1 ? 1 : i === 0 ? 2 : 3;
     const scoreEl = h('div.pod-score', '0');
     podium.append(h(`div.pod.pod-${place}`, { style: { '--c': colorHex(p.color), '--d': `${delays[place]}ms` } },
-      h('div.pod-who', avatar(p.avatar, p.color, place === 1 ? 64 : 46), h('div.pod-name', p.name, rankBadge(pubOf(p), { tag: false })),
+      h('div.pod-who', avatar(p.avatar, p.color, place === 1 ? 64 : 46), fitName(h('div.pod-name', p.name, rankBadge(pubOf(p), { tag: false })), { min: 10 }),
         h('div.pod-score-wrap', scoreEl, scoreLabel ? h('small', scoreLabel) : null)),
       h('div.pod-block', h('span', String(r.rank)))));
     setTimeout(() => cancelers.push(countUp(scoreEl, 0, r.score, 1000)), delays[place] + 200);

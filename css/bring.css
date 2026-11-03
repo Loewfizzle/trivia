@@ -1,8 +1,8 @@
 /* BRING YOUR CARD (THE VAULT 1A Group 0 — js/profile/bring.js): ONE CARD ON ALL YOUR DEVICES, SAVE YOUR KEY. The ivory Gilded style —
    black lacquer, brass borders, IVORY text (no small italic, pink only big). Text ≥ 4.5 : 1: ivory #f5ecda ≈ 16 : 1, ivory 78 % ≈ 10 : 1,
    gold #d8b46a ≈ 9.6 : 1 on #0b0a0d. Loaded on first use. Only transform + opacity move. */
-.byc-modal .byc-sheet { position: relative; max-width: 440px; padding: 22px 18px calc(env(safe-area-inset-bottom) + 18px); text-align: left;
-  background: linear-gradient(180deg, #141217, #0b0a0d 60%); border: 1px solid rgba(216, 180, 106, 0.55); border-bottom: 0;
+.byc-modal .byc-sheet { position: relative; max-width: 440px; padding: 22px 18px 18px; text-align: left; border-radius: 22px;
+  background: linear-gradient(180deg, #141217, #0b0a0d 60%); border: 1px solid rgba(216, 180, 106, 0.55);   /* (VAULT 1B: the whole border, above the toolbar) */
   box-shadow: inset 0 1px 0 rgba(246, 227, 168, 0.25), 0 -18px 50px rgba(0, 0, 0, 0.6); color: #f5ecda; }
 .byc-x { position: absolute; top: 10px; right: 10px; width: 44px; height: 44px; border-radius: 50%; border: 0; cursor: pointer;
   background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.5); color: #f5ecda; font: 600 20px/1 var(--font-ui); }
@@ -62,3 +62,5 @@ body.reduced-fx .byc-chip { animation: none; }
 .setup-byc:empty { display: none; }
 .setup-byc { display: flex; justify-content: center; margin: -4px 0 6px; }
 .setup-byc-go { border-radius: 999px; padding: 0 18px; box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.6); background: rgba(12, 9, 18, 0.6); }
+/* THE KEY's line under COPY · SHARE (THE VAULT 1B): who to send it to — upright, ivory, ≥ 14 pt (no small italic) */
+.byc-self { margin: 9px 0 0; font: 600 14px/1.4 var(--font-ui); color: rgba(245, 236, 218, 0.86); }

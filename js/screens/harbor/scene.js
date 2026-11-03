@@ -2895,6 +2895,8 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     },
     /** the legendaries' tap boxes up now (tests + &debug) */
     sightBoxes: () => SR.live(),
+    /** THE VAULT 1B — the legendary under (x, y) WITHOUT firing its reaction (the tap's DOWN is checked here; only its UP may fire) */
+    sightAt: (x, y, skip = null) => { const h = SR.hit(x, y, skip); return h ? h.key : null; },
     /** WIN — THE SPIDER'S TAP (the owner's iPhone: tapping it did nothing — title.js answered every tap inside the logo's rect with a
      *  letter buzz before the scene was asked): the dressing's hit alone, asked FIRST by title.js#onCityTap; { kind: 'spider' } or null */
     spiderHit(x, y) { if (!dress) return null; const d = dress.hit(x, y); if (d) fastUntil = performance.now() + 1500; return d; },

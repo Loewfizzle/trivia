@@ -184,7 +184,7 @@
 .pg-card-emb { flex: none; display: grid; place-items: center; width: 22%; aspect-ratio: 1; filter: drop-shadow(0 0 8px color-mix(in srgb, var(--c) 70%, transparent)); }
 .pg-card-emb > * { width: 100% !important; height: 100% !important; }
 .pg-card-id { min-width: 0; flex: 1; }
-.pg-card-name { font: 800 clamp(26px, 9vw, 40px)/1 var(--font-ui); letter-spacing: 0.08em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+.pg-card-name { font: 800 clamp(26px, 9vw, 40px)/1 var(--font-ui); letter-spacing: 0.08em; white-space: nowrap; padding-bottom: 0.06em;   /* THE VAULT 1B: never an ellipsis — ui/fit.js sizes it whole */
   background: linear-gradient(180deg, color-mix(in srgb, var(--foil) 28%, #fff) 0%, var(--foil) 40%, color-mix(in srgb, var(--foil) 62%, #000) 54%, color-mix(in srgb, var(--foil) 72%, #fff) 74%, color-mix(in srgb, var(--foil) 30%, #fff) 100%); -webkit-background-clip: text; background-clip: text; color: transparent; filter: drop-shadow(0 1px 0 rgba(0, 0, 0, 0.7)); }
 .pg-card-name.is-plain-ink { background: none; color: var(--ink); }
 .pg-card-lv { margin-top: 8px; font: 700 clamp(10px, 3vw, 12.5px)/1.2 var(--font-ui); letter-spacing: 0.24em; color: var(--ink); }

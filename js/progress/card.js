@@ -3,6 +3,7 @@
 // foil (or the name glow they wear), BAND · LEVEL, MEMBER SINCE, the streak's flame. The other looks (Emerald & Brass, Midnight &
 // Champagne, Onyx & Rose Gold, Neon Glass, Velvet Room, the old finishes …) = the same card in their palette (core/items.js#look) until
 // THE VAULT draws each one. A finger tilts it (transform only); reduced motion = flat.
+import { fitName } from '../ui/fit.js';
 import { h } from '../ui/dom.js';
 import { avatar } from '../ui/components.js';
 import { colorHex } from '../config.js';
@@ -33,7 +34,7 @@ export function gildedCard(pub, local = {}, opts = {}) {
     opts.mini ? null : h('div.pg-card-mid',
       h('span.pg-card-emb', avatar(p.a || 'bolt', p.c || 'magenta', 80)),
       h('div.pg-card-id',
-        h('div.pg-card-name', { class: glow ? `is-plain-ink ${glow}` : '' }, (p.n || 'MEMBER').toUpperCase()),
+        fitName(h('div.pg-card-name', { class: glow ? `is-plain-ink ${glow}` : '' }, (p.n || 'MEMBER').toUpperCase()), { min: 17 }),
         h('div.pg-card-lv', `${L.band.name} · LEVEL ${L.lvl}`))),
     opts.mini ? null : h('div.pg-card-bot',
       h('div.pg-card-since', h('small', 'MEMBER SINCE'), h('b', sinceOf(p.at))),

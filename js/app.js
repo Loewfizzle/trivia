@@ -1,6 +1,7 @@
 // Entry point: boot Firebase, restore session, route state -> screen.
 import { setErrorContext } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
 import { h, $ } from './ui/dom.js';
+import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
 import { glitchFlash } from './ui/components.js';
 import { toast } from './ui/toast.js';
 import { APP_NAME, GAMES } from './config.js';

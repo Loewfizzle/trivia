@@ -153,6 +153,7 @@ export function createSurface(host, o = {}) {
     redraw() { measure(S); kick(); },
     destroy() { surfaces.delete(S); if (ro) ro.disconnect(); if (io) io.disconnect(); if (S.gl) S.gl.destroy(); S.cv.width = S.cv.height = 0; S.cv.remove(); },
   };
+  S.destroy = api.destroy;
   return api;
 }
 
@@ -224,6 +225,8 @@ function frame(now) {
   let live = false, drawn = 0, px = 0;
   fxStats.draws = 0;
   for (const S of surfaces) {
+    // (a surface whose host left the page — a screen repainted without destroying it — lets its canvas + GPU context go after ~1 s)
+    if (!S.host.isConnected) { if ((S.gone = (S.gone || 0) + 1) > 60) S.destroy(); continue; } else S.gone = 0;
     if (!S.on || (typeof document !== 'undefined' && document.hidden)) continue;
     if (!S.sized) size(S);
     px += S.cv.width * S.cv.height;

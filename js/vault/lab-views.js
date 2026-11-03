@@ -61,7 +61,7 @@ export function mountLab(root, o = {}) {
   }
   const fps = h('div.vl-fps', { 'aria-live': 'off' });
   root.replaceChildren(
-    h('div.vl-lab-k', 'NEON SPEAKEASY · THE VAULT 1A'),
+    h('div.vl-lab-k', 'NEON SPEAKEASY · THE VAULT'),
     h('h1', 'THE CARD LAB'),
     h('p.vl-lab-sub', 'Every strip at its real phone size, moving as it will in the game. Mark each one: ', h('b.vl-a', 'APPROVE'), ' ships it · ', h('b.vl-a', 'FIX'), ' + a note sends it back · ', h('b.vl-a', 'CUT'), ' drops it. THE VAULT 1B reads your marks first.'),
     tabs, opts, diagRow, content, fps);
@@ -89,7 +89,13 @@ export function mountLab(root, o = {}) {
     return h('div.vl-markbox', h('div.vl-marks', btn('approve', 'APPROVE'), btn('fix', 'FIX'), btn('cut', 'CUT')), note, saveNote, who);
   }
   async function send(id, mark, note) {
-    try { const r = o.onMark ? await o.onMark(id, mark, note) : null; marks = (r && r.marks) || { ...marks, [id]: { m: mark, note, at: Date.now() } }; repaintMarks(); }
+    try {
+      const r = o.onMark ? await o.onMark(id, mark, note) : null; marks = (r && r.marks) || { ...marks, [id]: { m: mark, note, at: Date.now() } }; repaintMarks();
+      // SAVED ✓ (THE VAULT 1B — the owner looked for a save button: a mark saves on the tap; this says so, on that item, once the server has it)
+      const b = blocks.get(id);
+      if (b) { const s = h('span.vl-saved', { role: 'status' }, mark ? 'SAVED ✓' : 'CLEARED ✓'); b.mark.querySelector('.vl-marks').append(s); setTimeout(() => s.classList.add('is-out'), 1600); setTimeout(() => s.remove(), 2100); }
+      if (window.__lab) window.__lab.saved = (window.__lab.saved || 0) + 1;
+    }
     catch (e) { toast(e && e.message ? e.message : 'COULDN’T SAVE THE MARK', true); }
   }
   function repaintMarks() { for (const [id, b] of blocks) { const item = LAB.find(x => x.id === id); b.mark.replaceWith(b.mark = markRow(item)); } window.__lab && (window.__lab.marks = marks); }

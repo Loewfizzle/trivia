@@ -81,13 +81,13 @@ body.chat-fab-on .timer { padding-right: 48px; margin-bottom: 10px; } /* and cle
 .chat-modal { z-index: 80; }
 .chat-sheet {
   height: min(80dvh, 680px);
-  max-height: calc(var(--vh, 100dvh) - 10px);
-  margin-bottom: var(--kb, 0px);
+  margin-bottom: calc(var(--kb, 0px) + var(--safe-b) + var(--vv-ob, 0px) + 10px);   /* (THE VAULT 1B: floats above Safari's toolbar) */
+  max-height: calc(var(--vh, 100dvh) - var(--safe-b) - var(--vv-ob, 0px) - 22px);
   padding: 8px 0 0;
   gap: 0;
   border-top-color: var(--accent);
 }
-.chat-sheet.has-kb { height: calc(var(--vh) - 10px); }
+.chat-sheet.has-kb { height: calc(var(--vh) - 16px); max-height: calc(var(--vh) - 16px); margin-bottom: calc(var(--kb, 0px) + 6px); }
 .chat-sheet.has-kb .chat-form { padding-bottom: 8px; }
 .chat-head { flex: none; display: grid; grid-template-columns: 1fr auto; align-items: center; padding: 0 var(--gutter) 8px; touch-action: none; cursor: grab; }
 .chat-head .sheet-grip { grid-column: 1 / -1; margin-bottom: 6px; }

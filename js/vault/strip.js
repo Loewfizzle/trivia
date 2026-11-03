@@ -11,6 +11,7 @@ import { FX } from '../fx/index.js';
 import { LAB } from './catalog.js';
 import { TIER_NAMES } from '../core/items.js';
 import { emblemSvg, prominence, TEST_EMBLEMS } from './emblems.js';
+import { fitName } from '../ui/fit.js';
 
 /** each card's strip: its material (css/vault.css .vl-m-*), its effect (js/fx), the emblem it's shown with in the lab */
 export const LOOKS = Object.freeze({
@@ -23,21 +24,34 @@ export const LOOKS = Object.freeze({
   'card-glitter': { mat: 'glitter', fx: 'glitter' },
   'card-sg-ufo': { mat: 'ufo', fx: 'ufo', emblem: 'emb-test-neon' },
 });
+/** css/vault.css on any page that shows a strip (the app loads it with the profile's sheet; a page that didn't gets it here) */
+let sheetP = null;
+export function vaultSheet() {
+  if (sheetP) return sheetP;
+  sheetP = new Promise(res => {
+    if (typeof document === 'undefined' || document.querySelector('link[data-vl]') || [...document.styleSheets].some(x => x.href && x.href.endsWith('/css/vault.css'))) { res(); return; }
+    const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/vault.css'; l.dataset.vl = '1';
+    l.onload = () => res(); l.onerror = () => res(); document.head.append(l); setTimeout(res, 2500);
+  });
+  return sheetP;
+}
 const tierOf = id => (LAB.find(x => x.id === id) || {}).tier || 'common';
 
-export function stripEl({ card, name, lv, emblem, host }) {
-  const look = LOOKS[card] || LOOKS['card-brushed'], tier = tierOf(card);
+/** one strip: card (an id with a LOOK) — or plain (a card not approved yet: its palette's vars, a plain strip) + tier; embEl = the player's
+ *  own emblem element (else a test emblem); the NAME always whole (ui/fit.js — shrunk, then two lines; never an ellipsis) */
+export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tierIn }) {
+  const look = plain ? { mat: 'plain' } : (LOOKS[card] || LOOKS['card-brushed']), tier = tierIn || tierOf(card);
   const embId = emblem || look.emblem || 'emb-test-neon', em = TEST_EMBLEMS[embId] || TEST_EMBLEMS['emb-test-neon'];
   const mode = prominence(tier, em.tier);
   const plate = h('div.vl-plate',
-    h('span.vl-emb', emblemSvg(em.finish, mode)),
-    h('span.vl-who', h('b.vl-name', name), h('small.vl-lv', host ? `LV ${lv} · HOST` : `LV ${lv}`)));
-  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}`, dataset: { card, tier, emblem: embId, lead: mode } },
+    h('span.vl-emb', embEl || emblemSvg(em.finish, mode)),
+    h('span.vl-who', fitName(h('b.vl-name', name), { min: 13, two: 14.5 }), h('small.vl-lv', host ? `LV ${lv} · HOST` : `LV ${lv}`)));
+  const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,
     h('span.vl-tier', TIER_NAMES[tier] || tier.toUpperCase()),
     h('i.vl-frame', { 'aria-hidden': 'true' }));
-  el.setAttribute('aria-label', `${name}, level ${lv} — ${(LAB.find(x => x.id === card) || {}).name || card} (${TIER_NAMES[tier]})`);
+  el.setAttribute('aria-label', `${name}, level ${lv} (${TIER_NAMES[tier] || tier})`);
   return el;
 }
 
