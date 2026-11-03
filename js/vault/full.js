@@ -18,7 +18,7 @@ import { bandOf } from '../core/levels.js';
 import { TIER_NAMES, ITEM } from '../core/items.js';
 import { createSurface } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
-import { LOOKS, vaultSheet } from './strip.js';
+import { LOOKS, vaultSheet, fxOpts } from './strip.js';
 import { LAB } from './catalog.js';
 import { fitName } from '../ui/fit.js';
 import { approvedIds } from './approved.js';
@@ -55,7 +55,7 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
 export function mountFull(surface, el, card, o = {}) {
   const look = LOOKS[card];
   if (!look || !look.fx || !FX[look.fx]) return null;
-  return surface.add(el, FX[look.fx], { seed: o.seed || 3, calm: 0, radius: 18, full: true });
+  return surface.add(el, FX[look.fx], fxOpts(card, { seed: o.seed || 3, calm: 0, radius: 18, full: true }));
 }
 
 /** may this card show its full card? (its own lab mark APPROVED + a look) */

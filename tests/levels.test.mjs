@@ -35,8 +35,8 @@ test('levelOf / levelInfo / bands', () => {
   assert.equal(emblemRank(45000), 4, 'OWNER wears LEGEND’s emblem until THE VAULT');
 });
 
-test('the rewards table: ~25–34 rewards (THE VAULT 1A: + HEARTBREAKER at 4 + GLITTER BOMB at 8), every id a real item, the Gilded family at 10 / 25 / 40 / 60, THE HOUSE at 100', () => {
-  assert.ok(LEVEL_REWARDS.length >= 25 && LEVEL_REWARDS.length <= 34, `${LEVEL_REWARDS.length} rewards`);
+test('the rewards table: ~25–38 rewards (THE VAULT 1A: + HEARTBREAKER at 4 + GLITTER BOMB at 8; 1B: + SMOKE ROOM 12 · FROSTBITE 16 · PRISM 22 · INFERNO 42), every id a real item, the Gilded family at 10 / 25 / 40 / 60, THE HOUSE at 100', () => {
+  assert.ok(LEVEL_REWARDS.length >= 25 && LEVEL_REWARDS.length <= 38, `${LEVEL_REWARDS.length} rewards`);
   for (const r of LEVEL_REWARDS) assert.ok(ITEM[r.item], `${r.item} is an item`);
   const at = id => LEVEL_REWARDS.find(r => r.item === id).lvl;
   assert.deepEqual(['card-emerald', 'card-champagne', 'card-rosegold', 'card-sapphire'].map(at), [10, 25, 40, 60]);

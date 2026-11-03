@@ -11,5 +11,8 @@ import flames from './flames.js';
 import prism from './prism.js';
 import marquee from './marquee.js';
 import glitter from './glitter.js';
+import hearts from './hearts.js';
+import sheen from './sheen.js';
+import tube from './tube.js';
 
-export const FX = Object.freeze({ ufo, laser, smoke, frost, flames, prism, marquee, glitter });
+export const FX = Object.freeze({ ufo, laser, smoke, frost, flames, prism, marquee, glitter, hearts, sheen, tube });

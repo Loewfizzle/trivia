@@ -13,6 +13,15 @@ export const LAB = Object.freeze([
   { id: 'card-sg-ufo', kind: 'card', name: 'I WANT TO BELIEVE', tier: 'legendary', n: 8, motion: 'The real UFO over the harbor, its beam pulsing, motes rising, ports chasing + THE BORDER LASER' },
   { id: 'emb-test-neon', kind: 'emblem', name: 'BOLT · NEON', tier: 'common', n: 9, motion: 'The house tube: its glow, an ignition flicker (quiet on a legendary)' },
   { id: 'emb-test-prism', kind: 'emblem', name: 'BOLT · PRISM', tier: 'rare', n: 10, motion: 'A rainbow sweeping through the shape, a white edge, a glint (leads on a still card)' },
+  // THE VAULT 1B — THE LAUNCH SET, part 1: what players meet FIRST (the ORIGINAL GILDED everyone owns + the early level rewards) — strips
+  { id: 'card-gilded', kind: 'card', name: 'GILDED', tier: 'common', n: 19, motion: 'Still — black lacquer, the brass fan over the door, a brass double frame (everyone owns it; its full card is the Gilded membership card)' },
+  { id: 'card-midnight', kind: 'card', name: 'MIDNIGHT', tier: 'common', n: 20, motion: 'Still — ink + starlight: a deep blue night, a faint band of the galaxy, stars at three sizes' },
+  { id: 'card-heartbreaker', kind: 'card', name: 'HEARTBREAKER', tier: 'uncommon', n: 21, motion: 'Pink + lilac hearts drifting up through violet, swaying + turning, calmer behind the name' },
+  { id: 'card-brass', kind: 'card', name: 'BRASS DECO', tier: 'common', n: 22, motion: 'Still — warm brass engraved like the bar rail: a deco lattice cut in, a polished crown' },
+  { id: 'card-emerald', kind: 'card', name: 'EMERALD & BRASS', tier: 'uncommon', n: 23, motion: 'Green-black lacquer, a stepped deco crown in brass + emerald; a shine sweeps the foil + a glint' },
+  { id: 'card-neonglass', kind: 'card', name: 'NEON GLASS', tier: 'uncommon', n: 24, motion: 'Smoked glass, a cyan tube bent round inside the edge — breathing, now + then it stutters' },
+  { id: 'card-chrome', kind: 'card', name: 'SILVER CHROME', tier: 'uncommon', n: 25, motion: 'Mirror chrome, a prism running the rim; a cold shine sweeps across + a glint' },
+  { id: 'card-champagne', kind: 'card', name: 'MIDNIGHT & CHAMPAGNE', tier: 'uncommon', n: 26, motion: 'Navy lacquer, Chrysler arches in champagne silver; a warm shine sweeps the foil' },
   // THE VAULT 1B — THE FULL CARDS of the 8 approved strips (their own marks: the strip can ship before its full card)
   { id: 'full-card-brushed', kind: 'full', of: 'card-brushed', name: 'BRUSHED GOLD · FULL CARD', tier: 'common', n: 11, motion: 'Still — the brushed gold at full size, its bevel + a bar-rail sheen; the emblem leads' },
   { id: 'full-card-smoke', kind: 'full', of: 'card-smoke', name: 'SMOKE ROOM · FULL CARD', tier: 'uncommon', n: 12, motion: 'Banks of smoke drifting through the lounge in two depths, curling up off the card, the lamp warming them' },
@@ -21,6 +30,13 @@ export const LAB = Object.freeze([
   { id: 'full-card-prism', kind: 'full', of: 'card-prism', name: 'PRISM · FULL CARD', tier: 'rare', n: 15, motion: 'The white beam into the glass prism, the rainbow fanning out + sweeping, the holo sheen, a glinting edge' },
   { id: 'full-card-marquee', kind: 'full', of: 'card-marquee', name: 'THE MARQUEE · FULL CARD', tier: 'epic', n: 16, motion: 'A full ring of theatre bulbs chasing (+ the ring flash) round red velvet, the neon arrow flickering on' },
   { id: 'full-card-glitter', kind: 'full', of: 'card-glitter', name: 'GLITTER BOMB · FULL CARD', tier: 'epic', n: 17, motion: 'Pink glitter bursting with a shockwave, foil flakes flashing, hearts tumbling, sparkles popping' },
+  { id: 'full-card-midnight', kind: 'full', of: 'card-midnight', name: 'MIDNIGHT · FULL CARD', tier: 'common', n: 27, motion: 'Still — the night + its stars at full size' },
+  { id: 'full-card-heartbreaker', kind: 'full', of: 'card-heartbreaker', name: 'HEARTBREAKER · FULL CARD', tier: 'uncommon', n: 28, motion: 'Hearts drifting up the whole card, a pink haze breathing at the foot' },
+  { id: 'full-card-brass', kind: 'full', of: 'card-brass', name: 'BRASS DECO · FULL CARD', tier: 'common', n: 29, motion: 'Still — the engraved brass at full size' },
+  { id: 'full-card-emerald', kind: 'full', of: 'card-emerald', name: 'EMERALD & BRASS · FULL CARD', tier: 'uncommon', n: 30, motion: 'The stepped crown, the shine pass + its glint' },
+  { id: 'full-card-neonglass', kind: 'full', of: 'card-neonglass', name: 'NEON GLASS · FULL CARD', tier: 'uncommon', n: 31, motion: 'The tube round the whole card, breathing + stuttering' },
+  { id: 'full-card-chrome', kind: 'full', of: 'card-chrome', name: 'SILVER CHROME · FULL CARD', tier: 'uncommon', n: 32, motion: 'Mirror chrome, the prism rim, the shine pass' },
+  { id: 'full-card-champagne', kind: 'full', of: 'card-champagne', name: 'MIDNIGHT & CHAMPAGNE · FULL CARD', tier: 'uncommon', n: 33, motion: 'The arches, the warm shine pass' },
   { id: 'full-card-sg-ufo', kind: 'full', of: 'card-sg-ufo', name: 'I WANT TO BELIEVE · FULL CARD', tier: 'legendary', n: 18, motion: 'The real UFO over the harbor, ports chasing, the beam pulsing to the skyline + motes rising, the title in neon, THE BORDER LASER' },
 ]);
 export const LAB_IDS = Object.freeze(LAB.map(x => x.id));

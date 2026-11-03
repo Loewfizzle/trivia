@@ -8,7 +8,7 @@ import { LEVEL_REWARDS } from '../js/core/levels.js';
 import { tierVal } from '../js/core/harbor-tiers.js';
 
 test('THE LAB\'s catalog: the 8 approved samples (1 common · 2 uncommon · 2 rare · 2 epic · 1 legendary) + 2 test emblems, every card a real item', () => {
-  const cards = LAB.filter(x => x.kind === 'card');
+  const cards = LAB.filter(x => x.kind === 'card' && x.n <= 8);   // (the 1A samples; 1B's launch set: its own test)
   assert.deepEqual(cards.map(x => x.name), ['BRUSHED GOLD', 'SMOKE ROOM', 'FROSTBITE', 'INFERNO', 'PRISM', 'THE MARQUEE', 'GLITTER BOMB', 'I WANT TO BELIEVE']);
   assert.deepEqual(cards.map(x => x.tier), ['common', 'uncommon', 'uncommon', 'rare', 'rare', 'epic', 'epic', 'legendary']);
   for (const c of cards) { assert.ok(ITEM[c.id], `${c.id} is an item`); assert.equal(ITEM[c.id].name, c.name); assert.equal(ITEM[c.id].tier, c.tier, `${c.id}: the item's tier`); }

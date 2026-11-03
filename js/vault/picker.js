@@ -10,7 +10,7 @@ import { avatar } from '../ui/components.js';
 import { createSurface } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
 import { TIER_NAMES, TIERS } from '../core/items.js';
-import { stripEl, LOOKS, vaultSheet } from './strip.js';
+import { stripEl, LOOKS, vaultSheet, fxOpts } from './strip.js';
 import { approvedIds } from './approved.js';
 import { cardVars } from '../progress/look.js';
 
@@ -27,7 +27,7 @@ export function cardPicker(o) {
   function strip(c) {
     const real = approved && approved.has(c.id) && LOOKS[c.id];
     const el = stripEl({ card: real ? c.id : null, tier: c.tier, name: (who.name || 'YOU').toUpperCase(), lv: who.lv || 1, embEl: emb(), plain: real ? null : cardVars(c.id) });
-    if (real && LOOKS[c.id].fx && FX[LOOKS[c.id].fx]) surface.add(el, FX[LOOKS[c.id].fx], { seed: 1 + cards.indexOf(c), calm: 1, radius: 12 });
+    if (real && LOOKS[c.id].fx && FX[LOOKS[c.id].fx]) surface.add(el, FX[LOOKS[c.id].fx], fxOpts(c.id, { seed: 1 + cards.indexOf(c), calm: 1, radius: 12 }));
     return el;
   }
   function row(c) {

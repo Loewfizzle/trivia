@@ -23,7 +23,18 @@ export const LOOKS = Object.freeze({
   'card-marquee': { mat: 'marquee', fx: 'marquee' },
   'card-glitter': { mat: 'glitter', fx: 'glitter' },
   'card-sg-ufo': { mat: 'ufo', fx: 'ufo', emblem: 'emb-test-neon' },
+  // THE VAULT 1B — the launch set, part 1 (what players meet first): the ORIGINAL GILDED + the early level rewards (tint = the effect's colour)
+  'card-gilded': { mat: 'gilded', fx: null },
+  'card-midnight': { mat: 'midnight', fx: null },
+  'card-brass': { mat: 'brass', fx: null },
+  'card-heartbreaker': { mat: 'heart', fx: 'hearts' },
+  'card-emerald': { mat: 'emerald', fx: 'sheen', tint: '120,255,190' },
+  'card-neonglass': { mat: 'neonglass', fx: 'tube', tint: '63,224,255' },
+  'card-chrome': { mat: 'chrome', fx: 'sheen', tint: '200,225,255' },
+  'card-champagne': { mat: 'champagne', fx: 'sheen', tint: '255,232,200' },
 });
+/** a card's effect options on a surface (its tint rides along) */
+export const fxOpts = (card, o = {}) => ({ ...o, tint: (LOOKS[card] || {}).tint });
 /** css/vault.css on any page that shows a strip (the app loads it with the profile's sheet; a page that didn't gets it here) */
 let sheetP = null;
 export function vaultSheet() {
@@ -63,7 +74,7 @@ export function mountStrips(host, rows, o = {}) {
     const el = stripEl(r);
     host.append(el);
     const look = LOOKS[r.card];
-    if (look && look.fx && FX[look.fx]) surface.add(el, FX[look.fx], { seed: r.seed != null ? r.seed : i + 1, calm: o.calm ? 1 : 0, radius: 12 });
+    if (look && look.fx && FX[look.fx]) surface.add(el, FX[look.fx], fxOpts(r.card, { seed: r.seed != null ? r.seed : i + 1, calm: o.calm ? 1 : 0, radius: 12 }));
     return el;
   });
   return { surface, els, destroy() { surface.destroy(); els.forEach(e => e.remove()); } };
