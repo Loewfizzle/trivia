@@ -1,5 +1,6 @@
 // THE STREAK (PROGRESSION A): the 4 am day, freezes (day 3, then every 7, hold 2, automatic), WIN IT BACK (3 plays within 3 days, once a
 // month), THE OUTAGE, the milestones, the view the screens read.
+import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { streakDay, streakPlay, streakView, dayNum, dayOf, MILESTONES, FREEZE } from '../js/core/streak.js';

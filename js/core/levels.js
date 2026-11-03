@@ -60,48 +60,14 @@ export const levelLabel = xp => { const i = levelInfo(xp); return `${i.band.name
 // never the ids). Every member owns the ORIGINAL GILDED card from level 1. The Gilded family at 10 / 25 / 40 / 60, NEON GLASS + VELVET
 // ROOM between, today's VAULT (the old card finishes + name glows) folded in at the levels their old rank steps were worth, emblem shapes +
 // tube styles filling the rest, THE HOUSE at 100.
-export const LEVEL_REWARDS = [
-  { lvl: 1, item: 'card-gilded' },
-  { lvl: 3, item: 'card-midnight' },
-  { lvl: 4, item: 'card-heartbreaker' },     // (THE VAULT 1A — THE PINK PAIR, early: the owner, Nov 2 10:11 pm)
-  { lvl: 5, item: 'card-brass' },
-  { lvl: 7, item: 'tube-twotone' },
-  { lvl: 8, item: 'card-glitter' },
-  { lvl: 10, item: 'card-emerald' },
-  { lvl: 12, item: 'card-smoke' },          // (THE VAULT 1B — the 1A samples that unlocked nowhere: SMOKE ROOM · FROSTBITE · PRISM · INFERNO)
-  { lvl: 13, item: 'emb-diamond' },
-  { lvl: 15, item: 'glow-ice' },
-  { lvl: 16, item: 'card-frostbite' },
-  { lvl: 18, item: 'card-neonglass' },
-  { lvl: 20, item: 'card-chrome' },
-  { lvl: 22, item: 'card-prism' },
-  { lvl: 25, item: 'card-champagne' },
-  { lvl: 28, item: 'glow-neon' },
-  { lvl: 30, item: 'tube-breath' },
-  { lvl: 32, item: 'card-velvet' },
-  { lvl: 35, item: 'card-aurora' },
-  { lvl: 37, item: 'emb-crescent' },
-  { lvl: 40, item: 'card-rosegold' },
-  { lvl: 42, item: 'card-inferno' },
-  { lvl: 44, item: 'card-gold' },
-  { lvl: 47, item: 'tube-gold' },
-  { lvl: 50, item: 'glow-gold' },
-  { lvl: 55, item: 'emb-crown' },
-  { lvl: 58, item: 'card-noir' },
-  { lvl: 60, item: 'card-sapphire' },
-  { lvl: 65, item: 'tube-flicker' },
-  { lvl: 70, item: 'card-legend' },
-  { lvl: 70, item: 'glow-prism' },
-  { lvl: 75, item: 'emb-sunburst' },
-  { lvl: 80, item: 'tube-beat' },
-  { lvl: 85, item: 'glow-champagne' },
-  { lvl: 90, item: 'emb-ace' },
-  { lvl: 95, item: 'card-platinum' },
-  { lvl: 100, item: 'card-house' },
-];
+// THE VAULT 1B — NAMES ONLY TO OWNERS: WHAT each level gives lives on the server (api/_lib/catalog.js → registerLevelRewards); the site
+// keeps only WHEN (REWARD_LEVELS — THE VAGUE TEASE's "something new at level N").
+export const REWARD_LEVELS = Object.freeze([1, 3, 4, 5, 7, 8, 10, 12, 13, 15, 16, 18, 20, 22, 25, 28, 30, 32, 35, 37, 40, 42, 44, 47, 50, 55, 58, 60, 65, 70, 75, 80, 85, 90, 95, 100]);
+export const LEVEL_REWARDS = [];
+export function registerLevelRewards(rows) { LEVEL_REWARDS.length = 0; LEVEL_REWARDS.push(...rows); }
 /** The reward items for every level in (from, to] — what a match that took you from one level to another unlocks. */
 export const rewardsBetween = (fromLvl, toLvl) => LEVEL_REWARDS.filter(r => r.lvl > fromLvl && r.lvl <= toLvl).map(r => r.item);
 /** Every level reward up to a level (the carry-over: an existing profile's XP → everything its level has earned). */
 export const rewardsUpTo = lvl => LEVEL_REWARDS.filter(r => r.lvl <= lvl).map(r => r.item);
 /** THE VAGUE TEASE: the next level with something new (WHEN, never WHAT) — null past the last. */
-export const nextRewardLevel = lvl => { const r = LEVEL_REWARDS.find(x => x.lvl > lvl); return r ? r.lvl : null; };
+export const nextRewardLevel = lvl => REWARD_LEVELS.find(x => x > lvl) ?? null;

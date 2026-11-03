@@ -1,5 +1,6 @@
 // LEVELS 1–100 (PROGRESSION A): the curve, the bands, the rewards table, the carry-over — and THE YEAR SIM: a regular's year on the
 // server's own step (core/progress.js#matchStep, real match XP), proving the bands land where the owner set them (plan.md "THE LEVEL PACE").
+import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { XP_AT, MAX_LEVEL, BANDS, levelOf, levelInfo, bandOf, emblemRank, levelLabel, LEVEL_REWARDS, rewardsBetween, rewardsUpTo, nextRewardLevel } from '../js/core/levels.js';

@@ -3,7 +3,7 @@
 // ID-1 shape, 1.586 : 1): its material (css/vault.css .vl-s-*), its effect at FULL scale (one SLOT in the page's shared surface —
 // js/fx, opts.full: each effect lays itself out for the big card), a foil sheen (rare and up), the tier's frame; NEON SPEAKEASY + the
 // tier on top, the player's emblem + NAME (never cut off — ui/fit.js) + BAND · LEVEL on a glass plate, MEMBER SINCE + the CARD's
-// name along the foot. A LEGENDARY sighting is a whole scene: I WANT TO BELIEVE = the real baked UFO over the harbor, its beam + motes,
+// name along the foot. A LEGENDARY sighting is a whole scene: `card-sg-ufo` = the real baked UFO over the harbor, its beam + motes,
 // the skyline, the gold-and-neon frame, the corner brackets, the title in neon + when it was spotted, THE BORDER LASER.
 // Only APPROVED art shows to players (its full card's own lab mark — `full-<card id>` — js/vault/approved.js): until then the Gilded
 // membership card in the card's palette stands in.

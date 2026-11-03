@@ -5,6 +5,7 @@
 //   today  { pids? }           → { day, mine: { game: score }, friends: { pid: { game: { done } | { score } } } }   (YOUR TABLE's TODAY)
 //
 //   dly/{game}/{day}/s/{pid}: startedAt · r/{pid}: score · h/{bucket}: count · n: finishers      (server only — the rules' default deny)
+import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
@@ -86,5 +87,5 @@ export async function dailyAction(uid, body, now = Date.now()) {
 export default route(['POST'], async (req, res) => {
   const uid = await requireUser(req);
   const body = await readBody(req);
-  send(res, 200, await dailyAction(uid, body));
+  send(res, 200, withShow(await dailyAction(uid, body)));
 });

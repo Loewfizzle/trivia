@@ -5,6 +5,7 @@ import { h } from '../ui/dom.js';
 import { initFirebase, isConfigured } from '../firebase.js';
 import { api } from '../profile/api.js';
 import { mountLab } from './lab-views.js';
+import { registerLabText } from './catalog.js';
 
 const app = document.getElementById('app');
 
@@ -23,7 +24,8 @@ async function boot() {
     await initFirebase();
     const who = await api('admin', { action: 'whoami' });
     if (!who.admin) { denied(who); return; }
-    const { marks } = await api('admin', { action: 'labMarks' });
+    const { marks, text } = await api('admin', { action: 'labMarks' });
+    registerLabText(text);
     const lab = mountLab(app, { marks, onMark: (id, mark, note) => api('admin', { action: 'labMark', id, mark, note }) });
     window.__labPage = { lab, who };
   } catch (e) {

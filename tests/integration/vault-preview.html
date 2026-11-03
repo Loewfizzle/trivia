@@ -18,6 +18,10 @@
 <main id="app" class="vl-lab"></main>
 <script type="module">
 import { mountLab } from '/js/vault/lab-views.js';
+import { registerLabText } from '/js/vault/catalog.js';
+import { LAB_TEXT } from '/api/_lib/lab-text.js';   // (the server's names — this page runs on the local server only)
+import '/api/_lib/catalog.js';                         // (the item catalog, ditto)
+registerLabText(LAB_TEXT);
 import { setFxReduced, setFxTier } from '/js/fx/renderer.js';
 const q = new URLSearchParams(location.search);
 if (q.get('still') === '1') setFxReduced(true);

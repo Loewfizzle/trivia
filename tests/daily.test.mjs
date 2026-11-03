@@ -1,5 +1,6 @@
 // THE DAILY CONTRACT (PROGRESSION A), pure: a cartridge plugs in; the standing, the bands (from ~50 finishers), YOUR TABLE's TODAY, the
 // daily's step (the streak + the counters, idempotent). The /api side: tests/integration/progression.test.mjs (the TEST-ONLY fake daily).
+import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { registerDaily, unregisterDaily, dailyOf, standing, bandFor, todayView, BAND_MIN } from '../js/core/daily.js';

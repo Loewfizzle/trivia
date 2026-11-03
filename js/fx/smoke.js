@@ -1,4 +1,4 @@
-// SMOKE ROOM — SMOKE (an uncommon's one clear effect): a cigar lounge's slow smoke. BANKS of it drift across the strip in two depths
+// `card-smoke` — SMOKE (an uncommon's one clear effect): a cigar lounge's slow smoke. BANKS of it drift across the strip in two depths
 // (far: thin + slow; near: fuller + faster) — each bank a soft baked blob STRETCHED flat (smoke in a still room hangs in layers), turning
 // slowly as it goes; near the right edge the smoke RISES + CURLS off the card and thins out; two RIBBONS (continuous, not dots) curl up
 // from below, widening + fading as they climb; a warm lamp off the top-left (the material's glow) lights the smoke nearest it amber.

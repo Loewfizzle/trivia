@@ -23,15 +23,15 @@ import { localStart } from './harbor-radio.js';
 /** THE SIGHTINGS — id (= core/achievements.js#LEGENDARIES), the MATCHED PAIR's names (the card + its emblem — ids final, art THE VAULT's),
  *  the radio jacks that can put it on screen, `kind` (a balloon's line-up kind) */
 export const SIGHTINGS = Object.freeze([
-  { id: 'ufo', name: 'I WANT TO BELIEVE', what: 'THE UFO', card: 'card-sg-ufo', emblem: 'emb-sg-ufo', jacks: ['ufo'] },
-  { id: 'tr3b', name: 'LIGHTS OUT', what: 'THE TR-3B', card: 'card-sg-tr3b', emblem: 'emb-sg-tr3b', jacks: ['tr3b'] },
-  { id: 'blackbird', name: 'SKY KING', what: 'THE BLACKBIRD', card: 'card-sg-blackbird', emblem: 'emb-sg-blackbird', jacks: ['blackbird', 'tr3b'] },
-  { id: 'f22', name: 'AFTERBURNER', what: 'THE F-22 FLYBY', card: 'card-sg-f22', emblem: 'emb-sg-f22', jacks: ['flyby', 'tr3b'] },
-  { id: 'ghostship', name: 'THE FLYING DUTCHMAN', what: 'THE GHOST SHIP', card: 'card-sg-ghostship', emblem: 'emb-sg-ghostship', jacks: [] },
-  { id: 'aurora', name: 'SKY DANCER', what: 'THE AURORA', card: 'card-sg-aurora', emblem: 'emb-sg-aurora', jacks: [] },
-  { id: 'fireball', name: 'MAKE A WISH', what: 'THE FIREBALL', card: 'card-sg-fireball', emblem: 'emb-sg-fireball', jacks: [] },
-  { id: 'skull', name: 'HOT AIR, COLD BLOOD', what: 'THE SKULL BALLOON', card: 'card-sg-skull', emblem: 'emb-sg-skull', jacks: ['balloons'], kind: ['skull'] },
-  { id: 'btc', name: 'FIX THE MONEY, FIX THE WORLD', what: 'THE ₿ BALLOON', card: 'card-sg-btc', emblem: 'emb-sg-btc', jacks: ['balloons'], kind: ['bitcoin', 'btc-orange'] },
+  { id: 'ufo', what: 'THE UFO', card: 'card-sg-ufo', emblem: 'emb-sg-ufo', jacks: ['ufo'] },
+  { id: 'tr3b', what: 'THE TR-3B', card: 'card-sg-tr3b', emblem: 'emb-sg-tr3b', jacks: ['tr3b'] },
+  { id: 'blackbird', what: 'THE BLACKBIRD', card: 'card-sg-blackbird', emblem: 'emb-sg-blackbird', jacks: ['blackbird', 'tr3b'] },
+  { id: 'f22', what: 'THE F-22 FLYBY', card: 'card-sg-f22', emblem: 'emb-sg-f22', jacks: ['flyby', 'tr3b'] },
+  { id: 'ghostship', what: 'THE GHOST SHIP', card: 'card-sg-ghostship', emblem: 'emb-sg-ghostship', jacks: [] },
+  { id: 'aurora', what: 'THE AURORA', card: 'card-sg-aurora', emblem: 'emb-sg-aurora', jacks: [] },
+  { id: 'fireball', what: 'THE FIREBALL', card: 'card-sg-fireball', emblem: 'emb-sg-fireball', jacks: [] },
+  { id: 'skull', what: 'THE SKULL BALLOON', card: 'card-sg-skull', emblem: 'emb-sg-skull', jacks: ['balloons'], kind: ['skull'] },
+  { id: 'btc', what: 'THE ₿ BALLOON', card: 'card-sg-btc', emblem: 'emb-sg-btc', jacks: ['balloons'], kind: ['bitcoin', 'btc-orange'] },
 ]);
 export const SIGHTING = Object.freeze(Object.fromEntries(SIGHTINGS.map(s => [s.id, s])));
 export const SIGHTING_IDS = Object.freeze(SIGHTINGS.map(s => s.id));

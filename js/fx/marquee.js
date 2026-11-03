@@ -1,4 +1,4 @@
-// THE MARQUEE (an epic: TWO effects together, bold): THEATRE BULBS round the edge — brass sockets, warm filament bulbs, a chase running
+// `card-marquee` (an epic: TWO effects together, bold): THEATRE BULBS round the edge — brass sockets, warm filament bulbs, a chase running
 // round the frame (every third bulb, a soft hand-off between neighbours, now and then the whole ring flashes at once) — and A NEON TUBE
 // that FLICKERS ON (the ignition stutter, then lit with the tube's hum; off again for a beat each cycle — the city's own tube look: a
 // wide soft glow, the coloured tube, a white-hot core). Reduced motion: every bulb lit, the tube on.

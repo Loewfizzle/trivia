@@ -1,4 +1,4 @@
-// INFERNO — FLAMES (a rare: an effect + GLOWING EDGES): a bed of fire along the bottom — flame licks rising, swaying, shrinking as they
+// `card-inferno` — FLAMES (a rare: an effect + GLOWING EDGES): a bed of fire along the bottom — flame licks rising, swaying, shrinking as they
 // burn out (a baked white-hot → red teardrop, drawn 'lighter' so they pile into real fire), the ember bed glowing + flickering under
 // them, sparks spiralling up, and THE EDGE: a heat glow round the border that breathes. Licks are placed by time (stateless); calmer
 // under the name plate (the name always reads). Reduced motion: one frame of fire, the edge lit.

@@ -1,5 +1,5 @@
 // THE VAULT 1A — THE TWO TEST EMBLEMS (VAULT 2 builds the rest: an emblem = a SHAPE + a FINISH — emblem-finishes.png): one shape (the
-// bolt) in two finishes — NEON (the house style, a common: the tube, its glow, an ignition flicker) and PRISM (a rare: a rainbow sweeping
+// bolt) in two finishes — NEON (the house style, a common: the tube, its glow, an ignition flicker) and `card-prism` (a rare: a rainbow sweeping
 // through the shape, a white edge, a glint). Inline SVG, motion by CSS on transform + opacity only (css/vault.css), so they cost no
 // canvas. THE PROMINENCE RULE (the owner, Nov 2 10:20 pm): the higher tier on a strip LEADS — prominence(cardTier, emblemTier) →
 // 'lead' (the emblem gets the full motion + the spotlight: a still common card) · 'even' · 'quiet' (a busy legendary: the emblem calms).

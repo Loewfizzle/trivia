@@ -35,7 +35,7 @@ export function sampleProfile(q = new URLSearchParams()) {
     stats: { xp, g: { prism: { p: 81, w: 27 }, overclock: { p: 47, w: 14 } }, b: { 'prism-rush': { a: 1 }, 'overclock-std': { a: 1 }, x1: { a: 1 }, x2: { a: 1 }, x3: { a: 1 }, x4: { a: 1 } }, st: sampleStreak(n, q.get('state') || 'lit'), it, ac, sg: { ufo: 3, skull: 1, btc: 2 }, fv: Number(q.get('fv') || 1) },
   };
 }
-/** the outcome a match gives (the server's shape): 2nd of 4, a level-up 24 → 25 (its reward: MIDNIGHT & CHAMPAGNE), the streak, TOP SHELF (+ BRUSHED GOLD) */
+/** the outcome a match gives (the server's shape): 2nd of 4, a level-up 24 → 25 (its reward: `card-champagne`), the streak, TOP SHELF (+ BRUSHED GOLD) */
 export function sampleOutcome(q = new URLSearchParams()) {
   const up = q.get('up') !== '0';
   const from = up ? XP_AT[25] - 140 : XP_AT[23] + 200, gain = 175;

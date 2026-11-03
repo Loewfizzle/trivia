@@ -28,6 +28,7 @@
 //   radio…                         → CITY CONTROLS A — THE RADIO (api/_lib/radio.js): radioState · radioFire · radioStop · radioClearAll ·
 //                                    radioBoard · radioBoardEdit · radioBoardCancel · radioDial · radioRooms · radioWho · radioHello —
 //                                    each checks the caller's ROLE (the owner = ADMIN_PIDS, THE CREW = radio/crew/{pid}) per action
+import './_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
 import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_lib/profiles.js';
@@ -41,7 +42,7 @@ import { activity } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
 import { streakDay, dayNum } from '../js/core/streak.js';
 import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
-import { labMarks, labMark, labExport, LAB_CACHE } from './_lib/lab.js';
+import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT } from './_lib/lab.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -254,7 +255,7 @@ export async function adminAction(uid, body, now = Date.now()) {
     }
     case 'outages': return { outage: (await val('streak/outage')) || {}, today: streakDay(now) };
     // THE VAULT 1A — THE CARD LAB (api/_lib/lab.js): the owner's marks, read + written by admins only, every change audited
-    case 'labMarks': return { marks: await labMarks() };
+    case 'labMarks': return { marks: await labMarks(), text: LAB_TEXT };   // (VAULT 1B: the lab's names come with the marks — admins only)
     case 'labMark': { const marks = await labMark(me, body, now); await audit(me, 'labMark', null, { b: `${String(body.id).slice(0, 40)} ${body.mark || 'clear'}`, note: String(body.note || '').slice(0, 140) }); return { marks }; }
     default: throw new ApiError(400, 'bad_action');
   }

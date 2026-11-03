@@ -1,4 +1,4 @@
-// GLITTER BOMB (an epic — the owner's "almost over-the-top girly" one): every ~2.6 s a BURST from the middle — glitter flakes flying out
+// `card-glitter` (an epic — the owner's "almost over-the-top girly" one): every ~2.6 s a BURST from the middle — glitter flakes flying out
 // (tiny foil diamonds turning so they flash as they catch the light, slowed by the air, settling down), HEARTS tumbling (pink + lilac +
 // white, spinning as they fall), SPARKLES popping (a quick scale-up + gone); two bursts overlap so it never stops; between them the card's
 // own glitter twinkles. Stateless by burst number (the same burst on every phone at the same moment). Reduced motion: one burst, frozen.

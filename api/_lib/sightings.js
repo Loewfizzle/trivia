@@ -5,6 +5,7 @@
 // claim → ONE count per appearance (ppriv/{pid}/sgk/{key} — tapping the same UFO ten times is one sighting) → core/progress.js#eventStep
 // ({ k: 'sighting', id }) in ONE transaction on pstats/{pid}: the counters (pa.sg, pa.sgt), the MATCHED PAIR the first time
 // (core/achievements.js#awardAll), STARGAZER / FREQUENT FLYER / THE WITNESS. Clients never write any of it (database.rules.json).
+import './catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
 import { ref, val } from './fb.js';
 import { bumpOwners } from './owners.js';
 import { founderOpen } from './founder.js';

@@ -1,4 +1,4 @@
-// PRISM — the white beam + the sweeping rainbow (a rare: an effect + glowing edges): a white beam comes in from the left (passing behind
+// `card-prism` — the white beam + the sweeping rainbow (a rare: an effect + glowing edges): a white beam comes in from the left (passing behind
 // the name plate), strikes a glass prism and leaves it SPLIT into a rainbow that fans out to the right edge and SWEEPS (its angle + its
 // spread breathing); a faint dispersion inside the glass, a glint running the prism's edges, and every few seconds A HOLOGRAPHIC SHEEN
 // slides across the whole strip. All 'lighter' over black glass: the colour is light, not paint.

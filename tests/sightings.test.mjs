@@ -1,6 +1,7 @@
 // PROGRESSION B — CITY SIGHTINGS: the PURE verifier (core/sightings.js) + the MATCHED PAIRS through the award engine. Every legendary
 // found on its real timetable and claimed; forged times, a &force= preview's time, the zone, the queue; the radio: the owner's once a day,
 // JUST ME + the crew never.
+import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { verifySighting, skyWindows, balloonFlights, SIGHTINGS, SIGHTING_IDS, QUEUE_MS, nth, localDay } from '../js/core/sightings.js';
@@ -38,9 +39,9 @@ test('every sighting has its row, its LEGENDARIES id, its MATCHED PAIR in the ca
   for (const s of SIGHTINGS) {
     assert.ok(ITEM[s.card] && ITEM[s.card].kind === 'card' && ITEM[s.card].tier === 'legendary', s.card);
     assert.ok(ITEM[s.emblem] && ITEM[s.emblem].kind === 'emblem', s.emblem);
-    assert.equal(ITEM[s.card].name, s.name);
+    assert.equal(s.name, undefined, 'THE VAULT 1B: no names in the site code — the card item (server-only) carries it');
   }
-  assert.equal(SIGHTINGS.find(s => s.id === 'btc').name, 'FIX THE MONEY, FIX THE WORLD');
+  assert.equal(ITEM['card-sg-btc'].name, 'FIX THE MONEY, FIX THE WORLD');
 });
 
 for (const kind of ['ufo', 'tr3b', 'blackbird', 'flyby']) {

@@ -342,7 +342,7 @@ export const SCHEDULE = Object.freeze([
     knobs: { summer: [6, 8], weekendNight: [19, 1], full: [20, 1.5], warm: 19, garden: { from: 9, to: 11.5, months: [4, 10] }, view: [18, 23] } },
   // (PROGRESSION B — THE FIREBALL SEEDED: it used to be Math.random on each phone (~3 a year over the night's hours), which no server could
   // check — now the same rate as a seeded calendar: a fireball night ~perYear times a year, ONE big slow streak at a seeded minute between
-  // `from` and `to` (evening hours), the same for every phone in a time zone — core/harbor-fireball.js; a CITY SIGHTING (MAKE A WISH))
+  // `from` and `to` (evening hours), the same for every phone in a time zone — core/harbor-fireball.js; a CITY SIGHTING)
   { id: 'sky.fireball', trigger: 'calendar', status: 'live', src: 'core/harbor-fireball.js#fireballOf + screens/harbor/meteors.js', what: 'THE FIREBALL: a big slow green-white streak that breaks up — a few nights a year at a seeded minute after dark (clear skies only)',
     knobs: { perYear: 3, from: 20.5, to: 27.5, len: 6 } },
   { id: 'sky.events', trigger: 'clock', status: 'live', src: 'core/harbor-events.js', what: 'the everyday sky: planes, the helicopter (daily), balloons, birds… by rarity',

@@ -7,6 +7,7 @@
 //               never the phone's word) is a thunderstorm → RAINMAKER / snow → SNOWED IN; only with a counted match in the last 3 h
 //   birthday    PROGRESSION B: MANY HAPPY RETURNS — only when it IS the stored birthday (ppriv/{pid}/bd) in the player's zone (api/_lib/birthday.js)
 // CITY SIGHTINGS are their own action (api/_lib/sightings.js).
+import './catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
 import { ref, val } from './fb.js';
 import { ApiError } from './http.js';
 import { bumpOwners } from './owners.js';

@@ -14,16 +14,18 @@ import { dayKey } from './week.js';
 export const DAY_TURN_H = 4;
 export const FREEZE = { first: 3, every: 7, hold: 2 };
 export const WIN_BACK = { plays: 3, days: 3 };
+// (THE VAULT 1B — NAMES ONLY TO OWNERS: WHICH items each milestone gives is the server's — api/_lib/catalog.js → registerMilestoneItems)
 export const MILESTONES = [
-  { n: 3, items: ['flame-full'] },
-  { n: 7, items: ['glow-afterglow'] },
-  { n: 14, items: ['tube-ember'] },
-  { n: 30, items: ['card-flame30'] },
-  { n: 50, items: ['emb-torch'] },
-  { n: 100, items: ['card-century', 'favor'], favor: 1 },
-  { n: 200, items: ['card-wildfire'] },
-  { n: 365, items: ['card-eternal'] },
+  { n: 3, items: [] },
+  { n: 7, items: [] },
+  { n: 14, items: [] },
+  { n: 30, items: [] },
+  { n: 50, items: [] },
+  { n: 100, items: [], favor: 1 },
+  { n: 200, items: [] },
+  { n: 365, items: [] }
 ];
+export function registerMilestoneItems(map) { for (const m of MILESTONES) if (map[m.n]) m.items = [...map[m.n]]; }
 const KEEP_DAYS = 15;
 
 /** The streak day of an instant: the Eastern date, turning at 4 am ('d20261102' from Nov 2 4:00 am to Nov 3 3:59 am). */

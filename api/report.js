@@ -10,6 +10,7 @@
 // PLACINGS ONLY, from the night record (never a client's game blob — no records, no scores); CIPHER's results must agree with the
 // players' own signed boards (re-graded from their guesses); and a uid with no profile is never given one here (each phone makes
 // its own when it joins — js/profile/me.js).
+import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { readFileSync } from 'node:fs';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
@@ -122,7 +123,7 @@ export default route(['POST'], async (req, res) => {
   const uid = await requireUser(req);
   const body = await readBody(req);
   try {
-    send(res, 200, await processReport(uid, body));
+    send(res, 200, withShow(await processReport(uid, body)));
   } catch (e) {
     if (!(e instanceof ApiError) || e.status >= 500 || e.status === 401) throw e;
     send(res, 200, { ok: false, code: e.code, retry: e.status === 425 || e.status === 429, message: e.message });

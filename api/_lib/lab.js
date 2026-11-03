@@ -5,6 +5,7 @@
 // approved art (js/vault/approved.js).
 import { ref, val } from './fb.js';
 import { cleanMark, LAB_IDS } from '../../js/vault/catalog.js';
+export { LAB_TEXT } from './lab-text.js';
 import { ApiError } from './http.js';
 
 export async function labMarks() {

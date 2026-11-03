@@ -224,8 +224,8 @@ async function bigMoment(sg, { pol, chip, first, preview, still }) {
   const head = h('div.sg-head', preview ? 'A PREVIEW · IT DOESN’T COUNT' : 'SPOTTED OVER THE HARBOR');
   const pctEl = h('em', '');
   const pair = h('div.sg-pair',
-    h('div.sg-item', h('small', 'LEGENDARY CARD'), pairCard(sg.id), h('b', s.name), pctEl),
-    h('div.sg-item', h('small', 'EMBLEM'), h('div.sg-emb', ITEM[s.emblem] ? ITEM[s.emblem].glyph : '✦'), h('b', s.name), h('em', '')));
+    h('div.sg-item', h('small', 'LEGENDARY CARD'), pairCard(sg.id), h('b', ((ITEM[s.card] || {}).name || s.what)), pctEl),
+    h('div.sg-item', h('small', 'EMBLEM'), h('div.sg-emb', ITEM[s.emblem] ? ITEM[s.emblem].glyph : '✦'), h('b', ((ITEM[s.card] || {}).name || s.what)), h('em', '')));
   const go = h('button.btn.btn-primary.sg-go', { type: 'button' }, 'CONTINUE');
   const modal = h('div.sg-modal', { class: `${first ? 'has-pair' : ''} ${still ? 'sg-still' : ''}`, role: 'dialog', 'aria-label': `${s.what} — spotted` }, stage, h('div.sg-foot', go));
   // the print GROWS BACK from the corner into the middle (the same element — its photo + its developing carry on)

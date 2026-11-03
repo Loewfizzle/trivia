@@ -10,6 +10,7 @@
 //   birthday { m, d }                → { bd, until }         month + day (never the year), private, changeable once a year
 //   birthdayRoom { room, tz }        → the room's HAPPY BDAY skywrite (dormant until LOBBY 2.0)
 //   favor    { jack, room, text?, colour?, show? } → { moment, spent }   CALL IN A FAVOR (a FAVOR token → one crew jack for the room)
+import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
 import { ITEM, STARTER } from '../js/core/items.js';
 import { carryOver } from '../js/core/progress.js';
@@ -122,5 +123,5 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
 export default route(['POST'], async (req, res) => {
   const uid = await requireUser(req);
   const body = await readBody(req);
-  send(res, 200, await profileAction(uid, body, clientIp(req), Date.now(), req));
+  send(res, 200, withShow(await profileAction(uid, body, clientIp(req), Date.now(), req)));
 });

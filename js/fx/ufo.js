@@ -1,4 +1,4 @@
-// I WANT TO BELIEVE — THE UFO's LIFE (THE VAULT 1A; the owner: "the city's REAL baked UFO sprite + its lit portholes over the harbor
+// `card-sg-ufo` — THE UFO's LIFE (THE VAULT 1A; the owner: "the city's REAL baked UFO sprite + its lit portholes over the harbor
 // skyline, the beam pulsing, motes rising"; the minimum class for every sighting card — docs/harbor/plan.md "THE SIGHTING CARDS' BAR").
 // The city's OWN bake (screens/harbor/ufo-model.js — "UFO" by sebslom, CC BY 4.0) at its hover angle, turning slowly on its turntable,
 // a gentle bob; its ports chase round the rim (the model's own port places per frame, brightened in turn); THE BEAM from the belly down

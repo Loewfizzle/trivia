@@ -1,6 +1,6 @@
-// HEARTBREAKER — HEARTS (an uncommon's one clear effect; the soft half of THE PINK PAIR — GLITTER BOMB is the loud one): pink + lilac
+// `card-heartbreaker` — HEARTS (an uncommon's one clear effect; the soft half of THE PINK PAIR — `card-glitter` is the loud one): pink + lilac
 // hearts DRIFT UP through the violet, each swaying on its own slow wobble, turning a little, fading in at the foot and out near the top;
-// two depths (far: small + faint, near: fuller), calmer under the name plate. The heart sprite is GLITTER BOMB's (kit.heart) — one look.
+// two depths (far: small + faint, near: fuller), calmer under the name plate. The heart sprite is `card-glitter`'s (kit.heart) — one look.
 // Stateless by time (the same frame on every phone); reduced motion: one frame of hearts mid-rise.
 import { heart, glow, stamp, rng, fract, smooth, unit } from './kit.js';
 import { rrect } from './renderer.js';

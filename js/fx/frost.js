@@ -1,4 +1,4 @@
-// FROSTBITE — FROST (an uncommon's one clear effect): frost CREEPS IN from the edges (a ragged front of crystal growth, densest at the
+// `card-frostbite` — FROST (an uncommon's one clear effect): frost CREEPS IN from the edges (a ragged front of crystal growth, densest at the
 // rim), a CRACK RUNS across the ice on the right (its branches splitting off, a bright core in a cold glow), a GLINT rides it, a few
 // crystals twinkle; then the frost eases back and grows again (an ~11 s cycle). The crystal layer is baked ONCE per size (dendrites —
 // branching strokes — + six-point stars + a rime haze at the rim) and revealed through a clip of growing circles round the edges.

@@ -1,5 +1,6 @@
 // THE 30 ACHIEVEMENTS + THE AWARD ENGINE (PROGRESSION A): every check (the dormant ones — sightings, dailies, the birthday — with a FAKE
 // trigger), the engine's idempotence (a replayed match / event never awards twice), FOUNDER, the game contract, the carry-over.
+import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ACHIEVEMENTS, ACH, GAME_ACHIEVEMENTS, LEGENDARIES, noteMatch, noteEvent, awardAll, heldOf } from '../js/core/achievements.js';

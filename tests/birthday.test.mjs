@@ -1,4 +1,5 @@
 // PROGRESSION B — BIRTHDAYS (month + day, never the year, once a year) + CALL IN A FAVOR's role on the radio. PURE.
+import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { cleanBirthday, canChangeBirthday, isBirthdayOn, bdayText, bdayLabel, dayKeyOf, BDAY_CHANGE_MS } from '../js/core/birthday.js';

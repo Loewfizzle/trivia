@@ -1,5 +1,9 @@
 // THE VAULT 1A (PURE): THE CARD LAB's catalog + marks, THE PROMINENCE RULE, the strips' looks + the effect library's registry, THE TIER
 // TABLE's fx rows, the new items + the pink pair's early level rewards.
+import '../api/_lib/catalog.js';   // (THE VAULT 1B: the server-only catalog — names, rewards, achievements)
+import { LAB_TEXT } from '../api/_lib/lab-text.js';
+import { registerLabText } from '../js/vault/catalog.js';
+registerLabText(LAB_TEXT);
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { LAB, LAB_IDS, MARKS, cleanMark, NOTE_MAX, GUESTS } from '../js/vault/catalog.js';

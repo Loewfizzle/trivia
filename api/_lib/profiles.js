@@ -6,6 +6,7 @@
 //   pkeys/{keyHash}: pid                               server only — the key itself is never stored
 //   tags/{nameKey}/{tag}: pid                          server only — keeps Mike#4821 unique per name
 //   rl/{bucket}: { n, t }                              server only — restore attempts per uid / ip
+import './catalog.js';   // (THE VAULT 1B: the server-only catalog registered before anything grants)
 import { createHmac, randomBytes, createHash } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
 import { ApiError } from './http.js';

@@ -7,7 +7,7 @@
 //   (achievement). Only transform + opacity move (60 fps).
 import { h, vibrate } from '../ui/dom.js';
 import { GAMES } from '../config.js';
-import { levelInfo, bandOf, nextRewardLevel, LEVEL_REWARDS, BANDS } from '../core/levels.js';
+import { levelInfo, bandOf, nextRewardLevel, BANDS } from '../core/levels.js';
 import { streakView, streakDay } from '../core/streak.js';
 import { ACH } from '../core/achievements.js';
 import { ITEM, TIER_NAMES, KINDS } from '../core/items.js';
@@ -61,7 +61,8 @@ export async function openMoment(o, ctx = {}) {
   const pl = placeLine(o);
   const L0 = levelInfo(o.xp.from), L1 = levelInfo(o.xp.to);
   const up = L1.lvl > L0.lvl;
-  const lvlItems = (o.items || []).filter(id => LEVEL_REWARDS.some(r => r.item === id && r.lvl > L0.lvl && r.lvl <= L1.lvl));
+  // (THE VAULT 1B: WHICH level gave an item comes with its display row from the server — `lv` — never a table in the site's code)
+  const lvlItems = (o.items || []).filter(id => { const lv = ITEM[id] && ITEM[id].lv; return !!lv && lv > L0.lvl && lv <= L1.lvl; });
   const sv = o.st ? streakView(o.st, streakDay(now)) : null;
   const ach = (o.ach || []).map(id => ACH[id]).filter(Boolean).slice(0, 3);
   const tease = nextRewardLevel(L1.lvl);

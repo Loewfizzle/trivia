@@ -1,4 +1,4 @@
-// TUBE — A NEON TUBE INSIDE THE EDGE (THE VAULT 1B — NEON GLASS: "smoked glass with a cyan tube inside the edge"): a real tube bent round
+// TUBE — A NEON TUBE INSIDE THE EDGE (THE VAULT 1B — `card-neonglass`: "smoked glass with a cyan tube inside the edge"): a real tube bent round
 // the card a few px in from the rim — the wide soft glow, the coloured glass, the white-hot core (the city's own tube look) — BREATHING
 // with its hum, and once a cycle it STUTTERS (an old transformer catching) and comes back. Its colour: opts.tint 'r,g,b'. The glow
 // spills onto the smoked glass inside. Stateless by time; reduced motion: lit, steady.

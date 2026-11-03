@@ -20,7 +20,7 @@ function harborMeteorRate(y, m, d) {
   return { rate: o.rate >= 3 ? 0.4 : o.rate >= 1 ? 0.11 : 1 / 38, shower: o.shower };
 }
 // (PROGRESSION B: the fireball is SEEDED now — core/harbor-fireball.js, its row 'sky.fireball': a few nights a year at one seeded minute,
-// the same for every phone in a time zone, so the server can check a tap on it — a CITY SIGHTING, MAKE A WISH)
+// the same for every phone in a time zone, so the server can check a tap on it — a CITY SIGHTING)
 
 export function createMeteors() {
   let list = [], W = 1, H = 1, dotC = null, rateKey = '', rate = { rate: 0, shower: null }, forcedAt = 0, fbKey = '', fb = null, fbDone = '';

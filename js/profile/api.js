@@ -1,6 +1,11 @@
 // The /api client. Every call is optional polish: a server that is down, slow or not deployed never blocks a game.
 //   api('profile', { action: 'me' })  → JSON (throws ApiFail with .status / .code; status 0 = unreachable)
 //   board(b, p, start)                → GET /api/board (public, cached here for a few seconds too)
+import { registerItems } from '../core/items.js';
+import { registerAchievements } from '../core/achievements.js';
+// (this device's own items' names, kept between visits so a screen that opens before /api answers — or with /api down — still has them)
+const mergeShow = sh => { let o = {}; try { o = JSON.parse(localStorage.getItem('ns:show') || '{}') || {}; } catch { o = {}; } return { items: { ...(o.items || {}), ...(sh.items || {}) }, ach: { ...(o.ach || {}), ...(sh.ach || {}) } }; };
+try { const o = JSON.parse(localStorage.getItem('ns:show') || 'null'); if (o) { registerItems(o.items); registerAchievements(o.ach); } } catch { /* fine */ }
 import { idToken, firebaseReady } from '../firebase.js';
 
 export class ApiFail extends Error {
@@ -21,6 +26,8 @@ async function fetchJson(url, opts = {}) {
   let body = null;
   try { body = await res.json(); } catch { body = null; }
   if (!res.ok || !body) throw new ApiFail(body ? res.status : (res.status === 404 ? 0 : res.status), (body && body.error) || 'http', (body && body.message) || `HTTP ${res.status}`, body || {});
+  // THE VAULT 1B — NAMES ONLY TO OWNERS: the server sends display rows only for what this player owns / just earned → the registries
+  if (body.show) { registerItems(body.show.items); registerAchievements(body.show.ach); try { localStorage.setItem('ns:show', JSON.stringify(mergeShow(body.show))); } catch { /* fine */ } }
   return body;
 }
 

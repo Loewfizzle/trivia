@@ -1,5 +1,5 @@
-// SHEEN — THE FOIL'S SHINE PASS (THE VAULT 1B — an uncommon's one clear effect for the lacquer + foil cards: EMERALD & BRASS, SILVER CHROME,
-// MIDNIGHT & CHAMPAGNE …; decisions: "UNCOMMON = a shimmer pass"): every ~5 s a band of light SWEEPS across the card at a slant — a soft
+// SHEEN — THE FOIL'S SHINE PASS (THE VAULT 1B — an uncommon's one clear effect for the lacquer + foil cards: `card-emerald`, `card-chrome`,
+// `card-champagne` …; decisions: "UNCOMMON = a shimmer pass"): every ~5 s a band of light SWEEPS across the card at a slant — a soft
 // wide glow, a bright narrow core, a faint coloured fringe each side (the foil's own tint: opts.tint 'r,g,b') — then a glint flares on the
 // frame where the band leaves it. Stateless by time; reduced motion: the band parked a third of the way across, no glint.
 import { glow, sparkle, stamp, smooth, fract } from './kit.js';
