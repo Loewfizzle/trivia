@@ -130,3 +130,9 @@ one taken back, names only to him; the seasonal emblems through matchStep) · ru
 nobody) · the harbor `vault` group (50 lab cards with the DEV cards first, 49 full cards, the EMBLEMS tab's 46 items in all 15 finishes, the
 GLOWS tab's 14, DRESS YOUR CARD's panel + screen, DRESS YOUR CARD BY FINGER — real taps wear an emblem / a glow / a card, VIEW FULL, a
 long-press) · the `sightings` group (+ the ghost ship's demo: fully lit, inside the photo, the names on one line, the real emblem).
+
+## THE FULL LOCAL RUN (the mini PC, Nov 3)
+unit 1100/1100 · rules 59/59 (the rules FILE unchanged — no re-publish: `mn` + `members/` are server-only by the default deny) · /api: server
+29/29, progression 10/10, sightings 4/4, lab 2/2, vault-2b 3/3 · smoke 6/6 · the profile E2E 75/75 (THE BOARD's row check on the re-run, as in
+1A–2A; its vault steps now wear a card through DRESS YOUR CARD) · THE FULL HARBOR SUITE 930/932 at 4 shards (~22 min): THE RESIZE (green alone —
+400 ms) + LOAD WEATHER's holiday-night jump = the known ones from 2A's log; the `vault` group 31/31, `sightings` 11/11 (+ the ghost ship).

@@ -10,6 +10,9 @@
 //     The same lab in WebKit at iPhone size (isMobile + hasTouch; Playwright's mobile WebKit has taps but no drag or wheel, so the page
 //     scrolls by WebKit's own user scroll — PageDown, blocked by the same lock — and marks by a real tap). WebKit needs Playwright 1.56
 //     (WK_PLAYWRIGHT, default ~/wk on the mini PC): skipped with a warning where it isn't installed (the cloud).
+// THE VAULT 2B adds: the lab's 50 cards with the 2 DEV cards FIRST + their full cards (49), the EMBLEMS tab's 46 items in all 15 finishes, the
+//   GLOWS tab's 14 glows, DRESS YOUR CARD (the profile's one panel + the dress screen's tabs + tier-edged tiles, the widest name whole) and
+//   DRESS YOUR CARD BY FINGER (real taps wear an emblem · a glow · a card on the pinned strip at once, VIEW FULL ›, a long-press → the full card).
 import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
