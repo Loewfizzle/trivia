@@ -69,7 +69,7 @@ G('vault', async () => {
   { const { ctx, p } = await page('view=lobby&bare=1&mix=samples&still=1', { dpr: 2 });
     await sleep(1500);
     const f1 = await ev(p, 'window.__lab.stats.frames'); await sleep(1200); const f2 = await ev(p, 'window.__lab.stats.frames');
-    const px = await ev(p, `(() => { const c = document.querySelector('canvas.fx-canvas'); const x = c.getContext('2d'); const d = x.getImageData(0, 0, c.width, c.height).data; let n = 0; for (let i = 3; i < d.length; i += 64) if (d[i] > 10) n++; return n; })()`);
+    const px = await ev(p, `import('/js/fx/renderer.js').then(m => m.fxProbe())`);
     const anim = await ev(p, `getComputedStyle(document.querySelector('.vl-e-neon')).animationName + ' / ' + getComputedStyle(document.querySelector('.vl-e-prism .p-sweep')).animationName`);
     ok(f2 - f1 <= 1 && px > 500 && /none \/ none/.test(anim), `REDUCED MOTION: the strips' still frames drawn once (${px} lit samples), the canvas stops (${f2 - f1} frames in 1.2 s), the emblems still (${anim})`);
     await ctx.close(); }

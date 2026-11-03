@@ -7,7 +7,7 @@
 import { loadUfoModel, drawBody, drawLights, frameAt, portsAt } from '../screens/harbor/ufo-model.js';
 import { sprite, glow, stamp, rng, wob, clamp01 } from './kit.js';
 import { drawLaser } from './laser.js';
-import { rrect } from './renderer.js';
+import { rrect, fxDiag } from './renderer.js';
 
 let model = null, asking = false;
 function want() { if (model || asking) return; asking = true; loadUfoModel().then(m => { model = m; }).catch(() => { asking = false; }); }
@@ -79,7 +79,7 @@ export default {
       stamp(c, glow('200,255,220', 0.35, 16), x, y, 2.4 + mr() * 1.6, 0.85 * Math.sin(u * Math.PI));
     }
     c.globalCompositeOperation = 'source-over';
-    if (model && model.rows && model.rows.hi) {
+    if (model && model.rows && model.rows.hi && fxDiag.sprites) {
       const row = model.rows.hi, i = frameAt(row, still ? 4 : t * 7);
       c.save(); c.translate(cx, cy);
       // (its shadow side lit from below by its own beam: a faint green under-glow first)

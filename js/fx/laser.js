@@ -2,6 +2,7 @@
 // white-hot head with a coloured tail tracing the slot's rounded edge, one lap every ~3.4 s, plus the edge's own faint neon. Drawn
 // 'lighter' just inside + over the edge (its glow bleeds a few px past it). Reduced motion: the edge lit, the comet parked top-right.
 import { glow, stamp } from './kit.js';
+import { fxDiag } from './renderer.js';
 
 /** a point on a rounded rect's perimeter at distance s (clockwise from the top-left corner's end) */
 function along(w, h, r, s) {
@@ -25,6 +26,7 @@ export const perimeter = (w, h, r) => 2 * (w - 2 * r) + 2 * (h - 2 * r) + 2 * Ma
 
 /** draw the comet on a slot of w × h (inset i) — rgb its colour, lap its seconds a lap */
 export function drawLaser(c, w, h, t, o = {}) {
+  if (!fxDiag.laser) return;
   const i = o.inset != null ? o.inset : 1.2, r = (o.radius || 12) - i * 0.5, W = w - 2 * i, H = h - 2 * i, rgb = o.rgb || '120,255,190';
   const P = perimeter(W, H, r), lap = o.lap || 3.4, still = !!o.still;
   const head = still ? (W - r) : (t / lap) * P;

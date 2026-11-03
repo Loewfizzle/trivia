@@ -141,3 +141,15 @@ html.vl-lab-html, html.vl-lab-html body.vl-lab-on { height: auto; overflow: visi
 .vl-a { color: #f6e3a8; }
 select.vl-tab { -webkit-appearance: none; appearance: none; padding-right: 34px; background: rgba(255, 255, 255, 0.05) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%23f5ecda' stroke-width='2'/%3E%3C/svg%3E") no-repeat right 12px center; color: #f5ecda; font-size: 16px; }
 select.vl-tab option { color: #111; }
+
+/* ---- THE DIAGNOSTICS ROW (THE VAULT 1B — owner-only, the lab): each switch turns one cost off; the classes below are what CSS GLOWS +
+   EMBLEMS OFF do to the whole page (static shadows + text shadows gone · every emblem hidden + still) */
+.vl-diag { margin: 0 0 14px; padding: 10px 12px 2px; border-radius: 14px; box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.3); }
+.vl-diag-h { margin: 0 0 8px; font: 800 12px/1.3 var(--font-ui); letter-spacing: 0.24em; color: #d8b46a; }
+.vl-diag-h small { font: 600 12px/1.3 var(--font-ui); letter-spacing: 0.02em; color: rgba(245, 236, 218, 0.72); }
+.vl-dg { min-height: 40px; font-size: 11.5px; padding: 0 11px; }
+.vl-dg.is-off { background: #6b1622; box-shadow: inset 0 0 0 1.5px #ff7a8a; }
+.vl-diag-noglow .vl-frame, .vl-diag-noglow .vl-plate, .vl-diag-noglow .vl-tier { box-shadow: none !important; }
+.vl-diag-noglow .vl-name { text-shadow: none !important; }
+.vl-diag-noemb .vl-e { visibility: hidden; }
+.vl-diag-noemb .vl-e, .vl-diag-noemb .vl-e * { animation: none !important; }

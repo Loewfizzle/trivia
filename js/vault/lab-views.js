@@ -9,10 +9,29 @@ import { mountStrips, stripEl, LOOKS } from './strip.js';
 import { createSurface } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
 import { emblemSvg, prominence, TEST_EMBLEMS } from './emblems.js';
-import { fxStats, setFxReduced, setFxTier, fxReduced } from '../fx/renderer.js';
+import { fxStats, setFxReduced, setFxTier, fxReduced, setFxDiag } from '../fx/renderer.js';
 import { TIER_NAMES } from '../core/items.js';
 
 const CARDS = LAB.filter(x => x.kind === 'card');
+// THE DIAGNOSTICS ROW (THE VAULT 1B — the owner's iPhone is the verdict for speed): each switch turns ONE cost off, remembered per device
+// (localStorage vl:diag); &diag=nofx,nolaser,nosprites,nopause,noglow,noemb,nogpu in the address sets them for one visit (the bench).
+const DIAG = [
+  { k: 'glow', label: 'CSS GLOWS', css: 'vl-diag-noglow' },
+  { k: 'emb', label: 'EMBLEMS', css: 'vl-diag-noemb' },
+  { k: 'fx', label: 'CANVAS FX' },
+  { k: 'laser', label: 'THE LASER' },
+  { k: 'sprites', label: 'UFO SPRITES' },
+  { k: 'scrollPause', label: 'SCROLL-PAUSE', q: 'nopause' },
+  { k: 'gpu', label: 'GPU DRAW', q: 'nogpu' },
+];
+function loadDiag() {
+  let d = {};
+  try { d = JSON.parse(localStorage.getItem('vl:diag') || '{}') || {}; } catch { d = {}; }
+  const q = new URLSearchParams(location.search).get('diag');
+  if (q != null) { d = {}; for (const w of q.split(',')) { const x = DIAG.find(o => (o.q || `no${o.k}`) === w.trim()); if (x) d[x.k] = false; } }
+  return d;
+}
+const saveDiag = d => { try { localStorage.setItem('vl:diag', JSON.stringify(d)); } catch { /* private mode: this visit only */ } };
 const when = at => new Date(at).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export function mountLab(root, o = {}) {
@@ -27,12 +46,25 @@ export function mountLab(root, o = {}) {
   const tierBtns = ['AUTO', 0, 1, 2].map(t => h('button.vl-tab', { type: 'button', dataset: { t: String(t) }, onclick: () => { setFxTier(t === 'AUTO' ? null : t); tierPick = t; paintOpts(); } }, t === 'AUTO' ? 'TIER AUTO' : `TIER ${t}`));
   let tierPick = 'AUTO';
   const opts = h('div.vl-opts', still, ...tierBtns);
+  // THE DIAGNOSTICS ROW: ON = the shipped behaviour; tap one to turn that cost off; RESET = all on
+  const diag = loadDiag();
+  const diagBtns = DIAG.map(o => h('button.vl-tab.vl-dg', { type: 'button', dataset: { k: o.k }, onclick: () => { if (diag[o.k] === false) delete diag[o.k]; else diag[o.k] = false; saveDiag(diag); applyDiag(); } }));
+  const diagRow = h('div.vl-diag', h('div.vl-diag-h', 'DIAGNOSTICS', h('small', ' · tap one off, watch the readout · remembered on this phone')),
+    h('div.vl-opts', ...diagBtns, h('button.vl-tab.vl-dg', { type: 'button', onclick: () => { for (const k of Object.keys(diag)) delete diag[k]; saveDiag(diag); applyDiag(); } }, 'RESET')));
+  function applyDiag() {
+    DIAG.forEach((o, i) => {
+      const on = diag[o.k] !== false;
+      if (o.css) document.documentElement.classList.toggle(o.css, !on); else setFxDiag(o.k, on);
+      diagBtns[i].textContent = `${o.label} ${on ? 'ON' : 'OFF'}`; diagBtns[i].classList.toggle('is-off', !on);
+    });
+    if (window.__lab) window.__lab.diag = { ...diag };
+  }
   const fps = h('div.vl-fps', { 'aria-live': 'off' });
   root.replaceChildren(
     h('div.vl-lab-k', 'NEON SPEAKEASY · THE VAULT 1A'),
     h('h1', 'THE CARD LAB'),
     h('p.vl-lab-sub', 'Every strip at its real phone size, moving as it will in the game. Mark each one: ', h('b.vl-a', 'APPROVE'), ' ships it · ', h('b.vl-a', 'FIX'), ' + a note sends it back · ', h('b.vl-a', 'CUT'), ' drops it. THE VAULT 1B reads your marks first.'),
-    tabs, opts, content, fps);
+    tabs, opts, diagRow, content, fps);
   // (?bare=1: the lobby / the strips alone — no header + switches: the look reviews' close-ups)
   if (new URLSearchParams(location.search).get('bare') === '1') { root.replaceChildren(content, fps); fps.hidden = true; }
   function paintOpts() {
@@ -129,14 +161,15 @@ export function mountLab(root, o = {}) {
   raf = requestAnimationFrame(count);
   fpsT = setInterval(() => {
     const now = performance.now(), f = Math.round(frames * 1000 / (now - t0)); frames = 0; t0 = now;
-    fps.textContent = `${f} fps\nfx tier ${fxStats.tier} · ${fxStats.ms} ms\n${fxStats.slots} drawn · ${fxStats.mp} MP`;
+    fps.textContent = `${f} fps · ${fxStats.fms} ms/frame\n${fxStats.slow} slow /s${fxStats.scrolling ? ' · SCROLL-HELD' : ''}\nfx tier ${fxStats.tier}${fxStats.held ? ' HELD' : ''} · ${fxStats.dpr}× · ${fxStats.ms} ms js\n${fxStats.gpu ? `GPU · ${fxStats.draws} draws` : '2D canvas'} · ${fxStats.slots} slots · ${fxStats.mp} MP`;
     fps.classList.toggle('is-bad', f < 55 && !fxReduced());
     if (window.__lab) window.__lab.fps = f;
   }, 500);
 
   function toast(msg, bad) { const t = h('div.vl-toast', { class: bad ? 'is-bad' : '' }, msg); document.body.append(t); setTimeout(() => t.classList.add('is-out'), 2200); setTimeout(() => t.remove(), 2600); }
 
-  window.__lab = { marks, view, fps: 0, stats: fxStats, show, mix };
+  window.__lab = { marks, view, fps: 0, stats: fxStats, show, mix, diag: {} };
+  applyDiag();
   paintOpts();
   const q = new URLSearchParams(location.search);
   if (q.get('mix')) mix = q.get('mix');

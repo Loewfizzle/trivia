@@ -72,6 +72,9 @@ export const TIERS = Object.freeze({
   // steps this tier): fxDpr = the shared effect canvas's pixel ratio cap (×10 — the strip's name, plate + frame stay DOM at the phone's
   // full ratio; the effects are soft light), fxParticles = each effect's particles / motes / sparks (% of its full count)
   fxDpr: Object.freeze([10, 15, 20]),
+  // THE VAULT 1B — the GPU path (js/fx/gl.js): the GPU pays pixels, not calls, so the top tier draws at the phone's full 3× (sharp — the
+  // owner: "never buy speed with quality"); fxDpr stays the 2D fallback's
+  fxDprGl: Object.freeze([15, 20, 30]),
   fxParticles: Object.freeze([45, 70, 100]),
 });
 
