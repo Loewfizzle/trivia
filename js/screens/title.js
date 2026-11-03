@@ -598,6 +598,27 @@ export function createTitle() {
     finish();
   }
 
+  // PROGRESSION B — THE OWNER's SIGHTING PREVIEW (&sgdemo=<id>, with its legendary forced): once it's in view, the first-time sequence plays
+  // on its own — the reaction, the flash, the REAL polaroid, SPOTTED, the reveal — never claimed, never kept
+  let sgDemoT = 0;
+  function sightDemo() {
+    const id = new URLSearchParams(location.search).get('sgdemo');
+    if (!id || !createHarbor || !scene || !scene.sightBoxes) return;
+    import('../progress/sighting.js').then(m => m.prewarm()).catch(() => {});
+    let seenAt = 0; const t0 = performance.now();
+    const look = () => {
+      if (destroyed || performance.now() - t0 > 120e3) return;
+      const b = scene.sightBoxes().find(x => x.id === id && x.x > 30 && x.x < innerWidth - 30 && x.y > 60 && x.y < innerHeight - 140);
+      if (b && !seenAt) seenAt = performance.now();
+      if (b && performance.now() - seenAt > 1600) {
+        const sg = scene.sightTap(b.x, b.y);
+        if (sg) { sg.demo = true; sg.live = false; sg.again = Math.max(0, Math.min(999, Number(new URLSearchParams(location.search).get('sgagain')) || 0)); import('../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); }
+        return;
+      }
+      sgDemoT = setTimeout(look, 200);
+    };
+    look();
+  }
   function finish() {
     if (!tl || tl.done) return;
     tl.done = true;
@@ -610,6 +631,7 @@ export function createTitle() {
     neonTick();
     armIdle();
     document.addEventListener('visibilitychange', onVisTitle);
+    sightDemo();
     surgeRetry();     // (FP3a: the music started during the intro → the sign answers now)
   }
 
@@ -1828,6 +1850,7 @@ export function createTitle() {
     window.removeEventListener('pointermove', onMouse); if (hoverRaf) cancelAnimationFrame(hoverRaf); hoverRaf = 0;
     window.removeEventListener('pointerdown', onCityDown);
     window.removeEventListener('pointerup', onCityUp);
+    clearTimeout(sgDemoT);
     clearTimeout(surgeIv); clearTimeout(beatT); document.removeEventListener('pointerup', armTap, true);
     document.removeEventListener('visibilitychange', onVisTitle);
     window.removeEventListener('pointerdown', outsideDown, { capture: true });

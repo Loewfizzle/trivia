@@ -22,12 +22,15 @@ export function sampleProfile(q = new URLSearchParams()) {
   const it = {}; let t = 1;
   for (const id of rewardsUpTo(23)) it[id] = t++;
   for (const id of ['glow-ember', 'emb-key', 'card-brushed', 'card-founder', 'flame-full', 'glow-afterglow', 'emb-owl']) it[id] = t++;
+  // (PROGRESSION B: three CITY SIGHTINGS spotted — their pairs; the album shows the prints the owner's &sgdemo links took on this device)
+  const sgAt = Date.UTC(2026, 10, 2, 3, 14);
+  for (const [k, id] of ['ufo', 'skull', 'btc'].entries()) { it[`card-sg-${id}`] = sgAt + k * 864e5; it[`emb-sg-${id}`] = sgAt + k * 864e5; }
   const ac = { 'first-round': 1, 'house-warming': 2, 'top-shelf': 3, 'night-owl': 4 };
   const n = Number(q.get('streak') || 7);
   return {
     pid: 'ppreview00000',
     profile: { n: NAME, t: '0042', a: 'diamond', c: 'magenta', x: xp, at: Date.UTC(2026, 9, 3), s: n, sd: null, cd: q.get('card') || null, g: null, fd: true },
-    stats: { xp, g: { prism: { p: 81, w: 27 }, overclock: { p: 47, w: 14 } }, b: { 'prism-rush': { a: 1 }, 'overclock-std': { a: 1 }, x1: { a: 1 }, x2: { a: 1 }, x3: { a: 1 }, x4: { a: 1 } }, st: sampleStreak(n, q.get('state') || 'lit'), it, ac },
+    stats: { xp, g: { prism: { p: 81, w: 27 }, overclock: { p: 47, w: 14 } }, b: { 'prism-rush': { a: 1 }, 'overclock-std': { a: 1 }, x1: { a: 1 }, x2: { a: 1 }, x3: { a: 1 }, x4: { a: 1 } }, st: sampleStreak(n, q.get('state') || 'lit'), it, ac, sg: { ufo: 3, skull: 1, btc: 2 } },
   };
 }
 /** the outcome a match gives (the server's shape): 2nd of 4, a level-up 24 → 25 (its reward: MIDNIGHT & CHAMPAGNE), the streak, TOP SHELF (+ BRUSHED GOLD) */
@@ -50,6 +53,8 @@ export async function preview(view, q = new URLSearchParams(), root = null) {
   setPctForTest({ i: Object.fromEntries(ITEMS.map((x, i) => [x.id, 3 + (i * 7) % 40])), a: { 'top-shelf': 22, 'first-round': 96, 'house-warming': 41, 'night-owl': 9 } });
   if (q.get('rm') === '1') document.documentElement.classList.add('pg-rm');
   const data = sampleProfile(q);
+  // (the album: the preview's own prints — the &sgdemo links' — never the real album's)
+  try { (await import('../profile/album.js')).useAlbum('ns-album-preview'); } catch { /* polish */ }
   if (view === 'moment') {
     const { openMoment } = await import('./moment.js');
     const o = sampleOutcome(q);

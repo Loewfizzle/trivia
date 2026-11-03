@@ -1,0 +1,129 @@
+/* CITY SIGHTINGS (PROGRESSION B) — the flashbulb, THE POLAROID (the city's real frame), SPOTTED, the pair's reveal, THE ALBUM. Loaded with
+   the first tap on a legendary (js/progress/sighting.js). Every motion is transform + opacity; reduced motion = the end state, still. */
+.sg-flash { position: fixed; inset: 0; z-index: 9100; background: #fff; pointer-events: none; opacity: 0; will-change: opacity; }
+.sg-flash.is-on { animation: sg-flash 0.62s cubic-bezier(.2, .7, .3, 1) both; }
+@keyframes sg-flash { 0% { opacity: 0; } 8% { opacity: 0.96; } 22% { opacity: 0.9; } 100% { opacity: 0; } }
+/* the bulb's after-image: a soft warm bloom where the camera was (bottom centre), fading */
+.sg-flash::after { content: ''; position: absolute; left: 50%; bottom: 8%; width: 70vmin; height: 70vmin; margin-left: -35vmin; border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 246, 220, 0.9), rgba(255, 246, 220, 0) 62%); }
+
+/* the polaroid itself (the chip in the corner + the big one share it) */
+.sg-pol { --pw: min(76vw, 316px); position: relative; width: var(--pw); padding: calc(var(--pw) * 0.055) calc(var(--pw) * 0.055) 0; background: #f6f3ea;
+  border-radius: 3px; box-shadow: 0 1px 0 rgba(255, 255, 255, 0.7) inset, 0 18px 40px -8px rgba(0, 0, 0, 0.75), 0 2px 6px rgba(0, 0, 0, 0.5);
+  color: #2a2620; transform-origin: 50% 60%; }
+.sg-pol::before { content: ''; position: absolute; inset: 0; border-radius: 3px; pointer-events: none;
+  background: linear-gradient(160deg, rgba(255, 255, 255, 0.55), rgba(255, 255, 255, 0) 38%), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.012) 0 2px, transparent 2px 5px); }
+.sg-photo { position: relative; width: 100%; aspect-ratio: 1; background: #0a0a12; overflow: hidden; }
+.sg-photo canvas, .sg-photo img { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
+/* developing: a milky veil over the photo, clearing (opacity only) */
+.sg-dev { position: absolute; inset: 0; background: linear-gradient(180deg, #c9d2cf, #b9c2c6); opacity: 0; pointer-events: none; }
+.sg-pol.is-dev .sg-dev { animation: sg-dev 2.6s cubic-bezier(.4, 0, .3, 1) both; }
+@keyframes sg-dev { 0% { opacity: 1; } 30% { opacity: 0.86; } 100% { opacity: 0; } }
+.sg-cap { height: calc(var(--pw) * 0.24); display: flex; flex-direction: column; justify-content: center; padding: 0 4px 2px;
+  font-family: 'Caveat', 'Segoe Print', 'Bradley Hand', 'Marker Felt', cursive; color: #26303f; line-height: 1.02; }
+.sg-cap b { font-weight: 700; font-size: calc(var(--pw) * 0.088); letter-spacing: 0.01em; }
+.sg-cap span { font-size: calc(var(--pw) * 0.066); opacity: 0.8; }
+/* SPOTTED — a rubber stamp slammed onto the print */
+.sg-stamp { position: absolute; right: 5%; top: calc(var(--pw) * 0.69); padding: 0.16em 0.46em 0.08em; border: 2.5px solid #ff3d52; border-radius: 6px; color: #ff4258;
+  font-family: var(--font-display); font-weight: 900; font-size: calc(var(--pw) * 0.075); letter-spacing: 0.12em; line-height: 1;
+  transform: rotate(-11deg); opacity: 0; background: rgba(30, 4, 10, 0.42); box-shadow: 0 0 0 1.5px rgba(255, 220, 220, 0.25) inset, 0 0 16px rgba(255, 40, 70, 0.35);
+  text-shadow: 0 0 6px rgba(255, 60, 80, 0.55); -webkit-mask-image: radial-gradient(circle at 30% 40%, #000 60%, rgba(0, 0, 0, 0.82) 74%, #000 92%); }
+.sg-stamp small { display: block; font-size: 0.42em; letter-spacing: 0.16em; margin-top: 0.15em; text-align: center; }
+.sg-stamp.is-on { animation: sg-stamp 0.32s cubic-bezier(.2, 1.6, .4, 1) both; }
+@keyframes sg-stamp { 0% { opacity: 0; transform: rotate(-11deg) scale(1.9); } 60% { opacity: 1; transform: rotate(-11deg) scale(0.94); } 100% { opacity: 1; transform: rotate(-11deg) scale(1); } }
+.sg-tag { position: absolute; left: 50%; bottom: calc(var(--pw) * 0.03); transform: translateX(-50%); font: 700 10px/1 var(--font-ui); letter-spacing: 0.16em; color: #8a7f6a; white-space: nowrap; }
+
+/* THE CHIP: the print sliding out of the camera into the corner (above the dock) while the legendary finishes its moment */
+.sg-chip { position: fixed; right: calc(var(--safe-r, 0px) + 14px); bottom: calc(var(--safe-b, 0px) + 132px); z-index: 9050; pointer-events: none;
+  transform: translate3d(0, 0, 0) rotate(4deg); opacity: 0; transition: transform 0.5s cubic-bezier(.2, .9, .3, 1.1), opacity 0.35s ease; }
+.sg-chip .sg-pol { --pw: 84px; }
+.sg-chip .sg-cap { height: 16px; }
+.sg-chip .sg-cap b, .sg-chip .sg-cap span { display: none; }
+.sg-chip.is-in { opacity: 1; transform: translate3d(0, 0, 0) rotate(4deg); }
+.sg-chip.is-from { transform: translate3d(-30vw, 30vh, 0) rotate(-14deg) scale(0.6); opacity: 0; transition: none; }
+.sg-chip.is-out { opacity: 0; transform: translate3d(20px, 30px, 0) rotate(8deg) scale(0.9); }
+.sg-chip .sg-stamp { font-size: 10px; border-width: 2px; right: 3px; top: 44%; padding: 2px 4px 1px; letter-spacing: 0.08em; }
+.sg-chip .sg-stamp small { font-size: 6.5px; letter-spacing: 0.1em; }
+
+/* THE MOMENT: the city dimmed behind the print; the pair below it on the reveal; fits ONE screen at 390 × 844 (no scroll, nothing pinned) */
+.sg-modal { position: fixed; inset: 0; z-index: 9060; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.2vh;
+  padding: calc(var(--safe-t, 0px) + 16px) 16px calc(var(--safe-b, 0px) + 16px); background: rgba(3, 3, 9, 0.8); opacity: 0; transition: opacity 0.35s ease;
+  -webkit-tap-highlight-color: transparent; touch-action: manipulation; }
+.sg-modal.is-in { opacity: 1; }
+.sg-modal.is-out { opacity: 0; transition-duration: 0.28s; }
+.sg-stage { position: relative; display: flex; flex-direction: column; align-items: center; transition: transform 0.6s cubic-bezier(.3, .9, .3, 1); }
+.sg-stage .sg-pol { transform: translate3d(0, 46vh, 0) rotate(-1deg) scale(0.9); opacity: 0; transition: transform 0.9s cubic-bezier(.16, .9, .3, 1), opacity 0.25s ease; }
+.sg-modal.is-print .sg-stage .sg-pol { transform: translate3d(0, 0, 0) rotate(-3deg); opacity: 1; }
+.sg-modal.is-reveal .sg-stage { transform: translate3d(0, 0, 0) scale(0.7); }
+.sg-head { font: 700 11px/1 var(--font-ui); letter-spacing: 0.32em; color: rgba(255, 236, 200, 0.82); text-transform: uppercase; opacity: 0; transition: opacity 0.4s ease 0.2s; margin-bottom: 1.4vh; }
+.sg-modal.is-print .sg-head { opacity: 1; }
+.sg-pair { display: flex; gap: 14px; align-items: stretch; justify-content: center; width: min(92vw, 360px); opacity: 0; transform: translate3d(0, 6vh, 0); transition: opacity 0.4s ease, transform 0.6s cubic-bezier(.2, .9, .3, 1); pointer-events: none; }
+.sg-modal.is-reveal .sg-pair { opacity: 1; transform: none; pointer-events: auto; }
+.sg-modal:not(.has-pair) .sg-pair { display: none; }
+.sg-item { flex: 1 1 0; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.sg-item small { font: 700 9.5px/1.25 var(--font-ui); letter-spacing: 0.2em; color: #e6c47a; }
+.sg-item b { font: 900 13px/1.12 var(--font-display); letter-spacing: 0.06em; color: #fff4dd; }
+.sg-item em { font: 600 10px/1.2 var(--font-ui); font-style: normal; letter-spacing: 0.12em; color: rgba(255, 230, 190, 0.72); min-height: 12px; }
+/* the LEGENDARY card (placeholder art — THE VAULT 1 draws it): the item's palette, a gold double frame, its glyph */
+.sg-card { position: relative; width: 100%; max-width: 168px; aspect-ratio: 1.586; border-radius: 10px; background: var(--lac); overflow: hidden;
+  box-shadow: inset 0 0 0 1.5px var(--foil), inset 0 0 0 4px var(--lac), inset 0 0 0 5px color-mix(in srgb, var(--foil) 60%, transparent), 0 10px 26px -6px rgba(0, 0, 0, 0.8), 0 0 22px -6px var(--acc);
+  display: flex; align-items: center; justify-content: center; }
+.sg-card::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 120%, color-mix(in srgb, var(--acc) 45%, transparent), transparent 60%); }
+.sg-card i { position: relative; font-style: normal; font-size: 34px; color: var(--foil); text-shadow: 0 0 10px var(--acc), 0 0 2px #fff; }
+.sg-card span { position: absolute; left: 0; right: 0; bottom: 7px; font: 700 7.5px/1 var(--font-ui); letter-spacing: 0.24em; color: var(--foil); opacity: 0.85; }
+.sg-card .sg-shine { position: absolute; inset: -40% -60%; background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, 0.35) 50%, transparent 58%); transform: translate3d(-60%, 0, 0); }
+.sg-modal.is-reveal .sg-card .sg-shine { animation: sg-shine 1.4s ease 0.35s both; }
+@keyframes sg-shine { to { transform: translate3d(60%, 0, 0); } }
+.sg-emb { width: 68px; height: 68px; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 8px 0 7px; font-size: 32px;
+  color: #fff; background: radial-gradient(circle, rgba(255, 79, 184, 0.16), rgba(0, 0, 0, 0) 70%); box-shadow: inset 0 0 0 2px rgba(255, 140, 210, 0.85), 0 0 18px rgba(255, 79, 184, 0.6), inset 0 0 14px rgba(255, 79, 184, 0.5);
+  text-shadow: 0 0 8px #ff4fb8, 0 0 2px #fff; }
+.sg-modal.is-reveal .sg-item { animation: sg-pop 0.5s cubic-bezier(.2, 1.4, .4, 1) both; }
+.sg-modal.is-reveal .sg-item + .sg-item { animation-delay: 0.14s; }
+@keyframes sg-pop { 0% { opacity: 0; transform: translate3d(0, 14px, 0) scale(0.86); } 100% { opacity: 1; transform: none; } }
+.sg-foot { display: flex; flex-direction: column; align-items: center; gap: 8px; min-height: 66px; }
+.sg-go { min-width: 190px; min-height: 48px; opacity: 0; transform: translate3d(0, 8px, 0); transition: opacity 0.35s ease, transform 0.35s ease; pointer-events: none; }
+.sg-modal.is-done .sg-go { opacity: 1; transform: none; pointer-events: auto; }
+.sg-hint { font: 600 10.5px/1 var(--font-ui); letter-spacing: 0.26em; color: rgba(255, 236, 200, 0.6); opacity: 0; transition: opacity 0.5s ease; }
+.sg-modal.is-done .sg-hint { opacity: 1; }
+
+/* THE ALBUM (the profile's CITY SIGHTINGS — only what you own) */
+.sg-album { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px 10px; padding: 4px 2px 2px; }
+.sg-al { all: unset; box-sizing: border-box; cursor: pointer; display: flex; flex-direction: column; align-items: center; gap: 5px; min-height: 44px; -webkit-tap-highlight-color: transparent; }
+.sg-al .sg-pol { --pw: 100%; width: 100%; padding: 6% 6% 0; transform: rotate(var(--r, -2deg)); }
+.sg-al .sg-cap { height: auto; padding: 4px 1px 5px; }
+.sg-al .sg-cap b { font-size: 13px; }
+.sg-al .sg-cap span { font-size: 11px; }
+.sg-al .sg-card { max-width: none; border-radius: 6px; }
+.sg-al .sg-card i { font-size: 22px; }
+.sg-al-name { font: 800 9px/1.15 var(--font-display); letter-spacing: 0.06em; color: #fff4dd; text-align: center; }
+.sg-al-pct { font: 600 8.5px/1.15 var(--font-ui); letter-spacing: 0.08em; color: rgba(255, 230, 190, 0.66); text-align: center; }
+.sg-al:focus-visible { outline: 2px solid #e6c47a; outline-offset: 3px; border-radius: 4px; }
+.sg-big { position: fixed; inset: 0; z-index: 9200; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; background: rgba(3, 3, 9, 0.84);
+  padding: calc(var(--safe-t, 0px) + 20px) 18px calc(var(--safe-b, 0px) + 20px); opacity: 0; transition: opacity 0.25s ease; }
+.sg-big.is-in { opacity: 1; }
+.sg-big .sg-pol { --pw: min(84vw, 360px); transform: rotate(-1.5deg); }
+.sg-big .sg-x { min-width: 160px; min-height: 46px; }
+@media (prefers-reduced-motion: reduce) {
+  .sg-flash.is-on { animation-duration: 0.01s; }
+  .sg-chip, .sg-modal, .sg-stage, .sg-stage .sg-pol, .sg-pair, .sg-go, .sg-hint, .sg-head { transition: none !important; }
+  .sg-pol.is-dev .sg-dev, .sg-stamp.is-on, .sg-modal.is-reveal .sg-item, .sg-modal.is-reveal .sg-card .sg-shine { animation: none !important; }
+  .sg-stamp.is-on { opacity: 1; }
+}
+/* (the app's own REDUCED EFFECTS setting — the same as the media query) */
+.sg-still.sg-flash.is-on { animation-duration: 0.01s; }
+.sg-still, .sg-still .sg-stage, .sg-still .sg-stage .sg-pol, .sg-still .sg-pair, .sg-still .sg-go, .sg-still .sg-hint, .sg-still .sg-head { transition: none !important; }
+.sg-still .sg-pol.is-dev .sg-dev, .sg-still .sg-stamp.is-on, .sg-still.is-reveal .sg-item, .sg-still.is-reveal .sg-card .sg-shine { animation: none !important; }
+.sg-still .sg-stamp.is-on { opacity: 1; }
+/* the album's tiles + the big view */
+.sg-sec .sg-album { margin-top: 10px; }
+.sg-al-art { width: 100%; display: flex; justify-content: center; }
+.sg-big .sg-head { margin: 0; }
+.sg-big-show { display: flex; justify-content: center; width: 100%; }
+.sg-big-show .sg-card { max-width: min(78vw, 320px); }
+.sg-big-show .sg-card i { font-size: 54px; }
+.sg-big-name { font: 900 17px/1.15 var(--font-display); letter-spacing: 0.06em; color: #fff4dd; text-align: center; }
+.sg-big-thumbs { display: flex; gap: 10px; justify-content: center; }
+.sg-big-th { all: unset; box-sizing: border-box; width: 52px; height: 52px; border: 3px solid #f6f3ea; border-radius: 3px; overflow: hidden; cursor: pointer; }
+.sg-big-th img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sg-al .sg-card span { letter-spacing: 0.1em; font-size: 6.5px; bottom: 5px; }
+.sg-big { background: rgba(3, 3, 9, 0.93); }

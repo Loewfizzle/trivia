@@ -1,7 +1,7 @@
 // THE PROFILE under the GILDED card (PROGRESSION A — the owner's mockups progression-membership-card.png A + progression-moments.png 4): the
 // level bar, the stats (matches · wins · best streak · bests), the streak (tap → the streak card), the ACHIEVEMENTS you hold (+ X% OF
 // PLAYERS HAVE THIS), THE VAULT = ONLY WHAT YOU OWN (cards · name glows · tube styles · emblems — tap one to wear it). No locked slots, no
-// totals, no "3 of 12", no list of what's left (the owner: "I want them to guess"). CITY SIGHTINGS join here in PROGRESSION B.
+// totals, no "3 of 12", no list of what's left (the owner: "I want them to guess"). PROGRESSION B: CITY SIGHTINGS = THE ALBUM (album-view.js).
 import { h } from '../ui/dom.js';
 import { levelInfo } from '../core/levels.js';
 import { streakView, streakDay } from '../core/streak.js';
@@ -9,6 +9,7 @@ import { heldOf } from '../core/achievements.js';
 import { ownedOf, ITEM, TIER_NAMES } from '../core/items.js';
 import { itemSwatch } from './moment.js';
 import { num, pctFor, pctLine, flameIcon } from './look.js';
+import { albumSection } from './album-view.js';
 
 const sum = (g, k) => Object.values(g || {}).reduce((a, x) => a + ((x && x[k]) || 0), 0);
 
@@ -58,7 +59,8 @@ export function progressSections(data, o = {}) {
     h('div.pg-prof-h', h('span', 'THE VAULT'), h('em', 'tap to wear')),
     ...(row('card', 'card') || []), ...(row('glow', 'glow') || []), ...(row('tube', 'tube') || []), ...(row('emblem', 'shape') || []),
     h('p.pg-only', 'Only what you own — the rest is for you to find.'));
-  const els = [level, stats, streak, ach, vault].filter(Boolean);
+  const album = albumSection(s);
+  const els = [level, stats, streak, ach, album, vault].filter(Boolean);
   pctFor().then(P => { for (const e of els) e.querySelectorAll('.pg-pct').forEach(x => { x.textContent = pctLine(P.a[x.dataset.a]); }); }).catch(() => {});
   return els;
 }

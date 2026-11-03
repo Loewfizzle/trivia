@@ -49,6 +49,7 @@ import { createHarborBeat, pulseGain, pulseOut, createSafety } from '../../core/
 import { cameraFor, harborLayout, laneRects, roofline, screenBoxes, groundY, project, Z } from '../../core/harbor-layout.js';
 import { createScheduler, anchorFor, densityOf, HARBOR_EVENTS } from '../../core/harbor-events.js';
 import * as SR from './sight-react.js';
+import { composeCity } from './snapshot.js';
 /** PROGRESSION B: the forces that put a sighting on screen — a tap while one is held never claims (the server would refuse it anyway) */
 const SIGHT_FORCES = ['ufo', 'tr3b', 'blackbird', 'flyby', 'jets', 'aurora', 'fireball', 'ghost-ship', 'balloons', 'balloon-festival', 'balloon-skull', 'balloons-fast', 'balloon-festival-fast', 'legend', 'demo'];
 import { settings } from '../../audio/settings.js';
@@ -1430,6 +1431,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
 
   // ------------------------------------------------------------------ the frame
   let showcaseQ;   // (SCHED: the dial's last value applied — undefined → the first frame applies it)
+  let snapWant = null;   // (PROGRESSION B: the polaroid's capture, run after the next drawn frame)
   let devDpr = (typeof window !== 'undefined' && window.devicePixelRatio) || 1;
   function frame(now) {
     // (SCHED — THE SHOWCASE DIAL: the page's &showcase= / the preview panel's (EVERYONE: the server's) level → core/harbor-showcase.js)
@@ -1463,6 +1465,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // (the Safari floor: a frame that throws — iOS out of canvas memory, a layer's context refused — never takes the city down
     // every frame: it steps the tier down to free memory, and after many in a row stops the loop on the last good frame)
     try { draw(t, dt, now); fails = 0; } catch (e) { if (!frameFailed(e)) return; }
+    // (PROGRESSION B — THE POLAROID: a snapshot asked for is taken HERE, right after the city drew — every layer's buffer still this
+    // frame's, the GPU fireworks' included)
+    if (snapWant) { const f = snapWant; snapWant = null; try { f(); } catch (e) { console.warn('[harbor] snapshot', e); } }
     mk9('between frames');
     if (starvedCount() !== starvedSeen && now - starvedAt > 2000) { starvedSeen = starvedCount(); starvedAt = now; if (tier > 0) { if (loadFrozen(now)) { wantStep = wantStep || 'starved'; LOADLOG.add('tier', 'a starved canvas: a step recorded for later'); } else stepTier(tier - 1, 'starved'); } }
     drawn++;
@@ -2879,6 +2884,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       SR.fire(h.key, { x, y }); fastUntil = performance.now() + 2500;
       const forced = SIGHT_FORCES.some(f => clock.force.has(f));   // (the preview panel's forces land in clock.force too)
       return { id: h.id, key: h.key, x: h.x, y: h.y, t: clock.now(), tz: clock.tz, live: !!clock.live && !clock.preview && !forced };
+    },
+    /** PROGRESSION B — THE POLAROID: the city's ACTUAL frame (every city layer — the canvases + the crisp lettering + the overlays — at
+     *  the phone's full dpr) cropped square round (cx, cy) → Promise<{ canvas, ms (the capture's own cost), box }> (screens/harbor/snapshot.js) */
+    snapshot(cx, cy, o = {}) {
+      return new Promise((res, rej) => {
+        fastUntil = performance.now() + 600;
+        snapWant = () => { try { res(composeCity({ host: canvas.parentElement, cx, cy, ...o })); } catch (e) { rej(e); } };   // (in THIS frame, synchronously)
+      });
     },
     /** the legendaries' tap boxes up now (tests + &debug) */
     sightBoxes: () => SR.live(),
