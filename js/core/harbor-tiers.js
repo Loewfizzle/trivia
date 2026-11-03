@@ -68,6 +68,11 @@ export const TIERS = Object.freeze({
   // PERF-B — THE DISCO BALL (balloons.js — the festival's 7th): the glints twinkling on its brightest tiles at once (sprites; the tiles are
   // one baked sheet per light)
   discoGlints: Object.freeze([2, 4, 6]),
+  // THE VAULT 1A — THE EFFECT LIBRARY (js/fx/renderer.js — the cards' + strips' effects, outside the city too; its own frame-time guard
+  // steps this tier): fxDpr = the shared effect canvas's pixel ratio cap (×10 — the strip's name, plate + frame stay DOM at the phone's
+  // full ratio; the effects are soft light), fxParticles = each effect's particles / motes / sparks (% of its full count)
+  fxDpr: Object.freeze([10, 15, 20]),
+  fxParticles: Object.freeze([45, 70, 100]),
 });
 
 /** DESKTOP — a full-screen canvas's pixel ratio under THE PIXEL BUDGET: the wanted ratio, capped so W × H × r² ≤ sceneMp megapixels */
