@@ -56,6 +56,13 @@ CITY CONTROLS B review (THE PIPELINE's first ADD-ON). The whole system: **docs/p
 - **`&force=finale`** starts the party show at its finale: the willows land ~37 s after the load.
 - **THE PROGRAM** fits a tall phone without scrolling at some hours — the scroll test runs on a short screen (402 × 560).
 
+## THE FULL LOCAL RUN (the mini PC, alone, Nov 2 night)
+Unit 1044/1044 · rules 57/57 (the file unchanged — no re-publish) · /api `server.test` 29/29 + `progression.test` 9/9 · the profile E2E 64/64
+(its first run missed one check in the unchanged BNAME board section — the other rows not yet listed; green on the re-run) · smoke
+(`GAMES=prism,overclock`) 6/6 · **THE FULL HARBOR SUITE 887/888** in 1,199 s → the one miss = LOAD WEATHER's "a stored JUST ME jump into a holiday
+night: 0 changes after the reveal" (a TIMING check — a warning in the cloud): under the 4-shard load the neon's bake landed after the reveal
+once; the `load` group alone, twice: 15/15 (Group 0 pinned its clock — the dusk part is gone; this is load timing).
+
 ## The hand-off
 - **PROGRESSION B** (its questions round first): CITY SIGHTINGS (the tap → the reaction → `pgSfx('flash')` + `'polaroid'` → SPOTTED → the pair's
   reveal `'card-reveal'`; server-verified; `eventStep({k:'sighting', id})` already counts them + STARGAZER / FREQUENT FLYER / THE WITNESS; a new
