@@ -106,3 +106,8 @@ smoke 6/6 · the profile E2E 75/75 (the board-order check on the re-run, as in 1
 (~21.5 min): THE RESIZE + THE BILLS MOVE green alone (radio + desktop 57/58 — the radio note below — windows 59/59: load timing), LOAD WEATHER's holiday-night
 jump the existing failure (1A + 1B), RADIO's greyed-jack note fails the same on 1B's code (its page opens at 9 pm TODAY while the server reads
 the real morning clock — a clock-dependent test, logged for the next pass, not this pass's); the vault group 25/25.
+
+## THE CLOUD (the two-run cap)
+Run 1 (the harbor tag): harbor 10/10 GREEN; tests RED — the names-only-to-owners test found AFTERBURNER + LIGHTS OUT in js/fx/sg-*.js
+comments: its folder check matched '/' only, so on the mini PC (backslash paths) it never looked in js/fx, vault or progress. Fixed (both
+separators — a planted name now fails it locally) + the comments use the ids. Run 2 (the ci tag): tests GREEN. Live on www.neonspeakeasy.com.
