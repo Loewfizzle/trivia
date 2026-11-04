@@ -807,7 +807,9 @@ export function createPeople() {
     /** Lobby 2.0: n guests in the line at the speakeasy's door (0 = none) */
     line(n) { lineN = Math.max(0, Math.min(12, Math.round(n || 0))); },
     /** LOBBY 2.0 A — the room's roster (null: no room) + where each player was drawn this frame (uid → box | null: off screen) */
-    room, roomBoxes: () => roomBox, roomDebug: () => [...roomSt.values()].map(st => ({ uid: st.uid, slot: st.slot, online: st.online, leaving: !!st.leaving, s: (q => q && { x: +q.x.toFixed(2), z: +q.z.toFixed(2), pose: q.pose })(visitAt(st.vis, rnow())) })),
+    room, roomBoxes: () => roomBox,
+    /** THE SOLIDS check: the city's own people (not the room's) standing inside the room's two lines right now → [{ vid, x, z }] */
+    roomSolidHits: () => { if (!roomOn || !L) return []; const R = roomRects(L); return now.members.filter(m => m.m.role !== 'dog' && R.some(r => m.s.x > r.x0 + 0.05 && m.s.x < r.x1 - 0.05 && m.s.z > r.z0 + 0.05 && m.s.z < r.z1 - 0.05)).map(m => ({ vid: m.vid, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })); }, roomDebug: () => [...roomSt.values()].map(st => ({ uid: st.uid, slot: st.slot, online: st.online, leaving: !!st.leaving, s: (q => q && { x: +q.x.toFixed(2), z: +q.z.toFixed(2), pose: q.pose })(visitAt(st.vis, rnow())) })),
     /** 6b's director: the street's share of its people (0..1) */
     budget(k) { budget = clamp01(k == null ? 1 : k); cache.clear(); },
     /** 8b1 wildlife — everyone on the promenade now, cheaply (the plan's people, not the tier's cut: every phone reacts alike) */

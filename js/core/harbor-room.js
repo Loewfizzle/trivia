@@ -4,9 +4,9 @@
 // the doorman stays. The lines are SOLIDS: the city's own people walk round them (core/harbor-people.js#folkMap `line`).
 // WHO STANDS WHERE is derived from the room's data alone (rooms/{CODE}: players + meta.hostId) — every phone draws the same lines; a
 // refresh, a rejoin, a host change or a phone waking up puts everyone straight back in place. THE FILL ORDER (decided here): the host at
-// L0 (the left line's front, by the door), then the guests by the time they joined, alternating sides — R0, L1, R1, L2, R2, L3, R3 —
-// so both lines grow evenly from the door; a player arrives from the screen EDGE on their line's side. A player leaving: the ones
-// behind them step up (a short walk forward), never a gap.
+// the front of the LEFT line (L0, by the door); each guest takes the SHORTER line as they join (a tie → the right) — so the lines grow
+// evenly from the door (R0, L1, R1, L2 …) — and KEEPS it (players/{uid}/ln, written once at the join); a player arrives from the screen
+// EDGE on their line's side. A player leaving: the ones behind them in THEIR line step up (a short walk forward), never a gap.
 // FEASIBILITY (the real numbers — docs/harbor/passes/lobby-2a.md): left of the pole 4.46–4.57 units to a 16-pt margin at 390–430 →
 // 4 figures at GAP_L 1.25 (≈ 17 pt apart, room for a ~14-pt emblem each); right of the door → the compass's edge: a straight line touches
 // it (−0.08), so the right line steps a little TOWARD the camera as it goes (STEP_RZ) — 0.6+ units clear of the compass + the cart.
@@ -36,13 +36,4 @@ export function roomRects(L) {
     return { x0: Math.min(...q.map(p => p.x)) - P, x1: Math.max(...q.map(p => p.x)) + P, z0: Math.min(...q.map(p => p.z)) - P, z1: Math.max(...q.map(p => p.z)) + P };
   });
 }
-/**
- * WHO STANDS WHERE: players = rooms/{CODE}/players ({ uid: { joinedAt, … } }), hostId → [{ uid, slot ('L0'…), side, rank }] — the host
- * first, then by joinedAt (uid to break a tie), at most 8 (a 9th waits off the lines — never happens: MAX_PLAYERS is 8)
- */
-export function roomOrder(players = {}, hostId = null) {
-  const ids = Object.keys(players || {}).sort((a, b) => (a === hostId ? -1 : b === hostId ? 1 : ((players[a].joinedAt || 0) - (players[b].joinedAt || 0)) || (a < b ? -1 : 1)));
-  return ids.slice(0, ROOM.max).map((uid, rank) => ({ uid, rank, slot: FILL[rank], side: FILL[rank][0] === 'L' ? 'left' : 'right' }));
-}
-/** a stable small number from a uid (the look's seed, the arrival's own randomness — the same on every phone) */
-export function uidSeed(uid) { let h = 2166136261; for (const ch of String(uid)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % 100000; }
+export { roomOrder, pickLine, uidSeed } from './room-lines.js';

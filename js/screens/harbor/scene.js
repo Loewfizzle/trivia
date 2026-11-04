@@ -2880,6 +2880,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     hush(w) { const v = w ? String(w).toUpperCase().slice(0, 4) : null; if (v !== lobbyHush) lobbyHush = v; },
     roomBoxes: () => people.roomBoxes(),
     roomDebug: () => people.roomDebug(),
+    roomSolidHits: () => people.roomSolidHits(),
     roomRects: () => (L ? roomRects(L) : null),
     radio(list) { radioScene.set(list); },
     radioDebug: () => radioScene.debug(),

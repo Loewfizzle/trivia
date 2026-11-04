@@ -1912,7 +1912,7 @@ export function createTitle() {
       tiering: () => (scene && scene.tiering ? scene.tiering() : null),
       speakCtx: () => (scene && scene.speakCtx ? scene.speakCtx() : null),   // (WIN2: the facade's bake context — the washer swap's proof)
       boardXf: () => (scene && scene.boardXf ? scene.boardXf() : null),
-      room: () => (roomUi ? { ...roomUi.debug(), people: scene && scene.roomDebug ? scene.roomDebug() : null } : null),   // (LOBBY 2.0 A: the room in the city — e2e lobby.mjs)   // (LOBBY 2.0 A: the billboard's cross-fade — e2e lobby.mjs)
+      room: () => (roomUi ? { ...roomUi.debug(), people: scene && scene.roomDebug ? scene.roomDebug() : null, solidHits: scene && scene.roomSolidHits ? scene.roomSolidHits() : [] } : null),   // (LOBBY 2.0 A: the room in the city — e2e lobby.mjs)   // (LOBBY 2.0 A: the billboard's cross-fade — e2e lobby.mjs)
       signDim: (id, o) => (scene && scene.dimSign ? (id ? scene.dimSign(id, o) : scene.signDim()) : null),   // (City 2.0, C1.5: the sign-dim hook)            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),

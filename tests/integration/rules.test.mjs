@@ -148,6 +148,16 @@ test('HUSH WORDS: two hosts claiming the same word at once — exactly one gets 
   assert.equal(await claim('e'), false, 'a later claim on an open room fails');
 });
 
+test('LOBBY 2.0 A — THE LINE: a player writes their own side of the door (L / R) once in, nothing else; never someone else’s', async () => {
+  await seed(lobbyRoom());
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2/ln`), 'R'), 'their own line');
+  await assertSucceeds(set(ref(db('host'), `${R}/players/host/ln`), 'L'));
+  await assertFails(set(ref(db('p2'), `${R}/players/p2/ln`), 'X'), 'only L or R');
+  await assertFails(set(ref(db('p2'), `${R}/players/p2/ln`), 1), 'a string');
+  await assertFails(set(ref(db('p2'), `${R}/players/host/ln`), 'R'), 'never another player’s');
+  await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), joinedAt: 2, ln: 'L' }), 'in the node itself too');
+});
+
 test('LOCK THE DOOR: host only; new players are refused, players already in rejoin; kicked stay kicked', async () => {
   await seed(lobbyRoom({ kicked: { k1: true } }));
   await assertFails(update(ref(db('p2'), `${R}/meta`), { locked: true }), 'only the host locks');

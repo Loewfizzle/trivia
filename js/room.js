@@ -7,6 +7,7 @@ import { state, setState } from './store.js';
 import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe } from './identity.js';
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
+import { pickLine } from './core/room-lines.js';
 import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } from './core/hush.js';
 import { hostSeed } from './audio/lobby-music.js';
 import { toast } from './ui/toast.js';
@@ -47,10 +48,16 @@ async function writePlayer(code, profile, players) {
   // isn't there (server down, a stale id), we join without it — joining must never depend on profiles.
   const me = loadMe();
   const pid = me && me.uid === state.uid ? me.pid : null;
+  let done = false;
   if (pid) {
-    try { await set(dbRef(`${R(code)}/players/${state.uid}`), { ...node, pid }); return; } catch { /* without it */ }
+    try { await set(dbRef(`${R(code)}/players/${state.uid}`), { ...node, pid }); done = true; } catch { /* without it */ }
   }
-  await set(dbRef(`${R(code)}/players/${state.uid}`), node);
+  if (!done) await set(dbRef(`${R(code)}/players/${state.uid}`), node);
+  // LOBBY 2.0 A — THE LINE (core/harbor-room.js): the side of the speakeasy's door this player queues on — picked once at the join (the
+  // shorter line; the host's the left) and kept. A SEPARATE write: a join never depends on it (rules not yet re-published refuse it —
+  // the lines then fall back to taking turns, the same on every phone)
+  const ln = existing && (existing.ln === 'L' || existing.ln === 'R') ? existing.ln : pickLine(players, state.uid);
+  set(dbRef(`${R(code)}/players/${state.uid}/ln`), ln).catch(() => {});
 }
 
 async function readRoomBasics(code) {

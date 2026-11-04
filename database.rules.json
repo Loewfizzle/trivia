@@ -91,6 +91,9 @@
             "pid": {
               ".validate": "newData.isString() && root.child('uids/' + auth.uid).val() === newData.val()"
             },
+            "ln": {
+              ".validate": "newData.isString() && (newData.val() === 'L' || newData.val() === 'R')"
+            },
             "$other": {
               ".validate": false
             }
