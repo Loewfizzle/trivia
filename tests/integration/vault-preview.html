@@ -18,16 +18,20 @@
 <main id="app" class="vl-lab"></main>
 <script type="module">
 import { mountLab } from '/js/vault/lab-views.js';
-import { registerLabText } from '/js/vault/catalog.js';
-import { LAB_TEXT } from '/api/_lib/lab-text.js';   // (the server's names — this page runs on the local server only)
+import { registerLabText, registerLabChanges, verOf } from '/js/vault/catalog.js';
+import { LAB_TEXT, LAB_CHANGES } from '/api/_lib/lab-text.js';   // (the server's names — this page runs on the local server only)
 import '/api/_lib/catalog.js';                         // (the item catalog, ditto)
-registerLabText(LAB_TEXT);
+registerLabText(LAB_TEXT); registerLabChanges(LAB_CHANGES);
 import { setFxReduced, setFxTier } from '/js/fx/renderer.js';
 const q = new URLSearchParams(location.search);
 if (q.get('still') === '1') setFxReduced(true);
 if (q.get('tier') != null) setFxTier(Number(q.get('tier')));
+// (&marks=old: every item marked APPROVE at version 1 — the CHANGED + NEEDS YOU view the owner meets after a pass)
 let marks = {};
-mountLab(document.getElementById('app'), { marks, onMark: async (id, m, note) => { marks = { ...marks, [id]: { m, note, at: Date.now(), by: 'preview' } }; return { marks }; } });
+if (q.get('marks') === 'old') { const { LAB } = await import('/js/vault/catalog.js'); for (const x of LAB) marks[x.id] = { m: 'approve', note: '', at: Date.UTC(2026, 10, 3, 20), v: 1 }; marks['card-inferno'] = { m: 'fix', note: 'This needs to look a lot more like real flame.', at: Date.UTC(2026, 10, 3, 22), v: 1 }; }
+// (&marks=done: every item APPROVED at its CURRENT version — ALL CAUGHT UP)
+if (q.get('marks') === 'done') { const { LAB } = await import('/js/vault/catalog.js'); for (const x of LAB) marks[x.id] = { m: 'approve', note: '', at: Date.UTC(2026, 10, 3, 23), v: verOf(x.id) }; }
+mountLab(document.getElementById('app'), { marks, onMark: async (id, m, note) => { marks = { ...marks, [id]: { m, note, at: Date.now(), by: 'preview', v: verOf(id) } }; return { marks }; } });
 document.fonts.ready.then(() => setTimeout(() => { document.body.dataset.ready = '1'; }, 600));
 </script>
 </body>

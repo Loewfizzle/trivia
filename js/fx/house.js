@@ -94,7 +94,7 @@ function willowAt(j, n, a, R, seed) {
 // higher quality and more flair, more special"). the speakeasy at full blast, re-built on the city's OWN building — its real front
 // painted face-on by the city's painters (speak-front.js: the brick by kiln run, the chevron belt, the dentil cornice, the Deco crest,
 // the EST. 1924 date stone, the wall-washers' cones, the barbershop + its awning, THE REAL ROOMS lit — the bar, the jazz room's honey
-// shade, the card game under its green lamp, the TV apartment). Every sign lit: THE BLADE off the corner (SPEAKEASY in the city's tube
+// shade, THE SHADOWBOXER live in the back room (2C — never the retired card game), the TV apartment). Every sign lit: THE BLADE off the corner (SPEAKEASY in the city's tube
 // alphabet, its marquee bulbs chasing), the title's NEON over the awning, the GOLD NEON CROWN over the side door (breathing, its light
 // on the brick). The FLAIR: the finale's gold willows burst behind the roof in turn, each one washing the whole front gold + glinting off
 // the gilt; the party upstairs (the rooms' light pulsing in the bar's colours), the barbershop lit up, gold sparkles drifting down from

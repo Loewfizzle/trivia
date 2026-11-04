@@ -42,7 +42,7 @@ import { activity } from './_lib/activity.js';
 import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX_MINS } from '../js/core/harbor-remote.js';
 import { streakDay, dayNum } from '../js/core/streak.js';
 import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
-import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT } from './_lib/lab.js';
+import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT, LAB_CHANGES } from './_lib/lab.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -257,7 +257,7 @@ export async function adminAction(uid, body, now = Date.now()) {
     // THE VAULT 1A — THE CARD LAB (api/_lib/lab.js): the owner's marks, read + written by admins only, every change audited
     // (THE VAULT 1B: the owner's &sgdemo preview — a preview never claims, so its pair's NAMES come from here, admins only)
     case 'sightShow': { const id = String(body.id || ''); if (!/^[a-z0-9]{2,16}$/.test(id)) throw new ApiError(400, 'bad_id'); return { show: { items: displayOf([`card-sg-${id}`, `emb-sg-${id}`]), ach: {} } }; }
-    case 'labMarks': return { marks: await labMarks(), text: LAB_TEXT };   // (VAULT 1B: the lab's names come with the marks — admins only)
+    case 'labMarks': return { marks: await labMarks(), text: LAB_TEXT, changes: LAB_CHANGES };   // (VAULT 1B: the lab's names come with the marks — admins only)
     case 'labMark': { const marks = await labMark(me, body, now); await audit(me, 'labMark', null, { b: `${String(body.id).slice(0, 40)} ${body.mark || 'clear'}`, note: String(body.note || '').slice(0, 140) }); return { marks }; }
     default: throw new ApiError(400, 'bad_action');
   }

@@ -49,6 +49,58 @@ G('vault', async () => {
       `THE CARD LAB: APPROVE · FIX + a note · CUT marked + shown (${m.on.join(', ')})`);
     if (SHOTS) await p.screenshot({ path: `${OUT}vault-lab-402x874.png` });
     await ctx.close(); }
+  // THE LAB 2.0 (THE VAULT 2C — the owner: "getting cluttered"): &marks=old = every item APPROVED at version 1 (+ INFERNO's FIX) — the view he
+  // meets after a pass: NEEDS YOU by default = the CHANGED rows (a version bump), each with its dated "CHANGED — what" line beside his old mark;
+  // the counts; one row per item + the FULL toggle flipping in place (its own mark); a re-mark leaves NEEDS YOU; ALL CAUGHT UP; NEW since his
+  // last visit (vl:seen); the top bar's ← THE CITY
+  { const { ctx, p } = await page('marks=old');
+    await sleep(900);
+    const L = await ev(p, `(() => ({ need: document.querySelector('.vl-need').textContent, filter: window.__lab.filter, view: window.__lab.view, rows: [...document.querySelectorAll('.vl-item')].map(x => x.dataset.id),
+      chg: [...document.querySelectorAll('.vl-item .vl-chg:not([hidden]) b')].length, was: document.querySelectorAll('.vl-mark.is-was').length,
+      counts: Object.fromEntries([...document.querySelectorAll('.vl-filter')].map(b => [b.dataset.f, +b.querySelector('.vl-filter-n').textContent])),
+      back: (document.querySelector('.vl-back') || {}).getAttribute && document.querySelector('.vl-back').getAttribute('href'), house: ((document.querySelector('.vl-item[data-id="card-house"]') || {}).dataset || {}).face || '' }))()`);
+    ok(L.filter === 'needs' && L.view === 'cards' && L.rows.length === 6 && L.rows.includes('card-inferno') && L.rows.includes('card-house') && L.chg === 6 && L.was >= 5 && /^6 NEEDS? YOU$/.test(L.need)
+      && L.counts.needs === 6 && L.counts.changed === 6 && L.counts.all === 50 && L.back === '/' && L.house === 'full',
+      `THE LAB 2.0: NEEDS YOU by default — ${L.rows.length} CHANGED rows (${L.rows.join(', ')}), each with its CHANGED line (${L.chg}) beside the old mark (${L.was} lit as "was"); the bar "${L.need}"; counts ${JSON.stringify(L.counts)}; THE HOUSE opens on its FULL face (only it changed); ← THE CITY → ${L.back}`);
+    // the FULL toggle flips in place (the strip's surface slot swapped), its own mark; a re-mark drops the row's CHANGED count
+    await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-face').click()`); await sleep(400);
+    const F = await ev(p, `(() => { const r = document.querySelector('.vl-item[data-id="card-founder"]'); return { face: r.dataset.face, fc: !!r.querySelector('.vl-fc'), strip: !!r.querySelector('.vl-strip'), canv: document.querySelectorAll('canvas.fx-canvas').length, mk: r.querySelector('.vl-markbox').dataset.id }; })()`);
+    // (both faces of FOUNDING MEMBER approved → its row needs him no more: 6 → 5; a row needs him while EITHER face is changed / unmarked)
+    await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-mark[data-m="approve"]').click()`); await sleep(300);
+    await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-face').click()`); await sleep(300);
+    await ev(p, `document.querySelector('.vl-item[data-id="card-founder"] .vl-mark[data-m="approve"]').click()`);
+    await sleep(400);
+    const A = await ev(p, `({ need: document.querySelector('.vl-need').textContent, m: window.__lab.marks['full-card-founder'], rows: document.querySelectorAll('.vl-item').length })`);
+    ok(F.face === 'full' && F.fc && !F.strip && F.canv === 1 && F.mk === 'full-card-founder' && A.m.m === 'approve' && A.m.v === 2 && /^5 NEEDS? YOU$/.test(A.need) && A.rows === 6,
+      `THE LAB 2.0: FULL CARD › flips the row in place (${F.face}, one canvas) with the full card's own marks (${F.mk}); a re-mark stores the version seen (v${A.m.v}) — "${A.need}" (the rows stay put until the filter changes: ${A.rows})`);
+    await ctx.close(); }
+  { const { ctx, p } = await page('marks=none&filter=needs&view=glows');
+    await ev(p, `localStorage.setItem('vl:seen', '150')`);
+    await p.reload(); await waitFor(p, '!!(document.body.dataset.ready && window.__lab)', 'the lab', 30000); await sleep(500);
+    const N = await ev(p, `({ news: [...document.querySelectorAll('.vl-item .vl-new')].map(n => n.closest('.vl-item').dataset.id), all: document.querySelectorAll('.vl-item').length })`);
+    ok(N.news.length === 9 && N.news.every(id => /^(glow|tube)-/.test(id)) && N.all === 22, `THE LAB 2.0: NEW since his last visit (seen up to 150 → ${N.news.length} NEW: ${N.news.join(', ')})`);
+    await ctx.close(); }
+  { const { ctx, p } = await page('marks=done');
+    await sleep(500);
+    const E = await ev(p, `({ txt: (document.querySelector('.vl-empty b') || {}).textContent || '', need: document.querySelector('.vl-need').textContent })`);
+    ok(E.txt === 'All caught up.' && E.need === 'ALL CAUGHT UP', `THE LAB 2.0: nothing left to mark → "${E.txt}" + the bar "${E.need}"`);
+    await ctx.close(); }
+  // THE VAULT 2C — FOUNDER + THE BADGE SLOT: on every full card with declared moving parts the FOUNDER badge's box never overlaps one, at
+  // 390 / 402 / 430 (the owner: the pill sat on THE SWITCHBOARD's VU needle); the dev cards carry it IN the top line ("NEON SPEAKEASY · FOUNDER")
+  for (const W of [390, 402, 430]) {
+    const ids = ['card-dev-switchboard', 'card-dev-source', 'card-founder', 'card-house', 'card-sg-ufo', 'card-inferno'];
+    const { ctx, p } = await page(`view=cards&filter=all&face=full&fd=1&only=${ids.join(',')}`, { view: [W, 874], dpr: 2 });
+    await sleep(600);
+    const B = await ev(p, `(async () => { const { BADGE, badgeOf } = await import('/js/vault/full.js'); const out = [];
+      for (const fc of document.querySelectorAll('.vl-fc')) { const id = fc.dataset.card, b = badgeOf(id), R = fc.getBoundingClientRect();
+        const el = b.slot === 'stamp' ? fc.querySelector('.vl-fc-stamp') : fc.querySelector('.vl-fc-fd'); if (!el) { out.push({ id, miss: true }); continue; }
+        const r = el.getBoundingClientRect(), bx = [(r.left - R.left) / R.width, (r.top - R.top) / R.height, r.width / R.width, r.height / R.height];
+        const hit = b.moving.filter(m => bx[0] < m[0] + m[2] && m[0] < bx[0] + bx[2] && bx[1] < m[1] + m[3] && m[1] < bx[1] + bx[3]).length;
+        out.push({ id, slot: b.slot, txt: el.textContent, hit, parts: b.moving.length, top: b.slot !== 'top' || /NEON SPEAKEASY · FOUNDER/.test(fc.querySelector('.vl-fc-house').textContent) }); }
+      return out; })()`);
+    ok(B.length === 6 && B.every(x => !x.miss && x.hit === 0 && x.top) && B.filter(x => x.slot !== 'stamp').every(x => x.txt === 'FOUNDER') && B.filter(x => x.parts).length >= 5,
+      `FOUNDER + THE BADGE SLOT at ${W}: ${B.map(x => `${x.id.replace('card-', '')} ${x.slot}${x.hit ? ` HITS ${x.hit}` : ''}`).join(' · ')} — no badge on a moving part; the dev cards' top line "NEON SPEAKEASY · FOUNDER"`);
+    await ctx.close(); }
   // A FULL LOBBY OF 8 LEGENDARIES — 4× CPU, the real compositor (a phone's GPU path): 60 fps
   { const { ctx, p } = await page('view=lobby&bare=1&mix=legend', { real: true, cpu: 4, dpr: 3 });
     await sleep(2500);
@@ -109,7 +161,7 @@ G('vault', async () => {
   { const { ctx, p } = await fingerPage('/tests/integration/vault-preview.html?view=strips');
     await waitFor(p, '!!(document.body.dataset.ready && window.__lab)', 'the lab', 30000);
     const lock = await ev(p, `(() => { const h = getComputedStyle(document.documentElement), b = getComputedStyle(document.body); return h.overflowY + ' / ' + b.overflowY; })()`);
-    const r = await swipeToEnd(p, 200, 760, 560, pageScroll(p));
+    const r = await swipeToEnd(p, 200, 760, 560, pageScroll(p), 40);
     ok(r.first.max > 1200 && r.last.top >= r.last.max - 2, `BY FINGER: THE CARD LAB scrolls top → bottom by touch swipes at 402 × 874 — ${r.moved} of ${r.first.max} px (html / body overflow ${lock})`);
     // a real TAP on a mark: APPROVE → stored; the same tap again → cleared (a tap marks, a swipe scrolls)
     const sel = '.vl-item[data-id="card-smoke"] .vl-mark[data-m="approve"]';
@@ -119,7 +171,9 @@ G('vault', async () => {
     c = await center(p, sel); await p.touchscreen.tap(c[0], c[1]); await sleep(350);
     const m2 = await markOf(p, 'card-smoke', sel);
     ok(m1.m === 'approve' && m1.on && m2.m === null && !m2.on, `BY FINGER: a TAP still marks — APPROVE → stored (${m1.m}, lit ${m1.on}), tapped again → cleared (${m2.m}, lit ${m2.on})`);
-    // A FULL LOBBY → 8 LEGENDARIES by taps (the tabs are sticky), then swipe it to the bottom
+    // A FULL LOBBY → 8 LEGENDARIES by taps (THE LAB 2.0: a tap on the sticky bar's THE LAB scrolls to the top — the sections), then swipe it to the bottom
+    c = await center(p, '.vl-bar-t'); await p.touchscreen.tap(c[0], c[1]);
+    await waitFor(p, 'scrollY < 4', 'back at the top', 4000);
     c = await center(p, '.vl-tab[data-v="lobby"]'); await p.touchscreen.tap(c[0], c[1]);
     await waitFor(p, `!!document.querySelector('.vl-mix .vl-tab[data-k="legend"]')`, 'the lobby view');
     c = await center(p, '.vl-mix .vl-tab[data-k="legend"]'); await p.touchscreen.tap(c[0], c[1]);
@@ -233,14 +287,16 @@ G('vault', async () => {
     const f1 = await ev(p, 'window.__lab.stats.frames'); await sleep(500); const f2 = await ev(p, 'window.__lab.stats.frames');
     ok(d.n === 7 && d.off.sort().join() === 'glow,laser' && d.glow && held.during <= 2 && held.scrolling && f2 - f1 >= 3, `DIAGNOSTICS + SCROLL-PAUSE: 7 switches (${d.off.join(' + ')} off from &diag=, the page's glows off: ${d.glow}); a scroll held the effects (${held.during} frames in 600 ms) — they resumed (${f2 - f1} frames in 500 ms)`);
     await ctx.close(); }
-  // THE FULL CARDS tab: 47 full cards (2A's 3 held + 1C's 8 sighting cards + 1A's 8 + 1B's 7 + 1C's 21) on ONE canvas; a mark flashes SAVED ✓
-  { const { ctx, p } = await page('view=full');
+  // THE FULL CARDS (THE LAB 2.0: every card row flipped to its FULL face — &face=full): 49 full cards on ONE canvas; a mark on the full face
+  // is the full card's own (full-<card>) + flashes SAVED ✓
+  { const { ctx, p } = await page('view=cards&filter=all&face=full');
     await sleep(900);
     const f = await ev(p, `({ cards: document.querySelectorAll('.vl-fc').length, canvases: document.querySelectorAll('canvas.fx-canvas').length, sight: !!document.querySelector('.vl-fc.is-sight .vl-fc-title b') })`);
-    await ev(p, `document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-mark[data-m="approve"]').click()`);
-    const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
-    const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="full-card-inferno"] .vl-saved').textContent`) : '';
-    ok(f.cards === 49 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt), `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark flashes "${txt}"`);
+    await ev(p, `document.querySelector('.vl-item[data-id="card-inferno"] .vl-mark[data-m="approve"]').click()`);
+    const saved = await waitFor(p, `!!document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved')`, 'SAVED', 3000).then(() => true).catch(() => false);
+    const txt = saved ? await ev(p, `document.querySelector('.vl-item[data-id="card-inferno"] .vl-saved').textContent`) : '';
+    const fm = await ev(p, `({ full: (window.__lab.marks['full-card-inferno'] || {}).m || null, strip: (window.__lab.marks['card-inferno'] || {}).m || null })`);
+    ok(f.cards === 49 && f.canvases === 1 && f.sight && saved && /SAVED ✓/.test(txt) && fm.full === 'approve' && !fm.strip, `THE FULL CARDS: ${f.cards} full cards on ${f.canvases} shared canvas (the sighting's title in neon: ${f.sight}); a mark on the FULL face is the full card's own (full ${fm.full}, strip ${fm.strip}) + flashes "${txt}"`);
     await ctx.close(); }
   // THE VAULT 1C — THE SIGHTING'S SCENE (the reveal's pair + the album's no-photo tile): once its full card is APPROVED the placeholder becomes
   // the card's real scene (js/vault/full.js#upgradeScene) — all 9 sightings, each its own canvas drawn; unapproved → the placeholder stays
@@ -339,8 +395,8 @@ G('vault', async () => {
       return { items: document.querySelectorAll('.vl-item').length, ves: document.querySelectorAll('.ve').length, finishes: [...new Set([...document.querySelectorAll('.ve')].map(v => (v.className.match(/ve-f-(\\w+)/) || [])[1]))].sort().join(),
         moving: [...document.querySelectorAll('.ve-l')].filter(x => getComputedStyle(x).animationName !== 'none').length, svgAnim, canvases: document.querySelectorAll('canvas.fx-canvas').length,
         small: [...document.querySelectorAll('.vl-emb-big .ve.is-28')].every(v => Math.round(v.getBoundingClientRect().width) === 28) }; })()`);
-    ok(e.items === 46 && e.ves > 150 && e.finishes === 'aurora,autumn,balloon,chrome,coin,comet,galaxy,glitch,gold,ice,metal,molten,neon,prism,spectral' && e.moving > 60 && e.svgAnim === 0 && e.canvases === 1 && e.small,
-      `THE EMBLEMS tab: ${e.items} items (2A's 10 samples + 2B's 25 · the 12 sign-up shapes · 8 tube styles · 1A's 2), ${e.ves} emblems in all 8 finishes (${e.finishes}), 28 pt checked; ${e.moving} layers moving on the compositor, ${e.svgAnim} animations on an SVG element (none allowed)`);
+    ok(e.items === 38 && e.ves > 120 && e.finishes === 'aurora,autumn,balloon,chrome,coin,comet,galaxy,glitch,gold,ice,metal,molten,neon,prism,spectral' && e.moving > 60 && e.svgAnim === 0 && e.canvases === 1 && e.small,
+      `THE EMBLEMS section: ${e.items} items (2A's 10 samples + 2B's 25 · the 12 sign-up shapes · 1A's 2 — the tube styles live under GLOWS + TUBES since THE LAB 2.0), ${e.ves} emblems in all 8 finishes (${e.finishes}), 28 pt checked; ${e.moving} layers moving on the compositor, ${e.svgAnim} animations on an SVG element (none allowed)`);
     await ev(p, `document.querySelector('.vl-item[data-id="emb-owl"] .vl-mark[data-m="approve"]').click()`); await sleep(300);
     const m = await ev(p, `(window.__lab.marks['emb-owl'] || {}).m`);
     ok(m === 'approve', `THE EMBLEMS tab: a mark stored (emb-owl → ${m})`);
@@ -348,12 +404,13 @@ G('vault', async () => {
     await ctx.close(); }
   { const { ctx, p } = await page('view=glows', { dpr: 2 });
     await sleep(1200);
+    await ev(p, 'document.fonts.ready.then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))))'); await sleep(400);   // (2C: 22 rows now — the fit settles after the fonts)
     const g = await ev(p, `(() => { const names = [...document.querySelectorAll('.vl-name.vg, .vl-fc-name.vg')];
       return { items: document.querySelectorAll('.vl-item').length, names: names.length, looks: [...new Set(names.map(n => (n.className.match(/vg-[a-z]+/g) || []).map(c => c.slice(3)).filter(c => c !== 'still')).flat())].sort().join(),
         over: names.filter(n => { const d = [...n.children].filter(c => c.tagName === 'I'); d.forEach(c => { c.style.display = 'none'; }); const o = n.scrollWidth > n.clientWidth + 1; d.forEach(c => { c.style.display = ''; }); return o; }).length, strip2: [...document.querySelectorAll('.vl-strip .vl-name.vg')].filter(n => n.classList.contains('fit-2')).length,
         lvLit: [...document.querySelectorAll('.vl-lv, .vl-fc-lv')].filter(l => l.className.includes('vg')).length, pieces: document.querySelectorAll('.vg > i').length }; })()`);
-    ok(g.items === 14 && g.names === 42 && g.looks.split(',').length === 14 && g.over === 0 && g.strip2 === 0 && g.lvLit === 0 && g.pieces > 10,
-      `THE GLOWS tab: ${g.items} glows on ${g.names} names (${g.looks}) — LOEWFIZZLE whole on one line on every strip (${g.over} overflowing, ${g.strip2} split), the level line never lit (${g.lvLit}), ${g.pieces} glints + arcs`);
+    ok(g.items === 22 && g.names === 42 && g.looks.split(',').length === 14 && g.over === 0 && g.strip2 === 0 && g.lvLit === 0 && g.pieces > 10,
+      `GLOWS + TUBES: ${g.items} rows (14 glows + 8 tube styles) — the glows on ${g.names} names (${g.looks}) — LOEWFIZZLE whole on one line on every strip (${g.over} overflowing, ${g.strip2} split), the level line never lit (${g.lvLit}), ${g.pieces} glints + arcs`);
     await ctx.close(); }
   { const { ctx, p } = await anyPage('/tests/integration/card-review.html?cards=card-founder,card-house,card-platinum', { view: [402, 1200] });
     await waitFor(p, '!!document.body.dataset.ready', 'the review page', 30000); await sleep(1500);

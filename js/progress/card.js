@@ -32,7 +32,7 @@ export function gildedCard(pub, local = {}, opts = {}) {
   const el = h('div.pg-card', { class: opts.mini ? 'is-mini' : '', dataset: { card }, style: { ...cardVars(card), '--c': colorHex(p.c || 'magenta') } },
     h('span.pg-card-clip', { 'aria-hidden': 'true' }, h('span.pg-card-sun')),
     opts.mini ? null : h('div.pg-card-top', h('span', 'NEON SPEAKEASY'), h('span.pg-card-no', memberLabel(p.mn) ? `№ ${memberLabel(p.mn)}` : 'GUEST')),
-    p.fd && !opts.mini ? h('span.pg-card-fd', 'FOUNDING MEMBER') : null,
+    p.fd && !opts.mini ? h('span.pg-card-fd', 'FOUNDER') : null,   // (THE VAULT 2C: the badge reads FOUNDER — the card FOUNDING MEMBER keeps its name)
     opts.mini ? null : h('div.pg-card-mid',
       h('span.pg-card-emb', avatar(p.a || 'bolt', p.c || 'magenta', 80)),
       h('div.pg-card-id',

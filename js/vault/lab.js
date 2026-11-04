@@ -5,7 +5,7 @@ import { h } from '../ui/dom.js';
 import { initFirebase, isConfigured } from '../firebase.js';
 import { api } from '../profile/api.js';
 import { mountLab } from './lab-views.js';
-import { registerLabText } from './catalog.js';
+import { registerLabText, registerLabChanges } from './catalog.js';
 
 const app = document.getElementById('app');
 
@@ -15,7 +15,7 @@ function denied(who) {
     h('h1', 'THE CARD LAB'),
     h('p', 'This room is for the owner. Open it in the browser where your admin profile lives (the one with the radio).'),
     who && who.pid ? h('p', 'This browser’s profile id: ', h('code', who.pid)) : h('p', 'No profile on this browser yet — open the game here once (or bring your card with your key) and come back.'),
-    h('p', h('a.vl-a', { href: '/' }, '‹ Back to the game'))));
+    h('p', h('a.vl-a', { href: '/' }, '‹ THE CITY'))));
 }
 
 async function boot() {
@@ -24,8 +24,8 @@ async function boot() {
     await initFirebase();
     const who = await api('admin', { action: 'whoami' });
     if (!who.admin) { denied(who); return; }
-    const { marks, text } = await api('admin', { action: 'labMarks' });
-    registerLabText(text);
+    const { marks, text, changes } = await api('admin', { action: 'labMarks' });
+    registerLabText(text); registerLabChanges(changes);
     const lab = mountLab(app, { marks, onMark: (id, mark, note) => api('admin', { action: 'labMark', id, mark, note }) });
     window.__labPage = { lab, who };
   } catch (e) {

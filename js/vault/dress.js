@@ -18,6 +18,7 @@ import { TIER_NAMES, TIERS, ITEM, ownedOf } from '../core/items.js';
 import { levelInfo } from '../core/levels.js';
 import { memberLabel } from '../core/member.js';
 import { isDevCard, ONE_OF_ONE, DEV_CARDS } from '../core/dev-cards.js';
+import { gemEl } from './gems.js';
 import { emblemEl, hasArt, tubeApplies, TUBE_STYLES } from './emblem-art.js';
 import { applyGlow, GLOW_ART } from './glows.js';
 import { stripEl, LOOKS, vaultSheet, fxOpts, embTier } from './strip.js';
@@ -50,10 +51,10 @@ function wornStrip(surface, W, who, approved, seed = 1) {
   if (real && LOOKS[card].fx && FX[LOOKS[card].fx]) surface.add(s, FX[LOOKS[card].fx], fxOpts(card, { seed, calm: 0, radius: 12 }));
   return s;
 }
-/** a DEV card's tag: ONE OF ONE · DEV (a tier above legendary in look) */
+/** a DEV card's strip (a tier above legendary in look): THE DEV GEM in its corner (THE VAULT 2C — no words on a strip) */
 export function oneOfOne(el) {
   el.classList.add('vl-dev1');
-  const t = el.querySelector('.vl-tier'); if (t) t.textContent = ONE_OF_ONE;
+  const g = el.querySelector(':scope > .vl-gem'); if (g && !g.classList.contains('vl-gem-dev')) g.replaceWith(gemEl(null, { dev: true }));
   return el;
 }
 /** the worn pieces in words: INFERNO · THE ALIEN · EMBER (+ the tube style) */

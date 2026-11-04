@@ -42,8 +42,7 @@ export function front(k, dpr, o = {}) {
     S.ROOMS.forEach(rm => { const [a, b] = s.windows[rm.col], [r0, r1] = s.rows[rm.floor - 2]; B.paintWindow(x, M, a, b, r0, r1, { blind: 0.18, curtain: null, plant: rm.id === 'edge2' }); });
     B.paintGround(x, M, s, null);
     B.paintLight(x, M, 0, W, false, 51);
-    // THE ROOMS, LIT — the city's own night rooms (window-rooms.js#paintRoom: the bar, the jazz room's honey shade, the card game under
-    // its green lamp, the TV apartment, the curtained edges), each a box in perspective toward the card's eye (the building's middle)
+    // THE ROOMS, LIT — the city's own night rooms (window-rooms.js#paintRoom: the bar, the jazz room's honey shade — the back room left for THE SHADOWBOXER (drawBoxer) —, the TV apartment, the curtained edges), each a box in perspective toward the card's eye (the building's middle)
     if (o.rooms !== false) {
       const vp = { u: W / 2, v: V.rows[0][1] }, live = o.live || ['back'];
       S.ROOMS.forEach(rm => { if (live.includes(rm.id) || rm.lit === 'table') return; const [a, b] = s.windows[rm.col], [r0, r1] = s.rows[rm.floor - 2]; try { WR.paintRoom(x, { ...rm, u: [a, b], v: [r0, r1] }, { late: 0, vp }); } catch (e) { void e; } });

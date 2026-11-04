@@ -16,6 +16,9 @@ async function panelSection() {
   await waitFor(O.page, '!!document.querySelector(".gm-adm .gm-item")', 'the ADMIN row', 5000);
   const adm = await ev(O.page, `(() => { const a = document.querySelector('.gm-adm'), b = a.querySelector('.gm-item').getBoundingClientRect(); return { last: a === a.parentNode.lastElementChild, h: b.height, txt: a.textContent, pill: !!document.querySelector('.hr-pill'), cue: !document.querySelector('.menu-btn .mb-cue').hidden }; })()`);
   ok(adm.last && adm.h >= 44 && /ADMIN/.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on`);
+  // THE VAULT 2C — THE LAB in the ☰ menu (admins only: the same yes as ADMIN) → /lab
+  const lab = await ev(O.page, `(() => { const b = document.querySelector('.gm-lab'); return b ? { txt: b.textContent, h: b.getBoundingClientRect().height } : null; })()`);
+  ok(lab && /THE LAB/.test(lab.txt) && lab.h >= 44, `THE VAULT 2C — THE LAB in the ☰ menu for an admin ("${lab && lab.txt}", ${lab ? Math.round(lab.h) : 0} pt)`);
   await tap(O.page, '.gm-adm .gm-item');
   await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);

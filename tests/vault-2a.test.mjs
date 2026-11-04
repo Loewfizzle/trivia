@@ -98,7 +98,7 @@ test('THE PICKER: emblems · tube styles · glows as rows on the player\'s own s
   assert.match(pr, /dressPanel\(data, /);
   assert.match(pk, /export function stylePicker\(o\)/); assert.match(pk, /'WEARING ✓'/);
   assert.doesNotMatch(pr, /pg-vitem/, 'the old tiles gone');
-  for (const v of ['emblems', 'glows']) assert.match(lab, new RegExp(`dataset: \\{ v: '${v}' \\}`));
+  for (const v of ['emblems', 'glows']) assert.match(lab, new RegExp(`\\['${v}', '`));   // (THE LAB 2.0: the SECTIONS table)
   assert.match(lab, /wearMix/);
   assert.doesNotMatch(read('js/profile/bring.js'), /I’M NEW HERE/);
 });

@@ -188,6 +188,28 @@ export const LAB_IDS = Object.freeze(LAB.map(x => x.id));
 // THE VAULT 1B — NAMES ONLY TO OWNERS: the lab's NAMES + what each one does are the SERVER's (api/_lib/lab-text.js) — handed to the lab with
 // the marks (admins only: /api/admin labMarks → { marks, text }); the look previews (never deployed) import them off the local server.
 export function registerLabText(t) { for (const x of LAB) if (t && t[x.id]) Object.assign(x, t[x.id]); }
+// THE LAB 2.0 (THE VAULT 2C — the owner, Nov 3 6:45 pm): every item carries a VERSION — 1 until a pass edits its art / words, then the pass
+// bumps it here + writes WHAT changed (api/_lib/lab-text.js#LAB_CHANGES — server-side with the names; dated). A mark stores the version it
+// was made at (the server stamps it); a newer version = CHANGED → the item drops back into NEEDS YOU with its "CHANGED <date> — what" line
+// beside his old mark. (An APPROVE still ships the newer art: CHANGED asks for a re-look, it never pulls approved art.)
+export const LAB_V = Object.freeze({
+  'card-inferno': 2, 'full-card-inferno': 2, 'card-century': 2, 'full-card-century': 2,
+  'card-dev-switchboard': 2, 'card-dev-source': 2, 'full-card-dev-switchboard': 2, 'full-card-dev-source': 2,
+  'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
+});
+/** an item's current version */
+export const verOf = id => LAB_V[id] || 1;
+let CHANGES = {};
+/** the server's dated "what changed" lines (admins only — with the names): { id: [{ v, at: 'YYYY-MM-DD', what }] } */
+export function registerLabChanges(c) { CHANGES = c || {}; }
+export const changesOf = id => CHANGES[id] || [];
+/** a mark's state against the item's version: 'new' (never marked) · 'changed' (marked at an older version) · approve · fix · cut */
+export function labStatus(id, mark) {
+  if (!mark || !mark.m) return 'new';
+  if ((mark.v || 1) < verOf(id)) return 'changed';
+  return mark.m;
+}
+export const NEEDS = Object.freeze(['new', 'changed']);
 export const MARKS = Object.freeze(['approve', 'fix', 'cut']);
 export const NOTE_MAX = 400;
 /** a mark as the server stores it — or null (bad input) */
@@ -195,7 +217,7 @@ export function cleanMark(id, mark, note) {
   if (!LAB_IDS.includes(id)) return null;
   if (mark !== null && !MARKS.includes(mark)) return null;
   const n = typeof note === 'string' ? note.replace(/[\u0000-\u001f\u007f]/g, ' ').trim().slice(0, NOTE_MAX) : '';
-  return { m: mark, note: n };
+  return { m: mark, note: n, v: verOf(id) };   // (THE LAB 2.0: the server stamps the version marked — what he saw)
 }
 /** the sample guests the lab dresses the strips on (names + levels from the owner's sketch) */
 export const GUESTS = Object.freeze([

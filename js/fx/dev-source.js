@@ -82,7 +82,7 @@ const boxOf = L => { let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Inf
 function layoutOf(w, h, full) {
   if (full) return { full, sign: [w * 0.49, h * 0.6, w * 0.43], cmd: [w * 0.07, h * 0.235, 10.5], fs: [5.4, 7, 9], cols: [9, 5, 3], dim: 0.62 };
   // (2C — the owner's FIX: NEON brought down + centred in the strip's art, right of the plate — the tier gem left the corner free)
-  return { full, sign: [w * 0.78 - w * 0.135, (h - w * 0.27 * 100 / 332) / 2, w * 0.27], cmd: null, fs: [4, 5.2, 6.6], cols: [12, 7, 3] };
+  return { full, sign: [w * 0.72 - w * 0.135, (h - w * 0.27 * 100 / 332) / 2, w * 0.27], cmd: null, fs: [4, 5.2, 6.6], cols: [12, 7, 3] };
 }
 
 export default {

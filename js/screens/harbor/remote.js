@@ -274,6 +274,9 @@ export function createRemote({ scene, api = apiCall }) {
     if (destroyed || !ok) return;
     bar = h('div.hr-bar');
     document.body.append(bar);
+    // (THE VAULT 2C — THE LAB in the ☰ menu: admins only — the same server yes (whoami) as the ADMIN row; nobody else gets the row;
+    //  registered first: ADMIN stays the menu's last row)
+    setMenuExtra('lab', ({ close: closeMenu }) => (destroyed || !admin ? null : h('button.gm-item.gm-lab', { type: 'button', 'aria-label': 'The Card Lab', onclick: () => { closeMenu(); location.href = '/lab'; } }, h('b', 'THE LAB'), h('span', 'Mark the cards, emblems + glows'))));
     setMenuExtra('admin', adminRow);
     if (liveNext && !cd) countdown('all', liveNext.startAt, R.describe(liveNext.state));
     paintChip(); paintCd();
@@ -990,7 +993,7 @@ export function createRemote({ scene, api = apiCall }) {
       clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); window.removeEventListener('nd:me', onMe);
       if (bar) bar.remove();
       if (sheet) sheet.remove();
-      setMenuExtra('admin', null); setMenuCue(null);
+      setMenuExtra('admin', null); setMenuExtra('lab', null); setMenuCue(null);
       sheet = bar = cdEl = null;
     },
   };

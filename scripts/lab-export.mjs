@@ -4,7 +4,7 @@
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { LAB, registerLabText } from '../js/vault/catalog.js';
+import { LAB, registerLabText, labStatus, verOf } from '../js/vault/catalog.js';
 import { LAB_TEXT } from '../api/_lib/lab-text.js';   // (THE VAULT 1B moved the names server-side: read them locally)
 registerLabText(LAB_TEXT);
 
@@ -16,11 +16,11 @@ const when = t => (t ? new Date(t).toISOString().replace('T', ' ').slice(0, 16) 
 const lines = [
   '# THE CARD LAB — the owner\'s marks (read this FIRST in the next VAULT pass)',
   '',
-  `Exported ${when(at)} from ${base} by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet.`,
+  `Exported ${when(at)} from ${base} by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).`,
   '',
-  '| # | item | tier | mark | note | when |',
-  '| --- | --- | --- | --- | --- | --- |',
-  ...LAB.map(x => { const m = marks[x.id] || {}; return `| ${x.n} | ${x.name} (\`${x.id}\`) | ${x.tier} | ${m.m ? m.m.toUpperCase() : '—'} | ${(m.note || '').replace(/\|/g, '/').replace(/\n/g, ' ')} | ${when(m.at)} |`; }),
+  '| # | item | tier | mark | note | when | v |',
+  '| --- | --- | --- | --- | --- | --- | --- |',
+  ...LAB.map(x => { const m = marks[x.id] || {}; return `| ${x.n} | ${x.name} (\`${x.id}\`) | ${x.tier} | ${m.m ? m.m.toUpperCase() : '—'} | ${(m.note || '').replace(/\|/g, '/').replace(/\n/g, ' ')} | ${when(m.at)} | ${labStatus(x.id, m) === 'changed' ? `CHANGED (marked v${m.v || 1}, now v${verOf(x.id)})` : `v${verOf(x.id)}`} |`; }),
   '',
 ];
 const out = join(dirname(fileURLToPath(import.meta.url)), '..', 'docs', 'vault-lab-marks.md');

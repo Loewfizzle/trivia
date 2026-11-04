@@ -35,6 +35,21 @@ const tierOf = id => ((LAB.find(x => x.id === id) || {}).tier) || ((ITEM[id] || 
 const spotOf = card => (card === 'card-sg-ghostship' ? 'sighted on the harbor' : 'spotted over the harbor');
 const timeOf = at => { try { return new Date(at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }).toLowerCase(); } catch { return ''; } };
 
+// THE VAULT 2C — FOUNDER + THE BADGE SLOT (the owner, Nov 3 6:35 pm: "the FOUNDING MEMBER pill sits over the VU meter's needle — the moving
+// part matters more"). The badge reads FOUNDER (the CARD keeps its name FOUNDING MEMBER) and sits in each card's declared SLOT, clear of that
+// card's MOVING PARTS — its feature pieces (a needle, the lamps, the jacks, a lit sign, a window scene), in fractions of the card [x, y, w, h].
+// (Ambient motion that fills a whole card — confetti, sparkles, flames, a firework's trails, a material's sheen — is the card's ground, not a
+// part.) slot: 'pill' (under the top line, left — the default) · 'top' (in the top line itself: "NEON SPEAKEASY · FOUNDER") · 'stamp'
+// (FOUNDING MEMBER's own gold stamp is its badge). tests/integration/harbor-e2e/vault.mjs proves no overlap at 390 / 402 / 430.
+export const BADGE = Object.freeze({
+  'card-dev-switchboard': { slot: 'top', moving: [[0.065, 0.185, 0.15, 0.115], [0.24, 0.215, 0.33, 0.06], [0.765, 0.35, 0.19, 0.13], [0.05, 0.39, 0.9, 0.52]] },
+  'card-dev-source': { slot: 'top', moving: [[0.49, 0.6, 0.43, 0.21], [0.07, 0.2, 0.62, 0.075]] },
+  'card-founder': { slot: 'stamp', moving: [[0.362, 0.205, 0.276, 0.2], [0.41, 0.6, 0.14, 0.22]] },
+  'card-house': { slot: 'pill', moving: [[0.47, 0.14, 0.47, 0.75]] },
+  'card-sg-ufo': { slot: 'pill', moving: [[0.3, 0.16, 0.4, 0.4]] },
+});
+export const badgeOf = card => BADGE[card] || { slot: 'pill', moving: [] };
+
 /** the element: material + plate + words + frame (the effect is a slot: mountFull) */
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const look = LOOKS[card] || LOOKS['card-brushed'], t = tier || tierOf(card), lv = who.lv || 1;
@@ -44,12 +59,14 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)
     h('span.vl-fc-emb', emblemEl({ id: hasArt(who.shape) ? who.shape : null, avatar: who.avatar || 'bolt', color: who.color || 'magenta', tube: who.tube, mode: prominence(t, embTier(hasArt(who.shape) ? who.shape : null)) })),
     h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', isDevCard(card) ? `THE DEVELOPER · № ${who.no || '0001'}` : `${bandOf(lv).name} · LV ${lv}`)));
-  const dev = isDevCard(card);
+  const dev = isDevCard(card), badge = badgeOf(card);
   const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,
-    h('div.vl-fc-top', h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), h('span.vl-tier', dev ? ONE_OF_ONE : TIER_NAMES[t] || t)),
-    who.fd && !sighting ? h('span.vl-fc-fd', 'FOUNDING MEMBER') : null,
+    h('div.vl-fc-top', badge.slot === 'top'
+      ? h('span.vl-fc-house', 'NEON SPEAKEASY', who.fd ? [' · ', h('b.vl-fc-fd.is-top', 'FOUNDER')] : null)   // (2C: his № is under his name — the line carries FOUNDER)
+      : h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), h('span.vl-tier', dev ? ONE_OF_ONE : TIER_NAMES[t] || t)),
+    who.fd && !sighting && badge.slot === 'pill' ? h('span.vl-fc-fd', 'FOUNDER') : null,
     sighting ? h('div.vl-fc-title', { class: nameOf(card).length > 18 ? 'is-long' : '' }, h('b', nameOf(card)), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,
     h('div.vl-fc-foot', h('span.vl-fc-since', h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at))), sighting ? null : h('span.vl-fc-card', nameOf(card))),

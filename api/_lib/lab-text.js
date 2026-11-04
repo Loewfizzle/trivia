@@ -42,9 +42,9 @@ export const LAB_TEXT = {
  "glow-champagne": { "name": "CHAMPAGNE", "motion": "A NAME GLOW (rare): pale champagne gold, bubbles of light rising off the letters + popping" },
  "glow-prism": { "name": "PRISM", "motion": "A NAME GLOW (epic): every colour through the letters, a white shine breathing over them, rainbow glints popping" },
  "glow-glitch": { "name": "GLITCH", "motion": "A NAME GLOW (epic, level 63): white letters; now + then the signal tears — a red + a cyan copy jumping off them, snapping back" },
- "card-dev-switchboard": { "name": "THE SWITCHBOARD", "motion": "#1 OF #1 · DEV (yours only) — the brass radio desk in warm lamplight: glowing patch cables snake in + plug (a spark at each), their jacks' lamps light, light runs along them on the beat; ON AIR buzzes on; a VU needle + level lamps dance; dust in the lamp's beam, a glint across the brass; the gold-into-red laser" },
+ "card-dev-switchboard": { "name": "THE SWITCHBOARD", "motion": "1 OF 1 · DEV (yours only) — the brass radio desk in warm lamplight: glowing patch cables snake in + plug (a spark at each), their jacks' lamps light, light runs along them on the beat; ON AIR buzzes on; a VU needle + level lamps dance; dust in the lamp's beam, a glint across the brass; the gold-into-red laser" },
  "full-card-dev-switchboard": { "name": "THE SWITCHBOARD · FULL CARD", "motion": "The whole desk: four rows of jacks, five cables plugging in turn, ON AIR in its brass box, the VU meter + its lamps, the beam + its dust; THE DEVELOPER · № 0001 on your plate" },
- "card-dev-source": { "name": "THE SOURCE", "motion": "#1 OF #1 · DEV (yours only) — the city's real code streaming in columns (far dim + soft, near bright + sharp), lines running gold; the NEON sign igniting letter by letter with sparks, a power surge, glitches, CRT scanlines; the green-into-magenta laser" },
+ "card-dev-source": { "name": "THE SOURCE", "motion": "1 OF 1 · DEV (yours only) — the city's real code streaming in columns (far dim + soft, near bright + sharp), lines running gold; the NEON sign igniting letter by letter with sparks, a power surge, glitches, CRT scanlines; the green-into-magenta laser" },
  "full-card-dev-source": { "name": "THE SOURCE · FULL CARD", "motion": "The cursor types city.build({ by: 'LOEWFIZZLE' }) → ENTER → every column runs gold → NEON ignites letter by letter → THE SURGE; glitch passes, the rolling refresh band, the sign collapsing to a line at the end; THE DEVELOPER · № 0001" },
  "emb-crown": { "name": "THE CROWN", "motion": "NEON (rare) — its OWN shape now (no second three-spike crown beside THE HOUSE's): an imperial crown, its two violet arches sweeping up to the gold orb + cross, the band's three gems twinkling in turn, a glint off the cross" },
  "emb-key": { "name": "THE KEY", "motion": "NEON — the house style: an amber key with a pink diamond in its bow, two tubes in the sign's own layers (glass, glow, body, white-hot core); still — its motion comes from the tube style you wear" },
@@ -452,4 +452,20 @@ export const LAB_TEXT = {
   "name": "I WANT TO BELIEVE · FULL CARD",
   "motion": "The real UFO over the harbor, ports chasing, the beam pulsing to the skyline + motes rising, the title in neon, THE BORDER LASER"
  }
+};
+
+// THE LAB 2.0 (THE VAULT 2C) — WHAT CHANGED, per item + version (js/vault/catalog.js#LAB_V holds the numbers): the lab shows the newest
+// line beside his old mark ("CHANGED Nov 3 — …"). A pass that edits an item's art / words bumps its LAB_V + adds its line here.
+export const LAB_CHANGES = {
+  'card-inferno': [{ v: 2, at: '2026-11-03', what: 'Real fire now — a baked field of flame (tongues splitting, merging, tearing off at the tips, white-hot at the root), two layers crossing, across the whole strip. The old teardrops are gone.' }],
+  'full-card-inferno': [{ v: 2, at: '2026-11-03', what: 'The same real fire as the strip, filling the card’s lower half.' }],
+  'card-century': [{ v: 2, at: '2026-11-03', what: 'Its flames are the new real fire (your FIX had no note — the teardrop flames were the likeliest reason; say so if it was something else).' }],
+  'full-card-century': [{ v: 2, at: '2026-11-03', what: 'The new real fire over the bronze.' }],
+  'card-dev-switchboard': [{ v: 2, at: '2026-11-03', what: 'The pink cable lands in a TOP-row jack. The ONE OF ONE pill is gone — THE DEV GEM (prismatic, pulsing, sparkling) in the corner instead; no words on the strip (the decided rule).' }],
+  'card-dev-source': [{ v: 2, at: '2026-11-03', what: 'NEON brought down + centred in the strip. The pill → THE DEV GEM.' }],
+  'full-card-dev-switchboard': [{ v: 2, at: '2026-11-03', what: '1 OF 1 · DEV in bold. The top row reads NEON SPEAKEASY · FOUNDER (its Nº dropped — it’s under your name); the badge never covers the VU meter.' }],
+  'full-card-dev-source': [{ v: 2, at: '2026-11-03', what: '1 OF 1 · DEV in bold.' }],
+  'card-founder': [{ v: 2, at: '2026-11-03', what: 'NEON SPEAKEASY centred. The LEGENDARY + Nº pills are gone — a gold TIER GEM in the corner + your Nº in gold letters.' }],
+  'full-card-founder': [{ v: 2, at: '2026-11-03', what: 'The card-game room is now THE SHADOWBOXER, live (the city’s own). The FOUNDER badge sits in a slot clear of anything moving.' }],
+  'full-card-house': [{ v: 2, at: '2026-11-03', what: 'The card-game room is now THE SHADOWBOXER, live (no card game anywhere).' }],
 };
