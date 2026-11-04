@@ -703,3 +703,13 @@ hidden; the screen-at-rest fade OFF (the dock is the room's controls); a tap on 
 room closing soon (the host's tap = KEEP OPEN), a running match this phone stepped out of (tap = WATCH). The hush word in neon on the
 speakeasy (`scene.hush`) — NO room pill under the logo. The players' tags over their heads: `.rc-tags` (fixed, transform only).
 The SAVE-YOUR-KEY POP-UP's pink dot sits on YOU (both docks) until the key is saved (`profile/keypop.js`).
+
+## THE GAME START + THE WALK BACK OUT + THE REMATCH RING (LOBBY 2.0 B — docs/harbor/passes/lobby-2b.md)
+- **THE GAME START** (`room-city.js#startFx`, `core/room-show.js`): the host's tap stamps meta/go; on every phone the sign powers down (the DOM tubes by
+  CSS + the city's parts through `scene.dimSign('room-start')`), the game's tube logo (`ui/tube-logo.js#gameLogoSvg`) powers up under TONIGHT, the two
+  lines file in (people.js#planIn — the doorman holds the side door), the screen + the city's layer (`.nd-scene`) scale toward the door + a dark veil;
+  app.js keeps the title routed for the 2.6 s, then the game. Every animation at a negative delay = the show's age. The dock + the tags step aside.
+- **THE WALK BACK OUT** (people.js#planOut): the city rebuilt after a match sees the roster with each player's turn — out through the side door to their place.
+- **THE REMATCH RING** (room-dock.js): after the match the PLAY ring reads REMATCH (the host) / REMATCH · VOTE → ✓ VOTED (a guest); the voters' dots in one
+  row above it + the "n of N want a rematch" pill above them (TIDIED, Nov 4 9:25 am).
+- **THE WINNER's BANNER PLANE** + **THE NIGHT's CHAMPION** (room-banner.js → scene.js#roomBanner — the city's own banner plane; never over a legendary).

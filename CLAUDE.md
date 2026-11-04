@@ -110,7 +110,11 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   filter calls rude shows as its HOUSE NICKNAME (`api/_lib/lb.js#publicName`, `js/core/nicknames.js`); REPORT + /admin's rename / hide stay;
   a report pushes the owner (`api/board.js` → `radio.js#notifyOwner`). `profiles/{pid}` is readable one at a time by signed-in users, never
   as a list. A profile is listed from its 3rd counted match. docs/profiles.md "REAL USERNAMES".
-- **THE ROOM IN THE CITY (LOBBY 2.0 A):** a City 2.0 room's waiting part IS the live city — app.js routes it to the title (never reloaded);
+- **THE ROOM IN THE CITY (LOBBY 2.0 A + B):** in City 2.0 THE OLD LOBBY SCREEN IS RETIRED — the room lives in the city from the join to the podium
+  and back (City 1.0's `?city=1` keeps lobby.js until the switch-over deletes it). LOBBY 2.0 B: THE GAME START (meta/go — the walk inside, 2.6 s,
+  `core/room-show.js`), THE CITY PAUSE (a match on screen = the city destroyed + rebuilt after), the walk back out + THE WINNER's BANNER PLANE (meta/back
+  — `screens/room-banner.js`), THE REMATCH VOTE (rooms/{CODE}/rv/{uid}), ONE SHEET STACK (`ui/layers.js` — every pop-up opens on top); docs/harbor/passes/lobby-2b.md.
+  A City 2.0 room's waiting part IS the live city — app.js routes it to the title (never reloaded);
   `screens/room-city.js` (+ room-dock / room-guests / game-options) puts the players in TWO LINES OF 4 at the door (`core/harbor-room.js` +
   `room-lines.js` — derived from rooms/{CODE}; each keeps their line: `players/{uid}/ln`); docs/harbor/passes/lobby-2a.md (+ B's hand-off).
 - **Anti-cheat never depends on the code being secret** (the owner, Oct 28 — the repo stays PUBLIC until just before the launch): the
@@ -168,7 +172,8 @@ js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood
 js/core/mp3-slice.js tape-math.js                        PURE: an MP3's frames → a byte slice in song time; the tape's rate schedule + its exact integral (docs/audio.md#the-tape-stop-in-web-audio)
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
 js/screens/ title.js title-dock.js setup.js lobby.js profile.js district/*.js   the front door, name/avatar, the lobby, the membership card; CITY 1.0 — the district (Canvas 2D: sky, signs, live weather, the street; docs/title.md)
-js/screens/ room-city.js room-dock.js room-guests.js game-options.js   LOBBY 2.0 A — THE ROOM IN THE CITY (the roster → the city, the tags, the room dock, the guest list, the game's options; core/harbor-room.js + room-lines.js PURE)
+js/screens/ room-city.js room-dock.js room-guests.js game-options.js room-banner.js   LOBBY 2.0 A + B — THE ROOM IN THE CITY (the roster → the city, the tags, the room dock, the guest list, the game's options, the game start, the banner + the champion; core/harbor-room.js + room-lines.js + room-show.js PURE)
+js/games/cartridge.js  js/ui/layers.js                   THE CARTRIDGE PLUG (the contract + checkCartridge — docs/cartridge.md) · ONE SHEET STACK (every pop-up takes the next layer)
 js/screens/harbor/ js/core/harbor-*.js + its sounds, bakes, canvas helpers   CITY 2.0 — THE HARBOR (?city=2): every file in docs/harbor.md#the-file-map (scene.js + its cuts: scene-fireworks / legend / holiday / weather / party / perf / panel)
 js/daychart/  daychart.html                         THE DAY CHART (SCHED): the city's day + year from the planners — /daychart + a card in /admin (admins only)
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
@@ -190,7 +195,8 @@ tests/fixtures/finals.mjs                                finished matches of eve
 ## Data model (the shared core; every node and every game's `game` shape: `docs/data-model.md`)
 ```
 rooms/{CODE}/       ← CODE = the HUSH WORD (a common 4-letter word; docs/content.md); hush/{WORD}: { closedAt } rests it 24 h after closing
-  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...} }   ← locked: LOCK THE DOOR (no new player nodes)
+  meta:      { hostId, status: 'lobby'|'playing', createdAt, activeAt, hostBeat, locked?, settings/{gameId}: {...}, go?, back? }   ← locked: LOCK THE DOOR; go / back: LOBBY 2.0 B's start + end stamps
+  rv/{uid}:  matchId                                         ← THE REMATCH VOTE: your own vote, while meta/back.rm
   players/{uid}:  { name, color, avatar, joinedAt, pid? }    ← written by that player only (pid: their own profile id only)
   presence/{uid}: { online, lastSeen, v: 2, c: { connId } } ← ONE CHILD PER CONNECTION (APP FIXES): online = any c child left
   kicked/{uid}:   true                                       ← host only

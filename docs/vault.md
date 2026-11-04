@@ -445,7 +445,10 @@ four sparkles popping in turn, a soft rainbow halo turning — it plays even on 
 like the emblems: small SVG layers, each moving part its own HTML layer, transform + opacity only; reduced motion = the still frame (the dev gem
 bright, its sparkles lit). FOUNDING MEMBER's № → gold letters in the top corner (no pill).
 
-### "1 OF 1 · DEV" + FOUNDER + THE BADGE SLOT
+### "1 OF 1" (was "1 OF 1 · DEV") + FOUNDER + THE BADGE SLOT
+**LOBBY 2.0 B (the owner, Nov 4 7:12 am): the pill reads just "1 OF 1"** — "· DEV" cut off FOUNDER on THE SWITCHBOARD; and THE TOP LINE NEVER CLIPS
+(`vault/full.js#fitTop`: NEON SPEAKEASY · FOUNDER / · № n + the pill side by side — the letter-spacing tightens first, then the size; checked on all 50
+full cards at 390 / 402 / 430 + a 72 % viewer). Both dev full cards v3.
 The dev cards' tag (`core/dev-cards.js#ONE_OF_ONE`) reads **1 OF 1 · DEV** (the owner's ADD-ON, 7:16 pm — it replaced "#1 OF #1"), BOLD (the
 display face at 900), on the FULL CARD + in CUSTOMIZE only — the strip has the dev gem. **FOUNDER** is the badge's word everywhere (the full
 card's pill, the Gilded card's pill); the CARD keeps its name FOUNDING MEMBER. **`js/vault/full.js#BADGE`** — each card's SLOT (`pill` under the

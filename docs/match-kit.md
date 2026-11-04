@@ -17,6 +17,9 @@ Styling: elements carry `mk-*` classes (css/kit.css; theme with `--mk-accent`, `
 the game root, which should also have class `mk-root`). A game that passes a `prefix` ('sl', 'pd', 'gl') gets `${prefix}-*` classes
 instead and keeps its own CSS — that is how the three existing games adopted the kit with zero visual change.
 
+**What a game EXPORTS + what the console GIVES it (the room, the game start, the city pause, the banner, the rematch vote, the chat's lock, the
+DAILY plug-in): `docs/cartridge.md` (LOBBY 2.0 B — js/games/cartridge.js, checked by tests/cartridge.test.mjs).**
+
 Not in the kit (already shared elsewhere): the podium + WINNER reveal (`ui/final.js#createFinal`), room playlists + Call the Winner
 bonus (`core/playlist.js`), synced song playback (`audio/synced-songs.js`), toasts, `h()`, avatars, chips.
 

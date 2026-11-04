@@ -1565,3 +1565,8 @@ MP3 96 kbps) → `audio/sfx/lb-<name>.mp3` (5–15 KB each):
 The optional 444431 envelope layer under the invite's pop and the backup 398403 letterbox were left out (the pick reads on its own at
 this level). `lobbySfx(name)` plays through the SFX bus (the slider + mute apply), de-dupes a burst (`card-in` once every 160 ms), and
 does nothing — never throws — before the unlock, muted, or with a file missing: the room works silent. All CC0 — js/ui/credits.js.
+
+## THE GAME START's sounds (LOBBY 2.0 B, Nov 4 2026)
+The sign's own recorded neon (audio/ambience.js): a DROPOUT as NEON powers down at the host's tap, a CATCH as the game's logo lights (~0.47 s) — only
+from the start itself (never a refresh mid-start), never on reduced motion. The game's music starts with the stamp (app.js#musicFor: status 'playing');
+the city's sounds stop with the city (THE CITY PAUSE: the scene's `snd`, the rain, the hum go with the title's unmount). The podium keeps FINAL_MUSIC.

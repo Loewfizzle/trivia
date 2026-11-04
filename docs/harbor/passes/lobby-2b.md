@@ -129,5 +129,54 @@ pushed (no tag).
   121 pt — on screen at 390 / 402 / 430, never over the pill), the "3 of 7 want a rematch" pill just above the row, clear of the promenade's
   people. Screenshots of 1 · 4 · 7 voters at all three widths: `tests/integration/room2-votes.mjs` (shots-votes/).
 
-## Tests (so far)
-unit `tests/lobby-2b.test.mjs` (11) · rules (+ 2: the stamps, THE REMATCH VOTE) · harbor job `room2`: `roomfix` (10), `gamestart` (7), `citypause` (3), `afterparty` (16).
+## Decisions
+- **The start's stamp goes up FIRST** (before the match is prepared): the walk starts at the tap on every phone; the game's own clock = the stamp +
+  2.6 s (`start({ now })` — the cartridge contract). A start that fails takes the stamp down; a slow prepare holds the dark veil until the match lands.
+- **The doorman HOLDS the side door for the file-in**: a real swing per person (~3.7 s each) can't fit 2–3 s. The host goes through first; the rest go
+  in with the push through the door ("a player still walking up goes straight in").
+- **THE CITY PAUSE = the title unmounted** (the scene destroyed — every canvas + cache, its sounds) and rebuilt after, caught up from the server clock +
+  the timetable. Not a kept-but-paused scene: a rebuild frees everything for sure, and the city is computed from the clock anyway. The cost: the
+  rebuild's moment of dark sky on a slow phone before the walk-out (measured on the mini PC: the room back in < 1 s; on an iPhone more — FR6 can look).
+- **The podium keeps REMATCH** for the host (a straight rematch skips the walk-out + the vote); its other button reads BACK TO THE ROOM in City 2.0 —
+  the REMATCH RING in the room is the room's way (everyone's vote).
+- **The REMATCH ring comes up when the banner flies** (everyone back) — not after it has passed (a ~30 s wait).
+- **THE NIGHT's CHAMPION flies the banner alone** — the city has no small fireworks salvo (its shows run minutes) and a skywrite would crowd the
+  banner's own lane. Leaving after 2+ games = LAST CALL; the app closed = LAST NIGHT'S CHAMPION on the next open within 12 h; once a night a device.
+- **The banner's words**: ten forms in turn by the night's game count (never a repeat in ten games), ties SPLIT THE POT / TIE GAME / DEAD HEAT /
+  SHARE; a name is never cut (the form changes instead).
+- **The vote's dots** (TIDIED by the owner, 9:25 am): one row right above the ring, the pill above the row, no 👍 over the people.
+- **THE CARTRIDGE PLUG**: the chat ASKS the game for its lock (the two playable games carry theirs; the ten hidden keep the old switch, EXEMPT until each
+  returns); a game's loading = `preload()` + the warmed view during the walk inside (fetched, not built — the city still draws then); SOLO lowers the
+  minimum to 1 (OVERCLOCK's solo); the DAILY plug-in ships OFF and the checker fails one that switches itself on.
+
+## Measured (the mini PC)
+- THE CITY PAUSE (an iPhone's 3×, 402 × 874, a room of 2 → an OVERCLOCK match): the city's canvases **66.4 MB (191) → 0.3 MB (13)**; the JS heap
+  37.3 → 38.4 MB (the game in, the city's small JS out); back in the room 66.6 MB (192).
+- THE GAME START: on both phones within ~550 ms of the test's call (the host's write + the listener); the game screen 2.3–2.5 s after the start showed
+  (2.6 s from the stamp); the game's first phase at the stamp + 2.67 s. A new host mid-start: in the game at 2.8–3.0 s, the match runs on.
+- THE WINNER's BANNER: fired 7 ms apart on two phones.
+
+## Known issues + held back
+- **THE DATABASE RULES CHANGED** (`meta/go`, `meta/back`, `rooms/{CODE}/rv`): the owner re-publishes them. Until then a room still starts + comes back (the
+  stamps are their own writes; a failed one is caught) — it just misses the walk-out, the banner + the vote.
+- The look runs here were DAYTIME (a room runs the city on the real clock — this morning): the night look (the dock's hot-pink rings, the TONIGHT logo
+  lit) is for the owner's phone tonight. WebKit isn't runnable on this machine (as before) — Chromium at 3×.
+- The city's rebuild after a match (THE CITY PAUSE's cost) isn't sliced: a slow phone shows the dark sky for a moment before the walk-out.
+- `tests/integration/e2e-chat.mjs` (not in the required runs) still drives City 1.0's lobby chat strip (2A's note — the room's CHAT is covered by
+  the harbor's `roomchat` group).
+- The profile's sub-screens under YOU still use City 1.0's menu style — SHELL 2.0 (the owner's room test, noted for that pass).
+
+## THE HAND-OFF — to FR6 (the review) + the Overclock chat
+- **FR6**: everything since FR5 (progression, the vault, the lab, the profile, LOBBY 2.0 A + B, the radio) + the desktop items (the bench, the empty
+  promenade, the cut-off speakeasy) + the chat's carried flags (the F10 spider-tap flake, the sighting capture at 11.5 of 12 ms, the desktop stall
+  after a resize, the summary's silent items). From this pass, worth a look: the city's rebuild after a match on a real iPhone; the start's push on a
+  4-year-old phone; ONE SHEET STACK's watcher (every pop-up on <body>).
+- **The Overclock chat** (read `docs/cartridge.md` first): OVERCLOCK plugs in through `js/games/cartridge.js` — `start({ now })` times from the match's
+  start (after the walk inside); its pools + sounds go in `preload()` (called on every phone during the walk inside; its view is warmed by the
+  console); `SOLO: true` for its solo; `daily` (ships OFF) for its QUICK daily; `chatLocked` (it has one already — keep it with the rebuild);
+  `BANNER_NAME`; `CHAT_CHIPS` if it wants its own quick replies. THE CITY PAUSE is automatic (the city is gone while a match is on screen — check
+  the memory guard's count with its heaviest challenge on screen). The console never names a game: anything new it needs from the console is a
+  new OPTIONAL export in cartridge.js (+ the doc + the checker).
+
+## Tests
+unit `tests/lobby-2b.test.mjs` (12) + `tests/cartridge.test.mjs` (5) · rules (+ 2: the stamps, THE REMATCH VOTE) · harbor job `room2` (NEW — harbor.yml's matrix): `roomfix` (10), `gamestart` (7), `citypause` (3), `afterparty` (17), `cartridge` (2), `crewsky` (3), `leaveroom` (2), `sheetstack` (2) + the `crew` group's lobby check · the look scripts (not tests): `tests/integration/room2-look.mjs`, `room2-votes.mjs`.

@@ -210,6 +210,12 @@ flags/{boardId}:  { pid, n, why{score|name: n}, b{board: n}, first, last }  THE 
 rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid})
 rooms/{CODE}/players/{uid}/ln: 'L' | 'R' — LOBBY 2.0 A: the side of the speakeasy's door this player queues on (the room in the city), picked once
   at the join (core/room-lines.js#pickLine — the shorter line) in a SEPARATE write (a join never depends on it); rules: L or R, your own node
+rooms/{CODE}/meta/go: { at (the server's now), m (matchId), g (game id) } — LOBBY 2.0 B: THE GAME START's stamp, written by the host FIRST (before the
+  match is prepared); every phone runs the 2.6 s walk inside from it (core/room-show.js#startShow); the game's clock = at + START_MS; cleared at the end
+rooms/{CODE}/meta/back: { at, m, g, rm } — LOBBY 2.0 B: the match's end (host): the walk back out, THE WINNER's BANNER PLANE (bannerAt), the REMATCH
+  ring while rm (false once the host picks another game); cleared by the next start
+rooms/{CODE}/rv/{uid}: matchId — LOBBY 2.0 B: THE REMATCH VOTE — your own vote for the match just played (only while meta/back.rm, the room in the lobby,
+  you a player); the host clears them all (a start, another game)
 ```
 
 ## THE CONNECTION (CONN, Oct 28)
