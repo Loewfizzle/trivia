@@ -119,3 +119,11 @@ body.ad-on { margin: 0; min-height: 100dvh; color: #f3ead8; font-family: var(--f
 .ad-toast.is-err { color: #fff; background: #c2304c; }
 .ad-toast.is-out { opacity: 0; }
 @media (max-width: 420px) { .ad-tab { padding: 0 9px; letter-spacing: 0.03em; } }
+/* LOBBY FIXES — REMOVE TEST PLAYERS */
+.ad-tp-list { display: flex; flex-direction: column; gap: 6px; }
+.ad-tp-row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-height: 48px; padding: 6px 10px; border-radius: 12px; background: rgba(255, 255, 255, 0.03); border: 1px solid rgba(255, 220, 180, 0.1); cursor: pointer; }
+.ad-tp-cb { width: 22px; height: 22px; accent-color: #ff4fb8; flex: none; }
+.ad-tp-n { flex: 1 1 140px; display: flex; flex-direction: column; font-weight: 700; }
+.ad-tp-n small { font-weight: 500; color: var(--bd-dim); }
+.ad-tp-v { font: 600 12px/1.3 var(--font-num); }
+.ad-tp-dry { margin-top: 12px; padding: 12px; border-radius: 12px; border: 1px solid rgba(255, 79, 120, 0.4); background: rgba(194, 48, 76, 0.08); display: flex; flex-direction: column; gap: 8px; line-height: 1.45; }

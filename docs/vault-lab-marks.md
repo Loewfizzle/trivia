@@ -1,13 +1,13 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-04 13:11 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
+Exported 2026-11-04 20:21 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
 
 | # | item | tier | mark | note | when | v |
 | --- | --- | --- | --- | --- | --- | --- |
 | 116 | THE SWITCHBOARD (`card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-04 02:03 UTC | v2 |
 | 117 | THE SOURCE (`card-dev-source`) | legendary | APPROVE |  | 2026-11-04 02:04 UTC | v2 |
-| 118 | THE SWITCHBOARD · FULL CARD (`full-card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-04 02:09 UTC | v2 |
-| 119 | THE SOURCE · FULL CARD (`full-card-dev-source`) | legendary | APPROVE |  | 2026-11-04 02:10 UTC | v2 |
+| 118 | THE SWITCHBOARD · FULL CARD (`full-card-dev-switchboard`) | legendary | APPROVE |  | 2026-11-04 02:09 UTC | CHANGED (marked v2, now v3) |
+| 119 | THE SOURCE · FULL CARD (`full-card-dev-source`) | legendary | APPROVE |  | 2026-11-04 02:10 UTC | CHANGED (marked v2, now v3) |
 | 92 | FOUNDING MEMBER (`card-founder`) | legendary | APPROVE |  | 2026-11-04 02:04 UTC | v2 |
 | 93 | THE HOUSE (`card-house`) | legendary | APPROVE |  | 2026-11-03 19:25 UTC | v1 |
 | 94 | PLATINUM (`card-platinum`) | epic | APPROVE |  | 2026-11-03 19:25 UTC | v1 |

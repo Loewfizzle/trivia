@@ -43,7 +43,7 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
     if (!pid) return;
     let res = null;
     const tx = await ref(`pstats/${pid}`).transaction(cur => {
-      res = step(cur, key, ex.gid, row, ex.n, now, outage, { ...factsFor(uid, ex, pids, now, room), founderOpen: fOpen });
+      res = step(cur, key, ex.gid, row, ex.n, now, outage, { ...factsFor(uid, ex, pids, now, room), founderOpen: fOpen, win: (room && room.win) || null });
       return res.skip ? undefined : res.next;
     });
     if (!tx.committed || !res || res.skip) {

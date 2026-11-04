@@ -70,9 +70,11 @@ export async function allocTag(nk, pid, prefer = null) {
   for (let n = 1000; n <= 9999; n++) if (!taken[n] && await tryTag(String(n))) return String(n);
   throw new ApiError(409, 'name_full', 'Too many players have this name — try another.');
 }
-async function releaseTag(nk, t, pid) {
+export async function releaseTag(nk, t, pid) {
   if (!nk || !t) return;
-  await ref(`tags/${encodeKey(nk)}/${t}`).transaction(cur => (cur === pid ? null : undefined));
+  // (LOBBY FIXES: `undefined` aborted on the transaction's FIRST call, which runs on the empty local cache (cur = null) — the tag was never
+  //  freed; returning `cur` unchanged lets the server answer with the real value and the transaction run again on it)
+  await ref(`tags/${encodeKey(nk)}/${t}`).transaction(cur => (cur === pid ? null : cur));
 }
 // RTDB keys can't hold . # $ [ ] /
 export const encodeKey = s => String(s).replace(/[.#$[\]/%]/g, c => `%${c.charCodeAt(0).toString(16)}`) || '_';

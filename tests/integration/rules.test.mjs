@@ -1059,6 +1059,29 @@ test('profiles + boards: public profiles, private stats and keys, nothing a clie
   await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), joinedAt: 2 }), 'no profile id is fine (the server may be down)');
 });
 
+// LOBBY FIXES — ONE ACCOUNT, ONE ROOM: seats/{pid} is the profile's own (its devices read + write it, as themselves); a player node carrying
+// the pid is refused while ANOTHER device holds the seat — MOVE HERE takes it, then the old device can't sit back down with the card
+test('ONE ACCOUNT, ONE ROOM: the seat is the profile’s own, and one device holds it', async () => {
+  const room = lobbyRoom();
+  room.uids = { host: 'pmike0000000', phone2: 'pmike0000000', p2: 'pother000000' };
+  await seed(room);
+  const seat = (uid, code = CODE) => ({ code, uid, at: serverTimestamp() });
+  await assertSucceeds(set(ref(db('host'), 'seats/pmike0000000'), seat('host')), 'the profile’s device takes its seat');
+  await assertSucceeds(get(ref(db('phone2'), 'seats/pmike0000000')), 'another device of the same profile reads it');
+  await assertFails(get(ref(db('p2'), 'seats/pmike0000000')), 'nobody else reads it');
+  await assertFails(set(ref(db('p2'), 'seats/pmike0000000'), seat('p2')), 'nobody else takes it');
+  await assertFails(set(ref(db('phone2'), 'seats/pmike0000000'), seat('host')), 'a device writes only itself into the seat');
+  await assertFails(set(ref(db('host'), 'seats/pmike0000000'), { code: 'ab', uid: 'host', at: serverTimestamp() }), 'a room code is 4 letters');
+  await assertFails(set(ref(db('host'), 'seats/pmike0000000'), { ...seat('host'), x: 1 }), 'nothing else in a seat');
+  await assertSucceeds(set(ref(db('host'), `${R}/players/host`), { ...player('HOST'), joinedAt: 1, pid: 'pmike0000000' }), 'the seat holder sits with the card');
+  // the second device: refused with the card while the seat is the first one's; MOVE HERE = it takes the seat, then sits
+  await assertFails(set(ref(db('phone2'), `${R}/players/phone2`), { ...player('LAPTOP'), joinedAt: serverTimestamp(), pid: 'pmike0000000' }), 'a second seat for one profile');
+  await assertSucceeds(set(ref(db('phone2'), 'seats/pmike0000000'), seat('phone2')), 'MOVE HERE');
+  await assertSucceeds(set(ref(db('phone2'), `${R}/players/phone2`), { ...player('LAPTOP'), joinedAt: serverTimestamp(), pid: 'pmike0000000' }));
+  await assertFails(set(ref(db('host'), `${R}/players/host`), { ...player('HOST'), joinedAt: 1, pid: 'pmike0000000' }), 'the old device can’t sit back down with the card');
+  await assertSucceeds(remove(ref(db('phone2'), 'seats/pmike0000000')), 'leaving gives the seat back');
+});
+
 test('HIGH STAKES: bets and answers are hidden until the showdown, once each, in their phase', async () => {
   const base = lobbyRoom();
   base.rooms[CODE].players.p3 = { name: 'THREE', color: 'cyan', avatar: 'bolt', joinedAt: 3 };

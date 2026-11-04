@@ -37,7 +37,7 @@ const NOW = Date.UTC(2026, 9, 14, 23, 0, 0);       // Wed 2026-10-14, 7 pm Easte
 const DAY = 86_400_000;
 let clock = NOW;
 const tick = (ms = 60_000) => (clock += ms);
-const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx', 'phonelog', 'flags'];
+const NODES = ['profiles', 'uids', 'pstats', 'ppriv', 'pkeys', 'tags', 'rl', 'lb', 'results', 'audit', 'rooms', 'errlog', 'wx', 'phonelog', 'flags', 'members', 'seats'];
 
 before(async () => {
   await ref('/').update(Object.fromEntries(NODES.map(n => [n, null])));
@@ -466,6 +466,100 @@ test('every game (and every GRIDLOCK mode) is counted from its room with the rig
     assert.ok(row && row.rank >= 1 && row.v != null && /^UALL/i.test(row.n), `${b}: UALL1's row as the public sees it (${row && row.n})`);
     assert.ok(!JSON.stringify(q).includes(pid), `${b}: no profile id`);
   }
+});
+
+// LOBBY FIXES — REMOVE TEST PLAYERS: the list (made since the cut-off + named ones), the dry run, then ONLY the ticked go — everything they
+// had (profile, stats + items, key, tag, device link, seat, board entries); the unticked + a real player untouched; an admin never; the
+// member counter rolls back only when every number above the new top is going (a gap is never re-used)
+test('REMOVE TEST PLAYERS: the ticked go (and only they); the member counter never re-uses a number', async () => {
+  const { counterAfter, TEST_SINCE } = await import('../../api/_lib/testplayers.js');
+  // the counter rule (PURE): 10 numbers given out (next 11); removing 9 + 10 → back to 9; removing 9 but keeping 10 → stays; 9 + 10 removed
+  // over an older gap at 8 (the kept top is 7) → stays at 11: 8 is never re-used
+  assert.deepEqual(counterAfter(11, [1, 2, 3, 4, 5, 6, 7, 8], [9, 10]), { from: 11, to: 9 });
+  assert.deepEqual(counterAfter(11, [1, 2, 3, 4, 5, 6, 7, 8, 10], [9]), { from: 11, to: 11 });
+  assert.deepEqual(counterAfter(11, [1, 2, 3, 4, 5, 6, 7], [9, 10]), { from: 11, to: 11 }, 'the gap at 8 is never re-used');
+  assert.ok(TEST_SINCE === Date.UTC(2026, 10, 4, 15, 30), 'Nov 4 10:30 am EST');
+  const real = await ensure('u-real1', 'Regular');
+  const since = clock + 1;
+  tick();
+  const wka = await ensure('u-wka', 'WKA'), wkb = await ensure('u-wkb', 'WKB'), keep = await ensure('u-keepme', 'Newbie');
+  const owner = await ensure('u-own', 'Owner');
+  const room = await seedRoom('slip', ['u-wka', 'u-wkb'], { dist: 7000 }, { 'u-wka': 'WKA', 'u-wkb': 'WKB' });
+  await report('u-wka', room); tick();
+  await ref(`seats/${wka.pid}`).set({ code: room.code, uid: 'u-wka', at: clock });
+  const nos = await Promise.all([real, wka, wkb, keep].map(x => val(`profiles/${x.pid}/mn`)));
+  assert.ok(nos.every(n => n > 0), 'everyone has a member number');
+  process.env.ADMIN_PIDS = `${owner.pid}`;
+  try {
+    await rejects(adminAction('u-wka', { action: 'testPlayers' }), 403, 'not_admin');
+    const list = await adminAction('u-own', { action: 'testPlayers', since, also: [`Regular#${real.profile.t}`] });
+    const ids = list.players.map(p => p.pid);
+    for (const x of [wka, wkb, keep, real]) assert.ok(ids.includes(x.pid), `listed ${x.profile.n}`);
+    const row = list.players.find(p => p.pid === wka.pid);
+    assert.ok(row.mn && row.m === 1 && row.xp > 0 && row.t === wka.profile.t, `a row says name + tag, Nº, XP, matches (${JSON.stringify(row)})`);
+    assert.ok(list.players.find(p => p.pid === owner.pid).admin, 'the admin is marked (never removable)');
+    await rejects(adminAction('u-own', { action: 'removeTestPlayers', pids: [owner.pid] }), 400, 'admin_pid');
+    // THE DRY RUN: nothing changes
+    const dry = await adminAction('u-own', { action: 'removeTestPlayers', pids: [wka.pid, wkb.pid] });
+    assert.equal(dry.done, false);
+    assert.deepEqual(dry.remove.map(r => r.pid).sort(), [wka.pid, wkb.pid].sort());
+    assert.ok(await val(`profiles/${wka.pid}`), 'the dry run removed nothing');
+    const before = await val('members/next');
+    // CONFIRM: only the ticked go
+    const tagA = wka.profile.t;
+    const done = await adminAction('u-own', { action: 'removeTestPlayers', pids: [wka.pid, wkb.pid], confirm: true });
+    assert.equal(done.done, true);
+    for (const x of [wka, wkb]) {
+      for (const path of [`profiles/${x.pid}`, `pstats/${x.pid}`, `ppriv/${x.pid}`, `seats/${x.pid}`]) assert.equal(await val(path), null, `${path} gone`);
+    }
+    assert.equal(await val('uids/u-wka'), null, 'the device link gone');
+    assert.equal(await val(`tags/wka/${tagA}`), null, 'the tag freed');
+    const lb = (await val('lb')) || {};
+    assert.ok(!JSON.stringify(lb).includes(wka.pid), 'no board entry left');
+    for (const x of [real, keep, owner]) assert.ok(await val(`profiles/${x.pid}/n`), `${x.profile.n} untouched`);
+    // the counter: WKA + WKB weren't the newest (Newbie + Owner came after) → no roll-back
+    assert.equal(await val('members/next'), before, 'never re-used: Newbie + Owner hold the numbers above');
+    const audit = Object.values((await val('audit')) || {}).find(a => a.act === 'removeTestPlayers');
+    assert.ok(audit && /WKA#/.test(audit.b) && audit.by === owner.pid, 'audited');
+    // the newest go → the counter rolls back to just above the new top
+    const late = await ensure('u-late', 'Latest');
+    const lateNo = await val(`profiles/${late.pid}/mn`);
+    const r2 = await adminAction('u-own', { action: 'removeTestPlayers', pids: [late.pid], confirm: true });
+    assert.deepEqual(r2.counter, { from: lateNo + 1, to: lateNo });
+    assert.equal(await val('members/next'), lateNo, 'the newest number is free again');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); }
+});
+
+// LOBBY FIXES — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM: whatever a client does, the server credits a profile once per match (its
+// WORSE seat) and never for a match that overlaps one it already counted in ANOTHER room
+test('ONE ACCOUNT, ONE ROOM: one profile in two seats is credited once (the worse); two rooms at once — the second never counts', async () => {
+  const dupe = await ensure('u-dupe1', 'Dupe');
+  await ensure('u-dupeo', 'Other');
+  await ref('uids/u-dupe2').set(dupe.pid);   // (the laptop restored the phone's card)
+  const one = await seedRoom('slip', ['u-dupe1', 'u-dupe2', 'u-dupeo'], {}, { 'u-dupe1': 'Dupe', 'u-dupe2': 'Dupe', 'u-dupeo': 'Other' });
+  const r1 = await report('u-dupe1', one);
+  assert.equal(r1.status, 'counted');
+  let st = await val(`pstats/${dupe.pid}`);
+  assert.equal(st.g.slip.p, 1, 'one match, once');
+  assert.ok(!st.g.slip.w, 'credited with the WORSE seat (2nd) — never the win the other seat took');
+  // two rooms at once: room A ran from 5 min ago to now; room B (the laptop, another room) ended 1 min ago — inside A
+  tick(60_000);
+  const solo = await ensure('u-solo1', 'Solo');
+  await ref('uids/u-solo2').set(solo.pid);
+  await ensure('u-sa', 'Ann'); await ensure('u-sb', 'Bea');
+  const a = await seedRoom('slip', ['u-sa', 'u-solo1'], {}, { 'u-sa': 'Ann', 'u-solo1': 'Solo' });
+  await ref(`rooms/${a.code}/game/go`).set(clock - 300_000);
+  const b = await seedRoom('slip', ['u-solo2', 'u-sb'], {}, { 'u-solo2': 'Solo', 'u-sb': 'Bea' });
+  await ref(`rooms/${b.code}/night/${b.matchId}/at`).set(clock - 60_000);
+  assert.equal((await report('u-sa', a)).status, 'counted');
+  tick(60_000);
+  const rb = await report('u-sb', b);
+  assert.equal(rb.status, 'counted', 'the room itself counts');
+  st = await val(`pstats/${solo.pid}`);
+  assert.equal(st.g.slip.p, 1, 'Solo is credited for ONE of the two overlapping matches');
+  assert.ok(Array.isArray(st.ov) && st.ov.length === 1 && st.ov[0].c === a.code, 'the counted window is kept');
+  assert.ok((await val(`pstats/${(await val('uids/u-sb'))}`)).g.slip.p === 1, 'the other player in room B is credited as usual');
+  tick(60_000);
 });
 
 test('admin: only ADMIN_PIDS, every action works and is audited', async () => {

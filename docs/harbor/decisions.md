@@ -381,7 +381,6 @@ CLAUDE.md holds the one-line forms; `docs/harbor.md` the size rules, hero pieces
 - **THE BILLBOARD's HINTS — BUILT (SCHED, core/harbor-billboard.js; the owner in the pass, Nov 2: SHORT, WHOLE BOARD — the board is ~70 × 38 pt on an iPhone: two short lines take the whole board for ~20 s every few minutes, then the game; FIREWORKS / TONIGHT 9:30, STREET PARTY / FROM 8, FULL SHOW / AT 10, LOOK UP / ANY MINUTE, the Sunday postcard; the queue = the billboard.* rows)**. **THE SPEAKEASY BILLBOARD AS A MESSAGE BOARD** (the owner loves it — REMIND HIM every once in a while, esp. at SCHED, CITY CONTROLS + the switch-over): "TONIGHT · FIREWORKS 9:30", the demolition, game news ("NEW: …"), a player shout-out (the HOUSE NICKNAME / board name or an opt-in — never a typed name in public) — a message queue on the timetable, set from CITY CONTROLS. [plan.md: OWNER'S NOTES — NOV 1 (late) + NOV 2]
 - **GO PRIVATE** right before the launch; anti-cheat never depends on secret code. [plan.md: OCT 28 (after 9f)]
 
----
 - **LOBBY FIXES — THE OWNER's REAL-PHONE TEST OF THE ROOM** (Nov 4, 1:34–3:15 pm — DECIDED; its own pass before THE SPEED PASS):
   THE PLAYER CARD: a player tap (the line AND GUESTS) ALWAYS opens THAT PLAYER's FULL CARD, on top; the owner / admins get a small CREW switch row at
   its bottom; the radio panel never opens from a player tap; the stale "(once lobbies are in the city)" copy gone. AN INTENTIONAL LEAVE goes straight
@@ -410,6 +409,7 @@ CLAUDE.md holds the one-line forms; `docs/harbor.md` the size rules, hero pieces
   findings** (2:07 + 2:52 pm — the tilted / cut-off speakeasy, the flat far-right skyline, the choppy load, the flickering cirrus) → SHELL 2.0 Group 0
   with FR6's F1–F4. The in-game menus' slim cards → SHELL 2.0 + each game's rework. [plan.md: OWNER'S NOTES — NOV 4 (afternoon, his tests)]
 
+---
 ## 16. Open / parked
 **Open (waiting for the owner)**
 - **THE LANTERNS** (a FUTURE idea, the owner Oct 30 12:33–12:39 am — BOTH): SKY LANTERNS released by the crowd, rising over the harbor past the skyline, AND FLOATING WATER LANTERNS drifting out on the swell, reflected; each a bright warm dot + glow (unzoomed). WHEN (a holiday, a rare night, a party's end, a summer festival — a timetable row) + how many by tier (the tier table): DISCUSS before building. [plan.md: OCT 30 (after midnight) — FUTURE IDEAS]

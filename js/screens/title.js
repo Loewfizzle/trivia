@@ -1925,6 +1925,7 @@ export function createTitle() {
     const m = String((e && e.message) || e);
     if (/No room/i.test(m)) return `No room behind ${code} right now. Check the hush word, or ask for a fresh invite.`;
     if (/door’s locked/i.test(m)) return m;
+    if (/other device/i.test(m)) return m;   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: CANCEL on MOVE HERE)
     if (/wrong words/i.test(m)) return m;
     if (/full/i.test(m)) return `That room is full — 8 players is the limit.`;
     if (/removed you/i.test(m)) return 'The host removed you from that room.';

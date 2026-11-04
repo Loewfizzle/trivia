@@ -15,10 +15,13 @@ async function panelSection() {
   await tap(O.page, '.menu-btn');
   await waitFor(O.page, '!!document.querySelector(".gm-adm .gm-item") && document.querySelector(".gm-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000);
   const adm = await ev(O.page, `(() => { const a = document.querySelector('.gm-adm'), b = a.querySelector('.gm-item').getBoundingClientRect(); return { last: a === a.parentNode.lastElementChild, h: b.height, txt: a.textContent, pill: !!document.querySelector('.hr-pill'), cue: !document.querySelector('.menu-btn .mb-cue').hidden }; })()`);
-  ok(adm.last && adm.h >= 44 && /ADMIN/.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on`);
+  ok(adm.last && adm.h >= 44 && /CITY PREVIEW/.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on`);
   // THE VAULT 2C — THE LAB in the ☰ menu (admins only: the same yes as ADMIN) → /lab
   const lab = await ev(O.page, `(() => { const b = document.querySelector('.gm-lab'); return b ? { txt: b.textContent, h: b.getBoundingClientRect().height } : null; })()`);
   ok(lab && /THE LAB/.test(lab.txt) && lab.h >= 44, `THE VAULT 2C — THE LAB in the ☰ menu for an admin ("${lab && lab.txt}", ${lab ? Math.round(lab.h) : 0} pt)`);
+  // LOBBY FIXES — THE ADMIN ROW (→ /admin) beside THE LAB, admins only (the same server yes)
+  const ap = await ev(O.page, `(() => { const b = document.querySelector('.gm-admpage'), l = document.querySelector('.gm-lab'); return b ? { txt: b.textContent, h: b.getBoundingClientRect().height, next: !!l && Math.abs(b.getBoundingClientRect().top - l.getBoundingClientRect().bottom) < 30 } : null; })()`);
+  ok(ap && /^ADMIN/.test(ap.txt) && ap.h >= 44 && ap.next, `LOBBY FIXES — the ☰ menu's ADMIN row (→ /admin) right under THE LAB ("${ap && ap.txt}")`);
   await tap(O.page, '.gm-adm .gm-item');
   await waitFor(O.page, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(O.page, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000);
   await sleep(450);

@@ -326,6 +326,7 @@ async function boot() {
     const saved = loadSession();
     const resumed = await resumeSession();
     if (resumed === 'gone') setState({ inviteExpired: saved.code, invite: '' });
+    else if (resumed === 'moved') { setState({ invite: '' }); import('./room.js').then(m => toast(`YOU’RE IN ROOM ${m.movedTo() || ''} ON ANOTHER DEVICE — JOIN TO MOVE HERE`, 'info', 5000)).catch(() => {}); }
     else if (resumed === 'idle') { setState({ invite: '' }); toast('YOUR ROOM CLOSED AFTER AN HOUR WITHOUT A GAME', 'info', 5000); }
     // Couldn't reach the room (weak signal): keep the seat and offer a one-tap REJOIN on the title.
     else if (resumed === 'error') setState({ rejoin: saved.code });

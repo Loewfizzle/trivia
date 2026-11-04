@@ -279,6 +279,9 @@ export function createRemote({ scene, api = apiCall }) {
     // (THE VAULT 2C — THE LAB in the ☰ menu: admins only — the same server yes (whoami) as the ADMIN row; nobody else gets the row;
     //  registered first: ADMIN stays the menu's last row)
     setMenuExtra('lab', ({ close: closeMenu }) => (destroyed || !admin ? null : h('button.gm-item.gm-lab', { type: 'button', 'aria-label': 'The Card Lab', onclick: () => { closeMenu(); location.href = '/lab'; } }, h('b', 'THE LAB'), h('span', 'Mark the cards, emblems + glows'))));
+    // (LOBBY FIXES — the owner, Nov 4 3:01 pm "where is /admin?": an ADMIN row beside THE LAB → /admin — the same server yes; the old
+    //  preview-panel row below reads CITY PREVIEW so the two never share a name)
+    setMenuExtra('adminpage', ({ close: closeMenu }) => (destroyed || !admin ? null : h('button.gm-item.gm-admpage', { type: 'button', 'aria-label': 'Admin — players, reports, test players', onclick: () => { closeMenu(); location.href = '/admin'; } }, h('b', 'ADMIN'), h('span', 'Players, reports, test players'))));
     setMenuExtra('admin', adminRow);
     if (liveNext && !cd) countdown('all', liveNext.startAt, R.describe(liveNext.state));
     paintChip(); paintCd();
@@ -293,7 +296,7 @@ export function createRemote({ scene, api = apiCall }) {
     // (CITY CONTROLS A — ONE WAY IN: with the radio on this page its DEV · THE WORKSHOP button opens the panel; the ☰ row steps aside)
     if (document.querySelector('.rd-btn')) return null;
     const on = effective(), sub = on === 'me' ? `JUST ME · ${nowWords(mine.state)}` : on === 'all' ? `EVERYONE · ${nowWords(live.state)}` : 'Preview panel';
-    const main = h('button.gm-item', { type: 'button', 'aria-label': `Admin — the preview panel${on ? ` (${sub})` : ''}`, onclick: () => { closeMenu(); open(); } }, h('b', 'ADMIN'), h('span', sub));
+    const main = h('button.gm-item', { type: 'button', 'aria-label': `Admin — the preview panel${on ? ` (${sub})` : ''}`, onclick: () => { closeMenu(); open(); } }, h('b', 'CITY PREVIEW'), h('span', sub));
     return h('div.gm-adm', { dataset: { on } }, main,
       on === 'me' ? h('button.gm-adm-x', { type: 'button', 'aria-label': 'Clear — back to the real city', onclick: () => { closeMenu(); mode = 'me'; ss.set(MODE_KEY, 'me'); clearAll(); } }, 'CLEAR') : null);
   }
@@ -997,7 +1000,7 @@ export function createRemote({ scene, api = apiCall }) {
       clearTimeout(pollT); pollOn = false; document.removeEventListener('visibilitychange', onVis); window.removeEventListener('nd:me', onMe);
       if (bar) bar.remove();
       if (sheet) sheet.remove();
-      setMenuExtra('admin', null); setMenuExtra('lab', null); setMenuCue(null);
+      setMenuExtra('admin', null); setMenuExtra('adminpage', null); setMenuExtra('lab', null); setMenuCue(null);
       sheet = bar = cdEl = null;
     },
   };

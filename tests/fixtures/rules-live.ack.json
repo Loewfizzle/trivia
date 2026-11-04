@@ -1,0 +1,4 @@
+{
+  "hash": "9aca6cb6c816c8f6",
+  "line": "RULES CHANGED: seats/{pid} (new — ONE ACCOUNT, ONE ROOM) + rooms/{CODE}/players/{uid}/pid (needs the seat) — RE-PUBLISH database.rules.json in the Firebase console"
+}

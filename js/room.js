@@ -14,6 +14,7 @@ import { toast } from './ui/toast.js';
 import { livePathsFor, liveKeyFor } from './games/registry.js';
 import { closeAll } from './ui/layers.js';
 import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
+import { claimSeatFor, takeSeat, freeSeat, watchSeat, seatConflict } from './seat.js';
 
 const R = code => `rooms/${code}`;
 // CONN: the database line is wanted while HOST / JOIN / a resume / an invite check runs ('join') and the whole time we're in a
@@ -89,6 +90,7 @@ async function claimRoom(code) {
 
 export const createRoom = joining(async profile => {
   cleanupStaleRooms().catch(() => {});
+  await claimSeatFor(null);   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: already seated on another device → MOVE HERE · CANCEL — seat.js)
   const [words, hush] = await Promise.all([
     loadHushWords(),
     get(dbRef('hush')).then(s => s.val() || {}).catch(() => ({})), // unreadable → every word looks free; the claim still decides
@@ -104,6 +106,7 @@ export const createRoom = joining(async profile => {
   if (lm) update(dbRef(`${R(code)}/meta/lm`), lm).catch(() => {});
   // a fresh room starts with a fresh chat, and no old DOUBLE AGENT / GRIDLOCK / HIGH STAKES / RUMRUNNER secrets
   for (const n of ROOM_SIDE_NODES) await remove(dbRef(`${n}/${code}`)).catch(() => {});
+  await takeSeat(code);
   await writePlayer(code, profile, {});
   enterRoom(code);
   roomPushLater(code);
@@ -163,6 +166,10 @@ export const joinRoom = joining(async (input, profile) => {
   if (room.meta.locked === true && !room.players[state.uid]) { noteMiss(); throw new Error(LOCKED_MSG); }
   const others = Object.keys(room.players).filter(u => u !== state.uid).length;
   if (!room.players[state.uid] && others >= MAX_PLAYERS) throw new Error(`Room ${code} is full (${MAX_PLAYERS}/${MAX_PLAYERS} players).`);
+  // (LOBBY FIXES — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM: this profile already sits here or in another room on another device →
+  //  "You're already in … on another device" · MOVE HERE · CANCEL (CANCEL throws: the title says so); then the seat is this device's)
+  await claimSeatFor(code);
+  await takeSeat(code);
   if (!room.players[state.uid] && room.meta.status === 'playing') toast('GAME IN PROGRESS — YOU’LL WATCH, THEN JOIN THE NEXT ONE', 'info', 4500);
   try { await writePlayer(code, profile, room.players); } catch (e) {
     // the host locked the door between our look and our step inside (the rules refused the new seat)
@@ -189,6 +196,11 @@ const resumeSaved = joining(async session => {
   const gone = !room.meta || room.kicked
     || (!room.players[state.uid] && (!profile || Object.keys(room.players).length >= MAX_PLAYERS || room.meta.locked === true));
   if (gone) { saveSession(null); return 'gone'; }
+  // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: another device of this profile took the seat while this one was away → never silently back in;
+  //  the title says where the card is — a JOIN asks MOVE HERE)
+  const moved = await seatConflict(session.code).catch(() => null);
+  if (moved) { saveSession(null); setUrlRoom(null); lastMoved = moved.code; return 'moved'; }
+  await takeSeat(session.code);
   try {
     // Seat was lost (e.g. left on another device) — rejoin with the saved profile.
     if (!room.players[state.uid]) await writePlayer(session.code, profile, room.players);
@@ -198,6 +210,10 @@ const resumeSaved = joining(async session => {
     return 'error';
   }
 });
+
+/** (LOBBY FIXES) the room another device of this profile holds — the last resume that found one ('moved') */
+let lastMoved = null;
+export const movedTo = () => lastMoved;
 
 function birthdayRoom(code) {
   let bd = null; try { bd = JSON.parse(localStorage.getItem('nd:bd') || 'null'); } catch { /* fine */ }
@@ -264,6 +280,14 @@ function enterRoom(code) {
     setState({ game });
     watchLive(code, game);
   });
+  // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: another device of this profile took the seat (MOVE HERE) → this one walks out of the room — the
+  //  same leave as LEAVE ROOM: the others see the wave + the walk-off)
+  unsubs.push(watchSeat(code, ({ code: to, here, uid }) => {
+    if (state.code !== code) return;
+    // (the SAME room: the other device is the same person sitting down — a host hands the room to it, never closes it as "the last one out"
+    //  (its player node may not have reached this phone yet))
+    leaveRoom({ keepSeat: true, heir: here ? uid : null, reason: here ? 'YOU MOVED TO YOUR OTHER DEVICE' : `YOU MOVED TO ROOM ${to} ON YOUR OTHER DEVICE` });
+  }));
   armPresence();
 }
 
@@ -353,8 +377,9 @@ function stopListening() {
   liveWanted = null;
 }
 
-export function exitRoom(reason, kind = 'warn') {
+export function exitRoom(reason, kind = 'warn', { keepSeat = false } = {}) {
   const code = state.code;
+  if (code && !keepSeat) freeSeat(code);   // (LOBBY FIXES — the seat goes back with the room: only while it's still this device's)
   clearTimeout(pushTimer); pushTimer = null;   // (FR6 FIXES A: a room left before its push was asked never pings)
   closeAll();   // (FR6 FIXES A — B7: a kick / a closed room closes every sheet + the profile overlay over the title)
   stopListening();
@@ -366,7 +391,7 @@ export function exitRoom(reason, kind = 'warn') {
   if (reason) toast(reason, kind, 3500);
 }
 
-export async function leaveRoom() {
+export async function leaveRoom({ keepSeat = false, reason = null, heir: given = null } = {}) {
   const code = state.code;
   if (!code) return;
   const uid = state.uid;
@@ -374,19 +399,19 @@ export async function leaveRoom() {
   try {
     const others = Object.keys(state.players).filter(u => u !== uid);
     if (state.meta && state.meta.hostId === uid) {
-      if (others.length) {
-        const heir = nextHost({ players: state.players, presence: state.presence, exclude: uid });
+      if (given || others.length) {
+        const heir = given || nextHost({ players: state.players, presence: state.presence, exclude: uid });
         await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() });
       } else {
         await closeRoom(code); // last one out turns off the lights
-        exitRoom();
+        exitRoom(reason, 'info', { keepSeat });
         return;
       }
     }
     await onDisconnect(dbRef(`${R(code)}/presence/${uid}`)).cancel();
     await update(dbRef(R(code)), { [`presence/${uid}`]: null, [`players/${uid}`]: null });
   } catch (e) { console.warn('leave', e); }
-  exitRoom();
+  exitRoom(reason, 'info', { keepSeat });
 }
 
 export async function kickPlayer(uid) {

@@ -85,6 +85,12 @@ function shell() {
             confirmBtn('Clear all', async () => { renderReports((await call('clearReports')).reports); toast('Cleared'); audit(); }, 'is-danger'))),
         h('p.ad-dim', 'City 2.0 snapshots: SEND REPORT in the &debug=1 strip (TAP), or sent by the page itself when it froze (HANG — the main thread stopped answering; STALL — no frames). Newest 40 kept.'),
         h('ol.ad-errs', { id: 'ad-reps' }, h('li.ad-dim', 'Loading…'))),
+      // LOBBY FIXES — REMOVE TEST PLAYERS (the owner, Nov 4): tick → a dry run → CONFIRM; the server's own key, audited (api/_lib/testplayers.js)
+      h('section.ad-card.ad-tp', { id: 'ad-tp' },
+        h('div.ad-row.ad-between', h('h2', 'Test players'), h('button.ad-btn', { type: 'button', onclick: () => testPlayers() }, 'Refresh')),
+        h('p.ad-dim', 'Every profile made since Nov 4, 10:30 am EST (+ TESTER#2599, your old laptop card). Tick the ones to remove → PREVIEW → CONFIRM. Their card, items, key, tag + board entries go. Member numbers never move and are never re-used: the counter only rolls back when every number above the new top is going.'),
+        h('div.ad-tp-list', { id: 'ad-tp-list' }, h('p.ad-dim', 'Loading…')),
+        h('div.ad-tp-out', { id: 'ad-tp-out' })),
       // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
       h('section.ad-card.ad-outage', { id: 'ad-outage' },
         h('h2', 'Streak outage'),
@@ -99,6 +105,7 @@ function shell() {
   errors();
   reports();
   flags();
+  testPlayers();
   loadStats();
   // "live now" keeps itself current while the page is open and visible (the server caches it for 30 s)
   setInterval(() => { if (document.visibilityState === 'visible') loadStats(false, true); }, 30_000);
@@ -150,6 +157,45 @@ function render(v) {
     })) : h('p.ad-dim', 'Not on any board.'),
     h('h3', 'Games'),
     h('div.ad-games', ...Object.entries(v.stats.g || {}).map(([g, s]) => h('span', h('b', gameName(g)), ` ${s.p || 0} played · ${s.w || 0} won`))));
+}
+
+// ---------------------------------------------------------------- LOBBY FIXES — REMOVE TEST PLAYERS
+const TP_TICK = ['wka', 'wkb', 'rulescheck', 'checka', 'checkb'];   // (the five 2B test players — pre-ticked; TESTER is listed, never ticked)
+const TP_ALSO = ['TESTER#2599'];
+const tpTicked = new Set();
+async function testPlayers() {
+  const box = document.getElementById('ad-tp-list'), out = document.getElementById('ad-tp-out');
+  if (!box) return;
+  out.replaceChildren();
+  const { players, next } = await call('testPlayers', { also: TP_ALSO });
+  if (!tpTicked.size) for (const p of players) if (!p.admin && TP_TICK.includes(String(p.n || '').toLowerCase())) tpTicked.add(p.pid);
+  const row = p => {
+    const cb = h('input.ad-tp-cb', { type: 'checkbox', checked: tpTicked.has(p.pid), disabled: p.admin, 'aria-label': `Remove ${p.n}#${p.t}`, onchange: () => { if (cb.checked) tpTicked.add(p.pid); else tpTicked.delete(p.pid); out.replaceChildren(); } });
+    return h('label.ad-tp-row', { dataset: { pid: p.pid } }, cb,
+      h('span.ad-tp-n', p.n, h('small', fmtTag(p.t))),
+      h('span.ad-tp-v', p.mn ? `Nº ${String(p.mn).padStart(4, '0')}` : 'no Nº'),
+      h('span.ad-tp-v', `${(p.xp || 0).toLocaleString()} XP · ${p.m || 0} match${p.m === 1 ? '' : 'es'}`),
+      h('span.ad-tp-v.ad-dim', p.at ? when(p.at) : '—'),
+      p.admin ? h('span.ad-tag', 'ADMIN') : null);
+  };
+  box.replaceChildren(...(players.length ? players.map(row) : [h('p.ad-dim', 'No profiles since then.')]),
+    h('div.ad-row', h('span.ad-dim', `Member counter: next Nº ${next || '—'}`), h('button.ad-btn.is-primary', { type: 'button', onclick: tpPreview }, 'Preview removal')));
+}
+async function tpPreview() {
+  const out = document.getElementById('ad-tp-out');
+  const pids = [...tpTicked];
+  if (!pids.length) { toast('Tick at least one', 'err'); return; }
+  const dry = await call('removeTestPlayers', { pids });
+  const c = dry.counter, moves = c.to !== c.from;
+  out.replaceChildren(h('div.ad-tp-dry',
+    h('b', `Removes ${dry.remove.length}: `), dry.remove.map(r => `${r.n}${fmtTag(r.t)}${r.mn ? ` (Nº ${r.mn})` : ''}`).join(', '),
+    h('p.ad-dim', moves ? `The member counter rolls back: next Nº ${c.from} → ${c.to}.` : `The member counter stays at ${c.from || '—'} (a number above stays taken or was already a gap — numbers are never re-used).`),
+    confirmBtn(`Confirm — remove ${dry.remove.length}`, async () => {
+      const r = await call('removeTestPlayers', { pids, confirm: true });
+      tpTicked.clear();
+      toast(`Removed ${r.remove.length}`);
+      testPlayers(); audit();
+    }, 'is-danger')));
 }
 
 async function audit() {

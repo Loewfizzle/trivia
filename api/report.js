@@ -110,11 +110,27 @@ export async function processReport(uid, body, now = Date.now()) {
   // (a uid with no profile is never given one here — it isn't counted: each phone makes its own profile when it joins)
   const pids = {};
   await Promise.all(Object.keys(ex.rows).map(async u => { const pid = await pidOf(u); if (pid) pids[u] = pid; }));
-  const outcomes = await applyMatch(key, ex, pids, now, { code, meta });
+  // (LOBBY FIXES — ONE PROFILE, ONE SEAT: two seats of one profile in a match are credited ONCE — the WORSE placing, so a second
+  //  device never farms a better one; the match's window goes with it — ONE ACCOUNT, ONE ROOM: progress.js#overlaps)
+  dedupePids(ex.rows, pids);
+  const win = { c: code, s: (game && game.matchId === matchId && Number(game.go)) || night.at, e: night.at };
+  const outcomes = await applyMatch(key, ex, pids, now, { code, meta, win });
   await bumpPlayed(ex.gid, now).catch(e => console.warn('activity', e && e.message));
   await ref(`results/${key}`).set({ st: 'done', at: now, g: ex.gid, mode: ex.mode || null, n: ex.n, src, by: uid, rej: ex.rejected.length || null, o: outcomes });
   if (ex.rejected.length) console.warn('rejected records', key, JSON.stringify(ex.rejected));
   return { ok: true, status: 'counted', outcome: outcomes[pids[uid]] || null, rejected: ex.rejected.filter(r => r.uid === uid).map(r => r.board) };
+}
+
+/** ONE PROFILE, ONE SEAT: a profile holding two seats in one match keeps only its WORSE row (PURE — exported for the tests) */
+export function dedupePids(rows, pids) {
+  const by = {};
+  for (const [u, pid] of Object.entries(pids)) (by[pid] ||= []).push(u);
+  for (const us of Object.values(by)) {
+    if (us.length < 2) continue;
+    us.sort((a, b) => ((rows[b] && rows[b].rank) || 0) - ((rows[a] && rows[a].rank) || 0) || (a < b ? -1 : 1));
+    for (const u of us.slice(1)) delete pids[u];
+  }
+  return pids;
 }
 
 // Expected answers (still running, being counted, can't be verified, not yours) come back as 200 { ok: false, code, retry }:

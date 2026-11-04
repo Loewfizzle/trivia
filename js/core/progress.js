@@ -38,6 +38,9 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   const s = s0 || {};
   if (s.m && s.m[key]) return { skip: 'counted' };
   if (s.last && now - s.last < gap && now >= s.last) return { skip: 'too_soon' };
+  // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: a match that OVERLAPS one already counted from ANOTHER room — the same profile seated in two rooms
+  //  at once from two devices — is never credited; `ctx.win` = { c: the room, s: its start, e: its end }, the last OV_KEEP windows kept)
+  if (overlaps(s.ov, ctx.win)) return { skip: 'overlap' };
   const wk = weekKey(now), dk = dayKey(now);
   const next = { ...s, g: { ...(s.g || {}) }, b: { ...(s.b || {}) }, m: { ...(s.m || {}) } };
   if (next.wk !== wk) { next.wk = wk; next.gw = {}; } else next.gw = { ...(s.gw || {}) };
@@ -68,6 +71,7 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   next.xp = from + xp.total;
   next.last = now;
   next.m[key] = now;
+  if (ctx.win) next.ov = [...(Array.isArray(s.ov) ? s.ov : []), cleanWin(ctx.win)].slice(-OV_KEEP);
   const keys = Object.keys(next.m);
   if (keys.length > KEEP_KEYS) keys.sort((a, b) => next.m[a] - next.m[b]).slice(0, keys.length - KEEP_KEYS).forEach(k => delete next.m[k]);
   // LEVELS: the rewards of every level crossed — and the CARRY-OVER: a profile from before levels (no `it` yet) gets every reward its
@@ -86,6 +90,19 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   const aw = awardAll(next, now, { founderOpen: !!ctx.founderOpen });
   items.push(...aw.items);
   return { next, pbs, xp, from, prevStats: s, wk, lv, items, ach: aw.ach, streak: { n: next.st.n, ev: streak.ev } };
+}
+
+/** LOBBY FIXES — ONE ACCOUNT, ONE ROOM: how many counted matches' windows a profile keeps (pstats.ov) */
+export const OV_KEEP = 8;
+const cleanWin = w => ({ c: String(w.c || ''), s: Number(w.s) || 0, e: Number(w.e) || 0 });
+/** true when `win` (a match in room win.c, from win.s to win.e) overlaps a counted match from ANOTHER room (PURE — the tests) */
+export function overlaps(list, win) {
+  if (!win || !Array.isArray(list)) return false;
+  const w = cleanWin(win);
+  if (!w.e) return false;
+  if (w.s > w.e) w.s = w.e;
+  // (a match known only by its end — a snapshot report, s = e — overlaps when that moment is inside the other one's window)
+  return list.some(o => o && o.c && o.c !== w.c && Number(o.s) < w.e && w.s < Number(o.e));
 }
 
 /** THE STREAK's day for a play (a match / a daily): the run, its milestones' items (+ a FAVOR token) — into next. */

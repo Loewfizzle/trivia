@@ -36,6 +36,8 @@ export const CI_JOBS = {
   lobby: ['room', 'roomchat', 'keypop', 'roomperf', 'crewsky', 'oldrules'],   // (LOBBY 2.0 B: + crewsky + the serial oldrules, last)
   // (LOBBY 2.0 B: its own job — the game start, the pause, after the match, the vote, the cartridge, Group 0 + the add-on)
   room2: ['roomfix', 'gamestart', 'citypause', 'afterparty', 'cartridge', 'leaveroom', 'sheetstack'],
+  // (LOBBY FIXES: its own job — the owner's real-phone test of the room, Nov 4)
+  lobbyfix: ['oneseat'],
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'streetparty', 'panel'],   // (NIGHT-B: streetparty)   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)
   perf: ['tower', 'partysync', 'flags', 'perf'],   // (SKY-B: heli → legend: its circle page)   // (NIGHT-C: partysync + heli + flags — before the serial perf)

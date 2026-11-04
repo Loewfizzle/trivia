@@ -25,6 +25,9 @@
 //   cityClear                      → removes city2/live (back to the real city) → { live: null }
 //   labMarks / labMark { id, mark: 'approve'|'fix'|'cut'|null, note? } → THE CARD LAB (THE VAULT 1A): the owner's marks per collectible
 //                                    (vault/lab, audited); GET /api/admin?lab=export → the marks for the next pass + the site (no names)
+//   testPlayers { since?, also? }  → LOBBY FIXES — REMOVE TEST PLAYERS (api/_lib/testplayers.js): the profiles made since `since` (+ `also`:
+//                                    "Name#1234") → { players, since, next }
+//   removeTestPlayers { pids, confirm } → the dry run (confirm false) or the removal (confirm true, audited): { remove, counter, done }
 //   radio…                         → CITY CONTROLS A — THE RADIO (api/_lib/radio.js): radioState · radioFire · radioStop · radioClearAll ·
 //                                    radioBoard · radioBoardEdit · radioBoardCancel · radioDial · radioRooms · radioWho · radioHello —
 //                                    each checks the caller's ROLE (the owner = ADMIN_PIDS, THE CREW = radio/crew/{pid}) per action
@@ -43,6 +46,7 @@ import { cleanRemote, isEmpty, toParams, describe, cleanDelay, DEFAULT_MINS, MAX
 import { streakDay, dayNum } from '../js/core/streak.js';
 import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
 import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT, LAB_CHANGES } from './_lib/lab.js';
+import { listTestPlayers, removeTestPlayers } from './_lib/testplayers.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -259,6 +263,13 @@ export async function adminAction(uid, body, now = Date.now()) {
     case 'sightShow': { const id = String(body.id || ''); if (!/^[a-z0-9]{2,16}$/.test(id)) throw new ApiError(400, 'bad_id'); return { show: { items: displayOf([`card-sg-${id}`, `emb-sg-${id}`]), ach: {} } }; }
     case 'labMarks': return { marks: await labMarks(), text: LAB_TEXT, changes: LAB_CHANGES };   // (VAULT 1B: the lab's names come with the marks — admins only)
     case 'labMark': { const marks = await labMark(me, body, now); await audit(me, 'labMark', null, { b: `${String(body.id).slice(0, 40)} ${body.mark || 'clear'}`, note: String(body.note || '').slice(0, 140) }); return { marks }; }
+    // LOBBY FIXES — REMOVE TEST PLAYERS (/admin's TEST PLAYERS card): the list, the dry run, then the removal (the server's own key; audited)
+    case 'testPlayers': return listTestPlayers({ since: body.since, also: body.also });
+    case 'removeTestPlayers': {
+      const r = await removeTestPlayers(body.pids, { confirm: body.confirm === true, now });
+      if (r.done) await audit(me, 'removeTestPlayers', null, { b: r.remove.map(x => `${x.n}#${x.t}${x.mn ? ` Nº${x.mn}` : ''}`).join(', ').slice(0, 400), counter: `${r.counter.from}→${r.counter.to}` });
+      return r;
+    }
     default: throw new ApiError(400, 'bad_action');
   }
 }
