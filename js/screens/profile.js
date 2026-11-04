@@ -7,7 +7,8 @@ import { avatar } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
 import { toast } from '../ui/toast.js';
 import { setState, state } from '../store.js';
-import { loadProfile, loadMe, loadKey } from '../identity.js';
+import { loadProfile, saveProfile, loadMe, loadKey } from '../identity.js';
+import { signOf } from '../core/items.js';
 import { GAMES } from '../config.js';
 import { weeklyGoal, goalProgress, GOAL_XP, mastery } from '../core/ranks.js';
 import { levelOf } from '../core/levels.js';
@@ -261,6 +262,9 @@ export function createView({ onBack = null, overlay = false } = {}) {
   async function wear(slot, id) {
     try {
       const prof = await setStyle({ [slot]: id });
+      // (THE VAULT 2C — a sign-up shape worn in CUSTOMIZE: this device's own identity follows — the rooms show it)
+      const sign = slot === 'shape' ? signOf(id) : null;
+      if (sign) { const lp = loadProfile(); if (lp && lp.avatar !== sign) saveProfile({ ...lp, avatar: sign }); }
       if (destroyed) return;
       data.profile = { ...data.profile, ...prof };
       sfx('select');

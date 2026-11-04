@@ -15,7 +15,7 @@ import { keyFromBytes, formatKey, normalizeKey } from '../../js/core/pkey.js';
 import { nameKey, isOffensive } from '../../js/core/names.js';
 import { sanitizeName } from '../../js/core/room-logic.js';
 import { levelOf } from '../../js/core/levels.js';
-import { OLD_FINISH, OLD_GLOW } from '../../js/core/items.js';
+import { OLD_FINISH, OLD_GLOW, SIGN_EMBLEMS } from '../../js/core/items.js';
 import { NAME_MAX, AVATAR_IDS, COLORS } from '../../js/config.js';
 import { memberNo } from './members.js';
 
@@ -131,6 +131,7 @@ export async function ensureProfile(uid, info = {}, now = Date.now()) {
     [`ppriv/${pid}/at`]: now,
     [`ppriv/${pid}/nameAt`]: 0,
     [`ppriv/${pid}/uids/${uid}`]: now,
+    ...Object.fromEntries(SIGN_EMBLEMS.map(id => [`pstats/${pid}/it/${id}`, now])),   // (THE VAULT 2C: the 12 sign-up shapes, owned from day one)
   });
   const key = await newKey(pid);
   await memberNo(pid, now).catch(() => null);

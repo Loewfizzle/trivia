@@ -1,5 +1,7 @@
-// THE VAULT 2B — DRESS YOUR CARD (the owner, Nov 3 3:24 pm: the picker's long lists were "all listed, hard to understand" → THE CHAT's
-// fix, APPROVED 3:27 pm — Downloads\NEON\vault\dress-your-card.png). Two pieces:
+// THE VAULT 2B — CUSTOMIZE (built as DRESS YOUR CARD; THE VAULT 2C renamed it — the owner, Nov 3 6:08 pm: "doesn't sound right" → the
+// profile's button CUSTOMIZE YOUR CARD, the screen CUSTOMIZE). The owner's fix for the picker's long lists ("all listed, hard to understand"),
+// APPROVED 3:27 pm — Downloads\NEON\vault\dress-your-card.png. 2C — ONE EMBLEM SYSTEM, ONE PLACE: the 12 sign-up shapes are COMMON emblems
+// in the EMBLEM tab with the earned ones (core/items.js#SIGN_EMBLEMS); the emblem, card, glow + tube change ONLY here. Two pieces:
 //   THE PROFILE's PANEL  your strip as it is now (live — exactly what the lobby sees), the worn pieces' names under it, a big DRESS YOUR
 //                        CARD button; + YOUR COLLECTION (a count line: cards · emblems · glows · tubes — what you OWN, never a total
 //                        of what exists). The long VAULT lists are gone from the profile.
@@ -14,7 +16,7 @@
 import { h } from '../ui/dom.js';
 import { createSurface } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
-import { TIER_NAMES, TIERS, ITEM, ownedOf } from '../core/items.js';
+import { TIER_NAMES, TIERS, ITEM, ownedOf, signOf, signName } from '../core/items.js';
 import { levelInfo } from '../core/levels.js';
 import { memberLabel } from '../core/member.js';
 import { isDevCard, ONE_OF_ONE, DEV_CARDS } from '../core/dev-cards.js';
@@ -29,9 +31,9 @@ import { fitName } from '../ui/fit.js';
 
 const SLOT = { card: 'card', emblem: 'shape', glow: 'glow', tube: 'tube' };
 const TABS = [['card', 'CARD'], ['emblem', 'EMBLEM'], ['glow', 'GLOW'], ['tube', 'TUBE']];
-const NONE = { emblem: 'YOUR SHAPE', glow: 'NO GLOW', tube: 'PLAIN TUBE' };
-/** the sign-up shape's name ('alien' → THE ALIEN) */
-const shapeName = a => `THE ${String(a || 'bolt').toUpperCase()}`;
+const NONE = { glow: 'NO GLOW', tube: 'PLAIN TUBE' };   // (2C: no "YOUR SHAPE" tile — the 12 sign-up shapes are emblems of their own)
+/** the sign-up shape's name ('alien' → NEON ALIEN) */
+const shapeName = a => signName(a || 'bolt');
 const nameOf = id => (ITEM[id] || {}).name || '';
 /** dev cards first (ONE OF ONE), then the rarest, then the newest (ownedOf's order) */
 const devAt = id => (isDevCard(id) ? DEV_CARDS.indexOf(id) : 99);
@@ -81,12 +83,12 @@ export function dressPanel(data, o = {}) {
     h('div.vl-dp-k', 'YOUR CARD'),
     host,
     h('p.vl-dp-worn', wornLine(W, who)),
-    h('button.vl-dp-go', { type: 'button', onclick: () => openDress(data, o) }, 'DRESS YOUR CARD'));
+    h('button.vl-dp-go', { type: 'button', onclick: () => openDress(data, o) }, 'CUSTOMIZE YOUR CARD'));
   const n = k => ownedOf(owned, k).length;
   const cnt = (v, one, many) => h('span', h('b', String(v)), ` ${v === 1 ? one : many}`);
   const coll = h('section.pg-panel.vl-dc',
     h('div.vl-dp-k', 'YOUR COLLECTION'),
-    h('div.vl-dc-row', cnt(n('card'), 'card', 'cards'), cnt(n('emblem') + 1, 'emblem', 'emblems'), cnt(n('glow'), 'glow', 'glows'), cnt(n('tube'), 'tube', 'tubes')));
+    h('div.vl-dc-row', cnt(n('card'), 'card', 'cards'), cnt(n('emblem'), 'emblem', 'emblems'), cnt(n('glow'), 'glow', 'glows'), cnt(n('tube'), 'tube', 'tubes')));
   return [panel, coll];
 }
 
@@ -113,7 +115,8 @@ export function openDress(data, o = {}) {
 
   /** one tile: its art (a card's live mini · an emblem · the name in a glow · a tube style on your neon), its name, its tier edge */
   function tile(kind, it, i) {
-    const id = it ? it.id : '', slot = SLOT[kind], on = (W[slot] || '') === id || (kind === 'card' && !id);
+    const id = it ? it.id : '', slot = SLOT[kind], sign = signOf(id);
+    const on = sign ? !W.shape && who.avatar === sign : (W[slot] || '') === id || (kind === 'card' && !id);
     const tier = it ? it.tier : 'common';
     const art = h('div.vl-dt-art');
     if (kind === 'card') {
@@ -122,7 +125,7 @@ export function openDress(data, o = {}) {
       art.append(m);
       if (real && LOOKS[id].fx && FX[LOOKS[id].fx]) gridSurf.add(m, FX[LOOKS[id].fx], fxOpts(id, { seed: 2 + i, calm: 1, radius: 8, tile: true }));
     } else if (kind === 'emblem') {
-      art.append(emblemEl({ id: it && hasArt(id) ? id : null, avatar: who.avatar, color: who.color, tube: W.tube, mode: 'even', size: 46 }));
+      art.append(emblemEl({ id: it && hasArt(id) ? id : null, avatar: sign || who.avatar, color: who.color, tube: W.tube, mode: 'even', size: 46 }));
     } else if (kind === 'glow') {
       const b = h('b.vl-dt-name', who.name);
       art.append(fitName(applyGlow(b, id || null), { min: 9 }));
@@ -141,7 +144,7 @@ export function openDress(data, o = {}) {
     for (const b of tabBtns) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
     gridSurf.clear();
     const items = order(ownedOf(owned, tab));
-    const list = tab === 'card' ? items : [null, ...items];
+    const list = tab === 'card' || tab === 'emblem' ? items : [null, ...items];
     grid.dataset.tab = tab;
     grid.replaceChildren(...list.map((it, i) => tile(tab, it, i)));
     // (a tube style lights NEON emblems — said when a special finish is worn; the tiles show it on your own shape)
@@ -151,7 +154,17 @@ export function openDress(data, o = {}) {
     note.hidden = !note.textContent;
   }
   async function wear(kind, id) {
-    const slot = SLOT[kind];
+    const slot = SLOT[kind], sign = signOf(id);
+    // (2C — a sign-up shape: it becomes your shape + takes a worn earned emblem off; the server does the same — profiles/{pid}/a)
+    if (sign) {
+      if (!W.shape && who.avatar === sign) return;
+      const was = [W.shape, who.avatar];
+      W.shape = null; who.avatar = sign;
+      paintPin(); paintGrid(); line.textContent = wornLine(W, who);
+      const ok = o.wear ? await o.wear('shape', id) : true;
+      if (!ok && !closed) { [W.shape, who.avatar] = was; paintPin(); paintGrid(); line.textContent = wornLine(W, who); }
+      return;
+    }
     if ((W[slot] || '') === (id || '') || (kind === 'card' && !id)) return;
     const was = W[slot];
     W[slot] = id || (kind === 'card' ? 'card-gilded' : null);
@@ -163,9 +176,9 @@ export function openDress(data, o = {}) {
   const line = h('p.vl-dr-worn', wornLine(W, who));
   const close = () => { if (closed) return; closed = true; pinSurf.destroy(); gridSurf.destroy(); el.classList.remove('is-in'); setTimeout(() => el.remove(), 220); document.removeEventListener('keydown', onKey); openNow = null; if (o.onClose) o.onClose(); };
   const onKey = e => { if (e.key === 'Escape') close(); };
-  const el = h('div.vl-dress', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Dress your card' },
+  const el = h('div.vl-dress', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Customize your card' },
     h('div.vl-dr-in',
-      h('header.vl-dr-head', h('button.vl-dr-back', { type: 'button', 'aria-label': 'Back', onclick: close }, '‹'), h('h2', 'DRESS YOUR CARD')),
+      h('header.vl-dr-head', h('button.vl-dr-back', { type: 'button', 'aria-label': 'Back', onclick: close }, '‹'), h('h2', 'CUSTOMIZE')),
       pin,
       h('div.vl-dr-sub', h('span', 'THE LOBBY SEES THIS'), h('button.vl-dr-view', { type: 'button', onclick: view }, 'VIEW FULL ›')),
       line,

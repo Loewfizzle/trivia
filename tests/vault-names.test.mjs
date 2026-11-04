@@ -41,7 +41,8 @@ test('THE SHARED MODULES alone (as a phone loads them): the ORIGINAL GILDED only
   const js = "const I = await import('./js/core/items.js'); const A = await import('./js/core/achievements.js'); const L = await import('./js/core/levels.js'); const S = await import('./js/core/streak.js');" +
     "console.log(JSON.stringify({ items: I.ITEMS.map(x => x.id), ach: A.ACHIEVEMENTS.length, lr: L.LEVEL_REWARDS.length, when: L.REWARD_LEVELS.length, ms: S.MILESTONES.flatMap(m => m.items).length }))";
   const r = JSON.parse(execFileSync(process.execPath, ['--input-type=module', '-e', js], { cwd: ROOT, encoding: 'utf8' }).trim());
-  assert.deepEqual(r.items, ['card-gilded']);
+  // (THE VAULT 2C — ONE EMBLEM SYSTEM: the 12 sign-up shapes are every member's own from day one — owned by all, so nothing to hide)
+  assert.deepEqual(r.items, ['card-gilded', ...['bolt', 'eye', 'diamond', 'hex', 'ghost', 'crown', 'star', 'moon', 'cube', 'alien', 'target', 'wave'].map(a => `emb-sign-${a}`)]);
   assert.equal(r.ach, 0); assert.equal(r.lr, 0); assert.equal(r.ms, 0);
   assert.equal(r.when, new Set(LEVEL_REWARD_ROWS.map(x => x.lvl)).size, 'WHEN stays (the vague tease)');
 });

@@ -12,7 +12,7 @@
 //   favor    { jack, room, text?, colour?, show? } → { moment, spent }   CALL IN A FAVOR (a FAVOR token → one crew jack for the room)
 import { withShow } from './_lib/catalog.js';   // (THE VAULT 1B: registers the server-only catalog + names only to owners)
 import { route, send, readBody, requireUser, clientIp, ApiError } from './_lib/http.js';
-import { ITEM, STARTER } from '../js/core/items.js';
+import { ITEM, STARTER, signOf, SIGN_EMBLEMS } from '../js/core/items.js';
 import { carryOver } from '../js/core/progress.js';
 import { ownerCounts, pctOf, bumpOwners } from './_lib/owners.js';
 import { val, ref, adminPids } from './_lib/fb.js';
@@ -81,6 +81,11 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
         stats = await val(`pstats/${pid}`);
         if (!dev) profile = await publicProfile(pid);
       }
+      // THE VAULT 2C — ONE EMBLEM SYSTEM: the 12 sign-up shapes, every member's from day one — back-filled into an older profile's items
+      if (stats && SIGN_EMBLEMS.some(id => !(stats.it || {})[id])) {
+        const patch = {}; for (const id of SIGN_EMBLEMS) if (!(stats.it || {})[id]) patch[`pstats/${pid}/it/${id}`] = (profile && profile.at) || now;
+        await ref('/').update(patch); stats = await val(`pstats/${pid}`);
+      }
       const s = stats || {};
       const wk = weekKey(now);
       return { pid, profile, priv, stats: { xp: s.xp || 0, g: s.g || {}, gw: s.wk === wk ? s.gw || {} : {}, b: s.b || {}, wk, st: s.st || null, gd: s.gd || null, it: s.it || {}, ac: s.ac || {}, fv: s.fv || 0, dl: s.dl ? { n: s.dl.n || 0 } : null, sg: (s.pa && s.pa.sg) || {}, sgt: (s.pa && s.pa.sgt) || 0 } };
@@ -108,6 +113,8 @@ export async function profileAction(uid, body, ip = '', now = Date.now(), req = 
         const it = ITEM[id];
         if (!it || it.kind !== kind || !(owned[id] || STARTER.includes(id))) throw new ApiError(403, 'locked');
         if (isDevCard(id) && !adminPids().includes(pid)) throw new ApiError(403, 'locked');   // (THE DEV CARDS: the owner's only)
+        // (THE VAULT 2C — ONE EMBLEM SYSTEM: a sign-up shape IS the profile's shape — `a` — and takes a worn earned emblem off)
+        if (k === 'shape' && signOf(id)) { patch[`profiles/${pid}/a`] = signOf(id); patch[`profiles/${pid}/es`] = null; continue; }
         patch[`profiles/${pid}/${field}`] = id;
       }
       if (patch[`profiles/${pid}/cd`] !== undefined) patch[`profiles/${pid}/f`] = null;   // the old finish id retires with the first pick

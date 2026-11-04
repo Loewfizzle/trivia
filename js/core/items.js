@@ -21,6 +21,18 @@ const G = (id, name, tier, line, x = {}) => ({ id, kind: 'glow', name, tier, lin
 export const ITEMS = [
   C('card-gilded', 'GILDED', 'common', '#0b0a0d', '#d8b46a', '#ff4fb8', 'Black lacquer, brass foil, the fan over the door.'),
 ];
+// THE VAULT 2C — ONE EMBLEM SYSTEM, ONE PLACE (the owner, Nov 3 6:23 pm: "you change everything when you customize your card"): the 12
+// SIGN-UP SHAPES are COMMON emblems every player owns from day one (public — everyone owns them: their names ship with the site). Sign-up still
+// picks a starter; afterwards the emblem changes ONLY in CUSTOMIZE. Wearing one sets the profile's shape (profiles/{pid}/a — every screen that
+// draws the sign-up shape follows) and takes a worn earned emblem off (es). Ids: emb-sign-<shape>.
+export const SIGN_SHAPES = Object.freeze(['bolt', 'eye', 'diamond', 'hex', 'ghost', 'crown', 'star', 'moon', 'cube', 'alien', 'target', 'wave']);
+const SIGN_NAMES = { bolt: 'NEON BOLT', eye: 'NEON EYE', diamond: 'NEON DIAMOND', hex: 'NEON ROCKET', ghost: 'NEON GHOST', crown: 'NEON CROWN', star: 'NEON STAR', moon: 'NEON MOON', cube: 'NEON CUBE', alien: 'NEON ALIEN', target: 'NEON TARGET', wave: 'NEON WAVE' };   // ("NEON …": never mistaken for an earned emblem — THE CROWN, DIAMOND)
+export const signId = a => `emb-sign-${a}`;
+/** the sign-up shape an emblem id stands for (or null) */
+export const signOf = id => (typeof id === 'string' && id.startsWith('emb-sign-') && SIGN_SHAPES.includes(id.slice(9)) ? id.slice(9) : null);
+export const signName = a => SIGN_NAMES[a] || `NEON ${String(a || 'bolt').toUpperCase()}`;
+export const SIGN_EMBLEMS = Object.freeze(SIGN_SHAPES.map(signId));
+for (const a of SIGN_SHAPES) ITEMS.push({ ...E(signId(a), signName(a), 'common', a, 'Your sign-up shape in neon — every member owns all twelve.'), sign: a });
 export const ITEM = Object.fromEntries(ITEMS.map(x => [x.id, x]));
 /** add display rows (the server's catalog, or a response's `items` for what this player owns) — an id already known is updated */
 export function registerItems(rows) {
@@ -34,7 +46,7 @@ export function registerItems(rows) {
 export const itemOf = id => ITEM[id] || null;
 /** Everyone owns the ORIGINAL GILDED card. */
 export const DEFAULT_CARD = 'card-gilded';
-export const STARTER = [DEFAULT_CARD];
+export const STARTER = [DEFAULT_CARD, ...SIGN_EMBLEMS];
 /** What a player wears: their choice if they own it, else the default (cards) / nothing (glows, tubes, shapes). */
 export function wearing(owned, pick = {}) {
   const has = id => id && ITEM[id] && (STARTER.includes(id) || (owned && owned[id]));
@@ -48,6 +60,7 @@ export function wearing(owned, pick = {}) {
 export function ownedOf(owned, kind) {
   const ids = Object.keys(owned || {}).filter(id => ITEM[id] && (!kind || ITEM[id].kind === kind));
   if (kind === 'card' && !ids.includes(DEFAULT_CARD)) ids.push(DEFAULT_CARD);
+  if (kind === 'emblem') for (const id of SIGN_EMBLEMS) if (!ids.includes(id)) ids.push(id);   // (2C: the 12 sign-up shapes — everyone's)
   return ids.sort((a, b) => ((owned && owned[b]) || 0) - ((owned && owned[a]) || 0)).map(id => ITEM[id]);
 }
 /** The old VAULT ids (profiles/{pid}/f, /g before PROGRESSION A) → the new item ids. */

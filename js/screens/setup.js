@@ -17,6 +17,9 @@ export function createSetup() {
   function mount(el, st) {
     mode = st.setupMode;
     const saved = loadProfile() || {};
+    // THE VAULT 2C — ONE EMBLEM SYSTEM, ONE PLACE: the shape is picked here ONCE (sign-up — nothing saved on this device yet); afterwards it
+    // changes only in CUSTOMIZE (the profile's CUSTOMIZE YOUR CARD). EDIT PROFILE = the name + the colour.
+    const pickShape = !saved.name && mode !== 'edit';
     profile = {
       name: saved.name || '',
       color: saved.color || COLORS[Math.floor(Math.random() * COLORS.length)].id,
@@ -62,7 +65,7 @@ export function createSetup() {
         mode === 'join' ? h('label.field', h('span.label', 'HUSH WORD'), els.code) : null,
         h('label.field', h('span.label', 'CALLSIGN'), els.name),
         h('div.field', h('span.label', 'SIGNAL COLOR'), els.colors),
-        h('div.field', h('span.label', 'AVATAR'), els.avatars),
+        pickShape ? h('div.field', h('span.label', 'AVATAR'), els.avatars) : null,
         els.preview),
       h('div.form-cta', els.err = h('p.form-error', { role: 'alert', hidden: true }), els.go));
     renderPicks();

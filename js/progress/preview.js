@@ -98,7 +98,7 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
       if (view === 'profile' || !root) host.append(h('div.pg-prof', ...progressSections(data, { name: NAME, preview: true, onFlame: () => openStreakCard(data.stats.st), onWear: (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (!k) return; data.profile[k] = id || null; if (slot === 'card') { host.replaceChildren(); preview(view, new URLSearchParams({ ...Object.fromEntries(q), card: id }), host); return true; } host.replaceChildren(); preview(view, q, host, data); return true; } })));
     }
     // (THE VAULT 2B: &dress=1 — the DRESS screen open at once; &tab=emblem|glow|tube)
-    if (q.get('dress') === '1' && !window.__dressOpened) { window.__dressOpened = true; const D = await import('../vault/dress.js'); const d = D.openDress(data, { name: NAME, wear: async (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; data.profile[k] = id || null; return true; } }); if (q.get('tab')) { const b = d.el.querySelector(`[data-tab="${q.get('tab')}"]`); if (b) b.click(); } window.__dress = d; }
+    if (q.get('dress') === '1' && !window.__dressOpened) { window.__dressOpened = true; const D = await import('../vault/dress.js'); const d = D.openDress(data, { name: NAME, wear: async (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (slot === 'shape' && /^emb-sign-/.test(id || '')) { data.profile.a = id.slice(9); data.profile.es = null; return true; } data.profile[k] = id || null; return true; } }); if (q.get('tab')) { const b = d.el.querySelector(`[data-tab="${q.get('tab')}"]`); if (b) b.click(); } window.__dress = d; }
     window.__pg = { host };
     return host;
   }
