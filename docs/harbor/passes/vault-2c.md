@@ -85,6 +85,9 @@ vault-2b 3/3, vault-2c 3/3 · smoke 6/6 · the profile E2E 77/77 (THE BOARD's ro
 ☰ menu was still scaling in, and with THE LAB's row above it the tap landed on THE LAB (→ /lab): the panel checks now wait for the menu to
 settle → 39/39 alone.
 
+## THE CLOUD (the two-run cap)
+Run 1 (the harbor-tagged push): tests GREEN, harbor GREEN (all 10 jobs) — first try. Live on www.neonspeakeasy.com from that push (/LAN → THE WRONG DOOR with a 404).
+
 ## Known issues + held back
 - Every CHANGED item waits for the owner's re-mark (11 faces: INFERNO ×2, CENTURY ×2, THE SWITCHBOARD ×2, THE SOURCE ×2, FOUNDING MEMBER ×2,
   THE HOUSE full).
