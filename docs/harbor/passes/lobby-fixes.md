@@ -141,3 +141,11 @@ their fix: leavewave (1 of 179 frames lying down; the grace at 0), bannerfull (0
   from the panel's state started at the page's load; now only the page's own address clock does — `sky.js#skyClock`'s `page`) → green with
   `citypause` (43/43); the `sightings` 12 ms capture line (flaky — green on a re-run alone). Every new group green in the full run: oneseat,
   playercard, leavewave, bannerfull, hostcard, newstart, platefit, youpage, corners, arrivals, radiorest.
+
+## THE CLOUD RUNS (the two-run cap)
+- **Run 1** (ff9566a): harbor **13 / 14 jobs green** — `lobbyfix2`'s `youpage` red: the cloud's headless Linux Chromium reports NO fine pointer, so
+  the YOU page's desktop rule (`hover: hover and pointer: fine`) never applied there (a real desktop matches it; the mini PC's Windows headless did
+  too). The rule now also keys on width (`min-width: 900px` — any wide screen; the phones, incl. a phone sideways at 844, unchanged). `tests` red:
+  `tests/lobby-fixes.test.mjs` imported `api/report.js`, which pulls `firebase-admin` (not installed in the unit job) — `dedupePids` moved to the
+  PURE `js/core/progress.js`.
+- **Run 2**: see the summary.

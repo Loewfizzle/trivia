@@ -2,8 +2,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { overlaps, matchStep, OV_KEEP } from '../js/core/progress.js';
-import { dedupePids } from '../api/report.js';
+import { overlaps, matchStep, OV_KEEP, dedupePids } from '../js/core/progress.js';
 
 const src = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 

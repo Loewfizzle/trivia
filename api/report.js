@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs';
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val } from './_lib/fb.js';
 import { pidOf } from './_lib/profiles.js';
+import { dedupePids } from '../js/core/progress.js';
 import { applyMatch } from './_lib/stats.js';
 import { bumpPlayed } from './_lib/activity.js';
 import { extractMatch, unreportable } from '../js/core/match-report.js';
@@ -119,18 +120,6 @@ export async function processReport(uid, body, now = Date.now()) {
   await ref(`results/${key}`).set({ st: 'done', at: now, g: ex.gid, mode: ex.mode || null, n: ex.n, src, by: uid, rej: ex.rejected.length || null, o: outcomes });
   if (ex.rejected.length) console.warn('rejected records', key, JSON.stringify(ex.rejected));
   return { ok: true, status: 'counted', outcome: outcomes[pids[uid]] || null, rejected: ex.rejected.filter(r => r.uid === uid).map(r => r.board) };
-}
-
-/** ONE PROFILE, ONE SEAT: a profile holding two seats in one match keeps only its WORSE row (PURE — exported for the tests) */
-export function dedupePids(rows, pids) {
-  const by = {};
-  for (const [u, pid] of Object.entries(pids)) (by[pid] ||= []).push(u);
-  for (const us of Object.values(by)) {
-    if (us.length < 2) continue;
-    us.sort((a, b) => ((rows[b] && rows[b].rank) || 0) - ((rows[a] && rows[a].rank) || 0) || (a < b ? -1 : 1));
-    for (const u of us.slice(1)) delete pids[u];
-  }
-  return pids;
 }
 
 // Expected answers (still running, being counted, can't be verified, not yours) come back as 200 { ok: false, code, retry }:

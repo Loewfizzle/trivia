@@ -105,6 +105,18 @@ export function overlaps(list, win) {
   return list.some(o => o && o.c && o.c !== w.c && Number(o.s) < w.e && w.s < Number(o.e));
 }
 
+/** ONE PROFILE, ONE SEAT: a profile holding two seats in one match keeps only its WORSE row (PURE — api/report.js + the tests) */
+export function dedupePids(rows, pids) {
+  const by = {};
+  for (const [u, pid] of Object.entries(pids)) (by[pid] ||= []).push(u);
+  for (const us of Object.values(by)) {
+    if (us.length < 2) continue;
+    us.sort((a, b) => ((rows[b] && rows[b].rank) || 0) - ((rows[a] && rows[a].rank) || 0) || (a < b ? -1 : 1));
+    for (const u of us.slice(1)) delete pids[u];
+  }
+  return pids;
+}
+
 /** THE STREAK's day for a play (a match / a daily): the run, its milestones' items (+ a FAVOR token) — into next. */
 export function playDay(next, now, outage) {
   const { st, ev } = streakPlay(next.st, streakDay(now), outage);

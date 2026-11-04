@@ -329,6 +329,7 @@ G('youpage', async () => {
     await sleep(900);
     const r = await ev(p, `(() => { const sc = document.querySelector('.pf-overlay .pf-scroll'), acc = sc.querySelector('.pf-account'), kids = [...acc.children].filter(k => k.tagName !== 'H3'), R = sc.getBoundingClientRect();
       return { sbw: getComputedStyle(sc).scrollbarWidth, bar: sc.offsetWidth - sc.clientWidth, w: Math.round(R.width), rows: !!acc.querySelector('.pf-er-name, .pf-er-colour, .pf-edit'), max: sc.scrollHeight - sc.clientHeight }; })()`);
+    // (the desktop rule matches a mouse OR a wide screen — the cloud's headless Linux reports no fine pointer)
     // (the owner's ADD-ON 3: NAME + COLOUR at the TOP of CUSTOMIZE — in a room too — on screen without scrolling; none in ACCOUNT)
     await ev(p, "document.querySelector('.pf-overlay .vl-dp-go').click()");
     await waitFor(p, "!!document.querySelector('.vl-dress .vl-yr-name')", 'CUSTOMIZE', 8000);
