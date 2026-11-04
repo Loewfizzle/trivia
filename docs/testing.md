@@ -358,7 +358,22 @@ every real phone (23 client writes swallowed a refusal with `.catch(() => {})`).
   phones AND the refusal is reported (no room code in the report).
 
 ## THE LIVE-SITE GUARD + THE TEST FLAG (FR6 FIXES A — the owner, Nov 4: real "A ROOM JUST OPENED" pushes + five real member numbers from 2B's repros)
-(filled in Group 2b)
+**Tests + repros run on the emulators — NEVER rooms, players or writes on neonspeakeasy.com** (the owner's standing rule since 2B; the memory
+note "Ask before touching the live site").
+- **THE GUARD** (`tests/integration/kit/live-guard.mjs`): every page a test browser opens goes through `guardUrl()` — `kit/puppeteer.mjs` patches
+  `page.goto` on the page class (every page of every context of every script that launches through it: the harness, the harbor kit, shots,
+  pixdiff, title-perf, the benches…); `wk-room.mjs` (Playwright WebKit) guards its own (`PROD=1` alone is refused). A non-local host
+  (anything but localhost / 127.0.0.1 / [::1] / *.localhost / *.test) THROWS — unless `LIVE=1` is set on purpose. `scripts/lab-export.mjs`
+  defaults to the LOCAL server (the owner's marks: `node scripts/lab-export.mjs https://www.neonspeakeasy.com` — a read). `tests/live-guard.test.mjs`
+  checks the guard, the patch, the flag, and that no test or script DEFAULTS to the live site.
+- **THE TEST FLAG** (`&test=1` — the guard adds it to every page under `LIVE=1`; `js/identity.js#testMode`, kept by the tab across reloads +
+  the room URL): no profile is made (`me.js#syncMe` returns null → no MEMBER Nº for a throwaway player), and the room push says `silent` (the
+  server marks the room, pushes nothing).
+- **THE ROOM PUSH's own rules** (`api/_lib/radio.js#roomOpened` + `room.js#roomPushLater`): asked 10 s after the room opened and only while
+  the phone is still in it; the server wants the room's host a player + online, once a room an hour, ONE per sender an hour + 10 an hour in all
+  (`PUSH_LIMITS`, rl/ — the shared `api/_lib/limit.js#take`); the push opens `/?room=CODE` (a room closed by then: "That room has closed").
+- **THE LOGS PRUNED ON WRITE** (`api/_lib/prune.js`): a log write prunes phonelog (the newest 40), errlog (quiet 30 days) + rl/ (older than
+  2 days) at most once an hour.
 
 ## THE BUSY-PC CHECK (LOBBY 2.0 A — the owner, Nov 3 8:49 pm) — before EVERY full local test run
 `node scripts/busy-pc.mjs [seconds=30] [--limit 30]` samples the machine's real CPU load (all cores) for ~30 s and names the busiest

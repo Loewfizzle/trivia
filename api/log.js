@@ -6,10 +6,12 @@
 //     ua, v, d: { device: n }, b: { browser: n }, p } — the log can't grow with traffic, only with distinct errors;
 //   · rate limits: 40 errors an hour per IP, 3000 a day in all (beyond that they're dropped, quietly);
 //   · no ids, names or room codes are stored; the IP only as a salted hash inside the rate-limit bucket.
-// Read and cleared on /admin (api/admin.js: errors, clearErrors). Entries untouched for 30 days are pruned there.
+// Read and cleared on /admin (api/admin.js: errors, clearErrors). Entries untouched for 30 days are pruned there AND on a write, at most
+// once an hour (FR6 FIXES A, C8 — api/_lib/prune.js: the reports, the errors + the rate-limit buckets).
 import { createHash } from 'node:crypto';
 import { route, send, readBody, clientIp } from './_lib/http.js';
 import { ref, fb } from './_lib/fb.js';
+import { pruneLogsIfDue } from './_lib/prune.js';
 
 export const LOG_LIMITS = { perRequest: 10, ipPerHour: 40, perDay: 3000, maxBody: 32_000 };
 // 9e — SEND REPORT (the &debug=1 strip's button) + THE HANG WATCH (a worker that reports when the page's main thread stops answering —
@@ -106,5 +108,7 @@ export default route(['POST', 'GET'], async (req, res) => {
   const body = await readBody(req);
   const meta = { ip: clientIp(req), ua: String(req.headers['user-agent'] || ''), now: Date.now() };
   const kept = body && body.p === 'report' ? await logReport(body, meta) : await logErrors(body, meta);
+  // (FR6 FIXES A — C8: a write prunes the logs + the rate-limit buckets, at most once an hour — never waiting for /admin)
+  if (kept) await pruneLogsIfDue(meta.now).catch(e => console.warn('prune', e && e.message));
   send(res, 200, { kept });
 });

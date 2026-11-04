@@ -85,6 +85,18 @@ test('THE RADIO: rooms/{CODE}/radio + radioCrew readable by the room, written by
   }
 });
 
+// FR6 FIXES A (FR6 C(3)): the server-only nodes with no case of their own — flags/ (THE BOARD's reports), rl/ (the rate limits), results/
+// (the exactly-once keys), errlog/ + phonelog/ (the phones' errors + reports), gplay/, wx/ — readable + writable by NOBODY from a client
+test('the server-only nodes flags/ rl/ results/ errlog/ phonelog/ gplay/ wx/ — read + written by nobody', async () => {
+  await seed({ flags: { f1: { n: 1 } }, rl: { b1: { n: 1, t: 1 } }, results: { k1: true }, errlog: { e1: { m: 'x' } }, phonelog: { p1: { text: 'x' } }, gplay: { g1: 1 }, wx: { w1: 1 } });
+  const one = { flags: 'f1', rl: 'b1', results: 'k1', errlog: 'e1', phonelog: 'p1', gplay: 'g1', wx: 'w1' };
+  for (const u of ['anyone', null]) for (const node of Object.keys(one)) {
+    await assertFails(get(ref(db(u), node)), `${u || 'signed out'} reads ${node}/`);
+    await assertFails(get(ref(db(u), `${node}/${one[node]}`)), `${u || 'signed out'} reads one ${node} entry`);
+    await assertFails(set(ref(db(u), `${node}/mine`), { n: 0, t: 0 }), `${u || 'signed out'} writes ${node}/`);
+  }
+});
+
 // THE VAULT 2B — MEMBER NUMBERS + THE DEV CARDS: profiles/{pid}/mn + members/ (the counter) are the SERVER's; nobody sets or changes a
 // member number (not their own), nobody reads the counter; a dev card can't be written into anyone's stats
 test('THE VAULT 2B: a member number + the counter + the dev cards — written by nobody, the counter read by nobody', async () => {

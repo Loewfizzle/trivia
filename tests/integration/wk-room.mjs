@@ -7,7 +7,10 @@ import { pathToFileURL } from 'node:url';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
-const BASE = process.env.E2E_BASE || 'http://localhost:5173', PROD = !!process.env.PROD;   // (PROD=1: the live site — no emulators: the night entry written by the host's own page)
+import { guardUrl } from './kit/live-guard.mjs';
+const BASE = process.env.E2E_BASE || 'http://localhost:5173', PROD = !!process.env.PROD;
+// (FR6 FIXES A — G7: PROD=1 is the live site — refused unless LIVE=1 too; then every page carries &test=1: no push, no profile, no Nº)
+if (PROD) guardUrl(BASE, 'wk-room.mjs (PROD=1)');   // (PROD=1: the live site — no emulators: the night entry written by the host's own page)
 const { webkit } = await import(pathToFileURL(process.env.WK_PLAYWRIGHT || join(homedir(), 'wk', 'node_modules', 'playwright', 'index.mjs')).href);
 const browser = await webkit.launch();
 const sleep = ms => new Promise(r => setTimeout(r, ms));
@@ -19,7 +22,7 @@ async function phone(slot, qs = '') {
   const p = await ctx.newPage();
   p.on('pageerror', e => { console.log(`[${slot}] PAGEERROR`, e.message, (e.stack || '').split('\n').slice(0, 3).join(' | ')); errors.push(`${slot}: ${e.message}`); });
   p.on('console', m => { if (m.type() === 'error' || /warn/.test(m.type())) { const t = m.text(); if (!/favicon|permission_denied|Failed to load resource/i.test(t)) console.log(`[${slot}] console.${m.type()}`, t.slice(0, 300)); } });
-  await p.goto(PROD ? `${BASE}/?slot=${slot}${qs}` : `${BASE}/?emu&slot=${slot}${qs}`);
+  await p.goto(guardUrl(PROD ? `${BASE}/?slot=${slot}${qs}` : `${BASE}/?emu&slot=${slot}${qs}`, 'wk-room.mjs'));
   await p.waitForFunction(() => !!(window.__district && window.__district.phase && window.__district.phase().done && window.__district.harbor() && window.__district.harbor().shown), null, { timeout: 40000 });
   return { ctx, p };
 }

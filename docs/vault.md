@@ -4,7 +4,7 @@ What a player COLLECTS (cards · emblems · name glows) and how each one LOOKS +
 them) are PROGRESSION's (`docs/progression.md`, `js/core/items.js`); this doc is their ART: the slim strips, the effect library, the lab
 where the owner approves them. The owner's decisions: `docs/harbor/decisions.md` §15 (THE VAULT + THE VAULT — THE SPLIT, SLIM FIRST + THE
 EFFECT LIBRARY); the passes: `docs/harbor/passes/vault-1a.md` (THE STYLE TEST — this one). **The owner's marks: `docs/vault-lab-marks.md`
-— the next VAULT pass reads it FIRST** (`node scripts/lab-export.mjs` refreshes it from the live site).
+— the next VAULT pass reads it FIRST** (`node scripts/lab-export.mjs https://www.neonspeakeasy.com` refreshes it from the live site — FR6 FIXES A: no argument = the local server).
 
 | file | what |
 | --- | --- |

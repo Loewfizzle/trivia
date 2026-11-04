@@ -1090,6 +1090,18 @@ test('CITY CONTROLS B: the intercom, the crew, presets + the room push — every
     await ref('rooms/CCBN/players/u-ccbkid').set({ name: 'K', color: 'cyan', avatar: 'bolt', joinedAt: 1 });
     { const r = await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBN' }); assert.equal(r.sent, 0, 'no phones subscribed'); assert.notEqual(r.why, 'not_open'); }
     assert.ok(await val('radio/push/sent/CCBN'), 'once a room');
+    // (FR6 FIXES A — C4: one push per sender an hour + PUSH_LIMITS.perHour in all; G7: a TEST tab's room is marked, never pushed)
+    { const room = async (code, uid) => { await ref(`rooms/${code}`).set({ meta: { hostId: uid, status: 'lobby', createdAt: Date.now(), activeAt: Date.now() }, players: { [uid]: { name: 'K', color: 'cyan', avatar: 'bolt', joinedAt: 1 } }, presence: { [uid]: { v: 2, online: true, lastSeen: Date.now(), c: { k1: true } } } }); };
+      await room('CCBO', 'u-ccbkid');
+      assert.equal((await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBO' })).why, 'limit', 'a second room from the same sender within the hour: no push');
+      await room('CCBS', 'u-ccbsil');
+      const sil = await adminAction('u-ccbsil', { action: 'radioRoomOpened', room: 'CCBS', silent: true });
+      assert.equal(sil.silent, true, 'a test room is silent'); assert.ok(await val('radio/push/sent/CCBS'), 'and marked');
+      const { PUSH_LIMITS } = await import('../../api/_lib/radio.js');
+      await ref(`rl/push_all_${Math.floor(Date.now() / 3600e3)}`).set({ n: PUSH_LIMITS.perHour, t: Date.now() });
+      await room('CCBG', 'u-ccbglo');
+      assert.equal((await adminAction('u-ccbglo', { action: 'radioRoomOpened', room: 'CCBG' })).why, 'limit', 'the hour’s pushes in all: no more');
+      await ref('/').update({ 'rooms/CCBO': null, 'rooms/CCBS': null, 'rooms/CCBG': null, rl: null }); }
     await rejects(adminAction('u-ccbboss', { action: 'radioPush', op: 'sub', sub: { endpoint: 'https://evil.example.com/x', keys: { p256dh: 'A'.repeat(87), auth: 'B'.repeat(22) } } }), 400, 'bad_sub');
     { const { encrypt } = await import('../../api/_lib/push.js'), C = await import('node:crypto');
       const ua = C.createECDH('prime256v1'); ua.generateKeys(); const auth = C.randomBytes(16);
@@ -1104,4 +1116,21 @@ test('CITY CONTROLS B: the intercom, the crew, presets + the room push — every
     const log = (await adminAction('u-ccbboss', { action: 'audit', limit: 80 })).log.map(l => l.act);
     for (const a of ['radioIntercom', 'radioUnsend', 'radioCrewAdd', 'radioAsk', 'radioHandOver', 'radioPreset', 'radioPresetFire']) assert.ok(log.includes(a), a);
   } finally { process.env.ADMIN_PIDS = ''; await ref('/').update({ radio: null, 'rooms/CCBA': null, 'rooms/CCBN': null }); }
+});
+
+// FR6 FIXES A — C8: the logs were pruned only when an admin opened /admin (rl/ never): now a log write prunes them, at most once an hour
+test('the logs are pruned on write — the reports to the newest 40, errors quiet 30 days, stale rate-limit buckets (C8)', async () => {
+  const { pruneLogsIfDue, prunePlan, REPORT_KEEP, ERR_KEEP_MS, RL_KEEP_MS } = await import('../../api/_lib/prune.js');
+  const now = Date.now();
+  const phonelog = Object.fromEntries(Array.from({ length: REPORT_KEEP + 5 }, (_, i) => [`r${String(i).padStart(3, '0')}`, { at: now - i * 1000, kind: 'tap', text: 'x' }]));
+  await ref('/').update({ phonelog, 'errlog/eold': { m: 'old', last: now - ERR_KEEP_MS - 1 }, 'errlog/enew': { m: 'new', last: now }, 'rl/stale_x': { n: 3, t: now - RL_KEEP_MS - 1 }, 'rl/fresh_y': { n: 1, t: now }, 'rl/zz_prune': null });
+  const plan = prunePlan({ phonelog, errlog: { a: { last: now } }, rl: { zz_prune: { t: 0 } } }, now);
+  assert.equal(plan.phonelog.length, 5); assert.deepEqual(plan.rl, [], 'the prune marker itself is never pruned');
+  const r = await pruneLogsIfDue(now);
+  assert.deepEqual(r, { phonelog: 5, errlog: 1, rl: 1 });
+  assert.equal(Object.keys((await val('phonelog')) || {}).length, REPORT_KEEP, 'the newest 40 reports kept');
+  assert.ok(await val('errlog/enew')); assert.equal(await val('errlog/eold'), null);
+  assert.ok(await val('rl/fresh_y')); assert.equal(await val('rl/stale_x'), null);
+  assert.equal(await pruneLogsIfDue(now + 60_000), null, 'at most once an hour');
+  await ref('/').update({ phonelog: null, errlog: null, rl: null });
 });

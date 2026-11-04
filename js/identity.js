@@ -17,6 +17,9 @@ function resolveSlot() {
 }
 
 export const slot = resolveSlot();
+// FR6 FIXES A (G7) — THE TEST FLAG: &test=1 (the test kit adds it to every page it opens on a non-local host — tests/integration/kit/
+// live-guard.mjs) marks this TAB a test: no profile is made (so no MEMBER Nº), the room push goes silent. It sticks to the tab like the slot
+export const testMode = (() => { const on = params.get('test') === '1'; try { if (on) sessionStorage.setItem('na:test', '1'); return on || sessionStorage.getItem('na:test') === '1'; } catch { return on; } })();
 
 // ?emu = use local Firebase emulators. Only honored on localhost; sticky per tab.
 export const useEmulator = (() => {
@@ -70,6 +73,7 @@ export function setUrlRoom(code) {
   if (code) p.set('room', code);
   if (slot !== '1') p.set('slot', slot);
   if (useEmulator) p.set('emu', '');
+  if (testMode) p.set('test', '1');
   if (params.has('pdperf')) p.set('pdperf', ''); // PRISM DROP's on-screen performance readout
   if (params.get('city') === '1' || params.get('city') === '2') p.set('city', params.get('city')); // the city flag (City 2.0 is the default; ?city=1 = City 1.0): a refresh / rejoin stays on it; never saved
   const qs = p.toString();

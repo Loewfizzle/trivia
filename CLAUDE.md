@@ -117,6 +117,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   A City 2.0 room's waiting part IS the live city — app.js routes it to the title (never reloaded);
   `screens/room-city.js` (+ room-dock / room-guests / game-options) puts the players in TWO LINES OF 4 at the door (`core/harbor-room.js` +
   `room-lines.js` — derived from rooms/{CODE}; each keeps their line: `players/{uid}/ln`); docs/harbor/passes/lobby-2a.md (+ B's hand-off).
+- **NEVER THE LIVE SITE (FR6 FIXES A):** tests + repros run on the emulators — `kit/live-guard.mjs` refuses a non-local page unless `LIVE=1` on purpose (then `&test=1`: no profile, no member Nº, a silent room push); docs/testing.md "THE LIVE-SITE GUARD".
 - **THE RULES-LAG (FR6 FIXES A):** every database write goes through `firebase.js#write` (a refusal is reported to /admin, ids masked — never silent); a pass that changes `database.rules.json` fails `tests/rules-live.test.mjs` until its ack names the change, and its summary's FIRST line says RE-PUBLISH + how (docs/testing.md "THE RULES-LAG"); a feature on a new rule keeps a fallback that works on the old one.
 - **Anti-cheat never depends on the code being secret** (the owner, Oct 28 — the repo stays PUBLIC until just before the launch): the
   server checks + replays every result itself (`/api`), the secrets live only in Vercel's env (the service-account key, the pepper).

@@ -232,6 +232,9 @@ for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
 2. Vercel → project → Settings → Environment Variables: `FIREBASE_SERVICE_ACCOUNT` = the whole JSON (or its base64),
    `FIREBASE_DATABASE_URL` = the database URL from `js/firebase-config.js`, optional `KEY_PEPPER` (a long random string; set it once
    and never change it, or every profile key stops working), `ADMIN_PIDS` = your profile id (from /admin or the profile screen).
+   **THE PEPPER (FR6 C — documented in FR6 FIXES A, `api/_lib/fb.js:41`):** with no `KEY_PEPPER` set, the pepper is DERIVED from the
+   service account's private key — so ROTATING THE SERVICE ACCOUNT without first setting `KEY_PEPPER` to the CURRENT derived value
+   invalidates every key hash, board id and daily seed at once (every player's key stops working). Before any rotation: set `KEY_PEPPER`.
 3. Redeploy. 4. Re-publish `database.rules.json` in the Firebase console.
 
 ## Local + tests

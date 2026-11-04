@@ -7,7 +7,7 @@
 //   restoreKey(key)     link this device to the key's profile (a "new phone")
 //   regenKey(), setShown(on), fetchMe(), myRanks(boards)
 import { api, ApiFail } from './api.js';
-import { loadProfile, saveProfile, loadMe, saveMe, loadKey, saveKey, loadNotes, saveNotes } from '../identity.js';
+import { loadProfile, saveProfile, loadMe, saveMe, loadKey, saveKey, loadNotes, saveNotes, testMode } from '../identity.js';
 import { state, setState } from '../store.js';
 import { firebaseReady } from '../firebase.js';
 import { formatKey, normalizeKey } from '../core/pkey.js';
@@ -54,7 +54,8 @@ export function forgetPreviousKey() { const n = loadNotes(), k = previousKey(); 
 /** Creates / updates this device's profile from the local name, avatar and colour. Never throws. */
 export function syncMe() {
   const p = loadProfile();
-  if (!p || !p.name) return Promise.resolve(null);
+  // (FR6 FIXES A — G7: a TEST tab never makes a profile — no member Nº for a throwaway player; js/identity.js#testMode)
+  if (!p || !p.name || testMode) return Promise.resolve(null);
   const sig = `${state.uid}|${p.name}|${p.avatar}|${p.color}`;
   if (syncing && sig === lastSig) return syncing;
   lastSig = sig;

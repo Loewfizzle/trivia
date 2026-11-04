@@ -1,6 +1,6 @@
 // THE CARD LAB → the next pass: reads the owner's marks from the live site (GET /api/admin?lab=export — ids + marks + notes, no names)
 // and writes docs/vault-lab-marks.md, which the next VAULT prompt reads FIRST (THE VAULT 1B builds the full cards + the rest from it).
-//   node scripts/lab-export.mjs [https://www.neonspeakeasy.com]
+//   node scripts/lab-export.mjs https://www.neonspeakeasy.com   (the owner's marks live there; no argument = the local server)
 import { writeFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -8,7 +8,8 @@ import { LAB, registerLabText, labStatus, verOf } from '../js/vault/catalog.js';
 import { LAB_TEXT } from '../api/_lib/lab-text.js';   // (THE VAULT 1B moved the names server-side: read them locally)
 registerLabText(LAB_TEXT);
 
-const base = (process.argv[2] || 'https://www.neonspeakeasy.com').replace(/\/$/, '');
+// (FR6 FIXES A — G7: the default is the LOCAL server; the live site's marks only by naming it on purpose — a read, nothing written)
+const base = (process.argv[2] || 'http://localhost:5173').replace(/\/$/, '');
 const r = await fetch(`${base}/api/admin?lab=export`, { cache: 'no-store' });
 if (!r.ok) { console.error(`the export answered ${r.status}`); process.exit(1); }
 const { marks = {}, at } = await r.json();

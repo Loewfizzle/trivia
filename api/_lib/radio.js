@@ -25,6 +25,9 @@ import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag, cleanWords } from '../../js/core/harbor-radio.js';
 import { nameKey } from '../../js/core/names.js';
 import { presenceOnline } from '../../js/core/room-logic.js';
+import { take } from './limit.js';
+/** THE ROOM PUSH's limits (FR6 FIXES A, C4): per sender an hour, and in all an hour */
+export const PUSH_LIMITS = Object.freeze({ perUid: 1, perHour: 10 });
 import { encodeKey, pidOf, isPid } from './profiles.js';
 import { vapid, sendPush, okEndpoint } from './push.js';
 import { createHash } from 'node:crypto';
@@ -543,6 +546,11 @@ async function roomOpened(me, uid, body, now) {
   if (!(await val('radio/push/on')) || (me && (await roleOf(me)) === 'owner')) return { ok: true, sent: 0 };
   const t = await ref(`radio/push/sent/${code}`).transaction(cur => (cur && cur > now - 3600e3 ? undefined : now));
   if (!t.committed) return { ok: true, sent: 0 };
+  // (FR6 FIXES A — G7: a TEST room (the tab's &test=1 — js/identity.js#testMode) is marked, never pushed)
+  if (body.silent === true) return { ok: true, sent: 0, silent: true };
+  // (C4: a create → push → close loop could ping the owner's phone + watch once per hush word (~1,400). Now ONE per sender an hour and
+  //  PUSH_LIMITS.perHour in all — the room's mark above stays, so a refused one never pings later)
+  if (!(await take(`push_u_${uid}`, PUSH_LIMITS.perUid, 3600e3, now)) || !(await take(`push_all_${Math.floor(now / 3600e3)}`, PUSH_LIMITS.perHour, 3600e3, now))) return { ok: true, sent: 0, why: 'limit' };
   const n = Object.keys(players).length || 1;
   const r = await notifyOwner({ title: 'A ROOM JUST OPENED', body: `${code} · ${n} player${n === 1 ? '' : 's'}`, url: `/?room=${code}`, tag: `room-${code}` });
   // (the once-a-room marks: a day kept)

@@ -4,7 +4,7 @@ import {
   query, orderByChild, endAt, limitToFirst, runTransaction, want, release,
 } from './firebase.js';
 import { state, setState } from './store.js';
-import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe } from './identity.js';
+import { saveSession, loadSession, loadProfile, setUrlRoom, loadMe, testMode } from './identity.js';
 import { generateCode, normalizeCode, pickColor, sanitizeName, sanitizeAvatar, nextHost, roomIdle, normalizePresence } from './core/room-logic.js';
 import { MAX_PLAYERS, ROOM_TTL_MS, NAME_MAX } from './config.js';
 import { pickLine } from './core/room-lines.js';
@@ -120,7 +120,7 @@ function roomPushLater(code) {
   pushTimer = setTimeout(() => {
     pushTimer = null;
     if (state.code !== code || !state.players || !state.players[state.uid]) return;
-    import('./profile/api.js').then(m => m.api('admin', { action: 'radioRoomOpened', room: code })).catch(() => {});
+    import('./profile/api.js').then(m => m.api('admin', { action: 'radioRoomOpened', room: code, ...(testMode ? { silent: true } : {}) })).catch(() => {});   // (a TEST tab: silent)
   }, ROOM_PUSH_MS);
 }
 

@@ -15,6 +15,7 @@ import { boardDef } from '../js/core/boards.js';
 import { isBoardId } from '../js/core/nicknames.js';
 import { weekEndsAt } from '../js/core/week.js';
 import { activity } from './_lib/activity.js';
+import { take } from './_lib/limit.js';
 import { notifyOwner } from './_lib/radio.js';
 
 const pub = r => ({ id: r.id, n: r.n, t: r.t, a: r.a, c: r.c, r: r.r, l: r.l || 1, rank: r.rank, v: r.v });
@@ -32,14 +33,6 @@ export async function boardQuery(q, now = Date.now()) {
 export const FLAG_LIMITS = { ipPerHour: 8, devPerHour: 5, perDay: 400 };
 export const FLAG_WHY = ['score', 'name'];
 
-async function take(bucket, max, windowMs, now) {
-  const r = await ref(`rl/${bucket}`).transaction(cur => {
-    const x = cur && now - cur.t < windowMs ? cur : { n: 0, t: now };
-    if (x.n >= max) return undefined;
-    return { n: x.n + 1, t: x.t };
-  });
-  return r.committed;
-}
 const hashOf = (kind, s) => createHash('sha256').update(`neon-flag:${kind}:${fb().pepper}:${s}`).digest('hex').slice(0, 20);
 
 /** REPORT a board row: finds whose row it is (this week's or the all-time top 100) and counts the report under flags/{id}. */
