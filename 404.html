@@ -1,0 +1,141 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#07060b">
+<meta name="color-scheme" content="dark">
+<meta name="robots" content="noindex">
+<title>Wrong door — NEON SPEAKEASY</title>
+<link rel="icon" href="/assets/favicon-64.png" type="image/png" sizes="64x64">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=Orbitron:wght@700;900&display=swap">
+<!-- THE VAULT 2C — THE WRONG DOOR (the owner typed /LAN and met the host's plain 404): Vercel serves this file for ANY unknown path (vercel.json
+     has no rewrites — nothing swallows it). STATIC on purpose: no city scene, no Firebase, no module graph — instant, and it works when
+     everything else is down. The speakeasy's door at night; the peephole slot SLIDES OPEN; "Wrong door, friend." + one plain line; ONE big
+     BACK TO THE CITY. DID YOU MEAN: a near miss of OUR routes (/board, /daychart; a hush word → its room link) — /lab + /admin only when this
+     device's saved profile was told it's an admin (a hint the app leaves: nothing secret here; the server still checks those doors).
+     Phone first; the site's fonts + tokens (copied below — this page loads no stylesheet of the app's); reduced motion = the slot already open.
+     `wd-` classes. docs/title.md "THE WRONG DOOR". -->
+<style>
+  :root { --bg: #07060b; --ink: #f5ecda; --dim: rgba(245, 236, 218, 0.78); --gold: #e9c77e; --pink: #ff4fb8; --safe-t: env(safe-area-inset-top, 0px); --safe-b: env(safe-area-inset-bottom, 0px);
+    --font-display: 'Orbitron', system-ui, sans-serif; --font-ui: 'Chakra Petch', system-ui, sans-serif; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; background: var(--bg); color: var(--ink); font-family: var(--font-ui); -webkit-text-size-adjust: 100%; }
+  body { min-height: 100dvh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: calc(var(--safe-t) + 20px) 16px calc(var(--safe-b) + 24px); overflow-x: hidden;
+    background: radial-gradient(120% 60% at 50% 0%, #1d1030 0%, rgba(29, 16, 48, 0) 60%), radial-gradient(90% 50% at 50% 100%, #2a0f1e 0%, rgba(42, 15, 30, 0) 70%), var(--bg); }
+  .wd { width: min(100%, 420px); display: flex; flex-direction: column; align-items: center; text-align: center; }
+  .wd-k { font: 700 11.5px/1 var(--font-ui); letter-spacing: 0.34em; color: var(--gold); margin: 0 0 14px; }
+  /* THE DOOR (one inline SVG, crisp at 3×) + the slot's cover sliding (its own layer: transform only) */
+  .wd-door { position: relative; width: min(64vw, 250px); aspect-ratio: 250 / 330; margin: 0 0 22px; }
+  .wd-door svg { position: absolute; inset: 0; width: 100%; height: 100%; display: block; overflow: visible; }
+  .wd-door > svg { -webkit-mask-image: radial-gradient(78% 66% at 50% 52%, #000 62%, transparent 100%); mask-image: radial-gradient(78% 66% at 50% 52%, #000 62%, transparent 100%); }
+  .wd-slot { position: absolute; left: 30.4%; top: 27.9%; width: 39.2%; height: 9.1%; overflow: hidden; border-radius: 3px; }
+  .wd-cover { position: absolute; inset: 0; background: linear-gradient(180deg, #4a3220, #2f1f13); box-shadow: inset 0 1px 0 rgba(255, 220, 160, 0.25); transform: translateX(0); animation: wd-open 3.6s cubic-bezier(.6, 0, .2, 1) 0.5s forwards; }
+  .wd-cover::after { content: ''; position: absolute; right: 10%; top: 50%; width: 9%; height: 26%; margin-top: -4%; border-radius: 2px; background: #b8894a; }
+  @keyframes wd-open { 0% { transform: translateX(0); } 14% { transform: translateX(-6%); } 22% { transform: translateX(-4%); } 52%, 100% { transform: translateX(-104%); } }
+  .wd-eyes { position: absolute; inset: 0; opacity: 0; animation: wd-eyes 0.6s ease 2.3s forwards; }
+  @keyframes wd-eyes { to { opacity: 1; } }
+  .wd-blink { transform-origin: 50% 55%; animation: wd-blink 4.5s ease-in-out 3.4s infinite; }
+  @keyframes wd-blink { 0%, 92%, 100% { transform: scaleY(1); } 95% { transform: scaleY(0.1); } }
+  .wd-lamp { animation: wd-hum 3.2s ease-in-out infinite alternate; }
+  @keyframes wd-hum { from { opacity: 0.82; } to { opacity: 1; } }
+  @media (prefers-reduced-motion: reduce) { .wd-cover { animation: none; transform: translateX(-104%); } .wd-eyes { animation: none; opacity: 1; } .wd-blink, .wd-lamp { animation: none; } }
+  h1 { margin: 0 0 10px; font: 900 clamp(24px, 7.4vw, 32px)/1.15 var(--font-display); letter-spacing: 0.04em; color: #fff4e0; text-shadow: 0 0 18px rgba(255, 79, 184, 0.45); }
+  .wd-line { margin: 0 0 22px; max-width: 34ch; font: 500 16px/1.45 var(--font-ui); color: var(--dim); }
+  .wd-path { font: 700 16px/1.45 var(--font-ui); letter-spacing: 0.04em; color: #fff4e0; overflow-wrap: anywhere; }
+  .wd-go { display: flex; align-items: center; justify-content: center; width: 100%; min-height: 58px; border-radius: 16px; text-decoration: none; font: 800 16px/1 var(--font-ui); letter-spacing: 0.3em; color: #2a1806;
+    background: linear-gradient(180deg, #fff0c4 0%, #f0c96e 46%, #c99a43 100%); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7), 0 0 24px rgba(255, 196, 90, 0.28), 0 10px 26px rgba(0, 0, 0, 0.5); }
+  .wd-go:active { transform: translateY(1px); }
+  .wd-go:focus-visible, .wd-mean a:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+  .wd-mean { width: 100%; margin: 16px 0 0; }
+  .wd-mean[hidden] { display: none; }
+  .wd-mean p { margin: 0 0 8px; font: 700 11.5px/1 var(--font-ui); letter-spacing: 0.3em; color: var(--gold); }
+  .wd-mean a { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 50px; margin: 0 0 8px; padding: 0 16px; border-radius: 14px; text-decoration: none; color: var(--ink);
+    font: 700 15px/1.2 var(--font-ui); background: rgba(255, 255, 255, 0.05); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); }
+  .wd-mean a span { font: 500 13.5px/1.2 var(--font-ui); color: var(--dim); }
+  .wd-foot { margin: 26px 0 0; font: 600 12px/1.4 var(--font-ui); letter-spacing: 0.14em; color: rgba(245, 236, 218, 0.62); }
+  @media (min-width: 900px) { .wd-door { width: 240px; } }
+</style>
+</head>
+<body>
+<main class="wd" id="wd">
+  <p class="wd-k">NEON SPEAKEASY</p>
+  <div class="wd-door" aria-hidden="true">
+    <svg viewBox="0 0 250 330">
+      <defs>
+        <linearGradient id="wd-wood" x1="0" x2="0" y1="0" y2="1"><stop offset="0" stop-color="#3c2618"/><stop offset="1" stop-color="#1f130b"/></linearGradient>
+        <linearGradient id="wd-band" x1="0" x2="1"><stop offset="0" stop-color="#2a2a30"/><stop offset="0.5" stop-color="#4a4a52"/><stop offset="1" stop-color="#2a2a30"/></linearGradient>
+        <radialGradient id="wd-pool" cx="0.5" cy="0" r="1"><stop offset="0" stop-color="#ffcf86" stop-opacity="0.42"/><stop offset="1" stop-color="#ffcf86" stop-opacity="0"/></radialGradient>
+        <radialGradient id="wd-in" cx="0.5" cy="0.5" r="0.7"><stop offset="0" stop-color="#ffcf86"/><stop offset="1" stop-color="#8a4a1c"/></radialGradient>
+      </defs>
+      <!-- the brick around the door -->
+      <g fill="#2a1418" stroke="#170a0d" stroke-width="1.2">
+        <rect x="-40" y="-10" width="330" height="350" fill="#24111a"/>
+        <g opacity="0.75">
+          <path d="M-40 20 H290 M-40 50 H290 M-40 80 H290 M-40 110 H290 M-40 140 H290 M-40 170 H290 M-40 200 H290 M-40 230 H290 M-40 260 H290 M-40 290 H290 M-40 320 H290" fill="none"/>
+          <path d="M0 -10 V20 M60 -10 V20 M120 -10 V20 M180 -10 V20 M240 -10 V20 M30 20 V50 M90 20 V50 M150 20 V50 M210 20 V50 M0 50 V80 M240 50 V80 M0 110 V140 M240 110 V140 M0 170 V200 M240 170 V200 M0 230 V260 M240 230 V260 M0 290 V320 M240 290 V320" fill="none"/>
+        </g>
+      </g>
+      <!-- the lamp over the door + its pool of light -->
+      <path class="wd-lamp" d="M10 18 L240 18 L250 330 L0 330 Z" fill="url(#wd-pool)"/>
+      <g class="wd-lamp"><rect x="112" y="4" width="26" height="9" rx="2" fill="#2b2b30"/><ellipse cx="125" cy="16" rx="14" ry="4.5" fill="#ffe2a8"/></g>
+      <!-- the frame + the door -->
+      <rect x="34" y="38" width="182" height="292" rx="5" fill="#120a08"/>
+      <rect x="42" y="46" width="166" height="284" rx="3" fill="url(#wd-wood)" stroke="#0c0705" stroke-width="2"/>
+      <g stroke="#140c07" stroke-width="2.4" opacity="0.8"><path d="M83 46 V330 M125 46 V330 M167 46 V330"/></g>
+      <rect x="42" y="150" width="166" height="14" fill="url(#wd-band)"/>
+      <rect x="42" y="268" width="166" height="14" fill="url(#wd-band)"/>
+      <g fill="#6a6a72"><circle cx="52" cy="157" r="3"/><circle cx="198" cy="157" r="3"/><circle cx="52" cy="275" r="3"/><circle cx="198" cy="275" r="3"/></g>
+      <!-- the slot's brass plate + the open slot (the room's warm light, two eyes) -->
+      <rect x="68" y="84" width="114" height="46" rx="6" fill="#b8894a" stroke="#6b4a1f" stroke-width="2"/>
+      <rect x="76" y="92" width="98" height="30" rx="3" fill="url(#wd-in)"/>
+      <!-- the knocker -->
+      <circle cx="187" cy="215" r="13" fill="none" stroke="#c99a43" stroke-width="4"/>
+      <circle cx="187" cy="200" r="4.5" fill="#c99a43"/>
+      <!-- the step -->
+      <rect x="20" y="322" width="210" height="10" rx="2" fill="#3a3238"/>
+    </svg>
+    <div class="wd-slot">
+      <div class="wd-eyes">
+        <svg viewBox="0 0 98 30" preserveAspectRatio="none"><g class="wd-blink"><ellipse cx="34" cy="16" rx="9" ry="5.6" fill="#1b0d06"/><ellipse cx="64" cy="16" rx="9" ry="5.6" fill="#1b0d06"/><circle cx="36" cy="15" r="2.6" fill="#fff6e2"/><circle cx="66" cy="15" r="2.6" fill="#fff6e2"/></g><path d="M22 7 Q34 3 44 8 M54 8 Q64 3 76 7" stroke="#1b0d06" stroke-width="3" fill="none" stroke-linecap="round"/></svg>
+      </div>
+      <div class="wd-cover"></div>
+    </div>
+  </div>
+  <h1>Wrong door, friend.</h1>
+  <p class="wd-line">Nothing behind <span class="wd-path" id="wd-path">this one</span> — that page doesn’t exist. The party’s back in the city.</p>
+  <a class="wd-go" href="/" id="wd-go">BACK TO THE CITY</a>
+  <nav class="wd-mean" id="wd-mean" hidden aria-label="Did you mean"><p>DID YOU MEAN</p></nav>
+  <p class="wd-foot">Knock at the right door: neonspeakeasy.com</p>
+</main>
+<script>
+// DID YOU MEAN — plain script, no imports. A near miss of our routes (≤ 2 edits, case-insensitive), a hush word's room link; the admin
+// doors only on a device the app already told it's an admin (localStorage nd:adm — a hint the app writes after the server's yes).
+(function () {
+  var raw = decodeURIComponent(location.pathname || '/').replace(/\/+$/, '') || '/';
+  var p = raw.replace(/^\//, '').toLowerCase();
+  var pathEl = document.getElementById('wd-path'); if (pathEl && raw !== '/') pathEl.textContent = raw.length > 40 ? raw.slice(0, 40) + '…' : raw;
+  var admin = false;
+  try { admin = !!localStorage.getItem('nd:adm'); } catch (e) { admin = false; }
+  var routes = [['board', 'THE BOARD', 'the hall of fame'], ['daychart', 'THE DAY CHART', 'the city’s day']];
+  if (admin) routes.push(['lab', 'THE LAB', 'the card lab'], ['admin', 'ADMIN', 'the back office']);
+  function dist(a, b) { var m = a.length, n = b.length, d = [], i, j; for (i = 0; i <= m; i++) { d[i] = [i]; } for (j = 0; j <= n; j++) d[0][j] = j;
+    for (i = 1; i <= m; i++) for (j = 1; j <= n; j++) d[i][j] = Math.min(d[i - 1][j] + 1, d[i][j - 1] + 1, d[i - 1][j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1)); return d[m][n]; }
+  var out = [], first = p.split('/')[0];
+  for (var k = 0; k < routes.length; k++) { var r = routes[k], dd = dist(first, r[0]); if (first && dd <= (r[0].length > 4 ? 2 : 1) && first !== r[0]) out.push(['/' + r[0], r[1], r[2], dd]); }
+  out.sort(function (a, b) { return a[3] - b[3]; });
+  // a hush word (4 letters) typed as a path → its room link
+  if (/^[a-z]{4}$/.test(p) && !out.length) out.push(['/?room=' + p.toUpperCase(), 'JOIN ' + p.toUpperCase(), 'the room behind that hush word', 0]);
+  var nav = document.getElementById('wd-mean');
+  if (out.length && nav) {
+    for (var x = 0; x < Math.min(2, out.length); x++) { var a = document.createElement('a'); a.href = out[x][0]; a.dataset.to = out[x][0]; a.textContent = out[x][1]; var s = document.createElement('span'); s.textContent = out[x][2] + ' ›'; a.appendChild(s); nav.appendChild(a); }
+    nav.hidden = false;
+  }
+  window.__wd = { path: raw, suggest: out.map(function (o) { return o[0]; }), admin: admin };
+  document.body.dataset.ready = '1';
+})();
+</script>
+</body>
+</html>

@@ -69,7 +69,7 @@ export function cardPicker(o) {
 // the worn one again (or the first row) to go back to none. A tube style lights NEON emblems only: worn under a special finish, the
 // row previews it on the player's own sign-up shape + says so.
 //   stylePicker({ kind: 'emblem' | 'tube' | 'glow', items: [{ id, name, tier }], wearing: { card, shape, tube, glow }, who, onWear(id | '') })
-const NONE = { emblem: ['YOUR OWN EMBLEM', 'the shape you picked when you joined'], tube: ['PLAIN TUBE', 'steady neon'], glow: ['NO GLOW', 'your name, plain'] };
+const NONE = { tube: ['PLAIN TUBE', 'steady neon'], glow: ['NO GLOW', 'your name, plain'] };   // (THE VAULT 2C — ONE EMBLEM SYSTEM: no "your own emblem" row — the 12 sign-up shapes are emblems of their own)
 export function stylePicker(o) {
   vaultSheet();
   const kind = o.kind, slot = kind === 'emblem' ? 'shape' : kind;
@@ -110,7 +110,7 @@ export function stylePicker(o) {
   function paint() {
     for (const s of rows) surface.remove(s);
     rows.length = 0;
-    list.replaceChildren(row(null, 0), ...items.map((it, i) => row(it, i + 1)));
+    list.replaceChildren(...(kind === 'emblem' ? [] : [row(null, 0)]), ...items.map((it, i) => row(it, i + 1)));
   }
   paint();
   approvedIds().then(a => { approved = a; paint(); }).catch(() => {});

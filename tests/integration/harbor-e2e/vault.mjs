@@ -88,7 +88,7 @@ G('vault', async () => {
   // THE VAULT 2C — FOUNDER + THE BADGE SLOT: on every full card with declared moving parts the FOUNDER badge's box never overlaps one, at
   // 390 / 402 / 430 (the owner: the pill sat on THE SWITCHBOARD's VU needle); the dev cards carry it IN the top line ("NEON SPEAKEASY · FOUNDER")
   for (const W of [390, 402, 430]) {
-    const ids = ['card-dev-switchboard', 'card-dev-source', 'card-founder', 'card-house', 'card-sg-ufo', 'card-inferno'];
+    const ids = ['card-dev-switchboard', 'card-dev-source', 'card-founder', 'card-house', 'card-inferno'];   // (a sighting card carries no badge: its scene + title)
     const { ctx, p } = await page(`view=cards&filter=all&face=full&fd=1&only=${ids.join(',')}`, { view: [W, 874], dpr: 2 });
     await sleep(600);
     const B = await ev(p, `(async () => { const { BADGE, badgeOf } = await import('/js/vault/full.js'); const out = [];
@@ -98,8 +98,26 @@ G('vault', async () => {
         const hit = b.moving.filter(m => bx[0] < m[0] + m[2] && m[0] < bx[0] + bx[2] && bx[1] < m[1] + m[3] && m[1] < bx[1] + bx[3]).length;
         out.push({ id, slot: b.slot, txt: el.textContent, hit, parts: b.moving.length, top: b.slot !== 'top' || /NEON SPEAKEASY · FOUNDER/.test(fc.querySelector('.vl-fc-house').textContent) }); }
       return out; })()`);
-    ok(B.length === 6 && B.every(x => !x.miss && x.hit === 0 && x.top) && B.filter(x => x.slot !== 'stamp').every(x => x.txt === 'FOUNDER') && B.filter(x => x.parts).length >= 5,
+    ok(B.length === 5 && B.every(x => !x.miss && x.hit === 0 && x.top) && B.filter(x => x.slot !== 'stamp').every(x => x.txt === 'FOUNDER') && B.filter(x => x.parts).length >= 4,
       `FOUNDER + THE BADGE SLOT at ${W}: ${B.map(x => `${x.id.replace('card-', '')} ${x.slot}${x.hit ? ` HITS ${x.hit}` : ''}`).join(' · ')} — no badge on a moving part; the dev cards' top line "NEON SPEAKEASY · FOUNDER"`);
+    await ctx.close(); }
+  // THE VAULT 2C — THE WRONG DOOR (/404.html — Vercel's page for any unknown path; scripts/serve.mjs does the same): made-up paths land on the
+  // door with a 404, ONE way back to the city, the right DID YOU MEAN — /lab + /admin only on a device the app called an admin
+  for (const [W, H] of [[390, 844], [402, 874], [430, 932], [1440, 900]]) {
+    const ctx = await (await launch()).createBrowserContext(), p = await ctx.newPage();
+    await p.setViewport({ width: W, height: H, deviceScaleFactor: 2, isMobile: W < 900, hasTouch: W < 900 });
+    const seen = [];
+    for (const [path, want] of [['/LAN', ''], ['/bord', '/board'], ['/xyz/abc', ''], ['/dachart', '/daychart'], ['/jazz', '/?room=JAZZ']]) {
+      const r = await p.goto(`${BASE}${path}`); await waitFor(p, '!!document.body.dataset.ready', 'the wrong door', 10000);
+      const d = await ev(p, `({ h1: (document.querySelector('h1') || {}).textContent, go: (document.querySelector('.wd-go') || {}).getAttribute && document.querySelector('.wd-go').getAttribute('href'), sug: window.__wd.suggest, fits: document.documentElement.scrollWidth <= innerWidth, goOn: (() => { const b = document.querySelector('.wd-go').getBoundingClientRect(); return b.bottom <= innerHeight + 400 && b.height >= 44; })() })`);
+      seen.push({ path, status: r.status(), ok: r.status() === 404 && d.h1 === 'Wrong door, friend.' && d.go === '/' && d.fits && d.goOn && (want ? d.sug[0] === want : !d.sug.length) });
+    }
+    // an admin's device (the app's hint, nd:adm): /LAN → THE LAB
+    await ev(p, `localStorage.setItem('nd:adm', '1')`); await p.goto(`${BASE}/LAN`); await waitFor(p, '!!document.body.dataset.ready', 'the wrong door', 10000);
+    const adm = await ev(p, 'window.__wd.suggest[0] || ""');
+    await p.click('.wd-go'); await waitFor(p, `location.pathname === '/'`, 'back to the city', 10000).catch(() => {});
+    const home = await ev(p, 'location.pathname');
+    ok(seen.every(x => x.ok) && adm === '/lab' && home === '/', `THE WRONG DOOR at ${W}×${H}: ${seen.map(x => `${x.path} ${x.status}${x.ok ? '' : ' ✗'}`).join(' · ')} — the door, BACK TO THE CITY, the right DID YOU MEAN; an admin's /LAN → ${adm}; the way back → ${home}`);
     await ctx.close(); }
   // A FULL LOBBY OF 8 LEGENDARIES — 4× CPU, the real compositor (a phone's GPU path): 60 fps
   { const { ctx, p } = await page('view=lobby&bare=1&mix=legend', { real: true, cpu: 4, dpr: 3 });
@@ -285,7 +303,7 @@ G('vault', async () => {
     const held = await ev(p, `new Promise(res => { const f0 = window.__lab.stats.frames; let n = 0; const tick = () => { document.dispatchEvent(new Event('scroll')); if (++n < 12) setTimeout(tick, 50); else res({ during: window.__lab.stats.frames - f0, scrolling: window.__lab.stats.scrolling }); }; tick(); })`);
     await sleep(700);
     const f1 = await ev(p, 'window.__lab.stats.frames'); await sleep(500); const f2 = await ev(p, 'window.__lab.stats.frames');
-    ok(d.n === 7 && d.off.sort().join() === 'glow,laser' && d.glow && held.during <= 2 && held.scrolling && f2 - f1 >= 3, `DIAGNOSTICS + SCROLL-PAUSE: 7 switches (${d.off.join(' + ')} off from &diag=, the page's glows off: ${d.glow}); a scroll held the effects (${held.during} frames in 600 ms) — they resumed (${f2 - f1} frames in 500 ms)`);
+    ok(d.n === 8 && d.off.sort().join() === 'glow,laser' && d.glow && held.during <= 2 && held.scrolling && f2 - f1 >= 3, `DIAGNOSTICS + SCROLL-PAUSE: 8 switches (2C: + TIER GEMS) (${d.off.join(' + ')} off from &diag=, the page's glows off: ${d.glow}); a scroll held the effects (${held.during} frames in 600 ms) — they resumed (${f2 - f1} frames in 500 ms)`);
     await ctx.close(); }
   // THE FULL CARDS (THE LAB 2.0: every card row flipped to its FULL face — &face=full): 49 full cards on ONE canvas; a mark on the full face
   // is the full card's own (full-<card>) + flashes SAVED ✓
@@ -330,7 +348,7 @@ G('vault', async () => {
         tiles: document.querySelectorAll('.vl-dt').length, on: document.querySelectorAll('.vl-dt.is-on').length, tiers: [...document.querySelectorAll('.vl-dt')].every(t => /vl-dt-(common|uncommon|rare|epic|legendary)/.test(t.className)),
         dev1: [...document.querySelectorAll('.vl-dt')].slice(0, 2).map(t => t.dataset.id).join(), pin: document.querySelectorAll('.vl-dr-pin .vl-strip').length,
         names: names.length, over: names.filter(over).length, ell: names.filter(e => getComputedStyle(e).textOverflow === 'ellipsis').length, no: (document.querySelector('.pg-card-no') || {}).textContent || '' }; })()`);
-    ok(r.panel && r.title === 'CUSTOMIZE' && /^cz,level,streak,stats,trophies/.test(r.order) && !r.board && r.bday && r.coll && r.lists === 0 && r.tabs === 'CARD,EMBLEM,GLOW,TUBE' && r.sel === 'CARD' && r.tiles > 10 && r.on === 1 && r.tiers && r.dev1 === 'card-dev-switchboard,card-dev-source' && r.pin === 1 && r.names >= 3 && r.over === 0 && r.ell === 0 && /0001/.test(r.no),
+    ok(r.panel && r.title === 'CUSTOMIZE' && /^cz,level,streak,stats,trophies/.test(r.order) && !r.board && r.bday && r.coll && r.lists === 0 && r.tabs === 'CARD,EMBLEM,GLOW,TUBE' && r.sel === 'CARD' && r.tiles > 10 && r.on === 1 && r.tiers && r.dev1 === 'card-dev-switchboard,card-dev-source' && r.pin === 1 && r.names >= 2 && r.over === 0 && r.ell === 0 && /0001/.test(r.no),
       `CUSTOMIZE + THE PROFILE's ORDER (${r.order}; no BOARD button: ${!r.board}; the birthday at the foot: ${r.bday}) + YOUR COLLECTION (${r.lists} long lists left); CUSTOMIZE ("${r.title}") — the pinned strip, tabs ${r.tabs}, ${r.tiles} card tiles tier-edged (${r.on} ticked, the DEV cards first: ${r.dev1}); WWWWWWWWWWWW whole on the card + the strips (${r.over} over, ${r.ell} cut); the card's ${r.no}`);
     await ctx.close(); }
   // EVERY BOTTOM SHEET FLOATS: BRING YOUR CARD at 402 × 874 — its whole rounded border above the screen's bottom

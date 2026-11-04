@@ -872,7 +872,7 @@ html.ve-beat-on .ve-t-beat .ve-bt { animation: ve-beat var(--beat, 0.5357s) cubi
 .vl-gem > .vl-gl, .vl-gem-body > .vl-gl, .vl-gem-body > .vl-gm, .vl-gem > .vl-gm { position: absolute; inset: 0; display: block; }
 .vl-gl > svg { display: block; width: 100%; height: 100%; overflow: visible; }
 .vl-gm { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat; overflow: hidden; }
-.vl-gem > .vl-gem-spk, .vl-gem > .vl-gem-spk1, .vl-gem > .vl-gem-star { inset: -25%; }
+.vl-gem > .vl-gem-spk, .vl-gem > .vl-gem-spk1, .vl-gem > .vl-gem-star, .vl-gem > .vl-gem-gl { inset: -25%; }
 /* a static light under the cut stones (no filter): the gem reads on any card's art */
 .vl-gem::before { content: ''; position: absolute; inset: -30%; border-radius: 50%; background: radial-gradient(closest-side, rgba(8, 6, 14, 0.55), rgba(8, 6, 14, 0) 100%); }
 .vl-gem-rare::before { background: radial-gradient(closest-side, rgba(90, 170, 255, 0.35), rgba(8, 6, 14, 0.4) 60%, rgba(8, 6, 14, 0) 100%); }
@@ -881,8 +881,8 @@ html.ve-beat-on .ve-t-beat .ve-bt { animation: ve-beat var(--beat, 0.5357s) cubi
 /* EPIC: a sparkle pops at its shoulder now + then */
 .vl-gem-spk1 { animation: vl-gem-pop 2.6s ease-in-out infinite; transform-origin: 82% 22%; opacity: 0; }
 /* LEGENDARY: a glint crosses the stone + a tiny star twinkles */
-.vl-gem-glm { overflow: hidden; }
-.vl-gem-gl { position: absolute; top: -30%; bottom: -30%; left: -60%; width: 45%; background: linear-gradient(100deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.95) 50%, rgba(255, 255, 255, 0)); animation: vl-gem-sweep 3.4s cubic-bezier(.5, 0, .3, 1) infinite; }
+.vl-gem-gl { opacity: 0; transform-origin: 50% 40%; animation: vl-gem-flash 3.4s ease-in-out infinite; }
+@keyframes vl-gem-flash { 0%, 60%, 100% { opacity: 0; transform: scale(0.6); } 72% { opacity: 1; transform: scale(1.08); } 84% { opacity: 0.5; transform: scale(0.9); } }
 .vl-gem-star { animation: vl-gem-pop 2.2s ease-in-out infinite 0.6s; transform-origin: 83% 17%; opacity: 0; }
 /* THE DEV GEM — the brightest thing on any strip: the halo turning, the facets cycling the spectrum, a rainbow sweep, the pulse, sparkles */
 .vl-gem-dev::before { inset: -55%; background: radial-gradient(closest-side, rgba(255, 255, 255, 0.5), rgba(255, 140, 230, 0.22) 45%, rgba(8, 6, 14, 0) 100%); }
@@ -904,10 +904,11 @@ html.ve-beat-on .ve-t-beat .ve-bt { animation: ve-beat var(--beat, 0.5357s) cubi
 @keyframes vl-gem-pulse { from { transform: scale(0.94); } to { transform: scale(1.1); } }
 @keyframes vl-gem-cyc { 0% { opacity: 0; } 18% { opacity: 1; } 48% { opacity: 1; } 66% { opacity: 0; } 100% { opacity: 0; } }
 @keyframes vl-gem-tw { from { opacity: 0.35; transform: scale(0.7); } to { opacity: 1; transform: scale(1.15); } }
-@media (prefers-reduced-motion: reduce) { .vl-gem, .vl-gem * { animation: none !important; } .vl-gem-spk, .vl-gem-spk1, .vl-gem-star { opacity: 0.9; transform: none; } .vl-gem-sweep, .vl-gem-gl { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .vl-gem, .vl-gem * { animation: none !important; } .vl-gem-spk, .vl-gem-spk1, .vl-gem-star, .vl-gem-gl { opacity: 0.9; transform: none; } .vl-gem-sweep { opacity: 0; } }
 body.reduced-fx .vl-gem *, .vl-still .vl-gem * { animation: none !important; }
 body.reduced-fx .vl-gem-spk, body.reduced-fx .vl-gem-spk1, body.reduced-fx .vl-gem-star, .vl-still .vl-gem-spk, .vl-still .vl-gem-spk1, .vl-still .vl-gem-star { opacity: 0.9; transform: none; }
-body.reduced-fx .vl-gem-sweep, body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-sweep, .vl-still .vl-gem-gl { opacity: 0; }
+body.reduced-fx .vl-gem-sweep, .vl-still .vl-gem-sweep { opacity: 0; }
+body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none; }
 /* on a strip: the bottom-right corner (where the pill was) */
 .vl-strip > .vl-gem { position: absolute; right: 11px; bottom: 9px; z-index: 2; }
 .vl-strip > .vl-gem-dev { right: 13px; bottom: 5px; }
@@ -960,3 +961,4 @@ body.reduced-fx .vl-gem-sweep, body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-swe
 .vl-set > :not(summary) { margin-left: 12px; margin-right: 12px; }
 /* THE VAULT 2C — FOUNDER in the top line (the dev cards' slot): gold letters in the line, no pill */
 .vl-fc-fd.is-top { position: static; padding: 0; background: none; box-shadow: none; border: 0; font: inherit; letter-spacing: inherit; color: #ffd98a; text-shadow: 0 0 8px rgba(255, 190, 90, 0.55); }
+.vl-diag-nogem .vl-gem, .vl-diag-nogem .vl-gem * { animation: none !important; }

@@ -15,6 +15,9 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
 - **THE VAULT 1A** (docs/vault.md): `node --test tests/vault.test.mjs` (pure) · `node --test lab.test.mjs` (in `tests/integration`, the
   emulators: THE CARD LAB's marks — owner only, audited, the export; in the cloud's tests job) · the harbor `vault` group (the `audio` job:
   the lab's 10 items on ONE canvas, the marks, 8 legendaries at 4× CPU = 60 fps on the real compositor, on-screen only, reduced motion) ·
+  THE VAULT 2C: `tests/vault-2c.test.mjs` (unit) + `tests/integration/vault-2c.test.mjs` (/api — the 12 sign-up shapes granted + back-filled + worn,
+  a mark's version); the harbor `vault` group adds THE LAB 2.0 (`vault-preview.html?marks=old|done&filter=&face=full&fd=1`), the badge slots at
+  390 / 402 / 430, ONE EMBLEM SYSTEM by finger, the profile's order, THE WRONG DOOR (made-up paths at 390 / 402 / 430 / 1440); the bench's `nogem`.
   THE VAULT 2B: `tests/vault-2b.test.mjs` (unit) + `tests/integration/vault-2b.test.mjs` (/api on the emulators — member numbers, the dev cards,
   the seasonal grant); the lab preview's `&sheet=1` (EMBLEMS / GLOWS tabs: a contact sheet), `&wear=emb2,glow` (the busiest 2B mix), the
   profile preview's `&dress=1&tab=emblem` + `&dev=1`; `shots.mjs --page … --el <selector>` scrolls an element into view + crops to it (a slot

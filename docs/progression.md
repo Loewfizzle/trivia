@@ -257,3 +257,11 @@ legendary → its reaction, a forced one never claims; THE SEQUENCE + the captur
 
 ## THE VAULT 1B (Nov 3) — NAMES ONLY TO OWNERS + the new rewards
 The items, the 30 achievements and WHAT each level / streak milestone gives moved to the server (`api/_lib/catalog.js`; the shared `core/` modules keep the engine + registries the server fills at import; `REWARD_LEVELS` keeps WHEN). A phone gets display rows only for what it owns or just earned (`withShow` on every /api answer — a level reward's row carries its `lv`, the end of round sorts by it). New level rewards: SMOKE ROOM 12 · FROSTBITE 16 · PRISM 22 · INFERNO 42 (existing players get them on their next match — the carry-over). docs/vault.md "NAMES ONLY TO OWNERS".
+
+## ACHIEVEMENTS AS TROPHIES (THE VAULT 2C — `js/progress/trophies.js`; the owner's approved mock profile-rearranged.png)
+Each achievement the player HOLDS, as a trophy: a round neon **MEDAL** (the reward's own emblem when it has art, else the achievement's group as a
+neon sign-up shape), its ring in the TIER colour (the reward's tier — the one palette); the name; the line; **"X% of players have this"** (pink —
+the SERVER's counts: `/api/profile 'pct'`, computed + cached, never a client list of profiles); **UNLOCKED · <reward chip>** — a real preview (an
+emblem at its size, a glow lit on the word GLOW, a card's swatch, a tube style on a neon star — never the player's name crammed in); **a tap on
+the chip wears it** (WEARING once worn — the server checks it); the date earned. Only what the player holds — locked achievements are NOT shown
+(the standing rule: collections show only what you own; names reach a phone only for what it owns — `tests/vault-names.test.mjs`).

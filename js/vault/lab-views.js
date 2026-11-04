@@ -32,6 +32,7 @@ const noOf = n => memberLabel(n);
 const DIAG = [
   { k: 'glow', label: 'CSS GLOWS', css: 'vl-diag-noglow' },
   { k: 'emb', label: 'EMBLEMS', css: 'vl-diag-noemb' },
+  { k: 'gem', label: 'TIER GEMS', css: 'vl-diag-nogem' },   // (2C: the gems' motion off — the dev gem's cost on the owner's phone)
   { k: 'fx', label: 'CANVAS FX' },
   { k: 'laser', label: 'THE LASER' },
   { k: 'sprites', label: 'UFO SPRITES' },

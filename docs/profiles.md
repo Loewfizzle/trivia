@@ -260,3 +260,14 @@ same once-per-match transaction.
   `?xp=8200&vault=1&glow=ice`.
 
 - Callsigns keep their case (the setup field no longer forces caps, `.input-name`); the card's name shrinks to fit a long name.
+
+## THE PROFILE's ORDER (THE VAULT 2C — the owner's approved mock, with the FULL CARD on top)
+`js/screens/profile.js` top → bottom: **1 YOUR FULL CARD** — the hero (the worn card's approved full card, your name, Nº, member since, the
+FOUNDER badge; a tap = the full card's animated view; the Gilded card until a card is approved) with **CUSTOMIZE YOUR CARD** under it (+ YOUR
+COLLECTION's count line — `progress/profile.js#customizeBar`; the strip lives in CUSTOMIZE: pinned, "THE LOBBY SEES THIS", VIEW FULL ›) ·
+**2 LEVEL** + the bar (gold, brighter, a slow glint) · **3 THE STREAK** (→ the streak card) · **4 STATS** (+ this week's goal) · **5
+ACHIEVEMENTS** (trophies — docs/progression.md) · **6 CITY SIGHTINGS** (the album) + a favor to call in · **7 MASTERY** + YOUR GAMES · **8
+ACCOUNT** — Edit profile (the name + the colour) · YOUR KEY (save it · use it on another device · restore) · **BIRTHDAY** (the panel only until
+set; then ONE line "Birthday · Mar 4 — change again in Oct" — `progress/extras.js#birthdayRow`) · the opt-out. **No BOARD button** — the dock's
+trophy has THE BOARD. **LESS GOLD**: the profile's panels are faint dark glass (`.pg-prof .pg-panel`); gold only for the section headers, your
+card's frame, CUSTOMIZE YOUR CARD + the level bar; hot pink = the end of round's "just earned" + the X% line.

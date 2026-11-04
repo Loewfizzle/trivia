@@ -96,10 +96,10 @@ export function gemEl(tier, o = {}) {
   const [d, l] = COL[t] || COL.rare;
   faceted(layer(box, ''), k => mix(d, l, k), OUT, FACETS, t === 'legendary' ? 'rgba(255,246,210,0.9)' : 'rgba(230,240,255,0.6)');
   if (t === 'legendary') {
-    // THE GLINT: a white streak crossing the gem now + then (inside it)
-    const m = masked(box, OUT, 'vl-gem-glm');
-    m.append(Object.assign(document.createElement('i'), { className: 'vl-gem-gl' }));
-    const st = layer(box, 'vl-gem-star', '-6 -6 36 36'); star(st, 24, 0, 3.6, '#fff8dc');
+    // THE GLINT: a white-hot star flashing on the crown's table now + then, + a tiny star twinkling off its shoulder (no mask: a masked
+    // moving layer repaints — 8 legendary strips paid ~0.75 ms a frame for it; the bench, Nov 3)
+    // (ONE moving layer for both: the table's glint + the shoulder's star flash together)
+    const gl = layer(box, 'vl-gem-gl', '-6 -6 36 36'); star(gl, 9.4, 6, 3.4); star(gl, 24, 0, 3.6, '#fff8dc');
   }
   if (t === 'epic') { const sp = layer(box, 'vl-gem-spk1', '-6 -6 36 36'); star(sp, 23, 2, 3.6, '#f4e6ff'); }
   return box;

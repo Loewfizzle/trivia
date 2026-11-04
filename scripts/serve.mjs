@@ -60,6 +60,8 @@ createServer(async (req, res) => {
     headers['accept-ranges'] = 'bytes';
     res.writeHead(200, headers).end(body);
   } catch {
+    // (THE VAULT 2C — like Vercel: an unknown PAGE path gets THE WRONG DOOR, /404.html, with a 404; a missing asset stays a plain 404)
+    if (!extname(path)) { try { const body = await readFile(join(root, '404.html')); res.writeHead(404, { 'content-type': types['.html'], 'cache-control': 'no-store' }).end(body); return; } catch { /* fall through */ } }
     res.writeHead(404).end('not found');
   }
 }).listen(port, () => console.log(`serving ${root} on http://localhost:${port}`));

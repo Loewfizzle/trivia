@@ -1843,6 +1843,14 @@ desktop framing; a phone sideways (the sign smaller, the dock 0.8); THE STANDING
   test emblems (NEON + PRISM bolts, THE PROMINENCE RULE); the pink pair as early level rewards (HEARTBREAKER 4, GLITTER BOMB 8).
 - Measured: 8 legendary strips at 4× CPU = 60 fps on the GPU compositor.
 
+## THE VAULT 2C — THE POLISH: CUSTOMIZE · THE PROFILE · TROPHIES · TIER GEMS · THE LAB 2.0 · THE WRONG DOOR (Nov 3 2026) — docs/harbor/passes/vault-2c.md, docs/vault.md
+- **The lab's FIX marks**: INFERNO + CENTURY burn with REAL FIRE (a baked noise flipbook — js/fx/fire.js); FOUNDING MEMBER + THE HOUSE's full cards show THE SHADOWBOXER live in the speakeasy's back room (never the retired card game); the dev cards' tag "1 OF 1 · DEV" in bold (the owner's ADD-ON), THE SWITCHBOARD's pink cable up top, NEON centred on THE SOURCE + FOUNDING MEMBER.
+- **THE LAB 2.0**: the ☰ menu's THE LAB (admins only), ‹ THE CITY, "N NEED YOU", 4 sections + 5 filters with counts, ONE ROW PER ITEM with a FULL toggle, versions + dated CHANGED lines, NEW per device, LOBBY TEST's settings sheet.
+- **THE TIER GEMS + THE DEV GEM** on every strip (no words); FOUNDER in each full card's BADGE SLOT, clear of its moving parts; the GLOW tiles' names fit.
+- **CUSTOMIZE** (was DRESS YOUR CARD) + **ONE EMBLEM SYSTEM** (the 12 sign-up shapes as commons every member owns; EDIT PROFILE = the name + colour).
+- **THE PROFILE REARRANGED** (the full card on top + CUSTOMIZE YOUR CARD … ACCOUNT at the foot, no BOARD button) + **LESS GOLD** + **ACHIEVEMENTS AS TROPHIES**.
+- **THE WRONG DOOR**: a static 404.html — the speakeasy door, "Wrong door, friend.", BACK TO THE CITY, DID YOU MEAN.
+
 ## THE VAULT 2B — DRESS YOUR CARD · THE TWO DEV CARDS · MEMBER Nº 0001 · THE REST OF THE SET (Nov 3 2026) — docs/harbor/passes/vault-2b.md, docs/vault.md
 - **DRESS YOUR CARD** (js/vault/dress.js — the owner's approved mock): the profile's ONE panel (the strip, the worn names, the big button) + YOUR
   COLLECTION; the dress screen — the pinned live strip, 4 tabs, tier-edged tiles, a tap wears it at once, a long-press → the full card.

@@ -253,7 +253,9 @@ export function createRemote({ scene, api = apiCall }) {
     if (c && !c.admin) ss.set(ADMIN_KEY, null);   // (an old pinned "no" from before PERF-A)
     if (!api) return false;
     await firebaseReady;
-    const ask = async () => { const r = await api('admin', { action: 'whoami' }); if (r.admin && r.pid) ss.set(ADMIN_KEY, { admin: true, pid: r.pid, at: Date.now() }); return r; };
+    // (THE VAULT 2C: + a HINT for THE WRONG DOOR — /404.html suggests /lab + /admin only on a device the server called an admin; nothing secret,
+    //  the doors themselves still ask the server)
+    const ask = async () => { const r = await api('admin', { action: 'whoami' }); if (r.admin && r.pid) ss.set(ADMIN_KEY, { admin: true, pid: r.pid, at: Date.now() }); try { if (r.admin) localStorage.setItem('nd:adm', '1'); else if (r.pid) localStorage.removeItem('nd:adm'); } catch { /* fine */ } return r; };
     try {
       let r = await ask();
       if (!r.pid) { try { const { syncMe } = await import('../../profile/me.js'); await syncMe(); } catch { /* fine */ } r = await ask(); }

@@ -679,3 +679,14 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
 - **The glass's weather** (9a's `glasswx.js`): its canvases live INSIDE the buttons (`canvas.nd-wxg`) — they fade with the dock + the
   corner buttons at rest; the labels draw on top.
 - `&idle=0` keeps the dock + the corner buttons up (look reviews).
+
+## THE WRONG DOOR (THE VAULT 2C — `404.html`; the owner typed /LAN and met the host's plain 404)
+Vercel serves `/404.html` for ANY unknown path (`vercel.json` has no rewrites — keep it that way, a catch-all would swallow it); the local
+server does the same (`scripts/serve.mjs`: an unknown page path → the door with a 404, a missing asset stays plain). STATIC: no city scene, no
+Firebase, no module graph — instant, and it works when everything else is down. The speakeasy's door at night under its lamp; the peephole slot
+SLIDES OPEN (a pair of eyes, a blink); **"Wrong door, friend."** + one plain line naming the path; ONE big **BACK TO THE CITY**. **DID YOU MEAN**
+(plain script): a near miss of our routes (≤ 1–2 edits: /board, /daychart), a 4-letter hush word → its room link (`/?room=WORD`); **/lab + /admin
+only on a device the app called an admin** (`localStorage nd:adm` — written by `screens/harbor/remote.js` after the server's whoami yes; nothing
+secret, the doors still ask the server). Reduced motion = the slot already open. `wd-` classes; the site's fonts + tokens copied in. The in-app
+dead ends (a room that's gone, a stale invite, a full room) already speak in the same tone in the JOIN panel (`screens/title.js#friendly`) —
+not whole screens, so the door isn't reused there. NOT BUILT (optional): an offline variant from the service worker.

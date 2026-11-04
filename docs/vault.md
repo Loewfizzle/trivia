@@ -337,7 +337,7 @@ THE 8 SIGHTINGS 60 · THE NEW 21 60 · 8 still cards with every emblem LEADING 6
 | `js/fx/speak-front.js` | THE CITY's REAL SPEAKEASY face-on for a card (the city's own wall painters + its real rooms; lazy, baked per size) — FOUNDING MEMBER's + THE HOUSE's full cards |
 | `js/vault/beat-sync.js` | ON THE BEAT's clock (a party night + a song: each pulse layer's animation set onto the grid) |
 
-### DRESS YOUR CARD (the owner's approved mock — Downloads\NEON\vault\dress-your-card.png)
+### DRESS YOUR CARD — renamed CUSTOMIZE in THE VAULT 2C (the owner's approved mock — Downloads\NEON\vault\dress-your-card.png)
 The profile: your strip as it is now (live), the worn pieces' names, a big **DRESS YOUR CARD** button; **YOUR COLLECTION** = what you own (cards ·
 emblems (+ your own shape) · glows · tubes) — never a total of what exists. The dress screen: the strip PINNED (its own surface — it leads),
 "THE LOBBY SEES THIS" · **VIEW FULL ›**, the worn names, 4 tabs; tiles 3 across, each edged in its tier colour (`--tier-*`), the worn one ticked,
@@ -409,3 +409,68 @@ BURNT OUT · ON THE BEAT join TWO-TONE · BREATHING · A CHASING LIGHT.
 ### Measured (the mini PC, 4× CPU, the real compositor, 3×)
 8 THE SOURCE strips 60 fps (3.4 ms busy) · 8 THE SWITCHBOARD 60 (4.0) · 8 still cards wearing the busiest 2B mix (every emblem leading, every
 moving glow) 60 · 8 legendaries + the same 60 · THE 8 SAMPLES ~56 with the 2A wear and the 2B wear alike (2B adds nothing measurable).
+
+## THE VAULT 2C (Nov 3) — THE POLISH — passes/vault-2c.md
+| file | what |
+| --- | --- |
+| `js/vault/gems.js` | THE TIER GEM (`gemEl(tier, { dev })`) — the strip's tier mark (no words); THE DEV GEM |
+| `js/fx/fire.js` | REAL FIRE — a baked noise flipbook (`fireSheet`) stamped as whole tiles (`drawFire`) — INFERNO + CENTURY |
+| `js/progress/trophies.js` | ACHIEVEMENTS AS TROPHIES (the profile) |
+| `404.html` | THE WRONG DOOR (docs/title.md) |
+
+### THE LAB 2.0 (`js/vault/lab-views.js` — the owner: "getting cluttered")
+Reached from the ☰ menu (**THE LAB** — admins only: the same server `whoami` yes as the ADMIN row, `screens/harbor/remote.js`; nobody else
+gets the row) or `/lab`. A sticky **top bar**: `‹ THE CITY` (→ `/`) · **THE LAB** (a tap = back to the top) · **"N NEED YOU"** (ALL CAUGHT UP at 0).
+**4 sections** (CARDS · EMBLEMS · GLOWS + TUBES · LOBBY TEST, each with its count under the filter) + **5 filters** (NEEDS YOU — the default:
+never marked + CHANGED · CHANGED · FIX · APPROVED · ALL, each with its count; empty → "All caught up." + where the rest is). **ONE ROW PER ITEM**:
+its tier gem, its number + name, NEW / its state, the id; the slim strip — **FULL CARD ›** flips it to the full card IN PLACE (the face keeps
+its own marks: `full-<card>`; the toggle says when the other face needs him); the **CHANGED** box; what it does; APPROVE · FIX · CUT. A row
+stays put after a mark until the filter changes (nothing jumps away under the finger). **LOBBY TEST** = A FULL LOBBY + a SETTINGS ·
+DIAGNOSTICS sheet (STILL, the tiers, the diagnostics row, the WEAR mixes) + the fps readout (only there).
+**VERSIONS + CHANGED**: `js/vault/catalog.js#LAB_V` holds each item's version (1 unless bumped); `api/_lib/lab-text.js#LAB_CHANGES` the dated
+"what changed" line per version (server-side with the names — the lab gets them with the marks: `labMarks → { marks, text, changes }`). A
+mark stores the version it was made at (the server stamps `v` — `cleanMark`); `labStatus(id, mark)` = new · changed · approve · fix · cut. **A
+pass that edits an item's art or words bumps its LAB_V + writes its line** — it drops back into NEEDS YOU beside his old mark. (An APPROVE still
+ships the newer art: CHANGED asks for a re-look, it never pulls approved art.) **NEW** = a lab number above the highest this device has seen
+(`localStorage vl:seen`; a first visit marks nothing new). The export (`scripts/lab-export.mjs`) adds each item's version + CHANGED.
+Preview: `vault-preview.html?marks=old` (every item approved at v1 + INFERNO's FIX — what he meets after this pass) · `&marks=done` (all caught
+up) · `&filter=` · `&face=full` · `&fd=1` (every sample member a FOUNDER).
+
+### THE TIER GEM + THE DEV GEM (`js/vault/gems.js`, css `.vl-gem*`; the owner's approved mock tier-gem.png)
+The strip's tier pill → a small gem in the bottom-right corner, no words (the full card + CUSTOMIZE still spell the tier): COMMON a smooth grey
+stone · UNCOMMON a small green emerald cut · RARE a blue faceted brilliant · EPIC purple + a sparkle popping · LEGENDARY a bigger gold brilliant
++ a glint crossing + a tiny star. **THE DEV GEM** (the dev cards' strips — "very bright, vivid, pulsing, dancing"): 27 pt, three prismatic
+facet sets cross-fading (the facets cycle the spectrum), a rainbow light sweeping across inside the gem (a CSS mask of it), a slow bright pulse,
+four sparkles popping in turn, a soft rainbow halo turning — it plays even on a legendary-led strip (THE PROMINENCE RULE's one exception). Built
+like the emblems: small SVG layers, each moving part its own HTML layer, transform + opacity only; reduced motion = the still frame (the dev gem
+bright, its sparkles lit). FOUNDING MEMBER's № → gold letters in the top corner (no pill).
+
+### "1 OF 1 · DEV" + FOUNDER + THE BADGE SLOT
+The dev cards' tag (`core/dev-cards.js#ONE_OF_ONE`) reads **1 OF 1 · DEV** (the owner's ADD-ON, 7:16 pm — it replaced "#1 OF #1"), BOLD (the
+display face at 900), on the FULL CARD + in CUSTOMIZE only — the strip has the dev gem. **FOUNDER** is the badge's word everywhere (the full
+card's pill, the Gilded card's pill); the CARD keeps its name FOUNDING MEMBER. **`js/vault/full.js#BADGE`** — each card's SLOT (`pill` under the
+top line · `top` IN the top line: "NEON SPEAKEASY · FOUNDER" — the dev cards, their № dropped there (it's under the name) · `stamp` — FOUNDING
+MEMBER's own gold stamp) + its MOVING PARTS as fractions of the card (the VU meter + lamps, ON AIR, the jacks; the typed line + the sign; the
+sign + the boxer's window; the building; the UFO). Ambient motion that fills a card (confetti, sparkles, flames, a firework's trails) is the
+card's ground, not a part. The harbor `vault` group proves no badge box overlaps a part at 390 / 402 / 430.
+
+### NO CARD-GAME ROOM + THE SHADOWBOXER (`js/fx/speak-front.js#drawBoxer`)
+The speakeasy bake never paints the retired card game (`o.live` — the back room, default `['back']`); FOUNDING MEMBER's + THE HOUSE's full cards
+draw **THE SHADOWBOXER** live in that pane — the city's own painter (`screens/harbor/boxer.js#boxerRoom` + `core/harbor-boxer.js#boxerPreview`,
+his first round looped over 160 s), through the card's painter in the front's wall units, clipped to the glass. Reduced motion: a still pose.
+
+### REAL FIRE (`js/fx/fire.js` — the owner's FIX on INFERNO; CENTURY shares it)
+The 1A teardrops → a baked FLIPBOOK of a real fire field: 12 frames of a 192 × 144 band (domain-warped value noise, periodic across + looped in
+time, through a blackbody ramp), baked once per page (~a few tens of ms) into one atlas sprite; a frame draws only whole tiles of it (never
+sliced: a tile stretched to different heights side by side tears the field) — three layers crossing (tall + slow behind, quicker in front), a
+dark wash under the name plate, the ember bed, the sparks, the breathing edge.
+
+### CUSTOMIZE + ONE EMBLEM SYSTEM (`js/vault/dress.js`, `core/items.js#SIGN_EMBLEMS`)
+DRESS YOUR CARD is **CUSTOMIZE** (the profile's **CUSTOMIZE YOUR CARD**; the screen's title CUSTOMIZE). The 12 sign-up shapes are COMMON emblems
+`emb-sign-<shape>` ("NEON BOLT" … — public: every member owns them, so their names ship with the site) — STARTER, granted to a new profile,
+back-filled on 'me'; they sit in CUSTOMIZE's EMBLEM tab with the earned ones (no "YOUR SHAPE" tile). Wearing one = the profile's shape
+(`profiles/{pid}/a`, + the device's own identity) and takes a worn earned emblem off (`es`). Sign-up still picks a starter; afterwards the
+emblem / card / glow / tube change ONLY in CUSTOMIZE; EDIT PROFILE = the name + the colour (`screens/setup.js#pickShape`). GLOW tiles: the name
+pinned to its tile (Safari sized the grid item to its text, so the fit never saw the overflow) — shrinks, then two lines.
+
+### THE PROFILE (docs/profiles.md "THE PROFILE's ORDER") + ACHIEVEMENTS AS TROPHIES (docs/progression.md)
