@@ -68,6 +68,23 @@ local server serves it like Vercel.
 55.1 · THE 8 SIGHTINGS 54.0 · THE NEW 21 60.0 · 8 INFERNO strips (real fire) 60 (1.16 ms busy) · 8 THE SOURCE strips with the DEV gem 58.1 on
 the GPU canvas (gems off 60 — an impossible lobby: one dev card exists).
 
+## Tests (this pass)
+unit (+ `tests/vault-2c.test.mjs`: versions + CHANGED, the lab page, the gems' motion rule, 1 OF 1 · DEV + FOUNDER + the badge slots + no
+card-game room, ONE EMBLEM SYSTEM, the profile's order + trophies, THE WRONG DOOR, real fire) · `/api` on the emulators (+
+`tests/integration/vault-2c.test.mjs`: the 12 sign-up shapes back-filled + worn, a sign-up writes no stats, a mark's version) · the harbor
+`vault` group (THE LAB 2.0 with `&marks=old|done`, NEW, the FULL toggle's own marks; FOUNDER's badge slots at 390 / 402 / 430; THE WRONG DOOR
+at 390 / 402 / 430 / 1440 — /LAN, /bord, /xyz/abc, /dachart, /jazz + an admin's /LAN → /lab; ONE EMBLEM SYSTEM by finger; the profile's order;
+the GPU-path speed mixes) · the `panel` group (+ THE LAB's ☰ row for an admin) · the profile E2E (+ the profile's order, a trophy's reward
+chip worn on the server).
+
+## THE FULL LOCAL RUN (the mini PC, Nov 3)
+unit 1108/1108 · rules 59/59 (the rules FILE unchanged — no re-publish) · /api: server 29/29, progression 10/10, sightings 4/4, lab 2/2,
+vault-2b 3/3, vault-2c 3/3 · smoke 6/6 · the profile E2E 77/77 (THE BOARD's row check on the re-run, as in 1A–2B) · THE FULL HARBOR SUITE
+909/912 + the `panel` group: THE RESIZE + LOAD WEATHER's holiday-night jump = the known ones from 2A / 2B; SIGHTINGS' compose time 12.1 /
+15 ms vs a 12 ms bar beside the other shards → 11/11 alone (7.1 ms); the `panel` group timed out — the test measured the ADMIN row while the
+☰ menu was still scaling in, and with THE LAB's row above it the tap landed on THE LAB (→ /lab): the panel checks now wait for the menu to
+settle → 39/39 alone.
+
 ## Known issues + held back
 - Every CHANGED item waits for the owner's re-mark (11 faces: INFERNO ×2, CENTURY ×2, THE SWITCHBOARD ×2, THE SOURCE ×2, FOUNDING MEMBER ×2,
   THE HOUSE full).

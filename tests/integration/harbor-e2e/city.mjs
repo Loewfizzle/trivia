@@ -13,7 +13,7 @@ async function panelSection() {
   await harborUp(O.page);
   await waitFor(O.page, 'window.__district.remote() && window.__district.remote().debug().admin', 'the admin panel ready', 10000);
   await tap(O.page, '.menu-btn');
-  await waitFor(O.page, '!!document.querySelector(".gm-adm .gm-item")', 'the ADMIN row', 5000);
+  await waitFor(O.page, '!!document.querySelector(".gm-adm .gm-item") && document.querySelector(".gm-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000);
   const adm = await ev(O.page, `(() => { const a = document.querySelector('.gm-adm'), b = a.querySelector('.gm-item').getBoundingClientRect(); return { last: a === a.parentNode.lastElementChild, h: b.height, txt: a.textContent, pill: !!document.querySelector('.hr-pill'), cue: !document.querySelector('.menu-btn .mb-cue').hidden }; })()`);
   ok(adm.last && adm.h >= 44 && /ADMIN/.test(adm.txt) && !adm.pill && !adm.cue, `9d THE ADMIN ROW: the ☰ menu's last row (${Math.round(adm.h)} pt, "${adm.txt}"), no TEST pill on the screen, no cue while nothing is on`);
   // THE VAULT 2C — THE LAB in the ☰ menu (admins only: the same yes as ADMIN) → /lab
@@ -30,7 +30,7 @@ async function panelSection() {
   const R0 = await import('../../../js/core/harbor-remote.js');
   const sheetUp = async p => { await waitFor(p, '!!document.querySelector(".hr-sheet")', 'the sheet', 5000); await waitFor(p, "document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 5000); await sleep(300); };
   const closeSheet = async p => { await ev(p, 'window.__district.remote().close()'); await waitFor(p, '!document.querySelector(".hr-modal")', 'the sheet gone', 4000); };
-  const openAdmin = async p => { await tap(p, '.menu-btn'); await waitFor(p, '!!document.querySelector(".gm-adm .gm-item")', 'the ADMIN row', 5000); await tap(p, '.gm-adm .gm-item'); };
+  const openAdmin = async p => { await tap(p, '.menu-btn'); await waitFor(p, '!!document.querySelector(".gm-adm .gm-item") && document.querySelector(".gm-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000); await tap(p, '.gm-adm .gm-item'); };
   const reopen = async p => { await openAdmin(p); await sheetUp(p); };
   await ev(O.page, 'window.__district.remote().delay(0)');
   {
@@ -308,7 +308,7 @@ async function neonPass5Panel() {
   await ev(L1.page, "window.__district.remote().setMine({ party: 'on', force: ['aurora'], when: '2026-10-27T22:30' })");
   await waitFor(L1.page, "(() => { const c = document.querySelector('.menu-btn .mb-cue'); return !!c && !c.hidden; })()", 'the cue on ☰', 6000);
   await tap(L1.page, '.menu-btn');
-  await waitFor(L1.page, "!!document.querySelector('.gm-adm .gm-adm-x')", 'the ADMIN row + CLEAR', 5000);
+  await waitFor(L1.page, "!!document.querySelector('.gm-adm .gm-adm-x') && document.querySelector('.gm-panel').getAnimations().every(a => a.playState === 'finished')", 'the ADMIN row + CLEAR (the menu settled)', 5000);
   const chipTxt = await ev(L1.page, "document.querySelector('.gm-adm .gm-item').textContent"), xr = await ev(L1.page, "(() => { const r = document.querySelector('.gm-adm-x').getBoundingClientRect(); return { w: r.width, h: r.height }; })()");
   await tap(L1.page, '.gm-adm-x');
   await waitFor(L1.page, '!window.__district.harbor().flags.remote', 'cleared by the ADMIN row', 5000);
@@ -319,7 +319,7 @@ async function neonPass5Panel() {
   const D = await open({ slot: 'hd2', qs: `when=2026-10-22T13:00${GR}&panel=1`, view: [402, 874] });
   await harborUp(D.page);
   await waitFor(D.page, 'window.__district.remote() && window.__district.remote().debug().admin', 'the admin panel ready', 10000);
-  await tap(D.page, '.menu-btn'); await waitFor(D.page, '!!document.querySelector(".gm-adm .gm-item")', 'the ADMIN row', 5000); await tap(D.page, '.gm-adm .gm-item');
+  await tap(D.page, '.menu-btn'); await waitFor(D.page, '!!document.querySelector(".gm-adm .gm-item") && document.querySelector(".gm-panel").getAnimations().every(a => a.playState === "finished")', 'the ADMIN row (the menu settled)', 5000); await tap(D.page, '.gm-adm .gm-item');
   await waitFor(D.page, "!!document.querySelector('.hr-sheet') && document.querySelector('.hr-sheet').getAnimations().every(x => x.playState === 'finished')", 'the sheet up', 6000);
   // (C2: PARTY ON sits in LIGHTS + MUSIC → PARTY SHOW — the section collapsed at first: a tap on its header opens it; the sheet's
   // close starts it — the delay NOW here)
