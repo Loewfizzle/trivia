@@ -221,3 +221,56 @@ G('roomchat', async () => {
   ok(gone && gg && chips === 'GG NO WAY REMATCH? 🔥 😂 👏', `SENT → the bubble goes (${gone}); QUICK-REPLY CHIPS (${chips}) — GG sent (${gg})`);
   await A.ctx.close(); await B.ctx.close();
 });
+
+// ---- LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP (the owner's ADD-ON — profile/keypop.js): a returning player whose key isn't saved → shown ONCE;
+// saved → never; LATER → no pop again + the YOU dot until saved; COPY marks it saved; a NEW player → right after their first counted match
+const KP = (slot, notesV) => ({ fn: (s, n) => { try { localStorage.setItem(`na:${s}:pkey`, JSON.stringify('NEON-7K2Q-PX4M-9WDA')); localStorage.setItem(`na:${s}:pnotes`, JSON.stringify(n)); } catch { /* fine */ } }, arg: undefined, slot, notesV });
+async function kpOpen(slot, notesV, view = [402, 874]) {
+  const Q = await open({ slot, qs: ROOMQ, view, init: { fn: new Function('a', `try { if (!localStorage.getItem('kp:seeded')) { localStorage.setItem('na:${slot}:pkey', JSON.stringify('NEON-7K2Q-PX4M-9WDA')); localStorage.setItem('na:${slot}:pnotes', a); localStorage.setItem('kp:seeded', '1'); } } catch (e) {}`), arg: JSON.stringify(notesV) } });
+  await harborUp(Q.page);
+  return Q;
+}
+G('keypop', async () => {
+  void KP;
+  // a RETURNING player (2 counted matches), not saved: the pop-up once, a moment after the reveal — their card + the line + COPY · SHARE · LATER
+  { const Q = await kpOpen('kp1', { games: 2 }), p = Q.page;
+    const shown = await waitFor(p, "!!document.querySelector('.kp-sheet:not(.is-out)')", 'the pop-up', 9000).then(() => true, () => false);
+    const k = await ev(p, "(() => { const s = document.querySelector('.kp-sheet'); return s ? { line: (s.querySelector('.kp-line') || {}).textContent, card: !!s.querySelector('.pg-card'), acts: [...s.querySelectorAll('[data-act]')].map(b => b.dataset.act), later: !!s.querySelector('.kp-later') } : null; })()");
+    ok(shown && k && /Save your key so you never lose your card/.test(k.line) && k.card && k.acts.includes('copy') && k.later, `THE SAVE-YOUR-KEY POP-UP: a returning player (key not saved) meets it on the city — their card, "${k && k.line}", ${k && k.acts.join(' · ')} · LATER`);
+    if (SHOTS) for (const [w, hh] of [[390, 844], [402, 874], [430, 932]]) { await p.setViewport({ width: w, height: hh, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await sleep(500); await p.screenshot({ path: `${OUT}lobby-keypop-${w}.png` }); }
+    await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await ev(p, "document.querySelector('.kp-sheet .kp-later').click()"); await sleep(600);
+    const dot = await ev(p, "(() => { const d = document.querySelector('.nd-tab-you .kp-dot'); return !!d && !d.hidden; })()");
+    await p.reload(); await harborUp(p); await sleep(4500);
+    const again = await ev(p, "!!document.querySelector('.kp-sheet:not(.is-out)')"), dot2 = await ev(p, "(() => { const d = document.querySelector('.nd-tab-you .kp-dot'); return !!d && !d.hidden; })()");
+    ok(dot && !again && dot2, `LATER: no pop-up again (after a reload: ${!again}) — a small dot on YOU until it's saved (${dot}/${dot2})`);
+    await Q.ctx.close(); }
+  // COPY marks it saved: the pop-up closes, no dot
+  { const Q = await kpOpen('kp2', { games: 1 }), p = Q.page;
+    await p.browserContext().overridePermissions(new URL(p.url()).origin, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']).catch(() => {});
+    await waitFor(p, "!!document.querySelector('.kp-sheet:not(.is-out)')", 'the pop-up', 9000).catch(() => {});
+    await ev(p, "document.querySelector('.kp-sheet [data-act=\"copy\"]').click()"); await sleep(800);
+    const st = await ev(p, "({ saved: JSON.parse(localStorage.getItem('na:kp2:pnotes') || '{}').saved, open: !!document.querySelector('.kp-sheet:not(.is-out)'), dot: (() => { const d = document.querySelector('.nd-tab-you .kp-dot'); return !!d && !d.hidden; })() })");
+    ok(st.saved === true && !st.open && !st.dot, `COPY marks the key SAVED: the pop-up closes, no dot (${JSON.stringify(st)})`);
+    await Q.ctx.close(); }
+  // SAVED already → never
+  { const Q = await kpOpen('kp3', { games: 4, saved: true }), p = Q.page;
+    await sleep(5000);
+    const st = await ev(p, "({ open: !!document.querySelector('.kp-sheet'), dot: (() => { const d = document.querySelector('.nd-tab-you .kp-dot'); return !!d && !d.hidden; })() })");
+    ok(!st.open && !st.dot, `SAVED: never the pop-up, no dot (${JSON.stringify(st)})`);
+    await Q.ctx.close(); }
+  // a NEW player (no counted match yet): nothing on the city; right after their FIRST counted match (back from the game) → the pop-up
+  { const Q = await kpOpen('kp4', { games: 0 }), p = Q.page;
+    await sleep(4500);
+    const before = await ev(p, "!!document.querySelector('.kp-sheet')");
+    await ev(p, "document.querySelector('.nd-hostbtn').click()");
+    await waitFor(p, 'window.__arcade.state.code && window.__district.room()', 'hosted', 20000);
+    const code = await ev(p, 'window.__arcade.state.code');
+    await dbPatch(`rooms/${code}/meta`, { status: 'playing' }); await sleep(800);
+    await ev(p, "import('/js/profile/me.js').then(m => m.countMatch())");   // (the podium counts the match — profile/queue.js)
+    await dbPatch(`rooms/${code}/meta`, { status: 'lobby' });
+    const after = await waitFor(p, "!!document.querySelector('.kp-sheet:not(.is-out)')", 'the pop-up after the match', 9000).then(() => true, () => false);
+    ok(!before && after, `A NEW PLAYER: nothing before a counted match (${!before}); right after the FIRST one, back in the room → the pop-up (${after})`);
+    if (SHOTS) await p.screenshot({ path: `${OUT}lobby-keypop-room.png` });
+    await Q.ctx.close(); }
+});

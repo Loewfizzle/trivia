@@ -993,3 +993,6 @@ body.reduced-fx .nd-box.is-filled { animation: none; }
 .rc-tag.is-typing.is-named .rc-name { opacity: 0; }
 @media (prefers-reduced-motion: reduce) { .rc-bubble i { animation: none; opacity: 0.8; } .rc-name, .rc-bubble { transition: none; } }
 body.nd-idle .rc-tags { opacity: 1; }
+/* LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP's dot on YOU (title dock + room dock) until the key is saved */
+.kp-dot { position: absolute; top: 5px; right: 9px; width: 9px; height: 9px; border-radius: 50%; background: #ff4fb8; box-shadow: 0 0 6px rgba(255, 79, 184, 0.9); pointer-events: none; }
+.nd-tab-you { position: relative; }

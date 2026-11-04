@@ -378,6 +378,7 @@ export function createTitle() {
         roomUi = m.createRoomCity({ scene, sign: els.sign, dockHost: els.door.parentElement, lightFrom: roomLight });
         els.root.classList.add('is-room'); wake();
         roomUi.update(st);
+        import('../profile/keypop.js').then(k => keyPopDot(k.keyPopState())).catch(() => {});
       }).catch(e => { roomLoading = false; console.warn('room', e); });
     }
     if (!inRoom && roomUi) { roomUi.destroy(); roomUi = null; els.root.classList.remove('is-room'); }
@@ -1290,6 +1291,23 @@ export function createTitle() {
     els.sceneWrap.classList.add('is-reveal');
     els.sceneWrap.classList.remove('is-hold');
     pgPreviewSoon(600);
+    keyPopSoon(2600);
+  }
+  // LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP (profile/keypop.js): a RETURNING player whose key isn't saved meets it once, on the city, a moment
+  // after the reveal — never over a legendary (it waits); its YOU dot on the docks until the key is saved
+  let keyPopT = 0, offKeyPop = null;
+  function keyPopSoon(ms) {
+    clearTimeout(keyPopT);
+    keyPopT = setTimeout(() => { if (!destroyed) import('../profile/keypop.js').then(k => { if (destroyed) return; k.maybeKeyPop({ why: 'open', busy: () => !!(scene && scene.legendBusy && scene.legendBusy()) }); keyPopDot(k.keyPopState()); if (!offKeyPop) offKeyPop = k.onKeyPop(keyPopDot); }).catch(() => {}); }, ms);
+  }
+  function keyPopDot(stt) {
+    const on = stt === 'dot';
+    for (const t of [els.youTab, roomUi && roomUi.dock && roomUi.dock.els.youTab]) {
+      if (!t) continue;
+      let d = t.querySelector(':scope > .kp-dot'); if (!d && on) { d = h('i.kp-dot', { 'aria-hidden': 'true' }); t.append(d); }
+      if (d) d.hidden = !on;
+      t.classList.toggle('has-kp', on);
+    }
   }
   // PROGRESSION A — THE PREVIEW LINKS (?preview=moment | card | streak | flame [&streak=N] [&up=0] …): the screen with scripted data over the
   // city, a moment after the reveal (or 4 s in, whatever the city does). Nothing is written or sent — a preview never counts.
@@ -1960,6 +1978,7 @@ export function createTitle() {
 
   function unmount() {
     destroyed = true;
+    clearTimeout(keyPopT); if (offKeyPop) { offKeyPop(); offKeyPop = null; }
     if (roomUi) { roomUi.destroy(); roomUi = null; }
     humSync(false);
     if (tl) cancelAnimationFrame(tl.raf);

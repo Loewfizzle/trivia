@@ -24,7 +24,7 @@ export function myPid(uid = state.uid) {
 export const myPublic = () => { const m = loadMe(); return m && m.uid === state.uid ? m.profile : null; };
 export const myKey = () => loadKey();
 export const notes = () => loadNotes();
-export function setNotes(patch) { const n = { ...loadNotes(), ...patch }; saveNotes(n); return n; }
+export function setNotes(patch) { const n = { ...loadNotes(), ...patch }; saveNotes(n); try { window.dispatchEvent(new Event('ns:notes')); } catch { /* fine */ } return n; }   // (LOBBY 2.0 A: the key pop-up's dot follows)
 
 function store(pid, profile) {
   const was = loadMe();

@@ -34,7 +34,7 @@ export function bringCss() {
 }
 
 const notesSaved = () => !!(loadNotes() || {}).saved;
-function markSaved() { saveNotes({ ...(loadNotes() || {}), saved: true }); }
+function markSaved() { saveNotes({ ...(loadNotes() || {}), saved: true }); try { window.dispatchEvent(new Event('ns:notes')); } catch { /* fine */ } }
 export const canShare = () => typeof navigator !== 'undefined' && typeof navigator.share === 'function';
 
 /** COPY the key (a select-and-copy fallback where the clipboard is refused) */

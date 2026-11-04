@@ -190,7 +190,8 @@ subscribe(st => {
   if (s === lastStatus) return;
   const back = lastStatus === 'playing' && s === 'lobby';
   lastStatus = s;
-  if (back) withProfile().then(m => { if (m.me.shouldPromptKey()) import('./screens/profile.js').then(p => setTimeout(() => p.promptKey(), 1400)); }).catch(() => {});
+  // (LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP: back from a counted match — a new player's first — profile/keypop.js; it waits while anything is up)
+  if (back) import('./profile/keypop.js').then(k => setTimeout(() => k.maybeKeyPop({ why: 'match' }), 1400)).catch(() => {});
 });
 // Room chat loads the first time we're in a room (never on the first paint): the in-game chat button.
 let chatInstalled = false;

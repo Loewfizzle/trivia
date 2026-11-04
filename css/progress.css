@@ -575,3 +575,10 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .rg-night li b { width: 22px; text-align: center; color: #ffd84a; }
 .rg-night li span { flex: 1; } .rg-night li em { font: 800 13px/1 var(--font-num); font-style: normal; color: rgba(240, 236, 250, 0.82); }
 @media (prefers-reduced-motion: reduce) { .rg-row.is-in { animation: none; } .rg-row { transition: none; } }
+/* LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP (profile/keypop.js) */
+.kp-card { display: flex; justify-content: center; }
+.kp-card > * { width: 100%; max-width: 420px; }
+.kp-line { margin: 2px 0 0; font: 800 clamp(18px, 5.4vw, 21px)/1.25 var(--font-ui); color: #fff; text-align: center; }
+.kp-acts { display: flex; gap: 10px; }
+.kp-acts .pf-gb { flex: 1 1 0; min-height: 52px; font-size: 14px; }
+.kp-later { color: rgba(240, 236, 250, 0.82) !important; }
