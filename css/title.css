@@ -1094,3 +1094,7 @@ body.rc-going .nd-actions, body.rc-going .rc-tags { opacity: 0; transition: opac
   border: 2px solid rgba(236, 242, 255, 0.9); box-shadow: 0 0 14px rgba(214, 228, 255, 0.7); animation: rdk-inv-pulse 1.9s ease-out infinite; }
 @keyframes rdk-inv-pulse { 0% { opacity: 0.85; transform: scale(0.9); } 70%, 100% { opacity: 0; transform: scale(1.26); } }
 @media (prefers-reduced-motion: reduce) { .rc-hostcard, .rc-hostcard.is-out { animation-duration: 0.01s; } .rdk-invite.rdk-pulse::before { animation: none; opacity: 0.6; transform: none; } }
+/* LOBBY FIXES — the owner's ADD-ON 2: THE RADIO BUTTON (the owner's + the crew's) RESTS WITH THE REST — the same fade as ☰ + the music
+   (opacity only, the same timing + easing), back on the same wake tap; untappable while faded (the wake tap only wakes) */
+body.nd-on .rd-btn { transition: transform 0.12s var(--ease), opacity 0.45s ease; }
+body.nd-idle .rd-btn { opacity: 0; pointer-events: none; transition: opacity 1.8s ease; }

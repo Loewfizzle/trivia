@@ -1366,6 +1366,11 @@ body.nd-glass .music-btn, body.nd-on .music-btn, body.bd-on .music-btn { right: 
    TOP-LEFT corner and the music in the TOP-RIGHT, framing the sign; the games keep both on the right */
 body.nd-on .menu-btn, body.cb-split .menu-btn { left: calc(var(--safe-l) + 12px); right: auto; }
 body.nd-on .music-btn, body.cb-split .music-btn { top: calc(var(--safe-t) + 10px); }
+/* (LOBBY FIXES — the owner's ADD-ON, desktop 1440 × 900: the music button sat mid-screen by the moon — a game's theme on the body (the walk
+   inside, a theme left after a match) made "body[data-theme]:not([data-theme='']) … .music-btn" outrank the corner rule above and pin it
+   to the PHONE COLUMN's edge. The split-corner screens (the title, the room, the lobby) pin it to the SCREEN's top-right, level with ☰,
+   whatever the theme; on a phone the column IS the screen — nothing moves there) */
+body.nd-on .music-btn, body.cb-split .music-btn, body.nd-on[data-theme] .music-btn, body.cb-split[data-theme] .music-btn { right: calc(var(--safe-r) + 12px) !important; top: calc(var(--safe-t) + 10px) !important; }
 body.nd-on .gm-panel, body.cb-split .gm-panel { left: calc(var(--safe-l) + 12px); right: auto; transform-origin: top left; }
 /* POLISH 5 — THE MUSIC BUTTON SAYS IT (no toast): OFF = the note dimmed + a crisp white slash on a dark edge, the glass a touch darker
    (≥ 3:1 on a bright day sky as on the night); its words go to screen readers only (.mh-sr); ALL sound muted → a short hint pill in the

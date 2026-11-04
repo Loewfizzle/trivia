@@ -10,7 +10,7 @@ import { toast } from '../ui/toast.js';
 import { setState, state } from '../store.js';
 import { loadProfile, saveProfile, loadMe, loadKey } from '../identity.js';
 import { signOf } from '../core/items.js';
-import { GAMES, COLORS, NAME_MAX, colorHex } from '../config.js';
+import { GAMES } from '../config.js';
 import { mastery } from '../core/ranks.js';
 import { levelOf } from '../core/levels.js';
 import { gildedCard } from '../progress/card.js';
@@ -26,7 +26,6 @@ import { boardSfx } from '../board/audio.js';
 import { sfx } from '../audio/sfx.js';
 import { settings } from '../audio/settings.js';
 import { memberLabel } from '../core/member.js';
-import { sanitizeName } from '../core/room-logic.js';
 import { openPfSheet, closeAllPfSheets } from '../profile/sheets.js';
 
 const HL = { gridlock: [['sunk', 'FLEETS SUNK'], ['w_classic', 'CLASSIC WINS'], ['w_salvo', 'SALVO WINS'], ['w_royale', 'ROYALE WINS'], ['w_arcade', 'ARCADE WINS']], agent: [['esc', 'ESCAPES'], ['spot', 'AGENTS CAUGHT']], signal: [['el', 'ELIMINATIONS']], bluff: [['fool', 'PLAYERS FOOLED']], prism: [['ko', 'KNOCKOUTS']] };
@@ -164,11 +163,8 @@ export function createView({ onBack = null, overlay = false } = {}) {
         els.mast,
         h('section.pf-sec.pf-account',
           h('h3.pf-h', 'ACCOUNT'),
-          // (LOBBY FIXES — EDIT PROFILE REDONE (the owner, Nov 4 2:23–2:25 pm: the one "Edit profile name · colour ›" row was terrible, and in a
-          //  room — the profile over the city — it wasn't there at all): two plain rows at the TOP of ACCOUNT showing what you have now, each
-          //  opening its editor (a sheet; ‹ = one step back) — on every screen, in a room too)
-          els.editName = h('button.pf-acc-row.pf-er.pf-er-name.pf-edit', { type: 'button', 'aria-label': 'Edit your name', onclick: () => openNameEditor(paintEdit) }, h('b', 'NAME'), h('span.pf-er-v'), h('i.pf-er-pen', { 'aria-hidden': 'true' }, '✎')),
-          els.editColour = h('button.pf-acc-row.pf-er.pf-er-colour', { type: 'button', 'aria-label': 'Edit your colour', onclick: () => openColourEditor(paintEdit) }, h('b', 'COLOUR'), h('span.pf-er-v'), h('i.pf-er-pen', { 'aria-hidden': 'true' }, '✎')),
+          // (LOBBY FIXES — the owner's ADD-ON 3: NAME + COLOUR are two rows at the top of CUSTOMIZE YOUR CARD (vault/dress.js) + the card's ✎;
+          //  ACCOUNT keeps the key / restore / sign-in things only)
           els.bday,
           els.keyBox,
           els.elsewhere,
@@ -179,19 +175,14 @@ export function createView({ onBack = null, overlay = false } = {}) {
     dragScroll(els.scroll);
     paintLocal();
     paintKey();
-    paintEdit();
     load();
   }
-  function paintEdit() {
-    const q = loadProfile() || {};
-    if (els.editName) els.editName.querySelector('.pf-er-v').textContent = (q.name || '—').toUpperCase();
-    if (els.editColour) els.editColour.querySelector('.pf-er-v').replaceChildren(h('i.pf-er-sw', { style: { '--c': colorHex(q.color) } }), h('span.pf-er-cn', String(q.color || '').toUpperCase()));
-  }
-  /** LOBBY FIXES — a small ✎ beside the name on the card at the top (the Gilded card's name, or the full card's plate) → the name editor */
+  /** LOBBY FIXES — a small ✎ beside the name on the card at the top (the Gilded card's name, or the full card's plate) → the name editor,
+   *  the same one as CUSTOMIZE's NAME row (profile/edit.js) */
   function addPen(root) {
     const spot = root && (root.querySelector('.vl-fc-plate') || root.querySelector('.pg-card-id'));
     if (!spot || spot.querySelector('.pf-pen')) return;
-    spot.append(h('button.pf-pen', { type: 'button', 'aria-label': 'Edit your name', onclick: e => { e.stopPropagation(); sfx('select'); openNameEditor(paintEdit); } }, '✎'));
+    spot.append(h('button.pf-pen', { type: 'button', 'aria-label': 'Edit your name', onclick: e => { e.stopPropagation(); sfx('select'); import('../profile/edit.js').then(E => E.openNameEditor((n, done) => { if (done) done.then(() => { if (!destroyed) load(); }).catch(() => {}); })); } }, '✎'));
   }
 
   function back() { closeAllPfSheets(); if (onBack) { onBack(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); }
@@ -228,46 +219,6 @@ export function createView({ onBack = null, overlay = false } = {}) {
     if (!armed) { armed = setTimeout(() => { armed = 0; b.textContent = 'NEW KEY'; b.classList.remove('is-armed'); }, 4000); b.textContent = 'TAP AGAIN — THE OLD KEY STOPS WORKING'; b.classList.add('is-armed'); return; }
     clearTimeout(armed); armed = 0; b.textContent = 'NEW KEY'; b.classList.remove('is-armed');
     try { await regenKey(); setNotes({ saved: false }); paintKey(); toast('A NEW KEY — THE OLD ONE NO LONGER WORKS', 'ok'); } catch (err) { toast(err.message || 'COULDN’T REACH THE SERVER', 'err'); }
-  }
-
-  // ---------------------------------------------------------------- EDIT PROFILE — the NAME ✎ + COLOUR ✎ rows (ACCOUNT's top) + the card's ✎ open these
-  function saveLocal(patch) {
-    const q = { ...(loadProfile() || {}), ...patch };
-    saveProfile(q);
-    sfx('lock');
-    paintEdit();
-    // (in a room: your name + colour in the line follow at once — LOBBY FIXES: the editor is in the room's profile too now)
-    if (state.code) import('../room.js').then(m => m.updateMyProfile(q)).catch(() => {});
-    // (the global profile follows — renames: once a day — then the page repaints from the server)
-    import('../profile/me.js').then(m => m.syncMe()).then(() => { if (!destroyed) load(); }).catch(() => {});
-  }
-  function openNameEditor(onDone) {
-    const q = loadProfile() || {};
-    let s = null;
-    const input = h('input.input.input-name.pf-name-in', { type: 'text', maxLength: NAME_MAX, value: q.name || '', autocomplete: 'nickname', autocapitalize: 'off', spellcheck: false, 'aria-label': 'Your name' });
-    const go = () => {
-      const name = sanitizeName(input.value, NAME_MAX);
-      if (!name) { toast('ENTER A NAME', 'err'); input.focus(); return; }
-      saveLocal({ name }); if (onDone) onDone(); s.close();
-    };
-    input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-    s = openPfSheet({ kicker: 'EDIT PROFILE', title: 'YOUR NAME', cls: 'pf-name-sheet', body: [
-      h('label.field', h('span.label', 'NAME'), input),
-      h('p.pf-public', 'This name shows on the public board — don’t use your full real name.'),
-      h('button.btn.btn-primary.btn-block.pf-save', { type: 'button', onclick: go }, h('span', 'SAVE'))] });
-    setTimeout(() => input.focus(), 320);
-    return s;
-  }
-  function openColourEditor(onDone) {
-    let pick = (loadProfile() || {}).color, s = null;
-    const sw = h('div.swatches.pf-swatches', { role: 'radiogroup', 'aria-label': 'Colour' });
-    const paint = () => { for (const b of sw.children) b.setAttribute('aria-checked', String(b.dataset.id === pick)); };
-    for (const c of COLORS) sw.append(h('button.swatch', { type: 'button', role: 'radio', 'aria-label': c.id, dataset: { id: c.id }, style: { '--c': c.hex }, onclick: () => { pick = c.id; paint(); } }));
-    paint();
-    s = openPfSheet({ kicker: 'EDIT PROFILE', title: 'YOUR COLOUR', cls: 'pf-colour-sheet', body: [
-      h('p.pfs-note', 'Your colour lights your emblem, your ring in the line and your name in the room.'), sw,
-      h('button.btn.btn-primary.btn-block.pf-save', { type: 'button', onclick: () => { if (pick) saveLocal({ color: pick }); if (onDone) onDone(); s.close(); } }, h('span', 'SAVE'))] });
-    return s;
   }
 
   // ---------------------------------------------------------------- RESTORE YOUR ACCOUNT (a sheet)
@@ -361,7 +312,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
     els.card.replaceChildren(memberCard(data.profile, loadProfile() || {}, data.stats.xp, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
     addPen(els.card);
-    els.cz.replaceChildren(customizeBar(data, { name: data.profile.n || (loadProfile() || {}).name || '', onWear: wear }));
+    els.cz.replaceChildren(customizeBar(data, { name: data.profile.n || (loadProfile() || {}).name || '', onWear: wear, onYou: () => { if (!destroyed) load(); } }));
     const p = data.profile || {}, cd = p.cd;
     if (!cd || cd === 'card-gilded') return;
     import('../vault/full.js').then(async F => {

@@ -328,8 +328,15 @@ G('youpage', async () => {
     await waitFor(p, "!!document.querySelector('.pf-overlay .pf-scroll .pf-account')", 'the YOU page over the room', 10000);
     await sleep(900);
     const r = await ev(p, `(() => { const sc = document.querySelector('.pf-overlay .pf-scroll'), acc = sc.querySelector('.pf-account'), kids = [...acc.children].filter(k => k.tagName !== 'H3'), R = sc.getBoundingClientRect();
-      return { sbw: getComputedStyle(sc).scrollbarWidth, bar: sc.offsetWidth - sc.clientWidth, w: Math.round(R.width), name: !!(kids[0] && kids[0].classList.contains('pf-er-name')), colour: !!(kids[1] && kids[1].classList.contains('pf-er-colour')), max: sc.scrollHeight - sc.clientHeight }; })()`);
-    ok(r.name && r.colour, `EDIT PROFILE in a ROOM's profile (${view[0]}): NAME ✎ + COLOUR ✎ — the top of ACCOUNT`);
+      return { sbw: getComputedStyle(sc).scrollbarWidth, bar: sc.offsetWidth - sc.clientWidth, w: Math.round(R.width), rows: !!acc.querySelector('.pf-er-name, .pf-er-colour, .pf-edit'), max: sc.scrollHeight - sc.clientHeight }; })()`);
+    // (the owner's ADD-ON 3: NAME + COLOUR at the TOP of CUSTOMIZE — in a room too — on screen without scrolling; none in ACCOUNT)
+    await ev(p, "document.querySelector('.pf-overlay .vl-dp-go').click()");
+    await waitFor(p, "!!document.querySelector('.vl-dress .vl-yr-name')", 'CUSTOMIZE', 8000);
+    await sleep(500);
+    const cz = await ev(p, "(() => { const n = document.querySelector('.vl-yr-name').getBoundingClientRect(), c = document.querySelector('.vl-yr-colour').getBoundingClientRect(); return { inView: n.top >= 0 && c.bottom <= innerHeight, h: Math.round(Math.min(n.height, c.height)) }; })()");
+    ok(!r.rows && cz.inView && cz.h >= 44, `NAME ✎ + COLOUR ✎ at the TOP of CUSTOMIZE in a ROOM (${view[0]}): on screen without scrolling (${cz.inView}, ${cz.h} pt rows); none in ACCOUNT (${!r.rows})`);
+    if (SHOTS) await p.screenshot({ path: `${OUT}customize-you-${view[0]}.png` });
+    await ev(p, "document.querySelector('.vl-dr-back').click()"); await sleep(400);
     if (desk) {
       ok(r.sbw === 'thin' && r.w >= view[0] - 40 && r.max > 200, `THE YOU PAGE ON A DESKTOP: the whole width scrolls (${r.w} pt) with a slim visible scrollbar (scrollbar-width ${r.sbw}; headless Chromium draws none)`);
       await p.mouse.move(120, 500); await p.mouse.wheel({ deltaY: 500 }); await sleep(600);
@@ -343,5 +350,72 @@ G('youpage', async () => {
       if (SHOTS) { await ev(p, "document.querySelector('.pf-overlay .pf-account').scrollIntoView()"); await sleep(400); await p.screenshot({ path: `${OUT}youpage-402.png` }); }
     }
     await Q.ctx.close();
+  }
+});
+
+// THE ADD-ONS (the owner, desktop 1440 × 900): THE MUSIC BUTTON in the SCREEN's top-right corner, level with ☰ (title + room, any theme) on
+// every size; ARRIVALS from the edge NEAREST the door (per camera, off-screen first, at the line in their normal time); THE RADIO BUTTON rests
+// with the dock + the corner buttons
+const corner = p => ev(p, "(() => { const m = document.querySelector('.music-btn').getBoundingClientRect(), b = document.querySelector('.menu-btn').getBoundingClientRect(); return { gapR: Math.round(innerWidth - m.right), top: Math.round(m.top), menuTop: Math.round(b.top), w: innerWidth }; })()");
+G('corners', async () => {
+  for (const view of [[1440, 900], [1180, 820], [844, 390], [390, 844], [402, 874], [430, 932]]) {
+    const { Q, p } = await hostRoom(`cn${view[0]}`, view);
+    const room = await corner(p);
+    await ev(p, "document.body.dataset.theme = 'overclock'"); await sleep(150);   // (a game's theme on the body — the walk-in, or left after a match)
+    const themed = await corner(p);
+    await ev(p, "document.body.dataset.theme = ''");
+    const okc = c => Math.abs(c.gapR - 12) <= 2 && c.top === c.menuTop;
+    ok(okc(room) && okc(themed), `THE MUSIC BUTTON at ${view[0]}×${view[1]}: the SCREEN's top-right corner, level with ☰ — in the room (${room.gapR} pt from the edge) + with a game's theme on (${themed.gapR} pt)`);
+    if (SHOTS && (view[0] === 1440 || view[0] === 402)) await p.screenshot({ path: `${OUT}corners-${view[0]}.png` });
+    await Q.ctx.close();
+  }
+  // + the title itself (no room) at 1440
+  const T = await open({ slot: 'cnt', qs: ROOMQ, view: [1440, 900] }); await harborUp(T.page);
+  const t = await corner(T.page);
+  ok(Math.abs(t.gapR - 12) <= 2 && t.top === t.menuTop, `…and on the title at 1440 (${t.gapR} pt)`);
+  await T.ctx.close();
+});
+
+G('arrivals', async () => {
+  for (const view of [[402, 874], [1440, 900]]) {
+    const { Q, p, code } = await hostRoom(`ar${view[0]}`, view);
+    await settledRoom(p, 1, 20000).catch(() => {});
+    // the right line's first guest (R0 — the old rule sent them in from the RIGHT edge): every frame from the join
+    await ev(p, "(() => { window.__ar = []; const t0 = performance.now(); const tick = () => { const r = window.__district.room(), x = r && r.people && r.people.find(q => q.uid === 'arv0'), hb = r && r.hits && r.hits.arv0; if (x && x.s) window.__ar.push({ t: Math.round(performance.now() - t0), x: x.s.x, pose: x.s.pose, l: hb ? hb.x0 : null, rr: hb ? hb.x1 : null }); if (performance.now() - t0 < 30000) requestAnimationFrame(tick); }; requestAnimationFrame(tick); return 1; })()");
+    await fakeGuests(code, 1, 0, 'arv');
+    if (SHOTS) { await sleep(view[0] > 1000 ? 1600 : 2600); await p.screenshot({ path: `${OUT}arrivals-${view[0]}.png` }); }
+    await waitFor(p, "(() => { const a = window.__ar || []; return a.length && a[a.length - 1].pose === 'wait'; })()", 'at the line', 30000).catch(() => {});
+    const s = await ev(p, 'window.__ar'), door = await ev(p, "(() => { const d = window.__district.door && window.__district.door(); return d ? Math.round(d.x) : null; })()");
+    const first = s[0] || {}, last = s[s.length - 1] || {}, W = view[0];
+    const nearLeft = door != null ? door < W / 2 : true;
+    const fromLeft = first.x < last.x, off = first.rr != null ? (fromLeft ? first.rr <= 2 : first.l >= W - 2) : true;
+    const tAt = (s.find(q => q.pose === 'wait') || {}).t;
+    ok(s.length > 10 && fromLeft === nearLeft && off && tAt != null && tAt < 16000, `ARRIVALS at ${W}: in from the ${fromLeft ? 'LEFT' : 'RIGHT'} edge — the one nearest the door (the door at ${door} of ${W} pt) — off-screen first (${off}), at the line in ${tAt} ms`);
+    await Q.ctx.close();
+  }
+});
+
+G('radiorest', async () => {
+  for (const view of [[402, 874], [1440, 900]]) {
+    const O = await open({ slot: `rr${view[0]}`, qs: `${NIGHT}&idle=1`, view });
+    await harborUp(O.page);
+    const pid = await (async () => { for (let i = 0; i < 60; i++) { const m = await ev(O.page, `(() => { try { return JSON.parse(localStorage.getItem('na:rr${view[0]}:me') || 'null'); } catch { return null; } })()`); if (m && m.pid) return m.pid; await sleep(400); } return null; })();
+    await dbPut(`testAdmins/${pid}`, true);
+    await ev(O.page, 'sessionStorage.clear()'); await O.page.reload(); await harborUp(O.page);
+    await waitFor(O.page, "!!document.querySelector('.rd-btn') && getComputedStyle(document.querySelector('.rd-btn')).display !== 'none'", 'the radio button', 25000);
+    // the rest: sampled through the fade — the radio's opacity follows the corner buttons' (the same 1.8 s ease)
+    await waitFor(O.page, "document.body.classList.contains('nd-idle')", 'the rest', 20000);
+    const fade = [];
+    for (let i = 0; i < 12; i++) { fade.push(await ev(O.page, "(() => { const o = s => +getComputedStyle(document.querySelector(s)).opacity; return { r: o('.rd-btn'), m: o('.menu-btn'), pe: getComputedStyle(document.querySelector('.rd-btn')).pointerEvents }; })()")); await sleep(180); }
+    const worst = Math.max(...fade.map(f => Math.abs(f.r - f.m))), endR = fade[fade.length - 1].r;
+    ok(worst < 0.08 && endR < 0.05 && fade.every(f => f.pe === 'none'), `THE RADIO BUTTON RESTS (${view[0]}): its opacity follows the corner buttons' through the fade (worst gap ${worst.toFixed(2)}, at rest ${endR}), untappable while faded`);
+    // the wake tap only wakes: a tap where the radio sits brings everything back — and opens nothing
+    const rb = await ev(O.page, "(() => { const b = document.querySelector('.rd-btn').getBoundingClientRect(); return { x: b.left + b.width / 2, y: b.top + b.height / 2 }; })()");
+    await O.page.mouse.click(rb.x, rb.y);
+    await sleep(700);
+    const back = await ev(O.page, "(() => { const o = s => +getComputedStyle(document.querySelector(s)).opacity; return { r: o('.rd-btn'), m: o('.menu-btn'), idle: document.body.classList.contains('nd-idle'), open: document.body.classList.contains('rd-open') }; })()");
+    ok(!back.idle && back.r > 0.9 && back.m > 0.9 && !back.open, `…the WAKE tap brings it back with the rest (${back.r} / ${back.m}) — and only wakes (the radio didn't open: ${!back.open})`);
+    await dbPut(`testAdmins/${pid}`, null);
+    await O.ctx.close();
   }
 });

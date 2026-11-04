@@ -29,6 +29,8 @@ import { prominence } from './emblems.js';
 import { approvedIds } from './approved.js';
 import { cardVars } from '../progress/look.js';
 import { fitName } from '../ui/fit.js';
+import { colorHex } from '../config.js';
+import { openNameEditor, openColourEditor } from '../profile/edit.js';
 
 const SLOT = { card: 'card', emblem: 'shape', glow: 'glow', tube: 'tube' };
 const TABS = [['card', 'CARD'], ['emblem', 'EMBLEM'], ['glow', 'GLOW'], ['tube', 'TUBE']];
@@ -142,6 +144,14 @@ export function openDress(data, o = {}) {
     press(t, () => wear(kind, id), kind === 'card' && it ? () => (o.view ? o.view(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }) : import('./full.js').then(m => m.openFullCard(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }))) : null);
     return t;
   }
+  // LOBBY FIXES — YOUR NAME + YOUR COLOUR (the owner's ADD-ON 3): two plain rows at the TOP (under your strip, above the tabs — on a desktop
+  // without scrolling) showing what you have now; each opens its editor ON TOP (profile/edit.js — ‹ = one step back); your strip follows
+  const nameV = h('span.vl-yr-v'), colV = h('span.vl-yr-v');
+  const paintYou = () => { nameV.textContent = who.name; colV.replaceChildren(h('i.vl-yr-sw', { style: { '--c': colorHex(who.color) } }), h('span.vl-yr-cn', String(who.color || '').toUpperCase())); };
+  const youChanged = done => { paintYou(); paintPin(); paintGrid(); line.textContent = wornLine(W, who); if (done && o.onYou) done.then(() => o.onYou()).catch(() => {}); };
+  const youRows = h('div.vl-yr',
+    h('button.vl-yr-row.vl-yr-name', { type: 'button', 'aria-label': 'Edit your name', onclick: () => openNameEditor((n, done) => { who.name = n.toUpperCase(); youChanged(done); }) }, h('b', 'NAME'), nameV, h('i.vl-yr-pen', { 'aria-hidden': 'true' }, '✎')),
+    h('button.vl-yr-row.vl-yr-colour', { type: 'button', 'aria-label': 'Edit your colour', onclick: () => openColourEditor((c, done) => { who.color = c; youChanged(done); }) }, h('b', 'COLOUR'), colV, h('i.vl-yr-pen', { 'aria-hidden': 'true' }, '✎')));
   function paintGrid() {
     for (const b of tabBtns) b.setAttribute('aria-selected', String(b.dataset.tab === tab));
     gridSurf.clear();
@@ -185,13 +195,14 @@ export function openDress(data, o = {}) {
       pin,
       h('div.vl-dr-sub', h('span', 'THE LOBBY SEES THIS'), h('button.vl-dr-view', { type: 'button', onclick: view }, 'VIEW FULL ›')),
       line,
+      youRows,
       h('div.vl-dr-tabs', { role: 'tablist' }, ...tabBtns),
       scroll));
   // (THE LAYER STACK — the owner's room test, Nov 4: it opened BEHIND the room's profile overlay; now always on top of what opened it)
   release = takeLayer(el);
   document.body.append(el);
   document.addEventListener('keydown', onKey);
-  paintPin(); paintGrid();
+  paintPin(); paintGrid(); paintYou();
   requestAnimationFrame(() => el.classList.add('is-in'));
   approvedIds().then(a => { if (closed) return; approved = a; paintPin(); paintGrid(); }).catch(() => {});
   openNow = { close, el };

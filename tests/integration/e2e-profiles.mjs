@@ -174,25 +174,21 @@ await H.run(async () => {
   // THE VAULT 2C — THE PROFILE REARRANGED: the card on top, CUSTOMIZE YOUR CARD under it, then LEVEL · THE STREAK · STATS · ACHIEVEMENTS (as
   // trophies) …; ACCOUNT at the foot (EDIT PROFILE · YOUR KEY · the birthday · the opt-out); no BOARD button on the profile
   const lay = await p3.evaluate(() => { const sc = document.querySelector('.pf-scroll'), kids = [...sc.children]; const at = sel => kids.findIndex(k => k.matches(sel) || !!k.querySelector(sel));
-    return { card: at('.pf-card-slot'), cz: at('.pg-cz'), prog: at('.pg-prof'), mast: at('.pf-mastery'), acc: at('.pf-account'), board: [...sc.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), edit: !!sc.querySelector('.pf-account .pf-acc-row'),
+    return { card: at('.pf-card-slot'), cz: at('.pg-cz'), prog: at('.pg-prof'), mast: at('.pf-mastery'), acc: at('.pf-account'), board: [...sc.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), edit: !sc.querySelector('.pf-account .pf-er-name, .pf-account .pf-edit'),
       goal: !!document.querySelector('.pg-prof .pf-goal-t'), old: /NOT PLAYED YET|MEMBERSHIP/.test(document.querySelector('.pf-screen').textContent), menu: (() => { const m = document.querySelector('.menu-btn'); return !!m && getComputedStyle(m).display !== 'none'; })(),
       medals: document.querySelectorAll('.pg-trophies .pg-medal').length, chips: document.querySelectorAll('.pg-trophies .pg-rw[data-id]').length }; });
   ok(lay.card === 0 && lay.cz === 1 && lay.prog > lay.cz && lay.mast > lay.prog && lay.acc > lay.mast && !lay.board && lay.edit && lay.medals >= 2 && lay.chips >= 2 && lay.goal && !lay.old && !lay.menu,
     `THE PROFILE (LOBBY 2.0 A): the card (${lay.card}) → CUSTOMIZE YOUR CARD (${lay.cz}) → the sections + THE GOAL TILE (${lay.prog}, ${lay.goal}) → MASTERY (${lay.mast}) → ACCOUNT (${lay.acc}); no BOARD button, no NOT PLAYED YET / MEMBERSHIP (${!lay.old}), no ☰ on the page (${!lay.menu}); ${lay.medals} trophies with ${lay.chips} reward chips`);
   // EDIT PROFILE → NAME › → its own sheet; ‹ goes back ONE step (to Edit profile), then one more (the profile)
   const tapIt = sel => p3.evaluate(q => { const e = document.querySelector(q); if (e) e.click(); return !!e; }, sel);
-  // (LOBBY FIXES — EDIT PROFILE REDONE: NAME ✎ + COLOUR ✎ at ACCOUNT's TOP showing the current values; each opens its editor; ‹ = one step)
-  const edRows = await p3.evaluate(() => { const acc = document.querySelector('.pf-account'), kids = [...acc.children].filter(k => k.tagName !== 'H3'), v = s => (acc.querySelector(s + ' .pf-er-v') || {}).textContent || '';
-    return { first: kids[0] && kids[0].classList.contains('pf-er-name'), second: kids[1] && kids[1].classList.contains('pf-er-colour'), name: v('.pf-er-name'), col: v('.pf-er-colour'), sw: !!acc.querySelector('.pf-er-colour .pf-er-sw'), pen: !!document.querySelector('.pf-card-slot .pf-pen') }; });
-  ok(edRows.first && edRows.second && edRows.name.length > 0 && edRows.col.length > 0 && edRows.sw && edRows.pen, `EDIT PROFILE: NAME "${edRows.name}" ✎ + COLOUR (a swatch) "${edRows.col}" ✎ — the TOP of ACCOUNT; a ✎ beside the name on the card (${edRows.pen})`);
-  ok(await tapIt('.pf-account .pf-er-name'), 'the NAME row is a real row'); await p3.waitForSelector('.pf-name-sheet .pf-name-in', { timeout: 6000 });
-  const depth = () => p3.evaluate(() => document.querySelectorAll('.pfs:not(.is-out)').length);
-  const d1 = await depth();
-  await tapIt('.pf-name-sheet .pfs-back'); await sleep(450);
-  const d0 = await depth();
-  await tapIt('.pf-card-slot .pf-pen'); await p3.waitForSelector('.pf-name-sheet:not(.is-out) .pf-name-in', { timeout: 6000 }).catch(() => {});
-  const penOpens = await depth(); await tapIt('.pf-name-sheet .pfs-back'); await sleep(450);
-  ok(d1 === 1 && d0 === 0 && penOpens === 1, `BACK = ONE STEP: the name editor → the profile (${d1} → ${d0} sheets open); the card's ✎ opens the same editor (${penOpens})`);
+  // (LOBBY FIXES — the owner's ADD-ON 3: no NAME / COLOUR rows in ACCOUNT; the card's ✎ opens the name editor, ‹ = one step back)
+  const pf = await p3.evaluate(() => ({ rows: !!document.querySelector('.pf-account .pf-er-name, .pf-account .pf-er-colour, .pf-account .pf-edit'), pen: !!document.querySelector('.pf-card-slot .pf-pen') }));
+  await p3.evaluate(() => document.querySelector('.pf-card-slot .pf-pen').click());
+  await p3.waitForSelector('.pf-name-sheet:not(.is-out) .pf-name-in', { timeout: 6000 }).catch(() => {});
+  const penSheets = await p3.evaluate(() => document.querySelectorAll('.pfs:not(.is-out)').length);
+  await p3.evaluate(() => document.querySelector('.pf-name-sheet .pfs-back').click()); await sleep(450);
+  const penBack = await p3.evaluate(() => document.querySelectorAll('.pfs:not(.is-out)').length);
+  ok(!pf.rows && pf.pen && penSheets === 1 && penBack === 0, `THE PROFILE: no NAME / COLOUR rows in ACCOUNT (${!pf.rows}); the card's ✎ opens the name editor (${penSheets}), ‹ back one step (${penBack})`);
   // (a trophy's reward chip = WEAR IT: FIRST ROUND's EMBER glow → on the server)
   await p3.click('.pg-trophies .pg-rw[data-id="glow-ember"]');
   for (let i = 0; i < 40 && (await val(`profiles/${me0.pid}/g`)) !== 'glow-ember'; i++) await sleep(150);
@@ -209,6 +205,22 @@ await H.run(async () => {
   await p3.waitForFunction(() => /of players have this/.test((document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || ''), { timeout: 10000 }).catch(() => {});
   ok(/^\d+% of players have this$/.test(await p3.evaluate(() => (document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || '')), 'X% of players have this (the server’s count — pink, sentence case)');
   // wear another card she owns → the card changes (the server checked it)
+  // (LOBBY FIXES — the owner's ADD-ON 3: CUSTOMIZE's TOP = NAME ✎ + COLOUR ● ✎ (the current values); each opens its editor ON TOP)
+  const yr = await p3.evaluate(() => { const n = document.querySelector('.vl-yr-name'), c = document.querySelector('.vl-yr-colour'), t = document.querySelector('.vl-dr-tabs');
+    return { name: n && n.textContent, col: c && c.textContent, sw: !!(c && c.querySelector('.vl-yr-sw')), above: !!(n && t && n.getBoundingClientRect().bottom <= t.getBoundingClientRect().top) }; });
+  await p3.evaluate(() => document.querySelector('.vl-yr-name').click());
+  await p3.waitForSelector('.pf-name-sheet:not(.is-out) .pf-name-in', { timeout: 6000 });
+  await p3.evaluate(() => { const i = document.querySelector('.pf-name-sheet .pf-name-in'); i.value = 'KATIEJO'; document.querySelector('.pf-name-sheet .pf-save').click(); });
+  await sleep(500);
+  await p3.evaluate(() => document.querySelector('.vl-yr-colour').click());
+  await p3.waitForSelector('.pf-colour-sheet:not(.is-out) .swatch', { timeout: 6000 });
+  await p3.evaluate(() => { document.querySelector('.pf-colour-sheet .swatch[data-id="green"]').click(); document.querySelector('.pf-colour-sheet .pf-save').click(); });
+  for (let i = 0; i < 40 && !((await val(`profiles/${me0.pid}/n`)) === 'KATIEJO' && (await val(`profiles/${me0.pid}/c`)) === 'green'); i++) await sleep(200);
+  await sleep(400);
+  const yr2 = await p3.evaluate(() => ({ pin: (document.querySelector('.vl-dr-pin .vl-name') || {}).textContent || '', name: document.querySelector('.vl-yr-name').textContent, col: document.querySelector('.vl-yr-colour').textContent, dress: !!document.querySelector('.vl-dress') }));
+  ok(yr.sw && yr.above && /NAME/.test(yr.name) && /COLOUR/.test(yr.col), `CUSTOMIZE's TOP: "${yr.name}" + "${yr.col}" (a swatch) — above the tabs`);
+  ok(/KATIEJO/.test(yr2.pin) && /KATIEJO/.test(yr2.name) && /GREEN/.test(yr2.col) && yr2.dress && (await val(`profiles/${me0.pid}/n`)) === 'KATIEJO' && (await val(`profiles/${me0.pid}/c`)) === 'green',
+    `…NAME ✎ → KATIEJO, COLOUR ✎ → GREEN: the rows + the strip at once ("${yr2.pin}"), CUSTOMIZE still open under them, the server has both`);
   await p3.click('.vl-dt[data-id="card-founder"]');   // (THE VAULT 2B: tap its tile — worn at once)
   await p3.waitForFunction(() => (document.querySelector('.vl-dr-pin') || {}).dataset && document.querySelector('.vl-dr-pin').dataset.card === 'card-founder', { timeout: 5000 }).catch(() => {});
   await p3.click('.vl-dr-back'); await sleep(400);
@@ -352,7 +364,7 @@ await H.run(async () => {
   const rows = await p3.$$eval('.bd-row:not(.is-skel)', els => els.map(el => ({ n: el.querySelector('.bd-n').textContent, me: el.classList.contains('is-me'), more: !!el.querySelector('.bd-more'), id: el.dataset.id })));
   const mine = rows.find(r => r.me);
   const bid3 = await p3.evaluate(() => { for (const k of Object.keys(localStorage)) if (/:me$/.test(k)) { const v = JSON.parse(localStorage.getItem(k)); return `${k}=${v && v.profile && v.profile.bid}`; } return 'none'; });
-  ok(mine && mine.n.startsWith(me0.profile.n) && /YOU$/.test(mine.n) && !mine.more, `your own row: your real name + YOU, no REPORT (${mine && mine.n}; ${bid3}; rows ${rows.map(r => r.id).join(',')})`);
+  ok(mine && (mine.n.startsWith(me0.profile.n) || mine.n.startsWith('KATIEJO')) && /YOU$/.test(mine.n) && !mine.more, `your own row: your real name + YOU, no REPORT (${mine && mine.n}; ${bid3}; rows ${rows.map(r => r.id).join(',')})`);
   const others = rows.filter(r => !r.me);
   ok(others.length > 0 && others.every(r => r.more), `every other row: its player's username + ⋯ (${others.map(r => r.n).join(', ')})`);
   ok(!others.some(r => /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(r.n)), `no house nicknames on the board — the players' usernames (${others.map(r => r.n).join(', ')})`);

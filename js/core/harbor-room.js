@@ -36,4 +36,14 @@ export function roomRects(L) {
     return { x0: Math.min(...q.map(p => p.x)) - P, x1: Math.max(...q.map(p => p.x)) + P, z0: Math.min(...q.map(p => p.z)) - P, z1: Math.max(...q.map(p => p.z)) + P };
   });
 }
+/** LOBBY FIXES — ARRIVALS WALK FROM THE NEAREST EDGE (the owner's ADD-ON, desktop: a joiner walked in from the far RIGHT edge across the
+ *  whole promenade to the door at the far left). ONE rule for every camera, no desktop version: an arriving player enters from the screen
+ *  edge NEAREST the speakeasy's side door — the folk map's off-screen exits ARE this camera's edges (always off-screen: THE PEOPLE RULE).
+ *  M = the room's folk map → 'left' | 'right' (PURE) */
+export function arriveSide(M) {
+  const d = M && M.nodes && M.nodes.sideDoor, L = M && M.exits && M.exits.left, R = M && M.exits && M.exits.right;
+  if (!d || !L || !R) return 'left';
+  const edgeL = Math.max(...[].concat(L).map(p => p.x)), edgeR = Math.min(...[].concat(R).map(p => p.x));
+  return d.x - edgeL <= edgeR - d.x ? 'left' : 'right';
+}
 export { roomOrder, pickLine, uidSeed } from './room-lines.js';

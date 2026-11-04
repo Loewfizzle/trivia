@@ -14,7 +14,7 @@
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
 import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier, planVisit, visitAt, route, pathLen, doorLeg, DOOR } from '../../core/harbor-people.js';
-import { roomSlots, roomRects, uidSeed } from '../../core/harbor-room.js';
+import { roomSlots, roomRects, uidSeed, arriveSide } from '../../core/harbor-room.js';
 import { rngFrom } from '../../core/rng.js';
 import { tierVal } from '../../core/harbor-tiers.js';
 import { promenadeSolids } from '../../core/harbor-solids.js';
@@ -240,7 +240,7 @@ export function createPeople() {
   function roomPlan(st, kind, t, slot, cur) {
     const r = rngFrom(uidSeed(st.uid) + (kind === 'leave' ? 77 : kind === 'move' ? 31 : 11));
     let vis = null;
-    if (kind === 'arrive') vis = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: slot.side }, { at: { x: slot.x, z: slot.z } }] }, t, roomMap, { r });
+    if (kind === 'arrive') vis = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: arriveSide(roomMap) }, { at: { x: slot.x, z: slot.z } }] }, t, roomMap, { r });   // (LOBBY FIXES: from the edge nearest the door)
     else if (kind === 'move') vis = planVisit({ look: 'guest', gait: 'stroll', goals: [{ at: { x: slot.x, z: slot.z } }] }, t, roomMap, { r, start: cur });
     else {
       const t1 = st.kick ? t : t + RWAVE;
