@@ -5762,3 +5762,6 @@ Nov 3 6:46 pm — THE VAULT 2B DONE (summary: plan/v2b-summary.txt). Owner appro
 ## THE VAULT 2C WRITTEN (Nov 3, evening)
 
 - THE BUILD TABLE (Nov 3, THE VAULT 2C Step 0): THE VAULT 1A ✅; THE VAULT 1B ✅; THE VAULT 1C ✅; THE VAULT 2A ✅; THE VAULT 2B ✅; THE VAULT 2C (THE POLISH: the lab's FIX marks, THE LAB 2.0, TIER GEMS + THE DEV GEM + FOUNDER, CUSTOMIZE + ONE EMBLEM SYSTEM, THE PROFILE REARRANGED + LESS GOLD + TROPHIES, THE WRONG DOOR — this pass) ← NEXT; then BOARD 2.0, LOBBY 2.0, SHELL 2.0, THE HOLIDAY SIGNS (before Nov 26), PRISM DROP (rework + review), OVERCLOCK (+ its daily + review), THE OTHER DAILIES, FR6, THE SWITCH-OVER.
+
+## ADD-ON (the owner, Nov 3 7:16 pm — during THE VAULT 2C)
+- The dev cards' tag reads **"1 OF 1 · DEV"** (no # signs) — it replaces "#1 OF #1 · DEV" everywhere in this pass (the FULL CARD + CUSTOMIZE); the STRIP still shows only THE DEV GEM, no words.
