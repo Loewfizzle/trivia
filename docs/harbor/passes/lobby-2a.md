@@ -168,7 +168,10 @@ On the mini PC, THE BUSY-PC CHECK first (quiet: 2.7–3.7 % average), then alone
     of the same message is no swap), and the test looks before the link's 20 s hint spell can end (code + test).
   - **weather** (A BUSY STORM's rolls), **sightings** (the capture's compose time) and the **vault**'s two FULL LOBBY frame checks failed
     only under the 4-shard load; alone they pass (sightings' compose 11.5 ms against its 12 ms line — close; watch it).
-- The cloud: one run on the final push (below in the summary — `gh run list`).
+- THE CLOUD (8a71742, one run): tests ✅ (4 m 39 s); harbor 10 / 11 jobs ✅ — **lobby ✅** (room, roomchat, keypop, roomperf in the cloud
+  too) — holiday ✗ 87/90: the spider's tap (F10, the known 2-core-runner flake — the spider not yet still when the tap lands; THE DANGLE
+  + THE CLIMB HOME fail after it). Nothing in this pass touches the spider; green locally. Not re-run (the two-run cap: never to confirm a
+  flake). Vercel built the tagged push; www.neonspeakeasy.com serves it.
 
 ## Known issues + held back
 - **THE DATABASE RULES CHANGED** (`players/{uid}/ln`): the owner re-publishes them (Firebase console → Realtime Database → Rules → paste
