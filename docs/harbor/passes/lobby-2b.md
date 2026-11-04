@@ -180,3 +180,12 @@ pushed (no tag).
 
 ## Tests
 unit `tests/lobby-2b.test.mjs` (12) + `tests/cartridge.test.mjs` (5) · rules (+ 2: the stamps, THE REMATCH VOTE) · harbor job `room2` (NEW — harbor.yml's matrix): `roomfix` (10), `gamestart` (7), `citypause` (3), `afterparty` (17), `cartridge` (2), `crewsky` (3), `leaveroom` (2), `sheetstack` (2) + the `crew` group's lobby check · the look scripts (not tests): `tests/integration/room2-look.mjs`, `room2-votes.mjs`.
+
+## THE FULL LOCAL RUN (the mini PC — THE BUSY-PC CHECK first: quiet, 2.6 % average)
+- unit 1138/1138 · rules 62/62 (+ the stamps + THE REMATCH VOTE — the owner re-publishes) · /api: server 29/29, progression 10/10, sightings 4/4,
+  lab 2/2, vault-2b 3/3, vault-2c 3/3 · conn 20/20 · presence 12/12 · smoke 6/6 (both playable games) · the profile E2E 78/78.
+- THE FULL HARBOR SUITE (4 shards, 26 min): **1027/1028** — the one red: `sightings`' capture timing (compose 15.1 ms against its 12 ms line under the
+  4-shard load — 2A measured 11.5 alone and the chat carried it to FR6). Re-run alone: 12.1 ms (red), then 6.5 ms → 11/11 green. Noisy, not this pass's
+  code (the sighting's capture is untouched; the one global change, the layer watcher, only sees pop-ups on <body>) → FR6's flag stands.
+- Every new group green in the full run: roomfix, gamestart, citypause, afterparty, cartridge, crewsky, leaveroom, sheetstack (the new `room2` job) +
+  the `crew` group's lobby check.
