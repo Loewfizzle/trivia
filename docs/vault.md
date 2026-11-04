@@ -490,3 +490,9 @@ pinned to its tile (Safari sized the grid item to its text, so the fit never saw
 - **EQUIP, NOT WEAR**: TAP TO EQUIP · EQUIPPED ✓ · "tap a reward to equip it" (labels, ARIA, the lab's EQUIP THE SAMPLES, the CSS badge).
 - The guest list (`screens/room-guests.js`) is the strips' new home in the room: the calm cut, approved art only, THE JOIN ENTRANCE (a new strip at
   its full animation for 3.2 s, then calm).
+
+## THE PLATE COVERS ITS WIDEST LINE (LOBBY FIXES, Nov 4)
+The full card's plate takes its second line's real width (the level, or THE DEVELOPER · № 0001) + the emblem + its paddings as a floor —
+`full.js#coverWidest` (one ResizeObserver; a min-width beats the plate's 70 % cap). The strips' stepped plate already reached past its lower row.
+Checked by `tests/integration/plate-preview.html` (every full card + strip, no Firebase) in the harbor's `platefit` group (390 / 402 / 430). Both
+dev full cards v4 (CHANGED in THE LAB).

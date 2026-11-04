@@ -207,7 +207,8 @@ lb/{board}/{period}/{pid}: sort value (higher is better; period 'all' | 'w202610
 results/{code}_{matchId}: { st: busy|done, at, g, mode, n, src: room|snap, by, rej?, o{pid: outcome} }   server only
 audit/{push}:     { at, by (admin pid), act, pid, … }                                                  server only
 flags/{boardId}:  { pid, n, why{score|name: n}, b{board: n}, first, last }  THE BOARD's REPORT (BNAME)      server only
-rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid})
+rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid}; LOBBY FIXES: refused while seats/{pid} is ANOTHER uid's)
+seats/{pid}:      { code, uid, at }                       read + write: the profile's own devices (uids/{auth.uid} === $pid; uid = the writer; at = now). ONE ACCOUNT, ONE ROOM (js/seat.js)
 rooms/{CODE}/players/{uid}/ln: 'L' | 'R' — LOBBY 2.0 A: the side of the speakeasy's door this player queues on (the room in the city), picked once
   at the join (core/room-lines.js#pickLine — the shorter line) in a SEPARATE write (a join never depends on it); rules: L or R, your own node
 rooms/{CODE}/meta/go: { at (the server's now), m (matchId), g (game id) } — LOBBY 2.0 B: THE GAME START's stamp, written by the host FIRST (before the

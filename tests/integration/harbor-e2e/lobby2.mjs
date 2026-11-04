@@ -450,7 +450,7 @@ G('sheetstack', async () => {
     'YOU → CUSTOMIZE': /^vl-dress$/, '… → VIEW FULL': /^vl-full$/, '… close → CUSTOMIZE': /^vl-dress$/, 'a player tap → their card': /sheet:rc-card-sheet|vl-full/ };
   ok(steps.length === 8 && steps.every(([k, v]) => want[k].test(String(v))), `ONE SHEET STACK (the room dock): the newest on top every step — ${steps.map(([k, v]) => `${k} [${v}]`).join(' · ')}`);
   await A.ctx.close(); await B.ctx.close();
-  // THE TITLE DOCK: YOU → the profile → Edit profile → NAME (a sheet on a sheet) → ‹ one step; CUSTOMIZE → VIEW FULL
+  // THE TITLE DOCK: YOU → the profile → CUSTOMIZE → VIEW FULL → closed → CUSTOMIZE's NAME row → the name sheet on top → ‹ one step
   const T = await open({ slot: 'sst', qs: ROOMQ, view: [402, 874] }), t = T.page;
   await harborUp(t); await sleep(900);
   await ev(t, "document.querySelector('.nd-tab-you').click()");
@@ -458,13 +458,12 @@ G('sheetstack', async () => {
   if (await waitFor(t, "!!document.querySelector('.vl-dp-go')", 'the profile', 15000).then(() => true, () => false)) {
     await ev(t, "document.querySelector('.vl-dp-go').click()"); await sleep(600); ts.push(await topAt(t));
     await ev(t, "document.querySelector('.vl-dress .vl-dr-view').click()"); await sleep(700); ts.push(await topAt(t));
-    await ev(t, "document.querySelector('.vl-full-x').click()"); await sleep(300); await ev(t, "document.querySelector('.vl-dress .vl-dr-back').click()"); await sleep(400);
-    const ed = await ev(t, "(() => { const b = [...document.querySelectorAll('button')].find(x => /EDIT PROFILE/i.test(x.textContent)); if (b) { b.scrollIntoView({ block: 'center' }); b.click(); return true; } return false; })()");
-    await sleep(600);
-    if (ed) { ts.push(await topAt(t)); await ev(t, "(() => { const b = [...document.querySelectorAll('.pfs:not(.is-out) button')].find(x => /^NAME/.test(x.textContent.trim())); if (b) b.click(); })()"); await sleep(600); ts.push(await topAt(t));
-      await ev(t, "[...document.querySelectorAll('.pfs:not(.is-out) .pfs-back')].pop().click()"); await sleep(500); ts.push(await topAt(t)); }
+    // (LOBBY FIXES — the owner's ADD-ON 3: NAME + COLOUR are rows at CUSTOMIZE's top — its NAME sheet opens ON TOP of CUSTOMIZE, ‹ one step back)
+    await ev(t, "document.querySelector('.vl-full-x').click()"); await sleep(400); ts.push(await topAt(t));
+    await ev(t, "document.querySelector('.vl-dress .vl-yr-name').click()"); await sleep(700); ts.push(await topAt(t));
+    await ev(t, "[...document.querySelectorAll('.pfs:not(.is-out) .pfs-back')].pop().click()"); await sleep(500); ts.push(await topAt(t));
   }
-  ok(ts.length === 5 && ts[0] === 'vl-dress' && ts[1] === 'vl-full' && /^sheet:/.test(ts[2]) && /^sheet:/.test(ts[3]) && ts[3] !== ts[2] && ts[4] === ts[2], `ONE SHEET STACK (the title dock): CUSTOMIZE [${ts[0]}] → VIEW FULL [${ts[1]}]; EDIT PROFILE [${ts[2]}] → NAME on top [${ts[3]}] → ‹ one step back [${ts[4]}]`);
+  ok(ts.length === 5 && ts[0] === 'vl-dress' && ts[1] === 'vl-full' && ts[2] === 'vl-dress' && /^sheet:pf-name-sheet/.test(ts[3]) && ts[4] === 'vl-dress', `ONE SHEET STACK (the title dock): CUSTOMIZE [${ts[0]}] → VIEW FULL [${ts[1]}] → closed [${ts[2]}] → its NAME row → the name sheet ON TOP [${ts[3]}] → ‹ one step back [${ts[4]}]`);
   await T.ctx.close();
 });
 

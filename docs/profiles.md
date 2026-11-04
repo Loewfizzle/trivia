@@ -307,3 +307,17 @@ card's frame, CUSTOMIZE YOUR CARD + the level bar; hot pink = the end of round's
   player right after their first counted match; LATER / closed = never again + a pink dot on YOU until saved; never over a game, the moment,
   a sheet or a legendary. Replaces the 3rd / 10th-match reminder. Notes: `pnotes.kp` ('shown' | 'later'), `pnotes.saved`.
 - The look preview of the REAL page: `tests/integration/profile-preview.html`.
+
+## LOBBY FIXES (Nov 4 2026 — docs/harbor/passes/lobby-fixes.md)
+- **ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM** (`js/seat.js`): `seats/{pid}: { code, uid, at }` — written by the profile's own devices (as
+  themselves); HOST / JOIN ask first when another device's seat is live ("You're already in room XXXX on another device" · MOVE HERE · CANCEL);
+  the old device walks out (a same-room HOST hands the room over); a resume never takes a seat. The rules refuse a pid's player node while the
+  seat is another device's. The SERVER: two seats of one profile in a match = credited once (the WORSE placing — `api/report.js#dedupePids`);
+  a match overlapping a counted one from ANOTHER room is never credited (`js/core/progress.js#overlaps`, `pstats.ov` = the last 8 windows).
+- **YOUR NAME + COLOUR** live in ONE place: two rows at the TOP of CUSTOMIZE YOUR CARD (`js/vault/dress.js` → `js/profile/edit.js` — the
+  editors; a rename once a day as before) + the ✎ beside the name on the profile's card. ACCOUNT holds the key / restore / sign-in only.
+- **REMOVE TEST PLAYERS** (/admin's TEST PLAYERS card — `api/admin.js` `testPlayers` / `removeTestPlayers`, `api/_lib/testplayers.js`): the
+  profiles made since a cut-off (+ named ones) → tick → a dry run → CONFIRM; removes the profile, its private node, its stats, its key, its tag,
+  its device links, its seat, its crew role + every board entry; an admin never; audited. Member numbers never shift and are never re-used: the
+  counter rolls back only when every number above the new top is going.
+- The ☰ menu's **ADMIN** row (admins only, under THE LAB) opens /admin; the preview panel's row reads CITY PREVIEW.

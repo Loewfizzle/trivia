@@ -391,3 +391,8 @@ load problem, not a flake to patch.
 - `tests/integration/profile-preview.html` — the REAL profile screen without Firebase (the look work).
 - A local server started BEFORE an `/api` change serves the OLD functions (Node caches the modules) — run a fresh `serve.mjs <port> --emu`
   and point the suites at it with `E2E_BASE=http://localhost:<port>`.
+
+## LOBBY FIXES (Nov 4) — the room's own jobs
+`lobbyfix` (oneseat — three slots on one profile, playercard, leavewave, bannerfull, hostcard, newstart) + `lobbyfix2` (platefit — via
+`tests/integration/plate-preview.html`, youpage, corners, arrivals, radiorest). The look run for the start + after the match:
+`node tests/integration/room2-look.mjs "<browser>" ./shots-room2/ 390,402,430,1440`.

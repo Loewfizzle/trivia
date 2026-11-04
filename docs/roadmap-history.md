@@ -1907,3 +1907,16 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - Group 3: THE CARTRIDGE PLUG — js/games/cartridge.js + docs/cartridge.md + the checks; the chat asks the game for its lock; preload + the warmed view during the walk inside; SOLO; the DAILY plug-in (ships OFF).
 - ADD-ONS: LEAVE ROOM up front (☰ + GUESTS); THE CREW's Blackbird (the cause: rooms/{CODE}/radio's sky moments were never played — now on every phone in the room); ONE SHEET STACK for the whole app (ui/layers.js#watchLayers); THE REMATCH VOTE TIDIED (no 👍; one row of dots above the ring).
 - RULES: meta/go, meta/back, rooms/{CODE}/rv (the owner re-publishes).
+
+## LOBBY FIXES — THE OWNER's REAL-PHONE TEST OF THE ROOM (Nov 4 2026) — docs/harbor/passes/lobby-fixes.md
+- Group 0: the ☰ ADMIN row (→ /admin; the preview row reads CITY PREVIEW), REMOVE TEST PLAYERS (/admin's TEST PLAYERS card — a dry run →
+  CONFIRM; the member counter never re-uses a number; releaseTag finally frees tags), ONE PROFILE · ONE SEAT + ONE ACCOUNT · ONE ROOM (seats/{pid},
+  MOVE HERE · CANCEL, the server credits one profile once per match + never two overlapping matches). RULES CHANGED.
+- Group 1: THE PLAYER CARD (never the radio; the owner's CREW row on the card), the leave straight to the wave (a 1.5 s lost-signal grace), the
+  banner plane in front of the clouds, AFTER HOST's share card + the breathing INVITE ring, the desktop HOST's flash (no 'boot' route in between).
+- Group 2: THE NEW GAME START (no push — the game's own sign ignites in the NEON pink, holds, the walk-in, a fade; 5 s full / 3 s rematch, the
+  kind in the match id), AFTER THE MATCH v2 (REMATCH inside the ring, one pill, NEW GAME breathing); a preview link keeps its city in a room.
+- Group 3: the plate covers its widest line (the dev full cards v4), the YOU page on a desktop (the whole width scrolls, a slim bar, a drag),
+  the round-end card (NEXT UNLOCK AT LEVEL n, the pink tube bar).
+- The add-ons: NAME + COLOUR as two rows at CUSTOMIZE's top (+ the card's ✎; none in ACCOUNT), the music button in the screen's corner (a
+  game theme pinned it to the column), arrivals from the nearest edge, the radio button rests with the rest.

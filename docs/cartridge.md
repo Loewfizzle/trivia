@@ -69,3 +69,9 @@ builds its own daily screen, rankings or streak hooks. `checkCartridge` fails a 
 The ten HIDDEN games (WINDOWS, Nov 1 — cipher, signal, bluff, pulse, golf, agent, slip, gridlock, stakes, rum) are EXEMPT
 (`tests/cartridge.test.mjs#EXEMPT`): frozen as they are. They already meet the REQUIRED contract (the harbor group counts 0 gaps each);
 their chat locks still live in `chat/logic.js`'s switch — each moves into its cartridge when the game comes back.
+
+## THE GAME's SIGN AT THE START (LOBBY FIXES, Nov 4)
+The console lights the GAME's OWN sign over the speakeasy door at every start — built from what a game already has: its `GAMES` entry in
+`js/config.js` (the name + the mark — `ui/game-art.js` / `ui/tube-logo.js#markFor`) drawn by `tube-logo.js#gameLogoSvg(g, { tint: NEON_PINK })`.
+Nothing new to export. `start({ now })` still = the moment the match begins: the tap + 5 s (the FULL start) or + 3 s (a same-game REMATCH —
+the console calls `startGame(id, settings, { quick: true })`); a game never times itself from the tap.

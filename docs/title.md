@@ -713,3 +713,13 @@ The SAVE-YOUR-KEY POP-UP's pink dot sits on YOU (both docks) until the key is sa
 - **THE REMATCH RING** (room-dock.js): after the match the PLAY ring reads REMATCH (the host) / REMATCH · VOTE → ✓ VOTED (a guest); the voters' dots in one
   row above it + the "n of N want a rematch" pill above them (TIDIED, Nov 4 9:25 am).
 - **THE WINNER's BANNER PLANE** + **THE NIGHT's CHAMPION** (room-banner.js → scene.js#roomBanner — the city's own banner plane; never over a legendary).
+
+## THE ROOM DOCK AFTER A MATCH + THE HOST's SHARE CARD (LOBBY FIXES, Nov 4 — docs/harbor/passes/lobby-fixes.md)
+- After a match (change-game.png v2): the PLAY ring reads REMATCH (inside the ring); ONE small pill right above it = only the lit voters' dots +
+  "want a rematch" (no empty dots, no count); the HOST's GAMES tab reads **NEW GAME** in cyan and breathes until tapped (once per match) or a game
+  starts. A guest: their REMATCH vote ring + the same pill.
+- On HOST: a glass card "YOUR ROOM IS OPEN — THE HUSH WORD IS MINT" + SHARE INVITE + "or tap INVITE anytime" (8 s or a tap); the INVITE ring
+  breathes until an invite or a guest (`room-dock.js` `.rdk-pulse`).
+- The corners: on the split-corner screens (the title, the room, the lobby) the music button is pinned to the SCREEN's top-right, level with ☰,
+  whatever the body's theme; the radio button rests with ☰ + the music (`body.nd-idle .rd-btn`). Arrivals walk in from the screen edge nearest
+  the speakeasy's door (`core/harbor-room.js#arriveSide`).
