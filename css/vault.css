@@ -683,7 +683,8 @@ body.reduced-fx .vg > i, .vl-still .vg > i, .vg.vg-still > i { animation: none !
 .vl-fc.vl-t-legendary.vl-s-devswitch .vl-frame { box-shadow: inset 0 0 0 2px rgba(255, 90, 60, 0.55), 0 0 0 2px rgba(232, 190, 110, 0.92), 0 0 30px rgba(255, 120, 60, 0.24), 0 8px 26px rgba(0, 0, 0, 0.6); }
 .vl-fc.vl-t-legendary.vl-s-devsource .vl-frame { box-shadow: inset 0 0 0 2px rgba(110, 255, 170, 0.5), 0 0 0 2px rgba(255, 110, 220, 0.8), 0 0 30px rgba(255, 90, 220, 0.22), 0 8px 26px rgba(0, 0, 0, 0.6); }
 /* the DEV tag on the full card: compact + on one line (the top line keeps its own line beside it) */
-.vl-fc.vl-dev1 .vl-tier { font-size: 9px; letter-spacing: 0.12em; white-space: nowrap; padding-left: 7px; padding-right: 7px; }
+/* (2C — the owner's FIX: "#1 OF #1 · DEV", BOLD — the display face at its heaviest) */
+.vl-fc.vl-dev1 .vl-tier { font: 900 max(10px, 2.7cqi)/1 var(--font-display); letter-spacing: 0.08em; white-space: nowrap; padding-left: 0.8em; padding-right: 0.8em; }
 .vl-fc.vl-dev1 .vl-fc-house { white-space: nowrap; }
 
 /* ===================================================================== THE VAULT 2B — THE REST OF THE EMBLEM SET (emblem-art.js): every

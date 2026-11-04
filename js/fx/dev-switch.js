@@ -34,7 +34,7 @@ function layoutOf(w, h, full) {
   const jacks = []; rows.forEach((ry, j) => { for (let i = 0; i < cols; i++) jacks.push([x0 + (x1 - x0) * i / (cols - 1), h * ry, j, i]); });
   return { full, jacks, r: Math.min((x1 - x0) / (cols - 1), h * 0.3) * 0.3, air: [w * 0.785, h * 0.1, w * 0.19, h * 0.4], vu: null, leds: [0, 0, 0, 0],
     beam: [w * 0.35, -h * 0.4, w * 0.55, h * 1.6],
-    cables: [[[w * 0.62, h + 6], 5], [[-1, 0], 0, 7], [[w * 0.8, h + 6], 3]] };
+    cables: [[[w * 0.66, h + 6], 2], [[-1, 0], 0, 7], [[w * 0.8, h + 6], 3]] };   // (2C — the owner's FIX: the pink-red cable lands in the TOP row)
 }
 
 /** the panel's bake: the lamp's warm light + the vignette over the brass, every jack (its ring, its hole, its lamp's socket), the ON

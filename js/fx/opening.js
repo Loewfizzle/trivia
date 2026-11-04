@@ -11,7 +11,7 @@ import { rrect } from './renderer.js';
 import { backdrop, bakeDpr } from './sg-kit.js';
 import { beam } from './bulbs.js';
 import { signLayout, drawTube, ignite, hum, PINK, CREAM } from './sign-kit.js';
-import { front as realFront } from './speak-front.js';
+import { front as realFront, drawBoxer } from './speak-front.js';
 
 const LOOP = 12;
 const SKY = { sky: [[0, '#05040c'], [0.5, '#0d0a1e'], [0.8, '#1a1026'], [1, '#120a18']], stars: 30, starRgb: '236,232,255', starTo: 0.55, seed: 1924,
@@ -146,6 +146,8 @@ function drawFull(c, s, t, Q) {
   c.drawImage(roof(k, w, h, ox, oy, dpr, true, true), 0, 0, w, h);
   if (F.cv) {
     c.drawImage(F.cv, bx, by, F.wpx, F.hpx);
+    // (THE VAULT 2C — the owner's FIX: the back room is THE SHADOWBOXER, live — never the retired card game)
+    drawBoxer(c, F, bx, by, t, still);
     // the sign's pink landing on the crest + the cornice (from above), the date stone catching it
     c.globalCompositeOperation = 'lighter';
     stamp(c, glow('255,80,170', 0.12, 64), w / 2, footY, F.wpx * 1.05, 0.42 * signLight, F.k * 4.2);
@@ -168,7 +170,7 @@ export default {
     const { w, h } = s, full = !!s.opts.full, rad = s.opts.radius || 12, dpr = bakeDpr(Q), still = Q.still;
     const tt = still ? 8 : t % LOOP;
     // the sign's place: a full card — centred high (the plate + the stamp sit below it); a strip — right of the plate
-    const k = full ? (h * 0.27) / SH : Math.min((h * 0.72) / SH, (w * 0.245) / SW), ox = full ? w / 2 - (SW / 2) * k : w * 0.595 - (SW / 2) * k, oy = full ? h * 0.2 : h * 0.07;
+    const k = full ? (h * 0.27) / SH : Math.min((h * 0.72) / SH, (w * 0.245) / SW), ox = full ? w / 2 - (SW / 2) * k : w * 0.775 - (SW / 2) * k, oy = full ? h * 0.2 : (h - SH * k) / 2;   // (2C — the owner's FIX: NEON SPEAKEASY centred in the strip's art)
     const lit = smooth(ALL_LIT, ALL_LIT + 1.2, tt) * (1 - smooth(LOOP - 0.5, LOOP - 0.1, tt));
     const off = tt > LOOP - 0.5 ? 1 - smooth(LOOP - 0.5, LOOP - 0.3, tt) : 1;     // (the power cut before the loop: every tube out at once)
     c.save(); rrect(c, 0, 0, w, h, rad); c.clip();

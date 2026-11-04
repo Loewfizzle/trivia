@@ -11,7 +11,7 @@ import { rrect } from './renderer.js';
 import { backdrop, bakeDpr } from './sg-kit.js';
 import { signLayout, bladeLayout, drawTube, hum, PINK, CREAM, GOLD } from './sign-kit.js';
 import { flattenPath } from '../core/tube-path.js';
-import { front as realFront } from './speak-front.js';
+import { front as realFront, drawBoxer } from './speak-front.js';
 
 const LOOP = 9;
 const SKY = { sky: [[0, '#04030a'], [0.55, '#0c0818'], [1, '#160c16']], stars: 24, starRgb: '240,232,255', starTo: 0.6, seed: 100,
@@ -137,7 +137,7 @@ function drawFullHouse(c, s, t, Q) {
   { const g = c.createLinearGradient(0, street - 2, 0, h); g.addColorStop(0, '#1c1418'); g.addColorStop(1, '#0a070a'); c.fillStyle = g; c.fillRect(0, street - 2, w, h - street + 2);
     c.fillStyle = 'rgba(255,220,170,0.16)'; c.fillRect(0, street - 2, w, 1); }
   // THE BUILDING (the city's own) + its light
-  if (F.cv) c.drawImage(F.cv, bx, by, bw, bh);
+  if (F.cv) { c.drawImage(F.cv, bx, by, bw, bh); drawBoxer(c, F, bx, by, t, still); }   // (THE VAULT 2C: the back room = THE SHADOWBOXER, live)
   else { c.fillStyle = '#2a1016'; c.fillRect(bx, by, bw, bh); }
   c.globalCompositeOperation = 'lighter';
   // the party upstairs: each room's light breathing in the bar's colours (pink · teal · amber), in turn

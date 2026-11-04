@@ -4,5 +4,6 @@
 // profile (ADMIN_PIDS) on /api/profile 'me' and refuses them to anyone else on 'style'.
 export const DEV_CARDS = Object.freeze(['card-dev-switchboard', 'card-dev-source']);
 export const isDevCard = id => DEV_CARDS.includes(id);
-/** the tag a dev card wears instead of its tier */
-export const ONE_OF_ONE = 'ONE OF ONE · DEV';
+/** the tag a dev card wears instead of its tier — on the FULL CARD + in CUSTOMIZE only, in the owner's short form, bold (THE VAULT 2C — his
+ *  lab FIX + the Nov 3 6:04 pm decision: the STRIP carries no words, only THE DEV GEM — js/vault/gems.js) */
+export const ONE_OF_ONE = '#1 OF #1 · DEV';
