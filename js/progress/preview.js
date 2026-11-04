@@ -81,7 +81,8 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
   }
   if (view === 'card' || view === 'profile') {
     const { gildedCard } = await import('./card.js');
-    const { progressSections } = await import('./profile.js');
+    const { progressSections, customizeBar } = await import('./profile.js');
+    const { birthdayRow } = await import('./extras.js');
     const { openStreakCard } = await import('./streak-card.js');
     const host = root || h('div.pg-pv-in');
     if (!root) {
@@ -95,8 +96,11 @@ export async function preview(view, q = new URLSearchParams(), root = null, keep
       for (const it of ITEMS.filter(x => x.kind === 'card')) host.append(h('div.lbl', `${it.name} · ${it.tier.toUpperCase()}`), gildedCard(data.profile, {}, { card: it.id, st: data.stats.st }));
     } else {
       host.append(gildedCard(data.profile, {}, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
+      // (THE VAULT 2C: the profile's order — the card, CUSTOMIZE YOUR CARD, the sections, the birthday line at the bottom)
+      if (view === 'profile' || !root) host.append(customizeBar(data, { name: NAME, onWear: async (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (slot === 'shape' && /^emb-sign-/.test(id || '')) { data.profile.a = id.slice(9); data.profile.es = null; return true; } data.profile[k] = id || null; return true; } }));
       if (view === 'profile' || !root) host.append(h('div.pg-prof', ...progressSections(data, { name: NAME, preview: true, onFlame: () => openStreakCard(data.stats.st), onWear: (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (!k) return; data.profile[k] = id || null; if (slot === 'card') { host.replaceChildren(); preview(view, new URLSearchParams({ ...Object.fromEntries(q), card: id }), host); return true; } host.replaceChildren(); preview(view, q, host, data); return true; } })));
     }
+    if ((view === 'profile' || !root) && q.get('cards') !== '1') host.append(birthdayRow(data, { preview: true }));
     // (THE VAULT 2B: &dress=1 — the DRESS screen open at once; &tab=emblem|glow|tube)
     if (q.get('dress') === '1' && !window.__dressOpened) { window.__dressOpened = true; const D = await import('../vault/dress.js'); const d = D.openDress(data, { name: NAME, wear: async (slot, id) => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }[slot]; if (slot === 'shape' && /^emb-sign-/.test(id || '')) { data.profile.a = id.slice(9); data.profile.es = null; return true; } data.profile[k] = id || null; return true; } }); if (q.get('tab')) { const b = d.el.querySelector(`[data-tab="${q.get('tab')}"]`); if (b) b.click(); } window.__dress = d; }
     window.__pg = { host };

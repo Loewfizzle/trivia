@@ -54,6 +54,19 @@ export function birthdayPanel(data, o = {}) {
   return sec;
 }
 
+/** THE VAULT 2C — the ACCOUNT's birthday: the big panel only until it's set; then ONE LINE ("Birthday · Mar 4 — change again in Oct"),
+ *  CHANGE when it may (the panel opens in its place) */
+export function birthdayRow(data, o = {}) {
+  const pv = data.priv || {}, now = o.now || Date.now();
+  if (!pv.bd) return birthdayPanel(data, o);
+  if (!o.preview) rememberBirthday(pv.bd);
+  const locked = pv.bdAt && pv.bdAt > now;
+  const when = locked ? `change again in ${MON[new Date(pv.bdAt).getMonth()].slice(0, 3)}` : 'change ›';
+  const row = h('button.pf-acc-row.pf-bday', { type: 'button', disabled: !!locked, 'aria-label': `Your birthday, ${bdayLabel(pv.bd)}${locked ? ` — ${when}` : ' — change it'}`, onclick: () => { if (locked) return; row.replaceWith(birthdayPanel(data, { ...o, editing: true })); } },
+    h('b', 'Birthday'), h('span', `${bdayLabel(pv.bd)} — ${when}`));
+  return row;
+}
+
 export { favorJacks };
 
 export function favorPanel(data, o = {}) {

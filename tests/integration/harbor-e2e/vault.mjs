@@ -319,16 +319,19 @@ G('vault', async () => {
   // (the strip, the worn names, the big button, YOUR COLLECTION — no long lists); the dress screen: the pinned strip, 4 tabs, a tile per
   // owned card (tier-edged, one ticked), the name whole on the pinned strip + every card
   { const { ctx, p } = await anyPage('/tests/integration/progress-preview.html?view=profile&labmarks=all&dev=1&name=WWWWWWWWWWWW&dress=1', { view: [390, 844] });
-    await waitFor(p, `!!document.querySelector('.vl-dress .vl-dt') && !!document.querySelector('.vl-dp .vl-strip')`, 'the dress screen', 20000);
+    await waitFor(p, `!!document.querySelector('.vl-dress .vl-dt') && !!document.querySelector('.pg-cz .vl-dp-go')`, 'CUSTOMIZE', 20000);
     await sleep(1200);
-    const r = await ev(p, `(() => { const over = e => e.scrollWidth > e.clientWidth + 1; const names = [...document.querySelectorAll('.pg-card-name, .vl-dp .vl-name, .vl-dr-pin .vl-name')];
-      return { panel: !!document.querySelector('.vl-dp-go') && /DRESS YOUR CARD/.test(document.querySelector('.vl-dp-go').textContent), coll: !!document.querySelector('.vl-dc-row'), lists: document.querySelectorAll('.pg-prof .vl-picker').length,
+    const r = await ev(p, `(() => { const over = e => e.scrollWidth > e.clientWidth + 1; const names = [...document.querySelectorAll('.pg-card-name, .vl-dr-pin .vl-name')];
+      // (THE VAULT 2C: the profile's order — the card, CUSTOMIZE YOUR CARD, LEVEL, THE STREAK, STATS, ACHIEVEMENTS, CITY SIGHTINGS; the birthday ONE line at the foot; no BOARD button)
+      const order = [...document.querySelectorAll('.pg-cz, .pg-prof > *')].map(e => e.classList.contains('pg-cz') ? 'cz' : e.classList.contains('pg-prof-lv') ? 'level' : e.classList.contains('pg-streak') ? 'streak' : e.classList.contains('pg-stats') ? 'stats' : e.classList.contains('pg-trophies') ? 'trophies' : /sg-|album/.test(e.className) ? 'album' : 'x');
+      return { panel: !!document.querySelector('.vl-dp-go') && /^CUSTOMIZE YOUR CARD$/.test(document.querySelector('.vl-dp-go').textContent), title: (document.querySelector('.vl-dress h2') || {}).textContent, coll: !!document.querySelector('.vl-dc-row'), lists: document.querySelectorAll('.pg-prof .vl-picker').length, order: order.join(','),
+        board: [...document.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), bday: !!document.querySelector('.pf-bday') || !!document.querySelector('.sg-bd-sec'),
         tabs: [...document.querySelectorAll('.vl-dr-tab')].map(b => b.textContent).join(), sel: (document.querySelector('.vl-dr-tab[aria-selected="true"]') || {}).textContent,
         tiles: document.querySelectorAll('.vl-dt').length, on: document.querySelectorAll('.vl-dt.is-on').length, tiers: [...document.querySelectorAll('.vl-dt')].every(t => /vl-dt-(common|uncommon|rare|epic|legendary)/.test(t.className)),
         dev1: [...document.querySelectorAll('.vl-dt')].slice(0, 2).map(t => t.dataset.id).join(), pin: document.querySelectorAll('.vl-dr-pin .vl-strip').length,
         names: names.length, over: names.filter(over).length, ell: names.filter(e => getComputedStyle(e).textOverflow === 'ellipsis').length, no: (document.querySelector('.pg-card-no') || {}).textContent || '' }; })()`);
-    ok(r.panel && r.coll && r.lists === 0 && r.tabs === 'CARD,EMBLEM,GLOW,TUBE' && r.sel === 'CARD' && r.tiles > 10 && r.on === 1 && r.tiers && r.dev1 === 'card-dev-switchboard,card-dev-source' && r.pin === 1 && r.names >= 3 && r.over === 0 && r.ell === 0 && /0001/.test(r.no),
-      `DRESS YOUR CARD: the profile's ONE panel + YOUR COLLECTION (${r.lists} long lists left); the dress screen — the pinned strip, tabs ${r.tabs}, ${r.tiles} card tiles tier-edged (${r.on} ticked, the DEV cards first: ${r.dev1}); WWWWWWWWWWWW whole on the card + the strips (${r.over} over, ${r.ell} cut); the card's ${r.no}`);
+    ok(r.panel && r.title === 'CUSTOMIZE' && /^cz,level,streak,stats,trophies/.test(r.order) && !r.board && r.bday && r.coll && r.lists === 0 && r.tabs === 'CARD,EMBLEM,GLOW,TUBE' && r.sel === 'CARD' && r.tiles > 10 && r.on === 1 && r.tiers && r.dev1 === 'card-dev-switchboard,card-dev-source' && r.pin === 1 && r.names >= 3 && r.over === 0 && r.ell === 0 && /0001/.test(r.no),
+      `CUSTOMIZE + THE PROFILE's ORDER (${r.order}; no BOARD button: ${!r.board}; the birthday at the foot: ${r.bday}) + YOUR COLLECTION (${r.lists} long lists left); CUSTOMIZE ("${r.title}") — the pinned strip, tabs ${r.tabs}, ${r.tiles} card tiles tier-edged (${r.on} ticked, the DEV cards first: ${r.dev1}); WWWWWWWWWWWW whole on the card + the strips (${r.over} over, ${r.ell} cut); the card's ${r.no}`);
     await ctx.close(); }
   // EVERY BOTTOM SHEET FLOATS: BRING YOUR CARD at 402 × 874 — its whole rounded border above the screen's bottom
   { const { ctx, p } = await anyPage('/tests/integration/title-preview.html?guest=1');
@@ -426,9 +429,15 @@ G('vault', async () => {
     await waitFor(p, `!!document.querySelector('.vl-dress .vl-dt')`, 'the dress screen', 20000); await sleep(900);
     const tab = async k => { await p.tap(`.vl-dr-tab[data-tab="${k}"]`); await sleep(350); };
     await tab('emblem');
-    const em = await ev(p, `({ tiles: document.querySelectorAll('.vl-dt').length, none: !!document.querySelector('.vl-dt[data-id="none"].is-on'), ve: document.querySelectorAll('.vl-dt .ve').length })`);
+    // (THE VAULT 2C — ONE EMBLEM SYSTEM: no YOUR SHAPE tile — the 12 sign-up shapes are emblems of their own, the worn one ticked)
+    const em = await ev(p, `({ tiles: document.querySelectorAll('.vl-dt').length, none: !document.querySelector('.vl-dt[data-id="none"]'), signs: document.querySelectorAll('.vl-dt[data-id^="emb-sign-"]').length, signOn: (document.querySelector('.vl-dt.is-on[data-id^="emb-sign-"]') || {}).dataset ? document.querySelector('.vl-dt.is-on[data-id^="emb-sign-"]').dataset.id : '', ve: document.querySelectorAll('.vl-dt .ve').length })`);
     await p.tap('.vl-dt[data-id="emb-snowflake"]'); await sleep(400);
     const pin1 = await ev(p, `({ ice: !!document.querySelector('.vl-dr-pin .ve.ve-f-ice'), ticked: (document.querySelector('.vl-dt.is-on') || {}).dataset ? document.querySelector('.vl-dt.is-on').dataset.id : '' })`);
+    // (a sign-up shape worn by a tap: the strip's shape changes, the earned emblem comes off — then SNOWED IN back on)
+    await p.tap('.vl-dt[data-id="emb-sign-ghost"]'); await sleep(400);
+    const sign = await ev(p, `({ on: (document.querySelector('.vl-dt.is-on') || {}).dataset ? document.querySelector('.vl-dt.is-on').dataset.id : '', ice: !!document.querySelector('.vl-dr-pin .ve.ve-f-ice'), line: (document.querySelector('.vl-dr-worn') || {}).textContent || '' })`);
+    await p.tap('.vl-dt[data-id="emb-snowflake"]'); await sleep(300);
+    ok(em.signs === 12 && !!em.signOn && sign.on === 'emb-sign-ghost' && !sign.ice && /NEON GHOST/.test(sign.line), `ONE EMBLEM SYSTEM: the EMBLEM tab holds the 12 sign-up shapes as commons (${em.signs}; the worn one ticked: ${em.signOn}); a tap wears NEON GHOST — the earned emblem comes off ("${sign.line}")`);
     await tab('glow'); await p.tap('.vl-dt[data-id="glow-gold"]'); await sleep(400);
     const gold = await ev(p, `!!document.querySelector('.vl-dr-pin .vl-name.vg-goldleaf')`);
     await tab('tube'); const tubes = await ev(p, `document.querySelectorAll('.vl-dt').length`);
@@ -443,7 +452,7 @@ G('vault', async () => {
     await p.touchscreen.touchStart(bb.x + bb.width / 2, bb.y + bb.height / 2); await sleep(650); await p.touchscreen.touchEnd(); await sleep(400);
     const held = await ev(p, `!!document.querySelector('.vl-full')`);
     ok(em.tiles > 8 && em.none && em.ve === em.tiles && pin1.ice && pin1.ticked === 'emb-snowflake' && gold && tubes >= 3 && card.pin === 'card-inferno' && card.strip && view && held,
-      `DRESS YOUR CARD by finger [${JSON.stringify({ em, pin1, gold, tubes, card, view, held })}]: EMBLEM ${em.tiles} tiles (YOUR SHAPE ticked) → a tap on SNOWED IN → the pinned strip wears it at once (${pin1.ice}); GLOW → GOLD LEAF (${gold}); TUBE ${tubes} tiles; CARD → INFERNO on the strip (${card.pin}); VIEW FULL › (${view}); a long-press → the full card (${held})`);
+      `DRESS YOUR CARD by finger [${JSON.stringify({ em, pin1, gold, tubes, card, view, held })}]: EMBLEM ${em.tiles} tiles (no YOUR SHAPE tile) → a tap on SNOWED IN → the pinned strip wears it at once (${pin1.ice}); GLOW → GOLD LEAF (${gold}); TUBE ${tubes} tiles; CARD → INFERNO on the strip (${card.pin}); VIEW FULL › (${view}); a long-press → the full card (${held})`);
     await ctx.close(); }
   { const { ctx, p } = await page('view=lobby&bare=1&mix=legend&wear=emb,glow', { real: true, cpu: 4, dpr: 3 });
     await sleep(2500);

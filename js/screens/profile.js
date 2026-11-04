@@ -13,7 +13,8 @@ import { GAMES } from '../config.js';
 import { weeklyGoal, goalProgress, GOAL_XP, mastery } from '../core/ranks.js';
 import { levelOf } from '../core/levels.js';
 import { gildedCard } from '../progress/card.js';
-import { progressSections } from '../progress/profile.js';
+import { progressSections, customizeBar } from '../progress/profile.js';
+import { birthdayRow } from '../progress/extras.js';
 import { openStreakCard } from '../progress/streak-card.js';
 import { pgSheet } from '../progress/look.js';
 import { BOARD_GAMES } from '../core/boards.js';
@@ -111,26 +112,32 @@ export function createView({ onBack = null, overlay = false } = {}) {
     els.restore = h('div.pf-restore');
     els.foot = h('div.pf-foot');
     els.why = h('div.pf-why-slot');
+    // THE VAULT 2C — THE PROFILE REARRANGED (the owner's approved mock, with the FULL CARD on top): 1 YOUR FULL CARD + CUSTOMIZE YOUR CARD ·
+    // 2 LEVEL · 3 THE STREAK · 4 STATS (+ this week's goal) · 5 ACHIEVEMENTS (trophies) · 6 CITY SIGHTINGS · 7 MASTERY + YOUR GAMES · 8 ACCOUNT
+    // (EDIT PROFILE · YOUR KEY · BIRTHDAY — one line once set · the opt-out). No BOARD button here: the dock's trophy has it.
+    els.cz = h('div.pf-cz-slot');
+    els.bday = h('div.pf-bday-slot');
     el.append(
       h('header.bar',
         h('button.icon-btn', { type: 'button', 'aria-label': 'Back', onclick: back }, '‹'),
         h('div.bar-title', 'MEMBERSHIP')),
       h('div.pf-scroll',
         els.card,
+        els.cz,
         els.why,
-        overlay ? null : h('div.pf-actions',
-          h('button.btn.btn-ghost', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'edit' }) }, h('span', 'EDIT PROFILE')),
-          h('button.btn.btn-ghost', { type: 'button', onclick: () => setState({ view: 'board' }) }, h('span', 'THE BOARD'))),
         els.prog = h('div.pf-prog'),
-        h('section.pf-sec',
-          els.save = h('div.byc-save-slot'),
-          els.key = keyCard({ onNew: () => paintSave() }),
-          h('p.pf-why', KEY_WHY),
-          els.elsewhere = h('button.btn.btn-ghost.btn-block.byc-else-btn', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openElsewhere()) }, h('span', 'USE THIS CARD ON ANOTHER DEVICE')),
-          els.restore),
-        h('section.pf-sec',
+        h('section.pf-sec.pf-games-sec', h('h3.pf-h', 'YOUR GAMES'), els.games),
+        h('section.pf-sec.pf-account',
+          h('h3.pf-h', 'ACCOUNT'),
+          overlay ? null : h('button.pf-acc-row', { type: 'button', onclick: () => setState({ view: 'setup', setupMode: 'edit' }) }, h('b', 'Edit profile'), h('span', 'name · colour ›')),
+          h('div.pf-acc-key',
+            els.save = h('div.byc-save-slot'),
+            els.key = keyCard({ onNew: () => paintSave() }),
+            h('p.pf-why', KEY_WHY),
+            els.elsewhere = h('button.btn.btn-ghost.btn-block.byc-else-btn', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openElsewhere()) }, h('span', 'USE THIS CARD ON ANOTHER DEVICE')),
+            els.restore),
+          els.bday,
           h('label.pf-switch', h('span.pf-switch-l', h('b', 'Show me on global leaderboards'), h('small', 'Off: your stats still count, only you see them.')), els.show, h('span.pf-switch-ui', { 'aria-hidden': 'true' }))),
-        h('section.pf-sec', h('h3.pf-h', 'YOUR GAMES'), els.games),
         els.foot));
     renderRestore(false);
     paintLocal();
@@ -223,12 +230,19 @@ export function createView({ onBack = null, overlay = false } = {}) {
     const n = ++paintN;
     if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
     els.card.replaceChildren(memberCard(data.profile, loadProfile() || {}, data.stats.xp, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
+    els.cz.replaceChildren(customizeBar(data, { name: data.profile.n || (loadProfile() || {}).name || '', onWear: wear }));
     const p = data.profile || {}, cd = p.cd;
     if (!cd || cd === 'card-gilded') return;
     import('../vault/full.js').then(async F => {
       if (!(await F.canShowFull(cd)) || n !== paintN || destroyed) return;
       const L = levelOf(data.stats.xp || p.x || 0);
-      fullMounted = F.mountFullCard(els.card, cd, { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: memberLabel(p.mn), fd: !!p.fd, shape: p.es, tube: p.tb, glow: p.g, spotted: data.stats.it && data.stats.it[cd] });
+      const who = { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: memberLabel(p.mn), fd: !!p.fd, shape: p.es, tube: p.tb, glow: p.g, spotted: data.stats.it && data.stats.it[cd] };
+      fullMounted = F.mountFullCard(els.card, cd, who);
+      // (the hero: a tap opens the full card's own animated view — it scrolls away like any panel; only on-screen art moves)
+      fullMounted.el.classList.add('pf-hero'); fullMounted.el.setAttribute('role', 'button'); fullMounted.el.tabIndex = 0;
+      const open = () => F.openFullCard(cd, who);
+      fullMounted.el.addEventListener('click', open);
+      fullMounted.el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
     }).catch(() => {});
   }
   // PROGRESSION A: the level, the stats, the streak, the achievements, THE VAULT (only what you own) — then this week's goal + mastery
@@ -252,10 +266,13 @@ export function createView({ onBack = null, overlay = false } = {}) {
       return h('div.pf-mast', { class: m.lvl ? '' : 'is-none', style: { '--a1': (GAME_LIGHT[x.id] || ['#fff'])[0], '--f': String(m.frac) }, title: m.lvl ? `${x.name}: level ${m.lvl}${m.max ? ' (max)' : `, ${m.need} to the next`}` : `${x.name}: not played yet` },
         h('span.pf-mast-ring', h('b', m.lvl ? String(m.lvl) : '—')), h('span.pf-mast-n', x.name));
     });
+    const secs = progressSections(data, { name: data.profile.n || local.name || '', now, onFlame: () => openStreakCard(s.st), onWear: wear });
+    const at = secs.findIndex(e => e.classList.contains('pg-stats'));
+    secs.splice(at + 1, 0, goalEl);   // (this week's goal beside the stats)
     els.prog.replaceChildren(
-      h('div.pg-prof', ...progressSections(data, { name: data.profile.n || local.name || '', now, onFlame: () => openStreakCard(s.st), onWear: wear })),
-      goalEl,
+      h('div.pg-prof', ...secs),
       h('section.pf-sec.pf-mastery', h('h3.pf-h', 'MASTERY'), h('div.pf-mast-grid', ...tiles)));
+    els.bday.replaceChildren(birthdayRow(data, { now }));
   }
 
   // wear something you own (the server checks it): a card · a name glow · a tube style · an emblem shape ('' = take it off)

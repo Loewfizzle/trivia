@@ -160,8 +160,19 @@ await H.run(async () => {
   await p3.waitForSelector('.pf-game', { timeout: 15000 });
   ok(/CIPHER/.test(await p3.$eval('.pf-game', e => e.textContent)), 'her stats came with it');
   // PROGRESSION A — THE GILDED CARD + THE PROFILE: the level, the stats, the achievements she holds (+ X%), THE VAULT = only what she owns
-  await p3.waitForFunction(() => document.querySelectorAll('.pg-prof .pg-ach').length >= 2 && !!document.querySelector('.vl-dp'), { timeout: 15000 }).catch(() => {});   // (the restored profile's sections, not the blank one's)
-  // (THE VAULT 2B — DRESS YOUR CARD: the profile's one panel → its button opens the dress screen; the CARD tab's tiles = only what she owns)
+  await p3.waitForFunction(() => document.querySelectorAll('.pg-prof .pg-ach').length >= 2 && !!document.querySelector('.pg-cz'), { timeout: 15000 }).catch(() => {});   // (the restored profile's sections, not the blank one's)
+  // THE VAULT 2C — THE PROFILE REARRANGED: the card on top, CUSTOMIZE YOUR CARD under it, then LEVEL · THE STREAK · STATS · ACHIEVEMENTS (as
+  // trophies) …; ACCOUNT at the foot (EDIT PROFILE · YOUR KEY · the birthday · the opt-out); no BOARD button on the profile
+  const lay = await p3.evaluate(() => { const sc = document.querySelector('.pf-scroll'), kids = [...sc.children]; const at = sel => kids.findIndex(k => k.matches(sel) || !!k.querySelector(sel));
+    return { card: at('.pf-card-slot'), cz: at('.pg-cz'), prog: at('.pg-prof'), acc: at('.pf-account'), board: [...sc.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), edit: !!sc.querySelector('.pf-account .pf-acc-row'),
+      medals: document.querySelectorAll('.pg-trophies .pg-medal').length, chips: document.querySelectorAll('.pg-trophies .pg-rw[data-id]').length }; });
+  ok(lay.card === 0 && lay.cz === 1 && lay.prog > lay.cz && lay.acc > lay.prog && !lay.board && lay.edit && lay.medals >= 2 && lay.chips >= 2,
+    `THE PROFILE REARRANGED: the card (${lay.card}) → CUSTOMIZE YOUR CARD (${lay.cz}) → the sections (${lay.prog}) → ACCOUNT (${lay.acc}); no BOARD button (${!lay.board}); ${lay.medals} trophies with ${lay.chips} reward chips`);
+  // (a trophy's reward chip = WEAR IT: FIRST ROUND's EMBER glow → on the server)
+  await p3.click('.pg-trophies .pg-rw[data-id="glow-ember"]');
+  for (let i = 0; i < 40 && (await val(`profiles/${me0.pid}/g`)) !== 'glow-ember'; i++) await sleep(150);
+  ok((await val(`profiles/${me0.pid}/g`)) === 'glow-ember' && await p3.evaluate(() => document.querySelector('.pg-trophies .pg-rw[data-id="glow-ember"]').classList.contains('is-on')), 'A TROPHY REWARD CHIP: a tap wears EMBER (on the server; the chip says WEARING)');
+  // (THE VAULT 2B — CUSTOMIZE (was DRESS YOUR CARD): its button opens the screen; the CARD tab's tiles = only what she owns)
   await p3.click('.vl-dp-go'); await p3.waitForSelector('.vl-dress .vl-dt', { timeout: 8000 });
   const prof = await p3.evaluate(() => ({ card: document.querySelector('.pg-card').dataset.card, lv: (document.querySelector('.pg-card-lv') || {}).textContent || '',
     ach: [...document.querySelectorAll('.pg-prof .pg-ach div > b')].map(b => b.textContent), vault: [...document.querySelectorAll('.vl-dress .vl-dt')].map(b => b.dataset.id),   // (THE VAULT 2B: the dress screen's card tiles)

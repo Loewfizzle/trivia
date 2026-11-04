@@ -20,7 +20,7 @@ const NEW2B = LAB.filter(x => x.n >= 115);
 
 test('DRESS YOUR CARD: the profile shows ONE panel (the strip, the worn names, the big button) + YOUR COLLECTION; the dress screen = the pinned strip + 4 tabs + tiles', () => {
   const d = read('js/vault/dress.js'), pr = read('js/progress/profile.js');
-  assert.match(pr, /dressPanel\(data, /); assert.doesNotMatch(pr, /stylePicker\(|cardPicker\(/, 'the long lists left the profile');
+  assert.match(pr, /export function customizeBar\(data/); assert.match(pr, /'CUSTOMIZE YOUR CARD'/); assert.doesNotMatch(pr, /stylePicker\(|cardPicker\(/, 'the long lists left the profile');
   assert.match(d, /'CUSTOMIZE YOUR CARD'/); assert.match(d, /h\('h2', 'CUSTOMIZE'\)/); assert.doesNotMatch(d, /'DRESS YOUR CARD'/, 'THE VAULT 2C: renamed CUSTOMIZE'); assert.match(d, /'YOUR COLLECTION'/); assert.match(d, /'THE LOBBY SEES THIS'/); assert.match(d, /'VIEW FULL ›'/);
   assert.match(d, /\[\['card', 'CARD'\], \['emblem', 'EMBLEM'\], \['glow', 'GLOW'\], \['tube', 'TUBE'\]\]/, 'the 4 tabs');
   assert.match(d, /ownedOf\(owned, tab\)/, 'only owned items (no ???, no totals of what exists)');
