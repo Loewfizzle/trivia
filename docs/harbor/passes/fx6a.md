@@ -138,6 +138,6 @@ Run 1 (04c5cd7 — the tagged top commit: docs + one test file — BOTH workflow
   this pass (it fails the same at 1f6f106 — unseen because 2B's cloud run never happened); the favor itself was right. Fixed (the test reads
   its own record); every integration test file green locally (sightings 4 · progression 10 · lab 2 · vault-2b 3 · vault-2c 3 · rules 63 ·
   server 32). The local run's gap: it ran rules + server.test only — the pass's run list now names all seven files (docs/testing.md).
-- Run 2 (`gh workflow run tests` on the fix — the pass's second and last cloud run): see the summary.
+- Run 2 (`gh workflow run tests` on 53352c3 — the pass's second and last cloud run, 41899967272): **GREEN** — unit ✓, rules + /api + smoke ✓ (the untagged push beside it: skipped, as G5 means).
 - Vercel: 04c5cd7 live (`/api/log` → `{"v":"04c5cd7"}`; `js/core/rules-lag.js` + the write path in `js/firebase.js` served by www — read
   only, nothing opened or written).
