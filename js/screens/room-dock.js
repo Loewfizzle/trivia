@@ -29,6 +29,12 @@ export function createRoomDock(on) {
   const hl = E.host.querySelector('.nd-host-label');
   hl.replaceChildren(h('span.rdk-w1', 'PLAY'), h('span.rdk-w2'));
   E.host.classList.add('rdk-play');
+  // (LOBBY 2.0 B — THE REMATCH VOTE, the owner's approved mock rematch-vote.png: the voters' BOLD DOTS on the ring's left / top arc — one per
+  //  guest in their colour, lit when they voted, a faint empty ring when not — and the "3 of 7 want a rematch" pill above it; the same on
+  //  every phone. transform-placed once, never animated)
+  E.pips = h('span.rdk-pips', { 'aria-hidden': 'true' });
+  E.votes = h('span.rdk-votes', { role: 'status', hidden: true });
+  E.host.append(E.pips, E.votes);
   // the pill: YOU · GUESTS · GAMES · CHAT, a tiny label under each icon
   const tab = (cls, aria, icon, label, onclick) => h(`button.nd-tab.rdk-tab.${cls}`, { type: 'button', 'aria-label': aria, onclick },
     h('span.nd-tab-ic', { html: icon }), h('span.rdk-lbl', { 'aria-hidden': 'true' }, label), h('i.rdk-dot', { 'aria-hidden': 'true', hidden: true }));
@@ -46,16 +52,32 @@ export function createRoomDock(on) {
   d.tabs = () => [E.guestsTab, E.gamesTab, E.youTab];
 
   let last = '';
-  /** v = { host (am I the host), hostName, guestsDot, chatDot, chatN, you (an element: the emblem), youAria } */
+  /** v = { host (am I the host), hostName, guestsDot, chatDot, chatN, you (an element: the emblem), youAria,
+   *        rm?: { on, voted (mine), n (votes), total (everyone), pips: [{ col (hex), on }] } — THE REMATCH VOTE } */
   d.set = v => {
-    const k = `${v.host ? 1 : 0}|${v.hostName || ''}|${v.guestsDot ? 1 : 0}|${v.chatDot ? 1 : 0}|${v.chatN || 0}`;
+    const rm = v.rm && v.rm.on ? v.rm : null;
+    const k = `${v.host ? 1 : 0}|${v.hostName || ''}|${v.guestsDot ? 1 : 0}|${v.chatDot ? 1 : 0}|${v.chatN || 0}|${rm ? `${rm.voted ? 1 : 0}${rm.n}/${rm.total}:${rm.pips.map(p => `${p.col}${p.on ? 1 : 0}`).join(',')}` : ''}`;
     if (v.you && v.youSig !== E.youSig) { E.youSig = v.youSig; E.youTab.querySelector('.nd-tab-ic').replaceChildren(v.you); if (v.youAria) E.youTab.setAttribute('aria-label', v.youAria); }
     if (k === last) return; last = k;
-    E.host.classList.toggle('rdk-wait', !v.host);
-    E.host.setAttribute('aria-label', v.host ? 'Play — pick the game and start' : `Waiting for ${v.hostName || 'the host'} to start`);
-    E.host.setAttribute('aria-disabled', String(!v.host));
-    hl.querySelector('.rdk-w1').textContent = v.host ? 'PLAY' : 'WAITING';
-    hl.querySelector('.rdk-w2').textContent = v.host ? '' : `FOR ${String(v.hostName || 'THE HOST').toUpperCase().slice(0, 12)}`;
+    E.host.classList.toggle('rdk-wait', !v.host && !rm);
+    E.host.classList.toggle('rdk-rm', !!rm);
+    E.host.classList.toggle('rdk-voted', !!(rm && rm.voted && !v.host));
+    if (rm) {
+      E.host.setAttribute('aria-label', v.host ? `Rematch — the same game, the same settings, everyone in (${rm.n} of ${rm.total} want one)` : rm.voted ? 'You voted for a rematch — tap to take it back' : 'Vote for a rematch');
+      E.host.setAttribute('aria-disabled', 'false');
+      hl.querySelector('.rdk-w1').textContent = 'REMATCH';
+      hl.querySelector('.rdk-w2').textContent = v.host ? '' : rm.voted ? '✓ VOTED' : 'VOTE';
+    } else {
+      E.host.setAttribute('aria-label', v.host ? 'Play — pick the game and start' : `Waiting for ${v.hostName || 'the host'} to start`);
+      E.host.setAttribute('aria-disabled', String(!v.host));
+      hl.querySelector('.rdk-w1').textContent = v.host ? 'PLAY' : 'WAITING';
+      hl.querySelector('.rdk-w2').textContent = v.host ? '' : `FOR ${String(v.hostName || 'THE HOST').toUpperCase().slice(0, 12)}`;
+    }
+    // the dots: the left / top arc (165° → 285°, clockwise from the right), one per guest
+    const pips = rm ? rm.pips : [];
+    E.pips.replaceChildren(...pips.map((p, i) => { const a = pips.length === 1 ? 225 : 165 + (120 * i) / (pips.length - 1); return h('i.rdk-pip', { class: p.on ? 'is-on' : '', style: { '--a': `${a.toFixed(1)}deg`, '--c': p.col } }); }));
+    E.votes.hidden = !(rm && rm.n > 0);
+    E.votes.replaceChildren(...(rm && rm.n > 0 ? [h('b', `${rm.n} of ${rm.total}`), ` want${rm.n === 1 ? 's' : ''} a rematch`] : []));
     E.guestsTab.querySelector('.rdk-dot').hidden = !v.guestsDot;
     E.guestsTab.setAttribute('aria-label', v.guestsDot ? 'The guest list — someone new joined' : 'The guest list');
     E.chatTab.querySelector('.rdk-dot').hidden = !v.chatDot;

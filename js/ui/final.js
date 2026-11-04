@@ -11,6 +11,7 @@ import { toast } from './toast.js';
 import { sfx } from '../audio/sfx.js';
 import { rankBadge } from './emblems.js';
 import { pubOf } from '../profile/public.js';
+import { isCity2 } from '../core/city.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 
@@ -64,9 +65,9 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
             .catch(err => { toast(`REMATCH FAILED — ${String((err && err.message) || err).toUpperCase()}`, 'err'); return false; })
             .then(ok => { if (!ok) btn.classList.remove('is-busy'); });
         } }, h('span', 'REMATCH')),
-        h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => backToLobby() }, h('span', 'BACK TO LOBBY')),
+        h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => backToLobby() }, h('span', isCity2() ? 'BACK TO THE ROOM' : 'BACK TO LOBBY')),
       ]
-      : [h('div.wait-note', 'WAITING FOR THE HOST — REMATCH OR LOBBY…')]));
+      : [h('div.wait-note', isCity2() ? 'WAITING FOR THE HOST — REMATCH OR BACK TO THE ROOM…' : 'WAITING FOR THE HOST — REMATCH OR LOBBY…')]));
   }
   refresh();
   const el = h('div.panel-full.final',

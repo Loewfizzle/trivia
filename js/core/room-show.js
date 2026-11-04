@@ -57,3 +57,71 @@ export function bannerAt(meta, players) {
   if (!b || typeof b.at !== 'number') return null;
   return b.at + walkOutMs(Object.keys(players || {}).length) + BANNER_GAP_MS;
 }
+
+// ------------------------------------------------------------------ THE WINNER's BANNER PLANE — its words (the owner, Nov 4 7:56 am)
+// SHORT so it reads as it passes (each panel ≤ 24 letters — the banner's own limit, core/harbor-sky.js#bannerPanels — never a cut name: a
+// template that would cut one falls back to a form that puts the name on its own panel). Ten forms for one winner, taken IN TURN by the
+// night's game count (the room's own night/ — the same on every phone): ten games a night never repeat a line. TIES: "SPLIT THE POT" /
+// "TIE GAME". Names are the room's own (they passed the name filter at the join).
+export const PANEL_MAX = 24;
+const W1 = [
+  (N, G) => [[`${N} TAKES ${G}!`], [`${N} TAKES`, `${G}!`]],
+  (N, G) => [[`CHEERS TO ${N}`, `${G} CHAMPION`], ['CHEERS TO', N, `${G} CHAMPION`]],
+  (N, G) => [[`${N} WINS ${G}!`], [N, `WINS ${G}!`]],
+  (N, G) => [[`${G} GOES TO`, `${N}!`]],
+  (N, G) => [[`ALL HAIL ${N}`, `${G} ROYALTY`], ['ALL HAIL', N, `${G} ROYALTY`]],
+  (N, G) => [[`DRINKS ON ${N}!`, `${G} WINNER`], ['DRINKS ON', `${N}!`, `${G} WINNER`]],
+  (N, G) => [[`${N} OWNS ${G}`], [N, `OWNS ${G}`]],
+  (N, G) => [[`${G} CHAMP:`, `${N}!`]],
+  (N, G) => [[`HATS OFF TO ${N}`, `${G} WINNER`], ['HATS OFF TO', N, `${G} WINNER`]],
+  (N, G) => [[`${N} RUNS ${G}`], [N, `RUNS ${G}`]],
+];
+const WT = [
+  (A, B) => [[`${A} + ${B}`, 'SPLIT THE POT!'], [A, `+ ${B}`, 'SPLIT THE POT!']],
+  (A, B) => [['TIE GAME —', `${A} + ${B}!`], ['TIE GAME —', A, `+ ${B}!`]],
+  (A, B, G) => [[`DEAD HEAT AT ${G}`, `${A} + ${B}`], [`DEAD HEAT AT ${G}`, A, `+ ${B}`]],
+  (A, B, G) => [[`${A} + ${B}`, `SHARE ${G}!`], [A, `+ ${B}`, `SHARE ${G}!`]],
+];
+const fits = p => p.length <= 3 && p.every(s => s.length <= PANEL_MAX);
+const pick = (forms, fallback) => forms.find(fits) || fallback;
+const up = s => String(s || '').toUpperCase().trim();
+/** names (the winners, in order), the game's banner name, idx (which game of the night: 0, 1, …) → the banner's panels */
+export function bannerLines(names, game, idx = 0) {
+  const G = up(game), ns = (names || []).map(up).filter(Boolean);
+  if (!ns.length) return [];
+  if (ns.length === 1) return pick(W1[((idx % W1.length) + W1.length) % W1.length](ns[0], G), [ns[0], `WINS ${G}!`.slice(0, PANEL_MAX)]);
+  const A = ns[0], B = ns.length === 2 ? ns[1] : `${ns.length - 1} MORE`;
+  return pick(WT[((idx % WT.length) + WT.length) % WT.length](A, B, G), [A, `+ ${B}`, 'SPLIT THE POT!']);
+}
+/** a match's winners from its night entry (rooms/{CODE}/night/{matchId}: p = 3 / 2 / 1 / 0 by place — a tie at the top = everyone with 3) */
+export function winnersOf(entry) {
+  if (!entry || !entry.p) return [];
+  const ids = Object.keys(entry.p).filter(u => entry.p[u] === 3);
+  return ids.sort().map(u => ({ uid: u, name: (entry.n && entry.n[u]) || '' })).filter(w => w.name);
+}
+/** THE NIGHT's CHAMPION (decided Oct 28): leaving after 2+ games → "LAST CALL — BEN WINS THE NIGHT"; opening the site later (≤ 12 h) →
+ *  "LAST NIGHT'S CHAMPION: BEN". names = the night's leaders (a tie: both) */
+export function champLines(names, kind = 'last-call') {
+  const ns = (names || []).map(up).filter(Boolean);
+  if (!ns.length) return [];
+  const N = ns.length === 1 ? ns[0] : ns.length === 2 ? `${ns[0]} + ${ns[1]}` : `${ns[0]} + ${ns.length - 1} MORE`;
+  const win = ns.length > 1 ? 'WIN' : 'WINS';
+  if (kind === 'last-call') return pick([['LAST CALL —', `${N} ${win} THE NIGHT`], ['LAST CALL —', N, ns.length > 1 ? 'WIN THE NIGHT' : 'WINS THE NIGHT']], ['LAST CALL —', ns[0], 'WINS THE NIGHT']);
+  return pick([["LAST NIGHT'S CHAMPION:", N], ["LAST NIGHT'S", 'CHAMPION:', N]], ["LAST NIGHT'S", 'CHAMPION:', ns[0]]);
+}
+
+// ------------------------------------------------------------------ THE REMATCH VOTE (the owner's approved mock, Nov 4 8:05 am)
+/** the ring's state after a match → { on (the REMATCH ring is up), m (the match it would replay), g, voters: [uid] (guests who voted, in the
+ *  room's order), guests: [uid] (everyone but the host, in the room's order), total (everyone in the room) }. Up once the banner flies
+ *  (everyone back), while meta/back says rm (the host hasn't picked another game) and the room is in the lobby; a vote counts only for THIS
+ *  match (rv/{uid} = its matchId) and only from someone still in the room */
+export function voteState(meta, rv, players, now) {
+  const b = meta && meta.back, P = players || {};
+  const order = roomOrder(P, meta && meta.hostId).map(o => o.uid), guests = order.filter(u => u !== (meta && meta.hostId));
+  const off = { on: false, voters: [], guests, total: order.length };
+  if (!b || !b.rm || meta.status !== 'lobby') return off;
+  const at = bannerAt(meta, P);
+  if (at != null && now < at) return { ...off, soon: true, m: b.m, g: b.g };
+  const voters = guests.filter(u => rv && rv[u] === b.m);
+  return { on: true, m: b.m, g: b.g, voters, guests, total: order.length };
+}

@@ -29,7 +29,7 @@ let lastHeal = 0;
 let healTimer = 0;
 let lastRaw = null;   // the newest raw presence snapshot (the heal's retry reads it)
 
-const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, live: {}, liveKey: null };
+const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, rv: {}, live: {}, liveKey: null };
 
 function cleanProfile(profile) {
   return { name: sanitizeName(profile.name, NAME_MAX) || 'ANON', color: profile.color, avatar: sanitizeAvatar(profile.avatar) };
@@ -223,6 +223,7 @@ function enterRoom(code) {
     healPresence(code, presence);
   });
   listen('night', night => setState({ night: night || {} }));
+  listen('rv', rv => setState({ rv: rv || {} }));   // (LOBBY 2.0 B — THE REMATCH VOTE: each player's own vote, rv/{uid} = the match they want again)
   // PROGRESSION B — BIRTHDAYS: on the player's birthday the server writes the room's HAPPY BDAY skywrite (once a day a room — DORMANT
   // until LOBBY 2.0 makes the lobby the live city; its phones play it then). Polish: only with a birthday on this phone, never waits.
   birthdayRoom(code);

@@ -171,11 +171,13 @@ export async function startGame(gameId, settings) {
 }
 
 // Same game, same settings, everyone currently connected (late joiners included).
+// (LOBBY 2.0 B — THE REMATCH RING: back in the room the match is gone (game: null) — the game it replays is meta/back's)
 export function rematch() {
-  if (!isHost() || !state.game) return Promise.resolve(false);
-  const id = state.game.id;
+  const back = state.meta && state.meta.back;
+  if (!isHost() || !(state.game || (back && back.g))) return Promise.resolve(false);
+  const id = state.game ? state.game.id : back.g;
   const mod = GAME_MODULES[id];
-  const settings = (state.meta.settings && state.meta.settings[id]) || state.game.settings || (mod && mod.DEFAULT_SETTINGS) || {};
+  const settings = (state.meta.settings && state.meta.settings[id]) || (state.game && state.game.settings) || (mod && mod.DEFAULT_SETTINGS) || {};
   return startGame(id, settings);
 }
 

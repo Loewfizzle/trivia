@@ -381,7 +381,11 @@ export function createTitle() {
         import('../profile/keypop.js').then(k => keyPopDot(k.keyPopState())).catch(() => {});
       }).catch(e => { roomLoading = false; console.warn('room', e); });
     }
-    if (!inRoom && roomUi) { roomUi.destroy(); roomUi = null; els.root.classList.remove('is-room'); }
+    if (!inRoom && roomUi) {
+      roomUi.destroy(); roomUi = null; els.root.classList.remove('is-room');
+      // (LOBBY 2.0 B — THE NIGHT's CHAMPION: leaving after 2+ games — this phone's city flies LAST CALL — <the leader> WINS THE NIGHT)
+      if (createHarbor && scene) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-call', !!(st && st.code)); }).catch(() => {});
+    }
     if (roomUi) roomUi.update(state);
   }
   const reduced = () => !!settings.reducedFx || reducedMotion();
@@ -1292,6 +1296,8 @@ export function createTitle() {
     els.sceneWrap.classList.remove('is-hold');
     pgPreviewSoon(600);
     keyPopSoon(2600);
+    // (LOBBY 2.0 B — THE NIGHT's CHAMPION: the app closed during a night of 2+ games → LAST NIGHT'S CHAMPION: <them>, the next open within ~12 h, once)
+    if (createHarbor) setTimeout(() => { if (!destroyed && scene && !(st && st.code)) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-night', !!(st && st.code)); }).catch(() => {}); }, 4200);
   }
   // LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP (profile/keypop.js): a RETURNING player whose key isn't saved meets it once, on the city, a moment
   // after the reveal — never over a legendary (it waits); its YOU dot on the docks until the key is saved
@@ -1930,6 +1936,8 @@ export function createTitle() {
       tiering: () => (scene && scene.tiering ? scene.tiering() : null),
       speakCtx: () => (scene && scene.speakCtx ? scene.speakCtx() : null),   // (WIN2: the facade's bake context — the washer swap's proof)
       boardXf: () => (scene && scene.boardXf ? scene.boardXf() : null),
+      roomBanner: () => (roomUi && roomUi.banner ? roomUi.banner() : null),   // (LOBBY 2.0 B: THE WINNER's BANNER — e2e lobby2.mjs)
+      bannerOn: () => !!(scene && scene.bannerOn && scene.bannerOn()),
       roomNearest: (x, y) => (roomUi && roomUi.nearestAt ? roomUi.nearestAt(x, y) : null),   // (LOBBY 2.0 B: the tap area's nearest rule — e2e lobby2.mjs)
       room: () => (roomUi ? { ...roomUi.debug(), people: scene && scene.roomDebug ? scene.roomDebug() : null, solidHits: scene && scene.roomSolidHits ? scene.roomSolidHits() : [] } : null),   // (LOBBY 2.0 A: the room in the city — e2e lobby.mjs)   // (LOBBY 2.0 A: the billboard's cross-fade — e2e lobby.mjs)
       signDim: (id, o) => (scene && scene.dimSign ? (id ? scene.dimSign(id, o) : scene.signDim()) : null),   // (City 2.0, C1.5: the sign-dim hook)            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)

@@ -21,7 +21,8 @@ import { createRoomDock } from './room-dock.js';
 import { sfx } from '../audio/sfx.js';
 import { openHelp } from '../ui/help.js';
 import { reducedMotion } from '../ui/dom.js';
-import { startShow, fileInOrder, backShow, START_MS, PUSH_AT_MS } from '../core/room-show.js';
+import { startShow, fileInOrder, backShow, voteState, START_MS, PUSH_AT_MS } from '../core/room-show.js';
+import { createRoomBanner } from './room-banner.js';
 
 const rgbOf = id => { const x = colorHex(id).replace('#', ''); return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
 export const FRESH_MS = 12000;      // (a player who joined in the last 12 s walks in, even on a phone seeing the room for the first time)
@@ -40,7 +41,14 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // ---------------------------------------------------------------- the dock
   dock = createRoomDock({
     invite: () => { sfx('select'); invite(); },
-    play: () => { if (!isHost()) { toast(`WAITING FOR ${hostName().toUpperCase()} TO START`, 'info'); return; } sfx('select'); openGames(true); },
+    play: () => {
+      // (LOBBY 2.0 B — THE REMATCH RING: the host's tap = the same game + settings, everyone in (incl. late joiners — host.js#rematch); a
+      //  guest's tap = their VOTE (again = take it back); nothing ever starts by itself)
+      const vs = voteNow();
+      if (vs.on) { if (isHost()) { sfx('select'); import('../host.js').then(m => m.rematch()).catch(() => {}); } else toggleVote(vs); return; }
+      if (!isHost()) { toast(`WAITING FOR ${hostName().toUpperCase()} TO START`, 'info'); return; }
+      sfx('select'); openGames(true);
+    },
     you: () => { sfx('select'); import('./profile.js').then(m => m.openCard()); },
     guests: () => { sfx('select'); openGuests(); },
     games: () => { sfx('select'); openGames(isHost()); },
@@ -68,7 +76,10 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const { gameArt } = await import('../ui/game-art.js');
     const list = h('div.rc-games', ...games.map(g => h('button.rc-game', { type: 'button', dataset: { theme: g.theme, game: g.id }, onclick: () => {
       if (!asHost || !isHost()) { openHelp(g.id); return; }
-      s.close(); import('./game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
+      s.close();
+      // (the host picks ANOTHER game after a match: the REMATCH ring goes back to PLAY + every vote clears)
+      if (st.meta && st.meta.back && st.meta.back.rm) dbUpdate(dbRef(`rooms/${code()}`), { 'meta/back/rm': false, rv: null }).catch(() => {});
+      import('./game-options.js').then(m => m.openGameOptions(g, { meta: st.meta }));
     } }, h('span.rc-game-art', gameArt(g.id) || ''), h('span.rc-game-t', h('small', g.tag), h('b', g.name), h('span', g.blurb)), h('i.rc-game-go', '›'))));
     const s = openPfSheet({ kicker: asHost && isHost() ? 'YOU’RE THE HOST' : `${hostName().toUpperCase()} PICKS THE GAME`, title: asHost && isHost() ? 'PICK A GAME' : 'THE GAMES', cls: 'rc-games-sheet',
       body: [list, h('p.pfs-note.is-small', asHost && isHost() ? 'Pick one, set it up, then INITIATE — everyone in the line is dealt in.' : 'Tap one to read how it plays while you wait.')],
@@ -127,8 +138,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     let T = tags.get(uid);
     if (T) return T;
     const emb = h('span.rc-emb'), name = h('span.rc-name'), bubble = h('span.rc-bubble', { 'aria-hidden': 'true' }, h('i'), h('i'), h('i'));
+    const thumb = h('span.rc-thumb', { 'aria-hidden': 'true' }, '👍');
     const hitEl = h('span.rc-hit', { 'aria-hidden': 'true' });
-    const el = h('button.rc-tag', { type: 'button', dataset: { uid } }, hitEl, bubble, name, emb);
+    const el = h('button.rc-tag', { type: 'button', dataset: { uid } }, hitEl, thumb, bubble, name, emb);
     // (a plain-area tap rule: pointerdown + pointerup, never click — iOS Safari skips click on some elements; this IS a button, but the
     //  tag moves under the finger: the same tap whether it moved or not)
     let down = null;
@@ -183,6 +195,17 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     raf = requestAnimationFrame(frame);
   }
 
+  // ---------------------------------------------------------------- LOBBY 2.0 B — THE REMATCH VOTE (core/room-show.js#voteState)
+  const voteNow = () => voteState(st.meta, st.rv, players(), serverNow());
+  let voting = false;
+  function toggleVote(vs) {
+    if (voting) return; voting = true;
+    const mine = st.rv && st.rv[st.uid] === vs.m;
+    sfx(mine ? 'tap' : 'select');
+    dbUpdate(dbRef(`rooms/${code()}`), { [`rv/${st.uid}`]: mine ? null : vs.m }).catch(() => toast('COULD NOT REACH THE ROOM', 'err')).finally(() => { voting = false; });
+  }
+  const banner = createRoomBanner({ scene });
+
   // ---------------------------------------------------------------- the dock's state + the notes
   let chatMod = null, offChat = null;
   import('../chat/chat.js').then(m => { if (destroyed) return; chatMod = m; offChat = m.onChat(() => { paintDock(); paintBubbles(); }); paintDock(); }).catch(() => {});
@@ -191,8 +214,12 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const P = players(), me = P[st.uid] || {}, ids = Object.keys(P);
     if (!seen) seen = loadSeen() || new Set(ids);
     const unread = chatMod ? chatMod.chat.unread || 0 : 0;
+    const vs = voteNow();
+    const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
     dock.set({ host: isHost(), hostName: hostName(), guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
-      you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}` });
+      you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm });
+    // (the 👍 over each voter in the line — on every phone)
+    for (const [uid, T] of tags) { const on = !!(vs.on && vs.voters.includes(uid)); if (T.el.classList.contains('is-voted') !== on) T.el.classList.toggle('is-voted', on); }
   }
   function paintBubbles() {
     const ty = chatMod ? chatMod.chat.typing || {} : {}, now = serverNow();
@@ -216,7 +243,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     if (noteKind === 'live') setState({ quit: null });
     else if (noteKind === 'idle' && isHost()) dbUpdate(dbRef(`rooms/${code()}/meta`), { activeAt: serverTimestamp() }).then(() => toast('ROOM KEPT OPEN FOR ANOTHER HOUR', 'ok')).catch(() => toast('COULD NOT REACH THE ROOM', 'err'));
   }
-  const noteT = setInterval(() => { if (!destroyed) { paintNotes(); paintBubbles(); } }, 2000);
+  const noteT = setInterval(() => { if (!destroyed) { paintNotes(); paintBubbles(); paintDock(); } }, 2000);   // (+ the dock: the REMATCH ring comes up on the clock)
 
   // ---------------------------------------------------------------- LOBBY 2.0 B — THE GAME START (the owner, Nov 4 7:56 am: "as planned")
   // From the host's tap, on every phone at once (meta/go on the server clock — core/room-show.js), START_MS (2.6 s) at most:
@@ -297,6 +324,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     }
     if (scene && scene.hush) scene.hush(st.code);
     startFx();
+    banner.update(st);
     paintDock();
     paintNotes();
     if (guestsUi && guestsUi.update) guestsUi.update(st);
@@ -307,10 +335,12 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     update,
     dock,
     startFx: () => (goFx ? { m: goFx.m } : null),
+    vote: () => voteNow(),
+    banner: () => banner.debug(),
     debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null, hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
     nearestAt,
     destroy() {
-      destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); if (offChat) offChat();
+      destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); if (offChat) offChat(); banner.destroy();
       // (the start's veil stays over the hand-off to the game screen — app.js's screen-in fades the game up; then it goes)
       if (goFx) { const v = goFx.veil; goFx.veil = h('i'); v.style.animation = 'none'; v.style.opacity = '1'; void v.offsetWidth; v.style.transition = 'opacity 0.45s ease'; v.style.opacity = '0'; setTimeout(() => v.remove(), 500); endFx(); }
       if (scene && scene.room) scene.room(null);

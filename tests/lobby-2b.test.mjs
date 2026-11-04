@@ -92,3 +92,45 @@ test('the owner\'s 2A review: the dev pill reads just "1 OF 1"; RESTORE in neon 
   assert.match(rc, /const HIT_MIN = 44/);
   assert.match(rc, /openPlayerCard\(nearestAt\(e\.clientX, e\.clientY\) \|\| uid\)/);
 });
+
+test('THE WINNER\'s BANNER — the words: short (each panel ≤ 24 letters, never a cut name), ten forms in turn (ten games a night never repeat), ties SPLIT THE POT / TIE GAME', async () => {
+  const { bannerLines, winnersOf, champLines, PANEL_MAX } = await import('../js/core/room-show.js');
+  const seen = new Set();
+  for (let i = 0; i < 10; i++) {
+    const l = bannerLines(['Ben'], 'Overclock', i);
+    assert.ok(l.length >= 1 && l.length <= 3 && l.every(s => s.length <= PANEL_MAX), JSON.stringify(l));
+    assert.ok(l.join(' ').includes('BEN') && l.join(' ').includes('OVERCLOCK'));
+    seen.add(l.join('|'));
+  }
+  assert.equal(seen.size, 10, 'ten games a night: ten different lines');
+  assert.deepEqual(bannerLines(['Ben'], 'Overclock', 0), ['BEN TAKES OVERCLOCK!']);
+  for (let i = 0; i < 10; i++) { const l = bannerLines(['WWWWWWWWWWWWWWWW'], 'DOUBLE AGENT', i); assert.ok(l.every(s => s.length <= PANEL_MAX) && l.some(s => s.includes('WWWWWWWWWWWWWWWW')), `the longest name whole: ${JSON.stringify(l)}`); }
+  const ties = [0, 1, 2, 3].map(i => bannerLines(['Ben', 'Sam'], 'Prism Drop', i).join(' '));
+  assert.ok(ties.some(t => /SPLIT THE POT/.test(t)) && ties.some(t => /TIE GAME/.test(t)) && ties.every(t => /BEN/.test(t) && /SAM/.test(t)));
+  assert.match(bannerLines(['A', 'B', 'C'], 'X', 0).join(' '), /A \+ 2 MORE/);
+  assert.deepEqual(winnersOf({ p: { a: 3, b: 3, c: 1 }, n: { a: 'ANN', b: 'BO', c: 'CY' } }).map(w => w.name), ['ANN', 'BO']);
+  assert.deepEqual(champLines(['ben']), ['LAST CALL —', 'BEN WINS THE NIGHT']);
+  assert.deepEqual(champLines(['ben'], 'last-night'), ["LAST NIGHT'S CHAMPION:", 'BEN']);
+  assert.match(champLines(['a', 'b']).join(' '), /A \+ B WIN THE NIGHT/);
+});
+
+test('THE REMATCH VOTE — the state: up once the banner flies (everyone back), only this match\'s votes from players still here, gone once the host picks another game or a game runs', async () => {
+  const { voteState, bannerAt } = await import('../js/core/room-show.js');
+  const players = { h: { joinedAt: 1 }, a: { joinedAt: 2 }, b: { joinedAt: 3 } };
+  const meta = { status: 'lobby', hostId: 'h', back: { at: 1000, m: 'm1', g: 'overclock', rm: true } };
+  const at = bannerAt(meta, players);
+  assert.equal(voteState(meta, {}, players, at - 10).on, false, 'not before the banner');
+  const v = voteState(meta, { a: 'm1', b: 'old', gone: 'm1' }, players, at + 10);
+  assert.equal(v.on, true); assert.deepEqual(v.voters, ['a']); assert.deepEqual(v.guests, ['a', 'b']); assert.equal(v.total, 3);
+  assert.equal(voteState({ ...meta, back: { ...meta.back, rm: false } }, { a: 'm1' }, players, at + 10).on, false, 'another game picked');
+  assert.equal(voteState({ ...meta, status: 'playing' }, { a: 'm1' }, players, at + 10).on, false, 'a game running');
+});
+
+test('THE BANNER PLANE obeys the sky: scene.roomBanner refuses during a legendary / its traffic hold / another banner (the room waits, then flies or skips); the night\'s champion once a night, after 2+ games', () => {
+  const sc = read('js/screens/harbor/scene.js');
+  assert.match(sc, /roomBanner: \(lines, o = \{\}\) => \{ try \{ const H = trafficHoldNow\(\); if \(\(legends && legends\.active\(\)\) \|\| \(H && H\.on\) \|\| \(sky\.listen\(\)\.banner\)\) return false;/);
+  const rb = read('js/screens/room-banner.js');
+  assert.match(rb, /WAIT_TRIES = 30, WAIT_MS = 2000/);
+  assert.match(rb, /rec\.shown \|\| rec\.games < 2/);
+  assert.match(rb, /if \(reducedMotion\(\)\) \{ stillCard\(lines\)/);
+});

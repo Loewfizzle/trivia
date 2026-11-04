@@ -158,6 +158,36 @@ test('LOBBY 2.0 A — THE LINE: a player writes their own side of the door (L / 
   await assertSucceeds(set(ref(db('p2'), `${R}/players/p2`), { ...player('TWO'), joinedAt: 2, ln: 'L' }), 'in the node itself too');
 });
 
+test('LOBBY 2.0 B — THE GAME START + AFTER THE MATCH: meta/go + meta/back stamped by the host at the server\'s now; nobody else', async () => {
+  await seed(lobbyRoom());
+  await assertSucceeds(update(ref(db('host'), R), { 'meta/go': { at: serverTimestamp(), m: 'm1', g: 'overclock' }, 'meta/back': null, rv: null }), 'the start\'s stamp first (+ the walk-out + the votes cleared)');
+  await assertFails(update(ref(db('host'), `${R}/meta`), { go: { at: 12345, m: 'm1', g: 'overclock' } }), 'only the server\'s now');
+  await assertFails(update(ref(db('p2'), `${R}/meta`), { go: { at: serverTimestamp(), m: 'm1', g: 'overclock' } }), 'a guest never');
+  await assertSucceeds(update(ref(db('host'), R), { 'meta/go': null, 'meta/back': { at: serverTimestamp(), m: 'm1', g: 'overclock', rm: true }, rv: null }), 'the match\'s end');
+  await assertSucceeds(update(ref(db('host'), R), { 'meta/back/rm': false, rv: null }), 'the host picks another game: the ring back to PLAY');
+  await assertFails(update(ref(db('host'), `${R}/meta/back`), { at: serverTimestamp(), m: 'm1', g: 'overclock', rm: true, x: 1 }), 'nothing else in it');
+  await assertFails(update(ref(db('p2'), `${R}/meta/back`), { rm: false }), 'a guest never');
+});
+
+test('LOBBY 2.0 B — THE REMATCH VOTE: your own vote for the match just played, only while its REMATCH ring is up; the host clears them all', async () => {
+  const r = lobbyRoom();
+  r.rooms[CODE].meta.back = { at: now(), m: 'm1', g: 'overclock', rm: true };
+  r.rooms[CODE].players.p3 = { name: 'THREE', color: 'yellow', avatar: 'star', joinedAt: 3 };
+  await seed(r);
+  await assertSucceeds(set(ref(db('p2'), `${R}/rv/p2`), 'm1'), 'a vote: the match just played');
+  await assertSucceeds(remove(ref(db('p2'), `${R}/rv/p2`)), 'taken back');
+  await assertFails(set(ref(db('p2'), `${R}/rv/p2`), 'm9'), 'never for another match');
+  await assertFails(set(ref(db('p2'), `${R}/rv/p3`), 'm1'), 'never someone else\'s vote');
+  await assertFails(set(ref(db('outsider'), `${R}/rv/outsider`), 'm1'), 'only a player in the room');
+  await assertSucceeds(set(ref(db('p3'), `${R}/rv/p3`), 'm1'));
+  await assertFails(set(ref(db('p2'), `${R}/rv`), null), 'a guest can\'t clear the others');
+  await assertSucceeds(set(ref(db('host'), `${R}/rv`), null), 'the host clears every vote');
+  await env.withSecurityRulesDisabled(ctx => set(ref(ctx.database(), `${R}/meta/back/rm`), false));
+  await assertFails(set(ref(db('p2'), `${R}/rv/p2`), 'm1'), 'no vote once the host picked another game');
+  await env.withSecurityRulesDisabled(ctx => update(ref(ctx.database(), `${R}/meta`), { 'back/rm': true, status: 'playing' }));
+  await assertFails(set(ref(db('p2'), `${R}/rv/p2`), 'm1'), 'no vote while a game runs');
+});
+
 test('LOCK THE DOOR: host only; new players are refused, players already in rejoin; kicked stay kicked', async () => {
   await seed(lobbyRoom({ kicked: { k1: true } }));
   await assertFails(update(ref(db('p2'), `${R}/meta`), { locked: true }), 'only the host locks');

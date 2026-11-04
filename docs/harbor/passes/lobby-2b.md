@@ -53,5 +53,40 @@ pushed (no tag).
   (`game-options.js`); KEEP OPEN + the idle warning + WATCH (a match this phone stepped out of) → the notes over the dock; THE CREW switch → the
   owner's tap on a player; chat → CHAT; LEAVE ROOM → the ☰ menu (the add-on brings it to the top + GUESTS).
 
+**Group 2 — AFTER THE MATCH: WALKING BACK OUT + THE WINNER's BANNER PLANE + THE REMATCH VOTE** (`room-banner.js` · `room-dock.js` ·
+`room-city.js` · `people.js#planOut` · `core/room-show.js`)
+- **THE STAMP**: the host's BACK TO THE ROOM (the podium's button — it read BACK TO LOBBY; City 1.0 keeps the old word) writes
+  `meta/back = { at, m, g, rm }` FIRST (the room still 'playing' — nothing shows yet, so every phone has it when the room comes back), then the
+  room goes to the lobby. Its own write: on rules not yet re-published the room still comes back — it only misses the show.
+- **WALKING BACK OUT**: the city rebuilds (THE CITY PAUSE) and its FIRST sight of the roster carries each player's turn: out through the side
+  door (it swings open on them inside, as for anyone), then to THEIR OWN PLACE in their line (the same places they left — the lines are derived
+  from the room); the host first, one every 0.6 s; before their turn they are still inside. From the stamp's age — a slow phone or a refresh
+  lands on the same step; past it, everyone standing.
+- **THE WINNER's BANNER PLANE**: the city's own Stearman tows the room's line ~2 s after everyone is back (`bannerAt` = the stamp + the
+  walk-out's length for the room's size + 2 s — the same moment on every phone; measured 7 ms apart on two phones), one pass under
+  SPEAKEASY (the banner's own lane — never over the NEON letters). THE WORDS (`bannerLines`): short, each panel ≤ 24 letters and never a cut
+  name (a form that would cut one falls back to the name on its own panel); TEN forms taken IN TURN by the night's game count — "BEN TAKES
+  OVERCLOCK!", "CHEERS TO BEN | OVERCLOCK CHAMPION", "BEN WINS OVERCLOCK!", "OVERCLOCK GOES TO | BEN!", "ALL HAIL BEN | OVERCLOCK ROYALTY",
+  "DRINKS ON BEN! | OVERCLOCK WINNER", "BEN OWNS OVERCLOCK", "OVERCLOCK CHAMP: | BEN!", "HATS OFF TO BEN | OVERCLOCK WINNER", "BEN RUNS
+  OVERCLOCK" — ten games a night never repeat; TIES: "BEN + SAM | SPLIT THE POT!", "TIE GAME — | BEN + SAM!", "DEAD HEAT AT PRISM DROP |
+  BEN + SAM", "BEN + SAM | SHARE PRISM DROP!" (3+: "BEN + 2 MORE"). The winners from night/{matchId} (3 points = first; the room's names —
+  they passed the name filter at the join). A refresh mid-flight = the plane where it is now; a phone back after it passed = nothing.
+  **THE SKY RULES**: `scene.roomBanner` refuses while a LEGENDARY is up or its TRAFFIC HOLD is on (core/harbor-legend.js#trafficHold) or
+  another banner is in the sky — the room's plane WAITS (every 2 s, up to a minute), then flies from then, or skips. Reduced motion: the words
+  as a STILL CARD in the sky (~6 s).
+- **THE NIGHT's CHAMPION** (decided Oct 28 — the night scoreboard supports it, so BUILT): this device keeps the room's standing while in it
+  (`nd:night`: the room, its games, its leaders); a player LEAVING after 2+ games (QUIT / LEAVE, a kick, the room closing) → their own city
+  flies "LAST CALL — | BEN WINS THE NIGHT" (two: "BEN + SAM WIN THE NIGHT"); a player who just closed the app → the next open within ~12 h
+  flies "LAST NIGHT'S CHAMPION: | BEN"; once a night a device. The "short trail of fireworks or skywriting" was NOT added: the city has no
+  small salvo (its shows are minutes long) and a skywrite through the same sky crowds the banner's lane — the banner alone (a decision below).
+- **THE REMATCH VOTE** (the approved mock): once the banner flies (everyone back), the host's pink ring reads **REMATCH** (one tap =
+  `host.js#rematch` — the same game, the same settings, everyone in the room incl. late joiners; everyone files in like the first start); a
+  GUEST's ring in that slot reads **REMATCH · VOTE** → **REMATCH ✓ VOTED** (their own pink ring, never greyed; tap again = taken back); each
+  vote lights a BOLD DOT in the guest's colour on the ring's left / top arc (165° → 285°; a faint empty ring for a guest who hasn't) + a
+  "**2 of 5** want a rematch" pill above the ring — the same dots + pill on every phone — + a 👍 over each voter's figure in the line. The host
+  picking ANOTHER game (GAMES → a game) puts the ring back to PLAY + clears every vote; a start clears them too. NOTHING auto-starts. The word
+  REMATCH fits the ring in the real font (55 of 76 pt at 402). A vote = `rooms/{CODE}/rv/{uid}` = the match just played — each player's
+  OWN node, only while that match's ring is up (the rules); the host clears them all.
+
 ## Tests (so far)
-unit `tests/lobby-2b.test.mjs` · harbor job `room2`: `roomfix` (10), `gamestart` (7), `citypause` (3).
+unit `tests/lobby-2b.test.mjs` (11) · rules (+ 2: the stamps, THE REMATCH VOTE) · harbor job `room2`: `roomfix` (10), `gamestart` (7), `citypause` (3), `afterparty` (16).

@@ -2882,6 +2882,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     hush(w) { const v = w ? String(w).toUpperCase().slice(0, 4) : null; if (v !== lobbyHush) lobbyHush = v; },
     roomBoxes: () => people.roomBoxes(),
     roomDoor: () => people.roomDoor(),   // (LOBBY 2.0 B: the game start's push through the side door)
+    /** LOBBY 2.0 B — THE WINNER's BANNER PLANE (screens/room-banner.js): the city's own banner plane with the room's lines from a clock time
+     *  (o.at — city clock ms; o.passes). NO TRAFFIC DURING THE LEGENDARIES: refused (false — the room waits, then flies or skips) while a
+     *  legendary is up or its traffic hold is on (core/harbor-legend.js#trafficHold), or another banner is in the sky */
+    roomBanner: (lines, o = {}) => { try { const H = trafficHoldNow(); if ((legends && legends.active()) || (H && H.on) || (sky.listen().banner)) return false; return sky.api.banner(lines, o); } catch { return false; } },
+    bannerOn: () => { try { return !!sky.listen().banner; } catch { return false; } },
     roomDebug: () => people.roomDebug(),
     roomSolidHits: () => people.roomSolidHits(),
     roomRects: () => (L ? roomRects(L) : null),

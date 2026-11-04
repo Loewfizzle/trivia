@@ -223,3 +223,106 @@ G('citypause', async () => {
   log('citypause', `MEMORY back ${JSON.stringify(m2)}`);
   await A.ctx.close(); await B.ctx.close();
 });
+
+// ---- Group 2 — AFTER THE MATCH: everyone WALKS BACK OUT through the side door to the same places, THE WINNER's BANNER PLANE (the same on
+// every phone at once; a refresh mid-flight), THE REMATCH VOTE (the host's ring REMATCH, a guest's ring = a vote, the dots, the pill, the 👍,
+// take it back, clear on a start / another game; nothing auto-starts)
+export const podium = async (p, code, winners) => {
+  const g = await ev(p, '({ m: window.__arcade.state.game.matchId, players: window.__arcade.state.players })');
+  const pts = {}, n = {};
+  Object.keys(g.players).forEach((u, i) => { pts[u] = winners.includes(u) ? 3 : i % 3; n[u] = g.players[u].name; });
+  await dbPatch(`rooms/${code}/night/${g.m}`, { g: 'overclock', p: pts, n, at: { '.sv': 'timestamp' } });
+  return g.m;
+};
+const lastBanner = x => ev(x, '(() => { const r = window.__district && window.__district.roomBanner && window.__district.roomBanner(); return r && r.last ? r.last : null; })()');
+G('afterparty', async () => {
+  const { Q: A, p, code, me } = await hostRoom('apa');
+  const { Q: B, p: q, me: meB } = await joinRoom('apb', code);
+  const fakes = await fakeGuests(code, 3);
+  await settledRoom(p, 5, 40000).catch(() => {}); await settledRoom(q, 5, 40000).catch(() => {});
+  const slots0 = Object.fromEntries((await roomOf(p)).people.map(x => [x.uid, x.slot]));
+  await startOC(p);
+  await waitFor(p, `!(${onTitle})`, 'the game', 8000); await waitFor(q, `!(${onTitle})`, 'B in the game', 8000);
+  const m = await podium(p, code, [me]);
+  await sleep(800);
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await Promise.all([p, q].map(x => waitFor(x, onTitle, 'back on the city', 12000)));
+  await harborUp(p);
+  // WALKING BACK OUT: through the side door, the host first — some still inside, someone stepping out
+  await waitFor(p, '(() => { const r = window.__district.room(); return r && r.people && r.people.some(x => x.s && x.s.pose === "walk"); })()', 'someone walking out', 8000).catch(() => {});
+  const w = await roomOf(p);
+  const walking = ((w && w.people) || []).filter(x => x.s && x.s.pose === 'walk').length, hidden = ((w && w.people) || []).filter(x => !x.s || x.inside).length;
+  ok(walking >= 1, `WALKING BACK OUT: through the side door after the match (${walking} walking, ${hidden} still inside the club)`);
+  if (SHOTS) await p.screenshot({ path: `${OUT}room2-walkout.png` });
+  await settledRoom(p, 5, 30000).catch(() => {});
+  const slots1 = Object.fromEntries((await roomOf(p)).people.map(x => [x.uid, x.slot]));
+  ok(JSON.stringify(slots1, Object.keys(slots0).sort()) === JSON.stringify(slots0, Object.keys(slots0).sort()), `…to THE SAME PLACES they left (${Object.values(slots1).join(' ')})`);
+  // THE WINNER's BANNER PLANE: on both phones at once, the winner's name, ~2 s after everyone is back
+  const fl = await Promise.all([p, q].map(x => waitFor(x, '(() => { const r = window.__district && window.__district.roomBanner && window.__district.roomBanner(); return !!(r && r.last && r.last.how); })()', 'the banner', 25000).then(() => lastBanner(x), () => lastBanner(x))));
+  ok(fl.every(f => f && f.how === 'flown' && f.m === m) && Math.abs(fl[0].firedAt - fl[1].firedAt) < 1200 && JSON.stringify(fl[0].lines) === JSON.stringify(fl[1].lines) && /AVA/.test(fl[0].lines.join(' ')),
+    `THE WINNER's BANNER PLANE on BOTH phones at once (${fl.map(f => f && f.how).join(' / ')}, ${fl[0] && fl[1] && fl[0].firedAt && fl[1].firedAt ? Math.abs(fl[0].firedAt - fl[1].firedAt) : '—'} ms apart): "${fl[0] && fl[0].lines.join(' | ')}"`);
+  ok(await ev(p, 'window.__district.bannerOn()'), "the city's own banner plane is in the sky");
+  await sleep(3500); if (SHOTS) await p.screenshot({ path: `${OUT}room2-banner-402.png` });
+  // a REFRESH mid-flight: the plane where it is now
+  await q.reload(); await harborUp(q);
+  await waitFor(q, '(() => { const r = window.__district.roomBanner && window.__district.roomBanner(); return !!(r && r.last && r.last.how); })()', 'B banner after refresh', 15000).catch(() => {});
+  const rf = await lastBanner(q);
+  ok(rf && rf.how === 'flown' && (await ev(q, 'window.__district.bannerOn()')), `A REFRESH MID-BANNER: the plane is still up, mid-flight (${rf && rf.how})`);
+  // THE REMATCH VOTE: the host's ring REMATCH, the guest's REMATCH · VOTE
+  await waitFor(p, "document.querySelector('.rdk-play').classList.contains('rdk-rm')", 'the REMATCH ring', 10000).catch(() => {});
+  await waitFor(q, "document.querySelector('.rdk-play').classList.contains('rdk-rm')", 'B REMATCH ring', 10000).catch(() => {});
+  const ringA = await ev(p, "({ w: document.querySelector('.rdk-play .nd-host-label').textContent, pips: document.querySelectorAll('.rdk-pip').length, lit: document.querySelectorAll('.rdk-pip.is-on').length })");
+  const ringB = await ev(q, "({ w: document.querySelector('.rdk-play .nd-host-label').textContent, wait: document.querySelector('.rdk-play').classList.contains('rdk-wait') })");
+  ok(ringA.w === 'REMATCH' && ringA.pips === 4 && ringA.lit === 0 && /REMATCH\s*VOTE/.test(ringB.w) && !ringB.wait, `THE REMATCH RING: the host's reads ${ringA.w} with ${ringA.pips} faint dots (one a guest); the guest's own ring reads "${ringB.w}" (not greyed)`);
+  // the word FITS inside the ring (the real font)
+  const fit = await ev(p, "(() => { const l = document.querySelector('.rdk-play .rdk-w1'), r = document.querySelector('.rdk-play').getBoundingClientRect(), b = l.getBoundingClientRect(); return { lw: Math.round(b.width), rw: Math.round(r.width), inside: b.left >= r.left + 6 && b.right <= r.right - 6 }; })()");
+  ok(fit.inside, `…the word REMATCH FITS inside the ring in the real font (${fit.lw} of ${fit.rw} pt)`);
+  // B votes: a dot lights in B's colour on BOTH phones, the pill, the 👍 over B
+  await ev(q, "document.querySelector('.rdk-play').click()");
+  await waitFor(p, "document.querySelectorAll('.rdk-pip.is-on').length === 1", 'a dot lit on A', 6000).catch(() => {});
+  await dbPatch(`rooms/${code}/rv`, { [fakes[0]]: m });
+  await waitFor(p, "document.querySelectorAll('.rdk-pip.is-on').length === 2", 'two dots', 6000).catch(() => {});
+  await sleep(400);
+  const v = await ev(p, `({ lit: document.querySelectorAll('.rdk-pip.is-on').length, pill: document.querySelector('.rdk-votes').hidden ? '' : document.querySelector('.rdk-votes').textContent, thumb: document.querySelector('.rc-tag[data-uid="${meB}"]').classList.contains('is-voted') })`);
+  const vB = await ev(q, "({ w: document.querySelector('.rdk-play .nd-host-label').textContent, lit: document.querySelectorAll('.rdk-pip.is-on').length, pill: document.querySelector('.rdk-votes').textContent })");
+  ok(v.lit === 2 && /2 of 5 want a rematch/.test(v.pill) && v.thumb && vB.lit === 2 && /✓ VOTED/.test(vB.w), `THE VOTES: 2 dots lit on both phones, "${v.pill}", a 👍 over the guest who voted (${v.thumb}); the guest's ring: "${vB.w}"`);
+  if (SHOTS) { await p.screenshot({ path: `${OUT}room2-vote-host-402.png` }); await q.screenshot({ path: `${OUT}room2-vote-guest-402.png` }); }
+  // take it back
+  await ev(q, "document.querySelector('.rdk-play').click()");
+  const back = await waitFor(p, "document.querySelectorAll('.rdk-pip.is-on').length === 1", 'one dot', 6000).then(() => true, () => false);
+  ok(back, 'TAP AGAIN = the vote taken back (the dot goes dark on every phone)');
+  // nothing auto-starts (the room stays in the lobby with votes in)
+  await sleep(2500);
+  ok((await ev(p, 'window.__arcade.state.meta.status')) === 'lobby', 'NOTHING AUTO-STARTS: votes in, the room still waits for the host');
+  // the host's REMATCH: the same game, everyone in (the walk inside again); the votes cleared
+  await ev(p, "document.querySelector('.rdk-play').click()");
+  const rs = await waitFor(p, "window.__arcade.state.meta.status === 'playing'", 'the rematch', 10000).then(() => ev(p, '({ g: window.__arcade.state.game.id, rv: window.__arcade.state.rv, back: window.__arcade.state.meta.back || null, parts: Object.keys(window.__arcade.state.game.participants).length })'), () => null);
+  ok(rs && rs.g === 'overclock' && !Object.keys(rs.rv || {}).length && !rs.back && rs.parts === 5, `THE HOST's REMATCH: the same game (${rs && rs.g}), everyone in (${rs && rs.parts}), the votes + the ring cleared`);
+  // back again (a TIE this time) → the host picks ANOTHER game (GAMES): the ring back to PLAY, the votes clear
+  await waitFor(p, `!(${onTitle})`, 'the game', 8000);
+  await podium(p, code, [meB, fakes[1]]);
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await waitFor(p, onTitle, 'back', 12000); await harborUp(p);
+  await waitFor(p, '(() => { const r = window.__district.roomBanner && window.__district.roomBanner(); return !!(r && r.last && r.last.lines); })()', 'the tie banner', 25000).catch(() => {});
+  const tie = await lastBanner(p);
+  ok(tie && /\+/.test(tie.lines.join(' ')), `A TIE: "${tie && tie.lines.join(' | ')}"`);
+  await waitFor(p, "document.querySelector('.rdk-play').classList.contains('rdk-rm')", 'REMATCH', 15000).catch(() => {});
+  await dbPatch(`rooms/${code}/rv`, { [fakes[0]]: await ev(p, 'window.__arcade.state.meta.back.m') });
+  await ev(p, "document.querySelector('.rdk-games').click()");
+  await waitFor(p, "document.querySelectorAll('.rc-games-sheet .rc-game').length >= 2", 'the games', 8000).catch(() => {});
+  await ev(p, "document.querySelector('.rc-games-sheet .rc-game[data-game=\"prism\"]').click()");
+  const pick = await waitFor(p, "!document.querySelector('.rdk-play').classList.contains('rdk-rm') && !Object.keys(window.__arcade.state.rv || {}).length", 'PLAY again', 8000).then(() => true, () => false);
+  ok(pick, 'THE HOST PICKS ANOTHER GAME: the ring goes back to PLAY, every vote clears');
+  await ev(p, "(() => { const m = document.querySelector('.modal'); if (m) m.click(); })()");
+  ok(!(await ev(p, "!!document.querySelector('.lobby-screen')")) && !(await ev(q, "!!document.querySelector('.lobby-screen')")), 'THE OLD LOBBY SCREEN never shows in City 2.0 (from the join to the podium and back)');
+  // THE NIGHT's CHAMPION: B leaves after 2 games → B's own city flies LAST CALL — <the night's leader> WINS THE NIGHT
+  await ev(q, "import('/js/room.js').then(m => m.leaveRoom())");
+  await waitFor(q, "import('/js/screens/room-banner.js').then(m => { const c = m.champDebug(); return !!(c && c.how); })", 'the champion banner (after the last winner banner clears the sky)', 45000).catch(() => {});
+  const ch = await ev(q, "import('/js/screens/room-banner.js').then(m => m.champDebug())");
+  ok(ch && ch.kind === 'last-call' && ch.how === 'flown' && /LAST CALL/.test(ch.lines.join(' ')) && /THE NIGHT/.test(ch.lines.join(' ')), `THE NIGHT's CHAMPION: leaving after 2 games, this phone's city flies "${ch && ch.lines.join(' | ')}" (${ch && ch.how})`);
+  if (SHOTS) { await sleep(3000); await q.screenshot({ path: `${OUT}room2-lastcall-402.png` }); }
+  const again = await ev(q, "import('/js/screens/room-banner.js').then(m => m.champBanner(null, 'last-night'))");
+  ok(again === null, 'once a night a device: no second champion banner (the record is marked shown)');
+  await A.ctx.close(); await B.ctx.close();
+  log('afterparty', 'done');
+});
