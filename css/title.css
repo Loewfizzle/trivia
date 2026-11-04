@@ -1004,28 +1004,34 @@ body.nd-idle .rc-tags { opacity: 1; }
    LOBBY 2.0 B — THE GAME START (room-city.js#startFx — core/room-show.js): every part an animation at a NEGATIVE delay (--rc-age = the
    show's age) so every phone, a refresh and a new host land on the same frame. transform + opacity only.
    ===================================================================================================================================== */
+/* LOBBY FIXES — THE GAME START REDONE (the owner, Nov 4 3:05 pm: no camera push — choppy on the phone). --rc-age = −(the show's age);
+   --rc-sign / --rc-fadeat / --rc-fadelen = the start's beats (core/room-show.js#START: the FULL ~5 s · the QUICK ~3 s rematch). */
 .nd-sign.rc-go > :not(.rc-tonight) { animation: rc-power-off 0.55s linear var(--rc-age, 0ms) both; }
+.nd-sign.rc-quick > :not(.rc-tonight) { animation: rc-fade-out 0.3s ease var(--rc-age, 0ms) both; }
 @keyframes rc-power-off { 0% { opacity: 1; } 12% { opacity: 0.25; } 22% { opacity: 0.95; } 34% { opacity: 0.1; } 46% { opacity: 0.6; } 60% { opacity: 0.05; } 100% { opacity: 0; } }
-.rc-tonight { position: absolute; left: 50%; top: 0; width: min(78vw, 360px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 6px; pointer-events: none; opacity: 0;
-  animation: rc-power-on 0.9s linear calc(var(--rc-age, 0ms) + 450ms) both; }
-.rc-tonight-k { font: 800 12px/1 var(--font-ui); letter-spacing: 0.5em; padding-left: 0.5em; color: #fff; text-shadow: 0 0 8px rgba(255, 79, 180, 0.9), 0 0 18px rgba(255, 79, 180, 0.55); }
+.rc-tonight { position: absolute; left: 50%; top: 0; width: min(92vw, 600px); transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 8px; pointer-events: none; opacity: 0;
+  animation: rc-fade-in 0.25s linear calc(var(--rc-age, 0ms) + var(--rc-sign, 560ms)) both; }
+.rc-quick .rc-tonight { animation: rc-fade-in 0.3s ease var(--rc-age, 0ms) both; }
+.rc-tonight-k { font: 800 12px/1 var(--font-ui); letter-spacing: 0.5em; padding-left: 0.5em; color: #fff; text-shadow: 0 0 8px rgba(255, 46, 151, 0.95), 0 0 18px rgba(255, 46, 151, 0.6); }
+.rc-full .rc-tonight-k { opacity: 0; animation: rc-tube-on 0.7s linear calc(var(--rc-age, 0ms) + var(--rc-sign, 560ms) + 160ms) both; }
 .rc-tonight-logo { width: 100%; }
 .rc-tonight-logo svg { display: block; width: 100%; height: auto; }
-@keyframes rc-power-on { 0% { opacity: 0; } 10% { opacity: 0.7; } 18% { opacity: 0.1; } 30% { opacity: 0.9; } 40% { opacity: 0.35; } 55% { opacity: 1; } 64% { opacity: 0.75; } 100% { opacity: 1; } }
+/* THE IGNITION (the full start): the glass shows first (dark tubes), then each tube catches on its own beat (--d) — a real neon strike:
+   a stutter, a dip, then steady, and it HOLDS (opacity only, each tube's light group) */
+.rc-full .rc-tonight .ndl-light { opacity: 0; animation: rc-tube-on 0.72s linear calc(var(--rc-age, 0ms) + var(--rc-sign, 560ms) + 180ms + var(--d, 0ms)) both; }
+@keyframes rc-tube-on { 0% { opacity: 0; } 8% { opacity: 0.85; } 14% { opacity: 0.05; } 26% { opacity: 0.7; } 33% { opacity: 0.15; } 48% { opacity: 1; } 58% { opacity: 0.62; } 70%, 100% { opacity: 1; } }
 /* the dock + the tags step aside the moment it starts (nothing to tap during the start) */
 body.rc-going .nd-actions, body.rc-going .rc-tags { opacity: 0; transition: opacity 0.3s ease; pointer-events: none; }
-/* THE PUSH THROUGH THE DOOR: the screen scales toward the side door, a dark veil closes in */
-.rc-pushing { will-change: transform; animation: rc-push var(--rc-len, 650ms) cubic-bezier(0.5, 0, 0.9, 0.6) var(--rc-push, 1950ms) both; }
-@keyframes rc-push { from { transform: scale(1); } to { transform: scale(2.6); } }
-.rc-veil { position: fixed; inset: 0; z-index: 60; background: #04030a; pointer-events: none; opacity: 0; animation: rc-veil var(--rc-len, 650ms) ease-in var(--rc-push, 1950ms) both; }
+/* the clean fade into the game (no push: the city stays put while the lines walk in, then the veil comes up) */
+.rc-veil { position: fixed; inset: 0; z-index: 60; background: #04030a; pointer-events: none; opacity: 0; animation: rc-veil var(--rc-fadelen, 700ms) ease-in calc(var(--rc-age, 0ms) + var(--rc-fadeat, 4300ms)) both; }
 /* FR6 FIXES A (B3): a slow start's one line on the veil (a bank / a song still loading) */
 .rc-veil-note { position: absolute; left: 16px; right: 16px; top: 50%; transform: translateY(-50%); text-align: center; font: 700 12px/1.3 var(--font-ui); letter-spacing: 0.26em; color: var(--text-dim); animation: rc-fade-in 0.6s ease both; }
-@keyframes rc-veil { from { opacity: 0; } 55% { opacity: 0.5; } to { opacity: 1; } }
+@keyframes rc-veil { from { opacity: 0; } to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
   .nd-sign.rc-go > :not(.rc-tonight) { animation: rc-fade-out 0.35s ease var(--rc-age, 0ms) both; }
-  .rc-tonight { animation: rc-fade-in 0.35s ease calc(var(--rc-age, 0ms) + 350ms) both; }
-  .rc-pushing { animation: none; }
-  .rc-veil { animation: rc-fade-in 0.45s ease var(--rc-push, 1950ms) both; }
+  .rc-tonight, .rc-quick .rc-tonight { animation: rc-fade-in 0.35s ease calc(var(--rc-age, 0ms) + 350ms) both; }
+  .rc-full .rc-tonight .ndl-light, .rc-full .rc-tonight-k { animation: none; opacity: 1; }
+  .rc-veil { animation: rc-fade-in 0.45s ease calc(var(--rc-age, 0ms) + var(--rc-fadeat, 4300ms)) both; }
 }
 @keyframes rc-fade-out { from { opacity: 1; } to { opacity: 0; } }
 @keyframes rc-fade-in { from { opacity: 0; } to { opacity: 1; } }
@@ -1035,7 +1041,7 @@ body.rc-going .nd-actions, body.rc-going .rc-tags { opacity: 0; transition: opac
    (a guest — their own pink ring, never greyed); the voters' BOLD DOTS in one row right above it; the "3 of 7 want a rematch" pill just above
    the row (TIDIED Nov 4 9:25 am — no 👍 over the people any more). Static: no animation.
    ===================================================================================================================================== */
-.rdk-play.rdk-rm .rdk-w1 { font-size: 0.92em; letter-spacing: 0.08em; }
+.rdk-play.rdk-rm .rdk-w1 { font-size: 0.74em; letter-spacing: 0.03em; }   /* (LOBBY FIXES: REMATCH sits INSIDE the ring — never on the tube) */
 .rdk-play.rdk-rm .rdk-w2 { font: 800 8px/1 var(--font-ui); letter-spacing: 0.14em; color: rgba(255, 236, 248, 0.92); }
 .rdk-play.rdk-voted .rdk-w2 { color: #fff; }
 /* the dots: ONE row right above the ring, right-aligned with it (the TIDY — the owner, Nov 4 9:25 am); on a dark glass rail so they read on
@@ -1048,6 +1054,21 @@ body.rc-going .nd-actions, body.rc-going .rc-tags { opacity: 0; transition: opac
 .rdk-votes { position: absolute; right: 8px; bottom: calc(100% + 38px); padding: 8px 13px 7px; border-radius: 999px; white-space: nowrap; pointer-events: none;
   font: 600 12.5px/1 var(--font-ui); letter-spacing: 0.04em; color: rgba(244, 240, 252, 0.95); background: rgba(10, 9, 18, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 4px 14px rgba(0, 0, 0, 0.45); }
 .rdk-votes b { font-weight: 800; color: #fff; }
+/* LOBBY FIXES — change-game.png v2: the pill = the lit voters' dots + "want a rematch", right above the ring (the dots row is gone) */
+.rdk-votes { bottom: calc(100% + 10px); display: flex; align-items: center; gap: 9px; padding: 7px 13px 7px 10px; }
+.rdk-vdots { display: flex; gap: 5px; }
+.rdk-vw { font: 600 12.5px/1 var(--font-ui); letter-spacing: 0.04em; }
+/* NEW GAME (the host's GAMES tab after a match): cyan, a soft glow, breathing until tapped or a game starts (opacity + scale only) */
+.rdk-tab.rdk-newgame .rdk-lbl, .rdk-tab.rdk-newgame.is-lit .rdk-lbl { color: #8ff6ff; text-shadow: 0 0 8px rgba(63, 224, 255, 0.75); letter-spacing: 0.12em; }
+.rdk-newgame .nd-tab-ic { filter: drop-shadow(0 0 6px rgba(63, 224, 255, 0.85)); }
+.rdk-newgame { position: relative; }
+.rdk-newgame::after { content: ''; position: absolute; left: 50%; top: 44%; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; pointer-events: none;
+  background: radial-gradient(circle, rgba(63, 224, 255, 0.42), rgba(63, 224, 255, 0) 68%); opacity: 0.55; }
+.rdk-newgame.rdk-breathe::after { animation: rdk-breathe 2.4s ease-in-out infinite; }
+.rdk-newgame.rdk-breathe .nd-tab-ic { animation: rdk-breathe-ic 2.4s ease-in-out infinite; }
+@keyframes rdk-breathe { 0%, 100% { opacity: 0.25; transform: scale(0.85); } 50% { opacity: 1; transform: scale(1.18); } }
+@keyframes rdk-breathe-ic { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+@media (prefers-reduced-motion: reduce) { .rdk-newgame.rdk-breathe::after, .rdk-newgame.rdk-breathe .nd-tab-ic { animation: none; } }
 /* THE WINNER's BANNER — reduced motion: a still card in the sky (room-banner.js) */
 .rc-bancard { position: fixed; left: 50%; top: var(--rc-bc-top, calc(var(--safe-t, 0px) + 34vh)); z-index: 4; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 12px 18px; border-radius: 14px; background: rgba(248, 242, 226, 0.95); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); pointer-events: none; animation: rc-bancard 6.5s ease both; }

@@ -3,21 +3,21 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { startShow, fileInOrder, backShow, bannerAt, walkOutMs, START_MS, PUSH_AT_MS, IN_GAP, OUT_GAP, OUT_LEAD, BANNER_GAP_MS } from '../js/core/room-show.js';
+import { startShow, fileInOrder, backShow, bannerAt, walkOutMs, START, START_MS, IN_GAP, OUT_GAP, OUT_LEAD, BANNER_GAP_MS } from '../js/core/room-show.js';
 
 const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const P = { h: { joinedAt: 1 }, a: { joinedAt: 2, ln: 'R' }, b: { joinedAt: 3, ln: 'L' }, c: { joinedAt: 4, ln: 'R' } };
 
-test('THE GAME START on the server clock: 2–3 s max, on from the stamp — while the host prepares the match AND once it is written — never for another match', () => {
-  assert.ok(START_MS >= 2000 && START_MS <= 3000 && PUSH_AT_MS < START_MS);
+test('THE GAME START on the server clock: on from the stamp — while the host prepares the match AND once it is written — never for another match (LOBBY FIXES: ~5 s full · ~3 s quick)', () => {
+  assert.ok(START.full.len >= 4500 && START.full.len <= 5500 && START.quick.len >= 2500 && START.quick.len <= 3200 && START.full.fadeAt < START.full.len && START_MS === START.full.len);
   const go = { at: 10000, m: 'abc', g: 'overclock' };
   // the host's stamp goes up first: the room still in the lobby, no game yet → on
   assert.equal(startShow({ status: 'lobby', go }, null, 10100).on, true);
   // the match written → on, the same age
   const s = startShow({ status: 'playing', go }, { matchId: 'abc' }, 11000);
-  assert.equal(s.on, true); assert.equal(s.age, 1000); assert.equal(s.g, 'overclock'); assert.equal(s.push, 0);
-  // the push in its last part; done at START_MS (a refresh / a late joiner past it → straight in the game)
-  assert.ok(startShow({ status: 'playing', go }, { matchId: 'abc' }, 10000 + PUSH_AT_MS + 100).push > 0);
+  assert.equal(s.on, true); assert.equal(s.age, 1000); assert.equal(s.g, 'overclock'); assert.equal(s.fade, 0);
+  // the fade in its last part; done at the start's length (a refresh / a late joiner past it → straight in the game)
+  assert.ok(startShow({ status: 'playing', go }, { matchId: 'abc' }, 10000 + START.full.fadeAt + 100).fade > 0);
   const end = startShow({ status: 'playing', go }, { matchId: 'abc' }, 10000 + START_MS);
   assert.equal(end.on, false); assert.equal(end.done, true);
   // another match's stamp (a stale one) → never
@@ -51,7 +51,7 @@ test('the stamps in host.js: meta/go FIRST (the walk starts at the tap), the gam
   const h = read('js/host.js');
   const go = h.indexOf("'meta/go': { at: serverTimestamp(), m: matchId, g: gameId }"), start = h.indexOf('await mod.start(');
   assert.ok(go > 0 && start > go, 'the stamp before the match is prepared');
-  assert.match(h, /now: tGo \+ START_MS/);
+  assert.match(h, /now: tGo \+ startOf\(matchId\)\.len/);
   assert.match(h, /update\(dbRef\(`rooms\/\$\{state\.code\}\/meta`\), \{ go: null \}\)/);
   assert.match(h, /'meta\/back': g && g\.matchId \? \{ at: serverTimestamp\(\), m: g\.matchId, g: g\.id, rm: isPlayable\(g\.id\) \}/);
   const a = read('js/app.js');

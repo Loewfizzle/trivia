@@ -155,18 +155,20 @@ G('gamestart', async () => {
   const go = await ev(p, 'window.__arcade.state.meta.go');
   ok(seen.every(v => v != null && v < 1500) && go && go.g === 'overclock', `THE GAME START on BOTH phones from the host's tap (${seen.join(' / ')} ms after it): the NEON sign powers down, OVERCLOCK's tube logo under TONIGHT (meta/go: ${go && go.g})`);
   const shots = [];
-  for (const at of [350, 900, 1500, 1930]) { await waitFor(p, `window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= ${at}`, 'the show at ' + at, 4000).catch(() => {});
+  // (LOBBY FIXES: the full start — the sign at 0.56 s, the walk-in from 1.5 s, the fade at 4.3 s)
+  for (const at of [350, 2300, 3000, 4200]) { await waitFor(p, `window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= ${at}`, 'the show at ' + at, 6000).catch(() => {});
     const r = await ev(p, "(() => { const r = window.__district.room(); return r ? r.people.map(x => ({ uid: x.uid, goIn: x.goIn, inside: x.inside || !x.s, pose: x.s && x.s.pose, z: x.s && x.s.z })) : null; })()");
     shots.push({ at, r }); if (SHOTS) await p.screenshot({ path: `${OUT}room2-start-${at}.png` }); }
   const first = shots[0].r || [], mid = shots[1].r || [];
   const host = mid.find(x => x.uid === me);
-  ok(first.length === 5 && first.every(x => x.goIn) && host && host.pose === 'walk', `THE FILE-IN: all 5 on their way in (${first.filter(x => x.goIn).length}/5), the HOST first — walking to the door at 0.9 s (${host && host.pose})`);
+  const h0 = first.find(x => x.uid === me);
+  ok(first.length === 5 && first.every(x => x.goIn) && host && (host.pose === 'walk' || host.inside || (h0 && Math.abs(host.z - h0.z) > 0.15)), `THE FILE-IN: all 5 on their way in (${first.filter(x => x.goIn).length}/5), the HOST first — walking to the door at 2.3 s, under the lit sign (${host && host.pose})`);
   const gone = (shots[3].r || []).filter(x => x.inside).length;
-  okT(gone >= 1, `…through the side door: by the push, ${gone} of 5 already inside (the rest go straight in with the cut)`);
-  const routed = await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the game screen', 4000).then(() => Date.now() - t0, () => null)));
-  ok(routed.every((v, i) => v != null && v - seen[i] >= 1700 && v - seen[i] <= 2900), `…the view pushes through the door into the GAME on both phones ${routed.map((v, i) => v - seen[i]).join(' / ')} ms after the start showed there (2.6 s from the stamp; ≤ 3 s)`);
+  okT(gone >= 1, `…through the side door: by the fade, ${gone} of 5 already inside (the rest go straight in with it)`);
+  const routed = await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the game screen', 7000).then(() => Date.now() - t0, () => null)));
+  ok(routed.every((v, i) => v != null && v - seen[i] >= 4100 && v - seen[i] <= 5800), `…a clean fade into the GAME on both phones ${routed.map((v, i) => v - seen[i]).join(' / ')} ms after the start showed there (the full start: 5 s from the stamp)`);
   const g = await ev(p, '({ s: window.__arcade.state.game.phaseStartAt, go: window.__arcade.state.meta.go.at })');
-  ok(Math.abs(g.s - g.go - 2600) < 400, `THE GAME's OWN CLOCK starts after the walk inside (its first phase at the tap + ${g.s - g.go} ms)`);
+  ok(Math.abs(g.s - g.go - 5000) < 400, `THE GAME's OWN CLOCK starts after the walk inside (its first phase at the tap + ${g.s - g.go} ms)`);
   // a HOST CHANGE mid-start (the next one): B takes the room the moment the start begins — the start still ends in the game, the match runs
   await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
   await waitFor(p, onTitle, 'A back on the city', 10000); await waitFor(q, onTitle, 'B back on the city', 10000);
@@ -174,10 +176,10 @@ G('gamestart', async () => {
   const t1 = Date.now(); await startOC(p);
   await waitFor(q, "!!document.querySelector('.nd-sign.rc-go')", 'B sees the start', 3000).catch(() => {});
   await dbPatch(`rooms/${code}/meta`, { hostId: meB });
-  const r2 = await waitFor(q, `!(${onTitle})`, 'B in the game', 5000).then(() => Date.now() - t1, () => null);
+  const r2 = await waitFor(q, `!(${onTitle})`, 'B in the game', 8000).then(() => Date.now() - t1, () => null);
   const ph0 = await ev(q, 'window.__arcade.state.game.phase');
   const adv = await waitFor(q, `window.__arcade.state.game.phase !== '${ph0}' || (window.__arcade.state.game.ci || 0) > 0`, 'the match moves on', 25000).then(() => true, () => false);
-  ok(r2 != null && r2 < 3600 && adv, `A HOST CHANGE MID-START: the new host's phone still lands in the game (${r2} ms) and the match runs on from the room's data (${ph0} → moved on: ${adv})`);
+  ok(r2 != null && r2 < 6400 && adv, `A HOST CHANGE MID-START: the new host's phone still lands in the game (${r2} ms) and the match runs on from the room's data (${ph0} → moved on: ${adv})`);
   // a LATE JOINER after the start: straight into the game (spectating), no walk
   const C = await open({ slot: 'gsc', qs: `${ROOMQ}&room=${code}`, view: [402, 874] }), c = C.page;
   await harborUp(c).catch(() => {}); await ev(c, "(() => { const b = document.querySelector('.nd-go'); if (b) b.click(); })()");
@@ -273,10 +275,11 @@ G('afterparty', async () => {
   await waitFor(q, "document.querySelector('.rdk-play').classList.contains('rdk-rm')", 'B REMATCH ring', 10000).catch(() => {});
   const ringA = await ev(p, "({ w: document.querySelector('.rdk-play .nd-host-label').textContent, pips: document.querySelectorAll('.rdk-pip').length, lit: document.querySelectorAll('.rdk-pip.is-on').length })");
   const ringB = await ev(q, "({ w: document.querySelector('.rdk-play .nd-host-label').textContent, wait: document.querySelector('.rdk-play').classList.contains('rdk-wait') })");
-  ok(ringA.w === 'REMATCH' && ringA.pips === 4 && ringA.lit === 0 && /REMATCH\s*VOTE/.test(ringB.w) && !ringB.wait, `THE REMATCH RING: the host's reads ${ringA.w} with ${ringA.pips} faint dots (one a guest); the guest's own ring reads "${ringB.w}" (not greyed)`);
+  ok(ringA.w === 'REMATCH' && ringA.pips === 0 && ringA.lit === 0 && /REMATCH\s*VOTE/.test(ringB.w) && !ringB.wait, `THE REMATCH RING: the host's reads ${ringA.w} — no empty dots (LOBBY FIXES: v2); the guest's own ring reads "${ringB.w}" (not greyed)`);
   // the word FITS inside the ring (the real font)
-  const fit = await ev(p, "(() => { const l = document.querySelector('.rdk-play .rdk-w1'), r = document.querySelector('.rdk-play').getBoundingClientRect(), b = l.getBoundingClientRect(); return { lw: Math.round(b.width), rw: Math.round(r.width), inside: b.left >= r.left + 6 && b.right <= r.right - 6 }; })()");
-  ok(fit.inside, `…the word REMATCH FITS inside the ring in the real font (${fit.lw} of ${fit.rw} pt)`);
+  // (LOBBY FIXES — the owner: REMATCH must sit INSIDE the ring, never on the tube: within the tube's inner circle — 0.62 of the ring's width)
+  const fit = await ev(p, "(() => { const l = document.querySelector('.rdk-play .rdk-w1'), r = document.querySelector('.rdk-play .nd-hring').getBoundingClientRect(), b = l.getBoundingClientRect(), cx = r.left + r.width / 2, inner = r.width * 0.62; return { lw: Math.round(b.width), rw: Math.round(r.width), inside: b.left >= cx - inner / 2 && b.right <= cx + inner / 2 }; })()");
+  ok(fit.inside, `…the word REMATCH sits INSIDE the ring's tube (${fit.lw} pt in its ${Math.round(fit.rw * 0.62)} pt inner circle)`);
   // B votes: a dot lights in B's colour on BOTH phones, the pill, the 👍 over B
   await ev(q, "document.querySelector('.rdk-play').click()");
   await waitFor(p, "document.querySelectorAll('.rdk-pip.is-on').length === 1", 'a dot lit on A', 6000).catch(() => {});
@@ -285,10 +288,10 @@ G('afterparty', async () => {
   await sleep(400);
   const v = await ev(p, `({ lit: document.querySelectorAll('.rdk-pip.is-on').length, pill: document.querySelector('.rdk-votes').hidden ? '' : document.querySelector('.rdk-votes').textContent, thumb: !!document.querySelector('.rc-thumb, .rc-tag.is-voted') })`);
   const vB = await ev(q, "({ w: document.querySelector('.rdk-play .nd-host-label').textContent, lit: document.querySelectorAll('.rdk-pip.is-on').length, pill: document.querySelector('.rdk-votes').textContent })");
-  ok(v.lit === 2 && /2 of 5 want a rematch/.test(v.pill) && !v.thumb && vB.lit === 2 && /✓ VOTED/.test(vB.w), `THE VOTES: 2 dots lit on both phones, "${v.pill}" — no 👍 over the people (the TIDY: ${!v.thumb}); the guest's ring: "${vB.w}"`);
+  ok(v.lit === 2 && /^\s*want a rematch\s*$/.test(v.pill) && !v.thumb && vB.lit === 2 && /✓ VOTED/.test(vB.w), `THE VOTES: 2 dots lit on both phones, "${v.pill}" — no 👍 over the people (the TIDY: ${!v.thumb}); the guest's ring: "${vB.w}"`);
   // THE TIDY (the owner, Nov 4 9:25 am): the dots in ONE row right above the ring — on screen, never over the dock's pill; the pill above the row
-  const lay = await ev(p, "(() => { const R = e => e.getBoundingClientRect(), ring = R(document.querySelector('.rdk-play')), row = R(document.querySelector('.rdk-pips')), pill = R(document.querySelector('.nd-pill, .rdk-pill')), votes = R(document.querySelector('.rdk-votes')), dots = [...document.querySelectorAll('.rdk-pip')].map(R); return { row: dots.every(d => Math.abs(d.top - dots[0].top) < 1), above: row.bottom <= ring.top + 1, onScreen: row.left >= 0 && row.right <= innerWidth && votes.right <= innerWidth && votes.left >= 0, clearPill: row.bottom <= pill.top || row.left >= pill.right, votesAbove: votes.bottom <= row.top + 1 }; })()");
-  ok(Object.values(lay).every(Boolean), `THE TIDY: the dots in ONE row right above the ring, fully on screen, clear of the dock's pill; the "want a rematch" pill above them (${JSON.stringify(lay)})`);
+  const lay = await ev(p, "(() => { const R = e => e.getBoundingClientRect(), ring = R(document.querySelector('.rdk-play')), pill = R(document.querySelector('.nd-pill, .rdk-pill')), votes = R(document.querySelector('.rdk-votes')), dots = [...document.querySelectorAll('.rdk-votes .rdk-pip')].map(R); return { inPill: dots.length === 2 && dots.every(d => d.left >= votes.left && d.right <= votes.right), above: votes.bottom <= ring.top + 2, onScreen: votes.right <= innerWidth && votes.left >= 0, clearPill: votes.bottom <= pill.top || votes.left >= pill.right }; })()");
+  ok(Object.values(lay).every(Boolean), `LOBBY FIXES v2: ONE small pill right above the ring — only the lit voters' dots + "want a rematch", fully on screen, clear of the dock's pill (${JSON.stringify(lay)})`);
   if (SHOTS) { await p.screenshot({ path: `${OUT}room2-vote-host-402.png` }); await q.screenshot({ path: `${OUT}room2-vote-guest-402.png` }); }
   // take it back
   await ev(q, "document.querySelector('.rdk-play').click()");

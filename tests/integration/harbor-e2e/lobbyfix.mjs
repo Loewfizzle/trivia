@@ -4,7 +4,7 @@
 //              MOVE HERE takes the seat + the first walks out), a third hosting another room takes it from the second
 // ADDING A GROUP: G('name', …) here + the name in ../harbor-jobs.mjs (CI_JOBS.lobbyfix).
 import { log, sleep, ok, open, ev, waitFor, harborUp, dbPut, G, OUT, SHOTS, NIGHT } from './kit.mjs';
-import { dbPatch, dbGet, ROOMQ, hostRoom, joinRoom, settledRoom, topAt } from './lobby2.mjs';
+import { dbPatch, dbGet, ROOMQ, hostRoom, joinRoom, settledRoom, topAt, fakeGuests, startOC, onTitle, podium } from './lobby2.mjs';
 
 /** this slot's profile record (me.js) once the server has linked it */
 const meOf = async (p, slot) => { await waitFor(p, `(() => { try { const m = JSON.parse(localStorage.getItem('na:${slot}:me') || 'null'); return !!(m && m.pid); } catch { return false; } })()`, `${slot}'s profile`, 20000); return ev(p, `JSON.parse(localStorage.getItem('na:${slot}:me'))`); };
@@ -234,4 +234,62 @@ G('hostcard', async () => {
   const pulse = await ev(T.p, "document.querySelector('.rdk-invite').classList.contains('rdk-pulse')");
   ok(gone && !pulse, `… a tap closes the card (${gone}); a tap on INVITE stops the breathing (${!pulse})`);
   await T.Q.ctx.close().catch(() => {});
+});
+
+// THE NEW GAME START (the owner, Nov 4 3:05–3:06 pm — no camera push): the FULL start (~5 s): NEON powers down → the game's OWN sign ignites
+// in the NEON pink, tube by tube, holds → the lines walk in under it → a clean fade (the city never scales); AFTER THE MATCH (change-game v2):
+// the host's GAMES tab = NEW GAME in cyan, breathing until tapped; the guest's stays GAMES; a same-game REMATCH = the QUICK start (~3 s)
+const signState = p => ev(p, `(() => { const s = document.querySelector('.nd-sign'), t = document.querySelector('.rc-tonight'), L = t ? [...t.querySelectorAll('.ndl-light')] : [];
+  const op = e => +getComputedStyle(e).opacity; const lay = [document.querySelector('.title-screen'), document.querySelector('.nd-scene')].filter(Boolean).map(e => getComputedStyle(e).transform);
+  return { go: !!(s && s.classList.contains('rc-go')), quick: !!(s && s.classList.contains('rc-quick')), full: !!(s && s.classList.contains('rc-full')), shown: t ? op(t) : 0, tubes: L.length, lit: L.filter(e => op(e) > 0.9).length,
+    pink: !!(t && /ff2e97/i.test(t.innerHTML)), scaled: lay.some(x => x && x !== 'none' && !/^matrix\\(1, 0, 0, 1, 0, 0\\)$/.test(x)), m: window.__arcade.state.meta && window.__arcade.state.meta.go && window.__arcade.state.meta.go.m }; })()`);
+const ageOf = p => ev(p, '(() => { const g = window.__arcade.state.meta.go; return g ? window.__arcade.serverNow() - g.at : null; })()');
+
+G('newstart', async () => {
+  const { Q: A, p, code, me } = await hostRoom('nsa');
+  const { Q: B, p: q } = await joinRoom('nsb', code);
+  await fakeGuests(code, 2);
+  await settledRoom(p, 4, 40000).catch(() => {}); await settledRoom(q, 4, 40000).catch(() => {});
+  // ---- THE FULL START (a room's first game): sampled at its beats on the host's phone
+  const t0 = Date.now();
+  await startOC(p);
+  const at = async ms => { await waitFor(p, `window.__arcade.state.meta.go && window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= ${ms}`, `the start at ${ms}`, 7000).catch(() => {}); return { ...(await signState(p)), age: await ageOf(p) }; };
+  const s1 = await at(420), s2 = await at(2300);
+  if (SHOTS) await p.screenshot({ path: `${OUT}newstart-full-2300.png` });
+  const walk = await ev(p, `(() => { const r = window.__district.room(); const h = r && r.people.find(x => x.uid === '${me}'); return h ? { pose: h.s && h.s.pose, inside: h.inside } : null; })()`);
+  const s3 = await at(4000);
+  ok(s1.go && s1.full && s1.lit === 0, `THE FULL START: NEON powers down first — the game's sign not lit yet at ${s1.age} ms (${s1.lit} tubes lit)`);
+  ok(s2.tubes >= 6 && s2.lit === s2.tubes && s2.pink && s2.shown > 0.95, `…THE GAME's OWN SIGN lit for real — every tube (${s2.lit}/${s2.tubes}) in the NEON pink by ${s2.age} ms`);
+  ok(s3.lit === s3.tubes && s3.shown > 0.95, `…and it HOLDS (still all lit at ${s3.age} ms — readable ~3 s)`);
+  ok(walk && (walk.pose === 'walk' || walk.inside), `…the lines walk in UNDER the lit sign (the host at 2.3 s: ${walk && (walk.inside ? 'inside' : walk.pose)})`);
+  ok(![s1, s2, s3].some(x => x.scaled), 'NO CAMERA PUSH: the city + the screen never scale');
+  const routed = await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the game', 8000).then(() => Date.now() - t0, () => null)));
+  ok(routed.every(v => v != null && v >= 4300 && v <= 6200), `…a clean fade into the game on both phones (${routed.join(' / ')} ms after the tap — the full start is 5 s)`);
+  // ---- AFTER THE MATCH: NEW GAME (host only), breathing until tapped
+  await podium(p, code, [me]); await sleep(600);
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await Promise.all([p, q].map(x => waitFor(x, onTitle, 'back', 12000)));
+  await waitFor(p, "document.querySelector('.rdk-play').classList.contains('rdk-rm')", 'the REMATCH ring', 30000).catch(() => {});
+  const ng = await ev(p, "(() => { const t = document.querySelector('.rdk-games'); return { lbl: t.textContent, breathe: t.classList.contains('rdk-breathe'), col: getComputedStyle(t.querySelector('.rdk-lbl')).color }; })()");
+  const ngB = await ev(q, "document.querySelector('.rdk-games').textContent");
+  ok(/NEW GAME/.test(ng.lbl) && ng.breathe && /143, 246, 255/.test(ng.col) && /GAMES/.test(ngB) && !/NEW GAME/.test(ngB), `AFTER THE MATCH: the host's tab reads NEW GAME in cyan (${ng.col}) and breathes; the guest's still GAMES ("${ngB}")`);
+  const pill = await ev(p, "document.querySelector('.rdk-votes').hidden");
+  ok(pill, '…no pill until someone votes (no empty dots, no count)');
+  if (SHOTS) await p.screenshot({ path: `${OUT}newstart-aftermatch-host.png` });
+  await ev(p, "document.querySelector('.rdk-games').click()");
+  await waitFor(p, "!!document.querySelector('.rc-games-sheet')", 'the game list', 6000).catch(() => {});
+  const calm = await ev(p, "(() => { const t = document.querySelector('.rdk-games'); return { lbl: t.textContent, breathe: t.classList.contains('rdk-breathe') }; })()");
+  ok(/NEW GAME/.test(calm.lbl) && !calm.breathe, `…tapped → the game list; NEW GAME stops breathing ("${calm.lbl}")`);
+  await ev(p, "(() => { const b = document.querySelector('.rc-games-sheet .pfs-back'); if (b) b.click(); })()"); await sleep(500);
+  // ---- THE QUICK START (a same-game REMATCH): the sign lit at once, the walk-in, the fade — ~3 s
+  const t1 = Date.now();
+  await ev(p, "document.querySelector('.rdk-play').click()");
+  await waitFor(p, "!!document.querySelector('.nd-sign.rc-go')", 'the rematch start', 5000).catch(() => {});
+  const r1 = await (async () => { await waitFor(p, 'window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= 450', 'q 450', 5000).catch(() => {}); return { ...(await signState(p)), age: await ageOf(p) }; })();
+  ok(r1.quick && /^q/.test(r1.m) && r1.lit === r1.tubes && r1.tubes >= 6 && !r1.scaled, `THE QUICK START (a REMATCH — match ${r1.m}): the game's sign already lit at ${r1.age} ms (${r1.lit}/${r1.tubes}), no push`);
+  const routed2 = await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the rematch', 8000).then(() => Date.now() - t1, () => null)));
+  ok(routed2.every(v => v != null && v >= 2400 && v <= 4200), `…in the game on both phones ${routed2.join(' / ')} ms after the tap (the quick start is 3 s)`);
+  const clock = await ev(p, '({ s: window.__arcade.state.game.phaseStartAt, go: window.__arcade.state.meta.go.at })');
+  ok(Math.abs(clock.s - clock.go - 3000) < 400, `…the game's own clock starts after the quick start (the tap + ${clock.s - clock.go} ms)`);
+  await A.ctx.close(); await B.ctx.close();
 });

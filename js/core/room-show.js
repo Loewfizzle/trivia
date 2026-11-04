@@ -1,16 +1,33 @@
 // LOBBY 2.0 B — THE ROOM's SHOWS, on the server clock (PURE: the phone + the tests; docs/harbor/passes/lobby-2b.md). Every phone in a room
 // sees the same moment at the same time — each derives it from the room's own stamps (rooms/{CODE}/meta), never from a local timer:
-//   meta/go   = { at, m, g }        the host's tap on INITIATE / REMATCH (server time) — THE GAME START: the sign powers down, the game's
-//                                    logo lights, the TWO LINES file in through the side door, the view pushes through it (START_MS)
+//   meta/go   = { at, m, g }        the host's tap on INITIATE / REMATCH (server time) — THE GAME START (LOBBY FIXES — the owner, Nov 4
+//                                    3:05–3:06 pm: NO camera push — choppy on the phone): the door's sign powers down, THE GAME's OWN NEON
+//                                    SIGN ignites (pink, tube by tube) + holds, the TWO LINES walk in under it, a clean fade — ~5 s (the
+//                                    FULL start: a room's first game of the night + after a game change); a same-game REMATCH ~3 s (the
+//                                    QUICK start: the sign already lit, the walk-in only). The kind rides in the match id (startKind)
 //   meta/back = { at, m, g, rm }    the match's end (the host's back to the room) — everyone WALKS BACK OUT through the door to their
 //                                    places, then THE WINNER's BANNER PLANE; rm = the REMATCH ring is up (false once the host picks another game)
 // A refresh, a rejoin, a late joiner or a NEW HOST reads the same stamps → the same frame of the same show (or nothing, once it's over).
 import { roomOrder } from './harbor-room.js';
 
-/** the game start's length (the owner: "2–3 s MAX, on every phone at once from the host's tap") — the game's own clock starts after it */
-export const START_MS = 2600;
-/** when the view pushes through the door (the last part of the start) */
-export const PUSH_AT_MS = 1950;
+/** THE GAME START's two lengths + their beats (ms from the host's tap) — the game's own clock starts at `len`:
+ *  sign: the game's sign ignites from here (the full start; the quick one shows it lit at once) · walkAt: the file-in's first step ·
+ *  fadeAt: the clean fade to the game begins (over len − fadeAt) */
+export const START = Object.freeze({
+  full: Object.freeze({ len: 5000, sign: 560, walkAt: 1500, fadeAt: 4300 }),
+  quick: Object.freeze({ len: 3000, sign: 0, walkAt: 250, fadeAt: 2350 }),
+});
+/** the LONGEST start (the safety limits read it) */
+export const START_MS = START.full.len;
+/** THE START's KIND from the match id: the host marks a same-game rematch's id with a leading 'q' (host.js#newMatchId) — the meta/go stamp's
+ *  fields are fixed by the published rules, its `m` is not, and game.go's fallback carries the same id: every phone, every rules version */
+export const startKind = m => (typeof m === 'string' && m[0] === 'q' ? 'quick' : 'full');
+export const startOf = m => START[startKind(m)];
+/** a new match id: 'q' + 5 for a same-game rematch (the quick start), otherwise never a leading 'q' */
+export function newMatchId(quick = false, rnd = Math.random) {
+  let id = ''; while (id.length < 6) { const c = Math.floor(rnd() * 36).toString(36); if (id.length || quick || c !== 'q') id += c; }
+  return quick ? `q${id.slice(1)}` : id;
+}
 /** the file-in's stagger: the host first, then the lines alternating (L0 R0 L1 R1 …), one every IN_GAP s */
 export const IN_GAP = 0.16;
 /** the walk back out: one through the door every OUT_GAP s (the host first); the city's fade-in before the first */
@@ -55,7 +72,7 @@ export function goWaiting(meta, game, now) {
   if (!go || typeof go.at !== 'number' || meta.status !== 'lobby' || (game && game.matchId)) return null;
   return now - go.at;
 }
-/** THE GAME START now? → { on, age (ms since the tap), push (0..1 — the push through the door), m, g } | { on: false }. The stamp goes up
+/** THE GAME START now? → { on, age (ms since the tap), kind, len, sign, walkAt, fadeAt, fade (0..1 — the fade to the game), m, g } | { on: false }. The stamp goes up
  *  BEFORE the match (host.js#startGame): on while the host prepares it (the room still 'lobby', no game yet) and once it's written (the
  *  room 'playing', that match) — never for another match */
 export function startShow(meta, game, now) {
@@ -63,10 +80,10 @@ export function startShow(meta, game, now) {
   if (!go || !meta) return { on: false };
   const ready = meta.status === 'playing' && game && go.m === game.matchId, prep = meta.status === 'lobby' && !(game && game.matchId);
   if (!ready && !prep) return { on: false };
-  const age = now - go.at;
-  if (age < -500 || age >= START_MS) return { on: false, done: age >= START_MS };
+  const age = now - go.at, S = startOf(go.m);
+  if (age < -500 || age >= S.len) return { on: false, done: age >= S.len };
   const a = Math.max(0, age);
-  return { on: true, age: a, push: Math.max(0, Math.min(1, (a - PUSH_AT_MS) / (START_MS - PUSH_AT_MS))), m: go.m, g: go.g };
+  return { on: true, age: a, kind: startKind(go.m), ...S, fade: Math.max(0, Math.min(1, (a - S.fadeAt) / (S.len - S.fadeAt))), m: go.m, g: go.g };
 }
 
 /** the file-in: each player's start (seconds from the tap) in the order host first, then the lines alternating */

@@ -29,7 +29,7 @@ import { installSettingsPanel } from './ui/settings-panel.js';
 import { showBackdrop } from './screens/district/backdrop.js';
 import { settings, onSettings, PAGE_SILENT } from './audio/settings.js';
 import { lazyView } from './games/lazy-view.js';
-import { startShow, START_MS } from './core/room-show.js';
+import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
 
 // THE BOARD and the profile load only when opened (they're behind the title's buttons)
@@ -74,7 +74,7 @@ function goTimer(st) {
   const s = startShow(st.meta, st.game, serverNow());
   if (goM === st.game.matchId && goT) return;
   goM = st.game.matchId; clearTimeout(goT);
-  goT = setTimeout(() => { goT = 0; render(state); }, Math.max(0, (s.on ? START_MS - s.age : 0)) + 20);
+  goT = setTimeout(() => { goT = 0; render(state); }, Math.max(0, (s.on ? s.len - s.age : 0)) + 20);
 }
 
 function makeScreen(key) {

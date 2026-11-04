@@ -31,13 +31,15 @@ export function logoLines(game) {
  * A game's tube logo. opts: { id (unique: its filter ids), lit (always on), blur, premium (the glass wall), pad }.
  * The box: the mark (100 × 100) on the left, the name to its right; the viewBox fits the content.
  */
-export function gameLogoSvg(game, { id = `tl-${game.id}`, lit = false, blur = 1, pad = 24, premium = false } = {}) {
+/** the NEON sign's own pink (ui/logo.js#PINK.glow) — LOBBY FIXES: THE GAME START lights the game's sign in it */
+export const NEON_PINK = '#ff2e97';
+export function gameLogoSvg(game, { id = `tl-${game.id}`, lit = false, blur = 1, pad = 24, premium = false, tint = null } = {}) {
   const T = 7;                                     // the tube's width (the NEON logo's is 9 at a 100-high sign; this one's letters are smaller)
-  const acc = LOGO_ACC[game.id] || '#9fd8ff', lines = logoLines(game);
+  const acc = tint || LOGO_ACC[game.id] || '#9fd8ff', lines = logoLines(game);   // (tint: every tube one colour — the mark too)
   const lh = lines.length > 1 ? 42 : 56, s = lh / 14, lw = 10 * s, gap = lw * 0.32;
   const tubes = [];
   // the mark
-  for (const t of markFor(game).tubes) tubes.push({ d: t.d, col: t.col, mark: true });
+  for (const t of markFor(game).tubes) tubes.push({ d: t.d, col: tint || t.col, mark: true });
   // the letters, line by line, from x 118
   lines.forEach((ln, li) => {
     const y0 = lines.length > 1 ? 4 + li * (lh + 10) : (100 - lh) / 2;

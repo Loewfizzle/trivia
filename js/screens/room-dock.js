@@ -52,10 +52,19 @@ export function createRoomDock(on) {
   d.tabs = () => [E.guestsTab, E.gamesTab, E.youTab];
 
   let last = '';
-  /** v = { host (am I the host), hostName, guestsDot, chatDot, chatN, you (an element: the emblem), youAria, invitePulse (LOBBY FIXES),
+  /** v = { host (am I the host), hostName, guestsDot, chatDot, chatN, you (an element: the emblem), youAria, invitePulse + newGame (LOBBY FIXES),
    *        rm?: { on, voted (mine), n (votes), total (everyone), pips: [{ col (hex), on }] } — THE REMATCH VOTE } */
   d.set = v => {
     const rm = v.rm && v.rm.on ? v.rm : null;
+    // (LOBBY FIXES — AFTER THE MATCH, change-game.png v2 APPROVED: the host's GAMES tab reads NEW GAME in cyan and BREATHES (opacity + scale)
+    //  until it is tapped or a game starts; v.newGame = 'breathe' | 'calm' | null)
+    const ng = v.newGame || null;
+    if ((E.gamesTab.dataset.ng || '') !== (ng || '')) {
+      E.gamesTab.dataset.ng = ng || '';
+      E.gamesTab.classList.toggle('rdk-newgame', !!ng); E.gamesTab.classList.toggle('rdk-breathe', ng === 'breathe');
+      E.gamesTab.querySelector('.rdk-lbl').textContent = ng ? 'NEW GAME' : 'GAMES';
+      E.gamesTab.setAttribute('aria-label', ng ? 'New game — pick another game' : 'The games');
+    }
     const k = `${v.host ? 1 : 0}|${v.hostName || ''}|${v.guestsDot ? 1 : 0}|${v.chatDot ? 1 : 0}|${v.chatN || 0}|${rm ? `${rm.voted ? 1 : 0}${rm.n}/${rm.total}:${rm.pips.map(p => `${p.col}${p.on ? 1 : 0}`).join(',')}` : ''}`;
     // (LOBBY FIXES — AFTER HOST: the INVITE ring breathes until the host invites someone or a guest arrives — opacity + scale only, CSS)
     if (E.joinTab.classList.contains('rdk-pulse') !== !!v.invitePulse) E.joinTab.classList.toggle('rdk-pulse', !!v.invitePulse);
@@ -75,12 +84,13 @@ export function createRoomDock(on) {
       hl.querySelector('.rdk-w1').textContent = v.host ? 'PLAY' : 'WAITING';
       hl.querySelector('.rdk-w2').textContent = v.host ? '' : `FOR ${String(v.hostName || 'THE HOST').toUpperCase().slice(0, 12)}`;
     }
-    // the dots: one row above the ring, in the room's order (left → right)
-    const pips = rm ? rm.pips : [];
-    E.pips.replaceChildren(...pips.map(p => h('i.rdk-pip', { class: p.on ? 'is-on' : '', style: { '--c': p.col } })));
-    E.pips.hidden = !pips.length;
-    E.votes.hidden = !(rm && rm.n > 0);
-    E.votes.replaceChildren(...(rm && rm.n > 0 ? [h('b', `${rm.n} of ${rm.total}`), ` want${rm.n === 1 ? 's' : ''} a rematch`] : []));
+    // (LOBBY FIXES — change-game.png v2: ONE small pill right above the ring = ONLY the lit voters' dots (their colours) + "want a rematch" —
+    //  no empty dots, no count; nothing until someone votes)
+    const lit = rm ? rm.pips.filter(p => p.on) : [];
+    E.pips.replaceChildren(); E.pips.hidden = true;
+    E.votes.hidden = !lit.length;
+    E.votes.replaceChildren(...(lit.length ? [h('span.rdk-vdots', ...lit.map(p => h('i.rdk-pip.is-on', { style: { '--c': p.col } }))), h('span.rdk-vw', 'want a rematch')] : []));
+    E.votes.setAttribute('aria-label', lit.length ? `${lit.length} want${lit.length === 1 ? 's' : ''} a rematch` : '');
     E.guestsTab.querySelector('.rdk-dot').hidden = !v.guestsDot;
     E.guestsTab.setAttribute('aria-label', v.guestsDot ? 'The guest list — someone new joined' : 'The guest list');
     E.chatTab.querySelector('.rdk-dot').hidden = !v.chatDot;

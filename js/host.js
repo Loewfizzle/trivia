@@ -5,7 +5,7 @@
 // Nothing here keeps game state locally — every decision is re-derived from the
 // mirrored database state on each tick, so any client can take over at any time.
 import { dbRef, update, remove, runTransaction, serverTimestamp, serverNow } from './firebase.js';
-import { START_MS, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
+import { startOf, newMatchId, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
 import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
@@ -154,16 +154,16 @@ export function onlineCount() {
 // ring, INITIATE, the podium's REMATCH) gets the SAME promise while a start is in flight, and through the walk inside after it (START_MS):
 // a second tap during the show is the same start, never a second match.
 let starting = null;
-export function startGame(gameId, settings) {
+export function startGame(gameId, settings, { quick = false } = {}) {
   if (starting) return starting;
-  const p = startGameNow(gameId, settings);
+  const p = startGameNow(gameId, settings, quick);
   starting = p;
-  p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? START_MS : 0), () => { if (starting === p) starting = null; });
+  p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? startOf(quick ? 'q' : '').len : 0), () => { if (starting === p) starting = null; });
   return p;
 }
 /** (tests) a start in flight or in its walk */
 export const startBusy = () => !!starting;
-async function startGameNow(gameId, settings) {
+async function startGameNow(gameId, settings, quick = false) {
   const mod = GAME_MODULES[gameId];
   if (!mod || !isHost()) return false;
   // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)
@@ -172,14 +172,16 @@ async function startGameNow(gameId, settings) {
   for (const uid of Object.keys(state.players)) if (isOnline(state.presence, uid)) participants[uid] = true;
   const min = minPlayersOf(mod, MIN_PLAYERS);   // (THE CARTRIDGE PLUG: MIN_PLAYERS above the app's, or SOLO = 1)
   if (Object.keys(participants).length < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return false; }
-  const matchId = Math.random().toString(36).slice(2, 8);
+  // (LOBBY FIXES — THE NEW GAME START: a same-game REMATCH's id starts with 'q' = the QUICK start (~3 s, the sign already lit); every other
+  //  start is the FULL one (~5 s) — core/room-show.js#startKind: every phone reads the kind from the stamp's match id)
+  const matchId = newMatchId(quick);
   // (LOBBY 2.0 B — THE GAME START: the start's stamp goes up FIRST — every phone begins the walk inside at the host's tap, while this phone
   //  prepares the match (a question bank, a song); the game's OWN clock starts when the walk ends (START_MS later): a cartridge's start()
   //  gets the moment its match begins, never the tap — docs/cartridge.md. The stamp also ends the last match's walk-out, its REMATCH ring +
   //  every vote. A start that fails takes the stamp back down.)
   const tGo = serverNow();
   await update(dbRef(`rooms/${state.code}`), { 'meta/go': { at: serverTimestamp(), m: matchId, g: gameId }, 'meta/back': null, rv: null }).catch(e => stampRefused('go', e));
-  const created = await mod.start({ code: state.code, matchId, settings, participants, now: tGo + START_MS + 150 }).catch(e => { console.warn('start', e); return null; });
+  const created = await mod.start({ code: state.code, matchId, settings, participants, now: tGo + startOf(matchId).len + 150 }).catch(e => { console.warn('start', e); return null; });
   if (!created) { update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {}); toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
@@ -205,7 +207,7 @@ export function rematch() {
   const id = state.game ? state.game.id : back.g;
   const mod = GAME_MODULES[id];
   const settings = (state.meta.settings && state.meta.settings[id]) || (state.game && state.game.settings) || (mod && mod.DEFAULT_SETTINGS) || {};
-  return startGame(id, rematchSettingsOf(mod, settings, state.game));   // (THE CARTRIDGE PLUG: a game may adjust its rematch)
+  return startGame(id, rematchSettingsOf(mod, settings, state.game), { quick: true });   // (THE CARTRIDGE PLUG: a game may adjust its rematch)   // (LOBBY FIXES: the QUICK start)
 }
 
 // (LOBBY 2.0 B — the owner's real-phone test: a refused stamp went unseen. Now it's in the phones' error log (/admin) once a session: the

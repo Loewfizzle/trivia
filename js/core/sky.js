@@ -560,6 +560,8 @@ export function look(ms, tz, { alwaysNight = false, wx = null } = {}) {
 // phone, whatever its own clock says (the music plays them on the server clock: audio/party-music.js)
 let REAL_NOW = () => Date.now();
 export function setRealNow(fn) { REAL_NOW = typeof fn === 'function' ? fn : () => Date.now(); }
+/** when this page loaded (a &when= preview's clock runs from here — skyClock) */
+const PAGE_T0 = Date.now();
 export function skyClock(search = (typeof location !== 'undefined' ? location.search : '')) {
   const q = new URLSearchParams(search || '');
   const zone = cleanZone(q.get('tz')), tz = zone.tz;   // (NIGHT-A: never a raw &tz= into Intl)
@@ -586,9 +588,11 @@ export function skyClock(search = (typeof location !== 'undefined' ? location.se
       base = guess;
     }
   }
-  const t0 = Date.now();
+  // (LOBBY FIXES: a &when= preview runs from the PAGE's load — a city rebuilt in the same page (THE CITY PAUSE after a match) carries on at the
+  //  same moment instead of starting the link's time again)
   // &speed=60: the clock runs 60× (test-only: watch an hour of dusk in a minute)
   const speed = Math.max(1, Math.min(3600, Number(q.get('speed')) || 1));
+  const t0 = base != null && speed === 1 ? PAGE_T0 : Date.now();
   const start = base == null ? t0 : base;
   if (wx && rained != null) wx.wetAt = start - rained * 60_000;
   // (live: the real time at the real speed — City 2.0 runs that on the SERVER clock, so the party's songs + breaks agree on every phone)

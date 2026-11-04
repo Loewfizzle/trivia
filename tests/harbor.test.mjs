@@ -3330,7 +3330,7 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable; the five sign games; eve
   const host = readFileSync(new URL('../js/host.js', import.meta.url), 'utf8');
   const sg = host.slice(host.indexOf('async function startGameNow'), host.indexOf('export function rematch'));
   assert.ok(/if \(!isPlayable\(gameId\)\)[^\n]*return false/.test(sg) && sg.indexOf('isPlayable') < sg.indexOf('mod.start('), 'startGame refuses a hidden game first');
-  assert.ok(/return startGame\(id, (?:settings|rematchSettingsOf\(mod, settings, state\.game\))\)/.test(host.slice(host.indexOf('export function rematch'))), 'a rematch goes through startGame');   // (LOBBY 2.0 B: + the cartridge's rematch settings)
+  assert.ok(/return startGame\(id, (?:settings|rematchSettingsOf\(mod, settings, state\.game\))(?:, \{ quick: true \})?\)/.test(host.slice(host.indexOf('export function rematch'))), 'a rematch goes through startGame');   // (LOBBY 2.0 B: + the cartridge's rematch settings)   // (LOBBY FIXES: + the quick start)
   assert.ok(/for \(const g of GAMES\.filter\(x => x\.playable\)\)/.test(readFileSync(new URL('../js/screens/lobby.js', import.meta.url), 'utf8')), 'the lobby lists the playable games only');
   assert.ok(/GAMES\.filter\(x => x\.playable \|\| x\.id === current\)/.test(readFileSync(new URL('../js/ui/help.js', import.meta.url), 'utf8')), 'HOW TO PLAY: the playable tabs (+ the match on screen)');
   const title = readFileSync(new URL('../js/screens/title.js', import.meta.url), 'utf8');

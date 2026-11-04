@@ -17,7 +17,7 @@ for (const w of SIZES) {
   const fakes = await fakeGuests(code, 5);
   await settledRoom(p, 7, 45000).catch(() => {});
   await startOC(p);
-  for (const ms of [300, 700, 1300, 2150]) { await age(p, ms); await p.screenshot({ path: `${OUT}start-${w}-${ms}.png` }); }
+  for (const ms of [300, 900, 1250, 2300, 4000, 4700]) { await age(p, ms); await p.screenshot({ path: `${OUT}start-${w}-${ms}.png` }); }   // (LOBBY FIXES: the full start — the ignition, the hold + the walk-in, the fade)
   await waitFor(p, `!(${onTitle})`, 'the game', 8000);
   await podium(p, code, [meB]);
   await sleep(600);
@@ -32,13 +32,16 @@ for (const w of SIZES) {
   await ev(q, "document.querySelector('.rdk-play').click()");
   await sleep(1200);
   await p.screenshot({ path: `${OUT}vote-host-${w}.png` }); await q.screenshot({ path: `${OUT}vote-guest-${w}.png` });
+  // (LOBBY FIXES: the QUICK start — a same-game REMATCH: the sign lit at once, the walk-in)
+  await ev(p, "document.querySelector('.rdk-play').click()");
+  for (const ms of [400, 1500]) { await age(p, ms); await p.screenshot({ path: `${OUT}quick-${w}-${ms}.png` }); }
   log('look', w, 'done');
   await A.ctx.close(); await B.ctx.close();
 }
 // reduced motion: the start's plain fade + the banner's still card (402)
 { const { Q: A, p, code } = await hostRoom('lkrm', [402, 874], { qs: NIGHTQ, init: RM });
   await fakeGuests(code, 2); await settledRoom(p, 3, 30000).catch(() => {});
-  await startOC(p); await age(p, 1300); await p.screenshot({ path: `${OUT}start-rm-1300.png` });
+  await startOC(p); await age(p, 1300); await p.screenshot({ path: `${OUT}start-rm-1300.png` }); await age(p, 4600); await p.screenshot({ path: `${OUT}start-rm-4600.png` });
   await waitFor(p, `!(${onTitle})`, 'the game', 8000);
   const g = await ev(p, '({ m: window.__arcade.state.game.matchId, players: window.__arcade.state.players })');
   const pts = {}, n = {}; Object.keys(g.players).forEach((u, i) => { pts[u] = i === 0 ? 3 : 1; n[u] = g.players[u].name; });

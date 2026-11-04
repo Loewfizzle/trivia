@@ -22,7 +22,7 @@ import { sfx } from '../audio/sfx.js';
 import { openHelp } from '../ui/help.js';
 import { reducedMotion } from '../ui/dom.js';
 import { closeAll } from '../ui/layers.js';
-import { startShow, fileInOrder, backShow, voteState, START_MS, PUSH_AT_MS, GO_DEAD_MS, goWaiting } from '../core/room-show.js';
+import { startShow, fileInOrder, backShow, voteState, GO_DEAD_MS, goWaiting } from '../core/room-show.js';
 import { createRoomBanner } from './room-banner.js';
 
 const rgbOf = id => { const x = colorHex(id).replace('#', ''); return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
@@ -57,7 +57,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     },
     you: () => { sfx('select'); import('./profile.js').then(m => m.openCard()); },
     guests: () => { sfx('select'); openGuests(); },
-    games: () => { sfx('select'); openGames(isHost()); },
+    games: () => { sfx('select'); ngTapped(); openGames(isHost()); },
     chat: () => { sfx('tap'); import('../chat/ui.js').then(m => m.openChat()); },
     note: () => onNote(),
   });
@@ -105,6 +105,11 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     setTimeout(() => { if (hostCard && hostCard.el === el) document.addEventListener('pointerdown', onDown, true); }, 250);
     hostCard = { el, t: setTimeout(closeHostCard, HOST_CARD_MS), off: () => document.removeEventListener('pointerdown', onDown, true) };
   }
+
+  // (LOBBY FIXES — AFTER THE MATCH: NEW GAME breathes until the host taps it — once per match back in the room)
+  const ngKey = () => `rc:ng:${code()}:${(st.meta && st.meta.back && st.meta.back.m) || ''}`;
+  const ngSeen = () => flag(ngKey());
+  const ngTapped = () => { if (isHost() && voteNow().on) { flag(ngKey(), true); paintDock(); } };
 
   // ---------------------------------------------------------------- GAMES / PLAY: the playable games (the host picks → the options + INITIATE)
   let gamesOpen = null;
@@ -256,7 +261,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const unread = chatMod ? chatMod.chat.unread || 0 : 0;
     const vs = voteNow();
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
-    dock.set({ host: isHost(), hostName: hostName(), invitePulse: isHost() && ids.length === 1 && !invited(), guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
+    dock.set({ host: isHost(), hostName: hostName(), invitePulse: isHost() && ids.length === 1 && !invited(), newGame: isHost() && vs.on ? (ngSeen() ? 'calm' : 'breathe') : null, guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
       you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm });
   }
   function paintBubbles() {
@@ -283,50 +288,48 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   }
   const noteT = setInterval(() => { if (!destroyed) { paintNotes(); paintBubbles(); paintDock(); startFx(); } }, 2000);   // (+ FR6 FIXES A: a start past its time ends on the clock, not on a state change)   // (+ the dock: the REMATCH ring comes up on the clock)
 
-  // ---------------------------------------------------------------- LOBBY 2.0 B — THE GAME START (the owner, Nov 4 7:56 am: "as planned")
-  // From the host's tap, on every phone at once (meta/go on the server clock — core/room-show.js), START_MS (2.6 s) at most:
-  //   the speakeasy's NEON sign POWERS DOWN (a flicker out) → the GAME's own tube logo POWERS UP on it under "TONIGHT" → the TWO LINES file
-  //   in through the side door (people.js — the host first, the lines alternating) → the view PUSHES THROUGH THE DOOR (the screen scales
-  //   toward the door + a dark veil) → app.js routes to the game. Every part is a CSS animation started at a NEGATIVE delay = the show's age:
-  //   a refresh / a late joiner / a new host mid-start lands on the same frame. transform + opacity only. Reduced motion: no flicker, no
-  //   walk, no push — the sign swaps by a plain fade and the city cross-fades to the game.
+  // ---------------------------------------------------------------- THE GAME START — REDONE (LOBBY FIXES — the owner, Nov 4 3:05–3:06 pm: DROP
+  // the camera push-in through the door — choppy on the phone). From the host's tap, on every phone at once (meta/go on the server clock —
+  // core/room-show.js#START), THE FULL START (~5 s — a room's first game of the night + after a game change):
+  //   the speakeasy's NEON sign POWERS DOWN (a flicker out) → THE GAME's OWN NEON SIGN IGNITES on it — pink, the NEON logo's tube quality,
+  //   tube by tube with a real ignition flicker, then steady — under "TONIGHT", and HOLDS so its name reads → the TWO LINES walk in through
+  //   the side door under the lit sign → a short clean fade into the game. THE QUICK START (a same-game REMATCH, ~3 s): the game's sign is
+  //   lit at once — the walk-in + the fade only. Every part is a CSS animation at a NEGATIVE delay = the show's age (a refresh / a late
+  //   joiner / a new host lands on the same frame); opacity only; nothing reads layout. Reduced motion: the lit sign by a plain fade + the fade.
   let goFx = null;
+  const tubeDelay = i => (i * 137 + (i % 3) * 61) % 460;   // (each tube catches on its own beat — the same on every phone)
   function startFx() {
     const ss = startShow(st.meta, st.game, serverNow());
     // (past the start with the match still being prepared — a slow bank / song: the veil holds WHILE THE STAMP IS UP, at most GO_DEAD_MS (FR6
-    //  FIXES A — B3: a 12-s start used to lift the veil at 9 s, relight the sign, then hard-cut into the game); a failed / dead start takes
-    //  the stamp down (host.js) → the veil lifts on every phone with THE START DIDN'T GO THROUGH (B2))
+    //  FIXES A — B3); a failed / dead start takes the stamp down (host.js) → the veil lifts on every phone with THE START DIDN'T GO THROUGH (B2))
     const wAge = goWaiting(st.meta, st.game, serverNow()), waiting = wAge != null && wAge < GO_DEAD_MS;
     if (!ss.on) {
-      if (goFx && waiting && wAge > START_MS + 600 && !goFx.slow) { goFx.slow = true; goFx.veil.append(h('div.rc-veil-note', 'GETTING THE GAME READY…')); }
+      if (goFx && waiting && wAge > goFx.len + 600 && !goFx.slow) { goFx.slow = true; goFx.veil.append(h('div.rc-veil-note', 'GETTING THE GAME READY…')); }
       if (goFx && !(st.meta && st.meta.status === 'playing') && !waiting) { const m = goFx.m; endFx(); startDied(m); }
       return;
     }
     if (goFx && goFx.m === ss.m) return;
     if (goFx) endFx();
     const g = GAMES.find(x => x.id === ss.g) || { id: ss.g, name: ss.g };
-    const screen = sign ? sign.closest('.screen') : null, age = Math.round(ss.age);
+    const age = Math.round(ss.age), quick = ss.kind === 'quick';
     const veil = h('div.rc-veil', { 'aria-hidden': 'true' });
     const tonight = h('div.rc-tonight', { 'aria-hidden': 'true' }, h('small.rc-tonight-k', 'TONIGHT'), h('div.rc-tonight-logo'));
-    goFx = { m: ss.m, screen, veil, tonight };
-    import('../ui/tube-logo.js').then(T => { if (goFx && goFx.m === ss.m) goFx.tonight.lastChild.innerHTML = T.gameLogoSvg(g, { id: `rcg-${g.id}`, lit: true, premium: true }); }).catch(() => {});
-    for (const el of [document.body, screen, sign, veil, tonight]) if (el) el.style.setProperty('--rc-age', `-${age}ms`);
-    document.body.style.setProperty('--rc-push', `${PUSH_AT_MS - age}ms`);
-    document.body.style.setProperty('--rc-len', `${START_MS - PUSH_AT_MS}ms`);
-    if (sign) { sign.append(tonight); sign.classList.add('rc-go'); }
+    goFx = { m: ss.m, len: ss.len, veil, tonight };
+    import('../ui/tube-logo.js').then(T => {
+      if (!goFx || goFx.m !== ss.m) return;
+      const box = goFx.tonight.lastChild;
+      box.innerHTML = T.gameLogoSvg(g, { id: `rcg-${g.id}`, lit: true, premium: true, tint: T.NEON_PINK });
+      box.querySelectorAll('.ndl').forEach((el, i) => el.style.setProperty('--d', `${tubeDelay(i)}ms`));
+    }).catch(() => {});
+    const vars = { '--rc-age': `-${age}ms`, '--rc-sign': `${ss.sign}ms`, '--rc-fadeat': `${ss.fadeAt}ms`, '--rc-fadelen': `${ss.len - ss.fadeAt}ms` };
+    for (const el of [document.body, sign, veil, tonight]) if (el) for (const [k, v] of Object.entries(vars)) el.style.setProperty(k, v);
+    if (sign) { sign.append(tonight); sign.classList.add('rc-go', quick ? 'rc-quick' : 'rc-full'); }
     // (the city's own parts of the sign — its glow + its daylight glass on the canvas: THE SIGN-DIM HOOK, the one the TR-3B uses)
-    if (scene && scene.dimSign) scene.dimSign('room-start', { logo: 0, tag: 0, ms: Math.max(60, 450 - age) });
-    // (the push: toward the side door's point on THIS phone's screen)
-    const d = scene && scene.roomDoor ? scene.roomDoor() : null;
-    // (both layers move together: the screen (the sign, the dock) + the city's own layer (.nd-scene — outside the screen); each scales about
-    //  the door's point in its own box — read once, here, never in a frame)
-    const layers = [screen, document.querySelector('.nd-scene')].filter(Boolean);
-    for (const el of layers) { if (d) { const r = el.getBoundingClientRect(); el.style.transformOrigin = `${Math.round(d.x - r.left)}px ${Math.round(d.y - r.top)}px`; } el.classList.add('rc-pushing'); }
-    goFx.layers = layers;
+    if (scene && scene.dimSign) scene.dimSign('room-start', { logo: 0, tag: 0, ms: Math.max(60, (quick ? 300 : 450) - age) });
     document.body.append(veil);
     document.body.classList.add('rc-going');
-    // (the sign's own recorded neon — a dropout as NEON goes out, a catch as the game's logo lights; only from the start itself, never a refresh)
-    if (age < 300 && !reducedMotion()) import('../audio/ambience.js').then(A => { A.neonDropout({ level: 0.7 }); goFx && (goFx.catchT = setTimeout(() => A.neonCatch({ level: 0.6, dur: 0.9 }), 470 - age)); }).catch(() => {});
+    // (the sign's own recorded neon — a dropout as NEON goes out, a catch as the game's sign ignites; only from the start itself, never a refresh)
+    if (age < 300 && !reducedMotion()) import('../audio/ambience.js').then(A => { A.neonDropout({ level: quick ? 0.45 : 0.7 }); goFx && (goFx.catchT = setTimeout(() => A.neonCatch({ level: 0.6, dur: 0.9 }), Math.max(0, (quick ? 120 : ss.sign + 150) - age))); }).catch(() => {});
     for (const gs of [gamesOpen, guestsUi]) if (gs && gs.close) gs.close();
     closeHostCard();
     closeAll();   // (FR6 FIXES A — B1: EVERY sheet + overlay on every phone — the profile, CUSTOMIZE, the full card, ☰, HOW TO PLAY…; never one over the match)
@@ -341,11 +344,10 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   }
   function endFx() {
     if (!goFx) return;
-    const { veil, tonight, layers = [], catchT } = goFx; goFx = null; clearTimeout(catchT);
+    const { veil, tonight, catchT } = goFx; goFx = null; clearTimeout(catchT);
     veil.remove(); tonight.remove();
-    if (sign) sign.classList.remove('rc-go');
+    if (sign) sign.classList.remove('rc-go', 'rc-quick', 'rc-full');
     if (scene && scene.dimSign) scene.dimSign('room-start', null);
-    for (const el of layers) { el.classList.remove('rc-pushing'); el.style.transformOrigin = ''; }
     document.body.classList.remove('rc-going');
   }
 
@@ -368,7 +370,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const inAt = ss.on && mo ? new Map(fileInOrder(P, st.meta.hostId).map(o => [o.uid, o.at])) : null;
     const outAt = bs.on && mo ? new Map(bs.order.map(o => [o.uid, o.at])) : null;
     const list = order.map(o => ({ uid: o.uid, slot: o.slot, online: onlineNow(o.uid, tNow), col: rgbOf(P[o.uid].color), fresh: now - (P[o.uid].joinedAt || 0) < FRESH_MS,
-      goT: inAt && inAt.has(o.uid) ? ss.age / 1000 - inAt.get(o.uid) : undefined, outT: outAt && outAt.has(o.uid) ? bs.age / 1000 - outAt.get(o.uid) : undefined }));
+      goT: inAt && inAt.has(o.uid) ? (ss.age - ss.walkAt) / 1000 - inAt.get(o.uid) : undefined, outT: outAt && outAt.has(o.uid) ? bs.age / 1000 - outAt.get(o.uid) : undefined }));
     list.kicked = Object.keys(st.kicked || {});
     return list;
   }

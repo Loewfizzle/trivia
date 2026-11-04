@@ -42,3 +42,24 @@ test('ONE ACCOUNT, ONE ROOM: HOST, JOIN + a resume ask the seat first; leaving g
   assert.ok(rules.seats && rules.seats.$pid['.write'].includes("root.child('uids/' + auth.uid).val() === $pid"), 'seats/{pid}: the profile’s own devices');
   assert.ok(rules.rooms.$code.players.$uid.pid['.validate'].includes("seats/"), 'a player node with the pid needs the seat');
 });
+
+test('THE NEW GAME START: the FULL start (~5 s — the sign ignites, holds, the walk-in, the fade) and the QUICK one (a same-game rematch, ~3 s) — read from the match id on every phone', async () => {
+  const { START, startKind, startShow, newMatchId } = await import('../js/core/room-show.js');
+  assert.equal(startKind('qab12c'), 'quick'); assert.equal(startKind('ab12cd'), 'full'); assert.equal(startKind(null), 'full');
+  let r = 0; const seq = () => ((r = (r * 9301 + 49297) % 233280) / 233280);
+  for (let i = 0; i < 400; i++) { const f = newMatchId(false, seq), q = newMatchId(true, seq); assert.ok(/^[a-z0-9]{6}$/.test(f) && f[0] !== 'q', f); assert.ok(/^q[a-z0-9]{5}$/.test(q), q); }
+  const F = START.full, Q = START.quick;
+  assert.ok(F.sign < F.walkAt && F.walkAt < F.fadeAt && F.fadeAt < F.len, 'the sign lights, THEN the walk-in under it, THEN the fade');
+  assert.ok(F.fadeAt - F.sign >= 3000, 'the lit sign HOLDS long enough to read (≥ 3 s before the fade)');
+  assert.ok(Q.sign === 0 && Q.walkAt < Q.fadeAt && Q.fadeAt < Q.len, 'the quick start: the sign lit at once, the walk-in, the fade');
+  const meta = m => ({ status: 'playing', go: { at: 1000, m, g: 'overclock' } });
+  assert.equal(startShow(meta('abc123'), { matchId: 'abc123' }, 1000 + 4999).on, true);
+  assert.equal(startShow(meta('qbc123'), { matchId: 'qbc123' }, 1000 + 3000).on, false, 'the quick start is over at 3 s');
+  // the old rules' fallback (game.go): the same kind from the same id
+  assert.equal(startShow({ status: 'playing' }, { matchId: 'qbc123', go: 1000, id: 'overclock' }, 2000).kind, 'quick');
+  const host = src('js/host.js');
+  assert.ok(/newMatchId\(quick\)/.test(host) && /\{ quick: true \}\);/.test(host), 'host.js: a REMATCH starts quick, every other start full');
+  const city = src('js/screens/room-city.js'), css = src('css/title.css');
+  assert.ok(!/rc-pushing|getBoundingClientRect\(\); el\.style\.transformOrigin/.test(city) && !/rc-pushb|@keyframes rc-push/.test(css), 'no camera push any more');
+  assert.ok(/tint: T\.NEON_PINK/.test(city) && /@keyframes rc-tube-on/.test(css), 'the game’s sign in the NEON pink, tube by tube');
+});
