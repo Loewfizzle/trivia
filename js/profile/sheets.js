@@ -5,12 +5,14 @@
 //   const s = openPfSheet({ title, kicker?, body: [nodes] | node, cls?, onClose? })  → { el, close(), body }
 //   closeAllPfSheets() — the page going away (its own BACK) closes what it opened
 import { h, reducedMotion } from '../ui/dom.js';
+import { pgSheet } from '../progress/look.js';
 
 const stack = [];
 let keyOn = false;
 const onKey = e => { if (e.key === 'Escape' && stack.length) { e.preventDefault(); stack[stack.length - 1].close(); } };
 
 export function openPfSheet({ title = '', kicker = '', body = [], cls = '', onClose = null } = {}) {
+  pgSheet();   // (the sheets' styles live in css/progress.css — the room's sheets open without the profile having loaded it)
   let closed = false;
   const kids = Array.isArray(body) ? body : [body];
   const inner = h('div.pfs-body', ...kids.filter(Boolean));

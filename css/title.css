@@ -948,3 +948,48 @@ body.reduced-fx .nd-box.is-filled { animation: none; }
 .nd-logo .ndp .ndl-glow1 { opacity: 0.6; }
 .is-warm .nd-logo .ndp .ndl-glow1, .nd-logo.is-lit .ndp .ndl-glow1 { opacity: 0.72; }
 .nd-logo .ndp .ndl.is-tired .ndl-glow1, .is-warm .nd-logo .ndp .ndl.is-tired .ndl-glow1 { opacity: 0.55; }
+
+/* ===================================================================================================================================
+   LOBBY 2.0 A — THE ROOM IN THE CITY (screens/room-city.js · room-dock.js · room-guests.js; the owner's approved mock lobby-room.png)
+   =================================================================================================================================== */
+/* the title's own dock steps aside for the room's (THE FLANK restyled — the same rings, glass + tubes) */
+.nd.is-room .nd-flank:not(.rdk-dock), .nd.is-room .nd-jpanel, .nd.is-room .nd-rejoin, .nd.is-room .nd-sub { display: none !important; }
+.nd:not(.is-room) .rdk-dock { display: none !important; }
+/* the pill: four icons, a tiny label under each */
+.rdk-pill { gap: 2px; }
+.rdk-tab { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-width: 52px; min-height: 52px; padding: 4px 4px 3px; }
+.rdk-lbl { font: 800 8.5px/1 var(--font-ui); letter-spacing: 0.16em; color: rgba(240, 236, 250, 0.82); white-space: nowrap; }
+.rdk-tab.is-lit .rdk-lbl { color: #fff; }
+.rdk-guests { --ic: #f2c869; }
+.rdk-chat { --ic: #ff6fc8; }
+.rdk-dot { position: absolute; top: 5px; right: 9px; width: 9px; height: 9px; border-radius: 50%; pointer-events: none; }
+.rdk-guests .rdk-dot { background: #ffd84a; box-shadow: 0 0 6px rgba(255, 216, 74, 0.9); }
+.rdk-chat .rdk-dot { background: #ff4fb8; box-shadow: 0 0 6px rgba(255, 79, 184, 0.9); }
+.rdk-you .nd-tab-ic .avatar { --s: 26px; }
+/* PLAY (the host) / WAITING FOR <HOST> (a guest: the ring greyed, two lines of words) */
+.rdk-play .nd-host-label { display: flex; flex-direction: column; align-items: center; gap: 3px; }
+.rdk-play .rdk-w2:empty { display: none; }
+.rdk-play.rdk-wait { filter: saturate(0) brightness(0.62); }
+.rdk-play.rdk-wait .rdk-w1 { font-size: 0.82em; letter-spacing: 0.12em; }
+.rdk-play.rdk-wait .rdk-w2 { font: 800 8px/1 var(--font-ui); letter-spacing: 0.14em; color: rgba(240, 236, 250, 0.9); max-width: 64px; text-align: center; }
+.nd.is-room .nd-note { cursor: pointer; }
+
+/* THE TAGS over the players' heads: the emblem (the bold marker), the name (on arrival + on a tap), the typing bubble — transform only */
+.rc-tags { position: fixed; inset: 0; z-index: 3; pointer-events: none; }
+.rc-tag { position: absolute; left: 0; top: 0; width: 0; height: 0; padding: 0; border: 0; background: none; pointer-events: none; opacity: 0; will-change: transform, opacity; --c: #fff; }
+.rc-emb { position: absolute; left: -15px; top: -27px; width: 30px; height: 30px; display: grid; place-items: center; pointer-events: auto; cursor: pointer; border-radius: 50%; }
+.rc-emb .avatar, .rc-emb .ve { --s: 18px; width: 18px; height: 18px; filter: drop-shadow(0 0 3px var(--c)); }
+.rc-tag.is-down .rc-emb { filter: saturate(0.5); }
+.rc-name { position: absolute; left: 0; top: -52px; transform: translateX(-50%) translateY(4px); padding: 5px 10px 4px; border-radius: 999px; white-space: nowrap;
+  font: 800 12px/1 var(--font-ui); letter-spacing: 0.12em; color: #fff; background: rgba(8, 7, 14, 0.86); box-shadow: inset 0 0 0 1.5px var(--c), 0 0 10px color-mix(in srgb, var(--c) 45%, transparent);
+  opacity: 0; transition: opacity 0.28s ease, transform 0.28s ease; pointer-events: none; }
+.rc-tag.is-named .rc-name { opacity: 1; transform: translateX(-50%) translateY(0); }
+.rc-bubble { position: absolute; left: 4px; top: -54px; display: flex; gap: 3px; align-items: center; padding: 6px 8px; border-radius: 12px 12px 12px 3px; background: #fff;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); opacity: 0; transform: translateY(4px) scale(0.85); transform-origin: 0 100%; transition: opacity 0.22s ease, transform 0.22s ease; }
+.rc-bubble i { width: 5px; height: 5px; border-radius: 50%; background: #1a1424; animation: rc-dot 1.2s ease-in-out infinite; }
+.rc-bubble i:nth-child(2) { animation-delay: 0.16s; } .rc-bubble i:nth-child(3) { animation-delay: 0.32s; }
+@keyframes rc-dot { 0%, 60%, 100% { opacity: 0.35; transform: translateY(0); } 30% { opacity: 1; transform: translateY(-2px); } }
+.rc-tag.is-typing .rc-bubble { opacity: 1; transform: none; }
+.rc-tag.is-typing.is-named .rc-name { opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .rc-bubble i { animation: none; opacity: 0.8; } .rc-name, .rc-bubble { transition: none; } }
+body.nd-idle .rc-tags { opacity: 1; }

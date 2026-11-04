@@ -3,7 +3,7 @@ import { h, clear, reducedMotion } from '../ui/dom.js';
 import { RANK_COLORS } from '../ui/emblems.js';
 import { levelInfo } from '../core/levels.js';
 import { neonTick } from '../audio/ambience.js';
-import { playerChip, segmented, chips as chipSelect, accessGranted, avatar } from '../ui/components.js';
+import { playerChip, accessGranted, avatar } from '../ui/components.js';
 import { nightStandings } from '../core/night.js';
 import { colorHex } from '../config.js';
 import { toast } from '../ui/toast.js';
@@ -13,15 +13,13 @@ import { playerOrder, isOnline, idleLeft } from '../core/room-logic.js';
 import { ROOM_IDLE_WARN_MS } from '../config.js';
 import { dbRef, update as dbUpdate, serverTimestamp, serverNow } from '../firebase.js';
 import { leaveRoom, kickPlayer, setDoorLocked } from '../room.js';
-import { startGame, onlineCount } from '../host.js';
-import { GAME_MODULES } from '../games/registry.js';
-import { preloadSheets } from '../games/lazy-view.js';
+import { onlineCount } from '../host.js';
 import { slot } from '../identity.js';
 import { openHelp } from '../ui/help.js';
 import { sfx } from '../audio/sfx.js';
-import { prefetch } from '../audio/music.js';
 import { gameArt } from '../ui/game-art.js';
 import { logoSvg } from '../ui/logo.js';
+import { openGameOptions } from './game-options.js';
 
 // a small padlock (the hush-word card's LOCKED tag and the LOCK THE DOOR row)
 const LOCK_SVG = '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/><circle cx="12" cy="16" r="1.2" fill="currentColor" stroke="none"/></svg>';
@@ -202,81 +200,13 @@ export function createLobby() {
     }
   }
 
-  // vertical single-choice list with a sub-line per choice (PULSE song picker)
-  function optionList(choices, value, onChange) {
-    const wrap = h('div.opt-list', { role: 'radiogroup' });
-    const paint = () => [...wrap.children].forEach(b => b.setAttribute('aria-checked', String(b.dataset.v === String(value))));
-    for (const c of choices) {
-      wrap.append(h('button.opt-row', { type: 'button', role: 'radio', dataset: { v: String(c.value) }, onclick: () => { value = c.value; paint(); onChange(c.value); } },
-        h('span.opt-dot'), h('span.opt-label', c.label), c.sub ? h('small.opt-sub', c.sub) : null));
-    }
-    paint();
-    return wrap;
-  }
-
-  // a grid of mode cards: icon, name, a line, the recommended player count (GRIDLOCK's modes)
-  function optionCards(choices, value, onChange) {
-    const wrap = h('div.opt-cards', { role: 'radiogroup' });
-    const paint = () => [...wrap.children].forEach(b => b.setAttribute('aria-checked', String(b.dataset.v === String(value))));
-    for (const c of choices) {
-      wrap.append(h('button.opt-card', { type: 'button', role: 'radio', dataset: { v: String(c.value) }, onclick: () => { value = c.value; paint(); onChange(c.value); } },
-        c.icon ? h('span.opt-card-icon', { html: c.icon }) : null, h('span.opt-card-label', c.label), c.sub ? h('span.opt-card-sub', c.sub) : null, c.meta ? h('span.opt-card-meta', c.meta) : null));
-    }
-    paint();
-    return wrap;
-  }
-
   function pickGame(g) {
     if (!g.playable) { toast(`${g.name} // COMING SOON`, 'info'); return; }
     if (!isHost()) { openHelp(g.id); return; } // guests: read up while the host picks
-    openOptions(g);
-  }
-
-  function openOptions(g) {
-    const mod = GAME_MODULES[g.id];
-    prefetch(mod.MUSIC);
-    preloadSheets(g.id);   // its screen's stylesheets, so the match starts styled at once
-    const saved = (st.meta && st.meta.settings && st.meta.settings[g.id]) || {};
-    const settings = { ...mod.DEFAULT_SETTINGS, ...saved };
-    // an option with when(players) only shows (and only applies) with that many connected players
-    const shownOptions = mod.OPTIONS.filter(o => !o.when || o.when(onlineCount()));
-    for (const o of mod.OPTIONS) if (!shownOptions.includes(o)) settings[o.key] = mod.DEFAULT_SETTINGS[o.key];
-    const est = h('span.est');
-    const renderEst = () => { est.textContent = `≈ ${mod.estimateMinutes(settings)} MIN`; };
-    const startBtn = h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button' }, h('span', 'INITIATE'));
-    const close = () => { if (!sheet) return; sheet.classList.add('out'); const s = sheet; sheet = null; setTimeout(() => s.remove(), 260); };
-    startBtn.onclick = async () => {
-      const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
-      if (onlineCount() < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return; }
-      startBtn.classList.add('is-busy');
-      startBtn.firstChild.textContent = 'BOOTING…';
-      try {
-        if (await startGame(g.id, settings)) close();
-        else { startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
-      }
-      catch (e) { toast(String(e.message || e).toUpperCase(), 'err'); startBtn.classList.remove('is-busy'); startBtn.firstChild.textContent = 'INITIATE'; }
-    };
-    sheet = h('div.modal', { dataset: { theme: g.theme }, onclick: e => { if (e.target === sheet) close(); } },
-      h('div.sheet.options',
-        h('div.sheet-grip'),
-        h('div.sheet-kicker', g.tag),
-        h('h2.sheet-title', g.name),
-        h('p.sheet-text', g.blurb),
-        h('button.btn.btn-text.help-link', { type: 'button', onclick: () => openHelp(g.id) }, 'HOW TO PLAY ›'),
-        shownOptions.map(o => h('div.field',
-          h('span.label', o.label, o.hint ? h('small.field-hint', ` · ${o.hint}`) : null),
-          o.type === 'multi'
-            ? chipSelect(o.choices, [].concat(settings[o.key] || []), v => { settings[o.key] = v; renderEst(); })
-            : o.type === 'list'
-              ? optionList(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); })
-              : o.type === 'cards'
-                ? optionCards(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); })
-                : segmented(o.choices, settings[o.key], v => { settings[o.key] = v; renderEst(); }))),
-        h('div.options-meta', h('span.mono.dim', 'EST. MATCH LENGTH'), est),
-        startBtn,
-        h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CANCEL')));
-    renderEst();
-    document.body.append(sheet);
+    // (LOBBY 2.0 A: the options + the start live in game-options.js — the room in the city uses the same sheet)
+    if (sheet) return;
+    const o = openGameOptions(g, { meta: st.meta, onClose: () => { sheet = null; } });
+    sheet = o.el;
   }
 
   // a match is running and this phone stepped out of it: say so, offer to watch, keep the game list closed

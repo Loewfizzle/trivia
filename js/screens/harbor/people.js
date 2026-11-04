@@ -13,7 +13,9 @@
 // speakeasy's doors (6b: filled), the dance circle (6b: the wands' swish on big moves, the watchers' clapping, a rare whoop).
 // HOOKS: line(n) (Lobby 2.0: the room's players), budget(k) (6b's director), the rain via frame({ rain }) (Part 9).
 import { project } from '../../core/harbor-layout.js';
-import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier } from '../../core/harbor-people.js';
+import { FOLK, folkMap, folkAt, roofAt, linePlaces, linePlaces2, lineRect, capByTier, planVisit, visitAt } from '../../core/harbor-people.js';
+import { roomSlots, roomRects, uidSeed } from '../../core/harbor-room.js';
+import { rngFrom } from '../../core/rng.js';
 import { tierVal } from '../../core/harbor-tiers.js';
 import { promenadeSolids } from '../../core/harbor-solids.js';
 import { workFx } from './snowfx.js';
@@ -33,6 +35,18 @@ import { SPEAK_V } from '../../core/harbor-speakeasy.js';
 import { propItems } from './workers.js';
 
 const clamp01 = v => (v < 0 ? 0 : v > 1 ? 1 : v);
+/** LOBBY 2.0 A — a room player's RING under the feet (their player colour): a soft glow + a bright thin ellipse on the ground — the marker
+ *  that reads unzoomed at the city's scale (the approved mock); a lying player keeps it, dimmer */
+function drawRing(c, cam, st, col, a = 1) {
+  // (a lying player: the ring stretches under the whole body, centred where it lies)
+  const lie = st.pose === 'lie' ? (st.lieK == null ? 1 : st.lieK) : 0, k = cam.F / st.z;
+  const [x, y] = project(cam, st.x, 0, st.z), rx = 0.62 * k * (1 + 1.1 * lie), ry = 0.62 * k * 0.3, rgb = `${col[0]},${col[1]},${col[2]}`;
+  c.save(); c.globalAlpha = (c.globalAlpha || 1) * a;
+  c.fillStyle = `rgba(${rgb},0.2)`; c.beginPath(); c.ellipse(x, y, rx * 1.18, ry * 1.25, 0, 0, Math.PI * 2); c.fill();
+  c.lineWidth = Math.max(2.4, rx * 0.2); c.strokeStyle = `rgba(${rgb},0.32)`; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.stroke();
+  c.lineWidth = Math.max(1.1, rx * 0.08); c.strokeStyle = `rgba(${rgb},0.95)`; c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2); c.stroke();
+  c.restore();
+}
 /** NIGHT-B — THE STREET PARTY's dancers (core/harbor-streetparty.js): the break's kind (st.dance: bounce / wands / swing), the CHEER as it
  *  starts (the first 2.2 s of their dance: both arms up), the bounce's HOP (lifted on st.y), the swing pairs' TWIRL round each other (a
  *  small circle, a turn every 8 beats, the two partners opposite) — on the phone's own beat (beatsF) + its song's energy (EN) */
@@ -74,9 +88,12 @@ export function createPeople() {
   let backLight = () => 0;   // (PROM: the back road's light at x, z — road.js#crossLightOf)
   function layout(l) { L = l; mapKey = ''; solidsHP = undefined; cache.clear(); roofCache.clear(); looks.clear(); srcs = lightSources(L); occ = null; backLight = L ? crossLightOf(L) : () => 0; }
   function ensureMap(event, ring = false) {
-    const key = `${event ? 1 : 0}${ring ? 1 : 0}|${lineN}`;
+    const key = `${event ? 1 : 0}${ring ? 1 : 0}|${lineN}|${roomOn ? 'room' : ''}`;
     if (key === mapKey && M) return;
-    M = folkMap(L, { event, ring, line: lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
+    // (LOBBY 2.0 A — THE ROOM's TWO LINES are SOLIDS: the city's people route round them; the players themselves walk on roomMap — the
+    //  same floor without the lines — into their places)
+    M = folkMap(L, { event, ring, line: roomOn ? roomRects(L) : lineN ? lineRect(L, lineN) : null }); mapKey = key; cache.clear();
+    roomMap = folkMap(L, { event, ring });
   }
   const lookFor = (mem, env) => {
     const key = `${mem.vid}|${mem.m.seed}|${mem.m.role}|${env.season}|${env.rain > 0.3 ? 1 : 0}|${env.wind > 10 ? 1 : 0}|${env.snow > 0.2 ? 1 : 0}${env.cold ? 1 : 0}|${mem.party ? 1 : 0}|${mem.coat ? mem.coat.join() : ''}|${mem.hween ? 'H' : ''}|${env.holCarry || ''}`, sit = mem.kind === 'lunch' || mem.kind === 'bench';
@@ -201,6 +218,84 @@ export function createPeople() {
   // (NIGHT-A, the new light: the wash comes from the FRONT — no side to rim from; a rim only near a source you can see (the shopfront, the
   // cab stand, the cart): 0 = no rim)
   const rimSide = (x, z) => { let best = 0, side = 1; for (const s of srcs) { const d = Math.hypot(x - s.x, (z - s.z) * 1.15); const w = s.k / (0.6 + d * d); if (w > best) { best = w; side = s.x >= x ? 1 : -1; } } return lightMode() === 'new' && best < 0.02 ? 0 : side; };
+  // ---------------------------------------------------------------- LOBBY 2.0 A — THE ROOM IN THE CITY (core/harbor-room.js)
+  // The room's players as the city's OWN people at the city's scale (folk.js — a guest's look seeded by their uid), each marked: a soft
+  // RING under the feet in their player colour (drawn here, under the figure) + their emblem over the head (a DOM tag — screens/harbor/
+  // room-tags.js — from roomBoxes()). Who stands where: the roster (scene → room()); how they get there is THIS phone's own animation on
+  // its own clock (never the city's — a JUST ME time jump never moves them): a FRESH joiner walks in from the edge on their line's side
+  // (planVisit on roomMap — round the cart, the compass, the hydrant); a slot that changed = a short walk forward; a leaver WAVES then
+  // walks off to the nearest edge (a kick the same, no wave); LOST SIGNAL = they LIE DOWN where they stand (dimmed), up again on reconnect.
+  // Everyone already in the room when the city first sees the roster (a refresh, a rejoin, a host change) = standing in place at once.
+  let roomOn = false, roomMap = null, roomSeen = false, roomKey = '';
+  const roomSt = new Map(), roomBox = new Map();
+  const RLIE = 0.6, RWAVE = 1.3;
+  const rnow = () => pnow() / 1000;
+  const standLeg = (x, z, hd, t0) => ({ k: 'pose', pose: 'wait', x, z, t0, t1: t0 + 1e7, hd });
+  function roomPlan(st, kind, t, slot, cur) {
+    const r = rngFrom(uidSeed(st.uid) + (kind === 'leave' ? 77 : kind === 'move' ? 31 : 11));
+    let vis = null;
+    if (kind === 'arrive') vis = planVisit({ look: 'guest', gait: 'walk', goals: [{ from: slot.side }, { at: { x: slot.x, z: slot.z } }] }, t, roomMap, { r });
+    else if (kind === 'move') vis = planVisit({ look: 'guest', gait: 'stroll', goals: [{ at: { x: slot.x, z: slot.z } }] }, t, roomMap, { r, start: cur });
+    else {
+      const t1 = st.kick ? t : t + RWAVE;
+      vis = planVisit({ look: 'guest', gait: 'walk', goals: [{ exit: cur.x < 0 ? 'left' : 'right' }] }, t1, roomMap, { r, start: cur });
+      if (vis && !st.kick) vis = { ...vis, t0: t, legs: [{ k: 'pose', pose: 'wave', x: cur.x, z: cur.z, t0: t, t1, hd: -Math.PI / 2 }, ...vis.legs] };
+      return vis;
+    }
+    if (!vis) return { t0: t, t1: t + 1e7, legs: [standLeg(slot.x, slot.z, slot.hd, t)] };
+    const end = vis.legs.length ? vis.legs[vis.legs.length - 1].t1 : t;
+    return { ...vis, t1: end + 1e7, legs: [...vis.legs, standLeg(slot.x, slot.z, slot.hd, end)] };
+  }
+  /** the roster: [{ uid, slot ('L0'…), online, col [r,g,b], fresh (joined in the last seconds: walks in even on the first sight), kick? }]
+   *  or null (no room — everyone leaves the promenade the way they would) */
+  function room(list) {
+    if (!L) return;
+    const on = !!(list && list.length), t = rnow();
+    if (on !== roomOn) { roomOn = on; mapKey = ''; ensureMap(false); }
+    if (!roomMap) roomMap = folkMap(L, {});
+    const S = roomSlots(L), want = new Map((list || []).map(q => [q.uid, q]));
+    const key = (list || []).map(q => `${q.uid}:${q.slot}:${q.online ? 1 : 0}`).join('|');
+    if (key === roomKey && roomSeen) { for (const q of list || []) { const st = roomSt.get(q.uid); if (st) st.col = q.col; } return; }
+    roomKey = key;
+    for (const q of list || []) {
+      const slot = S[q.slot]; if (!slot) continue;
+      let st = roomSt.get(q.uid);
+      if (!st || st.leaving) {
+        st = { uid: q.uid, slot: q.slot, col: q.col, online: q.online !== false, lieAt: -9, seed: 3000 + uidSeed(q.uid) % 997 };
+        st.vis = (!roomSeen && !q.fresh) || !roomMap ? { t0: t, t1: t + 1e7, legs: [standLeg(slot.x, slot.z, slot.hd, t - 5)] } : roomPlan(st, 'arrive', t, slot);
+        roomSt.set(q.uid, st);
+      } else if (st.slot !== q.slot) {
+        const cur = visitAt(st.vis, t) || { x: S[st.slot].x, z: S[st.slot].z };
+        st.slot = q.slot; st.vis = roomPlan(st, 'move', t, slot, { x: cur.x, z: cur.z });
+      }
+      st.col = q.col;
+      const online = q.online !== false;
+      if (online !== st.online) { st.online = online; st.lieAt = t; }
+    }
+    for (const [uid, st] of roomSt) {
+      if (want.has(uid) || st.leaving) continue;
+      const cur = visitAt(st.vis, t) || { x: S[st.slot].x, z: S[st.slot].z };
+      st.leaving = true; st.kick = !!(list && list.kicked && list.kicked.includes(uid));
+      st.vis = roomPlan(st, 'leave', t, null, { x: cur.x, z: cur.z }) || { t0: t, t1: t, legs: [] };
+    }
+    if (list) roomSeen = true;
+    if (!on) { roomSeen = false; roomKey = ''; }
+  }
+  /** this frame's room people (the near pass + the redraws) */
+  function roomMembers() {
+    if (!roomSt.size) return [];
+    const t = rnow(), out = [];
+    for (const [uid, st] of roomSt) {
+      let s = visitAt(st.vis, t);
+      if (!s) { if (st.leaving) roomSt.delete(uid); continue; }
+      // (lost signal: lying down where they stand — eased over RLIE s; standing up again the same way; dimmed while down)
+      const u = Math.max(0, Math.min(1, (t - st.lieAt) / RLIE)), e = u * u * (3 - 2 * u), lie = st.online ? 1 - e : e;
+      // (laid a step OUT onto the sidewalk — on the lighter setts, never dark-on-dark against the shopfront's base; dimmed a little)
+      if (lie > 0.001 && s.pose !== 'walk') s = { ...s, z: s.z - 0.75 * lie, pose: 'lie', lieK: lie, lieDir: st.slot && st.slot[0] === 'R' ? 1 : -1, a: 1 - 0.28 * lie };
+      out.push({ vid: `room:${uid}`, kind: 'player', look: 'guest', party: false, room: uid, ring: st.col, m: { role: 'lead', seed: st.seed, lag: 0 }, s });
+    }
+    return out;
+  }
   /** the line's guests (Lobby 2.0): static, alive — shifting weight, a glance at a watch, two chatting */
   // POLISH 5 — THE LOBBY LINE FEASIBILITY (&lineproto=1 only: core/harbor-people.js#linePlaces2): the staggered two-deep line, coats in
   // the player colours, a glowing PIN over each head (the first — "you" — brighter, pulsing)
@@ -251,7 +346,7 @@ export function createPeople() {
       items = [...(env.tier === 0 ? [] : roofNow.members), ...((now.crew && now.crew.roof) || [])];
       if (!items.length) return;
     } else {
-      const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...(pass === 'near' ? lineMembers(env.t || 0) : [])];   // (FP3a: the cap by tier)
+      const all = [...capByTier(now.members, env.tier == null ? 2 : env.tier), ...(pass === 'near' ? [...lineMembers(env.t || 0), ...roomMembers()] : [])];   // (FP3a: the cap by tier)   // (LOBBY 2.0 A: + the room)
       // (FP3b: the cart's vendor is a routine member now — core/harbor-people.js#folkAt — wheeling it in + out on its schedule)
       // (behind the speakeasy on the waterside sidewalk: hidden by the building — not drawn)
       items = all.filter(m => (pass === 'far' ? m.s.z > FOLK.roadZ && !(m.s.z > 60 && m.s.x < L.speakeasy.x1 - 0.6) : m.s.z <= FOLK.roadZ && !insideDoor(m)));
@@ -262,7 +357,7 @@ export function createPeople() {
     const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? [...(now.cars || []), ...((now.crew && now.crew.trucks) || [])] : [];
     // 8b1 — THE WORKERS' PROPS at their own depths (ladders, the platform, the stand, the bottles, the hatch, the wet streak…)
     const props = pass === 'near' ? propItems(L, now.crew, pass, lastT) : [];   // (the props' states run on the CITY clock)
-    if (pass === 'near') drawnNear.length = 0;
+    if (pass === 'near') { drawnNear.length = 0; roomBox.clear(); }
     if (!items.length && !buses.length && !cars.length && !props.length && !(env.extra && env.extra.length)) return;
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);
@@ -320,7 +415,10 @@ export function createPeople() {
       // (9a — FOG: the far ones fade into it — walking away they melt, walking in they come out of it)
       const fogA = (env.fog || 0) > 0.3 && pass !== 'roof' ? 1 - 0.8 * Math.min(1, ((env.fog || 0) - 0.3) / 0.6) * Math.max(0, Math.min(1, (st.z - 41) / 16)) : 1;
       const fs9 = { s: { ...st, link, a: (st.a == null ? 1 : st.a) * fogA }, L: look }, fe9 = { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 };
+      // (LOBBY 2.0 A — a player's RING under the feet, in their colour: a soft glow + a bright thin ellipse, drawn under the figure)
+      if (mem.ring && pass === 'near') drawRing(c, cam, st, mem.ring, fs9.s.a * fade);
       const box = drawFolk(c, cam, fs9, fe9);
+      if (mem.room && pass === 'near') roomBox.set(mem.room, box ? { x: box.x, y: box.y, w: box.w, h: box.h, a: fs9.s.a, lie: st.pose === 'lie' ? st.lieK || 1 : 0, walk: st.pose === 'walk' } : null);
       // (PROM: who was drawn where, this frame — a still piece's full-dpr overlay re-draws anyone standing IN FRONT of it: redrawOver)
       if (box && pass === 'near') drawnNear.push({ z: st.z, box, key: `${mem.vid}|${mem.m.role}|${st.x.toFixed(2)}|${st.z.toFixed(2)}|${st.pose}|${(st.dist || 0).toFixed(2)}`, redo: cc => drawFolk(cc, cam, fs9, fe9) });
       if (box && mem.pin) pins.push([box.x + box.w / 2, box.y - box.h * 0.16, mem.pin, box.h]);
@@ -690,7 +788,7 @@ export function createPeople() {
     driving: () => (now.cars || []).some(c => c.speed > 0.3),
     /** PEO: anyone WALKING on screen now (the scene keeps 60 fps for them — a walker at the battery saver's 30 fps judders, and the
      *  30 ↔ 60 flips whenever the sky had something were the owner's "stutter now and then"; the saver returns when nobody moves) */
-    moving: () => movingNow,
+    moving: () => movingNow || [...roomBox.values()].some(b => b && b.walk),   // (LOBBY 2.0 A: a player walking in / off — the full rate)
     /** 8b2 — THE RAID: the officer's flashlight hand as last drawn ({ hand: [x, y], dir, H, t }) or null */
     officer: () => officerAt,
     cars: () => (now.cars || []).map(c => ({ id: c.id, model: c.model, lane: c.lane, x: +c.x.toFixed(2), speed: +c.speed.toFixed(2), glow: c.glow, at: L && c.z ? project(L.cam, c.x, 0.75, c.z).map(v => +v.toFixed(1)) : null })),   // (C4a: at — the body's middle on screen, the e2e's light probe)
@@ -708,6 +806,8 @@ export function createPeople() {
     cart: () => ({ ...(now.cart || { on: false }) }),
     /** Lobby 2.0: n guests in the line at the speakeasy's door (0 = none) */
     line(n) { lineN = Math.max(0, Math.min(12, Math.round(n || 0))); },
+    /** LOBBY 2.0 A — the room's roster (null: no room) + where each player was drawn this frame (uid → box | null: off screen) */
+    room, roomBoxes: () => roomBox, roomDebug: () => [...roomSt.values()].map(st => ({ uid: st.uid, slot: st.slot, online: st.online, leaving: !!st.leaving, s: (q => q && { x: +q.x.toFixed(2), z: +q.z.toFixed(2), pose: q.pose })(visitAt(st.vis, rnow())) })),
     /** 6b's director: the street's share of its people (0..1) */
     budget(k) { budget = clamp01(k == null ? 1 : k); cache.clear(); },
     /** 8b1 wildlife — everyone on the promenade now, cheaply (the plan's people, not the tier's cut: every phone reacts alike) */

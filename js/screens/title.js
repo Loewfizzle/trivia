@@ -359,6 +359,30 @@ export function createTitle() {
   let destroyed = false;
   let busy = false;
   let st = null;
+  // LOBBY 2.0 A — THE ROOM IN THE CITY: in a room (City 2.0) this screen stays — the city never reloads — and room-city.js takes the dock
+  let roomUi = null, roomLoading = false;
+  /** the room dock's tubes light with the title's (the sign drives the title dock's: dockLight / ringOn) */
+  const roomLight = d => {
+    const lit = !!(els.youTab && els.youTab.classList.contains('is-lit')), rl = !!(els.host && els.host.classList.contains('is-lit'));
+    for (const t of [d.els.youTab, d.els.guestsTab, d.els.gamesTab, d.els.chatTab]) t.classList.toggle('is-lit', lit);
+    d.els.host.classList.toggle('is-lit', rl); d.els.joinTab.classList.toggle('is-lit', rl);
+  };
+  function roomSync(state) {
+    const inRoom = !!(createHarbor && state.code && state.meta);
+    if (inRoom && !roomUi && !roomLoading && scene) {
+      roomLoading = true;
+      openJoin(false);
+      import('./room-city.js').then(m => {
+        roomLoading = false;
+        if (destroyed || !st || !st.code || roomUi) return;
+        roomUi = m.createRoomCity({ scene, sign: els.sign, dockHost: els.door.parentElement, lightFrom: roomLight });
+        els.root.classList.add('is-room'); wake();
+        roomUi.update(st);
+      }).catch(e => { roomLoading = false; console.warn('room', e); });
+    }
+    if (!inRoom && roomUi) { roomUi.destroy(); roomUi = null; els.root.classList.remove('is-room'); }
+    if (roomUi) roomUi.update(state);
+  }
   const reduced = () => !!settings.reducedFx || reducedMotion();
 
   function mount(el, state) {
@@ -1471,6 +1495,7 @@ export function createTitle() {
     else if (hit.kind === 'cat') sfx('key');
     // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real
     // way in: enter the hush word), exactly like the JOIN ring. Reduced effects: no flash, the panel still opens.
+    else if (hit.kind === 'door' && roomUi) { knock(); if (!reduced()) scene.knock(); }   // (LOBBY 2.0 A: in a room the door only knocks)
     else if (hit.kind === 'door') { knock(); if (!reduced()) scene.knock(); openJoin(true, true); import('../profile/events.js').then(m => m.progressEvent('knock')).catch(() => {}); }   // (PROGRESSION A: KNOCK KNOCK)
   }
   // a tapped letter: by night it stutters out, stays dark a moment and re-ignites like neon does; by day it sparks to life,
@@ -1507,6 +1532,7 @@ export function createTitle() {
   function armIdle() { clearTimeout(idleTimer); if (!destroyed && autoIdle) idleTimer = setTimeout(goIdle, IDLE_MS); }
   function goIdle() {
     if (destroyed || !tl || !tl.done) return;
+    if (roomUi) { armIdle(); return; }   // (LOBBY 2.0 A: in a room the dock stays up — it's the room's controls)
     const busyNow = busy || document.querySelector('.modal, .sheet, .gm') || document.activeElement === els.code || els.actions.classList.contains('is-join');
     if (busyNow) { armIdle(); return; }
     els.root.classList.add('is-idle');
@@ -1737,6 +1763,7 @@ export function createTitle() {
   function update(state) {
     st = state;
     if (!els.youTab) return;
+    roomSync(state);
     const p = loadProfile();
     const me = loadMe();
     const pub = me && me.profile && me.uid === state.uid ? me.profile : null;
@@ -1884,7 +1911,8 @@ export function createTitle() {
       frames: () => scene && scene.frames(),
       tiering: () => (scene && scene.tiering ? scene.tiering() : null),
       speakCtx: () => (scene && scene.speakCtx ? scene.speakCtx() : null),   // (WIN2: the facade's bake context — the washer swap's proof)
-      boardXf: () => (scene && scene.boardXf ? scene.boardXf() : null),   // (LOBBY 2.0 A: the billboard's cross-fade — e2e lobby.mjs)
+      boardXf: () => (scene && scene.boardXf ? scene.boardXf() : null),
+      room: () => (roomUi ? { ...roomUi.debug(), people: scene && scene.roomDebug ? scene.roomDebug() : null } : null),   // (LOBBY 2.0 A: the room in the city — e2e lobby.mjs)   // (LOBBY 2.0 A: the billboard's cross-fade — e2e lobby.mjs)
       signDim: (id, o) => (scene && scene.dimSign ? (id ? scene.dimSign(id, o) : scene.signDim()) : null),   // (City 2.0, C1.5: the sign-dim hook)            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),
@@ -1932,6 +1960,7 @@ export function createTitle() {
 
   function unmount() {
     destroyed = true;
+    if (roomUi) { roomUi.destroy(); roomUi = null; }
     humSync(false);
     if (tl) cancelAnimationFrame(tl.raf);
     clearTimeout(flickerTimer); clearInterval(tiredT);

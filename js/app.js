@@ -54,6 +54,9 @@ function routeKey(st) {
   if (!st.code) return st.view === 'setup' ? `setup:${st.setupMode}` : st.view === 'board' ? 'board' : st.view === 'profile' ? 'profile' : 'title';
   if (!st.meta) return 'boot';
   if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id] && st.quit !== st.game.matchId) return `game:${st.game.id}:${st.game.matchId}`;
+  // LOBBY 2.0 A — THE ROOM IN THE CITY: in City 2.0 a room's waiting part IS the live city — the title screen stays (its city never
+  // reloads) and turns into the room (screens/room-city.js); the profile from YOU opens over it. City 1.0 keeps today's lobby screen.
+  if (isCity2()) return 'title';
   return `lobby:${st.code}`;
 }
 

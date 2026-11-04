@@ -35,6 +35,7 @@ import { createSceneFireworks } from './scene-fireworks.js';
 import { createSceneRadio } from './scene-radio.js';
 import { setShowcase } from '../../core/harbor-showcase.js';
 import { hintAt } from '../../core/harbor-billboard.js';
+import { roomRects } from '../../core/harbor-room.js';
 import { createScenePanel } from './scene-panel.js';
 import { createScenePerf } from './scene-perf.js';
 import { createSceneParty } from './scene-party.js';
@@ -2872,7 +2873,14 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   }).catch(e => console.warn('[harbor] bench', e));
 
   return {
-    /** CITY CONTROLS A — THE RADIO: the moments this phone plays (screens/harbor/remote.js + radio.js feed them) */
+    /** LOBBY 2.0 A — THE ROOM IN THE CITY: the roster (screens/harbor/room-tags.js from the room's data — null = no room) + where each
+     *  player was drawn this frame (uid → box) for the tags over their heads */
+    room(list) { people.room(list); },
+    /** the room's hush word in neon on the speakeasy (the lobby sign — its wall-washer steps aside: speakCtx) — null = off */
+    hush(w) { const v = w ? String(w).toUpperCase().slice(0, 4) : null; if (v !== lobbyHush) lobbyHush = v; },
+    roomBoxes: () => people.roomBoxes(),
+    roomDebug: () => people.roomDebug(),
+    roomRects: () => (L ? roomRects(L) : null),
     radio(list) { radioScene.set(list); },
     radioDebug: () => radioScene.debug(),
     /** CC-B — THE INTERCOM waits for a legendary's own audio (audio/intercom.js#setIntercomBusy) */

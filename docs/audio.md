@@ -1549,3 +1549,19 @@ PROGRESSION SOUNDS, credits.txt's lines word for word). Sonniss v2.0: only the t
 `navigator.audioSession` (iOS 17+) is 'playback' while the music is on, 'ambient' off — and **'play-and-record' while THE INTERCOM holds the mic**
 (`engine.js#micSession(on)`, set synchronously inside the hold before getUserMedia, back after the take / a failure). A 'playback' session can't
 capture on iOS: that was the owner's "no mic on this device".
+
+## The lobby sounds (LOBBY 2.0 A, Nov 3 2026 — docs/harbor/passes/lobby-2a.md) — `scripts/build-lobby-sfx.py`, `js/audio/lobby-sfx.js`
+
+Grok's three (his folder `Downloads\Grok\lobby-sfx\` — read only; `claude-notes.txt` first), cut + levelled by `scripts/build-lobby-sfx.py`
+(the progression sounds' pipeline: mono 44.1 kHz, a 3-ms fade-in on a cut, BS.1770 to a quiet target, the true peak under −1.5 dBFS,
+MP3 96 kbps) → `audio/sfx/lb-<name>.mp3` (5–15 KB each):
+
+| sound | when | source (his PICK) | cut | level |
+| --- | --- | --- | --- | --- |
+| `card-in` | a strip slides into the guest list (THE JOIN ENTRANCE) | 571577 el_boss — playing-card deal | 0.230–0.600 s, fade 0.45–0.60 | −26 LUFS |
+| `invite` | an invite goes out (INVITE on the room dock) | 855977 hazelr1ver — suction tube + pop | 1.300–2.510 s, a 0.2-s fade-in, fade-out 2.47–2.51 | −25 LUFS |
+| `friend` | a friend arrives in the line (another phone's join) | 835833 bogumilamerc — wine glasses clinking | 0.470–0.880 s, −2 dB (its true peak is over 0 in the original) | −24 LUFS |
+
+The optional 444431 envelope layer under the invite's pop and the backup 398403 letterbox were left out (the pick reads on its own at
+this level). `lobbySfx(name)` plays through the SFX bus (the slider + mute apply), de-dupes a burst (`card-in` once every 160 ms), and
+does nothing — never throws — before the unlock, muted, or with a file missing: the room works silent. All CC0 — js/ui/credits.js.

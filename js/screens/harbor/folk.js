@@ -597,7 +597,10 @@ function blendJ(A, B, k) {
  * tier } → the figure's screen box
  */
 export function drawFolk(c, cam, it, env) {
-  const st = it.s, L = it.L, yUp = env.yUp || 0;
+  // (LOBBY 2.0 A — LOST SIGNAL: a room player LIES DOWN where they stood — the standing rig laid flat on the ground (st.lieK 0..1 eased by
+  //  the caller, st.lieDir the side the head goes): readable at the phone's size as "down"; no shadow while down)
+  const lieK = it.s.pose === 'lie' ? clamp01(it.s.lieK == null ? 1 : it.s.lieK) : 0;
+  const st = lieK ? { ...it.s, pose: 'wait', v: 0, prev: null } : it.s, L = it.L, yUp = env.yUp || 0;
   const { fx, fy, H, J } = rigOf(cam, st, L, env.t || 0, env.mo !== false, yUp);
   if (H < 3 || fx + H * 0.45 < 0 || fx - H * 0.45 > cam.W) return null;     // (off the screen's edges: walking in / out — not drawn)
   const a = clamp01(st.a == null ? 1 : st.a);
@@ -617,8 +620,9 @@ export function drawFolk(c, cam, it, env) {
   const X = u => fx + u * H, Y = v => fy - v * H;
   c.save(); c.globalAlpha = a * (c.globalAlpha || 1);
   if (env.clip) env.clip(c);
+  if (lieK > 0) { const cy = fy - H * 0.5; c.translate(fx, cy + H * 0.4 * lieK); c.rotate((it.s.lieDir || 1) * (Math.PI / 2) * lieK); c.translate(-fx, -cy); }
   // ---- the shadows: a soft contact shadow; by day the sun's cast shadow along the ground
-  const sh = env.shadow ? env.shadow(BODY_H * L.h, st.x, st.z) : null;
+  const sh = env.shadow && lieK < 0.3 ? env.shadow(BODY_H * L.h, st.x, st.z) : null;
   if (sh && sh.soft && st.pose !== 'sit') {
     // (NIGHT-A, the new light: a SOFT shadow — darkest at the feet, fading to nothing along its length, a little wider at its far end; no
     // blob at the tip — "never hard black blobs")
