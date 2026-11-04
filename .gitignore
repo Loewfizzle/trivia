@@ -8,6 +8,9 @@ __pycache__/
 tests/integration/shots-*/
 shots-*/
 shots-review/
+# FR6 FIXES A (E4): the root shots/ folder (1.8 GB of screenshots) — one `git add .` away from a repo GitHub refuses
+/shots/
+/shots*/
 tests/integration/shots-review/
 
 # private keys and secrets: never commit (and never deploy)

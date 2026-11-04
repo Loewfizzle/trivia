@@ -26,7 +26,7 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   close-up burst — judge a strip MOVING) + `--scrolls N` (a page that scrolls inside its own box) + `--js`.
 - **GitHub checks** (`.github/workflows/tests.yml`, Oct 2026): **since SP6 (the owner's CLOUD MINUTES, Oct 27 — Pro's 3,000 a month went at
   ~400–600 a day when this ran on every push) only a pass's FINAL push runs it**: a push with **`[ci]`** (a game / app pass) or **`[harbor]`** (a City 2.0
-  pass) in one of its commit messages; pull requests and `gh workflow run tests` always run; any other push shows a skipped run (0 minutes; it never
+  pass) in one of its commit messages — whatever the push touched, docs-only included (FR6 FIXES A, G5: no path filter on push any more); pull requests and `gh workflow run tests` always run; any other push shows a skipped run (0 minutes; it never
   cancels a full run in flight — a newer full run cancels an older one). The build machine (THE MINI PC, below) runs `node --test tests/*.test.mjs` before every push. Budget
   ≈ 35–50 cloud minutes a pass (this workflow ≈ 10, the harbor's 10 jobs ≈ 36–42). It runs the unit tests,
   then the rules tests, the `/api` tests and the smoke test on the emulators with headless Chrome. They run **next to** the Vercel
@@ -60,8 +60,10 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, Oct 24): the WHOLE
   `e2e-harbor.mjs` (`SHOTS=0`, on the emulators) on GitHub's machines. **The rule (PART 8P, the owner's 2,000 monthly minutes — the repo is
   PRIVATE): it runs only on a pass's FINAL push** — a push with **`[harbor]`** in one of its commit messages (`CITY 2.0 PART 8P: … [harbor]`)
-  that touches a City 2.0 file (the `paths:` list: `js/screens/harbor/`, `js/core/harbor-*` + `city-*`, the title, `js/audio/`, `audio/city/`,
-  the harbor CSS, the suite + `harbor-jobs.mjs`…) — or by hand: `gh workflow run harbor` (Actions → harbor → Run workflow), `gh workflow run
+  — **whatever it touched (FR6 FIXES A, G5: the old `paths:` filter judged the WHOLE push's diff and created NO run when nothing matched,
+  before the tag was read — LOBBY 2.0 B's tagged final push was one docs commit and never ran; `tests.yml`'s `paths-ignore` had the same hole.
+  Now neither workflow filters a push by path: the tag on the TOP commit (as Vercel reads it) or on any commit of the push decides;
+  `tests/workflows.test.mjs` evaluates both files' own `if:` expressions against simulated pushes)** — or by hand: `gh workflow run harbor` (Actions → harbor → Run workflow), `gh workflow run
   harbor -f job=street` for one job. A mid-pass push without the tag shows a SKIPPED harbor run (0 minutes) and never cancels a full run in
   flight; a newer full run cancels an older one. The quick `tests` workflow (unit, rules, `/api`, smoke) runs on the same `[harbor]` push (and on `[ci]`).
   - **4 parallel jobs** (the matrix `audio` · `show` · `city` · `street`; each job's groups in **`tests/integration/harbor-jobs.mjs`**,

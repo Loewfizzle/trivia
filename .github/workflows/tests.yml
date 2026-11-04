@@ -7,23 +7,23 @@
 name: tests
 
 on:
-  # (FP3b, FREV A5: a docs-only push runs nothing — it cost ~7 CI minutes each; any code file in the push runs everything)
+  # (FR6 FIXES A, G5: NO path filter on push — a `paths-ignore` drops a docs-only push BEFORE `if:` reads the tag, so a pass whose tagged
+  # final push was docs only ran nothing. The tag decides: an untagged push = a skipped run (0 minutes) whatever it touched.)
   push:
     branches: [main]
-    paths-ignore: ['docs/**', '**/*.md']
   pull_request:
     paths-ignore: ['docs/**', '**/*.md']
   workflow_dispatch:
 
 # (a newer FULL run cancels an older full run; a skipped push never cancels a full one)
 concurrency:
-  group: tests-${{ github.ref }}-${{ (github.event_name != 'push' || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')) && 'full' || 'skip' }}
+  group: tests-${{ github.ref }}-${{ (github.event_name != 'push' || contains(github.event.head_commit.message, '[ci]') || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(github.event.head_commit.message, '[harbor]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')) && 'full' || 'skip' }}
   cancel-in-progress: true
 
 jobs:
   unit:
     name: unit + whole-match simulations
-    if: github.event_name != 'push' || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[ci]') || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(github.event.head_commit.message, '[harbor]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -35,7 +35,7 @@ jobs:
 
   integration:
     name: rules + /api + smoke test (emulators, headless Chrome)
-    if: github.event_name != 'push' || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')
+    if: github.event_name != 'push' || contains(github.event.head_commit.message, '[ci]') || contains(join(github.event.commits.*.message, ' '), '[ci]') || contains(github.event.head_commit.message, '[harbor]') || contains(join(github.event.commits.*.message, ' '), '[harbor]')
     runs-on: ubuntu-latest
     timeout-minutes: 25
     steps:

@@ -331,7 +331,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   ~255 MB of it the music; a new top-level folder the site loads must NOT match it. Never write a tag in square brackets in a message that
   isn't meant to fire it (a message that NAMES the tags fires them all — write "the ci / harbor / deploy tags").
 - **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, 10 parallel jobs): the FULL `e2e-harbor` suite runs only on a pass's FINAL push
-  (the harbor tag in a commit message + a City 2.0 file touched) or `gh workflow run harbor` (`-f job=street`). **At most TWO cloud runs a pass**;
+  (the harbor tag in a commit message — whatever the push touched, docs-only included: no path filter since FR6 FIXES A, `tests/workflows.test.mjs`) or `gh workflow run harbor` (`-f job=street`). **At most TWO cloud runs a pass**;
   never re-run to confirm a flake. A new test group: its `G()` in `tests/integration/harbor-e2e/<job>.mjs` + its name in exactly one job in
   `harbor-jobs.mjs`. Locally (the mini PC): the touched groups (`ONLY=…`) while working, the FULL suite once before the final push. Full text: docs/harbor.md.
 - **THE BASELINE GUARD:** `ONLY=perf` fails above 2× `tests/integration/perf-baseline.json` (`PERF_GUARD=only` ≈ 1.5 min; `PERF_BASELINE=write`
