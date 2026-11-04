@@ -92,6 +92,11 @@ export function installChatFab() {
 let open = null; // { close }
 export const isChatOpen = () => !!open;
 
+/** LOBBY 2.0 A — the quick replies (the console's) + a game's own chips (THE CARTRIDGE PLUG: setGameChips(['NICE ROLL', …]) while it runs) */
+export const QUICK = Object.freeze(['GG', 'NO WAY', 'REMATCH?', '🔥', '😂', '👏']);
+let gameChips = [];
+export function setGameChips(list) { gameChips = Array.isArray(list) ? list.filter(t => typeof t === 'string' && t.trim()).map(t => t.trim().slice(0, 24)).slice(0, 4) : []; }
+
 export function openChat({ focus = false } = {}) {
   if (open || !state.code || locked()) return;
   chat.open = true;
@@ -107,11 +112,14 @@ export function openChat({ focus = false } = {}) {
   const hint = h('div.chat-hint');
   const sendBtn = h('button.chat-send', { type: 'submit', 'aria-label': 'Send', html: ICON.send, dataset: { sfx: 'none' } });
   const form = h('form.chat-form', { onsubmit: e => { e.preventDefault(); submit(); } }, input, counter, sendBtn);
+  // LOBBY 2.0 A — QUICK-REPLY CHIPS above the field (most party chat needs no keyboard): the console's own + a game's (setGameChips)
+  const chipRow = h('div.chat-chips', { role: 'group', 'aria-label': 'Quick replies' },
+    ...[...QUICK, ...gameChips].map(t => h('button.chat-chip', { type: 'button', dataset: { sfx: 'none' }, onclick: () => { const r = send(t); if (r === 'ok') { sfx('lock'); scrollEnd(true); } else if (r === 'slow') showHint('Slow down — one message a second.'); } }, t)));
   const head = h('div.chat-head',
     h('div.sheet-grip'),
     h('div.chat-title', h('span.sheet-kicker', 'ROOM CHAT'), h('b', state.code), filterOn() ? h('span.chat-flag', 'FILTERED') : null),
     h('button.icon-btn.chat-close', { type: 'button', 'aria-label': 'Close chat', onclick: () => close() }, '×'));
-  const sheet = h('div.sheet.chat-sheet', { role: 'dialog', 'aria-label': 'Room chat' }, head, h('div.chat-body', list, pill), typing, hint, form);
+  const sheet = h('div.sheet.chat-sheet', { role: 'dialog', 'aria-label': 'Room chat' }, head, h('div.chat-body', list, pill), typing, hint, chipRow, form);
   const modal = h('div.modal.chat-modal', { onclick: e => { if (e.target === modal) close(); } }, sheet);
   document.body.append(modal);
   // once it has slid in, drop the entry animation so a swipe can move the sheet
@@ -199,7 +207,9 @@ export function openChat({ focus = false } = {}) {
   }
   input.addEventListener('input', () => { paintCount(); if (input.value.trim()) typingPing(); else stopTyping(); });
 
-  // ---- keyboard: keep the field + latest messages above it (visualViewport)
+  // ---- THE CHAT KEYBOARD (LOBBY 2.0 A — docs/chat.md): the sheet keeps ONE size and SLIDES UP as one piece onto the keyboard — a
+  // transform by the keyboard's height (the visual viewport), never a resize: nothing behind it squeezes or jumps, the list stays on the
+  // newest message. (Only a keyboard taller than the room above it — an iPad's, the emoji pane on a small phone — caps the height to fit.)
   const vv = () => window.__fakeVV || window.visualViewport;
   function layout() {
     const v = vv();
@@ -208,7 +218,7 @@ export function openChat({ focus = false } = {}) {
     sheet.style.setProperty('--kb', `${kb}px`);
     sheet.style.setProperty('--vh', `${Math.round(v.height)}px`);
     sheet.classList.toggle('has-kb', kb > 40);
-    scrollEnd(false);
+    scrollEnd(true);
   }
   const v0 = window.visualViewport;
   if (v0) { v0.addEventListener('resize', layout); v0.addEventListener('scroll', layout); }
@@ -219,12 +229,12 @@ export function openChat({ focus = false } = {}) {
   // ---- swipe down to close
   let drag = null;
   head.addEventListener('pointerdown', e => { if (e.target.closest('button')) return; drag = { y: e.clientY, id: e.pointerId }; try { head.setPointerCapture(e.pointerId); } catch { /* */ } });
-  head.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; const dy = Math.max(0, e.clientY - drag.y); sheet.style.transform = `translateY(${dy}px)`; });
+  head.addEventListener('pointermove', e => { if (!drag || e.pointerId !== drag.id) return; const dy = Math.max(0, e.clientY - drag.y); sheet.style.setProperty('--drag', `${dy}px`); });
   const end = e => {
     if (!drag || e.pointerId !== drag.id) return;
     const dy = e.clientY - drag.y;
     drag = null;
-    sheet.style.transform = '';
+    sheet.style.setProperty('--drag', '0px');
     if (dy > 90) close();
   };
   head.addEventListener('pointerup', end);

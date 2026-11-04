@@ -57,7 +57,7 @@ await H.run(async () => {
   await p.waitForSelector('.input-code');
   await p.type('.setup-screen input.input:not(.input-code)', H.NAMES[2]);
   await p.click('.form-cta .btn-primary');
-  await p.waitForSelector('.lobby-screen', { timeout: 20000 });
+  await p.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 20000 });
   uids[2] = await evalIn(p, s => s.uid);
   await waitFor(host, s => Object.keys(s.players).length === 3, '3 players');
   await waitFor(p, () => true, 'settle');

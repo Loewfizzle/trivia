@@ -88,7 +88,7 @@ export async function createHarness({ name, slot = 'e', hook = null, sizes = REV
     for (let k = 0; k < 5 && !(await host.$('.setup-screen input.input')); k++) { await host.click('.nd-host').catch(() => {}); await host.waitForSelector('.setup-screen input.input', { timeout: 6000 }).catch(() => {}); }
     await host.type('.setup-screen input.input', NAMES[0]);
     await host.click('.form-cta .btn-primary');
-    await host.waitForSelector('.lobby-screen .room-code', { timeout: 20000 });
+    await host.waitForSelector('.lobby-screen .room-code, .title-screen.is-room .rdk-dock', { timeout: 20000 });
     code = await evalIn(host, s => s.code);
     log('room', code);
     uids[0] = await evalIn(host, s => s.uid);
@@ -102,7 +102,7 @@ export async function createHarness({ name, slot = 'e', hook = null, sizes = REV
     await p.waitForSelector('.input-code');
     await p.type('.setup-screen input.input:not(.input-code)', NAMES[i]);
     await p.click('.form-cta .btn-primary');
-    await p.waitForSelector('.lobby-screen', { timeout: 20000 });
+    await p.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 20000 });
     uids[i] = await evalIn(p, s => s.uid);
     return p;
   }

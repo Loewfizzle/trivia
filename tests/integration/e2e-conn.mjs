@@ -105,7 +105,7 @@ try {
 
   // ---- 2. HOST
   await A.page.evaluate(() => document.querySelector('.nd-host') && document.querySelector('.nd-host').click());
-  await A.page.waitForSelector('.lobby-screen .room-code', { timeout: 30000 });
+  await A.page.waitForSelector('.lobby-screen .room-code, .title-screen.is-room .rdk-dock', { timeout: 30000 });
   const code = await evalIn(A.page, s => s.code);
   log('room', code);
   await sleep(1500);
@@ -117,7 +117,7 @@ try {
   await titleUp(B); await sleep(1500);
   const bBefore = B.opened;
   await B.page.evaluate(c => import('/js/firebase.js').then(f => f.firebaseReady).then(() => import('/js/room.js')).then(m => m.joinRoom(c, JSON.parse(localStorage.getItem('na:1:profile')))), code);
-  await B.page.waitForSelector('.lobby-screen', { timeout: 30000 });
+  await B.page.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 30000 });
   await waitFor(A.page, s => Object.keys(s.players).length === 2, 'two players', 20000);
   await row('lobby (guest, joined by the hush word)', B);
   ok(bBefore === 0 && B.n === 1, `JOIN by the hush word from a parked start (sockets ${bBefore} → ${B.n})`);
@@ -132,7 +132,7 @@ try {
   await I.page.waitForSelector('.input-code', { timeout: 15000 });
   await I.page.type('.setup-screen input.input:not(.input-code)', 'INVITE');
   await I.page.evaluate(() => document.querySelector('.form-cta .btn-primary').click());
-  await I.page.waitForSelector('.lobby-screen', { timeout: 30000 });
+  await I.page.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 30000 });
   await row('lobby (joined by an invite link)', I);
   ok(I.n === 1, `JOIN by an invite link (${I.n} socket)`);
 
@@ -182,7 +182,7 @@ try {
   ok(!(await warned(B)), 'after QUIT the parked title shows no connection warning');
   // HOST again from the parked title works (and reconnects)
   await B.page.evaluate(() => import('/js/room.js').then(m => m.createRoom(JSON.parse(localStorage.getItem('na:1:profile')))));
-  await B.page.waitForSelector('.lobby-screen', { timeout: 30000 });
+  await B.page.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 30000 });
   await row('lobby again (re-host after parking)', B);
   ok(B.n === 1, `HOST again from a parked title (${B.n} socket)`);
   await B.page.evaluate(() => import('/js/room.js').then(m => m.leaveRoom()));

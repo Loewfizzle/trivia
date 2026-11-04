@@ -181,3 +181,43 @@ G('roomperf', async () => {
   await A.ctx.close(); await closeRealSafe();
 });
 const closeRealSafe = async () => { try { const k = await import('./kit.mjs'); await k.closeReal(); } catch { /* fine */ } };
+
+// ---- LOBBY 2.0 A — TYPING BUBBLES + THE CHAT FIX: a guest typing → a "…" bubble over their figure on the other phone (no words), gone when
+// they send; the chat sheet keeps ONE size + slides up as one piece onto the keyboard (a fake 336-pt iOS keyboard); QUICK-REPLY CHIPS send
+G('roomchat', async () => {
+  const A = await open({ slot: 'rca', qs: ROOMQ, view: [390, 844] }), p = A.page;
+  await harborUp(p); await sleep(1000);
+  await ev(p, "document.querySelector('.nd-hostbtn').click()");
+  await waitFor(p, 'window.__arcade.state.code && window.__district.room()', 'hosted', 20000);
+  const code = await ev(p, 'window.__arcade.state.code');
+  const B = await open({ slot: 'rcb', qs: `${ROOMQ}&room=${code}`, view: [390, 844] }), q = B.page;
+  await harborUp(q); await sleep(1000);
+  await ev(q, "(() => { const b = document.querySelector('.nd-go'); if (b) b.click(); })()");
+  await waitFor(q, 'window.__district.room() && window.__district.room().people.length === 2', 'B in', 20000);
+  const meB = await ev(q, 'window.__arcade.state.uid');
+  await waitFor(p, `(() => { const r = window.__district.room(); const x = r && r.people.find(y => y.uid === '${meB}'); return x && x.s && x.s.pose === 'wait'; })()`, 'B settled', 40000).catch(() => {});
+  // B opens the chat from the dock + types
+  await ev(q, "document.querySelector('.rdk-chat').click()");
+  await waitFor(q, "!!document.querySelector('.chat-sheet .chat-input')", 'the chat sheet', 8000);
+  const h0 = await ev(q, "document.querySelector('.chat-sheet').getBoundingClientRect().height");
+  await q.focus('.chat-sheet .chat-input'); await q.keyboard.type('on my way', { delay: 40 });
+  const bub = await waitFor(p, `document.querySelector('.rc-tag[data-uid="${meB}"]').classList.contains('is-typing')`, 'the bubble', 8000).then(() => true, () => false);
+  const bt = await ev(p, `(() => { const t = document.querySelector('.rc-tag[data-uid="${meB}"] .rc-bubble'), r = t.getBoundingClientRect(), dock = document.querySelector('.rdk-dock').getBoundingClientRect(); return { text: t.textContent, w: r.width, h: r.height, bottom: r.bottom, dockTop: dock.top, op: getComputedStyle(t).opacity }; })()`);
+  ok(bub && bt.text === '' && bt.w >= 24 && bt.bottom < bt.dockTop - 20, `TYPING BUBBLES: B typing → a "…" bubble over B's figure on A's phone (no words; ${Math.round(bt.w)}×${Math.round(bt.h)} pt, clear of the dock by ${Math.round(bt.dockTop - bt.bottom)} pt)`);
+  if (SHOTS) await p.screenshot({ path: `${OUT}lobby-typing-390.png` });
+  // THE CHAT FIX: a 336-pt keyboard → the sheet keeps its height, slides up as one piece, the field above the keyboard
+  await ev(q, '(() => { window.__fakeVV = { height: 844 - 336, offsetTop: 0 }; window.__chatLayout(); })()'); await sleep(400);
+  const kb = await ev(q, "(() => { const s = document.querySelector('.chat-sheet').getBoundingClientRect(), f = document.querySelector('.chat-form').getBoundingClientRect(), c = document.querySelector('.chat-chips').getBoundingClientRect(); return { h: s.height, top: s.top, form: f.bottom, chips: c.bottom <= f.top + 1 && c.height > 30 }; })()");
+  ok(Math.abs(kb.h - h0) < 1 && kb.form <= 844 - 336 + 1 && kb.top >= 0 && kb.chips, `THE CHAT KEYBOARD: ONE size (${Math.round(h0)} → ${Math.round(kb.h)} pt) slid up as one piece — the field above the keyboard (bottom ${Math.round(kb.form)} ≤ 508), the top on screen (${Math.round(kb.top)}), the quick replies just above the field`);
+  if (SHOTS) await q.screenshot({ path: `${OUT}lobby-chat-kb-390.png` });
+  await ev(q, '(() => { delete window.__fakeVV; window.__chatLayout(); })()');
+  // send → the bubble goes; a chip sends its words
+  await q.keyboard.press('Enter');
+  const gone = await waitFor(p, `!document.querySelector('.rc-tag[data-uid="${meB}"]').classList.contains('is-typing')`, 'bubble gone', 10000).then(() => true, () => false);
+  await sleep(1300);   // (the room's one-message-a-second rule)
+  await ev(q, "[...document.querySelectorAll('.chat-chip')].find(b => b.textContent === 'GG').click()");
+  const gg = await waitFor(q, "import('/js/chat/chat.js').then(m => m.chat.msgs.some(x => x.t === 'GG'))", 'GG sent', 8000).then(() => true, () => false);
+  const chips = await ev(q, "[...document.querySelectorAll('.chat-chip')].map(b => b.textContent).join(' ')");
+  ok(gone && gg && chips === 'GG NO WAY REMATCH? 🔥 😂 👏', `SENT → the bubble goes (${gone}); QUICK-REPLY CHIPS (${chips}) — GG sent (${gg})`);
+  await A.ctx.close(); await B.ctx.close();
+});

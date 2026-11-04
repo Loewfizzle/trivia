@@ -126,7 +126,7 @@ try {
   await check('setup');
   await host.type('.setup-screen input.input', NAMES[0]);
   await tap(host, '.form-cta .btn-primary');
-  await host.waitForSelector('.lobby-screen .room-code', { timeout: 20000 });
+  await host.waitForSelector('.lobby-screen .room-code, .title-screen.is-room .rdk-dock', { timeout: 20000 });
   const code = await evalIn(host, s => s.code);
   log('room', code);
 
@@ -139,7 +139,7 @@ try {
   await guest.waitForSelector('.input-code');
   await guest.type('.setup-screen input.input:not(.input-code)', NAMES[1]);
   await tap(guest, '.form-cta .btn-primary');
-  await guest.waitForSelector('.lobby-screen', { timeout: 20000 });
+  await guest.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 20000 });
   await waitFor(host, s => Object.keys(s.players).length === 2, 'two players', 20000);
   await sleep(1500); // chat strip + lobby art load lazily
   await watch('lobby', 2000);
@@ -147,7 +147,8 @@ try {
   ok(true, 'lobby on two regular phones');
 
   // ---- HOW TO PLAY sheet (every game's rules)
-  await host.evaluate(() => document.querySelector('.gc-help').click());
+  // (LOBBY 2.0 A: the room in the city has no game cards — HOW TO PLAY opens the same sheet)
+  await host.evaluate(() => { const b = document.querySelector('.gc-help'); if (b) b.click(); else return import('/js/ui/help.js').then(m => m.openHelp('prism')); });
   await sleep(700);
   const tabs = await host.$$eval('.help-tab, [role="tab"]', els => els.length).catch(() => 0);
   for (let k = 0; k < tabs; k++) {
@@ -167,7 +168,9 @@ try {
     await sleep(600);
     const g = await evalIn(host, s => s.game ? s.game.id : null);
     ok(ids.length === 10 && res.every(r => r === false) && g === null, `HIDDEN GAMES: none of the ${ids.length} hidden games starts (${res.filter(r => r !== false).length} started; game ${g})`);
-    const cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
+    // (LOBBY 2.0 A: in City 2.0 the room is the live city — its GAMES sheet lists the games; City 1.0's lobby keeps its cards)
+    let cards = await host.$$eval('.lobby-screen .game-card', els => els.map(e => e.dataset.theme));
+    if (!cards.length && await host.$('.rdk-games')) { await host.evaluate(() => document.querySelector('.rdk-games').click()); await host.waitForSelector('.rc-games-sheet .rc-game', { timeout: 8000 }); cards = await host.$$eval('.rc-games-sheet .rc-game', els => els.map(e => e.dataset.game)); await host.evaluate(() => document.querySelector('.rc-games-sheet .pfs-back').click()); await sleep(400); }
     ok(cards.length === 2 && cards.includes('prism') && cards.includes('overclock'), `THE LOBBY: only the two playable games (${cards.join(', ')})`); }
 
   // ---- each game: start, watch its opening screens on both phones, back to the lobby
@@ -181,7 +184,7 @@ try {
     const phase = await evalIn(guest, s => s.game && s.game.phase);
     ok(true, `${id}: watched to phase "${phase}" with no stray text`);
     await backToLobbyNow(id);
-    await guest.waitForSelector('.lobby-screen', { timeout: 15000 });
+    await guest.waitForSelector('.lobby-screen, .title-screen.is-room', { timeout: 15000 });
     await sleep(800);
     await check(`lobby after ${id}`);
   }

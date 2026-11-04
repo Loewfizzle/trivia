@@ -29,8 +29,9 @@ await H.run(async () => {
   ok(me1.pid && me1.pid !== me0.pid, 'BOB got his own');
   ok(!!(await p0.evaluate(s => localStorage.getItem(`na:${s}:pkey`), slotOf(0))), 'the key is kept on the device');
   await waitFor(p0, s => Object.values(s.players).every(p => p.pid), 'room seats carry the profile id', 20000);
-  await p0.waitForSelector('.lobby-screen .chip .rk-badge', { timeout: 15000 });
-  ok((await p0.$$eval('.lobby-screen .chip .rk-badge', els => els.length)) === 2, 'the lobby shows an emblem + tag for both');
+  // (LOBBY 2.0 A: the room is the live city — each seat's emblem over its player's head; their strips in the guest list)
+  await p0.waitForFunction(() => document.querySelectorAll('.rc-tags .rc-tag').length === 2 || document.querySelectorAll('.lobby-screen .chip .rk-badge').length === 2, { timeout: 15000 });
+  ok(true, 'the room shows both players (an emblem over each head)');
   await shotAll(p0, 'pf-01-lobby');
 
   // ---- 2. an existing player: saved name, no server profile → migrated on load
