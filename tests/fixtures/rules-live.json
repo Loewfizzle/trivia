@@ -122,7 +122,7 @@
               ".validate": "newData.isNumber() && ((data.exists() && newData.val() === data.val()) || (!data.exists() && newData.val() === now))"
             },
             "pid": {
-              ".validate": "newData.isString() && root.child('uids/' + auth.uid).val() === newData.val()"
+              ".validate": "newData.isString() && root.child('uids/' + auth.uid).val() === newData.val() && (!root.child('seats/' + newData.val()).exists() || root.child('seats/' + newData.val() + '/uid').val() === auth.uid)"
             },
             "ln": {
               ".validate": "newData.isString() && (newData.val() === 'L' || newData.val() === 'R')"
@@ -1139,6 +1139,25 @@
     "uids": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid"
+      }
+    },
+    "seats": {
+      "$pid": {
+        ".read": "auth != null && root.child('uids/' + auth.uid).val() === $pid",
+        ".write": "auth != null && root.child('uids/' + auth.uid).val() === $pid",
+        ".validate": "newData.hasChildren(['code', 'uid', 'at']) && newData.child('uid').val() === auth.uid",
+        "code": {
+          ".validate": "newData.isString() && newData.val().matches(/^[A-Z]{4}$/)"
+        },
+        "uid": {
+          ".validate": "newData.isString()"
+        },
+        "at": {
+          ".validate": "newData.val() === now"
+        },
+        "$other": {
+          ".validate": false
+        }
       }
     },
     "pstats": {
