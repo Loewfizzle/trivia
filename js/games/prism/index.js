@@ -67,3 +67,7 @@ export const OPTIONS = [
 ];
 
 export const estimateMinutes = s => estimate(s);
+
+// THE CARTRIDGE PLUG (LOBBY 2.0 B — docs/cartridge.md): the chat's lock, its name on THE WINNER's BANNER PLANE
+export { chatLocked } from './logic.js';
+export const BANNER_NAME = 'PRISM DROP';

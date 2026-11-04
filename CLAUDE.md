@@ -16,6 +16,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | doc | read it when you touch |
 | --- | --- |
 | `docs/match-kit.md` | **any real-time game** (the shared HUD pieces + the E2E harness) — read this before building or changing a game |
+| `docs/cartridge.md` | **THE CARTRIDGE PLUG** (LOBBY 2.0 B): what a game EXPORTS + what the console GIVES it (`js/games/cartridge.js` — checked by `tests/cartridge.test.mjs`): `start({ now })` = the match begins after the walk inside, its own chat lock, banner name, preload, the DAILY plug-in (ships OFF) — the console never names a game |
 | `docs/data-model.md` | the database: every node, every game's `game` shape, rules |
 | `docs/testing.md` | running / writing tests: emulators, smoke test, each game's E2E and its env flags, previews, Lighthouse |
 | `docs/audio.md` | music, playlists, SFX, the audio engine; loading, PWA, service worker, link previews |

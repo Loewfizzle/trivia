@@ -208,6 +208,14 @@ subscribe(st => {
   // (LOBBY 2.0 A — THE SAVE-YOUR-KEY POP-UP: back from a counted match — a new player's first — profile/keypop.js; it waits while anything is up)
   if (back) import('./profile/keypop.js').then(k => setTimeout(() => k.maybeKeyPop({ why: 'match' }), 1400)).catch(() => {});
 });
+// THE CARTRIDGE PLUG (LOBBY 2.0 B — docs/cartridge.md): a game's own quick replies on the chat's chips row while it's on screen
+let chipsFor = '';
+subscribe(st => {
+  const k = routeKey(st), id = k.startsWith('game:') ? k.split(':')[1] : '';
+  if (id === chipsFor) return;
+  chipsFor = id;
+  import('./games/cartridge.js').then(C => import('./chat/ui.js').then(m => m.setGameChips(C.chipsOf(GAME_MODULES[id])))).catch(() => {});
+});
 // Room chat loads the first time we're in a room (never on the first paint): the in-game chat button.
 let chatInstalled = false;
 subscribe(st => {

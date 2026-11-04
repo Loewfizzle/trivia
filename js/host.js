@@ -6,6 +6,7 @@
 // mirrored database state on each tick, so any client can take over at any time.
 import { dbRef, update, remove, runTransaction, serverTimestamp, serverNow } from './firebase.js';
 import { START_MS } from './core/room-show.js';
+import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
 import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
@@ -143,7 +144,7 @@ export async function startGame(gameId, settings) {
   if (!isPlayable(gameId)) { toast('COMING SOON', 'info'); return false; }
   const participants = {};
   for (const uid of Object.keys(state.players)) if (isOnline(state.presence, uid)) participants[uid] = true;
-  const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
+  const min = minPlayersOf(mod, MIN_PLAYERS);   // (THE CARTRIDGE PLUG: MIN_PLAYERS above the app's, or SOLO = 1)
   if (Object.keys(participants).length < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return false; }
   const matchId = Math.random().toString(36).slice(2, 8);
   // (LOBBY 2.0 B — THE GAME START: the start's stamp goes up FIRST — every phone begins the walk inside at the host's tap, while this phone
@@ -178,7 +179,7 @@ export function rematch() {
   const id = state.game ? state.game.id : back.g;
   const mod = GAME_MODULES[id];
   const settings = (state.meta.settings && state.meta.settings[id]) || (state.game && state.game.settings) || (mod && mod.DEFAULT_SETTINGS) || {};
-  return startGame(id, settings);
+  return startGame(id, rematchSettingsOf(mod, settings, state.game));   // (THE CARTRIDGE PLUG: a game may adjust its rematch)
 }
 
 const clearPlayerNodes = () => Object.fromEntries(ALL_PLAYER_NODES.map(n => [n, null]));

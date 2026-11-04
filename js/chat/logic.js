@@ -13,8 +13,11 @@ export const TYPING_STALE_MS = 6500;
  * and anyone who has finished the current round/hole can always chat. `live` is state.live (only
  * trusted when it belongs to the current step — pass null otherwise, which locks to be safe).
  */
-export function chatLocked(game, uid, live) {
+// LOBBY 2.0 B — THE CARTRIDGE PLUG (docs/cartridge.md): a game says it itself — its index.js exports chatLocked(game, uid, live); the chat
+// passes it here (lock). The switch below is the ten HIDDEN games' (frozen until each comes back — then its case moves into its cartridge).
+export function chatLocked(game, uid, live, lock = null) {
   if (!game || !uid || !game.participants || !game.participants[uid]) return false;
+  if (typeof lock === 'function') return !!lock(game, uid, live);
   const mine = name => (live && live[name] ? live[name][uid] : undefined);
   switch (game.id) {
     case 'cipher': {
@@ -25,11 +28,6 @@ export function chatLocked(game, uid, live) {
     case 'signal':
       if (game.out && game.out[uid] !== undefined) return false; // eliminated: chat any time
       return game.phase === 'question';
-    case 'overclock': {
-      if (game.phase !== 'play') return false;
-      const b = mine('boards');
-      return !(b && b.done);
-    }
     case 'bluff':
       return game.phase === 'write' || game.phase === 'vote';
     case 'pulse':
@@ -52,13 +50,6 @@ export function chatLocked(game, uid, live) {
       if (game.phase === 'turn') return game.cur === uid;
       if (game.phase === 'aim') return !mine('shots');
       return false;
-    }
-    case 'prism': {
-      // PRISM DROP: locked while your board is live; knocked out (battle) = watch and talk
-      if (game.phase !== 'count' && game.phase !== 'play') return false;
-      if (game.out && game.out[uid]) return false;
-      const n = mine('boards');
-      return !(n && n.st === 'out');
     }
     case 'golf': {
       if (game.phase !== 'play') return false;

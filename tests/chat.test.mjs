@@ -2,6 +2,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chatLocked, maskProfanity, cleanText, relTime, typingLine, typists, unreadCount, continues, MAX_LEN } from '../js/chat/logic.js';
+import { chatLocked as ocLock } from '../js/games/overclock/logic.js';
 
 const P = { me: true, you: true };
 
@@ -20,9 +21,11 @@ test('chat is locked only during your own active play', () => {
   assert.equal(chatLocked({ id: 'signal', phase: 'reveal', participants: P }, 'me', {}), false);
   assert.equal(chatLocked({ id: 'signal', phase: 'question', participants: P, out: { me: 4 } }, 'me', {}), false);
   // OVERCLOCK
-  assert.equal(chatLocked({ id: 'overclock', phase: 'play', participants: P }, 'me', { boards: {} }), true);
-  assert.equal(chatLocked({ id: 'overclock', phase: 'play', participants: P }, 'me', { boards: { me: { done: true } } }), false);
-  assert.equal(chatLocked({ id: 'overclock', phase: 'standings', participants: P }, 'me', {}), false);
+  // (LOBBY 2.0 B — THE CARTRIDGE PLUG: OVERCLOCK carries its own lock; the chat passes it in)
+  assert.equal(chatLocked({ id: 'overclock', phase: 'play', participants: P }, 'me', { boards: {} }, ocLock), true);
+  assert.equal(chatLocked({ id: 'overclock', phase: 'play', participants: P }, 'me', { boards: { me: { done: true } } }, ocLock), false);
+  assert.equal(chatLocked({ id: 'overclock', phase: 'standings', participants: P }, 'me', {}, ocLock), false);
+  assert.equal(chatLocked({ id: 'overclock', phase: 'play', participants: P }, 'spectator', { boards: {} }, ocLock), false, 'not a participant: never locked');
   // NEURAL BLUFF
   for (const [phase, locked] of [['intro', false], ['write', true], ['vote', true], ['reveal', false], ['standings', false], ['final', false]]) {
     assert.equal(chatLocked({ id: 'bluff', phase, participants: P }, 'me', {}), locked, `bluff ${phase}`);

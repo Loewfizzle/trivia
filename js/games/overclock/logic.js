@@ -119,3 +119,10 @@ export function standings(game, upto = Infinity) {
   rows.forEach((r, i) => { if (r.score !== prev) { rank = i + 1; prev = r.score; } r.rank = rank; });
   return rows;
 }
+
+/** THE CARTRIDGE PLUG (docs/cartridge.md) — the chat's lock: locked while you're answering this challenge; done (or watching) = chat */
+export function chatLocked(game, uid, live) {
+  if (game.phase !== 'play') return false;
+  const b = live && live.boards ? live.boards[uid] : undefined;
+  return !(b && b.done);
+}

@@ -9,6 +9,7 @@ import { MIN_PLAYERS } from '../config.js';
 import { startGame, onlineCount } from '../host.js';
 import { GAME_MODULES } from '../games/registry.js';
 import { preloadSheets } from '../games/lazy-view.js';
+import { minPlayersOf } from '../games/cartridge.js';
 import { openHelp } from '../ui/help.js';
 import { prefetch } from '../audio/music.js';
 
@@ -49,7 +50,7 @@ export function openGameOptions(g, { meta = null, onClose = null } = {}) {
   let sheet = null;
   const close = () => { if (!sheet) return; sheet.classList.add('out'); const s = sheet; sheet = null; setTimeout(() => s.remove(), 260); if (onClose) onClose(); };
   startBtn.onclick = async () => {
-    const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
+    const min = minPlayersOf(mod, MIN_PLAYERS);   // (THE CARTRIDGE PLUG)
     if (onlineCount() < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return; }
     startBtn.classList.add('is-busy');
     startBtn.firstChild.textContent = 'BOOTING…';

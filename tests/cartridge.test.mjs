@@ -1,0 +1,82 @@
+// LOBBY 2.0 B — THE CARTRIDGE PLUG (docs/cartridge.md): every registered game meets the contract (js/games/cartridge.js) — the playable
+// ones checked, the hidden ones listed as EXEMPT until each comes back; the console never names a game; the checker itself.
+// (A game's index.js needs a browser: here its EXPORTS are read from the source; the harbor's `cartridge` group runs checkCartridge on the
+// real modules in a page.)
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { GAMES } from '../js/config.js';
+import { REQUIRED, OPTIONAL, checkCartridge, minPlayersOf, chipsOf, rematchSettingsOf } from '../js/games/cartridge.js';
+import { MARKS } from '../js/screens/district/marks.js';
+
+const read = p => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
+/** the names a module exports, from its source (export const / function / let, export { a, b as c } [from …]) */
+function exportsOf(src) {
+  const out = new Set();
+  for (const m of src.matchAll(/^export\s+(?:async\s+)?(?:const|let|var|function\*?|class)\s+([A-Za-z_$][\w$]*)/gm)) out.add(m[1]);
+  for (const m of src.matchAll(/^export\s*\{([^}]*)\}/gm)) for (const part of m[1].split(',')) { const n = part.trim().split(/\s+as\s+/).pop().trim(); if (n) out.add(n); }
+  return out;
+}
+const REG = read('js/games/registry.js');
+const registered = [...REG.matchAll(/import \* as (\w+) from '\.\/(\w+)\/index\.js'/g)].map(m => m[2]);
+const PLAYABLE = GAMES.filter(g => g.playable).map(g => g.id);
+/** THE TEN HIDDEN GAMES — EXEMPT until each comes back (WINDOWS, Nov 1: their code + data + rules FROZEN). A game that returns leaves this
+ *  list in the same pass that makes it playable — and then must pass every check below. */
+export const EXEMPT = Object.freeze(['cipher', 'signal', 'bluff', 'pulse', 'golf', 'agent', 'slip', 'gridlock', 'stakes', 'rum']);
+
+test('every registered game is either PLAYABLE (and checked) or EXEMPT (hidden, frozen) — never neither', () => {
+  assert.deepEqual([...PLAYABLE].sort(), ['overclock', 'prism']);
+  for (const id of registered) assert.ok(PLAYABLE.includes(id) !== EXEMPT.includes(id), `${id}: playable XOR exempt`);
+  for (const id of EXEMPT) assert.ok(!PLAYABLE.includes(id), `${id} is exempt — it isn't playable`);
+});
+
+test('the PLAYABLE games export every REQUIRED piece of the contract + a music choice; their mark for the sign; their GAMES row', () => {
+  for (const id of PLAYABLE) {
+    const ex = exportsOf(read(`js/games/${id}/index.js`));
+    for (const k of Object.keys(REQUIRED)) assert.ok(ex.has(k), `${id}: exports ${k}`);
+    assert.ok(ex.has('MUSIC') || ex.has('musicFor'), `${id}: MUSIC or musicFor`);
+    assert.ok(MARKS[id], `${id}: its tube mark (district/marks.js) — the game start's sign`);
+    const g = GAMES.find(x => x.id === id); assert.ok(g && g.name && g.theme, `${id}: its GAMES row`);
+    assert.ok(ex.has('chatLocked') && ex.has('BANNER_NAME'), `${id}: carries its own chat lock + its banner name (LOBBY 2.0 B)`);
+  }
+});
+
+test('THE CONSOLE NEVER NAMES A GAME: the room, the dock, the banner, the start, host.js, app.js, the chat\'s runtime, the podium — no game id', () => {
+  const ids = registered.map(id => `'${id}'`);
+  const files = ['js/app.js', 'js/host.js', 'js/room.js', 'js/store.js', 'js/screens/room-city.js', 'js/screens/room-dock.js', 'js/screens/room-guests.js',
+    'js/screens/room-banner.js', 'js/screens/game-options.js', 'js/core/room-show.js', 'js/chat/chat.js', 'js/chat/ui.js', 'js/ui/final.js', 'js/games/cartridge.js'];
+  for (const f of files) { const s = read(f).replace(/\/\/[^\n]*/g, ''); for (const id of ids) assert.ok(!s.includes(id), `${f} names ${id}`); }
+  // the chat's lock switch keeps ONLY the exempt games (the playable ones carry their own)
+  const lg = read('js/chat/logic.js');
+  for (const id of PLAYABLE) assert.ok(!lg.includes(`case '${id}'`), `chat/logic.js: ${id}'s lock lives in its cartridge`);
+});
+
+test('checkCartridge: a complete module passes; a missing piece, a wrong type, a daily switched on, too many chips, an option with no default — each named', () => {
+  const ok = { start() {}, prepare() {}, step() {}, livePaths() {}, createView() {}, DEFAULT_SETTINGS: { mode: 'a' }, OPTIONS: [{ key: 'mode' }], estimateMinutes() {}, finalRanks() {}, MUSIC: 'x' };
+  assert.deepEqual(checkCartridge('t', ok, { marks: { t: {} }, game: { name: 'T', theme: 't' } }), []);
+  assert.match(checkCartridge('t', { ...ok, step: null }).join(), /step must be a function/);
+  assert.match(checkCartridge('t', { ...ok, OPTIONS: {} }).join(), /OPTIONS must be a array/);
+  assert.match(checkCartridge('t', { ...ok, daily: { on: true, create() {}, resumeKey() {} } }).join(), /ships OFF/);
+  assert.match(checkCartridge('t', { ...ok, daily: { on: false } }).join(), /daily\.create/);
+  assert.deepEqual(checkCartridge('t', { ...ok, daily: { on: false, create() {}, resumeKey() {} } }), []);
+  assert.match(checkCartridge('t', { ...ok, CHAT_CHIPS: ['a', 'b', 'c', 'd', 'e'] }).join(), /CHAT_CHIPS/);
+  assert.match(checkCartridge('t', { ...ok, OPTIONS: [{ key: 'speed' }] }).join(), /no DEFAULT_SETTINGS value/);
+  const { MUSIC, ...noMusic } = ok; void MUSIC;
+  assert.match(checkCartridge('t', noMusic).join(), /MUSIC/);
+  assert.match(checkCartridge('t', ok, { marks: {} }).join(), /no tube mark/);
+});
+
+test('what the console reads through the plug: the minimum (MIN_PLAYERS above the app\'s, SOLO = 1), the chips, the rematch\'s settings', () => {
+  assert.equal(minPlayersOf({}, 2), 2); assert.equal(minPlayersOf({ MIN_PLAYERS: 4 }, 2), 4); assert.equal(minPlayersOf({ SOLO: true, MIN_PLAYERS: 4 }, 2), 1);
+  assert.deepEqual(chipsOf({ CHAT_CHIPS: ['NICE', 'GG', 'X', 'Y', 'Z'] }), ['NICE', 'GG', 'X', 'Y']); assert.deepEqual(chipsOf(null), []);
+  assert.deepEqual(rematchSettingsOf({}, { a: 1 }), { a: 1 });
+  assert.deepEqual(rematchSettingsOf({ rematchSettings: s => ({ ...s, seed: 2 }) }, { a: 1 }), { a: 1, seed: 2 });
+  // wired: host.js + the options sheet use the minimum; the chat asks the game; app.js sets its chips; the start warms + preloads it
+  assert.match(read('js/host.js'), /minPlayersOf\(mod, MIN_PLAYERS\)/);
+  assert.match(read('js/screens/game-options.js'), /minPlayersOf\(mod, MIN_PLAYERS\)/);
+  assert.match(read('js/chat/chat.js'), /chatLocked\(g, state\.uid, live, mod && mod\.chatLocked\)/);
+  assert.match(read('js/app.js'), /setGameChips\(C\.chipsOf\(GAME_MODULES\[id\]\)\)/);
+  assert.match(read('js/screens/room-city.js'), /mod\.createView\.warm\(\)/);
+  assert.match(read('js/screens/room-city.js'), /mod\.preload\(\{ settings:/);
+  assert.match(read('js/games/lazy-view.js'), /createView\.warm = \(\) =>/);
+});

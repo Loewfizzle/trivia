@@ -69,3 +69,7 @@ export function estimateMinutes(s) {
 }
 
 export const finalRanks = game => ocStandings(game).map(r => ({ uid: r.uid, rank: r.rank }));
+
+// THE CARTRIDGE PLUG (LOBBY 2.0 B — docs/cartridge.md): the chat's lock, its name on THE WINNER's BANNER PLANE
+export { chatLocked } from './logic.js';
+export const BANNER_NAME = 'OVERCLOCK';

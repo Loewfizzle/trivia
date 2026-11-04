@@ -104,3 +104,11 @@ export const CLEAR_NAME = {
   twist: 'TWIST', tsingle: 'TWIST SINGLE', tdouble: 'TWIST DOUBLE', ttriple: 'TWIST TRIPLE',
   mini: 'MINI TWIST', msingle: 'MINI TWIST SINGLE', mdouble: 'MINI TWIST DOUBLE', pc: 'PERFECT CLEAR',
 };
+
+/** THE CARTRIDGE PLUG (docs/cartridge.md) — the chat's lock: locked while your board is live; knocked out (battle) = watch and talk */
+export function chatLocked(game, uid, live) {
+  if (game.phase !== 'count' && game.phase !== 'play') return false;
+  if (game.out && game.out[uid]) return false;
+  const n = live && live.boards ? live.boards[uid] : undefined;
+  return !(n && n.st === 'out');
+}

@@ -284,6 +284,9 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     // (the sign's own recorded neon — a dropout as NEON goes out, a catch as the game's logo lights; only from the start itself, never a refresh)
     if (age < 300 && !reducedMotion()) import('../audio/ambience.js').then(A => { A.neonDropout({ level: 0.7 }); goFx && (goFx.catchT = setTimeout(() => A.neonCatch({ level: 0.6, dur: 0.9 }), 470 - age)); }).catch(() => {});
     for (const gs of [gamesOpen, guestsUi]) if (gs && gs.close) gs.close();
+    // (THE CARTRIDGE PLUG — its loading: the walk inside is the console's loading time on EVERY phone — the view module + its sheets warm,
+    //  the game's own preload (pools, sounds) runs; the city is still drawing, so nothing heavy is BUILT here — only fetched)
+    import('../games/registry.js').then(R => { const mod = R.GAME_MODULES[ss.g]; if (!mod) return; if (mod.createView && mod.createView.warm) mod.createView.warm(); if (typeof mod.preload === 'function') { try { mod.preload({ settings: (st.meta && st.meta.settings && st.meta.settings[ss.g]) || mod.DEFAULT_SETTINGS || {}, host: isHost() }); } catch (e) { console.warn('preload', e); } } }).catch(() => {});
     import('../profile/sheets.js').then(m => m.closeAllPfSheets()).catch(() => {});
   }
   function endFx() {

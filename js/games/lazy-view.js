@@ -39,7 +39,9 @@ const loadAll = (load, css) => Promise.all([load(), ...css.map(loadSheet)]).then
 
 /** css: stylesheet names (see gameSheets) to load with the view. */
 export function lazyView(load, css = []) {
-  return function createView() {
+  // (LOBBY 2.0 B — THE CARTRIDGE PLUG: warm() loads the view + its sheets ahead — the console calls it on every phone at the game start)
+  let warmed = null;
+  const createView = function createView() {
     let inner = null, el = null, st = null, gone = false;
     loadAll(load, css).then(m => {
       if (gone) return;
@@ -52,6 +54,8 @@ export function lazyView(load, css = []) {
       unmount() { gone = true; if (inner && el) inner.unmount(); el = null; },
     };
   };
+  createView.warm = () => (warmed ||= loadAll(load, css).catch(() => { warmed = null; }));
+  return createView;
 }
 
 /** Warm a game's stylesheets ahead of its match (the lobby does this when the host opens a game's options). */

@@ -326,3 +326,22 @@ G('afterparty', async () => {
   await A.ctx.close(); await B.ctx.close();
   log('afterparty', 'done');
 });
+
+// ---- Group 3 — THE CARTRIDGE PLUG in a real page: checkCartridge on every registered module (the playable ones must pass; the hidden ones
+// are EXEMPT — counted, not failed), the view warmable, the chat asking the game for its lock
+G('cartridge', async () => {
+  const Q = await open({ slot: 'cart', qs: ROOMQ, view: [402, 874] }), p = Q.page;
+  const r = await ev(p, `(async () => {
+    const [R, C, M, K] = await Promise.all([import('/js/games/registry.js'), import('/js/games/cartridge.js'), import('/js/screens/district/marks.js'), import('/js/config.js')]);
+    const out = {};
+    for (const [id, mod] of Object.entries(R.GAME_MODULES)) {
+      const g = K.GAMES.find(x => x.id === id);
+      out[id] = { playable: !!(g && g.playable), problems: C.checkCartridge(id, mod, { marks: M.MARKS, game: g }), warm: !!(mod.createView && mod.createView.warm), lock: typeof mod.chatLocked === 'function' };
+    }
+    return out;
+  })()`);
+  const play = Object.entries(r).filter(([, x]) => x.playable), hidden = Object.entries(r).filter(([, x]) => !x.playable);
+  ok(play.length === 2 && play.every(([, x]) => !x.problems.length && x.warm && x.lock), `THE CARTRIDGE PLUG: the playable games meet the contract in a real page (${play.map(([id, x]) => `${id}: ${x.problems.length ? x.problems.join('; ') : 'ok'}`).join(' · ')}) — warmable views, their own chat locks`);
+  ok(hidden.length === 10, `the ${hidden.length} hidden games are EXEMPT until each comes back (${hidden.map(([id, x]) => `${id} ${x.problems.length}`).join(', ')} gaps — frozen)`);
+  await Q.ctx.close();
+});

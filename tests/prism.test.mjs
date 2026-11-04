@@ -8,7 +8,7 @@ import { createGame, nextStep, nightBonus } from '../js/games/prism/director.js'
 import { makeGesture, GESTURE } from '../js/games/prism/input.js';
 import { chooseMove } from '../js/games/prism/bot.js';
 import { rngFrom } from '../js/core/rng.js';
-import { chatLocked } from '../js/chat/logic.js';
+import { chatLocked as chatLockedC } from '../js/chat/logic.js';
 
 const manifest = JSON.parse(readFileSync(new URL('../data/prism/manifest.json', import.meta.url))).songs;
 const IDS = manifest.map(s => s.id);
@@ -194,7 +194,8 @@ test('director: replaying a step on a fresh copy gives the same patch (host chan
   assert.equal(p.bd.u1, 2);
 });
 
-test('chat: locked while your board is live, open once you are out', () => {
+test('chat: locked while your board is live, open once you are out (LOBBY 2.0 B: PRISM DROP carries its own lock — the cartridge plug)', () => {
+  const chatLocked = (g, u, live) => chatLockedC(g, u, live, L.chatLocked);
   const g = { id: 'prism', participants: { a: true, b: true }, phase: 'play', out: { b: { at: 1 } } };
   assert.equal(chatLocked(g, 'a', { boards: {} }), true);
   assert.equal(chatLocked(g, 'b', { boards: {} }), false);

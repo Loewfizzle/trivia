@@ -87,7 +87,8 @@ export function locked() {
   const g = state.meta && state.meta.status === 'playing' ? state.game : null;
   if (!g) return false;
   const live = state.liveKey && state.liveKey === liveKeyFor(g) ? state.live : null;
-  return chatLocked(g, state.uid, live);
+  const mod = GAME_MODULES[g.id];
+  return chatLocked(g, state.uid, live, mod && mod.chatLocked);   // (THE CARTRIDGE PLUG: the game's own lock)
 }
 
 // a soft sound + tap for messages from others — never during active play, never with the sheet open
