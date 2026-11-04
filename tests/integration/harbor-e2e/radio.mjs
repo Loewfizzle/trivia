@@ -422,10 +422,11 @@ G('crew', async () => {
     ok(on.ok && on.r.on && t.ok && t.r.sent === 1 && got[0] && got[0].h['content-encoding'] === 'aes128gcm' && jwtOk && p1 && p1.title === 'A ROOM JUST OPENED', `PUSH (CC-B): the owner's switch ON (a subscription) → SEND A TEST → an encrypted push with a valid VAPID token → "${p1 && p1.title} · ${p1 && p1.body}"`);
     // a new room by a guest → the owner's phone hears of it (once)
     const code2 = await ev(D.page, `import('/js/room.js').then(m => m.createRoom({ name: 'MIKE', color: 'pink', avatar: 'star' })).then(() => import('/js/store.js')).then(s => s.state.code)`);
-    for (let i = 0; i < 60 && got.length < 2; i++) await sleep(100);
+    // (FR6 FIXES A: the push is asked ROOM_PUSH_MS (10 s) after the room opened, and only while its host is still in it — js/room.js#roomPushLater)
+    for (let i = 0; i < 160 && got.length < 2; i++) await sleep(100);
     const p2 = got[1] ? open8291(got[1].body) : null;
     const again = await call(D.page, { action: 'radioRoomOpened', room: code2 }); await sleep(300);
-    ok(p2 && p2.title === 'A ROOM JUST OPENED' && p2.body === `${code2} · 1 player` && p2.url && got.length === 2 && again.ok, `PUSH (CC-B): a guest opens ${code2} → "${p2 && p2.body}" (once — a second call sends nothing)`);
+    ok(p2 && p2.title === 'A ROOM JUST OPENED' && p2.body === `${code2} · 1 player` && p2.url === `/?room=${code2}` && got.length === 2 && again.ok, `PUSH (CC-B): a guest opens ${code2} → "${p2 && p2.body}" (once — a second call sends nothing)`);
     // THE LEDGER's paper on the owner's phone
     await ev(O.page, 'window.__radio && window.__radio.open()'); await sleep(500); await ev(O.page, `window.__radio.setBand('ledger')`);
     await waitFor(O.page, `/Phones it goes to/.test((document.querySelector('.rd-push') || {}).textContent || '')`, 'the push paper (read)', 15000).catch(() => {});

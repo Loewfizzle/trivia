@@ -38,7 +38,8 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   (≈ 75 s) → `node --test rules.test.mjs` (≈ 27 s) + `node --test server.test.mjs` (in `tests/integration`, on the emulators) → the smoke test
   (`GAMES=…` after touching a shared file; `GAMES=cipher` ≈ 38 s) → for a City 2.0 pass THE FULL `e2e-harbor` suite (time + peak memory: the pass log,
   docs/harbor/passes/models.md) — so the cloud run confirms, never discovers. Start the emulators (`npm run emulators` in `tests/integration`) and
-  `node scripts/serve.mjs --emu` in the background first. **Nothing else heavy beside the full suite** (a SwiftShader model bake + shot bursts next to
+  `node scripts/serve.mjs --emu` in the background first. **Restart it after touching `api/`** (FR6 FIXES A: `serve.mjs` caches each `/api` module on its first call — a server started
+  before an `api/` change serves the OLD code to every E2E; the static files are re-read each load, so only the /api checks go stale). **Nothing else heavy beside the full suite** (a SwiftShader model bake + shot bursts next to
   it made every group time out on "the harbor baked" — MODELS). **The sandbox:** browser tests run outside Claude Code's sandbox (its private AppData
   copy can't launch Chromium) — the uncommitted `.claude/settings.local.json` excludes `node tests/integration/e2e-*`, `shots.mjs`, `title-perf.mjs`,
   `pixdiff.mjs`… from it (run them from the repo root with those paths). Chromium: `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`. winget's msstore source fails a cert check — install

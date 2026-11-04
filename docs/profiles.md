@@ -25,7 +25,11 @@ unconfigured the app behaves as it always did (no tags, no emblems, results wait
 - **Restore key** `NEON-XXXX-XXXX-XXXX`: 12 symbols from a 32-letter alphabet without O/0/I/1 (60 bits). The server stores only an
   HMAC (`pkeys/{hmac}` → pid, pepper = `KEY_PEPPER` or derived from the service-account key); the plain key lives in the player's
   localStorage (`na:{slot}:pkey`) and is shown once more whenever they ask. Restores are rate-limited (10/h per device, 40/h per
-  IP). Restoring links the device; a profile that device made on its own and never finished a match with is deleted (tag freed).
+  IP). Restoring links the device; the profile that device held before is deleted (tag freed) ONLY when it OWNS NOTHING — FR6 FIXES A (C1,
+  `api/_lib/profiles.js#ownsAnything`): a counted match, an item beyond the starter set (a SIGHTING CARD, THE KNOCK, a birthday…), a sighting,
+  XP, a daily or a MEMBER Nº keeps it (in practice every numbered profile is kept — the device only unlinks). Its key stays on the device as
+  **YOUR PREVIOUS KEY** in ACCOUNT (C2 — `me.js#restoreKey` keeps the previous key + a held new one in `pnotes.oldKeys`, the last 3; COPY ·
+  FORGET) — the way back to whatever that profile holds.
   A new key retires the old one.
 - The room seat (`players/{uid}`) carries `pid` (rules: only your own, `root.uids[auth.uid]`); the lobby, chat and results read the
   live `profiles/{pid}` (`js/profile/public.js`). A refused write (stale id) retries without it — joining never depends on it.
