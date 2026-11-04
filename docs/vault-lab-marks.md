@@ -1,6 +1,6 @@
 # THE CARD LAB — the owner's marks (read this FIRST in the next VAULT pass)
 
-Exported 2026-11-04 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
+Exported 2026-11-04 13:11 UTC from https://www.neonspeakeasy.com by scripts/lab-export.mjs. APPROVE = ships as it is (the full card follows its strip) · FIX = rework it to the note · CUT = drop it. Unmarked = not looked at yet. CHANGED = a pass edited it after his mark (THE LAB 2.0 — it waits for his re-mark).
 
 | # | item | tier | mark | note | when | v |
 | --- | --- | --- | --- | --- | --- | --- |
@@ -78,7 +78,7 @@ Exported 2026-11-04 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 62 | VELVET NOIR (`card-noir`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 63 | SAPPHIRE & SILVER (`card-sapphire`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 64 | PRISM LEGEND (`card-legend`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
-| 65 | CENTURY (`card-century`) | epic | APPROVE |  | 2026-11-04 02:05 UTC | v2 |
+| 65 | CENTURY (`card-century`) | epic | APPROVE |  | 2026-11-04 12:47 UTC | v3 |
 | 66 | THE MARQUEE · GOLD BULBS (`card-marquee-gold`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 67 | PENTHOUSE (`card-penthouse`) | epic | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
 | 68 | WILDFIRE (`card-wildfire`) | legendary | APPROVE |  | 2026-11-03 16:39 UTC | v1 |
@@ -99,7 +99,7 @@ Exported 2026-11-04 02:47 UTC from https://www.neonspeakeasy.com by scripts/lab-
 | 83 | VELVET NOIR · FULL CARD (`full-card-noir`) | epic | APPROVE |  | 2026-11-03 16:33 UTC | v1 |
 | 84 | SAPPHIRE & SILVER · FULL CARD (`full-card-sapphire`) | epic | APPROVE |  | 2026-11-03 16:33 UTC | v1 |
 | 85 | PRISM LEGEND · FULL CARD (`full-card-legend`) | epic | APPROVE |  | 2026-11-03 16:33 UTC | v1 |
-| 86 | CENTURY · FULL CARD (`full-card-century`) | epic | APPROVE |  | 2026-11-04 02:10 UTC | v2 |
+| 86 | CENTURY · FULL CARD (`full-card-century`) | epic | APPROVE |  | 2026-11-04 12:47 UTC | v3 |
 | 87 | THE MARQUEE · GOLD BULBS · FULL CARD (`full-card-marquee-gold`) | epic | APPROVE |  | 2026-11-03 16:33 UTC | v1 |
 | 88 | PENTHOUSE · FULL CARD (`full-card-penthouse`) | epic | APPROVE |  | 2026-11-03 16:33 UTC | v1 |
 | 89 | WILDFIRE · FULL CARD (`full-card-wildfire`) | legendary | APPROVE |  | 2026-11-03 16:33 UTC | v1 |

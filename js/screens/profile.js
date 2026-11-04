@@ -124,7 +124,9 @@ export function createView({ onBack = null, overlay = false } = {}) {
     els.mast = h('div.pf-mast-slot');
     els.newKey = h('button.pf-gb.pf-gb-sm.is-danger.pf-newkey', { type: 'button', onclick: onNewKey }, 'NEW KEY');
     els.elsewhere = h('button.pf-gb.pf-gb-big.pf-elsewhere', { type: 'button', onclick: () => import('../profile/bring.js').then(B => B.openElsewhere()) }, h('b', 'USE THIS CARD ON ANOTHER DEVICE'), h('small', 'your card on a second phone, a computer or the Home Screen app'));
-    els.restore = h('button.pf-gb.pf-gb-big.pf-restore', { type: 'button', onclick: openRestore }, h('b', 'RESTORE YOUR ACCOUNT'), h('small', 'have a key from another device? bring that card here'));
+    // (LOBBY 2.0 B — the owner, Nov 4 7:10 am: RESTORE must stand out — a bright neon-CYAN edge + glow, a cyan title, a small key icon; not gold:
+    //  CUSTOMIZE stays the screen's one gold primary; USE THIS CARD ON ANOTHER DEVICE stays glass)
+    els.restore = h('button.pf-gb.pf-gb-big.pf-restore', { type: 'button', onclick: openRestore }, h('b', h('i.pf-key-ic', { 'aria-hidden': 'true', html: '<svg viewBox="0 0 24 24"><circle cx="8" cy="12" r="3.6"/><path d="M11.6 12H21M17.6 12v3.2M20.4 12v2.4"/></svg>' }), 'RESTORE YOUR ACCOUNT'), h('small', 'have a key from another device? bring that card here'));
     el.append(
       h('header.bar.pf-bar',
         h('button.icon-btn.pf-back', { type: 'button', 'aria-label': 'Back', onclick: back }, '‹')),

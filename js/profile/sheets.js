@@ -6,14 +6,15 @@
 //   closeAllPfSheets() — the page going away (its own BACK) closes what it opened
 import { h, reducedMotion } from '../ui/dom.js';
 import { pgSheet } from '../progress/look.js';
+import { takeLayer, isTopLayer } from '../ui/layers.js';
 
 const stack = [];
 let keyOn = false;
-const onKey = e => { if (e.key === 'Escape' && stack.length) { e.preventDefault(); stack[stack.length - 1].close(); } };
+const onKey = e => { if (e.key === 'Escape' && stack.length && isTopLayer(stack[stack.length - 1].el)) { e.preventDefault(); stack[stack.length - 1].close(); } };
 
 export function openPfSheet({ title = '', kicker = '', body = [], cls = '', onClose = null } = {}) {
   pgSheet();   // (the sheets' styles live in css/progress.css — the room's sheets open without the profile having loaded it)
-  let closed = false;
+  let closed = false, release = null;
   const kids = Array.isArray(body) ? body : [body];
   const inner = h('div.pfs-body', ...kids.filter(Boolean));
   const back = h('button.pfs-back', { type: 'button', 'aria-label': 'Back' }, '‹', h('span', 'BACK'));
@@ -24,6 +25,7 @@ export function openPfSheet({ title = '', kicker = '', body = [], cls = '', onCl
     if (closed) return; closed = true;
     const i = stack.indexOf(api); if (i >= 0) stack.splice(i, 1);
     if (!stack.length && keyOn) { window.removeEventListener('keydown', onKey); keyOn = false; }
+    if (release) release();
     el.classList.add('is-out');
     setTimeout(() => el.remove(), reducedMotion() ? 0 : 260);
     if (onClose) { try { onClose(); } catch { /* fine */ } }
@@ -44,7 +46,7 @@ export function openPfSheet({ title = '', kicker = '', body = [], cls = '', onCl
   const api = { el, body: inner, close, sheet };
   stack.push(api);
   if (!keyOn) { window.addEventListener('keydown', onKey); keyOn = true; }
-  el.style.zIndex = String(400 + stack.length);
+  release = takeLayer(el);   // (THE LAYER STACK — ui/layers.js: the newest pop-up on top, a sheet over CUSTOMIZE over the profile)
   document.body.append(el);
   requestAnimationFrame(() => el.classList.add('is-in'));
   return api;

@@ -249,7 +249,7 @@
 /* ---- toasts ---- */
 .toasts {
   position: fixed;
-  z-index: 100;
+  z-index: 8500;   /* (LOBBY 2.0 B: above every pop-up layer — ui/layers.js starts at 400 — under the end-of-round moment) */
   top: calc(var(--safe-t) + 10px);
   left: 50%;
   width: min(92vw, 460px);
@@ -283,7 +283,7 @@
 /* ---- connection banner ---- */
 .net {
   position: fixed;
-  z-index: 95;
+  z-index: 8510;   /* (LOBBY 2.0 B: above the pop-up layers, like the toasts) */
   left: 50%;
   top: calc(var(--safe-t) + 62px); /* below the gear button */
   display: flex;

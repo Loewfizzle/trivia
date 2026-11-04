@@ -107,18 +107,33 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
 
   // ---------------------------------------------------------------- the tags over the heads (the emblem · the name · the typing bubble)
   function popName(uid, ms) { const T = tags.get(uid); if (T) { T.nameUntil = performance.now() + ms; T.el.classList.add('is-named'); } }
+  // LOBBY 2.0 B — THE TAP AREA (the owner's room test, Nov 4: "you almost have to hit the emblem"): the WHOLE PERSON opens their card — a
+  // hit box over the figure + its ring + the emblem, padded to at least 44 pt each way (forgiving), placed with the tag (its size written only
+  // when it changes). Overlapping neighbours: the figure NEAREST the finger wins (the tap is resolved over every box, not by which box is on top).
+  const HIT_MIN = 44, HIT_PAD = 6;
+  function nearestAt(x, y) {
+    let best = null, bd = Infinity;
+    for (const [uid, T] of tags) {
+      const r = T.hit; if (!r || T.el.classList.contains('is-hid')) continue;
+      if (x < r.x0 || x > r.x1 || y < r.y0 || y > r.y1) continue;
+      const d = Math.hypot(x - r.cx, (y - r.cy) * 0.6);   // (the figure's own centre line; height counts a little less than width)
+      if (d < bd) { bd = d; best = uid; }
+    }
+    return best;
+  }
   function tagFor(uid) {
     let T = tags.get(uid);
     if (T) return T;
     const emb = h('span.rc-emb'), name = h('span.rc-name'), bubble = h('span.rc-bubble', { 'aria-hidden': 'true' }, h('i'), h('i'), h('i'));
-    const el = h('button.rc-tag', { type: 'button', dataset: { uid } }, bubble, name, emb);
+    const hitEl = h('span.rc-hit', { 'aria-hidden': 'true' });
+    const el = h('button.rc-tag', { type: 'button', dataset: { uid } }, hitEl, bubble, name, emb);
     // (a plain-area tap rule: pointerdown + pointerup, never click — iOS Safari skips click on some elements; this IS a button, but the
     //  tag moves under the finger: the same tap whether it moved or not)
     let down = null;
     el.addEventListener('pointerdown', e => { down = { x: e.clientX, y: e.clientY }; });
-    el.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 14) openPlayerCard(uid); down = null; });
+    el.addEventListener('pointerup', e => { if (down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 14) openPlayerCard(nearestAt(e.clientX, e.clientY) || uid); down = null; });
     el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openPlayerCard(uid); } });
-    T = { el, emb, name, bubble, sig: '', nameUntil: 0 };
+    T = { el, emb, name, bubble, hitEl, hit: null, hitSig: '', sig: '', nameUntil: 0 };
     tags.set(uid, T); layer.append(el);
     return T;
   }
@@ -145,10 +160,18 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const boxes = scene && scene.roomBoxes ? scene.roomBoxes() : null, now = performance.now();
     for (const [uid, T] of tags) {
       const b = boxes ? boxes.get(uid) : null, gone = !players()[uid];
-      if (!b) { if (gone && !(boxes && boxes.has(uid))) { T.el.remove(); tags.delete(uid); } else T.el.style.opacity = '0'; continue; }
+      if (!b) { if (gone && !(boxes && boxes.has(uid))) { T.el.remove(); tags.delete(uid); } else { T.el.style.opacity = '0'; T.el.classList.add('is-hid'); } continue; }
+      if (T.el.classList.contains('is-hid')) T.el.classList.remove('is-hid');
       // (over the head: the box's top; lying = over the body, a little above the ground)
       const cx = b.x + b.w / 2, top = b.y + (b.lie ? b.h * 0.86 * b.lie : 0), x = Math.round(cx * 2) / 2, y = Math.round((top - 3) * 2) / 2;
       T.el.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+      // (THE TAP AREA: the figure's box + the emblem over the head, padded to ≥ 44 pt — relative to the tag's own origin)
+      let x0 = Math.min(b.x, cx - 15) - HIT_PAD, x1 = Math.max(b.x + b.w, cx + 15) + HIT_PAD, y0 = y - 30, y1 = b.y + b.h + HIT_PAD + 2;
+      if (x1 - x0 < HIT_MIN) { const e = (HIT_MIN - (x1 - x0)) / 2; x0 -= e; x1 += e; }
+      if (y1 - y0 < HIT_MIN) { const e = (HIT_MIN - (y1 - y0)) / 2; y0 -= e; y1 += e; }
+      T.hit = { x0, x1, y0, y1, cx, cy: (b.y + b.h * 0.45) };
+      const hs = `${Math.round(x0 - x)}|${Math.round(y0 - y)}|${Math.round(x1 - x0)}|${Math.round(y1 - y0)}`;
+      if (hs !== T.hitSig) { T.hitSig = hs; const [l, t, w, hh] = hs.split('|'); Object.assign(T.hitEl.style, { left: `${l}px`, top: `${t}px`, width: `${w}px`, height: `${hh}px` }); }
       const op = (b.a == null ? 1 : b.a) * (b.lie ? 1 - 0.55 * b.lie : 1);
       const ops = op.toFixed(2); if (T.el.style.opacity !== ops) T.el.style.opacity = ops;
       const named = now < T.nameUntil; if (T.el.classList.contains('is-named') !== named) T.el.classList.toggle('is-named', named);
@@ -223,7 +246,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   return {
     update,
     dock,
-    debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null }),
+    debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null, hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
+    nearestAt,
     destroy() {
       destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); if (offChat) offChat();
       if (scene && scene.room) scene.room(null);

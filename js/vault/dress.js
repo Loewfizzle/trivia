@@ -24,6 +24,7 @@ import { gemEl } from './gems.js';
 import { emblemEl, hasArt, tubeApplies, TUBE_STYLES } from './emblem-art.js';
 import { applyGlow, GLOW_ART } from './glows.js';
 import { stripEl, LOOKS, vaultSheet, fxOpts, embTier } from './strip.js';
+import { takeLayer, isTopLayer } from '../ui/layers.js';
 import { prominence } from './emblems.js';
 import { approvedIds } from './approved.js';
 import { cardVars } from '../progress/look.js';
@@ -174,8 +175,9 @@ export function openDress(data, o = {}) {
   }
 
   const line = h('p.vl-dr-worn', wornLine(W, who));
-  const close = () => { if (closed) return; closed = true; pinSurf.destroy(); gridSurf.destroy(); el.classList.remove('is-in'); setTimeout(() => el.remove(), 220); document.removeEventListener('keydown', onKey); openNow = null; if (o.onClose) o.onClose(); };
-  const onKey = e => { if (e.key === 'Escape') close(); };
+  let release = null;
+  const close = () => { if (closed) return; closed = true; pinSurf.destroy(); gridSurf.destroy(); el.classList.remove('is-in'); setTimeout(() => el.remove(), 220); document.removeEventListener('keydown', onKey); openNow = null; if (release) release(); if (o.onClose) o.onClose(); };
+  const onKey = e => { if (e.key === 'Escape' && isTopLayer(el)) close(); };
   const el = h('div.vl-dress', { role: 'dialog', 'aria-modal': 'true', 'aria-label': 'Customize your card' },
     h('div.vl-dr-in',
       h('header.vl-dr-head', h('button.vl-dr-back', { type: 'button', 'aria-label': 'Back', onclick: close }, '‹'), h('h2', 'CUSTOMIZE')),
@@ -184,6 +186,8 @@ export function openDress(data, o = {}) {
       line,
       h('div.vl-dr-tabs', { role: 'tablist' }, ...tabBtns),
       scroll));
+  // (THE LAYER STACK — the owner's room test, Nov 4: it opened BEHIND the room's profile overlay; now always on top of what opened it)
+  release = takeLayer(el);
   document.body.append(el);
   document.addEventListener('keydown', onKey);
   paintPin(); paintGrid();

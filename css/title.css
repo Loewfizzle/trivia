@@ -855,6 +855,7 @@ body.nd-on .music-btn.is-off::before { border-color: #ffd6e0; box-shadow: 0 0 1.
 .nd-go { display: grid; place-items: center; height: 56px; border-radius: 14px; color: rgba(225, 232, 255, 0.5);
   background: linear-gradient(180deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.18)); border: 1px solid rgba(255, 255, 255, 0.12);
   transition: color 0.2s, border-color 0.2s, box-shadow 0.2s, transform 0.16s var(--ease); -webkit-tap-highlight-color: transparent; }
+.rc-tag.is-hid .rc-hit, .rc-tag.is-hid .rc-emb { pointer-events: none; }
 .nd-go svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .nd-go.is-ready { color: #eafdff; border-color: rgba(110, 236, 255, 0.75); box-shadow: 0 0 16px rgba(60, 220, 255, 0.32); }
 .nd-go.is-ready svg { filter: drop-shadow(0 0 4px rgba(110, 236, 255, 0.9)); }
@@ -980,6 +981,8 @@ body.reduced-fx .nd-box.is-filled { animation: none; }
 .rc-emb { position: absolute; left: -15px; top: -27px; width: 30px; height: 30px; display: grid; place-items: center; pointer-events: auto; cursor: pointer; border-radius: 50%; }
 .rc-emb .avatar, .rc-emb .ve { --s: 18px; width: 18px; height: 18px; filter: drop-shadow(0 0 3px var(--c)); }
 .rc-tag.is-down .rc-emb { filter: saturate(0.5); }
+/* LOBBY 2.0 B — THE TAP AREA: the whole person (figure + ring + emblem, ≥ 44 pt) — an invisible box; room-city.js sizes it on change only */
+.rc-hit { position: absolute; left: -22px; top: -30px; width: 44px; height: 44px; pointer-events: auto; cursor: pointer; border-radius: 12px; -webkit-tap-highlight-color: transparent; }
 .rc-name { position: absolute; left: 0; top: -52px; transform: translateX(-50%) translateY(4px); padding: 5px 10px 4px; border-radius: 999px; white-space: nowrap;
   font: 800 12px/1 var(--font-ui); letter-spacing: 0.12em; color: #fff; background: rgba(8, 7, 14, 0.86); box-shadow: inset 0 0 0 1.5px var(--c), 0 0 10px color-mix(in srgb, var(--c) 45%, transparent);
   opacity: 0; transition: opacity 0.28s ease, transform 0.28s ease; pointer-events: none; }

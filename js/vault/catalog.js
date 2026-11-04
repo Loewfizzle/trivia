@@ -194,7 +194,7 @@ export function registerLabText(t) { for (const x of LAB) if (t && t[x.id]) Obje
 // beside his old mark. (An APPROVE still ships the newer art: CHANGED asks for a re-look, it never pulls approved art.)
 export const LAB_V = Object.freeze({
   'card-inferno': 2, 'full-card-inferno': 2, 'card-century': 3, 'full-card-century': 3,
-  'card-dev-switchboard': 2, 'card-dev-source': 2, 'full-card-dev-switchboard': 2, 'full-card-dev-source': 2,
+  'card-dev-switchboard': 2, 'card-dev-source': 2, 'full-card-dev-switchboard': 3, 'full-card-dev-source': 3,
   'card-founder': 2, 'full-card-founder': 2, 'full-card-house': 2,
 });
 /** an item's current version */

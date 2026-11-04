@@ -80,7 +80,7 @@ test('THE PROFILE POLISH: only ‹ BACK + the music mute; the page order; NOT YE
   assert.doesNotMatch(sp, /NOT PLAYED YET/);
   // the account: ONE key block, the two big glass buttons, NEW KEY small + red + a second tap
   assert.match(sp, /h\('div\.pf-kb',/); assert.doesNotMatch(sp, /saveBox\(\)/, 'no second "YOUR KEY IS SAVED" panel');
-  assert.match(sp, /h\('b', 'USE THIS CARD ON ANOTHER DEVICE'\)/); assert.match(sp, /h\('b', 'RESTORE YOUR ACCOUNT'\)/);
+  assert.match(sp, /h\('b', 'USE THIS CARD ON ANOTHER DEVICE'\)/); assert.match(sp, /h\('b', h\('i\.pf-key-ic'.*'RESTORE YOUR ACCOUNT'\)/);   // (LOBBY 2.0 B: + its key icon)
   assert.match(sp, /button\.pf-gb\.pf-gb-sm\.is-danger\.pf-newkey/); assert.match(sp, /'TAP AGAIN — THE OLD KEY STOPS WORKING'/);
   // EDIT PROFILE: NAME › + COLOUR › real rows, each its own sheet (back = one step)
   assert.match(sp, /pf-er-name', \{ type: 'button', onclick: \(\) => openNameEditor\(paint\) \}/);

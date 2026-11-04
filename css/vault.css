@@ -202,8 +202,9 @@ select.vl-tab option { color: #111; }
 .vl-fc-sheen > i { position: absolute; top: -20%; bottom: -20%; left: 0; width: 38%; background: linear-gradient(100deg, rgba(255, 255, 255, 0) 0%, rgba(255, 250, 235, 0.14) 45%, rgba(255, 255, 255, 0.26) 50%, rgba(255, 250, 235, 0.12) 55%, rgba(255, 255, 255, 0) 100%);
   transform: translateX(-120%) skewX(-14deg); animation: vl-fc-sheen 6.5s cubic-bezier(.45, 0, .3, 1) infinite; }
 @keyframes vl-fc-sheen { 0%, 62% { transform: translateX(-120%) skewX(-14deg); } 100% { transform: translateX(330%) skewX(-14deg); } }
-.vl-fc-top { position: absolute; left: 5.5%; right: 4.5%; top: 6.5%; z-index: 3; display: flex; align-items: center; justify-content: space-between; }
-.vl-fc-house { font: 700 max(10px, 2.9cqi)/1 var(--font-ui); letter-spacing: 0.34em; color: #e9cf8e; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75); }
+.vl-fc-top { position: absolute; left: 5.5%; right: 4.5%; top: 6.5%; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.vl-fc-house { font: 700 max(10px, 2.9cqi)/1 var(--font-ui); letter-spacing: 0.34em; color: #e9cf8e; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75); white-space: nowrap; min-width: 0; }
+.vl-fc-top .vl-tier { flex: none; white-space: nowrap; }   /* (LOBBY 2.0 B — the top line never clips: full.js#fitTop tightens the words first) */
 .vl-fc .vl-tier { position: static; font-size: max(10px, 2.8cqi); padding: 0.55em 0.85em 0.45em; }
 .vl-fc-plate { position: absolute; left: 4.5%; top: 31%; z-index: 3; display: flex; align-items: center; gap: 3.2cqi; max-width: 70%; padding: 2.4cqi 5cqi 2.4cqi 2.6cqi; border-radius: 14px;
   background: linear-gradient(90deg, rgba(8, 6, 12, 0.8), rgba(8, 6, 12, 0.64)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 18px rgba(0, 0, 0, 0.4); }

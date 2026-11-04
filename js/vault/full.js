@@ -26,6 +26,7 @@ import { applyGlow } from './glows.js';
 import { prominence } from './emblems.js';
 import { embTier } from './strip.js';
 import { isDevCard, ONE_OF_ONE } from '../core/dev-cards.js';
+import { takeLayer, isTopLayer } from '../ui/layers.js';
 
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
 export const fullId = card => `full-${card}`;
@@ -51,6 +52,33 @@ export const BADGE = Object.freeze({
 export const badgeOf = card => BADGE[card] || { slot: 'pill', moving: [] };
 
 /** the element: material + plate + words + frame (the effect is a slot: mountFull) */
+// LOBBY 2.0 B — THE TOP LINE NEVER CLIPS (the owner, Nov 4 7:12 am: on THE SWITCHBOARD "1 OF 1 · DEV" cut off FOUNDER): the line's words
+// (NEON SPEAKEASY · FOUNDER / · № n) + the tier pill must sit side by side, whole, at every width — the letter-spacing tightens FIRST (0.34em
+// → 0.08em), only then the size (never below 8 px). Measured when the fonts are in + when the line's width changes (a ResizeObserver —
+// never a frame loop). The pill keeps its size: it's the card's tier, the words are the house's.
+const TOP_LS = [0.34, 0.28, 0.22, 0.17, 0.13, 0.1, 0.08];
+export function fitTop(top) {
+  if (typeof window === 'undefined' || typeof ResizeObserver === 'undefined') return top;
+  const fit = () => {
+    const house = top.querySelector('.vl-fc-house'), pill = top.querySelector('.vl-tier');
+    if (!house || !top.isConnected) return;
+    house.style.letterSpacing = ''; house.style.fontSize = '';
+    const room = () => top.clientWidth - (pill ? pill.offsetWidth : 0) - 6;
+    // (the words' REAL extent — a Range over them: the span's own box can be narrower than its bold FOUNDER inside)
+    const rg = document.createRange();
+    const need = () => { rg.selectNodeContents(house); return Math.ceil(rg.getBoundingClientRect().width); };
+    if (!room() || need() <= room()) { top.dataset.fit = 'css'; return; }
+    for (const ls of TOP_LS.slice(1)) { house.style.letterSpacing = `${ls}em`; if (need() <= room()) { top.dataset.fit = `ls${ls}`; return; } }
+    const base = parseFloat(getComputedStyle(house).fontSize) || 10;
+    const size = Math.max(8, Math.floor(base * (room() / need()) * 10) / 10 - 0.1);
+    house.style.fontSize = `${size}px`; top.dataset.fit = `px${size}`;
+  };
+  let w = -1;
+  new ResizeObserver(es => { const nw = Math.round(es[0].contentRect.width); if (nw !== w) { w = nw; fit(); } }).observe(top);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  return top;
+}
+
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const look = LOOKS[card] || LOOKS['card-brushed'], t = tier || tierOf(card), lv = who.lv || 1;
   const sighting = /^card-sg-/.test(card);
@@ -63,9 +91,9 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,
-    h('div.vl-fc-top', badge.slot === 'top'
+    fitTop(h('div.vl-fc-top', badge.slot === 'top'
       ? h('span.vl-fc-house', 'NEON SPEAKEASY', who.fd ? [' · ', h('b.vl-fc-fd.is-top', 'FOUNDER')] : null)   // (2C: his № is under his name — the line carries FOUNDER)
-      : h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), h('span.vl-tier', dev ? ONE_OF_ONE : TIER_NAMES[t] || t)),
+      : h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), h('span.vl-tier', dev ? ONE_OF_ONE : TIER_NAMES[t] || t))),
     who.fd && !sighting && badge.slot === 'pill' ? h('span.vl-fc-fd', 'FOUNDER') : null,
     sighting ? h('div.vl-fc-title', { class: nameOf(card).length > 18 ? 'is-long' : '' }, h('b', nameOf(card)), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,
@@ -132,13 +160,15 @@ export async function openFullCard(id, who = {}) {
   if (ok) {
     card = fullCardEl({ card: id, who, spotted: who.spotted || null });
   } else card = gildedCard({ ...(who.pub || {}), n: who.name, a: who.avatar, c: who.color, cd: id }, {}, { card: id });
-  const close = () => { if (surface) surface.destroy(); el.remove(); document.removeEventListener('keydown', onKey); open = null; };
-  const onKey = e => { if (e.key === 'Escape') close(); };
+  let release = null;
+  const close = () => { if (surface) surface.destroy(); el.remove(); document.removeEventListener('keydown', onKey); open = null; if (release) release(); };
+  const onKey = e => { if (e.key === 'Escape' && isTopLayer(el)) close(); };
   const stage = h('div.vl-full-stage', card);
   box.append(stage, h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, 'CLOSE'));
   // (THE VAULT 2B: a backdrop click in its first 350 ms is the finger that opened it lifting — a long-press — never a close)
   const born = performance.now();
   const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
+  release = takeLayer(el);   // (THE LAYER STACK: on top of whatever opened it — a sheet, CUSTOMIZE, the room's profile)
   document.body.append(el);
   if (ok) { surface = createSurface(stage, { label: 'full' }); mountFull(surface, card, id); }
   document.addEventListener('keydown', onKey);

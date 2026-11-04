@@ -66,7 +66,7 @@ test('THE TIER GEMS + THE DEV GEM: one per tier, no words on a strip; motion by 
 });
 
 test('"1 OF 1 · DEV" (the owner\'s ADD-ON, 7:16 pm) on the full card + CUSTOMIZE only — bold; FOUNDER + THE BADGE SLOTS; no card-game room anywhere', () => {
-  assert.equal(ONE_OF_ONE, '1 OF 1 · DEV');
+  assert.equal(ONE_OF_ONE, '1 OF 1');   // (LOBBY 2.0 B: the owner's Nov 4 note — "· DEV" dropped)
   assert.doesNotMatch(read('js/vault/full.js') + read('js/vault/dress.js') + read('api/_lib/lab-text.js'), /#1 OF #1|ONE OF ONE · DEV/);
   assert.match(read('css/vault.css'), /\.vl-fc\.vl-dev1 \.vl-tier \{ font: 900/);
   const f = read('js/vault/full.js');
