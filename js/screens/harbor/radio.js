@@ -555,7 +555,9 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   let downChip = null;
   const chipDown = e => { const c = e.target && e.target.closest ? e.target.closest('.chip.player[data-uid]') : null; downChip = c && !e.target.closest('button') ? { c, x: e.clientX, y: e.clientY } : null; };
   const chipUp = e => { const d = downChip; downChip = null; if (!d) return; const c = e.target && e.target.closest ? e.target.closest('.chip.player[data-uid]') : null; if (c === d.c && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 12) openPlayer(c.dataset.uid); };
-  if (isOwner) { document.addEventListener('pointerdown', chipDown, true); document.addEventListener('pointerup', chipUp, true); document.body.classList.add('rd-owner'); }
+  // (LOBBY 2.0 A: in the room in the city a tap on a figure or a guest strip asks for the card — room-city.js#openPlayerCard)
+  const onOwnerCard = e => { const uid = e.detail && e.detail.uid; if (uid) openPlayer(uid); };
+  if (isOwner) { document.addEventListener('pointerdown', chipDown, true); document.addEventListener('pointerup', chipUp, true); window.addEventListener('ns:owner-card', onOwnerCard); document.body.classList.add('rd-owner'); }
   const onVis = () => { if (document.visibilityState === 'visible') refresh(); };
   document.addEventListener('visibilitychange', onVis);
   refresh(); schedule();
@@ -563,7 +565,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   function destroy() {
     destroyed = true; clearTimeout(pollT); clearInterval(tickT); clearTimeout(coverT); if (ic) ic.destroy();
     document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis);
-    unsub(); clearTimeout(storeT); if (askEl) askEl.remove(); document.removeEventListener('pointerdown', chipDown, true); document.removeEventListener('pointerup', chipUp, true); document.body.classList.remove('rd-owner');
+    unsub(); clearTimeout(storeT); if (askEl) askEl.remove(); document.removeEventListener('pointerdown', chipDown, true); document.removeEventListener('pointerup', chipUp, true); window.removeEventListener('ns:owner-card', onOwnerCard); document.body.classList.remove('rd-owner');
     if (modal) modal.remove(); btn.remove(); document.body.classList.remove('rd-open');
   }
   return {

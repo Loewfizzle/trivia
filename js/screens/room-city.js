@@ -91,6 +91,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   async function openPlayerCard(uid) {
     const p = players()[uid]; if (!p) return;
     popName(uid, TAP_NAME_MS);
+    // (THE OWNER — the radio loaded: another player's card is the radio's own, with THE CREW switch — harbor/radio.js listens)
+    if (uid !== st.uid && document.body.classList.contains('rd-owner')) { window.dispatchEvent(new CustomEvent('ns:owner-card', { detail: { uid } })); return; }
     const pub = st.pub && p.pid ? st.pub[p.pid] : null;
     if (pub && pub.cd && pub.cd !== 'card-gilded') {
       try {

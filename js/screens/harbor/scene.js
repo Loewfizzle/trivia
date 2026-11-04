@@ -942,7 +942,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // the city canvas's alpha when the crisp layer is off) — ~0.9 s eased; reduced motion = a quick plain fade (0.25 s); the same back to the
   // normal board at the end. Before the reveal (a fresh load mid-announcement) there is nothing to fade: the message is simply there.
   const BXF_MS = 900, BXF_RM_MS = 250;
-  const bxf = { cv: null, at: -1, ms: BXF_MS, n: 0, box: null, last: -1 };
+  const bxf = { cv: null, at: -1, ms: BXF_MS, n: 0, box: null, last: -1, shown: null };
   function boardSnap() {
     if (shownAt < 0) return;
     const rb = (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak'); if (!rb || !rb.rect) return;
@@ -997,7 +997,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (a re-layout of the neon rebuilds the board with its game: a hint spell re-applies itself whenever the board shows a game)
       if (hint ? hk !== boardHintKey || neon.boardGame(BOARD_ID) != null : hk !== boardHintKey || (want && (neon.boardGame(BOARD_ID) !== want || neon.boardDead(BOARD_ID) !== dead))) {
         boardHintKey = hk;
-        boardSnap();
+        // (a fade only when what the board SHOWS changes — a neon re-layout that rebuilds the same message is no swap)
+        const showKey = hint ? `h:${hk}` : `g:${want}|${dead}`;
+        if (showKey !== bxf.shown) { boardSnap(); bxf.shown = showKey; }   // (boardSnap itself skips a board not shown yet — a fresh load)
         if (hint) neon.billboard(BOARD_ID, { lines: hint.lines, art: hint.art, dead });
         else if (want) neon.billboard(BOARD_ID, { game: want, dead });   // (the board shows the key's game; a paste in progress keeps the OLD one under the sheets)
       }

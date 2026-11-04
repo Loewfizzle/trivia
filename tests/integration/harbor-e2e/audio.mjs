@@ -53,7 +53,7 @@ G('dock', async () => {
   const H = await open({ slot: 'hh', qs: NIGHT });
   await harborUp(H.page);
   await tap(H.page, '.nd-hostbtn');
-  await waitFor(H.page, '!!window.__arcade.state.code && !!document.querySelector(".lobby-screen")', 'lobby after HOST', 20000);
+  await waitFor(H.page, '!!window.__arcade.state.code && !!document.querySelector(".lobby-screen, .title-screen.is-room")', 'lobby after HOST', 20000);
   const code = await ev(H.page, 'window.__arcade.state.code');
   ok(!!code, `HOST (city 2): one tap opens room ${code}`);
   ok(/[?&]city=2(&|$)/.test(await ev(H.page, 'location.search')) && /room=/.test(await ev(H.page, 'location.search')), `THE FLAG IN THE URL: the room's address keeps city=2 (${await ev(H.page, 'location.search')})`);

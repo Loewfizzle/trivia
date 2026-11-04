@@ -109,10 +109,13 @@ export function createPeople() {
    * frame(f): once a frame, before the passes. f = { ms (the city clock), off (minutes from UTC), rain, event (a piece on the inlay),
    * season, seed, party(t) | null, shopOpen(t) }
    */
-  let solidsK = '', solidsV = null, solidsHP, solidsL;
+  let solidsK = '', solidsV = null, solidsHP, solidsL, solidsRoom = false;
   function solidsOf(HP) {
-    if (HP === solidsHP && L === solidsL && solidsV) return solidsV;
-    solidsHP = HP; solidsL = L; solidsV = L ? promenadeSolids(L, HP) : []; solidsK = solidsV.map(q => `${q.id}:${q.x0},${q.x1},${q.z0},${q.z1}`).join('|');
+    if (HP === solidsHP && L === solidsL && roomOn === solidsRoom && solidsV) return solidsV;
+    // (LOBBY 2.0 A — THE ROOM's TWO LINES join THE SOLIDS too, not only the walkers' map: a walk planned before the room opened, a rejoin,
+    //  any leg the map didn't route goes round them — the registry's post-pass. Added here, not in core/harbor-solids.js: a cycle at load)
+    solidsHP = HP; solidsL = L; solidsRoom = roomOn;
+    solidsV = L ? [...promenadeSolids(L, HP), ...(roomOn ? roomRects(L).map((r, i) => ({ id: i ? 'room-right' : 'room-left', ...r })) : [])] : []; solidsK = solidsV.map(q => `${q.id}:${q.x0},${q.x1},${q.z0},${q.z1}`).join('|');
     return solidsV;
   }
   function frame(f) {

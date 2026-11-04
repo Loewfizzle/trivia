@@ -207,11 +207,11 @@ G('vault', async () => {
   { const { ctx, p } = await fingerPage('/tests/integration/title-preview.html?guest=1');
     await waitFor(p, '!!window.__preview', 'the title preview', 40000);
     await ev(p, `(async () => { if (![...document.styleSheets].some(s => /board\\.css/.test(s.href || ''))) { const l = document.createElement('link'); l.rel = 'stylesheet'; l.href = '/css/board.css'; document.head.append(l); await new Promise(r => { l.onload = r; l.onerror = r; }); } (await import('/js/screens/profile.js')).openCard(); })()`);
-    await waitFor(p, `!!document.querySelector('.pf-overlay .pf-scroll .byc-else-btn')`, 'the membership card');
+    await waitFor(p, `!!document.querySelector('.pf-overlay .pf-scroll .pf-elsewhere')`, 'the membership card');
     await sleep(700);
     const read = () => ev(p, `(() => { const s = document.querySelector('.pf-overlay .pf-scroll'); return { top: Math.round(s.scrollTop), max: s.scrollHeight - s.clientHeight }; })()`);
     const r = await swipeToEnd(p, 200, 760, 520, read);
-    const key = await ev(p, `(() => { const r = document.querySelector('.pf-overlay .byc-else-btn').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()`);
+    const key = await ev(p, `(() => { const r = document.querySelector('.pf-overlay .pf-elsewhere').getBoundingClientRect(); return r.top >= 0 && r.bottom <= innerHeight; })()`);
     const bo = await ev(p, 'getComputedStyle(document.body).overflowY');
     ok(r.first.max > 0 && r.last.top >= r.last.max - 2 && key, `BY FINGER: the membership card scrolls by swipes to its key section — ${r.moved} of ${r.first.max} px, USE THIS CARD ON ANOTHER DEVICE on screen (${key}); the app's own lock untouched (body overflow ${bo})`);
     await ctx.close(); }
@@ -340,15 +340,15 @@ G('vault', async () => {
     await waitFor(p, `!!document.querySelector('.vl-dress .vl-dt') && !!document.querySelector('.pg-cz .vl-dp-go')`, 'CUSTOMIZE', 20000);
     await sleep(1200);
     const r = await ev(p, `(() => { const over = e => e.scrollWidth > e.clientWidth + 1; const names = [...document.querySelectorAll('.pg-card-name, .vl-dr-pin .vl-name')];
-      // (THE VAULT 2C: the profile's order — the card, CUSTOMIZE YOUR CARD, LEVEL, THE STREAK, STATS, ACHIEVEMENTS, CITY SIGHTINGS; the birthday ONE line at the foot; no BOARD button)
-      const order = [...document.querySelectorAll('.pg-cz, .pg-prof > *')].map(e => e.classList.contains('pg-cz') ? 'cz' : e.classList.contains('pg-prof-lv') ? 'level' : e.classList.contains('pg-streak') ? 'streak' : e.classList.contains('pg-stats') ? 'stats' : e.classList.contains('pg-trophies') ? 'trophies' : /sg-|album/.test(e.className) ? 'album' : 'x');
+      // (LOBBY 2.0 A: the profile's order — the card, CUSTOMIZE YOUR CARD, LEVEL (the streak inside it), THE WEEKLY GOAL, STATS, ACHIEVEMENTS, CITY SIGHTINGS; the birthday ONE line at the foot; no BOARD button)
+      const order = [...document.querySelectorAll('.pg-cz, .pg-prof > *')].map(e => e.classList.contains('pg-cz') ? 'cz' : e.classList.contains('pg-prof-lv') ? 'level' : e.classList.contains('pg-streak') ? 'streak' : e.classList.contains('pf-goal-t') ? 'goal' : e.classList.contains('pg-stats') ? 'stats' : e.classList.contains('pg-trophies') ? 'trophies' : /sg-|album/.test(e.className) ? 'album' : 'x');
       return { panel: !!document.querySelector('.vl-dp-go') && /^CUSTOMIZE YOUR CARD$/.test(document.querySelector('.vl-dp-go').textContent), title: (document.querySelector('.vl-dress h2') || {}).textContent, coll: !!document.querySelector('.vl-dc-row'), lists: document.querySelectorAll('.pg-prof .vl-picker').length, order: order.join(','),
         board: [...document.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), bday: !!document.querySelector('.pf-bday') || !!document.querySelector('.sg-bd-sec'),
         tabs: [...document.querySelectorAll('.vl-dr-tab')].map(b => b.textContent).join(), sel: (document.querySelector('.vl-dr-tab[aria-selected="true"]') || {}).textContent,
         tiles: document.querySelectorAll('.vl-dt').length, on: document.querySelectorAll('.vl-dt.is-on').length, tiers: [...document.querySelectorAll('.vl-dt')].every(t => /vl-dt-(common|uncommon|rare|epic|legendary)/.test(t.className)),
         dev1: [...document.querySelectorAll('.vl-dt')].slice(0, 2).map(t => t.dataset.id).join(), pin: document.querySelectorAll('.vl-dr-pin .vl-strip').length,
         names: names.length, over: names.filter(over).length, ell: names.filter(e => getComputedStyle(e).textOverflow === 'ellipsis').length, no: (document.querySelector('.pg-card-no') || {}).textContent || '' }; })()`);
-    ok(r.panel && r.title === 'CUSTOMIZE' && /^cz,level,streak,stats,trophies/.test(r.order) && !r.board && r.bday && r.coll && r.lists === 0 && r.tabs === 'CARD,EMBLEM,GLOW,TUBE' && r.sel === 'CARD' && r.tiles > 10 && r.on === 1 && r.tiers && r.dev1 === 'card-dev-switchboard,card-dev-source' && r.pin === 1 && r.names >= 2 && r.over === 0 && r.ell === 0 && /0001/.test(r.no),
+    ok(r.panel && r.title === 'CUSTOMIZE' && /^cz,level,goal,stats,trophies/.test(r.order) && !r.board && r.bday && r.coll && r.lists === 0 && r.tabs === 'CARD,EMBLEM,GLOW,TUBE' && r.sel === 'CARD' && r.tiles > 10 && r.on === 1 && r.tiers && r.dev1 === 'card-dev-switchboard,card-dev-source' && r.pin === 1 && r.names >= 2 && r.over === 0 && r.ell === 0 && /0001/.test(r.no),
       `CUSTOMIZE + THE PROFILE's ORDER (${r.order}; no BOARD button: ${!r.board}; the birthday at the foot: ${r.bday}) + YOUR COLLECTION (${r.lists} long lists left); CUSTOMIZE ("${r.title}") — the pinned strip, tabs ${r.tabs}, ${r.tiles} card tiles tier-edged (${r.on} ticked, the DEV cards first: ${r.dev1}); WWWWWWWWWWWW whole on the card + the strips (${r.over} over, ${r.ell} cut); the card's ${r.no}`);
     await ctx.close(); }
   // EVERY BOTTOM SHEET FLOATS: BRING YOUR CARD at 402 × 874 — its whole rounded border above the screen's bottom

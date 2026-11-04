@@ -132,15 +132,12 @@ await H.run(async () => {
   await sleep(2500);
   ok((await val(`pstats/${me1.pid}/g/cipher/p`)) === 1, 'a forced re-send is still counted once');
 
-  // ---- 5. back to the lobby: the key reminder after the third match
+  // ---- 5. back in the room: THE SAVE-YOUR-KEY POP-UP (LOBBY 2.0 A's ADD-ON — replaced the 3rd-match reminder): her card + COPY · SHARE · LATER
   await H.backToLobby(p0);
-  await p0.waitForSelector('.pf-prompt .pf-key', { timeout: 15000 });
-  ok(true, 'the key reminder appears back in the lobby (3rd match)');
-  await p0.evaluate(() => document.querySelector('.pf-prompt .pf-key').click());
-  await sleep(400);
-  ok(/^NEON-[A-Z2-9]{4}-/.test(await p0.$eval('.pf-prompt .pf-key-text', e => e.textContent)), 'tap to reveal shows the key');
+  await p0.waitForSelector('.kp-sheet:not(.is-out) .kp-later', { timeout: 15000 });
+  ok(/Save your key so you never lose your card/.test(await p0.$eval('.kp-sheet .kp-line', e => e.textContent)) && !!(await p0.$('.kp-sheet [data-act="copy"]')), 'THE SAVE-YOUR-KEY POP-UP back in the room after a counted match (her card, COPY · SHARE · LATER)');
   await shotAll(p0, 'pf-05-key-prompt', REVIEW_SIZES.slice(0, 2));
-  await p0.evaluate(() => document.querySelector('.pf-prompt .btn-primary').click());
+  await p0.evaluate(() => document.querySelector('.kp-sheet .kp-later').click());
 
   // ---- 6. a new device: the key restores the profile, stats and all
   const key0 = await p0.evaluate(s => localStorage.getItem(`na:${s}:pkey`), slotOf(0));
@@ -330,7 +327,8 @@ await H.run(async () => {
   ok((await val(`lb/cipher-score/all/${me0.pid}`)) == null, '…and no board entry is written yet');
   // top both players up to 3 matches (two earlier ones elsewhere), then a resync puts them up
   for (const [pg, m] of [[p0, me0], [p1, me1]]) {
-    await ref('/').update({ [`pstats/${m.pid}/g/slip/p`]: 2, [`profiles/${m.pid}/m`]: 3 });
+    // (BOB's seeded match scores 0 — give him a best score elsewhere so the board has another player's row; it used to come from older runs' leftovers)
+    await ref('/').update({ [`pstats/${m.pid}/g/slip/p`]: 2, [`profiles/${m.pid}/m`]: 3, ...(m === me1 ? { [`pstats/${m.pid}/b/cipher-score`]: { a: 412 } } : {}) });
     await pg.evaluate(() => import('/js/profile/me.js').then(x => x.setShown(false)));
     await pg.evaluate(() => import('/js/profile/me.js').then(x => x.setShown(true)));
   }

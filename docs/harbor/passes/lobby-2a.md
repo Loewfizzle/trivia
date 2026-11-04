@@ -154,7 +154,21 @@ dock, a refresh in place, lost signal down + up, a leave waves + the step-up, a 
 PLAY → a game starts), `roomchat` (the bubble, ONE size on the keyboard, the chips), `keypop` (the owner's 4 cases + COPY), `roomperf`.
 
 ## THE FULL LOCAL RUN + THE CLOUD
-(the end of the pass — below)
+On the mini PC, THE BUSY-PC CHECK first (quiet: 2.7–3.7 % average), then alone:
+- unit 1121/1121 · rules 60/60 (`players/{uid}/ln` — the owner re-publishes) · /api: server 29/29, progression 10/10, sightings 4/4,
+  lab 2/2, vault-2b 3/3, vault-2c 3/3 · conn 20/20 · presence 12/12 · smoke 6/6 · the profile E2E 78/78.
+- THE FULL HARBOR SUITE (4 shards, 25.6 min): 956/963 — what it found, fixed, then those groups re-run alone, green:
+  - **dock** (audio.mjs) + **crew** (radio.mjs) waited for the OLD lobby screen / its player chips (tests) — and the crew one was a real
+    gap: the owner's tap on a player (THE CREW switch card) only knew the old lobby's chips. Now a tap on a figure or a guest strip in the
+    room in the city opens the radio's card for the owner (`room-city.js#openPlayerCard` → `ns:owner-card` → `harbor/radio.js`).
+  - **vault**: the membership card's key button is `.pf-elsewhere` now; the profile's order reads cz, level, goal, stats, trophies (tests).
+  - **room** — THE LINES ARE SOLIDS: a city walker crossed the right line (one already walking when the room opened). The two lines now
+    join THE SOLIDS' post-pass too (`people.js#solidsOf`), not only the walkers' map — every walk goes round them (code).
+  - **billboard** — a fresh load showed a fade on the busy machine: a fade now only when what the board SHOWS changes (a neon re-layout
+    of the same message is no swap), and the test looks before the link's 20 s hint spell can end (code + test).
+  - **weather** (A BUSY STORM's rolls), **sightings** (the capture's compose time) and the **vault**'s two FULL LOBBY frame checks failed
+    only under the 4-shard load; alone they pass (sightings' compose 11.5 ms against its 12 ms line — close; watch it).
+- The cloud: one run on the final push (below in the summary — `gh run list`).
 
 ## Known issues + held back
 - **THE DATABASE RULES CHANGED** (`players/{uid}/ln`): the owner re-publishes them (Firebase console → Realtime Database → Rules → paste

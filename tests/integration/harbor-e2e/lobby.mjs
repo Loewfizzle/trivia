@@ -8,7 +8,8 @@ const RM = { fn: () => { const mm = window.matchMedia.bind(window); window.match
 G('billboard', async () => {
   // a fresh load MID-MESSAGE (a link's &force=billboard-hints keeps the hint up): the message is simply there — nothing fades
   { const Q = await open({ slot: 'bx0', qs: `${NIGHT}&wx=clear&force=billboard-hints&hint=fireworks`, view: [402, 874] }), p = Q.page;
-    await harborUp(p); await sleep(4000);
+    // (the link's hint loops 20 s on / 10 s off from the load — a slow load on a busy machine must not reach the off spell: look soon)
+    await harborUp(p); await sleep(1500);
     const x = await ev(p, 'window.__district.boardXf()');
     ok(x && x.n === 0, `THE BILLBOARD — a fresh load mid-message: the message is simply there, no fade (${x && x.n} fades)`);
     await Q.ctx.close(); }
