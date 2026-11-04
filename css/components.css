@@ -1406,6 +1406,9 @@ body.nd-on .gm-panel, body.cb-split .gm-panel { left: calc(var(--safe-l) + 12px)
 .gm-adm-x:active { background: rgba(125, 255, 156, 0.22); }
 .gm-item.is-locked { opacity: 0.55; }
 .gm-item.is-danger { color: #ffb3c4; background: rgba(255, 51, 85, 0.08); border-color: rgba(255, 110, 140, 0.35); }
+/* LOBBY 2.0 B — LEAVE ROOM up front (the owner's ADD-ON): red-edged, the menu's first row in a room */
+.gm-item.gm-leave { border: 1.5px solid rgba(255, 77, 109, 0.75); box-shadow: inset 0 0 12px rgba(255, 51, 85, 0.12); }
+.gm-item.gm-leave b { color: #ffd0da; letter-spacing: 0.12em; }
 .gm-sep { height: 1px; margin: 2px 6px; background: rgba(255, 255, 255, 0.1); }
 @media (prefers-reduced-motion: reduce) { .gm-panel, .gm-scrim, .mb-bars i { animation: none; transition: none; } }
 

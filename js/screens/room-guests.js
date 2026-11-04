@@ -12,7 +12,7 @@ import { isOnline } from '../core/room-logic.js';
 import { roomOrder } from '../core/harbor-room.js';
 import { levelOf } from '../core/levels.js';
 import { ITEM } from '../core/items.js';
-import { kickPlayer, setDoorLocked } from '../room.js';
+import { kickPlayer, setDoorLocked, leaveRoom } from '../room.js';
 import { sfx } from '../audio/sfx.js';
 import { nightStandings } from '../core/night.js';
 import { MAX_PLAYERS } from '../config.js';
@@ -25,12 +25,19 @@ export async function openGuestList(ctx) {
   V.vaultSheet();
   let approved = new Set();
   const list = h('div.rg-list'), count = h('span.rg-count'), lockRow = h('div.rg-lock'), night = h('div.rg-night');
+  // (LOBBY 2.0 B — the owner's ADD-ON: LEAVE ROOM at the foot of the guest list — red-edged, a second tap = "SURE?")
+  let leaveAt = 0;
+  const leave = h('button.pf-gb.is-danger.rg-leave', { type: 'button', onclick: () => {
+    if (Date.now() - leaveAt < 2500) { sheet.close(); leaveRoom(); return; }
+    leaveAt = Date.now(); leave.textContent = 'SURE? TAP AGAIN';
+    setTimeout(() => { if (leave.isConnected) leave.textContent = 'LEAVE ROOM'; }, 2500);
+  } }, 'LEAVE ROOM');
   const surfHost = h('div.rg-strips');
   list.append(surfHost);
   const surface = (await import('../fx/renderer.js')).createSurface(surfHost, { label: 'guests' });
   const rows = new Map();     // uid → { el, sig, slot }
   let kickArmed = { uid: null, at: 0 }, first = true, lockBusy = false;
-  const sheet = openPfSheet({ kicker: 'THE GUEST LIST', title: 'IN THE ROOM', cls: 'rg-sheet', body: [h('div.rg-h', count), list, lockRow, night],
+  const sheet = openPfSheet({ kicker: 'THE GUEST LIST', title: 'IN THE ROOM', cls: 'rg-sheet', body: [h('div.rg-h', count), list, lockRow, night, leave],
     onClose: () => { surface.destroy(); if (ctx.onClose) ctx.onClose(); } });
   approvedIds().then(a => { approved = new Set(a || []); for (const r of rows.values()) r.sig = ''; paint(); }).catch(() => {});
 

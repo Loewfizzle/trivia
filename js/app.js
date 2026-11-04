@@ -2,6 +2,7 @@
 import { setErrorContext } from './errlog.js';   // first: errors from phones (it also sees errors while the app boots)
 import { h, $ } from './ui/dom.js';
 import './ui/vv.js';   // (THE VAULT 1B: --vv-ob — every bottom sheet above Safari's toolbar)
+import { watchLayers, isTopLayer } from './ui/layers.js';
 import { glitchFlash } from './ui/components.js';
 import { toast } from './ui/toast.js';
 import { APP_NAME, GAMES } from './config.js';
@@ -263,6 +264,7 @@ async function dismissBoot() {
 }
 
 async function boot() {
+  watchLayers();   // (LOBBY 2.0 B — ONE SHEET STACK: every pop-up opens on top of whatever opened it — ui/layers.js)
   installAudio();
   installSettingsPanel();
   // &debug=1: THE AUDIO DIAGNOSTIC (docs/audio.md#m3) — what the music is doing, on any screen; FP: or switched on from THE PREVIEW
@@ -286,7 +288,7 @@ async function boot() {
   document.addEventListener('keydown', e => {
     if (e.key !== 'Escape') return;
     const modal = [...document.querySelectorAll('.modal:not(.out)')].pop();
-    if (modal) modal.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    if (modal && isTopLayer(modal)) modal.dispatchEvent(new MouseEvent('click', { bubbles: true }));   // (ONE SHEET STACK: only when it's the top layer)
   });
   // iOS: block pinch-zoom gestures (viewport meta alone is ignored by Safari).
   document.addEventListener('gesturestart', e => e.preventDefault());

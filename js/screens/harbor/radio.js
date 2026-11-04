@@ -180,7 +180,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
         h('div.rd-kw', h('button.rd-knob', { type: 'button', 'aria-label': `Showcase: ${lv} — turn`, style: { '--r': `${LV_ROT[lv]}deg` }, onclick: next }), h('span.rd-kl', 'SHOWCASE')),
         h('div.rd-who', plate('WHO HEARS IT'), h('b', '● ', RD.AUD_LABEL[aud], aud === 'room' && room ? ` · ${room}` : ''),
           h('small.rd-auds', ...RD.AUDIENCES.flatMap((a, i) => [i ? ' · ' : null, h('span', { class: a === aud ? 'is-on' : '' }, RD.AUD_LABEL[a].toLowerCase())]).filter(Boolean)),
-          aud === 'room' ? h('em.rd-note', 'sky moments play once the lobby is the live city (LOBBY 2.0) · the intercom plays now') : null),
+          aud === 'room' ? h('em.rd-note', 'every phone in that lobby sees it (~2 s)') : null),
         h('div.rd-kw', h('button.rd-knob', { type: 'button', 'aria-label': `Audience: ${RD.AUD_LABEL[aud]} — turn`, style: { '--r': `${AUD_ROT[aud]}deg` }, onclick: audNext, disabled: !isOwner }), h('span.rd-kl', 'AUDIENCE'))));
   }
   function pickRoom() {
@@ -203,7 +203,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   }
   function moments() {
     const J = jackList();
-    const grid = h('div.rd-jacks', { class: `${arrange ? 'is-arrange' : ''}${!isOwner ? ' is-dormant' : ''}` }, ...J.map(j => {
+    const grid = h('div.rd-jacks', { class: `${arrange ? 'is-arrange' : ''}` }, ...J.map(j => {
       const L = lamp(j);
       const cell = h('button.rd-jack', { type: 'button', dataset: { jack: j.id, lamp: L }, class: L ? `is-${L}` : '', 'aria-label': `${j.label}${L === 'run' ? ' — running' : L === 'q' ? ' — on its way' : L === 'grey' ? ` — ${j.run.note}` : ''}` },
         h('i.rd-lamp'), h('i.rd-hole', h('i.rd-plug')), h('span.rd-jl', j.label));
@@ -324,7 +324,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       isOwner ? icDesk().strip() : null,
       isOwner ? h('div.rd-icsent', icDesk().sent()) : null,
       moments(),
-      !isOwner ? h('p.rd-dormant', h('b', 'THIS LOBBY ONLY'), ' · the sky moments play once lobbies are in the city (LOBBY 2.0) — queued + recorded now') : null,
+      !isOwner ? h('p.rd-dormant', h('b', 'THIS LOBBY ONLY'), ' · every phone in your lobby sees it, in a couple of seconds') : null,
       strips(),
       err ? h('p.rd-err', { role: 'alert' }, err) : null,
       clearAll(),
@@ -336,7 +336,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   const audLine = () => {
     if (!isOwner) { const P = store.players || {}, n = Object.keys(P).length; return `Goes to THIS LOBBY · ${roomCode() || '—'}${n ? ` · ${n} here` : ''} — plays once lobbies are in the city`; }
     if (aud === 'me') return 'A preview on this phone only';
-    if (aud === 'room') { const r = (st && st.rooms || []).find(x => x.code === room); return `Goes to LOBBY ONLY · ${room || '—'}${r ? ` · ${r.online || r.players} on` : ''} — the sky plays once lobbies are in the city`; }
+    if (aud === 'room') { const r = (st && st.rooms || []).find(x => x.code === room); return `Goes to LOBBY ONLY · ${room || '—'}${r ? ` · ${r.online || r.players} on` : ''}`; }
     const n = st && st.here; return `Goes to ${RD.AUD_LABEL[aud]}${n != null ? ` · ${n} in the city` : ''}`;
   };
   /** a jack's moments this desk may still stop / cancel (yours — the owner: every one) */

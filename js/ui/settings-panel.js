@@ -7,6 +7,7 @@ import { sfx } from '../audio/sfx.js';
 import { state, isHost, setState } from '../store.js';
 import { dbRef, update } from '../firebase.js';
 import { leaveRoom } from '../room.js';
+import { isCity2 } from '../core/city.js';
 import { colorHex } from '../config.js';
 import { openHelp } from './help.js';
 import { segmented } from './components.js';
@@ -252,6 +253,8 @@ function openMenu() {
   const rows = [];
   const inRoom = !!state.code;
   const playing = inRoom && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId;
+  // (LOBBY 2.0 B — the owner's ADD-ON: LEAVE ROOM up front while in a room — red-edged, a second tap confirms; not during a match: QUIT first)
+  if (inRoom && !inGame) rows.push(armed('LEAVE ROOM', 'SURE? TAP AGAIN', 'Back to the city — the room sees you go', () => leaveRoom(), '.is-danger.gm-leave'), h('div.gm-sep'));
   // chat (in a game; DOUBLE AGENT's same-room mode has its own inline chat; the lobby has its chat strip)
   if (playing && !document.body.classList.contains('da-inline-chat') && chatMod && chatUi) {
     const lock = chatMod.locked();
@@ -268,7 +271,7 @@ function openMenu() {
   if (!inGame) for (const render of menuExtras.values()) { let el = null; try { el = render({ close: closeMenu }); } catch { el = null; } if (el) rows.push(h('div.gm-sep'), el); }
   if (inGame) {
     rows.push(h('div.gm-sep'));
-    rows.push(armed('QUIT TO LOBBY', 'TAP AGAIN TO QUIT', 'The others keep playing', () => { setState({ quit: state.game.matchId }); toast('YOU LEFT THE GAME — YOU’LL BE DEALT INTO THE NEXT ONE', 'info', 3200); }));
+    rows.push(armed(isCity2() ? 'QUIT TO THE ROOM' : 'QUIT TO LOBBY', 'TAP AGAIN TO QUIT', 'The others keep playing', () => { setState({ quit: state.game.matchId }); toast('YOU LEFT THE GAME — YOU’LL BE DEALT INTO THE NEXT ONE', 'info', 3200); }));
     if (isHost()) rows.push(armed('END GAME FOR EVERYONE', 'TAP AGAIN TO END IT', 'Everyone back to the lobby', () => import('../host.js').then(m => m.backToLobby()), '.is-danger'));
   }
   const scrim = h('div.gm-scrim', { onclick: closeMenu });

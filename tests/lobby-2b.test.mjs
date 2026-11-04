@@ -134,3 +134,22 @@ test('THE BANNER PLANE obeys the sky: scene.roomBanner refuses during a legendar
   assert.match(rb, /rec\.shown \|\| rec\.games < 2/);
   assert.match(rb, /if \(reducedMotion\(\)\) \{ stillCard\(lines\)/);
 });
+
+test('THE ADD-ON: LEAVE ROOM up front (the ☰ menu\'s first row in a room — red-edged, a second tap; the foot of GUESTS); the crew\'s LOBBY ONLY moments PLAY on the room\'s phones; ONE SHEET STACK for every pop-up', () => {
+  const sp = read('js/ui/settings-panel.js');
+  assert.match(sp, /if \(inRoom && !inGame\) rows\.push\(armed\('LEAVE ROOM', 'SURE\? TAP AGAIN'/);
+  assert.ok(sp.indexOf("armed('LEAVE ROOM'") < sp.indexOf("item('YOUR CARD'"), 'the first row');
+  const rg = read('js/screens/room-guests.js');
+  assert.match(rg, /body: \[h\('div\.rg-h', count\), list, lockRow, night, leave\]/);
+  // the cause of "the Blackbird didn't fly": rooms/{CODE}/radio's sky moments were never handed to the city — now they are
+  const rm = read('js/room.js');
+  assert.match(rm, /setState\(\{ roomRadio: all\.filter\(x => x\.kind !== 'intercom' && x\.jack\) \}\)/);
+  assert.match(read('js/screens/harbor/remote.js'), /\.\.\.radioLocal, \.\.\.radioRoom\]/);
+  assert.match(read('js/screens/title.js'), /const list = state && state\.code \? state\.roomRadio \|\| \[\] : \[\]/);
+  assert.doesNotMatch(read('js/screens/harbor/radio.js'), /play once lobbies are in the city|play once the lobby is the live city/);
+  // ONE SHEET STACK: every pop-up on <body> takes the next layer (the older .modal sheets too); the app's Esc closes a modal only when on top
+  const L = read('js/ui/layers.js');
+  assert.match(L, /const POPUPS = '\.modal, \.pfs, \.vl-dress, \.vl-full'/);
+  assert.match(read('js/app.js'), /watchLayers\(\);/);
+  assert.match(read('js/app.js'), /if \(modal && isTopLayer\(modal\)\)/);
+});

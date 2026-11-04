@@ -217,10 +217,10 @@ export function createRemote({ scene, api = apiCall }) {
 
   // ---------------------------------------------------------------- CITY CONTROLS A — THE RADIO's feed (every phone)
   // the city's fired moments + the billboard's messages + the dial (the cached GET); the owner's desk adds its own at once (deskMoments)
-  let radioCity = [], radioDesk = [], radioLocal = [], radioStopped = new Set(), radioSeen = -Infinity;   // (PROGRESSION B: radioLocal — this phone's own: the birthday skywrite, a favor's JUST ME preview)
+  let radioCity = [], radioDesk = [], radioLocal = [], radioRoom = [], radioStopped = new Set(), radioSeen = -Infinity;   // (LOBBY 2.0 B: radioRoom — the room's own LOBBY ONLY moments, from rooms/{CODE}/radio)   // (PROGRESSION B: radioLocal — this phone's own: the birthday skywrite, a favor's JUST ME preview)
   function feedRadio() {
     const sc = scene(); if (destroyed || !sc || !sc.radio) return;
-    const m = new Map(); for (const x of [...radioCity, ...radioDesk, ...radioLocal]) if (x && x.id && !radioStopped.has(x.id)) m.set(x.id, x);
+    const m = new Map(); for (const x of [...radioCity, ...radioDesk, ...radioLocal, ...radioRoom]) if (x && x.id && !radioStopped.has(x.id)) m.set(x.id, x);
     try { sc.radio([...m.values()]); } catch (e) { console.warn('[harbor] radio feed', e); }
   }
   function onRadio(r, at) {
@@ -969,6 +969,8 @@ export function createRemote({ scene, api = apiCall }) {
     apply: () => { apply(); feedRadio(); },
     /** CITY CONTROLS A — THE RADIO's desk: its moments (JUST ME + what it just fired) played at once on this phone; poll the city now */
     deskMoments(list) { radioDesk = Array.isArray(list) ? list : []; feedRadio(); },
+    /** LOBBY 2.0 B — the room's LOBBY ONLY moments (THE CREW, a FAVOR, the owner's) — only while this phone is IN that room */
+    roomMoments(list) { radioRoom = Array.isArray(list) ? list : []; feedRadio(); },
     /** PROGRESSION B — this phone's OWN moments (played once, like a fired one, on this city only): the birthday's HAPPY BDAY skywrite, a
      *  favor's JUST ME preview — [{ id, jack, at (server ms), until, text?, colour? }] (added to what's there) */
     localMoments(list) { const add = (Array.isArray(list) ? list : []).filter(x => x && x.id); radioLocal = [...radioLocal.filter(x => !add.some(y => y.id === x.id) && x.until > Date.now() - 6e5), ...add.map(x => ({ aud: 'me', state: 'q', by: 'me', ...x }))]; feedRadio(); },

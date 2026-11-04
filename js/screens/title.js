@@ -387,6 +387,14 @@ export function createTitle() {
       if (createHarbor && scene) import('./room-banner.js').then(m => { if (!destroyed && scene) m.champBanner(scene, 'last-call', !!(st && st.code)); }).catch(() => {});
     }
     if (roomUi) roomUi.update(state);
+    feedRoomRadio(state);
+  }
+  // (LOBBY 2.0 B — the room's sky moments to this phone's city: only while in the room; [] the moment it leaves)
+  let roomRadioSig = '';
+  function feedRoomRadio(state) {
+    const list = state && state.code ? state.roomRadio || [] : [], sig = list.map(m => `${m.id}:${m.state}:${m.at}`).join(',');
+    if (!remote || !remote.roomMoments || sig === roomRadioSig) return;
+    roomRadioSig = sig; remote.roomMoments(list);
   }
   const reduced = () => !!settings.reducedFx || reducedMotion();
 
@@ -425,7 +433,7 @@ export function createTitle() {
     // Loaded 1.5 s after the city starts (never in the title's first second); the default city never requests it.
     // (SP4: a JUST ME state kept for this tab loads at once — the scene's reveal waits for it, so the preview is in the first picture)
     const remoteSoon = (() => { try { return sessionStorage.getItem('nd:hr-me') ? 0 : 1500; } catch { return 1500; } })();
-    if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; } }).catch(e => console.warn('preview panel', e)); }, remoteSoon);
+    if (createHarbor) remoteT = setTimeout(() => { if (!destroyed) import('./harbor/remote.js').then(m => { if (!destroyed && scene) { remote = m.createRemote({ scene: () => scene }); liveRemote = remote; roomRadioSig = ''; feedRoomRadio(st); } }).catch(e => console.warn('preview panel', e)); }, remoteSoon);
 
     // the sign is there from the start, dark (glass tubes only, like the boot screen); the power-on lights it
     els.sign = h('div.nd-sign', { class: 'is-glass' },

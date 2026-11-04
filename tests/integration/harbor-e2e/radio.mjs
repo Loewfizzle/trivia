@@ -352,12 +352,19 @@ G('crew', async () => {
   await waitFor(D.page, '!!document.querySelector(".rd-btn.is-locked")', 'the button locked (D)', 15000).catch(() => {});
   const Cst = await call(C.page, { action: 'radioState', room: code }), Dst = await call(D.page, { action: 'radioState', room: code });
   ok(Cst.ok && Cst.r.lobby.mine && Dst.ok && !Dst.r.lobby.mine && Dst.r.lobby.holder === cuid && await ev(D.page, '!!document.querySelector(".rd-btn.is-locked .rd-lockg")'), `CREW: ONE RADIO PER LOBBY — the host (C) holds it; D's button DIMMED with a brass lock`);
-  // C fires into the lobby (dormant — recorded + queued); the lobby's limits: the cooldown greys the jack
+  // C fires into the lobby (recorded + queued + PLAYED on the lobby's phones — LOBBY 2.0 B); the lobby's limits: the cooldown greys the jack
   const f = await call(C.page, { action: 'radioFire', jack: 'balloons', aud: 'room', room: code });
   const node = f.ok ? await get(`rooms/${code}/radio/${f.r.moment.id}`) : null, fired = f.ok ? await get(`radio/fired/${f.r.moment.id}`) : null;
   const f2 = await call(C.page, { action: 'radioFire', jack: 'lightning', aud: 'room', room: code });
   const df = await call(D.page, { action: 'radioFire', jack: 'lightning', aud: 'room', room: code });
   ok(f.ok && node && node.by === 'crew' && fired && fired.sight === false && !f2.ok && f2.code === 'cooldown' && !df.ok && df.code === 'not_holder', `CREW: the holder fires into the lobby (recorded, never a sighting) → the COOLDOWN (${f2.code}: "${f2.msg}"); D refused — not the holder (${df.code})`);
+  // (LOBBY 2.0 B — the owner's ADD-ON: the crew's moment PLAYS now — on every phone IN the lobby (C + D), never outside it (O isn't in yet))
+  if (f.ok) {
+    const id = f.r.moment.id, seen = x => ev(x, `(() => { const r = window.__district && window.__district.radio && window.__district.radio(); return !!(r && r.moments.some(m => m.id === '${id}')); })()`);
+    const inC = await waitFor(C.page, `(() => { const r = window.__district.radio && window.__district.radio(); return !!(r && r.moments.some(m => m.id === '${id}')); })()`, 'C has it', 10000).then(() => true, () => false);
+    const inD = await waitFor(D.page, `(() => { const r = window.__district.radio && window.__district.radio(); return !!(r && r.moments.some(m => m.id === '${id}')); })()`, 'D has it', 10000).then(() => true, () => false);
+    ok(inC && inD && !(await seen(O.page)), `CREW → THE LOBBY: the crew's moment reaches EVERY phone in the lobby (C ${inC}, D ${inD}) — never outside it (the owner, not in it yet: ${await seen(O.page)})`);
+  }
   await ev(C.page, `window.__radio.open()`); await waitFor(C.page, '!!document.querySelector(".rd-modal.is-in .rd-jack")', 'the crew desk in the lobby', 10000);
   await ev(C.page, `window.__radio.refresh()`); await sleep(400);
   { const l = await ev(C.page, `(document.querySelector('.rd-jack[data-jack="lightning"]') || {}).dataset.lamp`); ok(l === 'grey', `CREW: the cooldown greys the jack (${l})`); }

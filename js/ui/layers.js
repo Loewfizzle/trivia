@@ -10,7 +10,7 @@ const open = [];
 
 export function takeLayer(el) {
   z++;
-  if (el) el.style.zIndex = String(z);
+  if (el) { el.style.zIndex = String(z); el.dataset.layer = String(z); }
   const entry = { el };
   open.push(entry);
   let done = false;
@@ -23,3 +23,21 @@ export function takeLayer(el) {
 /** true when el is the newest open layer (or nothing is in the stack) — an Esc handler closes only the top */
 export const isTopLayer = el => !open.length || open[open.length - 1].el === el;
 export const layerDebug = () => ({ z, open: open.length, top: open.length ? open[open.length - 1].el.className : null });
+
+// ONE SHEET STACK for the WHOLE app (the owner's ADD-ON, Nov 4 8:18 am — "in GUESTS, tapping a slim card opens the FULL CARD BEHIND the sheet"):
+// every pop-up that lands on <body> — the profile's sheets, CUSTOMIZE, the full card, AND the older .modal sheets (HOW TO PLAY, a game's
+// options, settings, credits) — takes the next layer as it appears, and gives it back when it goes: whatever opens from a sheet opens ON
+// TOP of it. One MutationObserver on <body>'s own children (never the subtree); the pop-ups that call takeLayer() themselves are skipped.
+const POPUPS = '.modal, .pfs, .vl-dress, .vl-full';
+let watching = false;
+const released = new WeakMap();
+export function watchLayers() {
+  if (watching || typeof MutationObserver === 'undefined' || typeof document === 'undefined') return;
+  watching = true;
+  new MutationObserver(list => {
+    for (const m of list) {
+      for (const n of m.addedNodes) if (n.nodeType === 1 && n.matches(POPUPS) && !n.dataset.layer && !released.has(n)) released.set(n, takeLayer(n));
+      for (const n of m.removedNodes) if (n.nodeType === 1 && released.has(n)) { released.get(n)(); released.delete(n); }
+    }
+  }).observe(document.body, { childList: true });
+}

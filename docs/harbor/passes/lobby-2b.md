@@ -88,5 +88,40 @@ pushed (no tag).
   REMATCH fits the ring in the real font (55 of 76 pt at 402). A vote = `rooms/{CODE}/rv/{uid}` = the match just played — each player's
   OWN node, only while that match's ring is up (the rules); the host clears them all.
 
+**Group 3 — THE CARTRIDGE PLUG** (`js/games/cartridge.js` · `docs/cartridge.md` — linked from CLAUDE.md's table)
+- THE CONTRACT as data + a checker: REQUIRED (start · prepare · step · livePaths · createView · DEFAULT_SETTINGS · OPTIONS · estimateMinutes ·
+  finalRanks + MUSIC or musicFor), OPTIONAL (FINAL_MUSIC · MIN_PLAYERS · **SOLO** · nightBonus · sealed · **chatLocked** · **CHAT_CHIPS** ·
+  **BANNER_NAME** · **rematchSettings** · **preload** · **daily**), the DAILY plug-in's shape (`{ on: false, create({ date, uid, now }),
+  resumeKey(date, uid) }` — today's date in → today's puzzle, one try, resume; `checkCartridge` fails one that switches itself on).
+- THE CONSOLE READS A GAME ONLY THROUGH IT (no hard-wiring): `start({ now })` = the moment the match begins (after the walk inside); the
+  chat ASKS THE GAME for its lock (`chatLocked` — OVERCLOCK + PRISM DROP carry theirs now; `chat/logic.js`'s switch keeps only the ten hidden
+  games, each moving into its cartridge when it returns); the banner's name; the chips while it's on screen (app.js); a rematch's settings;
+  the minimum (MIN_PLAYERS above the app's, `SOLO` = 1 — OVERCLOCK's solo plugs in here); ITS LOADING — on every phone during the 2.6 s walk
+  inside the console WARMS its view (`lazyView(…).warm()`) + its sheets and calls its `preload()` (pools, sounds): fetched, never built,
+  while the city still draws. For OVERCLOCK (`Downloads\NEON\overclock\` read first): the city pause is automatic; its per-challenge pools +
+  sounds go in `preload`; SOLO; its daily plug-in ships OFF; DUMB LUCK never in a daily (the doc says so).
+- THE CHECKS: `tests/cartridge.test.mjs` — every registered game PLAYABLE (checked) XOR EXEMPT (the ten hidden, frozen); the playable ones'
+  exports from their source; THE CONSOLE NEVER NAMES A GAME (14 files grepped); the checker itself; the wiring. The harbor's `cartridge`
+  group runs `checkCartridge` on the REAL modules in a page: both playable pass, the ten hidden have 0 gaps too (only their chat locks
+  wait in the old switch).
+
+**THE ADD-ON (the owner, Nov 4 8:14–8:18 am — the last work group)**
+- **LEAVE ROOM UP FRONT** (it was ☰ → SETTINGS → LEAVE ROOM): the FIRST row of the ☰ menu while in a room (red-edged; one tap = "SURE? TAP
+  AGAIN", the second leaves; not during a match — QUIT TO THE ROOM there) + the foot of GUESTS (the same second tap). Leaving = the player node
+  goes → every other phone plays the wave + the walk off; this phone's city flies THE NIGHT's CHAMPION after 2+ games. (QUIT TO LOBBY reads
+  QUIT TO THE ROOM in City 2.0.)
+- **THE CREW's BLACKBIRD DIDN'T FLY — THE CAUSE**: the room audience was never wired to the city. The server wrote the crew's (and a favor's,
+  and the owner's LOBBY ONLY) sky moments to `rooms/{CODE}/radio` all along, but the room's phones only ever played the INTERCOM from there —
+  the sky moments were parked in CITY CONTROLS B "until LOBBY 2.0 makes the lobby the live city" and 2A didn't switch them on (the crew's
+  desk even said so: "sky moments play once lobbies are in the city"). Not the limits, not a queue, not the reveal-tap gate. THE FIX:
+  `room.js` hands the room's sky moments to the store (`roomRadio`) → title.js → the remote's feed (`roomMoments`) → scene-radio, which plays
+  each ONCE at its place on the server clock (a legendary still never over a show — the lanes). Only phones IN the room listen there:
+  never outside it. The desk's "dormant" notes are gone ("every phone in your lobby sees it").
+- **ONE SHEET STACK** (in GUESTS a card opened BEHIND the sheet — the same bug as CUSTOMIZE): fixed ONCE for the whole app — `ui/layers.js
+  #watchLayers` (installed at boot) gives EVERY pop-up that lands on <body> — the profile's sheets, CUSTOMIZE, the full card AND the older
+  `.modal` sheets (HOW TO PLAY, a game's options, settings, credits) — the next layer as it appears and takes it back as it goes; the app's
+  Esc closes a `.modal` only when it's the top layer. ‹ / swipe-down closes one step (the profile's sheet stack, unchanged). Found on the way:
+  a GUEST tapping a game in GAMES opened HOW TO PLAY behind the games sheet — now on top.
+
 ## Tests (so far)
 unit `tests/lobby-2b.test.mjs` (11) · rules (+ 2: the stamps, THE REMATCH VOTE) · harbor job `room2`: `roomfix` (10), `gamestart` (7), `citypause` (3), `afterparty` (16).

@@ -29,7 +29,7 @@ let lastHeal = 0;
 let healTimer = 0;
 let lastRaw = null;   // the newest raw presence snapshot (the heal's retry reads it)
 
-const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, rv: {}, live: {}, liveKey: null };
+const EMPTY_ROOM = { code: null, meta: null, players: {}, presence: {}, kicked: {}, game: null, night: {}, rv: {}, roomRadio: [], live: {}, liveKey: null };
 
 function cleanProfile(profile) {
   return { name: sanitizeName(profile.name, NAME_MAX) || 'ANON', color: profile.color, avatar: sanitizeAvatar(profile.avatar) };
@@ -232,8 +232,14 @@ function enterRoom(code) {
   // CC-B — THE CREW: ONE RADIO PER LOBBY (the hand-over + an ask — server-written; screens/harbor/radio.js reads it from the store)
   listen('radioCrew', rc => setState({ radioCrew: rc || null }));
   listen('radio', radio => {
-    const list = Object.entries(radio || {}).map(([id, x]) => ({ id, ...(x || {}) })).filter(x => x.kind === 'intercom');
+    const all = Object.entries(radio || {}).map(([id, x]) => ({ id, ...(x || {}) }));
+    const list = all.filter(x => x.kind === 'intercom');
     if (list.length) import('./audio/intercom.js').then(m => m.intercomFeed('room', list)).catch(e => console.warn('[intercom]', e));
+    // (LOBBY 2.0 B — the owner's ADD-ON: THE CREW's Blackbird "didn't fly". The server wrote the crew's / a favor's / the owner's LOBBY ONLY
+    //  sky moments here all along, but only the intercom was ever played — the rest waited for the lobby to be the live city (LOBBY 2.0) and
+    //  were never switched on. Now every phone IN the room hands them to its city (title.js → the remote's feed → scene-radio: each plays
+    //  ONCE, at its place on the server clock); a phone outside the room never listens here.)
+    setState({ roomRadio: all.filter(x => x.kind !== 'intercom' && x.jack) });
   });
   listen('kicked', kicked => {
     kicked = kicked || {};
