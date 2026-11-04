@@ -305,11 +305,14 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       if (!s.force.has('no-planes')) air.draw(c, s, free);
       air.heliSky(c, s);                                           // (SKY-B: the patrol's far pass — BEHIND the towers)
       balloons.draw(c, s);
-      if (lanes) banner.draw(c, s, bannerLane(s));
+      // (LOBBY FIXES — THE BANNER PLANE FADED: drawn here it flew BEHIND the clouds — a cloud bank turned it + its words to a ghost mid-flight
+      //  ("…R TAKES PRI…", worse on a wide desktop sky). It is drawn by bannerOver() now, after the clouds, the storm deck + the lightning)
       smoke.draw(c, s, lastSun);                                   // (POLISH 4: the sun, so the sky letters' dark halo firms up in front of its glare)
       if (show.on()) show.draw(c, s, msgBox(s));                 // (6b: the air show / the missing man — the whole open sky)
       if (!s.force.has('no-birds') && s.motion) birds.sky(c, s, { 'sky-high': free['sky-high'] && !inUse.has('sky-high'), 'sky-low': free['sky-low'] && !inUse.has('sky-low') });
     },
+    /** LOBBY FIXES — the banner plane + its words IN FRONT of the clouds (+ the storm deck, the lightning): fully visible its whole flight */
+    bannerOver(c, s) { if (lanes) banner.draw(c, s, bannerLane(s)); },
     /** POLISH 5 — CLOUDS NEVER COVER A MESSAGE: a skytyped message is up (the scene draws every cloud BEHIND it while it is) */
     msgUp: () => (smoke.on() ? smoke.bounds() : null),
     /** over the far rows: swifts + bats round the rooftops */

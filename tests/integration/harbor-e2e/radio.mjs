@@ -384,10 +384,10 @@ G('crew', async () => {
   await ev(O.page, 'sessionStorage.clear()'); await O.page.reload();
   await waitFor(O.page, `!!document.querySelector('.rd-btn') && !!document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]')`, 'the owner radio + the lobby list', 25000);
   await ev(O.page, `(() => { const c = document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]'), r = c.getBoundingClientRect(), o = { bubbles: true, clientX: r.left + 20, clientY: r.top + 10 }; c.dispatchEvent(new PointerEvent('pointerdown', o)); c.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
-  await waitFor(O.page, `(document.querySelector('.rd-pcard .rd-lever') || {}).getAttribute && document.querySelector('.rd-pcard .rd-lever').getAttribute('aria-checked') === 'true'`, 'the card says CREW ON', 10000).catch(() => {});
-  const on1 = await ev(O.page, `(() => { const l = document.querySelector('.rd-pcard .rd-lever'); return l ? l.getAttribute('aria-checked') : null; })()`);
-  await ev(O.page, `document.querySelector('.rd-pcard .rd-lever').click()`);
-  await waitFor(O.page, `document.querySelector('.rd-pcard .rd-lever').getAttribute('aria-checked') === 'false'`, 'CREW OFF', 8000).catch(() => {});
+  await waitFor(O.page, `(document.querySelector('.cr-row .cr-sw') || {}).getAttribute && document.querySelector('.cr-row .cr-sw').getAttribute('aria-checked') === 'true'`, 'the card says CREW ON', 10000).catch(() => {});
+  const on1 = await ev(O.page, `(() => { const l = document.querySelector('.cr-row .cr-sw'); return l ? l.getAttribute('aria-checked') : null; })()`);
+  await ev(O.page, `document.querySelector('.cr-row .cr-sw').click()`);
+  await waitFor(O.page, `document.querySelector('.cr-row .cr-sw').getAttribute('aria-checked') === 'false'`, 'CREW OFF', 8000).catch(() => {});
   const off = await get(`radio/crew/${cpid}`);
   ok(on1 === 'true' && off === null, `CREW: the owner taps a player in the lobby → their card's CREW switch (${on1}) → OFF (the server: ${JSON.stringify(off)})`);
   await ev(O.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`);

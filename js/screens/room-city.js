@@ -27,6 +27,11 @@ import { createRoomBanner } from './room-banner.js';
 
 const rgbOf = id => { const x = colorHex(id).replace('#', ''); return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
 export const FRESH_MS = 12000;      // (a player who joined in the last 12 s walks in, even on a phone seeing the room for the first time)
+// (LOBBY FIXES — AN INTENTIONAL LEAVE: the owner saw TESTER lie down (the lost-signal pose), get up, THEN wave + walk off. A leave removes the
+//  player node + their presence in ONE update, but each phone hears the two paths as two events — presence first → the lie-down. A presence
+//  drop now waits LOST_GRACE_MS before the lie-down: a leave's node goes inside it → straight to the wave + the walk-off; a real lost signal
+//  lies down a moment later)
+export const LOST_GRACE_MS = 1500;
 const NAME_MS = 4200, TAP_NAME_MS = 3000;
 
 export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
@@ -62,10 +67,43 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // ---------------------------------------------------------------- INVITE (everyone)
   const inviteUrl = () => `${location.origin}${location.pathname}?room=${code()}`;
   async function invite() {
+    invited(true); closeHostCard(); paintDock();
     const url = inviteUrl(), text = `Get in here — the hush word is ${code()}`;
     import('../audio/lobby-sfx.js').then(m => m.lobbySfx('invite')).catch(() => {});
     if (navigator.share) { try { await navigator.share({ title: APP_NAME, text, url }); return; } catch (e) { if (e && e.name === 'AbortError') return; } }
     try { await navigator.clipboard.writeText(url); toast(`INVITE LINK COPIED — THE HUSH WORD IS ${code()}`, 'ok'); } catch { toast(`THE HUSH WORD IS ${code()}`, 'info', 6000); }
+  }
+
+  // ---------------------------------------------------------------- LOBBY FIXES — AFTER HOST: HOW TO SHARE (the owner, Nov 4 2:28–2:29 pm: "after
+  // HOST nothing says how to share the room" — the old lobby popped the hush word + SHARE). On HOST, every host, every time: a short glass card
+  // "YOUR ROOM IS OPEN — THE HUSH WORD IS MINT" + a big SHARE INVITE + "or tap INVITE anytime"; it closes itself after HOST_CARD_MS or on a tap;
+  // the INVITE ring breathes until the host invites someone or a guest arrives (room-dock.js#rdk-pulse)
+  const HOST_CARD_MS = 8000;
+  const flag = (k, v) => { try { if (v === undefined) return sessionStorage.getItem(k) === '1'; sessionStorage.setItem(k, '1'); } catch { /* fine */ } return false; };
+  const invited = v => flag(`rc:inv:${code()}`, v ? true : undefined);
+  let hostCard = null;
+  function closeHostCard() {
+    if (!hostCard) return;
+    const { el, t, off } = hostCard; hostCard = null; clearTimeout(t); off();
+    el.classList.add('is-out'); setTimeout(() => el.remove(), reducedMotion() ? 0 : 320);
+  }
+  function maybeHostCard() {
+    if (hostCard || destroyed || !isHost() || !st.meta || !code()) return;
+    const P = players(), mine = Object.keys(P).length === 1 && P[st.uid];
+    const fresh = st.meta.createdAt && serverNow() - st.meta.createdAt < 20000;
+    if (!mine || !fresh || flag(`rc:hc:${code()}`)) return;
+    flag(`rc:hc:${code()}`, true);
+    const share = h('button.rc-hc-share', { type: 'button', onclick: e => { e.stopPropagation(); sfx('select'); invite(); } }, 'SHARE INVITE');
+    const el = h('div.rc-hostcard', { role: 'status', 'aria-live': 'polite' },
+      h('small.rc-hc-k', 'YOUR ROOM IS OPEN'),
+      h('b.rc-hc-t', 'THE HUSH WORD IS ', h('span.rc-hc-w', code())),
+      share,
+      h('p.rc-hc-or', 'or tap INVITE anytime'));
+    document.body.append(el);
+    // (a tap anywhere — but SHARE — closes it; so does the clock)
+    const onDown = e => { if (!e.target.closest || !e.target.closest('.rc-hc-share')) closeHostCard(); };
+    setTimeout(() => { if (hostCard && hostCard.el === el) document.addEventListener('pointerdown', onDown, true); }, 250);
+    hostCard = { el, t: setTimeout(closeHostCard, HOST_CARD_MS), off: () => document.removeEventListener('pointerdown', onDown, true) };
   }
 
   // ---------------------------------------------------------------- GAMES / PLAY: the playable games (the host picks → the options + INITIATE)
@@ -102,21 +140,23 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   }
 
   // ---------------------------------------------------------------- a player's card (a tap on their figure or their strip)
+  // (LOBBY FIXES — THE PLAYER CARD: the owner's phone opened the RADIO panel here (the radio's own "THEIR CARD") — he could see nobody's card.
+  //  A player tap ALWAYS opens THAT player's card, on top (the sheet stack), from the line + GUESTS alike; the owner gets a small CREW row at
+  //  its foot (crew-row.js — the server checks the role per action); the radio never opens from a player tap)
   async function openPlayerCard(uid) {
     const p = players()[uid]; if (!p) return;
     popName(uid, TAP_NAME_MS);
-    // (THE OWNER — the radio loaded: another player's card is the radio's own, with THE CREW switch — harbor/radio.js listens)
-    if (uid !== st.uid && document.body.classList.contains('rd-owner')) { window.dispatchEvent(new CustomEvent('ns:owner-card', { detail: { uid } })); return; }
     const pub = st.pub && p.pid ? st.pub[p.pid] : null;
+    const foot = uid !== st.uid ? await import('./crew-row.js').then(m => (m.isOwnerPhone() ? m.crewRow(uid) : null)).catch(() => null) : null;
     if (pub && pub.cd && pub.cd !== 'card-gilded') {
       try {
         const F = await import('../vault/full.js');
         if (await F.canShowFull(pub.cd)) { const { levelOf } = await import('../core/levels.js'); const { memberLabel } = await import('../core/member.js');
-          F.openFullCard(pub.cd, { name: pub.n || p.name, lv: levelOf(pub.x || 0), avatar: pub.a || p.avatar, color: pub.c || p.color, at: pub.at, no: memberLabel(pub.mn), fd: !!pub.fd, shape: pub.es, tube: pub.tb, glow: pub.g }); return; }
+          F.openFullCard(pub.cd, { name: pub.n || p.name, lv: levelOf(pub.x || 0), avatar: pub.a || p.avatar, color: pub.c || p.color, at: pub.at, no: memberLabel(pub.mn), fd: !!pub.fd, shape: pub.es, tube: pub.tb, glow: pub.g, foot }); return; }
       } catch { /* the gilded card below */ }
     }
     const [{ openPfSheet }, { memberCard }] = await Promise.all([import('../profile/sheets.js'), import('./profile.js')]);
-    openPfSheet({ kicker: uid === st.uid ? 'YOUR CARD' : 'THEIR CARD', title: String(p.name || '').toUpperCase(), cls: 'rc-card-sheet', body: [memberCard(pub, { name: p.name, color: p.color, avatar: p.avatar }, pub ? pub.x : 0)] });
+    openPfSheet({ kicker: uid === st.uid ? 'YOUR CARD' : 'THEIR CARD', title: String(p.name || '').toUpperCase(), cls: 'rc-card-sheet', body: [memberCard(pub, { name: p.name, color: p.color, avatar: p.avatar }, pub ? pub.x : 0), foot] });
   }
 
   // ---------------------------------------------------------------- the tags over the heads (the emblem · the name · the typing bubble)
@@ -216,7 +256,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const unread = chatMod ? chatMod.chat.unread || 0 : 0;
     const vs = voteNow();
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
-    dock.set({ host: isHost(), hostName: hostName(), guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
+    dock.set({ host: isHost(), hostName: hostName(), invitePulse: isHost() && ids.length === 1 && !invited(), guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
       you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm });
   }
   function paintBubbles() {
@@ -288,6 +328,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     // (the sign's own recorded neon — a dropout as NEON goes out, a catch as the game's logo lights; only from the start itself, never a refresh)
     if (age < 300 && !reducedMotion()) import('../audio/ambience.js').then(A => { A.neonDropout({ level: 0.7 }); goFx && (goFx.catchT = setTimeout(() => A.neonCatch({ level: 0.6, dur: 0.9 }), 470 - age)); }).catch(() => {});
     for (const gs of [gamesOpen, guestsUi]) if (gs && gs.close) gs.close();
+    closeHostCard();
     closeAll();   // (FR6 FIXES A — B1: EVERY sheet + overlay on every phone — the profile, CUSTOMIZE, the full card, ☰, HOW TO PLAY…; never one over the match)
     // (THE CARTRIDGE PLUG — its loading: the walk inside is the console's loading time on EVERY phone — the view module + its sheets warm,
     //  the game's own preload (pools, sounds) runs; the city is still drawing, so nothing heavy is BUILT here — only fetched)
@@ -311,12 +352,22 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   // ---------------------------------------------------------------- the roster → the city
   // (LOBBY 2.0 B — THE GAME START's file-in + THE WALK BACK OUT: each player's own place in the show, from the room's stamps — core/room-show.js;
   //  reduced motion: no walk — they stand, and the start is a plain cross-fade)
+  const offSince = new Map();   // uid → when this phone first saw them offline (the lost-signal grace)
+  let graceT = 0;
+  function onlineNow(uid, t) {
+    if (isOnline(st.presence, uid)) { offSince.delete(uid); return true; }
+    if (!offSince.has(uid)) offSince.set(uid, t);
+    const left = LOST_GRACE_MS - (t - offSince.get(uid));
+    if (left > 0) { clearTimeout(graceT); graceT = setTimeout(() => { graceT = 0; if (!destroyed) update(st); }, left + 40); return true; }
+    return false;
+  }
   function roster() {
-    const P = players(), order = roomOrder(P, st.meta && st.meta.hostId), now = serverNow(), mo = !reducedMotion();
+    const P = players(), order = roomOrder(P, st.meta && st.meta.hostId), now = serverNow(), mo = !reducedMotion(), tNow = performance.now();
+    for (const u of [...offSince.keys()]) if (!P[u]) offSince.delete(u);
     const ss = startShow(st.meta, st.game, now), bs = ss.on ? { on: false } : backShow(st.meta, P, now, st.night);
     const inAt = ss.on && mo ? new Map(fileInOrder(P, st.meta.hostId).map(o => [o.uid, o.at])) : null;
     const outAt = bs.on && mo ? new Map(bs.order.map(o => [o.uid, o.at])) : null;
-    const list = order.map(o => ({ uid: o.uid, slot: o.slot, online: isOnline(st.presence, o.uid), col: rgbOf(P[o.uid].color), fresh: now - (P[o.uid].joinedAt || 0) < FRESH_MS,
+    const list = order.map(o => ({ uid: o.uid, slot: o.slot, online: onlineNow(o.uid, tNow), col: rgbOf(P[o.uid].color), fresh: now - (P[o.uid].joinedAt || 0) < FRESH_MS,
       goT: inAt && inAt.has(o.uid) ? ss.age / 1000 - inAt.get(o.uid) : undefined, outT: outAt && outAt.has(o.uid) ? bs.age / 1000 - outAt.get(o.uid) : undefined }));
     list.kicked = Object.keys(st.kicked || {});
     return list;
@@ -335,6 +386,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       if (!before.size) for (const q of list) if (q.fresh) popName(q.uid, NAME_MS + 8000);
     }
     if (scene && scene.hush) scene.hush(st.code);
+    maybeHostCard();
+    if (hostCard && Object.keys(players()).length > 1) closeHostCard();   // (a guest arrived: the card has done its job)
     startFx();
     banner.update(st);
     paintDock();
@@ -349,10 +402,11 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     startFx: () => (goFx ? { m: goFx.m } : null),
     vote: () => voteNow(),
     banner: () => banner.debug(),
+    hostCard: () => (hostCard ? { text: hostCard.el.textContent } : null),
     debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null, hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
     nearestAt,
     destroy() {
-      destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); if (offChat) offChat(); banner.destroy();
+      destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); clearTimeout(graceT); closeHostCard(); if (offChat) offChat(); banner.destroy();
       // (the start's veil stays over the hand-off to the game screen — app.js's screen-in fades the game up; then it goes)
       if (goFx) { const v = goFx.veil; goFx.veil = h('i'); v.style.animation = 'none'; v.style.opacity = '1'; void v.offsetWidth; v.style.transition = 'opacity 0.45s ease'; v.style.opacity = '0'; setTimeout(() => v.remove(), 500); endFx(); }
       if (scene && scene.room) scene.room(null);

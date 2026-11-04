@@ -1799,6 +1799,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     zap.tick({ on: (!!(WXS && WXS.lightning) || !!rs) && !off.has('no-lightning'), manual: !!rs && !(WXS && WXS.lightning), rod: !!rs, t, motion: S.motion, base: stormK > 0.3 ? deckBase : cam.safeTop + 40, horizon: skyFoot, force: off.has('lightning'), close: off.has('strike'), needle: mmTipOf(), skyline, near: nearRoof, occ: fs.heliOcc, water: water.band() });
     if (stormK > 0.01) stormDeck.draw(c, { k: stormK, W, top: Math.max(0, cam.safeTop - 20), base: deckBase, horizon: skyFoot, day: clamp01((LK.w.day || 0) + 0.7 * (LK.w.golden || 0) + 0.6 * (LK.w.dawn || 0)), night: litK(DK, 'lamps'), party: PT.on > 0.5, t, motion: S.motion, wind: WF.v(0.5) * 0.35, dpr, flash: zap.flashInfo() });
     zap.draw(c, fs);
+    if (sky.bannerOver) sky.bannerOver(c, fs);   // (LOBBY FIXES: the banner plane in front of the clouds — never a ghost mid-flight)
     // (6b: THE TR-3B + its chase — under the cloud base, in front of the stars + the moon, behind the city's crowns)
     if (legends && !off.has('no-legends')) legends.sky(c, fs);
     signHalo(c);

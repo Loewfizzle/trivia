@@ -52,11 +52,13 @@ export function createRoomDock(on) {
   d.tabs = () => [E.guestsTab, E.gamesTab, E.youTab];
 
   let last = '';
-  /** v = { host (am I the host), hostName, guestsDot, chatDot, chatN, you (an element: the emblem), youAria,
+  /** v = { host (am I the host), hostName, guestsDot, chatDot, chatN, you (an element: the emblem), youAria, invitePulse (LOBBY FIXES),
    *        rm?: { on, voted (mine), n (votes), total (everyone), pips: [{ col (hex), on }] } — THE REMATCH VOTE } */
   d.set = v => {
     const rm = v.rm && v.rm.on ? v.rm : null;
     const k = `${v.host ? 1 : 0}|${v.hostName || ''}|${v.guestsDot ? 1 : 0}|${v.chatDot ? 1 : 0}|${v.chatN || 0}|${rm ? `${rm.voted ? 1 : 0}${rm.n}/${rm.total}:${rm.pips.map(p => `${p.col}${p.on ? 1 : 0}`).join(',')}` : ''}`;
+    // (LOBBY FIXES — AFTER HOST: the INVITE ring breathes until the host invites someone or a guest arrives — opacity + scale only, CSS)
+    if (E.joinTab.classList.contains('rdk-pulse') !== !!v.invitePulse) E.joinTab.classList.toggle('rdk-pulse', !!v.invitePulse);
     if (v.you && v.youSig !== E.youSig) { E.youSig = v.youSig; E.youTab.querySelector('.nd-tab-ic').replaceChildren(v.you); if (v.youAria) E.youTab.setAttribute('aria-label', v.youAria); }
     if (k === last) return; last = k;
     E.host.classList.toggle('rdk-wait', !v.host && !rm);

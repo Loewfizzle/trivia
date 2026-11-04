@@ -54,7 +54,9 @@ function routeKey(st) {
   if (!st.ready && (resuming || st.code)) return 'boot';
   if (!st.code && harborPending()) return 'boot';   // ?city=2: the Harbor's module is still loading (title.js#harborReady)
   if (!st.code) return st.view === 'setup' ? `setup:${st.setupMode}` : st.view === 'board' ? 'board' : st.view === 'profile' ? 'profile' : 'title';
-  if (!st.meta) return 'boot';
+  // (LOBBY FIXES — THE DESKTOP HOST's FLASH: between HOST and the room's meta arriving (one round trip) this said 'boot' — the title unmounted,
+  //  the boot screen faded in, then the title + its whole city came back. In City 2.0 the room IS the city: the title stays while the meta loads)
+  if (!st.meta) return isCity2() && !harborPending() && current && current.key === 'title' ? 'title' : 'boot';
   // (LOBBY 2.0 B — THE GAME START: in City 2.0 the city stays up for the walk inside (core/room-show.js, ≤ 2.6 s from the host's tap, the
   //  same on every phone — a refresh / a late joiner past it goes straight to the game); a timer re-routes the moment it ends)
   if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id] && st.quit !== st.game.matchId) {

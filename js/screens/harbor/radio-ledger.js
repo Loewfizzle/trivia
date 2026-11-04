@@ -83,7 +83,7 @@ export function paint({ api, now }) {
         h('button.rd-crm', { type: 'button', class: armed === c.pid ? 'is-armed' : '', onclick: () => { if (armed !== c.pid) { armed = c.pid; fill(memo.data); setTimeout(() => { if (armed === c.pid) { armed = null; if (memo) fill(memo.data); } }, 4000); return; } armed = null; crewAct({ pid: c.pid, on: false }); } }, armed === c.pid ? 'SURE?' : 'REMOVE'))) : [h('p.rd-hint', 'Nobody yet. Tap a player in a lobby (their card has the CREW switch) or add a name tag.')]),
       h('div.rd-cadd', inp, h('button.rd-done', { type: 'button', onclick: add, disabled: C.length >= cap }, 'ADD')),
       addErr ? h('p.rd-err', { role: 'alert' }, addErr) : null,
-      h('p.rd-hint', 'Up to 10. A player needs a profile (after their first match) to join the crew. The crew fires in the lobby they’re in — once lobbies are in the city (LOBBY 2.0).'));
+      h('p.rd-hint', 'Up to 10. A player needs a profile (after their first match) to join the crew. The crew fires sky moments in the room they’re in — every phone there sees it; tap a player in your room to switch THE CREW on their card.'));
   }
   const go = async () => {
     try { if (!memo || now() - memo.at > 30e3) memo = { at: now(), data: await api('admin', { action: 'radioLedger' }) }; fill(memo.data); }

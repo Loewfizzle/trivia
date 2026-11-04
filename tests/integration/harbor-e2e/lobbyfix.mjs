@@ -3,8 +3,8 @@
 //   oneseat  — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM on THREE slots sharing one profile: the second device asked (CANCEL keeps it out,
 //              MOVE HERE takes the seat + the first walks out), a third hosting another room takes it from the second
 // ADDING A GROUP: G('name', …) here + the name in ../harbor-jobs.mjs (CI_JOBS.lobbyfix).
-import { log, sleep, ok, open, ev, waitFor, harborUp, G, OUT, SHOTS } from './kit.mjs';
-import { dbPatch, dbGet, ROOMQ, hostRoom } from './lobby2.mjs';
+import { log, sleep, ok, open, ev, waitFor, harborUp, dbPut, G, OUT, SHOTS, NIGHT } from './kit.mjs';
+import { dbPatch, dbGet, ROOMQ, hostRoom, joinRoom, settledRoom, topAt } from './lobby2.mjs';
 
 /** this slot's profile record (me.js) once the server has linked it */
 const meOf = async (p, slot) => { await waitFor(p, `(() => { try { const m = JSON.parse(localStorage.getItem('na:${slot}:me') || 'null'); return !!(m && m.pid); } catch { return false; } })()`, `${slot}'s profile`, 20000); return ev(p, `JSON.parse(localStorage.getItem('na:${slot}:me'))`); };
@@ -70,4 +70,168 @@ G('oneseat', async () => {
   ok((await dbGet(`seats/${meA.pid}`)) == null, 'LEAVE ROOM gives the seat back (seats/{pid} gone)');
   log('oneseat', 'done');
   for (const X of [A.Q, B, C]) await X.ctx.close().catch(() => {});
+});
+
+/** a tap on a player's figure in the line (the tag's own pointer pair, at the figure's middle) */
+const tapPlayer = (p, uid) => ev(p, `(() => { const t = document.querySelector('.rc-tag[data-uid="${uid}"]'); if (!t) return false; const r = t.getBoundingClientRect(), o = { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 + 16, pointerId: 1 }; t.dispatchEvent(new PointerEvent('pointerdown', o)); t.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
+/** what is open now: a card (full / the gilded sheet), its CREW row, the radio panel, any stale copy */
+const cardNow = p => ev(p, `(() => { const full = document.querySelector('.vl-full'), sh = document.querySelector('.rc-card-sheet:not(.is-out)'), c = full || sh;
+  return { card: !!c, kind: full ? 'full' : sh ? 'sheet' : null, crew: !!(c && c.querySelector('.cr-row')), radio: !!document.querySelector('.rd-modal.is-in, .rd-pcard'),
+    stale: /once lobbies are in the city/i.test(document.body.textContent) }; })()`);
+const closeCards = p => ev(p, "(() => { const x = document.querySelector('.vl-full .vl-full-x'); if (x) x.click(); document.querySelectorAll('.pfs:not(.is-out) .pfs-back').forEach(e => e.click()); })()");
+const pidIn = async (p, slot) => { for (let i = 0; i < 60; i++) { const m = await ev(p, `(() => { try { return JSON.parse(localStorage.getItem('na:${slot}:me') || 'null'); } catch { return null; } })()`); if (m && m.pid) return m.pid; await sleep(400); } return null; };
+
+G('playercard', async () => {
+  // THE OWNER (the radio on the server's yes — testAdmins on the emulators) hosts; a normal player joins
+  const O = await hostRoom('pco');
+  const opid = await pidIn(O.p, 'pco');
+  await dbPut(`testAdmins/${opid}`, true);
+  await ev(O.p, 'sessionStorage.clear()'); await O.p.reload(); await harborUp(O.p);
+  await waitFor(O.p, "!!document.querySelector('.rd-btn') && document.body.classList.contains('rd-owner') && window.__arcade.state.code", 'the owner radio + back in the room', 30000);
+  const N = await joinRoom('pcn', O.code);
+  await settledRoom(O.p, 2, 30000).catch(() => {}); await settledRoom(N.p, 2, 30000).catch(() => {});
+  await sleep(800);
+  // ---- the owner taps the guest IN THE LINE → their card, on top, + the CREW row; never the radio panel
+  await tapPlayer(O.p, N.me);
+  await waitFor(O.p, "!!document.querySelector('.vl-full, .rc-card-sheet:not(.is-out), .rd-modal.is-in')", 'something opened', 8000).catch(() => {});
+  await waitFor(O.p, "!!document.querySelector('.cr-row .cr-sw') && !document.querySelector('.cr-row .cr-sw').disabled", 'the crew row filled', 8000).catch(() => {});
+  const a = await cardNow(O.p), topA = await topAt(O.p);
+  ok(a.card && a.crew && !a.radio && !a.stale, `THE PLAYER CARD (the OWNER, the line): the guest's card (${a.kind}) + the CREW row — no radio panel (${a.radio}), no stale "once lobbies" copy (${a.stale})`);
+  ok(topA && topA !== 'none', `… on top (${topA})`);
+  if (SHOTS) await O.p.screenshot({ path: `${OUT}playercard-owner.png` });
+  // the CREW switch on the card: ON → the server has them; OFF again
+  const npid = await pidIn(N.p, 'pcn');
+  await ev(O.p, "document.querySelector('.cr-row .cr-sw').click()");
+  await waitFor(O.p, "document.querySelector('.cr-row .cr-sw').getAttribute('aria-checked') === 'true'", 'CREW ON', 8000).catch(() => {});
+  const onSrv = await dbGet(`radio/crew/${npid}`);
+  await waitFor(O.p, "!document.querySelector('.cr-row .cr-sw').disabled", 'the switch free', 8000).catch(() => {});
+  await ev(O.p, "document.querySelector('.cr-row .cr-sw').click()");
+  await waitFor(O.p, "document.querySelector('.cr-row .cr-sw').getAttribute('aria-checked') === 'false'", 'CREW OFF', 8000).catch(() => {});
+  const offSrv = await dbGet(`radio/crew/${npid}`);
+  ok(!!onSrv && offSrv == null, `… its CREW switch works from the card (ON → radio/crew has them: ${!!onSrv}; OFF → gone: ${offSrv == null})`);
+  await closeCards(O.p); await sleep(600);
+  // ---- the owner taps the guest IN GUESTS → the same: their card on top of the list, the CREW row, no radio
+  await ev(O.p, "document.querySelector('.rdk-guests').click()");
+  await waitFor(O.p, `!!document.querySelector('.rg-row[data-uid="${N.me}"]')`, 'the guest list', 8000);
+  await sleep(500);
+  await ev(O.p, `document.querySelector('.rg-row[data-uid="${N.me}"]').click()`);
+  await waitFor(O.p, "!!document.querySelector('.vl-full, .rc-card-sheet:not(.is-out)')", 'the card from GUESTS', 8000).catch(() => {});
+  await sleep(500);
+  const b = await cardNow(O.p), topB = await topAt(O.p);
+  ok(b.card && b.crew && !b.radio && topB && topB !== 'none', `THE PLAYER CARD (the OWNER, GUESTS): their card on top of the list (${topB}) + the CREW row, no radio panel`);
+  await closeCards(O.p); await sleep(600);
+  // ---- a NORMAL player taps the owner (the line + GUESTS) → the owner's card, no CREW row
+  await tapPlayer(N.p, O.me);
+  await waitFor(N.p, "!!document.querySelector('.vl-full, .rc-card-sheet:not(.is-out)')", 'the card (normal player)', 8000).catch(() => {});
+  const c = await cardNow(N.p);
+  await closeCards(N.p); await sleep(600);
+  await ev(N.p, "document.querySelector('.rdk-guests').click()");
+  await waitFor(N.p, `!!document.querySelector('.rg-row[data-uid="${O.me}"]')`, 'the guest list (normal)', 8000);
+  await sleep(500);
+  await ev(N.p, `document.querySelector('.rg-row[data-uid="${O.me}"]').click()`);
+  await waitFor(N.p, "!!document.querySelector('.vl-full, .rc-card-sheet:not(.is-out)')", 'the card from GUESTS (normal)', 8000).catch(() => {});
+  const d = await cardNow(N.p);
+  ok(c.card && !c.crew && !c.radio && d.card && !d.crew && !d.radio, `THE PLAYER CARD (a NORMAL player): the owner's card from the line (${c.kind}) + GUESTS (${d.kind}) — no CREW row, no radio`);
+  await dbPut(`testAdmins/${opid}`, null);
+  for (const X of [O.Q, N.Q]) await X.ctx.close().catch(() => {});
+});
+
+// AN INTENTIONAL LEAVE: the leaver goes STRAIGHT to the wave + the walk-off on the other phone — never the lost-signal lie-down first
+G('leavewave', async () => {
+  const O = await hostRoom('lwo');
+  const N = await joinRoom('lwn', O.code);
+  await settledRoom(O.p, 2, 30000).catch(() => {});
+  await sleep(600);
+  // the other phone samples the leaver's state every frame from the moment the leave is sent
+  await ev(O.p, `(() => { window.__lw = []; const u = '${N.me}'; const t0 = performance.now(); const tick = () => { const r = window.__district.room(); const q = r && r.people && r.people.find(x => x.uid === u); window.__lw.push(q ? { t: Math.round(performance.now() - t0), on: q.online, lv: q.leaving } : { t: Math.round(performance.now() - t0), gone: true }); if (performance.now() - t0 < 4500) requestAnimationFrame(tick); }; requestAnimationFrame(tick); return 1; })()`);
+  await ev(N.p, "(() => { import('/js/room.js').then(m => m.leaveRoom()); return 1; })()");
+  await sleep(4800);
+  const s = await ev(O.p, 'window.__lw');
+  const lay = s.filter(x => !x.gone && x.on === false && !x.lv), left = s.some(x => x.lv);
+  ok(s.length > 30 && left && !lay.length, `AN INTENTIONAL LEAVE: the other phone sees the wave + the walk-off (leaving ${left}) and never the lost-signal pose first (${lay.length} of ${s.length} frames offline before leaving)`);
+  // a REAL lost signal still lies down — after the short grace
+  const N2 = await joinRoom('lwm', O.code);
+  await settledRoom(O.p, 2, 30000).catch(() => {});
+  await sleep(600);
+  await dbPatch(`rooms/${O.code}/presence/${N2.me}`, { online: false, c: null });
+  await N2.Q.ctx.close().catch(() => {});
+  const t0 = Date.now();
+  await waitFor(O.p, `(() => { const r = window.__district.room(); const q = r && r.people && r.people.find(x => x.uid === '${N2.me}'); return !!(q && q.online === false); })()`, 'the lie-down', 8000).catch(() => {});
+  const dt = Date.now() - t0, down = await ev(O.p, `(() => { const r = window.__district.room(); const q = r && r.people && r.people.find(x => x.uid === '${N2.me}'); return !!(q && q.online === false); })()`);
+  ok(down && dt >= 1200, `… a real lost signal still lies down, after the grace (${dt} ms)`);
+  for (const X of [O.Q, N.Q]) await X.ctx.close().catch(() => {});
+});
+
+// THE BANNER PLANE STAYS FULLY VISIBLE (the owner: after a match + LAST CALL after a leave, ~2 s in "the plane + banner faded almost
+// invisible while still crossing" — "…R TAKES PRI…" a ghost in the clouds, worse on the laptop): the banner flies under an OVERCAST night sky;
+// the canvas inside its panels is sampled through the crossing — the cream nylon must read on every sample (it was drawn UNDER the clouds)
+async function bannerVisible(view, slot) {
+  const Q = await open({ slot, qs: `${NIGHT}&wx=overcast`, view });
+  await harborUp(Q.page); await sleep(1500);
+  await ev(Q.page, "window.__district.harbor().sky.banner(['TESTER TAKES PRISM', 'DROP CHAMPION'], { passes: 1 })");
+  await ev(Q.page, `(() => { window.__bv = []; const t0 = performance.now(); const cv = document.querySelector('.nd-scene canvas'), x = cv.getContext('2d');
+    const tick = () => { const b = (window.__district.harbor().sky.state.banner || {}).box, k = cv.width / cv.clientWidth;
+      if (b && b.x1 - b.x0 > 20) { const x0 = Math.max(0, b.x0 + 2), x1 = Math.min(cv.clientWidth, b.x1 - 2), y0 = b.y0 + 3, y1 = b.y1 - 3;
+        if (x1 - x0 > 30) { const d = x.getImageData(Math.round(x0 * k), Math.round(y0 * k), Math.round((x1 - x0) * k), Math.max(1, Math.round((y1 - y0) * k))).data; let n = 0, br = 0;
+          for (let i = 0; i < d.length; i += 16) { n++; if (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2] > 170) br++; }
+          window.__bv.push({ t: Math.round(performance.now() - t0), br: +(br / n).toFixed(2), x: Math.round(x0) }); } }
+      if (performance.now() - t0 < 16000) setTimeout(tick, 250); }; tick(); return 1; })()`);
+  await sleep(16500);
+  const s = await ev(Q.page, 'window.__bv');
+  await Q.ctx.close().catch(() => {});
+  return s;
+}
+
+G('bannerfull', async () => {
+  for (const [view, slot] of [[[402, 874], 'bfp'], [[1440, 900], 'bfd']]) {
+    const s = await bannerVisible(view, slot);
+    const min = s.length ? Math.min(...s.map(x => x.br)) : 0, avg = s.length ? s.reduce((a, x) => a + x.br, 0) / s.length : 0;
+    ok(s.length >= 20 && min >= 0.3, `THE BANNER PLANE FULLY VISIBLE (${view[0]}×${view[1]}, an overcast night): the cream nylon reads on every one of ${s.length} samples across the crossing (the faintest ${min}, average ${avg.toFixed(2)})`);
+  }
+});
+
+// AFTER HOST: HOW TO SHARE — the host's glass card (the real hush word, SHARE INVITE, "or tap INVITE anytime"; closes itself / on a tap) +
+// the INVITE ring breathing until an invite or a guest; THE DESKTOP HOST's FLASH: HOST never unmounts the city (no boot screen in between)
+G('hostcard', async () => {
+  for (const [view, slot] of [[[1440, 900], 'hcd'], [[402, 874], 'hcp']]) {
+    const Q = await open({ slot, qs: ROOMQ, view }), p = Q.page;
+    await harborUp(p); await sleep(900);
+    await ev(p, `(() => { const cv = document.querySelector('.nd-scene canvas'); if (cv) cv.dataset.lf = 'before'; window.__boots = 0;
+      new MutationObserver(ms => { for (const m of ms) for (const n of m.addedNodes) if (n.classList && (n.classList.contains('boot-screen') || n.querySelector && n.querySelector('.boot-screen'))) window.__boots++; }).observe(document.body, { childList: true, subtree: true }); return 1; })()`);
+    await ev(p, "document.querySelector('.nd-hostbtn').click()");
+    await waitFor(p, 'window.__arcade.state.code && window.__district.room()', 'hosted', 20000);
+    await waitFor(p, "!!document.querySelector('.rc-hostcard')", 'the host card', 8000).catch(() => {});
+    const code = await ev(p, 'window.__arcade.state.code');
+    const r = await ev(p, `(() => { const c = document.querySelector('.rc-hostcard'), s = c && c.querySelector('.rc-hc-share'), cv = document.querySelector('.nd-scene canvas'), b = s && s.getBoundingClientRect(), cb = c && c.getBoundingClientRect();
+      return { boots: window.__boots, same: !!(cv && cv.dataset.lf === 'before'), text: c ? c.textContent : null, share: b ? Math.round(b.height) : 0, inView: !!(cb && cb.left >= 0 && cb.right <= innerWidth && cb.top >= 0),
+        pulse: document.querySelector('.rdk-invite').classList.contains('rdk-pulse') }; })()`);
+    ok(r.boots === 0 && r.same, `THE ${view[0] > 1000 ? 'DESKTOP' : 'PHONE'} HOST: a clean move into the room — no boot screen in between (${r.boots}), the same city canvas (${r.same})`);
+    ok(r.text && /YOUR ROOM IS OPEN/.test(r.text) && new RegExp(`THE HUSH WORD IS ${code}`).test(r.text) && /SHARE INVITE/.test(r.text) && /or tap INVITE anytime/.test(r.text) && r.share >= 44 && r.inView,
+      `AFTER HOST (${view[0]}): the card — "${r.text}" — SHARE INVITE ${r.share} pt, on screen`);
+    ok(r.pulse, `… the INVITE ring breathes (no invite yet, no guest)`);
+    if (SHOTS) await p.screenshot({ path: `${OUT}hostcard-${view[0]}.png` });
+    await sleep(8600);
+    const later = await ev(p, "({ card: !!document.querySelector('.rc-hostcard:not(.is-out)'), pulse: document.querySelector('.rdk-invite').classList.contains('rdk-pulse') })");
+    ok(!later.card && later.pulse, `… it closes itself after a few seconds (gone: ${!later.card}); the ring still breathes until an invite or a guest (${later.pulse})`);
+    if (view[0] < 1000) {
+      const N = await joinRoom('hcg', code);
+      await waitFor(p, "!document.querySelector('.rdk-invite').classList.contains('rdk-pulse')", 'the pulse stops', 10000).catch(() => {});
+      ok(!(await ev(p, "document.querySelector('.rdk-invite').classList.contains('rdk-pulse')")), '… a guest arrived → the INVITE ring stops breathing');
+      await N.Q.ctx.close().catch(() => {});
+    }
+    await Q.ctx.close().catch(() => {});
+  }
+  // a tap closes it; INVITE (the ring) stops the breathing
+  const T = await hostRoom('hct');
+  await waitFor(T.p, "!!document.querySelector('.rc-hostcard')", 'the card', 8000).catch(() => {});
+  await sleep(500);
+  await ev(T.p, "(() => { const o = { bubbles: true, clientX: 30, clientY: 200 }; document.body.dispatchEvent(new PointerEvent('pointerdown', o)); return 1; })()");
+  await sleep(500);
+  const gone = !(await ev(T.p, "!!document.querySelector('.rc-hostcard:not(.is-out)')"));
+  await ev(T.p, "(() => { window.navigator.share = undefined; return 1; })()");
+  await ev(T.p, "document.querySelector('.rdk-invite').click()");
+  await sleep(600);
+  const pulse = await ev(T.p, "document.querySelector('.rdk-invite').classList.contains('rdk-pulse')");
+  ok(gone && !pulse, `… a tap closes the card (${gone}); a tap on INVITE stops the breathing (${!pulse})`);
+  await T.Q.ctx.close().catch(() => {});
 });

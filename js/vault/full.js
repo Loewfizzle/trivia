@@ -165,7 +165,8 @@ export async function openFullCard(id, who = {}) {
   const close = () => { if (surface) surface.destroy(); el.remove(); document.removeEventListener('keydown', onKey); open = null; if (release) release(); };
   const onKey = e => { if (e.key === 'Escape' && isTopLayer(el)) close(); };
   const stage = h('div.vl-full-stage', card);
-  box.append(stage, h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, 'CLOSE'));
+  // (LOBBY FIXES: `who.foot` — a row under the card, e.g. the owner's CREW switch on a room player's card)
+  box.append(stage, who.foot || '', h('button.vl-full-x', { type: 'button', 'aria-label': 'Close', onclick: close }, 'CLOSE'));
   // (THE VAULT 2B: a backdrop click in its first 350 ms is the finger that opened it lifting — a long-press — never a close)
   const born = performance.now();
   const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);

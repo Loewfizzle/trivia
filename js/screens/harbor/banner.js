@@ -167,7 +167,7 @@ export function createBanner() {
       c.moveTo(J[0], J[1]); c.lineTo(pole[0], pole[1] - ph); c.moveTo(J[0], J[1]); c.lineTo(pole[0], pole[1] + ph * 0.95);
       c.stroke();
       // the panels, slice by slice
-      let along = 0;
+      let along = 0, bx0 = Infinity, bx1 = -Infinity, by0 = Infinity, by1 = -Infinity;   // (the panels' box on screen this frame — the tests)
       const order = back > 0 ? cur.panels : [...cur.panels].reverse(), d = Math.min(3.2, dpr * 1.5);
       order.forEach((pn, i) => {
         const [x0, y0] = pt(along);
@@ -181,6 +181,7 @@ export function createBanner() {
           const ax = back > 0 ? j * sw : pn.w - (j + 1) * sw;      // (the art reads left to right whichever way it flies)
           const x1 = sx - sw / 2;
           blit(c, pn.cv, ax * d, 0, sw * d + 0.5, pn.h * d, x1, sy - pn.h / 2, sw + 0.45, pn.h);
+          if (x1 < bx0) bx0 = x1; if (x1 + sw > bx1) bx1 = x1 + sw; if (sy - pn.h / 2 < by0) by0 = sy - pn.h / 2; if (sy + pn.h / 2 > by1) by1 = sy + pn.h / 2;
           // (the shade by the slope: a fold catches the sun, a trough falls into shade)
           const sl = (sy - prevY) / sw * back; prevY = sy;
           if (sl > 0.03) { c.fillStyle = `rgba(60,40,50,${Math.min(0.3, sl * 0.9) * (0.6 + 0.4 * day)})`; c.fillRect(x1, sy - pn.h / 2, sw + 0.45, pn.h); }
@@ -198,6 +199,7 @@ export function createBanner() {
           c.fillStyle = 'rgba(196,36,40,0.92)'; c.beginPath(); c.moveTo(ex, ey - pn.h * 0.42); c.quadraticCurveTo(ex + back * 10 * K, ey - pn.h * 0.1 + fl, ex + back * 19 * K, ey + fl * 1.3 + f2); c.quadraticCurveTo(ex + back * 9 * K, ey + pn.h * 0.12 + fl, ex, ey + pn.h * 0.42); c.closePath(); c.fill();
         }
       });
+      cur.box = { x0: bx0, y0: by0, x1: bx1, y1: by1 };
       // ---- THE PLANE over its line, nose along its path; the PROPELLER: a translucent disc + two blades whipping round
       c.save(); c.translate(p.x, p.y); c.rotate(ang);
       c.drawImage(S.cv, -S.w / 2, -S.oy, S.w, S.h);
@@ -208,7 +210,7 @@ export function createBanner() {
       c.restore();
       return true;
     },
-    debug: () => (cur ? { lines: cur.lines, panels: cur.panels.map(p => ({ w: Math.round(p.w), h: Math.round(p.h) })), at: cur.at, passes: cur.passes } : null),
+    debug: () => (cur ? { lines: cur.lines, panels: cur.panels.map(p => ({ w: Math.round(p.w), h: Math.round(p.h) })), at: cur.at, passes: cur.passes, box: cur.box || null } : null),
     destroy() { if (cur) { for (const p of cur.panels) p.cv.width = 0; if (cur.spr) cur.spr.cv.width = 0; } cur = null; },
   };
 }

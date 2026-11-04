@@ -334,7 +334,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
 
   // ---------------------------------------------------------------- THE PATCH CARD (+ the room list)
   const audLine = () => {
-    if (!isOwner) { const P = store.players || {}, n = Object.keys(P).length; return `Goes to THIS LOBBY · ${roomCode() || '—'}${n ? ` · ${n} here` : ''} — plays once lobbies are in the city`; }
+    if (!isOwner) { const P = store.players || {}, n = Object.keys(P).length; return `Goes to THIS LOBBY · ${roomCode() || '—'}${n ? ` · ${n} here` : ''} — every phone in this room sees it`; }
     if (aud === 'me') return 'A preview on this phone only';
     if (aud === 'room') { const r = (st && st.rooms || []).find(x => x.code === room); return `Goes to LOBBY ONLY · ${room || '—'}${r ? ` · ${r.online || r.players} on` : ''}`; }
     const n = st && st.here; return `Goes to ${RD.AUD_LABEL[aud]}${n != null ? ` · ${n} in the city` : ''}`;
@@ -355,28 +355,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
       }) : [h('p.rd-hint', 'Nothing left to stop here.')]),
       h('button.rd-cancel', { type: 'button', onclick: () => openJack(j) }, `FIRE ANOTHER ${j.label}`));
   }
-  function playerCard() {
-    const c = card, P = (store.players || {})[c.uid] || {}, pk = c.peek;
-    const busy = !pk || c.busy, can = pk && pk.pid && !pk.owner;
-    const lever = h('button.rd-lever', { type: 'button', role: 'switch', 'aria-checked': String(!!(pk && pk.on)), class: pk && pk.on ? 'is-on' : '', disabled: busy || !can, 'aria-label': 'The crew',
-      onclick: async () => { if (!can) return; c.busy = true; render(); sfx.play('tick'); try { const r = await api('admin', { action: 'radioCrewSet', uid: c.uid, on: !pk.on }); pk.on = r.on; c.err = ''; sfx.play(r.on ? 'fire' : 'jackOut'); } catch (e) { c.err = e.message; sfx.play('denied'); } c.busy = false; render(); } },
-      h('i.rd-lever-arm'), h('span', pk && pk.on ? 'ON' : 'OFF'));
-    return h('div.rd-card.rd-pcard', { role: 'dialog', 'aria-label': `${P.name || 'A player'} — their card` }, h('i.rd-grab'),
-      h('h3', h('i.rd-lamp'), 'THEIR CARD', closeX('Close their card')),
-      h('div.rd-pc', avatar(P.avatar || 'bolt', P.color || 'yellow', 56), h('div', h('b', P.name || '???'), h('small', pk && pk.t ? `#${pk.t}` : pk && !pk.pid ? 'no profile yet' : '…'))),
-      h('div.rd-sec.rd-crewsw', h('div.rd-lb', 'THE CREW', h('em', pk && pk.owner ? 'that’s the owner' : pk && !pk.pid ? 'needs a profile first' : 'a radio for the lobby they’re in')), lever),
-      pk && pk.why ? h('p.rd-hint', pk.why) : null,
-      pk && pk.pid && !pk.on && pk.n10 >= pk.cap ? h('p.rd-hint', `THE CREW IS FULL (${pk.cap}) — remove someone on THE LEDGER first.`) : null,
-      c.err ? h('p.rd-err', { role: 'alert' }, c.err) : null,
-      h('p.rd-who2', 'The crew fires sky moments in the lobby they’re in (once lobbies are in the city), with nightly limits. Follows their profile.'));
-  }
-  async function openPlayer(uid) {
-    if (!isOwner || destroyed) return;
-    await show();
-    card = { kind: 'player', uid, peek: null, fromChip: true }; render();
-    try { const r = await api('admin', { action: 'radioCrewPeek', uid }); if (card && card.kind === 'player' && card.uid === uid) { card.peek = r; render(); } }
-    catch (e) { if (card && card.kind === 'player') { card.peek = { pid: null, why: e.message }; render(); } }
-  }
+  // (LOBBY FIXES — THE PLAYER CARD: the desk's own "THEIR CARD" is gone — a player tap opens THEIR card (room-city.js) with the owner's CREW row
+  //  at its foot (screens/crew-row.js); the radio never opens from a player tap)
   function roomCard() {
     const rooms = card.rooms || [];
     return h('div.rd-card', h('i.rd-grab'), h('h3', h('i.rd-lamp'), 'LOBBY ONLY', closeX('Close the lobby list')),
@@ -531,7 +511,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const old = modal && modal.querySelector('.rd-cardwrap'), was = !!(old && old.classList.contains('is-in'));
     if (old) old.remove();
     if (card && modal) {
-      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : card.kind === 'mic' ? (icDesk().card() || h('div')) : card.kind === 'player' ? playerCard() : card.kind === 'preset' ? presetCard() : jackCard());
+      const over = h('div.rd-cardwrap', { class: was ? 'is-in' : '', onpointerup: e => { if (e.target === over) { sfx.play('jackOut'); card = null; render(); } } }, card.kind === 'rooms' ? roomCard() : card.kind === 'lit' ? litCard() : card.kind === 'mic' ? (icDesk().card() || h('div')) : card.kind === 'preset' ? presetCard() : jackCard());
       modal.append(over); if (!was) requestAnimationFrame(() => requestAnimationFrame(() => over.classList.add('is-in')));
     }
     sheet.scrollTop = keep;
@@ -552,12 +532,9 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (k === storeKey) return; storeKey = k;
     paintAsk(); clearTimeout(storeT); storeT = setTimeout(() => refresh(), 250);
   });
-  let downChip = null;
-  const chipDown = e => { const c = e.target && e.target.closest ? e.target.closest('.chip.player[data-uid]') : null; downChip = c && !e.target.closest('button') ? { c, x: e.clientX, y: e.clientY } : null; };
-  const chipUp = e => { const d = downChip; downChip = null; if (!d) return; const c = e.target && e.target.closest ? e.target.closest('.chip.player[data-uid]') : null; if (c === d.c && Math.hypot(e.clientX - d.x, e.clientY - d.y) < 12) openPlayer(c.dataset.uid); };
-  // (LOBBY 2.0 A: in the room in the city a tap on a figure or a guest strip asks for the card — room-city.js#openPlayerCard)
-  const onOwnerCard = e => { const uid = e.detail && e.detail.uid; if (uid) openPlayer(uid); };
-  if (isOwner) { document.addEventListener('pointerdown', chipDown, true); document.addEventListener('pointerup', chipUp, true); window.addEventListener('ns:owner-card', onOwnerCard); document.body.classList.add('rd-owner'); }
+  // (body.rd-owner = the owner's phone: a room player's card shows the CREW row — screens/crew-row.js. LOBBY FIXES: no tap hooks here any more —
+  //  the capture-phase chip taps + 'ns:owner-card' opened THIS panel over every player tap on the owner's phone)
+  if (isOwner) document.body.classList.add('rd-owner');
   const onVis = () => { if (document.visibilityState === 'visible') refresh(); };
   document.addEventListener('visibilitychange', onVis);
   refresh(); schedule();
@@ -565,7 +542,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   function destroy() {
     destroyed = true; clearTimeout(pollT); clearInterval(tickT); clearTimeout(coverT); if (ic) ic.destroy();
     document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis);
-    unsub(); clearTimeout(storeT); if (askEl) askEl.remove(); document.removeEventListener('pointerdown', chipDown, true); document.removeEventListener('pointerup', chipUp, true); window.removeEventListener('ns:owner-card', onOwnerCard); document.body.classList.remove('rd-owner');
+    unsub(); clearTimeout(storeT); if (askEl) askEl.remove(); document.body.classList.remove('rd-owner');
     if (modal) modal.remove(); btn.remove(); document.body.classList.remove('rd-open');
   }
   return {
@@ -573,6 +550,6 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     /** (tests) the state + what the desk shows */
     debug: () => ({ role, open, band, aud, room, card: card ? (card.kind === 'jack' ? card.jack.id : card.kind) : null, cover, arrange, ic: ic ? ic.debug() : null, jacks: (st && st.jacks || []).map(j => ({ id: j.id, lamp: lamp(j) })), moments: st ? st.moments.length : 0, here: st ? st.here : null }),
     setBand(b) { band = b; render(); }, setAud(a, r) { aud = a; room = r || room; render(); },
-    openPlayer, lobby: () => (st && st.lobby) || null,
+    lobby: () => (st && st.lobby) || null,
   };
 }
