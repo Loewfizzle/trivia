@@ -35,6 +35,7 @@ export async function fakeGuests(code, n, ago = 30000, pre = 'fg') {
 }
 export const settledRoom = (p, n, ms = 30000) => waitFor(p, `(() => { const r = window.__district.room(); return r && r.people && r.people.length === ${n} && r.people.every(x => x.s && x.s.pose === 'wait'); })()`, `${n} settled`, ms);
 /** which layer is on top at the screen's middle (the newest pop-up must be) */
+export const roomOf = p => ev(p, 'window.__district && window.__district.room ? window.__district.room() : null');
 export const topAt = p => ev(p, `(() => { const e = document.elementFromPoint(innerWidth / 2, innerHeight * 0.45); if (!e) return null; const L = e.closest('.vl-full, .vl-dress, .pfs, .pf-overlay, .pg-moment'); return L ? (L.classList.contains('pf-overlay') ? 'pf-overlay' : L.classList.contains('pfs') ? 'sheet:' + [...L.classList].filter(c => c !== 'pfs' && c !== 'is-in').join('.') : L.classList[0]) : 'none:' + e.className; })()`);
 
 G('roomfix', async () => {
@@ -136,3 +137,89 @@ G('roomfix', async () => {
   log('roomfix', 'done');
 });
 void okT;
+
+// ---- Group 1 — THE GAME START (the owner: 2–3 s MAX, every phone at once from the host's tap): the sign powers down, the game's logo lights
+// under TONIGHT, the two lines file in through the side door (the host first), the view pushes through the door → the game; the game's own
+// clock starts after it; a host change mid-start; a late joiner after it → straight in
+export const startOC = p => ev(p, "import('/js/host.js').then(m => m.startGame('overclock', {}))");
+export const onTitle = "!!document.querySelector('.title-screen:not(.screen-out)')";
+G('gamestart', async () => {
+  const { Q: A, p, code, me } = await hostRoom('gsa');
+  const { Q: B, p: q, me: meB } = await joinRoom('gsb', code);
+  await fakeGuests(code, 3);
+  await settledRoom(p, 5, 40000).catch(() => {}); await settledRoom(q, 5, 40000).catch(() => {});
+  const t0 = Date.now();
+  await startOC(p);
+  // both phones: the start shows (the sign swap) — the same match's stamp
+  const seen = await Promise.all([p, q].map(x => waitFor(x, "!!document.querySelector('.nd-sign.rc-go .rc-tonight')", 'the start on this phone', 3000).then(() => Date.now() - t0, () => null)));
+  const go = await ev(p, 'window.__arcade.state.meta.go');
+  ok(seen.every(v => v != null && v < 1500) && go && go.g === 'overclock', `THE GAME START on BOTH phones from the host's tap (${seen.join(' / ')} ms after it): the NEON sign powers down, OVERCLOCK's tube logo under TONIGHT (meta/go: ${go && go.g})`);
+  const shots = [];
+  for (const at of [350, 900, 1500, 1930]) { await waitFor(p, `window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= ${at}`, 'the show at ' + at, 4000).catch(() => {});
+    const r = await ev(p, "(() => { const r = window.__district.room(); return r ? r.people.map(x => ({ uid: x.uid, goIn: x.goIn, inside: x.inside || !x.s, pose: x.s && x.s.pose, z: x.s && x.s.z })) : null; })()");
+    shots.push({ at, r }); if (SHOTS) await p.screenshot({ path: `${OUT}room2-start-${at}.png` }); }
+  const first = shots[0].r || [], mid = shots[1].r || [];
+  const host = mid.find(x => x.uid === me);
+  ok(first.length === 5 && first.every(x => x.goIn) && host && host.pose === 'walk', `THE FILE-IN: all 5 on their way in (${first.filter(x => x.goIn).length}/5), the HOST first — walking to the door at 0.9 s (${host && host.pose})`);
+  const gone = (shots[3].r || []).filter(x => x.inside).length;
+  okT(gone >= 1, `…through the side door: by the push, ${gone} of 5 already inside (the rest go straight in with the cut)`);
+  const routed = await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the game screen', 4000).then(() => Date.now() - t0, () => null)));
+  ok(routed.every((v, i) => v != null && v - seen[i] >= 1700 && v - seen[i] <= 2900), `…the view pushes through the door into the GAME on both phones ${routed.map((v, i) => v - seen[i]).join(' / ')} ms after the start showed there (2.6 s from the stamp; ≤ 3 s)`);
+  const g = await ev(p, '({ s: window.__arcade.state.game.phaseStartAt, go: window.__arcade.state.meta.go.at })');
+  ok(Math.abs(g.s - g.go - 2600) < 400, `THE GAME's OWN CLOCK starts after the walk inside (its first phase at the tap + ${g.s - g.go} ms)`);
+  // a HOST CHANGE mid-start (the next one): B takes the room the moment the start begins — the start still ends in the game, the match runs
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await waitFor(p, onTitle, 'A back on the city', 10000); await waitFor(q, onTitle, 'B back on the city', 10000);
+  await sleep(1500);
+  const t1 = Date.now(); await startOC(p);
+  await waitFor(q, "!!document.querySelector('.nd-sign.rc-go')", 'B sees the start', 3000).catch(() => {});
+  await dbPatch(`rooms/${code}/meta`, { hostId: meB });
+  const r2 = await waitFor(q, `!(${onTitle})`, 'B in the game', 5000).then(() => Date.now() - t1, () => null);
+  const ph0 = await ev(q, 'window.__arcade.state.game.phase');
+  const adv = await waitFor(q, `window.__arcade.state.game.phase !== '${ph0}' || (window.__arcade.state.game.ci || 0) > 0`, 'the match moves on', 25000).then(() => true, () => false);
+  ok(r2 != null && r2 < 3600 && adv, `A HOST CHANGE MID-START: the new host's phone still lands in the game (${r2} ms) and the match runs on from the room's data (${ph0} → moved on: ${adv})`);
+  // a LATE JOINER after the start: straight into the game (spectating), no walk
+  const C = await open({ slot: 'gsc', qs: `${ROOMQ}&room=${code}`, view: [402, 874] }), c = C.page;
+  await harborUp(c).catch(() => {}); await ev(c, "(() => { const b = document.querySelector('.nd-go'); if (b) b.click(); })()");
+  const late = await waitFor(c, `window.__arcade.state.code === '${code}' && !(${onTitle})`, 'C in the game', 20000).then(() => true, () => false);
+  ok(late, 'A LATE JOINER (after the start): straight into the game, no walk');
+  await A.ctx.close(); await B.ctx.close(); await C.ctx.close();
+  log('gamestart', 'done');
+});
+
+// ---- Group 1 — THE CITY PAUSE: while a match is on screen the city STOPS drawing + FREES its memory (its canvases, its caches — the memory
+// guard's count) and its sounds stop; after the match it comes back caught up to the real time (rebuilt from the server clock). Measured at an
+// iPhone's 3× (402 × 874): the city's canvases + the JS heap in the room → during the match → back in the room
+const memNow = async (p, cdp) => {
+  await cdp.send('HeapProfiler.collectGarbage').catch(() => {}); await sleep(300);
+  const m = await cdp.send('Performance.getMetrics'); const heap = (m.metrics.find(x => x.name === 'JSHeapUsedSize') || {}).value || 0;
+  const cv = await ev(p, "import('/js/ui/canvas-safe.js').then(m => m.canvasMb())");
+  return { heap: +(heap / 1e6).toFixed(1), canvas: cv.mb, n: cv.n };
+};
+G('citypause', async () => {
+  const { Q: A, p, code } = await hostRoom('cpa', [402, 874], { dpr: 3 });
+  const { Q: B } = await joinRoom('cpb', code);
+  await settledRoom(p, 2, 40000).catch(() => {}); await sleep(2500);
+  const cdp = await p.target().createCDPSession(); await cdp.send('Performance.enable');
+  const m0 = await memNow(p, cdp);
+  const CK = "import('/js/core/city.js').then(m => ({ c: m.cityClock().now(), d: Date.now() }))";
+  const k0 = await ev(p, CK);
+  await startOC(p);
+  await waitFor(p, `!(${onTitle})`, 'the game', 8000);
+  await sleep(5000);
+  const m1 = await memNow(p, cdp);
+  const st = await ev(p, "({ city: !!window.__district, scene: !!document.querySelector('.nd-scene'), canvases: [...document.querySelectorAll('canvas')].filter(c => c.width * c.height > 1).length })");
+  ok(!st.city && !st.scene, `THE CITY PAUSE: during the match the city is GONE from the page — it draws nothing, its sounds stopped with it (the scene: ${st.scene}, its hooks: ${st.city}; ${st.canvases} canvases on the page are the game's)`);
+  ok(m1.canvas < m0.canvas * 0.5, `…and its MEMORY is freed — canvases ${m0.canvas} MB (${m0.n}) in the room → ${m1.canvas} MB (${m1.n}) in the match; the JS heap ${m0.heap} → ${m1.heap} MB (an iPhone's 3×, 402 × 874)`);
+  log('citypause', `MEMORY room ${JSON.stringify(m0)} → match ${JSON.stringify(m1)}`);
+  // back in the room: the city rebuilt, caught up (its clock = now), the room on it again
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await waitFor(p, onTitle, 'back on the city', 10000); await harborUp(p);
+  await sleep(6000);
+  const m2 = await memNow(p, cdp);
+  const k1 = await ev(p, CK), R = await roomOf(p);
+  const back = { people: R && R.people.length, off: Math.round(Math.abs((k1.c - k0.c) - (k1.d - k0.d))) };
+  ok(back.people === 2 && back.off < 3000, `…and it COMES BACK after the match: the city rebuilt CAUGHT UP — its clock ran on through the match (off by ${back.off} ms), the room on it (${back && back.people} people) — canvases ${m2.canvas} MB (${m2.n}), heap ${m2.heap} MB`);
+  log('citypause', `MEMORY back ${JSON.stringify(m2)}`);
+  await A.ctx.close(); await B.ctx.close();
+});

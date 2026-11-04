@@ -20,6 +20,8 @@ import { serverNow, dbRef, update as dbUpdate, serverTimestamp } from '../fireba
 import { createRoomDock } from './room-dock.js';
 import { sfx } from '../audio/sfx.js';
 import { openHelp } from '../ui/help.js';
+import { reducedMotion } from '../ui/dom.js';
+import { startShow, fileInOrder, backShow, START_MS, PUSH_AT_MS } from '../core/room-show.js';
 
 const rgbOf = id => { const x = colorHex(id).replace('#', ''); return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
 export const FRESH_MS = 12000;      // (a player who joined in the last 12 s walks in, even on a phone seeing the room for the first time)
@@ -216,10 +218,67 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   }
   const noteT = setInterval(() => { if (!destroyed) { paintNotes(); paintBubbles(); } }, 2000);
 
+  // ---------------------------------------------------------------- LOBBY 2.0 B — THE GAME START (the owner, Nov 4 7:56 am: "as planned")
+  // From the host's tap, on every phone at once (meta/go on the server clock — core/room-show.js), START_MS (2.6 s) at most:
+  //   the speakeasy's NEON sign POWERS DOWN (a flicker out) → the GAME's own tube logo POWERS UP on it under "TONIGHT" → the TWO LINES file
+  //   in through the side door (people.js — the host first, the lines alternating) → the view PUSHES THROUGH THE DOOR (the screen scales
+  //   toward the door + a dark veil) → app.js routes to the game. Every part is a CSS animation started at a NEGATIVE delay = the show's age:
+  //   a refresh / a late joiner / a new host mid-start lands on the same frame. transform + opacity only. Reduced motion: no flicker, no
+  //   walk, no push — the sign swaps by a plain fade and the city cross-fades to the game.
+  let goFx = null;
+  function startFx() {
+    const ss = startShow(st.meta, st.game, serverNow());
+    // (past the start with the match still being prepared — a slow bank / song: the veil holds until it lands; a failed start takes the stamp down)
+    const waiting = st.meta && st.meta.go && st.meta.status === 'lobby' && serverNow() - st.meta.go.at < 9000;
+    if (!ss.on) { if (goFx && !(st.meta && st.meta.status === 'playing') && !waiting) endFx(); return; }
+    if (goFx && goFx.m === ss.m) return;
+    if (goFx) endFx();
+    const g = GAMES.find(x => x.id === ss.g) || { id: ss.g, name: ss.g };
+    const screen = sign ? sign.closest('.screen') : null, age = Math.round(ss.age);
+    const veil = h('div.rc-veil', { 'aria-hidden': 'true' });
+    const tonight = h('div.rc-tonight', { 'aria-hidden': 'true' }, h('small.rc-tonight-k', 'TONIGHT'), h('div.rc-tonight-logo'));
+    goFx = { m: ss.m, screen, veil, tonight };
+    import('../ui/tube-logo.js').then(T => { if (goFx && goFx.m === ss.m) goFx.tonight.lastChild.innerHTML = T.gameLogoSvg(g, { id: `rcg-${g.id}`, lit: true, premium: true }); }).catch(() => {});
+    for (const el of [document.body, screen, sign, veil, tonight]) if (el) el.style.setProperty('--rc-age', `-${age}ms`);
+    document.body.style.setProperty('--rc-push', `${PUSH_AT_MS - age}ms`);
+    document.body.style.setProperty('--rc-len', `${START_MS - PUSH_AT_MS}ms`);
+    if (sign) { sign.append(tonight); sign.classList.add('rc-go'); }
+    // (the city's own parts of the sign — its glow + its daylight glass on the canvas: THE SIGN-DIM HOOK, the one the TR-3B uses)
+    if (scene && scene.dimSign) scene.dimSign('room-start', { logo: 0, tag: 0, ms: Math.max(60, 450 - age) });
+    // (the push: toward the side door's point on THIS phone's screen)
+    const d = scene && scene.roomDoor ? scene.roomDoor() : null;
+    // (both layers move together: the screen (the sign, the dock) + the city's own layer (.nd-scene — outside the screen); each scales about
+    //  the door's point in its own box — read once, here, never in a frame)
+    const layers = [screen, document.querySelector('.nd-scene')].filter(Boolean);
+    for (const el of layers) { if (d) { const r = el.getBoundingClientRect(); el.style.transformOrigin = `${Math.round(d.x - r.left)}px ${Math.round(d.y - r.top)}px`; } el.classList.add('rc-pushing'); }
+    goFx.layers = layers;
+    document.body.append(veil);
+    document.body.classList.add('rc-going');
+    // (the sign's own recorded neon — a dropout as NEON goes out, a catch as the game's logo lights; only from the start itself, never a refresh)
+    if (age < 300 && !reducedMotion()) import('../audio/ambience.js').then(A => { A.neonDropout({ level: 0.7 }); goFx && (goFx.catchT = setTimeout(() => A.neonCatch({ level: 0.6, dur: 0.9 }), 470 - age)); }).catch(() => {});
+    for (const gs of [gamesOpen, guestsUi]) if (gs && gs.close) gs.close();
+    import('../profile/sheets.js').then(m => m.closeAllPfSheets()).catch(() => {});
+  }
+  function endFx() {
+    if (!goFx) return;
+    const { veil, tonight, layers = [], catchT } = goFx; goFx = null; clearTimeout(catchT);
+    veil.remove(); tonight.remove();
+    if (sign) sign.classList.remove('rc-go');
+    if (scene && scene.dimSign) scene.dimSign('room-start', null);
+    for (const el of layers) { el.classList.remove('rc-pushing'); el.style.transformOrigin = ''; }
+    document.body.classList.remove('rc-going');
+  }
+
   // ---------------------------------------------------------------- the roster → the city
+  // (LOBBY 2.0 B — THE GAME START's file-in + THE WALK BACK OUT: each player's own place in the show, from the room's stamps — core/room-show.js;
+  //  reduced motion: no walk — they stand, and the start is a plain cross-fade)
   function roster() {
-    const P = players(), order = roomOrder(P, st.meta && st.meta.hostId), now = serverNow();
-    const list = order.map(o => ({ uid: o.uid, slot: o.slot, online: isOnline(st.presence, o.uid), col: rgbOf(P[o.uid].color), fresh: now - (P[o.uid].joinedAt || 0) < FRESH_MS }));
+    const P = players(), order = roomOrder(P, st.meta && st.meta.hostId), now = serverNow(), mo = !reducedMotion();
+    const ss = startShow(st.meta, st.game, now), bs = ss.on ? { on: false } : backShow(st.meta, P, now);
+    const inAt = ss.on && mo ? new Map(fileInOrder(P, st.meta.hostId).map(o => [o.uid, o.at])) : null;
+    const outAt = bs.on && mo ? new Map(bs.order.map(o => [o.uid, o.at])) : null;
+    const list = order.map(o => ({ uid: o.uid, slot: o.slot, online: isOnline(st.presence, o.uid), col: rgbOf(P[o.uid].color), fresh: now - (P[o.uid].joinedAt || 0) < FRESH_MS,
+      goT: inAt && inAt.has(o.uid) ? ss.age / 1000 - inAt.get(o.uid) : undefined, outT: outAt && outAt.has(o.uid) ? bs.age / 1000 - outAt.get(o.uid) : undefined }));
     list.kicked = Object.keys(st.kicked || {});
     return list;
   }
@@ -227,16 +286,17 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     st = s;
     if (destroyed || !st.code) return;
     paintTags();   // (first: a tag must exist before its name pops)
-    const list = roster(), key = list.map(q => `${q.uid}${q.slot}${q.online ? 1 : 0}`).join(',');
+    const list = roster(), key = list.map(q => `${q.uid}|${q.slot}|${q.online ? 1 : 0}|${q.goT != null ? 'i' : ''}`).join(',');
     if (key !== lastRoster) {
-      const before = new Set(lastRoster ? lastRoster.split(',').map(x => x.slice(0, -3)) : []);
+      const before = new Set(lastRoster ? lastRoster.split(',').map(x => x.split('|')[0]) : []);
       lastRoster = key;
       if (scene && scene.room) scene.room(list);
       // (a new guest: their name pops as they arrive; the friend's clink — room-guests / lobby-sfx — Group 2)
-      for (const q of list) if (before.size && ![...before].some(b => b.startsWith(q.uid))) { popName(q.uid, NAME_MS + 6000); if (q.uid !== st.uid) import('../audio/lobby-sfx.js').then(m => m.lobbySfx('friend')).catch(() => {}); }
+      for (const q of list) if (before.size && !before.has(q.uid)) { popName(q.uid, NAME_MS + 6000); if (q.uid !== st.uid) import('../audio/lobby-sfx.js').then(m => m.lobbySfx('friend')).catch(() => {}); }
       if (!before.size) for (const q of list) if (q.fresh) popName(q.uid, NAME_MS + 8000);
     }
     if (scene && scene.hush) scene.hush(st.code);
+    startFx();
     paintDock();
     paintNotes();
     if (guestsUi && guestsUi.update) guestsUi.update(st);
@@ -246,10 +306,13 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   return {
     update,
     dock,
+    startFx: () => (goFx ? { m: goFx.m } : null),
     debug: () => ({ tags: [...tags.keys()], roster: roster(), seen: seen ? [...seen] : null, hits: Object.fromEntries([...tags].map(([u, T]) => [u, T.hit && { x0: Math.round(T.hit.x0), x1: Math.round(T.hit.x1), y0: Math.round(T.hit.y0), y1: Math.round(T.hit.y1) }])) }),
     nearestAt,
     destroy() {
       destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); if (offChat) offChat();
+      // (the start's veil stays over the hand-off to the game screen — app.js's screen-in fades the game up; then it goes)
+      if (goFx) { const v = goFx.veil; goFx.veil = h('i'); v.style.animation = 'none'; v.style.opacity = '1'; void v.offsetWidth; v.style.transition = 'opacity 0.45s ease'; v.style.opacity = '0'; setTimeout(() => v.remove(), 500); endFx(); }
       if (scene && scene.room) scene.room(null);
       if (scene && scene.hush) scene.hush(null);
       layer.remove(); document.body.classList.remove('rc-on');

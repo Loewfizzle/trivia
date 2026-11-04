@@ -2881,6 +2881,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     /** the room's hush word in neon on the speakeasy (the lobby sign — its wall-washer steps aside: speakCtx) — null = off */
     hush(w) { const v = w ? String(w).toUpperCase().slice(0, 4) : null; if (v !== lobbyHush) lobbyHush = v; },
     roomBoxes: () => people.roomBoxes(),
+    roomDoor: () => people.roomDoor(),   // (LOBBY 2.0 B: the game start's push through the side door)
     roomDebug: () => people.roomDebug(),
     roomSolidHits: () => people.roomSolidHits(),
     roomRects: () => (L ? roomRects(L) : null),

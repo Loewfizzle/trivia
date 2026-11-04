@@ -39,6 +39,39 @@
           "lm": {
             ".validate": "newData.hasChildren(['m', 't0', 'songs', 'sd']) && newData.child('t0').isNumber() && newData.child('m').isString() && newData.child('m').val().length < 40"
           },
+          "go": {
+            ".validate": "newData.hasChildren(['at', 'm', 'g'])",
+            "at": {
+              ".validate": "newData.isNumber() && newData.val() === now"
+            },
+            "m": {
+              ".validate": "newData.isString() && newData.val().length <= 16"
+            },
+            "g": {
+              ".validate": "newData.isString() && newData.val().length <= 24"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
+          "back": {
+            ".validate": "newData.hasChildren(['at', 'm', 'g', 'rm'])",
+            "at": {
+              ".validate": "newData.isNumber() && (newData.val() === now || (data.exists() && newData.val() === data.val()))"
+            },
+            "m": {
+              ".validate": "newData.isString() && newData.val().length <= 16"
+            },
+            "g": {
+              ".validate": "newData.isString() && newData.val().length <= 24"
+            },
+            "rm": {
+              ".validate": "newData.isBoolean()"
+            },
+            "$other": {
+              ".validate": false
+            }
+          },
           "$other": {
             ".validate": false
           },
@@ -127,6 +160,13 @@
           "$uid": {
             ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && $uid !== auth.uid",
             ".validate": "newData.isBoolean()"
+          }
+        },
+        "rv": {
+          ".write": "auth != null && root.child('rooms/' + $code + '/meta/hostId').val() === auth.uid && !newData.exists()",
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid && root.child('rooms/' + $code + '/players/' + auth.uid).exists() && !root.child('rooms/' + $code + '/kicked/' + auth.uid).exists() && root.child('rooms/' + $code + '/meta/status').val() === 'lobby' && root.child('rooms/' + $code + '/meta/back/rm').val() === true",
+            ".validate": "newData.isString() && newData.val() === root.child('rooms/' + $code + '/meta/back/m').val()"
           }
         },
         "game": {

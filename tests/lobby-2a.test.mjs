@@ -185,7 +185,8 @@ test('THE ROOM IN THE CITY — the wiring: City 2.0 rooms stay on the title (the
   const rc = read('js/screens/room-city.js');
   assert.match(rc, /T\.el\.style\.transform = `translate3d\(/, 'the tags move by transform');
   assert.match(rc, /el\.addEventListener\('pointerup'/, 'a tap on a figure: pointerdown + pointerup');
-  assert.doesNotMatch(rc, /getBoundingClientRect/, 'no layout reads in the frame loop');
+  { const fr = rc.slice(rc.indexOf('  function frame() {'), rc.indexOf('\n  }\n', rc.indexOf('  function frame() {')));   // (LOBBY 2.0 B: the start's push reads the door's box ONCE — the loop itself never)
+    assert.ok(fr.length > 200); assert.doesNotMatch(fr, /getBoundingClientRect|clientWidth|offsetWidth/, 'no layout reads in the frame loop'); }
   const pp = read('js/screens/harbor/people.js');
   assert.match(pp, /function drawRing\(c, cam, st, col, a = 1\)/); assert.match(pp, /pose: 'lie', lieK: lie/);
   assert.match(read('js/screens/harbor/folk.js'), /c\.rotate\(\(it\.s\.lieDir \|\| 1\) \* \(Math\.PI \/ 2\) \* lieK\)/);

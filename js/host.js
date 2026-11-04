@@ -5,6 +5,7 @@
 // Nothing here keeps game state locally — every decision is re-derived from the
 // mirrored database state on each tick, so any client can take over at any time.
 import { dbRef, update, remove, runTransaction, serverTimestamp, serverNow } from './firebase.js';
+import { START_MS } from './core/room-show.js';
 import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
 import { closeIdleRoom } from './room.js';
@@ -145,8 +146,14 @@ export async function startGame(gameId, settings) {
   const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
   if (Object.keys(participants).length < min) { toast(`NEED ${min}+ CONNECTED PLAYERS`, 'err'); return false; }
   const matchId = Math.random().toString(36).slice(2, 8);
-  const created = await mod.start({ code: state.code, matchId, settings, participants, now: serverNow() });
-  if (!created) { toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
+  // (LOBBY 2.0 B — THE GAME START: the start's stamp goes up FIRST — every phone begins the walk inside at the host's tap, while this phone
+  //  prepares the match (a question bank, a song); the game's OWN clock starts when the walk ends (START_MS later): a cartridge's start()
+  //  gets the moment its match begins, never the tap — docs/cartridge.md. The stamp also ends the last match's walk-out, its REMATCH ring +
+  //  every vote. A start that fails takes the stamp back down.)
+  const tGo = serverNow();
+  await update(dbRef(`rooms/${state.code}`), { 'meta/go': { at: serverTimestamp(), m: matchId, g: gameId }, 'meta/back': null, rv: null }).catch(e => console.warn('go', e));
+  const created = await mod.start({ code: state.code, matchId, settings, participants, now: tGo + START_MS + 150 }).catch(e => { console.warn('start', e); return null; });
+  if (!created) { update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {}); toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
   wipeSeal(state.code);
@@ -179,6 +186,15 @@ const wipeSeal = code => { if (code) remove(dbRef(`seal/${code}`)).catch(() => {
 export async function backToLobby() {
   if (!isHost() || !state.code) return;
   wipeSeal(state.code);
+  const g = state.game;
+  // (LOBBY 2.0 B — AFTER THE MATCH: the walk back out, THE WINNER's BANNER PLANE + the REMATCH ring all read this stamp — core/room-show.js.
+  //  Written FIRST (the room still 'playing': nothing shows yet), so every phone has it when the room comes back; its own write — a room on
+  //  rules not yet re-published still gets back to the lobby below, it only misses the show)
+  await update(dbRef(`rooms/${state.code}`), {
+    'meta/go': null,
+    'meta/back': g && g.matchId ? { at: serverTimestamp(), m: g.matchId, g: g.id, rm: isPlayable(g.id) } : null,
+    rv: null,
+  }).catch(e => console.warn('back', e));
   await update(dbRef(`rooms/${state.code}`), {
     game: null,
     ...clearPlayerNodes(),

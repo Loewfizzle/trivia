@@ -43,7 +43,7 @@ export const FOLK = Object.freeze({
   // (PEO, Oct 25 — judged against real walking, 1 unit = 0.83 m: a walk 1.3 m/s, a stroll / window-shoppers / couples 1.0, the commuter's
   // brisk 1.5, a kid 1.3, a jog 2.6; each person ± 12 % — before: walk 1.07 m/s, stroll 0.75, brisk 1.4)
   // (11a-1: a zombie's shamble ~0.6 m/s; the procession's slow pace is core/harbor-holidayfolk.js#PROC.v)
-  speed: { walk: 1.57, brisk: 1.8, stroll: 1.2, jog: 3.1, kid: 1.57, line: 0.75, shamble: 0.72 },
+  speed: { walk: 1.57, brisk: 1.8, stroll: 1.2, jog: 3.1, kid: 1.57, line: 0.75, shamble: 0.72, hurry: 2.2 },   // (LOBBY 2.0 B: hurry — the file-in at the game start)
   zMin: 38.75, zMax: 52.25, curbZ: 53.2, roadZ: 53.6, farZ: 63.55, doorZ: 43.55, busZ: 55.4,
 });
 
@@ -281,7 +281,7 @@ export function route(map, a, b, depth = 0) {
   const out = []; for (let v = n - 1; v >= 0; v = prev[v]) { out.unshift(pts[v]); if (v === 0) break; }
   return out;
 }
-const pathLen = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z); return s; };
+export const pathLen = pts => { let s = 0; for (let i = 1; i < pts.length; i++) s += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].z - pts[i - 1].z); return s; };
 
 // ------------------------------------------------------------------ THE CROSSING: wait for WALK (core/harbor-promenade.js#signalAt)
 /** the next moment (s, absolute) at or after t when a walker may start across: in the WALK phase, early enough to be over before the
@@ -417,12 +417,14 @@ function sideStepY(z, face) {
   return up - Math.max(0, d - 0.35) * 0.45;                    // (inside: down the stair to the club)
 }
 /** a door leg (PURE): kind 'side' | 'shop' | a bus's id, dir 'in' | 'out', at x, from t, the walker's gait v, the door's plane zFace */
-export function doorLeg(kind, dir, x, t, v, zFace, { bus = false } = {}) {
-  const u = Math.max(0.5, v * DOOR.pace), zs = zFace - (kind === 'side' ? DOOR.stepSide : DOOR.step), op = bus ? DOOR.bus.open : DOOR.open, tWalk = t + op;
+// (LOBBY 2.0 B — held: THE GAME START's file-in — the doorman HOLDS the door: it is already open as they reach the step (no wait for the
+//  swing), it shuts behind the last one in; dir 'in' only)
+export function doorLeg(kind, dir, x, t, v, zFace, { bus = false, held = false } = {}) {
+  const u = Math.max(0.5, v * DOOR.pace), zs = zFace - (kind === 'side' ? DOOR.stepSide : DOOR.step), op = bus ? DOOR.bus.open : held ? 0.05 : DOOR.open, tWalk = t + op;
   const y = bus ? DOOR.bus.floor : 0;
   if (dir === 'in') {
     const tClose = tWalk + (zFace + DOOR.clear - zs) / u, t1 = tClose + DOOR.close, z1 = zs + (t1 - tWalk) * u;
-    return { k: 'door', door: kind, dir, x0: x, z0: zs, x1: x, z1, t0: t, t1, w0: op / (t1 - t), w1: 1, tOpen: t, tClose, y0: 0, y1: y, ...(bus ? { bus: kind } : {}), ...(kind === 'side' ? { steps: zFace } : {}) };
+    return { k: 'door', door: kind, dir, x0: x, z0: zs, x1: x, z1, t0: t, t1, w0: op / (t1 - t), w1: 1, tOpen: held ? t - DOOR.open : t, tClose, y0: 0, y1: y, ...(bus ? { bus: kind } : {}), ...(kind === 'side' ? { steps: zFace } : {}) };
   }
   const z0 = zFace + (bus ? 0.55 : DOOR.inside), t1 = tWalk + (z0 - zs) / u, tClose = Math.min(t1, tWalk + (z0 - (zFace - (kind === 'side' ? DOOR.stepSide : DOOR.clear))) / u);
   return { k: 'door', door: kind, dir, x0: x, z0, x1: x, z1: zs, t0: t, t1, w0: op / (t1 - t), w1: 1, tOpen: t, tClose, y0: y, y1: 0, ...(bus ? { bus: kind } : {}), ...(kind === 'side' ? { steps: zFace } : {}) };

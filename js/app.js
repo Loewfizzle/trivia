@@ -28,6 +28,7 @@ import { installSettingsPanel } from './ui/settings-panel.js';
 import { showBackdrop } from './screens/district/backdrop.js';
 import { settings, onSettings, PAGE_SILENT } from './audio/settings.js';
 import { lazyView } from './games/lazy-view.js';
+import { startShow, START_MS } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
 
 // THE BOARD and the profile load only when opened (they're behind the title's buttons)
@@ -53,11 +54,24 @@ function routeKey(st) {
   if (!st.code && harborPending()) return 'boot';   // ?city=2: the Harbor's module is still loading (title.js#harborReady)
   if (!st.code) return st.view === 'setup' ? `setup:${st.setupMode}` : st.view === 'board' ? 'board' : st.view === 'profile' ? 'profile' : 'title';
   if (!st.meta) return 'boot';
-  if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id] && st.quit !== st.game.matchId) return `game:${st.game.id}:${st.game.matchId}`;
+  // (LOBBY 2.0 B — THE GAME START: in City 2.0 the city stays up for the walk inside (core/room-show.js, ≤ 2.6 s from the host's tap, the
+  //  same on every phone — a refresh / a late joiner past it goes straight to the game); a timer re-routes the moment it ends)
+  if (st.meta.status === 'playing' && st.game && GAME_MODULES[st.game.id] && st.quit !== st.game.matchId) {
+    if (isCity2() && !harborPending() && startShow(st.meta, st.game, serverNow()).on) { goTimer(st); return 'title'; }
+    return `game:${st.game.id}:${st.game.matchId}`;
+  }
   // LOBBY 2.0 A — THE ROOM IN THE CITY: in City 2.0 a room's waiting part IS the live city — the title screen stays (its city never
   // reloads) and turns into the room (screens/room-city.js); the profile from YOU opens over it. City 1.0 keeps today's lobby screen.
   if (isCity2()) return harborPending() ? 'boot' : 'title';   // (a refresh in a room waits for City 2.0's module, like the title does)
   return `lobby:${st.code}`;
+}
+
+let goT = 0, goM = '';
+function goTimer(st) {
+  const s = startShow(st.meta, st.game, serverNow());
+  if (goM === st.game.matchId && goT) return;
+  goM = st.game.matchId; clearTimeout(goT);
+  goT = setTimeout(() => { goT = 0; render(state); }, Math.max(0, (s.on ? START_MS - s.age : 0)) + 20);
 }
 
 function makeScreen(key) {
@@ -160,7 +174,8 @@ function render(st) {
     old.el.classList.add('screen-out');
     old.el.setAttribute('aria-hidden', 'true');
     setTimeout(() => old.el.remove(), 380);
-    if (old.key !== 'boot') glitchFlash();
+    // (LOBBY 2.0 B: City 2.0's room ↔ a game has its own transitions — the push through the door in, the walk back out — never the glitch)
+    if (old.key !== 'boot' && !(isCity2() && (old.key === 'title' || key === 'title') && st.code)) glitchFlash();
   }
   requestAnimationFrame(() => el.classList.add('screen-in'));
 }
