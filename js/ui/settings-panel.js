@@ -1,6 +1,7 @@
 // Gear button (fixed, every screen) + settings sheet: music / SFX volume, mute,
 // haptics, and — while in a room — the hush word and LEAVE ROOM.
 import { h } from './dom.js';
+import { onCloseAll } from './layers.js';
 import { toast } from './toast.js';
 import { settings, updateSettings, onSettings } from '../audio/settings.js';
 import { sfx } from '../audio/sfx.js';
@@ -290,3 +291,4 @@ function closeMenu() {
   setTimeout(() => m.remove(), 200);
 }
 export { closeMenu };
+onCloseAll(closeMenu);   // (FR6 FIXES A — B1: the ☰ menu closes at the game start)

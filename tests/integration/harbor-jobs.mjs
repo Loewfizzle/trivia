@@ -21,7 +21,7 @@ export const SECONDS = {
   load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
   speakeasy: 30, fireworks: 30, stations: 40, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4, desktop: 90,   // (DESKTOP: an estimate — refresh from its first cloud run)
-  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 170, roomperf: 70, roomchat: 60, keypop: 75, roomfix: 90, gamestart: 80, citypause: 60, afterparty: 150, cartridge: 20, crewsky: 60, leaveroom: 60, sheetstack: 70, oldrules: 70, sgfast: 60,   // (LOBBY 2.0 B: estimates from the mini PC)
+  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 170, roomperf: 70, roomchat: 60, keypop: 75, roomfix: 90, gamestart: 80, citypause: 60, afterparty: 150, cartridge: 20, crewsky: 60, leaveroom: 60, sheetstack: 70, oldrules: 70, sgfast: 60, gameflows: 80,   // (LOBBY 2.0 B: estimates from the mini PC)
     // (LOBBY 2.0 A: an estimate from the mini PC)
     // (PROGRESSION B: sightings — an estimate from the mini PC)
     // (PROGRESSION A: progress — an estimate; radio + the FOUNDER switch)   // (CITY CONTROLS A: an estimate — refresh from its first cloud run; CC-B: the intercom + the crew — ~55 s each on the mini PC)
@@ -30,7 +30,7 @@ export const SECONDS = {
 // 151–583 s of tests each by the cloud's own seconds (+ ~25 s of setup). PERF-B: windows 446 → ~300 (its pages 3 at a time — 280 s on the
 // mini PC; refresh from this run's log), perf 270 → ~200 (the warnings-only pacing loop skipped on CI)
 export const CI_JOBS = {
-  audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp', 'progress', 'vault'],   // (THE VAULT 1A: vault — the lab's look page + the 8-legendary fps, beside progress)   // (PROGRESSION A: progress — the dock flame + the preview links, beside the dock)   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
+  audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp', 'progress', 'vault', 'gameflows'],   // (FR6 FIXES A: gameflows — the console's flows B1 B2 B4 B6; room2 was at its cap)   // (THE VAULT 1A: vault — the lab's look page + the 8-legendary fps, beside progress)   // (PROGRESSION A: progress — the dock flame + the preview links, beside the dock)   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
   show: ['neon', 'party', 'sky', 'life', 'quietbuilding', 'billboard'],   // (LOBBY 2.0 A: billboard — the cross-fade, ~60 s)   // (NIGHT-C: quietbuilding — the lightest)
   // (LOBBY 2.0 A: THE ROOM IN THE CITY's own job — two phones, a full room, ~3 min)
   lobby: ['room', 'roomchat', 'keypop', 'roomperf', 'crewsky', 'oldrules'],   // (LOBBY 2.0 B: + crewsky + the serial oldrules, last)

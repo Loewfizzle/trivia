@@ -21,7 +21,8 @@ import { createRoomDock } from './room-dock.js';
 import { sfx } from '../audio/sfx.js';
 import { openHelp } from '../ui/help.js';
 import { reducedMotion } from '../ui/dom.js';
-import { startShow, fileInOrder, backShow, voteState, START_MS, PUSH_AT_MS } from '../core/room-show.js';
+import { closeAll } from '../ui/layers.js';
+import { startShow, fileInOrder, backShow, voteState, START_MS, PUSH_AT_MS, GO_DEAD_MS, goWaiting } from '../core/room-show.js';
 import { createRoomBanner } from './room-banner.js';
 
 const rgbOf = id => { const x = colorHex(id).replace('#', ''); return [0, 2, 4].map(i => parseInt(x.slice(i, i + 2), 16)); };
@@ -240,7 +241,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     if (noteKind === 'live') setState({ quit: null });
     else if (noteKind === 'idle' && isHost()) dbUpdate(dbRef(`rooms/${code()}/meta`), { activeAt: serverTimestamp() }).then(() => toast('ROOM KEPT OPEN FOR ANOTHER HOUR', 'ok')).catch(() => toast('COULD NOT REACH THE ROOM', 'err'));
   }
-  const noteT = setInterval(() => { if (!destroyed) { paintNotes(); paintBubbles(); paintDock(); } }, 2000);   // (+ the dock: the REMATCH ring comes up on the clock)
+  const noteT = setInterval(() => { if (!destroyed) { paintNotes(); paintBubbles(); paintDock(); startFx(); } }, 2000);   // (+ FR6 FIXES A: a start past its time ends on the clock, not on a state change)   // (+ the dock: the REMATCH ring comes up on the clock)
 
   // ---------------------------------------------------------------- LOBBY 2.0 B — THE GAME START (the owner, Nov 4 7:56 am: "as planned")
   // From the host's tap, on every phone at once (meta/go on the server clock — core/room-show.js), START_MS (2.6 s) at most:
@@ -252,9 +253,15 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   let goFx = null;
   function startFx() {
     const ss = startShow(st.meta, st.game, serverNow());
-    // (past the start with the match still being prepared — a slow bank / song: the veil holds until it lands; a failed start takes the stamp down)
-    const waiting = st.meta && st.meta.go && st.meta.status === 'lobby' && serverNow() - st.meta.go.at < 9000;
-    if (!ss.on) { if (goFx && !(st.meta && st.meta.status === 'playing') && !waiting) endFx(); return; }
+    // (past the start with the match still being prepared — a slow bank / song: the veil holds WHILE THE STAMP IS UP, at most GO_DEAD_MS (FR6
+    //  FIXES A — B3: a 12-s start used to lift the veil at 9 s, relight the sign, then hard-cut into the game); a failed / dead start takes
+    //  the stamp down (host.js) → the veil lifts on every phone with THE START DIDN'T GO THROUGH (B2))
+    const wAge = goWaiting(st.meta, st.game, serverNow()), waiting = wAge != null && wAge < GO_DEAD_MS;
+    if (!ss.on) {
+      if (goFx && waiting && wAge > START_MS + 600 && !goFx.slow) { goFx.slow = true; goFx.veil.append(h('div.rc-veil-note', 'GETTING THE GAME READY…')); }
+      if (goFx && !(st.meta && st.meta.status === 'playing') && !waiting) { const m = goFx.m; endFx(); startDied(m); }
+      return;
+    }
     if (goFx && goFx.m === ss.m) return;
     if (goFx) endFx();
     const g = GAMES.find(x => x.id === ss.g) || { id: ss.g, name: ss.g };
@@ -281,10 +288,15 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     // (the sign's own recorded neon — a dropout as NEON goes out, a catch as the game's logo lights; only from the start itself, never a refresh)
     if (age < 300 && !reducedMotion()) import('../audio/ambience.js').then(A => { A.neonDropout({ level: 0.7 }); goFx && (goFx.catchT = setTimeout(() => A.neonCatch({ level: 0.6, dur: 0.9 }), 470 - age)); }).catch(() => {});
     for (const gs of [gamesOpen, guestsUi]) if (gs && gs.close) gs.close();
+    closeAll();   // (FR6 FIXES A — B1: EVERY sheet + overlay on every phone — the profile, CUSTOMIZE, the full card, ☰, HOW TO PLAY…; never one over the match)
     // (THE CARTRIDGE PLUG — its loading: the walk inside is the console's loading time on EVERY phone — the view module + its sheets warm,
     //  the game's own preload (pools, sounds) runs; the city is still drawing, so nothing heavy is BUILT here — only fetched)
     import('../games/registry.js').then(R => { const mod = R.GAME_MODULES[ss.g]; if (!mod) return; if (mod.createView && mod.createView.warm) mod.createView.warm(); if (typeof mod.preload === 'function') { try { mod.preload({ settings: (st.meta && st.meta.settings && st.meta.settings[ss.g]) || mod.DEFAULT_SETTINGS || {}, host: isHost() }); } catch (e) { console.warn('preload', e); } } }).catch(() => {});
-    import('../profile/sheets.js').then(m => m.closeAllPfSheets()).catch(() => {});
+  }
+  const diedSaid = new Set();
+  function startDied(m) {
+    if (diedSaid.has(m)) return; diedSaid.add(m);
+    if (!isHost()) toast('THE START DIDN’T GO THROUGH — THE HOST CAN TRY AGAIN', 'warn', 4500);   // (the host's phone says its own — host.js)
   }
   function endFx() {
     if (!goFx) return;

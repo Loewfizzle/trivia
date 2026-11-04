@@ -44,6 +44,17 @@ export function backOf(meta, night) {
   return { at: meta.activeAt, m: last.m, g: last.e.g, rm: false, derived: true };
 }
 
+/** FR6 FIXES A (B2 + B3) — A START THAT DIES: the veil holds while the start's stamp is up and the room still waits for its match (a slow
+ *  bank / song: B3's 12-s start), at most GO_DEAD_MS; a host who finds a stamp it isn't starting (the host that stamped it died or
+ *  refreshed — B2) clears it after GO_ORPHAN_MS. Either way every phone says THE START DIDN'T GO THROUGH and the room is back */
+export const GO_DEAD_MS = 30000;
+export const GO_ORPHAN_MS = 3000;
+/** PURE: the start's stamp is up, the room still 'lobby' with no match for it → its age (ms) | null */
+export function goWaiting(meta, game, now) {
+  const go = meta && meta.go;
+  if (!go || typeof go.at !== 'number' || meta.status !== 'lobby' || (game && game.matchId)) return null;
+  return now - go.at;
+}
 /** THE GAME START now? → { on, age (ms since the tap), push (0..1 — the push through the door), m, g } | { on: false }. The stamp goes up
  *  BEFORE the match (host.js#startGame): on while the host prepares it (the room still 'lobby', no game yet) and once it's written (the
  *  room 'playing', that match) — never for another match */

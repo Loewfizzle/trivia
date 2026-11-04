@@ -6,7 +6,7 @@
 //   closeAllPfSheets() — the page going away (its own BACK) closes what it opened
 import { h, reducedMotion } from '../ui/dom.js';
 import { pgSheet } from '../progress/look.js';
-import { takeLayer, isTopLayer } from '../ui/layers.js';
+import { takeLayer, isTopLayer, onCloseAll } from '../ui/layers.js';
 
 const stack = [];
 let keyOn = false;
@@ -54,3 +54,4 @@ export function openPfSheet({ title = '', kicker = '', body = [], cls = '', onCl
 
 export const pfSheetDepth = () => stack.length;
 export function closeAllPfSheets() { for (const s of [...stack].reverse()) s.close(); }
+onCloseAll(closeAllPfSheets);   // (FR6 FIXES A — B1: the game start + a kick close them)

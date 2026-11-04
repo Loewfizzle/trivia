@@ -3,6 +3,7 @@
 // global leaderboards"; and per-game cards (wins, win rate, highlights, records, weekly and all-time ranks).
 // promptKey(): the gentle reminder sheet after a player's first few matches.
 import { h, reducedMotion } from '../ui/dom.js';
+import { onCloseAll } from '../ui/layers.js';
 import { avatar } from '../ui/components.js';
 import { emblem } from '../ui/emblems.js';
 import { toast } from '../ui/toast.js';
@@ -106,6 +107,8 @@ export function closeCard() {
   el.classList.add('screen-out');
   setTimeout(() => el.remove(), 260);
 }
+
+onCloseAll(() => closeCard());   // (FR6 FIXES A — B1 + B7: the game start + a kick close the profile overlay)
 
 const KEY_WHY = 'ONE CARD, ALL YOUR DEVICES: your key brings this card to another phone, another browser or the iPhone Home Screen app — every device works at once. Never give it to anyone else: whoever has it is you.';
 

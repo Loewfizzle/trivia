@@ -5,7 +5,7 @@
 // Nothing here keeps game state locally — every decision is re-derived from the
 // mirrored database state on each tick, so any client can take over at any time.
 import { dbRef, update, remove, runTransaction, serverTimestamp, serverNow } from './firebase.js';
-import { START_MS } from './core/room-show.js';
+import { START_MS, GO_ORPHAN_MS, goWaiting } from './core/room-show.js';
 import { minPlayersOf, rematchSettingsOf } from './games/cartridge.js';
 import { state, isHost, onlineMap } from './store.js';
 import { shouldClaimHost, isOnline, roomIdle } from './core/room-logic.js';
@@ -44,11 +44,23 @@ function tick() {
   if (roomIdle(state.meta, now - (isHost() ? 0 : 90_000))) { closeIdleRoom(); return; }
   if (isHost()) {
     beat(now);
+    clearDeadStart(now);
     if (state.meta.status === 'playing' && state.game) direct(now);
   } else if (now - lastClaim > 3000 && shouldClaimHost({ meta: state.meta, players: state.players, presence: state.presence, now, me: state.uid })) {
     lastClaim = now;
     claimHost(state.meta.hostId);
   }
+}
+
+// FR6 FIXES A (B2): the host that stamped a start died (or this phone refreshed) between the stamp and the match: nobody is preparing it —
+// the host now (a new one, or this one after a reload) takes the stamp down, once, and says so; the guests' veil lifts with the same note
+let clearedGo = null;
+function clearDeadStart(now) {
+  const age = goWaiting(state.meta, state.game, now), go = state.meta.go;
+  if (age == null || age < GO_ORPHAN_MS || starting || clearedGo === go.m) return;
+  clearedGo = go.m;
+  update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {});
+  toast('THE START DIDN’T GO THROUGH — TAP PLAY TO TRY AGAIN', 'warn', 4500);
 }
 
 function beat(now) {
@@ -137,7 +149,21 @@ export function onlineCount() {
 }
 
 // Resolves true once the match is written; false (after a toast) when it can't start.
-export async function startGame(gameId, settings) {
+// FR6 FIXES A (B4) — ONE START AT A TIME: the REMATCH ring had no busy guard; on a 200–400 ms round trip a double-tap reached startGame()
+// twice — two stamps, two start()s, two whole matches a second apart (every phone mounted match 1 then remounted match 2). Every caller (the
+// ring, INITIATE, the podium's REMATCH) gets the SAME promise while a start is in flight, and through the walk inside after it (START_MS):
+// a second tap during the show is the same start, never a second match.
+let starting = null;
+export function startGame(gameId, settings) {
+  if (starting) return starting;
+  const p = startGameNow(gameId, settings);
+  starting = p;
+  p.then(ok => setTimeout(() => { if (starting === p) starting = null; }, ok ? START_MS : 0), () => { if (starting === p) starting = null; });
+  return p;
+}
+/** (tests) a start in flight or in its walk */
+export const startBusy = () => !!starting;
+async function startGameNow(gameId, settings) {
   const mod = GAME_MODULES[gameId];
   if (!mod || !isHost()) return false;
   // (WINDOWS — ONLY TWO GAMES PLAYABLE: a hidden game never starts — not from a rematch, an invite, a stale link or the console)

@@ -22,13 +22,17 @@ const emit = () => { for (const f of subs) { try { f(keyPopState()); } catch { /
 // (any change to the notes — the profile's "I saved it", COPY / SHARE anywhere — repaints the dot)
 if (typeof window !== 'undefined') window.addEventListener('ns:notes', () => emit());
 
+/** every pop-up the save-your-key sheet must never open over (tests/keypop + the harbor keypop group read it) */
+export const KEYPOP_COVERED = '.pg-moment, .modal:not(.out), .pfs:not(.is-out), .final, .vl-dress, .vl-full, .pf-overlay, .gm, .sg-modal, .pg-sc, .sg-big';
 let open = null, waitT = 0;
 /** busy() → true while something must not be covered (the title passes its scene's legendary) */
 export function maybeKeyPop({ why = '', busy = null } = {}) {
   clearTimeout(waitT);
   if (open || keyPopState() !== 'show') return false;
   const playing = !!(state.code && state.meta && state.meta.status === 'playing' && state.game && state.quit !== state.game.matchId);
-  const covered = document.querySelector('.pg-moment, .modal:not(.out), .pfs:not(.is-out), .final, .sg-shot, .vl-full-open');
+  // (FR6 FIXES A — B5 / H1: never over a card the player is looking at — `.sg-shot` + `.vl-full-open` never existed; now CUSTOMIZE, the
+  //  full card, the room's profile overlay, the ☰ menu, the sighting moment, the streak card + the album too)
+  const covered = document.querySelector(KEYPOP_COVERED);
   if (playing || covered || (busy && busy())) { waitT = setTimeout(() => maybeKeyPop({ why, busy }), 2500); return false; }
   show(why);
   return true;

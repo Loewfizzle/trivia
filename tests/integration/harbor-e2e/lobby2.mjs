@@ -468,6 +468,66 @@ G('sheetstack', async () => {
 // ---- THE OWNER's REAL-PHONE BUG (Nov 4 10:37 am): two iPhones on the new code, NONE of the show — the live database still had the OLD rules
 // (meta/go + meta/back refused) and the room went on silently. SERIAL (it swaps the shared emulator's rules): with the OLD rules loaded, the show
 // MUST still run — the sign + the game's logo, the walk inside, the walk back out, THE WINNER's BANNER — then the rules are restored.
+// ---- FR6 FIXES A — THE CONSOLE's FLOWS (review-6.md B1–B7), two real phones on the emulators:
+//   B1  a guest's CUSTOMIZE (on the room's profile) + HOW TO PLAY + the ☰ menu open when the host starts → ALL gone; the guest lands in the game
+//   B4  REMATCH fired twice at once (the ring's double-tap on a slow line) → ONE match (one stamp, one match id on every phone)
+//   B2  a start that DIES (the stamp up, nobody preparing it) → the host takes it down, BOTH phones say THE START DIDN'T GO THROUGH, the room
+//       back (lobby, no veil)
+//   B6  BACK TO THE ROOM with OVERCLOCK's done-timer pending → no page error
+const OPEN_NOW = `({ dress: !!document.querySelector('.vl-dress'), overlay: !!document.querySelector('.pf-overlay:not(.screen-out)'), modal: !!document.querySelector('.modal:not(.out)'), menu: !!document.querySelector('.gm:not(.out)'), game: !!document.querySelector('.screen.oc') })`;
+G('gameflows', async () => {
+  const { Q: A, p, code, me } = await hostRoom('gfa');
+  const { Q: B, p: q } = await joinRoom('gfb', code);
+  const errs = []; q.on('pageerror', e => errs.push(String(e.message || e))); p.on('pageerror', e => errs.push(String(e.message || e)));
+  await settledRoom(p, 2, 40000).catch(() => {}); await settledRoom(q, 2, 40000).catch(() => {});
+  // B1 — the guest opens YOU → CUSTOMIZE (over the room's profile), then HOW TO PLAY, then the ☰ menu
+  await ev(q, "document.querySelector('.rdk-you').click()");
+  await waitFor(q, "!!document.querySelector('.pf-overlay .vl-dp-go')", 'B: CUSTOMIZE', 15000).catch(() => {});
+  await ev(q, "(() => { const b = document.querySelector('.pf-overlay .vl-dp-go'); if (b) b.click(); })()");
+  await waitFor(q, "!!document.querySelector('.vl-dress.is-in')", 'B: the dress screen', 8000).catch(() => {});
+  await ev(q, "import('/js/ui/help.js').then(m => m.openHelp('overclock'))");
+  await waitFor(q, "!!document.querySelector('.modal:not(.out)')", 'B: HOW TO PLAY', 5000).catch(() => {});
+  await ev(q, "(() => { const b = document.querySelector('.menu-btn'); if (b) b.click(); })()");
+  await sleep(300);
+  const before = await ev(q, OPEN_NOW);
+  await startOC(p);
+  await waitFor(q, `!(${onTitle})`, 'B in the game', 8000).catch(() => {});
+  await sleep(800);
+  const after = await ev(q, OPEN_NOW);
+  ok(before.dress && before.overlay && before.modal && !after.dress && !after.overlay && !after.modal && !after.menu && after.game,
+    `B1 — A SHEET OPEN AT THE START IS GONE: the guest's CUSTOMIZE + the room's profile + HOW TO PLAY${before.menu ? ' + ☰' : ''} (${JSON.stringify(before)}) → at the start, all closed, the match on screen (${JSON.stringify(after)})`);
+  // B6 — back to the room mid-challenge (OVERCLOCK's timers pending) → no page error
+  await waitFor(p, "window.__arcade.state.game && window.__arcade.state.game.phase !== 'intro'", 'the match running', 15000).catch(() => {});
+  await podium(p, code, [me]);
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await Promise.all([p, q].map(x => waitFor(x, onTitle, 'back in the room', 12000)));
+  await harborUp(p); await harborUp(q);
+  // B4 — two starts at once (the ring's double-tap on a slow line reaches host.js#startGame twice — every start path goes through it: the
+  //  ring's rematch(), INITIATE, the podium's REMATCH) → ONE match: the second caller gets the first one's promise (without the guard: two
+  //  stamps + two whole matches a second apart)
+  await ev(q, "(() => { window.__mids = new Set(); window.__gos = new Set(); setInterval(() => { const s = window.__arcade.state; if (s.game && s.game.matchId) window.__mids.add(s.game.matchId); if (s.meta && s.meta.go) window.__gos.add(s.meta.go.m); }, 40); })()");
+  await waitFor(p, '!!(window.__arcade.state.meta && window.__arcade.state.meta.back)', 'the back stamp', 8000).catch(() => {});
+  const two = await ev(p, "import('/js/host.js').then(m => Promise.all([m.startGame('overclock', {}), m.startGame('overclock', {})]))");
+  await waitFor(q, `!(${onTitle})`, 'B in the rematch', 8000).catch(() => {});
+  await sleep(2500);
+  const ids = await ev(q, '({ m: [...window.__mids], g: [...window.__gos] })');
+  ok(two.every(Boolean) && ids.m.length === 1 && ids.g.length <= 1, `B4 — A DOUBLE REMATCH = ONE MATCH (both taps answered ${JSON.stringify(two)}; the guest saw match ids ${ids.m.join(', ')} · start stamps ${ids.g.join(', ') || '—'})`);
+  await podium(p, code, [me]);
+  await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+  await Promise.all([p, q].map(x => waitFor(x, onTitle, 'back again', 12000)));
+  await harborUp(p); await harborUp(q); await sleep(800);
+  // B2 — a start that dies: the stamp goes up (as the host's first write does), nobody prepares it (the host that stamped it is gone)
+  const t0 = Date.now();
+  await dbPatch(`rooms/${code}/meta`, { go: { at: { '.sv': 'timestamp' }, m: 'dead01', g: 'overclock' } });
+  await waitFor(q, "!!document.querySelector('.rc-veil')", 'B: the veil up', 4000).catch(() => {});
+  const said = await Promise.all([p, q].map(x => waitFor(x, `[...document.querySelectorAll('.toasts > *')].some(t => /START DIDN.T GO THROUGH/.test(t.textContent))`, 'the note', 12000).then(() => Date.now() - t0, () => null)));
+  await sleep(600);
+  const room = await ev(q, "({ go: window.__arcade.state.meta.go || null, status: window.__arcade.state.meta.status, veil: !!document.querySelector('.rc-veil'), title: !!document.querySelector('.title-screen:not(.screen-out)') })");
+  ok(said.every(v => v != null) && !room.go && room.status === 'lobby' && !room.veil && room.title, `B2 — A START THAT DIES SAYS SO: THE START DIDN'T GO THROUGH on both phones (${said.join(' / ')} ms), the stamp down, the room back (${JSON.stringify(room)})`);
+  ok(!errs.length, `no page error through the flows (B6: back to the room with OVERCLOCK's timers pending)${errs.length ? ` — ${errs.slice(0, 3).join(' | ')}` : ''}`);
+  await A.ctx.close(); await B.ctx.close();
+});
+
 const RULES_URL = `${DBH}/.settings/rules.json?ns=${NS}`;
 async function putRules(text) { const r = await fetch(RULES_URL, { method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: text }); if (!r.ok) throw new Error(`rules PUT ${r.status}`); }
 G('oldrules', async () => {

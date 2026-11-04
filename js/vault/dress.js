@@ -24,7 +24,7 @@ import { gemEl } from './gems.js';
 import { emblemEl, hasArt, tubeApplies, TUBE_STYLES } from './emblem-art.js';
 import { applyGlow, GLOW_ART } from './glows.js';
 import { stripEl, LOOKS, vaultSheet, fxOpts, embTier } from './strip.js';
-import { takeLayer, isTopLayer } from '../ui/layers.js';
+import { takeLayer, isTopLayer, onCloseAll } from '../ui/layers.js';
 import { prominence } from './emblems.js';
 import { approvedIds } from './approved.js';
 import { cardVars } from '../progress/look.js';
@@ -95,6 +95,7 @@ export function dressPanel(data, o = {}) {
 
 // ---------------------------------------------------------------- THE DRESS SCREEN
 let openNow = null;
+onCloseAll(() => { if (openNow) openNow.close(); });   // (FR6 FIXES A — B1)
 export function openDress(data, o = {}) {
   if (openNow) openNow.close();
   vaultSheet();

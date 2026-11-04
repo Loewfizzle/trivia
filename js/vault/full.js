@@ -26,7 +26,7 @@ import { applyGlow } from './glows.js';
 import { prominence } from './emblems.js';
 import { embTier } from './strip.js';
 import { isDevCard, ONE_OF_ONE } from '../core/dev-cards.js';
-import { takeLayer, isTopLayer } from '../ui/layers.js';
+import { takeLayer, isTopLayer, onCloseAll } from '../ui/layers.js';
 
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
 export const fullId = card => `full-${card}`;
@@ -150,6 +150,7 @@ export async function upgradeScene(placeholder, card, o = {}) {
 }
 
 let open = null;
+onCloseAll(() => { if (open) open.close(); });   // (FR6 FIXES A — B1)
 /** a sheet with the full card (approved art — else the Gilded card in its palette) */
 export async function openFullCard(id, who = {}) {
   if (open) open.close();

@@ -12,6 +12,7 @@ import { hushCandidates, staleHush, claimFirst, missCooldown, recentMisses } fro
 import { hostSeed } from './audio/lobby-music.js';
 import { toast } from './ui/toast.js';
 import { livePathsFor, liveKeyFor } from './games/registry.js';
+import { closeAll } from './ui/layers.js';
 import { watchRoomProfiles, stopRoomProfiles } from './profile/public.js';
 
 const R = code => `rooms/${code}`;
@@ -355,6 +356,7 @@ function stopListening() {
 export function exitRoom(reason, kind = 'warn') {
   const code = state.code;
   clearTimeout(pushTimer); pushTimer = null;   // (FR6 FIXES A: a room left before its push was asked never pings)
+  closeAll();   // (FR6 FIXES A — B7: a kick / a closed room closes every sheet + the profile overlay over the title)
   stopListening();
   dropPresence(code, state.uid);
   saveSession(null);

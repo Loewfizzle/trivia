@@ -176,3 +176,16 @@ test('THE STAMPS NEVER DEPEND ON A RULES RE-PUBLISH (the owner\'s real-phone tes
   assert.match(h, /\.catch\(e => stampRefused\('go', e\)\)/); assert.match(h, /\.catch\(e => stampRefused\('back', e\)\)/);
   assert.match(h, /reportError\(new Error\(`ROOM STAMP REFUSED/);
 });
+
+// FR6 FIXES A (B2 + B3): a start's stamp with the room still waiting for its match — its age; the veil holds that long, at most GO_DEAD_MS,
+// and a host that isn't preparing it takes it down after GO_ORPHAN_MS
+test('goWaiting: the stamp up + the room still lobby with no match → its age; otherwise null', async () => {
+  const { goWaiting, GO_DEAD_MS, GO_ORPHAN_MS, START_MS } = await import('../js/core/room-show.js');
+  const meta = { status: 'lobby', go: { at: 1000, m: 'm1', g: 'overclock' } };
+  assert.equal(goWaiting(meta, null, 4000), 3000);
+  assert.equal(goWaiting({ ...meta, status: 'playing' }, { matchId: 'm1' }, 4000), null, 'the match landed');
+  assert.equal(goWaiting(meta, { matchId: 'm1' }, 4000), null);
+  assert.equal(goWaiting({ status: 'lobby' }, null, 4000), null, 'no stamp');
+  assert.ok(GO_DEAD_MS >= 12000 + START_MS, 'the veil outlasts the worst slow start measured (12 s)');
+  assert.ok(GO_ORPHAN_MS < GO_DEAD_MS);
+});

@@ -41,3 +41,17 @@ export function watchLayers() {
     }
   }).observe(document.body, { childList: true });
 }
+
+// FR6 FIXES A (B1 + B7) — CLOSE EVERYTHING. A guest with their profile, CUSTOMIZE, the full card, the ☰ menu or HOW TO PLAY open when the
+// host tapped INITIATE kept that sheet OVER THE RUNNING MATCH (its clock running) until they backed out of two screens; a KICK left the
+// profile overlay up. closeAll() — at the game start's stamp (room-city.js#startFx) and on leaving the room (room.js#exitRoom) — runs every
+// registered closer (each pop-up's own module registers its close: the profile overlay, its sheets, CUSTOMIZE, the full card, the menu, the
+// streak card) and closes every .modal still open the way Esc does (its backdrop's click). Never throws.
+const closers = new Set();
+/** a module's own "close whatever I have open" → unregister() */
+export function onCloseAll(fn) { closers.add(fn); return () => closers.delete(fn); }
+export function closeAll() {
+  for (const fn of [...closers]) { try { fn(); } catch (e) { console.warn('[layers] close', e); } }
+  if (typeof document === 'undefined') return;
+  for (const m of [...document.querySelectorAll('.modal:not(.out)')].reverse()) { try { m.dispatchEvent(new MouseEvent('click', { bubbles: true })); } catch { /* fine */ } }
+}

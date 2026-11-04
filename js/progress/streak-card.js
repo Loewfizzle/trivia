@@ -5,6 +5,7 @@
 // in white; SOMETHING NEW (the vague tease — when, never what) with its bar; FREEZE HELD + BEST EVER; WIN IT BACK when it applies; one quiet
 // line. Ivory text everywhere (THE IVORY decision) — no gold text, no serif. Reads only (the server keeps the streak).
 import { h } from '../ui/dom.js';
+import { onCloseAll } from '../ui/layers.js';
 import { streakView, streakDay } from '../core/streak.js';
 import { pgSheet } from './look.js';
 import { flameArt } from './flame-art.js';
@@ -47,3 +48,4 @@ export async function openStreakCard(st, { now = Date.now(), outage = null } = {
   return open;
 }
 export const closeStreakCard = () => { if (open) open.close(); };
+onCloseAll(closeStreakCard);   // (FR6 FIXES A — B1)

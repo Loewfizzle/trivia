@@ -257,6 +257,7 @@ export function createView() {
 
   function write(done) {
     const game = g();
+    if (!game || !chal || !st.code) return;   // (FR6 FIXES A — B6: BACK TO THE ROOM with a done-timer pending: the match is gone — nothing to write)
     // THE SEAL: the progress in the room, the answers (w / o / g / rw) in your envelope — one atomic write
     const data = { p: chal.p, ok: chal.ok, n: chal.parts, done, at: serverTimestamp() };
     if (done) data.doneAt = serverTimestamp();
