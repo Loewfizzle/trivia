@@ -531,3 +531,16 @@ body.reduced-fx .rc-up *, body.reduced-fx .rc-plaque, body.reduced-fx .rc-sweep,
 
 /* the public page's music on/off (mood music starts after the first tap) */
 html body .music-btn.bd-music { top: calc(var(--safe-t) + 12px) !important; right: calc(var(--safe-r) + 12px) !important; border-radius: 50%; }   /* (beats the app corner rules) */
+/* LOBBY FIXES — THE YOU PAGE ON A DESKTOP (the owner, Nov 4 2:22 pm: no scrollbar, he had to use the arrow keys): with a mouse / trackpad the
+   WHOLE width scrolls (the wheel anywhere on the page — the column stays centred), a slim visible scrollbar on the right, click-drag scrolls
+   (profile.js#dragScroll). A phone (a coarse pointer) is unchanged. */
+@media (hover: hover) and (pointer: fine) {
+  .screen.pf-screen { max-width: none; }
+  .screen.pf-screen > .bar { width: 100%; max-width: var(--maxw); margin-left: auto; margin-right: auto; }
+  .pf-screen > .pf-scroll, .pf-overlay > .pf-scroll { max-width: none; margin: 0; padding-left: max(var(--gutter), calc((100% - var(--maxw)) / 2 + var(--gutter))); padding-right: max(var(--gutter), calc((100% - var(--maxw)) / 2 + var(--gutter)));
+    scrollbar-width: thin; scrollbar-color: rgba(255, 255, 255, 0.38) transparent; }
+  .pf-scroll::-webkit-scrollbar { display: block; width: 8px; }
+  .pf-scroll::-webkit-scrollbar-thumb { border-radius: 4px; background: rgba(255, 255, 255, 0.38); }
+  .pf-scroll::-webkit-scrollbar-track { background: transparent; }
+  .pf-scroll.is-dragging { cursor: grabbing; user-select: none; }
+}

@@ -592,3 +592,16 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 
 /* LOBBY 2.0 B — LEAVE ROOM at the foot of GUESTS (the owner's ADD-ON): red-edged glass, a second tap = SURE? */
 .rg-leave { display: flex; width: 100%; margin-top: 18px; min-height: 48px; color: #ffd0da; box-shadow: inset 0 0 0 1.5px rgba(255, 77, 109, 0.75), 0 4px 14px rgba(0, 0, 0, 0.35); }
+/* LOBBY FIXES — EDIT PROFILE: the ✎ on the NAME / COLOUR rows + the small ✎ beside the name on the card at the top */
+.pf-er-pen { flex: none; width: 30px; text-align: center; font: 700 17px/1 var(--font-ui); font-style: normal; color: #8ff6ff; text-shadow: 0 0 8px rgba(63, 224, 255, 0.6); }
+.pf-er-cn { font: 700 13px/1 var(--font-ui); letter-spacing: 0.12em; color: rgba(240, 236, 250, 0.9); }
+.pf-pen { position: relative; flex: none; align-self: center; width: 34px; height: 34px; margin-left: 2px; border: 0; border-radius: 50%; cursor: pointer;
+  font: 700 16px/34px var(--font-ui); text-align: center; color: #fff; background: rgba(8, 7, 16, 0.62); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); }
+.pf-pen::after { content: ''; position: absolute; inset: -5px; }   /* (a 44-pt tap area) */
+.pf-pen:active { transform: scale(0.94); }
+.pg-card-id { position: relative; }
+.pg-card-id > .pf-pen { position: absolute; right: 0; top: 50%; margin-top: -17px; }
+/* LOBBY FIXES — THE END-OF-ROUND BAR = THE PROFILE's PINK NEON TUBE (no gold bar left): what you had a dimmer pink tube, this match's gain the
+   bright one (the had-bar sits on top: the bright part showing is the gain) */
+.pg-bar-mo.pg-bar-tube .pg-bar-had { background: linear-gradient(180deg, #8a2a66 0%, #c25a9c 34%, #e6a6cf 50%, #c25a9c 66%, #8a2a66 100%); box-shadow: 0 0 6px rgba(255, 79, 184, 0.35); }
+.pg-bar-mo.pg-bar-tube .pg-bar-got { border-radius: 8px; background: linear-gradient(180deg, #ff4fb8 0%, #ff9fdc 34%, #fff2fa 50%, #ff9fdc 66%, #ff4fb8 100%); box-shadow: 0 0 10px rgba(255, 79, 184, 0.9), 0 0 22px rgba(255, 79, 184, 0.4); }

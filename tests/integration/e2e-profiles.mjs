@@ -103,7 +103,10 @@ await H.run(async () => {
   ok(/^LEVEL [56]$/.test(end.lv) && end.upGone && /^\+\d+ XP$/.test(end.total), `the skip → the end at once (${end.lv}, ${end.total})`);
   ok(/1 NIGHT STREAK/.test(end.st) && end.today, `the streak lights + today's dot (${end.st})`);
   ok(end.ach.includes('FIRST ROUND'), `an achievement slides in (${end.ach.join(', ')})`);
-  ok(/^SOMETHING NEW AT LEVEL \d+$/.test(end.tease), `the vague tease — when, never what (${end.tease})`);
+  ok(/^NEXT UNLOCK AT LEVEL \d+$/.test(end.tease), `the tease — when, never what (${end.tease})`);
+  // (LOBBY FIXES: the round-end bar = the profile's pink neon tube — the earned part a dimmer pink, this match's gain the bright pink; no gold)
+  const bar = await p0.evaluate(() => { const b = document.querySelector('.pg-moment .pg-bar'), had = b && b.querySelector('.pg-bar-had'), got = b && b.querySelector('.pg-bar-got'); const bg = e => getComputedStyle(e).backgroundImage; return b ? { tube: b.classList.contains('pg-bar-tube'), had: bg(had), got: bg(got) } : null; });
+  ok(bar && bar.tube && /138, 42, 102/.test(bar.had) && /255, 79, 184/.test(bar.got) && !/169, 130, 60|230, 196, 122/.test(bar.had), `THE ROUND-END BAR is the PINK NEON TUBE (earned ${bar && bar.had.slice(0, 40)}… · the gain ${bar && bar.got.slice(0, 40)}…)`);
   ok(!/\?\?\?|\d+ of \d+/i.test(await p0.$eval('.pg-moment', e => e.textContent)), 'no ??? and no totals anywhere');
   await H.shot(p0, 'pf-03b-moment-end-390x844');
   await p0.click('.pg-moment .pg-btn');
@@ -178,15 +181,18 @@ await H.run(async () => {
     `THE PROFILE (LOBBY 2.0 A): the card (${lay.card}) → CUSTOMIZE YOUR CARD (${lay.cz}) → the sections + THE GOAL TILE (${lay.prog}, ${lay.goal}) → MASTERY (${lay.mast}) → ACCOUNT (${lay.acc}); no BOARD button, no NOT PLAYED YET / MEMBERSHIP (${!lay.old}), no ☰ on the page (${!lay.menu}); ${lay.medals} trophies with ${lay.chips} reward chips`);
   // EDIT PROFILE → NAME › → its own sheet; ‹ goes back ONE step (to Edit profile), then one more (the profile)
   const tapIt = sel => p3.evaluate(q => { const e = document.querySelector(q); if (e) e.click(); return !!e; }, sel);
-  ok(await tapIt('.pf-account .pf-edit'), 'EDIT PROFILE is a real row'); await p3.waitForSelector('.pf-edit-sheet .pf-er-name', { timeout: 6000 });
-  await tapIt('.pf-edit-sheet .pf-er-name'); await p3.waitForSelector('.pf-name-sheet .pf-name-in', { timeout: 6000 });
+  // (LOBBY FIXES — EDIT PROFILE REDONE: NAME ✎ + COLOUR ✎ at ACCOUNT's TOP showing the current values; each opens its editor; ‹ = one step)
+  const edRows = await p3.evaluate(() => { const acc = document.querySelector('.pf-account'), kids = [...acc.children].filter(k => k.tagName !== 'H3'), v = s => (acc.querySelector(s + ' .pf-er-v') || {}).textContent || '';
+    return { first: kids[0] && kids[0].classList.contains('pf-er-name'), second: kids[1] && kids[1].classList.contains('pf-er-colour'), name: v('.pf-er-name'), col: v('.pf-er-colour'), sw: !!acc.querySelector('.pf-er-colour .pf-er-sw'), pen: !!document.querySelector('.pf-card-slot .pf-pen') }; });
+  ok(edRows.first && edRows.second && edRows.name.length > 0 && edRows.col.length > 0 && edRows.sw && edRows.pen, `EDIT PROFILE: NAME "${edRows.name}" ✎ + COLOUR (a swatch) "${edRows.col}" ✎ — the TOP of ACCOUNT; a ✎ beside the name on the card (${edRows.pen})`);
+  ok(await tapIt('.pf-account .pf-er-name'), 'the NAME row is a real row'); await p3.waitForSelector('.pf-name-sheet .pf-name-in', { timeout: 6000 });
   const depth = () => p3.evaluate(() => document.querySelectorAll('.pfs:not(.is-out)').length);
-  const d2 = await depth();
+  const d1 = await depth();
   await tapIt('.pf-name-sheet .pfs-back'); await sleep(450);
-  const d1 = await depth(), still = !!(await p3.$('.pf-edit-sheet:not(.is-out)'));
-  await tapIt('.pf-edit-sheet .pfs-back'); await sleep(450);
   const d0 = await depth();
-  ok(d2 === 2 && d1 === 1 && still && d0 === 0, `BACK = ONE STEP: the name editor → Edit profile → the profile (${d2} → ${d1} → ${d0} sheets open)`);
+  await tapIt('.pf-card-slot .pf-pen'); await p3.waitForSelector('.pf-name-sheet:not(.is-out) .pf-name-in', { timeout: 6000 }).catch(() => {});
+  const penOpens = await depth(); await tapIt('.pf-name-sheet .pfs-back'); await sleep(450);
+  ok(d1 === 1 && d0 === 0 && penOpens === 1, `BACK = ONE STEP: the name editor → the profile (${d1} → ${d0} sheets open); the card's ✎ opens the same editor (${penOpens})`);
   // (a trophy's reward chip = WEAR IT: FIRST ROUND's EMBER glow → on the server)
   await p3.click('.pg-trophies .pg-rw[data-id="glow-ember"]');
   for (let i = 0; i < 40 && (await val(`profiles/${me0.pid}/g`)) !== 'glow-ember'; i++) await sleep(150);

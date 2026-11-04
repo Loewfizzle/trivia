@@ -118,6 +118,21 @@ const KEY_WHY = 'ONE CARD, ALL YOUR DEVICES: your key brings this card to anothe
 // TROPHY CASE) · the latest sightings (+ ALL) · MASTERY (a game → its records in a sheet) · a short ACCOUNT block. POP-UPS (profile/sheets.js)
 // hold the rest, one step at a time: Edit profile → NAME / COLOUR, RESTORE YOUR ACCOUNT, a game's records. ONE BUTTON SYSTEM: every other
 // button is NEON GLASS (.pf-gb — dark glass, a soft white edge, white text); NEW KEY small + red-edged, a second tap confirms.
+/** LOBBY FIXES — a MOUSE drag scrolls the YOU page (a desktop): past 6 px of movement it's a drag (the click after it is swallowed); a touch
+ *  or a pen scrolls natively, as before */
+function dragScroll(sc) {
+  let d = null;
+  sc.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('input, textarea, select')) return; d = { y: e.clientY, top: sc.scrollTop, on: false, id: e.pointerId }; });
+  sc.addEventListener('pointermove', e => {
+    if (!d || e.pointerId !== d.id) return;
+    const dy = e.clientY - d.y;
+    if (!d.on && Math.abs(dy) > 6) { d.on = true; sc.classList.add('is-dragging'); try { sc.setPointerCapture(e.pointerId); } catch { /* fine */ } }
+    if (d.on) sc.scrollTop = d.top - dy;
+  });
+  const end = () => { if (d && d.on) { sc.classList.remove('is-dragging'); const swallow = ev => { ev.stopPropagation(); ev.preventDefault(); }; sc.addEventListener('click', swallow, { capture: true, once: true }); setTimeout(() => sc.removeEventListener('click', swallow, { capture: true }), 0); } d = null; };
+  sc.addEventListener('pointerup', end); sc.addEventListener('pointercancel', end);
+}
+
 export function createView({ onBack = null, overlay = false } = {}) {
   const els = {};
   let data = null, destroyed = false;
@@ -141,7 +156,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     el.append(
       h('header.bar.pf-bar',
         h('button.icon-btn.pf-back', { type: 'button', 'aria-label': 'Back', onclick: back }, '‹')),
-      h('div.pf-scroll',
+      els.scroll = h('div.pf-scroll',
         els.card,
         els.cz,
         els.why,
@@ -149,7 +164,11 @@ export function createView({ onBack = null, overlay = false } = {}) {
         els.mast,
         h('section.pf-sec.pf-account',
           h('h3.pf-h', 'ACCOUNT'),
-          overlay ? null : h('button.pf-acc-row.pf-edit', { type: 'button', onclick: openEditProfile }, h('b', 'Edit profile'), h('span', 'name · colour ›')),
+          // (LOBBY FIXES — EDIT PROFILE REDONE (the owner, Nov 4 2:23–2:25 pm: the one "Edit profile name · colour ›" row was terrible, and in a
+          //  room — the profile over the city — it wasn't there at all): two plain rows at the TOP of ACCOUNT showing what you have now, each
+          //  opening its editor (a sheet; ‹ = one step back) — on every screen, in a room too)
+          els.editName = h('button.pf-acc-row.pf-er.pf-er-name.pf-edit', { type: 'button', 'aria-label': 'Edit your name', onclick: () => openNameEditor(paintEdit) }, h('b', 'NAME'), h('span.pf-er-v'), h('i.pf-er-pen', { 'aria-hidden': 'true' }, '✎')),
+          els.editColour = h('button.pf-acc-row.pf-er.pf-er-colour', { type: 'button', 'aria-label': 'Edit your colour', onclick: () => openColourEditor(paintEdit) }, h('b', 'COLOUR'), h('span.pf-er-v'), h('i.pf-er-pen', { 'aria-hidden': 'true' }, '✎')),
           els.bday,
           els.keyBox,
           els.elsewhere,
@@ -157,9 +176,22 @@ export function createView({ onBack = null, overlay = false } = {}) {
           h('label.pf-switch', h('span.pf-switch-l', h('b', 'Show me on global leaderboards'), h('small', 'Off: your stats still count, only you see them.')), els.show, h('span.pf-switch-ui', { 'aria-hidden': 'true' })),
           h('div.pf-newkey-row', els.newKey)),
         els.foot));
+    dragScroll(els.scroll);
     paintLocal();
     paintKey();
+    paintEdit();
     load();
+  }
+  function paintEdit() {
+    const q = loadProfile() || {};
+    if (els.editName) els.editName.querySelector('.pf-er-v').textContent = (q.name || '—').toUpperCase();
+    if (els.editColour) els.editColour.querySelector('.pf-er-v').replaceChildren(h('i.pf-er-sw', { style: { '--c': colorHex(q.color) } }), h('span.pf-er-cn', String(q.color || '').toUpperCase()));
+  }
+  /** LOBBY FIXES — a small ✎ beside the name on the card at the top (the Gilded card's name, or the full card's plate) → the name editor */
+  function addPen(root) {
+    const spot = root && (root.querySelector('.vl-fc-plate') || root.querySelector('.pg-card-id'));
+    if (!spot || spot.querySelector('.pf-pen')) return;
+    spot.append(h('button.pf-pen', { type: 'button', 'aria-label': 'Edit your name', onclick: e => { e.stopPropagation(); sfx('select'); openNameEditor(paintEdit); } }, '✎'));
   }
 
   function back() { closeAllPfSheets(); if (onBack) { onBack(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); }
@@ -198,21 +230,14 @@ export function createView({ onBack = null, overlay = false } = {}) {
     try { await regenKey(); setNotes({ saved: false }); paintKey(); toast('A NEW KEY — THE OLD ONE NO LONGER WORKS', 'ok'); } catch (err) { toast(err.message || 'COULDN’T REACH THE SERVER', 'err'); }
   }
 
-  // ---------------------------------------------------------------- EDIT PROFILE (a sheet: NAME › · COLOUR › — each its own step)
-  function openEditProfile() {
-    const nameV = h('span.pf-er-v'), colV = h('span.pf-er-v');
-    const paint = () => { const q = loadProfile() || {}; nameV.textContent = q.name || '—'; colV.replaceChildren(h('i.pf-er-sw', { style: { '--c': colorHex(q.color) } }), String(q.color || '').toUpperCase()); };
-    const sheet = openPfSheet({ kicker: 'YOUR PROFILE', title: 'EDIT PROFILE', cls: 'pf-edit-sheet', body: [
-      h('button.pf-acc-row.pf-er.pf-er-name', { type: 'button', onclick: () => openNameEditor(paint) }, h('b', 'NAME'), nameV, h('i.pf-er-go', '›')),
-      h('button.pf-acc-row.pf-er.pf-er-colour', { type: 'button', onclick: () => openColourEditor(paint) }, h('b', 'COLOUR'), colV, h('i.pf-er-go', '›')),
-      h('p.pfs-note', 'Your emblem changes in CUSTOMIZE YOUR CARD.')] });
-    paint();
-    return sheet;
-  }
+  // ---------------------------------------------------------------- EDIT PROFILE — the NAME ✎ + COLOUR ✎ rows (ACCOUNT's top) + the card's ✎ open these
   function saveLocal(patch) {
     const q = { ...(loadProfile() || {}), ...patch };
     saveProfile(q);
     sfx('lock');
+    paintEdit();
+    // (in a room: your name + colour in the line follow at once — LOBBY FIXES: the editor is in the room's profile too now)
+    if (state.code) import('../room.js').then(m => m.updateMyProfile(q)).catch(() => {});
     // (the global profile follows — renames: once a day — then the page repaints from the server)
     import('../profile/me.js').then(m => m.syncMe()).then(() => { if (!destroyed) load(); }).catch(() => {});
   }
@@ -262,7 +287,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
   function paintLocal() {
     // (PERF-A — FR5 E1: a cached profile made for ANOTHER login is never painted as the member)
     const m0 = loadMe(), m = m0 && m0.uid === state.uid ? m0 : null;
-    if (!data) els.card.replaceChildren(memberCard(m && m.profile, loadProfile() || {}, m && m.profile ? m.profile.x : 0, { onFlame: () => openStreakCard(null) }));
+    if (!data) { els.card.replaceChildren(memberCard(m && m.profile, loadProfile() || {}, m && m.profile ? m.profile.x : 0, { onFlame: () => openStreakCard(null) })); addPen(els.card); }
     paintWhy(m0);
   }
   /** PERF-A — THE CARD SAYS WHY (the Oct 31 scare: a blank card that looked like a wiped account): the key offer (a new profile was made
@@ -335,6 +360,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     const n = ++paintN;
     if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
     els.card.replaceChildren(memberCard(data.profile, loadProfile() || {}, data.stats.xp, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
+    addPen(els.card);
     els.cz.replaceChildren(customizeBar(data, { name: data.profile.n || (loadProfile() || {}).name || '', onWear: wear }));
     const p = data.profile || {}, cd = p.cd;
     if (!cd || cd === 'card-gilded') return;
@@ -343,6 +369,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
       const L = levelOf(data.stats.xp || p.x || 0);
       const who = { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: memberLabel(p.mn), fd: !!p.fd, shape: p.es, tube: p.tb, glow: p.g, spotted: data.stats.it && data.stats.it[cd] };
       fullMounted = F.mountFullCard(els.card, cd, who);
+      addPen(fullMounted.el);
       // (the hero: a tap opens the full card's own animated view — it scrolls away like any panel; only on-screen art moves)
       fullMounted.el.classList.add('pf-hero'); fullMounted.el.setAttribute('role', 'button'); fullMounted.el.tabIndex = 0;
       const open = () => F.openFullCard(cd, who);

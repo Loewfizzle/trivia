@@ -3,7 +3,7 @@
 //   oneseat  — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM on THREE slots sharing one profile: the second device asked (CANCEL keeps it out,
 //              MOVE HERE takes the seat + the first walks out), a third hosting another room takes it from the second
 // ADDING A GROUP: G('name', …) here + the name in ../harbor-jobs.mjs (CI_JOBS.lobbyfix).
-import { log, sleep, ok, open, ev, waitFor, harborUp, dbPut, G, OUT, SHOTS, NIGHT } from './kit.mjs';
+import { log, sleep, ok, open, ev, waitFor, harborUp, dbPut, G, OUT, SHOTS, NIGHT, BASE } from './kit.mjs';
 import { dbPatch, dbGet, ROOMQ, hostRoom, joinRoom, settledRoom, topAt, fakeGuests, startOC, onTitle, podium } from './lobby2.mjs';
 
 /** this slot's profile record (me.js) once the server has linked it */
@@ -292,4 +292,56 @@ G('newstart', async () => {
   const clock = await ev(p, '({ s: window.__arcade.state.game.phaseStartAt, go: window.__arcade.state.meta.go.at })');
   ok(Math.abs(clock.s - clock.go - 3000) < 400, `…the game's own clock starts after the quick start (the tap + ${clock.s - clock.go} ms)`);
   await A.ctx.close(); await B.ctx.close();
+});
+
+// THE NAME PLATE COVERS ITS WIDEST LINE (the owner, Nov 4 2:58 pm: "THE DEVELOPER · Nº 0001" ran past the plate, sized to the name): on every
+// full card + every strip, the longest name + the dev line / LV 100 · HOST stay INSIDE the plate (the stepped plate's lower row too) at 390 / 402 / 430
+const plateMiss = (p, sel) => ev(p, `(() => { const out = [];
+  for (const pl of document.querySelectorAll('${sel}')) { const P = pl.getBoundingClientRect(), card = pl.closest('[data-card]').dataset.card;
+    const lines = [...pl.querySelectorAll('.vl-fc-name, .vl-fc-lv, .vl-name, .vl-lv')];
+    for (const l of lines) { const r = document.createRange(); r.selectNodeContents(l); const b = r.getBoundingClientRect(); if (b.right > P.right - 1 || b.left < P.left) out.push(card + ' ' + l.className.split(' ')[0] + ' ' + Math.round(b.right - P.right)); }
+    // (the stepped plate: its lower row reaches past the level line)
+    const cp = pl.style.clipPath, lv = pl.querySelector('.vl-lv'); if (cp && lv) { const m = /L (-?[\\d.]+) (-?[\\d.]+) A [\\d.]+ [\\d.]+ 0 0 0 (-?[\\d.]+)/.exec(cp); if (m) { const x2 = +m[3], r = document.createRange(); r.selectNodeContents(lv); if (r.getBoundingClientRect().right - P.left > x2 - 2) out.push(card + ' step ' + Math.round(r.getBoundingClientRect().right - P.left - x2)); } } }
+  return out; })()`);
+G('platefit', async () => {
+  for (const w of [390, 402, 430]) {
+    const Q = await open({ slot: `pf${w}`, view: [w, 900], wait: false, city: false }), p = Q.page;
+    for (const [qs, what] of [['name=WWWWWWWWWWWW&lv=100', 'the widest name + LV 100'], ['name=LOEWFIZZLE&lv=9', 'LOEWFIZZLE'], ['name=WWWWWWWWWWWW&lv=100&host=1&only=strip', 'LV 100 · HOST']]) {
+      await p.goto(`${BASE}/tests/integration/plate-preview.html?${qs}`);
+      await waitFor(p, 'window.__ready', 'the preview', 15000); await sleep(700);
+      const miss = [...(await plateMiss(p, '.vl-fc-plate')), ...(await plateMiss(p, '.vl-plate'))];
+      const n = await ev(p, "document.querySelectorAll('.vl-fc-plate, .vl-plate').length");
+      ok(n > 40 && !miss.length, `THE PLATE COVERS ITS WIDEST LINE at ${w} — ${what}: ${n} plates (full cards + strips, the dev line incl.)${miss.length ? ` — PAST: ${miss.slice(0, 8).join(', ')}` : ''}`);
+    }
+    if (SHOTS) { await p.goto(`${BASE}/tests/integration/plate-preview.html?name=LOEWFIZZLE&lv=9&cards=card-dev-source,card-dev-switchboard,card-founder`); await waitFor(p, 'window.__ready', 'p', 15000); await sleep(900); await p.screenshot({ path: `${OUT}platefit-${w}.png`, fullPage: true }); }
+    await Q.ctx.close();
+  }
+});
+
+// THE YOU PAGE ON A DESKTOP (a slim visible scrollbar, the WHEEL anywhere on the page + a mouse DRAG scroll it) + EDIT PROFILE's two rows at
+// ACCOUNT's top IN A ROOM too (they were missing from the room's profile) — 1440 × 900 + the phone (402: unchanged, no bar)
+G('youpage', async () => {
+  for (const [view, slot] of [[[1440, 900], 'ypd'], [[402, 874], 'ypp']]) {
+    const desk = view[0] > 1000;
+    const { Q, p } = await hostRoom(slot, view);
+    await ev(p, "(() => { const b = document.querySelector('.rdk-you'); if (b) b.click(); return 1; })()");
+    await waitFor(p, "!!document.querySelector('.pf-overlay .pf-scroll .pf-account')", 'the YOU page over the room', 10000);
+    await sleep(900);
+    const r = await ev(p, `(() => { const sc = document.querySelector('.pf-overlay .pf-scroll'), acc = sc.querySelector('.pf-account'), kids = [...acc.children].filter(k => k.tagName !== 'H3'), R = sc.getBoundingClientRect();
+      return { sbw: getComputedStyle(sc).scrollbarWidth, bar: sc.offsetWidth - sc.clientWidth, w: Math.round(R.width), name: !!(kids[0] && kids[0].classList.contains('pf-er-name')), colour: !!(kids[1] && kids[1].classList.contains('pf-er-colour')), max: sc.scrollHeight - sc.clientHeight }; })()`);
+    ok(r.name && r.colour, `EDIT PROFILE in a ROOM's profile (${view[0]}): NAME ✎ + COLOUR ✎ — the top of ACCOUNT`);
+    if (desk) {
+      ok(r.sbw === 'thin' && r.w >= view[0] - 40 && r.max > 200, `THE YOU PAGE ON A DESKTOP: the whole width scrolls (${r.w} pt) with a slim visible scrollbar (scrollbar-width ${r.sbw}; headless Chromium draws none)`);
+      await p.mouse.move(120, 500); await p.mouse.wheel({ deltaY: 500 }); await sleep(600);
+      const t1 = await ev(p, "document.querySelector('.pf-overlay .pf-scroll').scrollTop");
+      await p.mouse.move(view[0] - 160, 700); await p.mouse.down(); await p.mouse.move(view[0] - 160, 600, { steps: 6 }); await p.mouse.move(view[0] - 160, 450, { steps: 6 }); await p.mouse.up(); await sleep(300);
+      const t2 = await ev(p, "document.querySelector('.pf-overlay .pf-scroll').scrollTop");
+      ok(t1 > 100 && t2 > t1 + 100, `…the mouse WHEEL at the page's side scrolls it (${Math.round(t1)} pt) and a click-DRAG too (${Math.round(t2)} pt)`);
+      if (SHOTS) await p.screenshot({ path: `${OUT}youpage-1440.png` });
+    } else {
+      ok(r.sbw === 'none', `…the PHONE's YOU page unchanged (no visible bar: ${r.sbw})`);
+      if (SHOTS) { await ev(p, "document.querySelector('.pf-overlay .pf-account').scrollIntoView()"); await sleep(400); await p.screenshot({ path: `${OUT}youpage-402.png` }); }
+    }
+    await Q.ctx.close();
+  }
 });

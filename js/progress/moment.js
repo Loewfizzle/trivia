@@ -2,8 +2,8 @@
 // opens over the podium once THIS phone's result is back (every phone its own; /api down = it never opens — the podium is as before), and
 // CONTINUE goes back to the podium (REMATCH / LOBBY as today). ~4–5 s, a tap anywhere skips to its end; reduced motion = the end, still:
 //   the placement lands → the XP lines count up one by one (xp-tick) → the total punches in (xp-total) → the level bar fills (what you had
-//   plain gold, what you just earned in hot-pink neon) → a LEVEL-UP flips the medal (medal-flip + level-up) + a burst, its unlocks shown →
-//   the streak flame flickers on (flame-on) + today's dot lights → "SOMETHING NEW AT LEVEL 25" (WHEN, never WHAT) → an achievement slides in
+//   a dimmer pink tube, what you just earned the bright pink tube — LOBBY FIXES: the profile's tube, no gold) → a LEVEL-UP flips the medal (medal-flip + level-up) + a burst, its unlocks shown →
+//   the streak flame flickers on (flame-on) + today's dot lights → "NEXT UNLOCK AT LEVEL 25" (WHEN, never WHAT) → an achievement slides in
 //   (achievement). Only transform + opacity move (60 fps).
 import { h, vibrate } from '../ui/dom.js';
 import { GAMES } from '../config.js';
@@ -85,7 +85,9 @@ export async function openMoment(o, ctx = {}) {
       // (the line only when there's news — won back, a freeze used; otherwise the dots say it: today's lights up)
       h('span', o.sev && o.sev.restored ? 'Won back — the run is yours again' : o.sev && o.sev.frozen && o.sev.frozen.length ? 'A freeze covered the night you missed' : ''),
       h('span.pg-dots', ...sv.week.map(d => h('i', { class: `is-${d.s}`, title: d.day }, DOW[d.wd]))))) : null;
-  const teaseRow = tease ? h('div.pg-box.pg-tease', h('b', `SOMETHING NEW AT LEVEL ${tease}`)) : null;
+  // (LOBBY FIXES — the owner, Nov 4 2:31 pm: "NEXT UNLOCK AT LEVEL 9". WHAT it is never shows: an item's name reaches only its owner —
+  //  THE VAULT 1B's rule, tests/vault-names.test.mjs — so the line alone)
+  const teaseRow = tease ? h('div.pg-box.pg-tease', h('b', `NEXT UNLOCK AT LEVEL ${tease}`)) : null;
   const achRows = ach.map(a => h('div.pg-box.pg-ach', { dataset: { id: a.id } },
     itemSwatch(a.item, ctx.name),
     h('div', h('small', 'ACHIEVEMENT'), h('b', a.name), h('span', a.line), h('em.pg-pct', { dataset: { a: a.id } }))));
@@ -105,7 +107,7 @@ export async function openMoment(o, ctx = {}) {
     h('p.pg-sub', pl.sub),
     h('div.pg-lines', ...lines.map(l => l.row)),
     h('div.pg-total', h('span', 'TOTAL'), total),
-    h('div.pg-lv', md, h('div.pg-lv-main', h('div.pg-lv-top', lvlName, lvlNeed), h('div.pg-bar', had, got), band)),
+    h('div.pg-lv', md, h('div.pg-lv-main', h('div.pg-lv-top', lvlName, lvlNeed), h('div.pg-bar.pg-bar-tube.pg-bar-mo', had, got), band)),
     h('div.pg-extras', streakRow, teaseRow, ...unlockRows, ...achRows, moreRow),
     cont);
   const burst = h('div.pg-burst', { 'aria-hidden': 'true' }, ...Array.from({ length: 22 }, (_, i) => h('i', { style: { '--a': `${(360 / 22) * i + (i % 3) * 5}deg`, '--d': `${70 + (i % 4) * 26}px`, '--s': `${0.5 + (i % 3) * 0.3}` } })));

@@ -79,6 +79,28 @@ export function fitTop(top) {
   return top;
 }
 
+// LOBBY FIXES — THE PLATE COVERS ITS WIDEST LINE (the owner, Nov 4 2:58 pm: "THE DEVELOPER · Nº 0001" ran past the plate — it was sized to
+// the name, and the plate's own max-width cut the subtitle's room). The name still fits itself (ui/fit.js); the plate's second line (the
+// level / the dev line) sets the plate's floor: its words' real width + the emblem + the paddings, as a min-width (which beats the cap).
+// ONE shared ResizeObserver, when a line's size changes (the fonts in) — never a layout read in a frame loop.
+let coverRO = null;
+function coverWidest(plate) {
+  if (typeof ResizeObserver === 'undefined') return;
+  if (!coverRO) coverRO = new ResizeObserver(es => { for (const e of es) { const pl = e.target.closest('.vl-fc-plate'); if (pl) layCover(pl); } });
+  const lv = plate.querySelector('.vl-fc-lv'); if (lv) coverRO.observe(lv);
+  coverRO.observe(plate);
+}
+function layCover(plate) {
+  const lv = plate.querySelector('.vl-fc-lv'), who = plate.querySelector('.vl-fc-who'), emb = plate.querySelector('.vl-fc-emb');
+  if (!lv || !who || !plate.isConnected) return;
+  const r = document.createRange(); r.selectNodeContents(lv);
+  const need = Math.ceil(r.getBoundingClientRect().width) + 1;
+  if (Math.abs((parseFloat(who.style.minWidth) || 0) - need) > 0.5) who.style.minWidth = `${need}px`;
+  const cs = getComputedStyle(plate), full = Math.ceil(parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight) + (emb ? emb.offsetWidth : 0) + (parseFloat(cs.columnGap) || 0) + need + 2);
+  const cur = parseFloat(plate.style.minWidth) || 0;
+  if (full > plate.offsetWidth + 0.5 || (cur && Math.abs(cur - full) > 0.5)) plate.style.minWidth = `${full}px`;
+}
+
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const look = LOOKS[card] || LOOKS['card-brushed'], t = tier || tierOf(card), lv = who.lv || 1;
   const sighting = /^card-sg-/.test(card);
@@ -87,6 +109,7 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)
     h('span.vl-fc-emb', emblemEl({ id: hasArt(who.shape) ? who.shape : null, avatar: who.avatar || 'bolt', color: who.color || 'magenta', tube: who.tube, mode: prominence(t, embTier(hasArt(who.shape) ? who.shape : null)) })),
     h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', isDevCard(card) ? `THE DEVELOPER · № ${who.no || '0001'}` : `${bandOf(lv).name} · LV ${lv}`)));
+  coverWidest(plate);
   const dev = isDevCard(card), badge = badgeOf(card);
   const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),

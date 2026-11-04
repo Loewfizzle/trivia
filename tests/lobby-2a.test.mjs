@@ -83,8 +83,9 @@ test('THE PROFILE POLISH: only ‹ BACK + the music mute; the page order; NOT YE
   assert.match(sp, /h\('b', 'USE THIS CARD ON ANOTHER DEVICE'\)/); assert.match(sp, /h\('b', h\('i\.pf-key-ic'.*'RESTORE YOUR ACCOUNT'\)/);   // (LOBBY 2.0 B: + its key icon)
   assert.match(sp, /button\.pf-gb\.pf-gb-sm\.is-danger\.pf-newkey/); assert.match(sp, /'TAP AGAIN — THE OLD KEY STOPS WORKING'/);
   // EDIT PROFILE: NAME › + COLOUR › real rows, each its own sheet (back = one step)
-  assert.match(sp, /pf-er-name', \{ type: 'button', onclick: \(\) => openNameEditor\(paint\) \}/);
-  assert.match(sp, /pf-er-colour', \{ type: 'button', onclick: \(\) => openColourEditor\(paint\) \}/);
+  // (LOBBY FIXES: the two rows sit at ACCOUNT's top themselves, showing the current values — no Edit profile sheet in between)
+  assert.match(sp, /pf-er-name\.pf-edit', \{ type: 'button', 'aria-label': 'Edit your name', onclick: \(\) => openNameEditor\(paintEdit\) \}/);
+  assert.match(sp, /pf-er-colour', \{ type: 'button', 'aria-label': 'Edit your colour', onclick: \(\) => openColourEditor\(paintEdit\) \}/);
   assert.match(sp, /'This name shows on the public board — don’t use your full real name\.'/);
   const sh = read('js/profile/sheets.js');
   assert.match(sh, /back\.addEventListener\('click', close\)/); assert.match(sh, /stack\[stack\.length - 1\]\.close\(\)/, 'Esc closes the TOP sheet only');
