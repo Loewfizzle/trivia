@@ -10,6 +10,8 @@ import { dbPatch, dbGet, ROOMQ, hostRoom, joinRoom, settledRoom, topAt, fakeGues
 const meOf = async (p, slot) => { await waitFor(p, `(() => { try { const m = JSON.parse(localStorage.getItem('na:${slot}:me') || 'null'); return !!(m && m.pid); } catch { return false; } })()`, `${slot}'s profile`, 20000); return ev(p, `JSON.parse(localStorage.getItem('na:${slot}:me'))`); };
 /** this slot takes the given profile (as BRING YOUR CARD would): the device link on the server + the record on the phone */
 async function shareProfile(p, slot, me) {
+  // (the device's OWN profile link lands first — on a slow runner its sync finished AFTER the swap and put its own card back: no question)
+  await meOf(p, slot).catch(() => {}); await sleep(400);
   const uid = await ev(p, 'window.__arcade.state.uid');
   await dbPatch('uids', { [uid]: me.pid });
   await ev(p, `localStorage.setItem('na:${slot}:me', JSON.stringify(${JSON.stringify({ ...me, uid: '__UID__' })}).replace('__UID__', '${uid}'))`);

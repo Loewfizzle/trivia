@@ -148,4 +148,8 @@ their fix: leavewave (1 of 179 frames lying down; the grace at 0), bannerfull (0
   too). The rule now also keys on width (`min-width: 900px` — any wide screen; the phones, incl. a phone sideways at 844, unchanged). `tests` red:
   `tests/lobby-fixes.test.mjs` imported `api/report.js`, which pulls `firebase-admin` (not installed in the unit job) — `dedupePids` moved to the
   PURE `js/core/progress.js`.
-- **Run 2**: see the summary.
+- **Run 2** (1483e79): `tests` **GREEN**; harbor **12 / 14** — both reds in groups green in run 1 that run 2's change (one media query, one
+  function moved) doesn't touch: `oneseat` — a race in the TEST (the second device's own profile sync landed after the test swapped in the shared
+  card → no question; it now waits for the device's own link first — green locally) and `audio`'s `vault` "GLOWS + TUBES" (2 of 42 names
+  overflowing — a font-timing flake; green in run 1, in the local full run and re-run alone). The two-run cap: no third run; the test fix pushed
+  untagged.
