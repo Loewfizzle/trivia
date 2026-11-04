@@ -32,3 +32,15 @@ Deep-dive for the room chat: data, locks per game, system lines, profanity filte
   Text is always `textContent` (never HTML); links are plain text. Unread per device: `localStorage na:chat:read:{code}`.
 - **Sound:** `sfx('chat')` + a 6 ms vibration for others' lines, only when the sheet is closed, not locked, tab visible.
 
+
+## LOBBY 2.0 A — TYPING BUBBLES, THE CHAT KEYBOARD, QUICK REPLIES (Nov 3 2026 — docs/harbor/passes/lobby-2a.md)
+- **TYPING BUBBLES** (the room in the city — `screens/room-city.js#paintBubbles`): a guest typing → a white "…" bubble (three dots, NO words)
+  over their figure on every other phone, from `chats/{code}/typing/{uid}` (≤ 6 s fresh); gone when they stop or send. Full speech bubbles
+  stay postponed (the owner).
+- **THE CHAT KEYBOARD** (`chat/ui.js` + `css/chat.css`): the sheet keeps ONE size — `clamp(360px, 52dvh, 480px)`, which fits above an iPhone
+  keyboard — and SLIDES UP as one piece: `--lift` (the keyboard's height from the visual viewport, minus the safe area) in a transform; never
+  a resize, nothing behind it squeezes; the list stays on the newest; the swipe-down moves `--drag`. Only a keyboard taller than the room above
+  it caps the height (`max-height` from `--vh`). The test hook stays (`window.__fakeVV` + `__chatLayout()`).
+- **QUICK-REPLY CHIPS** above the field: `QUICK` = GG · NO WAY · REMATCH? · 🔥 · 😂 · 👏 (one tap sends — the same rules + the one-a-second rate);
+  a game adds its own while it runs: `setGameChips(['NICE ROLL', …])` (≤ 4, ≤ 24 characters; `[]` clears) — THE CARTRIDGE PLUG.
+- The room dock's CHAT opens the sheet; its pink dot = `chat.unread`.

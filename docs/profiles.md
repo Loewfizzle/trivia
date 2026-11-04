@@ -132,7 +132,17 @@ REGULAR in the first evening, INSIDER after a few, LEGEND after 40+ evenings (mo
 - **Sounds** (`js/board/audio.js`, SFX bus): tab, rows, pb (bell triad), top10 (rising flourish), first (short brass fanfare over a
   timpani), forge (swell → anvil strike in inharmonic partials → a bloom). THE BOARD and the card play the time-of-day MOOD MUSIC (CLASSIC setting: menu3.mp3 / menu.mp3).
 
-### THE BOARD's PUBLIC NAMES (BNAME, Oct 28 2026 — a privacy fix)
+### REAL USERNAMES (LOBBY 2.0 A, Nov 3 2026 — the owner: "why would I want a scoreboard of random names?" — supersedes BNAME below)
+A public row (`/api/board`, its CDN copy, `/board`, the title's preview) = `{ id (the opaque board id), n (the USERNAME), a, c, r, l, rank, v }`
+— `api/_lib/lb.js#publicRow`; never the profile id, the key or the tag's digits. A name the filter calls rude (`core/names.js#isOffensive`)
+shows as its HOUSE NICKNAME (`publicName` — the old BNAME names, kept for this). A rename shows on every board at once (the rows are joined
+with the profile). Safety: the board-name filter, REPORT NAME (anyone), /admin's rename + hide; the sign-up line "This name shows on the public
+board — don't use your full real name." (the setup screen + the profile's NAME editor). **THE REPORT PUSH**: a REPORT → the owner's phones (THE
+LEDGER's Web Push — `api/board.js#flagRow` → `radio.js#notifyOwner`): "Name reported: <name> — a rude or personal name" / "Score reported …" →
+`/admin#reports` (scrolled to Board reports); the reports' own limits + one push a row an hour (`flags/{id}/pushedAt`). The tests prove only the
+username + the board id leave the server (server.test.mjs).
+
+### THE BOARD's PUBLIC NAMES (BNAME, Oct 28 2026 — a privacy fix; SUPERSEDED by REAL USERNAMES above)
 - **The rule:** no public response (`GET /api/board`, the CDN's cached copy, `/board`, the title's top-3 preview) carries another
   player's TYPED name or profile id. A row is `{ id, n, t, a, c, r, rank, v }`: `id` = the **board id** — `HMAC-SHA256(pepper,
   'board:' + pid)`, 16 hex (`api/_lib/lb.js#boardId`; not reversible without the server's pepper, so a row can't be looked up);
@@ -271,3 +281,22 @@ ACCOUNT** — Edit profile (the name + the colour) · YOUR KEY (save it · use i
 set; then ONE line "Birthday · Mar 4 — change again in Oct" — `progress/extras.js#birthdayRow`) · the opt-out. **No BOARD button** — the dock's
 trophy has THE BOARD. **LESS GOLD**: the profile's panels are faint dark glass (`.pg-prof .pg-panel`); gold only for the section headers, your
 card's frame, CUSTOMIZE YOUR CARD + the level bar; hot pink = the end of round's "just earned" + the X% line.
+
+## THE PROFILE POLISH (LOBBY 2.0 A — the owner's 2C review; supersedes THE PROFILE's ORDER above where they differ)
+- The header: only ‹ BACK + the corner's music mute (`body.pf-on` hides ☰; no MEMBERSHIP title).
+- The page: the full card + CUSTOMIZE YOUR CARD (the one gold button) · LEVEL (the hot-pink neon tube; the streak as a slim row → the streak
+  card) · THE GOAL TILE (neon cyan: the goal big, a thick tube bar + n / N, the reward chip, CLAIMED ✓) · STATS · the latest 3 trophies (NEW ≤ 48 h)
+  + ALL ACHIEVEMENTS · N › (THE TROPHY CASE sheet) · the latest 3 sightings + ALL › · MASTERY (a tile a playable game → its record in a sheet) ·
+  ACCOUNT. NOT YET PLAYED removed.
+- ACCOUNT: Edit profile › (a sheet: NAME › · COLOUR › — each its own sheet) · the birthday · YOUR KEY once (masked, COPY · SHARE, the saved line)
+  · USE THIS CARD ON ANOTHER DEVICE + RESTORE YOUR ACCOUNT (two big glass buttons; RESTORE = a sheet) · the opt-out · NEW KEY small, red-edged,
+  a second tap.
+- The pop-ups (`js/profile/sheets.js`): a stack — ‹ BACK, a swipe down, the scrim or Esc close the TOP sheet only. One button system: every
+  button but CUSTOMIZE is NEON GLASS (`.pf-gb`).
+- **THE WEEKLY GOAL** reads only the games a player can start (`core/boards.js#GOAL_GAMES` — the server + the phone): 18 of 52 weeks had asked
+  for a hidden game or 5 different games.
+- **THE SAVE-YOUR-KEY POP-UP** (`js/profile/keypop.js`, the decision `js/core/keypop.js`): a key not marked saved + ≥ 1 counted match → once
+  (their card, "Save your key so you never lose your card", COPY · SHARE · LATER); a returning player on the city after the reveal, a new
+  player right after their first counted match; LATER / closed = never again + a pink dot on YOU until saved; never over a game, the moment,
+  a sheet or a legendary. Replaces the 3rd / 10th-match reminder. Notes: `pnotes.kp` ('shown' | 'later'), `pnotes.saved`.
+- The look preview of the REAL page: `tests/integration/profile-preview.html`.

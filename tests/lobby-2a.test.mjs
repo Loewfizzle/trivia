@@ -13,6 +13,12 @@ import { GOAL_GAMES, BOARD_GAMES } from '../js/core/boards.js';
 import { GAMES } from '../js/config.js';
 import { weekKey } from '../js/core/week.js';
 
+import { roomSlots, roomRects, ROOM } from '../js/core/harbor-room.js';
+import { roomOrder, pickLine } from '../js/core/room-lines.js';
+import { cameraFor, harborLayout } from '../js/core/harbor-layout.js';
+import { keyPopDecide } from '../js/core/keypop.js';
+import { statSync } from 'node:fs';
+
 const read = f => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 
 test('CENTURY: NO FLAMES — the bronze deco sunburst + embers (INFERNO keeps the fire); v3 + its CHANGED lines; no two cards share a main motif', () => {
@@ -131,4 +137,84 @@ test('THE BILLBOARD CROSS-FADES (opacity only; reduced motion a quick fade; noth
   assert.ok(existsSync(new URL('../scripts/busy-pc.mjs', import.meta.url)));
   assert.match(read('scripts/busy-pc.mjs'), /os\.cpus\(\)/);
   assert.ok(readdirSync(new URL('./integration/harbor-e2e/', import.meta.url)).includes('lobby.mjs'));
+});
+
+// ---------------------------------------------------------------- Groups 1–3 + the ADD-ON
+
+test('THE ROOM IN THE CITY — TWO LINES OF 4 at the door (the real numbers at 390 / 402 / 430): the left in front of the barbershop, the right clear of the compass + the cart, on the walkable floor', () => {
+  for (const [W, H] of [[390, 844], [402, 874], [430, 932]]) {
+    const cam = cameraFor(W, H, { dock: { x: 14, y: H - 116, w: W - 28, h: 76 } }, { top: 62, bottom: 34 }), L = harborLayout(cam), S = roomSlots(L), s = L.speakeasy;
+    const poleX = s.x0 + s.shop.pole.u, doorL = s.x0 + s.door.u0, doorR = s.x0 + s.door.u1, m = L.medallion, c = L.cart;
+    const left = Object.values(S).filter(x => x.side === 'left'), right = Object.values(S).filter(x => x.side === 'right');
+    assert.equal(left.length, 4); assert.equal(right.length, 4);
+    assert.ok(left.every(x => x.x < poleX && x.x < doorL), `${W}: the left line in front of the barbershop, from the pole back`);
+    assert.ok(right.every(x => x.x > doorR + 0.9), `${W}: the right line right of the door (the doorman's spot clear)`);
+    for (const x of right) assert.ok(Math.hypot(x.x - m.x, x.z - m.z) > (m.r || 1.8) + 0.6, `${W}: ${x.id} clear of the compass`);
+    for (const x of Object.values(S)) assert.ok(Math.hypot(x.x - c.x, x.z - c.z) > 3, `${W}: ${x.id} clear of the cart`);
+    for (const x of Object.values(S)) assert.ok(x.z > 38.75 && x.z < 44, `${W}: ${x.id} on the walkable floor`);
+    const xEdge = z => (16 - cam.VPX) * z / cam.F;
+    assert.ok(left.every(x => x.x - 0.3 > xEdge(x.z)), `${W}: the left line's back on screen`);
+    assert.equal(roomRects(L).length, 2, 'two solids');
+  }
+  assert.ok(ROOM.gapL >= 1.2 && ROOM.gapR >= 1.1, 'room for an emblem over each head (~16–17 pt apart)');
+});
+
+test('WHO STANDS WHERE: the host first by the door; each keeps their line (ln, picked once: the shorter line); a leave = step up in THEIR line; no ln = taking turns; at most 4 a line', () => {
+  const P = { h: { joinedAt: 1, ln: 'L' }, a: { joinedAt: 2, ln: 'R' }, b: { joinedAt: 3, ln: 'L' }, c: { joinedAt: 4, ln: 'R' } };
+  assert.deepEqual(roomOrder(P, 'h').map(o => o.slot), ['L0', 'R0', 'L1', 'R1']);
+  const { a, ...noA } = P; void a;
+  assert.deepEqual(Object.fromEntries(roomOrder(noA, 'h').map(o => [o.uid, o.slot])), { h: 'L0', b: 'L1', c: 'R0' }, 'c steps up in the right line — b never crosses');
+  assert.deepEqual(roomOrder({ x: { joinedAt: 1 }, y: { joinedAt: 2 }, z: { joinedAt: 3 } }, 'x').map(o => o.slot), ['L0', 'R0', 'L1'], 'no ln: the shorter line at each turn');
+  assert.equal(pickLine({}, 'me'), 'L', 'the first in an empty room (the host): the left');
+  assert.equal(pickLine({ h: { joinedAt: 1, ln: 'L' } }, 'me'), 'R');
+  assert.equal(pickLine({ h: { joinedAt: 1, ln: 'L' }, a: { joinedAt: 2, ln: 'R' } }, 'me'), 'L', 'a tie → the left (L0, R0, L1, R1 …)');
+  const full = Object.fromEntries([...'abcdefgh'].map((u, i) => [u, { joinedAt: i, ln: 'L' }]));
+  const o = roomOrder(full, 'a'); assert.equal(o.filter(x => x.side === 'left').length, 4, 'a full line sends the rest across'); assert.equal(o.length, 8);
+  assert.match(read('js/room.js'), /set\(dbRef\(`\$\{R\(code\)\}\/players\/\$\{state\.uid\}\/ln`\), ln\)\.catch\(\(\) => \{\}\);/, 'a separate write — a join never depends on it');
+  assert.match(read('database.rules.json'), /"ln": \{\s*"\.validate": "newData\.isString\(\) && \(newData\.val\(\) === 'L' \|\| newData\.val\(\) === 'R'\)"/);
+});
+
+test('THE ROOM IN THE CITY — the wiring: City 2.0 rooms stay on the title (the city never reloads; a refresh waits for the module); the room dock; the tags + the ring; the lying pose; the sounds', () => {
+  const app = read('js/app.js');
+  assert.match(app, /if \(isCity2\(\)\) return harborPending\(\) \? 'boot' : 'title';/);
+  const t = read('js/screens/title.js');
+  assert.match(t, /import\('\.\/room-city\.js'\)/); assert.match(t, /if \(roomUi\) \{ armIdle\(\); return; \}/, 'the dock stays up in a room');
+  const d = read('js/screens/room-dock.js');
+  for (const w of ["'INVITE'", "'YOU'", "'GUESTS'", "'GAMES'", "'CHAT'", "'PLAY'", "'WAITING'"]) assert.ok(d.includes(w), w);
+  assert.match(d, /createDock\(/, 'THE FLANK restyled — the title dock\'s own markup');
+  const rc = read('js/screens/room-city.js');
+  assert.match(rc, /T\.el\.style\.transform = `translate3d\(/, 'the tags move by transform');
+  assert.match(rc, /el\.addEventListener\('pointerup'/, 'a tap on a figure: pointerdown + pointerup');
+  assert.doesNotMatch(rc, /getBoundingClientRect/, 'no layout reads in the frame loop');
+  const pp = read('js/screens/harbor/people.js');
+  assert.match(pp, /function drawRing\(c, cam, st, col, a = 1\)/); assert.match(pp, /pose: 'lie', lieK: lie/);
+  assert.match(read('js/screens/harbor/folk.js'), /c\.rotate\(\(it\.s\.lieDir \|\| 1\) \* \(Math\.PI \/ 2\) \* lieK\)/);
+  for (const n of ['card-in', 'invite', 'friend']) { const st = statSync(new URL(`../audio/sfx/lb-${n}.mp3`, import.meta.url)); assert.ok(st.size > 1000 && st.size < 40000, `lb-${n}.mp3 small (${st.size} B)`); }
+  assert.match(read('js/audio/lobby-sfx.js'), /if \(!isUnlocked\(\) \|\| !LB_SOUNDS\.includes\(name\)\) return false;/, 'silent works');
+  assert.match(read('js/ui/credits.js'), /855977/);
+});
+
+test('TYPING BUBBLES + THE CHAT FIX: the bubble from the chat\'s typing data (no words); ONE size, slid up by a transform; the quick replies + a game\'s own', () => {
+  const rc = read('js/screens/room-city.js');
+  assert.match(rc, /const on = uid !== st\.uid && ty\[uid\] && now - ty\[uid\] < 6000;/);
+  assert.match(rc, /h\('span\.rc-bubble', \{ 'aria-hidden': 'true' \}, h\('i'\), h\('i'\), h\('i'\)\)/, 'three dots, no text');
+  const css = read('css/chat.css');
+  assert.match(css, /height: clamp\(360px, 52dvh, 480px\);/); assert.match(css, /transform: translateY\(calc\(var\(--drag, 0px\) - var\(--lift\)\)\);/);
+  assert.doesNotMatch(css, /\.chat-sheet\.has-kb \{ height:/, 'no resize on the keyboard');
+  const ui = read('js/chat/ui.js');
+  assert.ok(ui.includes("export const QUICK = Object.freeze(['GG', 'NO WAY', 'REMATCH?', '\u{1F525}', '\u{1F602}', '\u{1F44F}']);"), 'the six quick replies');
+  assert.match(ui, /export function setGameChips\(list\)/);
+});
+
+test('THE SAVE-YOUR-KEY POP-UP (the ADD-ON): once for a key not saved + a counted match; saved → never; LATER → the dot; a new player after match 1', () => {
+  assert.equal(keyPopDecide({ key: 'K', saved: false, kp: null, matches: 2 }), 'show', 'a returning player, not saved');
+  assert.equal(keyPopDecide({ key: 'K', saved: true, kp: null, matches: 9 }), 'none', 'saved → never');
+  assert.equal(keyPopDecide({ key: 'K', saved: false, kp: 'later', matches: 3 }), 'dot', 'LATER → the dot, no pop');
+  assert.equal(keyPopDecide({ key: 'K', saved: false, kp: 'shown', matches: 3 }), 'dot', 'shown once — closing it any way = the dot');
+  assert.equal(keyPopDecide({ key: 'K', saved: false, kp: null, matches: 0 }), 'none', 'a new player before a counted match');
+  assert.equal(keyPopDecide({ key: 'K', saved: false, kp: null, matches: 1 }), 'show', '…right after the first');
+  assert.equal(keyPopDecide({ key: null, saved: false, matches: 5 }), 'none', 'no key on this device');
+  const app = read('js/app.js');
+  assert.match(app, /k\.maybeKeyPop\(\{ why: 'match' \}\)/); assert.doesNotMatch(app, /shouldPromptKey\(\)/, 'the old 3rd / 10th-match reminder retired');
+  assert.match(read('js/profile/keypop.js'), /'\.pg-moment, \.modal:not\(\.out\), \.pfs:not\(\.is-out\)/, 'never over the moment, a sheet');
 });

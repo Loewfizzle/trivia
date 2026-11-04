@@ -14,21 +14,21 @@ export function roomOrder(players = {}, hostId = null) {
   const n = { L: 0, R: 0 }, out = [];
   ids.forEach((uid, rank) => {
     const want = players[uid] && (players[uid].ln === 'L' || players[uid].ln === 'R') ? players[uid].ln : null;
-    let side = want || (rank === 0 ? 'L' : n.R < n.L ? 'R' : n.L < n.R ? 'L' : 'R');
+    let side = want || (n.R < n.L ? 'R' : 'L');   // (the shorter line; a tie → the left: L0, R0, L1, R1 …)
     if (n[side] >= ROOM.perLine) side = side === 'L' ? 'R' : 'L';
     out.push({ uid, rank, slot: `${side}${n[side]}`, side: side === 'L' ? 'left' : 'right' });
     n[side]++;
   });
   return out;
 }
-/** the line a JOINER takes (stored on their own node, once): the shorter of the two as they stand now — a tie → the right (the host's
- *  line is the left: the first player in an empty room takes L) */
+/** the line a JOINER takes (stored on their own node, once): the shorter of the two as they stand now — a tie → the left (the host's
+ *  line: the first player in an empty room takes L) — so the lines grow L0, R0, L1, R1 … from the door */
 export function pickLine(players = {}, uid = null) {
   const others = Object.fromEntries(Object.entries(players || {}).filter(([u]) => u !== uid));
   if (!Object.keys(others).length) return 'L';
   const n = { L: 0, R: 0 };
   for (const o of roomOrder(others, null)) n[o.slot[0]]++;
-  return n.R < n.L ? 'R' : n.L < n.R ? 'L' : 'R';
+  return n.R < n.L ? 'R' : 'L';
 }
 /** a stable small number from a uid (the look's seed, the arrival's own randomness — the same on every phone) */
 export function uidSeed(uid) { let h = 2166136261; for (const ch of String(uid)) { h ^= ch.charCodeAt(0); h = Math.imul(h, 16777619); } return (h >>> 0) % 100000; }

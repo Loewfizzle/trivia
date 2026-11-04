@@ -338,3 +338,18 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   the session 'playback' / 'ambient', back onto a voice once a clock runs); `node audio-resume.mjs "<browser>"` (City 1.0: an OS pause + one
   tap, the watchdog); `node e2e-lobbysong.mjs` (the room's song; its STUCK check fails since before M4 — docs/audio.md#m4 Known issues).
 - MOOD MUSIC: `node --test tests/mood.test.mjs` (boundaries, the bag, the song file) and `node e2e-mood.mjs "<browser>"` (title, mood change at a song's end, CLASSIC, every preview mood, lobby sync + late joiner + host migration, a game's own music, the public board's first tap).
+
+## THE BUSY-PC CHECK (LOBBY 2.0 A — the owner, Nov 3 8:49 pm) — before EVERY full local test run
+`node scripts/busy-pc.mjs [seconds=30] [--limit 30]` samples the machine's real CPU load (all cores) for ~30 s and names the busiest
+processes (Windows). Quiet → carry on. BUSY (the average over the limit) → send Ben a push "Pause Grok — the full test run is next" and wait
+for his go. An idle window (Grok open, doing nothing) doesn't count — it's the load that matters. A failure that only happened on a busy PC is a
+load problem, not a flake to patch.
+
+## LOBBY 2.0 A — the room in the city in the tests
+- The harness (`kit/harness.mjs`), smoke, conn + presence wait for `.lobby-screen, .title-screen.is-room` (a City 2.0 room is the title in room
+  mode); smoke reads the GAMES sheet's games. `e2e-chat.mjs` still drives City 1.0's lobby strip (B moves it).
+- e2e-harbor's NEW `lobby` cloud job: `room` (two phones + a full room, ~2 min), `roomchat`, `keypop`, `roomperf` (the real compositor); the
+  `billboard` group is in `show`. Fake players come straight into the emulator (`rooms/{CODE}/players` + `presence` — PATCH with the owner token).
+- `tests/integration/profile-preview.html` — the REAL profile screen without Firebase (the look work).
+- A local server started BEFORE an `/api` change serves the OLD functions (Node caches the modules) — run a fresh `serve.mjs <port> --emu`
+  and point the suites at it with `E2E_BASE=http://localhost:<port>`.

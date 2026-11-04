@@ -208,6 +208,8 @@ results/{code}_{matchId}: { st: busy|done, at, g, mode, n, src: room|snap, by, r
 audit/{push}:     { at, by (admin pid), act, pid, … }                                                  server only
 flags/{boardId}:  { pid, n, why{score|name: n}, b{board: n}, first, last }  THE BOARD's REPORT (BNAME)      server only
 rooms/{CODE}/players/{uid}/pid: the player's own profile id (rules: must equal uids/{auth.uid})
+rooms/{CODE}/players/{uid}/ln: 'L' | 'R' — LOBBY 2.0 A: the side of the speakeasy's door this player queues on (the room in the city), picked once
+  at the join (core/room-lines.js#pickLine — the shorter line) in a SEPARATE write (a join never depends on it); rules: L or R, your own node
 ```
 
 ## THE CONNECTION (CONN, Oct 28)

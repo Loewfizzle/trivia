@@ -11,12 +11,8 @@ import { loadKey, loadMe } from '../identity.js';
 import { state } from '../store.js';
 import { notes, setNotes } from './me.js';
 
-/** PURE: what this device should do now */
-export function keyPopDecide({ key = null, saved = false, kp = null, matches = 0 } = {}) {
-  if (!key || saved) return 'none';
-  if (kp === 'later' || kp === 'shown') return 'dot';
-  return matches >= 1 ? 'show' : 'none';
-}
+import { keyPopDecide } from '../core/keypop.js';
+export { keyPopDecide };
 const matchesNow = () => { const m = loadMe(), n = notes(); const server = m && m.uid === state.uid && m.profile && typeof m.profile.m === 'number' ? m.profile.m : 0; return Math.max(server, n.games || 0); };
 export const keyPopState = () => { const n = notes(); return keyPopDecide({ key: loadKey(), saved: !!n.saved, kp: n.kp || null, matches: matchesNow() }); };
 

@@ -690,3 +690,16 @@ only on a device the app called an admin** (`localStorage nd:adm` — written by
 secret, the doors still ask the server). Reduced motion = the slot already open. `wd-` classes; the site's fonts + tokens copied in. The in-app
 dead ends (a room that's gone, a stale invite, a full room) already speak in the same tone in the JOIN panel (`screens/title.js#friendly`) —
 not whole screens, so the door isn't reused there. NOT BUILT (optional): an offline variant from the service worker.
+
+## THE ROOM DOCK (LOBBY 2.0 A — `js/screens/room-dock.js`, `room-city.js`; the owner's approved mock lobby-room.png)
+In a City 2.0 room the title STAYS (app.js routes the room's waiting part to it — the city never reloads) and THE FLANK is restyled into the
+room's dock — `createDock`'s own markup, the same rings, glass, tubes + the sign's lighting (`roomLight` copies the title dock's lit state):
+`[ INVITE ring ] [ glass pill: YOU · GUESTS · GAMES · CHAT ] [ PLAY ring ]`. INVITE (the silver-white JOIN ring) = the share sheet (the hush
+word + `?room=` link; the copy fallback) for everyone; PLAY (the hot-pink HOST ring) = the host's PICK A GAME → options → INITIATE (today's
+start); a guest sees it greyed: WAITING FOR <HOST> (two lines; it changes hands with the host). The pill: YOU (your emblem → the profile +
+CUSTOMIZE over the city), GUESTS (gold people + a YELLOW DOT for a new guest since you last opened it — no number), GAMES (the playable
+games), CHAT (the pink bubble + its unread dot); tiny labels under the icons. In a room: the title dock, the JOIN panel, REJOIN + the sub-line
+hidden; the screen-at-rest fade OFF (the dock is the room's controls); a tap on the speakeasy's door only knocks. The notes above the dock: the
+room closing soon (the host's tap = KEEP OPEN), a running match this phone stepped out of (tap = WATCH). The hush word in neon on the
+speakeasy (`scene.hush`) — NO room pill under the logo. The players' tags over their heads: `.rc-tags` (fixed, transform only).
+The SAVE-YOUR-KEY POP-UP's pink dot sits on YOU (both docks) until the key is saved (`profile/keypop.js`).

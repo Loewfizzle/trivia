@@ -4,7 +4,7 @@
 // the doorman stays. The lines are SOLIDS: the city's own people walk round them (core/harbor-people.js#folkMap `line`).
 // WHO STANDS WHERE is derived from the room's data alone (rooms/{CODE}: players + meta.hostId) — every phone draws the same lines; a
 // refresh, a rejoin, a host change or a phone waking up puts everyone straight back in place. THE FILL ORDER (decided here): the host at
-// the front of the LEFT line (L0, by the door); each guest takes the SHORTER line as they join (a tie → the right) — so the lines grow
+// the front of the LEFT line (L0, by the door); each guest takes the SHORTER line as they join (a tie → the left) — so the lines grow
 // evenly from the door (R0, L1, R1, L2 …) — and KEEPS it (players/{uid}/ln, written once at the join); a player arrives from the screen
 // EDGE on their line's side. A player leaving: the ones behind them in THEIR line step up (a short walk forward), never a gap.
 // FEASIBILITY (the real numbers — docs/harbor/passes/lobby-2a.md): left of the pole 4.46–4.57 units to a 16-pt margin at 390–430 →

@@ -1843,6 +1843,16 @@ desktop framing; a phone sideways (the sign smaller, the dock 0.8); THE STANDING
   test emblems (NEON + PRISM bolts, THE PROMINENCE RULE); the pink pair as early level rewards (HEARTBREAKER 4, GLITTER BOMB 8).
 - Measured: 8 legendary strips at 4× CPU = 60 fps on the GPU compositor.
 
+## LOBBY 2.0 A — THE ROOM IN THE CITY + THE ROOM DOCK + THE GUEST LIST + THE PROFILE POLISH (Nov 3 2026) — docs/harbor/passes/lobby-2a.md
+A City 2.0 room's waiting part became the live city: the players as the city's own people in two lines of 4 at the speakeasy's door (the host
+first; each keeps their line — `players/{uid}/ln`), a ring under the feet + their emblem over the head, walking in from the edge, lying down on
+lost signal, waving off; the lines solids; the room dock (THE FLANK restyled — INVITE for all, PLAY host-only / WAITING FOR <HOST>, GUESTS'
+yellow dot, CHAT's dot, YOU); the guest list as slim strips + the join entrance + Grok's three lobby sounds; typing bubbles; the chat sheet one
+size on the keyboard + quick replies. Group 0: CENTURY's bronze deco sunburst, the stepped name plate, FOUNDER's glint, EQUIP not wear, the profile
+polish (only BACK + music, the goal tile, the pink level tube, one key block, pop-ups one step at a time, mastery holds the games), every weekly
+goal possible (the playable games only), real usernames on THE BOARD + the report push, the billboard's cross-fade, the busy-PC check, the two
+old harbor reds (a code fix + a test fix). The ADD-ON: the save-your-key pop-up.
+
 ## THE VAULT 2C — THE POLISH: CUSTOMIZE · THE PROFILE · TROPHIES · TIER GEMS · THE LAB 2.0 · THE WRONG DOOR (Nov 3 2026) — docs/harbor/passes/vault-2c.md, docs/vault.md
 - **The lab's FIX marks**: INFERNO + CENTURY burn with REAL FIRE (a baked noise flipbook — js/fx/fire.js); FOUNDING MEMBER + THE HOUSE's full cards show THE SHADOWBOXER live in the speakeasy's back room (never the retired card game); the dev cards' tag "1 OF 1 · DEV" in bold (the owner's ADD-ON), THE SWITCHBOARD's pink cable up top, NEON centred on THE SOURCE + FOUNDING MEMBER.
 - **THE LAB 2.0**: the ☰ menu's THE LAB (admins only), ‹ THE CITY, "N NEED YOU", 4 sections + 5 filters with counts, ONE ROW PER ITEM with a FULL toggle, versions + dated CHANGED lines, NEW per device, LOBBY TEST's settings sheet.

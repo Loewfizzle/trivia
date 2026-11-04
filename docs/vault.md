@@ -474,3 +474,16 @@ emblem / card / glow / tube change ONLY in CUSTOMIZE; EDIT PROFILE = the name + 
 pinned to its tile (Safari sized the grid item to its text, so the fit never saw the overflow) — shrinks, then two lines.
 
 ### THE PROFILE (docs/profiles.md "THE PROFILE's ORDER") + ACHIEVEMENTS AS TROPHIES (docs/progression.md)
+
+## LOBBY 2.0 A (Nov 3) — CENTURY's sunburst, THE STEPPED PLATE, FOUNDER's glint, EQUIP — passes/lobby-2a.md
+- **CENTURY** (epic, v3 — `js/fx/deco.js`, `fx/index.js#century`): NO FLAMES (the owner: too close to INFERNO) — burnished BRONZE foil + an ART
+  DECO SUNBURST pressed into it from behind the name plate (broad + slender rays, stepped arcs, a sun disc — baked once, one drawImage a frame),
+  a slow LIGHT SWEEP across the metal, golden embers (embers, no bed). **THE MOTIF RULE**: no two cards share a main motif on the strip — the
+  flames are INFERNO's alone (tests/lobby-2a.test.mjs); GOLD FOIL's gold rays (lit in turn at the strip's right foot) are the nearest cousin.
+- **THE STEPPED PLATE** (`strip.js#stepPlate`): the name row full length, the level row past "LV n" by 12 pt then a rounded inner step; the
+  card's own glass clipped (`clip-path: path()`) + an SVG edge line in the plate's own inset colour; ONE ResizeObserver for every plate (never a
+  frame loop); a step < 30 pt → the plate as it was; `.vl-lv` is `align-self: flex-start` (measured by its text).
+- **FOUNDER**: 900 weight, a touch bigger, a glint every ~5 s (`.vl-fc-fd::after`, `.pg-card-fd::after` — transform + opacity).
+- **EQUIP, NOT WEAR**: TAP TO EQUIP · EQUIPPED ✓ · "tap a reward to equip it" (labels, ARIA, the lab's EQUIP THE SAMPLES, the CSS badge).
+- The guest list (`screens/room-guests.js`) is the strips' new home in the room: the calm cut, approved art only, THE JOIN ENTRANCE (a new strip at
+  its full animation for 3.2 s, then calm).

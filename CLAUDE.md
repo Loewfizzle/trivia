@@ -104,10 +104,14 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 - **PROGRESSION (docs/progression.md):** XP, levels, the streak, items, achievements, X% counts + FOUNDER are written by the SERVER only (one
   transaction per match / daily / event through the PURE steps in `core/progress.js`); collections show ONLY what a player owns (no ???, no totals).
   Clients never write boards, stats, XP or ranks (server-only in the rules); board ids use dashes (`cipher-score`), never dots.
-- **THE BOARD shows no typed names (BNAME, Oct 28):** no public response (`/api/board`, its CDN copy, `/board`, the title's preview)
-  carries another player's typed name or profile id — a row is an opaque board id + its HOUSE NICKNAME (`js/core/nicknames.js`); your
-  own row is swapped to your name on your device (`profile.bid`). `profiles/{pid}` is readable one at a time by signed-in users, never
-  as a list. A profile is listed from its 3rd counted match. docs/profiles.md "THE BOARD's PUBLIC NAMES".
+- **THE BOARD shows REAL USERNAMES (LOBBY 2.0 A, Nov 3 — reverses BNAME's house nicknames):** a public row (`/api/board`, its CDN copy,
+  `/board`, the title's preview) = an opaque board id + the player's USERNAME — never a profile id, the key or the tag's digits; a name the
+  filter calls rude shows as its HOUSE NICKNAME (`api/_lib/lb.js#publicName`, `js/core/nicknames.js`); REPORT + /admin's rename / hide stay;
+  a report pushes the owner (`api/board.js` → `radio.js#notifyOwner`). `profiles/{pid}` is readable one at a time by signed-in users, never
+  as a list. A profile is listed from its 3rd counted match. docs/profiles.md "REAL USERNAMES".
+- **THE ROOM IN THE CITY (LOBBY 2.0 A):** a City 2.0 room's waiting part IS the live city — app.js routes it to the title (never reloaded);
+  `screens/room-city.js` (+ room-dock / room-guests / game-options) puts the players in TWO LINES OF 4 at the door (`core/harbor-room.js` +
+  `room-lines.js` — derived from rooms/{CODE}; each keeps their line: `players/{uid}/ln`); docs/harbor/passes/lobby-2a.md (+ B's hand-off).
 - **Anti-cheat never depends on the code being secret** (the owner, Oct 28 — the repo stays PUBLIC until just before the launch): the
   server checks + replays every result itself (`/api`), the secrets live only in Vercel's env (the service-account key, the pepper).
 - **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
@@ -151,7 +155,7 @@ js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, color
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
 js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js trees.js street-life.js people.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, CITY 1.0's street, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
           week.js ranks.js names.js nicknames.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, THE HOUSE NICKNAMES (BNAME), keys, board catalog, per-game results
-js/profile/ api.js me.js queue.js public.js callouts.js events.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
+js/profile/ api.js me.js queue.js public.js callouts.js events.js sheets.js keypop.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
 js/fx/ renderer.js gl.js kit.js index.js + one file per effect   THE EFFECT LIBRARY (THE VAULT 1A — docs/vault.md): ONE shared renderer (surfaces + slots) drawing through THE GL PAINTER (gl.js — WebGL2, a 2D look-alike: iOS rasterises a 2D canvas on the CPU call by call; 1B) with the 2D canvas as the fallback, the baked sprites, the effects
 js/vault/ catalog.js strip.js emblems.js lab.js lab-views.js approved.js + css/vault.css + lab.html (/lab)   THE VAULT: the slim strips, the test emblems, THE CARD LAB (admins only), only-approved-ships
 js/progress/ moment.js streak-card.js card.js profile.js flame.js look.js preview.js + css/progress.css   PROGRESSION's screens (docs/progression.md; lazy): the end-of-round moment + level-up, the streak card, THE GILDED CARD + the profile's sections, the dock's flame, ?preview=
@@ -163,6 +167,7 @@ js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood
 js/core/mp3-slice.js tape-math.js                        PURE: an MP3's frames → a byte slice in song time; the tape's rate schedule + its exact integral (docs/audio.md#the-tape-stop-in-web-audio)
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
 js/screens/ title.js title-dock.js setup.js lobby.js profile.js district/*.js   the front door, name/avatar, the lobby, the membership card; CITY 1.0 — the district (Canvas 2D: sky, signs, live weather, the street; docs/title.md)
+js/screens/ room-city.js room-dock.js room-guests.js game-options.js   LOBBY 2.0 A — THE ROOM IN THE CITY (the roster → the city, the tags, the room dock, the guest list, the game's options; core/harbor-room.js + room-lines.js PURE)
 js/screens/harbor/ js/core/harbor-*.js + its sounds, bakes, canvas helpers   CITY 2.0 — THE HARBOR (?city=2): every file in docs/harbor.md#the-file-map (scene.js + its cuts: scene-fireworks / legend / holiday / weather / party / perf / panel)
 js/daychart/  daychart.html                         THE DAY CHART (SCHED): the city's day + year from the planners — /daychart + a card in /admin (admins only)
 js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
