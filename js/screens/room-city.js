@@ -301,7 +301,7 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
   //  reduced motion: no walk — they stand, and the start is a plain cross-fade)
   function roster() {
     const P = players(), order = roomOrder(P, st.meta && st.meta.hostId), now = serverNow(), mo = !reducedMotion();
-    const ss = startShow(st.meta, st.game, now), bs = ss.on ? { on: false } : backShow(st.meta, P, now);
+    const ss = startShow(st.meta, st.game, now), bs = ss.on ? { on: false } : backShow(st.meta, P, now, st.night);
     const inAt = ss.on && mo ? new Map(fileInOrder(P, st.meta.hostId).map(o => [o.uid, o.at])) : null;
     const outAt = bs.on && mo ? new Map(bs.order.map(o => [o.uid, o.at])) : null;
     const list = order.map(o => ({ uid: o.uid, slot: o.slot, online: isOnline(st.presence, o.uid), col: rgbOf(P[o.uid].color), fresh: now - (P[o.uid].joinedAt || 0) < FRESH_MS,

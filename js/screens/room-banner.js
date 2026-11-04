@@ -13,7 +13,7 @@ import { h, reducedMotion } from '../ui/dom.js';
 import { GAMES } from '../config.js';
 import { serverNow } from '../firebase.js';
 import { cityClock } from '../core/city.js';
-import { bannerAt, bannerLines, winnersOf, champLines } from '../core/room-show.js';
+import { bannerAt, bannerLines, winnersOf, champLines, backOf } from '../core/room-show.js';
 import { nightStandings } from '../core/night.js';
 
 export const PASS_MS = 30000;          // (a banner pass ≈ 30 s: past that, a late phone shows nothing)
@@ -63,12 +63,12 @@ export function createRoomBanner({ scene }) {
   const debug = { last: null };
   function update(st) {
     keepNight(st);
-    const meta = st.meta, b = meta && meta.back;
+    const meta = st.meta, b = backOf(meta, st.night);   // (meta/back — or, on rules not yet re-published, the fallback: activeAt + the night's entry)
     if (!b || meta.status !== 'lobby' || done.has(b.m)) return;
     const e = st.night && st.night[b.m];
     if (!e || cur === b.m) return;          // (the night entry is written at the podium — there before the walk-out; else wait for it)
     cur = b.m;
-    const startS = bannerAt(meta, st.players);
+    const startS = bannerAt(meta, st.players, st.night);
     if (startS == null || serverNow() - startS > PASS_MS - 3000) { done.add(b.m); return; }   // (a phone back after it passed: nothing)
     const order = Object.entries(st.night).filter(([, x]) => x && typeof x.at === 'number').sort((x, y) => x[1].at - y[1].at).map(([k]) => k);
     const idx = Math.max(0, order.indexOf(b.m));

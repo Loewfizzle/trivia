@@ -464,3 +464,36 @@ G('sheetstack', async () => {
   ok(ts.length === 5 && ts[0] === 'vl-dress' && ts[1] === 'vl-full' && /^sheet:/.test(ts[2]) && /^sheet:/.test(ts[3]) && ts[3] !== ts[2] && ts[4] === ts[2], `ONE SHEET STACK (the title dock): CUSTOMIZE [${ts[0]}] → VIEW FULL [${ts[1]}]; EDIT PROFILE [${ts[2]}] → NAME on top [${ts[3]}] → ‹ one step back [${ts[4]}]`);
   await T.ctx.close();
 });
+
+// ---- THE OWNER's REAL-PHONE BUG (Nov 4 10:37 am): two iPhones on the new code, NONE of the show — the live database still had the OLD rules
+// (meta/go + meta/back refused) and the room went on silently. SERIAL (it swaps the shared emulator's rules): with the OLD rules loaded, the show
+// MUST still run — the sign + the game's logo, the walk inside, the walk back out, THE WINNER's BANNER — then the rules are restored.
+const RULES_URL = `${DBH}/.settings/rules.json?ns=${NS}`;
+async function putRules(text) { const r = await fetch(RULES_URL, { method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: text }); if (!r.ok) throw new Error(`rules PUT ${r.status}`); }
+G('oldrules', async () => {
+  const { readFileSync } = await import('node:fs');
+  const cur = readFileSync(new URL('../../../database.rules.json', import.meta.url), 'utf8'), R = JSON.parse(cur), room = R.rules.rooms.$code;
+  delete room.meta.go; delete room.meta.back; delete room.rv;   // (the live site's rules before this pass's re-publish)
+  await putRules(JSON.stringify(R));
+  try {
+    const { Q: A, p, code, me } = await hostRoom('ora');
+    const { Q: B, p: q } = await joinRoom('orb', code);
+    await settledRoom(p, 2, 40000).catch(() => {}); await settledRoom(q, 2, 40000).catch(() => {});
+    const refused = await ev(p, `import('/js/firebase.js').then(F => F.update(F.dbRef('rooms/${code}/meta'), { go: { at: F.serverTimestamp(), m: 'x', g: 'y' } }).then(() => 'written', e => String(e.message || e)))`);
+    await startOC(p);
+    const sign = await Promise.all([p, q].map(x => waitFor(x, "!!document.querySelector('.nd-sign.rc-go .rc-tonight')", 6000).then(() => true, () => false)));
+    const walk = await Promise.all([p, q].map(x => waitFor(x, '(() => { const r = window.__district.room(); return !!(r && r.people.some(y => y.goIn)); })()', 4000).then(() => true, () => false)));
+    ok(/PERMISSION_DENIED/i.test(refused) && sign.every(Boolean) && walk.every(Boolean), `THE OLD RULES (meta/go refused: ${refused.slice(0, 30)}): THE GAME START still runs on BOTH phones — the sign + the game's logo (${sign}), the walk inside (${walk})`);
+    await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the game', 8000)));
+    await podium(p, code, [me]);
+    await sleep(600);
+    await ev(p, "import('/js/host.js').then(m => m.backToLobby())");
+    await Promise.all([p, q].map(x => waitFor(x, onTitle, 'back', 12000)));
+    await harborUp(p); await harborUp(q);
+    const back = await ev(p, 'window.__arcade.state.meta.back || null');
+    const out = await Promise.all([p, q].map(x => waitFor(x, '(() => { const r = window.__district.room(); return !!(r && r.people.some(y => (y.s && y.s.pose === "walk") || !y.s || y.inside)); })()', 6000).then(() => true, () => false)));
+    const ban = await Promise.all([p, q].map(x => waitFor(x, '(() => { const r = window.__district.roomBanner && window.__district.roomBanner(); return !!(r && r.last && r.last.how); })()', 30000).then(() => ev(x, 'window.__district.roomBanner().last.how'), () => null)));
+    ok(back === null && out.every(Boolean) && ban.every(h => h === 'flown'), `THE OLD RULES (meta/back refused: ${back === null}): THE WALK BACK OUT (${out}) + THE WINNER's BANNER PLANE (${ban.join(' / ')}) still run on both phones`);
+    await A.ctx.close(); await B.ctx.close();
+  } finally { await putRules(cur); }
+});

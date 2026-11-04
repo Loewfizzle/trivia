@@ -20,12 +20,36 @@ export const OUT_WALK_MS = 3800;
 /** THE WINNER's BANNER PLANE: this long after everyone is back */
 export const BANNER_GAP_MS = 2000;
 
+// THE STAMPS NEVER DEPEND ON A RULES RE-PUBLISH (the owner's real-phone test, Nov 4 10:37 am: two iPhones on the new code saw NONE of the
+// show — the live database still had the old rules, refused meta/go + meta/back, and the room went on silently without them). Each stamp has
+// a home the OLD rules already allow too: the start's moment also rides IN the match's own write (game.go — the game node is the host's,
+// unchecked); the match's end falls back to meta.activeAt (stamped by every back-to-the-room) + the night's entry for the match just played.
+// Only THE REMATCH VOTE truly needs the new rules (each player's own node).
+/** the start's stamp: meta/go (the host's first write — the walk starts at the tap) or, when that was refused, the match's own game.go */
+export function goOf(meta, game) {
+  const go = meta && meta.go;
+  if (go && typeof go.at === 'number' && (!game || !game.matchId || go.m === game.matchId)) return go;
+  if (game && typeof game.go === 'number' && game.matchId) return { at: game.go, m: game.matchId, g: game.id, inGame: true };
+  return null;
+}
+/** the match's end: meta/back — or, when that was refused, meta.activeAt right after a FINISHED match (its night entry ≤ 15 min before) */
+export const BACK_FALLBACK_MS = 15 * 60e3;
+export function backOf(meta, night) {
+  if (!meta) return null;
+  if (meta.back && typeof meta.back.at === 'number') return meta.back;
+  if (meta.status !== 'lobby' || typeof meta.activeAt !== 'number') return null;
+  let last = null;
+  for (const [m, e] of Object.entries(night || {})) if (e && typeof e.at === 'number' && (!last || e.at > last.e.at)) last = { m, e };
+  if (!last || last.e.at > meta.activeAt + 5000 || meta.activeAt - last.e.at > BACK_FALLBACK_MS) return null;
+  return { at: meta.activeAt, m: last.m, g: last.e.g, rm: false, derived: true };
+}
+
 /** THE GAME START now? → { on, age (ms since the tap), push (0..1 — the push through the door), m, g } | { on: false }. The stamp goes up
  *  BEFORE the match (host.js#startGame): on while the host prepares it (the room still 'lobby', no game yet) and once it's written (the
  *  room 'playing', that match) — never for another match */
 export function startShow(meta, game, now) {
-  const go = meta && meta.go;
-  if (!go || typeof go.at !== 'number' || !meta) return { on: false };
+  const go = goOf(meta, game);
+  if (!go || !meta) return { on: false };
   const ready = meta.status === 'playing' && game && go.m === game.matchId, prep = meta.status === 'lobby' && !(game && game.matchId);
   if (!ready && !prep) return { on: false };
   const age = now - go.at;
@@ -43,8 +67,8 @@ export function fileInOrder(players, hostId) {
 export const walkOutMs = n => Math.round((OUT_LEAD + Math.max(0, n - 1) * OUT_GAP) * 1000 + OUT_WALK_MS);
 
 /** THE WALK BACK OUT now? → { on, age (ms since the match's end), order: [{ uid, slot, at (s from the end) }] } */
-export function backShow(meta, players, now) {
-  const b = meta && meta.back;
+export function backShow(meta, players, now, night = null) {
+  const b = backOf(meta, night);
   if (!b || typeof b.at !== 'number' || !meta || meta.status !== 'lobby') return { on: false };
   const n = Object.keys(players || {}).length, age = now - b.at;
   if (age < -500 || age >= walkOutMs(n)) return { on: false, done: true };
@@ -52,8 +76,8 @@ export function backShow(meta, players, now) {
 }
 
 /** when THE WINNER's BANNER PLANE flies (server ms) for the match that just ended — ~2 s after everyone is back */
-export function bannerAt(meta, players) {
-  const b = meta && meta.back;
+export function bannerAt(meta, players, night = null) {
+  const b = backOf(meta, night);
   if (!b || typeof b.at !== 'number') return null;
   return b.at + walkOutMs(Object.keys(players || {}).length) + BANNER_GAP_MS;
 }

@@ -153,3 +153,26 @@ test('THE ADD-ON: LEAVE ROOM up front (the ☰ menu\'s first row in a room — r
   assert.match(read('js/app.js'), /watchLayers\(\);/);
   assert.match(read('js/app.js'), /if \(modal && isTopLayer\(modal\)\)/);
 });
+
+test('THE STAMPS NEVER DEPEND ON A RULES RE-PUBLISH (the owner\'s real-phone test, Nov 4 10:37 am): the start from game.go, the end from activeAt + the night\'s entry; a refused stamp is reported', async () => {
+  const { goOf, backOf, startShow, backShow, bannerAt, BACK_FALLBACK_MS } = await import('../js/core/room-show.js');
+  // the start: meta/go wins; refused → the match's own game.go
+  const game = { id: 'overclock', matchId: 'm1', go: 5000 };
+  assert.deepEqual(goOf({ go: { at: 4000, m: 'm1', g: 'overclock' } }, game), { at: 4000, m: 'm1', g: 'overclock' });
+  assert.deepEqual(goOf({}, game), { at: 5000, m: 'm1', g: 'overclock', inGame: true });
+  assert.equal(startShow({ status: 'playing' }, game, 6000).on, true, 'the show runs without meta/go');
+  assert.equal(startShow({ status: 'playing', go: { at: 1, m: 'old', g: 'x' } }, game, 6000).on, true, 'a stale meta/go never blocks the match\'s own');
+  // the end: meta/back wins; refused → activeAt right after a finished match (its night entry), never otherwise
+  const night = { m1: { g: 'overclock', p: { a: 3 }, at: 100000 } };
+  assert.equal(backOf({ status: 'lobby', activeAt: 160000 }, night).m, 'm1');
+  assert.equal(backOf({ status: 'lobby', activeAt: 160000 }, night).rm, false, 'no vote without the new rules');
+  assert.equal(backOf({ status: 'lobby', activeAt: 100000 + BACK_FALLBACK_MS + 1 }, night), null, 'KEEP OPEN later never replays it');
+  assert.equal(backOf({ status: 'lobby', activeAt: 160000 }, {}), null, 'no finished match = no walk-out');
+  assert.equal(backOf({ status: 'playing', activeAt: 160000 }, night), null);
+  assert.equal(backShow({ status: 'lobby', hostId: 'a', activeAt: 160000 }, { a: { joinedAt: 1 } }, 161000, night).on, true);
+  assert.ok(bannerAt({ status: 'lobby', activeAt: 160000 }, { a: {} }, night) > 160000);
+  const h = read('js/host.js');
+  assert.match(h, /game: \{ \.\.\.game, go: serverTimestamp\(\) \}/);
+  assert.match(h, /\.catch\(e => stampRefused\('go', e\)\)/); assert.match(h, /\.catch\(e => stampRefused\('back', e\)\)/);
+  assert.match(h, /reportError\(new Error\(`ROOM STAMP REFUSED/);
+});

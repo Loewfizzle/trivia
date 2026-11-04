@@ -189,3 +189,19 @@ unit `tests/lobby-2b.test.mjs` (12) + `tests/cartridge.test.mjs` (5) · rules (+
   code (the sighting's capture is untouched; the one global change, the layer watcher, only sees pop-ups on <body>) → FR6's flag stands.
 - Every new group green in the full run: roomfix, gamestart, citypause, afterparty, cartridge, crewsky, leaveroom, sheetstack (the new `room2` job) +
   the `crew` group's lobby check.
+
+## THE HOTFIX — THE OWNER's REAL-PHONE TEST (Nov 4 10:37 am): none of the show played on two iPhones
+- **What was wrong**: this pass's new database rules (`meta/go`, `meta/back`, `rv`) weren't published on the live site yet (the summary asking for
+  the re-publish hadn't gone out). The live database REFUSED the start's + the end's stamps (`PERMISSION_DENIED` — confirmed on the live site from
+  WebKit), the code swallowed the refusal, and every phone went straight on without the show. Locally everything passed because the emulator
+  always loads the repo's newest rules. (/admin's error list needs the owner's sign-in — not reachable from here; WebKit on the live site showed it.)
+- **The fix — the show never depends on a rules re-publish again** (`core/room-show.js#goOf` / `backOf`): the start's stamp also rides IN the
+  match's own write (`game.go` — the game node is the host's, unchecked); the match's end falls back to `meta.activeAt` (stamped by every back-to-
+  the-room) + the night's entry for the match just played (≤ 15 min). Only THE REMATCH VOTE still needs the new rules (each player's own node) — on
+  old rules the ring simply stays PLAY. A refused stamp is now LOUD: one entry a session in the phones' error log (/admin) — "re-publish
+  database.rules.json".
+- **The test that fails if the show doesn't run**: the harbor's `oldrules` group (SERIAL — `lobby` job) loads the live site's OLD rules into the
+  emulator and checks the sign + the game's logo, the walk inside, the walk back out and THE WINNER's BANNER on two phones (0/2 with the fallbacks
+  switched off, 2/2 with them); `tests/integration/wk-room.mjs` runs the whole room in WebKit (Safari's engine) — locally or against the live site
+  (`PROD=1 E2E_BASE=https://www.neonspeakeasy.com`).
+- Run here: unit 1139/1139, gamestart + citypause + afterparty 27/27, oldrules 2/2, smoke 6/6, WebKit 5/5.

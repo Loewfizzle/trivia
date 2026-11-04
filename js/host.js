@@ -152,14 +152,14 @@ export async function startGame(gameId, settings) {
   //  gets the moment its match begins, never the tap — docs/cartridge.md. The stamp also ends the last match's walk-out, its REMATCH ring +
   //  every vote. A start that fails takes the stamp back down.)
   const tGo = serverNow();
-  await update(dbRef(`rooms/${state.code}`), { 'meta/go': { at: serverTimestamp(), m: matchId, g: gameId }, 'meta/back': null, rv: null }).catch(e => console.warn('go', e));
+  await update(dbRef(`rooms/${state.code}`), { 'meta/go': { at: serverTimestamp(), m: matchId, g: gameId }, 'meta/back': null, rv: null }).catch(e => stampRefused('go', e));
   const created = await mod.start({ code: state.code, matchId, settings, participants, now: tGo + START_MS + 150 }).catch(e => { console.warn('start', e); return null; });
   if (!created) { update(dbRef(`rooms/${state.code}/meta`), { go: null }).catch(() => {}); toast('COULD NOT START — TRY AGAIN', 'err'); return false; }
   const { $room, ...game } = created;
   inflight = { sig: '', at: 0 };
   wipeSeal(state.code);
   await update(dbRef(`rooms/${state.code}`), {
-    game,
+    game: { ...game, go: serverTimestamp() },   // (the start's stamp in the match's own write too — core/room-show.js#goOf: the show never waits on a rules re-publish)
     ...($room || {}),
     ...clearPlayerNodes(),
     'meta/status': 'playing',
@@ -182,6 +182,15 @@ export function rematch() {
   return startGame(id, rematchSettingsOf(mod, settings, state.game));   // (THE CARTRIDGE PLUG: a game may adjust its rematch)
 }
 
+// (LOBBY 2.0 B — the owner's real-phone test: a refused stamp went unseen. Now it's in the phones' error log (/admin) once a session: the
+//  database rules on the live site are older than the code — re-publish database.rules.json. The room plays on through the fallbacks.)
+let refusedSaid = false;
+function stampRefused(kind, e) {
+  console.warn(kind, e);
+  if (refusedSaid || !/permission/i.test(String(e && (e.code || e.message) || e))) return;
+  refusedSaid = true;
+  import('./errlog.js').then(m => m.reportError(new Error(`ROOM STAMP REFUSED (${kind}) — the live database rules are older than the code: re-publish database.rules.json (meta/go, meta/back, rv)`), 'rules')).catch(() => {});
+}
 const clearPlayerNodes = () => Object.fromEntries(ALL_PLAYER_NODES.map(n => [n, null]));
 // THE SEAL's envelopes (seal/{CODE}, outside the room) go with the player nodes at a match's start + end
 const wipeSeal = code => { if (code) remove(dbRef(`seal/${code}`)).catch(() => {}); };
@@ -197,7 +206,7 @@ export async function backToLobby() {
     'meta/go': null,
     'meta/back': g && g.matchId ? { at: serverTimestamp(), m: g.matchId, g: g.id, rm: isPlayable(g.id) } : null,
     rv: null,
-  }).catch(e => console.warn('back', e));
+  }).catch(e => stampRefused('back', e));
   await update(dbRef(`rooms/${state.code}`), {
     game: null,
     ...clearPlayerNodes(),
