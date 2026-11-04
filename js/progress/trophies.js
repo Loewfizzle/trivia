@@ -37,31 +37,51 @@ function rewardArt(id) {
   return null;
 }
 
+/** one trophy row (a fresh element each call: the page's latest 3 + THE TROPHY CASE build their own) */
+function trophyRow(a, data, o, now) {
+  const s = data.stats || {};
+  const it = ITEM[a.item] || null, tier = (it && it.tier) || 'common', kind = it && it.kind;
+  const worn = () => !!(kind && WORN[kind] && (data.profile || {})[WORN[kind]] === a.item);
+  let chip = null;
+  if (it && SLOT[kind]) {
+    const say = h('span.pg-rw-n', it.name || '');
+    const state = h('em.pg-rw-on');
+    chip = h('button.pg-rw', { type: 'button', dataset: { id: a.item, kind }, 'aria-label': `Equip ${it.name || 'it'}` }, rewardArt(a.item), say, state);
+    const paint = () => { const on = worn(); chip.classList.toggle('is-on', on); state.textContent = on ? 'EQUIPPED ✓' : 'TAP TO EQUIP'; chip.setAttribute('aria-pressed', String(on)); };
+    chip.addEventListener('click', async () => { if (worn() || !o.onWear) return; chip.classList.add('is-busy'); const ok = await o.onWear(SLOT[kind], a.item); chip.classList.remove('is-busy'); if (ok !== false) { data.profile = { ...(data.profile || {}), [WORN[kind]]: a.item }; paint(); } });
+    paint();
+  } else if (it) chip = h('span.pg-rw', rewardArt(a.item), h('span.pg-rw-n', it.name || ''));
+  const at = s.ac[a.id], fresh = at > 1e12 && now - at < NEW_MS;
+  return h('div.pg-tr.pg-ach', { dataset: { id: a.id, tier }, class: fresh ? 'is-new' : '' },
+    medal(a, tier),
+    h('div.pg-tr-t',
+      h('b.pg-tr-n', a.name, fresh ? h('span.pg-tr-new', 'NEW') : null),
+      h('span.pg-tr-l', a.line),
+      h('em.pg-pct', { dataset: { a: a.id } }),
+      h('div.pg-tr-f', chip ? h('small.pg-tr-k', 'UNLOCKED') : null, chip, h('small.pg-tr-d', dateOf(at)))));
+}
+/** what you hold, NEWEST FIRST (the date each was earned — the older test entries without a real date keep their order, last) */
+export const heldNewest = ac => heldOf(ac).map((a, i) => ({ a, i, t: (ac || {})[a.id] > 1e12 ? ac[a.id] : 0 })).sort((x, y) => (y.t - x.t) || (x.i - y.i)).map(x => x.a);
+// LOBBY 2.0 A — the owner, Nov 3 9:32–9:33 pm: achievements will pile up → the profile shows only THE LATEST 3 (one earned in the last 48 h
+// carries NEW), then ALL ACHIEVEMENTS · N › → THE TROPHY CASE (a sheet: every trophy, newest first — the same medals, X% + tap to equip)
+export const LATEST = 3, NEW_MS = 48 * 3600e3;
+
 export function trophiesSection(data, o = {}) {
-  const s = data.stats || {}, p = data.profile || {};
-  const held = heldOf(s.ac);
-  const rows = held.map(a => {
-    const it = ITEM[a.item] || null, tier = (it && it.tier) || 'common', kind = it && it.kind;
-    const worn = () => !!(kind && WORN[kind] && (data.profile || {})[WORN[kind]] === a.item);
-    let chip = null;
-    if (it && SLOT[kind]) {
-      const say = h('span.pg-rw-n', it.name || '');
-      const state = h('em.pg-rw-on');
-      chip = h('button.pg-rw', { type: 'button', dataset: { id: a.item, kind }, 'aria-label': `Wear ${it.name || 'it'}` }, rewardArt(a.item), say, state);
-      const paint = () => { const on = worn(); chip.classList.toggle('is-on', on); state.textContent = on ? 'WEARING' : ''; chip.setAttribute('aria-pressed', String(on)); };
-      chip.addEventListener('click', async () => { if (worn() || !o.onWear) return; chip.classList.add('is-busy'); const ok = await o.onWear(SLOT[kind], a.item); chip.classList.remove('is-busy'); if (ok !== false) { data.profile = { ...(data.profile || {}), [WORN[kind]]: a.item }; paint(); } });
-      paint();
-    } else if (it) chip = h('span.pg-rw', rewardArt(a.item), h('span.pg-rw-n', it.name || ''));
-    return h('div.pg-tr.pg-ach', { dataset: { id: a.id, tier } },
-      medal(a, tier),
-      h('div.pg-tr-t',
-        h('b.pg-tr-n', a.name),
-        h('span.pg-tr-l', a.line),
-        h('em.pg-pct', { dataset: { a: a.id } }),
-        h('div.pg-tr-f', chip ? h('small.pg-tr-k', 'UNLOCKED') : null, chip, h('small.pg-tr-d', dateOf(s.ac[a.id])))));
-  });
-  void p;
+  const s = data.stats || {}, now = o.now || Date.now();
+  const held = heldNewest(s.ac);
+  const rows = held.slice(0, LATEST).map(a => trophyRow(a, data, o, now));
+  const all = held.length > LATEST ? h('button.pf-more', { type: 'button', onclick: () => openTrophyCase(data, o) }, h('span', `ALL ACHIEVEMENTS · ${held.length}`), h('b', '›')) : null;
   return h('section.pg-panel.pg-trophies',
-    h('div.pg-prof-h', h('span', `ACHIEVEMENTS · ${held.length}`), h('em', 'tap a reward to wear it')),
-    h('div.pg-trs', ...rows));
+    h('div.pg-prof-h', h('span', 'ACHIEVEMENTS'), h('em', 'tap a reward to equip it')),
+    h('div.pg-trs', ...rows), all);
+}
+
+/** THE TROPHY CASE — every trophy you hold, newest first (a pop-up over the profile; ‹ goes back to it) */
+export async function openTrophyCase(data, o = {}) {
+  const { openPfSheet } = await import('../profile/sheets.js');
+  const s = data.stats || {}, now = o.now || Date.now(), held = heldNewest(s.ac);
+  const list = h('div.pg-trs.pf-case', ...held.map(a => trophyRow(a, data, o, now)));
+  const sh = openPfSheet({ kicker: `${held.length} EARNED · NEWEST FIRST`, title: 'THE TROPHY CASE', body: [h('p.pfs-note', 'Tap a reward to equip it.'), list], cls: 'pf-case-sheet' });
+  import('./look.js').then(L => L.pctFor().then(P => { list.querySelectorAll('.pg-pct').forEach(x => { x.textContent = L.pctLine(P.a[x.dataset.a]); }); })).catch(() => {});
+  return sh;
 }

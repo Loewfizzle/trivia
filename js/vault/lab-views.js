@@ -304,7 +304,7 @@ export function mountLab(root, o = {}) {
     const list = h('div.vl-list');
     const box = h('div.vl-lobby', h('div.vl-lobby-h', 'IN THE LOBBY · 8 / 8'), list);
     settings.querySelector('.vl-wear')?.remove();
-    settings.append(h('div.vl-mix.vl-wear', h('span.vl-mix-k', 'WEAR THE SAMPLES:'), ...wearBtns));
+    settings.append(h('div.vl-mix.vl-wear', h('span.vl-mix-k', 'EQUIP THE SAMPLES:'), ...wearBtns));
     content.replaceChildren(h('div.vl-mix', ...mixes, pick), settings, box,
       h('p.vl-motion', 'The lobby’s calmer cut, all eight on ONE shared canvas. The readout (bottom right): frames a second, the effects’ tier, their draw cost, the canvas size.'));
     const draw = () => {

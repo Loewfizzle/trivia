@@ -1605,7 +1605,7 @@ export function createTitle() {
       h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id }); } }, 'SEE THE FULL BOARD ›'));
     const MEDALS = ['gold', 'silver', 'bronze'];
     import('../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })).then(d => {
-      // BNAME: the rows carry house nicknames; your own row (by your board id) shows your real name on your device
+      // (LOBBY 2.0 A — REAL USERNAMES: the rows carry the players' usernames; your own row, by your board id, is yours)
       const you = loadMe();
       const own = r => !!(you && you.profile && you.profile.bid && r.id === you.profile.bid);
       list.replaceChildren(...(d.rows.length ? d.rows.map(r => (own(r) ? { ...r, n: you.profile.n, t: you.profile.t } : r)).map(r => h('li', h('span.nd-pv-medal', { class: `is-${MEDALS[Math.min(2, r.rank - 1)]}` }, String(r.rank)), h('span.nd-pv-n', r.n, rankBadge(r, { tag: true, size: 13 })), h('b', fmtValue(def, r.v))))
@@ -1884,6 +1884,7 @@ export function createTitle() {
       frames: () => scene && scene.frames(),
       tiering: () => (scene && scene.tiering ? scene.tiering() : null),
       speakCtx: () => (scene && scene.speakCtx ? scene.speakCtx() : null),   // (WIN2: the facade's bake context — the washer swap's proof)
+      boardXf: () => (scene && scene.boardXf ? scene.boardXf() : null),   // (LOBBY 2.0 A: the billboard's cross-fade — e2e lobby.mjs)
       signDim: (id, o) => (scene && scene.dimSign ? (id ? scene.dimSign(id, o) : scene.signDim()) : null),   // (City 2.0, C1.5: the sign-dim hook)            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),

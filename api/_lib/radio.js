@@ -494,7 +494,7 @@ async function presetFire(me, role, uid, body, now) {
 // ------------------------------------------------------------------ CITY CONTROLS B — "A ROOM JUST OPENED" (a push to the owner's phone)
 const subKey = ep => createHash('sha256').update(String(ep)).digest('hex').slice(0, 24);
 /** push to every phone the owner turned it on for → { sent, gone } (a subscription the service says is gone is dropped) */
-async function notifyOwner(data) {
+export async function notifyOwner(data) {
   const subs = (await val('radio/push/subs')) || {}, out = { sent: 0, gone: 0, codes: [] };
   await Promise.all(Object.entries(subs).map(async ([k, sub]) => {
     const st = await sendPush(sub, data);

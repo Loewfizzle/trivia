@@ -150,32 +150,47 @@ await H.run(async () => {
   const blank = await meOf(p3, 'f3');
   await p3.evaluate(() => { window.__arcade && import('/js/store.js').then(m => m.setState({ view: 'profile' })); });
   await p3.waitForSelector('.pg-card', { timeout: 15000 });
-  await p3.click('.pf-link');
-  await p3.type('.pf-key-in', JSON.parse(key0).toLowerCase().replace(/-/g, ' '));
-  await p3.click('.pf-restore-box .btn-primary');
+  // (LOBBY 2.0 A — RESTORE YOUR ACCOUNT: a big glass button → its own sheet)
+  await p3.waitForSelector('.screen-in .pf-restore', { timeout: 15000 });
+  await p3.evaluate(() => [...document.querySelectorAll('.screen-in .pf-restore')].pop().click());
+  await p3.waitForSelector('.pf-restore-sheet .pf-key-in', { timeout: 6000 });
+  await p3.type('.pf-restore-sheet .pf-key-in', JSON.parse(key0).toLowerCase().replace(/-/g, ' '));
+  await p3.click('.pf-restore-sheet .btn-primary');
   await p3.waitForFunction(pid => JSON.parse(localStorage.getItem('na:f3:me') || 'null').pid === pid, { timeout: 15000 }, me0.pid);
   ok(true, 'a fresh browser restored ALICE\'s profile with her key (typed in lowercase with spaces)');
   ok((await val(`profiles/${blank.pid}`)) === null, 'the blank profile the new browser made is gone');
   ok(JSON.parse(await p3.evaluate(() => localStorage.getItem('na:f3:profile'))).name === 'ALICE', 'the room name follows the restored profile');
-  await p3.waitForSelector('.pf-game', { timeout: 15000 });
-  ok(/CIPHER/.test(await p3.$eval('.pf-game', e => e.textContent)), 'her stats came with it');
+  await p3.waitForFunction(() => { const b = document.querySelector('.pg-stats b'); return b && Number(b.textContent) >= 1; }, { timeout: 15000 });
+  ok(true, 'her stats came with it (her matches on the profile)');
   // PROGRESSION A — THE GILDED CARD + THE PROFILE: the level, the stats, the achievements she holds (+ X%), THE VAULT = only what she owns
   await p3.waitForFunction(() => document.querySelectorAll('.pg-prof .pg-ach').length >= 2 && !!document.querySelector('.pg-cz'), { timeout: 15000 }).catch(() => {});   // (the restored profile's sections, not the blank one's)
   // THE VAULT 2C — THE PROFILE REARRANGED: the card on top, CUSTOMIZE YOUR CARD under it, then LEVEL · THE STREAK · STATS · ACHIEVEMENTS (as
   // trophies) …; ACCOUNT at the foot (EDIT PROFILE · YOUR KEY · the birthday · the opt-out); no BOARD button on the profile
   const lay = await p3.evaluate(() => { const sc = document.querySelector('.pf-scroll'), kids = [...sc.children]; const at = sel => kids.findIndex(k => k.matches(sel) || !!k.querySelector(sel));
-    return { card: at('.pf-card-slot'), cz: at('.pg-cz'), prog: at('.pg-prof'), acc: at('.pf-account'), board: [...sc.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), edit: !!sc.querySelector('.pf-account .pf-acc-row'),
+    return { card: at('.pf-card-slot'), cz: at('.pg-cz'), prog: at('.pg-prof'), mast: at('.pf-mastery'), acc: at('.pf-account'), board: [...sc.querySelectorAll('button')].some(b => /^THE BOARD$/.test(b.textContent.trim())), edit: !!sc.querySelector('.pf-account .pf-acc-row'),
+      goal: !!document.querySelector('.pg-prof .pf-goal-t'), old: /NOT PLAYED YET|MEMBERSHIP/.test(document.querySelector('.pf-screen').textContent), menu: (() => { const m = document.querySelector('.menu-btn'); return !!m && getComputedStyle(m).display !== 'none'; })(),
       medals: document.querySelectorAll('.pg-trophies .pg-medal').length, chips: document.querySelectorAll('.pg-trophies .pg-rw[data-id]').length }; });
-  ok(lay.card === 0 && lay.cz === 1 && lay.prog > lay.cz && lay.acc > lay.prog && !lay.board && lay.edit && lay.medals >= 2 && lay.chips >= 2,
-    `THE PROFILE REARRANGED: the card (${lay.card}) → CUSTOMIZE YOUR CARD (${lay.cz}) → the sections (${lay.prog}) → ACCOUNT (${lay.acc}); no BOARD button (${!lay.board}); ${lay.medals} trophies with ${lay.chips} reward chips`);
+  ok(lay.card === 0 && lay.cz === 1 && lay.prog > lay.cz && lay.mast > lay.prog && lay.acc > lay.mast && !lay.board && lay.edit && lay.medals >= 2 && lay.chips >= 2 && lay.goal && !lay.old && !lay.menu,
+    `THE PROFILE (LOBBY 2.0 A): the card (${lay.card}) → CUSTOMIZE YOUR CARD (${lay.cz}) → the sections + THE GOAL TILE (${lay.prog}, ${lay.goal}) → MASTERY (${lay.mast}) → ACCOUNT (${lay.acc}); no BOARD button, no NOT PLAYED YET / MEMBERSHIP (${!lay.old}), no ☰ on the page (${!lay.menu}); ${lay.medals} trophies with ${lay.chips} reward chips`);
+  // EDIT PROFILE → NAME › → its own sheet; ‹ goes back ONE step (to Edit profile), then one more (the profile)
+  const tapIt = sel => p3.evaluate(q => { const e = document.querySelector(q); if (e) e.click(); return !!e; }, sel);
+  ok(await tapIt('.pf-account .pf-edit'), 'EDIT PROFILE is a real row'); await p3.waitForSelector('.pf-edit-sheet .pf-er-name', { timeout: 6000 });
+  await tapIt('.pf-edit-sheet .pf-er-name'); await p3.waitForSelector('.pf-name-sheet .pf-name-in', { timeout: 6000 });
+  const depth = () => p3.evaluate(() => document.querySelectorAll('.pfs:not(.is-out)').length);
+  const d2 = await depth();
+  await tapIt('.pf-name-sheet .pfs-back'); await sleep(450);
+  const d1 = await depth(), still = !!(await p3.$('.pf-edit-sheet:not(.is-out)'));
+  await tapIt('.pf-edit-sheet .pfs-back'); await sleep(450);
+  const d0 = await depth();
+  ok(d2 === 2 && d1 === 1 && still && d0 === 0, `BACK = ONE STEP: the name editor → Edit profile → the profile (${d2} → ${d1} → ${d0} sheets open)`);
   // (a trophy's reward chip = WEAR IT: FIRST ROUND's EMBER glow → on the server)
   await p3.click('.pg-trophies .pg-rw[data-id="glow-ember"]');
   for (let i = 0; i < 40 && (await val(`profiles/${me0.pid}/g`)) !== 'glow-ember'; i++) await sleep(150);
-  ok((await val(`profiles/${me0.pid}/g`)) === 'glow-ember' && await p3.evaluate(() => document.querySelector('.pg-trophies .pg-rw[data-id="glow-ember"]').classList.contains('is-on')), 'A TROPHY REWARD CHIP: a tap wears EMBER (on the server; the chip says WEARING)');
+  ok((await val(`profiles/${me0.pid}/g`)) === 'glow-ember' && await p3.evaluate(() => document.querySelector('.pg-trophies .pg-rw[data-id="glow-ember"]').classList.contains('is-on')), 'A TROPHY REWARD CHIP: a tap EQUIPS EMBER (on the server; the chip says EQUIPPED ✓)');
   // (THE VAULT 2B — CUSTOMIZE (was DRESS YOUR CARD): its button opens the screen; the CARD tab's tiles = only what she owns)
   await p3.click('.vl-dp-go'); await p3.waitForSelector('.vl-dress .vl-dt', { timeout: 8000 });
   const prof = await p3.evaluate(() => ({ card: document.querySelector('.pg-card').dataset.card, lv: (document.querySelector('.pg-card-lv') || {}).textContent || '',
-    ach: [...document.querySelectorAll('.pg-prof .pg-ach div > b')].map(b => b.textContent), vault: [...document.querySelectorAll('.vl-dress .vl-dt')].map(b => b.dataset.id),   // (THE VAULT 2B: the dress screen's card tiles)
+    ach: [...document.querySelectorAll('.pg-prof .pg-ach div > b')].map(b => b.firstChild.nodeValue), vault: [...document.querySelectorAll('.vl-dress .vl-dt')].map(b => b.dataset.id),   // (THE VAULT 2B: the dress screen's card tiles)
     text: document.querySelector('.pg-prof').textContent }));
   ok(prof.card === 'card-gilded' && /^REGULAR · LEVEL [56]$/.test(prof.lv), `the GILDED card: ${prof.lv}`);
   ok(prof.ach.includes('FIRST ROUND') && prof.ach.includes('HOUSE WARMING'), `the achievements she holds (${prof.ach.join(', ')})`);
@@ -216,30 +231,33 @@ await H.run(async () => {
     ok(m7 && m7.pid === me0.pid && !(await p7.$('.byc-chip')) && !(await p7.$('.byc-bring')), 'BRING YOUR CARD: ALICE\'s key → this device joined her card (the pill + the sheet gone)');
     const still = await p0.evaluate(() => import('/js/profile/me.js').then(m => m.fetchMe()).then(r => r.pid, e => `ERR ${e.code}`));
     ok(still === me0.pid, `the first device stays signed in — one card on both at once (${still})`);
-    // THE MEMBERSHIP CARD: SAVE YOUR KEY SOMEWHERE SAFE + COPY · SHARE · I SAVED IT, and USE THIS CARD ON ANOTHER DEVICE
+    // LOBBY 2.0 A — YOUR KEY, ONE BLOCK: masked (tap to reveal) · COPY · SHARE · the saved line ("I saved it"); USE THIS CARD ON ANOTHER DEVICE
     await p7.browserContext().overridePermissions(BASE, ['clipboard-read', 'clipboard-write', 'clipboard-sanitized-write']).catch(() => {});
     await p7.evaluate(() => { const k = 'na:f6:pnotes'; const n = JSON.parse(localStorage.getItem(k) || '{}'); localStorage.setItem(k, JSON.stringify({ ...n, saved: false })); window.__shared = null; navigator.share = async d => { window.__shared = d; }; });
     await p7.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
-    await p7.waitForSelector('.byc-save .byc-acts [data-act="share"]', { timeout: 15000 }).catch(() => {});
-    const box = await p7.evaluate(() => { const b = document.querySelector('.byc-save'); return b ? { text: b.textContent, saved: b.classList.contains('is-saved'), acts: [...b.querySelectorAll('[data-act]')].map(x => x.dataset.act) } : null; });
-    ok(box && /SAVE YOUR KEY SOMEWHERE SAFE/.test(box.text) && /can’t come back/.test(box.text) && !box.saved && ['copy', 'share', 'saved'].every(a => box.acts.includes(a)), `THE MEMBERSHIP CARD: the bold SAVE YOUR KEY SOMEWHERE SAFE + COPY · SHARE · I SAVED IT (${JSON.stringify(box && box.acts)})`);
+    await p7.waitForSelector('.pf-kb .pf-kb-acts [data-act="share"]', { timeout: 15000 }).catch(() => {});
+    const box = await p7.evaluate(() => { const b = document.querySelector('.pf-kb'); return b ? { text: b.textContent, saved: !!b.querySelector('.pf-kb-saved.is-ok'), n: document.querySelectorAll('.pf-kb, .byc-save:not(.is-none), .pf-key').length, acts: [...b.querySelectorAll('[data-act]')].map(x => x.dataset.act), did: !!b.querySelector('.pf-kb-did') } : null; });
+    ok(box && box.n === 1 && /YOUR KEY/.test(box.text) && /Not saved yet/.test(box.text) && !box.saved && box.did && ['copy', 'share'].every(a => box.acts.includes(a)), `YOUR KEY — ONE block (${box && box.n}): masked + COPY · SHARE + "Not saved yet — I saved it" (${JSON.stringify(box && box.acts)})`);
     await shotAll(p7, 'pf-06d-save-key', REVIEW_SIZES.slice(0, 2));
-    await p7.click('.byc-save [data-act="copy"]');
+    await p7.click('.pf-kb [data-act="copy"]');
     await sleep(500);
     const clip = await p7.evaluate(() => navigator.clipboard.readText().catch(() => null));
     const n1 = await p7.evaluate(() => JSON.parse(localStorage.getItem('na:f6:pnotes') || '{}'));
     ok(clip === JSON.parse(key0) && n1.saved === true, `COPY puts the key on the clipboard + quiets the reminder (${clip ? 'copied' : 'no clipboard'}, saved ${n1.saved})`);
     await p7.evaluate(() => { const k = 'na:f6:pnotes'; localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) || '{}'), saved: false })); });
-    await p7.click('.byc-save [data-act="share"]');
+    await p7.click('.pf-kb [data-act="share"]');
     await sleep(400);
     const sh = await p7.evaluate(() => ({ s: window.__shared, saved: JSON.parse(localStorage.getItem('na:f6:pnotes') || '{}').saved }));
     ok(sh.s && sh.s.text.includes(JSON.parse(key0)) && sh.saved === true, 'SHARE hands the key to the phone\'s share sheet (Notes · Mail · Messages) + quiets the reminder');
     await p7.evaluate(() => { const k = 'na:f6:pnotes'; localStorage.setItem(k, JSON.stringify({ ...JSON.parse(localStorage.getItem(k) || '{}'), saved: false })); });
-    await p7.click('.byc-save [data-act="saved"]');
+    // (the key block repaints its saved line on its own buttons; the page is re-opened to read the note it starts from)
+    await p7.evaluate(() => import('/js/store.js').then(m => { m.setState({ view: 'title' }); setTimeout(() => m.setState({ view: 'profile' }), 300); }));
+    await p7.waitForSelector('.pf-kb .pf-kb-did', { timeout: 10000 });
+    await p7.click('.pf-kb .pf-kb-did');
     await sleep(300);
-    const sv = await p7.evaluate(() => ({ saved: JSON.parse(localStorage.getItem('na:f6:pnotes') || '{}').saved, box: document.querySelector('.byc-save').classList.contains('is-saved'), prompt: import('/js/profile/me.js').then(m => m.shouldPromptKey()) }));
-    ok(sv.saved === true && sv.box, 'I SAVED IT: the reminder quiets (saved) + the box turns quiet ("YOUR KEY IS SAVED ✓")');
-    await p7.click('.byc-else-btn');
+    const sv = await p7.evaluate(() => ({ saved: JSON.parse(localStorage.getItem('na:f6:pnotes') || '{}').saved, box: !!document.querySelector('.pf-kb .pf-kb-saved.is-ok') }));
+    ok(sv.saved === true && sv.box, 'I SAVED IT: the reminder quiets (saved) + the line turns green ("✓ saved")');
+    await p7.click('.pf-elsewhere');
     await p7.waitForSelector('.byc-else .byc-key', { timeout: 6000 }).catch(() => {});
     const el = await p7.evaluate(() => { const s = document.querySelector('.byc-else'); return s ? { key: s.querySelector('.byc-key').textContent, text: s.textContent, steps: s.querySelectorAll('.byc-steps li').length } : null; });
     ok(el && el.key === JSON.parse(key0) && el.steps === 3 && /stays signed in/.test(el.text) && /NEW KEY/.test(el.text) && /Home Screen/.test(el.text), 'USE THIS CARD ON ANOTHER DEVICE: the key big + COPY + SHARE + the 3 steps (Home Screen too), "this device stays signed in", no NEW KEY needed');
@@ -270,10 +288,10 @@ await H.run(async () => {
   { const kept = JSON.parse(await p5.evaluate(() => localStorage.getItem('na:f5:pkey'))), n5 = await p5.evaluate(() => JSON.parse(localStorage.getItem('na:f5:pnotes')));
     ok(kept === fresh && n5.saved === true && n5.heldNew && n5.heldNew !== fresh, `THE KEY KEPT: a new profile for a lost login never overwrites the device's key (kept ${kept === fresh}, "saved" ${n5.saved}, the new key aside ${!!n5.heldNew})`); }
   await p5.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'profile' })));
-  await p5.waitForSelector('.pf-note.is-offer .btn-primary', { timeout: 15000 });
+  await p5.waitForSelector('.pf-note.is-offer .pf-gb', { timeout: 15000 });
   ok(/ALREADY HAD A KEY/.test(await p5.$eval('.pf-note.is-offer', e => e.textContent)), 'the membership card offers the restore');
   await shotAll(p5, 'pf-06b-key-offer');
-  await p5.click('.pf-note.is-offer .btn-primary');
+  await p5.click('.pf-note.is-offer .pf-gb');
   await p5.waitForFunction(pid => { const m = JSON.parse(localStorage.getItem('na:f5:me') || 'null'); return m && m.pid === pid; }, { timeout: 20000 }, me0.pid);
   { const n5 = await p5.evaluate(() => JSON.parse(localStorage.getItem('na:f5:pnotes')));
     ok(!n5.heldNew && !(await p5.$('.pf-note.is-offer')), 'RESTORE IT: ALICE is back on this device, the offer gone'); }
@@ -297,7 +315,7 @@ await H.run(async () => {
   await p7.waitForSelector('.pf-note', { timeout: 15000 });
   ok(/ALREADY A MEMBER\?.*Nothing is saved on this device yet .*wasn’t deleted.*BRING YOUR CARD/.test(await p7.$eval('.pf-note', e => e.textContent)), `THE EMPTY CARD SAYS WHY: "${await p7.$eval('.pf-note', e => e.textContent)}"`);
 
-  // ---- 8. THE BOARD in the app (BNAME: the floor, nicknames, your real name, REPORT), and the opt-out
+  // ---- 8. THE BOARD in the app (the floor, REAL USERNAMES — LOBBY 2.0 A, your own row, REPORT), and the opt-out
   const openBoard = async () => {
     await p3.evaluate(() => import('/js/profile/api.js').then(m => m.clearBoardCache()));
     await p3.evaluate(() => import('/js/store.js').then(m => m.setState({ view: 'title' })));
@@ -325,8 +343,8 @@ await H.run(async () => {
   const bid3 = await p3.evaluate(() => { for (const k of Object.keys(localStorage)) if (/:me$/.test(k)) { const v = JSON.parse(localStorage.getItem(k)); return `${k}=${v && v.profile && v.profile.bid}`; } return 'none'; });
   ok(mine && mine.n.startsWith(me0.profile.n) && /YOU$/.test(mine.n) && !mine.more, `your own row: your real name + YOU, no REPORT (${mine && mine.n}; ${bid3}; rows ${rows.map(r => r.id).join(',')})`);
   const others = rows.filter(r => !r.me);
-  ok(others.length > 0 && others.every(r => r.more && /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(r.n)), `every other row: a house nickname + ⋯ (${others.map(r => r.n).join(', ')})`);
-  ok(!rows.some(r => !r.me && r.n.toUpperCase().includes(String(me1.profile.n).toUpperCase())), `${me1.profile.n}'s typed name is nowhere on ALICE's board`);
+  ok(others.length > 0 && others.every(r => r.more), `every other row: its player's username + ⋯ (${others.map(r => r.n).join(', ')})`);
+  ok(!others.some(r => /^[A-Z][a-z]+ [A-Z][a-z]+$/.test(r.n)), `no house nicknames on the board — the players' usernames (${others.map(r => r.n).join(', ')})`);
   await shotAll(p3, 'pf-07-board');
   // REPORT: ⋯ → the sheet → SUSPICIOUS SCORE → thanks, stored for /admin
   const target = others[0];
@@ -352,7 +370,7 @@ await H.run(async () => {
   await pub.waitForSelector('.bd-row:not(.is-skel)', { timeout: 20000 });
   ok(await pub.$('.bd-play'), 'neonspeakeasy.com/board: the board for anyone, with PLAY NOW');
   const pubText = await pub.$eval('.bd-rows', el => el.textContent.toUpperCase());
-  ok(!pubText.includes(String(me0.profile.n).toUpperCase()) && !pubText.includes(String(me1.profile.n).toUpperCase()), 'the public page: house nicknames only, no typed names');
+  ok(pubText.includes(String(me0.profile.n).toUpperCase()) && !pubText.includes(String(me0.pid).toUpperCase()) && !pubText.includes(String(me1.pid).toUpperCase()), `the public page: ${me0.profile.n}'s USERNAME on it — never a profile id`);
   await shotAll(pub, 'pf-08-public');
   await ctx.close();
 });

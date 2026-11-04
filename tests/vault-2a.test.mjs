@@ -96,7 +96,7 @@ test('THE PICKER: emblems · tube styles · glows as rows on the player\'s own s
   // (THE VAULT 2B: the profile's long rows became DRESS YOUR CARD — js/vault/dress.js, tested in vault-2b.test.mjs; the picker's row
   //  builders stay for the lab + the previews)
   assert.match(pr, /openDress\(data, /);   // (THE VAULT 2C: the profile's CUSTOMIZE YOUR CARD opens CUSTOMIZE)
-  assert.match(pk, /export function stylePicker\(o\)/); assert.match(pk, /'WEARING ✓'/);
+  assert.match(pk, /export function stylePicker\(o\)/); assert.match(pk, /'EQUIPPED ✓'/);   // (LOBBY 2.0 A: EQUIP, not wear)
   assert.doesNotMatch(pr, /pg-vitem/, 'the old tiles gone');
   for (const v of ['emblems', 'glows']) assert.match(lab, new RegExp(`\\['${v}', '`));   // (THE LAB 2.0: the SECTIONS table)
   assert.match(lab, /wearMix/);

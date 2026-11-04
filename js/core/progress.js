@@ -5,7 +5,7 @@
 //   pstats/{pid}: { xp, g{game:{p,w,…}}, wk, gw{game:{…}} (this week), b{board:{a, w, wk}} (records), day{k, g{game:1}}, last, m{key: at},
 //                   gd (the week whose goal was paid), it{item: at} (THE VAULT — owned items, server-granted only), st (THE STREAK —
 //                   core/streak.js), fv (FAVOR tokens held — PROGRESSION B spends them) … }
-import { boardDef, better, BOARD_GAMES } from './boards.js';
+import { boardDef, better, BOARD_GAMES, GOAL_GAMES } from './boards.js';
 import { matchXp, weeklyGoal, goalProgress, GOAL_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
 import { SIGN_EMBLEMS } from './items.js';
@@ -62,7 +62,7 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   const xp = matchXp({ rank: row.rank, win: row.win, n, pbs: pbs.filter(p => !p.first).length, firstToday, gamesToday });
   // (PROGRESSION A: NO streak XP — the owner kept Grok's "streaks pay in milestones"; the old +10 % a night is gone)
   // the weekly goal: paid once, the match that completes it
-  const goal = weeklyGoal(wk, BOARD_GAMES);
+  const goal = weeklyGoal(wk, GOAL_GAMES);
   if (next.gd !== wk && goalProgress(goal, next.gw).done) { xp.parts.push({ k: 'goal', label: 'WEEKLY GOAL', v: GOAL_XP }); xp.total += GOAL_XP; next.gd = wk; }
   const from = s.xp || 0;
   next.xp = from + xp.total;

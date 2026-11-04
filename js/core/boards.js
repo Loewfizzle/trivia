@@ -3,6 +3,7 @@
 // A board id names what is ranked: records ("slip-dist", "pulse-pulse3-hard") and career counters ("cipher-wins",
 // "gridlock-w-salvo"); dashes, never dots, because board ids are database keys. Each board has two periods: 'all' and the current week ("w20261012", core/week.js).
 // lb/{board}/{period}/{pid} holds a SORT value where higher is always better; `toSort`/`fromSort` convert.
+import { GAMES } from '../config.js';
 export const PERIODS = ['week', 'all'];
 export const MIN_WR_GAMES = 10;     // win rate shows only after this many games of that game
 
@@ -30,6 +31,8 @@ export const GAME_BOARDS = {
   stakes: { records: [rec('stakes-chips', 'BEST FINAL STACK', 'int', { short: 'CHIPS' }), rec('stakes-big', 'BIGGEST SINGLE HAND', 'int', { short: 'WON' })], career: [] },
 };
 export const BOARD_GAMES = Object.keys(GAME_BOARDS);
+/** the games a weekly goal may name: the board games a player can START today (config.js GAMES[].playable — the one switch) */
+export const GOAL_GAMES = BOARD_GAMES.filter(id => (GAMES.find(g => g.id === id) || {}).playable !== false);
 export const PULSE_DIFFS = ['easy', 'normal', 'hard'];
 
 /** Every game also has WINS and WIN RATE (first), then its own highlights. */

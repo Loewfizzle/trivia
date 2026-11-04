@@ -15,6 +15,7 @@ import { boardDef } from '../js/core/boards.js';
 import { isBoardId } from '../js/core/nicknames.js';
 import { weekEndsAt } from '../js/core/week.js';
 import { activity } from './_lib/activity.js';
+import { notifyOwner } from './_lib/radio.js';
 
 const pub = r => ({ id: r.id, n: r.n, t: r.t, a: r.a, c: r.c, r: r.r, l: r.l || 1, rank: r.rank, v: r.v });
 
@@ -67,8 +68,15 @@ export async function flagRow(body, { ip = '', now = Date.now() } = {}) {
     x.b = { ...(x.b || {}), [b]: ((x.b || {})[b] || 0) + 1 };
     return x;
   });
+  // LOBBY 2.0 A — THE REPORT PUSH (the owner, Nov 3 7:31 pm): his phones get "Name reported: <name> — <reason>" → /admin's Board reports.
+  // The reports' own limits hold (per IP / device / day) + ONE push a reported row an hour; a push that fails never fails the report.
+  try {
+    const t = await ref(`flags/${id}/pushedAt`).transaction(cur => (cur && cur > now - 3600e3 ? undefined : now));
+    if (t.committed) await notifyOwner({ title: why === 'name' ? 'Name reported' : 'Score reported', body: `${why === 'name' ? 'Name' : 'Score'} reported: ${row.n} — ${REASON[why] || why}`, url: '/admin#reports', tag: `report-${id}` });
+  } catch (e) { console.info('report push skipped:', e && e.message); }
   return { ok: true };
 }
+const REASON = { name: 'a rude or personal name', score: 'a score that looks wrong' };
 
 export default route(['GET', 'POST'], async (req, res) => {
   if (req.method === 'POST') {

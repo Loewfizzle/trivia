@@ -216,7 +216,7 @@
 .pg-vitem span { font: 700 9px/1.2 var(--font-ui); letter-spacing: 0.14em; text-align: center; color: var(--pg-dim); }
 .pg-vitem.is-on { border-color: var(--pg-brass); background: rgba(216, 180, 106, 0.1); }
 .pg-vitem.is-on span { color: var(--pg-brass-hi); }
-.pg-vitem.is-on::after { content: 'WEARING'; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); padding: 2px 6px; border-radius: 6px; background: var(--pg-brass); color: #1d1405; font: 800 7.5px/1 var(--font-ui); letter-spacing: 0.16em; }
+.pg-vitem.is-on::after { content: 'EQUIPPED'; position: absolute; top: -7px; left: 50%; transform: translateX(-50%); padding: 2px 6px; border-radius: 6px; background: var(--pg-brass); color: #1d1405; font: 800 7.5px/1 var(--font-ui); letter-spacing: 0.16em; }
 .pg-only { margin: 10px 0 0; text-align: center; font: italic 400 13px/1.3 var(--pg-serif); color: var(--pg-dim); }
 
 /* ------------------------------------------------------------------ THE DOCK's FLAME (the badge on YOU) */
@@ -350,7 +350,7 @@ body.reduced-fx .pg-flame * { animation: none !important; }
 .pg-box small { font: 700 12px/1.2 var(--font-ui); letter-spacing: 0.2em; color: var(--pg-ivory); }
 .pg-box .pg-pct, .pg-box .pg-pct:not(:empty) { font: 700 13px/1.3 var(--font-ui); letter-spacing: 0.01em; color: var(--pg-pct-c); text-transform: none; }
 .pg-sk-row em { font: 700 15px/1 var(--font-num); color: var(--pg-pct-c); }
-.pg-card-fd { right: 6%; top: 19%; padding: 6px 11px 5px; border-radius: 999px; font: 700 clamp(11.5px, 3.5vw, 14px)/1 var(--font-ui); letter-spacing: 0.1em;
+.pg-card-fd { right: 6%; top: 18.5%; padding: 7px 12px 6px; border-radius: 999px; font: 900 clamp(12.5px, 3.9vw, 15.5px)/1 var(--font-ui); letter-spacing: 0.12em; overflow: hidden;
   color: var(--pg-ivory); text-shadow: none; background: rgba(20, 6, 16, 0.72);
   box-shadow: inset 0 0 0 1.5px #ff6fc8, 0 0 10px rgba(255, 79, 184, 0.55), inset 0 0 8px rgba(255, 79, 184, 0.35); }
 .pg-prof-h { flex-wrap: wrap; row-gap: 6px; }
@@ -412,6 +412,7 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .pg-rw-glow { font: 900 13px/1 var(--font-display) !important; letter-spacing: 0.08em; }
 /* 8 — ACCOUNT: small rows at the bottom */
 .pf-account { gap: 12px; }
+.pf-account .pf-acc-row { width: 100%; }
 .pf-acc-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 0 14px; border: 0; border-radius: 14px; cursor: pointer; text-align: left; color: #fff8ee;
   background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08); }
 .pf-acc-row b { font: 700 15.5px/1.2 var(--font-ui); }
@@ -419,3 +420,126 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
 .pf-acc-row[disabled] { cursor: default; opacity: 1; }
 .pf-acc-key { display: flex; flex-direction: column; gap: 10px; }
 .pf-bday-slot:empty { display: none; }
+
+/* LOBBY 2.0 A — FOUNDER's GLINT (the owner's 2C review): a light stripe sweeping across the badge every ~5 s (transform + opacity) */
+.pg-card-fd::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: 0; width: 45%; pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 250, 235, 0) 18%, rgba(255, 250, 235, 0.85) 50%, rgba(255, 250, 235, 0) 82%, transparent 100%);
+  mix-blend-mode: plus-lighter; opacity: 0; transform: translateX(-120%) skewX(-18deg); animation: pg-fd-glint 5.2s cubic-bezier(.45, .05, .35, 1) 1.2s infinite; }
+@keyframes pg-fd-glint { 0% { opacity: 0; transform: translateX(-120%) skewX(-18deg); } 4% { opacity: 1; } 22% { opacity: 1; transform: translateX(320%) skewX(-18deg); } 24%, 100% { opacity: 0; transform: translateX(320%) skewX(-18deg); } }
+@media (prefers-reduced-motion: reduce) { .pg-card-fd::after { animation: none; display: none; } }
+
+/* ===================================================================================================================================
+   LOBBY 2.0 A — THE PROFILE POLISH (the owner's 2C review, Nov 3 9:20–9:40 pm). ONE BUTTON SYSTEM: CUSTOMIZE YOUR CARD is the screen's ONE
+   gold primary; every other button is NEON GLASS (.pf-gb: dark glass, a soft white edge, white text); NEW KEY small + red-edged. Text ≥ 4.5:1.
+   =================================================================================================================================== */
+.pf-bar { min-height: 44px; }
+.pf-gb { position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 46px; padding: 0 18px; border: 0; border-radius: 14px; cursor: pointer;
+  font: 800 13px/1 var(--font-ui); letter-spacing: 0.18em; color: #fff; background: rgba(12, 11, 20, 0.78);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 4px 14px rgba(0, 0, 0, 0.35); -webkit-tap-highlight-color: transparent; }
+.pf-gb:active { transform: scale(0.985); }
+.pf-gb:focus-visible { outline: 2px solid #ff6fc8; outline-offset: 2px; }
+.pf-gb.is-busy { opacity: 0.7; pointer-events: none; }
+.pf-gb-big { display: flex; flex-direction: column; align-items: flex-start; justify-content: center; gap: 5px; width: 100%; min-height: 64px; padding: 12px 40px 12px 18px; text-align: left; }
+.pf-gb-big b { font: 800 14px/1.15 var(--font-ui); letter-spacing: 0.14em; color: #fff; }
+.pf-gb-big small { font: 600 12.5px/1.25 var(--font-ui); letter-spacing: 0.02em; color: rgba(240, 236, 250, 0.82); }
+.pf-gb-big::after { content: "\203A"; position: absolute; right: 16px; top: 50%; transform: translateY(-52%); font: 700 22px/1 var(--font-ui); color: rgba(255, 255, 255, 0.82); }
+.pf-gb-sm { min-height: 36px; padding: 0 14px; border-radius: 999px; font-size: 10.5px; letter-spacing: 0.16em; }
+.pf-gb.is-danger { color: #ffd0da; background: rgba(30, 6, 12, 0.6); box-shadow: inset 0 0 0 1px rgba(255, 110, 140, 0.6); }
+.pf-gb.is-danger.is-armed { color: #ffe3ea; box-shadow: inset 0 0 0 1.5px rgba(255, 90, 125, 0.95), 0 0 12px rgba(255, 70, 110, 0.3); letter-spacing: 0.06em; }
+.pf-newkey-row { display: flex; justify-content: center; margin-top: 4px; }
+.pf-account { gap: 12px; }
+.pf-account .pf-acc-row { width: 100%; }
+
+/* YOUR KEY — ONE block */
+.pf-kb { padding: 14px; border-radius: 16px; background: rgba(10, 9, 16, 0.78); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.14); display: flex; flex-direction: column; gap: 10px; }
+.pf-kb-h { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.pf-kb-h b { font: 900 11px/1 var(--font-display); letter-spacing: 0.3em; color: #fff; }
+.pf-kb-h span { font: 600 13px/1.2 var(--font-ui); color: rgba(240, 236, 250, 0.78); }
+.pf-kb-val { display: flex; flex-direction: column; align-items: center; gap: 6px; min-height: 64px; padding: 10px; border: 0; border-radius: 12px; cursor: pointer; background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); color: #fff; }
+.pf-kb-text { font: 700 clamp(16px, 5vw, 20px)/1.2 var(--font-mono); letter-spacing: 0.12em; color: rgba(255, 255, 255, 0.86); }
+.pf-kb-val.is-shown .pf-kb-text { color: #fff; user-select: all; -webkit-user-select: all; }
+.pf-kb-val small { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.24em; color: rgba(240, 236, 250, 0.7); }
+.pf-kb-val.is-shown small { visibility: hidden; }
+.pf-kb-acts { display: flex; gap: 10px; }
+.pf-kb-acts .pf-gb { flex: 1 1 0; }
+.pf-kb-saved { margin: 0; font: 600 13.5px/1.3 var(--font-ui); color: rgba(240, 236, 250, 0.82); }
+.pf-kb-saved.is-ok { color: #9ff0c0; }
+.pf-kb-did { padding: 0; border: 0; background: none; color: #fff; font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; min-height: 44px; }
+.pf-kb-why { margin: 0; font: 500 12.5px/1.4 var(--font-ui); color: rgba(240, 236, 250, 0.72); }
+
+/* THE LEVEL BAR — the sign's HOT-PINK NEON as a lit tube that fills (a white-hot core in a pink glow; the glint as before) */
+.pg-bar.pg-bar-tube { height: 14px; border-radius: 8px; overflow: visible; background: rgba(40, 6, 28, 0.7); box-shadow: inset 0 0 0 1px rgba(255, 111, 200, 0.4); }
+.pg-bar-tube .pg-bar-had { border-radius: 8px; background: linear-gradient(180deg, #ff4fb8 0%, #ff9fdc 34%, #fff2fa 50%, #ff9fdc 66%, #ff4fb8 100%); box-shadow: 0 0 10px rgba(255, 79, 184, 0.85), 0 0 22px rgba(255, 79, 184, 0.35); }
+.pg-lv-streak { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 54px; margin-top: 12px; padding: 8px 12px; border: 0; border-radius: 12px; cursor: pointer; text-align: left;
+  background: rgba(255, 255, 255, 0.04); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); color: #fff; }
+.pg-lv-streak b { font: 800 13px/1 var(--font-ui); letter-spacing: 0.12em; white-space: nowrap; }
+.pg-lv-st { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.pg-lv-st small { font: 600 12.5px/1.25 var(--font-ui); color: rgba(240, 236, 250, 0.8); }
+.pg-lv-streak > i { font: 700 20px/1 var(--font-ui); color: rgba(255, 255, 255, 0.8); font-style: normal; }
+.pg-lv-streak > .pg-flame { --f: 24px; }
+
+/* THE GOAL TILE — dark glass, a neon-CYAN edge, the goal in big type, a thick cyan tube bar, the reward as a real chip */
+.pf-goal-t { display: flex; flex-direction: column; gap: 10px; padding: 16px; border-radius: 18px; background: rgba(4, 14, 22, 0.88);
+  box-shadow: inset 0 0 0 1.5px rgba(95, 232, 255, 0.75), 0 0 18px rgba(95, 232, 255, 0.22), inset 0 0 22px rgba(95, 232, 255, 0.08); }
+.pf-gt-h { display: flex; justify-content: space-between; gap: 10px; font: 800 11px/1 var(--font-ui); letter-spacing: 0.22em; color: #bff6ff; }
+.pf-gt-goal { font: 800 clamp(22px, 6.6vw, 27px)/1.12 var(--font-ui); letter-spacing: 0.01em; color: #fff; }
+.pf-gt-row { display: flex; align-items: center; gap: 12px; }
+.pf-gt-bar { position: relative; flex: 1; height: 16px; border-radius: 9px; overflow: hidden; background: rgba(0, 30, 40, 0.8); box-shadow: inset 0 0 0 1px rgba(95, 232, 255, 0.45); }
+.pf-gt-bar i { position: absolute; inset: 0; border-radius: 9px; transform-origin: left center; transform: scaleX(0);
+  background: linear-gradient(180deg, #19c8f0 0%, #8ff2ff 34%, #f2feff 50%, #8ff2ff 66%, #19c8f0 100%); box-shadow: 0 0 10px rgba(95, 232, 255, 0.85); }
+.pf-gt-n { font: 800 18px/1 var(--font-num); color: #fff; min-width: 54px; text-align: right; }
+.pf-gt-f { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pf-gt-k { font: 700 11px/1 var(--font-ui); letter-spacing: 0.2em; color: #bff6ff; }
+.pf-gt-chip { display: inline-flex; align-items: baseline; gap: 3px; padding: 8px 14px; border-radius: 999px; font: 800 13px/1 var(--font-ui); letter-spacing: 0.12em; color: #eaffff; background: rgba(95, 232, 255, 0.12); box-shadow: inset 0 0 0 1px rgba(95, 232, 255, 0.6); }
+.pf-gt-chip b { font: 800 17px/1 var(--font-num); color: #fff; }
+.pf-gt-claimed { margin-left: auto; font: 800 13px/1 var(--font-ui); letter-spacing: 0.16em; color: #9ff0c0; }
+.pf-goal-t.is-done { box-shadow: inset 0 0 0 1.5px rgba(159, 240, 192, 0.85), 0 0 22px rgba(159, 240, 192, 0.3), inset 0 0 26px rgba(159, 240, 192, 0.1); }
+.pf-goal-t.is-done .pf-gt-bar i { background: linear-gradient(180deg, #3fd68a 0%, #b4f7d3 40%, #f4fff9 50%, #b4f7d3 60%, #3fd68a 100%); box-shadow: 0 0 10px rgba(120, 240, 170, 0.85); }
+
+/* the trophies: NEW (within 48 h) + ALL ACHIEVEMENTS · N / ALL SIGHTINGS · N */
+.pg-tr-new { display: inline-block; margin-left: 8px; padding: 3px 7px 2px; border-radius: 6px; vertical-align: 2px; font: 800 10px/1 var(--font-ui); letter-spacing: 0.16em; color: #1a0612; background: #ff6fc8; }
+.pf-more { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; margin-top: 12px; padding: 0 16px; border: 0; border-radius: 14px; cursor: pointer;
+  font: 800 12.5px/1 var(--font-ui); letter-spacing: 0.18em; color: #fff; background: rgba(12, 11, 20, 0.7); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.26); }
+.pf-more b { font: 700 20px/1 var(--font-ui); }
+
+/* MASTERY — one wide tile a playable game (its record in a sheet) */
+.pf-screen .pf-mast-grid { grid-template-columns: 1fr; gap: 10px; }
+.pf-screen .pf-mast { flex-direction: row; justify-content: flex-start; gap: 14px; min-height: 64px; padding: 8px 14px; width: 100%; cursor: pointer; color: #fff; text-align: left; font: inherit; background: rgba(12, 11, 20, 0.7); border: 1px solid rgba(255, 255, 255, 0.16); }
+.pf-screen .pf-mast[disabled] { cursor: default; }
+.pf-mast-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 5px; }
+.pf-screen .pf-mast-n { font: 800 12px/1.1 var(--font-display); letter-spacing: 0.12em; color: #fff; text-align: left; }
+.pf-mast-t small { font: 700 12px/1 var(--font-num); letter-spacing: 0.1em; color: rgba(240, 236, 250, 0.78); }
+.pf-mast-go { font: 700 22px/1 var(--font-ui); font-style: normal; color: rgba(255, 255, 255, 0.8); }
+
+/* EDIT PROFILE's rows + the editors */
+.pf-er { width: 100%; justify-content: flex-start; }
+.pf-er b { min-width: 74px; font: 800 13px/1 var(--font-ui); letter-spacing: 0.16em; }
+.pf-er .pf-er-v { flex: 1; text-align: right; display: inline-flex; justify-content: flex-end; align-items: center; gap: 8px; color: #fff; font: 700 15px/1.2 var(--font-ui); }
+.pf-er-go { font: 700 22px/1 var(--font-ui); font-style: normal; color: rgba(255, 255, 255, 0.8); }
+.pf-er-sw { display: inline-block; width: 18px; height: 18px; border-radius: 50%; background: var(--c); box-shadow: 0 0 10px var(--c); }
+.pf-public { margin: 4px 2px 0; font: 600 13px/1.35 var(--font-ui); color: rgba(240, 236, 250, 0.82); }
+.pf-swatches { margin: 6px 0 14px; }
+
+/* THE POP-UPS (profile/sheets.js): glass sheets sliding up; BACK closes one step; a swipe down on the header */
+.pfs { position: fixed; inset: 0; z-index: 400; display: flex; align-items: flex-end; justify-content: center; }
+.pfs-scrim { position: absolute; inset: 0; background: rgba(4, 3, 10, 0.62); opacity: 0; transition: opacity 0.24s ease; }
+.pfs-sheet { position: relative; width: 100%; max-width: 520px; max-height: calc(100dvh - var(--safe-t, 0px) - 34px); display: flex; flex-direction: column; border-radius: 22px 22px 0 0;
+  background: rgba(14, 12, 22, 0.97); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 -10px 40px rgba(0, 0, 0, 0.5);
+  transform: translateY(100%); transition: transform 0.28s cubic-bezier(.2, .8, .2, 1); color: #fff8ee; }
+.pfs.is-in .pfs-scrim { opacity: 1; }
+.pfs.is-in .pfs-sheet { transform: none; }
+.pfs.is-out .pfs-scrim { opacity: 0; }
+.pfs.is-out .pfs-sheet { transform: translateY(100%); }
+.pfs-head { position: relative; display: flex; align-items: center; gap: 10px; padding: 18px 16px 10px; touch-action: none; }
+.pfs-grip { position: absolute; left: 50%; top: 7px; width: 42px; height: 5px; margin-left: -21px; border-radius: 3px; background: rgba(255, 255, 255, 0.28); }
+.pfs-back { display: inline-flex; align-items: center; gap: 4px; min-width: 44px; min-height: 44px; padding: 0 12px 0 8px; border: 0; border-radius: 999px; cursor: pointer;
+  font: 700 22px/1 var(--font-ui); color: #fff; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22); }
+.pfs-back span { font: 800 11px/1 var(--font-ui); letter-spacing: 0.18em; }
+.pfs-t { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.pfs-t small { font: 700 10px/1 var(--font-ui); letter-spacing: 0.22em; color: rgba(240, 236, 250, 0.72); }
+.pfs-t b { font: 900 14px/1.1 var(--font-display); letter-spacing: 0.14em; color: #fff; overflow-wrap: anywhere; }
+.pfs-body { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 6px 16px calc(var(--safe-b, 0px) + 22px); display: flex; flex-direction: column; gap: 12px; }
+.pfs-note { margin: 0; font: 500 14px/1.4 var(--font-ui); color: rgba(240, 236, 250, 0.84); }
+.pfs-note.is-small { font-size: 12.5px; color: rgba(240, 236, 250, 0.72); }
+.pfs .pf-game { margin: 0; }
+@media (prefers-reduced-motion: reduce) { .pfs-sheet, .pfs-scrim { transition: none; } }

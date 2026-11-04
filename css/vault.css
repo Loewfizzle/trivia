@@ -412,8 +412,9 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-s-legend .vl-mat { background: radial-gradient(ellipse at 20% 0%, rgba(255, 122, 240, 0.18), transparent 50%), radial-gradient(ellipse at 90% 100%, rgba(122, 200, 255, 0.18), transparent 55%), linear-gradient(135deg, #07050d, #120a1c 55%, #06040a); }
 .vl-s-legend .vl-frame { padding: 1.5px; background: linear-gradient(90deg, #ff7af0, #ffd27a 25%, #9affc0 50%, #7ac8ff 75%, #c07aff); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); box-shadow: none; }
 .vl-s-legend .vl-plate, .vl-s-legend .vl-tier { background: rgba(8, 4, 14, 0.84); box-shadow: inset 0 0 0 1px rgba(240, 230, 255, 0.4); }
-.vl-s-century .vl-mat { background: linear-gradient(180deg, rgba(26, 10, 2, 0.62), rgba(12, 4, 0, 0.88)), url(../assets/vault/foil-gold.webp) center / cover, #3a2008; }
-.vl-s-century .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(255, 207, 138, 0.75), inset 0 0 0 4px rgba(0, 0, 0, 0.4), 0 0 14px rgba(255, 138, 58, 0.3), 0 3px 12px rgba(0, 0, 0, 0.5); }
+/* (LOBBY 2.0 A — BURNISHED BRONZE: the foil toned to bronze, darker toward the foot; the deco sunburst is the effect — fx/deco.js) */
+.vl-s-century .vl-mat { background: linear-gradient(180deg, rgba(36, 16, 4, 0.34), rgba(14, 6, 1, 0.74)), linear-gradient(#a2602e, #6e3a16), url(../assets/vault/foil-gold.webp) center / cover, #5a3012; background-blend-mode: normal, multiply, normal; }
+.vl-s-century .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(232, 170, 110, 0.8), inset 0 0 0 4px rgba(0, 0, 0, 0.4), 0 0 12px rgba(214, 140, 72, 0.28), 0 3px 12px rgba(0, 0, 0, 0.5); }
 .vl-s-century .vl-plate, .vl-s-century .vl-tier { background: rgba(16, 6, 2, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 207, 138, 0.45); }
 .vl-s-marqueegold .vl-mat { background: url(../assets/vault/velvet-black.webp) center / cover, #0c0806; }
 .vl-s-marqueegold .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(255, 217, 138, 0.8), 0 0 16px rgba(255, 196, 90, 0.3), 0 3px 12px rgba(0, 0, 0, 0.5); }
@@ -962,3 +963,15 @@ body.reduced-fx .vl-gem-gl, .vl-still .vl-gem-gl { opacity: 0.9; transform: none
 /* THE VAULT 2C — FOUNDER in the top line (the dev cards' slot): gold letters in the line, no pill */
 .vl-fc-fd.is-top { position: static; padding: 0; background: none; box-shadow: none; border: 0; font: inherit; letter-spacing: inherit; color: #ffd98a; text-shadow: 0 0 8px rgba(255, 190, 90, 0.55); }
 .vl-diag-nogem .vl-gem, .vl-diag-nogem .vl-gem * { animation: none !important; }
+/* LOBBY 2.0 A — FOUNDER a little BIGGER + BOLDER, with a GLINT sweeping across it (the owner's 2C review: transform + opacity only — a
+   light stripe on the badge's own ::after, clipped by the badge; one sweep every ~5 s; reduced motion = the badge, still) */
+.vl-fc-fd { font-weight: 900; font-size: max(11px, 2.95cqi); padding: 0.5em 0.9em 0.4em; overflow: hidden; }
+.vl-fc-fd.is-top { position: relative; display: inline-block; overflow: hidden; font-weight: 900; vertical-align: bottom; padding: 0 0.15em; margin: 0 -0.15em; }
+.vl-fc-fd::after { content: ''; position: absolute; top: -20%; bottom: -20%; left: 0; width: 45%; pointer-events: none;
+  background: linear-gradient(100deg, transparent 0%, rgba(255, 250, 235, 0) 18%, rgba(255, 250, 235, 0.85) 50%, rgba(255, 250, 235, 0) 82%, transparent 100%);
+  mix-blend-mode: plus-lighter; opacity: 0; transform: translateX(-120%) skewX(-18deg); animation: vl-fd-glint 5.2s cubic-bezier(.45, .05, .35, 1) 1.2s infinite; }
+@keyframes vl-fd-glint { 0% { opacity: 0; transform: translateX(-120%) skewX(-18deg); } 4% { opacity: 1; } 22% { opacity: 1; transform: translateX(320%) skewX(-18deg); } 24%, 100% { opacity: 0; transform: translateX(320%) skewX(-18deg); } }
+@media (prefers-reduced-motion: reduce) { .vl-fc-fd::after { animation: none; display: none; } }
+/* LOBBY 2.0 A — THE STEPPED PLATE (strip.js#layStep): the step's edge line, over the glass, under nothing that's tapped */
+.vl-lv { align-self: flex-start; }   /* (the stepped plate measures the level row by its text) */
+.vl-plate > .vl-step { position: absolute; left: 0; top: 0; overflow: visible; pointer-events: none; }

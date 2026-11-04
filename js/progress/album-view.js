@@ -30,6 +30,20 @@ export function albumSection(stats) {
   const own = ownedSightings(stats);
   sheet();
   if (!own.length) return null;
+  // (LOBBY 2.0 A — the profile stays short: the LATEST 3 here, newest first; more → ALL SIGHTINGS · N › opens the whole album in a sheet)
+  const newest = own.slice().sort((a, b) => b.at - a.at);
+  const all = newest.length > 3 ? h('button.pf-more', { type: 'button', onclick: () => openAlbumSheet(stats) }, h('span', `ALL SIGHTINGS · ${newest.length}`), h('b', '›')) : null;
+  return h('section.pg-panel.sg-sec',
+    h('div.pg-prof-h', h('span', 'CITY SIGHTINGS'), h('em', 'your own photos')),
+    albumGrid(newest.slice(0, 3)), all);
+}
+/** the whole album in a pop-up (every sighting, newest first) */
+export async function openAlbumSheet(stats) {
+  const { openPfSheet } = await import('../profile/sheets.js');
+  const own = ownedSightings(stats).sort((a, b) => b.at - a.at);
+  return openPfSheet({ kicker: `${own.length} SPOTTED · NEWEST FIRST`, title: 'CITY SIGHTINGS', body: [albumGrid(own)], cls: 'pf-album-sheet' });
+}
+function albumGrid(own) {
   const grid = h('div.sg-album');
   const tiles = new Map();
   own.forEach((s, i) => {
@@ -55,9 +69,7 @@ export function albumSection(stats) {
     }
   })).catch(() => {});
   pctFor().then(P => { for (const T of tiles.values()) { const v = P && P.i ? P.i[T.s.card] : null; T.pct.textContent = pctLine(v); } }).catch(() => {});
-  return h('section.pg-panel.sg-sec',
-    h('div.pg-prof-h', h('span', 'CITY SIGHTINGS'), h('em', 'your own photos')),
-    grid);
+  return grid;
 }
 
 /** one sighting big: this device's print(s) — or its card + the date */

@@ -32,7 +32,7 @@ import { displayOf } from './_lib/catalog.js';   // (THE VAULT 1B: the server-on
 import { route, send, readBody, requireUser, ApiError } from './_lib/http.js';
 import { ref, val, adminPids } from './_lib/fb.js';
 import { pidOf, publicProfile, rename, privateInfo, isPid, encodeKey } from './_lib/profiles.js';
-import { syncBoards, clearEntry, boardPaths, rankOf } from './_lib/lb.js';
+import { syncBoards, clearEntry, boardPaths, rankOf, publicName } from './_lib/lb.js';
 import { boardDef, fromSort } from '../js/core/boards.js';
 import { nameKey } from '../js/core/names.js';
 import { houseNick, isBoardId } from '../js/core/nicknames.js';
@@ -159,7 +159,7 @@ async function flagList() {
   await Promise.all(list.map(async f => {
     const p = f.pid && await publicProfile(f.pid);
     f.player = p ? { pid: p.pid, n: p.n, t: p.t, a: p.a, c: p.c, h: p.h, m: p.m } : null;
-    f.nick = houseNick(f.id);
+    f.nick = { n: publicName(f.id, p && p.n) };   // (LOBBY 2.0 A — the name the board shows: the username, or a rude one's house nickname)
   }));
   return list;
 }

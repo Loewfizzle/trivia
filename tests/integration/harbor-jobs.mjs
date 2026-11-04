@@ -21,7 +21,8 @@ export const SECONDS = {
   load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
   speakeasy: 30, fireworks: 30, stations: 40, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4, desktop: 90,   // (DESKTOP: an estimate — refresh from its first cloud run)
-  radio: 85, crew: 70, progress: 45, sightings: 150,   // (PROGRESSION B: sightings — an estimate from the mini PC)
+  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60,   // (LOBBY 2.0 A: an estimate from the mini PC)
+    // (PROGRESSION B: sightings — an estimate from the mini PC)
     // (PROGRESSION A: progress — an estimate; radio + the FOUNDER switch)   // (CITY CONTROLS A: an estimate — refresh from its first cloud run; CC-B: the intercom + the crew — ~55 s each on the mini PC)
 };
 
@@ -29,7 +30,7 @@ export const SECONDS = {
 // mini PC; refresh from this run's log), perf 270 → ~200 (the warnings-only pacing loop skipped on CI)
 export const CI_JOBS = {
   audio: ['music', 'harbor', 'dock', 'tape', 'roofcrisp', 'progress', 'vault'],   // (THE VAULT 1A: vault — the lab's look page + the 8-legendary fps, beside progress)   // (PROGRESSION A: progress — the dock flame + the preview links, beside the dock)   // (NIGHT-C: roofcrisp — three pages at 3×; flags → perf for the room)   // (9a: tape moved here, legends → wild: room for the weather)
-  show: ['neon', 'party', 'sky', 'life', 'quietbuilding'],   // (NIGHT-C: quietbuilding — the lightest)
+  show: ['neon', 'party', 'sky', 'life', 'quietbuilding', 'billboard'],   // (LOBBY 2.0 A: billboard — the cross-fade, ~60 s)   // (NIGHT-C: quietbuilding — the lightest)
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'streetparty', 'panel'],   // (NIGHT-B: streetparty)   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)
   perf: ['tower', 'partysync', 'flags', 'perf'],   // (SKY-B: heli → legend: its circle page)   // (NIGHT-C: partysync + heli + flags — before the serial perf)

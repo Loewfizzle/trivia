@@ -847,6 +847,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     if (rbN && rbN.rect) { const R0 = rbN.rect, aN = neon.boardNightA ? neon.boardNightA(rbN.id) : 0;
       const kN = Math.round(Math.min(1, aN) * 50) / 50;   // (quantised: a repaint only when the lamps' level steps — ~0.06 MB, cheap)
       if (aN > 0.01) crisp.show(c, { id: 'roofboard-msg', z: 1, box: { x: R0.x, y: R0.y, w: R0.w, h: R0.h }, key: `${rbN.content.lines.join('|')}|${rbN.content.art || ''}|${rbN.dead}|${crisp.dpr}|${kN}`, xfade: 0, alpha: fadeIn, draw: x => rbN.nightPoster(x, crisp.dpr, kN) }); }
+    { const a = boardXfA(); if (a > 0.004 && bxf.box) crisp.show(c, { id: 'roofboard-xf', z: 3, box: bxf.box, key: `xf${bxf.n}`, xfade: 0, alpha: a * fadeIn, draw: x => x.drawImage(bxf.cv, bxf.box.x, bxf.box.y, bxf.box.w, bxf.box.h) }); }
     crisp.end();
   }
   // (9d — THE FROST: the PANE only (the owner, DECIDED: "the frost on the buttons looks bad" → none on the buttons or the dock); the
@@ -934,6 +935,42 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   // (9f — LOAD WEATHER: the board's game is synced BEFORE the reveal too — a panel's clock jump to another day used to swap the poster
   // ~1 s after the city showed, a neon re-bake crossfading over it)
   let boardHintKey = '';
+  // LOBBY 2.0 A — THE ANNOUNCEMENT BILLBOARD CROSS-FADES (the owner, Nov 3 8:46 pm: his message "snaps on"): the board's swap lands on three
+  // layers at once (the baked poster, the crisp lettering, the night lamps) — so at the swap the board is copied ONCE as it looks on screen
+  // (the city canvas + its crisp canvases over it) and that copy FADES OUT over the new board (opacity only: a crisp item's CSS opacity, or
+  // the city canvas's alpha when the crisp layer is off) — ~0.9 s eased; reduced motion = a quick plain fade (0.25 s); the same back to the
+  // normal board at the end. Before the reveal (a fresh load mid-announcement) there is nothing to fade: the message is simply there.
+  const BXF_MS = 900, BXF_RM_MS = 250;
+  const bxf = { cv: null, at: -1, ms: BXF_MS, n: 0, box: null, last: -1 };
+  function boardSnap() {
+    if (shownAt < 0) return;
+    const rb = (neon.boards() || []).find(b => b.spot && b.spot.mount === 'speak'); if (!rb || !rb.rect) return;
+    const R0 = rb.rect, T = ctx.getTransform ? ctx.getTransform() : null; if (!T) return;
+    const dx = Math.floor(T.a * R0.x + T.e), dy = Math.floor(T.d * R0.y + T.f), dw = Math.ceil(T.a * R0.w), dh = Math.ceil(T.d * R0.h);
+    if (!(dw > 2 && dh > 2)) return;
+    if (!bxf.cv) bxf.cv = document.createElement('canvas');
+    if (bxf.cv.width !== dw || bxf.cv.height !== dh) { bxf.cv.width = dw; bxf.cv.height = dh; }
+    const x = safeCtx(bxf.cv); x.setTransform(1, 0, 0, 1, 0, 0); x.clearRect(0, 0, dw, dh); x.globalAlpha = 1;
+    try { x.drawImage(canvas, dx, dy, dw, dh, 0, 0, dw, dh); } catch { return; }
+    // (the crisp lettering over it — its own canvases, at their own ratio, at the opacity they show)
+    const host = canvas.parentElement, cr = canvas.getBoundingClientRect();
+    for (const cv of host ? host.querySelectorAll('canvas.hc-crisp') : []) {
+      if (cv.style.display === 'none' || !cv.width) continue;
+      const l = parseFloat(cv.style.left) || 0, t = parseFloat(cv.style.top) || 0, w = parseFloat(cv.style.width) || 0, hh = parseFloat(cv.style.height) || 0;
+      const k = canvas.width / Math.max(1, cr.width), bx = l * k - dx, by = t * k - dy, bw = w * k, bh = hh * k;
+      if (bx > dw || by > dh || bx + bw < 0 || by + bh < 0) continue;
+      x.globalAlpha = Math.max(0, Math.min(1, cv.style.opacity === '' ? 1 : Number(cv.style.opacity)));
+      try { x.drawImage(cv, bx, by, bw, bh); } catch { /* fine */ }
+    }
+    x.globalAlpha = 1;
+    bxf.box = { x: R0.x, y: R0.y, w: R0.w, h: R0.h }; bxf.at = performance.now(); bxf.ms = !S.motion ? BXF_RM_MS : BXF_MS; bxf.n++;
+  }
+  /** the old board's copy still fading: its alpha now (1 → 0, eased), or 0 */
+  function boardXfA(now = performance.now()) {
+    if (bxf.at < 0 || !bxf.cv) return 0;
+    const u = (now - bxf.at) / bxf.ms; if (u >= 1) { bxf.at = -1; return 0; }
+    const e = u * u * (3 - 2 * u); bxf.last = 1 - e; return 1 - e;
+  }
   /** the board's hint now: the queue's (billboard.*) on the city's clock, or the preview's (&force=billboard-hints: &hint= fireworks | party |
    *  lookup | postcard — 20 s on, 10 s off, looping) */
   function boardHintNow() {
@@ -959,6 +996,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       // (a re-layout of the neon rebuilds the board with its game: a hint spell re-applies itself whenever the board shows a game)
       if (hint ? hk !== boardHintKey || neon.boardGame(BOARD_ID) != null : hk !== boardHintKey || (want && (neon.boardGame(BOARD_ID) !== want || neon.boardDead(BOARD_ID) !== dead))) {
         boardHintKey = hk;
+        boardSnap();
         if (hint) neon.billboard(BOARD_ID, { lines: hint.lines, art: hint.art, dead });
         else if (want) neon.billboard(BOARD_ID, { game: want, dead });   // (the board shows the key's game; a paste in progress keeps the OLD one under the sheets)
       }
@@ -1290,7 +1328,10 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   const pplLive0 = () => !clock.force.has('no-people') && !clock.force.has('no-work');
   function speakCtx() {
     const now = performance.now();
-    if (speakMemo && now - speakMemo.at < 4000 && speakMemo.v.hushLit === !!hushPreview()) return speakMemo.v;
+    // (LOBBY 2.0 A — the memo is also keyed to the CITY's clock: a JUST ME time jump applied before the reveal used to bake the facade
+    //  with the real day's blade, then re-bake it in view 4 s later — the harbor's "holiday-night jump" check, red since the ad week turned)
+    const cms = clock.now();
+    if (speakMemo && now - speakMemo.at < 4000 && Math.abs(cms - speakMemo.cms) < 60e3 && speakMemo.v.hushLit === !!hushPreview()) return speakMemo.v;
     const board = (neon.debug().boards[0] || {}).game || null;
     const want = typeof location !== 'undefined' ? new URLSearchParams(location.search).get('ad') : null;     // (SP2: &ad=<game> previews any game's blade)
     const id = (want && playable.some(g => g.id === want) ? want : null) || ghostAdGame(bladeMs(), playable.map(g => g.id), null);   // (C4d: no `month` — the ivy that read it is gone; a forced season re-baked the facade for nothing)
@@ -1299,7 +1340,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const hushLit = !!hushPreview();
     const g0 = playable.find(g => g.id === id) || null, style = bladeStyle(adWeek(bladeMs()), qp.get('blade'));   // (SP5: the week's blade look; &blade=<font>-<ink>-<panel> previews one)
     const v = { game: g0 ? { ...g0, style } : null, hushLit, key: `${id}|${style.key}|${hushLit ? 'h' : ''}` };
-    speakMemo = { at: now, v };
+    speakMemo = { at: now, cms, v };
     return v;
   }
   function rebake() {
@@ -1995,6 +2036,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     // gooseneck until he fixes it), his sheets pasted over the old poster, the blade's dead bulb, a lamppost's bad night
     const wTr = pplLive && !off.has('no-work') ? (people.crew() || {}).traces : null;
     if (wTr && fadeIn > 0) workBoard(c, wTr); else if (wTr && shownAt < 0) boardSync(wTr);
+    if (!crisp.on && bxf.box) { const a = boardXfA(); if (a > 0.004) { c.save(); c.globalAlpha = a * fadeIn; c.drawImage(bxf.cv, bxf.box.x, bxf.box.y, bxf.box.w, bxf.box.h); c.restore(); } }
     if (wlOn) wild.draw(c, 'bill', wlEnv);           // (8b1: the birds on the roof billboard's top edge + its catwalk railing)
     layer('stage');
     swayTrees(c, 'stage', t, xf, fadeIn);            // (SP3: the crowns in the wind)
@@ -2931,6 +2973,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     session: () => ({ ...sess, after: { ...sess.after } }),
     /** NEON PASS 5: the tiering's state (capped: the phone's frame-rate cap it found, Hz; probe: a step down being tried) */
     speakCtx: () => { const v = speakCtx(); return { key: v.key, hushLit: !!v.hushLit }; },   // (WIN2: the facade's bake context — the washer swap)
+    boardXf: () => ({ n: bxf.n, a: +boardXfA().toFixed(3), ms: bxf.ms, layer: crisp.on ? 'crisp' : 'city' }),   // (LOBBY 2.0 A: the billboard's cross-fade — swaps faded, the old copy's alpha now)
     tiering: () => ({ tier, dprTier, capped, probe: probe ? { ...probe } : null, hist: tierHist.slice(), why: stepWhy.slice(), wantStep, manual: manualTier, returns, holdMs: Math.max(0, Math.round(tierHold - performance.now())), grace: TIER_GRACE, heavy: heavyNow(performance.now()), judge: lastJudge, slowN, sinceReveal: shownAt < 0 ? null : +((performance.now() - shownAt) / 1000).toFixed(1) }),
     cost: () => costs.slice(),
     // (NIGHT-C: the street party now — its break { kind, s0, s1, song } + level k — for the &debug=1 readout's party line, cheap)

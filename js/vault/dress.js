@@ -135,7 +135,7 @@ export function openDress(data, o = {}) {
     }
     const label = it ? it.name : NONE[kind];
     const t = h('button.vl-dt', { type: 'button', class: `vl-dt-${tier}${on ? ' is-on' : ''}${it && isDevCard(id) ? ' is-one' : ''}${it ? '' : ' is-none'}`,
-      dataset: { id: id || 'none', tier: it ? tier : '' }, 'aria-pressed': String(on), 'aria-label': `${on ? 'Wearing' : 'Wear'} ${label}${it ? ` (${isDevCard(id) ? ONE_OF_ONE : TIER_NAMES[tier]})` : ''}` },
+      dataset: { id: id || 'none', tier: it ? tier : '' }, 'aria-pressed': String(on), 'aria-label': `${on ? 'Equipped' : 'Equip'} ${label}${it ? ` (${isDevCard(id) ? ONE_OF_ONE : TIER_NAMES[tier]})` : ''}` },
       art, h('span.vl-dt-n', label), on ? h('i.vl-dt-on', { 'aria-hidden': 'true' }, '✓') : null);
     press(t, () => wear(kind, id), kind === 'card' && it ? () => (o.view ? o.view(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }) : import('./full.js').then(m => m.openFullCard(id, { ...who, shape: W.shape, tube: W.tube, glow: W.glow }))) : null);
     return t;

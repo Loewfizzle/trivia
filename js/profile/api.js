@@ -45,7 +45,7 @@ export async function api(name, body, opts = {}) {
 const cache = new Map();
 const BOARD_CACHE_MS = 12_000;
 
-/** A board's rows (top 100, or a page): { b, p, key, rows: [{ rank, id, n, t, a, c, r, v }], more, ends } (n + t: the house nickname). */
+/** A board's rows (top 100, or a page): { b, p, key, rows: [{ rank, id, n, a, c, r, l, v }], more, ends } (n: the player's username — LOBBY 2.0 A; a rude one arrives as its house nickname). */
 export async function board(b, p = 'week', { start = 0, n = 100, fresh = false } = {}) {
   const key = `${b}|${p}|${start}|${n}`;
   const hit = cache.get(key);

@@ -63,7 +63,7 @@ export function createSetup() {
       h('div.form',
         els.byc = h('div.setup-byc'),
         mode === 'join' ? h('label.field', h('span.label', 'HUSH WORD'), els.code) : null,
-        h('label.field', h('span.label', 'CALLSIGN'), els.name),
+        h('label.field', h('span.label', 'CALLSIGN'), els.name, h('small.setup-public', 'This name shows on the public board — don’t use your full real name.')),
         h('div.field', h('span.label', 'SIGNAL COLOR'), els.colors),
         pickShape ? h('div.field', h('span.label', 'AVATAR'), els.avatars) : null,
         els.preview),

@@ -3,13 +3,16 @@
 //   lb/{board}/{period}/{pid} = sort value (higher is better; boards.js#toSort). period = 'all' | 'w20261012'.
 //   Entries reference the profile, never a copy of the name: rows are joined with profiles/{pid} when read, so a
 //   rename shows on every board (every week, every record) at once.
-//   BNAME (Oct 28): a PUBLIC row never carries the typed name or the profile id — only an opaque board id (boardId: an HMAC
-//   of the pid with the server's pepper) and the house nickname it picks (js/core/nicknames.js); a profile is listed only
-//   after BOARD_MIN_MATCHES counted matches (profiles/{pid}/m, the server's own count).
+//   REAL USERNAMES (LOBBY 2.0 A — the owner, Nov 3 7:20 pm, reverses BNAME's house nicknames: "why would I want a scoreboard of random
+//   names?"): a PUBLIC row carries the player's USERNAME and nothing else of theirs — never the profile id, the key, the tag's digits —
+//   beside an opaque board id (boardId: an HMAC of the pid with the server's pepper — REPORT + your own row find it). A name the filter
+//   calls rude (core/names.js#isOffensive) is shown as its HOUSE NICKNAME (js/core/nicknames.js — the old BNAME names, kept for this);
+//   REPORT NAME + /admin's rename / hide stay. A profile is listed only after BOARD_MIN_MATCHES counted matches (profiles/{pid}/m).
 import { createHmac } from 'node:crypto';
 import { ref, val, fb } from './fb.js';
 import { BOARD_GAMES, boardDef, careerBoards, toSort, winRate, MIN_WR_GAMES, fromSort, GAME_BOARDS } from '../../js/core/boards.js';
 import { houseNick, BOARD_MIN_MATCHES } from '../../js/core/nicknames.js';
+import { isOffensive } from '../../js/core/names.js';
 import { levelOf } from '../../js/core/levels.js';
 import { weekKey } from '../../js/core/week.js';
 
@@ -95,11 +98,11 @@ async function profilesOf(pids) {
   return out;
 }
 
-/** A row as the public sees it: the board id, the house nickname + its number, the emblem, colour and rank. No pid, no typed name. */
+/** A row as the public sees it: the board id, the USERNAME (a rude one → its house nickname), the emblem, colour, rank + level. No pid, no key, no tag. */
+export const publicName = (id, n) => (n && !isOffensive(n) ? String(n) : houseNick(id).n);
 export function publicRow(pid, p) {
   const id = boardId(pid);
-  const nick = houseNick(id);
-  return { id, n: nick.n, t: nick.t, a: p.a, c: p.c, r: p.r || 0, l: p.l || levelOf(p.x || 0) };
+  return { id, n: publicName(id, p.n), a: p.a, c: p.c, r: p.r || 0, l: p.l || levelOf(p.x || 0) };
 }
 
 export async function topRows(board, period, now = Date.now()) {

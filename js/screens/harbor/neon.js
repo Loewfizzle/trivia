@@ -186,17 +186,21 @@ export function createNeon({ games: allGames = [], onContent = () => {} } = {}) 
     for (const g of ['far', 'near', 'harbor']) {
       const env = new Float32Array(Math.ceil(W) + 2).fill(1e9);
       const ev = [], sky = g !== 'harbor';
+      // (LOBBY 2.0 A — THE RESIZE's stall: the dilated envelope was rebuilt for EVERY line — lines × width × r, ~115 ms of a 1920-wide
+      //  re-fit; now it's kept until a nearer building changes the envelope: the same result, made once per change + radius)
+      const dil = new Map();
       for (const it of groups[g] || []) if (it.b) ev.push({ z: it.b.z0, b: it.b });
       // (each line at its own depth: a band's threads belong to many buildings — each roofline is cut by what stands in front of
       // ITS building, never by its own block)
       for (const o2 of outs) if (o2.group === g) { o2.runs = []; o2.mask = null; o2.maskPath = null; for (const ln of o2.lines) ev.push({ z: (ln.z != null ? ln.z : o2.z) - 0.04, o: o2, ln }); }
       ev.sort((a, b) => a.z - b.z || (a.o ? -1 : 1));
       for (const e of ev) {
-        if (e.b) { for (const [x0, x1, y] of silhouette(e.b)) for (let x = Math.max(0, Math.floor(x0)); x <= Math.min(env.length - 1, Math.ceil(x1)); x++) if (y < env[x]) env[x] = y; continue; }
+        if (e.b) { for (const [x0, x1, y] of silhouette(e.b)) for (let x = Math.max(0, Math.floor(x0)); x <= Math.min(env.length - 1, Math.ceil(x1)); x++) if (y < env[x]) env[x] = y; dil.clear(); continue; }
         // FP2 — THE KEYLINE (NEON BY DEPTH): a tube behind a nearer building ends a clear GAP above its roof / beside its edge — a thin
         // dark line between the back tube's electrode and the front's own roofline tube, never a T-junction of light (gap: a touch more
         // than the tube's width at its depth)
-        const o2 = e.o, runs = o2.runs, gap = keyGap(o2), envD = dilate(env, o2.band ? Math.max(1, Math.round(gap)) : R);   // (the dilation keeps a TOWER's edge out of narrow gaps; a band's rooflines only the gap's)
+        const o2 = e.o, runs = o2.runs, gap = keyGap(o2), dr = o2.band ? Math.max(1, Math.round(gap)) : R;
+        let envD = dil.get(dr); if (!envD) { envD = dilate(env, dr); dil.set(dr, envD); }   // (the dilation keeps a TOWER's edge out of narrow gaps; a band's rooflines only the gap's)
         // (the nearer buildings' envelope at this item's nearest tube: its light is erased under it when its sprites bake — eraseFront)
         if (sky && !o2.mask) o2.mask = env.slice();
         for (const ln of [e.ln]) {

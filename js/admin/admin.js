@@ -67,11 +67,11 @@ function shell() {
         h('div.ad-row', q, h('button.ad-btn.is-primary', { type: 'button', onclick: () => search(q.value) }, 'Search')),
         h('div.ad-results', { id: 'ad-results' }, h('p.ad-dim', 'Search by name to start.'))),
       h('section.ad-card.ad-player', { id: 'ad-player' }, h('p.ad-dim', 'Pick a player.')),
-      h('section.ad-card.ad-errors',
+      h('section.ad-card.ad-errors', { id: 'reports' },
         h('div.ad-row.ad-between', h('h2', 'Board reports'),
           h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: flags }, 'Refresh'),
             confirmBtn('Dismiss all', async () => { renderFlags((await call('clearFlag')).flags); toast('Dismissed'); audit(); }, 'is-danger'))),
-        h('p.ad-dim', 'REPORT on THE BOARD (anyone, no sign-in; limited per device + IP). The public sees only the house nickname; the real name is here. OPEN the player to hide them from every board.'),
+        h('p.ad-dim', 'REPORT on THE BOARD (anyone, no sign-in; limited per device + IP). The public sees the player’s username (a rude one as a house nickname) — never an id or key. OPEN the player to hide them from every board.'),
         h('ol.ad-errs', { id: 'ad-flags' }, h('li.ad-dim', 'Loading…'))),
       h('section.ad-card.ad-errors',
         h('div.ad-row.ad-between', h('h2', 'Errors from phones'),
@@ -128,7 +128,7 @@ function render(v) {
       v.priv.shown ? h('span.ad-tag', 'SHOWN') : h('span.ad-tag.is-hidden', 'OPTED OUT'),
       v.priv.banned ? h('span.ad-tag.is-bad', 'HIDDEN BY ADMIN') : null,
       isOffensive(p.n) ? h('span.ad-tag.is-bad', 'OFFENSIVE NAME') : null,
-      p.bid ? h('span.ad-tag', `ON THE BOARD AS ${houseNick(p.bid).n.toUpperCase()} #${houseNick(p.bid).t}${(p.m || 0) < (p.mm || 3) ? ` · ${p.m || 0}/${p.mm || 3} MATCHES — NOT LISTED YET` : ''}`) : null),
+      p.bid ? h('span.ad-tag', `ON THE BOARD AS ${(isOffensive(p.n) ? houseNick(p.bid).n : p.n).toUpperCase()}${(p.m || 0) < (p.mm || 3) ? ` · ${p.m || 0}/${p.mm || 3} MATCHES — NOT LISTED YET` : ''}`) : null),
     h('h3', 'Rename'),
     h('div.ad-row', name, h('button.ad-btn', { type: 'button', onclick: async () => { render(await call('rename', { pid: p.pid, name: name.value })); toast('Renamed'); audit(); } }, 'Rename')),
     h('h3', 'Visibility'),
@@ -353,6 +353,8 @@ function renderReports(list) {
 async function flags() {
   if (!document.getElementById('ad-flags')) return;
   renderFlags((await call('flags')).flags);
+  // (LOBBY 2.0 A — THE REPORT PUSH opens /admin#reports: the Board reports in view once they're in)
+  if (location.hash === '#reports' && !flags.scrolled) { flags.scrolled = true; const r = document.getElementById('reports'); if (r) r.scrollIntoView({ block: 'start' }); }
 }
 function renderFlags(list) {
   const box = document.getElementById('ad-flags');
@@ -365,7 +367,7 @@ function renderFlags(list) {
         p ? h('button.ad-err-m', { type: 'button', title: 'Open the player', onclick: () => open(p.pid) }, `${p.n}${fmtTag(p.t)}`) : h('span.ad-err-m', 'profile gone'),
         confirmBtn('Dismiss', async () => { renderFlags((await call('clearFlag', { id: f.id })).flags); audit(); })),
       h('div.ad-err-meta',
-        h('span', `on the board as ${f.nick.n} #${f.nick.t}`),
+        h('span', `on the board as ${f.nick.n}`),
         h('span', counts(f.why)),
         h('span', counts(f.b)),
         h('span', `last ${when(f.last)}`),

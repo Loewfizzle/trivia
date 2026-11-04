@@ -103,12 +103,14 @@ test('ONE EMBLEM SYSTEM: the 12 sign-up shapes are commons every member owns; wo
 
 test('THE PROFILE REARRANGED + LESS GOLD + TROPHIES: the order, no BOARD button, the birthday one line once set; panels dark glass; medals in the tier colour, X% from the server, the reward a real preview (tap = wear)', () => {
   const sp = read('js/screens/profile.js');
-  const order = ['els.card,', 'els.cz,', 'els.why,', "els.prog = h('div.pf-prog')", "'YOUR GAMES'", "'ACCOUNT'"].map(k => sp.indexOf(k));
+  // (LOBBY 2.0 A — the owner's 2C review: YOUR GAMES folded into MASTERY (a game's record in a sheet); the order card · customize · why ·
+  //  the sections · MASTERY · ACCOUNT)
+  const order = ['els.card,', 'els.cz,', 'els.why,', "els.prog = h('div.pf-prog')", 'els.mast,', "'ACCOUNT'"].map(k => sp.indexOf(k));
   assert.ok(order.every((x, i) => x > 0 && (!i || x > order[i - 1])), `the order ${order}`);
   assert.doesNotMatch(sp, /setState\(\{ view: 'board' \}\)/, 'no BOARD button on the profile');
   assert.match(sp, /F\.openFullCard\(cd, who\)/, 'the hero opens the full card');
   const pr = read('js/progress/profile.js');
-  assert.match(pr, /const els = \[level, streak, stats, ach, album, favor\]/);
+  assert.match(pr, /const els = \[level, goal, stats, ach, album, favor\]/);   // (LOBBY 2.0 A: the streak rides in LEVEL; THE GOAL TILE under it)
   assert.match(pr, /'CUSTOMIZE YOUR CARD'/);
   const ex = read('js/progress/extras.js');
   assert.match(ex, /export function birthdayRow/); assert.match(ex, /if \(!pv\.bd\) return birthdayPanel\(data, o\);/); assert.match(ex, /change again in/);
@@ -117,7 +119,7 @@ test('THE PROFILE REARRANGED + LESS GOLD + TROPHIES: the order, no BOARD button,
   assert.match(css, /\.pg-bar \.pg-bar-glint > i \{[^}]*animation: pg-glint/);
   const tr = read('js/progress/trophies.js');
   assert.match(tr, /pg-medal-\$\{tier\}/); assert.match(tr, /h\('em\.pg-pct', \{ dataset: \{ a: a\.id \} \}\)/);
-  assert.match(tr, /o\.onWear\(SLOT\[kind\], a\.item\)/); assert.match(tr, /'WEARING'/); assert.match(tr, /'GLOW'\), id\)/);
+  assert.match(tr, /o\.onWear\(SLOT\[kind\], a\.item\)/); assert.match(tr, /'EQUIPPED ✓'/); assert.match(tr, /'TAP TO EQUIP'/); assert.match(tr, /'GLOW'\), id\)/);
   for (const t of ['uncommon', 'rare', 'epic', 'legendary']) assert.match(css, new RegExp(`\\.pg-medal-${t} \\{ --tc: var\\(--tier-${t}\\)`));
   assert.match(css, /\.pg-rw \{[^}]*min-height: 44px/, 'the reward chip is a 44-pt target');
 });

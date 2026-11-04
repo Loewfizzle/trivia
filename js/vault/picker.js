@@ -37,12 +37,12 @@ export function cardPicker(o) {
   function row(c) {
     const on = c.id === wearing;
     const s = strip(c);
-    const wear = h('button.vl-pick-wear', { type: 'button', 'aria-pressed': String(on), 'aria-label': `Wear ${c.name} (${TIER_NAMES[c.tier] || c.tier})`, onclick: () => { if (c.id !== wearing && o.onWear) o.onWear(c.id); } }, s);
+    const wear = h('button.vl-pick-wear', { type: 'button', 'aria-pressed': String(on), 'aria-label': `Equip ${c.name} (${TIER_NAMES[c.tier] || c.tier})`, onclick: () => { if (c.id !== wearing && o.onWear) o.onWear(c.id); } }, s);
     const el = h('div.vl-pick', { class: on ? 'is-on' : '', dataset: { id: c.id, tier: c.tier } },
       h('div.vl-pick-h',
         h('b.vl-pick-n', c.name),
         h('span.vl-pick-t', { class: `vl-tt-${c.tier}` }, TIER_NAMES[c.tier] || c.tier),
-        on ? h('span.vl-pick-on', 'WEARING ✓') : null,
+        on ? h('span.vl-pick-on', 'EQUIPPED ✓') : null,
         h('button.vl-pick-view', { type: 'button', 'aria-label': `View ${c.name}`, onclick: () => o.onView && o.onView(c.id) }, 'VIEW')),
       wear);
     rows.set(c.id, { el, strip: s });
@@ -96,13 +96,13 @@ export function stylePicker(o) {
     const note = kind === 'emblem' && it && !hasArt(it.id) ? 'its own neon arrives soon — your shape until then'
       : kind === 'tube' && it && !TUBE_STYLES[it.id] ? 'its own light arrives soon — a plain tube until then'
       : kind === 'tube' && it && !tubeApplies(W.shape) ? 'shown on your own shape — tube styles light NEON emblems' : null;
-    const wear = h('button.vl-pick-wear', { type: 'button', 'aria-pressed': String(on), 'aria-label': `Wear ${name}${it ? ` (${TIER_NAMES[it.tier] || it.tier})` : ''}`,
+    const wear = h('button.vl-pick-wear', { type: 'button', 'aria-pressed': String(on), 'aria-label': `Equip ${name}${it ? ` (${TIER_NAMES[it.tier] || it.tier})` : ''}`,
       onclick: () => { if (!o.onWear) return; o.onWear(on && id ? '' : id); } }, s);
     const r = h('div.vl-pick', { class: `${on ? 'is-on' : ''}${it ? '' : ' is-none'}`, dataset: { id: id || 'none', tier: it ? it.tier : '' } },
       h('div.vl-pick-h',
         h('b.vl-pick-n', name),
         it ? h('span.vl-pick-t', { class: `vl-tt-${it.tier}` }, TIER_NAMES[it.tier] || it.tier) : h('span.vl-pick-sub', sub),
-        on ? h('span.vl-pick-on', 'WEARING ✓') : null),
+        on ? h('span.vl-pick-on', 'EQUIPPED ✓') : null),
       wear, note ? h('p.vl-pick-note', note) : null);
     rows.push(s);
     return r;

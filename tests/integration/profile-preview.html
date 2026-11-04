@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Profile — preview</title>
+<!-- LOBBY 2.0 A — THE PROFILE without Firebase / the server: the REAL profile screen (js/screens/profile.js createView) with the progress
+     preview's sample member (js/progress/preview.js#sampleProfile); /api/profile is answered by this page (me · ranks · style · pct).
+     &name=LOEWFIZZLE &card=card-inferno &dev=1 &streak=N (the sample's flags) &new=1 (no saved key: ALREADY A MEMBER?) &goal=done
+     window.__pf for tests. -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
+<link rel="stylesheet" href="/css/base.css">
+<link rel="stylesheet" href="/css/components.css">
+<link rel="stylesheet" href="/css/screens.css">
+<link rel="stylesheet" href="/css/card.css">
+<link rel="stylesheet" href="/css/progress.css">
+<link rel="stylesheet" href="/css/board.css">
+<link rel="stylesheet" href="/css/vault.css">
+<script type="importmap">{ "imports": { "/js/firebase.js": "/tests/integration/fake-firebase-signed.js" } }</script>
+<style>html, body { margin: 0; height: 100%; background: radial-gradient(120% 70% at 50% 0%, #2a1446, #08060f 70%); color: #fff; }</style>
+</head>
+<body class="nd-glass">
+<main id="app"></main>
+<script type="module">
+import '/api/_lib/catalog.js';   // (the server-only names — this look page runs on the local server only)
+import { sampleProfile } from '/js/progress/preview.js';
+import { setPctForTest } from '/js/progress/look.js';
+import { ITEMS } from '/js/core/items.js';
+import { weekKey } from '/js/core/week.js';
+const q = new URLSearchParams(location.search);
+const data = sampleProfile(q);
+if (q.get('goal') === 'done') { data.stats.wk = weekKey(Date.now()); data.stats.gd = data.stats.wk; }
+setPctForTest({ i: Object.fromEntries(ITEMS.map((x, i) => [x.id, 3 + (i * 7) % 40])), a: { 'top-shelf': 22, 'first-round': 96, 'house-warming': 41, 'night-owl': 9 } });
+try {
+  localStorage.setItem('na:1:profile', JSON.stringify({ name: data.profile.n, color: data.profile.c, avatar: data.profile.a }));
+  if (q.get('new') === '1') { localStorage.removeItem('na:1:pkey'); localStorage.removeItem('na:1:me'); } else localStorage.setItem('na:1:pkey', JSON.stringify('NEON-7K2Q-PX4M-9WDA'));
+} catch { /* fine */ }
+const answer = { me: () => data, ranks: () => ({ ranks: {}, m: 12, mm: 3 }), pct: () => ({ pct: {} }),
+  style: b => { const k = { card: 'cd', shape: 'es', tube: 'tb', glow: 'g' }; for (const [s, v] of Object.entries(b)) if (k[s]) data.profile[k[s]] = v || null; return { profile: data.profile }; } };
+const real = window.fetch.bind(window);
+window.fetch = async (url, o = {}) => {
+  if (String(url).startsWith('/api/profile')) {
+    const b = JSON.parse(o.body || '{}'), f = answer[b.action];
+    return new Response(JSON.stringify(f ? f(b) : {}), { status: 200, headers: { 'content-type': 'application/json' } });
+  }
+  return real(url, o);
+};
+const { state } = await import('/js/store.js');
+state.uid = 'preview-uid';
+const { createView } = await import('/js/screens/profile.js');
+const el = document.createElement('section'); el.className = 'screen screen-in';
+document.getElementById('app').append(el);
+const view = createView({ onBack: () => { window.__pf.back = (window.__pf.back || 0) + 1; } });
+view.mount(el);
+window.__pf = { view, data };
+document.fonts.ready.then(() => setTimeout(() => { document.body.dataset.ready = '1'; }, 1200));
+</script>
+</body>
+</html>

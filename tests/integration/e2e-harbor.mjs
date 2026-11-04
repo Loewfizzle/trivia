@@ -34,6 +34,7 @@ import './harbor-e2e/wild.mjs';
 import './harbor-e2e/holiday.mjs';
 import './harbor-e2e/desktop.mjs';
 import './harbor-e2e/vault.mjs';   // (THE VAULT 1A: THE CARD LAB + THE EFFECT LIBRARY)
+import './harbor-e2e/lobby.mjs';   // (LOBBY 2.0 A: the billboard's cross-fade, the room in the city, the room dock, the guest list)
 import './harbor-e2e/radio.mjs';   // (CITY CONTROLS A: THE RADIO — the role, the desk, fire → amber → pink → STOP, the room, the program, the ledger)   // (DESKTOP, Nov 2: the wide camera, the desktop UI, the resize, sideways + iPad)
 
 // ================================================================ THE RUNNER: ONLY=… in this process, else parallel shards + the two serial groups

@@ -2,7 +2,7 @@
 // gets them with the marks (/api/admin labMarks — admins only); never in the site's code. A new lab item = its row here + its id in
 // js/vault/catalog.js#LAB.
 export const LAB_TEXT = {
- "emb-cocktail": { "name": "LAST CALL", "motion": "NEON (common) — a martini glass in cyan, its olive on a pick in green; still — its motion comes from the tube style you wear" },
+ "emb-cocktail": { "name": "LAST CALL", "motion": "NEON (common) — a martini glass in cyan, its olive on a pick in green; still — its motion comes from the tube style you equip" },
  "emb-diamond": { "name": "DIAMOND", "motion": "NEON (common) — a brilliant-cut gem: its outline in sky blue, its facets in ice white" },
  "emb-glasses": { "name": "THE CREW", "motion": "NEON (uncommon) — two glasses raised together (gold + pink), a CLINK flashing between the rims" },
  "emb-sunrise": { "name": "EARLY BIRD", "motion": "NEON (uncommon) — the sun half up over the horizon in gold, its rays pulsing out one by one" },
@@ -47,7 +47,7 @@ export const LAB_TEXT = {
  "card-dev-source": { "name": "THE SOURCE", "motion": "1 OF 1 · DEV (yours only) — the city's real code streaming in columns (far dim + soft, near bright + sharp), lines running gold; the NEON sign igniting letter by letter with sparks, a power surge, glitches, CRT scanlines; the green-into-magenta laser" },
  "full-card-dev-source": { "name": "THE SOURCE · FULL CARD", "motion": "The cursor types city.build({ by: 'LOEWFIZZLE' }) → ENTER → every column runs gold → NEON ignites letter by letter → THE SURGE; glitch passes, the rolling refresh band, the sign collapsing to a line at the end; THE DEVELOPER · № 0001" },
  "emb-crown": { "name": "THE CROWN", "motion": "NEON (rare) — its OWN shape now (no second three-spike crown beside THE HOUSE's): an imperial crown, its two violet arches sweeping up to the gold orb + cross, the band's three gems twinkling in turn, a glint off the cross" },
- "emb-key": { "name": "THE KEY", "motion": "NEON — the house style: an amber key with a pink diamond in its bow, two tubes in the sign's own layers (glass, glow, body, white-hot core); still — its motion comes from the tube style you wear" },
+ "emb-key": { "name": "THE KEY", "motion": "NEON — the house style: an amber key with a pink diamond in its bow, two tubes in the sign's own layers (glass, glow, body, white-hot core); still — its motion comes from the tube style you equip" },
  "emb-sweetheart": { "name": "SWEETHEART", "motion": "NEON — a pink neon heart done properly (full round lobes, a long point, a reflection arc) with a little purple heart tucked over its shoulder" },
  "emb-owl": { "name": "THE OWL", "motion": "NEON — an Art Deco owl, no cartoon: a stepped totem in violet, sharp ear tufts, a chevron brow, two narrow almond eyes in gold" },
  "emb-prism": { "name": "FOUR ON THE FLOOR", "motion": "PRISM — a glass prism: a rainbow sweeping through it, a sheen, a glint off its peak; the white beam in, the four lines out pulsing in turn" },
@@ -210,11 +210,11 @@ export const LAB_TEXT = {
  },
  "card-century": {
   "name": "CENTURY",
-  "motion": "Burnished bronze foil, flames licking up + golden embers lifting"
+  "motion": "Burnished bronze foil, an Art Deco sunburst pressed into it from behind the name plate, a slow light sweep across the metal + golden embers lifting"
  },
  "full-card-century": {
   "name": "CENTURY · FULL CARD",
-  "motion": "Burnished bronze foil, flames licking up + golden embers lifting, at full size"
+  "motion": "Burnished bronze foil, an Art Deco sunburst pressed into it from behind the name, a slow light sweep across the metal + golden embers lifting, at full size"
  },
  "card-marquee-gold": {
   "name": "THE MARQUEE · GOLD BULBS",
@@ -459,8 +459,8 @@ export const LAB_TEXT = {
 export const LAB_CHANGES = {
   'card-inferno': [{ v: 2, at: '2026-11-03', what: 'Real fire now — a baked field of flame (tongues splitting, merging, tearing off at the tips, white-hot at the root), two layers crossing, across the whole strip. The old teardrops are gone.' }],
   'full-card-inferno': [{ v: 2, at: '2026-11-03', what: 'The same real fire as the strip, filling the card’s lower half.' }],
-  'card-century': [{ v: 2, at: '2026-11-03', what: 'Its flames are the new real fire (your FIX had no note — the teardrop flames were the likeliest reason; say so if it was something else).' }],
-  'full-card-century': [{ v: 2, at: '2026-11-03', what: 'The new real fire over the bronze.' }],
+  'card-century': [{ v: 2, at: '2026-11-03', what: 'Its flames are the new real fire (your FIX had no note — the teardrop flames were the likeliest reason; say so if it was something else).' }, { v: 3, at: '2026-11-04', what: 'NO FLAMES now (you: too close to INFERNO) — burnished bronze foil with an Art Deco SUNBURST pressed into it, fanning from behind the name plate; a slow light sweeps across the metal; golden embers drift up.' }],
+  'full-card-century': [{ v: 2, at: '2026-11-03', what: 'The new real fire over the bronze.' }, { v: 3, at: '2026-11-04', what: 'The bronze DECO SUNBURST behind the name instead of the fire, the light sweep + the golden embers — the same as the strip.' }],
   'card-dev-switchboard': [{ v: 2, at: '2026-11-03', what: 'The pink cable lands in a TOP-row jack. The ONE OF ONE pill is gone — THE DEV GEM (prismatic, pulsing, sparkling) in the corner instead; no words on the strip (the decided rule).' }],
   'card-dev-source': [{ v: 2, at: '2026-11-03', what: 'NEON brought down + centred in the strip. The pill → THE DEV GEM.' }],
   'full-card-dev-switchboard': [{ v: 2, at: '2026-11-03', what: '1 OF 1 · DEV in bold. The top row reads NEON SPEAKEASY · FOUNDER (its Nº dropped — it’s under your name); the badge never covers the VU meter.' }],

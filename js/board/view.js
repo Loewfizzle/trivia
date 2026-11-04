@@ -19,7 +19,6 @@ import { emblem, rankBadge, RANK_COLORS } from '../ui/emblems.js';
 import { GAMES, colorHex } from '../config.js';
 import { boardDef, recordBoards, careerBoards, fmtValue, BOARD_GAMES, PULSE_DIFFS, MIN_WR_GAMES } from '../core/boards.js';
 import { weekEndsAt } from '../core/week.js';
-import { fmtTag } from '../core/names.js';
 import { bandOf, levelOf } from '../core/levels.js';
 import { board as fetchBoard, activeGames, reportRow } from '../profile/api.js';
 import { createHall } from './scene.js';
@@ -197,9 +196,8 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     const mine = !!(m && m.profile && m.profile.bid && r.id === m.profile.bid);
     const top = r.rank <= 3;
     const c = colorHex(r.c);
-    // your own row: your real name + tag, on your device only; everyone else: the house nickname the server sent
+    // (LOBBY 2.0 A — REAL USERNAMES: every row carries its player's username — the server's; never a tag, an id or a key)
     const name = mine ? m.profile.n : r.n;
-    const tag = mine ? m.profile.t : r.t;
     const li = h('li.bd-row', {
       class: [top ? `is-top is-${r.rank}` : '', mine ? 'is-me' : ''].join(' '),
       style: { '--i': Math.min(i, 16), '--c': c },
@@ -209,7 +207,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     avatar(r.a, r.c, top ? 36 : 30),
     h('span.bd-who',
       h('span.bd-n', name, mine ? h('span.bd-you', 'YOU') : null),
-      h('span.bd-t', emblem(r.r | 0, 14), h('span', fmtTag(tag)), r.rank === 1 ? h('span.bd-crown', `${bandOf(r.l || 1).name} · LV ${r.l || 1}`) : null)),
+      h('span.bd-t', emblem(r.r | 0, 14), h('span', `LV ${r.l || 1}`), r.rank === 1 ? h('span.bd-crown', bandOf(r.l || 1).name) : null)),
     h('span.bd-v', fmtValue(def, r.v)),
     mine || !r.id ? null : h('button.bd-more', { type: 'button', 'aria-label': `Report ${r.n}`, onclick: e => { e.stopPropagation(); openReport(r, def); } }, h('span', '⋯')));
     return li;
@@ -249,7 +247,7 @@ export function createBoardView({ mode = 'app', me = () => null, ranks = null, o
     els.rep = h('div.bd-rep', { role: 'dialog', 'aria-modal': 'true', 'aria-label': `Report ${r.n}`, onclick: e => { if (e.target === els.rep) closeReport(); } },
       h('div.bd-rep-sheet',
         h('span.bd-rep-k', 'REPORT'),
-        h('div.bd-rep-who', avatar(r.a, r.c, 30), h('b', r.n), h('span', fmtTag(r.t))),
+        h('div.bd-rep-who', avatar(r.a, r.c, 30), h('b', r.n)),
         h('span.bd-rep-on', `${els.label.textContent} · #${r.rank}`),
         msg,
         ...btns,

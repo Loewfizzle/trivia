@@ -40,6 +40,7 @@ import opening from './opening.js';
 import house from './house.js';
 import devSwitch from './dev-switch.js';
 import devSource from './dev-source.js';
+import deco from './deco.js';
 
 /** COMBO (THE VAULT 1C — an EPIC's two effects together on ONE slot): parts = [[effect, opts the part overrides]…], drawn in order */
 export function combo(id, tier, ...parts) {
@@ -47,7 +48,7 @@ export function combo(id, tier, ...parts) {
     draw(c, s, t, Q) { for (const [e, o] of parts) { c.save(); e.draw(c, o ? { ...s, opts: { ...s.opts, ...o } } : s, t, Q); c.restore(); } } };
 }
 
-export const FX = Object.freeze({ ufo, laser, smoke, frost, flames, prism, marquee, glitter, hearts, sheen, tube,
+export const FX = Object.freeze({ deco, ufo, laser, smoke, frost, flames, prism, marquee, glitter, hearts, sheen, tube,
   // THE VAULT 1C — THE 8 SIGHTING CARDS (each the city's own model / painter in its own scene: js/fx/sg-kit.js)
   sgTr3b, sgBlackbird, sgF22, sgGhost, sgAurora, sgFireball, sgSkull, sgBtc,
   // THE VAULT 1C — the held-back cards' effects (+ the epics' combos)
@@ -55,7 +56,8 @@ export const FX = Object.freeze({ ufo, laser, smoke, frost, flames, prism, marqu
   noir: combo('noir', 'epic', [tube, { tint: '255,58,92' }], [smoke, null]),
   sapphire: combo('sapphire', 'epic', [sheen, { tint: '200,214,238' }], [twinkle, { tint: '226,234,255', n: 1.3 }]),
   legend: combo('legend', 'epic', [holo, null], [twinkle, { tint: '255,255,255', n: 1.1 }]),
-  century: combo('century', 'epic', [flames, null], [embers, { noBed: true, tint: '255,200,90' }]),
+  // (LOBBY 2.0 A — CENTURY loses its flames: the bronze DECO SUNBURST + golden embers; INFERNO keeps the fire — no two cards share a main motif)
+  century: combo('century', 'epic', [deco, null], [embers, { noBed: true, tint: '255,200,90' }]),
   // THE VAULT 2A — THE 3 HELD CARDS (card-platinum: a cold sheen + the light on its diamond-cut bevel · card-founder · card-house)
   bevel, opening, house,
   // THE VAULT 2B — THE TWO DEV CARDS (ONE OF ONE · DEV — the owner's own)

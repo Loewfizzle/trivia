@@ -138,22 +138,21 @@ test('restores are rate-limited per device', async () => {
   await rejects(profileAction('u-guesser', { action: 'restore', key: 'NEON-AAAA-BBBB-CCZZ' }, '', clock), 429, 'restore_limit');
 });
 
-test('renames: once a day, the tag follows when free; the boards keep the same HOUSE NICKNAME (BNAME)', async () => {
+test('renames: once a day, the tag follows when free; the boards show the NEW USERNAME at once (LOBBY 2.0 A — real usernames)', async () => {
   const m = await ensure('u-ren', 'Ren');
   const room = await seedRoom('golf', ['u-ren', 'u-ren2'], {}, { 'u-ren': 'Ren', 'u-ren2': 'Stimpy' });
   await report('u-ren', room);
   clearBoardCache();
   let wk = await boardQuery({ b: 'golf-par9', p: 'week' }, clock);
-  const nick = houseNick(m.profile.bid);
-  assert.equal(wk.rows.find(r => r.id === m.profile.bid).n, nick.n, 'the house nickname, never the typed name');
+  assert.equal(wk.rows.find(r => r.id === m.profile.bid).n, 'Ren', 'the username');
   const r1 = await profileAction('u-ren', { action: 'rename', name: 'Renaldo' }, '', clock);
   assert.equal(r1.profile.n, 'Renaldo');
   assert.equal(r1.profile.t, m.profile.t, 'Ren#tag → Renaldo#tag');
   clearBoardCache();
   wk = await boardQuery({ b: 'golf-par9', p: 'week' }, clock);
   const al = await boardQuery({ b: 'golf-par9', p: 'all' }, clock);
-  assert.equal(wk.rows.find(r => r.id === m.profile.bid).n, nick.n, 'this week: the same nickname after a rename');
-  assert.equal(al.rows.find(r => r.id === m.profile.bid).n, nick.n, 'all time (a past record)');
+  assert.equal(wk.rows.find(r => r.id === m.profile.bid).n, 'Renaldo', 'this week: the new username after a rename');
+  assert.equal(al.rows.find(r => r.id === m.profile.bid).n, 'Renaldo', 'all time (a past record) — joined with the profile, so renamed too');
   assert.equal(r1.profile.bid, m.profile.bid, 'the board id never changes');
   await rejects(profileAction('u-ren', { action: 'rename', name: 'Rennie' }, '', clock + 3600_000), 429, 'rename_limit');
   // capitals only: free
@@ -172,7 +171,7 @@ test('renames: once a day, the tag follows when free; the boards keep the same H
   assert.ok(e2.rename && e2.rename.blocked, 'twice in a day is blocked, not an error');
 });
 
-test('offensive names never reach a board (the nickname), and may be changed at once', async () => {
+test('offensive names never reach a board (a house nickname stands in), and may be changed at once', async () => {
   const p = await ensure('u-rude', 'Rudy');
   await profileAction('u-rude', { action: 'rename', name: 'sh1tlord' }, '', clock);
   const room = await seedRoom('slip', ['u-rude', 'u-nice'], {}, { 'u-rude': 'sh1tlord', 'u-nice': 'Nice' });
@@ -411,13 +410,13 @@ test('every game (and every GRIDLOCK mode) is counted from its room with the rig
   clearBoardCache();
   const f = await boardQuery({ b: 'cipher-fast5', p: 'all' }, clock);
   assert.ok(f.rows[0].v > 0);
-  // BNAME: every game's boards still render from the public rows (the fixtures' players: nicknames, board ids, values; no typed name)
+  // every game's boards render from the public rows (LOBBY 2.0 A: the fixtures' players by USERNAME; board ids, values; never the pid)
   const bid = boardId(pid);
   for (const b of Object.values(expectBoards).flat()) {
     const q = await boardQuery({ b, p: 'all' }, clock);
     const row = q.rows.find(r => r.id === bid);
-    assert.ok(row && row.rank >= 1 && row.v != null && row.n === houseNick(bid).n, `${b}: UALL1's row as the public sees it`);
-    assert.ok(!JSON.stringify(q).includes('UALL'), `${b}: no typed name`);
+    assert.ok(row && row.rank >= 1 && row.v != null && /^UALL/i.test(row.n), `${b}: UALL1's row as the public sees it (${row && row.n})`);
+    assert.ok(!JSON.stringify(q).includes(pid), `${b}: no profile id`);
   }
 });
 
@@ -503,16 +502,16 @@ test('HTTP: every call needs a valid ID token; the board is public and cacheable
   assert.equal((await call(boardHandler, { method: 'GET', url: '/api/board?b=nope&p=all' })).status, 400);
   assert.equal((await call(boardHandler, { method: 'POST', url: '/api/board?b=cipher-wins' })).status, 400, 'POST is only REPORT');
   assert.equal((await call(boardHandler, { method: 'PUT', url: '/api/board?b=cipher-wins' })).status, 405);
-  // BNAME: the cached (CDN) response carries no typed name and no profile id — only board ids + house nicknames
+  // LOBBY 2.0 A — REAL USERNAMES: the cached (CDN) response carries the USERNAME and nothing else of the player's — no profile id, no key,
+  // no tag's digits; the row's keys exactly (n = the username)
   const text = JSON.stringify(b.body);
   const pid = await val(`uids/${u.localId}`);
   assert.ok(!text.includes(pid), 'no profile id in the public response');
-  assert.ok(!text.includes(u.localId.toUpperCase()), 'no typed name in the public response');
-  for (const r of b.body.rows) assert.deepEqual(Object.keys(r).sort(), ['a', 'c', 'id', 'l', 'n', 'r', 'rank', 't', 'v']);   // (+ l: the level — PROGRESSION A)
+  for (const r of b.body.rows) assert.deepEqual(Object.keys(r).sort(), ['a', 'c', 'id', 'l', 'n', 'r', 'rank', 'v']);   // (BNAME's t — the nickname's number — is gone)
 });
 
-// ---- BNAME (Oct 28): THE BOARD's PUBLIC NAMES
-test('BNAME: house nicknames — stable per profile, every word through the names filter, no typed name or pid in any public row', async () => {
+// ---- THE BOARD's PUBLIC NAMES — REAL USERNAMES (LOBBY 2.0 A; reverses BNAME's house nicknames — kept only to stand in for a rude name)
+test('REAL USERNAMES: the username on every public row — never the pid, the key or the tag; the board id stable; the stand-in nicknames clean', async () => {
   for (const a of NICK_ADJ) for (const n of NICK_NOUN) assert.ok(!isOffensive(`${a} ${n}`) && !isOffensive(`${a}${n}`), `${a} ${n}`);
   assert.ok(NICK_ADJ.length * NICK_NOUN.length >= 200, '~200 nicknames');
   const names = { 'u-bn1': 'Margaret', 'u-bn2': 'Theodore', 'u-bn3': 'Bartholomew' };
@@ -527,14 +526,15 @@ test('BNAME: house nicknames — stable per profile, every word through the name
   for (const b of ['cipher-wins', 'cipher-score']) for (const p of ['week', 'all']) seen.push(await boardQuery({ b, p }, clock));
   const text = JSON.stringify(seen);
   for (const [u, n] of Object.entries(names)) {
-    assert.ok(!text.includes(n), `${n}: no typed name`);
     assert.ok(!text.includes(ps[u].pid), `${n}: no profile id`);
+    assert.ok(ps[u].key && !text.includes(ps[u].key), `${n}: no key (the server keeps only its hash)`);
+    assert.ok(!text.includes(`"t":"${ps[u].profile.t}"`) && !text.includes(`#${ps[u].profile.t}`), `${n}: no tag digits`);
     assert.equal(ps[u].profile.bid, boardId(ps[u].pid), 'the profile carries its board id');
     const rows = seen.flatMap(q => q.rows).filter(r => r.id === ps[u].profile.bid);
     if (u === 'u-bn1' || rows.length) assert.ok(rows.length, `${n} is on a board`);
-    for (const row of rows) assert.deepEqual({ n: row.n, t: row.t }, houseNick(ps[u].profile.bid), 'the house nickname of the board id');
+    for (const row of rows) assert.equal(row.n, n, 'the username'), assert.equal(row.t, undefined, 'no tag');
   }
-  // stable: the same id (and so the same nickname) on the next call and the next week
+  // stable: the same board id on the next call and the next week
   clearBoardCache();
   assert.equal(boardId(ps['u-bn1'].pid), ps['u-bn1'].profile.bid);
   assert.match(ps['u-bn1'].profile.bid, /^[0-9a-f]{16}$/);
@@ -575,7 +575,7 @@ test('BNAME: the 3-match floor — listed from the 3rd counted match (all games 
   } finally { process.env.BOARD_MIN_MATCHES = '1'; }
 });
 
-test('BNAME: REPORT a row — stored for /admin with the real profile, limited per device + IP, admins only read it', async () => {
+test('REPORT a row — stored for /admin with the real profile, limited per device + IP, admins only read it; the owner gets ONE push (LOBBY 2.0 A)', async () => {
   await ref('/').update({ flags: null, rl: null });
   const bad = await ensure('u-rep1', 'Suspect');
   const boss = await ensure('u-repboss', 'Boss');
@@ -587,8 +587,21 @@ test('BNAME: REPORT a row — stored for /admin with the real profile, limited p
   await rejects(flagRow({ b: 'slip-dist', id: 'nope', why: 'score' }, { ip: '9.9.9.1', now: clock }), 400, 'bad_report');
   await rejects(flagRow({ b: 'slip-dist', id, why: 'cheese' }, { ip: '9.9.9.1', now: clock }), 400, 'bad_report');
   await rejects(flagRow({ b: 'slip-dist', id: '0123456789abcdef', why: 'score' }, { ip: '9.9.9.1', now: clock }), 404, 'no_row');
-  assert.deepEqual(await flagRow({ b: 'slip-dist', id, why: 'score', dev: 'device00001' }, { ip: '9.9.9.1', now: clock }), { ok: true });
-  await flagRow({ b: 'slip-dist', id, why: 'name', dev: 'device00002' }, { ip: '9.9.9.2', now: clock });
+  // LOBBY 2.0 A — THE REPORT PUSH: the owner's subscribed phone (a local receiver here — the emulators allow an http://127.0.0.1 endpoint)
+  // gets ONE push for the reported row ("Name reported: …"), the second report within the hour none; a dead receiver never fails a report
+  const { createServer } = await import('node:http'), C = await import('node:crypto');
+  const hits = [];
+  const rx = createServer((req, res) => { let n = 0; req.on('data', d => { n += d.length; }); req.on('end', () => { hits.push({ ttl: req.headers.ttl, enc: req.headers['content-encoding'], n }); res.writeHead(201).end(); }); });
+  await new Promise(r => rx.listen(0, '127.0.0.1', r));
+  const ua = C.createECDH('prime256v1'); ua.generateKeys();
+  await ref('radio/push/subs/test').set({ endpoint: `http://127.0.0.1:${rx.address().port}/push`, keys: { p256dh: ua.getPublicKey().toString('base64url'), auth: C.randomBytes(16).toString('base64url') } });
+  try {
+    assert.deepEqual(await flagRow({ b: 'slip-dist', id, why: 'score', dev: 'device00001' }, { ip: '9.9.9.1', now: clock }), { ok: true });
+    await flagRow({ b: 'slip-dist', id, why: 'name', dev: 'device00002' }, { ip: '9.9.9.2', now: clock });
+    assert.equal(hits.length, 1, `ONE push for the row in the hour (${hits.length})`);
+    assert.equal(hits[0].enc, 'aes128gcm', 'an encrypted Web Push');
+    assert.ok((await val(`flags/${id}/pushedAt`)) === clock, 'the push is marked on the flag');
+  } finally { rx.close(); await ref('radio/push').remove(); }
   const f = await val(`flags/${id}`);
   assert.equal(f.pid, bad.pid, 'the server keeps whose row it was');
   assert.equal(f.n, 2);
@@ -612,7 +625,7 @@ test('BNAME: REPORT a row — stored for /admin with the real profile, limited p
     const { flags } = await adminAction('u-repboss', { action: 'flags' }, clock);
     const mine = flags.find(x => x.id === id);
     assert.equal(mine.player.n, 'Suspect');
-    assert.deepEqual(mine.nick, houseNick(id));
+    assert.deepEqual(mine.nick, { n: 'Suspect' }, 'the name the board shows (LOBBY 2.0 A: the username)');
     await adminAction('u-repboss', { action: 'hide', pid: bad.pid, on: true }, clock);
     clearBoardCache();
     assert.ok(!(await boardQuery({ b: 'slip-dist', p: 'all' }, clock)).rows.some(r => r.id === id), 'hidden from the boards');

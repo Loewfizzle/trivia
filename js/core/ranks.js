@@ -87,9 +87,14 @@ export const GOAL_XP = 200;
 const GOAL_KINDS = ['play', 'win', 'variety', 'game'];
 function hash(str) { let h = 0x811c9dc5; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 0x01000193); } return h >>> 0; }
 /** games: the ids that can be the featured game (core/boards.js#BOARD_GAMES). */
+// (LOBBY 2.0 A — 18 of the next 52 weeks were IMPOSSIBLE with two playable games: "Play 5 different games", or 4 matches of a hidden game.
+//  The callers pass the PLAYABLE board games (core/boards.js#GOAL_GAMES — config.js's one switch); the KIND is still rolled the same way
+//  (h % 4 — no week already running changes), and a variety week with fewer than 5 games to play becomes "Play 8 matches".)
 export function weeklyGoal(wk, games) {
   const h = hash(String(wk));
-  const kind = GOAL_KINDS[h % GOAL_KINDS.length];
+  let kind = GOAL_KINDS[h % GOAL_KINDS.length];
+  if (kind === 'variety' && !(games && games.length >= 5)) kind = 'play';
+  if (kind === 'game' && !(games && games.length)) kind = 'play';
   const game = games && games.length ? games[(h >>> 8) % games.length] : null;
   if (kind === 'play') return { kind, n: 8, text: 'Play 8 matches' };
   if (kind === 'win') return { kind, n: 3, text: 'Win 3 matches' };

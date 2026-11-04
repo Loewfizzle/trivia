@@ -1476,3 +1476,5 @@ body.nd-on .gm-panel, body.cb-split .gm-panel { left: calc(var(--safe-l) + 12px)
 .nd-hover { display: none; position: fixed; left: 0; top: 0; width: 0; height: 0; pointer-events: none; border-radius: 10px; opacity: 0; transition: opacity 0.2s ease;
   box-shadow: 0 0 0 1.5px rgba(255, 238, 206, 0.6), 0 0 22px 6px rgba(255, 214, 150, 0.32); }
 .nd-hover.on { opacity: 1; }
+/* LOBBY 2.0 A - THE PROFILE header (the owner 2C review): only BACK + the music mute; the menu button leaves the corner on the profile */
+body.pf-on .menu-btn { display: none !important; }

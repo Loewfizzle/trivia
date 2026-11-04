@@ -109,7 +109,48 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
     card === 'card-founder' && !plain && no != null ? h('span.vl-no', `№ ${no}`) : null,
     h('i.vl-frame', { 'aria-hidden': 'true' }));
   el.setAttribute('aria-label', `${name}, level ${lv} (${TIER_NAMES[tier] || tier})`);
+  stepPlate(plate);
   return el;
+}
+
+// ---------------------------------------------------------------- THE STEPPED PLATE (LOBBY 2.0 A — the owner's approved mock, Nov 3 9:40 pm)
+// A long name used to stretch the smoked-glass plate across BOTH rows, hiding the card's art. Now the plate is full length only on the
+// NAME row; the LEVEL row below reaches just past "LV n" (+ HOST / the dev line), then steps in with a rounded inner corner — the art
+// shows under the name. The plate keeps its own glass (each card's colours); a clip-path cuts the step and a thin line follows its edge
+// (the plate's own inset line, read once). Measured by ONE shared ResizeObserver when a plate's size changes (the name fitted, the
+// fonts in) — never in a frame loop. A short name (the step would be tiny) = the plate as it was.
+const STEP_MIN = 30, STEP_R = 8, STEP_PAD = 12, STEP_M = 16;
+let stepRO = null;
+const SVGNS = 'http://www.w3.org/2000/svg';
+function stepPlate(plate) {
+  if (typeof ResizeObserver === 'undefined') return;
+  if (!stepRO) stepRO = new ResizeObserver(es => { for (const e of es) layStep(e.target.closest('.vl-plate')); });
+  stepRO.observe(plate);
+  const lv = plate.querySelector('.vl-lv'); if (lv) stepRO.observe(lv);
+}
+/** the plate's own inset line colour (its card's), read from its box-shadow once */
+function lineOf(plate) {
+  const m = /(rgba?\([^)]+\))\s+0px\s+0px\s+0px\s+([\d.]+)px\s+inset/.exec(getComputedStyle(plate).boxShadow || '');
+  return m ? { c: m[1], w: Math.min(2, parseFloat(m[2]) || 1) } : { c: 'rgba(255,255,255,0.09)', w: 1 };
+}
+function layStep(plate) {
+  if (!plate || !plate.isConnected) return;
+  const W = plate.offsetWidth, H = plate.offsetHeight, nm = plate.querySelector('.vl-name'), lv = plate.querySelector('.vl-lv');
+  const off = () => { plate.style.clipPath = ''; plate.classList.remove('vl-stepped'); const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove(); };
+  if (!W || !H || !nm || !lv) return off();
+  const P = plate.getBoundingClientRect(), N = nm.getBoundingClientRect(), V = lv.getBoundingClientRect();
+  const x2 = Math.ceil(V.right - P.left + STEP_PAD), y1 = Math.round(((N.bottom + V.top) / 2 - P.top) * 2) / 2;
+  if (W - x2 < STEP_MIN || y1 <= 4 || y1 >= H - 4) return off();
+  const r = Math.max(2, Math.min(STEP_R, (H - y1) / 2, (W - x2) / 2, y1 / 2)), m = STEP_M, f = v => +v.toFixed(2);
+  plate.style.clipPath = `path('M ${-m} ${-m} L ${f(W + m)} ${-m} L ${f(W + m)} ${f(y1 - r)} L ${W} ${f(y1 - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(W - r)} ${f(y1)} L ${f(x2 + r)} ${f(y1)} A ${f(r)} ${f(r)} 0 0 0 ${x2} ${f(y1 + r)} L ${x2} ${f(H - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(x2 - r)} ${H} L ${f(x2 - r)} ${H + m} L ${-m} ${H + m} Z')`;
+  plate.classList.add('vl-stepped');
+  // the edge line along the step (the rest of the outline is the plate's own inset ring)
+  let svg = plate.querySelector(':scope > .vl-step');
+  if (!svg) { svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'vl-step'); svg.setAttribute('aria-hidden', 'true'); svg.append(document.createElementNS(SVGNS, 'path')); plate.append(svg); }
+  const L = lineOf(plate), k = L.w / 2, path = svg.firstChild;
+  svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  path.setAttribute('d', `M ${f(W - k)} ${f(y1 - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - r)} ${f(y1 - k)} L ${f(x2 + r)} ${f(y1 - k)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 - k)} ${f(y1 + r)} L ${f(x2 - k)} ${f(H - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(x2 - r)} ${f(H - k)}`);
+  path.setAttribute('stroke', L.c); path.setAttribute('stroke-width', L.w); path.setAttribute('fill', 'none');
 }
 
 /** a list of strips on ONE shared effect surface (the host becomes it) */
