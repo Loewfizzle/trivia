@@ -36,7 +36,8 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
 - **THE MINI PC — THE BUILD MACHINE** (THE MODELS PASS, Oct 30; the laptop retired): Beelink SER8, Windows 11, 32 GB, Node 26, Python 3.12
   (+ `~/.cache/neural-arcade/pyenv`), Java (Temurin 21) — the emulators run locally. **Before every final push, locally:** `node --test tests/*.test.mjs`
   (≈ 75 s) → `node --test rules.test.mjs` (≈ 27 s) + `node --test server.test.mjs` (in `tests/integration`, on the emulators) → the smoke test
-  (`GAMES=…` after touching a shared file; `GAMES=cipher` ≈ 38 s) → for a City 2.0 pass THE FULL `e2e-harbor` suite (time + peak memory: the pass log,
+  (`GAMES=…` after touching a shared file; `GAMES=cipher` ≈ 38 s) — and EVERY `tests/integration/*.test.mjs` (FR6 FIXES A: the cloud's tests job runs
+  sightings / progression / lab / vault-2b / vault-2c too; a pass that ran only rules + server.test met a red cloud) → for a City 2.0 pass THE FULL `e2e-harbor` suite (time + peak memory: the pass log,
   docs/harbor/passes/models.md) — so the cloud run confirms, never discovers. Start the emulators (`npm run emulators` in `tests/integration`) and
   `node scripts/serve.mjs --emu` in the background first. **Restart it after touching `api/`** (FR6 FIXES A: `serve.mjs` caches each `/api` module on its first call — a server started
   before an `api/` change serves the OLD code to every E2E; the static files are re-read each load, so only the /api checks go stale). **Nothing else heavy beside the full suite** (a SwiftShader model bake + shot bursts next to

@@ -580,7 +580,8 @@ one room), the banner's colour + passes, the words in the windows for a time win
 ## KNOWN ISSUES — OPEN (C4d, Oct 29 2026: one list; each pass's own section in its log keeps the history)
 
 **Open**
-- **FR6 FIXES A** (passes/fx6a.md): the sighting capture's `< 12 ms` line (a test bug — FR6 FIXES B drops it); the sighting moment / album /
+- **FR6 FIXES A** (passes/fx6a.md): room2's FIRST cloud run — the file-in's "host walking at 0.9 s" sample red on the runner (a fixed-time
+  sample — B makes it a condition); the sighting capture's `< 12 ms` line (a test bug — FR6 FIXES B drops it); the sighting moment / album /
   preview don't close at a game start yet (H2's roots — SHELL 2.0 Group 0). No rules change.
 - **LOBBY 2.0 B** (passes/lobby-2b.md): THE DATABASE RULES CHANGED (`meta/go`, `meta/back`, `rooms/{CODE}/rv`) — RE-PUBLISHED Nov 4 ~11:22 ✅; until then a
   room still starts + comes back (the stamps are their own writes) but without the walk-out, the banner or the vote. The city's rebuild after a match

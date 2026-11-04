@@ -119,6 +119,7 @@ test('CALL IN A FAVOR: no token → refused; a token fires one crew jack for the
   assert.equal(await val(`pstats/${d.pid}/fv`), 0);
   const pub = Object.values(await val('rooms/PART/radio'));
   assert.equal(pub.length, 1); assert.equal(pub[0].by, 'favor');
-  const rec = Object.values(await val('radio/fired'))[0];
+  // (FR6 FIXES A: THIS favor's own record — radio/fired keeps the earlier RADIO test's owner moment too, so [0] read the wrong one)
+  const rec = await val(`radio/fired/${r.moment.id}`);
   assert.equal(rec.role, 'favor'); assert.equal(rec.sight, false, 'never a sighting');
 });

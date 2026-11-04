@@ -126,5 +126,18 @@ every run on the emulators + `serve.mjs --emu` (the mini PC; port 5181 — an ol
     **91/91** (the room's cost 27.5 → 29.8 ms with the guest list; the clouds 0 left; the lobby 14/240).
 - New groups alone: `sgfast` 1/1, `gameflows` 4/4 (B4 + B2 FAIL without `host.js`), the room groups 29/29, `wk-room.mjs` in WebKit 5/5.
 
-## The cloud run
-(filled in below)
+## The cloud run (THE FIRST since G5's fix — and the FIRST EVER for LOBBY 2.0 B's code + the `room2` job)
+Run 1 (04c5cd7 — the tagged top commit: docs + one test file — BOTH workflows ran; every untagged push of the pass showed "skipped": G5 works).
+- **harbor 41897872572: 11 of 12 jobs green, 1034 / 1035 checks.** audio 33/33 (662 s with setup — `gameflows` there; refresh SECONDS in B) ·
+  show 103 · city 37 · perf 193 · street 75 · windows 91 · wild 62 · legend 90 (`sgfast` green on the runner) · models 87 · holiday 122 ·
+  lobby 99 (`oldrules` green — the local full-run miss did not repeat) · **room2 42/43 — its first cloud run ever**: the one miss is 2B's own
+  "THE FILE-IN … the HOST first — walking to the door at 0.9 s" (the host still `wait` at 0.9 s on the 2-core runner; green on the mini PC
+  every run) → FR6 FIXES B (green means green: a condition, not a 0.9-s sample).
+- **tests 41897872674: unit ✓ (136 s); rules + /api + smoke ✗ at 63 s** — `tests/integration/sightings.test.mjs` "CALL IN A FAVOR": its
+  `rec` read `radio/fired`'s FIRST record, which is the earlier RADIO test's owner moment → `role 'owner'`. A TEST BUG that predates
+  this pass (it fails the same at 1f6f106 — unseen because 2B's cloud run never happened); the favor itself was right. Fixed (the test reads
+  its own record); every integration test file green locally (sightings 4 · progression 10 · lab 2 · vault-2b 3 · vault-2c 3 · rules 63 ·
+  server 32). The local run's gap: it ran rules + server.test only — the pass's run list now names all seven files (docs/testing.md).
+- Run 2 (`gh workflow run tests` on the fix — the pass's second and last cloud run): see the summary.
+- Vercel: 04c5cd7 live (`/api/log` → `{"v":"04c5cd7"}`; `js/core/rules-lag.js` + the write path in `js/firebase.js` served by www — read
+  only, nothing opened or written).
