@@ -24,10 +24,11 @@ after(async () => { await deleteApp(fb().app); });
 const ensure = (uid, name) => profileAction(uid, { action: 'ensure', name, avatar: 'bolt', color: 'cyan' }, '', NOW);
 const act = (uid, body) => profileAction(uid, body, '', NOW);
 
-test('ONE EMBLEM SYSTEM: a new member owns the 12 sign-up shapes; an older profile is back-filled on me', async () => {
+test('ONE EMBLEM SYSTEM: a sign-up writes no stats (a first match is still a first); a member with stats is back-filled on me', async () => {
   const r = await ensure('c-new', 'Nia');
-  const it = (await val(`pstats/${r.pid}/it`)) || {};
-  assert.deepEqual(SIGN_EMBLEMS.filter(id => !it[id]), [], 'all twelve, from day one');
+  assert.equal(await val(`pstats/${r.pid}`), null, 'no stats at sign-up — the 12 are owned through STARTER from the first second');
+  await act('c-new', { action: 'me' });
+  assert.equal(await val(`pstats/${r.pid}`), null, 'nor on a me before any match');
   // an older profile (made before 2C): no items at all → 'me' back-fills them
   const o = await ensure('c-old', 'Odo');
   await ref(`pstats/${o.pid}`).set({ xp: 40, it: { 'card-gilded': NOW - 1e6 } });

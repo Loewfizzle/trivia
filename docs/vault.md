@@ -467,8 +467,8 @@ dark wash under the name plate, the ember bed, the sparks, the breathing edge.
 
 ### CUSTOMIZE + ONE EMBLEM SYSTEM (`js/vault/dress.js`, `core/items.js#SIGN_EMBLEMS`)
 DRESS YOUR CARD is **CUSTOMIZE** (the profile's **CUSTOMIZE YOUR CARD**; the screen's title CUSTOMIZE). The 12 sign-up shapes are COMMON emblems
-`emb-sign-<shape>` ("NEON BOLT" … — public: every member owns them, so their names ship with the site) — STARTER, granted to a new profile,
-back-filled on 'me'; they sit in CUSTOMIZE's EMBLEM tab with the earned ones (no "YOUR SHAPE" tile). Wearing one = the profile's shape
+`emb-sign-<shape>` ("NEON BOLT" … — public: every member owns them, so their names ship with the site) — STARTER (owned from the first second;
+the rows back-fill into `pstats/{pid}/it` on 'me' once stats exist — a sign-up writes no stats: a first match must still look like one); they sit in CUSTOMIZE's EMBLEM tab with the earned ones (no "YOUR SHAPE" tile). Wearing one = the profile's shape
 (`profiles/{pid}/a`, + the device's own identity) and takes a worn earned emblem off (`es`). Sign-up still picks a starter; afterwards the
 emblem / card / glow / tube change ONLY in CUSTOMIZE; EDIT PROFILE = the name + the colour (`screens/setup.js#pickShape`). GLOW tiles: the name
 pinned to its tile (Safari sized the grid item to its text, so the fit never saw the overflow) — shrinks, then two lines.

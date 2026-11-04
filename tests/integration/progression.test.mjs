@@ -229,7 +229,9 @@ test('NAMES ONLY TO OWNERS: me → show = display rows for the owned items + the
   const r = withShow(await profileAction('g-host', { action: 'me' }, '', NOW + 9e6));
   const owned = Object.keys(r.stats.it || {}).sort(), held = Object.keys(r.stats.ac || {}).sort();
   assert.ok(owned.length >= 3 && r.show, `${owned.length} owned`);
-  assert.deepEqual(Object.keys(r.show.items).sort(), owned.filter(id => id !== 'card-gilded' || r.show.items[id]));
+  // (the public items — the GILDED + THE VAULT 2C's 12 sign-up shapes, every member's — ship with the site: no show rows needed)
+  const { STARTER } = await import('../../js/core/items.js');
+  assert.deepEqual(Object.keys(r.show.items).sort(), owned.filter(id => !STARTER.includes(id) || r.show.items[id]));
   assert.deepEqual(Object.keys(r.show.ach).sort(), held);
   assert.ok(!r.show.items['card-house'] && !r.show.items['card-sg-tr3b'], 'never an item the player doesn\'t own');
   for (const a of Object.values(r.show.ach)) assert.ok(!('check' in a));

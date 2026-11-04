@@ -8,6 +8,7 @@
 import { boardDef, better, BOARD_GAMES } from './boards.js';
 import { matchXp, weeklyGoal, goalProgress, GOAL_XP } from './ranks.js';
 import { levelOf, rewardsBetween, rewardsUpTo } from './levels.js';
+import { SIGN_EMBLEMS } from './items.js';
 import { weekKey, dayKey } from './week.js';
 import { streakDay, streakPlay } from './streak.js';
 import { noteMatch, noteEvent, awardAll } from './achievements.js';
@@ -72,7 +73,9 @@ export function matchStep(s0, { key, gid, row, n, now, gap = DEFAULT_GAP_MS, out
   // LEVELS: the rewards of every level crossed — and the CARRY-OVER: a profile from before levels (no `it` yet) gets every reward its
   // XP had already earned, at once, the first time it is touched
   const lv = { from: levelOf(from), to: levelOf(next.xp) };
-  const items = grant(next, s.it ? rewardsBetween(lv.from, lv.to) : rewardsUpTo(lv.to), now);
+  // (THE VAULT 2C: the 12 sign-up shapes back-filled into `it` don't make a first match look like a returning one — the level rewards up to here)
+  const had = s.it && Object.keys(s.it).some(id => !SIGN_EMBLEMS.includes(id));
+  const items = grant(next, had ? rewardsBetween(lv.from, lv.to) : rewardsUpTo(lv.to), now);
   const streak = playDay(next, now, outage);
   items.push(...streak.items);
   // THE ACHIEVEMENTS: the match into the counters, then the award engine (+ FOUNDER while the window is open)

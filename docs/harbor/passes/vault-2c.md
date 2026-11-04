@@ -34,7 +34,7 @@ letters; **FOUNDER** everywhere it's a badge, in each card's declared **BADGE SL
 "NEON SPEAKEASY · FOUNDER" in the top line, the VU meter clear); the GLOW tiles' names fit (Safari sized the grid item to its text).
 
 **Group 3 — CUSTOMIZE + ONE EMBLEM SYSTEM**: DRESS YOUR CARD → **CUSTOMIZE** (the button CUSTOMIZE YOUR CARD, the screen CUSTOMIZE); the 12 sign-up
-shapes are COMMON emblems every member owns (`emb-sign-<shape>`, "NEON …" — granted to a new profile, back-filled on 'me'), in CUSTOMIZE's
+shapes are COMMON emblems every member owns (`emb-sign-<shape>`, "NEON …" — STARTER: owned from the first second; their rows back-filled on 'me' once stats exist — never a stats node at sign-up, or a first match would stop granting the level rewards up to its level), in CUSTOMIZE's
 EMBLEM tab with the earned ones; wearing one = the profile's shape (`a`) + the earned emblem off; EDIT PROFILE = the name + the colour (the shape
 is picked once, at sign-up); the "YOUR OWN EMBLEM" row is gone.
 

@@ -90,7 +90,10 @@ test('ONE EMBLEM SYSTEM: the 12 sign-up shapes are commons every member owns; wo
   const p = read('api/profile.js');
   assert.match(p, /if \(k === 'shape' && signOf\(id\)\) \{ patch\[`profiles\/\$\{pid\}\/a`\] = signOf\(id\); patch\[`profiles\/\$\{pid\}\/es`\] = null; continue; \}/);
   assert.match(p, /SIGN_EMBLEMS\.some\(id => !\(stats\.it \|\| \{\}\)\[id\]\)/, 'the back-fill on me');
-  assert.match(read('api/_lib/profiles.js'), /SIGN_EMBLEMS\.map\(id => \[`pstats\/\$\{pid\}\/it\/\$\{id\}`, now\]\)/, 'a new profile owns them from day one');
+  // (a new member owns them from the first second through STARTER; the rows reach pstats on the first 'me' once stats exist — a sign-up never
+  //  writes pstats: a first match must still see a NEW player and grant the level rewards up to its level)
+  assert.doesNotMatch(read('api/_lib/profiles.js'), /SIGN_EMBLEMS/);
+  assert.match(read('js/core/progress.js'), /const had = s\.it && Object\.keys\(s\.it\)\.some\(id => !SIGN_EMBLEMS\.includes\(id\)\);/);
   const d = read('js/vault/dress.js');
   assert.doesNotMatch(d, /'YOUR SHAPE'/); assert.match(d, /tab === 'card' \|\| tab === 'emblem' \? items/);
   const su = read('js/screens/setup.js');
