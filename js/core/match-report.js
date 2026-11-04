@@ -47,6 +47,10 @@ export function maxSlipDistance(sec) {
 }
 
 /** A generous ceiling on a Score Rush score: every line a back-to-back perfect clear at the level it could reach. */
+/** FR6 FIXES A (C3 — a board could be cheated): PRISM DROP's SCORE RUSH is ONE song; the bound's seconds came from `game.sd` — the HOST
+ *  writes it (a hacked host: sd [1e9] → any score passed). Now capped from the songs themselves: the longest in data/prism/manifest.json
+ *  (227.8 s) + 10 s, rounded up — tests/profiles.test.mjs fails if a longer song is added without raising it */
+export const RUSH_MAX_S = 240;
 export function maxRushScore(lines, seconds) {
   const lv = 16 + Math.ceil(lines / 10);
   const pieces = seconds * 6 + 60;
@@ -164,8 +168,11 @@ function prismExtra(game, uid, out) {
   if (num(r.ko)) out.c.ko = Math.min(num(r.ko), 7);
   if (!game.settings || game.settings.mode !== 'rush') return;
   const sc = num(r.sc), ln = num(r.ln);
-  const sec = Math.max(30, vals(game.sd).reduce((s, x) => s + num(x), 0) / 1000 || 240);
-  if (sc < 0 || ln < 0 || ln > sec * 4 || sc > maxRushScore(ln, sec)) { out.rejected.push({ uid, board: 'prism-rush', v: sc }); return; }
+  const sd = vals(game.sd).map(num);
+  const sec = Math.min(RUSH_MAX_S, Math.max(30, sd.reduce((s, x) => s + x, 0) / 1000 || RUSH_MAX_S));
+  // (one song, never longer than the longest there is: anything else is a host's own numbers)
+  const bad = sd.length > 1 || sd.some(x => !(x > 0) || x > RUSH_MAX_S * 1000);
+  if (bad || sc < 0 || ln < 0 || ln > sec * 4 || sc > maxRushScore(ln, sec)) { out.rejected.push({ uid, board: 'prism-rush', v: sc }); return; }
   if (sc > 0) out.rec['prism-rush'] = sc;
 }
 

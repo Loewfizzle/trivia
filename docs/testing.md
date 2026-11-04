@@ -341,6 +341,25 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   tap, the watchdog); `node e2e-lobbysong.mjs` (the room's song; its STUCK check fails since before M4 — docs/audio.md#m4 Known issues).
 - MOOD MUSIC: `node --test tests/mood.test.mjs` (boundaries, the bag, the song file) and `node e2e-mood.mjs "<browser>"` (title, mood change at a song's end, CLASSIC, every preview mood, lobby sync + late joiner + host migration, a game's own music, the public board's first tap).
 
+## THE RULES-LAG (FR6 FIXES A, Nov 4 — the standard: a feature never fails silently when the live rules are older than the code)
+LOBBY 2.0 B changed `database.rules.json`; the live database kept the old rules until the owner re-published, and the show failed silently on
+every real phone (23 client writes swallowed a refusal with `.catch(() => {})`). Three things now make that impossible to miss:
+- **ONE WRITE PATH** (`js/firebase.js#write`): every `set` / `update` / `remove` / `push` / `runTransaction` returns the SDK's own promise
+  UNCHANGED (callers keep their catch + fallback) and a PERMISSION_DENIED is reported once per path SHAPE a page (`js/core/rules-lag.js#pathShape`
+  — ids masked: no room code, uid or match id) to /admin's errors, label `rules`: "RULES REFUSED update rooms/*/meta {go} — … re-publish".
+  `firebase.js#refusals()` lists them (tests + &debug). A new feature on a NEW rule still needs a fallback that works on the old rules (2B's
+  pattern: the start's stamp also rides in the match's own write) — the report says it happened; the fallback keeps the player's night.
+- **THE RULES AS PUBLISHED** (`tests/fixtures/rules-live.json`, Nov 4 ~11:22 — 2B's rules): `tests/rules-live.test.mjs` (the unit suite) FAILS the
+  moment `database.rules.json` differs from it, listing the changed paths, until `tests/fixtures/rules-live.ack.json` names the new rules' hash
+  + the line `RULES CHANGED: <paths> — RE-PUBLISH …` — and that line is the FIRST line of the pass's summary (+ exactly how: Firebase console →
+  Realtime Database → Rules → paste → Publish). When the owner confirms, the next pass copies `database.rules.json` over the fixture and
+  deletes the ack.
+- **`oldrules`** (the harbor `lobby` job, serial): the room on THE RULES AS PUBLISHED minus 2B's three nodes — the show still plays on both
+  phones AND the refusal is reported (no room code in the report).
+
+## THE LIVE-SITE GUARD + THE TEST FLAG (FR6 FIXES A — the owner, Nov 4: real "A ROOM JUST OPENED" pushes + five real member numbers from 2B's repros)
+(filled in Group 2b)
+
 ## THE BUSY-PC CHECK (LOBBY 2.0 A — the owner, Nov 3 8:49 pm) — before EVERY full local test run
 `node scripts/busy-pc.mjs [seconds=30] [--limit 30]` samples the machine's real CPU load (all cores) for ~30 s and names the busiest
 processes (Windows). Quiet → carry on. BUSY (the average over the limit) → send Ben a push "Pause Grok — the full test run is next" and wait

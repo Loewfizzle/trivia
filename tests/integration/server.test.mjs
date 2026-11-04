@@ -123,7 +123,9 @@ test('restore key: a new device takes over the profile; regenerating retires the
   const r = await profileAction('u-alice-phone2', { action: 'restore', key: a.key.toLowerCase() }, '', clock);
   assert.equal(r.pid, a.pid);
   assert.equal(await val('uids/u-alice-phone2'), a.pid);
-  assert.equal(await val(`profiles/${blank.pid}`), null, 'the blank profile is gone');
+  // (FR6 FIXES A — C1: a new profile holds a MEMBER Nº from its creation — it OWNS something, so it is kept, only unlinked from this device)
+  assert.ok(await val(`profiles/${blank.pid}`), 'a numbered profile is kept');
+  assert.equal(await val(`ppriv/${blank.pid}/uids/u-alice-phone2`), null, 'unlinked from the device');
   const me = await profileAction('u-alice-phone2', { action: 'me' }, '', clock);
   assert.equal(me.stats.g.slip.p, 1, 'stats came along');
   // regenerate: the old key stops working, the new one works
@@ -131,6 +133,52 @@ test('restore key: a new device takes over the profile; regenerating retires the
   assert.notEqual(key, a.key);
   await rejects(profileAction('u-other', { action: 'restore', key: a.key }, '', clock), 404, 'no_key');
   assert.equal((await profileAction('u-other', { action: 'restore', key }, '', clock)).pid, a.pid);
+});
+
+// FR6 FIXES A — C1: the real path — the Home Screen app opens as a stranger (a new profile), the player taps the UFO (a SIGHTING CARD),
+// then BRING YOUR CARD restores their real profile: the stranger profile went WITH the card. Now one that owns anything is never deleted;
+// one that owns NOTHING (no match, no item beyond the starter set, no sighting, no XP, no daily, no member Nº) still is
+test('restore never deletes a profile that owns something — a blank profile\'s sighting card survives (C1)', async () => {
+  const { ownsAnything } = await import('../../api/_lib/profiles.js');
+  const { STARTER } = await import('../../js/core/items.js');
+  assert.equal(ownsAnything(null, null), false);
+  assert.equal(ownsAnything({ it: Object.fromEntries(STARTER.map(id => [id, 1])) }, { n: 'X' }), false, 'the free starter set is not owning');
+  assert.equal(ownsAnything({ it: { 'card-sg-ufo': 1 } }, {}), true, 'a sighting card');
+  assert.equal(ownsAnything({ pa: { sgt: 1, sg: { ufo: 1 } } }, {}), true, 'a sighting');
+  assert.equal(ownsAnything({ xp: 40 }, {}), true, 'XP');
+  assert.equal(ownsAnything({ dl: { n: 1 } }, {}), true, 'a daily');
+  assert.equal(ownsAnything({ g: { slip: { p: 1 } } }, {}), true, 'a counted match');
+  assert.equal(ownsAnything({}, { mn: 47 }), true, 'a member number');
+  const real = await ensure('u-hs-safari', 'Hana');
+  const stranger = await ensure('u-hs-homescreen', 'Hana');
+  assert.notEqual(stranger.pid, real.pid);
+  // the stranger profile taps the UFO (as the server's sighting transaction leaves it)
+  await ref(`pstats/${stranger.pid}`).update({ it: { 'card-sg-ufo': clock }, pa: { sg: { ufo: 1 }, sgt: 1 } });
+  await ref(`profiles/${stranger.pid}/mn`).remove();   // (even without its member number: the card alone keeps it)
+  const r = await profileAction('u-hs-homescreen', { action: 'restore', key: real.key }, '', clock);
+  assert.equal(r.pid, real.pid);
+  assert.ok(await val(`profiles/${stranger.pid}`), 'the profile with the card is kept');
+  assert.equal((await val(`pstats/${stranger.pid}/it`))['card-sg-ufo'], clock, 'its sighting card is still there');
+  assert.ok(await val(`pkeys/${(await val(`ppriv/${stranger.pid}/kh`))}`), 'its key still opens it (the device keeps it as YOUR PREVIOUS KEY)');
+  // a truly blank one (no member Nº, nothing earned) still goes
+  const empty = await ensure('u-hs-empty', 'Empty');
+  await ref(`profiles/${empty.pid}/mn`).remove();
+  await profileAction('u-hs-empty', { action: 'restore', key: real.key }, '', clock);
+  assert.equal(await val(`profiles/${empty.pid}`), null, 'a profile that owns nothing is still removed (its tag freed)');
+});
+
+// FR6 FIXES A — C3: a hacked HOST writes PRISM DROP's song lengths (game.sd) — /api/report must not take them as the rush bound
+test('PRISM DROP rush: a hacked host\'s song length posts no impossible record (C3)', async () => {
+  const { maxRushScore } = await import('../../js/core/match-report.js');
+  const uids = ['u-rh1', 'u-rh2'];
+  const pid = (await ensure('u-rh1', 'RUSHER')).pid;
+  await ensure('u-rh2', 'RUSHTWO');
+  tick(5 * 60_000);
+  const room = await seedRoom('prism', uids, { mode: 'rush', rushScore: maxRushScore(60, 1e6) }, { 'u-rh1': 'RUSHER', 'u-rh2': 'RUSHTWO' });
+  await ref(`rooms/${room.code}/game/sd`).set([1e9]);
+  const r = await report('u-rh2', room);
+  assert.equal(r.status, 'counted', 'the match still counts');
+  assert.equal(await val(`lb/prism-rush/all/${pid}`), null, 'no impossible world record on THE BOARD');
 });
 
 test('restores are rate-limited per device', async () => {
@@ -779,7 +827,8 @@ test('CONN: GET /api/admin?live=1 — city2/live for any visitor, edge-cached, o
   const now = Date.now();
   await ref('city2/live').set({ v: 1, kind: 'preview', state: { force: ['banner'], text: 'HI ALL' }, params: { force: 'banner' }, label: 'secret label', startAt: now, until: now + 60_000, by: 'ptest00000000' });
   { const r = await call('/api/admin?live=1');
-    assert.deepEqual(r.body.live, { state: { force: ['banner'], text: 'HI ALL' }, startAt: now, until: now + 60_000, by: 'ptest00000000' });
+    assert.deepEqual(r.body.live, { state: { force: ['banner'], text: 'HI ALL' }, startAt: now, until: now + 60_000, by: 'owner' });
+    assert.ok(!JSON.stringify(r.body).includes('ptest00000000'), 'FR6 FIXES A (C5): the admin profile id never in the public response');
     assert.ok(!JSON.stringify(r.body).includes('secret label'), 'the label stays private'); }
   // a finished preview reads as nothing (the phones go back to the real city)
   await ref('city2/live').update({ until: now - 1 });
@@ -1033,7 +1082,13 @@ test('CITY CONTROLS B: the intercom, the crew, presets + the room push — every
     assert.equal((await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBN' })).sent, 0, 'the switch is off');
     await ref('radio/push/on').set(true);
     assert.equal((await adminAction('u-ccbtwo', { action: 'radioRoomOpened', room: 'CCBN' })).sent, 0, 'not your room');
-    assert.equal((await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBN' })).sent, 0, 'no phones subscribed');
+    // (FR6 FIXES A: the push only for a room STILL OPEN with its host online — a room opened + abandoned never pings, and isn't marked)
+    { const r = await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBN' }); assert.equal(r.sent, 0); assert.equal(r.why, 'not_open', 'the host offline: no push'); }
+    assert.equal(await val('radio/push/sent/CCBN'), null, 'an abandoned room is not marked (nothing was sent)');
+    await ref('rooms/CCBN/players/u-ccbkid').remove(); await ref('rooms/CCBN/presence/u-ccbkid').set({ v: 2, online: true, lastSeen: Date.now(), c: { k1: true } });
+    assert.equal((await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBN' })).why, 'not_open', 'the host no longer a player: no push');
+    await ref('rooms/CCBN/players/u-ccbkid').set({ name: 'K', color: 'cyan', avatar: 'bolt', joinedAt: 1 });
+    { const r = await adminAction('u-ccbkid', { action: 'radioRoomOpened', room: 'CCBN' }); assert.equal(r.sent, 0, 'no phones subscribed'); assert.notEqual(r.why, 'not_open'); }
     assert.ok(await val('radio/push/sent/CCBN'), 'once a room');
     await rejects(adminAction('u-ccbboss', { action: 'radioPush', op: 'sub', sub: { endpoint: 'https://evil.example.com/x', keys: { p256dh: 'A'.repeat(87), auth: 'B'.repeat(22) } } }), 400, 'bad_sub');
     { const { encrypt } = await import('../../api/_lib/push.js'), C = await import('node:crypto');

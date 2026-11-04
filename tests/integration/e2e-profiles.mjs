@@ -146,6 +146,8 @@ await H.run(async () => {
   await p3.reload();
   await p3.waitForFunction(() => !!localStorage.getItem('na:f3:me'), { timeout: 25000 });
   const blank = await meOf(p3, 'f3');
+  await p3.waitForFunction(() => !!localStorage.getItem('na:f3:pkey'), { timeout: 15000 }).catch(() => {});
+  const blankKey = JSON.parse(await p3.evaluate(() => localStorage.getItem('na:f3:pkey')) || 'null');
   await p3.evaluate(() => { window.__arcade && import('/js/store.js').then(m => m.setState({ view: 'profile' })); });
   await p3.waitForSelector('.pg-card', { timeout: 15000 });
   // (LOBBY 2.0 A — RESTORE YOUR ACCOUNT: a big glass button → its own sheet)
@@ -156,7 +158,11 @@ await H.run(async () => {
   await p3.click('.pf-restore-sheet .btn-primary');
   await p3.waitForFunction(pid => JSON.parse(localStorage.getItem('na:f3:me') || 'null').pid === pid, { timeout: 15000 }, me0.pid);
   ok(true, 'a fresh browser restored ALICE\'s profile with her key (typed in lowercase with spaces)');
-  ok((await val(`profiles/${blank.pid}`)) === null, 'the blank profile the new browser made is gone');
+  // (FR6 FIXES A — C1: the new browser's profile holds a MEMBER Nº from its creation — it OWNS something, so it is KEPT, only unlinked; C2:
+  //  its key stays on this device as YOUR PREVIOUS KEY in ACCOUNT, never silently overwritten)
+  ok(!!(await val(`profiles/${blank.pid}`)), 'the numbered profile the new browser made is kept on the server (C1)');
+  { const prev = await p3.evaluate(() => import('/js/profile/me.js').then(m => m.previousKey()));
+    ok(!!prev && !!blankKey && prev.replace(/[^A-Z0-9]/gi, '') === blankKey.replace(/[^A-Z0-9]/gi, ''), `the restore kept the device's previous key — YOUR PREVIOUS KEY (C2: ${prev ? 'kept' : 'lost'})`); }
   ok(JSON.parse(await p3.evaluate(() => localStorage.getItem('na:f3:profile'))).name === 'ALICE', 'the room name follows the restored profile');
   await p3.waitForFunction(() => { const b = document.querySelector('.pg-stats b'); return b && Number(b.textContent) >= 1; }, { timeout: 15000 });
   ok(true, 'her stats came with it (her matches on the profile)');

@@ -17,6 +17,7 @@ import { sanitizeName } from '../../js/core/room-logic.js';
 import { levelOf } from '../../js/core/levels.js';
 import { OLD_FINISH, OLD_GLOW } from '../../js/core/items.js';
 import { NAME_MAX, AVATAR_IDS, COLORS } from '../../js/config.js';
+import { STARTER } from '../../js/core/items.js';
 import { memberNo } from './members.js';
 
 export const RENAME_MS = 24 * 3600_000;
@@ -182,10 +183,23 @@ export async function restore(uid, input, ip = '', now = Date.now()) {
   return { pid, profile: await publicProfile(pid) };
 }
 
-/** A profile that never finished a match is deleted when its device restores another one (frees the tag). */
+/** FR6 FIXES A (C1 — a real player could lose a SIGHTING CARD: the Home Screen app opens as a stranger → a new profile → the player taps
+ *  the UFO → BRING YOUR CARD → this deleted the new profile WITH the card; only finished matches counted). A profile OWNS something when
+ *  it has a counted match, any item beyond the free starter set (a sighting card, THE KNOCK, a birthday, a level reward…), a sighting,
+ *  XP, a daily or a MEMBER Nº — then it is never deleted (the device only unlinks; its key stays on the phone as "your previous key",
+ *  me.js#restoreKey). PURE — exported for the tests. */
+export function ownsAnything(stats, prof) {
+  const s = stats || {};
+  if (s.g && Object.values(s.g).some(g => g && g.p > 0)) return true;
+  if (Object.keys(s.it || {}).some(id => !STARTER_SET.has(id))) return true;
+  if ((s.pa && (s.pa.sgt > 0 || Object.keys(s.pa.sg || {}).length)) || s.xp > 0 || (s.dl && Object.keys(s.dl).length)) return true;
+  return !!(prof && prof.mn);
+}
+const STARTER_SET = new Set(STARTER);
+/** A profile that OWNS nothing (ownsAnything) is deleted when its device restores another one (frees the tag). */
 async function dropIfBlank(pid, uid) {
   const [stats, prof, priv] = await Promise.all([val(`pstats/${pid}`), val(`profiles/${pid}`), val(`ppriv/${pid}`)]);
-  const played = stats && stats.g && Object.values(stats.g).some(g => g && g.p > 0);
+  const played = ownsAnything(stats, prof);
   const others = Object.keys((priv && priv.uids) || {}).filter(u => u !== uid);
   if (played || others.length) { if (priv && priv.uids) await ref(`ppriv/${pid}/uids/${uid}`).remove(); return; }
   const patch = { [`profiles/${pid}`]: null, [`ppriv/${pid}`]: null, [`pstats/${pid}`]: null };

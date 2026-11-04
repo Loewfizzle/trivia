@@ -179,6 +179,26 @@ test('plausibility: impossible records are rejected, the match still counts', ()
   assert.equal(extractMatch(finalGame('pulse', U, { song: 'pulse99' }), { pulseCounts }).rows.ua.rec['pulse-pulse99-normal'], undefined);
 });
 
+// FR6 FIXES A — C3: PRISM DROP's SCORE RUSH bound no longer trusts the HOST's song lengths (game.sd): a hacked host's sd [1e9] made any
+// score "possible". The bound's seconds are capped at RUSH_MAX_S (the longest real song + 10 s); a rush with an impossible song is rejected
+test('PRISM DROP rush: a hacked host\'s song length can\'t lift the bound (C3)', async () => {
+  const { RUSH_MAX_S, maxRushScore } = await import('../js/core/match-report.js');
+  const { readFileSync } = await import('node:fs');
+  const songs = JSON.parse(readFileSync(new URL('../data/prism/manifest.json', import.meta.url), 'utf8')).songs;
+  assert.ok(RUSH_MAX_S >= Math.max(...songs.map(x => x.duration)) + 10, 'RUSH_MAX_S covers the longest song + 10 s — raise it with a longer song');
+  const huge = maxRushScore(60, 1e6);
+  const hacked = { ...finalGame('prism', U, { mode: 'rush', rushScore: huge }), sd: [1e9] };
+  const ex = extractMatch(hacked);
+  assert.ok(ex.rejected.some(r => r.uid === 'ua' && r.board === 'prism-rush'), 'the hacked song length is rejected');
+  assert.equal(ex.rows.ua.rec['prism-rush'], undefined);
+  assert.equal(ex.rows.ua.c.p, 1, 'the match still counts');
+  // a score possible in the longest song's time passes; one possible only in a longer "song" doesn't
+  const ok = { ...finalGame('prism', U, { mode: 'rush', rushScore: maxRushScore(60, 227.84) }), sd: [227_840] };
+  assert.ok(extractMatch(ok).rows.ua.rec['prism-rush'] > 0, 'a real song, a score at the ceiling');
+  const twoSongs = { ...finalGame('prism', U, { mode: 'rush', rushScore: 40_000 }), sd: [200_000, 200_000] };
+  assert.ok(extractMatch(twoSongs).rejected.some(r => r.board === 'prism-rush'), 'a rush is ONE song');
+});
+
 test('unfinished, unknown or solo matches are not reportable; a total deadlock is nobody\'s win', () => {
   assert.equal(unreportable({ ...finalGame('cipher', U), phase: 'play' }), 'not finished');
   assert.equal(unreportable(finalGame('cipher', ['solo'])), 'too few players');

@@ -381,6 +381,11 @@ body.reduced-fx .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animati
 .pf-key-new { color: rgba(255, 236, 210, 0.86); background: transparent; border: 1px solid rgba(242, 200, 105, 0.35); box-shadow: none; }
 .pf-key-new.is-armed { color: #ffc2cf; border-color: rgba(255, 120, 150, 0.6); font-size: 9.5px; letter-spacing: 0.06em; }
 .pf-key.is-none .pf-key-copy, .pf-key.is-none .pf-key-hint { display: none; }
+/* FR6 FIXES A (C2) — YOUR PREVIOUS KEY: the key this device held before a restore, under the key card (copy · forget) */
+.pf-keys { display: flex; flex-direction: column; gap: 8px; }
+.pf-key-prev { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 4px 8px; padding: 10px 12px; border-radius: 14px; border: 1px dashed rgba(242, 200, 105, 0.32); }
+.pf-key-prev-k { grid-column: 1 / -1; font: 900 9px/1 var(--font-display); letter-spacing: 0.26em; color: rgba(242, 200, 105, 0.9); }
+.pf-key-prev-v { font: 700 13px/1.2 var(--font-mono); letter-spacing: 0.06em; color: rgba(255, 244, 220, 0.82); overflow-wrap: anywhere; user-select: all; -webkit-user-select: all; }
 .pf-restore-box { display: flex; flex-direction: column; gap: 10px; padding: 14px; border-radius: 16px; background: var(--gl-bg); border: 1px solid var(--gl-line); }
 /* PERF-A — THE CARD SAYS WHY: a key held on this device, a changed sign-in, an address with nothing saved */
 .pf-why-slot:empty { display: none; }

@@ -19,7 +19,7 @@ import { openStreakCard } from '../progress/streak-card.js';
 import { pgSheet } from '../progress/look.js';
 import { BOARD_GAMES } from '../core/boards.js';
 import { boardDef, fmtValue, MIN_WR_GAMES, winRate } from '../core/boards.js';
-import { fetchMe, myRanks, myKey, regenKey, restoreKey, setShown, setNotes, notes, setStyle, keyOffer, keepNewKey } from '../profile/me.js';
+import { fetchMe, myRanks, myKey, regenKey, restoreKey, setShown, setNotes, notes, setStyle, keyOffer, keepNewKey, previousKey, forgetPreviousKey } from '../profile/me.js';
 import { GAME_LIGHT } from '../board/view.js';
 import { boardSfx } from '../board/audio.js';
 import { sfx } from '../audio/sfx.js';
@@ -77,7 +77,15 @@ function keyCard({ onNew } = {}) {
       h('button.pf-key-copy', { type: 'button', onclick: copy }, 'COPY'),
       newBtn));
   paint();
-  return wrap;
+  // FR6 FIXES A (C2): the key this device held before a restore — a way back to that card (it may own a sighting); COPY or FORGET
+  const prev = previousKey();
+  if (!prev) return wrap;
+  const row = h('div.pf-key-prev',
+    h('span.pf-key-prev-k', 'YOUR PREVIOUS KEY'),
+    h('span.pf-key-prev-v', prev),
+    h('button.pf-key-copy', { type: 'button', onclick: async e => { e.stopPropagation(); try { await navigator.clipboard.writeText(prev); toast('PREVIOUS KEY COPIED', 'ok'); } catch { toast('SELECT AND COPY THE KEY', 'info'); } } }, 'COPY'),
+    h('button.pf-key-new.pf-key-forget', { type: 'button', onclick: e => { e.stopPropagation(); forgetPreviousKey(); row.remove(); } }, 'FORGET'));
+  return h('div.pf-keys', wrap, row);
 }
 
 /** The membership card as a full-screen overlay (from a room: the lobby, the menu, the podium), back = close. */

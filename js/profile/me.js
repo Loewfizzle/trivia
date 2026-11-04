@@ -46,6 +46,11 @@ export function keepNewKey() {
   setState({ keyOffer: null });
 }
 
+/** FR6 FIXES A (C2): the last key this device held before a restore / a new key it kept (null: none) — ACCOUNT's YOUR PREVIOUS KEY */
+export const previousKey = () => { const k = (loadNotes().oldKeys || []).filter(Boolean); return k.length ? k[k.length - 1] : null; };
+/** forget the previous key on this device (its profile is untouched on the server) */
+export function forgetPreviousKey() { const n = loadNotes(), k = previousKey(); if (!k) return; saveNotes({ ...n, oldKeys: (n.oldKeys || []).filter(x => x !== k) }); }
+
 /** Creates / updates this device's profile from the local name, avatar and colour. Never throws. */
 export function syncMe() {
   const p = loadProfile();
@@ -96,8 +101,11 @@ export async function restoreKey(input, { onRetry } = {}) {
     catch (e) { if (!(e instanceof ApiFail) || e.status !== 0 || i >= 3) throw e; if (onRetry) onRetry(i + 1); await new Promise(res => setTimeout(res, 900 * (i + 1))); }
   }
   const n0 = loadNotes();
+  // (FR6 FIXES A — C2: the restore used to overwrite the device's previous key without keeping it — PERF-A's keepNewKey protected only
+  //  the ensure path. The previous key (+ a held new one, never adopted) goes into oldKeys: ACCOUNT shows it as YOUR PREVIOUS KEY)
+  const prevs = [loadKey(), n0.heldNew].filter(k => k && normalizeKey(k) !== raw);
   saveKey(formatKey(raw));
-  saveNotes({ ...n0, saved: true, heldNew: null });
+  saveNotes({ ...n0, saved: true, heldNew: null, oldKeys: [...(n0.oldKeys || []).filter(k => !prevs.includes(k) && normalizeKey(k) !== raw), ...prevs].slice(-3) });
   setState({ keyOffer: null });
   store(r.pid, r.profile);
   // the room name / avatar / colour follow the restored profile

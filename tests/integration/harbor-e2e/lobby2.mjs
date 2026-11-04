@@ -472,8 +472,11 @@ const RULES_URL = `${DBH}/.settings/rules.json?ns=${NS}`;
 async function putRules(text) { const r = await fetch(RULES_URL, { method: 'PUT', headers: { Authorization: 'Bearer owner' }, body: text }); if (!r.ok) throw new Error(`rules PUT ${r.status}`); }
 G('oldrules', async () => {
   const { readFileSync } = await import('node:fs');
-  const cur = readFileSync(new URL('../../../database.rules.json', import.meta.url), 'utf8'), R = JSON.parse(cur), room = R.rules.rooms.$code;
-  delete room.meta.go; delete room.meta.back; delete room.rv;   // (the live site's rules before this pass's re-publish)
+  // (FR6 FIXES A — G6: the base is THE RULES AS PUBLISHED (tests/fixtures/rules-live.json — a pass that changes the rules runs this group
+  //  on what the live database really has), minus LOBBY 2.0 B's three nodes: the standing proof that the show never needs a re-publish)
+  const cur = readFileSync(new URL('../../../database.rules.json', import.meta.url), 'utf8');
+  const R = JSON.parse(readFileSync(new URL('../../fixtures/rules-live.json', import.meta.url), 'utf8')), room = R.rules.rooms.$code;
+  delete room.meta.go; delete room.meta.back; delete room.rv;   // (the live site's rules before 2B's re-publish)
   await putRules(JSON.stringify(R));
   try {
     const { Q: A, p, code, me } = await hostRoom('ora');
@@ -483,6 +486,9 @@ G('oldrules', async () => {
     await startOC(p);
     const sign = await Promise.all([p, q].map(x => waitFor(x, "!!document.querySelector('.nd-sign.rc-go .rc-tonight')", 6000).then(() => true, () => false)));
     const walk = await Promise.all([p, q].map(x => waitFor(x, '(() => { const r = window.__district.room(); return !!(r && r.people.some(y => y.goIn)); })()', 4000).then(() => true, () => false)));
+    // (FR6 FIXES A — G6: the refusal is REPORTED through the one write path — once per path shape, ids masked — never silent)
+    const rep = await ev(p, "import('/js/firebase.js').then(F => F.refusals())");
+    ok(rep.some(x => x.startsWith('update rooms/*/meta')) && !rep.some(x => x.includes(code)), `THE ONE WRITE PATH: the refused stamp was REPORTED to /admin (${rep.join(' · ')}) — no room code in it`);
     ok(/PERMISSION_DENIED/i.test(refused) && sign.every(Boolean) && walk.every(Boolean), `THE OLD RULES (meta/go refused: ${refused.slice(0, 30)}): THE GAME START still runs on BOTH phones — the sign + the game's logo (${sign}), the walk inside (${walk})`);
     await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the game', 8000)));
     await podium(p, code, [me]);

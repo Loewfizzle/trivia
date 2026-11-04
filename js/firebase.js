@@ -14,27 +14,54 @@
 import { firebaseConfig } from './firebase-config.js';
 import { slot, useEmulator } from './identity.js';
 import { serverOffsetFrom } from './core/sync-math.js';
+import { isRefusal, pathShape } from './core/rules-lag.js';
 
 const SDK = 'https://www.gstatic.com/firebasejs/11.10.0';
 let sdk = null;
 const call = name => (...args) => sdk[name](...args);
+// FR6 FIXES A (G6) — ONE WRITE PATH THAT REPORTS A REFUSAL. 23 client writes swallowed a PERMISSION_DENIED (`.catch(() => {})`) — a
+// player's answer, the host's beat, the rematch ring's clear; LOBBY 2.0 B's whole show failed SILENTLY on rules the live database didn't
+// have yet. Every write (set / update / remove / push / runTransaction) now passes through write(): the caller gets the SDK's own promise
+// back UNCHANGED (its catch, its `.key`, its timing — nothing else changes), and a refusal is reported once per path SHAPE a page (ids
+// masked: no room code, uid or match id leaves the phone) to /admin's errors with the label 'rules' (errlog.js → /api/log). The standard
+// (docs/testing.md "THE RULES-LAG"): a feature never fails silently when the live rules are older than the code.
+const REFUSED = new Set();
+function refPath(r) {
+  try { const u = new URL(String(r)); return decodeURIComponent(u.pathname); } catch { return ''; }
+}
+function refused(op, r, patch, e) {
+  if (!isRefusal(e)) return;
+  const keys = patch && typeof patch === 'object' && !Array.isArray(patch) && op === 'update' ? Object.keys(patch).slice(0, 4).map(pathShape) : [];
+  const shape = `${op} ${pathShape(refPath(r))}${keys.length ? ` {${keys.join(', ')}}` : ''}`;
+  if (REFUSED.has(shape) || REFUSED.size >= 6) return;
+  REFUSED.add(shape);
+  console.warn('[rules] refused:', shape);
+  import('./errlog.js').then(m => m.reportError(new Error(`RULES REFUSED ${shape} — the live database rules may be older than the code: re-publish database.rules.json`), 'rules')).catch(() => {});
+}
+/** the refusals this page has reported (tests + &debug) */
+export const refusals = () => [...REFUSED];
+const write = name => (...args) => {
+  const p = sdk[name](...args);
+  if (p && typeof p.then === 'function') p.then(null, e => refused(name, args[0], args[1], e));   // (observed beside — the caller's own promise is returned as is)
+  return p;
+};
 
 export const ref = call('ref');
 export const get = call('get');
-export const set = call('set');
-export const update = call('update');
-export const remove = call('remove');
+export const set = write('set');
+export const update = write('update');
+export const remove = write('remove');
 export const onValue = call('onValue');
 export const off = call('off');
 export const onDisconnect = call('onDisconnect');
 export const serverTimestamp = call('serverTimestamp');
-export const runTransaction = call('runTransaction');
+export const runTransaction = write('runTransaction');
 export const query = call('query');
 export const orderByChild = call('orderByChild');
 export const endAt = call('endAt');
 export const limitToFirst = call('limitToFirst');
 export const limitToLast = call('limitToLast');
-export const push = call('push');
+export const push = write('push');
 // whole-connection switches (chat's offline-send test hook — raw: they bypass want / release)
 export const goOffline = () => sdk.goOffline(db);
 export const goOnline = () => sdk.goOnline(db);

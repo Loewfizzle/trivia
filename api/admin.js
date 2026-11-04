@@ -269,7 +269,9 @@ export async function cityLiveNow(now = Date.now()) {
   const ok = v && typeof v === 'object' && Number.isFinite(v.startAt) && Number.isFinite(v.until) && v.until > now;
   // (CITY CONTROLS A: + THE RADIO's public part — the city's fired moments, the billboard's messages, the dial; never who fired them)
   let radio = null; try { radio = await radioPublic(now); } catch (e) { console.warn('radioPublic', e && e.message); }
-  return { live: ok ? { state: v.state || {}, startAt: v.startAt, until: v.until, by: v.by || null } : null, radio, at: now };
+  // (FR6 FIXES A — C5: `by` was the ADMIN's PROFILE ID, served to anyone + edge-cached — and profiles/{pid} is readable one at a time: his
+  //  name, tag, Nº 0001. The public read says only that the owner sent it, like THE RADIO's publicMoment; the admins' own socket keeps the pid)
+  return { live: ok ? { state: v.state || {}, startAt: v.startAt, until: v.until, by: v.by ? 'owner' : null } : null, radio, at: now };
 }
 export const LIVE_CACHE = 'public, max-age=0, s-maxage=15';
 export const CLIP_CACHE = 'public, max-age=0, s-maxage=60';
