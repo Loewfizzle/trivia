@@ -283,9 +283,12 @@ G('afterparty', async () => {
   await dbPatch(`rooms/${code}/rv`, { [fakes[0]]: m });
   await waitFor(p, "document.querySelectorAll('.rdk-pip.is-on').length === 2", 'two dots', 6000).catch(() => {});
   await sleep(400);
-  const v = await ev(p, `({ lit: document.querySelectorAll('.rdk-pip.is-on').length, pill: document.querySelector('.rdk-votes').hidden ? '' : document.querySelector('.rdk-votes').textContent, thumb: document.querySelector('.rc-tag[data-uid="${meB}"]').classList.contains('is-voted') })`);
+  const v = await ev(p, `({ lit: document.querySelectorAll('.rdk-pip.is-on').length, pill: document.querySelector('.rdk-votes').hidden ? '' : document.querySelector('.rdk-votes').textContent, thumb: !!document.querySelector('.rc-thumb, .rc-tag.is-voted') })`);
   const vB = await ev(q, "({ w: document.querySelector('.rdk-play .nd-host-label').textContent, lit: document.querySelectorAll('.rdk-pip.is-on').length, pill: document.querySelector('.rdk-votes').textContent })");
-  ok(v.lit === 2 && /2 of 5 want a rematch/.test(v.pill) && v.thumb && vB.lit === 2 && /✓ VOTED/.test(vB.w), `THE VOTES: 2 dots lit on both phones, "${v.pill}", a 👍 over the guest who voted (${v.thumb}); the guest's ring: "${vB.w}"`);
+  ok(v.lit === 2 && /2 of 5 want a rematch/.test(v.pill) && !v.thumb && vB.lit === 2 && /✓ VOTED/.test(vB.w), `THE VOTES: 2 dots lit on both phones, "${v.pill}" — no 👍 over the people (the TIDY: ${!v.thumb}); the guest's ring: "${vB.w}"`);
+  // THE TIDY (the owner, Nov 4 9:25 am): the dots in ONE row right above the ring — on screen, never over the dock's pill; the pill above the row
+  const lay = await ev(p, "(() => { const R = e => e.getBoundingClientRect(), ring = R(document.querySelector('.rdk-play')), row = R(document.querySelector('.rdk-pips')), pill = R(document.querySelector('.nd-pill, .rdk-pill')), votes = R(document.querySelector('.rdk-votes')), dots = [...document.querySelectorAll('.rdk-pip')].map(R); return { row: dots.every(d => Math.abs(d.top - dots[0].top) < 1), above: row.bottom <= ring.top + 1, onScreen: row.left >= 0 && row.right <= innerWidth && votes.right <= innerWidth && votes.left >= 0, clearPill: row.bottom <= pill.top || row.left >= pill.right, votesAbove: votes.bottom <= row.top + 1 }; })()");
+  ok(Object.values(lay).every(Boolean), `THE TIDY: the dots in ONE row right above the ring, fully on screen, clear of the dock's pill; the "want a rematch" pill above them (${JSON.stringify(lay)})`);
   if (SHOTS) { await p.screenshot({ path: `${OUT}room2-vote-host-402.png` }); await q.screenshot({ path: `${OUT}room2-vote-guest-402.png` }); }
   // take it back
   await ev(q, "document.querySelector('.rdk-play').click()");

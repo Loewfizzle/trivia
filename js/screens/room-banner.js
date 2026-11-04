@@ -49,6 +49,9 @@ export function flyBanner(scene, lines, startS, onDone = () => {}) {
 function stillCard(lines) {
   document.querySelectorAll('.rc-bancard').forEach(e => e.remove());
   const el = h('div.rc-bancard', { role: 'status' }, ...lines.map(l => h('b', l)));
+  // (the sky rules: never over the NEON letters — under the sign's own box, read once as it shows)
+  const sg = document.querySelector('.nd-sign');
+  if (sg) { const b = sg.getBoundingClientRect(); if (b.bottom > 0) el.style.setProperty('--rc-bc-top', `${Math.round(b.bottom + 14)}px`); }
   document.body.append(el);
   setTimeout(() => el.remove(), 6500);
 }

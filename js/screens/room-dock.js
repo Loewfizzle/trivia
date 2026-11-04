@@ -29,9 +29,9 @@ export function createRoomDock(on) {
   const hl = E.host.querySelector('.nd-host-label');
   hl.replaceChildren(h('span.rdk-w1', 'PLAY'), h('span.rdk-w2'));
   E.host.classList.add('rdk-play');
-  // (LOBBY 2.0 B — THE REMATCH VOTE, the owner's approved mock rematch-vote.png: the voters' BOLD DOTS on the ring's left / top arc — one per
-  //  guest in their colour, lit when they voted, a faint empty ring when not — and the "3 of 7 want a rematch" pill above it; the same on
-  //  every phone. transform-placed once, never animated)
+  // (LOBBY 2.0 B — THE REMATCH VOTE (the owner's mock, TIDIED Nov 4 9:25 am): the voters' BOLD DOTS in ONE neat row right ABOVE the ring —
+  //  one per guest in their colour, lit when they voted, a faint empty ring when not; right-aligned with the ring so the row never reaches
+  //  the pill or the screen's edge — and the "3 of 7 want a rematch" pill just above the row; the same on every phone. Never animated)
   E.pips = h('span.rdk-pips', { 'aria-hidden': 'true' });
   E.votes = h('span.rdk-votes', { role: 'status', hidden: true });
   E.host.append(E.pips, E.votes);
@@ -73,9 +73,10 @@ export function createRoomDock(on) {
       hl.querySelector('.rdk-w1').textContent = v.host ? 'PLAY' : 'WAITING';
       hl.querySelector('.rdk-w2').textContent = v.host ? '' : `FOR ${String(v.hostName || 'THE HOST').toUpperCase().slice(0, 12)}`;
     }
-    // the dots: the left / top arc (165° → 285°, clockwise from the right), one per guest
+    // the dots: one row above the ring, in the room's order (left → right)
     const pips = rm ? rm.pips : [];
-    E.pips.replaceChildren(...pips.map((p, i) => { const a = pips.length === 1 ? 225 : 165 + (120 * i) / (pips.length - 1); return h('i.rdk-pip', { class: p.on ? 'is-on' : '', style: { '--a': `${a.toFixed(1)}deg`, '--c': p.col } }); }));
+    E.pips.replaceChildren(...pips.map(p => h('i.rdk-pip', { class: p.on ? 'is-on' : '', style: { '--c': p.col } })));
+    E.pips.hidden = !pips.length;
     E.votes.hidden = !(rm && rm.n > 0);
     E.votes.replaceChildren(...(rm && rm.n > 0 ? [h('b', `${rm.n} of ${rm.total}`), ` want${rm.n === 1 ? 's' : ''} a rematch`] : []));
     E.guestsTab.querySelector('.rdk-dot').hidden = !v.guestsDot;

@@ -1030,27 +1030,24 @@ body.rc-going .nd-actions, body.rc-going .rc-tags { opacity: 0; transition: opac
 
 /* =====================================================================================================================================
    LOBBY 2.0 B — THE REMATCH VOTE (the owner's approved mock rematch-vote.png): the ring reads REMATCH (the host) / REMATCH · VOTE / ✓ VOTED
-   (a guest — their own pink ring, never greyed); the voters' BOLD DOTS on its left / top arc; the "3 of 7 want a rematch" pill above it; a 👍
-   over each voter in the line. Static: placed once by transform, no animation (a dot lighting fades in — opacity).
+   (a guest — their own pink ring, never greyed); the voters' BOLD DOTS in one row right above it; the "3 of 7 want a rematch" pill just above
+   the row (TIDIED Nov 4 9:25 am — no 👍 over the people any more). Static: no animation.
    ===================================================================================================================================== */
 .rdk-play.rdk-rm .rdk-w1 { font-size: 0.92em; letter-spacing: 0.08em; }
 .rdk-play.rdk-rm .rdk-w2 { font: 800 8px/1 var(--font-ui); letter-spacing: 0.14em; color: rgba(255, 236, 248, 0.92); }
 .rdk-play.rdk-voted .rdk-w2 { color: #fff; }
-.rdk-pips { position: absolute; left: 50%; top: 50%; width: 0; height: 0; pointer-events: none; }
-.rdk-pip { position: absolute; left: -6px; top: -6px; width: 12px; height: 12px; border-radius: 50%; --pr: 46px;
-  transform: rotate(var(--a)) translateX(var(--pr)) rotate(calc(-1 * var(--a))); box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.4); background: rgba(8, 7, 14, 0.35); transition: opacity 0.3s ease; }
-.rdk-pip.is-on { background: var(--c); box-shadow: 0 0 0 1.5px rgba(8, 7, 14, 0.55), 0 0 9px var(--c); }
-.nd-bar.nd-flank .rdk-pip { --pr: 50px; }
-.rdk-votes { position: absolute; right: -6px; bottom: calc(100% + 16px); padding: 8px 13px 7px; border-radius: 999px; white-space: nowrap; pointer-events: none;
+/* the dots: ONE row right above the ring, right-aligned with it (the TIDY — the owner, Nov 4 9:25 am); on a dark glass rail so they read on
+   any city behind */
+.rdk-pips { position: absolute; right: 8px; bottom: calc(100% + 8px); display: flex; gap: 5px; padding: 5px 7px; border-radius: 999px; pointer-events: none;
+  background: rgba(10, 9, 18, 0.72); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); }
+.rdk-pips[hidden] { display: none; }
+.rdk-pip { width: 11px; height: 11px; flex: none; border-radius: 50%; box-shadow: inset 0 0 0 1.5px rgba(255, 255, 255, 0.42); background: transparent; }
+.rdk-pip.is-on { background: var(--c); box-shadow: 0 0 0 1px rgba(8, 7, 14, 0.6), 0 0 7px var(--c); }
+.rdk-votes { position: absolute; right: 8px; bottom: calc(100% + 38px); padding: 8px 13px 7px; border-radius: 999px; white-space: nowrap; pointer-events: none;
   font: 600 12.5px/1 var(--font-ui); letter-spacing: 0.04em; color: rgba(244, 240, 252, 0.95); background: rgba(10, 9, 18, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.22), 0 4px 14px rgba(0, 0, 0, 0.45); }
 .rdk-votes b { font-weight: 800; color: #fff; }
-.rc-thumb { position: absolute; left: -15px; top: -58px; width: 30px; height: 30px; display: grid; place-items: center; border-radius: 50%; background: #fff; font-size: 16px; line-height: 1;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.45); opacity: 0; transform: translateY(4px) scale(0.85); transition: opacity 0.22s ease, transform 0.22s ease; pointer-events: none; }
-.rc-tag.is-voted .rc-thumb { opacity: 1; transform: none; }
-.rc-tag.is-voted.is-typing .rc-thumb, .rc-tag.is-voted.is-named .rc-thumb { opacity: 0; }
-@media (prefers-reduced-motion: reduce) { .rc-thumb { transition: none; } }
 /* THE WINNER's BANNER — reduced motion: a still card in the sky (room-banner.js) */
-.rc-bancard { position: fixed; left: 50%; top: calc(var(--safe-t, 0px) + 150px); z-index: 4; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px;
+.rc-bancard { position: fixed; left: 50%; top: var(--rc-bc-top, calc(var(--safe-t, 0px) + 34vh)); z-index: 4; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; gap: 4px;
   padding: 12px 18px; border-radius: 14px; background: rgba(248, 242, 226, 0.95); box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4); pointer-events: none; animation: rc-bancard 6.5s ease both; }
 .rc-bancard b { font: 900 16px/1.1 var(--font-ui); letter-spacing: 0.06em; color: #b3192a; white-space: nowrap; }
 @keyframes rc-bancard { 0% { opacity: 0; } 8% { opacity: 1; } 88% { opacity: 1; } 100% { opacity: 0; } }

@@ -138,9 +138,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     let T = tags.get(uid);
     if (T) return T;
     const emb = h('span.rc-emb'), name = h('span.rc-name'), bubble = h('span.rc-bubble', { 'aria-hidden': 'true' }, h('i'), h('i'), h('i'));
-    const thumb = h('span.rc-thumb', { 'aria-hidden': 'true' }, '👍');
     const hitEl = h('span.rc-hit', { 'aria-hidden': 'true' });
-    const el = h('button.rc-tag', { type: 'button', dataset: { uid } }, hitEl, thumb, bubble, name, emb);
+    const el = h('button.rc-tag', { type: 'button', dataset: { uid } }, hitEl, bubble, name, emb);
     // (a plain-area tap rule: pointerdown + pointerup, never click — iOS Safari skips click on some elements; this IS a button, but the
     //  tag moves under the finger: the same tap whether it moved or not)
     let down = null;
@@ -218,8 +217,6 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
     const rm = vs.on ? { on: true, voted: !!(st.rv && st.rv[st.uid] === vs.m), n: vs.voters.length, total: vs.total, pips: vs.guests.map(u => ({ col: colorHex((P[u] || {}).color), on: vs.voters.includes(u) })) } : null;
     dock.set({ host: isHost(), hostName: hostName(), guestsDot: ids.some(u => u !== st.uid && !seen.has(u)), chatDot: unread > 0, chatN: unread,
       you: avatar(me.avatar || 'bolt', me.color || 'magenta', 27), youSig: `${me.avatar}|${me.color}`, youAria: `Your card, ${me.name || ''}`, rm });
-    // (the 👍 over each voter in the line — on every phone)
-    for (const [uid, T] of tags) { const on = !!(vs.on && vs.voters.includes(uid)); if (T.el.classList.contains('is-voted') !== on) T.el.classList.toggle('is-voted', on); }
   }
   function paintBubbles() {
     const ty = chatMod ? chatMod.chat.typing || {} : {}, now = serverNow();

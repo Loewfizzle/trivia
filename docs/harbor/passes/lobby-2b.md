@@ -83,7 +83,7 @@ pushed (no tag).
   `host.js#rematch` — the same game, the same settings, everyone in the room incl. late joiners; everyone files in like the first start); a
   GUEST's ring in that slot reads **REMATCH · VOTE** → **REMATCH ✓ VOTED** (their own pink ring, never greyed; tap again = taken back); each
   vote lights a BOLD DOT in the guest's colour on the ring's left / top arc (165° → 285°; a faint empty ring for a guest who hasn't) + a
-  "**2 of 5** want a rematch" pill above the ring — the same dots + pill on every phone — + a 👍 over each voter's figure in the line. The host
+  "**2 of 5** want a rematch" pill above the ring — the same dots + pill on every phone. (TIDIED — the owner, Nov 4 9:25 am, below: the dots in ONE row right above the ring, the pill above them, no 👍 over the people.) The host
   picking ANOTHER game (GAMES → a game) puts the ring back to PLAY + clears every vote; a start clears them too. NOTHING auto-starts. The word
   REMATCH fits the ring in the real font (55 of 76 pt at 402). A vote = `rooms/{CODE}/rv/{uid}` = the match just played — each player's
   OWN node, only while that match's ring is up (the rules); the host clears them all.
@@ -122,6 +122,12 @@ pushed (no tag).
   `.modal` sheets (HOW TO PLAY, a game's options, settings, credits) — the next layer as it appears and takes it back as it goes; the app's
   Esc closes a `.modal` only when it's the top layer. ‹ / swipe-down closes one step (the profile's sheet stack, unchanged). Found on the way:
   a GUEST tapping a game in GAMES opened HOW TO PLAY behind the games sheet — now on top.
+
+- **THE REMATCH VOTE, TIDIED** (the owner, Nov 4 9:25 am — the second add-on): the 👍 bubbles over the voters are GONE (they bunched and
+  covered the signs — the vote shows only at the ring); the dots — which scattered round the ring onto the dock's pill (over CHAT) and off
+  the edge — are ONE neat ROW right ABOVE the ring on a dark glass rail (11-pt dots, right-aligned 8 pt in from the ring's edge: 7 dots ≈
+  121 pt — on screen at 390 / 402 / 430, never over the pill), the "3 of 7 want a rematch" pill just above the row, clear of the promenade's
+  people. Screenshots of 1 · 4 · 7 voters at all three widths: `tests/integration/room2-votes.mjs` (shots-votes/).
 
 ## Tests (so far)
 unit `tests/lobby-2b.test.mjs` (11) · rules (+ 2: the stamps, THE REMATCH VOTE) · harbor job `room2`: `roomfix` (10), `gamestart` (7), `citypause` (3), `afterparty` (16).
