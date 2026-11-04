@@ -114,3 +114,17 @@ test('THE SIGHTING REVEAL: the two names on one baseline (same-height tiles), th
   assert.match(t, /x\.a == null \|\| x\.a >= 0\.85/, 'faded all the way in'); assert.match(t, /onK\(x\.x, x\.w \|\| 0, innerWidth\) >= 0\.7/, 'most of it on screen');
   assert.match(sr, /a: b\.meta && b\.meta\.a != null/); assert.match(read('js/screens/harbor/ghostship.js'), /SR\.box\('ghostship', [^;]*\{ a \}\)/);
 });
+
+// FR6 FIXES A — the FAST legendaries (their photo at the tap): sighting.js keeps the list as data (a lazy file never imports the city) —
+// the two lists must agree, and every FAST id must be a legendary with a reaction
+test('FAST legendaries: sighting.js and sight-react.js name the same craft, each a real legendary', async () => {
+  const SR = await import('../js/screens/harbor/sight-react.js');
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../js/progress/sighting.js', import.meta.url), 'utf8');
+  const m = /export const FAST = \[([^\]]*)\]/.exec(src);
+  assert.ok(m, 'sighting.js exports FAST');
+  const list = m[1].split(',').map(x => x.trim().replace(/'/g, '')).filter(Boolean);
+  assert.deepEqual([...list].sort(), [...SR.FAST].sort());
+  for (const id of list) assert.ok(SR.REACT_LEN[id], `${id} has a reaction`);
+  assert.deepEqual([...SR.FAST].sort(), ['blackbird', 'f22', 'fireball']);
+});

@@ -24,6 +24,7 @@ import { ref, val, adminPids, emulated } from './fb.js';
 import { knob } from '../../js/core/harbor-schedule.js';
 import { jacks, jackDef, roleJack, roleAudience, rolePower, canRun, cleanFire, cleanBoard, planStart, lenOf, scopeOf, publicMoment, crewCheck, nightKey, localStart, phaseOf, AUD_LABEL, WORDS_WHY, radioHolder, parseTag, cleanWords } from '../../js/core/harbor-radio.js';
 import { nameKey } from '../../js/core/names.js';
+import { presenceOnline } from '../../js/core/room-logic.js';
 import { encodeKey, pidOf, isPid } from './profiles.js';
 import { vapid, sendPush, okEndpoint } from './push.js';
 import { createHash } from 'node:crypto';
@@ -529,17 +530,21 @@ async function push(me, role, body, now) {
   const S = await subs();
   return { key: V ? V.pub : null, on: !!(await val('radio/push/on')), subs: Object.keys(S).length, mine: body.endpoint ? !!S[subKey(body.endpoint)] : null };
 }
-/** a host's room just opened (room.js#createRoom calls it): the room must be theirs + brand new; once a room; never the owner's own */
+/** a host's room just opened (room.js#roomPushLater — ~10 s after createRoom): the room must be theirs + brand new + STILL OPEN with a
+ *  player and its host online (FR6 FIXES A: the owner's pushes for rooms that were empty when he went); once a room; never the owner's own.
+ *  The push opens THAT room's join (/?room=CODE); a room closed by then lands on "That room has closed" (app.js#inviteExpired) */
 async function roomOpened(me, uid, body, now) {
   const code = String(body.room || '').toUpperCase();
   if (!/^[A-Z]{4}$/.test(code)) throw new ApiError(400, 'bad_room');
   const meta = await val(`rooms/${code}/meta`);
   if (!meta || meta.hostId !== uid || !(meta.createdAt > now - 120e3)) return { ok: true, sent: 0 };
+  const players = (await val(`rooms/${code}/players`)) || {};
+  if (!players[uid] || !presenceOnline(await val(`rooms/${code}/presence/${uid}`))) return { ok: true, sent: 0, why: 'not_open' };
   if (!(await val('radio/push/on')) || (me && (await roleOf(me)) === 'owner')) return { ok: true, sent: 0 };
   const t = await ref(`radio/push/sent/${code}`).transaction(cur => (cur && cur > now - 3600e3 ? undefined : now));
   if (!t.committed) return { ok: true, sent: 0 };
-  const n = Object.keys((await val(`rooms/${code}/players`)) || {}).length || 1;
-  const r = await notifyOwner({ title: 'A ROOM JUST OPENED', body: `${code} · ${n} player${n === 1 ? '' : 's'}`, url: '/?city=2', tag: `room-${code}` });
+  const n = Object.keys(players).length || 1;
+  const r = await notifyOwner({ title: 'A ROOM JUST OPENED', body: `${code} · ${n} player${n === 1 ? '' : 's'}`, url: `/?room=${code}`, tag: `room-${code}` });
   // (the once-a-room marks: a day kept)
   const sent = (await val('radio/push/sent')) || {}, gone = {}; for (const [c, at] of Object.entries(sent)) if (!(at > now - 864e5)) gone[c] = null;
   if (Object.keys(gone).length) await ref('radio/push/sent').update(gone);

@@ -1828,7 +1828,7 @@ export function createTitle() {
       say(`You’re invited — the hush word is ${els.code.value}. Tap › to join.`, 'info');
       els.go.classList.add('is-ready');
     }
-    if (state.inviteExpired) note(`The room behind ${state.inviteExpired} has closed. Host a new game, or ask for a fresh hush word.`, 'warn', 9000);
+    if (state.inviteExpired) note(`That room has closed (${state.inviteExpired}). Host a new game, or ask for a fresh hush word.`, 'warn', 9000);   // (FR6 FIXES A: a push for a room gone by the tap lands here)
   }
 
 

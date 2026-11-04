@@ -363,6 +363,37 @@ G('citylife', async () => {
 // PROGRESSION B — CITY SIGHTINGS: a tap on each legendary (forced from its link) → its REACTION (the box moves with it; a forced one never
 // claims); THE SEQUENCE on the owner's preview (&sgdemo — the flash, the REAL polaroid at the phone's dpr, SPOTTED, the pair, held until a
 // tap); reduced motion; the capture never drops a frame (docs/progression.md "CITY SIGHTINGS")
+// FR6 FIXES A — THE FAST LEGENDARIES' POLAROID (the owner, Nov 4: the Blackbird's photo showed only the sound-barrier cone, not the jet —
+// the photo was taken ~0.45 s after the tap, the jet had gone, and the crop fell back to the tap's spot where the cone stays). Now a FAST
+// one (sight-react.js#FAST) is shot AT THE TAP, the crop centred on the craft's own box as that very frame drew it: for each of the
+// Blackbird, the F-22 flyby and the fireball, a real tap → the photo's source is the craft's LIVE box (not the tap point), taken within a
+// few frames of the tap, and the craft (its own half size, no finger pad) is inside the crop.
+G('sgfast', async () => {
+  const FASTC = [['blackbird', 'when=2026-11-04T15:00&force=blackbird'], ['f22', 'when=2026-11-04T17:30&force=flyby'], ['fireball', 'when=2026-11-03T23:00&force=fireball']];
+  const res = [];
+  for (const [id, qs] of FASTC) {
+    const P = await open({ slot: `sgf${id}`, qs, view: [402, 874] });
+    await harborUp(P.page);
+    await P.page.mouse.click(30, 800).catch(() => {});      // (a legendary from a link waits for a tap)
+    let b = null; const t0 = Date.now();
+    // (the craft well inside the screen — a tap where a player would make it)
+    while (Date.now() - t0 < 45000 && !b) { const bs = await ev(P.page, 'window.__district.sightBoxes()').catch(() => []); b = (bs || []).find(x => x.id === id && x.x > 60 && x.x < 342 && x.y > 40 && x.y < 760) || null; if (!b) await sleep(60); }
+    if (!b) { res.push(`${id}: no box`); await P.ctx.close(); continue; }
+    await P.page.mouse.click(b.x, b.y);
+    await waitFor(P.page, `import('/js/progress/sighting.js').then(m => !!m.last.snap)`, 'the photo', 8000).catch(() => {});
+    const s = await ev(P.page, `import('/js/progress/sighting.js').then(m => m.last.snap)`);
+    if (!s) { res.push(`${id}: no photo`); await P.ctx.close(); continue; }
+    const B = s.box, cw = s.craft ? s.craft.w : 0, ch = s.craft ? s.craft.h : 0;
+    const ov = (c, r, lo, hi) => (r > 0 ? Math.max(0, Math.min(hi, c + r) - Math.max(lo, c - r)) / (2 * r) : (c >= lo && c <= hi ? 1 : 0));
+    const inX = ov(s.at.x, cw, B.left, B.left + B.side), inY = ov(s.at.y, ch, B.top, B.top + B.side);
+    const good = s.fast && s.src === 'live' && s.dt < 450 && inX >= 0.9 && inY >= 0.9;
+    res.push(`${id}: ${good ? 'ok' : 'BAD'} (${s.src}, ${s.dt} ms after the tap, the craft ${Math.round(inX * 100)}×${Math.round(inY * 100)} % in the photo)`);
+    if (SHOTS) await P.page.screenshot({ path: `${OUT}sgfast-${id}.png` });
+    await P.ctx.close();
+  }
+  ok(res.every(x => /: ok /.test(x)), `SIGHTINGS (FR6 FIXES A): a FAST legendary's photo is taken AT THE TAP round the craft itself, never the tap's spot after it left — ${res.join(' · ')}`);
+});
+
 G('sightings', async () => {
   // THE VAULT 1A Group 0 — the owner's PROGRESSION B review: on the UFO link WITHOUT a tap the UFO shook + took a photo "by itself" (the tap
   // that skipped the intro finished it on its pointerdown, so its pointerup reached the city). (1) no tap at all → nothing, the whole time;

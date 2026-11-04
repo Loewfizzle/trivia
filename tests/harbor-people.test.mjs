@@ -444,3 +444,30 @@ test('ATM-C — AN UMBRELLA IS HELD: the umbrella hand steady by the shoulder th
   assert.ok(held.y > -0.15 && held.y < 0.02, `held up by the shoulder (${held.y.toFixed(3)} below it)`);
   assert.ok(held.far > 0.1, `the other arm still swings (${held.far.toFixed(3)})`);
 });
+
+// FR6 FIXES A — THE DOGS FLASHED COLOURS while walking (the owner, Nov 4): the looks were keyed on the per-frame gust field crossing 10,
+// and the dog's coat was drawn LAST from the person's random stream — a gust added a hand-on-the-hat draw and re-coloured the dog.
+test('ONE LOOK PER DOG: no weather, wind or season changes a walking dog\'s coat or size', async () => {
+  const { lookOf } = await import('../js/screens/harbor/folk.js');
+  const weathers = [{}, { wind: 0 }, { wind: 11 }, { wind: 30 }, { rain: 0.9 }, { rain: 0.9, wind: 20 }, { snow: 0.6, cold: true }, { season: 'summer' }, { season: 'winter', wind: 14 }, { party: true }];
+  for (const seed of [1, 7, 42, 1924, 99991, 'vid-7']) {
+    const base = lookOf('dogwalker', seed, { role: 'dog' });
+    for (const w of weathers) {
+      const L = lookOf('dogwalker', seed, { role: 'dog', ...w });
+      assert.deepEqual(L.dog, base.dog, `seed ${seed}: the coat changed under ${JSON.stringify(w)}`);
+      assert.equal(L.dogSize, base.dogSize, `seed ${seed}: the size changed under ${JSON.stringify(w)}`);
+    }
+  }
+});
+
+test('the looks are keyed on the weather\'s STEADY wind (windLook), not the per-frame gust field', async () => {
+  const { readFileSync } = await import('node:fs');
+  const ppl = readFileSync(new URL('../js/screens/harbor/people.js', import.meta.url), 'utf8');
+  const key = /const lookFor = [\s\S]*?const key = `[^`]*`/.exec(ppl)[0];
+  assert.doesNotMatch(key, /env\.wind\b/, 'the look cache key reads the live gust field');
+  assert.match(key, /lookWind\(env\)/);
+  const scene = readFileSync(new URL('../js/screens/harbor/scene.js', import.meta.url), 'utf8');
+  const env = /function peopleEnv[\s\S]*?\n {2}\}/.exec(scene)?.[0] || '';
+  assert.ok(env.includes('windLook:'), 'peopleEnv hands the looks the steady wind');
+  assert.equal((env.match(/(?<![\w.])wind:/g) || []).length, 1, 'peopleEnv has ONE wind key (a duplicate key silently wins)');
+});

@@ -1090,10 +1090,13 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     const h = LK.local ? LK.local.h + LK.local.mi / 60 : 12;
     people.line(clock.force.has('line') ? Number(qp.get('n') || 6) : lobbyLine);
     const gl = hprops && hprops.giantLight ? hprops.giantLight() : null;
-    return { noWands: clock.force.has('no-wands'), holCarry: HP && HP.pies ? 'pie' : XP.rush > 0.25 ? 'shop' : null, pointLights: gl ? [gl] : null, T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), power: LB ? legendPow(W * 0.5, 'near', 209) : 1, t: performance.now() / 1000, mo: S.motion, season: L.season, rain: LK.rain || 0, fog: LK.fog || 0, wind: WXS ? WXS.gust : LK.wind || 0, fade: fadeIn, tier, party: PT.on > 0.3, snd: S.motion ? snd : null,
+    return { noWands: clock.force.has('no-wands'), holCarry: HP && HP.pies ? 'pie' : XP.rush > 0.25 ? 'shop' : null, pointLights: gl ? [gl] : null, T: bakeTones, dark: litK(DK, 'lamps') * (lit > 0 ? 1 : 0.3), power: LB ? legendPow(W * 0.5, 'near', 209) : 1, t: performance.now() / 1000, mo: S.motion, season: L.season, rain: LK.rain || 0, fog: LK.fog || 0, windLook: WXS ? WXS.gust : LK.wind || 0, fade: fadeIn, tier, party: PT.on > 0.3, snd: S.motion ? snd : null,
       // (FP3b — the dance circle's beat: the party's song clock + its punch + palette; null off a party → wands.js keeps a steady 120 bpm)
       beat: PT.on > 0.05 && PT.beatsF != null ? { beatsF: PT.beatsF, punch: PT.punch || 0, pal: PT.palette, ...songEdge() } : null,   // (SP5: the song's edge — the dancers wind down, idle, pick up)
       // (FP3b — the roaster's smoke drifts with the REAL wind, signed by its side, like the falling leaves)
+      // (FR6 FIXES A — THE DOGS FLASHED COLOURS: this object had TWO `wind` keys, the later WF.v(0.5) — the per-frame gust field — won, and
+      //  people.js keyed the LOOKS on `wind > 10`: every gust across 10 re-rolled a look mid-walk (the dog's coat drawn last from the same
+      //  random stream). The looks read windLook (the weather's steady gust); wind stays the live field for the smoke + the lean)
       wind: WF.v(0.5), windF: WF, W, wxDown: WXS && WXS.blizzard ? WXS.blizzard : 0, wxIce: WXS ? WXS.ice || 0 : 0 };   // (ATM-A: the shared wind — the smoke pulses with the gusts, the walkers lean into a strong one; ATM-B: the coats stream, the blizzard bows the heads)
   }
   let lobbyLine = 0, spillCls = false, partyDim = null, crowdMemo = null;
@@ -2949,7 +2952,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     snapshot(cx, cy, o = {}) {
       return new Promise((res, rej) => {
         fastUntil = performance.now() + 600;
-        snapWant = () => { try { res(composeCity({ host: canvas.parentElement, cx, cy, ...o })); } catch (e) { rej(e); } };   // (in THIS frame, synchronously)
+        // (FR6 FIXES A: with o.key the crop centres on that legendary's box as THIS frame drew it — a fast craft never leaves the photo
+        //  between the ask and the frame; src says which: 'live' (the craft now) or 'given' (the caller's point: the craft already gone))
+        snapWant = () => { try { const sh = o.key ? SR.shot(o.key) : null, r = composeCity({ host: canvas.parentElement, cx: sh ? sh.x : cx, cy: sh ? sh.y : cy, ...o }); r.at = { x: Math.round(sh ? sh.x : cx), y: Math.round(sh ? sh.y : cy) }; r.craft = sh ? { w: Math.round(sh.w), h: Math.round(sh.h) } : null; r.src = sh ? 'live' : 'given'; res(r); } catch (e) { rej(e); } };   // (in THIS frame, synchronously)
       });
     },
     /** the legendaries' tap boxes up now (tests + &debug) */

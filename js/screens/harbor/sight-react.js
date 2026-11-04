@@ -10,6 +10,9 @@ const boxes = new Map();     // id → { x, y, rx, ry, at (performance.now), met
 const fired = new Map();     // id → { t0, len }
 /** each reaction's length (s) — what the eye needs to read it on the phone (~1–1.5 s) */
 export const REACT_LEN = Object.freeze({ ufo: 1.5, tr3b: 1.6, blackbird: 1.5, f22: 1.6, ghostship: 1.6, skull: 1.8, btc: 1.6, aurora: 2.2, fireball: 1.2 });
+/** FR6 FIXES A — THE FAST LEGENDARIES (the owner's Blackbird polaroid showed only the vapour cone): they cross the screen in a second or
+ *  two, so their photo is taken AT THE TAP (sighting.js), centred on the craft as it is in that very frame — never the tap's spot a beat later */
+export const FAST = Object.freeze(new Set(['blackbird', 'f22', 'fireball']));
 /** a box this old (ms) no longer answers: the craft has moved on / gone */
 const FRESH_MS = 250;
 /** the pad round a box (pt): the finger + the craft's speed */
@@ -38,6 +41,12 @@ export function hit(x, y, skip = null) {
 /** (THE VAULT 2B: + a = how visible it is this frame, 0..1 — a craft fading in passes meta.a; the owner's &sgdemo waits for a whole,
  *  fully lit craft before it snaps; w / h = its own half size, without the finger's pad) */
 export function live() { const t = nowMs(), out = []; for (const [key, b] of boxes) if (t - b.at <= FRESH_MS) out.push({ id: b.id, key, x: Math.round(b.x), y: Math.round(b.y), rx: Math.round(b.rx), ry: Math.round(b.ry), w: Math.round(b.w), h: Math.round(b.h), a: b.meta && b.meta.a != null ? Math.round(b.meta.a * 100) / 100 : 1 }); return out; }
+/** FR6 FIXES A — where the PHOTO centres on a legendary NOW (its own meta.shot — the Blackbird's body + plumes — or its box's centre), with
+ *  its half size → { x, y, w, h } | null (gone: the box is older than a few frames) */
+export function shot(key) {
+  const b = boxes.get(key); if (!b || nowMs() - b.at > FRESH_MS) return null;
+  const s = b.meta && b.meta.shot; return { x: s ? s[0] : b.x, y: s ? s[1] : b.y, w: s && s[2] != null ? s[2] : b.w, h: s && s[3] != null ? s[3] : b.h };
+}
 /** start a reaction now */
 export function fire(key, at = null) { const id = String(key).split('#')[0]; fired.set(key, { t0: nowMs(), len: (REACT_LEN[id] || 1.4) * 1000, at }); }
 /** where the tap landed for a running reaction ({ x, y } | null — the aurora's ripple starts there) */

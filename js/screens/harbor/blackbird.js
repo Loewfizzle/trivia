@@ -232,7 +232,8 @@ export function createBlackbird() {
     if (st.on) {
       // (PROGRESSION B — CITY SIGHTINGS: where a tap finds it (page px — the overlay is drawn in the page's own frame); its reaction — it
       // PITCHES ITS NOSE UP + LIGHTS ITS AFTERBURNERS (the plumes long + white-hot); still: the burners lit, no pitch)
-      SR.box('blackbird', nx - fl.dir * len * 0.45, y, len * 0.62, len * 0.22);
+      // (FR6 FIXES A: the PHOTO centres the body + its plumes — meta.shot — the cone only if it shares the frame with the jet)
+      SR.box('blackbird', nx - fl.dir * len * 0.45, y, len * 0.62, len * 0.22, { shot: [nx - fl.dir * len * 0.7, y, len * 0.85, len * 0.25] });
       const rkB = SR.k('blackbird'), mo = s.motion !== false && s.motion !== 0, ab = Math.min(1.35, st.burn + 0.95 * rkB), pl = 1 + 0.55 * rkB;
       x.save(); x.translate(tailX, y); x.scale(fl.dir, 1);
       if (rkB > 0 && mo) x.rotate(-0.24 * rkB);

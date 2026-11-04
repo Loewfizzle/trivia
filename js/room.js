@@ -105,11 +105,24 @@ export const createRoom = joining(async profile => {
   for (const n of ROOM_SIDE_NODES) await remove(dbRef(`${n}/${code}`)).catch(() => {});
   await writePlayer(code, profile, {});
   enterRoom(code);
-  // CC-B — "A ROOM JUST OPENED": tell the server (it checks the room is ours + new, then pushes to the owner's phone if he turned it on) —
-  // fire and forget: /api down or unconfigured changes nothing
-  import('./profile/api.js').then(m => m.api('admin', { action: 'radioRoomOpened', room: code })).catch(() => {});
+  roomPushLater(code);
   return code;
 });
+
+// CC-B — "A ROOM JUST OPENED": tell the server (it checks the room is ours + new + still open with its host online, then pushes to the
+// owner's phone if he turned it on) — fire and forget: /api down or unconfigured changes nothing. FR6 FIXES A (the owner, Nov 4: pushes for
+// rooms that were empty when he went): asked ROOM_PUSH_MS after the room opened, and only if this phone is STILL in it — a room opened +
+// left within the wait never pings (exitRoom clears the timer)
+export const ROOM_PUSH_MS = 10000;
+let pushTimer = null;
+function roomPushLater(code) {
+  clearTimeout(pushTimer);
+  pushTimer = setTimeout(() => {
+    pushTimer = null;
+    if (state.code !== code || !state.players || !state.players[state.uid]) return;
+    import('./profile/api.js').then(m => m.api('admin', { action: 'radioRoomOpened', room: code })).catch(() => {});
+  }, ROOM_PUSH_MS);
+}
 
 // hush/ entries older than 24 h are no use to anyone: whoever opens a room sweeps a few (best effort).
 function cleanupHush(hush, now) {
@@ -341,6 +354,7 @@ function stopListening() {
 
 export function exitRoom(reason, kind = 'warn') {
   const code = state.code;
+  clearTimeout(pushTimer); pushTimer = null;   // (FR6 FIXES A: a room left before its push was asked never pings)
   stopListening();
   dropPresence(code, state.uid);
   saveSession(null);

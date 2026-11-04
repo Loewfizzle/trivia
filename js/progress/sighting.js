@@ -23,6 +23,10 @@ export const last = { tap: null, claim: null, snap: null, phase: null, phases: [
 /** (every phase this page passed through, in order — the tests read the list: a short phase is never missed between two polls) */
 const setPhase = p => { last.phase = p; last.phases.push(p); if (last.phases.length > 40) last.phases.shift(); };
 const BIG = ['ufo', 'tr3b', 'ghostship'];
+/** FR6 FIXES A — the FAST ones (the Blackbird, the F-22s, the fireball — screens/harbor/sight-react.js#FAST, kept here as data so this
+ *  lazy file never imports the city): their photo is taken AT THE TAP, centred on the craft as that frame drew it (the owner's Blackbird
+ *  polaroid, Nov 4: half a second later the jet had gone and the photo held only its vapour cone) */
+export const FAST = ['blackbird', 'f22', 'fireball'];
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const wait = ms => new Promise(r => setTimeout(r, ms));
 
@@ -149,16 +153,24 @@ async function run(sg, ctx, claimP) {
   const still = ctx.reduced != null ? ctx.reduced : reducedNow();
   sheet(); prewarm();
   setPhase('react');
-  await wait(still ? 120 : 450);                                  // (the reaction reads first)
-  // THE FLASHBULB: the frame captured the instant before the flash
-  let snap = null;
-  const box = (ctx.scene && ctx.scene.sightBoxes ? ctx.scene.sightBoxes() : []).find(b => b.key === sg.key) || sg;
-  try {
+  // THE FLASHBULB: the frame captured round the craft (the scene centres the crop on its box as that very frame drew it — o.key). A FAST
+  // legendary is shot NOW, at the tap; the rest the instant before the flash, once the reaction has read (~0.45 s)
+  const tapAt = Date.now();
+  const shoot = () => {
+    const box = (ctx.scene && ctx.scene.sightBoxes ? ctx.scene.sightBoxes() : []).find(b => b.key === sg.key) || sg;
     const sign = document.querySelector('.nd-sub') || document.querySelector('.nd-tag');
     const sb = sign ? sign.getBoundingClientRect() : null;
-    if (ctx.scene && ctx.scene.snapshot) snap = await Promise.race([ctx.scene.snapshot(box.x, box.y, { avoid: sb ? { y: sb.bottom + 6 } : null }), wait(1500).then(() => null)]);
-  } catch (e) { console.warn('[sighting] snapshot', e); }
-  last.snap = snap ? { ms: snap.ms, w: snap.canvas.width, h: snap.canvas.height, box: snap.box, at: { x: Math.round(box.x), y: Math.round(box.y) } } : null;   // (2B: at = the legendary as it was snapped — the photo frames it)
+    if (!ctx.scene || !ctx.scene.snapshot) return Promise.resolve(null);
+    return Promise.race([ctx.scene.snapshot(box.x, box.y, { key: sg.key, avoid: sb ? { y: sb.bottom + 6 } : null }).then(r => (r ? { ...r, dt: Date.now() - tapAt } : r)), wait(1500).then(() => null)])
+      .catch(e => { console.warn('[sighting] snapshot', e); return null; });
+  };
+  const fast = FAST.includes(sg.id), early = fast ? shoot() : null;
+  await wait(still ? 120 : 450);                                  // (the reaction reads first)
+  const snap = await (early || shoot());
+  const box = snap && snap.at ? snap.at : sg;
+  // (2B: at = the legendary as it was snapped — the photo frames it; FR6 FIXES A: src 'live' = the craft's own box that frame, craft = its
+  //  half size, dt = ms from the tap to the photo)
+  last.snap = snap ? { ms: snap.ms, w: snap.canvas.width, h: snap.canvas.height, box: snap.box, at: snap.at || { x: Math.round(sg.x), y: Math.round(sg.y) }, src: snap.src || 'given', craft: snap.craft || null, dt: snap.dt, fast } : null;
   await sheet();
   const flash = h('div.sg-flash', { class: still ? 'sg-still' : '' });
   document.body.append(flash);

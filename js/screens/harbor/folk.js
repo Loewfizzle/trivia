@@ -139,7 +139,9 @@ export function lookOf(name, seed, o = {}) {
   // (never on an umbrella's holder — the umbrella keeps it off)
   if (o.cold && kid && L.coat === 'none' && !L.worker) { L.coat = 'short'; L.cols.coat = pick(r, [[150, 50, 46], [60, 80, 130], [70, 110, 80], [140, 110, 70]]); if (!L.hat) L.hat = 'flatcap'; }
   L.snowy = (o.snow || 0) > 0.2 && !L.umbrella;
-  L.dog = pick(r, DOGS); L.dogSize = 0.75 + r() * 0.5;
+  // (FR6 FIXES A — ONE LOOK PER DOG: its coat + size from its OWN stream of the seed, never the tail of the person's — the weather's
+  //  draws above (an umbrella, a newspaper, a hand on the hat) used to shift it, so a gust re-coloured a walking dog)
+  const rd = rngFrom(typeof seed === 'number' ? (Math.imul(seed | 0, 2654435761 | 0) ^ 0x5bd1e995) >>> 0 : `dog|${seed}`); L.dog = pick(rd, DOGS); L.dogSize = 0.75 + rd() * 0.5;
   L.stride = 0.94 + r() * 0.12;   // (PEO: a little longer or shorter in the step, per person)
   return L;
 }

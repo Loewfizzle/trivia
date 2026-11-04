@@ -21,7 +21,7 @@ export const SECONDS = {
   load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
   speakeasy: 30, fireworks: 30, stations: 40, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4, desktop: 90,   // (DESKTOP: an estimate — refresh from its first cloud run)
-  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 170, roomperf: 70, roomchat: 60, keypop: 75, roomfix: 90, gamestart: 80, citypause: 60, afterparty: 150, cartridge: 20, crewsky: 60, leaveroom: 60, sheetstack: 70, oldrules: 70,   // (LOBBY 2.0 B: estimates from the mini PC)
+  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 170, roomperf: 70, roomchat: 60, keypop: 75, roomfix: 90, gamestart: 80, citypause: 60, afterparty: 150, cartridge: 20, crewsky: 60, leaveroom: 60, sheetstack: 70, oldrules: 70, sgfast: 60,   // (LOBBY 2.0 B: estimates from the mini PC)
     // (LOBBY 2.0 A: an estimate from the mini PC)
     // (PROGRESSION B: sightings — an estimate from the mini PC)
     // (PROGRESSION A: progress — an estimate; radio + the FOUNDER switch)   // (CITY CONTROLS A: an estimate — refresh from its first cloud run; CC-B: the intercom + the crew — ~55 s each on the mini PC)
@@ -46,7 +46,8 @@ export const CI_JOBS = {
   // (8b1: THE WILDLIFE's own job — every other job was within ~1 min of its 5-min cap; room here for 8b1's other new groups)
   wild: ['wildlife', 'workers', 'weather', 'stations'],   // (SKY-B: + the radio stations — the lightest job)
   // (SKY-A: THE LEGENDS' own job — the TR-3B + the F-22s, THE BLACKBIRD, the phone bench: wild was at its cap)
-  legend: ['legends', 'blackbird', 'bench', 'heli'],   // (SKY-B: + the patrol's circle (heli, ~90 s) + the shadowboxer)
+  legend: ['legends', 'blackbird', 'bench', 'heli', 'sgfast'],   // (FR6 FIXES A: sgfast — the fast legendaries' polaroid)
+    // (SKY-B: + the patrol's circle (heli, ~90 s) + the shadowboxer)
   models: ['mothman', 'boxer', 'speaker', 'fireworks', 'desktop', 'radio', 'crew'],   // (CITY CONTROLS A: the radio — the lightest job)   // (DESKTOP, Nov 2: the lightest job)   // (PART 10: the fireworks — the models job had the room)   // (THE MODELS PASS: a 10th job — every other job sat at its ~5-min cap: the Mothman + the shadowboxer's room)
   // (11a-1: THE HOLIDAYS' own job — every other job was within ~30 s of its cap; room for 11a-2 THANKSGIVING + 11b next)
   holiday: ['holiday', 'thanks', 'panelrows', 'citylife', 'sightings'],   // (PROGRESSION B: sightings — the lightest job)   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
