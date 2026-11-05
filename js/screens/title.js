@@ -44,7 +44,9 @@ import { isUnlocked } from '../audio/engine.js';
 import { musicClock } from '../audio/music.js';
 import { captureBackdrop } from './backdrop.js';
 import { neonPlan, neonState, neonNext, firstTapAnswer, createStartDetector } from '../core/neon-ramp.js';
-import { createDock, dressCorners, ICON } from './title-dock.js';
+import { createDock, createDockWork, dressCorners, ICON } from './title-dock.js';
+import { createTaps } from './title-taps.js';
+import { createNeon } from './title-neon.js';
 // CITY 2.0 — THE HARBOR (docs/harbor.md): THE city (CITY 1.0 OUT, Nov 5 — City 1.0 deleted; an old `?city=1` / `?city=2` link lands here).
 // No top-level await (iOS 14 can't parse one — the whole app would die, every game too): app.js holds the title on the boot screen until
 // harborReady settles. A failed load is tried once more after 1.5 s; a second failure → the title shows THE CITY COULDN'T LOAD + RELOAD
@@ -342,19 +344,19 @@ export function createTitle() {
     els.code.parentElement.classList.remove('is-busy', 'is-shake');
     els.go && els.go.classList.remove('is-ready');
     els.host && (els.host.classList.remove('is-busy'), els.host.removeAttribute('aria-busy'));
-    paintCode(); say('');
+    dk.paintCode(); dk.say('');
   }
   function roomSync(state) {
     const inRoom = !!(scene && state.code && state.meta);
     if (inRoom !== wasInRoom) { wasInRoom = inRoom; freshDock(); }
     if (inRoom && !roomUi && !roomLoading && scene) {
       roomLoading = true;
-      openJoin(false);
+      dk.openJoin(false);
       import('./room-city.js').then(m => {
         roomLoading = false;
         if (destroyed || !st || !st.code || roomUi) return;
         roomUi = m.createRoomCity({ scene, sign: els.sign, dockHost: els.door.parentElement, lightFrom: roomLight });
-        els.root.classList.add('is-room'); wake();
+        els.root.classList.add('is-room'); tap.wake();
         roomUi.update(st);
         import('../profile/keypop.js').then(k => keyPopDot(k.keyPopState())).catch(() => {});
       }).catch(e => { roomLoading = false; console.warn('room', e); });
@@ -411,7 +413,7 @@ export function createTitle() {
     scene.set({ onFlash: e => { if (destroyed) return; flashGlass(e.near); } });
     // PARTY NIGHTS: the beat the city breathes to, the finale's distant thumps, and the party's numbers for the CSS (the sign,
     // SPEAKEASY and the rings breathe through custom properties on the root: one style write a frame)
-    scene.set({ beat: beatSource, song: songInfo, kick: beatKick, beatWhy, beatCal, beatReport, musicLine, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: partyFrame });
+    scene.set({ beat: beatSource, song: songInfo, kick: beatKick, beatWhy, beatCal, beatReport, musicLine, onBurst: () => { if (!destroyed) fireworkBurst({ delay: 0.25 + Math.random() * 0.15, level: 0.9 }); }, onParty: neon.partyFrame });
     // CITY 2.0 — THE TIRED TUBE (NEON PASS 5): one or two letters of the NEON logo look tired for ~3 hours (core/harbor-show.js
     // #tiredLetters — any letter, sometimes none, never the same twice running; it was always the O)
     // (and again once the scene has its clock: the first check can come before its look — then nothing showed for 30 s)
@@ -434,8 +436,8 @@ export function createTitle() {
       els.sub = h('div.nd-sub', `${GAMES.filter(g => g.playable).length >= 4 ? `${GAMES.filter(g => g.playable).length} ` : ''}PARTY GAMES · ONE PHONE EACH`));   // (WINDOWS: "2 PARTY GAMES" undersold it — the count comes back with the games)
     // (11a-1: THE SIGN DECORATION SYSTEM's overlay lives in the logo's wrap — harbor/signdress.js; the scene drives it)
     scene.set({ dressHost: els.sign.querySelector('.nd-logo-wrap'), signLetters: [...els.sign.querySelectorAll('.nd-logo .ndl')] });   // (9c: the snow on each letter glows by its own light)
-    els.actions = buildActions();
-    { const st0 = neonNow(); if (!st0.caught) { els.sign.classList.add('is-day'); if (st0.stage !== 'goodbye') els.actions.classList.add('is-daylit'); } }
+    els.actions = dk.buildActions();
+    { const st0 = neon.neonNow(); if (!st0.caught) { els.sign.classList.add('is-day'); if (st0.stage !== 'goodbye') els.actions.classList.add('is-daylit'); } }
     els.gate = h('button.nd-gate', { type: 'button', 'aria-label': 'Tap to enter', onclick: enter },
       h('span.nd-gate-txt', 'TAP TO ENTER'),
       h('span.nd-gate-sub', 'BEST WITH SOUND ON'));
@@ -450,20 +452,20 @@ export function createTitle() {
     els.hoverGlow = h('div.nd-hover', { 'aria-hidden': 'true' });
     el.append(els.hoverGlow);
     els.root = el;
-    ringColors();
-    requestAnimationFrame(ringColors);
+    dk.ringColors();
+    requestAnimationFrame(dk.ringColors);
     // the sign's text boxes for the scene at once (not only after the intro): a phone's sun hangs its arch off the words and
     // the rainbow sits under them — measured once the sign is laid out, then kept in step by trackLogo
     requestAnimationFrame(() => { if (!destroyed) { const tr = textRects(); if (tr) scene.set({ textRects: tr }); } });
-    if (window.visualViewport) { window.visualViewport.addEventListener('resize', fitKeyboard); window.visualViewport.addEventListener('scroll', fitKeyboard); }
-    window.addEventListener('pointerdown', onWake, { capture: true });
-    window.addEventListener('click', onWakeClick, { capture: true });
-    window.addEventListener('keydown', onWake, { capture: true });
-    window.addEventListener('pointermove', onMouse, { passive: true });
+    if (window.visualViewport) { window.visualViewport.addEventListener('resize', dk.fitKeyboard); window.visualViewport.addEventListener('scroll', dk.fitKeyboard); }
+    window.addEventListener('pointerdown', tap.onWake, { capture: true });
+    window.addEventListener('click', tap.onWakeClick, { capture: true });
+    window.addEventListener('keydown', tap.onWake, { capture: true });
+    window.addEventListener('pointermove', tap.onMouse, { passive: true });
     // city taps come from the touch itself (iOS Safari never sends 'click' to plain page areas like the city)
-    window.addEventListener('pointerdown', onCityDown, { passive: true });
-    window.addEventListener('pointerup', onCityUp, { passive: true });
-    document.addEventListener('visibilitychange', onShown); window.addEventListener('pageshow', onShown); window.addEventListener('focus', onShown);
+    window.addEventListener('pointerdown', tap.onCityDown, { passive: true });
+    window.addEventListener('pointerup', tap.onCityUp, { passive: true });
+    document.addEventListener('visibilitychange', tap.onShown); window.addEventListener('pageshow', tap.onShown); window.addEventListener('focus', tap.onShown);
     els.probe = h('div', { style: { position: 'fixed', top: '0', left: '0', width: '1px', height: 'var(--safe-t)', visibility: 'hidden', pointerEvents: 'none' } });
     els.probeB = h('div', { style: { position: 'fixed', bottom: '0', left: '0', width: '1px', height: 'var(--safe-b)', visibility: 'hidden', pointerEvents: 'none' } });
     document.body.append(els.probe, els.probeB);
@@ -503,10 +505,10 @@ export function createTitle() {
 
   function onAnyTap(e) {
     // a tap during the sequence skips to the end (but never swallows a tap on the menu itself)
-    if (!tl || tl.done || e.target.closest('.nd-gate')) { if (!tl) introTap = e.pointerId ?? true; return; }
+    if (!tl || tl.done || e.target.closest('.nd-gate')) { if (!tl) tap.introTap = e.pointerId ?? true; return; }
     // (the owner's PROGRESSION B review: a skip-tap is never a CITY tap — it finished the intro on its pointerdown, so its pointerup used to
     // reach onCityTap and a legendary forced with &lgnow=1 under the finger reacted + took a photo "by itself")
-    introTap = e.pointerId ?? true;
+    tap.introTap = e.pointerId ?? true;
     if (performance.now() - tl.t0 < 250) return;
     skip();
   }
@@ -579,16 +581,16 @@ export function createTitle() {
     const letters = [...s.querySelectorAll('.ndl')];
     // daylight: the sign rests (glass and brackets, unlit) until dusk
     // before the catch (and in the morning goodbye) the city boots but the sign isn't forced on: it joins its stage of the day
-    const st0 = neonNow();
-    if (!st0.caught) { s.classList.add('is-day'); if (ringsWanted(st0)) ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); applyNeon(st0, { quiet: true }); return; }
+    const st0 = neon.neonNow();
+    if (!st0.caught) { s.classList.add('is-day'); if (dk.ringsWanted(st0)) dk.ringOn(tl && (tl.kind === 'full' || tl.kind === 'short') ? [[140, true], [210, false], [300, true]] : null); neon.applyNeon(st0, { quiet: true }); return; }
     scene.set({ signPow: null });
     s.classList.remove('is-day');
     const kind = tl.kind;
     if (kind === 'instant' || kind === 'reduced') {
       letters.forEach(l => l.classList.add('on'));
       s.classList.add('is-steady', 'is-warm');
-      dockAll(true);
-      ringOn(null);
+      dk.dockAll(true);
+      dk.ringOn(null);
       return;
     }
     const full = kind === 'full';
@@ -602,15 +604,15 @@ export function createTitle() {
       pat.forEach((ms, k) => {
         const at = base[i] + ms;
         setTimeout(() => { if (!destroyed) l.classList.toggle('on', k % 2 === 0); }, at);
-        setTimeout(() => dockLight(i, k % 2 === 0), at + 40);
+        setTimeout(() => dk.dockLight(i, k % 2 === 0), at + 40);
         if (k % 2 === 0 && (k < 3 || i === slow)) crackles.push(at / 1000);
       });
     });
     neonPowerOn({ crackles: crackles.slice(0, full ? 7 : 3), dur: full ? 2.4 : 1.4 });
     const steadyIn = ((tl.plan.steady - tl.plan.logo) * 1000);
     // the ring flickers with the first N (a beat behind it), then holds
-    ringOn([...pattern.map((ms, k) => [base[0] + ms + 30, k % 2 === 0]), [steadyIn, true]]);
-    setTimeout(() => { if (!destroyed) { letters.forEach(l => l.classList.add('on')); s.classList.add('is-steady'); dockAll(true); } }, steadyIn);
+    dk.ringOn([...pattern.map((ms, k) => [base[0] + ms + 30, k % 2 === 0]), [steadyIn, true]]);
+    setTimeout(() => { if (!destroyed) { letters.forEach(l => l.classList.add('on')); s.classList.add('is-steady'); dk.dockAll(true); } }, steadyIn);
     setTimeout(() => { if (!destroyed) s.classList.add('is-warm'); }, steadyIn + 60);
   }
 
@@ -619,9 +621,9 @@ export function createTitle() {
     const root = els.sign.closest('.nd');
     root.classList.add('is-skip');
     if (!tl.marks.logo) { tl.marks.logo = true; tl.kind = 'instant'; signOn(); }
-    else if (neonNow().caught) { els.sign.querySelectorAll('.ndl').forEach(l => l.classList.add('on')); els.sign.classList.add('is-steady', 'is-warm'); dockAll(true); }
-    else applyNeon(neonNow(), { quiet: true });
-    dock.resetRing(); if (ringsWanted(neonNow())) ringOn(null); else dock.ringSet(false);
+    else if (neon.neonNow().caught) { els.sign.querySelectorAll('.ndl').forEach(l => l.classList.add('on')); els.sign.classList.add('is-steady', 'is-warm'); dk.dockAll(true); }
+    else neon.applyNeon(neon.neonNow(), { quiet: true });
+    dk.dock.resetRing(); if (dk.ringsWanted(neon.neonNow())) dk.ringOn(null); else dk.dock.ringSet(false);
     root.classList.add('is-menu', 'is-dock');
     finish();
   }
@@ -704,13 +706,13 @@ export function createTitle() {
     trackLogo();
     scheduleFlicker();
     watchSky();
-    neonTick();
-    armIdle();
+    neon.neonTick();
+    tap.armIdle();
     document.addEventListener('visibilitychange', onVisTitle);
     sightDemo();
     cityExtras();
     bringCard();
-    surgeRetry();     // (FP3a: the music started during the intro → the sign answers now)
+    neon.surgeRetry();     // (FP3a: the music started during the intro → the sign answers now)
   }
 
   // CITY 2.0 (docs/harbor.md): THE TAGLINE follows the screen at rest (Part 5, the owner's call): shown on arrival, it fades out
@@ -871,376 +873,22 @@ export function createTitle() {
     els.door.classList.add('is-flash'); if (near) els.door.classList.add('is-flash-near');
     clearTimeout(glassT); glassT = setTimeout(() => els.door && els.door.classList.remove('is-flash', 'is-flash-near'), 900);
   }
-  // ------------------------------------------------------------------ THE NEON COMES ALIVE (core/neon-ramp.js, docs/title.md)
-  // The sign follows the day's plan: silent sputters that grow through the golden hour, letters sticking, THE CATCH — the crackle +
-  // hum, the only sound — when the sun's disc goes behind the rooftops; the city's signs answer one at a time. At dawn the city
-  // signs go first, then the logo falters and dies letter by letter. The sun's computed place only — never the weather.
-  // The dock: icons dark through the ramp, lit from the catch until the last letter dies; HOST brightens at the catch and softens
-  // (no flicker) when the last letter dies.
-  let neonPlanV = null, neonKey = '', neonT = 0, neonStage = null, neonFromPlan = false, neonSounds = 0, stormOn = false;   // (stormOn — SP3: the sign lit by a dark storm afternoon)
-  // CITY 2.0 — THE HUM (NEON PASS 3, the owner's ears): no hum looping all night — the power-on brings it up and it FADES OUT
-  // smoothly over the 10 s after the sign is fully on (ambience.js#neonHumFade); the same after a tapped letter re-ignites. The
-  // files are warmed once audio unlocks (checked on every neon update); a hidden page / the goodbye cut a hum still fading.
-  let humStop = null, neonWarm = false;
-  function humSync(on) {
-    if (!neonWarm && isUnlocked()) { neonWarm = true; neonPreload(); }
-    if ((!on || destroyed || document.visibilityState !== 'visible') && humStop) { humStop(0.6); humStop = null; }
-  }
-  /** City 2.0: a power-on (the catch, a tapped letter re-igniting) — the recorded strike + the hum fading out after it.
-   *  11a-2 (the owner, Oct 26: the tap's hum lasted "way too long"): the sound FOLLOWS THE RACE — a short buzz-up as the letter
-   *  re-lights, a light crackle riding the race across the letters, then it fades out as the race ends: a TAP ≤ ~1.5 s in all
-   *  (NEON_SOUND.tap), THE CATCH a little longer with its longer race (~3 s, never a drone). One at a time: a new power-on stops the
-   *  last one's strike + hum at once (never stacked), and a tap within NEON_SOUND.cool of the last one plays no new strike. */
-  let strikeStop = null, strikeAt = -1e9;
-  function neonOnSound(level = 1, kind = 'catch') {
-    if (destroyed || document.visibilityState !== 'visible') return;
-    const cfg = NEON_SOUND[kind] || NEON_SOUND.catch, now = performance.now();
-    if (kind === 'tap' && now - strikeAt < NEON_SOUND.cool) return;
-    strikeAt = now;
-    if (strikeStop) strikeStop(0.06);
-    if (humStop) humStop(0.06);
-    strikeStop = neonCatch({ level, dur: cfg.strike });
-    humStop = neonHumFade({ level, fadeIn: cfg.up, hold: cfg.hold, fade: cfg.fade });
-    neonRaceCrackle({ span: cfg.crackle, n: cfg.ticks, level: kind === 'tap' ? 0.7 : 1 });
-    neonSoundLog.push({ kind, at: Math.round(now), total: +(Math.max(cfg.strike, cfg.hold + cfg.fade)).toFixed(2) }); if (neonSoundLog.length > 20) neonSoundLog.shift();
-  }
-  // CITY 2.0 — THE WARM-UP'S LAST 30 s (NEON PASS 4, the owner): the golden-hour sputters stay silent until the last
-  // WARM_SOUND_MS before THE CATCH; from then each tube striking plays a flicker, quiet at first and building toward the catch
-  // (level 0.3 → 0.8), never closer than 4 s → 1.2 s apart (real time). Then the catch's power-on + the fading hum. The window is
-  // on the plan's clock (?speed= shrinks it too); never on the first paint, under Reduced effects or on a hidden page.
-  const WARM_SOUND_MS = 30000;
-  let warmSoundAt = -1e9, neonWarmSounds = 0;
-  function warmFlicker() {
-    if (!neonPlanV || !scene || reduced() || destroyed || document.visibilityState !== 'visible') return;
-    const left = neonPlanV.catchAt - scene.now();
-    if (left <= 0 || left > WARM_SOUND_MS) return;
-    const k = 1 - left / WARM_SOUND_MS, now = performance.now();
-    if (now - warmSoundAt < 4000 - 2800 * k) return;
-    warmSoundAt = now; neonWarmSounds++;
-    neonFlicker({ level: 0.3 + 0.5 * k });
-  }
-  const NEON_LIT ={ stage: 'night', letters: [true, true, true, true], signs: null, fade: 1, caught: true };
-  const NEON_DAY = { stage: 'day', letters: [false, false, false, false], signs: null, fade: 0, caught: false };
-  function neonNow() {
-    neonFromPlan = false;
-    if (!scene) return NEON_DAY;
-    const L = scene.look();
-    if (!L) return NEON_DAY;
-    if (L.alwaysNight) return NEON_LIT;
-    const m = scene.neonMoments ? scene.neonMoments() : null;
-    if (!m) return scene.signOn() ? NEON_LIT : NEON_DAY;                    // no sunrise / sunset today (polar): the old rule
-    const nSigns = Math.max(1, scene.signCount ? scene.signCount() : 4), sp = scene.speed ? scene.speed() : 1;
-    const key = `${Math.round(m.catchAt / 10000)}|${Math.round(m.clearAt / 10000)}|${reduced() ? 'r' : ''}|${nSigns}|${sp}`;
-    if (key !== neonKey) {
-      neonKey = key;
-      const day = new Date(m.rise).toISOString().slice(0, 10);
-      neonPlanV = neonPlan({ moments: m, seed: `${day}|${(L.lat || 0).toFixed(1)}|${(L.lon || 0).toFixed(1)}`, signs: nSigns, reduced: reduced(), scale: sp });
-    }
-    const st = neonState(neonPlanV, scene.now());
-    neonFromPlan = !!st;
-    // (City 2.0, SP3: a DARK STORM AFTERNOON lights the sign with the city — the skyline's neon on the shared darkness (core/harbor-dark.js);
-    // a little hysteresis so a passing squall can't flick it; back to the plan (daylight glass) as the storm clears)
-    if (scene.stormLit && !(st && st.caught)) { const k = scene.stormLit(); stormOn = stormOn ? k > 0.35 : k > 0.55; if (stormOn) return { ...NEON_LIT, storm: true }; } else stormOn = false;
-    // (8a — the first tap in the evening warm-up window caught the sign early: lit for good — tonight's plan only)
-    if (st && st.stage === 'ramp' && earlyCatch != null && Math.abs(earlyCatch - neonPlanV.catchAt) < 30 * 60000) return { ...st, stage: 'lit', letters: [true, true, true, true], fade: 1, caught: true };
-    return st || NEON_DAY;
-  }
-  let earlyCatch = null;           // (the catchAt of the plan the first tap caught early)
-  function applyNeon(st, opts = {}) {
-    if (!els.sign || !scene) return;
-    humSync(!!st.caught);
-    const s = els.sign, letters = [...s.querySelectorAll('.ndl')];
-    const prev = neonStage;
-    neonStage = st.stage;
-    scene.set({ signPower: st.signs });
-    // HOST: bright from the catch until the last letter dies; softer by day and through the ramp
-    els.actions.classList.toggle('is-daylit', st.stage === 'day' || st.stage === 'ramp');
-    // JOIN / HOST follow the sign (Oct 21): unlit glass by day and through the evening ramp; they go dark with the sign's last
-    // letter at the morning goodbye and light again at the catch with a short flicker (none under Reduced effects)
-    if (tl && tl.done && dock) {
-      const want = ringsWanted(st);
-      if (want && !dock.ringLit()) ringOn(prev === 'ramp' && !opts.quiet && !reduced() ? [[0, true], [70, false], [150, true], [230, false], [340, true]] : null);
-      else if (!want && dock.ringLit()) { dock.resetRing(); dock.ringSet(false); }
-    }
-    if (st.caught) {
-      if (!s.classList.contains('is-steady') || s.classList.contains('is-day')) {
-        const isCatch = prev === 'ramp' && !opts.quiet;
-        s.classList.remove('is-day', 'is-fade');
-        letters.forEach((l, i) => { if (!buzzing.has(i)) l.classList.add('on'); });
-        s.classList.add('is-steady');
-        setTimeout(() => { if (!destroyed) s.classList.add('is-warm'); }, 60);
-        dockAll(true);
-        if (isCatch) {
-          // THE CATCH: all four lock on together, the crackle + hum, a soft bloom (City 2.0: the city holds its tier through it)
-          if (scene.hold) scene.hold(3000);
-          neonOnSound();   // (the recorded power-on + the hum fading)
-          neonSounds++;
-          s.classList.add('is-catch');
-          setTimeout(() => { if (!destroyed) s.classList.remove('is-catch'); }, 1500);
-          setTimeout(() => raceLogo('catch'), 120);          // (NEON PASS 6: THE RACE rides on top of the catch — its timing + sound unchanged)
-        }
-      }
-      scene.set({ logo: 1, signPow: 1, caught: true });
-      return;
-    }
-    // the ramp, the goodbye, the day: the daytime glass look, with whichever letters are lit right now
-    s.classList.remove('is-steady', 'is-warm');
-    s.classList.add('is-day');
-    const fade = !!(neonPlanV && neonPlanV.reduced && (st.stage === 'ramp' || st.stage === 'goodbye'));
-    s.classList.toggle('is-fade', fade);
-    if (fade) s.style.setProperty('--rf', st.fade.toFixed(3));
-    let on = 0, struck = 0, dropped = 0;
-    letters.forEach((l, i) => {
-      if (st.letters[i]) on++;
-      if (buzzing.has(i)) return;
-      const was = l.classList.contains('on');
-      l.classList.toggle('on', !!st.letters[i]);
-      if (was !== !!st.letters[i]) { if (st.letters[i]) struck++; else dropped++; }
-    });
-    // CITY 2.0 — THE RECORDED NEON (NEON PASS 3 + 4, the owner's ears): the golden-hour warm-up is SILENT but for its last 30 s
-    // (warmFlicker: the strikes building toward the catch); the dawn's stutters are silent — only the very last tube cutting out
-    // at dawn sounds, the dropout, softly (it lands as the plan turns to 'day'). Never on the first paint, never under Reduced effects.
-    if (st.stage === 'ramp' && !opts.quiet && !fade && struck) warmFlicker();
-    if (prev === 'goodbye' && st.stage === 'day' && !opts.quiet && !fade && dropped) neonDropout({ level: 0.55 });
-    dockAll(st.stage === 'goodbye');                                          // the dock goes dark with the last letter
-    const share = fade ? st.fade : on / 4;
-    scene.set({ logo: share > 0 ? 1 : 0, signPow: share, caught: false });
-  }
-  // PARTY NIGHTS (scene.js#partyTick, every frame while it's on): --pb the breath 0..1, --pe how hard (the phase's energy, 0
-  // until the start wave has passed), --psw the finale's swell; .is-party while the party is on
-  let partyOn = false;
-  const partyCssOff = /no-party-css/.test(location.search);   // (test-only: pacing bisects)
-  function partyFrame(p) {
-    if (destroyed || !els.root || partyCssOff) return;
-    if (!els.root.dataset.pt) { els.root.dataset.pt = '1'; for (const k of ['no-bloom', 'no-ringbreath', 'no-shimmer', 'no-vars']) if (location.search.includes(k)) els.root.classList.add(k); }
-    if (els.root.classList.contains('no-vars')) { els.root.classList.toggle('is-party', p.on > 0); return; }
-    const on = p.on > 0;
-    if (on !== partyOn) { partyOn = on; els.root.classList.toggle('is-party', on); if (!on && partyEls) { for (const g of partyEls.glows) g.el.style.opacity = ''; if (partyEls.word) partyEls.word.style.opacity = ''; if (partyEls.logo) partyEls.logo.style.opacity = ''; partyEls = null; } }
-    if (!on) return;
-    // (NEON PASS 6: THE RACE now and then on a party night — every ~40–70 s, on a bar line, from the warm-up's middle)
-    { const t = performance.now(); if (raceNext < 0) raceNext = t + 9000; else if (t > raceNext && p.ramp > 0.6 && p.bar !== raceBar && !raceBusy()) { raceNext = t + 40000 + Math.random() * 30000; raceLogo('party'); } raceBar = p.bar; }
-    // the numbers go on the three elements that breathe — never on the root: a custom property there is inherited by the whole
-    // title, and writing it every frame re-styled all of it (100 ms frames on a slow phone). (Reduced: the breath holds at 0.5.)
-    // (the rings breathe through their glow layer's opacity — a compositor change — never the registered --hk, whose 2.4 s
-    // transition restarted on every write and re-styled the whole ring)
-    if (!partyEls || !partyEls.bloom || !partyEls.bloom.isConnected) partyEls = { bloom: els.sign.querySelector('.nd-bloom'), word: els.sign.querySelector('.nd-word-p'), logo: els.sign.querySelector('.nd-logo-glow'), lp: -1, lk: '', glows: [...els.root.querySelectorAll('.nd-ringbtn')].map(r => ({ el: r.querySelector('.nd-hglow'), ring: r, k: r.classList.contains('nd-joinring') ? 0.46 : 0.62 })).filter(g => g.el), bo: -1, hk: -1, wp: -1 };
-    const pe = p.ramp * p.energy;
-    // the bloom holds a gentle level that moves with the party's phase and the finale's swell (the beat breathes in the canvas's
-    // halo under it): a big layer re-composited every frame cost a slow phone 60+ ms
-    // (City 2.0, NEON PASS 3: the NEON word joins the show on its BIGGEST drops only — p.big, a flare easing back)
-    const sw = Math.max(p.swell, 0.8 * (p.big || 0), fwFlare);   // (PART 10: + a big firework's flare)
-    // (City 2.0, NEON PASS 4 — THE HARD BEAT: the rings + SPEAKEASY PUNCH on every beat — p.punch, a ~50 ms attack and a quick
-    // decay — through opacity alone: the rings' glow layer, SPEAKEASY's extra glow layer; the big bloom keeps its gentle level)
-    // (PART 10: the bloom sits outside the sign's dimmed wrapper — it follows a dim (a sky message, the fireworks, the TR-3B) itself,
-    // eased over the dim's own time, so a dark sign never keeps a glow of its own on the fog)
-    { const tn = performance.now(), sd = scene && scene.signDim ? scene.signDim() : null, want = sd ? sd.logo : 1, dtb = Math.min(100, tn - (bloomDimAt || tn));
-      bloomDimAt = tn; bloomDim += (want - bloomDim) * Math.min(1, dtb / Math.max(120, (sd && sd.ms) || 1200) * 2.5); if (Math.abs(want - bloomDim) < 0.01) bloomDim = want; }
-    const bo = Math.round((0.2 * pe + 0.6 * sw) * bloomDim * 50) / 50, hk = Math.round((0.78 + 1.2 * (p.punch || 0) + 0.5 * sw) * 50) / 50;
-    if (partyEls.word) { const wp = Math.round(Math.min(1, (p.punch || 0) * 1.45 + 0.6 * sw) * 40) / 40; if (wp !== partyEls.wp) { partyEls.wp = wp; partyEls.word.style.opacity = String(wp); } }
-    // (NEON PASS 5 — the owner: THE NEON LOGO PULSES TOO, with the city: a clear but gentler punch than the skyline so the word stays
-    // readable — its light alone (.nd-logo-glow, opacity only), on the letters that are lit right now)
-    if (partyEls.logo) {
-      const lk = [...els.sign.querySelectorAll('.nd-logo .ndl')].map(l => (l.classList.contains('on') ? 1 : 0)).join('');
-      if (lk !== partyEls.lk) { partyEls.lk = lk; partyEls.logo.querySelectorAll('.ndg').forEach((g, i) => g.classList.toggle('off', lk[i] !== '1')); }
-      // (7a, the owner: "close" but not obvious enough on her iPhone — one step stronger: 0.78 → 1.02 × the punch, the cap 0.8 → 0.95)
-      const lp = Math.round(Math.min(0.95, (p.punch || 0) * 1.02 + 0.45 * sw) * 40) / 40;
-      if (lp !== partyEls.lp) { partyEls.lp = lp; partyEls.logo.style.opacity = String(lp); }
-    }
-    if (bo !== partyEls.bo && partyEls.bloom) { partyEls.bo = bo; partyEls.bloom.style.setProperty('--bo', bo); }
-    if (hk !== partyEls.hk) { partyEls.hk = hk; for (const g of partyEls.glows) g.el.style.opacity = g.ring.classList.contains('is-lit') ? String(Math.round(hk * g.k * 250) / 250) : ''; }
-  }
-  let partyEls = null, bloomDim = 1, bloomDimAt = 0;
-  // ---------------------------------------------------------------- THE RACE (NEON PASS 6, City 2.0 — the owner)
-  // A bright surge races through the NEON letters in turn — N → E → O → N, through the blacked-out connectors between them (dim
-  // there: it runs behind the painted tube) — each letter BLAZING fully on as it passes (its own blaze layer, opacity only), then a
-  // quick sweep across SPEAKEASY. At the catch, when a tap re-ignites a letter, and now and then on party nights. Smooth: the head +
-  // its tail move by transform along the tube at a steady speed on the frame clock; nothing else changes a frame. Reduced effects /
-  // motion: none. &force=race previews it every 6 s.
-  let race = null, raceNext = -1, raceBar = -1;
-  // (7a section 0 — THE MUSIC'S FIRST TAP: 'first' = the lit sign's quicker, brighter race; 'surge' = BY DAY, gas igniting in the
-  // unlit glass — every letter blazes as the head passes and fades straight back to daytime glass; both swell the sign's bloom)
-  const RACE = { catch: { v: 0.8, decay: 950, peak: 1, word: 1 }, tap: { v: 0.85, decay: 700, peak: 0.9, word: 0.85 }, party: { v: 0.62, decay: 650, peak: 0.85, word: 0.9 },
-    first: { v: 1.2, decay: 560, peak: 1, word: 1, bloom: 0.55 }, surge: { v: 1.1, decay: 430, peak: 1, word: 0.9, bloom: 0.5, day: true, hold: 300 } };
-  // (FP3a, the owner: the day's surge holds its peak + bloom ~300 ms longer — at 2 s with no hold it read as a flash)
-  function raceLogo(kind) {
-    const cfg = RACE[kind] || RACE.party, day = !!cfg.day;
-    if (destroyed || raceBusy() || reduced() || !els.sign) return false;
-    if (day ? !els.sign.classList.contains('is-day') : (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day'))) return false;
-    const wrap = els.sign.querySelector('.nd-logo-wrap');
-    const blaze = wrap ? [...wrap.querySelectorAll('.nd-race-l')] : [], H = wrap && wrap.querySelector('.nd-race-h');
-    if (blaze.length !== 4 || !H) return false;
-    const track = logoTrack(), lit = day ? [true, true, true, true] : [...els.sign.querySelectorAll('.nd-logo .ndl')].map(l => l.classList.contains('on'));
-    const bloom = cfg.bloom ? els.sign.querySelector('.nd-bloom') : null;
-    if (scene && scene.poke) scene.poke({ kind: 'race', k: 1 });   // (WIN2: the race runs the whole sign — both spiders)
-    if (day) els.sign.classList.add('nd-surge');           // (the race's layers show through the daytime glass while it runs: title.css)
-    const alive = () => (day ? els.sign.classList.contains('is-day') : els.sign.classList.contains('is-steady'));
-    // the schedule: each stretch at the letters' speed (the connectors 2.5× faster), its time span + its global arc offset
-    let t = 0, off = 0;
-    const segs = track.map(sg => { const v = cfg.v * (sg.letter < 0 ? 2.5 : 1), o = { ...sg, t0: t, dur: sg.total / v, off }; t += o.dur; off += sg.total; return o; });
-    const tEnd = t, total = off, inL = [0, 1, 2, 3].map(i => { const g = segs.find(x => x.letter === i); return [g.t0, g.t0 + g.dur]; });
-    const at = S => { let g = segs[segs.length - 1]; for (const x of segs) if (S < x.off + x.total) { g = x; break; } const u = Math.max(0, Math.min(g.total, S - g.off)); let j = 1; while (j < g.len.length - 1 && g.len[j] < u) j++; const k = (u - g.len[j - 1]) / Math.max(1e-6, g.len[j] - g.len[j - 1]); return [g.pts[j - 1][0] + (g.pts[j][0] - g.pts[j - 1][0]) * k, g.pts[j - 1][1] + (g.pts[j][1] - g.pts[j - 1][1]) * k, g.letter]; };
-    const Sat = e => { for (const x of segs) if (e < x.t0 + x.dur) return x.off + Math.max(0, e - x.t0) / x.dur * x.total; return total; };
-    const dots = [...H.querySelectorAll('.ndr-t')].reverse(), hd = H.querySelector('.ndr-hd'), word = [...els.sign.querySelectorAll('.nd-word-r i')];
-    const hold = cfg.hold || 0, tW = tEnd - 120 + hold, WD = 560, done = Math.max(tEnd + hold + cfg.decay, tW + WD + 500);
-    const last = new Map(), put = (el, a) => { const q = Math.round(a * 50) / 50; if (last.get(el) !== q) { last.set(el, q); el.style.opacity = q ? String(q) : ''; } };
-    const sm = v => (v <= 0 ? 0 : v >= 1 ? 1 : v * v * (3 - 2 * v));
-    const t0 = performance.now();
-    const end = () => { for (const el of [...blaze, ...dots, hd, ...word, ...(bloom ? [bloom] : [])]) el.style.opacity = ''; els.sign.classList.remove('nd-surge'); if (race === me) { race = null; surgeRetry(); } };
-    const me = race = { kind, seen: t0, end };
-    const frame = now => {
-      if (destroyed || race !== me) return;
-      me.seen = performance.now();
-      const e = now - t0;
-      if (e > done || !alive()) { end(); return; }
-      // (the first tap's answer: the sign's bloom swells with the surge — up as it starts, easing off as the head leaves the last N)
-      if (bloom) put(bloom, cfg.bloom * sm(e / 260) * (1 - sm((e - tEnd * 0.55 - hold) / (tEnd * 0.45 + cfg.decay))));
-      // the head + its tail (on a connector the light runs behind the painted tube: dim)
-      const S = Sat(e), fadeIn = sm(e / 90), fadeOut = 1 - sm((e - tEnd + 60) / 220);
-      const [hx, hy, hl] = at(S);
-      hd.setAttribute('transform', `translate(${hx.toFixed(1)} ${hy.toFixed(1)})`); put(hd, (hl < 0 ? 0.32 : 1) * fadeIn * fadeOut);
-      dots.forEach((d, k) => { const s2 = S - (k + 1) * 5.5; if (s2 < 0) { put(d, 0); return; } const [x, y, l] = at(s2); d.setAttribute('transform', `translate(${x.toFixed(1)} ${y.toFixed(1)})`); put(d, Math.pow(1 - k / dots.length, 1.3) * (l < 0 ? 0.3 : 1) * fadeIn * fadeOut); });
-      // each letter blazes as the surge enters it, holds while it runs through, then eases back (a letter that's out stays out)
-      blaze.forEach((b, i) => { if (!lit[i]) return; const [a, z0] = inL[i], z = z0 + hold; put(b, cfg.peak * (e < a ? 0 : e < z ? sm((e - a) / 140) : Math.exp(-(e - z) / (cfg.decay * 0.42)))); });
-      // SPEAKEASY: a quick sweep, letter by letter
-      if (e > tW) { const p = (e - tW) / WD * 1.5 - 0.25; word.forEach((w, j) => { const d = Math.abs((j + 0.5) / word.length - p); put(w, cfg.word * Math.pow(Math.max(0, 1 - d / 0.2), 1.6)); }); }
-      requestAnimationFrame(frame);
-    };
-    requestAnimationFrame(frame);
-    return true;
-  }
-  // (8a — a race whose frames stopped coming — WebKit dropping a pending rAF while the page was in the background — never holds the
-  // sign "busy" for good: after a second without a frame it is cleaned up, and the next race / the first tap runs)
-  function raceBusy() { if (race && performance.now() - race.seen > 1000) race.end(); return !!race; }
-  if (/[?&]force=([^&]*,)?race(,|&|$)/.test(location.search)) { const iv = setInterval(() => { if (destroyed) { clearInterval(iv); return; } raceLogo('party'); }, 6000); }
-
-  // ---------------------------------------------------------------- THE MUSIC STARTING (7a section 0 → FP3a, City 2.0 — the owner)
-  // No "tap for music" hint: whenever the MUSIC STARTS — the visit's first tap, the music button back ON, a rescue after the
-  // background — the NEON sign answers it, from its REAL state on screen (core/neon-ramp.js#firstTapAnswer, tested): the sign NOT
-  // lit (the morning goodbye, the day, golden hour's early sputters; the DOM's is-day) → a bright surge races through the glass
-  // N → E → O → N, holds its peak a moment and fades back to daylight glass (raceLogo 'surge'); lit (is-steady, not is-day) → a
-  // quicker, brighter race through the lit tubes ('first'); in the evening WARM-UP WINDOW (the last few minutes before the catch)
-  // → THE CATCH (the sign lights for good, earlyCatch).
-  // FP3a (FREV B3 — the surge was lost to a tap-armed 6-s watch + a once-per-visit flag spent before the answer ran): ONE detector
-  // on this tick (createStartDetector: the song's clock silent ≥ 1 s, then moving — audio/music.js#musicClock: never with the music
-  // off / muted / at zero volume, never when the start failed), ONE entry signSurge(reason) with a 10 s COOLDOWN stamped only when
-  // it really ran, and an answer that can't run yet (the intro, a race / the catch running, the race's SVGs not in yet) is PENDING:
-  // it fires from finish() and from the running race's end, within SURGE_PEND. Reduced motion / effects: one gentle brighten (the
-  // catch still catches). &force=first-tap previews it every 5 s (no cooldown).
-  const SURGE_COOL = 10000, SURGE_PEND = 8000;
-  let surgeLast = null, surgeSkip = null, surgeCount = 0, surgeIv = 0, surgePending = null;
-  // (ATM-A: until the visit's first song is answered the detector is FRESH — neon-ramp.js: a dropout while the station's synced
-  // player re-places its voices right after a load no longer disarms it; module-level, so a later title visit mid-song isn't a start)
-  const surgeStart = createStartDetector({ quietMs: 1000, fresh: !visitAnswered });
-  /** the sign's answer now (the music started / the preview / the test hook) — returns what it did */
-  function signSurge(why = 'hook') {
-    const now = performance.now();
-    const did = (() => {
-      if (destroyed || !scene) return 'skip:off';
-      if (why === 'music' && now - surgeAt < SURGE_COOL) return 'skip:cool';
-      if (!els.sign) return 'skip:off';
-      // the sign's real state now (the plan's — the DOM catches up first if a timer ran late, e.g. just back from the background)
-      const st = tl && tl.done && scene ? neonNow() : null;
-      if (st && st.stage !== neonStage) applyNeon(st);
-      const cl = els.sign.classList;
-      const ans = firstTapAnswer(st, neonFromPlan ? neonPlanV : null, scene ? scene.now() : 0, { intro: !tl || !tl.done,
-        busy: raceBusy() || cl.contains('is-catch') || cl.contains('nd-glow-in'), reduced: reduced(), lit: cl.contains('is-steady') && !cl.contains('is-day') });
-      if (ans.startsWith('skip')) return ans;
-      if (ans === 'catch') { earlyCatch = neonPlanV.catchAt; neonTick(); return 'catch'; }   // (applyNeon: prev 'ramp' → caught = THE CATCH, its sound + race)
-      if (ans === 'soft') {
-        // one gentle brighten: the sign's bloom fades up and back (opacity only, no motion)
-        const s = els.sign;
-        s.classList.remove('nd-glow-out'); s.classList.add('nd-glow-in');
-        setTimeout(() => { s.classList.remove('nd-glow-in'); s.classList.add('nd-glow-out'); }, 450);
-        setTimeout(() => s.classList.remove('nd-glow-out'), 1700);
-        return 'soft';
-      }
-      return raceLogo(ans) ? ans : 'skip:race';
-    })();
-    // (can't run yet → pending: the intro's end or the running race's end fires it — never lost, never spent)
-    // (ATM-A: a COOLDOWN skip — the detector catching the same song the tap's fallback already answered — never overwrites the last
-    // real answer: it is kept apart for the readout)
-    if (did === 'skip:cool') { surgeSkip = { why, did, at: Math.round(now) }; return did; }
-    if (why !== 'force' && (did === 'skip:intro' || did === 'skip:busy' || did === 'skip:race')) surgePending = { why, at: now };
-    else if (!did.startsWith('skip')) { surgePending = null; surgeCount++; if (why !== 'force') { surgeAt = now; if (why === 'music') { visitAnswered = true; surgeStart.spend(); } } }
-    surgeLast = { why, did, at: Math.round(now), ...(surgePending && surgePending.at === now ? { pending: true } : {}) };
-    return did;
-  }
-  /** a pending answer, once the sign is free (finish(), a race's end) — one rAF later so is-day / is-steady have applied */
-  function surgeRetry() {
-    if (!surgePending || destroyed) return;
-    requestAnimationFrame(() => {
-      if (!surgePending || destroyed) return;
-      if (performance.now() - surgePending.at > SURGE_PEND) { surgePending = null; return; }
-      if (race || !tl || !tl.done) return;                       // (still busy: the next end tries again)
-      const p = surgePending; surgePending = null;
-      signSurge(p.why);
-    });
-  }
-  // 9a — THE SURGE ON THE BEAT (the owner's add-on): when the music comes on (the first tap or the music button), the race starts ON
-  // the song's NEXT BEAT — the next DOWNBEAT when that's within ONBEAT.down — from the trusted grid as heard (audio/beat.js#beatSource,
-  // the same clock the city's lights follow). No trusted grid → at once; a tap that should start the music whose clock hasn't moved
-  // within ONBEAT.wait → at once too (the clock's later start then meets the 10-s cooldown). Never more than one waiting.
-  const ONBEAT = { down: 0.6, wait: 800, early: 0.02 };
-  let beatT = 0, armedAt = 0, onBeat = null;
-  /** where the song is on its trusted grid as heard (beats, 0 mod 4 = a downbeat) + its beats a second; null without one */
-  function gridNow() {
-    const sg = beatSource(); const md = beatMode(sg);
-    if (!sg || (md !== 'grid' && md !== 'direct-grid')) return null;
-    const g = sg.grid, bps = g.bpm / 60;
-    return { tb: (sg.pos - (g.t0 || 0)) * bps - (g.down || 0), bps };
-  }
-  /** ms to the next beat (or downbeat) of the song as heard; null without a trusted grid */
-  function nextBeatMs() {
-    const gn = gridNow(); if (!gn) return null;
-    const { tb, bps } = gn;
-    const toBeat = (Math.ceil(tb + ONBEAT.early) - tb) / bps, toDown = (4 * Math.ceil((tb + ONBEAT.early) / 4) - tb) / bps;
-    return Math.round((toDown <= ONBEAT.down ? toDown : toBeat) * 1000);
-  }
-  function surgeOnBeat(why) {
-    armedAt = 0;
-    if (beatT) return;
-    const ms = nextBeatMs();
-    if (ms == null) { signSurge(why); return; }
-    onBeat = { why, wait: ms, at: Math.round(performance.now()) };
-    beatT = setTimeout(() => {
-      beatT = 0; if (destroyed) return;
-      const gn = gridNow(), err = gn ? gn.tb - Math.round(gn.tb) : null;     // (how far off the beat it really fired, in beats)
-      const did = signSurge(why);
-      if (surgeLast) surgeLast.onBeat = { wait: onBeat.wait, err: err == null ? null : +err.toFixed(3), down: gn ? ((Math.round(gn.tb) % 4) + 4) % 4 === 0 : null, did };
-      onBeat = null;
-    }, ms);
-  }
-  // (a tap that should start the music — the music on, not muted, its clock still — arms the fallback; read after the tap's own
-  // handlers have run: the music button's toggle first)
-  const armTap = () => setTimeout(() => { if (!destroyed && !settings.musicOff && !settings.muted && settings.music > 0 && songClock() < 0) armedAt = performance.now(); }, 0);
-  document.addEventListener('pointerup', armTap, true);
-  {
-    // the detector + &force=first-tap — from the URL or THE PREVIEW PANEL (live: the scene's force set): 2.4 s after the intro
-    // (shots.mjs's burst starts ~2.6 s after it: --every 120 --count 12 catches it), then every 5 s while it's on
-    let surgeOn = false, surgeNext = 0;
-    const watch = () => {
-      if (destroyed) return;
-      const now = performance.now();
-      if (surgeStart.feed(songClock(), now)) surgeOnBeat('music');
-      else if (armedAt && now - armedAt > ONBEAT.wait) { armedAt = 0; if (!beatT && songClock() < 0) signSurge('music'); }
-      const on = !!(scene && scene.forced && scene.forced('first-tap')) && !!(tl && tl.done);
-      if (on && !surgeOn) surgeNext = now + 2400;
-      surgeOn = on;
-      if (on && now >= surgeNext) { signSurge('force'); surgeNext = now + 5000; }
-      surgeIv = setTimeout(watch, 100);
-    };
-    surgeIv = setTimeout(watch, 100);
-  }
-  function neonTick() {
-    clearTimeout(neonT);
-    if (destroyed || !scene || !tl || !tl.done) return;
-    const st = neonNow();
-    applyNeon(st);
-    const now = scene.now();
-    const next = neonFromPlan ? neonNext(neonPlanV, now) : now + 60000;
-    const sp = scene.speed ? scene.speed() : 1;
-    neonT = setTimeout(neonTick, Math.max(25, Math.min(2000, (next - now) / sp + 8)));
-  }
+  // (title-neon.js: moved out by scripts/split-closure.mjs — T carries the names it shares with this closure, live)
+  const neon = createNeon({
+    get destroyed() { return destroyed; },
+    get dk() { return dk; },
+    get els() { return els; },
+    get fwFlare() { return fwFlare; },
+    get NEON_SOUND() { return NEON_SOUND; },
+    get neonSoundLog() { return neonSoundLog; },
+    get reduced() { return reduced; },
+    get scene() { return scene; },
+    get songClock() { return songClock; },
+    get surgeAt() { return surgeAt; }, set surgeAt(v) { surgeAt = v; },
+    get tap() { return tap; },
+    get tl() { return tl; },
+    get visitAnswered() { return visitAnswered; }, set visitAnswered(v) { visitAnswered = v; },
+  });
 
   let dressKey = '';
   function dressSign(L) {
@@ -1263,7 +911,7 @@ export function createTitle() {
     if (n && n.countdown != null) { const m = Math.floor(n.countdown / 60), sec = n.countdown % 60; tag.textContent = `${m}:${String(sec).padStart(2, '0')} TO MIDNIGHT`; tag.classList.add('nd-count'); }
     else if (n && n.finale != null) { tag.textContent = 'HAPPY NEW YEAR'; tag.classList.add('nd-count'); }
     else { tag.textContent = TAGLINE; tag.classList.remove('nd-count'); }
-    ringColors();
+    dk.ringColors();
   }
 
   // keep the sign's light in the scene in sync with layout (resizes, the keyboard)
@@ -1329,7 +977,7 @@ export function createTitle() {
     return neon && word && tag ? { neon, word, tag, sub: box(els.sign.querySelector('.nd-sub')), glyphs: box(els.sign.querySelector('.nd-word-g')) } : null;
   }
   // BATTERY: the title's loops (the sign's rects, the sky watch) idle while the page is hidden and pick up at once when it shows
-  function onVisTitle() { if (document.visibilityState !== 'visible') humSync(false); if (destroyed || !tl || !tl.done || document.visibilityState !== 'visible') return; clearTimeout(els.logoTimer); clearTimeout(els.skyTimer); trackLogo(); watchSky(); neonTick(); }
+  function onVisTitle() { if (document.visibilityState !== 'visible') neon.humSync(false); if (destroyed || !tl || !tl.done || document.visibilityState !== 'visible') return; clearTimeout(els.logoTimer); clearTimeout(els.skyTimer); trackLogo(); watchSky(); neon.neonTick(); }
   function trackLogo() {
     if (destroyed) return;
     if (document.visibilityState !== 'visible') { els.logoTimer = setTimeout(trackLogo, 5000); return; }
@@ -1381,10 +1029,10 @@ export function createTitle() {
     flickerTimer = setTimeout(() => {
       if (destroyed) return;
       // only a lit sign flickers (by day the tubes are dark: a flicker there used to leave a letter switched on)
-      if (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day') || !(neonStage === 'lit' || neonStage === 'night')) { scheduleFlicker(); return; }
+      if (!els.sign.classList.contains('is-steady') || els.sign.classList.contains('is-day') || !(neon.neonStage === 'lit' || neon.neonStage === 'night')) { scheduleFlicker(); return; }
       // never a letter someone just tapped (its own animation is running)
       const all = [...els.sign.querySelectorAll('.nd-logo .ndl')];
-      let letters = all.filter((_, i) => !buzzing.has(i));
+      let letters = all.filter((_, i) => !tap.buzzing.has(i));
       // (NEON PASS 5, City 2.0 — the owner: any letter, at random, never the same one twice running; sometimes two at once; rarely a
       // whole letter dropping out for a second before it strikes back)
       if (letters.length > 1) letters = letters.filter(l => all.indexOf(l) !== lastFlick);
@@ -1398,12 +1046,12 @@ export function createTitle() {
       for (const l of picks) {
         const li = all.indexOf(l), off = 140 * Math.random() * (picks.length > 1 ? 1 : 0);
         const seq = drop ? [0, 50, 90, 1050, 1110, 1160, 1230] : [0, 60, 95, 130, 190];
-        seq.forEach((ms, k) => setTimeout(() => { if (destroyed) return; const on = k % 2 === 1 || k === seq.length - 1; l.classList.toggle('on', on); dockLight(li, on); }, ms + off));
+        seq.forEach((ms, k) => setTimeout(() => { if (destroyed) return; const on = k % 2 === 1 || k === seq.length - 1; l.classList.toggle('on', on); dk.dockLight(li, on); }, ms + off));
       }
       // (City 2.0: the flicker sounds — rare and random, one of four recordings, never the same twice running. Oct 24, the owner: at the
       // TAP's level — what a tapped letter plays at — about one in three a little louder, never a startle: ambience.js#neonTwitch)
       if (document.visibilityState === 'visible') neonTwitch({ gain: NEON_TAP_LEVEL * NEON_GAINS.dropout, louder: Math.random() < 1 / 3 });
-      neonTick();
+      neon.neonTick();
       scene.set({ logo: 0.8 }); setTimeout(() => scene && scene.set({ logo: 1 }), 200);
       scheduleFlicker();
     }, 20000 + Math.random() * 20000);
@@ -1421,348 +1069,34 @@ export function createTitle() {
         h('div.nd-games-h', h('h2', 'THE GAMES'), h('p', `${games.length} party games · ${MIN_PLAYERS}–${MAX_PLAYERS} players · one phone each`)),
         h('div.nd-games-grid', ...games.map(g => h('button.nd-gtile', {
           type: 'button', dataset: { id: g.id, theme: g.theme }, style: { '--acc': ACC[g.id] || '#d6f0ff' },
-          onclick: () => { close(); preview(g); },
+          onclick: () => { close(); tap.preview(g); },
         }, gameArt(g.id) || h('div.gc-glyph'), h('span.nd-gtile-n', g.name), h('span.nd-gtile-t', g.tag)))),
         h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CLOSE')));
     document.body.append(sheet);
   }
+  // (title-taps.js: moved out by scripts/split-closure.mjs — T carries the names it shares with this closure, live)
+  const tap = createTaps({
+    get ACC() { return ACC; },
+    get busy() { return busy; },
+    get destroyed() { return destroyed; },
+    get dk() { return dk; },
+    get els() { return els; },
+    get IDLE_FIRST_MS() { return IDLE_FIRST_MS; },
+    get IDLE_MS_AFTER() { return IDLE_MS_AFTER; },
+    get isFirstVisit() { return isFirstVisit; },
+    get logoRect() { return logoRect; },
+    get NEON_TAP_LEVEL() { return NEON_TAP_LEVEL; },
+    get neonOnSound() { return neon.neonOnSound; },
+    get neonTick() { return neon.neonTick; },
+    get raceLogo() { return neon.raceLogo; },
+    get reduced() { return reduced; },
+    get roomUi() { return roomUi; },
+    get scene() { return scene; },
+    get tagState() { return tagState; },
+    get tl() { return tl; },
+  });
 
-  // ------------------------------------------------------------------ the living city: taps, and the screen at rest
-  // a tap on the city: a sign opens that game's HOW TO PLAY; the moon, the UFO, the cat answer (fx.js); a tap on the
-  // main sign makes that tube buzz
-  let down = null, introTap = null;
-  // THE VAULT 1B — THE NO-TAP SIGHTING (the owner's iPhone, twice: the forced UFO "reacted + took a photo by itself"; WebKit at 402 × 874
-  // with zero input never fires — every path to the photo is a pointerdown + pointerup pair, or the owner's &sgdemo link). What reaches
-  // the page with nobody meaning to tap: the touch iOS hands to Safari as it comes to the front (a tap on its card in the app switcher, a
-  // swipe back from another app) lands mid-screen — where a forced legendary hovers. So a SIGHTING needs: a trusted touch / click that
-  // began ≥ 800 ms after the page was last shown (load, back on screen, focus), its DOWN and its UP both on the same legendary. Every
-  // sighting on a preview link (&force= / &when= …) sends its trace to /admin's "Errors from phones" (the event, its timing, its target),
-  // so if it ever happens again we see exactly what started it.
-  let shownAt = performance.now();
-  const onShown = () => { if (document.visibilityState !== 'hidden') shownAt = performance.now(); };
-  function onCityDown(e) {
-    // (a touch that began while the gate / the intro was up — it opened or skipped them — never becomes a city tap)
-    if (introTap != null && (introTap === true || introTap === e.pointerId)) { introTap = null; down = null; return; }
-    introTap = null;
-    if (!e.isTrusted) { down = null; return; }
-    down = swallowed || !tl || !tl.done ? null : { x: e.clientX, y: e.clientY, t: performance.now(), target: e.target, id: e.pointerId, type: e.pointerType,
-      shown: Math.round(performance.now() - shownAt), sg: scene && scene.sightAt ? scene.sightAt(e.clientX, e.clientY) : null };
-  }
-  function onCityUp(e) {
-    const d = down; down = null;
-    if (!d || !e.isTrusted || (d.id != null && e.pointerId != null && d.id !== e.pointerId)) return;
-    if (Math.hypot(e.clientX - d.x, e.clientY - d.y) > 12 || performance.now() - d.t > 600) return;
-    onCityTap({ target: d.target, clientX: e.clientX, clientY: e.clientY, down: d });
-  }
-  /** may this tap start a sighting? (→ the reason it may not, or '') */
-  function sightBlock(d, key) {
-    if (!d) return 'no down';
-    if (!d.sg) return 'the down was not on a legendary';
-    if (d.sg !== key) return 'the down + the up on different legendaries';
-    if (d.shown < 800) return `a touch ${d.shown} ms after the page was shown (iOS's app-switch touch)`;
-    return '';
-  }
-  let traced = 0;
-  function sightTrace(d, key, why) {
-    const tr = { key, why: why || 'tap', type: d && d.type, shownMs: d && d.shown, downUpMs: d ? Math.round(performance.now() - d.t) : null,
-      at: d ? [Math.round(d.x), Math.round(d.y)] : null, target: d && d.target ? String(d.target.className || d.target.tagName).slice(0, 40) : null,
-      sinceLoad: Math.round(performance.now()), vis: document.visibilityState };
-    window.__sgTrace = tr;
-    const q = new URLSearchParams(location.search);
-    if (traced < 3 && ['force', 'when', 'lgnow'].some(k => q.get(k))) {
-      traced++;
-      import('../errlog.js').then(m => m.reportError(new Error(`SIGHTING TRACE (a preview link, not an error): ${JSON.stringify(tr)}`), 'sighting-trace')).catch(() => {});
-    }
-  }
-  function onCityTap(e) {
-    if (destroyed || !scene || !tl || !tl.done || swallowed) return;
-    if (e.target.closest('button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel, .sg-fly, .sg-modal')) return;
-    const x = e.clientX, y = e.clientY;
-    // (WIN — the spider on the sign is asked BEFORE the letters: a tap on it bolts it down its thread; the letter taps keep the rest of the rect)
-    if (scene.spiderHit && scene.spiderHit(x, y)) return;
-    // (PROGRESSION B — CITY SIGHTINGS: a legendary under the finger answers before the letters — its reaction, the flash, the polaroid)
-    const lr = logoRect(), onSign = !!(lr && x >= lr.x && x <= lr.x + lr.w && y >= lr.y - 12 && y <= lr.y + lr.h + 12);
-    const skip = onSign ? ['aurora'] : null;                    // (the aurora is BEHIND the sign: the letters win there)
-    const key = scene.sightAt ? scene.sightAt(x, y, skip) : null;
-    const block = key ? sightBlock(e.down, key) : 'none';
-    if (key && block) { sightTrace(e.down, key, `IGNORED — ${block}`); return; }
-    const sg = key && scene.sightTap && scene.sightTap(x, y, { skip });
-    if (sg) { sightTrace(e.down, sg.key, ''); }
-    if (sg) { import('../progress/sighting.js').then(m => m.onSighting(sg, { scene, reduced: reduced() })).catch(e => console.warn('[sighting]', e)); return; }
-    const r = logoRect();
-    if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
-    const hit = scene.hit(x, y);
-    if (!hit) return;
-    if (hit.kind === 'sign') { const g = GAMES.find(x => x.id === hit.id); if (g && !g.playable) { toast(`${g.name} · COMING SOON`, 'info'); return; } sfx('select'); openHelp(hit.id); }   // (WINDOWS — THE FIVE SIGNS: next on deck = a quiet COMING SOON)
-    else if (hit.kind === 'ufo') sfx('portal');
-    else if (hit.kind === 'cat') sfx('key');
-    // THE STREET: knock on the speakeasy's door — a soft double knock, the peephole slides open, and the JOIN panel opens (a real
-    // way in: enter the hush word), exactly like the JOIN ring. Reduced effects: no flash, the panel still opens.
-    else if (hit.kind === 'door' && roomUi) { knock(); if (!reduced()) scene.knock(); }   // (LOBBY 2.0 A: in a room the door only knocks)
-    else if (hit.kind === 'door') { knock(); if (!reduced()) scene.knock(); openJoin(true, true); import('../profile/events.js').then(m => m.progressEvent('knock')).catch(() => {}); }   // (PROGRESSION A: KNOCK KNOCK)
-  }
-  // a tapped letter: by night it stutters out, stays dark a moment and re-ignites like neon does; by day it sparks to life,
-  // glows for a moment and flickers out again. One tap at a time per letter.
-  const buzzing = new Set();
-  function buzz(i) {
-    const l = els.sign.querySelectorAll('.ndl')[i];
-    if (!l || buzzing.has(i)) return;
-    buzzing.add(i);
-    if (scene && scene.poke) scene.poke({ kind: 'tap', letter: i, k: 0.65 });   // (WIN2: the spiders near that letter get scared)
-    const day = els.sign.classList.contains('is-day') || !els.sign.classList.contains('is-steady');
-    // (City 2.0, NEON PASS 3: the tap's sounds — the dropout when the letter goes dark, the power-on (+ the hum fading after 10 s)
-    // when it lights; by night: out at once, re-ignites at 1.6 s; by day: sparks on at once, out at 1.85 s)
-    // (PART 8a, the owner: the TAP's on / off ~25 % quieter — 0.75 → 0.5625, ≈ −2.5 dB; THE CATCH's power-on + the first-tap surge
-    // keep their level: neonOnSound() at 1 elsewhere)
-    const sound = on => { if (reduced()) return; if (on) neonOnSound(NEON_TAP_LEVEL, 'tap'); else neonDropout({ level: NEON_TAP_LEVEL }); };
-    const set = (on, ms, tick) => setTimeout(() => { if (destroyed) return; l.classList.toggle('on', on); if (tick) { neonTick(); sound(on); } }, ms);
-    // [state, at ms]: the stutter, the hold, the restart flicker
-    const plan = day
-      ? [[1, 0], [0, 60], [1, 110], [0, 170], [1, 230], [0, 1850], [1, 1910], [0, 1990]]          // sparks on … glows … flickers out
-      : [[0, 0], [1, 50], [0, 95], [1, 150], [0, 200], [1, 1600], [0, 1660], [1, 1720], [0, 1800], [1, 1900]];   // out … dark … re-ignites
-    plan.forEach(([on, ms], k) => set(!!on, ms, k === 0 || k === 5));        // a tick as it changes, and as it restarts
-    if (!day) setTimeout(() => raceLogo('tap'), plan[5][1] + 30);           // (NEON PASS 6: the re-ignite sends THE RACE through the sign)
-    setTimeout(() => { buzzing.delete(i); if (destroyed) return; l.classList.toggle('on', !day); if (tl && tl.done) neonTick(); }, plan[plan.length - 1][1] + 40);
-  }
-
-  // after 10 s without a touch (a device's first visit; 5 s after that — 9g) the menu and the tagline fade away — just the sign and the
-  // city; any touch brings them back
-  const IDLE_MS = isFirstVisit() ? IDLE_FIRST_MS : IDLE_MS_AFTER;
-  let idleTimer = 0, swallowed = false, mouseAt = null;
-  // (local test runs don't fade on their own unless they ask with &idle=1 — a slow test step must not hide the buttons)
-  // (SP3: &idle=0 keeps the dock + the corner buttons up for a look review — the glass's weather shot at length)
-  const autoIdle = !(useEmulator && !/[?&]idle(?![a-z])/.test(location.search)) && !/[?&]idle=0(?![0-9])/.test(location.search);
-  function armIdle() { clearTimeout(idleTimer); if (!destroyed && autoIdle) idleTimer = setTimeout(goIdle, IDLE_MS); }
-  function goIdle() {
-    if (destroyed || !tl || !tl.done) return;
-    if (roomUi) { armIdle(); return; }   // (LOBBY 2.0 A: in a room the dock stays up — it's the room's controls)
-    const busyNow = busy || document.querySelector('.modal, .sheet, .gm') || document.activeElement === els.code || els.actions.classList.contains('is-join');
-    if (busyNow) { armIdle(); return; }
-    els.root.classList.add('is-idle');
-    document.body.classList.add('nd-idle');
-    tagState();
-  }
-  function wake() { const was = els.root.classList.contains('is-idle'); els.root.classList.remove('is-idle'); document.body.classList.remove('nd-idle'); if (was) tagState(); }
-  // 9e — THE QUICK FADE (the owner, DECIDED): a tap WHILE a scene plays on the street under the dock (the car crossing, the patrol…) brings
-  // the dock up but lets it fade away again within ~2 s so they keep watching; ANY further touch (a button, a press-and-hold, a scroll)
-  // returns to the normal 10 s
-  const QUICK_MS = 2000;
-  let quickIdle = false;
-  function onWake(e) {
-    if (destroyed) return;
-    const wasIdle = els.root.classList.contains('is-idle');
-    if (wasIdle && e.type === 'pointerdown' && autoIdle && scene && scene.frontBusy && scene.frontBusy()) {
-      if (!(e.target && e.target.closest && e.target.closest('.gm, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
-      wake(); quickIdle = true; clearTimeout(idleTimer); idleTimer = setTimeout(goIdle, QUICK_MS); return;
-    }
-    quickIdle = false;
-    // the touch that wakes the screen only wakes it (it doesn't press whatever was under it)
-    // (9b: never a tap inside the ☰ menu or a sheet — the owner's CREDITS tap on the iPhone was swallowed this way)
-    if (els.root.classList.contains('is-idle') && e.type === 'pointerdown' && !(e.target && e.target.closest && e.target.closest('.gm, .modal'))) { swallowed = true; setTimeout(() => { swallowed = false; }, 700); e.preventDefault(); }
-    wake();
-    armIdle();
-  }
-  function onWakeClick(e) { if (swallowed) { e.stopPropagation(); e.preventDefault(); swallowed = false; } }
-  // DESKTOP Group 4 — THE HOVER (the owner's desktop question 5: a pointer cursor + a gentle glow on everything clickable): over the city a
-  // MOUSE asks the scene what a click would answer (scene.hover: no side effects), once a frame — the cursor turns to a pointer, a game
-  // sign / the door gets a soft glow ring (opacity only; its place set at once); a touch never does any of it
-  let hoverRaf = 0, hoverAt = null, hoverOn = false;
-  const HOVER_UI = 'button, input, label, a, .modal, .sheet, .nd-actions, .nd-gate, .menu-btn, .music-btn, .gm-panel, .nd-corner';
-  function hoverNow() {
-    hoverRaf = 0;
-    const p = hoverAt; if (!p || destroyed || !els.root) return;
-    let hv = null;
-    if (scene && scene.hover && tl && tl.done && !swallowed && !(p.t && p.t.closest && p.t.closest(HOVER_UI))) {
-      const r = logoRect();
-      hv = r && p.x >= r.x && p.x <= r.x + r.w && p.y >= r.y - 12 && p.y <= r.y + r.h + 12 ? { kind: 'logo' } : scene.hover(p.x, p.y);
-    }
-    els.root.classList.toggle('nd-hovering', !!hv);
-    const g = els.hoverGlow, R = hv && hv.rect;
-    if (g) { if (R) { g.style.width = `${Math.round(R.w + 10)}px`; g.style.height = `${Math.round(R.h + 10)}px`; g.style.transform = `translate(${Math.round(R.x - 5)}px, ${Math.round(R.y - 5)}px)`; } g.classList.toggle('on', !!R); }
-    hoverOn = !!hv;
-  }
-  function onHover(e) {
-    if (e.pointerType !== 'mouse') { if (hoverOn) { hoverAt = { x: -1e4, y: -1e4 }; hoverNow(); } return; }
-    hoverAt = { x: e.clientX, y: e.clientY, t: e.target };
-    if (!hoverRaf) hoverRaf = requestAnimationFrame(hoverNow);
-  }
-  function onMouse(e) {
-    if (e.pointerType !== 'mouse') return;
-    onHover(e);
-    if (!mouseAt) { mouseAt = [e.clientX, e.clientY]; return; }
-    if (Math.hypot(e.clientX - mouseAt[0], e.clientY - mouseAt[1]) > 24) { mouseAt = [e.clientX, e.clientY]; if (quickIdle && !els.root.classList.contains('is-idle')) return; wake(); armIdle(); }
-  }
-
-  function meta(g) {
-    const mod = GAME_MODULES[g.id] || {};
-    const min = Math.max(MIN_PLAYERS, mod.MIN_PLAYERS || 0);
-    let mins = null;
-    try { mins = mod.estimateMinutes ? mod.estimateMinutes(mod.DEFAULT_SETTINGS || {}) : null; } catch { mins = null; }
-    return { players: `${min}–${MAX_PLAYERS} PLAYERS`, mins: mins ? `≈ ${Math.round(mins)} MIN` : null };
-  }
-
-  function preview(g) {
-    sfx('select');
-    const m = meta(g);
-    let sheet;
-    const close = () => { sheet.classList.add('out'); setTimeout(() => sheet.remove(), 260); };
-    const art = gameArtSvg(g.id);
-    sheet = h('div.modal', { onclick: e => { if (e.target === sheet) close(); } },
-      h('div.sheet.nd-preview', { role: 'dialog', 'aria-label': g.name, dataset: { theme: g.theme }, style: { '--acc': ACC[g.id] || '#d6f0ff' } },
-        h('div.sheet-grip'),
-        h('div.nd-pv-art', art),
-        h('div.nd-pv-body',
-          h('div.gc-tag', g.tag),
-          h('h2.nd-pv-name', g.name),
-          h('p.nd-pv-blurb', g.blurb),
-          h('div.nd-pv-meta', h('span', m.players), m.mins ? h('span', m.mins) : null, h('span', 'ONE PHONE EACH')),
-          topThree(g, () => close())),
-        h('div.nd-pv-actions',
-          h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => { close(); openHelp(g.id); } }, h('span', 'HOW TO PLAY')),
-          h('button.btn.btn-text.btn-block', { type: 'button', onclick: close }, 'CLOSE'))));
-    document.body.append(sheet);
-  }
-
-  // the game's top three on THE BOARD (its first record, else its wins) and your own rank there
-  function topThree(g, close) {
-    const def = primaryBoard(g.id, g.id === 'pulse' ? [{ id: 'pulse1', title: 'Track 01' }] : []);
-    const list = h('ol.nd-pv-top', h('li.nd-pv-wait', 'THE BOARD…'));
-    const mine = h('div.nd-pv-you');
-    const wrap = h('div.nd-pv-board', { style: { '--acc': ACC[g.id] || '#d6f0ff' } },
-      h('div.nd-pv-bh', h('span', 'THE BOARD'), h('span', def.label)),
-      list, mine,
-      h('button.nd-pv-more', { type: 'button', onclick: () => { close(); setState({ view: 'board', boardGame: g.id }); } }, 'SEE THE FULL BOARD ›'));
-    const MEDALS = ['gold', 'silver', 'bronze'];
-    import('../profile/api.js').then(api => api.board(def.id, 'all', { n: 3 })).then(d => {
-      // (LOBBY 2.0 A — REAL USERNAMES: the rows carry the players' usernames; your own row, by your board id, is yours)
-      const you = loadMe();
-      const own = r => !!(you && you.profile && you.profile.bid && r.id === you.profile.bid);
-      list.replaceChildren(...(d.rows.length ? d.rows.map(r => (own(r) ? { ...r, n: you.profile.n, t: you.profile.t } : r)).map(r => h('li', h('span.nd-pv-medal', { class: `is-${MEDALS[Math.min(2, r.rank - 1)]}` }, String(r.rank)), h('span.nd-pv-n', r.n, rankBadge(r, { tag: true, size: 13 })), h('b', fmtValue(def, r.v))))
-        : [h('li.nd-pv-wait', 'No one yet — be the first.')]));
-    }).catch(() => { wrap.remove(); });
-    const me = loadMe();
-    if (me && me.pid) {
-      import('../profile/me.js').then(m => m.myRanks([def.id])).then(r => {
-        const p = (loadMe() || {}).profile || {};
-        const under = typeof p.m === 'number' && p.m < (p.mm || 3) && !p.h;   // BNAME: the 3-match floor
-        const x = !under && r[def.id] && r[def.id].all;
-        mine.replaceChildren(h('span', 'YOU'), h('b', x ? `#${x.rank.toLocaleString('en-US')}` : '—'), h('span', x ? fmtValue(def, x.v) : under ? `${(p.mm || 3) - p.m} MORE TO GET LISTED` : 'NOT RANKED YET'));
-      }).catch(() => {});
-    }
-    return wrap;
-  }
-
-  // ------------------------------------------------------------------ the dock: THE NEON RING (docs/title.md)
-  // One floating bar of smoked glass: JOIN · BOARD · [HOST] · GAMES · YOU. HOST is a raised disc with a neon tube ring that
-  // wears the sign's colours (read from the sign's own tubes: ringColors) and never switches off. JOIN opens a glass panel
-  // above the bar (the four code boxes); REJOIN and notes float above it too, so the bar itself never moves.
-  // THE FLANK (Oct 20 2026): [ JOIN ring ] [ glass pill: BOARD · GAMES · YOU ] [ HOST ring ] — two identical neon rings,
-  // mirrored round a compact smoked-glass pill of three icons. HOST wears the sign's colours (ringColors); JOIN is white neon
-  // all year. Both are always lit and never sputter; the pill's icons are tubes of the sign (dockLight).
-  // THE FLANK (title-dock.js): the dock's markup, rings and lighting; the behaviour lives here
-  let dock = null;
-  function buildActions() {
-    dock = createDock({
-      join: () => { sfx('select'); openJoin(!els.actions.classList.contains('is-join'), true); },
-      board: () => { sfx('select'); setState({ view: 'board' }); },
-      games: () => { openJoin(false); openGames(); },
-      you: () => { sfx('select'); const p = loadProfile(); setState(p && p.name ? { view: 'profile' } : { view: 'setup', setupMode: 'edit' }); },
-      host,
-      code: {
-        input: onCode, paste: onPaste, focus: () => { paintCode(); fitKeyboard(); }, blur: paintCode,
-        keydown: e => { if (e.key === 'Enter' && els.code.value.length === 4) join(els.code.value); if (e.key === 'Escape') openJoin(false); },
-      },
-      go: () => (els.code.value.length === 4 ? join(els.code.value) : els.code.focus()),
-      panelDown, panelUp,
-      note: () => note(''),
-    });
-    Object.assign(els, dock.els);
-    return dock.el;
-  }
-  const ringColors = (force = false) => dock && dock.ringColors(els.sign, force);
-  const dockLight = (i, on) => dock && dock.light(i, on);
-  const dockAll = on => dock && dock.all(on);
-  const ringOn = times => dock && dock.ringOn(times);
-  /** JOIN / HOST are lit while the sign is: from the catch through the morning goodbye (dark by day and through the ramp) */
-  const ringsWanted = st => !!st && (st.caught || st.stage === 'goodbye');
-
-  // JOIN: the panel above the bar. Tap outside, swipe it down, tap JOIN again or Escape to close
-  let swipe = null;
-  function panelDown(e) { swipe = { y: e.clientY, t: performance.now() }; }
-  function panelUp(e) {
-    const s = swipe; swipe = null;
-    if (s && e.clientY - s.y > 38 && performance.now() - s.t < 700) openJoin(false);
-  }
-  function outsideDown(e) {
-    if (!els.actions.classList.contains('is-join')) return;
-    if (els.jpanel.contains(e.target) || els.joinTab.contains(e.target)) return;
-    openJoin(false);
-  }
-  // the iOS keyboard: keep the panel just above it (the visual viewport shrinks; the layout viewport doesn't)
-  function fitKeyboard() {
-    const vv = window.visualViewport;
-    if (!vv || !els.jpanel) return;
-    const open = els.actions.classList.contains('is-join');
-    const kb = window.innerHeight - vv.height - vv.offsetTop;
-    if (open && kb > 90) {
-      els.jpanel.style.setProperty('--kb-top', `${Math.max(8, vv.offsetTop + vv.height - els.jpanel.offsetHeight - 12)}px`);
-      els.jpanel.classList.add('is-kb');
-    } else els.jpanel.classList.remove('is-kb');
-  }
-
-  function openJoin(on, focus = false) {
-    if (!els.actions) return;
-    const was = els.actions.classList.contains('is-join');
-    els.actions.classList.toggle('is-join', on);
-    els.joinTab.setAttribute('aria-expanded', on ? 'true' : 'false');
-    if (on) {
-      if (!was) say('');
-      paintCode();
-      if (focus) setTimeout(() => els.code.focus(), 60);
-      window.addEventListener('pointerdown', outsideDown, { capture: true });
-    } else {
-      els.code.blur();
-      els.jpanel.classList.remove('is-kb');
-      window.removeEventListener('pointerdown', outsideDown, { capture: true });
-    }
-  }
-
-  // a note floating above the bar (a host that couldn't open, an expired invite); tap it to dismiss
-  let noteT = 0;
-  function note(text, kind = 'info', ms = 6500) {
-    if (!els.note) return;
-    clearTimeout(noteT);
-    els.note.textContent = text;
-    els.note.dataset.kind = kind;
-    els.note.classList.toggle('is-on', !!text);
-    if (text && ms) noteT = setTimeout(() => note(''), ms);
-  }
-
-  // PROGRESSION A — THE DOCK's STREAK FLAME: a small neon flame + the count on YOU (js/progress/flame.js; built at the full dpr); no streak =
-  // no badge. ?preview=flame&streak=N shows a sample one (a preview of the badge on a phone with no streak yet).
-  let flameSig = null;
-  function paintDockFlame(pub) {
-    let pv = null;
-    try { const q = new URLSearchParams(location.search); if (q.get('preview') === 'flame') pv = { n: Math.max(1, Number(q.get('streak') || 7)), state: q.get('state') || 'lit' }; } catch { /* fine */ }
-    const sig = pv ? `pv|${pv.n}|${pv.state}` : pub && pub.s ? `${pub.s}|${pub.sd || ''}` : '';
-    if (sig === flameSig) return;
-    flameSig = sig;
-    const old = els.youTab.querySelector('.pg-dock');
-    if (old) old.remove();
-    if (!sig) return;
-    import('../progress/flame.js').then(async m => {
-      if (destroyed || flameSig !== sig) return;
-      let st = pub && pub.s ? { n: pub.s, d: pub.sd } : null;
-      if (pv) { const P = await import('../progress/preview.js'); st = P.sampleStreak(pv.n, pv.state); }
-      await (await import('../progress/look.js')).pgSheet();
-      if (destroyed || flameSig !== sig) return;
-      const b = m.flameBadge(st);
-      const was = els.youTab.querySelector('.pg-dock');
-      if (was) was.remove();
-      if (b) els.youTab.append(b);
-    }).catch(() => {});
-  }
-
+  // the screen's update (the dock's YOU / REJOIN / an invite; the room — roomSync)
   function update(state) {
     st = state;
     if (!els.youTab) return;
@@ -1786,123 +1120,28 @@ export function createTitle() {
       els.youTab.setAttribute('aria-label', 'Create your player');
       els.youTab.classList.add('is-guest');
     }
-    paintDockFlame(pub);
+    dk.paintDockFlame(pub);
     if (els.sub) els.sub.hidden = !!(p && p.name);
-    if ((state.rejoin || '') !== els.rejoinCode) els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', 'aria-label': `Rejoin room ${state.rejoin}`, onclick: () => join(state.rejoin, true) },
+    if ((state.rejoin || '') !== els.rejoinCode) els.rejoin.replaceChildren(...(state.rejoin ? [h('button.nd-rejoin-btn', { type: 'button', 'aria-label': `Rejoin room ${state.rejoin}`, onclick: () => dk.join(state.rejoin, true) },
       h('i.nd-rejoin-dot', { 'aria-hidden': 'true' }), h('span.nd-rejoin-l', 'REJOIN'), ' ', h('b.nd-rejoin-c', state.rejoin))] : []));
     els.rejoinCode = state.rejoin || '';
     els.rejoin.hidden = !state.rejoin;
     if (state.invite && !els.code.value) {
-      openJoin(true);
-      els.code.value = clean(state.invite);
-      paintCode();
-      say(`You’re invited — the hush word is ${els.code.value}. Tap › to join.`, 'info');
+      dk.openJoin(true);
+      els.code.value = dk.clean(state.invite);
+      dk.paintCode();
+      dk.say(`You’re invited — the hush word is ${els.code.value}. Tap › to join.`, 'info');
       els.go.classList.add('is-ready');
     }
-    if (state.inviteExpired) note(`That room has closed (${state.inviteExpired}). Host a new game, or ask for a fresh hush word.`, 'warn', 9000);   // (FR6 FIXES A: a push for a room gone by the tap lands here)
+    if (state.inviteExpired) dk.note(`That room has closed (${state.inviteExpired}). Host a new game, or ask for a fresh hush word.`, 'warn', 9000);   // (FR6 FIXES A: a push for a room gone by the tap lands here)
   }
-
-
-  const clean = v => String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
-
-  function onCode() {
-    // any letter A–Z (hush words use them all; the old codes are letters too) — digits and symbols just don't type
-    const v = clean(els.code.value).slice(0, 4);
-    els.code.value = v;
-    paintCode();
-    els.go.classList.toggle('is-ready', v.length === 4);
-    if (v.length < 4) say('');
-    if (v.length === 4) join(v);
-  }
-
-  function onPaste(e) {
-    // pasting an invite link (or "the hush word is MINT") works too: take the word out of it
-    const text = (e.clipboardData || window.clipboardData).getData('text') || '';
-    const m = /[?&]room=([A-Za-z]{4})\b/.exec(text) || /\b([A-Za-z]{4})\b/.exec(text.trim());
-    if (!m) return;
-    e.preventDefault();
-    els.code.value = m[1].toUpperCase();
-    onCode();
-  }
-
-  function paintCode() {
-    const v = els.code.value;
-    const focused = document.activeElement === els.code;
-    els.boxes.forEach((b, i) => {
-      b.textContent = v[i] || '';
-      b.classList.toggle('is-filled', !!v[i]);
-      b.classList.toggle('is-caret', focused && i === Math.min(v.length, 3) && v.length < 4);
-    });
-  }
-
-  function say(text, kind = 'info') {
-    els.msg.textContent = text;
-    els.msg.dataset.kind = kind;
-  }
-
-  function shake() {
-    const c = els.code.parentElement;
-    c.classList.remove('is-shake');
-    void c.offsetWidth;
-    c.classList.add('is-shake');
-  }
-
-  async function host() {
-    if (busy) return;
-    const p = loadProfile();
-    if (!p || !p.name) { setState({ view: 'setup', setupMode: 'host' }); return; }
-    busy = true;
-    openJoin(false);
-    els.host.classList.add('is-busy');
-    els.host.setAttribute('aria-busy', 'true');
-    try {
-      await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
-      await createRoom(p);
-      setState({ invite: '', rejoin: '' });
-    } catch (e) {
-      busy = false;
-      els.host.classList.remove('is-busy');
-      els.host.removeAttribute('aria-busy');
-      note(friendly(e), 'warn');
-      sfx('invalid');
-    }
-  }
-
-  async function join(code, isRejoin = false) {
-    if (busy) return;
-    const p = loadProfile();
-    if (!p || !p.name) { setState({ view: 'setup', setupMode: 'join', invite: code }); return; }
-    busy = true;
-    els.code.blur();
-    els.code.parentElement.classList.add('is-busy');
-    const tell = els.actions.classList.contains('is-join') ? say : note;
-    tell(isRejoin ? `Rejoining ${code}…` : `Knocking: ${code}…`, 'info');
-    try {
-      await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
-      await joinRoom(code, p);
-      setState({ invite: '', rejoin: '', inviteExpired: '' });
-    } catch (e) {
-      busy = false;
-      els.code.parentElement.classList.remove('is-busy');
-      tell(isRejoin && /No room/i.test(String((e && e.message) || e)) ? `That room has closed (${code}).` : friendly(e, code), 'warn');
-      if (isRejoin) setState({ rejoin: '' });
-      sfx('invalid');
-      shake();
-      els.code.select && els.code.select();
-    }
-  }
-
-  function friendly(e, code = '') {
-    const m = String((e && e.message) || e);
-    if (/No room/i.test(m)) return `No room behind ${code} right now. Check the hush word, or ask for a fresh invite.`;
-    if (/door’s locked/i.test(m)) return m;
-    if (/other device/i.test(m)) return m;   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: CANCEL on MOVE HERE)
-    if (/wrong words/i.test(m)) return m;
-    if (/full/i.test(m)) return `That room is full — 8 players is the limit.`;
-    if (/removed you/i.test(m)) return 'The host removed you from that room.';
-    if (/permission|network|unavailable|offline/i.test(m)) return 'Couldn’t reach the game servers. Check your connection and try again.';
-    return m;
-  }
+  // (title-dock.js#createDockWork: moved out by scripts/split-closure.mjs — T carries the names it shares with this closure, live)
+  const dk = createDockWork({
+    get busy() { return busy; }, set busy(v) { busy = v; },
+    get destroyed() { return destroyed; },
+    get els() { return els; },
+    get openGames() { return openGames; },
+  });
 
   // ------------------------------------------------------------------ test hook + unmount
   function setupHook() {
@@ -1926,16 +1165,16 @@ export function createTitle() {
       reduced,
       hit: (x, y) => scene && scene.hit(x, y),
       sightBoxes: () => (scene && scene.sightBoxes ? scene.sightBoxes() : []),   // (PROGRESSION B: the legendaries' tap boxes up now)
-      idle: () => goIdle(),
-      quickIdle: () => quickIdle,   // (9e: the QUICK FADE armed — the dock up for ~2 s over a front-street scene)
-      idleMs: () => IDLE_MS,        // (9g: 10 s on a device's first visit, 5 s after)
+      idle: () => tap.goIdle(),
+      quickIdle: () => tap.quickIdle,   // (9e: the QUICK FADE armed — the dock up for ~2 s over a front-street scene)
+      idleMs: () => tap.IDLE_MS,        // (9g: 10 s on a device's first visit, 5 s after)
       frontBusy: () => (scene && scene.frontBusy ? scene.frontBusy() : null),
       isIdle: () => els.root.classList.contains('is-idle'),
-      neonAt: t => (neonPlanV ? neonState(neonPlanV, t) : null),
-      neonSounds: () => neonSounds,
+      neonAt: t => (neon.neonPlanV ? neonState(neon.neonPlanV, t) : null),
+      neonSounds: () => neon.neonSounds,
       neonSoundLog: () => neonSoundLog.slice(),                               // (11a-2: each power-on's kind + its total length, s)
-      neonWarmSounds: () => neonWarmSounds,                                   // (City 2.0: the warm-up's last-30-s flickers)
-      neon: () => { const p = neonPlanV; return { stage: neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
+      neonWarmSounds: () => neon.neonWarmSounds,                                   // (City 2.0: the warm-up's last-30-s flickers)
+      neon: () => { const p = neon.neonPlanV; return { stage: neon.neonStage, letters: [...els.sign.querySelectorAll('.ndl')].map(l => l.classList.contains('on')), signs: neon.neonNow().signs, plan: p && { startAt: p.startAt, catchAt: p.catchAt, clearAt: p.clearAt, endAt: p.endAt, offFrom: p.offFrom, offTo: p.offTo, reduced: p.reduced }, now: scene && scene.now() }; },
       party: () => (scene ? scene.party() : null),
       loop: () => (scene && scene.loop ? scene.loop() : null),                // (8a: the city's frame loop — running, ms since its last frame, the watchdog's restarts)
       report: () => (scene && scene.report ? scene.report() : null),        // (9e: City 2.0's report snapshot + the hang watch)
@@ -1950,18 +1189,18 @@ export function createTitle() {
       // (City 2.0 — THE MUSIC STARTING: signSurge() fires the sign's answer now and says what it did ('surge' unlit | 'first' lit |
       // 'catch' the warm-up window | 'soft' | 'skip:…'); surge() — how many ran, the last one { why: music | force | hook, did, at },
       // pending (waiting for the intro / a race to end), cool (ms left of the 10 s cooldown after a real answer to the music))
-      signSurge: () => signSurge('hook'),
-      surge: () => ({ count: surgeCount, last: surgeLast, skip: surgeSkip, pending: !!surgePending, onBeat: onBeat ? { ...onBeat } : null, cool: Math.max(0, Math.round(SURGE_COOL - (performance.now() - surgeAt))),
-        running: !!(race && (race.kind === 'surge' || race.kind === 'first')) }),
+      signSurge: () => neon.signSurge('hook'),
+      surge: () => ({ count: neon.surgeCount, last: neon.surgeLast, skip: neon.surgeSkip, pending: !!neon.surgePending, onBeat: neon.onBeat ? { ...neon.onBeat } : null, cool: Math.max(0, Math.round(neon.SURGE_COOL - (performance.now() - surgeAt))),
+        running: !!(neon.race && (neon.race.kind === 'surge' || neon.race.kind === 'first')) }),
       dock: {
-        join: openJoin,
+        join: dk.openJoin,
         preview: patch => { els.sig = null; update({ ...st, ...patch }); },   // test-only: show the dock for a state (REJOIN, an invite)
-        note,
-        recolor: () => ringColors(true),
+        note: dk.noteote,
+        recolor: () => dk.ringColors(true),
         sunAt: (x, y, r = 16.5) => { sunOverride = x == null ? null : { x, y, r, vis: 1, col: [255, 236, 200] }; sunGlass(); },
         // [BOARD, GAMES, YOU, the corner buttons]
-        icons: () => [...dock.tabs().map(t => !!(t && t.classList.contains('is-lit'))), dock.corners().length > 0 && dock.corners().every(b => b.classList.contains('nd-cl-lit'))],
-        ring: () => ({ lit: dock.ringLit(), on: !!(els.host && els.host.classList.contains('is-lit')), join: !!(els.joinTab && els.joinTab.classList.contains('is-lit')), multi: els.host ? els.host.dataset.multi : null, g: [1, 2, 3, 4].map(i => (els.hostSlot ? els.hostSlot.style.getPropertyValue(`--hg${i}`) : '')) }),
+        icons: () => [...dk.dock.tabs().map(t => !!(t && t.classList.contains('is-lit'))), dk.dock.corners().length > 0 && dk.dock.corners().every(b => b.classList.contains('nd-cl-lit'))],
+        ring: () => ({ lit: dk.dock.ringLit(), on: !!(els.host && els.host.classList.contains('is-lit')), join: !!(els.joinTab && els.joinTab.classList.contains('is-lit')), multi: els.host ? els.host.dataset.multi : null, g: [1, 2, 3, 4].map(i => (els.hostSlot ? els.hostSlot.style.getPropertyValue(`--hg${i}`) : '')) }),
       },
     };
   }
@@ -1971,34 +1210,34 @@ export function createTitle() {
     if (els.down) { els.down.remove(); els.down = null; return; }   // (CITY 1.0 OUT: the city never loaded — only the card to take away)
     clearTimeout(keyPopT); if (offKeyPop) { offKeyPop(); offKeyPop = null; }
     if (roomUi) { roomUi.destroy(); roomUi = null; }
-    humSync(false);
+    neon.humSync(false);
     if (tl) cancelAnimationFrame(tl.raf);
     clearTimeout(flickerTimer); clearInterval(tiredT);
     clearTimeout(els.logoTimer);
     clearTimeout(els.skyTimer);
-    clearTimeout(neonT);
-    clearTimeout(idleTimer); clearTimeout(els.tagTimer); clearTimeout(els.tagSlotTimer);
+    clearTimeout(neon.neonT);
+    clearTimeout(tap.idleTimer); clearTimeout(els.tagTimer); clearTimeout(els.tagSlotTimer);
     document.body.classList.remove('nd-idle');
     document.querySelectorAll('.nd-sunlit').forEach(b => b.classList.remove('nd-sunlit'));
-    window.removeEventListener('pointerdown', onWake, { capture: true });
-    window.removeEventListener('click', onWakeClick, { capture: true });
-    window.removeEventListener('keydown', onWake, { capture: true });
-    window.removeEventListener('pointermove', onMouse); if (hoverRaf) cancelAnimationFrame(hoverRaf); hoverRaf = 0;
-    window.removeEventListener('pointerdown', onCityDown);
-    window.removeEventListener('pointerup', onCityUp);
-    document.removeEventListener('visibilitychange', onShown); window.removeEventListener('pageshow', onShown); window.removeEventListener('focus', onShown);
+    window.removeEventListener('pointerdown', tap.onWake, { capture: true });
+    window.removeEventListener('click', tap.onWakeClick, { capture: true });
+    window.removeEventListener('keydown', tap.onWake, { capture: true });
+    window.removeEventListener('pointermove', tap.onMouse); if (tap.hoverRaf) cancelAnimationFrame(tap.hoverRaf); tap.hoverRaf = 0;
+    window.removeEventListener('pointerdown', tap.onCityDown);
+    window.removeEventListener('pointerup', tap.onCityUp);
+    document.removeEventListener('visibilitychange', tap.onShown); window.removeEventListener('pageshow', tap.onShown); window.removeEventListener('focus', tap.onShown);
     clearTimeout(sgDemoT); clearTimeout(extrasT);
-    clearTimeout(surgeIv); clearTimeout(beatT); clearTimeout(bycT); document.removeEventListener('pointerup', armTap, true);
+    clearTimeout(neon.surgeIv); clearTimeout(neon.beatT); clearTimeout(bycT); document.removeEventListener('pointerup', neon.armTap, true);
     document.removeEventListener('visibilitychange', onVisTitle);
-    window.removeEventListener('pointerdown', outsideDown, { capture: true });
-    if (window.visualViewport) { window.visualViewport.removeEventListener('resize', fitKeyboard); window.visualViewport.removeEventListener('scroll', fitKeyboard); }
-    clearTimeout(noteT);
+    window.removeEventListener('pointerdown', dk.outsideDown, { capture: true });
+    if (window.visualViewport) { window.visualViewport.removeEventListener('resize', dk.fitKeyboard); window.visualViewport.removeEventListener('scroll', dk.fitKeyboard); }
+    clearTimeout(dk.noteT);
     if (els.probe) els.probe.remove();
     if (els.probeB) els.probeB.remove();
     document.body.classList.remove('nd-on');
     document.body.style.removeProperty('--dk-tint');
     dressCorners(false);
-    if (dock) dock.destroy();
+    if (dk.dock) dk.dock.destroy();
     clearTimeout(remoteT); clearTimeout(els.holdT);
     if (remote) { remote.destroy(); remote = null; liveRemote = null; }
     const wrap = els.sceneWrap;

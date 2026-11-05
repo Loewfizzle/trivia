@@ -2,6 +2,11 @@
 // above it, REJOIN / notes, and the title's two corner buttons dressed as tubes of the sign. This module owns the markup, the
 // rings and the lighting; title.js owns the behaviour (what JOIN, HOST, BOARD… do) and passes it in as handlers.
 import { h } from '../ui/dom.js';
+import { sfx } from '../audio/sfx.js';
+import { setState } from '../store.js';
+import { loadProfile } from '../identity.js';
+import { firebaseReady } from '../firebase.js';
+import { createRoom, joinRoom } from '../room.js';
 
 const tube = d => `<svg viewBox="0 0 24 24" aria-hidden="true"><g class="t">${d}</g><g class="c">${d}</g></svg>`;
 export const ICON = {
@@ -151,5 +156,245 @@ export function createDock(on) {
     resetRing: () => { lit = false; },
     tabs, corners,
     destroy() { destroyed = true; },
+  };
+}
+
+// ------------------------------------------------------------------ THE DOCK's WORK (CITY 1.0 OUT: out of title.js — JOIN, HOST, the notes,
+// the rings' light, the streak flame on YOU). title.js calls createDockWork(T) where this code sat and reads dk.<name>.
+/** createDockWork(T) — moved out of title.js#createTitle by scripts/split-closure.mjs (no behaviour change): T carries the names it shares
+ *  with that closure, live (getters + setters); what it returns, the closure reads as dk.<name>. */
+export function createDockWork(T) {
+
+  // ------------------------------------------------------------------ the dock: THE NEON RING (docs/title.md)
+  // One floating bar of smoked glass: JOIN · BOARD · [HOST] · GAMES · YOU. HOST is a raised disc with a neon tube ring that
+  // wears the sign's colours (read from the sign's own tubes: ringColors) and never switches off. JOIN opens a glass panel
+  // above the bar (the four code boxes); REJOIN and notes float above it too, so the bar itself never moves.
+  // THE FLANK (Oct 20 2026): [ JOIN ring ] [ glass pill: BOARD · GAMES · YOU ] [ HOST ring ] — two identical neon rings,
+  // mirrored round a compact smoked-glass pill of three icons. HOST wears the sign's colours (ringColors); JOIN is white neon
+  // all year. Both are always lit and never sputter; the pill's icons are tubes of the sign (dockLight).
+  // THE FLANK (title-dock.js): the dock's markup, rings and lighting; the behaviour lives here
+  let dock = null;
+  function buildActions() {
+    dock = createDock({
+      join: () => { sfx('select'); openJoin(!T.els.actions.classList.contains('is-join'), true); },
+      board: () => { sfx('select'); setState({ view: 'board' }); },
+      games: () => { openJoin(false); T.openGames(); },
+      you: () => { sfx('select'); const p = loadProfile(); setState(p && p.name ? { view: 'profile' } : { view: 'setup', setupMode: 'edit' }); },
+      host,
+      code: {
+        input: onCode, paste: onPaste, focus: () => { paintCode(); fitKeyboard(); }, blur: paintCode,
+        keydown: e => { if (e.key === 'Enter' && T.els.code.value.length === 4) join(T.els.code.value); if (e.key === 'Escape') openJoin(false); },
+      },
+      go: () => (T.els.code.value.length === 4 ? join(T.els.code.value) : T.els.code.focus()),
+      panelDown, panelUp,
+      note: () => note(''),
+    });
+    Object.assign(T.els, dock.els);
+    return dock.el;
+  }
+  const ringColors = (force = false) => dock && dock.ringColors(T.els.sign, force);
+  const dockLight = (i, on) => dock && dock.light(i, on);
+  const dockAll = on => dock && dock.all(on);
+  const ringOn = times => dock && dock.ringOn(times);
+  /** JOIN / HOST are lit while the sign is: from the catch through the morning goodbye (dark by day and through the ramp) */
+  const ringsWanted = st => !!st && (st.caught || st.stage === 'goodbye');
+
+  // JOIN: the panel above the bar. Tap outside, swipe it down, tap JOIN again or Escape to close
+  let swipe = null;
+  function panelDown(e) { swipe = { y: e.clientY, t: performance.now() }; }
+  function panelUp(e) {
+    const s = swipe; swipe = null;
+    if (s && e.clientY - s.y > 38 && performance.now() - s.t < 700) openJoin(false);
+  }
+  function outsideDown(e) {
+    if (!T.els.actions.classList.contains('is-join')) return;
+    if (T.els.jpanel.contains(e.target) || T.els.joinTab.contains(e.target)) return;
+    openJoin(false);
+  }
+  // the iOS keyboard: keep the panel just above it (the visual viewport shrinks; the layout viewport doesn't)
+  function fitKeyboard() {
+    const vv = window.visualViewport;
+    if (!vv || !T.els.jpanel) return;
+    const open = T.els.actions.classList.contains('is-join');
+    const kb = window.innerHeight - vv.height - vv.offsetTop;
+    if (open && kb > 90) {
+      T.els.jpanel.style.setProperty('--kb-top', `${Math.max(8, vv.offsetTop + vv.height - T.els.jpanel.offsetHeight - 12)}px`);
+      T.els.jpanel.classList.add('is-kb');
+    } else T.els.jpanel.classList.remove('is-kb');
+  }
+
+  function openJoin(on, focus = false) {
+    if (!T.els.actions) return;
+    const was = T.els.actions.classList.contains('is-join');
+    T.els.actions.classList.toggle('is-join', on);
+    T.els.joinTab.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) {
+      if (!was) say('');
+      paintCode();
+      if (focus) setTimeout(() => T.els.code.focus(), 60);
+      window.addEventListener('pointerdown', outsideDown, { capture: true });
+    } else {
+      T.els.code.blur();
+      T.els.jpanel.classList.remove('is-kb');
+      window.removeEventListener('pointerdown', outsideDown, { capture: true });
+    }
+  }
+
+  // a note floating above the bar (a host that couldn't open, an expired invite); tap it to dismiss
+  let noteT = 0;
+  function note(text, kind = 'info', ms = 6500) {
+    if (!T.els.note) return;
+    clearTimeout(noteT);
+    T.els.note.textContent = text;
+    T.els.note.dataset.kind = kind;
+    T.els.note.classList.toggle('is-on', !!text);
+    if (text && ms) noteT = setTimeout(() => note(''), ms);
+  }
+
+  // PROGRESSION A — THE DOCK's STREAK FLAME: a small neon flame + the count on YOU (js/progress/flame.js; built at the full dpr); no streak =
+  // no badge. ?preview=flame&streak=N shows a sample one (a preview of the badge on a phone with no streak yet).
+  let flameSig = null;
+  function paintDockFlame(pub) {
+    let pv = null;
+    try { const q = new URLSearchParams(location.search); if (q.get('preview') === 'flame') pv = { n: Math.max(1, Number(q.get('streak') || 7)), state: q.get('state') || 'lit' }; } catch { /* fine */ }
+    const sig = pv ? `pv|${pv.n}|${pv.state}` : pub && pub.s ? `${pub.s}|${pub.sd || ''}` : '';
+    if (sig === flameSig) return;
+    flameSig = sig;
+    const old = T.els.youTab.querySelector('.pg-dock');
+    if (old) old.remove();
+    if (!sig) return;
+    import('../progress/flame.js').then(async m => {
+      if (T.destroyed || flameSig !== sig) return;
+      let st = pub && pub.s ? { n: pub.s, d: pub.sd } : null;
+      if (pv) { const P = await import('../progress/preview.js'); st = P.sampleStreak(pv.n, pv.state); }
+      await (await import('../progress/look.js')).pgSheet();
+      if (T.destroyed || flameSig !== sig) return;
+      const b = m.flameBadge(st);
+      const was = T.els.youTab.querySelector('.pg-dock');
+      if (was) was.remove();
+      if (b) T.els.youTab.append(b);
+    }).catch(() => {});
+  }
+
+
+
+  const clean = v => String(v || '').toUpperCase().replace(/[^A-Z]/g, '');
+
+  function onCode() {
+    // any letter A–Z (hush words use them all; the old codes are letters too) — digits and symbols just don't type
+    const v = clean(T.els.code.value).slice(0, 4);
+    T.els.code.value = v;
+    paintCode();
+    T.els.go.classList.toggle('is-ready', v.length === 4);
+    if (v.length < 4) say('');
+    if (v.length === 4) join(v);
+  }
+
+  function onPaste(e) {
+    // pasting an invite link (or "the hush word is MINT") works too: take the word out of it
+    const text = (e.clipboardData || window.clipboardData).getData('text') || '';
+    const m = /[?&]room=([A-Za-z]{4})\b/.exec(text) || /\b([A-Za-z]{4})\b/.exec(text.trim());
+    if (!m) return;
+    e.preventDefault();
+    T.els.code.value = m[1].toUpperCase();
+    onCode();
+  }
+
+  function paintCode() {
+    const v = T.els.code.value;
+    const focused = document.activeElement === T.els.code;
+    T.els.boxes.forEach((b, i) => {
+      b.textContent = v[i] || '';
+      b.classList.toggle('is-filled', !!v[i]);
+      b.classList.toggle('is-caret', focused && i === Math.min(v.length, 3) && v.length < 4);
+    });
+  }
+
+  function say(text, kind = 'info') {
+    T.els.msg.textContent = text;
+    T.els.msg.dataset.kind = kind;
+  }
+
+  function shake() {
+    const c = T.els.code.parentElement;
+    c.classList.remove('is-shake');
+    void c.offsetWidth;
+    c.classList.add('is-shake');
+  }
+
+  async function host() {
+    if (T.busy) return;
+    const p = loadProfile();
+    if (!p || !p.name) { setState({ view: 'setup', setupMode: 'host' }); return; }
+    T.busy = true;
+    openJoin(false);
+    T.els.host.classList.add('is-busy');
+    T.els.host.setAttribute('aria-busy', 'true');
+    try {
+      await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
+      await createRoom(p);
+      setState({ invite: '', rejoin: '' });
+    } catch (e) {
+      T.busy = false;
+      T.els.host.classList.remove('is-busy');
+      T.els.host.removeAttribute('aria-busy');
+      note(friendly(e), 'warn');
+      sfx('invalid');
+    }
+  }
+
+  async function join(code, isRejoin = false) {
+    if (T.busy) return;
+    const p = loadProfile();
+    if (!p || !p.name) { setState({ view: 'setup', setupMode: 'join', invite: code }); return; }
+    T.busy = true;
+    T.els.code.blur();
+    T.els.code.parentElement.classList.add('is-busy');
+    const tell = T.els.actions.classList.contains('is-join') ? say : note;
+    tell(isRejoin ? `Rejoining ${code}…` : `Knocking: ${code}…`, 'info');
+    try {
+      await Promise.race([firebaseReady, new Promise((_, rej) => setTimeout(() => rej(new Error('network')), 20000))]);
+      await joinRoom(code, p);
+      setState({ invite: '', rejoin: '', inviteExpired: '' });
+    } catch (e) {
+      T.busy = false;
+      T.els.code.parentElement.classList.remove('is-busy');
+      tell(isRejoin && /No room/i.test(String((e && e.message) || e)) ? `That room has closed (${code}).` : friendly(e, code), 'warn');
+      if (isRejoin) setState({ rejoin: '' });
+      sfx('invalid');
+      shake();
+      T.els.code.select && T.els.code.select();
+    }
+  }
+
+  function friendly(e, code = '') {
+    const m = String((e && e.message) || e);
+    if (/No room/i.test(m)) return `No room behind ${code} right now. Check the hush word, or ask for a fresh invite.`;
+    if (/door’s locked/i.test(m)) return m;
+    if (/other device/i.test(m)) return m;   // (LOBBY FIXES — ONE ACCOUNT, ONE ROOM: CANCEL on MOVE HERE)
+    if (/wrong words/i.test(m)) return m;
+    if (/full/i.test(m)) return `That room is full — 8 players is the limit.`;
+    if (/removed you/i.test(m)) return 'The host removed you from that room.';
+    if (/permission|network|unavailable|offline/i.test(m)) return 'Couldn’t reach the game servers. Check your connection and try again.';
+    return m;
+  }
+  return {
+    get buildActions() { return buildActions; },
+    get clean() { return clean; },
+    get dock() { return dock; },
+    get dockAll() { return dockAll; },
+    get dockLight() { return dockLight; },
+    get fitKeyboard() { return fitKeyboard; },
+    get join() { return join; },
+    get note() { return note; },
+    get noteT() { return noteT; },
+    get openJoin() { return openJoin; },
+    get outsideDown() { return outsideDown; },
+    get paintCode() { return paintCode; },
+    get paintDockFlame() { return paintDockFlame; },
+    get ringColors() { return ringColors; },
+    get ringOn() { return ringOn; },
+    get ringsWanted() { return ringsWanted; },
+    get say() { return say; },
   };
 }

@@ -1089,7 +1089,7 @@ import { skyClock, holidayOf, sunTimes, localParts } from '../js/core/sky.js';
 
 test('the preview panel: one registry — every &force= preview the Harbor runs is on it, and every row is a real preview', () => {
   // the modules City 2.0 runs (its own — the old district's sky modules moved in with CITY 1.0 OUT): every id they test with force.has(...)
-  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), 'js/screens/title.js', ...readdirSync('js/core').filter(f => /^harbor-.*\.js$/.test(f)).map(f => `js/core/${f}`)];   // (C4d: + the pure modules — harbor-events.js reads 'demo')
+  const files = [...readdirSync('js/screens/harbor').map(f => `js/screens/harbor/${f}`), 'js/screens/title.js', 'js/screens/title-neon.js', 'js/screens/title-taps.js', 'js/screens/title-dock.js', ...readdirSync('js/core').filter(f => /^harbor-.*\.js$/.test(f)).map(f => `js/core/${f}`)];   // (C4d: + the pure modules — harbor-events.js reads 'demo')
   const src = files.map(f => readFileSync(f, 'utf8')).join('\n');
   const used = new Set([...src.matchAll(/(?:(?:force|f|off|clock\.force)\.has|scene\.forced)\('([a-z0-9-]+)'\)/g)].map(m => m[1]));
   for (const m of src.matchAll(/again\('([a-z0-9-]+)'/g)) used.add(m[1]);
@@ -3332,7 +3332,7 @@ test('WINDOWS — only PRISM DROP + OVERCLOCK playable; the five sign games; eve
   assert.ok(/if \(!isPlayable\(gameId\)\)[^\n]*return false/.test(sg) && sg.indexOf('isPlayable') < sg.indexOf('mod.start('), 'startGame refuses a hidden game first');
   assert.ok(/return startGame\(id, (?:settings|rematchSettingsOf\(mod, settings, state\.game\))(?:, \{ quick: true \})?\)/.test(host.slice(host.indexOf('export function rematch'))), 'a rematch goes through startGame');   // (LOBBY 2.0 B: + the cartridge's rematch settings)   // (LOBBY FIXES: + the quick start)
   assert.ok(/GAMES\.filter\(x => x\.playable \|\| x\.id === current\)/.test(readFileSync(new URL('../js/ui/help.js', import.meta.url), 'utf8')), 'HOW TO PLAY: the playable tabs (+ the match on screen)');
-  const title = readFileSync(new URL('../js/screens/title.js', import.meta.url), 'utf8');
+  const title = ['title', 'title-taps', 'title-neon', 'title-dock'].map(f => readFileSync(new URL(`../js/screens/${f}.js`, import.meta.url), 'utf8')).join(String.fromCharCode(10));   // (CITY 1.0 OUT: the title in four files)
   assert.ok(/const games = GAMES\.filter\(g => g\.playable\);/.test(title) && /!g\.playable\) \{ toast\(`\$\{g\.name\} · COMING SOON`/.test(title), 'the games sheet + the sign tap');
   // THE FIVE SIGNS on the phone: over two weeks every one of the five hangs (a named sign or the billboard), nothing else does
   const five = GAMES.filter(g => g.sign).map(g => ({ id: g.id, name: g.name, short: signName(g) }));
