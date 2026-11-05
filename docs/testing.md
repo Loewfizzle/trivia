@@ -61,6 +61,18 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   counter 60.0 fps, `ONLY=perf`'s calm load + the battery's 60-fps moment PASS locally (they failed on every build before). Skipped when a run asks for
   the GPU on purpose (`--enable-gpu`, `GPU=1`) or `VSYNC=display`; Linux (the cloud) is untouched. (Setting the TV to 60 Hz would also fix it — the
   owner's call, not the tests'.)
+- **THE GPU PIN** (SHELL 2.0 B1 Group 0 — SHELL 2.0 A's local run had NO WebGL2: the fireworks + every speed check red, 18 in all). NOT the driver
+  (the Radeon 780M's 32.0.12019.1028 from Oct 2024, unchanged; the Nov 5 updates were Defender signatures): the mini PC RESTARTED with NO DISPLAY
+  attached (the TV off — every monitor `Present: False`), so Windows lists the **Microsoft Basic Render Driver** first and ACTIVE; Chromium's GPU
+  process crashed on it until it gave up ("GPU access is disabled due to frequent crashes" in chrome://gpu → WebGL disabled outright). The Radeon
+  is still there as the second adapter, so `kit/puppeteer.mjs` asks chrome://gpu ONCE PER BOOT for the first non-Microsoft adapter's LUID (cached in
+  the temp folder as `neon-gpu-<boot>.json` — a LUID changes every boot; `pickAdapter`, unit-tested) and adds **`--use-adapter-luid=<hi,lo>`** —
+  nothing when a real GPU is already active (the TV on). With the pin and the GPU compositor in use (the real-compositor calm load, `GPU=1`) it also
+  adds **`--disable-direct-composition`**: without a display, DirectComposition presents through DWM at ~20 Hz (51-ms frames on 8 ms of work);
+  the plain swap chain runs 15.6-ms frames. `GPU_LUID=off` skips the pin, `GPU_LUID=<hi,lo>` sets it. **Check it: `node tests/integration/gpu-check.mjs
+  "<browser>"`** (WebGL / WebGL2 + the renderer string + chrome://gpu's feature table; exit 1 on no WebGL2 or a software renderer) — run it first
+  whenever the speed checks go red together. Proof: `ONLY=perf` 12/12 with the TV off (the calm load tier 2 held, the guard 0.45–0.56×). A dummy
+  HDMI plug (a 4K headless display emulator) would make the machine look like it has a display — no longer needed for the tests.
 - **THE 20-CYCLE MEMORY CHECK reads the heap WITHOUT V8's compiled code** (ATM-A — `harbor-e2e/kit.mjs#heapNoCode`): heap snapshots at cycle 2 vs 20
   showed +6.2 MB of JIT code (1,098 InstructionStreams — it grows with how long + how fast the page ran: +4.3 MB here, +6.4 in the cloud on the same
   build) against +0.35 MB of JS objects; the check takes a snapshot (a full GC first) and counts every node but `code` — objects, strings, closures,
