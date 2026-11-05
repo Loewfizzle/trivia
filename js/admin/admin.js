@@ -115,6 +115,14 @@ function shell() {
       h('p.ad-dim', 'Every profile made since the date (default: the very first). PRE-TICKED = looks like a test (two of: 0 nights played · a test-ish name · made in a test burst) — review them; nothing is ever removed without CONFIRM. Never pre-ticked: an admin, TESTER#2599, anyone who played on 2+ nights. Their card, items, key, tag + board entries go. Member numbers never move and are never re-used: the counter only rolls back when every number above the new top is going.'),
       h('div.ad-tp-list', { id: 'ad-tp-list' }, h('p.ad-dim', 'Loading…')),
       h('div.ad-tp-out', { id: 'ad-tp-out' })),
+    // THE SPEED PASS add-on — THE PROGRESS RESET (api/_lib/reset.js): PREVIEW → type RESET → a two-tap CONFIRM; a backup first, FOUNDING
+    // MEMBER first, everyone keeps every item; REPEATABLE (now + at THE SWITCH-OVER); the backups below, each restorable (type RESTORE)
+    card('ad-reset', 'Progress reset', { cls: 'ad-reset', open: false },
+      h('p.ad-dim', 'Resets EVERY profile’s progress: XP (back to level 1), the rank, streaks (the freezes held stay), weekly goals, achievements, mastery counters, THE BOARD’s records + boards. KEEPS: the profile, its key, name + tag, colour, emblem, MEMBER Nº, FOUNDING MEMBER (stamped on everyone who qualifies FIRST), every card / emblem / finish / glow they own (dev + gift 1-of-1s too), the equipped card. A backup is written first. Repeatable.'),
+      h('div.ad-row', h('button.ad-btn', { type: 'button', onclick: resetPreview }, 'Preview')),
+      h('div.ad-reset-out', { id: 'ad-reset-out' }),
+      h('h3', 'Backups'),
+      h('div.ad-reset-bk', { id: 'ad-reset-bk' }, h('p.ad-dim', 'Loading…'))),
     // PROGRESSION A — THE OUTAGE BUTTON: a day the site was down breaks nobody's streak (audited; the streak day turns at 4 am Eastern)
     card('ad-outage', 'Streak outage', { cls: 'ad-outage' },
       h('p.ad-dim', 'The site was down? Mark the day: nobody’s streak breaks over it (no freeze used, no day added). The streak day turns at 4 am Eastern.'),
@@ -130,6 +138,7 @@ function shell() {
   reports();
   flags();
   testPlayers();
+  backups();
   loadStats();
   // "live now" keeps itself current while the page is open and visible (the server caches it for 30 s)
   setInterval(() => { if (document.visibilityState === 'visible') loadStats(false, true); }, 30_000);
@@ -228,6 +237,37 @@ async function tpPreview() {
       toast(`Removed ${r.remove.length}`);
       testPlayers(); audit();
     }, 'is-danger')));
+}
+
+// ---------------------------------------------------------------- THE SPEED PASS add-on — THE PROGRESS RESET
+async function resetPreview() {
+  const out = document.getElementById('ad-reset-out');
+  const dry = await call('progressReset');
+  const typed = h('input.input.ad-typed', { type: 'text', placeholder: 'Type RESET', autocomplete: 'off', autocapitalize: 'characters', spellcheck: false, 'aria-label': 'Type RESET to confirm' });
+  out.replaceChildren(h('div.ad-tp-dry',
+    h('b', dry.line),
+    h('p.ad-dim', 'A backup of everyone’s progress is written first (restorable below). Type RESET, then tap twice.'),
+    h('div.ad-row', typed, confirmBtn('Reset everyone’s progress', async () => {
+      if (typed.value.trim() !== 'RESET') { toast('Type RESET first', 'err'); return; }
+      const r = await call('progressReset', { confirm: true, typed: 'RESET' });
+      out.replaceChildren(h('p', h('b', 'Done. '), `${r.line}. Backup ${r.stamp}; ${r.founders} FOUNDING MEMBER card${r.founders === 1 ? '' : 's'} given first.`));
+      toast('Progress reset'); backups(); audit(); loadStats(true);
+    }, 'is-danger'))));
+}
+async function backups() {
+  const box = document.getElementById('ad-reset-bk');
+  if (!box) return;
+  const { backups: list } = await call('progressBackups');
+  { const c = cardOf('ad-reset'); if (c) c.count(list.length ? `${list.length} backup${list.length === 1 ? '' : 's'}` : ''); }
+  box.replaceChildren(...(list.length ? list.map(b => {
+    const typed = h('input.input.ad-typed', { type: 'text', placeholder: 'Type RESTORE', autocomplete: 'off', autocapitalize: 'characters', spellcheck: false, 'aria-label': 'Type RESTORE to confirm' });
+    return h('div.ad-tp-row.ad-bk-row', h('span.ad-tp-n', when(b.at), h('small', `${b.profiles} profiles · ${b.stamp}`)), typed,
+      confirmBtn('Restore', async () => {
+        if (typed.value.trim() !== 'RESTORE') { toast('Type RESTORE first', 'err'); return; }
+        const r = await call('progressRestore', { stamp: b.stamp, confirm: true, typed: 'RESTORE' });
+        toast(`Restored ${r.profiles} profiles`); audit(); loadStats(true);
+      }, 'is-danger'));
+  }) : [h('p.ad-dim', 'No backups yet — the first reset writes one.')]));
 }
 
 async function audit() {

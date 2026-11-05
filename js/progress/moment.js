@@ -7,7 +7,7 @@
 //   (achievement). Only transform + opacity move (60 fps).
 import { h, vibrate } from '../ui/dom.js';
 import { GAMES } from '../config.js';
-import { levelInfo, bandOf, nextRewardLevel, BANDS } from '../core/levels.js';
+import { levelInfo, bandOf, nextRewardLevel, BANDS, REWARD_LEVELS } from '../core/levels.js';
 import { streakView, streakDay } from '../core/streak.js';
 import { ACH } from '../core/achievements.js';
 import { ITEM, TIER_NAMES, KINDS } from '../core/items.js';
@@ -65,7 +65,9 @@ export async function openMoment(o, ctx = {}) {
   const lvlItems = (o.items || []).filter(id => { const lv = ITEM[id] && ITEM[id].lv; return !!lv && lv > L0.lvl && lv <= L1.lvl; });
   const sv = o.st ? streakView(o.st, streakDay(now)) : null;
   const ach = (o.ach || []).map(id => ACH[id]).filter(Boolean).slice(0, 3);
-  const tease = nextRewardLevel(L1.lvl);
+  // (THE SPEED PASS: the server's `nx` — the next level with a reward this player doesn't own yet (after THE PROGRESS RESET they re-climb
+  //  levels whose rewards they keep); an old result without it: the level table's next)
+  const tease = o.nx !== undefined ? o.nx : nextRewardLevel(L1.lvl);
 
   // ---- the panel
   const lines = (o.xp.parts || []).map(p => {
@@ -111,7 +113,9 @@ export async function openMoment(o, ctx = {}) {
     h('div.pg-extras', streakRow, teaseRow, ...unlockRows, ...achRows, moreRow),
     cont);
   const burst = h('div.pg-burst', { 'aria-hidden': 'true' }, ...Array.from({ length: 22 }, (_, i) => h('i', { style: { '--a': `${(360 / 22) * i + (i % 3) * 5}deg`, '--d': `${70 + (i % 4) * 26}px`, '--s': `${0.5 + (i % 3) * 0.3}` } })));
-  const lvUp = up ? levelUpCard(L1, L0, lvlItems, ctx.name) : null;
+  // (a level whose reward they already own — re-climbed after THE PROGRESS RESET: no fake "unlocked", a quiet ALREADY YOURS)
+  const owned = up && !lvlItems.length && REWARD_LEVELS.some(l => l > L0.lvl && l <= L1.lvl) && o.nx !== undefined;
+  const lvUp = up ? levelUpCard(L1, L0, lvlItems, ctx.name, owned) : null;
   // THE LEVEL-UP HOLDS (the owner's review: "I couldn't even read it"): up until a TAP — taps in its first second are ignored (a skip-tap
   // can't throw it away unread), a soft TAP TO CONTINUE after a second; then the score screen finishes from there
   let upShown = false, upAck = !up, upAt = 0, phaseB = null;
@@ -239,7 +243,7 @@ export async function openMoment(o, ctx = {}) {
 }
 
 /** THE LEVEL-UP (mockup 2): the big medal flips to the new number with a burst; its unlocks with their tier + X%. */
-function levelUpCard(L1, L0, items, name) {
+function levelUpCard(L1, L0, items, name, owned = false) {
   const b0 = bandOf(L0.lvl), b1 = bandOf(L1.lvl);
   const nb = BANDS[BANDS.indexOf(b1) + 1];
   const nextBand = b1 !== b0 ? `NEW BAND · ${b1.name}` : nb && nb.from - L1.lvl <= 3 ? `Still ${b1.name} · ${nb.name} is close` : `Still ${b1.name}`;
@@ -250,6 +254,7 @@ function levelUpCard(L1, L0, items, name) {
     h('b.pg-up-n', `LEVEL ${L1.lvl}`),
     h('em', nextBand),
     ...items.slice(0, 2).map(id => h('div.pg-box.pg-unl.is-in', itemSwatch(id, name), h('div', h('small', 'UNLOCKED'), h('b', ITEM[id].name), h('span', `${TIER_NAMES[ITEM[id].tier]} · ${KINDS[ITEM[id].kind]}`), h('em.pg-pct', { dataset: { i: id } })))),
+    owned ? h('div.pg-box.pg-unl.pg-owned.is-in', h('div', h('small', 'THIS LEVEL’S REWARD'), h('b', 'Already yours'))) : null,
     h('div.pg-up-tap', { 'aria-hidden': 'true' }, 'TAP TO CONTINUE'));
   return { el };
 }

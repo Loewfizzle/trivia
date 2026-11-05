@@ -581,6 +581,62 @@ test('TEST PLAYERS from the first profile + the pre-tick; the grouped logs: MARK
   } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); await ref('errlog').remove(); await ref('phonelog').remove(); }
 });
 
+// THE SPEED PASS add-on — THE PROGRESS RESET: admins only; the preview writes nothing; CONFIRM (typed RESET) writes a BACKUP first, stamps
+// FOUNDING MEMBER on everyone who qualifies FIRST, then zeroes XP / levels / ranks / streaks / achievements / records + THE BOARD — every item,
+// the member Nº, the founder card + the equipped card stay; a second run is harmless; a backup restores the progress (never takes an item)
+test('THE PROGRESS RESET: a backup + FOUNDING MEMBER first, progress + THE BOARD zeroed, every item kept, a second run harmless, a restore', async () => {
+  const a = await ensure('u-rsa', 'Resetter'), b = await ensure('u-rsb', 'Other'), own = await ensure('u-rsown', 'Boss');
+  const room = await seedRoom('slip', ['u-rsa', 'u-rsb'], { dist: 7000 }, { 'u-rsa': 'Resetter', 'u-rsb': 'Other' });
+  await report('u-rsa', room); tick();
+  // (b played but the founder card never reached it — the sweep must give it BEFORE the wipe)
+  await ref(`pstats/${b.pid}/it/card-founder`).remove(); await ref(`profiles/${b.pid}/fd`).remove();
+  await ref(`pstats/${a.pid}/it/card-dev-switchboard`).set(clock);   // (a 1-of-1 — kept)
+  await ref(`profiles/${a.pid}/cd`).set('card-founder');
+  await ref(`lb/slip-wins/all/${a.pid}`).set(5); await ref(`pstats/${a.pid}/st`).set({ n: 4, d: 'd20261014', b: 4, f: 1 });
+  const before = await val(`pstats/${a.pid}`), mnA = await val(`profiles/${a.pid}/mn`), itA = before.it;
+  assert.ok(before.xp > 0 && Object.keys(before.g || {}).length, 'a has progress');
+  process.env.ADMIN_PIDS = `${own.pid}`;
+  try {
+    await rejects(adminAction('u-rsa', { action: 'progressReset' }), 403, 'not_admin');
+    const dry = await adminAction('u-rsown', { action: 'progressReset' });
+    assert.equal(dry.done, false); assert.ok(dry.preview.profiles >= 3 && dry.preview.xp >= before.xp && dry.preview.items === 0, `the preview (${dry.line})`);
+    assert.match(dry.line, /profiles · [\d,]+ XP · \d+ board records? · \d+ achievements? · \d+ streaks? will be reset; 0 items removed/);
+    assert.ok((await val(`pstats/${a.pid}/xp`)) > 0 && (await val('backups')) == null, 'the preview wrote nothing');
+    await rejects(adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'reset please' }), 400, 'type_reset');
+    const r = await adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'RESET' });
+    assert.ok(r.done && /^b\d+$/.test(r.stamp) && r.founders >= 1, `done (backup ${r.stamp}, ${r.founders} founder cards first)`);
+    const bk = await val(`backups/${r.stamp}`);
+    assert.ok(bk && bk.s[a.pid].xp === before.xp && bk.lb && bk.p[a.pid].x === before.xp, 'THE BACKUP holds the progress as it was');
+    const sa = await val(`pstats/${a.pid}`), pa = await val(`profiles/${a.pid}`), sb = await val(`pstats/${b.pid}`);
+    assert.ok(!sa.xp && !sa.g && !sa.b && !sa.ac && !sa.pa && !sa.gw, 'XP, mastery counters, records, achievements, the week: gone');
+    assert.deepEqual(sa.st, { f: 1 }, 'the streak gone, the freeze held kept');
+    assert.deepEqual(sa.it, itA, 'EVERY item kept (the 1-of-1 + FOUNDING MEMBER)');
+    assert.ok(pa.x === 0 && pa.l === 1 && pa.r === 0 && pa.m === 0 && pa.mn === mnA && pa.cd === 'card-founder' && pa.n === 'Resetter', 'the profile: level 1, rank 0 — name, Nº, the equipped card kept');
+    assert.ok(sb.it['card-founder'] && (await val(`profiles/${b.pid}/fd`)) === true, 'FOUNDING MEMBER stamped on b BEFORE the wipe');
+    assert.equal(await val('lb'), null, 'THE BOARD is empty');
+    // RE-CLIMBING: a new match after the reset re-grants nothing a player already owns, and the tease names a level whose reward isn't owned
+    tick(DAY);
+    const room2 = await seedRoom('slip', ['u-rsa', 'u-rsb'], { dist: 7000 }, { 'u-rsa': 'Resetter', 'u-rsb': 'Other' });
+    const rr = await report('u-rsa', room2); tick();
+    const o = rr.outcome, { LEVEL_REWARDS } = await import('../../js/core/levels.js');
+    assert.ok(o && !(o.items || []).some(id => itA[id]), `no owned reward re-granted (${JSON.stringify(o && o.items)})`);
+    assert.ok(o && (o.nx === null || LEVEL_REWARDS.some(x => x.lvl === o.nx && !itA[x.item])), `the tease: level ${o && o.nx} — a reward not owned yet`);
+    // a second run: harmless
+    const r2 = await adminAction('u-rsown', { action: 'progressReset', confirm: true, typed: 'RESET' });
+    assert.ok(r2.done && r2.preview.items === 0 && !(await val(`pstats/${a.pid}/xp`)) && (await val(`profiles/${a.pid}/x`)) === 0, 'a second run: only the new progress goes (the re-climb), never an item');
+    assert.deepEqual((await val(`pstats/${a.pid}`)).it, itA, '…and still takes no item');
+    const bl = await adminAction('u-rsown', { action: 'progressBackups' });
+    assert.ok(bl.backups.length === 2 && bl.backups[0].at >= bl.backups[1].at, 'the backups, newest first');
+    // RESTORE the first backup
+    await rejects(adminAction('u-rsown', { action: 'progressRestore', stamp: r.stamp, confirm: true, typed: 'yes' }), 400, 'type_restore');
+    await adminAction('u-rsown', { action: 'progressRestore', stamp: r.stamp, confirm: true, typed: 'RESTORE' });
+    assert.ok((await val(`pstats/${a.pid}/xp`)) === before.xp && (await val(`profiles/${a.pid}/x`)) === before.xp && (await val(`lb/slip-wins/all/${a.pid}`)) === 5, 'restored: XP + THE BOARD back');
+    assert.ok((await val(`pstats/${b.pid}/it/card-founder`)), 'a restore never takes an item away (b keeps the founder card it got)');
+    const acts = Object.values((await val('audit')) || {}).map(x => x.act);
+    assert.ok(acts.filter(x => x === 'progressReset').length === 2 && acts.includes('progressRestore'), 'audited');
+  } finally { process.env.ADMIN_PIDS = ''; await ref('audit').remove(); await ref('backups').remove(); }
+});
+
 // LOBBY FIXES — ONE PROFILE, ONE SEAT + ONE ACCOUNT, ONE ROOM: whatever a client does, the server credits a profile once per match (its
 // WORSE seat) and never for a match that overlaps one it already counted in ANOTHER room
 test('ONE ACCOUNT, ONE ROOM: one profile in two seats is credited once (the worse); two rooms at once — the second never counts', async () => {

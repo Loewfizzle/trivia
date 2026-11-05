@@ -30,6 +30,9 @@
 //   testPlayers { since?, also? }  → LOBBY FIXES — REMOVE TEST PLAYERS (api/_lib/testplayers.js): the profiles made since `since` (+ `also`:
 //                                    "Name#1234") → { players, since, next }
 //   removeTestPlayers { pids, confirm } → the dry run (confirm false) or the removal (confirm true, audited): { remove, counter, done }
+//   progressReset { confirm?, typed? } · progressBackups · progressRestore { stamp, confirm?, typed? } → THE SPEED PASS add-on — THE PROGRESS
+//                                    RESET (api/_lib/reset.js): the preview (a dry run), then a backup + FOUNDING MEMBER first + the reset
+//                                    (typed RESET); the backups; a restore (typed RESTORE) — every one audited
 //   radio…                         → CITY CONTROLS A — THE RADIO (api/_lib/radio.js): radioState · radioFire · radioStop · radioClearAll ·
 //                                    radioBoard · radioBoardEdit · radioBoardCancel · radioDial · radioRooms · radioWho · radioHello —
 //                                    each checks the caller's ROLE (the owner = ADMIN_PIDS, THE CREW = radio/crew/{pid}) per action
@@ -49,6 +52,7 @@ import { streakDay, dayNum } from '../js/core/streak.js';
 import { radioAction, radioPublic, clipOf } from './_lib/radio.js';
 import { labMarks, labMark, labExport, LAB_CACHE, LAB_TEXT, LAB_CHANGES } from './_lib/lab.js';
 import { listTestPlayers, removeTestPlayers } from './_lib/testplayers.js';
+import { progressReset, progressBackups, progressRestore } from './_lib/reset.js';
 
 async function audit(by, act, pid, detail = {}) {
   await ref('audit').push({ at: Date.now(), by, act, pid: pid || null, ...detail });
@@ -286,6 +290,17 @@ export async function adminAction(uid, body, now = Date.now()) {
     case 'labMark': { const marks = await labMark(me, body, now); await audit(me, 'labMark', null, { b: `${String(body.id).slice(0, 40)} ${body.mark || 'clear'}`, note: String(body.note || '').slice(0, 140) }); return { marks }; }
     // LOBBY FIXES — REMOVE TEST PLAYERS (/admin's TEST PLAYERS card): the list, the dry run, then the removal (the server's own key; audited)
     case 'testPlayers': return listTestPlayers({ since: body.since, also: body.also });
+    case 'progressReset': {
+      const r = await progressReset({ confirm: body.confirm === true, typed: String(body.typed || ''), me, now });
+      if (r.done) await audit(me, 'progressReset', null, { b: `${r.line} · backup ${r.stamp} · ${r.founders} founder card${r.founders === 1 ? '' : 's'} first` });
+      return r;
+    }
+    case 'progressBackups': return progressBackups();
+    case 'progressRestore': {
+      const r = await progressRestore({ stamp: body.stamp, confirm: body.confirm === true, typed: String(body.typed || '') });
+      if (r.done) await audit(me, 'progressRestore', null, { b: `${r.stamp} · ${r.profiles} profiles` });
+      return r;
+    }
     case 'removeTestPlayers': {
       const r = await removeTestPlayers(body.pids, { confirm: body.confirm === true, now });
       if (r.done) await audit(me, 'removeTestPlayers', null, { b: r.remove.map(x => `${x.n}#${x.t}${x.mn ? ` Nº${x.mn}` : ''}`).join(', ').slice(0, 400), counter: `${r.counter.from}→${r.counter.to}` });

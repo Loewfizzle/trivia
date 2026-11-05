@@ -5,7 +5,8 @@ import { ref, val } from './fb.js';
 import { boardPaths, rankOf, clearBoardCache, matchCount, minMatches, syncBoards } from './lb.js';
 import { boardDef, toSort } from '../../js/core/boards.js';
 import { matchStep } from '../../js/core/progress.js';
-import { levelOf, emblemRank } from '../../js/core/levels.js';
+import { levelOf, emblemRank, LEVEL_REWARDS } from '../../js/core/levels.js';
+import { nextUnownedLevel } from '../../js/core/reset.js';
 import { founderOpen } from './founder.js';
 import { easternParts } from '../../js/core/week.js';
 import { holidayOf } from '../../js/core/sky.js';
@@ -88,6 +89,9 @@ export async function applyMatch(key, ex, pids, now = Date.now(), room = null) {
       gid: ex.gid, rank: row.rank, win: row.win, n: ex.n,
       xp: { gain: res.xp.total, parts: res.xp.parts, from: res.from, to: stats.xp },
       rk: { from: r0, to: r1 }, lv: res.lv, items: res.items, ach: res.ach, pbs: res.pbs, ranks, hidden: !!prof.h, played, streak: (stats.st && stats.st.n) || 1, st: stats.st || null, sev: res.streak.ev,
+      // (THE SPEED PASS — after THE PROGRESS RESET a player re-climbs levels whose rewards they already own: the round-end card's "NEXT UNLOCK"
+      //  names the next level with a reward they DON'T own — WHEN, never WHAT; null = nothing left to unlock by level)
+      nx: nextUnownedLevel(LEVEL_REWARDS, levelOf(stats.xp || 0), stats.it || {}),
     };
   }));
   clearBoardCache();
