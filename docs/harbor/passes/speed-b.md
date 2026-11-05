@@ -14,7 +14,7 @@ A3 H5 E2 E3) + the owner's four notes from his SPEED PASS test + the two red spe
   (`exitHow()`: leave · lost · kick · closed). `people.js#room(null, { me, wave })` — only THIS phone's own figure leaves the promenade (it
   waves only on a LEAVE; a drop / a kick / a closed room just walks off); every OTHER room figure carries on INSIDE through the side door the
   doorman holds (`planIn`, one after another ~0.45 s apart) — the room goes on without you; nobody vanishes in view (THE PEOPLE RULE).
-- **Proof**: `speed` job `leaver` — every figure the NEAR pass draws (`__district.drawnNow()`, new) counted frame by frame through the
+- **Proof**: `lobbyfix2` job `leaver` — every figure the NEAR pass draws (`__district.drawnNow()`, new) counted frame by frame through the
   walk-off on the leaver's screen + the host's, 1440×900 + 402, a leave + a drop: ONE figure of the leaver at most (failed before: 2 waving
   at once on the leaver's own screen + the "DISCONNECTED" toast).
 
@@ -105,8 +105,29 @@ A3 H5 E2 E3) + the owner's four notes from his SPEED PASS test + the two red spe
   of 4 s; (2) the guest list's 8 legendary strips on the GPU painter — `gl.js#pv` / `vtx` / `strokePoly` / `bufferData` ≈ 300 ms (the
   laser's share now smaller); (3) the road's sign words redrawn each frame — `road.js#word` 82 ms. None taken in this pass.
 
-## The numbers
-(below)
+## The numbers (BEFORE → AFTER, the mini PC; FR6 A's method: 402×874 @3, CPU 4× for rebuilds / 2× for frames)
+| what | before | after |
+| --- | --- | --- |
+| a full card over CUSTOMIZE (4×, the real compositor) | 33.3 ms median, 206 / 240 slow (~30 fps) | 16.7 ms, 0 / 240 slow (60 fps) |
+| the rebuild after a match (4×): the city shown | 6.25–6.45 s | 6.05–6.30 s |
+| … its long tasks to the reveal / the biggest | 5.3–5.9 s / 930–954 ms | 4.97–5.24 s / 901–998 ms |
+| 8 legendary strips, the GPU path (4×), busy a frame — tier 2 / tier 1 | 4.11–4.19 / 3.59–3.67 ms | 3.87–3.99 / 2.65–2.71 ms |
+| glass layers live during the game start | 1 | 0 |
+| the game start's frames (4×) | median 66.6 ms | 66.7 ms (unchanged: not the glass) |
+| a fresh visit's bytes, 25 s (an ordinary moment) | 10.2 MB (4.4 music) | 10.2 MB (the saving is mid-crossfade + after a match) |
+| a song stopped + wanted by the rebuilt city | 2 fetches + 2 decodes | 1 + 1 |
+| `/api/time` in a title's first ~20 s / per return to the screen | 10 / 5 | 3 / 0 |
+| the party room at 2× | ~34–35 fps | 36.9 fps |
+
+## The full local run (the mini PC — THE BUSY-PC CHECK quiet, 3.2 %)
+- THE FULL HARBOR SUITE at 4 shards, alone: **1144 / 1148** in 28 min. The 4 reds — all 4×-CPU timing checks under the shard load: (1) my new
+  `rebuild` budget line, written BEFORE its after-numbers were known (shown < 6 s, no task ≥ 900 ms; measured after: 6.05–6.45 s, 901–1041 ms)
+  → its RULE half made hard (the first plan warmed one block a task — 3 or 4 blocks) + the budget line set from the measured after-numbers
+  with a margin (shown < 7 s, no task ≥ 1.3 s) — green alone; (2) `roomperf`'s own cost (the known red — Known issues); (3) + (4) the vault's
+  8-legendary lobby + the 8 sightings at 4× (27 / 240 slow; 53.5 fps) — GREEN ALONE right after (2 / 240 slow; 57.8 fps) and earlier in this
+  pass: the shard load, as speed.md recorded.
+- unit **1169 / 1169** (+ rules-live) · rules **64 / 64** · /api server.test **36 / 36** · progression 10 / 10 · sightings 4 / 4 · lab 2 / 2 ·
+  the profile E2E **63 / 63** · conn **21 / 21** (+ E3) · presence **12 / 12** · smoke **6 / 6** · WebKit `wk-room.mjs` **5 / 5**. **No rules change.**
 
 ## Decisions
 - Out of the room, the OTHERS walk INSIDE (the room carries on in the speakeasy — "YOUR FRIENDS ARE ALREADY INSIDE"), never a second walk-off.
@@ -115,4 +136,14 @@ A3 H5 E2 E3) + the owner's four notes from his SPEED PASS test + the two red spe
 - The tab you look at is the player (the owner's "only the VISIBLE tab acts").
 
 ## Known issues + held back
-(below)
+- **A2 (3)** the baked sky first: not done — the rebuild's BIGGEST task (~900–1000 ms at 4× ≈ 0.25 s on a phone) is the city's build itself
+  (the title's mount + `scene.js#layout` + the first bakes' `drawImage`), not the people; splitting it is its own piece of work.
+- **A6**'s −130 ms: a size change MUST re-plan (the walking map's edges follow the camera) — only an identical map keeps the plan. Keeping
+  visits across a real resize needs world-fixed entry points (a planner change) — held.
+- **`roomperf`'s OWN COST at 4×**: red on the mini PC (+3.3 ms standing, +6.6 ms with the guest list vs bars of 3 / 4) — the same at the
+  pre-pass commit; the 8 standing figures' draw + the strips' GPU contention. Skipped on the runner as before; the owner's `&bench=1` decides.
+- **THE PARTY ROOM's top three** (above) not taken: the city's composited layers, the guest list's strips on the GPU painter, the road's words.
+- **The game start at 4×** (~66 ms a frame on this machine — native paint): measured, not gated; the glass is gone, the rest not looked at.
+- E2 (c) one fetch shared with the tape-stop slice, (d) re-encoding (the owner's ears) — not done; THE BYTES PROBE's 17.6 MB (FR6) not
+  reproduced at an ordinary moment (10.2 MB).
+- WebKit: the room's shows by `wk-room.mjs`; the two-tab handshake + the full card's cover measured in Chromium only.

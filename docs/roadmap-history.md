@@ -1934,3 +1934,14 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - THE ADD-ON: THE PROGRESS RESET (/admin — a backup, FOUNDING MEMBER first, every reward kept, repeatable, restorable; the tease names the next
   reward you don't own; "Already yours").
 - The owner split it: Group 3 (THE PHONE's SPEED — A2 A6 A3 H5 E2 E3) → THE SPEED PASS B.
+
+## THE SPEED PASS B — THE OWNER's FOUR + THE PHONE's SPEED (Nov 4 2026, night) — docs/harbor/passes/speed-b.md
+- THE OWNER's FOUR: THE LEAVER ONCE (a LEAVE's own write was read as a disconnect + every room figure waved goodbye on the leaver's screen —
+  now only yours leaves, waving on a leave; the others carry on inside); THE HOST's OWN LEAVE (the next in join order + one toast on every
+  phone); THE FULL CARD's LAG (measured 33.3 ms a frame over CUSTOMIZE vs 16.7 alone at 4× CPU → THE COVER: everything behind it held —
+  16.7); MULTIPLE TABS (the tab on screen is the player; a yielded tab's music off for that page).
+- THE PHONE's SPEED (review-6.md): A2 the people's first plan one block a task + the reveal waits for it (shown 6.25–6.45 → 6.05–6.30 s at 4×;
+  long tasks 5.3–5.9 → 5.0–5.2 s) + BACK TO THE ROOM in one update; A6 the plan kept when the walking map is the same (a size change must
+  re-plan — the edges move); A3 the laser's colours + a gradient's stops made once, 18 segments at tier ≤ 1 (−26 % at tier 1); H5 no glass
+  during the start; E2 the previous song only if held + THE MUSIC CACHE; E3 /api/time 10 → 3 a visit, 5 → 0 a return.
+- The red speed checks measured: the vault's lobby green, roomperf's own cost still red (as before the pass), the party room 36.9 fps at 2×.
