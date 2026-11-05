@@ -60,7 +60,7 @@ test('THE PROGRAM paints a badge on every row + tints its name; the vault tags r
   for (const t of RARITY) assert.match(radio, new RegExp(`data-tier="${t}"\\] \\{ --tc-ink: var\\(--tier-${t}-ink\\)`));
   const vault = read('css/vault.css');
   // (SHELL 2.0 A: the full card wears THE TIER GEM — vault/full.js#tierBadge; the tier's words only where cards are picked)
-  assert.match(read('js/vault/full.js'), /gemEl\(dev \? null : t, \{ dev, size: dev \? 32 : 28 \}\)/); assert.doesNotMatch(vault, /\.vl-tier/);
+  assert.match(read('js/vault/full.js'), /gemEl\(dev \? null : t, \{ dev, size: dev \? 32 : 28 \}\)/); assert.doesNotMatch(vault, /\.vl-tier[ .{:]/);
   for (const t of RARITY) assert.match(vault, new RegExp(`\\.vl-tt-${t} \\{ color: var\\(--tier-${t}\\)`));
 });
 

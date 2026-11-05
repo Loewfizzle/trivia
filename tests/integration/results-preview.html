@@ -33,6 +33,8 @@
   installEmblems();
   const players = { me: { name: 'BENNY', color: 'magenta', avatar: 'crown', pid: 'pmeeeeeeeeee' }, u2: { name: 'DEX', color: 'cyan', avatar: 'bolt' }, u3: { name: 'LUNA', color: 'yellow', avatar: 'moon' } };
   setState({ code: 'ABCD', uid: 'me', players, game: { id: 'slip', matchId: `m${kind}`, phase: 'final', participants: { me: true, u2: true, u3: true } } });
+  // (SHELL 2.0 A — the XP box's fit test: &xp=from,to overrides the case's XP — e.g. LEGEND · LEVEL 99 → "662 XP TO 100")
+  if (q.get('xp')) { const [a, b] = q.get('xp').split(',').map(Number); OUT[kind] = { ...OUT[kind], xp: xp(a, b) }; }
   sessionStorage.setItem(`rc:ABCD_m${kind}`, JSON.stringify(OUT[kind]));
   const rows = [{ uid: 'me', rank: 1, score: 9412 }, { uid: 'u2', rank: 2, score: 8100 }, { uid: 'u3', rank: 3, score: 5200 }];
   setTimeout(() => {

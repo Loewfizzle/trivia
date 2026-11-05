@@ -134,8 +134,8 @@ export function attachCallouts(code, game) {
   function xpNext(o) {
     const to = levelInfo(o.xp.to);
     return [
-      h('span.rc-xp-step', `${to.band.name} · LEVEL ${to.lvl}`),
-      h('span', to.max ? '' : `${num(to.need)} XP TO ${to.lvl + 1}`),
+      // (SHELL 2.0 A — ADD-ON: the band · level OVER what the next needs — two lines, so YOUR CARD fits beside them at 390 and nothing collides)
+      h('span.rc-xp-lv', h('span.rc-xp-step', `${to.band.name} · LEVEL ${to.lvl}`), to.max ? null : h('span.rc-xp-need', `${num(to.need)} XP TO ${to.lvl + 1}`)),
       o.streak >= 2 ? h('span', `${o.streak}-NIGHT STREAK 🔥`) : null,
       h('button.btn.btn-ghost.btn-sm.rc-xp-card', { type: 'button', onclick: () => import('../screens/profile.js').then(m => m.openCard()) }, 'YOUR CARD'),   // (SHELL 2.0 A: a small quiet tube)
     ];

@@ -23,6 +23,7 @@
 //   (every step through the server's own checks — one that can't go now is said, the rest still go), DELETE (a second tap).
 // Every action goes to the SERVER (/api/admin radio…), which checks the role + the rules + writes it; this page only draws. Audio is
 // polish (radio-sound.js): the desk works silently. 60 fps: the needle, the knobs, the lamps, the plug, the card — transform + opacity.
+import { takeLayer } from '../../ui/layers.js';
 import { h, reducedMotion } from '../../ui/dom.js';
 import { api as apiCall } from '../../profile/api.js';
 import { serverNow } from '../../firebase.js';
@@ -111,6 +112,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
   }
 
   // ---------------------------------------------------------------- open / close
+  let rdRelease = null;
   async function show() {
     if (open || destroyed) return;
     await sheetsReady;
@@ -119,6 +121,8 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     const back = h('div.rd-back', { onpointerup: e => { if (e.target === back) hide(); } });
     sheet = h('div.rd-sheet');
     modal.append(back, sheet);
+    // (SHELL 2.0 A — ONE Esc: the desk on THE LAYER STACK; Esc closes an open card first, then the desk — one step at a time)
+    rdRelease = takeLayer(modal, { close: () => { if (card) { card = null; render(); } else hide(); } });
     document.body.append(modal); document.body.classList.add('rd-open');
     render();
     requestAnimationFrame(() => modal && modal.classList.add('is-in'));
@@ -138,12 +142,11 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
     if (!open) return;
     open = false; card = null; clearInterval(tickT);
     const m = modal; modal = null; sheet = null;
+    if (rdRelease) { rdRelease(); rdRelease = null; }
     document.body.classList.remove('rd-open');
     if (m) { m.classList.remove('is-in'); setTimeout(() => m.remove(), 260); }
     schedule();
   }
-  const onKey = e => { if (e.key === 'Escape' && open) { if (card) { card = null; render(); } else hide(); } };
-  document.addEventListener('keydown', onKey);
 
   // ---------------------------------------------------------------- the pieces
   const plate = (t, cls = '') => h(`span.rd-plate${cls}`, t);
@@ -541,7 +544,7 @@ export function createRadio({ role = 'owner', remote = () => null, roomCode = ()
 
   function destroy() {
     destroyed = true; clearTimeout(pollT); clearInterval(tickT); clearTimeout(coverT); if (ic) ic.destroy();
-    document.removeEventListener('keydown', onKey); document.removeEventListener('visibilitychange', onVis);
+    document.removeEventListener('visibilitychange', onVis);
     unsub(); clearTimeout(storeT); if (askEl) askEl.remove(); document.body.classList.remove('rd-owner');
     if (modal) modal.remove(); btn.remove(); document.body.classList.remove('rd-open');
   }

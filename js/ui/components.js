@@ -145,6 +145,8 @@ export function leaderboard(rows, players, { me, presence, stagger = 70 } = {}) 
     setTimeout(() => countUp(scoreEl, r.prevScore ?? r.score, r.score, 1100), 250 + i * stagger);
   });
   if (rows.some(r => (r.prevScore ?? r.score) !== r.score)) setTimeout(() => sfx('shimmer'), 300);
+  // (SHELL 2.0 A — ADD-ON: each row becomes the player's SLIM CARD — ui/strip-board.js, lazy; the plain row shows until then / if it can't)
+  if (rows.length) import('./strip-board.js').then(m => m.upgradeBoard(list, rows, players)).catch(() => {});
   return list;
 }
 

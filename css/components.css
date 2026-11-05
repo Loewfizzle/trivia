@@ -1177,3 +1177,19 @@ body.nd-on .sh-msgs { top: auto; bottom: var(--msg-b, calc(var(--safe-b) + 128px
 .sh-msg.is-replaced { position: absolute; left: 0; right: 0; top: 0; }
 @keyframes sh-msg-in { from { opacity: 0; transform: translateY(10px); } }
 @media (prefers-reduced-motion: reduce) { .sh-msg { animation: none; } .sh-msg.is-out { transform: none; } }
+
+/* ---- SHELL 2.0 A — ADD-ON: THE RESULTS ROWS = SLIM CARDS (ui/strip-board.js): the place number beside the player's equipped strip, the score
+   laid over its top-right; one shared effect canvas for the list (the list is the surface's host), every strip calm. The row is NOT a
+   stacking context once it holds a strip (no transform / animation on it) so the strip's plate sits over the shared canvas (docs/vault.md) */
+.board-list.is-strips { gap: 8px; }
+.lb-row.lb-strip { display: grid; grid-template-columns: 2.6ch minmax(0, 1fr); align-items: center; gap: 8px; min-height: 0; padding: 0; background: none; border: 0; box-shadow: none; animation: none; }
+.lb-row.lb-strip .lb-rank { font: 800 15px/1 var(--font-num); color: var(--text-dim); text-align: right; }
+.lb-row.lb-strip.is-first .lb-rank { color: var(--yellow); }
+.lb-card { position: relative; min-width: 0; }
+.lb-card .vl-strip { width: 100%; }
+.lb-over { position: absolute; z-index: 4; top: 7px; right: 9px; display: flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px;
+  background: rgba(6, 5, 14, 0.82); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.16); pointer-events: none; }
+.lb-over .lb-score { min-width: 0; font-size: 16px; color: #fff; }
+.lb-over .lb-delta { font-size: 11px; }
+.lb-sub { display: flex; gap: 8px; margin: 4px 2px 0; font: 700 10px/1.2 var(--font-mono); letter-spacing: 0.1em; color: var(--text-dim); }
+.lb-sub .lb-note { margin: 0; }

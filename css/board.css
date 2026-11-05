@@ -441,7 +441,13 @@ body.reduced-fx .bd-card.is-cascade .bd-row { animation-duration: 0.01s; animati
 .rc-xp-bar { position: relative; height: 6px; border-radius: 99px; overflow: hidden; background: rgba(255, 255, 255, 0.08); }
 .rc-xp-fill { position: absolute; inset: 0; transform-origin: 0 50%; transform: scaleX(var(--f0)); background: linear-gradient(90deg, color-mix(in srgb, var(--rk) 55%, #fff), var(--rk)); box-shadow: 0 0 10px var(--rk); transition: transform 1.3s var(--ease) 0.3s; }
 .rc-xp.is-in .rc-xp-fill { transform: scaleX(max(0.02, var(--f))); }
-.rc-xp-next { font: 700 8.5px/1.25 var(--font-mono); letter-spacing: 0.14em; color: var(--text-faint); text-align: right; max-width: 92px; }
+/* (SHELL 2.0 A — ADD-ON: "REGULAR · LEVEL 14" + "51 XP TO 15" collided at 390 ("LEVEL 1451 XP") — the next-level line is its OWN ROW under
+   the bar: the band · level, what the next needs, the streak, then YOUR CARD at its end — each a whole piece, wrapping between, never into) */
+.rc-xp-next { grid-column: 1 / -1; display: flex; flex-wrap: wrap; align-items: center; gap: 6px 12px; min-width: 0; font: 700 9.5px/1.25 var(--font-mono); letter-spacing: 0.12em; color: var(--text-faint); }
+.rc-xp-next > span { white-space: nowrap; }
+.rc-xp-lv { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.rc-xp-lv > span { white-space: nowrap; }
+.rc-xp-next .rc-xp-card { margin-left: auto; }
 
 /* RANK UP: the old emblem dissolves, the new one forges in light, the name resolves */
 .rc-up { position: fixed; inset: 0; z-index: 400; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px; cursor: pointer; opacity: 0; transition: opacity 0.35s ease; -webkit-tap-highlight-color: transparent; }

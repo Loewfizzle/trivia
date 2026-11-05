@@ -422,3 +422,79 @@ G('radiorest', async () => {
     await O.ctx.close();
   }
 });
+
+// SHELL 2.0 A — THE ONE LOOK in the browser (docs/harbor/passes/shell-a.md; the unit half: tests/shell.test.mjs): THE ☰ MENU's rows (no admin
+// rows for a member), THE SHEET solid + stacked (‹ on the second, the one Esc closes the TOP only), ONE MESSAGE at a time ABOVE THE DOCK,
+// the dock's labels, THE PODIUM's BACK TO THE ROOM under the XP box + in view at 390
+G('shell', async () => {
+  const Q = await open({ slot: 'shl', qs: NIGHT, view: [390, 844] }), p = Q.page;
+  await harborUp(p);
+  // ---- the ☰ menu
+  await ev(p, "document.querySelector('.menu-btn').click()");
+  await waitFor(p, "!!document.querySelector('.gm.is-in .sh-row')", 'the menu', 6000);
+  await sleep(450);
+  const m = await ev(p, `(() => { const rows = [...document.querySelectorAll('.gm .sh-row')], pn = document.querySelector('.gm .sh-panel'), r = pn.getBoundingClientRect(), mid = document.elementFromPoint(r.left + r.width / 2, r.top + 40);
+    return { labels: rows.map(x => x.querySelector('.sh-row-l b').textContent), h: Math.min(...rows.map(x => Math.round(x.getBoundingClientRect().height))), solid: !!(mid && mid.closest('.sh-panel')), bg: getComputedStyle(pn).backgroundImage, blur: getComputedStyle(pn).backdropFilter }; })()`);
+  ok(m.labels.join(' · ') === 'Your card · How to play · Settings · Sound effects' && m.h >= 56 && m.solid && !/rgba/.test(m.bg) && (!m.blur || m.blur === 'none'),
+    `THE ☰ MENU: ${m.labels.join(' · ')} (no admin rows for a member), rows ${m.h} pt, the sheet SOLID (${m.solid}, no blur)`);
+  // ---- a sheet on a sheet: ‹ shows on the second; Esc closes the TOP only, then the next
+  await ev(p, "document.querySelector('.gm .gm-settings').click()");
+  await waitFor(p, "!!document.querySelector('.sh.settings.is-in')", 'SETTINGS', 6000); await sleep(400);
+  // (the menu closes itself when it opens SETTINGS; open HOW TO PLAY on top of SETTINGS to test the stack)
+  await ev(p, "import('/js/ui/help.js').then(m => { m.openHelp('prism'); return 1; })");
+  await waitFor(p, "!!document.querySelector('.help-sheet.is-in')", 'HOW TO PLAY', 6000); await sleep(400);
+  const st = await ev(p, `({ n: document.querySelectorAll('.sh:not(.is-out)').length, back: !document.querySelector('.help-sheet .sh-back').hidden, top: document.elementFromPoint(innerWidth / 2, innerHeight - 120).closest('.sh').className })`);
+  await p.keyboard.press('Escape'); await sleep(450);
+  const e1 = await ev(p, `({ help: !!document.querySelector('.help-sheet:not(.is-out)'), set: !!document.querySelector('.sh.settings:not(.is-out)') })`);
+  await p.keyboard.press('Escape'); await sleep(450);
+  const e2 = await ev(p, `!!document.querySelector('.sh:not(.is-out)')`);
+  ok(st.n === 2 && st.back && /help-sheet/.test(st.top) && !e1.help && e1.set && !e2, `THE SHEET STACK: HOW TO PLAY on SETTINGS (‹ ${st.back}, on top) → Esc closes HOW TO PLAY only (settings still ${e1.set}) → Esc closes SETTINGS (${!e2})`);
+  // ---- ONE MESSAGE at a time, above the dock, never on the sign
+  await ev(p, "import('/js/ui/toast.js').then(m => { m.toast('FIRST', 'info', 5000); m.toast('Host left — you’re the host now', 'warn', { ms: 5000, sub: 'Your friends are still in the room.' }); return 1; })");
+  await sleep(500);
+  const ms = await ev(p, `(() => { const on = [...document.querySelectorAll('.sh-msg:not(.is-out)')], r = on[0] && on[0].getBoundingClientRect(), d = document.querySelector('.nd-actions').getBoundingClientRect(), sign = document.querySelector('.nd-logo, .nd-sign, .nd-neon');
+    const s = sign ? sign.getBoundingClientRect() : { bottom: 0 }; return { n: on.length, t: on[0] && on[0].querySelector('.sh-msg-t').textContent, above: r && r.bottom <= d.top + 1, clear: r && r.top >= s.bottom, tube: on[0] && getComputedStyle(on[0].querySelector('.sh-msg-tube')).width, x: on[0] && on[0].querySelector('.sh-msg-x').getBoundingClientRect().height }; })()`);
+  ok(ms.n === 1 && /you’re the host now/i.test(ms.t) && ms.above && ms.clear && ms.x >= 44, `ONE MESSAGE: "${ms.t}" — one at a time (${ms.n}), above the dock (${ms.above}), clear of the sign (${ms.clear}), its tube ${ms.tube}, × ${ms.x} pt`);
+  // ---- the dock's labels
+  const lb = await ev(p, "[...document.querySelectorAll('.nd-actions .nd-tab .rdk-lbl')].map(x => x.textContent).join(' · ')");
+  ok(lb === 'BOARD · GAMES · YOU', `THE TITLE DOCK's LABELS: ${lb}`);
+  if (SHOTS) await p.screenshot({ path: `${OUT}shell-message-390.png` });
+  await Q.ctx.close();
+  // ---- THE PODIUM's FRAME (the results preview: no Firebase): BACK TO THE ROOM right under the XP box, in view without scrolling at 390
+  const { launch } = await import('./kit.mjs');
+  const ctx = await (await launch()).createBrowserContext(), q = await ctx.newPage();
+  await q.setViewport({ width: 390, height: 844, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await q.goto(`${BASE}/tests/integration/results-preview.html?case=pb`);
+  await waitFor(q, "!!document.querySelector('.final .final-back')", 'the podium', 15000);
+  for (let i = 0; i < 6 && await ev(q, "!!document.querySelector('.pg-moment')"); i++) { await ev(q, "(() => { const b = document.querySelector('.pg-moment .pg-btn'); if (b) b.click(); })()"); await sleep(700); }
+  await sleep(600);
+  const pd = await ev(q, `(() => { const b = document.querySelector('.final-back'), x = document.querySelector('.final .rc-slot'), r = b.getBoundingClientRect(), xr = x ? x.getBoundingClientRect() : null, lb = document.querySelector('.final .board-list');
+    return { inView: r.bottom <= innerHeight && r.top >= 0, under: !!(xr && r.top >= xr.bottom - 1 && r.top - xr.bottom < 80), beforeBoard: !!(lb && (b.compareDocumentPosition(lb) & 4)), main: b.classList.contains('btn-primary'), n: document.querySelectorAll('.final button.btn').length, h: Math.round(r.height), top: Math.round(r.top) }; })()`);
+  ok(pd.inView && pd.under && pd.beforeBoard && pd.main && pd.h >= 54, `THE PODIUM's FRAME (390): BACK TO THE ROOM — the tube main (${pd.main}) at ${pd.top} pt, right under the XP box (${pd.under}), in view (${pd.inView}), before the board (${pd.beforeBoard}); ${pd.n} tube(s) on the podium`);
+  // ---- THE ADD-ON: the results rows = the players' SLIM CARDS (the winner's on top), on ONE shared effect surface
+  const sb = await ev(q, `(() => { const l = document.querySelector('.final .board-list'), rows = [...l.querySelectorAll('.lb-row')];
+    return { strips: l.classList.contains('is-strips'), n: rows.filter(r => r.querySelector('.vl-strip')).length, rows: rows.length, first: (rows[0].querySelector('.vl-name') || {}).textContent, rank: rows[0].querySelector('.lb-rank').textContent,
+      score: !!rows[0].querySelector('.lb-over .lb-score'), canvases: l.querySelectorAll('canvas').length }; })()`);
+  ok(sb.strips && sb.n === sb.rows && /BENNY/.test(sb.first) && sb.rank === '01' && sb.score && sb.canvases <= 1, `THE RESULTS ROWS = SLIM CARDS: ${sb.n}/${sb.rows} strips, the winner's on top ("${sb.first}" ${sb.rank}), the score over it, ${sb.canvases} shared canvas`);
+  if (SHOTS) await q.screenshot({ path: `${OUT}shell-podium-390.png` });
+  await ctx.close();
+  // ---- THE XP BOX FITS (the owner: "LEVEL 1451 XP"): its pieces never collide + YOUR CARD on ONE line — a 2-digit level, a 2-digit + 3-digit
+  //      pair (LEGEND · LEVEL 99 → 662 XP TO 100) and the longest band name (NEWCOMER) at 390 / 402 / 430
+  const fits = [];
+  for (const [w, hh] of [[390, 844], [402, 874], [430, 932]]) for (const xpq of ['', '&xp=44300,44338', '&xp=0,20']) {
+    const c2 = await (await launch()).createBrowserContext(), r2 = await c2.newPage();
+    await r2.setViewport({ width: w, height: hh, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+    await r2.goto(`${BASE}/tests/integration/results-preview.html?case=pb${xpq}`);
+    await waitFor(r2, "!!document.querySelector('.final .rc-xp .rc-xp-card')", 'the XP box', 15000).catch(() => {});
+    await sleep(500);
+    fits.push(await ev(r2, `(() => { const box = document.querySelector('.final .rc-xp'); if (!box) return { ok: false, why: 'no box' };
+      const parts = [...box.querySelectorAll('.rc-xp-step, .rc-xp-need, .rc-xp-card, .rc-xp-top')].map(e => ({ t: e.textContent, r: e.getBoundingClientRect() }));
+      const hit = (a, b) => a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+      const clash = []; for (let i = 0; i < parts.length; i++) for (let j = i + 1; j < parts.length; j++) if (parts[i].t && parts[j].t && hit(parts[i].r, parts[j].r)) clash.push(parts[i].t + ' × ' + parts[j].t);
+      const b = box.querySelector('.rc-xp-card'), rg = document.createRange(); rg.selectNodeContents(b); const lines = new Set([...rg.getClientRects()].map(x => Math.round(x.top))).size;
+      const inBox = parts.every(p => p.r.right <= box.getBoundingClientRect().right + 0.5);
+      return { ok: !clash.length && lines === 1 && inBox, w: innerWidth, lv: (box.querySelector('.rc-xp-step') || {}).textContent, clash, lines, inBox }; })()`));
+    await c2.close();
+  }
+  ok(fits.every(f => f.ok), `THE XP BOX FITS at 390 / 402 / 430 (${fits.map(f => `${f.w}: ${f.lv}${f.ok ? '' : ` ✗ ${f.clash.join(' · ')} lines ${f.lines} in ${f.inBox}`}`).join(' | ')}) — nothing collides, YOUR CARD on one line`);
+});
