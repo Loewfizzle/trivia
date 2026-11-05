@@ -558,13 +558,20 @@ G('resizekeep', async () => {
   await harborUp(p); await sleep(2500);
   const snap = () => ev(p, `(() => { const P = window.__district.harbor().people; return { plans: P.plans, m: (P.members || []).filter(m => m.role === 'lead').map(m => m.id + '@' + m.x.toFixed(1)) }; })()`);
   const lt = async fn => { await ev(p, `(() => { window.__rz = []; window.__rzO = new PerformanceObserver(l => { for (const e of l.getEntries()) window.__rz.push(Math.round(e.duration)); }); window.__rzO.observe({ type: 'longtask' }); return 1; })()`); await fn(); await sleep(2500); return ev(p, '(() => { window.__rzO.disconnect(); return window.__rz; })()'); };
-  const a = await snap();
+  const lays = () => ev(p, `(window.__district.harbor().loadLog.rows || []).filter(r => r.kind === 'layout' || r.kind === 'canvas').map(r => r.t + ' ' + r.kind + ': ' + r.msg).slice(-4)`);
+  // (SHELL 2.0 A — Group 0, CITY 1.0 OUT's cloud red: the runner's page had ALREADY re-laid out once more when the check began ("kept 1"
+  //  where the mini PC starts at 0) — the title's rects still settling on the slower machine, so the @2 re-layout met a camera still moving.
+  //  The count starts once the page's OWN layouts have settled: the plan counters + the load log's layouts unchanged for 1.5 s)
+  { let sig = '', since = Date.now(); const end = Date.now() + 15000;
+    while (Date.now() < end) { const now = JSON.stringify([await ev(p, 'window.__district.harbor().people.plans'), await lays()]); if (now !== sig) { sig = now; since = Date.now(); } else if (Date.now() - since >= 1500) break; await sleep(250); } }
+  const a = await snap(), la = await lays();
   // (the window moved to a screen of another pixel ratio: the city re-lays out, the walking map comes out the same → the plan kept)
   const tH = await lt(() => p.setViewport({ width: 1440, height: 900, deviceScaleFactor: 2 }));
-  const b = await snap();
+  const b = await snap(), lb = await lays();
+  if (!(b.plans.replans === a.plans.replans)) log('A6 — the layouts', JSON.stringify(la), '→', JSON.stringify(lb), 'the re-plans:', JSON.stringify(b.plans.log));
   const same = a.m.filter(x => b.m.some(y => y === x || y.split('@')[0] === x.split('@')[0])).length;
   ok(a.plans && b.plans.kept > a.plans.kept && b.plans.replans === a.plans.replans && same >= Math.min(a.m.length, b.m.length) - 1,
-    `A6 — A RE-LAYOUT WITH THE SAME WALKING MAP KEEPS THE VISITS (1440×900 @1 → @2): the plan kept (kept ${a.plans && a.plans.kept} → ${b.plans.kept}, re-plans ${a.plans && a.plans.replans} → ${b.plans.replans}); ${same} of ${a.m.length} walkers still there; long tasks ${tH.reduce((x, y) => x + y, 0)} ms`);
+    `A6 — A RE-LAYOUT WITH THE SAME WALKING MAP KEEPS THE VISITS (1440×900 @1 → @2): the plan kept (kept ${a.plans && a.plans.kept} → ${b.plans.kept}, re-plans ${a.plans && a.plans.replans} → ${b.plans.replans}; the last re-plan: ${b.plans.why}); ${same} of ${a.m.length} walkers still there; long tasks ${tH.reduce((x, y) => x + y, 0)} ms`);
   // (a real size change moves the screen's edges — where people walk in — so the map changes and the plan is made again, as it must)
   const tW = await lt(() => p.setViewport({ width: 1300, height: 860, deviceScaleFactor: 2 }));
   const c = await snap();

@@ -87,6 +87,20 @@ export function createPeople() {
   const pnow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   let backLight = () => 0;   // (PROM: the back road's light at x, z — road.js#crossLightOf)
   let mapSig = '', replans = 0, kept = 0, lived = false;
+  // (SHELL 2.0 A — Group 0: the LAST re-plan's cause for the test hook — what in the map changed (the key's flags, or which parts moved);
+  //  only computed on a re-plan, never per frame)
+  let mapM = null, mapKeyWas = '', planWhy = null; const planLog = [];
+  const mapDiff = (a, b, key, keyWas) => {
+    if (!a) return 'first';
+    const out = []; if (key !== keyWas) out.push(`key ${keyWas} → ${key}`);
+    try {
+      for (const part of ['nodes', 'exits']) for (const k of Object.keys({ ...a[part], ...b[part] })) if (mapSigOf(a[part][k]) !== mapSigOf(b[part][k])) out.push(`${part}.${k}`);
+      const ids = r => (r || []).map(x => x.id || '?').join(',');
+      if (mapSigOf(a.rects) !== mapSigOf(b.rects)) out.push(ids(a.rects) === ids(b.rects) ? 'rects moved' : `rects ${ids(a.rects)} → ${ids(b.rects)}`);
+      for (const part of ['circles', 'solid', 'hydrantSpot', 'face', 'cw']) if (mapSigOf(a[part]) !== mapSigOf(b[part])) out.push(part);
+    } catch { out.push('?'); }
+    return out.slice(0, 8).join('; ');
+  };
   const mapSigOf = m => { try { return JSON.stringify(m, (k, v) => (typeof v === 'number' ? Math.round(v * 1000) / 1000 : v)); } catch { return String(Math.random()); } };
   // SPEED PASS B — A2 (1): the staged first plan (see frame): one block of folkWarmSteps(t) per task, in order; true once all are cached
   let staging = true, stageBusy = false, stageN = 0;
@@ -110,8 +124,8 @@ export function createPeople() {
     // (LOBBY 2.0 A — THE ROOM's TWO LINES are SOLIDS: the city's people route round them; the players themselves walk on roomMap — the
     //  same floor without the lines — into their places)
     M = folkMap(L, { event, ring, line: roomOn ? roomRects(L) : lineN ? lineRect(L, lineN) : null }); mapKey = key;
-    const sig = mapSigOf(M); if (sig !== mapSig) { cache.clear(); replans++; } else kept++;   // (A6: the same map → the same plan, kept)
-    mapSig = sig;
+    const sig = mapSigOf(M); if (sig !== mapSig) { cache.clear(); replans++; planWhy = mapDiff(mapM, M, key, mapKeyWas); planLog.push(planWhy); if (planLog.length > 4) planLog.shift(); } else kept++;   // (A6: the same map → the same plan, kept)
+    mapSig = sig; mapM = M; mapKeyWas = key;
     roomMap = folkMap(L, { event, ring });
   }
   // (FR6 FIXES A: a look is chosen from the weather's STEADY wind (env.windLook), never the per-frame gust field (env.wind) — a gust
@@ -890,7 +904,7 @@ export function createPeople() {
     /** SPEED PASS B — A2 (1): the first plan is in (the scene's reveal waits for it) · how many blocks were warmed one per task */
     ready: () => !staging, stageN: () => stageN,
     /** SPEED PASS B — A6: how often the walking map changed (the plan re-made) vs came out the same (the plan kept) */
-    plans: () => ({ replans, kept }),
+    plans: () => ({ replans, kept, why: planWhy, log: planLog.slice() }),
     /** SPEED PASS B — every figure the last NEAR pass drew: [{ vid, kind, seed, room, x, z, pose }] (the leaver's figures counted — e2e speed.mjs leaver) */
     drawnNow: () => lastNear.map(m => ({ vid: m.vid, kind: m.kind, seed: m.m && m.m.seed, room: m.room || null, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })),
     /** LOBBY 2.0 B: the side door on screen (the push through it at the game start zooms on this point) → { x, y } in CSS px */

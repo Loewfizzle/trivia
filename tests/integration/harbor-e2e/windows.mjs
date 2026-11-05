@@ -783,8 +783,10 @@ G('boxer', async () => {
     await Q.ctx.close(); }
   { const Q = await open({ slot: 'bx2b', qs: `when=2026-10-27T23:45${GR}&wx=clear&force=no-people,no-wildlife`, view: [402, 874] });
     await harborUp(Q.page); await settled(Q.page);
-    // (CC-B — GREEN MEANS GREEN: the cloud's slow runner read LIFE before the parked rooms were decided — "blind undefined": wait for them)
-    await waitFor(Q.page, `!!(${LIFE}.park)`, 'the parked rooms decided', 15000).catch(() => {});
+    // (CC-B — GREEN MEANS GREEN: the cloud's slow runner read LIFE before the parked rooms were decided — "blind undefined": wait for them.
+    //  SHELL 2.0 A — Group 0: `park` is {} until the window life's first frame (debug() → last.park || {}), so `!!park` was always true and
+    //  the wait never waited — CITY 1.0 OUT's cloud red. Wait for the upper middle's OWN blind: every frame sets it once the life runs)
+    await waitFor(Q.page, `!!(${LIFE}.park) && ${LIFE}.park.back != null`, 'the upper middle decided', 15000).catch(() => {});
     const L = await ev(Q.page, LIFE);
     ok((!L.boxer || (L.boxer.phase === 'out' && L.boxer.blind === 1 && L.boxer.lamp === 0)) && L.park && L.park.back > 0.9, `…DONE BY 11:45 pm (Tue): his blind down, the bulb out — the upper middle parked (blind ${L.park && L.park.back}${L.boxer ? `, ${L.boxer.phase}` : ''})`);
     await Q.ctx.close(); }
