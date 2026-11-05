@@ -22,7 +22,7 @@ export async function checkGift() {
 export async function revealGift(id, m = loadMe(), o = {}) {
   const [{ openFullCard }, { levelOf }, { memberLabel }] = await Promise.all([import('../vault/full.js'), import('../core/levels.js'), import('../core/member.js')]);
   const p = (m && m.profile) || {};
-  const head = h('div.vl-gift-head', h('small', 'A GIFT FROM THE HOUSE'), h('b', 'ONE OF ONE · IT’S YOURS'));
+  const head = h('div.vl-gift-head', h('small', 'A GIFT FROM THE HOUSE'), h('b', h('span.vl-gift-one', 'ONE OF ONE'), h('i.vl-gift-dot', ' · '), h('span.vl-gift-yours', 'IT’S YOURS')));
   const onClose = () => {
     if (o.preview) return;
     api('profile', { action: 'giftSeen' }).catch(() => {});

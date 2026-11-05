@@ -26,6 +26,8 @@ export const HERO = {
   'card-eternal': [[0.57, 0.05, 0.14, 0.9]],                      // the eternal flame
   'card-century': [[0.55, 0.2, 0.14, 0.6]],                       // the sunburst's heart (deco.js: 0.62 — B2)
   'card-founder': [[0.55, 0.14, 0.24, 0.72]],                     // NEON SPEAKEASY (opening.js: 0.66)
+  // (THE EXCEPTION — the owner, Nov 5 4:54 pm: THE SWITCHBOARD's ON AIR sign sits UNDER the gem's corner + he LIKES it there — DON'T MOVE IT;
+  //  its box is the second one: checked only clear of the gem, never moved to the band)
   'card-dev-switchboard': [[0.61, 0.3, 0.18, 0.6], [0.785, 0.1, 0.19, 0.4]],   // the jacks (0.635 → 0.765 — B2) + ON AIR (dev-switch.js)
   'card-dev-source': [[0.58, 0.24, 0.25, 0.52]],                  // NEON in the code rain (dev-source.js: 0.705 — B2)
 };
