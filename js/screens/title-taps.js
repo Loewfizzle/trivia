@@ -76,7 +76,7 @@ export function createTaps(T) {
     if (key && block) { sightTrace(e.down, key, `IGNORED — ${block}`); return; }
     const sg = key && T.scene.sightTap && T.scene.sightTap(x, y, { skip });
     if (sg) { sightTrace(e.down, sg.key, ''); }
-    if (sg) { import('../progress/sighting.js').then(m => m.onSighting(sg, { scene: T.scenene, reduced: T.reduced() })).catch(e => console.warn('[sighting]', e)); return; }
+    if (sg) { import('../progress/sighting.js').then(m => m.onSighting(sg, { scene: T.scene, reduced: T.reduced() })).catch(e => console.warn('[sighting]', e)); return; }
     const r = T.logoRect();
     if (r && x >= r.x && x <= r.x + r.w && y >= r.y - 12 && y <= r.y + r.h + 12) { buzz(Math.max(0, Math.min(3, Math.floor((x - r.x) / r.w * 4)))); return; }
     const hit = T.scene.hit(x, y);

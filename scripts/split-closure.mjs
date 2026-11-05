@@ -54,7 +54,7 @@ function isRef(id) {
   const p = parents.get(id);
   if (!p) return false;
   if (p.type === 'MemberExpression' && p.property === id && !p.computed) return false;
-  if ((p.type === 'Property' || p.type === 'MethodDefinition' || p.type === 'PropertyDefinition') && p.key === id && !p.computed && !(p.type === 'Property' && p.shorthand)) return false;
+  if ((p.type === 'Property' || p.type === 'MethodDefinition' || p.type === 'PropertyDefinition') && p.key === id && !p.computed && !(p.type === 'Property' && p.shorthand && p.value === id)) return false;   // (a shorthand's key: its value carries the reference — rewriting both garbled { scene } into scene: T.scenene)
   if (p.type === 'LabeledStatement' || p.type === 'BreakStatement' || p.type === 'ContinueStatement') return false;
   if (p.type === 'ImportSpecifier' || p.type === 'ImportDefaultSpecifier' || p.type === 'ImportNamespaceSpecifier' || p.type === 'ExportSpecifier') return false;
   if (p.type === 'MetaProperty') return false;

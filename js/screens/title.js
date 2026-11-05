@@ -1195,7 +1195,7 @@ export function createTitle() {
       dock: {
         join: dk.openJoin,
         preview: patch => { els.sig = null; update({ ...st, ...patch }); },   // test-only: show the dock for a state (REJOIN, an invite)
-        note: dk.noteote,
+        note: dk.note,
         recolor: () => dk.ringColors(true),
         sunAt: (x, y, r = 16.5) => { sunOverride = x == null ? null : { x, y, r, vis: 1, col: [255, 236, 200] }; sunGlass(); },
         // [BOARD, GAMES, YOU, the corner buttons]
