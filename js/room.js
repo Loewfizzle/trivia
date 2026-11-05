@@ -244,7 +244,9 @@ function enterRoom(code) {
   listen('players', players => {
     players = players || {};
     if (players[state.uid]) seen.self = true;
-    else if (seen.self) { exitRoom('YOU WERE DISCONNECTED FROM THE ROOM'); return; }
+    // (SPEED PASS B — the owner's 10:21 pm laptop: a LEAVE's own write lands here first (the local event fires before the await) — it was
+    //  read as a disconnect: "YOU WERE DISCONNECTED" + every figure waving goodbye. leaveRoom() exits itself, as a leave)
+    else if (seen.self) { if (leavingCode !== code) exitRoom('YOU WERE DISCONNECTED FROM THE ROOM', 'warn', { how: 'lost' }); return; }
     setState({ players });
     watchRoomProfiles(players);
   });
@@ -273,7 +275,7 @@ function enterRoom(code) {
   });
   listen('kicked', kicked => {
     kicked = kicked || {};
-    if (kicked[state.uid]) { exitRoom('THE HOST REMOVED YOU FROM THE ROOM', 'err'); return; }
+    if (kicked[state.uid]) { exitRoom('THE HOST REMOVED YOU FROM THE ROOM', 'err', { how: 'kick' }); return; }
     setState({ kicked });
   });
   listen('game', game => {
@@ -377,8 +379,14 @@ function stopListening() {
   liveWanted = null;
 }
 
-export function exitRoom(reason, kind = 'warn', { keepSeat = false } = {}) {
+// SPEED PASS B — HOW this phone left its last room: { code, how: 'leave' | 'lost' | 'kick' | 'closed' } (the city: only a LEAVE waves goodbye;
+// screens/room-city.js reads it as the room's figures go) · leavingCode: a leave in flight (its own players event is not a disconnect)
+let lastExit = null, leavingCode = null;
+export const exitHow = () => lastExit;
+export function exitRoom(reason, kind = 'warn', { keepSeat = false, how = 'closed' } = {}) {
   const code = state.code;
+  lastExit = { code, how };
+  leavingCode = null;
   if (code && !keepSeat) freeSeat(code);   // (LOBBY FIXES — the seat goes back with the room: only while it's still this device's)
   clearTimeout(pushTimer); pushTimer = null;   // (FR6 FIXES A: a room left before its push was asked never pings)
   closeAll();   // (FR6 FIXES A — B7: a kick / a closed room closes every sheet + the profile overlay over the title)
@@ -396,6 +404,7 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
   if (!code) return;
   const uid = state.uid;
   myConn = null;   // leaving: the self-heal must not write us back while the node goes
+  leavingCode = code;
   try {
     const others = Object.keys(state.players).filter(u => u !== uid);
     if (state.meta && state.meta.hostId === uid) {
@@ -404,14 +413,14 @@ export async function leaveRoom({ keepSeat = false, reason = null, heir: given =
         await update(dbRef(`${R(code)}/meta`), { hostId: heir, hostBeat: serverTimestamp() });
       } else {
         await closeRoom(code); // last one out turns off the lights
-        exitRoom(reason, 'info', { keepSeat });
+        exitRoom(reason, 'info', { keepSeat, how: 'leave' });
         return;
       }
     }
     await onDisconnect(dbRef(`${R(code)}/presence/${uid}`)).cancel();
     await update(dbRef(R(code)), { [`presence/${uid}`]: null, [`players/${uid}`]: null });
   } catch (e) { console.warn('leave', e); }
-  exitRoom(reason, 'info', { keepSeat });
+  if (state.code === code) exitRoom(reason, 'info', { keepSeat, how: 'leave' });
 }
 
 export async function kickPlayer(uid) {

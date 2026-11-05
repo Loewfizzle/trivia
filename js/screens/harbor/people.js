@@ -82,7 +82,7 @@ export function createPeople() {
   }
   // PEO (Oct 25) — THE MOTION PROBE: the planner's cost this frame (folkAt + roofAt, ms) + the env of the last NEAR draw, so rigs() can
   // hand a test the exact screen joints of the frame just drawn (tests/integration/e2e-harbor.mjs `street`: the judder + foot-slide check)
-  let frameMs = 0, frameMsMax = 0, lastEnv = null, lastBeatsF = 0;
+  let frameMs = 0, frameMsMax = 0, lastEnv = null, lastBeatsF = 0, lastNear = [];   // (SPEED PASS B: lastNear = the near pass's figures, for drawnNow())
   const PD = createDanceClock(); let pdT = null;   // (SP5: the promenade dancers' energy — core/harbor-dance.js)
   const pnow = () => (typeof performance !== 'undefined' ? performance.now() : Date.now());
   let backLight = () => 0;   // (PROM: the back road's light at x, z — road.js#crossLightOf)
@@ -277,7 +277,7 @@ export function createPeople() {
   }
   /** the roster: [{ uid, slot ('L0'…), online, col [r,g,b], fresh (joined in the last seconds: walks in even on the first sight), kick?, goT?, outT? }]
    *  or null (no room — everyone leaves the promenade the way they would) */
-  function room(list) {
+  function room(list, o = {}) {
     if (!L) return;
     const on = !!(list && list.length), t = rnow();
     if (on !== roomOn) { roomOn = on; mapKey = ''; ensureMap(false); }
@@ -312,13 +312,26 @@ export function createPeople() {
       const online = q.online !== false;
       if (online !== st.online) { st.online = online; st.lieAt = t; }
     }
+    let inN = 0;
     for (const [uid, st] of roomSt) {
       if (want.has(uid) || st.leaving) continue;
       const cur = visitAt(st.vis, t) || { x: S[st.slot].x, z: S[st.slot].z };
       st.leaving = true; st.kick = !!(list && list.kicked && list.kicked.includes(uid));
       // (THE SPEED PASS — the owner's 3:45 pm screenshot: out of the room, two ringed figures still on the promenade: this phone left the
-      //  ROOM (no roster at all) → they walk off as plain passers-by: the rings fade at once (RRING s), THE PEOPLE RULE keeps the walk)
-      if (!list) st.ringOff = t;
+      //  ROOM (no roster at all) → the rings fade at once (RRING s), THE PEOPLE RULE keeps the walk)
+      if (!list) {
+        st.ringOff = t;
+        // (SPEED PASS B — the owner's 10:21 pm laptop: "two TESTERs wave at once + both walk off": out of the room EVERY figure waved
+        //  goodbye. Now only THIS phone's own figure leaves the promenade (waving only on a LEAVE — o.wave); the others carry on INSIDE —
+        //  through the side door the doorman holds, one after another (the room goes on without you; nobody vanishes in view))
+        if (uid !== o.me && roomMap) {
+          const t0 = t + 0.25 + 0.45 * inN++;
+          st.vis = planIn(st, { x: cur.x, z: cur.z }, t0);
+          if (st.vis.legs.length) st.vis = { ...st.vis, t0: t, legs: [standLeg(cur.x, cur.z, (S[st.slot] || {}).hd || 0, t, t0), ...st.vis.legs] };
+          continue;
+        }
+        if (uid === o.me && !o.wave) st.kick = true;   // (a drop / a kick / a closed room: no wave — walking off, that's all)
+      }
       st.vis = roomPlan(st, 'leave', t, null, { x: cur.x, z: cur.z }) || { t0: t, t1: t, legs: [] };
     }
     if (list) roomSeen = true;
@@ -401,7 +414,7 @@ export function createPeople() {
     const buses = pass === 'far' ? now.buses : [], cars = pass === 'far' && !env.noCars ? [...(now.cars || []), ...((now.crew && now.crew.trucks) || [])] : [];
     // 8b1 — THE WORKERS' PROPS at their own depths (ladders, the platform, the stand, the bottles, the hatch, the wet streak…)
     const props = pass === 'near' ? propItems(L, now.crew, pass, lastT) : [];   // (the props' states run on the CITY clock)
-    if (pass === 'near') { drawnNear.length = 0; roomBox.clear(); }
+    if (pass === 'near') { drawnNear.length = 0; roomBox.clear(); lastNear = items; }
     if (!items.length && !buses.length && !cars.length && !props.length && !(env.extra && env.extra.length)) return;
     c.save(); c.globalAlpha = fade;
     if (pass === 'roof') clipRoof(c);
@@ -852,6 +865,8 @@ export function createPeople() {
     line(n) { lineN = Math.max(0, Math.min(12, Math.round(n || 0))); },
     /** LOBBY 2.0 A — the room's roster (null: no room) + where each player was drawn this frame (uid → box | null: off screen) */
     room, roomBoxes: () => roomBox,
+    /** SPEED PASS B — every figure the last NEAR pass drew: [{ vid, kind, seed, room, x, z, pose }] (the leaver's figures counted — e2e speed.mjs leaver) */
+    drawnNow: () => lastNear.map(m => ({ vid: m.vid, kind: m.kind, seed: m.m && m.m.seed, room: m.room || null, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })),
     /** LOBBY 2.0 B: the side door on screen (the push through it at the game start zooms on this point) → { x, y } in CSS px */
     roomDoor() { if (!L || !roomMap) return null; const d = roomMap.nodes.sideDoor, [x, y] = project(L.cam, d.x, 1.05, roomMap.face); return { x, y }; },
     /** THE SOLIDS check: the city's own people (not the room's) standing inside the room's two lines right now → [{ vid, x, z }] */

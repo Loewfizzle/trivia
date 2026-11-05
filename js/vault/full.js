@@ -15,7 +15,7 @@ import { gildedCard, sinceOf } from '../progress/card.js';
 import { pgSheet } from '../progress/look.js';
 import { bandOf } from '../core/levels.js';
 import { TIER_NAMES, ITEM } from '../core/items.js';
-import { createSurface } from '../fx/renderer.js';
+import { createSurface, fxCover } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
 import { LOOKS, vaultSheet, fxOpts } from './strip.js';
 import { LAB } from './catalog.js';
@@ -178,6 +178,15 @@ export async function upgradeScene(placeholder, card, o = {}) {
 
 let open = null;
 onCloseAll(() => { if (open) open.close(); });   // (FR6 FIXES A — B1)
+// SPEED PASS B — THE COVER: the fx surfaces behind held, the page's CSS animations paused (css/vault.css: body.vl-covered — everything but
+// the full card itself), the city held (title.js listens for 'vl-cover'); covers count (a card opened over a card) → uncover()
+let coverN = 0;
+function coverBehind(el) {
+  const fx = fxCover(el);
+  if (!coverN++) { document.body.classList.add('vl-covered'); window.dispatchEvent(new CustomEvent('vl-cover', { detail: true })); }
+  let done = false;
+  return () => { if (done) return; done = true; fx(); if (!--coverN) { document.body.classList.remove('vl-covered'); window.dispatchEvent(new CustomEvent('vl-cover', { detail: false })); } };
+}
 /** a sheet with the full card (approved art — else the Gilded card in its palette) */
 export async function openFullCard(id, who = {}) {
   if (open) open.close();
@@ -188,8 +197,8 @@ export async function openFullCard(id, who = {}) {
   if (ok) {
     card = fullCardEl({ card: id, who, spotted: who.spotted || null });
   } else card = gildedCard({ ...(who.pub || {}), n: who.name, a: who.avatar, c: who.color, cd: id }, {}, { card: id });
-  let release = null;
-  const close = () => { if (surface) surface.destroy(); el.remove(); document.removeEventListener('keydown', onKey); open = null; if (release) release(); };
+  let release = null, uncover = null;
+  const close = () => { if (surface) surface.destroy(); el.remove(); document.removeEventListener('keydown', onKey); open = null; if (release) release(); if (uncover) { uncover(); uncover = null; } };
   const onKey = e => { if (e.key === 'Escape' && isTopLayer(el)) close(); };
   const stage = h('div.vl-full-stage', card);
   // (LOBBY FIXES: `who.foot` — a row under the card, e.g. the owner's CREW switch on a room player's card)
@@ -198,6 +207,9 @@ export async function openFullCard(id, who = {}) {
   const born = performance.now();
   const el = h('div.vl-full', { role: 'dialog', 'aria-modal': 'true', 'aria-label': nameOf(id), onclick: e => { if (e.target === el && performance.now() - born > 350) close(); } }, box);
   release = takeLayer(el);   // (THE LAYER STACK: on top of whatever opened it — a sheet, CUSTOMIZE, the room's profile)
+  // (SPEED PASS B — the owner's 8:05 pm lag: EVERYTHING behind the full card holds still while it's up — the fx slots on their current
+  //  frame (renderer.js#fxCover), every CSS animation paused (body.vl-covered), the city's frames held — resumed on CLOSE)
+  uncover = coverBehind(el);
   document.body.append(el);
   if (ok) { surface = createSurface(stage, { label: 'full' }); mountFull(surface, card, id); }
   document.addEventListener('keydown', onKey);

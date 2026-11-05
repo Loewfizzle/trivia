@@ -97,19 +97,24 @@ export function watchDuplicateTabs(onChange) {
   let ch; try { ch = new BroadcastChannel(`na-slot-${slot}`); } catch { return none; }
   const id = Math.random().toString(36).slice(2);
   let born = Date.now(), yielded = false, lastHere = 0;
+  // (SPEED PASS B — the owner, Nov 4 8:56 pm: "only the VISIBLE tab acts as host": between two actives the one ON SCREEN wins; two on
+  //  screen (or two hidden) — the older, as before. A yielded tab coming on screen takes over (below): the tab you look at is the player)
+  const visNow = () => typeof document === 'undefined' || !document.hidden;
   const older = m => m.born < born || (m.born === born && m.id < id);
+  const beats = m => { const mv = m.vis !== false, me = visNow(); return mv !== me ? mv : older(m); };   // (does the other tab win over this one?)
   const set = y => { if (y === yielded) return; yielded = y; try { onChange(y); } catch { /* fine */ } };
-  const probe = () => { try { ch.postMessage({ t: 'hello', id, born, active: !yielded }); } catch { /* closed */ } };
+  const probe = () => { try { ch.postMessage({ t: 'hello', id, born, active: !yielded, vis: visNow() }); } catch { /* closed */ } };
   ch.onmessage = e => {
     const m = e.data || {};
     if (!m.id || m.id === id) return;
     if (m.t === 'hello') {
       if (yielded) return;
-      ch.postMessage({ t: 'here', id, born });
-      if (m.active && older(m)) set(true);                 // (two actives: the younger yields)
+      ch.postMessage({ t: 'here', id, born, vis: visNow() });
+      if (m.active && beats(m)) set(true);                 // (two actives: the one off screen yields, else the younger)
     } else if (m.t === 'here') {
       lastHere = Date.now();
-      if (!yielded && older(m)) set(true);
+      if (!yielded && beats(m)) set(true);
+      else if (yielded && visNow() && m.vis === false) take();   // (the player's tab is off screen, this one on it: the tab you look at plays)
     } else if (m.t === 'take') {
       born = Date.now(); lastHere = Date.now(); set(true);  // (the player picked the other tab)
     } else if (m.t === 'bye') { lastHere = 0; if (yielded) setTimeout(probe, 120 + Math.random() * 300); }
@@ -120,9 +125,12 @@ export function watchDuplicateTabs(onChange) {
     else probe();                                            // (an active tab checks now and then: two actives settle on one)
   }, 3000);
   window.addEventListener('pagehide', () => { try { ch.postMessage({ t: 'bye', id }); } catch { /* fine */ } });
+  function take() { born = -Date.now(); set(false); try { ch.postMessage({ t: 'take', id }); } catch { /* fine */ } }
+  // (SPEED PASS B: a yielded tab brought on screen is the player now — the hidden one goes quiet (its host loop + its music) until shown)
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && yielded) take(); });
   return {
     /** USE THIS TAB: this tab becomes the player, every other tab of the slot yields */
-    take() { born = -Date.now(); set(false); try { ch.postMessage({ t: 'take', id }); } catch { /* fine */ } },
+    take,
     yielded: () => yielded,
   };
 }

@@ -27,7 +27,7 @@ import { beatSource } from './audio/beat.js';
 import { sfx } from './audio/sfx.js';
 import { installSettingsPanel } from './ui/settings-panel.js';
 import { showBackdrop } from './screens/district/backdrop.js';
-import { settings, onSettings, PAGE_SILENT } from './audio/settings.js';
+import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/settings.js';
 import { lazyView } from './games/lazy-view.js';
 import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
@@ -298,6 +298,7 @@ async function boot() {
   // this tab's host loop stopped (state.dupTab); USE THIS TAB swaps them
   { let bar = null; const tabs = watchDuplicateTabs(y => {
     setState({ dupTab: y });
+    setPageQuiet(y);   // (SPEED PASS B: a yielded tab never doubles the music — audio/settings.js)
     if (!y) { if (bar) { bar.remove(); bar = null; } return; }
     if (bar) return;
     bar = h('div.dup-tab', { role: 'status' },

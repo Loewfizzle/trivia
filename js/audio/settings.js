@@ -19,10 +19,23 @@ export const PAGE_SILENT = (() => { try { return /[?&]bench=1(?:&|$)/.test(locat
 const saved = load();
 export const settings = PAGE_SILENT ? { ...saved, muted: true, musicOff: true } : saved;
 
+// SPEED PASS B — THE SECOND TAB's MUSIC (the owner, Nov 4 8:56 pm: "a second tab never doubles the music"): a tab that YIELDED to another tab
+// of the same player (identity.js#watchDuplicateTabs) is QUIET — its music off for this page only, never saved (the device's own choice is
+// kept + written back, like PAGE_SILENT); it plays again the moment it's the player's tab.
+let quietReal = null;
+export function setPageQuiet(on) {
+  if (!!on === (quietReal !== null)) return;
+  if (on) { quietReal = settings.musicOff; settings.musicOff = true; } else { settings.musicOff = PAGE_SILENT ? true : quietReal; quietReal = null; }
+  listeners.forEach(fn => fn(settings));
+}
+export const pageQuiet = () => quietReal !== null;
+
 export function updateSettings(patch) {
   Object.assign(settings, patch);
   if (PAGE_SILENT) { for (const k of ['muted', 'musicOff']) if (k in patch) saved[k] = patch[k]; settings.muted = true; settings.musicOff = true; }
-  try { localStorage.setItem(KEY, JSON.stringify(PAGE_SILENT ? { ...settings, muted: saved.muted, musicOff: saved.musicOff } : settings)); } catch { /* private mode: keep in memory */ }
+  if (quietReal !== null && 'musicOff' in patch) { quietReal = patch.musicOff; settings.musicOff = true; }
+  const out = PAGE_SILENT ? { ...settings, muted: saved.muted, musicOff: saved.musicOff } : quietReal !== null ? { ...settings, musicOff: quietReal } : settings;
+  try { localStorage.setItem(KEY, JSON.stringify(out)); } catch { /* private mode: keep in memory */ }
   listeners.forEach(fn => fn(settings));
 }
 

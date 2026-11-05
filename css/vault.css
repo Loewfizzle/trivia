@@ -181,7 +181,11 @@ select.vl-tab option { color: #111; }
 .vl-pick-wear:focus-visible { outline: 2px solid #f6e3a8; outline-offset: 3px; }
 
 /* ---- THE FULL CARD's sheet (THE VAULT 1B — js/vault/full.js) */
-.vl-full { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); background: rgba(4, 3, 8, 0.86); }
+.vl-full { position: fixed; inset: 0; z-index: 80; display: grid; place-items: center; padding: calc(env(safe-area-inset-top) + 16px) 16px calc(env(safe-area-inset-bottom) + 16px); background: rgba(4, 3, 8, 0.92); }
+/* SPEED PASS B — THE COVER (the owner, Nov 4 8:05 pm: the full card lagged over CUSTOMIZE): while a full card is up EVERYTHING behind it holds
+   still — every CSS animation outside it paused on its current frame (resumed on close; js/vault/full.js#coverBehind), the fx slots + the
+   city held by their own switches; the backdrop near-black (92 %) and never a backdrop-filter (nothing behind is blurred every frame) */
+body.vl-covered *:not(.vl-full, .vl-full *), body.vl-covered *:not(.vl-full, .vl-full *)::before, body.vl-covered *:not(.vl-full, .vl-full *)::after { animation-play-state: paused !important; }
 .vl-full-in { width: min(100%, 420px); display: grid; gap: 14px; justify-items: center; }
 .vl-full-in > .pg-card, .vl-full-in > .vl-fc { width: 100%; }
 .vl-full-x { min-height: 44px; min-width: 120px; padding: 0 18px; border: 0; border-radius: 12px; cursor: pointer; font: 800 13px/1 var(--font-ui); letter-spacing: 0.18em; color: #f5ecda; background: rgba(255, 255, 255, 0.06); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.5); }

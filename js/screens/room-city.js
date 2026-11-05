@@ -16,6 +16,7 @@ import { colorHex, GAMES, APP_NAME, ROOM_IDLE_WARN_MS } from '../config.js';
 import { state, isHost, setState } from '../store.js';
 import { isOnline, idleLeft } from '../core/room-logic.js';
 import { roomOrder } from '../core/harbor-room.js';
+import { exitHow } from '../room.js';
 import { serverNow, dbRef, update as dbUpdate, serverTimestamp } from '../firebase.js';
 import { createRoomDock } from './room-dock.js';
 import { sfx } from '../audio/sfx.js';
@@ -411,7 +412,8 @@ export function createRoomCity({ scene, sign, dockHost, lightFrom }) {
       destroyed = true; cancelAnimationFrame(raf); clearInterval(noteT); clearTimeout(graceT); closeHostCard(); if (offChat) offChat(); banner.destroy();
       // (the start's veil stays over the hand-off to the game screen — app.js's screen-in fades the game up; then it goes)
       if (goFx) { const v = goFx.veil; goFx.veil = h('i'); v.style.animation = 'none'; v.style.opacity = '1'; void v.offsetWidth; v.style.transition = 'opacity 0.45s ease'; v.style.opacity = '0'; setTimeout(() => v.remove(), 500); endFx(); }
-      if (scene && scene.room) scene.room(null);
+      // (SPEED PASS B: out of the room only YOUR figure leaves the promenade — waving only on a LEAVE; the others carry on inside)
+      if (scene && scene.room) { const x = exitHow(); scene.room(null, { me: st.uid, wave: !!(x && x.how === 'leave') }); }
       if (scene && scene.hush) scene.hush(null);
       layer.remove(); document.body.classList.remove('rc-on');
       if (dock) { dock.els.door.remove(); dock.destroy(); }

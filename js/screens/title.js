@@ -1948,7 +1948,8 @@ export function createTitle() {
       roomBanner: () => (roomUi && roomUi.banner ? roomUi.banner() : null),   // (LOBBY 2.0 B: THE WINNER's BANNER — e2e lobby2.mjs)
       bannerOn: () => !!(scene && scene.bannerOn && scene.bannerOn()),
       roomNearest: (x, y) => (roomUi && roomUi.nearestAt ? roomUi.nearestAt(x, y) : null),   // (LOBBY 2.0 B: the tap area's nearest rule — e2e lobby2.mjs)
-      roomPeople: () => (scene && scene.roomDebug ? scene.roomDebug() : null),   // (THE SPEED PASS: the room's figures even after the room is gone — e2e speed.mjs)
+      roomPeople: () => (scene && scene.roomDebug ? scene.roomDebug() : null),
+      drawnNow: () => (scene && scene.drawnNow ? scene.drawnNow() : null),   // (SPEED PASS B: every figure the near pass drew — the leaver's count)   // (THE SPEED PASS: the room's figures even after the room is gone — e2e speed.mjs)
       room: () => (roomUi ? { ...roomUi.debug(), people: scene && scene.roomDebug ? scene.roomDebug() : null, solidHits: scene && scene.roomSolidHits ? scene.roomSolidHits() : [] } : null),   // (LOBBY 2.0 A: the room in the city — e2e lobby.mjs)   // (LOBBY 2.0 A: the billboard's cross-fade — e2e lobby.mjs)
       signDim: (id, o) => (scene && scene.dimSign ? (id ? scene.dimSign(id, o) : scene.signDim()) : null),   // (City 2.0, C1.5: the sign-dim hook)            // (City 2.0, NEON PASS 5: the tier, the frame-rate cap found)
       reduced,

@@ -35,7 +35,7 @@ import './harbor-e2e/holiday.mjs';
 import './harbor-e2e/desktop.mjs';
 import './harbor-e2e/vault.mjs';   // (THE VAULT 1A: THE CARD LAB + THE EFFECT LIBRARY)
 import './harbor-e2e/lobbyfix.mjs';
-import './harbor-e2e/speed.mjs';   // (THE SPEED PASS: the owner's LOBBY FIXES notes — the stale room, the card flash, the banner, the ring …)
+import './harbor-e2e/speed.mjs';   // (THE SPEED PASS: the owner's LOBBY FIXES notes — the stale room, the card flash, the banner, the ring … + SPEED PASS B: the leaver, the host's leave, the full card, two tabs)
 //   // (LOBBY FIXES: the owner's real-phone test of the room — one seat, the player card, the new start …)
 import './harbor-e2e/lobby2.mjs';   // (LOBBY 2.0 B: the game start, the city pause, after the match, the rematch vote, the cartridge plug + Group 0)
 import './harbor-e2e/lobby.mjs';   // (LOBBY 2.0 A: the billboard's cross-fade, the room in the city, the room dock, the guest list)

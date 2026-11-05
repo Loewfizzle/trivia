@@ -3,7 +3,7 @@
 //   staleroom — out of the room (a disconnect / a leave): the room's figures walk off the city, a host claim for that room never toasts,
 //               ONE toast at a time (the newer replaces the older)
 // ADDING A GROUP: G('name', …) here + the name in ../harbor-jobs.mjs (CI_JOBS.speed).
-import { log, sleep, ok, okT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI } from './kit.mjs';
+import { log, sleep, ok, okT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI, BASE, launchReal, closeReal } from './kit.mjs';
 import { dbPatch, dbDel, dbGet, ROOMQ, hostRoom, joinRoom, fakeGuests, settledRoom, startOC, onTitle, podium } from './lobby2.mjs';
 
 const people = p => ev(p, 'window.__district.roomPeople ? window.__district.roomPeople() : null');
@@ -210,4 +210,179 @@ G('partyroom', async () => {
   const what = `THE PARTY ROOM at 1× (8 in the lines + the party + a legendary + 8 legendary strips): ${f1.fps} fps (${f1.slow} slow); at 2× CPU ${f2.fps} fps; the city's work median ${cost.med} ms`;
   if (ON_CI) skipCI(what, 'no GPU path on the 2-core runner — the mini PC + the owner\u2019s iPhone measure it');
   else okT(f1.fps >= 55, what);
+});
+
+// ================================================================ THE SPEED PASS B — Group 0: THE OWNER's FOUR (docs/harbor/passes/speed-b.md)
+// THE LEAVER DOUBLES (the owner, Nov 4 10:21 pm — his laptop): after LEAVE, on the LEAVER's OWN screen two identical figures waved + walked
+// off. Every figure the near pass DRAWS is counted, frame by frame, on the leaver's screen (a desktop + a phone) and on the host's — the
+// leaver's look (his room seed) must be drawn ONCE at most, through the whole walk-off; a drop (the socket gone) the same on the host's.
+const drawnNow = p => ev(p, 'window.__district.drawnNow ? window.__district.drawnNow() : null');
+async function countLeaver(p, uid, ms) {
+  // (in the page, every frame: how many drawn figures carry the leaver's room vid or his room seed)
+  await ev(p, `(() => { window.__lv = []; const u = ${JSON.stringify(uid)}; const t0 = performance.now(); let seed = null;
+    const r0 = (window.__district.drawnNow() || []).find(m => m.room === u); if (r0) seed = r0.seed; window.__lvSeed = seed;
+    const tick = () => { const d = window.__district.drawnNow() || []; if (seed == null) { const r1 = d.find(m => m.room === u); if (r1) seed = window.__lvSeed = r1.seed; } const mine = d.filter(m => m.room === u || (seed != null && m.seed === seed));
+      window.__lv.push({ t: Math.round(performance.now() - t0), n: mine.length, vids: mine.map(m => m.vid + ':' + m.pose).join(','), waves: d.filter(m => m.room && m.pose === 'wave').length, room: d.filter(m => m.room).length });
+      if (performance.now() - t0 < ${ms}) requestAnimationFrame(tick); }; requestAnimationFrame(tick); return seed; })()`);
+}
+G('leaver', async () => {
+  for (const [view, slot] of [[[1440, 900], 'lvd'], [[402, 874], 'lvp']]) {
+    const H = await hostRoom(`${slot}h`);
+    const N = await joinRoom(`${slot}n`, H.code, view);
+    await settledRoom(N.p, 2, 30000).catch(() => {});
+    await settledRoom(H.p, 2, 30000).catch(() => {});
+    await sleep(700);
+    await countLeaver(N.p, N.me, 13000); await countLeaver(H.p, N.me, 13000);
+    await ev(N.p, "(() => { import('/js/room.js').then(m => m.leaveRoom()); return 1; })()");
+    await sleep(500);
+    const tl = await toastsNow(N.p);
+    await sleep(12900);
+    const sN = await ev(N.p, 'window.__lv') || [], mostWave = Math.max(0, ...sN.map(x => x.waves));
+    ok(!tl.some(x => /DISCONNECTED/.test(x)) && mostWave === 1, `A LEAVE IS A LEAVE (${view[0]}×${view[1]}, the leaver's screen): no "DISCONNECTED" (toasts: "${tl.join(' | ')}"); ONE figure waves goodbye — yours (most waving at once ${mostWave}); the host's figure carries on inside`);
+    for (const [who, P] of [['the leaver\'s own screen', N.p], ['the host\'s screen', H.p]]) {
+      const s = await ev(P, 'window.__lv') || [], seed = await ev(P, 'window.__lvSeed'), max = Math.max(0, ...s.map(x => x.n)), two = s.filter(x => x.n > 1);
+      ok(seed != null && s.length > 60 && max === 1 && s.some(x => x.n === 1) && !s[s.length - 1].n,
+        `THE LEAVER ONCE (${view[0]}×${view[1]}, ${who}): ONE figure through the wave + the walk-off (most drawn at once ${max}; ${two.length} of ${s.length} frames doubled${two.length ? ' e.g. ' + two[0].vids : ''}; gone at the end ${!s[s.length - 1].n})`);
+    }
+    if (SHOTS) await N.p.screenshot({ path: `${OUT}leaver-${view[0]}.png` });
+    for (const X of [H.Q, N.Q]) await X.ctx.close().catch(() => {});
+  }
+  // ---- a DROP (the socket gone, never a leave): the host's screen — the lie-down then the leave once the node goes, one figure
+  const H = await hostRoom('lvxh');
+  const N = await joinRoom('lvxn', H.code);
+  await settledRoom(H.p, 2, 30000).catch(() => {});
+  await sleep(700);
+  await countLeaver(H.p, N.me, 12000);
+  await N.Q.ctx.close().catch(() => {});
+  await dbDel(`rooms/${H.code}/players/${N.me}`);
+  await sleep(12400);
+  const s = await ev(H.p, 'window.__lv') || [], seed = await ev(H.p, 'window.__lvSeed'), max = Math.max(0, ...s.map(x => x.n));
+  ok(seed != null && s.length > 40 && max === 1, `THE LEAVER ONCE (a drop, the host's screen): one figure (most at once ${max} of ${s.length} frames)`);
+  await H.Q.ctx.close().catch(() => {});
+});
+
+// THE HOST LEAVES ON PURPOSE (the owner, Nov 4 10:21 pm — LEAVE, not a drop): the next player in join order is the host at once; ONE toast on
+// each phone (the heir "YOU'RE THE HOST NOW", the other "<HEIR> IS THE HOST NOW"); the PLAY ring moves to the heir. Three slots.
+const toastLog = async (p, ms) => { await ev(p, `(() => { window.__tl = new Set(); const t0 = performance.now(); const f = () => { for (const t of document.querySelectorAll('.toasts > .toast')) window.__tl.add(t.textContent); if (performance.now() - t0 < ${ms}) setTimeout(f, 100); }; f(); return 1; })()`); };
+const ringWord = p => ev(p, "(() => { const w = document.querySelector('.rdk-w1'); return w ? w.textContent : null; })()");
+G('hostleave', async () => {
+  const H = await hostRoom('hlh');
+  const A = await joinRoom('hla', H.code);
+  await sleep(400);
+  const B = await joinRoom('hlb', H.code);
+  await settledRoom(B.p, 3, 30000).catch(() => {});
+  await sleep(800);
+  const nameA = await ev(A.p, `window.__arcade.state.players[window.__arcade.state.uid].name`);
+  for (const X of [A, B]) await toastLog(X.p, 7000);
+  const t0 = Date.now();
+  await ev(H.p, "(() => { import('/js/room.js').then(m => m.leaveRoom()); return 1; })()");
+  await waitFor(A.p, `window.__arcade.state.meta && window.__arcade.state.meta.hostId === window.__arcade.state.uid`, 'the heir is the host', 8000).catch(() => {});
+  const dt = Date.now() - t0;
+  await sleep(7200);
+  const [ta, tb] = [await ev(A.p, '[...window.__tl]'), await ev(B.p, '[...window.__tl]')];
+  const host = await dbGet(`rooms/${H.code}/meta/hostId`), gone = !(await dbGet(`rooms/${H.code}/players/${H.me}`));
+  ok(host === A.me && gone && dt < 3000, `THE HOST LEAVES ON PURPOSE: the next in join order is the host (${host === A.me ? 'the first guest' : host}) in ${dt} ms; the old host's node gone ${gone}`);
+  ok(ta.length === 1 && /YOU.RE THE HOST NOW/.test(ta[0]), `… ONE toast on the heir's phone: "${ta.join(' | ')}"`);
+  ok(tb.length === 1 && tb[0].includes(`${String(nameA).toUpperCase()} IS THE HOST NOW`), `… ONE toast on the other phone: "${tb.join(' | ')}" (the heir ${nameA})`);
+  const [ra, rb] = [await ringWord(A.p), await ringWord(B.p)];
+  ok(ra === 'PLAY' && rb === 'WAITING', `… the PLAY ring moved to the heir (the heir's ring ${ra}; the other's ${rb})`);
+  if (SHOTS) await A.p.screenshot({ path: `${OUT}hostleave-heir.png` });
+  // ---- a DROP of the host (not a leave): no "IS THE HOST NOW" on the bystander (only the claimer's own line)
+  await toastLog(B.p, 36000);
+  await A.Q.ctx.close().catch(() => {});
+  await sleep(2500);   // (the closed tab's own onDisconnect lands first — then the host's presence + beat made stale)
+  await dbPatch(`rooms/${H.code}/presence/${A.me}`, { online: false, c: null, lastSeen: Date.now() - 60000 });
+  await dbPatch(`rooms/${H.code}/meta`, { hostBeat: Date.now() - 60000 });
+  { const end = Date.now() + 30000; while (Date.now() < end && (await dbGet(`rooms/${H.code}/meta/hostId`)) !== B.me) await sleep(300); }
+  await sleep(1500);
+  const tc = await ev(B.p, '[...window.__tl]'), hostB = await dbGet(`rooms/${H.code}/meta/hostId`);
+  ok(hostB === B.me && tc.length === 1 && /HOST SIGNAL LOST/.test(tc[0]), `… a DROPPED host is still a claim: ONE toast "${tc.join(' | ')}" (host ${hostB === B.me ? 'the claimer' : hostB})`);
+  for (const X of [H.Q, B.Q]) await X.ctx.close().catch(() => {});
+});
+
+// THE FULL CARD PREVIEW LAGS (the owner, Nov 4 8:05 pm — CUSTOMIZE → VIEW FULL on SKY KING: the slim preview's code rain + the grid's
+// animated thumbnails kept running under the dim layer). Measured the same way before + after: 4× CPU, the real compositor, 402×874 @3 —
+// SKY KING's full card over CUSTOMIZE (wearing THE SOURCE, the dev card's code rain) vs the same card with CUSTOMIZE taken away. Then the
+// rule: while a full card is on top EVERYTHING behind it holds still (no fx slot behind drawn, every CSS animation behind paused), resumed
+// on CLOSE; the backdrop ≥ 88 % dark; no backdrop-filter behind it.
+const FC_URL = '/tests/integration/progress-preview.html?view=profile&labmarks=all&dev=1&dress=1&card=card-dev-source';
+const fcFrames = (p, n = 240) => ev(p, `new Promise(res => { const t = []; let last = 0; const f = x => { if (last) t.push(x - last); last = x; if (t.length < ${n}) requestAnimationFrame(f); else res(t); }; requestAnimationFrame(f); })`);
+const fcStat = t => { const s = [...t].sort((a, b) => a - b); return { med: +s[s.length >> 1].toFixed(1), p95: +s[Math.floor(s.length * 0.95)].toFixed(1), slow: s.filter(x => x > 20).length, n: s.length }; };
+// what moves BEHIND the full card: fx slots drawn last frame outside it + running CSS animations outside it
+const behindNow = p => ev(p, `(async () => { const R = await import('/js/fx/renderer.js'); const full = document.querySelector('.vl-full');
+  const anim = document.getAnimations().filter(a => a.playState === 'running' && a.effect && a.effect.target && !(full && full.contains(a.effect.target))).length;
+  const bf = [...document.querySelectorAll('body *')].filter(e => !(full && (full.contains(e) || e === full)) && e.offsetParent !== null && (getComputedStyle(e).backdropFilter || 'none') !== 'none').length;
+  return { slotsBehind: R.fxBehind ? R.fxBehind() : -1, anim, bf, bg: full ? getComputedStyle(full).backgroundColor : null }; })()`);
+G('fullcard', async () => {
+  const ctx = await (await launchReal()).createBrowserContext(), p = await ctx.newPage();
+  await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 3, isMobile: true, hasTouch: true });
+  await p.goto(`${BASE}${FC_URL}`);
+  await waitFor(p, `!!document.querySelector('.vl-dress .vl-dt')`, 'CUSTOMIZE', 20000);
+  await sleep(1500);
+  const cd = await p.target().createCDPSession(); await cd.send('Emulation.setCPUThrottlingRate', { rate: 4 });
+  const openIt = () => ev(p, `import('/js/vault/full.js').then(m => m.openFullCard('card-sg-blackbird', { name: 'TESTER', avatar: 'diamond', color: 'magenta' })).then(() => 1)`);
+  await openIt(); await sleep(2500);
+  const b0 = await behindNow(p);
+  const over = fcStat(await fcFrames(p));
+  if (SHOTS) await p.screenshot({ path: `${OUT}fullcard-over-customize.png` });
+  // the same card, CUSTOMIZE taken away (display none) — the full card alone
+  await ev(p, `(() => { const d = document.querySelector('.vl-dress'); (d.closest('.modal, .vl-dress-wrap') || d).style.display = 'none'; return 1; })()`);
+  await sleep(1500);
+  const alone = fcStat(await fcFrames(p));
+  log('fullcard', JSON.stringify({ over, alone, behind: b0 }));
+  okT(over.med <= alone.med + 1.5 && over.slow <= alone.slow + 12, `THE FULL CARD over CUSTOMIZE (4× CPU, 402 @3, SKY KING over THE SOURCE's code rain): median ${over.med} ms / p95 ${over.p95} / ${over.slow} of ${over.n} slow — vs ALONE ${alone.med} / ${alone.p95} / ${alone.slow} slow (what's behind costs ~nothing)`);
+  const alpha = (b0.bg || '').match(/rgba\([^)]*,\s*([\d.]+)\)/);
+  ok(b0.slotsBehind === 0 && b0.anim === 0 && b0.bf === 0 && alpha && +alpha[1] >= 0.88,
+    `… EVERYTHING BEHIND IT HOLDS STILL: ${b0.slotsBehind} fx slots drawn behind, ${b0.anim} CSS animations running behind, ${b0.bf} backdrop-filters behind; the backdrop ${b0.bg}`);
+  // CLOSE: everything behind moves again
+  await ev(p, `(() => { const d = document.querySelector('.vl-dress'); (d.closest('.modal, .vl-dress-wrap') || d).style.display = ''; document.querySelector('.vl-full-x').click(); return 1; })()`);
+  await sleep(1200);
+  const b1 = await ev(p, `(async () => { const R = await import('/js/fx/renderer.js'); return { slots: R.fxStats.slots, anim: document.getAnimations().filter(a => a.playState === 'running').length }; })()`);
+  ok(b1.slots > 0 && b1.anim > 0, `… on CLOSE everything behind moves again (${b1.slots} fx slots drawn, ${b1.anim} CSS animations running)`);
+  await ctx.close(); await closeReal();
+});
+
+// MULTIPLE TABS (the owner, Nov 4 8:56 pm): the HOST with a SECOND TAB of the same player open — in the room + mid-match: ONE director
+// (only one tab writes the beat + the steps; the other stays quiet), the tab ON SCREEN is the one that acts (a hidden one goes quiet until
+// shown), and ONE song (the quiet tab's music off for that page only). Two pages of one slot in one browser context.
+const setVis = (p, vis) => ev(p, `(() => { Object.defineProperty(document, 'hidden', { value: ${!vis}, configurable: true }); Object.defineProperty(document, 'visibilityState', { value: '${vis ? 'visible' : 'hidden'}', configurable: true }); document.dispatchEvent(new Event('visibilitychange')); return 1; })()`);
+const tabNow = p => ev(p, `(async () => { const H = await import('/js/host.js'), S = await import('/js/audio/settings.js'); return { beats: H.hostStats.beats, steps: H.hostStats.steps, dup: !!window.__arcade.state.dupTab, quiet: S.pageQuiet(), musicOff: !!S.settings.musicOff, code: window.__arcade.state.code }; })()`);
+async function writesOver(P, ms) { const a = await Promise.all(P.map(tabNow)); await sleep(ms); const b = await Promise.all(P.map(tabNow)); return b.map((x, i) => ({ ...x, w: x.beats - a[i].beats + x.steps - a[i].steps, st: x.steps - a[i].steps })); }
+G('twotabs', async () => {
+  const H = await hostRoom('ttb');
+  await fakeGuests(H.code, 1, 30000, 'tt');
+  await sleep(800);
+  // ---- the second tab: the same player (the same slot, the same browser), back into the same room
+  const p2 = await H.Q.ctx.newPage();
+  await p2.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true });
+  await p2.goto(`${BASE}/?emu&slot=ttb&${ROOMQ}&city=2`);
+  await waitFor(p2, `window.__arcade && window.__arcade.state.code === '${H.code}'`, 'the 2nd tab in the room', 25000);
+  await sleep(3500);
+  // (both "on screen" (headless): the older tab plays, the second yields — the room)
+  let r = await writesOver([H.p, p2], 5000);
+  // (headless puts the first page in the background when the second opens: the one ON SCREEN plays — either way exactly ONE)
+  const act = r.findIndex(x => !x.dup), quiet = 1 - act;
+  ok(act >= 0 && r[act].w > 0 && r[quiet].w === 0 && r[quiet].dup && r[quiet].quiet && r[quiet].musicOff && !r[act].musicOff,
+    `TWO TABS in the room: ONE acts — tab ${act + 1} (${r[act] && r[act].w} host writes), tab ${quiet + 1} ${r[quiet] && r[quiet].w} (yielded ${r[quiet] && r[quiet].dup}); ONE song — the quiet tab's music off for that page (${r[quiet] && r[quiet].musicOff}), the other's on`);
+  // ---- mid-match: the second tab brought ON SCREEN, the first hidden → the second acts, the first quiet
+  await startOC(H.p);
+  await waitFor(H.p, `window.__arcade.state.meta && window.__arcade.state.meta.status === 'playing'`, 'the match', 15000).catch(() => {});
+  await sleep(2500);
+  await setVis(H.p, false); await setVis(p2, true);
+  await sleep(1500);
+  r = await writesOver([H.p, p2], 6000);
+  ok(r[1].w > 0 && r[0].w === 0 && r[0].dup && !r[1].dup && r[0].musicOff && !r[1].musicOff,
+    `TWO TABS mid-match, the second ON SCREEN: it directs (${r[1].w} writes, ${r[1].st} steps), the hidden first is quiet (${r[0].w} writes, yielded ${r[0].dup}, music off ${r[0].musicOff})`);
+  // ---- back to the first tab: it acts again, the second goes quiet; the match still runs on one director
+  await setVis(p2, false); await setVis(H.p, true);
+  await sleep(1500);
+  r = await writesOver([H.p, p2], 6000);
+  const g = await ev(H.p, 'window.__arcade.state.game && window.__arcade.state.game.phase');
+  ok(r[0].w > 0 && r[1].w === 0 && !r[0].dup && r[1].dup && r[1].musicOff && !r[0].musicOff && !!g,
+    `… shown again, the first tab acts (${r[0].w} writes), the second quiet (${r[1].w}); the match goes on (phase ${g})`);
+  // ---- the device's own music choice is never overwritten by the quiet tab
+  const saved = await ev(p2, `JSON.parse(localStorage.getItem('na:settings') || '{}').musicOff || false`);
+  ok(saved === false, `… the quiet tab never saves "music off" for the device (saved musicOff ${saved})`);
+  await p2.close().catch(() => {});
+  await H.Q.ctx.close().catch(() => {});
 });

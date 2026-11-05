@@ -278,7 +278,11 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   let PWQ = 1;
   const stepPow = () => { if (!LB) return (PWQ = 1); const p = legendPow(W * 0.5, 'near', 210); if (p <= 0.05) PWQ = 0; else if (p >= 0.95) PWQ = 1; else if (Math.abs(p - PWQ) >= 0.3) PWQ = Math.round(p * 4) / 4; return PWQ; };
   let memGuard = null;   // (C4c: the memory guard's last verdict — memAll().guard, the LOAD log, the phone bench)
-  let bench = null, benchHook = null, benchHold = false, benchPause = false;   // (C4c: THE PHONE BENCH — &bench=1; SKY-B: its cool-down pauses the city)
+  let bench = null, benchHook = null, benchHold = false, benchPause = false;
+  // (SPEED PASS B: a FULL CARD on top (vault/full.js 'vl-cover') holds the city's frames — under its ~90 % dark backdrop nothing behind moves)
+  let coverPause = !!(typeof document !== 'undefined' && document.body && document.body.classList.contains('vl-covered'));
+  const onCover = e => { coverPause = !!(e && e.detail); };
+  window.addEventListener('vl-cover', onCover);   // (C4c: THE PHONE BENCH — &bench=1; SKY-B: its cool-down pauses the city)
   let LB = null, speakPw = false, raidPole = false, raidLit = new Set(), raidCue = new Set(), raidFrame = { R: null, spotAt: null };
   // 8b2 — THE RAID (core/harbor-raid.js): the night's raid (seeded by the date: the night after the bootleggers' delivery, a rare party
   // night) or the preview (&force=raid: one every 2½ min from the moment it's on) → its plan for this layout, kept 4 h after (the people's
@@ -1489,7 +1493,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     //  a property read a frame (no layout) starts the same debounced re-fit)
     if (window.devicePixelRatio !== devDpr) { devDpr = window.devicePixelRatio; onResize(); }
     if (wantBuild) { const why = typeof wantBuild === 'string' ? wantBuild : 'a rebuild'; wantBuild = false; measure(); build(why); }      // (FP3a: the clear and the redraw in ONE frame — never a blank one)
-    if (benchPause) { seenAt = performance.now(); lastRaf = now; last = now; return; }   // (SKY-B: THE BENCH's COOL-DOWN — the city's frames skipped)
+    if (benchPause || coverPause) { seenAt = performance.now(); lastRaf = now; last = now; return; }   // (+ SPEED PASS B: under a full card)   // (SKY-B: THE BENCH's COOL-DOWN — the city's frames skipped)
     seenAt = performance.now();                          // (8a: THE LOOP'S PULSE — the watchdog below restarts a loop that stopped getting frames)
     perf(Math.min(100, Math.max(0, now - lastRaf) || 16.7));          // (the frame intervals the tiering watches: every rAF, drawn or not)
     if (now - lastRaf > GAP_MS && shownAt >= 0 && lastRaf > 0 && document.visibilityState === 'visible' && now - hiddenAt > now - lastRaf + 500) frameGap(now - lastRaf, 'a frame gap');
@@ -2881,7 +2885,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
   return {
     /** LOBBY 2.0 A — THE ROOM IN THE CITY: the roster (screens/harbor/room-tags.js from the room's data — null = no room) + where each
      *  player was drawn this frame (uid → box) for the tags over their heads */
-    room(list) { people.room(list); },
+    room(list, o) { people.room(list, o); },
     /** the room's hush word in neon on the speakeasy (the lobby sign — its wall-washer steps aside: speakCtx) — null = off */
     hush(w) { const v = w ? String(w).toUpperCase().slice(0, 4) : null; if (v !== lobbyHush) lobbyHush = v; },
     roomBoxes: () => people.roomBoxes(),
@@ -2892,6 +2896,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
     roomBanner: (lines, o = {}) => { try { const H = trafficHoldNow(); if ((legends && legends.active()) || (H && H.on) || (sky.listen().banner)) return false; return sky.api.banner(lines, o); } catch { return false; } },
     bannerOn: () => { try { return !!sky.listen().banner; } catch { return false; } },
     roomDebug: () => people.roomDebug(),
+    drawnNow: () => people.drawnNow(),   // (SPEED PASS B: the near pass's figures — the leaver counted)
     roomSolidHits: () => people.roomSolidHits(),
     roomRects: () => (L ? roomRects(L) : null),
     radio(list) { radioScene.set(list); },
@@ -3113,6 +3118,7 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       clearTimeout(resizeT); clearTimeout(relayT); clearTimeout(extrasT);
       document.removeEventListener('visibilitychange', onVis);
       window.removeEventListener('pageshow', onShow); window.removeEventListener('focus', onFocus); window.removeEventListener('pointerdown', onTapWake, { capture: true }); clearInterval(watchdog);
+      window.removeEventListener('vl-cover', onCover);
       window.removeEventListener('resize', onResize); try { if (dprMq) dprMq.removeEventListener('change', onDpr); } catch { /* fine */ }
       if (window.visualViewport) window.visualViewport.removeEventListener('resize', onVV);
       if (document.fonts && document.fonts.removeEventListener) document.fonts.removeEventListener('loadingdone', onFonts);

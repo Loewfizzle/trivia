@@ -14,6 +14,8 @@ import { DIRECTOR_TICK_MS, HOST_BEAT_MS, MIN_PLAYERS, isPlayable } from './confi
 import { GAME_MODULES, liveKeyFor, ALL_PLAYER_NODES } from './games/registry.js';
 import { toast } from './ui/toast.js';
 
+// SPEED PASS B — THE SECOND TAB's check (tests: e2e speed.mjs twotabs): this tab's own host writes — the beats + the director's steps
+export const hostStats = { beats: 0, steps: 0 };
 let lastBeat = 0;
 let lastActive = 0;
 let lastClaim = 0;
@@ -42,6 +44,7 @@ function tick() {
   // An hour without a game: the host closes the room (every phone gets ROOM CLOSED); everyone else leaves on
   // their own a little later in case the host's phone is asleep or the room can't be deleted.
   if (roomIdle(state.meta, now - (isHost() ? 0 : 90_000))) { closeIdleRoom(); return; }
+  watchHand();
   if (isHost()) {
     beat(now);
     clearDeadStart(now);
@@ -50,6 +53,30 @@ function tick() {
     lastClaim = now;
     claimHost(state.meta.hostId);
   }
+}
+
+// SPEED PASS B — THE HOST LEAVES ON PURPOSE (the owner, Nov 4 10:21 pm): leaveRoom() hands meta/hostId to the next player in join order,
+// then its node goes. Every phone that sees the host change AND the old host's node gone (within a few seconds — the two writes land
+// apart) says it ONCE: the heir "YOU'RE THE HOST NOW", everyone else "MIKE IS THE HOST NOW". A claim over a DROPPED host (its node stays,
+// offline) is not this: the claimer says "HOST SIGNAL LOST — YOU ARE NOW THE HOST" itself (claimHost), the others stay quiet.
+let handSeen = { code: null, id: null }, handPending = null, myClaim = null;
+export const HAND_WAIT_MS = 6000;
+function watchHand() {
+  const code = state.code, id = state.meta.hostId;
+  if (handSeen.code !== code) { handSeen = { code, id }; handPending = null; return; }
+  if (id !== handSeen.id) {
+    const mine = id === state.uid && myClaim && myClaim.code === code && Date.now() - myClaim.at < 15000;
+    handPending = handSeen.id && id && !mine ? { from: handSeen.id, to: id, at: Date.now() } : null;
+    handSeen.id = id;
+  }
+  if (!handPending) return;
+  if (Date.now() - handPending.at > HAND_WAIT_MS || id !== handPending.to) { handPending = null; return; }
+  if (state.players && state.players[handPending.from]) return;
+  const to = handPending.to; handPending = null;
+  if (to === state.uid && myClaim && myClaim.code === code && Date.now() - myClaim.at < 15000) return;   // (a claim of mine landed first)
+  const name = (state.players && state.players[to] && state.players[to].name) || 'SOMEONE';
+  if (to === state.uid) toast('YOU’RE THE HOST NOW', 'ok', 3500);
+  else toast(`${String(name).toUpperCase()} IS THE HOST NOW`, 'info', 3500);
 }
 
 // FR6 FIXES A (B2): the host that stamped a start died (or this phone refreshed) between the stamp and the match: nobody is preparing it —
@@ -69,6 +96,7 @@ function beat(now) {
   const patch = { hostBeat: serverTimestamp() };
   // only a running game keeps the room alive (an idle lobby closes after ROOM_IDLE_MS)
   if (state.meta.status === 'playing' && now - lastActive > 10 * 60_000) { lastActive = now; patch.activeAt = serverTimestamp(); }
+  hostStats.beats++;
   update(dbRef(`rooms/${state.code}/meta`), patch).catch(() => {});
 }
 
@@ -83,6 +111,7 @@ export async function claimHost(oldHost) {
     if (!here()) return;
     const res = await runTransaction(dbRef(`rooms/${code}/meta/hostId`), cur => (!here() ? undefined : cur === oldHost || cur == null ? state.uid : undefined));
     if (res.committed && res.snapshot.val() === state.uid && here()) {
+      myClaim = { code, at: Date.now() };   // (SPEED PASS B: this phone's own claim says its own line — watchHand stays quiet)
       lastBeat = 0;
       await update(dbRef(`rooms/${code}/meta`), { hostBeat: serverTimestamp() });
       if (here()) toast('HOST SIGNAL LOST — YOU ARE NOW THE HOST', 'warn', 3500);
@@ -106,6 +135,7 @@ function direct(now) {
   const sig = `${game.matchId}|${game.phase}|${game.phaseStartAt}|${JSON.stringify(game.unseal || null)}`;
   if (inflight.sig === sig && now - inflight.at < 3000) return; // write already on its way
   inflight = { sig, at: now };
+  hostStats.steps++;
   if (step.lobby) { backToLobby(); return; }
   update(dbRef(`rooms/${state.code}`), roomPatch(game, step)).catch(e => { inflight.sig = ''; console.warn('director', e); });
 }

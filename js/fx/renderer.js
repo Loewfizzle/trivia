@@ -157,6 +157,24 @@ export function createSurface(host, o = {}) {
   return api;
 }
 
+// SPEED PASS B — THE COVER (the owner, Nov 4 8:05 pm: CUSTOMIZE → VIEW FULL lagged — the slim preview's code rain + the grid's thumbnails
+// kept drawing under the full card; measured 33 ms a frame over CUSTOMIZE vs 16.7 alone at 4× CPU): fxCover(keep) HOLDS every surface
+// outside `keep` — not drawn, not cleared (its canvas keeps the frame it showed), its time stopped — until the returned uncover() lets it
+// go on from that same frame. Covers stack (a card over a card). Surfaces made after the cover (the full card's own) are never held.
+const covers = [];
+export function fxCover(keep) {
+  const held = [...surfaces].filter(S => !(keep && keep.contains(S.host)));
+  for (const S of held) { if (!S.held) S.heldAt = clock; S.held = (S.held || 0) + 1; }
+  const c = { held }; covers.push(c);
+  return () => {
+    const i = covers.indexOf(c); if (i < 0) return; covers.splice(i, 1);
+    for (const S of held) if (S.held && !--S.held) { S.toff = (S.toff || 0) + (clock - S.heldAt); S.dirty = true; }
+    kick();
+  };
+}
+/** TESTS — the fx slots drawn last frame on surfaces outside `el` (0 = nothing behind it moves) */
+export const fxBehind = (el = typeof document !== 'undefined' ? document.querySelector('.vl-full') : null) => { let n = 0; for (const S of surfaces) if (!(el && el.contains(S.host))) n += S.lastN || 0; return n; };
+
 /** a rounded-rect path (the strip's own corner radius) */
 export function rrect(c, x, y, w, h, r) {
   r = Math.max(0, Math.min(r, w / 2, h / 2));
@@ -227,11 +245,13 @@ function frame(now) {
   for (const S of surfaces) {
     // (a surface whose host left the page — a screen repainted without destroying it — lets its canvas + GPU context go after ~1 s)
     if (!S.host.isConnected) { if ((S.gone = (S.gone || 0) + 1) > 60) S.destroy(); continue; } else S.gone = 0;
-    if (!S.on || (typeof document !== 'undefined' && document.hidden)) continue;
+    S.lastN = 0;
+    if (!S.on || S.held || (typeof document !== 'undefined' && document.hidden)) continue;   // (SPEED PASS B: S.held — under a full card)
     if (!S.sized) size(S);
     px += S.cv.width * S.cv.height;
     if (still && !S.dirty) continue;
-    drawn += fxDiag.fx ? drawSurface(S, clock, still, Q) : clearSurface(S);
+    const n = fxDiag.fx ? drawSurface(S, clock - (S.toff || 0), still, Q) : clearSurface(S);
+    drawn += n; S.lastN = n;
     S.dirty = false;
     if (probes.length) S.lit = litOf(S);
     if (!still && S.slots.size) live = true;
