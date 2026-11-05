@@ -1992,6 +1992,15 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   - THE ROOM's LOOK SWITCH (a sun / moon tube above PLAY in a room of one; remembered; locked for the match; body[data-look]);
   - COLOUR-BLIND (--good / --close + body[data-cb]; OVERCLOCK on the tokens; on the profile).
 
+## CARD FIXES — THE GIFT CARDS READY TO GIVE TONIGHT (Nov 5 2026, evening) — docs/harbor/passes/card-fixes.md
+- Group 1: the owner's 5 LAB FIX notes (the two face strips whole; the shiba's glint on the lenses only + a twinkle; YOUNG BUCK + ICE COLD slid
+  right of the plate) + THE ANARCHIST v2 (his approved art, the effects moved) — each CHANGED in THE LAB.
+- Group 2: THE CARD LAYOUT RULE (vault/layout.js): no FOUNDER pill on a gift, the plate hugs its text + the step on the full card + THE REVERSE STEP,
+  each gift card's HERO box kept clear, nothing overlapping (the top line → "№ 0001"); THE SWITCHBOARD's ON AIR the written exception; harbor `cardfit`.
+- Group 3: DEV · Nº; the reveal's header solid (white + gold); PRESS START big + blinking.
+- ADD-ONS: YOUNG BUCK → BRUH (its own strip picture, its name big in gold, the halo / rays / flashes / tape / chalk / drips); the full card's
+  plate = NAME + LV n, THE RANK a gold line above MEMBER SINCE (DEV · <RANK>).
+
 ## SHELL 2.0 B2 — GREEN MEANS GREEN, THE OWNER's B1 FIXES, THE GIFT CARDS, MAKE HOST, THE SMALL FEATURES (Nov 5 2026) — docs/harbor/passes/shell-b2.md
 - Group 0: THE HERO-SPOT AUDIT (js/vault/hero.js + the live plate at 390 / 402 / 430; nine cards moved, CHANGED lines); the 1 OF 1 back in the
   rainbow gradient (bright stops, a dark edge, every letter ≥ 6 : 1 — 8.9–12.2 measured; a gap after FOUNDER); THE GAME LOOK → ☰ → Settings (per

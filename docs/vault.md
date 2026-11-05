@@ -528,10 +528,29 @@ the pure half, harbor `platefit` the live plate at 390 / 402 / 430. A NEW card w
 sun, the TR-3B, the prism, EMERALD's crown, the UFO, the marquee's arrow, THE SOURCE's NEON, THE SWITCHBOARD's jacks + its full card's ON AIR (up
 in the band under the top line) — each with its CHANGED line.
 
+**THE EXCEPTION** (the owner, Nov 5 4:54 pm): THE SWITCHBOARD's ON AIR sign sits under the gem's corner and he LIKES it — DON'T MOVE IT (its box is
+the card's second one in `HERO`: checked only clear of the gem).
+
+## THE CARD LAYOUT RULE — "show the most of the card" (CARD FIXES, Nov 5 evening — docs/harbor/passes/card-fixes.md)
+- **THE PLATE HUGS ITS TEXT** (strip + full card): never a fixed wide box — its width is its longest row + padding (on a GIFT full card a little
+  tighter: a smaller emblem, less air). **THE STEP** on both plates (`vault/strip.js#stepPlate` — one function), and **THE REVERSE STEP**: when
+  the SECOND row is the longer (the dev line, LV n · HOST, a short name) the NAME row steps in — the upside-down L, the same thin edge line + a
+  rounded corner (the owner's mock: reverse-step-mock.png); a long name keeps the normal step. The plate says which: `data-step` n / r (+ x2, y1).
+- **EACH CARD's HERO BOX**: a gift card's `heroFull` (else `hero`) in `js/fx/gift-specs.js`; any other full card may declare one in
+  `vault/layout.js#FULL_HERO`. **THE PLATE PLACEMENT** (`vault/layout.js`, ONE ResizeObserver + a re-lay once the step is measured): the plate's
+  max-width ends before the hero (the name fits smaller first), then it keeps its own place (mid-left) unless that touches the hero (its real
+  stepped shape) or a top / foot piece → the nearest clear spot (lower / upper-left). A GIFT strip's plate ends before its face (`strip.js#heroRoom`).
+- **NOTHING OVERLAPS** on a full card: the top line, the tier gem / 1 OF 1 badge, the FOUNDER pill (a clear gap under the top line — and NONE on a
+  GIFT card), the plate, MEMBER SINCE, the card's name. The top line SHORTENS to "№ 0001" before it would reach the badge (`full.js#fitTop`).
+- **The dev line** reads **DEV · № 0001** on the strip. **The full card's plate = the NAME + LV n only** (the owner, 6:04 pm): THE RANK is its own
+  gold line above MEMBER SINCE (`.vl-fc-rank`; the dev cards DEV · <RANK>, their № back on the top line); the full plate steps only for a longer
+  second row. A gift card may carry its OWN strip picture (`stripArt` in gift-specs.js — BRUH's). Proof: harbor `cardfit` (every card × 390 / 402 /
+  430 × founder or not × short / long names: nothing overlapping, the plate off the hero, LV n only, the rank line + the printed name) + `platefit`.
+
 ## THE GIFT TIER + THE GIFT TOOL (SHELL 2.0 B2 — the owner, Nov 4 3:52 pm – Nov 5 12:58 pm)
 - **1-OF-1 cards like the dev cards** (`js/core/gift-cards.js`): the rainbow DEV GEM on the strip, the 1-OF-1 badge on the full card, legendary
   in every rule (the prominence rule, the laser) — and their art + motion play even on a legendary-led strip (the prominence rule's exception).
-  `core/dev-cards.js#isOneOfOne` = a dev card or a gift card (the gem, the badge, CUSTOMIZE's order); only the dev cards carry THE DEVELOPER · Nº.
+  `core/dev-cards.js#isOneOfOne` = a dev card or a gift card (the gem, the badge, CUSTOMIZE's order); only the dev cards carry DEV · Nº (CARD FIXES).
   Never earnable, in no reward table; their art always shows to their one owner (`approved.js` — he gives one only once he's picked it).
 - **THE 11** (names on the server only — api/_lib/catalog.js): the nephew's five, Cambria's two, Liam's three — all GIFTABLE — + the owner's own
   card (OWNER_GIFTS: granted by the server to ADMIN_PIDS on `/api/profile 'me'` (audited `giftOwner`), never listed in GIFTS, refused to anyone else).
@@ -549,7 +568,7 @@ in the band under the top line) — each with its CHANGED line.
 - **THE GIFT TOOL** (`/admin → GIFTS`, `api/_lib/gifts.js`): pick a card, type a NAME TAG, GIVE (the second tap confirms) — owner-only (the admin
   gate), `gifts/{card}` taken in a TRANSACTION first (ONE PROFILE EVER: a second give refused, 409 `taken`), then the card into their items,
   EQUIPPED (`profiles/{pid}/cd`), a reveal waiting (`ppriv/{pid}/gift`); audited `giftGive`. **THE REVEAL** (`js/profile/gift-reveal.js`): a light
-  `giftCheck` 6 s after the title is up → "A GIFT FROM THE HOUSE · ONE OF ONE · IT'S YOURS" over the full card FLIPPING IN (the stage — card +
+  `giftCheck` 6 s after the title is up → "A GIFT FROM THE HOUSE · ONE OF ONE · IT'S YOURS" (CARD FIXES: solid — ONE OF ONE white, IT'S YOURS gold) over the full card FLIPPING IN (the stage — card +
   canvas — turns; transform + opacity; reduced motion: it appears) → IT'S YOURS = `giftSeen` (once). Never over a match.
 - **THE LAB → GIFTS**: the 11 (strip + FULL CARD ›) with **PREVIEW ON MY CARD ›** — the reveal as the owner's own card, nothing granted. The
   LOBBY TEST has THE GIFTS mix. Proof: tests/shell-b2.test.mjs + server.test.mjs "THE GIFT TOOL" + rules.test.mjs (gifts/ nobody's).

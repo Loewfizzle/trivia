@@ -107,10 +107,10 @@ G('vault', async () => {
         const el = b.slot === 'stamp' ? fc.querySelector('.vl-fc-stamp') : fc.querySelector('.vl-fc-fd'); if (!el) { out.push({ id, miss: true }); continue; }
         const r = el.getBoundingClientRect(), bx = [(r.left - R.left) / R.width, (r.top - R.top) / R.height, r.width / R.width, r.height / R.height];
         const hit = b.moving.filter(m => bx[0] < m[0] + m[2] && m[0] < bx[0] + bx[2] && bx[1] < m[1] + m[3] && m[1] < bx[1] + bx[3]).length;
-        out.push({ id, slot: b.slot, txt: el.textContent, hit, parts: b.moving.length, top: b.slot !== 'top' || /№ d+ · FOUNDER/.test(fc.querySelector('.vl-fc-house').textContent) }); }
+        out.push({ id, slot: b.slot, txt: el.textContent, hit, parts: b.moving.length, top: b.slot !== 'top' || /№ \\d+ · FOUNDER/.test(fc.querySelector('.vl-fc-house').textContent) }); }
       return out; })()`);
     ok(B.length === 5 && B.every(x => !x.miss && x.hit === 0 && x.top) && B.filter(x => x.slot !== 'stamp').every(x => x.txt === 'FOUNDER') && B.filter(x => x.parts).length >= 4,
-      `FOUNDER + THE BADGE SLOT at ${W}: ${B.map(x => `${x.id.replace('card-', '')} ${x.slot}${x.hit ? ` HITS ${x.hit}` : ''}`).join(' · ')} — no badge on a moving part; the dev cards' top line "NEON SPEAKEASY · FOUNDER"`);
+      `FOUNDER + THE BADGE SLOT at ${W}: ${B.map(x => `${x.id.replace('card-', '')} ${x.slot}${x.hit ? ` HITS ${x.hit}` : ''}`).join(' · ')} — no badge on a moving part; the dev cards' top line "… № 0001 · FOUNDER"`);
     await ctx.close(); }
   // THE VAULT 2C — THE WRONG DOOR (/404.html — Vercel's page for any unknown path; scripts/serve.mjs does the same): made-up paths land on the
   // door with a 404, ONE way back to the city, the right DID YOU MEAN — /lab + /admin only on a device the app called an admin

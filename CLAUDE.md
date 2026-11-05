@@ -105,6 +105,9 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   rainbow gem + 1 OF 1), given ONLY by the owner's `/admin → GIFTS` (`api/_lib/gifts.js`: `gifts/{card}` = ONE PROFILE EVER, equipped, a reveal —
   `profile/gift-reveal.js`); the owner's own one (OWNER_GIFTS) granted on 'me' like the dev cards, never giftable. Their art = the material
   (`assets/vault/gift/` — `scripts/build-gift-art.mjs`), their motion = ONE engine (`fx/gift.js` + the layers as data in `fx/gift-specs.js`).
+- **THE CARD LAYOUT RULE (CARD FIXES — docs/vault.md):** a full card's pieces never overlap + its plate keeps off the card's HERO (`js/vault/layout.js` — one
+  ResizeObserver; a gift's `heroFull` in gift-specs.js, any other card's in `FULL_HERO`); the plate hugs its text, THE REVERSE STEP when the second row is
+  the longer (`strip.js#stepPlate`, both plates); NO FOUNDER pill on a gift card; a full card's plate = NAME + LV n (THE RANK = a gold line above MEMBER SINCE; DEV · <RANK>); the strip's dev line DEV · №.
 - **THE HERO-SPOT RULE (SHELL 2.0 B2):** a strip's main feature middle → middle-right (its centre ≥ 0.60 across), clear of the plate + the gem —
   a NEW focal card = its row in `js/vault/hero.js` (checked live at 390 / 402 / 430: harbor `platefit`).
 - **THE VAULT 2C:** the strip's tier mark is THE TIER GEM (`js/vault/gems.js` — no words; the dev cards' DEV GEM); a pass that edits a lab item's art bumps `js/vault/catalog.js#LAB_V` + writes its line in `api/_lib/lab-text.js#LAB_CHANGES` (it shows CHANGED in THE LAB 2.0); the 12 sign-up shapes are commons everyone owns (`core/items.js#SIGN_EMBLEMS`) — the shape changes only in CUSTOMIZE; an unknown path gets THE WRONG DOOR (`404.html` — keep vercel.json free of rewrites).
