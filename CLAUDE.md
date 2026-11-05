@@ -16,7 +16,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | doc | read it when you touch |
 | --- | --- |
 | `docs/match-kit.md` | **any real-time game** (the shared HUD pieces + the E2E harness) — read this before building or changing a game |
-| `docs/cartridge.md` | **THE CARTRIDGE PLUG** (LOBBY 2.0 B): what a game EXPORTS + what the console GIVES it (`js/games/cartridge.js` — checked by `tests/cartridge.test.mjs`): `start({ now })` = the match begins after the walk inside, its own chat lock, banner name, preload, the DAILY plug-in (ships OFF) — the console never names a game |
+| `docs/cartridge.md` | **THE CARTRIDGE PLUG** (LOBBY 2.0 B) + **THE CONTRACT** (SHELL 2.0 B1 — the thin meta + the lazy cartridge, the preload budget, the kit, READY, the night path, mood music, the solo lane, "what plugs where"): what a game EXPORTS + what the console GIVES it (`js/games/cartridge.js` — checked by `tests/cartridge.test.mjs`): `start({ now })` = the match begins after the walk inside, its own chat lock, banner name, preload, the DAILY plug-in (ships OFF) — the console never names a game |
 | `docs/data-model.md` | the database: every node, every game's `game` shape, rules |
 | `docs/testing.md` | running / writing tests: emulators, smoke test, each game's E2E and its env flags, previews, Lighthouse |
 | `docs/audio.md` | music, playlists, SFX, the audio engine; loading, PWA, service worker, link previews |
@@ -125,6 +125,15 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   server checks + replays every result itself (`/api`), the secrets live only in Vercel's env (the service-account key, the pepper).
 - **A game's podium music:** `FINAL_MUSIC` in its index.js (HIGH STAKES: `victory1` = victory.mp3); default the victory playlist.
 - **PRISM DROP:** never use the words "Tetris", "tetromino" or "T-spin" anywhere (pieces/prisms, twists).
+- **THE CONTRACT (SHELL 2.0 B1 — docs/cartridge.md):** a game = `meta.js` (PURE, no imports — the console reads it at boot: options, minutes,
+  music, banner, chat lock, SOLO) + its cartridge `index.js`, loaded ON DEMAND (`games/registry.js#loadGame` — never a static game import:
+  `tests/cartridge.test.mjs` checks the boot graph, `node scripts/boot-bytes.mjs`); only `start` is async, `step` pure + seeded; `prepare` host-only,
+  `preload` every phone ≤ 1.5 MB; the kit in `js/games/kit/` (prefix `gk-`, READY = `kit/ready.js`); the night's memory = `meta/used/{gameId}`
+  (`kit/night.js`); `MUSIC: 'mood:<mood>'` = that station in sync; `SOLO: true` → THE SOLO LANE (the streak + a small capped XP, never a win);
+  a solo room's look = `body[data-look]` (`kit/look.js` — games read it, draw nothing of their own).
+- **COLOUR-BLIND (SHELL 2.0 B1):** right / close = the shared tokens `--good` / `--close` (css/base.css) — never a game's own greens / golds;
+  SETTINGS → "Colour-blind colours" sets `body[data-cb]` (blue / orange; per device + the profile — `ui/colorblind.js`). Right / close are
+  NEVER shown by colour alone — a shape / a mark too. The city is not affected.
 
 ## Working efficiently (what cost the most in past sessions)
 - **Edits:** use the Edit tool or a script file in the scratchpad. Never put code with backticks, `$` or `\b` inside an inline
@@ -325,7 +334,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   file) AND the FULL `e2e-harbor` suite (a City 2.0 pass) — the cloud run then CONFIRMS instead of discovers. Measured on it: unit ≈ 30 s (PERF-A's split), rules ≈ 27 s,
   smoke `GAMES=cipher` ≈ 30 s, one harbor group ≈ 30–130 s, THE FULL HARBOR SUITE ≈ 20 min at 4 shards (the default since PERF-A; PERF-B: the windows group 3 pages at a time — the shards end at ~690–890 s; ~800 checks; the machine's peak ~13 GB of 32 — models.md). **Run the full suite with nothing
   else busy** (no model bakes, no shot bursts beside it: under that load every group timed out "the harbor baked" — MODELS). Browser tests run
-  OUTSIDE Claude Code's sandbox (its private AppData copy can't launch Chromium); EVERY browser script imports puppeteer from
+  OUTSIDE Claude Code's sandbox (its private AppData copy can't launch Chromium); THE GPU PIN (SHELL 2.0 B1): booted with no display, the kit pins the Radeon by its LUID — speed checks all red together → `node tests/integration/gpu-check.mjs "<browser>"` first (docs/testing.md); EVERY browser script imports puppeteer from
   `tests/integration/kit/puppeteer.mjs` (muted; on Windows software compositing — the TV runs at 29 Hz and headless Chromium followed it to ~30 fps): the local, uncommitted rule in `.claude/settings.local.json`
   (`node tests/integration/e2e-*`, `shots.mjs`, `title-perf.mjs`, `pixdiff.mjs` — run them from the repo root with those paths). Chromium:
   `C:\Users\benja\AppData\Local\ms-playwright\chromium-1248\chrome-win64\chrome.exe`. The laptop is retired (a backup).

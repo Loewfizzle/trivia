@@ -231,6 +231,22 @@ for the stack) with Clear / Clear all; entries quiet for 30 days are pruned.
   (mailto:) → redeploy. On the iPhone: Safari → Share → Add to Home Screen → open it from there → the radio → LEDGER → A ROOM JUST OPENED
   → ON (allow notifications) → SEND A TEST.
 
+## THE SOLO LANE (SHELL 2.0 B1, Nov 5 2026 — review-6.md D3; the owner, Nov 5 6:56 am: "solo counts for the STREAK + a SMALL CAPPED XP — solo never out-earns playing with friends")
+- A room of ONE plays a SOLO cartridge end to end. Its meta says `SOLO: true` (OVERCLOCK first; `cartridge.js#minPlayersOf` → 1, and the
+  server reads the same flag: `core/match-report.js#SOLO_OK`). `unreportable` accepts n = 1 only for those; PRISM DROP alone is never a match.
+- **What it counts**: the STREAK (the day is played) + a SMALL XP. `ranks.js#SOLO_XP` = 15, half of a played match, so always less than
+  the least a LOST multiplayer match pays (`XP.played` 30). Only the first `SOLO_DAY_XP` = 4 solo matches of the (Eastern) day pay it, then 0
+  (the streak still counts). There is NO win, NO placing, NO PB / new-game / variety / weekly-goal XP, and the achievements see rank 0 + no win.
+- **Records**: kept, on the game's SOLO board (`<board>-solo` in core/boards.js — OVERCLOCK's `overclock-std-solo`, with the same bounds
+  as the multiplayer one); never the multiplayer board.
+- **The room**: the host writes the night entry with **0 points** (host.js), so there's no WINNER's BANNER, no night's champion and no
+  night bonus. /api/report expects the 0 (a host writing 3 for a solo match is refused: mismatch). There's no rematch vote either (no one
+  else to vote). The podium says **SOLO RUN** + the player + the score (`ui/final.js` — a game's own `finalScene` draws its solo body).
+- Proof: `tests/shell-b1.test.mjs` (the pure steps: credited once, capped a day, never a placing) + `server.test.mjs` (THE SOLO LANE on the
+  emulators) + the harbor's `sololook` group (OVERCLOCK starts with one player).
+- **COLOUR-BLIND on the profile**: `ppriv/{pid}/cb` (private, server-written — `/api/profile` action `prefs`), returned in `priv.cb`. A device
+  that never chose for itself adopts it.
+
 ## Setup (production)
 1. Firebase console → Project settings → Service accounts → **Generate new private key** (a JSON file).
 2. Vercel → project → Settings → Environment Variables: `FIREBASE_SERVICE_ACCOUNT` = the whole JSON (or its base64),

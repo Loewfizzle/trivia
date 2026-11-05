@@ -30,6 +30,9 @@ import { settings, onSettings, PAGE_SILENT, setPageQuiet } from './audio/setting
 import { lazyView } from './games/lazy-view.js';
 import { startShow } from './core/room-show.js';
 import { debugTool, onDebugTools } from './ui/debug-tools.js';
+// (SHELL 2.0 B1: declared before anything can render — routeKey / paintLook run from the first render on)
+const wanting = new Set();
+let lookM = '', lookV = null;
 
 // THE BOARD and the profile load only when opened (they're behind the title's buttons)
 const createBoardScreen = lazyView(() => import('./board/screen.js'));
@@ -76,7 +79,6 @@ function routeKey(st) {
 
 // SHELL 2.0 B1 — THE ROOM's LOOK on the body: a match in a room of ONE wears the look its player picked (games/kit/look.js) — AUTO resolved by
 // the real sun at the start, then LOCKED for the match; games READ body[data-look]; nothing for a room of 2+ (or outside a match)
-let lookM = '', lookV = null;
 function paintLook(st) {
   const g = st.game, on = !!(g && st.meta && st.meta.status === 'playing' && st.quit !== g.matchId && Object.keys(g.participants || {}).length === 1);
   if (!on) { lookM = ''; lookV = null; if (document.body.dataset.look) delete document.body.dataset.look; return; }
@@ -89,7 +91,6 @@ function paintLook(st) {
     lookV = v; document.body.dataset.look = v;
   }).catch(() => {});
 }
-const wanting = new Set();
 function wantGame(id) {
   if (wanting.has(id)) return;
   wanting.add(id);

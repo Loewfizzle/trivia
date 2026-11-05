@@ -400,12 +400,15 @@ G('crew', async () => {
   //  without the CREW row: wait for the condition the row reads, crew-row.js#isOwnerPhone)
   await waitFor(O.page, `!!document.querySelector('.rd-btn') && document.body.classList.contains('rd-owner') && !!document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]')`, 'the owner radio + the lobby list', 25000);
   await ev(O.page, `(() => { const c = document.querySelector('.rc-tag[data-uid="${cuid}"], .chip.player[data-uid="${cuid}"]'), r = c.getBoundingClientRect(), o = { bubbles: true, clientX: r.left + 20, clientY: r.top + 10 }; c.dispatchEvent(new PointerEvent('pointerdown', o)); c.dispatchEvent(new PointerEvent('pointerup', o)); return true; })()`);
-  await waitFor(O.page, `(document.querySelector('.cr-row .cr-sw') || {}).getAttribute && document.querySelector('.cr-row .cr-sw').getAttribute('aria-checked') === 'true'`, 'the card says CREW ON', 10000).catch(() => {});
-  const on1 = await ev(O.page, `(() => { const l = document.querySelector('.cr-row .cr-sw'); return l ? l.getAttribute('aria-checked') : null; })()`);
-  await ev(O.page, `document.querySelector('.cr-row .cr-sw').click()`);
-  await waitFor(O.page, `document.querySelector('.cr-row .cr-sw').getAttribute('aria-checked') === 'false'`, 'CREW OFF', 8000).catch(() => {});
+  await waitFor(O.page, `(([...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop()) || {}).getAttribute && ([...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop()).getAttribute('aria-checked') === 'true'`, 'the card says CREW ON', 10000).catch(() => {});
+  const diag = await ev(O.page, "({ sheets: [...document.querySelectorAll('.sh:not(.is-out)')].map(x => x.className).join('|'), full: !!document.querySelector('.vl-full'), rows: [...document.querySelectorAll('.cr-row')].map(r => (r.closest('.is-out') ? 'OUT:' : '') + r.textContent.slice(0, 60)).join('|'), owner: document.body.classList.contains('rd-owner') })");
+  const on1 = await ev(O.page, `(() => { const l = [...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop(); return l ? l.getAttribute('aria-checked') : null; })()`);
+  if (on1 == null) log('CREW DIAG', JSON.stringify(diag));
+  await ev(O.page, `(() => { const b = [...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop(); if (b) b.click(); })()`);
+  await waitFor(O.page, `([...document.querySelectorAll('.cr-row .cr-sw')].filter(x => !x.closest('.is-out')).pop()).getAttribute('aria-checked') === 'false'`, 'CREW OFF', 8000).catch(() => {});
   const off = await get(`radio/crew/${cpid}`);
-  ok(on1 === 'true' && off === null, `CREW: the owner taps a player in the lobby → their card's CREW switch (${on1}) → OFF (the server: ${JSON.stringify(off)})`);
+  const note1 = await ev(O.page, "(document.querySelector('.cr-row .cr-t') || {}).textContent || '(no row)'");
+  ok(on1 === 'true' && off === null, `CREW: the owner taps a player in the lobby → their card's CREW switch (${on1}) → OFF (the server: ${JSON.stringify(off)}; the row: "${note1}"; ${JSON.stringify(diag)})`);
   await ev(O.page, `import('/js/room.js').then(m => m.leaveRoom()).catch(() => {})`);
   // ---- the owner removes them; the audit log
   await call(O.page, { action: 'radioCrewSet', pid: cpid, on: false }); await call(O.page, { action: 'radioCrewSet', pid: dpid, on: false });

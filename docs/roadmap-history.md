@@ -1970,3 +1970,24 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
 - The owner's add-on: the results rows as the players' slim cards; the XP box's level line never collides; YOUR CARD on one line.
 - Group 0: CITY 1.0 OUT's two cloud reds fixed at their cause (the boxer's wait that never waited; A6's start before the layouts settled).
 
+
+## SHELL 2.0 B1 — THE OWNER's SHELL A FIXES, THE GPU CHECK, THE CONTRACT + THE SOLO LANE (Nov 5 2026) — docs/harbor/passes/shell-b1.md
+- Group 0: THE GPU PIN. The mini PC restarted with no display, so Windows made the Basic Render Driver the active adapter and Chromium's GPU
+  process gave up (no WebGL at all). The kit now pins the Radeon's LUID once per boot (+ no DirectComposition without a display):
+  `ONLY=perf` 12/12. No driver change was needed.
+- Group 1, the owner's fixes:
+  - the 1 OF 1 in solid near-white letters + a rainbow glow edge on a dark backing (10.3 : 1);
+  - NO streak on the dock (A's pill kept the flame's glow);
+  - ‹ BACK on every nested sheet (☰'s rows open ON the menu; YOUR CARD's ‹ brings it back; CUSTOMIZE → EDIT USERNAME; the picker → options);
+  - THE RADIO in the shell look (dark glass, neon tubes, a dark dial + a neon needle, neon-ring jacks, a neon grille);
+  - THE RACING CLOUDS: a phase accumulator for the clouds, the water's drift and the fog's wisps (core/harbor-phase.js — the 10-hour test);
+  - PRISM DROP's E2E on the room in the city + FAST=1 (its stale flick check fixed).
+  - THE HERO-SPOT AUDIT moved to B2.
+- Group 2, THE CONTRACT:
+  - D1, the thin meta + lazy logic (registry → the metas only; `loadGame`);
+  - the preload budget; the kit folder reserved (`gk-`) + THE READY HELPER + THE ROOM-NIGHT PATH;
+  - MUSIC 'mood:<mood>' (the station in sync); D12 in docs/cartridge.md + "what plugs where".
+- Group 3:
+  - THE SOLO LANE (OVERCLOCK alone; the streak + 15 XP × 4 a day, no win / night points; solo boards);
+  - THE ROOM's LOOK SWITCH (a sun / moon tube above PLAY in a room of one; remembered; locked for the match; body[data-look]);
+  - COLOUR-BLIND (--good / --close + body[data-cb]; OVERCLOCK on the tokens; on the profile).

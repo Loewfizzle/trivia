@@ -32,6 +32,24 @@ OPTIONAL) and draw into `el` (OVERCLOCK's "OVERCLOCKED", a tube-sign name, its p
 console's podium rise. **The results rows** (every `leaderboard()` — the podium + a game's standings) are each player's SLIM CARD
 (`ui/strip-board.js`): the place number beside the strip, the score over its top-right, ONE shared effect surface, every strip calm.
 
+## THE READY HELPER, THE ROOM's LOOK + COLOUR-BLIND (SHELL 2.0 B1, Nov 5 — docs/cartridge.md "THE CONTRACT")
+- **"Everyone tapped"**: `js/games/kit/ready.js#readyState({ taps, players, online, since, now, minMs = 1500, maxMs })` → `{ ready, n, of, waiting, why }`.
+  PURE (call it in the director): only CONNECTED players count, the screen holds at least `minMs`, a DROPPED player never blocks, `maxMs`
+  moves on anyway, a match where nobody is connected goes after `minMs`. `now` / `since` = the server clock.
+- **The night's memory**: `js/games/kit/night.js` — `markUsed(gameId, keys)` in a step's `$room`, `usedOf(state.meta, gameId)` to read
+  (`rooms/{CODE}/meta/used/{gameId}/{key}`: survives rematches + new games, gone with the room).
+- **THE ROOM's LOOK** (`js/games/kit/look.js`): a room of ONE picks AUTO (the real sun) · DAY · NIGHT with the round sun / moon tube above
+  PLAY (room-dock.js — its icon + word always show the state; remembered per device; LOCKED once the match starts). While a solo match is
+  on screen the console sets `body[data-look="day" | "night"]`. A game draws nothing of its own for it: it READS the look
+  (`body[data-look="day"] .xx-…` in its css, `document.body.dataset.look` in a canvas). Nothing is set for a room of 2+.
+- **COLOUR-BLIND**: right + close are the shared tokens `--good` (green) and `--close` (gold) from css/base.css — EVERY game reads them,
+  never its own greens / golds for right / close. SETTINGS → "Colour-blind colours" (per device + on the profile — `ui/colorblind.js`)
+  sets `body[data-cb]`, which swaps them to BLUE + ORANGE. **Right / close are never shown by colour alone**: a shape or a mark too
+  (✓ / ✕, a ring, a word), so a phone in the sun or a colour-blind player still reads them. OVERCLOCK's right / close lines read the tokens
+  since B1; the hidden games come over when each comes back.
+- **The kit's reserved pieces** (OVERCLOCK pass 1 builds them, prefix `gk-`): `numpad.js` · `keyboard.js` · `tach.js` · `slam.js` ·
+  `answer.js` (docs/cartridge.md D9).
+
 ## The E2E harness (`tests/integration/kit/harness.mjs`)
 ```js
 import { createHarness, REVIEW_SIZES } from './kit/harness.mjs';

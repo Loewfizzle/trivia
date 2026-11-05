@@ -612,6 +612,15 @@ G('sololook', async () => {
   const kept = await read();
   ok(kept && kept.word === 'DAY', `THE LOOK SWITCH: remembered on this device — a reload shows ${kept && kept.word}`);
   if (SHOTS) await p.screenshot({ path: `${OUT}sololook-402.png` });
+  // (the look review: the switch at 390 / 430 + a desktop 1440 — above PLAY, whole, in view)
+  const sizes = [];
+  for (const [w, hh] of [[390, 844], [430, 932], [1440, 900]]) {
+    await p.setViewport({ width: w, height: hh, deviceScaleFactor: w > 1000 ? 1 : 2, isMobile: w < 1000, hasTouch: w < 1000 }); await sleep(900);
+    const r = await read(); sizes.push(`${w}: ${r ? `${r.word} ${r.above && r.inView ? 'ok' : 'OFF'}` : 'none'}`);
+    if (SHOTS) await p.screenshot({ path: `${OUT}sololook-${w}.png` });
+  }
+  await p.setViewport({ width: 402, height: 874, deviceScaleFactor: 2, isMobile: true, hasTouch: true }); await sleep(600);
+  ok(sizes.every(s => / ok$/.test(s)), `THE LOOK SWITCH at every size — above PLAY, whole, in view (${sizes.join(' · ')})`);
   // a SOLO cartridge starts with one player; the match wears the look, LOCKED
   const started = await ev(p, "import('/js/host.js').then(m => m.startGame('overclock', { mode: 'quick' }))");
   await waitFor(p, "window.__arcade.state.meta.status === 'playing' && document.body.dataset.look", 'the solo match + its look', 20000).catch(() => {});
