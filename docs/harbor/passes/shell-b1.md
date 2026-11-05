@@ -105,3 +105,13 @@ AUDIT, moved here → B2). **No rules change.**
 - e2e-oc-2 / e2e-oc-new need 3+ phones (no FAST path); e2e-oc-new wasn't re-run this pass.
 - The radio's new look was judged at 402 only (it's the owner's tool); WebKit not shot.
 - `pulse/clock.js` (the console's shared audio clock) still lives in PULSE's folder.
+
+## The cloud run (8037cd9 — the harbor tag; ONE run, the second kept)
+- `tests` **GREEN**. `harbor` **12 / 15 jobs**:
+  - `models` → `crew`: the known flake (red on the pre-pass code too — the A/B above).
+  - `room2` → THE LOOK SWITCH at 1440: my check's fixed 900 ms pause after the resize; the runner re-lays the dock slower. Now it WAITS for
+    the switch (green locally, pushed after the run, untagged).
+  - `city` → `panel`: "timeout: the sheet". The preview panel didn't open within 5 s of the ☰ ADMIN tap on the runner (its last check
+    passed). Green in the local full run; the panel code is untouched. Watch it in B2's run.
+- Vercel built the tagged push: the new files are served from www (`js/games/kit/look.js`, `js/games/overclock/meta.js`,
+  `js/core/harbor-phase.js`, `js/ui/colorblind.js`; the lazy `registry.js`).

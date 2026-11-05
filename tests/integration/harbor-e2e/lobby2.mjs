@@ -615,7 +615,9 @@ G('sololook', async () => {
   // (the look review: the switch at 390 / 430 + a desktop 1440 — above PLAY, whole, in view)
   const sizes = [];
   for (const [w, hh] of [[390, 844], [430, 932], [1440, 900]]) {
-    await p.setViewport({ width: w, height: hh, deviceScaleFactor: w > 1000 ? 1 : 2, isMobile: w < 1000, hasTouch: w < 1000 }); await sleep(900);
+    await p.setViewport({ width: w, height: hh, deviceScaleFactor: w > 1000 ? 1 : 2, isMobile: w < 1000, hasTouch: w < 1000 });
+    // (the dock re-lays itself after a resize — the cloud's runner takes longer: wait for the switch, never a fixed pause)
+    await waitFor(p, "(() => { const b = document.querySelector('.rdk-look'), r = document.querySelector('.rdk-play'); if (!b || b.hidden || !r) return false; const x = b.getBoundingClientRect(), y = r.getBoundingClientRect(); return x.width > 0 && x.bottom <= y.top + 2 && x.right <= innerWidth; })()", `the look switch at ${w}`, 10000).catch(() => {});
     const r = await read(); sizes.push(`${w}: ${r ? `${r.word} ${r.above && r.inView ? 'ok' : 'OFF'}` : 'none'}`);
     if (SHOTS) await p.screenshot({ path: `${OUT}sololook-${w}.png` });
   }
