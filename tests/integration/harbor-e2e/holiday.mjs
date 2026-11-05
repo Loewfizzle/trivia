@@ -5,6 +5,16 @@ import { OUT, SHOTS, sleep, ok, okT, GR, open, ev, waitFor, tapAt, harborUp, G, 
 
 // 11a-1 — THE HOLIDAYS: Halloween's build-up by date (Oct 10 / Oct 27), Halloween night, the come-down into Day of the Dead (Nov 1), the
 // procession (Nov 2 at dusk), all gone (Nov 3 evening); the forced moments; reduced motion (docs/harbor/passes/part-11a-1.md)
+// THE SPEED PASS — G1 (review-6.md): a ROAM burst's pause is ALSO mode 'still' (0.3–1.5 s); only the HUB still lasts (7–16 s). On the 2-core
+// runner the read → tap round trips landed after a roam pause → the tap missed. Wait for the HUB still (at the hub, calm, no trip) and tap
+// where the predicate's own last evaluation found it — one round trip, no stale read in between
+async function hubStill(p, i, ms = 25000) {
+  const H = 'window.__district.harbor()', key = i ? 'spider2' : 'spider';
+  const js = `(() => { const s = ${H}.dress && ${H}.dress.${key}, at = ${H}.spiders && ${H}.spiders[${i}]; return s && at && s.mode === 'still' && s.far < 1 && !(s.scared > 0.05) && !(s.crouch > 0.05) && !s.trip ? at : null; })()`;
+  for (const end = Date.now() + ms; Date.now() < end;) { const at = await ev(p, js).catch(() => null); if (at) return at; await sleep(100); }
+  return ev(p, `${H}.spiders[${i}] || null`);
+}
+
 G('holiday', async () => {
   const P = 'window.__district.harbor()';
   const page = async (slot, when, extra = '', init = null) => { const Q = await open({ slot, qs: `when=${when}${GR}&wx=clear${extra}`, view: [402, 874], init }); await harborUp(Q.page); await sleep(1500); /* PERF-B: NOT settled() — this pause also covers the lazy holiday dressing + the weather's blend (the cloud's run 2) */ return Q; };
@@ -71,12 +81,11 @@ G('holiday', async () => {
     // (C4d — F10: SP6's twin fix here too — wait till it stands still, read where it IS just before the tap, one more tap if it missed)
     // (CC-B — GREEN MEANS GREEN: on the cloud's 2-core runner it hadn't stood still within 8 s — the tap landed where it WAS: wait for the
     // real condition longer + a third try)
-    await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the spider still', 20000).catch(() => {});
-    let at = await ev(Q.page, `${P}.spiderAt`);
+    let at = await hubStill(Q.page, 0);
     let dropped = false, onWord = false;
     let dangled = false, landed = false;
     for (let tries = 0; tries < 3 && at && !dropped; tries++) {
-      if (tries) { await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the spider still', 20000).catch(() => {}); at = await ev(Q.page, `${P}.spiderAt`); }
+      if (tries) at = await hubStill(Q.page, 0);
       await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'land', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
     if (at && dropped) {
       // (WIN3 — the owner: it DANGLES on its thread — head down, the legs tucked in (the mean reach under half the stance), a slow turn — and
@@ -106,8 +115,7 @@ G('holiday', async () => {
     // THE SECOND SPIDER on the last N's web: its own tap, its own trip; the two never in step
     // (PERF-B — the cloud's red: the tap found the second spider SCARED (its nerves — the first one's trip or a flicker near it) and a scared
     //  spider freezes instead of dropping; the tap is meant for a spider at rest → wait for it calm + still first)
-    await waitFor(Q.page, `(() => { const b = ${P}.dress.spider2; return b && b.mode === 'still' && !(b.scared > 0.05) && !(b.crouch > 0.05); })()`, 'the second spider calm', 15000).catch(() => {});
-    const at2 = await ev(Q.page, `${P}.spiders[1] || null`);
+    const at2 = await hubStill(Q.page, 1);
     let trip2 = false;
     if (at2) { await Q.page.touchscreen.tap(at2.x, at2.y); trip2 = await waitFor(Q.page, `['drop', 'crawl'].includes(${P}.dress.spider2.mode)`, 'the second dropping', 2500).then(() => true).catch(() => false); }
     const s2 = await ev(Q.page, `${P}.dress.spider2`), s1 = await ev(Q.page, `${P}.dress.spider`);
@@ -153,16 +161,14 @@ G('holiday', async () => {
       // still, read where it IS just before the tap, and tap once more if the first missed — a person taps again too)
       let t2 = false;
       for (let tries = 0; tries < 2 && !t2; tries++) {
-        await waitFor(Q.page, `(() => { const s = ${P}.spiders[1]; return s && s.mode === 'still'; })()`, 'the second still', 8000).catch(() => {});
-        const a2 = await ev(Q.page, `${P}.spiders[1]`); await Q.page.touchscreen.tap(a2.x, a2.y);
+        const a2 = await hubStill(Q.page, 1); await Q.page.touchscreen.tap(a2.x, a2.y);
         t2 = await waitFor(Q.page, `${P}.dress.spider2 && ${P}.dress.spider2.trip === 'drop'`, 'the second dropping', 2500).then(() => true).catch(() => false);
       }
       const s1 = await ev(Q.page, `${P}.dress.spider.trip`);
       // (the cloud's next run: the FIRST one's tap missed at 390 the same way — the same wait-still + read-now + one more tap)
       let t1 = false;
       for (let tries = 0; tries < 2 && !t1; tries++) {
-        await waitFor(Q.page, `(() => { const s = ${P}.spiders[0]; return s && s.mode === 'still'; })()`, 'the first still', 8000).catch(() => {});
-        const a1 = await ev(Q.page, `${P}.spiders[0]`); await Q.page.touchscreen.tap(a1.x, a1.y);
+        const a1 = await hubStill(Q.page, 0); await Q.page.touchscreen.tap(a1.x, a1.y);
         t1 = await waitFor(Q.page, `${P}.dress.spider && ${P}.dress.spider.trip === 'drop'`, 'the first dropping', 2500).then(() => true).catch(() => false);
       }
       ok(t2 && s1 === null && t1, `${when.slice(5, 10)} at ${view[0]}: BOTH TAPPABLE — the second drops on its tap (${t2}; the first untouched: ${s1 === null}), the first on its own (${t1})`);
@@ -489,7 +495,9 @@ G('sightings', async () => {
 
       `SIGHTINGS: THE SEQUENCE — ${[...seen].join(' → ')}; the polaroid ${st.snap && st.snap.w}×${st.snap && st.snap.h} px (the real frame at 3×, ${st.snap && st.snap.ms} ms to compose), "${st.cap}", SPOTTED, the pair, held for a tap, one screen ${JSON.stringify({ photo: st.photo, stamp: st.stamp, held: st.held, pair: st.pair, scroll: st.scroll, phase: st.phase })}`);
     // (a frame-time check: hard on the mini PC, a warning on the 2-core cloud runner — the suite's okT, like every frame budget)
-    okT(st.snap && st.snap.ms < 12 && gaps.max < Math.max(90, gaps.med * 3), `SIGHTINGS: the capture never hitches the frame loop (compose ${st.snap && st.snap.ms} ms; frames median ${gaps.med.toFixed(1)} ms, worst ${gaps.max.toFixed(1)} ms over ${gaps.n})`);
+    // (THE SPEED PASS — G3: the compose's ms on THIS machine's software rasteriser is no phone budget — `ms < 12` dropped; the honest
+    //  quantity is the second clause: no dropped frame between the tap and the capture. The ms is printed)
+    okT(st.snap && gaps.max < Math.max(90, gaps.med * 3), `SIGHTINGS: the capture never hitches the frame loop (compose ${st.snap && st.snap.ms} ms; frames median ${gaps.med.toFixed(1)} ms, worst ${gaps.max.toFixed(1)} ms over ${gaps.n})`);
     // (the hold arms a second after the reveal is done: wait for that, then the tap)
     await waitFor(S.page, '!!document.querySelector(".sg-modal.is-done")', 'the reveal held', 15000).catch(() => {});
     await sleep(1200);

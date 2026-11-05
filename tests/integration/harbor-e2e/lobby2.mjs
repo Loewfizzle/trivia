@@ -155,14 +155,20 @@ G('gamestart', async () => {
   const go = await ev(p, 'window.__arcade.state.meta.go');
   ok(seen.every(v => v != null && v < 1500) && go && go.g === 'overclock', `THE GAME START on BOTH phones from the host's tap (${seen.join(' / ')} ms after it): the NEON sign powers down, OVERCLOCK's tube logo under TONIGHT (meta/go: ${go && go.g})`);
   const shots = [];
+  let hostAge = null;
   // (LOBBY FIXES: the full start — the sign at 0.56 s, the walk-in from 1.5 s, the fade at 4.3 s)
-  for (const at of [350, 2300, 3000, 4200]) { await waitFor(p, `window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= ${at}`, 'the show at ' + at, 6000).catch(() => {});
+  for (const at of [350, 2300, 3000, 4200]) {
+    // (THE SPEED PASS — FR6 FIXES A's room2 red: a condition, never one sample: the HOST seen on its way in — walking or through the door —
+    //  before the fade (age < 4.3 s); the walk is planned from the start's age, so a slow runner only samples it later, never misses it)
+    if (at === 2300) hostAge = await waitFor(p, `(() => { const r = window.__district.room(), h = r && r.people.find(x => x.uid === '${me}'); return !!(h && (h.inside || !h.s || h.s.pose === 'walk')); })()`, 'the host on its way in', 6000)
+      .then(() => ev(p, 'window.__arcade.serverNow() - window.__arcade.state.meta.go.at'), () => null);
+    await waitFor(p, `window.__arcade.serverNow() - window.__arcade.state.meta.go.at >= ${at}`, 'the show at ' + at, 6000).catch(() => {});
     const r = await ev(p, "(() => { const r = window.__district.room(); return r ? r.people.map(x => ({ uid: x.uid, goIn: x.goIn, inside: x.inside || !x.s, pose: x.s && x.s.pose, z: x.s && x.s.z })) : null; })()");
     shots.push({ at, r }); if (SHOTS) await p.screenshot({ path: `${OUT}room2-start-${at}.png` }); }
   const first = shots[0].r || [], mid = shots[1].r || [];
   const host = mid.find(x => x.uid === me);
   const h0 = first.find(x => x.uid === me);
-  ok(first.length === 5 && first.every(x => x.goIn) && host && (host.pose === 'walk' || host.inside || (h0 && Math.abs(host.z - h0.z) > 0.15)), `THE FILE-IN: all 5 on their way in (${first.filter(x => x.goIn).length}/5), the HOST first — walking to the door at 2.3 s, under the lit sign (${host && host.pose})`);
+  ok(first.length === 5 && first.every(x => x.goIn) && hostAge != null && hostAge < 4300, `THE FILE-IN: all 5 on their way in (${first.filter(x => x.goIn).length}/5), the HOST first — seen walking to the door ${hostAge != null ? `${(hostAge / 1000).toFixed(1)} s` : 'never'} into the start, under the lit sign (at 2.3 s: ${host && host.pose}; z moved ${host && h0 ? Math.abs(host.z - h0.z).toFixed(2) : '—'})`);
   const gone = (shots[3].r || []).filter(x => x.inside).length;
   okT(gone >= 1, `…through the side door: by the fade, ${gone} of 5 already inside (the rest go straight in with it)`);
   const routed = await Promise.all([p, q].map(x => waitFor(x, `!(${onTitle})`, 'the game screen', 7000).then(() => Date.now() - t0, () => null)));

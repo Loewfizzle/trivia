@@ -17,7 +17,12 @@ import { existsSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { BASE, ok, okT, sleep, ev, waitFor, G, launch, launchReal, closeReal, OUT, SHOTS, log, checks, warnings, BROWSER } from './kit.mjs';
+import { BASE, ok, okT, sleep, ev, waitFor, G, launch, launchReal, closeReal, OUT, SHOTS, log, checks, warnings, BROWSER, ON_CI, skipCI } from './kit.mjs';
+
+// THE SPEED PASS — G4 (review-6.md): the FULL LOBBY speed checks warned in ALL FOUR cloud runs — the 2-core runner has no GPU path ("2D at
+// tier 2, 0 draws", 10–60 fps) and cannot answer them (CALM LOAD's case): on CI the SPEED half is skipped with its reason, the RULE half
+// (8 slots drawn, the emblems quiet, the glows on) stays a hard check; on a real machine both, as before
+const gpuCheck = (speed, rule, what) => { if (ON_CI) { ok(rule, `${what} — its rule half (the speed: skipped on CI)`); skipCI(what, 'no GPU path on the 2-core runner (2D at tier 2, 0 draws) — the speed is the mini PC’s + the owner’s iPhone’s'); } else okT(speed && rule, what); };
 import puppeteer from '../kit/puppeteer.mjs';
 
 async function page(qs, { real = false, cpu = 0, view = [402, 874], dpr = 3 } = {}) {
@@ -125,7 +130,7 @@ G('vault', async () => {
     const t = await frames(p, 240); t.sort((a, b) => a - b);
     const st = await ev(p, 'window.__lab.stats');
     const med = t[t.length >> 1], p95 = t[Math.floor(t.length * 0.95)], slow = t.filter(x => x > 20).length;
-    okT(med < 17.5 && slow < t.length * 0.06 && st.slots === 8, `THE VAULT: A FULL LOBBY of 8 LEGENDARY strips at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow frames; ${st.slots} drawn on one canvas, effect tier ${st.tier}, draw ${st.ms} ms`);
+    gpuCheck(med < 17.5 && slow < t.length * 0.06, st.slots === 8, `THE VAULT: A FULL LOBBY of 8 LEGENDARY strips at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow frames; ${st.slots} drawn on one canvas, effect tier ${st.tier}, draw ${st.ms} ms`);
     await ctx.close(); await closeReal(); }
   // ONLY ON SCREEN: a slot scrolled away isn't drawn; a hidden page draws nothing
   { const { ctx, p } = await page('view=lobby&mix=legend', { view: [402, 600], dpr: 2 });
@@ -290,7 +295,7 @@ G('vault', async () => {
     const s = [...t].sort((a, b) => a - b), med = s[90], slow = t.filter(x => x > 20).length, fps = 1000 / (t.reduce((a, b) => a + b, 0) / t.length);
     // (4× CPU on the mini PC is the stress case — an iPhone 16 Pro's CPU is well ahead of it: ≥ 54 fps on average + a median frame ≤ 18 ms
     //  there, at the FULL tier, is the bar; the busiest mix — glitter + smoke + the bulbs + the frost's clip — sits ~56)
-    okT(st.gpu && st.tier === 2 && st.dpr >= 2.9 && fps >= 54 && med <= 18, `SPEED (the GPU path): A FULL LOBBY of ${({ legend: '8 LEGENDARIES', samples: 'THE 8 SAMPLES', sightings: 'THE 8 SIGHTING CARDS', held: 'THE NEW 21 (8 of them)' })[mix]} at 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow, ${st.gpu ? 'GPU' : '2D'} at tier ${st.tier} ${st.dpr}× (${st.draws} draws, ${st.ms} ms of script)`);
+    gpuCheck(st.gpu && fps >= 54 && med <= 18, st.tier === 2 && st.dpr >= 2.9, `SPEED (the GPU path): A FULL LOBBY of ${({ legend: '8 LEGENDARIES', samples: 'THE 8 SAMPLES', sightings: 'THE 8 SIGHTING CARDS', held: 'THE NEW 21 (8 of them)' })[mix]} at 4× CPU — ${fps.toFixed(1)} fps, median ${med.toFixed(1)} ms, ${slow}/180 slow, ${st.gpu ? 'GPU' : '2D'} at tier ${st.tier} ${st.dpr}× (${st.draws} draws, ${st.ms} ms of script)`);
     await ctx.close(); await gpuB.close();
   }
   // SCROLL-PAUSE + THE DIAGNOSTICS ROW: a scroll holds the effects (no frames), they resume after; &diag= sets the switches; 7 of them
@@ -432,6 +437,14 @@ G('vault', async () => {
         lvLit: [...document.querySelectorAll('.vl-lv, .vl-fc-lv')].filter(l => l.className.includes('vg')).length, pieces: document.querySelectorAll('.vg > i').length }; })()`);
     ok(g.items === 22 && g.names === 42 && g.looks.split(',').length === 14 && g.over === 0 && g.strip2 === 0 && g.lvLit === 0 && g.pieces > 10,
       `GLOWS + TUBES: ${g.items} rows (14 glows + 8 tube styles) — the glows on ${g.names} names (${g.looks}) — LOEWFIZZLE whole on one line on every strip (${g.over} overflowing, ${g.strip2} split), the level line never lit (${g.lvLit}), ${g.pieces} glints + arcs`);
+    // THE SPEED PASS — A FONT THAT ARRIVES LATE (LOBBY FIXES' cloud red here: 2 of 42 names overflowing): a name fitted, then its face
+    // grows wider (what the real font does when it lands after fonts.ready) + the browser's "a font finished loading" → it fits again
+    const late = await ev(p, `import('/js/ui/fit.js').then(async m => { const box = document.createElement('div'); box.style.cssText = 'position:fixed;left:0;top:0;width:120px;font:700 20px sans-serif'; const el = document.createElement('div'); el.textContent = 'LOEWFIZZLE'; box.append(el); document.body.append(box);
+      m.fitName(el, { min: 9 }); await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+      const before = el.scrollWidth > el.clientWidth + 1; el.style.letterSpacing = '0.32em'; const wide = el.scrollWidth > el.clientWidth + 1;
+      document.fonts.dispatchEvent(new Event('loadingdone')); await new Promise(r => requestAnimationFrame(r));
+      const after = el.scrollWidth > el.clientWidth + 1; box.remove(); return { before, wide, after }; })`);
+    ok(late && !late.before && late.wide && !late.after, `A FONT THAT ARRIVES LATE: a fitted name whose face grows wider (overflowing ${late && late.wide}) fits again when the font finishes loading (overflowing after: ${late && late.after})`);
     await ctx.close(); }
   { const { ctx, p } = await anyPage('/tests/integration/card-review.html?cards=card-founder,card-house,card-platinum', { view: [402, 1200] });
     await waitFor(p, '!!document.body.dataset.ready', 'the review page', 30000); await sleep(1500);
@@ -478,6 +491,6 @@ G('vault', async () => {
     const st = await ev(p, 'window.__lab.stats');
     const ems = await ev(p, `({ n: document.querySelectorAll('.vl-strip .ve').length, quiet: document.querySelectorAll('.vl-strip .ve.is-quiet').length, glows: document.querySelectorAll('.vl-strip .vg.vg-still').length })`);
     const med = t[t.length >> 1], p95 = t[Math.floor(t.length * 0.95)], slow = t.filter(x => x > 20).length;
-    okT(med < 17.5 && slow < t.length * 0.08 && ems.n === 8 && ems.quiet === 8 && ems.glows === 8, `THE VAULT 2A: A FULL LOBBY of 8 LEGENDARIES wearing every sample's emblem + glow at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow; the card leads (${ems.quiet}/8 emblems + ${ems.glows}/8 glows holding still); effect tier ${st.tier}`);
+    gpuCheck(med < 17.5 && slow < t.length * 0.08, ems.n === 8 && ems.quiet === 8 && ems.glows === 8, `THE VAULT 2A: A FULL LOBBY of 8 LEGENDARIES wearing every sample's emblem + glow at 4× CPU — median ${med.toFixed(1)} ms, p95 ${p95.toFixed(1)}, ${slow}/${t.length} slow; the card leads (${ems.quiet}/8 emblems + ${ems.glows}/8 glows holding still); effect tier ${st.tier}`);
     await ctx.close(); await closeReal(); }
 });

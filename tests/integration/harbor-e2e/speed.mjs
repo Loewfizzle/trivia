@@ -3,7 +3,7 @@
 //   staleroom — out of the room (a disconnect / a leave): the room's figures walk off the city, a host claim for that room never toasts,
 //               ONE toast at a time (the newer replaces the older)
 // ADDING A GROUP: G('name', …) here + the name in ../harbor-jobs.mjs (CI_JOBS.speed).
-import { log, sleep, ok, open, ev, waitFor, harborUp, G, OUT, SHOTS } from './kit.mjs';
+import { log, sleep, ok, okT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI } from './kit.mjs';
 import { dbPatch, dbDel, dbGet, ROOMQ, hostRoom, joinRoom, fakeGuests, settledRoom, startOC, onTitle, podium } from './lobby2.mjs';
 
 const people = p => ev(p, 'window.__district.roomPeople ? window.__district.roomPeople() : null');
@@ -153,4 +153,51 @@ G('bannersky', async () => {
     const worst = S.length ? Math.min(...S.map(x => x.floor - x.y1)) : null;
     ok(S.length >= 10 && worst >= 4, `THE BANNER PLANE IN THE OPEN SKY (${view[0]}×${view[1]}, after a match): its box clears the skyline's tops on all ${S.length} samples (the closest ${worst} pt above a crown / spire / roof sign; the banner ${S[0] ? `${S[0].y0}–${S[0].y1}` : '—'}, SPEAKEASY's foot ${S[0] ? S[0].word : '—'})`);
   }
+});
+
+// FR6 A7 — THE PARTY IN A ROOM (review-6.md A1's missing row): a PREVIEW link keeps its clock + flags in a room (&when= / &force= / &lgnow=),
+// so the room is measured on a SATURDAY 22:15 PARTY with a legendary in the sky: 8 in the lines + the guest list's 8 LEGENDARY strips open.
+// The rule half is hard (the party on, the legendary up, 8 strips); the speed is the mini PC's (the 2-core runner has no GPU path: skipped)
+export const PARTY_Q = `when=2026-11-07T22:15&tz=America/Detroit&at=42.96,-85.67&wx=clear&force=party,ufo&lgnow=1&labmarks=all`;
+export async function partyRoom(o = {}) {
+  const A = await open({ slot: o.slot || 'prt', qs: PARTY_Q, view: [402, 874], dpr: 3, real: true }), p = A.page;
+  await harborUp(p); await sleep(1500);
+  await ev(p, "document.querySelector('.nd-hostbtn').click()");
+  await waitFor(p, 'window.__arcade.state.code && window.__district.room()', 'hosted', 20000);
+  const code = await ev(p, 'window.__arcade.state.code'), me = await ev(p, 'window.__arcade.state.uid');
+  await waitFor(p, "(() => { try { const m = JSON.parse(localStorage.getItem('na:' + new URLSearchParams(location.search).get('slot') + ':me') || 'null'); return !!(m && m.pid); } catch { return false; } })()", 'the profile', 20000).catch(() => {});
+  const myPid = await ev(p, "(() => { try { return JSON.parse(localStorage.getItem('na:' + new URLSearchParams(location.search).get('slot') + ':me')).pid; } catch { return null; } })()");
+  if (myPid) await dbPatch(`profiles/${myPid}`, { cd: 'card-sg-ufo' });
+  const now = Date.now(), players = {}, presence = {}, profiles = {}, az = 'abcdefghjkmnpqrstuvwxyz';
+  for (let i = 0; i < 7; i++) {
+    const u = `pr${i}`, pid = `ppartyroom${az[i]}${az[i + 3]}`;
+    players[u] = { name: `P${i}`, color: ['cyan', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'][i], avatar: 'star', joinedAt: now + 200 * i, ln: i % 2 ? 'L' : 'R', pid };
+    presence[u] = { online: true, lastSeen: now, v: 2, c: { [`k${i}`]: true } };
+    profiles[pid] = { n: `P${i}`, nk: `p${i}`, t: String(2000 + i), a: 'star', c: 'cyan', x: 5000, at: now - 86400000, cd: 'card-sg-ufo', m: 5 };
+  }
+  await dbPatch('profiles', profiles); await dbPatch(`rooms/${code}/players`, players); await dbPatch(`rooms/${code}/presence`, presence);
+  await waitFor(p, '(() => { const r = window.__district.room(); return r && r.people.length === 8 && r.people.every(x => x.s && x.s.pose === "wait"); })()', 'settled', 60000).catch(() => {});
+  await ev(p, "document.querySelector('.rdk-guests').click()");
+  await waitFor(p, "document.querySelectorAll('.vl-strip[data-card=\"card-sg-ufo\"]').length >= 8", 'the 8 legendary strips', 15000).catch(() => {});
+  await sleep(2500);
+  const st = await ev(p, `(() => { const H = window.__district.harbor(), pt = window.__district.party(), L = H.legend && H.legend.state; return { party: !!(pt && pt.on), legend: !!(L && L.run), kind: L && L.run ? L.run.kind || String(L.run) : null, strips: document.querySelectorAll('.vl-strip[data-card="card-sg-ufo"]').length, when: new URLSearchParams(location.search).get('when'), force: new URLSearchParams(location.search).get('force') }; })()`);
+  const fps = ms => ev(p, `new Promise(res => { const g = []; let l = 0; const t0 = performance.now(); const f = t => { if (l) g.push(t - l); l = t; if (t - t0 < ${ms}) requestAnimationFrame(f); else res({ fps: +(1000 / (g.reduce((a, b) => a + b, 0) / g.length)).toFixed(1), slow: g.filter(x => x > 20).length, n: g.length }); }; requestAnimationFrame(f); })`);
+  const f1 = await fps(4000);
+  const cdp = await p.target().createCDPSession();
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 2 }); await sleep(2000);
+  const f2 = await fps(4000);
+  await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+  const cost = await ev(p, '(() => { const c = window.__district.cost().slice().sort((a, b) => a - b); return { med: +c[Math.floor(c.length / 2)].toFixed(2), p95: +c[Math.floor(c.length * 0.95)].toFixed(2) }; })()');
+  if (SHOTS) await p.screenshot({ path: `${OUT}partyroom.png` });
+  await A.ctx.close();
+  const k = await import('./kit.mjs'); await k.closeReal().catch(() => {});
+  return { st, f1, f2, cost };
+}
+G('partyroom', async () => {
+  const { st, f1, f2, cost } = await partyRoom();
+  ok(st.when && /party/.test(st.force || '') && st.party && st.legend && st.strips >= 8, `A7 — A PREVIEW LINK KEEPS ITS CLOCK + FLAGS IN A ROOM: the room's address keeps when=${st.when} force=${st.force}; THE PARTY on (${st.party}), the legendary up (${st.kind}), the guest list's ${st.strips} legendary strips`);
+  log('partyroom', `THE PARTY ROOM (A1's missing row): 1× ${f1.fps} fps (${f1.slow}/${f1.n} slow) · 2× ${f2.fps} fps (${f2.slow}/${f2.n} slow) · the city's frame work median ${cost.med} ms, p95 ${cost.p95}`);
+  const what = `THE PARTY ROOM at 1× (8 in the lines + the party + a legendary + 8 legendary strips): ${f1.fps} fps (${f1.slow} slow); at 2× CPU ${f2.fps} fps; the city's work median ${cost.med} ms`;
+  if (ON_CI) skipCI(what, 'no GPU path on the 2-core runner — the mini PC + the owner\u2019s iPhone measure it');
+  else okT(f1.fps >= 55, what);
 });

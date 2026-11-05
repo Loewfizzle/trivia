@@ -45,7 +45,7 @@ export function createTapeStop(deps) {
   let st = { phase: 'idle' };   // idle | preparing | ready | bent | releasing | ending
   let blocked = null;           // the voice whose run was aborted: no new bend on it until the rate is asked back to 1
   let clocked = false;          // the song is on a room clock: the release makes up the time the tape lost
-  let prepN = 0, runs = 0, aborts = 0, reloads = 0;
+  let prepN = 0, runs = 0, aborts = 0, reloads = 0, sliceEnds = 0;   // (THE SPEED PASS: sliceEnds — the slice-end fallback's count, the tape test's other valid recovery)
 
   const now = () => { const c = ctx(); return c ? c.currentTime : 0; };
   const usable = v => !!v && !v.direct && !!v.elGain && !!v.gain && !!ctx() && ctx().state === 'running' && !frozen();
@@ -191,7 +191,7 @@ export function createTapeStop(deps) {
     const waited = perfNow() - rel.played;
     if (!rel.reloaded && waited > T.waitMs) { rel.reloaded = true; reloads++; log(`tape watchdog: the element still ${waited > 9999 ? '' : `after ${Math.round(waited)} ms `}— loaded again`); elReload(voice, target(t) + T.lead + 0.3); rel.played = perfNow(); rel.elT0 = -1; return; }
     if (rel.reloaded && waited > T.waitReloadMs) back(true);
-    if (left < 0.6) back(true);
+    if (left < 0.6) { sliceEnds++; back(true); }
   }
   let deferred = null;   // a bend asked while the last one was ending: starts once the nodes are gone
 
@@ -243,7 +243,7 @@ export function createTapeStop(deps) {
     state() {
       const on = this.active(), t = now();
       return { phase: st.phase, rate: on ? +rateAt(st.sched, t).toFixed(3) : 1, at: on ? +posAt(st.sched, t).toFixed(2) : -1, lost: on ? +lostAt(st.sched, t).toFixed(2) : 0,
-        bent: on && rateAt(st.sched, t) < 0.999, ready: st.phase === 'ready' ? +st.buf.duration.toFixed(1) : 0, runs, aborts, reloads, blocked: !!blocked, clocked, catchUp: !!st.catchUp, paused: on ? !!st.paused : false };
+        bent: on && rateAt(st.sched, t) < 0.999, ready: st.phase === 'ready' ? +st.buf.duration.toFixed(1) : 0, runs, aborts, reloads, sliceEnds, blocked: !!blocked, clocked, catchUp: !!st.catchUp, paused: on ? !!st.paused : false };
     },
     _st: () => st,
   };

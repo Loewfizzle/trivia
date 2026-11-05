@@ -19,7 +19,7 @@ import { createSurface } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
 import { LOOKS, vaultSheet, fxOpts } from './strip.js';
 import { LAB } from './catalog.js';
-import { fitName } from '../ui/fit.js';
+import { fitName, onFontsLoaded } from '../ui/fit.js';
 import { approvedIds } from './approved.js';
 import { emblemEl, hasArt } from './emblem-art.js';
 import { applyGlow } from './glows.js';
@@ -59,9 +59,12 @@ export const badgeOf = card => BADGE[card] || { slot: 'pill', moving: [] };
 const TOP_LS = [0.34, 0.28, 0.22, 0.17, 0.13, 0.1, 0.08];
 export function fitTop(top) {
   if (typeof window === 'undefined' || typeof ResizeObserver === 'undefined') return top;
+  let was = false;
   const fit = () => {
     const house = top.querySelector('.vl-fc-house'), pill = top.querySelector('.vl-tier');
-    if (!house || !top.isConnected) return;
+    if (!top.isConnected) return was ? false : undefined;
+    was = true;
+    if (!house) return;
     house.style.letterSpacing = ''; house.style.fontSize = '';
     const room = () => top.clientWidth - (pill ? pill.offsetWidth : 0) - 6;
     // (the words' REAL extent — a Range over them: the span's own box can be narrower than its bold FOUNDER inside)
@@ -76,6 +79,7 @@ export function fitTop(top) {
   let w = -1;
   new ResizeObserver(es => { const nw = Math.round(es[0].contentRect.width); if (nw !== w) { w = nw; fit(); } }).observe(top);
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
+  onFontsLoaded(fit);   // (THE SPEED PASS: a face that lands after fonts.ready re-fits the line too — ui/fit.js)
   return top;
 }
 

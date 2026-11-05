@@ -68,18 +68,24 @@ else if (SHARDS > 1) {
   //  browser is launched once per process): A CALM LOAD then judges the city, not software compositing of a 804×1748 canvas. The cloud
   //  (CI) and an explicit GPU / VSYNC choice keep the old way)
   const perfGpu = !process.env.CI && !process.env.GPU && !process.env.VSYNC;
-  for (const g of SERIAL) {
-    if (g !== 'perf' || !perfGpu) { await runGroup(g); continue; }
-    await new Promise(res => {
-      const ch = spawn(process.execPath, [me, BROWSER, OUT], { env: { ...process.env, ONLY: 'perf', GPU: '1', SHARD_TAG: 'perf' }, stdio: ['ignore', 'pipe', 'pipe'] });
-      for (const st of [ch.stdout, ch.stderr]) { let buf = ''; st.on('data', d => { buf += d; let k; while ((k = buf.indexOf('\n')) >= 0) { console.log('[perf]', buf.slice(0, k)); buf = buf.slice(k + 1); } }); }
-      ch.on('exit', () => {
-        const rf = `${OUT}result-perf.json`;
-        if (existsSync(rf)) { const r = JSON.parse(readFileSync(rf, 'utf8')); checks.push(...r.checks); errors.push(...r.errors); warnings.push(...(r.warnings || [])); }
-        else errors.push('the perf group (GPU=1) wrote no result');
-        res();
-      });
+  // THE SPEED PASS — FR6 G8: the serial tail was panel 126 + perf 200 + oldrules 70 s one after another. oldrules only swaps the emulator's
+  // RULES (the live set minus 2B's three nodes — city2/live's rule untouched) and panel only writes city2/live through /api (the server's
+  // credentials) → the two run SIDE BY SIDE (each its own child process + browser), then perf alone (CPU-throttled timing)
+  const child = (group, tag, env = {}) => new Promise(res => {
+    const ch = spawn(process.execPath, [me, BROWSER, OUT], { env: { ...process.env, ONLY: group, SHARD_TAG: tag, ...env }, stdio: ['ignore', 'pipe', 'pipe'] });
+    for (const st of [ch.stdout, ch.stderr]) { let buf = ''; st.on('data', d => { buf += d; let k; while ((k = buf.indexOf('\n')) >= 0) { console.log(`[${tag}]`, buf.slice(0, k)); buf = buf.slice(k + 1); } }); }
+    ch.on('exit', () => {
+      const rf = `${OUT}result-${tag}.json`;
+      if (existsSync(rf)) { const r = JSON.parse(readFileSync(rf, 'utf8')); checks.push(...r.checks); errors.push(...r.errors); warnings.push(...(r.warnings || [])); }
+      else errors.push(`the ${group} group (${tag}) wrote no result`);
+      res();
     });
+  });
+  const pair = SERIAL.filter(g => g === 'panel' || g === 'oldrules');
+  await Promise.all(pair.map(g => child(g, `tail-${g}`)));
+  for (const g of SERIAL.filter(x => !pair.includes(x))) {
+    if (g !== 'perf' || !perfGpu) { await runGroup(g); continue; }
+    await child('perf', 'perf', { GPU: '1' });
   }
 } else { for (const g of [...GROUPS.keys()].filter(g => !SERIAL.includes(g)).concat(SERIAL)) await runGroup(g); }
 const passed = checks.filter(c => c.ok).length;

@@ -6,16 +6,29 @@
 // card, the strips + the podium (the profile E2E). The name must be the element's FIRST child (a text node); a badge after it stays.
 // Works on any element whose parent gives it its width (a flex child needs min-width: 0).
 const fitted = new WeakMap();
+// THE SPEED PASS — A FONT THAT ARRIVES LATE (LOBBY FIXES' cloud red: 2 of 42 glowing names overflowing in the lab's GLOWS — "a font-timing
+// flake"): `document.fonts.ready` only waits for the fonts ALREADY loading; a name whose face starts loading after it resolved was fitted on
+// the fallback face, and nothing fitted it again when the real one landed (the box's width doesn't change → no ResizeObserver). Every fitted
+// element re-fits once more when ANY font finishes loading (one listener; a disconnected element drops out)
+const live = new Set();
+let lateOn = false;
+export function onFontsLoaded(fit) {
+  live.add(fit);
+  if (lateOn || typeof document === 'undefined' || !document.fonts || !document.fonts.addEventListener) return;
+  lateOn = true;
+  document.fonts.addEventListener('loadingdone', () => { for (const f of [...live]) if (f() === false) live.delete(f); });
+}
 
 /** fit one element's text; o.min = the smallest one-line font size (px), o.two = the largest two-line size (px; default 80 % of the CSS size) */
 export function fitName(el, o = {}) {
   if (!el || typeof window === 'undefined') return el;
   const first = el.firstChild && el.firstChild.nodeType === 3 ? el.firstChild : null;
   const text = first ? first.nodeValue : null;
-  let split = null;
+  let split = null, was = false;
   const unsplit = () => { if (split) { split.replaceWith(first); split = null; } };
   const fit = () => {
-    if (!el.isConnected) return;
+    if (!el.isConnected) return was ? false : undefined;   // (gone after being shown → out of the late-font list; not attached yet → kept)
+    was = true;
     // (THE VAULT 2A: a NAME GLOW's little pieces — absolutely placed <i>s after the text — are out of the measure: they'd count as width)
     const deco = [...el.children].filter(c => c.tagName === 'I');
     for (const d of deco) d.style.display = 'none';
@@ -51,6 +64,7 @@ export function fitName(el, o = {}) {
   const prev = fitted.get(el); if (prev) prev.disconnect();
   if (typeof ResizeObserver !== 'undefined') { let w = -1; const ro = new ResizeObserver(es => { const nw = Math.round(es[0].contentRect.width); if (nw !== w) { w = nw; fit(); } }); ro.observe(el); fitted.set(el, ro); }
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit); else fit();
+  onFontsLoaded(fit);
   requestAnimationFrame(fit);
   return el;
 }

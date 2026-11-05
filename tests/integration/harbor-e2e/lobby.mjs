@@ -1,7 +1,7 @@
 // CITY 2.0 — THE HARBOR end to end: LOBBY 2.0 A (Nov 3 — docs/harbor/passes/lobby-2a.md). `billboard`: THE ANNOUNCEMENT BILLBOARD's
 // cross-fade (the owner: his message "snaps on"). More groups of this pass join here (the room in the city, the dock, the guest list…).
 // ADDING A GROUP: G('name', …) in its job's file + the name in ../harbor-jobs.mjs (CI_JOBS).
-import { log, sleep, ok, okT, NIGHT, open, ev, waitFor, harborUp, G, OUT, SHOTS } from './kit.mjs';
+import { log, sleep, ok, okT, NIGHT, open, ev, waitFor, harborUp, G, OUT, SHOTS, ON_CI, skipCI } from './kit.mjs';
 
 const RM = { fn: () => { const mm = window.matchMedia.bind(window); window.matchMedia = q => (/prefers-reduced-motion/.test(q) ? { matches: true, media: q, addEventListener() {}, removeEventListener() {}, addListener() {}, removeListener() {} } : mm(q)); }, arg: null };
 
@@ -177,8 +177,11 @@ G('roomperf', async () => {
   await ev(p, "document.querySelector('.rdk-guests').click()"); await sleep(5500); const cG = await cost();
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 }); await sleep(1500);
   const f2 = await fps(3000);
-  okT(f1.fps >= 55 && f2.fps >= 55, `THE FULL ROOM at 1×: ${f1.fps} fps (${f1.slow} slow) alone → ${f2.fps} fps (${f2.slow} slow) with 8 in the lines + the guest list open`);
-  okT(cW - c0 < 9 && cS - c0 < 3 && cG - c0 < 4, `THE ROOM's OWN COST at 4× CPU (the city's frame work): ${c0} ms alone → ${cW} ms while 7 walk in → ${cS} standing → ${cG} with the guest list's 8 strips`);
+  // (THE SPEED PASS — G4: the 2-core runner has no GPU path — these warned in every cloud run (31–35 fps "alone"): skipped there with the
+  //  reason; the mini PC + the owner's iPhone answer them. The party night's room: speed.mjs#partyroom — FR6 A7)
+  const w1 = `THE FULL ROOM at 1×: ${f1.fps} fps (${f1.slow} slow) alone → ${f2.fps} fps (${f2.slow} slow) with 8 in the lines + the guest list open`, w2 = `THE ROOM's OWN COST at 4× CPU (the city's frame work): ${c0} ms alone → ${cW} ms while 7 walk in → ${cS} standing → ${cG} with the guest list's 8 strips`;
+  if (ON_CI) { skipCI(w1, 'no GPU path on the 2-core runner'); skipCI(w2, 'no GPU path on the 2-core runner'); }
+  else { okT(f1.fps >= 55 && f2.fps >= 55, w1); okT(cW - c0 < 9 && cS - c0 < 3 && cG - c0 < 4, w2); }
   await A.ctx.close(); await closeRealSafe();
 });
 const closeRealSafe = async () => { try { const k = await import('./kit.mjs'); await k.closeReal(); } catch { /* fine */ } };
