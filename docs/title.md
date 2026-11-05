@@ -2,6 +2,22 @@
 
 Deep-dive for the title screen: the opening sequence, the district scene, the logo, the menu.
 
+> **CITY 1.0 OUT (Nov 5 2026) — read this first.** City 1.0 ("the district") is DELETED: its scene, the street (lamps, trees, buses,
+> the stop light — `core/street-life.js`, `core/trees.js`), the people (`core/people.js`), City 1.0's rain, birds, signs + ticker, party
+> windows and the old lobby screen. The sections below that describe THEM are HISTORY (the code: the git tag `city-1.0-final`; a video +
+> screenshots: `Downloads\NEON\museum`). What the Harbor still runs from them MOVED (git mv, unchanged): the sky fx, the sun, the stars,
+> the frozen pane, the rainbow, the planes' pure half, the weather fx, the live weather, the 2D fireworks → `js/screens/harbor/`; the
+> marks + the tube alphabet, the palette, THE NEON COMES ALIVE's plan → `js/core/`; the menus' still → `js/screens/backdrop.js`
+> (the paths below are the new ones). The Harbor's own docs: `docs/harbor.md`.
+>
+> **THE TITLE TODAY (four files — CITY 1.0 OUT split the 2,000-line closure with `scripts/split-closure.mjs`; shared names through live
+> getters / setters, no behaviour change):** `title.js` (mount / unmount, the sequence, the sign's dress, the room's wiring, the screen's
+> update, THE CITY COULDN'T LOAD — the Harbor's module failed twice: a card + RELOAD) · `title-neon.js#createNeon` (THE NEON COMES ALIVE,
+> THE RACE, THE MUSIC STARTING) · `title-taps.js#createTaps` (the living city's taps, the screen at rest) · `title-dock.js` (THE FLANK's
+> markup — createDock — + its work — createDockWork: JOIN, HOST, the notes, the rings' light, the streak flame on YOU). THE STUCK JOIN
+> (Nov 5): the room's edges reset JOIN + HOST (`title.js#freshDock`) — the title is never unmounted by a room.
+
+
 ## The title screen (NEON SPEAKEASY)
 NEON SPEAKEASY is the bar behind an unmarked door in a neon district at night; every game is a room inside. The title is
 the street outside: the district, the sign over the door.
@@ -48,8 +64,8 @@ the street outside: the district, the sign over the door.
   peaks (±1 day) and a rare single star on any clear night, aurora on about one night in five, any time of year (seeded by date: the same for everyone),
   the weather (LIVE WEATHER below: real rain, snow, storms, fog, cloud, wind and cold — never made up; a little snow on the
   Christmas nights), and the NYE countdown / finale (the last 10 minutes before the local midnight, the first 5 after).
-- **The palette** (`district/palette.js`): a full colour set per look (night, late, dawn, a hazy matinee day, golden hour),
-  blended by the weights, then tinted by the season and the holiday. **The effects** (`district/fx.js`): the sun's disc and
+- **The palette** (`core/palette.js`): a full colour set per look (night, late, dawn, a hazy matinee day, golden hour),
+  blended by the weights, then tinted by the season and the holiday. **The effects** (`harbor/fx.js`): the sun's disc and
   glow (low sun only), the moon at its phase with a halo (kept clear of the sign), aurora curtains low over the skyline,
   shooting stars, fireworks (NYE, the Fourth; a finale after midnight), the sleigh across the moon (very rare, Christmas
   nights), Christmas string lights (more as December goes on), glowing window glyphs (pumpkins, hearts, eggs), the neon
@@ -77,7 +93,7 @@ the street outside: the district, the sign over the door.
   the cache key and all that's kept), asks Open-Meteo (free, no key) and caches per area for 15 minutes (memory + `wx/{area}`,
   server-only). `core/weather.js` (pure) turns WMO codes + cloud cover + visibility + wind + temperature into
   `{ kind, rain, snow, storm, fog, cloud, wind, windDir, temp, lat, lon, wetAt }` (wetAt: when it last really rained, from the
-  past two hours of 15-minute precipitation — RAINBOWS below). The page (`district/live-weather.js`) asks after the
+  past two hours of 15-minute precipitation — RAINBOWS below). The page (`harbor/live-weather.js`) asks after the
   first paint, every 15 minutes and when it comes back to the front; the answer is good for 45 minutes (FP3a: was 75). With it, look() also
   places the sun, moon and stars over the visitor's real area (Grand Rapids sunrises, not New York's). **Without it** (no
   answer yet, local dev, a failed lookup): a dry city with a few fair-weather clouds — the old seeded "rainy evenings" are gone
@@ -95,7 +111,7 @@ the street outside: the district, the sign over the door.
 - **The readout's weather lines** (City 2.0, `&debug=1`): `wx open-meteo/best_match · 43,-85.5 · slot 11:15 · 9 min old · WMO 3 ·
   cc 100 (lo 100 mid 0 hi 4) · vis 12.2 km` and `→ overcast · opaque 1.00 veil 0.04 fog 0.00 · live` (or `wx FORCED fog (the panel)`
   / `wx seeded (no live answer yet / stale)`).
-- **Clouds** (`district/weather-fx.js`): fractal-noise shapes (cumulus domes on a flat base, ragged stratus banks low near the
+- **Clouds** (`harbor/weather-fx.js`): fractal-noise shapes (cumulus domes on a flat base, ragged stratus banks low near the
   skyline, a seamless overcast deck) with light marched through them — from above (sun, sky, moon) and from below (the city's
   neon on the bellies at night) — re-coloured as the hour changes; built a little each frame after the opening sequence (never a
   long frame) and faded in; drifting with the real wind. The moon dims behind thick cloud and glows through thin.
@@ -108,7 +124,7 @@ the street outside: the district, the sign over the door.
   halo spreading. **Snow:** real snowfall in depth (big soft flakes up close, a warm tint at night), drifting with the wind,
   settling on the rooftops and on the sign's tubes (`title.js#snowOnSign`: an SVG of the tubes' top edges, in over a minute);
   the first snow of each winter (per device) starts with a hush of a few big slow flakes.
-- **Deep freeze** (`district/frost.js`, real cold only: from −4 °C / 25 °F, full by −12 °C / 10 °F): fern-like frost creeping in from
+- **Deep freeze** (`harbor/frost.js`, real cold only: from −4 °C / 25 °F, full by −12 °C / 10 °F): fern-like frost creeping in from
   the screen's corners and edges (baked once, kept clear of the sign and the buttons), icicles under the nearer roof lines,
   rime on the roofs, frosted glass on the lit windows.
 - **The glass of the dock** (`title.js#tintGlass`, `--dk-glow / --dk-tint`): the sign's neon after dark (the holiday colour on its
@@ -156,7 +172,7 @@ the street outside: the district, the sign over the door.
   buttons. It glides to a new spot instead of jumping.
 
 ## The city's signs (Oct 2026) — replaced the billboards
-Files: `district/signs.js` (drawing, placement, power, holidays, taps), `district/marks.js` (each game's neon mark + a
+Files: `district/signs.js` (drawing, placement, power, holidays, taps), `core/marks.js` (each game's neon mark + a
 single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the ticker's message; `tests/signs.test.mjs`).
 - **Four kinds**, all in the main sign's language (glass tube, white-hot core, two blurred glow layers, electrode caps,
   mounting clips, brackets):
@@ -218,7 +234,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   a few twinkle (opacity only); unlit bulbs hang dark.
 - The neon trims on the blade towers and the rooftop billboard's edge use soft wide strokes, never a per-frame shadow blur
   (that cost 50 ms frames at 4× CPU).
-- **The night sky** (district/stars.js): the real brightest stars (~85, with the real constellations), ~780 faint ones (denser
+- **The night sky** (harbor/stars.js): the real brightest stars (~85, with the real constellations), ~780 faint ones (denser
   along the galactic plane) and the Milky Way band (galactic longitude samples, brightest toward Sagittarius, a dust lane),
   turned to the player's estimated place and time and projected facing south (north in the south). Re-rendered every 20 s
   (the sky turns 15°/h — never visibly), a few bright stars twinkle. The Milky Way shows every clear night, richer late,
@@ -238,7 +254,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
   St. Patrick's a four-leaf clover — bent in the same tube recipe as the letters, so they power on and flicker with the sign.
   Glows are filtered as one group (a filter per small path clips into visible boxes).
 
-## THE NEON COMES ALIVE (Oct 19, 2026) — `district/neon-ramp.js` (PURE), `sun.js#sunMoments`, `title.js#applyNeon`
+## THE NEON COMES ALIVE (Oct 19, 2026) — `core/neon-ramp.js` (PURE), `sun.js#sunMoments`, `title.js#applyNeon`
 - **Not the weather:** everything follows where the sun is drawn (`sunPlace`), never clouds, rain or fog. `sunMoments` finds the
   day's moments on the screen's own layout (the sign + tagline, the buttons, the skyline outline): **catchAt** = the LAST time tonight
   the disc goes fully behind the rooftops before it sets (walked back from 20 min after sunset; the low phone arc can't fire it early),
@@ -258,7 +274,7 @@ single-stroke tube alphabet), `district/sign-logic.js` (pure: the rotation + the
     daytime glass by `.nd-surge`, each letter blazing as the head passes, the sign's bloom swelling, ~1.6 s) and fades back to glass;
     AT NIGHT a quicker, brighter race (`raceLogo('first')`). FP3a (FREV B3 — "the first tap sometimes does nothing"): EVERY time the
     MUSIC STARTS — the first tap, the music button back ON, a rescue after the background — found by ONE detector on the title's tick
-    (`district/neon-ramp.js#createStartDetector`: the song's clock — `audio/music.js#musicClock`, −1 with the music off / muted / at
+    (`core/neon-ramp.js#createStartDetector`: the song's clock — `audio/music.js#musicClock`, −1 with the music off / muted / at
     zero volume, or not really sounding — silent ≥ 1 s, then moving), with a 10 s cooldown stamped only when it really ran; lit vs
     unlit from the sign's REAL state on screen (`is-steady && !is-day`); during the intro / a race the answer is PENDING and fires
     when the sign is free; by day the peak + bloom hold ~300 ms longer. In the warm-up (`ramp`) the tap catches. Reduced motion: one
@@ -417,7 +433,7 @@ door, its doorman, rope and line (on a 390 phone that leaves 2 trees; every othe
 - **Tests:** `tests/people.test.mjs` (who's out when, umbrellas, the door's visits + the hint, hails, the line, the holidays, the
   windows through the night); `tests/integration/e2e-people.mjs`; e2e-title group "knock".
 
-## RAINBOWS (Oct 20, 2026) — `core/rainbow.js` (PURE), `district/rainbow.js`, `/api/sky`'s wetAt
+## RAINBOWS (Oct 20, 2026) — `core/rainbow.js` (PURE), `harbor/rainbow.js`, `/api/sky`'s wetAt
 After REAL rain only: a daytime rainbow, a moonbow on ordinary nights, a neon rainbow on PARTY NIGHTS. Rare by nature: the rain
 has to stop where the player is, and the sky has to allow it.
 - **After the rain** (`lastRain`, `bowSchedule`, `bowEnvelope`): `/api/sky` also asks Open-Meteo for the past 8 quarter hours of
@@ -461,7 +477,7 @@ has to stop where the player is, and the sky has to allow it.
   / rain / ALWAYS NIGHT, the after-rain path through skyClock, the geometry at phone and desktop sizes); `server.test.mjs` (the API's
   wetAt from past quarter hours, never the forecast); `tests/integration/e2e-rainbow.mjs` (below, docs/testing.md).
 
-## PARTY NIGHTS (Oct 20, 2026) — `core/party.js` (PURE), `district/party-fx.js`, `district/fireworks.js`, `audio/beat.js`
+## PARTY NIGHTS (Oct 20, 2026) — `core/party.js` (PURE), `district/party-fx.js`, `harbor/fireworks-2d.js`, `audio/beat.js`
 Friday and Saturday nights the city comes alive on the beat. Built for an iPhone held upright first; a wide screen gets more
 (four beams, six fireworks). Only opacity breathes; everything is a baked overlay or a pre-rendered sprite.
 - **When** (`partyState`): Fri / Sat 8 pm → 2 am local (the same window as MOOD MUSIC's PARTY mood), starting at 8 pm OR the
@@ -505,7 +521,7 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
   easter egg, not a party bug.)
 - **The start:** a wave of colour sweeps left → right over 2.6 s as the party begins (`pfx.wave`: three ribbons of the palette
   and a white edge; the party windows and the bloom switch on as the front passes — a clip). Opening the title mid-party: no wave.
-- **The midnight finale** (`startFinale` → `district/fireworks.js`, the same renderer the NYE / Fourth fireworks now use): the
+- **The midnight finale** (`startFinale` → `harbor/fireworks-2d.js`, the same renderer the NYE / Fourth fireworks now use): the
   moment local midnight passes on a party night (`finaleDue`, once a night, never on New Year's Eve — that night has its own) 4
   rockets on a phone (5 / 6 on wide screens) launch 0.36 s apart from behind the skyline and burst — on a phone between the
   tagline and the tower tops (the towers occlude their lower edge: fireworks over the city, never a bloom on the sign), on a wide
@@ -586,7 +602,7 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
 - **Files:** `js/screens/title-dock.js` (the markup, the rings, `ringColors`, the lighting, `dressCorners`); `title.js` keeps the
   behaviour (JOIN / HOST / the panel) and hands it in. **Look preview without Firebase:** `tests/integration/title-preview.html`.
 
-## THE REAL SUN (Oct 19, 2026) — `district/sun.js` (replaced fx.js's low-sun glow)
+## THE REAL SUN (Oct 19, 2026) — `harbor/sun.js` (replaced fx.js's low-sun glow)
 - **On load (Oct 20):** the title hands the scene the sign's text boxes as soon as it's laid out (not only after the intro), so a
   phone's sun is placed while the city powers on, and it fades in over ~0.9 s wherever it first lands (a load, a new layout) —
   it used to pop in at the end of the intro. `e2e-sky.mjs` SUN ON LOAD checks both.
@@ -639,7 +655,7 @@ Friday and Saturday nights the city comes alive on the beat. Built for an iPhone
   `&force=totality`. Tests: `tests/sun.test.mjs` (rise / noon / set for N + S cities in summer and winter, the path against the
   sign / buttons, smoothness, colour + size, eclipses, ALWAYS NIGHT), the sun checks in `tests/integration/e2e-sky.mjs`.
 
-## AIR TRAFFIC + SATELLITES (Oct 19, 2026) — `district/aircraft.js` (replaced the flying light streaks and the old satellite train)
+## AIR TRAFFIC + SATELLITES (Oct 19, 2026) — `harbor/aircraft.js` (replaced the flying light streaks and the old satellite train)
 - **Planes**, simulated (no flight data, no network): every couple of minutes, by the local hour (`trafficRate`: busiest in the
   evening (≈ 1.5 min), steady by day (≈ 2.5 min), quieter late, very rare 2–5 am; ≥ 30 s apart; the first within ~6–18 s); 1–2 on screen on a phone, up to 3 on a
   desktop (1 at the lowest tier). Each flies its own straight path, never level (climbing or descending a little), either way,

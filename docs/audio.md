@@ -1077,8 +1077,8 @@ The legendary events (docs/harbor/passes/part-6b.md) report their state through 
   `/audio/` and range requests. Bump `CACHE` in `sw.js` only if you need to purge old offline copies.
 - Link previews use absolute URLs to `https://neonspeakeasy.com/assets/og.png?v=2` — update if the domain changes, and bump `?v=` when
   the image changes (iMessage / WhatsApp / Slack cache previews by URL).
-- Re-render icons/preview after design changes: `cd tests/integration && node render-assets.mjs "<browser path>"` (needs
-  scripts/serve.mjs; renders `tests/integration/brand.html`: the real city + logo). `assets/icon.svg` is the tube N on night blue.
+- The icons + the preview image were rendered from City 1.0's scene (`render-assets.mjs` + `brand.html` — retired with it, CITY 1.0 OUT,
+  Nov 5; the images stay in `assets/`). A Harbor version = a later look job. `assets/icon.svg` is the tube N on night blue.
 
 
 ## Music

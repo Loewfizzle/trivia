@@ -3,12 +3,12 @@
 Mobile-first multiplayer party games (2–8 players, one phone each; DOUBLE AGENT needs 4). Twelve games — **ONLY TWO PLAYABLE** since WINDOWS
 (Nov 1 — the owner): PRISM DROP + OVERCLOCK (`js/config.js` GAMES[].playable is the one switch: the other ten are hidden everywhere a player
 could start them, their code + data + rules FROZEN, not deleted; `sign: true` = THE FIVE SIGNS in the city — the two + NEON PAR, HIGH STAKES,
-GRIDLOCK "next on deck"). **CITY 2.0 IS THE DEFAULT** at the plain address (WINDOWS' quiet flip; `?city=2` still works); City 1.0 only behind
-`?city=1`, UNTESTED from now on (the switch-over deletes it). Static site on Vercel
+GRIDLOCK "next on deck"). **CITY 2.0 — THE HARBOR — IS THE ONLY CITY** (CITY 1.0 OUT, Nov 5: City 1.0 deleted; an old `?city=1` / `?city=2` link lands on the Harbor;
+its code at the git tag `city-1.0-final`, a video + shots in `Downloads\NEON\museum`). Static site on Vercel
 (**neonspeakeasy.com**; games.loewfizzle.com and trivia.loewfizzle.com redirect there) + Firebase Realtime Database + Anonymous Auth,
 plus eight Vercel serverless functions in `/api` (profiles, server-checked results, THE BOARD, admin, errors from phones — `docs/profiles.md`; the daily contract — `docs/progression.md`; the live weather — `docs/title.md`; the server's clock for a parked title — `docs/audio.md`).
 The app was NEURAL ARCADE, then NEON DISTRICT (both Oct 2026); the games kept their names and the title's city is still "the
-district" in code (`js/screens/district/`, the `nd-` class prefix). `ROADMAP.md` lists what shipped and what is next.
+district" in code (the `nd-` class prefix, the `window.__district` test hook). `ROADMAP.md` lists what shipped and what is next.
 **Keep this file, ROADMAP.md (one line per shipped feature; the detail goes in `docs/roadmap-history.md`) and the relevant `docs/*.md` updated as you work.**
 
 This file is the short version. The deep-dives live in `docs/` — read the one you need, when you need it:
@@ -20,7 +20,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
 | `docs/data-model.md` | the database: every node, every game's `game` shape, rules |
 | `docs/testing.md` | running / writing tests: emulators, smoke test, each game's E2E and its env flags, previews, Lighthouse |
 | `docs/audio.md` | music, playlists, SFX, the audio engine; loading, PWA, service worker, link previews |
-| `docs/title.md` | the title screen, the district scene, the logo, the menu, LIVING CITY (time of day, seasons, holidays, sky events, the real sun + solar eclipses; `?when=&tz=&at=&force=`), PARTY NIGHTS (Fri / Sat on the beat), RAINBOWS (after real rain), THE STREET (lamps, trees, buses, the stop light; the people, the speakeasy's door + the knock), the dock, the screen at rest, the easter eggs |
+| `docs/title.md` | the title screen (its four files — title.js, title-neon, title-taps, title-dock), the logo, the menu, LIVING CITY (time of day, seasons, holidays, sky events, the real sun + solar eclipses; `?when=&tz=&at=&force=`), PARTY NIGHTS (Fri / Sat on the beat), RAINBOWS (after real rain), THE STREET (lamps, trees, buses, the stop light; the people, the speakeasy's door + the knock), the dock, the screen at rest, the easter eggs |
 | `docs/harbor.md` (+ `docs/harbor/passes/`, one log a pass — its INDEX) | **CITY 2.0 — THE HARBOR** (`?city=2`): the bible — size rules, camera + layout, bakes + memory, lanes, budgets, THE FILE MAP, KNOWN ISSUES, the standing rules' full text |
 | `docs/harbor/decisions.md` | the owner's CURRENT City 2.0 decisions (short; `docs/harbor/plan.md` = the dated archive) — **read first in a Harbor pass**; Step 0 updates it |
 | `docs/progression.md` | PROGRESSION (A + B, Nov 2): levels 1–100, the streak + freezes + WIN IT BACK, the items + THE LEVEL REWARDS, the 30 achievements + the award engine, the daily contract (`/api/daily`), FOUNDER, the end-of-round moment, the Gilded card + profile, THE BIG FLAME, `?preview=`; CITY SIGHTINGS (the tap → the reaction → the real polaroid → the pair, server-verified; a NEW legendary plugs in there), THE ALBUM, BIRTHDAYS, CALL IN A FAVOR |
@@ -66,7 +66,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   scene costs several times a 2D one, and a tilted 3D board on a phone fights readability and tap targets (GRIDLOCK Part 1 shipped
   on three.js, failed the play-test and was rebuilt flat in Canvas 2D a week later — straight-on, labels inside the frame, one board up).
 - **The title has one too:** `tests/integration/title-preview.html` (the real title; `shots.mjs --preview`).
-- **City 2.0 (the default — `?city=2` still accepted) — its standing rules, one line each** (the full text: docs/harbor.md#city-20-in-claudemd--the-full-text; the
+- **City 2.0 (THE city) — its standing rules, one line each** (the full text: docs/harbor.md#city-20-in-claudemd--the-full-text; the
   owner's CURRENT decisions: **docs/harbor/decisions.md** — read it before a Harbor pass; plan.md is the archive):
   - THE WINDOW RULE: every window moment enters by its own motion or the blind cycle (core/harbor-moments.js#ENTERS_BY_MOTION).
   - THE WINDOW STANDARD (the owner, Oct 31): the shadowboxer + the boss's TV room are the bar for every window scene — one real light in the room, its shadows, smooth eased motion, that quality.
@@ -112,7 +112,7 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   a report pushes the owner (`api/board.js` → `radio.js#notifyOwner`). `profiles/{pid}` is readable one at a time by signed-in users, never
   as a list. A profile is listed from its 3rd counted match. docs/profiles.md "REAL USERNAMES".
 - **THE ROOM IN THE CITY (LOBBY 2.0 A + B):** in City 2.0 THE OLD LOBBY SCREEN IS RETIRED — the room lives in the city from the join to the podium
-  and back (City 1.0's `?city=1` keeps lobby.js until the switch-over deletes it). LOBBY 2.0 B: THE GAME START (meta/go — LOBBY FIXES: the game's own pink sign lights, the walk inside, a fade — 5 s FULL / 3 s for a same-game REMATCH, the kind in the match id,
+  and back (the old lobby screen + lobby.js went with City 1.0 — CITY 1.0 OUT). LOBBY 2.0 B: THE GAME START (meta/go — LOBBY FIXES: the game's own pink sign lights, the walk inside, a fade — 5 s FULL / 3 s for a same-game REMATCH, the kind in the match id,
   `core/room-show.js`), THE CITY PAUSE (a match on screen = the city destroyed + rebuilt after), the walk back out + THE WINNER's BANNER PLANE (meta/back
   — `screens/room-banner.js`), THE REMATCH VOTE (rooms/{CODE}/rv/{uid}), ONE SHEET STACK (`ui/layers.js` — every pop-up opens on top); docs/harbor/passes/lobby-2b.md.
   A City 2.0 room's waiting part IS the live city — app.js routes it to the title (never reloaded);
@@ -133,8 +133,8 @@ This file is the short version. The deep-dives live in `docs/` — read the one 
   failure was silent because the view's update() just returned).
 - **Tests, in order:** `node --test tests/*.test.mjs` (seconds) → the game's `FAST=1` E2E (≈ 2 min) → the full suite once before
   committing. Don't re-run a 20-minute suite to check one fix. Run E2E suites with absolute paths and from `tests/integration`.
-  The title suite runs by group while iterating: `ONLY=dock` (or `gate`, `flow`, `neon`, `perf`, comma-separated) ≈ 1 min instead
-  of ≈ 4.5; the whole suite once before the commit. Untouched areas need no E2E at all (sky / sun work → e2e-sky; a game → its own).
+  The title + the city run in the HARBOR suite by group while iterating: `ONLY=core,dock,neon` (comma-separated; ~30–130 s a group);
+  the whole suite once before the commit. Untouched areas need no E2E at all (a game → its own). (CITY 1.0 OUT retired e2e-title / e2e-sky.)
 - **Look reviews:** `node tests/integration/shots.mjs "<browser>" --scenes night,day,halloween --sizes phones --crop dock` (scenes,
   size sets, Grand Rapids by default, crops of the dock / corner buttons / sign; `--cast <ms>` = every painted frame, the true frame
   burst for a flicker). Never write a one-off screenshot script again —
@@ -162,7 +162,7 @@ css/board.css admin.css                                  THE BOARD, the membersh
 css/<game>.css  (cipher signal overclock bluff pulse golf prism gridlock slip agent stakes rum) + css/chat.css
 js/config.js  firebase-config.js  firebase.js            APP_NAME, limits, colors, avatars, GAMES registry / the web config / init + db helpers + serverNow() + THE PARKED DATABASE (want / release)
 js/identity.js store.js room.js host.js app.js wakelock.js   slots + saved session / state + subscribe / rooms, presence, listeners / host loop + director / router
-js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js trees.js street-life.js people.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, CITY 1.0's street, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
+js/core/  room-logic.js hush.js lobby-song.js party.js rainbow.js marks.js palette.js neon-ramp.js rng.js obfuscate.js night.js playlist.js sky.js weather.js insights.js tube-path.js   PURE: room codes + host election, HUSH WORDS, the lobby song, PARTY NIGHTS, RAINBOWS, the games' neon marks + the tube alphabet, the palette + the light timeline, THE NEON COMES ALIVE's plan, seeded RNG, XOR+base64, game-night standings, room playlists, the real sun / moon / seasons / holidays / eclipses (sky.js), Open-Meteo + NOAA's Kp → the weather, the admin STATS, SVG → neon tubes; harbor-*.js: City 2.0 (below)
           week.js ranks.js names.js nicknames.js pkey.js boards.js match-report.js   PURE (server + client): Eastern week keys, XP ranks, board-name filter, THE HOUSE NICKNAMES (BNAME), keys, board catalog, per-game results
 js/profile/ api.js me.js queue.js public.js callouts.js events.js sheets.js keypop.js  /api client, this device's profile, the results queue, room players' profiles, podium plaques (→ the end-of-round moment), the achievements' events
 js/fx/ renderer.js gl.js kit.js index.js + one file per effect   THE EFFECT LIBRARY (THE VAULT 1A — docs/vault.md): ONE shared renderer (surfaces + slots) drawing through THE GL PAINTER (gl.js — WebGL2, a 2D look-alike: iOS rasterises a 2D canvas on the CPU call by call; 1B) with the 2D canvas as the fallback, the baked sprites, the effects
@@ -175,12 +175,12 @@ js/ui/    dom.js components.js final.js logo.js tube-logo.js game-art.js setting
 js/audio/ settings.js engine.js music.js sfx.js ambience.js synced-songs.js mood.js lobby-music.js party-music.js beat.js diag.js tape-stop.js   prefs, the AudioContext + buses, music + playlists, SFX, ambience, songs on the server clock, MOOD MUSIC, the lobby's + City 2.0's PARTY song in sync (core/party-deck.js), the beat, the AUDIO panel, THE TAPE STOP (a decoded slice on a buffer source — the song element's playbackRate is NEVER changed: iOS stalls it). Session 'playback' with the music on, 'ambient' off; a dead graph hands the song to a plain <audio> (THE DIRECT PATH) — docs/audio.md
 js/core/mp3-slice.js tape-math.js                        PURE: an MP3's frames → a byte slice in song time; the tape's rate schedule + its exact integral (docs/audio.md#the-tape-stop-in-web-audio)
 js/trivia/                                               categories, API sources + filters, bundled bank, host feed (Last Signal / Overclock)
-js/screens/ title.js title-dock.js setup.js lobby.js profile.js district/*.js   the front door, name/avatar, the lobby, the membership card; CITY 1.0 — the district (Canvas 2D: sky, signs, live weather, the street; docs/title.md)
+js/screens/ title.js title-neon.js title-taps.js title-dock.js setup.js profile.js backdrop.js   the front door in four files (the mount + the sequence · THE NEON COMES ALIVE + the race + the music's answer · the living city's taps · THE FLANK + its work — docs/title.md), name/avatar, the membership card, the menus' still of the city
 js/screens/ room-city.js room-dock.js room-guests.js game-options.js room-banner.js   LOBBY 2.0 A + B — THE ROOM IN THE CITY (the roster → the city, the tags, the room dock, the guest list, the game's options, the game start, the banner + the champion; core/harbor-room.js + room-lines.js + room-show.js PURE)
 js/games/cartridge.js  js/ui/layers.js                   THE CARTRIDGE PLUG (the contract + checkCartridge — docs/cartridge.md) · ONE SHEET STACK (every pop-up takes the next layer)
 js/screens/harbor/ js/core/harbor-*.js + its sounds, bakes, canvas helpers   CITY 2.0 — THE HARBOR (?city=2): every file in docs/harbor.md#the-file-map (scene.js + its cuts: scene-fireworks / legend / holiday / weather / party / perf / panel)
 js/daychart/  daychart.html                         THE DAY CHART (SCHED): the city's day + year from the planners — /daychart + a card in /admin (admins only)
-js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / lobby strip + sheet + in-game button
+js/chat/  logic.js chat.js ui.js                         PURE rules (locks, profanity) / data layer / the chat sheet + in-game button
 js/games/registry.js lazy-view.js                        id → module (the contract), ALL_PLAYER_NODES; lazy view + stylesheet loading
 js/errlog.js                                             errors from players' phones → /api/log → /admin (first import of app.js + board/public.js)
 js/games/kit/                                            THE MATCH KIT: moments (announcer + cards), call, results, tiers, hook   → docs/match-kit.md
@@ -189,7 +189,7 @@ data/     trivia bluff oc words agent pulse prism slip    the banks and song ana
 data/hushwords.json  scripts/hushwords/                  HUSH WORDS (room codes): built + checked by scripts/build-hushwords.mjs (docs/content.md)
 audio/music/*.mp3  audio/pulse/*.mp3                     music (≤ 4 MB each; bump music.js#REV when replacing a file), PULSE songs; `c2-*.mp3` = the owner's City 2.0 mood songs (112 kbps, −16 LUFS)
 audio/sfx/neon-*.wav  audio/weather/*.mp3                 City 2.0's recorded neon (scripts/build-neon-sfx.py; docs/audio.md), the thunder
-scripts/  serve.mjs build-*.{mjs,py} add-city2-music.py validate-holes.mjs sim-gridlock.mjs   local server (:5173, `--emu` also runs /api on the emulators), builders (build-synth-sfx.py: city sounds SYNTHESIZED — the hydrant's spray, the periscope's sonar ping — then imported by add-city-sfx.py; add-city2-music.py: the one command that imports the owner's mood folders), the NEON PAR hole bot, GRIDLOCK balance sim
+scripts/  serve.mjs build-*.{mjs,py} add-city2-music.py validate-holes.mjs sim-gridlock.mjs split-closure.mjs   local server (:5173, `--emu` also runs /api on the emulators), THE CLOSURE SPLITTER (a run of a big closure → its own file, names rewired through live accessors — CITY 1.0 OUT; dev only), builders (build-synth-sfx.py: city sounds SYNTHESIZED — the hydrant's spray, the periscope's sonar ping — then imported by add-city-sfx.py; add-city2-music.py: the one command that imports the owner's mood folders), the NEON PAR hole bot, GRIDLOCK balance sim
 database.rules.json                                      RTDB rules — paste into the Firebase console after every change
 tests/*.test.mjs                                         unit + whole-match simulations (node --test, no deps)
 tests/integration/  kit/harness.mjs e2e-*.mjs harbor-e2e/ (the Harbor suite: kit + one file per cloud job) title-perf.mjs pixdiff.mjs rules.test.mjs server.test.mjs *-preview.html   the E2E harness, per-game suites, rules tests, /api tests, no-Firebase look previews
@@ -282,15 +282,15 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - Components (CSS + `js/ui/components.js`): `.btn .btn-primary|.btn-ghost|.btn-text|.btn-danger .btn-xl|.btn-sm .btn-block`,
   `.panel`, `.chip` (+ `avatar()`), `.tag-host/.tag-you/.tag-lost`, `createTimer({ticks})`, `leaderboard()`, `countUp()`,
   `segmented()`, `chips()` (multi-select), `.modal > .sheet`, `toast(msg, 'ok'|'warn'|'err'|'info')`, `burst()`,
-  `glitchFlash()`, `accessGranted()`, `createFinal()` (ui/final.js), `.game-head` (game header that leaves room for the gear).
+  `glitchFlash()`, `createFinal()` (ui/final.js), `.game-head` (game header that leaves room for the gear).
 - **NEON GLASS** (end of components.css): the title's language everywhere — the default for every .btn, .panel, .input, .tag, leaderboard row and podium in every game (no chamfers; the game's accent is the light; no blur in games) — frosted glass, soft white edges, the accent
   as light. `body.nd-glass` restyles menus; sheets are glass on every screen. Toasts are glass pills; confirm-by-second-tap changes the
-  button itself, never a toast. Review: `node tests/integration/ui-shots.mjs "<browser>" ./shots-ui`.
+  button itself, never a toast. (ui-shots.mjs drove the old lobby — retired with City 1.0; SHELL 2.0 brings its review back on the room.)
 - **Player emblems** (`avatar(id, color, size)`): 12 shapes built like the neon sign; size with `--s`. Preview: `tests/integration/avatars-preview.html`.
 - Game screens fill `.screen` with `overflow: hidden`; in a game the fixed corner holds two buttons top-right: ☰ menu (+10: CHAT with the
   unread count, HOW TO PLAY, SETTINGS, QUIT TO LOBBY, host END GAME — settings-panel.js#openMenu) and music on/off (+54, music only, effects
   stay); both are 36 pt circles (`--cb`) with an invisible 44 pt tap area (`::after`); headers use `padding-right: 44px`; announcements
-  stay clear of it. The title + the lobby SPLIT the corners: ☰ top-LEFT, music top-RIGHT (`body.nd-on` / `body.cb-split`, components.css).
+  stay clear of it. The title (+ the room, which lives there) SPLITS the corners: ☰ top-LEFT, music top-RIGHT (`body.nd-on`, components.css).
   A full-width game (`.screen.<x>-screen { max-width: none }`) must also pin the column to the screen's edge:
   `body.<x>-on [data-theme] .music-btn, [data-theme] .menu-btn, .gm-panel { right: calc(var(--safe-r) + 12px) }` (gridlock, slip,
   stakes, rum do) — otherwise on desktop the buttons stay at the phone column's edge and land on the game's panels. Element helper: `h('div.class', { style: {'--c': hex}, onclick }, ...children)`.
@@ -302,7 +302,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
    estimateMinutes, finalRanks, nightBonus?, MIN_PLAYERS?) and `createView = lazyView(() => import('./view.js'), gameSheets('<id>'))` (its sheet loads with its screen — anything two games share goes in components.css); register it; add player
    nodes to `ALL_PLAYER_NODES`; `GAMES` in `js/config.js`; `css/<id>.css` + `<link>` in `index.html`; lobby art in `ui/game-art.js`;
    rules in `ui/help.js`; a theme in `css/base.css`; a music id or playlist in `audio/music.js`; THE BOARD: its standings + records in
-   `js/core/match-report.js` (with plausibility bounds), its boards in `js/core/boards.js`, its colours in `js/board/view.js#GAME_LIGHT`; its neon mark + blade word for the title city's signs in `js/screens/district/marks.js`.
+   `js/core/match-report.js` (with plausibility bounds), its boards in `js/core/boards.js`, its colours in `js/board/view.js#GAME_LIGHT`; its neon mark + blade word for the title city's signs in `js/core/marks.js`.
 3. **View on the match kit** (`docs/match-kit.md`): announcer, cards, Call the Winner, the report, tiers, the test hook. The view renders
    purely from `state` (`mount/update/unmount`); write only your own node; check `liveKey`.
 4. **Rules file:** `database.rules.json` (own data only, phase/round-gated) + cases in `tests/integration/rules.test.mjs`. **Remind the owner

@@ -5,9 +5,15 @@ Every test suite in detail: unit + simulation, emulators, the smoke test, each g
 **WINDOWS (Nov 1) — THE TRIMMED SUITES.** Only PRISM DROP + OVERCLOCK are playable (the owner): the smoke test starts those two (+ checks that
 none of the ten hidden games can start — host.js#startGame refuses them) — ≈ 30 s locally (was ≈ 2 min); `e2e-presence` + `e2e-conn` (the cloud's
 tests job) play OVERCLOCK (were LAST SIGNAL / CIPHER); the ten hidden games' long E2Es (`e2e-cipher`… `e2e-rum`, `e2e-8p`) don't run until a game
-comes back; their quick unit tests stay in `node --test tests/*.test.mjs`. City 1.0 is untested: City 2.0 is the default address (`?city=1` =
-City 1.0); the district's own suites (`e2e-title`, `e2e-sky`, `e2e-street`, `e2e-rainbow`, `e2e-people`, `e2e-party`, `e2e-stage2`) are retired with
-it, and the Harbor suite's City 1.0 checks (the music group's old decks, the core group's "no flag = today's city") became City 2.0 checks.
+comes back; their quick unit tests stay in `node --test tests/*.test.mjs`. **CITY 1.0 OUT (Nov 5): City 1.0 is DELETED** — its
+suites went with it (`e2e-title`, `e2e-sky`, `e2e-street`, `e2e-rainbow`, `e2e-people`, `e2e-party`, `e2e-chat` (the old lobby's chat strip), `lobby-shot`,
+`ui-shots` (the old lobby's menus), `brand.html` + `render-assets.mjs` (the icons + og.png from City 1.0's scene — the images stay in `assets/`));
+`e2e-stage2` stays retired with the hidden games. The Harbor suite's `core` group checks an old `?city=1` link lands on the Harbor; `citydown`
+(the `city` job) blocks the Harbor's module: THE CITY COULDN'T LOAD + RELOAD after the one retry; `stuckjoin` (the `lobbyfix` job) — THE STUCK
+JOIN: a guest / the host / the last one leaves, a reload in the room, a reload after → JOIN is fresh + a typed word gets in (402 + 1440;
+`wk-room.mjs` checks it in WebKit). **pixdiff** gained `room` / `room-day` (title-preview's `&act=room`: four players at the door over the real
+city) and `card` / `you` (`page:<path>|js:<expr>` shoots any page — the full card over CUSTOMIZE, the YOU page); `--b http://localhost:5174`
+(A against A) shows what moves on its own (the window scenes, the walkers, a flickering pumpkin) — the noise a real diff must beat.
 The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the lights-out one at a time; the old quiet building behind
 `&force=old-windows`) + the unit tests `harbor-scenes`, `harbor-juggler`, `harbor-window-scenes`.
 

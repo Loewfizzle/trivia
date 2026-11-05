@@ -30,7 +30,7 @@ game" checklist. This page is what it must EXPORT and what it GETS.
 | `daily` | optional | THE DAILY PLUG-IN — below |
 
 Also, outside index.js: its row in `config.js` GAMES (`name`, `theme`, `playable` — THE ONE SWITCH), its **tube mark** in
-`js/screens/district/marks.js` (the game start's sign — `ui/tube-logo.js#gameLogoSvg` — + the city's game signs), its theme in
+`js/core/marks.js` (the game start's sign — `ui/tube-logo.js#gameLogoSvg` — + the city's game signs), its theme in
 `css/base.css`, its rules in `ui/help.js` (HOW TO PLAY from GAMES), its standings + records in `core/match-report.js`, its boards in
 `core/boards.js`, its colours in `board/view.js#GAME_LIGHT`.
 

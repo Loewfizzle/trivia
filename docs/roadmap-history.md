@@ -1945,3 +1945,16 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   re-plan — the edges move); A3 the laser's colours + a gradient's stops made once, 18 segments at tier ≤ 1 (−26 % at tier 1); H5 no glass
   during the start; E2 the previous song only if held + THE MUSIC CACHE; E3 /api/time 10 → 3 a visit, 5 → 0 a return.
 - The red speed checks measured: the vault's lobby green, roomperf's own cost still red (as before the pass), the party room 36.9 fps at 2×.
+
+## CITY 1.0 OUT — THE STUCK JOIN, THE TIME CAPSULE, City 1.0 DELETED, title.js SPLIT, THE DEAD CODE SWEPT (Nov 5 2026) — docs/harbor/passes/city1-out.md
+- The owner (00:15 am): "Why don't we just delete City 1.0 right now? No one goes to it." — a pass of its own, before SHELL 2.0; no visible change.
+- THE STUCK JOIN (live, deployed first): the title outlives a room, so a JOIN / HOST that got in left `busy` + the boxes breathing + the old word —
+  after a LEAVE nothing could be typed or joined. The room's edges reset JOIN + HOST; an exit drops the invite + REJOIN; a resumed room drops ?room=.
+  Harbor `stuckjoin` (5 cases, 402 + 1440; fails on the old code) + WebKit.
+- THE TIME CAPSULE: four .webm clips + 16 shots + a README in Downloads\NEON\museum; the tag `city-1.0-final` (the existing `city-1.0` = Oct 20).
+- THE MOVE: marks / palette / neon-ramp → core/; backdrop → screens/; fx, sun, stars, frost, rainbow, aircraft, weather-fx, live-weather,
+  fireworks-2d → screens/harbor/. THE DELETION: the district's 9 own files, lobby.js, core/street-life + people + trees, title.js's forks,
+  isCity2 + its callers, City 1.0's music rule, the chat strip, promptKey, ~430 lines of CSS, City 1.0's suites. A failed Harbor load now:
+  one retry, then THE CITY COULDN'T LOAD + RELOAD.
+- title.js 2,059 → 1,254 (+ title-neon, title-taps, title-dock's work) by scripts/split-closure.mjs. The dead code: City 1.0's plane painter,
+  water's wakes, a few dead exports + H12's CSS (H7's three signs.js painters turned out LIVE — kept).
