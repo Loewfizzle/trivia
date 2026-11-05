@@ -195,7 +195,12 @@ export async function partyRoom(o = {}) {
   const f1 = await fps(4000);
   const cdp = await p.target().createCDPSession();
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 2 }); await sleep(2000);
+  // (SPEED PASS B: PROF=1 — the 2× frame's top self-time functions, measured AFTER the fps window, never inside it)
   const f2 = await fps(4000);
+  if (process.env.PROF) { await cdp.send('Profiler.enable'); await cdp.send('Profiler.setSamplingInterval', { interval: 200 }); await cdp.send('Profiler.start'); await sleep(4000);
+    const { profile } = await cdp.send('Profiler.stop'); const self = new Map(), dt = profile.timeDeltas, byId = new Map(profile.nodes.map(n => [n.id, n]));
+    profile.samples.forEach((id, i) => { const n = byId.get(id), key = `${n.callFrame.functionName || '(anon)'} ${n.callFrame.url.split('/').slice(-2).join('/')}:${n.callFrame.lineNumber + 1}`; self.set(key, (self.get(key) || 0) + (dt[i] || 0) / 1000); });
+    log('PROFILE', [...self].sort((x, y) => y[1] - x[1]).slice(0, 24).map(([key, v]) => `${v.toFixed(0)}ms ${key}`).join(' | ')); }
   await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
   const cost = await ev(p, '(() => { const c = window.__district.cost().slice().sort((a, b) => a - b); return { med: +c[Math.floor(c.length / 2)].toFixed(2), p95: +c[Math.floor(c.length * 0.95)].toFixed(2) }; })()');
   if (SHOTS) await p.screenshot({ path: `${OUT}partyroom.png` });

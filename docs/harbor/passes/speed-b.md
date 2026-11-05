@@ -93,8 +93,17 @@ A3 H5 E2 E3) + the owner's four notes from his SPEED PASS test + the two red spe
   only when the last sync is > 10 min old. Measured (answers 60 ms late, a phone network): **10 → 3** requests in a title's first ~20 s;
   **5 → 0** on a return to the screen within 10 min.
 
-## Group 2 — THE RED SPEED CHECKS
-(below)
+## Group 2 — THE RED SPEED CHECKS (stopped at its measurements — the owner's rule: the pass was at its time)
+- **THE VAULT's FULL LOBBY of 8 legendaries at 4× CPU**: GREEN in this pass's runs — 3 / 240 slow (the rule ≤ 6 %), the GPU path's four mixes
+  57–60 fps (A3 took ~0.2 ms a frame off at tier 2, ~1 ms at tier 1). No change to the check.
+- **`roomperf`'s OWN COST at 4× CPU** (the room of 8): still RED on the mini PC — 36.7 ms alone → 39.7 walking in (< 9 ✓) → 40.0 standing
+  (+3.3 vs the bar's < 3) → 43.3 with the guest list open (+6.6 vs < 4). The same as at the pre-pass commit (speed.md's A/B). What it is: the 8
+  standing figures' draw (~3.3 ms at 4× = ~0.8 ms on a phone) and, with the guest list open, the strips' GPU work contending with the city's
+  canvas (the "city's frame work" timer then counts the wait). Not widened; not fixed — handed on (Known issues).
+- **THE PARTY ROOM at 2× CPU**: **~34–35 → 36.9 fps** (91 of 149 frames slow; 60 fps at 1×, 0 of 240 slow); the city's frame work median
+  15.2 ms, p95 18.5. Its TOP THREE costs (PROF=1, 4 s at 2×): (1) the city's baked layers composited every frame — native `drawImage`, ~850 ms
+  of 4 s; (2) the guest list's 8 legendary strips on the GPU painter — `gl.js#pv` / `vtx` / `strokePoly` / `bufferData` ≈ 300 ms (the
+  laser's share now smaller); (3) the road's sign words redrawn each frame — `road.js#word` 82 ms. None taken in this pass.
 
 ## The numbers
 (below)
