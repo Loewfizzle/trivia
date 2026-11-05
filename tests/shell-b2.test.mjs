@@ -145,7 +145,7 @@ test('THE GIFT TOOL: owner-only on the server (the admin gate), one profile ever
 
 // ---- THE ADD-ON — THE DISPLAY CHECK (the owner, Nov 5 12:58 pm: no dummy HDMI plug): the real-compositor speed checks ask first
 test('THE DISPLAY CHECK: attached → the check runs as before; none → SKIPPED with its reason, counted apart (never a fail, never a silent pass)', async () => {
-  const K = await import('./integration/kit/puppeteer.mjs');
+  const K = await import('./integration/kit/display.mjs');   // (no puppeteer: the cloud's unit job has none)
   assert.equal(K.NO_DISPLAY, 'no display attached (a no-screen boot)');
   assert.deepEqual(K.displayVerdict({ platform: 'win32', count: 0 }), { attached: false, reason: K.NO_DISPLAY });
   assert.equal(K.displayVerdict({ platform: 'win32', count: 1 }).attached, true);

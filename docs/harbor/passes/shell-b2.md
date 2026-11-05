@@ -108,6 +108,14 @@ no-screen boot)" (`harbor-e2e/kit.mjs#skipNoDisplay`), counted apart in the suit
 - The gift cards on the GPU path (4× CPU, 3×): two lobbies of 8 strips **62.8 / 62.9 fps** (2 / 1 slow of 180); the full shows alone — THE
   ANARCHIST **62.7**, GOLDEN BOOT **63.0**, ICE COLD **62.9** fps.
 
+## The cloud run (091a466 — the harbor tag; ONE harbor run, the second kept)
+- `harbor` **13 / 15 jobs**: `holiday` — THE SPIDER's dangle, its tap-drop to the SPEAKEASY word + the climb home (3 checks); `speed` — A6, a
+  re-layout at 1440 × 900 @1 → @2 re-planned the visits once (3 vs 2). Both cloud-only: green in BOTH full local runs, and this pass touched neither
+  (the title's Halloween spider; the walking map). Not re-run to confirm (the two-run cap) — watch them in the next pass's run.
+- `tests` red: my display-check unit test imported kit/puppeteer.mjs, and the cloud's unit job has no puppeteer-core → the check moved to its own
+  dependency-free `kit/display.mjs` (re-exported by the kit), pushed with the ci tag (the tests workflow only).
+- Vercel built the tagged push: the live site serves `js/core/gift-cards.js`, index.html carries `og.png?v=3`, the new og.png answers 200 (1.03 MB).
+
 ## Known issues
 - The airliner still dominates the MEDIUM moments by day (it's the only live daytime kind) — more live medium moments would mix it.
 - og-board.jpg (THE BOARD's link preview) still shows the older look.
@@ -115,4 +123,5 @@ no-screen boot)" (`harbor-e2e/kit.mjs#skipNoDisplay`), counted apart in the suit
 - The real-compositor vault lobbies: skipped on a display-less boot (by design); with the TV on they run and are red on the pre-pass code too
   (the A/B above) — the iPhone bench decides.
 - The full suite's room-cost red at 4× CPU (FR7, unchanged); `stations` + `newstart` can miss under the 4-shard load (green alone).
+- The cloud's `holiday` (THE SPIDER's dangle / tap / climb) + `speed` (A6's re-plan at @1 → @2) reds — cloud-only, untouched by this pass.
 - Not on a real phone yet: the gift cards' full show at 60 fps on the iPhone (`&bench=1` in THE LAB), MAKE HOST + the crew switch on two phones.
