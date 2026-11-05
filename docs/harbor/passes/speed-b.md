@@ -147,3 +147,7 @@ A3 H5 E2 E3) + the owner's four notes from his SPEED PASS test + the two red spe
 - E2 (c) one fetch shared with the tape-stop slice, (d) re-encoding (the owner's ears) — not done; THE BYTES PROBE's 17.6 MB (FR6) not
   reproduced at an ordinary moment (10.2 MB).
 - WebKit: the room's shows by `wk-room.mjs`; the two-tab handshake + the full card's cover measured in Chromium only.
+
+## The cloud
+- **Run 1** (c9271dc, the harbor tag): `tests` **GREEN**; harbor **15 / 15 jobs GREEN** (41972321316 + 41972321517). One run of the two allowed.
+- Vercel built the tagged push: the served `js/fx/laser.js`, `js/vault/full.js`, `js/room.js` read back new ~30 s after the push.
