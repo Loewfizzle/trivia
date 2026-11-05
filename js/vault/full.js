@@ -17,7 +17,8 @@ import { bandOf } from '../core/levels.js';
 import { TIER_NAMES, ITEM } from '../core/items.js';
 import { createSurface, fxCover } from '../fx/renderer.js';
 import { FX } from '../fx/index.js';
-import { LOOKS, vaultSheet, fxOpts } from './strip.js';
+import { LOOKS, vaultSheet, fxOpts, stepPlate } from './strip.js';
+import { watchFull } from './layout.js';
 import { LAB } from './catalog.js';
 import { fitName, onFontsLoaded } from '../ui/fit.js';
 import { approvedIds } from './approved.js';
@@ -68,6 +69,7 @@ export function fitTop(top) {
     was = true;
     if (!house) return;
     house.style.letterSpacing = ''; house.style.fontSize = '';
+    if (house.dataset.long) { house.textContent = house.dataset.long; delete house.dataset.long; }
     // (SHELL 2.0 A: the gem's own margins count — the 1-OF-1 badge is inset from the corner)
     const pm = pill ? (cs => (parseFloat(cs.marginLeft) || 0) + (parseFloat(cs.marginRight) || 0))(getComputedStyle(pill)) : 0;
     const room = () => top.clientWidth - (pill ? pill.offsetWidth + pm : 0) - 6;
@@ -75,13 +77,19 @@ export function fitTop(top) {
     const rg = document.createRange();
     const need = () => { rg.selectNodeContents(house); return Math.ceil(rg.getBoundingClientRect().width); };
     if (!room() || need() <= room()) { top.dataset.fit = 'css'; return; }
-    for (const ls of TOP_LS.slice(1)) { house.style.letterSpacing = `${ls}em`; if (need() <= room()) { top.dataset.fit = `ls${ls}`; return; } }
+    for (const ls of TOP_LS.slice(1, 4)) { house.style.letterSpacing = `${ls}em`; if (need() <= room()) { top.dataset.fit = `ls${ls}`; return; } }
+    // (CARD FIXES — the owner, Nov 5 4:58 pm: "NEON SPEAKEASY · Nº 0001" ran UNDER the 1 OF 1 badge → a line that would reach the badge
+    //  SHORTENS to "№ 0001" before its letters squeeze any further)
+    if (house.dataset.short) { house.dataset.long = house.textContent; house.textContent = house.dataset.short; house.style.letterSpacing = ''; if (need() <= room()) { top.dataset.fit = 'short'; return; } }
+    for (const ls of TOP_LS.slice(4)) { house.style.letterSpacing = `${ls}em`; if (need() <= room()) { top.dataset.fit = `ls${ls}`; return; } }
     const base = parseFloat(getComputedStyle(house).fontSize) || 10;
     const size = Math.max(8, Math.floor(base * (room() / need()) * 10) / 10 - 0.1);
     house.style.fontSize = `${size}px`; top.dataset.fit = `px${size}`;
   };
   let w = -1;
-  new ResizeObserver(es => { const nw = Math.round(es[0].contentRect.width); if (nw !== w) { w = nw; fit(); } }).observe(top);
+  const tro = new ResizeObserver(es => { for (const e of es) { if (e.target !== top) { fit(); return; } const nw = Math.round(e.contentRect.width); if (nw !== w) { w = nw; fit(); } } });
+  tro.observe(top);
+  const pill = top.querySelector('.vl-fc-gem'); if (pill) tro.observe(pill);   // (CARD FIXES: the badge growing — its font in — re-fits the line too)
   if (document.fonts && document.fonts.ready) document.fonts.ready.then(fit);
   onFontsLoaded(fit);   // (THE SPEED PASS: a face that lands after fonts.ready re-fits the line too — ui/fit.js)
   return top;
@@ -125,16 +133,17 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const plate = h('div.vl-fc-plate',
     // (THE VAULT 2A: the player's emblem + tube style + name glow — as on their strip)
     h('span.vl-fc-emb', emblemEl({ id: hasArt(who.shape) ? who.shape : null, avatar: who.avatar || 'bolt', color: who.color || 'magenta', tube: who.tube, mode: prominence(t, embTier(hasArt(who.shape) ? who.shape : null)) })),
-    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', isDevCard(card) ? `THE DEVELOPER · № ${who.no || '0001'}` : `${bandOf(lv).name} · LV ${lv}`)));
-  coverWidest(plate);
+    h('span.vl-fc-who', fitName(applyGlow(h('b.vl-fc-name', { class: t === 'legendary' ? 'vg-still' : '' }, name), who.glow), { min: 15, two: 17 }), h('small.vl-fc-lv', isDevCard(card) ? `DEV · № ${who.no || '0001'}` : `${bandOf(lv).name} · LV ${lv}`)));
+  coverWidest(plate); stepPlate(plate);   // (CARD FIXES: the full card's plate steps too — the step / THE REVERSE STEP)
   const dev = isOneOfOne(card), badge = badgeOf(card);   // (B2: `dev` here = any 1-of-1 — the rainbow gem + 1 OF 1; the plate's dev line reads isDevCard)
   const el = h('div.vl-fc', { class: `vl-t-${t} vl-s-${look.mat} vl-fcm-${look.mat}${sighting ? ' is-sight' : ''}${dev ? ' vl-dev1' : ''}${isGiftCard(card) ? ' vl-gift-fc' : ''}`, dataset: { card, tier: t } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,
     fitTop(h('div.vl-fc-top', badge.slot === 'top'
       ? h('span.vl-fc-house', 'NEON SPEAKEASY', who.fd ? [' · ', h('b.vl-fc-fd.is-top', 'FOUNDER')] : null)   // (2C: his № is under his name — the line carries FOUNDER)
-      : h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), tierBadge(t, dev))),
-    who.fd && !sighting && badge.slot === 'pill' ? h('span.vl-fc-fd', 'FOUNDER') : null,
+      : h('span.vl-fc-house', { dataset: who.no ? { short: `№ ${who.no}` } : {} }, who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), tierBadge(t, dev))),
+    // (CARD FIXES — the owner: NO FOUNDER PILL on any GIFT card; elsewhere vault/layout.js sets it a clear gap under the top line)
+    who.fd && !sighting && badge.slot === 'pill' && !isGiftCard(card) ? h('span.vl-fc-fd', 'FOUNDER') : null,
     sighting ? h('div.vl-fc-title', { class: nameOf(card).length > 18 ? 'is-long' : '' }, h('b', nameOf(card)), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,
     h('div.vl-fc-foot', h('span.vl-fc-since', h('small', 'MEMBER SINCE'), h('b', sinceOf(who.at))), sighting ? null : h('span.vl-fc-card', nameOf(card))),
@@ -143,7 +152,7 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     t === 'legendary' ? h('i.vl-fc-brackets', { 'aria-hidden': 'true' }, h('i'), h('i')) : null,
     h('i.vl-frame', { 'aria-hidden': 'true' }));
   el.setAttribute('aria-label', `${nameOf(card)} (${dev ? ONE_OF_ONE : TIER_NAMES[t] || t}) — ${name}, level ${lv}`);
-  return el;
+  return watchFull(el);   // (CARD FIXES — THE CARD's LAYOUT: nothing overlaps, the plate off the hero — vault/layout.js)
 }
 
 /** the card's effect, at full scale, as a slot of a surface */

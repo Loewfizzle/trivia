@@ -16,6 +16,7 @@ import { emblemSvg, prominence, TEST_EMBLEMS } from './emblems.js';
 import { fitName } from '../ui/fit.js';
 import { isDevCard, isOneOfOne } from '../core/dev-cards.js';
 import { gemEl } from './gems.js';
+import { HERO } from './hero.js';
 
 /** each card's strip: its material (css/vault.css .vl-m-*), its effect (js/fx), the emblem it's shown with in the lab */
 export const LOOKS = Object.freeze({
@@ -110,7 +111,7 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
   if (tier === 'legendary') nameEl.classList.add('vg-still');
   const plate = h('div.vl-plate',
     h('span.vl-emb', emb),
-    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? `THE DEV · № ${no || '0001'}` : host ? `LV ${lv} · HOST` : `LV ${lv}`)));
+    h('span.vl-who', fitName(nameEl, { min: 13, two: 14.5 }), h('small.vl-lv', dev ? `DEV · № ${no || '0001'}` : host ? `LV ${lv} · HOST` : `LV ${lv}`)));
   const el = h('div.vl-strip', { class: `vl-t-${tier} vl-s-${look.mat}${one ? ' vl-dev1' : ''}${one && !dev ? ' vl-gift' : ''}`, style: plain || undefined, dataset: { card: card || '', tier, emblem: embEl ? '' : embId, lead: mode } },
     h('i.vl-mat', { 'aria-hidden': 'true' }),
     plate,
@@ -131,37 +132,62 @@ export function stripEl({ card, name, lv, emblem, host, embEl, plain, tier: tier
 // shows under the name. The plate keeps its own glass (each card's colours); a clip-path cuts the step and a thin line follows its edge
 // (the plate's own inset line, read once). Measured by ONE shared ResizeObserver when a plate's size changes (the name fitted, the
 // fonts in) — never in a frame loop. A short name (the step would be tiny) = the plate as it was.
+// CARD FIXES (the owner, Nov 5 4:54 + 5:04 pm — reverse-step-mock.png): THE REVERSE STEP — when the SECOND row is the longer one (the dev
+// line, LV n · HOST, a short name), the NAME row steps in instead (hugs the name, a rounded corner + the same thin edge line) and only the
+// long row runs full length: the upside-down L. The full card's plate steps too (vault/full.js — the same function, its own rows). A GIFT
+// strip's plate keeps off the card's hero (vault/hero.js — its face): the plate's max-width ends before it (the name fits smaller first).
+// The plate says what it did: data-step = n (normal) · r (reverse) · '' (none), data-x2 / data-y1 = the step's corner in plate px.
 const STEP_MIN = 30, STEP_R = 8, STEP_PAD = 12, STEP_M = 16;
 let stepRO = null;
 const SVGNS = 'http://www.w3.org/2000/svg';
-function stepPlate(plate) {
+const ROWS = el => [el.querySelector('.vl-name, .vl-fc-name'), el.querySelector('.vl-lv, .vl-fc-lv')];
+export function stepPlate(plate) {
   if (typeof ResizeObserver === 'undefined') return;
-  if (!stepRO) stepRO = new ResizeObserver(es => { for (const e of es) layStep(e.target.closest('.vl-plate')); });
+  if (!stepRO) stepRO = new ResizeObserver(es => { for (const e of es) layStep(e.target.closest('.vl-plate, .vl-fc-plate')); });
   stepRO.observe(plate);
-  const lv = plate.querySelector('.vl-lv'); if (lv) stepRO.observe(lv);
+  for (const r of ROWS(plate)) if (r) stepRO.observe(r);
 }
 /** the plate's own inset line colour (its card's), read from its box-shadow once */
 function lineOf(plate) {
   const m = /(rgba?\([^)]+\))\s+0px\s+0px\s+0px\s+([\d.]+)px\s+inset/.exec(getComputedStyle(plate).boxShadow || '');
   return m ? { c: m[1], w: Math.min(2, parseFloat(m[2]) || 1) } : { c: 'rgba(255,255,255,0.09)', w: 1 };
 }
+/** a GIFT strip: the plate's max-width ends before the card's hero (its face) — px, or '' */
+function heroRoom(plate) {
+  const strip = plate.parentElement;
+  if (!strip || !strip.classList.contains('vl-gift') || !strip.classList.contains('vl-strip')) return '';
+  const b = (HERO[strip.dataset.card] || [])[0]; if (!b) return '';
+  return `${Math.max(120, Math.floor(b[0] * strip.clientWidth - plate.offsetLeft - 6))}px`;
+}
 function layStep(plate) {
   if (!plate || !plate.isConnected) return;
-  const W = plate.offsetWidth, H = plate.offsetHeight, nm = plate.querySelector('.vl-name'), lv = plate.querySelector('.vl-lv');
-  const off = () => { plate.style.clipPath = ''; plate.classList.remove('vl-stepped'); const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove(); };
+  const room = heroRoom(plate); if (plate.style.maxWidth !== room) plate.style.maxWidth = room;
+  const W = plate.offsetWidth, H = plate.offsetHeight, [nm, lv] = ROWS(plate);
+  const off = () => { plate.style.clipPath = ''; plate.classList.remove('vl-stepped', 'vl-rstep'); plate.dataset.step = ''; const o = plate.querySelector(':scope > .vl-step'); if (o) o.remove(); };
   if (!W || !H || !nm || !lv) return off();
-  const P = plate.getBoundingClientRect(), N = nm.getBoundingClientRect(), V = lv.getBoundingClientRect();
-  const x2 = Math.ceil(V.right - P.left + STEP_PAD), y1 = Math.round(((N.bottom + V.top) / 2 - P.top) * 2) / 2;
+  // (rects in the plate's own px: a card shown scaled — the lab's 72 % viewer, the reveal's flip — divides out)
+  const P = plate.getBoundingClientRect(), sc = P.width / W || 1, rg = document.createRange();
+  const ext = el => { rg.selectNodeContents(el); const r = rg.getBoundingClientRect(); return { r: (r.right - P.left) / sc, t: (r.top - P.top) / sc, b: (r.bottom - P.top) / sc }; };
+  const N = ext(nm), V = ext(lv), full = plate.classList.contains('vl-fc-plate'), pad = full ? STEP_PAD + 4 : STEP_PAD;
+  const rev = V.r > N.r + STEP_MIN / 2;   // (the second row is the longer: the name row steps in)
+  const x2 = Math.ceil((rev ? N.r : V.r) + pad), y1 = Math.round((N.b + V.t) / 2 * 2) / 2;
   if (W - x2 < STEP_MIN || y1 <= 4 || y1 >= H - 4) return off();
-  const r = Math.max(2, Math.min(STEP_R, (H - y1) / 2, (W - x2) / 2, y1 / 2)), m = STEP_M, f = v => +v.toFixed(2);
-  plate.style.clipPath = `path('M ${-m} ${-m} L ${f(W + m)} ${-m} L ${f(W + m)} ${f(y1 - r)} L ${W} ${f(y1 - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(W - r)} ${f(y1)} L ${f(x2 + r)} ${f(y1)} A ${f(r)} ${f(r)} 0 0 0 ${x2} ${f(y1 + r)} L ${x2} ${f(H - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(x2 - r)} ${H} L ${f(x2 - r)} ${H + m} L ${-m} ${H + m} Z')`;
-  plate.classList.add('vl-stepped');
+  const R0 = parseFloat(getComputedStyle(plate).borderTopRightRadius) || STEP_R;
+  const r = Math.max(2, Math.min(full ? 12 : STEP_R, (H - y1) / 2, (W - x2) / 2, y1 / 2)), m = full ? 28 : STEP_M, f = v => +v.toFixed(2);
+  const R = Math.max(2, Math.min(R0, y1 / 2, x2 / 2));
+  plate.style.clipPath = rev
+    ? `path('M ${-m} ${-m} L ${f(x2 - R)} ${-m} L ${f(x2 - R)} 0 A ${f(R)} ${f(R)} 0 0 1 ${x2} ${f(R)} L ${x2} ${f(y1 - r)} A ${f(r)} ${f(r)} 0 0 0 ${f(x2 + r)} ${f(y1)} L ${f(W - r)} ${f(y1)} A ${f(r)} ${f(r)} 0 0 1 ${W} ${f(y1 + r)} L ${f(W + m)} ${f(y1 + r)} L ${f(W + m)} ${f(H + m)} L ${-m} ${f(H + m)} Z')`
+    : `path('M ${-m} ${-m} L ${f(W + m)} ${-m} L ${f(W + m)} ${f(y1 - r)} L ${W} ${f(y1 - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(W - r)} ${f(y1)} L ${f(x2 + r)} ${f(y1)} A ${f(r)} ${f(r)} 0 0 0 ${x2} ${f(y1 + r)} L ${x2} ${f(H - r)} A ${f(r)} ${f(r)} 0 0 1 ${f(x2 - r)} ${H} L ${f(x2 - r)} ${H + m} L ${-m} ${H + m} Z')`;
+  plate.classList.add('vl-stepped'); plate.classList.toggle('vl-rstep', rev);
+  plate.dataset.step = rev ? 'r' : 'n'; plate.dataset.x2 = x2; plate.dataset.y1 = y1;
   // the edge line along the step (the rest of the outline is the plate's own inset ring)
   let svg = plate.querySelector(':scope > .vl-step');
   if (!svg) { svg = document.createElementNS(SVGNS, 'svg'); svg.setAttribute('class', 'vl-step'); svg.setAttribute('aria-hidden', 'true'); svg.append(document.createElementNS(SVGNS, 'path')); plate.append(svg); }
   const L = lineOf(plate), k = L.w / 2, path = svg.firstChild;
   svg.setAttribute('width', W); svg.setAttribute('height', H); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
-  path.setAttribute('d', `M ${f(W - k)} ${f(y1 - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - r)} ${f(y1 - k)} L ${f(x2 + r)} ${f(y1 - k)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 - k)} ${f(y1 + r)} L ${f(x2 - k)} ${f(H - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(x2 - r)} ${f(H - k)}`);
+  path.setAttribute('d', rev
+    ? `M ${f(x2 - R)} ${f(k)} A ${f(R - k)} ${f(R - k)} 0 0 1 ${f(x2 - k)} ${f(R)} L ${f(x2 - k)} ${f(y1 - r)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 + r)} ${f(y1 + k)} L ${f(W - r)} ${f(y1 + k)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - k)} ${f(y1 + r)}`
+    : `M ${f(W - k)} ${f(y1 - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(W - r)} ${f(y1 - k)} L ${f(x2 + r)} ${f(y1 - k)} A ${f(r + k)} ${f(r + k)} 0 0 0 ${f(x2 - k)} ${f(y1 + r)} L ${f(x2 - k)} ${f(H - r)} A ${f(r - k)} ${f(r - k)} 0 0 1 ${f(x2 - r)} ${f(H - k)}`);
   path.setAttribute('stroke', L.c); path.setAttribute('stroke-width', L.w); path.setAttribute('fill', 'none');
 }
 

@@ -302,8 +302,8 @@ const plateMiss = (p, sel) => ev(p, `(() => { const out = [];
   for (const pl of document.querySelectorAll('${sel}')) { const P = pl.getBoundingClientRect(), card = pl.closest('[data-card]').dataset.card;
     const lines = [...pl.querySelectorAll('.vl-fc-name, .vl-fc-lv, .vl-name, .vl-lv')];
     for (const l of lines) { const r = document.createRange(); r.selectNodeContents(l); const b = r.getBoundingClientRect(); if (b.right > P.right - 1 || b.left < P.left) out.push(card + ' ' + l.className.split(' ')[0] + ' ' + Math.round(b.right - P.right)); }
-    // (the stepped plate: its lower row reaches past the level line)
-    const cp = pl.style.clipPath, lv = pl.querySelector('.vl-lv'); if (cp && lv) { const m = /L (-?[\\d.]+) (-?[\\d.]+) A [\\d.]+ [\\d.]+ 0 0 0 (-?[\\d.]+)/.exec(cp); if (m) { const x2 = +m[3], r = document.createRange(); r.selectNodeContents(lv); if (r.getBoundingClientRect().right - P.left > x2 - 2) out.push(card + ' step ' + Math.round(r.getBoundingClientRect().right - P.left - x2)); } } }
+    // (the stepped plate: its short row reaches past its own words — the level line, or the name on THE REVERSE STEP — CARD FIXES)
+    const st = pl.dataset.step, x2 = +pl.dataset.x2, row = st === 'n' ? pl.querySelector('.vl-lv, .vl-fc-lv') : st === 'r' ? pl.querySelector('.vl-name, .vl-fc-name') : null; if (row) { const r = document.createRange(); r.selectNodeContents(row); const sc = P.width / pl.offsetWidth; if ((r.getBoundingClientRect().right - P.left) / sc > x2 - 2) out.push(card + ' step ' + st + ' ' + Math.round((r.getBoundingClientRect().right - P.left) / sc - x2)); } }
   return out; })()`);
 G('platefit', async () => {
   for (const w of [390, 402, 430]) {
@@ -325,7 +325,8 @@ G('platefit', async () => {
           const S = s.getBoundingClientRect(), P = s.querySelector('.vl-plate').getBoundingClientRect(), N = s.querySelector('.vl-name').getBoundingClientRect(), V = s.querySelector('.vl-lv').getBoundingClientRect(), G = s.querySelector('.vl-gem').getBoundingClientRect();
           const fr = (x, y, w, h) => [(x - S.left) / S.width, (y - S.top) / S.height, w / S.width, h / S.height], y1 = (N.bottom + V.top) / 2;
           const stepped = s.querySelector('.vl-plate').classList.contains('vl-stepped');
-          const plate = stepped ? [fr(P.left, P.top, P.width, y1 - P.top), fr(P.left, y1, V.right + 12 - P.left, P.bottom - y1)] : [fr(P.left, P.top, P.width, P.height)];
+          const pl = s.querySelector('.vl-plate'), x2 = P.left + +pl.dataset.x2, yy = P.top + +pl.dataset.y1;   // (CARD FIXES: the step's own corner — normal or reverse)
+          const plate = !stepped ? [fr(P.left, P.top, P.width, P.height)] : pl.dataset.step === 'r' ? [fr(P.left, P.top, x2 - P.left, yy - P.top), fr(P.left, yy, P.width, P.bottom - yy)] : [fr(P.left, P.top, P.width, yy - P.top), fr(P.left, yy, x2 - P.left, P.bottom - yy)];
           const gem = fr(G.left, G.top, G.width, G.height);
           // (the hero's CENTRE clear of the name row — a long name may cover a wing; the whole box clear of the level row + the gem)
           for (const b of M.HERO[s.dataset.card] || []) { const c = [b[0] + b[2] / 2 - 0.005, b[1] + b[3] / 2 - 0.005, 0.01, 0.01];
@@ -334,6 +335,63 @@ G('platefit', async () => {
         return { n: document.querySelectorAll('.vl-strip').length, bad: [...new Set(out)], pure: M.heroMisses() }; })()`);
       ok(r.n >= 15 && !r.bad.length && !r.pure.length, `THE HERO-SPOT RULE at ${w}: ${r.n} cards' main features middle → middle-right, clear of the stepped plate (LOEWFIZZLE) + the tier gem${r.bad.length || r.pure.length ? ` — OVER: ${[...r.bad, ...r.pure].join(', ')}` : ''}`); }
     if (SHOTS) { await p.goto(`${BASE}/tests/integration/plate-preview.html?name=LOEWFIZZLE&lv=9&cards=card-dev-source,card-dev-switchboard,card-founder`); await waitFor(p, 'window.__ready', 'p', 15000); await sleep(900); await p.screenshot({ path: `${OUT}platefit-${w}.png`, fullPage: true }); }
+    await Q.ctx.close();
+  }
+});
+
+// CARD FIXES — THE CARD's LAYOUT (the owner, Nov 5 4:58 + 5:04 pm: "don't let the overlap happen" · "show THE MOST OF THE CARD"): on EVERY full
+// card (the 11 gifts, the dev cards, the rest) at 390 / 402 / 430 — a founder AND not, a short + the longest name, HOST on the strips — none of
+// the pieces overlap (the top line's words, the tier gem / the 1 OF 1 badge, the FOUNDER pill, the plate, MEMBER SINCE, the card's name), the
+// plate covers 0 of the card's HERO (vault/layout.js — its real stepped shape), a GIFT card has NO FOUNDER pill; the strips' plates step the
+// right way (THE REVERSE STEP when the level line is the longer)
+const cardFit = async (p, BASE, w) => {
+  const out = [];
+  for (const [qs, what] of [['name=BEN&lv=23', 'BEN · founder'], ['name=BEN&lv=23&fd=0', 'BEN'], ['name=WWWWWWWWWWWW&lv=100', 'WWWWWWWWWWWW · founder'], ['name=LOEWFIZZLE&lv=9&fd=0', 'LOEWFIZZLE']]) {
+    await p.goto(`${BASE}/tests/integration/plate-preview.html?only=full&${qs}`);
+    await p.waitForFunction('window.__ready', { timeout: 15000 }); await new Promise(r => setTimeout(r, 700));
+    const r = await p.evaluate(async () => {
+      const L = await import('/js/vault/layout.js'), G = await import('/js/core/gift-cards.js'), bad = [];
+      const tb = n => { if (!n) return null; const rg = document.createRange(); rg.selectNodeContents(n); return rg.getBoundingClientRect(); };
+      const bb = n => (n ? n.getBoundingClientRect() : null);
+      const ov = (a, b) => a && b && a.width && b.width && a.left < b.right - 0.5 && b.left < a.right - 0.5 && a.top < b.bottom - 0.5 && b.top < a.bottom - 0.5;
+      let n = 0, heroed = 0;
+      for (const el of document.querySelectorAll('.vl-fc')) {
+        n++; const card = el.dataset.card, C = el.getBoundingClientRect(), pl = el.querySelector('.vl-fc-plate');
+        const pieces = { top: tb(el.querySelector('.vl-fc-house')), badge: bb(el.querySelector('.vl-fc-gem')), fd: bb(el.querySelector(':scope > .vl-fc-fd')), plate: bb(pl), since: bb(el.querySelector('.vl-fc-since')), name: tb(el.querySelector('.vl-fc-card')) };
+        const ks = Object.keys(pieces);
+        for (let i = 0; i < ks.length; i++) for (let j = i + 1; j < ks.length; j++) if (ov(pieces[ks[i]], pieces[ks[j]])) bad.push(`${card}: ${ks[i]} × ${ks[j]}`);
+        if (G.isGiftCard(card) && pieces.fd) bad.push(`${card}: a FOUNDER pill on a gift`);
+        const hero = L.heroBox(card, el.clientWidth, el.clientHeight);
+        if (hero && pl && !el.classList.contains('is-sight')) {
+          heroed++;
+          const sh = L.shape(pl, pl.offsetLeft, pl.offsetTop, pl.offsetWidth, pl.offsetHeight);
+          if (sh.some(b => L.hit(b, hero))) bad.push(`${card}: the plate over the hero`);
+        }
+        void C;
+      }
+      // the strips (the same page's ?only=strip is the next pass): nothing here
+      return { n, heroed, bad };
+    });
+    out.push({ what, ...r });
+  }
+  // the strips: the step's direction follows the longer row
+  await p.goto(`${BASE}/tests/integration/plate-preview.html?only=strip&name=BEN&lv=100&host=1`);
+  await p.waitForFunction('window.__ready', { timeout: 15000 }); await new Promise(r => setTimeout(r, 700));
+  const st = await p.evaluate(() => { const bad = []; let rev = 0, n = 0;
+    for (const pl of document.querySelectorAll('.vl-plate')) { n++; const rg = document.createRange(), ext = s => { rg.selectNodeContents(pl.querySelector(s)); return rg.getBoundingClientRect().right; };
+      const nm = ext('.vl-name'), lv = ext('.vl-lv'), P = pl.getBoundingClientRect(), x2 = +pl.dataset.x2;
+      if (pl.dataset.step === 'r') { rev++; if (nm - P.left > x2 - 2 || lv > P.right) bad.push(pl.closest('[data-card]').dataset.card); }
+      else if (lv > nm + 15 && pl.dataset.step !== '') bad.push(pl.closest('[data-card]').dataset.card + ' (normal step on a longer level line)'); }
+    return { n, rev, bad }; });
+  return { out, st };
+};
+G('cardfit', async () => {
+  for (const w of [390, 402, 430]) {
+    const Q = await open({ slot: `cf${w}`, view: [w, 900], wait: false, city: false }), p = Q.page;
+    const r = await cardFit(p, BASE, w);
+    for (const o of r.out) ok(o.n >= 55 && o.heroed >= 11 && !o.bad.length, `THE CARD's LAYOUT at ${w} — ${o.what}: ${o.n} full cards, nothing overlapping (the top line, the badge, the FOUNDER pill, the plate, MEMBER SINCE, the card's name), the plate off the hero on ${o.heroed}, no FOUNDER pill on a gift${o.bad.length ? ` — ${o.bad.slice(0, 8).join(' | ')}` : ''}`);
+    ok(r.st.n >= 55 && r.st.rev >= 1 && !r.st.bad.length, `THE REVERSE STEP at ${w}: ${r.st.n} strips (BEN · LV 100 · HOST), ${r.st.rev} stepped the name row in — the step follows the longer row${r.st.bad.length ? ` — ${r.st.bad.slice(0, 6).join(' | ')}` : ''}`);
+    if (SHOTS) { await p.goto(`${BASE}/tests/integration/plate-preview.html?name=BEN&lv=23&fx=1&cards=card-gift-playerone,card-gift-youngbuck,card-gift-icecold,card-gift-anarchist`); await waitFor(p, 'window.__ready', 'p', 15000); await sleep(1200); await p.screenshot({ path: `${OUT}cardfit-${w}.png`, fullPage: true }); }
     await Q.ctx.close();
   }
 });

@@ -44,7 +44,7 @@ test('THE STEPPED PLATE: full width on the NAME row, the LEVEL row past "LV n" o
   assert.match(s, /stepPlate\(plate\);/);
   assert.match(s, /stepRO = new ResizeObserver/);
   assert.match(s, /if \(W - x2 < STEP_MIN/, 'a tiny step → the plate as it was');
-  assert.match(s, /plate\.style\.clipPath = `path\(/);
+  assert.match(s, /plate\.style\.clipPath = rev\s*\? `path\(/);   // (CARD FIXES: THE REVERSE STEP — either way, one clip-path)
   assert.match(s, /A \$\{f\(r\)\} \$\{f\(r\)\} 0 0 0 \$\{x2\}/, 'the rounded INNER corner');
   assert.doesNotMatch(s, /requestAnimationFrame\(.*layStep/);
   assert.match(read('css/vault.css'), /\.vl-lv \{ align-self: flex-start; \}/, 'the level row measured by its text');

@@ -20,13 +20,13 @@
 import { fullCardEl, mountFullCard } from '/js/vault/full.js';
 import { stripEl, LOOKS, mountStrips } from '/js/vault/strip.js';
 const q = new URLSearchParams(location.search);
-const name = q.get('name') || 'WWWWWWWWWWWW', lv = Number(q.get('lv') || 100), only = q.get('only') || '';
+const name = q.get('name') || 'WWWWWWWWWWWW', lv = Number(q.get('lv') || 100), only = q.get('only') || '', fd = q.get('fd') !== '0';   // (CARD FIXES: &fd=0 = a non-founder)
 const cards = q.get('cards') ? q.get('cards').split(',') : Object.keys(LOOKS);
 await document.fonts.ready;
 const stage = document.getElementById('stage');
 for (const card of cards) {
-  if (only !== 'strip' && q.has('fx')) { const host = Object.assign(document.createElement('div'), { style: 'position:relative' }); stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: `${card} · full` }), host); mountFullCard(host, card, { name, lv, no: '0001', avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 2), fd: true }); }
-  else if (only !== 'strip') stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: `${card} · full` }), fullCardEl({ card, who: { name, lv, no: '0001', avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 2), fd: true } }));
+  if (only !== 'strip' && q.has('fx')) { const host = Object.assign(document.createElement('div'), { style: 'position:relative' }); stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: `${card} · full` }), host); mountFullCard(host, card, { name, lv, no: '0001', avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 2), fd }); }
+  else if (only !== 'strip') stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: `${card} · full` }), fullCardEl({ card, who: { name, lv, no: '0001', avatar: 'crown', color: 'magenta', at: Date.UTC(2026, 9, 2), fd } }));
   if (only !== 'full' && q.has('fx')) { const list = document.createElement('div'); stage.append(Object.assign(document.createElement('div'), { className: 'lbl', textContent: card }), list); mountStrips(list, [{ card, name: q.get('name') || 'MIKE', lv, no: '0001', avatar: 'crown', color: 'magenta' }]); continue; }
   if (only !== 'full') { const list = Object.assign(document.createElement('div'), { className: 'vl-list' }); list.append(stripEl({ card, name, lv, host: q.has('host'), no: '0001', avatar: 'crown', color: 'magenta' })); stage.append(list); }
 }
