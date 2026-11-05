@@ -76,8 +76,18 @@ SWITCH-OVER), before SHELL 2.0. Source: review-6.md H (H7, H8, H12 + the big fil
   free scenes, Halloween, Christmas, a ROOM by night + by day (title-preview's new `&act=room`), a FULL CARD over CUSTOMIZE + the YOU page
   (pixdiff's new `page:` scenes). Every A-B pixel left sits on something that moves on its own clock (the shadowboxer's window, the walkers,
   the waiting figures' breathing, a flickering jack-o'-lantern); **an A-vs-A run (both sides the old commit) shows the same areas** — noise.
-- The suites: see the local run in the summary below (unit, rules, /api, profiles, conn, presence, smoke, WebKit, the full harbor suite at 4
-  shards) + the cloud run.
+- **THE SPLIT's ONE SLIP (caught locally, never live):** `split-closure.mjs` rewrote BOTH halves of a shorthand property — `{ scene }`
+  became `scene: T.scenene` (a sighting's moment got no scene: the parked print + the fast legendaries' photo failed in the first full
+  harbor run) and the test hook's `note: dk.noteote`. Fixed (a24a12c); the tool leaves a shorthand's key alone now; a scan of every
+  `T.` / `tap.` / `neon.` / `dk.` name against its accessors found no other.
+- **The local run (the mini PC, quiet — THE BUSY-PC CHECK 2.4 %):** unit 1143/1143 · rules 64/64 · rules-live 4/4 · /api 36/36 · the profile
+  E2E 63/63 · conn 21/21 · presence 12/12 · smoke 6/6 · WebKit `wk-room.mjs` 6/6 · THE FULL HARBOR SUITE at 4 shards: run 1 1149/1159
+  (the 4 sighting reds — the parked print ×2, the fast legendaries' photo, WebKit's tap on the UFO — = the slip above; of the other 6, 5
+  green when re-run alone — the vault's + the 8-card lobbies' 4× CPU frame checks under the shard load ×3, the speaker delay, the radio desk —
+  and roomperf's own cost, red before this pass too); the failed groups alone after the
+  fix 111/111; **run 2 (the fix in): 1155/1159** — every sighting green; the 4 reds all green ALONE (crew + desktop 29/29, the vault
+  111/111 above): the resize's re-fit hitch 767 ms (< 750) + the 8-legendary lobby at 4× CPU (timing under the shard load), CREW's switch
+  OFF + PUSH's guest call (the crew group; a race under load). The cloud run confirms.
 
 ## Decisions (made unattended — the owner was asleep)
 - **A failed Harbor load** (was: City 1.0): the import is tried once more after 1.5 s, then THE CITY COULDN'T LOAD + RELOAD (a plain card on
