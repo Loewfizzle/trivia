@@ -7,8 +7,8 @@
 <link rel="icon" href="data:,">
 <!-- The REAL title screen (the city, the sign, THE FLANK, the corner buttons) without Firebase or emulators: tweak its look and
      reload in a second. All the title's own preview switches work: ?when=2026-10-19T22:30&tz=America/Detroit&at=42.96,-85.67
-     &wx=rain&force=lightning&speed=60&intro=1. Plus: &guest=1 (no profile), &act=join|rejoin|sun (the JOIN panel open, a REJOIN
-     pill, the sun behind the music button), &rejoin=MINT. HOST / JOIN do nothing here (no rooms) — use the app for flows.
+     &wx=rain&force=lightning&speed=60&intro=1. Plus: &guest=1 (no profile), &act=join|rejoin|sun|room (the JOIN panel open, a REJOIN
+     pill, the sun behind the music button, a ROOM of &n=4 at the door), &rejoin=MINT. HOST / JOIN do nothing here (no rooms) — use the app for flows.
      Shots: node shots.mjs "<browser>" --preview --scenes night,day -->
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=JetBrains+Mono:wght@400;700&family=Orbitron:wght@700;900&display=swap">
 <link rel="stylesheet" href="/css/base.css">
@@ -47,6 +47,13 @@ if (act) {
   await until();
   if (act === 'join') window.__district.dock.join(true);
   if (act === 'rejoin') window.__district.dock.preview({ rejoin: q.get('rejoin') || 'MINT' });
+  if (act === 'room') {   // (CITY 1.0 OUT: a scripted ROOM over the real city — four players at the door; &n=2..8; pixdiff's room scenes)
+    const n = Math.max(2, Math.min(8, Number(q.get('n') || 4))), t0 = Date.now() - 60000, cols = ['magenta', 'cyan', 'yellow', 'green', 'orange', 'violet', 'red', 'blue'], av = ['bolt', 'diamond', 'crown', 'star', 'moon', 'heart', 'wave', 'ghost'];
+    const players = {}, presence = {};
+    for (let i = 0; i < n; i++) { const u = i ? `pv${i}` : 'pv'; players[u] = { name: i ? `GUEST${i}` : 'AVA', color: cols[i], avatar: av[i], joinedAt: t0 + i * 500, ln: i % 2 ? 'L' : 'R' }; presence[u] = { online: true, lastSeen: Date.now(), v: 2, c: { [`k${i}`]: true } }; }
+    Object.assign(st, { code: 'PVRM', meta: { hostId: 'pv', status: 'lobby', createdAt: t0, activeAt: t0 }, players, presence, connected: true, net: 'online' });
+    title.update(st);
+  }
   if (act === 'sun') { const r = document.querySelector('.music-btn').getBoundingClientRect(); window.__district.dock.sunAt(r.left + r.width * 0.4, r.top + r.height * 0.55); }
 }
 </script>

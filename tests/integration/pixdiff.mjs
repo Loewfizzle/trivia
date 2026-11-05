@@ -45,6 +45,12 @@ const SCENES = {
   // SCHED: the weather's cut — rain + snow at night
   rain: 'when=2026-11-05T21:30&wx=rain&force=no-planes,no-birds',
   snow: 'when=2026-12-15T21:30&wx=snow&force=no-planes,no-birds',
+  // CITY 1.0 OUT: a ROOM (title-preview's &act=room — four players at the door over the real city) + a FULL CARD over CUSTOMIZE (any page:
+  // 'page:<path?query>' shoots that page instead of the title, once its body has data-ready; '|js:<expression>' runs before the shot)
+  room: 'when=2026-10-22T22:00&wx=clear&force=no-planes,no-birds&act=room',
+  'room-day': 'when=2026-10-22T12:30&wx=clear&force=no-planes,no-birds&act=room',
+  card: `page:tests/integration/progress-preview.html?view=profile&labmarks=all&dev=1&dress=1&card=card-dev-source|js:import('/js/vault/full.js').then(m => m.openFullCard('card-sg-blackbird', { name: 'TESTER', avatar: 'diamond', color: 'magenta' }))`,
+  you: 'page:tests/integration/progress-preview.html?view=profile&labmarks=all&dev=1&card=card-dev-source',
 };
 const names = arg('scenes', 'night,party,noon,golden').split(',');
 mkdirSync(OUT, { recursive: true });
@@ -60,6 +66,14 @@ async function shoot(base, q, still) {
   const mobile = VW < 800;
   await page.setViewport({ width: VW, height: VH, deviceScaleFactor: mobile ? 3 : 1, isMobile: mobile, hasTouch: mobile });
   if (still) await page.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  if (q.startsWith('page:')) {   // (CITY 1.0 OUT: any page — the full card, the YOU page)
+    const [path, js] = q.slice(5).split('|js:');
+    await page.goto(`${base}/${path}`);
+    await page.waitForFunction("document.body.dataset.ready === '1'", { timeout: 30000 }).catch(() => {});
+    await sleep(1500);
+    if (js) { await page.evaluate(js).catch(e => console.warn('  --js', e.message)); await sleep(2500); }
+    return page;
+  }
   await page.goto(`${base}/tests/integration/title-preview.html?${q}${AT}${CITY !== '1' ? `&city=${CITY}` : ''}`);
   const ready = `(() => { const d = window.__district; if (!d || !d.phase().done) return false; const h = d.harbor && d.harbor();
     const sign = document.querySelector('.nd-sign'); if (!sign || !(sign.classList.contains('is-steady') || sign.classList.contains('is-day'))) return false;
@@ -72,7 +86,8 @@ async function shoot(base, q, still) {
   // (C4d: both sides AT REST before the shot — the title hides its dock + tagline ~7 s after the load (nd-idle); a side shot a moment
   // before it vs one after showed the whole dock as a 7 % "look change" at night)
   const end3 = Date.now() + 20000;
-  while (still && Date.now() < end3 && !(await page.evaluate("document.body.classList.contains('nd-idle') || !document.body.classList.contains('nd-on')").catch(() => false))) await sleep(200);
+  while (still && !/act=room/.test(q) && Date.now() < end3 && !(await page.evaluate("document.body.classList.contains('nd-idle') || !document.body.classList.contains('nd-on')").catch(() => false))) await sleep(200);
+  if (/act=room/.test(q)) { const e4 = Date.now() + 20000; while (Date.now() < e4 && !(await page.evaluate("(() => { const r = window.__district.room && window.__district.room(); return !!(r && r.people && r.people.length >= 4 && r.people.every(x => x.s && x.s.pose === 'wait')); })()").catch(() => false))) await sleep(200); }   // (a room: the four settled at the door — nothing fades at rest in a room)
   await sleep(1500);
   return page;
 }
