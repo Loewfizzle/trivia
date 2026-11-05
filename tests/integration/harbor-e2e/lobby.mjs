@@ -92,7 +92,8 @@ G('room', async () => {
   const sA = Object.fromEntries((await roomOf(p)).people.map(x => [x.uid, `${x.slot}`])), sB = Object.fromEntries((await roomOf(q)).people.map(x => [x.uid, `${x.slot}`]));
   ok(JSON.stringify(sA, Object.keys(sA).sort()) === JSON.stringify(sB, Object.keys(sA).sort()) && sA[meB] === 'R3', `THE SAME LINES ON TWO PHONES (${Object.values(sA).join(' ')}; the new guest at ${sA[meB]})`);
   const dB = await ev(q, "({ wait: document.querySelector('.rdk-play').classList.contains('rdk-wait'), txt: document.querySelector('.rdk-play .nd-host-label').textContent, inv: document.querySelector('.rdk-invite .nd-host-label').textContent })");
-  ok(dB.wait && /WAITING\s*FOR AVA/.test(dB.txt) && dB.inv === 'INVITE', `A GUEST's dock: INVITE (everyone) + the PLAY ring greyed — ${dB.txt} (${JSON.stringify(dB)})`);
+  // (THE SPEED PASS — the owner: the ring reads WAITING / FOR HOST, never the host's name)
+  ok(dB.wait && /WAITING\s*FOR HOST/.test(dB.txt) && !/AVA/.test(dB.txt) && dB.inv === 'INVITE', `A GUEST's dock: INVITE (everyone) + the PLAY ring greyed — ${dB.txt} (${JSON.stringify(dB)})`);
   if (SHOTS) { await p.screenshot({ path: `${OUT}lobby-room-8-host.png` }); await q.screenshot({ path: `${OUT}lobby-room-8-guest.png` }); }
   // a refresh: everyone already in place (no walk-in replay)
   await sleep(12500 - 0);   // (B's own join is older than FRESH_MS by now)

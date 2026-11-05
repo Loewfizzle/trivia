@@ -14,6 +14,15 @@ async function hubStill(p, i, ms = 25000) {
   for (const end = Date.now() + ms; Date.now() < end;) { const at = await ev(p, js).catch(() => null); if (at) return at; await sleep(100); }
   return ev(p, `${H}.spiders[${i}] || null`);
 }
+// (the full local run: the hub-still wait can outlast the title's 10-s rest, and a resting title SWALLOWS the first touch as a wake tap —
+//  so wake it right before the tap, then read the spider again: still at the hub, one round trip, then the tap)
+async function spiderTap(p, i) {
+  await hubStill(p, i);
+  await p.touchscreen.tap(30, 120); await sleep(350);
+  const at = await hubStill(p, i, 4000);
+  if (at) await p.touchscreen.tap(at.x, at.y);
+  return at;
+}
 
 G('holiday', async () => {
   const P = 'window.__district.harbor()';
@@ -81,12 +90,12 @@ G('holiday', async () => {
     // (C4d — F10: SP6's twin fix here too — wait till it stands still, read where it IS just before the tap, one more tap if it missed)
     // (CC-B — GREEN MEANS GREEN: on the cloud's 2-core runner it hadn't stood still within 8 s — the tap landed where it WAS: wait for the
     // real condition longer + a third try)
-    let at = await hubStill(Q.page, 0);
+    let at = null;
     let dropped = false, onWord = false;
     let dangled = false, landed = false;
-    for (let tries = 0; tries < 3 && at && !dropped; tries++) {
-      if (tries) at = await hubStill(Q.page, 0);
-      await Q.page.touchscreen.tap(at.x, at.y); dropped = await waitFor(Q.page, `['drop', 'land', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
+    for (let tries = 0; tries < 3 && !dropped; tries++) {
+      at = await spiderTap(Q.page, 0); if (!at) continue;
+      dropped = await waitFor(Q.page, `['drop', 'land', 'crawl'].includes(${P}.dress.spider.mode)`, 'the spider dropping', 2500).then(() => true).catch(() => false); }
     if (at && dropped) {
       // (WIN3 — the owner: it DANGLES on its thread — head down, the legs tucked in (the mean reach under half the stance), a slow turn — and
       // lands feet first: the legs still pose-locked (never the full stance in the air) as it settles onto the tubes)
@@ -115,9 +124,9 @@ G('holiday', async () => {
     // THE SECOND SPIDER on the last N's web: its own tap, its own trip; the two never in step
     // (PERF-B — the cloud's red: the tap found the second spider SCARED (its nerves — the first one's trip or a flicker near it) and a scared
     //  spider freezes instead of dropping; the tap is meant for a spider at rest → wait for it calm + still first)
-    const at2 = await hubStill(Q.page, 1);
+    const at2 = await spiderTap(Q.page, 1);
     let trip2 = false;
-    if (at2) { await Q.page.touchscreen.tap(at2.x, at2.y); trip2 = await waitFor(Q.page, `['drop', 'crawl'].includes(${P}.dress.spider2.mode)`, 'the second dropping', 2500).then(() => true).catch(() => false); }
+    if (at2) { trip2 = await waitFor(Q.page, `['drop', 'crawl'].includes(${P}.dress.spider2.mode)`, 'the second dropping', 2500).then(() => true).catch(() => false); }
     const s2 = await ev(Q.page, `${P}.dress.spider2`), s1 = await ev(Q.page, `${P}.dress.spider`);
     ok(at2 && trip2 && s2 && s1 && (s1.mode !== s2.mode || Math.abs(s1.x - s2.x) > 40), `THE SECOND SPIDER (touch at ${at2 ? `${at2.x.toFixed(0)},${at2.y.toFixed(0)}` : 'none'}): its own trip (${s2 && s2.mode}), the first still ${s1 && s1.mode} — never in step`);
     // WIN3 — THE CLIMB HOME, the same in reverse: head-up, reeling the line with the front legs, the legs gathered (the mean reach
@@ -161,14 +170,14 @@ G('holiday', async () => {
       // still, read where it IS just before the tap, and tap once more if the first missed — a person taps again too)
       let t2 = false;
       for (let tries = 0; tries < 2 && !t2; tries++) {
-        const a2 = await hubStill(Q.page, 1); await Q.page.touchscreen.tap(a2.x, a2.y);
+        await spiderTap(Q.page, 1);
         t2 = await waitFor(Q.page, `${P}.dress.spider2 && ${P}.dress.spider2.trip === 'drop'`, 'the second dropping', 2500).then(() => true).catch(() => false);
       }
       const s1 = await ev(Q.page, `${P}.dress.spider.trip`);
       // (the cloud's next run: the FIRST one's tap missed at 390 the same way — the same wait-still + read-now + one more tap)
       let t1 = false;
       for (let tries = 0; tries < 2 && !t1; tries++) {
-        const a1 = await hubStill(Q.page, 0); await Q.page.touchscreen.tap(a1.x, a1.y);
+        await spiderTap(Q.page, 0);
         t1 = await waitFor(Q.page, `${P}.dress.spider && ${P}.dress.spider.trip === 'drop'`, 'the first dropping', 2500).then(() => true).catch(() => false);
       }
       ok(t2 && s1 === null && t1, `${when.slice(5, 10)} at ${view[0]}: BOTH TAPPABLE — the second drops on its tap (${t2}; the first untouched: ${s1 === null}), the first on its own (${t1})`);

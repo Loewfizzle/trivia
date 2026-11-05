@@ -186,11 +186,13 @@ await H.run(async () => {
   const pf = await p3.evaluate(() => ({ rows: !!document.querySelector('.pf-account .pf-er-name, .pf-account .pf-er-colour, .pf-account .pf-edit'), pen: !!document.querySelector('.pf-pen') }));
   ok(!pf.rows && !pf.pen, `THE PROFILE: no NAME / COLOUR rows in ACCOUNT (${!pf.rows}); no ✎ on the card (${!pf.pen})`);
   // (a trophy's reward chip = WEAR IT: FIRST ROUND's EMBER glow → on the server)
-  await p3.click('.pg-trophies .pg-rw[data-id="glow-ember"]');
+  // (THE SPEED PASS: the chip by its own click — the ✎ sheet's round trip no longer gives the page a second to settle before a coordinate click)
+  await p3.waitForSelector('.pg-trophies .pg-rw[data-id="glow-ember"]', { timeout: 10000 });
+  await tapIt('.pg-trophies .pg-rw[data-id="glow-ember"]');
   for (let i = 0; i < 40 && (await val(`profiles/${me0.pid}/g`)) !== 'glow-ember'; i++) await sleep(150);
   ok((await val(`profiles/${me0.pid}/g`)) === 'glow-ember' && await p3.evaluate(() => document.querySelector('.pg-trophies .pg-rw[data-id="glow-ember"]').classList.contains('is-on')), 'A TROPHY REWARD CHIP: a tap EQUIPS EMBER (on the server; the chip says EQUIPPED ✓)');
   // (THE VAULT 2B — CUSTOMIZE (was DRESS YOUR CARD): its button opens the screen; the CARD tab's tiles = only what she owns)
-  await p3.click('.vl-dp-go'); await p3.waitForSelector('.vl-dress .vl-dt', { timeout: 8000 });
+  await p3.waitForSelector('.vl-dp-go', { timeout: 8000 }); await tapIt('.vl-dp-go'); await p3.waitForSelector('.vl-dress .vl-dt', { timeout: 8000 });
   const prof = await p3.evaluate(() => ({ card: document.querySelector('.pg-card').dataset.card, lv: (document.querySelector('.pg-card-lv') || {}).textContent || '',
     ach: [...document.querySelectorAll('.pg-prof .pg-ach div > b')].map(b => b.firstChild.nodeValue), vault: [...document.querySelectorAll('.vl-dress .vl-dt')].map(b => b.dataset.id),   // (THE VAULT 2B: the dress screen's card tiles)
     text: document.querySelector('.pg-prof').textContent }));
@@ -386,7 +388,9 @@ await H.run(async () => {
   await pub.waitForSelector('.bd-row:not(.is-skel)', { timeout: 20000 });
   ok(await pub.$('.bd-play'), 'neonspeakeasy.com/board: the board for anyone, with PLAY NOW');
   const pubText = await pub.$eval('.bd-rows', el => el.textContent.toUpperCase());
-  ok(pubText.includes(String(me0.profile.n).toUpperCase()) && !pubText.includes(String(me0.pid).toUpperCase()) && !pubText.includes(String(me1.pid).toUpperCase()), `the public page: ${me0.profile.n}'s USERNAME on it — never a profile id`);
+  // (THE SPEED PASS: the player's CURRENT username — this test renamed ALICE to KATIEJO in CUSTOMIZE above; the old check passed on a stale row)
+  const nowName = String((await val(`profiles/${me0.pid}/n`)) || me0.profile.n).toUpperCase();
+  ok(pubText.includes(nowName) && !pubText.includes(String(me0.pid).toUpperCase()) && !pubText.includes(String(me1.pid).toUpperCase()), `the public page: ${nowName}'s USERNAME on it — never a profile id (${pubText.slice(0, 80)})`);
   await shotAll(pub, 'pf-08-public');
   await ctx.close();
 });

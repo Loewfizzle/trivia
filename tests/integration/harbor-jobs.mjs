@@ -21,7 +21,7 @@ export const SECONDS = {
   load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
   speakeasy: 30, fireworks: 30, stations: 40, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4, desktop: 90,   // (DESKTOP: an estimate — refresh from its first cloud run)
-  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 170, roomperf: 70, roomchat: 60, keypop: 75, roomfix: 90, gamestart: 80, citypause: 60, afterparty: 150, cartridge: 20, crewsky: 60, leaveroom: 60, sheetstack: 70, oldrules: 70, sgfast: 60, gameflows: 80, oneseat: 60, playercard: 70, leavewave: 50, bannerfull: 45, hostcard: 70, newstart: 90, platefit: 40, youpage: 45, corners: 60, arrivals: 60, radiorest: 70, staleroom: 60, youcard: 40, guestring: 50, bannersky: 160, partyroom: 70,   // (LOBBY 2.0 B: estimates from the mini PC)
+  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 67, roomperf: 44, roomchat: 20, keypop: 41, roomfix: 42, gamestart: 44, citypause: 39, afterparty: 94, cartridge: 2, crewsky: 27, leaveroom: 28, sheetstack: 31, oldrules: 32, sgfast: 60, gameflows: 39, oneseat: 28, playercard: 38, leavewave: 47, bannerfull: 47, hostcard: 53, newstart: 46, platefit: 15, youpage: 20, corners: 40, arrivals: 30, radiorest: 28,   // (THE SPEED PASS — FR6 G8: the lobby / room2 / lobbyfix rows refreshed from LOBBY FIXES' cloud run 41931359670's own per-group seconds) staleroom: 60, youcard: 40, guestring: 50, bannersky: 160, partyroom: 70,   // (LOBBY 2.0 B: estimates from the mini PC)
     // (LOBBY 2.0 A: an estimate from the mini PC)
     // (PROGRESSION B: sightings — an estimate from the mini PC)
     // (PROGRESSION A: progress — an estimate; radio + the FOUNDER switch)   // (CITY CONTROLS A: an estimate — refresh from its first cloud run; CC-B: the intercom + the crew — ~55 s each on the mini PC)
@@ -57,7 +57,7 @@ export const CI_JOBS = {
   holiday: ['holiday', 'thanks', 'panelrows', 'citylife', 'sightings'],   // (PROGRESSION B: sightings — the lightest job)   // (9e: citylife — the lightest job)   // (9a: the weather + legends; tape → audio; WIN3: the panel's window rows — the lightest job)
 };
 
-export const SERIAL = ['panel', 'perf', 'oldrules'];   // (LOBBY 2.0 B: oldrules swaps the shared emulator's rules — nothing beside it)
+export const SERIAL = ['panel', 'perf', 'oldrules', 'partyroom'];   // (THE SPEED PASS: partyroom — the party room's fps, measured with nothing beside it)   // (LOBBY 2.0 B: oldrules swaps the shared emulator's rules — nothing beside it)
 
 /** every registered group in exactly one job, every job's group registered, the serial groups last → a list of problems ([] = fine) */
 export function jobProblems(groups, jobs = CI_JOBS) {
