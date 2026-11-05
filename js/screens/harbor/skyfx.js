@@ -14,7 +14,7 @@
 // The planes keep to the FREE sky lanes (a lane a piece holds is never shared); a HEAVY piece (skywriting, skytyping, the drone
 // show, the festival) quiets the rest of the city (quiet(): the scene merges it into fs.density).
 import { createAir } from './air.js';
-import { createBanner } from './banner.js';
+import { createBanner, BANNER } from './banner.js';
 import { createSmoke } from './smoke.js';
 import { createBirds } from './birds.js';
 import { createBalloons } from './balloons.js';
@@ -114,10 +114,32 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
     return { x, y: y0, w, h: Math.max(60, y1 - y0) };
   }
   // THE BANNER'S LANE (6b, the owner): just under SPEAKEASY, through the tagline's band (the tagline fades out while it passes)
+  // THE SPEED PASS — ABOVE EVERY CROWN (the owner, Nov 4 6:17 pm: after a match the banner crossed the towers + the NEON PAR / HIGH STAKES
+  // signs, "…EERS TO LOEWFIZZLE" hard to read): whatever the lane, the banner's lowest point (its line of flight + the fabric hanging
+  // under it + the gentle rise and dip) stays above THE OPEN SKY's FLOOR — the highest crown / spire / roof sign anywhere across the
+  // screen (the plane crosses all of it). Where the band under SPEAKEASY is too thin (a wide screen) the lane RISES — over the SPEAKEASY
+  // word or the logo if it must (the owner: it's only crossing; readability wins) — and the sign dims while it flies there (bannerDim).
+  let floorMemo = { sk: null, tops: null, v: null };
+  function skyFloorOf(s) {
+    const sk = s && s.skyline, tops = s && s.skyTops;
+    if (!sk) return null;
+    if (floorMemo.sk === sk && floorMemo.tops === tops) return floorMemo.v;
+    let v = 1e9;
+    for (let i = 0; i < sk.length; i++) { const a = sk[i], b = tops ? tops[i] : 1e9, c = tops && tops.tips ? tops.tips[i] : 1e9; const m = a < b ? (a < c ? a : c) : (b < c ? b : c); if (m < v) v = m; }
+    floorMemo = { sk, tops, v: v < 1e8 ? v : null };
+    return floorMemo.v;
+  }
+  let laneRaised = false;
   function bannerLane(s) {
     const wr = s.textRects && s.textRects.word, tg = lanes && lanes.tagline;
-    if (!wr) return tg ? { x: 0, y: tg.y - 6, w: W, h: 40 } : lanes && lanes['sky-high'];
-    return { x: 0, y: wr.y + wr.h + 2, w: W, h: 40 };
+    let lane = !wr ? (tg ? { x: 0, y: tg.y - 6, w: W, h: 40 } : lanes && lanes['sky-high']) : { x: 0, y: wr.y + wr.h + 2, w: W, h: 40 };
+    laneRaised = false;
+    const fl = skyFloorOf(s);
+    if (!lane || fl == null) return lane;
+    const K = Math.max(0.9, Math.min(1.35, W / 402)), hang = (BANNER.hgt + 12 + BANNER.path[0] + BANNER.path[2] + 6) * K;   // (the fabric + its drop, the rise + dip, a margin)
+    const maxY = fl - hang - lane.h * 0.48;
+    if (lane.y > maxY) { lane = { ...lane, y: Math.max((s.safeTop || 0) + 56, maxY) }; laneRaised = !!(wr && lane.y < wr.y + wr.h); }
+    return lane;
   }
   // THE FORMATION'S BOX (NEON PASS 3, the owner: it sat down among the towers, lost in the city): OPEN SKY ONLY — from under the
   // tagline (or under the SPEAKEASY word once the tagline has faded: the freed band) down to the TALLEST crown across the box (its
@@ -184,7 +206,7 @@ export function createSkyFx({ games = [], clock, qp, dim = null, allow = null } 
       let lv = 0.15; for (const [t0, v] of FLICK) if (e >= t0) lv = v;
       dim('msg', { logo: s.motion ? lv : 0.15, tag: 0, ms: e < 0.8 ? 70 : 1400 });
     } else dim('msg', null);
-    dim('banner', banner.on() ? { logo: 1, tag: 0, ms: 1500 } : null);
+    dim('banner', banner.on() ? { logo: laneRaised ? 0.35 : 1, tag: 0, ms: 1500 } : null);   // (THE SPEED PASS: a lane raised over SPEAKEASY dims the sign while it crosses)
   }
 
   // ---- what the frame starts: the scheduler's events, the holiday sky, the previews

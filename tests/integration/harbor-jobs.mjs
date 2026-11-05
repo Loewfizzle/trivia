@@ -21,7 +21,7 @@ export const SECONDS = {
   load: 51, core: 46, life: 45, thanks: 45, streetparty: 40, wildlife: 39, quietbuilding: 39, promenade: 35, light: 35, mothman: 30,
   speakeasy: 30, fireworks: 30, stations: 40, blackbird: 27, bench: 25, roofcrisp: 25, blackout: 25, dock: 23, sky: 18, water: 18,
   citylife: 14, doors: 14, skyline: 8, speaker: 8, flags: 5, harbor: 4, desktop: 90,   // (DESKTOP: an estimate — refresh from its first cloud run)
-  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 170, roomperf: 70, roomchat: 60, keypop: 75, roomfix: 90, gamestart: 80, citypause: 60, afterparty: 150, cartridge: 20, crewsky: 60, leaveroom: 60, sheetstack: 70, oldrules: 70, sgfast: 60, gameflows: 80, oneseat: 60, playercard: 70, leavewave: 50, bannerfull: 45, hostcard: 70, newstart: 90, platefit: 40, youpage: 45, corners: 60, arrivals: 60, radiorest: 70,   // (LOBBY 2.0 B: estimates from the mini PC)
+  radio: 85, crew: 70, progress: 45, sightings: 150, billboard: 60, room: 170, roomperf: 70, roomchat: 60, keypop: 75, roomfix: 90, gamestart: 80, citypause: 60, afterparty: 150, cartridge: 20, crewsky: 60, leaveroom: 60, sheetstack: 70, oldrules: 70, sgfast: 60, gameflows: 80, oneseat: 60, playercard: 70, leavewave: 50, bannerfull: 45, hostcard: 70, newstart: 90, platefit: 40, youpage: 45, corners: 60, arrivals: 60, radiorest: 70, staleroom: 60, youcard: 40, guestring: 50, bannersky: 160,   // (LOBBY 2.0 B: estimates from the mini PC)
     // (LOBBY 2.0 A: an estimate from the mini PC)
     // (PROGRESSION B: sightings — an estimate from the mini PC)
     // (PROGRESSION A: progress — an estimate; radio + the FOUNDER switch)   // (CITY CONTROLS A: an estimate — refresh from its first cloud run; CC-B: the intercom + the crew — ~55 s each on the mini PC)
@@ -38,6 +38,7 @@ export const CI_JOBS = {
   room2: ['roomfix', 'gamestart', 'citypause', 'afterparty', 'cartridge', 'leaveroom', 'sheetstack'],
   // (LOBBY FIXES: its own job — the owner's real-phone test of the room, Nov 4)
   lobbyfix: ['oneseat', 'playercard', 'leavewave', 'bannerfull', 'hostcard', 'newstart'],
+  speed: ['staleroom', 'youcard', 'guestring', 'bannersky'],   // (THE SPEED PASS: its own job — the owner's LOBBY FIXES notes, Nov 4 evening)
   lobbyfix2: ['platefit', 'youpage', 'corners', 'arrivals', 'radiorest'],   // (the cards, the YOU page + the owner's three add-ons)
   city: ['core', 'skyline', 'water', 'load', 'promenade', 'light', 'streetparty', 'panel'],   // (NIGHT-B: streetparty)   // (NIGHT-A: light — the lightest job)
   // (HOTFIX Oct 29: THE BASELINE GUARD put perf at ~140 s — every job was within ~25 s of its cap: perf + tower got their own job)

@@ -596,10 +596,5 @@ body.reduced-fx .pg-bar .pg-bar-glint > i { animation: none; opacity: 0; }
    bright one (the had-bar sits on top: the bright part showing is the gain) */
 .pg-bar-mo.pg-bar-tube .pg-bar-had { background: linear-gradient(180deg, #8a2a66 0%, #c25a9c 34%, #e6a6cf 50%, #c25a9c 66%, #8a2a66 100%); box-shadow: 0 0 6px rgba(255, 79, 184, 0.35); }
 .pg-bar-mo.pg-bar-tube .pg-bar-got { border-radius: 8px; background: linear-gradient(180deg, #ff4fb8 0%, #ff9fdc 34%, #fff2fa 50%, #ff9fdc 66%, #ff4fb8 100%); box-shadow: 0 0 10px rgba(255, 79, 184, 0.9), 0 0 22px rgba(255, 79, 184, 0.4); }
-/* LOBBY FIXES — the small ✎ beside the name on the profile's card → the name editor (profile/edit.js — the same as CUSTOMIZE's NAME row) */
-.pf-pen { position: relative; flex: none; align-self: center; width: 34px; height: 34px; margin-left: 2px; border: 0; border-radius: 50%; cursor: pointer;
-  font: 700 16px/34px var(--font-ui); text-align: center; color: #fff; background: rgba(8, 7, 16, 0.62); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.28); }
-.pf-pen::after { content: ''; position: absolute; inset: -5px; }   /* (a 44-pt tap area) */
-.pf-pen:active { transform: scale(0.94); }
-.pg-card-id { position: relative; }
-.pg-card-id > .pf-pen { position: absolute; right: 0; top: 50%; margin-top: -17px; }
+/* THE SPEED PASS — THE CARD OPENS ON YOURS: a neutral blank card shape while the equipped full card loads (never another card) */
+.pf-card-blank { width: 100%; aspect-ratio: 1.586; border-radius: 18px; background: linear-gradient(135deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1); }

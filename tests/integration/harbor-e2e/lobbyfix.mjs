@@ -336,8 +336,8 @@ G('youpage', async () => {
     await ev(p, "document.querySelector('.pf-overlay .vl-dp-go').click()");
     await waitFor(p, "!!document.querySelector('.vl-dress .vl-yr-name')", 'CUSTOMIZE', 8000);
     await sleep(500);
-    const cz = await ev(p, "(() => { const n = document.querySelector('.vl-yr-name').getBoundingClientRect(), c = document.querySelector('.vl-yr-colour').getBoundingClientRect(); return { inView: n.top >= 0 && c.bottom <= innerHeight, h: Math.round(Math.min(n.height, c.height)) }; })()");
-    ok(!r.rows && cz.inView && cz.h >= 44, `NAME ✎ + COLOUR ✎ at the TOP of CUSTOMIZE in a ROOM (${view[0]}): on screen without scrolling (${cz.inView}, ${cz.h} pt rows); none in ACCOUNT (${!r.rows})`);
+    const cz = await ev(p, "(() => { const n = document.querySelector('.vl-yr-name').getBoundingClientRect(); return { inView: n.top >= 0 && n.bottom <= innerHeight, h: Math.round(n.height), colour: !!document.querySelector('.vl-yr-colour') }; })()");
+    ok(!r.rows && cz.inView && cz.h >= 44 && !cz.colour, `EDIT USERNAME at the TOP of CUSTOMIZE in a ROOM (${view[0]}): on screen without scrolling (${cz.inView}, a ${cz.h} pt row; no COLOUR row); none in ACCOUNT (${!r.rows})`);
     if (SHOTS) await p.screenshot({ path: `${OUT}customize-you-${view[0]}.png` });
     await ev(p, "document.querySelector('.vl-dr-back').click()"); await sleep(400);
     if (desk) {

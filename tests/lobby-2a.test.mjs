@@ -86,10 +86,13 @@ test('THE PROFILE POLISH: only ‹ BACK + the music mute; the page order; NOT YE
   // (LOBBY FIXES — the owner's ADD-ON 3: NAME + COLOUR = two rows at CUSTOMIZE's top, each its editor (profile/edit.js); the card's ✎ the
   //  same name editor; NOTHING in ACCOUNT)
   const dr = read('js/vault/dress.js'), ed = read('js/profile/edit.js');
-  assert.match(dr, /vl-yr-name', \{ type: 'button', 'aria-label': 'Edit your name', onclick: \(\) => openNameEditor\(/);
-  assert.match(dr, /vl-yr-colour', \{ type: 'button', 'aria-label': 'Edit your colour', onclick: \(\) => openColourEditor\(/);
-  assert.match(dr, /line,\s*youRows,\s*h\('div\.vl-dr-tabs'/, 'the rows sit at the top, above the tabs');
-  assert.match(sp, /E\.openNameEditor\(/, 'the card’s ✎ opens the same editor'); assert.doesNotMatch(sp, /pf-er-name|pf-er-colour/, 'no rows in ACCOUNT');
+  // (THE SPEED PASS — the owner's FINAL, Nov 4 6:25 pm: ONE "EDIT USERNAME" row at the VERY TOP → ONE editor (the name + the colour); no
+  //  COLOUR row; no ✎ on the card)
+  assert.match(dr, /vl-yr-name', \{ type: 'button', 'aria-label': 'Edit your username and colour', onclick: \(\) => openYouEditor\(/);
+  assert.match(dr, /h\('b', 'EDIT USERNAME'\)/); assert.doesNotMatch(dr, /vl-yr-colour|openColourEditor/, 'no separate COLOUR row');
+  assert.match(dr, /h\('h2', 'CUSTOMIZE'\)\),\s*youRows,\s*pin,/, 'the row sits at the VERY TOP, above the slim preview');
+  assert.match(ed, /export async function openYouEditor/); assert.match(ed, /title: 'EDIT USERNAME'/); assert.match(ed, /pf-swatches/);
+  assert.doesNotMatch(sp, /pf-pen|openNameEditor/, 'no ✎ on the card'); assert.doesNotMatch(sp, /pf-er-name|pf-er-colour/, 'no rows in ACCOUNT');
   assert.match(ed, /'This name shows on the public board — don’t use your full real name\.'/);
   const sh = read('js/profile/sheets.js');
   assert.match(sh, /back\.addEventListener\('click', close\)/); assert.match(sh, /stack\[stack\.length - 1\]\.close\(\)/, 'Esc closes the TOP sheet only');

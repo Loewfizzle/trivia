@@ -234,7 +234,7 @@ export function createPeople() {
   // Everyone already in the room when the city first sees the roster (a refresh, a rejoin, a host change) = standing in place at once.
   let roomOn = false, roomMap = null, roomSeen = false, roomKey = '';
   const roomSt = new Map(), roomBox = new Map();
-  const RLIE = 0.6, RWAVE = 1.3;
+  const RLIE = 0.6, RWAVE = 1.3, RRING = 0.6;
   const rnow = () => pnow() / 1000;
   const standLeg = (x, z, hd, t0, t1 = t0 + 1e7) => ({ k: 'pose', pose: 'wait', x, z, t0, t1, hd });
   function roomPlan(st, kind, t, slot, cur) {
@@ -316,6 +316,9 @@ export function createPeople() {
       if (want.has(uid) || st.leaving) continue;
       const cur = visitAt(st.vis, t) || { x: S[st.slot].x, z: S[st.slot].z };
       st.leaving = true; st.kick = !!(list && list.kicked && list.kicked.includes(uid));
+      // (THE SPEED PASS — the owner's 3:45 pm screenshot: out of the room, two ringed figures still on the promenade: this phone left the
+      //  ROOM (no roster at all) → they walk off as plain passers-by: the rings fade at once (RRING s), THE PEOPLE RULE keeps the walk)
+      if (!list) st.ringOff = t;
       st.vis = roomPlan(st, 'leave', t, null, { x: cur.x, z: cur.z }) || { t0: t, t1: t, legs: [] };
     }
     if (list) roomSeen = true;
@@ -332,7 +335,8 @@ export function createPeople() {
       const u = Math.max(0, Math.min(1, (t - st.lieAt) / RLIE)), e = u * u * (3 - 2 * u), lie = st.online ? 1 - e : e;
       // (laid a step OUT onto the sidewalk — on the lighter setts, never dark-on-dark against the shopfront's base; dimmed a little)
       if (lie > 0.001 && s.pose !== 'walk') s = { ...s, z: s.z - 0.75 * lie, pose: 'lie', lieK: lie, lieDir: st.slot && st.slot[0] === 'R' ? 1 : -1, a: 1 - 0.28 * lie };
-      out.push({ vid: `room:${uid}`, kind: 'player', look: 'guest', party: false, room: uid, ring: st.col, m: { role: 'lead', seed: st.seed, lag: 0 }, s });
+      const rk = st.ringOff == null ? 1 : Math.max(0, 1 - (t - st.ringOff) / RRING);
+      out.push({ vid: `room:${uid}`, kind: 'player', look: 'guest', party: false, room: uid, ring: rk > 0 ? st.col : null, ringK: rk, m: { role: 'lead', seed: st.seed, lag: 0 }, s });
     }
     return out;
   }
@@ -456,7 +460,7 @@ export function createPeople() {
       const fogA = (env.fog || 0) > 0.3 && pass !== 'roof' ? 1 - 0.8 * Math.min(1, ((env.fog || 0) - 0.3) / 0.6) * Math.max(0, Math.min(1, (st.z - 41) / 16)) : 1;
       const fs9 = { s: { ...st, link, a: (st.a == null ? 1 : st.a) * fogA }, L: look }, fe9 = { ...E, yUp: pass === 'roof' ? roofY() + (st.y || 0) : st.y || 0 };
       // (LOBBY 2.0 A — a player's RING under the feet, in their colour: a soft glow + a bright thin ellipse, drawn under the figure)
-      if (mem.ring && pass === 'near') drawRing(c, cam, st, mem.ring, fs9.s.a * fade);
+      if (mem.ring && pass === 'near') drawRing(c, cam, st, mem.ring, fs9.s.a * fade * (mem.ringK == null ? 1 : mem.ringK));
       const box = drawFolk(c, cam, fs9, fe9);
       if (mem.room && pass === 'near') roomBox.set(mem.room, box ? { x: box.x, y: box.y, w: box.w, h: box.h, a: fs9.s.a, lie: st.pose === 'lie' ? st.lieK || 1 : 0, walk: st.pose === 'walk' } : null);
       // (PROM: who was drawn where, this frame — a still piece's full-dpr overlay re-draws anyone standing IN FRONT of it: redrawOver)
@@ -851,7 +855,7 @@ export function createPeople() {
     /** LOBBY 2.0 B: the side door on screen (the push through it at the game start zooms on this point) → { x, y } in CSS px */
     roomDoor() { if (!L || !roomMap) return null; const d = roomMap.nodes.sideDoor, [x, y] = project(L.cam, d.x, 1.05, roomMap.face); return { x, y }; },
     /** THE SOLIDS check: the city's own people (not the room's) standing inside the room's two lines right now → [{ vid, x, z }] */
-    roomSolidHits: () => { if (!roomOn || !L) return []; const R = roomRects(L); return now.members.filter(m => m.m.role !== 'dog' && R.some(r => m.s.x > r.x0 + 0.05 && m.s.x < r.x1 - 0.05 && m.s.z > r.z0 + 0.05 && m.s.z < r.z1 - 0.05)).map(m => ({ vid: m.vid, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })); }, roomDebug: () => [...roomSt.values()].map(st => ({ uid: st.uid, slot: st.slot, online: st.online, leaving: !!st.leaving, goIn: !!st.goIn, inside: (q => !!(q && roomMap && q.door && q.z > roomMap.face - 0.02))(visitAt(st.vis, rnow())), s: (q => q && { x: +q.x.toFixed(2), z: +q.z.toFixed(2), pose: q.pose })(visitAt(st.vis, rnow())) })),
+    roomSolidHits: () => { if (!roomOn || !L) return []; const R = roomRects(L); return now.members.filter(m => m.m.role !== 'dog' && R.some(r => m.s.x > r.x0 + 0.05 && m.s.x < r.x1 - 0.05 && m.s.z > r.z0 + 0.05 && m.s.z < r.z1 - 0.05)).map(m => ({ vid: m.vid, x: +m.s.x.toFixed(2), z: +m.s.z.toFixed(2), pose: m.s.pose })); }, roomDebug: () => [...roomSt.values()].map(st => ({ uid: st.uid, slot: st.slot, online: st.online, leaving: !!st.leaving, ring: st.ringOff == null ? 1 : +Math.max(0, 1 - (rnow() - st.ringOff) / RRING).toFixed(2), goIn: !!st.goIn, inside: (q => !!(q && roomMap && q.door && q.z > roomMap.face - 0.02))(visitAt(st.vis, rnow())), s: (q => q && { x: +q.x.toFixed(2), z: +q.z.toFixed(2), pose: q.pose })(visitAt(st.vis, rnow())) })),
     /** 6b's director: the street's share of its people (0..1) */
     budget(k) { budget = clamp01(k == null ? 1 : k); cache.clear(); },
     /** 8b1 wildlife — everyone on the promenade now, cheaply (the plan's people, not the tier's cut: every phone reacts alike) */

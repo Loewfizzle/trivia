@@ -3055,6 +3055,9 @@ export function createHarbor(canvas, { seed = 1924, tier: tier0 = 2, clock = sky
       centrepiece: { ...centre.debug(), set: o => centre.set(o), clear: () => centre.clear(), active: () => centre.active() },
       strings: { ...strings.debug(), on: true, set: o => strings.set(o) },
       sky: { state: sky.debug(), ...sky.api },
+      // (THE SPEED PASS: the open sky's floor — per 4 pt column the skyline, the roof signs' tops + the towers' tips — e2e speed.mjs bannersky)
+      skyFloor: (() => { const v = skyTopsNow(); return skyline ? Array.from(skyline, (y, i) => Math.round(Math.min(y, v ? v[i] : 1e9, v && v.tips ? v.tips[i] : 1e9))) : null; })(),
+      textRects: S.textRects || null,
       // (6b: THE LEGENDARY SKY — start('ufo' | 'tr3b', { at, dir }) loads the module if it must; state: what runs, its phase)
       legend: { state: legends ? legends.debug() : { run: null, loaded: false, loading: legendsLoading },
         start: (kind, o = {}) => { const w = { kind, at: o.at || clock.now(), dir: o.dir || 1 }; if (legends) return legends.start(kind, w.at, w); legendWant = w; needLegends(); return true; },

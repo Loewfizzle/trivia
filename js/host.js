@@ -72,16 +72,20 @@ function beat(now) {
   update(dbRef(`rooms/${state.code}/meta`), patch).catch(() => {});
 }
 
-async function claimHost(oldHost) {
+export async function claimHost(oldHost) {
   const code = state.code;
   try {
     // cur is null on the first run if the local cache is cold; proposing ourselves
     // then just makes the server hand back the real value and re-run the function.
-    const res = await runTransaction(dbRef(`rooms/${code}/meta/hostId`), cur => (cur === oldHost || cur == null ? state.uid : undefined));
-    if (res.committed && res.snapshot.val() === state.uid) {
+    // (THE SPEED PASS — the owner's 3:45 pm screenshot: "YOU WERE DISCONNECTED" + "YOU ARE NOW THE HOST" stacked on the title — a claim
+    //  still in flight when this phone left the room committed after it: the claim stands down the moment the room is no longer this phone's)
+    const here = () => state.code === code && !!(state.players && state.players[state.uid]);
+    if (!here()) return;
+    const res = await runTransaction(dbRef(`rooms/${code}/meta/hostId`), cur => (!here() ? undefined : cur === oldHost || cur == null ? state.uid : undefined));
+    if (res.committed && res.snapshot.val() === state.uid && here()) {
       lastBeat = 0;
       await update(dbRef(`rooms/${code}/meta`), { hostBeat: serverTimestamp() });
-      toast('HOST SIGNAL LOST — YOU ARE NOW THE HOST', 'warn', 3500);
+      if (here()) toast('HOST SIGNAL LOST — YOU ARE NOW THE HOST', 'warn', 3500);
     }
   } catch (e) {
     // Security rules reject the claim if the host is actually still alive. Fine.

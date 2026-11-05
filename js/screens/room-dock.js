@@ -82,7 +82,7 @@ export function createRoomDock(on) {
       E.host.setAttribute('aria-label', v.host ? 'Play — pick the game and start' : `Waiting for ${v.hostName || 'the host'} to start`);
       E.host.setAttribute('aria-disabled', String(!v.host));
       hl.querySelector('.rdk-w1').textContent = v.host ? 'PLAY' : 'WAITING';
-      hl.querySelector('.rdk-w2').textContent = v.host ? '' : `FOR ${String(v.hostName || 'THE HOST').toUpperCase().slice(0, 12)}`;
+      hl.querySelector('.rdk-w2').textContent = v.host ? '' : 'FOR HOST';   // (THE SPEED PASS — the owner, Nov 4 6:28 pm: "WAITING FOR LOEWFIZZLE" didn't fit: WAITING / FOR HOST, never the name)
     }
     // (LOBBY FIXES — change-game.png v2: ONE small pill right above the ring = ONLY the lit voters' dots (their colours) + "want a rematch" —
     //  no empty dots, no count; nothing until someone votes)

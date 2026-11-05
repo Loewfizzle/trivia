@@ -1,6 +1,6 @@
-// LOBBY FIXES — YOUR NAME + YOUR COLOUR, ONE PLACE (the owner, Nov 4 — his ADD-ON 3): two plain rows at the TOP of CUSTOMIZE YOUR CARD
-// ("NAME   LOEWFIZZLE ✎", "COLOUR   ● ✎" — vault/dress.js), each opening its editor here (a sheet ON TOP — the layer stack; ‹ = one step
-// back); the small ✎ beside the name on the profile's card opens the same name editor. NOT in ACCOUNT (the key / restore / sign-in only).
+// YOUR NAME + YOUR COLOUR, ONE PLACE (LOBBY FIXES' ADD-ON 3 → THE SPEED PASS, the owner's FINAL, Nov 4 6:25 pm): ONE row "EDIT USERNAME"
+// (the name + its colour dot) at the VERY TOP of CUSTOMIZE YOUR CARD (vault/dress.js) opens ONE editor here — the name + the colour together
+// (a sheet ON TOP — the layer stack; ‹ = one step back). No ✎ on the profile's card, nothing in ACCOUNT (the key / restore / sign-in only).
 // Saving: this device's sign-up profile first (identity.js — the room + the chat read it), in a room your name + colour in the line follow at
 // once, then the server's profile (me.js#syncMe — a rename once a day, the board's name filter).
 import { h } from '../ui/dom.js';
@@ -27,38 +27,34 @@ export async function saveYou(patch) {
   return q;
 }
 
-/** THE NAME EDITOR (a sheet) → onDone(name) after a save */
-export async function openNameEditor(onDone) {
+/** THE SPEED PASS — ONE EDITOR, THE NAME + THE COLOUR (the owner, Nov 4 6:25 pm FINAL): CUSTOMIZE's one EDIT USERNAME row opens this sheet —
+ *  the name field, the colour swatches under it, SAVE (only what changed is saved) → onDone({ name, color }, done) */
+export async function openYouEditor(onDone) {
   const { openPfSheet } = await import('./sheets.js');
   const q = loadProfile() || {};
-  let s = null;
-  const input = h('input.input.input-name.pf-name-in', { type: 'text', maxLength: NAME_MAX, value: q.name || '', autocomplete: 'nickname', autocapitalize: 'off', spellcheck: false, 'aria-label': 'Your name' });
-  const go = () => {
-    const name = cleanName(input.value);
-    if (!name) { toast('ENTER A NAME', 'err'); input.focus(); return; }
-    const done = saveYou({ name });
-    if (onDone) onDone(name, done);
-    s.close();
-  };
-  input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
-  s = openPfSheet({ kicker: 'CUSTOMIZE', title: 'YOUR NAME', cls: 'pf-name-sheet', body: [
-    h('label.field', h('span.label', 'NAME'), input),
-    h('p.pf-public', 'This name shows on the public board — don’t use your full real name.'),
-    h('button.btn.btn-primary.btn-block.pf-save', { type: 'button', onclick: go }, h('span', 'SAVE'))] });
-  setTimeout(() => input.focus(), 320);
-  return s;
-}
-
-/** THE COLOUR EDITOR (a sheet) → onDone(color) after a save */
-export async function openColourEditor(onDone) {
-  const { openPfSheet } = await import('./sheets.js');
-  let pick = (loadProfile() || {}).color, s = null;
+  let pick = q.color, s = null;
+  const input = h('input.input.input-name.pf-name-in', { type: 'text', maxLength: NAME_MAX, value: q.name || '', autocomplete: 'nickname', autocapitalize: 'off', spellcheck: false, 'aria-label': 'Your username' });
   const sw = h('div.swatches.pf-swatches', { role: 'radiogroup', 'aria-label': 'Colour' });
   const paint = () => { for (const b of sw.children) b.setAttribute('aria-checked', String(b.dataset.id === pick)); };
   for (const c of COLORS) sw.append(h('button.swatch', { type: 'button', role: 'radio', 'aria-label': c.id, dataset: { id: c.id }, style: { '--c': c.hex }, onclick: () => { pick = c.id; paint(); } }));
   paint();
-  s = openPfSheet({ kicker: 'CUSTOMIZE', title: 'YOUR COLOUR', cls: 'pf-colour-sheet', body: [
-    h('p.pfs-note', 'Your colour lights your emblem, your ring in the line and your name in the room.'), sw,
-    h('button.btn.btn-primary.btn-block.pf-save', { type: 'button', onclick: () => { const done = pick ? saveYou({ color: pick }) : null; if (pick && onDone) onDone(pick, done); s.close(); } }, h('span', 'SAVE'))] });
+  const go = () => {
+    const name = cleanName(input.value);
+    if (!name) { toast('ENTER A NAME', 'err'); input.focus(); return; }
+    const patch = {};
+    if (name !== q.name) patch.name = name;
+    if (pick && pick !== q.color) patch.color = pick;
+    const done = Object.keys(patch).length ? saveYou(patch) : null;
+    if (done && onDone) onDone({ name, color: pick || q.color }, done);
+    s.close();
+  };
+  input.addEventListener('keydown', e => { if (e.key === 'Enter') go(); });
+  s = openPfSheet({ kicker: 'CUSTOMIZE', title: 'EDIT USERNAME', cls: 'pf-name-sheet', body: [
+    h('label.field', h('span.label', 'USERNAME'), input),
+    h('p.pf-public', 'This name shows on the public board — don’t use your full real name.'),
+    h('div.field', h('span.label', 'COLOUR'), sw),
+    h('p.pfs-note', 'Your colour lights your emblem, your ring in the line and your name in the room.'),
+    h('button.btn.btn-primary.btn-block.pf-save', { type: 'button', onclick: go }, h('span', 'SAVE'))] });
+  setTimeout(() => input.focus(), 320);
   return s;
 }

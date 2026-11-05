@@ -278,6 +278,8 @@
 .toast-warn { border-left-color: var(--yellow); } .toast-warn .toast-glyph { color: var(--yellow); }
 .toast-err { border-left-color: var(--red); } .toast-err .toast-glyph { color: var(--red); }
 .toast.out { opacity: 0; transform: translateY(-8px); transition: opacity 0.25s, transform 0.25s; }
+/* (THE SPEED PASS — one at a time: a replaced toast fades out ON TOP of its successor's place, never stacked above it) */
+.toast.is-replaced { position: absolute; top: 0; left: 0; right: 0; width: fit-content; margin: 0 auto; }
 @keyframes toast-in { from { opacity: 0; transform: translateY(-14px) scale(0.96); } }
 
 /* ---- connection banner ---- */

@@ -177,13 +177,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
     paintKey();
     load();
   }
-  /** LOBBY FIXES — a small ✎ beside the name on the card at the top (the Gilded card's name, or the full card's plate) → the name editor,
-   *  the same one as CUSTOMIZE's NAME row (profile/edit.js) */
-  function addPen(root) {
-    const spot = root && (root.querySelector('.vl-fc-plate') || root.querySelector('.pg-card-id'));
-    if (!spot || spot.querySelector('.pf-pen')) return;
-    spot.append(h('button.pf-pen', { type: 'button', 'aria-label': 'Edit your name', onclick: e => { e.stopPropagation(); sfx('select'); import('../profile/edit.js').then(E => E.openNameEditor((n, done) => { if (done) done.then(() => { if (!destroyed) load(); }).catch(() => {}); })); } }, '✎'));
-  }
+  // (THE SPEED PASS — the owner, Nov 4 6:28 pm: the ✎ beside the name on the card is GONE — CUSTOMIZE's EDIT USERNAME row is the one way in)
 
   function back() { closeAllPfSheets(); if (onBack) { onBack(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); }
 
@@ -238,7 +232,8 @@ export function createView({ onBack = null, overlay = false } = {}) {
   function paintLocal() {
     // (PERF-A — FR5 E1: a cached profile made for ANOTHER login is never painted as the member)
     const m0 = loadMe(), m = m0 && m0.uid === state.uid ? m0 : null;
-    if (!data) { els.card.replaceChildren(memberCard(m && m.profile, loadProfile() || {}, m && m.profile ? m.profile.x : 0, { onFlame: () => openStreakCard(null) })); addPen(els.card); }
+    // (nothing saved for this sign-in yet but a key on the device = a member whose card we don't know yet: the blank shape, never the Gilded)
+    if (!data) { if (!m && loadKey()) els.card.replaceChildren(h('div.pf-card-blank', { 'aria-hidden': 'true' })); else paintHero(m && m.profile, m && m.profile ? m.profile.x : 0, null, null); }
     paintWhy(m0);
   }
   /** PERF-A — THE CARD SAYS WHY (the Oct 31 scare: a blank card that looked like a wiped account): the key offer (a new profile was made
@@ -300,33 +295,51 @@ export function createView({ onBack = null, overlay = false } = {}) {
         h('button.pf-pid', { type: 'button', title: 'Your profile id (for the admin page)', onclick: () => { navigator.clipboard && navigator.clipboard.writeText(data.pid).then(() => toast('PROFILE ID COPIED', 'ok')).catch(() => {}); } }, `ID ${data.pid}`));
     } catch (e) {
       if (destroyed) return;
+      if (els.card.querySelector('.pf-card-blank') && !fullMounted && paintN === 0) paintHero(null, 0, null, null);   // (the office closed: the card we have)
       els.prog.replaceChildren(h('div.pf-loading.is-off', e.status === 404 ? 'Finish a match and your membership is made — automatically, no signup.' : 'The membership office is closed right now — your games still count and land here when it opens.'));
     }
   }
 
   // THE VAULT 1B: the card you EQUIP is your profile's card — its FULL CARD once the owner has approved it in THE CARD LAB (the Gilded
   // membership card stands until then, and for the Gilded itself)
-  let fullMounted = null, paintN = 0;
-  function paintCard() {
-    const n = ++paintN;
-    if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
-    els.card.replaceChildren(memberCard(data.profile, loadProfile() || {}, data.stats.xp, { st: data.stats.st, onFlame: () => openStreakCard(data.stats.st) }));
-    addPen(els.card);
-    els.cz.replaceChildren(customizeBar(data, { name: data.profile.n || (loadProfile() || {}).name || '', onWear: wear, onYou: () => { if (!destroyed) load(); } }));
-    const p = data.profile || {}, cd = p.cd;
-    if (!cd || cd === 'card-gilded') return;
+  // THE SPEED PASS — THE CARD OPENS ON YOURS (the owner, Nov 4 5:55 pm: tapping YOU showed the Gilded card first, then swapped to his own):
+  // the hero is painted from THIS device's saved profile at once — the equipped card, or (a full card still loading) a neutral BLANK card
+  // shape — never another card; the server's answer repaints only if it changed something (the same card stays mounted, no second flash)
+  let fullMounted = null, paintN = 0, heroSig = '';
+  function paintHero(pub, xp, st, spotted) {
+    const n = ++paintN, p = pub || {}, cd = p.cd, local = loadProfile() || {};
+    const gilded = () => {
+      if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
+      heroSig = '';
+      els.card.replaceChildren(memberCard(pub, local, xp, { st, onFlame: () => openStreakCard(st) }));
+    };
+    if (!cd || cd === 'card-gilded') { gilded(); return; }
+    const who = { name: p.n || local.name, lv: levelOf(xp || p.x || 0), avatar: p.a || local.avatar, color: p.c || local.color, at: p.at, no: memberLabel(p.mn), fd: !!p.fd, shape: p.es, tube: p.tb, glow: p.g, spotted: spotted || null };
+    const sig = `${cd}|${JSON.stringify(who)}`;
+    if (fullMounted && heroSig === sig) return;
+    if (!fullMounted || fullMounted.cd !== cd) {
+      if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
+      els.card.replaceChildren(h('div.pf-card-blank', { 'aria-hidden': 'true', dataset: { card: cd } }));
+    }
     import('../vault/full.js').then(async F => {
-      if (!(await F.canShowFull(cd)) || n !== paintN || destroyed) return;
-      const L = levelOf(data.stats.xp || p.x || 0);
-      const who = { name: p.n, lv: L, avatar: p.a, color: p.c, at: p.at, no: memberLabel(p.mn), fd: !!p.fd, shape: p.es, tube: p.tb, glow: p.g, spotted: data.stats.it && data.stats.it[cd] };
-      fullMounted = F.mountFullCard(els.card, cd, who);
-      addPen(fullMounted.el);
+      const ok = await F.canShowFull(cd);
+      if (n !== paintN || destroyed) return;
+      if (!ok) { gilded(); return; }
+      if (fullMounted) { fullMounted.destroy(); fullMounted = null; }
+      const m = F.mountFullCard(els.card, cd, who);
+      fullMounted = { ...m, cd }; heroSig = sig;
       // (the hero: a tap opens the full card's own animated view — it scrolls away like any panel; only on-screen art moves)
-      fullMounted.el.classList.add('pf-hero'); fullMounted.el.setAttribute('role', 'button'); fullMounted.el.tabIndex = 0;
+      m.el.classList.add('pf-hero'); m.el.setAttribute('role', 'button'); m.el.tabIndex = 0;
       const open = () => F.openFullCard(cd, who);
-      fullMounted.el.addEventListener('click', open);
-      fullMounted.el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
-    }).catch(() => {});
+      m.el.addEventListener('click', open);
+      m.el.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } });
+    }).catch(() => { if (n === paintN && !destroyed) gilded(); });
+  }
+  // THE VAULT 1B: the card you EQUIP is your profile's card — its FULL CARD once the owner has approved it in THE CARD LAB (the Gilded
+  // membership card stands until then, and for the Gilded itself)
+  function paintCard() {
+    paintHero(data.profile, data.stats.xp, data.stats.st, data.stats.it && data.profile && data.stats.it[data.profile.cd]);
+    els.cz.replaceChildren(customizeBar(data, { name: data.profile.n || (loadProfile() || {}).name || '', onWear: wear, onYou: () => { if (!destroyed) load(); } }));
   }
   // PROGRESSION A + LOBBY 2.0 A: level (+ the streak row) · THE GOAL TILE · stats · the latest trophies · the latest sightings (+ a favor)
   function paintProgress() {
@@ -417,7 +430,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
   return {
     mount,
     update() {},
-    unmount() { destroyed = true; document.body.classList.remove('pf-on'); closeAllPfSheets(); },
+    unmount() { destroyed = true; if (fullMounted) { fullMounted.destroy(); fullMounted = null; } document.body.classList.remove('pf-on'); closeAllPfSheets(); },
   };
 }
 

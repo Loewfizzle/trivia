@@ -182,13 +182,9 @@ await H.run(async () => {
   // EDIT PROFILE → NAME › → its own sheet; ‹ goes back ONE step (to Edit profile), then one more (the profile)
   const tapIt = sel => p3.evaluate(q => { const e = document.querySelector(q); if (e) e.click(); return !!e; }, sel);
   // (LOBBY FIXES — the owner's ADD-ON 3: no NAME / COLOUR rows in ACCOUNT; the card's ✎ opens the name editor, ‹ = one step back)
-  const pf = await p3.evaluate(() => ({ rows: !!document.querySelector('.pf-account .pf-er-name, .pf-account .pf-er-colour, .pf-account .pf-edit'), pen: !!document.querySelector('.pf-card-slot .pf-pen') }));
-  await p3.evaluate(() => document.querySelector('.pf-card-slot .pf-pen').click());
-  await p3.waitForSelector('.pf-name-sheet:not(.is-out) .pf-name-in', { timeout: 6000 }).catch(() => {});
-  const penSheets = await p3.evaluate(() => document.querySelectorAll('.pfs:not(.is-out)').length);
-  await p3.evaluate(() => document.querySelector('.pf-name-sheet .pfs-back').click()); await sleep(450);
-  const penBack = await p3.evaluate(() => document.querySelectorAll('.pfs:not(.is-out)').length);
-  ok(!pf.rows && pf.pen && penSheets === 1 && penBack === 0, `THE PROFILE: no NAME / COLOUR rows in ACCOUNT (${!pf.rows}); the card's ✎ opens the name editor (${penSheets}), ‹ back one step (${penBack})`);
+  // (THE SPEED PASS — the owner, Nov 4 6:28 pm: the ✎ beside the name on the card is gone — CUSTOMIZE's EDIT USERNAME row is the one way in)
+  const pf = await p3.evaluate(() => ({ rows: !!document.querySelector('.pf-account .pf-er-name, .pf-account .pf-er-colour, .pf-account .pf-edit'), pen: !!document.querySelector('.pf-pen') }));
+  ok(!pf.rows && !pf.pen, `THE PROFILE: no NAME / COLOUR rows in ACCOUNT (${!pf.rows}); no ✎ on the card (${!pf.pen})`);
   // (a trophy's reward chip = WEAR IT: FIRST ROUND's EMBER glow → on the server)
   await p3.click('.pg-trophies .pg-rw[data-id="glow-ember"]');
   for (let i = 0; i < 40 && (await val(`profiles/${me0.pid}/g`)) !== 'glow-ember'; i++) await sleep(150);
@@ -206,21 +202,18 @@ await H.run(async () => {
   ok(/^\d+% of players have this$/.test(await p3.evaluate(() => (document.querySelector('.pg-prof .pg-ach .pg-pct') || {}).textContent || '')), 'X% of players have this (the server’s count — pink, sentence case)');
   // wear another card she owns → the card changes (the server checked it)
   // (LOBBY FIXES — the owner's ADD-ON 3: CUSTOMIZE's TOP = NAME ✎ + COLOUR ● ✎ (the current values); each opens its editor ON TOP)
-  const yr = await p3.evaluate(() => { const n = document.querySelector('.vl-yr-name'), c = document.querySelector('.vl-yr-colour'), t = document.querySelector('.vl-dr-tabs');
-    return { name: n && n.textContent, col: c && c.textContent, sw: !!(c && c.querySelector('.vl-yr-sw')), above: !!(n && t && n.getBoundingClientRect().bottom <= t.getBoundingClientRect().top) }; });
+  // (THE SPEED PASS — the owner's FINAL: ONE "EDIT USERNAME" row at the VERY TOP (the name + its colour dot) → ONE editor, the name + the colour)
+  const yr = await p3.evaluate(() => { const n = document.querySelector('.vl-yr-name'), pin = document.querySelector('.vl-dr-pin'), c = document.querySelector('.vl-yr-colour');
+    return { name: n && n.textContent, col: !!c, sw: !!(n && n.querySelector('.vl-yr-sw')), above: !!(n && pin && n.getBoundingClientRect().bottom <= pin.getBoundingClientRect().top) }; });
   await p3.evaluate(() => document.querySelector('.vl-yr-name').click());
   await p3.waitForSelector('.pf-name-sheet:not(.is-out) .pf-name-in', { timeout: 6000 });
-  await p3.evaluate(() => { const i = document.querySelector('.pf-name-sheet .pf-name-in'); i.value = 'KATIEJO'; document.querySelector('.pf-name-sheet .pf-save').click(); });
-  await sleep(500);
-  await p3.evaluate(() => document.querySelector('.vl-yr-colour').click());
-  await p3.waitForSelector('.pf-colour-sheet:not(.is-out) .swatch', { timeout: 6000 });
-  await p3.evaluate(() => { document.querySelector('.pf-colour-sheet .swatch[data-id="green"]').click(); document.querySelector('.pf-colour-sheet .pf-save').click(); });
+  await p3.evaluate(() => { const i = document.querySelector('.pf-name-sheet .pf-name-in'); i.value = 'KATIEJO'; document.querySelector('.pf-name-sheet .swatch[data-id="green"]').click(); document.querySelector('.pf-name-sheet .pf-save').click(); });
   for (let i = 0; i < 40 && !((await val(`profiles/${me0.pid}/n`)) === 'KATIEJO' && (await val(`profiles/${me0.pid}/c`)) === 'green'); i++) await sleep(200);
   await sleep(400);
-  const yr2 = await p3.evaluate(() => ({ pin: (document.querySelector('.vl-dr-pin .vl-name') || {}).textContent || '', name: document.querySelector('.vl-yr-name').textContent, col: document.querySelector('.vl-yr-colour').textContent, dress: !!document.querySelector('.vl-dress') }));
-  ok(yr.sw && yr.above && /NAME/.test(yr.name) && /COLOUR/.test(yr.col), `CUSTOMIZE's TOP: "${yr.name}" + "${yr.col}" (a swatch) — above the tabs`);
-  ok(/KATIEJO/.test(yr2.pin) && /KATIEJO/.test(yr2.name) && /GREEN/.test(yr2.col) && yr2.dress && (await val(`profiles/${me0.pid}/n`)) === 'KATIEJO' && (await val(`profiles/${me0.pid}/c`)) === 'green',
-    `…NAME ✎ → KATIEJO, COLOUR ✎ → GREEN: the rows + the strip at once ("${yr2.pin}"), CUSTOMIZE still open under them, the server has both`);
+  const yr2 = await p3.evaluate(() => { const n = document.querySelector('.vl-yr-name'), sw = n && n.querySelector('.vl-yr-sw'); return { pin: (document.querySelector('.vl-dr-pin .vl-name') || {}).textContent || '', name: n.textContent, swc: sw ? getComputedStyle(sw).backgroundColor : '', dress: !!document.querySelector('.vl-dress') }; });
+  ok(yr.sw && yr.above && !yr.col && /EDIT USERNAME/.test(yr.name), `CUSTOMIZE's TOP: ONE row "${yr.name}" (its colour dot) — above the slim preview; no COLOUR row (${!yr.col})`);
+  ok(/KATIEJO/.test(yr2.pin) && /KATIEJO/.test(yr2.name) && yr2.dress && (await val(`profiles/${me0.pid}/n`)) === 'KATIEJO' && (await val(`profiles/${me0.pid}/c`)) === 'green',
+    `…EDIT USERNAME → KATIEJO + GREEN in one editor: the row + the strip at once ("${yr2.pin}", the dot ${yr2.swc}), CUSTOMIZE still open under it, the server has both`);
   await p3.click('.vl-dt[data-id="card-founder"]');   // (THE VAULT 2B: tap its tile — worn at once)
   await p3.waitForFunction(() => (document.querySelector('.vl-dr-pin') || {}).dataset && document.querySelector('.vl-dr-pin').dataset.card === 'card-founder', { timeout: 5000 }).catch(() => {});
   await p3.click('.vl-dr-back'); await sleep(400);
