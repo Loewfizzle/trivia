@@ -137,7 +137,7 @@ export function attachCallouts(code, game) {
       h('span.rc-xp-step', `${to.band.name} · LEVEL ${to.lvl}`),
       h('span', to.max ? '' : `${num(to.need)} XP TO ${to.lvl + 1}`),
       o.streak >= 2 ? h('span', `${o.streak}-NIGHT STREAK 🔥`) : null,
-      h('button.rc-xp-card', { type: 'button', onclick: () => import('../screens/profile.js').then(m => m.openCard()) }, 'YOUR CARD'),
+      h('button.btn.btn-ghost.btn-sm.rc-xp-card', { type: 'button', onclick: () => import('../screens/profile.js').then(m => m.openCard()) }, 'YOUR CARD'),   // (SHELL 2.0 A: a small quiet tube)
     ];
   }
 

@@ -136,7 +136,7 @@ body.reduced-fx .pf-c-flow, body.reduced-fx .pf-c-sheen::before { animation: non
 /* the podium XP strip: the step and what is next stacked on the right, the card button compact */
 .rc-xp-next { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; text-align: right; white-space: nowrap; }
 .rc-xp-next > span:not(.rc-xp-step) { font-size: 9px; letter-spacing: 0.1em; }
-.rc-xp-card { margin-left: 0; padding: 5px 10px; white-space: nowrap; }
+.rc-xp-card { margin-left: 0; white-space: nowrap; }
 
 .nd-pair .nd-board-l { font-size: 12px; letter-spacing: 0.2em; white-space: nowrap; }
 /* the card screen starts under the corner pair */

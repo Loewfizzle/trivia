@@ -1,16 +1,22 @@
-// Shared end-of-match screen: podium rise (3rd, 2nd, 1st), glitch WINNER reveal,
-// full leaderboard, and BACK TO LOBBY for whoever is host *right now*.
+// THE PODIUM's FRAME (SHELL 2.0 A — review-6.md D8, agreed with the Overclock chat): the CONSOLE owns the end-of-match screen's frame — the
+// kicker + the WINNER line, the XP box (profile/callouts.js) with the end-of-round moment's order after it ("already yours" / the next unlock,
+// THE CARD REVEAL), and ONE button: BACK TO THE ROOM, THE NEON TUBE's main, RIGHT UNDER THE XP BOX (docs/harbor/refs/shell/podium-back.png —
+// in view without scrolling at 390). No other rematch / lobby buttons here: the rematch vote + NEW GAME live in the room's dock.
+// A game draws its own BODY inside the frame by exporting finalScene(el, game, state) from its module (OVERCLOCK's "OVERCLOCKED", the
+// tube-sign name, the 2-1-3 podium, award chips, SOLO's NEW PERSONAL BEST); without it, the console's default podium rise (3rd, 2nd, 1st).
+// The full leaderboard follows the button.
 import { levelOf } from '../core/levels.js';
 import { fitName } from './fit.js';
 import { h, vibrate, reducedMotion } from './dom.js';
 import { avatar, countUp, leaderboard, burst } from './components.js';
 import { colorHex } from '../config.js';
-import { isHost, state } from '../store.js';
-import { backToLobby, rematch } from '../host.js';
+import { isHost, state, setState } from '../store.js';
+import { backToLobby } from '../host.js';
 import { toast } from './toast.js';
 import { sfx } from '../audio/sfx.js';
 import { rankBadge } from './emblems.js';
 import { pubOf } from '../profile/public.js';
+import { GAME_MODULES } from '../games/registry.js';
 
 const GHOST = { name: 'GHOST', color: 'cyan', avatar: 'ghost' };
 
@@ -27,6 +33,13 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   const g = state.game;
   if (state.code && g && g.matchId && g.participants && g.participants[me]) {
     import('../profile/callouts.js').then(m => { if (gone) return; rc = m.attachCallouts(state.code, g); rcSlot.append(rc.el); }).catch(() => {});
+  }
+  // THE BODY: the game's own scene (finalScene) — or the console's podium
+  const mod = g && GAME_MODULES[g.id];
+  let body = null;
+  if (mod && typeof mod.finalScene === 'function') {
+    body = h('div.final-body', { dataset: { game: g.id } });
+    try { mod.finalScene(body, g, state); } catch (e) { console.warn('[final] finalScene', e); body = null; }
   }
   const podium = h('div.podium');
   const places = [rows[1], rows[0], rows[2]];
@@ -48,36 +61,26 @@ export function createFinal({ rows, players, me, presence, winnerLine, scoreLabe
   const winner = rows[0] && (players[rows[0].uid] || GHOST);
   const tied = rows.filter(r => r.rank === 1).length > 1;
   const word = tied ? 'DEADLOCK' : 'WINNER';
-  const actions = h('div.final-actions');
+  // ONE button for everyone: the host's tap brings the whole room back (THE WALK BACK OUT); a guest's walks them back alone (the others
+  // stay on the podium — the same as ☰ → QUIT TO THE ROOM)
+  const back = h('button.btn.btn-primary.btn-block.final-back', { type: 'button', onclick: () => {
+    if (back.classList.contains('is-busy')) return;
+    if (isHost()) { back.classList.add('is-busy'); Promise.resolve(backToLobby()).catch(err => { back.classList.remove('is-busy'); toast('Couldn’t go back', 'err', { sub: String((err && err.message) || err) }); }); return; }
+    if (state.game && state.game.matchId) setState({ quit: state.game.matchId });
+  } }, h('span', 'BACK TO THE ROOM'));
+  const actions = h('div.final-actions', back);
   let hostShown = null;
-  function refresh() {
-    const host = isHost();
-    if (hostShown === host) return;
-    hostShown = host;
-    actions.replaceChildren(...(host
-      ? [
-        h('button.btn.btn-primary.btn-xl.btn-block', { type: 'button', onclick: e => {
-          const btn = e.currentTarget;
-          if (btn.classList.contains('is-busy')) return;
-          btn.classList.add('is-busy');
-          rematch()
-            .catch(err => { toast('Rematch failed', 'err', { sub: String((err && err.message) || err) }); return false; })
-            .then(ok => { if (!ok) btn.classList.remove('is-busy'); });
-        } }, h('span', 'REMATCH')),
-        h('button.btn.btn-ghost.btn-block', { type: 'button', onclick: () => backToLobby() }, h('span', 'BACK TO THE ROOM')),
-      ]
-      : [h('div.wait-note', 'WAITING FOR THE HOST — REMATCH OR BACK TO THE ROOM…')]));
-  }
+  function refresh() { hostShown = isHost(); back.dataset.host = hostShown ? '1' : '0'; }
   refresh();
   const el = h('div.panel-full.final',
     h('div.sheet-kicker', kicker),
     h('div.winner', h('div.winner-title', { 'data-text': word, class: tied ? 'is-tied' : null }, word),
       h('div.winner-name', tied ? 'SHARED VICTORY' : winnerLine(winner ? winner.name : ''))),
-    podium,
+    body || podium,
     rcSlot,
-    leaderboard(rows, players, { me, presence, stagger: 60 }),
+    actions,
     extra,
-    actions);
+    leaderboard(rows, players, { me, presence, stagger: 60 }));
   const t = setTimeout(() => {
     el.classList.add('crowned');
     sfx('victory');

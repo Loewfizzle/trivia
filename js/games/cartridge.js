@@ -32,6 +32,8 @@ export const OPTIONAL = Object.freeze({
   preload: 'function',          // preload({ settings, host }) — called on EVERY phone at the game start (the 2.6 s walk inside): fetch its
                                 //   pools / sounds / fonts so the view is ready when the push through the door ends (its view module +
                                 //   stylesheets are warmed by the console itself). Everything a game needs loads ONLY when it is played.
+  finalScene: 'function',       // SHELL 2.0 A — finalScene(el, game, state): the game draws its own BODY inside the console's podium frame
+                                //   (ui/final.js — the console keeps the XP box, the moment + the card reveal, BACK TO THE ROOM)
   daily: 'object',              // THE DAILY PLUG-IN (ships OFF — THE DAILY MODULE switches the dailies on): see DAILY below
 });
 // THE DAILY PLUG-IN's shape (OVERCLOCK + the WORDLE-type + COAST CLEAR offer it; THE DAILY MODULE seeds, unlocks, streaks + ranks it):

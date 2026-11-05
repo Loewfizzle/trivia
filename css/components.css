@@ -591,7 +591,9 @@ body.bd-on .help-btn, body.help-open .help-btn { display: none; }
 
 /* "DEADLOCK" is longer than "WINNER": keep it inside a phone-width screen */
 .winner-title.is-tied { font-size: clamp(30px, 10.5vw, 54px); letter-spacing: 0.08em; }
-.winner { overflow: hidden; }
+.winner { flex: none; overflow-x: clip; overflow-y: visible; }   /* (SHELL 2.0 A: the winner line wraps whole — never cut at the bottom) */
+.winner-name { line-height: 1.5; text-wrap: balance; }
+.final-back { flex: none; }
 
 /* ---- how to play ---- */
 .sheet.help { max-height: 92dvh; gap: 14px; }
@@ -981,7 +983,7 @@ body.nd-on .music-btn, body.nd-on[data-theme] .music-btn { right: calc(var(--saf
 .pf-mast.is-none { opacity: 0.45; }
 /* card finishes by rank */
 .rc-xp-step { font: 700 9.5px/1 var(--font-mono); letter-spacing: 0.14em; color: var(--rk, #fff); }
-.rc-xp-card { margin-left: auto; padding: 6px 10px; border-radius: 999px; font: 700 9.5px/1 var(--font-display); letter-spacing: 0.14em; color: #fff; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.2); }
+.rc-xp-card { margin-left: auto; padding: 0 12px; font-size: 9.5px; letter-spacing: 0.14em; white-space: nowrap; }   /* (SHELL 2.0 A: THE NEON TUBE, small) */
 
 /* ---- DESKTOP Group 4 — MOUSE + KEYBOARD (the owner's desktop question 5): a pointer cursor + a gentle glow on everything clickable —
    only where a real hover exists (a mouse / a trackpad): a touch screen never sees any of it. The lift is a transform (eased); the glow a

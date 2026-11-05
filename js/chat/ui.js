@@ -40,8 +40,10 @@ export function installChatFab() {
     const s = `${show}|${lock}|${chat.unread}`;
     if (s === was) return;
     was = s;
-    fab.hidden = !show;
-    document.body.classList.toggle('chat-fab-on', show); // timers make room for the button (chat.css)
+    // (SHELL 2.0 A — THE CHAT LOCK: a game that locks chat HIDES the button for that stretch — never a greyed button; the room's chat opens
+    //  between games / rounds as before)
+    fab.hidden = !show || lock;
+    document.body.classList.toggle('chat-fab-on', show && !lock); // timers make room for the button (chat.css)
     fab.classList.toggle('is-locked', lock);
     fab.setAttribute('aria-disabled', String(lock));
     fab.setAttribute('aria-label', lock ? `Chat — opens between rounds${chat.unread ? ` (${chat.unread} unread)` : ''}` : `Open chat${chat.unread ? ` (${chat.unread} unread)` : ''}`);
