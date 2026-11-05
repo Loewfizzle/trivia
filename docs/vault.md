@@ -496,3 +496,9 @@ The full card's plate takes its second line's real width (the level, or THE DEVE
 `full.js#coverWidest` (one ResizeObserver; a min-width beats the plate's 70 % cap). The strips' stepped plate already reached past its lower row.
 Checked by `tests/integration/plate-preview.html` (every full card + strip, no Firebase) in the harbor's `platefit` group (390 / 402 / 430). Both
 dev full cards v4 (CHANGED in THE LAB).
+
+## A FONT THAT ARRIVES LATE (THE SPEED PASS, Nov 4)
+`ui/fit.js#fitName` + `full.js#fitTop` fitted on `document.fonts.ready` + a box resize only — a name whose face started loading AFTER `ready`
+resolved kept the fallback face's fit and overflowed once the real face landed (LOBBY FIXES' cloud red: 2 of 42 glowing names). Every fitted
+element now re-fits once more on the FontFaceSet's `loadingdone` (`fit.js#onFontsLoaded` — one listener; an element shown then removed drops
+out). Proof: the vault group's "A FONT THAT ARRIVES LATE" (a fitted name whose face grows wider + `loadingdone` → it fits again).

@@ -28,7 +28,7 @@ The window scenes: `ONLY=windows,quietbuilding` (the shades after hours + the li
   ~400–600 a day when this ran on every push) only a pass's FINAL push runs it**: a push with **`[ci]`** (a game / app pass) or **`[harbor]`** (a City 2.0
   pass) in one of its commit messages — whatever the push touched, docs-only included (FR6 FIXES A, G5: no path filter on push any more); pull requests and `gh workflow run tests` always run; any other push shows a skipped run (0 minutes; it never
   cancels a full run in flight — a newer full run cancels an older one). The build machine (THE MINI PC, below) runs `node --test tests/*.test.mjs` before every push. Budget
-  ≈ 35–50 cloud minutes a pass (this workflow ≈ 10, the harbor's 10 jobs ≈ 36–42). It runs the unit tests,
+  ≈ 95–105 billed cloud minutes a pass (THE SPEED PASS — FR6 G8's real count: this workflow ≈ 8–10, the harbor's 15 jobs ≈ 85–95 billed; a re-run costs one job). It runs the unit tests,
   then the rules tests, the `/api` tests and the smoke test on the emulators with headless Chrome. They run **next to** the Vercel
   deploy, never in front of it; a failure is a red ✗ on the commit (and an email). (Since Oct 27 Vercel itself deploys only a push whose LAST
   commit carries `[harbor]`, `[ci]` or `[deploy]` — `vercel.json#ignoreCommand`, CLAUDE.md → Testing.) The smoke
@@ -396,3 +396,19 @@ load problem, not a flake to patch.
 `lobbyfix` (oneseat — three slots on one profile, playercard, leavewave, bannerfull, hostcard, newstart) + `lobbyfix2` (platefit — via
 `tests/integration/plate-preview.html`, youpage, corners, arrivals, radiorest). The look run for the start + after the match:
 `node tests/integration/room2-look.mjs "<browser>" ./shots-room2/ 390,402,430,1440`.
+
+## THE SPEED PASS (Nov 4 evening) — green means green (review-6.md G)
+- The `speed` cloud job: `staleroom` (out of the room: the figures walk off ringless, one toast, no stale host claim), `youcard` (the first
+  painted card is the equipped one), `guestring` (WAITING / FOR HOST inside the ring at 390 / 402 / 430), `bannersky` (the banner's box above
+  the skyline's tops after a match at 390 / 402 / 430 / 1440), `partyroom` (FR6 A7 — a preview link keeps `&when= &force= &lgnow=` in a room:
+  a Saturday 22:15 party + the UFO + 8 in the lines + the guest list's 8 legendary strips; the speed half the mini PC's).
+- G1 THE SPIDER'S TAP: `holiday.mjs#hubStill` waits for the HUB still (`mode still && far < 1 && calm && !trip`) — a roam pause is also
+  `still` — and taps where that same check found it. G3: the sightings capture's `ms < 12` dropped (the frame gaps are the honest half).
+- G4: the board-row seed was already in (LOBBY 2.0 A); THE VAULT's FULL LOBBY speed checks + the room's two speed checks are `skipCI` on the
+  runner (no GPU path — they warned in every cloud run) with their RULE half hard (`vault.mjs#gpuCheck`); THE TAPE's WATCHDOG accepts either
+  valid recovery (the reload, or the slice-end fallback — `tape-stop.js` counts `sliceEnds`).
+- room2's FILE-IN: a condition (the host seen walking / through the door before the fade), not one sample.
+- G8: the tail runs `panel` + `oldrules` SIDE BY SIDE (two child processes — oldrules swaps the rules, panel writes city2/live through /api:
+  they never meet), then `perf` + `partyroom` alone (SERIAL — speed measurements). **SHARDS STAYS 4**: one measured SHARDS=6 run on the mini PC
+  took 24 min (vs ~20 at 4), peaked at 20 GB of 32, and overloaded the machine — six timing reds + one CDP timeout, every one green alone.
+- `lobby` / `room2` / `lobbyfix` SECONDS refreshed from LOBBY FIXES' cloud run's own per-group times (`harbor-jobs.mjs`).

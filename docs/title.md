@@ -723,3 +723,16 @@ The SAVE-YOUR-KEY POP-UP's pink dot sits on YOU (both docks) until the key is sa
 - The corners: on the split-corner screens (the title, the room, the lobby) the music button is pinned to the SCREEN's top-right, level with ☰,
   whatever the body's theme; the radio button rests with ☰ + the music (`body.nd-idle .rd-btn`). Arrivals walk in from the screen edge nearest
   the speakeasy's door (`core/harbor-room.js#arriveSide`).
+
+## THE SPEED PASS (Nov 4 evening — docs/harbor/passes/speed.md): the room's small fixes
+- THE GUEST's RING reads **WAITING / FOR HOST** (two lines, inside the ring's tube at 390 / 402 / 430 — never the host's name; the ARIA label
+  keeps the name).
+- OUT OF THE ROOM (a leave, a disconnect, a kick): the room's figures walk off as plain passers-by — their rings fade at once (0.6 s,
+  `people.js#RRING`); THE PEOPLE RULE keeps the walk. A host claim still in flight when this phone left never toasts (`host.js#claimHost`
+  stands down for a room it's no longer in) and **TOASTS COME ONE AT A TIME** (`ui/toast.js` — a newer one replaces the older; the old fades
+  out in place).
+- THE WINNER's BANNER PLANE flies ABOVE EVERY CROWN: whatever its lane (under SPEAKEASY by default), its lowest point stays above the open
+  sky's floor — the highest crown / spire / roof sign anywhere across the screen (`skyfx.js#bannerLane` + `skyFloorOf`, from the frame's
+  `skyline` + `skyTops`); on a wide screen it rises over the SPEAKEASY word and the sign dims while it crosses (the owner: readability wins).
+- THE YOU PAGE opens on YOUR equipped card at once (this device's saved profile), a blank card shape while its full card loads — never the
+  Gilded first; the server's answer never re-mounts the same card (`screens/profile.js#paintHero`).

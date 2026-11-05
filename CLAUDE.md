@@ -324,7 +324,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
 - **GitHub checks** (unit → rules → /api → smoke, on the emulators) run **only on a pass's FINAL push** (SP6, the owner's CLOUD MINUTES, Oct 27):
   a game / app pass tags that push's commit **`[ci]`**, a City 2.0 pass **`[harbor]`** (which runs both workflows); pull requests + `gh workflow run tests`
   always run; every other push shows a skipped run (0 minutes) — run the unit suite locally before every push. Next to the Vercel deploy, never
-  blocking it. Budget: ≈ 30–40 cloud minutes a pass (tests ≈ 10, the harbor's 10 jobs ≈ 36–42; MODELS: + the `models` job). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
+  blocking it. Budget: ≈ 95–105 billed cloud minutes a pass (THE SPEED PASS — FR6 G8's real count: tests ≈ 8–10, the harbor's 15 jobs ≈ 85–95). Look at `gh run list` after pushing; a red ✗ is a broken main to fix first. Errors from real phones: `/admin`.
 - **VERCEL DEPLOYS ONLY TAGGED PUSHES** (the owner's DEPLOYMENT STORAGE, Oct 27: Hobby's 10 GB went at ~300 MB a deploy on every push):
   `vercel.json#ignoreCommand` builds only when the push's **LAST commit message** carries **`[harbor]`**, **`[ci]`** or **`[deploy]`**
   (unlike the GitHub checks, which read every commit of the push) — so a pass makes ONE deployment: its FINAL push carries its tag (as above)
@@ -333,7 +333,7 @@ wipes `ALL_PLAYER_NODES` (registry.js) at match start/end; obfuscate (`core/obfu
   `.vercelignore` keeps everything no page or `/api` loads out of the deploy (docs, screenshots, tests, scripts, shots*, art) — a deploy ≈ 264 MB,
   ~255 MB of it the music; a new top-level folder the site loads must NOT match it. Never write a tag in square brackets in a message that
   isn't meant to fire it (a message that NAMES the tags fires them all — write "the ci / harbor / deploy tags").
-- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, 10 parallel jobs): the FULL `e2e-harbor` suite runs only on a pass's FINAL push
+- **THE HARBOR IN THE CLOUD** (`.github/workflows/harbor.yml`, 15 parallel jobs — THE SPEED PASS added `speed`): the FULL `e2e-harbor` suite runs only on a pass's FINAL push
   (the harbor tag in a commit message — whatever the push touched, docs-only included: no path filter since FR6 FIXES A, `tests/workflows.test.mjs`) or `gh workflow run harbor` (`-f job=street`). **At most TWO cloud runs a pass**;
   never re-run to confirm a flake. A new test group: its `G()` in `tests/integration/harbor-e2e/<job>.mjs` + its name in exactly one job in
   `harbor-jobs.mjs`. Locally (the mini PC): the touched groups (`ONLY=…`) while working, the FULL suite once before the final push. Full text: docs/harbor.md.

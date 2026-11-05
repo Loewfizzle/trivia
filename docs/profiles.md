@@ -314,10 +314,35 @@ card's frame, CUSTOMIZE YOUR CARD + the level bar; hot pink = the end of round's
   the old device walks out (a same-room HOST hands the room over); a resume never takes a seat. The rules refuse a pid's player node while the
   seat is another device's. The SERVER: two seats of one profile in a match = credited once (the WORSE placing — `api/report.js#dedupePids`);
   a match overlapping a counted one from ANOTHER room is never credited (`js/core/progress.js#overlaps`, `pstats.ov` = the last 8 windows).
-- **YOUR NAME + COLOUR** live in ONE place: two rows at the TOP of CUSTOMIZE YOUR CARD (`js/vault/dress.js` → `js/profile/edit.js` — the
-  editors; a rename once a day as before) + the ✎ beside the name on the profile's card. ACCOUNT holds the key / restore / sign-in only.
+- **YOUR NAME + COLOUR** live in ONE place — THE SPEED PASS (the owner's FINAL, Nov 4 6:25 pm): ONE row **EDIT USERNAME** (the name + its
+  colour dot) at the VERY TOP of CUSTOMIZE YOUR CARD (`js/vault/dress.js`) → ONE editor with the name + the colour together
+  (`js/profile/edit.js#openYouEditor`; a rename once a day as before). No COLOUR row, no ✎ on the profile's card; ACCOUNT holds the key /
+  restore / sign-in only.
 - **REMOVE TEST PLAYERS** (/admin's TEST PLAYERS card — `api/admin.js` `testPlayers` / `removeTestPlayers`, `api/_lib/testplayers.js`): the
   profiles made since a cut-off (+ named ones) → tick → a dry run → CONFIRM; removes the profile, its private node, its stats, its key, its tag,
   its device links, its seat, its crew role + every board entry; an admin never; audited. Member numbers never shift and are never re-used: the
   counter rolls back only when every number above the new top is going.
 - The ☰ menu's **ADMIN** row (admins only, under THE LAB) opens /admin; the preview panel's row reads CITY PREVIEW.
+
+## THE SPEED PASS (Nov 4 2026 evening — docs/harbor/passes/speed.md)
+- **/ADMIN, TIDIED** (the owner: "too long, tons of logs"): EVERY CARD COLLAPSIBLE — a header with its count ("Errors from phones 497 · 476
+  new"), a tap opens / closes it, remembered on the device (`localStorage ad:open:<id>`), the long cards (stats, errors, reports, test players,
+  progress reset, audit) shut by default; a JUMP BAR of the cards at the top. THE LOGS GROUPED (`js/admin/groups.js`, PURE): one row per KIND —
+  an error's message (long numbers folded) / a report's kind — its count, "N new", first / last seen; a tap opens its entries; a FILTER box;
+  MARK SEEN (`seenLogs { sigs, ids }` → `errlog/{sig}/seen` = its count, `phonelog/{id}/seen`) + CLEAR per group (`clearErrors { sigs }`,
+  `clearReports { ids }`) — admins only, every id checked, audited. THE DAY CHART card is gone (THE RADIO has the day; `/daychart` stays).
+- **TEST PLAYERS, ALL OF THEM**: a **CREATED SINCE** date (default: the very first profile — `first` from the server), each row: matches,
+  NIGHTS (distinct streak days played), made, last seen, member Nº; the **PRE-TICK** ("looks like a test" — two of: 0 nights · a test-ish name
+  (`testplayers.js#testName`) · made in a test burst (3+ within 10 min)), never an admin, `TESTER#2599` or a player of 2+ nights; the reasons
+  show as tags; nothing goes without the dry run → CONFIRM (the counter rule unchanged).
+- **THE PROGRESS RESET** (the owner's add-on — `api/_lib/reset.js`, the rules in `js/core/reset.js` (PURE); actions `progressReset { confirm,
+  typed }`, `progressBackups`, `progressRestore { stamp, confirm, typed }`; admins only, the server's own credentials, audited; REPEATABLE — now
+  and at THE SWITCH-OVER): PREVIEW (a dry run: "46 profiles · 12,340 XP · 9 board records · … will be reset; 0 items removed") → type RESET →
+  a two-tap CONFIRM. Order: (1) THE BACKUP — `backups/{stamp}` (server only: every pstats + the profiles' progress fields + `lb/` + the
+  achievements' counts; the newest 5 kept); (2) FOUNDING MEMBER — `founderSweep()` stamps everyone who qualifies BEFORE the wipe; (3) THE
+  RESET — pstats `xp g gw wk b day gd pa ac dl st` cleared (the FREEZES held stay), profiles `x l r s sd m` → level 1, `lb/` + `pcount/n` +
+  `pcount/a` removed. KEEPS every item (`it` — the dev + gift 1-of-1s, FOUNDING MEMBER), favors, the counted-match keys (`m` — an old match
+  is never counted twice), the member Nº, name + tag, colour, emblem, the equipped card. RE-CLIMBING: a match's outcome carries `nx` — the
+  next level whose reward the player does NOT own (`reset.js#nextUnownedLevel`) — the round-end tease names it; a level-up whose reward is
+  already owned says "Already yours", never UNLOCKED. RESTORE (type RESTORE) puts a backup's progress back + merges the items (never takes one).
+  NEVER run against the live site from a test — the owner presses it himself.

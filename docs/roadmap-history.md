@@ -1920,3 +1920,17 @@ The owner's iPhone held 8 legendary strips at ~42 fps: a 2D canvas on iOS is Cor
   the round-end card (NEXT UNLOCK AT LEVEL n, the pink tube bar).
 - The add-ons: NAME + COLOUR as two rows at CUSTOMIZE's top (+ the card's ✎; none in ACCOUNT), the music button in the screen's corner (a
   game theme pinned it to the column), arrivals from the nearest edge, the radio button rests with the rest.
+
+## THE SPEED PASS — THE OWNER's ROOM + /ADMIN NOTES, GREEN MEANS GREEN (Nov 4 2026, evening) — docs/harbor/passes/speed.md
+- Group 0 (the owner's LOBBY FIXES test): THE CARD OPENS ON YOURS (the YOU page paints the equipped card at once — a blank shape while it loads,
+  never the Gilded); ONE TOAST AT A TIME + a host claim stands down for a room you left; out of the room the figures walk off ringless; THE BANNER
+  PLANE above every crown / spire / roof sign (rising over SPEAKEASY on a wide screen, the sign dimmed); EDIT USERNAME — one row at CUSTOMIZE's
+  very top, one editor for the name + the colour, no ✎ on the card; the guest's ring WAITING / FOR HOST.
+- Group 1: /admin's cards collapsible (counts, remembered, a jump bar), the logs grouped by kind (filter, MARK SEEN, CLEAR per group), the DAY
+  CHART card off /admin; TEST PLAYERS from the very first profile with nights + last seen + a "looks like a test" pre-tick.
+- Group 2 (review-6.md G + A7): the spider's HUB still, the capture's 12-ms line gone, the GPU-speed checks skipped on the GPU-less runner (their
+  rule halves hard), the tape's two valid recoveries, a late font re-fits every fitted name, room2's file-in a condition, panel + oldrules side by
+  side in the tail, a preview link keeps &lgnow in a room → THE PARTY ROOM measured (60 fps at 1×; ~34 at 2× CPU — THE SPEED PASS B's start).
+- THE ADD-ON: THE PROGRESS RESET (/admin — a backup, FOUNDING MEMBER first, every reward kept, repeatable, restorable; the tease names the next
+  reward you don't own; "Already yours").
+- The owner split it: Group 3 (THE PHONE's SPEED — A2 A6 A3 H5 E2 E3) → THE SPEED PASS B.
