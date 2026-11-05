@@ -122,7 +122,7 @@ G('roomfix', async () => {
         for (const id of Object.keys(S.LOOKS)) {
           box.replaceChildren(); const el = V.fullCardEl({ card: id, who: { name: 'WWWWWWWWWWWW', fd: true, no: '0001', lv: 42 } }); box.append(el);
           await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
-          const top = el.querySelector('.vl-fc-top'), hs = top.querySelector('.vl-fc-house'), pill = top.querySelector('.vl-tier'), T = top.getBoundingClientRect(), H = hs.getBoundingClientRect(), P = pill.getBoundingClientRect();
+          const top = el.querySelector('.vl-fc-top'), hs = top.querySelector('.vl-fc-house'), pill = top.querySelector('.vl-fc-gem'), T = top.getBoundingClientRect(), H = hs.getBoundingClientRect(), P = pill.getBoundingClientRect();
           const rg = document.createRange(); rg.selectNodeContents(hs); const W = rg.getBoundingClientRect();
           const clip = W.right > P.left - 1 || W.left < T.left - 1 || P.right > T.right + 1 || P.left < T.left;
           out.push({ id, clip, fit: top.dataset.fit || '', pill: pill.textContent });

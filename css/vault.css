@@ -19,17 +19,10 @@
 .vl-who:has(.fit-2) { gap: 2px; }
 .vl-emb > svg:not(.vl-e) { width: 34px; height: 34px; }
 .vl-lv { font: 700 11.5px/1 var(--font-num); letter-spacing: 0.16em; color: rgba(245, 236, 218, 0.82); white-space: nowrap; }
-.vl-tier { position: absolute; right: 9px; bottom: 7px; z-index: 2; padding: 5px 8px 4px; border-radius: 6px; font: 800 10.5px/1 var(--font-ui); letter-spacing: 0.2em;
-  background: rgba(8, 6, 12, 0.78); color: #f5ecda; box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12); }
 .vl-frame { position: absolute; inset: 0; z-index: 3; border-radius: inherit; pointer-events: none; }
 
 /* ---- the tiers' frames (static; the motion lives in the canvas) */
 /* the tag's words in THE ONE TIER PALETTE (css/base.css --tier-*; THE VAULT 1C) */
-.vl-t-common .vl-tier { color: var(--tier-common); }
-.vl-t-uncommon .vl-tier { color: var(--tier-uncommon); }
-.vl-t-rare .vl-tier { color: var(--tier-rare); }
-.vl-t-epic .vl-tier { color: var(--tier-epic); background: rgba(34, 10, 52, 0.88); box-shadow: inset 0 0 0 1px rgba(189, 132, 255, 0.5); }
-.vl-t-legendary .vl-tier { color: #2a1604; background: linear-gradient(180deg, #ffe39a, #ffb24d); box-shadow: 0 0 10px rgba(255, 190, 90, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
 .vl-t-common .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 238, 190, 0.55), inset 0 1.5px 0 rgba(255, 252, 235, 0.75), inset 0 -2px 0 rgba(70, 40, 5, 0.55), 0 2px 8px rgba(0, 0, 0, 0.45); }
 .vl-t-uncommon .vl-frame { box-shadow: inset 0 0 0 1px rgba(220, 230, 240, 0.32), 0 2px 8px rgba(0, 0, 0, 0.45); }
 .vl-t-rare .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.18), 0 2px 10px rgba(0, 0, 0, 0.5); }
@@ -44,7 +37,6 @@
   linear-gradient(90deg, rgba(255, 250, 230, 0) 8%, rgba(255, 250, 230, 0.38) 34%, rgba(255, 250, 230, 0) 50%, rgba(255, 244, 210, 0.22) 74%, rgba(255, 244, 210, 0) 90%),
   linear-gradient(180deg, rgba(255, 255, 240, 0.34) 0%, rgba(255, 255, 240, 0) 38%, rgba(90, 55, 10, 0) 62%, rgba(70, 40, 5, 0.42) 100%); }
 .vl-s-brushed .vl-plate { background: linear-gradient(90deg, rgba(22, 14, 4, 0.82), rgba(26, 17, 5, 0.72)); box-shadow: inset 0 0 0 1px rgba(255, 230, 170, 0.32), inset 0 1px 0 rgba(255, 240, 200, 0.18), 0 2px 8px rgba(40, 20, 0, 0.45); }
-.vl-s-brushed .vl-tier { background: rgba(26, 17, 5, 0.85); box-shadow: inset 0 0 0 1px rgba(255, 220, 150, 0.5); }
 /* 2 `card-smoke` — a dark lounge, a warm lamp off the top-left */
 .vl-s-smoke .vl-mat { background: radial-gradient(130% 170% at 6% -30%, rgba(255, 168, 92, 0.3), rgba(255, 168, 92, 0) 52%), radial-gradient(80% 120% at 90% 120%, rgba(90, 100, 140, 0.25), transparent 60%), linear-gradient(180deg, #1f2028, #0d0e13); }
 /* 3 `card-frostbite` — real ice (Ice004, tinted cold + darkened), the frost grows in the canvas */
@@ -57,7 +49,6 @@
 /* 6 `card-marquee` — a red velvet curtain (its folds) behind the bulbs */
 .vl-s-marquee .vl-mat { background: radial-gradient(90% 140% at 50% 50%, rgba(255, 60, 80, 0.18), transparent 70%), repeating-linear-gradient(90deg, rgba(0, 0, 0, 0.26) 0 5px, rgba(255, 255, 255, 0.035) 7px 9px, rgba(0, 0, 0, 0.12) 11px 14px), linear-gradient(180deg, #5c0a1b, #33040f); }
 .vl-s-marquee .vl-plate { left: 14px; top: 13px; bottom: 13px; }
-.vl-s-marquee .vl-tier { right: 15px; bottom: 13px; }
 /* 7 `card-glitter` — real glitter (Silver_Glitter_6, tinted hot pink) under a pink → purple wash */
 .vl-s-glitter .vl-mat { background: linear-gradient(100deg, rgba(255, 70, 170, 0.32), rgba(170, 60, 230, 0.4)), url(../assets/vault/glitter-pink.webp) center / cover, #c0287f; }
 .vl-s-glitter .vl-plate { background: linear-gradient(90deg, rgba(40, 4, 34, 0.82), rgba(46, 6, 40, 0.68)); box-shadow: inset 0 0 0 1px rgba(255, 170, 230, 0.35), 0 2px 10px rgba(60, 0, 40, 0.45); }
@@ -154,7 +145,7 @@ select.vl-tab option { color: #111; }
 .vl-diag-h small { font: 600 12px/1.3 var(--font-ui); letter-spacing: 0.02em; color: rgba(245, 236, 218, 0.72); }
 .vl-dg { min-height: 40px; font-size: 11.5px; padding: 0 11px; }
 .vl-dg.is-off { background: #6b1622; box-shadow: inset 0 0 0 1.5px #ff7a8a; }
-.vl-diag-noglow .vl-frame, .vl-diag-noglow .vl-plate, .vl-diag-noglow .vl-tier { box-shadow: none !important; }
+.vl-diag-noglow .vl-frame, .vl-diag-noglow .vl-plate { box-shadow: none !important; }
 .vl-diag-noglow .vl-name { text-shadow: none !important; }
 .vl-diag-noemb .vl-e { visibility: hidden; }
 .vl-diag-noemb .vl-e, .vl-diag-noemb .vl-e * { animation: none !important; }
@@ -204,9 +195,16 @@ body.vl-covered *:not(.vl-full, .vl-full *), body.vl-covered *:not(.vl-full, .vl
   transform: translateX(-120%) skewX(-14deg); animation: vl-fc-sheen 6.5s cubic-bezier(.45, 0, .3, 1) infinite; }
 @keyframes vl-fc-sheen { 0%, 62% { transform: translateX(-120%) skewX(-14deg); } 100% { transform: translateX(330%) skewX(-14deg); } }
 .vl-fc-top { position: absolute; left: 5.5%; right: 4.5%; top: 6.5%; z-index: 3; display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+/* SHELL 2.0 A — THE TIER GEM in the card's top-right corner (vault/gems.js, 28 pt + its glow); THE 1-OF-1 BADGE = the rainbow gem + "1 OF 1"
+   to its left in the gem's own light (a spectrum on the letters, a dark edge under them so they read on gold too). Static light; the dev
+   gem's own parts move on the compositor (gems.js) */
+.vl-fc-gem { flex: none; display: inline-flex; align-items: center; gap: 0.5em; margin: -2px 1% 0 0; font-size: max(11px, 3.3cqi); }
+.vl-fc-gem .vl-gem { flex: none; }
+.vl-fc-gem.is-1of1 { margin: 3px 3.5% 0 0; font-size: max(12px, 3.6cqi); }   /* (inset: the rainbow halo clears the rounded corner) */
+.vl-fc-1of1 { font: 900 1em/1 var(--font-display); letter-spacing: 0.16em; white-space: nowrap;
+  background: linear-gradient(90deg, #ff6fa8, #ffd65a 30%, #6dffb0 55%, #6fe8ff 75%, #c58bff); -webkit-background-clip: text; background-clip: text; color: transparent;
+  filter: drop-shadow(0 0 1px rgba(0, 0, 0, 0.95)) drop-shadow(0 1px 2px rgba(0, 0, 0, 0.7)) drop-shadow(0 0 6px rgba(255, 255, 255, 0.35)); }
 .vl-fc-house { font: 700 max(10px, 2.9cqi)/1 var(--font-ui); letter-spacing: 0.34em; color: #e9cf8e; text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75); white-space: nowrap; min-width: 0; }
-.vl-fc-top .vl-tier { flex: none; white-space: nowrap; }   /* (LOBBY 2.0 B — the top line never clips: full.js#fitTop tightens the words first) */
-.vl-fc .vl-tier { position: static; font-size: max(10px, 2.8cqi); padding: 0.55em 0.85em 0.45em; }
 .vl-fc-plate { position: absolute; left: 4.5%; top: 31%; z-index: 3; display: flex; align-items: center; gap: 3.2cqi; max-width: 70%; padding: 2.4cqi 5cqi 2.4cqi 2.6cqi; border-radius: 14px;
   background: linear-gradient(90deg, rgba(8, 6, 12, 0.8), rgba(8, 6, 12, 0.64)); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12), 0 4px 18px rgba(0, 0, 0, 0.4); }
 .vl-fc-emb { flex: none; display: grid; place-items: center; width: 13cqi; height: 13cqi; }
@@ -258,7 +256,6 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-s-gilded .vl-mat::after { background: linear-gradient(90deg, rgba(11, 10, 13, 0.97) 0%, rgba(11, 10, 13, 0.75) 38%, rgba(11, 10, 13, 0) 72%), linear-gradient(180deg, rgba(255, 240, 200, 0.05), transparent 40%); }
 .vl-s-gilded .vl-frame { box-shadow: inset 0 0 0 1.5px #d8b46a, inset 0 0 0 4px #0b0a0d, inset 0 0 0 5px rgba(216, 180, 106, 0.6), 0 2px 8px rgba(0, 0, 0, 0.45); }
 .vl-s-gilded .vl-plate { background: linear-gradient(90deg, rgba(14, 11, 6, 0.86), rgba(14, 11, 6, 0.7)); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.4), 0 2px 8px rgba(0, 0, 0, 0.45); }
-.vl-s-gilded .vl-tier { background: rgba(14, 11, 6, 0.9); box-shadow: inset 0 0 0 1px rgba(216, 180, 106, 0.55); }
 /* `card-midnight` (common, level 3): ink + starlight — a deep blue night, a faint band of the galaxy, stars at three sizes */
 .vl-s-midnight .vl-mat { background:
   radial-gradient(1.4px 1.4px at 12px 14px, rgba(235, 242, 255, 0.95) 50%, transparent 52%) 0 0 / 97px 61px,
@@ -275,7 +272,7 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
   linear-gradient(180deg, #f0c278 0%, #c48a3e 30%, #9a6427 62%, #c7914a 84%, #7d5320 100%); }
 .vl-s-brass .vl-mat::after { background: linear-gradient(90deg, rgba(255, 250, 230, 0) 18%, rgba(255, 250, 230, 0.28) 40%, rgba(255, 250, 230, 0) 56%); }
 .vl-s-brass .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 238, 190, 0.6), inset 0 1.5px 0 rgba(255, 250, 230, 0.7), inset 0 -2px 0 rgba(60, 30, 5, 0.6), 0 2px 8px rgba(0, 0, 0, 0.45); }
-.vl-s-brass .vl-plate, .vl-s-brass .vl-tier { background: rgba(30, 18, 4, 0.82); box-shadow: inset 0 0 0 1px rgba(255, 220, 150, 0.45); }
+.vl-s-brass .vl-plate { background: rgba(30, 18, 4, 0.82); box-shadow: inset 0 0 0 1px rgba(255, 220, 150, 0.45); }
 /* `card-heartbreaker` (uncommon, level 4 — the soft half of THE PINK PAIR): pink into violet, hearts drifting up (fx: hearts) */
 .vl-s-heart .vl-mat { background: radial-gradient(110% 150% at 78% 125%, rgba(255, 90, 190, 0.5), rgba(255, 90, 190, 0) 62%), radial-gradient(60% 120% at 10% -20%, rgba(200, 120, 255, 0.35), transparent 60%), linear-gradient(105deg, #3a0c3e, #5c1266 48%, #2c0b4e); }
 .vl-s-heart .vl-plate { background: linear-gradient(90deg, rgba(36, 6, 34, 0.84), rgba(36, 6, 34, 0.68)); box-shadow: inset 0 0 0 1px rgba(255, 170, 230, 0.35), 0 2px 10px rgba(40, 0, 30, 0.45); }
@@ -285,23 +282,22 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 64'%3E%3Cg fill='none' stroke='%23d4af6a' stroke-width='1.1'%3E%3Cpath d='M30 64V40h12V28h12V16h12v12h12v12h12v24'/%3E%3Cpath d='M38 64V46h10V34h10V22h4v12h10v12h10v18' opacity='.7'/%3E%3Cpath d='M60 16V2M44 28 34 10M76 28l10-18M28 40 12 26M92 40l16-14' opacity='.55'/%3E%3C/g%3E%3Cpath d='M48 64V52h8V40h8v12h8v12z' fill='%235effc0' opacity='.22'/%3E%3C/svg%3E") right 4% bottom / auto 100% no-repeat,
   radial-gradient(80% 140% at 82% 110%, rgba(94, 255, 192, 0.16), transparent 60%), linear-gradient(180deg, #0c2219, #06140f); }
 .vl-s-emerald .vl-frame { box-shadow: inset 0 0 0 1.5px #d4af6a, inset 0 0 0 3.5px #06140f, inset 0 0 0 4.5px rgba(94, 255, 192, 0.45), 0 2px 8px rgba(0, 0, 0, 0.45); }
-.vl-s-emerald .vl-plate, .vl-s-emerald .vl-tier { background: rgba(3, 12, 9, 0.84); box-shadow: inset 0 0 0 1px rgba(212, 175, 106, 0.45); }
+.vl-s-emerald .vl-plate { background: rgba(3, 12, 9, 0.84); box-shadow: inset 0 0 0 1px rgba(212, 175, 106, 0.45); }
 /* `card-neonglass` (uncommon, level 18): smoked glass, a cyan tube bent round inside the edge (fx: tube) */
 .vl-s-neonglass .vl-mat { background: linear-gradient(162deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0) 38%), radial-gradient(90% 140% at 75% 50%, rgba(63, 224, 255, 0.12), transparent 65%), linear-gradient(180deg, #221b44, #120d26); }
 .vl-s-neonglass .vl-frame { box-shadow: inset 0 0 0 1px rgba(200, 240, 255, 0.35), 0 2px 8px rgba(0, 0, 0, 0.45); }
 .vl-s-neonglass .vl-plate { left: 10px; top: 10px; bottom: 10px; }
-.vl-s-neonglass .vl-tier { right: 12px; bottom: 11px; }
 /* `card-chrome` (uncommon, level 20): mirror chrome — bright horizon bands, a dark reflection — a prism running the rim (sheen) */
 .vl-s-chrome .vl-mat { background: linear-gradient(180deg, #f7f9fc 0%, #b9c1cc 18%, #eef2f7 34%, #4c5460 50%, #8b94a1 58%, #d8dde5 76%, #6f7884 100%); }
 .vl-s-chrome .vl-mat::after { background: linear-gradient(100deg, rgba(255, 255, 255, 0) 30%, rgba(255, 255, 255, 0.35) 46%, rgba(255, 255, 255, 0) 52%), linear-gradient(90deg, rgba(255, 140, 210, 0.12), rgba(140, 210, 255, 0.12) 50%, rgba(180, 255, 170, 0.1)); }
 .vl-s-chrome .vl-frame { padding: 1.5px; background: linear-gradient(90deg, #ff9ad6, #9ad8ff 35%, #b8ffb0 65%, #ffe39a); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); box-shadow: none; }
-.vl-s-chrome .vl-plate, .vl-s-chrome .vl-tier { background: rgba(14, 16, 22, 0.82); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
+.vl-s-chrome .vl-plate { background: rgba(14, 16, 22, 0.82); box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35); }
 /* `card-champagne` (uncommon, level 25 — the Gilded family): navy lacquer, Chrysler arches in champagne silver (sheen) */
 .vl-s-champagne .vl-mat { background:
   url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 120 64'%3E%3Cg fill='none' stroke='%23e8dcc0' stroke-width='1'%3E%3Cpath d='M20 64a40 40 0 0 1 80 0'/%3E%3Cpath d='M30 64a30 30 0 0 1 60 0' opacity='.85'/%3E%3Cpath d='M40 64a20 20 0 0 1 40 0' opacity='.7'/%3E%3Cpath d='M50 64a10 10 0 0 1 20 0' opacity='.6'/%3E%3C/g%3E%3Cg fill='%23e8dcc0' opacity='.5'%3E%3Cpath d='m60 22-2 4h4z'/%3E%3Cpath d='m39 30-2 3.5h4z' transform='rotate(-35 39 31)'/%3E%3Cpath d='m81 30-2 3.5h4z' transform='rotate(35 81 31)'/%3E%3Cpath d='m27 45-2 3h4z' transform='rotate(-62 27 46)'/%3E%3Cpath d='m93 45-2 3h4z' transform='rotate(62 93 46)'/%3E%3C/g%3E%3C/svg%3E") right 2% bottom / auto 120% no-repeat,
   radial-gradient(70% 130% at 82% 120%, rgba(255, 111, 181, 0.16), transparent 60%), linear-gradient(180deg, #121a38, #0b1024); }
 .vl-s-champagne .vl-frame { box-shadow: inset 0 0 0 1.5px #e8dcc0, inset 0 0 0 3.5px #0b1024, inset 0 0 0 4.5px rgba(232, 220, 192, 0.45), 0 2px 8px rgba(0, 0, 0, 0.45); }
-.vl-s-champagne .vl-plate, .vl-s-champagne .vl-tier { background: rgba(8, 10, 24, 0.84); box-shadow: inset 0 0 0 1px rgba(232, 220, 192, 0.42); }
+.vl-s-champagne .vl-plate { background: rgba(8, 10, 24, 0.84); box-shadow: inset 0 0 0 1px rgba(232, 220, 192, 0.42); }
 .vl-fcm-neonglass .vl-fc-top { top: 9%; left: 7%; right: 7%; }
 .vl-fcm-neonglass .vl-fc-foot { bottom: 9.5%; left: 7%; right: 7%; }
 .vl-fcm-neonglass .vl-fc-plate { left: 6.5%; }
@@ -368,64 +364,63 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
 .vl-s-marble .vl-frame, .vl-s-neoncamo .vl-frame, .vl-s-carbon .vl-frame, .vl-s-confetti .vl-frame, .vl-s-circuit .vl-frame {
   box-shadow: inset 0 0 0 1px rgba(var(--ge), 0.7), inset 0 0 12px rgba(var(--ge), 0.32), 0 0 12px rgba(var(--ge), 0.28), 0 2px 8px rgba(0, 0, 0, 0.45); }
 .vl-s-zebra .vl-mat { background: url(../assets/vault/zebra.webp) center / cover, #111; }
-.vl-s-zebra .vl-plate, .vl-s-zebra .vl-tier { background: rgba(8, 8, 8, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 79, 184, 0.45); }
+.vl-s-zebra .vl-plate { background: rgba(8, 8, 8, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 79, 184, 0.45); }
 .vl-s-zebra .vl-frame { box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.45), 0 2px 8px rgba(0, 0, 0, 0.45); }
 .vl-s-camo .vl-mat { background: url(../assets/vault/camo.webp) center / cover, #2a3220; }
-.vl-s-camo .vl-plate, .vl-s-camo .vl-tier { background: rgba(10, 14, 6, 0.84); box-shadow: inset 0 0 0 1px rgba(184, 196, 138, 0.42); }
+.vl-s-camo .vl-plate { background: rgba(10, 14, 6, 0.84); box-shadow: inset 0 0 0 1px rgba(184, 196, 138, 0.42); }
 .vl-s-camo .vl-frame { box-shadow: inset 0 0 0 1px rgba(184, 196, 138, 0.5), 0 2px 8px rgba(0, 0, 0, 0.45); }
 .vl-s-velvet { --ge: 255, 207, 122; }
 .vl-s-velvet .vl-mat { background: linear-gradient(100deg, rgba(0, 0, 0, 0.35), rgba(255, 140, 140, 0.08) 30%, rgba(0, 0, 0, 0.3) 55%, rgba(255, 150, 150, 0.06) 80%, rgba(0, 0, 0, 0.4)), url(../assets/vault/velvet-oxblood.webp) center / cover, #45081a; }
 .vl-s-velvet .vl-mat::after { box-shadow: inset 0 0 0 3px #2a0710, inset 0 0 0 4.5px rgba(240, 217, 168, 0.75); }
-.vl-s-velvet .vl-plate, .vl-s-velvet .vl-tier { background: rgba(26, 4, 9, 0.86); box-shadow: inset 0 0 0 1px rgba(240, 217, 168, 0.45); }
+.vl-s-velvet .vl-plate { background: rgba(26, 4, 9, 0.86); box-shadow: inset 0 0 0 1px rgba(240, 217, 168, 0.45); }
 .vl-s-auroraglass { --ge: 143, 240, 216; }
 .vl-s-auroraglass .vl-mat { background: radial-gradient(ellipse at 70% 120%, #0c3a33, transparent 60%), linear-gradient(180deg, #020a12, #051a1c); }
-.vl-s-auroraglass .vl-plate, .vl-s-auroraglass .vl-tier { background: rgba(2, 12, 14, 0.8); box-shadow: inset 0 0 0 1px rgba(143, 240, 216, 0.35); }
+.vl-s-auroraglass .vl-plate { background: rgba(2, 12, 14, 0.8); box-shadow: inset 0 0 0 1px rgba(143, 240, 216, 0.35); }
 .vl-s-rosegold { --ge: 230, 169, 143; }
 .vl-s-rosegold .vl-mat { background: url(../assets/vault/onyx.webp) center / cover, #0c0a0c; }
 .vl-s-rosegold .vl-mat::after { background: repeating-linear-gradient(60deg, transparent 0 13px, rgba(230, 169, 143, 0.28) 13px 14px), repeating-linear-gradient(-60deg, transparent 0 13px, rgba(230, 169, 143, 0.28) 13px 14px); }
-.vl-s-rosegold .vl-plate, .vl-s-rosegold .vl-tier { background: rgba(12, 8, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(230, 169, 143, 0.5); }
+.vl-s-rosegold .vl-plate { background: rgba(12, 8, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(230, 169, 143, 0.5); }
 .vl-s-foil { --ge: 255, 214, 120; }
 .vl-s-foil .vl-mat { background: linear-gradient(160deg, rgba(40, 20, 0, 0.12), rgba(40, 20, 0, 0.42)), url(../assets/vault/foil-gold.webp) center / cover, #c79d4c; }
-.vl-s-foil .vl-plate, .vl-s-foil .vl-tier { background: rgba(30, 18, 4, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 226, 150, 0.55); }
+.vl-s-foil .vl-plate { background: rgba(30, 18, 4, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 226, 150, 0.55); }
 .vl-s-charcoal { --ge: 255, 120, 50; }
 .vl-s-charcoal .vl-mat { background: radial-gradient(ellipse at 50% 135%, rgba(255, 90, 30, 0.45), transparent 62%), linear-gradient(180deg, #0c0807, #1a0d08); }
-.vl-s-charcoal .vl-plate, .vl-s-charcoal .vl-tier { background: rgba(14, 6, 4, 0.84); box-shadow: inset 0 0 0 1px rgba(255, 150, 80, 0.4); }
+.vl-s-charcoal .vl-plate { background: rgba(14, 6, 4, 0.84); box-shadow: inset 0 0 0 1px rgba(255, 150, 80, 0.4); }
 .vl-s-marble { --ge: 233, 211, 160; }
 .vl-s-marble .vl-mat { background: url(../assets/vault/marble-gold.webp) center / cover, #ece6da; }
-.vl-s-marble .vl-plate, .vl-s-marble .vl-tier { background: rgba(20, 16, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(233, 211, 160, 0.6); }
+.vl-s-marble .vl-plate { background: rgba(20, 16, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(233, 211, 160, 0.6); }
 .vl-s-neoncamo { --ge: 122, 255, 216; }
 .vl-s-neoncamo .vl-mat { background: url(../assets/vault/camo-dark.webp) center / cover, #0a1416; }
-.vl-s-neoncamo .vl-plate, .vl-s-neoncamo .vl-tier { background: rgba(4, 8, 10, 0.84); box-shadow: inset 0 0 0 1px rgba(122, 255, 216, 0.35); }
+.vl-s-neoncamo .vl-plate { background: rgba(4, 8, 10, 0.84); box-shadow: inset 0 0 0 1px rgba(122, 255, 216, 0.35); }
 .vl-s-carbon { --ge: 90, 209, 255; }
 .vl-s-carbon .vl-mat { background: url(../assets/vault/carbon.webp) center / 180px auto repeat, #111317; }
-.vl-s-carbon .vl-plate, .vl-s-carbon .vl-tier { background: rgba(6, 8, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(90, 209, 255, 0.35); }
+.vl-s-carbon .vl-plate { background: rgba(6, 8, 10, 0.86); box-shadow: inset 0 0 0 1px rgba(90, 209, 255, 0.35); }
 .vl-s-confetti { --ge: 255, 111, 208; }
 .vl-s-confetti .vl-mat { background: radial-gradient(circle at 80% 20%, rgba(255, 120, 220, 0.35), transparent 40%), radial-gradient(circle at 25% 90%, rgba(120, 90, 255, 0.35), transparent 45%), linear-gradient(135deg, #1c0a2c, #3a0c40); }
-.vl-s-confetti .vl-plate, .vl-s-confetti .vl-tier { background: rgba(20, 6, 28, 0.84); box-shadow: inset 0 0 0 1px rgba(255, 170, 230, 0.4); }
+.vl-s-confetti .vl-plate { background: rgba(20, 6, 28, 0.84); box-shadow: inset 0 0 0 1px rgba(255, 170, 230, 0.4); }
 .vl-s-circuit { --ge: 61, 255, 160; }
 .vl-s-circuit .vl-mat { background: repeating-linear-gradient(0deg, transparent 0 11px, rgba(61, 255, 160, 0.05) 11px 12px), repeating-linear-gradient(90deg, transparent 0 11px, rgba(61, 255, 160, 0.05) 11px 12px), radial-gradient(ellipse at 70% 50%, #0a2a1c, #03100b 75%); }
-.vl-s-circuit .vl-plate, .vl-s-circuit .vl-tier { background: rgba(2, 10, 6, 0.86); box-shadow: inset 0 0 0 1px rgba(61, 255, 160, 0.35); }
+.vl-s-circuit .vl-plate { background: rgba(2, 10, 6, 0.86); box-shadow: inset 0 0 0 1px rgba(61, 255, 160, 0.35); }
 /* the epics: two effects, bold frames */
 .vl-s-noir .vl-mat { background: linear-gradient(100deg, rgba(0, 0, 0, 0.3), rgba(255, 90, 120, 0.05) 35%, rgba(0, 0, 0, 0.35) 60%, rgba(255, 90, 120, 0.04) 85%), url(../assets/vault/velvet-black.webp) center / cover, #0a0507; }
-.vl-s-noir .vl-plate, .vl-s-noir .vl-tier { background: rgba(8, 2, 4, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 58, 92, 0.4); }
+.vl-s-noir .vl-plate { background: rgba(8, 2, 4, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 58, 92, 0.4); }
 .vl-s-sapphire .vl-mat { background: url(../assets/vault/sapphire.webp) center / cover, #061237; }
 .vl-s-sapphire .vl-frame { box-shadow: inset 0 0 0 1.5px #c9d6ee, inset 0 0 0 3.5px #050c1f, inset 0 0 0 4.5px rgba(201, 214, 238, 0.45), 0 3px 12px rgba(0, 0, 0, 0.5); }
-.vl-s-sapphire .vl-plate, .vl-s-sapphire .vl-tier { background: rgba(3, 8, 24, 0.86); box-shadow: inset 0 0 0 1px rgba(201, 214, 238, 0.5); }
+.vl-s-sapphire .vl-plate { background: rgba(3, 8, 24, 0.86); box-shadow: inset 0 0 0 1px rgba(201, 214, 238, 0.5); }
 .vl-s-legend .vl-mat { background: radial-gradient(ellipse at 20% 0%, rgba(255, 122, 240, 0.18), transparent 50%), radial-gradient(ellipse at 90% 100%, rgba(122, 200, 255, 0.18), transparent 55%), linear-gradient(135deg, #07050d, #120a1c 55%, #06040a); }
 .vl-s-legend .vl-frame { padding: 1.5px; background: linear-gradient(90deg, #ff7af0, #ffd27a 25%, #9affc0 50%, #7ac8ff 75%, #c07aff); -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); box-shadow: none; }
-.vl-s-legend .vl-plate, .vl-s-legend .vl-tier { background: rgba(8, 4, 14, 0.84); box-shadow: inset 0 0 0 1px rgba(240, 230, 255, 0.4); }
+.vl-s-legend .vl-plate { background: rgba(8, 4, 14, 0.84); box-shadow: inset 0 0 0 1px rgba(240, 230, 255, 0.4); }
 /* (LOBBY 2.0 A — BURNISHED BRONZE: the foil toned to bronze, darker toward the foot; the deco sunburst is the effect — fx/deco.js) */
 .vl-s-century .vl-mat { background: linear-gradient(180deg, rgba(36, 16, 4, 0.34), rgba(14, 6, 1, 0.74)), linear-gradient(#a2602e, #6e3a16), url(../assets/vault/foil-gold.webp) center / cover, #5a3012; background-blend-mode: normal, multiply, normal; }
 .vl-s-century .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(232, 170, 110, 0.8), inset 0 0 0 4px rgba(0, 0, 0, 0.4), 0 0 12px rgba(214, 140, 72, 0.28), 0 3px 12px rgba(0, 0, 0, 0.5); }
-.vl-s-century .vl-plate, .vl-s-century .vl-tier { background: rgba(16, 6, 2, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 207, 138, 0.45); }
+.vl-s-century .vl-plate { background: rgba(16, 6, 2, 0.86); box-shadow: inset 0 0 0 1px rgba(255, 207, 138, 0.45); }
 .vl-s-marqueegold .vl-mat { background: url(../assets/vault/velvet-black.webp) center / cover, #0c0806; }
 .vl-s-marqueegold .vl-frame { box-shadow: inset 0 0 0 1.5px rgba(255, 217, 138, 0.8), 0 0 16px rgba(255, 196, 90, 0.3), 0 3px 12px rgba(0, 0, 0, 0.5); }
 .vl-strip.vl-s-marqueegold .vl-plate { left: 15px; top: 13px; bottom: 13px; }
-.vl-strip.vl-s-marqueegold .vl-tier { right: 17px; bottom: 14px; }
-.vl-s-marqueegold .vl-plate, .vl-s-marqueegold .vl-tier { background: rgba(10, 6, 2, 0.88); box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.55); }
+.vl-s-marqueegold .vl-plate { background: rgba(10, 6, 2, 0.88); box-shadow: inset 0 0 0 1px rgba(255, 217, 138, 0.55); }
 .vl-s-penthouse .vl-mat { background: linear-gradient(180deg, #05060f, #0b0c1c 30%, #120e1c); }
 .vl-s-penthouse .vl-frame { box-shadow: inset 0 0 0 2px rgba(246, 227, 176, 0.85), inset 0 0 0 4px #0a0a10, 0 3px 12px rgba(0, 0, 0, 0.5); }
-.vl-s-penthouse .vl-plate, .vl-s-penthouse .vl-tier { background: rgba(6, 6, 12, 0.86); box-shadow: inset 0 0 0 1px rgba(246, 227, 176, 0.5); }
+.vl-s-penthouse .vl-plate { background: rgba(6, 6, 12, 0.86); box-shadow: inset 0 0 0 1px rgba(246, 227, 176, 0.5); }
 /* the legendaries: their own scene + light (the laser in the canvas) */
 .vl-s-wildfire { --sg: 255, 120, 50; } .vl-s-eternal { --sg: 200, 130, 255; } .vl-s-witness { --sg: 255, 214, 140; }
 .vl-s-wildfire .vl-mat { background: linear-gradient(180deg, #0c0406, #2a0a06 60%, #120302); }
@@ -479,7 +474,7 @@ body.reduced-fx .vl-fc-sheen > i, .vl-still .vl-fc-sheen > i { animation: none; 
   background: linear-gradient(315deg, #ffffff 0%, #9aa1ab 30%, #eef0f3 55%, #5d646e 80%, #c9cdd3 100%);
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0); -webkit-mask-composite: xor; mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0); }
 .vl-strip.vl-s-platinum { box-shadow: 0 2px 10px rgba(0, 0, 0, 0.5); }
-.vl-s-platinum .vl-plate, .vl-s-platinum .vl-tier { background: rgba(14, 16, 22, 0.84); box-shadow: inset 0 0 0 1px rgba(236, 240, 246, 0.42), 0 2px 8px rgba(10, 12, 18, 0.35); }
+.vl-s-platinum .vl-plate { background: rgba(14, 16, 22, 0.84); box-shadow: inset 0 0 0 1px rgba(236, 240, 246, 0.42), 0 2px 8px rgba(10, 12, 18, 0.35); }
 .vl-fc.vl-s-platinum .vl-frame { padding: 5px; }
 .vl-fc.vl-s-platinum .vl-frame::after { inset: 5px; padding: 2px; border-radius: calc(var(--r) - 5px); }
 .vl-fcm-platinum .vl-fc-house, .vl-fcm-platinum .vl-fc-since small, .vl-fcm-platinum .vl-fc-since b, .vl-fcm-platinum .vl-fc-card { color: #14171d; text-shadow: 0 1px 0 rgba(255, 255, 255, 0.6); }
@@ -671,7 +666,6 @@ body.reduced-fx .vg > i, .vl-still .vg > i, .vg.vg-still > i { animation: none !
 .vl-dt-name { display: block; justify-self: stretch; width: 100%; min-width: 0; max-width: 100%; box-sizing: border-box; padding: 0 3px; overflow: visible; font: 900 14px/1.1 var(--font-display); letter-spacing: 0.04em; color: #fff8ee; text-align: center; }
 .vl-dt.is-none .vl-dt-n { color: #d8c9a4; }
 /* the DEV cards' tag (ONE OF ONE · DEV — a tier above legendary in look: gold into magenta) */
-.vl-dev1 .vl-tier, .vl-fc.vl-dev1 .vl-tier { color: #2a0f22; letter-spacing: 0.16em; background: linear-gradient(90deg, #ffe39a, #ffb36b 45%, #ff7ad9); box-shadow: 0 0 12px rgba(255, 120, 200, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.6); }
 @media (prefers-reduced-motion: reduce) { .vl-dress { transition: none; } }
 
 /* THE VAULT 2B — THE TWO DEV CARDS' materials: THE SWITCHBOARD = brushed brass under the lamp (the effect lights it + bakes its jacks);
@@ -688,7 +682,6 @@ body.reduced-fx .vg > i, .vl-still .vg > i, .vg.vg-still > i { animation: none !
 .vl-fc.vl-t-legendary.vl-s-devsource .vl-frame { box-shadow: inset 0 0 0 2px rgba(110, 255, 170, 0.5), 0 0 0 2px rgba(255, 110, 220, 0.8), 0 0 30px rgba(255, 90, 220, 0.22), 0 8px 26px rgba(0, 0, 0, 0.6); }
 /* the DEV tag on the full card: compact + on one line (the top line keeps its own line beside it) */
 /* (2C — the owner's FIX: "1 OF 1 · DEV", BOLD — the display face at its heaviest) */
-.vl-fc.vl-dev1 .vl-tier { font: 900 max(10px, 2.7cqi)/1 var(--font-display); letter-spacing: 0.08em; white-space: nowrap; padding-left: 0.8em; padding-right: 0.8em; }
 .vl-fc.vl-dev1 .vl-fc-house { white-space: nowrap; }
 
 /* ===================================================================== THE VAULT 2B — THE REST OF THE EMBLEM SET (emblem-art.js): every

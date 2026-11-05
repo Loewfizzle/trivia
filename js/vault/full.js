@@ -26,6 +26,7 @@ import { applyGlow } from './glows.js';
 import { prominence } from './emblems.js';
 import { embTier } from './strip.js';
 import { isDevCard, ONE_OF_ONE } from '../core/dev-cards.js';
+import { gemEl } from './gems.js';
 import { takeLayer, onCloseAll } from '../ui/layers.js';
 
 /** the full card's id in THE CARD LAB (its own mark: a strip can be approved before its full card) */
@@ -61,7 +62,7 @@ export function fitTop(top) {
   if (typeof window === 'undefined' || typeof ResizeObserver === 'undefined') return top;
   let was = false;
   const fit = () => {
-    const house = top.querySelector('.vl-fc-house'), pill = top.querySelector('.vl-tier');
+    const house = top.querySelector('.vl-fc-house'), pill = top.querySelector('.vl-fc-gem');
     if (!top.isConnected) return was ? false : undefined;
     was = true;
     if (!house) return;
@@ -105,6 +106,15 @@ function layCover(plate) {
   if (full > plate.offsetWidth + 0.5 || (cur && Math.abs(cur - full) > 0.5)) plate.style.minWidth = `${full}px`;
 }
 
+// SHELL 2.0 A — THE FULL CARD's TIER GEM (the owner, Nov 4 8:12 pm + Nov 5 — docs/harbor/refs/shell/tier-gem-cards.png): the tier pill's words
+// → the SAME tier gem the slim strips wear (vault/gems.js), bigger (28 pt) with its glow, in the card's TOP-RIGHT corner; the tier's NAME
+// stays where cards are picked (CUSTOMIZE's grid, THE LAB) + in the card's label for a screen reader. THE 1-OF-1 BADGE (dev + gift cards —
+// oneofone-corner.png): the animated RAINBOW gem in the corner, "1 OF 1" to its LEFT on the same line in the gem's own light — a little
+// bigger + brighter than the mock (readable on gold), the gem inset so its glow clears the rounded corner.
+function tierBadge(t, dev) {
+  return h('span.vl-fc-gem', { class: dev ? 'is-1of1' : null, dataset: { tier: dev ? 'dev' : t } },
+    dev ? h('b.vl-fc-1of1', ONE_OF_ONE) : null, gemEl(dev ? null : t, { dev, size: dev ? 32 : 28 }));
+}
 export function fullCardEl({ card, tier, who = {}, spotted = null }) {
   const look = LOOKS[card] || LOOKS['card-brushed'], t = tier || tierOf(card), lv = who.lv || 1;
   const sighting = /^card-sg-/.test(card);
@@ -120,7 +130,7 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     t !== 'common' ? h('i.vl-fc-sheen', { 'aria-hidden': 'true' }, h('i')) : null,
     fitTop(h('div.vl-fc-top', badge.slot === 'top'
       ? h('span.vl-fc-house', 'NEON SPEAKEASY', who.fd ? [' · ', h('b.vl-fc-fd.is-top', 'FOUNDER')] : null)   // (2C: his № is under his name — the line carries FOUNDER)
-      : h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), h('span.vl-tier', dev ? ONE_OF_ONE : TIER_NAMES[t] || t))),
+      : h('span.vl-fc-house', who.no ? `NEON SPEAKEASY · № ${who.no}` : 'NEON SPEAKEASY'), tierBadge(t, dev))),
     who.fd && !sighting && badge.slot === 'pill' ? h('span.vl-fc-fd', 'FOUNDER') : null,
     sighting ? h('div.vl-fc-title', { class: nameOf(card).length > 18 ? 'is-long' : '' }, h('b', nameOf(card)), h('small', spotted ? `${spotOf(card)} · ${timeOf(spotted)}` : spotOf(card))) : null,
     plate,
@@ -129,7 +139,7 @@ export function fullCardEl({ card, tier, who = {}, spotted = null }) {
     card === 'card-founder' ? h('div.vl-fc-stamp', h('small', 'FOUNDING MEMBER'), h('b', who.no != null ? `№ ${who.no}` : '№ —'), h('em', `SINCE ${sinceOf(who.at)}`)) : null,
     t === 'legendary' ? h('i.vl-fc-brackets', { 'aria-hidden': 'true' }, h('i'), h('i')) : null,
     h('i.vl-frame', { 'aria-hidden': 'true' }));
-  el.setAttribute('aria-label', `${nameOf(card)} (${TIER_NAMES[t] || t}) — ${name}, level ${lv}`);
+  el.setAttribute('aria-label', `${nameOf(card)} (${dev ? ONE_OF_ONE : TIER_NAMES[t] || t}) — ${name}, level ${lv}`);
   return el;
 }
 
