@@ -1,0 +1,3 @@
+# SHELL 2.0 B2 — GREEN MEANS GREEN, THE OWNER's B1 FIXES, THE GIFT TOOL + THE GIFT CARDS, MAKE HOST, THE SMALL FEATURES, THE DESKTOP GROUP (Nov 5 2026)
+
+(in progress — written in full at the end of the pass)

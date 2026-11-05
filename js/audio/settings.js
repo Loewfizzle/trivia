@@ -22,10 +22,15 @@ export const settings = PAGE_SILENT ? { ...saved, muted: true, musicOff: true } 
 // SPEED PASS B — THE SECOND TAB's MUSIC (the owner, Nov 4 8:56 pm: "a second tab never doubles the music"): a tab that YIELDED to another tab
 // of the same player (identity.js#watchDuplicateTabs) is QUIET — its music off for this page only, never saved (the device's own choice is
 // kept + written back, like PAGE_SILENT); it plays again the moment it's the player's tab.
+// (SHELL 2.0 B2: + THE IDLE CUTOFF — audio/idle.js. Each reason holds the page quiet on its own: the music comes back when NONE is left)
 let quietReal = null;
-export function setPageQuiet(on) {
-  if (!!on === (quietReal !== null)) return;
-  if (on) { quietReal = settings.musicOff; settings.musicOff = true; } else { settings.musicOff = PAGE_SILENT ? true : quietReal; quietReal = null; }
+const quietWhy = new Set();
+export function setPageQuiet(on, why = 'tab') {
+  const was = quietWhy.size > 0;
+  if (on) quietWhy.add(why); else quietWhy.delete(why);
+  const is = quietWhy.size > 0;
+  if (was === is) return;
+  if (is) { quietReal = settings.musicOff; settings.musicOff = true; } else { settings.musicOff = PAGE_SILENT ? true : quietReal; quietReal = null; }
   listeners.forEach(fn => fn(settings));
 }
 export const pageQuiet = () => quietReal !== null;

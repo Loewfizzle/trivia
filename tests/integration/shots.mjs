@@ -65,9 +65,12 @@ const EXTRA = opt('qs', '') ? `&${opt('qs')}` : '';
 const WHEN = opt('when', '') || '';
 const LOAD = !!opt('load', false), NET = { '3g': { latency: 150, down: 1.6e6, up: 0.75e6 }, '4g': { latency: 60, down: 9e6, up: 3e6 } }[opt('net', '')] || null, CPU = Number(opt('cpu', 0)) || 0;
 // (DESKTOP, Nov 2 — THE STANDING RULE: every pass checks ONE desktop size (desktop = 1440×900) beside the three phone widths; sideways +
+//  og = THE LINK-PREVIEW IMAGE (1200 × 630 — assets/og.png; SHELL 2.0 B2)
 //  iPad only in a desktop pass + FR6: wide = the big monitors, ipad = upright + sideways, sideways = two phones on their side, desk-pass = all)
 const SIZE_SETS = { phones: '390x844,393x852,430x932,412x915', desktop: '1440x900', all: '390x844,393x852,430x932,412x915,1440x900', quick: '390x844,1440x900', harbor: '390x844,402x874,412x915,430x932,874x402,1440x900',
-  pass: '390x844,402x874,430x932,1440x900', wide: '1920x1080,2560x1080,1280x720', ipad: '820x1180,1180x820', sideways: '874x402,932x430', 'desk-pass': '1440x900,1920x1080,2560x1080,1280x720,820x1180,1180x820,874x402' };
+  pass: '390x844,402x874,430x932,1440x900', wide: '1920x1080,2560x1080,1280x720', ipad: '820x1180,1180x820', sideways: '874x402,932x430', 'desk-pass': '1440x900,1920x1080,2560x1080,1280x720,820x1180,1180x820,874x402',
+  // SHELL 2.0 B2 — THE LINK-PREVIEW IMAGE (assets/og.png, 1200 × 630): --preview --city 2 --sizes og --idle --scenes og=2026-06-12T22:30 (a plain summer night, no holiday)
+  og: '1200x630' };
 const SIZES = String(SIZE_SETS[opt('sizes', 'quick')] || opt('sizes')).split(',').map(s => s.split('x').map(Number));
 // [when, options] — dates are Grand Rapids' 19 Oct 2026 unless the scene is a holiday
 const SCENE = {

@@ -353,6 +353,8 @@ async function boot() {
 
   setState({ invite: inviteCode() });
   render(state);
+  // (SHELL 2.0 B2 — THE MUSIC's IDLE CUTOFF: 5 h with no tap / key / scroll → the music fades + one message; never during a match in a room)
+  import('./audio/idle.js').then(m => m.startIdleCutoff({ inMatch: () => !!(state.code && state.game && state.meta && state.meta.status === 'playing'), say: line => toast(line, 'info', { ms: 24 * 3600e3 }) })).catch(() => {});
   // (SHELL 2.0 B2 — THE GIFT's REVEAL: a gift card given by the owner waits on the server → one light check once the title is up)
   setTimeout(() => { import('./profile/gift-reveal.js').then(m => m.checkGift()).catch(() => {}); }, 6000);
   // First-time visitors: show the title first, then start the Firebase SDK (~120 KB) once it has painted —

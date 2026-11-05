@@ -184,3 +184,39 @@ test('THE CREW SWITCH LIVE: the server stamps the room; the player\'s phone load
   assert.match(app, /^let radioGate = null, crewSeen;$/m, 'declared before the first render (B1\'s TDZ lesson)');
   assert.match(radio, /if \(onGone\) try \{ onGone\(\); \}/);
 });
+
+// ---- GROUP 3 — THE MUSIC's IDLE CUTOFF (a faked clock)
+test('THE IDLE CUTOFF: 5 h with no tap / key / scroll → the music off + ONE message; a tap brings it back; never during a match; the second tab\'s quiet holds on its own', async () => {
+  const S = await import('../js/audio/settings.js'), I = await import('../js/audio/idle.js');
+  const ls = new Map(), tgt = { h: new Map(), addEventListener(e, f) { this.h.set(e, f); }, removeEventListener(e) { this.h.delete(e); } };
+  let T = 1_000_000, match = false; const said = [];
+  S.updateSettings({ musicOff: false });
+  const C = I.startIdleCutoff({ now: () => T, inMatch: () => match, say: l => { said.push(l); return { close() { said.push('closed'); } }; }, target: tgt, every: 0 });
+  assert.deepEqual([...tgt.h.keys()].sort(), ['keydown', 'pointerdown', 'scroll', 'touchstart', 'wheel']);
+  T += I.IDLE_MS - 60e3; assert.equal(C.check(), false, '4 h 59 min: still playing'); assert.equal(S.settings.musicOff, false);
+  T += 60e3; assert.equal(C.check(), true, '5 h: the cutoff'); assert.equal(S.settings.musicOff, true, 'the music off (this page)');
+  assert.deepEqual(said, ['Music paused — tap to bring it back']); assert.equal(C.check(), false, 'said once');
+  tgt.h.get('pointerdown')(); assert.equal(S.settings.musicOff, false, 'a tap brings it back'); assert.equal(said.at(-1), 'closed', 'the message goes with it');
+  match = true; T += I.IDLE_MS * 2; assert.equal(C.check(), false, 'never during a match in a room'); match = false;
+  // the second tab's quiet (reason 'tab') + the idle one: waking from idle leaves the tab's quiet in place
+  S.setPageQuiet(true); assert.equal(C.check(), true); tgt.h.get('keydown')(); assert.equal(S.settings.musicOff, true, 'still the yielded tab — quiet');
+  S.setPageQuiet(false); assert.equal(S.settings.musicOff, false, 'both reasons gone → the device\'s own choice');
+  C.stop(); assert.equal(tgt.h.size, 0);
+  assert.equal(I.isIdle({ last: 0, now: I.IDLE_MS, inMatch: false }), true);
+  assert.match(read('js/app.js'), /startIdleCutoff\(\{ inMatch: \(\) => !!\(state\.code && state\.game && state\.meta && state\.meta\.status === 'playing'\)/);
+});
+
+// ---- GROUP 3 — YOUR PREVIOUS KEY · THE LINK-PREVIEW IMAGE · THE CITY-1.0 SONGS
+test('YOUR PREVIOUS KEY on YOU → ACCOUNT; the new og.png (1200 × 630, ?v=3, a shots.mjs size); late1 + late2 out of the deploy, nothing names them', () => {
+  const prof = read('js/screens/profile.js');
+  assert.match(prof, /els\.prevKey = prevKeyRow\(\);/); assert.match(prof, /const k = previousKey\(\);\n    if \(!k\) return null;/);
+  assert.match(prof, /label: 'Your previous key', sub: k, value: 'COPY'/); assert.match(prof, /confirm: 'TAP AGAIN TO FORGET IT'/);
+  const og = readFileSync(new URL('../assets/og.png', import.meta.url));
+  assert.equal(og.readUInt32BE(16), 1200); assert.equal(og.readUInt32BE(20), 630);
+  const idx = read('index.html'); assert.equal((idx.match(/assets\/og\.png\?v=3/g) || []).length, 2);
+  assert.match(read('tests/integration/shots.mjs'), /og: '1200x630'/);
+  for (const f of ['late1', 'late2']) {
+    assert.ok(!existsSync(new URL(`../audio/music/${f}.mp3`, import.meta.url)), `${f}.mp3 gone`);
+    for (const p of ['data/mood-music.json', 'js/audio/music.js', 'js/audio/mood.js', 'js/audio/party-music.js', 'js/core/city-mood.js']) assert.ok(!read(p).includes(`"${f}"`) && !read(p).includes(`'${f}'`), `${p} names ${f}`);
+  }
+});

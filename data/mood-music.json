@@ -2,14 +2,12 @@
  "_about": "MOOD MUSIC (docs/audio.md). Move a song: change its \"mood\". keeper=true: the owner chose it (never retired). Rebuilt by scripts/build-mood-music.py (keeps keepers; --keep-assignments keeps every song in place).",
  "moods": {
   "late": [
-   "late1",
    "golf-rooftops",
    "run2",
    "run1",
    "spy2",
    "menu2",
-   "spy3",
-   "late2"
+   "spy3"
   ],
   "morning": [
    "overclock",
@@ -48,39 +46,6 @@
   ]
  },
  "songs": {
-  "late1": {
-   "mood": "late",
-   "keeper": true,
-   "dur": 288.08,
-   "bpm": 76,
-   "loud": -21.54,
-   "move": 5.9,
-   "busy": 3.37,
-   "bright": 1291,
-   "key": "F# major",
-   "mode": "major",
-   "majorness": 0.146,
-   "score": {
-    "late": 0.86,
-    "morning": 0.36,
-    "day": 0.14,
-    "evening": 0.18,
-    "party": 0.22
-   },
-   "bestFit": "late",
-   "grid": {
-    "bpm": 149.974,
-    "t0": 0.0245,
-    "down": 0,
-    "steady": true,
-    "drift": [
-     0,
-     9,
-     10,
-     -3
-    ]
-   }
-  },
   "golf-rooftops": {
    "mood": "late",
    "keeper": false,
@@ -275,39 +240,6 @@
      0,
      0,
      0,
-     0
-    ]
-   }
-  },
-  "late2": {
-   "mood": "late",
-   "keeper": true,
-   "dur": 144.6,
-   "bpm": 129.2,
-   "loud": -17.71,
-   "move": 4.34,
-   "busy": 2.71,
-   "bright": 371,
-   "key": "C major",
-   "mode": "major",
-   "majorness": 0.18,
-   "score": {
-    "late": 0.71,
-    "morning": 0.42,
-    "day": 0.29,
-    "evening": 0.43,
-    "party": 0.45
-   },
-   "bestFit": "late",
-   "grid": {
-    "bpm": 129.986,
-    "t0": 0.4445,
-    "down": 3,
-    "steady": true,
-    "drift": [
-     0,
-     -3,
-     -4,
      0
     ]
    }

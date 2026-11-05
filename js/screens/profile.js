@@ -19,7 +19,7 @@ import { openStreakCard } from '../progress/streak-card.js';
 import { pgSheet } from '../progress/look.js';
 import { BOARD_GAMES } from '../core/boards.js';
 import { boardDef, fmtValue, MIN_WR_GAMES, winRate } from '../core/boards.js';
-import { fetchMe, myRanks, regenKey, restoreKey, setShown, setNotes, notes, setStyle, keyOffer, keepNewKey } from '../profile/me.js';
+import { fetchMe, myRanks, regenKey, restoreKey, setShown, setNotes, notes, setStyle, keyOffer, keepNewKey, previousKey, forgetPreviousKey } from '../profile/me.js';
 import { GAME_LIGHT } from '../board/view.js';
 import { sfx } from '../audio/sfx.js';
 import { settings } from '../audio/settings.js';
@@ -99,6 +99,9 @@ export function createView({ onBack = null, overlay = false } = {}) {
     els.cz = h('div.pf-cz-slot');
     els.bday = h('div.pf-bday-slot');
     els.keyBox = h('div.pf-keybox-slot');
+    // (SHELL 2.0 B2 — YOUR PREVIOUS KEY on YOU → ACCOUNT: it only lived in City 1.0's key sheet — the key this phone held before a restore or
+    //  a new key (profile/me.js#previousKey): a way back to that card. A glass row, only when there is one: tap = COPY; FORGET beside it)
+    els.prevKey = prevKeyRow();
     els.mast = h('div.pf-mast-slot');
     // (SHELL 2.0 A — THE ONE LOOK: NEW KEY a small danger tube, its second tap the button itself red; the two account rows THE ROW)
     els.newKey = tubeButton('NEW KEY', { kind: 'danger', size: 'sm', cls: 'pf-newkey', confirm: 'TAP AGAIN — THE OLD KEY STOPS WORKING', onClick: onNewKey });
@@ -121,6 +124,7 @@ export function createView({ onBack = null, overlay = false } = {}) {
           //  ACCOUNT keeps the key / restore / sign-in things only)
           els.bday,
           els.keyBox,
+          els.prevKey,
           els.elsewhere,
           els.restore,
           h('label.pf-switch', h('span.pf-switch-l', h('b', 'Show me on global leaderboards'), h('small', 'Off: your stats still count, only you see them.')), els.show, h('span.pf-switch-ui', { 'aria-hidden': 'true' })),
@@ -136,6 +140,16 @@ export function createView({ onBack = null, overlay = false } = {}) {
   // (SHELL 2.0 B1: opened from the ☰ menu → its ‹ BACK brings the menu back on top — settings-panel.js#backToMenu)
   const toMenu = () => import('../ui/settings-panel.js').then(m => m.backToMenu()).catch(() => {});
   function back() { closeAllPfSheets(); if (onBack) { onBack(); toMenu(); return; } try { sessionStorage.setItem('nd:back', '1'); } catch { /* fine */ } setState({ view: 'title' }); toMenu(); }
+
+  function prevKeyRow() {
+    const k = previousKey();
+    if (!k) return null;
+    const wrap = h('div.pf-prevkey');
+    const copy = row({ icon: 'key', ic: '#9fd8ff', label: 'Your previous key', sub: k, value: 'COPY', cls: 'pf-prevkey-row', onClick: async () => { try { await navigator.clipboard.writeText(k); toast('Previous key copied', 'ok', { sub: 'RESTORE YOUR ACCOUNT with it to go back to that card.' }); } catch { toast('Select the key and copy it', 'info'); } } });
+    const forget = row({ icon: 'leave', label: 'Forget the previous key', danger: true, chevron: false, cls: 'pf-prevkey-forget', confirm: 'TAP AGAIN TO FORGET IT', onClick: () => { forgetPreviousKey(); wrap.remove(); toast('Forgotten on this phone', 'ok'); } });
+    wrap.append(copy, forget);
+    return wrap;
+  }
 
   // ---------------------------------------------------------------- YOUR KEY — ONE block (2C's page showed the key THREE times)
   function paintKey() {

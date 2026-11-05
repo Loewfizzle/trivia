@@ -210,3 +210,7 @@
 .preview-card strong { text-transform: none; }
 /* LOBBY 2.0 A - REAL USERNAMES on THE BOARD: the line under the sign-up name box */
 .setup-public { display: block; margin-top: 6px; font: 600 12.5px/1.35 var(--font-ui); color: var(--text-dim); text-transform: none; letter-spacing: 0.01em; }
+
+/* SHELL 2.0 B2 — YOUR PREVIOUS KEY (screens/profile.js#prevKeyRow): two glass rows under YOUR KEY */
+.pf-prevkey { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; }
+.pf-prevkey-row .sh-row-l small { font-family: var(--font-mono); letter-spacing: 0.06em; word-break: break-all; }

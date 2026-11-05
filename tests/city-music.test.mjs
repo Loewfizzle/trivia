@@ -121,7 +121,7 @@ test('data: City 2.0 has five decks of the owner\'s songs; City 1.0\'s lists are
   const before = ['late', 'morning', 'day', 'evening', 'party'];
   for (const m of before) assert.ok(data.moods[m].length >= 5 && data.moods[m].length <= 8, `City 1.0 ${m} stays 5-8`);
   for (const id of before.flatMap(m => data.moods[m])) assert.ok(!data.songs[id].c2, `${id} is City 1.0's`);
-  assert.deepEqual(data.moods.late.slice(0, 2), ['late1', 'golf-rooftops'], 'City 1.0\'s late deck as it was');
+  assert.deepEqual(data.moods.late.slice(0, 2), ['golf-rooftops', 'run2'], 'City 1.0\'s late deck as it was (SHELL 2.0 B2: its own two songs, late1 + late2, dropped — City 2.0\'s decks cover every mood)');
 });
 
 test('data: every deck song exists, is in the song list with a grid, no repeats within a deck, no fanfares', () => {
