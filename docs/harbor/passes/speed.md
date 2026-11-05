@@ -99,3 +99,17 @@ kept, a re-climb, a second run, a restore). **Never run on the live site by a te
   a measurement that can't decide at its bar on this machine tonight; B looks at it with the phone's own numbers (the owner's `&bench=1`).
 - `partyroom` measured in Chromium only (WebKit's `wk-room.mjs` covers the room's shows, 5/5 — not the party room's speed).
 - The ONE ACCOUNT, ONE ROOM real-device test: the owner's, Sunday Nov 8.
+
+## The cloud + the hotfix
+- **Run 1** (e0aa8bc — the harbor tag): `tests` **GREEN**; harbor **14 / 15 jobs green** — `speed` (its first run), `lobbyfix` (the untagged
+  `oneseat` race fix confirmed), `room2` (the file-in condition), `holiday` (the spider's hub still) all green. The one red: `audio` — MY
+  `vault.mjs#gpuCheck` kept `dpr ≥ 2.9` in its RULE half; the runner's 2D fallback draws at 2× by design → the dpr moved to the SPEED half
+  (green locally with CI=true, 50/50). **Run 2** = the `audio` job alone (`gh workflow run harbor -f job=audio`, 41956697472) — **GREEN**. Every cloud job green; the two-run cap.
+- Vercel built the tagged push (the served `toast.js`, `core/reset.js`, `admin/groups.js` read back new).
+- **THE HOTFIX** (the owner's live iPhone, right after): THE YOU PAGE was UNSTYLED with a non-Gilded card (his THE SOURCE) — `css/progress.css`
+  + `vault.css` loaded only through `memberCard()`, which this pass's `paintHero` skips for a full card. The YOU page loads its sheets on mount
+  (`screens/profile.js`); GUESTS / the round-end card / a player's card load theirs themselves (checked). Proof: `youcard` — a fresh tab, a
+  non-Gilded card: the level bar, the goal, the stats + ACCOUNT carry their computed styles (it failed before: 0 px, vault.css only). Pushed
+  with the deploy tag (43ae2be), live ~45 s later (the served `profile.js` read back). LESSON: a refactor that stops calling a builder must keep
+  what the builder did on the side — the sheet a page needs is loaded by the PAGE, never by one of its pieces.
+
